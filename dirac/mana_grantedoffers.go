@@ -587,7 +587,13 @@ func (s *State) ownManaUsable(k *prep, sl Slot) bool {
 	if !(pc.manaAb >= 0 && (pc.manaTap || pc.manaSac || pc.manaSacOnly || lifeOnlyPain(pc)) || k.gen.flags[c]&gfManaVar != 0) || k.gen.flags[c]&gfManaVar != 0 && s.varManaEmpty(k, sl, c) {
 		return s.blgOwnUsable(k, sl)
 	}
-	return !s.genLost(k, sl)
+	if s.genLost(k, sl) {
+		// a land a land-type setter blanked (Harbinger of the Seas) keeps the
+		// intrinsic unit of its new basic types (CR 305.6, 305.7): beside a
+		// granted ability (Dune Chanter's) it is the planner's own source
+		return k.gen.landSet && s.landSetLost(k, sl) && s.blgOwnUsable(k, sl)
+	}
+	return true
 }
 
 // varManaEmpty reports whether c's own variable mana ability makes no mana
