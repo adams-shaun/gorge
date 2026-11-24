@@ -19,9 +19,22 @@ func (lc *lowerCtx) noRegenRemembered(ps *params, ss []cards.Static) (bool, erro
 		return false, nil
 	}
 	switch ps.str("RememberObjects") {
-	case "Remembered.Creature":
+	case "Remembered.Creature", "Remembered":
+		// (Jaya Ballard, Task Mage) gorge effectRememberedCodes maps both
+		// spellings to Remembered: the dealt set the previous
+		// RememberDamaged$ damage holds
 	case "ParentTarget":
 		return lc.noRegenParentTarget(ps, ss)
+	case "Targeted":
+		// (Engulfing Flames) an Effect with no target of its own: the chain's
+		// target is the parent link's chosen creature, the same set
+		// RememberObjects$ ParentTarget names (gorge effectRemembered). A
+		// targeted Effect with its own ValidTgts$ names ITS target instead
+		// and is not this shape.
+		if _, hasOwn := ps.m["ValidTgts"]; !hasOwn {
+			return lc.noRegenParentTarget(ps, ss)
+		}
+		return false, nil
 	default:
 		return false, nil
 	}
@@ -85,4 +98,35 @@ func (lc *lowerCtx) noRegenParentTarget(ps *params, ss []cards.Static) (bool, er
 	in.CS = strings.TrimPrefix(in.CS+"|NoRegenTarget", "|")
 	ps.consume("RememberObjects", "ForgetOnMoved", "StaticAbilities", "IsCurse")
 	return true, nil
+}
+
+// noRegenMark lowers a targeted (or remembered) Effect whose one static is
+// Mode$ CantRegenerate with no DealDamage carrying the mark (Furnace Brood,
+// Hurr Jackal, Orcish Healer, Gravebind: "target creature can't be
+// regenerated this turn"): the kernel's OpMarkNoRegen takes the mechNoRegen
+// slot mark at resolution (dirac/act_noregenmark.go), ending at the turn's
+// cleanup and the creature's departure. gorge registers the restriction over
+// the remembered id and forgets it when the card moves (ForgetOnMoved$
+// Battlefield), so the mark requires that rider: without it a departed and
+// returned target would come back restricted in gorge but not in the kernel
+// (CR 400.7: a new object), and a Duration$ other than the mark's this-turn
+// life has no kernel record.
+func (lc *lowerCtx) noRegenMark(ps, sp *params, obj lRef) error {
+	if f, ok := ps.m["ForgetOnMoved"]; !ok || strings.TrimSpace(f) != "Battlefield" {
+		return refuse("Effect CantRegenerate shape")
+	}
+	if _, ok := ps.m["Duration"]; ok {
+		return refuse("Effect CantRegenerate Duration$")
+	}
+	switch obj.Kind {
+	case rTarget, rRemembered:
+	default:
+		return refuse("Effect CantRegenerate over %s", obj)
+	}
+	if sp.str("ValidCard") != "Card.IsRemembered" || len(sp.unread()) != 0 {
+		return refuse("Effect CantRegenerate ValidCard")
+	}
+	ps.consume("IsCurse", "ForgetOnMoved")
+	lc.emit(lInstr{Op: "NoRegenMark", Obj: obj, Note: "this turn: the creature can't be regenerated"})
+	return nil
 }
