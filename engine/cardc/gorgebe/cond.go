@@ -151,6 +151,9 @@ func printRefMatches(p *pr, c *ir.Cond) (condForm, error) {
 	if c.Ref == nil || f == nil {
 		return no()
 	}
+	if isYou(c.Ref) && isUrzaTrio(f) {
+		return condForm{Choose: "Count$UrzaLands", Body: "Count$UrzaLands.1.0", Cmp: "GE1"}, nil
+	}
 	if isYou(c.Ref) && f.Op == ir.FPred && f.Pred == ir.PControls && len(f.Args) == 1 && f.Ref == nil && f.Word == "" {
 		// "you control a ...": Forge counts the battlefield matches of
 		// the filter with YouCtrl added.
@@ -286,4 +289,52 @@ func (p *pr) battlefieldCount(c *ir.Cond) ([]kv, error) {
 		return nil, err
 	}
 	return withCmp([]kv{{"IsPresent", v}}, "PresentCompare", cmpWord(c.Cmp)+itoa(c.R.N)), nil
+}
+
+// isUrzaTrio reports whether f is "you control the two other Urza's lands":
+// two controls tests, each of the Urza's subtype and one of Mine, Power-Plant
+// and Tower, naming two different ones.
+func isUrzaTrio(f *ir.Filter) bool {
+	if f == nil || f.Op != ir.FAll || len(f.Args) != 2 {
+		return false
+	}
+	seen := map[string]bool{}
+	for _, a := range f.Args {
+		if a == nil || a.Op != ir.FPred || a.Pred != ir.PControls || len(a.Args) != 1 || a.Args[0] == nil {
+			return false
+		}
+		g := a.Args[0]
+		if g.Op != ir.FAll || len(g.Args) != 2 || g.Args[0].Pred != ir.PSubtype || g.Args[0].Word != "Urzas" || g.Args[1].Pred != ir.PSubtype {
+			return false
+		}
+		w := g.Args[1].Word
+		if w != "Mine" && w != "PowerPlant" && w != "Tower" {
+			return false
+		}
+		seen[w] = true
+	}
+	return len(seen) == 2
+}
+
+// mergeBranches folds the two branches of an if/else into then when they
+// differ only in literal amounts. A mana branch without an Amount$ makes one.
+func (p *pr) mergeBranches(c condForm, then, els *node) bool {
+	if diff, ok := sameParams(then, els); ok {
+		return p.mergeParams(c, then, els, diff)
+	}
+	if then.API != "Mana" || els.API != "Mana" {
+		return false
+	}
+	t2, e2 := &node{API: then.API, Params: append([]kv(nil), then.Params...)}, &node{API: els.API, Params: append([]kv(nil), els.Params...)}
+	for _, n := range []*node{t2, e2} {
+		if _, ok := n.get("Amount"); !ok {
+			n.Params = append(n.Params, kv{"Amount", "1"})
+		}
+	}
+	diff, ok := sameParams(t2, e2)
+	if !ok || !p.mergeParams(c, t2, e2, diff) {
+		return false
+	}
+	then.Params = t2.Params
+	return true
 }
