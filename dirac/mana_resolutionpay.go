@@ -272,6 +272,13 @@ func (s *State) runPrefixes(k *prep, a Action, p uint8, grants, grantFirst bool)
 			s.flushPrefixTriggers(k) // its trigger resolves before the play (seed 640)
 		}
 	}
+	if isScriptPlayKind(a.Kind()) && s.restrFeeGapAny(k) {
+		s.restrFeePrefix(k, a, p) // a play only a restricted fee gap pays (mana_restrictedfeeprefix.go)
+		ran = true
+		if s.npend != 0 {
+			s.flushPrefixTriggers(k)
+		}
+	}
 	if grants && !grantFirst {
 		s.grantPrefix(k, a, p) // a play only a granted mana ability pays (script_gen.go)
 		ran = true
@@ -748,7 +755,7 @@ func plansAnyColour(pl *planner) bool {
 // runPrefixesGated is runPrefixes behind its four gates, tested inline so a table
 // with none of them skips the call.
 func (s *State) runPrefixesGated(k *prep, a Action, p uint8, grants, grantFirst bool) (ran, tapX bool) {
-	if grants || s.scriptAny(k) && isScriptPlayKind(a.Kind()) || a.Kind() == AkActivate && k.gen != nil && k.gen.rs != nil && k.gen.rs.chosenPair {
+	if grants || s.scriptAny(k) && isScriptPlayKind(a.Kind()) || s.restrFeeGapAny(k) && isScriptPlayKind(a.Kind()) || a.Kind() == AkActivate && k.gen != nil && k.gen.rs != nil && k.gen.rs.chosenPair {
 		return s.runPrefixes(k, a, p, grants, grantFirst)
 	}
 	return false, false

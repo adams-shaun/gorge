@@ -1996,7 +1996,9 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 					// alternative ranks over the fee one when both pay
 					irr = uint8(min(int(irr)+int(fee)+int(feeN)+1, 255))
 				}
-				lr := sac || noUntap || life != 0
+				// (a restricted fee unit with no census alternative has colours 0
+				// too: restrNoColour)
+				lr := restrNoColour(sac || noUntap || life != 0, fee, feeCol, rv[i])
 				ti := -1
 				for t := 0; t < pk.nt; t++ {
 					ty := &pk.types[t]

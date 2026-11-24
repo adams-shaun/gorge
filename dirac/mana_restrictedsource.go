@@ -777,7 +777,7 @@ func (s *State) restrSrcAvailD(k *prep, p uint8, d payDesc, av *avail, skip Slot
 	// census lists none: engine/rules paid_mana_census.go), so the autopay
 	// surface prices the census ability alone; the full surface's cast window
 	// prices the fee (CR 605.3b)
-	feeUnits := k.gen != nil && k.gen.rs != nil && k.gen.rs.fee && s.cfg&cfgGorgeAutopay == 0
+	feeUnits := k.gen != nil && k.gen.rs != nil && k.gen.rs.fee && s.cfg&cfgGorgeAutopay == 0 && s.g.availX&availNoFeeUnit == 0
 	for pass := 0; pass < 2; pass++ {
 		if pass == 1 && !feeUnits {
 			break
