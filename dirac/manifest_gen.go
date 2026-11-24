@@ -50,25 +50,25 @@ const raGenRepeatOptional uint8 = 158
 // ask (dirac/manifest/ask/raGenWinCol)
 //
 // the lucky Condition-split source's colour choice in a resolution's mana window (CR 605.3b; mana_reswincol.go resWinColArm): the tapped source's arm colours in the askManaColour order, gorge's "mana_color" choice, ChGenManaChoice.
-const raGenWinCol uint8 = 158
+const raGenWinCol uint8 = 159
 
 // ask (dirac/manifest/ask/raPodClashOpp)
-const raPodClashOpp uint8 = 159
+const raPodClashOpp uint8 = 160
 
 // ask (dirac/manifest/ask/raRingBearer)
 //
 // the Ring-bearer choice of ExtRingTemptsYou (CR 701.54a; act_ring.go ringTemptsExt): the tempted player's pick among the creatures they control, the deterministic default (the existing Ring-bearer when still controlled, else the first eligible in zone order) offered first exactly as gorge's KChoose does.
-const raRingBearer uint8 = 160
+const raRingBearer uint8 = 161
 
 // ask (dirac/manifest/ask/raRingLoot)
 //
 // the loot discard of the Ring emblem's level 2 (CR 701.54c; act_ring.go ringLootDiscard): the looting player discards one card of their choice from their hand, gorge's Draw You 1 with the Discard You TgtChoose 1 Sub.
-const raRingLoot uint8 = 161
+const raRingLoot uint8 = 162
 
 // ask (dirac/manifest/ask/raTrigDemoOpp)
 //
 // the demonstrate trigger's opponent pick (CR 702.152a; gorge effDemonstrate stage 1): which living opponent also copies the spell, asked with two or more of them (kw_demonstrate.go).
-const raTrigDemoOpp uint8 = 162
+const raTrigDemoOpp uint8 = 163
 
 // key named card (dirac/manifest/key/keyNamedCard)
 const keyNamedCard key = 0
