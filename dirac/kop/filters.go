@@ -865,6 +865,7 @@ const PredWasCastEnter Pred = 248
 // reads false; Ash Zealot, Laquatus's Disdain), 9 cast from a library by
 // the reading player (wasCastFromYourLibrary, gorge castOriginTokens:
 // Melek, Izzet Paragon, Wickerwing Effigy);
+// 10 cast for its foretell cost (Condition$ Foretold, gorge FlagForetold),
 // bit 4 (16) negates the whole read. A spell's origin zone is
 // stackEntry.prov (genPrep.anyCastProv).
 const PredWasCastSpell Pred = 247
