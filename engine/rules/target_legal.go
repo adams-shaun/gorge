@@ -1219,15 +1219,28 @@ func (e *Engine) filterTargetValidTargeting(in []targetCandidate, sa *cards.SA, 
 		if o == nil {
 			continue
 		}
-		for _, t := range slices.Concat(o.Targets, o.SubTargets) {
-			if t.IsPlayer && effects.MatchesPlayerSpec(e.G, spec, t.Player, sc.You) ||
-				!t.IsPlayer && t.Obj != 0 && e.matchesSpec(spec, t.Obj, sc) {
-				out = append(out, cand)
-				break
-			}
+		if e.targetValidTargetingMatches(o, spec, sc) {
+			out = append(out, cand)
 		}
 	}
 	return out
+}
+
+// targetValidTargetingMatches judges one stack object against
+// TargetValidTargeting$ from its CURRENT targets: CR 115.9b ignores a target
+// no longer in the zone it is expected to be in and never reads last known
+// information. The offer (filterTargetValidTargeting) and the resolution
+// recheck (legalTargets, CR 608.2b) both call this one predicate, so they
+// cannot disagree about whether the object still targets a matching object or
+// player.
+func (e *Engine) targetValidTargetingMatches(o *state.Object, spec string, sc effects.SpecContext) bool {
+	for _, t := range slices.Concat(o.Targets, o.SubTargets) {
+		if t.IsPlayer && effects.MatchesPlayerSpec(e.G, spec, t.Player, sc.You) ||
+			!t.IsPlayer && t.Obj != 0 && e.matchesSpec(spec, t.Obj, sc) {
+			return true
+		}
+	}
+	return false
 }
 
 // filterTargetsWithDefinedController implements the common target restriction
