@@ -390,11 +390,12 @@ func (s *State) availFor(k *prep, p uint8, a *avail) {
 }
 
 // identityCensusUnit is a ColorIdentity source's census unit when its planner
-// view lists none (Command Tower with no commander, CR 903.4f): gorge's
-// payment-window units still list the source, as one any-colour mana, so the
-// trigger X cap must count it or undercut the walk.
+// view lists none while its controller's commander has an identity to read. With
+// no identity (Command Tower with no commander, CR 903.4f) the source makes no
+// mana, and gorge's trigger X supply skips it (potentialIdentityEmpty), so it
+// adds no unit.
 func (s *State) identityCensusUnit(k *prep, sl Slot, pc *pcard) (uint8, uint8, bool) {
-	if !pc.manaIdent || pc.manaAb >= 0 {
+	if !pc.manaIdent || pc.manaAb >= 0 || s.identityColours(k, s.perms[sl].ctrl) == 0 {
 		return 0, 0, false
 	}
 	cd := &k.t.Cards[s.cardAt(sl)]
@@ -412,8 +413,8 @@ func (s *State) identityCensusUnit(k *prep, sl Slot, pc *pcard) (uint8, uint8, b
 // of its units (Command Tower) but which still holds an untapped tap ability:
 // gorge's trigger X supply lists it (triggeredCostXSupply reads
 // PaymentPlanQueryUnits), so the cap must count its one unit or undercut the
-// walk. With no commander the identity is empty, yet that unit is still listed
-// as any-colour mana (identityCensusUnit).
+// walk. With no identity to read the source makes no mana and adds no unit
+// (identityCensusUnit).
 func (s *State) addIdentityCensus(k *prep, sl Slot, pc *pcard, a *avail) {
 	if m, n, ok := s.identityCensusUnit(k, sl, pc); ok {
 		a.addUnits(m, n)
