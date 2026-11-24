@@ -26,8 +26,8 @@ the evidence below supports. Add `cardc ledger`.
 - `diff.Card(name, cardc, forge) []Row`, `Row.Key()`, `Row.Sig()` and `slice.Build(root, forge, "fdn", "legacy")`
   are CC-30's. Read `engine/cardc/diff` and `engine/cardc/slice` first.
 - `gorgebe.Stem(name)` (`engine/cardc/gorgebe/fallback.go`) is the per-card file stem the fallback register uses.
-- The compliance mtgish ledger, read-only and outside this repo: `~/projects/gorge-compliance/oracle/mtgish/known/T1.tsv`
-  .. `T4.tsv`, columns `card tier field gorge mtgish class note`, classes `forge-bug`, `gorge-compile`,
+- The compliance mtgish ledger, read-only and outside this repo: gorge-compliance's
+  `oracle/mtgish/known/T1.tsv` .. `T4.tsv` (its local checkout sits beside this repo's), columns `card tier field gorge mtgish class note`, classes `forge-bug`, `gorge-compile`,
   `mtgish-bug`, `equivalent`, `digital-variant`. gorge never imports or vendors it; the triage reads it.
 
 ## Design

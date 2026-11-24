@@ -25,8 +25,7 @@ Design of record: `docs/design/2026-11-23-typed-script-values/PLAN.md` on `cardc
   writes `data/mtgish.lines.ron` with the Go parser (`go_mtg_parser/go.mod`: `go 1.18`); `rust_build_ronl_to_bincode`
   and `rust_build_bincode_to_jsonl` build two `rust_syntax` binaries with `cargo`; `convert_to_json` runs them to write
   `data/mtgish.lines.json`. `plurals_generate` runs `grammars/generate_plurals` and `jq`. Read the justfile and
-  `grammars/generate_plurals` from a shallow clone under `~/.cache/cardc-mtgish-src` (never `/tmp`, never
-  `/mnt/sata`) before writing the workflow; the clone is read-only reference and is never pushed.
+  `grammars/generate_plurals` from a shallow clone in the user cache directory (never `/tmp`) before writing the workflow; the clone is read-only reference and is never pushed.
 - Neither `cargo` nor `rustc` is on this box: the workflow cannot be run here, and this ticket does not try.
 
 ## Design
