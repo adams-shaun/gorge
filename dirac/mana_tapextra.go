@@ -478,9 +478,14 @@ func (s *State) fillTapAnyCol(k *prep, p uint8, sl Slot, a Action) {
 	s.fillTapAnyColOwed(k, p, sl, &owed)
 }
 
-// fillTapAnyColCost is fillTapAnyCol for a payment window's explicit cost.
-func (s *State) fillTapAnyColCost(k *prep, p uint8, sl Slot, cost *kop.ManaCost) {
+// fillTapAnyColCost is fillTapAnyCol for a payment window's explicit cost. col
+// and n are the mana the tap itself makes (poolAdd's arguments, which follow).
+func (s *State) fillTapAnyColCost(k *prep, p uint8, sl Slot, cost *kop.ManaCost, col, n int) {
 	if k == nil || k.gen == nil || !k.gen.anyTapExtra || cost == nil {
+		return
+	}
+	if owed, ok := s.announcedPipsOwed(k, p, col, n); ok {
+		s.fillTapAnyColOwed(k, p, sl, &owed)
 		return
 	}
 	// The ask is answered before the tap's own mana reaches the pool: its
@@ -489,6 +494,35 @@ func (s *State) fillTapAnyColCost(k *prep, p uint8, sl Slot, cost *kop.ManaCost)
 	var due kop.ManaCost
 	s.windowOwedCost(k, p, cost, &due)
 	s.fillTapAnyColOwed(k, p, sl, &due.Pips)
+}
+
+// announcedPipsOwed is the demand of an any-colour extra's ask in a hybrid
+// cast's manual window (CR 601.2g): the oracle's colour ask of a window with
+// no ManaPayment owes the hybrid faces the caster announced (the resolved
+// pips, not both printed halves and not the cost's fixed pips) less the pool,
+// and the ask comes after the tap's own mana n of col reached it (the tap's
+// TapsForMana trigger resolves with that mana floating). False when the build
+// has announced no hybrid face (a twobrid's faces are a mask, never read here).
+func (s *State) announcedPipsOwed(k *prep, p uint8, col, n int) (owed [kop.NumManaKinds]uint8, ok bool) {
+	if !s.buildLive() || s.bld().pipN == 0 {
+		return owed, false
+	}
+	if h := s.buildCost0(k).Hyb[0]; h == 0 || h == kop.HybTwobrid {
+		return owed, false
+	}
+	pool := s.pl[p].pool
+	if col >= 0 && col < len(pool) {
+		pool[col] += uint8(n)
+	}
+	for i := uint8(0); i < s.bld().pipN; i++ {
+		if c := s.bld().pipCol(i); c < len(owed) {
+			owed[c]++
+		}
+	}
+	for c := range owed {
+		owed[c] -= min(owed[c], pool[c])
+	}
+	return owed, true
 }
 
 // fillTapAnyColOwed is fillTapAnyCol's shared answer: every any-colour
