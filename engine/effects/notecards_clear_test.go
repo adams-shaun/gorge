@@ -11,7 +11,7 @@ import (
 // Volatile Chimera in the card-notation half of the family. In particular, it
 // must not make the resolving controller Player.NotedForVolatileChimera.
 func TestCardNotationDoesNotWritePlayerLabels(t *testing.T) {
-	card, note := corpusSA(t, "Volatile Chimera", "DBPump")
+	card, note := corpusSA(t, "Volatile Chimera", "DBNote")
 	if got := note.Params["NoteCards"]; got != "Remembered" {
 		t.Fatalf("Volatile Chimera NoteCards$ = %q, want Remembered", got)
 	}

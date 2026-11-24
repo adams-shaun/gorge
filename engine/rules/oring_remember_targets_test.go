@@ -10,9 +10,10 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// Behaviour leaves for the remember-targets/delayed-trigger census params:
-// ChangeZone's RememberTargets$/ForgetOtherTargets$ (the O-Ring shape,
-// Journey to Nowhere / Leonin Relic-Warder), DelayedTrigger's
+// Behaviour leaves for the O-Ring and delayed-trigger shapes: ChangeZone's
+// exile and the `Defined$ ExiledWith` return (Journey to Nowhere / Leonin
+// Relic-Warder; RememberTargets$/ForgetOtherTargets$ until Forge ff076d4432
+// moved both to the exiled-with link), DelayedTrigger's
 // RememberObjects$ and ValidPlayer$ and ChangeZone's ExileFaceDown$
 // (Necropotence). Every protagonist here is a REAL compiled corpus card --
 // the O-Ring return is the canonical shape the corpus spells, so the pins
@@ -77,12 +78,12 @@ func oringConfig(t *testing.T, seed uint64, protagonist string, targets ...strin
 }
 
 // TestJourneyToNowhereReturnsTheExiledCreature is the O-Ring canonical
-// shape, end to end on the real corpus script: the ETB trigger's
-// RememberTargets$ True remembers the exiled creature on the source's
-// persistent list, and the leave-battlefield trigger's `Defined$ Remembered`
-// -- which reads the CARD's list, not this build's event capture -- returns
-// it under its owner's control. A second enter/leave pair exercises
-// ForgetOtherTargets$ True.
+// shape, end to end on the real corpus script: the ETB trigger's exile
+// records the creature on the source's exiled-with link (Object.ExiledCards,
+// CR 607.2a), and the leave-battlefield trigger's `Defined$ ExiledWith`
+// returns it under its owner's control. A second enter/leave pair pins that
+// the link names only the new exile: the first card left exile when it
+// returned, so the second return moves the second card alone.
 func TestJourneyToNowhereReturnsTheExiledCreature(t *testing.T) {
 	t.Parallel()
 	e, cfg := oringConfig(t, 63, "Journey to Nowhere", "Hill Giant", "Grizzly Bears")
@@ -98,8 +99,8 @@ func TestJourneyToNowhereReturnsTheExiledCreature(t *testing.T) {
 		t.Fatalf("giant zone = %v, want exile after the ETB resolved", zoneName(o))
 	}
 	jObj := e.G.Obj(journey)
-	if jObj == nil || len(jObj.Remembered) != 1 || jObj.Remembered[0].Obj != giant {
-		t.Fatalf("journey's persistent Remembered = %v, want exactly the exiled giant", jObj.Remembered)
+	if jObj == nil || len(jObj.ExiledCards) != 1 || jObj.ExiledCards[0] != giant {
+		t.Fatalf("journey's ExiledCards = %v, want exactly the exiled giant", jObj.ExiledCards)
 	}
 
 	// Journey leaves: the return trigger returns the Giant under its
@@ -114,8 +115,8 @@ func TestJourneyToNowhereReturnsTheExiledCreature(t *testing.T) {
 			zoneName(o), o.Controller)
 	}
 
-	// Re-entering and exiling a SECOND creature exercises ForgetOtherTargets$
-	// True: the card's list must hold exactly the new exile, not both.
+	// Re-entering and exiling a SECOND creature: the card's exiled-with link
+	// must hold exactly the new exile, not both.
 	e.emit(events.Event{Kind: events.MoveZone, Obj: journey,
 		From: state.ZGraveyard, To: state.ZBattlefield})
 	e.pending = nil
@@ -127,8 +128,8 @@ func TestJourneyToNowhereReturnsTheExiledCreature(t *testing.T) {
 		t.Fatalf("bears zone = %v, want exile after the second ETB resolved", zoneName(o))
 	}
 	jObj = e.G.Obj(journey)
-	if jObj == nil || len(jObj.Remembered) != 1 || jObj.Remembered[0].Obj != bears {
-		t.Fatalf("after ForgetOtherTargets the card's Remembered = %v, want exactly the bears", jObj.Remembered)
+	if jObj == nil || len(jObj.ExiledCards) != 1 || jObj.ExiledCards[0] != bears {
+		t.Fatalf("after the second exile the card's ExiledCards = %v, want exactly the bears", jObj.ExiledCards)
 	}
 
 	// And leaving again returns the bears, not the (battlefield) giant.

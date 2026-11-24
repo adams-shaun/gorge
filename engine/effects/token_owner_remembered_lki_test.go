@@ -31,11 +31,28 @@ type gatekeeperRun struct {
 // trigger's captured referent, seeded into Ctx.Remembered and Ctx.Captured.
 func runGatekeeper(t *testing.T, vOwner, vCtrl state.PlayerID, seeded bool) gatekeeperRun {
 	t.Helper()
+	card := mkCard(t, gatekeeperScript)
+	return runGatekeeperChain(t, card, card.Faces[0].Abilities[0], vOwner, vCtrl, seeded)
+}
+
+// gatekeeperTargetedScript is the same chain in upstream's newer spelling: the
+// exile remembers what it moved (RememberChanged$) and the later steps name
+// the spell's own target (ConditionDefined$ Targeted, TokenOwner$
+// TargetedController) instead of the remembered LKI card.
+const gatekeeperTargetedScript = "Name:Fixture Gatekeeper Two\nManaCost:1 W\nTypes:Creature Cleric\nPT:3/2\n" +
+	"A:SP$ ChangeZone | ValidTgts$ Permanent.nonLand+Other | Origin$ Battlefield | Destination$ Exile | RememberChanged$ True | SubAbility$ Back\n" +
+	"SVar:Back:DB$ ChangeZone | Defined$ Remembered | Origin$ Exile | Destination$ Battlefield | GainControl$ True | ConditionDefined$ Targeted | ConditionPresent$ Card.YouCtrl | SubAbility$ Detective\n" +
+	"SVar:Detective:DB$ Token | TokenScript$ wu_2_2_detective | TokenOwner$ TargetedController | ConditionDefined$ Targeted | ConditionPresent$ Card.YouCtrl | ConditionCompare$ EQ0 | SubAbility$ Forget\n" +
+	"SVar:Forget:DB$ Cleanup | ClearRemembered$ True\n" +
+	"Oracle:x\n"
+
+// runGatekeeperChain resolves root, a Gatekeeper-shaped chain on card.
+func runGatekeeperChain(t *testing.T, card *cards.Card, root *cards.SA, vOwner, vCtrl state.PlayerID, seeded bool) gatekeeperRun {
+	t.Helper()
 	h := newHost(t, 2)
 	h.g.Tokens = map[string]*cards.Card{
 		"wu_2_2_detective": mkCard(t, "Name:Detective Token\nTypes:Creature Detective\nPT:2/2\nOracle:x\n"),
 	}
-	card := mkCard(t, gatekeeperScript)
 	gk := h.g.AddObject(card, 0)
 	gk.Zone = state.ZBattlefield
 	h.g.SetZone(state.ZBattlefield, 0, append(h.g.Zone(state.ZBattlefield, 0), gk.ID))
@@ -52,7 +69,7 @@ func runGatekeeper(t *testing.T, vOwner, vCtrl state.PlayerID, seeded bool) gate
 		c.Remembered = []state.Target{{Obj: gk.ID}}
 		c.Captured = []state.Target{{Obj: gk.ID}}
 	}
-	Resolve(h, c, card.Faces[0].Abilities[0])
+	Resolve(h, c, root)
 	for _, ev := range h.log {
 		if ev.Kind == events.Note && strings.Contains(ev.Text, "unimplemented") {
 			t.Fatalf("handler not registered: %q", ev.Text)
@@ -115,6 +132,52 @@ func TestGatekeeperTriggerReferentIsNotRemembered(t *testing.T) {
 	}
 }
 
+// TestGatekeeperTargetedFormReadsLastKnownController runs the three board
+// shapes above through upstream's newer spelling, as a fixture and as the real
+// Unyielding Gatekeeper: the card gives the token to its last-known controller
+// (the target left the battlefield, so the live controller is the owner) and
+// the YouCtrl gate looks back the same way.
+func TestGatekeeperTargetedFormReadsLastKnownController(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+	real, ok := reg.Lookup("Unyielding Gatekeeper")
+	if !ok {
+		t.Fatal("Unyielding Gatekeeper missing from corpus")
+	}
+	fixture := mkCard(t, gatekeeperTargetedScript)
+	chains := []struct {
+		name string
+		card *cards.Card
+		root *cards.SA
+	}{
+		{"fixture", fixture, fixture.Faces[0].Abilities[0]},
+		{"Unyielding Gatekeeper", real, cards.ResolveSVar(real.Faces[0].SVars, "TrigExile")},
+	}
+	for _, ch := range chains {
+		if ch.root == nil || ch.root.API != "ChangeZone" {
+			t.Fatalf("%s: no exile root: %+v", ch.name, ch.root)
+		}
+		for _, tc := range []struct {
+			name        string
+			owner, ctrl state.PlayerID
+			seeded      bool
+			wantZone    state.Zone
+			wantTokens  [2]int
+		}{
+			{"stolen permanent: token to its last-known controller", 0, 1, false, state.ZExile, [2]int{0, 1}},
+			{"our own permanent stolen by us returns, no token", 1, 0, false, state.ZBattlefield, [2]int{0, 0}},
+			{"the trigger's own referent is not the controller read", 1, 1, true, state.ZExile, [2]int{0, 1}},
+		} {
+			r := runGatekeeperChain(t, ch.card, ch.root, tc.owner, tc.ctrl, tc.seeded)
+			if r.victim == nil || r.victim.Zone != tc.wantZone {
+				t.Errorf("%s / %s: victim = %+v, want zone %v", ch.name, tc.name, r.victim, tc.wantZone)
+			}
+			if r.tokens != tc.wantTokens {
+				t.Errorf("%s / %s: tokens per seat = %v, want %v", ch.name, tc.name, r.tokens, tc.wantTokens)
+			}
+		}
+	}
+}
+
 // TestTokenOwnerRememberedControllerCarrierCensus is the corpus ratchet for
 // the mechanism: every Token line whose TokenOwner$ is RememberedController
 // reads a remembered object's controller AFTER the chain may have moved it.
@@ -124,7 +187,7 @@ func TestGatekeeperTriggerReferentIsNotRemembered(t *testing.T) {
 func TestTokenOwnerRememberedControllerCarrierCensus(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
-	known := map[string]bool{"Unyielding Gatekeeper": true, "The Curse of Fenric": true, "Terastodon": true}
+	known := map[string]bool{"The Curse of Fenric": true, "Terastodon": true}
 	found := map[string]bool{}
 	for _, card := range reg.AllCards() {
 		for _, f := range card.Faces {
@@ -153,11 +216,19 @@ func TestTokenOwnerRememberedControllerCarrierCensus(t *testing.T) {
 			t.Errorf("pinned carrier %q no longer found", name)
 		}
 	}
-	// Unyielding Gatekeeper is the one carrier whose first step exiles the
-	// remembered card, so its chain must keep the RememberLKI$ capture the
-	// last-known-controller read depends on.
+	// Unyielding Gatekeeper, whose first step exiles the card, left this
+	// census when upstream respelled its chain over the spell's own target:
+	// its token owner is TokenOwner$ TargetedController and its gates are
+	// ConditionDefined$ Targeted, both read through the resolution's
+	// start-of-walk controller capture (TestGatekeeperTargetedFormReadsLastKnownController
+	// runs the card). Pin that spelling so a respelling back is noticed.
 	gk, ok := reg.Lookup("Unyielding Gatekeeper")
-	if !ok || !strings.Contains(gk.Faces[0].SVars["TrigExile"], "RememberLKI$ True") {
-		t.Fatalf("Unyielding Gatekeeper no longer remembers LKI: %+v", gk)
+	if !ok {
+		t.Fatal("Unyielding Gatekeeper missing from corpus")
+	}
+	tok := gk.Faces[0].SVars["DBToken"]
+	if !strings.Contains(tok, "TokenOwner$ TargetedController") || !strings.Contains(tok, "ConditionDefined$ Targeted") ||
+		strings.Contains(tok, "TokenOwner$ RememberedController") {
+		t.Fatalf("Unyielding Gatekeeper token step changed spelling: %q", tok)
 	}
 }

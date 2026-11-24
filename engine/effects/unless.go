@@ -1134,7 +1134,7 @@ var unlessPayerTargetsCodes = state.NewStrCodes(
 // AmountAwaitsCost reports whether a dynamic amount reads what paying a cost will name:
 // asked before the cost is paid (CR 601.2c before 601.2h) it has no value yet.
 func AmountAwaitsCost(body string) bool {
-	for _, word := range []string{"Sacrificed$", "Discarded$", "Exiled$", "Revealed$"} {
+	for _, word := range []string{"Sacrificed$", "Discarded$", "Exiled$", "Revealed$", "RevealedCards$"} {
 		if strings.Contains(body, word) {
 			return true
 		}
