@@ -68,6 +68,33 @@ func (s *State) powerUpWitnessAffords(k *prep, sl Slot, a *kop.Ability, ctrl uin
 	return s.abilityAffords(k, sl, a, &c, av)
 }
 
+// powerUpBoundReaches reports whether gorge's bounded relaxation of the
+// census (potential_plan.go: every uncovered source free, over-producing)
+// reaches the printed witness cost of Power-up ability a of slot sl: the
+// census's sources plus each untapped filter's output NET of its fee: the
+// bounded proof (boundedProof) adds a filter as a paid unit beside the land's
+// own census unit and charges its fee as generic on top of the cost
+// (paymentPlanRelaxProof), over the best subset of filters, so a filter counts
+// only where its output exceeds its fee. Short of it gorge skips the prefix
+// search (a numeric necessary condition, not a colour proof), so the
+// activation is not offered.
+//
+// Known gap: gorge drops the bound past relaxedPaidLimit paid units and counts
+// a repeatable paid filter once per repeat; this counts each filter once and
+// never drops the bound, so four or more filters (or a repeatable net-positive
+// one) beside a Power-up can still part. Neither is measured.
+//
+//go:noinline
+func (s *State) powerUpBoundReaches(k *prep, sl Slot, a *kop.Ability, ctrl uint8, av *avail) bool {
+	n := av.total
+	for f := s.scriptFilt(k, ctrl); f.any(); f = f.rest() {
+		sl := f.first()
+		n += max(s.filtUnits(k, sl)-s.filtFee(k, sl), 0)
+	}
+	c := s.powerUpWitness(k, a, sl, ctrl)
+	return n >= c.MV()
+}
+
 // powerUpGrantSearchLists reports whether the relaxed (gaps) walk lists a
 // Power-up activation the printed-cost witness refuses, for the grant search
 // to decide: gorge's prefix search taps the granted mana abilities and its
