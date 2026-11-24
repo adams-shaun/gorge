@@ -2790,8 +2790,12 @@ func (cb *cardBuilder) repl(r lRepl) (kop.Ability, error) {
 		rp.Kind = kop.ReplOppsCantWinGame
 	case "DoubleDamageToOpps":
 		rp.Kind = kop.ReplDoubleDamageToOpps
+		if r.N.isConst() && r.N.N > 2 {
+			rp.A = int16(r.N.N) // the line's own Thrice (City on Fire)
+		}
 		if r.F != nil { // a filtered doubler (lower_replmult.go); Twinflame keeps Filter 0, C 0
-			if r.Bits&(kop.ReplDmgOppPlayer|kop.ReplDmgOppPerm|kop.ReplDmgPlayer|kop.ReplDmgPerm) == 0 {
+			if r.Bits&(kop.ReplDmgOppPlayer|kop.ReplDmgOppPerm|kop.ReplDmgPlayer|kop.ReplDmgPerm|
+				kop.ReplDmgYou|kop.ReplDmgSelf) == 0 {
 				return ka, fmt.Errorf("damage doubler to %#x", r.Bits)
 			}
 			rp.C = int16(r.Bits)

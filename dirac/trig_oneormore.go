@@ -169,7 +169,7 @@ func (s *State) replPlus(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, rcp
 	}
 	if c == 1 {
 		// another damage replacement candidate (repl_gen.go's order ask)
-		if g.anyRepl&rbDblDmg != 0 && s.dblDmgN2(k, srcCtrl, srcSl, srcCard, rcp, sl, combat) > 0 {
+		if g.anyRepl&rbDblDmg != 0 && s.dblDmgN2(k, srcCtrl, srcSl, srcCard, rcp, sl, combat, nil) > 0 {
 			c++
 		}
 		if g.anyRepl&rbPrevNC != 0 && !combat && sl != NoSlot && s.isCreature(k, sl) {

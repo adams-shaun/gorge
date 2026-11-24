@@ -1,0 +1,20 @@
+# The widened DamageDone doubler lockstep pool (dirac/oracle/repl_dblanysrc_lockstep_test.go):
+# the doubler whose ValidSource$ names no controller (Card,Emblem), its own
+# Thrice (Repl.A 3), and the ValidTarget$ You / Card.Self words. The decks play
+# at most two co-matching doublers per event (gorge poses CR 616.1's order ask
+# then; the kernel's candidate walks hold four).
+Dictate of the Twin Gods
+Furnace of Rath
+City on Fire
+Fiery Emancipation
+Goldnight Castigator
+Fiendish Duo
+Torbran, Thane of Red Fell
+Grizzly Bears
+Hill Giant
+Lightning Bolt
+Shock
+Lava Axe
+Plains
+Mountain
+Forest

@@ -384,7 +384,7 @@ func (s *State) replOthersCompete(k *prep, srcCtrl uint8, srcSl Slot, srcCard Ca
 	if combat && !bare && g.anyPrevFrom && srcSl != NoSlot && s.prevCombatFrom(k, srcSl) {
 		return true
 	}
-	if g.anyRepl&rbDblDmg != 0 && s.dblDmgN2(k, srcCtrl, srcSl, srcCard, rcp, sl, combat) > 0 {
+	if g.anyRepl&rbDblDmg != 0 && s.dblDmgN2(k, srcCtrl, srcSl, srcCard, rcp, sl, combat, nil) > 0 {
 		return true
 	}
 	const others = rbPlusDmg | rbPrevNC | rbPrevMill | rbSelfDmg
