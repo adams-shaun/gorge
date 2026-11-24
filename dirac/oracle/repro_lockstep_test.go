@@ -25,6 +25,16 @@ func synthReproLockstep(t *testing.T, file, pool string, cfg Config) {
 	}
 }
 
+// reproPoolSet is the card set a recording replays on: a synthetic evidence pool, or a
+// fixture pool (dirac/cardset/pools/fixtures) with every lowered card playable.
+func reproPoolSet(t *testing.T, pool string) cardset.Set {
+	t.Helper()
+	if cardset.IsSynthName(pool) {
+		return cardsettest.Synth(t, pool)
+	}
+	return cardsettest.Set(t, pool)
+}
+
 // synthReproRun is synthReproLockstep's replay: the result and the count of
 // scripted actions that were not offered.
 func synthReproRun(t *testing.T, file, pool string, cfg Config) (Result, int) {
@@ -34,7 +44,7 @@ func synthReproRun(t *testing.T, file, pool string, cfg Config) (Result, int) {
 		t.Fatal(err)
 	}
 	reg := synthReg(t)
-	set := cardsettest.Synth(t, pool)
+	set := reproPoolSet(t, pool)
 	m, err := r.Matchup(reg)
 	if err != nil {
 		t.Fatal(err)
@@ -399,14 +409,15 @@ func TestPlanTapsItsSacrificingSourcesLastLockstep(t *testing.T) {
 	synthReproLockstep(t, "plan_taps_sacrifice_last", "std-big", Config{})
 }
 
-// Lotus Ring's granted "Sacrifice this creature: Add three mana" on a tapped Ancient
-// Cornucopia: the sacrifice needs no {T}, so gorge's census still counts the bearer
-// and offers both Rings' Equip {3}. The kernel's availability skipped a tapped source
-// unless its own view was the sacrifice-only grant (CR 602.2, 605.1a).
+// A tapped source's granted sacrifice-only mana (Basal Sliver's "Sacrifice this permanent:
+// Add {B}{B}", Rain of Filth's "Sacrifice this land: Add {B}"): the sacrifice needs no {T},
+// so gorge's census still counts the tapped bearer and offers the play it funds. The
+// kernel's availability skipped a tapped source unless its own view was the
+// sacrifice-only grant (CR 602.2, 605.1a). Rebuilt on the fixture pool sacgrant1 after
+// Forge 9db1009ef8 gave Lotus Ring's granted ability {T}, which it no longer exercises.
 func TestGrantedSacrificeOnATappedBearerLockstep(t *testing.T) {
 	t.Parallel()
-	t.Skip("Forge 9db1009ef8 (FORGE_REF ff076d4) gave Lotus Ring's granted mana ability {T}: the recorded game no longer replays; rl-lotus-ring-repros rebuilds it on Basal Sliver / Rain of Filth")
-	synthReproLockstep(t, "granted_sacrifice_on_tapped_bearer", "std-big", Config{})
+	synthReproLockstep(t, "granted_sacrifice_on_tapped_bearer", "sacgrant1", Config{})
 }
 
 // Restless Reef's {2}{U}{B} paid beside Sunken Citadel, whose two-mana land-only
