@@ -24,6 +24,7 @@ Elgaud Inquisitor	f17a9456c24bff88	8	1/1		1/1
 Elite Arrester	814ce9288a990344	8	1/1		0/1	ix:resp
 Enraged Killbot	16fa301db8b4e838	6	0/0		0/0	
 Fatigue	bfd00f6c14808b18	4	0/0		1/2	ix:resp
+Fire at Will	9f4b1ffb8e558ad7	8	0/0		2/2	
 Flame Rift	b298af8036e660ed	6	0/0		1/2	ix:resp
 Flood of Tears	dd81d9765ae2361b	4	0/0		1/2	ix:resp
 Gate Hound	df6f2b118a25e9cb	3	0/0		0/0	
@@ -33,6 +34,7 @@ Glint-Horn Buccaneer	6c2a2c2bab4d3d97	3	2/2		1/1
 Grotag Night-Runner	54c21ca680721457	4	1/1		0/1	ix:resp
 Ground Rift	419fe9f37808217c	4	1/1		2/2	
 Guardian of Pilgrims	f19d1c0836dad42d	7	1/1		0/1	ix:resp
+Hajar, Loyal Bodyguard	880d677d9d0dedc6	18	1/1		0/1	ix:resp
 Heavy Arbalest	325d83b0ed2d0078	7	1/1		0/1	ix:resp
 Incite	7ed16befb24f3c9e	4	0/0		2/2	
 Inquisitor Exarch	63dc0fe0a4a9547a	4	1/1		1/1	
@@ -94,3 +96,4 @@ Weatherseed Faeries	94b428b6252cc4c8	6	0/0		0/0
 Welkin Guide	0e24a57ea0f97a59	4	1/1		0/1	ix:resp
 Wild Wanderer	129b13cf1973672b	4	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
 Wildfire Awakener	359cf26caa0867b5	4	1/1		0/1	ix:resp
+Wistful Selkie	c3e5842306b62054	10	1/1		0/1	ix:resp
