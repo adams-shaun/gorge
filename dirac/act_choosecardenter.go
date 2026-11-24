@@ -124,3 +124,14 @@ func (s *State) srcChosenHasCard(k *prep, src Slot, cd *kop.CardDef) bool {
 	}
 	return has
 }
+
+// permChosenType is F2ChosenType for the permanent at sl read against the
+// source at src, whose creature-subtype answer is ch (ok: it has one): its
+// card-type answer when its card asks for one, else the subtype compare
+// (flags2Perm's reading).
+func (s *State) permChosenType(k *prep, sl, src Slot, ch uint8, ok bool) bool {
+	if bit, kind := s.srcCardKind(k, src); kind {
+		return cardKindHas(bit, s.typesAt(k, sl))
+	}
+	return ok && (s.hasSubGen(k, sl, ch) || outsideSub(k, ch) && s.outsideChosenHas(k, sl, src))
+}
