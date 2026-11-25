@@ -108,7 +108,7 @@ func (lc *lowerCtx) repeatEachPlayers(ps *params) error {
 		var bad []string
 		for k, v := range n.Params {
 			v = strings.TrimSpace(v)
-			if (k == "Defined" || k == "TokenOwner" || k == "UnlessPayer" || k == "DefinedPlayer") && (v == "Remembered" || v == "Player.IsRemembered") || k == "SubAbility" {
+			if (k == "Defined" || k == "TokenOwner" || k == "UnlessPayer" || k == "DefinedPlayer" || k == "GainControl") && (v == "Remembered" || v == "Player.IsRemembered") || k == "SubAbility" {
 				continue
 			}
 			if k == "TokenAttacking" && (v == tokenAttackingRemembered || v == "Remembered" || v == "RememberedPlayer") && who.Kind == rEachOpp {
@@ -240,15 +240,23 @@ func (lc *lowerCtx) repeatChooseGreatest(who lRef, body *cards.SA) (bool, error)
 // permanents: the aggregate is computed there (kop.CtrlEachPl) and the
 // candidate clause compares its own stat against it. Every other filter goes
 // through the ordinary parser.
-func (lc *lowerCtx) chooseCardFilter(choices string) (*lFilter, error) {
+func (lc *lowerCtx) chooseCardFilter(choices string, chooserEach bool) (*lFilter, error) {
 	if lc.repeatPl > 0 {
+		if chooserEach {
+			// The chooser is the repeated player, so "not controlled by the
+			// remembered player" is the kernel's CtrlOpp read from the
+			// chooser's perspective (Fortunate Few). A pick whose chooser is
+			// not the repeated player keeps refusing the word: the two are
+			// not the same set then.
+			choices = strings.ReplaceAll(choices, "!RememberedPlayerCtrl", "OppCtrl")
+		}
 		switch choices {
 		case "Creature.greatestPowerControlledByRemembered":
-			return lc.greatestControlledFilter("Creature", "Count$Valid Creature.RememberedPlayerCtrl$GreatestCardPower", cmpPower)
+			return lc.greatestControlledFilter("Creature.RememberedPlayerCtrl", "Count$Valid Creature.RememberedPlayerCtrl$GreatestCardPower", cmpPower)
 		case "Creature.greatestCMC_CreatureControlledByRemembered":
-			return lc.greatestControlledFilter("Creature", "Count$Valid Creature.RememberedPlayerCtrl$GreatestCardManaCost", cmpCMC)
+			return lc.greatestControlledFilter("Creature.RememberedPlayerCtrl", "Count$Valid Creature.RememberedPlayerCtrl$GreatestCardManaCost", cmpCMC)
 		case "Permanent.greatestCMC_NonLandPermanentControlledByRemembered":
-			return lc.greatestControlledFilter("Permanent.nonLand", "Count$Valid Permanent.nonLand+RememberedPlayerCtrl$GreatestCardManaCost", cmpCMC)
+			return lc.greatestControlledFilter("Permanent.nonLand+RememberedPlayerCtrl", "Count$Valid Permanent.nonLand+RememberedPlayerCtrl$GreatestCardManaCost", cmpCMC)
 		}
 	}
 	return lc.filter(choices)
@@ -269,7 +277,14 @@ func (lc *lowerCtx) greatestControlledFilter(base, count string, stat uint8) (*l
 	}
 	for i := range f.Clauses {
 		f.Clauses[i].CmpStat = stat
+		// The kernel has a value-bounded power compare both ways but a
+		// mana-value one only at or below the bound (PredCMCLEV); the
+		// aggregate is the maximum, so equality selects the greatest-CMC
+		// candidates.
 		f.Clauses[i].CmpOp = opGE
+		if stat == cmpCMC {
+			f.Clauses[i].CmpOp = opEQ
+		}
 		f.Clauses[i].CmpV = &maxV
 		f.Clauses[i].CmpX = ""
 	}

@@ -31,6 +31,20 @@ import (
 //     Precondition: games hold a planeswalker on the defending side when the
 //     loop runs; one mutation drops the bit (the kernel then asks the
 //     planeswalker pick gorge does not), another the attack.
+//   - a RepeatEach over players whose body is a ChooseCard naming the repeated
+//     player's cards (Soul Shatter, Flare of Malice, Rite of Ruin, Grave
+//     Consequences, Watchers of the Dead, Highcliff Felidar, Disciple of
+//     Caelus Nin, Fortunate Few, Ultimate Magic: Meteor, Thieves' Auction):
+//     the pick is remembered for the post-loop sacrifice/exile/destroy node or
+//     enters under the repeated player. The mutations move the chooser, drop
+//     RememberChosen$, drop the counted pick's remember flag, replace the
+//     greatest-mana-value filter, and move the stolen card's new controller.
+//
+// Tariff (the chosen card's mana value as an unless cost) and the split-card
+// faces Discovery/Dispersal and Flotsam/Jetsam lower (dirac/kgen's
+// TestRepeatEachSlice) but are not in this fixture yet: the first still shows
+// a payability divergence and the split faces a face-cast projection gap;
+// the follow-up ticket covers finishing both.
 func TestRepeatEachSliceLowers(t *testing.T) {
 	if isolate(t) {
 		return
@@ -38,7 +52,10 @@ func TestRepeatEachSliceLowers(t *testing.T) {
 	t.Run("lockstep", func(t *testing.T) {
 		run := runFixtureLockstep(t, "repeateachslice", repeatEachSliceDecks, repeatEachSliceWatch, 200, true, nil)
 		t.Logf("%d games, %d divergences, %d stalls, casts %v", run.games, run.divs, run.stalls, run.casts)
-		for name, min := range map[string]int{"Stampede Surfer": 10, "Ainok Strike Leader": 10, "Jace Beleren": 5, "Acidic Soil": 10, "Sunspine Lynx": 10, "Typhoon": 10, "Spirit Link": 10, "Heartless Hidetsugu": 20, "Another Round": 10, "Exponential Growth": 10, "Full Flowering": 10, "Torment of Hailfire": 20, "Oath of Lim-Dûl": 10, "Varchild's War-Riders": 20, "Trade Secrets": 10} {
+		for name, min := range map[string]int{"Stampede Surfer": 10, "Ainok Strike Leader": 10, "Jace Beleren": 5, "Acidic Soil": 10, "Sunspine Lynx": 10, "Typhoon": 10, "Spirit Link": 10, "Heartless Hidetsugu": 20, "Another Round": 3, "Exponential Growth": 10, "Full Flowering": 10, "Torment of Hailfire": 20, "Oath of Lim-Dûl": 10, "Varchild's War-Riders": 20, "Trade Secrets": 10,
+			"Soul Shatter": 3, "Flare of Malice": 2, "Grave Consequences": 2, "Watchers of the Dead": 3,
+			"Rite of Ruin": 1, "Highcliff Felidar": 1, "Disciple of Caelus Nin": 1,
+			"Fortunate Few": 1, "Ultimate Magic: Meteor": 1, "Thieves' Auction": 1} {
 			if run.casts[name] < min {
 				t.Errorf("only %d %s casts (want %d)", run.casts[name], name, min)
 			}
@@ -111,6 +128,94 @@ func TestRepeatEachSliceLowers(t *testing.T) {
 		}
 		run.requireDivergence(t, "the player-only token rider posing Adeline's planeswalker ask")
 	})
+	t.Run("mutation/ChooseCardChooser", func(t *testing.T) {
+		n := 0
+		run := runFixtureLockstep(t, "repeateachslice", repeatEachSliceDecks, repeatEachSliceWatch, 200, false, func(tbl *kop.Table) {
+			mutateCardIfPresent(t, tbl, "Soul Shatter", func(_ *kop.Ability, in *kop.Instr) {
+				if in.Op == kop.OpChooseCard && in.Obj == kop.RefEach {
+					in.Obj, n = kop.RefController, n+1
+				}
+			})
+		})
+		if n == 0 {
+			t.Fatal("no ChooseCard by RefEach in the table (Defined$ Player.IsRemembered is not lowered)")
+		}
+		run.requireDivergence(t, "the per-player pick asked of the resolving controller")
+	})
+	t.Run("mutation/ChooseCardRemember", func(t *testing.T) {
+		n := 0
+		run := runFixtureLockstep(t, "repeateachslice", repeatEachSliceDecks, repeatEachSliceWatch, 200, false, func(tbl *kop.Table) {
+			for _, name := range []string{"Soul Shatter", "Flare of Malice"} {
+				mutateCardIfPresent(t, tbl, name, func(_ *kop.Ability, in *kop.Instr) {
+					if in.Op == kop.OpChooseCard && in.C == 2 { // RememberChosen$
+						in.C, n = 0, n+1
+					}
+				})
+			}
+		})
+		if n == 0 {
+			t.Fatal("no ChooseCard with the Remember code in the table (RememberChosen$ is not lowered)")
+		}
+		run.requireDivergence(t, "a per-player pick that is not remembered")
+	})
+	t.Run("mutation/ChooseCardCountedRemember", func(t *testing.T) {
+		n := 0
+		run := runFixtureLockstep(t, "repeateachslice", repeatEachSliceDecks, repeatEachSliceWatch, 200, false, func(tbl *kop.Table) {
+			mutateCardIfPresent(t, tbl, "Watchers of the Dead", func(_ *kop.Ability, in *kop.Instr) {
+				if in.Op == kop.OpChooseCard && in.B.N&1 != 0 { // RememberChosen$ on the counted pick
+					in.B, n = kop.Const(0), n+1
+				}
+			})
+		})
+		if n == 0 {
+			t.Fatal("no counted ChooseCard with the remember flag in the table (RememberChosen$ Amount$ is not lowered)")
+		}
+		run.requireDivergence(t, "a counted pick that is not remembered")
+	})
+	t.Run("mutation/ChooseGreatestCMCFilter", func(t *testing.T) {
+		n := 0
+		run := runFixtureLockstep(t, "repeateachslice", repeatEachSliceDecks, repeatEachSliceWatch, 200, false, func(tbl *kop.Table) {
+			for _, name := range []string{"Soul Shatter", "Tariff"} {
+				mutateCardIfPresent(t, tbl, name, func(_ *kop.Ability, in *kop.Instr) {
+					if in.Op == kop.OpChooseCard {
+						in.F, n = 0, n+1 // any card instead of the greatest-mana-value pick
+					}
+				})
+			}
+		})
+		if n == 0 {
+			t.Fatal("no ChooseCard in the table (the greatest-CMC filter is not lowered)")
+		}
+		run.requireDivergence(t, "the greatest-mana-value filter replaced by any card")
+	})
+	t.Run("mutation/ThievesControl", func(t *testing.T) {
+		n := 0
+		run := runFixtureLockstep(t, "repeateachslice", repeatEachSliceDecks, repeatEachSliceWatch, 200, false, func(tbl *kop.Table) {
+			mutateCardIfPresent(t, tbl, "Thieves' Auction", func(_ *kop.Ability, in *kop.Instr) {
+				if in.Op == kop.OpReturnEx && in.W == kop.RefEach {
+					in.W, n = kop.RefController, n+1
+				}
+			})
+		})
+		if n == 0 {
+			t.Fatal("no Return entering under RefEach in the table (GainControl$ Player.IsRemembered is not lowered)")
+		}
+		run.requireDivergence(t, "the stolen card entering under the resolving controller")
+	})
+	t.Run("mutation/ChooseUpToFive", func(t *testing.T) {
+		n := 0
+		run := runFixtureLockstep(t, "repeateachslice", repeatEachSliceDecks, repeatEachSliceWatch, 200, false, func(tbl *kop.Table) {
+			mutateCardIfPresent(t, tbl, "Disciple of Caelus Nin", func(_ *kop.Ability, in *kop.Instr) {
+				if in.Op == kop.OpChooseCard && in.C == kop.ChooseCardAmountOpt && in.A.N == 5 {
+					in.A, n = kop.Const(1), n+1
+				}
+			})
+		})
+		if n == 0 {
+			t.Fatal("no up-to-five ChooseCard in the table (MinAmount$ 0 with Amount$ 5 is not lowered)")
+		}
+		run.requireDivergence(t, "choosing one permanent instead of up to five")
+	})
 }
 
 var repeatEachSliceWatch = map[string]bool{
@@ -120,6 +225,9 @@ var repeatEachSliceWatch = map[string]bool{
 	"Jace Beleren": true, "Ajani Goldmane": true,
 	"Another Round": true, "Exponential Growth": true, "Full Flowering": true,
 	"Torment of Hailfire": true, "Oath of Lim-Dûl": true, "Varchild's War-Riders": true, "Trade Secrets": true,
+	"Soul Shatter": true, "Flare of Malice": true, "Grave Consequences": true, "Watchers of the Dead": true,
+	"Rite of Ruin": true, "Highcliff Felidar": true, "Disciple of Caelus Nin": true,
+	"Fortunate Few": true, "Ultimate Magic: Meteor": true, "Thieves' Auction": true,
 }
 
 var repeatEachSliceDecks = []fixtureDecks{
@@ -186,6 +294,47 @@ var repeatEachSliceDecks = []fixtureDecks{
 		{
 			{Name: "Heartless Hidetsugu", Count: 6}, {Name: "Acidic Soil", Count: 4}, {Name: "Spirit Link", Count: 8},
 			{Name: "Hill Giant", Count: 4}, {Name: "Mountain", Count: 10}, {Name: "Plains", Count: 8},
+		},
+	},
+	{
+		// per-player ChooseCard: each repeated player sacrifices (or pays
+		// for) the creature with the greatest mana value, exiles graveyard
+		// picks, or sacrifices a chosen-order artifact/creature/land
+		{
+			{Name: "Soul Shatter", Count: 5}, {Name: "Flare of Malice", Count: 2},
+			{Name: "Grave Consequences", Count: 2},
+			{Name: "Watchers of the Dead", Count: 3}, {Name: "Rite of Ruin", Count: 1},
+			{Name: "Grizzly Bears", Count: 3}, {Name: "Llanowar Elves", Count: 2},
+			{Name: "Swamp", Count: 8}, {Name: "Plains", Count: 5},
+			{Name: "Mountain", Count: 5}, {Name: "Forest", Count: 4},
+		},
+		{
+			{Name: "Grizzly Bears", Count: 4}, {Name: "Hill Giant", Count: 4},
+			{Name: "Jace Beleren", Count: 2}, {Name: "Ajani Goldmane", Count: 2},
+			{Name: "Raise the Alarm", Count: 2}, {Name: "Llanowar Elves", Count: 2},
+			{Name: "Island", Count: 6}, {Name: "Plains", Count: 6},
+			{Name: "Forest", Count: 4}, {Name: "Mountain", Count: 4}, {Name: "Swamp", Count: 4},
+		},
+	},
+	{
+		// per-player ChooseCard over the repeated player's permanents:
+		// the greatest-power/CMC pick, up to five picks, not-remembered
+		// picks, the chosen artifact/land, and the exiled-card steal
+		{
+			{Name: "Highcliff Felidar", Count: 2}, {Name: "Disciple of Caelus Nin", Count: 2},
+			{Name: "Fortunate Few", Count: 2}, {Name: "Ultimate Magic: Meteor", Count: 2},
+			{Name: "Thieves' Auction", Count: 1}, {Name: "Grizzly Bears", Count: 5},
+			{Name: "Llanowar Elves", Count: 3},
+			{Name: "Island", Count: 5}, {Name: "Plains", Count: 5},
+			{Name: "Mountain", Count: 5}, {Name: "Forest", Count: 4}, {Name: "Swamp", Count: 4},
+		},
+		{
+			{Name: "Grizzly Bears", Count: 2}, {Name: "Hill Giant", Count: 3},
+			{Name: "Jace Beleren", Count: 2}, {Name: "Ajani Goldmane", Count: 2},
+			{Name: "Lightning Bolt", Count: 3}, {Name: "Divination", Count: 3},
+			{Name: "Mind Stone", Count: 3},
+			{Name: "Island", Count: 6}, {Name: "Mountain", Count: 6},
+			{Name: "Plains", Count: 5}, {Name: "Forest", Count: 5},
 		},
 	},
 }
