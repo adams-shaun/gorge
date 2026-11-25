@@ -427,15 +427,14 @@ type genPrep struct {
 	// replBits2 is the second replacement-bit word: the rb* enum above filled
 	// its 32 bits (gen.go:570), so the kinds that landed after it mark their
 	// cards here. anyRepl2 gates their sites the way anyRepl does.
-	replBits2      []uint32
-	anyRepl2       uint32
-	anyBeginPhase  bool           // some card carries ReplBeginPhase: the step boundary consults the skip (repl_beginphase.go)
-	exileOnLeave   []kop.FilterID // per card: ReplExileOnLeave's filter (nil when no card has one)
-	exileAnyC      []uint8        // per card: its ea* bits, the any-zone exile and grave-to-library details (nil when no card has one; repl_exileonleave.go, repl_gen.go)
-	destroyHeal    []kop.FilterID // per card: ReplDestroyHeal's filter (nil when no card has one; repl_destroyheal.go)
-	anyExileAny    bool           // some ReplExileOnLeave has Repl.C 1: a move to a graveyard from any zone checks it (placeFrom)
-	anyEmbExileAny bool           // some emblem carries the any-zone arm: the placeFrom gate opens for it too (repl_exileleaveemb.go)
-	altFree        []uint8        // per card: 1 + the ability index of its own free StatAlternativeCost (nil when no card has one; cast_altfree.go)
+	replBits2     []uint32
+	anyRepl2      uint32
+	anyBeginPhase bool           // some card carries ReplBeginPhase: the step boundary consults the skip (repl_beginphase.go)
+	exileOnLeave  []kop.FilterID // per card: ReplExileOnLeave's filter (nil when no card has one)
+	exileAnyC     []uint8        // per card: its ea* bits, the any-zone exile and grave-to-library details (nil when no card has one; repl_exileonleave.go, repl_gen.go)
+	destroyHeal   []kop.FilterID // per card: ReplDestroyHeal's filter (nil when no card has one; repl_destroyheal.go)
+	anyExileAny   bool           // some ReplExileOnLeave has Repl.C 1: a move to a graveyard from any zone checks it (placeFrom)
+	altFree       []uint8        // per card: 1 + the ability index of its own free StatAlternativeCost (nil when no card has one; cast_altfree.go)
 	// anyDeferred: some card has a deferred mana source (gfDeferred; mana_deferred.go)
 	anyDeferred bool
 	// anyTapsDefer / anyTapsPain: some card has a lowered Taps watcher of

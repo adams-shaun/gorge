@@ -71,12 +71,11 @@ func prepEmbExileLeave(p *prep, g *genPrep) {
 // prepEmbExileAny opens every death site and every placeFrom move when some
 // emblem carries an any-zone dies-to-exile replacement (prep.embExileAny):
 // the death sites through g.anyRepl, the placeFrom gate through
-// g.anyEmbExileAny (a printed any-zone host carries its bits on
+// prep.embExileAny itself (a printed any-zone host carries its bits on
 // genPrep.exileAnyC; the emblem is created at resolution, no card does).
 func prepEmbExileAny(p *prep, g *genPrep) {
 	if p.embExileAny {
 		g.anyRepl |= rbExileOnLeave
-		g.anyEmbExileAny = true
 	}
 }
 

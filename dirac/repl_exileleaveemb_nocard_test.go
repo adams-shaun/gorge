@@ -11,7 +11,7 @@ import (
 // dies-to-exile host (Repl.C 0, the Kalitas shape: it sets rbExileOnLeave but
 // allocates no genPrep.exileAnyC) and an any-zone (Repl.C 1) emblem over lands
 // (the Yawgmoth's Will shape), which opens the placeFrom gate on
-// genPrep.anyEmbExileAny alone. The emblem is declared in the table but not
+// prep.embExileAny alone. The emblem is declared in the table but not
 // created.
 func exileAnyHostEmblemScen(t *testing.T) (*scen, CardID) {
 	t.Helper()
@@ -31,7 +31,7 @@ func exileAnyHostEmblemScen(t *testing.T) (*scen, CardID) {
 		Abilities: []kop.Ability{{Kind: kop.AbReplacement, Repl: kop.Repl{Kind: kop.ReplExileOnLeave, Filter: lf, C: 1}}}})
 	sc := newScenTable(t, &tbl, Config{NoElide: true})
 	g := sc.k.gen
-	if g == nil || !sc.k.embExileAny || !g.anyEmbExileAny {
+	if g == nil || !sc.k.embExileAny {
 		t.Fatal("precondition: the any-zone emblem did not open the placeFrom gate")
 	}
 	if g.exileAnyC != nil || g.replBits[host]&rbExileOnLeave == 0 {
