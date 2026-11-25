@@ -883,8 +883,11 @@ func (s *State) matchCardOneAt(k *prep, fl *kop.Filter, c CardID, owner, ctrl ui
 	case kop.PredToughnessGE, kop.PredHasXCost, kop.PredPowerLTToughness:
 		return s.predCardStats(k, fl, c, owner, o)
 	case kop.PredMultiColor, kop.PredHistoric, kop.PredEquipped, kop.PredEnchanted:
-		if fd && fl.Pred == kop.PredMultiColor {
-			return false // colourless, so never more than one colour
+		if fd && (fl.Pred == kop.PredMultiColor || fl.Pred == kop.PredHistoric) {
+			// CR 708.2/708.4: a face-down card is a colourless 2/2 creature
+			// with no supertypes or subtypes, so never multicoloured and
+			// never historic (gorge historicMatches reads current types)
+			return false
 		}
 		return predCardKind(k, fl, c, cols)
 	case kop.PredAttached, kop.PredActiveCtrl:
