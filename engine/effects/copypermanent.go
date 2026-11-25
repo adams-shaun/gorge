@@ -1009,11 +1009,37 @@ func copyPermanentController(h Host, c *Ctx, g *state.Game, cp CopyPermanentPara
 			}
 			break
 		}
+		// A `Player.<filter>` spelling (Tempt with Reflections'
+		// `Player.IsRemembered`: the iterating opponent creates its own
+		// copy, CR 111.2) is the first live player the shared player-filter
+		// grammar admits, with the iteration's Remembered list bound.
+		if p, ok := copyPermanentControllerPlayer(g, c, cp.Controller); ok {
+			owner = p
+			break
+		}
 		emitNote(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
 			Text: "Controller$ " + cp.Controller +
 				" is not implemented; the copy is controlled by the resolving controller"})
 	}
 	return owner, owners, multiOwner
+}
+
+// copyPermanentControllerPlayer resolves a `Player.<filter>` Controller$ to the
+// first player, in turn order from the resolving controller, that
+// MatchesPlayerSpecCtx admits. Player.IsRemembered reads the ctx's Remembered
+// list (a RepeatEach iteration binds its subject there), not the source
+// object's own. ok is false for any other spelling or when no player matches.
+func copyPermanentControllerPlayer(g *state.Game, c *Ctx, spec string) (state.PlayerID, bool) {
+	if !strings.HasPrefix(spec, "Player.") {
+		return 0, false
+	}
+	pc := PlayerSpecCtx{Source: c.Source, Remembered: c.Remembered, RememberedBound: true}
+	for _, p := range g.AliveFrom(c.Controller) {
+		if MatchesPlayerSpecCtx(g, spec, p, c.Controller, pc) {
+			return p, true
+		}
+	}
+	return 0, false
 }
 
 // copyTypeList parses Forge's multi-type grammar the way rules' statList
