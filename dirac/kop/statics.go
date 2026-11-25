@@ -511,6 +511,27 @@ const StCasterActive = StTargetsFilter2
 // no MayPlayFrom static reads; StaticFlags is full at 16 bits.
 const StSeatActive = StEmbNum
 
+// StMayZeroAlt: on a StatMayPlayFrom only, a NON-granting alternative-cost
+// permission (MayPlayDontGrantZonePermissions$ True with a MayPlayAltManaCost$
+// rider; Dragon's Smile's {0}, As Foretold, Demon of Fate's Design's
+// pay-life, Nissa, Worldsoul Speaker's pay-energy). It opens no zone: gorge
+// (rules/mayplay.go mayPlayCastAlts) lists it beside the plain cast another
+// permission makes, and the hand walk lists it beside the plain hand cast.
+// It is the marker cast_mayzeroalt.go's zeroAlts walks apart (StFreeOnly
+// keeps Weftwalking's plain free shape). It aliases StTargetsFilter2, whose
+// every reader is gated on Kind == StatReduceCost, so the StaticFlags iota
+// tail stays untouched.
+const StMayZeroAlt = StTargetsFilter2
+
+// StMayPayEnergy: on a StatMayPlayFrom only, the non-granting alternative's
+// cost is Static.A energy (MayPlayAltManaCost$ PayEnergy<N>; Nissa, Worldsoul
+// Speaker's "pay eight {E} rather than pay the mana cost"), the flag
+// cast_mayzeroalt.go's hand and may-play alternative offers gate and pay
+// beside StMayPayLife (life equal to the mana value, the granting shape's
+// flag). It aliases StRaiseOpp, an IncreaseCost-only flag whose readers
+// (StReduceAny, StBanOpp, StHandOpp) are gated on their own kinds.
+const StMayPayEnergy = StRaiseOpp
+
 // StatDisableETB: S:Mode$ DisableTriggers | ValidMode$
 // ChangesZone[,ChangesZoneAll] | Destination$ Battlefield (CR 603.2g; gorge
 // disableTriggersExcludes). Filter = ValidCause$, matched against the
