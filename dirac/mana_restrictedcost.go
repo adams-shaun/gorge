@@ -146,21 +146,8 @@ func (a *avail) restrFeeCharge(fee kop.ManaCost, cost *kop.ManaCost, extra int) 
 			pipCol, pipN = c, int(fee.Pips[c])
 		}
 	}
-	if pipN > 0 && !b.removeWide(uint8(1)<<uint(pipCol), uint16(pipN)) {
-		// the pip's mana may sit in a wider group (an any-colour unit, a
-		// one-colour entry inside a multi-bit one): take the pips from the
-		// first group that holds them
-		ok := false
-		for i := 0; i < b.n; i++ {
-			if b.mask[i]&(uint8(1)<<uint(pipCol)) != 0 && b.cnt[i] >= uint16(pipN) &&
-				b.removeWide(b.mask[i], uint16(pipN)) {
-				ok = true
-				break
-			}
-		}
-		if !ok {
-			return false
-		}
+	if pipN > 0 && !b.restrFeePips(pipCol, pipN) {
+		return false
 	}
 	if fee.Generic == 0 {
 		*a = b
@@ -172,6 +159,63 @@ func (a *avail) restrFeeCharge(fee kop.ManaCost, cost *kop.ManaCost, extra int) 
 		return true
 	}
 	return false
+}
+
+// restrFeePips takes n pips of colour col from a's groups: a single group
+// holding them all first (removeWide's one-colour bookkeeping), else the
+// pips split over the groups that can make col, an exact-colour group before
+// a wider one (Castle Garenbrig's {2}{G}{G} fee from one Forest and one
+// any-colour source). A source that makes all its mana one colour has its
+// entry reduced with the units taken, so a later colour assignment cannot
+// count the spent units again.
+func (a *avail) restrFeePips(col, n int) bool {
+	bit := uint8(1) << uint(col)
+	if a.removeWide(bit, uint16(n)) {
+		return true
+	}
+	left := n
+	for pass := 0; pass < 2 && left > 0; pass++ {
+		for i := 0; i < a.n && left > 0; i++ {
+			if a.mask[i]&bit == 0 || a.cnt[i] == 0 {
+				continue
+			}
+			if (a.mask[i] == bit) != (pass == 0) {
+				continue // exact-colour groups first, then wider ones
+			}
+			take := min(left, int(a.cnt[i]))
+			if !a.takeWide(a.mask[i], uint16(take)) {
+				continue
+			}
+			a.takeOneColour(a.mask[i], uint8(take))
+			left -= take
+		}
+	}
+	return left == 0
+}
+
+// takeOneColour reduces a one-colour entry matching mask by n, dropping it
+// when spent: restrFeePips' partial removal, where removeWide's exact-amount
+// dropOneColour would leave the entry counting spent units.
+func (a *avail) takeOneColour(mask, n uint8) {
+	for i := uint8(0); i < a.nOne; i++ {
+		m := a.oneMask[i]
+		if m == 0 {
+			m = uint8(kop.ColAny)
+		}
+		if m != mask || a.one[i] < n {
+			continue
+		}
+		a.one[i] -= n
+		if a.one[i] == 0 {
+			a.nOne--
+			a.one[i] = a.one[a.nOne]
+			a.oneMask[i] = a.oneMask[a.nOne]
+			a.oneAltMask[i] = a.oneAltMask[a.nOne]
+			a.oneAltN[i] = a.oneAltN[a.nOne]
+			a.oneCol[i] = a.oneCol[a.nOne]
+		}
+		return
+	}
 }
 
 // restrFeeFundAvail builds a, the mana a cast's restricted fee may be paid
