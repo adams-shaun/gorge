@@ -82,7 +82,7 @@ func prepStaticClasses(t *kop.Table, g *genPrep) (anyCmdTap bool) {
 					m |= sclsMayPlay
 				}
 			case kop.StatTapExtra:
-				if sa.Zone == kop.ZoneCommand {
+				if sa.Zone == kop.ZoneCommand && c.Types&kop.TVanguard != 0 {
 					// a Vanguard's printed static (Sisay): in force from the
 					// command zone, walked by eachTapExtra, never by eachStatic
 					m |= sclsTapCmd

@@ -17,12 +17,12 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 | FDN | 517 | 517 | 0 | 0 | 517 | 517 | 0 |
 | FIN | 312 | 283 | 0 | 1 | 282 | 282 | 0 |
 | FRA | 269 | 255 | 0 | 5 | 250 | 250 | 0 |
-| HOB | 172 | 162 | 0 | 2 | 160 | 160 | 0 |
+| HOB | 172 | 161 | 0 | 1 | 160 | 160 | 0 |
 | LCI | 290 | 262 | 1 | 1 | 260 | 260 | 0 |
 | MKM | 279 | 256 | 1 | 6 | 249 | 249 | 0 |
 | MSH | 276 | 250 | 1 | 0 | 249 | 249 | 0 |
 | OTJ | 276 | 254 | 1 | 0 | 253 | 253 | 0 |
-| SOS | 270 | 261 | 0 | 2 | 259 | 259 | 0 |
+| SOS | 270 | 260 | 0 | 1 | 259 | 259 | 0 |
 | SPM | 192 | 174 | 2 | 5 | 167 | 167 | 0 |
 | TDM | 276 | 260 | 1 | 0 | 259 | 259 | 0 |
 | TLA | 285 | 262 | 1 | 0 | 261 | 261 | 0 |
@@ -31,7 +31,7 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 | TRK | 311 | 311 | 1 | 0 | 310 | 310 | 0 |
 | WOE | 281 | 266 | 0 | 2 | 264 | 264 | 0 |
 | MBC | 2212 | 2027 | 3 | 32 | 1992 | 1992 | 0 |
-| ALL | 34480 | 26474 | 42 | 576 | 25856 | 25853 | 0 |
+| ALL | 34480 | 26461 | 42 | 563 | 25856 | 25853 | 0 |
 
 `ALL` is the whole corpus; `MBC` is the Mystery Booster Commander draft pool, every name its packs deal that gorge supports; the rest are the Standard sets. `4-seat` counts the supported cards whose lowering holds at any seat count: a card whose lowering reads the one opponent of a two-player game (`kop.CardDef.TwoSeat`) is refused in a game of three or more seats (`StallTwoSeat`). It is a ceiling, not evidence. `pod-evidenced` counts those cards whose evidence row carries a seats field — a clean game of three or more seats, which `kfuzz -evidence -seats 4` writes and `scripts/dirac-first-refusals.py evidence --pools pod-*` copies into `dirac/support/evidence` (`Name\t<seats>`; readers take the name and ignore trailing columns). A pod game does not evidence a card: the support rule below is unchanged.
 
@@ -156,7 +156,6 @@ Evidence comes from the `fdn` and `blb` deck pools and one synthetic pool per St
 | ev-std-woe-a000 | 40 |
 | ev-std-woe-c000 | 8 |
 | ev-tail-00 | 966 |
-| ev-tail-00-a000 | 28 |
 | ev-tail-00-c000 | 5 |
 | ev-tail-00-c001 | 7 |
 | ev-tail-00-c002 | 1 |
@@ -2235,7 +2234,6 @@ Evidence comes from the `fdn` and `blb` deck pools and one synthetic pool per St
 | ev-tail-27-c099 | 16 |
 | ev-tail-27-s000 | 63 |
 | ev-tail-27-s001 | 61 |
-| ev-tail-28-a000 | 4 |
 | ev-tail-28-c000 | 7 |
 | ev-tail-28-c001 | 15 |
 | ev-tail-28-c002 | 8 |
