@@ -660,6 +660,8 @@ G	untyped int	4
 GcHasteEOT	untyped int	2
 GcRemember	untyped int	4
 GcUntap	untyped int	1
+HexMono	ColorMask	64
+HexMulti	ColorMask	128
 HybPhyrexian	ColorMask	64
 HybTwobrid	ColorMask	128
 JoinForcesReset	untyped int	1
