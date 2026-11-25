@@ -173,6 +173,9 @@ func (lc *lowerCtx) changeZoneUnimprint(what string) error {
 // exile on a face that keeps its Imprinted on the source (Parallax Nexus),
 // where the kernel's imprint also records the card in the source's store.
 func (lc *lowerCtx) handMoveImprint(ps *params, dest int) (bool, error) {
+	if lc.imprintMox {
+		return false, nil // the mox's own imprint (lower_imprintmox.go) read it
+	}
 	v, ok := ps.get("Imprint")
 	if !ok {
 		return false, nil
