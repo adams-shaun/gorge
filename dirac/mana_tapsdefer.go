@@ -320,7 +320,12 @@ func (s *State) tapsDeferLethal(k *prep, p uint8, sl Slot) bool {
 // harness replays the prefix and re-prices the play, and the planner's lethal
 // guard (pain >= life) prices no activation that would pay the whole life
 // total, so the line the search found is a dead end (CR 119.4, 601.2g;
-// dr-mbc The Cauldron of Eternity beside Burning Earth at 3 life).
+// dr-mbc The Cauldron of Eternity beside Burning Earth at 3 life). The caller
+// applies it only to a prefix that lowered the payer's life: the guard sums
+// the payment units' own life and damage (pay.ConsequencePain), never the
+// play's own PayLife, so a prefix that cost no life (Waterveil Cavern's stay-tapped
+// {B} at 2 life, Phyrexian Reclamation's Pay 2 life) leaves the play offered,
+// CR 119.4 letting a payer pay their whole life total.
 func (s *State) playLifeNotSurvived(k *prep, p uint8, a Action) bool {
 	if a.Kind() != AkActivate {
 		return false
@@ -1353,7 +1358,7 @@ func deferGapWalk(s *State, k *prep, a Action, p uint8, order []Slot, tapsDef sl
 					}
 					*dead = !t.scriptCompletes(k, p, a)
 				}
-				if t.playLifeNotSurvived(k, p, a) {
+				if t.playLifeNotSurvived(k, p, a) && t.pl[SeatIx(p)].life < s.pl[SeatIx(p)].life {
 					*dead = true // the prefix's damage left no life above the play's own life cost: the planner prices no such play
 				}
 				s.unfork()
