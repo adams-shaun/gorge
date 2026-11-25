@@ -228,15 +228,9 @@ func hasOption(d *Decision, a Action) bool {
 // unrelax holds the live sources that make it unrelaxable on their own: a
 // two-permanent source (Baylen), a Combo Any gap, a sacrifice-any one
 // (Krark-Clan Ironworks: tapXSacAnyBound). So does a fourth filter, or a
-// dynamic one out of bounds (mana_filter.go filtRelaxable). A live dead
-// counter-cost gap (Component Pouch) is unrelaxable as well: gorge's census
-// records it while the cost is payable and paymentPlanRelaxedAlternatives
-// enumerates no colour for its production (potential_plan.go), so the prefix
-// search runs on the any-mana walk and the search's slot accounting counts
-// every insufficient play whatever it finds; the dead gap contributes no units
-// to either walk (availCtr).
+// dynamic one out of bounds (mana_filter.go filtRelaxable).
 func (s *State) scriptRelax(k *prep, p uint8, filt slotMask, unrelax bool) bool {
-	return !unrelax && !s.scriptGaps(k, p).any() && s.filtRelaxable(k, filt) && !s.deadCtrMask(k, p).any()
+	return !unrelax && !s.scriptGaps(k, p).any() && s.filtRelaxable(k, filt)
 }
 
 // addCostShapeUnscripted reports whether the plain cast of card c carries a
