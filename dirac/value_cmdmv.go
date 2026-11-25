@@ -7,10 +7,12 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // the ExValidAgg read) or in the command zone (the card's printed mana
 // value). gorge folds Count$ValidBattlefield,Command
 // Card.IsCommander+YouOwn$GreatestCardManaCost over both zones; a seat's
-// commander is always its own card (CR 903.3), so YouOwn is the seat.
+// commander is always its own card (CR 903.3), so YouOwn is the seat. all
+// (kop.CmdMVAllZones, Count$ValidAll) reads a commander in any other zone
+// too, at objMV (the printed value, a spell's announced X on the stack).
 //
 //go:noinline
-func (s *State) cmdGreatestMV(k *prep, p uint8) int {
+func (s *State) cmdGreatestMV(k *prep, p uint8, all bool) int {
 	if s.cfg&cfgCommander == 0 {
 		return 0
 	}
@@ -30,7 +32,10 @@ func (s *State) cmdGreatestMV(k *prep, p uint8) int {
 		case kop.ZoneCommand:
 			v = s.objMV(k, ob.card, o)
 		default:
-			continue
+			if !all {
+				continue
+			}
+			v = s.objMV(k, ob.card, o)
 		}
 		if v > best {
 			best = v

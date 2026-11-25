@@ -40,7 +40,6 @@ var fdcRefused = []string{
 	"Padeem, Consul of Innovation",
 	"Sephara, Sky's Blade",
 	"Spinerock Knoll",
-	"Tangleweave Armor",
 	"The Elder Dragon War",
 	"Thundermane Dragon",
 }

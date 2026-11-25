@@ -1598,6 +1598,9 @@ func (lc *lowerCtx) countValue(rest string, depth int) (lValue, error) {
 	if spec, ok := strings.CutPrefix(rest, "ValidBattlefield,Command "); ok {
 		return cmdGreatestMVValue(spec) // value_cmdmv.go
 	}
+	if spec, ok := strings.CutPrefix(rest, "ValidAll "); ok && spec == cmdGreatestMVSpec {
+		return cmdGreatestMVAll(spec) // value_cmdmv.go
+	}
 	for _, zc := range []struct {
 		pre  string
 		kind []valKind
