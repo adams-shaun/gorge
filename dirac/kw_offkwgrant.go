@@ -15,8 +15,8 @@ var RetraceGrantStats struct{ Casts atomic.Int64 }
 // reader (the layer walks, matchPermGen) sees them: kop.StatOffZoneGrant (a
 // subtype or simple keyword grant; featview.go) and kop.StatRetraceGrant (a
 // graveyard retrace: Six; Deeproot Historian; Wrenn and Six's emblem). A hand
-// miracle grant (Aminatou, Veil Piercer) is refused: gorge offers its miracle
-// trigger and the kernel offers no granted miracle. The grant is read live from the battlefield, as
+// miracle grant (Aminatou, Veil Piercer) is kop.StatMiracleGrant (kw_miracle.go).
+// The grant is read live from the battlefield, as
 // kw_fbgrant.go reads a flashback grant: no mark is stamped on the card and
 // no State byte records it.
 

@@ -92,6 +92,11 @@ type Static struct {
 	// grant costs each card's mana cost. A StatWarpGrant's warp cost
 	// (AddKeyword$ Warp:2 R, Tannuk, Steadfast Second).
 	GrantCost ManaCost
+	// CardCostLess: a StatMiracleGrant's miracle cost is each affected card's
+	// own mana cost reduced by CardCostLess-1 generic mana (AddKeyword$
+	// Miracle:ManaCost:4, Aminatou, Veil Piercer; Madness:ManaCost is 1, no
+	// reduction); 0 = the cost is GrantCost.
+	CardCostLess uint8
 	// ProtFrom: a StatContinuous grant of protection from a quality, besides
 	// its other parts: the affected objects have protection from the sources
 	// this filter matches (CR 702.16; the grant's AddKeyword$ Protection:
