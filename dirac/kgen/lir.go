@@ -1156,6 +1156,7 @@ type lMana struct {
 	Deferred   bool     // a TriggersWhenSpent$ source gorge's planner defers (kop.Ability.ManaDeferred; lower_deferredmana.go)
 	Split      *lSplit  // a Condition-split production's arm (kop.Ability.SplitGate; lower_condsplit.go)
 	AskColour  bool     // the activation asks one colour, records it and makes Amount mana of it (kop.Ability.ManaAskColour; lower_askcolourmana.go)
+	Unless     bool     // the ask's one mana is added unless any player pays {1} (kop.Ability.ManaUnless; lower_askcolourmana.go)
 	HasteValid *lFilter // AddsKeywords$ Haste: a spell matching it, paid with this mana, gains haste until end of turn (kop.Ability.ManaHasteValid)
 	// IdentityPotential: a Produced$ ColorIdentity source a rider or a cost
 	// beyond {T} kept out of the reflected shape; the potential walk still
