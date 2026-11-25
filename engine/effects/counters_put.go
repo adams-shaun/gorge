@@ -1413,13 +1413,17 @@ func putCounterSupport(h Host, c *Ctx, sa *cards.SA, kind string) {
 			spec = "Creature"
 		}
 	}
-	// A SPELL's Support was announced at cast (CR 701.41a with 601.2c; the
-	// cast flow's supportTargetSA gives the generic targeting machinery the
-	// declaration). Its recipients are the targets already recorded on the
-	// stack object; asking again here would make a choice the rules have
+	// A Support ability whose targets were announced when it was put on the
+	// stack applies them here. That is a spell at cast (CR 701.41a with
+	// 601.2c), a permanent's triggered ability at trigger-put time (CR
+	// 603.3d, including a trigger body with a Cost$ compiled as an AB$ SA),
+	// and an activated ability at activation (CR 602.2b): rules'
+	// offeredTargetSA re-derives the same synthesized declaration and marks
+	// Ctx.TargetsOffered. Asking again here would make a choice the rules
 	// already made, and Forge/XMage put no counters on the creatures the
-	// caster never chose.
-	if sa.KindCode() == cards.SAKindSpell {
+	// player never chose.
+	if sa.KindCode() == cards.SAKindSpell ||
+		(c.TargetsOffered && c.OfferedSA != nil && c.OfferedSA.Line == sa.Line) {
 		putCounterSupportAnnounced(h, c, sa, kind, spec)
 		return
 	}

@@ -8,14 +8,18 @@ import (
 //
 // gorge putCounterSupport: Support$ N is ONE counter (CounterType$, default
 // P1P1) on each of up to N creatures (Creature.+Other for a permanent's
-// ability, Creature for an instant or sorcery), any controller, picked in
-// one KChoose Min 0 Max min(N, eligible) "counter_pick" by the resolving
-// controller; nothing when N <= 0 or nothing is eligible. The kernel asks
-// one pick at a time (ChGenBolster plus Done, the proliferate shape),
-// applies each as it is answered (gorge applies the answer at its commit,
-// in answer order) and closes the pick at the max-th one; res.arr/res.peek
-// hold the picks (a seventeenth stalls, StallProlif) and res.left the
-// picks still allowed.
+// ability, Creature for an instant or sorcery), any controller. When the
+// ability's targets were announced as it was put on the stack (a spell at
+// cast, CR 601.2c; a permanent's triggered ability at trigger-put time, CR
+// 603.3d; an activated ability at activation, CR 602.2b), C&0x1000 applies
+// one counter to each announced target. A shape
+// that still picks at resolution uses one KChoose Min 0 Max min(N,
+// eligible) "counter_pick" by the resolving controller; nothing when N <= 0
+// or nothing is eligible. The kernel asks one pick at a time
+// (ChGenBolster plus Done, the proliferate shape), applies each as it is
+// answered (gorge applies the answer at its commit, in answer order) and
+// closes the pick at the max-th one; res.arr/res.peek hold the picks (a
+// seventeenth stalls, StallProlif) and res.left the picks still allowed.
 
 // supportOK: the creature at sl may be supported by instruction in. The
 // "other" excludes the resolving source only while it is still the object
@@ -60,10 +64,13 @@ func (s *State) support(k *prep, in *kop.Instr) bool {
 		return s.rmctrStart(k, in) // ctr_removechoices.go
 	}
 	if in.C&0x1000 != 0 {
-		// An instant or sorcery's Support targets are announced while
-		// casting (CR 701.41a with 601.2c; kgen lowers a 0..N target slot
-		// and gorge's supportTargetSA asks through the cast target flow).
-		// Apply one counter to each announced target; no resolution pick.
+		// The ability's Support targets were announced when it was put on
+		// the stack: a spell at cast (CR 701.41a with 601.2c), a permanent's
+		// triggered ability at trigger-put time (CR 603.3d; a trigger body
+		// with a Cost$ is an AB$ SA), or an activated ability at activation
+		// (CR 602.2b; kgen lowers a 0..N target slot and gorge's
+		// supportTargetSA supplies the declaration). Apply one counter to
+		// each announced target; no resolution pick.
 		s.supportAnnounced(k, in)
 		return true
 	}
@@ -89,7 +96,7 @@ func (s *State) support(k *prep, in *kop.Instr) bool {
 	return false
 }
 
-// supportAnnounced applies OpSupport's cast-time-target form (C&0x1000): one
+// supportAnnounced applies OpSupport's announced-target form (C&0x1000): one
 // counter of C&0xFF on the CURRENT target of Obj's slot. A slot holding
 // several announced targets runs this instruction once per target (the
 // generic each-target loop, interp_gen.go), exactly as the ordinary
