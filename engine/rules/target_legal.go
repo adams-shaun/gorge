@@ -1268,12 +1268,10 @@ func targetValidTargetingMatches(e targetSpecRecheck, o *state.Object, spec stri
 // Killer), NonTriggeredCardController (Confusion in the Ranks: "target
 // permanent another player controls"), TriggeredSourceController (Scalelord
 // Reckoner: "destroy target nonland permanent that player controls", where
-// "that player" is the targeting spell's controller), TriggeredCardOpponent
-// (Necrotic Plague: "a creature your opponents control") and the two
-// Player.OpponentOf spellings (Portal Manipulator, Power Struggle) fail
-// closed when unbound instead, since offering every creature would widen
-// "target creature that player controls" to any player's, or "another
-// player's permanent" to your own.
+// "that player" is the targeting spell's controller) fail closed when
+// unbound instead, since offering every creature would widen "target
+// creature that player controls" to any player's, or "another player's
+// permanent" to your own.
 func (e *Engine) filterTargetsWithDefinedController(in []targetCandidate, sa *cards.SA, sc effects.SpecContext) []targetCandidate {
 	ref := effects.TargetsOf(sa).DefinedController
 	if ref == "" {
@@ -1290,7 +1288,7 @@ func (e *Engine) filterTargetsWithDefinedController(in []targetCandidate, sa *ca
 		}
 		return filterParentControllerTargets(e.G, in, sc)
 	}
-	player, ok, failClosed, nonTriggered, not := e.definedControllerPlayer(ref, sc)
+	player, ok, failClosed, nonTriggered := e.definedControllerPlayer(ref, sc)
 	if !ok {
 		if failClosed || nonTriggered {
 			return nil
@@ -1306,7 +1304,7 @@ func (e *Engine) filterTargetsWithDefinedController(in []targetCandidate, sa *ca
 		if o == nil {
 			continue
 		}
-		if definedControllerAdmits(o, player, ok, failClosed, nonTriggered, not) {
+		if definedControllerAdmits(o, player, ok, failClosed, nonTriggered) {
 			out = append(out, candidate)
 		}
 	}
@@ -1317,15 +1315,11 @@ func (e *Engine) filterTargetsWithDefinedController(in []targetCandidate, sa *ca
 // referent to the one player whose control the restriction names. ok reports
 // the referent resolved; failClosed and nonTriggered flag the arms that must
 // admit nothing when it did not (the attack-declaration roles, and
-// NonTriggeredCardController, whose predicate is the complement). not flags
-// the complement arms (the two OpponentOf spellings, TriggeredCardOpponent):
-// the restriction names a player's OPPONENTS, and gorge's seats are unteamed,
-// so the one player the restriction anchors on admits every OTHER player's
-// objects -- the same not-you read triggerRoleBaseOpponent and the player
-// filters' OpponentOf qualifier apply. It is the ONE referent definition,
-// shared by the offer post-filter (filterTargetsWithDefinedController) and
-// the CR 608.2b resolution recheck (legalTargets) so the two cannot drift.
-func (e *Engine) definedControllerPlayer(ref string, sc effects.SpecContext) (player state.PlayerID, ok, failClosed, nonTriggered, not bool) {
+// NonTriggeredCardController, whose predicate is the complement, and
+// TriggeredSourceController). It is the ONE referent definition, shared by
+// the offer post-filter (filterTargetsWithDefinedController) and the CR
+// 608.2b resolution recheck (legalTargets) so the two cannot drift.
+func (e *Engine) definedControllerPlayer(ref string, sc effects.SpecContext) (player state.PlayerID, ok, failClosed, nonTriggered bool) {
 	switch filterTargetsWithDefinedControllerCodes.Code(ref) {
 	case filterTargetsWithDefinedControllerNonTriggeredCardController:
 		nonTriggered = true
@@ -1376,83 +1370,23 @@ func (e *Engine) definedControllerPlayer(ref string, sc effects.SpecContext) (pl
 		// (and every other player's) when the caster controls none.
 		failClosed = true
 		player, ok = effects.TriggeredSourceController(e.G, sc.TriggerContext, sc.Remembered)
-	case filterTargetsWithDefinedControllerTriggeredCardOpponent:
-		// "choose a creature your opponents control" (Necrotic Plague): the
-		// opponents of the triggering card's controller, the complement of
-		// that one player.
-		failClosed = true
-		if p, resolved := effects.TriggeredCardController(e.G, sc.TriggerContext, sc.Remembered); resolved {
-			player, ok, not = p, true, true
-		}
-	case filterTargetsWithDefinedControllerOpponentOfParentTarget:
-		// "controlled by target player's opponents" (Portal Manipulator):
-		// the opponents of the player the PARENT link chose. Like the parent
-		// referents themselves, an offer built without a parent binding
-		// keeps its existing offer.
-		if sc.ParentBound {
-			if p, ok := definedParentAnchor(e.G, sc.ParentTargets); ok {
-				player, not = p, true
-			} else {
-				failClosed = true
-			}
-		}
-	case filterTargetsWithDefinedControllerOpponentOfTriggeredPlayer:
-		// TargetsWithDefinedController$ Player.OpponentOf TriggeredPlayer
-		// (Power Struggle): the opponents of the trigger's player role.
-		// An unbound role admits nothing.
-		failClosed = true
-		if sc.TriggerPlayer.IsPlayer {
-			player, ok, not = sc.TriggerPlayer.Player, true, true
-		}
 	}
-	return player, ok, failClosed, nonTriggered, not
-}
-
-// definedParentAnchor resolves the one player the parent link's chosen
-// targets anchor on: a player target contributes its seat, an object target
-// its controller (filterParentControllerTargets' same derivation). A parent
-// that named no player (an empty Min-0 set) or more than one distinct
-// controller has no single anchor, so the restriction fails closed rather
-// than widening "that player's opponents" to everybody.
-func definedParentAnchor(g *state.Game, targets []state.Target) (state.PlayerID, bool) {
-	anchor, distinct := state.PlayerID(0), 0
-	for _, target := range targets {
-		p := target.Player
-		if !target.IsPlayer {
-			if o := g.Obj(target.Obj); o == nil {
-				continue
-			} else {
-				p = o.Controller
-			}
-		}
-		if distinct == 0 || p != anchor {
-			anchor, distinct = p, distinct+1
-		}
-	}
-	if distinct == 1 {
-		return anchor, true
-	}
-	return 0, false
+	return player, ok, failClosed, nonTriggered
 }
 
 // definedControllerAdmits is the ONE per-object TargetsWithDefinedController$
 // predicate, shared by the offer post-filter and the CR 608.2b resolution
-// recheck. A resolved referent (ok) admits an object its player controls; not
-// flags the complement arms (the OpponentOf spellings, TriggeredCardOpponent),
-// which admit every OTHER player's object; for NonTriggeredCardController
-// ("target permanent another player controls", CR 109.5's complement) it
-// admits a battlefield permanent controlled by a different player. An
-// unresolved referent admits everything except for the failClosed and
-// nonTriggered arms, which admit nothing.
-func definedControllerAdmits(o *state.Object, player state.PlayerID, ok, failClosed, nonTriggered, not bool) bool {
+// recheck. A resolved referent (ok) admits an object its player controls; for
+// NonTriggeredCardController ("target permanent another player controls",
+// CR 109.5's complement) it admits a battlefield permanent controlled by a
+// different player. An unresolved referent admits everything except for the
+// failClosed and nonTriggered arms, which admit nothing.
+func definedControllerAdmits(o *state.Object, player state.PlayerID, ok, failClosed, nonTriggered bool) bool {
 	if o == nil {
 		return false
 	}
 	if !ok {
 		return !failClosed && !nonTriggered
-	}
-	if not {
-		return o.Controller != player
 	}
 	if nonTriggered {
 		return o.Zone == state.ZBattlefield && o.Controller != player
@@ -1521,6 +1455,7 @@ const (
 	filterTargetsWithDefinedControllerTriggeredAttackedTarget
 	filterTargetsWithDefinedControllerTriggeredCardController
 	filterTargetsWithDefinedControllerTriggeredCauser
+	filterTargetsWithDefinedControllerTriggeredSourceController
 )
 
 var filterTargetsWithDefinedControllerCodes = state.NewStrCodes(
@@ -1532,6 +1467,7 @@ var filterTargetsWithDefinedControllerCodes = state.NewStrCodes(
 	state.StrEntry[filterTargetsWithDefinedControllerCode]{Key: "TriggeredAttackedTarget", Val: filterTargetsWithDefinedControllerTriggeredAttackedTarget},
 	state.StrEntry[filterTargetsWithDefinedControllerCode]{Key: "TriggeredCardController", Val: filterTargetsWithDefinedControllerTriggeredCardController},
 	state.StrEntry[filterTargetsWithDefinedControllerCode]{Key: "TriggeredCauser", Val: filterTargetsWithDefinedControllerTriggeredCauser},
+	state.StrEntry[filterTargetsWithDefinedControllerCode]{Key: "TriggeredSourceController", Val: filterTargetsWithDefinedControllerTriggeredSourceController},
 )
 
 // filterParentControllerTargets keeps only the candidates controlled by a
