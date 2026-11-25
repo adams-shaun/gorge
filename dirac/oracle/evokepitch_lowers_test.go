@@ -1,6 +1,7 @@
 package oracle
 
 import (
+	"sync"
 	"testing"
 
 	"github.com/adams-shaun/gorge/dirac/cardset"
@@ -32,9 +33,35 @@ var evokePitchDecks = [2][]cardset.Entry{
 	},
 }
 
+// The 200 seeds play as two tests of 100 so each fits the 60 s test budget.
 func TestEvokePitchLowers(t *testing.T) {
 	t.Parallel()
-	lockstepSet(t, evokePitchPool, evokePitchDecks, 200, "KEVOKEPITCH_SEEDS")
+	lockstepSetRange(t, evokePitchPool, evokePitchDecks, 1, 100)
+}
+
+func TestEvokePitchLowersHigh(t *testing.T) {
+	t.Parallel()
+	lockstepSetRange(t, evokePitchPool, evokePitchDecks, 101, 200)
+}
+
+// lockstepSetRange is lockstepSet over seeds first..last, so a pool whose games
+// run past one test's budget splits its seeds across tests instead of
+// dropping any.
+func lockstepSetRange(t *testing.T, setName string, decks [2][]cardset.Entry, first, last uint64) {
+	t.Helper()
+	reg, set, gd := lockstepPool(t, setName, decks)
+	var clean, casts int
+	var div []lockstepDivergence
+	seedChunks(t, first, last, lockstepChunk, func(t *testing.T, lo, hi uint64, mu *sync.Mutex) {
+		c, n, d := lockstepSeedsMode(t, reg, set, setName, decks, gd, lo, hi, lockstepQuiet, nil, nil, castFirstPolicy)
+		mu.Lock()
+		clean, casts, div = clean+c, casts+n, append(div, d...)
+		mu.Unlock()
+	})
+	t.Logf("%s: seeds %d-%d, %d clean; %d casts/activations", setName, first, last, clean, casts)
+	if len(div) > 0 {
+		t.Error(divergenceReport(setName, last-first+1, div))
+	}
 }
 
 // TestEvokePitchDecksPlayable names a refused Incarnation here, not only by a
