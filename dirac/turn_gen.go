@@ -114,6 +114,7 @@ func (s *State) enterGen(k *prep, sl Slot, o Obj, from kop.Zone, face uint8) {
 		// is a new object with no payments (CR 400.7, 702.43): the last cast's
 		// count must not survive to the ETB trigger's target bound (exprs.go)
 		s.cold.mkObj[o] = 0
+		s.clearPaidN(o)
 	}
 	s.g.zoneTurn.set(o)
 	if s.g.enteredOn {
@@ -1094,9 +1095,11 @@ func (s *State) cleanupGen(k *prep) {
 		s.dropEndOfNextTurnEmblems(k) // Duration$ UntilTheEndOfYourNextTurn (static_emblemdurations.go)
 	}
 	n := 0
+	mayNTEnds := s.mayNTSweep() // UntilYourNextTurn records end when their controller's turn is next (cast_mayplaynt.go)
 	for i := 0; i < int(s.g.nmay); i++ {
 		r := *s.mayAt(i)
 		keep := r.dur() == kop.DurYourNextTurn && !(s.active == r.ctrl && mayWord(s.turn) > r.turn) ||
+			r.dur() == kop.DurUntilYourNextTurn && mayNTEnds&(1<<r.ctrl) == 0 ||
 			r.until == kop.DurWarp && s.warpRecastLive(r) ||
 			r.until == kop.DurAirbend && s.warpRecastLive(r) ||
 			r.until == kop.DurPlot && s.plotLive(r) ||
@@ -1375,6 +1378,10 @@ func (s *State) genAskOptions(k *prep, d *Decision) bool {
 		s.entryOrderOptions(k, d)
 		return true
 	}
+	if s.g.ro.bdy != 0 {
+		s.replBodyOptions(d) // the frozen walk's ask body (repl_dmbody.go)
+		return true
+	}
 	if s.g.ro.n > 0 && (s.g.ro.on || s.g.ro.nca) {
 		s.replOrderOptions(d)
 		return true
@@ -1478,6 +1485,10 @@ func (s *State) applyGen(k *prep, a Action) {
 	}
 	if s.entryAsked(k) {
 		s.applyEntryLand(k, a)
+		return
+	}
+	if s.g.ro.bdy != 0 {
+		s.replBodyCombatAnswer(k, a) // the frozen walk's ask body (repl_dmbody.go)
 		return
 	}
 	if s.g.ro.n > 0 && (s.g.ro.on || s.g.ro.nca) {
