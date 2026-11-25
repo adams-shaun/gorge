@@ -427,6 +427,20 @@ func refCardName(g *GorgeSide, ref Ref) string {
 	return o.Card.Faces[0].Name
 }
 
+// refCardFullName is a two-faced card's full printed name ("Discovery //
+// Dispersal", the spelling a deck list and a watch map name it by); "" when
+// the card has no second face.
+func refCardFullName(g *GorgeSide, ref Ref) string {
+	if g == nil || ref >= RefStack || int(ref) >= len(g.id.obj) {
+		return ""
+	}
+	o := g.E.G.Obj(g.id.obj[ref])
+	if o == nil || o.Card == nil || len(o.Card.Faces) < 2 {
+		return ""
+	}
+	return o.Card.Faces[0].Name + " // " + o.Card.Faces[1].Name
+}
+
 func objectHasType(o *state.Object, ty string) bool {
 	if o == nil || o.Face() == nil {
 		return false
