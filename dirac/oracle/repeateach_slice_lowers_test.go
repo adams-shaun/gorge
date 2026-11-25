@@ -39,6 +39,12 @@ import (
 //     enters under the repeated player. The mutations move the chooser, drop
 //     RememberChosen$, drop the counted pick's remember flag, replace the
 //     greatest-mana-value filter, and move the stolen card's new controller.
+//   - a RepeatEach over players whose body is the per-player opponent choice
+//     feeding a battlefield TwoPiles (Bend or Break): the repeated player
+//     picks one of their opponents, who splits their nontoken lands and picks
+//     a pile; the chosen pile is destroyed, the other tapped. The mutation
+//     makes the pick's pile-B answer name pile A (the chosen/unchosen piles
+//     swap).
 //
 // Tariff (the greatest-mana-value pick), Highcliff Felidar (Defined$ You over the
 // greatest-power pick: an empty pick in gorge where the kernel offers a lesser
@@ -56,7 +62,8 @@ func TestRepeatEachSliceLowers(t *testing.T) {
 		for name, min := range map[string]int{"Stampede Surfer": 10, "Ainok Strike Leader": 10, "Jace Beleren": 5, "Acidic Soil": 10, "Sunspine Lynx": 10, "Typhoon": 10, "Spirit Link": 10, "Heartless Hidetsugu": 20, "Another Round": 10, "Exponential Growth": 10, "Full Flowering": 10, "Torment of Hailfire": 20, "Oath of Lim-Dûl": 10, "Varchild's War-Riders": 20, "Trade Secrets": 10,
 			"Soul Shatter": 30, "Flare of Malice": 10, "Grave Consequences": 10, "Watchers of the Dead": 15,
 			"Rite of Ruin": 5, "Disciple of Caelus Nin": 10,
-			"Fortunate Few": 6, "Ultimate Magic: Meteor": 10, "Thieves' Auction": 5} {
+			"Fortunate Few": 6, "Ultimate Magic: Meteor": 10, "Thieves' Auction": 5,
+			"Bend or Break": 5} {
 			if run.casts[name] < min {
 				t.Errorf("only %d %s casts (want %d)", run.casts[name], name, min)
 			}
@@ -231,6 +238,20 @@ func TestRepeatEachSliceLowers(t *testing.T) {
 		}
 		run.requireDivergence(t, "choosing one permanent instead of up to five")
 	})
+	t.Run("mutation/PileSwap", func(t *testing.T) {
+		n := 0
+		run := runFixtureLockstep(t, "repeateachslice", repeatEachSliceDecks, repeatEachSliceWatch, 200, false, func(tbl *kop.Table) {
+			mutateCardIfPresent(t, tbl, "Bend or Break", func(_ *kop.Ability, in *kop.Instr) {
+				if in.Op == kop.OpExt && in.Ext() == kop.ExtTwoPilesEach {
+					in.B, n = kop.Const(int(in.B.N)|1), n+1
+				}
+			})
+		})
+		if n == 0 {
+			t.Fatal("no TwoPilesEach in the table (the battlefield pile split is not lowered)")
+		}
+		run.requireDivergence(t, "the chosen and unchosen piles swap")
+	})
 }
 
 var repeatEachSliceWatch = map[string]bool{
@@ -243,6 +264,7 @@ var repeatEachSliceWatch = map[string]bool{
 	"Soul Shatter": true, "Flare of Malice": true, "Grave Consequences": true, "Watchers of the Dead": true,
 	"Rite of Ruin": true, "Disciple of Caelus Nin": true,
 	"Fortunate Few": true, "Ultimate Magic: Meteor": true, "Thieves' Auction": true,
+	"Bend or Break": true,
 }
 
 var repeatEachSliceDecks = []fixtureDecks{
@@ -350,6 +372,21 @@ var repeatEachSliceDecks = []fixtureDecks{
 			{Name: "Mind Stone", Count: 3},
 			{Name: "Island", Count: 6}, {Name: "Mountain", Count: 6},
 			{Name: "Plains", Count: 5}, {Name: "Forest", Count: 5},
+		},
+	},
+	{
+		// Bend or Break: each player's nontoken lands split into two piles,
+		// one of their opponents picks; the chosen pile destroyed, the other
+		// tapped. A board of nontoken lands on both sides.
+		{
+			{Name: "Bend or Break", Count: 6}, {Name: "Grizzly Bears", Count: 4},
+			{Name: "Llanowar Elves", Count: 4}, {Name: "Hill Giant", Count: 6},
+			{Name: "Mountain", Count: 10}, {Name: "Plains", Count: 10},
+		},
+		{
+			{Name: "Hill Giant", Count: 4}, {Name: "Grizzly Bears", Count: 6},
+			{Name: "Raise the Alarm", Count: 2}, {Name: "Lightning Bolt", Count: 4},
+			{Name: "Forest", Count: 12}, {Name: "Island", Count: 12},
 		},
 	},
 }
