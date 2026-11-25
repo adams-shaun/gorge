@@ -427,11 +427,16 @@ func (s *State) expr(k *prep, i int16, ctx evalCtx) int {
 			v = s.countPerm(k, x.F, ctx)
 		}
 	case kop.ExCountGraveyard:
+		// a seat out of the game counts nothing (gorge's AliveFrom walk), but
+		// one the running pass lost (lostPass) still counts: gorge queues the
+		// pass's losses in its batch and marks them when it applies, after the
+		// casualty scan this count feeds (CR 704.3, 800.4a). A seat an effect
+		// took out earlier is Lost in gorge's scan and stays skipped here.
 		for pp := uint8(0); pp < s.nSeats(); pp++ {
-			if s.out(pp) {
+			pl := &s.pl[pp]
+			if s.out(pp) && pl.mark&pmLostPass == 0 {
 				continue
 			}
-			pl := &s.pl[pp]
 			for j := 0; j < int(pl.graveN); j++ {
 				o := pl.grave[j]
 				if s.objs[o].of&ofToken != 0 && x.N != 1 {
