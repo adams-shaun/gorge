@@ -149,6 +149,24 @@ func splitTypesFromSelector(spec string) (state.Zone, string, bool) {
 	return 0, "", false
 }
 
+// repeatBodyRemembers reports whether the body a RepeatEach runs (or its own
+// SubAbility$ chain, including a nested RepeatEach's body) writes memory. The
+// depth bound stops a cyclic SVar table; body.Sub is finite.
+func repeatBodyRemembers(c *Ctx, sub *cards.SA, depth int) bool {
+	for body := sub; body != nil && depth < maxChain; body = body.Sub {
+		if body.HasAnyParam(rememberObjectMask) {
+			return true
+		}
+		if isRepeatEachSA(body) {
+			name := RepeatEachOf(body).SubAbility
+			if name != "" && repeatBodyRemembers(c, cards.ResolveSVar(c.SVars, name), depth+1) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 func effRepeatEach(h Host, c *Ctx, sa *cards.SA) {
 	if c.SVars == nil {
 		return
@@ -157,6 +175,17 @@ func effRepeatEach(h Host, c *Ctx, sa *cards.SA) {
 	sub := cards.ResolveSVar(c.SVars, rp.SubAbility)
 	if sub == nil {
 		return
+	}
+	// A RepeatEach is a memory writer when the body it runs writes memory: the
+	// carrier itself has no Remember*$ (Highcliff Felidar's DBChooseCard
+	// carries RememberChosen$), so a loop whose ChooseCard found nothing is
+	// still a writer that wrote nothing -- the links after it must not fall
+	// back to the trigger's fire-time capture. Set the flag after the loop,
+	// never before it: the body's own Resolve restores the flag on its Ctx
+	// copy, and setting it early would make the body's own Remembered reads
+	// skip their capture fallback.
+	if repeatBodyRemembers(c, sub, 0) {
+		defer func() { c.RememberWriterAbove = true }()
 	}
 	var subjects []state.Target
 	var repeatedTypes []string
