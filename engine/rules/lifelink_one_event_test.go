@@ -124,9 +124,11 @@ func TestLifelinkTrampleOverIsOneLifeGainEvent(t *testing.T) {
 	e.askAttackers()
 	submitAttackers(t, e, dancer)
 	start := len(e.L.Events)
-	// One blocker: the lethal 2 goes to the Bears and the rest tramples over
-	// without a division ask; the damage pass runs inside this submission.
+	// One blocker: the lethal 2 goes to the Bears and the rest tramples over.
+	// CR 702.19b poses that split as the controller's choice; answer it with
+	// lethal-then-trample, the assignment this audit repro pins.
 	submitBlockers(t, e, bears)
+	submitDivision(t, e, []int32{2, 2})
 	if got := lifelinkGains(e, 0, start); len(got) != 1 || got[0] != 4 {
 		t.Fatalf("life-gain events for seat 0 = %v, want [4] (CR 702.15e: one source, one event)", got)
 	}
@@ -243,6 +245,11 @@ func TestLifelinkTrampleOverAsksOneReplacementOrder(t *testing.T) {
 			if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{optionFor(t, d, angel)}}); err != nil {
 				t.Fatalf("submit replacement order: %v", err)
 			}
+			continue
+		}
+		if d.Kind == decision.KChoose {
+			// CR 702.19b: the trample split this repro pins.
+			submitDivision(t, e, []int32{2, 2})
 			continue
 		}
 		if d.Kind != decision.KPriority || (e.G.Step != state.StepDeclareBlockers && e.G.Step != state.StepCombatDamage) {

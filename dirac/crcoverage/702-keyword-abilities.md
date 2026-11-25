@@ -34,7 +34,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by the dirac ke
 | 702.17a-c | follows | `dirac/combat.go#State.canBlock` | - |  |
 | 702.18a,b | follows | `dirac/legal.go#State.objTargetable` `dirac/kgen/lower.go#simpleKeywords` | `TestShroudTargeting` | printed and granted shroud (KwShroud); player shroud is not modelled |
 | 702.19a,d | follows | `dirac/combat.go#State.combatDamage` | - | blocked-with-no-blockers trample hits player |
-| 702.19b | partial | `dirac/combat.go#State.combatDamage` | - | excess split is never a choice: all to player |
+| 702.19b | follows | `dirac/combat.go#State.nextDivision` `dirac/combat.go#State.divideOptions` `dirac/combat.go#State.applyDivide` `dirac/combat.go#State.combatDamage` | `TestTrampleDamageDivisionIsAsked` | the controller divides the excess between the blockers and the defending player; deterministic when power cannot cover every blocker's lethal need |
 | 702.19c,e | n/a | - | - | Thrasta treated as plain trample; silent |
 | 702.19f,g | follows | `dirac/combat.go#State.combatDamage` | - |  |
 | 702.20a-c | follows | `dirac/combat.go#State.finishAttacks` | - |  |

@@ -111,7 +111,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by the dirac ke
 | 510.1 | follows | `dirac/combat.go#State.damageStep` `dirac/combat.go#State.combatDamage` | `TestBlockCombat` |  |
 | 510.1a | follows | `dirac/combat.go#State.combatDamage` | - | power 0 or less assigns nothing |
 | 510.1b | follows | `dirac/combat.go#State.toDefender` | `TestAttackPlaneswalker` |  |
-| 510.1c | partial | `dirac/combat.go#State.combatDamage` `dirac/combat.go#State.nextDivision` | `TestDamageDivisionDecision` `TestTrampleWithoutDeathtouch` | D5: trample assignment automatic; dirac inherits gorge |
+| 510.1c | partial | `dirac/combat.go#State.combatDamage` `dirac/combat.go#State.nextDivision` `dirac/combat.go#State.divideOptions` `dirac/combat.go#State.applyDivide` | `TestDamageDivisionDecision` `TestTrampleDamageDivisionIsAsked` `TestTrampleWithoutDeathtouch` | trample excess is the controller's choice; an oversized option set or power below the blockers' total lethal need takes the deterministic assignment |
 | 510.1d | follows | `dirac/combat.go#State.nextDivision` | `TestExtraBlockDivisionAskedOfBlocker` | D4: multi-blocker deals full power to each attacker |
 | 510.1e | follows | `dirac/combat.go#State.divideOptions` | `TestDamageDivisionDecision` | only legal divisions are offered |
 | 510.2 | partial | `dirac/combat.go#State.combatDamage` `dirac/doc.go` `dirac/value_turntallies.go#State.noteCombatHits` | `TestReplOrderCombatNoDeathAtPause` `TestTurntalliesLockstep` | a replacement-order ask pauses the pass, with no SBA check until the pass ends; each landed combat hit on a player (after prevention) is recorded for the BySource filter word and the legendary-source bit, as gorge combatHit |
