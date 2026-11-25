@@ -2700,6 +2700,9 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		if slices.Contains(s.Flags, "AlsoSideboard") || slices.Contains(s.Flags, "FreeOnly") {
 			fz = kop.ZoneNone // the filter also reads a sideboard card; the static's zones are tested apart (mayPlayFromZone)
 		}
+		if slices.Contains(s.Flags, "FunctionsInGraveyard") && slices.Contains(s.Flags, "FunctionsInExile") {
+			fz = kop.ZoneNone // a two-zone self grant (Squee, the Immortal): the self walk keys on the flags, and one zone in the filter would withhold the other
+		}
 		if st.Filter, err = filter(s.F, fz); err != nil {
 			return ka, nil, err
 		}
@@ -2727,6 +2730,10 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 				st.StFlags |= kop.StFreeOnly
 			case "MayPayLife":
 				st.StFlags |= kop.StMayPayLife
+			case "MayZeroAlt":
+				st.StFlags |= kop.StMayZeroAlt // a non-granting alternative cost (cast_mayzeroalt.go)
+			case "MayPayEnergy":
+				st.StFlags |= kop.StMayPayEnergy // the alternative's energy rides Static.A
 			case "RaiseCostRemove6CountersFromCreatures":
 				st.StFlags |= kop.StRemove6Counters
 			case "MayRaise":
