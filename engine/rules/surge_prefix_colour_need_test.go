@@ -44,6 +44,9 @@ func TestSurgedCastPrefixNeedsModeColour(t *testing.T) {
 	if !need[state.MR] {
 		t.Fatalf("surged cast need = %v, want R (the surge cost's pip)", need)
 	}
+	if c := scriptPlayCost(e, e.G.Obj(salvo), 0, decision.Option{Kind: "cast", Obj: salvo, Mode: "surged"}); c.Generic != 1 || c.Colored[state.MR] != 1 {
+		t.Fatalf("surged descriptor = %+v, want {1}{R} (not the printed {4}{R})", c)
+	}
 
 	var got PotentialPlan
 	found := false
