@@ -181,7 +181,7 @@ var cloneKnownKeys = [...]string{
 	"MaxTotalTargetPower", "Mentor", "ModeCost", "Monstrosity", "Name", "NewController", "NewName",
 	"NoPutDesc", "NoShuffle", "NonBasicSpell", "NonLegendary", "NoteCounterDefined", "OpponentTurn", "Optional", "Planeswalker", "PlayCost",
 	"PlayerTurn", "PowerUp", "PrecostDesc", "PresentCompare", "PresentDefined",
-	"PresentZone", "PrimaryPrompt", "PumpDuration", "PumpKeywords", "RandomNumTargets", "ReduceAmount",
+	"PresentZone", "PrimaryPrompt", "PumpDuration", "PumpKeywords", "RaiseCost", "RandomNumTargets", "ReduceAmount",
 	"ReduceCost", "RememberAnimated", "RememberCloneOrigin", "RememberCostMana", "RememberLKI", "RememberObjects", "RememberTargets", "RemoveCardTypes",
 	"RemoveCost", "RemoveCreatureTypes", "RemoveSubTypes", "ReplaceColor", "ReplaceGraveyard",
 	"ReplaceGraveyardValid", "ReplaceMana", "ReplaceOnly", "ReplaceType", "ReplacementEffects", "ReturnAbility", "ReturnValid", "SVarCompare",

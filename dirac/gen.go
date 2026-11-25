@@ -1145,6 +1145,10 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 			g.anyDash = true
 			p.cards[i].altCost = true // the hand walk's one-byte gate (offerAltHand)
 		}
+		if c.HasBlitz {
+			g.anyLeaveRet = true      // the dies-draw record is leave-keyed (splitLeaveDelayed reads anyLeaveRet)
+			p.cards[i].altCost = true // the hand walk's one-byte gate (offerAltHand)
+		}
 		if c.HasSurge {
 			g.anySurge, g.anyHist = true, true // the gate reads the history bank's spell count
 			p.cards[i].altCost = true          // the hand walk's one-byte gate (offerAltHand)
@@ -1933,6 +1937,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	// after prepLandGrant; on prep, not genPrep: the pinned fixed-State inventory is unchanged
 	p.landGrantPair = landGrantPairOn(t, p, g) // static_landgrantpair.go
 	prepCold(g, &p.cold)
+	prepMayPlayNT(t, p)    // cast_mayplaynt.go
 	prepGrantAct(t, p)     // act_grantledger.go
 	prepSkipPhaseOne(t, p) // act_skipphase.go
 	prepEmbalmGrant(t, p)  // kw_embalmgrant.go; on prep, not genPrep
