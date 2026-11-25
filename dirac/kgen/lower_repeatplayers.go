@@ -238,15 +238,54 @@ func (lc *lowerCtx) repeatChooseGreatest(who lRef, body *cards.SA) (bool, error)
 // "not controlled by the remembered player" is the kernel's CtrlOpp read from
 // the chooser's perspective (Fortunate Few's !RememberedPlayerCtrl). A pick
 // whose chooser is not the repeated player keeps refusing the word: the two
-// are not the same set then. The greatest-power/-mana-value spellings stay
-// with Gix's Command's own lowering (repeatChooseGreatest); Highcliff Felidar
-// (Defined$ You) and Tariff (greatestCMC_...) refuse, see the lockstep-gaps
-// ticket.
+// are not the same set then.
+//
+// The greatest-mana-value spellings (Tariff, Dispersal) lower as the repeated
+// player's own extreme read: the aggregate is the greatest mana value among
+// the repeated player's creatures or nonland permanents (kop ExValidAgg
+// AggGreatestMV, gorge count_body_zone's $GreatestCardManaCost fold), read
+// inside the loop so it sees the iteration's player; each candidate clause
+// compares its own mana value against it with == (ties match, gorge
+// filter.go's greatestCMC branch). The greatest-power spelling stays with
+// Gix's Command's own lowering (repeatChooseGreatest); Highcliff Felidar
+// (Defined$ You) refuses, see the lockstep-gaps ticket.
 func (lc *lowerCtx) chooseCardFilter(choices string, chooserEach bool) (*lFilter, error) {
 	if lc.repeatPl > 0 && chooserEach {
+		switch choices {
+		case "Creature.greatestCMC_CreatureControlledByRemembered":
+			return lc.greatestCMCFilter("Creature.RememberedPlayerCtrl", "Count$Valid Creature.RememberedPlayerCtrl$GreatestCardManaCost")
+		case "Permanent.greatestCMC_NonLandPermanentControlledByRemembered":
+			return lc.greatestCMCFilter("Permanent.nonLand+RememberedPlayerCtrl", "Count$Valid Permanent.nonLand+RememberedPlayerCtrl$GreatestCardManaCost")
+		}
 		choices = strings.ReplaceAll(choices, "!RememberedPlayerCtrl", "OppCtrl")
 	}
 	return lc.filter(choices)
+}
+
+// greatestCMCFilter is chooseCardFilter's greatest-mana-value arm: base is the
+// candidate's ordinary filter (the repeated player's creatures or nonland
+// permanents) and count its greatest-mana-value aggregate. The aggregate is
+// read inside the loop, so it sees the iteration's player; every clause of
+// the candidate filter compares its mana value against it (ties match).
+func (lc *lowerCtx) greatestCMCFilter(base, count string) (*lFilter, error) {
+	maxV, err := lc.svarValue(count, 0)
+	if err != nil {
+		return nil, err
+	}
+	f, err := lc.filter(base)
+	if err != nil {
+		return nil, err
+	}
+	for i := range f.Clauses {
+		f.Clauses[i].CmpStat = cmpCMC
+		// The aggregate is the maximum, so equality selects the
+		// greatest-mana-value candidates; the kernel's value-bounded CMC
+		// compare lowers it (PredCMCLEV with the == PredN).
+		f.Clauses[i].CmpOp = opEQ
+		f.Clauses[i].CmpV = &maxV
+		f.Clauses[i].CmpX = ""
+	}
+	return f, nil
 }
 
 // a RepeatEach player body reading the repeated

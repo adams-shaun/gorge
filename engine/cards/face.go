@@ -45,6 +45,11 @@ func (f *Face) IsPlaneswalker() bool { return f.hasTypeMask(TypePlaneswalker, "P
 func (f *Face) IsBattle() bool       { return f.hasTypeMask(TypeBattle, "Battle") }
 func (f *Face) IsRoom() bool         { return f.hasTypeMask(TypeRoom, "Room") }
 
+// IsPlane reports whether the face is a plane card (CR 901): a plane's
+// printed abilities function from the command zone while the card lives in
+// its owner's planar deck, the zone the zone gate treats as that spelling.
+func (f *Face) IsPlane() bool { return f.hasTypeMask(TypePlane, "Plane") }
+
 // TypeMaskOf returns the face's catalog type mask: the bit set of every
 // type-line word this face carries (compiled_codes.go typeMaskFor). Zero
 // means the face is not catalog-bound (its Types list is the only source),

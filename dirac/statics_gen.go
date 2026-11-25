@@ -368,14 +368,16 @@ func (s *State) mayPlayStatics(k *prep, p uint8, o Obj, f func(st statSrc) bool)
 
 // mayPlayStaticsOf is mayPlayStatics over the {0}-alternative statics
 // (zeroAlt) or the permissions. A free-only static on Weftwalking's hand
-// spelling reaches every zone; any other static reaches its own.
+// spelling reaches every zone, and so does a full-zone-list {0} alternative
+// (As Foretold: kgen marks it StFreeOnly beside StMayZeroAlt, gorge's
+// affectedZoneOK per listed zone); any other static reaches its own.
 func (s *State) mayPlayStaticsOf(k *prep, p uint8, o Obj, zeroAlt bool, f func(st statSrc) bool) {
 	ob := &s.objs[o]
 	stopped := false
 	check := func(st statSrc) bool {
 		a := st.a
 		if a.Kind != kop.AbStatic || a.Static.Kind != kop.StatMayPlayFrom || zeroAltStatic(&a.Static) != zeroAlt ||
-			(a.Static.StFlags&kop.StFreeOnly == 0 || zeroAlt) && !mayPlayFromZone(&a.Static, ob.zone) {
+			a.Static.StFlags&kop.StFreeOnly == 0 && !mayPlayFromZone(&a.Static, ob.zone) {
 			return true
 		}
 		if a.Static.StFlags&kop.StSeatActive != 0 {
@@ -434,7 +436,8 @@ func (s *State) mayPlayStaticsOf(k *prep, p uint8, o Obj, zeroAlt bool, f func(s
 	cd := &k.t.Cards[ob.card]
 	for i := range cd.Abilities {
 		a := &cd.Abilities[i]
-		if a.Kind == kop.AbStatic && a.Static.Kind == kop.StatMayPlayFrom && a.Static.StFlags&selfFlag != 0 {
+		if a.Kind == kop.AbStatic && a.Static.Kind == kop.StatMayPlayFrom &&
+			zeroAltStatic(&a.Static) == zeroAlt && a.Static.StFlags&selfFlag != 0 {
 			st := statSrc{a: a, sl: NoSlot, ctrl: p, obj: o}
 			sctx := s.ctxStatic(st)
 			if !s.statCond(k, st) || !s.matchCardGenAt(k, a.Static.Filter, ob.card, ob.owner(), p, o, &sctx) {

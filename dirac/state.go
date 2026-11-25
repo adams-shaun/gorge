@@ -424,6 +424,12 @@ func (p *perm) subCtrN(s *State, c, n int) {
 	p.setCtrN(s, c, have-n)
 }
 
+// player.mark bits.
+const (
+	pmDrewEmpty uint8 = 1 << iota // CR 704.5b: the next state-based check loses the seat
+	pmLostPass                    // lost in the pass now running, not yet swept: its graveyard still counts for that pass's scan (beginSBAPass, markPassLosses)
+)
+
 // player is one seat.
 type player struct {
 	life        int16
@@ -441,7 +447,7 @@ type player struct {
 	drawnTurn   uint8
 	mulls       uint8
 	lost        bool
-	drewEmpty   bool
+	mark        uint8           // pm* bits: drew from an empty library since the last check (pmDrewEmpty); lost in the state-based pass now running (pmLostPass)
 	lifeGained  int16           // this turn
 	lifeLost    int16           // this turn
 	lastLost    int16           // the life lost in the previous turn (ExLifeLostLastTurn)
@@ -875,6 +881,7 @@ type build struct {
 	impPlan   bool     // gorge's planner priced this Improvise cast (kw_improvisepay.go)
 	snowPre   uint8    // a SpentSnow card's cast: the seat's snow units before the mana payment (snowSpentRec, mana_snow.go)
 	payLifeMV bool     // the cast went through a may-play permission whose alternative cost is life equal to its mana value (cast_mayplaypaylife.go)
+	payEnergy uint8    // the cast went through a may-play permission whose alternative cost is this much energy (kop.StMayPayEnergy, Nissa, Worldsoul Speaker; paid beside payLifeMV)
 	// repeatCost is the Squad/Replicate payment's pick cost scaled to the
 	// answered count, returned by buildPickCost so the ordinary pick stages
 	// pay it (kw_squadreplicate.go).

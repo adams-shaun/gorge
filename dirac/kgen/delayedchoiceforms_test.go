@@ -28,7 +28,7 @@ var delayedchoiceformsCarriers = map[string]struct{ form, lir string }{
 	"Archmage Emeritus":        {"Mode$ SpellCastOrCopy (Tf2OrCopy)", "or-copy"},
 	"Soldier of Fortune":       {"api:Shuffle of a target player (OpShuffle)", "Shuffle obj=Target0"},
 	"Blessed Wind":             {"api:SetLife of a target player (OpSetLife)", "SetLife obj=Target0 A=20"},
-	"Lava Storm":               {"a spell's GenericChoice of the controller (OpChooseBranch at resolution)", "0 GenericChoice obj=You A=2\n     1 Branch skip=1"},
+	"Lava Storm":               {"a spell's GenericChoice of the controller (OpChooseBranch at resolution)", "0 GenericChoice obj=You A=2 C=1\n     1 Branch skip=1"},
 	"Tireless Provisioner":     {"a triggered ability's GenericChoice of the controller (placement: a one-mode charm)", "0 Charm skip=1"},
 	"Tomb Fortress":            {"a may graveyard pick onto the battlefield (gorge effHiddenPick Min 0)", "ChooseMove obj=You A=1 C=1 CS=from=Graveyard| F="},
 	"Arbalest Elite":           {"Effect Duration$ UntilTheEndOfYourNextUntap on itself (OpSkipUntap C=0)", "SkipUntap obj=Self"},
