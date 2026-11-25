@@ -332,6 +332,9 @@ func dumpLIR(w io.Writer, c *lCard) {
 			fmt.Fprintf(w, "+behold1%s", c.MayFlashBehold)
 		}
 	}
+	if c.Offering != nil {
+		fmt.Fprintf(w, " offering%s", c.Offering)
+	}
 	if c.FbBeholdN != 0 {
 		fmt.Fprintf(w, " fbbehold=%d%s", c.FbBeholdN, c.FbBeholdF)
 	}

@@ -22,9 +22,10 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 //     (CR 702.48c, gorge offeringReduce) before the cost statics (CR 601.2f).
 //   - a paid offering queues nothing (casualtyTrigger).
 //
-// WIP: TestSetsOfferingLowers diverges in 6 of 80 seeds: gorge offers the
-// offering cast (castModeOther) at the opponent's combat priority where this
-// offer does not; the cause is not yet found.
+// gorge's planner prices no "offering" cast (potential_plan.go has no arm),
+// so under a gorge surface the option exists only when the floating pool
+// pays, the may-flash cast's rule (kw_mayflash.go), and the sacrifice ask
+// lists only the candidates the floating pool pays for.
 
 // DebugOfferingNoReduce prices the offering cast at the full mana cost
 // (mutation testing only: the lockstep must catch it).
@@ -131,6 +132,7 @@ func (s *State) offerOffering(k *prep, d *Decision, p uint8, o Obj, c CardID, av
 	if !s.spellTargetsFeasible(k, c, p) || !s.spellCostsFeasible(k, c, p, o) {
 		return // castTargetsAvailable; offerCastable's non-mana census
 	}
+	gorgeSurface := s.cfg&(cfgGorgeAutopay|cfgGorgeLowering) != 0 && s.g.availX&availWalk == 0
 	cd := &k.t.Cards[c]
 	for m := s.ctrlM[p]; m.any(); m = m.rest() {
 		sl := m.first()
@@ -139,6 +141,11 @@ func (s *State) offerOffering(k *prep, d *Decision, p uint8, o Obj, c CardID, av
 		}
 		cost := s.adjustCost(k, p, c, o, offeringReduce(cd.Cost, s.offeringSacCost(k, sl))) // spellScope("offering")
 		if !s.castAffordsR(k, p, c, s.restrOriginOfObj(o), &cost, av) {
+			continue
+		}
+		if gorgeSurface && !s.sneakPoolPays(k, p, c, o, &cost) {
+			// gorge's planner and lowering price no offering mode: the
+			// cast is offered only when the floating pool pays
 			continue
 		}
 		d.add(MakeAction(AkMayFlash, TCode(o), 0, 0))
@@ -165,6 +172,7 @@ func (s *State) offeringOptions(k *prep, d *Decision) bool {
 	d.N = 0
 	var av avail
 	s.availFor(k, e.ctrl, &av)
+	gorgeSurface := s.cfg&(cfgGorgeAutopay|cfgGorgeLowering) != 0
 	cd := &k.t.Cards[e.card]
 	for m := s.ctrlM[e.ctrl]; m.any(); m = m.rest() {
 		sl := m.first()
@@ -172,7 +180,7 @@ func (s *State) offeringOptions(k *prep, d *Decision) bool {
 			continue
 		}
 		cost := s.adjustCost(k, e.ctrl, e.card, e.obj, offeringReduce(cd.Cost, s.offeringSacCost(k, sl)))
-		if s.castAffordsR(k, e.ctrl, e.card, s.restrOriginOfEntry(e), &cost, &av) {
+		if s.castAffordsR(k, e.ctrl, e.card, s.restrOriginOfEntry(e), &cost, &av) && (!gorgeSurface || s.sneakPoolPays(k, e.ctrl, e.card, e.obj, &cost)) {
 			d.add(MakeAction(AkChoose, TCode(s.perms[sl].obj), 0, 0))
 		}
 	}

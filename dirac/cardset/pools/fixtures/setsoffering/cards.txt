@@ -18,6 +18,8 @@ Flutterfox
 Clockwork Fox
 Oboro Breezecaller
 Floodbringer
+Guardians of Oboro
+Meloku the Clouded Mirror
 Ambush Viper
 Ankle Biter
 Grizzly Bears
@@ -29,3 +31,4 @@ Mountain
 Plains
 Island
 Forest
+Channel the Suns
