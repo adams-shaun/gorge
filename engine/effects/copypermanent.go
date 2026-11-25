@@ -578,6 +578,7 @@ func effCopyPermanent(h Host, c *Ctx, sa *cards.SA) {
 		owners = []state.PlayerID{owner}
 	}
 	attacking, selectorDefender, attackOwners := copyAttackRider(h, c, owners, cp.TokenAttacking)
+	blockAttacker := tokenBlockingAttacker(h, c, cp.TokenBlocking)
 	remember := cp.RememberTokens
 	var amount int32
 	if tapped {
@@ -885,6 +886,14 @@ func effCopyPermanent(h Host, c *Ctx, sa *cards.SA) {
 			}
 			h.EmitTokenCreate(entry)
 			postEntry(owner, want)
+			if a := g.Obj(blockAttacker); a != nil && a.Zone == state.ZBattlefield &&
+				a.IsAttacking && a.Attacking == owner {
+				// CopyPermanent's TokenBlocking$ rider (Mirror Match): the
+				// copy enters blocking the named attacker (CR 509.4a), the
+				// same state-only TokenBlocks entry api:Token emits.
+				h.Emit(events.Event{Kind: events.TokenBlocks, Obj: want, Player: owner,
+					IDs: []state.ObjID{blockAttacker}, Text: "entered blocking"})
+			}
 		}
 	}
 	// A sacrifice rider over the copies of one resolution is one delayed
