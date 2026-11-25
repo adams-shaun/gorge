@@ -1917,10 +1917,20 @@ func (e *Engine) planAbilityPaymentLifePips(p state.PlayerID, id state.ObjID, ab
 	// A target-bound text-defined {X} (Reflecting Mirror) prices the cheapest
 	// legal candidate before CR 601.2c, exactly as the offer gate and the
 	// charge do; an unresolvable candidate census withholds, matching
-	// deferredManaXOffer's fail-closed direction.
+	// deferredManaXOffer's fail-closed direction. This runs first: it clears X
+	// when it folds, so the announced-X fold below prices only a remaining {X}.
 	cost, _, _, ok = deferredManaXOffer(asPayer(e), e, p, id, ab, pa.Merged, cost)
 	if !ok {
 		return PaymentPlanOutcome{Reason: "unsupported", Detail: "cost:target_x"}
+	}
+	// An announced {X} (CR 601.2b, 602.2b): the witness prices the least X
+	// the announcement allows, the activation the offer must prove payable;
+	// a larger announced X re-plans (rearmAutoPay) or keeps the window. Only
+	// a permanent's ability: an {X} hand activation (Webstrike Elite's X
+	// cycling) still declines, its dirac mirror pays other sources; so does a
+	// Waterbend<X> one, whose taps pay part of X (CR 701.67a).
+	if cost.X != 0 && !cost.WaterbendX && o.Zone == state.ZBattlefield {
+		cost = cost.WithX(cost.XMin)
 	}
 	if n := e.ownReduceCostOffer(p, id, ab, pa.Merged); n > 0 && cost.Generic >= n {
 		cost.Generic -= n
