@@ -333,35 +333,52 @@ func stripGroupPowerFloor(spec string) (string, int32) {
 	return out, int32(n)
 }
 
-// sameCreatureTypePredicate is Forge's bare sharesCreatureTypeWith filter
-// term, written as the last segment of a tapXType spec for Weight of
-// Conscience ("Creature.sharesCreatureTypeWith"). It is a relation BETWEEN
-// the tapped creatures, so the ordinary per-object matcher cannot evaluate it
-// against the source (which is the Aura, with no creature type).
-const sameCreatureTypePredicate = ".sharesCreatureTypeWith"
+// shareCreatureTypeTerm is Forge's bare relational word in a literal
+// tapXType spec ("Creature.sharesCreatureTypeWith" -- Weight of Conscience's
+// "tap two untapped creatures you control that share a creature type"). It is
+// a relation between the tapped creatures, not a per-object filter: read as
+// one, the bare form binds the referent Self (the Aura), which has no creature
+// types, so every candidate fails. stripShareCreatureType moves it out of the
+// spec and into CostPart.ShareCreatureType.
+const shareCreatureTypeTerm = "sharesCreatureTypeWith"
 
-// stripSameCreatureType splits the bare sharesCreatureTypeWith predicate off a
-// literal tapXType spec into CostPart.SameCreatureType. A spec that ends in
-// the term but has no base filter, or carries it anywhere else, is returned
-// unchanged and unmarked -- the per-object matcher then fails it closed, as it
-// did before the set-level reading existed.
-func stripSameCreatureType(spec string) (string, bool) {
-	base, ok := strings.CutSuffix(spec, sameCreatureTypePredicate)
-	if !ok || base == "" {
+// stripShareCreatureType splits the bare sharesCreatureTypeWith relation off a
+// literal tapXType<N/Spec> spec, the way stripGroupTotal splits a withTotal*
+// group predicate: the terms follow the base after '.', or after '+' when the
+// spec carries no '.', and are '+'-joined conjuncts. It returns the spec
+// without the relation and whether it was present. A comma alternative or a
+// second relation fails closed (the spec is returned unchanged, flag false),
+// as does a relation with no base word; the X/Any forms never call this.
+func stripShareCreatureType(spec string) (string, bool) {
+	if !strings.Contains(spec, shareCreatureTypeTerm) {
 		return spec, false
 	}
-	return base, true
-}
-
-// stripTapTypeSetConstraints moves every set-level predicate a literal
-// tapXType spec carries out of the per-object filter and into the part's set
-// fields: withTotalPowerGE<N> into MinPower and the bare
-// sharesCreatureTypeWith into SameCreatureType. Keeping the two strips in one
-// helper leaves ParseCost's line budget unchanged.
-func stripTapTypeSetConstraints(spec string) (string, int32, bool) {
-	spec, floor := stripGroupPowerFloor(spec)
-	spec, same := stripSameCreatureType(spec)
-	return spec, floor, same
+	if strings.Contains(spec, ",") {
+		return spec, false
+	}
+	base, rest, found := strings.Cut(spec, ".")
+	if !found {
+		base, rest, _ = strings.Cut(spec, "+")
+	}
+	var keep []string
+	seen := false
+	for term := range strings.SplitSeq(rest, "+") {
+		if term == shareCreatureTypeTerm {
+			if seen {
+				return spec, false
+			}
+			seen = true
+			continue
+		}
+		keep = append(keep, term)
+	}
+	if !seen || strings.TrimSpace(base) == "" {
+		return spec, false
+	}
+	if len(keep) == 0 || (len(keep) == 1 && keep[0] == "") {
+		return base, true
+	}
+	return base + "." + strings.Join(keep, "+"), true
 }
 
 // payEnergyCost matches Forge's PayEnergy<N> and PayEnergy<X> tokens --
@@ -684,7 +701,14 @@ func ParseCost(s string) Cost {
 					// A literal tapXType form may carry a group predicate too;
 					// exactly N are tapped, so the set-level floor is enforced
 					// against the N largest candidates (engine/rules/cast.go).
-					part.Spec, part.MinPower, part.SameCreatureType = stripTapTypeSetConstraints(part.Spec)
+					part.Spec, part.MinPower = stripGroupPowerFloor(part.Spec)
+					part.Spec, part.ShareCreatureType = stripShareCreatureType(part.Spec)
+					// Main reads the same relation as CostPart.SameCreatureType
+					// over the literal N == 2 form. Keep the two readings in
+					// sync there so either can drive the offer, plan and
+					// election; above that count only ShareCreatureType is
+					// modelled (main's SameCreatureType paths fail closed).
+					part.SameCreatureType = part.ShareCreatureType && part.N == 2
 					c.TapPermanent = append(c.TapPermanent, part)
 				}
 				continue
