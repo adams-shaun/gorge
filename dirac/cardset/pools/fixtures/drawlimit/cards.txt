@@ -1,0 +1,17 @@
+# CantDraw DrawLimit$ N, the per-turn draw cap (Narset, Parter of Veils: each
+# opponent; Spirit of the Labyrinth: each player; kernel static_cantdraw.go,
+# gorge drawForbidden), over two blue decks whose Divination and Night's
+# Whisper draw a second and third card, for the oracle's constructed lockstep
+# (dirac/oracle/drawlimit_lowers_test.go)
+Narset, Parter of Veils
+Spirit of the Labyrinth
+Divination
+Night's Whisper
+Island
+Plains
+Swamp
+Wind Drake
+Savannah Lions
+Doom Blade
+Walking Corpse
+Serra Angel

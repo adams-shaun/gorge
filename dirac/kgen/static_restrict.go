@@ -1,6 +1,7 @@
 package kgen
 
 import (
+	"strconv"
 	"strings"
 )
 
@@ -75,6 +76,20 @@ func (sc *staticCtx) modeCantGainLife() ([]lStatic, bool, error) {
 		return nil, true, refuse("%s ValidPlayer %q", s.Mode, v)
 	}
 	sp.consume("ValidPlayer", "Secondary")
+	// DrawLimit$ N (Narset, Parter of Veils; Spirit of the Labyrinth): a
+	// per-turn cap, gorge drawForbidden: the draw is forbidden once the
+	// player has drawn N cards this turn. It rides Static.A as N+1 (0 = the
+	// plain ban); the kernel's playerBanned compares the drawn-this-turn count.
+	if raw, ok := sp.get("DrawLimit"); ok {
+		if s.Mode != "CantDraw" {
+			return nil, true, refuse("%s DrawLimit$", s.Mode)
+		}
+		n, err := strconv.Atoi(strings.TrimSpace(raw))
+		if err != nil || n < 0 || n > 254 {
+			return nil, true, refuse("CantDraw DrawLimit %q", raw)
+		}
+		sc.st.Amount = cst(n + 1)
+	}
 	return nil, false, nil
 }
 

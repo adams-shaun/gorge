@@ -2436,6 +2436,13 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		if err := banOppFlag(s.Flags, st); err != nil {
 			return ka, nil, err
 		}
+		if s.Amount.Kind != vNone {
+			// DrawLimit$ N as N+1 (static_restrict.go; kernel playerBanned)
+			if !s.Amount.isConst() || s.Amount.N < 1 || s.Amount.N > 255 {
+				return ka, nil, fmt.Errorf("CantDraw limit %v", s.Amount)
+			}
+			st.A = int16(s.Amount.N)
+		}
 	case "CantPreventDamage":
 		st.Kind = kop.StatCantPreventDamage // static_cantprevent.go
 		for _, fl := range s.Flags {
