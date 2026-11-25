@@ -13,22 +13,34 @@ func repeatTestZone(g *state.Game, o *state.Object, z state.Zone, p state.Player
 	g.SetZone(z, p, append(g.Zone(z, p), o.ID))
 }
 
-func TestRepeatDefinedRememberedUsesPresentAndFallbackCompare(t *testing.T) {
+// TestRepeatDefinedPresentGateIgnoresSVarCompare pins Forge's RepeatEffect
+// gate split (checkRepeatConditions): the RepeatDefined$/RepeatPresent$ pile
+// gate compares the pile's size against RepeatCompare$ alone — Forge's GE1
+// default when absent — and NEVER consults RepeatSVarCompare$ (that compare
+// belongs to the RepeatCheckSVar$ gate). Crooked Scales' "RepeatSVarCompare$
+// EQ0" is therefore not a repeat-while-empty: with two matching cards on the
+// pile (which EQ1 would have stopped at) the GE1 default keeps the process
+// going until the pile empties.
+func TestRepeatDefinedPresentGateIgnoresSVarCompare(t *testing.T) {
 	h, c := fixtureHost(t)
 	good := h.g.AddObject(mkCard(t, "Name:Good\nTypes:Creature\nOracle:x\n"), 0)
+	good2 := h.g.AddObject(mkCard(t, "Name:Good2\nTypes:Creature\nOracle:x\n"), 0)
 	repeatTestZone(h.g, good, state.ZBattlefield, 0)
-	if good.Zone != state.ZBattlefield || !MatchesObjectCtx(h.Game(), "Card", good, c.SpecContext(c.Controller)) {
-		t.Fatal("good fixture is not a matching battlefield Card")
+	repeatTestZone(h.g, good2, state.ZBattlefield, 0)
+	if good.Zone != state.ZBattlefield || good2.Zone != state.ZBattlefield ||
+		!MatchesObjectCtx(h.Game(), "Card", good2, c.SpecContext(c.Controller)) {
+		t.Fatal("pile fixtures are not matching battlefield Cards")
 	}
-	var player state.Target
-	player = state.Target{IsPlayer: true, Player: 1}
 	runs := 0
 	Register("TestDefinedTick", func(h Host, c *Ctx, _ *cards.SA) {
 		runs++
-		if runs < 3 {
+		switch runs {
+		case 1:
 			c.Remembered = []state.Target{{Obj: good.ID}}
-		} else {
-			c.Remembered = []state.Target{player}
+		case 2:
+			c.Remembered = []state.Target{{Obj: good.ID}, {Obj: good2.ID}}
+		default:
+			c.Remembered = nil
 		}
 	})
 	t.Cleanup(func() { unregister("TestDefinedTick") })
@@ -38,7 +50,7 @@ func TestRepeatDefinedRememberedUsesPresentAndFallbackCompare(t *testing.T) {
 		"RepeatPresent": "Card", "RepeatSVarCompare": "EQ1",
 	}})
 	if runs != 3 {
-		t.Fatalf("defined gate ran %d times, want 3 (do-while then first nonmatch)", runs)
+		t.Fatalf("pile gate ran %d times, want 3 (EQ1 is not the pile compare; GE1 runs through the two-card pile)", runs)
 	}
 }
 
