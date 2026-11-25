@@ -1113,30 +1113,6 @@ func (s *State) availWindowFor(k *prep, p uint8, a *avail) {
 	}
 }
 
-// availWindowForCapped is availWindowFor with the planner-deferred sources
-// counted (availForCapped): the unless-cost gate of a mode offer must see
-// every source the payment window can tap, including a mana rider whose tap
-// the planner census leaves out.
-func (s *State) availWindowForCapped(k *prep, p uint8, a *avail) {
-	x := s.g.availX
-	if k.painMana {
-		s.g.availX |= availWin
-	}
-	if k.gen == nil {
-		// no generated table: there is no planner census to defer, and the
-		// script walk has no table to read
-		s.availFor(k, p, a)
-		s.g.availX = x
-		return
-	}
-	s.g.availX |= availGaps
-	s.availForMode(k, p, a, slotMask{}, true)
-	s.g.availX = x
-	if k.gen.anyComboAny && x&3 == 0 {
-		s.availCA(k, p, a)
-	}
-}
-
 // availWinCol is the availFor mode of a manual cast window's affordability
 // (a hybrid pip's announcement: gorge's planner refuses the cost, the
 // window pays it): every painful colour counts, with no lethal guard (the

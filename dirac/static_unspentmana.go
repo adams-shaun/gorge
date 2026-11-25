@@ -94,6 +94,7 @@ func (s *State) talliesKeep(prot, restr [MaxSeats]uint8) {
 			clear(ax[:n])
 		}
 		for p := uint8(0); p < s.nSeats(); p++ {
+			s.hasteClear(p, 0)
 			s.g.poolTre[p] = [kop.NumManaKinds]uint8{}
 			s.g.poolArt[p] = 0
 		}
@@ -102,6 +103,7 @@ func (s *State) talliesKeep(prot, restr [MaxSeats]uint8) {
 	for p := uint8(0); p < s.nSeats(); p++ {
 		m := prot[p]
 		i := SeatIx(p)
+		s.hasteClear(i, m)
 		var art uint8
 		anySnow := false
 		for c := 0; c < int(kop.NumManaKinds); c++ {

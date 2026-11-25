@@ -27,7 +27,8 @@ func init() { stallNames[StallTapExtra] = "tapextra" }
 
 // eachTapExtra visits every StatTapExtra static in force: the battlefield and
 // emblem statics eachStatic walks, then a command-zone Vanguard's printed
-// static (Sisay), whose source has no perm slot (st.sl is NoSlot, st.cmd true).
+// static (Sisay) and a face-up plane's (Eloren Wilds), whose sources have no
+// perm slot (st.sl is NoSlot, st.cmd true).
 // The command-zone half is gated on prep.anyCmdTap, so a table with no
 // such static pays nothing, and only the tap-extra readers call this: a
 // command-zone static must never reach a reader that indexes st.sl as a perm.
@@ -65,6 +66,29 @@ func (s *State) eachTapExtra(k *prep, f func(st statSrc) bool) {
 				if !f(statSrc{a: a, sl: NoSlot, ctrl: p, obj: o, cmd: true}) {
 					return
 				}
+			}
+		}
+		// A face-up plane's printed static (Eloren Wilds, The Fertile Lands of
+		// Saulvinia; CR 901): the plane lives in the seat's planar deck, which
+		// neither the battlefield walk nor the command-zone walk above visits,
+		// and its top card is the one plane in force. Same shape as a
+		// command-zone Vanguard's: no perm slot, st.cmd true.
+		o := s.planeTop(p)
+		if o == NoObj || s.objs[o].zone != kop.ZonePlanarDeck {
+			continue
+		}
+		card := s.objs[o].card
+		if k.gen.sCls[card]&sclsTapCmd == 0 {
+			continue
+		}
+		cd := &k.t.Cards[card]
+		for i := range cd.Abilities {
+			a := &cd.Abilities[i]
+			if a.Kind != kop.AbStatic || a.Static.Kind != kop.StatTapExtra || a.Static.Zone != kop.ZoneCommand {
+				continue
+			}
+			if !f(statSrc{a: a, sl: NoSlot, ctrl: p, obj: o, cmd: true}) {
+				return
 			}
 		}
 	}
