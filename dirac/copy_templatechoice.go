@@ -1,7 +1,5 @@
 package dirac
 
-import "github.com/adams-shaun/gorge/dirac/kop"
-
 // The as-enters choice of the template an as-enters copy is made of (CR
 // 614.12, 707.9). A permanent spell entering as a copy of a permanent whose
 // own enters replacement opens with a choice (Dominion Saboteur copying
@@ -24,10 +22,14 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 func (s *State) cloneTemplateAsk(k *prep) bool {
 	p := &s.g.pre
 	t := Obj(p.val)
-	if k.gen == nil || t == NoObj || s.objs[t].zone != kop.ZoneBattlefield {
+	if k.gen == nil || t == NoObj {
 		return false
 	}
-	kind := s.enterChoiceKind(k, s.cardAt(s.objs[t].slot))
+	c, _, ok := s.cloneTmplCard(t)
+	if !ok {
+		return false
+	}
+	kind := s.enterChoiceKind(k, c)
 	switch kind {
 	case akColor, akType, akNumber, akName, akNameAny, akNameLook:
 	default:
@@ -41,7 +43,8 @@ func (s *State) cloneTemplateAsk(k *prep) bool {
 // about: the spell's, or the copy template's for the second ask.
 func (s *State) preAskCard() CardID {
 	if p := &s.g.pre; p.ask2 != 0 {
-		return s.cardAt(s.objs[Obj(p.val)].slot)
+		c, _, _ := s.cloneTmplCard(Obj(p.val))
+		return c
 	}
 	return s.objs[s.g.pre.obj].card
 }

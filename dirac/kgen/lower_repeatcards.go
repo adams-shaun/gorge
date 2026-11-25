@@ -50,6 +50,14 @@ func (lc *lowerCtx) repeatEachCards(ps *params) error {
 		return refuse("RepeatEach cards Zone$ %q", z)
 	}
 	in := lInstr{Op: "RepeatEachCard", Obj: lRef{Kind: rNone}}
+	if strings.HasPrefix(defSpec, "DirectRemembered.") {
+		// gorge's repeatedCards reads the subject spelling up to its first
+		// dot (engine/effects/repeateach.go repeatedCards), so a filtered
+		// DirectRemembered.<type> is the whole remembered list. Only the
+		// optional remembered-searcher body lowers it (Wave of Vitriol);
+		// lower_repeatremembered_ask.go refuses every other shape.
+		return lc.repeatEachRememberedSearch(ps, in)
+	}
 	if defSpec == "DirectRemembered" {
 		return lc.repeatEachRemembered(ps, in) // lower_repeatremembered.go
 	}
