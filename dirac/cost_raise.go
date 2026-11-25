@@ -35,6 +35,10 @@ func (s *State) raiseCostGen(k *prep, p uint8, c CardID, o, priced Obj, pips *[k
 				return
 			}
 			addRaisePips(pips, st.B, n)
+		} else if st.StFlags&kop.StReduceColor != 0 {
+			// a plain coloured raise (Jade Leech's "Green spells you cast
+			// cost {G} more"): the packed pips are added once
+			addRaisePips(pips, st.B, n)
 		}
 		if st.StFlags&kop.StDynamic != 0 {
 			g += n * max(s.evalV(k, st.VA, ctx), 0)
