@@ -569,7 +569,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			for _, owner := range owners {
 				h.Emit(events.Event{Kind: events.DelayedRegister, Obj: c.Source,
 					Player: owner, Step: h.Game().Step, Counter: exec,
-					IDs: encodeRemembered(regIDs), Text: tr.Mode + ":" + regTrigger + expiry + odSuffix + efMarker + cnSuffix + ccSuffix})
+					IDs: encodeRemembered(regIDs), Text: tr.Mode + ":" + regTrigger + expiry + odSuffix + effectStaticSuffix(tl) + efMarker + cnSuffix + ccSuffix})
 			}
 			registered = true
 		case cards.TriggerPhase:
@@ -616,9 +616,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			if tl.CheckSVar != "" {
 				text += "|CS=" + tl.CheckSVar + "|SC=" + tl.SVarCompare
 			}
-			if tl.FirstCombat {
-				text += "|1C"
-			}
+			text += effectPhaseFlags(tl)
 			// A prevention rider's delayed counter body (Sacred Boon) reads the
 			// amount this application prevented as Count$TriggerRememberAmount;
 			// "|RN=" rides last so the decode strips it first.
@@ -673,7 +671,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			for _, owner := range owners {
 				h.Emit(events.Event{Kind: events.DelayedRegister, Obj: c.Source,
 					Player: owner, Step: h.Game().Step, Counter: exec,
-					IDs: encodeRemembered(eventIDs), Text: tr.Mode + ":" + name + expiry + odSuffix + efMarker + cnSuffix + ccSuffix})
+					IDs: encodeRemembered(eventIDs), Text: tr.Mode + ":" + name + expiry + odSuffix + effectStaticSuffix(tl) + efMarker + cnSuffix + ccSuffix})
 			}
 			registered = true
 		}
