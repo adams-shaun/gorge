@@ -32,6 +32,7 @@ func (s *State) initSideboards(cfg *Config) {
 			o := s.nobj
 			s.nobj++
 			s.objs[o] = object{card: c, chosen: 255, zone: kop.ZoneSideboard, slot: NoSlot, acts: uint8(p) << objOwnerShift}
+			s.mintBirth(o)
 			s.touch(o)
 		}
 	}
