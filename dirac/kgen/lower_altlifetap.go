@@ -8,7 +8,7 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // card is gated by cardBuilder.altSacOK (an instant, sorcery or spell-less
 // creature), as the sacrifice and return alternatives are.
 func altLifeOrTapShape(c *kop.Cost) bool {
-	if c.Mana != (kop.ManaCost{}) || c.N == 0 {
+	if c.N == 0 {
 		return false
 	}
 	return c.Flags == kop.CostPayLife || c.Flags == kop.CostTapX
@@ -19,4 +19,14 @@ func altLifeOrTapShape(c *kop.Cost) bool {
 // life or tapping alone.
 func altSacGatedShape(c *kop.Cost) bool {
 	return altDiscardShape(c) || altLifeOrTapShape(c)
+}
+
+// altPickShape is the built alternative cost shapes the kernel's altPickCost
+// offers: a sacrifice (CostSac, alone or with life), a return, a hand exile,
+// a discard, life alone, or taps. The mana part may be nonzero (a
+// Borderpost's {1} plus a Return, Sephara's {W} plus taps).
+func altPickShape(c *kop.Cost) bool {
+	sac := c.Flags&^(kop.CostSac|kop.CostPayLife) == 0 && c.Flags&kop.CostSac != 0 && c.N > 0
+	ret := c.Flags == kop.CostReturn && c.N > 0
+	return sac || ret || altHandExileShape(c) || altSacGatedShape(c)
 }
