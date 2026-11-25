@@ -18,8 +18,8 @@ func (lc *lowerCtx) lowerBuyback(param string) bool {
 		lc.refuseNode("K:Buyback", "second Buyback keyword")
 		return true
 	}
-	if kc, ok := lc.kickerNonMana(param); ok && kc.Sac != nil {
-		lc.out.Buyback, lc.out.KickerCost = &manaCost{None: true}, kc
+	if _, rest, ok := lc.kickerNonMana(param); ok && rest.Sac != nil {
+		lc.out.Buyback, lc.out.KickerCost = &manaCost{None: true}, &rest
 		return true
 	}
 	if c, err := lc.cost(param); err == nil && c.Mana.None && c.DiscardN >= 1 && c.DiscardN <= 4 && c.DiscardSpec == "" && c.DiscardF == nil {
