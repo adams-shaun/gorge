@@ -5191,16 +5191,27 @@ func (lc *lowerCtx) animateGrantStatics(ps *params, names string, o *lOverride, 
 		// keyword/P/T walks honour OvGate (statCond); a player-hexproof or
 		// stack-keyword static reads no gate and would be live unanimated.
 		// Two walks read no OvGate: the attached-grant walk (grantsBetween)
-		// now reads statCond, but its StatOverride arm still does not, so a
-		// granted ability or trigger (AddAbility$/AddTrigger$) is refused
-		// here until that is checked; and the layer walk's lfxApplies gates a
+		// now reads statCond, but its StatOverride arm still does not, so an
+		// attached grant or a granted trigger is refused below (a granted
+		// ability over other permanents is not); and the layer walk's lfxApplies gates a
 		// collected subtype grant (AddType$ subtype or ChosenType) on Cond2
 		// only, so it would apply unanimated whenever the walk is on: refuse
 		// both.
 		if st := &lc.out.Statics[before]; single && !may && !land {
 			switch st.Kind {
 			case "Continuous":
-				if len(st.Grant) != 0 {
+				// A granted activated or mana ability (AddAbility$, Roar of
+				// the Fifth People's "Creatures you control have '{T}: Add
+				// {R}, {G}, or {W}.'") is read by the grant walks
+				// (act_empower.go, mana_grantedoffers.go, chars_gen.go
+				// grantedAbilities), each gated through statCond, which
+				// honours OvGate. A granted trigger (AddTrigger$) is set up
+				// by the trigger walks, which are not checked against the
+				// gate, and an attached grant (AffectedDefined$ Equipped,
+				// an EquippedBy/EnchantedBy clause) is the attached-grant
+				// walk's, whose StatOverride arm reads no gate: refuse both.
+				_, trig := ss[0].Params["AddTrigger"]
+				if len(st.Grant) != 0 && (trig || touchesHost(st.F)) {
 					return refuse("Animate staticAbilities$ %q grants an ability the kernel does not gate", name)
 				}
 				if len(st.AddSub) != 0 || st.AddChosen {
@@ -5231,15 +5242,29 @@ func animatePumpOrKeywordStatic(st cards.Static) bool {
 	return strings.TrimSpace(st.Params["AddPower"]) != "" || strings.TrimSpace(st.Params["AddToughness"]) != ""
 }
 
+// touchesHost reports whether some clause of f is limited to the source's
+// host (EquippedBy / EnchantedBy).
+func touchesHost(f *lFilter) bool {
+	if f == nil {
+		return false
+	}
+	for _, c := range f.Clauses {
+		if c.Flags&(fEquippedBy|fEnchantedBy) != 0 {
+			return true
+		}
+	}
+	return false
+}
+
 // animateGateableBody reports whether a single Animate staticAbilities$ body
 // is lowered as a static whose walk reads kop.Static.OvGate: a Continuous
-// anthem/keyword/P-T grant, or one of the rule statics whose generic walk
+// anthem/keyword/P-T grant or an AddAbility$ grant, or one of the rule statics whose generic walk
 // (dirac staticFlagGen / the gated CantBlockBy arm) checks the record's
 // GrantStatics bit.
 func animateGateableBody(st cards.Static) bool {
 	switch st.Mode {
 	case "Continuous":
-		return animatePumpOrKeywordStatic(st)
+		return animatePumpOrKeywordStatic(st) || strings.TrimSpace(st.Params["AddAbility"]) != ""
 	case "MustAttack", "MinMaxBlocker", "CantBlockBy":
 		return true
 	}
