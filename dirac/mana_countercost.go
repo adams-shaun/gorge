@@ -41,39 +41,12 @@ const stepCtr int16 = -9
 // source, once each turn, with a fixed production.
 func ctrManaAb(a *kop.Ability) bool { return kop.CtrManaAb(a) }
 
-// deadCtrAb reports whether mana ability a is the dead counter-cost shape
-// (Component Pouch's "{T}, Remove a component counter: Add two mana of
-// different colors", kop.CtrDeadManaAb): gorge's census records the source
-// as an unrelaxable, unbounded gap while the cost is payable, and the
-// activation's resolution adds no mana (engine/effects/mana_effect.go's
-// fail-closed rune gate). The kernel models it as a dead chain member of
-// the prefix search: no planner unit, no window pick, no units in any gaps
-// walk, and its single chain branch pays the cost and taps without mana.
-func deadCtrAb(a *kop.Ability) bool { return kop.CtrDeadManaAb(a) }
-
 // ctrGapAb reports whether mana ability a is one of the counter- or
 // sacrifice-counter-cost shapes the kernel prices as a counter-cost script
 // gap (mana_countercost.go, mana_sacctr.go). prep marks the card's gap from
 // this one predicate so the census and the script walk cannot diverge.
 func ctrGapAb(a *kop.Ability) bool {
-	return ctrManaAb(a) || kop.CtrRemoveManaAb(a) || kop.StoreManaAb(a) || kop.CtrDeadManaAb(a) || sacCtrManaAb(a)
-}
-
-// deadCtrMask is p's activatable dead counter-cost sources among scriptCtr.
-// While one is activatable gorge's census is incomplete and unrelaxable
-// (potential_plan.go paymentPlanRelaxedAlternatives enumerates no colour for
-// its production), so the prefix search runs on the any-mana walk and every
-// insufficient play takes a script slot (potentialPlans counts one whatever
-// the search finds).
-func (s *State) deadCtrMask(k *prep, p uint8) slotMask {
-	var m slotMask
-	for b := s.scriptCtr(k, p); b.any(); b = b.rest() {
-		sl := b.first()
-		if a := k.ctrAbOf(s.cardAt(sl)); deadCtrAb(a) {
-			m = m.with(sl)
-		}
-	}
-	return m
+	return ctrManaAb(a) || kop.CtrRemoveManaAb(a) || kop.StoreManaAb(a) || sacCtrManaAb(a)
 }
 
 // ctrAbOf is card c's counter-cost mana ability (prep.ctrAb): its first mana
@@ -119,22 +92,11 @@ func (s *State) scriptCtrIdle(k *prep, p uint8, idle bool) slotMask {
 		}
 		c := s.cardAt(sl)
 		a := k.ctrAbOf(c)
-		if a == nil || DebugNoDeadCtr && deadCtrAb(a) || s.perms[sl].actUsed&(1<<uint(k.ctrAb[c])) != 0 || s.genLost(k, sl) || k.gen != nil && k.gen.anyCantAct && s.actForbidden(k, sl, true) {
+		if a == nil || s.perms[sl].actUsed&(1<<uint(k.ctrAb[c])) != 0 || s.genLost(k, sl) || k.gen != nil && k.gen.anyCantAct && s.actForbidden(k, sl, true) {
 			continue
 		}
 		if !s.ctrCostPayable(sl, p, a) {
 			continue // too few counters to remove (legal.go actCostOK's CostRemoveCtr), or too little energy
-		}
-		if deadCtrAb(a) {
-			// A dead gap's own {T}: canTapForMana reads no mana unit here (the
-			// production resolves to nothing), so the activation's tap
-			// eligibility is read directly (storeGap's checks).
-			pm := &s.perms[sl]
-			if a.Cost.Flags&kop.CostTap != 0 && (pm.flags&pfTapped != 0 || pm.ovr.flags&(ovLoseAll|ovLoseAllEOT) != 0 || s.activationSick(k, sl)) {
-				continue
-			}
-			m = m.with(sl)
-			continue
 		}
 		if sacCtrManaAb(a) {
 			if !s.sacCtrUsable(k, sl, a) {
@@ -181,7 +143,7 @@ func (s *State) ctrBesideGrant(k *prep, p uint8) bool {
 	}
 	for b := m; b.any(); b = b.rest() {
 		a := k.ctrAbOf(s.cardAt(b.first()))
-		if !deadCtrAb(a) && (!kop.StoreManaAb(a) || k.ctrSecond(s.cardAt(b.first()))) {
+		if !kop.StoreManaAb(a) || k.ctrSecond(s.cardAt(b.first())) {
 			return true // the grant search lists the plain and counter-scaled sacrifice shapes (candidates)
 		}
 	}
@@ -211,9 +173,6 @@ func (s *State) availCtr(k *prep, p uint8, av *avail) {
 		sl := b.first()
 		c := s.cardAt(sl)
 		a := k.ctrAbOf(c)
-		if deadCtrAb(a) {
-			continue // a dead gap: gorge's census lists it, but it adds no mana (mana_countercost.go ctrDeadGap)
-		}
 		if sacCtrManaAb(a) {
 			if n := s.sacCtrUnits(sl, a); n > 0 {
 				av.addUnits(uint8(a.ManaColors)&0x3f, uint8(n)) // its live counters (mana_sacctr.go)
@@ -275,12 +234,8 @@ func (s *State) availCtr(k *prep, p uint8, av *avail) {
 }
 
 // addCtrUnits adds counter-cost ability a's mana to av: every colour at once
-// for the all-at-once shape (Ramos), else one unit of its fixed colour. A
-// dead gap (Component Pouch) adds nothing.
+// for the all-at-once shape (Ramos), else one unit of its fixed colour.
 func addCtrUnits(av *avail, a *kop.Ability) {
-	if deadCtrAb(a) {
-		return
-	}
 	cols, n := tapXUnit(a)
 	if a.ManaEach {
 		for c := 0; c < kop.NumManaKinds; c++ {
@@ -295,10 +250,7 @@ func addCtrUnits(av *avail, a *kop.Ability) {
 
 // windowCtrOffer: counter-cost source o is one gorge's ward or unless window
 // lists and can take now (it asks no colour), and its colour adds something the
-// clamp keeps. A dead gap (Component Pouch) is never picked: the planner
-// defers it (pay.PaymentPlanShapeTierOf, a SubCounter cost), so gorge's bot
-// answers the window without it, though its activation is offered and the
-// prefix script's steps activate it (ctrDeadGap).
+// clamp keeps.
 //
 // windowCtrGapTap pays a counter-cost source the window picked in a gap.
 // The once-each-turn Produced$ Any shape takes the plain {T} first mana
@@ -334,7 +286,7 @@ func (s *State) windowCtrOffer(k *prep, p uint8, o Slot, decided bool, want uint
 		return false
 	}
 	a := k.ctrAbOf(s.cardAt(o))
-	if deadCtrAb(a) || sacCtrManaAb(a) {
+	if sacCtrManaAb(a) {
 		return false // (a counter-scaled sacrifice source is no window pick: mana_sacctr.go)
 	}
 	return !decided || uint8(a.ManaColors)&want != 0
@@ -361,13 +313,12 @@ func (s *State) unlessStoreUnpriced(k *prep, o Slot) bool {
 // counter removal on a fixed production of one colour that asks no colour
 // (Weather Maker's "{T}, Remove two charge counters: Add {C}{C}", CR 608.2g).
 // The added-counter shape (Wall of Roots) prices no counter the census counts;
-// a storage battery's announced X is no fixed amount; the dead shape
-// (Component Pouch) resolves to no mana; an any-colour production asks a
+// a storage battery's announced X is no fixed amount; an any-colour production asks a
 // colour (Vivid Grove's second ability), as the census withholds the plain
 // one. A depletion rider's own shape (Remote Farm, ManaRiderDeplete) is
 // riderCensusFree's, the rider arm's; this is the non-rider one.
 func ctrCensusAb(a *kop.Ability) bool {
-	return a != nil && !deadCtrAb(a) && !kop.StoreManaAb(a) && !ctrAnyColour(a) &&
+	return a != nil && !kop.StoreManaAb(a) && !ctrAnyColour(a) &&
 		kop.CtrTapSecondManaAb(a) && a.ManaRider == kop.ManaRiderNone
 }
 
@@ -424,10 +375,6 @@ func (s *State) ctrGapDo(k *prep, p uint8, sl Slot, col int, fire bool) {
 		s.sacCtrGap(k, p, sl, a, col) // mana_sacctr.go: it always fires, the search's step too
 		return
 	}
-	if deadCtrAb(a) {
-		s.ctrDeadGap(k, p, sl, a)
-		return
-	}
 	pm := &s.perms[sl]
 	if a.Cost.Flags&kop.CostRemoveCtr != 0 {
 		pm.seeCtr(s) // the activation path's CostRemoveCtr (mana_window.go)
@@ -472,32 +419,6 @@ func (s *State) ctrGapDo(k *prep, p uint8, sl Slot, col int, fire bool) {
 		}
 	}
 	if taps {
-		s.tapExtraStall(k, sl)
-	}
-}
-
-// ctrDeadGap activates a dead counter-cost source (Component Pouch): the
-// cost's counters removed, the {T} through the activation path, and NO mana
-// -- gorge's census records the source as an unrelaxable, unbounded gap
-// (potential_plan.go paymentPlanRelaxedAlternatives enumerates no colour for
-// the production) and its resolution fail-closes on the unresolvable
-// Produced$ with a Note and no mana (engine/effects/mana_effect.go's rune
-// gate), so the step asks nothing and adds nothing. The kernel has no note
-// channel here: the same shape outside the modelled gap is refused by kgen
-// with the dead census reason (kgen build.go), and inside it the silent
-// no-mana step is the fail-closed counterpart of gorge's note.
-//
-//go:noinline
-func (s *State) ctrDeadGap(k *prep, p uint8, sl Slot, a *kop.Ability) {
-	pm := &s.perms[sl]
-	pm.seeCtr(s) // the activation path's CostRemoveCtr (mana_window.go)
-	s.subCtrFire(k, sl, int(a.Cost.Ctr), int(a.Cost.N))
-	if a.Cost.Flags&kop.CostTap != 0 {
-		pm.flags |= pfTapped // its {T}
-		s.manaTapped(k, sl)
-	}
-	s.touchSl(sl)
-	if a.Cost.Flags&kop.CostTap != 0 {
 		s.tapExtraStall(k, sl)
 	}
 }
@@ -816,10 +737,6 @@ var DebugCtrFirstAllColours bool
 // DebugNoCtrMana hides the counter-cost gaps (the wallroots mutation test
 // proves the pool's plays need them).
 var DebugNoCtrMana bool
-
-// DebugNoDeadCtr hides the dead counter-cost gaps (Component Pouch): the
-// dead-gap chain mutation test proves the lockstep reaches them.
-var DebugNoDeadCtr bool
 
 // storeGap activates a single-colour storage-battery mana ability (Mage-Ring
 // Network and the single-colour storage lands): its {T} if any marked, every
