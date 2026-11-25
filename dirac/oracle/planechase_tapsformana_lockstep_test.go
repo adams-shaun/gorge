@@ -20,9 +20,9 @@ import (
 const tapsForManaLockPlaneSrc = `Name:Tapsfor Mana Probe Plane
 ManaCost:no cost
 Types:Plane Probe
-T:Mode$ TapsForMana | ValidCard$ Permanent | Execute$ TrigMana | TriggerZones$ Command | Static$ True | TriggerDescription$ Whenever a player taps a permanent for mana, that player adds one mana of any type that permanent produced.
-SVar:TrigMana:DB$ ManaReflected | ColorOrType$ Type | ReflectProperty$ Produced | Defined$ TriggeredActivator
-Oracle:Whenever a player taps a permanent for mana, that player adds one mana of any type that permanent produced.
+T:Mode$ TapsForMana | ValidCard$ Permanent | Execute$ TapReflect | TriggerZones$ Command | Static$ True | TriggerDescription$ Whenever a player taps a permanent for mana, they add one extra mana of a type it made.
+SVar:TapReflect:DB$ ManaReflected | ColorOrType$ Type | ReflectProperty$ Produced | Defined$ TriggeredActivator | SpellDescription$ an extra mana of a produced type
+Oracle:Whenever a player taps a permanent for mana, they add one extra mana of a type it made.
 `
 
 var tapsPlaneDecks = [2][]cardset.Entry{

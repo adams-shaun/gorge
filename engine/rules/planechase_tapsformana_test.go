@@ -14,16 +14,16 @@ import (
 // admits it and the zone gate admits its Command spelling, or the planner
 // prices mana the tap never brings.
 const tapsForManaPlaneScript = "Name:Tap Probe Plane\nManaCost:no cost\nTypes:Plane Probe\n" +
-	"T:Mode$ TapsForMana | ValidCard$ Permanent | Execute$ TrigMana | TriggerZones$ Command | Static$ True | TriggerDescription$ Whenever a player taps a permanent for mana, that player adds one mana of any type that permanent produced.\n" +
-	"SVar:TrigMana:DB$ ManaReflected | ColorOrType$ Type | ReflectProperty$ Produced | Defined$ TriggeredActivator\n" +
-	"Oracle:Whenever a player taps a permanent for mana, that player adds one mana of any type that permanent produced.\n"
+	"T:Mode$ TapsForMana | ValidCard$ Permanent | Execute$ TapReflect | TriggerZones$ Command | Static$ True | TriggerDescription$ Whenever a player taps a permanent for mana, they add one extra mana of a type it made.\n" +
+	"SVar:TapReflect:DB$ ManaReflected | ColorOrType$ Type | ReflectProperty$ Produced | Defined$ TriggeredActivator | SpellDescription$ an extra mana of a produced type\n" +
+	"Oracle:Whenever a player taps a permanent for mana, they add one extra mana of a type it made.\n"
 
 // landTapsForManaPlaneScript is The Fertile Lands of Saulvinia's filter:
 // only lands reflect.
 const landTapsForManaPlaneScript = "Name:Land Tap Probe Plane\nManaCost:no cost\nTypes:Plane Probe\n" +
-	"T:Mode$ TapsForMana | ValidCard$ Land | Execute$ AddMana | TriggerZones$ Command | Static$ True | TriggerDescription$ Whenever a player taps a land for mana, that player adds one mana of any type that land produced.\n" +
-	"SVar:AddMana:DB$ ManaReflected | ColorOrType$ Type | ReflectProperty$ Produced | Defined$ TriggeredActivator\n" +
-	"Oracle:Whenever a player taps a land for mana, that player adds one mana of any type that land produced.\n"
+	"T:Mode$ TapsForMana | ValidCard$ Land | Execute$ LandReflect | TriggerZones$ Command | Static$ True | TriggerDescription$ Whenever a player taps a land for mana, they add one extra mana of a type it made.\n" +
+	"SVar:LandReflect:DB$ ManaReflected | ColorOrType$ Type | ReflectProperty$ Produced | Defined$ TriggeredActivator | SpellDescription$ an extra mana of a produced type\n" +
+	"Oracle:Whenever a player taps a land for mana, they add one extra mana of a type it made.\n"
 
 // tapsPlaneConfig builds a two-seat Config whose seat 0 has a one-card planar
 // deck (so its top plane is the face-up current plane at genesis) and whose
@@ -89,7 +89,7 @@ func TestPlanechaseTapsForManaExtra(t *testing.T) {
 	t.Run("LandFilterExcludesTheRock", func(t *testing.T) {
 		plane := card(t, landTapsForManaPlaneScript)
 		rock := card(t, "Name:Mana Rock\nTypes:Artifact\n"+
-			"A:AB$ Mana | Cost$ T | Produced$ C | SpellDescription$ Add {C}.\nOracle:x\n")
+			"A:AB$ Mana | Cost$ T | Produced$ C | SpellDescription$ tap for colourless mana.\nOracle:x\n")
 		cfg := tapsPlaneConfig(t, 92, rock, plane)
 		e := New(cfg)
 		e.Advance()
