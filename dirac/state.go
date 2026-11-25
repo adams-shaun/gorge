@@ -958,6 +958,11 @@ const (
 	rfBodyOp
 	rfBodyTurn
 	rfOppCopy // a per-opponent copy walk is entering its copies (kw_encore.go ExtEncore, kw_myriad.go ExtMyriad): copyTokenEnterFrom gives each the duty or attack that names the opponent res.left
+	// rfPayPark: an unless-cost PayReturn move raised a CR 903.9b
+	// commander_zone park while the payment was being settled. The payment
+	// suspends with the resolving entry still on the stack; cmdZoneAnswer
+	// finishes the move and the payment (cost_return.go).
+	rfPayPark
 )
 
 // resCtx is a resolution in progress.

@@ -72,5 +72,5 @@ func (lc *lowerCtx) filteredDiscardHome(c lCost) bool {
 // CostDiscard part, filtered or not, then Cost.Discard2N cards when set.
 func altDiscardShape(c *kop.Cost) bool {
 	return c.Flags&^kop.CostDiscardFiltered == kop.CostDiscard && c.N > 0 &&
-		!c.DiscardHand && c.Mana == (kop.ManaCost{})
+		!c.DiscardHand
 }
