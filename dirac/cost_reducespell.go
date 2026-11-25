@@ -171,8 +171,8 @@ func (s *State) dropTargetsOwing(k *prep, buf *[MaxOptions]TCode, n int, free bo
 			base = cd.BestowCost // a bestowed cast prices each enchant-creature target at its bestow cost (Charix over Crystalline Nautilus)
 		} else if fb, ok := s.flashbackBase(k, e); ok {
 			base = fb // a flashback cast prices each target at its flashback cost, not the printed one (Charix over Sever the Bloodline)
-		} else if e.trigPl == trigPlMiracle && cd.HasMiracle {
-			base = cd.MiracleCost // a miracle cast prices each target at its miracle cost (Charix over Revenge of the Hunted)
+		} else if mc, ok := s.miracleBase(k, e); ok {
+			base = mc // a miracle cast prices each target at its miracle cost (Charix over Revenge of the Hunted)
 		}
 		cost := s.adjustCostGen(k, e.ctrl, e.card, e.obj, base)
 		if e.flags&sfAnyMana != 0 {

@@ -629,6 +629,9 @@ func dumpStatics(w io.Writer, c *lCard) {
 		if s.Kind == "FbGrant" && len(s.Flags) != 0 {
 			fmt.Fprintf(w, " fbcost=%s", s.Cost.Mana)
 		}
+		if s.Kind == "MiracleGrant" {
+			fmt.Fprintf(w, " miraclecost=%s less=%d", s.Cost.Mana, s.CardCostLess)
+		}
 		if s.Kind == "WarpGrant" {
 			fmt.Fprintf(w, " warpcost=%s", s.Cost.Mana)
 		}

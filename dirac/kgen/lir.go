@@ -1227,6 +1227,9 @@ type lStatic struct {
 	// is 1-based and 0 means none, the offer never grants it;
 	// lower_offzone.go offZoneUnearth)
 	GrantBody int
+	// CardCostLess: a MiracleGrant's cost is the affected card's own mana cost
+	// less CardCostLess-1 generic; 0 = the grant's own Cost (kop.Static.CardCostLess)
+	CardCostLess int
 	// GrantSt: 1 + the index in lCard.GrantedStatics of the static the
 	// affected objects gain (0 = none; lower_grantedstatic.go)
 	GrantSt int
