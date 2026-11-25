@@ -27,15 +27,15 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 | TDM | 276 | 260 | 1 | 0 | 259 | 259 | 0 |
 | TLA | 285 | 263 | 1 | 1 | 261 | 261 | 0 |
 | TMT | 194 | 187 | 0 | 0 | 187 | 187 | 0 |
-| TRC | 337 | 306 | 0 | 30 | 276 | 276 | 0 |
+| TRC | 337 | 306 | 1 | 30 | 275 | 275 | 0 |
 | TRK | 311 | 311 | 1 | 0 | 310 | 310 | 0 |
 | WOE | 281 | 267 | 0 | 3 | 264 | 264 | 0 |
-| MBC | 2212 | 2030 | 3 | 34 | 1993 | 1993 | 0 |
-| CMM | 737 | 605 | 2 | 15 | 588 | 588 | 0 |
+| MBC | 2212 | 2030 | 4 | 34 | 1992 | 1992 | 0 |
+| CMM | 737 | 605 | 4 | 14 | 587 | 587 | 0 |
 | MH3 | 308 | 227 | 1 | 1 | 225 | 225 | 0 |
 | MH2 | 309 | 256 | 0 | 2 | 254 | 254 | 0 |
-| CM2 | 279 | 237 | 0 | 2 | 235 | 235 | 0 |
-| ALL | 34480 | 26561 | 42 | 648 | 25871 | 25868 | 0 |
+| CM2 | 279 | 237 | 1 | 1 | 235 | 235 | 0 |
+| ALL | 34480 | 26561 | 46 | 646 | 25869 | 25866 | 0 |
 
 `ALL` is the whole corpus; `MBC` is the Mystery Booster Commander draft pool, every name its packs deal that gorge supports; `CMM`, `MH3`, `MH2` and `CM2` are Commander Masters, Modern Horizons 3 and 2 and Commander Anthology Volume II, from gorge-compliance's XMage manifests; the rest are the Standard sets. `4-seat` counts the supported cards whose lowering holds at any seat count: a card whose lowering reads the one opponent of a two-player game (`kop.CardDef.TwoSeat`) is refused in a game of three or more seats (`StallTwoSeat`). It is a ceiling, not evidence. `pod-evidenced` counts those cards whose evidence row carries a seats field — a clean game of three or more seats, which `kfuzz -evidence -seats 4` writes and `scripts/dirac-first-refusals.py evidence --pools pod-*` copies into `dirac/support/evidence` (`Name\t<seats>`; readers take the name and ignore trailing columns). A pod game does not evidence a card: the support rule below is unchanged.
 
@@ -5287,11 +5287,11 @@ Nothing else is covered. A card none of these runs reaches is unverified, whatev
 
 ## Refused by name
 
-42 cards, by what differed in the game that showed them. Each has a file in `dirac/support/refused` naming the card, the difference and the game.
+46 cards, by what differed in the game that showed them. Each has a file in `dirac/support/refused` naming the card, the difference and the game.
 
 | what differed | cards |
 |---|---:|
-| lockstep | 16 |
+| lockstep | 20 |
 | options | 6 |
 | options-options | 5 |
 | projection | 1 |
