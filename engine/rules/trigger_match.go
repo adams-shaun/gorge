@@ -2383,6 +2383,22 @@ func (e *Engine) openDamageBatch() {
 	e.damageBatchDepth++
 }
 
+// pendingBatchKeyMatches reports whether pending trigger pt is the queue
+// entry a damage batch key names. A delayed registration's entry has no face
+// trigger index: its key carries -1-DelayedID (trigger_delayed.go
+// checkEventDelayedTriggers), and its DelayedID is the registration it came
+// from, so the closing batch patches/drops exactly that copy rather than
+// reading the zero Idx as a face trigger.
+func pendingBatchKeyMatches(pt *pendingTrigger, key triggerKey) bool {
+	if pt.Source != key.Source {
+		return false
+	}
+	if pt.Delayed {
+		return key.Idx == -1-int(pt.DelayedID)
+	}
+	return pt.Idx == key.Idx
+}
+
 // closeDamageBatch closes the open damage batch: every entry's queued trigger
 // gets its referent patched to the batch's accumulated total (two blockers
 // hitting one Enrage creature is ONE trigger whose amount is the sum), then
@@ -2424,7 +2440,7 @@ func (e *Engine) closeDamageBatch() {
 			}
 			for i := ent.idx; i < end; i++ {
 				pt := &e.pendingTriggers[i]
-				if pt.Source != ent.key.Source || pt.Idx != ent.key.Idx {
+				if !pendingBatchKeyMatches(pt, ent.key.triggerKey) {
 					break
 				}
 				dead[i] = true
@@ -2437,7 +2453,7 @@ func (e *Engine) closeDamageBatch() {
 		// amount and no batch sets.
 		for i := ent.idx; i < end; i++ {
 			pt := &e.pendingTriggers[i]
-			if pt.Source != ent.key.Source || pt.Idx != ent.key.Idx {
+			if !pendingBatchKeyMatches(pt, ent.key.triggerKey) {
 				break
 			}
 			pt.Ctx.TriggerContext.TriggerAmount = ent.amount
