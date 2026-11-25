@@ -1070,6 +1070,10 @@ func (s *State) priorityGraveAct(k *prep, d *Decision, p uint8, sorc bool, av *a
 				red = s.ownReduced(k, a, o, p) // a graveyard ability's own ReduceCost$ (cost_ownreduce.go)
 				mana = &red
 			}
+			if z == kop.ZoneGraveyard && k.gen.anyAbReduce {
+				red = s.abReducedGrave(k, a, o, p, *mana) // a graveyard-zone reduction static (Convergence of Dominion; cost_reduceability.go)
+				mana = &red
+			}
 			gd := payDesc{class: pdAct, card: s.objs[o].card, src: NoSlot}
 			if !av.affords(mana, pipMaskOf(mana), 0) &&
 				!(k.restrSrc && s.restrSrcAffords(k, p, gd, mana, av, NoSlot, 0)) &&
