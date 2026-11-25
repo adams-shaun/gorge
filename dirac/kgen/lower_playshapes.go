@@ -79,19 +79,21 @@ func playBaseCS(mandatory bool) string {
 	return "Optional"
 }
 
-// playLandShape reports the one Play without ValidSA$ over a land-capable
-// population the kernel plays: a paid, optional Amount$ All play of the
-// remembered cards in exile (Valid$ Card.IsRemembered, ValidZone$ Exile; Dungeon
-// of the Mad Mage's Runestone Caverns, the Dig's two exiled cards). OpCastFree's
-// Lands flag offers its lands as land plays (dirac/cast_freeland.go). The free
-// shape (Vault 112) stays refused.
+// playLandShape reports the Play without ValidSA$ over a land-capable
+// population the kernel plays: an optional play of the remembered cards in exile
+// (Valid$ Card.IsRemembered, ValidZone$ Exile), paid with Amount$ All (Dungeon of
+// the Mad Mage's Runestone Caverns, the Dig's two exiled cards) or free with
+// Amount$ 1 (Vault 112: Sadistic Simulation's "you may play one of those cards
+// without paying its mana cost"). OpCastFree's Lands flag offers its lands as
+// land plays (dirac/cast_freeland.go), which a free play makes the same way: a
+// land is never cast, so WithoutManaCost$ changes nothing about it.
 func playLandShape(ps *params, paid, mandatory, copyCard, repeat, upTo, forget, replace bool, amount string) bool {
 	if _, ok := ps.m["ValidSA"]; ok {
 		return false
 	}
 	_, hasT := ps.m["ValidTgts"]
-	return paid && !mandatory && !copyCard && !repeat && !upTo && !forget && !replace && !hasT &&
-		amount == "All" && ps.m["Defined"] == "" && ps.m["ValidZone"] == "Exile" && ps.m["Valid"] == "Card.IsRemembered"
+	return (paid && amount == "All" || !paid && amount == "1") && !mandatory && !copyCard && !repeat && !upTo && !forget && !replace && !hasT &&
+		ps.m["Defined"] == "" && ps.m["ValidZone"] == "Exile" && ps.m["Valid"] == "Card.IsRemembered"
 }
 
 // playLandsFlag is the CastFree flag a land-capable population adds (opCastFree's

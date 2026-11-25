@@ -1,0 +1,10 @@
+# the play-land pool: Vault 112: Sadistic Simulation's chapter III digs X cards
+# into exile and offers one free play among them, a land among them played as a
+# land (CR 305; dirac/oracle/play_land_lockstep_test.go)
+Vault 112: Sadistic Simulation
+Grizzly Bears
+Hill Giant
+Shock
+Lightning Bolt
+Island
+Mountain
