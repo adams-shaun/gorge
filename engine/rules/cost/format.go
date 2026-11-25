@@ -91,18 +91,21 @@ func FormatCost(c Cost) string {
 				n = part.Dyn
 			}
 			spec := part.Spec
-			// A set-level tapXType<2/Creature.sharesCreatureTypeWith> part
-			// carries the relation in CostPart.SameCreatureType, never in
-			// Spec, so spell it back here. Its description is re-emitted only
-			// with the flagged part, keeping every other head's formatting
-			// unchanged.
-			if part.SameCreatureType {
-				tok := kind + "<" + n + "/" + spec + sameCreatureTypePredicate
-				if part.Desc != "" {
-					tok += "/" + part.Desc
+			// tapXType's set-level share-a-creature-type relation is out of
+			// Spec (CostPart.ShareCreatureType; main reads the same relation
+			// as CostPart.SameCreatureType over the literal N == 2 form).
+			// Spell it back the way Forge writes it, after the base or after a
+			// '.', so ParseCost's stripShareCreatureType round-trips the part,
+			// and keep the description (Forge's third segment) with it.
+			if kind == "tapXType" && (part.ShareCreatureType || part.SameCreatureType) {
+				if strings.Contains(spec, ".") {
+					spec += "+" + shareCreatureTypeTerm
+				} else {
+					spec += "." + shareCreatureTypeTerm
 				}
-				add(tok + ">")
-				continue
+				if part.Desc != "" {
+					spec += "/" + part.Desc
+				}
 			}
 			add(kind + "<" + n + "/" + spec + ">")
 		}
