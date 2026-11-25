@@ -23,15 +23,19 @@ func chainFlag(t *kop.Table, f kop.FilterID, fl kop.FilterFlags) bool {
 // matchCardExwTgt is matchCardGen with the target's source threaded in: the
 // source object (self, else the slot's occupant) is the one the link is read
 // against. While that source's own entry resolves, its entry rides along so
-// a trigger's fire ver counts, as exwCard passes it.
+// a trigger's fire ver counts, as exwCard passes it. The entry rides along
+// while the source's own entry is being built too: its announced X (CR
+// 601.2b) is read by a *V-bound target filter (Bronzebeak Foragers'
+// ExiledWithSource+cmcEQX), and the stack copy pushed at bsPush still holds
+// the x of 0 it was pushed with (spellX finds only spells there).
 func (s *State) matchCardExwTgt(k *prep, f kop.FilterID, c CardID, owner, ctrl uint8, o Obj, src Slot, self Obj) bool {
 	srcObj := self
 	if srcObj == NoObj && src != NoSlot {
 		srcObj = s.perms[src].obj
 	}
 	ctx := evalCtx{src: srcObj, srcSl: src, ctrl: ctrl}
-	if s.res.active && srcObj != NoObj && s.res.e.obj == srcObj {
-		ctx.e = &s.res.e
+	if e := s.curEntry(); e != nil && srcObj != NoObj && e.obj == srcObj {
+		ctx.e = e
 	}
 	return s.matchCardGenAt(k, f, c, owner, ctrl, o, &ctx)
 }
