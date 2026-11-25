@@ -89,6 +89,9 @@ func (sc *staticCtx) modeRaiseCost() ([]lStatic, bool, error) {
 	sp := sc.sp
 	done, err := lc.raiseSelfWaterbend(sp, &sc.st) // lower_raisewaterbend.go
 	if err == nil && !done {
+		done, err = lc.raiseSelfAdditional(sp) // lower_raisecost.go
+	}
+	if err == nil && !done {
 		done, err = lc.raiseSelfBehold(sp, &sc.st)
 	}
 	if err != nil {

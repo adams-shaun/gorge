@@ -165,6 +165,13 @@ func (s *State) availSpreeWindow(k *prep, e *stackEntry, av *avail) {
 	}
 	s.availForBuilt(k, e, av)
 	s.g.availX = x
+	if k.ctrMana {
+		// a counter-cost source (Mercadian Bazaar's {T}, remove X storage
+		// counters: add X {R}) is a source of the window: gorge's census walks
+		// the activation and prices its X at the counters it holds, which the
+		// plain walk above leaves out (CR 601.2g, 605.3)
+		s.availCtr(k, e.ctrl, av)
+	}
 	for b := s.scriptDeferred(k, e.ctrl); b.any(); b = b.rest() {
 		av.addUnits(s.deferMask(k, b.first()), 1)
 	}

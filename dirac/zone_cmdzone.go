@@ -224,6 +224,14 @@ func (s *State) cmdZoneAnswer(k *prep, a Action) {
 		p.state = preCmdZoneMove
 	}
 	s.res.ask = raNone
+	if s.res.flags&rfPayPark != 0 {
+		// The park was raised by an unless-cost PayReturn's move, not by an
+		// effect instruction: finish that move and the payment, leaving the
+		// resolving entry on the stack until they do (cost_return.go).
+		s.res.flags &^= rfPayPark
+		s.payReturnResume(k)
+		return
+	}
 	if s.dashReturnTrigger() {
 		s.dashReturnAnswered(k) // the delayed dash return runs no program (kw_dash.go)
 		return
