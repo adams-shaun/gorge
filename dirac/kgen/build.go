@@ -218,14 +218,6 @@ func buildCard(pt *poolTables, c *lCard) built {
 		// mana ability whose cost it does not read; refuse it instead
 		if a := &cb.out.def.Abilities[j]; !kop.ManaAbilityHonoured(&cb.out.def, j) {
 			why := "mana ability cost " + kop.ManaCostShape(a) + ": the kernel's mana walk cannot activate it"
-			if kop.CtrDeadManaAb(a) {
-				// the dead counter-cost shape outside the modelled gap: the
-				// census reason names the measured cause (gorge records an
-				// unrelaxable census gap whose resolution adds no mana;
-				// potential_plan.go paymentPlanRelaxedAlternatives
-				// enumerates no colour for the production)
-				why = "mana ability cost " + kop.ManaCostShape(a) + ": a dead mana-ability census gap the kernel does not model here (the production names no colour; gorge's gap is unrelaxable and its activation adds no mana)"
-			}
 			if r := exileGraveManaRefusal(a); r != "" {
 				why = r // (an exile-from-graveyard source outside the modelled shape names its restriction, rider or zone)
 			}
