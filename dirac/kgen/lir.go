@@ -1379,6 +1379,7 @@ type lCard struct {
 	MorphFamily    uint8       // kop.Morph*: which face-down keyword the cost belongs to
 	MorphReduce    lValue      // the turn-up cost's printed generic reduction (lower_morphreduce.go)
 	MorphLife      uint8       // the turn-up cost's PayLife<N> (lower_morphlife.go)
+	MorphReveal    *lFilter    // the turn-up cost's Reveal<1/Spec> hand candidates (lower_revealpick.go)
 	Flashback      *manaCost
 	RemPersist     bool          // the enters/leaves remembered pair, or a Saga's chapter pair (lower_rempersist.go)
 	RemSeed        uint32        // RemPersist: the abilities that start with the kept set (CardDef.RemSeed)
