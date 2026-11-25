@@ -1,0 +1,6 @@
+family: FilterWord
+name: FwCanProduceManaColor
+value: next
+contexts: perm,cur
+status: active
+doc: FwCanProduceManaColor: the battlefield permanent's printed mana abilities can produce a mana type in the colour mask Arg (gorge's canProduceManaColor <Colour> predicate, Forge CardProperty canProduceManaColor over AbilityManaPart.canProduce; Break the Ice's and Obsidian Charmaw's Land.canProduceManaColor Colorless). The producible set is the kernel's cardProducible: kop.CardDef.ProduceCol for WUBRG (an "Any" production counts as every colour but never colourless) plus {C} when a printed mana ability makes it.

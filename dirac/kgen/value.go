@@ -1643,6 +1643,13 @@ func (lc *lowerCtx) countValue(rest string, depth int) (lValue, error) {
 		}
 		return lValue{Kind: vSum, Sub: []lValue{{Kind: zc.kind[0], F: f}, {Kind: zc.kind[1], F: f}}}, nil
 	}
+	if spec, ok := strings.CutPrefix(rest, "ValidAll "); ok && validAllBattlefieldOnly(spec) {
+		// gorge's ValidAll scans every zone, but a spec every alternative of
+		// which carries an attacking word matches only battlefield objects
+		// (IsAttacking clears on any zone move), so it is the battlefield
+		// Count$Valid fold (Mangara, the Diplomat; Tomik, Wielder of Law)
+		rest = "Valid " + spec
+	}
 	if strings.HasPrefix(rest, "Valid ") || strings.HasPrefix(rest, "ValidGraveyard ") {
 		kind := vCount
 		expr := strings.TrimPrefix(rest, "Valid ")
@@ -1878,4 +1885,28 @@ func (lc *lowerCtx) activeHandCount() (lValue, error) {
 		return lValue{}, err
 	}
 	return lValue{Kind: vCountHand, F: f}, nil
+}
+
+// validAllBattlefieldOnly reports whether a Count$ValidAll spec can match only
+// battlefield objects: no aggregate, and every comma alternative carries an
+// attacking word (attacking, attackingYou, attackingYouOrYourPW[LKI]), which
+// gorge reads from Object.IsAttacking, false off the battlefield.
+func validAllBattlefieldOnly(spec string) bool {
+	if spec == "" || strings.Contains(spec, "$") {
+		return false
+	}
+	for _, alt := range strings.Split(spec, ",") {
+		_, props, _ := strings.Cut(strings.TrimSpace(alt), ".")
+		found := false
+		for _, w := range strings.Split(props, "+") {
+			switch w {
+			case "attacking", "attackingYou", "attackingYouOrYourPW", "attackingYouOrYourPWLKI":
+				found = true
+			}
+		}
+		if !found {
+			return false
+		}
+	}
+	return true
 }

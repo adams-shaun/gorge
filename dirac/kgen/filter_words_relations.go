@@ -103,6 +103,19 @@ func init() {
 	fwArms["canProduceSameManaTypeWith"] = func(c *lClause, _ string) error {
 		return c.fwLit(lSpillLit{W: kop.FwCanProduceSameManaTypeWith, R: kop.RefTriggerObj})
 	}
+	// canProduceManaColor <Colour>: a printed mana ability of the candidate
+	// can produce that colour (gorge canProduceManaColor; kernel
+	// FwCanProduceManaColor over the colour mask in Arg). Break the Ice,
+	// Obsidian Charmaw.
+	for _, cl := range [...]struct {
+		name string
+		m    kop.ColorMask
+	}{{"White", kop.ColW}, {"Blue", kop.ColU}, {"Black", kop.ColB}, {"Red", kop.ColR}, {"Green", kop.ColG}, {"Colorless", kop.ColC}} {
+		m := int(cl.m)
+		fwArms["canProduceManaColor "+cl.name] = func(c *lClause, _ string) error {
+			return c.fwLit(lSpillLit{W: kop.FwCanProduceManaColor, N: m})
+		}
+	}
 	// ChosenCtrl: controlled by the player the source chose as it entered.
 	fwArms["ChosenCtrl"] = func(c *lClause, _ string) error {
 		return c.fwLit(lSpillLit{W: kop.FwChosenCtrl})
@@ -218,7 +231,7 @@ func (c *lClause) fwArmOrUnknown(p string, knownSub func(string) bool) error {
 		p == "suspended" || p == "TopLibrary" || p == "DoubleFaced" ||
 		p == "Modal" || p == "singleTarget" ||
 		p == "Paired" || p == "!Paired" || p == "PairedWith" ||
-		p == "canProduceSameManaTypeWith" {
+		p == "canProduceSameManaTypeWith" || strings.HasPrefix(p, "canProduceManaColor ") {
 		if arm, ok := fwArms[p]; ok {
 			return arm(c, p)
 		}

@@ -737,6 +737,13 @@ func (c *lClause) prop(p string, knownSub func(string) bool) error {
 		// K. Ross). fAttacking stays for the readers that gate on it.
 		c.Flags |= fAttacking
 		return c.setCmp(cmpAttackingYou, 0, 0, "", "")
+	case "attackingYouOrYourPW", "attackingYouOrYourPWLKI":
+		// gorge attackingYouOrYourPW(LKI): attacking "you" itself, or a
+		// planeswalker (a non-creature face) the evaluating player controls;
+		// a battle's attacker never counts. PredN 1 on the same predicate
+		// (kernel attackingYou's pw arm; Soul Snare, Mangara, Tomik).
+		c.Flags |= fAttacking
+		return c.setCmp(cmpAttackingYou, 0, 1, "", "")
 	case "YouCtrl", "YourTeamCtrl":
 		// gorge predicates["YourTeamCtrl"] reads YouCtrl: gorge models no
 		// teams, so a player's team is that player alone (Combo Attack)

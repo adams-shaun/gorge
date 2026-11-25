@@ -147,7 +147,7 @@ func (s *State) matchPermOne(k *prep, fl *kop.Filter, sl Slot, ctrl uint8, src S
 			return s.predAttached(sl, src)
 		}
 		if isAttackingYou(fl) {
-			return s.attackingYou(k, sl, ctrl) // filter_attackingyou.go
+			return s.attackingYou(k, sl, ctrl, fl.PredN) // filter_attackingyou.go
 		}
 		if fl.Pred == kop.PredProg {
 			c := s.permFctx(k, sl, ctrl, src, layer)
