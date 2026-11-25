@@ -12,8 +12,7 @@ import (
 // Changeling an Arcane, Alara, or Ajani, even though those are spell, plane,
 // and planeswalker subtypes. CR 205.3m's one two-word creature type, Time
 // Lord, is a member as the one subtype the parsed face carries (see
-// cards.coalesceMultiWordTypes); its words Time and Lord stay members too,
-// for the sorted choice list below.
+// cards.coalesceMultiWordTypes); its words Time and Lord are not members.
 var creatureSubtypeWords = func() map[string]bool {
 	out := make(map[string]bool)
 	for word := range strings.FieldsSeq(`
@@ -34,7 +33,7 @@ Hellion Hero Hippo Hippogriff Homarid Homunculus Horror Horse Horsehead Human
 Hydra Hyena Illusion Imp Incarnation Inhuman Inkling Inquisitor Insect Jackal
 Jellyfish Judge Juggernaut Kangaroo Kavu Kelpien Killbot Kirin Kithkin Klingon Knight
 Kobold Kor Kraken Kree Llama Lamia Lammasu Lanthanite Leech Lemur Leviathan Lhurgoyf
-Licid Lizard Lobster Lord Mammoth Manticore Masticore Mercenary Merfolk
+Licid Lizard Lobster Mammoth Manticore Masticore Mercenary Merfolk
 Metathran Mindless-One Minion Minotaur Mite Mole Monger Mongoose Monk Monkey Moogle Moonfolk
 Mount Mouse Mutant Myr Mystic Nautilus Necron Nephilim Nightmare Nightstalker
 Ninja Noble Noggle Nomad Nymph Octopus Officer Ogre Ooze Orb Orc Orion Orgg Otter
@@ -47,7 +46,7 @@ Shapeshifter Shark Sheep Shi'ar Siren Skeleton Skrull Skunk Slith Sliver Sloth
 Slug Snail Snake Soldier Soltari Sorcerer Specter Spellshaper Sphinx Spider Spike
 Spawn Spirit Splinter Sponge Spy Squid Squirrel Stained Starfish Surrakar Survivor
 Symbiote Synth Talosian Teddy Tellarite Tentacle Tetravite Thalakos Tholian Thopter
-Thrull Tiefling Time Toy Treefolk Tribble Trilobite Trill Triskelavite Troll Tosk Turtle Tyranid
+Thrull Tiefling Toy Treefolk Tribble Trilobite Trill Triskelavite Troll Tosk Turtle Tyranid
 Unicorn Utrom Vampire Varmint Vedalken Villain Volver Vorta Vulcan Wall Walrus
 Warlock Warrior Weasel Weird Werewolf Whale Wizard Wolf Wolverine Wombat Worm
 Wraith Wurm Xindi Yeti Zombie Zubera
@@ -57,27 +56,10 @@ Talaxian Tamarian Vau-N'Akat
 `) {
 		out[word] = true
 	}
-	for joined := range multiWordCreatureTypes {
-		out[joined] = true
-	}
+	// CR 205.3m: Time Lord is one subtype, spelled with a space.
+	out["Time Lord"] = true
 	return out
 }()
-
-// multiWordCreatureTypes maps CR 205.3m's two-word creature type to the
-// words the sorted creatureTypeWordList offers in its place. The list keeps
-// those words (a choice's option order, which the kernel and every recorded
-// game index, is unchanged), so a list built from an object's types expands
-// the joined subtype through CreatureTypeListWords.
-var multiWordCreatureTypes = map[string][]string{"Time Lord": {"Time", "Lord"}}
-
-// CreatureTypeListWords is the creatureTypeWordList entries type t stands
-// for: its words for a multi-word creature type (Time Lord), else t itself.
-func CreatureTypeListWords(t string) []string {
-	if words, ok := multiWordCreatureTypes[t]; ok {
-		return words
-	}
-	return []string{t}
-}
 
 // creatureTypeWordList is the creature-subtype vocabulary as one sorted
 // slice, built once at package init (map range -> sort, so the order is
@@ -88,9 +70,7 @@ func CreatureTypeListWords(t string) []string {
 var creatureTypeWordList = func() []string {
 	out := make([]string, 0, len(creatureSubtypeWords))
 	for w := range creatureSubtypeWords {
-		if _, joined := multiWordCreatureTypes[w]; !joined {
-			out = append(out, w)
-		}
+		out = append(out, w)
 	}
 	sort.Strings(out)
 	return out
