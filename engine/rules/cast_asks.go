@@ -562,6 +562,28 @@ func (e *Engine) tapPermanentCostAsk() bool {
 			e.abortCast(pc, "tap cost no longer payable; cast aborted", true)
 			return true
 		}
+		// A sharesCreatureTypeWith tap part (Weight of Conscience) asks for a
+		// pair whose tokens share a creature type with each other. The
+		// election carries decision.SetPropShared over each candidate's type
+		// tokens, the ONE legal-answer home Decision.Validate and botpolicy's
+		// Clamp read; there is no bespoke share check at this site. A board
+		// that can no longer fill the pair aborts (CR 733.1) rather than
+		// posing an election no answer can satisfy.
+		var propSets [][]string
+		if part.SameCreatureType {
+			if part.Dyn != "" || part.N != 2 {
+				e.abortCast(pc, "tap cost no longer payable; cast aborted", true)
+				return true
+			}
+			propSets = make([][]string, len(candidates))
+			for i, id := range candidates {
+				propSets[i] = e.setPropTokens("creaturetype", id)
+			}
+			if pay.SameCreatureTypeCapacity(propSets) < int(part.N) {
+				e.abortCast(pc, "tap cost no longer payable; cast aborted", true)
+				return true
+			}
+		}
 		if len(candidates) == int(part.N) {
 			pc.Taps = append(pc.Taps, candidates...)
 			pc.TapPart++
@@ -569,10 +591,16 @@ func (e *Engine) tapPermanentCostAsk() bool {
 		}
 		d := &decision.Decision{Player: pc.player, Kind: decision.KChoose, Min: int(part.N), Max: int(part.N),
 			Prompt: "Choose permanents to tap", Source: pc.card, MinSum: int(part.MinPower)}
-		for _, id := range candidates {
+		if part.SameCreatureType {
+			d.SetPropMode = decision.SetPropShared
+		}
+		for i, id := range candidates {
 			opt := decision.Option{Index: len(d.Options), Kind: "tapcost", Obj: id, Label: e.targetName(id)}
 			if part.MinPower > 0 {
 				opt.Value = int(e.tapPowerValue(id, tapKind))
+			}
+			if part.SameCreatureType {
+				opt.SetProps = propSets[i]
 			}
 			d.Options = append(d.Options, opt)
 		}
