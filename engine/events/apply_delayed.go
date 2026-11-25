@@ -282,6 +282,12 @@ func foldDelayedRegister(g *state.Game, e *Event) {
 		}
 		return ""
 	}
+	// |FP is the bare tail of a ForgetOnPhasedIn$ comeback registration (no
+	// |IH or |SB rides with it), so it strips right after them.
+	forgetPhasedIn := strings.HasSuffix(text, "|FP")
+	if forgetPhasedIn {
+		text = strings.TrimSuffix(text, "|FP")
+	}
 	cast := strip("|FC=")
 	counter := strip("|FK=")
 	exile := strip("|XM=")
@@ -370,6 +376,7 @@ func foldDelayedRegister(g *state.Game, e *Event) {
 		ForgetCounter:       counter,
 		ForgetOnCast:        cast,
 		ImprintOnHost:       imprint,
+		ForgetOnPhasedIn:    forgetPhasedIn,
 		SourceBattlefield:   sourceBattlefield,
 		RememberedAmount:    rememberedAmount,
 		CaptureOnly:         captureOnly,
