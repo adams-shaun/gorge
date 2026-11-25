@@ -4,6 +4,8 @@
 # (Origin$ Exile | Destination$ Graveyard, read against the link at target
 # time). Ornithopter and Memnite give the exile zero-mana targets; Savannah
 # Lions and Walking Corpse give one- and two-mana ones; basics cast.
+# Crumbling Vestige's enters trigger floats a mana of any colour, so an {X}
+# activation is offered and the X announcement is reached.
 # (dirac/oracle/exw_targetgrave_test.go).
 Bronzebeak Foragers
 Gelatinous Cube
@@ -13,3 +15,4 @@ Savannah Lions
 Walking Corpse
 Plains
 Swamp
+Crumbling Vestige
