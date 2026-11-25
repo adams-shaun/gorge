@@ -383,7 +383,8 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 		// DBExileSelf body (Host.EndEffectSource), never a turn boundary.
 		// The Untaps sibling (The Pandorica's "when it becomes untapped, that
 		// permanent phases in") is the same promise on the host's untap.
-		permanentComeback := forgetOnPhasedIn && (tr.Mode == "ChangesZone" || tr.Mode == "Untaps") &&
+		permanentComeback := forgetOnPhasedIn &&
+			(tr.ModeKind() == cards.TriggerChangesZone || tr.ModeKind() == cards.TriggerUntaps) &&
 			effectDurationPermanent(rawDur)
 		sourceLeave := effectSourceLeaveOneShot(tl, rawDur, forgetOn, permanentComeback)
 		oneOff := tl.OneOff &&
