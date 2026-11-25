@@ -63,7 +63,7 @@ func (g *grantSrch) tapsDeferBranch(t *State, i int, sl Slot) bool {
 			t.deferGapColourOrder(g.k, g.d.play, uint8(ab.ManaColors&kop.ColAny), &order)
 		} else if rA, ok := t.riderAbilityOf(g.k, sl); ok && !t.riderPlainFirst(g.k, sl) && !rA.ManaEach {
 			prunes = g.subsume
-			t.deferGapColourOrder(g.k, g.d.play, uint8(rA.ManaColors), &order)
+			t.deferGapRiderOrder(g.k, g.d.play, rA, &order)
 		}
 	}
 	for c := uint8(0); c < n; c++ {
@@ -88,6 +88,14 @@ func (s *State) deferGapColourOrder(k *prep, a Action, mask uint8, out *[kop.Num
 			n++
 		}
 	}
+	needFirst(out[:n], s.playNeed(k, a))
+	return n
+}
+
+// deferGapRiderOrder is deferGapColourOrder for a rider ability: its colour
+// ask lists a printed Combo's colours in printed order (riderAnswerOrder).
+func (s *State) deferGapRiderOrder(k *prep, a Action, ab *kop.Ability, out *[kop.NumManaKinds]uint8) (n int) {
+	n = riderAnswerOrder(ab, out)
 	needFirst(out[:n], s.playNeed(k, a))
 	return n
 }
