@@ -276,7 +276,7 @@ var manaKnownKeys = [...]string{
 	"Type", "Ultimate", "UnlessAI", "UnlessCost", "UnlessPayer", "UnlessResolveSubs",
 	"UnlessSwitched", "ValidAfterStack", "ValidCard", "ValidCards", "ValidCardsDesc", "ValidChoices",
 	"ValidCounterType", "ValidDescription", "ValidTgts", "ValidTgtsDesc", "VoteMessage", "WithoutManaCost",
-	"XColor", "XMax", "XMin",
+	"XAnnounceTitle", "XColor", "XMax", "XMin",
 }
 
 // ManaKnownKeys is a copy of manaKnownKeys, for the census check.

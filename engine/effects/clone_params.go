@@ -197,7 +197,7 @@ var cloneKnownKeys = [...]string{
 	"Triggers", "Type", "Ultimate", "UnlessAI", "UnlessCost", "UnlessPayer", "UnlessResolveSubs",
 	"UnlessSwitched", "ValidAfterStack", "ValidCard", "ValidCards", "ValidCardsDesc", "ValidChoices",
 	"ValidCounterType", "ValidDescription", "ValidTgts", "ValidTgtsDesc", "VoteMessage", "WithoutManaCost",
-	"XColor", "XMax", "XMin",
+	"XAnnounceTitle", "XColor", "XMax", "XMin",
 }
 
 // isCloneSA reports whether sa resolves as api:Clone.

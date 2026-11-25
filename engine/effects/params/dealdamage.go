@@ -122,7 +122,7 @@ var dealDamageKnownKeys = [...]string{
 	"UnlessCost", "UnlessPayer", "UnlessResolveSubs", "UnlessSwitched", "ValidAfterStack", "ValidCard",
 	"ValidCards", "ValidCardsDesc", "ValidChoices", "ValidCounterType",
 	"ValidDescription", "ValidTgts", "ValidTgtsDesc", "VoteMessage",
-	"WithoutManaCost", "XColor", "XMax", "XMin",
+	"WithoutManaCost", "XAnnounceTitle", "XColor", "XMax", "XMin",
 }
 
 // isDealDamageSA reports whether sa resolves as api:DealDamage.

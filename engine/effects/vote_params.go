@@ -226,7 +226,7 @@ var voteKnownKeys = [...]string{
 	"VoteSubAbility",
 	"VoteTiedAbility",
 	"WithoutManaCost",
-	"XColor", "XMax",
+	"XAnnounceTitle", "XColor", "XMax",
 	"XMin",
 	"Zone",
 }

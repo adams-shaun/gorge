@@ -251,7 +251,7 @@ var tokenKnownKeys = [...]string{
 	"WithCountersAmount",
 	"WithCountersType",
 	"WithoutManaCost",
-	"XColor", "XMax",
+	"XAnnounceTitle", "XColor", "XMax",
 	"XMin",
 }
 

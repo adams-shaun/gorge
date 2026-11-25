@@ -139,7 +139,7 @@ var effectKnownKeyRows = [...]string{
 	"TriggerController", "TriggerDescription", "Triggers", "Type", "Ultimate",
 	"UnlessAI", "UnlessCost", "UnlessPayer", "UnlessResolveSubs", "UnlessSwitched",
 	"ValidAfterStack", "ValidCard", "ValidCards", "ValidCardsDesc", "ValidChoices", "ValidCounterType",
-	"ValidDescription", "ValidPlayer", "ValidSource", "ValidTgts", "ValidTgtsDesc", "VoteMessage", "WithoutManaCost", "XColor", "XMax", "XMin",
+	"ValidDescription", "ValidPlayer", "ValidSource", "ValidTgts", "ValidTgtsDesc", "VoteMessage", "WithoutManaCost", "XAnnounceTitle", "XColor", "XMax", "XMin",
 }
 
 // effectKnownKeys is effectKnownKeyRows as the sorted, duplicate-free set
