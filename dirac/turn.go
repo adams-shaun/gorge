@@ -1107,7 +1107,7 @@ func (s *State) regenerateBody(sl Slot) {
 // registering player; it performs its action on resolution if the affected
 // object is still the same permanent.
 func (s *State) fireDelayed(k *prep) {
-	if k.gen != nil && k.gen.anyLeaveExile {
+	if k.gen != nil && k.gen.anyUnearth {
 		s.leaveExilePrune() // zone_leaveexile.go: a promise whose object moved on is dead
 	}
 	n := s.ndly
@@ -1115,7 +1115,7 @@ func (s *State) fireDelayed(k *prep) {
 	var keep uint8
 	var fol [MaxDelayed]delayed
 	var nf uint8
-	if k.gen != nil && (k.gen.anyEarthbend || k.gen.anyLeaveRet || k.gen.anyLeaveExile) {
+	if k.gen != nil && (k.gen.anyEarthbend || k.gen.anyLeaveRet || k.gen.anyUnearth) {
 		n, keep = s.splitLeaveDelayed(n) // leave-keyed records survive the end step
 	}
 	for i := 0; i < int(n); i++ {

@@ -38,13 +38,16 @@ var DebugLeaveExileHook *struct {
 	Hit func(o Obj)
 }
 
-// prepLeaveExile turns the leave hook on for a table with an ExtLeaveExile.
+// prepLeaveExile turns the leave hook on for a table with an ExtLeaveExile:
+// the unearth promise's own gate (anyUnearth), so the hook adds no prep
+// field. On a table with unearth alone the extra reads are no-ops: no record
+// is dlyLeaveExile, and splitLeaveDelayed keeps the end-step records' order.
 func prepLeaveExile(t *kop.Table, g *genPrep) {
 	for i := range t.Cards {
 		for j := range t.Cards[i].Abilities {
 			for _, in := range t.Cards[i].Abilities[j].Prog {
 				if in.Op == kop.OpExt && in.Ext() == kop.ExtLeaveExile {
-					g.anyLeaveExile = true
+					g.anyUnearth = true
 					return
 				}
 			}

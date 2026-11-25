@@ -690,7 +690,7 @@ func (s *State) fireLeave(k *prep, sl Slot, z kop.Zone) {
 	if k.gen != nil && k.gen.anyUnearth && z != kop.ZoneExile {
 		z = s.unearthZone(sl, z) // cast_altfree.go
 	}
-	if k.gen != nil && k.gen.anyLeaveExile && z != kop.ZoneExile {
+	if k.gen != nil && k.gen.anyUnearth && z != kop.ZoneExile {
 		z = s.leaveExileZone(sl, z) // zone_leaveexile.go
 	}
 	p := &s.perms[sl]
@@ -760,7 +760,7 @@ func (s *State) removePerm(k *prep, sl Slot, z kop.Zone, bottom bool) {
 	if k.gen != nil && k.gen.anyUnearth && z != kop.ZoneExile {
 		z = s.unearthZone(sl, z) // cast_altfree.go
 	}
-	if k.gen != nil && k.gen.anyLeaveExile && z != kop.ZoneExile {
+	if k.gen != nil && k.gen.anyUnearth && z != kop.ZoneExile {
 		z = s.leaveExileZone(sl, z) // zone_leaveexile.go
 	}
 	s.fireToGraveDies(k, sl, z) // the split's Dies half, before the move mutates the card (trig_tograve.go)

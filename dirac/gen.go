@@ -363,7 +363,6 @@ type genPrep struct {
 	anyEmpower      bool           // some program is OpEmpower (act_empower.go): guards the op dispatch on FDN/BLB
 	anyTapPower     bool           // some ability costs CostTapPower (Crew, Saddle; kw_crewsaddle.go)
 	anyEarthbend    bool           // some program earthbends (OpEarthbend; act_earthbend.go)
-	anyLeaveExile   bool           // some program has ExtLeaveExile: leaves check the exile-instead promise (zone_leaveexile.go)
 	anyLeaveRet     bool           // some program registers a this-turn "when it's put into a graveyard, return it" record (Melira; trig_leavereturn.go)
 	anyOnePoison    bool           // some card has ReplOnePoison (Melira; trig_leavereturn.go)
 	anyCopyElect    bool           // some copy may choose new targets (copyElect holds its resolution)
