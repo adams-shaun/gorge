@@ -64,7 +64,7 @@ env:
   GOFLAGS: -p=4 -trimpath
 
 # Runner priority (operator 11-16: "the mergify queue checks run w/ higher prio"): GitHub Actions has no job
-# priority, so a pull request's own checks (fast, lint) run only on the runners labelled gorge-pr (4 on metal+metal2, 4 on sub). The others
+# priority, so a pull request's own checks (fast, lint) run only on the runners labelled gorge-pr (on metal and metal2). The others
 # box runners always stay free for Mergify's queue batches (mergify/merge-queue/*), main, nightly and on demand.
 jobs:
   # A push to main only: did a queue batch or pull request's ci-ok already pass this exact tree?
@@ -101,7 +101,7 @@ jobs:
     # packages at once, and test (0) spent ~6 min compiling for 97 s of kgen tests.
     strategy:
       matrix:
-        box: [metal2, metal, sub]  # sub: the on-demand 128-vCPU box (16 runners, 11-24); drop it when the box goes
+        box: [metal2, metal]  # 11-25: the on-demand sub box (16 runners) terminated; add sub back only while it runs
     runs-on: ${{ vars.CI_SELF_HOSTED == 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && fromJSON(format('["gorge-box","box-{0}"]', matrix.box)) || 'ubuntu-24.04' }}
     steps:
       - name: Heal the runner's workspace (self-hosted)
