@@ -39,8 +39,10 @@ import (
 // bound to that option's own tally (gorge resolveVoteOutcomes); the option
 // branches lower with the tally value kind and the kernel runs them all in
 // Choices$ order. A read of VoteNum outside an option branch refuses by name.
-// Player ballots (VotePlayer$), RememberVotedObjects$, secret and up-to votes,
-// and Zone$ refuse.
+// Zone$ Graveyard (Custodi Squire) makes the card ballot graveyard cards
+// (C bit 2) whose VoteSubAbility$ returns the most-voted to hand. Player
+// ballots (VotePlayer$), RememberVotedObjects$, secret and up-to votes, and
+// any other Zone$ refuse.
 func (lc *lowerCtx) vote(sa *cards.SA, ps *params) error {
 	if ps.str("VoteCard") != "" {
 		return lc.cardVote(ps)
@@ -58,9 +60,18 @@ func (lc *lowerCtx) cardVote(ps *params) error {
 		case strings.HasPrefix(k, "Condition"):
 		case k == "Defined", k == "VoteCard", k == "VoteSubAbility", k == "VoteMessage", k == "AILogic",
 			k == "StackDescription", k == "SpellDescription", k == "SubAbility":
+		case k == "Zone":
 		default:
 			return refuse("Vote param %q", k)
 		}
+	}
+	grave := false
+	switch z := ps.str("Zone"); z {
+	case "", "Battlefield":
+	case "Graveyard":
+		grave = true
+	default:
+		return refuse("Vote Zone$ %q", z)
 	}
 	if d := ps.str("Defined"); d != "Player" {
 		return refuse("Vote Defined$ %q", d)
@@ -81,6 +92,18 @@ func (lc *lowerCtx) cardVote(ps *params) error {
 	if sub == nil {
 		return refuse("Vote VoteSubAbility$ %q", name)
 	}
+	if grave {
+		// Custodi Squire: the ballot is graveyard cards (C bit 2) and the
+		// one VoteSubAbility$ that lowers returns the remembered set from
+		// the graveyard to hand, folded into the op.
+		if !voteMovesRemembered(sub, "Graveyard", "Hand") {
+			return refuse("Vote VoteSubAbility$ %q: not the return of the most-voted to hand", name)
+		}
+		ps.consume("VoteMessage", "AILogic", "Zone")
+		lc.emit(lInstr{Op: "Vote", F: f, C: 1 << 2, Note: "each player votes for a graveyard card; the most-voted return to hand"})
+		return nil
+	}
+	ps.consume("Zone")
 	if !voteExilesRemembered(sub) {
 		return refuse("Vote VoteSubAbility$ %q: not the exile of the most-voted", name)
 	}
@@ -213,10 +236,16 @@ func (lc *lowerCtx) voteBranch(branch int, sa *cards.SA, store bool) error {
 // voteExilesRemembered reports whether sub is exactly the move of the
 // remembered set from the battlefield to exile, with nothing chained.
 func voteExilesRemembered(sub *cards.SA) bool {
+	return voteMovesRemembered(sub, "Battlefield", "Exile")
+}
+
+// voteMovesRemembered reports whether sub is exactly the move of the
+// remembered set from origin to dest, with nothing chained.
+func voteMovesRemembered(sub *cards.SA, origin, dest string) bool {
 	if sub.API != "ChangeZone" || sub.Sub != nil {
 		return false
 	}
-	want := map[string]string{"Defined": "Remembered", "Origin": "Battlefield", "Destination": "Exile"}
+	want := map[string]string{"Defined": "Remembered", "Origin": origin, "Destination": dest}
 	for k, v := range sub.Params {
 		if k == "StackDescription" || k == "SpellDescription" {
 			continue

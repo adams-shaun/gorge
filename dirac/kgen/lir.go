@@ -256,6 +256,7 @@ const (
 	vSVarNum             // the evaluating source's StoreSVar number for the name S, else the printed body Sub[0] (kop.ExSVarNum; lower_storenum.go)
 	vMostProminentType   // the size of the largest group of battlefield objects matching F that share a creature type (Count$MostProminentCreatureType; kop.ExMostProminentCreatureType; value_mostprominent.go)
 	vReplLKIPow          // the replaced creature's derived power before a dies-to-exile rider moved it (ReplacedCardLKI$CardPower; value_repllki.go)
+	vPaidN               // the spell's Squad/Replicate payment count or Conspire's 1 (Count$SquadPaid / ReplicatePaid / Conspired; kop.ExKicked N 2; lower_squadreplicate.go)
 	vCount_
 )
 
@@ -381,6 +382,7 @@ var valNames = [...]string{
 	vCmdCastTotal:        "CmdCastTotal",
 	vSpellsLastTurn:      "SpellsLastTurn",
 	vReplLKIPow:          "ReplLKIPow",
+	vPaidN:               "PaidN",
 	vMostProminentType:   "MostProminentType",
 }
 
@@ -1379,6 +1381,7 @@ type lCard struct {
 	MorphFamily    uint8       // kop.Morph*: which face-down keyword the cost belongs to
 	MorphReduce    lValue      // the turn-up cost's printed generic reduction (lower_morphreduce.go)
 	MorphLife      uint8       // the turn-up cost's PayLife<N> (lower_morphlife.go)
+	MorphReveal    *lFilter    // the turn-up cost's Reveal<1/Spec> hand candidates (lower_revealpick.go)
 	Flashback      *manaCost
 	RemPersist     bool          // the enters/leaves remembered pair, or a Saga's chapter pair (lower_rempersist.go)
 	RemSeed        uint32        // RemPersist: the abilities that start with the kept set (CardDef.RemSeed)
@@ -1458,6 +1461,7 @@ type lCard struct {
 	Entwine        *manaCost       // K:Entwine:<cost> (CR 702.42a): the kernel's kicked cast and Kicker cost, CardDef.Entwine; a Sac<N/..> cost is zero mana plus KickerCost (lower_entwine.go)
 	Casualty       int             // printed K:Casualty:<N> (CR 702.153a, fixed N >= 1), CardDef.Casualty
 	Bargain        bool            // printed K:Bargain (CR 702.166), CardDef.Bargain
+	Conspire       bool            // printed K:Conspire (CR 702.78a), CardDef.Conspire (lower_squadreplicate.go)
 	Storm          bool            // printed K:Storm (CR 702.40a), CardDef.Storm: the kernel's own native cast trigger (dirac/kw_storm.go)
 	HandMana       uint8           // a Spirit Guide's hand-zone mana ability (exile this card from your hand: add one fixed colour), CardDef.HandMana (lower_handmana.go)
 	GraveMana      uint8           // a graveyard mana source's colours (1 + exile this card from your graveyard: add one mana of any colour), CardDef.GraveMana (lower_gravemana.go)
