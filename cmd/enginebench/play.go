@@ -282,8 +282,8 @@ func playRandomGame(cfg rules.Config, st *randomStats, pool *bench.SparePool, au
 	if walkStatsFlag {
 		wm.reset()
 	}
-	var fb [2]*heuristic.Bot
-	board := botpolicy.NewBoard(2)
+	fb := make([]*heuristic.Bot, len(cfg.Decks))
+	board := botpolicy.NewBoard(len(cfg.Decks))
 	stall := ""
 	func() {
 		defer func() {
@@ -394,7 +394,7 @@ func playRandomGame(cfg rules.Config, st *randomStats, pool *bench.SparePool, au
 }
 
 func runRandom(r *result, w workload, pair string, base uint64, secs float64, autopay bool) error {
-	decks, names, err := w.decks(pair)
+	config, err := w.games(pair, base)
 	if err != nil {
 		return err
 	}
@@ -403,12 +403,12 @@ func runRandom(r *result, w workload, pair string, base uint64, secs float64, au
 	}
 	var warm randomStats
 	for g := 0; g < warmGames; g++ {
-		playRandomGame(w.config(decks, names, base, g), &warm, &sparePool, autopay)
+		playRandomGame(config(g), &warm, &sparePool, autopay)
 	}
 	var st randomStats
 	t0, c0 := time.Now(), cpuNow()
 	for g := 0; cpuNow()-c0 < secs; g++ {
-		playRandomGame(w.config(decks, names, base, g), &st, &sparePool, autopay)
+		playRandomGame(config(g), &st, &sparePool, autopay)
 	}
 	el, cpu := time.Since(t0).Seconds(), cpuNow()-c0
 	fill(r, el, cpu, st.Games, st.Turns, st.Decisions, st.Stalls)
@@ -418,7 +418,7 @@ func runRandom(r *result, w workload, pair string, base uint64, secs float64, au
 
 type botStats struct {
 	Games, Turns, Intents, Stalls int
-	Wins                          [2]int
+	Wins                          []int // by seat
 	StallKinds                    map[string]int
 }
 
@@ -427,7 +427,7 @@ func playBot(cfg rules.Config, autopay bool, st *botStats) error {
 }
 
 func playBotWithPool(cfg rules.Config, autopay bool, st *botStats, pool *bench.SparePool) error {
-	seats := make([]seat.Seat, 2)
+	seats := make([]seat.Seat, len(cfg.Decks))
 	for i := range seats {
 		b := heuristic.NewBot(cfg.Seed ^ uint64(i+1))
 		if autopay {
@@ -473,13 +473,16 @@ func playBotWithPool(cfg rules.Config, autopay bool, st *botStats, pool *bench.S
 		}
 		st.StallKinds[o.StallOn]++
 	} else if !o.Draw {
+		for len(st.Wins) < len(seats) {
+			st.Wins = append(st.Wins, 0)
+		}
 		st.Wins[o.WinnerSeat]++
 	}
 	return nil
 }
 
 func runBot(r *result, w workload, pair string, base uint64, secs float64, autopay bool) error {
-	decks, names, err := w.decks(pair)
+	config, err := w.games(pair, base)
 	if err != nil {
 		return err
 	}
@@ -488,14 +491,14 @@ func runBot(r *result, w workload, pair string, base uint64, secs float64, autop
 	}
 	var warm botStats
 	for g := 0; g < warmGames; g++ {
-		if err := playBot(w.config(decks, names, base, g), autopay, &warm); err != nil {
+		if err := playBot(config(g), autopay, &warm); err != nil {
 			return err
 		}
 	}
 	var st botStats
 	t0, c0 := time.Now(), cpuNow()
 	for g := 0; cpuNow()-c0 < secs; g++ {
-		if err := playBot(w.config(decks, names, base, g), autopay, &st); err != nil {
+		if err := playBot(config(g), autopay, &st); err != nil {
 			return fmt.Errorf("game %d: %w", g, err)
 		}
 	}

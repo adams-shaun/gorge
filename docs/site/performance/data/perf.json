@@ -1,32 +1,48 @@
 {
-  "_about": "Measured results the performance pages report, transcribed from the pages as of land 8302470328; scripts/docs_perf_figs.py draws every figure from this file. Ranges are [min, max] over the runs of a row.",
+  "_about": "Measured results the performance pages report, transcribed from the pages as of land 8302470328 (engines, kernel_workloads and commander_pods re-measured 2026-11-25); scripts/docs_perf_figs.py draws every figure from this file. Ranges are [min, max] over the runs of a row.",
   "engines": {
-    "_source": "index.md, The numbers: FDN pairs A and B pooled, median of six runs. gorge and dirac 2026-11-05, XMage and Forge 2026-10-20.",
+    "_source": "index.md, The numbers: FDN pairs A and B pooled, median of six runs, every engine 2026-11-25 at gorge b6db453064 on metal2 (scripts/xengine-bench.sh, cores 26 28 30).",
     "rows": [
-      {"engine": "dirac", "policy": "random", "kind": "random", "games": [1759, 1645, 1870], "ms_game": 0.569, "us_turn": [23.5, 23.2, 23.6], "us_decision": 4.61, "turns": 24, "rss": 105, "date": "2026-11-05"},
-      {"engine": "gorge", "policy": "random (auto-pay)", "kind": "random", "games": [64.0, 58.7, 70.7], "ms_game": 15.6, "us_turn": [629, 618, 669], "us_decision": 26.4, "turns": 24, "rss": 375, "date": "2026-11-05"},
-      {"engine": "gorge", "policy": "random (manual)", "kind": "random", "games": [78.8, 76.2, 80.6], "ms_game": 12.6, "us_turn": [311, 296, 330], "us_decision": 11.4, "turns": 41, "rss": 356, "date": "2026-11-05"},
-      {"engine": "XMage", "policy": "random", "kind": "random", "games": [2.38, 2.16, 2.58], "ms_game": 420, "us_turn": [13193, 12774, 13751], "us_decision": 499, "turns": 32, "rss": 1228, "date": "2026-10-20"},
-      {"engine": "dirac", "policy": "heuristic bot", "kind": "ai", "games": [1971, 1763, 2175], "ms_game": 0.507, "us_turn": [28.9, 26.2, 31.6], "us_decision": 5.60, "turns": 18, "rss": 103, "date": "2026-11-05"},
-      {"engine": "gorge", "policy": "bot (auto-pay)", "kind": "ai", "games": [78.6, 74.0, 83.6], "ms_game": 12.7, "us_turn": [709, 669, 756], "us_decision": 28.7, "turns": 18, "rss": 353, "date": "2026-11-05"},
-      {"engine": "gorge", "policy": "bot (manual)", "kind": "ai", "games": [102, 97.8, 109], "ms_game": 9.86, "us_turn": [548, 509, 572], "us_decision": 19.6, "turns": 18, "rss": 396, "date": "2026-11-05"},
-      {"engine": "XMage", "policy": "simple AI", "kind": "ai", "games": [19.3, 18.6, 19.7], "ms_game": 51.9, "us_turn": [761, 743, 791], "us_decision": 48.3, "turns": 68, "rss": 1219, "date": "2026-10-20"},
-      {"engine": "XMage", "policy": "mad AI", "kind": "ai", "games": [0.947, 0.552, 1.25], "ms_game": 1121, "us_turn": [62343, 49069, 101733], "us_decision": 2902, "turns": 17, "rss": 1288, "date": "2026-10-20"},
-      {"engine": "Forge", "policy": "Forge AI", "kind": "ai", "games": [1.02, 0.723, 1.22], "ms_game": 983, "us_turn": [54513, 45904, 71387], "us_decision": null, "turns": 18, "rss": 882, "date": "2026-10-20"}
+      {"engine": "dirac", "policy": "random", "kind": "random", "games": [1120, 953, 1300], "ms_game": 0.908, "us_turn": [37.1, 33.9, 40.5], "us_decision": 7.32, "turns": 24, "rss": 137, "date": "2026-11-25"},
+      {"engine": "gorge", "policy": "random (auto-pay)", "kind": "random", "games": [59.1, 55.3, 64.1], "ms_game": 17.0, "us_turn": [689, 685, 700], "us_decision": 29.1, "turns": 25, "rss": 124, "date": "2026-11-25"},
+      {"engine": "gorge", "policy": "random (manual)", "kind": "random", "games": [68.9, 67.2, 72.8], "ms_game": 14.5, "us_turn": [352, 346, 357], "us_decision": 12.9, "turns": 41, "rss": 124, "date": "2026-11-25"},
+      {"engine": "XMage", "policy": "random", "kind": "random", "games": [1.82, 1.69, 2.02], "ms_game": 550, "us_turn": [17300, 15200, 18900], "us_decision": 651, "turns": 32, "rss": 947, "date": "2026-11-25"},
+      {"engine": "dirac", "policy": "heuristic bot", "kind": "ai", "games": [1250, 1210, 1290], "ms_game": 0.801, "us_turn": [45.1, 43.5, 47.0], "us_decision": 8.77, "turns": 18, "rss": 138, "date": "2026-11-25"},
+      {"engine": "gorge", "policy": "bot (auto-pay)", "kind": "ai", "games": [70.3, 67.3, 72.4], "ms_game": 14.2, "us_turn": [796, 781, 821], "us_decision": 32.2, "turns": 18, "rss": 123, "date": "2026-11-25"},
+      {"engine": "gorge", "policy": "bot (manual)", "kind": "ai", "games": [85.6, 83.4, 89.5], "ms_game": 11.7, "us_turn": [648, 623, 671], "us_decision": 23.3, "turns": 18, "rss": 123, "date": "2026-11-25"},
+      {"engine": "XMage", "policy": "simple AI", "kind": "ai", "games": [16.0, 13.6, 18.4], "ms_game": 63.6, "us_turn": [934, 796, 1080], "us_decision": 59.2, "turns": 68, "rss": 933, "date": "2026-11-25"},
+      {"engine": "XMage", "policy": "mad AI", "kind": "ai", "games": [0.82, 0.552, 0.975], "ms_game": 1220, "us_turn": [73000, 63600, 99600], "us_decision": 3400, "turns": 17, "rss": 1100, "date": "2026-11-25"},
+      {"engine": "Forge", "policy": "Forge AI", "kind": "ai", "games": [1.29, 1.1, 1.47], "ms_game": 773, "us_turn": [42500, 37700, 49200], "us_decision": null, "turns": 18, "rss": 606, "date": "2026-11-25"}
     ]
   },
   "kernel_workloads": {
-    "_source": "index.md, A second workload: random rows only.",
+    "_source": "index.md, A second workload: random rows only; median of three runs. 2026-11-25 rows at gorge b6db453064 on metal2; mtg-kernel 2026-10-20.",
     "rows": [
-      {"workload": "Pair A", "engine": "dirac", "policy": "random", "games": 1867, "us_turn": 23.5, "turns": 23, "rss": 106, "date": "2026-11-05"},
-      {"workload": "Pair A", "engine": "gorge", "policy": "random (auto-pay)", "games": 70.8, "us_turn": 613, "turns": 23, "rss": 397, "date": "2026-11-05"},
-      {"workload": "Pair A", "engine": "gorge", "policy": "random (manual)", "games": 83.3, "us_turn": 285, "turns": 42, "rss": 356, "date": "2026-11-05"},
+      {"workload": "Pair A", "engine": "dirac", "policy": "random", "games": 1290, "us_turn": 34.0, "turns": 23, "rss": 141, "date": "2026-11-25"},
+      {"workload": "Pair A", "engine": "gorge", "policy": "random (auto-pay)", "games": 62.7, "us_turn": 694, "turns": 23, "rss": 124, "date": "2026-11-25"},
+      {"workload": "Pair A", "engine": "gorge", "policy": "random (manual)", "games": 67.7, "us_turn": 353, "turns": 42, "rss": 124, "date": "2026-11-25"},
       {"workload": "Pair A", "engine": "mtg-kernel", "policy": "random", "games": 18.6, "us_turn": 3075, "turns": 17, "rss": 15.7, "date": "2026-10-20"},
-      {"workload": "Pair A", "engine": "XMage", "policy": "random", "games": 2.50, "us_turn": 13063, "turns": 31, "rss": 1228, "date": "2026-10-20"},
-      {"workload": "Burn", "engine": "gorge", "policy": "random (auto-pay)", "games": 140, "us_turn": 287, "turns": 25, "rss": 353, "date": "2026-10-31"},
-      {"workload": "Burn", "engine": "gorge", "policy": "random (manual)", "games": 166, "us_turn": 173, "turns": 35, "rss": 349, "date": "2026-10-31"},
+      {"workload": "Pair A", "engine": "XMage", "policy": "random", "games": 1.73, "us_turn": 18700, "turns": 30, "rss": 945, "date": "2026-11-25"},
+      {"workload": "Burn", "engine": "gorge", "policy": "random (auto-pay)", "games": 109, "us_turn": 369, "turns": 25, "rss": 117, "date": "2026-11-25"},
+      {"workload": "Burn", "engine": "gorge", "policy": "random (manual)", "games": 132, "us_turn": 218, "turns": 35, "rss": 116, "date": "2026-11-25"},
       {"workload": "Burn", "engine": "mtg-kernel", "policy": "random", "games": 174, "us_turn": 367, "turns": 16, "rss": 10.9, "date": "2026-10-20"},
-      {"workload": "Burn", "engine": "XMage", "policy": "random", "games": 3.14, "us_turn": 11188, "turns": 29, "rss": 1262, "date": "2026-10-20"}
+      {"workload": "Burn", "engine": "XMage", "policy": "random", "games": 2.88, "us_turn": 11800, "turns": 29, "rss": 952, "date": "2026-11-25"}
+    ]
+  },
+  "commander_pods": {
+    "_source": "index.md, Four-player Commander pods: scripts/xengine-bench.sh PAIRS='fdc fdc-sub', median of three runs, 2026-11-25 at gorge b6db453064 on metal2; fdc-sub replaces the 26 FDC cards dirac does not play with basics (dirac/cmd/dpod).",
+    "rows": [
+      {"workload": "fdc", "engine": "gorge", "policy": "random (auto-pay)", "games": 2.79, "us_turn": 5110, "us_decision": 100, "turns": 70, "rss": 198, "date": "2026-11-25"},
+      {"workload": "fdc", "engine": "gorge", "policy": "random (manual)", "games": 3.54, "us_turn": 2150, "us_decision": 43.0, "turns": 131, "rss": 179, "date": "2026-11-25"},
+      {"workload": "fdc", "engine": "gorge", "policy": "bot (auto-pay)", "games": 8.79, "us_turn": 3140, "us_decision": 70.6, "turns": 36, "rss": 204, "date": "2026-11-25"},
+      {"workload": "fdc", "engine": "gorge", "policy": "bot (manual)", "games": 8.99, "us_turn": 3010, "us_decision": 61.0, "turns": 37, "rss": 204, "date": "2026-11-25"},
+      {"workload": "fdc", "engine": "Forge", "policy": "Forge AI", "games": 0.0714, "us_turn": 360000, "us_decision": null, "turns": 39, "rss": 722, "date": "2026-11-25"},
+      {"workload": "fdc-sub", "engine": "dirac", "policy": "random", "games": 47.2, "us_turn": 387, "us_decision": 54.9, "turns": 55, "rss": 184, "date": "2026-11-25"},
+      {"workload": "fdc-sub", "engine": "gorge", "policy": "random (auto-pay)", "games": 3.83, "us_turn": 3720, "us_decision": 72.8, "turns": 71, "rss": 200, "date": "2026-11-25"},
+      {"workload": "fdc-sub", "engine": "gorge", "policy": "random (manual)", "games": 4.48, "us_turn": 1800, "us_decision": 36.0, "turns": 121, "rss": 184, "date": "2026-11-25"},
+      {"workload": "fdc-sub", "engine": "gorge", "policy": "bot (auto-pay)", "games": 8.94, "us_turn": 2990, "us_decision": 66.9, "turns": 37, "rss": 204, "date": "2026-11-25"},
+      {"workload": "fdc-sub", "engine": "gorge", "policy": "bot (manual)", "games": 9.67, "us_turn": 2750, "us_decision": 55.2, "turns": 38, "rss": 172, "date": "2026-11-25"},
+      {"workload": "fdc-sub", "engine": "Forge", "policy": "Forge AI", "games": 0.0536, "us_turn": 480000, "us_decision": null, "turns": 39, "rss": 713, "date": "2026-11-25"}
     ]
   },
   "dirac_ops": {
