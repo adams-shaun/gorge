@@ -42,8 +42,9 @@ func ctrRiderMana(a *lAbility) bool {
 	case c.Mana.Colors == "WUBRG":
 		return true // one mana of any colour (Twitching Doll), asked or unasked
 	case c.Mana.Choice:
-		// a finite Combo (Land Cap): colours only, asked one at a time
-		return len(c.Mana.Colors) > 1 && strings.Trim(c.Mana.Colors, "WUBRG") == "" && colorsInWUBRGOrder(c.Mana.Colors)
+		// a finite Combo (Land Cap's W U, Veldt's G W): colours only, asked
+		// one at a time in printed order (kop.Ability.ManaColOrd)
+		return len(c.Mana.Colors) > 1 && strings.Trim(c.Mana.Colors, "WUBRG") == ""
 	case len(c.Mana.Colors) == 1:
 		// one fixed colour (Vulshok Factory's {R}); a TriggersWhenSpent$
 		// source stays the spend-trigger route's, not this rider's

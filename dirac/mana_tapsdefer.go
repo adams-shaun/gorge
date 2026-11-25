@@ -601,6 +601,47 @@ func (s *State) chosenAskOrder(k *prep, sl Slot, pc *pcard, out *[5]uint8) int {
 	return n
 }
 
+// deferAnswerOrder writes the colour answers of the Taps-deferred source at
+// sl (pc's production, mask = srcMaskAt) in the order its activation ask
+// lists them: a Combo Chosen source's printed colours then the chosen one
+// (chosenAskOrder), else a printed Combo's printed order (ManaColOrd), else
+// W U B R G C. The search's answer index is a position in this list
+// (deferGapAnswers counts it; tapDeferFloatBody decodes it).
+func (s *State) deferAnswerOrder(k *prep, sl Slot, pc *pcard, mask uint8, out *[kop.NumManaKinds]uint8) int {
+	if pc.manaChosen {
+		return s.chosenAskOrder(k, sl, pc, (*[5]uint8)(out[:5]))
+	}
+	if pc.manaAb >= 0 {
+		cd := &k.t.Cards[s.cardAt(sl)]
+		if int(pc.manaAb) < len(cd.Abilities) {
+			ab := &cd.Abilities[pc.manaAb]
+			if ab.ManaColOrd != 0 && uint8(ab.ManaColors)&0x1f == mask&0x1f {
+				var ord [5]uint8
+				n := copy(out[:], ord[:manaColourOrder(ab, &ord)])
+				var seen uint8
+				for i := 0; i < n; i++ {
+					seen |= 1 << out[i]
+				}
+				for c := uint8(0); c < kop.NumManaKinds && n < kop.NumManaKinds; c++ {
+					if mask&(1<<c) != 0 && seen&(1<<c) == 0 {
+						out[n] = c
+						n++
+					}
+				}
+				return n
+			}
+		}
+	}
+	n := 0
+	for c := uint8(0); c < kop.NumManaKinds; c++ {
+		if mask&(1<<c) != 0 {
+			out[n] = c
+			n++
+		}
+	}
+	return n
+}
+
 // restrTapsGapShape: the source at sl is a restricted planner source whose
 // only mana production is one restricted ability of one fixed colour
 // (Hydraulic Helper's artifact-spells {U}, a Powerstone token's {C}): the Taps-deferred gap the script
@@ -989,7 +1030,9 @@ func (s *State) tapDeferFloatBody(k *prep, p uint8, sl Slot, c, forced int, play
 	}
 	pc := s.blgGapPC(k, sl)     // an intrinsic-unit rider source floats its rider's mana (blgGapPC)
 	mask := s.srcMaskAt(pc, sl) // a Combo Chosen source (Cliffgate) reads its chosen colour beside the printed one
-	if pcol, ok := tapsDeferPainCol(k, pc, mask); ok && c == bits.OnesCount8(mask) {
+	var order [kop.NumManaKinds]uint8
+	no := s.deferAnswerOrder(k, sl, pc, mask, &order)
+	if pcol, ok := tapsDeferPainCol(k, pc, mask); ok && c == no {
 		// the paid-life ability's answer: its colour and its life (painDamage reads painLife)
 		if forced == 0 {
 			s.fillTapAnyCol(k, p, sl, play, pcol, 1)
@@ -1000,10 +1043,10 @@ func (s *State) tapDeferFloatBody(k *prep, p uint8, sl Slot, c, forced int, play
 		s.painDamage(k, sl, p, int(pc.painN))
 		return true
 	}
-	for i := 0; i < c; i++ {
-		mask &= mask - 1
+	if c >= no {
+		return false // unreachable: deferGapAnswers bounds c
 	}
-	col := bits.TrailingZeros8(mask)
+	col := int(order[c])
 	if forced == 0 {
 		s.fillTapAnyCol(k, p, sl, play, col, int(max(pc.manaN, 1)))
 	}

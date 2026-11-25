@@ -58,4 +58,48 @@ func TestManaRiderSelfCounterFixedKernel(t *testing.T) {
 			t.Fatalf("{U}: tapped %v, depletion counters %d: want it tapped with one depletion counter", tapped, n)
 		}
 	})
+	// Veldt prints "Combo G W", out of WUBRG order: gorge's colour ask lists
+	// G then W (kop.Ability.ManaColOrd), so the kernel's answer 0 must float
+	// {G} and answer 1 {W}, not the mask's W then G.
+	t.Run("veldt printed colour order", func(t *testing.T) {
+		deck := []cardset.Entry{{Name: "Veldt", Count: 1}, {Name: "Island", Count: 19}}
+		tbl, _, _, err := cardsettest.Set(t, "manarider").Matchup(deck, deck)
+		if err != nil {
+			t.Fatal(err)
+		}
+		id := map[string]CardID{}
+		for c := range tbl.Cards {
+			id[tbl.Cards[c].Name] = CardID(c)
+		}
+		src := id["Veldt"]
+		if _, _, ok := cardManaRider(&tbl.Cards[src]); !ok {
+			t.Fatalf("precondition: Veldt's mana ability is not the counter-rider shape")
+		}
+		ab := &tbl.Cards[src].Abilities[firstManaAb(&tbl.Cards[src])]
+		if ab.ManaColors != kop.ColG|kop.ColW || ab.ManaColOrd == 0 {
+			t.Fatalf("precondition: Veldt's colours %v (order %#o), want G W recorded", ab.ManaColors, ab.ManaColOrd)
+		}
+		sc := newScenTableLib(t, tbl, id["Island"], Config{NoElide: true})
+		o := sc.perm(src, 0)
+		sl := sc.slot(o)
+		if got := sc.s.deferGapAnswers(sc.k, sl); got != 2 {
+			t.Fatalf("precondition: %d colour answers, want 2 (G and W)", got)
+		}
+		gap := slotMask{}.with(sl)
+		for c, want := range []uint8{kop.G, kop.W} {
+			s := sc.s.fork()
+			before := s.pl[0].pool
+			var spill [kop.NumManaKinds]uint8
+			var a Action
+			if !s.scriptGapTap(sc.k, 0, a, sl, slotMask{}, slotMask{}, slotMask{}, gap, slotMask{}, c, &spill) {
+				t.Fatalf("answer %d: the tap was refused", c)
+			}
+			exp := before
+			exp[want]++
+			if s.pl[0].pool != exp {
+				t.Errorf("answer %d floated pool %v, want one {%d} added to %v", c, s.pl[0].pool, want, before)
+			}
+			sc.s.unfork()
+		}
+	})
 }
