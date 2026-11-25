@@ -587,6 +587,8 @@ func (s *State) castRestRefuses(k *prep, o Obj, a Action) bool {
 		return k.gen.anyForetell && cd.ForetellCost != (kop.ManaCost{})
 	case a.Target() == castOverloadTgt:
 		return k.gen.anyOverload && cd.HasOverload
+	case a.Target() == castBlitzTgt:
+		return k.gen.anyBlitz() && cd.HasBlitz
 	case a.Target() == castCleaveTgt:
 		return k.gen.anyCleave && cd.CleaveAb != 0
 	case a.Target() == castSurgeTgt:
