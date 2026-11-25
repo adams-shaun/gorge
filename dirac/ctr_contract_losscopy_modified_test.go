@@ -87,6 +87,16 @@ func TestContractLossCopiesModifiedLoserBoard(t *testing.T) {
 
 	s.addContract(k, 1, 1)
 	s.setContractOwed(1, 0, host)
+	// An until-end-of-turn pump on the host is a limited-duration effect, not
+	// a copiable value (CR 707.2): gorge mints the LKI copy from the departed
+	// object's printed card and folded CopyFace alone (copyTokenBasis), so the
+	// token must show the exception's 4/4, not the pump's 7/7.
+	p.ovr.setP, p.ovr.setT = 7, 7
+	p.ovr.flags |= ovSetPTEOT
+	s.touchSl(sl)
+	if pw, tg := s.pt(k, sl); pw != 7 || tg != 7 {
+		t.Fatalf("pumped host is %d/%d, want the pump's 7/7", pw, tg)
+	}
 	pre := s.outMask()
 	s.pl[1].lost = true
 	s.sweepDeparted(k, pre)
@@ -126,10 +136,13 @@ func TestContractLossCopiesModifiedLoserBoard(t *testing.T) {
 		t.Fatalf("token types %#x, want the host's %#x", got, hostTypes)
 	}
 	if pw, tg := s.pt(k, tok); pw != 4 || tg != 4 {
-		t.Fatalf("token is %d/%d, want the host's 4/4", pw, tg)
+		t.Fatalf("token is %d/%d, want the host's 4/4, not the pump's 7/7", pw, tg)
 	}
 	if s.kw(k, tok)&kop.KwFlying == 0 {
 		t.Fatal("token lacks the host's exception flying")
+	}
+	if tp.ovr.flags&^(ovCopy|ovGenTy) != 0 || tp.ovr.setP != 0 || tp.ovr.setT != 0 || tp.ovr.types != 0 || tp.ovr.kw != s.copyExcKw(k, tok) {
+		t.Fatalf("token override = flags %#x %d/%d types %#x kw %#x, want the copy basis (ovCopy, plus the derived ovGenTy) with only the exception's keywords", tp.ovr.flags, tp.ovr.setP, tp.ovr.setT, tp.ovr.types, tp.ovr.kw)
 	}
 }
 
