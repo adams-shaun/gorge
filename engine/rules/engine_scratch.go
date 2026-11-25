@@ -264,13 +264,13 @@ type engineScratch struct {
 	// the pre-departure board.
 	lookBackWalk bool `clone:"reset"`
 	// windowDepartures is every battlefield departure that left while the
-	// trigger window windowDepartOwner was open, in departure order:
+	// trigger window was open, in departure order:
 	// BatchDepartures adds its whole ex-ante member list (so a member's own
 	// trigger already sees its fellows before their moves emit) and emit adds
-	// each member again as it actually folds (noteWindowDeparture). The list
-	// is valid only while e.triggerBefore IS windowDepartOwner, so every way a
-	// window ends -- closeTriggerWindow or a direct restore of triggerBefore
-	// (the legend-rule answer, a parked replacement answer) -- retires it.
+	// each member again as it actually folds (noteWindowDeparture). Every way
+	// a window ends retires the list: setTriggerBefore(nil), which
+	// closeTriggerWindow and every direct restore of triggerBefore (the
+	// legend-rule answer, a parked replacement answer) go through.
 	windowDepartures  []state.ObjID    `clone:"reset"`
 	windowDepartOwner *triggerSnapshot `clone:"reset"`
 	// windowDeparted is the look-back OBSERVER's copy of the live window's

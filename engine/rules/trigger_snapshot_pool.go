@@ -79,10 +79,7 @@ func (e *Engine) retainTriggerBefore() *triggerSnapshot {
 // closeTriggerWindow restores the window's outer snapshot and recycles the
 // window's own, unless a record retained it. Deferred by every window.
 func (e *Engine) closeTriggerWindow(own, outer *triggerSnapshot) {
-	e.triggerBefore = outer
-	if outer == nil {
-		e.windowDepartures, e.windowDepartOwner = e.windowDepartures[:0], nil
-	}
+	e.setTriggerBefore(outer)
 	if own == nil || own.retained || own == outer || own.game == nil {
 		return
 	}
@@ -102,27 +99,23 @@ func (e *Engine) closeTriggerWindow(own, outer *triggerSnapshot) {
 }
 
 // noteWindowDeparture records battlefield departures under the open trigger
-// window (see engine_scratch.go's windowDepartures). A list left by a window
-// that ended by a direct restore of triggerBefore (windowDepartOwner is no
-// longer the open window) is dropped first, so a later window never skips an
-// object an earlier one saw leave -- it can be back on the battlefield.
+// window (see engine_scratch.go's windowDepartures).
 func (e *Engine) noteWindowDeparture(ids ...state.ObjID) {
-	if e.triggerBefore == nil {
-		return
+	if e.triggerBefore != nil {
+		e.windowDepartures = append(e.windowDepartures, ids...)
 	}
-	if e.windowDepartOwner != e.triggerBefore {
-		e.windowDepartures, e.windowDepartOwner = e.windowDepartures[:0], e.triggerBefore
-	}
-	e.windowDepartures = append(e.windowDepartures, ids...)
 }
 
-// currentWindowDepartures is the open window's departure list, nil once the
-// window it belongs to is gone.
-func (e *Engine) currentWindowDepartures() []state.ObjID {
-	if e.triggerBefore == nil || e.windowDepartOwner != e.triggerBefore {
-		return nil
+// setTriggerBefore is the ONE way a trigger window ends or is restored:
+// leaving the window empties its departure list, so a later window never
+// skips an object an earlier one saw leave (it can be back on the battlefield
+// by then). Every restore of triggerBefore to a window's outer value goes
+// through here, not a bare assignment.
+func (e *Engine) setTriggerBefore(s *triggerSnapshot) {
+	e.triggerBefore = s
+	if s == nil {
+		e.windowDepartures = e.windowDepartures[:0]
 	}
-	return e.windowDepartures
 }
 
 // openBatchWindow parks the pre-departure board for an effect's simultaneous
