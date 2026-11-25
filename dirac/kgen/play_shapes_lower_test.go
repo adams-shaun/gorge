@@ -12,10 +12,11 @@ import "testing"
 // other classes (CastWithFlash shape, Play PlayCost, Play Valid$ without
 // YouOwn/YouCtrl, Play Card.Self outside Amount$ All/ValidZone$ Exile, Play
 // Amount "_", Play Defined$ "_") stay refused on their carriers (Boiling
-// Rock Rioter and Sanwell, Avenger Ace since lowered: play_exilepop_lower_test.go):
+// Rock Rioter and Sanwell, Avenger Ace since lowered: play_exilepop_lower_test.go;
+// Plargg and Nassari: play_popcount_lower_test.go):
 // Chandra Ablaze, Anrakyr the Traveller, Bismuth Mindrender,
 // Blur of Heroism, Flash Photography, Harness the Storm, Jadzi, Oracle of
-// Arcavios, Leonin Shikari, Mindleech Mass, Plargg and Nassari, Quantum
+// Arcavios, Leonin Shikari, Mindleech Mass, Quantum
 // Reduction, Silent-Blade Oni, Silver Scrutiny,
 // Sorcerous Squall, Teferi Temporal Archmage, Teferi's Talent, The Face of
 // Boe, The Infamous Cruelclaw, The Wandering Emperor, Timely Ward, Twinning

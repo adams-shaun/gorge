@@ -2407,7 +2407,7 @@ func (lc *lowerCtx) play(ps *params) error {
 		// a literal Amount$ N (gorge effPlay: one ask, Max N, the picks
 		// begun in answer order) on P1's remembered-exile population only
 		// (Doom Reigns Supreme's "up to two spells")
-		if n, err := strconv.Atoi(amount); err != nil || n < 2 || ps.m["ValidZone"] != "Exile" || !strings.Contains(ps.m["Valid"], "IsRemembered") || ps.m["Defined"] != "" || copyCard {
+		if !playUpToOK(ps, amount, copyCard) { // lower_playpopcount.go
 			return refuse("Play Amount %q", amount)
 		}
 		upTo = true
@@ -2553,7 +2553,7 @@ func (lc *lowerCtx) play(ps *params) error {
 		return emit(lRef{Kind: rRemembered}, zExile, saExpr)
 	}
 	if def != "" {
-		return refuse("Play Defined$ %q", def)
+		return lc.playDefinedPop(ps, def, saExpr, emit) // lower_playpopcount.go
 	}
 	if !hasValid {
 		return refuse("Play shape")
