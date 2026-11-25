@@ -663,12 +663,13 @@ const (
 	zStack
 	zCommand
 	zAny
+	zSideboard // a card outside the game (Wish): kernel ZoneSideboard
 )
 
 var zoneNames = map[string]int{"Battlefield": zBattlefield, "Hand": zHand, "Graveyard": zGraveyard,
-	"Library": zLibrary, "Exile": zExile, "Stack": zStack, "Command": zCommand, "Any": zAny, "All": zAny}
+	"Library": zLibrary, "Exile": zExile, "Stack": zStack, "Command": zCommand, "Any": zAny, "All": zAny, "Sideboard": zSideboard}
 
-var zoneLabel = [...]string{"-", "Battlefield", "Hand", "Graveyard", "Library", "Exile", "Stack", "Command", "Any"}
+var zoneLabel = [...]string{"-", "Battlefield", "Hand", "Graveyard", "Library", "Exile", "Stack", "Command", "Any", "Sideboard"}
 
 // lTarget is one target slot.
 type lTarget struct {
@@ -1347,6 +1348,7 @@ type lRepl struct {
 	F2                                        *lFilter // PreventDamageFilt / PreventDamageN: the damage source (F is the recipient)
 	Phase                                     uint8    // BeginPhaseSkip: the kop.Step it skips (Repl.A)
 	Body                                      int      // DamageInstead: the kop.ReplDmgIns* effect bits (Repl.A's low byte); F2 is the damage source, F the damaged permanent, Ctr the counter kind
+	Trig                                      int      // DamageInstead ReplDmgInsVind: the reflexive-trigger latent the body queues (the ImmediateTrigger Execute's DealDamage)
 }
 
 // lCard is a lowered card.
@@ -1516,18 +1518,20 @@ type lCard struct {
 	Unleash             bool     // printed K:Unleash (CR 702.86): CardDef.Unleash
 	Riot                bool     // printed K:Riot (CR 702.156): CardDef.Riot (lower_riot.go)
 	Enlist              bool     // printed K:Enlist (CR 702.154): CardDef.Enlist (lower_enlist.go)
-	Flanking            bool     // printed bare K:Flanking (CR 702.25a): CardDef.Flanking (lower_flanking.go)
-	Phasing             bool     // printed bare K:Phasing (CR 702.26a): CardDef.Phasing (lower_phasingkw.go)
-	AtkFace             bool     // the printed face's lines may observe an attack declaration (CardDef.AtkFace)
-	SagaN               int      // K:Chapter:<count>: the final chapter number (CR 714.1)
-	TapPowerCrew        int      // S:Mode$ TapPowerValue for Crew (graveexile)
-	TapPowerSaddle      int      // S:Mode$ TapPowerValue for Saddle (graveexile)
-	MinBlockers         int      // S:Mode$ MinMaxBlocker | ValidCard$ Creature.Self | Min$ N (CR 509.1b); Min$ All is kop.MinBlockersAll
-	ExtraBlocks         int      // S:Mode$ Continuous | AffectedDefined$ Self | CanBlockAmount$ 1 (CR 509.1a)
-	Lure                bool     // the all-must-block keyword: every able creature blocks it (CR 509.1c)
-	MustBeBlocked       bool     // the must-be-blocked keyword (CR 509.1c)
-	Daybound            bool     // K:Daybound (CR 702.145a-d)
-	Nightbound          bool     // K:Nightbound (CR 702.145e-g)
+	Blitz               bool     // printed K:Blitz:<mana> (CR 702.152a): CardDef.HasBlitz + BlitzCost (lower_blitz.go)
+	BlitzCost           kop.ManaCost
+	Flanking            bool // printed bare K:Flanking (CR 702.25a): CardDef.Flanking (lower_flanking.go)
+	Phasing             bool // printed bare K:Phasing (CR 702.26a): CardDef.Phasing (lower_phasingkw.go)
+	AtkFace             bool // the printed face's lines may observe an attack declaration (CardDef.AtkFace)
+	SagaN               int  // K:Chapter:<count>: the final chapter number (CR 714.1)
+	TapPowerCrew        int  // S:Mode$ TapPowerValue for Crew (graveexile)
+	TapPowerSaddle      int  // S:Mode$ TapPowerValue for Saddle (graveexile)
+	MinBlockers         int  // S:Mode$ MinMaxBlocker | ValidCard$ Creature.Self | Min$ N (CR 509.1b); Min$ All is kop.MinBlockersAll
+	ExtraBlocks         int  // S:Mode$ Continuous | AffectedDefined$ Self | CanBlockAmount$ 1 (CR 509.1a)
+	Lure                bool // the all-must-block keyword: every able creature blocks it (CR 509.1c)
+	MustBeBlocked       bool // the must-be-blocked keyword (CR 509.1c)
+	Daybound            bool // K:Daybound (CR 702.145a-d)
+	Nightbound          bool // K:Nightbound (CR 702.145e-g)
 	Abilities           []*lAbility
 	Statics             []lStatic
 	// GrantedStatics: the statics a Continuous static's AddStaticAbility$

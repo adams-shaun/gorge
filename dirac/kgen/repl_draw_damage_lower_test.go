@@ -27,16 +27,15 @@ func TestReplDrawDamageSlice(t *testing.T) {
 }
 
 // The slice's other carriers keep the refusals the ticket names: the draw
-// replacements (plain, optional or choice) and the two DamageDone replacement
-// shapes whose body asks a player stay refused until their own slices lower
-// them.
+// replacements (plain, optional or choice) stay refused until their own slices
+// lower them. (Dralnu and Phyrexian Vindicator, the DamageDone bodies that ask
+// a player, lower now: TestReplDmgAskBodiesSlice.)
 func TestReplDrawDamageRestRefused(t *testing.T) {
 	for _, w := range []struct{ name, class string }{
 		{"Abundance", "Draw replacement with an optional or choice body"},
 		{"Archmage Ascension", "Draw replacement with an optional or choice body"},
 		{"Asmodeus the Archfiend", "Draw replacement"},
 		{"Blood Scrivener", "Draw replacement"},
-		{"Dralnu, Lich Lord", "DamageDone replacement shape"},
 		{"Enduring Renewal", "Draw replacement"},
 		{"Eruth, Tormented Prophet", "Draw replacement"},
 		{"Hullbreacher", "Draw replacement"},
@@ -44,7 +43,6 @@ func TestReplDrawDamageRestRefused(t *testing.T) {
 		{"Obstinate Familiar", "Draw replacement with an optional or choice body"},
 		{"Out of the Tombs", "Draw replacement"},
 		{"Pavel Chekov, First Posting", "Draw replacement with an optional or choice body"},
-		{"Phyrexian Vindicator", "DamageDone replacement shape"},
 		{"Possessed Portal", "Draw replacement"},
 		{"Pursuit of Knowledge", "Draw replacement with an optional or choice body"},
 		{"Sages of the Anima", "Draw replacement"},
