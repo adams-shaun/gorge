@@ -2004,9 +2004,11 @@ func (e *Engine) askNextDivision() bool {
 // the declaration-order assignment rule), so the options enumerate them all;
 // the split table lets the answer handler recover the chosen amounts. A
 // trample attacker instead gets the CR 702.19b shape (trampleDivisionOptions),
-// with the defending player as the last split table entry.
+// with the defending player as the last split table entry. A band blocker's
+// division (CR 510.1d) is among the attackers it blocks, so Trample does not
+// shape it: the keyword only applies to an attacker's own assignment.
 func (e *Engine) divisionOptions(a state.ObjID) ([]decision.Option, [][]int32) {
-	if e.hasKeywordH(a, kwhTrample) {
+	if e.hasKeywordH(a, kwhTrample) && !e.isBandBlocker(a) {
 		return e.trampleDivisionOptions(a)
 	}
 	blockers := e.divisionRecipients(a)
