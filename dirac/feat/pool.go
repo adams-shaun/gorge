@@ -747,9 +747,13 @@ const lineTypes = kop.TLand | kop.TCreature | kop.TArtifact | kop.TEnchantment |
 // SetCreatureTypes gives the pool gorge's creature-type vocabulary (an
 // "all creature types" line lists it) and rebuilds the derived type lines
 // the table's overrides can make. Construction time only: before any
-// encoder of the pool encodes.
+// encoder of the pool encodes. A multi-word type (CR 205.3m's Time Lord)
+// is kept as its words, the fields gorge's encoder reads off the type line.
 func (p *Pool) SetCreatureTypes(words []string) {
-	p.allTypes = append([]string(nil), words...)
+	p.allTypes = p.allTypes[:0]
+	for _, w := range words {
+		p.allTypes = append(p.allTypes, strings.Fields(w)...)
+	}
 	p.precomputeTypeLines()
 }
 
