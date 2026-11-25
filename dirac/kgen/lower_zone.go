@@ -5909,10 +5909,10 @@ func fromAnyOrigin(ps *params, obj lRef, dest int, in *lInstr) {
 }
 
 // copyAtEOTFlag reads a CopyPermanent's AtEOT$ into its copy-flag name.
-// gorge scheduleAtEOT: a one-shot delayed registration per copy, exiled at the
-// beginning of the next end step (Stormsplitter), or sacrificed
-// (__kwEncoreSacrifice: Reflection of Kiki-Jiki), the kernel's one-shot dly
-// entry either way.
+// gorge scheduleAtEOT: one delayed registration over the resolution's copies
+// (the group join for a later copy, CR 603.7a), exiled at the beginning of the
+// next end step (Stormsplitter), or sacrificed (__kwEncoreSacrifice:
+// Reflection of Kiki-Jiki), the kernel's one-shot dly entry either way.
 func (lc *lowerCtx) copyAtEOTFlag(ps *params, a string) (string, error) {
 	switch a {
 	case "Exile":
