@@ -2683,6 +2683,7 @@ func (s *State) scriptGapOrder(k *prep, a Action, p uint8, gaps slotMask, order 
 // or a counter-cost gap among the gaps.
 func (s *State) scriptDeadEndAny(k *prep, a Action, p uint8, restr, anyR, tapsDef, ctr, ca slotMask) bool {
 	tapsDef = s.deferGapsForPlay(k, a, tapsDef)
+	anyR = s.caSpendable(k, a, p, anyR) // a plain play's restriction must admit its payment (CR 106.6); any other keeps every gap
 	var order [MaxPerm]Slot
 	gaps := s.scriptGaps(k, p).or(restr).or(anyR).or(tapsDef).or(ctr).or(ca).or(s.lifeGapMask(k, p))
 	n := s.scriptGapOrder(k, a, p, gaps, order[:])
@@ -2714,6 +2715,7 @@ func (s *State) scriptPrefixAny(k *prep, a Action, p uint8, restr, anyR, tapsDef
 		return
 	}
 	tapsDef = s.deferGapsForPlay(k, a, tapsDef)
+	anyR = s.caSpendable(k, a, p, anyR) // a plain play's restriction must admit its payment (CR 106.6); any other keeps every gap
 	var order [MaxPerm]Slot
 	gaps := s.scriptGaps(k, p).or(restr).or(anyR).or(tapsDef).or(ctr).or(ca).or(s.lifeGapMask(k, p))
 	n := s.scriptGapOrder(k, a, p, gaps, order[:])
