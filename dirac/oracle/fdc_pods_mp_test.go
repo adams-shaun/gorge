@@ -36,7 +36,6 @@ var fdcRefused = []string{
 	"Goddric, Cloaked Reveler",
 	"Hit the Mother Lode",
 	"Leyline Tyrant",
-	"Sephara, Sky's Blade",
 	"Spinerock Knoll",
 	"The Elder Dragon War",
 	"Thundermane Dragon",
