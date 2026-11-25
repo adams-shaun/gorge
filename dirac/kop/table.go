@@ -686,6 +686,13 @@ type CardDef struct {
 	HasEvoke bool
 	// EvokeCost is the printed evoke cost (HasEvoke).
 	EvokeCost ManaCost
+	// EvokePick is the printed evoke cost's non-mana part (HasEvoke; the
+	// MH2 Incarnations' ExileFromHand<1/Card.<colour>+Other>): the hand-exile
+	// pick shape of an alternative cost (dirac.altHandExileCost), paid
+	// through the evoked cast's pick stage in place of the spell's
+	// additional cost (gorge keywordAltCost parses the keyword parameter as a
+	// whole cost). The zero value is no such part.
+	EvokePick Cost
 	// HasDash is printed dash (CR 702.109a; no KwMask bit is free): the hand
 	// offers the dashed cast at DashCost (gorge's "dashed" option,
 	// FlagDashed); the permanent that cast produces gains haste and returns
