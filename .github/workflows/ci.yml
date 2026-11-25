@@ -58,7 +58,7 @@ concurrency:
   cancel-in-progress: ${{ github.event_name != 'schedule' }}
 
 env:
-  SHARDS: 12
+  SHARDS: 6
   # One build/test cache per box, not per runner directory (without -trimpath
   # the cache keys include /opt/actions-runner-N/_work). tsgen sets GOROOT itself.
   GOFLAGS: -p=4 -trimpath
@@ -359,7 +359,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
+        shard: [0, 1, 2, 3, 4, 5]
     steps:
       - name: Heal the runner's workspace (self-hosted)
         # 11-21: metal-gorge-box-4's workspace ref store broke ("fetching ref refs/remotes/origin/main failed: reference
@@ -480,9 +480,9 @@ jobs:
           for i in "${!pids[@]}"; do wait "${pids[$i]}" || rc=1; cat "${logs[$i]}"; done
           exit $rc
       - name: Golden chain heads
-        # Not shard 0: it holds dirac/kgen (250-550 s) and set the batch's wall time. Shard 2 (of 12 since 11-24: 323 pkg-s by ci-pkg-times.tsv, the lightest after kgen-only shard 0; 5 of 6 before) is light
+        # Not shard 0: it holds dirac/kgen (250-550 s) and set the batch's wall time. Shard 5 was the lightest
         # (145-465 pkg-seconds) in the 11-20 batches. ci_shard.sh has no weight for this step, so pin it here.
-        if: matrix.shard == 2
+        if: matrix.shard == 5
         run: go test -timeout 10m -run '^TestHeads$' ./engine/rules
       - name: Save the Go cache
         if: runner.environment == 'github-hosted' && github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
