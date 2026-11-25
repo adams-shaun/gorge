@@ -13,7 +13,7 @@ func (s *State) rememberAll(k *prep, in *kop.Instr) {
 		// Copy the triggering object into the imprinted set (gorge Pump
 		// ImprintCards$ TriggeredCard); a source that keeps its list records
 		// it in the per-source store (zone_imprint.go imprint).
-		if o := s.objRefObj(in.Obj); o != NoObj {
+		if o := s.objRefObj(in.Obj); o != NoObj && (in.C&kop.RememberAllImprintCard == 0 || s.objs[o].of&ofToken == 0 && !DebugImprintRefOff) {
 			s.imprint(o)
 		}
 		return
@@ -55,3 +55,7 @@ func (s *State) rememberByObj(hit slotMask) {
 		s.remember(o)
 	}
 }
+
+// DebugImprintRefOff is TestPheliaMutation's switch: a Return's pre-move
+// imprint (kop.RememberAllImprintCard) adds nothing. Never set outside a test.
+var DebugImprintRefOff bool

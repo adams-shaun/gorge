@@ -15,6 +15,17 @@ func init() {
 	instrOp("RememberImprinted", (*instrCtx).opRememberImprinted)
 	instrOp("ForgetImprinted", (*instrCtx).opForgetImprinted)
 	instrOp("ImprintTriggered", (*instrCtx).opImprintTriggered)
+	instrOp("ImprintRef", (*instrCtx).opImprintRef)
+}
+
+// opImprintRef is ExtRememberAll's imprint arm over the one object Obj names,
+// skipping a token (kop.RememberAllImprintCard): the pre-move half of a
+// Return's Imprint$ (lower_imprintzone.go returnImprint).
+func (ic *instrCtx) opImprintRef() error {
+	ki := &ic.ki
+	ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtRememberAll))
+	ki.C = kop.RememberAllImprint | kop.RememberAllImprintCard
+	return nil
 }
 
 // opImprintTriggered emits the ExtRememberAll imprint arm: the trigger's

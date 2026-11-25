@@ -962,9 +962,14 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 	if err != nil {
 		return err
 	}
-	if bracket {
+	switch {
+	case lc.retImprint:
+		if err := lc.returnImprint(in, optional, bracket, fd); err != nil { // lower_imprintzone.go
+			return err
+		}
+	case bracket:
 		lc.emitLibPlace(arm, in)
-	} else {
+	default:
 		lc.emit(in)
 	}
 	lc.faceDownAfter(fd) // lower_exilefacedownmove.go
