@@ -501,7 +501,7 @@ func emitPlayerDamage(r damageRider, target state.PlayerID) int32 {
 func excessLethal(h Host, o *state.Object) (int32, bool) {
 	switch {
 	case h.IsCreature(o.ID):
-		lethal := h.Toughness(o.ID) - o.Damage
+		lethal := LethalThreshold(h, o.ID) - o.Damage
 		if lethal < 0 {
 			lethal = 0
 		}
@@ -1451,3 +1451,15 @@ var validPlayersSelectorUnknownCodes = state.NewStrCodes(
 	state.StrEntry[validPlayersSelectorUnknownCode]{Key: "Opponent", Val: validPlayersSelectorUnknownKnownBase},
 	state.StrEntry[validPlayersSelectorUnknownCode]{Key: "Other", Val: validPlayersSelectorUnknownKnownBase},
 )
+
+// LethalThreshold is the damage that is lethal to creature id before marked
+// damage: the host's LethalDamageThreshold when it models Forge's
+// LethalDamageByPower$ (rules: power under such a static, else toughness),
+// otherwise the creature's toughness. The one shared read for CR 120.10's
+// excess and every rules-side lethal-damage threshold.
+func LethalThreshold(h interface{ Toughness(state.ObjID) int32 }, id state.ObjID) int32 {
+	if l, ok := h.(interface{ LethalDamageThreshold(state.ObjID) int32 }); ok {
+		return l.LethalDamageThreshold(id)
+	}
+	return h.Toughness(id)
+}

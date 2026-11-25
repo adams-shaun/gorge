@@ -1173,7 +1173,7 @@ func (e *Engine) destroyLethalDamage(b *sbaBatch, tried *sbaAttempts) {
 			if o.Damage <= 0 && dtMark == 0 {
 				continue
 			}
-			if o.Damage < e.Toughness(id) && dtMark == 0 {
+			if o.Damage < e.LethalDamageThreshold(id) && dtMark == 0 {
 				continue
 			}
 			if e.hasKeywordH(id, kwhIndestructible) {

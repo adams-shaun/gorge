@@ -1004,6 +1004,16 @@ const (
 	// compiler. Appended: earlier ordinals stay stable.
 	PKNoteCounterDefined
 	PKWithNotedCounters
+	// LethalDamageByPower$ True on a Mode$ Continuous static (Zilortha,
+	// Strength Incarnate): lethal damage for the affected creatures is judged
+	// by power, not toughness (Forge Card.getLethal). Read by rules'
+	// lethalDamageThreshold. Appended: earlier ordinals stay stable.
+	PKLethalDamageByPower
+	// NoColoredMana$ True on a SpellCast trigger (Void Mirror): the trigger
+	// fires only when no coloured mana was spent to cast the spell (Forge
+	// TriggerSpellAbilityCastOrCopy, every paying Mana isColorless). Read by
+	// trigmatch's SpellCastEval. Appended: earlier ordinals stay stable.
+	PKNoColoredMana
 	paramKeyCount
 )
 
@@ -1219,6 +1229,8 @@ var paramKeyNames = [paramKeyCount]string{
 	PKRememberMovedToZone:              "RememberMovedToZone",
 	PKNoteCounterDefined:               "NoteCounterDefined",
 	PKWithNotedCounters:                "WithNotedCounters",
+	PKLethalDamageByPower:              "LethalDamageByPower",
+	PKNoColoredMana:                    "NoColoredMana",
 	PKRememberObjects:                  "RememberObjects",
 	PKRememberOwnLoss:                  "RememberOwnLoss",
 	PKRememberPumped:                   "RememberPumped",

@@ -51,6 +51,12 @@ const (
 	faceScanStoried
 	// faceScanGrantsRepl: faceGrantsRepl (replGrantsPossible).
 	faceScanGrantsRepl
+	// faceScanNoColoredMana: a parameter key NoColoredMana$ (Void Mirror's
+	// SpellCast trigger; noColoredManaReaderOut).
+	faceScanNoColoredMana
+	// faceScanLethalByPower: the face names LethalDamageByPower$ as a key or
+	// inside a granted static's SVar text (lethalDamageByPower's guard).
+	faceScanLethalByPower
 )
 
 // faceScanVerify: see derivedMemoVerify. Set by the rules test binary.
@@ -87,6 +93,12 @@ func computeFaceScan(f *cards.Face) faceScan {
 	}
 	if faceGrantsRepl(f) {
 		s |= faceScanGrantsRepl
+	}
+	if f.MentionsParam("NoColoredMana") {
+		s |= faceScanNoColoredMana
+	}
+	if f.MentionsParam("LethalDamageByPower") || f.Mentions("LethalDamageByPower") {
+		s |= faceScanLethalByPower
 	}
 	return s
 }

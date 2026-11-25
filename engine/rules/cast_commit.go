@@ -519,6 +519,15 @@ func (e *Engine) payCast() {
 		pc.converge = convergeColours(spentMana)
 	}
 	captureCastSpend(pc, e.G.Obj(pc.card).Face(), e.triggeredCastSpendReaderOut() || targetedCastSpendReaderOut(e.G, func(f *cards.Face) bool { return e.faceScanHas(f, faceScanTargetedCastSpend) }), spentMana, spentSnow, spentTyped)
+	// NoColoredMana$ (Void Mirror): a SpellCast trigger out on the battlefield
+	// reads ANOTHER spell's per-colour spend, which the cast face's own
+	// faceWantsManaColorSpent cannot see, so the same per-colour CastInfo is
+	// stamped while such a reader is out (the triggeredCastSpendReaderOut
+	// shape: no game without a reader changes an event).
+	if !pc.manaColorSpentOn && e.noColoredManaReaderOut() {
+		pc.manaColorSpentOn = true
+		pc.manaColorSpent = spentMana
+	}
 	// AddsCounters$: capture the rider grants from the SAME
 	// payment capture emitRestrictedManaSpend built. This must run before
 	// fireManaSpentTriggers consumes and clears e.manaSpentSources (nothing

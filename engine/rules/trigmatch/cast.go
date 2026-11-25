@@ -193,6 +193,20 @@ func SpellCastEval(e Board, t cards.Trigger, source state.ObjID, ev events.Event
 			return false
 		}
 	}
+	// NoColoredMana$ True (Void Mirror, "if no colored mana was spent to
+	// cast it"): Forge's TriggerSpellAbilityCastOrCopy rejects the cast when
+	// any paying Mana is not colourless. The spell's per-colour spend is the
+	// pay-time CastInfo folded onto the stack object (Object.ManaColorSpent,
+	// slots W,U,B,R,G,C), which rules stamps on every cast while such a
+	// reader is on the battlefield (noColoredManaReaderOut). A spell that
+	// spent no mana at all spent no coloured mana and matches.
+	if _, ok := t.Param(cards.PKNoColoredMana); ok {
+		for _, n := range obj.ManaColorSpent[:state.MC] {
+			if n > 0 {
+				return false
+			}
+		}
+	}
 	// Increment (CR 702.XX): the keyword expansion's
 	// SpellCast marker (engine/cards/kw_increment.go). "Whenever you cast a spell, if
 	// the amount of mana you spent is greater than this creature's power or
