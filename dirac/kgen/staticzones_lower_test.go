@@ -20,6 +20,9 @@ var staticZonesCarriers = []string{
 	"Dragon's Rage Channeler", "Field of Dreams", "Geist of the Lonely Vigil",
 	"Hurkyl's Final Meditation", "Ivory Mask", "Lantern of Insight", "Power Artifact",
 	"Queen Mother Ramonda", "Slithering Shade", "Solitary Confinement",
+	// Squee, the Immortal: the two-zone self grant lowered to one static
+	// per zone (mayPlaySelfZones; ticket dirac-squee-two-zone-self-mayplay).
+	"Squee, the Immortal",
 	"Spire Serpent", "Thought Devourer", "Thought Eater", "Thought Nibbler",
 	"True Believer", "Trusted Advisor", "Wizened Snitches",
 }
