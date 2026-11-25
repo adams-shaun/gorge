@@ -226,6 +226,9 @@ type lowerCtx struct {
 	// Play of the Imprinted card and the random-order bottom of the
 	// Remembered exile read it
 	digImprinted bool
+	// retCtr: the node's Effect is an "it enters with N additional +1/+1
+	// counters" rider on the return its Sub performs (lower_effectreturnctr.go)
+	retCtr *retCtrRider
 	// playLibrary: this chain's Play casts from the remembered cards in the
 	// library (Cosmic Cube; lower_playlibrary.go): the random-order bottom of
 	// the rest reads it
@@ -3919,6 +3922,10 @@ func (lc *lowerCtx) chain(sa *cards.SA, ps *params) error {
 		if err := lc.unionUses(at); err != nil {
 			return fmt.Errorf("%s$ %s: %w", node.Kind, node.API, err)
 		}
+	}
+	if lc.retCtr != nil {
+		lc.retCtr = nil
+		return refuse("Effect return-counters rider not read by its return") // lower_effectreturnctr.go
 	}
 	if len(blockers) > 0 {
 		// the first is the node's refusal (as without the mode); the rest

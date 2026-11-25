@@ -33,7 +33,7 @@ var dbmanaForms = []formCase{
 	{card: "Rapturous Moment", form: "a spell chain's fixed DB$ Mana (Produced$ U U R R R) lowers", lir: "AddMana obj=You A=1"},
 	{card: "Narset's Rebuke", form: "a spell chain's defined-You DB$ Mana lowers", lir: "AddMana obj=You A=1"},
 	{card: "Soulbright Seeker", form: "a targeted AB$ Pump with a DB$ Mana sub is admitted, and its Count$ResolvedThisTurn X counts the activated ability's resolutions", lir: "AddMana obj=You A=4"},
-	{card: "Sacellum Godspeaker", form: "gorge finding: a CR 605.1a mana ability gorge resolves on the stack stays refused (cards/ability_class.go L48)", refused: "DB$ Mana under a CR 605.1a mana ability gorge resolves on the stack (gorge cards/ability_class.go L48)"},
+	{card: "Sacellum Godspeaker", form: "gorge finding: a CR 605.1a mana ability whose colour is asked at activation stays refused (no ask-at-activation chosen-colour arm; cards/ability_class.go ManaChainProduction)", refused: "DB$ Mana under a CR 605.1a mana ability whose colour is asked at activation: no ask-at-activation chosen-colour mana arm (gorge resolves it off the stack; engine/cards/ability_class.go ManaChainProduction)"},
 	{card: "Priest of Forgotten Gods", form: "an any-number-of-target-players chain lowers now that the multi-target Sacrifice asks each player", lir: "AddMana obj=You A=2"},
 	{card: "Red Death, Shipwrecker", form: "a targeted AB$ Goad with a library-moving Draw and a DB$ Mana sub lowers", lir: "AddMana obj=You A=1"},
 	{card: "Hulking Raptor", form: "Defined$ TriggeredPlayer under a your-Phase trigger is the controller", lir: "AddMana obj=You A=2"},

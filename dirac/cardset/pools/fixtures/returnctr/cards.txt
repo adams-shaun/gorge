@@ -1,0 +1,16 @@
+# The Effect a graveyard return creates just before it moves the card: "if a
+# <type> enters this way, it enters with N additional +1/+1 counters", lowered
+# as a two-arm return on the target's type (dirac/kgen/lower_effectreturnctr.go,
+# dirac/oracle/returnctr_lockstep_test.go)
+Recommission
+Heroic Return
+What Must Be Done
+Winter Soldier, Reborn Avenger
+Savannah Lions
+Mind Stone
+Plains
+Hill Giant
+Raging Goblin
+Shock
+Lightning Bolt
+Mountain
