@@ -6,32 +6,42 @@ import (
 )
 
 // TestMultiManaFilterSet (T18e4): a plain {T}: Add {C} first ability beside
-// two or more paid filter abilities ({1},{T}: Add <colour>, or {2},{T}:
-// Add {B} or {G}) stays refused until the kernel's filter walk holds one
-// filter ability per colour and models a fixed-colour or choice fee (it
-// records one filter ability per card and needs ColAny), and the refusal
-// names that reason; the other shapes of the nine T18e cards keep their
-// refusal, naming their actual reason (Glittering Stockpile's is the
-// counter-rider-beside-another-mana-ability reason).
+// one or more paid filter abilities ({1},{T}: Add <colour>, or {2},{T}:
+// Add {B} or {G}) lowers: the kernel's filter walk holds one filter ability
+// per colour and models a fixed-colour or two-colour-choice fee. The other
+// shapes of the nine T18e cards keep their refusal, naming their actual
+// reason (Glittering Stockpile's is the counter-rider-beside-another-mana-
+// ability reason).
 func TestMultiManaFilterSet(t *testing.T) {
+	accept := map[string]bool{
+		"Koskun Keep":       true,
+		"Castle Sengir":     true,
+		"An-Havva Township": true,
+		"Aysen Abbey":       true,
+		"Wizards' School":   true,
+	}
 	refuse := map[string]string{
-		"Koskun Keep":           "the kernel's filter walk records one filter ability per card",
-		"Castle Sengir":         "the kernel's filter walk records one filter ability per card",
-		"An-Havva Township":     "the kernel's filter walk records one filter ability per card",
-		"Aysen Abbey":           "the kernel's filter walk records one filter ability per card",
-		"Wizards' School":       "the kernel's filter walk records one filter ability per card",
 		"Murmuring Bosk":        "a pain rider beside a coloured plain {T} ability",
 		"Cadaverous Bloom":      "gorge's census is unrelaxable, so no prefix search runs",
 		"Glittering Stockpile":  "mana ability with a counter rider beside another mana ability",
 		"The Eternity Elevator": "granted mana ability with a dynamic amount",
 	}
 	var names []string
+	for n := range accept {
+		names = append(names, n)
+	}
 	for n := range refuse {
 		names = append(names, n)
 	}
 	seen := 0
 	for _, c := range lowerNamed(t, names) {
 		seen++
+		if accept[c.Name] {
+			if len(c.Refusals) > 0 {
+				t.Errorf("%s: refused: %v", c.Name, c.Refusals)
+			}
+			continue
+		}
 		want, ok := refuse[c.Name]
 		if !ok {
 			t.Fatalf("lowered unexpected card %s", c.Name)
