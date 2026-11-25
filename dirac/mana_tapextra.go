@@ -591,9 +591,15 @@ func (s *State) fillTapAnyColCost(k *prep, p uint8, sl Slot, cost *kop.ManaCost,
 	}
 	// The ask is answered before the tap's own mana reaches the pool: its
 	// demand is windowCol's owed cost, the snapshot gorge's WindowChoices
-	// reads (ManaPayment.Owed), not cost less the pool after the tap.
+	// reads (ManaPayment.Owed), not cost less the pool after the tap. That
+	// snapshot still takes the pool the payment already holds off the pips:
+	// a {4}{R} cast with a Mountain's {R} floating owes no {R}, so the extra
+	// answers the lowest colour (W), not the printed pip.
 	var due kop.ManaCost
 	s.windowOwedCost(k, p, cost, &due)
+	for c := range due.Pips {
+		due.Pips[c] -= min(due.Pips[c], s.pl[p].pool[c])
+	}
 	s.fillTapAnyColOwed(k, p, sl, &due.Pips)
 }
 
