@@ -1,6 +1,10 @@
 package kgen
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/adams-shaun/gorge/dirac/kop"
+)
 
 // soulbondCarriers print K:Soulbond (CR 702.95a); each lowers from gorge's
 // kwSoulbond expansion (the two ETB pair triggers, api Pair) and a static or
@@ -17,6 +21,15 @@ func TestSoulbondLowers(t *testing.T) {
 	for _, name := range soulbondCarriers {
 		if c := lowerNamedCard(t, name); len(c.Refusals) != 0 {
 			t.Errorf("%s refusals = %v, want none", name, c.Refusals)
+		}
+	}
+}
+
+// The pair words lower through the kernel's pair record (dirac/kw_soulbond.go).
+func TestSoulbondFilterWordsLower(t *testing.T) {
+	for _, spec := range []string{"Creature.PairedWith", "Creature.!Paired", "Creature.Self+Paired", "Creature.Other+YouCtrl+!Paired"} {
+		if _, err := NewAtomCompiler().Filter(spec, kop.ZoneBattlefield); err != nil {
+			t.Errorf("%s: %v", spec, err)
 		}
 	}
 }
