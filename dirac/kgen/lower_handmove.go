@@ -209,6 +209,11 @@ func (lc *lowerCtx) handMove(ps *params, f *lFilter, n lValue, flags []string, c
 		}
 		cs = append(cs, "ForgetOther")
 	}
+	if imp, err := lc.handMoveImprint(ps, dest); err != nil { // lower_imprintzone.go
+		return err
+	} else if imp {
+		cs = append(cs, "Imprint")
+	}
 	in := lInstr{Op: "ChooseMove", Obj: owner, A: n, F: f, C: dest, CS: strings.Join(cs, "|")}
 	if eachOpp && (owner.Kind == rEachOpp || owner.Kind == rEachPlayer) {
 		return lc.handMoveEachOpp(in, counted) // lower_handmoveeach.go

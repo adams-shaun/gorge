@@ -65,7 +65,9 @@ func (ic *instrCtx) opSearch() error {
 		sb |= kop.SrNoShuffle
 	}
 	if _, ok := fl["Imprint"]; ok {
-		if in.Op != "ChooseMove" || zone != kop.ZoneLibrary || zoneMap[in.C] != kop.ZoneExile {
+		libExile := zone == kop.ZoneLibrary && zoneMap[in.C] == kop.ZoneExile
+		handPut := zone == kop.ZoneHand && zoneMap[in.C] == kop.ZoneBattlefield // Eureka (lower_imprintzone.go handMoveImprint)
+		if in.Op != "ChooseMove" || !libExile && !handPut {
 			return fmt.Errorf("Imprint on a %s from %s", in.Op, fl["from"])
 		}
 		sb |= kop.SrImprint

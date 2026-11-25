@@ -134,6 +134,37 @@ func (lc *lowerCtx) changeZoneUnimprint(what string) error {
 	return nil
 }
 
+// handMoveImprint reads Imprint$ True on a hand pick onto the battlefield
+// (Eureka, Hypergenesis): each card the pick puts onto the battlefield joins
+// the resolution's imprinted set (gorge settleChangeZoneMoveAs: a non-token
+// whose post-move zone is the destination; an Aura that stays in the hand is
+// not imprinted). The kernel reads kop.SrImprint on the ChooseMove's B
+// (dirac/zone_forget.go imprintFound). A face that keeps its Imprinted on the
+// source stays refused: the pick's writes do not reach the store.
+func (lc *lowerCtx) handMoveImprint(ps *params, dest int) (bool, error) {
+	v, ok := ps.get("Imprint")
+	if !ok {
+		return false, nil
+	}
+	if v != "True" || dest != zBattlefield || lc.impPersist {
+		return false, refuse("hand move Imprint$ %q to %s", v, zoneLabel[dest])
+	}
+	if err := lc.openImprint("ChangeZone Imprint$"); err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
+// repeatGateImprinted reports whether the ability being lowered is the body
+// of a Repeat whose RepeatCheckSVar$ gate counts the imprinted set (Eureka's
+// PutCount: Count$Valid Card.IsImprinted). The body's per-pass Cleanup
+// ClearImprinted$ then opens the set its writer fills and the gate reads,
+// all in one resolution.
+func (lc *lowerCtx) repeatGateImprinted() bool {
+	return lc.repeatCheckAb != nil && lc.repeatCheckAb == lc.ab && lc.repeatCheckSVar != "" && !lc.impPersist &&
+		strings.Contains(lc.face.SVars[lc.repeatCheckSVar], "IsImprinted")
+}
+
 // millImprint reads Mill's Imprint$ True: each milled card joins the imprinted
 // set (kop.MvImprint on OpMill C), wherever a replacement sends it. The reads
 // that follow sit in the same chain (Patient Naturalist's IsImprinted pick).
@@ -197,6 +228,8 @@ func imprintWriter(in lInstr) bool {
 		return true
 	case "Mill":
 		return strings.Contains(in.CS, "ImprintMove")
+	case "ChooseMove":
+		return strings.Contains(in.CS, "from=Hand") && strings.Contains(in.CS, "|Imprint")
 	case "ImprintTriggered":
 		return true
 	}
@@ -212,7 +245,7 @@ func imprintWriter(in lInstr) bool {
 func unclearedImprint(prog []lInstr) bool {
 	writes, clears := false, false
 	for j, in := range prog {
-		writes = writes || in.Op == "CreateToken" && in.C&2048 != 0 || in.Op == "Exile" && strings.Contains(in.CS, "ImprintMove") || in.Op == "Mill" && strings.Contains(in.CS, "ImprintMove")
+		writes = writes || in.Op == "CreateToken" && in.C&2048 != 0 || in.Op == "Exile" && strings.Contains(in.CS, "ImprintMove") || in.Op == "Mill" && strings.Contains(in.CS, "ImprintMove") || in.Op == "ChooseMove" && imprintWriter(in)
 		if in.Op != "ClearImprinted" || in.Cond.Kind != cNone {
 			continue
 		}

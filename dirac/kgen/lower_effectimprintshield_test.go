@@ -35,3 +35,28 @@ func TestImprintShieldOtherTriggerRefuses(t *testing.T) {
 		t.Errorf("Fire Giant's Fury lowers; want its imprint-trigger refusal kept")
 	}
 }
+
+// TestImprintHandPickRepeat: Eureka and Hypergenesis lower whole. Each pass
+// of the Repeat clears the imprinted set, the hand pick onto the battlefield
+// imprints (ChooseMove CS Imprint, kop.SrImprint), and the gate counts it.
+func TestImprintHandPickRepeat(t *testing.T) {
+	for _, name := range []string{"Eureka", "Hypergenesis"} {
+		c := lowerNamedCard(t, name)
+		if len(c.Refusals) != 0 {
+			t.Errorf("%s refusals = %v, want none", name, c.Refusals)
+			continue
+		}
+		clears, pick := 0, false
+		for _, a := range c.Abilities {
+			for _, in := range a.Prog {
+				if in.Op == "ClearImprinted" {
+					clears++
+				}
+				pick = pick || in.Op == "ChooseMove" && strings.Contains(in.CS, "from=Hand") && strings.Contains(in.CS, "|Imprint")
+			}
+		}
+		if clears != 2 || !pick {
+			t.Errorf("%s: %d ClearImprinted (want 2), imprinting hand pick %v", name, clears, pick)
+		}
+	}
+}
