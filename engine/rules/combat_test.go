@@ -639,6 +639,10 @@ func TestTrampleAssignsExcessToThePlayer(t *testing.T) {
 	e.askAttackers()
 	submitAttackers(t, e, atk)
 	submitBlockers(t, e, blk)
+	// CR 702.19b now poses the division. Answer with the deterministic
+	// default the engine used to apply itself: exact lethal to the 2/2, the
+	// remaining 3 trampling to the player.
+	submitDivision(t, e, []int32{2, 3})
 
 	if got := e.G.Players[1].Life; got != 17 {
 		t.Fatalf("defender life = %d, want 17 (20 - 3 trample excess)", got)

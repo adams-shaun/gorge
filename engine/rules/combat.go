@@ -1748,8 +1748,10 @@ func (e *Engine) withoutElected(queue []state.ObjID) []state.ObjID {
 
 // divisionNeeding returns the attackers of this pass whose combat damage must
 // be divided by their controller (CR 510.1c): a non-trample attacker with
-// power above zero and more than one live blocker, whose legal divisions are
-// too numerous to enumerate is excluded and falls back to the deterministic
+// power above zero and more than one live blocker, or a trample attacker
+// (CR 702.19b) whose excess over the blockers' lethal needs can go to the
+// blockers or the defending player. An attacker whose legal divisions are too
+// numerous to enumerate is excluded and falls back to the deterministic
 // assignment. Battlefield order, deterministic.
 func (e *Engine) divisionNeeding(pass bool) []state.ObjID {
 	var out []state.ObjID
@@ -1761,10 +1763,23 @@ func (e *Engine) divisionNeeding(pass bool) []state.ObjID {
 		if !e.actsThisDamageStep(id, pass) {
 			continue
 		}
-		if e.hasKeywordH(id, kwhTrample) || e.combatDamageAmount(id) <= 0 || len(e.liveBlockers(a)) < 2 {
+		blockers := e.liveBlockers(a)
+		power := e.combatDamageAmount(id)
+		if power <= 0 || len(blockers) == 0 {
 			continue
 		}
-		if e.divisionCount(e.liveBlockers(a), e.combatDamageAmount(id)) > maxDivisionOptions {
+		if e.hasKeywordH(id, kwhTrample) {
+			// CR 702.19b: at least lethal to each blocker, then the rest is
+			// the controller's to split between blocker excess and the
+			// defending player. One option means no real choice (the
+			// deterministic assignment already gives that result).
+			n := e.trampleDivisionCount(blockers, power, e.hasKeywordH(id, kwhDeathtouch))
+			if n >= 2 && n <= maxDivisionOptions {
+				out = append(out, id)
+			}
+			continue
+		}
+		if len(blockers) < 2 || e.divisionCount(blockers, power) > maxDivisionOptions {
 			continue
 		}
 		out = append(out, id)
@@ -1777,6 +1792,44 @@ func (e *Engine) divisionNeeding(pass bool) []state.ObjID {
 // with thousands of choice. An attacker whose legal divisions exceed it is
 // not asked; its damage is assigned deterministically (a Note is recorded).
 const maxDivisionOptions = 128
+
+// trampleDivisionCount returns how many trample damage assignments the
+// attacker's controller may choose (CR 702.19b): every blocker first receives
+// its lethal need, then the excess is divided among the blockers and the
+// defending player as the last recipient. It saturates above
+// maxDivisionOptions, and returns 0 when the power cannot even cover the
+// blockers' lethal needs (no legal assignment under the requested shape; the
+// deterministic fallback deals with it).
+func (e *Engine) trampleDivisionCount(blockers []state.ObjID, power int32, deathtouch bool) int {
+	var need int64
+	for _, bid := range blockers {
+		need += int64(e.lethalDamageNeed(bid, deathtouch))
+	}
+	extra := int64(power) - need
+	if extra < 0 {
+		return 0
+	}
+	return combinationSat(extra+int64(len(blockers)), int64(len(blockers)))
+}
+
+// combinationSat returns C(n, k) saturating at maxDivisionOptions+1, so a
+// caller comparing it against the cap never overflows.
+func combinationSat(n, k int64) int {
+	if k < 0 || n < 0 || k > n {
+		return 0
+	}
+	if k > n-k {
+		k = n - k
+	}
+	res := int64(1)
+	for i := int64(1); i <= k; i++ {
+		res = res * (n - k + i) / i
+		if res > int64(maxDivisionOptions) {
+			return maxDivisionOptions + 1
+		}
+	}
+	return int(res)
+}
 
 // divisionCount returns the number of nonnegative compositions of power into
 // n bins, i.e. C(power+n-1, n-1), saturating at maxDivisionOptions+1.
@@ -1949,8 +2002,13 @@ func (e *Engine) askNextDivision() bool {
 // table. Every nonnegative composition of the attacker's power into the
 // blocker count is legal under the no-order CR 510.1c (this revision removed
 // the declaration-order assignment rule), so the options enumerate them all;
-// the split table lets the answer handler recover the chosen amounts.
+// the split table lets the answer handler recover the chosen amounts. A
+// trample attacker instead gets the CR 702.19b shape (trampleDivisionOptions),
+// with the defending player as the last split table entry.
 func (e *Engine) divisionOptions(a state.ObjID) ([]decision.Option, [][]int32) {
+	if e.hasKeywordH(a, kwhTrample) && !e.isBandBlocker(a) {
+		return e.trampleDivisionOptions(a)
+	}
 	blockers := e.divisionRecipients(a)
 	pw := e.combatDamageAmount(a)
 	n := len(blockers)
@@ -1981,6 +2039,72 @@ func (e *Engine) divisionOptions(a state.ObjID) ([]decision.Option, [][]int32) {
 			}
 			label = append(label, fmt.Sprintf("%d to %s", sp[j], e.G.Obj(bid).Face().Name)...)
 		}
+		opts = append(opts, decision.Option{Index: i, Kind: "division",
+			Label: string(label), Obj: a, Player: chooser, Amount: int(sp[0])})
+	}
+	return opts, splits
+}
+
+// trampleDivisionOptions builds the CR 702.19b split table for attacker a:
+// every blocker first gets its lethal need (deathtouch: one), then the excess
+// is composed among the blockers and the defending player as the last
+// recipient. The first option is therefore "lethal to each blocker, the rest
+// tramples" -- today's deterministic assignment, and the bot first-option
+// default -- and the last gives every point to the blockers.
+func (e *Engine) trampleDivisionOptions(a state.ObjID) ([]decision.Option, [][]int32) {
+	blockers := e.divisionRecipients(a)
+	pw := e.combatDamageAmount(a)
+	dt := e.hasKeywordH(a, kwhDeathtouch)
+	need := make([]int32, len(blockers))
+	var total int32
+	for i, bid := range blockers {
+		need[i] = e.lethalDamageNeed(bid, dt)
+		total += need[i]
+	}
+	extra := pw - total
+	var splits [][]int32
+	var cur []int32
+	var rec func(remaining int32, idx int)
+	rec = func(remaining int32, idx int) {
+		if idx == len(blockers) {
+			sp := make([]int32, len(blockers)+1)
+			for j := range blockers {
+				sp[j] = need[j] + cur[j]
+			}
+			sp[len(blockers)] = remaining
+			splits = append(splits, sp)
+			return
+		}
+		for v := int32(0); v <= remaining; v++ {
+			cur = append(cur, v)
+			rec(remaining-v, idx+1)
+			cur = cur[:len(cur)-1]
+		}
+	}
+	rec(extra, 0)
+	chooser, _ := e.divisionChooser(a)
+	attacker := e.G.Obj(a)
+	defender := "the defending player"
+	if attacker.AttackingBattle != 0 {
+		if b := e.G.Obj(attacker.AttackingBattle); b != nil {
+			defender = b.Face().Name
+		}
+	} else if p := e.G.Players[attacker.Attacking]; p.Name != "" {
+		defender = p.Name
+	}
+	opts := make([]decision.Option, 0, len(splits))
+	for i, sp := range splits {
+		label := make([]byte, 0, 64)
+		for j, bid := range blockers {
+			if j > 0 {
+				label = append(label, ',')
+			}
+			label = append(label, fmt.Sprintf("%d to %s", sp[j], e.G.Obj(bid).Face().Name)...)
+		}
+		if len(blockers) > 0 {
+			label = append(label, ',')
+		}
+		label = append(label, fmt.Sprintf("%d to %s", sp[len(blockers)], defender)...)
 		opts = append(opts, decision.Option{Index: i, Kind: "division",
 			Label: string(label), Obj: a, Player: chooser, Amount: int(sp[0])})
 	}
@@ -2378,23 +2502,25 @@ func (e *Engine) damageStep(firstStrike bool) {
 					// every blocker, spilling any true excess to the
 					// defending player below).
 					//
-					// A NON-trample attacker with more than
-					// one blocker and few enough legal divisions has already
-					// had its division chosen by its controller (a CR 510.1c
-					// KChoose, collected in combatRound.done by the combat
-					// damage step machinery before this pass is dealt) -- so
-					// that controller-chosen split is used here instead of the
-					// greedy approximation. Trample's excess-to-player
-					// division is still the deterministic assignment (see
-					// divisionNeeding), and a direct-call fixture that never
-					// asked has no division recorded and keeps the greedy
-					// behaviour.
+					// An attacker with few enough legal
+					// divisions has already had its division chosen by its
+					// controller (a CR 510.1c KChoose, collected in
+					// combatRound.done by the combat damage step machinery
+					// before this pass is dealt) -- so that controller-chosen
+					// split is used here instead of the greedy approximation.
+					// A trample split (CR 702.19b) carries one extra entry,
+					// the defending player's share, after its blockers. A
+					// direct-call fixture that never asked has no division
+					// recorded and keeps the greedy behaviour.
 					if div := e.chosenDivision(aid); div != nil {
 						for i, bid := range blockers {
 							if i < len(div) && div[i] > 0 {
 								as = append(as, assignment{toObj: bid, amount: div[i],
 									lifelink: a.Controller, hasLink: link, deathtouch: dt, from: aid, infect: inf, wither: wit})
 							}
+						}
+						if trample && len(div) > len(blockers) && div[len(blockers)] > 0 {
+							damageToDefender(div[len(blockers)])
 						}
 						break
 					}
