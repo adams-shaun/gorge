@@ -1280,6 +1280,7 @@ var effectRememberedCodes = state.NewStrCodes(
 	state.StrEntry[effectRememberedCode]{Key: "TriggeredAttackerLKICopy", Val: effectRememberedRememberedLKI},
 	state.StrEntry[effectRememberedCode]{Key: "TriggeredTargetLKICopy", Val: effectRememberedRememberedLKI},
 	state.StrEntry[effectRememberedCode]{Key: "DelayTriggerRemembered", Val: effectRememberedRememberedLKI},
+	state.StrEntry[effectRememberedCode]{Key: "DelayTriggerRememberedLKI", Val: effectRememberedRememberedLKI},
 )
 
 type effectRememberedPlayersCode uint16
