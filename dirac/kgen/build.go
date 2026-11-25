@@ -728,7 +728,7 @@ func (cb *cardBuilder) record() error {
 	}
 	if c.MorphCost != nil {
 		d.MorphFamily, d.MorphLife = c.MorphFamily, c.MorphLife
-		if d.MorphCost, err = manaCostOf(*c.MorphCost); err != nil {
+		if d.MorphCost, err = cb.morphCostOf(d, c); err != nil { // lower_revealpick.go
 			return err
 		}
 		if d.MorphReduce, err = cb.value(c.MorphReduce); err != nil {
@@ -1053,7 +1053,7 @@ func (cb *cardBuilder) record() error {
 			}
 			spc.BeholdN, spc.BeholdF = 0, nil
 		}
-		sc, err := cb.cost(spc)
+		sc, err := cb.spellPartCost(d, spc) // lower_revealpick.go
 		if err != nil {
 			return err
 		}
