@@ -55,11 +55,11 @@ func submitGrantedProwessCast(t *testing.T, e *Engine, id state.ObjID) {
 // grantedProwessBoard seats Sokka and the given granted-keyword recipient on
 // seat 0's battlefield with a one-mana noncreature spell in hand, and proves
 // the grant reached the layer system before returning.
-func grantedProwessBoard(t *testing.T, recipientSrc string) (e *Engine, recipient, spell state.ObjID) {
+func grantedProwessBoard(t *testing.T, recipientCard *cards.Card) (e *Engine, recipient, spell state.ObjID) {
 	t.Helper()
 	e = newSeats(t, 2)
 	sokka := onBoardCard(t, e, 0, corpusCard(t, "Sokka, Tenacious Tactician"))
-	recipient = onBoardCard(t, e, 0, card(t, recipientSrc))
+	recipient = onBoardCard(t, e, 0, recipientCard)
 	if sokka == 0 || recipient == 0 {
 		t.Fatalf("setup cards missing: Sokka %d recipient %d", sokka, recipient)
 	}
@@ -77,14 +77,7 @@ func grantedProwessBoard(t *testing.T, recipientSrc string) (e *Engine, recipien
 // battlefield TriggerDescription$ (which the Forge driver cannot bind).
 func TestGrantedProwessTriggerLabel(t *testing.T) {
 	t.Parallel()
-	const momoSrc = "Name:Momo, Playful Pet\nManaCost:W\nTypes:Legendary Creature Lemur Bat Ally\nPT:1/1\nK:Flying\nK:Vigilance\n" +
-		"T:Mode$ ChangesZone | Origin$ Battlefield | Destination$ Any | ValidCard$ Card.Self | Execute$ TrigCharm | TriggerDescription$ When NICKNAME leaves the battlefield, ABILITY\n" +
-		"SVar:TrigCharm:DB$ Charm | Choices$ DBToken,DBPutCounter,DBScry\n" +
-		"SVar:DBToken:DB$ Token | TokenScript$ c_a_food_sac\n" +
-		"SVar:DBPutCounter:DB$ PutCounter | ValidTgts$ Creature.YouCtrl | CounterType$ P1P1\n" +
-		"SVar:DBScry:DB$ Scry | ScryNum$ 2\n" +
-		"Oracle:x\n"
-	e, momo, spell := grantedProwessBoard(t, momoSrc)
+	e, momo, spell := grantedProwessBoard(t, corpusCard(t, "Momo, Playful Pet"))
 	// Precondition: Momo's printed line 0 is the leaves-the-battlefield
 	// trigger -- the wrong line the granted trigger used to borrow.
 	trig := e.G.Obj(momo).Face().Triggers
@@ -120,7 +113,7 @@ func TestGrantedProwessNotOptionalOnOptionalRecipient(t *testing.T) {
 		"T:Mode$ ChangesZone | Origin$ Battlefield | Destination$ Any | ValidCard$ Card.Self | OptionalDecider$ You | Execute$ TrigDraw | TriggerDescription$ When NICKNAME leaves the battlefield, you may draw a card.\n" +
 		"SVar:TrigDraw:DB$ Draw | NumCards$ 1\n" +
 		"Oracle:x\n"
-	e, ally, spell := grantedProwessBoard(t, optionalAllySrc)
+	e, ally, spell := grantedProwessBoard(t, card(t, optionalAllySrc))
 	// Precondition: the recipient's printed line 0 really is optional.
 	trig := e.G.Obj(ally).Face().Triggers
 	if len(trig) == 0 || trig[0].ParamStr(cards.PKOptionalDecider) != "You" {
