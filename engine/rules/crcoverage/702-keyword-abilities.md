@@ -34,7 +34,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 702.17a-c | follows | `engine/rules/combat/block.go#CanBlock` | - |  |
 | 702.18a,b | follows | `engine/rules/protection.go#Engine.shroudBlocksTarget` `engine/rules/playerkeywords.go#Engine.playerShroudBlocksTarget` | `TestPrintedShroudWithholdsCastWhenSoleTarget` `TestLightningGreavesGrantedShroudBlocksTargeting` `TestCR702KeywordFalseGapsAreRegistered` | - |
 | 702.19a,d | follows | `engine/rules/combat.go#Engine.damageStep` `engine/rules/combat.go#Engine.lethalDamageNeed` | - | blocked-with-no-blockers trample hits player |
-| 702.19b | partial | `engine/rules/combat.go#Engine.damageStep` `engine/rules/combat.go#Engine.lethalDamageNeed` | - | excess split is never a choice: all to player |
+| 702.19b | follows | `engine/rules/combat.go#Engine.divisionNeeding` `engine/rules/combat.go#Engine.trampleDivisionOptions` `engine/rules/combat.go#Engine.damageStep` `engine/rules/combat.go#Engine.lethalDamageNeed` | `TestTrampleSingleBlockerDamageAssignmentIsAChoice` `TestTrampleAssignsExcessToThePlayer` | the controller divides the excess between the blockers and the defending player; deterministic when power cannot cover every blocker's lethal need |
 | 702.19c,e | deviates | `engine/rules/combat.go#Engine.damageStep` `engine/rules/combat.go#Engine.combatDefenderTarget` `engine/cards/face.go#KeywordHead` | - | Thrasta treated as plain trample; silent |
 | 702.19f,g | follows | `engine/rules/combat.go#Engine.combatDefenderTarget` | - |  |
 | 702.20a-c | follows | `engine/rules/combat.go#Engine.finishAttackers` `engine/rules/staging.go#NewStaged` | - |  |

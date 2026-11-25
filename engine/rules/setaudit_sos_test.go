@@ -1014,6 +1014,8 @@ func TestSetAudit_sos_QuandrixTheProof_TrampleOverkillToPlayer(t *testing.T) {
 	drainCombatPriority(t, e)
 	submitBlockersOnly(t, e, flyer)
 	drainCombatPriority(t, e)
+	// CR 702.19b: 1 lethal to the Sprite, the remaining 5 trample over.
+	submitDivision(t, e, []int32{1, 5})
 	if o := e.G.Obj(flyer); o == nil || o.Zone != state.ZGraveyard {
 		t.Errorf("trample: the 1/1 blocker should die, got %+v", o)
 	}

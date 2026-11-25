@@ -81,6 +81,9 @@ func TestLifelinkTrampleOverWithParkedHitIsOneLifeGainEvent(t *testing.T) {
 	submitAttackers(t, e, dancer)
 	start := len(e.L.Events)
 	submitBlockers(t, e, bears)
+	// CR 702.19b: choose lethal to the Bears and 2 trampling over, the split
+	// this parked-hit repro pins.
+	submitDivision(t, e, []int32{2, 2})
 	if asks := declineParkedDamageReplacements(t, e); asks != 1 {
 		t.Fatalf("damage replacement asks = %d, want 1 (the trample hit parked)", asks)
 	}
