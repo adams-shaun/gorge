@@ -907,6 +907,13 @@ type DelayedTrigger struct {
 	ForgetCounter  string
 	ForgetOnCast   string
 	ImprintOnHost  bool
+	// ForgetOnPhasedIn is Forge's Effect ForgetOnPhasedIn$ True (CR 702.25's
+	// "phased out until ..." comeback family, The Pandorica): a remembered
+	// permanent that phases in leaves this registration's capture, and an
+	// emptied capture retires the registration, so the comeback body (a
+	// toggling `DB$ Phases | PhaseInOrOut$ True`) never phases the returned
+	// permanent out again. Rides the DelayedRegister Text as a "|FP" tail.
+	ForgetOnPhasedIn bool
 	// SourceIncarnation is captured for keyword promises whose effect applies
 	// to that exact permanent (dash/warp). Ordinary CR 603.7 delayed triggers,
 	// including Encore's group cleanup, intentionally leave TrackSource false:
