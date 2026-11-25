@@ -471,6 +471,9 @@ func (s *State) snowWordPerm(k *prep, fl *kop.Filter, sl Slot) bool {
 	if n == kop.W7WithoutFlanking {
 		return s.lacksFlankingPerm(k, sl) // filter_flanking.go
 	}
+	if n == kop.W7GreatestMVArtifact {
+		return s.greatestMVArtifact(k, sl) != DebugWord7Flip // filter_greatestmv.go
+	}
 	if n == kop.W7WithDevoid {
 		// gorge withDevoid on a battlefield object: the printed keyword, none
 		// while face down or after a lose-all-abilities effect

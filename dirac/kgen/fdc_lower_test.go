@@ -7,8 +7,8 @@ import "testing"
 // "Planeswalker.Ugin" target (a planeswalker subtype, CR 205.3j), Fateful
 // Absence's Investigate Defined$ TargetedController, Ram Through's trampling
 // excess, Endless Atlas' Count$MostCardName, Tangleweave Armor's every-zone
-// commander mana value.
-var fdcLowered = []string{"Haven of the Spirit Dragon", "Fateful Absence", "Ram Through", "Endless Atlas", "Tangleweave Armor"}
+// commander mana value, Padeem's greatestCMC_Artifact.
+var fdcLowered = []string{"Haven of the Spirit Dragon", "Fateful Absence", "Ram Through", "Endless Atlas", "Tangleweave Armor", "Padeem, Consul of Innovation"}
 
 // TestFDCLoweredCards lowers them in one corpus pool (its type vocabulary
 // read, as the pool tables' build reads it), each with no refusal.

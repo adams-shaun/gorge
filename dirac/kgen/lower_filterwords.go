@@ -118,6 +118,10 @@ func filterWordPred3(p string) (n int, ok bool) {
 		return int(kop.W7WithInfect), true
 	case "withoutFlanking":
 		return int(kop.W7WithoutFlanking), true // the flanking trigger's blocker filter (CR 702.25a)
+	case "greatestCMC_Artifact":
+		// gorge greatestCMC_<prop> over the Artifact set, no ControlledBy
+		// (kop.W7GreatestMVArtifact; dirac/filter_greatestmv.go)
+		return int(kop.W7GreatestMVArtifact), true
 	case "withDevoid":
 		return int(kop.W7WithDevoid), true // the same read for Devoid (a spell restriction's Spell.withDevoid)
 	case "withSkulk":
