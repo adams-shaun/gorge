@@ -208,7 +208,7 @@ var manaReflectedKnownKeys = [...]string{
 	"PresentZone",
 	"PrimaryPrompt",
 	"Produced",
-	"RandomNumTargets",
+	"RaiseCost", "RandomNumTargets",
 	"ReduceAmount",
 	"ReduceCost",
 	"ReflectProperty",
