@@ -676,7 +676,7 @@ func creatureTypeFallback(g *state.Game, controller state.PlayerID) string {
 		}
 		for _, t := range f.Types {
 			if CreatureTypeWords(t) {
-				fallback = CreatureTypeListWords(t)[0]
+				fallback = t
 				break
 			}
 		}
