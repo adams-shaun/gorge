@@ -1632,6 +1632,17 @@ func (lc *lowerCtx) countValue(rest string, depth int) (lValue, error) {
 		}
 		return lValue{Kind: vSum, Sub: []lValue{{Kind: zc.kind[0], F: f}, {Kind: zc.kind[1], F: f}}}, nil
 	}
+	if spec, ok := strings.CutPrefix(rest, "MostCardName "); ok {
+		// gorge countMostCardName: the greatest number of battlefield
+		// objects matching spec that share one face name (Endless Atlas'
+		// "three or more lands with the same name"); kernel ExValidAgg
+		// AggMostName
+		f, err := lc.filter(strings.TrimSpace(spec))
+		if err != nil {
+			return lValue{}, err
+		}
+		return lValue{Kind: vValidAgg, N: kop.AggMostName, F: f}, nil
+	}
 	if strings.HasPrefix(rest, "Valid ") || strings.HasPrefix(rest, "ValidGraveyard ") {
 		kind := vCount
 		expr := strings.TrimPrefix(rest, "Valid ")

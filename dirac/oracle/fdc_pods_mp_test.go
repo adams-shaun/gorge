@@ -33,7 +33,6 @@ var fdcRefused = []string{
 	"Cut a Deal",
 	"Dragonhawk, Fate's Tempest",
 	"Emeria Shepherd",
-	"Endless Atlas",
 	"Ezuri's Predation",
 	"Goddric, Cloaked Reveler",
 	"Hit the Mother Lode",

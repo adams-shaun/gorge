@@ -6,8 +6,8 @@ import "testing"
 // a root cause of the fdc lane retired: Haven of the Spirit Dragon's
 // "Planeswalker.Ugin" target (a planeswalker subtype, CR 205.3j), Fateful
 // Absence's Investigate Defined$ TargetedController, Ram Through's trampling
-// excess.
-var fdcLowered = []string{"Haven of the Spirit Dragon", "Fateful Absence", "Ram Through"}
+// excess, Endless Atlas' Count$MostCardName.
+var fdcLowered = []string{"Haven of the Spirit Dragon", "Fateful Absence", "Ram Through", "Endless Atlas"}
 
 // TestFDCLoweredCards lowers them in one corpus pool (its type vocabulary
 // read, as the pool tables' build reads it), each with no refusal.
