@@ -597,6 +597,13 @@ func (s *State) runReplProgAs(k *prep, sl Slot, c CardID, ab, pc uint8, src Slot
 				// a Draw replacement body's ordinary effect op: exec falls
 				// through to the core executor when execGen does not claim it
 				if !s.exec(k, in) {
+					// the op posed an ask on the borrowed resCtx (a dredge
+					// choice before a body card): the body cannot be resumed
+					// from there and restoring the outer context wipes the
+					// ask, so declare the gap rather than drop the body
+					if s.res.ask != raNone {
+						s.capFull(StallDredge)
+					}
 					if !saved.active || isDrawProgram {
 						s.res = saved
 					}

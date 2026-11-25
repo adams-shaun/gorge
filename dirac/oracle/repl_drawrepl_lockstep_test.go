@@ -9,9 +9,10 @@ import (
 
 // The ReplDrawProgram lockstep pool: the Draw replacements whose
 // ReplaceWith$ body is a draw, a life change or a token (Blood Scrivener,
-// Hullbreacher, Notion Thief) and the bodyless Prevent$ skip (Possessed
-// Portal). Each pair puts the one replacement on seat 0 and plays a vanilla
-// seat 1, so one draw never meets two replacements (the kernel stalls a
+// Hullbreacher, Notion Thief). The bodyless Prevent$ skip (Possessed Portal)
+// has no deck here: no pair reached its skip (the mutation never diverged in
+// 200 seeds), so a pair would be vacuous evidence. Each pair puts the one replacement on
+// seat 0 and plays a vanilla seat 1, so one draw never meets two replacements (the kernel stalls a
 // competition instead of picking the CR 616.1 order).
 var kdrawReplDecks = map[string][2][]cardset.Entry{
 	"scrivener": {
@@ -32,12 +33,6 @@ var kdrawReplDecks = map[string][2][]cardset.Entry{
 	"hullbreacher": {
 		{{Name: "Hullbreacher", Count: 1}, {Name: "Grizzly Bears", Count: 8}, {Name: "Hill Giant", Count: 4},
 			{Name: "Divination", Count: 4}, {Name: "Island", Count: 12}, {Name: "Forest", Count: 11}},
-		{{Name: "Grizzly Bears", Count: 12}, {Name: "Hill Giant", Count: 8},
-			{Name: "Divination", Count: 4}, {Name: "Island", Count: 8}, {Name: "Forest", Count: 8}},
-	},
-	"portal": {
-		{{Name: "Possessed Portal", Count: 1}, {Name: "Grizzly Bears", Count: 8}, {Name: "Hill Giant", Count: 4},
-			{Name: "Island", Count: 12}, {Name: "Swamp", Count: 15}},
 		{{Name: "Grizzly Bears", Count: 12}, {Name: "Hill Giant", Count: 8},
 			{Name: "Divination", Count: 4}, {Name: "Island", Count: 8}, {Name: "Forest", Count: 8}},
 	},
