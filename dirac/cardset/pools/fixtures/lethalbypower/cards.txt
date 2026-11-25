@@ -1,0 +1,12 @@
+# Continuous LethalDamageByPower$ True, lethal damage judged by power
+# (Zilortha, Strength Incarnate; kop.StatLethalByPower, kernel
+# static_lethalbypower.go, gorge LethalDamageThreshold), beside creatures
+# whose power and toughness differ and burn, for the oracle's constructed
+# lockstep (dirac/oracle/setsparams3_lowers_test.go)
+Zilortha, Strength Incarnate
+Grizzly Bears
+Wall of Wood
+Hill Giant
+Lightning Bolt
+Mountain
+Forest

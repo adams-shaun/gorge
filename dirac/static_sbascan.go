@@ -41,15 +41,24 @@ func (s *State) sbaScan(k *prep, r *sbaMasks) (busy bool) {
 				p.ovr.flags&(ovSetPT|ovSetPTEOT|ovCopy) == 0 && k.cards[p.card].tough > 0 {
 				goto noncreature
 			}
-			_, tough := s.pt(k, sl)
+			pw, tough := s.pt(k, sl)
 			if tough <= 0 {
 				die = die.with(sl)
 				gy = gy.with(sl)
 				continue
 			}
+			lethal := tough
+			if k.gen != nil && k.gen.anyLethalPow && p.damage > 0 {
+				// LethalDamageByPower$ (static_lethalbypower.go): the
+				// threshold reads power, which the clean-scan key was not
+				// built around: never a cached clean scan
+				busy = true
+				lethal = s.lethalThreshold(k, sl, pw, tough)
+			}
 			// The deathtouch mark alone is lethal (CR 704.5h): a wither or
-			// infect hit marks no damage (gorge destroyLethalDamage).
-			if (int(p.damage) >= tough || p.flags&pfDeathtouched != 0) &&
+			// infect hit marks no damage (gorge destroyLethalDamage). No
+			// marked damage is never lethal, whatever the threshold.
+			if (p.damage > 0 && int(p.damage) >= lethal || p.flags&pfDeathtouched != 0) &&
 				s.kw(k, sl)&kop.KwIndestructible == 0 {
 				busy = true // destroyLine and the regeneration read the replacements: never a cached clean scan
 				if r := s.destroyLine(k, sl, true); r != drNone {

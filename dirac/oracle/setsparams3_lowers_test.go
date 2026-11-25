@@ -247,3 +247,57 @@ func TestNoColoredManaMutation(t *testing.T) {
 		t.Error("no divergence with the NoColoredMana$ gate off")
 	}
 }
+
+// The LethalDamageByPower$ lockstep: under Zilortha, Strength Incarnate a
+// creature its controller controls dies to damage equal to its power, not its
+// toughness (gorge LethalDamageThreshold; kernel kop.StatLethalByPower):
+// Zilortha itself (7/3) survives a Lightning Bolt, Wall of Wood (0/3) dies to
+// any damage. The red-green decks fight with burn and creatures of unequal
+// power and toughness.
+var sp3LethalDecks = [2][]cardset.Entry{
+	{{Name: "Zilortha, Strength Incarnate", Count: 8}, {Name: "Grizzly Bears", Count: 6}, {Name: "Wall of Wood", Count: 4}, {Name: "Hill Giant", Count: 4}, {Name: "Mountain", Count: 9}, {Name: "Forest", Count: 9}},
+	{{Name: "Lightning Bolt", Count: 8}, {Name: "Hill Giant", Count: 8}, {Name: "Grizzly Bears", Count: 6}, {Name: "Mountain", Count: 9}, {Name: "Forest", Count: 9}},
+}
+
+// sp3LethalLive: on gorge's battlefield a creature carries marked damage at
+// least its toughness and is still alive (its lethal threshold is its power).
+func sp3LethalLive(ref *GorgeSide) bool {
+	e := ref.E
+	for _, p := range e.G.AliveFrom(0) {
+		for _, id := range e.G.Zone(state.ZBattlefield, p) {
+			if o := e.G.Obj(id); o != nil && o.Damage > 0 && e.IsCreature(id) && o.Damage >= e.Toughness(id) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// TestLethalByPowerLowers: random and explore policies, no divergence and no
+// unmodelled stall, and on gorge's side a creature survived damage at least
+// its toughness under the static.
+func TestLethalByPowerLowers(t *testing.T) {
+	if isolate(t) {
+		return
+	}
+	_, a := sp3Run(t, "lethalbypower", sp3LethalDecks, pkPolicy, 24, false, nil, sp3LethalLive)
+	_, b := sp3Run(t, "lethalbypower", sp3LethalDecks, ExplorePolicy, 24, false, nil, sp3LethalLive)
+	t.Logf("a creature survived toughness-lethal damage in %d random and %d explore games", a, b)
+	if a+b < 3 {
+		t.Errorf("the power threshold was live in %d games, want at least 3", a+b)
+	}
+}
+
+// TestLethalByPowerMutation: with the static ignored
+// (dirac.DebugLethalByPowerOff) the kernel reads toughness and diverges, so
+// TestLethalByPowerLowers does not pass vacuously.
+func TestLethalByPowerMutation(t *testing.T) {
+	if isolate(t) {
+		return
+	}
+	dirac.DebugLethalByPowerOff = true
+	defer func() { dirac.DebugLethalByPowerOff = false }()
+	if d, _ := sp3Run(t, "lethalbypower", sp3LethalDecks, ExplorePolicy, 24, true, nil, sp3LethalLive); d == nil {
+		t.Error("no divergence with the power threshold off")
+	}
+}

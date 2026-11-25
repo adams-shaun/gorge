@@ -131,6 +131,7 @@ type genPrep struct {
 	anyNoPrev                bool // a StatCantPreventDamage static, printed or on an emblem (static_cantprevent.go)
 	anyTypeCreat             bool // a StatAnyTypeCreatures static (mana_convertcreature.go)
 	anyCdmgTough             bool // a card has a StatCombatDmgToughness static (combat_toughnessassign.go)
+	anyLethalPow             bool // a card has a StatLethalByPower static (static_lethalbypower.go)
 	anyOvGateStat            bool // a card has an OvGate-gated static a grant record switches on (static_ovgate.go)
 	anyDisETB                bool // a card has a DisableTriggers enters static (kop.StatDisableETB; trig_disable.go)
 	anyLatentDies            bool // a card has a latent dies trigger an override or static can grant (trig_diesleaves.go)
@@ -1034,8 +1035,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepStackKw(t, g, p) // static_stackkeyword.go
 	g.anyExper = tableGainsExper(t)
 	g.anyCdmgTough = tableHasStatic(t, kop.StatCombatDmgToughness)
-	g.anyOffZonePT = tableHasStatic(t, kop.StatOffZonePT) // static_offzonept.go
-	prepAsgnGrant(t, g)                                   // combat_asgngrant.go: sets anyExHaste, and anyCdmgTough for a toughness grant
+	g.anyLethalPow = tableHasStatic(t, kop.StatLethalByPower) // static_lethalbypower.go
+	g.anyOffZonePT = tableHasStatic(t, kop.StatOffZonePT)     // static_offzonept.go
+	prepAsgnGrant(t, g)                                       // combat_asgngrant.go: sets anyExHaste, and anyCdmgTough for a toughness grant
 	g.anyOvGateStat = tableHasOvGate(t)
 	g.anyRaise = tableRaises(t)
 	g.anyRaiseLife = tableRaiseLife(t)

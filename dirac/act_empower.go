@@ -382,6 +382,6 @@ func (s *State) excessLethalGen(k *prep, sl Slot) int {
 	if s.typesAt(k, sl)&kop.TPlaneswalker != 0 && !s.isCreature(k, sl) {
 		return s.perms[sl].ctrLow(int(kop.CtrLoyalty))
 	}
-	_, t := s.ptGen(k, sl)
-	return t - int(s.perms[sl].damage)
+	pw, t := s.ptGen(k, sl)
+	return s.lethalThreshold(k, sl, pw, t) - int(s.perms[sl].damage)
 }

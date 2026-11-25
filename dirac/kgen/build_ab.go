@@ -2477,6 +2477,11 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
 			return ka, nil, err
 		}
+	case "LethalByPower":
+		st.Kind = kop.StatLethalByPower // static_lethalbypower.go
+		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
+			return ka, nil, err
+		}
 	case "ProtYourColors":
 		st.Kind = kop.StatProtYourColors // kw_protyours.go
 		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
