@@ -1595,7 +1595,13 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 			}
 			conds = append(conds, c)
 		} else {
+			// an Attacks trigger's CheckSVar$ reads DefenderCtrl as its
+			// IsPresent$ does (Aerial Surveyor's Land.DefenderCtrl): gorge's
+			// checkSVarGateHolds evaluates it with the trigger's
+			// TriggerContext, whose DefendingPlayer the event bound
+			lc.atkPresent = tr.Event == "Attacks"
 			v, err := lc.value(cs)
+			lc.atkPresent = false
 			if err != nil {
 				return err
 			}

@@ -1632,6 +1632,9 @@ func (lc *lowerCtx) countValue(rest string, depth int) (lValue, error) {
 		}
 		return lValue{Kind: vSum, Sub: []lValue{{Kind: zc.kind[0], F: f}, {Kind: zc.kind[1], F: f}}}, nil
 	}
+	if v, ok, err := lc.multiZoneCount(rest); ok { // value_multizone.go
+		return v, err
+	}
 	if strings.HasPrefix(rest, "Valid ") || strings.HasPrefix(rest, "ValidGraveyard ") {
 		kind := vCount
 		expr := strings.TrimPrefix(rest, "Valid ")
@@ -1670,11 +1673,12 @@ func (lc *lowerCtx) countValue(rest string, depth int) (lValue, error) {
 				// ExCount N=1
 				kind = vPWTypes
 			default:
-				if ck, ok := strings.CutPrefix(agg, "CardCounters."); ok && ck != "ALL" {
-					// gorge zoneFold: CardCounters.<KIND> sums o.Counter(kind).
-					// ALL (every kind) has no kernel read (refCounters takes
-					// one kind) and keeps refusing below.
-					if _, kerr := counterKind(ck); kerr != nil {
+				if ck, ok := strings.CutPrefix(agg, "CardCounters."); ok {
+					// gorge zoneFold: CardCounters.<KIND> sums o.Counter(kind);
+					// ALL sums every kind (Object.Counter("ALL"), Backstreet
+					// Bruiser): build interns it as kop.CtrAll, which the
+					// kernel's fold reads as permCountersAll
+					if _, kerr := counterKind(ck); kerr != nil && ck != "ALL" {
 						return lValue{}, fmt.Errorf("Count$Valid aggregate %q", agg)
 					}
 					f, err := lc.filter(e)

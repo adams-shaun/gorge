@@ -58,6 +58,13 @@ func (s *State) refCountersAll(x *kop.Expr, r kop.Ref, ctx evalCtx) int {
 		}
 		sl = s.objs[o].slot
 	}
+	return s.permCountersAll(sl)
+}
+
+// permCountersAll is every counter on the permanent in slot sl summed, the
+// Class level left out (refCountersAll; the ExValidAgg AggSumCounters fold
+// with Ctr CtrAll, gorge zoneCountFold's CardCounters.ALL).
+func (s *State) permCountersAll(sl Slot) int {
 	p := &s.perms[sl]
 	n := int(p.p1)
 	for i := range p.ck {

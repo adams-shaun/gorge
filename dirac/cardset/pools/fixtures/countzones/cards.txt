@@ -1,0 +1,18 @@
+# the count-head pool: Count$Valid ...$CardCounters.ALL (Backstreet Bruiser,
+# Maester Seymour), multi-zone Count$Valid<Z1>,<Z2> heads (Frenzied
+# Geistblaster, Machinist's Dismissal, Candlekeep Inspiration) and an Attacks
+# trigger's CheckSVar$ over DefenderCtrl (Aerial Surveyor), for the oracle's
+# constructed lockstep (dirac/oracle/countzones_lockstep_test.go)
+Aerial Surveyor
+Backstreet Bruiser
+Candlekeep Inspiration
+Forest
+Frenzied Geistblaster
+Grizzly Bears
+Island
+Machinist's Dismissal
+Maester Seymour
+Mountain
+Ornithopter
+Plains
+Shock

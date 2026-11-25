@@ -93,6 +93,10 @@ func (s *State) validAgg(k *prep, x *kop.Expr, ctx evalCtx) int {
 			}
 			continue
 		case kop.AggSumCounters:
+			if x.Ctr == kop.CtrAll {
+				n += s.permCountersAll(sl) // gorge CardCounters.ALL (Object.Counter("ALL"))
+				continue
+			}
 			n += s.perms[sl].ctrN(s, int(x.Ctr)) // CR 122.1
 			continue
 		}

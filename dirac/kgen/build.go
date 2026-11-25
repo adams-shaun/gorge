@@ -2564,7 +2564,7 @@ func (cb *cardBuilder) expr(v lValue) (kop.Expr, error) {
 			return e, err
 		}
 	}
-	if v.Kind == vCountersOn && v.S == "ALL" {
+	if (v.Kind == vCountersOn || v.Kind == vValidAgg) && v.S == "ALL" {
 		e.Ctr = kop.CtrAll // Count$CardCounters.ALL: every kind summed (kernel refCounters)
 	} else if v.S != "" && v.Kind != vRememberedCount && v.Kind != vSVarNum { // vRememberedCount's S is the ctx marker (value.go), not a counter kind
 		if e.Ctr, err = counterKind(v.S); err != nil {
