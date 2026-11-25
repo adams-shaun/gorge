@@ -297,6 +297,9 @@ func compileSpec(spec string) *compiledSpec {
 			continue
 		}
 		base, rest, _ := strings.Cut(alt, ".")
+		if b, r, ok := canProduceSameManaTypeContextBase(base, rest); ok {
+			base, rest = b, r
+		}
 		a := compiledAlt{
 			base:               base,
 			cardname:           base == "CARDNAME",
@@ -677,6 +680,7 @@ var specialPositiveTokenSet = state.NewNameSet(
 	"CanBeTargetedByTriggeredSpellAbility",
 	"TriggeredNewCard",
 	"TriggeredCard",
+	"canProduceSameManaTypeWith",
 	"TriggeredCards",
 	"TriggeredTarget",
 	"TriggeredDefender",
