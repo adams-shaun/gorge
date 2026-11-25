@@ -143,6 +143,12 @@ func noResolvingCheck(t cards.Trigger) bool {
 // is safe to call with no context for a trigger whose mode evaluates them
 // itself (the fire-time general gate passes nil for exactly that reason).
 func (e *Engine) triggerResolvingCheckHolds(t cards.Trigger, source state.ObjID, controller state.PlayerID, tc *effects.TriggerContext, ownedSVars map[string]string) bool {
+	// A trailing-if CheckSVar$ (Laboratory Drudge) is part of the effect, not
+	// an intervening-if: it is read here and only here, whatever
+	// NoResolvingCheck$ says about the line's other clauses.
+	if t.CheckSVarIsTrailingIf() && !e.checkSVarGateHolds(t, source, controller, tc, ownedSVars) {
+		return false
+	}
 	if noResolvingCheck(t) {
 		return true
 	}
@@ -426,47 +432,8 @@ func (e *Engine) triggerConditionHoldsWithSVars(t cards.Trigger, source state.Ob
 			}
 		}
 	}
-	if name, ok := t.Param(cards.PKCheckSVar); ok {
-		// CheckSVar$/SVarCompare$ (Kozilek, the Great Distortion's cast
-		// trigger: "if you have fewer than seven cards in hand"): the
-		// CR 603.4 intervening-if the shared SVar-compare evaluator reads,
-		// evaluated with the source face's SVar table and the trigger's
-		// "you" -- the same wrapper rules' static gate uses. A condition
-		// this build cannot evaluate fails closed (the trigger does not
-		// fire), the same convention triggerConditionHolds' other clauses
-		// document above.
-		src := e.G.Obj(source)
-		if (src == nil || src.Face() == nil) && ownedSVars == nil {
-			return false
-		}
-		// A mutated pile's under-card trigger (CR 702.140d) is gated by the
-		// UNDER-CARD's own SVar table: Face() on a pile is always its top
-		// card, and the top card of a mutate pile can be any creature, so
-		// reading its table would evaluate the gate against a body it never
-		// defined (failing closed, i.e. silently never firing). An ordinary
-		// trigger's owning face IS the top face, so nothing else moves.
-		svars := ownedSVars
-		if svars == nil {
-			svars = src.Face().SVars
-			if mf := e.faceOwningTrigger(source, t); mf != nil {
-				svars = mf.SVars
-			}
-		}
-		// Remembered$Amount in the gate (Coffin Queen, Krovikan Vampire) counts
-		// the source's persistent list; a resolution-time re-check reads the
-		// fire-time snapshot when the source re-entered (CR 400.7).
-		var tcv effects.TriggerContext
-		if tc != nil {
-			tcv = *tc
-		}
-		remembered := conditionRemembered(e.G, tcv, src)
-		// X reads what the body reads: the fire-time capture (CR 107.3m), which
-		// outlives a source that left before the recheck.
-		ctx := effects.NewCtxPtr(source, you, effects.CtxInit{SVars: svars, TriggerContext: tcv, Remembered: remembered, X: tcv.TriggerPaidX})
-		holds, evaluated := effects.CheckSVarHolds(e, ctx, name, strings.TrimSpace(t.ParamStr(cards.PKSVarCompare)))
-		if !evaluated || !holds {
-			return false
-		}
+	if !t.CheckSVarIsTrailingIf() && !e.checkSVarGateHolds(t, source, you, tc, ownedSVars) {
+		return false
 	}
 	if spec, ok := t.Param(cards.PKCheckDefinedPlayer); ok && !e.checkDefinedPlayerHolds(spec, source, you) {
 		// CR 603.4 intervening-if (Servant of the Stinger's "if you've
@@ -1001,3 +968,52 @@ var lifeConditionHoldsAsCodes = state.NewStrCodes(
 	state.StrEntry[lifeConditionHoldsAsCode]{Key: "You", Val: lifeConditionHoldsAsYou},
 	state.StrEntry[lifeConditionHoldsAsCode]{Key: "ActivePlayer", Val: lifeConditionHoldsAsActivePlayer},
 )
+
+// checkSVarGateHolds evaluates a T: line's CheckSVar$/SVarCompare$ clause; an
+// absent clause is vacuously true. triggerConditionHoldsWithSVars reads it as
+// the CR 603.4 intervening-if; a trailing-if trigger
+// (cards.Trigger.CheckSVarIsTrailingIf) reads it only as it resolves.
+func (e *Engine) checkSVarGateHolds(t cards.Trigger, source state.ObjID, you state.PlayerID, tc *effects.TriggerContext, ownedSVars map[string]string) bool {
+	name, ok := t.Param(cards.PKCheckSVar)
+	if !ok {
+		return true
+	}
+	// CheckSVar$/SVarCompare$ (Kozilek, the Great Distortion's cast
+	// trigger: "if you have fewer than seven cards in hand"): the
+	// CR 603.4 intervening-if the shared SVar-compare evaluator reads,
+	// evaluated with the source face's SVar table and the trigger's
+	// "you" -- the same wrapper rules' static gate uses. A condition
+	// this build cannot evaluate fails closed (the trigger does not
+	// fire), the same convention triggerConditionHolds' other clauses
+	// document above.
+	src := e.G.Obj(source)
+	if (src == nil || src.Face() == nil) && ownedSVars == nil {
+		return false
+	}
+	// A mutated pile's under-card trigger (CR 702.140d) is gated by the
+	// UNDER-CARD's own SVar table: Face() on a pile is always its top
+	// card, and the top card of a mutate pile can be any creature, so
+	// reading its table would evaluate the gate against a body it never
+	// defined (failing closed, i.e. silently never firing). An ordinary
+	// trigger's owning face IS the top face, so nothing else moves.
+	svars := ownedSVars
+	if svars == nil {
+		svars = src.Face().SVars
+		if mf := e.faceOwningTrigger(source, t); mf != nil {
+			svars = mf.SVars
+		}
+	}
+	// Remembered$Amount in the gate (Coffin Queen, Krovikan Vampire) counts
+	// the source's persistent list; a resolution-time re-check reads the
+	// fire-time snapshot when the source re-entered (CR 400.7).
+	var tcv effects.TriggerContext
+	if tc != nil {
+		tcv = *tc
+	}
+	remembered := conditionRemembered(e.G, tcv, src)
+	// X reads what the body reads: the fire-time capture (CR 107.3m), which
+	// outlives a source that left before the recheck.
+	ctx := effects.NewCtxPtr(source, you, effects.CtxInit{SVars: svars, TriggerContext: tcv, Remembered: remembered, X: tcv.TriggerPaidX})
+	holds, evaluated := effects.CheckSVarHolds(e, ctx, name, strings.TrimSpace(t.ParamStr(cards.PKSVarCompare)))
+	return evaluated && holds
+}
