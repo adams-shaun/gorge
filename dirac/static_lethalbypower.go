@@ -20,7 +20,7 @@ var DebugLethalByPowerOff bool
 // its power pw under a StatLethalByPower static, else its toughness t (the
 // caller's P/T read).
 func (s *State) lethalThreshold(k *prep, sl Slot, pw, t int) int {
-	if k.gen == nil || !k.gen.anyLethalPow || DebugLethalByPowerOff {
+	if k.gen == nil || !k.gen.uses.has(useLethalPow) || DebugLethalByPowerOff {
 		return t
 	}
 	if s.staticFlagGen(k, kop.StatLethalByPower, sl) {
@@ -28,3 +28,7 @@ func (s *State) lethalThreshold(k *prep, sl Slot, pw, t int) int {
 	}
 	return t
 }
+
+// useLethalPow: a card of the table has a StatLethalByPower static (a genPrep
+// use bit, not a field: TestNoNewFixedStateFields).
+var useLethalPow = newGenUse(func(t *kop.Table) bool { return tableHasStatic(t, kop.StatLethalByPower) })
