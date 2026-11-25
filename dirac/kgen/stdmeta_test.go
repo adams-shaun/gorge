@@ -16,7 +16,7 @@ import (
 // DIRAC_PIN_STRICT=1 a rise passes, so a ticket need not edit this line; the
 // regen PR (scripts/regen-main.sh) carries the rise to main.
 const (
-	stdMetaSupportedPin, stdMetaRefusedPin = 457, 43
+	stdMetaSupportedPin, stdMetaRefusedPin = 459, 41
 )
 
 // stdMetaPinRow matches that const line; only the two numbers are replaced.
