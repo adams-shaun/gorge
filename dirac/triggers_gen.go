@@ -717,7 +717,7 @@ func (s *State) fireDamageEvGen(k *prep, src Slot, amt int16, toPlayer, combat b
 			s.fireGraveDamage(k, src, s.perms[src].obj, s.perms[src].ctrl, amt, s.dmgPlayers(toPlayer, s.perms[src].ctrl, rcp), combat, rcp)
 		}
 		if k.gen.embCombatEv&(1<<kop.TrigDamageDone) != 0 {
-			s.fireEmblemsDmg(k, src, amt, toPlayer, combat, rcp, false, latch)
+			s.fireEmblemsDmg(k, src, amt, toPlayer, combat, rcp, false, latch, rl)
 		}
 		return
 	}
@@ -813,7 +813,7 @@ func (s *State) fireDamageEvGen(k *prep, src Slot, amt int16, toPlayer, combat b
 		s.fireGraveDamage(k, src, srcObj, srcCtrl, amt, s.dmgPlayers(toPlayer, srcCtrl, rcp), combat, rcp)
 	}
 	if k.gen.embCombatEv&(1<<kop.TrigDamageDone) != 0 {
-		s.fireEmblemsDmg(k, src, amt, toPlayer, combat, rcp, true, latch)
+		s.fireEmblemsDmg(k, src, amt, toPlayer, combat, rcp, true, latch, rl)
 	}
 }
 
@@ -903,7 +903,7 @@ func (s *State) fireDamageSrc(k *prep, o Obj, ctrl uint8, amt int16, plM uint8, 
 		s.fireGraveDamage(k, NoSlot, o, ctrl, amt, plM, false, rcp)
 	}
 	if k.gen.embCombatEv&(1<<kop.TrigDamageDone) != 0 && (rl == nil || !rl.agg) {
-		s.fireEmblemsDmgSpell(k, o, ctrl, amt, toPlayer, rcp) // trig_effectuntileot.go: Arcbond's emblem, damaged by a spell
+		s.fireEmblemsDmgSpell(k, o, ctrl, amt, toPlayer, rcp, rl) // trig_effectuntileot.go: Arcbond's emblem, damaged by a spell
 	}
 	for _, ev := range evs {
 		if s.subs[ev].any() {
