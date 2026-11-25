@@ -182,6 +182,7 @@ type lowerCtx struct {
 	spellBaseOK    bool      // the filter being read is a ReduceCost ValidTarget$: a Spell head may lower (lower_trigger.go)
 	trigBodyCost   bool      // the cost parser is reading a printed trigger's own body Cost$ (PayLife<X> by a value, lowerCtx.effect)
 	trigOwnCost    bool      // payInstr: the cost is a printed trigger's own Cost$ (first instruction of its body)
+	trigPayBody    bool      // the chain is lowering under a printed trigger's own IfPaid gate (Jubilant Mascot's body): support announces its targets at push
 	trigXMax       *lValue   // payInstr: the XMax$ cap of a trigger's own announced {X} cost (Shanna); nil = none read
 	trigRemX       bool      // the ImmediateTrigger's RememberSVarAmount$ X is the announced X (lower_zone.go immediateTrigger)
 	trigXPaid      bool      // the body's Count$xPaid is that announced X (set once the PayManaX cost lowered)
@@ -623,8 +624,10 @@ func (lc *lowerCtx) lowerTail() {
 	lc.refuseMayFlashCombos()
 	lc.refuseEvokeCombos()
 	lc.refuseDashCombos()          // lower_dash.go
+	lc.refuseBlitzCombos()         // lower_blitz.go
 	lc.refuseMultikickerCombos()   // K:Multikicker beside another cast route
 	lc.refuseRepeatedCombos()      // K:Squad / K:Replicate (lower_squadreplicate.go)
+	lc.refuseConspireCombos()      // K:Conspire (lower_squadreplicate.go)
 	lc.refuseSuspendCombos()       // lower_suspend.go
 	lc.refuseForetellCombos()      // lower_foretell.go
 	lc.refuseSweepTgtPlayerMulti() // lower_sweeptargetplayer.go

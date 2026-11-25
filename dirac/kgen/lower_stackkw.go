@@ -47,7 +47,8 @@ import (
 //     CardDef.SplitSecond and reads the same gate (lower_splitsecond.go).
 //   - Conspire lowers to Kind "StackKw" too, read at cast time like Storm: the
 //     conspired cast (kernel kw_conspire.go) taps two creatures sharing a
-//     colour with the spell and copies it. The printed K:Conspire stays refused.
+//     colour with the spell and copies it. A printed K:Conspire is CardDef.Conspire
+//     (lower_squadreplicate.go), its copy the keyword's own trigger.
 //   - Delve lowers to Kind "StackKw" too: the cast announces graveyard cards
 //     to exile toward its generic cost (CR 702.66a; kernel kw_delve.go), read
 //     as the spell is cast. A cast-from-hand restriction is legal; a printed
