@@ -120,7 +120,8 @@ func (lc *lowerCtx) libTopLook(sp *params, st *lStatic, aff string) error {
 			// the permission lowers on through mayPlayStatic, which reads
 			// the AffectedZone$ itself (the library-top rules)
 			sp.consume("MayLookAt")
-			return lc.mayPlayStatic(sp, st, aff)
+			_, err := lc.mayPlayStatic(sp, st, aff)
+			return err
 		}
 		sp.consume("AffectedZone")
 		st.Kind = "" // view-only: lower to nothing
