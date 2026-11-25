@@ -13,6 +13,22 @@ import (
 // first option. A walk is payWindow's (or its ward fork's) when it is noOwed
 // with no clamp, no any-colour rider and no potential pricing.
 
+// walkColNoOwed is the noOwed windowWalkCol reads for windowTapWalk's plain tap:
+// the walk's own noOwed, and also the colour ask of a one-ability source in
+// xWindowPay's walk (payAsk). gorge pays an announced-X activation through its
+// ordinary window (manaWindowAsk): neither the source list nor the colour ask
+// that follows an activation carries a ManaPayment, and with no announced
+// hybrid pip and no fallen-back plan (rules.PendingCastOwed is not ok for an
+// activation) the oracle's answer owes nothing (windowOwed) and takes the
+// lowest colour listed (payexec.WindowAnswer): Arcane Signet under a Naya
+// commander answers {W} for Kessig Wolf Run's {X}{R}{G} with the generic still
+// unpaid. Once the generic is paid the clamp lists only the owed pips, which
+// windowWalkCol's noOwed clamp arm answers. A multi-ability source's ability
+// ask keeps the owed-first answer (windowFiltOwedPick).
+func (s *State) walkColNoOwed(noOwed, payAsk bool, pc *pcard) bool {
+	return noOwed || payAsk && !pc.manaMulti && s.bld().pipN == 0
+}
+
 // windowWalkCol is the colour windowTapWalk's plain tap of sl answers.
 func (s *State) windowWalkCol(k *prep, p uint8, cost, useful *kop.ManaCost, sl Slot, pc *pcard, clamp, anyColor, noOwed, potential bool) int {
 	var owed kop.ManaCost
