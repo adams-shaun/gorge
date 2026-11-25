@@ -23,18 +23,37 @@ func TestMentorLowers(t *testing.T) {
 	}
 }
 
-// A granted Mentor (Nyxborn Unicorn's bestowed "has mentor") stays refused,
-// by that grant alone: gorge fires one Mentor trigger per creature that has
-// the keyword however many sources give it (checkGrantedMentorTriggers skips a
-// printer), while a kernel granted trigger fires once per granting static
-// beside any printed line, so the two would split on a Mentor creature wearing
-// the Unicorn. Its printed K:Mentor and attack trigger lower.
-func TestMentorGrantStaysRefused(t *testing.T) {
+// Nyxborn Unicorn's bestowed "has mentor" lowers to a latent GrantedMentor
+// trigger beside its printed K:Mentor line (CR 702.134b, 113.2c): the kernel
+// lists one copy per granting static, so a printed Mentor wearing it and a
+// vanilla creature wearing two each fire one trigger per instance, matching
+// gorge after the granted-keyword fix.
+func TestMentorGrantLowers(t *testing.T) {
 	c := lowerNamedCard(t, "Nyxborn Unicorn")
-	if len(c.Refusals) != 1 {
-		t.Fatalf("Nyxborn Unicorn refusals = %v, want exactly the granted keyword", c.Refusals)
+	if len(c.Refusals) != 0 {
+		t.Fatalf("Nyxborn Unicorn refusals = %v, want none", c.Refusals)
 	}
-	if r := c.Refusals[0]; !strings.Contains(r.Node, "Mode=Continuous") || !strings.Contains(r.Reason, `keyword "Mentor"`) {
-		t.Errorf("Nyxborn Unicorn refusal = %+v, want the Continuous grant of Mentor", r)
+	if lir := cardLIR(c); !strings.Contains(lir, "GrantedMentor") {
+		t.Errorf("Nyxborn Unicorn LIR has no GrantedMentor trigger:\n%s", lir)
+	}
+}
+
+// TestMentorGrantSplit: every bare Mentor term is its own instance; any other
+// keyword stays in the list.
+func TestMentorGrantSplit(t *testing.T) {
+	for _, c := range []struct {
+		kw, rest string
+		n        int
+	}{
+		{"Mentor", "", 1},
+		{"Mentor & Mentor", "", 2},
+		{"Flying & Mentor", "Flying", 1},
+		{"Flying", "Flying", 0},
+		{"Mentor:1", "Mentor:1", 0},
+	} {
+		rest, n := splitMentorGrant(c.kw)
+		if rest != c.rest || n != c.n {
+			t.Errorf("splitMentorGrant(%q) = %q, %d; want %q, %d", c.kw, rest, n, c.rest, c.n)
+		}
 	}
 }
