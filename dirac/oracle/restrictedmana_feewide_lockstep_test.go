@@ -24,11 +24,20 @@ func restrictedManaFeeWideDecks() [4][]cardset.Entry {
 		{Name: "Orb of Dragonkind", Count: 16}, {Name: "Shivan Dragon", Count: 8}, {Name: "Furnace Whelp", Count: 6},
 		{Name: "Mountain", Count: 10},
 	}
+	// Interplanar Beacon's "{1}, {T}: Add two mana of different colors" (planeswalker
+	// spells only) beside its plain {T}: Add {C}: two Beacons in the deck, a
+	// Mountain-heavy build and a few Islands, so Jace Beleren's {1}{U}{U} is
+	// reachable through the pair (one {U} and one other colour per tap) and a
+	// pair alone never pays {U}{U}.
+	beacon := []cardset.Entry{
+		{Name: "Interplanar Beacon", Count: 2}, {Name: "Jace Beleren", Count: 8}, {Name: "Mountain", Count: 14},
+		{Name: "Island", Count: 6}, {Name: "Shock", Count: 5}, {Name: "Hill Giant", Count: 5},
+	}
 	hall := []cardset.Entry{
 		{Name: "Great Hall of the Citadel", Count: 16}, {Name: "Kamahl, Pit Fighter", Count: 8},
 		{Name: "Isamaru, Hound of Konda", Count: 6}, {Name: "Mountain", Count: 6}, {Name: "Plains", Count: 4},
 	}
-	return [4][]cardset.Entry{orb, hall, orb, hydroChannelerDeck()}
+	return [4][]cardset.Entry{orb, hall, beacon, hydroChannelerDeck()}
 }
 
 // hydroChannelerDeck: Hydro-Channeler's "{T}: Add {U}" and "{1}, {T}: Add one
@@ -43,12 +52,15 @@ func hydroChannelerDeck() []cardset.Entry {
 	}
 }
 
-// restrictedManaFeeWideSeeds: seeds that spend both carriers' restricted fee
-// mana (Hydro-Channeler from the first, Orb by seed 7), games run to 120 turns
-// so a seat reaches a Dragon. Seeds 3, 8 and 11 cast a Bolt only if one Hydro's
+// restrictedManaFeeWideSeeds: seeds that spend the carriers' restricted fee
+// mana (Orb by seed 7; Hydro-Channeler from the first; Interplanar Beacon's on
+// 16, 22, 26, 28 and 35: the pair needs two Beacons on one board, one's
+// {T}: Add {C} paying the other's {1}, which gorge's prefix search allows and a
+// Mountain's {R} it does not). Games run to 120 turns so a seat reaches a
+// Dragon or a planeswalker. Seeds 3, 8 and 11 cast a Bolt only if one Hydro's
 // {U} could pay another's {1} fee (it cannot, CR 106.6); seed 5 casts one
 // only if a summoning-sick Hydro books no census entry (CR 302.6).
-var restrictedManaFeeWideSeeds = []uint64{1, 2, 3, 4, 5, 6, 7, 8, 11}
+var restrictedManaFeeWideSeeds = []uint64{1, 2, 3, 4, 5, 6, 7, 8, 11, 16, 22, 26, 28, 35}
 
 // newRestrictedManaFeeWidePod builds the four-deck pod.
 func newRestrictedManaFeeWidePod(t *testing.T) restrictedManaPod {
@@ -95,7 +107,7 @@ func TestRestrictedManaFeeWideLockstep(t *testing.T) {
 		t.Logf("seed %d: %d decisions, over %v %s; spent fee %v by %v", seed, res.Decisions, res.Over, res.Stall, c.byClass, c.byName)
 	}
 	t.Logf("restricted fee mana spent over the seeds: %v", sum.byName)
-	for _, name := range []string{"Orb of Dragonkind", "Great Hall of the Citadel", "Hydro-Channeler"} {
+	for _, name := range []string{"Orb of Dragonkind", "Great Hall of the Citadel", "Hydro-Channeler", "Interplanar Beacon"} {
 		if sum.byName[name] == 0 {
 			t.Fatalf("no %s restricted mana spent over the seeds (%v)", name, sum.byName)
 		}
