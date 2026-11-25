@@ -1,0 +1,14 @@
+# The per-token optional Attach pool (dirac/oracle/repeateach_remembered_attach_test.go):
+# Reckless Crew (X 2/1 Dwarf Berserker tokens remembered by the mint, then
+# DefinedCards$ RememberedCard repeats an optional Attach of an Equipment the
+# controller controls onto each token), cheap Equipment that can move token to
+# token, a Vehicle that counts toward X, creatures to crew and equip, and basics.
+Reckless Crew
+Bonesplitter
+Short Sword
+Renegade Freighter
+Grizzly Bears
+Hill Giant
+Llanowar Elves
+Mountain
+Forest
