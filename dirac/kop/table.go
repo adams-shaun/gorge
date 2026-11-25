@@ -617,6 +617,20 @@ type CardDef struct {
 	// card): it enters with that many CtrDefense counters
 	// (dirac/face_battle.go).
 	Defense int8
+	// FlipCast is the front face's back-face cast keyword (no KwMask bit is
+	// free): FlipConverted, printed More Than Meets the Eye (CR 702.162a),
+	// casts the back face from the hand; FlipDisturb, printed disturb (CR
+	// 702.146a), casts it from its owner's graveyard. Either cast is a face
+	// cast (AkCast castFace, target 1) of a FaceTransform card at FlipCost
+	// instead of a mana cost; the spell is the back face and resolves into a
+	// permanent showing it (dirac/face_flipcast.go). 0: none.
+	FlipCast uint8
+	// FlipCost is the printed keyword cost of FlipCast.
+	FlipCost ManaCost
+	// LivingMetal is printed Living metal (CR 702.161a; no KwMask bit is
+	// free): the record the with-keyword word reads. The keyword's static is
+	// the face's own lowered Override (gorge cards/kw_livingmetal.go).
+	LivingMetal bool
 	// HasSneak is printed sneak (CR 702.190a; no KwMask bit is free): in
 	// its controller's declare-blockers step the hand offers the sneak cast
 	// at SneakCost plus returning an unblocked attacker, and a permanent
@@ -891,6 +905,13 @@ const (
 	MorphMorph
 	MorphMegamorph
 	MorphDisguise
+)
+
+// CardDef.FlipCast values: the keyword whose cost casts the back face.
+const (
+	FlipNone      uint8 = iota
+	FlipConverted       // More Than Meets the Eye (CR 702.162a): from the hand, gorge "converted"
+	FlipDisturb         // disturb (CR 702.146a): from its owner's graveyard, gorge "disturb"
 )
 
 // CardDef.FaceMode layouts (gorge's Card.AlternateMode).

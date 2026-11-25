@@ -26,42 +26,34 @@ func TestReplDrawDamageSlice(t *testing.T) {
 	}
 }
 
-// The slice's other 31 carriers keep the refusals the ticket names: the draw
-// replacements (plain, optional or choice) and the other DamageDone
-// replacement shapes stay refused until their own slices lower them.
+// The slice's other carriers keep the refusals the ticket names: the draw
+// replacements (plain, optional or choice) and the two DamageDone replacement
+// shapes whose body asks a player stay refused until their own slices lower
+// them.
 func TestReplDrawDamageRestRefused(t *testing.T) {
 	for _, w := range []struct{ name, class string }{
 		{"Abundance", "Draw replacement with an optional or choice body"},
-		{"Angel of Suffering", "DamageDone replacement shape"},
 		{"Archmage Ascension", "Draw replacement with an optional or choice body"},
 		{"Asmodeus the Archfiend", "Draw replacement"},
 		{"Blood Scrivener", "Draw replacement"},
 		{"Dralnu, Lich Lord", "DamageDone replacement shape"},
 		{"Enduring Renewal", "Draw replacement"},
 		{"Eruth, Tormented Prophet", "Draw replacement"},
-		{"Ghosts of the Innocent", "DamageDone replacement shape"},
-		{"Gloom Surgeon", "DamageDone replacement shape"},
 		{"Hullbreacher", "Draw replacement"},
 		{"Notion Thief", "Draw replacement"},
 		{"Obstinate Familiar", "Draw replacement with an optional or choice body"},
 		{"Out of the Tombs", "Draw replacement"},
-		{"Panther Habit", "DamageDone replacement shape"},
 		{"Pavel Chekov, First Posting", "Draw replacement with an optional or choice body"},
 		{"Phyrexian Vindicator", "DamageDone replacement shape"},
 		{"Possessed Portal", "Draw replacement"},
 		{"Pursuit of Knowledge", "Draw replacement with an optional or choice body"},
 		{"Sages of the Anima", "Draw replacement"},
-		{"Soul-Scar Mage", "DamageDone replacement shape"},
-		{"Swans of Bryn Argoll", "DamageDone replacement shape"},
-		{"Szadek, Lord of Secrets", "DamageDone replacement shape"},
 		{"Tomorrow, Azami's Familiar", "Draw replacement"},
-		{"Undead Alchemist", "DamageDone replacement shape"},
 		{"Underrealm Lich", "Draw replacement"},
 		{"Unpredictable Cyclone", "Draw replacement"},
 		{"Breathstealer's Crypt", "Draw replacement"},
 		{"Chains of Mephistopheles", "Draw replacement"},
 		{"Forbidden Crypt", "Draw replacement"},
-		{"Force Bubble", "DamageDone replacement shape"},
 	} {
 		lc := lowerNamedCard(t, w.name)
 		if len(lc.Refusals) != 1 {
