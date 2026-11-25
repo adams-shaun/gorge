@@ -5,6 +5,12 @@ Defined$ Card.Self	1
 Defined$ ChoosingPlayer	2
 Defined$ ChosenMap	2
 Defined$ DefendingPlayer	1
+Defined$ Opponent.LostLifeThisTurn GE3	1
+Defined$ Opponent.NotedForSilence	1
+Defined$ Player.ConditionGEMaxPoints Counters.POINT	1
+Defined$ Player.OpponentOf TriggeredCardController	1
+Defined$ Player.TappedLandForManaThisTurn	1
+Defined$ Player.attackedBySourceThisCombat	1
 Defined$ ReplacedNewCard.Creature	2
 Defined$ ReplacedNewCard.Planeswalker	2
 Defined$ ShieldEffectTarget	5
@@ -22,3 +28,5 @@ Defined$ ValidCommand Effect.namedRaging River Left+IsImprinted	1
 Defined$ ValidCommand Effect.namedRaging River Right	1
 Defined$ ValidCommand Effect.namedRaging River Right+IsImprinted	1
 Defined$ You & TriggeredSpellAbility>ManaSpender.Other	1
+Defined$ You.!CardsInHandAtBeginningOfTurn	1
+Defined$ You.CardsInHandAtBeginningOfTurn	1
