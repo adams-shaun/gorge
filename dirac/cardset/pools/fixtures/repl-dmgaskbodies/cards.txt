@@ -1,0 +1,18 @@
+# The ask-body DamageDone lockstep pool (dirac/oracle/
+# repl_dmgaskbodies_lockstep_test.go): Dralnu, Lich Lord (its controller
+# sacrifices that many permanents of their choice) and Phyrexian Vindicator
+# (the damage is prevented and it deals that much to a chosen target). Each
+# deck plays one such line against burn at creatures and a Hill Giant's
+# combat, so each host meets a noncombat burn and a combat hit.
+Dralnu, Lich Lord
+Phyrexian Vindicator
+Walking Corpse
+Savannah Lions
+Hill Giant
+Pyroclasm
+Lightning Bolt
+Shock
+Plains
+Swamp
+Island
+Mountain

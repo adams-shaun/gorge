@@ -1,0 +1,23 @@
+# the Effect-container MayPlay pool (dirac/kgen/lower_effectmayplay.go,
+# lower_zone.go's Continuous case): Chainer's no-target graveyard permission
+# (one emblem MayPlayFrom) and Nivix's remembered exiled instant-or-sorcery
+# permission (Duration$ UntilYourNextTurn), beside the creatures, burn, draw
+# and basics the lockstep decks play
+# (dirac/oracle/effectcontainermayplay_lockstep_test.go).
+Chainer, Nightmare Adept
+Grizzly Bears
+Hill Giant
+Swamp
+Mountain
+Nivix, Aerie of the Firemind
+Shock
+Divination
+Island
+Forest
+Mission Briefing
+Time Walk
+Chandra, Awakened Inferno
+# reserved id 1 for the follow-up slice (its EffectOwner shape is the
+# remaining-carriers ticket); the card is refused today and is played by
+# no deck -- RawByName keeps the id stable so the follow-up's pair
+# reuses this pool.

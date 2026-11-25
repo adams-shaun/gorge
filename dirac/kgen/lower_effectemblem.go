@@ -309,6 +309,12 @@ func (lc *lowerCtx) effectEmblemStaticHost(s cards.Static, host bool) (lStatic, 
 		if faceDownLookOnly(s.Params) {
 			return lStatic{Kind: ""}, nil
 		}
+		if sp := newParams(s.Params); sp.is("MayPlay", "True") && sp.str("AffectedZone") != "Library" {
+			// a library permission is the top-card look shape, which
+			// effectLibTopPlay reads above; any other library spelling stays
+			// refused rather than lowering a look the kernel does not hold
+			return lc.effectEmblemMayPlay(s) // lower_effectmayplay.go
+		}
 		if err := effectContinuousKeys(s.Params); err != nil {
 			return lStatic{}, err
 		}

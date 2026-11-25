@@ -39,15 +39,16 @@ type kpaylifexTally struct {
 	x1, x0   map[string]int // announcements with X >= 1 / X = 0
 	lifeCap  int            // announced-only asks whose cap is the payer's life
 	krumarLC int            // Krumar asks whose cap the life (not the mana) set
+	noZero   int            // asks that offered no X = 0 (must stay 0)
 }
 
-// kpaylifexPolicy is a random policy with three biases, so the rare shape
-// is reached: gorge's planner prices no {X} activation, so Krumar's is
-// offered only while the floating pool pays it. A random pick passes far
+// kpaylifexPolicy is a random policy with four biases, so the rare shapes
+// are reached. A random pick passes far
 // more often than it casts or activates, so it takes an offered activation,
 // casts Krumar and Liliana's Indignation (a self-mill, and an {X}{B} spell
-// whose small X leaves mana floating) two times in three, and answers
-// Liliana's X ask with its smallest value seven times in eight.
+// whose small X leaves mana floating) two times in three, answers
+// Liliana's X ask with its smallest value seven times in eight, and answers
+// Fix What's Broken's and Vicious Rivalry's with X = 0 one time in four.
 func kpaylifexPolicy(seed uint64, tl *kpaylifexTally) Policy {
 	rnd := RandomPolicy(seed)
 	r := rand.New(rand.NewPCG(seed, 0x6c696665)) // "life": the biases' own stream
@@ -86,9 +87,21 @@ func kpaylifexPolicy(seed uint64, tl *kpaylifexTally) Policy {
 		if name != "Fix What's Broken" && name != "Vicious Rivalry" && name != "Krumar Initiate" {
 			return a
 		}
-		cap := 0
-		for _, o := range c.D.Options {
+		cap, zero := 0, -1
+		for i, o := range c.D.Options {
 			cap = max(cap, int(o.Mode()))
+			if o.Mode() == 0 {
+				zero = i
+			}
+		}
+		if zero < 0 {
+			tl.noZero++
+		}
+		// X = 0 is always legal (CR 107.3a, CR 119.4): answer an
+		// announced-only ask with it one time in four, so the X = 0 floor
+		// does not ride on a 1-in-(life+1) uniform pick.
+		if name != "Krumar Initiate" && zero >= 0 && r.IntN(4) == 0 {
+			a = c.D.Options[zero]
 		}
 		life := max(0, int(c.G.E.G.Players[pd.Player].Life))
 		if cap == life {
@@ -199,6 +212,9 @@ func TestPaylifexLockstep(t *testing.T) {
 	}
 	if tl.x1["Krumar Initiate"] < 20 {
 		t.Errorf("Krumar Initiate: X>=1 %d (want 20)", tl.x1["Krumar Initiate"])
+	}
+	if tl.noZero != 0 {
+		t.Errorf("%d X asks offered no X = 0 (CR 107.3a: X may be 0)", tl.noZero)
 	}
 	if tl.lifeCap < 5 {
 		t.Errorf("life-capped announced-only asks %d (want 5)", tl.lifeCap)
