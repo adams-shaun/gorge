@@ -1547,6 +1547,17 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 		}
 		tr.Outstanding = true
 		ab.Name = "CheckOnTriggerOnly"
+	case "ChaosEnsues":
+		// The face-up plane's chaos ability (CR 901.9): every corpus carrier
+		// declares TriggerZones$ Command, and the plane lives in the planar
+		// deck, so the kernel's synthetic plane scan (eachPlaneTrigger,
+		// zone_planechase.go) reads this zone rather than the ordinary walk.
+		if tr.Zone != zCommand {
+			return refuse("ChaosEnsues outside TriggerZones$ Command")
+		}
+		if _, ok := tp.get("ValidCard"); ok {
+			return refuse("ChaosEnsues ValidCard$")
+		}
 	case "LandPlayed", "SearchedLibrary", "Forage", "Discover", "ManifestDread":
 		if err := lc.trigModes2(tp, tr, t.Mode, zone, readF); err != nil {
 			return err
