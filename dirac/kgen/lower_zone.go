@@ -5212,7 +5212,9 @@ func (lc *lowerCtx) partitionMayPlay(ps *params, ss []cards.Static) (bool, error
 		// chosen set (lower_repeatexilechoice.go)
 		obj = lRef{Kind: rChosen}
 		lc.exileLandStage = 2
-	} else if ps.str("RememberObjects") != "Remembered" {
+	} else if ro := ps.str("RememberObjects"); ro != "Remembered" && ro != "RememberedCard" {
+		// gorge effectRememberedCodes: RememberedCard is Remembered
+		// (Dream-Thief's Bandana, Edward Kenway)
 		return false, nil
 	}
 	if _, shapeOK := partitionLifetime(ps, ss); !shapeOK {
