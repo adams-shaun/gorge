@@ -295,10 +295,25 @@ func (e *Engine) queueGrantedFlanking(id state.ObjID, o *state.Object, ev events
 // -- "becomes blocked" triggers when an effect blocks the creature) but never
 // the by-a-creature pair mode or flanking (CR 509.3d), and a ValidBlocker$
 // spec matches no absent blocker.
+//
+// A TokenBlocks event (TokenBlocking$, CR 509.4) is read as the one pair
+// (attacker, entering token) when the token is a real blocking creature: the
+// attacker-side become-blocked triggers fire (CR 509.3d -- "a creature is put
+// onto the battlefield blocking the specified creature" is one of their
+// triggering events), while the token itself never blocked (CR 509.4), so its
+// own blocker-side lines stay inert -- the tokenInert skips below.
 func (e *Engine) checkAttackerBlockedTriggers(ev events.Event) {
 	byEffect := ev.Kind == events.BlockedByEffect
+	var tokenInert state.ObjID
 	if byEffect {
 		ev = events.Event{Kind: events.DeclareBlockers, Player: ev.Player, Pairs: [][2]state.ObjID{{ev.Obj, 0}}}
+	} else if ev.Kind == events.TokenBlocks {
+		a, b, ok := e.tokenBlocksPair(ev)
+		if !ok {
+			return
+		}
+		ev = events.Event{Kind: events.DeclareBlockers, Player: ev.Player, Pairs: [][2]state.ObjID{{a, b}}}
+		tokenInert = b
 	} else if ev.Kind != events.DeclareBlockers {
 		return
 	}
@@ -337,10 +352,18 @@ func (e *Engine) checkAttackerBlockedTriggers(ev events.Event) {
 			default:
 				continue
 			}
+			if tokenInert != 0 && id == tokenInert && triggerAnchoredAtBlocker(t) {
+				// CR 509.4: the entering token never blocked, so its own
+				// blocker-side line ("whenever this creature blocks a
+				// creature", the ValidBlocker$-anchored shape both modes
+				// carry -- Brimaz's own block trigger is the AttackerBlocked
+				// one) never fires off its own entry.
+				continue
+			}
 			e.queueAttackerBlockedTrigger(t, id, o.Controller, ti, false, 0, ev)
 		}
 	})
-	e.checkGrantedAttackerBlockedTriggers(ev, byEffect)
+	e.checkGrantedAttackerBlockedTriggers(ev, byEffect, tokenInert)
 	if byEffect {
 		e.checkEffectCombatTriggers(ev, "AttackerBlocked")
 	} else {
@@ -524,6 +547,23 @@ func (e *Engine) attackerBlockedCtx(t cards.Trigger, aid, bid state.ObjID, ev ev
 	}
 }
 
+// tokenBlocksPair reports the (attacker, token) pair one TokenBlocks event
+// names when its fold made the token a real blocking creature: the fold's
+// legality (CR 509.4a/b) is re-read from the folded state, so an event whose
+// fold declined -- the attacker not attacking, the mint's controller not the
+// defender, the token gone -- names no pair.
+func (e *Engine) tokenBlocksPair(ev events.Event) (state.ObjID, state.ObjID, bool) {
+	if ev.Obj == 0 || len(ev.IDs) == 0 {
+		return 0, 0, false
+	}
+	a, b := e.G.Obj(ev.IDs[0]), e.G.Obj(ev.Obj)
+	if a == nil || b == nil || b.Zone != state.ZBattlefield ||
+		!a.IsAttacking || b.Controller != a.Attacking || !slices.Contains(a.BlockedBy, b.ID) {
+		return 0, 0, false
+	}
+	return a.ID, b.ID, true
+}
+
 // checkGrantedAttackerBlockedTriggers is the AddTrigger$ half of the
 // become-blocked walk. The ordinary granted-trigger event matcher
 // (checkGrantedStaticTriggersUsing) cannot dispatch these two modes: neither
@@ -534,8 +574,10 @@ func (e *Engine) attackerBlockedCtx(t cards.Trigger, aid, bid state.ObjID, ev ev
 // printed trigger uses, preserving its grantor so GrantTriggerPush can
 // rebuild the Execute$ body during replay (checkGrantedAttackerUnblockedTriggers'
 // precedent). Stormsurge Kraken, Retaliation and Mirror Shield are the
-// corpus carriers.
-func (e *Engine) checkGrantedAttackerBlockedTriggers(ev events.Event, byEffect bool) {
+// corpus carriers. inert is the TokenBlocks entering token (0 when the event
+// is not one): its own blocker-anchored grants stay inert with the printed
+// ones (CR 509.4).
+func (e *Engine) checkGrantedAttackerBlockedTriggers(ev events.Event, byEffect bool, inert state.ObjID) {
 	for ceI, ceL := 0, e.active(); ceI < len(ceL); ceI++ {
 		ce := &ceL[ceI]
 		if ce.AddTrigger == nil {
@@ -564,6 +606,9 @@ func (e *Engine) checkGrantedAttackerBlockedTriggers(ev events.Event, byEffect b
 			}
 			if !e.matchesSpecFrom(ce.Affects, id, ce.Controller, ce.Source) {
 				return
+			}
+			if inert != 0 && id == inert && triggerAnchoredAtBlocker(t) {
+				return // CR 509.4: the entering token never blocked.
 			}
 			e.queueAttackerBlockedTrigger(t, id, o.Controller, -1, true, grantorID, ev)
 		})
