@@ -117,6 +117,7 @@ func (s *State) InitNStart(tbl *Table, decks [MaxSeats][]CardID, n uint8, seed u
 			o := s.nobj
 			s.nobj++
 			s.objs[o] = object{card: c, chosen: 255, zone: kop.ZoneLibrary, slot: NoSlot, acts: uint8(p) << objOwnerShift}
+			s.mintBirth(o)
 			s.touch(o)
 			s.pl[p].libBottom(o)
 		}
