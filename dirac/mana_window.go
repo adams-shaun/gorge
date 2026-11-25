@@ -3976,7 +3976,7 @@ func (s *State) manaStep(k *prep) bool {
 		case s.paymentStranded(k, e, &strandCost):
 			s.reverseActivation(k, &saved, hostSl, sl, selfUntapped)
 			return true
-		case cost.X != 0 && s.cfg&cfgGorgeSurface != 0:
+		case s.xWindowPays(k, e, a, sl, &cost, &saved):
 			cc := s.waterbendXCharge(k, e, s.buildCostCharge(k))
 			if !s.xWindowPay(k, e, &cc) {
 				s.reverseActivation(k, &saved, hostSl, sl, selfUntapped)
