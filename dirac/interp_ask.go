@@ -843,6 +843,7 @@ func (s *State) autoPayPick(k *prep) bool {
 	if len(objs) > 0 && s.g.pickZ != kop.PayExileGrave && s.g.pickZ != payKindExileHand && s.g.pickZ != kop.PayDiscard && s.g.pickZ != kop.PayReturn {
 		s.snapTrigSacrificed(k, s.objs[Obj(objs[0].Source())].slot) // trig_sacrificedlki.go
 	}
+	moved := uint8(0)
 	for _, a := range objs {
 		o := Obj(a.Source())
 		if s.g.pickZ == kop.PayExileGrave || s.g.pickZ == payKindExileHand {
@@ -851,6 +852,16 @@ func (s *State) autoPayPick(k *prep) bool {
 			s.discardUnlessPay(k, o)
 		} else if s.g.pickZ == kop.PayReturn {
 			s.leave(k, s.objs[o].slot, kop.ZoneHand, false)
+			if s.res.ask == raGenCmdZone {
+				// The return parked its commander (CR 903.9b): stop the walk
+				// with the picks already moved counted, and let the answer
+				// resume it with the resolving entry still on the stack
+				// (cost_return.go).
+				s.res.flags |= rfPayPark
+				s.g.pickLeft -= moved
+				return true
+			}
+			moved++
 		} else {
 			s.fireSac(k, s.objs[o].slot)
 			s.leaveParked(k, s.objs[o].slot)
@@ -1037,6 +1048,9 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 				if s.autoPayPick(k) {
 					// exactly the needed cards: gorge picks them (cumulative.go advanceTriggeredMandatory, pay/unlessflow.go AdvanceUnless);
 					// a card one of them held in exile until it left is asked now, as after the last answered pick (CR 610.3d)
+					if s.res.flags&rfPayPark != 0 {
+						return // a PayReturn move parked at its commander_zone ask (cost_return.go)
+					}
 					if s.payReturnPark() {
 						return
 					}
@@ -1080,6 +1094,13 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 			s.discardUnlessPay(k, o)
 		} else if s.g.pickZ == kop.PayReturn {
 			s.leave(k, s.objs[o].slot, kop.ZoneHand, false) // gorge unlessflow: ReturnCost to the owner's hand
+			if s.res.ask == raGenCmdZone {
+				// the move parked at its commander_zone ask: keep the resolving
+				// entry on the stack and finish the payment after the answer
+				// (cost_return.go)
+				s.res.flags |= rfPayPark
+				return
+			}
 		} else if s.g.pickZ == kop.PayTapX {
 			if s.objs[o].zone == kop.ZoneBattlefield && debugEntersTappedMutate != 4 { // TestSourceCounterCostsMutation: the tap
 				s.tapCostPerm(k, s.objs[o].slot, o)
