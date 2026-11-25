@@ -2561,6 +2561,17 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		if err := mustAttackStatic(s, st, filter); err != nil {
 			return ka, nil, err
 		}
+	case "AttackRequirement":
+		// the whole-declaration closure (War's Toll): Filter is the members
+		// ValidCard$ binds, Filter2 the ValidAttacker$ creatures whose
+		// attacking turns the requirement on (dirac/combat_attackrequirement.go)
+		st.Kind = kop.StatAttackRequirement
+		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
+			return ka, nil, err
+		}
+		if st.Filter2, err = filter(s.F2, kop.ZoneBattlefield); err != nil {
+			return ka, nil, err
+		}
 	case "Goad":
 		st.Kind = kop.StatGoad // lower_trigger.go's Continuous Goad$ True
 		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {

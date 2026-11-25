@@ -2290,6 +2290,8 @@ const StatCantAttach StaticKind = 29
 const StatUnspentMana StaticKind = 30
 
 // stat AttackRequirement (dirac/manifest/StaticKind/StatAttackRequirement)
+//
+// S:Mode$ AttackRequirement (War's Toll): a whole-declaration closure over the active player's attackers. Static.Filter is ValidCard$ (the members the requirement binds), Static.Filter2 is ValidAttacker$ (the creatures whose attacking turns it on); the kernel reads both in combat_attackrequirement.go.
 const StatAttackRequirement StaticKind = 31
 
 // stat BlockRestrict (dirac/manifest/StaticKind/StatBlockRestrict)

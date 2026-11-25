@@ -15,6 +15,7 @@ func init() {
 	staticMode("CanAttackIfHaste", (*staticCtx).modeCanAttackIfHaste)
 	staticMode("CanAttackDefender", (*staticCtx).modeCanAttackDefender)
 	staticMode("MustAttack", (*staticCtx).modeMustAttack)
+	staticMode("AttackRequirement", (*staticCtx).modeAttackRequirement)
 	staticMode("UntapOtherPlayer", (*staticCtx).modeUntapOtherPlayer)
 	staticMode("CombatDamageToughness", (*staticCtx).modeCombatDamageToughness)
 	staticMode("AssignNoCombatDamage", (*staticCtx).modeAssignNoCombatDamage)
@@ -163,6 +164,34 @@ func (sc *staticCtx) modeMustAttack() ([]lStatic, bool, error) {
 	var err error
 	if sc.st.F, err = readF("ValidCreature"); err != nil {
 		return nil, true, err
+	}
+	return nil, false, nil
+}
+
+// modeAttackRequirement lowers `S:Mode$ AttackRequirement` (War's Toll: "If a
+// creature an opponent controls attacks, all creatures that player controls
+// attack if able") to kop.StatAttackRequirement: ValidCard$ names the members
+// the requirement binds, ValidAttacker$ the creatures whose attacking turns it
+// on. gorge's combat.AttackRequirementClauses reads both against the ACTIVE
+// player's battlefield with the static's own controller as the reference (so
+// Creature.OppCtrl is the attacker's side), and the kernel's
+// attackRequirementDuty (dirac/combat_attackrequirement.go) applies the same
+// whole-declaration closure over its incremental picks. A player-only filter
+// matches no creature there.
+func (sc *staticCtx) modeAttackRequirement() ([]lStatic, bool, error) {
+	readF := sc.readF
+	var err error
+	if sc.st.F, err = readF("ValidCard"); err != nil {
+		return nil, true, err
+	}
+	if sc.st.F != nil && (sc.st.F.Players != 0 || len(sc.st.F.Clauses) == 0) {
+		return nil, true, refuse("AttackRequirement ValidCard %q", sc.s.Params["ValidCard"])
+	}
+	if sc.st.F2, err = readF("ValidAttacker"); err != nil {
+		return nil, true, err
+	}
+	if sc.st.F2 != nil && (sc.st.F2.Players != 0 || len(sc.st.F2.Clauses) == 0) {
+		return nil, true, refuse("AttackRequirement ValidAttacker %q", sc.s.Params["ValidAttacker"])
 	}
 	return nil, false, nil
 }
