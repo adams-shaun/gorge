@@ -31,9 +31,16 @@ var morophonDecks = [2][]cardset.Entry{
 	},
 }
 
-func TestMorophonLowers(t *testing.T) {
+// TestMorophonLowers1 and TestMorophonLowers2 split the 200 seeds so each
+// fits the 60 s test budget.
+func TestMorophonLowers1(t *testing.T) {
 	t.Parallel()
-	lockstepSet(t, morophonPool, morophonDecks, 200, "KMOROPHON_SEEDS")
+	lockstepSetRange(t, morophonPool, morophonDecks, 1, 100)
+}
+
+func TestMorophonLowers2(t *testing.T) {
+	t.Parallel()
+	lockstepSetRange(t, morophonPool, morophonDecks, 101, 200)
 }
 
 // TestMorophonDecksPlayable names a refused carrier here, not only by a
