@@ -487,6 +487,7 @@ func (s *State) enter(k *prep, o Obj, ctrl uint8, tapped bool, from kop.Zone) Sl
 	if k.anyRoom && from == kop.ZoneStack {
 		s.roomEntryUnlock(k, sl, o) // the cast door's UnlockDoor (face_rooms.go)
 	}
+	s.storyGrant(k) // CR 702.195a: the emit-tail grant, after the entry's triggers (kw_storied.go)
 	return sl
 }
 
@@ -609,7 +610,7 @@ func (s *State) enterNF(k *prep, o Obj, ctrl uint8, tapped bool, from kop.Zone, 
 			}
 		}
 	}
-	if k.engAsc { // engines || ascend: the one entry-hook test (a table with neither pays one byte load)
+	if k.engAsc { // engines || ascend: the one entry-hook test (a table with neither pays one byte load); the storied grant runs after the entry's triggers (storyGrant, kw_storied.go)
 		if k.engines {
 			s.speedStart(k, SpeedCntStartEntry) // kw_speed.go
 		}
