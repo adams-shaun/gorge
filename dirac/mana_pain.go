@@ -288,6 +288,9 @@ func (s *State) canLifeOnlyMana(k *prep, sl Slot, p uint8) bool {
 //
 //go:noinline
 func prepPainMana(c *kop.CardDef, pc *pcard) bool {
+	if prepPainFirst(c, pc) {
+		return true
+	}
 	n := 0
 	var col kop.ColorMask
 	var dmg uint8
@@ -327,8 +330,61 @@ func prepPainMana(c *kop.CardDef, pc *pcard) bool {
 	return true
 }
 
+// DebugPainFirstOff is the TestMurmuringBoskMutation switch: a pain-first
+// coloured pair (Murmuring Bosk) stays the pain-only source its first
+// ability reads as, the coloured normal alternative unpriced.
+var DebugPainFirstOff bool
+
+// prepPainFirst sets pc's pain pair for the reversed order: the card's two
+// mana abilities are a plain {T} two-colour choice with a "deals N damage to
+// you" rider, then a plain {T}: Add one WUBRG colour (Murmuring Bosk's {W}
+// or {B} rider ability, then the {G} CR 305.6 gives its Forest type, which
+// gorge appends after the printed abilities: cards.ApplyIntrinsics). gorge's
+// planner prices the coloured ability as the normal alternative and the
+// painful one as a last resort (pay.PaymentPlanDamageRider), the same pair as
+// a painland's; only the ability indices are swapped, so the source's unit
+// reads the second ability (pc.manaAb) and painLifeAb the first. The first
+// pass of prepare read the painful ability as a pain-only source
+// (pc.painOnly); it is undone here. It reports whether it did.
+func prepPainFirst(c *kop.CardDef, pc *pcard) bool {
+	if DebugPainFirstOff || !pc.painOnly || pc.manaAb < 0 {
+		return false
+	}
+	first, second, n := -1, -1, 0
+	for j := range c.Abilities {
+		a := &c.Abilities[j]
+		if a.Kind != kop.AbMana || a.AFlags&kop.AfLatent != 0 {
+			continue
+		}
+		switch n++; n {
+		case 1:
+			first = j
+		case 2:
+			second = j
+		}
+	}
+	if n != 2 || first != int(pc.manaAb) {
+		return false
+	}
+	p, b := &c.Abilities[first], &c.Abilities[second]
+	d, ok := manaPain(p)
+	pcol := uint8(p.ManaColors)
+	if !ok || p.AFlags&^kop.AfManaChoice != 0 || p.ManaRestrict != 0 || p.ManaRestrictAb != 0 || p.Cost.Flags != kop.CostTap || p.Cost.Mana.MV() != 0 ||
+		p.Cost.Mana.X != 0 || max(p.ManaN, 1) != 1 || pcol&^0x1f != 0 || bits.OnesCount8(pcol) != 2 {
+		return false
+	}
+	bcol := uint8(b.ManaColors)
+	if !primaryNormalAb(b) || b.AFlags != 0 || b.ManaRestrict != 0 || b.ManaRestrictAb != 0 || bcol&^0x1f != 0 ||
+		bits.OnesCount8(bcol) != 1 || bcol&pcol != 0 {
+		return false
+	}
+	pc.manaAb, pc.manaCol, pc.manaN, pc.manaOne, pc.manaTap = int8(second), b.ManaColors, 1, false, true
+	pc.painOnly, pc.painCol, pc.painN, pc.painLife, pc.restrLife = false, p.ManaColors, d, false, 0
+	return true
+}
+
 // painLifeAb is the ability index of pc's pain alternative (prepPainMana's
-// second mana ability).
+// second mana ability; a restricted life pair's only, never prepPainFirst's).
 func painLifeAb(c *kop.CardDef) int8 {
 	n := 0
 	for j := range c.Abilities {

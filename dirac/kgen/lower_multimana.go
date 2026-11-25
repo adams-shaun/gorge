@@ -95,6 +95,13 @@ func (lc *lowerCtx) refuseMultiMana() {
 		// (pay.PaymentPlanDamageRider; kernel mana_pain.go)
 		return
 	}
+	if len(ms) == 2 && painFirstColoured(ms[0], ms[1]) {
+		// Murmuring Bosk: {T}: Add {W} or {B}, CARDNAME deals 1 damage to
+		// you, then its Forest's {G}: the painland pair with the ability
+		// indices swapped and a coloured normal alternative (kernel
+		// mana_pain.go prepPainFirst)
+		return
+	}
 	if len(ms) == 2 && plainTapMana(ms[0], false) && unrestrictedOne(ms[0]) && primaryMana(ms[0]) && riderTapMana(ms[1]) {
 		// a plain {T} ability beside a {T} ability with a bounded rider
 		// (Grove of the Burnwillows: {C}, then {R} or {G}, each opponent
@@ -224,25 +231,39 @@ func paidFilterMana(a *lAbility) bool {
 	return len(a.Mana.Colors) == 1 && strings.Contains("WUBRG", a.Mana.Colors)
 }
 
-// refuseColouredPain: a coloured plain {T} ability beside a plain {T}
-// two-colour choice with a pain rider, in either printed order (Murmuring
-// Bosk's {W} or {B}. CARDNAME deals 1 damage to you, then its forest {G}).
-// gorge's planner prices the coloured one as a normal alternative and the
-// painful choice as a last resort with Consequence{Damage: N}
-// (pay.PaymentPlanDamageRider); the kernel's pain unit pair carries a
-// colourless normal alternative only (a painland's {C}, mana_pain.go), no
-// coloured one. It reports whether it refused.
+// painFirstColoured: p, the first mana ability, is a plain {T} two-colour
+// choice with a pain rider and c a plain {T}: Add one WUBRG colour outside
+// that choice (Murmuring Bosk's {W} or {B}. CARDNAME deals 1 damage to you,
+// then the {G} its Forest type gives it, appended after the printed
+// abilities). gorge's planner prices the coloured one as a normal
+// alternative and the painful choice as a last resort with
+// Consequence{Damage: N} (pay.PaymentPlanDamageRider); the kernel's pain pair
+// reads the swapped indices (mana_pain.go prepPainFirst).
+func painFirstColoured(p, c *lAbility) bool {
+	if !painTapMana(p) || !p.Mana.Choice || len(p.Mana.Colors) != 2 || !plainTapMana(c, false) || !unrestrictedOne(c) ||
+		c.Mana.Choice || len(c.Mana.Colors) != 1 || !strings.Contains("WUBRG", c.Mana.Colors) {
+		return false
+	}
+	return !strings.Contains(p.Mana.Colors, c.Mana.Colors)
+}
+
+// refuseColouredPain: a coloured plain {T} ability first, then a plain {T}
+// two-colour choice with a pain rider (the printed order painFirstColoured
+// does not take). gorge's planner prices the coloured one as a normal
+// alternative and the painful choice as a last resort with
+// Consequence{Damage: N} (pay.PaymentPlanDamageRider); the kernel's pain
+// pair is read and proven for the pain-first order only (Murmuring Bosk),
+// so this order stays refused until a card needs it. It reports whether it
+// refused.
 func (lc *lowerCtx) refuseColouredPain(ms []*lAbility) bool {
 	if len(ms) != 2 {
 		return false
 	}
-	for i := 0; i < 2; i++ {
-		p, c := ms[i], ms[1-i]
-		if painTapMana(p) && plainTapMana(c, false) && unrestrictedOne(c) &&
-			len(c.Mana.Colors) == 1 && strings.Contains("WUBRG", c.Mana.Colors) {
-			lc.refuseNode("card", "2 mana abilities: a pain rider beside a coloured plain {T} ability: the kernel's pain unit pair carries a colourless normal alternative only")
-			return true
-		}
+	p, c := ms[1], ms[0]
+	if painTapMana(p) && plainTapMana(c, false) && unrestrictedOne(c) &&
+		len(c.Mana.Colors) == 1 && strings.Contains("WUBRG", c.Mana.Colors) {
+		lc.refuseNode("card", "2 mana abilities: a pain rider after a coloured plain {T} ability: the kernel's coloured pain pair is proven only pain-first (Murmuring Bosk)")
+		return true
 	}
 	return false
 }
