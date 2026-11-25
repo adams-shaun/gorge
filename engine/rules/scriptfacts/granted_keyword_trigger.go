@@ -34,7 +34,8 @@ func GrantedTriggerHeads(head string) bool {
 		id == cards.KeywordHeadIDOf("Extort") || id == cards.KeywordHeadIDOf("Evolve") ||
 		id == cards.KeywordHeadIDOf("Afterlife") || id == cards.KeywordHeadIDOf("Living Weapon") ||
 		id == cards.KeywordHeadIDOf("Mentor") || id == cards.KeywordHeadIDOf("Annihilator") ||
-		id == cards.KeywordHeadIDOf("Battle cry")
+		id == cards.KeywordHeadIDOf("Battle cry") || id == cards.KeywordHeadIDOf("Undying") ||
+		id == cards.KeywordHeadIDOf("Persist")
 }
 
 // GrantedMyriadPayload is the GrantTriggerPush body name a granted Myriad
@@ -95,6 +96,14 @@ const GrantedAnnihilatorPayloadPrefix = "__kwAnnihilatorGranted:"
 // expansion's PumpAll body).
 const GrantedBattleCryPayload = "__kwBattleCryGranted"
 
+// GrantedUndyingPayload and GrantedPersistPayload are the GrantTriggerPush
+// body names a granted Undying or Persist rides (events.foldGrantTriggerPush
+// rebuilds each into the printed expansion's return-to-the-battlefield body).
+const (
+	GrantedUndyingPayload = "__kwUndyingGranted"
+	GrantedPersistPayload = "__kwPersistGranted"
+)
+
 // GrantedLivingWeaponPayload is the GrantTriggerPush body name a granted
 // Living Weapon rides (events.foldGrantTriggerPush rebuilds it into the Germ
 // token and attach chain).
@@ -130,6 +139,10 @@ func GrantedKeywordPayload(line string) string {
 		return GrantedLivingWeaponPayload
 	case cards.KeywordHeadIDOf("Mentor"):
 		return GrantedMentorPayload
+	case cards.KeywordHeadIDOf("Undying"):
+		return GrantedUndyingPayload
+	case cards.KeywordHeadIDOf("Persist"):
+		return GrantedPersistPayload
 	}
 	return "__kwProwessGranted"
 }
@@ -184,6 +197,12 @@ func GrantedKeywordTrigger(line string) *cards.Trigger {
 	}
 	if id == cards.KeywordHeadIDOf("Battle cry") {
 		return grantedBattleCryTrigger(line, head)
+	}
+	if id == cards.KeywordHeadIDOf("Undying") {
+		return grantedReturnTrigger(line, head, "P1P1", "Undying")
+	}
+	if id == cards.KeywordHeadIDOf("Persist") {
+		return grantedReturnTrigger(line, head, "M1M1", "Persist")
 	}
 	return &cards.Trigger{Mode: "SpellCast", Params: map[string]string{
 		"Mode": "SpellCast", "ValidCard": "Card.nonCreature",
@@ -360,5 +379,34 @@ func grantedBattleCryTrigger(line, head string) *cards.Trigger {
 		return nil
 	}
 	t.Effect = GrantedBattleCryBody()
+	return &t
+}
+
+// GrantedReturnBody is the body a granted Undying (counter P1P1) or Persist
+// (counter M1M1) carries: the printed expansions' (engine/cards/kw_undying.go,
+// kw_persist.go) return of the dead card to the battlefield with one counter
+// of that kind. Built here once for the live queue and
+// events.foldGrantTriggerPush alike.
+func GrantedReturnBody(counter string) *cards.SA {
+	return grantedBodySA("ChangeZone", "Defined", "TriggeredNewCardLKICopy", "Origin", "Graveyard",
+		"Destination", "Battlefield", "WithCountersType", counter, "WithCountersAmount", "1")
+}
+
+// grantedReturnTrigger is the trigger a granted Undying (CR 702.93a) or
+// Persist (CR 702.79a) gives its holder (613.1f; Mikaeus, the Unhallowed's
+// "have undying", Cauldron of Souls' Pump KW$ Persist): the printed
+// expansion's exact dies trigger, its "no counters of that kind" condition
+// read off the LKI. Its Origin$ Battlefield makes it a look-back trigger (CR
+// 603.10a), as a granted Afterlife's is. Only the bare line is the keyword;
+// any other spelling fails closed.
+func grantedReturnTrigger(line, head, counter, desc string) *cards.Trigger {
+	if len(line) != len(head) {
+		return nil
+	}
+	t, ok := cards.ParseTriggerLine("Mode$ ChangesZone | Origin$ Battlefield | Destination$ Graveyard | ValidCard$ Card.Self+counters_EQ0_" + counter + " | TriggerDescription$ " + desc)
+	if !ok {
+		return nil
+	}
+	t.Effect = GrantedReturnBody(counter)
 	return &t
 }

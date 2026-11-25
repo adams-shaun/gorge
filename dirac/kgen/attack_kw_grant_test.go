@@ -32,12 +32,12 @@ func TestGrantedAttackKeywordsLower(t *testing.T) {
 			t.Errorf("%s: no latent %q ability", c.name, c.latent)
 		}
 	}
-	x := horsemanshipGrantLower(t, creature+"S:Mode$ Continuous | Affected$ Card.Self | AddKeyword$ Annihilator:X\nSVar:X:Count$CardCounters.P1P1\n")
+	x := horsemanshipGrantLower(t, creature+"S:Mode$ Continuous | Affected$ Card.Self | AddKeyword$ Annihilator:N\nSVar:N:Count$CardCounters.P1P1\n")
 	var got []string
 	for _, r := range x.Refusals {
 		got = append(got, r.Reason)
 	}
-	if !strings.Contains(strings.Join(got, "; "), `granted Annihilator "Annihilator:X"`) {
-		t.Errorf("Annihilator:X refusals %q, want one naming the count", got)
+	if !strings.Contains(strings.Join(got, "; "), `granted Annihilator "Annihilator:N"`) {
+		t.Errorf("Annihilator:N refusals %q, want one naming the count", got)
 	}
 }

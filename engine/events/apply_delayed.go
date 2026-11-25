@@ -654,6 +654,19 @@ func foldGrantTriggerPush(g *state.Game, e *Event) {
 	if sa == nil {
 		sa = grantedAnnihilatorBody(e.Counter)
 	}
+	if sa == nil && (e.Counter == "__kwUndyingGranted" || e.Counter == "__kwPersistGranted") {
+		// A granted undying or persist (CR 702.93a / 702.79a via a layer-6
+		// grant, e.g. Mikaeus, the Unhallowed or Cauldron of Souls): rebuilt
+		// into the printed expansion's return body (engine/cards/kw_undying.go,
+		// kw_persist.go), the dead card read from the recorded trigger context.
+		counter := "P1P1"
+		if e.Counter == "__kwPersistGranted" {
+			counter = "M1M1"
+		}
+		sa = &cards.SA{Kind: "DB", API: "ChangeZone", Params: map[string]string{
+			"Defined": "TriggeredNewCardLKICopy", "Origin": "Graveyard", "Destination": "Battlefield",
+			"WithCountersType": counter, "WithCountersAmount": "1"}}
+	}
 	if sa == nil {
 		return
 	}
