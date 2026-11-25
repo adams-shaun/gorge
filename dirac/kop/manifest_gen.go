@@ -2,10 +2,15 @@
 
 package kop
 
+// CondKind (dirac/manifest/CondKind/CondEnduringStory)
+//
+// the controller holds the enduring story (Condition$ EnduringStory, CR 702.195; gorge condEnduringStory, state.Player.EnduringStory). The kernel holds the one-way latch in genState.story (kw_storied.go) and the condition reads it with the evaluating controller, the same context gorge's continuousConditionHolds reads sv.Controller in.
+const CondEnduringStory CondKind = 14
+
 // CondKind (dirac/manifest/CondKind/CondMonarch)
 //
 // the controller is the monarch (Condition$ Monarch, CR 719.2; gorge condMonarch, state.Game.IsMonarch). The kernel holds the monarch seat in genState.mon (act_monarch.go) and the condition reads it with the evaluating controller, the same context gorge's continuousConditionHolds reads sv.Controller in.
-const CondMonarch CondKind = 14
+const CondMonarch CondKind = 15
 
 // CostAtomKind (dirac/manifest/CostAtomKind/CostAtomAddCounter)
 //

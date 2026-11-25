@@ -692,6 +692,9 @@ func (s *State) sba(k *prep) bool {
 		if k.ascend {
 			s.blessScan(k) // CR 702.131b "any time": after the pass's checks, before its batch (gorge sba.go; kw_ascend.go)
 		}
+		if k.storied {
+			s.storiedScan(k) // CR 702.195a "any time": the same post-pass hook (gorge sba.go; kw_storied.go)
+		}
 		all := die.or(gy)
 		if all.any() {
 			s.dnBatch(k) // CR 702.145d/g sees the pass's casualties (kw_daynight.go)
