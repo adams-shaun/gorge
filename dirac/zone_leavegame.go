@@ -105,6 +105,14 @@ func (s *State) expireControlPerLoss(k *prep, pre uint8) {
 // no zone (kop.ZoneNone, which the oracle projects as ZCeased).
 func (s *State) leaveGame(k *prep, p uint8) bool {
 	moved := false
+	if s.parkedWaiting() && s.parkedOwnedBy(p) {
+		// a CR 616.1 order ask still waits on a permanent p owns, which leaves
+		// the game with p (CR 800.4a) before the answer moves it: a four-seat
+		// pass that kills the player beside the creature (two opponents'
+		// Kalitas over a commander). The kernel does not model the abandoned
+		// ask, so it stalls instead of moving an object that is gone.
+		s.capFull(StallReplLeave)
+	}
 	if k.gen != nil && k.gen.anyBattle {
 		s.rechooseProtectors(k, p) // CR 310.10 (face_battle.go)
 	}
@@ -241,4 +249,16 @@ func (s *State) exileControlled(k *prep, p uint8) bool {
 		}
 	}
 	return moved
+}
+
+// parkedOwnedBy reports whether a parked move waits on a battlefield permanent
+// player p owns.
+func (s *State) parkedOwnedBy(p uint8) bool {
+	for i := range s.cold.parked {
+		r := &s.cold.parked[i]
+		if r.kind != parkNone && r.kind != parkAnswered && s.objs[r.obj].zone == kop.ZoneBattlefield && s.objs[r.obj].owner() == p {
+			return true
+		}
+	}
+	return false
 }
