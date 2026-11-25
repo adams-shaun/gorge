@@ -9,13 +9,6 @@ import (
 // than the bound takes them all, in hand order, without an ask). It
 // reports whether it took them.
 //
-// A required take-all of two or more cards into one library position still
-// poses the owner's CR 401.4 arrangement (gorge handLibraryTail's
-// libraryPlacementOrder call), unlike an ANSWERED pick, whose answer order is
-// already the placement order (gorge's orderKnown). The arrangement is armed
-// and posed here, only on this no-choice path, so the lowering needs no
-// bracket and an answered pick never gains an extra ask.
-//
 //go:noinline
 func (s *State) handTakeAll(k *prep) bool {
 	var d Decision
@@ -27,30 +20,7 @@ func (s *State) handTakeAll(k *prep) bool {
 		s.resArm().look[s.g.nlook] = Obj(d.Options[i].Source())
 		s.g.nlook++
 	}
-	arrange := false
-	if in := &s.prog(k)[s.res.pc]; in.Op == kop.OpChooseMove && d.N >= 2 &&
-		in.C&7 == int16(kop.ZoneLibrary) && in.B.N&kop.SrHandPosAsk == 0 {
-		// Arm before the moves: placeFromK counts each card the move puts into
-		// its owner's library. A hand move's top group is already in move
-		// order -- moveFoundAns reverses the picks before placing them one by
-		// one on top -- so neither arm reverses at the ask.
-		arm := uint8(kop.PlaceArmTop) + 1
-		if in.B.N&kop.SrHandBottom != 0 {
-			arm = kop.PlaceArmBottom + 1
-		}
-		s.resArm().plc = libTally{arm: arm}
-		arrange = true
-	}
 	s.finishSearchNow(k)
-	if arrange {
-		if s.res.ask != raNone {
-			s.resArm().plc = libTally{} // a parked ask owns the next resolution
-		} else {
-			// A posed arrangement ask (false) rides the outer loop like any
-			// other ask; the take-all itself is complete.
-			s.libPlaceExt(k, &kop.Instr{C: kop.PlaceAsk})
-		}
-	}
 	return true
 }
 
