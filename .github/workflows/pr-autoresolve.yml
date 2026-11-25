@@ -41,14 +41,15 @@ jobs:
         # GitHub computes mergeable lazily after main moves: UNKNOWN until then. Asking starts the computation, so
         # retry until no PR is UNKNOWN (at most 5 min). regen/* branches rebuild themselves (scripts/regen-main.sh).
         run: |
-          q='[.[] | select(.isDraft | not) | select(.headRefName | startswith("regen/") | not) | select(.isCrossRepository | not)]'
           for i in $(seq 1 15); do
-            js=$(gh pr list -R "$REPO" --base main --state open --limit 200 --json number,isDraft,headRefName,isCrossRepository,mergeable --jq "$q")
-            unknown=$(jq '[.[] | select(.mergeable == "UNKNOWN")] | length' <<<"$js")
+            curl -fsS -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" \
+              "https://api.github.com/repos/$REPO/pulls?state=open&base=main&per_page=100" >pulls.json
+            # The list endpoint carries no mergeable; ask each PR (this also starts GitHub's lazy computation).
+            python3 scripts/pr-autoresolve-list.py >prs.txt
+            read -r unknown prs <prs.txt
             [ "$unknown" -eq 0 ] && break
             echo "$unknown PRs not computed yet; retry $i"; sleep 20
           done
-          prs=$(jq -c '[.[] | select(.mergeable == "CONFLICTING") | .number]' <<<"$js")
           echo "conflicting: $prs"
           echo "prs=$prs" >>"$GITHUB_OUTPUT"
 
@@ -80,10 +81,14 @@ jobs:
       - name: Authenticate git with the bot token
         env:
           GH_TOKEN: ${{ secrets.REGEN_TOKEN || github.token }}
-        run: gh auth setup-git
+        # No gh on the box runners: rewrite github.com URLs to carry the token. The value is masked in logs and never echoed.
+        run: |
+          echo "::add-mask::$GH_TOKEN"
+          git config --global url."https://x-access-token:${GH_TOKEN}@github.com/".insteadOf "https://github.com/"
       - name: Merge main and rebuild the generated files
         env:
           GH_TOKEN: ${{ secrets.REGEN_TOKEN || github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
           PR: ${{ matrix.pr }}
         # Exit 4: a conflict outside the generated set, which this workflow leaves alone (a notice, not a red job).
         run: |
