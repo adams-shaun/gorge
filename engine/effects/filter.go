@@ -2316,6 +2316,16 @@ func matchTriggeredAttacker(o *state.Object, sc SpecContext) (result, ok bool) {
 	return o.ID == sc.TriggerCard, true
 }
 
+// controlledByAny reports whether o's controller is one of players.
+func controlledByAny(o *state.Object, players []state.PlayerID) bool {
+	for _, p := range players {
+		if o.Controller == p {
+			return true
+		}
+	}
+	return false
+}
+
 // matchPositive evaluates a recognised positive-evaluation predicate token p
 // to its boolean. ok is false for an unknown token OR an unbound trigger
 // referent. The latter remains a recognised grammar shape for the census, but
@@ -2653,19 +2663,12 @@ func matchPositive(g *state.Game, p string, o *state.Object, sc SpecContext) (re
 		mine := objectPowerInContext(o, sc)
 		for i := range g.Objs {
 			other := &g.Objs[i]
-			if other.Zone != state.ZBattlefield || other.ID == o.ID || !hasTypeCtx(other, "Creature", sc) {
+			// CR 702.26b: a phased-out permanent is not in the comparison set (the kernel's ExValidAgg walks occupied slots).
+			if other.PhasedOut || other.Zone != state.ZBattlefield || other.ID == o.ID || !hasTypeCtx(other, "Creature", sc) {
 				continue
 			}
-			if len(players) > 0 {
-				controlled := false
-				for _, p := range players {
-					if other.Controller == p {
-						controlled = true
-					}
-				}
-				if !controlled {
-					continue
-				}
+			if len(players) > 0 && !controlledByAny(other, players) {
+				continue
 			}
 			if objectPowerInContext(other, sc) > mine {
 				return false, true
@@ -2721,19 +2724,12 @@ func matchPositive(g *state.Game, p string, o *state.Object, sc SpecContext) (re
 		mine := objectManaValue(g, o)
 		for i := range g.Objs {
 			other := &g.Objs[i]
-			if other.ID == o.ID || other.Zone != state.ZBattlefield || !cmcSetMember(other, prop) {
+			// CR 702.26b: a phased-out permanent is not in the comparison set (Dispersal, repeateachslice seed 111).
+			if other.ID == o.ID || other.Zone != state.ZBattlefield || other.PhasedOut || !cmcSetMember(other, prop) {
 				continue
 			}
-			if len(players) > 0 {
-				controlled := false
-				for _, pl := range players {
-					if other.Controller == pl {
-						controlled = true
-					}
-				}
-				if !controlled {
-					continue
-				}
+			if len(players) > 0 && !controlledByAny(other, players) {
+				continue
 			}
 			if objectManaValue(g, other) > mine {
 				return false, true
@@ -2757,7 +2753,8 @@ func matchPositive(g *state.Game, p string, o *state.Object, sc SpecContext) (re
 		mine := objectManaValue(g, o)
 		for i := range g.Objs {
 			other := &g.Objs[i]
-			if other.Zone != state.ZBattlefield || hasType(other, "Land") {
+			// CR 702.26b: a phased-out permanent is not in the comparison set.
+			if other.PhasedOut || other.Zone != state.ZBattlefield || hasType(other, "Land") {
 				continue
 			}
 			if objectManaValue(g, other) < mine {
