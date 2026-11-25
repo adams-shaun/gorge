@@ -661,12 +661,13 @@ const (
 	zStack
 	zCommand
 	zAny
+	zSideboard // a card outside the game (Wish): kernel ZoneSideboard
 )
 
 var zoneNames = map[string]int{"Battlefield": zBattlefield, "Hand": zHand, "Graveyard": zGraveyard,
-	"Library": zLibrary, "Exile": zExile, "Stack": zStack, "Command": zCommand, "Any": zAny, "All": zAny}
+	"Library": zLibrary, "Exile": zExile, "Stack": zStack, "Command": zCommand, "Any": zAny, "All": zAny, "Sideboard": zSideboard}
 
-var zoneLabel = [...]string{"-", "Battlefield", "Hand", "Graveyard", "Library", "Exile", "Stack", "Command", "Any"}
+var zoneLabel = [...]string{"-", "Battlefield", "Hand", "Graveyard", "Library", "Exile", "Stack", "Command", "Any", "Sideboard"}
 
 // lTarget is one target slot.
 type lTarget struct {
