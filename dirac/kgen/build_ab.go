@@ -2249,6 +2249,16 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		if st.GrantCost, err = manaCostOf(s.Cost.Mana); err != nil {
 			return ka, nil, err
 		}
+	case "MiracleGrant":
+		st.Kind = kop.StatMiracleGrant // kw_miracle.go
+		if st.Filter, err = filter(s.F, kop.ZoneHand); err != nil {
+			return ka, nil, err
+		}
+		st.Zone = kop.ZoneHand
+		st.CardCostLess = uint8(s.CardCostLess)
+		if st.GrantCost, err = manaCostOf(s.Cost.Mana); err != nil {
+			return ka, nil, err
+		}
 	case "EscapeGrant":
 		// an AffectedZone$ Graveyard AddKeyword$ Escape static: each matching
 		// card in its controller's graveyard has escape at its mana cost plus
