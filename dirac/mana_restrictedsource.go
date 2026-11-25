@@ -1695,11 +1695,7 @@ func (s *State) restrPairUnit(k *prep, sl Slot, v *pcard, pk *planner, i int, re
 	pk.types[ta].avail++
 	pk.types[tb].avail++
 	pk.units[pk.nu] = sl
-	if pk.bfl {
-		pk.uobj[pk.nu] = Obj(i)
-	} else {
-		pk.uobj[pk.nu] = s.perms[sl].obj
-	}
+	pk.rankUnit(s, i, sl)
 	pk.utyp[pk.nu] = uint8(ta)
 	pk.rkind[pk.nu] = 0
 	pk.rAb[pk.nu] = v.manaAb

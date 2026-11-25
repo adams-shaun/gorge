@@ -1922,7 +1922,7 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 					hasSac = true // last resort: a sacrificing or non-untapping source
 					continue
 				}
-				if sac && pk.kept.any() && pk.kept.has(sl) || s.planGrantSacOnly(k, p, pk, sl, pc, phase, &gr[i], &hasGrant) {
+				if sac && pk.kept.any() && pk.kept.has(sl) || s.planGrantSacOnly(k, p, pk, i, sl, pc, phase, &gr[i], &hasGrant) {
 					continue // reserved for the cost's sacrifice, or a granted sacrifice is the source's only unit
 				}
 				// gorge's census lists a source with a deterministic
@@ -2054,15 +2054,7 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 				}
 				pk.types[ti].avail++
 				pk.units[pk.nu] = sl
-				if pk.bfl {
-					// a hybrid cast is paid through gorge's manual CR 601.2g
-					// window (pay.PlanCostDetail "cost:hybrid"), whose source
-					// order is pay.ManaSourceIDs: battlefield (entry) order,
-					// not the planner witness's creation order (pay.CompareSteps)
-					pk.uobj[pk.nu] = Obj(i)
-				} else {
-					pk.uobj[pk.nu] = Obj(s.birthOf(s.perms[sl].obj))
-				}
+				pk.rankUnit(s, i, sl)
 				pk.utyp[pk.nu] = uint8(ti)
 				pk.rkind[pk.nu] = rv[i]
 				pk.rAb[pk.nu] = pc.manaAb
@@ -2070,7 +2062,7 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 					pk.rAb[pk.nu] = ra[i] // the widened view's restricted ability
 				}
 				pk.nu++
-				s.planGrantsPhase2(k, p, pk, sl, pc, phase, &gr[i], cr)
+				s.planGrantsPhase2(k, p, pk, i, sl, pc, phase, &gr[i], cr)
 				if lr {
 					// a last-resort source has no normal alternative, so
 					// its colours are 0 in gorge's census: keys 6 and 7
@@ -2913,6 +2905,20 @@ func (pk *planner) seqCols(tys *[maxUnits]uint8, n int, col *[maxUnits]uint8) {
 			rem[c] = max(rem[c]-int(ty.n), 0)
 		}
 	}
+}
+
+// rankUnit writes the key-8 rank of the unit at pk.nu, which every census and
+// grant fill calls so uobj never mixes scales. A hybrid cast (pk.bfl) is paid
+// through gorge's manual CR 601.2g window (pay.PlanCostDetail "cost:hybrid"),
+// whose source order is pay.ManaSourceIDs: battlefield (entry) order, not the
+// planner witness's creation order (pay.CompareSteps). Every other plan ranks
+// by creation order (s.unitRank).
+func (pk *planner) rankUnit(s *State, i int, sl Slot) {
+	if pk.bfl {
+		pk.uobj[pk.nu] = Obj(i)
+		return
+	}
+	pk.uobj[pk.nu] = Obj(s.unitRank(sl))
 }
 
 // lexLeast builds, for count vector kv, the unit choice whose creation-rank

@@ -729,11 +729,7 @@ func (s *State) painUnit(k *prep, sl Slot, pc *pcard, pass int, pk *planner, i i
 		}
 		pk.types[tc].avail++
 		pk.units[pk.nu] = sl
-		if pk.bfl {
-			pk.uobj[pk.nu] = Obj(i)
-		} else {
-			pk.uobj[pk.nu] = s.perms[sl].obj
-		}
+		pk.rankUnit(s, i, sl)
 		pk.utyp[pk.nu] = uint8(tc)
 		pk.rAb[pk.nu] = -1
 		pk.nu++
@@ -752,11 +748,7 @@ func (s *State) painUnit(k *prep, sl Slot, pc *pcard, pass int, pk *planner, i i
 	}
 	pk.types[tp].avail++
 	pk.units[pk.nu] = sl
-	if pk.bfl {
-		pk.uobj[pk.nu] = Obj(i)
-	} else {
-		pk.uobj[pk.nu] = s.perms[sl].obj
-	}
+	pk.rankUnit(s, i, sl)
 	pk.utyp[pk.nu] = uint8(ti)
 	pk.rAb[pk.nu] = -1
 	if restricted {
