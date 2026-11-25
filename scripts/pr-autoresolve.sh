@@ -50,8 +50,20 @@ pr=${1:-}
 remote=${AUTORESOLVE_REMOTE:-origin}
 say() { echo "pr-autoresolve #$pr: $*"; }
 
-info=$(gh pr view "$pr" --json headRefName,baseRefName,isCrossRepository,state \
-  --jq '"\(.headRefName) \(.baseRefName) \(.isCrossRepository) \(.state)"') || { say "gh pr view failed"; exit 1; }
+# PR facts: gh when it is on PATH and GH_TOKEN is unset (local use), else the REST API (the box runners have no gh).
+if command -v gh >/dev/null 2>&1 && [ -z "${GH_TOKEN:-}" ]; then
+  info=$(gh pr view "$pr" --json headRefName,baseRefName,isCrossRepository,state \
+    --jq '"\(.headRefName) \(.baseRefName) \(.isCrossRepository) \(.state)"') || { say "gh pr view failed"; exit 1; }
+else
+  : "${GH_TOKEN:?GH_TOKEN is required without gh}" "${GITHUB_REPOSITORY:?GITHUB_REPOSITORY is required without gh}"
+  info=$(curl -fsS -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" \
+    "https://api.github.com/repos/$GITHUB_REPOSITORY/pulls/$pr" | python3 -c '
+import json, sys
+d = json.load(sys.stdin)
+head = d["head"]
+cross = "true" if head.get("repo") is None or head["repo"]["full_name"] != d["base"]["repo"]["full_name"] else "false"
+print(head["ref"], d["base"]["ref"], cross, d["state"].upper())') || { say "PR lookup failed"; exit 1; }
+fi
 read -r branch base cross state <<<"$info"
 [ "$state" = OPEN ] || { say "is $state; left alone"; exit 0; }
 [ "$base" = main ] || { say "targets $base, not main; left alone"; exit 0; }
