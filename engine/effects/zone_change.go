@@ -1164,7 +1164,16 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 			emitChangeZoneCounters(h, o.ID, withKind, withAmt)
 		}
 		settleInlinedObjectEntry(h, c, o.ID, sa, cz, to, &rider)
-		if cz.Imprint && (to == state.ZExile || cz.ImprintLast) {
+		// Imprint$ True records the moved card in the source's persistent
+		// imprintedCards association whatever the destination (Forge's
+		// ChangeZoneEffect imprints every card it moved; CR 607.2a's linked
+		// ability then names it). A Return move (Phelia, Exuberant Shepherd's
+		// exiled card to the battlefield, Fishing Gear's optional enter) is
+		// exactly such a move, so the destination is not a gate. The
+		// post-move zone confirms the move landed, and a token is never
+		// imprinted off the battlefield (the same shape the shared settle path
+		// and the library-search mover use).
+		if cz.Imprint {
 			if landed := h.Game().Obj(o.ID); landed != nil && landed.Zone == to &&
 				(to == state.ZExile || !landed.IsToken) {
 				imprinted = append(imprinted, o.ID)
