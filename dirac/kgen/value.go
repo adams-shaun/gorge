@@ -548,6 +548,8 @@ func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 		}
 	case "ReplacedCard":
 		v, err = lc.replacedCardValue(rest) // value_compareheads.go
+	case "ReplacedCardLKI":
+		v, err = lc.replacedCardLKIValue(rest) // value_repllki.go
 	case "ThisTargetedPlayer":
 		// gorge count_ref_property.go:727: the TargetedPlayer ref; Valid <spec>
 		// counts the targeted player's battlefield with that player as You.
