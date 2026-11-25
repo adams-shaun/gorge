@@ -479,6 +479,12 @@ func runCharmBody(h Host, c *Ctx, sub *cards.SA) {
 
 // villainousRememberedCards is the remembered set without its players: the
 // cards the enclosing resolution remembered, kept in order.
+//
+// Delta vs Forge: Forge's VillainousChoiceEffect removes only the current
+// victim player, so an enclosing resolution's remembered NON-victim player
+// would survive into the next victim's body; here every remembered player is
+// dropped. No corpus card reaches that shape today (no VillainousChoice chain
+// carries RememberChosen on a player chooser), so it stays a documented delta.
 func villainousRememberedCards(rem []state.Target) []state.Target {
 	var out []state.Target
 	for _, t := range rem {
