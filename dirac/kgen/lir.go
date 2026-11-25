@@ -1043,6 +1043,9 @@ type lTrigger struct {
 	// player has no contract counter (kop.Tf5DmgNoContract;
 	// lower_contract.go).
 	NoContract bool
+	// SpellCast: NoColoredMana$ True, the cast spent no coloured mana
+	// (kop.Tf5CastNoColoredMana; lower_trigger.go).
+	NoColoredMana bool
 	// Discarded Card.Self: ValidCause$ SpellAbility.OppCtrl, the discard caused
 	// by a spell or ability an opponent controls (kop.Tf5OppCause).
 	OppCause bool

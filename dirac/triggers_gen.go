@@ -937,6 +937,9 @@ func (s *State) castTrigGen(k *prep, l trigListener, a *kop.Ability, e *stackEnt
 	if t.Flags3&kop.Tf3ManaFromTreasure != 0 && !s.castTreasureOK(e) {
 		return // trig_validsa.go
 	}
+	if t.Flags5&kop.Tf5CastNoColoredMana != 0 && !s.castNoColoredOK(e) {
+		return // trig_nocoloredmana.go
+	}
 	if t.Flags2&kop.Tf2Increment != 0 && !s.incrementAdmits(k, l, e) {
 		return // kw_increment.go: the cast's spend against the source's P/T (gorge incrementAdmits)
 	}

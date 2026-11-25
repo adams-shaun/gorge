@@ -3,10 +3,13 @@ package oracle
 import (
 	"testing"
 
+	"github.com/adams-shaun/gorge/dirac"
 	"github.com/adams-shaun/gorge/dirac/cardset"
 	"github.com/adams-shaun/gorge/dirac/kop"
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
+	"github.com/adams-shaun/gorge/engine/events"
+	"github.com/adams-shaun/gorge/engine/state"
 )
 
 // sp3Run plays seeds 1..n of one constructed matchup over a fixture pool,
@@ -154,5 +157,93 @@ func TestReflexOptionalMutation(t *testing.T) {
 	}
 	if d, _ := sp3Run(t, "reflexoptional", sp3ReflexDecks, ExplorePolicy, 24, true, mut, sp3ReflexAsked); d == nil {
 		t.Error("no divergence with the reflexive trigger made mandatory")
+	}
+}
+
+// The NoColoredMana$ lockstep: Void Mirror's SpellCast trigger fires only for
+// a cast that spent no coloured mana (gorge trigmatch SpellCastEval over
+// Object.ManaColorSpent; kernel kop.Tf5CastNoColoredMana over the spell
+// entry's spc). Both decks mix Wastes with a coloured basic and colourless
+// with coloured spells, so a mirror sees both kinds of cast.
+var sp3MirrorDecks = [2][]cardset.Entry{
+	{{Name: "Void Mirror", Count: 6}, {Name: "Memnite", Count: 4}, {Name: "Ornithopter", Count: 4}, {Name: "Grizzly Bears", Count: 6}, {Name: "Wastes", Count: 10}, {Name: "Forest", Count: 10}},
+	{{Name: "Void Mirror", Count: 4}, {Name: "Ornithopter", Count: 4}, {Name: "Wind Drake", Count: 8}, {Name: "Memnite", Count: 4}, {Name: "Wastes", Count: 10}, {Name: "Island", Count: 10}},
+}
+
+// sp3MirrorStats are the scenario counts read from gorge's events.
+type sp3MirrorStats struct{ fired, colouredCasts int }
+
+// sp3MirrorObserver counts, from gorge's events, Void Mirror's triggers put
+// on the stack and coloured-spell casts made while a Void Mirror was on the
+// battlefield (casts the gate must turn away).
+func sp3MirrorObserver(st *sp3MirrorStats) func(*GorgeSide) bool {
+	seen := 0
+	var last *GorgeSide
+	return func(ref *GorgeSide) bool {
+		if ref != last {
+			last, seen = ref, 0
+		}
+		g := ref.E.G
+		evs := ref.E.L.Events
+		hit := false
+		for ; seen < len(evs); seen++ {
+			ev := evs[seen]
+			o := g.Obj(ev.Obj)
+			if o == nil || o.Face() == nil {
+				continue
+			}
+			switch {
+			case ev.Kind == events.TriggerPush && o.Face().Name == "Void Mirror":
+				st.fired++
+				hit = true
+			case ev.Kind == events.PutOnStack && (o.Face().Name == "Grizzly Bears" || o.Face().Name == "Wind Drake") && sp3MirrorOut(g):
+				st.colouredCasts++
+			}
+		}
+		return hit
+	}
+}
+
+// sp3MirrorOut reports whether a Void Mirror is on gorge's battlefield.
+func sp3MirrorOut(g *state.Game) bool {
+	for _, p := range g.AliveFrom(0) {
+		for _, id := range g.Zone(state.ZBattlefield, p) {
+			if o := g.Obj(id); o != nil && o.Face() != nil && o.Face().Name == "Void Mirror" {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// TestNoColoredManaLowers: random and explore policies, no divergence and no
+// unmodelled stall; Void Mirror's trigger fired, and coloured spells were
+// cast past a Void Mirror, on gorge's side.
+func TestNoColoredManaLowers(t *testing.T) {
+	if isolate(t) {
+		return
+	}
+	var st sp3MirrorStats
+	obs := sp3MirrorObserver(&st)
+	sp3Run(t, "nocoloredmana", sp3MirrorDecks, pkPolicy, 24, false, nil, obs)
+	sp3Run(t, "nocoloredmana", sp3MirrorDecks, ExplorePolicy, 24, false, nil, obs)
+	t.Logf("Void Mirror triggers %d, coloured casts past a mirror %d", st.fired, st.colouredCasts)
+	if st.fired < 4 || st.colouredCasts < 4 {
+		t.Errorf("Void Mirror fired %d times and saw %d coloured casts, want at least 4 of each", st.fired, st.colouredCasts)
+	}
+}
+
+// TestNoColoredManaMutation: with the gate off (dirac.DebugNoColoredManaOff)
+// a coloured cast triggers the mirror in the kernel alone, so the lockstep
+// diverges and TestNoColoredManaLowers does not pass vacuously.
+func TestNoColoredManaMutation(t *testing.T) {
+	if isolate(t) {
+		return
+	}
+	dirac.DebugNoColoredManaOff = true
+	defer func() { dirac.DebugNoColoredManaOff = false }()
+	var st sp3MirrorStats
+	if d, _ := sp3Run(t, "nocoloredmana", sp3MirrorDecks, ExplorePolicy, 24, true, nil, sp3MirrorObserver(&st)); d == nil {
+		t.Error("no divergence with the NoColoredMana$ gate off")
 	}
 }

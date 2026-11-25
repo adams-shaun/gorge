@@ -1,0 +1,13 @@
+# SpellCast NoColoredMana$ True, the colourless-cast gate (Void Mirror;
+# kop.Tf5CastNoColoredMana, kernel trig_nocoloredmana.go, gorge trigmatch
+# SpellCastEval), over decks of Wastes and coloured basics with colourless
+# and coloured spells, for the oracle's constructed lockstep
+# (dirac/oracle/setsparams3_lowers_test.go)
+Void Mirror
+Memnite
+Ornithopter
+Grizzly Bears
+Wind Drake
+Wastes
+Forest
+Island

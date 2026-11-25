@@ -671,6 +671,16 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 		if tp.is("OpponentTurn", "True") {
 			tr.OnlyOppTurn = true
 		}
+		if v, ok := tp.get("NoColoredMana"); ok {
+			// "if no colored mana was spent to cast it" (Void Mirror): gorge
+			// SpellCastEval's fire-time read of the cast's per-colour spend
+			// (kop.Tf5CastNoColoredMana). Only a battlefield listener's plain
+			// SpellCast lowers.
+			if t.Mode != "SpellCast" || strings.TrimSpace(v) != "True" || tr.Zone != 0 && tr.Zone != zBattlefield {
+				return refuse("NoColoredMana %q on a %s line", v, t.Mode)
+			}
+			tr.NoColoredMana = true
+		}
 		if v, ok := tp.get("ValidSA"); ok {
 			// "whenever you cast a spell using mana produced by CARDNAME"
 			// (gorge trigmatch validSAManaFromCardSelf): the cast's payment

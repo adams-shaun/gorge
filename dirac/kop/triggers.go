@@ -131,6 +131,17 @@ const (
 	Tf5OptSrcCtrl TrigFlags5 = 1 << 6
 )
 
+// Tf5CastNoColoredMana (Trigger.Flags5, bit 0, shared with
+// Tf5FirstCardInDrawStep: that flag is set only on a Drawn line and this one
+// only on a SpellCast line, so no trigger carries both; readers scope the bit
+// by event, as the Tf4CauseSpellAb / Tf4NthFiltered pair does): a SpellCast
+// line's NoColoredMana$ True (Void Mirror, "if no colored mana was spent to
+// cast it"): it fires only for a cast whose payment spent no mana of any
+// colour (gorge trigmatch SpellCastEval over Object.ManaColorSpent, Forge
+// TriggerSpellAbilityCastOrCopy). The kernel reads the spell entry's
+// per-colour spend (stackEntry.spc, trig_nocoloredmana.go).
+const Tf5CastNoColoredMana TrigFlags5 = 1 << 0
+
 // TrigEvent is a triggered ability's subscription: the event kind it listens
 // for. The kernel keeps, per event, a bitmask of battlefield slots whose card
 // has a trigger on it, so an event only scans the subscribers. Append-only.
