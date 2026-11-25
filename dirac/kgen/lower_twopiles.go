@@ -1,6 +1,8 @@
 package kgen
 
 import (
+	"strings"
+
 	"github.com/adams-shaun/gorge/dirac/kop"
 	"github.com/adams-shaun/gorge/engine/cards"
 )
@@ -85,6 +87,83 @@ func (lc *lowerCtx) twoPilesRemembered(ps *params) error {
 	}
 	lc.emit(in)
 	return nil
+}
+
+// twoPilesEach lowers the battlefield TwoPiles inside a RepeatEach player body
+// whose separator is the repeated player and whose chooser is the opponent
+// that body's ChoosePlayerEach ask chose (Bend or Break: Defined$ Remembered,
+// Separator$ Remembered, Chooser$ ChosenPlayer; gorge effTwoPiles' battlefield
+// arm over the remembered player). They separate their nontoken lands
+// (ValidCards$ Land.!token+RememberedPlayerCtrl, kop CtrlEachPl) into two
+// piles, the chosen opponent picks one (ChGenPileChoose), and the chosen pile
+// is destroyed while the other is tapped: ChosenPile$ DB$ DestroyAll with
+// ValidCards$ exactly Land.IsRemembered, UnchosenPile$ DB$ TapAll with the
+// same (gorge twoPilesRunPile's fresh Remembered = pile). Anything else
+// refuses by name. OpExt ExtTwoPilesEach.
+func (lc *lowerCtx) twoPilesEach(ps *params) error {
+	if lc.repeatPl == 0 {
+		return refuse("TwoPiles battlefield Defined$ Remembered outside a RepeatEach player body")
+	}
+	for _, k := range []string{"LeftRightPile", "DefinedPiles", "RememberChosen", "DefinedCards", "FaceDown", "KeepRemembered"} {
+		if _, ok := ps.get(k); ok {
+			return refuse("TwoPiles %s$", k)
+		}
+	}
+	if v := ps.str("Zone"); v != "Battlefield" {
+		return refuse("TwoPiles Zone$ %q", v)
+	}
+	if v := ps.str("Defined"); v != "Remembered" {
+		return refuse("TwoPiles Defined$ %q", v)
+	}
+	if v := ps.str("Separator"); v != "Remembered" {
+		return refuse("TwoPiles Separator$ %q", v)
+	}
+	if v := ps.str("Chooser"); v != "ChosenPlayer" {
+		return refuse("TwoPiles Chooser$ %q", v)
+	}
+	vc := ps.str("ValidCards")
+	if vc != "Land.!token+RememberedPlayerCtrl" {
+		return refuse("TwoPiles battlefield ValidCards$ %q", vc)
+	}
+	if !pileAction(cards.ResolveSVar(lc.face.SVars, ps.str("ChosenPile")), "DestroyAll") {
+		return refuse("TwoPiles ChosenPile$ %q", ps.str("ChosenPile"))
+	}
+	if !pileAction(cards.ResolveSVar(lc.face.SVars, ps.str("UnchosenPile")), "TapAll") {
+		return refuse("TwoPiles UnchosenPile$ %q", ps.str("UnchosenPile"))
+	}
+	// the chain's rider, prompt and AI metadata only
+	ps.consume("Zone", "Defined", "Separator", "Chooser", "ValidCards", "ChosenPile", "UnchosenPile", "SubAbility", "ChoiceTitle", "AILogic")
+	if left := ps.unread(); len(left) > 0 {
+		return refuse("TwoPiles battlefield unread params %v", left)
+	}
+	f, err := lc.filter(vc)
+	if err != nil {
+		return err
+	}
+	lc.emit(lInstr{Op: "TwoPilesEach", F: f, Note: "the repeated player's nontoken lands split into two piles; the chosen opponent picks one; the chosen pile destroyed, the other tapped"})
+	return nil
+}
+
+// pileAction reports whether a ChosenPile$/UnchosenPile$ body is exactly the
+// api over the chosen pile's members: DB$ DestroyAll or TapAll with
+// ValidCards$ Land.IsRemembered (gorge twoPilesRunPile's fresh Remembered =
+// pile) and no other rules parameter, no sub-ability.
+func pileAction(sa *cards.SA, api string) bool {
+	if sa == nil || sa.API != api || sa.Sub != nil {
+		return false
+	}
+	n := 0
+	for k, v := range sa.Params {
+		if ignoredParams[k] {
+			continue
+		}
+		if k == "ValidCards" && strings.TrimSpace(v) == "Land.IsRemembered" {
+			n++
+			continue
+		}
+		return false
+	}
+	return n == 1
 }
 
 // pileBody reports whether a ChosenPile$/UnchosenPile$ body is exactly the

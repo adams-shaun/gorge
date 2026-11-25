@@ -56,7 +56,9 @@ func (e *Encoder) buildRel(s *dirac.State) {
 	for i := 0; i < int(e.kp.NStack); i++ {
 		se := &e.kp.Stack[i]
 		mine := se.Ctrl == v.seat
-		var seen [16]dirac.TCode
+		// every object an entry can name: its target slots and the extra
+		// objects of its multi-object slots
+		var seen [len(dirac.ProjStack{}.Targets) + len(dirac.ProjStack{}.Extra)]dirac.TCode
 		nseen := 0
 		add := func(t dirac.TCode) {
 			if t == dirac.NoTarget || t >= dirac.PlayerTarget0 {
