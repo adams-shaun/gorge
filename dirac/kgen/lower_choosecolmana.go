@@ -15,10 +15,10 @@ import (
 // off the stack; the planner-deferred mana-rider route pays the fee and marks
 // the once-each-turn use (kop.ManaRiderChosenAnimate).
 //
-// Only this shape lowers. A {T} head (Nyx Lotus, Nykthos, Rhystic Cave), a
-// dynamic Amount$ (Count$Devotion.Chosen), an UnlessCost$ or another rider
-// keeps the existing refusal (lower_dbmanacontext.go); those are the base
-// ticket's devotion/unless forms, not this one.
+// Only this shape lowers. A {T} head (Nyx Lotus, Nykthos, Rhystic Cave) is the
+// colour-asking arm's (lower_askcolourmana.go) when its chain is the devotion
+// form, and Rhystic Cave's UnlessCost$ or another rider else keeps the existing
+// refusal (lower_dbmanacontext.go).
 func chosenColorManaShape(sa *cards.SA) bool {
 	if sa == nil || sa.Kind != "AB" || sa.API != "ChooseColor" || !cards.IsManaAbilitySA(sa) {
 		return false

@@ -54,6 +54,9 @@ const relaxedPaidLimit = 3
 // card's first mana ability (Three Tree Mascot's untapped {1}, Prophetic
 // Prism) is kop.FilterManaAb's (mana_filterfirst.go).
 func filterTapMana(cd *kop.CardDef, a *kop.Ability) bool {
+	if a.ManaAskColour {
+		return false // the colour-asking route's (mana_askcolour.go), not a filter
+	}
 	m := &a.Cost.Mana
 	_, pip := fixedPipFilt(a)        // a gated one-pip fixed-colour filter (mana_filterpip.go)
 	hyb := kop.HybridFilterManaAb(a) // a one-hybrid-pip fee, two of one chosen colour (mana_filterhybrid.go)
@@ -1228,7 +1231,9 @@ func sacOnlyManaAb(a *kop.Ability) bool {
 // life-only one, the planner's last-resort Consequence{Life} alternative the
 // pain unit prepSoleLifeMana classifies (mana_pain.go).
 func registersGapOther(c *kop.CardDef, a *kop.Ability, j int) bool {
-	return censusGapMana(a) && !lifePainLandAb(c, a) && !kop.ChosenSecondManaAb(c, firstManaAb(c), j) && !sacOnlyManaAb(a) &&
+	// A colour-asking ability is the Taps-deferred route's (mana_askcolour.go):
+	// registering it as a census gap too would price the same tap twice.
+	return !a.ManaAskColour && censusGapMana(a) && !lifePainLandAb(c, a) && !kop.ChosenSecondManaAb(c, firstManaAb(c), j) && !sacOnlyManaAb(a) &&
 		!restrLifeAb(a) && !kop.SoleGapLifeManaAb(c, j)
 }
 
@@ -1695,10 +1700,13 @@ func (fs *filtSearch) lifePainOnPath() bool {
 // plain witness arm's read): the filter search's life pass then activates a
 // sole life-only pain unit as the plan's last resort (lifePass's pain arm).
 // The read is scoped to the plain hand cast the witness arm prices -- gorge's
-// planner plans the composed cost of a PlannedCast (planComposedCostFor) -- and
-// to a may-play permission's plain cast from another zone (Junk's exile), and
-// runs only when the board holds an activatable life-only pain unit, the one
-// shape whose census unit a gap activation can fund (potential_plan.go).
+// planner plans the composed cost of a PlannedCast (planComposedCostFor) -- to
+// a may-play permission's plain cast from another zone (Junk's exile), and to
+// a bestowed cast at its bestow cost (CR 702.103a; potentialModeCastPlan's
+// altBestow mode, Celestial Archon's {5}{W}{W} through Heap Gate's filter
+// beside Treasonous Ogre), and runs only when the board holds an activatable
+// life-only pain unit, the one shape whose census unit a gap activation can
+// fund (potential_plan.go).
 //
 //go:noinline
 func (s *State) lifePainPlanAffords(k *prep, a Action, p uint8) bool {
@@ -1714,6 +1722,8 @@ func (s *State) lifePainPlanAffords(k *prep, a Action, p uint8) bool {
 		return s.lifePainActAffords(k, a, p, o)
 	case a.Kind() == AkCast && a.Mode() == 2 && s.objs[o].zone == kop.ZoneGraveyard && k.cards[s.objs[o].card].kw&kop.KwFlashback != 0:
 		return s.lifePainFlashbackAffords(k, p, o)
+	case a.Kind() == AkBestow:
+		return s.lifePainBestowAffords(k, p, o)
 	case a.Kind() != AkCast || !(a.Mode() == 0 && s.objs[o].zone == kop.ZoneHand || a.Mode() == castMayPlay && s.objs[o].zone != kop.ZoneHand):
 		return false // a hand cast, or a may-play permission's plain cast of the printed cost from another zone (Junk's exile)
 	}
@@ -1743,6 +1753,27 @@ func (s *State) lifePainFlashbackAffords(k *prep, p uint8, o Obj) bool {
 	cost := s.featCost(k, p, c, o, k.t.Cards[c].AltCost)
 	var pb avail
 	sp := payDesc{class: pdSpell, card: c, og: s.restrOriginOfObj(o)}
+	s.availPotentialFor(k, p, &pb, &sp, false)
+	return pb.affords(&cost, pipMaskOf(&cost), 0)
+}
+
+// lifePainBestowAffords is lifePainPlanAffords's arm for a bestowed cast (CR
+// 702.103a): gorge's planner prices the bestow cost (potentialModeCastPlan's
+// altBestow mode), so the filter search's life pass may fund a filter's fee
+// beside the sole life-only pain unit (Heap Gate's {1}, {T}: Add one mana of
+// any colour beside Treasonous Ogre's "Pay 3 life: Add {R}"). The descriptor
+// carries the bestow origin: the spell is an Aura, not a creature, so
+// creature-spell-only mana cannot pay it (CR 702.103b).
+func (s *State) lifePainBestowAffords(k *prep, p uint8, o Obj) bool {
+	if !s.lifePainLive(k, p) || s.objs[o].zone != kop.ZoneHand {
+		return false
+	}
+	c := s.objs[o].card
+	cost := s.adjustCost(k, p, c, o, k.t.Cards[c].BestowCost)
+	var pb avail
+	og := s.restrOriginOfObj(o)
+	og.bestowed = true
+	sp := payDesc{class: pdSpell, card: c, og: og}
 	s.availPotentialFor(k, p, &pb, &sp, false)
 	return pb.affords(&cost, pipMaskOf(&cost), 0)
 }

@@ -206,14 +206,15 @@ func TestLegalTargetsRecheckAppliesThePlayerSpec(t *testing.T) {
 	}
 }
 
-// The corpus census over distinct pure-player ValidTgts$ values (every
-// comma-alternative's base is Player/Any/Opponent/You), classified
-// semantically: a value "offers a seat" when the offer/recheck judge
+// The corpus census over distinct pure-player player-spec values -- ValidTgts$
+// (an ask) and Defined$/DefinedPlayer$ (resolution-time player sets), every
+// comma-alternative's base is Player/Any/Opponent/You -- classified
+// semantically: a value "offers a seat" when the shared player-spec judge
 // (e.playerTargetSpecMatches -- the shared MatchesPlayerSpecFrom grammar plus
 // the trigger-role alternatives the ask's TriggerContext carries) matches at
 // least one seat of a plain 2-seat game, else it fails closed (the AGENTS.md
-// MatchesPlayerSpec convention). The two sets are pinned so a corpus update
-// that adds an unhandled qualifier shape fails loudly here.
+// MatchesPlayerSpec convention). The populations and both sets are pinned so
+// a corpus update that adds an unhandled qualifier shape fails loudly here.
 
 var censusTest struct {
 	sync.Mutex
@@ -230,6 +231,17 @@ func TestValidTgtsPurePlayerCensusPinsThePlayerQualifierSets(t *testing.T) {
 	}
 	reg := censusTest.reg
 	seen := map[string]bool{}
+	// Defined$/DefinedPlayer$ pure-player specs are the resolution-side twin
+	// of ValidTgts$: the same player grammar reads them, so the same
+	// qualifier spellings can fall outside the ask population. They are a
+	// separate population because a Defined$ spec is not an ask (it names
+	// the resolving effect's player set), but a new spelling must still be
+	// triaged and pinned here.
+	definedSeen := map[string]bool{}
+	definedParams := []struct {
+		name string
+		key  cards.ParamKey
+	}{{"Defined", cards.PKDefined}, {"DefinedPlayer", cards.PKDefinedPlayer}}
 	for _, c := range reg.AllCards() {
 		for _, face := range c.Faces {
 			var sas []*cards.SA
@@ -250,10 +262,17 @@ func TestValidTgtsPurePlayerCensusPinsThePlayerQualifierSets(t *testing.T) {
 					continue
 				}
 				spec := sa.Params["ValidTgts"]
-				if !purePlayerSpec(spec) {
-					continue
+				if purePlayerSpec(spec) {
+					seen[spec] = true
 				}
-				seen[spec] = true
+				for sub, depth := sa, 0; sub != nil && depth < 64; sub, depth = sub.Sub, depth+1 {
+					for _, p := range definedParams {
+						defined := strings.TrimSpace(sub.ParamStr(p.key))
+						if purePlayerSpec(defined) {
+							definedSeen[p.name+"$ "+defined] = true
+						}
+					}
+				}
 			}
 		}
 	}
@@ -301,6 +320,23 @@ func TestValidTgtsPurePlayerCensusPinsThePlayerQualifierSets(t *testing.T) {
 	}
 	sort.Strings(offered)
 	sort.Strings(failClosed)
+	var definedOffered, definedFailClosed []string
+	for key := range definedSeen {
+		spec := strings.TrimPrefix(strings.TrimPrefix(key, "Defined$ "), "DefinedPlayer$ ")
+		matched := false
+		for p := state.PlayerID(0); int(p) < len(e.G.Players); p++ {
+			if e.playerTargetSpecMatches(sc, spec, p, 0, src.ID) {
+				matched = true
+			}
+		}
+		if matched {
+			definedOffered = append(definedOffered, key)
+		} else {
+			definedFailClosed = append(definedFailClosed, key)
+		}
+	}
+	sort.Strings(definedOffered)
+	sort.Strings(definedFailClosed)
 	// The recognized mob: bare Player/Any/Opponent/You and the two qualified
 	// forms MatchesPlayerSpecFrom evaluates. Any.NotDefinedParentTarget,Player
 	// offers seats through its bare Player alternative (the unhandled
@@ -337,10 +373,78 @@ func TestValidTgtsPurePlayerCensusPinsThePlayerQualifierSets(t *testing.T) {
 	if !equalStrings(failClosed, wantFailClosed) {
 		t.Fatalf("fail-closed values moved:\n got %v\nwant %v", failClosed, wantFailClosed)
 	}
+
+	// The Defined$/DefinedPlayer$ population. A spec that names at least one
+	// seat here offers players at resolution time; one that matches nobody
+	// fails closed. The count and both lists are pinned so a corpus update
+	// that adds a new player qualifier spelling (or a card that newly reads
+	// one) cannot pass unnoticed: before this the census never scanned
+	// Defined$ at all, so a spelling like Thornbow Archer's
+	// Player.Opponent+controlsElf_EQ0 sat outside its population.
+	wantDefinedOffered := []string{
+		"Defined$ Opponent",
+		"Defined$ Opponent.!IsRemembered",
+		"Defined$ Player",
+		"Defined$ Player.!IsRemembered",
+		"Defined$ Player.!MaxSpeed",
+		"Defined$ Player.Opponent",
+		"Defined$ Player.Opponent+controlsElf_EQ0",
+		"Defined$ Player.Opponent+controlsLegendary.Creature_EQ0+controlsPlaneswalker_LE0",
+		"Defined$ Player.Other",
+		"Defined$ Player.withMostTypeCreature",
+		"Defined$ Player.withMostTypeLand",
+		"Defined$ You",
+		"DefinedPlayer$ Opponent",
+		"DefinedPlayer$ Player",
+		"DefinedPlayer$ Player.Opponent",
+		"DefinedPlayer$ Player.Other",
+		"DefinedPlayer$ You",
+	}
+	wantDefinedFailClosed := []string{
+		"Defined$ Opponent.HasCardsInCommand_Effect.namedDamaged by Gollum; Obsessed Stalker_GE1",
+		"Defined$ Opponent.IsCorrupted",
+		"Defined$ Opponent.LostLifeThisTurn GE3",
+		"Defined$ Opponent.NotedForSilence",
+		"Defined$ Player.Chosen",
+		"Defined$ Player.ConditionGEMaxPoints Counters.POINT",
+		"Defined$ Player.EnchantedBy",
+		"Defined$ Player.IsRemembered",
+		"Defined$ Player.NotedForDiscard",
+		"Defined$ Player.NotedForExileDraw",
+		"Defined$ Player.NotedForStargate",
+		"Defined$ Player.Opponent+HasCardsInHand_Card_EQ0",
+		"Defined$ Player.Opponent+IsCorrupted",
+		"Defined$ Player.Opponent+IsRemembered",
+		"Defined$ Player.OpponentOf TriggeredCardController",
+		"Defined$ Player.TappedLandForManaThisTurn",
+		"Defined$ Player.attackedBySourceThisCombat",
+		"Defined$ Player.attackedBySourceThisTurn",
+		"Defined$ Player.controlsCreature.MultiColor",
+		"Defined$ Player.controlsCreature.powerGE4_GE1",
+		"Defined$ Player.controlsPermanent.EnchantedBy",
+		"Defined$ Player.controlsPermanent.namedBonder's Ornament",
+		"Defined$ Player.lifeEQ13",
+		"Defined$ Player.lifeEQX",
+		"Defined$ You.!CardsInHandAtBeginningOfTurn",
+		"Defined$ You.CardsInHandAtBeginningOfTurn",
+		"DefinedPlayer$ Player.EnchantedBy",
+		"DefinedPlayer$ Player.HasCardsInExile_Card.ExiledWithSource_GE1",
+		"DefinedPlayer$ Player.IsRemembered",
+	}
+	if len(definedSeen) != 46 {
+		t.Fatalf("Defined$ census population moved: %d distinct pure-player values (was 46)", len(definedSeen))
+	}
+	if !equalStrings(definedOffered, wantDefinedOffered) {
+		t.Fatalf("Defined$ seat-offering values moved:\n got %v\nwant %v", definedOffered, wantDefinedOffered)
+	}
+	if !equalStrings(definedFailClosed, wantDefinedFailClosed) {
+		t.Fatalf("Defined$ fail-closed values moved:\n got %v\nwant %v", definedFailClosed, wantDefinedFailClosed)
+	}
 }
 
-// purePlayerSpec reports whether every comma-alternative of a ValidTgts$
-// spec has a player base (the spec can only ever name players).
+// purePlayerSpec reports whether every comma-alternative of a player-spec
+// value (ValidTgts$ or Defined$/DefinedPlayer$) has a player base (the spec
+// can only ever name players).
 func purePlayerSpec(spec string) bool {
 	spec = strings.TrimSpace(spec)
 	if spec == "" {
