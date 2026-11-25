@@ -85,20 +85,20 @@ jobs:
         with:
           go-version-file: go.mod
           cache: false
-      - name: Authenticate git with the bot token
-        env:
-          GH_TOKEN: ${{ secrets.REGEN_TOKEN || github.token }}
-        # No gh on the box runners: rewrite github.com URLs to carry the token. The value is masked in logs and never echoed.
-        run: |
-          echo "::add-mask::$GH_TOKEN"
-          git config --global url."https://x-access-token:${GH_TOKEN}@github.com/".insteadOf "https://github.com/"
       - name: Merge main and rebuild the generated files
         env:
           GH_TOKEN: ${{ secrets.REGEN_TOKEN || github.token }}
           GITHUB_REPOSITORY: ${{ github.repository }}
           PR: ${{ matrix.pr }}
         # Exit 4: a conflict outside the generated set, which this workflow leaves alone (a notice, not a red job).
+        # The token rides in this process's git config (GIT_CONFIG_*), never ~/.gitconfig: the box runners share one
+        # HOME, whose ~/.gitconfig had collected one insteadOf per earlier job, most with an expired job token, and git
+        # picked among them (11-25: "Invalid username or token" on half the pushes). An empty per-job global config
+        # shuts those out. The value is masked in logs and never echoed.
         run: |
+          echo "::add-mask::$GH_TOKEN"
+          export GIT_CONFIG_GLOBAL="$RUNNER_TEMP/autoresolve.gitconfig"; : >"$GIT_CONFIG_GLOBAL"
+          export GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0="url.https://x-access-token:${GH_TOKEN}@github.com/.insteadOf" GIT_CONFIG_VALUE_0="https://github.com/"
           rc=0; bash scripts/pr-autoresolve.sh "$PR" || rc=$?
           [ "$rc" -ne 4 ] || { echo "::notice::#$PR conflicts outside the generated set; left alone"; exit 0; }
           exit "$rc"
