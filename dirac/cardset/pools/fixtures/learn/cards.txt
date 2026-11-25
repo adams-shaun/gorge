@@ -1,0 +1,35 @@
+# the Learn pool (api Learn; CR 701.48a): the cards that learn, the Lessons their sideboards hold, and filler
+Arcane Subtraction
+Cram Session
+Enthusiastic Study
+Eyetwitch
+Field Trip
+First Day of Class
+Gnarled Professor
+Guiding Voice
+Hunt for Specimens
+Igneous Inspiration
+Overgrown Arch
+Poet's Quill
+Pop Quiz
+Professor of Symbology
+Rise of Extus
+Sparring Regimen
+Study Break
+Environmental Sciences
+Introduction to Annihilation
+Introduction to Prophecy
+Expanded Anatomy
+Pest Summoning
+Spirit Summoning
+Inkling Summoning
+Necrotic Fumes
+Reduce to Memory
+Mascot Exhibition
+Thrilling Discovery
+Grizzly Bears
+Forest
+Island
+Mountain
+Plains
+Swamp

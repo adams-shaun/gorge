@@ -80,6 +80,14 @@ func init() {
 			}
 		}
 	}
+	// The bare "sharesCreatureTypeWith" (no referent): gorge's
+	// wordSharesCreatureType over "Self" (engine/effects/filter_word.go), the
+	// source itself as the shared referent: Kinship's PeekAndReveal
+	// (Card.sharesCreatureTypeWith), Plane-Merge Elf's Kinfall. Only the
+	// positive spelling: gorge reads no bare negated form.
+	fwArms["sharesCreatureTypeWith"] = func(c *lClause, _ string) error {
+		return c.fwLit(lSpillLit{W: kop.FwSharesCr, R: kop.RefSelf})
+	}
 	// withFlash reads the KwMask bit the kernel already keeps (the printed mask
 	// for a card), the struct's PredHasKeyword form, which refuses Flash on the
 	// battlefield. withHexproof is not lowered, with or without: gorge matches
@@ -203,7 +211,8 @@ func (c *lClause) fwArmOrUnknown(p string, knownSub func(string) bool) error {
 		p == "sameName" || p == "!sameName" ||
 		p == "ChosenCtrl" || p == "EnchantedControllerCtrl" ||
 		p == "suspended" || p == "TopLibrary" || p == "DoubleFaced" ||
-		p == "Modal" || p == "singleTarget" {
+		p == "Modal" || p == "singleTarget" ||
+		p == "Paired" || p == "!Paired" || p == "PairedWith" {
 		if arm, ok := fwArms[p]; ok {
 			return arm(c, p)
 		}
@@ -249,4 +258,18 @@ func (c *lClause) fwSharesNameValid(inner string, neg bool, knownSub func(string
 		return fmt.Errorf("sharesNameWith Valid %q: %w", inner, err)
 	}
 	return c.fwLit(lSpillLit{W: kop.FwSharesName, Neg: neg, Inner: &lFilter{Clauses: []lClause{ic}}})
+}
+
+// bareSharesCr reports whether spec carries the bare, referent-less
+// sharesCreatureTypeWith property (gorge reads it as the source).
+func bareSharesCr(spec string) bool {
+	for _, alt := range strings.Split(spec, ",") {
+		_, props, _ := strings.Cut(alt, ".")
+		for _, p := range strings.Split(props, "+") {
+			if p == "sharesCreatureTypeWith" {
+				return true
+			}
+		}
+	}
+	return false
 }

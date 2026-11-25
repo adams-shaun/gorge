@@ -36,7 +36,11 @@ func (lc *lowerCtx) effectStackExile(ps *params) (bool, error) {
 	ro := ps.m["RememberObjects"]
 	tr := lc.ab.Trigger
 	trig := tr != nil && tr.Event == "SpellCast" && lc.trigBody && !lc.ab.Latent && ro == "TriggeredCard"
-	grant := tr == nil && ro == "Remembered"
+	// the grant form: the remembered exiled card (Nita, or Dire Fleet
+	// Daredevil's enters trigger) or the targeted graveyard card (Sins of the
+	// Past, Jace, Telepath Unbound) whose may-play permission the same
+	// ability granted just before
+	grant := !trig && (ro == "Remembered" || ro == "Targeted" && lc.mayPlayOn(rTarget))
 	if !trig && !grant {
 		return false, nil
 	}
@@ -64,8 +68,13 @@ func (lc *lowerCtx) effectStackExile(ps *params) (bool, error) {
 	switch {
 	case trig && vc == "Card.IsRemembered+YouOwn":
 		c |= kop.StackExileOwn
-	case grant && vc == "Card.nonLand+IsRemembered":
+	case grant && (vc == "Card.nonLand+IsRemembered" || vc == "Card.IsRemembered"):
+		// Origin$ Stack: a land is never on the stack, so the nonLand word
+		// matches the same moves
 		c |= kop.StackExileGrant
+		if ro == "Targeted" {
+			c |= kop.StackExileTarget
+		}
 	default:
 		return false, refuse("Effect stack-exile replacement ValidCard$ %q", vc)
 	}
@@ -127,4 +136,16 @@ func (lc *lowerCtx) stackExilePlotSub(name string) bool {
 	}
 	cl := etbParams(lc.face.SVars[p["SubAbility"]])
 	return cl != nil && cl["DB"] == "Cleanup" && cl["ClearRemembered"] == "True" && len(cl) == 2
+}
+
+// mayPlayOn reports whether the ability's program so far grants a may-play
+// permission on a reference of kind kind: the grant form marks that record,
+// so a permission must exist for the mark to ride.
+func (lc *lowerCtx) mayPlayOn(kind refKind) bool {
+	for _, in := range lc.ab.Prog {
+		if in.Op == "MayPlay" && in.Obj.Kind == kind {
+			return true
+		}
+	}
+	return false
 }

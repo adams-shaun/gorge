@@ -48,6 +48,12 @@ func (s *State) stackExileMark(k *prep, in *kop.Instr) {
 		return
 	}
 	if c&kop.StackExileGrant != 0 {
+		if c&kop.StackExileTarget != 0 {
+			if code := s.refCode(k, in.Obj); code != NoTarget && !isPlayerOrNone(code) && int(code) < MaxObj {
+				s.stackExileGrantOn(Obj(code))
+			}
+			return
+		}
 		s.stackExileGrant(k)
 		return
 	}
@@ -87,18 +93,27 @@ func (s *State) stackExileGrant(k *prep) {
 		if o == NoObj || s.objs[o].zone != kop.ZoneExile {
 			continue
 		}
-		for i := 0; i < int(s.g.nmay); i++ {
-			r := s.mayAt(i)
-			if r.obj != o || r.ver != s.objs[o].ver || ownWalkerRecord(*r) {
-				continue
-			}
-			if r.kind&kop.MayPlayLimitMask != 0 || r.until&mayUntilStackExile != 0 {
-				s.capFull(StallExileOnMoved) // a capped grant shares the bit; a second mark is a second replacement
-				return
-			}
-			r.until |= mayUntilStackExile
+		if !s.stackExileGrantOn(o) {
+			return
 		}
 	}
+}
+
+// stackExileGrantOn marks the permission records of card o (its current
+// version). It reports false after a stall.
+func (s *State) stackExileGrantOn(o Obj) bool {
+	for i := 0; i < int(s.g.nmay); i++ {
+		r := s.mayAt(i)
+		if r.obj != o || r.ver != s.objs[o].ver || ownWalkerRecord(*r) {
+			continue
+		}
+		if r.kind&kop.MayPlayLimitMask != 0 || r.until&mayUntilStackExile != 0 {
+			s.capFull(StallExileOnMoved) // a capped grant shares the bit; a second mark is a second replacement
+			return false
+		}
+		r.until |= mayUntilStackExile
+	}
+	return true
 }
 
 // stampMayExile carries permission record i's mark onto the entry of the spell

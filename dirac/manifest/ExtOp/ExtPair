@@ -1,0 +1,8 @@
+family: ExtOp
+name: ExtPair
+value: next
+forge: Pair
+state: slot 4 (soulbond pair)
+status: active
+ticket: gap-soulbond-pair
+doc: ExtPair: Soulbond's optional pairing (CR 702.95a; gorge engine/effects/soulbond.go effPair): the unpaired battlefield creature Obj may pair with another unpaired creature its trigger's controller controls; C 1 restricts the pick to the triggering entrant (RestrictToRemembered$).
