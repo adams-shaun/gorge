@@ -105,6 +105,20 @@ func (e *Engine) paymentPlanManaConvertName(p state.PlayerID) string {
 	return "ManaConvert"
 }
 
+// loneReflectedAbility reports whether f's only mana ability is the reflected
+// body ma. A ManaReflected body has no Produced$, so the planner's pay read
+// names no production for it; a lone one keeps the unwatched reading dirac's
+// reflTapsUnwatched mirrors (Quirion Explorer under Spirit Shackle). A source
+// with another mana ability beside it (Plaza of Heroes' {C} and restricted
+// any) defers under a Taps watcher with the blank production instead.
+func loneReflectedAbility(f *cards.Face, ma *cards.SA) bool {
+	if f == nil || ma == nil || ma.APIKind() != cards.APIManaReflected {
+		return false
+	}
+	refl := f.ManaReflectedAbilities()
+	return len(f.ManaAbilities()) == 0 && len(refl) == 1 && refl[0] == ma
+}
+
 // paymentPlanSourceInterference classifies what can act on activating ma on
 // source id: pay.TierNormal when nothing does, pay.TierLastResort with
 // the source's own fully determined consequence, or pay.TierDeferred with
@@ -135,7 +149,19 @@ func (e *Engine) paymentPlanSourceInterference(id state.ObjID, ma *cards.SA) (pa
 	}
 	controller := src.Controller
 	cost := e.abilityCompiledCost(ma).Cost
-	for _, produced := range pay.PaymentPlanProductions(asPayer(e), id, ma) {
+	productions := pay.PaymentPlanProductions(asPayer(e), id, ma)
+	if len(productions) == 0 && cost.Tap && !loneReflectedAbility(src.Face(), ma) {
+		// A reflected body (Plaza of Heroes) has no Produced$, so the pay read
+		// names no production for it. When the source has another mana ability
+		// beside it, the tap still happens and a Taps observer fires whichever
+		// colour the reflection resolves to (CR 603.2), so ask the observers
+		// with the blank production. A lone reflected body keeps the reading
+		// dirac's reflTapsUnwatched mirrors (Quirion Explorer under Spirit
+		// Shackle): it is the source's whole mana identity, and the census
+		// keeps it unwatched.
+		productions = []string{""}
+	}
+	for _, produced := range productions {
 		if cost.Tap {
 			dmg, _, by, ok := e.paymentPlanTapObservers(id, controller, produced, false, nil)
 			if !ok {
