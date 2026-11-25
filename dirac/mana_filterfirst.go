@@ -65,10 +65,26 @@ func (g *genPrep) prepFiltFirst(c CardID, j int, a *kop.Ability) {
 	}
 }
 
-// filtAb is the filter ability of the card at sl.
+// filtAb is the filter ability of the card at sl (its first filter, ordinal 0).
 func (s *State) filtAb(k *prep, sl Slot) *kop.Ability {
 	c := s.cardAt(sl)
 	return &k.t.Cards[c].Abilities[k.gen.filt(c)]
+}
+
+// filtAbAt is the card's filter ability at ordinal ord (0 is its first).
+func (s *State) filtAbAt(k *prep, sl Slot, ord int8) *kop.Ability {
+	if ord == 0 {
+		return s.filtAb(k, sl)
+	}
+	c := s.cardAt(sl)
+	return &k.t.Cards[c].Abilities[k.gen.filtAt(c, int(ord))]
+}
+
+// filtCount is how many filter abilities the card at sl records: one for a
+// plain {T} ability beside a single paid filter (Hidden Grotto), two or more
+// for a paid filter set (Koskun Keep).
+func (s *State) filtCount(k *prep, sl Slot) int {
+	return k.gen.filtCount(s.cardAt(sl))
 }
 
 // filtNoTap: the filter at sl costs no {T} (a once-each-turn one).

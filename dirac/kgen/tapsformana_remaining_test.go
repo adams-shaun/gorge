@@ -13,7 +13,7 @@ func TestTapsForManaRemainingShapesRefused(t *testing.T) {
 		{card: "Bubbling Muck", refused: "Effect TapsForMana trigger until end of turn"},
 		{card: "High Tide", refused: "Effect TapsForMana trigger until end of turn"},
 		{card: "Pyre Rhymer", refused: "token refused"},
-		{card: "Selesnya Loft Gardens", refused: "trigger mode ChaosEnsues"},
+		{card: "Selesnya Loft Gardens", refused: "Effect TapsForMana trigger until end of turn"},
 		{card: "Barbflare Gremlin", refused: "PresentDefined$"},
 		{card: "Runaway Growth", refused: "Card.EnchantedBy"},
 		{card: "Extraplanar Lens", refused: "sharesNameWith Imprinted"},
