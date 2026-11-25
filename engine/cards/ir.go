@@ -76,6 +76,8 @@ type Trigger struct {
 	// battlefield (offBattlefieldTargetSpec), bound at load.
 	offBFFor, offBF string
 	offBFChanged    bool
+	// trailingIf is CheckSVarIsTrailingIf, bound at load (trailingIfBound).
+	trailingIf, trailingIfBound bool
 }
 
 // Static is an S: line: a continuous effect or a play restriction.
