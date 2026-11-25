@@ -42,7 +42,7 @@ func (s *State) freeQueued(o Obj) bool {
 //     cast: a split card counts its front half, not the sum of its halves.
 //   - Obj: RefRemembered (P1), a target slot (P2: the targeted card; a
 //     player target: that player's hand), or RefNone with F (P3/P4 filter
-//     population over the zone).
+//     population over the zone; over exile, every alive seat's).
 //
 // The zone, ReplaceGraveyard and ForgetPlayed bits ride to the freeQ drain
 // in s.g.freeP: the caster in the low freeSeatBits, the zone in the three
@@ -190,6 +190,21 @@ func (s *State) castFreeFillGen(k *prep, in *kop.Instr, e *stackEntry) {
 			pl := &s.pl[p]
 			for i := 0; i < int(pl.graveN); i++ {
 				if !add(pl.grave[i]) {
+					return
+				}
+			}
+		}
+	case zone == kop.ZoneExile:
+		// an exile filter population (Boiling Rock Rioter's
+		// ExiledWithSource): gorge AliveFrom(0), each seat's exile in zone
+		// order, the filter carrying the ownership clause
+		for p := 0; p < int(s.nSeats()); p++ {
+			if s.out(uint8(p)) {
+				continue
+			}
+			pl := &s.pl[p]
+			for i := 0; i < int(pl.exileN); i++ {
+				if !add(pl.exile[i]) {
 					return
 				}
 			}

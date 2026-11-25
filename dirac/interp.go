@@ -405,7 +405,7 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 			}
 		}
 		if k.gen != nil && (k.gen.anyRepl&(rbDblDmg|rbPrevNC|rbPrevDmgTo|rbPrevCol) != 0 || shieldBesidePlus(k.gen) || k.gen.uses.has(useStaticPrev) ||
-			k.gen.anyRepl2&(rb2DmgMinus|rb2DmgSet) != 0) {
+			k.gen.anyRepl2&rb2DmgAny != 0) {
 			// a sweep's events are dealt one at a time: park on each event two
 			// replacements match (CR 616.1) and resume the rest after the
 			// answer (a static prevention's optional ask is posed per event too:
@@ -696,7 +696,7 @@ func (s *State) execEachOpponentDamage(k *prep, in *kop.Instr) {
 		return
 	}
 	if k.gen != nil && (k.gen.anyRepl&(rbDblDmg|rbPrevNC|rbPrevDmgTo|rbPrevCol) != 0 || shieldBesidePlus(k.gen) ||
-		k.gen.anyRepl2&(rb2DmgMinus|rb2DmgSet) != 0) {
+		k.gen.anyRepl2&rb2DmgAny != 0) {
 		s.damageSeqStart(k, slotMask{}, false)
 		s.g.dmgSeqPl = seatBits(s.oppsFrom(e.ctrl))
 		s.damageSeqNext(k, n)

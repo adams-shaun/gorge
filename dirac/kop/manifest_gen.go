@@ -2287,14 +2287,17 @@ const ReplPreventDamageN ReplKind = 65
 // DamageDone (dirac/manifest/ReplKind/ReplDamageRedirect)
 const ReplDamageRedirect ReplKind = 66
 
+// repl DamageDone replacement shape (prevent / replace the damage with counters, mill, exile or draw) (dirac/manifest/ReplKind/ReplDamageInstead)
+const ReplDamageInstead ReplKind = 67
+
 // repl DamageMinus (dirac/manifest/ReplKind/ReplDamageMinus)
-const ReplDamageMinus ReplKind = 67
+const ReplDamageMinus ReplKind = 68
 
 // repl DamageSet (dirac/manifest/ReplKind/ReplDamageSet)
-const ReplDamageSet ReplKind = 68
+const ReplDamageSet ReplKind = 69
 
 // repl LifeReduced (dirac/manifest/ReplKind/ReplLifeReduced)
-const ReplLifeReduced ReplKind = 69
+const ReplLifeReduced ReplKind = 70
 
 // stat OptionalAttackCost (dirac/manifest/StaticKind/StatOptionalAttackCost)
 const StatOptionalAttackCost StaticKind = 22
@@ -2464,13 +2467,18 @@ const StatOffZoneGrant StaticKind = 72
 // StatRetraceGrant is a Continuous static's AffectedZone$ Graveyard AddKeyword$ Retrace grant (Six, Deeproot Historian, Wrenn and Six's emblem; CR 702.81a): Filter matches the card in the graveyard and the ability's own Cost is the retrace additional cost (Discard<1/Land>). The kernel reads it live: the graveyard retrace offer and cast (kw_offkwgrant.go, kw_retrace.go) and the keyword projection.
 const StatRetraceGrant StaticKind = 73
 
+// StaticKind (dirac/manifest/StaticKind/StatCyclingGrant)
+//
+// StatCyclingGrant is a Continuous static's AffectedZone$ Hand AddKeyword$ Cycling or TypeCycling grant (Rhet-Tomb Mystic, Jo Grant, Tectonic Reformation, Homing Sliver; CR 702.29a, 702.29e): Filter matches the card in a hand and GrantBody-1 is the latent cycling body (the printed kwCycling / kwTypeCycling expansion, cards.GrantedKeywordAbility, AfCycling, ActZone hand) the hand offer runs with the affected card as its source, discarding it as the cost. The offer is the hand owner's, whoever controls the static (kw_cyclinggrant.go).
+const StatCyclingGrant StaticKind = 74
+
 // stat AssignNoCombatDamage (dirac/manifest/StaticKind/StatNoCombatDamage)
-const StatNoCombatDamage StaticKind = 74
+const StatNoCombatDamage StaticKind = 75
 
 // StaticKind (dirac/manifest/StaticKind/StatUnearthGrant)
 //
 // StatUnearthGrant is a Continuous static's AffectedZone$ Graveyard AddKeyword$ Unearth grant (Sedris, the Traitor King, Mishra, Tamer of Mak Fawa, Dregscape Sliver, Solemn Doomguide; CR 702.84a): Filter matches the card in the graveyard and GrantBody-1 is the latent unearth body (the printed kwUnearth expander's AB$ ChangeZone, cards.GrantedKeywordAbility) the graveyard offer runs with the affected card as its source. The body's own Cost prices the explicit-cost shape; a zero body cost is the CardManaCost mark, which the offer charges as the affected card's own mana cost (kw_unearthgrant.go).
-const StatUnearthGrant StaticKind = 75
+const StatUnearthGrant StaticKind = 76
 
 // trig ChaosEnsues (dirac/manifest/TrigEvent/TrigChaosEnsues)
 const TrigChaosEnsues TrigEvent = 52

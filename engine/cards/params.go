@@ -1004,6 +1004,11 @@ const (
 	// compiler. Appended: earlier ordinals stay stable.
 	PKNoteCounterDefined
 	PKWithNotedCounters
+	// PKTokenBlocking is TokenBlocking$ (CR 509.4a): the Defined$ selector
+	// naming the attacking creature a created token enters blocking. Read by
+	// effects' compileToken and compileCopyPermanent. Appended after the
+	// pre-existing vocabulary so every earlier ordinal stays stable.
+	PKTokenBlocking
 	paramKeyCount
 )
 
@@ -1769,6 +1774,7 @@ var paramKeyNames = [paramKeyCount]string{
 	PKTargetsWithSharedTypes:           "TargetsWithSharedTypes",
 	PKTempRemember:                     "TempRemember",
 	PKTokenAttacking:                   "TokenAttacking",
+	PKTokenBlocking:                    "TokenBlocking",
 	PKTokenOwner:                       "TokenOwner",
 	PKTokenRemembered:                  "TokenRemembered",
 	PKTokenTapped:                      "TokenTapped",
