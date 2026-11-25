@@ -348,10 +348,14 @@ func animateAddsTypesOnly(sa *cards.SA) bool {
 		return false
 	}
 	n := 3
-	for _, k := range [...]string{"SubAbility", "SpellDescription", "StackDescription"} {
-		if _, ok := sa.Params[k]; ok {
-			n++
-		}
+	if _, ok := sa.Params["SubAbility"]; ok {
+		n++
+	}
+	if _, ok := sa.Params["SpellDescription"]; ok {
+		n++
+	}
+	if _, ok := sa.Params["StackDescription"]; ok {
+		n++
 	}
 	return len(sa.Params) == n
 }
