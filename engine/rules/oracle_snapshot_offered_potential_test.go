@@ -116,9 +116,12 @@ func TestOracleSnapshotOfferedStationManaPricesTheUntappedSourceBound(t *testing
 // control) is a granted activated ability, priced by the potential-action
 // walk's castable gate against the untapped-source bound, with its target
 // still required (Memnite, an artifact you control). Forge and XMage list it.
+// Four Plains: the fee is {3}{W} and Adagia's own {T} is spent by the
+// activation itself, so its {T}: Add {W} funds nothing (the real find,
+// xs_XP_adagia-windswept-bastion, has four).
 func TestOracleSnapshotOfferedGrantedAbilityPricesTheUntappedSourceBound(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
-	const sc = `{"name":"offered-potential-granted","cr":["602.2b","702.184"],"why":"the setup offered set is the CR-legal one","setup":{"p0":{"battlefield":["Adagia, Windswept Bastion","Plains","Plains","Plains","Memnite"],"counters":{"Adagia, Windswept Bastion":{"CHARGE":12}}}},"steps":[]}`
+	const sc = `{"name":"offered-potential-granted","cr":["602.2b","702.184"],"why":"the setup offered set is the CR-legal one","setup":{"p0":{"battlefield":["Adagia, Windswept Bastion","Plains","Plains","Plains","Plains","Memnite"],"counters":{"Adagia, Windswept Bastion":{"CHARGE":12}}}},"steps":[]}`
 	snap := setupOfferedSnap(t, reg, sc)
 	var adagia *OracleSnapPerm
 	for i := range snap.Permanents {
@@ -142,5 +145,61 @@ func TestOracleSnapshotOfferedGrantedAbilityPricesTheUntappedSourceBound(t *test
 	}
 	if !copyAbility {
 		t.Fatalf("setup offered = %+v, want the Station 12+ copy activation (CR 602.2b: the untapped Plains fund the {3}{W} fee)", snap.Offered)
+	}
+}
+
+// TestOracleSnapshotOfferedConfirmExcludesSelfFundedAndOverCountedPlays pins
+// the confirm pass the potential rows need: a row the floating-pool gate
+// withheld is reported only when its cost is truly payable, per CR 601.2g-h
+// and 602.2b, with each source tapped at most once. Three shapes the pooled
+// untapped-source bound over-reports, and Forge and XMage withhold:
+//
+//   - Evendo, Waking Haven at Station 12+ alone: the granted {G},{T} ability's
+//     only {G} would come from tapping Evendo, which the activation itself
+//     taps. The bare {T}: Add {G} beside it is a legal activation and stays.
+//   - Adagia, Windswept Bastion at Station 12+ with three Plains: the
+//     {3}{W} fee needs four mana, and Adagia's own {T} is spent by the
+//     activation, so the three Plains fund three of the four. (The real find
+//     has four Plains and is offered, the test above.)
+//   - Azorius Charm ({W}{U}) in hand beside one untapped Tundra: one tap
+//     makes one mana, {W} or {U}, never both.
+func TestOracleSnapshotOfferedConfirmExcludesSelfFundedAndOverCountedPlays(t *testing.T) {
+	reg := testutil.CorpusRegistry(t)
+
+	// Evendo alone: the bare {T}: Add {G} is offered, the granted {G},{T}
+	// ability's "Pay G" label is not.
+	snap := setupOfferedSnap(t, reg, `{"name":"offered-confirm-evendo-alone","cr":["602.2b"],"why":"a cost's own tap funds nothing","setup":{"p0":{"battlefield":["Evendo, Waking Haven"],"counters":{"Evendo, Waking Haven":{"CHARGE":12}}}},"steps":[]}`)
+	bare, granted := false, false
+	for _, o := range snap.Offered {
+		if o.Source != "p0:Evendo, Waking Haven" || o.Kind != "activate" {
+			continue
+		}
+		if strings.Contains(o.Label, "Pay G") {
+			granted = true
+		} else if strings.Contains(o.Label, "Add G") {
+			bare = true
+		}
+	}
+	if !bare {
+		t.Fatalf("precondition: the bare {T}: Add {G} activation expected, offered = %+v", snap.Offered)
+	}
+	if granted {
+		t.Fatalf("setup offered = %+v, want no Pay G activation (the only {G} is Evendo's own tap, spent by the activation itself)", snap.Offered)
+	}
+
+	// Adagia with three Plains: three mana, a four-mana fee.
+	snap = setupOfferedSnap(t, reg, `{"name":"offered-confirm-adagia-three","cr":["602.2b"],"why":"a cost's own tap funds nothing","setup":{"p0":{"battlefield":["Adagia, Windswept Bastion","Plains","Plains","Plains","Memnite"],"counters":{"Adagia, Windswept Bastion":{"CHARGE":12}}}},"steps":[]}`)
+	for _, o := range snap.Offered {
+		if o.Source == "p0:Adagia, Windswept Bastion" && o.Kind == "activate" && strings.Contains(o.Label, "copy") {
+			t.Fatalf("setup offered = %+v, want no copy activation (three Plains make three mana; the fee {3}{W} needs four, Adagia's own tap spent)", snap.Offered)
+		}
+	}
+
+	// One Tundra cannot fund both pips of {W}{U}.
+	snap = setupOfferedSnap(t, reg, `{"name":"offered-confirm-one-tundra","cr":["601.2g"],"why":"one source taps once","setup":{"p0":{"hand":["Azorius Charm"],"battlefield":["Tundra"]}},"steps":[]}`)
+	for _, o := range snap.Offered {
+		if o.Source == "p0:Azorius Charm" && o.Kind == "cast" {
+			t.Fatalf("setup offered = %+v, want no cast (one Tundra makes {W} or {U}, never both)", snap.Offered)
+		}
 	}
 }
