@@ -79,7 +79,16 @@ FORGE_REPO ?= https://github.com/adams-shaun/forge.git
 # Light-Years from Home puts the basic land into its controller's hand, and Captain Michael Burnham is a Human Officer.
 # 418ba5215f = the fork's gorge-trek7: 84ce1603d9 + reviewer fixes to Card-Forge/forge#12668/#12669 (2026-11-07): ABILITY trigger
 # text and ValidTgtsDesc$ (Tal Shiar Operative, Wesley Crusher, Sela), Tal Shiar Analyst's Defined$ Opponent, Sarek's PlayMain1.
-FORGE_REF  ?= ff076d4432844aaab45693a971ce84bfb95841fd
+# ff076d4432 = Card-Forge/forge master 9db1009ef8 merged into the fork's gorge branch.
+# 5bc5851a54 = the fork's gorge-cond-fixes-20261125: ff076d4432 + the non-intervening condition fixes, cherry-picked
+# from fix/park-heights-pegasus 311aa023ca2 (Park Heights Pegasus) and fix/laboratory-drudge-barrowin-condition
+# 2a73e9b690 (Laboratory Drudge, Barrowin of Clan Undurr; its fix/xp-forge-pegasus-condition 91006bc0c7 Pegasus fix is
+# content-identical): the condition moves off the T: line onto the effect as ConditionCheckSVar$/ConditionSVarCompare$
+# (CR 603.4: an "if" that does not follow the trigger event is checked on resolution, so the trigger always goes on
+# the stack). Only the three card scripts move. Deliberately NOT the fork's gorge branch tip d767bd52e5cd: it carries
+# Card-Forge master acaef15177's Spacecraft re-spelling (Affected$ Card.counters_GE<N>_CHARGE -> Station$ N), which
+# dirac's kgen refuses ("static unread params [Station]"), so the MBC/EDH pools and pinned repros would lose cards.
+FORGE_REF  ?= 5bc5851a54a0fbbbf7f1a38b48d8ff9b7714ddb2
 
 .PHONY: help
 help:
