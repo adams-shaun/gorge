@@ -148,6 +148,9 @@ func (s *State) execExt(k *prep, in *kop.Instr) (ok, done bool) {
 		return true, true
 	case kop.ExtVote:
 		return s.voteStart(k, in), true // act_vote.go
+	case kop.ExtLeaveExile:
+		s.leaveExileReg(k, in) // zone_leaveexile.go
+		return true, true
 	case kop.ExtChoosePlayerRes:
 		return s.choosePlayerResStart(in), true // act_chooseplayerres.go
 	case kop.ExtDrawUpto:

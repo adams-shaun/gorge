@@ -2370,7 +2370,7 @@ func (s *State) startDig(k *prep, in *kop.Instr) bool {
 			// allOrNothing election): one yes/no, never a subset. Yes takes
 			// every matching card; no leaves the looked-at window in place
 			// and moves nothing (no rest placement, reveal or capture).
-			s.res.ask, s.res.askP = raGenDigAllOpt, s.res.e.ctrl
+			s.res.ask, s.res.askP = raGenDigAllOpt, s.digChooser(k)
 			return false
 		}
 		if take == -1 {
@@ -2403,8 +2403,9 @@ func (s *State) startDig(k *prep, in *kop.Instr) bool {
 		s.digBoundMax(k) // zone_each.go
 		// the controller picks, whoever's library it is (gorge
 		// digChooser: the resolving controller, CR 701.29a; Coral
-		// Fighters looks at the defending player's library)
-		s.res.ask, s.res.askP = raGenDig, s.res.e.ctrl
+		// Fighters looks at the defending player's library), or the
+		// Choser$ the dig's W names (zone_digtoporder.go digChooser)
+		s.res.ask, s.res.askP = raGenDig, s.digChooser(k)
 		return false
 	}
 	return true
