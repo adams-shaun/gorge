@@ -9,12 +9,13 @@ import "github.com/adams-shaun/gorge/engine/cards"
 // search world, so the three map walks were paid three times per genesis. The
 // per-card probes are memoised (engine/cards/card_probes.go); this folds the walks.
 // The pass stops as soon as all three are known true.
-func poolGates(cfg Config) (setName, layer4, control bool) {
+func poolGates(cfg Config) (setName, layer4, control, colourWords bool) {
 	visit := func(c *cards.Card) bool {
 		setName = setName || c.SetsName()
 		layer4 = layer4 || c.ChangesTypes()
 		control = control || c.MayCarryControlStatic()
-		return setName && layer4 && control
+		colourWords = colourWords || c.ChangesColourWords()
+		return setName && layer4 && control && colourWords
 	}
 	// Decks only. A token cannot be on the board before a TokenCreate (or a
 	// copy-token mint) puts it there, so its probe is raised by
@@ -47,5 +48,8 @@ func (e *Engine) notePoolCard(c *cards.Card) {
 	}
 	if c.MayCarryControlStatic() {
 		e.controlStaticInPool = true
+	}
+	if c.ChangesColourWords() {
+		e.colorWordsInPool = true
 	}
 }

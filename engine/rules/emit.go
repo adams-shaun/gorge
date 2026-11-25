@@ -882,6 +882,11 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		// wanted set), this registers the transfers the live scan newly
 		// wants. Both are no-ops unless such a static is in play.
 		e.reconcileControlStatics()
+		// A colour-word change static (Swirl the Mists, CR 612.5) keeps its
+		// affected objects' text substitutions in step the same way: the
+		// fresh wanted set emits or retracts one ColorWordsSync per object
+		// whose live set moved. No-op unless such a static is in the pool.
+		e.reconcileColorWords()
 	}
 	if stored.Kind == events.MoveZone && stored.To == state.ZBattlefield {
 		e.finishLandPlay(stored.Obj)
