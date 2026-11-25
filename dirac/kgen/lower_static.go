@@ -338,6 +338,22 @@ func (lc *lowerCtx) staticGateCond(s cards.Static, st *lStatic, c string) error 
 			return err
 		}
 		st.Cond = lCond{Kind: cPresent, F: f, Op: opGE, A: cst(1)}
+	case c == "EnduringStory" && (s.Mode == "Continuous" || s.Mode == "Panharmonicon" ||
+		s.Mode == "CantAttackUnless" || condGateModes || s.Mode == "AlternativeCost"):
+		// gorge condEnduringStory (layers_static.go continuousConditionHolds):
+		// the controller's CR 702.195 enduring-story latch, read through
+		// continuousGateHolds by every gate the corpus's EnduringStory
+		// carriers end in -- the Continuous statics (Fíli the Pathfinder),
+		// the Panharmonicon statics (Bifur, Melodic Rider), the attack tax
+		// (Dáin, Lord of the Iron Hills), the combat restrictions, and the
+		// activated-ability alternative costs (Kíli the Resourceful,
+		// activate_static_altcost.go's abilityAlternateCostFor). NOT the
+		// ReduceCost / RaiseCost cost statics: their costConditionHolds has
+		// no EnduringStory arm, so a condition there keeps the fail-closed
+		// refusal. The kernel's Cond2 read is statCond with the static's
+		// controller (the panharmEchoes, attack-tax and statics walks), the
+		// same context.
+		st.Cond = lCond{Kind: cEnduringStory}
 	case c == "Blessing" && (s.Mode == "Continuous" || s.Mode == "CantBlockBy"):
 		// gorge condBlessing: the controller's latch (CR 702.131).
 		// A CantBlockBy static's condition rides Static.Cond2,

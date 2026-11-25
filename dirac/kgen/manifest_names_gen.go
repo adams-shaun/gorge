@@ -4,6 +4,9 @@ package kgen
 
 import "github.com/adams-shaun/gorge/dirac/kop"
 
+// dirac/manifest/CondKind/CondEnduringStory
+func init() { enum[kop.CondKind]("kop.CondEnduringStory", kop.CondEnduringStory) }
+
 // dirac/manifest/CondKind/CondMonarch
 func init() { enum[kop.CondKind]("kop.CondMonarch", kop.CondMonarch) }
 
