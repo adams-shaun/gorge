@@ -1,4 +1,4 @@
-# the RepeatEach slice pool (dirac/oracle/repeateach_slice_lowers_test.go): the RepeatEach player loops whose body is a lone DealDamage under DamageMap$ True (one damage batch), beside a DamageDealtOnce observer (Spirit Link), creatures and the ungated Repeat forms (Trade Secrets' MaxRepeat$ is a chosen number)
+# the RepeatEach slice pool (dirac/oracle/repeateach_slice_lowers_test.go): the RepeatEach player loops whose body is a lone DealDamage under DamageMap$ True (one damage batch), beside a DamageDealtOnce observer (Spirit Link), creatures and the ungated Repeat forms (Trade Secrets' MaxRepeat$ is a chosen number). The per-player ChooseCard forms (sacrifice/exile a remembered pick, choose an opponent's greatest creature, choose up to five, steal the exiled cards) complete the pool.
 Acidic Soil
 Heartless Hidetsugu
 Stormbreath Dragon
@@ -27,3 +27,19 @@ Trade Secrets
 Varchild's War-Riders
 Raise the Alarm
 Swamp
+Soul Shatter
+Flare of Malice
+Grave Consequences
+Watchers of the Dead
+Tariff
+Rite of Ruin
+Highcliff Felidar
+Disciple of Caelus Nin
+Fortunate Few
+Ultimate Magic: Meteor
+Thieves' Auction
+Discovery
+Flotsam
+Lightning Bolt
+Divination
+Mind Stone
