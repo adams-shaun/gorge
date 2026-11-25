@@ -4,62 +4,51 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/adams-shaun/gorge/dirac/cardset"
-	"github.com/adams-shaun/gorge/dirac/cardset/cardsettest"
 	"github.com/adams-shaun/gorge/dirac/kop"
+	v "github.com/adams-shaun/gorge/dirac/vanilla"
 )
 
 // hbScen is Hallowed Burial's bottom-of-library sweep (ChangeZoneAll to
 // LibraryPosition$ -1, bracketed by kop.ExtLibPlace PlaceArmSweepBottom) on
-// p0's one creature and p1's three. run executes the arm, the sweep and the
-// ask; it returns false at the pose.
+// p0's one creature and p1's six (five creatures and a token). The table is
+// vanilla's plus the sweep program: a unit test must not read a raw card
+// pool (internal/archtest's TestOnlyTheOracleReadsRawTables). run executes the
+// arm, the sweep and the ask; it returns false at the pose.
 func hbScen(t *testing.T) (sc *scen, run func() bool, p0, p1 []Obj) {
 	t.Helper()
-	set := cardsettest.Synth(t, "tail-07")
-	deck := []cardset.Entry{
-		{Name: "Hallowed Burial", Count: 1},
-		{Name: "Eager Cadet", Count: 1},
-		{Name: "Centaur Courser", Count: 3},
-		{Name: "Plains", Count: 35},
-	}
-	tbl, da, _, err := set.Matchup(deck, deck)
-	if err != nil {
-		t.Fatal(err)
-	}
-	id := map[string]CardID{}
-	for _, c := range da {
-		id[tbl.Cards[c].Name] = c
-	}
-	cd := tbl.Cards[id["Hallowed Burial"]]
-	ab := cd.Abilities[0]
-	var prog []kop.Instr
-	for _, in := range ab.Prog {
-		if in.Op == kop.OpChangeZoneAll || in.Op == kop.OpExt && kop.ExtOp(in.A.N) == kop.ExtLibPlace {
-			prog = append(prog, in)
-		}
-	}
-	if len(prog) != 3 {
-		t.Fatalf("Hallowed Burial's sweep is bracketed by %d instructions, want arm, sweep, ask", len(prog))
-	}
-	ab.Prog = prog
-	cd.Abilities = []kop.Ability{ab}
-	sweeper := CardID(len(tbl.Cards))
-	tbl.Cards = append(tbl.Cards, cd)
-	sc = newScenTableLib(t, tbl, id["Plains"], Config{NoElide: true})
+	tbl := v.NewTable()
+	// A generated table (the matchup this program comes from is one): the
+	// non-nil expression table is prepareGen's gate, and the generated
+	// interpreter is what dispatches OpExt.
+	tbl.Exprs = []kop.Expr{{}}
+	// Filter 1 is vanilla's creatures filter (Filters[fCreature]); ZoneNone is
+	// a battlefield origin to ChangeZoneAll.
+	const fCreature = kop.FilterID(1)
+	sweeper := kop.CardID(len(tbl.Cards))
+	tbl.Cards = append(tbl.Cards, kop.CardDef{
+		Name: "Hallowed Burial", Types: kop.TInstant, Timing: kop.TimingInstant,
+		Abilities: []kop.Ability{{Kind: kop.AbSpell, Prog: []kop.Instr{
+			{Op: kop.OpExt, A: kop.Const(int(kop.ExtLibPlace)), C: kop.PlaceArmSweepBottom},
+			{Op: kop.OpChangeZoneAll, F: fCreature, C: int16(kop.ZoneLibrary)},
+			{Op: kop.OpExt, A: kop.Const(int(kop.ExtLibPlace)), C: kop.PlaceAsk},
+		}}},
+	})
+	prog := tbl.Cards[sweeper].Abilities[0].Prog
+	sc = newScenTable(t, tbl, Config{NoElide: true})
 	s := sc.s
-	src := sc.perm(id["Plains"], 0)
-	p0 = []Obj{sc.perm(id["Eager Cadet"], 0)}
+	src := sc.perm(v.Plains, 0)
+	p0 = []Obj{sc.perm(v.GrizzlyBears, 0)}
 	for i := 0; i < 5; i++ {
-		p1 = append(p1, sc.perm(id["Centaur Courser"], 1))
+		p1 = append(p1, sc.perm(v.GrizzlyBears, 1))
 	}
-	tok := sc.perm(id["Eager Cadet"], 1)
+	tok := sc.perm(v.GrizzlyBears, 1)
 	sc.s.objs[tok].of |= ofToken
 	p1 = append(p1, tok)
 	s.res = resCtx{e: stackEntry{kind: seAbility, obj: src, srcVer: s.objs[src].ver, card: sweeper, ab: 0, ctrl: 0, trigObj: NoObj}, active: true, lastTok: NoObj, eachObj: NoObj}
 	s.scrResEnter()
 	// a card returning from "until this leaves" exile whose as-enters choice is
 	// parked during the sweep, as Abdel Adrian's leave does in the recording.
-	ret := sc.obj(id["Eager Cadet"], 1)
+	ret := sc.obj(v.GrizzlyBears, 1)
 	s.objs[ret].zone = kop.ZoneExile
 	run = func() bool {
 		// the arm first, then the sweep parks the returning card's choice (as
@@ -88,7 +77,7 @@ func TestLibPlaceBottomSweepParksAtBottom(t *testing.T) {
 		t.Fatalf("ask %d, want the library placement ask", s.res.ask)
 	}
 	if s.res.askP != 1 {
-		t.Fatalf("asked seat %d, want p1 (three cards)", s.res.askP)
+		t.Fatalf("asked seat %d, want p1 (the owner of the six)", s.res.askP)
 	}
 	for _, tc := range []struct {
 		seat uint8
