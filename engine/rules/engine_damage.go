@@ -186,6 +186,14 @@ func (e *Engine) BatchDepartures(ids []state.ObjID) {
 	e.openZoneBatch()
 	e.beginReplBatch()
 	e.openBatchWindow()
+	// The batch's whole member list is known before the first move (the SBA
+	// scan, the effect's victim list), so a member's own trigger sees its
+	// fellows' departures before their moves emit: each member is a CR
+	// 603.10a look-back trigger and reads its intervening-if on the shared
+	// pre-batch board (see engine_scratch.go's windowDepartures). Members a
+	// replacement spares stay listed (an approximation: a spared member's
+	// fellows' triggers read the board without it).
+	e.windowDepartures = append(e.windowDepartures, ids...)
 }
 
 // EndBatchDepartures closes a destruction/sacrifice batch even if one of its

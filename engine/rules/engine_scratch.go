@@ -263,16 +263,24 @@ type engineScratch struct {
 	// lookBackWalk is set while checkTriggers walks a departure's triggers on
 	// the pre-departure board.
 	lookBackWalk bool `clone:"reset"`
-	// lookBackDeparture is the object whose battlefield departure a look-back
-	// walk is matching triggers against. The walk's board still holds it (the
-	// snapshot is pre-departure), but a trigger's CR 603.4 intervening-if is
-	// read when the event occurs -- after the object left -- so a present
-	// clause must not count the departing object (Forge and XMage both read
-	// the post-departure board: a dying creature is not the "another
-	// creature" of its own death trigger's condition). Set on the scratch
-	// look-back observer in trigger_match.go's checkTriggersNow; the live
-	// walk reads a board that already moved the object, so it needs nothing.
-	lookBackDeparture state.ObjID `clone:"reset"`
+	// windowDepartures is every battlefield departure that left while a
+	// trigger window was open, in departure order: BatchDepartures adds its
+	// whole ex-ante member list (so a member's own trigger already sees its
+	// fellows before their moves emit) and emit adds each member again as it
+	// actually folds. A trigger whose SOURCE is one of these is a CR 603.10a
+	// look-back trigger: its whole evaluation, its CR 603.4 intervening-if
+	// included, is judged on the window's pre-departure board as it was. A
+	// trigger whose source is NOT one of these reads the condition when the
+	// event occurs -- after the object left -- so its present count skips the
+	// window's departures (windowDeparted): the dying creature is not the
+	// "another creature" of its own death trigger's condition (Lifeline;
+	// Forge and XMage both read the post-departure board). The lists are
+	// Engine-transient and cleared when the last window closes;
+	// windowDeparted is the live list as checkTriggersNow hands it to the
+	// look-back observer, the only reader -- the live walk evaluates on a
+	// board that already moved the objects, so it never skips.
+	windowDepartures []state.ObjID `clone:"reset"`
+	windowDeparted   []state.ObjID `clone:"reset"`
 	// pushZoneWalk narrows the trigger walks of a spell's up-front PutOnStack
 	// (pushZoneOnly, at the push) or its deferred re-walk (pushZoneDone, after
 	// payment) to the zone-change modes or to the rest (cast_push_zone.go).

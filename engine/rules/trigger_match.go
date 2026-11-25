@@ -1059,14 +1059,18 @@ func (e *Engine) checkTriggersNow(ev *events.Event, lki *state.Object,
 		// their cache slice rather than write into it.
 		observer.startingLife, observer.engineTurnLedger = e.startingLife, e.engineTurnLedger
 		// The CR 603.4 intervening-if a trigger matched here carries is read
-		// when the event occurs, which is AFTER the object left the
-		// battlefield: the pre-departure snapshot the observer reads still
-		// holds ev.Obj, so a present clause must not count it (a dying
-		// creature is not the "another creature" of its own death's
-		// condition -- Lifeline). The snapshot board itself stays
-		// untouched: the SOURCE-existence look-back (CR 603.10a) and every
-		// event-RELATIVE clause keep reading the pre-departure object.
-		observer.lookBackDeparture = ev.Obj
+		// when the event occurs. A trigger whose SOURCE departed in this
+		// window is a CR 603.10a look-back trigger and reads the condition on
+		// the pre-departure board as it was; every other trigger reads the
+		// post-event state, so its present count skips the window's
+		// departures (Lifeline: the dying creature is not the "another
+		// creature" of its own death's condition). A simultaneous batch is ONE
+		// event (CR 704.3, 603.2c), so every member counts as departed for
+		// every member's walk, moved yet or not. The snapshot
+		// board itself stays untouched: the SOURCE-existence look-back and
+		// every event-RELATIVE clause keep reading the pre-departure object.
+		observer.windowDepartures = e.windowDepartures
+		observer.windowDeparted = e.windowDepartures
 		// The no-ability-loss proof covers every object and registration
 		// the snapshot can hold (abilityloss.go).
 		observer.lossProof = abilityLossProof{seen: e.abilityLossPossible(), objs: e.lossProof.objs, contLen: -1}

@@ -80,6 +80,12 @@ func (e *Engine) retainTriggerBefore() *triggerSnapshot {
 // window's own, unless a record retained it. Deferred by every window.
 func (e *Engine) closeTriggerWindow(own, outer *triggerSnapshot) {
 	e.triggerBefore = outer
+	if outer == nil {
+		// The window's departure record dies with it: a later event's
+		// intervening-if must not skip objects this window's board still
+		// held (they can even have returned to the battlefield since).
+		e.windowDepartures, e.windowDeparted = e.windowDepartures[:0], e.windowDeparted[:0]
+	}
 	if own == nil || own.retained || own == outer || own.game == nil {
 		return
 	}
