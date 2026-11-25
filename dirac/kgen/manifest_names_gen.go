@@ -1278,6 +1278,9 @@ func init() { enum[kop.ReplKind]("kop.ReplPreventDamageN", kop.ReplPreventDamage
 // dirac/manifest/ReplKind/ReplDamageRedirect
 func init() { enum[kop.ReplKind]("kop.ReplDamageRedirect", kop.ReplDamageRedirect) }
 
+// dirac/manifest/ReplKind/ReplDamageInstead
+func init() { enum[kop.ReplKind]("kop.ReplDamageInstead", kop.ReplDamageInstead) }
+
 // dirac/manifest/ReplKind/ReplDamageMinus
 func init() { enum[kop.ReplKind]("kop.ReplDamageMinus", kop.ReplDamageMinus) }
 
@@ -1446,6 +1449,9 @@ func init() { enum[kop.StaticKind]("kop.StatOffZoneGrant", kop.StatOffZoneGrant)
 
 // dirac/manifest/StaticKind/StatRetraceGrant
 func init() { enum[kop.StaticKind]("kop.StatRetraceGrant", kop.StatRetraceGrant) }
+
+// dirac/manifest/StaticKind/StatCyclingGrant
+func init() { enum[kop.StaticKind]("kop.StatCyclingGrant", kop.StatCyclingGrant) }
 
 // dirac/manifest/StaticKind/StatNoCombatDamage
 func init() { enum[kop.StaticKind]("kop.StatNoCombatDamage", kop.StatNoCombatDamage) }

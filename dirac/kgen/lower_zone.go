@@ -2332,6 +2332,10 @@ func (lc *lowerCtx) playRememberedAlt(alt, valid string) (string, error) {
 		case part == "ExiledWithSource":
 			// exiled with the source (Flawless Forgery's forged copies)
 			cmc = andClause(cmc, part)
+		case playTypeDotType(part):
+			// a dotted type head (Sanwell's Artifact.Creature): both words
+			// narrow the population (lower_playexilepop.go)
+			cmc = andClause(cmc, strings.Replace(part, ".", "+", 1))
 		default:
 			return "", refuse("Play Valid$ %q", valid)
 		}
@@ -2413,7 +2417,7 @@ func (lc *lowerCtx) play(ps *params) error {
 		// a literal Amount$ N (gorge effPlay: one ask, Max N, the picks
 		// begun in answer order) on P1's remembered-exile population only
 		// (Doom Reigns Supreme's "up to two spells")
-		if n, err := strconv.Atoi(amount); err != nil || n < 2 || ps.m["ValidZone"] != "Exile" || !strings.Contains(ps.m["Valid"], "IsRemembered") || ps.m["Defined"] != "" || copyCard {
+		if !playUpToOK(ps, amount, copyCard) { // lower_playpopcount.go
 			return refuse("Play Amount %q", amount)
 		}
 		upTo = true
@@ -2559,7 +2563,7 @@ func (lc *lowerCtx) play(ps *params) error {
 		return emit(lRef{Kind: rRemembered}, zExile, saExpr)
 	}
 	if def != "" {
-		return refuse("Play Defined$ %q", def)
+		return lc.playDefinedPop(ps, def, saExpr, emit) // lower_playpopcount.go
 	}
 	if !hasValid {
 		return refuse("Play shape")
@@ -2567,7 +2571,7 @@ func (lc *lowerCtx) play(ps *params) error {
 	if landPlay {
 		return emit(lRef{Kind: rRemembered}, zExile, "")
 	}
-	if paid {
+	if playSelfExileArm(paid, valid, vzone, copyCard) {
 		// the source card itself, in exile (lower_exilegrant.go): Valid$
 		// Card.Self + ValidZone$ Exile, Amount$ All, ValidSA$ Spell
 		if saExpr != "" || amount != "All" || vzone != "Exile" || valid != "Card.Self" || forget || replace || repeat {
@@ -2579,7 +2583,7 @@ func (lc *lowerCtx) play(ps *params) error {
 	case "Exile":
 		// P1: Valid$ Card.IsRemembered... + ValidZone$ Exile.
 		if !strings.Contains(valid, "IsRemembered") {
-			return refuse("Play ValidZone$ Exile without IsRemembered")
+			return lc.playExileFilterPop(valid, saExpr, paid && !forget && !replace, emit) // lower_playexilepop.go
 		}
 		clause, err := lc.playRememberedClause(valid)
 		if err != nil {
@@ -3190,24 +3194,20 @@ func (lc *lowerCtx) emblem(ps *params, tr string) error {
 	lc.capRem = hasCap && (t.Mode == "DamageDealtOnce" || t.Mode == "DamageDoneOnce")
 	lc.ddoEvent = eot && t.Mode == "DamageDoneOnce"
 	lc.effCount = mem.kind == memCount
-	lc.emblemBlocked = hasCap && t.Mode == "AttackerBlocked"
+	lc.emblemBlocked = hasCap && (t.Mode == "AttackerBlocked" || t.Mode == "AttackerUnblocked")
 	lc.emblemBlocks = eot && t.Mode == "Blocks"
+	lc.emblemUnblocked = hasCap && t.Mode == "AttackerUnblocked"
 	lc.emblemDmg = hasCap && !player && t.Mode == "DamageDone"
 	err = lc.withAbility(lc.ab, func() error { return lc.lowerTriggered(t, "Command") })
-	lc.capRem, lc.effCount, lc.ddoEvent, lc.emblemBlocked, lc.emblemBlocks, lc.emblemDmg = false, false, false, false, false, false
+	lc.capRem, lc.effCount, lc.ddoEvent, lc.emblemBlocked, lc.emblemBlocks, lc.emblemDmg, lc.emblemUnblocked = false, false, false, false, false, false, false
 	if err != nil {
 		return err
 	}
 	if len(lc.out.Abilities) != saved+1 {
 		return refuse("emblem trigger lowering")
 	}
-	if t.Mode == "AttackerBlocked" {
-		// the capture ends as gorge forgets the object (lower_effeottrig.go)
-		if !hasCap || !ps.is("ForgetOnMoved", "Battlefield") {
-			return refuse("Effect AttackerBlocked trigger without a captured object and ForgetOnMoved$ Battlefield")
-		}
-		ps.consume("ForgetOnMoved")
-		lapse = true
+	if lapse, err = emblemBlockedLapse(ps, t.Mode, hasCap, lapse); err != nil { // lower_effeottrig.go
+		return err
 	}
 	ab := lc.out.Abilities[saved]
 	if mem.kind != memNone {
@@ -3261,6 +3261,9 @@ func emblemTimedMode(mode string, eot, paired bool) bool {
 		return eot
 	case "DamageDealtOnce":
 		return paired
+	case "AttackerUnblocked":
+		// the end-of-turn unblocked-attacker hook (fireEmblemsUnblocked)
+		return eot
 	}
 	return false
 }
