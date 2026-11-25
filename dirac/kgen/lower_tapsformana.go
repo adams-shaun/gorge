@@ -16,8 +16,9 @@ import (
 // part of the tap, are the tap-extra statics (lower_tapextra.go).
 //
 // The closed world is the shape the kernel prices:
-//   - ValidCard$ over any controller's permanents by type alone (a Land), not
-//     the source itself (a self line classes its own printed mana ability,
+//   - ValidCard$ over any controller's permanents by type alone (a Land) or
+//     by that type plus a watcher-relative controller (Land.OppCtrl), not the
+//     source itself (a self line classes its own printed mana ability,
 //     prepSelfTapsPain);
 //   - no Activator$ (any player's tap, Manabarbs), Activator$
 //     Player.NonActive, the tapping player is not the active player
@@ -76,7 +77,12 @@ func (lc *lowerCtx) tapsForManaWatch(tp *params, tr *lTrigger, t cards.Trigger, 
 		return refuse("TapsForMana ValidCard %q", vc)
 	}
 	for _, c := range tr.F.Clauses {
-		if c.Owner != whoAny || c.Ctrl != whoAny || c.Flags != 0 || c.CmpStat != cmpNone || c.Special != 0 {
+		// Ctrl is the watcher-relative controller the kernel's filter and
+		// tapsWatchClass already read (Land.OppCtrl on Mana Web: the tap of a
+		// land an opponent of the watcher controls). Any other controller
+		// selector (a target, the defending player, ...) is still beyond the
+		// closed world.
+		if c.Owner != whoAny || (c.Ctrl != whoAny && c.Ctrl != whoYou && c.Ctrl != whoOpp) || c.Flags != 0 || c.CmpStat != cmpNone || c.Special != 0 {
 			return refuse("TapsForMana ValidCard %q: beyond a type filter", vc)
 		}
 	}

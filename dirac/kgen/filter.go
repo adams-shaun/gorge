@@ -641,6 +641,13 @@ func historicClauses(alt string, knownSub func(string) bool, err error) ([]lClau
 func parseClause(alt string, knownSub func(string) bool) (lClause, error) {
 	head, props, _ := strings.Cut(alt, ".")
 	var c lClause
+	// Mana Web's context-base spelling: TriggeredCard.canProduceSameManaTypeWith
+	// +Land names the trigger object as the compared referent and the trailing
+	// type as the candidate's base (gorge canProduceSameManaTypeContextBase,
+	// engine/effects/filter_word_manatype.go).
+	if b, r, ok := canProduceSameManaTypeContextBase(head, props); ok {
+		head, props = b, r
+	}
 	// the sameName context bases (gorge sameNameContextBase, T13b-2
 	// remnants): a Remembered./Targeted./Triggered. head whose rest carries
 	// the bare sameName token names sameName's referent, and the base itself
@@ -1237,6 +1244,25 @@ func sameNameContextRef(head, rest string) (uint64, bool) {
 		return fSameNameTrig, true
 	}
 	return 0, false
+}
+
+// canProduceSameManaTypeContextBase rewrites Forge's
+// `<referent>.canProduceSameManaTypeWith+<type>` shape (Mana Web:
+// `TriggeredCard.canProduceSameManaTypeWith+Land`) to the candidate's type
+// with the predicate kept: the trailing type is the candidate's base and the
+// predicate compares with the trigger object (gorge's
+// canProduceSameManaTypeContextBase). Any other head or token order is left
+// to the ordinary grammar.
+func canProduceSameManaTypeContextBase(head, rest string) (string, string, bool) {
+	if head != "TriggeredCard" {
+		return "", "", false
+	}
+	ps := strings.Split(rest, "+")
+	n := len(ps)
+	if n < 2 || ps[n-2] != "canProduceSameManaTypeWith" || ps[n-1] == "" {
+		return "", "", false
+	}
+	return ps[n-1], strings.Join(ps[:n-1], "+"), true
 }
 
 func hasPropToken(rest, want string) bool {

@@ -197,6 +197,7 @@ var fwContexts = sync.OnceValue(func() map[string][]string {
 var fwName = map[kop.FilterWord]string{
 	kop.FwPowerCmp: "FwPowerCmp", kop.FwToughnessCmp: "FwToughnessCmp", kop.FwCMCCmp: "FwCMCCmp",
 	kop.FwCountersCmp: "FwCountersCmp", kop.FwKeyword: "FwKeyword", kop.FwSubtype: "FwSubtype",
+	kop.FwCanProduceSameManaTypeWith: "FwCanProduceSameManaTypeWith",
 }
 
 // fwReadIn is the matcher kinds a filter built for zone is read in: a
@@ -265,7 +266,7 @@ func (cb *cardBuilder) spillProg(c *lClause, zone kop.Zone) (kop.FilterProgID, e
 			fl.Arg = int16(l.N) // the KwID
 		case kop.FwBasePowerCmp, kop.FwBaseToughnessCmp:
 			fl.V = kop.Const(l.N) // the layer-7b base P/T bound
-		case kop.FwSharesCr, kop.FwSharesName, kop.FwSameName:
+		case kop.FwSharesCr, kop.FwSharesName, kop.FwSameName, kop.FwCanProduceSameManaTypeWith:
 			fl.R = l.R // the referent (filter_sharesreferents.go)
 			if l.Inner != nil {
 				if l.W != kop.FwSharesName || l.R != 0 {
