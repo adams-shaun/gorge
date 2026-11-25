@@ -1394,7 +1394,11 @@ func (s *State) unlessTapsDeferred(k *prep, p uint8) bool {
 // unlessWindowUnits' literal-mana-fee arm and UnlessManaReachable's fee
 // transition, CR 605.3b) -- without the disjunct the gate offers decline
 // only where gorge's census prices the source and this walk proves the
-// chain (kfuzz pair 25 of dr-mbc-baab).
+// chain (kfuzz pair 25 of dr-mbc-baab). A board whose land carries an
+// any-colour tap extra (Buried in the Garden, Dawn's Reflection) is walked too,
+// outside an unless window: the planner's census leaves the extra out, and
+// gorge's ward payment funds {2} through the window with the Plains' W and the
+// extra's W (CR 605.3b; kfuzz pair 68 of std-mkm).
 func (s *State) windowAffordsTake(k *prep, p uint8, cost *kop.ManaCost, takeDeferred, unless bool) (bool, uint8) {
 	s.setUnlessWin(unless)
 	defer s.setUnlessWin(false)
@@ -1402,7 +1406,7 @@ func (s *State) windowAffordsTake(k *prep, p uint8, cost *kop.ManaCost, takeDefe
 		s.g.turnF |= turnGateWin
 		defer func() { s.g.turnF &^= turnGateWin }()
 	}
-	if k.gen == nil || !(k.gen.anyEachCol && s.scriptGaps(k, p).any() || k.gen.anyComboAny && s.caGaps(k, p).any() || s.scriptDeferred(k, p).any() || takeDeferred && s.unlessTapsDeferred(k, p) || takeDeferred && s.unlessCtrGaps(k, p) || takeDeferred && s.unlessDynSacGaps(k, p) || takeDeferred && (k.gen.anyFiltFirst || unless) && s.unlessPricedFilt(k, s.scriptFilt(k, p)).any() || takeDeferred && s.unlessPricedFilt(k, s.unlessTapFilt(k, p)).any() || s.riderOfferable(k, p, takeDeferred)) {
+	if k.gen == nil || !(k.gen.anyEachCol && s.scriptGaps(k, p).any() || k.gen.anyComboAny && s.caGaps(k, p).any() || s.scriptDeferred(k, p).any() || takeDeferred && s.unlessTapsDeferred(k, p) || takeDeferred && s.unlessCtrGaps(k, p) || takeDeferred && s.unlessDynSacGaps(k, p) || !takeDeferred && s.tapAnyColDeferExtra(k, s.ctrlM[SeatIx(p)].and(s.occ)) || takeDeferred && (k.gen.anyFiltFirst || unless) && s.unlessPricedFilt(k, s.scriptFilt(k, p)).any() || takeDeferred && s.unlessPricedFilt(k, s.unlessTapFilt(k, p)).any() || s.riderOfferable(k, p, takeDeferred)) {
 		return false, 0
 	}
 	t := s.fork()
@@ -2528,7 +2532,7 @@ func (s *State) scriptDFS(k *prep, a Action, p uint8, order []Slot, ctr, restr, 
 					continue // the line went on without this gap
 				}
 				tapsN++
-				if !t.scriptGapTap(k, p, a, order[j], ctr, restr, anyR, tapsDef, ca, int(path[j]), &spill) {
+				if !t.scriptGapTap(k, p, a, order[j], ctr, restr, anyR, tapsDef, ca, t.dfsPathAnswer(k, a, order[j], tapsDef, path[j]), &spill) {
 					// a life-only gap the path's earlier activation made
 					// unpayable: no state under this prefix can tap it, so
 					// fail the branch and backtrack (see scriptGapTap)
@@ -2630,6 +2634,7 @@ func (s *State) scriptDFS(k *prep, a Action, p uint8, order []Slot, ctr, restr, 
 				nch = s.anyRAnswers(k, order[j])
 			case tapsDef.has(order[j]):
 				nch = s.deferGapAnswers(k, order[j])
+				nch *= uint8(s.dfsAskTotal(k, a, order[j], nch)) // the tap's any-colour asks' answers beside the gap's own
 			case restr.has(order[j]) && k.gen.anyDeferred && k.deferIdent(s.cardAt(order[j])):
 				nch = s.deferAnswers(k, order[j]) // the identity's colour ask (mana_deferident.go)
 			case life.has(order[j]):
@@ -2781,7 +2786,7 @@ func (s *State) scriptPrefixAny(k *prep, a Action, p uint8, restr, anyR, tapsDef
 		if path[i] == scriptSkip {
 			continue // the found script went on without this gap
 		}
-		s.scriptGapTap(k, p, a, order[i], ctr, restr, anyR, tapsDef, ca, int(path[i]), &spill)
+		s.scriptGapTap(k, p, a, order[i], ctr, restr, anyR, tapsDef, ca, s.dfsPathAnswer(k, a, order[i], tapsDef, path[i]), &spill)
 		if s.npend != 0 {
 			// gorge answers each gap's activation as its own decision, so the
 			// trigger queue is drained before the next tap: two lands under
@@ -4084,7 +4089,7 @@ func (s *State) gapWindowReverse(k *prep, e *stackEntry, cost *kop.ManaCost, sav
 // path that keeps the activation, and reports true when the activation was
 // reversed because neither reaches the cost (CR 733.1).
 func (s *State) abilityPlainMana(k *prep, e *stackEntry, cost kop.ManaCost, saved *[len(build{}.picks)]uint8, hostSl, sl Slot, selfUntapped bool) bool {
-	if !s.tapForTry(k, e.ctrl, &cost, int(e.x), s.abilityHandExclude(e), false) {
+	if !s.tapForTry(k, e.ctrl, &cost, int(e.x), s.abilityHandExclude(k, e), false) {
 		c := xFolded(cost, int(e.x))
 		if s.gapWindowReverse(k, e, &c, saved, hostSl, sl, selfUntapped) {
 			return true
@@ -4107,8 +4112,14 @@ func (s *State) abilityPlainMana(k *prep, e *stackEntry, cost kop.ManaCost, save
 // key 6), and the planner's source choice follows (Webstrike Elite's {X}
 // cycling). Only a hand source needs it: a battlefield source is no hand card,
 // and excluding it there would hide a mana ability it may still activate.
-func (s *State) abilityHandExclude(e *stackEntry) Obj {
+// A granted cycling (kw_cyclinggrant.go) excludes nothing: gorge plans a
+// keyword-granted activation with no cast object (planKeywordAbility), so its
+// hand-demand key still counts the cycled card's pips.
+func (s *State) abilityHandExclude(k *prep, e *stackEntry) Obj {
 	if e != nil && e.obj != NoObj && s.objs[e.obj].zone == kop.ZoneHand {
+		if k.anyCyclingGrant && isCyclingGrantBody(&k.t.Cards[e.card], int(e.ab)) {
+			return NoObj
+		}
 		return e.obj
 	}
 	return NoObj
@@ -4270,7 +4281,7 @@ func (s *State) abilityPlanSettles(k *prep, e *stackEntry, offer, fallback, sett
 		return false
 	}
 	s.releaseCostTaps(k, saved)
-	exclude := s.abilityHandExclude(e)
+	exclude := s.abilityHandExclude(k, e)
 	chk := planner{dry: true, noGrant: true}
 	s.tapForPK(k, e.ctrl, &offer, 0, exclude, false, false, &chk)
 	armed := chk.needT != 0
