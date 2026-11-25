@@ -50,7 +50,7 @@ func TestTurnFactsStaticLowering(t *testing.T) {
 	if err != nil || v.Kind != vThisTurnActExhaust {
 		t.Fatalf("ThisTurnActivated exhaust = %+v err %v, want ThisTurnActExhaust", v, err)
 	}
-	if _, err := lc.countValue("ThisTurnActivated_Activated.Equip+YouCtrl", 0); err == nil || !strings.Contains(err.Error(), "ThisTurnActivated") {
+	if _, err := lc.countValue("ThisTurnActivated_Activated.Cycling+YouCtrl", 0); err == nil || !strings.Contains(err.Error(), "ThisTurnActivated") {
 		t.Fatalf("another ThisTurnActivated spec: want a named refusal, got %v", err)
 	}
 

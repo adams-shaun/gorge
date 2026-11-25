@@ -237,7 +237,7 @@ func (s *State) exprCold(k *prep, x *kop.Expr, ctx evalCtx) int {
 	case kop.ExThisTurnActGrave:
 		return s.thisTurnActGrave(ctx)
 	case kop.ExThisTurnActExhaust:
-		return s.thisTurnActExhaust(ctx)
+		return s.thisTurnActExhaust(ctx, x.N)
 	case kop.ExActivations:
 		if x.N == 1 {
 			return s.activationsOfSource(ctx) // value_activations.go

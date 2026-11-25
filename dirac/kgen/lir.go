@@ -233,7 +233,7 @@ const (
 	vStepIn              // 1 while the current step is one of the kop.Step bits in N (ConditionPhases$)
 	vTgtSpent            // the mana spent to cast the spell the resolving spell targets (Targeted$CastTotalManaSpent)
 	vOppExtreme          // a figure over the controller's living opponents, kop.OppExt* in N, F for OppExtValid (PlayerCountOpponents$)
-	vThisTurnActExhaust  // 1 if the controller activated an Exhaust ability this turn (Count$ThisTurnActivated_Activated.Exhaust+YouCtrl)
+	vThisTurnActExhaust  // 1 if the controller activated an Exhaust ability this turn (Count$ThisTurnActivated_Activated.Exhaust+YouCtrl); N 1 an Equip ability (Activated.Equip+YouCtrl)
 	vActivations         // the resolving activated ability's source's non-mana activations this turn, this one included (ConditionActivationLimit$)
 	vLifeLostLastTurn    // life the controller lost during the previous turn (PlayerCountPropertyYou$LifeLostLastTurn)
 	vLastDamage          // damage the spell's previous DealDamage landed (kop.VLastDamage; value_totaldamage.go)

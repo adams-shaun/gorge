@@ -364,6 +364,9 @@ func (s *State) pushBuild(k *prep) {
 		if k.gen != nil && k.gen.actRingOn {
 			s.noteAct(e.obj, e.ctrl) // CR 602.2a: the push is the activation ledger entry
 		}
+		if k.gen != nil && k.gen.anyTurnF {
+			s.noteTurnEquip(k, e.ctrl, &k.t.Cards[e.card].Abilities[e.ab]) // the turn's Equip fact (static_turnbits.go)
+		}
 		if ob := &s.objs[e.obj]; ob.zone == kop.ZoneBattlefield {
 			if ob.activations() < objActsMask {
 				s.touch(e.obj)

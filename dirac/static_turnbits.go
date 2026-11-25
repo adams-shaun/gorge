@@ -20,7 +20,7 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // Bits 0-3 hold the flips, 4-7 Exhaust and 8-11 damage dealt; bit 15 is the
 // unless-window walk (turnUnlessWin, mana_window.go), bit 14 its offer gate
 // (turnGateWin), bit 12 the turn-up's gap-prefix walk (turnGapPrefix,
-// face_turnupgap.go), 13 stays free.
+// face_turnupgap.go), 13 the active player's Equip activation (turnEquipBit).
 const turnFlipShift = 0
 
 func turnFlipMask(p uint8) turnFT {
@@ -153,11 +153,40 @@ func (s *State) exhaustOnceWaived(k *prep, p uint8, a *kop.Ability) bool {
 }
 
 // thisTurnActExhaust evaluates ExThisTurnActExhaust: 1 if ctx's controller
-// activated an Exhaust ability this turn, else 0. The kernel keeps presence,
-// not a count, which is all the lowered static's LT1 comparison reads.
-func (s *State) thisTurnActExhaust(ctx evalCtx) int {
+// activated an Exhaust ability this turn (n 0) or an Equip ability (n 1),
+// else 0. The kernel keeps presence, not a count, which is all the lowered
+// statics' LT1 / EQ0 comparisons read.
+func (s *State) thisTurnActExhaust(ctx evalCtx, n int16) int {
+	if n == 1 {
+		return s.thisTurnActEquip(ctx.ctrl)
+	}
 	if s.turnExhaustBit(ctx.ctrl) {
 		return 1
 	}
 	return 0
+}
+
+// turnEquipBit is genState.turnF's bit 13: the active player activated an
+// Equip ability this turn (Count$ThisTurnActivated_Activated.Equip+YouCtrl,
+// Kili the Resourceful's "first equip ability you activate each turn"). One bit,
+// not one per seat: equip is a sorcery-speed ability (CR 702.6a), so only the
+// active player activates one and a non-active controller's count is 0.
+const turnEquipBit turnFT = 1 << 13
+
+// thisTurnActEquip is 1 when p is the active player and activated an Equip
+// ability this turn, else 0.
+func (s *State) thisTurnActEquip(p uint8) int {
+	if p == s.active && s.g.turnF&turnEquipBit != 0 {
+		return 1
+	}
+	return 0
+}
+
+// noteTurnEquip records the push of ability a by activator p (pushBuild, with
+// the activation ledger's CR 602.2a timing): an Equip ability of the active
+// player sets the turn's Equip bit.
+func (s *State) noteTurnEquip(k *prep, p uint8, a *kop.Ability) {
+	if a.AFlags&kop.AfEquip != 0 && k != nil && k.gen != nil && k.gen.anyTurnF && p == s.active {
+		s.g.turnF |= turnEquipBit
+	}
 }
