@@ -390,7 +390,7 @@ type prep struct {
 	// kop.SecondTapXManaAb), -1 none: cold, read through tapXAbOf
 	tapXAb []int8
 	// ctrAb: per card, the index of its counter-cost mana ability (the first
-	// mana ability, kop.CtrManaAb or the dead gap kop.CtrDeadManaAb, or a
+	// mana ability, kop.CtrManaAb, or a
 	// later {T} one beside a plain {T} first, kop.SecondCtrTapManaAb), -1
 	// none: cold, read through ctrAbOf (mana_countercost.go)
 	ctrAb []int8

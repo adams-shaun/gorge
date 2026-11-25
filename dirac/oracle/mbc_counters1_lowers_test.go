@@ -22,8 +22,8 @@ import (
 //     two -2/-1 counters among one or two target creatures).
 //
 // The COMPONENT counter kind lowers beside them (Component Pouch's {T} +
-// remove-a-component-counter mana ability is the dead census gap the
-// dead-mana-gap ticket models). Each carrier must be played by some game; the
+// remove-a-component-counter mana ability is an AnyDifferent census gap the
+// kernel reads beside the plain {T} one). Each carrier must be played by some game; the
 // comparison at every decision is gorge's.
 func TestMBCCounters1Lowers(t *testing.T) {
 	if isolate(t) {
