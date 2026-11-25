@@ -18,7 +18,7 @@ var effectReplacementForms = []formCase{
 	{card: "Gideon, Ally of Zendikar", form: "prevent all damage to the Effect's source, Duration$ UntilHostLeavesPlayOrEOT", lir: "PreventNext obj=Self C=2"},
 	{card: "Gideon, the Oathsworn", form: "prevent all damage to the Effect's source, Duration$ UntilHostLeavesPlayOrEOT", lir: "PreventNext obj=Self C=2"},
 	{card: "Djeru's Resolve", form: "prevent all damage to the remembered target this turn", lir: "PreventNext"},
-	{card: "Take the Bait", form: "scoped prevention with no ActiveZones$ (the spell's own OpponentTurn$/ActivationPhases$ cast window still refuses)", refused: "unread params [ActivationPhases OpponentTurn]"},
+	{card: "Take the Bait", form: "scoped prevention with no ActiveZones$ (the spell's own OpponentTurn$/ActivationPhases$ cast window lowers onto its cast restriction)", lir: "PreventDamageScope"},
 	{card: "Ajani Steadfast", form: "Permanent emblem: prevent all but 1 to you and your planeswalkers", lir: "PreventDamageN"},
 	{card: "Kurbis, Harvest Celebrant", form: "no ExileOnMoved", refused: "Effect replacement shape"},
 }
