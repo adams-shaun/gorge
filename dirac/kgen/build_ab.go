@@ -1120,6 +1120,7 @@ func (cb *cardBuilder) mana(m *lMana, ka *kop.Ability) error {
 	ka.ManaEach = m.Each
 	ka.ManaDeferred = m.Deferred
 	ka.ManaAskColour = m.AskColour
+	ka.ManaUnless = m.Unless
 	ka.ManaNoCounter = m.NoCounter
 	ka.ManaIdentityPotential = m.IdentityPotential
 	ka.ManaRider = uint8(m.Rider)

@@ -2565,7 +2565,16 @@ type genState struct {
 	trigMV   uint8
 	// fbp: filtBoundPays' one-entry memo (mana_filter.go). Taken from rsv.
 	fbp fbpMemo
-	rsv [rsvN]uint8
+	// winUnless: the colour window's unless walk, packed: the seats already
+	// asked in the low nibble (bit per seat), the payer + 1 in the high nibble
+	// (0: no payer, the walk is not live). winUnlessSrc is the asking source's
+	// slot (the payer's mana window may overwrite winSrc), and winUnlessPay
+	// the payer + 1 whose unless mana window paused on a tap-another pick (0:
+	// none) (mana_askcolour.go askColUnless, castWinUnless). Taken from rsv.
+	winUnless    uint8
+	winUnlessSrc Slot
+	winUnlessPay uint8
+	rsv          [rsvN]uint8
 	// embX: an emblem's remembered slots 2 and 3, object + 1 (static_emblemrem.go); embR is slot 1, embN slot 0. Taken from rsv.
 	embX [MaxSeats][maxEmb][embRemSlots - 2]objWord
 	// atkDef is the defending seat + 1 of the attack event whose triggers are
@@ -2611,7 +2620,10 @@ const (
 	// rsvExtra grows the block by the four bytes four seats' object-wide
 	// fields (sixteen-bit usedRec.host, turnF, the four-seat mana and emblem
 	// rows) need past that line.
-	rsvN = max(0, 80-int(unsafe.Sizeof([maxImp]Obj{}))-2-MaxSeats-int(unsafe.Sizeof([MaxSeats][maxEmb]Obj{}))-2-MaxSeats*kop.NumManaKinds-ulBytes-dmkBytes-int(unsafe.Sizeof([MaxSeats][maxEmb][embRemSlots - 2]objWord{}))-1-turnFBytes-dmgAmtBytes-(MaxSeats+1)/2) - tgtMVBytes + 64 + rsvExtra + rsvTgtMV - redirBytes - prevXBytes - usedHostBytes - fbpBytes
+	rsvN = max(0, 80-int(unsafe.Sizeof([maxImp]Obj{}))-2-MaxSeats-int(unsafe.Sizeof([MaxSeats][maxEmb]Obj{}))-2-MaxSeats*kop.NumManaKinds-ulBytes-dmkBytes-int(unsafe.Sizeof([MaxSeats][maxEmb][embRemSlots - 2]objWord{}))-1-turnFBytes-dmgAmtBytes-(MaxSeats+1)/2) - tgtMVBytes + 64 + rsvExtra + rsvTgtMV - redirBytes - prevXBytes - usedHostBytes - fbpBytes - winUnlessBytes
+	// winUnlessBytes: genState's colour-asking mana unless state (winUnless,
+	// winUnlessSrc, winUnlessPay), taken from rsv (mana_askcolour.go).
+	winUnlessBytes = 3
 )
 
 // dmgAmtRec is one genState.dmgAmt record: the reader card's object+1 (0

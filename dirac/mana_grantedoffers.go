@@ -1030,7 +1030,7 @@ func (s *State) availUngranted(k *prep, p uint8, a *avail) {
 	}
 	var deferGap slotMask
 	if s.deferLive(k) && s.g.availX&(availWalk|availHyp) == 0 {
-		deferGap = s.scriptTapsDefer(k, SeatIx(p)) // as availFor: gorge's census never lists a planner-deferred source (a counter rider, a Taps watcher), so the witness never pays with it
+		deferGap = s.scriptTapsDefer(k, SeatIx(p)).or(s.tapsDeferDead(k, SeatIx(p))) // as availFor: gorge's census never lists a planner-deferred source (a counter rider, a Taps watcher, an unless chooser), so the witness never pays with it
 	}
 	for m := s.ctrlM[SeatIx(p)]; m.any(); m = m.rest() {
 		sl := m.first()
