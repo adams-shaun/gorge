@@ -85,11 +85,16 @@ func printedKeyword(cd *kop.CardDef, id kop.KwID) bool {
 	// face is gorge's derived keyword list.
 	case kop.KwFlanking:
 		return cd.Flanking
-	// Disturb: the face's own record (kgen lower_flipcast.go), printed on
-	// the front only, so a back face up reads false, as gorge's derived
-	// keywords do.
+	// The back-face cast keywords and Living metal: the face's own record
+	// (kgen lower_flipcast.go). Disturb and More Than Meets the Eye are
+	// printed on the front only, so a back face up reads false, as gorge's
+	// derived keywords do.
 	case kop.KwDisturb:
 		return cd.FlipCast == kop.FlipDisturb
+	case kop.KwMoreThanMeetsTheEye:
+		return cd.FlipCast == kop.FlipConverted
+	case kop.KwLivingMetal:
+		return cd.LivingMetal
 	// Mutate and Phasing: their K: line refuses the whole face, so no
 	// lowered card prints them and the cases read false over the lowered
 	// cards exactly as gorge does. The cases name the KwIDs for the

@@ -7,7 +7,9 @@ import (
 )
 
 func init() {
+	kwHandlers["More Than Meets the Eye"] = func(lc *lowerCtx, node, param string) { lc.lowerFlipCastKw(node, param, kop.FlipConverted) }
 	kwHandlers["Disturb"] = func(lc *lowerCtx, node, param string) { lc.lowerFlipCastKw(node, param, kop.FlipDisturb) }
+	kwHandlers["Living metal"] = (*lowerCtx).lowerLivingMetalKw
 }
 
 // lowerFlipCastKw lowers a front face's back-face cast keyword: K:More Than
@@ -39,4 +41,21 @@ func (lc *lowerCtx) lowerFlipCastKw(node, param string, kind uint8) {
 		return
 	}
 	lc.out.FlipCast, lc.out.FlipCost = kind, &mc
+}
+
+// lowerLivingMetalKw lowers K:Living metal (CR 702.161a): gorge's
+// kwLivingMetal (cards/kw_livingmetal.go) expands it into one layer-4
+// Continuous static on the permanent itself (AddType$ Artifact & Creature,
+// Condition$ PlayerTurn), lowered from that line as the face's own Override.
+// The head is a record for the with-keyword word (CardDef.LivingMetal). A
+// face whose expansion a printed S: line suppressed refuses.
+func (lc *lowerCtx) lowerLivingMetalKw(node, param string) {
+	line := kwLineOf(node)
+	for _, st := range lc.face.Statics {
+		if st.Params["KeywordLine"] == line && param == "" {
+			lc.out.LivingMetal = true
+			return
+		}
+	}
+	lc.refuseNode(node, "keyword %q without its expansion", "Living metal")
 }
