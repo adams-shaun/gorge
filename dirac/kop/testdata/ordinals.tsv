@@ -1263,6 +1263,8 @@ ReplDmgInsExileTop	untyped int	8
 ReplDmgInsKindShift	untyped int	8
 ReplDmgInsMill	untyped int	2
 ReplDmgInsPrevent	untyped int	1
+ReplDmgInsSac	untyped int	16384
+ReplDmgInsVind	untyped int	32768
 ReplDmgNonCombat	untyped int	16
 ReplDmgOppPerm	untyped int	2
 ReplDmgOppPlayer	untyped int	1
