@@ -1822,21 +1822,8 @@ func (e *Engine) triggerLabel(pt pendingTrigger) string {
 		}
 		return name + ": afflict " + pt.Afflict
 	}
-	// A layer-6 granted Exalted or Melee instance (melee.go) has no face
-	// trigger line, so name it by keyword as Ward and Cascade do: a bare
-	// source name (two Clue Tokens under Merchant of Truth) cannot be bound
-	// to one trigger by a client.
-	if pt.Exalted || pt.Melee {
-		name := "a creature"
-		if o := e.G.Obj(pt.Source); o != nil {
-			if f := o.Face(); f != nil && f.Name != "" {
-				name = f.Name
-			}
-		}
-		if pt.Exalted {
-			return name + ": exalted"
-		}
-		return name + ": melee"
+	if l, ok := e.grantedAttackKeywordLabel(pt); ok {
+		return l
 	}
 	if pt.Cascade {
 		name := "a spell"
@@ -1919,6 +1906,26 @@ func (e *Engine) triggerLabel(pt pendingTrigger) string {
 		}
 	}
 	return name
+}
+
+// grantedAttackKeywordLabel names a layer-6 granted Exalted or Melee instance
+// (melee.go) by keyword, as Ward and Cascade are: it has no face trigger
+// line, and a bare source name (two Clue Tokens under Merchant of Truth)
+// cannot be bound to one trigger by a client.
+func (e *Engine) grantedAttackKeywordLabel(pt pendingTrigger) (string, bool) {
+	if !pt.Exalted && !pt.Melee {
+		return "", false
+	}
+	name := "a creature"
+	if o := e.G.Obj(pt.Source); o != nil {
+		if f := o.Face(); f != nil && f.Name != "" {
+			name = f.Name
+		}
+	}
+	if pt.Exalted {
+		return name + ": exalted", true
+	}
+	return name + ": melee", true
 }
 
 // abilityLabel is the resolution-side sibling of triggerLabel: the label a
