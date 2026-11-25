@@ -25,7 +25,7 @@ const (
 	sclsGyCont                     // the card's own StatContinuous that works from its graveyard (static_gycont.go)
 	sclsOffKwG                     // StatOffZoneGrant, StatRetraceGrant, StatUnearthGrant, StatCyclingGrant or StatMiracleGrant, an off-zone grant (kw_offkwgrant.go)
 	sclsNonObj                     // a static that can change a characteristic and may read what is not an object's own fields (static_sbaskip.go)
-	sclsTapCmd                     // a command-zone StatTapExtra on a seated Vanguard (Sisay; mana_tapextra.go eachTapExtra)
+	sclsTapCmd                     // a command-zone StatTapExtra: a seated Vanguard's (Sisay) or a face-up plane's (Eloren Wilds; mana_tapextra.go eachTapExtra)
 )
 
 // prepOverrideLandwalk (called from prepStaticClasses, once per table; kw_evasion.go landwalkPumped reads it) sets genPrep.anyLandwalk when any override record of
@@ -39,7 +39,8 @@ func prepOverrideLandwalk(t *kop.Table, g *genPrep) {
 }
 
 // prepStaticClasses fills g.sCls and returns whether any card carries a
-// command-zone StatTapExtra static (a Vanguard's; mana_tapextra.go eachTapExtra).
+// command-zone StatTapExtra static (a Vanguard's or a face-up plane's;
+// mana_tapextra.go eachTapExtra).
 func prepStaticClasses(t *kop.Table, g *genPrep) (anyCmdTap bool) {
 	prepOverrideLandwalk(t, g)
 	g.sCls = make([]uint16, len(t.Cards))
@@ -73,18 +74,26 @@ func prepStaticClasses(t *kop.Table, g *genPrep) (anyCmdTap bool) {
 			case kop.StatCDAPT, kop.StatOverride:
 				m |= sclsPTRel
 			case kop.StatMayPlayFrom:
-				switch {
-				case sa.StFlags&kop.StFunctionsInGraveyard != 0:
+				// a two-zone self grant (Squee, the Immortal's
+				// Exile,Graveyard with EffectZone$ Exile,Graveyard) carries
+				// BOTH function flags on one static, so the card's own
+				// permission is offered from either zone: both class gates
+				// set (the self walk keys on the flags)
+				if sa.StFlags&kop.StFunctionsInGraveyard != 0 {
 					m |= sclsGyMay
-				case sa.StFlags&kop.StFunctionsInExile != 0:
+				}
+				if sa.StFlags&kop.StFunctionsInExile != 0 {
 					m |= sclsExMay
-				default:
+				}
+				if sa.StFlags&(kop.StFunctionsInGraveyard|kop.StFunctionsInExile) == 0 {
 					m |= sclsMayPlay
 				}
 			case kop.StatTapExtra:
-				if sa.Zone == kop.ZoneCommand && c.Types&kop.TVanguard != 0 {
-					// a Vanguard's printed static (Sisay): in force from the
-					// command zone, walked by eachTapExtra, never by eachStatic
+				if sa.Zone == kop.ZoneCommand {
+					// a command-zone printed static: a seated Vanguard's (Sisay)
+					// or a face-up plane's (Eloren Wilds) — in force from the
+					// command zone / the seat's planar-deck top, walked by
+					// eachTapExtra, never by eachStatic
 					m |= sclsTapCmd
 					anyCmdTap = true
 				}
