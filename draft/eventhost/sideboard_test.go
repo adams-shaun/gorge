@@ -54,6 +54,11 @@ func legalIntent(d *decision.Decision) decision.Intent {
 	for i := 0; i < n; i++ {
 		ch = append(ch, d.Options[i].Index)
 	}
+	// A required attacker (a goaded creature, CR 508.1d) must be in the
+	// answer even when Min is 0; the decision's own rule builds that answer.
+	if d.RequiredQuota() > 0 {
+		ch = d.FitRequired(ch)
+	}
 	return decision.Intent{Seq: d.Seq, Player: d.Player, Choices: ch}
 }
 
