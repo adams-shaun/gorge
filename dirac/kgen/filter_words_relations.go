@@ -27,6 +27,7 @@ func init() {
 	fwName[kop.FwSharesCr] = "FwSharesCr"
 	fwName[kop.FwSharesName] = "FwSharesName"
 	fwName[kop.FwSameName] = "FwSameName"
+	fwName[kop.FwSameManaType] = "FwSameManaType"
 
 	// with<K>, without<K> and !with<K> over a printed keyword the kernel keeps
 	// a record of (dirac/filter_withkeyword.go printedKeyword); gorge registers

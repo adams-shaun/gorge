@@ -1,0 +1,6 @@
+family: FilterWord
+name: FwSameManaType
+value: next
+contexts: perm
+status: active
+doc: FwSameManaType: the battlefield permanent can produce a type of mana the trigger object can produce (Mana Web's "all lands that player controls that could produce any type of mana that land could produce"). Both read the printed mana abilities: CardDef.ProduceCol for the colours ({C} dropped) and each mana ability's ManaColors for {C}. An off-battlefield candidate or trigger object fails closed.

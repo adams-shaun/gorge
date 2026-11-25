@@ -648,6 +648,14 @@ func parseClause(alt string, knownSub func(string) bool) (lClause, error) {
 	// the head unknown and the alternative fails closed.
 	if ref, ok := sameNameContextRef(head, props); ok {
 		c.Flags |= ref
+	} else if c2, ok, err := triggeredSameManaTypeClause(head, props, knownSub); ok {
+		// Mana Web's TriggeredCard.canProduceSameManaTypeWith+Land: the
+		// candidate is the trailing type (a Land) and the predicate compares
+		// its producible mana with the trigger object's
+		if err != nil {
+			return c, fmt.Errorf("%q: %w", alt, err)
+		}
+		c, props = c2, ""
 	} else if bits, ok := typeBits[head]; ok {
 		c.Types = bits
 		if head == "Card" {
@@ -685,6 +693,40 @@ func parseClause(alt string, knownSub func(string) bool) (lClause, error) {
 		}
 	}
 	return c, nil
+}
+
+// triggeredSameManaTypeClause parses Mana Web's
+// `TriggeredCard.canProduceSameManaTypeWith+Land`: the base is the trailing
+// type Land, and the predicate is one filter word comparing the candidate's
+// producible mana with the trigger object's (kop.FwSameManaType,
+// dirac/filter_samemanatype.go). Only that exact head/property spelling
+// lowers; any other TriggeredCard head stays unknown and fails closed.
+func triggeredSameManaTypeClause(head, props string, knownSub func(string) bool) (lClause, bool, error) {
+	if head != "TriggeredCard" {
+		return lClause{}, false, nil
+	}
+	base, ok := strings.CutPrefix(props, "canProduceSameManaTypeWith+")
+	if !ok || base == "" || strings.Contains(base, "+") {
+		return lClause{}, false, nil
+	}
+	var c lClause
+	if bits, ok := typeBits[base]; ok {
+		c.Types = bits
+		if base == "Card" {
+			c.Types = 0
+		}
+		if base == "Permanent" {
+			c.BasePermanent = true
+		}
+	} else if knownSub(base) {
+		c.Subtype = base
+	} else {
+		return lClause{}, true, fmt.Errorf("canProduceSameManaTypeWith head %q", base)
+	}
+	if err := c.fwLit(lSpillLit{W: kop.FwSameManaType, R: kop.RefTriggerObj}); err != nil {
+		return lClause{}, true, err
+	}
+	return c, true, nil
 }
 
 func (c *lClause) prop(p string, knownSub func(string) bool) error {
