@@ -786,8 +786,11 @@ func (s *State) targetableGen(k *prep, sl Slot, p uint8) bool {
 	if kw&kop.KwProtBlack != 0 && c&kop.ColB != 0 || kw&kop.KwProtRed != 0 && c&kop.ColR != 0 {
 		return false
 	}
-	if hexC&c != 0 {
+	if hexC&c&kop.ColAny != 0 {
 		return false // CR 702.11d: a source of that colour an opponent controls
+	}
+	if hexC&(kop.HexMono|kop.HexMulti) != 0 && hexCountBlocks(hexC, c) {
+		return false // CR 702.11d: from monocolored / multicolored (kw_hexproofcolor.go)
 	}
 	if k.gen.anyProtCol && s.protPrinted(k, sl)&c != 0 {
 		return false

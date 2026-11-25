@@ -454,6 +454,12 @@ func dumpLIR(w io.Writer, c *lCard) {
 	if c.HexColors != "" {
 		fmt.Fprintf(w, " hexproof=%s", c.HexColors)
 	}
+	if c.HexMono {
+		fmt.Fprintf(w, " hexproof=monocolored")
+	}
+	if c.HexMulti {
+		fmt.Fprintf(w, " hexproof=multicolored")
+	}
 	if c.ProtColors != "" {
 		fmt.Fprintf(w, " protection=%s", c.ProtColors)
 	}

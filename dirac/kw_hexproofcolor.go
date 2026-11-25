@@ -1,6 +1,10 @@
 package dirac
 
-import "github.com/adams-shaun/gorge/dirac/kop"
+import (
+	"math/bits"
+
+	"github.com/adams-shaun/gorge/dirac/kop"
+)
 
 // hexPrinted is the colours of the printed "hexproof from <colour>" keywords
 // (CR 702.11d) of the permanent at sl: 0 when it has lost its abilities
@@ -14,6 +18,16 @@ func (s *State) hexPrinted(k *prep, sl Slot) kop.ColorMask {
 		return 0
 	}
 	return c
+}
+
+// hexCountBlocks reports whether a source of colours c has the colour-count
+// quality a printed "hexproof from monocolored" (kop.HexMono: exactly one
+// colour) or "from multicolored" (kop.HexMulti: two or more) names; gorge
+// sourceHasQuality matches Card.MonoColor / Card.MultiColor against the
+// source's current colours.
+func hexCountBlocks(hexC, c kop.ColorMask) bool {
+	n := bits.OnesCount8(uint8(c & kop.ColAny))
+	return hexC&kop.HexMono != 0 && n == 1 || hexC&kop.HexMulti != 0 && n >= 2
 }
 
 // hexOwnColors is the target's current colours when a permanent its

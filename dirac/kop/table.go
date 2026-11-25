@@ -346,7 +346,9 @@ type CardDef struct {
 	ProtColors ColorMask
 	// HexColors are the printed "hexproof from <colour>" keywords' colours
 	// (CR 702.11d; 0 = none): a spell or ability of one of them an opponent
-	// controls can't target the permanent.
+	// controls can't target the permanent. HexMono and HexMulti (bits no
+	// colour uses) are "hexproof from monocolored" / "from multicolored": a
+	// source of exactly one colour / of two or more.
 	HexColors ColorMask
 	// ProtFrom is the printed K:Protection:<spec> keywords' source filter
 	// (CR 702.16; type, subtype and colour terms only; 0 = none).

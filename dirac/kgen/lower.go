@@ -1142,6 +1142,18 @@ var protColourLetters = map[string]string{"white": "W", "blue": "U", "black": "B
 // stays refused.
 var hexColourLetters = map[string]string{"white": "W", "blue": "U", "black": "B", "red": "R", "green": "G"}
 
+// hexQualityParam is the spec of a "Hexproof:<spec>:<display text>"
+// parameter when it is one of the colour-count specs the kernel reads
+// (Card.MonoColor, Card.MultiColor, Card.nonColorless), else "".
+func hexQualityParam(param string) string {
+	q, _, _ := strings.Cut(param, ":")
+	switch q = strings.TrimSpace(q); q {
+	case "Card.MonoColor", "Card.MultiColor", "Card.nonColorless":
+		return q
+	}
+	return ""
+}
+
 // mergeColours unions two WUBRG letter sets in WUBRG order.
 func mergeColours(a, b string) string {
 	var out strings.Builder
@@ -1202,6 +1214,18 @@ func (lc *lowerCtx) lowerKeywords() {
 			// consumed with its minted R: lines
 		case head == "Hexproof" && hexColourLetters[strings.ToLower(param)] != "":
 			lc.out.HexColors = mergeColours(lc.out.HexColors, hexColourLetters[strings.ToLower(param)])
+		case head == "Hexproof" && hexQualityParam(param) != "":
+			// K:Hexproof:<spec>:<display text> over a colour-count spec
+			// (CR 702.11d): gorge hexproofQuality keeps the spec and matches
+			// the source against it (sourceHasQuality)
+			switch hexQualityParam(param) {
+			case "Card.MonoColor":
+				lc.out.HexMono = true
+			case "Card.MultiColor":
+				lc.out.HexMulti = true
+			case "Card.nonColorless":
+				lc.out.HexColors = mergeColours(lc.out.HexColors, "WUBRG") // a source of any colour
+			}
 		case head == "Hexproof" && param == "Instant":
 			lc.out.Kw = append(lc.out.Kw, "HexproofFromInstants")
 		case simpleKeywords[head] && param == "":

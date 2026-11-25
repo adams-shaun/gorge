@@ -1,0 +1,12 @@
+# printed hexproof from monocolored / each colour (CR 702.11d; dirac/oracle/
+# sets_hexcount_lowers_test.go TestSetsHexproofCountLowers): the three
+# holders beside a mono-red and a multicoloured burn spell that try them
+General Ferrous Rokiric
+Sphinx of the Guildpact
+Breaker of Creation
+Lightning Bolt
+Lightning Helix
+Raging Goblin
+Mountain
+Plains
+Wastes

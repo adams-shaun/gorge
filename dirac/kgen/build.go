@@ -1116,6 +1116,12 @@ func (cb *cardBuilder) record() error {
 	for _, r := range c.HexColors {
 		d.HexColors |= kop.ColW << strings.IndexRune("WUBRG", r)
 	}
+	if c.HexMono {
+		d.HexColors |= kop.HexMono
+	}
+	if c.HexMulti {
+		d.HexColors |= kop.HexMulti
+	}
 	if c.Landwalk != nil {
 		if d.Landwalk, err = cb.filter(c.Landwalk, kop.ZoneBattlefield); err != nil {
 			return err

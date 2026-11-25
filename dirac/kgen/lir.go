@@ -1486,6 +1486,7 @@ type lCard struct {
 	Landwalk            *lFilter // K:Landwalk:<land filter> (CR 702.14)
 	ProtColors          string   // printed "Protection from <colour>" (CR 702.16): WUBRG letters
 	HexColors           string   // printed K:Hexproof:<Colour> (CR 702.11d): WUBRG letters
+	HexMono, HexMulti   bool     // printed K:Hexproof:Card.MonoColor / Card.MultiColor (CR 702.11d; kop.HexMono, kop.HexMulti)
 	ProtFrom            *lFilter // printed K:Protection:<spec> (CR 702.16): the sources it protects from
 	Infect              bool     // printed K:Infect (CR 702.90)
 	Devoid              bool     // printed K:Devoid (CR 702.114a): CardDef.Devoid, read by the withDevoid filter word
