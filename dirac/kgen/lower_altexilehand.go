@@ -66,7 +66,7 @@ func (lc *lowerCtx) altLifeShared(c *lCost) bool {
 func altHandExileShape(c *kop.Cost) bool {
 	shared := c.Flags == kop.CostPayLife|kop.CostExileGrave
 	bare := c.Flags == kop.CostExileGrave
-	return (shared || bare) && c.ExileHand && c.N > 0 && c.Mana == (kop.ManaCost{})
+	return (shared || bare) && c.ExileHand && c.N > 0
 }
 
 // altHandExileOK: the hand-exile shape on a card whose one spell ability can

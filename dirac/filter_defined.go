@@ -380,11 +380,15 @@ func (s *State) doubleCountersAll(k *prep, in *kop.Instr) {
 
 // doubleCountersAt is OpDoubleCounters on the permanent at sl: each counter
 // kind c (every kind for 255) gets its own count added, through the counter
-// replacements, and CounterAddedOnce fires once with the total added.
+// replacements. gorge's effMultiplyCounter emits one CounterChange per kind,
+// so CounterAddedOnce fires once per kind with that kind's own amount and
+// lastCK set to it; a summed every-kind fire compared the wrong kind and read
+// the wrong amount (a doubled HOUR counter never crossed Midnight Clock's
+// twelfth-counter line).
 func (s *State) doubleCountersAt(k *prep, sl Slot, ck int16) {
 	s.touchSl(sl)
 	p := &s.perms[sl]
-	added := 0
+	once := s.subs[kop.TrigCounterAddedOnce].any()
 	// placeCounters puts counters of kind c only, so the kinds held stay the list's
 	var held ctrHeld
 	for _, hc := range held[:p.heldKinds(s, &held)] {
@@ -399,21 +403,19 @@ func (s *State) doubleCountersAt(k *prep, sl Slot, ck int16) {
 		if n > 0 {
 			before := n
 			s.placeCounters(k, sl, c, n, p.ctrl, ctrPutEffect) // gorge MultiplyCounter adds n, itself replaceable
-			added += p.ctrN(s, c) - before
-			if p.ctrN(s, c) > before && k.anyCtrAdded {
+			added := p.ctrN(s, c) - before
+			if added > 0 && k.anyCtrAdded {
 				s.ctrNote(k, sl, c)
 			}
+			if added > 0 && once {
+				// the CounterAddedOnce kind filter (triggers_gen.go) reads
+				// lastCK: a stale kind from an earlier counter step (a Saga's
+				// LORE, or a prior kind of this every-kind walk) would make
+				// the line miss this kind's own amount.
+				s.g.lastCK = kop.CounterKind(c)
+				s.fireObj(k, kop.TrigCounterAddedOnce, sl, p.obj, p.ctrl, int16(added))
+			}
 		}
-	}
-	if added > 0 && s.subs[kop.TrigCounterAddedOnce].any() {
-		if ck != 255 {
-			// the CounterAddedOnce kind filter (triggers_gen.go) reads lastCK:
-			// a stale kind from an earlier counter step (a Saga's LORE) made
-			// a doubled +1/+1 counter fire the Saga's chapter trigger. The
-			// every-kind form still fires once with the total (unchanged).
-			s.g.lastCK = kop.CounterKind(ck)
-		}
-		s.fireObj(k, kop.TrigCounterAddedOnce, sl, p.obj, p.ctrl, int16(added))
 	}
 }
 

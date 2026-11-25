@@ -182,6 +182,9 @@ func (s *State) resolveTop(k *prep) {
 				sl = s.enterFaceDown(k, e.obj, e.ctrl, e.morphFamily())
 			} else {
 				if k.gen != nil && k.gen.anyPermCopy {
+					if e.remVer&spellCopyExcMask != 0 {
+						s.spellCopyExcEnter(&e) // its NonLegendary$ exception (copy_spellnonlegendary.go)
+					}
 					s.permCopyEnters(e.obj) // CR 111.13: a copy becomes a token
 				}
 				if e.mode&modeBestowed != 0 && e.bestowedEntry() {

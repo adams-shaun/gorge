@@ -90,7 +90,7 @@ func (lc *lowerCtx) compareValue(arg string, depth int) (lValue, error) {
 	thTok, branches, _ := strings.Cut(tail, ".")
 	ifTok, elseTok, ok := strings.Cut(branches, ".")
 	th, err := strconv.Atoi(thTok)
-	if !ok || err != nil || strings.Contains(elseTok, ".") {
+	if !ok || strings.Contains(elseTok, ".") {
 		return lValue{}, refuse("Count$Compare %q", arg)
 	}
 	cop, ok := opNamesCmp[op]
@@ -106,6 +106,17 @@ func (lc *lowerCtx) compareValue(arg string, depth int) (lValue, error) {
 		return lValue{}, refuse("Count$Compare %s names no SVar", name)
 	}
 	collected := strings.TrimSpace(body) == "Collected$Amount"
+	var thv *lValue // a threshold that names an SVar (gorge resolveCountOperand), not a literal
+	if err != nil {
+		if collected {
+			return lValue{}, refuse("Count$Compare %q", arg)
+		}
+		tv, terr := lc.compareThreshold(thTok, depth)
+		if terr != nil {
+			return lValue{}, terr
+		}
+		thv = &tv
+	}
 	var cv lValue
 	if collected {
 		if err := lc.collectedCompare(op, th); err != nil {
@@ -115,7 +126,13 @@ func (lc *lowerCtx) compareValue(arg string, depth int) (lValue, error) {
 		return lValue{}, err
 	}
 	var v lValue
-	if collected {
+	if thv != nil {
+		// value OP threshold is value-threshold OP 0 (the kernel's ExCompare
+		// holds a literal bound only): ExSum with the threshold negated.
+		neg := *thv
+		neg.Neg = !neg.Neg
+		v = lValue{Kind: vCompare, N: 0, Op: cop, Sub: []lValue{{Kind: vSum, Sub: []lValue{cv, neg}}, {Kind: vBranches}}}
+	} else if collected {
 		v = lValue{Kind: vKicked} // paid: the then arm (Kicked.<paid>.<unpaid>)
 	} else if (op == "GE" || op == "GT") && cv.Kind == vCount && cv.F != nil && cv.Mul == 0 && cv.Div == 0 && cv.Add == 0 && !cv.Neg {
 		if op == "GT" {
@@ -146,4 +163,19 @@ func (lc *lowerCtx) compareValue(arg string, depth int) (lValue, error) {
 		arms.Sub = append(arms.Sub, sv)
 	}
 	return v, nil
+}
+
+// compareThreshold lowers a Count$Compare bound that is not an integer
+// literal: gorge evalCompare reads it through resolveCountOperand, an SVar of
+// this face (Teachings of the Archaics' GEMePlus, Anchor to Reality's LTZ) or
+// an inline <head>$<rest> expression.
+func (lc *lowerCtx) compareThreshold(tok string, depth int) (lValue, error) {
+	body, ok := lc.face.SVars[tok]
+	if !ok {
+		body, ok = compareInlineBody(tok) // value_compareheads.go
+	}
+	if !ok {
+		return lValue{}, refuse("Count$Compare threshold %q names no SVar", tok)
+	}
+	return lc.svarValue(body, depth+1)
 }
