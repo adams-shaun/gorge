@@ -391,6 +391,7 @@ var kwBits = map[string]kop.KwMask{
 	"Haste": kop.KwHaste, "Menace": kop.KwMenace, "Defender": kop.KwDefender, "Hexproof": kop.KwHexproof,
 	"Indestructible": kop.KwIndestructible, "Protection from everything": kop.KwProtectionAll,
 	"Unblockable": kop.KwUnblockable, "CantBlock": kop.KwCantBlock, "HexproofFromInstants": kop.KwHexproofFromInstants,
+	"Flash":               kop.KwFlash, // a granted flash only (printed: CardDef.Keywords; lower_cdaflash.go's battlefield half)
 	"ProtectionFromBlack": kop.KwProtBlack, "ProtectionFromRed": kop.KwProtRed,
 	"PreventCombatDamageTo": kop.KwPreventCombatDamageTo, "FlashbackOwnCost": kop.KwFlashbackOwnCost,
 	"PreventCombatDamageFrom": kop.KwPreventCombatDamageFrom, "Shroud": kop.KwShroud,
