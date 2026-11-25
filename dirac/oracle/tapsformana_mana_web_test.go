@@ -39,6 +39,10 @@ func manaWebDecks() [2][]cardset.Entry {
 // lockstep that plays a not-lowered stand-in would pass vacuously.
 func requireLoweredCard(t *testing.T, setName, card string) {
 	t.Helper()
+	// The pool lookup reads the generated tables under .cards, so a fresh
+	// clone (no corpus, no tables) must skip here before it can fail; the
+	// lockstep that follows would skip anyway.
+	corpusDirOrSkip(t)
 	set, err := cardset.RawByName(setName)
 	if err != nil {
 		t.Fatal(err)
