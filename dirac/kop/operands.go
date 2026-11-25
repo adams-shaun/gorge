@@ -1,10 +1,11 @@
 package kop
 
 // C of an ExtAddPhase: the extra phase's kind (ExtraPhase$ Combat,
-// Upkeep, End of Turn) in bits 0-1, its splice point (AfterPhase$, the LAST
-// step of the named phase, a Step) in bits 4-7. The omitted AfterPhase$ (the
-// step the grant resolves in) lowers only as AddPhaseCombatMain; its other
-// carrier, Full Throttle, stays refused for its Effect.
+// Upkeep, End of Turn) in bits 0-1, the AddPhaseBeginning flag in bit 2, its
+// splice point (AfterPhase$, the LAST step of the named phase, a Step) in bits
+// 4-7. The omitted AfterPhase$ (the step the grant resolves in) lowers only as
+// AddPhaseCombatMain or AddPhaseBeginning; its other carrier, Full Throttle,
+// stays refused for its Effect.
 const (
 	AddPhaseCombat = 0 // BeginCombat..EndCombat
 	AddPhaseUpkeep = 1 // Upkeep alone
@@ -13,6 +14,11 @@ const (
 	// (FollowedBy$ Main2, Relentless Assault). The splice point is the main
 	// phase the grant resolves in; the nibble is ignored.
 	AddPhaseCombatMain = 3
+	// AddPhaseBeginning: a flag on AddPhaseUpkeep (C bit 2), a whole
+	// additional beginning phase (ExtraPhase$ Beginning: untap, upkeep, draw;
+	// Shadow and Sphinx of the Second Sun) spliced after the main phase the
+	// grant resolves in; the nibble is ignored.
+	AddPhaseBeginning = 4
 )
 
 // AtEOT$ on a ChangeZoneAll sweep onto the battlefield.
