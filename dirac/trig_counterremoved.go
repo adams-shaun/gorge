@@ -25,7 +25,7 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // remove pick (ctr_removechoices.go rmctrTake), the SubCounter cost (the
 // announced X, the fixed pick, the any-kind pick, the choice of a counted
 // creature's counter), a loyalty ability's cost, a mana ability's counter cost
-// (ctrGapDo, ctrDeadGap, storeGap and riderGap) and the stun counter the untap
+// (ctrGapDo, anyDifferentPay, storeGap and riderGap) and the stun counter the untap
 // replacement spends instead of untapping (turn.go, repl_untapstep.go,
 // untapSlot, untapAll, untapCost, untapOthers, gainControlOne and
 // OpGainControlEOT) and the shield counter spent instead of damage or
