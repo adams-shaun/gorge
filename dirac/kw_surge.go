@@ -82,6 +82,16 @@ func (s *State) offerSurgeHand(k *prep, d *Decision, p uint8, o Obj, c CardID, a
 		if !s.castAffordsR(k, p, c, s.restrOriginOfObj(o), &sc, cav) {
 			return
 		}
+		// The manual surface's census counts every granted and sacrifice-only
+		// source, so the payment's taps can still strand the spell's only
+		// target: Castle Raptors's "As long as it is untapped, it gets +0/+2"
+		// falls to a toughness its marked damage covers, and tapping it for
+		// Paradise Mantle's grant kills it. Gorge's prefix search plays the
+		// tap and finds no target under the cast, so the surged offer is
+		// withheld on both surfaces (surgeKeepsTarget's autopay branch above).
+		if !s.surgeKeepsTarget(k, p, c, o, &sc) {
+			return
+		}
 	}
 	if k.sacMana && !s.kickWitness(k, p, c, o, &sc) {
 		return
