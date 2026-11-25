@@ -59,7 +59,10 @@ func (s *State) execCopySpell(k *prep, in *kop.Instr) bool {
 	return s.copySpells(k, in, s.value(k, in.A))
 }
 
-// copySpells makes OpCopySpell's n copies.
+// copySpells makes OpCopySpell's n copies. C&4 on a target-spell copy
+// (Meletis Charlatan's Controller$ TargetedController: "the controller of
+// target instant or sorcery spell copies it"; gorge copyControllerFor) gives
+// the copies to the target spell's controller.
 func (s *State) copySpells(k *prep, in *kop.Instr, n int) bool {
 	if in.Obj == kop.RefSelf {
 		return s.copyParentSpell(k, in, n) // kw_madness.go
@@ -76,7 +79,7 @@ func (s *State) copySpells(k *prep, in *kop.Instr, n int) bool {
 			ctrl = p
 		}
 	}
-	return s.copySpellFor(k, s.objRefObj(in.Obj), n, in.C&1 != 0, ctrl) // seat-ok: an instruction flag bit
+	return s.copySpellFor(k, s.objRefObj(in.Obj), n, in.C&1 != 0, ctrl, uint8(in.B.N)) // seat-ok: an instruction flag bit
 }
 
 // copySpell copies the spell src (on the stack below the resolving entry) n
@@ -84,11 +87,12 @@ func (s *State) copySpells(k *prep, in *kop.Instr, n int) bool {
 // controller choose new targets (CR 707.10). False: a copy's election is posed,
 // and copyResume makes the rest.
 func (s *State) copySpell(k *prep, src Obj, n int, mayRetarget bool) bool {
-	return s.copySpellFor(k, src, n, mayRetarget, s.res.e.ctrl)
+	return s.copySpellFor(k, src, n, mayRetarget, s.res.e.ctrl, 0)
 }
 
-// copySpellFor is copySpell with the copies controlled by ctrl (CR 707.10).
-func (s *State) copySpellFor(k *prep, src Obj, n int, mayRetarget bool, ctrl uint8) bool {
+// copySpellFor is copySpell with the copies' controller ctrl and copy
+// exception exc (an override index+1, 0 none: copy_spellnonlegendary.go).
+func (s *State) copySpellFor(k *prep, src Obj, n int, mayRetarget bool, ctrl, exc uint8) bool {
 	if src == NoObj || s.objs[src].zone != kop.ZoneStack {
 		return true
 	}
@@ -103,7 +107,7 @@ func (s *State) copySpellFor(k *prep, src Obj, n int, mayRetarget bool, ctrl uin
 		return true
 	}
 	for c := n - 1; c >= 0; c-- {
-		if !s.mintSpellCopy(k, si, ctrl) {
+		if !s.mintSpellCopyExc(k, si, ctrl, exc) {
 			return true
 		}
 		if mayRetarget && s.copyElect(k, uint8(c)) {
@@ -118,6 +122,12 @@ func (s *State) copySpellFor(k *prep, src Obj, n int, mayRetarget bool, ctrl uin
 // the copied spell's targets, modes, X and kicked status). It stalls and
 // returns false at capacity.
 func (s *State) mintSpellCopy(k *prep, si int, ctrl uint8) bool {
+	return s.mintSpellCopyExc(k, si, ctrl, 0)
+}
+
+// mintSpellCopyExc is mintSpellCopy with the copy exception exc (an override
+// index+1, 0 none) on the copy (copy_spellnonlegendary.go).
+func (s *State) mintSpellCopyExc(k *prep, si int, ctrl, exc uint8) bool {
 	if s.nearCapacity(k) {
 		s.stall(StallBoard)
 		return false
@@ -157,7 +167,10 @@ func (s *State) mintSpellCopy(k *prep, si int, ctrl uint8) bool {
 	if ce.impended() {
 		ce.mode &^= modeImpended // nor impended (CR 707.10: gorge's FlagImpending is cast provenance)
 	}
-	ce.remVer &= spellFirstCast                               // nor the keywords the spell gained (CR 707.2); the first-cast stamp stays (cast_firstcast.go)
+	ce.remVer &= spellFirstCast | spellCopyExcMask // nor the keywords the spell gained (CR 707.2); the first-cast stamp and a copied copy's exception stay
+	if exc != 0 {
+		ce.remVer = ce.remVer&^spellCopyExcMask | objWord(exc)<<spellCopyExcShift
+	}
 	ce.prov, ce.spc, ce.etbSrc, ce.etbX = 0, 0, 0, [2]uint8{} // nor cast from a zone, nor convoked, nor spent colours, nor the rider's source
 	ce.cvok = 0                                               // nor the convoked creatures (a copy is not cast, CR 707.10; kw_convokelist.go)
 	if ce.kind == seSpell {

@@ -1,0 +1,12 @@
+# scripts/autoresolve-paths.tsv: the generated files scripts/pr-autoresolve.sh may resolve when merging main into a
+# pull request. A conflict in any other path stops it. One row per path (a shell glob), then the recipe that rebuilds
+# it over the merged tree (pr-autoresolve.sh's `regen`). scripts/pr_autoresolve_test.go holds the matcher.
+#
+# path	recipe
+dirac/docs/support.md	support
+dirac/kgen/testdata/*acceptance*.tsv	kgen-pins
+dirac/kgen/testdata/remspan.tsv	kgen-pins
+dirac/kop/testdata/ordinals.tsv	kop-ordinals
+dirac/testdata/layout.tsv	dirac-layout
+internal/codeshape/testdata/func_ceilings.tsv	func-ceilings
+dirac/oracle/testdata/repro_table_names.txt	repro-names

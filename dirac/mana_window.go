@@ -334,7 +334,7 @@ func (s *State) windowTapWalk(k *prep, p uint8, cost, useful *kop.ManaCost, clam
 				s.bld().obsWin |= obsWinTapped // a pre-payment tap; one by the payment's own window spends its mana
 			}
 		}
-		col := s.windowWalkCol(k, p, cost, useful, sl, pc, clamp, anyColor, noOwed, potential)
+		col := s.windowWalkCol(k, p, cost, useful, sl, pc, clamp, anyColor, s.walkColNoOwed(noOwed, payAsk, pc), potential)
 		pc = s.windowGrantAnswer(k, sl, col, pc) // the answer is a colour only a granted ability makes: the tap is the grant's (mana_grantcost.go)
 		sacOnly := windowSacOnly(k, pc)          // printed or granted (mana_grantcost.go)
 		noTap := windowNoTapPain(k, pc)          // a life-only pain unit: the pain arm below pays its life (mana_pain.go)
