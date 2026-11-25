@@ -708,6 +708,9 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		mk := uint8(in.B.N)&kop.MayPlayKinds | uint8(in.B.N>>8)&kop.MayPlayAdvKind
 		*s.mayAt(int(s.g.nmay)) = mayPlay{obj: o, ver: mayVerAt(s, o, kop.Zone(in.C&kop.MayPlayZoneMask), in.C&kop.MayPlayFollows != 0), ctrl: e.ctrl, until: grantUntil(uint8(in.A.N), mk, &headed) | payLifeMark(in.B.N), kind: mk | payLifeKind(in.B.N), turn: mayWord(s.turn)}
 		s.g.nmay++
+		if uint8(in.A.N) == kop.DurUntilYourNextTurn {
+			s.mayNTArm(e.ctrl) // cast_mayplaynt.go: the record's expiry counter
+		}
 		if k.gen.anyMayWhileSrc {
 			s.mayWhileSrcStamp(s.g.nmay-1, e.obj) // cast_whilesource.go
 		}
@@ -1204,6 +1207,7 @@ func (s *State) execEachTarget(k *prep, in *kop.Instr, i uint8) bool {
 	if in.Op == kop.OpCopyAsTokenEx {
 		s.g.tokFrz, s.g.tokFrzOn = s.statM, true // copy_eachtarget.go tokSrcM
 	}
+	s.res.flags &^= rfCopyGrp // no predecessor from before this loop
 	s.g.inLoop = true
 	w := eachSusp{slot: i, t: saveT, v: saveV, bad: saveBad, hold: hr}
 	n0 := s.g.nask
@@ -1213,6 +1217,7 @@ func (s *State) execEachTarget(k *prep, in *kop.Instr, i uint8) bool {
 		// answer reruns the instruction, so no later target moves first
 		e.tgt[i], e.tver[i], s.res.bad = saveT, saveV, saveBad
 		s.g.inLoop = false
+		s.res.flags &^= rfCopyGrp
 		return false
 	}
 	if !ok && (s.eachParks(in) || s.eachReturnParked(in)) || ok && s.eachReturnParks(k, in, n0) {
@@ -1802,6 +1807,14 @@ func (s *State) execReturnObj(k *prep, in *kop.Instr, host Slot, o Obj) bool {
 	if in.B.N&kop.RetUnderOpponent != 0 {
 		ctrl = s.retUnderOppSeat(e.ctrl) // GainControl$ ChosenPlayer (kop.RetUnderOpponent; zone_returndefender.go)
 	}
+	if in.W != kop.RefNone {
+		// GainControl$ Player.IsRemembered inside an OpRepeatEachPlayer
+		// body: the card enters under the repeated player (Thieves'
+		// Auction, kgen's W ref).
+		if p := s.playerRef(k, in.W); p != 255 {
+			ctrl = p
+		}
+	}
 	if z == kop.ZoneBattlefield && fl&kop.MvTransformed != 0 {
 		s.enterTransformed(k, o)
 	}
@@ -2341,8 +2354,13 @@ func (s *State) digPop(pl *player, n int, a, b []Obj) {
 func (s *State) execCopyToken(k *prep, in *kop.Instr) bool {
 	o := s.objRefObj(in.Obj)
 	if o == NoObj {
-		if in.Obj == kop.RefRemembered {
-			s.delayEmptyRider(in) // nothing remembered: no copy, but the rider's trigger exists (copy_emptyrider.go)
+		// no copy, but the AtEOT$ rider's delayed trigger still exists (CR
+		// 603.7a; copy_emptyrider.go): an empty Remembered set, an X = 0
+		// targeted copy (TargetMin$ X with no slot answered) and a target
+		// that left before resolution all land here. In an each-target loop
+		// the loop's end registers the one empty trigger (eachRun).
+		if !s.inEachCopy() {
+			s.delayEmptyRider(in)
 		}
 		return false
 	}
@@ -2362,12 +2380,24 @@ func (s *State) copyCardToken(k *prep, in *kop.Instr, c CardID) bool {
 	return s.copyCardTokenFor(k, in, c)
 }
 
+// inEachCopy reports whether the op runs for one object of an each-target
+// loop that has more targets, or the loop's parked copy is being resumed: the
+// loop's end (eachRun) registers the resolution's one AtEOT$ rider, not each
+// target's empty arm.
+func (s *State) inEachCopy() bool {
+	return s.g.each.j != 0 || s.g.inLoop && s.xtOf(&s.res.e).n > 0
+}
+
 // copyCardTokenFor is copyCardToken for the resolving entry's controller.
 func (s *State) copyCardTokenFor(k *prep, in *kop.Instr, c CardID) bool {
-	s.res.flags &^= rfCopyGrp
+	if !s.inEachCopy() {
+		// the each-target loop keeps the flag across targets: one resolution's
+		// copies share one AtEOT$ trigger (execEachTarget)
+		s.res.flags &^= rfCopyGrp
+	}
 	e := &s.res.e
 	v := s.value(k, in.A)
-	if v <= 0 && in.B.N&(kop.CpSacAtEndDly|kop.CpExileAtEnd) != 0 {
+	if v <= 0 && !s.inEachCopy() && in.B.N&(kop.CpSacAtEndDly|kop.CpExileAtEnd) != 0 {
 		// X = 0 makes no copy, but the AtEOT$ rider's delayed trigger is
 		// created all the same (CR 603.7): it goes on the stack at the end
 		// step (SacrificeUpkeep: the upkeep) and does nothing (gorge
@@ -2385,9 +2415,9 @@ func (s *State) copyCardTokenFor(k *prep, in *kop.Instr, c CardID) bool {
 	if rewritten {
 		// a CreateToken rewriter replaced the copy mints (repl_tokrewrite.go)
 		s.mintRewritten(k, e.ctrl, tc, n)
-		if in.B.N&kop.CpSacAtEndDly != 0 {
-			// no copy is left for the AtEOT$ Sacrifice group, which gorge
-			// still registers (CR 603.7); the other riders have no copy
+		if !s.inEachCopy() && in.B.N&(kop.CpSacAtEndDly|kop.CpExileAtEnd) != 0 {
+			// no copy is left for the AtEOT$ rider, which gorge still
+			// registers over no object (CR 603.7a; scheduleAtEOTNone)
 			if sacAtUpkeepOf(in.B.N) {
 				s.delayEmptyUpkeep(e)
 			} else {
@@ -2409,7 +2439,8 @@ func (s *State) copyCardTokenFor(k *prep, in *kop.Instr, c CardID) bool {
 // controller (execCopyToken).
 func (s *State) copyTokens(k *prep, in *kop.Instr, c CardID, n int) bool {
 	parked := s.copyTokensRun(k, in, c, n)
-	if !parked {
+	if !parked && !s.inEachCopy() {
+		// the each-target loop keeps the flag for the next target
 		s.res.flags &^= rfCopyGrp
 	}
 	return parked
@@ -2435,6 +2466,7 @@ func (s *State) copyTokensRun(k *prep, in *kop.Instr, c CardID, n int) bool {
 	// batch, CR 603.6a): each one's "another enters" sees the others
 	var eb entBatch
 	defer s.fireOrHoldEntries(k, &eb)
+	made := 0
 	for i := 0; i < n; i++ {
 		if s.nearCapacity(k) {
 			s.stall(StallBoard)
@@ -2471,6 +2503,13 @@ func (s *State) copyTokensRun(k *prep, in *kop.Instr, c CardID, n int) bool {
 		s.copyTokenEnter(k, in, t, host, &eb)
 		s.res.flags |= rfCopyGrp
 		s.res.lastTok = t // the copy a following RefLastCreated op reads (Encore's attack duty)
+		made++
+	}
+	if made == 0 && n > 0 && !s.inEachCopy() {
+		// every copy was an Aura with no legal host (CR 303.4g): no token,
+		// but the AtEOT$ rider's delayed trigger still exists (CR 603.7a).
+		// In an each-target loop the loop's end registers it (eachRun).
+		s.delayEmptyRider(in)
 	}
 	return false
 }
@@ -2574,19 +2613,28 @@ func (s *State) copyTokenEnterFrom(k *prep, in *kop.Instr, t Obj, host, tmpl Slo
 			s.capFull(StallDelayed)
 		}
 	} else if fl&(kop.CpSacAtEnd|kop.CpExileAtEnd) != 0 && !upk {
-		act := kop.OpSacrifice
 		// AtEOTTrig$ Sacrifice is the token's own granted trigger: its source
 		// stays the token. Only the AtEOT$ rider is sourced on its creator
 		// (CR 603.7d-e; gorge copypermanent.go scheduleAtEOTRider). The
 		// record names the token as its own creator: delayed.ownTrig marks it
 		// for the Panharmonicon echo at fire (trig_ateotecho.go).
-		creator := t
 		if fl&kop.CpExileAtEnd != 0 {
-			act = kop.OpExile // AtEOT$ Exile (gorge scheduleAtEOT, __kwWarpExile)
-			creator = e.obj
-		}
-		if s.ndly < MaxDelayed {
-			s.dly[s.ndly] = delayed{act: uint8(act), ctrl: e.ctrl, obj: t, ver: objWord(s.objs[t].ver), creator: creator}
+			// AtEOT$ Exile over the copies of one resolution is one delayed
+			// triggered ability naming all of them (CR 603.7a/b; gorge
+			// scheduleAtEOTGroup, copypermanent.go's grouped rider), so a
+			// later copy joins the head's tracked exile promise
+			// (trig_ateotexilegroup.go) instead of registering its own.
+			later := eb != nil && eb.n >= 2 || s.res.flags&rfCopyGrp != 0
+			if !later || !s.exileAtEndJoin(t) {
+				if s.ndly < MaxDelayed {
+					s.dly[s.ndly] = delayed{act: uint8(kop.OpExile), ctrl: e.ctrl, obj: t, ver: objWord(s.objs[t].ver), creator: e.obj}
+					s.ndly++
+				} else {
+					s.capFull(StallDelayed)
+				}
+			}
+		} else if s.ndly < MaxDelayed {
+			s.dly[s.ndly] = delayed{act: uint8(kop.OpSacrifice), ctrl: e.ctrl, obj: t, ver: objWord(s.objs[t].ver), creator: t}
 			s.ndly++
 		} else {
 			s.capFull(StallDelayed)

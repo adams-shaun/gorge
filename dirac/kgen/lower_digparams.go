@@ -237,3 +237,60 @@ func digRevealPickFlag(ps *params, oracle string, flags []string) []string {
 	}
 	return flags
 }
+
+// digChoser reads Dig's Choser$: the player who picks from the window and
+// orders the rest (gorge digChooser, CR 701.29a). The kernel's dig asks the
+// player its W side input names (kop.Instr.W; none = the resolving
+// controller). Three spellings lower:
+//
+//   - the library's own Defined$ selector (Gate to the Aether's
+//     TriggeredPlayer) or Targeted over a targeted library (Ashnod's Cylix):
+//     the library's player picks, W = who
+//   - Player.Opponent / Opponent over the controller's own library (Animal
+//     Magnetism, Murmurs from Beyond: "an opponent chooses"): gorge narrows
+//     the opponents to one by the controller's KChoose (dig_chooser, Forge
+//     DigEffect's chooseSingleEntityForEffect), asked only with more than
+//     one; the kernel asks it the same way (OpExt ExtChoosePlayerMid, a sole
+//     opponent recorded unasked) and the dig reads RefResChosenPlayer.
+//     gorge records no chosen player there (SetChosenPlayer$ stays unread and
+//     refuses), so a face that reads ChosenPlayer anywhere, or an ability
+//     that already holds a resolution choice, refuses.
+//
+// Anything else refuses.
+func (lc *lowerCtx) digChoser(ps *params, who lRef) (lRef, error) {
+	v, ok := ps.get("Choser")
+	if !ok {
+		return lRef{}, nil
+	}
+	v = strings.TrimSpace(v)
+	switch {
+	case v == strings.TrimSpace(ps.m["Defined"]) && who.Kind == rTriggeredPlayer:
+		return who, nil
+	case v == "Targeted" && who.Kind == rTarget:
+		return who, nil
+	case v == "Player.Opponent" || v == "Opponent":
+		if who.Kind != rYou {
+			return lRef{}, refuse("Dig Choser$ %q of a library the controller does not own", v)
+		}
+		if lc.chosenMidAb == lc.ab || lc.chosenOppAb == lc.ab {
+			return lRef{}, refuse("Dig Choser$ %q beside a chosen player", v)
+		}
+		for _, sv := range lc.face.SVars {
+			if strings.Contains(sv, "ChosenPlayer") || strings.Contains(sv, "Player.Chosen") {
+				return lRef{}, refuse("Dig Choser$ %q on a face that reads a chosen player", v)
+			}
+		}
+		for _, ab := range lc.face.Abilities {
+			for n := ab; n != nil; n = n.Sub {
+				for _, pv := range n.Params {
+					if strings.Contains(pv, "ChosenPlayer") || strings.Contains(pv, "Player.Chosen") {
+						return lRef{}, refuse("Dig Choser$ %q on a face that reads a chosen player", v)
+					}
+				}
+			}
+		}
+		lc.emit(lInstr{Op: "ChoosePlayerMid", Note: "the opponent who picks from the dig (Choser$)"})
+		return lRef{Kind: rResChosenPlayer}, nil
+	}
+	return lRef{}, refuse("Dig Choser$ %q", v)
+}
