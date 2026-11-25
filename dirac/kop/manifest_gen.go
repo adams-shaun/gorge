@@ -2475,10 +2475,15 @@ const StatCyclingGrant StaticKind = 74
 // stat AssignNoCombatDamage (dirac/manifest/StaticKind/StatNoCombatDamage)
 const StatNoCombatDamage StaticKind = 75
 
+// StaticKind (dirac/manifest/StaticKind/StatPlayerKeyword)
+//
+// StatPlayerKeyword is a Continuous static's `Affected$ You | AddKeyword$ <player keyword>` grant the kernel reads (kgen lower_playerstatic.go): Static.A names the keyword, PlKwPayLifeInsteadOfB (K'rrik, Son of Yawgmoth, dirac/mana_plkeyword.go) or PlKwDefenderAssigns (Defensive Formation, dirac/combat_band.go bandDivider). Read live from the battlefield (playerKeyword); no State bytes.
+const StatPlayerKeyword StaticKind = 76
+
 // StaticKind (dirac/manifest/StaticKind/StatUnearthGrant)
 //
 // StatUnearthGrant is a Continuous static's AffectedZone$ Graveyard AddKeyword$ Unearth grant (Sedris, the Traitor King, Mishra, Tamer of Mak Fawa, Dregscape Sliver, Solemn Doomguide; CR 702.84a): Filter matches the card in the graveyard and GrantBody-1 is the latent unearth body (the printed kwUnearth expander's AB$ ChangeZone, cards.GrantedKeywordAbility) the graveyard offer runs with the affected card as its source. The body's own Cost prices the explicit-cost shape; a zero body cost is the CardManaCost mark, which the offer charges as the affected card's own mana cost (kw_unearthgrant.go).
-const StatUnearthGrant StaticKind = 76
+const StatUnearthGrant StaticKind = 77
 
 // trig ChaosEnsues (dirac/manifest/TrigEvent/TrigChaosEnsues)
 const TrigChaosEnsues TrigEvent = 52

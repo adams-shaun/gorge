@@ -109,11 +109,32 @@ func (lc *lowerCtx) youPlayerStatic(sp *params, st *lStatic) (bool, error) {
 		// (legal.go targetOK, resolve.go targetStillLegal); seat-exact: A is
 		// the shroud bit, not a seat count, and every player is covered.
 		st.Kind = "PlayerShroud"
+	case sp.is("AddKeyword", plKwPayLifeInsteadOfB):
+		// K'rrik, Son of Yawgmoth: gorge payEval.PayLifeInsteadOfB reads the
+		// exact member of the AddKeyword$ list; the kernel reads the static
+		// live (mana_plkeyword.go)
+		st.Kind = "PlayerKeyword"
+		st.Amount = cst(kop.PlKwPayLifeInsteadOfB)
+	case sp.is("AddKeyword", plKwDefenderAssigns):
+		// Defensive Formation: gorge defenderAssignsAttackerDamage; the
+		// kernel's bandDivider reads it (combat_band.go)
+		st.Kind = "PlayerKeyword"
+		st.Amount = cst(kop.PlKwDefenderAssigns)
 	default:
 		return lc.playerStatic(sp, st)
 	}
 	return true, nil
 }
+
+// The two player keywords the kernel reads (kop.StatPlayerKeyword). The
+// others a Continuous `Affected$ You` static carries (AdditionalVote,
+// AdditionalOptionalVote, UntapAdjust, the echo-waiver sentence) have no
+// gorge reader, so lowering them would copy a gorge gap: they stay refused
+// ("player static").
+const (
+	plKwPayLifeInsteadOfB = "PayLifeInsteadOf:B"
+	plKwDefenderAssigns   = "You assign combat damage of each creature attacking you."
+)
 
 // playerStatic lowers the numeric hand size and the opponent protection.
 // It reports false when sp carries neither, leaving the caller's refusal.

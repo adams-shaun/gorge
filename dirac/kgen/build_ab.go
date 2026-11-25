@@ -2669,6 +2669,15 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		}
 		st.Kind = kop.StatPlayerHexproof
 		st.A = 2
+	case "PlayerKeyword":
+		// the player keyword the controller holds (kop.PlKwPayLifeInsteadOfB,
+		// kop.PlKwDefenderAssigns; lower_playerstatic.go); unconditional, as
+		// the kernel reads consult no Cond2
+		if s.Cond.Kind != cNone || !s.Amount.isConst() || s.Amount.N < 1 || s.Amount.N > kop.PlKwDefenderAssigns {
+			return ka, nil, fmt.Errorf("PlayerKeyword %v beside %s", s.Amount, s.Cond)
+		}
+		st.Kind = kop.StatPlayerKeyword
+		st.A = int16(s.Amount.N)
 	case "PlayerProtAll":
 		st.Kind = kop.StatPlayerProtAll // the controller has protection from everything (static_plprot.go)
 	case "MayPlayFrom":
