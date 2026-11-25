@@ -135,7 +135,7 @@ func TestKiraGorge(t *testing.T) {
 		}
 	})
 
-	t.Run("Kira herself entering with another attacker present", func(t *testing.T) {
+	t.Run("Kira herself entering with another attacker present is not replaced", func(t *testing.T) {
 		reg := testutil.CorpusRegistry(t)
 		e, _ := corpusEngineCfg(t, reg, []*cards.Card{
 			lookup(t, reg, "Kira Nerys, Firebrand"),
@@ -151,8 +151,11 @@ func TestKiraGorge(t *testing.T) {
 		k := moveByName(t, e, 0, "Kira Nerys, Firebrand", state.ZBattlefield)
 		kiraDrain(t, e)
 		o := e.G.Obj(k)
-		if !o.Tapped || !o.IsAttacking || o.Attacking != 1 {
-			t.Fatalf("Kira herself tapped=%v attacking=%v defender=%d, want tapped and attacking seat 1 (CR 614.12: her own entry sees her replacement)", o.Tapped, o.IsAttacking, o.Attacking)
+		// CR 614.12: "a creature you control" is a general subset, so Kira's
+		// own line does not modify her own entry (Forge agrees: the entrant's
+		// ActiveZones$ Battlefield line is read in its pre-entry zone).
+		if o.Zone != state.ZBattlefield || o.Tapped || o.IsAttacking {
+			t.Fatalf("Kira herself zone=%s tapped=%v attacking=%v, want untapped and not attacking (CR 614.12)", o.Zone, o.Tapped, o.IsAttacking)
 		}
 	})
 
