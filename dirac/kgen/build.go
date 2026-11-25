@@ -880,6 +880,9 @@ func (cb *cardBuilder) record() error {
 		if d.EvokeCost, err = manaCostOf(*c.Evoke); err != nil {
 			return err
 		}
+		if err = cb.evokePickOf(d, c); err != nil {
+			return err
+		}
 	}
 	if c.Dash != nil {
 		// CR 702.109a: no KwMask bit is free, so the dash marker is its own
