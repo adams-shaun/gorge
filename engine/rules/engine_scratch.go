@@ -271,8 +271,7 @@ type engineScratch struct {
 	// a window ends retires the list: setTriggerBefore(nil), which
 	// closeTriggerWindow and every direct restore of triggerBefore (the
 	// legend-rule answer, a parked replacement answer) go through.
-	windowDepartures  []state.ObjID    `clone:"reset"`
-	windowDepartOwner *triggerSnapshot `clone:"reset"`
+	windowDepartures []state.ObjID `clone:"reset"`
 	// windowDeparted is the look-back OBSERVER's copy of the live window's
 	// list (checkTriggersNow) and the only reader of it: a trigger whose
 	// SOURCE is one of these is a CR 603.10a look-back trigger and judges its
