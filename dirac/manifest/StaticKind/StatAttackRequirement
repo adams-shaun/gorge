@@ -4,4 +4,5 @@ value: 31
 forge: AttackRequirement
 census: stat AttackRequirement all=4 std=0 mbc=0 sole=2
 state: code 0
-status: reserved
+status: active
+doc: S:Mode$ AttackRequirement (War's Toll): a whole-declaration closure over the active player's attackers. Static.Filter is ValidCard$ (the members the requirement binds), Static.Filter2 is ValidAttacker$ (the creatures whose attacking turns it on); the kernel reads both in combat_attackrequirement.go.
