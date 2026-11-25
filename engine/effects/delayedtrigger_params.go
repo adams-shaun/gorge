@@ -66,6 +66,16 @@ type DelayedTriggerParams struct {
 	RememberNumber bool
 	// Execute is Execute$, trimmed.
 	Execute string
+	// Description is the registration's TriggerDescription$ -- the prose a
+	// client shows for the delayed trigger ("Draw a card.", Arcane Denial's
+	// slowtrip pair). A face trigger's own TriggerDescription$ is readable
+	// from its T: line forever; a DB$ DelayedTrigger has no such line, so the
+	// registration must carry the text or two delayed triggers from one
+	// source are indistinguishable in a CR 603.3b order ask. It rides the
+	// DelayedRegister event's Text ("|LB=", appended last / stripped first)
+	// into state.DelayedTrigger.Description, from which rules'
+	// checkDelayedTriggers queues the pending trigger's own line.
+	Description string
 	// ThisTurn is ThisTurn$ True.
 	ThisTurn bool
 	// Static is Static$, trimmed.
@@ -314,6 +324,7 @@ func compileDelayedTrigger(sa *cards.SA, ap *ActivationParams) *DelayedTriggerPa
 	p.OncePerSource = isTrue(sa.ParamStr(cards.PKOncePerSource))
 	p.RememberNumber = isTrue(sa.ParamStr(cards.PKRememberNumber))
 	p.Execute = strings.TrimSpace(sa.ParamStr(cards.PKExecute))
+	p.Description = sa.ParamStr(cards.PKTriggerDescription)
 	p.ThisTurn = isTrue(sa.ParamStr(cards.PKThisTurn))
 	p.Static = strings.TrimSpace(sa.ParamStr(cards.PKStatic))
 
