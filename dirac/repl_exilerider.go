@@ -52,6 +52,7 @@ type exRiderMark struct {
 	ctrl uint8  // the source's controller
 	ver  uint8  // the source object's ver at the mark
 	card CardID // the source's card (last known information)
+	pow  int16  // the replaced card's derived power before the move (ReplacedCardLKI$CardPower)
 }
 
 // coldExRider is the rider record per dying slot. It binds no view (a view is
@@ -62,6 +63,16 @@ var coldExRider = newCold[exRiderMark]("exRider", func(g *genPrep) int {
 	}
 	return 0
 }).perSlot()
+
+// coldExRiderPow is the replaced card's power the running rider prog reads
+// (kop.ExReplLKIPower). One scalar, saved and restored by exileRiderRun so a
+// nested resolution cannot leak a capture. It adds no State bytes.
+var coldExRiderPow = newCold[int16]("exRiderPow", func(g *genPrep) int {
+	if g.uses.has(useExileRider) {
+		return 1
+	}
+	return 0
+})
 
 // exileRiderAb is the index of cd's ReplExileOnLeave ability that carries a
 // rider prog, or -1.
@@ -108,7 +119,8 @@ func (s *State) exileRiderMark(k *prep, sl Slot, n int, src Slot) {
 		return
 	}
 	sp := &s.perms[src]
-	m[sl] = exRiderMark{src: uint8(src) + 1, obj: sp.obj, ctrl: sp.ctrl, ver: s.objs[sp.obj].ver, card: c}
+	pw, _ := s.ptGen(k, sl)
+	m[sl] = exRiderMark{src: uint8(src) + 1, obj: sp.obj, ctrl: sp.ctrl, ver: s.objs[sp.obj].ver, card: c, pow: int16(pw)}
 }
 
 // exileRiderTake is the rider record of the departure of sl to z (src 0 when
@@ -180,7 +192,8 @@ func (s *State) exileRiderParkMark(k *prep, o Obj, srcs []Obj) {
 		return
 	}
 	sp := &s.perms[s.objs[rider].slot]
-	m[ob.slot] = exRiderMark{src: uint8(s.objs[rider].slot) + 1, obj: sp.obj, ctrl: sp.ctrl, ver: s.objs[sp.obj].ver, card: s.objs[rider].card}
+	pw, _ := s.ptGen(k, ob.slot)
+	m[ob.slot] = exRiderMark{src: uint8(s.objs[rider].slot) + 1, obj: sp.obj, ctrl: sp.ctrl, ver: s.objs[sp.obj].ver, card: s.objs[rider].card, pow: int16(pw)}
 }
 
 // settleExileRider keeps the parked move's recorded rider only when the CR
@@ -221,6 +234,11 @@ func (s *State) exileRiderRun(k *prep, m exRiderMark, o Obj) {
 	}
 	saved, savedRep := s.res, s.g.replaced
 	s.g.replaced = o
+	var pow []int16
+	var savedPow int16
+	if pow = coldExRiderPow.of(s); len(pow) != 0 {
+		savedPow, pow[0] = pow[0], m.pow
+	}
 	s.res = resCtx{
 		e:      stackEntry{kind: seAbility, obj: m.obj, srcVer: m.ver, card: c, ab: uint8(i), ctrl: m.ctrl, trigObj: NoObj},
 		active: true, lastTok: NoObj, eachObj: NoObj,
@@ -228,7 +246,20 @@ func (s *State) exileRiderRun(k *prep, m exRiderMark, o Obj) {
 	s.res.e.tgt = noTargets
 	ok := s.runPreCast(k, k.t.Cards[c].Abilities[i].Prog)
 	s.res, s.g.replaced = saved, savedRep
+	if len(pow) != 0 {
+		pow[0] = savedPow
+	}
 	if !ok {
 		s.capFull(StallExileRider)
 	}
+}
+
+// replLKIPower is the replaced card's power the running dies-to-exile rider
+// captured before the move (kop.ExReplLKIPower, ReplacedCardLKI$CardPower).
+// 0 outside a rider run, where the scalar is not set.
+func (s *State) replLKIPower() int {
+	if p := coldExRiderPow.of(s); len(p) != 0 && s.g.replaced != NoObj {
+		return int(p[0])
+	}
+	return 0
 }

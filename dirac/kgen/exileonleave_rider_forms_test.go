@@ -21,6 +21,7 @@ var exileOnLeaveRiderForms = []struct {
 	{card: "Kalitas, Traitor of Ghet"},
 	{card: "Head of the Hunt"},
 	{card: "Nemata, Primeval Warden"},
+	{card: "Ravenous Slime"},
 }
 
 func TestExileOnLeaveRiderForms(t *testing.T) {

@@ -6,11 +6,14 @@
 # after the move (the replacement's rider prog, dirac/repl_exilerider.go).
 # Head of the Hunt and Nemata, Primeval Warden carry the reflexive rider form:
 # the exile move's ImmediateTrigger puts a Wolf or Saproling token on the stack.
+# Ravenous Slime carries the PutCounter prog rider whose count is the exiled
+# creature's power before the move (ReplacedCardLKI$CardPower).
 Dauthi Voidwalker
 Draugr Necromancer
 Kalitas, Traitor of Ghet
 Head of the Hunt
 Nemata, Primeval Warden
+Ravenous Slime
 Grizzly Bears
 Doom Blade
 Swamp

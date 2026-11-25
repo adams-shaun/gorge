@@ -14,7 +14,7 @@ import (
 // counter keys the may-play static over exile. The check proves the games
 // reach the exiled counter, so a run that never lowers the rider cannot pass
 // vacuously.
-var exileOnLeaveRiderDecks = [5][2][]cardset.Entry{
+var exileOnLeaveRiderDecks = [6][2][]cardset.Entry{
 	{
 		{
 			{Name: "Dauthi Voidwalker", Count: 4}, {Name: "Doom Blade", Count: 4},
@@ -71,6 +71,18 @@ var exileOnLeaveRiderDecks = [5][2][]cardset.Entry{
 			{Name: "Swamp", Count: 8}, {Name: "Forest", Count: 16},
 		},
 	},
+	// Ravenous Slime: the PutCounter rider whose count is the exiled
+	// creature's power as it last existed (ReplacedCardLKI$CardPower)
+	{
+		{
+			{Name: "Ravenous Slime", Count: 4}, {Name: "Doom Blade", Count: 4},
+			{Name: "Grizzly Bears", Count: 10}, {Name: "Forest", Count: 12}, {Name: "Swamp", Count: 10},
+		},
+		{
+			{Name: "Grizzly Bears", Count: 12}, {Name: "Doom Blade", Count: 4},
+			{Name: "Swamp", Count: 8}, {Name: "Forest", Count: 16},
+		},
+	},
 }
 
 // riderTokens counts the name/pt/colors tokens player p controls on gorge's
@@ -101,12 +113,14 @@ func TestExileOnLeaveRiderLockstep(t *testing.T) {
 		decks [2][]cardset.Entry
 		kind  string
 		token *riderToken
+		slime bool
 	}{
-		{"dauthi", exileOnLeaveRiderDecks[0], "VOID", nil},
-		{"draugr", exileOnLeaveRiderDecks[1], "ICE", nil},
-		{"both", exileOnLeaveRiderDecks[2], "VOID", nil},
-		{"kalitas", exileOnLeaveRiderDecks[3], "", &riderToken{name: "Zombie Token", pt: "2/2", colors: "black"}},
-		{"headofthehunt", exileOnLeaveRiderDecks[4], "", &riderToken{name: "Wolf Token", pt: "2/2", colors: "green"}},
+		{"dauthi", exileOnLeaveRiderDecks[0], "VOID", nil, false},
+		{"draugr", exileOnLeaveRiderDecks[1], "ICE", nil, false},
+		{"both", exileOnLeaveRiderDecks[2], "VOID", nil, false},
+		{"kalitas", exileOnLeaveRiderDecks[3], "", &riderToken{name: "Zombie Token", pt: "2/2", colors: "black"}, false},
+		{"headofthehunt", exileOnLeaveRiderDecks[4], "", &riderToken{name: "Wolf Token", pt: "2/2", colors: "green"}, false},
+		{"ravenousslime", exileOnLeaveRiderDecks[5], "", nil, true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			reg, set, gd := lockstepPool(t, "exileonleavectr", tc.decks)
@@ -132,6 +146,32 @@ func TestExileOnLeaveRiderLockstep(t *testing.T) {
 				rc := RunConfig{Config: cfg, MaxDecisions: 4000, MaxTurns: 30}
 				rc.Check = func(ref *GorgeSide, _ Side) *Divergence {
 					g := ref.E.G
+					if tc.slime {
+						for p := state.PlayerID(0); p < 2; p++ {
+							for _, o := range g.Zone(state.ZBattlefield, p) {
+								ob := g.Obj(o)
+								if ob.Card == nil || len(ob.Card.Faces) == 0 || ob.Card.Faces[0].Name != "Ravenous Slime" {
+									continue
+								}
+								n := int(ob.Counter("P1P1"))
+								if n == 0 {
+									continue
+								}
+								for q := state.PlayerID(0); q < 2; q++ {
+									if q == p {
+										continue
+									}
+									for _, eo := range g.Zone(state.ZExile, q) {
+										eob := g.Obj(eo)
+										if eob.Card != nil && len(eob.Card.Faces) != 0 && int(eob.Card.Faces[0].Power()) == n {
+											saw = true // the exiled creature's power went into the counters
+										}
+									}
+								}
+							}
+						}
+						return nil
+					}
 					if tc.token != nil {
 						tk := tc.token
 						if z := riderTokens(g, 0, tk.name, tk.pt, tk.colors) + riderTokens(g, 1, tk.name, tk.pt, tk.colors); z > tokens {
@@ -182,6 +222,13 @@ func TestExileOnLeaveRiderLockstep(t *testing.T) {
 				if played {
 					playedSeeds++
 				}
+			}
+			if tc.slime {
+				if seen == 0 {
+					t.Fatal("no seed put an exiled creature's power in +1/+1 counters on Ravenous Slime")
+				}
+				t.Logf("%d of 60 seeds put an exiled creature's power in counters on Ravenous Slime", seen)
+				return
 			}
 			if tc.token != nil {
 				if seen == 0 {

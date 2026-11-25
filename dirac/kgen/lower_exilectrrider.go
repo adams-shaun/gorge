@@ -148,6 +148,59 @@ func exileReflexTokenRider(w *cards.SA, face *cards.Face) (*cards.SA, bool) {
 	return t, true
 }
 
+// exileReplLKIRider reports whether w is the dies-to-exile move of
+// ReplacedCard whose linked PutCounter puts +1/+1 counters on the replacing
+// permanent equal to the exiled card's power (Ravenous Slime). The count's
+// SVar chain must resolve to ReplacedCardLKI$CardPower, the value the kernel
+// captures before the move (value_repllki.go). It is a prog rider: the
+// PutCounter runs after the exile move, like Kalitas's token.
+func exileReplLKIRider(w *cards.SA, face *cards.Face) bool {
+	bp, ok := exileMoveHead(w)
+	if !ok || face == nil || w.Sub == nil {
+		return false
+	}
+	if _, ok := bp.get("WithCountersType"); ok {
+		return false
+	}
+	if _, ok := bp.get("WithCountersAmount"); ok {
+		return false
+	}
+	if h, ok := bp.get("Hidden"); ok && !strings.EqualFold(h, "True") {
+		return false
+	}
+	bp.consume("Defined", "Destination", "Origin", "Hidden", "SubAbility")
+	if len(bp.unread()) != 0 {
+		return false
+	}
+	pc := w.Sub
+	if pc.API != "PutCounter" || pc.Sub != nil {
+		return false
+	}
+	pp := newParams(pc.Params)
+	if pp.str("Defined") != "Self" || pp.str("CounterType") != "P1P1" {
+		return false
+	}
+	n := strings.TrimSpace(pp.str("CounterNum"))
+	if n == "" {
+		return false
+	}
+	pp.consume("Defined", "CounterType", "CounterNum")
+	if len(pp.unread()) != 0 {
+		return false
+	}
+	for i := 0; i < 4 && n != ""; i++ {
+		if n == "ReplacedCardLKI$CardPower" {
+			return true
+		}
+		body, ok := face.SVars[n]
+		if !ok {
+			return false
+		}
+		n = strings.TrimSpace(body)
+	}
+	return false
+}
+
 // exileRiderClaim classifies a dies-to-exile body exileBody rejected.
 // claimed is false when the body is no rider shape and the caller falls
 // through to the other Moved-to-Graveyard lowerings. A claimed body is either
@@ -166,6 +219,9 @@ func exileRiderClaim(w *cards.SA, face *cards.Face) (token, claimed bool, err er
 	if _, ok := exileReflexTokenRider(w, face); ok {
 		return true, true, nil
 	}
+	if exileReplLKIRider(w, face) {
+		return true, true, nil
+	}
 	if _, ok := exileMoveHead(w); ok && w.Sub != nil {
 		return false, true, refuse("repl-hard: dies-to-exile rider %s", w.Sub.API)
 	}
@@ -181,6 +237,9 @@ func (lc *lowerCtx) exileRiderProg(w *cards.SA, anyZone bool, rl *lRepl) error {
 		return refuse("repl-hard: dies-to-exile rider on the any-zone path")
 	}
 	ab := &lAbility{Kind: akLatent}
+	saved := lc.exileRider
+	lc.exileRider = true
+	defer func() { lc.exileRider = saved }()
 	if err := lc.withAbility(ab, func() error { return lc.chain(w.Sub, nil) }); err != nil {
 		return err
 	}
