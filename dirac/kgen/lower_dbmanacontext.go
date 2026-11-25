@@ -32,9 +32,8 @@ import (
 // chosen-colour Animate rider (lower_choosecolmana.go). It rides the
 // planner-deferred mana-rider route, as gorge's planner defers a source with a
 // SubAbility$ chain (pay.PaymentPlanAbilityTier source:last_resort), so its
-// census never prices it. The {T} + Chosen devotion forms (Nyx Lotus, Nykthos,
-// Rhystic Cave) are still refused here until the base arm lands (ticket
-// t18e3-dbmana-choosecol-base).
+// census never prices it. The {T} + Chosen devotion forms lower through the
+// colour-asking arm (Nyx Lotus, Nykthos; lower_askcolourmana.go).
 
 const refuseDbManaMA = "DB$ Mana under a CR 605.1a mana ability gorge resolves on the stack (gorge cards/ability_class.go L48)"
 

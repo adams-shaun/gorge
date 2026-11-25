@@ -61,8 +61,10 @@ func TestDbManaChooseColorLowers(t *testing.T) {
 	for _, c := range []struct {
 		name, src string
 		mana      int
+		fee       int
 	}{
-		{"Test Nyx Lotus", dbManaNyxLotus, 1},
+		{"Test Nyx Lotus", dbManaNyxLotus, 1, 0},
+		{"Test Nykthos", dbManaNykthos, 2, 2},
 	} {
 		def, rs, exprs := dbManaChooseBuild(t, c.name, c.src)
 		if len(rs) != 0 {
@@ -86,15 +88,13 @@ func TestDbManaChooseColorLowers(t *testing.T) {
 		if ab.AFlags != 0 || ab.ManaV.K != kop.VExpr || exprs[ab.ManaV.N].Kind != kop.ExDevotionChosen || ab.ManaColors != kop.ColAny || ab.ManaN != 1 {
 			t.Errorf("%s: ManaV %+v flags %#x colours %#x N %d, want the devotion-of-chosen value, no flag, any colour", c.name, ab.ManaV, ab.AFlags, ab.ManaColors, ab.ManaN)
 		}
-		if len(ab.Prog) != 0 || ab.Cost.Flags&kop.CostTap == 0 {
-			t.Errorf("%s: %+v, want no program, a {T} cost", c.name, ab)
+		if len(ab.Prog) != 0 || ab.Cost.Flags&kop.CostTap == 0 || int(ab.Cost.Mana.Generic) != c.fee {
+			t.Errorf("%s: %+v, want no program, a {T} cost and a %d generic fee", c.name, ab, c.fee)
 		}
 	}
 	// every other shape of the chain is not matched and refuses where it
 	// always did, naming the ChooseColor head
 	for _, c := range []struct{ name, src string }{
-		// Nykthos's "{2}, {T}" ask beside a plain first ability: the kernel prices it as a filter
-		{"Nykthos", strings.Replace(dbManaNykthos, "Test Nykthos", "Test Nyx Lotus", 1)},
 		{"a node after the cleanup", dbManaNyxLotus + "SVar:ClearStep:DB$ Cleanup | ClearChosenColor$ True | SubAbility$ DBMore\nSVar:DBMore:DB$ GainLife | LifeAmount$ 1\n"},
 		{"a target", strings.Replace(dbManaNyxLotus, "Cost$ T |", "Cost$ T | ValidTgts$ Creature |", 1)},
 		{"a loyalty marker", strings.Replace(dbManaNyxLotus, "Cost$ T |", "Cost$ T | Planeswalker$ True |", 1)},
