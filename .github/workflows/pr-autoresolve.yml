@@ -33,6 +33,13 @@ jobs:
     outputs:
       prs: ${{ steps.list.outputs.prs }}
     steps:
+      # The list step runs scripts/pr-autoresolve-list.py: check out scripts/ only (11-25: every run failed "can't open
+      # file" because this job had no checkout).
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          sparse-checkout: scripts
+          persist-credentials: false
       - name: Open non-draft PRs to main that conflict
         id: list
         env:

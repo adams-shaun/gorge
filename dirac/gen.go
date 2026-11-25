@@ -586,7 +586,11 @@ const (
 	rb2LifeFloor                     // ReplLifeReduced: damage's life loss is floored (repl_lifefloor.go)
 	rb2DmgMinus                      // ReplDamageMinus: the event's damage is that much minus Repl.A (repl_dmgminus.go)
 	rb2DmgSet                        // ReplDamageSet: damage of the gate and up is set to Repl.A (repl_dmgminus.go)
+	rb2DmgInst                       // ReplDamageInstead: the damage is replaced by counters, mill, exile or draw (repl_dmginstead.go)
 )
+
+// rb2DmgAny are the rb2 damage replacements the damage sites' gates open for.
+const rb2DmgAny = rb2DmgMinus | rb2DmgSet | rb2DmgInst
 
 // Replacement bits (genPrep.replBits).
 const (
@@ -835,6 +839,8 @@ func prepReplBit2(g *genPrep, a *kop.Ability, i int, pc *pcard) {
 		bit = rb2DmgMinus // replDamage's minus rewrite (repl_dmgminus.go)
 	case kop.ReplDamageSet:
 		bit = rb2DmgSet // replDamage's set rewrite (repl_dmgminus.go)
+	case kop.ReplDamageInstead:
+		bit = rb2DmgInst // replDamage's replace-the-damage step (repl_dmginstead.go)
 	}
 	g.replBits2[i] |= bit
 	pc.hasStat = true
@@ -1407,7 +1413,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 				case kop.ReplLifeLossDouble:
 					g.replBits[i] |= rbDblLoss
 					pc.hasStat = true
-				case kop.ReplBeginPhase, kop.ReplLifeReduced, kop.ReplDamageMinus, kop.ReplDamageSet:
+				case kop.ReplBeginPhase, kop.ReplLifeReduced, kop.ReplDamageMinus, kop.ReplDamageSet, kop.ReplDamageInstead:
 					prepReplBit2(g, a, i, pc)
 				case kop.ReplDestroyHeal:
 					g.replBits[i] |= rbDestroyHeal
@@ -1599,10 +1605,14 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 					g.setFlag(CardID(i), gfAnyR)
 					g.anyAnyR = true
 					g.anyMultiR = g.anyMultiR || restrWideAnyMana(a) // (Hermitic Herbalist: mana_restrictedcombo.go)
-				} else if filterTapMana(&t.Cards[i], a) && g.filt(CardID(i)) < 0 {
+				} else if filterTapMana(&t.Cards[i], a) && (g.filtCount(CardID(i)) == 0 || setFilterMana(a)) {
+					// A first filter of any modelled shape; a later one only
+					// the paid filter set's fixed-colour or choice shape
+					// (Koskun Keep's second ability), so a table's older
+					// multi-filter cards keep their first-filter-only walk.
 					g.prepTapFilt(CardID(i), j, a)
 				}
-				if int(g.filt(CardID(i))) != j && registersGapOther(&t.Cards[i], a, j) && g.gapOther(CardID(i)) < 0 {
+				if !g.isFiltAb(CardID(i), j) && registersGapOther(&t.Cards[i], a, j) && g.gapOther(CardID(i)) < 0 {
 					g.prepCensusGap(CardID(i), j, a)
 				}
 				if g.isGrantMana(&t.Cards[i], a) {
@@ -1923,6 +1933,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepSkipPhaseOne(t, p) // act_skipphase.go
 	prepEmbalmGrant(t, p)  // kw_embalmgrant.go; on prep, not genPrep
 	prepOffKwGrant(t, p)   // kw_unearthgrant.go; on prep, not genPrep
+	prepCyclingGrant(t, p) // kw_cyclinggrant.go; on prep, not genPrep
 	return g
 }
 

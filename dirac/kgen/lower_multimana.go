@@ -160,11 +160,17 @@ func (lc *lowerCtx) refuseMultiMana() {
 // painland pair, unrelaxable costs), then a plain {T} ability beside one
 // modelled gap, or a refusal.
 func (lc *lowerCtx) refuseResidualMultiMana(ms []*lAbility) {
-	if lc.refusePaidFilterSet(ms) || lc.refuseColouredPain(ms) || lc.refuseUnrelaxableCosts(ms) {
+	if lc.refuseColouredPain(ms) || lc.refuseUnrelaxableCosts(ms) {
 		return
 	}
-	if len(ms) > 2 && !anyRFiltMana(ms) || !plainTapMana(ms[0], false) || !unrestrictedOne(ms[0]) {
+	if len(ms) > 2 && !anyRFiltMana(ms) && !paidFilterSetMana(ms) || !plainTapMana(ms[0], false) || !unrestrictedOne(ms[0]) {
 		lc.refuseNode("card", "%d mana abilities: not a fixed-colour set, nor a plain {T} ability beside one modelled gap", len(ms))
+		return
+	}
+	if paidFilterSetMana(ms) {
+		// the whole set is modelled together: one ask over every paid
+		// ability's colours (mana_filterset.go); a lone paid fixed-colour or
+		// choice filter beside a plain {C} is not (manaGapModelled)
 		return
 	}
 	for i, a := range ms[1:] {
@@ -175,7 +181,7 @@ func (lc *lowerCtx) refuseResidualMultiMana(ms []*lAbility) {
 	}
 }
 
-// refusePaidFilterSet: a plain {T}: Add {C} first ability beside two or more
+// paidFilterSetMana: a plain {T}: Add {C} first ability beside two or more
 // paid filter abilities, one filter ability per colour ({1},{T}: Add <colour>;
 // {2},{T}: Add {B} or {G} -- Koskun Keep, Castle Sengir, An-Havva Township,
 // Aysen Abbey, Wizards' School). gorge's planner census lists the {C} unit
@@ -184,11 +190,9 @@ func (lc *lowerCtx) refuseResidualMultiMana(ms []*lAbility) {
 // choose-a-mana-ability ask's answers: the {C} first, then each filter,
 // whose fee is paid from the floating pool (CR 601.2b), then a choice
 // filter's colour. The kernel's filter walk records one filter ability per
-// card (genPrep.filt) and models no fixed-colour or two-colour-choice fee
-// (filterTapMana: the production must be ColAny), so its search can
-// activate neither: refused until the walk holds one filter ability per
-// colour. It reports whether it refused.
-func (lc *lowerCtx) refusePaidFilterSet(ms []*lAbility) bool {
+// colour (genPrep.filt, filt2) and walks the set's one ask
+// (mana_filterset.go filtSetGap).
+func paidFilterSetMana(ms []*lAbility) bool {
 	if len(ms) < 3 || !plainTapMana(ms[0], false) || !unrestrictedOne(ms[0]) || ms[0].Mana.Colors != "C" {
 		return false
 	}
@@ -197,7 +201,6 @@ func (lc *lowerCtx) refusePaidFilterSet(ms []*lAbility) bool {
 			return false
 		}
 	}
-	lc.refuseNode("card", "%d mana abilities: a plain {T} ability beside %d paid filter abilities: the kernel's filter walk records one filter ability per card and models no fixed-colour or choice fee", len(ms), len(ms)-1)
 	return true
 }
 

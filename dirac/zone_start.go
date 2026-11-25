@@ -267,11 +267,38 @@ func (s *State) startToLibrary(p uint8) {
 // of the MoveZone, then it is tapped as it enters, and settled.
 func (s *State) startEnter(k *prep, o Obj, p uint8, sd *StartSeat, i int) {
 	s.detach(o)
+	front := s.objs[o].card
 	if startHas(sd.BackFace, i) {
 		s.turnFace(k, o, 1)
 	}
 	sl := s.enter(k, o, p, startHas(sd.Tapped, i), kop.ZoneLibrary)
 	s.perms[sl].flags &^= pfSick // settle: as if there since before the game
+	// A back-face planeswalker whose entering face prints no positive loyalty
+	// is seated with the front face's printed starting loyalty, the same
+	// convention gorge's scripted start uses (XMage's addCard); the start's
+	// listed counters are then added on top in applyStart.
+	if startHas(sd.BackFace, i) {
+		if n := startBackFaceLoyalty(k, front, s.objs[o].card); n > 0 {
+			s.placeCounters(k, sl, int(kop.CtrLoyalty), n, p, ctrPutBy)
+		}
+	}
+}
+
+// startBackFaceLoyalty is gorge's setupBackFaceLoyalty on the kernel's table:
+// the starting loyalty a back-face placement grants when its entering face
+// prints Forge's "Loyalty: 0" carry-over marker (Arlinn Kord's back face). 0
+// when the entering face has its own positive loyalty, when either face is not
+// a planeswalker, or when the front prints none.
+func startBackFaceLoyalty(k *prep, front, back CardID) int {
+	b := k.t.Cards[back]
+	if b.Types&kop.TPlaneswalker == 0 || b.Loyalty > 0 {
+		return 0
+	}
+	f := k.t.Cards[front]
+	if f.Types&kop.TPlaneswalker == 0 || f.Loyalty <= 0 {
+		return 0
+	}
+	return int(f.Loyalty)
 }
 
 // startLibOrder rebuilds seat p's library: the listed cards top first, then
