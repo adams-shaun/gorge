@@ -61,7 +61,7 @@ func (s *State) trigBiteGone(k *prep, in *kop.Instr) bool {
 // biteExcess splits a trampling biter's hit (kop.BiteExcessTrample, Ram
 // Through; gorge emitObjectDamageExcess): when the source a has trample and
 // its power n exceeds what is lethal to b before the hit (excessLethalGen:
-// toughness less marked damage, or loyalty; deathtouch does not shrink it,
+// toughness less marked damage, or loyalty; a deathtouch source makes it 1,
 // CR 120.10), b is dealt exactly the lethal amount and b's controller the
 // rest, from the same source, in the one batch (CR 120.4a). DebugBiteNoExcess
 // keeps the plain hit.
@@ -69,7 +69,7 @@ func (s *State) biteExcess(k *prep, hb *hitBatch, a, b Slot, n int) {
 	if DebugBiteNoExcess || s.kw(k, a)&kop.KwTrample == 0 {
 		return
 	}
-	lethal := max(s.excessLethalGen(k, b), 0) // gorge excessLethal clamps at 0
+	lethal := max(s.excessLethalGen(k, b, s.kw(k, a)&kop.KwDeathtouch != 0), 0) // gorge excessLethal clamps at 0
 	if n <= lethal {
 		return
 	}

@@ -72,6 +72,14 @@ type DealDamageParams struct {
 	RelativeTarget bool
 	// ReplaceDyingDefined is ReplaceDyingDefined$, trimmed.
 	ReplaceDyingDefined string
+	// CardChoices and PlayerChoices are CardChoices$ / PlayerChoices$
+	// (Comet, Stellar Pup's "a creature or player"), trimmed: the filters of
+	// the object and player pool one recipient is CHOSEN from at resolution
+	// (CR 115.10, no targeting). Random is a true Random$ (Whimsy, Faerie
+	// Dragon): the engine draws the pick instead of asking the controller.
+	CardChoices   string
+	PlayerChoices string
+	Random        bool
 
 	// Unread are the parameters present on the ability that no DealDamage
 	// reader consumes: the resolution Notes them once.
@@ -89,7 +97,7 @@ var dealDamageKnownKeys = [...]string{
 	"ActivationGameTypes", "ActivationLimit", "ActivationPhases", "ActivationZone",
 	"Activator",
 	"AdditionalDesc", "AdditionalDescription", "Affected", "AlternateCost",
-	"AlternativeCost", "Announce", "AnnounceTitle", "Boast", "CantCopy", "ChangeNumDesc", "ChangeTypeDesc",
+	"AlternativeCost", "Announce", "AnnounceTitle", "Boast", "CantCopy", "CardChoices", "ChangeNumDesc", "ChangeTypeDesc",
 	"ChangeValidDesc", "CharacteristicDefining", "CheckSVar", "ChoiceDesc", "ChoiceTitle", "ChoiceTitleAppend", "ChoiceZone", "Choices",
 	"ChooseFromList", "ClassBand", "ClearImprinted", "Condition",
 	"ConditionActivationLimit", "ConditionCheckSVar", "ConditionCompare", "ConditionCompare2",
@@ -103,8 +111,8 @@ var dealDamageKnownKeys = [...]string{
 	"IsPresent", "KW", "Keyword", "KeywordLine", "LockInText", "ManaConversion", "MaxTotalTargetCMC",
 	"MaxTotalTargetPower", "Mentor", "ModeCost", "Monstrosity", "NewController",
 	"NoPrevention", "NoPutDesc", "NonBasicSpell", "NumDmg", "OpponentTurn", "OptionalDecider", "Planeswalker",
-	"PlayCost", "PlayerTurn", "PowerUp", "PrecostDesc", "PresentCompare",
-	"PresentDefined", "PresentZone", "PrimaryPrompt", "RaiseCost", "RandomNumTargets", "ReduceAmount", "ReduceCost", "RelativeTarget",
+	"PlayCost", "PlayerChoices", "PlayerTurn", "PowerUp", "PrecostDesc", "PresentCompare",
+	"PresentDefined", "PresentZone", "PrimaryPrompt", "RaiseCost", "Random", "RandomNumTargets", "ReduceAmount", "ReduceCost", "RelativeTarget",
 	"RememberAnimated", "RememberCostMana", "RememberDamaged", "RememberObjects", "RememberTargets", "ReplaceColor",
 	"ReplaceDyingDefined", "ReplaceGraveyard", "ReplaceGraveyardValid", "ReplaceMana",
 	"ReplaceOnly", "ReplaceType", "ReturnAbility", "ReturnValid", "SVarCompare", "SelectPrompt",
@@ -175,6 +183,9 @@ func compileDealDamage(sa *cards.SA) *DealDamageParams {
 	p.RelativeTarget = strings.TrimSpace(sa.ParamStr(cards.PKRelativeTarget)) != ""
 	p.ReplaceDyingDefined = ReplaceDyingParam(sa)
 	p.OptionalDecider = strings.TrimSpace(sa.ParamStr(cards.PKOptionalDecider))
+	p.CardChoices = strings.TrimSpace(sa.Params["CardChoices"])
+	p.PlayerChoices = strings.TrimSpace(sa.ParamStr(cards.PKPlayerChoices))
+	p.Random = isTrue(sa.ParamStr(cards.PKRandom))
 	p.Unread = unreadKeys(sa, dealDamageKnownKeys[:])
 	return p
 }
