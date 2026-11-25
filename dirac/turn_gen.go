@@ -419,6 +419,17 @@ func replAskKind(in *kop.Instr) (kind uint8, ok bool) {
 	return 0, false
 }
 
+// restoreRes gives the resCtx borrowed by a replacement body back to the
+// outer resolution. A Draw replacement body always restores it, even under an
+// active outer resolution, so its own pc (and every field its exec wrote) does
+// not become the outer program's next instruction; every other body keeps the
+// older rule and restores only when it created its own context.
+func (s *State) restoreRes(saved *resCtx, isDrawProgram bool) {
+	if !saved.active || isDrawProgram {
+		s.res = *saved
+	}
+}
+
 // runReplProgAs runs it with the permanent at src as the source (an
 // "other permanents enter" replacement). A choice stops it: the rest runs
 // once the choice is answered.
@@ -501,9 +512,7 @@ func (s *State) runReplProgAs(k *prep, sl Slot, c CardID, ab, pc uint8, src Slot
 					continue
 				}
 				s.queueAskAt(sl, kind, c, ab, uint8(i+1))
-				if !saved.active || isDrawProgram {
-					s.res = saved
-				}
+				s.restoreRes(&saved, isDrawProgram)
 				return
 			}
 			if kind != akCard && kind != akCtrPick && s.g.pre.state == 2 && s.g.pre.obj == s.perms[sl].obj {
@@ -563,17 +572,13 @@ func (s *State) runReplProgAs(k *prep, sl Slot, c CardID, ab, pc uint8, src Slot
 				continue
 			}
 			s.queueAskAt(sl, kind, c, ab, uint8(i+1))
-			if !saved.active || isDrawProgram {
-				s.res = saved
-			}
+			s.restoreRes(&saved, isDrawProgram)
 			return
 		case kop.OpChooseBranch, kop.OpChooseMove:
 			if !s.replAskOp(k, sl, c, ab, i, in) { // repl_enterreveal.go
 				break
 			}
-			if !saved.active || isDrawProgram {
-				s.res = saved
-			}
+			s.restoreRes(&saved, isDrawProgram)
 			return
 		case kop.OpSkipUnless, kop.OpBranch:
 			i += s.replSkip(k, sl, in) // repl_entersunless.go; a mode's block (face_siegemode.go)
@@ -585,9 +590,7 @@ func (s *State) runReplProgAs(k *prep, sl Slot, c CardID, ab, pc uint8, src Slot
 			case shockNo:
 				s.execGen(k, in)
 			case shockQueued:
-				if !saved.active || isDrawProgram {
-					s.res = saved
-				}
+				s.restoreRes(&saved, isDrawProgram)
 				return
 			default:
 				i += skip
@@ -604,9 +607,7 @@ func (s *State) runReplProgAs(k *prep, sl Slot, c CardID, ab, pc uint8, src Slot
 					if s.res.ask != raNone {
 						s.capFull(StallDredge)
 					}
-					if !saved.active || isDrawProgram {
-						s.res = saved
-					}
+					s.restoreRes(&saved, isDrawProgram)
 					return
 				}
 				continue
@@ -614,9 +615,7 @@ func (s *State) runReplProgAs(k *prep, sl Slot, c CardID, ab, pc uint8, src Slot
 			s.execGen(k, in)
 		}
 	}
-	if !saved.active || isDrawProgram {
-		s.res = saved
-	}
+	s.restoreRes(&saved, isDrawProgram)
 }
 
 // entryAskOutstanding reports a decision gorge has pending while an enters
