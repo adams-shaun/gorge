@@ -113,6 +113,7 @@ ev-std-woe	200
 ev-std-woe-a000	40
 ev-std-woe-c000	8
 ev-tail-00	966
+ev-tail-00-a000	28
 ev-tail-00-c000	5
 ev-tail-00-c001	7
 ev-tail-00-c002	1
@@ -2191,6 +2192,7 @@ ev-tail-27-c098	8
 ev-tail-27-c099	16
 ev-tail-27-s000	63
 ev-tail-27-s001	61
+ev-tail-28-a000	4
 ev-tail-28-c000	7
 ev-tail-28-c001	15
 ev-tail-28-c002	8
