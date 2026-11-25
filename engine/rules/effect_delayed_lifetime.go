@@ -94,3 +94,16 @@ func (e *Engine) endImprintedDelayed(source state.ObjID) {
 		e.emit(events.Event{Kind: events.DelayedRemove, Amount: int32(id)})
 	}
 }
+
+// sweepControlAndPhase runs the Effect-lifetime sweeps that ride a control
+// change or a phase transition: AsLongAsControl$ expiry on a control change or
+// a phase-out, and the ForgetOnPhasedIn$ sweep on a phase-in (Amount < 0).
+// Kept out of emit so its branch count does not grow.
+func (e *Engine) sweepControlAndPhase(ev events.Event) {
+	if ev.Kind == events.ControlChange || ev.Kind == events.PhaseOut && ev.Amount >= 1 {
+		e.expireAsLongAsControl(ev.Obj)
+	}
+	if ev.Kind == events.PhaseOut && ev.Amount < 0 {
+		e.sweepEffectDelayed(ev)
+	}
+}
