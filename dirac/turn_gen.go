@@ -264,11 +264,15 @@ func (s *State) runOwnEnterPrograms(k *prep, sl Slot, o Obj, cid CardID, ctrl, f
 var DebugFaceDownFilterPrinted bool
 
 // runOthersEnterPrograms applies the "as this enters" replacement of each
-// permanent in m that matches the entrant at sl.
+// permanent in m that matches the entrant at sl. The entrant's own
+// others-enter line never applies to its own entry (CR 614.12: a general
+// subset such as Orb of Dreams' "Permanents enter tapped" or Kira Nerys,
+// Firebrand's "a creature you control" does not modify how its own source
+// enters; gorge ownEntryMoveExcluded).
 func (s *State) runOthersEnterPrograms(k *prep, sl Slot, g *genPrep, m slotMask) {
 	for ; m.any(); m = m.rest() {
 		src := m.first()
-		if s.genLost(k, src) {
+		if src == sl || s.genLost(k, src) {
 			continue
 		}
 		scid := s.cardAt(src)
