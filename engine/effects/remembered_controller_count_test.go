@@ -129,6 +129,21 @@ func TestPlayerCountRememberedControllerHasPropertyOpponent(t *testing.T) {
 	}
 }
 
+// onlyCopyController is the singular view of copyControllersFor for the
+// Remembered selector this test pins: that selector names exactly one player,
+// so a plural result here is a regression, not a shape to tolerate.
+func onlyCopyController(t *testing.T, g *state.Game, c *Ctx, spec string) (state.PlayerID, bool) {
+	t.Helper()
+	got, ok := copyControllersFor(g, c, spec)
+	if !ok {
+		return 0, false
+	}
+	if len(got) != 1 {
+		t.Fatalf("copyControllersFor(%s) = %v, want exactly one player", spec, got)
+	}
+	return got[0], true
+}
+
 // TestCopyControllerForRemembered pins CopySpellAbility's Controller$
 // Remembered selector (Tempt with Mayhem's per-opponent copy): a remembered
 // PLAYER entry names the copy's controller directly (the RepeatEach loop
@@ -149,26 +164,26 @@ func TestCopyControllerForRemembered(t *testing.T) {
 	c := &Ctx{Controller: 3, Remembered: []state.Target{
 		{Obj: obj0}, {Obj: obj1}, {Player: 2, IsPlayer: true},
 	}}
-	if got, ok := copyControllerFor(g, c, "Remembered"); !ok || got != 2 {
+	if got, ok := onlyCopyController(t, g, c, "Remembered"); !ok || got != 2 {
 		t.Fatalf("copyControllerFor(Remembered) = (%d, %v), want (2, true) -- the remembered player", got, ok)
 	}
-	if got, ok := copyControllerFor(g, c, "RememberedController"); !ok || got != 2 {
+	if got, ok := onlyCopyController(t, g, c, "RememberedController"); !ok || got != 2 {
 		t.Fatalf("copyControllerFor(RememberedController) = (%d, %v), want (2, true)", got, ok)
 	}
 	// With no remembered player, the first resolvable remembered object's
 	// controller is the answer.
 	c = &Ctx{Controller: 3, Remembered: []state.Target{{Obj: obj0}, {Obj: obj1}}}
-	if got, ok := copyControllerFor(g, c, "Remembered"); !ok || got != 0 {
+	if got, ok := onlyCopyController(t, g, c, "Remembered"); !ok || got != 0 {
 		t.Fatalf("copyControllerFor(Remembered) over objects = (%d, %v), want (0, true)", got, ok)
 	}
 	// An unresolvable object id fails closed: the caller keeps its own
 	// controller rather than inventing a seat.
 	c = &Ctx{Controller: 3, Remembered: []state.Target{{Obj: 9999}}}
-	if got, ok := copyControllerFor(g, c, "Remembered"); ok || got != 0 {
+	if got, ok := onlyCopyController(t, g, c, "Remembered"); ok || got != 0 {
 		t.Fatalf("copyControllerFor(unresolvable Remembered) = (%d, %v), want (0, false)", got, ok)
 	}
 	// An empty binding fails closed too.
-	if got, ok := copyControllerFor(g, &Ctx{Controller: 3}, "Remembered"); ok || got != 0 {
+	if got, ok := onlyCopyController(t, g, &Ctx{Controller: 3}, "Remembered"); ok || got != 0 {
 		t.Fatalf("copyControllerFor(empty Remembered) = (%d, %v), want (0, false)", got, ok)
 	}
 }
