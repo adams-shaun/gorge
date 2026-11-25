@@ -59,9 +59,10 @@ func restrictedManaDecks() [4][]cardset.Entry {
 		{
 			{Name: "Grizzly Bears", Count: 4}, {Name: "Shock", Count: 4}, {Name: "Lightning Bolt", Count: 4},
 			// the Varmint's "spells you don't own" is never satisfiable in the
-			// pod (no seat casts a card another seat owns): it is carried for
-			// the engines' agreement on the lowered unit, counted by name if
-			// it ever does pay.
+			// pod (no seat casts a card another seat owns), and the Estate's
+			// Vampire-only life ability has no Vampire carrier here: both are
+			// carried for the engines' agreement on the lowered unit, counted
+			// by name if they ever do pay.
 			{Name: "Hill Giant", Count: 5}, {Name: "Prodigal Sorcerer", Count: 3}, {Name: "Thieving Varmint", Count: 2}, {Name: "Jeweled Lotus", Count: 2}, {Name: "Voldaren Estate", Count: 2}, {Name: "Mountain", Count: 8}, {Name: "Swamp", Count: 6},
 		},
 		{
