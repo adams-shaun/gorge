@@ -510,15 +510,11 @@ func (e *Engine) creatureTypeOptions(you state.PlayerID, validTypes, invalidType
 			continue
 		}
 		for _, ft := range f.Types {
-			if !effects.CreatureTypeWords(ft) {
+			if !effects.CreatureTypeWords(ft) || seen[ft] {
 				continue
 			}
-			for _, t := range effects.CreatureTypeListWords(ft) {
-				if !seen[t] {
-					seen[t] = true
-					types = append(types, t)
-				}
-			}
+			seen[ft] = true
+			types = append(types, ft)
 		}
 	}
 	if len(types) == 0 {
