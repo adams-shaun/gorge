@@ -459,6 +459,12 @@ const ReduceAbMinShift = 4
 // ReduceColorBits is the width of one colour's count in Static.B under StReduceColor.
 const ReduceColorBits = 2
 
+// ReduceColorNoSpill (bit 14 of Static.B under StReduceColor, clear of the
+// six two-bit colour counts) is IgnoreGeneric$ True: the reduction takes only
+// matching coloured pips and its shortfall does not spill to generic
+// (Morophon, the Boundless; gorge pay CostMods.ApplyTo).
+const ReduceColorNoSpill = 1 << 14
+
 // CostExileCtrlOrGrave (beside CostExileGrave): the exiled
 // cards may be other permanents the payer controls as well as cards in their
 // graveyard (gorge cost.parse's ExileCtrlOrGrave ZoneSet part, Craft's
