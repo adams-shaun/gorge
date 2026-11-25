@@ -3215,9 +3215,20 @@ func (lc *lowerCtx) emblemStatic(ps *params, s cards.Static) error {
 // refused).
 func (lc *lowerCtx) emblemTrigDuration(t cards.Trigger, eot, next, combatCap bool) error {
 	if (eot || next) && !emblemTimedMode(t.Mode, eot, lc.pairCap != nil || combatCap) {
-		return refuse("Effect triggers without a permanent duration")
+		return emblemDurationRefuse(t.Mode)
 	}
 	return nil
+}
+
+// emblemDurationRefuse is the refusal for an Effect trigger no kernel emblem
+// hook covers, naming the trigger's Mode$ so the census shows which event hook
+// each carrier is waiting for (the Effect-container trigger-Mode ticket). The
+// leading words stay the umbrella class's.
+func emblemDurationRefuse(mode string) error {
+	if mode == "" {
+		return refuse("Effect triggers without a permanent duration")
+	}
+	return refuse("Effect triggers without a permanent duration (Mode$ %s)", mode)
 }
 
 // emblemExileLapse reads an Effect's ExileOnMoved$ rider: Battlefield lapses
@@ -3243,7 +3254,9 @@ func (lc *lowerCtx) emblem(ps *params, tr string) error {
 	eot := !hasDur || ps.is("Duration", "EndOfTurn") // the spelled-out default (Jace, Cunning Castaway)
 	next := hasDur && ps.is("Duration", "UntilYourNextTurn")
 	if hasDur && !eot && !next && !ps.is("Duration", "Permanent") {
-		return refuse("Effect triggers without a permanent duration")
+		first, _, _ := strings.Cut(tr, ",")                                     // the first body of a list names the Mode$
+		t, _ := cards.ParseTriggerLine(lc.face.SVars[strings.TrimSpace(first)]) // a body that does not parse names none
+		return emblemDurationRefuse(t.Mode)
 	}
 	ps.consume("Name", "Image", "Stackable")
 	if sa, ok := ps.get("StaticAbilities"); ok && lc.pairCap == nil {
