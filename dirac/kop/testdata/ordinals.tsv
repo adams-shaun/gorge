@@ -6,6 +6,7 @@ AbSpell	AbilityKind	0
 AbStatic	AbilityKind	4
 AbTriggered	AbilityKind	3
 AdamantLiveRead	untyped int	32
+AddPhaseBeginning	untyped int	4
 AddPhaseCombat	untyped int	0
 AddPhaseCombatMain	untyped int	3
 AddPhaseEnd	untyped int	2
@@ -561,6 +562,7 @@ ExtGrantPanharm	ExtOp	248
 ExtHideaway	ExtOp	8
 ExtJoinForces	ExtOp	301
 ExtKwMark	ExtOp	10
+ExtLeaveExile	ExtOp	287
 ExtLibPlace	ExtOp	300
 ExtLibSweep	ExtOp	101
 ExtLockActs	ExtOp	140
