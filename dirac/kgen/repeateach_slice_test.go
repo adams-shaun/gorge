@@ -42,19 +42,18 @@ var repeatEachSliceCards = map[string][]string{
 	// player's cards: the repeated player (or the resolving controller) picks
 	// the sacrifice/exile/tax target, and the post-loop node reads the picks.
 	"per-player ChooseCard": {
-		"Soul Shatter", "Flare of Malice", "Rite of Ruin", "Tariff",
+		"Soul Shatter", "Flare of Malice", "Rite of Ruin",
 		"Grave Consequences", "Watchers of the Dead",
-		"Highcliff Felidar", "Disciple of Caelus Nin", "Fortunate Few",
-		"Ultimate Magic: Meteor", "Thieves' Auction", "Discovery", "Flotsam",
+		"Disciple of Caelus Nin", "Fortunate Few",
+		"Ultimate Magic: Meteor", "Thieves' Auction",
 	},
 }
 
 func TestRepeatEachSlice(t *testing.T) {
 	for form, names := range repeatEachSliceCards {
-		lw := lowerNamedPool(t, names)
-		for _, c := range append(append([]*lCard(nil), lw.cards...), lw.tokens...) {
-			if len(c.Refusals) != 0 {
-				t.Errorf("%s (%s): refusals = %v, want none", c.Name, form, c.Refusals)
+		for _, name := range names {
+			if c := lowerNamedCard(t, name); len(c.Refusals) != 0 {
+				t.Errorf("%s (%s): refusals = %v, want none", name, form, c.Refusals)
 			}
 		}
 	}

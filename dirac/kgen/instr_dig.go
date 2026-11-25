@@ -155,8 +155,6 @@ func (ic *instrCtx) opChooseCard() error {
 	switch in.CS {
 	case "Optional":
 		ki.C = 1 // up to one: the ask carries a Done
-	case "OptionalRemember":
-		ki.C = 1 // up to one; B = 1: the picked card also joins the remembered set
 	case "Remember":
 		ki.C = 2 // RememberChosen$: the chosen card joins the remembered set
 	case "LibraryUpTo":
