@@ -215,7 +215,7 @@ var changeZoneAllKnownKeys = [...]string{
 	"PresentDefined",
 	"PresentZone",
 	"PrimaryPrompt",
-	"RandomNumTargets",
+	"RaiseCost", "RandomNumTargets",
 	"RandomOrder",
 	"ReduceAmount",
 	"ReduceCost",
