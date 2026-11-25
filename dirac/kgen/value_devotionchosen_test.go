@@ -39,13 +39,12 @@ func TestDevotionChosenLowers(t *testing.T) {
 }
 
 // TestDevotionChosenCorpusRefusals pins the four corpus Count$Devotion.Chosen
-// users: none is refused for the devotion value. Nyx Lotus now lowers
-// completely (its ChooseColor mana chain landed); Nykthos still carries that
-// ChooseColor mana-ability refusal, and Nyx / Hotel of Fears are refused for
-// their ChaosEnsues trigger (Nyx also its EffectZone static), all outside the
-// devotion value. Each card's own X body is also lowered through devotionHead
-// and must give vDevotionChosen, so the test is not vacuous when the card
-// lowers.
+// users: none is refused for the devotion value. Nyx Lotus and Nykthos lower
+// completely (their ChooseColor mana chains landed); Nyx / Hotel of Fears are
+// refused for their ChaosEnsues trigger (Nyx also its EffectZone static), all
+// outside the devotion value. Each card's own X body is also lowered through
+// devotionHead and must give vDevotionChosen, so the test is not vacuous when
+// the card lowers.
 func TestDevotionChosenCorpusRefusals(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	for _, tc := range []struct {
@@ -54,7 +53,7 @@ func TestDevotionChosenCorpusRefusals(t *testing.T) {
 		chooseMana bool
 	}{
 		{"Nyx Lotus", true, false},
-		{"Nykthos, Shrine to Nyx", false, true},
+		{"Nykthos, Shrine to Nyx", true, false},
 		{"Nyx", false, false},
 		{"Hotel of Fears", false, false},
 	} {

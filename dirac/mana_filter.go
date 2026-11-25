@@ -54,6 +54,9 @@ const relaxedPaidLimit = 3
 // card's first mana ability (Three Tree Mascot's untapped {1}, Prophetic
 // Prism) is kop.FilterManaAb's (mana_filterfirst.go).
 func filterTapMana(cd *kop.CardDef, a *kop.Ability) bool {
+	if a.ManaAskColour {
+		return false // the colour-asking route's (mana_askcolour.go), not a filter
+	}
 	m := &a.Cost.Mana
 	_, pip := fixedPipFilt(a)        // a gated one-pip fixed-colour filter (mana_filterpip.go)
 	hyb := kop.HybridFilterManaAb(a) // a one-hybrid-pip fee, two of one chosen colour (mana_filterhybrid.go)
@@ -1228,7 +1231,9 @@ func sacOnlyManaAb(a *kop.Ability) bool {
 // life-only one, the planner's last-resort Consequence{Life} alternative the
 // pain unit prepSoleLifeMana classifies (mana_pain.go).
 func registersGapOther(c *kop.CardDef, a *kop.Ability, j int) bool {
-	return censusGapMana(a) && !lifePainLandAb(c, a) && !kop.ChosenSecondManaAb(c, firstManaAb(c), j) && !sacOnlyManaAb(a) &&
+	// A colour-asking ability is the Taps-deferred route's (mana_askcolour.go):
+	// registering it as a census gap too would price the same tap twice.
+	return !a.ManaAskColour && censusGapMana(a) && !lifePainLandAb(c, a) && !kop.ChosenSecondManaAb(c, firstManaAb(c), j) && !sacOnlyManaAb(a) &&
 		!restrLifeAb(a) && !kop.SoleGapLifeManaAb(c, j)
 }
 
