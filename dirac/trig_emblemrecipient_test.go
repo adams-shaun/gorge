@@ -70,7 +70,7 @@ func TestEffectEOTEmblemRecipientCapture(t *testing.T) {
 		sc.s.embSetNum(0, 0, num)
 		sc.s.npend = 0
 		var latch dmgLatch
-		sc.s.fireEmblemsDmg(sc.k, sc.slot(srcObj), 2, toPlayer, false, rcp, false, &latch)
+		sc.s.fireEmblemsDmg(sc.k, sc.slot(srcObj), 2, toPlayer, false, rcp, false, &latch, nil)
 		if sc.s.npend == 0 {
 			return 0, NoObj
 		}
@@ -99,9 +99,9 @@ func TestEffectEOTEmblemRecipientCapture(t *testing.T) {
 	sc.s.embSetNum(0, 0, objWord(hurt)+1)
 	sc.s.npend = 0
 	var latch dmgLatch
-	sc.s.fireEmblemsDmg(sc.k, sc.slot(srcObj), 2, false, false, TCode(hurt), false, &latch)
-	sc.s.fireEmblemsDmg(sc.k, sc.slot(srcObj), 2, false, false, TCode(other), false, &latch)
-	sc.s.fireEmblemsDmg(sc.k, sc.slot(srcObj), 3, false, false, TCode(hurt), false, &latch)
+	sc.s.fireEmblemsDmg(sc.k, sc.slot(srcObj), 2, false, false, TCode(hurt), false, &latch, nil)
+	sc.s.fireEmblemsDmg(sc.k, sc.slot(srcObj), 2, false, false, TCode(other), false, &latch, nil)
+	sc.s.fireEmblemsDmg(sc.k, sc.slot(srcObj), 3, false, false, TCode(hurt), false, &latch, nil)
 	if sc.s.npend != 2 {
 		t.Fatalf("two Damage events to the captured object plus one to another creature: %d triggers, want 2", sc.s.npend)
 	}
@@ -114,7 +114,7 @@ func TestEffectEOTEmblemRecipientCapture(t *testing.T) {
 	sc.s.embSetNum(0, 0, objWord(hurt)+1)
 	sc.s.embCaptureLapse(sc.k, hurt)
 	sc.s.npend = 0
-	sc.s.fireEmblemsDmg(sc.k, sc.slot(srcObj), 2, false, false, TCode(hurt), false, &latch)
+	sc.s.fireEmblemsDmg(sc.k, sc.slot(srcObj), 2, false, false, TCode(hurt), false, &latch, nil)
 	if sc.s.npend != 0 {
 		t.Errorf("recipient capture after the captured object left: %d triggers, want 0", sc.s.npend)
 	}
