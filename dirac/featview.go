@@ -1297,9 +1297,6 @@ func (s *State) FeatViewTypes(o Obj) (types kop.TypeMask, subs kop.SubMask, all,
 			if ovrCreatSub(ov) && !DebugRmCreatSubKeep {
 				subs, all, setSub = subs.AndNot(k.gen.creatSub), false, true
 			}
-			if ovrArtifactSub(ov) {
-				subs, setSub = stripArtifactSubs(subs, k.t.Subtypes), true // CR 205.1a
-			}
 			if ov.SetLandSub {
 				subs, setSub = subs.AndNot(k.gen.landSub), true // CR 305.7 (static_landtypesetter.go)
 			}
