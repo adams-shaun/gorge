@@ -329,6 +329,22 @@ func (e *Engine) checkDelayedTriggers(ev events.Event) {
 			pushSource = dt.Creator
 			delayedSelf = dt.Source
 		}
+		// The registration's TriggerDescription$ stands in as the queue
+		// entry's own trigger line, which triggerOf returns before any face
+		// scan (the same carry a granted or event-matched entry makes), so
+		// the CR 603.3b order ask labels it "<source>: <description>"
+		// exactly like a face trigger -- Arcane Denial's two slowtrip
+		// promises ask "Arcane Denial: Draw a card." / "...Draw up to two
+		// cards.", never the bare source name twice. It also keeps
+		// optionalDecider off the source's face: today a Phase registration
+		// on a card whose first T: line carries OptionalDecider$ would be
+		// mis-read as optional through the face scan. A registration with no
+		// TriggerDescription$ queues with no line, exactly as before.
+		var line cards.Trigger
+		if dt.Description != "" {
+			line = cards.Trigger{Mode: "Phase",
+				Params: map[string]string{cards.PKTriggerDescription.String(): dt.Description}}
+		}
 		e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
 			Source:     pushSource,
 			Controller: dt.Controller,
@@ -336,6 +352,7 @@ func (e *Engine) checkDelayedTriggers(ev events.Event) {
 			DelayedID:  dt.ID,
 			Execute:    dt.Execute,
 			SA:         sa,
+			Trigger:    line,
 			// Static$ True: Forge runs the body off the stack (static_trigger.go).
 			DelayedStatic: dt.Static && dt.OptionalSpec == "",
 			Ctx: effects.NewCtx(dt.Source, dt.Controller, effects.CtxInit{
@@ -500,6 +517,19 @@ func (e *Engine) checkEventDelayedTriggers(ev events.Event, lki *state.Object,
 		if !ok || t.Mode != dt.EventMode {
 			remove = append(remove, dt.ID)
 			continue
+		}
+		// The registration's TriggerDescription$ rides the queued trigger's
+		// own Params, so the CR 603.3b order ask labels this fire
+		// "<source>: <description>" like any face trigger: the stored body
+		// (an inline SpellCast/ChangesZone clause list) never carries the
+		// key, so an unlabelled line would show the bare source name. A
+		// body that spells TriggerDescription$ itself (a rules-generated
+		// registration) keeps its own text.
+		if dt.Description != "" {
+			if t.Params == nil {
+				t.Params = make(map[string]string, 1)
+			}
+			t.Params[cards.PKTriggerDescription.String()] = dt.Description
 		}
 		sa := events.ResolveSVarAcrossFaces(e.delayedSVarHost(dt), dt.Execute)
 		if sa == nil {
