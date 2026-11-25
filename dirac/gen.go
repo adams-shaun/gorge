@@ -1509,6 +1509,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 				case kop.StatEscapeGrant:
 					g.anyEscapeGrant = true
 					pc.hasStat = true // scanned through statM (kw_escape.go)
+				case kop.StatMiracleGrant:
+					g.anyMiracle = true // a granted miracle queues the draw trigger too (kw_miracle.go)
+					pc.hasStat = true   // scanned through statM
 				case kop.StatRetraceGrant, kop.StatOffZoneGrant:
 					g.offZoneGrantPrep(a, p) // kw_offkwgrant.go: the graveyard retrace offer
 					pc.hasStat = true        // scanned through statM (kw_offkwgrant.go, featview.go)

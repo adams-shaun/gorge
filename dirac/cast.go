@@ -68,7 +68,7 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8, tgt uint8) {
 			RetraceGrantStats.Casts.Add(1) // a StatRetraceGrant retrace (kw_offkwgrant.go)
 		}
 	}
-	e.trigPl = miracleCastPl(k, c, mode, tgt, e.trigPl) // priced at the miracle cost from here on (kw_miracle.go)
+	e.trigPl = s.miracleCastPl(k, o, mode, tgt, e.trigPl) // priced at the miracle cost from here on (kw_miracle.go)
 	if mode&castFaceDown != 0 {
 		e.ab = 255
 		fam := k.t.Cards[c].MorphFamily
@@ -694,8 +694,10 @@ func (s *State) buildCostPreRaw(k *prep, pre, charge bool) (kop.ManaCost, bool) 
 		if e.trigPl == trigPlMadness && cd.HasMadness {
 			c = cd.MadnessCost // the madness cast from exile (CR 702.35b)
 		}
-		if e.trigPl == trigPlMiracle && cd.HasMiracle {
-			c = cd.MiracleCost // the miracle cast from hand (CR 702.94a; kw_miracle.go)
+		if e.trigPl == trigPlMiracle {
+			if mc, ok := s.miracleCostOf(k, e.obj); ok {
+				c = mc // the miracle cast from hand (CR 702.94a; kw_miracle.go), printed or granted
+			}
 		}
 		if k.gen != nil && k.gen.anySneak && e.trigPl == trigPlSneak && cd.HasSneak {
 			c = cd.SneakCost // the sneak cost (CR 702.190a; kw_sneak.go)
