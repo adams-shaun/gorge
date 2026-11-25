@@ -836,10 +836,17 @@ func (e *Engine) appendAvailableManaAbilitiesGateCompute(out []*cards.SA, static
 // in so the helper stays free of the caller's statics plumbing. The
 // live-pool payability read is deliberately NOT here: the choke point adds
 // manaAbilityPayable after it, and the snapshot replaces it with its own
-// per-source-exclusive fee read.
+// per-source-exclusive fee read. The CR 302.6 tap-sickness gate IS here, for
+// that reason: it is not a read of the pool, and a caller that swaps the
+// payability read out must not lose it (a creature that entered this turn
+// cannot pay a granted {T} mana cost).
 func manaGrantedGatesHold(e *Engine, o *state.Object, p state.PlayerID, id state.ObjID, ma *cards.SA, restricted bool) bool {
-	return abilityZoneOK(ma, o.Zone) && e.activatorAllows(p, id, ma) && !restricted &&
-		pay.ManaActivationGateHolds(asPayer(e), p, id, ma) && pay.ManaSVarGateOK(asPayer(e), o, p, id, ma)
+	if !abilityZoneOK(ma, o.Zone) || !e.activatorAllows(p, id, ma) || restricted ||
+		!pay.ManaActivationGateHolds(asPayer(e), p, id, ma) || !pay.ManaSVarGateOK(asPayer(e), o, p, id, ma) {
+		return false
+	}
+	cc := e.manaAbilityCC(p, id, ma)
+	return !pay.TapFlagsSick(asPayer(e), id, cc.Tap, cc.Untap, activatesAsIfHaste(e, id))
 }
 
 // activateMana activates one of source's currently available mana abilities
