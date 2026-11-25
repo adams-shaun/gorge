@@ -429,7 +429,7 @@ func (e *Engine) potentialPoolFor(p state.PlayerID, d paymentDescriptor, hyp sta
 		// this payment cannot spend (CR 106.6): those units are hidden, as
 		// the ordinary offer reads the pool through pay.AvailableFor.
 		if e.potentialWitness && len(e.G.Players[p].RestrictedMana) != 0 {
-			return e.hideUnspendableFloating(p, d, hyp)
+			return hideUnspendableFloating(asPayer(e), p, d, hyp)
 		}
 		return hyp
 	}
@@ -440,9 +440,9 @@ func (e *Engine) potentialPoolFor(p state.PlayerID, d paymentDescriptor, hyp sta
 // payment d cannot spend: per pool slot, the units pay.AvailableFor hides from
 // p's floating pool. hyp holds that pool (plus a witness's activations), so
 // the units are removed from it, never below zero.
-func (e *Engine) hideUnspendableFloating(p state.PlayerID, d paymentDescriptor, hyp state.Mana) state.Mana {
-	pool := e.G.Players[p].Pool
-	avail := pay.AvailableFor(asPayer(e), p, d).Pool
+func hideUnspendableFloating(e pay.Engine, p state.PlayerID, d paymentDescriptor, hyp state.Mana) state.Mana {
+	pool := e.Game().Players[p].Pool
+	avail := pay.AvailableFor(e, p, d).Pool
 	for i := range hyp {
 		if hidden := pool[i] - avail[i]; hidden > 0 {
 			hyp[i] = max(0, hyp[i]-hidden)
