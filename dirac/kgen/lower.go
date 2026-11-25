@@ -253,7 +253,14 @@ type lowerCtx struct {
 	// Rotisserie Elemental; lower_digimprintset.go): only that chain's
 	// Effect, Defined$ Imprinted and Cleanup read it
 	digImprintRoot *cards.SA
-	known          func(string) bool
+	// retImprint: the ChangeZone being lowered is a Return with Imprint$
+	// True whose writer brackets its move (lower_imprintzone.go
+	// returnImprint).
+	retImprint bool
+	// impSweep: the filter a following DestroyAll ValidCards$
+	// Card.IsImprinted reads instead (lower_imprintzone.go imprintNameSweep).
+	impSweep string
+	known    func(string) bool
 	// granted > 0 while an ability or trigger another object is granted
 	// (an AddAbility$/AddTrigger$ SVar, an emblem's trigger) is lowered
 	granted int

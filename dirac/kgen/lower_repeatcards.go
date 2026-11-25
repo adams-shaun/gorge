@@ -31,6 +31,9 @@ func (lc *lowerCtx) repeatEachCards(ps *params) error {
 	if lc.repeatPl > 0 || lc.repeatCard > 0 {
 		return refuse("RepeatEach cards nested in a RepeatEach body")
 	}
+	if done, err := lc.imprintNameSweep(ps, cardsSpec); done || err != nil {
+		return err // lower_imprintzone.go
+	}
 	// the damage body moves no card: it reads no ChangeZoneTable$
 	// (repeatEachCardsDamage)
 	dmgBody := false
