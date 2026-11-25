@@ -120,9 +120,7 @@ func (s *State) enterGen(k *prep, sl Slot, o Obj, from kop.Zone, face uint8) {
 	if s.g.enteredOn {
 		s.noteEnter(o, kop.ZoneBattlefield, from, false, false)
 	}
-	if s.typesGen(k, sl)&kop.TLand == 0 {
-		s.stashClr(k, o) // only a land played from exile keeps its stash counter (gorge)
-	}
+	s.stashClr(k, o) // an entry from exile is a new object: the stash counter does not follow it (CR 400.7)
 	if k.gen.anyEntryMerge && face == 0 {
 		s.entryWinOpen(k, sl, p) // ctr_entryperkind.go: the printed and requested counters start the entry's one put per kind
 	} else if n := s.g.enterCtr.n; n > 0 {
