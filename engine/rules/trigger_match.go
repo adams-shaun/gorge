@@ -1058,6 +1058,15 @@ func (e *Engine) checkTriggersNow(ev *events.Event, lki *state.Object,
 		// Ledgers are read-only here: TurnsTaken and turnStartsFor replace
 		// their cache slice rather than write into it.
 		observer.startingLife, observer.engineTurnLedger = e.startingLife, e.engineTurnLedger
+		// The CR 603.4 intervening-if a trigger matched here carries is read
+		// when the event occurs, which is AFTER the object left the
+		// battlefield: the pre-departure snapshot the observer reads still
+		// holds ev.Obj, so a present clause must not count it (a dying
+		// creature is not the "another creature" of its own death's
+		// condition -- Lifeline). The snapshot board itself stays
+		// untouched: the SOURCE-existence look-back (CR 603.10a) and every
+		// event-RELATIVE clause keep reading the pre-departure object.
+		observer.lookBackDeparture = ev.Obj
 		// The no-ability-loss proof covers every object and registration
 		// the snapshot can hold (abilityloss.go).
 		observer.lossProof = abilityLossProof{seen: e.abilityLossPossible(), objs: e.lossProof.objs, contLen: -1}
