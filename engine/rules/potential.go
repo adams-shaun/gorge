@@ -335,7 +335,15 @@ func (e *Engine) tapExtraTriggerOnBoard() bool {
 		if o == nil || o.Face() == nil {
 			continue
 		}
-		if o.Zone != state.ZBattlefield && !(o.Zone == state.ZCommand && o.Face().TypeMaskOf()&cards.TypeVanguard != 0) {
+		if o.Zone == state.ZPlanarDeck {
+			// a face-up plane's printed static functions from the command
+			// zone while the plane lives in its owner's planar deck (Eloren
+			// Wilds; CR 901): it is not a battlefield permanent, but its tap
+			// extra is real (CR 605.3b)
+			if cur := e.currentPlane(o.Controller); cur == nil || cur.ID != o.ID {
+				continue
+			}
+		} else if o.Zone != state.ZBattlefield && !(o.Zone == state.ZCommand && o.Face().TypeMaskOf()&cards.TypeVanguard != 0) {
 			// a Vanguard's printed static functions from the command zone
 			// (Sisay): it is not a battlefield permanent, but its tap extra is
 			// real (CR 605.3b)

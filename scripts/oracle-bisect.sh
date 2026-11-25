@@ -43,6 +43,8 @@ tests=$(readlink -f "${3:?usage: oracle-bisect.sh <good> <bad> <tests-file>}")
 self=$(readlink -f "$0")
 [ -n "$(names "$tests")" ] || { echo "oracle-bisect: $tests names no tests"; exit 2; }
 
+# Never fail silently: name the line that stopped the script.
+trap 'echo "oracle-bisect: line $LINENO exited $?" >&2' ERR
 git bisect reset >/dev/null 2>&1 || true
 trap 'git bisect reset >/dev/null 2>&1 || true' EXIT
 git bisect start --first-parent "$bad" "$good" >/dev/null
@@ -52,7 +54,11 @@ if ! git bisect run bash "$self" --step "$tests" >"$log" 2>&1; then
 	echo "oracle-bisect: no culprit found (bisect could not decide)"
 	exit 3
 fi
-sha=$(grep -E '^[0-9a-f]{40} is the first bad commit' "$log" | cut -d' ' -f1)
+# A finished `git bisect run` leaves the first bad commit at refs/bisect/bad. Read it there, not from the run's
+# text: under set -e and pipefail a grep that matched nothing ended the script with exit 1 and no output after a
+# 36-minute bisect (oracle run 45685389788, git 2.56 on the runner).
+sha=$(git rev-parse --verify -q 'refs/bisect/bad^{commit}' || true)
+[ -n "$sha" ] || sha=$(grep -oE '^[0-9a-f]{40} is the first bad commit' "$log" | cut -d' ' -f1 || true)
 [ -n "$sha" ] || { tail -n 30 "$log"; echo "oracle-bisect: no culprit found"; exit 3; }
 subject=$(git log -1 --format=%s "$sha")
 pr=$(sed -nE 's/^Merge pull request #([0-9]+).*/\1/p; s/.*\(#([0-9]+)\)$/\1/p' <<<"$subject" | head -n 1)
