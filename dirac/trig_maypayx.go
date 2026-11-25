@@ -37,6 +37,16 @@ const trigXCap = 64
 // past what the sources can fund (CR 106.6; a cycled Decree of Justice's
 // "you may pay {X}" beside a Sea Gate).
 //
+// The walk is the X-bound count's bounded mode (boundedAny): a fixed
+// any-colour production (Exotic Orchard, Arcane Signet's ColorIdentity) is
+// one unit of any colour, not the whole-pool open the plain walk prices it,
+// because it still makes exactly one mana per tap. Only a genuinely
+// unbounded production (a dynamic amount, an each-colour gap) reports open,
+// and the two open gates below keep its defensive cap. A fixed any-colour
+// source left the walk open, skipped the census, and offered X past what its
+// one tap funds (four-seat edh pod 68's Halo Forager beside Exotic Orchard:
+// 0..64 for gorge's 0..7).
+//
 //go:noinline
 func (s *State) execTrigX(k *prep, p uint8, skip uint16, cap int) bool {
 	var av avail
@@ -45,7 +55,7 @@ func (s *State) execTrigX(k *prep, p uint8, skip uint16, cap int) bool {
 	// not an open source (CR 106.1a, 601.2b). A trigger's own cost is no spell's,
 	// an ability's or a cast's, and has no source slot.
 	other := payDesc{class: pdOther, src: NoSlot}
-	open := s.availPotentialFor(k, p, &av, &other, false)
+	open := s.availPotentialFor(k, p, &av, &other, true)
 	cap = min(cap, trigXCap)
 	mx := 0
 	for x := 1; x <= cap; x++ {
@@ -70,10 +80,12 @@ func (s *State) execTrigX(k *prep, p uint8, skip uint16, cap int) bool {
 	// faces into two values (Volcanic Island's {U} and {R} at an XMax$ cap of
 	// 2), and the census reads the board once per source, so the old skip
 	// offered X past what the sources fund. Only the defensive cap (64)
-	// skips it there: the walk may still be growing and the shapes whose
-	// census is narrower than the walk -- a storage land's counters, an open
-	// or granted source -- report open themselves, so a non-open walk at 64
-	// is one the census could drop a really-payable value from.
+	// skips it there: the walk may still be growing, and the shapes whose
+	// census is narrower than the walk -- a storage land's counters, a
+	// dynamic or each-colour production -- keep the walk's 64 (the first by
+	// saturating it with its open fold, the others by reporting open), so a
+	// non-open walk at 64 is one the census could drop a really-payable
+	// value from.
 	if !open && (mx < cap || cap < trigXCap) {
 		// gorge's potentialManaFor prices a tap's extra mana (Mana Flare's) in
 		// the bound, so the walk's count grows by it before the census below
