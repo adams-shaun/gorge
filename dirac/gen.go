@@ -261,6 +261,7 @@ type genPrep struct {
 	anyCantSac      bool           // some card has a StatCantSacrifice (static_cantsacrifice.go sacBlocked)
 	anyCantTgt      bool           // some card has a StatCantTarget (tgt_canttarget.go cantTargetGen)
 	anyCantTgtGrave bool           // some card has a StatCantTgtGrave (kw_canttgtgrave.go)
+	anyColorWords   bool           // some card has a StatColorWords (static_colorwords.go)
 	anyFaces        bool           // some card has faces (CardDef.Faces; face_multiface.go)
 	anyWarp         bool           // some card has warp (CardDef.HasWarp; kw_warp.go)
 	anyDash         bool           // some card has dash (CardDef.HasDash; kw_dash.go)
@@ -1517,6 +1518,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 				case kop.StatRetraceGrant, kop.StatOffZoneGrant:
 					g.offZoneGrantPrep(a, p) // kw_offkwgrant.go: the graveyard retrace offer
 					pc.hasStat = true        // scanned through statM (kw_offkwgrant.go, featview.go)
+				case kop.StatColorWords:
+					g.anyColorWords = true
+					pc.hasStat = true // scanned through statM (static_colorwords.go)
 				case kop.StatCantTgtGrave:
 					g.anyCantTgtGrave = true
 					pc.hasStat = true // scanned through statM (kw_canttgtgrave.go)
