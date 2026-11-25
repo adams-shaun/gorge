@@ -86,12 +86,11 @@ func (lc *lowerCtx) animateAll(ps *params) error {
 // duration (Rain of Filth's "lands you control gain 'Sacrifice this land:
 // Add {B}'", Song of Freyalise's "{T}: Add one mana of any color").
 // grantedAbility lowers it off the source face, so the record's Grant names
-// the ability the grantee sees (rules grantedAbilities). The kernel's grant
-// walk and activation reader carry both a mana and an ordinary activated
-// ability (act_empower.go globalGrantsGen, act_ovmaker.go grantMakerObj), so
-// Iron Fist, Living Weapon's "{T}: deal damage" lowers like the mana grants.
-// One or two names, as kop.Override.Grant holds; a loss in the same record
-// would need a layer-6 order the pair does not carry.
+// the ability the grantee sees (rules grantedAbilities). Mana abilities
+// only: a non-mana grant has no kernel census gap to price, so it fails
+// closed (gorge offers it; a later ticket lowers that spelling). One or two
+// names, as kop.Override.Grant holds; a loss in the same record would need
+// a layer-6 order the pair does not carry.
 func (lc *lowerCtx) animateAllGranted(ps *params, o *lOverride) error {
 	ab, ok := ps.get("Abilities")
 	if !ok {
@@ -109,6 +108,9 @@ func (lc *lowerCtx) animateAllGranted(ps *params, o *lOverride) error {
 		idx, err := lc.grantedAbility(nm)
 		if err != nil {
 			return err
+		}
+		if lc.out.Abilities[idx].Kind != akMana {
+			return refuse("AnimateAll Abilities$ %q: %s is not a mana ability", ab, nm)
 		}
 		o.GrantAbility = append(o.GrantAbility, idx)
 		n++
