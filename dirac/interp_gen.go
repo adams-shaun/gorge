@@ -1504,7 +1504,7 @@ func (s *State) execDamageEx(k *prep, in *kop.Instr) {
 		sl := s.objs[code].slot
 		lethal := 0
 		if in.C&kop.DmgTrackExcess != 0 {
-			lethal = s.excessLethalGen(k, sl)
+			lethal = s.excessLethalGen(k, sl, s.srcKw(k)&kop.KwDeathtouch != 0)
 			if lethal < 0 || DebugExcessNoLethal {
 				lethal = 0
 			}
