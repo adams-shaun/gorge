@@ -9,8 +9,7 @@ import (
 
 // TestMBCDragonScarredBearReprosLockstepMutation: with the reflected source
 // classed by the Taps watchers again and the reflected census unit dropped, the
-// recording diverges, proof it exercises dirac.reflTapsUnwatched and
-// deferredReflMask together.
+// recording diverges, proof it exercises dirac.reflTapsUnwatched.
 func TestMBCDragonScarredBearReprosLockstepMutation(t *testing.T) {
 	if isolate(t) {
 		return
