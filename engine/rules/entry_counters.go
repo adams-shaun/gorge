@@ -959,7 +959,6 @@ func isolatePreviewScratch(p *Engine) {
 	p.cmdZone = slices.Clone(p.cmdZone)
 	p.cmdZoneDue = slices.Clone(p.cmdZoneDue)
 	p.deferredAsks = slices.Clone(p.deferredAsks)
-	p.suspendedCasts = slices.Clone(p.suspendedCasts)
 	p.manaExpended = slices.Clone(p.manaExpended)
 	p.damageBatchLog = slices.Clone(p.damageBatchLog)
 	p.discardBatchLog = slices.Clone(p.discardBatchLog)

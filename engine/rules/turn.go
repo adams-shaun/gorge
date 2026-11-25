@@ -5,6 +5,7 @@ import (
 	"slices"
 
 	"github.com/adams-shaun/gorge/engine/decision"
+	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/rules/pay"
 	"github.com/adams-shaun/gorge/engine/state"
@@ -101,13 +102,6 @@ func expireCombatControl(g *state.Game, emit func(events.Event) events.Event) {
 // without drawing. Untap is special: after its action the turn enters upkeep
 // before priority; a replacement may park either entry, in which case the
 // eventual answer resumes this helper again.
-// chooseSuspendCast is the chooseFor for CR 702.62a's may-cast ask, posed by
-// startSuspendedCast when a suspended card's last TIME counter is removed.
-// iota+12 is pairwise distinct from the shared package set (cast=1/etb=2/
-// miracle=3, cleanup=4, division=5, mana=6..9, opening=10); the exact numbers
-// only need to differ.
-const chooseSuspendCast chooseFor = iota + 12
-
 // chooseUntap is the per-permanent untap-step election. It is deliberately
 // a KChoose (rather than a priority action): the controller answers before
 // the turn-based Untap event is emitted.
@@ -118,11 +112,15 @@ func (e *Engine) finishEnteredStep() {
 		return
 	}
 	if e.G.Step == state.StepUpkeep {
-		// CR 702.62b: a card in exile with Suspend and a time counter is
-		// suspended and loses a counter each upkeep. The final-counter trigger
-		// then offers its free cast if able; it is not a priority action. Gated on the step actually
-		// entered, so a BeginPhase replacement that skipped the upkeep step
-		// (landing directly on the draw) does not decrement.
+		// CR 702.62b: "At the beginning of your upkeep, if this card is
+		// suspended, remove a time counter from it" is a triggered ability
+		// (CR 603.3), not a turn-based action: it queues here with the step's
+		// other triggers, is placed on the stack as a respondable ability, and
+		// its RESOLUTION (startSuspendTick, engine/rules/suspend_trigger.go)
+		// removes the counter, the intervening-if rechecked there (CR 603.4).
+		// Gated on the step actually entered, so a BeginPhase replacement that
+		// skipped the upkeep step (landing directly on the draw) does not
+		// trigger.
 		for _, id := range e.G.Zone(state.ZExile, e.G.Active) {
 			o := e.G.Obj(id)
 			if o == nil || o.Counter("TIME") <= 0 {
@@ -137,14 +135,9 @@ func (e *Engine) finishEnteredStep() {
 				// Object.PlottedTurn).
 				continue
 			}
-			e.emit(events.Event{Kind: events.CounterChange, Obj: id, Counter: "TIME", Amount: -1})
-			// The final-counter cast queue is fed by Engine.emit's own
-			// CounterChange hook (CR 702.62a/b — the one home every remover
-			// shares); no append here, or a tick-to-zero card would be queued
-			// twice and its may-cast offer re-posed after a decline.
-		}
-		if e.startSuspendedCast() {
-			return
+			e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
+				Source: id, Controller: o.Owner, SuspendTick: true,
+				Ctx: effects.NewCtx(id, o.Owner, effects.CtxInit{})})
 		}
 	}
 	// An upkeep skip can land the turn directly on the draw step, whose
@@ -540,80 +533,6 @@ func (e *Engine) drawStepTurnAction() bool {
 	return false
 }
 
-// startSuspendedCast consumes the next final-counter trigger before anyone
-// gets priority. A targetless/un-castable card is simply left in exile, the
-// "if able" part of CR 702.62; a legal one is offered to its controller: CR
-// 702.62a's cast is OPTIONAL ("you may cast it without paying its mana cost
-// if able"), so the controller answers a real yes/no decision and a decline
-// leaves the card in exile. A yes enters the ordinary no-cost cast flow and
-// can still ask for targets.
-func (e *Engine) startSuspendedCast() bool {
-	for len(e.suspendedCasts) > 0 {
-		id := e.suspendedCasts[0]
-		e.suspendedCasts = e.suspendedCasts[1:]
-		o := e.G.Obj(id)
-		if o == nil || o.Zone != state.ZExile ||
-			!hasSuspendAbility(o) || o.Face() == nil {
-			continue
-		}
-		// "If able" includes every restriction that makes casting illegal,
-		// not merely whether the spell can find a target. In particular a
-		// CantBeCast static remains effective when Suspend supplies the mana
-		// cost; beginning the cast and discovering the restriction afterwards
-		// would incorrectly put the spell on the stack. An uncastable card is
-		// never offered: there is nothing to choose (CR 702.62a casts "if
-		// able"), so no decision is posed for it.
-		if e.castRestrictedFree(o.Owner, id) || !e.castTargetsAvailable(o.Owner, id, o.Face().SpellAbility()) {
-			continue
-		}
-		name := "it"
-		if f := o.Face(); f != nil && f.Name != "" {
-			name = f.Name
-		}
-		// CR 117.3b: the final-counter trigger's resolution ends with the
-		// active player receiving priority and a fresh pass count, which the
-		// step entry's own reset (the Priority emit closing advanceStep)
-		// would have given had the ask not cut the entry short. Without it
-		// the answer hands priority to the stale holder of the previous step.
-		e.emit(events.Event{Kind: events.Priority, Player: e.G.Active})
-		e.choosing = chooseSuspendCast
-		e.ask(decision.New(o.Owner, decision.KChoose, "Cast "+name+" without paying its mana cost?", 1, 1,
-			[]decision.Option{{Index: 0, Kind: "suspend_cast_yes", Obj: id, Label: "Cast it"},
-				{Index: 1, Kind: "suspend_cast_no", Obj: id, Label: "Leave it in exile"}}))
-		return true
-	}
-	return false
-}
-
-// suspendCastAnswer applies CR 702.62a's may-cast answer. The offered card
-// was popped from suspendedCasts when its ask was posed, so the answer's
-// object is the only provenance this needs. A yes enters the ordinary cast
-// flow (suspend_cast mode, no mana cost); a decline — or a card that left
-// exile, changed hands or lost its Suspend provenance while the ask was
-// outstanding — leaves the card in exile, which is exactly what CR 702.62a
-// says a card whose cast was not made does. Remaining suspended casts, if
-// any, are offered next; when none are, the caller's Advance loop resumes
-// the step it was in (the same route the forced cast used after resolution).
-func (e *Engine) suspendCastAnswer(chosen []decision.Option) {
-	if len(chosen) == 0 {
-		return
-	}
-	id := chosen[0].Obj
-	o := e.G.Obj(id)
-	if chosen[0].Kind == "suspend_cast_yes" && o != nil && o.Zone == state.ZExile &&
-		hasSuspendAbility(o) && o.Face() != nil {
-		e.beginCast(o.Owner, decision.Option{Kind: "cast", Obj: id, Mode: "suspend_cast"})
-		return
-	}
-	if e.pending == nil {
-		// Declined (or the card is no longer a castable suspended card): the
-		// offer is over, so the chooseFor it installed must not leak into the
-		// next KChoose a different flow asks.
-		e.choosing = chooseNone
-		e.startSuspendedCast()
-	}
-}
-
 func (e *Engine) setStep(s state.Step) {
 	leaving := e.G.Step
 	previous, previousSet := e.stepLeaving, e.stepLeavingSet
@@ -715,17 +634,11 @@ func (e *Engine) step() {
 	// returns with that decision outstanding. The CR 704.5j legend rule
 	// (engine/rules/sba.go) can too: parkLegendChoice parks the batch and asks the
 	// duplicate set's controller in one step, so checkStateBased also returns
-	// with that decision outstanding. Neither startSuspendedCast below nor the
-	// step switch may then run -- both hand out a SECOND, unrelated decision
-	// and would silently overwrite the parked one (Advance pauses on the first
-	// e.pending regardless, so this guard is what keeps them from clobbering
-	// it). The ordering matters: the guard must precede startSuspendedCast,
-	// which poses the CR 702.62a suspend cast, because that ask is one more
-	// site that can displace a just-posed state-based-action decision.
+	// with that decision outstanding. The step switch may then not run -- it
+	// would hand out a SECOND, unrelated decision and silently overwrite the
+	// parked one (Advance pauses on the first e.pending regardless, so this
+	// guard is what keeps them from clobbering it).
 	if e.pending != nil {
-		return
-	}
-	if e.startSuspendedCast() {
 		return
 	}
 	// CR 608.2g: the rest of an Amount$ Play answer whose earlier cast
@@ -1796,14 +1709,6 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 		// last one it would survive into turn 1's first priority.
 		e.choosing = chooseNone
 		e.handleOpening(d, in)
-	case chooseSuspendCast:
-		// CR 702.62a: the may-cast offer on a suspended card's last TIME
-		// counter was answered. suspendCastAnswer either enters the ordinary
-		// cast flow (a yes) or leaves the card in exile and offers the next
-		// suspended cast, if any (a decline). There is no trigger drain to
-		// resume: the offer comes from the turn structure, never from inside
-		// one, so e.drainAwaitsTarget is necessarily false here.
-		e.suspendCastAnswer(chosen)
 	case chooseCleanup:
 		// CR 514.1: the cleanup-step discard decision was answered.
 		// discardCleanup moves the chosen cards hand -> graveyard, runs the

@@ -19,6 +19,7 @@ func TestSuspendedCreatureCastGainsHaste(t *testing.T) {
 		t.Fatalf("suspend did not exile with one time counter: %+v", o)
 	}
 	e.beginTurn(0)
+	suspendResolveTick(t, e, id)
 	if d := e.Pending(); d == nil || len(d.Options) != 2 || d.Options[0].Kind != "suspend_cast_yes" {
 		t.Fatalf("final counter did not offer the may-cast: %+v", d)
 	}
@@ -44,6 +45,7 @@ func TestSuspendedCreatureHasteEndsWithControl(t *testing.T) {
 	e.G.Players[0].Pool[state.MR] = 1
 	castMode(t, e, id, "suspend")
 	e.beginTurn(0)
+	suspendResolveTick(t, e, id)
 	submitChoices(t, e, 0)
 	e.resolveTop()
 	if !e.HasKeyword(id, "Haste") {
@@ -86,6 +88,7 @@ func TestSuspendedCreatureHasteEndsWhenItLeavesTheBattlefield(t *testing.T) {
 	e.G.Players[0].Pool[state.MR] = 1
 	castMode(t, e, id, "suspend")
 	e.beginTurn(0)
+	suspendResolveTick(t, e, id)
 	submitChoices(t, e, 0)
 	e.resolveTop()
 	if !e.HasKeyword(id, "Haste") {

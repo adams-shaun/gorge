@@ -33,7 +33,7 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // too). A removal by damage or +1/+1 / -1/-1 annihilation fires nothing (kgen refuses +1/+1 and -1/-1 lines for it;
 // gorge folds a walker's damage loyalty loss into the Damage event, never a
 // CounterChange). A suspended card's upkeep time counter fires from exile
-// (suspendTick, fireCtrRemovedExile).
+// (resolveSuspendTick, fireCtrRemovedExile).
 
 // useCounterRemoved is the table's genPrep.uses bit for a CounterRemoved or
 // CounterRemovedOnce trigger (genneed.go).

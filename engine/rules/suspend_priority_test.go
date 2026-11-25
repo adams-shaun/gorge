@@ -20,7 +20,9 @@ func TestSuspendCastGivesTheActivePlayerPriority(t *testing.T) {
 	e.G.Players[1].Pool[state.MR] = 1
 	e.beginCast(1, decision.Option{Kind: "cast", Obj: o.ID, Mode: "suspend"})
 	e.beginTurn(1)
-	if d := e.Pending(); d == nil || e.G.Active != 1 || len(d.Options) != 2 || d.Options[0].Kind != "suspend_cast_yes" {
+	suspendResolveTick(t, e, o.ID)
+	d := e.Pending()
+	if d == nil || e.G.Active != 1 || len(d.Options) != 2 || d.Options[0].Kind != "suspend_cast_yes" {
 		t.Fatalf("precondition: seat 1's upkeep does not offer the cast: active=%d %+v", e.G.Active, d)
 	}
 	submitChoices(t, e, 0)

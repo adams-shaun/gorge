@@ -451,18 +451,24 @@ func (e *Engine) emit(ev events.Event) events.Event {
 	if stackCopyMintWant != 0 && e.G.Obj(stackCopyMintWant) != nil {
 		*e.stackCopyMintSink = append(*e.stackCopyMintSink, stackCopyMintWant)
 	}
+	suspendLast := false
 	if ev.Kind == events.CounterChange && ev.Amount < 0 && ev.Counter == "TIME" && timeBefore > 0 {
 		// CR 702.62a/b (counterchoice1): the LAST time counter leaving a
 		// suspended card by ANY route — the upkeep tick or a Clockspinning/
 		// Amy-Pond-style removal mid-resolution — queues CR 702.62a's may-cast
-		// offer; startSuspendedCast drains the queue at the next step(). The
-		// ONE home replaces the upkeep tick's own append (which was the only
-		// emitter before): a counter removed mid-resolution used to strand a
-		// zero-TIME card in exile forever, because the tick skips a card
-		// already at zero and nothing else ever re-offered the cast.
+		// as a REAL triggered ability (engine/rules/suspend_trigger.go's
+		// askSuspendCast resolves it); the ordinary drain places it on the
+		// stack at the next priority point, respondable like any other
+		// trigger. The ONE home replaces the upkeep tick's own append (which
+		// was the only emitter before): a counter removed mid-resolution used
+		// to strand a zero-TIME card in exile forever, because the tick skips
+		// a card already at zero and nothing else ever re-offered the cast.
+		// Queued below, after the event's own triggers were matched (the
+		// queueSiegeDefeat convention), so the may-cast trigger follows the
+		// ones the same event made.
 		if o := e.G.Obj(ev.Obj); o != nil && o.Zone == state.ZExile &&
 			hasSuspendAbility(o) && o.Counter("TIME") == 0 {
-			e.suspendedCasts = append(e.suspendedCasts, ev.Obj)
+			suspendLast = true
 		}
 	}
 	// CR 702.90b (kw:Infect): the counters/poison an infect source's damage
@@ -783,6 +789,9 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		}
 		if siegeBefore > 0 {
 			queueSiegeDefeat(e.G, &e.pendingTriggers, stored, siegeBefore)
+		}
+		if suspendLast {
+			queueSuspendCast(e.G, &e.pendingTriggers, stored)
 		}
 		if stored.Kind == events.EndTurn || stored.Kind == events.EndCombatPhase {
 			e.checkEndTurnExileTriggers(&stored)

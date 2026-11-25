@@ -26,10 +26,13 @@ func TestSelfExiledSuspendSpellTicksAndIsOfferedItsCast(t *testing.T) {
 		t.Fatalf("precondition: the spell did not exile itself with two time counters: %+v", o)
 	}
 	e.beginTurn(0)
+	suspendResolveTick(t, e, id)
 	if got := e.G.Obj(id).Counter("TIME"); got != 1 {
 		t.Fatalf("first upkeep TIME=%d, want 1", got)
 	}
+	e.pending = nil
 	e.beginTurn(0)
+	suspendResolveTick(t, e, id)
 	d := e.Pending()
 	if d == nil || d.Kind != decision.KChoose || len(d.Options) != 2 || d.Options[0].Kind != "suspend_cast_yes" {
 		t.Fatalf("the last counter did not offer the free cast: %+v", d)

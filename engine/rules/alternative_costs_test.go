@@ -78,10 +78,18 @@ func suspendToFinalCounter(t *testing.T) (*Engine, state.ObjID) {
 		t.Fatalf("Suspend did not create marked exile card: %+v", o)
 	}
 	e.beginTurn(0)
+	// CR 702.62b's tick is now a real triggered ability: the counter leaves
+	// only when it resolves (CR 603.3).
+	suspendResolveTick(t, e, profane)
 	if got := e.G.Obj(profane).Counter("TIME"); got != 1 {
 		t.Fatalf("first suspend upkeep TIME=%d, want 1", got)
 	}
+	// The fresh upkeep priority the resolution granted is left unanswered;
+	// the next beginTurn starts from a quiet engine, as the other upkeep
+	// fixtures do.
+	e.pending = nil
 	e.beginTurn(0)
+	suspendResolveTick(t, e, profane)
 	d := e.Pending()
 	if d == nil || len(d.Options) != 2 || d.Options[0].Kind != "suspend_cast_yes" || d.Options[1].Kind != "suspend_cast_no" {
 		t.Fatalf("final suspend counter did not offer the CR 702.62a may-cast ask: %+v", d)
@@ -129,7 +137,6 @@ func TestSuspendOrdinaryExiledCardNeverGetsTheOffer(t *testing.T) {
 	other := e.G.AddObject(corpusAlternativeCard(t, "Profane Tutor"), 0)
 	other.Zone = state.ZExile
 	e.G.SetZone(state.ZExile, 0, append(e.G.Zone(state.ZExile, 0), other.ID))
-	e.suspendedCasts = nil
 	e.beginTurn(0)
 	if other.Zone != state.ZExile {
 		t.Fatalf("ordinary exiled Suspend card was cast for free: %s", other.Zone)
@@ -153,7 +160,10 @@ func TestSuspendDoesNotCastThroughCantBeCast(t *testing.T) {
 	restrictor.Zone = state.ZBattlefield
 	e.G.SetZone(state.ZBattlefield, 1, []state.ObjID{restrictor.ID})
 	e.beginTurn(0)
+	suspendResolveTick(t, e, profane)
+	e.pending = nil
 	e.beginTurn(0)
+	suspendResolveTick(t, e, profane)
 	if o := e.G.Obj(profane); o.Zone != state.ZExile || o.Counter("TIME") != 0 || e.cast != nil {
 		t.Fatalf("restricted suspended spell was cast: %+v pending=%+v", o, e.cast)
 	}

@@ -1,0 +1,5 @@
+family: ask
+name: raSuspendCast
+value: 165
+status: active
+doc: the free cast ask of a resolving suspend last-counter trigger (CR 702.62a, ChSuspendCast; kw_suspend.go resolveSuspendCast)

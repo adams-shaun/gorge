@@ -33,13 +33,19 @@ const (
 
 // resolveTimeKeywordPush names the KeywordTriggerPush a mandatory keyword
 // trigger whose choice is made as its stack object resolves mints: Madness's
-// cast-or-graveyard and the Siege's exile-then-cast (askKeywordCast).
+// cast-or-graveyard, the Siege's exile-then-cast, and suspend's two real
+// triggered abilities (CR 702.62a/b — the upkeep tick rules resolves and the
+// last-counter may-cast rules asks, engine/rules/suspend_trigger.go).
 func (pt pendingTrigger) resolveTimeKeywordPush() (counter, text string, ok bool) {
 	switch {
 	case pt.Madness:
 		return "__kwMadnessCast", "madness cast", true
 	case pt.Siege:
 		return siegeDefeatCounter, "siege defeated", true
+	case pt.SuspendTick:
+		return "__kwSuspendTick", "suspend tick", true
+	case pt.SuspendLast:
+		return "__kwSuspendCast", "suspend last-counter", true
 	}
 	return "", "", false
 }
