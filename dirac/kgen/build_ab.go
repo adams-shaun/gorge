@@ -2125,7 +2125,11 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		if s.AbilityRed != 0 {
 			// activated abilities of battlefield permanents (lower_reduceab.go)
 			st.Kind = kop.StatReduceAbility
-			if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
+			fz := kop.ZoneBattlefield
+			if s.Zone == zGraveyard {
+				st.Zone, fz = kop.ZoneGraveyard, kop.ZoneGraveyard // lower_reduceab.go: a graveyard card's own activation
+			}
+			if st.Filter, err = filter(s.F, fz); err != nil {
 				return ka, nil, err
 			}
 			if err := amounts(s.Amount, lValue{}); err != nil {
@@ -2679,6 +2683,13 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		}
 		st.Kind = kop.StatPlayerHexproof
 		st.A = 2
+	case "DefenderAssigns":
+		// Defensive Formation (lower_playerstatic.go): unconditional, as the
+		// kernel read (static_plkeyword.go) consults no Cond2
+		if s.Cond.Kind != cNone || s.Amount.Kind != vNone {
+			return ka, nil, fmt.Errorf("DefenderAssigns beside %s", s.Cond)
+		}
+		st.Kind = kop.StatDefenderAssigns
 	case "PlayerProtAll":
 		st.Kind = kop.StatPlayerProtAll // the controller has protection from everything (static_plprot.go)
 	case "MayPlayFrom":

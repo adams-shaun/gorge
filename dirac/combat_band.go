@@ -153,4 +153,7 @@ func (s *State) bandDivider(k *prep, d *Decision) {
 			return
 		}
 	}
+	if s.defenderAssigns(k, s.divA) {
+		d.Player = s.atkSeat(k, s.divA) // Defensive Formation (static_defenderassigns.go)
+	}
 }
