@@ -1515,7 +1515,7 @@ func (e *Engine) replacementMatches(r cards.Repl, source state.ObjID, ev events.
 // binding; a spec carrying IsRemembered against an empty set fails closed,
 // the matcher's standing contract.
 func (e *Engine) replacementMatchesRemembered(r cards.Repl, source state.ObjID, ev events.Event, remembered []state.ObjID, rememberedPlayers []state.PlayerID) bool {
-	if !e.activeZonesGateOK(r, source, ev) {
+	if !e.activeZonesGateOK(r, source, ev) || ownEntryMoveExcluded(e.G, r, source, ev) {
 		return false
 	}
 	return e.replacementMatchesRememberedUngated(r, source, ev, remembered, rememberedPlayers, nil)
