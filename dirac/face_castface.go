@@ -353,11 +353,19 @@ const FeatCastFace = castFace
 func (s *State) faceWitnessReaches(k *prep, p uint8, o Obj, c CardID, cost *kop.ManaCost) bool {
 	tmp := s.fork()
 	defer s.unfork()
+	n0 := tmp.npend
 	var pk planner
 	pk.try = true
 	tmp.tapForPK(k, p, cost, 0, NoObj, false, false, &pk)
 	if !pk.found || !plannerConsumesSac(&pk) {
 		return true
+	}
+	// A sorcery-speed face (an Adventure creature cast from exile) is offered
+	// only once the witness's triggers have resolved, and gorge's replay lets
+	// at most witnessWaits of them: the sacrificed Eldrazi Scion and Spawn
+	// beside two Quests for the Gravelord and a Falkenrath Noble stack six.
+	if s.witnessOverWaits(k, p, c, o, int(tmp.npend)-int(n0)) {
+		return false
 	}
 	return tmp.spellTargetsFeasible(k, c, p) && tmp.FeatPoolPays(p, o, 0)
 }
