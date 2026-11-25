@@ -1816,6 +1816,9 @@ func (s *State) finishBuild(k *prep) {
 			return // a free or Spree cast's window waits on a tap-another pick (mana_window.go)
 		}
 		s.obsWinSettle(k, e.ctrl, obsPool, obsOK)
+		if k.gen != nil && k.gen.anyManaHaste {
+			s.hasteSettle(e.ctrl) // mana_hastefloat.go
+		}
 		s.payDelvePicks() // gorge payCast exiles the delved cards after the mana
 		s.paySacsGen(k)
 		s.bld().e.flags &^= sfFbGranted
