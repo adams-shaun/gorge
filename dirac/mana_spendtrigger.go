@@ -70,9 +70,6 @@ func (s *State) noteTapSrc(k *prep, pc *pcard, sl Slot) {
 			return
 		}
 	}
-	if pc.castSrc&(csManaHaste|csObserved) == csManaHaste {
-		s.noteHasteSrc(k, sl) // mana_spentrider.go
-	}
 }
 
 // planNoteTap is noteTapSrc for the planner's tap of sl making col. Under a
