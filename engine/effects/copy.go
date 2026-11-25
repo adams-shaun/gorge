@@ -202,23 +202,73 @@ func effCopySpellAbility(h Host, c *Ctx, sa *cards.SA) {
 
 	// Controller$ (Chain Lightning's "If the player does, they may copy this
 	// spell" -- CR 707.10's copy-ownership half): the copy belongs to the
-	// player the parameter names, not the resolving controller. The target-
-	// derived family resolves against the copied spell's own targets (the
-	// shared c.Targets a Parent copy inherits); an unknown selector keeps
-	// the historical resolving-controller default rather than inventing a
-	// binding (measured corpus: only the TargetedOrController spelling
-	// reaches a registered copy on a measured path). Resolved BEFORE the
-	// Optional$ election below, because on the corpus's combined carriers
-	// (Wandering Archaic's Controller$ You, Chain of Silence's Controller$
-	// TargetedController) the may-copy election is the addressed player's,
-	// not the resolving controller's.
-	controller := c.Controller
+	// player the parameter names, not the resolving controller. The set shape
+	// is load-bearing: Hive Mind's NonTriggeredCardController names every
+	// OTHER player, and CR 707.10 gives each of them their own copy. Every
+	// other selector names one player or none. The target-derived family
+	// resolves against the copied spell's own targets (the shared c.Targets a
+	// Parent copy inherits); an unknown selector keeps the historical
+	// resolving-controller default rather than inventing a binding. Resolved
+	// BEFORE the Optional$ election below, because on the corpus's combined
+	// carriers (Wandering Archaic's Controller$ You, Chain of Silence's
+	// Controller$ TargetedController) the may-copy election is the addressed
+	// player's, not the resolving controller's.
+	controllers := []state.PlayerID{c.Controller}
 	if spec := strings.TrimSpace(sa.ParamStr(cards.PKController)); spec != "" {
-		if p, ok := copyControllerFor(g, c, spec); ok {
-			controller = p
+		if ps, ok := copyControllersFor(g, c, spec); ok {
+			controllers = ps
 		}
 	}
 
+	// IgnoreFreeze$ is recognised, not acted on (no stack freeze exists); ignoreFreezeRead's doc carries the details.
+	_ = ignoreFreezeRead(sa)
+	mayChoose := strings.EqualFold(strings.TrimSpace(sa.ParamStr(cards.PKMayChooseTarget)), "True")
+	payload := events.StackCopyCounterString(stackCopyRiders(sa))
+	// RememberCopies$ True (Shiko and Narset, Unified's "copy that spell ...
+	// If you don't copy a spell this way, draw a card"; Chef's Kiss's "the
+	// spell and the copy"; Tempt with Mayhem's per-copier count): Forge's
+	// CopySpellAbilityEffect.resolve ends with card.addRemembered(copies) for
+	// EVERY copy it actually made. Read once here and threaded into both
+	// emit sites below; an absent/False key leaves the remembered set
+	// untouched, exactly the historical behaviour.
+	//
+	// RememberNewCard$ True (Spinerock Tyrant, Mizzix's Replica Rider,
+	// Choreographed Sparks, Gandalf, Nalfeshnee, Spider-Verse: the follow-up
+	// Pump/Animate reads Defined$ Remembered) is Forge's same rider spelled
+	// for the "new card" the copy is; it records the copy identically.
+	rememberCopies := strings.EqualFold(strings.TrimSpace(sa.ParamStr(cards.PKRememberCopies)), "True") ||
+		strings.EqualFold(strings.TrimSpace(sa.ParamStr(cards.PKRememberNewCard)), "True")
+	// DefinedTarget$ (Feather, Radiant Arbiter's DefinedTarget$ ChosenCard,
+	// Ivy, Gleeful Spellthief's DefinedTarget$ Self): Forge's
+	// CopySpellAbilityEffect makes ONE copy per defined target, each with
+	// its target REPLACED by that entry (the StackCopy event's IDs override
+	// the inherited list, engine/events/event.go) -- "for each of those creatures,
+	// copy that spell. The copy targets that creature." The copy count is
+	// the defined set's size, never Amount$: no corpus carrier combines the
+	// param with an Amount$ (they name none), and the param is exactly the
+	// override of the copy-keeps-targets stand-in below. An unresolvable
+	// value (Zevlor, Elturel Exile's OppNonTriggeredSpellAbilityTargetsOr-
+	// Controller) keeps the historical single inherited-target copy under
+	// one loud Note -- the override applies only where the engine can
+	// resolve what it names.
+	targets, defined := copyDefinedTargets(h, c, sa)
+	for _, controller := range controllers {
+		copySpellForController(h, c, sa, spell, validStackSpells, controller,
+			snapshotText, mayChoose, payload, rememberCopies, targets, defined, addTypes)
+	}
+}
+
+// copySpellForController runs ONE Controller$ addressee's share of a
+// CopySpellAbility: the Optional$ may-copy election, the CopyForEachCanTarget$
+// replacement-target arm, and the ordinary StackCopy emission. Most selectors
+// name a single player, but NonTriggeredCardController is plural (Hive Mind's
+// "each other player copies that spell"), so the caller invokes this once per
+// addressed player; the shared, controller-independent reads stay in
+// effCopySpellAbility.
+func copySpellForController(h Host, c *Ctx, sa *cards.SA, spell state.ObjID, validStackSpells []state.ObjID,
+	controller state.PlayerID, snapshotText string, mayChoose bool, payload string,
+	rememberCopies bool, targets []state.Target, defined bool, addTypes []string) {
+	g := h.Game()
 	// Optional$ True (Sevinne's Reclamation's "you may copy this spell", the
 	// corpus's wider may-copy family, and the Optional$+UnlessCost$ carriers
 	// Wandering Archaic and Chain of Silence): pose the may-copy election once
@@ -254,39 +304,6 @@ func effCopySpellAbility(h Host, c *Ctx, sa *cards.SA) {
 			return
 		}
 	}
-	// IgnoreFreeze$ is recognised, not acted on (no stack freeze exists); ignoreFreezeRead's doc carries the details.
-	_ = ignoreFreezeRead(sa)
-	mayChoose := strings.EqualFold(strings.TrimSpace(sa.ParamStr(cards.PKMayChooseTarget)), "True")
-	riders := stackCopyRiders(sa)
-	payload := events.StackCopyCounterString(riders)
-	// RememberCopies$ True (Shiko and Narset, Unified's "copy that spell ...
-	// If you don't copy a spell this way, draw a card"; Chef's Kiss's "the
-	// spell and the copy"; Tempt with Mayhem's per-copier count): Forge's
-	// CopySpellAbilityEffect.resolve ends with card.addRemembered(copies) for
-	// EVERY copy it actually made. Read once here and threaded into both
-	// emit sites below; an absent/False key leaves the remembered set
-	// untouched, exactly the historical behaviour.
-	//
-	// RememberNewCard$ True (Spinerock Tyrant, Mizzix's Replica Rider,
-	// Choreographed Sparks, Gandalf, Nalfeshnee, Spider-Verse: the follow-up
-	// Pump/Animate reads Defined$ Remembered) is Forge's same rider spelled
-	// for the "new card" the copy is; it records the copy identically.
-	rememberCopies := strings.EqualFold(strings.TrimSpace(sa.ParamStr(cards.PKRememberCopies)), "True") ||
-		strings.EqualFold(strings.TrimSpace(sa.ParamStr(cards.PKRememberNewCard)), "True")
-	// DefinedTarget$ (Feather, Radiant Arbiter's DefinedTarget$ ChosenCard,
-	// Ivy, Gleeful Spellthief's DefinedTarget$ Self): Forge's
-	// CopySpellAbilityEffect makes ONE copy per defined target, each with
-	// its target REPLACED by that entry (the StackCopy event's IDs override
-	// the inherited list, engine/events/event.go) -- "for each of those creatures,
-	// copy that spell. The copy targets that creature." The copy count is
-	// the defined set's size, never Amount$: no corpus carrier combines the
-	// param with an Amount$ (they name none), and the param is exactly the
-	// override of the copy-keeps-targets stand-in below. An unresolvable
-	// value (Zevlor, Elturel Exile's OppNonTriggeredSpellAbilityTargetsOr-
-	// Controller) keeps the historical single inherited-target copy under
-	// one loud Note -- the override applies only where the engine can
-	// resolve what it names.
-	targets, defined := copyDefinedTargets(h, c, sa)
 	if spec := strings.TrimSpace(sa.Params["CopyForEachCanTarget"]); spec != "" && spell != 0 && !defined {
 		if copyForEachCanTarget(h, c, sa, spell, controller, spec, rememberCopies, payload, addTypes) {
 			return
@@ -658,13 +675,6 @@ func copyDefinedTargets(h Host, c *Ctx, sa *cards.SA) ([]state.Target, bool) {
 	return nil, false
 }
 
-// copyControllerFor resolves a CopySpellAbility Controller$ selector to the
-// player who receives the copy. Only the target-derived family is modelled:
-// TargetedOrController is the Forge spelling for "the target if it is a
-// player, else the target's controller" (Chain Lightning's cycle), and the
-// plain Targeted/TargetedController/TargetedPlayer forms read the same
-// binding. A missing target (a fizzled ask) fails to ok=false and the caller
-// keeps its controller.
 // copyOfCopy reports whether the spell a may-copy election would copy is
 // itself a stack copy (decision.Decision.CopyOfCopy: the chain-continuation
 // marker the unattended bot declines).
@@ -673,27 +683,47 @@ func copyOfCopy(g *state.Game, spell state.ObjID) bool {
 	return o != nil && o.IsCopy
 }
 
-func copyControllerFor(g *state.Game, c *Ctx, spec string) (state.PlayerID, bool) {
+// copyControllersFor resolves a CopySpellAbility Controller$ selector to the
+// players who receive copies, in the order the selector names them. The
+// controller is the RECEIVING player (CR 707.10): Forge's Controller$ is
+// AbilityUtils.getDefinedPlayers, so a selector may name one player, a set
+// (NonTriggeredCardController = every living player except the triggering
+// card's controller, Hive Mind's "each other player"), or nobody. ok=false
+// means this build does not model the spelling; the caller then keeps its
+// historical resolving-controller fallback rather than inventing a binding.
+// An ok=true empty set is a real empty set and copies nothing.
+//
+// The trigger-derived family reads the firing event's provenance, not the
+// resolving trigger's controller:
+//   - TriggeredCardController is the triggering card's controller, which for
+//     a SpellCast trigger is the caster (Bonus Round's "that player copies
+//     it");
+//   - TriggeredActivator is the player who cast or activated the trigger
+//     event (Mirrorwing Dragon, Izzet Steam Maze, Glimmervoid Basin);
+//   - TriggeredSpellAbilityController is the controller of the triggering
+//     spell/ability (Precursor Golem);
+//   - NonTriggeredCardController is its complement over the living seats.
+func copyControllersFor(g *state.Game, c *Ctx, spec string) ([]state.PlayerID, bool) {
 	switch copyControllerForCodes.Code(string(spec)) {
 	case copyControllerForTargeted:
 		// A target that left the battlefield during this resolution (Chain of
 		// Vapor's bounce) is controlled by the controller it had (CR 608.2h).
 		for _, t := range targetsControllerLKI(g, c, c.Targets) {
 			if t.IsPlayer {
-				return t.Player, true
+				return []state.PlayerID{t.Player}, true
 			}
 			if o := g.Obj(t.Obj); o != nil {
-				return o.Controller, true
+				return []state.PlayerID{o.Controller}, true
 			}
 		}
-		return 0, false
+		return nil, false
 	case copyControllerForChosenPlayer:
 		for _, t := range c.Chosen {
 			if t.IsPlayer {
-				return t.Player, true
+				return []state.PlayerID{t.Player}, true
 			}
 		}
-		return 0, false
+		return nil, false
 	case copyControllerForRemembered:
 		// Tempt with Mayhem's per-opponent copy: the RepeatEach loop binds its
 		// current subject (a player) as Remembered, and prior iterations' copy
@@ -704,17 +734,17 @@ func copyControllerFor(g *state.Game, c *Ctx, spec string) (state.PlayerID, bool
 		// binding returns false and the caller keeps the resolving controller.
 		for _, t := range c.Remembered {
 			if t.IsPlayer {
-				return t.Player, true
+				return []state.PlayerID{t.Player}, true
 			}
 		}
 		for _, t := range c.Remembered {
 			if o := g.Obj(t.Obj); o != nil {
-				return o.Controller, true
+				return []state.PlayerID{o.Controller}, true
 			}
 		}
-		return 0, false
+		return nil, false
 	case copyControllerForYou:
-		return c.Controller, true
+		return []state.PlayerID{c.Controller}, true
 	case copyControllerForNextOpponentToYourLeft:
 		// Barroom Brawl's "Then that player [the opponent to your left] may
 		// copy this spell": the next living seat after the resolving
@@ -723,11 +753,49 @@ func copyControllerFor(g *state.Game, c *Ctx, spec string) (state.PlayerID, bool
 		// CASTER was offered its own copy, and the copy's copy, forever.
 		alive := g.AliveFrom(c.Controller)
 		if len(alive) < 2 {
-			return 0, false
+			return nil, false
 		}
-		return alive[1], true
+		return []state.PlayerID{alive[1]}, true
+	case copyControllerForTriggeredCardController:
+		if p, ok := TriggeredCardController(g, c.TriggerContext, c.Remembered); ok {
+			return []state.PlayerID{p}, true
+		}
+		return nil, false
+	case copyControllerForTriggeredActivator:
+		if c.TriggerActivator.IsPlayer {
+			return []state.PlayerID{c.TriggerActivator.Player}, true
+		}
+		if o := g.Obj(c.TriggerActivator.Obj); o != nil {
+			return []state.PlayerID{o.Controller}, true
+		}
+		// Old/hand-built contexts without the role keep the historical
+		// resolving-controller fallback (the UnlessPayer$ reader does the
+		// same).
+		return []state.PlayerID{c.Controller}, true
+	case copyControllerForTriggeredSpellAbilityController:
+		if p, ok := TriggeredSourceController(g, c.TriggerContext, c.Remembered); ok {
+			return []state.PlayerID{p}, true
+		}
+		return []state.PlayerID{c.Controller}, true
+	case copyControllerForNonTriggeredCardController:
+		// Every living player except the triggering card's controller: Hive
+		// Mind's "each other player copies that spell". The excluded seat is
+		// event provenance (the caster), never the trigger source's
+		// controller; the start seat keeps AliveFrom's APNAP order from the
+		// resolving controller.
+		excluded, ok := TriggeredCardController(g, c.TriggerContext, c.Remembered)
+		if !ok {
+			return nil, false
+		}
+		out := make([]state.PlayerID, 0, len(g.Players))
+		for _, p := range g.AliveFrom(c.Controller) {
+			if p != excluded {
+				out = append(out, p)
+			}
+		}
+		return out, true
 	}
-	return 0, false
+	return nil, false
 }
 
 type effCopySpellAbilityCode uint16
@@ -780,6 +848,10 @@ const (
 	copyControllerForRemembered
 	copyControllerForYou
 	copyControllerForNextOpponentToYourLeft
+	copyControllerForTriggeredCardController
+	copyControllerForTriggeredActivator
+	copyControllerForTriggeredSpellAbilityController
+	copyControllerForNonTriggeredCardController
 )
 
 var copyControllerForCodes = state.NewStrCodes(
@@ -796,4 +868,8 @@ var copyControllerForCodes = state.NewStrCodes(
 	state.StrEntry[copyControllerForCode]{Key: "You", Val: copyControllerForYou},
 	state.StrEntry[copyControllerForCode]{Key: "NextOpponentToYourLeft", Val: copyControllerForNextOpponentToYourLeft},
 	state.StrEntry[copyControllerForCode]{Key: "NextPlayerToYourLeft", Val: copyControllerForNextOpponentToYourLeft},
+	state.StrEntry[copyControllerForCode]{Key: "TriggeredCardController", Val: copyControllerForTriggeredCardController},
+	state.StrEntry[copyControllerForCode]{Key: "TriggeredActivator", Val: copyControllerForTriggeredActivator},
+	state.StrEntry[copyControllerForCode]{Key: "TriggeredSpellAbilityController", Val: copyControllerForTriggeredSpellAbilityController},
+	state.StrEntry[copyControllerForCode]{Key: "NonTriggeredCardController", Val: copyControllerForNonTriggeredCardController},
 )
