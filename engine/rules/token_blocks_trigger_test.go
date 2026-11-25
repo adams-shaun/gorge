@@ -52,7 +52,7 @@ func tokenBlocksSettle(t *testing.T, e *Engine) {
 // TestTokenBlocksFiresBecomesBlockedByCreature is the filing card, end to end
 // on Brimaz's real block trigger: seat 0 attacks with a bear carrying the
 // inline "whenever CARDNAME becomes blocked by a creature, CARDNAME gets
-// +1/+1" line (Forge Mode$ AttackerBlocked | ValidCard$ Card.Self |
+// +1/+1" line (Forge Mode$ AttackerBlockedByCreature | ValidCard$ Card.Self |
 // ValidBlocker$ Creature), seat 1 blocks with Brimaz, and Brimaz's block
 // trigger mints the Cat Soldier blocking the attacker. The token's TokenBlocks
 // entry is the second become-blocked transition (CR 509.3d), so the trigger
@@ -64,8 +64,8 @@ func TestTokenBlocksFiresBecomesBlockedByCreature(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
 	const bearer = "Name:Blocked Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\n" +
-		"T:Mode$ AttackerBlocked | ValidCard$ Card.Self | ValidBlocker$ Creature | TriggerZones$ Battlefield | Execute$ TrigBlockedPump | TriggerDescription$ Whenever CARDNAME becomes blocked by a creature, CARDNAME gets +1/+1 until end of turn.\n" +
-		"SVar:TrigBlockedPump:DB$ Pump | Defined$ Self | NumAtt$ 1 | NumDef$ 1\nOracle:x\n"
+		"T:Mode$ AttackerBlockedByCreature | ValidCard$ Card.Self | ValidBlocker$ Creature | TriggerZones$ Battlefield | Execute$ TrigPumpOnBlock | TriggerDescription$ Whenever CARDNAME becomes blocked by a creature, it gets +1/+1 until end of turn.\n" +
+		"SVar:TrigPumpOnBlock:DB$ Pump | Defined$ Self | NumAtt$ 1 | NumDef$ 1\nOracle:x\n"
 	e, cfg := combatTriggerBoard(t, reg,
 		nil, []string{bearer},
 		[]string{"Brimaz, King of Oreskos"}, nil)
@@ -171,5 +171,101 @@ func TestTokenBlocksFiresBecomesBlockedByCreaturePairMode(t *testing.T) {
 	}
 	if e.Power(cat) != 0 || e.Toughness(cat) != 0 {
 		t.Fatalf("Cat Soldier = %d/%d, want 0/0 (the token-entry instance named it)", e.Power(cat), e.Toughness(cat))
+	}
+}
+
+// tokenBlocksPumpBear is the Vicious Battlerager / Gustcloak Harrier shape:
+// Forge spells a plain "whenever CARDNAME becomes blocked" as Mode$
+// AttackerBlocked, the CR 509.3c mode, which a creature put onto the
+// battlefield blocking triggers only for a previously unblocked attacker.
+const tokenBlocksPumpBear = "Name:Becomes Blocked Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\n" +
+	"T:Mode$ AttackerBlocked | ValidCard$ Card.Self | TriggerZones$ Battlefield | Execute$ TrigPumpOnBlock | TriggerDescription$ Whenever CARDNAME becomes blocked, it gets +1/+1 until end of turn.\n" +
+	"SVar:TrigPumpOnBlock:DB$ Pump | Defined$ Self | NumAtt$ 1 | NumDef$ 1\nOracle:x\n"
+
+// TestTokenBlocksAttackerBlockedModeFiresOnceOnBlockedAttacker is the CR
+// 509.3c negative: Brimaz blocks the attacker (the declared block fires the
+// "becomes blocked" line once), then his Cat Soldier enters blocking the
+// already-blocked attacker, which must NOT fire it a second time.
+func TestTokenBlocksAttackerBlockedModeFiresOnceOnBlockedAttacker(t *testing.T) {
+	t.Parallel()
+	reg := testutil.CorpusRegistry(t)
+	e, _ := combatTriggerBoard(t, reg,
+		nil, []string{tokenBlocksPumpBear},
+		[]string{"Brimaz, King of Oreskos"}, nil)
+	e.emit(events.Event{Kind: events.TurnChange, Player: 0, Amount: 2})
+	e.emit(events.Event{Kind: events.StepChange, Step: state.StepDeclareAttackers})
+	atk := findBattlefield(t, e, 0, "Becomes Blocked Bear", 0)
+	brimaz := findBattlefield(t, e, 1, "Brimaz, King of Oreskos", 0)
+	if o := e.G.Obj(atk); o == nil || o.Zone != state.ZBattlefield || e.Power(atk) != 2 {
+		t.Fatalf("precondition: attacker = %+v, want a live battlefield 2/2", o)
+	}
+
+	e.askAttackers()
+	submitAttackers(t, e, atk)
+	submitBlockersOnly(t, e, brimaz)
+	tokenBlocksSettle(t, e)
+
+	cat := tokenBlockingCat(e)
+	if cat == 0 {
+		t.Fatal("precondition: Brimaz's block trigger never minted the Cat Soldier")
+	}
+	if got := e.G.Obj(atk).BlockedBy; len(got) != 2 || got[1] != cat {
+		t.Fatalf("precondition: attacker BlockedBy = %v, want Brimaz then the Cat %d", got, cat)
+	}
+	if n := countEvents(e, func(ev events.Event) bool {
+		return ev.Kind == events.TriggerPush && ev.Obj == atk
+	}); n != 1 {
+		t.Fatalf("becomes-blocked instances = %d, want 1 (CR 509.3c: the Cat entered on an already-blocked attacker)", n)
+	}
+	if e.Power(atk) != 3 || e.Toughness(atk) != 3 {
+		t.Fatalf("attacker = %d/%d, want 3/3 (one pump)", e.Power(atk), e.Toughness(atk))
+	}
+}
+
+// TestTokenBlocksAttackerBlockedModeFiresOnUnblockedAttacker is the CR 509.3c
+// positive: the attacker is unblocked when a creature is put onto the
+// battlefield blocking it (a TokenBlocks entry), so "becomes blocked" fires
+// exactly once, and the entering creature's own side stays inert.
+func TestTokenBlocksAttackerBlockedModeFiresOnUnblockedAttacker(t *testing.T) {
+	t.Parallel()
+	reg := testutil.CorpusRegistry(t)
+	const wall = "Name:Entering Wall\nManaCost:1 W\nTypes:Creature Wall\nPT:0/4\n" +
+		"T:Mode$ AttackerBlocked | ValidBlocker$ Card.Self | TriggerZones$ Battlefield | Execute$ TrigWallBlocks | TriggerDescription$ Whenever CARDNAME blocks a creature, draw a card.\n" +
+		"SVar:TrigWallBlocks:DB$ Draw | Defined$ You | NumCards$ 1\nOracle:x\n"
+	e, _ := combatTriggerBoard(t, reg, nil, []string{tokenBlocksPumpBear}, nil, []string{wall})
+	e.emit(events.Event{Kind: events.TurnChange, Player: 0, Amount: 2})
+	e.emit(events.Event{Kind: events.StepChange, Step: state.StepDeclareAttackers})
+	atk := findBattlefield(t, e, 0, "Becomes Blocked Bear", 0)
+	w := findBattlefield(t, e, 1, "Entering Wall", 0)
+
+	e.askAttackers()
+	submitAttackers(t, e, atk)
+	submitBlockersOnly(t, e) // seat 1 declares no blockers
+	tokenBlocksSettle(t, e)
+	if o := e.G.Obj(atk); len(o.BlockedBy) != 0 || !o.IsAttacking {
+		t.Fatalf("precondition: attacker BlockedBy = %v attacking=%v, want an unblocked attacker", o.BlockedBy, o.IsAttacking)
+	}
+	if n := countEvents(e, func(ev events.Event) bool { return ev.Kind == events.TriggerPush }); n != 0 {
+		t.Fatalf("precondition: %d triggers pushed before the entry, want 0", n)
+	}
+
+	e.emit(events.Event{Kind: events.TokenBlocks, Obj: w, IDs: []state.ObjID{atk}})
+	tokenBlocksSettle(t, e)
+
+	if got := e.G.Obj(atk).BlockedBy; len(got) != 1 || got[0] != w {
+		t.Fatalf("attacker BlockedBy = %v, want [%d]", got, w)
+	}
+	if n := countEvents(e, func(ev events.Event) bool {
+		return ev.Kind == events.TriggerPush && ev.Obj == atk
+	}); n != 1 {
+		t.Fatalf("becomes-blocked instances = %d, want 1 (CR 509.3c: the attacker was unblocked)", n)
+	}
+	if n := countEvents(e, func(ev events.Event) bool {
+		return ev.Kind == events.TriggerPush && ev.Obj == w
+	}); n != 0 {
+		t.Fatalf("entering creature's own blocks trigger fired %d times, want 0 (CR 509.4)", n)
+	}
+	if e.Power(atk) != 3 {
+		t.Fatalf("attacker power = %d, want 3 (one pump)", e.Power(atk))
 	}
 }

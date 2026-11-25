@@ -301,10 +301,16 @@ func (e *Engine) queueGrantedFlanking(id state.ObjID, o *state.Object, ev events
 // attacker-side become-blocked triggers fire (CR 509.3d -- "a creature is put
 // onto the battlefield blocking the specified creature" is one of their
 // triggering events), while the token itself never blocked (CR 509.4), so its
-// own blocker-side lines stay inert -- the tokenInert skips below.
+// own blocker-side lines stay inert -- the tokenInert skips below. The
+// "becomes blocked" modes (AttackerBlocked, AttackerBlockedOnce) are CR 509.3c
+// and fire off a put-onto-the-battlefield block only when the attacker was
+// unblocked at that time, so a token entering on an already-blocked attacker
+// (Brimaz's Cat) skips them (alreadyBlocked); the by-a-creature pair mode and
+// flanking (CR 509.3d) fire either way.
 func (e *Engine) checkAttackerBlockedTriggers(ev events.Event) {
 	byEffect := ev.Kind == events.BlockedByEffect
 	var tokenInert state.ObjID
+	alreadyBlocked := false
 	if byEffect {
 		ev = events.Event{Kind: events.DeclareBlockers, Player: ev.Player, Pairs: [][2]state.ObjID{{ev.Obj, 0}}}
 	} else if ev.Kind == events.TokenBlocks {
@@ -314,6 +320,10 @@ func (e *Engine) checkAttackerBlockedTriggers(ev events.Event) {
 		}
 		ev = events.Event{Kind: events.DeclareBlockers, Player: ev.Player, Pairs: [][2]state.ObjID{{a, b}}}
 		tokenInert = b
+		// The fold appended the token last: it is the attacker's only
+		// blocker exactly when the attacker was unblocked before it entered
+		// (a zero entry is a block by effect, which counts as blocked).
+		alreadyBlocked = len(e.G.Obj(a).BlockedBy) != 1
 	} else if ev.Kind != events.DeclareBlockers {
 		return
 	}
@@ -345,6 +355,9 @@ func (e *Engine) checkAttackerBlockedTriggers(ev events.Event) {
 		for ti, t := range e.printedTriggersOf(o, f) {
 			switch t.ModeKind() {
 			case cards.TriggerAttackerBlocked, cards.TriggerAttackerBlockedOnce:
+				if alreadyBlocked {
+					continue // CR 509.3c: the attacker was already blocked.
+				}
 			case cards.TriggerAttackerBlockedByCreature:
 				if byEffect {
 					continue
@@ -363,9 +376,11 @@ func (e *Engine) checkAttackerBlockedTriggers(ev events.Event) {
 			e.queueAttackerBlockedTrigger(t, id, o.Controller, ti, false, 0, ev)
 		}
 	})
-	e.checkGrantedAttackerBlockedTriggers(ev, byEffect, tokenInert)
+	e.checkGrantedAttackerBlockedTriggers(ev, byEffect, tokenInert, alreadyBlocked)
 	if byEffect {
 		e.checkEffectCombatTriggers(ev, "AttackerBlocked")
+	} else if alreadyBlocked {
+		e.checkEffectCombatTriggers(ev, "AttackerBlockedByCreature")
 	} else {
 		e.checkEffectCombatTriggers(ev, "AttackerBlocked", "AttackerBlockedByCreature")
 	}
@@ -558,7 +573,7 @@ func (e *Engine) tokenBlocksPair(ev events.Event) (state.ObjID, state.ObjID, boo
 	}
 	a, b := e.G.Obj(ev.IDs[0]), e.G.Obj(ev.Obj)
 	if a == nil || b == nil || b.Zone != state.ZBattlefield ||
-		!a.IsAttacking || b.Controller != a.Attacking || !slices.Contains(a.BlockedBy, b.ID) {
+		!a.IsAttacking || b.Controller != a.Attacking || len(a.BlockedBy) == 0 || a.BlockedBy[len(a.BlockedBy)-1] != b.ID {
 		return 0, 0, false
 	}
 	return a.ID, b.ID, true
@@ -577,7 +592,7 @@ func (e *Engine) tokenBlocksPair(ev events.Event) (state.ObjID, state.ObjID, boo
 // corpus carriers. inert is the TokenBlocks entering token (0 when the event
 // is not one): its own blocker-anchored grants stay inert with the printed
 // ones (CR 509.4).
-func (e *Engine) checkGrantedAttackerBlockedTriggers(ev events.Event, byEffect bool, inert state.ObjID) {
+func (e *Engine) checkGrantedAttackerBlockedTriggers(ev events.Event, byEffect bool, inert state.ObjID, alreadyBlocked bool) {
 	for ceI, ceL := 0, e.active(); ceI < len(ceL); ceI++ {
 		ce := &ceL[ceI]
 		if ce.AddTrigger == nil {
@@ -585,6 +600,9 @@ func (e *Engine) checkGrantedAttackerBlockedTriggers(ev events.Event, byEffect b
 		}
 		if ce.AddTrigger.Mode != "AttackerBlocked" && (byEffect || ce.AddTrigger.Mode != "AttackerBlockedByCreature") {
 			continue
+		}
+		if alreadyBlocked && ce.AddTrigger.Mode == "AttackerBlocked" {
+			continue // CR 509.3c: the attacker was already blocked.
 		}
 		grantorID := ce.Source
 		if ce.TriggerGrantor != 0 {
