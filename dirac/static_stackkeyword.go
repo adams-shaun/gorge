@@ -48,6 +48,9 @@ func prepStackKw(t *Table, g *genPrep, p *prep) {
 			// copy_permanentspell.go)
 			g.anyHist, g.anyCopyElect, g.anyPermCopy = true, true, true
 		}
+		if t.Cards[i].Conspire {
+			g.anyConspire = true // the printed keyword offers the conspired cast (kw_conspire.go)
+		}
 		if t.Cards[i].SplitSecond {
 			g.anySplitSecond = true // the printed keyword (kw_splitsecond.go)
 		}
@@ -338,6 +341,9 @@ func (s *State) grantDelve(k *prep, p uint8, c CardID, o Obj, fromHand bool) boo
 func (s *State) grantConspire(k *prep, p uint8, c CardID, o Obj, fromHand bool) bool {
 	if k.gen == nil || !k.gen.anyConspire {
 		return false
+	}
+	if k.t.Cards[c].Conspire {
+		return true // the printed keyword
 	}
 	n, _ := s.stackKwN(k, kop.StackKwConspire, c, o, p, fromHand)
 	return n > 0

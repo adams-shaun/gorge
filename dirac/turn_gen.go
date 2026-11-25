@@ -114,6 +114,7 @@ func (s *State) enterGen(k *prep, sl Slot, o Obj, from kop.Zone, face uint8) {
 		// is a new object with no payments (CR 400.7, 702.43): the last cast's
 		// count must not survive to the ETB trigger's target bound (exprs.go)
 		s.cold.mkObj[o] = 0
+		s.clearPaidN(o)
 	}
 	s.g.zoneTurn.set(o)
 	if s.g.enteredOn {
