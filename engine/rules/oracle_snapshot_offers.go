@@ -86,14 +86,15 @@ func (r *oracleRun) addPotentialOffers(d *decision.Decision, add func(OracleSnap
 			continue
 		}
 		kind := o.Kind
-		switch kind {
-		case "cast", "play":
-		case "play_land":
-			kind = "play"
+		switch oracleOpCodes.Code(kind) {
+		case oracleOpCast, oracleOpPlay:
 		default:
 			// Printed, granted and keyword/special plays activate, the same
 			// classification the priority options get.
 			kind = "activate"
+			if o.Kind == "play_land" {
+				kind = "play"
+			}
 		}
 		add(OracleSnapOffered{Source: r.objRef(r.e.G.Obj(o.Obj)), Kind: kind, Label: o.Label})
 	}
