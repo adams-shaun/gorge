@@ -248,7 +248,7 @@ var copyPermanentKnownKeys = [...]string{
 	"PrimaryPrompt",
 	"PumpDuration",
 	"PumpKeywords",
-	"RandomCopied",
+	"RaiseCost", "RandomCopied",
 	"RandomNum",
 	"RandomNumTargets",
 	"ReduceAmount",

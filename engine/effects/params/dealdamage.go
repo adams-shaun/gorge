@@ -104,7 +104,7 @@ var dealDamageKnownKeys = [...]string{
 	"MaxTotalTargetPower", "Mentor", "ModeCost", "Monstrosity", "NewController",
 	"NoPrevention", "NoPutDesc", "NonBasicSpell", "NumDmg", "OpponentTurn", "OptionalDecider", "Planeswalker",
 	"PlayCost", "PlayerTurn", "PowerUp", "PrecostDesc", "PresentCompare",
-	"PresentDefined", "PresentZone", "PrimaryPrompt", "RandomNumTargets", "ReduceAmount", "ReduceCost", "RelativeTarget",
+	"PresentDefined", "PresentZone", "PrimaryPrompt", "RaiseCost", "RandomNumTargets", "ReduceAmount", "ReduceCost", "RelativeTarget",
 	"RememberAnimated", "RememberCostMana", "RememberDamaged", "RememberObjects", "RememberTargets", "ReplaceColor",
 	"ReplaceDyingDefined", "ReplaceGraveyard", "ReplaceGraveyardValid", "ReplaceMana",
 	"ReplaceOnly", "ReplaceType", "ReturnAbility", "ReturnValid", "SVarCompare", "SelectPrompt",

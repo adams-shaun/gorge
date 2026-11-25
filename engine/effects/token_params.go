@@ -176,7 +176,7 @@ var tokenKnownKeys = [...]string{
 	"PrimaryPrompt",
 	"PumpDuration",
 	"PumpKeywords",
-	"RandomNumTargets",
+	"RaiseCost", "RandomNumTargets",
 	"ReduceAmount",
 	"ReduceCost",
 	"RememberAnimated",
