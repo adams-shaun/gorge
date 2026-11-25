@@ -123,6 +123,8 @@ type lowerCtx struct {
 
 	// emblemBlocked: lowering the body of a capturing EOT emblem's AttackerBlocked trigger: RememberedLKI is the trigger object (the captured attacker) and blockingTriggeredAttacker reads it (lower_effeottrig.go)
 	emblemBlocked bool
+	// emblemUnblocked: the same body of an AttackerUnblocked emblem with a capture: Remembered is the trigger object too (Delif's Cone: the captured attacker; lower_effeottrig.go capturedTriggerRef, value.go)
+	emblemUnblocked bool
 
 	// emblemBlocks: lowering the body of an end-of-turn Effect's Mode$ Blocks
 	// trigger. The kernel emblem hook (dirac/trig_emblemblocks.go) queues the

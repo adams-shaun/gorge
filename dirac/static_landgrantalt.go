@@ -199,11 +199,7 @@ func (s *State) altPairUnit(k *prep, sl Slot, v *pcard, pk *planner, i int, ma u
 	pk.types[ta].avail++
 	pk.types[ta+1].avail++
 	pk.units[pk.nu] = sl
-	if pk.bfl {
-		pk.uobj[pk.nu] = Obj(i)
-	} else {
-		pk.uobj[pk.nu] = s.perms[sl].obj
-	}
+	pk.rankUnit(s, i, sl)
 	pk.utyp[pk.nu] = uint8(ta)
 	pk.rkind[pk.nu] = 0
 	pk.rAb[pk.nu] = v.manaAb

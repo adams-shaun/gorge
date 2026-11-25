@@ -19,11 +19,17 @@ var repeatEachSliceCards = map[string][]string{
 	},
 	// RepeatEach over the remembered cards (kop.RepeatRemembered): a token
 	// minted for each remembered card's controller after a mass destroy or
-	// exile that remembers. Stench of Evil (DamageMap$ with an unless-payment
-	// ask), Wave of Vitriol (an optional search per card) and Reckless Crew
-	// (an optional attach) stay refused.
+	// exile that remembers. Stench of Evil's body asks (an unless-payment per
+	// card inside one damage batch): the resumable remembered frame.
 	"remembered cards": {
 		"Rampage of the Clans", "Curse of the Swine", "Rowan, Scholar of Sparks", "Will, Scholar of Frost",
+		"Stench of Evil",
+	},
+	// RepeatEach over the tokens a preceding Token mint remembered
+	// (DefinedCards$ RememberedCard): Reckless Crew's per-token optional
+	// Equipment attach, the remembered frame's plain (unbatched) form.
+	"remembered tokens": {
+		"Reckless Crew",
 	},
 	// an ungated Repeat: the body MaxRepeat$ times (kop.OpRepeat). Trade
 	// Secrets reads MaxRepeat$ from a ChooseNumber answer (Count$ChosenNumber).

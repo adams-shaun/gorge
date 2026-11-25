@@ -3,5 +3,5 @@ name: ExtRollPlanarDice
 value: 88
 forge: RollPlanarDice
 census: api RollPlanarDice all=1 std=0 mbc=0 sole=1
-state: objspace (planechase)
-status: blocked objspace:tcode
+state: code 0
+status: active

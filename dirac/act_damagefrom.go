@@ -151,7 +151,7 @@ func (s *State) dmgSrcPlayers(k *prep, in *kop.Instr) {
 		code := PlayerCode(p)
 		m := n
 		if k.gen != nil && (k.gen.anyRepl&(rbDblDmg|rbPrevNC|rbPrevDmgTo|rbProtAll|rbProtCol|rbPlusDmg|rbShield|rbPrevCol|rbPrevMill) != 0 ||
-			k.gen.anyRepl2&(rb2DmgMinus|rb2DmgSet) != 0) {
+			k.gen.anyRepl2&rb2DmgAny != 0) {
 			if m = s.replDamagePend(k, ctrl, sl, card, code, m, o); m <= 0 {
 				continue
 			}
@@ -217,7 +217,7 @@ func (s *State) dmgSrcObject(k *prep, dst, o Obj, sl Slot, kw kop.KwMask, ctrl u
 	}
 	m := n
 	if k.gen != nil && (k.gen.anyRepl&(rbDblDmg|rbPrevNC|rbPrevDmgTo|rbProtAll|rbProtCol|rbPlusDmg|rbShield|rbPrevCol|rbPrevMill|rbSelfDmg) != 0 ||
-		k.gen.anyRepl2&(rb2DmgMinus|rb2DmgSet) != 0) {
+		k.gen.anyRepl2&rb2DmgAny != 0) {
 		m = s.replDamagePend(k, ctrl, NoSlot, card, code, m, o)
 	}
 	s.g.plusBatchAsked = false
