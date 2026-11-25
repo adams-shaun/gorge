@@ -1458,6 +1458,14 @@ func Resolve(h Host, c *Ctx, sa *cards.SA) {
 				c.Targets = append([]state.Target(nil), ts...)
 			}
 			fn(h, c, sa)
+			// ImprintCards$ binds while the link's OWN answer is still bound:
+			// ThisTargetedCard is Ctx.PickedTargets (context.go's
+			// definedSpecThisTargetedCard), and the clear below it degrades the
+			// spelling to the chain root's list -- Crooked Scales' DBTarget
+			// would have imprinted the OPPONENT creature the head targeted
+			// instead of the "creature you control" its own ask answered (Mogg
+			// Assassin's second ask, the same shape).
+			imprint(h, c, sa)
 			c.PickedTargets = nil
 			recordParentLink(c, sa, ts, true)
 			rememberChosenTargets(h, c, sa, ts, true)
@@ -1479,7 +1487,11 @@ func Resolve(h Host, c *Ctx, sa *cards.SA) {
 			recordParentLink(c, sa, rootTargets, rootAnswered)
 			rememberChosenTargets(h, c, sa, nil, false)
 		}
-		imprint(h, c, sa)
+		if !done {
+			// A link that bound its own target set already imprinted above,
+			// while Ctx.PickedTargets still named its answer.
+			imprint(h, c, sa)
+		}
 		if strings.EqualFold(sa.ParamStr(cards.PKClearImprinted), "True") && c.Source != 0 {
 			releaseImprintedEffects(h, c.Source)
 			// Only a real clear is an event (the ClearRemembered$
