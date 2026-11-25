@@ -7,12 +7,14 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// deepGnomeSrc is Deep Gnome Terramancer's Mold Earth line verbatim: a land
-// entering under an opponent's control other than by being played (CR 305.1,
-// 305.2: playing a land is a special action) triggers it.
+// deepGnomeSrc is a Deep Gnome Terramancer-shaped fixture (parameters reordered,
+// not the corpus line): a land entering under an opponent's control other than
+// by being played (CR 305.1, 305.2: playing a land is a special action)
+// triggers it.
 const deepGnomeSrc = "Name:Deep Gnome Terramancer\nManaCost:1 W\nTypes:Creature Gnome Wizard\nPT:2/2\n" +
-	"T:Mode$ ChangesZoneAll | ValidCards$ Land.OppCtrl | ValidCause$ LandAbility | InvertValidCause$ True | Destination$ Battlefield | TriggerZones$ Battlefield | ResolvedLimit$ 1 | Execute$ TrigSearch | OptionalDecider$ You | TriggerDescription$ Mold Earth\n" +
-	"SVar:TrigSearch:DB$ ChangeZone | Origin$ Library | Destination$ Battlefield | Tapped$ True | ChangeType$ Card.Plains | ChangeNum$ 1 | ShuffleNonMandatory$ True\n" +
+	"T:Mode$ ChangesZoneAll | Destination$ Battlefield | InvertValidCause$ True | ValidCause$ LandAbility | " +
+	"ValidCards$ Land.OppCtrl | Execute$ TrigSearch | TriggerZones$ Battlefield | OptionalDecider$ You | ResolvedLimit$ 1 | TriggerDescription$ t\n" +
+	"SVar:TrigSearch:DB$ ChangeZone | ChangeNum$ 1 | ChangeType$ Card.Plains | Origin$ Library | Destination$ Battlefield | Tapped$ True | ShuffleNonMandatory$ True\n" +
 	"Oracle:x\n"
 
 func TestDeepGnomeTerramancerIgnoresPlayedLands(t *testing.T) {
