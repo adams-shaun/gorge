@@ -245,11 +245,13 @@ func (lc *lowerCtx) moveCounter(ps *params) error {
 
 // support lowers PutCounter Support$ N (CR 701.41a; gorge
 // putCounterSupport): one counter (CounterType$, default P1P1) on each of
-// up to N creatures. A permanent's ability is a resolution pick other than
-// the source (gorge's Creature.+Other); an instant or sorcery announces its
-// "up to N target creatures" while casting (CR 601.2c, gorge's cast-time
-// supportTargetSA), so the carrier gets a 0..N target slot and the kernel
-// applies one counter to each announced target instead of asking again. A
+// up to N creatures. The targets are announced when the ability is put on
+// the stack -- an instant or sorcery's while casting (CR 601.2c), a
+// permanent's ETB trigger's when the trigger is put on the stack (CR
+// 603.3d; gorge's supportTargetSA synthesizes the declaration from the
+// keyword) -- so the carrier gets a 0..N target slot and the kernel applies
+// one counter to each announced target instead of asking again. A
+// SubAbility$ or a mode body keeps gorge's resolution pick. A
 // Defined$/ValidTgts$/Choices$/CounterNum$ beside it refuses.
 func (lc *lowerCtx) support(ps *params) error {
 	for _, k := range []string{"Defined", "ValidTgts", "Choices", "CounterNum", "Adapt", "RememberCards", "RememberPut"} {
@@ -267,13 +269,23 @@ func (lc *lowerCtx) support(ps *params) error {
 	}
 	other := 1
 	in := lInstr{Op: "Support", A: n, CS: ct}
-	// Only a spell's OWN root ability announces Support's targets at cast
-	// (gorge supportTargetSA wraps just the cast-stage SA). A SubAbility$ or
-	// a mode body keeps gorge's resolution pick, so it stays an ask here.
-	if (lc.face.IsInstant() || lc.face.IsSorcery()) && lc.ab.Kind == akSpell && lc.head && lc.mode < 0 && lc.depth == 1 {
+	// Only the ability's OWN root announces Support's targets (gorge
+	// supportTargetSA wraps the cast-stage SA, the trigger-placement SA and
+	// an activated ability's declaration). A SubAbility$ or a mode body keeps
+	// gorge's resolution pick, so it stays an ask here.
+	announce := lc.head && lc.mode < 0 && lc.depth == 1 &&
+		(lc.ab.Kind == akTriggered || lc.ab.Kind == akActivated ||
+			lc.ab.Kind == akSpell && (lc.face.IsInstant() || lc.face.IsSorcery()))
+	if announce {
 		other = 0
 		if !n.isConst() || n.N > 0 {
-			f, err := lc.filter("Creature")
+			// CR 701.41a: a permanent's ability says "other" (the source is
+			// excluded), a spell's targets are any creature.
+			spec := "Creature.Other"
+			if lc.ab.Kind == akSpell {
+				spec = "Creature"
+			}
+			f, err := lc.filter(spec)
 			if err != nil {
 				return err
 			}
