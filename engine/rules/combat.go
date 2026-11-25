@@ -2006,7 +2006,7 @@ func (e *Engine) askNextDivision() bool {
 // trample attacker instead gets the CR 702.19b shape (trampleDivisionOptions),
 // with the defending player as the last split table entry.
 func (e *Engine) divisionOptions(a state.ObjID) ([]decision.Option, [][]int32) {
-	if e.hasKeywordH(a, kwhTrample) && !e.isBandBlocker(a) {
+	if e.hasKeywordH(a, kwhTrample) {
 		return e.trampleDivisionOptions(a)
 	}
 	blockers := e.divisionRecipients(a)
