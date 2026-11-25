@@ -87,6 +87,7 @@ func (s *State) setMultikick(e *stackEntry, n int) {
 	if int(e.obj) < len(s.cold.mkObj) {
 		s.cold.mkObj[e.obj] = uint8(n)
 	}
+	s.setPaidN(e, n) // cost_paidcount.go
 }
 
 // kickerPayment is the per-payment cost a kicked cast adds: Multikicker for a

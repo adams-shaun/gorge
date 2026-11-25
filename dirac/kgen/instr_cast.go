@@ -135,6 +135,8 @@ func (ic *instrCtx) opMayPlay() error {
 		ki.A = kop.Const(kop.DurEOT)
 	case "EndOfYourNextTurn":
 		ki.A = kop.Const(kop.DurYourNextTurn)
+	case "UntilYourNextTurn":
+		ki.A = kop.Const(kop.DurUntilYourNextTurn)
 	case "WhileGraveForget":
 		ki.A = kop.Const(kop.DurWhileGraveForget) // the record survives a return to the graveyard; a move to exile ends it
 	case "WhileExiled":

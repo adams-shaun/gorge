@@ -1,0 +1,12 @@
+# ExtraPhase$ Beginning: an additional beginning phase (untap, upkeep, draw)
+# after the postcombat main phase
+# (dirac/oracle/setsobjects6_lockstep_test.go TestSetsObjects6BeginningLockstep):
+# its untap step is no new turn, so a creature cast this turn stays sick
+Sphinx of the Second Sun
+Shadow of the Second Sun
+Prodigal Sorcerer
+Llanowar Elves
+Mind Stone
+Opt
+Island
+Forest

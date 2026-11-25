@@ -226,6 +226,9 @@ func (lc *lowerCtx) revealSelfCost(c *lCost, parts []string, n int, t string) er
 		c.RevealN, c.RevealF = n, f
 		return nil
 	}
+	if lc.revealOK {
+		return lc.revealHandSpec(c, parts, n, t) // lower_revealpick.go
+	}
 	if !lc.actCost || n != 1 || len(parts) != 2 || parts[1] != "CARDNAME" || c.RevealSelf {
 		return refuse("reveal cost %q", t)
 	}
