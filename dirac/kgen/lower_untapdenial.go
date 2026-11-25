@@ -84,13 +84,11 @@ func (lc *lowerCtx) effectUntapDenial(ps *params, tr string) (bool, error) {
 		return why("the target is not one player")
 	}
 	ps.consume("Triggers", "RememberObjects", "Duration", "Name", "Image", "Stackable")
+	// The Effect's Phase$ Untap self-exile is Static$ True: gorge resolves it
+	// inline as CR 611.2a duration bookkeeping and never puts it on the stack,
+	// so the kernel emits nothing for it (the Effect is no object here, and
+	// the restriction ends with the untap step it skips).
 	lc.emit(lInstr{Op: "SkipUntap", Obj: obj, C: kop.SkipUntapPlayerCL, Note: "the target player's creatures and lands"})
-	// gorge registers the Effect's Phase$ Untap trigger as a delayed trigger
-	// that goes on the stack as the target's upkeep begins and exiles the
-	// Effect there: the kernel's counterpart is a delayed program with no body
-	// (the Effect is no object here), so both sides pose that stack object
-	lat := lc.newLatent("DelayedTrigger")
-	lc.emit(lInstr{Op: "DelayedTrigger", Obj: obj, C: lat.Index, CS: "NextUpkeepOfPlayer"})
 	return true, nil
 }
 
