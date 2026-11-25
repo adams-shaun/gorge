@@ -538,36 +538,6 @@ func MoveCountersRemain(g *state.Game, id state.ObjID, from, to state.Zone) {
 	move(g, id, from, to, true)
 }
 
-// stashMayPlayMarker is the counter kind gorge's may-play-from-exile
-// mechanic stamps on an exiled card (Tinybones, Bauble Burglar's "with a
-// stash counter on it"). The counter grants the may-play while the card
-// sits in exile and is kept on the card it was played from; the kernel
-// mirrors that keeper in its projection, so the CR 400.7 entry clear keeps
-// this marker where it drops every other counter the card carried in its
-// public zone.
-const stashMayPlayMarker = "STASH"
-
-// keepStashMarker drops every counter but the stash may-play marker, in
-// place. Nil and all-marker slices come back untouched.
-func keepStashMarker(cs []state.Counter) []state.Counter {
-	kept := 0
-	for _, c := range cs {
-		if c.Kind == stashMayPlayMarker {
-			kept++
-		}
-	}
-	if kept == len(cs) {
-		return cs
-	}
-	out := cs[:0]
-	for _, c := range cs {
-		if c.Kind == stashMayPlayMarker {
-			out = append(out, c)
-		}
-	}
-	return out
-}
-
 // detachAttachmentsOnDeparture queues the CR 400.7 / CR 704.5m-n break of
 // every attachment to the permanent id that is leaving the battlefield
 // (called only from move's wasBattlefield-and-leaving arm, so the
@@ -1055,18 +1025,15 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 			// becomes the permanent is not a zone move (CR 400.7a-b
 			// continuation), and the CountersRemain static's own exception
 			// is marked on the event by rules' emit, so both keep theirs.
+			// Tinybones's stash counter is no keeper either: it grants the
+			// may-play while the card sits in exile and is gone from the
+			// land played from exile (Forge and XMage agree).
 			// A hidden zone is outside the model for this clear: nothing in
 			// the rules places a counter on a card in a hand or library, and
 			// the existing engine tests use that out-of-model state as a
 			// fixture, so only the public non-stack zones are folded here.
-			// The stash may-play marker is the one keeper beyond that
-			// exception: it is gorge's bookkeeping on the exiled card
-			// (Tinybones, Bauble Burglar), kept on the card played from
-			// exile and mirrored by the kernel's projection, and a land
-			// played from exile reaches the battlefield without the stack
-			// leg that would otherwise carry it.
 			if enteredFrom != state.ZStack && !enteredFrom.Hidden() && !countersRemain {
-				o.Counters = keepStashMarker(o.Counters)
+				o.Counters = nil
 			}
 			o.AcqTurn = g.Turn
 			o.AcqStep = g.Step
