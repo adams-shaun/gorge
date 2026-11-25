@@ -663,6 +663,15 @@ func effChooseCard(h Host, c *Ctx, sa *cards.SA) {
 		if hasBudget {
 			affordable := make([]state.Target, 0, len(choices))
 			for _, t := range choices {
+				// WithTotalPower$ budgets POWER: CR 208.3 gives a
+				// noncreature permanent no power, and Forge's
+				// ChooseCardEffect draws this branch's pool from
+				// getCreaturesInPlay() only. A land must not be offered
+				// just because chooseCardPower reads it as 0 (Slaughter the
+				// Strong's default pool is every battlefield permanent).
+				if !h.IsCreature(t.Obj) {
+					continue
+				}
 				if chooseCardPower(h, t.Obj) <= int(budget) {
 					affordable = append(affordable, t)
 				}
