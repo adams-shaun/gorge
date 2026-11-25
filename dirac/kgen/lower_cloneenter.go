@@ -82,6 +82,23 @@ func (lc *lowerCtx) cloneEnter(ps *params, node, sa *cards.SA) error {
 	if !ok {
 		return refuse("ETB copy without Choices$")
 	}
+	// ChoiceZone$ (gorge effects cloneChoiceZone): absent or Battlefield is
+	// the battlefield pool; Graveyard is Body Double's "any creature card in
+	// a graveyard" (kop.BecomeCopyGrave). Exile (gorge's other zone) has no
+	// as-enters carrier the kernel models.
+	grave := false
+	if z, ok := ps.get("ChoiceZone"); ok {
+		switch strings.TrimSpace(z) {
+		case "Battlefield":
+		case "Graveyard":
+			grave = true
+		default:
+			return refuse("ETB copy ChoiceZone$ %q", z)
+		}
+		if grave && rememberCounters {
+			return refuse("ETB copy ChoiceZone$ Graveyard beside the counter rider")
+		}
+	}
 	lc.cloneRepl = true
 	f, err := lc.filter(ch)
 	lc.cloneRepl = false
@@ -157,6 +174,12 @@ func (lc *lowerCtx) cloneEnter(ps *params, node, sa *cards.SA) error {
 	if embalm && hasExc {
 		flags |= kop.BecomeCopyEmbalm
 	}
+	if grave {
+		if embalm {
+			return refuse("ETB copy ChoiceZone$ Graveyard beside Embalm$")
+		}
+		flags |= kop.BecomeCopyGrave
+	}
 	if flags != 0 {
 		in.B = cst(flags)
 	}
@@ -170,6 +193,9 @@ func (lc *lowerCtx) cloneEnter(ps *params, node, sa *cards.SA) error {
 		if embalm {
 			in.Note = "if embalmed, " + in.Note
 		}
+	}
+	if grave {
+		in.Note = strings.TrimPrefix(in.Note+", of a graveyard card", ", ")
 	}
 	lc.emit(in)
 	return nil

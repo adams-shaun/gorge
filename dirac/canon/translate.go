@@ -825,8 +825,9 @@ func (r *Translator) generatedChoose(a dirac.Action) (Canon, bool) {
 		return Pack(ActMode, RefNone, RefNone, 1), true
 	case dirac.ChGenPair:
 		// gorge effPair's "soulbond" KChoose over the unpaired creatures
-		// (CR 702.95a): an ordinary object pick, kind "other"
-		return Pack(kind("other"), Ref(src), RefNone, 0), true
+		// (CR 702.95a): an ordinary object pick, choose:other as gorge's
+		// chooseOtherAction encodes it ("soulbond" is not in ChooseKinds)
+		return Pack(ActChoose+ChooseOther, Ref(src), RefNone, 0), true
 	case dirac.ChGenRingBearer:
 		// gorge effRingTemptsYou's "ring_bearer" KChoose over the creatures
 		// (CR 701.54a): choose:other, as gorge's chooseOtherAction encodes it
