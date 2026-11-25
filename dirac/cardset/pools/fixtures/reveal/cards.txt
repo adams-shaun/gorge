@@ -1,0 +1,25 @@
+# the Reveal<1/Spec> cast-route pool: AlternateAdditionalCost reveal carriers
+# (Daring Buccaneer, Thunderherd Migration) and Morph / Megamorph / Disguise
+# turn-up reveal carriers (Dragon's Eye Savants, Horde Ambusher), a Pirate, a
+# blue and a red card to reveal, and basics (dirac/act_revealpick_test.go)
+Daring Buccaneer
+Dragon's Eye Savants
+Flamekin Bladewhirl
+Forest
+Goldmeadow Stalwart
+Horde Ambusher
+Island
+Merfolk of the Pearl Trident
+Mountain
+Plains
+Ruthless Ripper
+Sadistic Skymarcher
+Shock
+Silvergill Adept
+Squeaking Pie Sneak
+Swab Goblin
+Swamp
+Temur Charger
+Thunderherd Migration
+Watcher of the Roost
+Wren's Run Vanquisher
