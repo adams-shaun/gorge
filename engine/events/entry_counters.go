@@ -207,8 +207,8 @@ func EntryCounterGrantsForFace(o *state.Object, f *cards.Face, faceDown bool) []
 	var grants []EntryCounterGrant
 	// CR 306.5b: a planeswalker enters with loyalty counters equal to its
 	// starting loyalty. A face whose starting loyalty this engine cannot read
-	// (absent, non-numeric, or the Loyalty:X dynamic form) grants nothing,
-	// the same total-fail-closed stance the fold took. The Phyrexian
+	// (absent or non-numeric) grants nothing, the same total-fail-closed
+	// stance the fold took; Loyalty:X takes the cast X (o.X). The Phyrexian
 	// compleated payment (CR 702.143) lowers it by the life paid.
 	if f != nil && f.IsPlaneswalker() {
 		// CR 306.5b: a planeswalker enters with loyalty counters equal to its
@@ -216,9 +216,9 @@ func EntryCounterGrantsForFace(o *state.Object, f *cards.Face, faceDown bool) []
 		// the Adversary's Casualty:X copy) names the starting loyalty
 		// directly, replacing the printed face value; a 0 value is real (the
 		// copy enters with no loyalty counters). A face whose printed
-		// starting loyalty this engine cannot read (absent, non-numeric) or
-		// the dynamic Loyalty:X form grants nothing, the same total
-		// fail-closed stance the fold took. The Phyrexian compleated payment
+		// starting loyalty this engine cannot read (absent, non-numeric)
+		// grants nothing, the same total fail-closed stance the fold took;
+		// the Loyalty:X form enters with the cast X. The Phyrexian compleated payment
 		// (CR 702.143) lowers it by the life paid.
 		if o.CopyLoyaltySet {
 			loyalty := o.CopyLoyalty - o.CompleatedLifePaid
@@ -226,6 +226,16 @@ func EntryCounterGrantsForFace(o *state.Object, f *cards.Face, faceDown bool) []
 				loyalty = 0
 			}
 			grants = append(grants, EntryCounterGrant{Kind: "LOYALTY", Amount: loyalty})
+		} else if strings.EqualFold(strings.TrimSpace(f.Loyalty), "X") {
+			// CR 107.3/306.5b: a loyalty-X walker enters with loyalty
+			// counters equal to the X of the spell it was cast as (still on
+			// the object here, like the other cast metadata). A placement
+			// that never cast it (setup, "put onto the battlefield", a token
+			// copy) has X 0 and enters with none; CR 704.5i then sweeps it.
+			loyalty := o.X - o.CompleatedLifePaid
+			if loyalty > 0 {
+				grants = append(grants, EntryCounterGrant{Kind: "LOYALTY", Amount: loyalty})
+			}
 		} else if n, err := strconv.Atoi(strings.TrimSpace(f.Loyalty)); err == nil && n > 0 {
 			loyalty := int32(n) - o.CompleatedLifePaid
 			if loyalty < 0 {
