@@ -76,7 +76,7 @@ func (s *State) eachRun(k *prep, in *kop.Instr, i uint8, j0 int, w eachSusp) boo
 		s.holdClose(k, w.hold) // the targets still enter together (CR 603.6a)
 	}
 	e.tgt[i], e.tver[i], s.res.bad = w.t, w.v, w.bad
-	if s.res.flags&rfCopyGrp == 0 {
+	if in.Op == kop.OpCopyAsTokenEx && s.res.flags&rfCopyGrp == 0 {
 		// no target made a copy: the resolution still creates the AtEOT$
 		// rider's one empty delayed trigger (CR 603.7a; copy_emptyrider.go)
 		s.delayEmptyRider(in)
