@@ -62,6 +62,7 @@ that touches `State`, and the import boundary. Generated support lists:
 |---|---|---|
 | `dirac/cmd/kgen` | Writes the binary card tables under the corpus (`make dirac-tables`). | Table generation in `dirac/kgen`; keep this main thin. |
 | `dirac/cmd/dplay` | Plays games on dirac alone; reads gorge deck files, and its bots read gorge's compiled cards through `dirac/oracle`. | Its flags are pinned by `TestDplayFlagsDocumented` (`dirac/docs/running.md`); bot play goes through `dirac/oracle`. |
+| `dirac/cmd/dpod` | Plays four-seat Commander pods of the Foundations Commander precons on dirac alone, refused cards replaced by basics, for `scripts/xengine-bench.sh`. | Its decks feed `cmd/enginebench -pair fdc-sub`, so gorge plays the same pods. |
 | `dirac/cmd/kmanifest` | Keeps the namespace manifest and the Go generated from it (`gen [--check]`, `assign`, `check`, `show`, `seed`). | `dirac/manifest`; keep this main thin. |
 | `dirac/cmd/sbv2dirac` | Serves dirac as a SpellBench v2 engine, running gorge as the lockstep shadow. | The protocol and main here; parity in `dirac/oracle`. |
 | `dirac/oracle/cmd/kfuzz` | The lockstep fuzzer over gorge and dirac. | `dirac/oracle`; `scripts/dirac-gate.sh` holds what the change must keep true. |
