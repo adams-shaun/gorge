@@ -1491,6 +1491,8 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 					}
 				case kop.StatPlayerHexproof, kop.StatNoMaxHandSize:
 					g.noteStaticPlayerStats(i, a)
+				case kop.StatDefenderAssigns:
+					pc.hasStat = true // scanned through statM (static_defenderassigns.go); no genPrep flag: TestNoNewFixedStateFields
 				case kop.StatCantBeBeamedUp:
 					g.anyBeamBar = true
 					pc.hasStat = true // scanned through statM (kw_beammeup.go)
