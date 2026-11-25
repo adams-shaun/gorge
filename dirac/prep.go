@@ -137,6 +137,7 @@ type prep struct {
 	gen           *genPrep       // generated-table extension (gen.go); nil for hand-written tables
 	gyCont        bool           // some Continuous static works from its card's graveyard (tableHasGyCont; static_gycont.go): read only by the layer-6 walk and the cold landwalk/prowess readers
 	cold          coldLayout
+	anyDisturb    bool   // some front carries K:Disturb (CardDef.FlipCast; face_flipcast.go): the graveyard walk's gate; on prep, not genPrep, so the pinned fixed-State inventory is unchanged
 	handStat      []bool // card i has a static whose condition reads a hand size (Hellbent; prepHandStat, cast_handleaves.go); on prep, not genPrep, so the pinned fixed-State inventory is unchanged
 	gainsOfAttach bool   // a GainsAbilitiesOf$ static and an Equip ability: a non-attachment can gain Equip and attach itself (CR 704.5p sba arm; static_unattachcreature.go); on prep, not genPrep, so the pinned fixed-State inventory is unchanged
 	anyNoDmg      bool   // a card or emblem has a StatNoCombatDamage static (combat.go's combatAmount); on prep, not genPrep, so the pinned fixed-State inventory is unchanged
@@ -431,7 +432,10 @@ func prepare(t *kop.Table) *prep {
 		if c.FaceMode == kop.FaceTransform && c.Face != 0 && c.Types&kop.TToken == 0 && len(c.Faces) > 0 && int(c.Faces[0]) < len(t.Cards) {
 			pc.total = uint8(t.Cards[c.Faces[0]].Cost.MV())
 		}
-		for k, n := range c.Cost.Pips {
+		if fc, ok := flipCastCost(t, CardID(i)); ok {
+			pc.cost = fc // the back face is cast only for its front's keyword cost (face_flipcast.go)
+		}
+		for k, n := range pc.cost.Pips {
 			if n > 0 {
 				pc.pipMask |= 1 << k
 			}

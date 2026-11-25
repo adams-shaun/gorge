@@ -644,6 +644,9 @@ func (s *State) buildCostPreRaw(k *prep, pre, charge bool) (kop.ManaCost, bool) 
 	case seSpell:
 		cd := &k.t.Cards[e.card]
 		c := cd.Cost
+		if fc, ok := flipCastCost(k.t, e.card); ok {
+			c = fc // a converted or disturbed back face's keyword cost (CR 702.162a, 702.146a; face_flipcast.go)
+		}
 		if fb, ok := s.flashbackBase(k, e); ok {
 			c = fb
 		}

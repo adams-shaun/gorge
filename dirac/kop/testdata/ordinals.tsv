@@ -656,6 +656,9 @@ FacePrototype	untyped int	8
 FaceRoom	untyped int	6
 FaceSplit	untyped int	3
 FaceTransform	untyped int	4
+FlipConverted	uint8	1
+FlipDisturb	uint8	2
+FlipNone	uint8	0
 G	untyped int	4
 GcHasteEOT	untyped int	2
 GcRemember	untyped int	4

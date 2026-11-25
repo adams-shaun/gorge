@@ -181,6 +181,10 @@ func (s *State) offerFaceCasts(k *prep, d *Decision, p uint8, o Obj, sorc bool) 
 		if k.cards[cd.Faces[1]].land {
 			return
 		}
+	case kop.FaceTransform:
+		if cd.FlipCast != kop.FlipConverted {
+			return // More Than Meets the Eye's converted cast (face_flipcast.go)
+		}
 	default:
 		return
 	}
@@ -257,6 +261,10 @@ func (s *State) stackExitFace(k *prep, o Obj, z kop.Zone, resolved bool) kop.Zon
 		ob.card = front // a fused spell is its card again (face_fuse.go)
 		return z
 	}
+	// A converted or disturbed back face (face_flipcast.go) leaves the stack
+	// still showing it, as gorge's events apply_zone.go resets a
+	// transforming card's face only as it leaves the battlefield; its own
+	// "exile it instead" then reads the back face in placeFrom.
 	if cd.Face == 0 || len(cd.Faces) == 0 || cd.FaceMode != kop.FaceAdventure && cd.FaceMode != kop.FaceSplit && cd.FaceMode != kop.FaceModal && cd.FaceMode != kop.FaceOmen && cd.FaceMode != kop.FacePrototype {
 		return z
 	}
