@@ -23,15 +23,15 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 | MSH | 276 | 250 | 1 | 0 | 249 | 249 | 0 |
 | OTJ | 276 | 254 | 1 | 0 | 253 | 253 | 0 |
 | SOS | 270 | 260 | 0 | 1 | 259 | 259 | 0 |
-| SPM | 192 | 174 | 2 | 5 | 167 | 167 | 0 |
+| SPM | 192 | 176 | 2 | 7 | 167 | 167 | 0 |
 | TDM | 276 | 260 | 1 | 0 | 259 | 259 | 0 |
 | TLA | 285 | 262 | 1 | 0 | 261 | 261 | 0 |
 | TMT | 194 | 187 | 0 | 0 | 187 | 187 | 0 |
 | TRC | 337 | 306 | 0 | 34 | 272 | 272 | 0 |
 | TRK | 311 | 311 | 1 | 0 | 310 | 310 | 0 |
 | WOE | 281 | 266 | 0 | 2 | 264 | 264 | 0 |
-| MBC | 2212 | 2017 | 3 | 22 | 1992 | 1992 | 0 |
-| ALL | 34480 | 26319 | 41 | 421 | 25857 | 25854 | 0 |
+| MBC | 2212 | 2019 | 3 | 24 | 1992 | 1992 | 0 |
+| ALL | 34480 | 26339 | 42 | 441 | 25856 | 25853 | 0 |
 
 `ALL` is the whole corpus; `MBC` is the Mystery Booster Commander draft pool, every name its packs deal that gorge supports; the rest are the Standard sets. `4-seat` counts the supported cards whose lowering holds at any seat count: a card whose lowering reads the one opponent of a two-player game (`kop.CardDef.TwoSeat`) is refused in a game of three or more seats (`StallTwoSeat`). It is a ceiling, not evidence. `pod-evidenced` counts those cards whose evidence row carries a seats field — a clean game of three or more seats, which `kfuzz -evidence -seats 4` writes and `scripts/dirac-first-refusals.py evidence --pools pod-*` copies into `dirac/support/evidence` (`Name\t<seats>`; readers take the name and ignore trailing columns). A pod game does not evidence a card: the support rule below is unchanged.
 
@@ -5219,11 +5219,11 @@ Nothing else is covered. A card none of these runs reaches is unverified, whatev
 
 ## Refused by name
 
-41 cards, by what differed in the game that showed them. Each has a file in `dirac/support/refused` naming the card, the difference and the game.
+42 cards, by what differed in the game that showed them. Each has a file in `dirac/support/refused` naming the card, the difference and the game.
 
 | what differed | cards |
 |---|---:|
-| lockstep | 15 |
+| lockstep | 16 |
 | options | 6 |
 | options-options | 5 |
 | projection | 1 |
