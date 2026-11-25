@@ -2272,6 +2272,17 @@ func (e *Engine) planEachReservation(p state.PlayerID, id state.ObjID, cost Cost
 			}
 			cands[i] = append(cands[i], oid)
 		}
+		// A sharesCreatureTypeWith tap part (Weight of Conscience) only has
+		// legal assignments inside one shared creature-type class. A class
+		// smaller than the required count leaves no enumeration; the
+		// per-pick share test in rec below keeps every emitted assignment
+		// legal. Only the literal N == 2 form is modelled.
+		if pt.part.SameCreatureType {
+			if pt.part.N != 2 ||
+				pay.SameCreatureTypeCapacity(pay.CreatureTypeSets(asPayer(e), cands[i])) < 2 {
+				cands[i] = nil
+			}
+		}
 	}
 	calls := 0
 	chosen := make([][]state.ObjID, len(parts))
@@ -2308,6 +2319,18 @@ func (e *Engine) planEachReservation(p state.PlayerID, id state.ObjID, cost Cost
 			oid := cands[part][i]
 			if taken(oid) {
 				continue
+			}
+			if parts[part].part.SameCreatureType && len(chosen[part]) > 0 {
+				shares := true
+				for _, prev := range chosen[part] {
+					if !pay.SameCreatureTypeShares(asPayer(e), prev, oid) {
+						shares = false
+						break
+					}
+				}
+				if !shares {
+					continue
+				}
 			}
 			chosen[part] = append(chosen[part], oid)
 			ok := rec(part, i+1)
@@ -2362,6 +2385,33 @@ func (e *Engine) planLeavesCostPayable(p state.PlayerID, id state.ObjID, cost Co
 		}
 		return n <= 0
 	}
+	// sameTypeEnough is enough for a CostPart.SameCreatureType tap part: the
+	// remaining candidates must contain a pair that shares a creature type
+	// with each other (the relation the tap election's SetPropShared
+	// enforces), not merely N untapped objects. It reserves that pair so a
+	// later part cannot claim one of them.
+	sameTypeEnough := func(cands []state.ObjID, n int32, spent map[state.ObjID]bool, skipSelf bool) bool {
+		if n != 2 {
+			return false
+		}
+		var avail []state.ObjID
+		for _, oid := range cands {
+			if spent[oid] || claimed[oid] || (skipSelf && oid == id) {
+				continue
+			}
+			avail = append(avail, oid)
+		}
+		sets := pay.CreatureTypeSets(asPayer(e), avail)
+		if pay.SameCreatureTypeCapacity(sets) < 2 {
+			return false
+		}
+		a, b, ok := pay.SameCreatureTypePair(avail, sets)
+		if !ok {
+			return false
+		}
+		claimed[a], claimed[b] = true, true
+		return true
+	}
 	if reserved != nil {
 		for _, oid := range reserved {
 			if tapped[oid] {
@@ -2371,7 +2421,17 @@ func (e *Engine) planLeavesCostPayable(p state.PlayerID, id state.ObjID, cost Co
 		}
 	} else {
 		for _, part := range cost.TapPermanent {
-			if part.Dyn == "" && part.N > 0 && !enough(pay.TapCostCandidates(asPayer(e), p, id, part), part.N, tapped, cost.Tap) {
+			if part.Dyn != "" || part.N <= 0 {
+				continue
+			}
+			cands := pay.TapCostCandidates(asPayer(e), p, id, part)
+			if part.SameCreatureType {
+				if !sameTypeEnough(cands, part.N, tapped, cost.Tap) {
+					return false
+				}
+				continue
+			}
+			if !enough(cands, part.N, tapped, cost.Tap) {
 				return false
 			}
 		}
