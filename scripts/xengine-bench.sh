@@ -8,6 +8,15 @@
 # FDN_top_02581_UR) from cmd/enginebench/testdata/decks, under each policy it
 # offers (see docs/site/performance/methodology.md for what each policy is).
 #
+# Two more PAIRS are 4-seat Commander pods of the five official Foundations
+# Commander precons (testkit/testutil/decks/foundations-*): game g leaves out
+# deck (g/4)%5 and rotates the other four seats by g%4. "fdc" is the precons
+# as printed (gorge, and Forge with a FORGE_* build whose GameReplay takes
+# "format": "commander"); "fdc-sub" is the same pods with every card dirac does
+# not play replaced by the deck's basic land (dirac/cmd/dpod -write; its
+# substitutions.tsv is copied to $OUT), played by gorge, dirac and Forge alike.
+# XMage's XEngineBench seats two players, so it skips both.
+#
 # Every run is one single-threaded process pinned to one core with taskset
 # (GOMAXPROCS=1 for Go). REPS repetitions of a row run at the same time, one
 # per core in CORES; rows and pairs run one after another. Each run appends one
@@ -35,7 +44,8 @@
 #   CORES    one core per concurrent rep (default "24 26 28"; REPS = their count)
 #   SECS     measured seconds per run (default 30)
 #   WARM     JVM warm-up seconds before measuring, XMage and Forge (default 30)
-#   PAIRS    deck pairs (default "A B"; "burn" is the Burn mirror, which dirac cannot play)
+#   PAIRS    deck pairs (default "A B"; "burn" is the Burn mirror, which dirac cannot play;
+#            "fdc" and "fdc-sub" are the 4-seat Commander pods above)
 #   JAVA     java binary for XMage and Forge (default: java on PATH)
 #   JAVA_HEAP  -Xmx for both JVMs (default 2g)
 #   CARDS    the fetched corpus to copy privately (default .cards)
@@ -72,8 +82,10 @@ mkdir -p "$OUT/work"
 RUNS=$OUT/runs.jsonl
 
 die() { echo "xengine-bench: $*" >&2; exit 2; }
+note() { echo "xengine-bench: $*" | tee -a "$OUT/run.txt" >&2; }
+is_pod() { case $1 in fdc | fdc-sub) return 0 ;; *) return 1 ;; esac; }
 load1() { cut -d' ' -f1 /proc/loadavg; }
-deck_a() { case $1 in A) echo FDN_top_04956_UG ;; B) echo FDN_top_07961_WR ;; burn) echo burn ;; *) die "pair $1: want A, B or burn" ;; esac; }
+deck_a() { case $1 in A) echo FDN_top_04956_UG ;; B) echo FDN_top_07961_WR ;; burn) echo burn ;; *) die "pair $1: want A, B, burn, fdc or fdc-sub" ;; esac; }
 deck_b() { case $1 in A) echo FDN_top_20626_WG ;; B) echo FDN_top_02581_UR ;; burn) echo burn ;; esac; }
 # Every driver but enginebench reads .dck lists from DK: the four FDN decks,
 # and the Burn mirror's burn.json written out as burn.dck ("N Name" lines).
@@ -103,6 +115,28 @@ pinned() {
 	local core=$1 tf=$2
 	shift 2
 	/usr/bin/time -o "$tf" -f '{"maxrss_kb":%M,"user_s":%U,"sys_s":%S,"wall_s":%e}' taskset -c "$core" "$@"
+}
+
+# ---- the fdc-sub pods ----------------------------------------------------------
+# pod_dir PAIR: the directory of the pair's five deck files. fdc-sub's is written
+# once per invocation by dirac/cmd/dpod -write on the private corpus, before any
+# timed rep. Call it outside $(...) first: cards_private's copy lives in this shell.
+POD_SUB=$OUT/work/fdc-sub
+dpod_bin=$OUT/work/dpod
+pod_dir() {
+	if [ "$1" = fdc ]; then
+		echo "$REPO/testkit/testutil/decks"
+		return
+	fi
+	if [ ! -f "$POD_SUB/substitutions.tsv" ]; then
+		cards_private
+		(cd "$REPO" && go build -trimpath -o "$dpod_bin" ./dirac/cmd/dpod) >&2
+		"$dpod_bin" -cards "$PRIV_CARDS" -decks "$REPO/testkit/testutil/decks" -secs 0 -write "$POD_SUB" >/dev/null ||
+			die "dpod could not write the fdc-sub decks"
+		cp "$POD_SUB/substitutions.tsv" "$OUT/fdc-sub-substitutions.tsv"
+		note "fdc-sub: $(($(wc -l < "$POD_SUB/substitutions.tsv") - 1)) card entries replaced (fdc-sub-substitutions.tsv)"
+	fi
+	echo "$POD_SUB"
 }
 
 # ---- private card corpus (see the header) ------------------------------------
@@ -186,7 +220,9 @@ gorge_run() { # ROW PAIR FLAGS REP CORE
 	local w=$OUT/work/gorge-$row-$pair-$rep l0
 	l0=$(load1); corestat "$core" > "$w.stat0"
 	# shellcheck disable=SC2086
-	(cd "$REPO" && pinned "$core" "$w.time" env GOMAXPROCS=1 "$gorge_bin" -row "${row%%-*}" $flags -pair "$pair" \
+	local pod=()
+	[ "$pair" != fdc-sub ] || pod=(-pod-dir "$POD_SUB")
+	(cd "$REPO" && pinned "$core" "$w.time" env GOMAXPROCS=1 "$gorge_bin" -row "${row%%-*}" $flags -pair "$pair" "${pod[@]}" \
 		-secs "$SECS" -seed $((1 + 1000003 * rep)) -cards "$PRIV_CARDS" -decks "$DECKS" -out "$w.json" 2>"$w.log")
 	record gorge "$row" "$pair" "$rep" "$core" "$l0" "$w.time" "$w.json" enginebench
 }
@@ -196,6 +232,7 @@ gorge_all() {
 	(cd "$REPO" && cards_warm gorge env GOMAXPROCS=1 "$gorge_bin" -row random -pair A -secs 0.1 \
 		-cards "$PRIV_CARDS" -decks "$DECKS" -out /dev/null)
 	for pair in "${PAIR_LIST[@]}"; do
+		[ "$pair" != fdc-sub ] || pod_dir fdc-sub >/dev/null
 		batch "gorge random-autopay $pair" gorge_run random-autopay "$pair" "-autopay"
 		batch "gorge random $pair" gorge_run random "$pair" ""
 		batch "gorge bot-autopay $pair" gorge_run bot-autopay "$pair" "-autopay"
@@ -231,6 +268,10 @@ xmage_run() { # POLICY PAIR REP CORE
 xmage_all() {
 	xmage_setup
 	for pair in "${PAIR_LIST[@]}"; do
+		if is_pod "$pair"; then
+			note "xmage: XEngineBench seats two players; no $pair (4-seat Commander) row"
+			continue
+		fi
 		for pol in random simple mad; do
 			batch "xmage $pol $pair" xmage_run "$pol" "$pair"
 		done
@@ -257,8 +298,12 @@ kill_java_below() {
 forge_run() { # PAIR REP CORE
 	local pair=$1 rep=$2 core=$3
 	local w=$OUT/work/forge-ai-$pair-$rep l0 pid
-	python3 -I "$REPO/scripts/xengine-bench-summarize.py" --forge-games "$DK" "$(deck_a "$pair")" "$(deck_b "$pair")" \
-		$((1 + 1000003 * rep)) 2000 > "$w.in.jsonl"
+	if is_pod "$pair"; then
+		python3 -I "$REPO/scripts/xengine-bench-summarize.py" --forge-pods "$(pod_dir "$pair")" $((1 + 1000003 * rep)) 2000 > "$w.in.jsonl"
+	else
+		python3 -I "$REPO/scripts/xengine-bench-summarize.py" --forge-games "$DK" "$(deck_a "$pair")" "$(deck_b "$pair")" \
+			$((1 + 1000003 * rep)) 2000 > "$w.in.jsonl"
+	fi
 	mkdir -p "$w.tmp"
 	l0=$(load1); corestat "$core" > "$w.stat0"
 	# GameReplay plays the list to the end; stop it once WARM+SECS of game
@@ -284,6 +329,7 @@ forge_run() { # PAIR REP CORE
 forge_all() {
 	forge_setup
 	for pair in "${PAIR_LIST[@]}"; do
+		[ "$pair" != fdc-sub ] || pod_dir fdc-sub >/dev/null
 		batch "forge ai $pair" forge_run "$pair"
 	done
 }
@@ -304,6 +350,14 @@ dirac_run() { # POLICY PAIR REP CORE
 		-pairs-file "$w.pairs.tsv" -a "$pol" -b "$pol" -wall "${SECS}s" -out "$w.jsonl" -summary "$w.summary.json" >"$w.log" 2>&1
 	record dirac "$pol" "$pair" "$rep" "$core" "$l0" "$w.time" "$w.summary.json" dplay
 }
+dirac_pod_run() { # REP CORE: dpod's 4-seat fdc-sub pods, random policy on every seat
+	local rep=$1 core=$2
+	local w=$OUT/work/dirac-random-fdc-sub-$rep l0
+	l0=$(load1); corestat "$core" > "$w.stat0"
+	pinned "$core" "$w.time" env GOMAXPROCS=1 "$dpod_bin" -cards "$PRIV_CARDS" -decks "$REPO/testkit/testutil/decks" \
+		-secs "$SECS" -seed $((1 + 1000003 * rep)) -summary "$w.summary.json" >"$w.log" 2>&1
+	record dirac random fdc-sub "$rep" "$core" "$l0" "$w.time" "$w.summary.json" dplay
+}
 dirac_all() {
 	local w=$OUT/work/dirac-warm
 	dirac_setup
@@ -314,6 +368,17 @@ dirac_all() {
 	cards_warm dirac env GOMAXPROCS=1 DIRAC_TABLES="$CARDS/kernel-tables" "$dirac_bin" -cards "$PRIV_CARDS" -decks "$w.decks" \
 		-pairs-file "$w.pairs.tsv" -a hbot -b hbot -wall 1s -out "$w.jsonl" -summary "$w.summary.json"
 	for pair in "${PAIR_LIST[@]}"; do
+		case $pair in
+		fdc)
+			note "dirac: the kernel does not play every official FDC card; run PAIRS=fdc-sub for its pod row"
+			continue
+			;;
+		fdc-sub)
+			pod_dir fdc-sub >/dev/null
+			batch "dirac random fdc-sub" dirac_pod_run
+			continue
+			;;
+		esac
 		batch "dirac random $pair" dirac_run random "$pair"
 		batch "dirac hbot $pair" dirac_run hbot "$pair"
 	done

@@ -121,6 +121,7 @@ the SpellBench v2 engine may.
 | `dirac/adapter` | Yes, gorge's view, decision and card types, but nothing it links may reach `engine/rules`, `engine/replay` or `dirac/oracle` (`TestAdapterLinksNoRulesEngine`): it serves a game with no rules engine built. |
 | `dirac/cmd/sbv2dirac` | Yes: it runs gorge as the lockstep shadow. |
 | `dirac/cmd/dplay` | Yes: it reads gorge's deck files, and its bots read gorge's compiled cards through `dirac/oracle`. |
+| `dirac/cmd/dpod` | Yes: it reads gorge's deck files and compiled cards, and lowers them with `dirac/kgen`. |
 | `dirac/cmd/shadowbench` | Yes: it runs gorge (`testkit/bench`, `engine/rules`) as the host and `bots/heuristic` as the opponent. |
 | `dirac/cmd/kmanifest` | Only the module's `cli` package: it reads the manifest and writes source. |
 
@@ -158,6 +159,7 @@ One line per package; the package's `doc.go` (or package comment) is the authori
 | `dirac/vanilla` | A hand-written table of basic lands, vanilla and keyword creatures and simple spells, with four synthetic 40-card decks. The small-table test bed. |
 | `dirac/crcoverage` | Test-only CR coverage audit (`README.md` plus one file per CR chapter); `TestCRCoverageIsCurrent` checks every row against the code. |
 | `dirac/cmd/dplay` | Plays dirac games alone and reports them. |
+| `dirac/cmd/dpod` | Plays four-seat Commander pods of the Foundations Commander precons, refused cards replaced by basics, for the cross-engine bench. |
 | `dirac/cmd/sbv2dirac` | Serves dirac as a SpellBench v2 engine. |
 | `dirac/cmd/shadowbench` | Plays the shadow seat against the heuristic bot in gorge games and reports stage rate, fallback reasons and win rate. |
 | `dirac/<topic>_<mechanic>.go` | One file per mechanic; `doc.go` lists the topics. A contributor adds a file rather than appending to a shared one. |
