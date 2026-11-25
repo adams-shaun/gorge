@@ -47,6 +47,30 @@ func (s *State) sweepDeparted(k *prep, pre uint8) bool {
 	return moved
 }
 
+// beginSBAPass opens a state-based pass: it forgets the last pass's lostPass
+// marks and returns the seats already out (pre), whose losses an effect or an
+// earlier pass made.
+func (s *State) beginSBAPass() uint8 {
+	for p := uint8(0); p < s.nSeats(); p++ {
+		s.pl[p].mark &^= pmLostPass
+	}
+	return s.outMask()
+}
+
+// markPassLosses marks the seats this pass lost (out now, not in pre). Gorge
+// queues a pass's losses in its batch (checkLoseConditions) and marks them
+// when the batch applies, so the pass's casualty scan still counts their
+// graveyards (ExCountGraveyard); a seat an effect already took out (pre) is
+// Lost in gorge's scan and uncounted (CR 704.3, 800.4a).
+func (s *State) markPassLosses(pre uint8) {
+	m := s.outMask() &^ pre
+	for p := uint8(0); p < s.nSeats(); p++ {
+		if m&(1<<p) != 0 {
+			s.pl[p].mark |= pmLostPass
+		}
+	}
+}
+
 // outMask is the set of seats out of the game, one bit a seat.
 func (s *State) outMask() uint8 {
 	var m uint8
@@ -105,6 +129,7 @@ func (s *State) expireControlPerLoss(k *prep, pre uint8) {
 // no zone (kop.ZoneNone, which the oracle projects as ZCeased).
 func (s *State) leaveGame(k *prep, p uint8) bool {
 	moved := false
+	s.pl[p].mark &^= pmLostPass // swept: the pass's scan is over, its graveyard goes
 	if s.parkedWaiting() && s.parkedOwnedBy(p) {
 		// a CR 616.1 order ask still waits on a permanent p owns, which leaves
 		// the game with p (CR 800.4a) before the answer moves it: a four-seat
