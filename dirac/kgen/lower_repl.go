@@ -507,7 +507,7 @@ func (lc *lowerCtx) exileOnLeave(rp *params, w *cards.SA, rl *lRepl) (bool, erro
 	if !bodyOK {
 		var claimed bool
 		var err error
-		if tokRider, claimed, err = exileRiderClaim(w); err != nil || !claimed { // lower_exilectrrider.go
+		if tokRider, claimed, err = exileRiderClaim(w, lc.face); err != nil || !claimed { // lower_exilectrrider.go
 			return err != nil, err
 		}
 	}
@@ -577,7 +577,7 @@ func (lc *lowerCtx) exileOnLeave(rp *params, w *cards.SA, rl *lRepl) (bool, erro
 func (lc *lowerCtx) selfExile(rp *params, w *cards.SA, rl *lRepl) (bool, error) {
 	ctr, ctrN, bodyOK := exileBody(w)
 	if !bodyOK {
-		tok, claimed, err := exileRiderClaim(w) // lower_exilectrrider.go
+		tok, claimed, err := exileRiderClaim(w, lc.face) // lower_exilectrrider.go
 		if err != nil || !claimed {
 			return err != nil, err
 		}
