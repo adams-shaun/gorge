@@ -20,65 +20,77 @@ func (s *State) priorityHandAct(k *prep, d *Decision, p uint8, sorc bool, av *av
 			if a.Kind != kop.AbActivated || a.ActZone != kop.ZoneHand {
 				continue
 			}
-			mana := &a.Cost.Mana
-			var red kop.ManaCost
-			if k.gen.anyOwnReduce && a.OwnReduce != (kop.ValueRef{}) {
-				red = s.ownReduced(k, a, o, p)
-				mana = &red
+			if k.anyCyclingGrant && a.AFlags&kop.AfLatent != 0 && isCyclingGrantBody(cd, ai) {
+				continue // the body a StatCyclingGrant static grants, never the grantor's own hand ability (kw_cyclinggrant.go)
 			}
-			if a.Cost.Flags&kop.CostSorcery != 0 && !sorc {
-				continue
-			}
-			if s.castHeldOut(o) {
-				continue // CR 733.2: reversed twice in a row with no progress holds the card's every offer out (gorge castSuppressed), as priorityGraveAct reads it
-			}
-			if a.Cost.Flags&kop.CostSac != 0 && s.countCostSac(k, p, &a.Cost, NoSlot) < int(a.Cost.N) {
-				// a sacrifice part needs its candidates on the battlefield:
-				// Edge of Autumn's cycling ("Sacrifice a land") is no option
-				// before the first land drop (legal.go's canActivate census)
-				continue
-			}
-			if !s.millRevealPayable(k, p, o, &a.Cost) {
-				continue // cost_millcost.go: CR 701.17b's library (a hand source pays its own reveal)
-			}
-			if a.Cost.Flags&kop.CostPayLife != 0 && int(pl.life) < lifeCostOwed(&a.Cost) {
-				continue // CR 119.4: Street Wraith's "Cycling-Pay 2 life" at 1 life
-			}
-			pd := payDesc{class: pdAct, card: s.objs[o].card, src: NoSlot}
-			aff := av.affords(mana, pipMaskOf(mana), 0)
-			if !aff && s.rbAny(p) {
-				// floating restricted mana the hand ability may spend (CR 106.6):
-				// a scripted prefix (Flamebraider's Elemental mana) taps the
-				// source into the pool before the activation, and the search's
-				// restrOptions walk must list it or no script completes.
-				if m := s.restrPoolAct(k, p, &pd); m != 0 {
-					t := *av
-					s.restrAvailAdd(p, m, &t)
-					aff = t.affords(mana, pipMaskOf(mana), 0)
-				}
-			}
-			census := !aff && !(k.restrSrc && s.restrSrcAffords(k, p, pd, mana, av, NoSlot, 0)) && !(mana == &a.Cost.Mana && s.handActFiltAffords(k, p, mana, av))
-			pa := MakeAction(AkActivate, TCode(o), 0, uint8(ai))
-			script := census && (s.handActScriptPays(k, p, o, ai) || s.handActFiltPays(k, a, p, pa))
-			if census && !script && !s.handActTapXRoute(k, p) {
-				continue
-			}
-			if !s.handActCensusPays(k, p, mana, pd, av) {
-				continue
-			}
-			if a.AFlags&kop.AfNinjutsu != 0 && !s.ninjutsuOfferOK(k, a, p, o) {
-				continue // its window and its Return candidate (kw_ninjutsu.go)
-			}
-			// The feasibility reads the source as the CARD the ability works
-			// from (priorityGraveAct's probe, CR 702.16b): a hand ability's
-			// source is the green Wasteland Viper in hand, so a Blightbeetle's
-			// protection from green bars its bloodrush target and the offer is
-			// withheld. abilityTargetsFeasible's bare probe carries no source
-			// (its colours 0), so protection from a colour never matched.
-			if s.probeAbilityFrom(k, a, p, s.objs[o].card) && (!census || script || s.handActTapXPays(k, p, pa)) {
-				d.add(pa)
-			}
+			s.handActOffer(k, d, p, sorc, av, o, a, MakeAction(AkActivate, TCode(o), 0, uint8(ai)))
 		}
+	}
+}
+
+// handActOffer is one hand-zone activated ability a of the card o in p's hand
+// through priorityHandAct's gates: pa is the action it offers (the card's own
+// ability index, or a StatCyclingGrant's granted action, kw_cyclinggrant.go).
+//
+//go:noinline
+func (s *State) handActOffer(k *prep, d *Decision, p uint8, sorc bool, av *avail, o Obj, a *kop.Ability, pa Action) {
+	pl := &s.pl[p]
+	mana := &a.Cost.Mana
+	var red kop.ManaCost
+	if k.gen.anyOwnReduce && a.OwnReduce != (kop.ValueRef{}) {
+		red = s.ownReduced(k, a, o, p)
+		mana = &red
+	}
+	if a.Cost.Flags&kop.CostSorcery != 0 && !sorc {
+		return
+	}
+	if s.castHeldOut(o) {
+		return // CR 733.2: reversed twice in a row with no progress holds the card's every offer out (gorge castSuppressed), as priorityGraveAct reads it
+	}
+	if a.Cost.Flags&kop.CostSac != 0 && s.countCostSac(k, p, &a.Cost, NoSlot) < int(a.Cost.N) {
+		// a sacrifice part needs its candidates on the battlefield:
+		// Edge of Autumn's cycling ("Sacrifice a land") is no option
+		// before the first land drop (legal.go's canActivate census)
+		return
+	}
+	if !s.millRevealPayable(k, p, o, &a.Cost) {
+		return // cost_millcost.go: CR 701.17b's library (a hand source pays its own reveal)
+	}
+	if a.Cost.Flags&kop.CostPayLife != 0 && int(pl.life) < lifeCostOwed(&a.Cost) {
+		return // CR 119.4: Street Wraith's "Cycling-Pay 2 life" at 1 life
+	}
+	pd := payDesc{class: pdAct, card: s.objs[o].card, src: NoSlot}
+	aff := av.affords(mana, pipMaskOf(mana), 0)
+	if !aff && s.rbAny(p) {
+		// floating restricted mana the hand ability may spend (CR 106.6):
+		// a scripted prefix (Flamebraider's Elemental mana) taps the
+		// source into the pool before the activation, and the search's
+		// restrOptions walk must list it or no script completes.
+		if m := s.restrPoolAct(k, p, &pd); m != 0 {
+			t := *av
+			s.restrAvailAdd(p, m, &t)
+			aff = t.affords(mana, pipMaskOf(mana), 0)
+		}
+	}
+	census := !aff && !(k.restrSrc && s.restrSrcAffords(k, p, pd, mana, av, NoSlot, 0)) && !(mana == &a.Cost.Mana && s.handActFiltAffords(k, p, mana, av))
+	script := census && (s.handActScriptPays(k, p, pa) || s.handActFiltPays(k, a, p, pa))
+	if census && !script && !s.handActTapXRoute(k, p) {
+		return
+	}
+	if !s.handActCensusPays(k, p, mana, pd, av) {
+		return
+	}
+	if a.AFlags&kop.AfNinjutsu != 0 && !s.ninjutsuOfferOK(k, a, p, o) {
+		return // its window and its Return candidate (kw_ninjutsu.go)
+	}
+	// The feasibility reads the source as the CARD the ability works
+	// from (priorityGraveAct's probe, CR 702.16b): a hand ability's
+	// source is the green Wasteland Viper in hand, so a Blightbeetle's
+	// protection from green bars its bloodrush target and the offer is
+	// withheld. abilityTargetsFeasible's bare probe carries no source
+	// (its colours 0), so protection from a colour never matched.
+	if s.probeAbilityFrom(k, a, p, s.objs[o].card) && (!census || script || s.handActTapXPays(k, p, pa)) {
+		d.add(pa)
 	}
 }
 
@@ -165,7 +177,7 @@ func (s *State) sacRepeatPays(k *prep, p uint8, mana *kop.ManaCost, pd payDesc) 
 // activation's route). Cold, out of line.
 //
 //go:noinline
-func (s *State) handActScriptPays(k *prep, p uint8, o Obj, ai int) bool {
+func (s *State) handActScriptPays(k *prep, p uint8, pa Action) bool {
 	if k.gen == nil || s.cfg&cfgGorgeLowering == 0 || s.g.availX&(availNoActScript|availWalk) != 0 || s.pool != nil && s.pool.inFilt != 0 {
 		return false
 	}
@@ -174,7 +186,7 @@ func (s *State) handActScriptPays(k *prep, p uint8, o Obj, ai int) bool {
 	}
 	x := s.g.availX
 	s.g.availX = x | availNoHandFund
-	ok := s.filtScript(k, MakeAction(AkActivate, TCode(o), 0, uint8(ai)), p, false)
+	ok := s.filtScript(k, pa, p, false)
 	s.g.availX = x
 	return ok
 }

@@ -27,6 +27,7 @@ func eotCombatEmblemRefuse(ab *lAbility, recipientCap bool) error {
 		z := *t
 		z.Event, z.F, z.F2, z.Whose, z.Zone, z.Combat, z.Optional, z.MinAttackers, z.SrcInPlay, z.DefPlayer = "", nil, nil, 0, 0, 0, false, 0, false, 0
 		z.Batch, z.PerRef = false, false
+		z.Unblocked = false // AttackerBlocked lowered from Mode$ AttackerUnblocked: the unblocked hook (fireEmblemsUnblocked)
 		if t.Event == "Attacks" {
 			z.Alone, z.Attacked = false, 0 // the per-attacker hook reads both (fireAttacksGen)
 		}
@@ -105,7 +106,7 @@ func (lc *lowerCtx) emblemCapture(ps *params, t cards.Trigger, eot bool) (lRef, 
 		ps.consume("RememberObjects")
 		return ref, true, true, t, nil
 	}
-	if strings.TrimSpace(ro) != "Targeted" || !eot || t.Mode != "DamageDone" && t.Mode != "DamageDoneOnce" && t.Mode != "DamageDealtOnce" && t.Mode != "AttackerBlocked" {
+	if strings.TrimSpace(ro) != "Targeted" || !eot || t.Mode != "DamageDone" && t.Mode != "DamageDoneOnce" && t.Mode != "DamageDealtOnce" && t.Mode != "AttackerBlocked" && t.Mode != "AttackerUnblocked" {
 		return lRef{}, false, false, t, refuse("Effect triggers with RememberObjects$ %q", ro)
 	}
 	var ref lRef
@@ -321,8 +322,27 @@ func (lc *lowerCtx) capturedTriggerRef(v string) (lRef, bool) {
 	if v == "Remembered" && lc.capRem && !lc.hasRememberWriter() {
 		return lRef{Kind: rTriggeredSource}, true
 	}
-	if v == "RememberedLKI" && lc.emblemBlocked {
+	if (v == "RememberedLKI" || v == "Remembered" && lc.emblemUnblocked && !lc.hasRememberWriter()) && lc.emblemBlocked {
 		return lRef{Kind: rTriggered}, true
 	}
 	return lRef{}, false
+}
+
+// emblemBlockedLapse reads the capture's end for a become-blocked emblem: an
+// AttackerBlocked one needs a captured object and ForgetOnMoved$ Battlefield
+// (gorge forgets the object when it leaves); an AttackerUnblocked one is the
+// same, or lapsed already by ExileOnMoved$ (Delif's Cube), or captures nothing
+// and fires for every creature its filter names (Gaze of Pain).
+func emblemBlockedLapse(ps *params, mode string, hasCap, lapse bool) (bool, error) {
+	switch {
+	case mode == "AttackerUnblocked" && (!hasCap || lapse):
+		return lapse, nil
+	case mode == "AttackerBlocked" || mode == "AttackerUnblocked":
+		if !hasCap || !ps.is("ForgetOnMoved", "Battlefield") {
+			return false, refuse("Effect %s trigger without a captured object and ForgetOnMoved$ Battlefield", mode)
+		}
+		ps.consume("ForgetOnMoved")
+		return true, nil
+	}
+	return lapse, nil
 }

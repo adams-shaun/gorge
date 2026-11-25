@@ -345,6 +345,8 @@ func applyKind(g *state.Game, e *Event) {
 		foldMyriadCleanup(g, e)
 	case TokenAttacks:
 		foldTokenAttacks(g, e)
+	case TokenBlocks:
+		foldTokenBlocks(g, e)
 	case Shuffle:
 		foldShuffle(g, e)
 	case PlanarDeckShuffle:
