@@ -654,6 +654,15 @@ func (s *State) windowCensusComplete(k *prep, e *stackEntry) bool {
 			(k.gen.anyTapsDefer && s.tapsDeferred(k, e.ctrl, sl) || k.gen.anySelfTaps && s.selfTapsDefer(k, sl)) {
 			return false
 		}
+		// A Condition-split source (Gemstone Caverns) is one gorge's payment
+		// planner defers (pay source:conditional, mana_condsplit.go), so the
+		// census prices no unit of it and what the manual window can still fund
+		// from it is unprovable (CR 601.2g). splitUsable is the gate the
+		// window's own walk reads (mana_tapsdefer.go); a locked or lost one adds
+		// nothing and leaves the census complete.
+		if k.gen.anyCondSplit && s.splitDeferred(k, sl) && s.splitUsable(k, sl) {
+			return false
+		}
 		if !lost {
 			cd := &k.t.Cards[s.cardAt(sl)]
 			for j := range cd.Abilities {
