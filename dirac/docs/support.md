@@ -21,7 +21,7 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 | LCI | 290 | 262 | 1 | 1 | 260 | 260 | 0 |
 | MKM | 279 | 256 | 1 | 6 | 249 | 249 | 0 |
 | MSH | 276 | 250 | 1 | 0 | 249 | 249 | 0 |
-| OTJ | 276 | 254 | 1 | 0 | 253 | 253 | 0 |
+| OTJ | 276 | 256 | 1 | 2 | 253 | 253 | 0 |
 | SOS | 270 | 261 | 0 | 2 | 259 | 259 | 0 |
 | SPM | 192 | 174 | 2 | 5 | 167 | 167 | 0 |
 | TDM | 276 | 260 | 1 | 0 | 259 | 259 | 0 |
@@ -31,7 +31,7 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 | TRK | 311 | 311 | 1 | 0 | 310 | 310 | 0 |
 | WOE | 281 | 266 | 0 | 2 | 264 | 264 | 0 |
 | MBC | 2212 | 2028 | 3 | 33 | 1992 | 1992 | 0 |
-| ALL | 34480 | 26483 | 42 | 585 | 25856 | 25853 | 0 |
+| ALL | 34480 | 26516 | 42 | 618 | 25856 | 25853 | 0 |
 
 `ALL` is the whole corpus; `MBC` is the Mystery Booster Commander draft pool, every name its packs deal that gorge supports; the rest are the Standard sets. `4-seat` counts the supported cards whose lowering holds at any seat count: a card whose lowering reads the one opponent of a two-player game (`kop.CardDef.TwoSeat`) is refused in a game of three or more seats (`StallTwoSeat`). It is a ceiling, not evidence. `pod-evidenced` counts those cards whose evidence row carries a seats field — a clean game of three or more seats, which `kfuzz -evidence -seats 4` writes and `scripts/dirac-first-refusals.py evidence --pools pod-*` copies into `dirac/support/evidence` (`Name\t<seats>`; readers take the name and ignore trailing columns). A pod game does not evidence a card: the support rule below is unchanged.
 

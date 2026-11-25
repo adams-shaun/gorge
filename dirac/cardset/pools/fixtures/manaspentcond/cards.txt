@@ -1,0 +1,24 @@
+# ConditionManaSpent$ read by a spell's own resolution ("if {R} was spent to
+# cast this spell"), lowered as the resolving spell's per-colour spend, for
+# dirac/oracle/manaspentcond_test.go. Hybrid costs let either colour pay.
+Firespout
+Boros Fury-Shield
+Seed Spark
+Dryad's Caress
+Flash Conscription
+Rolling Spoil
+Mythos of Brokkos
+Induce Paranoia
+River's Grasp
+Torrent of Souls
+Unnerving Assault
+Ribbons of Night
+Repel Intruders
+Invert the Skies
+Grizzly Bears
+Scathe Zombies
+Mountain
+Forest
+Plains
+Swamp
+Island

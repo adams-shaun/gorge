@@ -36,6 +36,9 @@ func (lc *lowerCtx) manaSpentCondition(ps *params) (lCond, bool, error) {
 		return lCond{}, true, refuse("%s$ beside %s$", key, beside[0])
 	}
 	ps.consume(key)
+	if lc.ab != nil && lc.ab.Kind == akSpell && !lc.ab.Latent && lc.ab.Trigger == nil {
+		return lc.spellManaSpentCondition(key, val, want)
+	}
 	if tr := lc.selfETBBody(); tr == nil {
 		return lCond{}, true, refuse("%s$ outside its own enters trigger's body", key)
 	}
@@ -92,4 +95,34 @@ func (lc *lowerCtx) selfETBInterveningManaSpentCond(t cards.Trigger) (lCond, boo
 		c, err := lc.trigManaSpendCond(notSpent, true)
 		return c, true, err
 	}
+}
+
+// spellManaSpentCondition lowers ConditionManaSpent$ / ConditionManaNotSpent$
+// read by a spell's own resolution chain ("if {R} was spent to cast this
+// spell", Firespout; "if {U}{B} was spent", Mythos of Brokkos). gorge reads
+// the resolving spell's recorded per-colour spend (Object.ManaColorSpent, the
+// read Count$Adamant takes: zero for a copy or a spell cast without paying),
+// so each colour is the same vAdamant read adamantValue lowers on a spell,
+// threshold one, with no live-read flag (the spell is still on the stack). A
+// colour list means every listed colour was spent (Forge's hasAllColors):
+// ConditionManaSpent$ is the conjunction, ConditionManaNotSpent$ its negation.
+func (lc *lowerCtx) spellManaSpentCondition(key, val string, want int) (lCond, bool, error) {
+	toks := strings.Fields(val)
+	if len(toks) == 0 {
+		return lCond{}, true, refuse("%s$ names no colour", key)
+	}
+	var all lCond
+	for _, t := range toks {
+		letter := adamantColourLetter(t)
+		ci := strings.Index("WUBRG", letter)
+		if letter == "" || ci < 0 {
+			return lCond{}, true, refuse("%s$ colour %q", key, t)
+		}
+		v := lValue{Kind: vAdamant, N: ci | 1<<3, Sub: []lValue{cst(1), cst(0)}}
+		all = andCond(all, lCond{Kind: cValue, A: v, Op: opEQ, B: cst(1)})
+	}
+	if want == 0 {
+		all.Neg = !all.Neg
+	}
+	return all, true, nil
 }
