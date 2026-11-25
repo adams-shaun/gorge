@@ -125,6 +125,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 	clock := h.Game().Clock
 	ep := EffectOf(sa)
 	noteUnreadParams(h, c, "Effect", ep.Unread)
+	noteEffectCounters(h, c, ep.NoteCounterDefined)
 	rawDur := ep.Duration
 	dur := rawDur
 	if dur == "" {
@@ -186,7 +187,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 	// scan runs inside the Triggers$ loop below to skip the trigger's
 	// delayed registration (it has no effect token to exile).
 	if forgetOnCast == "" {
-		forgetOnCast = effectSelfExileOnCastSpec(h, c, ep.Triggers)
+		forgetOnCast = effectSelfExileOnCastSpec(h, c, ep.TriggerNames)
 	}
 	// ImprintOnHost$ True: Forge's
 	// EffectEffect imprints the CREATED EFFECT TOKEN on the host card and
@@ -321,7 +322,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 	//     rides the registration ("|OD=<spec>") and rules' resolveTop poses
 	//     the yes/no to the named decider when the minted ability resolves.
 	//   - a body with no Execute$ has nothing to resolve.
-	for name := range strings.FieldsSeq(ep.Triggers) {
+	for _, name := range ep.TriggerNames {
 		raw := effectTriggerBody(h, c, name)
 		tr, ok := cards.ParseTriggerLine(raw)
 		if !ok {
@@ -1834,7 +1835,7 @@ func effectNamesBecomeMonarchTrigger(h Host, c *Ctx, sa *cards.SA) bool {
 	if !isEffectSA(sa) {
 		return false
 	}
-	for name := range strings.FieldsSeq(EffectOf(sa).Triggers) {
+	for _, name := range EffectOf(sa).TriggerNames {
 		if tr, ok := cards.ParseTriggerLine(effectTriggerBody(h, c, name)); ok && tr.Mode == "BecomeMonarch" {
 			return true
 		}
