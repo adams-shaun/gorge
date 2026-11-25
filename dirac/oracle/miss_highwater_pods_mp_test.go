@@ -13,13 +13,12 @@ import (
 // and later loses the game while the game goes on is the case the card was
 // marked two-seat only for: in two seats the loss ends the game, so the
 // Effect's LosesGame trigger (copies of the loser's artifacts and creatures)
-// never resolves. Gorge, the reference, makes no copy in a pod either: it
-// registers the Effect's LosesGame line (Triggers$ "LoseGameTrigger,
-// ExileEffect"), but its delayed-trigger walk has no LosesGame matcher, so the
-// registration never fires. The kernel's Effect lowers to nothing and agrees:
-// the game goes on past the loss and no token appears. The pod lockstep pins
-// that: when gorge fires the trigger it diverges at the first contracted loss
-// and the kernel owes the trigger (dirac/kgen contractLossEffect).
+// never resolves. Gorge arms the comma-listed Effect trigger
+// ("LoseGameTrigger,ExileEffect") and, after the loss, copies the loser's
+// artifacts and creatures; the kernel carries the same Effect through the
+// armed contract-counter put (dirac/kgen contractLossEffect,
+// dirac/ctr_losscopy.go). The pod lockstep pins that both engines make the
+// copies and agree decision for decision.
 //
 // The class is read off play only (a contracted seat loses while the game goes
 // on), never off how gorge spells a registration or a diagnostic Note: those
@@ -135,11 +134,12 @@ func TestFourSeatMissHighwaterPodsLockstep(t *testing.T) {
 	}
 	t.Logf("%+v", y)
 	// the class: seats that took the contract (the counter and the Effect
-	// come from one resolution) left a game that went on, and no copy made
+	// come from one resolution) left a game that went on, and the Effect's
+	// LosesGame trigger copied the loser's artifacts and creatures
 	if y.contractLosses < 3 || y.goneOn < 3 {
-		t.Fatalf("the pods never showed the class: %+v", y)
+		t.Fatalf("the pods never showed the armed class: %+v", y)
 	}
-	if y.copies != 0 {
-		t.Fatalf("gorge made %d tokens after a contracted loss: it fires the LosesGame Effect trigger now, and the kernel owes it: %+v", y.copies, y)
+	if y.copies == 0 {
+		t.Fatalf("gorge made no tokens after a contracted loss: the LosesGame Effect trigger did not fire: %+v", y)
 	}
 }
