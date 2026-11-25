@@ -762,7 +762,7 @@ func (e *Engine) handleReplacement(d *decision.Decision, in decision.Intent, inP
 		case replChoiceDamage:
 			completed, applied = e.handleDamageReplacementChoice(rc, chosen[0].Index, inPlace)
 		}
-		e.triggerBefore = before
+		e.setTriggerBefore(before)
 		if completed && len(e.replChoices) > 0 {
 			// The same parked resolution produced more than one replacement
 			// choice: a multi-recipient DealDamage/DamageAll parks one per
@@ -828,7 +828,7 @@ func (e *Engine) handleReplacement(d *decision.Decision, in decision.Intent, inP
 		// to the modified event (CR 616.1e); a further non-commuting
 		// competition asks again at the front of the queue.
 		if chosen[0].Index >= len(rc.cands) {
-			e.triggerBefore = before
+			e.setTriggerBefore(before)
 			e.emit(events.Event{Kind: events.Note, Player: in.Player,
 				Text: "life replacement answer out of range"})
 			return events.Event{}
@@ -855,7 +855,7 @@ func (e *Engine) handleReplacement(d *decision.Decision, in decision.Intent, inP
 		}
 		e.lifeExchange = priorExchange
 		e.damaging, e.combatDamaging, e.dmgSrcOverride = damaging, combat, override
-		e.triggerBefore = before
+		e.setTriggerBefore(before)
 		e.askNextReplacementChoice()
 		return events.Event{}
 	}
@@ -863,7 +863,7 @@ func (e *Engine) handleReplacement(d *decision.Decision, in decision.Intent, inP
 	switch rc.kind {
 	case replChoiceMana:
 		if chosen[0].Index < 0 || chosen[0].Index >= len(rc.applicable) {
-			e.triggerBefore = before
+			e.setTriggerBefore(before)
 			e.emit(events.Event{Kind: events.Note, Player: in.Player,
 				Text: "mana replacement answer out of range"})
 			return events.Event{}
@@ -885,7 +885,7 @@ func (e *Engine) handleReplacement(d *decision.Decision, in decision.Intent, inP
 		color := chosen[0].ManaSymbol
 		if len(color) != 1 || !strings.Contains("WUBRG", color) ||
 			rc.selected < 0 || rc.selected >= len(rc.cands) {
-			e.triggerBefore = before
+			e.setTriggerBefore(before)
 			e.emit(events.Event{Kind: events.Note, Player: in.Player,
 				Text: "mana colour replacement answer out of range"})
 			return events.Event{}
@@ -895,7 +895,7 @@ func (e *Engine) handleReplacement(d *decision.Decision, in decision.Intent, inP
 		e.continueManaReplacements(rc.ev, rc.cands, rc.applied, true, rc.manaTapped, rc.manaProducer)
 	case replChoicePhaseOrder:
 		if chosen[0].Index < 0 || chosen[0].Index >= len(rc.applicable) {
-			e.triggerBefore = before
+			e.setTriggerBefore(before)
 			e.emit(events.Event{Kind: events.Note, Player: in.Player,
 				Text: "phase replacement answer out of range"})
 			return events.Event{}
@@ -911,7 +911,7 @@ func (e *Engine) handleReplacement(d *decision.Decision, in decision.Intent, inP
 		}
 	case replChoicePhaseOptional:
 		if !answerParkedOptionalPhase(rc, chosen[0].Kind == "apply", e.finishParkedPhase, e.resumeParkedPhase) {
-			e.triggerBefore = before
+			e.setTriggerBefore(before)
 			e.emit(events.Event{Kind: events.Note, Player: in.Player,
 				Text: "optional phase replacement answer out of range"})
 			return events.Event{}
@@ -919,7 +919,7 @@ func (e *Engine) handleReplacement(d *decision.Decision, in decision.Intent, inP
 	case replChoiceAddCounter:
 		open := addCounterUnapplied(rc)
 		if chosen[0].Index < 0 || chosen[0].Index >= len(open) {
-			e.triggerBefore = before
+			e.setTriggerBefore(before)
 			e.emit(events.Event{Kind: events.Note, Player: in.Player,
 				Text: "counter replacement-order answer out of range"})
 			return events.Event{}
@@ -936,7 +936,7 @@ func (e *Engine) handleReplacement(d *decision.Decision, in decision.Intent, inP
 	case replChoiceEntryOrder:
 		open := addCounterUnapplied(rc)
 		if chosen[0].Index < 0 || chosen[0].Index >= len(open) || rc.stage == nil {
-			e.triggerBefore = before
+			e.setTriggerBefore(before)
 			e.emit(events.Event{Kind: events.Note, Player: in.Player,
 				Text: "entry counter replacement-order answer out of range"})
 			return events.Event{}
@@ -944,7 +944,7 @@ func (e *Engine) handleReplacement(d *decision.Decision, in decision.Intent, inP
 		e.resumeEntryCounterOrder(rc, open[chosen[0].Index])
 	case replChoiceToken:
 		if chosen[0].Index < 0 || chosen[0].Index >= len(rc.applicable) {
-			e.triggerBefore = before
+			e.setTriggerBefore(before)
 			e.emit(events.Event{Kind: events.Note, Player: in.Player,
 				Text: "token replacement-order answer out of range"})
 			return events.Event{}
@@ -954,7 +954,7 @@ func (e *Engine) handleReplacement(d *decision.Decision, in decision.Intent, inP
 		e.withTokenCreation(rc.tokenBatch, func() { e.resumeTokenOrder(rc, m, rest) })
 	case replChoiceUpdated:
 		if chosen[0].Index < 0 || chosen[0].Index >= len(rc.cands) {
-			e.triggerBefore = before
+			e.setTriggerBefore(before)
 			e.emit(events.Event{Kind: events.Note, Player: in.Player,
 				Text: "entry replacement-order answer out of range"})
 			return events.Event{}
@@ -965,21 +965,21 @@ func (e *Engine) handleReplacement(d *decision.Decision, in decision.Intent, inP
 			func(v bool) { e.applyingReplacement = v })
 	case replChoiceUntap:
 		if chosen[0].Index < 0 || chosen[0].Index >= len(rc.cands) {
-			e.triggerBefore = before
+			e.setTriggerBefore(before)
 			e.emit(events.Event{Kind: events.Note, Player: in.Player,
 				Text: "untap replacement-order answer out of range"})
 			return events.Event{}
 		}
 		e.applySimpleReplacement(rc.ev, rc.cands[chosen[0].Index])
 		if rc.untap != nil && e.pending == nil {
-			e.triggerBefore = before
+			e.setTriggerBefore(before)
 			if e.finishUntapStep(rc.untap.next) {
 				e.finishEnteredStep()
 			}
 		}
 	default:
 		if chosen[0].Index < 0 || chosen[0].Index >= len(rc.cands) {
-			e.triggerBefore = before
+			e.setTriggerBefore(before)
 			e.emit(events.Event{Kind: events.Note, Player: in.Player,
 				Text: "replacement-order answer out of range"})
 			return events.Event{}
@@ -989,7 +989,7 @@ func (e *Engine) handleReplacement(d *decision.Decision, in decision.Intent, inP
 		e.applyReplacement(rc.ev, rc.cands[chosen[0].Index])
 		e.replDrawChain = savedChain
 	}
-	e.triggerBefore = before
+	e.setTriggerBefore(before)
 	continueLoseManaBoundary(rc.manaBoundary, func() bool { return e.pending != nil }, &e.replChoices, func(leaving, entering state.Step, next int) { e.finishStepBoundary(leaving, entering, next) }, e.finishParkedPhase, e.finishEnteredStep)
 	// A mana replacement or colour decision can interrupt CR 601.2g's mana
 	// window. Resume the parked cast only after the final rewrite is logged
