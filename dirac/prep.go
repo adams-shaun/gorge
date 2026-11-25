@@ -355,6 +355,9 @@ type prep struct {
 	// (kw_ascend.go); a prep bool, not a genPrep one, so the hot hooks
 	// (enterNF, ctrlMove, sba, resolveTop) cost one byte load
 	ascend bool
+	// storied: some card prints Storied: the enduring-story scan runs
+	// (kw_storied.go); a prep bool like ascend, for the same reason
+	storied bool
 	// unleash: some card prints Unleash: the as-enters counter ask queues at
 	// entry and the block gate reads it (kw_unleash.go); a prep bool like
 	// ascend, for the same reason
@@ -418,6 +421,7 @@ func prepare(t *kop.Table) *prep {
 	typedSub := typedManaSubtypes(t)
 	p.speed, p.engines = prepSpeed(t)
 	p.ascend = tableHasAscend(t)
+	p.storied = tableHasStoried(t)
 	p.anyFbCard = tableHasFlashback(t)
 	p.unleash = tableHasUnleash(t)
 	p.riot = tableHasRiot(t)
