@@ -123,6 +123,8 @@ func (s *State) canPayGen(k *prep, p uint8, kind int, amt int, pips int16, f kop
 		return s.countGraveExile(k, p, f) >= amt
 	case payKindExileHand:
 		return int(s.pl[SeatIx(p)].handN) >= amt // cost_exilefromhand.go
+	case payKindMoveGrave:
+		return s.countMoveGrave(k, p, f) >= amt // cost_exiledmovegrave.go
 	case kop.PayManaX:
 		return true // X = 0 is always payable
 	case payKindEvidence:
@@ -162,6 +164,9 @@ func (s *State) execPay(k *prep, in *kop.Instr) bool {
 	kind = unlessPayKind(kind, in)           // an UnlessCost$ Waterbend<N> or AddCounter rides PayTapX (cost_unlesswaterbend.go)
 	if kind == kop.PayExileGrave && in.B.N == kop.PayBSubExileHand {
 		kind = payKindExileHand // a trigger's own ExileFromHand<N/Card> cost rides PayExileGrave (cost_exilefromhand.go)
+	}
+	if kind == kop.PayExileGrave && in.B.N == kop.PayBSubMoveGrave {
+		kind = payKindMoveGrave // a trigger's own ExiledMoveToGrave<N/Spec> cost rides PayExileGrave (cost_exiledmovegrave.go)
 	}
 	if kind == kop.PayExileGrave && in.B.N == kop.PayBSubTrigNewEvidence {
 		kind = payKindTrigNewEvidence // a dies trigger's own triggered-card exile beside evidence (cost_collectevidencex.go)
@@ -554,6 +559,10 @@ func (s *State) resolveOptionsGen(k *prep, d *Decision) bool {
 			s.handExileOptions(d, p) // cost_exilefromhand.go
 			break
 		}
+		if s.g.pickZ == payKindMoveGrave {
+			s.moveGraveOptions(k, d, p) // cost_exiledmovegrave.go
+			break
+		}
 		if z := s.g.pickZ; z == payKindBehold || z == payKindReveal {
 			s.unlessRevealOptions(k, d, p) // cost_unlessreveal.go: a Behold rides the same dispatch (cost_unlessbehold.go)
 			break
@@ -833,10 +842,10 @@ func (s *State) autoPayPick(k *prep) bool {
 			objs[j-1], objs[j] = objs[j], objs[j-1]
 		}
 	}
-	if k.gen.anyBatch && s.g.pickZ != kop.PayDiscard && s.g.pickZ != kop.PayReturn && s.g.pickZ != kop.PayExileGrave && s.g.pickZ != payKindExileHand {
+	if k.gen.anyBatch && s.g.pickZ != kop.PayDiscard && s.g.pickZ != kop.PayReturn && s.g.pickZ != kop.PayExileGrave && s.g.pickZ != payKindExileHand && s.g.pickZ != payKindMoveGrave {
 		defer s.batchClose(s.sacBatchOpen()) // gorge emitSacrifices (unlessflow): one sacrifice batch
 	}
-	if len(objs) > 0 && s.g.pickZ != kop.PayExileGrave && s.g.pickZ != payKindExileHand && s.g.pickZ != kop.PayDiscard && s.g.pickZ != kop.PayReturn {
+	if len(objs) > 0 && s.g.pickZ != kop.PayExileGrave && s.g.pickZ != payKindExileHand && s.g.pickZ != payKindMoveGrave && s.g.pickZ != kop.PayDiscard && s.g.pickZ != kop.PayReturn {
 		s.snapTrigSacrificed(k, s.objs[Obj(objs[0].Source())].slot) // trig_sacrificedlki.go
 	}
 	moved := uint8(0)
@@ -844,6 +853,8 @@ func (s *State) autoPayPick(k *prep) bool {
 		o := Obj(a.Source())
 		if s.g.pickZ == kop.PayExileGrave || s.g.pickZ == payKindExileHand {
 			s.exileFromGrave(o)
+		} else if s.g.pickZ == payKindMoveGrave {
+			s.moveGraveCost(k, o) // cost_exiledmovegrave.go
 		} else if s.g.pickZ == kop.PayDiscard {
 			s.discardUnlessPay(k, o)
 		} else if s.g.pickZ == kop.PayReturn {
@@ -1086,6 +1097,8 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 		}
 		if s.g.pickZ == kop.PayExileGrave || s.g.pickZ == payKindExileHand {
 			s.exileFromGrave(o) // a cost exile from either zone (cost_exilefromhand.go)
+		} else if s.g.pickZ == payKindMoveGrave {
+			s.moveGraveCost(k, o) // cost_exiledmovegrave.go
 		} else if s.g.pickZ == kop.PayDiscard {
 			s.discardUnlessPay(k, o)
 		} else if s.g.pickZ == kop.PayReturn {

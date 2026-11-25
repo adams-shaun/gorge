@@ -997,6 +997,7 @@ PayBSubEvidence	untyped int	2
 PayBSubEvidenceX	untyped int	11
 PayBSubExileHand	untyped int	9
 PayBSubMill	untyped int	17
+PayBSubMoveGrave	untyped int	19
 PayBSubSacHost	untyped int	7
 PayBSubSacRiders	untyped int	18
 PayBSubSacSelfMust	untyped int	4

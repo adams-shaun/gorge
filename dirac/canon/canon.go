@@ -180,6 +180,7 @@ var ChooseKinds = []string{
 	"enlist", // CR 702.154a: gorge askNextEnlist's election (option 0 declines; a creature to enlist names its Obj; kw_enlist.go)
 	// CR 701.48a: gorge effLearn's election (LearnDecision): do nothing, a sideboard Lesson (names its Obj), or the rummage (dirac ChLearn; act_learn.go)
 	"nothing", "lesson", "rummage",
+	"graveyard_cost", // gorge advanceTriggeredMandatory's ExiledMoveToGrave pick (dirac ChGenPayMoveGrave; cost_exiledmovegrave.go)
 }
 
 // ChooseOther is the ActChoose offset of an option kind ChooseKinds lacks.

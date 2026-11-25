@@ -916,6 +916,8 @@ func (r *Translator) generatedChoose(a dirac.Action) (Canon, bool) {
 		return Pack(kind("returncost"), Ref(src), RefNone, 0), true
 	case dirac.ChGenPayExile:
 		return Pack(kind("exile_cost"), Ref(src), RefNone, 0), true
+	case dirac.ChGenPayMoveGrave:
+		return Pack(kind("graveyard_cost"), Ref(src), RefNone, 0), true
 	case dirac.ChGenPileSplit:
 		return Pack(kind("twopiles"), Ref(src), RefNone, 0), true
 	case dirac.ChGenPileChoose:

@@ -24,7 +24,7 @@ func (ic *instrCtx) opUnlessPaid() error {
 	} else if in.Op == "UnlessSwitched" {
 		ki.Op = kop.OpUnlessSwitched
 	}
-	pk := map[string]int{"Mana": kop.PayMana, "Discard": kop.PayDiscard, "DiscardRandom": kop.PayDiscardRandom, "DiscardHand": kop.PayDiscardHand, "Sacrifice": kop.PaySac, "SacrificeRiders": kop.PaySac, "Blight": kop.PaySac, "PayLife": kop.PayLife, "PayEnergy": kop.PayEnergy, "Return": kop.PayReturn, "Forage": kop.PayForage, "SacrificeSelf": kop.PaySacSelf, "SacrificeSelfMust": kop.PaySacSelf, "SacrificeHost": kop.PaySacSelf, "Draw": kop.PayDraw, "DamageYou": kop.PayDraw, "Mill": kop.PayDraw, "SubCounter": kop.PaySubCounter, "TapX": kop.PayTapX, "TapXVar": kop.PayTapX, "Waterbend": kop.PayTapX, "AddCounter": kop.PayAddCounter, "ExileGrave": kop.PayExileGrave, "ExileTrigNew": kop.PayExileGrave, "ExileTrigNewEvidence": kop.PayExileGrave, "EvidenceX": kop.PayManaX, "ExileGraveChain": kop.PayExileGrave, "ExileStackSelf": kop.PayExileGrave, "ExileHand": kop.PayExileGrave, "ManaX": kop.PayManaX, "Evidence": kop.PayManaX, "Reveal": kop.PayDiscard, "Behold": kop.PayDiscard}[in.CS]
+	pk := map[string]int{"Mana": kop.PayMana, "Discard": kop.PayDiscard, "DiscardRandom": kop.PayDiscardRandom, "DiscardHand": kop.PayDiscardHand, "Sacrifice": kop.PaySac, "SacrificeRiders": kop.PaySac, "Blight": kop.PaySac, "PayLife": kop.PayLife, "PayEnergy": kop.PayEnergy, "Return": kop.PayReturn, "Forage": kop.PayForage, "SacrificeSelf": kop.PaySacSelf, "SacrificeSelfMust": kop.PaySacSelf, "SacrificeHost": kop.PaySacSelf, "Draw": kop.PayDraw, "DamageYou": kop.PayDraw, "Mill": kop.PayDraw, "SubCounter": kop.PaySubCounter, "TapX": kop.PayTapX, "TapXVar": kop.PayTapX, "Waterbend": kop.PayTapX, "AddCounter": kop.PayAddCounter, "ExileGrave": kop.PayExileGrave, "ExileTrigNew": kop.PayExileGrave, "ExileTrigNewEvidence": kop.PayExileGrave, "EvidenceX": kop.PayManaX, "ExileGraveChain": kop.PayExileGrave, "ExileStackSelf": kop.PayExileGrave, "ExileHand": kop.PayExileGrave, "MoveGrave": kop.PayExileGrave, "ManaX": kop.PayManaX, "Evidence": kop.PayManaX, "Reveal": kop.PayDiscard, "Behold": kop.PayDiscard}[in.CS]
 	if pk == 0 {
 		return fmt.Errorf("pay kind %q", in.CS)
 	}
@@ -94,6 +94,9 @@ func (ic *instrCtx) opUnlessPaid() error {
 	if in.CS == "ExileHand" {
 		ki.B = kop.Const(kop.PayBSubExileHand) // ExileFromHand<N/Card>, not a graveyard exile
 	}
+	if in.CS == "MoveGrave" {
+		ki.B = kop.Const(kop.PayBSubMoveGrave) // ExiledMoveToGrave<N/Spec>: exile to the owners' graveyards (cost_exiledmovegrave.go)
+	}
 	if in.CS == "Reveal" {
 		ki.B = kop.Const(kop.PayBReveal) // a reveal, not a discard: nothing moves
 	}
@@ -115,6 +118,9 @@ func (ic *instrCtx) opUnlessPaid() error {
 	}
 	if in.CS == "Reveal" {
 		z = kop.ZoneHand
+	}
+	if in.CS == "MoveGrave" {
+		z = kop.ZoneExile
 	}
 	if err := ic.objFilter(z); err != nil {
 		return err

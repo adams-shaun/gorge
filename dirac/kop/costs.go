@@ -397,6 +397,11 @@ const PayBSubTrigNew = 3
 // exiled), not a graveyard exile.
 const PayBSubExileHand = 9
 
+// PayBSubMoveGrave: a PayExileGrave whose B.N carries this sentinel is a
+// trigger's own ExiledMoveToGrave<N/Spec> cost (N cards matching F put from
+// any seat's exile zone into their owners' graveyards), not a graveyard exile.
+const PayBSubMoveGrave = 19
+
 // PayBSubTrigNewEvidence: a PayExileGrave whose B.N carries this sentinel is
 // a dies trigger's own ExileAnyGrave<1/Card.TriggeredNewCard>
 // CollectEvidence<A> cost (Lamplight Phoenix): the triggered card is exiled
