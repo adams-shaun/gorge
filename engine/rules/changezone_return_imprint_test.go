@@ -66,7 +66,7 @@ func TestChangeZoneReturnImprintsMovedCard(t *testing.T) {
 	if got := e.G.Obj(src).Counter("P1P1"); got != 1 {
 		t.Fatalf("Phelia counters after the return = %d, want 1 (+1/+1): the Return move's Imprint$ was not recorded", got)
 	}
-	if countEvents(e, func(ev events.Event) bool {
+	if countEventsSince(e, mark, func(ev events.Event) bool {
 		return ev.Kind == events.Imprint && ev.Obj == src && slices.Contains(ev.IDs, bear)
 	}) == 0 {
 		t.Fatal("the Return move emitted no Imprint event for the moved card")
