@@ -133,7 +133,7 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 			}
 			s.offerSneakHand(k, d, p, o, c, &av) // kw_sneak.go
 		}
-		if k.gen != nil && k.gen.anyOffering && k.t.Cards[c].HasOffering {
+		if k.gen != nil && k.gen.uses.has(useOffering) && k.t.Cards[c].HasOffering {
 			// the offering cast is instant speed, above the sorcery-speed
 			// timing gate and beside the plain cast (kw_offering.go)
 			if !haveAv {
@@ -3736,7 +3736,7 @@ func (s *State) applyPriority(k *prep, a Action) {
 	case AkWebSling:
 		s.beginWebSling(k, Obj(a.Source())) // CR 702.188a; kw_websling.go
 	case AkMayFlash:
-		if c := s.objs[a.Source()].card; k.gen != nil && k.gen.anyOffering && k.t.Cards[c].HasOffering {
+		if c := s.objs[a.Source()].card; k.gen != nil && k.gen.uses.has(useOffering) && k.t.Cards[c].HasOffering {
 			s.beginOffering(k, Obj(a.Source())) // CR 702.48; kw_offering.go
 			break
 		}

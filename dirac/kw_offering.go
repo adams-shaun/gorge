@@ -3,7 +3,7 @@ package dirac
 import "github.com/adams-shaun/gorge/dirac/kop"
 
 // Offering (CR 702.48, K:Offering:<Type>), cold: reached only when the
-// table has a card with the keyword (genPrep.anyOffering). Copied from gorge
+// table has a card with the keyword (the useOffering genPrep bit). Copied from gorge
 // (rules offering.go, legal_walk_hand.go, cast_subcounter.go sacAsk):
 //
 //   - the hand offers the "offering" cast ABOVE the sorcery-speed timing
@@ -210,3 +210,14 @@ func (s *State) offeringReduced(k *prep, c kop.ManaCost) kop.ManaCost {
 	}
 	return c
 }
+
+// useOffering: some card of the table has K:Offering (CardDef.HasOffering); a
+// genPrep use bit, not a field (TestNoNewFixedStateFields).
+var useOffering = newGenUse(func(t *kop.Table) bool {
+	for i := range t.Cards {
+		if t.Cards[i].HasOffering {
+			return true
+		}
+	}
+	return false
+})

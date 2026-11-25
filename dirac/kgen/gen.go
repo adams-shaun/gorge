@@ -338,9 +338,7 @@ func dumpLIR(w io.Writer, c *lCard) {
 			fmt.Fprintf(w, "+behold1%s", c.MayFlashBehold)
 		}
 	}
-	if c.Offering != nil {
-		fmt.Fprintf(w, " offering%s", c.Offering)
-	}
+	dumpOffering(w, c)
 	if c.FbBeholdN != 0 {
 		fmt.Fprintf(w, " fbbehold=%d%s", c.FbBeholdN, c.FbBeholdF)
 	}
@@ -463,12 +461,7 @@ func dumpLIR(w io.Writer, c *lCard) {
 	if c.HexColors != "" {
 		fmt.Fprintf(w, " hexproof=%s", c.HexColors)
 	}
-	if c.HexMono {
-		fmt.Fprintf(w, " hexproof=monocolored")
-	}
-	if c.HexMulti {
-		fmt.Fprintf(w, " hexproof=multicolored")
-	}
+	dumpHexQuality(w, c)
 	if c.ProtColors != "" {
 		fmt.Fprintf(w, " protection=%s", c.ProtColors)
 	}
@@ -793,4 +786,21 @@ func nameCard(cards []*lCard, key string) *lCard {
 		}
 	}
 	return c
+}
+
+// dumpOffering prints a card's K:Offering filter in dumpLIR's CARD line.
+func dumpOffering(w io.Writer, c *lCard) {
+	if c.Offering != nil {
+		fmt.Fprintf(w, " offering%s", c.Offering)
+	}
+}
+
+// dumpHexQuality prints a card's hexproof-from-quality words in dumpLIR's CARD line.
+func dumpHexQuality(w io.Writer, c *lCard) {
+	if c.HexMono {
+		fmt.Fprintf(w, " hexproof=monocolored")
+	}
+	if c.HexMulti {
+		fmt.Fprintf(w, " hexproof=multicolored")
+	}
 }

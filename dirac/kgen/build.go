@@ -520,6 +520,33 @@ func copyKeptSets(d *kop.CardDef, c *lCard) {
 	d.HasUnearth, d.HasDecayed, d.HasPersist, d.HasDoctorsCompanion = c.HasUnearth, c.HasDecayed, c.HasPersist, c.HasDoctorsCompanion
 }
 
+// recordOffering records K:Offering. CR 702.48: no KwMask bit is free, so the
+// offering marker is its own field; the filter is the sacrifice's
+// (dirac/kw_offering.go).
+func (cb *cardBuilder) recordOffering() error {
+	c, d := cb.c, &cb.out.def
+	if c.Offering == nil {
+		return nil
+	}
+	d.HasOffering = true
+	var err error
+	d.OfferingF, err = cb.filter(c.Offering, kop.ZoneBattlefield)
+	return err
+}
+
+// hexQualityBits is the hexproof-from-quality bits (monocolored,
+// multicolored) a card's lowering read.
+func hexQualityBits(c *lCard) kop.ColorMask {
+	var b kop.ColorMask
+	if c.HexMono {
+		b |= kop.HexMono
+	}
+	if c.HexMulti {
+		b |= kop.HexMulti
+	}
+	return b
+}
+
 func (cb *cardBuilder) record() error {
 	c := cb.c
 	d := &cb.out.def
@@ -868,13 +895,8 @@ func (cb *cardBuilder) record() error {
 			}
 		}
 	}
-	if c.Offering != nil {
-		// CR 702.48: no KwMask bit is free, so the offering marker is its
-		// own field; the filter is the sacrifice's (dirac/kw_offering.go)
-		d.HasOffering = true
-		if d.OfferingF, err = cb.filter(c.Offering, kop.ZoneBattlefield); err != nil {
-			return err
-		}
+	if err := cb.recordOffering(); err != nil {
+		return err
 	}
 	if c.FbBeholdN != 0 {
 		// the flashback cost's behold part (kernel act_behold.go): the
@@ -1133,12 +1155,7 @@ func (cb *cardBuilder) record() error {
 	for _, r := range c.HexColors {
 		d.HexColors |= kop.ColW << strings.IndexRune("WUBRG", r)
 	}
-	if c.HexMono {
-		d.HexColors |= kop.HexMono
-	}
-	if c.HexMulti {
-		d.HexColors |= kop.HexMulti
-	}
+	d.HexColors |= hexQualityBits(c)
 	if c.Landwalk != nil {
 		if d.Landwalk, err = cb.filter(c.Landwalk, kop.ZoneBattlefield); err != nil {
 			return err
