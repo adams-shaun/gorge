@@ -339,11 +339,12 @@ func (e *Engine) checkDelayedTriggers(ev events.Event) {
 		// optionalDecider off the source's face: today a Phase registration
 		// on a card whose first T: line carries OptionalDecider$ would be
 		// mis-read as optional through the face scan. A registration with no
-		// TriggerDescription$ queues with no line, exactly as before.
+		// TriggerDescription$ queues with no line, exactly as before. The
+		// line is parsed at the card-script boundary (the fold only ever
+		// carries a description the registering arm checked pipe-free).
 		var line cards.Trigger
 		if dt.Description != "" {
-			line = cards.Trigger{Mode: "Phase",
-				Params: map[string]string{cards.PKTriggerDescription.String(): dt.Description}}
+			line, _ = cards.ParseTriggerLine("Mode$ Phase | TriggerDescription$ " + dt.Description)
 		}
 		e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
 			Source:     pushSource,
@@ -464,6 +465,21 @@ type delayedSpellCastFire struct {
 	lkiPTValid             bool
 }
 
+// delayedEventLine overlays the registration's TriggerDescription$ onto the
+// freshly parsed body, so the CR 603.3b order ask labels this fire
+// "<source>: <description>" like any face trigger: the stored body (an
+// inline SpellCast/ChangesZone clause list) never carries the key, so an
+// unlabelled line would show the bare source name. A body that spells
+// TriggerDescription$ itself (a rules-generated registration, whose fold
+// carries no |LB=) keeps its own text.
+func delayedEventLine(t cards.Trigger, desc string) cards.Trigger {
+	if desc == "" || t.Params == nil {
+		return t
+	}
+	t.Params[cards.PKTriggerDescription.String()] = desc
+	return t
+}
+
 func (e *Engine) checkEventDelayedTriggers(ev events.Event, lki *state.Object,
 	lkiPower, lkiToughness int32, lkiPTValid bool) {
 	var fires []delayedSpellCastFire
@@ -514,22 +530,10 @@ func (e *Engine) checkEventDelayedTriggers(ev events.Event, lki *state.Object,
 			raw = events.SVarAcrossFaces(src, raw)
 		}
 		t, ok := cards.ParseTriggerLine(raw)
+		t = delayedEventLine(t, dt.Description)
 		if !ok || t.Mode != dt.EventMode {
 			remove = append(remove, dt.ID)
 			continue
-		}
-		// The registration's TriggerDescription$ rides the queued trigger's
-		// own Params, so the CR 603.3b order ask labels this fire
-		// "<source>: <description>" like any face trigger: the stored body
-		// (an inline SpellCast/ChangesZone clause list) never carries the
-		// key, so an unlabelled line would show the bare source name. A
-		// body that spells TriggerDescription$ itself (a rules-generated
-		// registration) keeps its own text.
-		if dt.Description != "" {
-			if t.Params == nil {
-				t.Params = make(map[string]string, 1)
-			}
-			t.Params[cards.PKTriggerDescription.String()] = dt.Description
 		}
 		sa := events.ResolveSVarAcrossFaces(e.delayedSVarHost(dt), dt.Execute)
 		if sa == nil {
