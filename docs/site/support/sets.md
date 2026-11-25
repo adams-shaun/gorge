@@ -21,6 +21,8 @@ the engine rows below carry the commits and corpus each figure was measured at.
 
 --8<-- "support/_generated_sets.md:headline"
 
+--8<-- "support/_generated_carddb.md:headline"
+
 ## At a glance
 
 One tile per Standard set (the sets on dirac's support page). The tint and large
@@ -160,6 +162,19 @@ full printed card list or that dirac's support page lists. It is sorted
 newest first.
 
 --8<-- "support/_generated_sets.md:sets"
+
+### carddb: abilities per set
+
+Per set, how many abilities are agreed, owed or diverged between the engines,
+from carddb's xproof data.
+
+--8<-- "support/_generated_carddb.md:sets"
+
+### carddb: data freshness
+
+How fresh each carddb data writer is.
+
+--8<-- "support/_generated_carddb.md:freshness"
 
 - **Cards** is gorge-compliance's count: the printed card list for an audited
   set, otherwise XMage's manifest for the set.
