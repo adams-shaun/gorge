@@ -110,11 +110,22 @@ func (lc *lowerCtx) triggeredSourceValid(rest string) (lValue, error) {
 	if tr == nil || tr.Event != "DamageDone" || !lc.trigBody || lc.ab.Latent {
 		return lValue{}, refuse("TriggeredSource$ outside a DamageDone trigger body")
 	}
+	ref := lRef{Kind: rTriggeredSource}
+	switch rest {
+	case "CardPower":
+		// the damage source's power / toughness (gorge evalRefProperty
+		// CardPower/CardToughness over the source as it now is; Ikra
+		// Shidiqi's "life equal to that creature's toughness"): the
+		// kernel's refPT over RefTriggerSource, live while it stays on
+		// the battlefield, else the card as it now is
+		return lValue{Kind: vPowerOf, Ref: ref}, nil
+	case "CardToughness":
+		return lValue{Kind: vToughnessOf, Ref: ref}, nil
+	}
 	spec, ok := strings.CutPrefix(rest, "Valid ")
 	if !ok {
 		return lValue{}, refuse("TriggeredSource$%s", rest)
 	}
-	ref := lRef{Kind: rTriggeredSource}
 	if spec == "Card.!ThisTurnEntered" {
 		f, err := lc.filter("Card.ThisTurnEntered")
 		if err != nil {

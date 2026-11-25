@@ -503,6 +503,14 @@ func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 			// the triggering spell's colours on the
 			// stack (gorge count_ref_property.go CardNumColors,
 			// len(h.ObjectColors(o)))
+			// Targeted$: the chosen target's colours wherever it now is
+			// (Breathe Your Last's "1 life for each of its colors" after
+			// the Destroy): live layer-5 colours on the battlefield, the
+			// printed card elsewhere (kernel refNumColors' target arm)
+			if head == "Targeted" {
+				v = lValue{Kind: vNumColorsOf, Ref: ref}
+				break
+			}
 			tr := lc.ab.Trigger
 			if head != "TriggeredCard" || tr == nil || !lc.trigBody || lc.ab.Latent || tr.Event != "SpellCast" {
 				err = refuse("TriggeredCard$CardNumColors outside a SpellCast trigger")

@@ -1,0 +1,12 @@
+# the not-kicked pool: ConditionDefined$ Self | ConditionPresent$ Card.!kicked
+# (Desolation Giant, Desolation Angel, Sphinx of Lost Truths) beside small
+# creatures and basics (dirac/oracle/valueheads2_lowers_test.go)
+Desolation Giant
+Desolation Angel
+Sphinx of Lost Truths
+Savannah Lions
+Elite Vanguard
+Plains
+Mountain
+Swamp
+Island

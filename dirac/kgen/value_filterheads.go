@@ -17,6 +17,22 @@ import (
 func (lc *lowerCtx) kvfHead(head, rest string) (lValue, error) {
 	switch head {
 	case "PlayerCountPlayers":
+		if spec, ok := strings.CutPrefix(rest, "HighestValid "); ok {
+			// gorge playerCountExtreme over AliveFrom: the highest, over
+			// every living player (the controller included), of the
+			// member's own-side battlefield count, "YouCtrl" there that
+			// member's (Investigator's Journal). The kernel's OppExtValid
+			// rebinds the controller words per member; OppExtAllPl keeps
+			// the controller in the group.
+			f, err := lc.filter(spec)
+			if err != nil {
+				return lValue{}, err
+			}
+			if _, err := opponentView(f); err != nil {
+				return lValue{}, err
+			}
+			return lValue{Kind: vOppExtreme, N: kop.OppExtValid | kop.OppExtAllPl, F: f}, nil
+		}
 		if strings.HasPrefix(rest, "HighestValid") {
 			// the zone-scoped extreme (value_plrextreme.go): the highest,
 			// over the living players, of the member's own-side count in
@@ -43,9 +59,14 @@ func (lc *lowerCtx) kvfHead(head, rest string) (lValue, error) {
 			// living players, min of both while a two-player game goes on
 			// (seat-exact: ExLowestLife reads every living seat),
 			// read as the replacement applies. The DSK "unless a player has
-			// 13 or less life" lands. HighestLifeTotal and every other
-			// property stay refused.
+			// 13 or less life" lands.
 			return lValue{Kind: vLowestLife}, nil
+		case "HighestLifeTotal":
+			// gorge lifeExtreme over AliveFrom: the highest CURRENT life
+			// total among every living player, the controller included
+			// (Arbiter of Knollridge); the kernel's OppExtLife over the
+			// OppExtAllPl group
+			return lValue{Kind: vOppExtreme, N: kop.OppExtLife | kop.OppExtAllPl}, nil
 		}
 	case "TargetedController":
 		if rest != "Counters.Poison" {
