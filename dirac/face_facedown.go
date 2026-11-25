@@ -406,6 +406,9 @@ func (s *State) turnFaceUp(k *prep, o Obj, p uint8, proc ...uint8) {
 		s.ctl = ctlTurnUpX
 		return
 	}
+	if s.turnUpRevealStage(k, o, p, mode, kw) {
+		return // act_revealpick.go: the reveal pick among several candidates
+	}
 	s.settleTurnUp(k, o, p, mode, 0)
 }
 
@@ -457,7 +460,7 @@ func (s *State) settleTurnUp(k *prep, o Obj, p uint8, mode uint8, x int) {
 		return
 	}
 	sp := turnUpSpecial(mode, k.t.Cards[s.cardAt(sl)].MorphFamily)
-	if !s.specialAffords(k, p, &cost, sp, sl, x) || kw && !s.turnUpLifeOK(k, p, sl) {
+	if !s.specialAffords(k, p, &cost, sp, sl, x) || kw && !s.turnUpKwPayable(k, p, sl) {
 		return
 	}
 	cost = cost.AtX(x)
