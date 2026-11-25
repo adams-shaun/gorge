@@ -582,6 +582,7 @@ func (e *Engine) abilityOfferCost(p state.PlayerID, id state.ObjID, ab *cards.SA
 type offerCostHost interface {
 	abilityCompiledCost(sa *cards.SA) *compiledCost
 	ownReduceCost(p state.PlayerID, id state.ObjID, ab *cards.SA, targets, allTargets []state.Target, merged int) int32
+	ownAbilityRaiseCost(p state.PlayerID, id state.ObjID, ab *cards.SA, merged int) (raise Cost, has, ok bool)
 	powerUpReducedCost(id state.ObjID, ab *cards.SA, cost Cost) Cost
 	offerCostFor(p state.PlayerID, id state.ObjID, base Cost, scope costScope) Cost
 }
@@ -590,6 +591,15 @@ type offerCostHost interface {
 // rendered.
 func abilityOfferCostOf(e offerCostHost, p state.PlayerID, id state.ObjID, ab *cards.SA) Cost {
 	cost := e.abilityCompiledCost(ab).Cost
+	// The ability's own RaiseCost$ (Loreseeker's Stone): the same
+	// composition the offer gate and beginActivation's charge apply, so
+	// the decision's displayed cost is the cost the payment will charge.
+	// An unpriceable raise renders without its surcharge here: the gate
+	// withheld any ability whose raise it could not price, so no option
+	// carries this composition.
+	if raise, has, ok := e.ownAbilityRaiseCost(p, id, ab, 0); ok && has {
+		cost = cost.Plus(raise)
+	}
 	// The ability's own ReduceCost$ (Otawara's Channel): the same
 	// composition the offer gate and beginActivation's charge apply, so
 	// the decision's displayed cost is the cost the payment will charge.
