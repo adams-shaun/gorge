@@ -157,7 +157,6 @@ var knownUnknownFilterPredicates = []string{
 	"BottomGraveyard",
 	"BottomLibrary_Creature",
 	"CanEnchantRemembered",
-	"CanEnchantSource",
 	"CanPayManaCost",
 	"CastSa Spell.OppCtrl",
 	"Chosen",
