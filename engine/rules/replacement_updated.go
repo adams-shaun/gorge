@@ -348,17 +348,17 @@ func updatedBodyClass(m replMatch) string {
 // the replaced entrant for good: Defined$ ReplacedCard, Duration$ Permanent,
 // and no parameter beyond those, the chain link and the descriptions.
 func animateAddsTypesOnly(sa *cards.SA) bool {
-	if sa.Params["Types"] == "" || sa.Params["Defined"] != "ReplacedCard" || sa.Params["Duration"] != "Permanent" {
+	if sa.ParamStr(cards.PKTypes) == "" || sa.ParamStr(cards.PKDefined) != "ReplacedCard" || sa.ParamStr(cards.PKDuration) != "Permanent" {
 		return false
 	}
 	n := 3
-	if _, ok := sa.Params["SubAbility"]; ok {
+	if sa.HasParam(cards.PKSubAbility) {
 		n++
 	}
-	if _, ok := sa.Params["SpellDescription"]; ok {
+	if sa.HasParam(cards.PKSpellDescription) {
 		n++
 	}
-	if _, ok := sa.Params["StackDescription"]; ok {
+	if sa.HasParam(cards.PKStackDescription) {
 		n++
 	}
 	return len(sa.Params) == n
