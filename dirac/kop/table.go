@@ -211,6 +211,15 @@ type CardDef struct {
 	// CostFlags bit (none is free); kernel act_behold.go.
 	BeholdN uint8
 	BeholdF FilterID
+	// RevealN, RevealF: the either-or additional cost's part one is "reveal a
+	// card of type T from your hand" (AlternateAdditionalCost
+	// Reveal<1/Spec>:<mana>, CR 701.20a, 601.2b; RevealN is 1), or, on a
+	// Morph-family card, the keyword's turn-up cost is that reveal
+	// (K:Morph:Reveal<1/Card.Color>, CR 702.37e): one hand card matching
+	// RevealF, the cast card itself never a candidate. Nothing moves or is
+	// marked. Table data, not a CostFlags bit; kernel act_reveal.go.
+	RevealN uint8
+	RevealF FilterID
 	// BeholdExile: the behold is a mandatory additional cost that exiles what
 	// it beholds (RaiseCost Cost$ BeholdExile<1/Type>, the Lorwyn Champions;
 	// BeholdN is 1, no either-or): the pick is recorded, exiled at payment and
@@ -241,6 +250,12 @@ type CardDef struct {
 	// and a copy of a permanent spell resolves into a token
 	// (genPrep.anyPermCopy; dirac/copy_permanentspell.go, CR 707.10f).
 	Storm bool
+	// Conspire is K:Conspire (CR 702.78a; false = none): as the spell is cast
+	// its caster may tap two untapped creatures sharing a colour with it (the
+	// conspired cast, the granted keyword's AkCastConspire; dirac/kw_conspire.go).
+	// The paid count (Count$Conspired, 1 once both are tapped) lives in
+	// dirac/cost_paidcount.go and the copy is the keyword's own SpellCast trigger.
+	Conspire bool
 	// HandMana is the colour mask (one WUBRG bit) of a hand-zone mana
 	// ability whose only cost exiles the card itself from its owner's hand
 	// (Simian / Elvish Spirit Guide: "Exile this card from your hand: Add
