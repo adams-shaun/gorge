@@ -2686,6 +2686,13 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		}
 		st.Kind = kop.StatPlayerHexproof
 		st.A = 2
+	case "DefenderAssigns":
+		// Defensive Formation (lower_playerstatic.go): unconditional, as the
+		// kernel read (static_plkeyword.go) consults no Cond2
+		if s.Cond.Kind != cNone || s.Amount.Kind != vNone {
+			return ka, nil, fmt.Errorf("DefenderAssigns beside %s", s.Cond)
+		}
+		st.Kind = kop.StatDefenderAssigns
 	case "PlayerProtAll":
 		st.Kind = kop.StatPlayerProtAll // the controller has protection from everything (static_plprot.go)
 	case "MayPlayFrom":
