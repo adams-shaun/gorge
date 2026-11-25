@@ -11,7 +11,8 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // kop.TrigNFlipLose, 0 either). An uncalled NoCall$ flip that no FlipCoinMod
 // static fixed fires nothing (kop.RollDieCoinNoCall). The kernel fires from
 // OpRollDie's coin flip at the same point. No slot subscription: the
-// battlefield is scanned behind genPrep.anyFlipTrig.
+// battlefield is scanned behind genPrep.anyKwAct (shared with the
+// keyword-action player events: no new fixed State field).
 
 // DebugFlippedCoinAnySide is the lockstep mutation switch (test only): a
 // FlippedCoin line fires on either side of the flip.
@@ -22,7 +23,7 @@ var DebugFlippedCoinAnySide bool
 //
 //go:noinline
 func (s *State) fireFlippedCoin(k *prep, p uint8, won bool) {
-	if k.gen == nil || !k.gen.anyFlipTrig {
+	if k.gen == nil || !k.gen.anyKwAct {
 		return
 	}
 	side := kop.TrigNFlipLose

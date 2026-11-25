@@ -331,7 +331,6 @@ type genPrep struct {
 	anyLeavesGrave  bool           // a TrigLeaves line also fires for a graveyard leave (kop.Tf2LeavesGrave; trig_leavesgrave.go)
 	anyToGrave      bool           // a trigger is TrigToGraveyard: N the origin mask, or From ZoneLibrary (trig_tograve.go)
 	anyKwAct        bool           // a trigger is TrigSearchedLibrary, TrigForage, TrigDiscover or TrigManifestDread
-	anyFlipTrig     bool           // a trigger is TrigFlippedCoin (trig_flippedcoin.go)
 	anyDilemma      bool           // some table reads ExDilemmasFaced or TrigFacesDilemma (trig_dilemma.go)
 	anyScryTally    bool           // some expr is ExScriedThisTurn (value_scrytally.go)
 	anyTokCr        bool           // some trigger is TrigTokenCreated (act_proliferate.go)
@@ -1283,7 +1282,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 					g.anyScryTrig = true
 				}
 				if a.Trig.Event == kop.TrigFlippedCoin {
-					g.anyFlipTrig = true
+					g.anyKwAct = true // trig_flippedcoin.go: no fixed State field of its own
 				}
 				if a.Trig.Event == kop.TrigLandPlayed {
 					g.anyLandPlayed = true
