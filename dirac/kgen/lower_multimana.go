@@ -36,7 +36,9 @@ import (
 //   - a plain first ability ({C} or a two-colour {T} choice) beside a
 //     "{T}, Pay N life" ability (Starting Town, Haunted Screen): gorge's
 //     last-resort Consequence{Life: N} beside its normal alternatives,
-//     which the kernel models as a pain source (mana_pain.go painLife).
+//     which the kernel models as a pain source (mana_pain.go painLife);
+//     the same pair admits the life ability's spend restriction (Great Hall
+//     of the Biblioplex, Voldaren Estate), carried on the pain unit.
 //
 // A plain fixed-colour {T} first ability beside "{T}, tap an untapped creature
 // you control: Add one mana of any color" (Scene of the Crime) is accepted by
@@ -100,6 +102,15 @@ func (lc *lowerCtx) refuseMultiMana() {
 		// three-colour life ability (Haunted Screen): gorge's last-resort
 		// Consequence{Life: N} beside its normal alternatives, priced and
 		// guarded as a painland's damage (kernel painLife)
+		return
+	}
+	if len(ms) == 2 && plainTapMana(ms[0], false) && unrestrictedOne(ms[0]) && primaryMana(ms[0]) && restrictedLifeTapMana(ms[1]) {
+		// {T}: Add {C}, then a restricted {T}, Pay N life: Add one mana of
+		// any colour (Great Hall of the Biblioplex, Voldaren Estate): the
+		// same last-resort life unit, its mana restricted to the spells its
+		// filter admits. The kernel carries the restriction and the float on
+		// the pain pair (mana_pain.go painUnit; mana_restrictedsource.go
+		// restrSrcAdmits), not on a restricted unit of its own.
 		return
 	}
 	if len(ms) == 2 && (dynamicLargerSameColour(ms[0], ms[1]) || dynamicLargerAnyColour(ms[0], ms[1])) {
@@ -1075,6 +1086,26 @@ func lifeTapMana(a *lAbility) bool {
 		return c.Mana.Colors == "WUBRG" // Produced$ Any
 	}
 	return false
+}
+
+// restrictedLifeTapMana: a is a spend-restricted {T}, Pay N life mana ability
+// of the landed restricted-life shape (restrictedLifeUnit: one fixed colour or
+// {C}, or one or two mana of any one colour) with a spell restriction, no
+// program and only {T} plus the life in its cost. Its pair arm in
+// refuseMultiMana admits it beside a plain census ability only while it makes
+// one mana: the kernel's pain pair carries one mana of the one colour each
+// alternative makes, and the availability walk's one tap has one amount. A
+// larger life alternative beside another mana ability stays refused.
+func restrictedLifeTapMana(a *lAbility) bool {
+	if a.Kind != akMana || a.Latent || a.Mana == nil || a.Mana.Restrict == nil || a.Mana.RestrictAb != nil {
+		return false
+	}
+	if !a.Mana.Amount.isConst() || a.Mana.Amount.N != 1 {
+		return false
+	}
+	c := *a
+	c.Cost.PayLife = 0
+	return plainTapMana(&c, false) && restrictedLifeUnit(a.Cost, a.Mana)
 }
 
 // painTapMana: a plain {T} mana ability (amount 1, unrestricted) of one

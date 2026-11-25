@@ -244,8 +244,19 @@ func TestSizzlingSoloistMustAttackStaysOneShot(t *testing.T) {
 	// declared -- asserted at the declare-attackers ask, before the forced
 	// attack can kill the remembered creature and retire the registration by
 	// another route -- so seat 1's combat on turn 4 does nothing.
+	//
+	// The registration carries Static$ True, so the engine may run the body
+	// inline (static_trigger.go) instead of minting a stack object; an inline
+	// resolution emits no Resolve event, so count it through the static hook.
+	inline := 0
+	e.StaticTriggerHook = func(_ state.PlayerID, _ state.ObjID, sa *cards.SA) {
+		if sa.API == "Animate" {
+			inline++
+		}
+	}
+	bodyRuns := func() int { return resolvedAPI(e, "Animate") + inline }
 	passUntilStep(t, e, 2, state.StepDeclareAttackers)
-	if n := resolvedAPI(e, "Animate"); n != 1 {
+	if n := bodyRuns(); n != 1 {
 		t.Fatalf("MustAttack body resolutions at turn 2's declare attackers = %d, want 1", n)
 	}
 	if len(e.G.Delayed) != 0 {
@@ -255,7 +266,7 @@ func TestSizzlingSoloistMustAttackStaysOneShot(t *testing.T) {
 		t.Fatalf("precondition: the remembered creature is still on the battlefield (%s)", e.G.Obj(bears).Zone)
 	}
 	passUntilTurn(t, e, 5)
-	if n := resolvedAPI(e, "Animate"); n != 1 {
+	if n := bodyRuns(); n != 1 {
 		t.Fatalf("MustAttack body resolutions after turn 4 = %d, want 1", n)
 	}
 	replayCheck(t, e, cfg)

@@ -333,6 +333,37 @@ func stripGroupPowerFloor(spec string) (string, int32) {
 	return out, int32(n)
 }
 
+// sameCreatureTypePredicate is Forge's bare sharesCreatureTypeWith filter
+// term, written as the last segment of a tapXType spec for Weight of
+// Conscience ("Creature.sharesCreatureTypeWith"). It is a relation BETWEEN
+// the tapped creatures, so the ordinary per-object matcher cannot evaluate it
+// against the source (which is the Aura, with no creature type).
+const sameCreatureTypePredicate = ".sharesCreatureTypeWith"
+
+// stripSameCreatureType splits the bare sharesCreatureTypeWith predicate off a
+// literal tapXType spec into CostPart.SameCreatureType. A spec that ends in
+// the term but has no base filter, or carries it anywhere else, is returned
+// unchanged and unmarked -- the per-object matcher then fails it closed, as it
+// did before the set-level reading existed.
+func stripSameCreatureType(spec string) (string, bool) {
+	base, ok := strings.CutSuffix(spec, sameCreatureTypePredicate)
+	if !ok || base == "" {
+		return spec, false
+	}
+	return base, true
+}
+
+// stripTapTypeSetConstraints moves every set-level predicate a literal
+// tapXType spec carries out of the per-object filter and into the part's set
+// fields: withTotalPowerGE<N> into MinPower and the bare
+// sharesCreatureTypeWith into SameCreatureType. Keeping the two strips in one
+// helper leaves ParseCost's line budget unchanged.
+func stripTapTypeSetConstraints(spec string) (string, int32, bool) {
+	spec, floor := stripGroupPowerFloor(spec)
+	spec, same := stripSameCreatureType(spec)
+	return spec, floor, same
+}
+
 // payEnergyCost matches Forge's PayEnergy<N> and PayEnergy<X> tokens --
 // removing N energy counters from the payer (CR 118.2d; Forge
 // CostPayEnergy.canPay reads the payer's ENERGY counter total, and its
@@ -653,7 +684,7 @@ func ParseCost(s string) Cost {
 					// A literal tapXType form may carry a group predicate too;
 					// exactly N are tapped, so the set-level floor is enforced
 					// against the N largest candidates (engine/rules/cast.go).
-					part.Spec, part.MinPower = stripGroupPowerFloor(part.Spec)
+					part.Spec, part.MinPower, part.SameCreatureType = stripTapTypeSetConstraints(part.Spec)
 					c.TapPermanent = append(c.TapPermanent, part)
 				}
 				continue

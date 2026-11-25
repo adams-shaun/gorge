@@ -35,8 +35,8 @@ var restrictedManaClassOf = map[string]restrictedManaClass{
 	"Hydro-Channeler": rmFee, "Interplanar Beacon": rmFee, "Orb of Dragonkind": rmFee,
 	"Jeweled Lotus": rmSac, "Master of Dark Rites": rmSac,
 	"Gnarlroot Trapper": rmLife, "Untaidake, the Cloud Keeper": rmLife,
-	"Thieving Varmint": rmLife,
-	"Grand Architect":  rmTapX,
+	"Thieving Varmint": rmLife, "Great Hall of the Biblioplex": rmLife, "Voldaren Estate": rmLife,
+	"Grand Architect": rmTapX,
 }
 
 // restrictedManaDecks are the pods' decks: a life-payment deck, a blue-artifact
@@ -53,15 +53,17 @@ func restrictedManaDecks() [4][]cardset.Entry {
 		{
 			{Name: "Untaidake, the Cloud Keeper", Count: 5}, {Name: "Grand Architect", Count: 4}, {Name: "Wind Drake", Count: 4},
 			{Name: "Walking Ballista", Count: 3}, {Name: "Mind Stone", Count: 3}, {Name: "Guardian Idol", Count: 2},
-			{Name: "Prodigal Sorcerer", Count: 3}, {Name: "Lightning Bolt", Count: 3}, {Name: "Island", Count: 8}, {Name: "Mountain", Count: 5},
+			{Name: "Prodigal Sorcerer", Count: 3}, {Name: "Lightning Bolt", Count: 3}, {Name: "Great Hall of the Biblioplex", Count: 2}, {Name: "Voldaren Estate", Count: 1},
+			{Name: "Island", Count: 6}, {Name: "Mountain", Count: 4},
 		},
 		{
 			{Name: "Grizzly Bears", Count: 4}, {Name: "Shock", Count: 4}, {Name: "Lightning Bolt", Count: 4},
 			// the Varmint's "spells you don't own" is never satisfiable in the
-			// pod (no seat casts a card another seat owns): it is carried for
-			// the engines' agreement on the lowered unit, counted by name if
-			// it ever does pay.
-			{Name: "Hill Giant", Count: 5}, {Name: "Prodigal Sorcerer", Count: 3}, {Name: "Thieving Varmint", Count: 2}, {Name: "Jeweled Lotus", Count: 2}, {Name: "Mountain", Count: 9}, {Name: "Swamp", Count: 7},
+			// pod (no seat casts a card another seat owns), and the Estate's
+			// Vampire-only life ability has no Vampire carrier here: both are
+			// carried for the engines' agreement on the lowered unit, counted
+			// by name if they ever do pay.
+			{Name: "Hill Giant", Count: 5}, {Name: "Prodigal Sorcerer", Count: 3}, {Name: "Thieving Varmint", Count: 2}, {Name: "Jeweled Lotus", Count: 2}, {Name: "Voldaren Estate", Count: 2}, {Name: "Mountain", Count: 8}, {Name: "Swamp", Count: 6},
 		},
 		{
 			// the sacrifice deck: the Master's cast-sacrifice-recast loop (its
@@ -253,6 +255,12 @@ func restrictedManaLockstep(t *testing.T, seats int) {
 	}
 	if seats == 2 && sum.byClass[rmLife] == 0 {
 		t.Fatalf("restricted mana spent (fee, sacrifice, life) = %v by %v: want a fee or a life one", sum.byClass, sum.byName)
+	}
+	if sum.byName["Great Hall of the Biblioplex"] == 0 {
+		// the life-payment deck carries the pair: Great Hall's {T}: Add {C}
+		// beside its restricted life ability for instants and sorceries must
+		// be spent at least once, or the pain pair was never exercised
+		t.Fatalf("restricted mana spent = %v by %v: want Great Hall of the Biblioplex's restricted life unit", sum.byClass, sum.byName)
 	}
 }
 

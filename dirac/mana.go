@@ -549,6 +549,7 @@ func (s *State) availForMode(k *prep, p uint8, a *avail, ex slotMask, withDeferr
 		// deferredFiltFree: a Taps watcher defers a filter land's free ability
 		// in gorge's planner like any land's tap, so the census never lists it.
 		if deferSkip && (deferGap.has(sl) || s.deferredFiltFree(k, sl)) && s.planDeferred(k, p, sl) && !s.blgIntrinsicUnit(k, sl) {
+			s.availDeferredRefl(k, p, sl, a)
 			if dual && s.grantIdx(k, sl) >= 0 {
 				// its granted ability is a census gap of its own, which the
 				// grant search taps (Enduring Vitality on Twitching Doll):
@@ -1015,6 +1016,12 @@ type planner struct {
 	anyFee bool
 	fpool  [kop.NumManaKinds]int
 	maxFee int
+	// feeLent: restricted mana the hybrid witness lent into the pool for the
+	// spell's own cost (lowerWitnessEx's rbTake). A fee unit's activation is a
+	// different payment, so feeOK and payPlanFee keep the lent units out of its
+	// supply (CR 106.6); the witness puts them back in their batches after.
+	// Zero outside that witness.
+	feeLent [kop.NumManaKinds]uint8
 	// cpips: the cost's pips (tapNeed), the mana a fee's generic leaves to
 	// the cost while it can (feeClaim, takeFeeGeneric)
 	cpips [kop.NumManaKinds]uint8
@@ -1830,7 +1837,11 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 				hasGrant = true
 			}
 			if k.restrSrc && k.gen.flags[s.cardAt(sl)]&gfRestrSrc != 0 {
-				if v, kd, ab, dmask, abi := s.restrViewW(k, p, sl, pcs[i], &rd); v != nil {
+				if restrLifePair(pcs[i]) {
+					// the pair carries the restricted life alternative: painUnit
+					// admits it per payment and floats its tap (mana_pain.go);
+					// the census ability stays the source's ordinary unit
+				} else if v, kd, ab, dmask, abi := s.restrViewW(k, p, sl, pcs[i], &rd); v != nil {
 					if pk.noChosenPair && v.wideChosen {
 						// The census-only trial: gorge's census omits a choice-shaped
 						// larger alternative whose amount is not 1
@@ -1950,7 +1961,7 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 				}
 				if k.painMana && pc.painCol != 0 && phase > 0 {
 					want := painCensusPass(choice, pc)
-					if s.painUnit(k, sl, pc, pass, pk, i, want) {
+					if s.painUnit(k, sl, pc, pass, pk, i, want, rd) {
 						continue
 					}
 				}
@@ -2137,7 +2148,7 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 		s.fireViewAbilityCast(k, p, sl, pk.rAb[u]) // the activation precedes its cost's tap and sacrifice
 		ty := &pk.types[pk.bestTy[i]]
 		col := int(cols[i])
-		s.planPayFee(k, p, ty, &claim, pk.anyColor)
+		s.planPayFee(k, p, ty, &claim, pk.anyColor, pk.feeLent)
 		if k.gen != nil && k.gen.castTapOn && s.buildLive() && s.bld().e.kind == seSpell && k.cards[s.cardAt(sl)].castSrc != 0 {
 			s.planNoteTap(k, sl, col)
 		}
@@ -2148,7 +2159,7 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 			s.manaTapped(k, sl)
 		}
 		pk.lastSl = sl
-		if r := pk.rkind[u]; (r == rkExt || r == rkWiden) && pk.rtapN < maxUnits {
+		if r := pk.rkind[u]; (r == rkWiden || r == rkExt && ty.rb) && pk.rtapN < maxUnits {
 			pk.rtap[pk.rtapN] = struct {
 				sl  Slot
 				col uint8
@@ -2162,7 +2173,8 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 			continue
 		}
 		s.pl[p].pool[col] += ty.n
-		s.planTapsInExtra(k, p, pk, sl) // a Taps-deferred source's trigger extra (mana_tapsinextra.go)
+		var xvOwn [kop.NumManaKinds]uint8 // the unit's xv floated restricted (mana_eachrestr.go)
+		s.planTapsInExtra(k, p, pk, sl)   // a Taps-deferred source's trigger extra (mana_tapsinextra.go)
 		if ty.rb && DebugRestrictedSource != 5 {
 			// a restricted source's larger alternative (or its sole ability of
 			// more than one mana): its mana floats restricted (restrPairUnit,
@@ -2172,12 +2184,14 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 			if abi < 0 {
 				abi = k.gen.restrRecOf(s.cardAt(sl)).ab
 			}
-			if !s.floatRestrOnly(k, p, sl, &k.t.Cards[s.cardAt(sl)].Abilities[abi], col, ty.n) {
+			if ab := &k.t.Cards[s.cardAt(sl)].Abilities[abi]; ab.ManaEach {
+				xvOwn = s.floatRestrEach(k, p, sl, ab, col, ty.n) // (mana_eachrestr.go)
+			} else if !s.floatRestrOnly(k, p, sl, ab, col, ty.n) {
 				s.capFull(StallRestrSrc)
 			}
 			pk.rbOn = true
 		}
-		if ty.xt != 0 && s.addXvPick(p, ty, col) {
+		if ty.xt != 0 && s.addXvPickLess(p, ty, col, &xvOwn) {
 			return // the reflected pick's colour ask (mana_reflectpickask.go); the payment runs again after it
 		}
 		s.artTag(k, p, sl, col)
@@ -2589,8 +2603,8 @@ func (pk *planner) runOrder(bn int, run *[maxUnits]uint8) {
 // planPayFee pays a running plan unit's mana fee from the floating pool before
 // its production joins it (CR 605.3b, 601.2h; feeOK priced it from the pool
 // and the plan's earlier units).
-func (s *State) planPayFee(k *prep, p uint8, ty *utype, claim *[kop.NumManaKinds]int, anyCol bool) {
-	if (ty.fee != 0 || ty.feeCol != 0) && !s.payPlanFee(k, p, ty, claim, anyCol) {
+func (s *State) planPayFee(k *prep, p uint8, ty *utype, claim *[kop.NumManaKinds]int, anyCol bool, lent [kop.NumManaKinds]uint8) {
+	if (ty.fee != 0 || ty.feeCol != 0) && !s.payPlanFee(k, p, ty, claim, anyCol, lent) {
 		s.capFull(StallRestrSrc)
 	}
 }
@@ -2644,7 +2658,7 @@ func (pk *planner) feeOK() bool {
 		if pips[c] == 0 {
 			continue
 		}
-		have := pk.fpool[c]
+		have := pk.fpool[c] - int(pk.feeLent[c])
 		for t := 0; t < pk.nt; t++ {
 			ty := &pk.types[t]
 			if ty.fee != 0 || ty.feeCol != 0 {
@@ -2661,7 +2675,10 @@ func (pk *planner) feeOK() bool {
 	}
 	tot, pool := 0, 0
 	for c := 0; c < kop.NumManaKinds; c++ {
-		pool += pk.fpool[c]
+		// feeLent is the hybrid witness's lent restricted mana: it pays the
+		// spell's own cost, not a fee unit's activation (CR 106.6), so it is
+		// out of the pool both fee checks below count.
+		pool += pk.fpool[c] - int(pk.feeLent[c])
 	}
 	tot = pool
 	distFee, distC := 0, 0

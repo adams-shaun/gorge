@@ -1114,6 +1114,23 @@ func init() {
 	// Enchant spec this filter cannot evaluate both fail closed inside the
 	// filter, never over-offering an attachment the SBA would just sweep.
 	predicates["CanEnchantEquippedBy"] = canEnchantEquippedBy
+	// CanEnchantSource: the candidate card could legally be attached to the
+	// ability's SOURCE -- Forge's CardProperty.CanEnchantSource. Bruna, Light
+	// of Alabaster's trigger attaches any battlefield Aura that could enchant
+	// her (RepeatCards$ Aura.CanEnchantSource+!Attached) and then puts Aura
+	// cards that could enchant her from hand/graveyard onto the battlefield
+	// attached to her (ChangeType$ Aura.CanEnchantSource+YouOwn and the same
+	// Count$Valid read), so the candidate may be a battlefield permanent or
+	// an off-battlefield card. Danitha, Benalia's Hope reads
+	// Equipment.CanEnchantSource beside the Aura spelling (her Aura or
+	// Equipment may be attached to her), so the referent test is the shared
+	// attachableTo: the candidate is an Aura when the source satisfies its
+	// K:Enchant spec, an Equipment when the source is a creature. The
+	// referent is the source ITSELF, never source.AttachedTo -- unlike
+	// CanEnchantEquippedBy, the Aura is being moved onto the source. A
+	// Face-less trigger wrapper unwraps to its Source permanent; a source
+	// that is gone or not a battlefield permanent fails closed.
+	predicates["CanEnchantSource"] = canEnchantSource
 	// equipped / enchanted: the IS-side counterpart of the pair above -- the
 	// candidate itself carries the attachment. Auriok Steelshaper's IsPresent$
 	// Card.Self+equipped ("as long as CARDNAME is equipped") reads the first;

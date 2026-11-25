@@ -55,7 +55,9 @@ func TestFeatFourSeatVanilla(t *testing.T) {
 			pol = HeuristicPolicy(seed)
 		}
 		res := Lockstep(m, seed, k, pol, RunConfig{MaxDecisions: 4000, MaxTurns: 40, Check: FeatCheckFS(pool, &st, fs)})
-		CloseSide(k)
+		// No CloseSide: the side plays the process-wide vanilla.Table, which the
+		// parallel TestFeatVanilla plays too, and ReleaseTable invalidates every
+		// State playing the table (leaving its registry slot nil).
 		total.Decisions += st.Decisions
 		total.Options += st.Options
 		if d := res.Div; d != nil {

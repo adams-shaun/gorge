@@ -35,6 +35,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/events"
+	"github.com/adams-shaun/gorge/engine/state"
 )
 
 // staticTriggerLine returns the trigger line, the SVar table that owns its
@@ -111,7 +112,7 @@ func (e *Engine) staticTriggerAskFree(pt pendingTrigger, line cards.Trigger, sva
 	if st&mayAskText != 0 || mayAskOnBoard(e, st) {
 		return false
 	}
-	return !staticBodyCompetes(e, pt.SA, cards.ReplEventMask(st>>mayAskGateShift&mayAskGateMask))
+	return !staticBodyCompetes(e, pt.SA, cards.ReplEventMask(st>>mayAskGateShift&mayAskGateMask), pt.Source)
 }
 
 // staticBodyCompetes is the replacement gate of a static trigger's body, which has
@@ -120,20 +121,44 @@ func (e *Engine) staticTriggerAskFree(pt pendingTrigger, line cards.Trigger, sva
 // is a replacement of those same events whose own body may ask; bookkeeping
 // proposes no event at all. The bonus stays on the stack only there (CR 614.1c
 // does not allow it, and nothing could answer the ask off it). Any other API may
-// move a permanent and sweep an exiled card back, so it takes the engine-wide gate.
-func staticBodyCompetes(e *Engine, sa *cards.SA, gates cards.ReplEventMask) bool {
+// move a permanent and sweep an exiled card back, so it takes the engine-wide gate;
+// a ChangeZone that moves only source itself off the battlefield (Exhaustion's
+// self-exile) can bring no other card into a zone its ActiveZones$ names, so
+// that gate sets such off-zone lines aside (replWalkScope).
+func staticBodyCompetes(e *Engine, sa *cards.SA, gates cards.ReplEventMask, source state.ObjID) bool {
+	selfMove := false
 	for s := sa; s != nil; s = s.Sub {
+		if changeZoneMovesOnlySelfOffBattlefield(s) {
+			selfMove = true
+			continue
+		}
 		switch s.API {
 		case "Animate", "Cleanup", "DealDamage", "Effect", "PutCounter", "Pump", "PumpAll", "StoreSVar", "Token":
 		default:
-			return tapeBoardCompetes(e)
+			return tapeBoardCompetes(e, replWalkScope{})
 		}
+	}
+	if selfMove {
+		return tapeBoardCompetes(e, replWalkScope{offZoneInert: true, mover: source})
 	}
 	var bits uint32
 	for g := gates; g != 0; g &= g - 1 {
 		bits |= replEventBits[cards.ReplEvent(mathbits.TrailingZeros32(uint32(g)))]
 	}
-	return bits != 0 && tapeReplBodyMayAsk(e, bits)
+	return bits != 0 && tapeReplBodyMayAsk(e, bits, replWalkScope{})
+}
+
+// changeZoneMovesOnlySelfOffBattlefield reports whether a ChangeZone link moves
+// its own source and nothing else (Defined$ Self, no ValidTgts$ or
+// ThisDefinedAndTgts$) to a known zone other than the battlefield.
+func changeZoneMovesOnlySelfOffBattlefield(s *cards.SA) bool {
+	if s.APIKind() != cards.APIChangeZone {
+		return false
+	}
+	cz := effects.ChangeZoneOf(s)
+	return cz != nil && effects.DefinedRefOf(s).Is(effects.RefSelf) &&
+		!cz.ValidTgts.Present && cz.ThisDefinedAndTgts == "" &&
+		cz.DestinationKnown && cz.Destination != state.ZBattlefield
 }
 
 // resolveStaticTriggers resolves every queued trigger whose line carries

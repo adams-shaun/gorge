@@ -183,8 +183,9 @@ func restrictedFeeProduction(m *lMana) bool {
 
 // restrictedLifeTap reports whether c is exactly "{T}, Pay N life" (N a
 // fixed count): the cost of a restricted last-resort unit (kernel
-// mana_restrictedcost.go). A source with another mana ability stays refused
-// by refuseMultiMana, which models a life ability only unrestricted.
+// mana_restrictedcost.go). A source with another mana ability admits it only
+// through refuseMultiMana's pair arm (a plain census ability beside it,
+// kernel painUnit).
 func restrictedLifeTap(c lCost) bool {
 	if !c.Tap || c.PayLife < 1 {
 		return false

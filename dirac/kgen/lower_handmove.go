@@ -114,8 +114,8 @@ func (lc *lowerCtx) handMove(ps *params, f *lFilter, n lValue, flags []string, c
 	}
 	owner := lRef{Kind: rYou}
 	dp, _ := ps.get("DefinedPlayer")
-	eachOpp := lc.repeatPl == 0 && handOwnersEachOpp(dp)       // lower_handmoveeach.go
-	if o, ok, err := lc.handMoveDefinedOwner(ps); err != nil { // lower_handmove.go
+	eachOpp := lc.repeatPl == 0 && (handOwnersEachOpp(dp) || handOwnersEachPlayer(dp)) // lower_handmoveeach.go
+	if o, ok, err := lc.handMoveDefinedOwner(ps); err != nil {                         // lower_handmove.go
 		return err
 	} else if ok {
 		owner = o
@@ -210,7 +210,7 @@ func (lc *lowerCtx) handMove(ps *params, f *lFilter, n lValue, flags []string, c
 		cs = append(cs, "ForgetOther")
 	}
 	in := lInstr{Op: "ChooseMove", Obj: owner, A: n, F: f, C: dest, CS: strings.Join(cs, "|")}
-	if eachOpp && owner.Kind == rEachOpp {
+	if eachOpp && (owner.Kind == rEachOpp || owner.Kind == rEachPlayer) {
 		return lc.handMoveEachOpp(in, counted) // lower_handmoveeach.go
 	}
 	lc.emit(in)
@@ -223,7 +223,8 @@ func (lc *lowerCtx) handMove(ps *params, f *lFilter, n lValue, flags []string, c
 func handTextOptional(text, action string) (optional, known bool) {
 	text = strings.ToLower(text)
 	if handPhraseMentionsHand(text, "may "+action) || handPhraseFollowsHandReveal(text, "may "+action) ||
-		(handPhraseMentionsHand(text, "any number") && handPhraseMentionsHand(text, action)) {
+		(handPhraseMentionsHand(text, "any number") && handPhraseMentionsHand(text, action)) ||
+		handPhraseUpToWithHandAndAction(text, action) {
 		return true, true
 	}
 	if handPhraseSupportsRequiredMove(text, action) || handPhraseFollowsHandChoice(text, action) {
@@ -232,7 +233,30 @@ func handTextOptional(text, action string) (optional, known bool) {
 	return false, false
 }
 
-// The four helpers are gorge's handMovePhrase* (effects/zone_hand.go).
+// The five helpers are gorge's handMovePhrase* (effects/zone_hand.go).
+
+func handPhraseUpToWithHandAndAction(text, action string) bool {
+	for start := 0; ; {
+		i := strings.Index(text[start:], "up to")
+		if i < 0 {
+			return false
+		}
+		i += start
+		begin := 0
+		if j := strings.LastIndexAny(text[:i], ".;"); j >= 0 {
+			begin = j + 1
+		}
+		end := len(text)
+		if j := strings.IndexAny(text[i:], ".;"); j >= 0 {
+			end = i + j
+		}
+		sentence := text[begin:end]
+		if strings.Contains(sentence, "hand") && strings.Contains(sentence, action) {
+			return true
+		}
+		start = i + len("up to")
+	}
+}
 
 func handPhraseSupportsRequiredMove(text, phrase string) bool {
 	for start := 0; ; {
@@ -411,6 +435,11 @@ func (lc *lowerCtx) handMoveDefinedOwner(ps *params) (lRef, bool, error) {
 		// controller), handMove walks them (lower_handmoveeach.go)
 		ps.consume("DefinedPlayer")
 		return lRef{Kind: rEachOpp}, true, nil
+	}
+	if lc.repeatPl == 0 && handOwnersEachPlayer(dp) {
+		// every player, controller first (handMoveEachOpp's walk)
+		ps.consume("DefinedPlayer")
+		return lRef{Kind: rEachPlayer}, true, nil
 	}
 	if strings.TrimSpace(dp) != "Targeted" {
 		return lRef{}, false, refuse("hand move DefinedPlayer$ %q", dp)

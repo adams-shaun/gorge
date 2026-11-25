@@ -20,25 +20,46 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // and a fork answer it silently (askColSilent), as the Condition-split arm does
 // (mana_condsplit.go splitWinColArm).
 
-// prepManaAsk marks card id when its first mana ability asks a colour (prepareGen,
-// once per card).
+// prepManaAsk marks card id when one of its mana abilities asks a colour
+// (prepareGen, once per card). The asking ability need not be the card's
+// first: Nykthos, Shrine to Nyx's {2}, {T} ask sits behind its plain
+// {T}: {C}. Its cost is a tap plus an optional generic fee, which askColFee
+// prices and askColDo pays before the ask.
 //
 //go:noinline
 func prepManaAsk(g *genPrep, c *kop.CardDef, id CardID, pc *pcard) {
-	j := int(pc.manaAb)
-	if j < 0 || j >= len(c.Abilities) {
+	for j := range c.Abilities {
+		a := &c.Abilities[j]
+		if a.Kind != kop.AbMana || !a.ManaAskColour || a.AFlags&kop.AfLatent != 0 || !askColFeeShape(a) {
+			continue
+		}
+		g.smallFor(id).askAb = int8(j)
+		g.anyCondSplit, g.anyTapsDefer = true, true // the deferred route's gates (deferLive, kw_madness)
 		return
 	}
-	a := &c.Abilities[j]
-	if a.Kind != kop.AbMana || !a.ManaAskColour || a.AFlags&kop.AfLatent != 0 || !pc.manaTap {
-		return
-	}
-	g.smallFor(id).askAb = int8(j)
-	g.anyCondSplit, g.anyTapsDefer = true, true // the deferred route's gates (deferLive, kw_madness)
 }
 
-// askColDeferred: sl is a colour-asking mana source the planner defers.
-func (s *State) askColDeferred(k *prep, sl Slot) bool {
+// askColFeeShape reports whether a colour-asking mana ability's cost is the
+// shape askColFee prices: a tap and an optional generic fee, no other cost
+// part or flexible pip.
+func askColFeeShape(a *kop.Ability) bool {
+	if a.Cost.Flags != kop.CostTap {
+		return false
+	}
+	m := a.Cost.Mana
+	if m.X != 0 || m.XRed != 0 || m.XPip != 0 || m.Snow != 0 || m.Tb != 0 {
+		return false
+	}
+	for _, h := range m.Hyb {
+		if h != 0 {
+			return false
+		}
+	}
+	return m.MV() == int(m.Generic)
+}
+
+// askColGap: sl has a colour-asking ability the prefix search may activate.
+func (s *State) askColGap(k *prep, sl Slot) bool {
 	if k.gen == nil || !k.gen.anyCondSplit {
 		return false
 	}
@@ -46,10 +67,44 @@ func (s *State) askColDeferred(k *prep, sl Slot) bool {
 	return r != nil && r.askAb >= 0 && !s.genLost(k, sl)
 }
 
+// askColDeferred: sl's FIRST mana ability asks a colour, so the whole source is
+// planner-deferred (Nyx Lotus). A later ask (Nykthos's {2}, {T} behind its
+// {T}: {C}) leaves the first ability an ordinary census unit; only the ask is
+// a prefix-search gap (askColGap).
+func (s *State) askColDeferred(k *prep, sl Slot) bool {
+	if !s.askColGap(k, sl) {
+		return false
+	}
+	c := s.cardAt(sl)
+	return int(k.cards[c].manaAb) == int(k.gen.small(c).askAb)
+}
+
 // askColAb is the colour-asking ability of the deferred source at sl.
 func (s *State) askColAb(k *prep, sl Slot) *kop.Ability {
 	c := s.cardAt(sl)
-	return &k.t.Cards[c].Abilities[k.cards[c].manaAb]
+	return &k.t.Cards[c].Abilities[k.gen.small(c).askAb]
+}
+
+// askColFee is the mana the colour-asking ability at sl spends before it makes
+// its mana: a filter's activation fee (filtFee), reduced by the same
+// activated-ability reductions (CR 601.2f, 602.2b). Nykthos's {2} must be
+// paid by other sources before the ask (CR 605.3a).
+func (s *State) askColFee(k *prep, sl Slot) int {
+	a := s.askColAb(k, sl)
+	if a == nil {
+		return 0
+	}
+	if k.gen.anyAbReduce {
+		return int(s.abReduced(k, a, sl, s.perms[sl].ctrl, a.Cost.Mana).Generic)
+	}
+	return int(a.Cost.Mana.Generic)
+}
+
+// askColFeePaid reports whether p's pool, with the restricted mana the
+// activation may spend, covers the ask's fee.
+func (s *State) askColFeePaid(k *prep, p uint8, sl Slot) bool {
+	fee := s.askColFee(k, sl)
+	return fee <= 0 || poolTotal(&s.pl[SeatIx(p)])+s.filtFeeRestrN(k, p, sl) >= fee
 }
 
 // askColUsable: the source at sl can be activated now (scriptTapsDefer).
@@ -81,14 +136,15 @@ func (s *State) askColUnits(k *prep, sl Slot, av *avail) {
 	}
 }
 
-// askColBoundUnit is the source's unit in the prefix search's relaxed gate
-// (addTapsDeferUnits). gorge's PotentialMana reads the AB$ ChooseColor head's
-// own Mana params (params.ManaOf: no Produced$, no Amount$), one {C}, so a
-// play only the source's devotion mana pays is never searched. Another
-// source opens the bound in its colours (an Amount$ X source, a Produced$ Any
-// one: potentialUnbounded), and gorge's search then reaches the answers of
-// those colours at their real amount (askColValue).
-func (s *State) askColBoundUnit(k *prep, sl Slot, av *avail) {
+// askColBoundUnits is the source's unit in the potential bound and in the
+// prefix search's relaxed gate (addTapsDeferUnits, availPotentialFor).
+// gorge's PotentialMana reads the AB$ ChooseColor head's own Mana params
+// (params.ManaOf: no Produced$, no Amount$), one {C}, so a play only the
+// source's devotion mana pays is never searched. Another source opens the
+// bound in its colours (an Amount$ X source, a Produced$ Any one:
+// potentialUnbounded), and gorge's search then reaches the answers of those
+// colours at their real amount (askColValue).
+func (s *State) askColBoundUnits(k *prep, sl Slot) (uint8, uint8) {
 	open := s.askColOpenMask(k, sl)
 	mask, best := uint8(0), 0
 	for col := uint8(0); col < 5; col++ {
@@ -101,10 +157,31 @@ func (s *State) askColBoundUnit(k *prep, sl Slot, av *avail) {
 		}
 	}
 	if mask == 0 {
-		av.addUnits(uint8(kop.ColC), 1)
-		return
+		return uint8(kop.ColC), 1
 	}
-	av.addUnits(mask, uint8(min(best, maxDynMana)))
+	return mask, uint8(min(best, maxDynMana))
+}
+
+// askColBoundUnit is askColBoundUnits added to a's prefix-search census.
+func (s *State) askColBoundUnit(k *prep, sl Slot, av *avail) {
+	mask, n := s.askColBoundUnits(k, sl)
+	av.addUnits(mask, n)
+}
+
+// askColPotential folds the colour-asking source at sl into the potential
+// walk's bound as askColBoundUnits reads it: one {C} unless another source
+// opens the bound. gorge's potential never prices the head's devotion mana on
+// its own, so an open any-colour unit here offers a play its planner does not
+// (the kicked-cast over-offer).
+func (s *State) askColPotential(k *prep, sl Slot, pc *pcard, pain, life int, add, fold func(Slot, uint8, uint8), cen *potCensus) {
+	mask, n := s.askColBoundUnits(k, sl)
+	painDrop, painAdd := cen.painGate(pain, life, mask, add, fold)
+	painAdd(sl, mask, n)
+	if painDrop == 0 {
+		cen.tapRec(sl, mask, n)
+	}
+	cen.pain = 0
+	s.potentialTapExtraGated(k, sl, pc, mask, fold, cen, painDrop != 0)
 }
 
 // askColOpenMask is the colours another usable source of sl's controller
@@ -125,9 +202,23 @@ func (s *State) askColOpenMask(k *prep, sl Slot) uint8 {
 	return open & uint8(kop.ColAny)
 }
 
-// askColDo is the answer: record col on the source, float ManaV mana of it in
-// one unit, clear the record (gorge's DB$ Cleanup | ClearChosenColor$ True).
-func (s *State) askColDo(k *prep, p uint8, sl Slot, col int) {
+// askColDo is the answer: pay the fee before the ask (CR 605.3a, 602.2b),
+// record col on the source, float ManaV mana of it in one unit, clear the
+// record (gorge's DB$ Cleanup | ClearChosenColor$ True). It reports false when
+// the fee could not be paid, so a prefix-search branch that tapped the source
+// too early is not a legal activation.
+func (s *State) askColDo(k *prep, p uint8, sl Slot, col int) bool {
+	if fee := s.askColFee(k, sl); fee > 0 {
+		if !s.askColFeePaid(k, p, sl) {
+			return false
+		}
+		dc, dn := s.deferSnap(p) // a deferred source's unit the fee spends is gone (mana_deferred.go)
+		s.filtFeeSpend(k, p, sl, fee)
+		if k.artMana {
+			s.artSync(p)
+		}
+		s.deferSync(p, dc, dn)
+	}
 	s.recordChosenColor(sl, uint8(col))
 	n := s.dynManaN(k, s.askColAb(k, sl), sl)
 	s.clearChosenColor(sl)
@@ -136,6 +227,7 @@ func (s *State) askColDo(k *prep, p uint8, sl Slot, col int) {
 		s.addExtraCol(k, p, sl, s.manaPCGen(k, sl), col) // the tap's StatTapExtra mana floats beside it
 	}
 	s.artTag(k, p, sl, col)
+	return true
 }
 
 // askColPause is windowTapWalk's live arm: only a live cast's real window poses
@@ -144,6 +236,9 @@ func (s *State) askColDo(k *prep, p uint8, sl Slot, col int) {
 // applyCastWinAsk.
 func (s *State) askColPause(k *prep, sl Slot, census, potential bool) bool {
 	if census || potential || !s.buildLive() || s.isFork() || !s.askColDeferred(k, sl) {
+		return false
+	}
+	if !s.askColFeePaid(k, s.perms[sl].ctrl, sl) {
 		return false
 	}
 	s.splitWinColPause(k, sl)
@@ -168,13 +263,15 @@ func (s *State) windowFiltAskArm(k *prep, p uint8, sl Slot, cost, useful *kop.Ma
 // a fork): the source taps and the walk's own colour answer runs the
 // activation; true when it did.
 func (s *State) askColSilent(k *prep, p uint8, sl Slot, cost, useful *kop.ManaCost, clamp, anyColor, noOwed, potential bool) bool {
-	if !s.askColDeferred(k, sl) {
+	if !s.askColDeferred(k, sl) || !s.askColFeePaid(k, p, sl) {
 		return false
 	}
 	pc := s.windowGrantPC(k, sl)
 	col := s.windowWalkCol(k, p, cost, useful, sl, pc, clamp, anyColor, noOwed, potential)
 	s.windowTapCost(k, sl, false)
-	s.askColDo(k, p, sl, min(col, 4))
+	if !s.askColDo(k, p, sl, min(col, 4)) {
+		return false
+	}
 	return true
 }
 
@@ -201,5 +298,10 @@ func (s *State) askColDeferAnswers(k *prep, sl Slot) uint8 { return 5 }
 // askColDeferFloat answers the prefix search's c'th answer: colour c of
 // W U B R G (scriptEngineAnswer keeps gorge's ask order).
 func (s *State) askColDeferFloat(k *prep, p uint8, sl Slot, c int) {
-	s.askColDo(k, p, sl, min(c, 4))
+	s.askColDeferFloatOK(k, p, sl, c)
+}
+
+// askColDeferFloatOK is askColDeferFloat reporting whether the fee was paid.
+func (s *State) askColDeferFloatOK(k *prep, p uint8, sl Slot, c int) bool {
+	return s.askColDo(k, p, sl, min(c, 4))
 }

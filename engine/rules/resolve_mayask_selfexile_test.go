@@ -32,7 +32,7 @@ func TestTapeMayAskSeesASelfExileReturn(t *testing.T) {
 	e.G.Stack = append(e.G.Stack, ab.ID)
 
 	ab.Targets = []state.Target{{Obj: host}, {Obj: aura}}
-	if !tapeSelfExileMayAsk(e) || !tapeBoardCompetes(e) {
+	if !tapeSelfExileMayAsk(e) || !tapeBoardCompetes(e, replWalkScope{}) {
 		t.Fatal("a self-exiling until-leaves ability taking an Aura with it was judged ask-free")
 	}
 	ab.Targets = []state.Target{{Obj: host}, {Obj: bear}}

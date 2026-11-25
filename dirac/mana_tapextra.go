@@ -149,7 +149,7 @@ func (s *State) srcExtraAlt(k *prep, sl Slot, pc *pcard, colour bool) (xv [kop.N
 // source's own tap, yet the permanent is still tapped for mana.
 func (s *State) srcExtraTapped(k *prep, sl Slot, pc *pcard, colour bool) (xv [kop.NumManaKinds]uint8, hit bool) {
 	ctl := s.perms[sl].ctrl
-	eachPick := !colour && s.srcEachPick(k, sl, pc) == 1
+	eachPick := !colour && s.srcEachPick(k, sl, pc) > 0
 	s.eachStatic(k, func(st statSrc) bool {
 		a := &st.a.Static
 		if !s.tapExtraReaches(k, st, sl, ctl) {
@@ -591,9 +591,15 @@ func (s *State) fillTapAnyColCost(k *prep, p uint8, sl Slot, cost *kop.ManaCost,
 	}
 	// The ask is answered before the tap's own mana reaches the pool: its
 	// demand is windowCol's owed cost, the snapshot gorge's WindowChoices
-	// reads (ManaPayment.Owed), not cost less the pool after the tap.
+	// reads (ManaPayment.Owed), not cost less the pool after the tap. That
+	// snapshot still takes the pool the payment already holds off the pips:
+	// a {4}{R} cast with a Mountain's {R} floating owes no {R}, so the extra
+	// answers the lowest colour (W), not the printed pip.
 	var due kop.ManaCost
 	s.windowOwedCost(k, p, cost, &due)
+	for c := range due.Pips {
+		due.Pips[c] -= min(due.Pips[c], s.pl[p].pool[c])
+	}
 	s.fillTapAnyColOwed(k, p, sl, &due.Pips)
 }
 
@@ -790,11 +796,11 @@ func eachPickMask(pc *pcard) uint8 { return uint8(pc.manaCol)&0x3f | xvMask(pc) 
 
 // addEachPick adds the census unit of an all-at-once source's reflected pick:
 // one more mana of one of the produced types, beside the production's own units
-// (the unit's colour, srcExtra's rest). A single pick is one unit of the
-// produced mask; two carriers' picks are independent asks srcExtra stalls on.
+// (the unit's colour, srcExtra's rest). Each carrier's pick is one more unit
+// of the produced mask: independent asks, each of its own colour.
 func (s *State) addEachPick(k *prep, a *avail, sl Slot, pc *pcard) {
-	if s.srcEachPick(k, sl, pc) == 1 {
-		a.addUnits(eachPickMask(pc), 1)
+	if r := s.srcEachPick(k, sl, pc); r > 0 {
+		a.addUnits(eachPickMask(pc), r)
 	}
 }
 
@@ -815,7 +821,8 @@ func xvTotals(xv *[kop.NumManaKinds]uint8) (xm, xt uint8) {
 // mana of one of its types, which the search picks per need. It reports whether
 // the source is such a unit.
 func (s *State) planEachPick(k *prep, sl Slot, pc *pcard, xv *[kop.NumManaKinds]uint8, xm, xt, tn, mask, dmk *uint8) bool {
-	if pc.painCol != 0 || s.srcEachPick(k, sl, pc) != 1 {
+	r := s.srcEachPick(k, sl, pc)
+	if pc.painCol != 0 || r == 0 {
 		return false
 	}
 	col := bits.TrailingZeros8(uint8(pc.manaCol))
@@ -823,7 +830,7 @@ func (s *State) planEachPick(k *prep, sl Slot, pc *pcard, xv *[kop.NumManaKinds]
 	*xm |= 1 << col
 	*xt += pc.manaN
 	*mask = eachPickMask(pc)
-	*dmk, *tn = *mask, 1
+	*dmk, *tn = *mask, r // one pick per carrier (reflectPickPark asks each)
 	return true
 }
 
@@ -832,6 +839,12 @@ func (s *State) planEachPick(k *prep, sl Slot, pc *pcard, xv *[kop.NumManaKinds]
 // make (reflectPickPark): it reports whether the plan stops for that ask.
 func (s *State) addXvPick(p uint8, ty *utype, col int) bool {
 	s.addXv(p, &ty.xv)
+	return s.addXvPickPark(p, ty, col)
+}
+
+// addXvPickPark is addXvPick's reflected-pick tail, shared with
+// addXvPickLess (mana_eachrestr.go).
+func (s *State) addXvPickPark(p uint8, ty *utype, col int) bool {
 	return ty.pick && s.reflectPickPark(p, ty, col)
 }
 
@@ -947,7 +960,12 @@ func (s *State) addXv(p uint8, xv *[kop.NumManaKinds]uint8) {
 // source leaves it neither.
 func (s *State) removeSrc(k *prep, a *avail, sl Slot, pc *pcard) {
 	if s.availLeavesOut(k, sl) {
-		return // availFor never counted it: the units standing are the pool's
+		// availFor never counted it: the units standing are the pool's, bar a
+		// reflected unit gorge's planner keeps beside the deferral
+		if m := s.deferredReflMask(k, s.perms[sl].ctrl, sl); m != 0 {
+			a.remove(m, 1)
+		}
+		return
 	}
 	noGrantWalk := k.gen != nil && s.g.noGrant && s.g.availX&availPlain != 0
 	if noGrantWalk && s.manaGranted(k, sl) {
@@ -986,8 +1004,8 @@ func (s *State) removeSrc(k *prep, a *avail, sl Slot, pc *pcard) {
 			a.remove(1<<c, xv[c])
 		}
 	}
-	if s.srcEachPick(k, sl, pc) == 1 {
-		a.remove(eachPickMask(pc), 1)
+	if r := s.srcEachPick(k, sl, pc); r > 0 {
+		a.remove(eachPickMask(pc), r)
 	}
 }
 
@@ -1300,8 +1318,9 @@ func (s *State) tapAnyColDeferExtra(k *prep, m slotMask) bool {
 // census's, so it must not stop the prefix from tapping the gap. Otherwise the
 // mana step's plan taps the land without the trigger's extra, while gorge's
 // tap resolves it (Dawn's Reflection on the Mountain paying Shiv's Embrace's
-// {R} floats the two extra mana in gorge only). This is the availNoActScript
-// probe scriptPrefix uses; elsewhere the probe stays the full listing.
+// {R} floats the two extra mana in gorge only). scriptPrefix uses it for its
+// root probe, and scriptDFS's node check reads it through restrOptionsProbe;
+// elsewhere the probe stays the full listing.
 func (s *State) prefixAnyProbe(k *prep, p uint8) uint16 {
 	if !s.scriptFilt(k, p).any() && s.tapAnyColDeferExtra(k, s.scriptTapsDefer(k, p)) {
 		return availNoActScript

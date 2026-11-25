@@ -27,11 +27,20 @@ func restrSacSelfAb(a *kop.Ability) bool { return kop.RestrictedSacSelfShape(a) 
 // restrLifeUnit: pc is the view of a restricted last-resort life ability.
 func restrLifeUnit(pc *pcard) bool { return pc.restrLife != 0 }
 
+// restrLifePair: pc is a pain source whose painful alternative is a
+// spend-restricted {T}, Pay N life ability (prepPainMana; Great Hall of the
+// Biblioplex, Voldaren Estate). The pair itself carries the restriction and
+// the float: plan leaves it to painUnit, which admits it per payment, rather
+// than to a restricted unit of its own (restrViewW).
+func restrLifePair(pc *pcard) bool { return pc.restrLife != 0 && pc.painCol != 0 && !pc.painOnly }
+
 // restrLifeIrr is the irreversible cost of a unit whose view is pc: base plus
 // 3 a point of a restricted life unit's life (pay.ConsequenceCost), and the
 // life its activation pays (0: none).
 func restrLifeIrr(pc *pcard, base uint8) (irr, life uint8) {
-	if !restrLifeUnit(pc) {
+	if !restrLifeUnit(pc) || restrLifePair(pc) {
+		// a pain pair's normal ability is an ordinary unit: only its painful
+		// alternative pays the life (painUnit)
 		return base, 0
 	}
 	if DebugRestrictedLifeFirst {
@@ -64,8 +73,12 @@ func (s *State) restrLifePayable(k *prep, p uint8, rec *restrRec) bool {
 func restrLifeOn(k *prep) bool { return k.gen != nil && k.gen.rs != nil && k.gen.rs.life }
 
 // restrLifeLast: pc is a restricted life unit plan leaves to phase 1, spent
-// only after every other unit (gorge's TierLastResort).
-func restrLifeLast(pc *pcard) bool { return restrLifeUnit(pc) && !DebugRestrictedLifeFirst }
+// only after every other unit (gorge's TierLastResort). A pain pair's normal
+// ability is not one: it stays in the ordinary census and only the pair's
+// painful alternative joins the last-resort phase (painUnit).
+func restrLifeLast(pc *pcard) bool {
+	return restrLifeUnit(pc) && !restrLifePair(pc) && !DebugRestrictedLifeFirst
+}
 
 // restrLifeCharge counts a restricted life unit's n life against t, the
 // census of a payment the unit may fund: gorge's lethal guard sums the unit's
@@ -161,6 +174,75 @@ func (a *avail) restrFeeCharge(fee kop.ManaCost, cost *kop.ManaCost, extra int) 
 	return false
 }
 
+// restrFeeFundAvail builds a, the mana a cast's restricted fee may be paid
+// from beside the payment's ordinary bound: the floating pool and every other
+// restricted-fee source's plain census ability (Castle Garenbrig's
+// {T}: Add {G}). Gorge's cast window funds a fee activation from mana an
+// earlier same-window activation made (cast_window.go castWindowReachable), so
+// another restricted-fee source's plain ability pays the fee (CR 605.3b) even
+// where the census's relaxed paid list is cleared. An ordinary source's mana
+// is the payment's own bound or the census's funding, never this extra pool.
+// deferSkip drops the Taps-deferred sources the census leaves out
+// (availForMode).
+func (s *State) restrFeeFundAvail(k *prep, p uint8, a *avail, deferSkip bool) {
+	pl := &s.pl[SeatIx(p)]
+	for c := 0; c < kop.NumManaKinds; c++ {
+		if pl.pool[c] > 0 {
+			a.addUnits(1<<uint(c), pl.pool[c])
+		}
+	}
+	for m := s.ctrlM[p]; m.any(); m = m.rest() {
+		sl := m.first()
+		if k.gen == nil || k.gen.flags[s.cardAt(sl)]&gfRestrSrc == 0 {
+			continue
+		}
+		if deferSkip && s.planDeferred(k, p, sl) && !s.blgIntrinsicUnit(k, sl) {
+			continue
+		}
+		own := s.manaPCGen(k, sl)
+		if own.manaAb < 0 || own.restrFloat || !restrFeeEmpty(own) || !s.canTapForManaPC(k, sl, own) {
+			continue
+		}
+		a.addUnits(s.srcMaskAt(own, sl), own.manaN)
+	}
+}
+
+// restrFeeFundPays reports whether fee unit own (record kind kind) of the
+// source at sl has its fee fc payable from fund (restrFeeFundAvail); on
+// success it takes the fee out of fund, so the next fee unit cannot spend the
+// same mana. A widened source taps once, so its own census unit is taken out
+// first, as restrSrcAddUnit's rkWiden arm does.
+func (s *State) restrFeeFundPays(own, v *pcard, kind uint8, sl Slot, fund *avail, fc kop.ManaCost, cost *kop.ManaCost, extra int) bool {
+	b := *fund
+	if kind == rkWiden {
+		if !b.removeWide(s.srcMaskAt(own, sl), uint16(own.manaN)) && restrComboWide(v) {
+			return false // its census {C} already paid an earlier fee: its one tap is spent
+		}
+	}
+	if !b.restrFeeCharge(fc, cost, extra) {
+		return false
+	}
+	*fund = b
+	return true
+}
+
+// restrFeeCastFunded reports whether a cast's fee is payable from another
+// restricted-fee source's plain census ability: gorge's cast window funds a
+// fee activation from an earlier same-window activation (cast_window.go
+// castWindowReachable), so such a fee is not the census's relaxed paid list's
+// to cover. feeFund is built on first use. The unit's charge still fails
+// closed when that mana is short.
+func (s *State) restrFeeCastFunded(k *prep, p uint8, d payDesc, own, v *pcard, kind uint8, sl Slot, feeFund **avail, deferSkip bool, fc kop.ManaCost, cost *kop.ManaCost, extra int) bool {
+	if d.class != pdSpell {
+		return false
+	}
+	if *feeFund == nil {
+		*feeFund = new(avail)
+		s.restrFeeFundAvail(k, p, *feeFund, deferSkip)
+	}
+	return s.restrFeeFundPays(own, v, kind, sl, *feeFund, fc, cost, extra)
+}
+
 // restrFeeChargePlain is restrFeeCharge from plain, the unrestricted part of
 // a: a restricted unit's mana pays no mana ability's fee (CR 106.6). The mana
 // plain's charge takes leaves a too, group by group; a fee plain cannot pay
@@ -186,16 +268,25 @@ func (a *avail) restrFeeChargePlain(plain *avail, fee kop.ManaCost, cost *kop.Ma
 // mana (feeClaim); the fee's own pips leave it as they are paid. The generic
 // takes any kind, so the fee is payable exactly when the pool holds that much
 // mana after the pips; a fee the pool cannot pay leaves the pool untouched.
-func (s *State) payPlanFee(k *prep, p uint8, ty *utype, claim *[kop.NumManaKinds]int, anyCol bool) bool {
+// lent is the restricted mana the hybrid witness lent into the pool for the
+// spell's own cost: a fee unit's activation is a different payment, so the
+// lent units stay out of the fee's supply (CR 106.6) and the fee is paid from
+// the pool around them.
+func (s *State) payPlanFee(k *prep, p uint8, ty *utype, claim *[kop.NumManaKinds]int, anyCol bool, lent [kop.NumManaKinds]uint8) bool {
 	pl := &s.pl[p]
+	var avail [kop.NumManaKinds]uint8
 	tot := 0
 	for c := 0; c < kop.NumManaKinds; c++ {
-		tot += int(pl.pool[c])
+		if int(pl.pool[c]) < int(lent[c]) {
+			return false // the fee cannot spend the lent units; keep the pool untouched
+		}
+		avail[c] = pl.pool[c] - lent[c]
+		tot += int(avail[c])
 	}
 	c := -1
 	if ty.feeCol != 0 {
 		c = feeColIdx(ty.feeCol)
-		if c < 0 || int(pl.pool[c]) < int(ty.feeN) {
+		if c < 0 || int(avail[c]) < int(ty.feeN) {
 			return false
 		}
 		tot -= int(ty.feeN)
@@ -205,10 +296,13 @@ func (s *State) payPlanFee(k *prep, p uint8, ty *utype, claim *[kop.NumManaKinds
 		return false
 	}
 	if c >= 0 {
-		pl.pool[c] -= ty.feeN
+		avail[c] -= ty.feeN
 		claim[c] = max(claim[c]-int(ty.feeN), 0)
 	}
-	takeFeeGeneric(&pl.pool, claim, anyCol, g)
+	takeFeeGeneric(&avail, claim, anyCol, g)
+	for c := 0; c < kop.NumManaKinds; c++ {
+		pl.pool[c] = avail[c] + lent[c]
+	}
 	return true
 }
 

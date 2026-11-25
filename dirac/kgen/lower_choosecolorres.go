@@ -77,10 +77,9 @@ func (lc *lowerCtx) protectionAllChosen(ps *params) error {
 }
 
 // chooseColorRefusal names the sub-ability shape a mid-resolution
-// ChooseColor refuses over: a Mana of the chosen colour (Nykthos, Shrine to
-// Nyx: the mana ability's colour choice and its devotion amount), an
-// Effect other than Prismatic Strands' prevention (Zombie Boa's
-// chosen-colour blocked trigger), a chain longer than one, or another API.
+// ChooseColor refuses over: a Mana of the chosen colour, an Effect other than
+// Prismatic Strands' prevention (Zombie Boa's chosen-colour blocked trigger),
+// a chain longer than one, or another API.
 func chooseColorRefusal(n *cards.SA) string {
 	switch {
 	case n == nil:

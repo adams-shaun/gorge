@@ -14,6 +14,7 @@ import "strings"
 // attacking entry or an Aura's entry election (Charmed Griffin: the parked
 // one-card Aura move is not walked per owner yet) refuses.
 func (lc *lowerCtx) handMoveEachOpp(in lInstr, counted bool) error {
+	who := in.Obj.Kind // rEachOpp, or rEachPlayer for DefinedPlayer$ Player
 	if counted {
 		return refuse("hand move of each opponent over a counted take")
 	}
@@ -25,7 +26,7 @@ func (lc *lowerCtx) handMoveEachOpp(in lInstr, counted bool) error {
 		}
 	}
 	at := len(lc.ab.Prog)
-	lc.emit(lInstr{Op: "RepeatEach", Obj: lRef{Kind: rEachOpp}, C: 1})
+	lc.emit(lInstr{Op: "RepeatEach", Obj: lRef{Kind: who}, C: 1})
 	in.Obj = lRef{Kind: rEach}
 	lc.emit(in)
 	lc.ab.Prog[at].Skip = len(lc.ab.Prog) - at - 1
@@ -42,4 +43,13 @@ func handOwnersEachOpp(dp string) bool {
 		return true
 	}
 	return false
+}
+
+// handOwnersEachPlayer: DefinedPlayer$ Player names every player as the hand
+// owners (Kynaios and Tiro of Meletis, Sadistic Augermage, Mind Swords):
+// gorge's searchPlayersFor walks them in AliveFrom(controller) order, the
+// controller first, each the chooser of their own pick, which the
+// controller-first RepeatEach over every player runs (handMoveEachOpp).
+func handOwnersEachPlayer(dp string) bool {
+	return strings.TrimSpace(dp) == "Player"
 }

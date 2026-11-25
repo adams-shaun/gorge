@@ -1,0 +1,7 @@
+family: FilterWord
+name: FwPairedWith
+value: next
+contexts: perm,cur
+status: active
+ticket: gap-soulbond-pair
+doc: FwPairedWith: the battlefield permanent is the creature the reading source is paired with by Soulbond (gorge predicates["PairedWith"], engine/effects/filter.go, source.Paired == candidate; the kernel's kw_soulbond.go pair record). A source with no pair fails closed.

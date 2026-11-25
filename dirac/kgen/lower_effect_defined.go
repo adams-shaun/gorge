@@ -220,8 +220,10 @@ func (lc *lowerCtx) defined(v string) (lRef, error) {
 			return lRef{Kind: rTriggeredTgtCtrl}, nil
 		}
 		return lRef{}, refuse("Defined$ %q without a damage object referent", v)
-	case "TriggeredSourceController":
-		// same emblem recipient-capture pin as TriggeredSource above: the
+	case "TriggeredSourceController", "TriggeredSourceSAController":
+		// gorge maps both spellings to one resolver
+		// (definedSpecTriggeredSourceSAController, effects/context.go).
+		// Same emblem recipient-capture pin as TriggeredSource above: the
 		// controller read is of the kernel's trigger object
 		if lc.emblemDmg && emblemDmgRecipientTrig(lc.ab.Trigger) {
 			return lRef{}, refuse("Defined$ %q beside an emblem trigger that reads the damaged recipient as its trigger object", v)
