@@ -17,6 +17,9 @@ import (
 // the grant ends when the object leaves, as ExileOnMoved$/ForgetOnMoved$
 // Battlefield end gorge's. Every other replacement shape refuses.
 func (lc *lowerCtx) effectPrevent(ps *params) error {
+	if ok, err := lc.effectReturnCtr(ps); ok || err != nil { // lower_effectreturnctr.go
+		return err
+	}
 	if ok, err := lc.effectEtbCounters(ps); ok || err != nil { // lower_effetbctr.go
 		return err
 	}
