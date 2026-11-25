@@ -65,5 +65,8 @@ func (s *State) mayPlayRemembered(k *prep, in *kop.Instr, ctrl uint8) {
 			s.partitionRecord(s.mayAt(int(s.g.nmay)), o, ctrl, int(in.B.N)>>kop.MayPlayRaiseShift&7) // cast_whileexiled.go
 		}
 		s.g.nmay++
+		if uint8(in.A.N) == kop.DurUntilYourNextTurn {
+			s.mayNTArm(ctrl) // cast_mayplaynt.go: the record's expiry counter
+		}
 	}
 }

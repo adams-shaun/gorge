@@ -193,7 +193,7 @@ func (lc *lowerCtx) countHeads8(rest string, depth int) (v lValue, ok bool, err 
 		return v, true, err // value_cmdcast.go
 	}
 	switch {
-	case rest == "SquadPaid" || rest == "ReplicatePaid":
+	case rest == "SquadPaid" || rest == "ReplicatePaid" || rest == "Conspired":
 		return lc.repeatedPaidValue(rest) // lower_squadreplicate.go
 	case strings.HasPrefix(rest, "InOwnMainPhase."):
 		parts := strings.Split(strings.TrimPrefix(rest, "InOwnMainPhase."), ".")
