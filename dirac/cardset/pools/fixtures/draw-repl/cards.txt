@@ -17,3 +17,4 @@ Island
 Swamp
 Mountain
 Forest
+Revitalize

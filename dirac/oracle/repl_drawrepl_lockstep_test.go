@@ -27,8 +27,12 @@ var kdrawReplDecks = map[string][2][]cardset.Entry{
 	"thief": {
 		{{Name: "Notion Thief", Count: 1}, {Name: "Grizzly Bears", Count: 8}, {Name: "Hill Giant", Count: 4},
 			{Name: "Divination", Count: 4}, {Name: "Swamp", Count: 12}, {Name: "Island", Count: 11}},
-		{{Name: "Grizzly Bears", Count: 12}, {Name: "Hill Giant", Count: 8},
-			{Name: "Divination", Count: 4}, {Name: "Island", Count: 8}, {Name: "Forest", Count: 8}},
+		// Revitalize's Draw is its second instruction: the replacement body
+		// runs after the spell's GainLife, so the outer restore keeps the
+		// spell from repeating (or skipping) that instruction.
+		{{Name: "Grizzly Bears", Count: 8}, {Name: "Hill Giant", Count: 8},
+			{Name: "Divination", Count: 4}, {Name: "Revitalize", Count: 4},
+			{Name: "Island", Count: 8}, {Name: "Forest", Count: 4}, {Name: "Plains", Count: 4}},
 	},
 	"hullbreacher": {
 		{{Name: "Hullbreacher", Count: 1}, {Name: "Grizzly Bears", Count: 8}, {Name: "Hill Giant", Count: 4},
