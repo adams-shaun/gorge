@@ -175,6 +175,7 @@ type ChangeZoneParams struct {
 	ForgetOtherTargets     bool
 	Haunt                  bool // Haunt$ True (K:Haunt expansion, CR 702.55b): events.Haunt links the exiled card to the creature target
 	Tapped                 bool
+	WithNotedCounters      bool // WithNotedCounters$ True (Tawnos's Coffin): enter with the Effect's NoteCounterDefined$ counters
 	AtRandom               bool
 	NoLooking              bool
 	Reveal                 bool
@@ -456,6 +457,7 @@ var changeZoneKnownKeys = [...]string{
 	"WithCountersAmount",
 	"WithCountersType",
 	"WithMayLook",
+	"WithNotedCounters",
 	"WithTotalCMC",
 	"WithTotalCardTypes",
 	"WithoutManaCost",
@@ -702,6 +704,7 @@ func compileChangeZone(sa *cards.SA, tp *TargetParams, dr *DefinedParams) *Chang
 	p.ForgetOtherTargets = isTrue(sa.ParamStr(cards.PKForgetOtherTargets))
 	p.Haunt = isTrue(sa.ParamStr(cards.PKHaunt))
 	p.Tapped = isTrue(sa.ParamStr(cards.PKTapped))
+	p.WithNotedCounters = isTrue(sa.ParamStr(cards.PKWithNotedCounters))
 	p.AtRandom = isTrue(sa.ParamStr(cards.PKAtRandom))
 	p.NoLooking = isTrue(sa.ParamStr(cards.PKNoLooking))
 	p.Reveal = isTrue(sa.ParamStr(cards.PKReveal))

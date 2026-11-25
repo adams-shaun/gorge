@@ -1451,8 +1451,8 @@ func effectSelfExileOnCastTrigger(h Host, c *Ctx, tr cards.Trigger) bool {
 // Effect: the trigger's ValidCard$ (the spell that consumes the Effect), or
 // "Card" for a body that names none. Empty when no entry has the shape, so a
 // Triggers$-only Effect keeps its existing registrations untouched.
-func effectSelfExileOnCastSpec(h Host, c *Ctx, names string) string {
-	for name := range strings.FieldsSeq(names) {
+func effectSelfExileOnCastSpec(h Host, c *Ctx, names []string) string {
+	for _, name := range names {
 		raw := effectTriggerBody(h, c, name)
 		if raw == "" {
 			continue
