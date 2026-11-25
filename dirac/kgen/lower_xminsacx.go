@@ -60,8 +60,16 @@ func (lc *lowerCtx) announcedXCheck(c *lCost, s string) error {
 		}
 	}
 	if c.ExileGX {
-		if !c.Mana.X || c.SacX || c.LifeX || c.LoyaltyX || c.SubCtrX || c.EvidenceX || c.Waterbend > 0 || c.WaterbendX || c.XMin != 0 || c.SubAmongN > 0 {
+		if !c.Mana.X && !lc.actCost || c.SacX || c.LifeX || c.LoyaltyX || c.SubCtrX || c.EvidenceX || c.Waterbend > 0 || c.WaterbendX || c.XMin != 0 || c.SubAmongN > 0 {
 			return refuse("exile cost ExileFromGrave<X/..> in %q beside no printed {X} or a second announced-X part", s)
+		}
+	}
+	if c.TapXVar && lc.actCost || c.EnergyX {
+		// an activated ability's tapXType<X/Spec> or PayEnergy<X> as its
+		// one announced X (kernel cost_tapxann.go, cost_energyx.go)
+		if c.Mana.X || c.Mana.XX || c.Mana.XXX || c.SacX || c.LifeX || c.LoyaltyX || c.SubCtrX || c.ExileGX || c.DiscardX || c.EvidenceX ||
+			c.Waterbend > 0 || c.WaterbendX || c.XMin != 0 || c.TapXVar && c.EnergyX || c.TapPowN > 0 {
+			return refuse("announced-X cost %q beside a printed {X} or a second announced-X part", s)
 		}
 	}
 	if c.XMin == 0 {

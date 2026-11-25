@@ -1,0 +1,5 @@
+family: ExtOp
+name: ExtChoosePlayerEach
+value: next
+status: active
+doc: A RepeatEach player body's opponent choice whose chooser is the repeated player (Bend or Break: DB ChoosePlayer Defined$ Remembered Choices$ Player.OpponentOf Remembered; gorge effChoosePlayer pools over the remembered player's AliveFrom matching Player.OpponentOf Remembered): that player chooses one of their opponents (ChGenPlayer, mode = the seat, the pool of oppsFrom(eachPl)), asked only with more than one (one is recorded unasked, the oracle's forcedPlayerChoice; none records an empty choice). Kept in the resolution (res.chPl, seat + 1) for the chain's TwoPiles Chooser$ ChosenPlayer (ExtTwoPilesEach); a chain reader past the Cleanup ClearChosenPlayer$ finds none, as gorge's cleared choice is. dirac/act_pileseach.go.
