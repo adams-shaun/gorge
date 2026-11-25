@@ -1530,6 +1530,20 @@ func (s *State) applyBuild(k *prep, a Action) {
 			s.bld().altAdd = part
 			s.nextStage(k)
 			if !s.altAddPayable(k, part) && !s.altAddOpenTargets(k) && !s.altAddPipsFirst(k) {
+				if !s.requiredTarget(k) && k.t.Cards[e.card].BeholdN == 0 &&
+					s.altAddPickPayable(k, part) && s.windowUnpricedOpen(k, e) {
+					// The choice's census prices no unit of a source the CR
+					// 601.2g window can still fund the part from (a deferred
+					// Condition-split source, a graveyard mana one, gorge
+					// castWindowCensusComplete): gorge keeps the cast alive to
+					// the mana stage, whose fallback window (a chosen mana part
+					// that changed the plan's cost, manaStep's HasAltAdd arm)
+					// pays what the part owes and reverses the cast only when
+					// it cannot finish it (CR 733.1). The part's non-mana costs
+					// are payable (a window pays no discard), so only its mana
+					// waits.
+					return
+				}
 				if k.t.Cards[e.card].BeholdN != 0 && !s.requiredTarget(k) {
 					// The seat chose an unpayable part of a behold-or-mana
 					// cost: gorge pays through its fallback CR 601.2g
