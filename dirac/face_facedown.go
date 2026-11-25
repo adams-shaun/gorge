@@ -388,7 +388,11 @@ func (s *State) turnFaceUp(k *prep, o Obj, p uint8, proc ...uint8) {
 			s.playTurnUpDefer(k, p, o, mode) // face_turnupdefer.go: the Taps-deferred gaps' search prefix
 			s.tapForTurnUp(k, p, &c0, sp, o) // the planner taps what the floats leave owed
 		} else if s.turnUpRiderOnly(k, p, &c0, sp, sl) {
-			s.tapTurnUpRiders(k, p, &c0) // face_turnfaceup.go: a depletion land's activation
+			if s.turnUpGapPrefix(k, p, &c0) { // face_turnupgap.go: the any-colour extra's land first, the planner for the rest
+				s.tapForTurnUp(k, p, &c0, sp, o)
+			} else {
+				s.tapTurnUpRiders(k, p, &c0) // face_turnfaceup.go: a depletion land's activation
+			}
 		} else if s.turnUpFilterOnly(k, p, &c0, sp, sl, mode) {
 			s.playTurnUpFilter(k, p, o, mode) // face_turnupfilter.go: a first-and-only filter's activation
 			s.tapForTurnUp(k, p, &c0, sp, o)  // the planner taps what its mana leaves owed
