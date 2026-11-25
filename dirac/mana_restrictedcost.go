@@ -193,28 +193,39 @@ func (a *avail) restrFeePips(col, n int) bool {
 	return left == 0
 }
 
-// takeOneColour reduces a one-colour entry matching mask by n, dropping it
+// takeOneColour reduces one-colour entries matching mask by n, dropping each
 // when spent: restrFeePips' partial removal, where removeWide's exact-amount
-// dropOneColour would leave the entry counting spent units.
+// dropOneColour would leave an entry counting spent units. A group can hold
+// several one-colour sources (two any-colour makers), so the walk continues
+// across them.
 func (a *avail) takeOneColour(mask, n uint8) {
-	for i := uint8(0); i < a.nOne; i++ {
-		m := a.oneMask[i]
-		if m == 0 {
-			m = uint8(kop.ColAny)
+	for n > 0 {
+		found := false
+		for i := uint8(0); i < a.nOne && n > 0; i++ {
+			m := a.oneMask[i]
+			if m == 0 {
+				m = uint8(kop.ColAny)
+			}
+			if m != mask || a.one[i] == 0 {
+				continue
+			}
+			take := min(n, a.one[i])
+			a.one[i] -= take
+			n -= take
+			found = true
+			if a.one[i] == 0 {
+				a.nOne--
+				a.one[i] = a.one[a.nOne]
+				a.oneMask[i] = a.oneMask[a.nOne]
+				a.oneAltMask[i] = a.oneAltMask[a.nOne]
+				a.oneAltN[i] = a.oneAltN[a.nOne]
+				a.oneCol[i] = a.oneCol[a.nOne]
+				i-- // the swapped-in entry is unread
+			}
 		}
-		if m != mask || a.one[i] < n {
-			continue
+		if !found {
+			return
 		}
-		a.one[i] -= n
-		if a.one[i] == 0 {
-			a.nOne--
-			a.one[i] = a.one[a.nOne]
-			a.oneMask[i] = a.oneMask[a.nOne]
-			a.oneAltMask[i] = a.oneAltMask[a.nOne]
-			a.oneAltN[i] = a.oneAltN[a.nOne]
-			a.oneCol[i] = a.oneCol[a.nOne]
-		}
-		return
 	}
 }
 
