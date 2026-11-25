@@ -66,7 +66,7 @@ func (s *State) staticFlag(k *prep, sk kop.StaticKind, sl Slot) bool {
 // the closure's fixed point: the first pass declares the MustAttack
 // creatures, later passes their newly required members.
 func (s *State) declareMustAttack(k *prep) {
-	if !s.statM.any() && !(k.embComb && s.anyEmb()) && !s.ovGateReach(k) && !goadOn(k) && !attackDutyOn(k) || s.mustAttackAsked() {
+	if !s.statM.any() && !(k.embComb && s.anyEmb()) && !goadOn(k) && !attackDutyOn(k) || s.mustAttackAsked() {
 		return
 	}
 	for pass := 0; pass <= MaxPerm; pass++ {
@@ -397,7 +397,7 @@ func (s *State) goadDefenderBanned(k *prep, sl Slot, q uint8) bool {
 // mustAttackLeft reports whether a creature that must attack and can is
 // not declared yet (Config.GorgeMustAttack withholds Done).
 func (s *State) mustAttackLeft(k *prep) bool {
-	if !s.statM.any() && !(k.embComb && s.anyEmb()) && !s.ovGateReach(k) && !goadOn(k) && !attackDutyOn(k) {
+	if !s.statM.any() && !(k.embComb && s.anyEmb()) && !goadOn(k) && !attackDutyOn(k) {
 		return false
 	}
 	for m := s.ctrlM[s.active]; m.any(); m = m.rest() {
@@ -415,7 +415,7 @@ func (s *State) mustAttackLeft(k *prep) bool {
 // able now (a MustAttack static applies to it).
 func (s *State) MustAttack(o Obj) bool {
 	ob := &s.objs[o]
-	return ob.zone == kop.ZoneBattlefield && ((s.statM.any() || s.k().embComb && s.anyEmb() || s.ovGateReach(s.k())) && s.staticFlag(s.k(), kop.StatMustAttack, ob.slot) || s.attackDuty(s.k(), ob.slot) || s.mustAttackGoad(s.k(), ob.slot))
+	return ob.zone == kop.ZoneBattlefield && ((s.statM.any() || s.k().embComb && s.anyEmb()) && s.staticFlag(s.k(), kop.StatMustAttack, ob.slot) || s.attackDuty(s.k(), ob.slot) || s.mustAttackGoad(s.k(), ob.slot))
 }
 
 // attackedPerm returns the slot of the planeswalker or battle attacker a
@@ -844,7 +844,7 @@ func (s *State) canBlock(k *prep, b, a Slot) bool {
 	if k.gen != nil && k.gen.anyProtF && s.protQuality(k, a, b, s.cardAt(b)) {
 		return false // printed protection from a quality the blocker has
 	}
-	if (s.statM.any() || k.embComb && s.anyEmb() || s.ovGateReach(k)) && s.blockForbidden(k, b, a) {
+	if (s.statM.any() || k.embComb && s.anyEmb()) && s.blockForbidden(k, b, a) {
 		return false
 	}
 	if k.gen != nil && k.gen.anySuspect && s.suspectNoBlock(k, b) {

@@ -30,6 +30,7 @@ type cantPhaseEngine interface {
 	restrictionApplies(ce *ContinuousEffect, id state.ObjID) bool
 	activeStatics(mode string) []staticView
 	staticGateHolds(sv staticView) bool
+	presentGate(sv staticView, spec string) bool
 	matchesSpec(spec string, id state.ObjID, sc effects.SpecContext) bool
 	staticSpecCtx(sv staticView) effects.SpecContext
 }
@@ -55,6 +56,20 @@ func suppressPhaseEvent(e cantPhaseEngine, ev events.Event, decided bool) bool {
 	return phaseBlocked(e, ev.Obj, in)
 }
 
+// registrationPresentHolds reports whether an Effect-registered restriction's
+// IsPresent$ gate holds (The Pandorica's `Card.EffectSource+tapped`: "for as
+// long as The Pandorica remains tapped"). An absent gate always holds. The
+// gate reads the registration's own source and controller through presentGate,
+// the one static IsPresent$ home, so PresentCompare$ means what it does there.
+func registrationPresentHolds(e cantPhaseEngine, ce *ContinuousEffect) bool {
+	spec, ok := ce.RestrictParamOk(cards.PKIsPresent)
+	if !ok {
+		return true
+	}
+	return e.presentGate(staticView{Source: ce.Source, Controller: ce.Controller,
+		Params: ce.RestrictParams, SVars: ce.RestrictSVars}, spec)
+}
+
 // phaseBlocked reports whether id can't phase in (in) or out (!in): an
 // Effect-registered restriction of the mode whose ValidCard$ selects id
 // (matched against the registration's remembered set), or a face static of
@@ -67,7 +82,7 @@ func phaseBlocked(e cantPhaseEngine, id state.ObjID, in bool) bool {
 	}
 	for ceI, ceL := 0, e.active(); ceI < len(ceL); ceI++ {
 		ce := &ceL[ceI]
-		if ce.Restriction == mode && e.restrictionApplies(ce, id) {
+		if ce.Restriction == mode && e.restrictionApplies(ce, id) && registrationPresentHolds(e, ce) {
 			return true
 		}
 	}
