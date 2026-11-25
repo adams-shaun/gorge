@@ -74,14 +74,21 @@ func TestTenthDoctorExileGainsSuspendAndCasts(t *testing.T) {
 	// supplies are placed directly here.
 	e.emit(events.Event{Kind: events.CounterChange, Obj: spellID, Counter: "TIME", Amount: 3})
 
-	// The first two upkeeps decrement TIME. The third must pose the normal
-	// suspend cast choice, proving the granted card is in the same queue.
+	// The first two upkeeps decrement TIME through the real upkeep trigger
+	// (CR 603.3): the counter leaves only as each tick resolves. The third
+	// must pose the normal suspend cast choice, proving the granted card is
+	// in the same flow.
 	e.beginTurn(0)
+	suspendResolveTick(t, e, spellID)
+	e.pending = nil
 	e.beginTurn(0)
+	suspendResolveTick(t, e, spellID)
 	if got := o.Counter("TIME"); got != 1 {
 		t.Fatalf("granted suspend TIME after two upkeeps = %d, want 1", got)
 	}
+	e.pending = nil
 	e.beginTurn(0)
+	suspendResolveTick(t, e, spellID)
 	d := e.Pending()
 	if d == nil || d.Kind != decision.KChoose || len(d.Options) < 2 || d.Options[0].Kind != "suspend_cast_yes" {
 		t.Fatalf("granted suspend final counter did not ask to cast: %+v", d)

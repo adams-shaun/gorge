@@ -159,7 +159,7 @@ var ChooseKinds = []string{
 	"decline",          // gorge poseChosenTokenReplacement's optional copy-instead election: decline first (repl_tokcopy.go)
 	"creature",         // and the creature to copy
 	"multikick",        // CR 702.43: gorge multikickAsk's count pick (kw_multikicker.go)
-	"suspend_cast_yes", // CR 702.62a: gorge startSuspendedCast's may-cast ask (kw_suspend.go)
+	"suspend_cast_yes", // CR 702.62a: gorge askSuspendCast's may-cast ask (kw_suspend.go)
 	"suspend_cast_no",
 	"echo_action_pick", // gorge echoActionAsk's choose-exactly-N cards or lands an action echo cost pays
 	"changetext_from",  // gorge effChangeText's "from" word pick (CR 612; the option mode is the word index)

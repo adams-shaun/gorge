@@ -139,17 +139,29 @@ func TestDinosaursTokenPerTimeCounterRemoved(t *testing.T) {
 		return n
 	}
 
-	// The engine's own suspend decrement: entering seat 0's upkeep step runs
-	// finishEnteredStep, which drains one TIME counter from each suspended
-	// card through an observable CounterChange the trigger reads.
+	// The engine's own suspend decrement: entering seat 0's upkeep step queues
+	// CR 702.62b's tick trigger (a real triggered ability, CR 603.3); the
+	// counter leaves only as the tick resolves, through an observable
+	// CounterChange the trigger reads.
 	e.G.Active = 0
 	e.G.Step = state.StepUpkeep
 	e.finishEnteredStep()
-	if got := e.G.Obj(id).Counter("TIME"); got != 2 {
-		t.Fatalf("TIME counters after the upkeep suspend decrement = %d, want 2 (the decrement must be observable)", got)
+	if got := e.G.Obj(id).Counter("TIME"); got != 3 {
+		t.Fatalf("TIME counters with the upkeep tick queued = %d, want 3 (the removal waits for the resolution)", got)
 	}
 	if len(e.pendingTriggers) != 1 {
-		t.Fatalf("pendingTriggers after the suspend TIME decrement = %d, want 1", len(e.pendingTriggers))
+		t.Fatalf("pendingTriggers after the upkeep step = %d, want 1 (the SuspendTick)", len(e.pendingTriggers))
+	}
+	e.putTriggersOnStack()
+	if got := e.G.Obj(id).Counter("TIME"); got != 3 {
+		t.Fatalf("TIME counters with the tick on the stack = %d, want 3", got)
+	}
+	e.resolveTop()
+	if got := e.G.Obj(id).Counter("TIME"); got != 2 {
+		t.Fatalf("TIME counters after the upkeep tick resolved = %d, want 2 (the decrement must be observable)", got)
+	}
+	if len(e.pendingTriggers) != 1 {
+		t.Fatalf("pendingTriggers after the suspend TIME removal = %d, want 1", len(e.pendingTriggers))
 	}
 	e.putTriggersOnStack()
 	e.resolveTop()

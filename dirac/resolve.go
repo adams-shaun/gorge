@@ -260,6 +260,17 @@ func (s *State) resolveTop(k *prep) {
 			return
 		}
 		if e.ab == abDelayed {
+			if e.trigAmt == suspendTickAmt {
+				s.resolveSuspendTick(k, &e) // the upkeep time-counter tick (kw_suspend.go)
+				return
+			}
+			if e.trigAmt == suspendCastAmt {
+				if s.resolveSuspendCast(k, &e) {
+					return // the owner's cast-or-not ask (kw_suspend.go); suspendCastApply finishes it
+				}
+				s.finishResolve(k, false)
+				return
+			}
 			if e.trigAmt == initTrigAmt && e.obj == NoObj {
 				if s.resolveVentureTrig(k) { // act_initiative.go
 					s.finishResolve(k, false)
