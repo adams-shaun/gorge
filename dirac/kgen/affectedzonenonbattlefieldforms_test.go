@@ -7,12 +7,11 @@ import "testing"
 // chosen subtype, Ashes of the Fallen's graveyard one) rides
 // kop.StatOffZoneGrant, never a StatContinuous (the battlefield readers match
 // a filter without reading its zone), and Six's graveyard retrace rides
-// kop.StatRetraceGrant. Aminatou's hand miracle grant keeps the refusal:
-// gorge offers the granted miracle trigger, which the kernel does not.
+// kop.StatRetraceGrant. Aminatou's hand miracle grant rides kop.StatMiracleGrant.
 var affectedZoneNonBattlefieldForms = []formCase{
 	{card: "Leyline of Transformation", form: "AffectedZone$ All AddType$ ChosenType", lir: "addchosen"},
 	{card: "Ashes of the Fallen", form: "AffectedZone$ Graveyard AddType$ ChosenType", lir: "addchosen"},
-	{card: "Aminatou, Veil Piercer", form: "AffectedZone$ Hand AddKeyword$ Miracle (the granted miracle offer is unmodelled)", refused: `AffectedZone "Hand" without MayPlay`},
+	{card: "Aminatou, Veil Piercer", form: "AffectedZone$ Hand AddKeyword$ Miracle:ManaCost:4", lir: "miraclecost="},
 	{card: "Six", form: "AffectedZone$ Graveyard AddKeyword$ Retrace", lir: "kw=[Retrace]"},
 }
 
