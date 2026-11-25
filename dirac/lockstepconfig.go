@@ -48,6 +48,12 @@ func xFolded(cost kop.ManaCost, x int) kop.ManaCost {
 // (payexec.WindowAnswer) takes the first listed source -- a planner-deferred one
 // (Twitching Doll, a depletion land) in its battlefield place, the unit
 // availXWindow counted for the announcement.
+// hybridX: a's mana cost carries {X} and a two-colour hybrid pip, which
+// gorge's planner declines (planAbilityPayment; Fiend Artisan's {X}{B/G}).
+func hybridX(a *kop.Ability) bool {
+	return a.Cost.Mana.X != 0 && a.Cost.Mana.Hyb[0] != 0 && a.Cost.Mana.Hyb[0] != kop.HybTwobrid
+}
+
 // xWindowPays: an announced-X activation pays through gorge's manual window
 // (xWindowPay) unless gorge armed its planner's witness at the least X and the
 // announced X re-plans (rules armAbilityAutoPay at planAbilityPayment's X
@@ -56,8 +62,8 @@ func (s *State) xWindowPays(k *prep, e *stackEntry, a *kop.Ability, sl Slot, cos
 	if cost.X == 0 || s.cfg&cfgGorgeSurface == 0 {
 		return false
 	}
-	if k.gen != nil && k.gen.anyWaterbend && waterbendIsX(a) {
-		return true // gorge's planner keeps declining a Waterbend<X> cost (planAbilityPayment)
+	if k.gen != nil && k.gen.anyWaterbend && waterbendIsX(a) || hybridX(a) {
+		return true // gorge's planner keeps declining a Waterbend<X> or hybrid {X} cost (planAbilityPayment)
 	}
 	floor := xFolded(s.abPlannedCost(k, a, sl, e.ctrl), costXMin(&a.Cost))
 	return !s.abilityPlanSettles(k, e, floor, floor, *cost, saved)

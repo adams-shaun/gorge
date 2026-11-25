@@ -1928,8 +1928,11 @@ func (e *Engine) planAbilityPaymentLifePips(p state.PlayerID, id state.ObjID, ab
 	// a larger announced X re-plans (rearmAutoPay) or keeps the window. Only
 	// a permanent's ability: an {X} hand activation (Webstrike Elite's X
 	// cycling) still declines, its dirac mirror pays other sources; so does a
-	// Waterbend<X> one, whose taps pay part of X (CR 701.67a).
-	if cost.X != 0 && !cost.WaterbendX && o.Zone == state.ZBattlefield {
+	// Waterbend<X> one, whose taps pay part of X (CR 701.67a), and a hybrid
+	// one (Fiend Artisan's {X}{B/G}): the walk's autopay arm skips a cost with
+	// no generic or coloured pip (abilityCostNeedsMana), so its witness would
+	// be a lowered play the payment does not follow.
+	if cost.X != 0 && !cost.WaterbendX && len(cost.Hybrid) == 0 && o.Zone == state.ZBattlefield {
 		cost = cost.WithX(cost.XMin)
 	}
 	if n := e.ownReduceCostOffer(p, id, ab, pa.Merged); n > 0 && cost.Generic >= n {

@@ -341,10 +341,10 @@
 //   - Hybrid pips (Fiend Artisan's {B/G}): gorge's planners decline a
 //     hybrid cost, so its cast is offered when the pool pays it or a
 //     permission's potential play is lowered (its witness the first
-//     resolution, pip 0 fastest, that the sources afford). A hybrid
-//     activation is planned like any other, an {X} one (Fiend Artisan) at
-//     its least X (gorge planAbilityPayment, planHybridCost; Puresight
-//     Merrow, kverify-c4). Each
+//     resolution, pip 0 fastest, that the sources afford). A hybrid {X}
+//     activation (Fiend Artisan) is offered only when the pool pays it
+//     (Config.GorgeUnpriced); one without {X} is planned like any other
+//     (gorge planHybridCost; Puresight Merrow, kverify-c4). Each
 //     pip's colour is asked after modes, before targets (ChGenPip, gorge
 //     manaAsk), over the faces the pool and untapped sources leave payable;
 //     a hybrid pip in hand demands both its colours (pay.CostPips).
