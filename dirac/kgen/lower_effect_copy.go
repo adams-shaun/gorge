@@ -174,6 +174,9 @@ func (lc *lowerCtx) copySpell(ps *params) error {
 			return lc.copyTargetSpell(ps)
 		}
 	}
+	if ps.str("Defined") == "Targeted" {
+		return lc.copyTargetedSpell(ps)
+	}
 	tr := lc.ab.Trigger
 	if tr != nil && tr.Event == "AbilityCast" && ps.str("Defined") == "TriggeredSpellAbility" && tr.AbClass == kop.TrigAbCastAny {
 		return lc.copyTriggeringAbility(ps)
@@ -210,7 +213,32 @@ func (lc *lowerCtx) copySpell(ps *params) error {
 	if v, ok := ps.m["Controller"]; ok && strings.TrimSpace(v) == "You" {
 		ps.consume("Controller")
 	}
+	if err := lc.copyNonLegendary(ps, &in); err != nil {
+		return err
+	}
 	lc.emit(in)
+	return nil
+}
+
+// copyNonLegendary reads a spell copy's NonLegendary$ True (The Sixth
+// Doctor, Jackal, Double Major: "copy it, except the copy isn't legendary";
+// gorge stackCopyRiders, Object.CopyNonLegendary): the copy's type line
+// drops Legendary, so the token a copied legendary permanent spell becomes
+// is not gathered by the legend rule against its original (CR 707.9b,
+// 704.5j). B is the shared RemoveLegendary override's index+1; the kernel
+// carries it on the copy's stack entry and pushes it as the token's copy
+// exception as it enters (copy_spellnonlegendary.go).
+func (lc *lowerCtx) copyNonLegendary(ps *params, in *lInstr) error {
+	v, ok := ps.get("NonLegendary")
+	if !ok {
+		return nil
+	}
+	if strings.TrimSpace(v) != "True" {
+		return refuse("CopySpellAbility NonLegendary %q", v)
+	}
+	lc.out.overrides = append(lc.out.overrides, &lOverride{RemoveLegendary: true, Dedup: true})
+	in.B = cst(len(lc.out.overrides)) // index+1
+	in.Note = "except it isn't legendary"
 	return nil
 }
 
@@ -219,15 +247,25 @@ func (lc *lowerCtx) copySpell(ps *params) error {
 // arm copies the first object target): one copy (Amount$) of the target
 // spell, MayChooseTarget$ True as for the trigger form. A filter that can
 // match a permanent spell sets C&2 (kernel anyPermCopy).
+//
+// An absent TargetType$ (Sigil Tracer, Echo Mage) is the same spell target
+// in gorge: compileTargets defaults the stack kinds to spells and a
+// ValidTgts$ Instant,Sorcery with no TgtZone$ targets the stack. It is
+// admitted only when every clause is bounded to instant|sorcery; an untyped
+// or permanent clause keeps the TargetType refusal.
 func (lc *lowerCtx) copyTargetSpell(ps *params) error {
-	if tt := ps.str("TargetType"); tt != "Spell" {
-		return refuse("CopySpellAbility TargetType %q", tt)
+	tt, typed := ps.get("TargetType")
+	if typed && strings.TrimSpace(tt) != "Spell" {
+		return refuse("CopySpellAbility TargetType %q", ps.str("TargetType"))
 	}
 	f, err := lc.filter(ps.str("ValidTgts"))
 	if err != nil {
 		return err
 	}
 	if f == nil || len(f.Clauses) == 0 || f.Players != 0 {
+		if !typed {
+			return refuse("CopySpellAbility TargetType %q", "")
+		}
 		return refuse("CopySpellAbility of an unfiltered spell")
 	}
 	perm := false
@@ -235,6 +273,9 @@ func (lc *lowerCtx) copyTargetSpell(ps *params) error {
 		if c.Types == 0 || c.Types&^(tInstant|tSorcery) != 0 {
 			perm = true
 		}
+	}
+	if perm && !typed {
+		return refuse("CopySpellAbility TargetType %q", "")
 	}
 	if _, ok := ps.get("TargetMin"); ok {
 		return refuse("CopySpellAbility TargetMin")
@@ -253,6 +294,56 @@ func (lc *lowerCtx) copyTargetSpell(ps *params) error {
 	}
 	if perm {
 		in.C |= 2 // may copy a permanent spell: the copy becomes a token (CR 707.10f)
+	}
+	// Controller$ (gorge copyControllerFor): You is the default; the
+	// target-derived family (Meletis Charlatan's "the controller of target
+	// instant or sorcery spell copies it") gives the copy to the target
+	// spell's controller (C&4), who also answers its new-target election.
+	if v, ok := ps.get("Controller"); ok {
+		switch strings.TrimSpace(v) {
+		case "You":
+		case "TargetedController", "TargetedOrController", "Targeted":
+			in.C |= 4
+		default:
+			return refuse("CopySpellAbility Controller$ %q", v)
+		}
+	}
+	if err := lc.copyNonLegendary(ps, &in); err != nil {
+		return err
+	}
+	lc.emit(in)
+	return nil
+}
+
+// copyTargetedSpell lowers Defined$ Targeted (Wild Ricochet's "Then copy
+// that spell" under its ChangeTargets): gorge effCopySpellAbility's targeted
+// arm copies the chain's first object target, here the one instant or
+// sorcery spell slot the parent declared, with the targets it has now.
+func (lc *lowerCtx) copyTargetedSpell(ps *params) error {
+	t := lc.lastTarget()
+	if len(lc.chainT) != 1 || t < 0 {
+		return refuse("CopySpellAbility Defined$ Targeted over %d target slots", len(lc.chainT))
+	}
+	tg := lc.ab.Targets[t]
+	if !tg.Spell || tg.Zone != zStack || tg.StackAb || tg.F == nil || len(tg.F.Clauses) == 0 {
+		return refuse("CopySpellAbility Defined$ Targeted of a slot that is not a spell")
+	}
+	for _, c := range tg.F.Clauses {
+		if c.Types == 0 || c.Types&^(tInstant|tSorcery) != 0 {
+			return refuse("CopySpellAbility Defined$ Targeted of a permanent spell slot")
+		}
+	}
+	if v, ok := ps.get("Controller"); ok && strings.TrimSpace(v) != "You" {
+		return refuse("CopySpellAbility Defined$ Targeted Controller$ %q", v)
+	}
+	ps.consume("Controller")
+	n, err := lc.amount(ps, "Amount", 1)
+	if err != nil {
+		return err
+	}
+	in := lInstr{Op: "CopySpell", Obj: lRef{Kind: rTarget, N: t}, A: n}
+	if ps.is("MayChooseTarget", "True") {
+		in.C = 1
 	}
 	lc.emit(in)
 	return nil
