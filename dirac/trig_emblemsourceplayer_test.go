@@ -47,7 +47,7 @@ func TestEffectEOTEmblemSourceCaptureToPlayer(t *testing.T) {
 		sc.s.embSetNum(0, 0, num)
 		sc.s.npend = 0
 		var latch dmgLatch
-		sc.s.fireEmblemsDmg(sc.k, sc.slot(srcObj), 2, toPlayer, false, rcp, false, &latch)
+		sc.s.fireEmblemsDmg(sc.k, sc.slot(srcObj), 2, toPlayer, false, rcp, false, &latch, nil)
 		return int(sc.s.npend)
 	}
 	if n := arm(objWord(srcObj)+1, PlayerCode(1), true); n != 1 {
