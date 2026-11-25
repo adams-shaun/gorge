@@ -255,6 +255,33 @@ func (s *State) applyAskWinTap(k *prep, a Action) bool {
 	r := &s.res
 	p := r.askP
 	r.ask = raNone
+	if s.winUnlessPayPayer() != 0 {
+		// the unless payer's mana window paused on this pick: finish the tap,
+		// charge the {1}, and resume the colour window's unless walk
+		// (mana_askcolour.go castWinUnlessPay)
+		p = s.winUnlessPayPayer() - 1
+		sl := s.g.winSrc
+		c := kop.ManaCost{Generic: 1}
+		col := s.windowTapXCol(k, p, &c, sl, false, true)
+		s.tapXDo(k, p, tapXStep{sl: sl, cand: cand, cand2: cand2, col: col})
+		s.winUnlessSetPayPause(0)
+		paused, short := s.payWindow(k, p, &c, true)
+		if paused {
+			s.winUnlessSetPayPause(p + 1)
+			return true
+		}
+		s.g.winMode = winNone
+		if short {
+			s.winUnlessSetPayer(0)
+			s.castWinUnlessNext()
+			if s.g.winUnless == 0 {
+				s.finishManaUnless(k, false)
+			}
+			return true
+		}
+		s.finishManaUnless(k, true)
+		return true
+	}
 	cost := s.winTapCost(k)
 	sl := s.g.winSrc
 	col := s.windowTapXCol(k, p, &cost, sl, false, true)

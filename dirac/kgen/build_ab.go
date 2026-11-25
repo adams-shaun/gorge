@@ -1120,6 +1120,7 @@ func (cb *cardBuilder) mana(m *lMana, ka *kop.Ability) error {
 	ka.ManaEach = m.Each
 	ka.ManaDeferred = m.Deferred
 	ka.ManaAskColour = m.AskColour
+	ka.ManaUnless = m.Unless
 	ka.ManaNoCounter = m.NoCounter
 	ka.ManaIdentityPotential = m.IdentityPotential
 	ka.ManaRider = uint8(m.Rider)
@@ -1242,10 +1243,11 @@ var eventMap = map[string]kop.TrigEvent{"ETB": kop.TrigETB, "Dies": kop.TrigDies
 	"ClassLevelGained": kop.TrigCounterAddedOnce, // N = CtrLevel (lower_class.go)
 	"BecomesPlotted":   kop.TrigBecomesPlotted,   // the card's own
 	"BecomesSaddled":   kop.TrigBecomesSaddled,
-	"Evolved":          kop.TrigEvolved,    // the source's own, after its evolve counter lands
-	"Attached":         kop.TrigAttached,   // the attachment's own, Creature bearer (Assimilation Aegis)
-	"Unattached":       kop.TrigUnattached, // the attachment's own, the FORMER BEARER (Captain's Hook family)
-	"LeaveExile":       kop.TrigLeaveExile} // an imprinted card leaves exile (lower_changezonepairs.go; dirac/trig_leaveexile.go)
+	"Evolved":          kop.TrigEvolved,     // the source's own, after its evolve counter lands
+	"Attached":         kop.TrigAttached,    // the attachment's own, Creature bearer (Assimilation Aegis)
+	"Unattached":       kop.TrigUnattached,  // the attachment's own, the FORMER BEARER (Captain's Hook family)
+	"ChaosEnsues":      kop.TrigChaosEnsues, // the face-up plane's command-zone chaos ability (zone_planechase.go)
+	"LeaveExile":       kop.TrigLeaveExile}  // an imprinted card leaves exile (lower_changezonepairs.go; dirac/trig_leaveexile.go)
 
 // trigQualifierFlags is trigger's qualifier-flag block: the Evolve, the
 // SpellCast spend qualifiers (Increment, the mana-spend gate) and the split
