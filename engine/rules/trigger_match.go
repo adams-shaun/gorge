@@ -1047,7 +1047,8 @@ func (e *Engine) checkTriggersNow(ev *events.Event, lki *state.Object,
 		staticBuf, lossMemo := observer.staticContinuous[:0], observer.lossMemo.recycled()
 		*observer = Engine{G: e.triggerBefore.game, L: e.L,
 			continuous: e.triggerBefore.continuous, continuousVersion: e.continuousVersion,
-			setNameInPool: e.setNameInPool, layer4InPool: e.layer4InPool}
+			setNameInPool: e.setNameInPool, layer4InPool: e.layer4InPool,
+			sbaLossHeld: e.sbaLossHeld}
 		// The open cast flow and the resolving object are not board state:
 		// the cause qualifiers (WhileKeyword$, a ValidCause$ stack read) of
 		// a leaves-the-battlefield trigger read them.

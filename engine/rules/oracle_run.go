@@ -136,7 +136,14 @@ type oracleSeat struct {
 	// cost (Vanille's {3}{B}{G}). It is emitted as ordinary ManaAdd events,
 	// so the scenario still replays from its log like every other setup op.
 	Mana string `json:"mana,omitempty"`
-	Life *int32 `json:"life,omitempty"`
+	// PlayerCounters restates this seat's COMPLETE player-counter count at
+	// the turn's first main phase, after the setup drive has resolved every
+	// trigger before it. Each entry emits one events.PlayerCounterChange with
+	// the delta from the current count, so a counter an upkeep trigger already
+	// produced is restated, not doubled. It stands in for an unspecified
+	// outside effect, as logged events, so the scenario replays from its log.
+	PlayerCounters []oraclePlayerCounter `json:"player_counters,omitempty"`
+	Life           *int32                `json:"life,omitempty"`
 	// Counters puts counters on this seat's battlefield placements at setup:
 	// card name -> counter kind (gorge spelling: LOYALTY, P1P1) -> how many,
 	// ADDED to whatever the card enters with (a planeswalker's printed
@@ -165,6 +172,13 @@ type oracleSeat struct {
 	// Attached places listed battlefield Auras already attached; see
 	// oracleSetupAttach.
 	Attached []oracleSetupAttach `json:"attached,omitempty"`
+}
+
+// oraclePlayerCounter is one player-counter kind's complete setup count, in
+// the scenario's array order (the caller sorts by kind).
+type oraclePlayerCounter struct {
+	Kind string `json:"kind"`
+	N    int32  `json:"n"`
 }
 
 // oracleSetupToken is one token a seat's setup places on the battlefield.
@@ -982,7 +996,17 @@ func (r *oracleRun) build(sc oracleScenario) error {
 		}
 		if life := sc.Setup[fmt.Sprintf("p%d", p)].Life; life != nil {
 			if d := *life - e.G.Players[p].Life; d != 0 {
+				// A setup life total is a stated fact, not a gain: no CR 614
+				// replacement may rewrite it, and no "whenever you gain life"
+				// trigger may fire for it (Ajani's Pridemate with a setup
+				// life would otherwise resolve its counter during setup).
+				pendingBefore := len(e.pendingTriggers)
+				prior := e.applyingReplacement
+				e.applyingReplacement = true
 				e.emit(events.Event{Kind: events.LifeChange, Player: pid, Amount: d})
+				e.applyingReplacement = prior
+				e.pendingTriggers = e.pendingTriggers[:pendingBefore]
+				e.orderedTriggers = min(e.orderedTriggers, pendingBefore)
 			}
 		}
 		if !sc.xmageFixture {
@@ -1051,6 +1075,13 @@ func (r *oracleRun) build(sc oracleScenario) error {
 			for p := 0; p < seats; p++ {
 				for _, c := range sc.Setup[fmt.Sprintf("p%d", p)].Mana {
 					e.emit(events.Event{Kind: events.ManaAdd, Player: state.PlayerID(p), Counter: string(c), Amount: 1})
+				}
+			}
+			for p := 0; p < seats; p++ {
+				for _, pc := range sc.Setup[fmt.Sprintf("p%d", p)].PlayerCounters {
+					if d := pc.N - e.G.Players[p].Counter(pc.Kind); d != 0 {
+						e.emit(events.Event{Kind: events.PlayerCounterChange, Player: state.PlayerID(p), Counter: pc.Kind, Amount: d})
+					}
 				}
 			}
 		}

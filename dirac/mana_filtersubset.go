@@ -18,14 +18,20 @@ func (s *State) filtSkip() uint8 { return s.g.rsv[0] }
 
 func (s *State) setFiltSkip(v uint8) { s.g.rsv[0] = v }
 
-// filtNetNegative is how many of the filters f make fewer mana than their fee
-// takes, at most relaxedPaidLimit (gorge's own cap on the relaxed proof's
-// paid subset).
+// filtNetNegative is how many filter abilities of f make fewer mana than
+// their fee takes, at most relaxedPaidLimit (gorge's own cap on the relaxed
+// proof's paid subset). A paid filter set's second ability is one of them
+// (Koskun Keep's {2} -> one mana): counting abilities, not slots, keeps the
+// subsets' union over a card with several fees (availFilt's neg counter walks
+// the same order).
 func (s *State) filtNetNegative(k *prep, f slotMask) int {
 	n := 0
 	for ; f.any() && n < relaxedPaidLimit; f = f.rest() {
-		if sl := f.first(); s.filtUnits(k, sl) < s.filtFee(k, sl) {
-			n++
+		sl := f.first()
+		for i, nc := 0, s.filtCount(k, sl); i < nc && n < relaxedPaidLimit; i++ {
+			if s.filtUnitsAt(k, sl, int8(i)) < s.filtFeeAt(k, sl, int8(i)) {
+				n++
+			}
 		}
 	}
 	return n
