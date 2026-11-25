@@ -158,12 +158,15 @@ func (s *State) beginStep(k *prep) {
 		}
 		pre := s.tappedMask(s.active)
 		m := s.ctrlM[s.active]
+		keepSick := s.g.nxph != 0 && s.addPhaseExtraUntap() // an extra beginning phase's untap: no turn began (act_addphase.go)
 		for m.any() {
 			sl := m.first()
 			m = m.rest()
 			p := &s.perms[sl]
 			f := p.flags
-			p.flags &^= pfSick
+			if !keepSick {
+				p.flags &^= pfSick
+			}
 			if p.flags&pfSkipUntap != 0 {
 				p.flags &^= pfSkipUntap // CR 611.2b one-shot, consumed even untapped (gorge CantUntapNextStep)
 				s.touchSl(sl)
