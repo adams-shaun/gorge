@@ -44,6 +44,14 @@ func (s *State) sacrificedLKICount(k *prep, f kop.FilterID, li uint8, typeRead b
 		}
 		return 0, true
 	}
+	if sacrificedLegendaryFilter(fl) {
+		// Card.Legendary: the supertype in the snapshot's derived type mask
+		// (gorge sacrificedValidCount matches the captured types).
+		if DebugCountHeads10Off || s.lk(li).types&kop.TLegendary == 0 {
+			return 0, true
+		}
+		return 1, true
+	}
 	if !sacrificedTypeFilter(fl) {
 		return 0, false
 	}
@@ -70,6 +78,15 @@ func sacrificedTypeFilter(fl *kop.Filter) bool {
 		fl.Colors == 0 && fl.NotColors == 0 && fl.Pred == kop.PredNone && fl.PredN == 0 &&
 		fl.Flags == 0 && fl.Flags2 == 0 && fl.Zone == kop.ZoneNone &&
 		fl.PredV == (kop.ValueRef{}) && fl.Or == 0
+}
+
+// sacrificedLegendaryFilter reports whether fl is exactly Card.Legendary: the
+// legendary supertype in the Types any-of mask and nothing else.
+func sacrificedLegendaryFilter(fl *kop.Filter) bool {
+	return fl.Types == kop.TLegendary && fl.Sub == 0 && fl.NotTypes == 0 && fl.NotSub == 0 &&
+		fl.Ctrl == kop.CtrlAny && fl.Owner == 0 && fl.Colors == 0 && fl.NotColors == 0 &&
+		fl.Pred == kop.PredNone && fl.PredN == 0 && fl.Flags == 0 && fl.Flags2 == 0 &&
+		fl.Zone == kop.ZoneNone && fl.PredV == (kop.ValueRef{}) && fl.Or == 0
 }
 
 // DebugGowronPostSac reads a sacrificed creature's type from the live object
