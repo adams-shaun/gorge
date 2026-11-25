@@ -575,3 +575,22 @@ func TestFourSeatBlkTaxGoadDutyLockstep(t *testing.T) {
 		}
 	})
 }
+
+// A haste spend rider on a plain {T} source (Carnelian Orb of Dragonkind: "If
+// that mana is spent on a Dragon creature spell, it gains haste until end of
+// turn"; AddsKeywords$ Haste): gorge's window lists it as a fixed {R} unit and
+// spends its mana on the tax at once, so the rider never applies (CR 106.6).
+// The mutation (DebugAtkTaxHasteUnlisted) skips the source as if unlisted.
+var atkTaxHasteRiderDeck = []cardset.Entry{
+	{Name: "Propaganda", Count: 3}, {Name: "Ghostly Prison", Count: 2},
+	{Name: "Carnelian Orb of Dragonkind", Count: 6}, {Name: "Savannah Lions", Count: 4}, {Name: "Goblin Piker", Count: 4},
+	{Name: "Shivan Dragon", Count: 2},
+	{Name: "Plains", Count: 5}, {Name: "Mountain", Count: 6},
+}
+
+// TestFourSeatAtkTaxHasteRiderLockstep: four-seat attack-tax games with
+// haste-rider mana sources play in lockstep, the window tapping them.
+func TestFourSeatAtkTaxHasteRiderLockstep(t *testing.T) {
+	atkShapeLockstep(t, atkTaxHasteRiderDeck, 24, 20, 0, []string{"Carnelian Orb of Dragonkind"},
+		[]string{"Carnelian Orb of Dragonkind"}, &dirac.DebugAtkTaxHasteUnlisted)
+}
