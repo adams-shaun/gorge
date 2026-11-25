@@ -297,7 +297,7 @@ var changeZoneAllKnownKeys = [...]string{
 	"WithCountersType",
 	"WithMayLook",
 	"WithoutManaCost",
-	"XColor", "XMax",
+	"XAnnounceTitle", "XColor", "XMax",
 	"XMin",
 }
 
