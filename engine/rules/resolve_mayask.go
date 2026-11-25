@@ -59,7 +59,7 @@ const _ uint64 = uint64(cards.MayAskCondParentSub) << mayAskCondShift
 // tapeMayAsk reports whether resolving the top of the stack may pose a
 // decision, judged from text and the stack object. true is always safe.
 func tapeMayAsk(e *Engine) bool {
-	return tapeTextMayAsk(e) || tapeBoardCompetes(e)
+	return tapeTextMayAsk(e) || tapeBoardCompetes(e, replWalkScope{})
 }
 
 // tapeBoardCompetes is the board gate every otherwise ask-free resolution
@@ -84,11 +84,11 @@ func tapeMayAsk(e *Engine) bool {
 // two opponents are legal, so the ask is real (1v1 auto-records its one
 // opponent). The gate is conservative by type: any Battle resolving from the
 // stack is checkpointed, whether or not its entry ends up asking.
-func tapeBoardCompetes(e *Engine) bool {
+func tapeBoardCompetes(e *Engine, sc replWalkScope) bool {
 	if n := len(e.G.Stack); n > 0 && tapeBattleEntryMayAsk(e.G.Obj(e.G.Stack[n-1])) {
 		return true
 	}
-	if tapeReplMayAsk(e, "AddCounter") || tapeReplMayAsk(e, "PayLife") || tapeAnyReplBodyMayAsk(e) {
+	if tapeReplMayAsk(e, "AddCounter", sc) || tapeReplMayAsk(e, "PayLife", sc) || tapeReplBodyMayAsk(e, ^uint32(0), sc) {
 		return true
 	}
 	if tapeSelfExileMayAsk(e) {
@@ -369,7 +369,9 @@ func tapeDredgeMayAsk(e *Engine) bool {
 // otherwise ask-free resolution that opens the gate, through the
 // replacement-source zone masks. A static-granted electing line for the event
 // is read from the arena precompute, because it is not in any face's Repls.
-func tapeReplMayAsk(e *Engine, event string) bool {
+// sc (replWalkScope) narrows the printed lines: a line sc sets aside neither
+// elects nor competes.
+func tapeReplMayAsk(e *Engine, event string, sc replWalkScope) bool {
 	if replArenaGrantedAskFor(e, replEventBit(event)) {
 		return true
 	}
@@ -394,7 +396,7 @@ func tapeReplMayAsk(e *Engine, event string) bool {
 		}
 		for i := range f.Repls {
 			r := &f.Repls[i]
-			if !replacementEventNameMatches(r.Event, event) {
+			if !replacementEventNameMatches(r.Event, event) || sc.skips(e, r, id) {
 				continue
 			}
 			if n++; n > 1 || cards.ReplMayElect(r) {
