@@ -46,6 +46,9 @@ var DebugRestrTypedFirst bool
 // p's pool. It is called after the unit is added.
 func (s *State) artTag(k *prep, p uint8, sl Slot, col int) {
 	s.snowTag(k, p, sl, col) // the snow half of the tag (mana_snow.go)
+	if k.gen != nil && k.gen.anyManaHaste {
+		s.hasteTag(k, p, sl, col) // a rider unit floating in the pool (mana_hastefloat.go)
+	}
 	if k.artMana && k.cards[s.cardAt(sl)].manaTyped {
 		s.g.poolArt[SeatIx(p)] |= 1 << col
 		if sx := coldArtN.of(s); sx != nil {
@@ -177,6 +180,7 @@ func (s *State) artSync(p uint8) {
 	s.g.poolArt[SeatIx(p)] = a
 	s.snowSync(p) // the snow half of the tag, before the Treasure clamp reads it (mana_snow.go)
 	s.treSync(p)
+	s.hasteSync(p) // the haste rider's units (mana_hastefloat.go)
 	if s.g.defSrc[SeatIx(p)] != 0 && s.pl[SeatIx(p)].pool[s.defColOf(p)] == 0 {
 		s.g.defSrc[SeatIx(p)] = 0
 		s.setDefCol(p, 0) // the deferred source's mana is spent (mana_deferred.go)
@@ -234,6 +238,7 @@ func tableAnyTypedMana(t *kop.Table) bool {
 
 // artNClearSeat empties seat p's tagged-unit tally (its pool emptied).
 func (s *State) artNClearSeat(p uint8) {
+	s.hasteClear(SeatIx(p), 0)
 	if sx := coldArtN.of(s); sx != nil {
 		clear(sx[int(SeatIx(p))*kop.NumManaKinds : int(SeatIx(p))*kop.NumManaKinds+kop.NumManaKinds])
 	}
@@ -243,6 +248,9 @@ func (s *State) artNClearSeat(p uint8) {
 // the boundary emptiers keep the keep-letter colours' entries instead,
 // talliesKeep).
 func (s *State) artNClearAll() {
+	for p := uint8(0); p < MaxSeats; p++ {
+		s.hasteClear(p, 0)
+	}
 	if sx := coldArtN.of(s); sx != nil {
 		clear(sx)
 	}
