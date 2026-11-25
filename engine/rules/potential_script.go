@@ -93,7 +93,7 @@ func (e *Engine) potentialPrefixScript(p state.PlayerID, o decision.Option, gaps
 		return nil, false
 	}
 	a := decision.PotentialAction{Kind: o.Kind, Obj: o.Obj, Ability: o.Ability, Mode: o.Mode}
-	desc, descOK := scriptPlayDesc(o, func() Cost { return e.castOfferBase(p, o.Obj) })
+	desc, descOK := scriptPlayDesc(o, func() Cost { return scriptPlayCost(e, e.G.Obj(o.Obj), p, a) })
 	build := func(phased bool, budget int) *scriptSearch {
 		sr := e.newScriptSearch(p, a, o.AltCostIndex, budget)
 		if sr == nil {
@@ -398,8 +398,9 @@ type scriptSearch struct {
 	// generic pip is fine, payable with any colour -- but about FIXED pips:
 	// pipOK is false when the cost has a part whose payment any colour may
 	// help beyond a generic one (an X, snow, forage or hybrid-family pip) or
-	// whose base the read does not name (scriptPlayBaseCost: a mode or
-	// alternative cost), and the prune then fails open.
+	// whose base the read does not name (scriptPlayBaseCost: a mode the
+	// planner cannot compose, an alternative cost), and the prune then fails
+	// open.
 	pipCol [state.MC + 1]int32
 	pipOK  bool
 	// printedOnly: the play is a printed ability, and a granted one sharing its
@@ -450,18 +451,19 @@ func (e *Engine) newScriptSearch(p state.PlayerID, a decision.PotentialAction, a
 type scriptNeedReader interface {
 	castOfferBase(state.PlayerID, state.ObjID) costvocab.Cost
 	abilityCompiledCost(*cards.SA) *compiledCost
+	potentialModeBaseCost(state.PlayerID, state.ObjID, *cards.Face, decision.Option) (Cost, bool)
 }
 
 // scriptNeedColours reports the coloured pips the searched play's base cost
 // announces (CR 601.2b: the caster announces each pip's colour before
-// targets): a cast's printed mana cost, an ability's compiled cost. A hybrid,
-// twobrid or hybrid-Phyrexian pip needs each of its faces; a Phyrexian pip
-// needs its colour (its life face is not mana). The set is only the search's
-// branch-order preference -- it changes which equal answers a colour ask's
-// search tries first, never which answers exist. A cast of a card mode or an
-// alternative cost (flashback, kicker) whose pips the printed base does not
-// carry leaves the set empty, and so the engine order; a may-play cast reads
-// the printed base (scriptPlayBaseCost).
+// targets): a cast's base mana cost (the surge cost for the surged mode, the
+// printed cost for a plain or may-play cast), an ability's compiled cost. A
+// hybrid, twobrid or hybrid-Phyrexian pip needs each of its faces; a
+// Phyrexian pip needs its colour (its life face is not mana). The set is only
+// the search's branch-order preference -- it changes which equal answers a
+// colour ask's search tries first, never which answers exist. A cast of
+// another card mode or an alternative cost leaves the set empty, and so the
+// engine order (scriptPlayBaseCost).
 func scriptNeedColours(r scriptNeedReader, o *state.Object, p state.PlayerID, a decision.PotentialAction) [state.MC + 1]bool {
 	var need [state.MC + 1]bool
 	add := func(c costvocab.Cost) {
@@ -510,23 +512,36 @@ func scriptNeedColours(r scriptNeedReader, o *state.Object, p state.PlayerID, a 
 // library) reads the printed base too -- scriptSpendableGaps' same
 // admission, which prices its payment descriptor with castOfferBase
 // (scriptPlayDesc), and dirac's mirror prices the play by the printed pips
-// beside it (mana_filter.go gapFilteredPlay admits castMayPlay). ok is false
-// when the play's cost is not the printed base one -- a cast of a card mode
-// or an alternative cost (flashback, kicker, bargain), an unresolvable
-// ability, or a play that is neither kind -- so both need-readers
-// (scriptNeedColours, the search's branch-order preference, and
-// scriptNeedCounts, the subsume run's prune bound) leave the cost unread
-// rather than guess one.
+// beside it (mana_filter.go gapFilteredPlay admits castMayPlay). A surged cast
+// reads the cost its mode actually charges, through the same
+// potentialModeBaseCost the cast planner composes: reading the printed base
+// instead leaves the surge cost's {R} out of both need-readers, so the prefix
+// search's colour ask is not ordered by it and the play stays unpriced. Every
+// other card mode stays unread, as it did before the surge read: dirac's
+// mirror (mana_grantedoffers.go playNeedPrinted) prices those plays from no
+// pips, so a read here would reorder the colour asks against the kernel's
+// hint on a supported card (dirac/oracle TestFlashbackCastPoolColoursLockstep
+// replays exactly that divergence). ok is false when the planner cannot
+// compose that cost (a mode it does not price, an unresolvable ability, or a
+// play that is neither kind), and both need-readers (scriptNeedColours, the
+// search's branch-order preference, and scriptNeedCounts, the subsume run's
+// prune bound) then leave the cost unread rather than guess one.
 func scriptPlayBaseCost(r scriptNeedReader, o *state.Object, p state.PlayerID, a decision.PotentialAction) (costvocab.Cost, bool) {
 	if o == nil || o.Face() == nil {
 		return costvocab.Cost{}, false
 	}
 	switch a.Kind {
 	case "cast":
-		if a.Mode != "" && castModeCodes.Code(a.Mode) != castModeMayplay {
+		if a.Mode == "" || castModeCodes.Code(a.Mode) == castModeMayplay {
+			return r.castOfferBase(p, a.Obj), true
+		}
+		if potentialModeBaseCostCodes.Code(a.Mode) != potentialModeBaseCostSurged {
 			return costvocab.Cost{}, false
 		}
-		return r.castOfferBase(p, a.Obj), true
+		// potentialModeBaseCost's surged arm reads only the face's K:Surge
+		// parameter, so the search's PotentialAction carries everything it
+		// needs.
+		return r.potentialModeBaseCost(p, a.Obj, o.Face(), decision.Option{Kind: a.Kind, Obj: a.Obj, Ability: a.Ability, Mode: a.Mode})
 	case optAbility:
 		pa, ok := o.PileAbilityAt(a.Ability)
 		if !ok || pa.SA == nil {
@@ -538,13 +553,27 @@ func scriptPlayBaseCost(r scriptNeedReader, o *state.Object, p state.PlayerID, a
 	}
 }
 
+// scriptPlayCost is the searched cast's base cost as scriptPlayDesc prices
+// it: the mode's composed base when scriptPlayBaseCost names one, else the
+// printed cast base. A mode the planner cannot compose keeps the older
+// conservative descriptor rather than withholding the play's shape.
+func scriptPlayCost(r scriptNeedReader, o *state.Object, p state.PlayerID, a decision.PotentialAction) Cost {
+	if c, ok := scriptPlayBaseCost(r, o, p, a); ok {
+		return c
+	}
+	if a.Kind == "cast" {
+		return r.castOfferBase(p, a.Obj)
+	}
+	return Cost{}
+}
+
 // scriptNeedCounts is scriptNeedColours as counts: the searched play's base
 // cost's coloured pips per colour, ok false when the cost has a part whose
 // payment any colour may help (a generic, snow or X pip, a hybrid, Phyrexian,
 // twobrid or hybrid-Phyrexian face) or that the base cost does not announce
-// (a non-"mayplay" mode or an alternative cost; scriptPlayBaseCost): the
-// subsume run's colour-ask filter prunes a colour only when floating more of
-// it can pay nothing.
+// (a mode the planner cannot compose; scriptPlayBaseCost): the subsume run's
+// colour-ask filter prunes a colour only when floating more of it can pay
+// nothing.
 func scriptNeedCounts(r scriptNeedReader, o *state.Object, p state.PlayerID, a decision.PotentialAction) ([state.MC + 1]int32, bool) {
 	var counts [state.MC + 1]int32
 	c, ok := scriptPlayBaseCost(r, o, p, a)
@@ -570,9 +599,9 @@ func scriptNeedCounts(r scriptNeedReader, o *state.Object, p state.PlayerID, a d
 // play's base cost's fixed pips per colour, ok false when the cost has a
 // part whose payment any colour may help beyond a generic one (an X, snow,
 // forage or hybrid-family pip -- a generic pip is fine, payable with any
-// colour) or that the base cost does not announce (scriptPlayBaseCost: a
-// non-"mayplay" mode or an alternative cost). The set may be empty (an
-// all-generic cost), and
+// colour) or that the base cost does not announce (scriptPlayBaseCost: a mode
+// the planner cannot compose). The set may be empty (an all-generic cost),
+// and
 // the prune then drops every colour ask answer of a fee-only repeatable gap:
 // a conversion that never raises the spendable total cannot help pay it.
 func scriptPipCounts(r scriptNeedReader, o *state.Object, p state.PlayerID, a decision.PotentialAction) ([state.MC + 1]int32, bool) {
