@@ -92,6 +92,15 @@ func DefinedRef(h Host, c *Ctx, r Ref, sa *cards.SA) []state.Target {
 	if ts, ok := knownDefinedTargets(h, c, r.Raw); ok {
 		return ts
 	}
+	// A single player-base selector whose qualifier the shared grammar does
+	// not read stays fail-closed (nobody). definedSpec now reports it unknown
+	// so the Defined$ census and the support gate can see the gap, but an
+	// ordinary effect must keep acting on nobody rather than falling back to
+	// the source or the chosen (object) targets, which is the wrong set for a
+	// player-valued selector.
+	if !strings.Contains(r.Raw, " & ") && unreadDefinedPlayerSpec(r.Raw) {
+		return nil
+	}
 	// Keep Defined's historical per-member fallback for a mixed known/unknown
 	// expression. knownDefinedTargets is deliberately stricter for callers
 	// that need a fail-closed fetch-list classification, not a new public
@@ -679,6 +688,19 @@ func triggeredAttackingPlayerDefined(h Host, c *Ctx, spec string) ([]state.Targe
 		return []state.Target{{Player: ap, IsPlayer: true}}, true
 	}
 	return nil, true
+}
+
+// unreadDefinedPlayerSpec reports whether spec is a single player-base
+// selector (Player/Opponent/Other/You) whose qualifier the shared player
+// grammar does not read. definedSpec uses the same classifier to stay
+// unknown; DefinedRef uses this to keep the historical fail-closed empty set
+// instead of falling back to the source for such a spelling.
+func unreadDefinedPlayerSpec(spec string) bool {
+	base, _, _ := strings.Cut(spec, ".")
+	if base != "Player" && base != "Opponent" && base != "Other" && base != "You" {
+		return false
+	}
+	return !controlReferentPlayerSpecKnown(spec)
 }
 
 func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
@@ -1809,6 +1831,15 @@ func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 	// fell through to `nil, false` and the source fallback made the CASTER
 	// the acting player -- the opposite seat lost the life.
 	if base, _, _ := strings.Cut(spec, "."); base == "Player" || base == "Opponent" || base == "Other" || base == "You" {
+		// Fail closed on a qualifier the player grammar does not read. The
+		// sweep below matches nobody for such a spelling, but claiming it
+		// (ok=true) told knownDefinedTargets -- and therefore the Defined$
+		// census and the support gate -- that the selector was modelled.
+		// Ask the shared classifier instead, so definedSpec and
+		// MatchesPlayerSpecWithSVars cannot disagree about a qualifier.
+		if !controlReferentPlayerSpecKnown(spec) {
+			return nil, false
+		}
 		var out []state.Target
 		for _, p := range g.AliveFrom(c.Controller) {
 			if base == "Opponent" && p == c.Controller {
