@@ -2528,7 +2528,7 @@ func (s *State) scriptDFS(k *prep, a Action, p uint8, order []Slot, ctr, restr, 
 					continue // the line went on without this gap
 				}
 				tapsN++
-				if !t.scriptGapTap(k, p, a, order[j], ctr, restr, anyR, tapsDef, ca, int(path[j]), &spill) {
+				if !t.scriptGapTap(k, p, a, order[j], ctr, restr, anyR, tapsDef, ca, t.dfsPathAnswer(k, a, order[j], tapsDef, path[j]), &spill) {
 					// a life-only gap the path's earlier activation made
 					// unpayable: no state under this prefix can tap it, so
 					// fail the branch and backtrack (see scriptGapTap)
@@ -2630,6 +2630,7 @@ func (s *State) scriptDFS(k *prep, a Action, p uint8, order []Slot, ctr, restr, 
 				nch = s.anyRAnswers(k, order[j])
 			case tapsDef.has(order[j]):
 				nch = s.deferGapAnswers(k, order[j])
+				nch *= uint8(s.dfsAskTotal(k, a, order[j], nch)) // the tap's any-colour asks' answers beside the gap's own
 			case restr.has(order[j]) && k.gen.anyDeferred && k.deferIdent(s.cardAt(order[j])):
 				nch = s.deferAnswers(k, order[j]) // the identity's colour ask (mana_deferident.go)
 			case life.has(order[j]):
@@ -2781,7 +2782,7 @@ func (s *State) scriptPrefixAny(k *prep, a Action, p uint8, restr, anyR, tapsDef
 		if path[i] == scriptSkip {
 			continue // the found script went on without this gap
 		}
-		s.scriptGapTap(k, p, a, order[i], ctr, restr, anyR, tapsDef, ca, int(path[i]), &spill)
+		s.scriptGapTap(k, p, a, order[i], ctr, restr, anyR, tapsDef, ca, s.dfsPathAnswer(k, a, order[i], tapsDef, path[i]), &spill)
 		if s.npend != 0 {
 			// gorge answers each gap's activation as its own decision, so the
 			// trigger queue is drained before the next tap: two lands under
