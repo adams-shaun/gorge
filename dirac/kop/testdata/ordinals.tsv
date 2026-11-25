@@ -35,6 +35,7 @@ AggDistinctPower	untyped int	6
 AggGreatestMV	untyped int	3
 AggGreatestPower	untyped int	1
 AggGreatestToughness	untyped int	2
+AggMostName	untyped int	14
 AggPermTypes	untyped int	12
 AggSumCounters	untyped int	11
 AggSumMV	untyped int	5
