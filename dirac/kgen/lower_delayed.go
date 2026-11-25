@@ -352,7 +352,11 @@ func (lc *lowerCtx) delayedStepRemember(arm, ro string, exec *cards.SA) (lRef, e
 			}
 			return lRef{}, nil
 		}
-	case "TriggeredAttackerLKICopy", "TriggeredAttacker", "TriggeredBlockerLKICopy", "TriggeredBlocker":
+	case "TriggeredAttackerLKICopy", "TriggeredAttacker", "TriggeredBlockerLKICopy", "TriggeredBlocker",
+		// the damaged creature of a per-referent DamageDone line (Ohran
+		// Viper, Lowland Basilisk: "destroy that creature at end of
+		// combat"): the trigger object (lower_trigrefs.go readDamageTarget)
+		"TriggeredTargetLKICopy", "TriggeredTarget":
 		r, err := lc.defined(ro)
 		if err != nil {
 			return lRef{}, err

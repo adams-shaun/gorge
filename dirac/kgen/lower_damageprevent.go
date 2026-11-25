@@ -123,6 +123,9 @@ func (lc *lowerCtx) effectDurationRoutes(ps *params) (bool, error) {
 		return true, lc.effectDmgMark(ps) // lower_effectdmgmark.go
 	}
 	if ps.is("Duration", "UntilHostLeavesPlayOrEOT") {
+		if ok, err := lc.effectPreventHost(ps); ok || err != nil { // lower_preventallto.go
+			return true, err
+		}
 		return true, lc.effectDmgRedirectNext(ps) // lower_effectredirect.go
 	}
 	if _, ok := ps.get("Duration"); ok {

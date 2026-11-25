@@ -1,0 +1,11 @@
+# DelayedTrigger RememberObjects$ TriggeredTargetLKICopy on a per-referent
+# DamageDone line: "destroy that creature at end of combat" over the damaged
+# creature (dirac/oracle/dmgtgtdelay_lockstep_test.go
+# TestDmgTargetDelayedLockstep; kgen lower_delayed.go delayedStepRemember)
+Lowland Basilisk
+Ohran Viper
+Serpentine Basilisk
+Stone-Tongue Basilisk
+Grizzly Bears
+Giant Spider
+Forest

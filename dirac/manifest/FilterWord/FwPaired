@@ -1,0 +1,7 @@
+family: FilterWord
+name: FwPaired
+value: next
+contexts: perm,cur
+status: active
+ticket: gap-soulbond-pair
+doc: FwPaired: the battlefield permanent is paired with another creature by Soulbond (gorge predicates["Paired"], engine/effects/filter.go, o.Paired != 0; the kernel's kw_soulbond.go pair record). Negated, it is unpaired.

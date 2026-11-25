@@ -219,15 +219,25 @@ func (lc *lowerCtx) copySpell(ps *params) error {
 // arm copies the first object target): one copy (Amount$) of the target
 // spell, MayChooseTarget$ True as for the trigger form. A filter that can
 // match a permanent spell sets C&2 (kernel anyPermCopy).
+//
+// An absent TargetType$ (Sigil Tracer, Echo Mage) is the same spell target
+// in gorge: compileTargets defaults the stack kinds to spells and a
+// ValidTgts$ Instant,Sorcery with no TgtZone$ targets the stack. It is
+// admitted only when every clause is bounded to instant|sorcery; an untyped
+// or permanent clause keeps the TargetType refusal.
 func (lc *lowerCtx) copyTargetSpell(ps *params) error {
-	if tt := ps.str("TargetType"); tt != "Spell" {
-		return refuse("CopySpellAbility TargetType %q", tt)
+	tt, typed := ps.get("TargetType")
+	if typed && strings.TrimSpace(tt) != "Spell" {
+		return refuse("CopySpellAbility TargetType %q", ps.str("TargetType"))
 	}
 	f, err := lc.filter(ps.str("ValidTgts"))
 	if err != nil {
 		return err
 	}
 	if f == nil || len(f.Clauses) == 0 || f.Players != 0 {
+		if !typed {
+			return refuse("CopySpellAbility TargetType %q", "")
+		}
 		return refuse("CopySpellAbility of an unfiltered spell")
 	}
 	perm := false
@@ -235,6 +245,9 @@ func (lc *lowerCtx) copyTargetSpell(ps *params) error {
 		if c.Types == 0 || c.Types&^(tInstant|tSorcery) != 0 {
 			perm = true
 		}
+	}
+	if perm && !typed {
+		return refuse("CopySpellAbility TargetType %q", "")
 	}
 	if _, ok := ps.get("TargetMin"); ok {
 		return refuse("CopySpellAbility TargetMin")
