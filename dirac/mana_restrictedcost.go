@@ -161,6 +161,75 @@ func (a *avail) restrFeeCharge(fee kop.ManaCost, cost *kop.ManaCost, extra int) 
 	return false
 }
 
+// restrFeeFundAvail builds a, the mana a cast's restricted fee may be paid
+// from beside the payment's ordinary bound: the floating pool and every other
+// restricted-fee source's plain census ability (Castle Garenbrig's
+// {T}: Add {G}). Gorge's cast window funds a fee activation from mana an
+// earlier same-window activation made (cast_window.go castWindowReachable), so
+// another restricted-fee source's plain ability pays the fee (CR 605.3b) even
+// where the census's relaxed paid list is cleared. An ordinary source's mana
+// is the payment's own bound or the census's funding, never this extra pool.
+// deferSkip drops the Taps-deferred sources the census leaves out
+// (availForMode).
+func (s *State) restrFeeFundAvail(k *prep, p uint8, a *avail, deferSkip bool) {
+	pl := &s.pl[SeatIx(p)]
+	for c := 0; c < kop.NumManaKinds; c++ {
+		if pl.pool[c] > 0 {
+			a.addUnits(1<<uint(c), pl.pool[c])
+		}
+	}
+	for m := s.ctrlM[p]; m.any(); m = m.rest() {
+		sl := m.first()
+		if k.gen == nil || k.gen.flags[s.cardAt(sl)]&gfRestrSrc == 0 {
+			continue
+		}
+		if deferSkip && s.planDeferred(k, p, sl) && !s.blgIntrinsicUnit(k, sl) {
+			continue
+		}
+		own := s.manaPCGen(k, sl)
+		if own.manaAb < 0 || own.restrFloat || !restrFeeEmpty(own) || !s.canTapForManaPC(k, sl, own) {
+			continue
+		}
+		a.addUnits(s.srcMaskAt(own, sl), own.manaN)
+	}
+}
+
+// restrFeeFundPays reports whether fee unit own (record kind kind) of the
+// source at sl has its fee fc payable from fund (restrFeeFundAvail); on
+// success it takes the fee out of fund, so the next fee unit cannot spend the
+// same mana. A widened source taps once, so its own census unit is taken out
+// first, as restrSrcAddUnit's rkWiden arm does.
+func (s *State) restrFeeFundPays(own, v *pcard, kind uint8, sl Slot, fund *avail, fc kop.ManaCost, cost *kop.ManaCost, extra int) bool {
+	b := *fund
+	if kind == rkWiden {
+		if !b.removeWide(s.srcMaskAt(own, sl), uint16(own.manaN)) && restrComboWide(v) {
+			return false // its census {C} already paid an earlier fee: its one tap is spent
+		}
+	}
+	if !b.restrFeeCharge(fc, cost, extra) {
+		return false
+	}
+	*fund = b
+	return true
+}
+
+// restrFeeCastFunded reports whether a cast's fee is payable from another
+// restricted-fee source's plain census ability: gorge's cast window funds a
+// fee activation from an earlier same-window activation (cast_window.go
+// castWindowReachable), so such a fee is not the census's relaxed paid list's
+// to cover. feeFund is built on first use. The unit's charge still fails
+// closed when that mana is short.
+func (s *State) restrFeeCastFunded(k *prep, p uint8, d payDesc, own, v *pcard, kind uint8, sl Slot, feeFund **avail, deferSkip bool, fc kop.ManaCost, cost *kop.ManaCost, extra int) bool {
+	if d.class != pdSpell {
+		return false
+	}
+	if *feeFund == nil {
+		*feeFund = new(avail)
+		s.restrFeeFundAvail(k, p, *feeFund, deferSkip)
+	}
+	return s.restrFeeFundPays(own, v, kind, sl, *feeFund, fc, cost, extra)
+}
+
 // restrFeeChargePlain is restrFeeCharge from plain, the unrestricted part of
 // a: a restricted unit's mana pays no mana ability's fee (CR 106.6). The mana
 // plain's charge takes leaves a too, group by group; a fee plain cannot pay
