@@ -19,11 +19,15 @@
 # alternatives, Dracogenesis's free cast, Squee, the Immortal's two-zone self
 # grant), played by dirac/oracle/staticzones_test.go and
 # dirac/oracle/staticzones_mayplay_test.go.
+# The AffectedZone$ Stack keyword grants (dirac/kgen/lower_stackkw.go): Cast
+# Through Time (rebound) over blue instants and sorceries, with mana rocks;
+# Peter Parker's Amazing Spider-Man face (web-slinging) over legendary spells.
 # Defensive Formation (the defender divides a double-blocked attacker's damage)
 # reads the StatDefenderAssigns static; K'rrik stays refused.
 As Foretold
 Bladegraft Aspirant
 Case of the Locked Hothouse
+Cast Through Time
 Dawnglade Regent
 Defensive Formation
 Demon of Fate's Design
@@ -36,16 +40,21 @@ Geist of the Lonely Vigil
 Giant Growth
 Grizzly Bears
 Hurkyl's Final Meditation
+Iridescent Tiger
 Ivory Mask
 Lantern of Insight
 Lightning Bolt
 Minamo Scrollkeeper
+Mind Stone
 Nissa, Worldsoul Speaker
+Opt
+Peter Parker
 Power Artifact
 Queen Mother Ramonda
 Shock
 Slithering Shade
 Solitary Confinement
+Sol Ring
 Spire Serpent
 Squee, the Immortal
 Swords to Plowshares
@@ -55,6 +64,7 @@ Thought Nibbler
 True Believer
 Trusted Advisor
 Wizened Snitches
+Zinnia, Valley's Voice
 Plains
 Island
 Swamp
