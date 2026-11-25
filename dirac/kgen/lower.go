@@ -1519,11 +1519,11 @@ func (lc *lowerCtx) lowerKeywords() {
 		case expandedKeywords[head]:
 			// Lowered from the expansion's own lines.
 		case head == "Kicker":
-			if kc, ok := lc.kickerNonMana(param); ok {
-				// a one-part Sac<1/..> or Return<1/..> kicker
-				// (gorge kickerCost is a full Cost, folded into the kicked
-				// cast's cost); the zero-mana Kicker keeps the kicked mode
-				lc.out.Kicker, lc.out.KickerCost = &manaCost{None: true}, kc
+			if mc, rest, ok := lc.kickerNonMana(param); ok {
+				// one non-mana part kop.Cost carries alone (gorge kickerCost
+				// is a full Cost, folded into the kicked cast's cost); the
+				// mana rides Kicker and the part KickerCost
+				lc.out.Kicker, lc.out.KickerCost = &mc, &rest
 				continue
 			}
 			mc, err := parseManaCost(param)

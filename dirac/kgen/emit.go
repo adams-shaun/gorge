@@ -349,7 +349,7 @@ func refSubs(pt *poolTables, d *kop.CardDef, ovVals []kop.ValueRef) []uint8 {
 	filt(d.Landwalk)
 	filt(d.OptCost.Filter)
 	filt(d.FbCost.Filter)
-	filt(d.EvokePick.Filter) // the evoked cast's hand-exile candidates (CardDef.EvokePick)
+	filt(d.EvokePick.Filter)   // the evoked cast's hand-exile candidates (CardDef.EvokePick)
 	filt(d.RetraceCost.Filter) // the retrace cast's discard candidates (CardDef.RetraceCost)
 	val(d.ModesPickV)          // a dynamic triggered charm's count filter (the matchup keeps the subtype it names)
 	val(d.MorphReduce)

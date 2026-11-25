@@ -18,6 +18,82 @@ import (
 // raise charges only a cast whose chosen target is that source. Refused:
 // Cost$ (a non-generic raise) bar PayLife and raisePerTarget's shape, Relative$,
 // ValidSpell$/AffectedZone$, abilities (Type$ Ability).
+// raiseMana lowers a Cost$ of pure mana (Jade Leech's "Green spells you
+// cast cost {G} more"; the Leech cycle, Primitive Justice, Taste of
+// Paradise): Static.A is the generic part and StReduceColor's packed B the
+// coloured pips (kernel cost_raise.go's addRaisePips). Returns false for a
+// Cost$ with any non-mana or unsupported part (hybrid, {X}, {C}, snow).
+func (lc *lowerCtx) raiseMana(sp *params, st *lStatic) (bool, error) {
+	cost, ok := sp.m["Cost"]
+	if !ok {
+		return false, nil
+	}
+	c, err := lc.cost(strings.TrimSpace(cost))
+	if err != nil || !c.pureMana() || c.Mana.None || c.Mana.X || c.Mana.XX || c.Mana.XXX ||
+		len(c.Mana.Hybrid) != 0 || len(c.Mana.Twobrid) != 0 || len(c.Mana.Phyrexian) != 0 || c.Mana.C != 0 || c.Mana.Snow != 0 {
+		return false, nil
+	}
+	if _, has := sp.m["Amount"]; has {
+		return false, refuse("RaiseCost Cost$ %q with an Amount$", strings.TrimSpace(cost))
+	}
+	sp.consume("Cost")
+	if st.Amount, err = lc.value(strconv.Itoa(c.Mana.Generic)); err != nil {
+		return true, err
+	}
+	pips := false
+	for i, n := range c.Mana.Pips {
+		if n <= 0 {
+			continue
+		}
+		if n > 3 {
+			return true, refuse("RaiseCost Cost$ %q: %d pips", strings.TrimSpace(cost), n)
+		}
+		st.RaiseCol |= uint16(n) << (kop.ReduceColorBits * i)
+		pips = true
+	}
+	if pips {
+		st.Flags = append(st.Flags, "RaiseColor")
+	}
+	return true, nil
+}
+
+// raiseSelfAdditional lowers a card's own "as an additional cost to cast
+// this spell, <part>" RaiseCost (ValidCard$ Card.Self, Type$ Spell,
+// EffectZone$ All; Grafted Identity's Sac<1/Creature>) into the spell's own
+// additional cost field. The part is a pick the cost stages already pay
+// (CardDef.SpellCost / the AbSpell's Cost), so no static is emitted and no
+// program is needed. A mana-only Cost$ stays with raiseMana (costs more); a
+// part kop.Cost cannot carry refuses in raiseSelfBehold's or raiseCost's
+// class.
+func (lc *lowerCtx) raiseSelfAdditional(sp *params) (bool, error) {
+	cost, ok := sp.m["Cost"]
+	if !ok || sp.str("ValidCard") != "Card.Self" || sp.str("Type") != "Spell" ||
+		sp.str("EffectZone") != "All" || sp.str("Activator") != "You" {
+		return false, nil
+	}
+	if _, has := sp.m["Amount"]; has {
+		return false, nil
+	}
+	if _, has := sp.m["Condition"]; has {
+		return false, nil
+	}
+	c, err := lc.cost(strings.TrimSpace(cost))
+	if err != nil || !c.Mana.None || c.pureMana() {
+		return false, nil
+	}
+	sp.consume("Cost", "Mode", "ValidCard", "Activator", "Type", "EffectZone", "Description")
+	if left := sp.unread(); len(left) != 0 {
+		return true, refuse("RaiseCost Cost$ %q with unread params %v", strings.TrimSpace(cost), left)
+	}
+	o := lc.out
+	if o.SpellCost != nil || o.AltAddCost != nil || o.OptCost != nil || o.Kicker != nil ||
+		o.BeholdN != 0 || o.BeholdExile || o.SpellWaterbend != 0 {
+		return true, refuse("RaiseCost Cost$ %q beside another additional cost", strings.TrimSpace(cost))
+	}
+	o.SpellCost = &c
+	return true, nil
+}
+
 func (lc *lowerCtx) raiseCost(sp *params, st *lStatic) error {
 	if sp.str("Type") != "Spell" {
 		return refuse("RaiseCost Type %q", sp.str("Type"))
@@ -33,11 +109,17 @@ func (lc *lowerCtx) raiseCost(sp *params, st *lStatic) error {
 	} else if per {
 		return nil
 	}
-	if life, err := lc.raiseLife(sp, st); err != nil {
+	mana, err := lc.raiseMana(sp, st)
+	if err != nil {
 		return err
-	} else if !life {
-		if st.Amount, err = lc.value(sp.str("Amount")); err != nil {
+	}
+	if !mana {
+		if life, err := lc.raiseLife(sp, st); err != nil {
 			return err
+		} else if !life {
+			if st.Amount, err = lc.value(sp.str("Amount")); err != nil {
+				return err
+			}
 		}
 	}
 	if vt, ok := sp.get("ValidTarget"); ok {

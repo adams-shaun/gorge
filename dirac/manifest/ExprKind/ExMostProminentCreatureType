@@ -4,4 +4,4 @@ value: 74
 forge: MostProminentCreatureType
 census: count MostProminentCreatureType all=7 std=1 mbc=0 sole=5
 state: code 0
-status: reserved
+status: active
