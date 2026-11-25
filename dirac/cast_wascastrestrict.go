@@ -53,6 +53,12 @@ type restrOrigin struct {
 	// restrOriginOfObj / restrOriginOfEntry.
 	owner  uint8
 	ownSet bool
+	// obj is the spell's object when the origin names one, objSet. The
+	// restriction matcher passes it to the card matcher so an object word
+	// (IsCommander on a commander cast, CR 903.3) can
+	// read the object; a card-only candidate leaves it NoObj.
+	obj    Obj
+	objSet bool
 }
 
 // restrProvHolds is PredWasCastSpell n for a restriction match.
@@ -96,7 +102,7 @@ func restrProvHolds(n int16, o restrOrigin) bool {
 // restrOriginOfObj is the origin of the offer of object o (not on the
 // stack): its current zone, its owner and the pending read.
 func (s *State) restrOriginOfObj(o Obj) restrOrigin {
-	return restrOrigin{from: s.objs[o].zone, owner: s.objs[o].owner(), ownSet: true}
+	return restrOrigin{from: s.objs[o].zone, owner: s.objs[o].owner(), ownSet: true, obj: o, objSet: o != NoObj}
 }
 
 // restrOriginOfEntry is the origin of the pushed spell entry e, paid for by
@@ -107,7 +113,11 @@ func (s *State) restrOriginOfEntry(e *stackEntry) restrOrigin {
 	if e.obj != NoObj {
 		own = s.objs[e.obj].owner()
 	}
-	return restrOrigin{from: kop.Zone(e.prov & 7), cast: true, byYou: true, bestowed: e.bestowedEntry(), owner: own, ownSet: true}
+	og := restrOrigin{from: kop.Zone(e.prov & 7), cast: true, byYou: true, bestowed: e.bestowedEntry(), owner: own, ownSet: true}
+	if e.obj != NoObj {
+		og.obj, og.objSet = e.obj, true
+	}
+	return og
 }
 
 // restrFilterMatch: card c, cast from origin og, matches restriction
@@ -132,7 +142,14 @@ func (s *State) restrFilterMatch(k *prep, fl *kop.Filter, c CardID, p uint8, og 
 		}
 		fl.Types, fl.NotTypes = 0, 0
 	}
-	if !s.matchCardOne(k, fl, c, own, p, NoObj) {
+	o := NoObj
+	if og.objSet && s.cmdSlot(p, og.obj) >= 0 {
+		// A commander cast's own object is the command-zone object, so the
+		// IsCommander word can read it (CR 903.3). Every other candidate
+		// stays a card-only read, as before.
+		o = og.obj
+	}
+	if !s.matchCardOne(k, fl, c, own, p, o) {
 		return false
 	}
 	return !prov || restrProvHolds(n, og)
