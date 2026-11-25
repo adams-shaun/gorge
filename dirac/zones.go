@@ -680,6 +680,9 @@ func (s *State) leave(k *prep, sl Slot, z kop.Zone, bottom bool) {
 		s.charmPickLeft(sl, s.perms[sl].obj) // modal_charmpick.go: leaving empties the source's pick log (CR 400.7)
 	}
 	s.fireLeave(k, sl, z)
+	if k.gen != nil && k.gen.anyContract {
+		s.contractSourceLeft(s.perms[sl].obj) // a Duration$ Permanent Effect ends with its source (ctr_losscopy.go)
+	}
 	s.removePerm(k, sl, z, bottom)
 }
 
