@@ -27,7 +27,8 @@ func (lc *lowerCtx) refValidCount(head, spec string, ref lRef) (lValue, error) {
 		// Card.IsSuspected reads the sacrifice-time LKI designation;
 		// Card.<creature type> / Creature.<creature type> read the
 		// sacrifice-time derived type line (gorge sacrificedValidCount,
-		// effects/count_ref.go). Every other spec keeps the refusal.
+		// effects/count_ref.go); Card.Legendary reads its supertype.
+		// Every other spec keeps the refusal.
 		if strings.TrimSpace(spec) == "Card.IsSuspected" {
 			f, err := lc.filter(spec)
 			if err != nil {
@@ -35,13 +36,16 @@ func (lc *lowerCtx) refValidCount(head, spec string, ref lRef) (lValue, error) {
 			}
 			return lValue{Kind: vRefCount, Ref: ref, F: f}, nil
 		}
+		if f, ok := lc.sacrificedLegendaryFilter(spec); ok {
+			return lValue{Kind: vRefCount, Ref: ref, F: f, N: 1}, nil
+		}
 		if f, ok := lc.sacrificedTypeFilter(spec); ok {
 			// N 1 marks the sacrifice-time type read, so the kernel can tell
 			// it from a ConditionDefined$ Sacrificed filter (RefMatches) over
 			// the live moved card (dirac/gen.go anySacSub, value_countheads.go).
 			return lValue{Kind: vRefCount, Ref: ref, F: f, N: 1}, nil
 		}
-		return lValue{}, refuse("Sacrificed$Valid %q: only Card.<creature type>, Creature.<creature type> or Card.IsSuspected read the sacrifice-time snapshot", spec)
+		return lValue{}, refuse("Sacrificed$Valid %q: only Card.<creature type>, Creature.<creature type>, Card.Legendary or Card.IsSuspected read the sacrifice-time snapshot", spec)
 	}
 	return lValue{}, fmt.Errorf("%s$Valid %s", head, spec)
 }
@@ -63,10 +67,37 @@ func (lc *lowerCtx) sacrificedTypeFilter(spec string) (*lFilter, bool) {
 	if (c.Types != 0 && c.Types != tCreature) || c.Subtype == "" || !effects.CreatureTypeWords(c.Subtype) {
 		return nil, false
 	}
-	if c.TypesAll != 0 || c.NotTypes != 0 || c.Name != "" || c.NotSubtype != "" || c.Subtype2 != "" ||
-		c.Ctrl != whoAny || c.Owner != whoAny || c.Flags != 0 || c.CmpStat != cmpNone ||
-		c.CmpOp != 0 || c.CmpN != 0 || c.CmpX != "" || c.CmpV != nil || c.CmpCounter != "" ||
-		c.Colors != "" || c.NotColors != "" || c.BasePermanent || c.SpellBase || c.Unblocked {
+	if !sacrificedPlainClause(c) {
+		return nil, false
+	}
+	return f, true
+}
+
+// sacrificedPlainClause reports whether c carries no requirement beyond its
+// types and one subtype word: the exact reads the sacrifice-time snapshot
+// answers (sacrificedTypeFilter, sacrificedLegendaryFilter).
+func sacrificedPlainClause(c lClause) bool {
+	return c.TypesAll == 0 && c.NotTypes == 0 && c.Name == "" && c.NotSubtype == "" && c.Subtype2 == "" &&
+		c.Ctrl == whoAny && c.Owner == whoAny && c.Flags == 0 && c.CmpStat == cmpNone &&
+		c.CmpOp == 0 && c.CmpN == 0 && c.CmpX == "" && c.CmpV == nil && c.CmpCounter == "" &&
+		c.Colors == "" && c.NotColors == "" && !c.BasePermanent && !c.SpellBase && !c.Unblocked
+}
+
+// sacrificedLegendaryFilter parses exactly Card.Legendary: one clause, the
+// legendary supertype and nothing else. The kernel reads the snapshot's
+// derived type mask (dirac/value_countheads.go sacrificedLKICount), as gorge's
+// sacrificedValidCount matches the captured derived types (a supertype an
+// effect granted before the sacrifice counts).
+func (lc *lowerCtx) sacrificedLegendaryFilter(spec string) (*lFilter, bool) {
+	if strings.TrimSpace(spec) != "Card.Legendary" {
+		return nil, false
+	}
+	f, err := parseFilter(spec, lc.known, lc.p.isTypeWord)
+	if err != nil || f.Players != 0 || f.Each || len(f.Clauses) != 1 {
+		return nil, false
+	}
+	c := f.Clauses[0]
+	if c.Types != tLegendary || c.Subtype != "" || !sacrificedPlainClause(c) {
 		return nil, false
 	}
 	return f, true
