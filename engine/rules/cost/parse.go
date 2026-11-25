@@ -333,6 +333,54 @@ func stripGroupPowerFloor(spec string) (string, int32) {
 	return out, int32(n)
 }
 
+// shareCreatureTypeTerm is Forge's bare relational word in a literal
+// tapXType spec ("Creature.sharesCreatureTypeWith" -- Weight of Conscience's
+// "tap two untapped creatures you control that share a creature type"). It is
+// a relation between the tapped creatures, not a per-object filter: read as
+// one, the bare form binds the referent Self (the Aura), which has no creature
+// types, so every candidate fails. stripShareCreatureType moves it out of the
+// spec and into CostPart.ShareCreatureType.
+const shareCreatureTypeTerm = "sharesCreatureTypeWith"
+
+// stripShareCreatureType splits the bare sharesCreatureTypeWith relation off a
+// literal tapXType<N/Spec> spec, the way stripGroupTotal splits a withTotal*
+// group predicate: the terms follow the base after '.', or after '+' when the
+// spec carries no '.', and are '+'-joined conjuncts. It returns the spec
+// without the relation and whether it was present. A comma alternative or a
+// second relation fails closed (the spec is returned unchanged, flag false),
+// as does a relation with no base word; the X/Any forms never call this.
+func stripShareCreatureType(spec string) (string, bool) {
+	if !strings.Contains(spec, shareCreatureTypeTerm) {
+		return spec, false
+	}
+	if strings.Contains(spec, ",") {
+		return spec, false
+	}
+	base, rest, found := strings.Cut(spec, ".")
+	if !found {
+		base, rest, _ = strings.Cut(spec, "+")
+	}
+	var keep []string
+	seen := false
+	for term := range strings.SplitSeq(rest, "+") {
+		if term == shareCreatureTypeTerm {
+			if seen {
+				return spec, false
+			}
+			seen = true
+			continue
+		}
+		keep = append(keep, term)
+	}
+	if !seen || strings.TrimSpace(base) == "" {
+		return spec, false
+	}
+	if len(keep) == 0 || (len(keep) == 1 && keep[0] == "") {
+		return base, true
+	}
+	return base + "." + strings.Join(keep, "+"), true
+}
+
 // payEnergyCost matches Forge's PayEnergy<N> and PayEnergy<X> tokens --
 // removing N energy counters from the payer (CR 118.2d; Forge
 // CostPayEnergy.canPay reads the payer's ENERGY counter total, and its
@@ -654,6 +702,7 @@ func ParseCost(s string) Cost {
 					// exactly N are tapped, so the set-level floor is enforced
 					// against the N largest candidates (engine/rules/cast.go).
 					part.Spec, part.MinPower = stripGroupPowerFloor(part.Spec)
+					part.Spec, part.ShareCreatureType = stripShareCreatureType(part.Spec)
 					c.TapPermanent = append(c.TapPermanent, part)
 				}
 				continue

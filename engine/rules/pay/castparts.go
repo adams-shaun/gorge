@@ -50,6 +50,38 @@ func FilterCrewCandidates(e Engine, ids []state.ObjID, tapKind string) []state.O
 	return out
 }
 
+// shareTypeReader is the characteristics read a share-a-creature-type tap cost
+// needs: the layer-4 derived creature-type words, changeling/all-types aware --
+// CostPart.ShareCreatureType's token family. chars.Reader's method count is a
+// budgeted ratchet, so rules' implementation exposes this one read beside the
+// declared interface and the payment layer reaches it through a type
+// assertion. A reader without it leaves a share-type cost unpayable, the
+// fail-closed direction.
+type shareTypeReader interface {
+	CreatureTypeTokens(id state.ObjID) []string
+}
+
+// ShareCreatureTypeCapacity is the largest number of ids that can be chosen
+// together under one shared creature type: decision.SetPropCapacity's
+// running-intersection reading over each candidate's derived creature-type
+// tokens. The offer gate and the tap election read this ONE helper, so the
+// count that offered the cost and the ask's SetPropShared rule cannot
+// disagree. A creature with no creature type contributes an empty set and
+// shares nothing (CR 205.3m); a changeling's all-creature-types marker is
+// inside the token builder (CR 702.73a). With N = 2 the running intersection
+// is exactly pairwise "share a creature type".
+func ShareCreatureTypeCapacity(e Engine, ids []state.ObjID) int {
+	r, ok := e.Chars().(shareTypeReader)
+	if !ok {
+		return 0
+	}
+	sets := make([][]string, 0, len(ids))
+	for _, id := range ids {
+		sets = append(sets, r.CreatureTypeTokens(id))
+	}
+	return decision.SetPropCapacity(decision.SetPropShared, sets)
+}
+
 // TapTopPowerSum is tapPowerSum for a literal tapXType<N/...> part with a
 // group predicate: exactly N are tapped, so the most a payment can tap is
 // the power of the N largest candidates. A slice sort is fine here -- the
@@ -307,6 +339,14 @@ func NonManaCastableP(e Engine, p state.PlayerID, id state.ObjID, cost *costvoca
 			avail = append(avail, oid)
 		}
 		if len(avail) < int(part.N) {
+			return false
+		}
+		// The set-level share-a-creature-type relation (Weight of
+		// Conscience): exactly N are tapped, so the cost is payable iff N
+		// distinct unreserved candidates share one creature type. Measuring
+		// the largest shared class is the running-intersection reading, equal
+		// to pairwise "share a type" at N = 2.
+		if part.ShareCreatureType && ShareCreatureTypeCapacity(e, avail) < int(part.N) {
 			return false
 		}
 		// The literal form with a group predicate (none in the corpus today,

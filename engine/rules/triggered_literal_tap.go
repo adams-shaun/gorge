@@ -16,6 +16,14 @@ func literalTapOptions(p pay.Engine, player state.PlayerID, source state.ObjID, 
 	candidates := make([][]state.ObjID, len(parts)-start)
 	var slots []int
 	for i, part := range parts[start:] {
+		if part.ShareCreatureType {
+			// The triggered-cost tap window offers a per-object matching; it
+			// has no election that can carry the set-level share-a-creature-
+			// type rule, so it fails closed rather than silently paying the
+			// literal tap without the constraint (no corpus carrier reaches
+			// this window with the relation).
+			return nil
+		}
 		candidates[i] = pay.TapCostCandidates(p, player, source, part)
 		if part.N <= 0 || int64(part.N) > int64(len(candidates[i])) {
 			return nil
