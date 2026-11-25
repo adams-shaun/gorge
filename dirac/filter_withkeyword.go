@@ -61,8 +61,8 @@ func printedKeyword(cd *kop.CardDef, id kop.KwID) bool {
 	case kop.KwMultikicker:
 		return cd.HasMultikicker
 	// T13b-2's records: the keywords with no KwMask bit, each its own cold
-	// CardDef field set at the face keyword's lowering arm. Disturb, Mutate
-	// and Phasing keep no field here: their K: line refuses the whole face,
+	// CardDef field set at the face keyword's lowering arm. Mutate and
+	// Phasing keep no field here: their K: line refuses the whole face,
 	// so no lowered card can print them, and printedKeyword's default false
 	// reads each one as gorge does over the lowered cards.
 	case kop.KwCycling:
@@ -85,11 +85,21 @@ func printedKeyword(cd *kop.CardDef, id kop.KwID) bool {
 	// face is gorge's derived keyword list.
 	case kop.KwFlanking:
 		return cd.Flanking
-	// Disturb, Mutate and Phasing: their K: line refuses the whole
-	// face, so no lowered card prints them and the cases read false over the
-	// lowered cards exactly as gorge does. The cases name the KwIDs for the
+	// The back-face cast keywords and Living metal: the face's own record
+	// (kgen lower_flipcast.go). Disturb and More Than Meets the Eye are
+	// printed on the front only, so a back face up reads false, as gorge's
+	// derived keywords do.
+	case kop.KwDisturb:
+		return cd.FlipCast == kop.FlipDisturb
+	case kop.KwMoreThanMeetsTheEye:
+		return cd.FlipCast == kop.FlipConverted
+	case kop.KwLivingMetal:
+		return cd.LivingMetal
+	// Mutate and Phasing: their K: line refuses the whole face, so no
+	// lowered card prints them and the cases read false over the lowered
+	// cards exactly as gorge does. The cases name the KwIDs for the
 	// manifest's active-status gate (their words still lower to FwWithKeyword).
-	case kop.KwDisturb, kop.KwMutate, kop.KwPhasing:
+	case kop.KwMutate, kop.KwPhasing:
 		return false
 	}
 	return false

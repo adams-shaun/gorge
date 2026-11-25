@@ -384,8 +384,15 @@ func (s *State) turnFaceUp(k *prep, o Obj, p uint8, proc ...uint8) {
 				return // mana_storecensus.go: the post-tap plan falls short, so gorge's turn-up no-ops
 			}
 		}
-		if s.turnUpRiderOnly(k, p, &c0, sp, sl) {
-			s.tapTurnUpRiders(k, p, &c0) // face_turnfaceup.go: a depletion land's activation
+		if s.turnUpDeferOnly(k, p, &c0, sp, sl, mode) {
+			s.playTurnUpDefer(k, p, o, mode) // face_turnupdefer.go: the Taps-deferred gaps' search prefix
+			s.tapForTurnUp(k, p, &c0, sp, o) // the planner taps what the floats leave owed
+		} else if s.turnUpRiderOnly(k, p, &c0, sp, sl) {
+			if s.turnUpGapPrefix(k, p, &c0) { // face_turnupgap.go: the any-colour extra's land first, the planner for the rest
+				s.tapForTurnUp(k, p, &c0, sp, o)
+			} else {
+				s.tapTurnUpRiders(k, p, &c0) // face_turnfaceup.go: a depletion land's activation
+			}
 		} else if s.turnUpFilterOnly(k, p, &c0, sp, sl, mode) {
 			s.playTurnUpFilter(k, p, o, mode) // face_turnupfilter.go: a first-and-only filter's activation
 			s.tapForTurnUp(k, p, &c0, sp, o)  // the planner taps what its mana leaves owed
@@ -405,6 +412,9 @@ func (s *State) turnFaceUp(k *prep, o Obj, p uint8, proc ...uint8) {
 		s.g.pickLeft = uint8(s.turnUpMaxX(k, p, &cost, sp, sl))
 		s.ctl = ctlTurnUpX
 		return
+	}
+	if s.turnUpRevealStage(k, o, p, mode, kw) {
+		return // act_revealpick.go: the reveal pick among several candidates
 	}
 	s.settleTurnUp(k, o, p, mode, 0)
 }
@@ -457,7 +467,7 @@ func (s *State) settleTurnUp(k *prep, o Obj, p uint8, mode uint8, x int) {
 		return
 	}
 	sp := turnUpSpecial(mode, k.t.Cards[s.cardAt(sl)].MorphFamily)
-	if !s.specialAffords(k, p, &cost, sp, sl, x) || kw && !s.turnUpLifeOK(k, p, sl) {
+	if !s.specialAffords(k, p, &cost, sp, sl, x) || kw && !s.turnUpKwPayable(k, p, sl) {
 		return
 	}
 	cost = cost.AtX(x)

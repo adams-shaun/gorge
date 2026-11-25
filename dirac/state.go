@@ -125,6 +125,14 @@ type Config struct {
 	// (zone_sideboard.go). The zero value is no sideboard.
 	Side  [MaxSeats][MaxSide]CardID
 	SideN [MaxSeats]uint8
+	// Planechase starts a Planechase game (CR 901): each seat's planar deck
+	// PlanarDecks[p][:PlanarN[p]] is dealt face down with its top plane face
+	// up in ZonePlanarDeck (zone_planechase.go). The face-up plane's command-zone
+	// triggers and statics function from the planar deck; the planar die and
+	// the chaos/planeswalk actions are the ExtOp handlers there.
+	Planechase  bool
+	PlanarDecks [MaxSeats][MaxPlane]CardID
+	PlanarN     [MaxSeats]uint8
 }
 
 // object is one card instance.
@@ -785,6 +793,10 @@ const (
 	// are declared for each attacker with Enlist that has a creature to tap
 	// (kw_enlist.go; s.lastPick is the attacker asked)
 	ctlEnlist
+	// ctlTurnUpReveal: a keyword turn-up whose cost reveals a hand card,
+	// awaiting the pick among several candidates (act_revealpick.go; parked in
+	// genState.pick*)
+	ctlTurnUpReveal
 )
 
 // every seat's two command-zone ask states fit ctlCmdZone0..7

@@ -256,6 +256,7 @@ const (
 	vSVarNum             // the evaluating source's StoreSVar number for the name S, else the printed body Sub[0] (kop.ExSVarNum; lower_storenum.go)
 	vMostProminentType   // the size of the largest group of battlefield objects matching F that share a creature type (Count$MostProminentCreatureType; kop.ExMostProminentCreatureType; value_mostprominent.go)
 	vReplLKIPow          // the replaced creature's derived power before a dies-to-exile rider moved it (ReplacedCardLKI$CardPower; value_repllki.go)
+	vPaidN               // the spell's Squad/Replicate payment count or Conspire's 1 (Count$SquadPaid / ReplicatePaid / Conspired; kop.ExKicked N 2; lower_squadreplicate.go)
 	vCount_
 )
 
@@ -381,6 +382,7 @@ var valNames = [...]string{
 	vCmdCastTotal:        "CmdCastTotal",
 	vSpellsLastTurn:      "SpellsLastTurn",
 	vReplLKIPow:          "ReplLKIPow",
+	vPaidN:               "PaidN",
 	vMostProminentType:   "MostProminentType",
 }
 
@@ -661,12 +663,13 @@ const (
 	zStack
 	zCommand
 	zAny
+	zSideboard // a card outside the game (Wish): kernel ZoneSideboard
 )
 
 var zoneNames = map[string]int{"Battlefield": zBattlefield, "Hand": zHand, "Graveyard": zGraveyard,
-	"Library": zLibrary, "Exile": zExile, "Stack": zStack, "Command": zCommand, "Any": zAny, "All": zAny}
+	"Library": zLibrary, "Exile": zExile, "Stack": zStack, "Command": zCommand, "Any": zAny, "All": zAny, "Sideboard": zSideboard}
 
-var zoneLabel = [...]string{"-", "Battlefield", "Hand", "Graveyard", "Library", "Exile", "Stack", "Command", "Any"}
+var zoneLabel = [...]string{"-", "Battlefield", "Hand", "Graveyard", "Library", "Exile", "Stack", "Command", "Any", "Sideboard"}
 
 // lTarget is one target slot.
 type lTarget struct {
@@ -1345,6 +1348,7 @@ type lRepl struct {
 	F2                                        *lFilter // PreventDamageFilt / PreventDamageN: the damage source (F is the recipient)
 	Phase                                     uint8    // BeginPhaseSkip: the kop.Step it skips (Repl.A)
 	Body                                      int      // DamageInstead: the kop.ReplDmgIns* effect bits (Repl.A's low byte); F2 is the damage source, F the damaged permanent, Ctr the counter kind
+	Trig                                      int      // DamageInstead ReplDmgInsVind: the reflexive-trigger latent the body queues (the ImmediateTrigger Execute's DealDamage)
 }
 
 // lCard is a lowered card.
@@ -1379,6 +1383,7 @@ type lCard struct {
 	MorphFamily    uint8       // kop.Morph*: which face-down keyword the cost belongs to
 	MorphReduce    lValue      // the turn-up cost's printed generic reduction (lower_morphreduce.go)
 	MorphLife      uint8       // the turn-up cost's PayLife<N> (lower_morphlife.go)
+	MorphReveal    *lFilter    // the turn-up cost's Reveal<1/Spec> hand candidates (lower_revealpick.go)
 	Flashback      *manaCost
 	RemPersist     bool          // the enters/leaves remembered pair, or a Saga's chapter pair (lower_rempersist.go)
 	RemSeed        uint32        // RemPersist: the abilities that start with the kept set (CardDef.RemSeed)
@@ -1407,6 +1412,9 @@ type lCard struct {
 	Paradigm       bool      // K:Paradigm (SOS): resolved -> exile, a free cast from exile each first main phase
 	Sneak          *manaCost // K:Sneak:<cost> (CR 702.190a): the declare-blockers alternative cost (plus the return)
 	WebSling       *manaCost // K:Web-slinging:<cost> (CR 702.188a): the hand's alternative cost (plus returning a tapped creature)
+	FlipCast       uint8     // kop.FlipConverted (K:More Than Meets the Eye) or kop.FlipDisturb (K:Disturb): the back face's cast keyword (lower_flipcast.go)
+	FlipCost       *manaCost // FlipCast's printed cost
+	LivingMetal    bool      // K:Living metal (CR 702.161a): its static is the face's own lowered Override
 	MayFlash       *manaCost // K:MayFlashCost:<cost> (CR 702.8): the extra mana that buys an instant-timing cast from the hand
 	MayFlashBehold *lFilter  // K:MayFlashCost:Behold<1/Type>: the extra is beholding one of these, no mana (MayFlash is empty)
 	FbBeholdN      int       // K:Flashback:<mana> Behold<N/Type>: the flashback cast also beholds N of FbBeholdF (lower_fbcost.go, CardDef.FbBehold)
@@ -1455,6 +1463,7 @@ type lCard struct {
 	Entwine        *manaCost       // K:Entwine:<cost> (CR 702.42a): the kernel's kicked cast and Kicker cost, CardDef.Entwine; a Sac<N/..> cost is zero mana plus KickerCost (lower_entwine.go)
 	Casualty       int             // printed K:Casualty:<N> (CR 702.153a, fixed N >= 1), CardDef.Casualty
 	Bargain        bool            // printed K:Bargain (CR 702.166), CardDef.Bargain
+	Conspire       bool            // printed K:Conspire (CR 702.78a), CardDef.Conspire (lower_squadreplicate.go)
 	Storm          bool            // printed K:Storm (CR 702.40a), CardDef.Storm: the kernel's own native cast trigger (dirac/kw_storm.go)
 	HandMana       uint8           // a Spirit Guide's hand-zone mana ability (exile this card from your hand: add one fixed colour), CardDef.HandMana (lower_handmana.go)
 	GraveMana      uint8           // a graveyard mana source's colours (1 + exile this card from your graveyard: add one mana of any colour), CardDef.GraveMana (lower_gravemana.go)
@@ -1510,18 +1519,20 @@ type lCard struct {
 	Unleash             bool     // printed K:Unleash (CR 702.86): CardDef.Unleash
 	Riot                bool     // printed K:Riot (CR 702.156): CardDef.Riot (lower_riot.go)
 	Enlist              bool     // printed K:Enlist (CR 702.154): CardDef.Enlist (lower_enlist.go)
-	Flanking            bool     // printed bare K:Flanking (CR 702.25a): CardDef.Flanking (lower_flanking.go)
-	Phasing             bool     // printed bare K:Phasing (CR 702.26a): CardDef.Phasing (lower_phasingkw.go)
-	AtkFace             bool     // the printed face's lines may observe an attack declaration (CardDef.AtkFace)
-	SagaN               int      // K:Chapter:<count>: the final chapter number (CR 714.1)
-	TapPowerCrew        int      // S:Mode$ TapPowerValue for Crew (graveexile)
-	TapPowerSaddle      int      // S:Mode$ TapPowerValue for Saddle (graveexile)
-	MinBlockers         int      // S:Mode$ MinMaxBlocker | ValidCard$ Creature.Self | Min$ N (CR 509.1b); Min$ All is kop.MinBlockersAll
-	ExtraBlocks         int      // S:Mode$ Continuous | AffectedDefined$ Self | CanBlockAmount$ 1 (CR 509.1a)
-	Lure                bool     // the all-must-block keyword: every able creature blocks it (CR 509.1c)
-	MustBeBlocked       bool     // the must-be-blocked keyword (CR 509.1c)
-	Daybound            bool     // K:Daybound (CR 702.145a-d)
-	Nightbound          bool     // K:Nightbound (CR 702.145e-g)
+	Blitz               bool     // printed K:Blitz:<mana> (CR 702.152a): CardDef.HasBlitz + BlitzCost (lower_blitz.go)
+	BlitzCost           kop.ManaCost
+	Flanking            bool // printed bare K:Flanking (CR 702.25a): CardDef.Flanking (lower_flanking.go)
+	Phasing             bool // printed bare K:Phasing (CR 702.26a): CardDef.Phasing (lower_phasingkw.go)
+	AtkFace             bool // the printed face's lines may observe an attack declaration (CardDef.AtkFace)
+	SagaN               int  // K:Chapter:<count>: the final chapter number (CR 714.1)
+	TapPowerCrew        int  // S:Mode$ TapPowerValue for Crew (graveexile)
+	TapPowerSaddle      int  // S:Mode$ TapPowerValue for Saddle (graveexile)
+	MinBlockers         int  // S:Mode$ MinMaxBlocker | ValidCard$ Creature.Self | Min$ N (CR 509.1b); Min$ All is kop.MinBlockersAll
+	ExtraBlocks         int  // S:Mode$ Continuous | AffectedDefined$ Self | CanBlockAmount$ 1 (CR 509.1a)
+	Lure                bool // the all-must-block keyword: every able creature blocks it (CR 509.1c)
+	MustBeBlocked       bool // the must-be-blocked keyword (CR 509.1c)
+	Daybound            bool // K:Daybound (CR 702.145a-d)
+	Nightbound          bool // K:Nightbound (CR 702.145e-g)
 	Abilities           []*lAbility
 	Statics             []lStatic
 	// GrantedStatics: the statics a Continuous static's AddStaticAbility$

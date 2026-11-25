@@ -65,6 +65,19 @@ func foldDelayedRegister(g *state.Game, e *Event) {
 	// name, so every already-logged registration decodes exactly as
 	// before (VP ungated; MaxTurn zero).
 	text := e.Text
+	// The registration's TriggerDescription$ ("|LB=<text>") is appended LAST
+	// by every registration arm, so it strips FIRST -- before |CR=, whose own
+	// LastIndex would otherwise swallow it. It is the prose a client labels
+	// the delayed trigger with (state.DelayedTrigger.Description; "Arcane
+	// Denial: Draw a card." in a CR 603.3b order ask), which a DB$
+	// DelayedTrigger's lack of a T: line would otherwise lose. A registration
+	// logged before this slot existed carries none of the spelling and
+	// decodes with an empty description, exactly as before.
+	description := ""
+	if i := strings.LastIndex(text, "|LB="); i >= 0 {
+		description = text[i+4:]
+		text = text[:i]
+	}
 	// A delayed trigger whose SOURCE is not the affected object (the AtEOT$
 	// rider: CR 603.7d makes the creating permanent the source while the body
 	// still names the token or permanent it acts on) carries the creator as
@@ -331,6 +344,7 @@ func foldDelayedRegister(g *state.Game, e *Event) {
 		Grantor:             grantor,
 		Controller:          e.Player,
 		Execute:             e.Counter,
+		Description:         description,
 		Remembered:          rememberedFrom(e.IDs),
 		RememberedStamps:    registrationStamps(rememberedStamps, rememberedStampsFrom(g, e.IDs)),
 		MinTurn:             e.Amount,

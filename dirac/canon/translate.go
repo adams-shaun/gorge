@@ -212,6 +212,12 @@ func (r *Translator) Action(a dirac.Action) Canon {
 			cm, _ := CastModeCode("dashed")
 			return Pack(ActCast, src, RefNone, cm)
 		}
+		if mode == 0 && tgt == dirac.FeatCastBlitzTgt && r.S.ObjZone(dirac.Obj(src)) == kop.ZoneHand {
+			// the blitz cast (CR 702.152a; kernel kw_blitz.go castBlitzTgt):
+			// gorge's "blitzed" cast option, AltCostIndex 0
+			cm, _ := CastModeCode("blitzed")
+			return Pack(ActCast, src, RefNone, cm)
+		}
 		if mode == 0 && tgt == dirac.FeatCastForetellTgt && r.S.ObjZone(dirac.Obj(src)) == kop.ZoneExile {
 			// a foretold card cast from exile (CR 702.143a; kw_foretell.go):
 			// gorge's "foretell_cast" option, which the full cast-mode table
@@ -825,8 +831,9 @@ func (r *Translator) generatedChoose(a dirac.Action) (Canon, bool) {
 		return Pack(ActMode, RefNone, RefNone, 1), true
 	case dirac.ChGenPair:
 		// gorge effPair's "soulbond" KChoose over the unpaired creatures
-		// (CR 702.95a): an ordinary object pick, kind "other"
-		return Pack(kind("other"), Ref(src), RefNone, 0), true
+		// (CR 702.95a): an ordinary object pick, choose:other as gorge's
+		// chooseOtherAction encodes it ("soulbond" is not in ChooseKinds)
+		return Pack(ActChoose+ChooseOther, Ref(src), RefNone, 0), true
 	case dirac.ChGenRingBearer:
 		// gorge effRingTemptsYou's "ring_bearer" KChoose over the creatures
 		// (CR 701.54a): choose:other, as gorge's chooseOtherAction encodes it

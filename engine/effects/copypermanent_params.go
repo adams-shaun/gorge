@@ -89,9 +89,12 @@ type CopyPermanentParams struct {
 	WithCountersType   string
 	WithCountersAmount ParamText
 
-	// Entry-state riders: TokenTapped$ and TokenAttacking$, trimmed.
+	// Entry-state riders: TokenTapped$, TokenAttacking$ and TokenBlocking$,
+	// trimmed. TokenBlocking$ is the Defined$ selector naming the attacking
+	// creature each copy enters blocking (CR 509.4a).
 	TokenTapped    string
 	TokenAttacking string
+	TokenBlocking  string
 	// NumCopies is NumCopies$.
 	NumCopies ParamText
 
@@ -245,7 +248,7 @@ var copyPermanentKnownKeys = [...]string{
 	"PrimaryPrompt",
 	"PumpDuration",
 	"PumpKeywords",
-	"RandomCopied",
+	"RaiseCost", "RandomCopied",
 	"RandomNum",
 	"RandomNumTargets",
 	"ReduceAmount",
@@ -304,6 +307,7 @@ var copyPermanentKnownKeys = [...]string{
 	"TgtPrompt",
 	"TgtZone",
 	"TokenAttacking",
+	"TokenBlocking",
 	"TokenRemembered",
 	"TokenScript",
 	"TokenTapped",
@@ -457,6 +461,7 @@ func compileCopyPermanent(sa *cards.SA, dp *DefinedParams) *CopyPermanentParams 
 
 	p.TokenTapped = strings.TrimSpace(sa.ParamStr(cards.PKTokenTapped))
 	p.TokenAttacking = strings.TrimSpace(sa.ParamStr(cards.PKTokenAttacking))
+	p.TokenBlocking = strings.TrimSpace(sa.ParamStr(cards.PKTokenBlocking))
 	p.NumCopies = rawParamText(sa, "NumCopies")
 
 	p.Defined = dp.Defined.Text

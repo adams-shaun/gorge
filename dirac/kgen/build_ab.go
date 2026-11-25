@@ -672,7 +672,7 @@ func divTotalReads(v lValue) bool {
 
 func tgtBoundReads(v lValue) bool {
 	switch v.Kind {
-	case vConst, vX, vCount, vCountGraveyard, vValidAgg, vTriggerAmount, vOppsAttacked, vIfCastOwnMain, vTimesKicked:
+	case vConst, vX, vCount, vCountGraveyard, vValidAgg, vTriggerAmount, vOppsAttacked, vIfCastOwnMain, vTimesKicked, vPaidN:
 		return true
 	case vCountersOn:
 		// the source's own counters (Vile Requiem: up to X targets, X the verse
@@ -1243,10 +1243,11 @@ var eventMap = map[string]kop.TrigEvent{"ETB": kop.TrigETB, "Dies": kop.TrigDies
 	"ClassLevelGained": kop.TrigCounterAddedOnce, // N = CtrLevel (lower_class.go)
 	"BecomesPlotted":   kop.TrigBecomesPlotted,   // the card's own
 	"BecomesSaddled":   kop.TrigBecomesSaddled,
-	"Evolved":          kop.TrigEvolved,    // the source's own, after its evolve counter lands
-	"Attached":         kop.TrigAttached,   // the attachment's own, Creature bearer (Assimilation Aegis)
-	"Unattached":       kop.TrigUnattached, // the attachment's own, the FORMER BEARER (Captain's Hook family)
-	"LeaveExile":       kop.TrigLeaveExile} // an imprinted card leaves exile (lower_changezonepairs.go; dirac/trig_leaveexile.go)
+	"Evolved":          kop.TrigEvolved,     // the source's own, after its evolve counter lands
+	"Attached":         kop.TrigAttached,    // the attachment's own, Creature bearer (Assimilation Aegis)
+	"Unattached":       kop.TrigUnattached,  // the attachment's own, the FORMER BEARER (Captain's Hook family)
+	"ChaosEnsues":      kop.TrigChaosEnsues, // the face-up plane's command-zone chaos ability (zone_planechase.go)
+	"LeaveExile":       kop.TrigLeaveExile}  // an imprinted card leaves exile (lower_changezonepairs.go; dirac/trig_leaveexile.go)
 
 // trigQualifierFlags is trigger's qualifier-flag block: the Evolve, the
 // SpellCast spend qualifiers (Increment, the mana-spend gate) and the split
@@ -2599,7 +2600,7 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		// discard, life alone or taps: the kernel's altPickCost picks, now
 		// with the mana part beside them too (a Borderpost's {1} plus a
 		// Return, Sephara's {W} plus taps; prepAltFree)
-		sacAlt := altPickShape(&ka.Cost) && cb.altSacOK()
+		sacAlt := altPickShape(&ka.Cost) && cb.altSacOK(&ka.Cost)
 		if !sacAlt && (ka.Cost.Flags != 0 || ka.Cost.N != 0 || ka.Cost.Mana.X != 0) {
 			// the kernel offers a mana-only alternative cost
 			// (prepAltFree); a part the pick stages cannot carry would
@@ -3207,11 +3208,14 @@ func selfCastClause(f *lFilter) (bool, error) {
 }
 
 // altSacOK: a sacrifice-only alternative cost (Fireblast's "sacrifice two
-// Mountains rather than pay this spell's mana cost") is modelled for an
-// instant or sorcery whose spell ability has no cost of its own beyond
-// mana and no either-or additional cost: the alternative cast's pick parts
-// are then the static's alone (kernel prepAltFree, buildPickCost).
-func (cb *cardBuilder) altSacOK() bool {
+// Mountains rather than pay this spell's mana cost") is modelled for a card
+// whose one spell ability has no cost of its own beyond mana and whose
+// either-or additional cost is absent: the alternative cast's pick parts are
+// then the static's alone (kernel prepAltFree, buildPickCost). An instant and
+// a sorcery always have that spell ability; a permanent may have none (Hand of
+// Emrakul, a Borderpost, Force of Virtue) or one that is the cast's own (an
+// Aura's enchant target, Lashknife).
+func (cb *cardBuilder) altSacOK(alt *kop.Cost) bool {
 	c := cb.c
 	if c.AltAddCost != nil {
 		return false
@@ -3225,12 +3229,27 @@ func (cb *cardBuilder) altSacOK() bool {
 		if c.SpellCost != nil {
 			return false
 		}
+		n := 0
 		for _, a := range c.Abilities {
 			if a.Kind == akSpell {
-				return false
+				n++
+				if !a.Cost.pureMana() {
+					return false
+				}
 			}
 		}
-		return true
+		if n == 0 {
+			return true
+		}
+		// A permanent spell whose one spell ability is the cast's own (an
+		// Aura's enchant target, Lashknife): the target ask is the spell
+		// ability's, and the alternative cast's pick parts are still the
+		// static's alone (buildPickCost's altAdd arm), exactly as for an
+		// instant or sorcery. Only the tap-alone alternative is lockstep
+		// checked against that route (a sacrifice, return, exile or discard
+		// pick beside an enchant target is not), so every other shape, and
+		// anything with an ability the pick cost cannot share, stays refused.
+		return n == 1 && alt.Flags == kop.CostTapX && alt.Mana == (kop.ManaCost{})
 	}
 	n := 0
 	for _, a := range c.Abilities {

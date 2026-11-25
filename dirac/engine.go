@@ -54,6 +54,12 @@ func (s *State) InitNStart(tbl *Table, decks [MaxSeats][]CardID, n uint8, seed u
 	if cfg.Commander {
 		lay = &s.k().coldCmd // a partner pair's bookkeeping (zone_cmdpartner.go)
 	}
+	if anyPlanar(&cfg) {
+		lay = &s.k().coldPlane // the planar-deck record (zone_planechase.go)
+		if cfg.Commander {
+			lay = &s.k().coldCmdPlane
+		}
+	}
 	s.resetCold(lay)
 	s.initPartners()
 	s.g.on = s.k().gen != nil
@@ -121,6 +127,11 @@ func (s *State) InitNStart(tbl *Table, decks [MaxSeats][]CardID, n uint8, seed u
 			s.touch(o)
 			s.pl[p].libBottom(o)
 		}
+		// The seat's planar deck follows its library in object order, as
+		// gorge's genesis deal numbers it (deck, sideboard, plane, then the
+		// next seat). The projection compares object ids, so the order is
+		// load-bearing.
+		s.initPlanarSeat(uint8(p), &cfg)
 	}
 	s.initSideboards(&cfg)
 	if s.g.on {
@@ -130,6 +141,9 @@ func (s *State) InitNStart(tbl *Table, decks [MaxSeats][]CardID, n uint8, seed u
 	}
 	toss := uint8(s.rng.IntN(ns))
 	for p := uint8(0); p < uint8(ns); p++ {
+		// gorge's genesis deal order: the planar deck's shuffle, then the
+		// commander leaves the library, then the library shuffle and hand.
+		s.shufflePlanar(p)
 		if s.cfg&cfgCommander != 0 || cfg.SeatCommanders {
 			s.cmdGenesis(p, cfg.Commanders[p])
 		}
@@ -343,6 +357,9 @@ func (s *State) stepRaw(d *Decision) {
 		case ctlTurnUpX:
 			s.turnUpXOptions(d) // face_turnfaceup.go
 			return
+		case ctlTurnUpReveal:
+			s.turnUpRevealOptions(k, d) // act_revealpick.go
+			return
 		case ctlCmdZone0, ctlCmdZone1, ctlCmdZone2, ctlCmdZone3, ctlCmdZone4, ctlCmdZone5, ctlCmdZone6, ctlCmdZone7:
 			s.askCmdZone(k, d, s.ctl-ctlCmdZone0) // CR 903.9a (zone_cmdzone.go)
 			return
@@ -415,6 +432,8 @@ func (s *State) Apply(a Action) {
 		s.applyReflectPick(k, a) // mana_reflectpickask.go
 	case ctlTurnUpX:
 		s.applyTurnUpX(k, a) // face_turnfaceup.go
+	case ctlTurnUpReveal:
+		s.applyTurnUpReveal(k) // act_revealpick.go
 	case ctlCmdZone0, ctlCmdZone1, ctlCmdZone2, ctlCmdZone3, ctlCmdZone4, ctlCmdZone5, ctlCmdZone6, ctlCmdZone7:
 		s.applyCmdZone(k, s.ctl-ctlCmdZone0, a.Mode()) // CR 903.9a (zone_cmdzone.go)
 	case ctlDivide:

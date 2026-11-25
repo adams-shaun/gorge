@@ -85,6 +85,36 @@ func foldDeclareBlockers(g *state.Game, e *Event) {
 	}
 }
 
+// foldTokenBlocks folds Kind TokenBlocks: a permanent put onto the
+// battlefield blocking the attacker IDs[0] names (TokenBlocking$, CR 509.4).
+// It is deliberately not foldDeclareBlockers: the permanent was never
+// declared a blocker (509.4a/509.4b), so only the block STATE is written --
+// the attacker's blocked-by list and the permanent's IsBlocking -- and no
+// declaration trigger is queued. The attacker must still be attacking and the
+// entering creature's controller must be its defender (506.3e/509.4a); else
+// the creature is on the battlefield but never a blocking creature.
+func foldTokenBlocks(g *state.Game, e *Event) {
+	b := g.Obj(e.Obj)
+	if b == nil || b.Zone != state.ZBattlefield || len(e.IDs) == 0 {
+		return
+	}
+	a := g.Obj(e.IDs[0])
+	if a == nil || a.Zone != state.ZBattlefield || !a.IsAttacking || b.Controller != a.Attacking {
+		return
+	}
+	if slices.Contains(a.BlockedBy, b.ID) {
+		return
+	}
+	a.BlockedBy = append(a.BlockedBy, b.ID)
+	// The attacker was blocked by it, so the this-turn history records the
+	// pair (the same list foldDeclareBlockers grows). The entering creature
+	// itself never "blocked" (509.4), so its own BlockedThisTurn stays empty --
+	// that is what keeps a "whenever this creature blocks" trigger inert.
+	a.BlockedByThisTurn = append(a.BlockedByThisTurn, b.ID)
+	b.IsBlocking = true
+	g.NoteBlockers()
+}
+
 // foldBlockedByEffect folds Kind BlockedByEffect: an unblocked attacker
 // becomes blocked with no blocker (CR 509.1h), recorded as the one zero
 // BlockedBy entry a blocked-but-blockers-all-left creature carries.
