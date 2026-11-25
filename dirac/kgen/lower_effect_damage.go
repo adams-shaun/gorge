@@ -71,6 +71,9 @@ func (lc *lowerCtx) dealDamage(ps *params) error {
 		in.B = lValue{Kind: vNone}
 		in.CS = "to=" + obj.String()
 		in.C = obj.N
+		if err := lc.biteExcess(ps, obj, &in); err != nil {
+			return err
+		}
 	}
 	if d, ok := ps.get("DividedAsYouChoose"); ok {
 		dv, err := lc.value(d)
@@ -460,5 +463,27 @@ func (lc *lowerCtx) eachDamage(ps *params) error {
 		return refuse("EachDamage to %s", obj)
 	}
 	lc.emit(lInstr{Op: "EachDamage", F: f, B: n, Obj2: obj, C: mask})
+	return nil
+}
+
+// biteExcess reads a Bite's ExcessDamage$ (Ram Through: "If the creature you
+// control has trample, excess damage is dealt to that creature's controller
+// instead"; gorge emitObjectDamageExcess): the recipient the bitten object's
+// controller, the condition the source's trample (kop.BiteExcessTrample). A
+// target slot of one object only: the kernel's per-target bite
+// (biteEachTarget) splits no excess.
+func (lc *lowerCtx) biteExcess(ps *params, obj lRef, in *lInstr) error {
+	ed, ok := ps.get("ExcessDamage")
+	if !ok {
+		return nil
+	}
+	cond := strings.TrimSpace(ps.str("ExcessDamageCondition"))
+	if ed = strings.TrimSpace(ed); ed != "ThisTargetedController" && ed != "TargetedController" || cond != "Card.withTrample" {
+		return refuse("Bite ExcessDamage$ %q ExcessDamageCondition$ %q", ed, cond)
+	}
+	if mx := lc.ab.Targets[obj.N].Max; !mx.isConst() || mx.N != 1 {
+		return refuse("Bite ExcessDamage$ on a slot of several targets")
+	}
+	in.CS += "|ExcessTrample"
 	return nil
 }

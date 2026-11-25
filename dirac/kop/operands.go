@@ -872,6 +872,15 @@ const DmgFromEachCtrl = 2
 // arm, Raid Bombardment, Fathom Fleet Swordjack).
 const AtkPWHit = 1
 
+// BiteExcessTrample is OpBite's A.N: when the biting creature has trample
+// and its power exceeds what is lethal to the bitten creature or planeswalker
+// (toughness less marked damage, or loyalty, read before the hit), it deals
+// exactly the lethal amount to it and the rest to its controller, in the one
+// damage batch (gorge emitObjectDamageExcess: DealDamage ExcessDamage$
+// ThisTargetedController | ExcessDamageCondition$ Card.withTrample, Ram
+// Through; CR 120.4a, 120.10).
+const BiteExcessTrample = 2
+
 // DmgAtkedObj is OpDealDamage's B.N (Obj RefDefendingPlayer, in an Attacks
 // trigger behind OpAtkPWGuard C AtkPWHit): the damage goes to the planeswalker
 // or battle the trigger object is attacking, else to the defending player.
