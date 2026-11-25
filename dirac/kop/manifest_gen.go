@@ -2739,7 +2739,7 @@ const Tf5DmgNoContract TrigFlags5 = 1 << 7
 
 // TypeMask (dirac/manifest/TypeMask/TVanguard)
 //
-// TVanguard: the Vanguard card type (CR 205.2). A Vanguard is not a permanent: kgen builds it so a command-zone Vanguard face (Sisay's TapsForMana static) is identified, and the kernel seats it in the command zone without a cast.
+// TVanguard: the Vanguard card type (CR 205.2). A Vanguard is not a permanent: kgen still builds the bit on a lowered command-zone static carrier (Sisay's TapsForMana static, lower_tapextra.go), but the kernel reads no Vanguard type mask -- it classifies a command-zone static by its zone alone (static_classgates.go prepStaticClasses, a Vanguard's or a face-up plane's).
 const TVanguard TypeMask = 1 << 15
 
 // zone PlanarDeck (dirac/manifest/Zone/ZonePlanarDeck)
