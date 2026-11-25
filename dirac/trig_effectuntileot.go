@@ -57,8 +57,8 @@ var DebugEffEOTTrigStats *EffEOTTrigStats
 // RECIPIENT (emblemTriggerObj).
 //
 //go:noinline
-func (s *State) fireEmblemsDmg(k *prep, src Slot, amt int16, toPlayer, combat bool, rcp TCode, listeners bool, latch *dmgLatch) {
-	s.fireEmblemsDmgFrom(k, src, s.perms[src].obj, s.perms[src].ctrl, amt, toPlayer, combat, rcp, listeners, latch)
+func (s *State) fireEmblemsDmg(k *prep, src Slot, amt int16, toPlayer, combat bool, rcp TCode, listeners bool, latch *dmgLatch, rl *refLatch) {
+	s.fireEmblemsDmgFrom(k, src, s.perms[src].obj, s.perms[src].ctrl, amt, toPlayer, combat, rcp, listeners, latch, rl)
 }
 
 // embDmg reports whether some emblem trigger listens to damage dealt, so a
@@ -74,13 +74,13 @@ func (k *prep) embDmg() bool {
 // matches the source's card, never a battlefield object.
 //
 //go:noinline
-func (s *State) fireEmblemsDmgSpell(k *prep, o Obj, ctrl uint8, amt int16, toPlayer bool, rcp TCode) {
-	s.fireEmblemsDmgFrom(k, NoSlot, o, ctrl, amt, toPlayer, false, rcp, false, nil)
+func (s *State) fireEmblemsDmgSpell(k *prep, o Obj, ctrl uint8, amt int16, toPlayer bool, rcp TCode, rl *refLatch) {
+	s.fireEmblemsDmgFrom(k, NoSlot, o, ctrl, amt, toPlayer, false, rcp, false, nil, rl)
 }
 
 // fireEmblemsDmgFrom is the shared walk: src is NoSlot for a source that is no
 // permanent, srcObj and srcCtrl then name the spell or its last known controller.
-func (s *State) fireEmblemsDmgFrom(k *prep, src Slot, srcObj Obj, srcCtrl uint8, amt int16, toPlayer, combat bool, rcp TCode, listeners bool, latch *dmgLatch) {
+func (s *State) fireEmblemsDmgFrom(k *prep, src Slot, srcObj Obj, srcCtrl uint8, amt int16, toPlayer, combat bool, rcp TCode, listeners bool, latch *dmgLatch, rl *refLatch) {
 	dpl := s.dmgSeat(rcp, srcCtrl)
 	if pl, ok := recipientPlayer(rcp); ok {
 		dpl = pl
@@ -149,6 +149,23 @@ func (s *State) fireEmblemsDmgFrom(k *prep, src Slot, srcObj Obj, srcCtrl uint8,
 					if la.Kind == kop.AbTriggered && la.AFlags&kop.AfLatent != 0 && la.Trig.Event == t.Event && la.Trig.Zone == kop.ZoneCommand {
 						o := s.embObj(pp, i)
 						n := amt
+						if t.Event == kop.TrigDamageDone && t.Flags2&kop.Tf2PerReferent != 0 {
+							// Mode$ DamageDoneOnce on an EOT Effect: one trigger
+							// per damaged referent per damage batch (CR 603.2c,
+							// the per-referent line lower_damagedoneonce.go
+							// lowers). The refLatch is the step's shared latch,
+							// so two sources hitting one player in a combat
+							// damage step queue the body once. The aggregate
+							// fire is not a damage event: the per-recipient
+							// pass queues the referent lines.
+							if rl != nil && rl.agg {
+								break
+							}
+							l := trigListener{obj: o, sl: NoSlot, ctrl: pp, card: c, ab: uint8(ab)}
+							if !s.emblemDdoLatch(l, rcp, rl) {
+								break
+							}
+						}
 						if t.Event == kop.TrigDamageDealtOnce && latch != nil {
 							// one trigger per damage batch, carrying the source's
 							// batch total (fireDamageEvGen's DamageDealtOnce latch)
@@ -191,6 +208,34 @@ func (s *State) fireEmblemsDmgFrom(k *prep, src Slot, srcObj Obj, srcCtrl uint8,
 			}
 		}
 	}
+}
+
+// emblemDdoLatch is the once-per-batch gate of an EOT Effect's
+// Mode$ DamageDoneOnce emblem line (Tf2PerReferent): the line queues at the
+// first matching event of the open damage batch for the damaged referent
+// (rcp) and every later matching event of the batch is the same triggering
+// condition (CR 603.2c, 510.2). The refLatch is the step's shared latch, so
+// the key spans sources: two Gorgons hitting one player in a combat damage
+// step queue one instance. A nil latch (a noncombat event outside a batch) is
+// its own batch of one, and an entry of the event in progress does not latch
+// (the copies of one line trigger together, as ddoLine's referent latch).
+func (s *State) emblemDdoLatch(l trigListener, rcp TCode, rl *refLatch) bool {
+	if rl == nil || rl.r == nil && !rl.only {
+		return true
+	}
+	for i := 0; i < rl.n; i++ {
+		if e := &rl.e[i]; e.obj == l.obj && e.card == l.card && e.ab == l.ab &&
+			e.rcp == rcp && e.at != rl.at {
+			return false
+		}
+	}
+	if rl.n == len(rl.e) {
+		s.capFull(StallRefLatch)
+		return false
+	}
+	rl.e[rl.n] = refEnt{obj: l.obj, card: l.card, ab: l.ab, rcp: rcp, at: rl.at}
+	rl.n++
+	return true
 }
 
 // emblemSourceOK is the damage-source half of an emblem's DamageDone line: a
