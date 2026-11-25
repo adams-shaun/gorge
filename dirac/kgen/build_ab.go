@@ -2125,7 +2125,11 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		if s.AbilityRed != 0 {
 			// activated abilities of battlefield permanents (lower_reduceab.go)
 			st.Kind = kop.StatReduceAbility
-			if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
+			fz := kop.ZoneBattlefield
+			if s.Zone == zGraveyard {
+				st.Zone, fz = kop.ZoneGraveyard, kop.ZoneGraveyard // lower_reduceab.go: a graveyard card's own activation
+			}
+			if st.Filter, err = filter(s.F, fz); err != nil {
 				return ka, nil, err
 			}
 			if err := amounts(s.Amount, lValue{}); err != nil {
