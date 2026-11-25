@@ -706,7 +706,18 @@ func (s *State) painUnit(k *prep, sl Slot, pc *pcard, pass int, pk *planner, i i
 	if !pc.painOnly {
 		for t := 0; t < pk.nt && tc < 0; t++ {
 			ty := &pk.types[t]
-			if ty.pair != 0 && !ty.alt && ty.mask == prim && ty.creat == cr && pk.types[ty.pair-1].mask == pm && pk.types[ty.pair-1].pain == pc.painN && ty.xv == xc && pk.types[ty.pair-1].xv == xp {
+			if normalOnly {
+				// an unadmitted restricted pair is an ordinary unit of its
+				// normal ability: it must not count under a paired type, whose
+				// units all take the painful alternative (dfs's shared cap)
+				if ty.pair == 0 && !ty.alt && ty.pain == 0 && ty.mask == prim && ty.creat == cr && ty.xv == xc &&
+					ty.flex == fl && ty.n == 1 && !ty.rb && !ty.life && !ty.sacOnly && !ty.sac && !ty.inert && ty.irr == 0 {
+					tc = t
+				}
+				continue
+			}
+			if ty.pair != 0 && !ty.alt && ty.mask == prim && ty.creat == cr && pk.types[ty.pair-1].mask == pm && pk.types[ty.pair-1].pain == pc.painN && ty.xv == xc && pk.types[ty.pair-1].xv == xp &&
+				pk.types[ty.pair-1].rb == restricted {
 				tc = t
 			}
 		}

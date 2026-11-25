@@ -1043,7 +1043,9 @@ func (s *State) restrSrcAddUnit(k *prep, p uint8, d *payDesc, sl Slot, own *pcar
 			// both alternatives a unit of its own). Both make one mana here
 			// (the pair arm takes the one-mana life shape), so the unit is
 			// their colour union; the life charge is the restricted walk's.
-			t.remove(s.srcMaskAt(own, sl), own.manaN) // its one tap replaces the census unit
+			if !t.removeWide(s.srcMaskAt(own, sl), uint16(own.manaN)) { // its one tap replaces the census unit
+				return // its census {C} already paid an earlier unit's fee: its one tap is spent
+			}
 			if restrLifeUnit(v) && !s.restrLifeCharge(k, p, t, int(v.restrLife), lifeUsed) {
 				t.addUnits(s.srcMaskAt(own, sl), own.manaN) // no life left: the normal ability stands
 				return

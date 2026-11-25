@@ -53,8 +53,8 @@ func restrictedManaDecks() [4][]cardset.Entry {
 		{
 			{Name: "Untaidake, the Cloud Keeper", Count: 5}, {Name: "Grand Architect", Count: 4}, {Name: "Wind Drake", Count: 4},
 			{Name: "Walking Ballista", Count: 3}, {Name: "Mind Stone", Count: 3}, {Name: "Guardian Idol", Count: 2},
-			{Name: "Prodigal Sorcerer", Count: 3}, {Name: "Lightning Bolt", Count: 3}, {Name: "Great Hall of the Biblioplex", Count: 2},
-			{Name: "Island", Count: 7}, {Name: "Mountain", Count: 4},
+			{Name: "Prodigal Sorcerer", Count: 3}, {Name: "Lightning Bolt", Count: 3}, {Name: "Great Hall of the Biblioplex", Count: 2}, {Name: "Voldaren Estate", Count: 1},
+			{Name: "Island", Count: 6}, {Name: "Mountain", Count: 4},
 		},
 		{
 			{Name: "Grizzly Bears", Count: 4}, {Name: "Shock", Count: 4}, {Name: "Lightning Bolt", Count: 4},
