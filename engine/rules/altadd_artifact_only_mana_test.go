@@ -15,7 +15,7 @@ import (
 func TestPotentialAltAddArtifactOnlyMana(t *testing.T) {
 	t.Parallel()
 	const (
-		spellSrc = "Name:Alt Add Bear\nManaCost:R\nTypes:Creature Bear\nPT:2/2\nK:AlternateAdditionalCost:Discard<1/Card>:2\nOracle:x\n"
+		spellSrc = "Name:Alt Add Bear\nManaCost:R\nTypes:Creature Bear\nPT:2/2\nK:AlternateAdditionalCost:Discard<1/Card>:1 1\nOracle:x\n"
 		landSrc  = "Name:Alt Add Mountain\nManaCost:no cost\nTypes:Basic Land Mountain\nOracle:x\n"
 		stoneSrc = "Name:Powerstone Token\nManaCost:no cost\nColors:colorless\nTypes:Artifact Powerstone\n" +
 			"A:AB$ Mana | Cost$ T | Produced$ C | RestrictValid$ CantCastNonArtifactSpells\nOracle:x\n"
@@ -54,7 +54,7 @@ func TestPotentialAltAddArtifactOnlyMana(t *testing.T) {
 func TestPotentialAltAddFloatingArtifactOnlyMana(t *testing.T) {
 	t.Parallel()
 	const (
-		spellSrc = "Name:Alt Add Bear\nManaCost:R\nTypes:Creature Bear\nPT:2/2\nK:AlternateAdditionalCost:Discard<1/Card>:2\nOracle:x\n"
+		spellSrc = "Name:Alt Add Bear\nManaCost:R\nTypes:Creature Bear\nPT:2/2\nK:AlternateAdditionalCost:Discard<1/Card>:1 1\nOracle:x\n"
 		landSrc  = "Name:Alt Add Mountain\nManaCost:no cost\nTypes:Basic Land Mountain\nOracle:x\n"
 	)
 	e, _, spell := newFixtureDeck(t, 9413, spellSrc)
@@ -91,7 +91,7 @@ func TestPotentialAltAddFloatingArtifactOnlyMana(t *testing.T) {
 func TestAltAddPlanIgnoresFloatingArtifactOnlyMana(t *testing.T) {
 	t.Parallel()
 	const (
-		spellSrc  = "Name:Alt Add Pirate\nManaCost:R\nTypes:Creature Human Pirate\nPT:2/2\nK:AlternateAdditionalCost:Reveal<1/Pirate>:2\nOracle:x\n"
+		spellSrc  = "Name:Alt Add Pirate\nManaCost:R\nTypes:Creature Human Pirate\nPT:2/2\nK:AlternateAdditionalCost:Reveal<1/Pirate>:1 1\nOracle:x\n"
 		mountain  = "Name:Alt Add Mountain\nManaCost:no cost\nTypes:Basic Land Mountain\nOracle:x\n"
 		forestSrc = "Name:Alt Add Forest\nManaCost:no cost\nTypes:Basic Land Forest\nOracle:x\n"
 	)
