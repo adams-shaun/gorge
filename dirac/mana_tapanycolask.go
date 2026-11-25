@@ -17,7 +17,7 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // two such Auras takes {G} and one more mana of any colour.
 func (s *State) tapAnyColAsks(k *prep, sl Slot) int {
 	if k.gen == nil || !k.gen.anyTapExtra || DebugTapAnyColOff || s.pool != nil && s.pool.census ||
-		s.askColDeferred(k, sl) || s.restrCensusTapsGapShape(k, sl) || s.restrTapsGapShape(k, sl) {
+		s.askColDeferred(k, sl) || s.restrTapsGapShape(k, sl) {
 		return 0
 	}
 	if _, rider := s.riderAbilityOf(k, sl); rider {

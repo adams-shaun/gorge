@@ -549,6 +549,7 @@ func (s *State) availForMode(k *prep, p uint8, a *avail, ex slotMask, withDeferr
 		// deferredFiltFree: a Taps watcher defers a filter land's free ability
 		// in gorge's planner like any land's tap, so the census never lists it.
 		if deferSkip && (deferGap.has(sl) || s.deferredFiltFree(k, sl)) && s.planDeferred(k, p, sl) && !s.blgIntrinsicUnit(k, sl) {
+			s.availDeferredRefl(k, p, sl, a)
 			if dual && s.grantIdx(k, sl) >= 0 {
 				// its granted ability is a census gap of its own, which the
 				// grant search taps (Enduring Vitality on Twitching Doll):
@@ -2172,7 +2173,8 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 			continue
 		}
 		s.pl[p].pool[col] += ty.n
-		s.planTapsInExtra(k, p, pk, sl) // a Taps-deferred source's trigger extra (mana_tapsinextra.go)
+		var xvOwn [kop.NumManaKinds]uint8 // the unit's xv floated restricted (mana_eachrestr.go)
+		s.planTapsInExtra(k, p, pk, sl)   // a Taps-deferred source's trigger extra (mana_tapsinextra.go)
 		if ty.rb && DebugRestrictedSource != 5 {
 			// a restricted source's larger alternative (or its sole ability of
 			// more than one mana): its mana floats restricted (restrPairUnit,
@@ -2182,12 +2184,14 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 			if abi < 0 {
 				abi = k.gen.restrRecOf(s.cardAt(sl)).ab
 			}
-			if !s.floatRestrOnly(k, p, sl, &k.t.Cards[s.cardAt(sl)].Abilities[abi], col, ty.n) {
+			if ab := &k.t.Cards[s.cardAt(sl)].Abilities[abi]; ab.ManaEach {
+				xvOwn = s.floatRestrEach(k, p, sl, ab, col, ty.n) // (mana_eachrestr.go)
+			} else if !s.floatRestrOnly(k, p, sl, ab, col, ty.n) {
 				s.capFull(StallRestrSrc)
 			}
 			pk.rbOn = true
 		}
-		if ty.xt != 0 && s.addXvPick(p, ty, col) {
+		if ty.xt != 0 && s.addXvPickLess(p, ty, col, &xvOwn) {
 			return // the reflected pick's colour ask (mana_reflectpickask.go); the payment runs again after it
 		}
 		s.artTag(k, p, sl, col)
