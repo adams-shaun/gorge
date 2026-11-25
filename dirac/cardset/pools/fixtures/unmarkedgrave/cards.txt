@@ -1,0 +1,10 @@
+# the negated-supertype pool: Unmarked Grave (search for a Card.!Legendary,
+# into the graveyard) beside a legendary creature, plain creatures, a
+# graveyard return and basics (dirac/oracle/unmarkedgrave_lowers_test.go)
+Unmarked Grave
+Isamaru, Hound of Konda
+Savannah Lions
+Elite Vanguard
+Raise Dead
+Swamp
+Plains

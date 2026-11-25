@@ -1481,6 +1481,9 @@ func (lc *lowerCtx) countValue(rest string, depth int) (lValue, error) {
 	if arms, ok := strings.CutPrefix(rest, "Revolt."); ok {
 		return lc.revoltValue(arms, depth) // value_revolt.go
 	}
+	if arms, ok := strings.CutPrefix(rest, "UrzaLands."); ok {
+		return lc.urzaLandsValue(arms, depth) // value_urzalands.go
+	}
 	if arms, ok := strings.CutPrefix(rest, "Hellbent."); ok {
 		// gorge cov3BranchHolds: <yes> with no cards in your hand, else <no>
 		parts := strings.Split(arms, ".")

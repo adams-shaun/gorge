@@ -1108,6 +1108,13 @@ func (c *lClause) prop(p string, knownSub func(string) bool) error {
 			c.NotTypes |= bits
 			return nil
 		}
+		if bits, ok := typeBits[w]; ok && bits&tSupertype != 0 {
+			// gorge's '!' of a supertype word (Unmarked Grave's
+			// Card.!Legendary): !hasType <w>, the nonLegendary / nonBasic
+			// clause
+			c.NotTypes |= bits
+			return nil
+		}
 		if w == "hasKeywordLandwalk:Island" {
 			// gorge's '!' over the parameterised exact-keyword word (only
 			// the Island parameter is read; the kernel finds the Island
