@@ -68,6 +68,14 @@ func (r *charsReader) SameColorRevealSets(p state.PlayerID, source state.ObjID, 
 	return e.sameColorRevealSets(p, source, excludeSource)
 }
 
+// CreatureTypeTokens is the optional share-a-creature-type read the payment
+// layer reaches through its own narrow interface assertion (chars.Reader's
+// method count is a budgeted ratchet): the same derived-type token set the
+// target-set "creaturetype" constraint uses, changeling-aware.
+func (r *charsReader) CreatureTypeTokens(id state.ObjID) []string {
+	return r.eng().setPropTokens("creaturetype", id)
+}
+
 func (r *charsReader) TapContribution(id state.ObjID, saKind string) (int32, bool) {
 	e := r.eng()
 	return e.tapPowerValue(id, saKind), saKind != "Crew" || !e.cantCrew(id)
