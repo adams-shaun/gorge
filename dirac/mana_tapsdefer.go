@@ -171,6 +171,11 @@ func (s *State) tapsDeferDead(k *prep, p uint8) slotMask {
 // is classed by the watchers like any other); tests only.
 var DebugNoReflTapsUnwatched bool
 
+// DebugNoDeferredRefl drops the reflected census unit deferredReflMask keeps
+// for a Taps-deferred reflected source (it defers the whole source again);
+// tests only.
+var DebugNoDeferredRefl bool
+
 // reflTapsUnwatched reports whether sl's live mana view is a lone AB$
 // ManaReflected ability (pcard.manaRefl: Quirion Explorer, Exotic Orchard,
 // Mox Amber, Chrome Mox), whose tap gorge's planner never runs past the Taps

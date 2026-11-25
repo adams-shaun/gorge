@@ -22,7 +22,7 @@ import (
 // keeps it an ordinary unit) and when no colour is reflected.
 func (s *State) deferredReflMask(k *prep, p uint8, sl Slot) uint8 {
 	c := s.cardAt(sl)
-	if k.gen == nil || !k.gen.has(c, gfManaRefl) || s.reflTapsUnwatched(k, sl) || !s.tapsDeferred(k, p, sl) ||
+	if k.gen == nil || DebugNoDeferredRefl || !k.gen.has(c, gfManaRefl) || s.reflTapsUnwatched(k, sl) || !s.tapsDeferred(k, p, sl) ||
 		s.riderDeferred(k, sl) || s.splitDeferred(k, sl) || s.askColDeferred(k, sl) {
 		return 0
 	}
