@@ -39,13 +39,12 @@ var effectContainerMayPlayNivixDecks = [2][]cardset.Entry{
 	},
 }
 
-// One Mission Briefing copy: the kernel's ExileOnMoved$ remembered grant is
-// exact for one card (dirac/cast_mayplayremembered.go), and two concurrent
-// Effect grants would conflate the global remembered pool into an unmodelled
-// stall -- a limitation of the remembered-grant class, not of this lowering.
+// Four Mission Briefing copies: two resolving in one turn can choose the same
+// graveyard card, which marks its permission twice (the second mark is not a
+// stall; TestEffectContainerMayPlayDoubleGrantLockstep drives the pair).
 var effectContainerMayPlayMissionDecks = [2][]cardset.Entry{
 	{
-		{Name: "Mission Briefing", Count: 1}, {Name: "Divination", Count: 16}, {Name: "Island", Count: 23},
+		{Name: "Mission Briefing", Count: 4}, {Name: "Divination", Count: 13}, {Name: "Island", Count: 23},
 	},
 	{
 		{Name: "Grizzly Bears", Count: 20}, {Name: "Forest", Count: 20},
