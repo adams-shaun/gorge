@@ -347,7 +347,7 @@ func effDig(h Host, c *Ctx, sa *cards.SA) {
 		enteringControllerForAttack(h, c, attackingParam(sa), dest, players, gainControlParam(sa)))
 	for targetIndex, p := range players {
 		lib := zoneOf(g, state.ZLibrary, p)
-		chooser := digChooser(h, c, dp, p)
+		chooser := digChooser(h, c, sa, dp, p)
 		if dp.SetChosenPlayer && dp.Choser != "" {
 			choiceRecord(h, c, sa, []state.Target{{IsPlayer: true, Player: chooser}}, true)
 		}
@@ -917,9 +917,32 @@ func digSecretTo(ev *events.Event, chooser, owner state.PlayerID, saw bool) stat
 // digChooser is the player who looks at, takes from and orders the library
 // p: a resolved Choser$ when the card names one, otherwise the resolving
 // spell or ability's controller (CR 701.29a -- "you" is the ability's
-// controller, not the library's owner).
-func digChooser(h Host, c *Ctx, dp *DigParams, owner state.PlayerID) state.PlayerID {
+// controller, not the library's owner). A Choser$ that names several living
+// players (Animal Magnetism's "an opponent chooses" in a multiplayer game)
+// is narrowed to one by the resolving controller: Forge's DigEffect asks
+// activator.chooseSingleEntityForEffect over the Choser$ players (XMage's
+// Animal Magnetism likewise has its controller choose the opponent). One
+// candidate poses nothing, as a choice nobody could answer differently; an
+// unserved ask keeps the first candidate.
+func digChooser(h Host, c *Ctx, sa *cards.SA, dp *DigParams, owner state.PlayerID) state.PlayerID {
 	if rawChooser := dp.Choser; rawChooser != "" {
+		if cands := digChoserCandidates(h, c, rawChooser); len(cands) > 1 {
+			g := h.Game()
+			d := &decision.Decision{Player: c.Controller, Kind: decision.KChoose, Source: c.Source,
+				Min: 1, Max: 1, ResumeKind: "dig_chooser", ResumeSA: sa,
+				Prompt: "Choose the player who chooses from the revealed cards"}
+			for j, p := range cands {
+				d.Options = append(d.Options, decision.Option{Index: j, Kind: "player", Player: p, Label: g.SeatFacingName(p)})
+			}
+			if ans, ok := AskTape(h, d); ok {
+				for _, o := range ans {
+					if o.Kind == "player" {
+						return o.Player
+					}
+				}
+			}
+			return cands[0]
+		}
 		if cp, ok := chooserPlayer(h, c, rawChooser); ok {
 			return cp
 		}
@@ -928,6 +951,29 @@ func digChooser(h Host, c *Ctx, dp *DigParams, owner state.PlayerID) state.Playe
 		return c.Controller
 	}
 	return owner
+}
+
+// digChoserCandidates is every distinct living player a Choser$ selector
+// names, in the selector's order (chooserPlayer's walk, which keeps only the
+// first).
+func digChoserCandidates(h Host, c *Ctx, spec string) []state.PlayerID {
+	targets, ok := knownDefinedTargets(h, c, spec)
+	if !ok {
+		return nil
+	}
+	g := h.Game()
+	var out []state.PlayerID
+	for _, t := range targets {
+		if !t.IsPlayer && g.Obj(t.Obj) == nil {
+			continue
+		}
+		p := PlayerOf(h, c, t)
+		if int(p) >= len(g.Players) || g.Players[p].Lost || slices.Contains(out, p) {
+			continue
+		}
+		out = append(out, p)
+	}
+	return out
 }
 
 // libraryTopIs reports whether ids are exactly the owner's top cards in

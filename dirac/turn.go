@@ -158,12 +158,15 @@ func (s *State) beginStep(k *prep) {
 		}
 		pre := s.tappedMask(s.active)
 		m := s.ctrlM[s.active]
+		keepSick := s.g.nxph != 0 && s.addPhaseExtraUntap() // an extra beginning phase's untap: no turn began (act_addphase.go)
 		for m.any() {
 			sl := m.first()
 			m = m.rest()
 			p := &s.perms[sl]
 			f := p.flags
-			p.flags &^= pfSick
+			if !keepSick {
+				p.flags &^= pfSick
+			}
 			if p.flags&pfSkipUntap != 0 {
 				p.flags &^= pfSkipUntap // CR 611.2b one-shot, consumed even untapped (gorge CantUntapNextStep)
 				s.touchSl(sl)
@@ -1107,12 +1110,15 @@ func (s *State) regenerateBody(sl Slot) {
 // registering player; it performs its action on resolution if the affected
 // object is still the same permanent.
 func (s *State) fireDelayed(k *prep) {
+	if k.gen != nil && k.gen.anyUnearth {
+		s.leaveExilePrune() // zone_leaveexile.go: a promise whose object moved on is dead
+	}
 	n := s.ndly
 	s.ndly = 0
 	var keep uint8
 	var fol [MaxDelayed]delayed
 	var nf uint8
-	if k.gen != nil && (k.gen.anyEarthbend || k.gen.anyLeaveRet) {
+	if k.gen != nil && (k.gen.anyEarthbend || k.gen.anyLeaveRet || k.gen.anyUnearth) {
 		n, keep = s.splitLeaveDelayed(n) // leave-keyed records survive the end step
 	}
 	for i := 0; i < int(n); i++ {
