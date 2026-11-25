@@ -32,7 +32,7 @@ func TestGameStats(t *testing.T) {
 		}
 		turns += int(s.turn)
 		skipped += int(s.Skipped[0] + s.Skipped[1])
-		if s.pl[0].drewEmpty || s.pl[1].drewEmpty {
+		if s.pl[0].mark&pmDrewEmpty != 0 || s.pl[1].mark&pmDrewEmpty != 0 {
 			deckEnd++
 		} else {
 			lifeEnd++

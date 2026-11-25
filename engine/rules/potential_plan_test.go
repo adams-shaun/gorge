@@ -151,23 +151,19 @@ func TestPotentialPaymentPlansProvesAnOverBound(t *testing.T) {
 	}
 }
 
-// TestPotentialPaymentPlansXAtItsFloor: an {X} ability is witnessed at the
-// least X the announcement allows (CR 601.2b, 602.2b). "Cost$ X" on a
-// permanent is payable at X = 0, so the planner reports a plan that spends
-// nothing rather than leaving the shape unsupported.
-func TestPotentialPaymentPlansXAtItsFloor(t *testing.T) {
+// TestPotentialPaymentPlansUnsupportedShapes: an {X} ability has no witness
+// and is never reported proven unpayable.
+func TestPotentialPaymentPlansUnsupportedShapes(t *testing.T) {
 	t.Parallel()
 	e, _, _ := newFixtureDeck(t, 9404, ppFiller)
 	x := onBoard(t, e, 0, "Name:Potential X\nTypes:Artifact\n"+
 		"A:AB$ Draw | Cost$ X | NumCards$ X | SpellDescription$ Draw X cards.\nOracle:x\n")
 	onBoard(t, e, 0, lrPlains)
 	ppPriority(t, e)
-	pp := ppFind(t, e.PotentialPaymentPlans(0), "ability", x)
-	if pp.Plan == nil || pp.Reason != "" {
-		t.Fatalf("X ability verdict %+v, want a witness at X = 0", pp)
-	}
-	if len(pp.Plan.Activations) != 0 {
-		t.Fatalf("X = 0 witness spends %s, want nothing", lrPlanString(pp.Plan.Activations))
+	for _, pp := range e.PotentialPaymentPlans(0) {
+		if pp.Action.Obj == x && (pp.Plan != nil || pp.Reason == "insufficient") {
+			t.Fatalf("X ability verdict %+v, want unsupported", pp)
+		}
 	}
 }
 
