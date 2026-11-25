@@ -456,6 +456,9 @@ func (s *State) openManaRefused(k *prep, p uint8, sl Slot, d *payDesc) bool {
 
 func (s *State) payerOf(k *prep, r kop.Ref) uint8 {
 	if r == kop.RefEach {
+		if o := s.res.eachObj; o != NoObj {
+			return s.eachCtrl(o) // an OpRepeatEach card loop: the bound card's controller (act_repeatremembered.go)
+		}
 		return s.g.eachPl
 	}
 	return s.playerRef(k, r)

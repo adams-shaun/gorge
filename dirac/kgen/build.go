@@ -839,6 +839,15 @@ func (cb *cardBuilder) record() error {
 			return err
 		}
 	}
+	if c.FlipCost != nil {
+		// CR 702.162a / 702.146a: the back-face cast keyword (no KwMask bit
+		// is free); the kernel casts face 1 at this cost (face_flipcast.go)
+		d.FlipCast = c.FlipCast
+		if d.FlipCost, err = manaCostOf(*c.FlipCost); err != nil {
+			return err
+		}
+	}
+	d.LivingMetal = c.LivingMetal
 	if c.MayFlash != nil {
 		// CR 702.8: no KwMask bit is free, so the may-flash marker is its
 		// own field; the cost is the extra mana the instant-timing cast adds
@@ -2297,6 +2306,8 @@ func (cb *cardBuilder) ref(r lRef) (kop.Ref, error) {
 		return kop.RefPromised, nil
 	case rAttachedCtrl:
 		return kop.RefAttachedCtrl, nil
+	case rEnchantedCtrl:
+		return kop.RefEnchantedCtrl, nil
 	case rChosenPlayer:
 		return kop.RefChosenPlayer, nil
 	case rChosenPlayerRes:

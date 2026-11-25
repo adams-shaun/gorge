@@ -645,10 +645,11 @@ func (s *State) loopBack(k *prep) {
 			continue
 		}
 		if in := &s.prog(k)[r.loopS[d]-1]; in.Op == kop.OpRepeatEach { // act_repeatcards.go: the plain card loop's frame
-			if s.eachCardAdvance() {
+			if s.eachCardAdvance(in) {
 				r.pc = r.loopS[d]
 				return
 			}
+			s.eachCardClose(in)
 			r.eachObj, s.g.inLoop = NoObj, false
 			r.loopD--
 			continue
@@ -790,6 +791,8 @@ func (s *State) playerRef(k *prep, r kop.Ref) uint8 {
 		return s.res.chPl - 1 // the pick OpChoosePlayer recorded (chPl seat + 1; 0 wraps to 255, none)
 	case kop.RefAttachedCtrl:
 		return s.attachedCtrl(s.objRefObj(kop.RefAttached))
+	case kop.RefEnchantedCtrl:
+		return s.enchantedCtrl(e.obj) // trig_attachedctrl.go
 	}
 	if k.gen != nil {
 		return s.refPlayer(k, r, s.ctxEntry(&s.res.e))
@@ -1024,7 +1027,7 @@ func (s *State) damageTo(k *prep, code TCode, n int) int {
 	}
 	e := &s.res.e
 	if k.gen != nil && (k.gen.anyRepl&(rbDblDmg|rbPrevNC|rbPrevDmgTo|rbProtAll|rbProtCol|rbPlusDmg|rbShield|rbPrevCol|rbPrevMill|rbSelfDmg) != 0 ||
-		k.gen.anyRepl2&(rb2DmgMinus|rb2DmgSet) != 0) {
+		k.gen.anyRepl2&rb2DmgAny != 0) {
 		if s.parkNC(k, s.srcCtrl(k), s.objRef(k, kop.RefSelf), e.card, code, n, s.srcKw(k)) {
 			if s.res.flags&rfNoPrev != 0 {
 				s.capFull(StallNoPrevent) // the parked event's later pass would not know its damage can't be prevented
@@ -1086,7 +1089,7 @@ func (s *State) refCode(k *prep, r kop.Ref) TCode {
 	case kop.RefTarget0, kop.RefTarget1, kop.RefTarget2, kop.RefTarget3, kop.RefTarget4:
 		sl, _ := tgtSlot(r)
 		return s.tgtCode(sl)
-	case kop.RefController, kop.RefOpponent, kop.RefTriggerPlayer, kop.RefDefendingPlayer, kop.RefTargetController, kop.RefEachOpponent, kop.RefPromised, kop.RefChosenPlayer, kop.RefChosenPlayerRes, kop.RefResChosenPlayer, kop.RefTriggerTgtCtrl, kop.RefTriggerObjOwner, kop.RefAttachedCtrl:
+	case kop.RefController, kop.RefOpponent, kop.RefTriggerPlayer, kop.RefDefendingPlayer, kop.RefTargetController, kop.RefEachOpponent, kop.RefPromised, kop.RefChosenPlayer, kop.RefChosenPlayerRes, kop.RefResChosenPlayer, kop.RefTriggerTgtCtrl, kop.RefTriggerObjOwner, kop.RefAttachedCtrl, kop.RefEnchantedCtrl:
 		p := s.playerRef(k, r)
 		if p == 255 {
 			return TCode(NoTarget)
@@ -1100,6 +1103,11 @@ func (s *State) refCode(k *prep, r kop.Ref) TCode {
 				return PlayerCode(p)
 			}
 			return TCode(NoTarget)
+		}
+		if s.eachRememberedLoop(k) {
+			// a remembered-set card loop's damage goes to the bound card's
+			// controller, not the card (act_repeatremembered.go)
+			return PlayerCode(s.eachCtrl(s.res.eachObj))
 		}
 	}
 	o := s.objRefObj(r)
