@@ -289,6 +289,13 @@ func gorgeKw(s string) (kop.KwMask, bool) {
 			// K:Hexproof:<Colour> (CardDef.HexColors)
 			return 0, true
 		}
+		switch spec, _, _ := strings.Cut(q, ":"); spec {
+		case "Card.MonoColor", "Card.MultiColor", "Card.nonColorless":
+			// a printed hexproof from monocolored / multicolored / each
+			// colour (CardDef.HexColors' kop.HexMono, kop.HexMulti, WUBRG),
+			// compared through the target options
+			return 0, true
+		}
 	}
 	switch s {
 	case "Protection from white", "Protection from blue", "Protection from green", "Protection from colorsYouCtrl":
