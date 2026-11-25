@@ -110,8 +110,8 @@ func TestGrantedProwessTriggerLabel(t *testing.T) {
 func TestGrantedProwessNotOptionalOnOptionalRecipient(t *testing.T) {
 	t.Parallel()
 	const optionalAllySrc = "Name:Optional Ally\nTypes:Creature Ally\nPT:1/1\n" +
-		"T:Mode$ ChangesZone | Origin$ Battlefield | Destination$ Any | ValidCard$ Card.Self | OptionalDecider$ You | Execute$ TrigDraw | TriggerDescription$ When NICKNAME leaves the battlefield, you may draw a card.\n" +
-		"SVar:TrigDraw:DB$ Draw | NumCards$ 1\n" +
+		"T:Mode$ ChangesZone | Origin$ Battlefield | Destination$ Any | ValidCard$ Card.Self | OptionalDecider$ You | Execute$ OptFixtureDraw | TriggerDescription$ Fixture optional reminder.\n" +
+		"SVar:OptFixtureDraw:DB$ Draw | NumCards$ 1\n" +
 		"Oracle:x\n"
 	e, ally, spell := grantedProwessBoard(t, card(t, optionalAllySrc))
 	// Precondition: the recipient's printed line 0 really is optional.
