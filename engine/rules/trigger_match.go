@@ -1058,6 +1058,18 @@ func (e *Engine) checkTriggersNow(ev *events.Event, lki *state.Object,
 		// Ledgers are read-only here: TurnsTaken and turnStartsFor replace
 		// their cache slice rather than write into it.
 		observer.startingLife, observer.engineTurnLedger = e.startingLife, e.engineTurnLedger
+		// The CR 603.4 intervening-if a trigger matched here carries is read
+		// when the event occurs. A trigger whose SOURCE departed in this
+		// window is a CR 603.10a look-back trigger and reads the condition on
+		// the pre-departure board as it was; every other trigger reads the
+		// post-event state, so its present count skips the window's
+		// departures (Lifeline: the dying creature is not the "another
+		// creature" of its own death's condition). A simultaneous batch is ONE
+		// event (CR 704.3, 603.2c), so every member counts as departed for
+		// every member's walk, moved yet or not. The snapshot
+		// board itself stays untouched: the SOURCE-existence look-back and
+		// every event-RELATIVE clause keep reading the pre-departure object.
+		observer.windowDeparted = e.windowDepartures
 		// The no-ability-loss proof covers every object and registration
 		// the snapshot can hold (abilityloss.go).
 		observer.lossProof = abilityLossProof{seen: e.abilityLossPossible(), objs: e.lossProof.objs, contLen: -1}
