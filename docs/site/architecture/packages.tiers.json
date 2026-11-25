@@ -665,6 +665,10 @@
       "tier": "dirac",
       "status": "EXT"
     },
+    "dirac/cmd/dpod": {
+      "tier": "dirac",
+      "status": "EXT"
+    },
     "dirac/cmd/kgen": {
       "tier": "dirac",
       "status": "EXT"

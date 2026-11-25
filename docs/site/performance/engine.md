@@ -33,7 +33,9 @@ flowchart LR
 
 The workloads are four 17lands Foundations (FDN) decks and an mtg-kernel Burn deck in
 [`cmd/enginebench/testdata/decks`](https://github.com/adams-shaun/gorge/blob/main/cmd/enginebench/testdata/decks/README.md). Pair A is UG vs WG,
-and pair B is WR vs UR. Seats alternate every game and game `g` uses seed `base + g`, so a row is reproducible.
+and pair B is WR vs UR. Seats alternate every game and game `g` uses seed `base + g`, so a row is reproducible. `-pair fdc` plays four-player Commander pods of
+the Foundations Commander precons instead, and `-pair fdc-sub -pod-dir DIR` the same pods with dirac's refused cards replaced by basics
+([Four-player Commander pods](index.md#four-player-commander-pods)).
 
 ??? info "What each row runs"
 

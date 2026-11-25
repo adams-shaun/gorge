@@ -66,12 +66,6 @@ func (s *State) priorityHandAct(k *prep, d *Decision, p uint8, sorc bool, av *av
 			if !s.handActCensusPays(k, p, mana, pd, av) {
 				continue
 			}
-			if mana.X > 0 && s.cfg&cfgGorgeUnpriced != 0 && !s.poolPaysAct(k, p, mana, pd) {
-				// gorge's planner declines an {X} activation (PlanCostDetail
-				// cost:x; legal.go's battlefield gate): a hand one (X cycling,
-				// ) is offered only when the floating pool pays it
-				continue
-			}
 			if a.AFlags&kop.AfNinjutsu != 0 && !s.ninjutsuOfferOK(k, a, p, o) {
 				continue // its window and its Return candidate (kw_ninjutsu.go)
 			}
