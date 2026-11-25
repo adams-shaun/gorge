@@ -35,6 +35,12 @@ func TestCanEnchantSourcePredicate(t *testing.T) {
 	if !MatchesSpecCtx(h.g, "Aura.CanEnchantSource", favor.ID, c.SpecContext(0)) {
 		t.Fatal("Enchant creature Aura did not match a creature source")
 	}
+	// Bruna's ZoneAuras SVar spells the hand/graveyard read
+	// Aura.CanEnchantSource+YouOwn: an owned, off-battlefield Aura card is a
+	// candidate too.
+	if !MatchesSpecCtx(h.g, "Aura.CanEnchantSource+YouOwn", favor.ID, c.SpecContext(0)) {
+		t.Fatal("the ZoneAuras hand/graveyard spelling did not match a YouOwn Aura card")
+	}
 
 	// The same Aura cannot enchant a land: a legal source is not any source.
 	land := h.g.AddObject(mkCard(t, "Name:Forest\nTypes:Basic Land Forest\nOracle:x\n"), 0)
