@@ -1,5 +1,5 @@
 family: StaticKind
 name: StatMiracleGrant
-value: 75
+value: next
 status: active
 doc: StatMiracleGrant is a Continuous static's AffectedZone$ Hand AddKeyword$ Miracle:<cost> grant (Lorehold, the Historian; Molecule Man; Aminatou, Veil Piercer; CR 702.94a): Filter matches the card in a hand and the granted miracle cost is GrantCost, or under CardCostLess the card's own mana cost reduced by CardCostLess-1 generic (Miracle:ManaCost:4). A card with printed miracle keeps its own (gorge derivedKeywordParamH reads the printed head first); the first grant in perm.ts order wins. Read live from the battlefield at the draw, the reveal-trigger resolution and the cast, never stamped on the card (kw_miracle.go miracleCostOf).
