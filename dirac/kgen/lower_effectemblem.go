@@ -417,6 +417,11 @@ func (lc *lowerCtx) effectEmblemStaticHost(s cards.Static, host bool) (lStatic, 
 				return lStatic{}, refuse("Effect static stack grant with EffectZone Stack")
 			}
 		}
+		if st.Kind == "StackKw" && len(st.Kw) == 1 && st.Kw[0] == "Rebound" {
+			// a granted Rebound runs the carrier card's recast body
+			// (kw_rebound.go reboundPlan); an emblem has no card
+			return lStatic{}, refuse("Effect static stack grant of Rebound")
+		}
 	}
 	if host {
 		if err := emblemFiltersRefuseHost("Effect static", st.F, st.F2); err != nil {

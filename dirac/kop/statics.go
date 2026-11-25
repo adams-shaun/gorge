@@ -58,7 +58,8 @@ type Static struct {
 	GrantSt uint8
 	// GrantBody: the source card's ability GrantBody-1 is the granted-keyword
 	// activation body the offer runs with the affected card as its source
-	// (0 = none; StatUnearthGrant, kw_unearthgrant.go). Not a Grant: the body
+	// (0 = none; StatUnearthGrant, kw_unearthgrant.go; StatStackKw Rebound: the
+	// carrier's upkeep recast body, kw_rebound.go). Not a Grant: the body
 	// is never granted to the affected objects, so no grant ledger or grant
 	// prep reads it.
 	GrantBody uint8

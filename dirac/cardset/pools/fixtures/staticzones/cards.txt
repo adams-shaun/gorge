@@ -10,8 +10,12 @@
 # Medomai the Ageless, Moonrager's Slash, Thraben Doomsayer, Village
 # Survivors) stay out: their statics refuse (gorge fails closed on the
 # condition, reported), and a refused card cannot sit in a pool.
+# The AffectedZone$ Stack keyword grants (dirac/kgen/lower_stackkw.go): Cast
+# Through Time (rebound) over blue instants and sorceries, with mana rocks;
+# Peter Parker's Amazing Spider-Man face (web-slinging) over legendary spells.
 Bladegraft Aspirant
 Case of the Locked Hothouse
+Cast Through Time
 Dawnglade Regent
 Dragon's Rage Channeler
 Entourage of Trest
@@ -19,14 +23,19 @@ Field of Dreams
 Geist of the Lonely Vigil
 Giant Growth
 Grizzly Bears
+Iridescent Tiger
 Ivory Mask
 Lantern of Insight
 Lightning Bolt
+Mind Stone
 Minamo Scrollkeeper
+Opt
+Peter Parker
 Power Artifact
 Queen Mother Ramonda
 Shock
 Slithering Shade
+Sol Ring
 Solitary Confinement
 Spire Serpent
 Swords to Plowshares
@@ -41,3 +50,4 @@ Island
 Swamp
 Forest
 Mountain
+Zinnia, Valley's Voice

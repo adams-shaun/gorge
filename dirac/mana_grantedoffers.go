@@ -3509,7 +3509,11 @@ func (s *State) grantPlayCostRaise(k *prep, p uint8, a Action, kicked bool) (cos
 			}
 			// the composed cost (pair 8638)
 			c := s.objs[a.Source()].card
-			cost = s.featCost(k, SeatIx(p), c, Obj(a.Source()), addCost(k.cards[c].cost, kickAdd(&k.t.Cards[c])))
+			kp := s.kickPayment(k, SeatIx(p), c, Obj(a.Source()), true)
+			if DebugGrantKickNoMulti && k.t.Cards[c].HasMultikicker {
+				kp = k.t.Cards[c].Kicker // the mutation switch: a Multikicker play priced at its base alone
+			}
+			cost = s.featCost(k, SeatIx(p), c, Obj(a.Source()), addCost(k.cards[c].cost, kp))
 			if s.convAnyType(k, SeatIx(p), Obj(a.Source())) {
 				cost = anyTypePips(cost) // a creature's kicked total under Vizier's conversion, as plannedCastCostOf prices the plain one (featview.go)
 			}
