@@ -42,15 +42,14 @@ func selfCombatDamageDone(tp *params, tr *lTrigger, t cards.Trigger) bool {
 // LosesGame line on that player (ValidPlayer$ Player.IsRemembered) and,
 // optionally, the Effect's Static$ Always self-exile once the player has no
 // contract counter. The Effect lowers to nothing at every seat count, because
-// gorge, the reference, arms nothing for it: effects.effEffect
-// splits Triggers$ on whitespace only, so the comma list
-// "LoseGameTrigger,ExileEffect" is one unparseable name (a Note, no delayed
-// trigger), and in a pod, where a loss does not end the game, no copy of the
-// loser's artifacts and creatures is ever made. The kernel matches that; when
-// gorge arms the LosesGame line, the four-seat pod lockstep
-// (TestFourSeatMissHighwaterPodsLockstep) diverges at the first contracted
-// loss and this lowering owes the trigger. done is false for any other
-// Triggers$ list, which the emblem lowering reads (and refuses) as before.
+// gorge, the reference, never fires it: effects.effEffect registers the
+// LosesGame line, but rules' delayed-trigger walk has no LosesGame matcher
+// (delayedEventModeHandled), so in a pod, where a loss does not end the game,
+// no copy of the loser's artifacts and creatures is ever made. The kernel
+// matches that; when gorge fires the LosesGame line, the four-seat pod
+// lockstep (TestFourSeatMissHighwaterPodsLockstep) diverges at the first
+// contracted loss and this lowering owes the trigger. done is false for any
+// other Triggers$ list, which the emblem lowering reads (and refuses) as before.
 func (lc *lowerCtx) contractLossEffect(ps *params, list string) (done bool, err error) {
 	names := strings.FieldsFunc(list, func(r rune) bool { return r == ',' || r == ' ' })
 	if len(names) == 0 || len(names) > 2 {
