@@ -33,18 +33,19 @@ import (
 //     planeswalker pick gorge does not), another the attack.
 //   - a RepeatEach over players whose body is a ChooseCard naming the repeated
 //     player's cards (Soul Shatter, Flare of Malice, Rite of Ruin, Grave
-//     Consequences, Watchers of the Dead, Highcliff Felidar, Disciple of
+//     Consequences, Watchers of the Dead, Disciple of
 //     Caelus Nin, Fortunate Few, Ultimate Magic: Meteor, Thieves' Auction):
 //     the pick is remembered for the post-loop sacrifice/exile/destroy node or
 //     enters under the repeated player. The mutations move the chooser, drop
 //     RememberChosen$, drop the counted pick's remember flag, replace the
 //     greatest-mana-value filter, and move the stolen card's new controller.
 //
-// Tariff (the chosen card's mana value as an unless cost) and the split-card
-// faces Discovery/Dispersal and Flotsam/Jetsam lower (dirac/kgen's
-// TestRepeatEachSlice) but are not in this fixture yet: the first still shows
-// a payability divergence and the split faces a face-cast projection gap;
-// the follow-up ticket covers finishing both.
+// Tariff (the greatest-mana-value pick), Highcliff Felidar (Defined$ You over the
+// greatest-power pick: an empty pick in gorge where the kernel offers a lesser
+// creature, seed 94 of the old deck mix), Discovery/Dispersal and Flotsam/Jetsam
+// (split-card faces) stay refused by name: lockstep measured a candidate-pool
+// divergence for the first and a face-cast projection gap for the others, and
+// a lowering that diverges must not ship. The follow-up ticket covers them.
 func TestRepeatEachSliceLowers(t *testing.T) {
 	if isolate(t) {
 		return
@@ -52,10 +53,10 @@ func TestRepeatEachSliceLowers(t *testing.T) {
 	t.Run("lockstep", func(t *testing.T) {
 		run := runFixtureLockstep(t, "repeateachslice", repeatEachSliceDecks, repeatEachSliceWatch, 200, true, nil)
 		t.Logf("%d games, %d divergences, %d stalls, casts %v", run.games, run.divs, run.stalls, run.casts)
-		for name, min := range map[string]int{"Stampede Surfer": 10, "Ainok Strike Leader": 10, "Jace Beleren": 5, "Acidic Soil": 10, "Sunspine Lynx": 10, "Typhoon": 10, "Spirit Link": 10, "Heartless Hidetsugu": 20, "Another Round": 3, "Exponential Growth": 10, "Full Flowering": 10, "Torment of Hailfire": 20, "Oath of Lim-Dûl": 10, "Varchild's War-Riders": 20, "Trade Secrets": 10,
-			"Soul Shatter": 3, "Flare of Malice": 2, "Grave Consequences": 2, "Watchers of the Dead": 3,
-			"Rite of Ruin": 1, "Highcliff Felidar": 1, "Disciple of Caelus Nin": 1,
-			"Fortunate Few": 1, "Ultimate Magic: Meteor": 1, "Thieves' Auction": 1} {
+		for name, min := range map[string]int{"Stampede Surfer": 10, "Ainok Strike Leader": 10, "Jace Beleren": 5, "Acidic Soil": 10, "Sunspine Lynx": 10, "Typhoon": 10, "Spirit Link": 10, "Heartless Hidetsugu": 20, "Another Round": 10, "Exponential Growth": 10, "Full Flowering": 10, "Torment of Hailfire": 20, "Oath of Lim-Dûl": 10, "Varchild's War-Riders": 20, "Trade Secrets": 10,
+			"Soul Shatter": 30, "Flare of Malice": 10, "Grave Consequences": 10, "Watchers of the Dead": 15,
+			"Rite of Ruin": 5, "Disciple of Caelus Nin": 10,
+			"Fortunate Few": 6, "Ultimate Magic: Meteor": 10, "Thieves' Auction": 5} {
 			if run.casts[name] < min {
 				t.Errorf("only %d %s casts (want %d)", run.casts[name], name, min)
 			}
@@ -175,7 +176,7 @@ func TestRepeatEachSliceLowers(t *testing.T) {
 	t.Run("mutation/ChooseGreatestCMCFilter", func(t *testing.T) {
 		n := 0
 		run := runFixtureLockstep(t, "repeateachslice", repeatEachSliceDecks, repeatEachSliceWatch, 200, false, func(tbl *kop.Table) {
-			for _, name := range []string{"Soul Shatter", "Tariff"} {
+			for _, name := range []string{"Soul Shatter"} {
 				mutateCardIfPresent(t, tbl, name, func(_ *kop.Ability, in *kop.Instr) {
 					if in.Op == kop.OpChooseCard {
 						in.F, n = 0, n+1 // any card instead of the greatest-mana-value pick
@@ -187,6 +188,20 @@ func TestRepeatEachSliceLowers(t *testing.T) {
 			t.Fatal("no ChooseCard in the table (the greatest-CMC filter is not lowered)")
 		}
 		run.requireDivergence(t, "the greatest-mana-value filter replaced by any card")
+	})
+	t.Run("mutation/FortunateFewFilter", func(t *testing.T) {
+		n := 0
+		run := runFixtureLockstep(t, "repeateachslice", repeatEachSliceDecks, repeatEachSliceWatch, 200, false, func(tbl *kop.Table) {
+			mutateCardIfPresent(t, tbl, "Fortunate Few", func(_ *kop.Ability, in *kop.Instr) {
+				if in.Op == kop.OpChooseCard {
+					in.F, n = 0, n+1 // any card instead of the opponents' (!RememberedPlayerCtrl)
+				}
+			})
+		})
+		if n == 0 {
+			t.Fatal("no ChooseCard in Fortunate Few (the !RememberedPlayerCtrl filter is not lowered)")
+		}
+		run.requireDivergence(t, "Fortunate Few's pick widened to the chooser's own permanents")
 	})
 	t.Run("mutation/ThievesControl", func(t *testing.T) {
 		n := 0
@@ -226,7 +241,7 @@ var repeatEachSliceWatch = map[string]bool{
 	"Another Round": true, "Exponential Growth": true, "Full Flowering": true,
 	"Torment of Hailfire": true, "Oath of Lim-Dûl": true, "Varchild's War-Riders": true, "Trade Secrets": true,
 	"Soul Shatter": true, "Flare of Malice": true, "Grave Consequences": true, "Watchers of the Dead": true,
-	"Rite of Ruin": true, "Highcliff Felidar": true, "Disciple of Caelus Nin": true,
+	"Rite of Ruin": true, "Disciple of Caelus Nin": true,
 	"Fortunate Few": true, "Ultimate Magic: Meteor": true, "Thieves' Auction": true,
 }
 
@@ -318,12 +333,12 @@ var repeatEachSliceDecks = []fixtureDecks{
 	},
 	{
 		// per-player ChooseCard over the repeated player's permanents:
-		// the greatest-power/CMC pick, up to five picks, not-remembered
+		// up to five picks, not-remembered
 		// picks, the chosen artifact/land, and the exiled-card steal
 		{
-			{Name: "Highcliff Felidar", Count: 2}, {Name: "Disciple of Caelus Nin", Count: 2},
+			{Name: "Disciple of Caelus Nin", Count: 2},
 			{Name: "Fortunate Few", Count: 2}, {Name: "Ultimate Magic: Meteor", Count: 2},
-			{Name: "Thieves' Auction", Count: 1}, {Name: "Grizzly Bears", Count: 5},
+			{Name: "Thieves' Auction", Count: 3}, {Name: "Grizzly Bears", Count: 5},
 			{Name: "Llanowar Elves", Count: 3},
 			{Name: "Island", Count: 5}, {Name: "Plains", Count: 5},
 			{Name: "Mountain", Count: 5}, {Name: "Forest", Count: 4}, {Name: "Swamp", Count: 4},

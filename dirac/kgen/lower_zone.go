@@ -1898,7 +1898,10 @@ func (lc *lowerCtx) chooseCard(ps *params) error {
 	case "Amount", "AmountOpt", "AtRandom":
 		in.A = maxV
 	}
-	if ps.is("RememberChosen", "True") {
+	if lc.repeatPl > 0 && ps.is("RememberChosen", "True") {
+		// Scope: RepeatEach player bodies only. Outside a loop the
+		// remembered set is read by no lowered node, so the param stays
+		// unconsumed and the card keeps refusing.
 		// RememberChosen$ (gorge choiceRecord): the picked cards join the
 		// resolution's remembered set. The one-card pick rides the op's
 		// Remember code; a counted pick carries the flag in B, read by the
@@ -1910,9 +1913,6 @@ func (lc *lowerCtx) chooseCard(ps *params) error {
 		switch mode {
 		case "":
 			mode = "Remember"
-		case "Optional":
-			in.B = cst(1)
-			mode = "OptionalRemember"
 		case "Amount":
 			in.B = cst(1)
 			mode = "AmountRemember"
@@ -1920,10 +1920,13 @@ func (lc *lowerCtx) chooseCard(ps *params) error {
 			in.B = cst(1)
 			mode = "AmountOptRemember"
 		default:
+			// "Optional" (an up-to-one Done pick, Jetsam's graveyard pick)
+			// stays out: its split-card face lockstep diverged.
 			return refuse("ChooseCard RememberChosen$ with %s", mode)
 		}
 	}
-	if ps.is("ForgetChosen", "True") {
+	if lc.repeatPl > 0 && ps.is("ForgetChosen", "True") {
+		// RepeatEach player bodies only (as RememberChosen$ above).
 		// ForgetChosen$ True (gorge chooseCardRecord): after the choice is
 		// recorded, each picked card leaves the resolution's remembered set
 		// (Thieves' Auction's repeat-until-empty loop). The kernel's

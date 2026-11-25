@@ -196,19 +196,7 @@ func (lc *lowerCtx) repeatChooseGreatest(who lRef, body *cards.SA) (bool, error)
 		return false, nil
 	}
 	ps := newParams(body.Params)
-	if ps.str("Choices") != "Creature.greatestPowerControlledByRemembered" {
-		return false, nil
-	}
-	// Defined$ Player.IsRemembered is the repeated player choosing for
-	// herself (Gix's Command); Defined$ You is the resolving controller
-	// choosing among the repeated opponent's creatures (Highcliff Felidar).
-	// Both read the same repeated-player aggregate; only the chooser differs.
-	chooser := lRef{Kind: rEach}
-	switch ps.str("Defined") {
-	case "Player.IsRemembered":
-	case "You":
-		chooser = lRef{Kind: rYou}
-	default:
+	if ps.str("Choices") != "Creature.greatestPowerControlledByRemembered" || ps.str("Defined") != "Player.IsRemembered" {
 		return false, nil
 	}
 	if !ps.is("Mandatory", "True") || !ps.is("RememberChosen", "True") {
@@ -227,68 +215,28 @@ func (lc *lowerCtx) repeatChooseGreatest(who lRef, body *cards.SA) (bool, error)
 	if err != nil {
 		return true, err
 	}
-	f := &lFilter{Clauses: []lClause{{Types: tCreature, Ctrl: whoEachPl, CmpStat: cmpPower, CmpOp: opGE, CmpV: &maxV}}}
+	f := &lFilter{Clauses: []lClause{{Types: tCreature, Ctrl: whoYou, CmpStat: cmpPower, CmpOp: opGE, CmpV: &maxV}}}
 	at := len(lc.ab.Prog)
 	lc.emit(lInstr{Op: "RepeatEach", Obj: who, C: 1})
-	lc.emit(lInstr{Op: "ChooseCard", Obj: chooser, F: f, C: zBattlefield, CS: "Remember"})
+	lc.emit(lInstr{Op: "ChooseCard", Obj: lRef{Kind: rEach}, F: f, C: zBattlefield, CS: "Remember"})
 	lc.ab.Prog[at].Skip = len(lc.ab.Prog) - at - 1
 	return true, nil
 }
 
-// chooseCardFilter builds a ChooseCard's Choices$ filter. Inside a RepeatEach
-// player body the greatest-by-stat words read the repeated player's
-// permanents: the aggregate is computed there (kop.CtrlEachPl) and the
-// candidate clause compares its own stat against it. Every other filter goes
-// through the ordinary parser.
+// chooseCardFilter builds a ChooseCard's Choices$ filter through the ordinary
+// parser. Inside a RepeatEach player body whose chooser is the repeated player,
+// "not controlled by the remembered player" is the kernel's CtrlOpp read from
+// the chooser's perspective (Fortunate Few's !RememberedPlayerCtrl). A pick
+// whose chooser is not the repeated player keeps refusing the word: the two
+// are not the same set then. The greatest-power/-mana-value spellings stay
+// with Gix's Command's own lowering (repeatChooseGreatest); Highcliff Felidar
+// (Defined$ You) and Tariff (greatestCMC_...) refuse, see the lockstep-gaps
+// ticket.
 func (lc *lowerCtx) chooseCardFilter(choices string, chooserEach bool) (*lFilter, error) {
-	if lc.repeatPl > 0 {
-		if chooserEach {
-			// The chooser is the repeated player, so "not controlled by the
-			// remembered player" is the kernel's CtrlOpp read from the
-			// chooser's perspective (Fortunate Few). A pick whose chooser is
-			// not the repeated player keeps refusing the word: the two are
-			// not the same set then.
-			choices = strings.ReplaceAll(choices, "!RememberedPlayerCtrl", "OppCtrl")
-		}
-		switch choices {
-		case "Creature.greatestPowerControlledByRemembered":
-			return lc.greatestControlledFilter("Creature.RememberedPlayerCtrl", "Count$Valid Creature.RememberedPlayerCtrl$GreatestCardPower", cmpPower)
-		case "Creature.greatestCMC_CreatureControlledByRemembered":
-			return lc.greatestControlledFilter("Creature.RememberedPlayerCtrl", "Count$Valid Creature.RememberedPlayerCtrl$GreatestCardManaCost", cmpCMC)
-		case "Permanent.greatestCMC_NonLandPermanentControlledByRemembered":
-			return lc.greatestControlledFilter("Permanent.nonLand+RememberedPlayerCtrl", "Count$Valid Permanent.nonLand+RememberedPlayerCtrl$GreatestCardManaCost", cmpCMC)
-		}
+	if lc.repeatPl > 0 && chooserEach {
+		choices = strings.ReplaceAll(choices, "!RememberedPlayerCtrl", "OppCtrl")
 	}
 	return lc.filter(choices)
-}
-
-// greatestControlledFilter is chooseCardFilter's greatest-by-stat arm: base is
-// the candidate's ordinary filter (the repeated player's creatures or
-// nonland permanents) and count its greatest-stat aggregate. The aggregate is
-// read inside the loop, so it sees the iteration's player.
-func (lc *lowerCtx) greatestControlledFilter(base, count string, stat uint8) (*lFilter, error) {
-	maxV, err := lc.svarValue(count, 0)
-	if err != nil {
-		return nil, err
-	}
-	f, err := lc.filter(base)
-	if err != nil {
-		return nil, err
-	}
-	for i := range f.Clauses {
-		f.Clauses[i].CmpStat = stat
-		// The kernel has a value-bounded power compare both ways but a
-		// mana-value one only at or below the bound (PredCMCLEV); the
-		// aggregate is the maximum, so equality selects the greatest-CMC
-		// candidates.
-		f.Clauses[i].CmpOp = opGE
-		if stat == cmpCMC {
-			f.Clauses[i].CmpOp = opEQ
-		}
-		f.Clauses[i].CmpV = &maxV
-		f.Clauses[i].CmpX = ""
-	}
-	return f, nil
 }
 
 // a RepeatEach player body reading the repeated

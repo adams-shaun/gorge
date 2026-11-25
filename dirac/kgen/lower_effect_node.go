@@ -429,12 +429,6 @@ func (lc *lowerCtx) unless(ps *params, fn func() error) error {
 	}
 	if isRes {
 		in = ri
-	} else if strings.TrimSpace(uc) == "DefinedCost_ChosenCard" {
-		// Forge's DefinedCost_ChosenCard (Tariff): the chosen card's mana
-		// VALUE as one generic cost. gorge's unlessDefinedCost renders it
-		// at the ask; the kernel's ExMVOf over RefChosen reads the same
-		// card as the cost is offered.
-		in = lInstr{CS: "Mana", A: lValue{Kind: vMVOf, Ref: lRef{Kind: rChosen}}, B: cst(0)}
 	} else if _, isVar := lc.face.SVars[strings.TrimSpace(uc)]; isVar {
 		// an SVar-sized generic mana cost (Dazzling Denial's Y: {4} if you
 		// control a Bird, else {2}); gorge evaluates it as the ask is posed
