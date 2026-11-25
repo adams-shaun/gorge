@@ -849,6 +849,23 @@ func (s *State) enterCountValue(k *prep, v kop.ValueRef, sl Slot, ctrl uint8) in
 		}
 		return s.expr(k, v.N, c)
 	}
+	if r := s.replSrcOf(); r != 0 && Slot(r-1) != sl && !DebugOthersEnterEntrantValue {
+		// the direct self reads of another permanent's others-enter program
+		// read that source too (Master Biomancer's "equal to Master
+		// Biomancer's power": kgen writes Count$CardPower as VSelfPower,
+		// where Arwen's toughness rides VExpr above)
+		src := Slot(r - 1)
+		switch v.K {
+		case kop.VSelfPower, kop.VSelfToughness:
+			p, t := s.pt(k, src)
+			if v.K == kop.VSelfPower {
+				return p
+			}
+			return t
+		case kop.VCountersSelf:
+			return s.perms[src].ctrN(s, int(v.N))
+		}
+	}
 	if v.K != kop.VCountFilter {
 		return s.value(k, v)
 	}

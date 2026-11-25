@@ -314,6 +314,14 @@ func updatedBodyClass(m replMatch) string {
 			untap = true
 		case cards.APIPutCounter:
 			// Additive on a fresh entry: rides with anything.
+		case cards.APIAnimate:
+			// "enters as a Mutant in addition to its other types" (Master
+			// Biomancer): a permanent added type on the entrant only, which
+			// composes with any other body in either order. Any other
+			// Animate (P/T, keywords, removals, a duration) stays "other".
+			if !animateAddsTypesOnly(sa) {
+				return "other"
+			}
 		default:
 			return "other"
 		}
@@ -330,6 +338,22 @@ func updatedBodyClass(m replMatch) string {
 	default:
 		return "record"
 	}
+}
+
+// animateAddsTypesOnly reports whether an Animate body only adds Types$ to
+// the replaced entrant for good: Defined$ ReplacedCard, Duration$ Permanent,
+// and no parameter beyond those, the chain link and the descriptions.
+func animateAddsTypesOnly(sa *cards.SA) bool {
+	if sa.Params["Types"] == "" || sa.Params["Defined"] != "ReplacedCard" || sa.Params["Duration"] != "Permanent" {
+		return false
+	}
+	n := 3
+	for _, k := range [...]string{"SubAbility", "SpellDescription", "StackDescription"} {
+		if _, ok := sa.Params[k]; ok {
+			n++
+		}
+	}
+	return len(sa.Params) == n
 }
 
 // entersUntappedApplies reports whether an "enters untapped" replacement applies
