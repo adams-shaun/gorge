@@ -46,15 +46,30 @@ const clueToken = "c_a_clue_draw"
 // one one-token CreateToken repeated by the value (read once, as gorge's
 // Num is). Defined$ Player.withMostTypeCreature (gorge playerHasMost over
 // AliveFrom(controller)) runs the mint once per player who controls the
-// most creatures, controller first, both on a tie. Other Defined$ and
-// ValidTgts$ than You, Optional$ and RememberInvestigatingPlayers$ refuse.
+// most creatures, controller first, both on a tie. Defined$
+// TargetedController mints for the chain's target's controller. Other
+// Defined$ and ValidTgts$ than You, Optional$ and RememberInvestigatingPlayers$
+// refuse.
 func (lc *lowerCtx) investigate(ps *params) error {
 	most := false
+	var ctrl lRef // Defined$ TargetedController: the targeted object's controller
 	if d, ok := ps.get("Defined"); ok {
 		switch strings.TrimSpace(d) {
 		case "You":
 		case "Player.withMostTypeCreature":
 			most = true
+		case "TargetedController":
+			// Fateful Absence's "Its controller investigates" (gorge
+			// effInvestigate's Defined$ through definedPlayerIDs, the same
+			// referent a Swords to Plowshares life gain reads after its exile)
+			r, err := lc.defined("TargetedController")
+			if err != nil {
+				return err
+			}
+			if _, ok := ps.get("ValidTgts"); ok {
+				return refuse("Investigate Defined$ TargetedController beside its own ValidTgts$")
+			}
+			ctrl = r
 		default:
 			return refuse("Investigate Defined$ %q", d)
 		}
@@ -67,7 +82,10 @@ func (lc *lowerCtx) investigate(ps *params) error {
 		return err
 	}
 	who := lRef{Kind: rEach}
-	if !most {
+	switch {
+	case ctrl.Kind != rNone:
+		who = ctrl
+	case !most:
 		if who, err = lc.investigator(ps); err != nil {
 			return err
 		}
