@@ -94,6 +94,23 @@ func (s *State) addPhaseExtraUntap() bool {
 	return false
 }
 
+// firstDrawLanding is the step a skipped first-turn draw step leaves for (gorge
+// skipFirstDrawLanding). CR 103.8a skips only the draw: inside an extra
+// beginning phase (a consumed entry ending at the draw step) the phase
+// completes as any range end does and the walk resumes where it says, the end
+// step after Main2; the ordinary beginning phase goes on to Main1.
+func (s *State) firstDrawLanding() kop.Step {
+	if s.turn != 1 || s.nSeats() != 2 {
+		return kop.StepMain1
+	}
+	for i := 0; i < int(s.g.nxph); i++ {
+		if at := s.g.xph[i].at; at&xphConsumed != 0 && addPhaseEnd(at) == kop.StepDraw {
+			return s.addPhaseNext(kop.StepMain1) // s.step is the draw step: its range end is left
+		}
+	}
+	return kop.StepMain1
+}
+
 // DebugAddPhaseResumeWrong (TestAddphaseMutation): a completed extra phase
 // resumes at its own last step's successor instead of the splice point's.
 var DebugAddPhaseResumeWrong bool
