@@ -196,7 +196,80 @@ func (e *Engine) repriceForTargets(pc *pendingCast) {
 			pc.ownReduce = n
 		}
 	}
+	// A target-bound text-defined {X} (pay.TargetBoundManaX, Reflecting
+	// Mirror): deferredManaXOffer priced the cheapest legal candidate before
+	// CR 601.2c; the answer now exists, so fold the chosen target's value and
+	// net-adjust generic by the delta. deferredXFolded tracks what was already
+	// added, so a re-entry (a mana-window resume) computes delta 0.
+	if pc.deferredX > 0 && len(pc.targets) > 0 {
+		if body, present := e.pileSVars(pc.card, pc.abilityMerged)["X"]; present {
+			if n, ok := pay.DefinedManaXForTargets(asPayer(e), pc.player, pc.card, body, pc.targets, pc.allTargets()); ok {
+				want := n * pc.deferredX
+				pc.cost.Generic = addClampedGeneric(pc.cost.Generic, int64(want-pc.deferredXFolded))
+				pc.deferredXFolded = want
+			}
+		}
+	}
 	pc.mods = pc.withDefiler(e.costModifiersForTargets(pc.player, pc.card, scope, pc.allTargets()))
+}
+
+// abilityOfferBaseCost is the printed ability's compiled cost the offer walk
+// prices: the mana facts' cached parse (mf) when present, else the freshly
+// compiled cost. deferredManaXOffer folds a target-bound {X} into it before
+// the walk's reductions.
+func abilityOfferBaseCost(mf *manaSAFacts, fallback Cost) Cost {
+	if mf != nil && mf.cost != freeCost {
+		return mf.cost.Cost
+	}
+	return fallback
+}
+
+// deferredXManaSource is the rules-side seam deferredManaXOffer reads: the
+// ability's pile SVar table and the offer walk's legal target census. Keeping
+// it an interface rather than an *Engine parameter follows the narrow-reach
+// rule: the fold is not another door onto the whole engine.
+type deferredXManaSource interface {
+	pileSVars(id state.ObjID, merged int) map[string]string
+	costPotentialTargets(p state.PlayerID, id state.ObjID, scope costScope) []state.Target
+}
+
+// deferredManaXOffer prices a printed {X} whose SVar:X is target-bound
+// (pay.TargetBoundManaX: Reflecting Mirror's "X is twice the mana value of
+// that spell") at cost determination (CR 107.3c, 601.2f). No target exists
+// when the cost is composed (CR 601.2c runs after), so it prices the minimum
+// value over every legal candidate -- the same existential best-target price
+// ownReduceCostOffer uses -- and the offer gate and the charge agree.
+// repriceForTargets replaces that price with the chosen target's value. e is
+// the payment-layer evaluation view, src the rules-side source reads.
+//
+// It returns the folded cost, the number of {X} symbols, the generic amount
+// folded (symbols times the value), and ok. A cost outside this shape is
+// returned unchanged with ok=true; a target-bound cost whose every legal
+// candidate is unresolvable or negative is withheld (ok=false), the
+// fail-closed direction FixLifeXCost takes. Single-target only: each
+// candidate is evaluated as the lone target.
+func deferredManaXOffer(e pay.Engine, src deferredXManaSource, p state.PlayerID, id state.ObjID, ab *cards.SA, merged int, c Cost) (Cost, int32, int32, bool) {
+	body, present := src.pileSVars(id, merged)["X"]
+	if !present || !pay.TargetBoundManaX(c, body) {
+		return c, 0, 0, true
+	}
+	best := int32(-1)
+	for _, cand := range src.costPotentialTargets(p, id, abilityScope(ab)) {
+		targets := []state.Target{cand}
+		if n, ok := pay.DefinedManaXForTargets(e, p, id, body, targets, targets); ok && (best < 0 || n < best) {
+			best = n
+		}
+	}
+	if best < 0 {
+		return c, 0, 0, false
+	}
+	symbols := int32(c.X)
+	folded := best * symbols
+	out := c
+	out.Generic = addClampedGeneric(out.Generic, int64(folded))
+	out.X = 0
+	out.XMin = 0
+	return out, symbols, folded, true
 }
 
 // foldStriveCost prices the Strive keyword's per-extra-target additional

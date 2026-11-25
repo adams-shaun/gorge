@@ -107,6 +107,15 @@ func (e *Engine) beginActivationPaid(p state.PlayerID, opt decision.Option, auto
 		// ability; a stale option that slips through degrades to a no-op.
 		return
 	}
+	// A printed {X} whose SVar:X is target-bound (Reflecting Mirror's twice
+	// the target spell's mana value) cannot be fixed before CR 601.2c: price
+	// the cheapest legal candidate now, so the charge agrees with the offer
+	// gate, and remember the symbols/folded amount for repriceForTargets to
+	// net-adjust once the chosen target exists (CR 107.3c, 601.2f).
+	cost, deferredX, deferredFolded, ok := deferredManaXOffer(asPayer(e), e, p, opt.Obj, ab, pa.Merged, cost)
+	if !ok {
+		return
+	}
 	// The ability's own ReduceCost$ (Otawara's Channel): the same fold the
 	// offer gate in engine/rules/legal.go applied, so the charge and the gate agree
 	// (CR 601.2f — a reduction applied to the stored cost exactly once).
@@ -137,6 +146,7 @@ func (e *Engine) beginActivationPaid(p state.PlayerID, opt decision.Option, auto
 	}
 	e.cast = e.newCast(p, opt.Obj, o.Zone, "", opt.Ability)
 	e.cast.abilityMerged, e.cast.cost, e.cast.mods, e.cast.ownReduce = pa.Merged, cost, mods, own
+	e.cast.deferredX, e.cast.deferredXFolded = deferredX, deferredFolded
 	e.cast.censusWindow = opt.CensusOffer
 	if autoPay && opt.AltCostIndex == 0 {
 		e.armAbilityAutoPay(e.cast, opt.Ability)
