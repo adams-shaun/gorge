@@ -16,6 +16,10 @@ func (lc *lowerCtx) changeZone(ps *params) error {
 	// the printed mana cost, which every cleave ability states), so the
 	// card stays refused there until the cost family lowers.
 	ps.consume("NonBasicSpell")
+	if r := lc.retCtr; r != nil && r.node == lc.curNode {
+		lc.retCtr = nil
+		return lc.retCtrMove(ps, r) // lower_effectreturnctr.go
+	}
 	if ps.peek("Chooser") == "You" && ps.peek("ValidTgts") != "" && ps.peek("Origin") == "Graveyard" && ps.peek("Hidden") == "" {
 		// a targeted graveyard move has no pick to answer: gorge reads
 		// Chooser$ in the hidden-origin pick, the library search

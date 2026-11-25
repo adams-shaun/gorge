@@ -6,7 +6,8 @@ import "testing"
 // lower whole: the stack-exile grant from an enters trigger or on a targeted
 // graveyard card (lower_effectstackexile.go), the chosen-source shield's
 // target, any-recipient, turn-long and gain-rider forms (lower_choosesource.go)
-// and Gideon's prevent-all-damage-to-him Effect (lower_preventallto.go).
+// Gideon's prevent-all-damage-to-him Effect (lower_preventallto.go) and the
+// graveyard return's enters-with-counters rider (lower_effectreturnctr.go).
 var effectReplacementsSlice = []string{
 	"Dire Fleet Daredevil", "Sins of the Past",
 	"Auriok Replica", "Burrenton Forge-Tender", "Charm Peddler", "Circle of Despair", "Martyr's Cause",
@@ -14,6 +15,7 @@ var effectReplacementsSlice = []string{
 	"Samite Blessing", "Sanctum Guardian",
 	"Cho-Arrim Alchemist", "Intervention Pact", "Reverse Damage",
 	"Gideon, Ally of Zendikar", "Gideon, Champion of Justice", "Gideon, Martial Paragon",
+	"Recommission", "Heroic Return", "What Must Be Done", "Winter Soldier, Reborn Avenger",
 }
 
 func TestEffectReplacementsSlice(t *testing.T) {
