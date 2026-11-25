@@ -6,16 +6,17 @@ import (
 )
 
 // TestEffectTriggersDamageBatchForms: an end-of-turn Effect's
-// Mode$ DamageDoneOnce line lowers as the per-event DamageDone emblem line
-// gorge's delayed-trigger path queues (it never latches the batch). The
-// gate's own refusals have no corpus card reaching them (grep the corpus's
-// Mode$ DamageDoneOnce Effect triggers: Aphelia and The Raven's Warning are
-// the two player-referent shapes, The Raven's Warning stays refused by its
-// wish ability), so synthetic faces pin each below.
+// Mode$ DamageDoneOnce line lowers as the per-referent DamageDone emblem line
+// (Tf2PerReferent) whose fireEmblemsDmg hook latches one instance per damaged
+// player per damage batch. The gate's own refusals have no corpus card
+// reaching them (grep the corpus's Mode$ DamageDoneOnce Effect triggers:
+// Aphelia and The Raven's Warning are the two player-referent shapes, The
+// Raven's Warning stays refused by its wish ability), so synthetic faces pin
+// each below.
 func TestEffectTriggersDamageBatchForms(t *testing.T) {
 	checkForms(t, []formCase{
-		{card: "Aphelia, Viper Whisperer", form: "EOT Effect DamageDoneOnce, per-event emblem line", lir: "CreateEmblem"},
-		{card: "Green Dragon", form: "EOT Effect DamageDoneOnce to creatures stays refused (body reads the damaged object the per-event line does not carry)", refused: "Effect DamageDoneOnce body reads TriggeredTargetLKICopy"},
+		{card: "Aphelia, Viper Whisperer", form: "EOT Effect DamageDoneOnce, per-referent batch emblem line", lir: "CreateEmblem"},
+		{card: "Green Dragon", form: "EOT Effect DamageDoneOnce to creatures stays refused (body reads the damaged object the emblem line does not carry)", refused: "Effect DamageDoneOnce body reads TriggeredTargetLKICopy"},
 		{card: "Jace, Cunning Castaway", form: "Duration$ EndOfTurn Effect stays refused", refused: "Effect triggers without a permanent duration"},
 	})
 	const base = "Name:Probe\nManaCost:2 B\nTypes:Creature Gorgon\nPT:1/1\n"
