@@ -10,8 +10,8 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // keywords are blind to where the keyword came from):
 //
 //   - a Continuous static's kop.Static.Evasion / Infect (AddKeyword$
-//     Intimidate / Infect: Bellowing Tanglewurm, Vow of Malice, Grafted
-//     Exoskeleton), a layer-6 grant: a later loss of the recipient's
+//     Intimidate / Skulk / Horsemanship / Infect: Bellowing Tanglewurm, Vow
+//     of Malice, Grafted Exoskeleton, Sun Quan, Lord of Wu), a layer-6 grant: a later loss of the recipient's
 //     abilities removes it (landwalkGranted's rule);
 //   - a Pump's Duration$ Permanent KW$ Horsemanship: kop.Override.Horsemanship
 //     on the grant's override record (ovHorsemanship), which a cleanup step
@@ -176,6 +176,9 @@ func (s *State) staticKwGrant(k *prep, sl Slot, has func(st *kop.Static) bool) b
 func staticGrantsIntimidate(st *kop.Static) bool { return st.Evasion&kop.EvIntimidate != 0 }
 func staticGrantsInfect(st *kop.Static) bool     { return st.Infect }
 func staticGrantsSkulk(st *kop.Static) bool      { return st.Evasion&kop.EvSkulk != 0 }
+func staticGrantsHorsemanship(st *kop.Static) bool {
+	return st.Evasion&kop.EvHorsemanship != 0
+}
 
 // evasionGranted is the permanent at sl's granted CardDef.Evasion bits.
 //
@@ -188,7 +191,8 @@ func (s *State) evasionGranted(k *prep, sl Slot) uint8 {
 	if s.kwMarked(k, sl, mechSkulk, mechSkulkPost) || s.staticKwGrant(k, sl, staticGrantsSkulk) {
 		ev |= kop.EvSkulk
 	}
-	if s.kwMarked(k, sl, mechHorsemanship, mechHorsemanshipPost) || s.ovHorsemanship(k, sl) {
+	if s.kwMarked(k, sl, mechHorsemanship, mechHorsemanshipPost) || s.ovHorsemanship(k, sl) ||
+		s.staticKwGrant(k, sl, staticGrantsHorsemanship) {
 		ev |= kop.EvHorsemanship
 	}
 	return ev

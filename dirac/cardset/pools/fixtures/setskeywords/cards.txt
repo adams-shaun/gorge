@@ -1,0 +1,17 @@
+# the CMM/MH3/MH2/CM2 keyword grants (dirac/oracle/sets_keywords_lowers_test.go
+# TestSetsKeywordGrantsLower): Sun Quan, Lord of Wu's and Herald of Hoofbeats'
+# granted horsemanship beside the Knights and Bears that attack under it (The
+# Dilu Horse a printed horsemanship body); Indebted Spirit's bestowed afterlife
+# 1 beside the Bears that wear it and the Bolts that kill them
+Sun Quan, Lord of Wu
+Herald of Hoofbeats
+The Dilu Horse
+Silver Knight
+White Knight
+Grizzly Bears
+Indebted Spirit
+Lightning Bolt
+Island
+Plains
+Mountain
+Forest

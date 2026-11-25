@@ -81,13 +81,13 @@ func splitStaticKwMarks(kw string) (rest string, evasion uint8, infect bool) {
 		// the keyword read still refuses it
 		rest = strings.TrimPrefix(rest+" & HIDDEN "+cards.HiddenSwitchPTKeyword, " & ")
 	}
-	if marks&kop.KwMarkHorsemanship != 0 {
-		// no static grant reads horsemanship yet (kop.Static.Evasion's
-		// EvHorsemanship is not lowered): keep the term so it still refuses
-		rest = strings.TrimPrefix(rest+" & Horsemanship", " & ")
-	}
 	if marks&kop.KwMarkIntimidate != 0 {
 		evasion = kop.EvIntimidate
+	}
+	if marks&kop.KwMarkHorsemanship != 0 {
+		// Sun Quan, Lord of Wu: Static.Evasion EvHorsemanship, read by
+		// evasionGranted beside the printed bit (dirac/kw_kwmark.go)
+		evasion |= kop.EvHorsemanship
 	}
 	if marks&kop.KwMarkSkulk != 0 {
 		evasion |= kop.EvSkulk
