@@ -56,9 +56,13 @@ func TestFlashbackInstanceNeedPricesSearchedInstance(t *testing.T) {
 
 	// A caller holding only the projection cannot tell the instances apart:
 	// the need reads must fail open, not price the printed {3}{R} beside the
-	// searched blue instance.
+	// searched blue instance. The bargained mode's may-play permission
+	// (Option.MayPlayPerm) is the same class of omitted field.
 	if _, exact := scriptNeedOption(action); exact {
 		t.Fatal("scriptNeedOption reports the flashback projection as exact")
+	}
+	if _, exact := scriptNeedOption(decision.PotentialAction{Kind: "cast", Mode: "bargained"}); exact {
+		t.Fatal("scriptNeedOption reports the bargained projection as exact")
 	}
 	shadow := e.newScriptSearch(0, action, 0, potentialScriptNodes)
 	if shadow == nil {
