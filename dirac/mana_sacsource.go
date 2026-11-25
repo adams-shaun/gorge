@@ -461,7 +461,7 @@ func (s *State) resolveLowerCounterTriggers(k *prep, n0 uint8, instant bool) {
 		// while the trigger is still on the stack (the instant branch below
 		// places it below the cast), so its optional ask belongs to the
 		// ordinary stack path, not to the lowering.
-		if a.Kind != kop.AbTriggered || a.NModes != 0 || a.Trig.Flags&kop.TfOptional != 0 && instant {
+		if a.Kind != kop.AbTriggered || a.NModes != 0 {
 			i++
 			continue
 		}
