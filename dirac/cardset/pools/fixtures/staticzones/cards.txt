@@ -10,9 +10,12 @@
 # Medomai the Ageless, Moonrager's Slash, Thraben Doomsayer, Village
 # Survivors) stay out: their statics refuse (gorge fails closed on the
 # condition, reported), and a refused card cannot sit in a pool.
+# Defensive Formation (the defender divides a double-blocked attacker's damage)
+# reads the StatDefenderAssigns static; K'rrik stays refused.
 Bladegraft Aspirant
 Case of the Locked Hothouse
 Dawnglade Regent
+Defensive Formation
 Dragon's Rage Channeler
 Entourage of Trest
 Field of Dreams

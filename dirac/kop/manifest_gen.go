@@ -2472,13 +2472,18 @@ const StatRetraceGrant StaticKind = 73
 // StatCyclingGrant is a Continuous static's AffectedZone$ Hand AddKeyword$ Cycling or TypeCycling grant (Rhet-Tomb Mystic, Jo Grant, Tectonic Reformation, Homing Sliver; CR 702.29a, 702.29e): Filter matches the card in a hand and GrantBody-1 is the latent cycling body (the printed kwCycling / kwTypeCycling expansion, cards.GrantedKeywordAbility, AfCycling, ActZone hand) the hand offer runs with the affected card as its source, discarding it as the cost. The offer is the hand owner's, whoever controls the static (kw_cyclinggrant.go).
 const StatCyclingGrant StaticKind = 74
 
+// StaticKind (dirac/manifest/StaticKind/StatDefenderAssigns)
+//
+// StatDefenderAssigns is a Continuous static's `Affected$ You | AddKeyword$ You assign combat damage of each creature attacking you.` (Defensive Formation, kgen lower_playerstatic.go): its controller, not the attacking player, divides the combat damage of each creature attacking them among its blockers (CR 510.1c as the card rewrites it; gorge defenderAssignsAttackerDamage). Read live from the battlefield (dirac/static_plkeyword.go defenderAssigns, combat_band.go bandDivider); no State bytes.
+const StatDefenderAssigns StaticKind = 75
+
 // stat AssignNoCombatDamage (dirac/manifest/StaticKind/StatNoCombatDamage)
-const StatNoCombatDamage StaticKind = 75
+const StatNoCombatDamage StaticKind = 76
 
 // StaticKind (dirac/manifest/StaticKind/StatUnearthGrant)
 //
 // StatUnearthGrant is a Continuous static's AffectedZone$ Graveyard AddKeyword$ Unearth grant (Sedris, the Traitor King, Mishra, Tamer of Mak Fawa, Dregscape Sliver, Solemn Doomguide; CR 702.84a): Filter matches the card in the graveyard and GrantBody-1 is the latent unearth body (the printed kwUnearth expander's AB$ ChangeZone, cards.GrantedKeywordAbility) the graveyard offer runs with the affected card as its source. The body's own Cost prices the explicit-cost shape; a zero body cost is the CardManaCost mark, which the offer charges as the affected card's own mana cost (kw_unearthgrant.go).
-const StatUnearthGrant StaticKind = 76
+const StatUnearthGrant StaticKind = 77
 
 // trig ChaosEnsues (dirac/manifest/TrigEvent/TrigChaosEnsues)
 const TrigChaosEnsues TrigEvent = 52
