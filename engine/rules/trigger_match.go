@@ -1164,7 +1164,11 @@ func (e *Engine) checkTriggersNow(ev *events.Event, lki *state.Object,
 		e.checkAttackerBlockedTriggers(*ev)
 		e.checkBlocksTriggers(*ev)
 	}
-	if ev.Kind == events.BlockedByEffect {
+	// BlockedByEffect (api:BecomesBlocked, CR 509.1h) and TokenBlocks
+	// (TokenBlocking$, CR 509.4) both carry become-blocked transitions the
+	// dedicated hook re-reads as synthetic DeclareBlockers pairs (CR 509.3c
+	// and 509.3d respectively).
+	if ev.Kind == events.BlockedByEffect || ev.Kind == events.TokenBlocks {
 		e.checkAttackerBlockedTriggers(*ev)
 	}
 	// Rooms (CR 309.5): the unlocked half's "When you unlock this door"
