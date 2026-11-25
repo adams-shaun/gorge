@@ -26,9 +26,10 @@ import (
 //     when a caller has answered one (the seam a real per-player ask fills,
 //     and what lets the tie be pinned against a real compiled SA); absent,
 //     the deterministic stand-in applies.
-//   - the card-ballot shape (Council's Judgment): VoteCard$ is a permanent
-//     filter, so the ballot is the battlefield permanents matching it
-//     (matched from the spell's controller: "a nonland permanent YOU don't
+//   - the card-ballot shape (Council's Judgment): VoteCard$ is a card
+//     filter, so the ballot is the cards in Zone$ (the battlefield unless
+//     the ability names another zone, as Custodi Squire's graveyard does)
+//     matching it (matched from the spell's controller: "a nonland permanent YOU don't
 //     control"), each Defined$ player votes, and every permanent with the
 //     most votes or tied for most lands in the resolution's Remembered set
 //     for VoteSubAbility$ (DBExile's ChangeZone Defined$ Remembered).
@@ -187,12 +188,13 @@ func voteWinner(counts []int) (int, bool) {
 	return best, tied > 1
 }
 
-// effCardVote is effVote's card-ballot half: the battlefield permanents
+// effCardVote is effVote's card-ballot half: the cards in Zone$ that
 // VoteCard$ admits are the options, each voting player answers a private ask,
 // and the most-voted -- every
 // member of the tie -- is remembered for VoteSubAbility$, which runs once
 // at the end (Council's Judgment's "exile each permanent with the most
-// votes or tied for most votes").
+// votes or tied for most votes"; Custodi Squire's graveyard card returning
+// to hand).
 func askCardVote(h Host, c *Ctx, sa *cards.SA, vp *VoteParams, options []state.ObjID, voters []state.PlayerID) []state.ObjID {
 	var picks []state.Target
 	for i := 0; i < len(voters); i++ {
@@ -252,7 +254,7 @@ func effCardVote(h Host, c *Ctx, sa *cards.SA, vp *VoteParams, ballot string) {
 	g := h.Game()
 	var options []state.ObjID
 	for i := range g.Players {
-		for _, id := range g.Zone(state.ZBattlefield, state.PlayerID(i)) {
+		for _, id := range g.Zone(vp.Zone, state.PlayerID(i)) {
 			if o := g.Obj(id); o != nil && c.MatchSpec(g, ballot, id, c.Controller) {
 				options = append(options, id)
 			}
