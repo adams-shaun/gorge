@@ -1345,6 +1345,7 @@ type lRepl struct {
 	F2                                        *lFilter // PreventDamageFilt / PreventDamageN: the damage source (F is the recipient)
 	Phase                                     uint8    // BeginPhaseSkip: the kop.Step it skips (Repl.A)
 	Body                                      int      // DamageInstead: the kop.ReplDmgIns* effect bits (Repl.A's low byte); F2 is the damage source, F the damaged permanent, Ctr the counter kind
+	Trig                                      int      // DamageInstead ReplDmgInsVind: the reflexive-trigger latent the body queues (the ImmediateTrigger Execute's DealDamage)
 }
 
 // lCard is a lowered card.
