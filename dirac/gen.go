@@ -352,6 +352,7 @@ type genPrep struct {
 	anyAttackedObj  bool           // the table gives mechAttackedObj an arena mask: finishAttacks marks the declared attackers
 	anySuspect      bool           // the table gives mechSuspected an arena mask (act_suspect.go)
 	anyRemEach      bool           // some OpRepeatEach is over the remembered set (kop.RepeatRemembered): each remembered object's last controller has a cold slot (act_repeatremembered.go)
+	anyRemSearcher  bool           // some program is ExtRememberSearcher: the searcher's seat joins a cold mask for Shuffle Defined$ Player.IsRemembered (zone_remembersearcher.go)
 	anySacSub       bool           // some ExRefCount is a Sacrificed$Valid type read (N 1): snapLKI captures the subtype set (value_countheads.go, zone_lki.go)
 	ix              [numMech]uint8 // mechanic -> index in State's ms or mo, by its width; arenaNone (0xFF) when the table does not use it (arenaAssign; arena.go)
 	anyInit         bool           // some program is OpTakeInitiative (act_initiative.go)

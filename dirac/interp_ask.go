@@ -1821,17 +1821,20 @@ func (s *State) addSac(sl Slot) {
 
 func (s *State) startSearch(k *prep, in *kop.Instr) bool {
 	if in.Op == kop.OpChooseMove && (in.B.N == 1 || battleLinkPick(k.t, in)) && s.handExileHostGone() {
-		return true // UntilHostLeavesPlay with the host gone: nothing (act_mayask.go, zone_hiddenpick.go pickLink)
+		s.rememberSearcherDrop() // an armed RememberSearcher$ behind a search that cannot run
+		return true              // UntilHostLeavesPlay with the host gone: nothing (act_mayask.go, zone_hiddenpick.go pickLink)
 	}
 	p := s.playerRef(k, handMoveOwnerRef(in.Obj))
 	if p == 255 {
 		if in.Op == kop.OpChooseMove && in.Obj != kop.RefController {
+			s.rememberSearcherDrop()
 			return true // the target player whose hand it is is gone: nothing moves
 		}
 		if r := handMoveOwnerRef(in.Obj); r == kop.RefTargetController || r == kop.RefTgtCtrl1 || r == kop.RefTgtCtrl2 {
 			// DefinedPlayer$ TargetedController over an "up to one" slot left
 			// empty (White Orchid Phantom's destroy chose no land): gorge's
 			// definedPlayers names no one, so no one searches
+			s.rememberSearcherDrop()
 			return true
 		}
 		p = s.res.e.ctrl
@@ -1861,6 +1864,7 @@ func (s *State) startSearch(k *prep, in *kop.Instr) bool {
 		s.res.ask, s.res.askP = raGenConfirm, ask // gorge's Optional$ confirmation first
 		return false
 	}
+	s.rememberSearcherCommit() // the search runs: RememberSearcher$ remembers the searcher
 	return s.searchPick(k) && !s.moveAsked()
 }
 

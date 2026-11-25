@@ -178,7 +178,7 @@ func (s *State) execExt(k *prep, in *kop.Instr) (ok, done bool) {
 		}
 		return true, true
 	case kop.ExtRememberSearcher:
-		s.rememberSearcher() // zone_remembersearcher.go
+		s.rememberSearcher(k, in) // zone_remembersearcher.go
 		return true, true
 	case kop.ExtRememberAll:
 		s.rememberAll(k, in) // act_rememberall.go

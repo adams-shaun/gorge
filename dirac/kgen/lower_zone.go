@@ -5779,6 +5779,10 @@ func (lc *lowerCtx) libSearchOwner(ps *params, arm bool, tgtLib int, flags []str
 		lc.twoSeat("Chooser$ Opponent on a library search")
 		ps.consume("Chooser")
 		flags = append(flags, "ChooserOpp")
+	case ch == "ImprintedController" && obj.Kind == rEach:
+		// the repeated card's controller both owns and answers their own
+		// search (Wave of Vitriol): the default asker, no SrChooser bit
+		ps.consume("Chooser")
 	}
 	return obj, flags, nil
 }
