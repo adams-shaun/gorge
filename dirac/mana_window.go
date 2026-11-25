@@ -1808,23 +1808,6 @@ func (s *State) wideAdmits(k *prep, a Action, p uint8, anyR slotMask) bool {
 	return false
 }
 
-// anyRForPlay is anyR without the sources whose restriction does not admit
-// play a's payment: gorge's planner cannot price such a source for the play,
-// so its prefix search never taps it there. Tapping it beside a Taps-deferred
-// gap that does pay the play would float restricted mana the payment cannot
-// spend and leave the extra tap in the projection (Gwenna, Eyes of Gaea's
-// creature-only mana on Surgical Skullbomb's artifact activation).
-func (s *State) anyRForPlay(k *prep, a Action, p uint8, anyR slotMask) slotMask {
-	var m slotMask
-	for b := anyR; b.any(); b = b.rest() {
-		sl := b.first()
-		if s.wideAdmits(k, a, p, slotBit(sl)) {
-			m = m.with(sl)
-		}
-	}
-	return m
-}
-
 // floatRestrFrom floats n of colour col from source sl's restriction f, recording the
 // creature type the source chose when the restriction reads it: the restriction is the
 // source's as it was made (CR 106.6), so mana of another source's choice floats in a
@@ -2688,7 +2671,7 @@ func (s *State) scriptGapOrder(k *prep, a Action, p uint8, gaps slotMask, order 
 // or a counter-cost gap among the gaps.
 func (s *State) scriptDeadEndAny(k *prep, a Action, p uint8, restr, anyR, tapsDef, ctr, ca slotMask) bool {
 	tapsDef = s.deferGapsForPlay(k, a, tapsDef)
-	anyR = s.anyRForPlay(k, a, p, anyR)
+	anyR = s.caSpendable(k, a, p, anyR) // a plain play's restriction must admit its payment (CR 106.6); any other keeps every gap
 	var order [MaxPerm]Slot
 	gaps := s.scriptGaps(k, p).or(restr).or(anyR).or(tapsDef).or(ctr).or(ca).or(s.lifeGapMask(k, p))
 	n := s.scriptGapOrder(k, a, p, gaps, order[:])
@@ -2720,7 +2703,7 @@ func (s *State) scriptPrefixAny(k *prep, a Action, p uint8, restr, anyR, tapsDef
 		return
 	}
 	tapsDef = s.deferGapsForPlay(k, a, tapsDef)
-	anyR = s.anyRForPlay(k, a, p, anyR)
+	anyR = s.caSpendable(k, a, p, anyR) // a plain play's restriction must admit its payment (CR 106.6); any other keeps every gap
 	var order [MaxPerm]Slot
 	gaps := s.scriptGaps(k, p).or(restr).or(anyR).or(tapsDef).or(ctr).or(ca).or(s.lifeGapMask(k, p))
 	n := s.scriptGapOrder(k, a, p, gaps, order[:])
