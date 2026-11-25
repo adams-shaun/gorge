@@ -21,12 +21,12 @@ func TestCanProduceSameManaTypeWith(t *testing.T) {
 		return o.ID
 	}
 	forest := func(name string) state.ObjID {
-		return add(1, "Name:"+name+"\nTypes:Basic Land Forest\nA:AB$ Mana | Cost$ T | Produced$ G | SpellDescription$ Add {G}.\nOracle:x\n")
+		return add(1, "Name:"+name+"\nTypes:Basic Land Forest\nA:AB$ Mana | Cost$ T | Produced$ G | SpellDescription$ Test green.\nOracle:x\n")
 	}
-	mountain := add(1, "Name:Mountain\nTypes:Basic Land Mountain\nA:AB$ Mana | Cost$ T | Produced$ R | SpellDescription$ Add {R}.\nOracle:x\n")
-	dual := add(1, "Name:Dual\nTypes:Land\nA:AB$ Mana | Cost$ T | Produced$ Combo G R | SpellDescription$ Add {G} or {R}.\nOracle:x\n")
+	mountain := add(1, "Name:Mountain\nTypes:Basic Land Mountain\nA:AB$ Mana | Cost$ T | Produced$ R | SpellDescription$ Test red.\nOracle:x\n")
+	dual := add(1, "Name:Dual\nTypes:Land\nA:AB$ Mana | Cost$ T | Produced$ Combo G R | SpellDescription$ Test either.\nOracle:x\n")
 	wastes := func(name string) state.ObjID {
-		return add(1, "Name:"+name+"\nTypes:Basic Land Wastes\nA:AB$ Mana | Cost$ T | Produced$ C | SpellDescription$ Add {C}.\nOracle:x\n")
+		return add(1, "Name:"+name+"\nTypes:Basic Land Wastes\nA:AB$ Mana | Cost$ T | Produced$ C | SpellDescription$ Test colourless.\nOracle:x\n")
 	}
 	forest1, forest2 := forest("Forest One"), forest("Forest Two")
 	wastes1, wastes2 := wastes("Wastes One"), wastes("Wastes Two")

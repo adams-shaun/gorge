@@ -10,7 +10,7 @@ import (
 // `<referent>.canProduceSameManaTypeWith+<type>` (Mana Web's
 // `TriggeredCard.canProduceSameManaTypeWith+Land`) to the candidate's own
 // base with the predicate kept: the trailing type is the candidate's type
-// (the brief's "the base is the trailing type"), and the predicate compares
+// (Forge writes the candidate's type after the predicate), and it compares
 // the candidate with SpecContext.TriggerCard. The rewrite is name-specific,
 // exactly like sameNameContextBase: any other head or token order is left to
 // the ordinary grammar and fails closed as an unknown head.
