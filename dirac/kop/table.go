@@ -464,6 +464,11 @@ type CardDef struct {
 	// blessing once they control ten or more permanents, and an instant or
 	// sorcery carrying it grants it as it resolves (dirac/kw_ascend.go).
 	Ascend bool
+	// Storied is printed Storied (CR 702.195; kop.KwStoried): its controller
+	// gets the one-way enduring-story latch once they control three or more
+	// permanents that are artifacts, legendaries and/or Sagas, one of them
+	// carrying Storied (dirac/kw_storied.go).
+	Storied bool
 	// Unleash is printed Unleash (CR 702.86; kop.KwUnleash): the permanent
 	// may enter with a +1/+1 counter (the as-enters ask, dirac/kw_unleash.go)
 	// and can't block while it has a +1/+1 counter on it.
