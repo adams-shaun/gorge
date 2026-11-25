@@ -697,8 +697,8 @@ func (s *State) buildCostPreRaw(k *prep, pre, charge bool) (kop.ManaCost, bool) 
 		if k.gen != nil && k.gen.anySneak && e.trigPl == trigPlSneak && cd.HasSneak {
 			c = cd.SneakCost // the sneak cost (CR 702.190a; kw_sneak.go)
 		}
-		if k.gen != nil && k.gen.anyWebSling && e.trigPl == trigPlWebSling && cd.HasWebSling {
-			c = cd.WebSlingCost // the web-slinging cost (CR 702.188a; kw_websling.go)
+		if k.gen != nil && k.gen.anyWebSling && e.trigPl == trigPlWebSling {
+			c = s.webSlingCost(k, e.ctrl, e.card, e.obj) // the web-slinging cost, printed or granted (CR 702.188a; kw_websling.go)
 		}
 		if e.flags&sfKicked != 0 {
 			c = s.addKickerPayments(cd, e, c)

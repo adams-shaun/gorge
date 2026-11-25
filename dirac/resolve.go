@@ -348,13 +348,13 @@ func (s *State) finishResolve(k *prep, fizzled bool) {
 			// its free casts are made with it still on the stack (the
 			// hold, trig_xpaid.go): it leaves after them
 		} else if ob.zone == kop.ZoneStack {
+			rbCard, rbAb, rebound := s.reboundPlan(k, e, fizzled) // kw_rebound.go: read while the spell is on the stack
 			s.touch(e.obj)
 			ob.zone = kop.ZoneNone
 			z := kop.ZoneGraveyard
 			if s.spellRestExiles(e) || e.markExiles(fizzled) { // markExiles: repl_stackexile.go
 				z = kop.ZoneExile
 			}
-			rebound := s.reboundRests(k, e, fizzled) // kw_rebound.go
 			if rebound {
 				z = kop.ZoneExile
 			}
@@ -373,7 +373,7 @@ func (s *State) finishResolve(k *prep, fizzled bool) {
 					s.markedPlot(k, e) // repl_stackexile.go
 				}
 				if rebound {
-					s.reboundRegister(k, e)
+					s.reboundRegister(k, e, rbCard, rbAb)
 				}
 			}
 		}

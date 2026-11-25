@@ -23,13 +23,16 @@ import (
 // closed on the condition, reported).
 var kstaticzonesDecks = [2][]cardset.Entry{
 	{
-		{Name: "Ivory Mask", Count: 3}, {Name: "Solitary Confinement", Count: 2},
-		{Name: "Minamo Scrollkeeper", Count: 2}, {Name: "Trusted Advisor", Count: 2}, {Name: "Thought Eater", Count: 2},
-		{Name: "Dawnglade Regent", Count: 2}, {Name: "Queen Mother Ramonda", Count: 2}, {Name: "Entourage of Trest", Count: 2},
-		{Name: "Spire Serpent", Count: 2}, {Name: "Slithering Shade", Count: 2}, {Name: "Geist of the Lonely Vigil", Count: 1},
+		{Name: "Ivory Mask", Count: 2}, {Name: "Solitary Confinement", Count: 2},
+		{Name: "Minamo Scrollkeeper", Count: 2}, {Name: "Trusted Advisor", Count: 2},
+		{Name: "Dawnglade Regent", Count: 2}, {Name: "Queen Mother Ramonda", Count: 2}, {Name: "Entourage of Trest", Count: 1},
+		{Name: "Spire Serpent", Count: 1}, {Name: "Slithering Shade", Count: 1}, {Name: "Geist of the Lonely Vigil", Count: 1},
+		// the AffectedZone$ Stack keyword carriers (lower_stackkw.go): Cast
+		// Through Time grants rebound to this deck's instants and sorceries
+		{Name: "Cast Through Time", Count: 2}, {Name: "Opt", Count: 2}, {Name: "Sol Ring", Count: 1},
 		{Name: "Dragon's Rage Channeler", Count: 2},
 		{Name: "Case of the Locked Hothouse", Count: 1}, {Name: "Power Artifact", Count: 1},
-		{Name: "Plains", Count: 8}, {Name: "Island", Count: 3}, {Name: "Forest", Count: 3},
+		{Name: "Plains", Count: 8}, {Name: "Island", Count: 4}, {Name: "Forest", Count: 3},
 	},
 	{
 		{Name: "Lightning Bolt", Count: 4}, {Name: "Shock", Count: 4}, {Name: "Swords to Plowshares", Count: 3}, {Name: "Giant Growth", Count: 3},
