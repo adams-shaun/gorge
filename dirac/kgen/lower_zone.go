@@ -3087,8 +3087,13 @@ func (lc *lowerCtx) emblemStatic(ps *params, s cards.Static) error {
 // likewise): the effect leaves the command zone at cleanup, so it is the
 // kernel's EOT emblem, and both fire only for the events emblems listen to
 // (emblemTimedMode).
-func (lc *lowerCtx) emblemTrigDuration(t cards.Trigger, eot, next bool) error {
-	if (eot || next) && !emblemTimedMode(t.Mode, eot, lc.pairCap != nil) {
+//
+// combatCap marks the combat-damage line over a Targeted capture (Vigorous
+// Charge): the one DamageDealtOnce shape without the pair lowering the emblem
+// hook has lockstep cover for (a noncombat one, Paladin of Prahv, stays
+// refused).
+func (lc *lowerCtx) emblemTrigDuration(t cards.Trigger, eot, next, combatCap bool) error {
+	if (eot || next) && !emblemTimedMode(t.Mode, eot, lc.pairCap != nil || combatCap) {
 		return refuse("Effect triggers without a permanent duration")
 	}
 	return nil
@@ -3114,9 +3119,9 @@ func (lc *lowerCtx) emblem(ps *params, tr string) error {
 	lc.granted++
 	defer func() { lc.granted-- }()
 	_, hasDur := ps.get("Duration")
-	eot := !hasDur
+	eot := !hasDur || ps.is("Duration", "EndOfTurn") // the spelled-out default (Jace, Cunning Castaway)
 	next := hasDur && ps.is("Duration", "UntilYourNextTurn")
-	if hasDur && !next && !ps.is("Duration", "Permanent") {
+	if hasDur && !eot && !next && !ps.is("Duration", "Permanent") {
 		return refuse("Effect triggers without a permanent duration")
 	}
 	ps.consume("Name", "Image", "Stackable")
@@ -3141,7 +3146,7 @@ func (lc *lowerCtx) emblem(ps *params, tr string) error {
 	if eot && t.Mode == "TapsForMana" {
 		return effectTapExtraRefuse() // lower_tapextra.go
 	}
-	if err := lc.emblemTrigDuration(t, eot, next); err != nil {
+	if err := lc.emblemTrigDuration(t, eot, next, ps.is("RememberObjects", "Targeted") && strings.TrimSpace(t.Params["CombatDamage"]) == "True"); err != nil {
 		return err
 	}
 	if err := emblemBlocksEarlyRefuse(ps, t, eot); err != nil {
