@@ -720,6 +720,9 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		e.effectMoveSweep(ev)
 		e.sweepEffectDelayed(ev)
 	}
+	if ev.Kind == events.PhaseOut && ev.Amount < 0 {
+		e.sweepEffectDelayed(ev)
+	}
 	if ev.Kind == events.CounterChange {
 		// Effect-created continuous effects' counter-driven lifetime
 		// (ForgetCounter$): after a counter REMOVAL is applied, a
