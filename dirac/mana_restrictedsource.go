@@ -1037,6 +1037,21 @@ func (s *State) restrSrcAddUnit(k *prep, p uint8, d *payDesc, sl Slot, own *pcar
 		if !restrFeeEmpty(v) && !t.restrFeeCharge(restrFeeCost(v), cost, extra) {
 			return // the fee is not payable from the mana counted so far
 		}
+		if restrLifePair(own) {
+			// one tap: the pair's life alternative replaces the census
+			// ability's unit, it does not add another (gorge's one source,
+			// both alternatives a unit of its own). Both make one mana here
+			// (the pair arm takes the one-mana life shape), so the unit is
+			// their colour union; the life charge is the restricted walk's.
+			t.remove(s.srcMaskAt(own, sl), own.manaN) // its one tap replaces the census unit
+			if restrLifeUnit(v) && !s.restrLifeCharge(k, p, t, int(v.restrLife), lifeUsed) {
+				t.addUnits(s.srcMaskAt(own, sl), own.manaN) // no life left: the normal ability stands
+				return
+			}
+			t.addUnits(s.srcMaskAt(own, sl)|s.srcMaskAt(v, sl), own.manaN)
+			t.addXv(v)
+			return
+		}
 		s.restrExtAdd(k, p, sl, v, t, lifeUsed)
 	case rkDyn:
 		if v.manaCol&kop.ColAny != kop.ColAny {
