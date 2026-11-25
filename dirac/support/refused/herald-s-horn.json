@@ -1,0 +1,17 @@
+{
+  "card": "Herald's Horn",
+  "class": "lockstep",
+  "why": "upkeep peek: with Sun Titan on top and the reveal answered yes, gorge puts it into the hand and the kernel leaves it in the library (hand 5 vs 4); kfuzz -synth std-trc -focus -only",
+  "repro": {
+    "pool": "std-trc",
+    "surface": "autopay",
+    "seed": 1,
+    "pair": 198,
+    "policy": "random",
+    "mulligans": 1
+  },
+  "evidence": [
+    "ev-std-trc-c940",
+    "ev-std-trc-c984"
+  ]
+}

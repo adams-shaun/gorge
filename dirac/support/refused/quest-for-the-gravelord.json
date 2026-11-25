@@ -1,0 +1,30 @@
+{
+  "card": "Quest for the Gravelord",
+  "class": "lockstep",
+  "why": "an Eldrazi Scion sacrificed for mana while paying for Capsizing Wave: gorge's autopay prefix sacrifices it before the cast, so Quest's dies trigger goes on the stack under the spell; the kernel pays during the cast and the trigger is not on the stack at the target ask (NStack 2 vs 1); kfuzz -synth dr-mbc-bbaa -focus -only",
+  "repro": {
+    "pool": "dr-mbc-bbaa",
+    "surface": "autopay",
+    "seed": 1,
+    "pair": 165,
+    "policy": "random",
+    "mulligans": 1
+  },
+  "evidence": [
+    "ev-dr-mbc-bbaa-c000",
+    "ev-dr-mbc-bbaa-c001",
+    "ev-dr-mbc-bbaa",
+    "ev-tail-13-c000",
+    "ev-tail-13-c001",
+    "ev-tail-13-c002",
+    "ev-tail-13-c003",
+    "ev-tail-13-c004",
+    "ev-tail-13-c005",
+    "ev-tail-13-c006",
+    "ev-tail-13-c007",
+    "ev-tail-13-c008",
+    "ev-tail-63-c000",
+    "ev-tail-63-c001",
+    "ev-tail-63-c955"
+  ]
+}

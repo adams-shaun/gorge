@@ -1,0 +1,13 @@
+{
+  "card": "Crystalline Crawler",
+  "class": "lockstep",
+  "why": "removing Crawler's +1/+1 counters for mana before a cast: gorge spends the two floating artifact {U} on Stern Proctor's {U}{U}, the kernel's cast payment leaves a counter on Crawler and taps Rootwater Depths instead (Power 2 vs 3); kfuzz -synth tail-50 -focus -only, seed 23, full surface",
+  "repro": {
+    "pool": "tail-50",
+    "surface": "full",
+    "seed": 1,
+    "pair": 71,
+    "policy": "random",
+    "mulligans": 0
+  }
+}
