@@ -1030,6 +1030,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepMcombat(t, g)
 	prepAltFree(t, g, p) // cast_altfree.go
 	prepUnearth(t, g)    // cast_altfree.go
+	prepLeaveExile(t, g) // zone_leaveexile.go
 	prepPlotTrig(t, p)   // kw_plot.go
 	prepPlotGrant(t, g)  // kw_plot.go
 	prepNetLock(t, g)    // act_lockpermanent.go
@@ -2502,7 +2503,8 @@ type genState struct {
 
 	// xph: the pending extra phases (act_addphase.go): at bits
 	// 0-3 the splice point, 4-5 the kind (combat, upkeep, end), 6 a phase of the
-	// entry is running; n the grants still pending. phCnt: bits 0-3 the combats
+	// entry is running, 7 the kind's variant (CombatMain's main phase running,
+	// Upkeep's whole beginning phase); n the grants still pending. phCnt: bits 0-3 the combats
 	// begun this turn, 4-7 the end steps begun (saturating at 15).
 	xph   [4]struct{ at, n uint8 }
 	nxph  uint8

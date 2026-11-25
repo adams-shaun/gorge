@@ -276,10 +276,11 @@ func TestStdCensusTokenUnpack(t *testing.T) {
 }
 
 // TestStdCensusDeterministic runs the census ten times over a card whose
-// lowering has several equally valid refusal keys: Winnowing's RepeatEach
-// body has ControlledByPlayer$ and RememberChosen$. The report must be
-// byte-identical and must name the first key in sorted order, not whichever
-// the map happened to yield. (Arrester's Admonition, the Condition*$ case,
+// lowering is refused under a key the census must name stably: Winnowing's
+// RepeatEach body is a per-player ChooseCard (RememberChosen$) that lowers as
+// far as its ControlledByPlayer$ Remembered pool, which refuses as a mandatory
+// ChooseCard. The report must be byte-identical across runs and must name that
+// key, not whichever the map happened to yield. (Arrester's Admonition, the Condition*$ case,
 // lowers now; TestAddendumGateLowers pins that sort.)
 func TestStdCensusDeterministic(t *testing.T) {
 	dir := t.TempDir()
@@ -301,7 +302,7 @@ func TestStdCensusDeterministic(t *testing.T) {
 		if i == 0 {
 			first = sb.String()
 			for _, want := range []string{
-				`other:RepeatEach body ControlledByPlayer$ "_"`,
+				`other:mandatory ChooseCard ControlledByPlayer$ "_"`,
 			} {
 				if !strings.Contains(first, want) {
 					t.Errorf("output lacks canonical class %q:\n%s", want, first)
