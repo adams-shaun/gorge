@@ -1,6 +1,10 @@
 package kgen
 
-import "github.com/adams-shaun/gorge/dirac/kop"
+import (
+	"fmt"
+
+	"github.com/adams-shaun/gorge/dirac/kop"
+)
 
 // altPayLifeExileHand: the lowered cost of a spell's own AlternativeCost is
 // PayLife<N> and ExileFromHand<N/Spec> and nothing else (Force of Will: "You
@@ -74,4 +78,19 @@ func altHandExileShape(c *kop.Cost) bool {
 // ability of its own).
 func (cb *cardBuilder) altHandExileOK(c *kop.Cost) bool {
 	return altHandExileShape(c) && cb.altSacOK(c)
+}
+
+// evokePickOf records the evoke's hand-exile pick (lower_evoke.go
+// evokePickCost; kernel kw_evoke.go offerEvokeHand and buildPickCost).
+func (cb *cardBuilder) evokePickOf(d *kop.CardDef, c *lCard) (err error) {
+	if c.EvokePick == nil {
+		return nil
+	}
+	if d.EvokePick, err = cb.cost(*c.EvokePick); err != nil {
+		return err
+	}
+	if !altHandExileShape(&d.EvokePick) {
+		return fmt.Errorf("evoke pick cost outside the hand-exile shape")
+	}
+	return nil
 }
