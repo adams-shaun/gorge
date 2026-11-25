@@ -57,23 +57,28 @@ const raLearn uint8 = 159
 // the learn rummage's discard (CR 701.48a; act_learn.go): gorge learnRummage's "discard" KChoose over the hand in hand order, asked even with one card; the draw follows.
 const raLearnDiscard uint8 = 160
 
+// ask (dirac/manifest/ask/raPair)
+//
+// the Soulbond partner pick of ExtPair (CR 702.95a; kw_soulbond.go pairExt): up to one unpaired creature the trigger's controller controls, gorge effPair's Min 0 Max 1 KChoose; AkDone declines.
+const raPair uint8 = 161
+
 // ask (dirac/manifest/ask/raPodClashOpp)
-const raPodClashOpp uint8 = 161
+const raPodClashOpp uint8 = 162
 
 // ask (dirac/manifest/ask/raRingBearer)
 //
 // the Ring-bearer choice of ExtRingTemptsYou (CR 701.54a; act_ring.go ringTemptsExt): the tempted player's pick among the creatures they control, the deterministic default (the existing Ring-bearer when still controlled, else the first eligible in zone order) offered first exactly as gorge's KChoose does.
-const raRingBearer uint8 = 162
+const raRingBearer uint8 = 163
 
 // ask (dirac/manifest/ask/raRingLoot)
 //
 // the loot discard of the Ring emblem's level 2 (CR 701.54c; act_ring.go ringLootDiscard): the looting player discards one card of their choice from their hand, gorge's Draw You 1 with the Discard You TgtChoose 1 Sub.
-const raRingLoot uint8 = 163
+const raRingLoot uint8 = 164
 
 // ask (dirac/manifest/ask/raTrigDemoOpp)
 //
 // the demonstrate trigger's opponent pick (CR 702.152a; gorge effDemonstrate stage 1): which living opponent also copies the spell, asked with two or more of them (kw_demonstrate.go).
-const raTrigDemoOpp uint8 = 164
+const raTrigDemoOpp uint8 = 165
 
 // key named card (dirac/manifest/key/keyNamedCard)
 const keyNamedCard key = 0
@@ -834,6 +839,8 @@ func (s *State) execExtGen(k *prep, in *kop.Instr) (ok, done bool) {
 		return s.encoreExt(k, in) // kw_encore.go
 	case kop.ExtExchangeLife:
 		return s.exchangeLifeExt(k, in) // act_exchangelife.go
+	case kop.ExtExileFaceDown:
+		return s.exileFaceDownExt(k, in) // zone_exilefacedownmove.go
 	case kop.ExtLearn:
 		return s.learnExt(k, in) // act_learn.go
 	case kop.ExtMeld:
@@ -848,6 +855,8 @@ func (s *State) execExtGen(k *prep, in *kop.Instr) (ok, done bool) {
 		return s.nameCardExt(k, in) // repl_namecard.go
 	case kop.ExtOptInSeat:
 		return s.optInSeatExt(k, in) // act_optinseat.go
+	case kop.ExtPair:
+		return s.pairExt(k, in) // kw_soulbond.go
 	case kop.ExtPayLifeX:
 		return s.payLifeExt(k, in) // repl_paylife.go
 	case kop.ExtPutContract:
@@ -928,6 +937,9 @@ func (s *State) askOptionsGen(k *prep, d *Decision) bool {
 	case raLearnDiscard:
 		s.learnDiscardOptions(k, d) // act_learn.go
 		return true
+	case raPair:
+		s.pairAskOptions(k, d) // kw_soulbond.go
+		return true
 	case raRingBearer:
 		s.ringAskOptions(k, d) // act_ring.go
 		return true
@@ -980,6 +992,9 @@ func (s *State) applyAskGen(k *prep, a Action) bool {
 	case raLearnDiscard:
 		s.learnDiscardAnswer(k, a) // act_learn.go
 		return true
+	case raPair:
+		s.pairAskAnswer(k, a) // kw_soulbond.go
+		return true
 	case raRingBearer:
 		s.ringAskAnswer(k, a) // act_ring.go
 		return true
@@ -1014,6 +1029,10 @@ func (s *State) fwRun(c *fctx, l *kop.FLit) bool {
 		return s.fwKeyword(c, l) // filter_keyword.go
 	case kop.FwModal:
 		return s.fwModal(c, l) // filter_spellability.go
+	case kop.FwPaired:
+		return s.fwPaired(c, l) // kw_soulbond.go
+	case kop.FwPairedWith:
+		return s.fwPairedWith(c, l) // kw_soulbond.go
 	case kop.FwPowerCmp:
 		return s.fwPowerCmp(c, l) // filter_powercmp.go
 	case kop.FwSameName:
@@ -1045,7 +1064,7 @@ func (s *State) fwRun(c *fctx, l *kop.FLit) bool {
 // fwHandled reports whether word w has a handler.
 func fwHandled(w kop.FilterWord) bool {
 	switch w {
-	case kop.FwAttacking, kop.FwBasePowerCmp, kop.FwBaseToughnessCmp, kop.FwCMCCmp, kop.FwChosenCtrl, kop.FwCountersCmp, kop.FwDoubleFaced, kop.FwEnchantedControllerCtrl, kop.FwKeyword, kop.FwModal, kop.FwPowerCmp, kop.FwSameName, kop.FwSharesCr, kop.FwSharesName, kop.FwSingleTarget, kop.FwSubtype, kop.FwSuspended, kop.FwTapped, kop.FwTeamwork, kop.FwTopLibrary, kop.FwToughnessCmp, kop.FwWithKeyword:
+	case kop.FwAttacking, kop.FwBasePowerCmp, kop.FwBaseToughnessCmp, kop.FwCMCCmp, kop.FwChosenCtrl, kop.FwCountersCmp, kop.FwDoubleFaced, kop.FwEnchantedControllerCtrl, kop.FwKeyword, kop.FwModal, kop.FwPaired, kop.FwPairedWith, kop.FwPowerCmp, kop.FwSameName, kop.FwSharesCr, kop.FwSharesName, kop.FwSingleTarget, kop.FwSubtype, kop.FwSuspended, kop.FwTapped, kop.FwTeamwork, kop.FwTopLibrary, kop.FwToughnessCmp, kop.FwWithKeyword:
 		return true
 	}
 	return false
