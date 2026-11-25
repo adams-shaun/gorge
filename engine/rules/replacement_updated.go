@@ -41,7 +41,7 @@ func applyInheritedEntryReplacements(e inheritedEntryEngine, g *state.Game, ev e
 	for i := range f.Repls {
 		r := &f.Repls[i]
 		if !replacementEventNameMatches(r.Event, "Moved") || r.With == nil ||
-			!(r.IsCopyLayer() || inheritedEntryModeChoice(r) || inheritedEntryCounterChoice(r)) {
+			!(r.IsCopyLayer() || inheritedEntryModeChoice(r) || inheritedEntryCounterChoice(r) || effects.IsEntryTap(r.With)) {
 			continue
 		}
 		m := replMatch{id: ev.Obj, face: f, repl: r}
@@ -83,6 +83,10 @@ func inheritedEntryCounterChoice(r *cards.Repl) bool {
 	p := effects.PutCounterOf(r.With)
 	return p.ETB && len(p.Kinds) > 1
 }
+
+// A copied self "enters tapped" line (Goldmire Bridge's Moved ... ReplaceWith$
+// ETBTapped, a bare Tap|ETB$ True body) is inherited the same way: a clone
+// that elects it enters tapped (CR 614.12, 707.5).
 
 // inheritedEntryEngine is the narrow set of engine operations the inherited
 // as-enters replacement walk needs. A free function taking *Engine would be

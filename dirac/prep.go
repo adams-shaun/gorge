@@ -272,6 +272,9 @@ type prep struct {
 	// the CardManaCost-priced bodies (the affected card's own mana cost;
 	// the body bakes zero) buildCostPreRaw charges through offKwCostOr.
 	anyOffKwGrant bool
+	// anyCyclingGrant: the table has a StatCyclingGrant static (prepCyclingGrant;
+	// kw_cyclinggrant.go), the granted hand cycling offer it arms.
+	anyCyclingGrant bool
 	// anyOffKwCC: some recorded off-kw grant body is CardManaCost-priced
 	anyOffKwCC bool
 	offKwCC    [4]offKwBody
@@ -395,7 +398,9 @@ type prep struct {
 	// (mana_rider.go).
 	riderAb []int8
 
-	coldCmd coldLayout // the table's cold layout plus the partner record, a Commander game's (zone_cmdpartner.go)
+	coldCmd      coldLayout // the table's cold layout plus the partner record, a Commander game's (zone_cmdpartner.go)
+	coldPlane    coldLayout // the table's cold layout plus the planar-deck record, a Planechase game's (zone_planechase.go)
+	coldCmdPlane coldLayout // both records, a Commander Planechase game's
 }
 
 func prepare(t *kop.Table) *prep {
@@ -615,13 +620,22 @@ func prepare(t *kop.Table) *prep {
 	p.embComb = prepEmbComb(t, p)
 	p.embIdem = prepEmbIdem(p) // static_emblemcombat.go
 	p.cold.size()
+	// A Planechase game carries one planar-deck record (zone_planechase.go).
+	// The record lives in a variant of the table's cold layout selected at
+	// Init: a non-Planechase State's buffer stays empty, as InitN's equality
+	// test compares every State byte, slice header included. The record is
+	// pointer-free like the other cold regions.
+	p.coldPlane = p.cold
+	coldPlane.set(&p.coldPlane, 1)
+	p.coldPlane.size()
 	// Only a Commander game can seat a partner pair, so only its layout
-	// carries the record: a non-Commander State's cold buffer stays empty,
-	// as InitN's equality test compares every State byte, slice header
-	// included. Both layouts are table-level, so Init and InitN of the same
-	// table with the same Config select the same pointer.
+	// carries the record. Both layouts are table-level, so Init and InitN of
+	// the same table with the same Config select the same pointer.
 	p.coldCmd = p.cold
 	coldPartner.set(&p.coldCmd, 1)
 	p.coldCmd.size()
+	p.coldCmdPlane = p.coldCmd
+	coldPlane.set(&p.coldCmdPlane, 1)
+	p.coldCmdPlane.size()
 	return p
 }

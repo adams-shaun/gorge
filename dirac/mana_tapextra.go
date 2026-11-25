@@ -251,10 +251,17 @@ func (s *State) srcExtraTapped(k *prep, sl Slot, pc *pcard, colour bool) (xv [ko
 // production's colour is picked after the tap, so a carrier limited to a {C}
 // tap does not reach it; a fixed one-colour production's type is known.
 func (s *State) filtExtra(k *prep, sl Slot) (xv [kop.NumManaKinds]uint8) {
+	return s.filtExtraAt(k, sl, 0)
+}
+
+// filtExtraAt is filtExtra for the card's filter ability at ordinal ord: a
+// paid filter set's choice ability asks its colour after the tap, its fixed
+// one is known (setFilterMana).
+func (s *State) filtExtraAt(k *prep, sl Slot, ord int8) (xv [kop.NumManaKinds]uint8) {
 	if k.gen == nil || !k.gen.anyTapExtra {
 		return xv
 	}
-	a := s.filtAb(k, sl)
+	a := s.filtAbAt(k, sl, ord)
 	if a.Cost.Flags&kop.CostTap == 0 {
 		return xv
 	}
@@ -284,10 +291,16 @@ func (s *State) filtExtra(k *prep, sl Slot) (xv [kop.NumManaKinds]uint8) {
 // beside its own mana. A fixed one-colour production already carries it in
 // filtExtra, and an all-at-once one's is filtEachReflect's (filtExtra).
 func (s *State) filtReflectPick(k *prep, sl Slot) (r uint8) {
+	return s.filtReflectPickAt(k, sl, 0)
+}
+
+// filtReflectPickAt is filtReflectPick for the card's filter ability at
+// ordinal ord.
+func (s *State) filtReflectPickAt(k *prep, sl Slot, ord int8) (r uint8) {
 	if k.gen == nil || !k.gen.anyTapExtra {
 		return 0
 	}
-	a := s.filtAb(k, sl)
+	a := s.filtAbAt(k, sl, ord)
 	if a.Cost.Flags&kop.CostTap == 0 || a.ManaEach ||
 		a.AFlags&kop.AfManaChoice == 0 && bits.OnesCount8(uint8(a.ManaColors)&0x3f) == 1 {
 		return 0
