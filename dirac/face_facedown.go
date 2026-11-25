@@ -391,6 +391,9 @@ func (s *State) turnFaceUp(k *prep, o Obj, p uint8, proc ...uint8) {
 			s.tapForTurnUp(k, p, &c0, sp, o)  // the planner taps what its mana leaves owed
 		} else if s.turnUpTapXOnly(k, p, &c0, sp, sl, mode) {
 			s.playTurnUpTapX(k, p, o, mode) // face_turnuptapx.go: the tap-another search's prefix
+		} else if s.turnUpDeferOnly(k, p, &c0, sp, sl, mode) {
+			s.playTurnUpDefer(k, p, o, mode) // face_turnupdefer.go: the Taps-deferred gaps' search prefix
+			s.tapForTurnUp(k, p, &c0, sp, o) // the planner taps what the floats leave owed
 		} else {
 			s.tapForTurnUp(k, p, &c0, sp, o)
 		}
