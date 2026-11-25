@@ -1300,8 +1300,9 @@ func (s *State) tapAnyColDeferExtra(k *prep, m slotMask) bool {
 // census's, so it must not stop the prefix from tapping the gap. Otherwise the
 // mana step's plan taps the land without the trigger's extra, while gorge's
 // tap resolves it (Dawn's Reflection on the Mountain paying Shiv's Embrace's
-// {R} floats the two extra mana in gorge only). This is the availNoActScript
-// probe scriptPrefix uses; elsewhere the probe stays the full listing.
+// {R} floats the two extra mana in gorge only). scriptPrefix uses it for its
+// root probe, and scriptDFS's node check reads it through restrOptionsProbe;
+// elsewhere the probe stays the full listing.
 func (s *State) prefixAnyProbe(k *prep, p uint8) uint16 {
 	if !s.scriptFilt(k, p).any() && s.tapAnyColDeferExtra(k, s.scriptTapsDefer(k, p)) {
 		return availNoActScript

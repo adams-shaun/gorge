@@ -1630,6 +1630,18 @@ func (s *State) restrOptions(k *prep, d *Decision, p uint8) {
 	s.g.turnF = saved
 }
 
+// restrOptionsProbe is restrOptions at a node of the prefix search's own
+// script: the walk is read with the root probe's mode (prefixAnyProbe), so the
+// script's own listing of a play only a Taps-deferred any-colour extra pays
+// (actScriptPays, tapAnyColDeferExtra) does not stop the search before it taps
+// that gap. The root check needs the listing to offer the play; a node needs
+// its absence to keep tapping (mana_tapextra.go prefixAnyProbe).
+func (s *State) restrOptionsProbe(k *prep, d *Decision, p uint8) {
+	saved := s.withRootExhaust(p)
+	s.plainOptions(k, d, s.prefixAnyProbe(k, p))
+	s.g.turnF = saved
+}
+
 // pendListenerOrder sorts the triggers queued since lo into listener order
 // (p0's battlefield order, then p1's; stable): one gorge event's
 // listeners are walked once, so a combat damage event to a player queues
@@ -2509,7 +2521,7 @@ func (s *State) scriptDFS(k *prep, a Action, p uint8, order []Slot, ctr, restr, 
 				stall = t.g.stalled // the chain taps may have latched a stall
 			}
 			t.hideDeferred(k, p, a, tapsDef)
-			t.restrOptions(k, &d, p)
+			t.restrOptionsProbe(k, &d, p)
 			// gorge's search completes at a payer priority only when the play
 			// is among the decision's options (offered). A trigger the path's
 			// taps queued (a Taps-deferred source the search gap-activates,
@@ -2547,7 +2559,7 @@ func (s *State) scriptDFS(k *prep, a Action, p uint8, order []Slot, ctr, restr, 
 				if t.over {
 					found = false
 				} else if resolve {
-					t.restrOptions(k, &d, p)
+					t.restrOptionsProbe(k, &d, p)
 					found = hasOption(&d, a)
 				}
 			}
