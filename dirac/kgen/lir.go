@@ -488,6 +488,7 @@ const (
 	cBlessing               // the controller has the city's blessing (Condition$ Blessing, CR 702.131)
 	cMonarch                // the controller is the monarch (Condition$ Monarch, CR 719.2)
 	cRemMark                // the source's persistent remembered list is non-empty (the ConditionDefined$ Remembered group's host half; gorge rememberedWithSource)
+	cEnduringStory          // the controller holds the enduring story (Condition$ EnduringStory, CR 702.195; gorge condEnduringStory)
 	cCount_
 )
 
@@ -508,6 +509,7 @@ var condNames = [...]string{
 	cBlessing:      "Blessing",
 	cMonarch:       "Monarch",
 	cRemMark:       "RemMark",
+	cEnduringStory: "EnduringStory",
 }
 
 type lCond struct {
@@ -1092,8 +1094,7 @@ type lAbility struct {
 	Reduce          *lValue // ReduceCost$: the generic reduction of an activated ability's own cost (lower_ownreduce.go)
 	ActCond         lCond   // CheckSVar$/SVarCompare$: activate only if (CR 602.5b)
 	Targets         []lTarget
-	Modes           int  // charm: number of modes to choose from
-	GenericChoice   bool // a triggered api:GenericChoice charm: each mode opens with its UnlessCost$ (kop.AfCharmTrigger)
+	Modes           int // charm: number of modes to choose from
 	// charm: CharmNum$ (the most picks) and MinCharmNum$ (default: the most)
 	ModesPick, ModesMin int
 	RepMax, RepCost     [4]uint8 // charm CanRepeatModes$ (lower_charmrepeat.go): the most each mode is chosen, its pawprint price
@@ -1520,6 +1521,7 @@ type lCard struct {
 	Engines             bool     // printed K:Start your engines (CR 702.179a)
 	Reconfigure         bool     // printed K:Reconfigure (CR 702.151): CardDef.HasReconfigure
 	Ascend              bool     // printed K:Ascend (CR 702.131)
+	Storied             bool     // printed K:Storied (CR 702.195): CardDef.Storied
 	Unleash             bool     // printed K:Unleash (CR 702.86): CardDef.Unleash
 	Riot                bool     // printed K:Riot (CR 702.156): CardDef.Riot (lower_riot.go)
 	Enlist              bool     // printed K:Enlist (CR 702.154): CardDef.Enlist (lower_enlist.go)

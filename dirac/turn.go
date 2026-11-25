@@ -582,7 +582,7 @@ func (s *State) sba(k *prep) bool {
 	}
 	var sm sbaMasks // each pass's board scan (sbaBoard fills it in place)
 	for {
-		pre := s.outMask() // the seats out before this pass: its losses end their control effects together (sweepDeparted)
+		pre := s.beginSBAPass() // the seats out before this pass: its losses end their control effects together (sweepDeparted)
 		if k.gen != nil && k.gen.ctrlSBA {
 			s.ctrlSBA(k) // layer-2 control records and statics (static_control.go)
 		}
@@ -610,9 +610,9 @@ func (s *State) sba(k *prep) bool {
 			}
 		}
 		for p := uint8(0); p < s.nSeats(); p++ {
-			if s.pl[p].drewEmpty {
+			if s.pl[p].mark&pmDrewEmpty != 0 {
 				// drew from an empty library since the last check (CR 704.5b)
-				s.pl[p].drewEmpty = false
+				s.pl[p].mark &^= pmDrewEmpty
 				s.lose(p)
 			}
 		}
@@ -620,6 +620,7 @@ func (s *State) sba(k *prep) bool {
 			s.poisonSBA(k) // CR 704.5c
 		}
 		s.cmdDamageSBA(k) // CR 704.6c (combat_cmddamage.go)
+		s.markPassLosses(pre)
 		s.checkOver()
 		if s.over {
 			if k.gen != nil || s.cfg&cfgCommander != 0 {
@@ -690,6 +691,9 @@ func (s *State) sba(k *prep) bool {
 		}
 		if k.ascend {
 			s.blessScan(k) // CR 702.131b "any time": after the pass's checks, before its batch (gorge sba.go; kw_ascend.go)
+		}
+		if k.storied {
+			s.storiedScan(k) // CR 702.195a "any time": the same post-pass hook (gorge sba.go; kw_storied.go)
 		}
 		all := die.or(gy)
 		if all.any() {
