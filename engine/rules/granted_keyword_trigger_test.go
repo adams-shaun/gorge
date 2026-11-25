@@ -88,6 +88,9 @@ var grantedTriggerKeywordWalk = map[string]string{
 	"Myriad":  "checkGrantedStaticTriggersUsing",
 	"Evolve":  "checkGrantedStaticTriggersUsing",
 	"Extort":  "checkGrantedStaticTriggersUsing",
+	// Annihilator and Battle cry: the same synthesis (CR 702.86a, 702.91a).
+	"Annihilator": "checkGrantedStaticTriggersUsing",
+	"Battle cry":  "checkGrantedStaticTriggersUsing",
 	// Dedicated per-keyword walks.
 	"Afflict":           "checkGrantedAfflictTriggers",
 	"Cumulative upkeep": "checkGrantedCumulativeUpkeepTriggers",
@@ -133,9 +136,9 @@ var knownEquipAuraTriggerKeywords = map[string][2]string{
 	"Winged Boots":          {"Ward", "covered"},
 	"Wizard's Staff":        {"Prowess", "covered"},
 	// uncovered: no granted walk fires the head yet.
-	"Eldrazi Conscription": {"Annihilator", "uncovered"},
+	"Eldrazi Conscription": {"Annihilator", "covered"},
 	"Infantry Shield":      {"Mobilize", "uncovered"},
-	"Nazgûl Battle-Mace":   {"Annihilator", "uncovered"},
+	"Nazgûl Battle-Mace":   {"Annihilator", "covered"},
 }
 
 func TestEquipAuraGrantedTriggerKeywordCensus(t *testing.T) {
@@ -208,8 +211,12 @@ func TestEquipAuraGrantedTriggerKeywordCensus(t *testing.T) {
 		if v[1] != "covered" {
 			continue
 		}
-		if v[0] == "Prowess" || v[0] == "Myriad" || v[0] == "Evolve" || v[0] == "Mentor" {
-			if grantedKeywordTrigger(v[0]) == nil {
+		if v[0] == "Prowess" || v[0] == "Myriad" || v[0] == "Evolve" || v[0] == "Mentor" || v[0] == "Annihilator" {
+			line := v[0]
+			if line == "Annihilator" {
+				line += ":2"
+			}
+			if grantedKeywordTrigger(line) == nil {
 				t.Errorf("%s: census calls %s covered but grantedKeywordTrigger returns nil", name, v[0])
 			}
 		}

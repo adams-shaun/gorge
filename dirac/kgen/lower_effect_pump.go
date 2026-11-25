@@ -519,6 +519,13 @@ func (lc *lowerCtx) pumpGrantKw(kw string, obj lRef, zone int) error {
 	if myriads > 0 && (zone != zBattlefield || lc.pumpPlayerRef(obj)) {
 		return refuse("granted Myriad to a non-battlefield object")
 	}
+	rest, attackKws, err := splitAttackKwGrant(rest) // lower_attackkwgrant.go
+	if err != nil {
+		return err
+	}
+	if len(attackKws) > 0 && (zone != zBattlefield || lc.pumpPlayerRef(obj)) {
+		return refuse("granted %s to a non-battlefield object", attackKws[0])
+	}
 	prot := &lOverride{}
 	if !lc.pumpPlayerRef(obj) {
 		// the protection terms lower to the grant's quality filter
@@ -543,7 +550,7 @@ func (lc *lowerCtx) pumpGrantKw(kw string, obj lRef, zone int) error {
 	if prot.ProtFrom != nil && (zone != zBattlefield || !lc.pumpObjectRef(obj)) {
 		return refuse("granted protection to a non-permanent subject")
 	}
-	if rest != "" || prot.ProtFrom == nil && !prot.Banding && len(fbs)+myriads == 0 && landwalk == nil {
+	if rest != "" || prot.ProtFrom == nil && !prot.Banding && len(fbs)+myriads+len(attackKws) == 0 && landwalk == nil {
 		ks, err := pumpKeywords(rest)
 		if err != nil {
 			return err
@@ -573,6 +580,16 @@ func (lc *lowerCtx) pumpGrantKw(kw string, obj lRef, zone int) error {
 		// trigger rides an end-of-turn override record; identical
 		// applications stack (lower_firegrant.go)
 		idx, err := lc.firebendGrantTrigger(n)
+		if err != nil {
+			return err
+		}
+		lc.emitOverride(obj, &lOverride{GrantAbility: []int{idx}}, "EOT")
+	}
+	for _, line := range attackKws {
+		// CR 702.86a / 702.91a granted until end of turn (Reckless
+		// Pyrosurfer): the latent Attacks Self trigger rides an end-of-turn
+		// override record (lower_attackkwgrant.go)
+		idx, err := lc.attackKwGrantTrigger(line)
 		if err != nil {
 			return err
 		}

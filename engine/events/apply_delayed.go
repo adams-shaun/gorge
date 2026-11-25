@@ -640,8 +640,19 @@ func foldGrantTriggerPush(g *state.Game, e *Event) {
 			Sub: &cards.SA{Kind: "DB", API: "Attach", Params: map[string]string{
 				"Defined": "Remembered", "Object": "Self"}}}
 	}
+	if sa == nil && e.Counter == "__kwBattleCryGranted" {
+		// A granted battle cry (CR 702.91a via a layer-6 grant, e.g. Reckless
+		// Pyrosurfer's Pump KW$ Battle cry): rebuilt into the printed
+		// K:Battle cry expansion's PumpAll body (engine/cards/kw_battle_cry.go).
+		// Source is the granted creature, so StrictlyOther excludes it.
+		sa = &cards.SA{Kind: "DB", API: "PumpAll", Params: map[string]string{
+			"ValidCards": "Creature.attacking+StrictlyOther", "NumAtt": "+1", "NumDef": "0"}}
+	}
 	if sa == nil {
 		sa = grantedAfterlifeBody(e.Counter)
+	}
+	if sa == nil {
+		sa = grantedAnnihilatorBody(e.Counter)
 	}
 	if sa == nil {
 		return
@@ -672,6 +683,25 @@ func grantedAfterlifeBody(name string) *cards.SA {
 		return nil
 	}
 	return cards.ResolveSVar(map[string]string{"__kwAfterlifeGranted": "DB$ Token | TokenScript$ wb_1_1_spirit_flying | TokenAmount$ " + n}, "__kwAfterlifeGranted")
+}
+
+// grantedAnnihilatorBody rebuilds the body of a granted Annihilator (CR
+// 702.86a via a layer-6 grant, e.g. Idol of False Gods' AddKeyword$
+// Annihilator:2) from its "__kwAnnihilatorGranted:N" payload name: the printed
+// K:Annihilator expansion's Sacrifice body (engine/cards/kw_annihilator.go),
+// the count on its Annihilator$ marker. The defending player is read from the
+// trigger context rules records beside the push. nil for any other name or a
+// count that is not a positive decimal literal.
+func grantedAnnihilatorBody(name string) *cards.SA {
+	n, ok := strings.CutPrefix(name, "__kwAnnihilatorGranted:")
+	if !ok {
+		return nil
+	}
+	if v, err := strconv.Atoi(n); err != nil || v < 1 || strconv.Itoa(v) != n {
+		return nil
+	}
+	return &cards.SA{Kind: "DB", API: "Sacrifice", Params: map[string]string{
+		"Defined": "TriggeredDefendingPlayer", "SacValid": "Permanent", "Annihilator": n}}
 }
 
 // foldGrantAbilityPush folds Kind GrantAbilityPush into state.

@@ -17,9 +17,9 @@ import "github.com/adams-shaun/gorge/engine/cards"
 
 // GrantedTriggerHeads is the set of keyword heads GrantedKeywordTrigger can
 // synthesize a TRIGGERED ability for: Prowess, Myriad, Extort, Evolve,
-// Mentor and Living Weapon, whose bodies read nothing the walk does not
-// already capture, and Afterlife, whose only input is the N in its own
-// keyword line. Every other head returns false (fail closed): the expansion
+// Mentor, Living Weapon and Battle cry, whose bodies read nothing the walk
+// does not already capture, and Afterlife and Annihilator, whose only input
+// beyond that is the N in their own keyword line. Every other head returns false (fail closed): the expansion
 // of a keyword like Afflict, Dethrone or Firebending mints a trigger whose
 // body reads keyword-specific state (a defending player, an attack's
 // attacker set, an N in the keyword text) through a dedicated walk
@@ -33,7 +33,8 @@ func GrantedTriggerHeads(head string) bool {
 	return id == cards.KeywordHeadIDOf("Prowess") || id == cards.KeywordHeadIDOf("Myriad") ||
 		id == cards.KeywordHeadIDOf("Extort") || id == cards.KeywordHeadIDOf("Evolve") ||
 		id == cards.KeywordHeadIDOf("Afterlife") || id == cards.KeywordHeadIDOf("Living Weapon") ||
-		id == cards.KeywordHeadIDOf("Mentor")
+		id == cards.KeywordHeadIDOf("Mentor") || id == cards.KeywordHeadIDOf("Annihilator") ||
+		id == cards.KeywordHeadIDOf("Battle cry")
 }
 
 // GrantedMyriadPayload is the GrantTriggerPush body name a granted Myriad
@@ -83,6 +84,17 @@ func grantedAfterlifeCount(line string) (string, bool) {
 	return param, true
 }
 
+// GrantedAnnihilatorPayloadPrefix starts the GrantTriggerPush body name a
+// granted Annihilator rides: "__kwAnnihilatorGranted:N", the count N after
+// the colon (events.foldGrantTriggerPush rebuilds it into the printed
+// expansion's Sacrifice body).
+const GrantedAnnihilatorPayloadPrefix = "__kwAnnihilatorGranted:"
+
+// GrantedBattleCryPayload is the GrantTriggerPush body name a granted Battle
+// cry rides (events.foldGrantTriggerPush rebuilds it into the printed
+// expansion's PumpAll body).
+const GrantedBattleCryPayload = "__kwBattleCryGranted"
+
 // GrantedLivingWeaponPayload is the GrantTriggerPush body name a granted
 // Living Weapon rides (events.foldGrantTriggerPush rebuilds it into the Germ
 // token and attach chain).
@@ -109,6 +121,11 @@ func GrantedKeywordPayload(line string) string {
 	case cards.KeywordHeadIDOf("Afterlife"):
 		n, _ := grantedAfterlifeCount(line)
 		return GrantedAfterlifePayloadPrefix + n
+	case cards.KeywordHeadIDOf("Annihilator"):
+		n, _ := grantedAfterlifeCount(line)
+		return GrantedAnnihilatorPayloadPrefix + n
+	case cards.KeywordHeadIDOf("Battle cry"):
+		return GrantedBattleCryPayload
 	case cards.KeywordHeadIDOf("Living Weapon"):
 		return GrantedLivingWeaponPayload
 	case cards.KeywordHeadIDOf("Mentor"):
@@ -161,6 +178,12 @@ func GrantedKeywordTrigger(line string) *cards.Trigger {
 	}
 	if id == cards.KeywordHeadIDOf("Living Weapon") {
 		return grantedLivingWeaponTrigger(line, head)
+	}
+	if id == cards.KeywordHeadIDOf("Annihilator") {
+		return grantedAnnihilatorTrigger(line)
+	}
+	if id == cards.KeywordHeadIDOf("Battle cry") {
+		return grantedBattleCryTrigger(line, head)
 	}
 	return &cards.Trigger{Mode: "SpellCast", Params: map[string]string{
 		"Mode": "SpellCast", "ValidCard": "Card.nonCreature",
@@ -284,5 +307,58 @@ func grantedMentorTrigger(line, head string) *cards.Trigger {
 	t.Effect = grantedBodySA("PutCounter", "ValidTgts", "Creature.attacking",
 		"TgtPrompt", "Select target attacking creature with lesser power",
 		"Mentor", "True", "CounterType", "P1P1", "CounterNum", "1")
+	return &t
+}
+
+// GrantedAnnihilatorBody is the body a granted Annihilator N carries: the
+// printed expansion's (engine/cards/kw_annihilator.go) Sacrifice of N
+// permanents by the trigger's defending player, the count on the
+// Annihilator$ marker. Built here once for the live queue and
+// events.foldGrantTriggerPush alike.
+func GrantedAnnihilatorBody(n string) *cards.SA {
+	return grantedBodySA("Sacrifice", "Defined", "TriggeredDefendingPlayer", "SacValid", "Permanent", "Annihilator", n)
+}
+
+// grantedAnnihilatorTrigger is the trigger a granted Annihilator N gives its
+// holder (CR 702.86a, 613.1f; Idol of False Gods' "it has annihilator 2",
+// Eldrazi Conscription, Flayer of Loyalties' GainControl AddKWs$): the
+// printed expansion's exact shape, an Attacks trigger of the holder itself.
+// The defending player is the walk's TriggerContext capture, as the printed
+// trigger's is. A count that is not a positive decimal literal (Ulamog, the
+// Defiler's Annihilator:X, whose X is an SVar the line does not carry) fails
+// closed.
+func grantedAnnihilatorTrigger(line string) *cards.Trigger {
+	n, ok := grantedAfterlifeCount(line)
+	if !ok {
+		return nil
+	}
+	t, ok := cards.ParseTriggerLine("Mode$ Attacks | ValidCard$ Card.Self | TriggerDescription$ Annihilator")
+	if !ok {
+		return nil
+	}
+	t.Effect = GrantedAnnihilatorBody(n)
+	return &t
+}
+
+// GrantedBattleCryBody is the body a granted Battle cry carries: the printed
+// expansion's (engine/cards/kw_battle_cry.go) PumpAll of each other attacking
+// creature, +1/+0 until end of turn.
+func GrantedBattleCryBody() *cards.SA {
+	return grantedBodySA("PumpAll", "ValidCards", "Creature.attacking+StrictlyOther", "NumAtt", "+1", "NumDef", "0")
+}
+
+// grantedBattleCryTrigger is the trigger a granted Battle cry gives its holder
+// (CR 702.91a, 613.1f; Reckless Pyrosurfer's landfall Pump KW$ Battle cry,
+// Marshland Hordemaster): the printed expansion's exact shape. Only the bare
+// line is the keyword; any other spelling fails closed.
+func grantedBattleCryTrigger(line, head string) *cards.Trigger {
+	if len(line) != len(head) {
+		return nil
+	}
+	t, ok := cards.ParseTriggerLine("Mode$ Attacks | ValidCard$ Card.Self | TriggerDescription$ Battle cry")
+	if !ok {
+		return nil
+	}
+	t.Effect = GrantedBattleCryBody()
 	return &t
 }

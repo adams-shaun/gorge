@@ -133,12 +133,12 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 702.84a | follows | `engine/rules/unearth.go#Engine.unearthEnter` `engine/rules/unearth.go#Engine.unearthReplacementApplies` | `TestUnearthKeywordExpandsToGraveyardAbility` | haste granted UntilEOT (CR: no duration) |
 | 702.85a | deviates | `engine/effects/cascade.go#effCascade` | - | rest bottomed in fixed, not random, order |
 | 702.85b,c | follows | `engine/rules/cascade.go#Engine.queueCascadeTriggers` | - |  |
-| 702.86a,b | follows | `engine/cards/kw_annihilator.go#kwAnnihilator` | `TestAnnihilatorArtisanSacrificesThePrintedAmount` |  |
+| 702.86a,b | follows | `engine/cards/kw_annihilator.go#kwAnnihilator` `engine/rules/scriptfacts/granted_keyword_trigger.go#GrantedKeywordTrigger` | `TestAnnihilatorArtisanSacrificesThePrintedAmount` `TestGrantedAnnihilatorSacrifices` | a layer-6 grant synthesizes the printed expansion's trigger; a non-literal N (Annihilator:X) builds none |
 | 702.87a-c | follows | `engine/cards/kw_levelup.go#kwLevelUp` | - |  |
 | 702.88a-c | follows | `engine/rules/cast_commit.go#Engine.payCast` `engine/rules/resolution_chain.go#Engine.moveResolvedOffStack` | `TestReboundTargetRestrictionOnlyOffersPlayersKernel` `TestReboundCorpusCarrierExilesAndOffers` `TestCR702KeywordFalseGapsAreRegistered` | - |
 | 702.89a,b | partial | `engine/rules/umbra.go#Engine.UmbraArmorAura` | `TestBearUmbraSavesBearerFromDestroySpell` | two umbra Auras: first chosen, no CR 616.1 choice |
 | 702.90a-f | follows | `engine/rules/combat.go#Engine.damageStep` `engine/rules/combat.go#Engine.runCombatAssignments` | `TestInfectDamageToCreatureIsMinusOneCountersNotMarkedDamage` |  |
-| 702.91a,b | follows | `engine/cards/kw_battle_cry.go#kwBattleCry` | `TestBattleCryPumpsOtherAttackingCreatures` |  |
+| 702.91a,b | follows | `engine/cards/kw_battle_cry.go#kwBattleCry` `engine/rules/scriptfacts/granted_keyword_trigger.go#GrantedKeywordTrigger` | `TestBattleCryPumpsOtherAttackingCreatures` `TestGrantedBattleCryPumpsOtherAttackers` | a layer-6 grant synthesizes the printed expansion's trigger |
 | 702.92a | follows | `engine/cards/kw_livingweapon.go#kwLivingWeapon` | `TestBatterskullLivingWeaponCreatesAGermAndReachesAttach` |  |
 | 702.93a | follows | `engine/cards/kw_undying.go#kwUndying` | `TestUndyingReturnsOnceWithACounter` |  |
 | 702.94a,b | follows | `engine/rules/miracle.go#Engine.offerMiracle` `engine/rules/miracle.go#Engine.drawsThisTurn` `engine/rules/miracle.go#Engine.miracleCost` | `TestMiracleOffersOnTheFirstDrawOnly` `TestMiracleNotOfferedOnTheOpeningHand` `TestMiracleGrantedInHandOffersAndCharges` | no offer on the opening deal or a mulligan redraw (CR 103.5) |

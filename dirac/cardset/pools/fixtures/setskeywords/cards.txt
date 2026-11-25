@@ -2,7 +2,9 @@
 # TestSetsKeywordGrantsLower): Sun Quan, Lord of Wu's and Herald of Hoofbeats'
 # granted horsemanship beside the Knights and Bears that attack under it (The
 # Dilu Horse a printed horsemanship body); Indebted Spirit's bestowed afterlife
-# 1 beside the Bears that wear it and the Bolts that kill them
+# 1 beside the Bears that wear it and the Bolts that kill them; Reckless
+# Pyrosurfer's landfall-granted battle cry and Eldrazi Conscription's
+# enchanted annihilator beside the Bears that carry them
 Sun Quan, Lord of Wu
 Herald of Hoofbeats
 The Dilu Horse
@@ -15,3 +17,6 @@ Island
 Plains
 Mountain
 Forest
+Reckless Pyrosurfer
+Eldrazi Conscription
+Swamp
