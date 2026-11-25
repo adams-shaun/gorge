@@ -388,6 +388,7 @@ type genPrep struct {
 	anySacX         bool           // some spell or ability costs an announced Sac<X/Spec> (CostSac with Cost.N 0; cost_sacx.go)
 	anyXMin         bool           // some spell or ability floors its announced X (Cost.XMin; cost_sacx.go)
 	anyCopyCast     bool           // some OpCastFree casts a copy (C bit 6; cast_copycast.go)
+	anyCipher       bool           // some spell encodes (Ext CipherEncode; kw_cipher.go)
 	anyExileGrant   bool           // some program holds an ExtGrantExile (cast_exilegrant.go)
 	anyNumTimes     bool           // some ability announces a pay-N-times count (Ext NumTimes; cast_announcetimes.go)
 	anyExHaste      bool           // some ability can't be blocked except by creatures with haste (Ext ExHaste; static_cantblockexcept.go)
@@ -1000,6 +1001,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepCharmPick(t, g)
 	prepPermCopy(t, g)
 	prepCopyCast(t, g)
+	prepCipher(t, g)     // kw_cipher.go
 	prepExileGrant(t, g) // cast_exilegrant.go
 	prepWaterbend(t, g)
 	prepCostEvidence(t, g)

@@ -225,6 +225,8 @@ func (e *Encoder) optKey(d *dirac.Decision, a dirac.Action) uint32 {
 			return uint32(src) // gorge's ChooseCard walks the objects in id order (effects cardChoices)
 		case dirac.ChGenCastFree:
 			return uint32(src) // gorge's modes over the castable cards, in object order
+		case dirac.ChGenCipher:
+			return uint32(mode) // gorge effCipher's creatures, in battlefield order
 		case dirac.ChGenReplOrder:
 			return uint32(mode) // the candidate's index in gorge's replacement scan
 		case dirac.ChCommanderZone:

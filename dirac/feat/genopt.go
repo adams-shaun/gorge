@@ -50,6 +50,8 @@ func (e *Encoder) genOption(d *dirac.Decision, a dirac.Action, o *optIn) {
 		o.dk, o.kind, o.obj = dkModes, okMode, e.source
 	case dirac.ChGenCastFree:
 		o.dk, o.kind = dkModes, okMode // obj: the card to cast ("Play <card>")
+	case dirac.ChGenCipher:
+		o.dk, o.kind, o.mode = dkModes, okMode, mode // obj: the creature to encode on (gorge effCipher's KModes)
 	case dirac.ChGenPayMode:
 		// "unless_pay" / "unless_decline": the mode-other slot
 		o.dk, o.kind, o.obj, o.mode = dkModes, okMode, e.source, uint8(len(modeValues))
@@ -185,7 +187,7 @@ func genOptionRest(d *dirac.Decision, mode uint8, o *optIn) {
 // AkDone as (the kernel's Done itself has no gorge option).
 func genDoneDK(sub dirac.ChoiceKind) (int8, bool) {
 	switch sub {
-	case dirac.ChGenBranch, dirac.ChGenCastFree, dirac.ChGenPayMode:
+	case dirac.ChGenBranch, dirac.ChGenCastFree, dirac.ChGenPayMode, dirac.ChGenCipher:
 		return dkModes, true
 	}
 	return 0, false

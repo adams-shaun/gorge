@@ -1131,6 +1131,9 @@ func (s *State) combatEventsGen(k *prep, r *dmgRec, dealt bool) {
 			}
 		}
 		if !life || dealt {
+			if k.gen.anyCipher && r.dealtPl[sl] > 0 {
+				s.cipherHit(sl) // after the source's face triggers (kw_cipher.go)
+			}
 			continue // dealt: the life changes were made per event (dealCombatEvent)
 		}
 		if r.dealtPl[sl] > 0 && isPlayerOrNone(s.perms[sl].atk) && !r.infM.has(sl) {
@@ -1139,6 +1142,9 @@ func (s *State) combatEventsGen(k *prep, r *dmgRec, dealt bool) {
 			if int(s.npend)-loPl >= 2 {
 				s.pendListenerOrder(loPl)
 			}
+		}
+		if k.gen.anyCipher && r.dealtPl[sl] > 0 {
+			s.cipherHit(sl) // after the source's face and life-loss triggers (kw_cipher.go)
 		}
 		if !s.occ.has(sl) || s.kw(k, sl)&kop.KwLifelink == 0 {
 			continue

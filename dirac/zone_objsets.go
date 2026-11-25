@@ -74,6 +74,7 @@ const (
 	osHaunted                     // (T10) a HauntedBy set
 	osChampioned                  // (T10) a ChampionedBy set
 	osNum                         // a StoreSVar number (act_storenum.go): o the value as an int16, kind's high nibble the SVar name
+	osEncoded                     // a Cipher card o exiled encoded on the creature src (kw_cipher.go); live while src is at sver and o in exile
 )
 
 // The kind and flag nibbles of osRec.kind.
@@ -119,8 +120,8 @@ func objSetsCap(g *genPrep) int {
 		return maxObjSets // the number store's records beside whatever sets the table keeps (act_storenum.go)
 	case g.anySrcMem && link:
 		return maxObjSets
-	case g.anySrcMem || link:
-		return maxObjSetsOne
+	case g.anySrcMem || link || g.anyCipher:
+		return maxObjSetsOne // (anyCipher: the encode links, kw_cipher.go)
 	}
 	return 0
 }

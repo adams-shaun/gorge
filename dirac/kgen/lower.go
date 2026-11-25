@@ -157,6 +157,7 @@ type lowerCtx struct {
 	imprintMox     bool      // the face is the imprint-mox shape: its two static bookkeeping triggers lower to nothing (lower_imprintmox.go)
 	impPersist     bool      // the face keeps its Imprinted on the source (lower_imppersist.go)
 	impFoldExiled  bool      // every ImpPersist writer is a ChangeZone exile: IsImprinted+ExiledWithSource may fold (lower_imppersist.go)
+	cipher         bool      // the face prints K:Cipher: lowerTail appends the encode (lower_cipher.go)
 	bluffPlay      bool      // lowering the Play behind a nothing-remembered gate: ValidSA$ Spell.nonCreature+YouOwn may lower (lower_zone.go, Brazen Bluff; Yue's hand population, playOwnHand)
 	replEnter      bool      // inside an ETB replacement's ReplaceWith chain
 	exileRider     bool      // inside a dies-to-exile rider's prog: ReplacedCardLKI$CardPower may read the pre-move capture (value_repllki.go)
@@ -612,6 +613,7 @@ func (lc *lowerCtx) lowerTail() {
 	lc.refusePlotCombos()
 	lc.refuseHarmonizeCombos()
 	lc.refuseReboundCombos() // lower_rebound.go
+	lc.lowerCipher()         // lower_cipher.go
 	lc.refuseMayhemCombos()
 	lc.refuseEscapeCombos()
 	lc.lowerRetrace()

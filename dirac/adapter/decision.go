@@ -533,6 +533,10 @@ func (g *Game) askOption(x dirac.Action, c canon.Canon, i uint32) (o decision.Op
 		if src := g.s.FeatSource(); src != dirac.NoObj && g.d.Sub != dirac.ChWardPay {
 			o.Obj = g.ids.obj(canon.Ref(src))
 		}
+		if g.d.Sub == dirac.ChGenCipher {
+			o.Obj = g.ids.obj(canon.Ref(x.Source())) // gorge effCipher's "mode" option names the creature
+			o.Label = "Encode on " + g.cardName(canon.Ref(x.Source()))
+		}
 		if g.d.Sub == dirac.ChGenCastFree {
 			o.Obj = g.ids.obj(canon.Ref(x.Source()))
 			o.Label = "Play " + g.cardName(canon.Ref(x.Source()))
@@ -785,7 +789,7 @@ func (g *Game) chooseKey(x dirac.Action) uint32 {
 	case dirac.ChGenDivide, dirac.ChCastDivide:
 		return uint32(g.s.FeatDivideIndex(dirac.TCode(src)))
 	case dirac.ChX, dirac.ChTrigX, dirac.ChMultikick, dirac.ChDivide, dirac.ChAsUnblocked, dirac.ChGenBranch, dirac.ChGenPileChoose, dirac.ChGenColor, dirac.ChGenManaChoice,
-		dirac.ChAltAdd, dirac.ChGenPip, dirac.ChGenReplOrder, dirac.ChGenGift, dirac.ChCostForage, dirac.ChGenKeepTapped, dirac.ChGenDestAlt, dirac.ChBand, dirac.ChEnlist:
+		dirac.ChAltAdd, dirac.ChGenPip, dirac.ChGenReplOrder, dirac.ChGenGift, dirac.ChCostForage, dirac.ChGenKeepTapped, dirac.ChGenDestAlt, dirac.ChBand, dirac.ChEnlist, dirac.ChGenCipher:
 		return uint32(mode)
 	case dirac.ChLearn:
 		return dirac.LearnKey(src, mode)

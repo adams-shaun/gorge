@@ -955,6 +955,10 @@ func (r *Translator) generatedChoose(a dirac.Action) (Canon, bool) {
 		// gorge's modes over the castable cards, in object order, an index
 		// kept after a cast
 		return Pack(ActMode, RefNone, RefNone, r.S.CastFreeIndex(dirac.Obj(src))), true
+	case dirac.ChGenCipher:
+		// gorge effCipher's KModes over the creatures, in battlefield order
+		// (kw_cipher.go): the option index
+		return Pack(ActMode, RefNone, RefNone, mode), true
 	case dirac.ChGenLookAck:
 		return Pack(kind("yes"), RefNone, RefNone, 0), true
 	case dirac.ChGenDestAlt:
@@ -1213,7 +1217,7 @@ func confirmChoice(mode uint8) (Canon, bool) {
 
 func GeneratedKind(sub dirac.ChoiceKind) (DKind, bool) {
 	switch sub {
-	case dirac.ChGenBranch, dirac.ChGenCastFree, dirac.ChGenPayMode, dirac.ChWardPay:
+	case dirac.ChGenBranch, dirac.ChGenCastFree, dirac.ChGenPayMode, dirac.ChWardPay, dirac.ChGenCipher:
 		return DModes, true
 	case dirac.ChGenReplOrder:
 		return DReplacement, true
