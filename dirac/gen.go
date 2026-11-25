@@ -1601,10 +1601,14 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 					g.setFlag(CardID(i), gfAnyR)
 					g.anyAnyR = true
 					g.anyMultiR = g.anyMultiR || restrWideAnyMana(a) // (Hermitic Herbalist: mana_restrictedcombo.go)
-				} else if filterTapMana(&t.Cards[i], a) && g.filt(CardID(i)) < 0 {
+				} else if filterTapMana(&t.Cards[i], a) && (g.filtCount(CardID(i)) == 0 || setFilterMana(a)) {
+					// A first filter of any modelled shape; a later one only
+					// the paid filter set's fixed-colour or choice shape
+					// (Koskun Keep's second ability), so a table's older
+					// multi-filter cards keep their first-filter-only walk.
 					g.prepTapFilt(CardID(i), j, a)
 				}
-				if int(g.filt(CardID(i))) != j && registersGapOther(&t.Cards[i], a, j) && g.gapOther(CardID(i)) < 0 {
+				if !g.isFiltAb(CardID(i), j) && registersGapOther(&t.Cards[i], a, j) && g.gapOther(CardID(i)) < 0 {
 					g.prepCensusGap(CardID(i), j, a)
 				}
 				if g.isGrantMana(&t.Cards[i], a) {
