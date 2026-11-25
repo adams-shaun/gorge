@@ -49,3 +49,20 @@ func (s *State) tapsDeferAnyColUnits(k *prep, sl Slot, av *avail) {
 	}
 	s.potentialTapAnyColExtra(k, sl, func(_ Slot, m, n uint8) { av.addUnits(m, n) })
 }
+
+// relaxedTapAnyColUnits adds the any-colour StatTapExtra bound of every
+// Taps-deferred gap to av, a relaxed census (grantRelaxedAffords): gorge's
+// relaxed alternative of a deferred source carries the open trigger's mana in
+// each colour (tapsDeferAnyColUnits' reading), which the relaxed proof of a
+// granted activation counts beside the grants (Teferi's Honor Guard's {U}{U}
+// from a Plains under Fertile Ground and an Eldrazi Spawn's granted any-colour
+// tap). Only the proof reads it: the grant search's own pricing is the
+// planner's census, which leaves the deferred sources out.
+func (s *State) relaxedTapAnyColUnits(k *prep, p uint8, av *avail) {
+	if k.gen == nil || !k.gen.anyTapExtra {
+		return
+	}
+	for b := s.scriptTapsDefer(k, p); b.any(); b = b.rest() {
+		s.tapsDeferAnyColUnits(k, b.first(), av)
+	}
+}

@@ -1,4 +1,3 @@
-Defined$ .Chosen,You	2
 Defined$ AttachedTo Targeted.Aura,Equipment	1
 Defined$ AttachedTo Targeted.Equipment	1
 Defined$ Card.Self	1

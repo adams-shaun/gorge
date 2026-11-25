@@ -182,6 +182,9 @@ func (s *State) resolveTop(k *prep) {
 				sl = s.enterFaceDown(k, e.obj, e.ctrl, e.morphFamily())
 			} else {
 				if k.gen != nil && k.gen.anyPermCopy {
+					if e.remVer&spellCopyExcMask != 0 {
+						s.spellCopyExcEnter(&e) // its NonLegendary$ exception (copy_spellnonlegendary.go)
+					}
 					s.permCopyEnters(e.obj) // CR 111.13: a copy becomes a token
 				}
 				if e.mode&modeBestowed != 0 && e.bestowedEntry() {
@@ -782,6 +785,8 @@ func (s *State) playerRef(k *prep, r kop.Ref) uint8 {
 		return s.res.chPl - 1 // the pick OpChoosePlayer recorded (chPl seat + 1; 0 wraps to 255, none)
 	case kop.RefAttachedCtrl:
 		return s.attachedCtrl(s.objRefObj(kop.RefAttached))
+	case kop.RefEnchantedCtrl:
+		return s.enchantedCtrl(e.obj) // trig_attachedctrl.go
 	}
 	if k.gen != nil {
 		return s.refPlayer(k, r, s.ctxEntry(&s.res.e))
@@ -1078,7 +1083,7 @@ func (s *State) refCode(k *prep, r kop.Ref) TCode {
 	case kop.RefTarget0, kop.RefTarget1, kop.RefTarget2, kop.RefTarget3, kop.RefTarget4:
 		sl, _ := tgtSlot(r)
 		return s.tgtCode(sl)
-	case kop.RefController, kop.RefOpponent, kop.RefTriggerPlayer, kop.RefDefendingPlayer, kop.RefTargetController, kop.RefEachOpponent, kop.RefPromised, kop.RefChosenPlayer, kop.RefChosenPlayerRes, kop.RefResChosenPlayer, kop.RefTriggerTgtCtrl, kop.RefTriggerObjOwner, kop.RefAttachedCtrl:
+	case kop.RefController, kop.RefOpponent, kop.RefTriggerPlayer, kop.RefDefendingPlayer, kop.RefTargetController, kop.RefEachOpponent, kop.RefPromised, kop.RefChosenPlayer, kop.RefChosenPlayerRes, kop.RefResChosenPlayer, kop.RefTriggerTgtCtrl, kop.RefTriggerObjOwner, kop.RefAttachedCtrl, kop.RefEnchantedCtrl:
 		p := s.playerRef(k, r)
 		if p == 255 {
 			return TCode(NoTarget)

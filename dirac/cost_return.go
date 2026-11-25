@@ -98,6 +98,53 @@ func (s *State) returnPickOptions(k *prep, d *Decision, pc *kop.Cost) bool {
 	return true
 }
 
+// payReturnResume finishes an unless-cost PayReturn payment that suspended at
+// a CR 903.9b commander_zone park. cmdZoneAnswer has consumed the answer, so
+// the parked permanent moves to its owner's hand now; the remaining picks are
+// paid or asked, then the payment completes and the resolution continues with
+// the resolving entry still on the stack (CR 608.2n). Every such park carries
+// the resolving entry: the payment runs inside its resolution, not after it.
+func (s *State) payReturnResume(k *prep) {
+	o := s.g.pre.obj
+	if ob := &s.objs[o]; ob.zone == kop.ZoneBattlefield {
+		s.leave(k, ob.slot, kop.ZoneHand, false)
+		if s.res.ask == raGenCmdZone {
+			s.res.flags |= rfPayPark // parked again on another of this payment's moves
+			return
+		}
+	}
+	s.g.pickLeft--
+	s.payReturnAfter(k)
+}
+
+// payReturnAfter continues a PayReturn payment whose current pick is settled:
+// it records the remaining unasked picks when exactly they are owed (gorge
+// picks them unasked, pay/unlessflow.go AdvanceUnless), else leaves the pick
+// ask posed, and finishes the payment when no pick remains.
+func (s *State) payReturnAfter(k *prep) {
+	if s.g.pickLeft > 0 {
+		s.res.ask, s.res.askP = raGenPayPick, s.g.pickP
+		if s.autoPayPick(k) {
+			if s.res.flags&rfPayPark != 0 {
+				return // another commander parked; its answer resumes this payment
+			}
+			s.payReturnDone(k)
+		}
+		return
+	}
+	s.payReturnDone(k)
+}
+
+// payReturnDone commits the settled PayReturn payment and continues the
+// resolution (the sacrifice riders and the body after it).
+func (s *State) payReturnDone(k *prep) {
+	s.payCommitSacs(k)
+	if s.payReturnPark() {
+		return
+	}
+	s.payDone(k, true)
+}
+
 // payReturnPicks returns the chosen permanents to their owners' hands
 // (paySacsGen: after the mana, before the sacrifices, as gorge payCast).
 func (s *State) payReturnPicks() {

@@ -60,6 +60,7 @@ const (
 	rTriggerOpps                  // each opponent of the trigger's player (kop.RefTriggerOpponents; Defined$ TriggeredCardOpponent, lower_triggeropps.go)
 	rResChosenPlayer              // the resolution's chosen player: OpChoosePlayer's random pick (gorge Ctx.Chosen's player entry, Maddening Hex's Attach destination)
 	rExiledWithOwner              // the seat whose exile holds a card exiled with the source (kop.RefExiledWithOwner; DefinedPlayer$ Player.HasCardsInExile_Card.ExiledWithSource_GE1, Unidentified Hovership's leave trigger)
+	rEnchantedCtrl                // the controller of the permanent the source is attached to, read live, nobody once the source left (kop.RefEnchantedCtrl; Defined$ EnchantedController, Paralyze)
 	rCount
 )
 
@@ -105,6 +106,7 @@ var refNames = [...]string{
 	rTriggerOpps:          "TriggerOpps",
 	rResChosenPlayer:      "ResChosenPlayer",
 	rExiledWithOwner:      "ExiledWithOwner",
+	rEnchantedCtrl:        "EnchantedCtrl",
 }
 
 type lRef struct {
@@ -252,6 +254,7 @@ const (
 	vSpellsLastTurn      // the spells cast last turn: N=0 whether any player cast one (0 or 1), N=1 the most one player cast (kop.ExSpellsCastLastTurn; value_spellslastturn.go)
 	vDevotionChosen      // the controller's devotion to the colour recorded on the source (Count$Devotion.Chosen, kop.ExDevotionChosen; value_devotion.go)
 	vSVarNum             // the evaluating source's StoreSVar number for the name S, else the printed body Sub[0] (kop.ExSVarNum; lower_storenum.go)
+	vMostProminentType   // the size of the largest group of battlefield objects matching F that share a creature type (Count$MostProminentCreatureType; kop.ExMostProminentCreatureType; value_mostprominent.go)
 	vReplLKIPow          // the replaced creature's derived power before a dies-to-exile rider moved it (ReplacedCardLKI$CardPower; value_repllki.go)
 	vCount_
 )
@@ -378,6 +381,7 @@ var valNames = [...]string{
 	vCmdCastTotal:        "CmdCastTotal",
 	vSpellsLastTurn:      "SpellsLastTurn",
 	vReplLKIPow:          "ReplLKIPow",
+	vMostProminentType:   "MostProminentType",
 }
 
 // lValue is an amount: Kind with its operand, then Mul/Div/Add applied in
