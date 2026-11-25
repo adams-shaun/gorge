@@ -105,6 +105,16 @@ func (lc *lowerCtx) repeatEachPlayers(ps *params) error {
 			// filter word it does not read.
 			continue
 		}
+		if n.API == "ChoosePlayer" || n.API == "TwoPiles" {
+			// The per-player opponent choice (choosePlayerEach) and the
+			// battlefield pile split (twoPilesEach) name the remembered sets
+			// they read themselves (ChosenPlayer, Land.IsRemembered's pile);
+			// both read every parameter and refuse what they do not lower,
+			// so the blanket remembered-read check below would refuse the
+			// shapes they are meant to lower. Any other ChoosePlayer or
+			// TwoPiles shape keeps refusing in its own lowering.
+			continue
+		}
 		var bad []string
 		for k, v := range n.Params {
 			v = strings.TrimSpace(v)
