@@ -5,7 +5,9 @@ package scripts
 // be overwritten with main's side and pushed to a PR; one it wrongly rejects leaves the PR CONFLICTING.
 
 import (
+	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -45,5 +47,30 @@ func TestAutoresolveMatcher(t *testing.T) {
 		if out, ok := match(append([]string{p}, generated...)...); ok || out != p {
 			t.Errorf("%s: want it reported alone and a failure, got %q ok=%v", p, out, ok)
 		}
+	}
+}
+
+// TestAutoresolveUnionKeepsAddedRow: a PR that adds a list row main lacks (a new set list in an acceptance tsv) keeps
+// it; main's rows win for shared keys; a row main deleted since the merge base stays deleted.
+func TestAutoresolveUnionKeepsAddedRow(t *testing.T) {
+	dir := t.TempDir()
+	write := func(name, body string) string {
+		p := filepath.Join(dir, name)
+		if err := os.WriteFile(p, []byte(body), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		return p
+	}
+	hdr := "list\taccepted\tcards\n"
+	base := write("base", hdr+"ALL\t10\t20\nOLD\t1\t2\nBLB\t3\t4\n")
+	main := write("main", hdr+"ALL\t12\t22\nBLB\t3\t4\n")
+	pr := write("pr", hdr+"ALL\t11\t21\nBLB\t3\t4\nCM2\t5\t6\nOLD\t1\t2\n")
+	out, err := exec.Command("bash", "pr-autoresolve.sh", "--union", main, pr, base).Output()
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := hdr + "ALL\t12\t22\nBLB\t3\t4\nCM2\t5\t6\n"
+	if string(out) != want {
+		t.Errorf("union:\n%q\nwant\n%q", out, want)
 	}
 }
