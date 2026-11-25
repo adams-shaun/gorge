@@ -104,7 +104,11 @@ func (sc *scen) do(t *testing.T, kind ActionKind, src, tgt TCode) {
 }
 
 // passTo passes priority until the game reaches step st of the current
-// turn (or a non-priority decision).
+// turn (or a non-priority decision). A trample attacker's damage division
+// (CR 702.19b) is answered with its default first option -- lethal to each
+// blocker, the rest tramples -- so a fixture that pinned the automatic
+// assignment keeps that result; any other decision stays pending for the
+// caller.
 func (sc *scen) passUntil(t *testing.T, st kop.Step) {
 	t.Helper()
 	for i := 0; i < 50; i++ {
@@ -113,11 +117,29 @@ func (sc *scen) passUntil(t *testing.T, st kop.Step) {
 		}
 		d := sc.s.Step()
 		if d.Kind != DkPriority {
+			if sc.answerDefaultTrampleDivision(d) {
+				continue
+			}
 			return
 		}
 		sc.s.Apply(MakeAction(AkPass, 0, 0, 0))
 	}
 	t.Fatalf("never reached step %d", st)
+}
+
+// answerDefaultTrampleDivision answers a pending trample attacker division
+// with its first option (the deterministic lethal-then-trample assignment),
+// reporting whether it consumed the decision.
+func (sc *scen) answerDefaultTrampleDivision(d Decision) bool {
+	if d.Kind != DkChoose || d.Sub != ChDivide || d.N == 0 {
+		return false
+	}
+	a := sc.slot(Obj(d.Options[0].Source()))
+	if sc.s.perms[a].flags&pfAttacking == 0 || sc.s.kw(sc.k, a)&kop.KwTrample == 0 {
+		return false
+	}
+	sc.s.Apply(d.Options[0])
+	return true
 }
 
 // combat runs a whole combat: attackers, then blocks (pairs blocker,

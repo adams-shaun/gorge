@@ -275,6 +275,16 @@ func gorgeCombatGame(t *testing.T, n int, seed uint64, limit int) (out []combatE
 				}
 			}
 			ev.det = offerDet(per) + fmt.Sprintf(" declared %v", cnt)
+		case decision.KChoose:
+			// CR 702.19b: a trample attacker's controller divides its damage
+			// between the blockers and the defender. Both engines offer the
+			// same splits in the same order; take the first (lethal to each
+			// blocker, the rest tramples) so the comparison's life totals
+			// stay on the policy both games share.
+			if len(d.Options) == 0 || d.Options[0].Kind != "division" {
+				t.Fatalf("n=%d seed %d: unexpected gorge choose %+v", n, seed, d)
+			}
+			ch = []int{d.Options[0].Index}
 		case decision.KBlockers:
 			ev.kind = "block"
 			atk := map[state.ObjID]bool{}
@@ -434,6 +444,14 @@ func kernelCombatGame(t *testing.T, n int, seed uint64, limit int) (out []combat
 			if len(plan) > 0 {
 				a, plan = plan[0], plan[1:]
 			}
+		case DkChoose:
+			// CR 702.19b trample division: option 0 is gorge's first split
+			// (lethal to each blocker, the rest tramples), which the gorge
+			// side above takes too.
+			if d.Sub != ChDivide || d.N == 0 {
+				t.Fatalf("n=%d seed %d: unexpected kernel decision %v", n, seed, d.Kind)
+			}
+			a = d.Options[0]
 		case DkBlockers:
 			if !inDecl {
 				// a defender's declaration opens

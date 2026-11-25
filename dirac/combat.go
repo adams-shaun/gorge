@@ -1462,26 +1462,10 @@ func (s *State) combatDamage(k *prep, first bool) bool {
 		trample := kw&kop.KwTrample != 0
 		for i := 0; i < nb && rem > 0; i++ {
 			b := bl[i]
-			_, t := s.pt(k, b)
 			// marked damage only: what another attacker assigns a blocker of
 			// two in this step is not read (gorge lethalDamageNeed; CR
 			// 702.19b allows either, combat_extrablock.go)
-			lethal := t - int(s.perms[b].damage)
-			if dt {
-				// A deathtouch source owes the blocker only 1, or nothing
-				// once the blocker already carries a Deathtouched mark: the
-				// mark alone is lethal (CR 704.5h), so a second-strike
-				// trampler may spill over without assigning to it again
-				// (CR 702.19b; gorge's lethalDamageNeed).
-				if s.perms[b].flags&pfDeathtouched != 0 {
-					lethal = 0
-				} else if lethal > 1 {
-					lethal = 1
-				}
-			}
-			if lethal < 0 {
-				lethal = 0
-			}
+			lethal := s.lethalNeed(k, b, dt)
 			amt := lethal
 			if i == nb-1 && !trample {
 				amt = rem
@@ -1823,9 +1807,47 @@ func splits(p, n int) int {
 }
 
 // nextDivision finds the next attacker (slot order) whose damage its
-// controller divides: dealing damage now, power > 0, no trample, two or
-// more blockers, at most 128 splits (gorge combat.go:1483-1505,
-// 1652-1700; above 128 gorge falls back to the automatic assignment).
+// lethalNeed is the damage attacker a must assign to blocker b before it may
+// assign to the next blocker or trample over (CR 510.1c, 702.19b/c): the
+// blocker's toughness less damage already marked on it, floored at zero. A
+// deathtouch source needs only 1 (CR 702.2c), or nothing once the blocker
+// already carries a Deathtouched mark (CR 704.5g).
+func (s *State) lethalNeed(k *prep, b Slot, dt bool) int {
+	_, t := s.pt(k, b)
+	need := t - int(s.perms[b].damage)
+	if dt {
+		// The mark alone is lethal (CR 704.5h), so a second-strike trampler
+		// may spill over without assigning to it again (CR 702.19b; gorge's
+		// lethalDamageNeed).
+		if s.perms[b].flags&pfDeathtouched != 0 {
+			need = 0
+		} else if need > 1 {
+			need = 1
+		}
+	}
+	if need < 0 {
+		need = 0
+	}
+	return need
+}
+
+// trampleNeed is the total lethal damage attacker a owes its live blockers
+// before any of its power may trample over (CR 702.19b).
+func (s *State) trampleNeed(k *prep, a Slot, bl []Slot) int {
+	dt := s.kw(k, a)&kop.KwDeathtouch != 0
+	total := 0
+	for _, b := range bl {
+		total += s.lethalNeed(k, b, dt)
+	}
+	return total
+}
+
+// nextDivision finds the next attacker (slot order) whose damage its
+// controller divides: dealing damage now, power > 0, either two or more
+// blockers with at most 128 splits, or (CR 702.19b) a trampler whose excess
+// over the blockers' lethal needs can still be assigned to the blockers or
+// the defending player. Above 128 splits the kernel falls back to the
+// automatic assignment, as gorge does (maxDivisionOptions).
 func (s *State) nextDivision(k *prep, first bool) bool {
 	// attackers in battlefield (entry) order, as gorge askNextDivision
 	var order [MaxPerm]Slot
@@ -1836,7 +1858,7 @@ func (s *State) nextDivision(k *prep, first bool) bool {
 		if ap.flags&pfAttacking == 0 || ap.flags&pfBlocked == 0 || s.combatArm().divDone.has(a) {
 			continue
 		}
-		if ap.nblock < 2 || !s.dealsNow(k, a, first) || s.kw(k, a)&kop.KwTrample != 0 || s.assignsUnblocked(k, a) { // routes whole to the player: no division
+		if ap.nblock == 0 || !s.dealsNow(k, a, first) || s.assignsUnblocked(k, a) { // routes whole to the player: no division
 			continue
 		}
 		pw := s.combatAmount(k, a)
@@ -1845,7 +1867,25 @@ func (s *State) nextDivision(k *prep, first bool) bool {
 		}
 		var bl [MaxPerm]Slot
 		nb := s.liveBlockers(a, &bl)
-		if nb < 2 || splits(pw, nb) > 128 {
+		if nb == 0 {
+			continue
+		}
+		var n int
+		if s.kw(k, a)&kop.KwTrample != 0 {
+			// CR 702.19b: at least lethal to each blocker, the excess split
+			// between the blockers and the defending player (the last bin).
+			extra := pw - s.trampleNeed(k, a, bl[:nb])
+			if extra < 1 {
+				continue // no choice: the automatic assignment is the only shape
+			}
+			n = splits(extra, nb+1)
+		} else {
+			if nb < 2 {
+				continue
+			}
+			n = splits(pw, nb)
+		}
+		if n <= 1 || n > 128 {
 			continue
 		}
 		s.divA, s.divI, s.divRem = a, 0, uint8(pw)
@@ -1868,7 +1908,14 @@ func (s *State) divideOptions(k *prep, d *Decision) {
 	var bl [MaxPerm]Slot
 	nb := s.liveBlockers(s.divA, &bl)
 	d.Kind, d.Sub, d.Player = DkChoose, ChDivide, s.active
-	n := splits(int(s.divRem), nb)
+	n := 0
+	if s.kw(k, s.divA)&kop.KwTrample != 0 {
+		// CR 702.19b: the excess over each blocker's lethal need, split
+		// among the blockers and the defending player (the last bin).
+		n = splits(int(s.divRem)-s.trampleNeed(k, s.divA, bl[:nb]), nb+1)
+	} else {
+		n = splits(int(s.divRem), nb)
+	}
 	o := s.perms[s.divA].obj
 	for i := 0; i < n; i++ {
 		d.add(MakeAction(AkChoose, TCode(o), 0, uint8(i)))
@@ -1901,7 +1948,20 @@ func (s *State) applyDivide(k *prep, a Action) {
 	var bl [MaxPerm]Slot
 	nb := s.liveBlockers(s.divA, &bl)
 	var amt [MaxPerm]uint8
-	SplitAt(int(s.divRem), nb, int(a.Mode()), amt[:nb])
+	if s.kw(k, s.divA)&kop.KwTrample != 0 {
+		// CR 702.19b: add each blocker's lethal need to its share of the
+		// excess; the defending player's share is whatever the blockers did
+		// not take, which combatDamage's divDone branch routes to the
+		// defender.
+		dt := s.kw(k, s.divA)&kop.KwDeathtouch != 0
+		var ex [MaxPerm + 1]uint8
+		SplitAt(int(s.divRem)-s.trampleNeed(k, s.divA, bl[:nb]), nb+1, int(a.Mode()), ex[:nb+1])
+		for i := 0; i < nb; i++ {
+			amt[i] = uint8(s.lethalNeed(k, bl[i], dt)) + ex[i]
+		}
+	} else {
+		SplitAt(int(s.divRem), nb, int(a.Mode()), amt[:nb])
+	}
 	for i := 0; i < nb; i++ {
 		*s.divAmtFor(bl[i], s.divA) = amt[i]
 	}
