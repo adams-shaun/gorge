@@ -79,7 +79,10 @@ FORGE_REPO ?= https://github.com/adams-shaun/forge.git
 # Light-Years from Home puts the basic land into its controller's hand, and Captain Michael Burnham is a Human Officer.
 # 418ba5215f = the fork's gorge-trek7: 84ce1603d9 + reviewer fixes to Card-Forge/forge#12668/#12669 (2026-11-07): ABILITY trigger
 # text and ValidTgtsDesc$ (Tal Shiar Operative, Wesley Crusher, Sela), Tal Shiar Analyst's Defined$ Opponent, Sarek's PlayMain1.
-FORGE_REF  ?= ff076d4432844aaab45693a971ce84bfb95841fd
+# 2dfc6f3c76 = ff076d44 + OptionalDecider$ You on the 12 T: lines of Rage Forger, Port Inspector, Medicine Runner,
+# Mighty Emergence, Poultrygeist, Spellpyre Phoenix, Decree of Savagery, Graceful Antelope, Skirk Commando,
+# Snapping Thragg and Bloodhall Ooze (both Phase lines), whose Oracle text says "you may" (CR 603.5).
+FORGE_REF  ?= 2dfc6f3c760827a6a31ee53cae10481cdde5f5be
 
 .PHONY: help
 help:
