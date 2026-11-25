@@ -22,6 +22,14 @@ import (
 // sources already tapped stay tapped (the build's mana step through
 // bflPlanCut; a resolution's payment through payManaResume).
 
+// reflMask's colour bits are 0..4 (WUBRG); bits 5..7 count the asks still owed
+// after the one posed (two carriers over an all-at-once source ask twice).
+const (
+	reflColMask   = 1<<reflOwedShift - 1
+	reflOwedShift = 5
+	reflOwedMax   = 7
+)
+
 // reflectPickPark settles the reflected pick of the plan unit ty, whose tap at
 // colour col the plan has just floated, and reports whether plan must stop for
 // the ask. A pick with one candidate floats that colour; one a probe or a
@@ -37,12 +45,14 @@ func (s *State) reflectPickPark(p uint8, ty *utype, col int) bool {
 		s.poolAdd(p, bits.TrailingZeros8(m), int(ty.n))
 		return false
 	}
-	if !s.manaSacParks() {
+	if !s.manaSacParks() || ty.n > reflOwedMax+1 {
 		s.capFull(StallTapExtra)
 		return false
 	}
-	s.pl[p].pool[col] -= ty.n // the plan's guess; the answer floats the colour picked
-	s.g.reflMask, s.g.reflP = m, p
+	s.pl[p].pool[col] -= ty.n // the plan's guess; the answers float the colours picked
+	// one ask per carrier (ty.n): the asks still owed after this one ride the
+	// mask's bits above the colours
+	s.g.reflMask, s.g.reflP = m|(ty.n-1)<<reflOwedShift, p
 	if s.buildLive() && s.bld().bfl&bflManaStep != 0 {
 		s.bld().bfl |= bflPlanCut
 	}
@@ -72,7 +82,7 @@ func (s *State) manaAskWaiting() bool {
 func (s *State) reflectPickOptions(d *Decision) {
 	d.Kind, d.Sub, d.Player = DkChoose, ChGenManaChoice, s.g.reflP
 	for c := uint8(0); c < 5; c++ {
-		if s.g.reflMask&(1<<c) != 0 {
+		if s.g.reflMask&reflColMask&(1<<c) != 0 {
 			d.add(MakeAction(AkChoose, 0, 0, c))
 		}
 	}
@@ -81,6 +91,11 @@ func (s *State) reflectPickOptions(d *Decision) {
 // applyReflectPick floats the colour picked and goes on with the payment.
 func (s *State) applyReflectPick(k *prep, a Action) {
 	s.poolAdd(s.g.reflP, int(a.Mode()), 1)
+	if owed := s.g.reflMask >> reflOwedShift; owed > 0 {
+		s.g.reflMask = s.g.reflMask&reflColMask | (owed-1)<<reflOwedShift
+		s.ctl = ctlReflectPick // the next carrier's pick: the next Step asks again
+		return
+	}
 	s.g.reflMask, s.g.reflP = 0, 0
 	if s.res.active {
 		s.ctl = ctlResolve

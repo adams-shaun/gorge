@@ -149,7 +149,7 @@ func (s *State) srcExtraAlt(k *prep, sl Slot, pc *pcard, colour bool) (xv [kop.N
 // source's own tap, yet the permanent is still tapped for mana.
 func (s *State) srcExtraTapped(k *prep, sl Slot, pc *pcard, colour bool) (xv [kop.NumManaKinds]uint8, hit bool) {
 	ctl := s.perms[sl].ctrl
-	eachPick := !colour && s.srcEachPick(k, sl, pc) == 1
+	eachPick := !colour && s.srcEachPick(k, sl, pc) > 0
 	s.eachStatic(k, func(st statSrc) bool {
 		a := &st.a.Static
 		if !s.tapExtraReaches(k, st, sl, ctl) {
@@ -796,11 +796,11 @@ func eachPickMask(pc *pcard) uint8 { return uint8(pc.manaCol)&0x3f | xvMask(pc) 
 
 // addEachPick adds the census unit of an all-at-once source's reflected pick:
 // one more mana of one of the produced types, beside the production's own units
-// (the unit's colour, srcExtra's rest). A single pick is one unit of the
-// produced mask; two carriers' picks are independent asks srcExtra stalls on.
+// (the unit's colour, srcExtra's rest). Each carrier's pick is one more unit
+// of the produced mask: independent asks, each of its own colour.
 func (s *State) addEachPick(k *prep, a *avail, sl Slot, pc *pcard) {
-	if s.srcEachPick(k, sl, pc) == 1 {
-		a.addUnits(eachPickMask(pc), 1)
+	if r := s.srcEachPick(k, sl, pc); r > 0 {
+		a.addUnits(eachPickMask(pc), r)
 	}
 }
 
@@ -821,7 +821,8 @@ func xvTotals(xv *[kop.NumManaKinds]uint8) (xm, xt uint8) {
 // mana of one of its types, which the search picks per need. It reports whether
 // the source is such a unit.
 func (s *State) planEachPick(k *prep, sl Slot, pc *pcard, xv *[kop.NumManaKinds]uint8, xm, xt, tn, mask, dmk *uint8) bool {
-	if pc.painCol != 0 || s.srcEachPick(k, sl, pc) != 1 {
+	r := s.srcEachPick(k, sl, pc)
+	if pc.painCol != 0 || r == 0 {
 		return false
 	}
 	col := bits.TrailingZeros8(uint8(pc.manaCol))
@@ -829,7 +830,7 @@ func (s *State) planEachPick(k *prep, sl Slot, pc *pcard, xv *[kop.NumManaKinds]
 	*xm |= 1 << col
 	*xt += pc.manaN
 	*mask = eachPickMask(pc)
-	*dmk, *tn = *mask, 1
+	*dmk, *tn = *mask, r // one pick per carrier (reflectPickPark asks each)
 	return true
 }
 
@@ -992,8 +993,8 @@ func (s *State) removeSrc(k *prep, a *avail, sl Slot, pc *pcard) {
 			a.remove(1<<c, xv[c])
 		}
 	}
-	if s.srcEachPick(k, sl, pc) == 1 {
-		a.remove(eachPickMask(pc), 1)
+	if r := s.srcEachPick(k, sl, pc); r > 0 {
+		a.remove(eachPickMask(pc), r)
 	}
 }
 
