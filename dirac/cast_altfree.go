@@ -33,7 +33,10 @@ func prepAltFree(t *kop.Table, g *genPrep, p *prep) {
 // filter and nothing else (Fireblast's Sac<2/Mountain>; kgen altSacOK keeps
 // it to an instant or sorcery with no other cost).
 func altSacCost(c *kop.Cost) bool {
-	return c.Flags == kop.CostSac && c.N > 0 && c.Mana == (kop.ManaCost{})
+	// PayLife rides Cost.Ctr beside the sacrifice's Cost.N (Wickerfolk
+	// Indomitable, Demon of Death's Gate); the mana may be nonzero (a
+	// Borderpost's {1} plus a Return, Sephara's {W} plus taps)
+	return c.Flags&^(kop.CostSac|kop.CostPayLife) == 0 && c.Flags&kop.CostSac != 0 && c.N > 0
 }
 
 // altReturnCost: the alternative cost is returning N permanents matching its
@@ -42,7 +45,7 @@ func altSacCost(c *kop.Cost) bool {
 // returnCost, the pick posed as returnAsk; kgen altSacOK keeps it to an
 // instant or sorcery with no other cost).
 func altReturnCost(c *kop.Cost) bool {
-	return c.Flags == kop.CostReturn && c.N > 0 && c.Mana == (kop.ManaCost{})
+	return c.Flags == kop.CostReturn && c.N > 0
 }
 
 // altHandExileCost: the alternative cost is exiling N hand cards matching its
@@ -53,7 +56,7 @@ func altReturnCost(c *kop.Cost) bool {
 func altHandExileCost(c *kop.Cost) bool {
 	shared := c.Flags == kop.CostPayLife|kop.CostExileGrave
 	bare := c.Flags == kop.CostExileGrave
-	return (shared || bare) && c.ExileHand && c.N > 0 && c.Mana == (kop.ManaCost{})
+	return (shared || bare) && c.ExileHand && c.N > 0
 }
 
 // altDiscardCost: the alternative cost is one discard part, or two, and
@@ -63,14 +66,14 @@ func altHandExileCost(c *kop.Cost) bool {
 // owed (cost_discardfiltered.go).
 func altDiscardCost(c *kop.Cost) bool {
 	return c.Flags&^kop.CostDiscardFiltered == kop.CostDiscard && c.N > 0 &&
-		!c.DiscardHand && c.Mana == (kop.ManaCost{})
+		!c.DiscardHand
 }
 
 // altLifeCost: the alternative cost is paying N life and nothing else (Snuff
 // Out's PayLife<4>, CR 118.9, 119.4; kgen altLifeOrTapShape): no pick is asked,
 // the offer is gated on the life and the cast pays it (payLifeCost).
 func altLifeCost(c *kop.Cost) bool {
-	return c.Flags == kop.CostPayLife && c.N > 0 && c.Mana == (kop.ManaCost{})
+	return c.Flags == kop.CostPayLife && c.N > 0
 }
 
 // altTapCost: the alternative cost is tapping N untapped permanents matching
@@ -78,7 +81,7 @@ func altLifeCost(c *kop.Cost) bool {
 // 118.9, 602.2b; gorge cost.go tapPermanentCostAsk, kgen altLifeOrTapShape):
 // the cast poses the tap picks (costPickOptions' bsTapCost).
 func altTapCost(c *kop.Cost) bool {
-	return c.Flags == kop.CostTapX && c.N > 0 && c.Mana == (kop.ManaCost{})
+	return c.Flags == kop.CostTapX && c.N > 0
 }
 
 // altPickCost: the alternative cost's non-mana parts are picks the cast asks
