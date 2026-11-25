@@ -743,8 +743,8 @@ func (s *State) canActivate(k *prep, sl Slot, ab int, a *kop.Ability, sorc bool,
 	if sourcesPay(&mana) && !poolOK && !s.actSourcesAfford(k, sl, ab, a, mana, av) {
 		return false
 	}
-	if mana.X == 0 && sacXCost(&a.Cost) && k.gen != nil && k.gen.anySacX {
-		return s.sacXTargetsFeasible(k, a, p.ctrl, sl) // cost_sacx.go
+	if mana.X == 0 && announcedCountX(k, &a.Cost) {
+		return s.sacXTargetsFeasible(k, a, p.ctrl, sl) // targets judged at X = 0 (cost_sacx.go, cost_exilex.go)
 	}
 	return s.abilityTargetsFeasible(k, a, p.ctrl, sl, 0xff) && s.xBoundPayable(k, a, 0, p.ctrl, sl, &mana)
 }
@@ -3872,4 +3872,14 @@ func scriptPricedCost(ab *kop.Ability) bool {
 func censusRestrDynAny(ab *kop.Ability) bool {
 	return ab.ManaRestrict != 0 && ab.AFlags&kop.AfManaDynamic != 0 && ab.ManaColors == kop.ColAny &&
 		ab.AFlags&kop.AfManaEachColor == 0 && !anyDifferentTapAb(ab)
+}
+
+// announcedCountX reports whether an ability's cost announces X as a count of
+// sacrificed (Sac<X/Spec>) or exiled (ExileFromGrave<X/Spec>) objects with no
+// {X} mana, so its targets are judged at X = 0 (cost_sacx.go, cost_exilex.go).
+func announcedCountX(k *prep, c *kop.Cost) bool {
+	if k.gen == nil {
+		return false
+	}
+	return (k.gen.anySacX && sacXCost(c)) || (k.gen.anyExileX && exileXCost(c))
 }

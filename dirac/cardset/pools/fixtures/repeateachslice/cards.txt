@@ -1,5 +1,6 @@
-# the RepeatEach slice pool (dirac/oracle/repeateach_slice_lowers_test.go): the RepeatEach player loops whose body is a lone DealDamage under DamageMap$ True (one damage batch), beside a DamageDealtOnce observer (Spirit Link), creatures and the ungated Repeat forms (Trade Secrets' MaxRepeat$ is a chosen number). The per-player ChooseCard forms (sacrifice/exile a remembered pick, choose an opponent's greatest creature, choose up to five, steal the exiled cards) complete the pool.
+# the RepeatEach slice pool (dirac/oracle/repeateach_slice_lowers_test.go): the RepeatEach player loops whose body is a lone DealDamage under DamageMap$ True (one damage batch), beside a DamageDealtOnce observer (Spirit Link), creatures and the ungated Repeat forms (Trade Secrets' MaxRepeat$ is a chosen number). The per-player ChooseCard forms (sacrifice/exile a remembered pick, choose an opponent's greatest creature, choose up to five, steal the exiled cards) and Bend or Break's per-player opponent choice feeding a battlefield TwoPiles (the chosen pile destroyed, the other tapped) complete the pool.
 Acidic Soil
+Bend or Break
 Heartless Hidetsugu
 Stormbreath Dragon
 Sunspine Lynx

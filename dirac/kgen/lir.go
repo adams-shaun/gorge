@@ -804,6 +804,7 @@ type lCost struct {
 	ExileStackSelf bool     // ExileFromStack<1/Card.Self>: the resolving spell exiles itself from the stack (an unless cost beside ExileG)
 	Energy         int      // PayEnergy<N>: pay N energy (an activated ability's cost, or a Squad/Replicate payment scaled to the count; kw_squadreplicate.go)
 	EnergyBy       *lValue  // PayEnergy<X>/<SVar>: the amount read as the cost is offered (a resolution unless cost)
+	EnergyX        bool     // PayEnergy<X>: pay the announced X energy (a printed activated ability's own cost, no printed {X}; kop.Cost.EnergyX, kernel cost_energyx.go)
 	Waterbend      int      // Waterbend<N>: N generic payable by tapping artifacts/creatures (an activated ability's cost only)
 	WaterbendX     bool     // Waterbend<X>: the cost's one {X} payable by tapping artifacts/creatures (kop.CostWaterbend with N 0; an activated ability's cost only)
 	BlightN        int      // Blight<N>: put N -1/-1 counters on a creature you control (CR 701.68; shares Cost.N/Filter)
@@ -819,7 +820,7 @@ type lCost struct {
 	DiscardX       bool     // Discard<X/Spec>: discard the announced X hand cards (a spell's or activated ability's own cost; kop.Cost.DiscardX)
 	EvidenceN      int      // CollectEvidence<N>: exile graveyard cards with total mana value >= N (CR 701.59a)
 	EvidenceX      bool     // CollectEvidence<X>: the announced X (a trigger's own cost only)
-	TapXVar        bool     // tapXType<X/Spec>: tap any number, X the count tapped (a trigger's own cost only; shares TapF)
+	TapXVar        bool     // tapXType<X/Spec>: tap any number, X the count tapped (a trigger's own cost, or a printed activated ability's: kop.CostTapX with N 0; shares TapF)
 	ExileTrigNew   bool     // ExileAnyGrave<1/Card.TriggeredNewCard>: exile the triggered card from any graveyard (a dies trigger's own cost)
 	PutLibSelf     bool     // PutCardToLibFromGrave<1/-1/CARDNAME>: the source card goes from its graveyard to the bottom of its owner's library (a graveyard activated ability's cost)
 	BeholdN        int      // Behold<N/Type>: reveal or choose N permanents or hand cards matching BeholdF (CR 701.4a; a spell's additional, optional, may-flash or flashback cost part)
@@ -837,7 +838,7 @@ func (c lCost) pureMana() bool {
 	return !c.Tap && !c.Untap && !c.SacSelf && c.Sac == nil && c.SacN == 0 &&
 		c.DiscardN == 0 && c.DiscardSpec == "" && !c.DiscardHand && !c.DiscardSelf && c.DiscardF == nil && !c.DiscardX && c.Discard2N == 0 && c.Loyalty == 0 && !c.LoyaltyX &&
 		c.SubCtr == 0 && !c.SubCtrX && c.SubAmongN == 0 && c.AddCtr == 0 && c.PayLife == 0 && !c.LifeX && c.LifeBy == nil && !c.LifeIdent && !c.SacX && c.XMin == 0 && c.TapN == 0 && !c.TapHost && !c.SacHost && !c.HostExile && !c.SacExile && c.TapPowN == 0 && !c.Exert &&
-		c.Forage == nil && c.ExileG == nil && !c.ExileGSelf && c.ExileHandN == 0 && c.Energy == 0 && c.EnergyBy == nil && !c.ReturnSelf &&
+		c.Forage == nil && c.ExileG == nil && !c.ExileGSelf && c.ExileHandN == 0 && c.Energy == 0 && c.EnergyBy == nil && !c.EnergyX && !c.ReturnSelf &&
 		!c.ExileSelf && !c.ExileStackSelf && c.Return == nil && c.DrawN == 0 && c.DrawBy == nil && c.DamageYouN == 0 && c.BlightN == 0 && c.EvidenceN == 0 && !c.EvidenceX && !c.TapXVar && !c.ExileTrigNew &&
 		c.pureManaTail()
 }
@@ -1227,6 +1228,9 @@ type lStatic struct {
 	// is 1-based and 0 means none, the offer never grants it;
 	// lower_offzone.go offZoneUnearth)
 	GrantBody int
+	// CardCostLess: a MiracleGrant's cost is the affected card's own mana cost
+	// less CardCostLess-1 generic; 0 = the grant's own Cost (kop.Static.CardCostLess)
+	CardCostLess int
 	// GrantSt: 1 + the index in lCard.GrantedStatics of the static the
 	// affected objects gain (0 = none; lower_grantedstatic.go)
 	GrantSt int
