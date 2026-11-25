@@ -90,7 +90,21 @@ func FormatCost(c Cost) string {
 			if part.Dyn != "" {
 				n = part.Dyn
 			}
-			add(kind + "<" + n + "/" + part.Spec + ">")
+			spec := part.Spec
+			// A set-level tapXType<2/Creature.sharesCreatureTypeWith> part
+			// carries the relation in CostPart.SameCreatureType, never in
+			// Spec, so spell it back here. Its description is re-emitted only
+			// with the flagged part, keeping every other head's formatting
+			// unchanged.
+			if part.SameCreatureType {
+				tok := kind + "<" + n + "/" + spec + sameCreatureTypePredicate
+				if part.Desc != "" {
+					tok += "/" + part.Desc
+				}
+				add(tok + ">")
+				continue
+			}
+			add(kind + "<" + n + "/" + spec + ">")
 		}
 	}
 	appendCostParts("Sac", c.Sac)
