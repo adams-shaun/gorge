@@ -101,7 +101,9 @@ jobs:
     # packages at once, and test (0) spent ~6 min compiling for 97 s of kgen tests.
     strategy:
       matrix:
-        box: [metal2, metal]  # 11-25: the on-demand sub box (16 runners) terminated; add sub back only while it runs
+        # The boxes come from the repo variable CI_BOXES (a JSON list, e.g. ["metal2","metal"]), so adding or
+        # dropping a box is `gh variable set CI_BOXES`, never a PR. Every listed box must have a gorge-box runner.
+        box: ${{ fromJSON(vars.CI_BOXES || '["metal2","metal"]') }}
     runs-on: ${{ vars.CI_SELF_HOSTED == 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && fromJSON(format('["gorge-box","box-{0}"]', matrix.box)) || 'ubuntu-24.04' }}
     steps:
       - name: Heal the runner's workspace (self-hosted)
