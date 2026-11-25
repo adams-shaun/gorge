@@ -29,14 +29,16 @@ var kstaticzonesDecks = [2][]cardset.Entry{
 		{Name: "Spire Serpent", Count: 2}, {Name: "Slithering Shade", Count: 2}, {Name: "Geist of the Lonely Vigil", Count: 1},
 		{Name: "Dragon's Rage Channeler", Count: 2},
 		{Name: "Case of the Locked Hothouse", Count: 1}, {Name: "Power Artifact", Count: 1},
-		{Name: "Plains", Count: 8}, {Name: "Island", Count: 3}, {Name: "Forest", Count: 3},
+		{Name: "Defensive Formation", Count: 2},
+		{Name: "Plains", Count: 6}, {Name: "Island", Count: 3}, {Name: "Forest", Count: 3},
 	},
 	{
 		{Name: "Lightning Bolt", Count: 4}, {Name: "Shock", Count: 4}, {Name: "Swords to Plowshares", Count: 3}, {Name: "Giant Growth", Count: 3},
 		{Name: "Grizzly Bears", Count: 3}, {Name: "Dragon's Rage Channeler", Count: 2}, {Name: "Spire Serpent", Count: 2},
 		{Name: "Case of the Locked Hothouse", Count: 2},
 		{Name: "True Believer", Count: 2}, {Name: "Trusted Advisor", Count: 2},
-		{Name: "Plains", Count: 5}, {Name: "Island", Count: 3}, {Name: "Mountain", Count: 5},
+		{Name: "Defensive Formation", Count: 2},
+		{Name: "Plains", Count: 5}, {Name: "Island", Count: 1}, {Name: "Mountain", Count: 5},
 	},
 }
 
