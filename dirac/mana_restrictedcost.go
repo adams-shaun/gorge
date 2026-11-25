@@ -186,16 +186,25 @@ func (a *avail) restrFeeChargePlain(plain *avail, fee kop.ManaCost, cost *kop.Ma
 // mana (feeClaim); the fee's own pips leave it as they are paid. The generic
 // takes any kind, so the fee is payable exactly when the pool holds that much
 // mana after the pips; a fee the pool cannot pay leaves the pool untouched.
-func (s *State) payPlanFee(k *prep, p uint8, ty *utype, claim *[kop.NumManaKinds]int, anyCol bool) bool {
+// lent is the restricted mana the hybrid witness lent into the pool for the
+// spell's own cost: a fee unit's activation is a different payment, so the
+// lent units stay out of the fee's supply (CR 106.6) and the fee is paid from
+// the pool around them.
+func (s *State) payPlanFee(k *prep, p uint8, ty *utype, claim *[kop.NumManaKinds]int, anyCol bool, lent [kop.NumManaKinds]uint8) bool {
 	pl := &s.pl[p]
+	var avail [kop.NumManaKinds]uint8
 	tot := 0
 	for c := 0; c < kop.NumManaKinds; c++ {
-		tot += int(pl.pool[c])
+		if int(pl.pool[c]) < int(lent[c]) {
+			return false // the fee cannot spend the lent units; keep the pool untouched
+		}
+		avail[c] = pl.pool[c] - lent[c]
+		tot += int(avail[c])
 	}
 	c := -1
 	if ty.feeCol != 0 {
 		c = feeColIdx(ty.feeCol)
-		if c < 0 || int(pl.pool[c]) < int(ty.feeN) {
+		if c < 0 || int(avail[c]) < int(ty.feeN) {
 			return false
 		}
 		tot -= int(ty.feeN)
@@ -205,10 +214,13 @@ func (s *State) payPlanFee(k *prep, p uint8, ty *utype, claim *[kop.NumManaKinds
 		return false
 	}
 	if c >= 0 {
-		pl.pool[c] -= ty.feeN
+		avail[c] -= ty.feeN
 		claim[c] = max(claim[c]-int(ty.feeN), 0)
 	}
-	takeFeeGeneric(&pl.pool, claim, anyCol, g)
+	takeFeeGeneric(&avail, claim, anyCol, g)
+	for c := 0; c < kop.NumManaKinds; c++ {
+		pl.pool[c] = avail[c] + lent[c]
+	}
 	return true
 }
 
