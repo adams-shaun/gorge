@@ -123,7 +123,6 @@ type genPrep struct {
 	anyExtraBlock            bool // a card has a printed CardDef.ExtraBlocks or a StatExtraBlock static (combat_extrablock.go)
 	anyUntapOther            bool // a card has a StatUntapOther static (static_untapother.go)
 	anyTapExtra              bool // a card has a StatTapExtra static (mana_tapextra.go)
-	anyCmdTapExtra           bool // a card has a command-zone StatTapExtra (a Vanguard's; static_classgates.go sclsTapCmd)
 	anyMaxBlk                bool // a card has a MinMaxBlocker Max$ 1 static (kop.StatMaxBlockers; combat_maxblockers.go)
 	anyCantGain, anyCantDraw bool // StatCantGainLife / StatCantDraw statics (static_cantdraw.go)
 	anyAsIfHaste             bool // a StatAsIfHaste static (static_asifhaste.go)
@@ -1094,7 +1093,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	g.anyUnion = tableUnion(t)
 	g.anyLinkRet = tableLinkRet(t)
 	g.anyLinkCtr = tableLinkCtr(t)
-	prepStaticClasses(t, g)
+	p.anyCmdTap = prepStaticClasses(t, g)
 	prepHexOwn(t, g)      // kw_hexproofcolor.go
 	prepEmblemCasts(t, p) // cast_selfflash.go
 	for i := range t.Cards {

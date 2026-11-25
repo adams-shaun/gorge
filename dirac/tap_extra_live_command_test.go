@@ -58,7 +58,7 @@ func TestTapExtraLiveSeesCommandZoneVanguard(t *testing.T) {
 	var s State
 	s.Init(tbl, da, db, 1, cfg)
 	k := s.k()
-	if k.gen == nil || !k.gen.anyTapExtra || !k.gen.anyCmdTapExtra {
+	if k.gen == nil || !k.gen.anyTapExtra || !k.anyCmdTap {
 		t.Fatalf("the table's prep does not carry the command-zone tap extra: %+v", k.gen)
 	}
 	if k.manaEach {

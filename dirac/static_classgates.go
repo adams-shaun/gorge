@@ -38,8 +38,9 @@ func prepOverrideLandwalk(t *kop.Table, g *genPrep) {
 	}
 }
 
-// prepStaticClasses fills g.sCls.
-func prepStaticClasses(t *kop.Table, g *genPrep) {
+// prepStaticClasses fills g.sCls and returns whether any card carries a
+// command-zone StatTapExtra static (a Vanguard's; mana_tapextra.go eachTapExtra).
+func prepStaticClasses(t *kop.Table, g *genPrep) (anyCmdTap bool) {
 	prepOverrideLandwalk(t, g)
 	g.sCls = make([]uint16, len(t.Cards))
 	for i := range t.Cards {
@@ -85,7 +86,7 @@ func prepStaticClasses(t *kop.Table, g *genPrep) {
 					// a Vanguard's printed static (Sisay): in force from the
 					// command zone, walked by eachTapExtra, never by eachStatic
 					m |= sclsTapCmd
-					g.anyCmdTapExtra = true
+					anyCmdTap = true
 				}
 			case kop.StatReduceCost:
 				if sa.Zone != kop.ZoneCommand {
@@ -105,6 +106,7 @@ func prepStaticClasses(t *kop.Table, g *genPrep) {
 		}
 		g.sCls[i] = m
 	}
+	return anyCmdTap
 }
 
 // eachStaticC is eachStatic over the permanents whose card prints a static

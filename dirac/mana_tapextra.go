@@ -28,7 +28,7 @@ func init() { stallNames[StallTapExtra] = "tapextra" }
 // eachTapExtra visits every StatTapExtra static in force: the battlefield and
 // emblem statics eachStatic walks, then a command-zone Vanguard's printed
 // static (Sisay), whose source has no perm slot (st.sl is NoSlot, st.cmd true).
-// The command-zone half is gated on genPrep.anyCmdTapExtra, so a table with no
+// The command-zone half is gated on prep.anyCmdTap, so a table with no
 // such static pays nothing, and only the tap-extra readers call this: a
 // command-zone static must never reach a reader that indexes st.sl as a perm.
 func (s *State) eachTapExtra(k *prep, f func(st statSrc) bool) {
@@ -40,7 +40,7 @@ func (s *State) eachTapExtra(k *prep, f func(st statSrc) bool) {
 		}
 		return true
 	})
-	if stop || k.gen == nil || !k.gen.anyCmdTapExtra {
+	if stop || k.gen == nil || !k.anyCmdTap {
 		return
 	}
 	for p := uint8(0); p < s.nSeats(); p++ {
