@@ -1131,6 +1131,9 @@ func (r *Translator) generatedChoose(a dirac.Action) (Canon, bool) {
 		// in option (face) order; the kernel carries that ordinal in Target.
 		return Pack(kind("card"), Ref(src), RefNone, uint8(a.Target())), true
 	}
+	if r.D.Sub == dirac.ChLearn {
+		return learnCanon(src, mode), true // translate_learn.go
+	}
 	return clashCanon(r.D.Sub, src, mode) // translate_clash.go
 }
 

@@ -4,4 +4,6 @@ value: 22
 forge: Learn
 census: api Learn all=23 std=0 mbc=0 sole=18
 state: code 0
-status: reserved
+status: active
+ticket: gap-api-learn
+doc: ExtLearn: DB$ Learn (CR 701.48a; gorge effLearn): the resolving controller chooses nothing, a Lesson card matching F from their sideboard (revealed, put into their hand), or a rummage (discard a card, then draw a card). dirac/act_learn.go.

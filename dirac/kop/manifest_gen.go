@@ -1297,6 +1297,8 @@ const ExtMustBlock ExtOp = 21
 func init() { extOpNames[ExtMustBlock] = "MustBlock" }
 
 // api Learn (dirac/manifest/ExtOp/ExtLearn)
+//
+// ExtLearn: DB$ Learn (CR 701.48a; gorge effLearn): the resolving controller chooses nothing, a Lesson card matching F from their sideboard (revealed, put into their hand), or a rummage (discard a card, then draw a card). dirac/act_learn.go.
 const ExtLearn ExtOp = 22
 
 func init() { extOpNames[ExtLearn] = "Learn" }

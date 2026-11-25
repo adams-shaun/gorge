@@ -217,6 +217,8 @@ func (e *Encoder) optKey(d *dirac.Decision, a dirac.Action) uint32 {
 			return uint32(mode) // ChAltAdd: the payable parts first, as gorge lists them
 		case dirac.ChGenPay, dirac.ChGenPayMode, dirac.ChGenTopBottom, dirac.ChGenLeyline, dirac.ChGenDiscUnless:
 			return 1 - uint32(mode&1) // pay / top / yes first
+		case dirac.ChLearn:
+			return dirac.LearnKey(src, mode) // nothing, the Lessons in object order, then the rummage
 		case dirac.ChGenType:
 			return e.st0.FeatTypeKey(d.Player, int(tgt)<<8|int(mode)) // the chooser's own creature types first
 		case dirac.ChGenChooseCard, dirac.ChGenChooseEach:
