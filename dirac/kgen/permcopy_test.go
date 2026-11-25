@@ -22,9 +22,10 @@ func TestPermcopyLifts(t *testing.T) {
 	}
 }
 
-// TestPermcopyRefusals: the unread rider params stay refused.
+// TestPermcopyRefusals: the unread rider params stay refused (Jackal's
+// NonLegendary$ lowers now: TestCopySpellSlice).
 func TestPermcopyRefusals(t *testing.T) {
-	for _, c := range lowerNamed(t, []string{"Jackal, Genius Geneticist", "Tawnos, the Toymaker"}) {
+	for _, c := range lowerNamed(t, []string{"Tawnos, the Toymaker"}) {
 		if len(c.Refusals) == 0 {
 			t.Errorf("%s lowered, want a refusal for its unread param", c.Name)
 			continue
