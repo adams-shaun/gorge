@@ -11,7 +11,7 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 | BIG | 30 | 27 | 0 | 2 | 25 | 25 | 0 |
 | BLB | 278 | 263 | 1 | 0 | 262 | 262 | 0 |
 | DFT | 276 | 259 | 0 | 1 | 258 | 258 | 0 |
-| DSK | 276 | 258 | 2 | 4 | 252 | 252 | 0 |
+| DSK | 276 | 259 | 2 | 5 | 252 | 252 | 0 |
 | ECL | 273 | 249 | 0 | 1 | 248 | 248 | 0 |
 | EOE | 266 | 252 | 0 | 1 | 251 | 251 | 0 |
 | FDN | 517 | 517 | 0 | 0 | 517 | 517 | 0 |
@@ -19,23 +19,23 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 | FRA | 269 | 255 | 0 | 5 | 250 | 250 | 0 |
 | HOB | 172 | 162 | 0 | 2 | 160 | 160 | 0 |
 | LCI | 290 | 262 | 1 | 1 | 260 | 260 | 0 |
-| MKM | 279 | 256 | 1 | 6 | 249 | 249 | 0 |
+| MKM | 279 | 257 | 1 | 7 | 249 | 249 | 0 |
 | MSH | 276 | 252 | 1 | 2 | 249 | 249 | 0 |
 | OTJ | 276 | 257 | 0 | 4 | 253 | 253 | 0 |
 | SOS | 270 | 261 | 0 | 2 | 259 | 259 | 0 |
 | SPM | 192 | 177 | 2 | 8 | 167 | 167 | 0 |
-| TDM | 276 | 260 | 1 | 0 | 259 | 259 | 0 |
+| TDM | 276 | 261 | 1 | 1 | 259 | 259 | 0 |
 | TLA | 285 | 264 | 1 | 2 | 261 | 261 | 0 |
 | TMT | 194 | 187 | 0 | 0 | 187 | 187 | 0 |
 | TRC | 337 | 307 | 0 | 35 | 272 | 272 | 0 |
 | TRK | 311 | 311 | 1 | 0 | 310 | 310 | 0 |
 | WOE | 281 | 267 | 0 | 3 | 264 | 264 | 0 |
 | MBC | 2212 | 2040 | 3 | 45 | 1992 | 1992 | 0 |
-| CMM | 737 | 620 | 2 | 39 | 579 | 579 | 0 |
+| CMM | 737 | 622 | 2 | 41 | 579 | 579 | 0 |
 | MH3 | 308 | 233 | 1 | 10 | 222 | 222 | 0 |
 | MH2 | 309 | 264 | 0 | 12 | 252 | 252 | 0 |
 | CM2 | 279 | 238 | 0 | 4 | 234 | 234 | 0 |
-| ALL | 34480 | 26784 | 42 | 886 | 25856 | 25853 | 0 |
+| ALL | 34480 | 26797 | 42 | 899 | 25856 | 25853 | 0 |
 
 `ALL` is the whole corpus; `MBC` is the Mystery Booster Commander draft pool, every name its packs deal that gorge supports; `CMM`, `MH3`, `MH2` and `CM2` are Commander Masters, Modern Horizons 3 and 2 and Commander Anthology Volume II, from gorge-compliance's XMage manifests; the rest are the Standard sets. `4-seat` counts the supported cards whose lowering holds at any seat count: a card whose lowering reads the one opponent of a two-player game (`kop.CardDef.TwoSeat`) is refused in a game of three or more seats (`StallTwoSeat`). It is a ceiling, not evidence. `pod-evidenced` counts those cards whose evidence row carries a seats field — a clean game of three or more seats, which `kfuzz -evidence -seats 4` writes and `scripts/dirac-first-refusals.py evidence --pools pod-*` copies into `dirac/support/evidence` (`Name\t<seats>`; readers take the name and ignore trailing columns). A pod game does not evidence a card: the support rule below is unchanged.
 

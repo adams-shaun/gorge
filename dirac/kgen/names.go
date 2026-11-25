@@ -234,6 +234,7 @@ func init() {
 		"kop.StRemove6Counters", kop.StRemove6Counters, "kop.StTargetsFilter2", kop.StTargetsFilter2, "kop.StYouHexproof", kop.StYouHexproof,
 		"kop.StFunctionsInExile", kop.StFunctionsInExile, "kop.StPanhETB", kop.StPanhETB, "kop.StAlsoSideboard", kop.StAlsoSideboard, "kop.StFreeOnly", kop.StFreeOnly,
 		"kop.StTapPowerCrew", kop.StTapPowerCrew, "kop.StTapPowerSaddle", kop.StTapPowerSaddle, "kop.StTapPowerStation", kop.StTapPowerStation, "kop.StTapPowerTough", kop.StTapPowerTough,
+		"kop.StMayZeroAlt", kop.StMayZeroAlt, "kop.StMayPayEnergy", kop.StMayPayEnergy,
 		"kop.StAtkTaxPlayer", kop.StAtkTaxPlayer, "kop.StAtkTaxWalker", kop.StAtkTaxWalker)
 	mask[kop.AbilityFlags]("kop.AfLatent", kop.AfLatent, "kop.AfManaDynamic", kop.AfManaDynamic, "kop.AfManaChosen", kop.AfManaChosen, "kop.AfOptionalCost", kop.AfOptionalCost,
 		"kop.AfCheckOnTrigger", kop.AfCheckOnTrigger, "kop.AfEquip", kop.AfEquip, "kop.AfCharmTrigger", kop.AfCharmTrigger, "kop.AfManaEachColor", kop.AfManaEachColor,

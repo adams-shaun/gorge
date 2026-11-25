@@ -170,6 +170,14 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 		if pc.altCost {
 			s.offerAltHand(k, d, p, o, c, &av) // kw_impending.go
 		}
+		if k.gen != nil {
+			// a non-granting may-play alternative cost beside the plain hand
+			// cast (As Foretold's {0}, Demon of Fate's Design's pay-life,
+			// Nissa's pay-energy): gorge's hand walk lists each mayPlayAltCosts
+			// entry as its own "cast" option (legal_walk_hand.go's
+			// alternativeCosts loop), whether or not the plain price is payable
+			s.offerMayPlayHandAlt(k, d, p, o, c, sorc, &av) // cast_mayzeroalt.go
+		}
 		cost := &pc.cost
 		var credited kop.ManaCost
 		if k.gen != nil && k.gen.anyConvoke && s.tapPays(k, p, c, o, true) {
@@ -460,7 +468,7 @@ func (s *State) activateOffers(k *prep, d *Decision, p uint8, sorc bool, av *ava
 				s.availFor(k, p, av)
 				haveAv = true
 			}
-			if (a.Cost.Mana.X == 0 && a.Cost.XMin != 0 || waterbendIsX(a) || hybridX(a)) && s.cfg&cfgGorgeUnpriced != 0 || a.Cost.Mana.Snow != 0 {
+			if (a.Cost.Mana.X > 0 || a.Cost.XMin != 0) && s.cfg&cfgGorgeUnpriced != 0 || a.Cost.Mana.Snow != 0 {
 				m := xFloorCost(a.Cost.Mana, costXMin(&a.Cost)) // (gorge's cost:x is X != 0 || XMin != 0 (pay.PlanCostDetail); an announced Sac<X> part without {X} or XMin is planned like any other cost (Krav, the Unredeemed's {B}); the pool pays the cheapest legal announcement; cost_sacx.go)
 				if k.gen != nil && k.gen.anyPowerUp && a.Cost.Flags&kop.CostPowerUp != 0 {
 					m = s.powerUpReduced(k, s.perms[sl].obj, m) // CR 702.193b: gorge prices the reduced cost (legal_walk_battlefield.go)

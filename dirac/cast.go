@@ -1708,6 +1708,9 @@ func (s *State) payCastParts(k *prep, ep *stackEntry, anyColor bool) {
 	if s.bld().payLifeMV {
 		s.payMayPlayLife(k) // a may-play cast's alternative cost: life equal to its mana value (cast_mayplaypaylife.go)
 	}
+	if n := s.bld().payEnergy; n > 0 {
+		s.payEnergyN(e.ctrl, n) // a may-play cast's alternative cost: the static's energy (kop.StMayPayEnergy)
+	}
 	if k.phyMana {
 		s.payPhyrexianLife(k) // the two-life faces (mana_phyrexian.go)
 	}
@@ -1816,6 +1819,9 @@ func (s *State) finishBuild(k *prep) {
 			return // a free or Spree cast's window waits on a tap-another pick (mana_window.go)
 		}
 		s.obsWinSettle(k, e.ctrl, obsPool, obsOK)
+		if k.gen != nil && k.gen.anyManaHaste {
+			s.hasteSettle(e.ctrl) // mana_hastefloat.go
+		}
 		s.payDelvePicks() // gorge payCast exiles the delved cards after the mana
 		s.paySacsGen(k)
 		s.bld().e.flags &^= sfFbGranted

@@ -4115,8 +4115,13 @@ func (s *State) abilityPlainMana(k *prep, e *stackEntry, cost kop.ManaCost, save
 // A granted cycling (kw_cyclinggrant.go) excludes nothing: gorge plans a
 // keyword-granted activation with no cast object (planKeywordAbility), so its
 // hand-demand key still counts the cycled card's pips.
+// handExcludeOn is off while gorge's ability witness plans without the hand
+// exclusion (hotfix/fl-oracle-5 backs out #4737's hand-demand key: the
+// lockstep diverged on TestTapExtraGrantedPrefixLockstep).
+const handExcludeOn = false
+
 func (s *State) abilityHandExclude(k *prep, e *stackEntry) Obj {
-	if e != nil && e.obj != NoObj && s.objs[e.obj].zone == kop.ZoneHand {
+	if handExcludeOn && e != nil && e.obj != NoObj && s.objs[e.obj].zone == kop.ZoneHand {
 		if k.anyCyclingGrant && isCyclingGrantBody(&k.t.Cards[e.card], int(e.ab)) {
 			return NoObj
 		}
