@@ -169,7 +169,7 @@ func compileMana(sa *cards.SA, dp *DefinedParams) *ManaParams {
 
 	costRaw := strings.TrimSpace(sa.ParamStr(cards.PKCost))
 	p.PlainTap = costRaw == "T"
-	p.AnyDifferent = (p.PlainTap || genericFeeTapCost(costRaw)) && p.Produced == "Combo AnyDifferent"
+	p.AnyDifferent = (p.PlainTap || genericFeeTapCost(costRaw) || counterTapCost(costRaw)) && p.Produced == "Combo AnyDifferent"
 	p.PlainSym, p.PlainAmt = plainManaParams(sa, p)
 	if sa.API == "Mana" {
 		p.Unread = unreadKeys(sa, manaKnownKeys[:])
@@ -189,6 +189,35 @@ func genericFeeTapCost(cost string) bool {
 	}
 	n, err := strconv.Atoi(f[0])
 	return isTapToken(f[1]) && err == nil && n > 0
+}
+
+// counterTapCost reports whether a Cost$ is exactly {T} and one literal
+// positive "SubCounter<N/TYPE>" removal of the source's own counters
+// (Component Pouch's "T SubCounter<1/COMPONENT>"), in either order. The
+// removal is a non-mana cost paid before the ability resolves (CR 602.2b), so
+// the production is the plain one.
+func counterTapCost(cost string) bool {
+	f := strings.Fields(cost)
+	if len(f) != 2 {
+		return false
+	}
+	if !isTapToken(f[1]) {
+		f[0], f[1] = f[1], f[0]
+	}
+	if !isTapToken(f[1]) {
+		return false
+	}
+	body, ok := strings.CutPrefix(f[0], "SubCounter<")
+	if !ok {
+		return false
+	}
+	body, ok = strings.CutSuffix(body, ">")
+	if !ok {
+		return false
+	}
+	n, kind, ok := strings.Cut(body, "/")
+	v, err := strconv.Atoi(n)
+	return ok && err == nil && v > 0 && kind != "" && !strings.ContainsAny(kind, "/<>")
 }
 
 // isTapToken reports a Cost$ field that is the bare {T} symbol.
