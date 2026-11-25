@@ -357,7 +357,7 @@ func (s *State) convokePickCount() int {
 // mayhem cast (trigPlMayhem) is the alternative route.
 func grantRouteStalls(cd *kop.CardDef, e *stackEntry) bool {
 	return harmonizeEntry(cd, e) || cd.HasPlot || cd.HasSneak || cd.HasWarp || e.trigPl == trigPlWarpG ||
-		cd.Mayhem && e.trigPl == trigPlMayhem || cd.HasWebSling || cd.HasMayFlash
+		cd.Mayhem && e.trigPl == trigPlMayhem || cd.HasWebSling || cd.HasMayFlash || cd.HasOffering
 }
 
 // convokeOptions poses the next convoke pick: one option per owed colour a

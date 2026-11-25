@@ -931,9 +931,11 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 				add(prioEntry{a: Pack(ActCast, ref(o.Obj), RefNone, castModeOther|uint8(o.AltCostIndex)<<4), opt: o.Index})
 				continue
 			}
-			if o.Mode == "mayflash" {
+			if o.Mode == "mayflash" || o.Mode == "offering" {
 				// CR 702.8: the kernel's AkMayFlash canonicalises to
-				// castModeOther, like "web-slinging" (kw_mayflash.go)
+				// castModeOther, like "web-slinging" (kw_mayflash.go); so
+				// does the offering cast that rides it (CR 702.48;
+				// kw_offering.go)
 				if o.AltCostIndex > 15 {
 					note("cast/mayflash")
 					continue

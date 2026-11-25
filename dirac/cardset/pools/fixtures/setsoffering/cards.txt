@@ -1,0 +1,31 @@
+# the Offering cards (CR 702.48, the kernel's offering cast; dirac/oracle
+# sets_offering_lowers_test.go TestSetsOfferingLowers) beside the Rats,
+# Goblins, Foxes, Moonfolk, Snakes and artifacts they sacrifice
+Patron of the Nezumi
+Patron of the Akki
+Patron of the Kitsune
+Patron of the Moon
+Patron of the Orochi
+Blast-Furnace Hellkite
+Chittering Rats
+Burglar Rat
+Bog Rats
+Akki Coalflinger
+Akki Raider
+Akki Underling
+Ornithopter
+Flutterfox
+Clockwork Fox
+Oboro Breezecaller
+Floodbringer
+Ambush Viper
+Ankle Biter
+Grizzly Bears
+Dark Ritual
+Savage Ventmaw
+Llanowar Elves
+Swamp
+Mountain
+Plains
+Island
+Forest

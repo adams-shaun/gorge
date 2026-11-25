@@ -647,6 +647,15 @@ type CardDef struct {
 	// Exhale), no mana: the cast is offered only with a candidate and owes
 	// the behold (BeholdN/BeholdF) in its cost-pick stage (kw_mayflash.go).
 	MayFlashBehold bool
+	// HasOffering is printed K:Offering:<Type> (CR 702.48; no KwMask bit is
+	// free): the hand offers the offering cast (AkMayFlash on this card) at
+	// instant speed, beside the plain cast; it sacrifices a permanent of
+	// OfferingF and its cost is reduced by that permanent's mana cost,
+	// symbol by symbol (dirac/kw_offering.go).
+	HasOffering bool
+	// OfferingF is the offering's sacrifice filter (a battlefield permanent
+	// of the printed type its caster controls; HasOffering).
+	OfferingF FilterID
 	// FbBehold: the printed flashback cost carries Behold<N/Type> beside
 	// its mana (Kindle the Inner Flame): the printed flashback cast is
 	// offered only with BeholdN candidates and owes the behold (BeholdN/

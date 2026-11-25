@@ -702,6 +702,9 @@ func (s *State) buildCostPreRaw(k *prep, pre, charge bool) (kop.ManaCost, bool) 
 		if k.gen != nil && k.gen.anyMayFlash && mayFlashEntry(e) && cd.HasMayFlash && !DebugMayFlashFree {
 			c = addCost(c, cd.MayFlashCost) // the mana cost plus the extra (CR 702.8; kw_mayflash.go)
 		}
+		if k.gen != nil && k.gen.anyOffering && offeringEntry(k, e) {
+			c = s.offeringReduced(k, c) // less the sacrificed permanent's mana cost (CR 702.48c; kw_offering.go)
+		}
 		if cd.HasAltAdd && s.bld().altAdd == 1 {
 			c = addCost(c, cd.AltAddCost.Mana)
 		}

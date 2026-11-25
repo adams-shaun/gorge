@@ -179,6 +179,7 @@ var gorgeKwElsewhere = map[string]string{
 	"Bestow":                 "CardDef.HasBestow (a hand alt cost, the Aura spell and the attached type switch; compared through the cast options, the types and the attachments)",
 	"Sneak":                  "CardDef.HasSneak (a declare-blockers hand alt cost; compared through the cast options and the entry's tapped and attacking flags)",
 	"MayFlashCost":           "CardDef.HasMayFlash (an instant-timing hand cast for the mana cost plus the extra; compared through the cast options; kw_mayflash.go)",
+	"Offering":               "CardDef.HasOffering (an instant-timing hand cast that sacrifices a permanent of the quality and is reduced by its mana cost; compared through the cast options, the sacrifice ask and the payment; kw_offering.go)",
 	"Web-slinging":           "CardDef.HasWebSling (a hand alt cost plus returning a tapped creature; compared through the cast options and the return; kw_websling.go)",
 	"Dash":                   "CardDef.HasDash (a hand alt cost, haste and the end-step return to hand; compared through the cast options, the stack and the battlefield; kw_dash.go)",
 	"Surge":                  "CardDef.HasSurge (a hand alt cost once another spell was cast this turn, no battlefield characteristic; compared through the cast options; kw_surge.go)",

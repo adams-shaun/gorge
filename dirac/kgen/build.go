@@ -859,6 +859,14 @@ func (cb *cardBuilder) record() error {
 			}
 		}
 	}
+	if c.Offering != nil {
+		// CR 702.48: no KwMask bit is free, so the offering marker is its
+		// own field; the filter is the sacrifice's (dirac/kw_offering.go)
+		d.HasOffering = true
+		if d.OfferingF, err = cb.filter(c.Offering, kop.ZoneBattlefield); err != nil {
+			return err
+		}
+	}
 	if c.FbBeholdN != 0 {
 		// the flashback cost's behold part (kernel act_behold.go): the
 		// card's behold fields, which no other behold cost may share

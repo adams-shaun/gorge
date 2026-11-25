@@ -86,6 +86,9 @@ func (s *State) casualtyOptions(k *prep, d *Decision) bool {
 	if k.t.Cards[e.card].Teamwork != 0 {
 		return s.teamworkOptions(k, d) // kw_teamwork.go
 	}
+	if k.t.Cards[e.card].HasOffering {
+		return s.offeringOptions(k, d) // kw_offering.go
+	}
 	d.N = 0
 	s.casualtyCands(k, e.ctrl, s.casualtyN(k, e.ctrl, e.card, e.obj, s.castFromHandBy(e, e.ctrl)), d)
 	if d.N == 0 {
@@ -117,8 +120,8 @@ func (s *State) casualtyTrigger(k *prep, e *stackEntry) {
 		s.teamworkClear() // kw_teamwork.go
 		return
 	}
-	if s.bld().cas != casPaid {
-		return
+	if s.bld().cas != casPaid || k.t.Cards[e.card].HasOffering {
+		return // a paid offering queues nothing (kw_offering.go)
 	}
 	if k.t.Cards[e.card].Bargain {
 		if !DebugBargainNoFlag {

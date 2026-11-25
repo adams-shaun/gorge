@@ -613,6 +613,7 @@ func (lc *lowerCtx) lowerTail() {
 	lc.refuseEntwineCombos() // lower_entwine.go
 	lc.refuseWebSlingCombos()
 	lc.refuseMayFlashCombos()
+	lc.refuseOfferingCombos() // lower_offering.go
 	lc.refuseEvokeCombos()
 	lc.refuseDashCombos()          // lower_dash.go
 	lc.refuseMultikickerCombos()   // K:Multikicker beside another cast route
@@ -1618,6 +1619,8 @@ func (lc *lowerCtx) lowerKeywords() {
 			lc.lowerEscalate(node, param) // lower_escalate.go
 		case head == "Strive":
 			lc.lowerStrive(node, param) // lower_strive.go
+		case head == "Offering":
+			lc.lowerOffering(node, param) // lower_offering.go
 		case head == "Casualty":
 			// CR 702.153a: the optional creature sacrifice and the copy
 			// trigger are the kernel's casualty cast (kw_casualty.go). The

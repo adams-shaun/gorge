@@ -133,6 +133,15 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 			}
 			s.offerSneakHand(k, d, p, o, c, &av) // kw_sneak.go
 		}
+		if k.gen != nil && k.gen.anyOffering && k.t.Cards[c].HasOffering {
+			// the offering cast is instant speed, above the sorcery-speed
+			// timing gate and beside the plain cast (kw_offering.go)
+			if !haveAv {
+				s.availFor(k, p, &av)
+				haveAv = true
+			}
+			s.offerOffering(k, d, p, o, c, &av)
+		}
 		if !pc.instant && !sorc && !s.castFlash(k, p, c) {
 			if k.gen != nil && k.gen.anyMayFlash && k.t.Cards[c].HasMayFlash {
 				// the timing gate refused the plain cast: the may-flash
@@ -3724,6 +3733,10 @@ func (s *State) applyPriority(k *prep, a Action) {
 	case AkWebSling:
 		s.beginWebSling(k, Obj(a.Source())) // CR 702.188a; kw_websling.go
 	case AkMayFlash:
+		if c := s.objs[a.Source()].card; k.gen != nil && k.gen.anyOffering && k.t.Cards[c].HasOffering {
+			s.beginOffering(k, Obj(a.Source())) // CR 702.48; kw_offering.go
+			break
+		}
 		s.beginMayFlash(k, Obj(a.Source())) // CR 702.8; kw_mayflash.go
 	default:
 		panic("kernel: bad priority action")
