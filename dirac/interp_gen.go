@@ -1204,6 +1204,7 @@ func (s *State) execEachTarget(k *prep, in *kop.Instr, i uint8) bool {
 	if in.Op == kop.OpCopyAsTokenEx {
 		s.g.tokFrz, s.g.tokFrzOn = s.statM, true // copy_eachtarget.go tokSrcM
 	}
+	s.res.flags &^= rfCopyGrp // no predecessor from before this loop
 	s.g.inLoop = true
 	w := eachSusp{slot: i, t: saveT, v: saveV, bad: saveBad, hold: hr}
 	n0 := s.g.nask
@@ -1213,6 +1214,7 @@ func (s *State) execEachTarget(k *prep, in *kop.Instr, i uint8) bool {
 		// answer reruns the instruction, so no later target moves first
 		e.tgt[i], e.tver[i], s.res.bad = saveT, saveV, saveBad
 		s.g.inLoop = false
+		s.res.flags &^= rfCopyGrp
 		return false
 	}
 	if !ok && (s.eachParks(in) || s.eachReturnParked(in)) || ok && s.eachReturnParks(k, in, n0) {
@@ -2341,8 +2343,13 @@ func (s *State) digPop(pl *player, n int, a, b []Obj) {
 func (s *State) execCopyToken(k *prep, in *kop.Instr) bool {
 	o := s.objRefObj(in.Obj)
 	if o == NoObj {
-		if in.Obj == kop.RefRemembered {
-			s.delayEmptyRider(in) // nothing remembered: no copy, but the rider's trigger exists (copy_emptyrider.go)
+		// no copy, but the AtEOT$ rider's delayed trigger still exists (CR
+		// 603.7a; copy_emptyrider.go): an empty Remembered set, an X = 0
+		// targeted copy (TargetMin$ X with no slot answered) and a target
+		// that left before resolution all land here. In an each-target loop
+		// the loop's end registers the one empty trigger (eachRun).
+		if !s.inEachCopy() {
+			s.delayEmptyRider(in)
 		}
 		return false
 	}
@@ -2362,12 +2369,24 @@ func (s *State) copyCardToken(k *prep, in *kop.Instr, c CardID) bool {
 	return s.copyCardTokenFor(k, in, c)
 }
 
+// inEachCopy reports whether the op runs for one object of an each-target
+// loop that has more targets, or the loop's parked copy is being resumed: the
+// loop's end (eachRun) registers the resolution's one AtEOT$ rider, not each
+// target's empty arm.
+func (s *State) inEachCopy() bool {
+	return s.g.each.j != 0 || s.g.inLoop && s.xtOf(&s.res.e).n > 0
+}
+
 // copyCardTokenFor is copyCardToken for the resolving entry's controller.
 func (s *State) copyCardTokenFor(k *prep, in *kop.Instr, c CardID) bool {
-	s.res.flags &^= rfCopyGrp
+	if !s.inEachCopy() {
+		// the each-target loop keeps the flag across targets: one resolution's
+		// copies share one AtEOT$ trigger (execEachTarget)
+		s.res.flags &^= rfCopyGrp
+	}
 	e := &s.res.e
 	v := s.value(k, in.A)
-	if v <= 0 && in.B.N&(kop.CpSacAtEndDly|kop.CpExileAtEnd) != 0 {
+	if v <= 0 && !s.inEachCopy() && in.B.N&(kop.CpSacAtEndDly|kop.CpExileAtEnd) != 0 {
 		// X = 0 makes no copy, but the AtEOT$ rider's delayed trigger is
 		// created all the same (CR 603.7): it goes on the stack at the end
 		// step (SacrificeUpkeep: the upkeep) and does nothing (gorge
@@ -2385,9 +2404,9 @@ func (s *State) copyCardTokenFor(k *prep, in *kop.Instr, c CardID) bool {
 	if rewritten {
 		// a CreateToken rewriter replaced the copy mints (repl_tokrewrite.go)
 		s.mintRewritten(k, e.ctrl, tc, n)
-		if in.B.N&kop.CpSacAtEndDly != 0 {
-			// no copy is left for the AtEOT$ Sacrifice group, which gorge
-			// still registers (CR 603.7); the other riders have no copy
+		if !s.inEachCopy() && in.B.N&(kop.CpSacAtEndDly|kop.CpExileAtEnd) != 0 {
+			// no copy is left for the AtEOT$ rider, which gorge still
+			// registers over no object (CR 603.7a; scheduleAtEOTNone)
 			if sacAtUpkeepOf(in.B.N) {
 				s.delayEmptyUpkeep(e)
 			} else {
@@ -2409,7 +2428,8 @@ func (s *State) copyCardTokenFor(k *prep, in *kop.Instr, c CardID) bool {
 // controller (execCopyToken).
 func (s *State) copyTokens(k *prep, in *kop.Instr, c CardID, n int) bool {
 	parked := s.copyTokensRun(k, in, c, n)
-	if !parked {
+	if !parked && !s.inEachCopy() {
+		// the each-target loop keeps the flag for the next target
 		s.res.flags &^= rfCopyGrp
 	}
 	return parked
@@ -2435,6 +2455,7 @@ func (s *State) copyTokensRun(k *prep, in *kop.Instr, c CardID, n int) bool {
 	// batch, CR 603.6a): each one's "another enters" sees the others
 	var eb entBatch
 	defer s.fireOrHoldEntries(k, &eb)
+	made := 0
 	for i := 0; i < n; i++ {
 		if s.nearCapacity(k) {
 			s.stall(StallBoard)
@@ -2471,6 +2492,13 @@ func (s *State) copyTokensRun(k *prep, in *kop.Instr, c CardID, n int) bool {
 		s.copyTokenEnter(k, in, t, host, &eb)
 		s.res.flags |= rfCopyGrp
 		s.res.lastTok = t // the copy a following RefLastCreated op reads (Encore's attack duty)
+		made++
+	}
+	if made == 0 && n > 0 && !s.inEachCopy() {
+		// every copy was an Aura with no legal host (CR 303.4g): no token,
+		// but the AtEOT$ rider's delayed trigger still exists (CR 603.7a).
+		// In an each-target loop the loop's end registers it (eachRun).
+		s.delayEmptyRider(in)
 	}
 	return false
 }
