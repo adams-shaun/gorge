@@ -2172,6 +2172,8 @@ type genState struct {
 	// fbProbe fills the padding byte after ndmg. Transient: a filter script trial node keeps the root's
 	// both-instances flashback classification (legal.go fbProbeRoot).
 	fbProbe bool
+	// priAsk is Config.PriorityManaAsk (mana_priask.go); it fills the second padding byte after ndmg.
+	priAsk uint8
 
 	may  [maxMay]mayPlay
 	nmay uint8

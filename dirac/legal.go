@@ -510,6 +510,7 @@ func (s *State) activateOffers(k *prep, d *Decision, p uint8, sorc bool, av *ava
 			}
 		}
 	}
+	s.priManaAskOffers(k, d, p) // an unless source's activation (Config.PriorityManaAsk; mana_priask.go)
 	return haveAv
 }
 
@@ -3613,6 +3614,9 @@ func hybridCovered(left *[kop.NumManaKinds]int, hyb []kop.ColorMask) bool {
 
 func (s *State) applyPriority(k *prep, a Action) {
 	p := s.prio
+	if s.priManaAskBegin(k, a) {
+		return // an unless source's activation: its asks follow (mana_priask.go)
+	}
 	sp0 := s.sp
 	// A filter beside a grant is one search in gorge (scriptSearch.visit:
 	// every census gap in battlefield order), and the grant search is that
