@@ -4071,7 +4071,7 @@ func (s *State) gapWindowReverse(k *prep, e *stackEntry, cost *kop.ManaCost, sav
 // path that keeps the activation, and reports true when the activation was
 // reversed because neither reaches the cost (CR 733.1).
 func (s *State) abilityPlainMana(k *prep, e *stackEntry, cost kop.ManaCost, saved *[len(build{}.picks)]uint8, hostSl, sl Slot, selfUntapped bool) bool {
-	if !s.tapForTry(k, e.ctrl, &cost, int(e.x), NoObj, false) {
+	if !s.tapForTry(k, e.ctrl, &cost, int(e.x), s.abilityHandExclude(e), false) {
 		c := xFolded(cost, int(e.x))
 		if s.gapWindowReverse(k, e, &c, saved, hostSl, sl, selfUntapped) {
 			return true
@@ -4086,6 +4086,19 @@ func (s *State) abilityPlainMana(k *prep, e *stackEntry, cost kop.ManaCost, save
 	}
 	s.releaseCostTaps(k, saved)
 	return false
+}
+
+// abilityHandExclude is the object a hand ability's payment planner must leave
+// out of the hand-demand census: the card being activated is discarded as the
+// ability's cost, so gorge's PaymentPlanHandDemand excludes it (pay/planner.go
+// key 6), and the planner's source choice follows (Webstrike Elite's {X}
+// cycling). Only a hand source needs it: a battlefield source is no hand card,
+// and excluding it there would hide a mana ability it may still activate.
+func (s *State) abilityHandExclude(e *stackEntry) Obj {
+	if e != nil && e.obj != NoObj && s.objs[e.obj].zone == kop.ZoneHand {
+		return e.obj
+	}
+	return NoObj
 }
 
 // holdCostTaps marks the untapped tap-X and waterbend picks tapped for the
@@ -4244,12 +4257,13 @@ func (s *State) abilityPlanSettles(k *prep, e *stackEntry, offer, fallback, sett
 		return false
 	}
 	s.releaseCostTaps(k, saved)
+	exclude := s.abilityHandExclude(e)
 	chk := planner{dry: true, noGrant: true}
-	s.tapForPK(k, e.ctrl, &offer, 0, NoObj, false, false, &chk)
+	s.tapForPK(k, e.ctrl, &offer, 0, exclude, false, false, &chk)
 	armed := chk.needT != 0
 	if armed && !chk.found {
 		chk = planner{dry: true, noGrant: true}
-		s.tapForPK(k, e.ctrl, &fallback, 0, NoObj, false, false, &chk)
+		s.tapForPK(k, e.ctrl, &fallback, 0, exclude, false, false, &chk)
 		armed = chk.found
 	}
 	s.retakeCostTaps(saved)
@@ -4257,7 +4271,7 @@ func (s *State) abilityPlanSettles(k *prep, e *stackEntry, offer, fallback, sett
 		return false
 	}
 	chk = planner{dry: true, noGrant: true}
-	s.tapForPK(k, e.ctrl, &settled, int(e.x), NoObj, false, false, &chk)
+	s.tapForPK(k, e.ctrl, &settled, int(e.x), exclude, false, false, &chk)
 	return chk.found || chk.needT == 0
 }
 
