@@ -263,6 +263,25 @@ type engineScratch struct {
 	// lookBackWalk is set while checkTriggers walks a departure's triggers on
 	// the pre-departure board.
 	lookBackWalk bool `clone:"reset"`
+	// windowDepartures is every battlefield departure that left while the
+	// trigger window was open, in departure order:
+	// BatchDepartures adds its whole ex-ante member list (so a member's own
+	// trigger already sees its fellows before their moves emit) and emit adds
+	// each member again as it actually folds (noteWindowDeparture). Every way
+	// a window ends retires the list: setTriggerBefore(nil), which
+	// closeTriggerWindow and every direct restore of triggerBefore (the
+	// legend-rule answer, a parked replacement answer) go through.
+	windowDepartures []state.ObjID `clone:"reset"`
+	// windowDeparted is the look-back OBSERVER's copy of the live window's
+	// list (checkTriggersNow) and the only reader of it: a trigger whose
+	// SOURCE is one of these is a CR 603.10a look-back trigger and judges its
+	// CR 603.4 intervening-if on the pre-departure board; any other trigger
+	// reads the condition when the event occurs, after the objects left, so
+	// its present count skips them (Lifeline: the dying creature is not the
+	// "another creature" of its own death's condition; Forge and XMage both
+	// read the post-departure board). The live engine's value is always nil:
+	// its board already moved the objects, so it never skips.
+	windowDeparted []state.ObjID `clone:"reset"`
 	// pushZoneWalk narrows the trigger walks of a spell's up-front PutOnStack
 	// (pushZoneOnly, at the push) or its deferred re-walk (pushZoneDone, after
 	// payment) to the zone-change modes or to the rest (cast_push_zone.go).
