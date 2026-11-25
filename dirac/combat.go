@@ -1939,6 +1939,27 @@ func SplitAt(p, n, idx int, out []uint8) {
 	out[n-1] = uint8(p)
 }
 
+// divisionSplit fills out with split number mode of the pending attacker
+// division: one amount per live blocker in block order and, for a trampler
+// (CR 702.19b), the defending player's share after them. A trampler's blocker
+// gets its lethal need plus its share of the excess; the defender's share is
+// whatever the blockers did not take, which combatDamage's divDone branch
+// routes to the defender. trample reports whether the defender entry is set.
+func (s *State) divisionSplit(k *prep, mode int, out *[MaxPerm + 1]uint8) (nb int, trample bool) {
+	var bl [MaxPerm]Slot
+	nb = s.liveBlockers(s.divA, &bl)
+	if s.kw(k, s.divA)&kop.KwTrample == 0 {
+		SplitAt(int(s.divRem), nb, mode, out[:nb])
+		return nb, false
+	}
+	dt := s.kw(k, s.divA)&kop.KwDeathtouch != 0
+	SplitAt(int(s.divRem)-s.trampleNeed(k, s.divA, bl[:nb]), nb+1, mode, out[:nb+1])
+	for i := 0; i < nb; i++ {
+		out[i] += uint8(s.lethalNeed(k, bl[i], dt))
+	}
+	return nb, true
+}
+
 func (s *State) applyDivide(k *prep, a Action) {
 	if s.perms[s.divA].flags&pfBlocking != 0 {
 		s.applyBlockerDivide(a) // combat_extrablock.go
@@ -1946,21 +1967,8 @@ func (s *State) applyDivide(k *prep, a Action) {
 	}
 	var bl [MaxPerm]Slot
 	nb := s.liveBlockers(s.divA, &bl)
-	var amt [MaxPerm]uint8
-	if s.kw(k, s.divA)&kop.KwTrample != 0 {
-		// CR 702.19b: add each blocker's lethal need to its share of the
-		// excess; the defending player's share is whatever the blockers did
-		// not take, which combatDamage's divDone branch routes to the
-		// defender.
-		dt := s.kw(k, s.divA)&kop.KwDeathtouch != 0
-		var ex [MaxPerm + 1]uint8
-		SplitAt(int(s.divRem)-s.trampleNeed(k, s.divA, bl[:nb]), nb+1, int(a.Mode()), ex[:nb+1])
-		for i := 0; i < nb; i++ {
-			amt[i] = uint8(s.lethalNeed(k, bl[i], dt)) + ex[i]
-		}
-	} else {
-		SplitAt(int(s.divRem), nb, int(a.Mode()), amt[:nb])
-	}
+	var amt [MaxPerm + 1]uint8
+	s.divisionSplit(k, int(a.Mode()), &amt)
 	for i := 0; i < nb; i++ {
 		*s.divAmtFor(bl[i], s.divA) = amt[i]
 	}

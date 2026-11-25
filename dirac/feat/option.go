@@ -363,10 +363,18 @@ func (e *Encoder) optionOf(d *dirac.Decision, a dirac.Action) optIn {
 }
 
 // firstShare is a damage split's first blocker share (gorge's division
-// option Amount): split idx of the attacker's power among its blockers.
+// option Amount): split idx of the attacker's power among its blockers, read
+// from the pending division of the state the encoder was built from.
 func (e *Encoder) firstShare(atk dirac.Obj, idx int) int32 {
 	if int(atk) < int(e.kp.NObj) && e.po(atk).Flags&dirac.ProjBlocking != 0 {
 		return int32(idx) // a two-attacker blocker's division: the first share is the option index
+	}
+	if e.st0 != nil {
+		// the kernel's own split: a trampler's (CR 702.19b) gives each
+		// blocker its lethal need first, which the projection does not carry
+		var out [dirac.MaxPerm + 1]uint8
+		e.st0.FeatDivisionSplit(idx, &out)
+		return int32(out[0])
 	}
 	n := 0
 	for i := 0; i < int(e.kp.NObj); i++ {

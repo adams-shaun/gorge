@@ -21,14 +21,14 @@ import (
 //
 // Two four-seat edh pods (kfuzz -kernel edh -seats 4): The Mending of
 // Dominaria's chapter III shuffling a graveyard holding the commander's
-// neighbour into the library (decision 1879) and Midnight Clock's hand and
+// neighbour into the library (decision 1880) and Midnight Clock's hand and
 // graveyard sweep (decision 4233). Their tables are the edh tables over their
 // own four decks, which no glob helper builds, so they replay here.
 var parkedSweepRepros = []struct {
 	name string
 	at   int
 }{
-	{"parked_sweep_mending_library_order", 1879},
+	{"parked_sweep_mending_library_order", 1880}, // 1879 before the trample division ask at 924
 	{"parked_sweep_midnight_clock_library_order", 4233},
 }
 

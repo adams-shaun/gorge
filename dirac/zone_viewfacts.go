@@ -101,6 +101,31 @@ func (s *State) FeatDivision(out *[MaxPerm]Obj) (n, damage int) {
 	return n, int(s.divRem)
 }
 
+// FeatDivisionSplit is split number mode of the pending damage division, in
+// FeatDivision's order. A trampling attacker's split (CR 702.19b) gives each
+// blocker its lethal need plus its share of the excess, and carries the
+// defending player's share after the blockers (trample true).
+func (s *State) FeatDivisionSplit(mode int, out *[MaxPerm + 1]uint8) (n int, trample bool) {
+	if s.perms[s.divA].flags&pfBlocking != 0 {
+		var l [MaxPerm]Slot
+		n = s.blockedLive(s.divA, &l)
+		SplitAt(int(s.divRem), n, mode, out[:n])
+		return n, false
+	}
+	return s.divisionSplit(s.k(), mode, out)
+}
+
+// FeatDivisionDefender is what the pending division's attacker attacks, as gorge
+// names the trample share's recipient: the attacked planeswalker or battle
+// object when there is one (perm true), else the defending seat.
+func (s *State) FeatDivisionDefender() (seat uint8, o Obj, perm bool) {
+	t := s.perms[s.divA].atk
+	if !isPlayerOrNone(t) {
+		return 0, Obj(t), true
+	}
+	return s.atkSeat(s.k(), s.divA), NoObj, false
+}
+
 // FeatBlockOrder is where blocking permanent o was declared among its attacker's
 // blockers.
 func (s *State) FeatBlockOrder(o Obj) uint8 { return uint8(s.perms[s.objs[o].slot].bord) }

@@ -741,12 +741,14 @@ func returnFits(filter string, f *cards.Face, tapped bool) bool {
 }
 
 // labelDivision says how split number i divides the attacker's damage, in the words a
-// v2 mapping rebuilds. Amount is the first blocker's share, as on gorge.
+// v2 mapping rebuilds. Amount is the first blocker's share, as on gorge. A trampler's
+// split (CR 702.19b) names the defender's share last, as gorge
+// trampleDivisionOptions does.
 func (g *Game) labelDivision(o *decision.Option, i uint8) {
 	var blockers [dirac.MaxPerm]dirac.Obj
-	var split [dirac.MaxPerm]uint8
-	n, damage := g.s.FeatDivision(&blockers)
-	dirac.SplitAt(damage, n, int(i), split[:])
+	var split [dirac.MaxPerm + 1]uint8
+	g.s.FeatDivision(&blockers)
+	n, trample := g.s.FeatDivisionSplit(int(i), &split)
 	o.Amount = int(split[0])
 	for j := range n {
 		if j > 0 {
@@ -754,6 +756,30 @@ func (g *Game) labelDivision(o *decision.Option, i uint8) {
 		}
 		o.Label += strconv.Itoa(int(split[j])) + " to " + g.face(g.kp.Objs[blockers[j]].Card).Name
 	}
+	if trample {
+		if n > 0 {
+			o.Label += ","
+		}
+		o.Label += strconv.Itoa(int(split[n])) + " to " + g.divisionDefender()
+	}
+}
+
+// divisionDefender names what the dividing trampler attacks, as gorge
+// trampleDivisionOptions does: the attacked permanent's name, else the defending
+// player's.
+func (g *Game) divisionDefender() string {
+	seat, o, perm := g.s.FeatDivisionDefender()
+	if perm {
+		return g.face(g.kp.Objs[o].Card).Name
+	}
+	names := g.cfg.Names
+	if len(names) == 0 {
+		names = []string{"p0", "p1"} // materialise's default
+	}
+	if int(seat) < len(names) && names[seat] != "" {
+		return names[seat]
+	}
+	return "the defending player"
 }
 
 // stackPos is where spell object o sits on the stack.
