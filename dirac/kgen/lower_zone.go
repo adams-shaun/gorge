@@ -1775,6 +1775,9 @@ func (lc *lowerCtx) peekAndReveal(ps *params) error {
 
 func (lc *lowerCtx) twoPiles(ps *params) error {
 	if ps.str("Zone") == "Battlefield" {
+		if ps.str("Defined") == "Remembered" {
+			return lc.twoPilesEach(ps) // lower_twopiles.go: the repeated player's piles
+		}
 		return lc.twoPilesSac(ps)
 	}
 	return lc.twoPilesRemembered(ps) // lower_twopiles.go

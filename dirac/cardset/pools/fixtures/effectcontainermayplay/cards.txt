@@ -17,6 +17,9 @@ Forest
 Mission Briefing
 Time Walk
 Chandra, Awakened Inferno
+Yawgmoth's Will
+Gaea's Will
+Magus of the Will
 # reserved id 1 for the follow-up slice (its EffectOwner shape is the
 # remaining-carriers ticket); the card is refused today and is played by
 # no deck -- RawByName keeps the id stable so the follow-up's pair
