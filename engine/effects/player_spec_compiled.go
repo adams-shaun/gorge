@@ -83,23 +83,26 @@ func compilePlayerSpec(spec string) *playerSpecCompiled {
 			if ref, is := strings.CutPrefix(clause, "wasDealtDamageThisGameBy "); is {
 				c.dealt, c.dealtRef = true, ref
 			} else if !c.bare {
-				if !strings.Contains(clause, ".") && playerSpecBaseCodes.Code(clause) == 0 {
-					// A dotless clause after
-					// `+` is a qualifier on the SAME candidate, not an
-					// independent spec with a base of its own; it used to
-					// compile to an unknown base ("Active") that matched
-					// nobody, so Unstable Glyphbridge's back face
-					// (`ValidActivatingPlayer$ Player.Opponent+Active`) never
-					// fired. Read it the way matchesPlayerSpecSVars already
-					// spells a dotless clause (base "Player", the clause as
+				if playerClauseNeedsPlayerBase(clause) {
+					// A `+` clause with no base of its own is a qualifier on
+					// the SAME candidate, not an independent spec with a base
+					// of its own; it used to compile to an unknown base
+					// ("Active") that matched nobody, so Unstable Glyphbridge's
+					// back face (`ValidActivatingPlayer$ Player.Opponent+Active`)
+					// never fired. Read it the way matchesPlayerSpecSVars
+					// spells such a clause (base "Player", the whole clause as
 					// the qualifier): each `+` clause stays an independent
 					// candidate property, conjoined -- `Player.Opponent+Active`
 					// = "candidate is an opponent of `you` AND candidate is
-					// the active player". A dotless clause that IS a known
-					// base word (Player/Any/You/Opponent/Other) keeps its base
-					// reading, and an unknown qualifier still fails that
-					// clause closed, exactly as a dotted `Player.<unknown>`
-					// does.
+					// the active player". The same applies to Forge's generic
+					// controls<ValidCards> property even when its ValidCards
+					// text contains a '.': that dot belongs to the object
+					// filter (`controlsLegendary.Creature_EQ0`,
+					// `controlsCreature.attacking`), not to a second base
+					// separator. A clause that IS a known base word
+					// (Player/Any/You/Opponent/Other) keeps its base reading,
+					// and an unknown qualifier still fails that clause closed,
+					// exactly as a dotted `Player.<unknown>` does.
 					clause = "Player." + clause
 				}
 				c.single = compilePlayerSingle(clause)
@@ -109,6 +112,34 @@ func compilePlayerSpec(spec string) *playerSpecCompiled {
 		ps.alts = append(ps.alts, clauses)
 	}
 	return ps
+}
+
+// playerClauseNeedsPlayerBase reports whether a '+' clause has no base of its
+// own and must be read as a qualifier on the candidate seat. A dotless clause
+// whose text is not a known base is such a qualifier, and so is Forge's
+// generic controls<ValidCards> property: the '.' inside its ValidCards text
+// (`controlsCreature.attacking`, `controlsLegendary.Creature_EQ0`) is part of
+// the object filter, not a base separator. matchesPlayerSpecSVars splits its
+// clauses through playerClauseBase, which uses this same rule, so the SVar
+// rewrite and the compiled form cannot disagree.
+func playerClauseNeedsPlayerBase(clause string) bool {
+	base, _, hasDot := strings.Cut(clause, ".")
+	if playerSpecBaseCodes.Code(base) != 0 {
+		return false
+	}
+	return !hasDot || strings.HasPrefix(clause, "controls")
+}
+
+// playerClauseBase splits one '+' clause into its base and qualifier with the
+// same reading compiledPlayerSpecFor applies: a clause with no base of its own
+// (a dotless qualifier or any controls<ValidCards> property) qualifies the
+// implicit "Player" base.
+func playerClauseBase(plain string) (base, qualifier string) {
+	if playerClauseNeedsPlayerBase(plain) {
+		return "Player", plain
+	}
+	base, qualifier, _ = strings.Cut(plain, ".")
+	return base, qualifier
 }
 
 func compilePlayerSingle(spec string) []playerAlt {
