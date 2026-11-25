@@ -26,3 +26,15 @@ func (e *Engine) staticSeats() []state.PlayerID {
 	}
 	return out
 }
+
+// holdSBALoss starts or ends the hold on a loser's statics. The static and
+// active memos are keyed on the log head, and the events that follow the
+// transition are layer-inert or follow it unchanged, so a list built under the
+// other seat set must not be restamped across it.
+func (e *Engine) holdSBALoss(held bool) {
+	if e.sbaLossHeld == held {
+		return
+	}
+	e.sbaLossHeld = held
+	e.staticEpoch, e.activeEpoch = -1, -1
+}
