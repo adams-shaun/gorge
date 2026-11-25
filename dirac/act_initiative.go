@@ -15,8 +15,10 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // before genState.mo, so State does not grow. p's completed dungeons (read as
 // DungeonsCompleted$Amount through plCtr) are the cold region coldDDone.
 //
-//   - 726.2/726.3: OpTakeInitiative makes its player the single holder, then
-//     ventures into Undercity (726.5: a holder taking it again ventures too).
+//   - 726.2/726.3: OpTakeInitiative makes its player the single holder and
+//     queues the source-less "ventures into Undercity" trigger (726.5: a
+//     holder taking it again ventures too); the trigger resolves later, like
+//     the upkeep and combat-damage takes.
 //   - 701.49a: with no dungeon, a dungeon object enters p's command zone
 //     (gorge DungeonCreate: an object of the dungeon card, no token, in the
 //     oracle's card instances like any object) with the marker on the top
@@ -31,10 +33,11 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 //   - 704.5t (dungeonSBA): a dungeon whose marker is on the bottommost room
 //     and that is the source of no pending or stacked room ability is
 //     completed (gorge dungeonCompletion).
-//   - 726.2: at the beginning of the holder's upkeep, and when creatures a
-//     player controls deal combat damage to the holder (that player takes
-//     the initiative), a source-less trigger ventures into Undercity
-//     (gorge's "__initiative_venture": abDelayed with trigAmt initTrigAmt).
+//   - 726.2: when a TakeInitiative effect resolves, at the beginning of the
+//     holder's upkeep, and when creatures a player controls deal combat
+//     damage to the holder (that player takes the initiative), a source-less
+//     trigger ventures into Undercity (gorge's "__initiative_venture":
+//     abDelayed with trigAmt initTrigAmt).
 //   - 726.4 (more than two seats): when the holder leaves the game, the
 //     active player takes the initiative, or the next player in turn order
 //     still in the game when the active player is the one leaving (gorge
@@ -103,14 +106,18 @@ func (s *State) Initiative() int8 { return int8(s.g.initH) - 1 }
 // index + 1 in the dungeon's printed order (oracle).
 func (s *State) DungeonRoom(p uint8) uint8 { return s.g.room[SeatIx(p)] }
 
-// takeInitiative is OpTakeInitiative; false: the venture asks.
+// takeInitiative is OpTakeInitiative: p takes the designation and the
+// source-less CR 726.2 venture trigger is queued, exactly as gorge's
+// QueueInitiativeVenture does from effTakeInitiative. It never asks here; the
+// trigger resolves through resolveVentureTrig.
 func (s *State) takeInitiative(k *prep, in *kop.Instr) bool {
 	p := s.playerRef(k, in.Obj)
 	if p >= MaxSeats {
 		return true
 	}
 	s.g.initH = p + 1
-	return s.venture(k, p, true)
+	s.initVentureTrig(p)
+	return true
 }
 
 // dungeonDef is the dungeon card p's marker is in (its object's card).
