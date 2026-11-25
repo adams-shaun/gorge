@@ -6,6 +6,7 @@ import (
 	"sync/atomic"
 
 	"github.com/adams-shaun/gorge/engine/cards"
+	"github.com/adams-shaun/gorge/engine/state"
 )
 
 // This file is api:Vote's parameter compiler, on CopyPermanent's pattern
@@ -28,9 +29,11 @@ type VoteParams struct {
 	// (typed_params.go's identity rule).
 	paramBinding
 
-	// Card is VoteCard$: non-empty selects the card ballot, a permanent
-	// filter.
+	// Card is VoteCard$: non-empty selects the card ballot, a filter over
+	// the cards in Zone. Zone is Zone$: the zone the ballot walks
+	// (Battlefield when absent) -- Custodi Squire's is Graveyard.
 	Card string
+	Zone state.Zone
 	// Player is VotePlayer$: the player ballot's selector; PlayerOther is
 	// its Other spelling (every living player but the voter).
 	Player      string
@@ -225,6 +228,7 @@ var voteKnownKeys = [...]string{
 	"WithoutManaCost",
 	"XColor", "XMax",
 	"XMin",
+	"Zone",
 }
 
 // isVoteSA reports whether sa resolves as api:Vote.
@@ -259,6 +263,12 @@ var voteFront [1 << 10]atomic.Pointer[VoteParams]
 func compileVote(sa *cards.SA) *VoteParams {
 	p := &VoteParams{paramBinding: bindParams(sa)}
 	p.Card = strings.TrimSpace(sa.ParamStr(cards.PKVoteCard))
+	p.Zone = state.ZBattlefield
+	if raw := strings.TrimSpace(sa.ParamStr(cards.PKZone)); raw != "" {
+		if z, ok := ParseZoneWord(raw); ok {
+			p.Zone = z
+		}
+	}
 	p.Player = strings.TrimSpace(sa.ParamStr(cards.PKVotePlayer))
 	p.PlayerOther = strings.EqualFold(p.Player, "Other")
 	if raw := sa.ParamStr(cards.PKChoices); strings.TrimSpace(raw) != "" {
