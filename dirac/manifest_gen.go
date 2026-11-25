@@ -829,6 +829,8 @@ func (s *State) execExtGen(k *prep, in *kop.Instr) (ok, done bool) {
 		return s.addOrRemoveCounter(k, in) // ctr_addorremove.go
 	case kop.ExtChangeCombatants:
 		return s.changeCombatantsExt(k, in) // act_changecombatants.go
+	case kop.ExtChaosEnsues:
+		return s.chaosEnsuesExt(k, in) // zone_planechase.go
 	case kop.ExtChooseSource:
 		return s.chooseSourceExt(k, in) // act_choosesource.go
 	case kop.ExtClash:
@@ -859,6 +861,8 @@ func (s *State) execExtGen(k *prep, in *kop.Instr) (ok, done bool) {
 		return s.pairExt(k, in) // kw_soulbond.go
 	case kop.ExtPayLifeX:
 		return s.payLifeExt(k, in) // repl_paylife.go
+	case kop.ExtPlaneswalk:
+		return s.planeswalkExt(k, in) // zone_planechase.go
 	case kop.ExtPutContract:
 		return s.putContract(k, in) // ctr_contract.go
 	case kop.ExtPutCounterChoice:
@@ -871,6 +875,8 @@ func (s *State) execExtGen(k *prep, in *kop.Instr) (ok, done bool) {
 		return s.repeatOptionalExt(k, in) // act_repeatoptional.go
 	case kop.ExtRingTemptsYou:
 		return s.ringTemptsExt(k, in) // act_ring.go
+	case kop.ExtRollPlanarDice:
+		return s.rollPlanarDiceExt(k, in) // zone_planechase.go
 	case kop.ExtStoreNum:
 		return s.storeNumOp(k, in) // act_storenum.go
 	case kop.ExtUnattach:

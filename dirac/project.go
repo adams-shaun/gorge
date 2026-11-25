@@ -193,6 +193,14 @@ func (s *State) projObj(k *prep, i Obj, po *ProjObj) {
 	*po = ProjObj{ZoneIdx: 255}
 	po.Card, po.Owner, po.Ctrl, po.Zone, po.Token = ob.card, ob.owner(), ob.owner(), ob.zone, ob.of&ofToken != 0
 	po.Attached, po.Blocks, po.Attacks = NoObj, NoObj, TCode(NoTarget)
+	if ob.zone == kop.ZonePlanarDeck {
+		// CR 901: the top plane is face up, every other planar-deck card is
+		// face down (gorge's ZPlanarDeck projection hides all but the top).
+		po.ZoneIdx = uint8(s.planePos(ob.owner(), i))
+		if s.planeFaceDown(i) {
+			po.Flags |= ProjFaceDown
+		}
+	}
 	if po.Token && k.anyInit && len(k.t.Cards[ob.card].DungeonNext) != 0 {
 		po.Token = false // a dungeon is no token (act_initiative.go)
 	}
