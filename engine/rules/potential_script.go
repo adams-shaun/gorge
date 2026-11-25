@@ -95,7 +95,7 @@ func (e *Engine) potentialPrefixScript(p state.PlayerID, o decision.Option, gaps
 	a := decision.PotentialAction{Kind: o.Kind, Obj: o.Obj, Ability: o.Ability, Mode: o.Mode}
 	desc, descOK := scriptPlayDesc(o, func() Cost { return scriptPlayCost(e, e.G.Obj(o.Obj), p, o) })
 	build := func(phased bool, budget int) *scriptSearch {
-		sr := e.newScriptSearch(p, a, o.AltCostIndex, budget)
+		sr := e.newScriptSearchFor(p, a, o, true, o.AltCostIndex, budget)
 		if sr == nil {
 			return nil
 		}
@@ -430,6 +430,18 @@ type scriptSearch struct {
 }
 
 func (e *Engine) newScriptSearch(p state.PlayerID, a decision.PotentialAction, altCost, budget int) *scriptSearch {
+	opt, exact := scriptNeedOption(a)
+	return e.newScriptSearchFor(p, a, opt, exact, altCost, budget)
+}
+
+// newScriptSearchFor is newScriptSearch with the exact Option the search is
+// built for. potentialPrefixScript builds one search per offered Option, and
+// its need reads must price that Option's own flashback instance
+// (Option.Cost) and may-play permission (Option.MayPlayPerm): pricing the
+// printed instance there would give the prunes a different permission's
+// pips. exact is false from the PotentialAction projection, whose omitted
+// fields make the need reads fail open (scriptNeedOption).
+func (e *Engine) newScriptSearchFor(p state.PlayerID, a decision.PotentialAction, opt decision.Option, exact bool, altCost, budget int) *scriptSearch {
 	d := e.Pending()
 	if d == nil || d.Player != p || d.Kind != decision.KPriority {
 		return nil
@@ -439,9 +451,9 @@ func (e *Engine) newScriptSearch(p state.PlayerID, a decision.PotentialAction, a
 		sr.ownZone = o.Zone
 	}
 	if altCost <= 0 {
-		sr.need = scriptNeedColours(e, e.G.Obj(a.Obj), p, a)
-		sr.costCol, sr.costOK = scriptNeedCounts(e, e.G.Obj(a.Obj), p, a)
-		sr.pipCol, sr.pipOK = scriptPipCounts(e, e.G.Obj(a.Obj), p, a)
+		sr.need = scriptNeedColours(e, e.G.Obj(a.Obj), p, opt, exact)
+		sr.costCol, sr.costOK = scriptNeedCounts(e, e.G.Obj(a.Obj), p, opt, exact)
+		sr.pipCol, sr.pipOK = scriptPipCounts(e, e.G.Obj(a.Obj), p, opt, exact)
 	}
 	return sr
 }
@@ -454,13 +466,25 @@ type scriptNeedReader interface {
 	potentialModeBaseCost(state.PlayerID, state.ObjID, *cards.Face, decision.Option) (Cost, bool)
 }
 
-// scriptNeedOption projects a need read's PotentialAction onto the Option
-// potentialModeBaseCost reads. The need readers run only at altCost <= 0
-// (newScriptSearch), so AltCostIndex is always zero here; a may-play mode
-// stays on the printed base (scriptPlayBaseCost) rather than resolving a
-// permission's own alternative cost.
-func scriptNeedOption(a decision.PotentialAction) decision.Option {
-	return decision.Option{Kind: a.Kind, Obj: a.Obj, Ability: a.Ability, Mode: a.Mode}
+// scriptNeedOption projects a need read's PotentialAction onto the Option the
+// need readers price, for a caller holding no full Option. exact is false
+// when the projection omits a field potentialModeBaseCost reads: a flashback
+// instance's Option.Cost and a bargained cast's Option.MayPlayPerm. The need
+// readers then fail open rather than price another permission's cost (the
+// printed flashback instance, the aggregate grant) beside the searched play.
+// They run only at altCost <= 0 (newScriptSearchFor), so the omitted
+// AltCostIndex is always zero; a may-play mode stays on the printed base
+// (scriptPlayBaseCost) rather than resolving a permission's own alternative
+// cost.
+func scriptNeedOption(a decision.PotentialAction) (decision.Option, bool) {
+	o := decision.Option{Kind: a.Kind, Obj: a.Obj, Ability: a.Ability, Mode: a.Mode}
+	if a.Kind == "cast" {
+		switch castModeCodes.Code(a.Mode) {
+		case castModeFlashback, castModeBargained:
+			return o, false
+		}
+	}
+	return o, true
 }
 
 // scriptNeedColours reports the coloured pips the searched play's base cost
@@ -473,7 +497,7 @@ func scriptNeedOption(a decision.PotentialAction) decision.Option {
 // search tries first, never which answers exist. A cost the planner cannot
 // compose (a mode potentialModeBaseCost does not price) leaves the set empty,
 // and so the engine order (scriptPlayBaseCost).
-func scriptNeedColours(r scriptNeedReader, o *state.Object, p state.PlayerID, a decision.PotentialAction) [state.MC + 1]bool {
+func scriptNeedColours(r scriptNeedReader, o *state.Object, p state.PlayerID, a decision.Option, exact bool) [state.MC + 1]bool {
 	var need [state.MC + 1]bool
 	add := func(c costvocab.Cost) {
 		for i, n := range c.Colored {
@@ -508,7 +532,7 @@ func scriptNeedColours(r scriptNeedReader, o *state.Object, p state.PlayerID, a 
 			}
 		}
 	}
-	if c, ok := scriptPlayBaseCost(r, o, p, scriptNeedOption(a)); ok {
+	if c, ok := scriptPlayBaseCost(r, o, p, a, exact); ok {
 		add(c)
 	}
 	return need
@@ -531,8 +555,11 @@ func scriptNeedColours(r scriptNeedReader, o *state.Object, p state.PlayerID, a 
 // unresolvable ability, or a play that is neither kind), and both
 // need-readers (scriptNeedColours, the search's branch-order preference, and
 // scriptNeedCounts, the subsume run's prune bound) then leave the cost
-// unread rather than guess one.
-func scriptPlayBaseCost(r scriptNeedReader, o *state.Object, p state.PlayerID, a decision.Option) (costvocab.Cost, bool) {
+// unread rather than guess one. exact is false for a PotentialAction
+// projection that omits Option.Cost or Option.MayPlayPerm (scriptNeedOption):
+// the mode cost that reads one also fails open rather than price another
+// permission's cost.
+func scriptPlayBaseCost(r scriptNeedReader, o *state.Object, p state.PlayerID, a decision.Option, exact bool) (costvocab.Cost, bool) {
 	if o == nil || o.Face() == nil {
 		return costvocab.Cost{}, false
 	}
@@ -540,6 +567,9 @@ func scriptPlayBaseCost(r scriptNeedReader, o *state.Object, p state.PlayerID, a
 	case "cast":
 		if a.Mode == "" || castModeCodes.Code(a.Mode) == castModeMayplay {
 			return r.castOfferBase(p, a.Obj), true
+		}
+		if !exact {
+			return costvocab.Cost{}, false
 		}
 		return r.potentialModeBaseCost(p, a.Obj, o.Face(), a)
 	case optAbility:
@@ -558,7 +588,7 @@ func scriptPlayBaseCost(r scriptNeedReader, o *state.Object, p state.PlayerID, a
 // printed cast base. A mode the planner cannot compose keeps the older
 // conservative descriptor rather than withholding the play's shape.
 func scriptPlayCost(r scriptNeedReader, o *state.Object, p state.PlayerID, opt decision.Option) Cost {
-	if c, ok := scriptPlayBaseCost(r, o, p, opt); ok {
+	if c, ok := scriptPlayBaseCost(r, o, p, opt, true); ok {
 		return c
 	}
 	if opt.Kind == "cast" {
@@ -574,9 +604,9 @@ func scriptPlayCost(r scriptNeedReader, o *state.Object, p state.PlayerID, opt d
 // (a mode the planner cannot compose; scriptPlayBaseCost): the subsume run's
 // colour-ask filter prunes a colour only when floating more of it can pay
 // nothing.
-func scriptNeedCounts(r scriptNeedReader, o *state.Object, p state.PlayerID, a decision.PotentialAction) ([state.MC + 1]int32, bool) {
+func scriptNeedCounts(r scriptNeedReader, o *state.Object, p state.PlayerID, a decision.Option, exact bool) ([state.MC + 1]int32, bool) {
 	var counts [state.MC + 1]int32
-	c, ok := scriptPlayBaseCost(r, o, p, scriptNeedOption(a))
+	c, ok := scriptPlayBaseCost(r, o, p, a, exact)
 	if !ok {
 		return counts, false
 	}
@@ -604,9 +634,9 @@ func scriptNeedCounts(r scriptNeedReader, o *state.Object, p state.PlayerID, a d
 // and
 // the prune then drops every colour ask answer of a fee-only repeatable gap:
 // a conversion that never raises the spendable total cannot help pay it.
-func scriptPipCounts(r scriptNeedReader, o *state.Object, p state.PlayerID, a decision.PotentialAction) ([state.MC + 1]int32, bool) {
+func scriptPipCounts(r scriptNeedReader, o *state.Object, p state.PlayerID, a decision.Option, exact bool) ([state.MC + 1]int32, bool) {
 	var counts [state.MC + 1]int32
-	c, ok := scriptPlayBaseCost(r, o, p, scriptNeedOption(a))
+	c, ok := scriptPlayBaseCost(r, o, p, a, exact)
 	if !ok {
 		return counts, false
 	}
