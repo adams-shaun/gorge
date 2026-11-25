@@ -69,6 +69,37 @@ func TestEffectContainerMayPlay(t *testing.T) {
 		t.Error("Nivix MayPlay does not restrict the offer to instants and sorceries")
 	}
 
+	// The Effect-delivered graveyard-to-exile replacement: Yawgmoth's Will,
+	// Gaea's Will and Magus of the Will each lower one emblem whose one
+	// static is the graveyard may-play permission and whose one replacement
+	// is the any-zone dies-to-exile rewrite (ReplExileOnLeave, Repl.C 1),
+	// until end of turn.
+	for _, name := range []string{"Yawgmoth's Will", "Gaea's Will", "Magus of the Will"} {
+		c := lowerNamedCard(t, name)
+		if len(c.Refusals) != 0 {
+			t.Errorf("%s refusals = %v, want none", name, c.Refusals)
+			continue
+		}
+		if len(c.Emblems) != 1 {
+			t.Errorf("%s emblems = %d, want 1", name, len(c.Emblems))
+			continue
+		}
+		e := c.Emblems[0]
+		if !e.UntilEOT {
+			t.Errorf("%s emblem UntilEOT = false, want the no-Duration$ lifetime", name)
+		}
+		if len(e.Statics) != 1 || e.Statics[0].Kind != "MayPlayFrom" || e.Statics[0].Zone != zGraveyard {
+			t.Errorf("%s emblem statics = %+v, want one MayPlayFrom over the graveyard", name, e.Statics)
+			continue
+		}
+		if mayPlayHasFlag(e.Statics[0].Flags, "OncePerTurn") {
+			t.Errorf("%s MayPlayFrom flags = %v, want no once-per-turn limit", name, e.Statics[0].Flags)
+		}
+		if len(e.Repls) != 1 || e.Repls[0].Kind != "ExileOnLeave" || !e.Repls[0].AnyZone {
+			t.Errorf("%s emblem repls = %+v, want one any-zone ExileOnLeave", name, e.Repls)
+		}
+	}
+
 	// Mission Briefing: the chosen card, marked so the stack exit exiles it.
 	mission := lowerNamedCard(t, "Mission Briefing")
 	if len(mission.Refusals) != 0 {
@@ -110,11 +141,14 @@ func TestEffectContainerMayPlayRemainingRefusals(t *testing.T) {
 		// emblem trigger diverges from gorge's in lockstep (the follow-up
 		// ticket carries the measured reproduction)
 		{"Chandra, Awakened Inferno", "EffectOwner"},
-		// the permission now lowers, but the replacement that exiles every
-		// card put into a graveyard from anywhere is not modelled
-		{"Yawgmoth's Will", "ReplacementEffects"},
-		{"Gaea's Will", "ReplacementEffects"},
-		{"Magus of the Will", "ReplacementEffects"},
+		// the multi-static Effects whose primitives the kernel lacks: the
+		// colourless-mana ManaConvert arm (Abstruse), the {8} mana raise on
+		// a may-play permission (Mavinda) and the unmodelled CantPlayLand
+		// static (Memory Vessel); each keeps today's named refusal until
+		// its own ticket lands the primitive
+		{"Abstruse Appropriation", "ManaConvert"},
+		{"Mavinda, Students' Advocate", "RaiseCost"},
+		{"Memory Vessel", "STPlay,NoLand,NoCast"},
 	} {
 		c := lowerNamedCard(t, tc.name)
 		if len(c.Refusals) == 0 {
