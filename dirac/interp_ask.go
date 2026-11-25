@@ -1862,11 +1862,14 @@ func (s *State) startSearch(k *prep, in *kop.Instr) bool {
 }
 
 // moveAsked reports a found card's move waiting on an answer: a hand move's Aura for
-// its host (handAuraEnter), a card entering for its as-enters choice (rerunMove), or
-// an Attacking$ entry's CR 508.4 defender (zone_changezoneparams.go).
+// its host (handAuraEnter), a card entering for its as-enters choice (rerunMove), an
+// Attacking$ entry's CR 508.4 defender (zone_changezoneparams.go), or a required
+// take-all hand move's CR 401.4 arrangement (raGenLibPlace, handTakeAll via
+// act_libplace.go: gorge's handLibraryTail asks it mid-resolution, the spell still
+// on the stack, so the resolution parks here like at any other move ask).
 func (s *State) moveAsked() bool {
 	return s.res.ask == raGenTopBottom || s.res.ask == raGenEnchant || s.res.ask == raGenRetChoice || s.res.ask == raGenEntryOrder ||
-		s.res.ask == raGenEnterDefender || s.res.ask == raGenCmdZone || s.res.ask == raGenPayETB
+		s.res.ask == raGenEnterDefender || s.res.ask == raGenCmdZone || s.res.ask == raGenPayETB || s.res.ask == raGenLibPlace
 }
 
 // searchPick poses a search's (or a choose-move's) first pick, or finishes
