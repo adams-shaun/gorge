@@ -1110,6 +1110,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 			g.anyAftermath = g.anyAftermath || c.Aftermath
 			g.anyFuse = g.anyFuse || c.FuseDef != 0
 			p.anyRoom = p.anyRoom || c.FaceMode == kop.FaceRoom
+			p.anyDisturb = p.anyDisturb || c.FlipCast == kop.FlipDisturb
 		}
 		if c.Daybound || c.Nightbound {
 			p.anyDayNight, g.anyHist = true, true // the spell count rides the history bank
