@@ -1021,7 +1021,7 @@ func (s *State) damageTo(k *prep, code TCode, n int) int {
 	}
 	e := &s.res.e
 	if k.gen != nil && (k.gen.anyRepl&(rbDblDmg|rbPrevNC|rbPrevDmgTo|rbProtAll|rbProtCol|rbPlusDmg|rbShield|rbPrevCol|rbPrevMill|rbSelfDmg) != 0 ||
-		k.gen.anyRepl2&(rb2DmgMinus|rb2DmgSet) != 0) {
+		k.gen.anyRepl2&rb2DmgAny != 0) {
 		if s.parkNC(k, s.srcCtrl(k), s.objRef(k, kop.RefSelf), e.card, code, n, s.srcKw(k)) {
 			if s.res.flags&rfNoPrev != 0 {
 				s.capFull(StallNoPrevent) // the parked event's later pass would not know its damage can't be prevented
