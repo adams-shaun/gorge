@@ -137,6 +137,7 @@ type prep struct {
 	gen           *genPrep       // generated-table extension (gen.go); nil for hand-written tables
 	gyCont        bool           // some Continuous static works from its card's graveyard (tableHasGyCont; static_gycont.go): read only by the layer-6 walk and the cold landwalk/prowess readers
 	cold          coldLayout
+	anyDisturb    bool   // some front carries K:Disturb (CardDef.FlipCast; face_flipcast.go): the graveyard walk's gate; on prep, not genPrep, so the pinned fixed-State inventory is unchanged
 	handStat      []bool // card i has a static whose condition reads a hand size (Hellbent; prepHandStat, cast_handleaves.go); on prep, not genPrep, so the pinned fixed-State inventory is unchanged
 	gainsOfAttach bool   // a GainsAbilitiesOf$ static and an Equip ability: a non-attachment can gain Equip and attach itself (CR 704.5p sba arm; static_unattachcreature.go); on prep, not genPrep, so the pinned fixed-State inventory is unchanged
 	anyNoDmg      bool   // a card or emblem has a StatNoCombatDamage static (combat.go's combatAmount); on prep, not genPrep, so the pinned fixed-State inventory is unchanged
@@ -398,7 +399,9 @@ type prep struct {
 	// (mana_rider.go).
 	riderAb []int8
 
-	coldCmd coldLayout // the table's cold layout plus the partner record, a Commander game's (zone_cmdpartner.go)
+	coldCmd      coldLayout // the table's cold layout plus the partner record, a Commander game's (zone_cmdpartner.go)
+	coldPlane    coldLayout // the table's cold layout plus the planar-deck record, a Planechase game's (zone_planechase.go)
+	coldCmdPlane coldLayout // both records, a Commander Planechase game's
 }
 
 func prepare(t *kop.Table) *prep {
@@ -434,7 +437,10 @@ func prepare(t *kop.Table) *prep {
 		if c.FaceMode == kop.FaceTransform && c.Face != 0 && c.Types&kop.TToken == 0 && len(c.Faces) > 0 && int(c.Faces[0]) < len(t.Cards) {
 			pc.total = uint8(t.Cards[c.Faces[0]].Cost.MV())
 		}
-		for k, n := range c.Cost.Pips {
+		if fc, ok := flipCastCost(t, CardID(i)); ok {
+			pc.cost = fc // the back face is cast only for its front's keyword cost (face_flipcast.go)
+		}
+		for k, n := range pc.cost.Pips {
 			if n > 0 {
 				pc.pipMask |= 1 << k
 			}
@@ -618,13 +624,22 @@ func prepare(t *kop.Table) *prep {
 	p.embComb = prepEmbComb(t, p)
 	p.embIdem = prepEmbIdem(p) // static_emblemcombat.go
 	p.cold.size()
+	// A Planechase game carries one planar-deck record (zone_planechase.go).
+	// The record lives in a variant of the table's cold layout selected at
+	// Init: a non-Planechase State's buffer stays empty, as InitN's equality
+	// test compares every State byte, slice header included. The record is
+	// pointer-free like the other cold regions.
+	p.coldPlane = p.cold
+	coldPlane.set(&p.coldPlane, 1)
+	p.coldPlane.size()
 	// Only a Commander game can seat a partner pair, so only its layout
-	// carries the record: a non-Commander State's cold buffer stays empty,
-	// as InitN's equality test compares every State byte, slice header
-	// included. Both layouts are table-level, so Init and InitN of the same
-	// table with the same Config select the same pointer.
+	// carries the record. Both layouts are table-level, so Init and InitN of
+	// the same table with the same Config select the same pointer.
 	p.coldCmd = p.cold
 	coldPartner.set(&p.coldCmd, 1)
 	p.coldCmd.size()
+	p.coldCmdPlane = p.coldCmd
+	coldPlane.set(&p.coldCmdPlane, 1)
+	p.coldCmdPlane.size()
 	return p
 }
