@@ -1,7 +1,6 @@
 package oracle
 
 import (
-	"strings"
 	"testing"
 
 	"github.com/adams-shaun/gorge/dirac/cardset"
@@ -14,14 +13,17 @@ import (
 // and later loses the game while the game goes on is the case the card was
 // marked two-seat only for: in two seats the loss ends the game, so the
 // Effect's LosesGame trigger (copies of the loser's artifacts and creatures)
-// never resolves. Gorge, the reference, arms nothing for that Effect
-// (effects.effEffect reads Triggers$ split on whitespace, so the comma list
-// "LoseGameTrigger,ExileEffect" is one unparseable name and a Note is all it
-// emits), so the kernel's Effect that lowers to nothing agrees with it in a
-// pod: the game goes on past the loss and no token appears. The pod
-// lockstep pins that: when gorge arms the trigger it diverges at the first
-// contracted loss and the kernel owes the trigger (dirac/kgen
-// contractLossEffect).
+// never resolves. Gorge, the reference, makes no copy in a pod either: it
+// registers the Effect's LosesGame line (Triggers$ "LoseGameTrigger,
+// ExileEffect"), but its delayed-trigger walk has no LosesGame matcher, so the
+// registration never fires. The kernel's Effect lowers to nothing and agrees:
+// the game goes on past the loss and no token appears. The pod lockstep pins
+// that: when gorge fires the trigger it diverges at the first contracted loss
+// and the kernel owes the trigger (dirac/kgen contractLossEffect).
+//
+// The class is read off play only (a contracted seat loses while the game goes
+// on), never off how gorge spells a registration or a diagnostic Note: those
+// change with no change in play, and the test must not care.
 //
 // The pod: seat 0 plays Miss Highwater; seats 1-3 play short decks of
 // creatures and a Manalith, so a seat that takes the contract (it draws seven)
@@ -36,7 +38,7 @@ var missHighwaterPodDecks = [4][]cardset.Entry{
 
 // missHighwaterPodTally counts what the games showed, read off gorge's logs.
 type missHighwaterPodTally struct {
-	games, contracts, contractLosses, copies, unarmed, goneOn int
+	games, contracts, contractLosses, copies, goneOn int
 }
 
 // missHighwaterPodTallyGame adds one finished game's events to y.
@@ -50,10 +52,6 @@ func missHighwaterPodTallyGame(g *GorgeSide, y *missHighwaterPodTally) {
 			if e.Counter == "Contract" && int(e.Player) < MaxSeats {
 				contract[e.Player] += int(e.Amount)
 				y.contracts++
-			}
-		case events.Note:
-			if strings.HasPrefix(e.Text, "unparseable Effect trigger LoseGameTrigger") {
-				y.unarmed++
 			}
 		case events.PlayerLost:
 			lost++
@@ -136,12 +134,12 @@ func TestFourSeatMissHighwaterPodsLockstep(t *testing.T) {
 		}
 	}
 	t.Logf("%+v", y)
-	// the class: seats that took the contract left a game that went on, with
-	// the Effect created (and armed by nothing in gorge), and no copy made
-	if y.contractLosses < 3 || y.unarmed < 3 || y.goneOn < 3 {
+	// the class: seats that took the contract (the counter and the Effect
+	// come from one resolution) left a game that went on, and no copy made
+	if y.contractLosses < 3 || y.goneOn < 3 {
 		t.Fatalf("the pods never showed the class: %+v", y)
 	}
 	if y.copies != 0 {
-		t.Fatalf("gorge made %d tokens after a contracted loss: it arms the LosesGame Effect trigger now, and the kernel owes it: %+v", y.copies, y)
+		t.Fatalf("gorge made %d tokens after a contracted loss: it fires the LosesGame Effect trigger now, and the kernel owes it: %+v", y.copies, y)
 	}
 }
