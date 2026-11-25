@@ -47,21 +47,23 @@ var coldContractOwed = newCold[contractOwed]("contractOwed", func(g *genPrep) in
 
 // contractMod is one staged modified permanent's copiable values (CR 707.2):
 // the card it is, its copy basis (ovr.copyOf/ovCopy, CR 707.3) and its
-// layer-1 copy exceptions (CR 707.9b). The immediate copy read these from the
-// live template slot; after the CR 800.4a sweep the slot is gone, so the
-// sweep keeps them here. Nothing else a continuous effect changed is staged:
-// gorge mints the LKI copy from the departed object's printed card and folded
-// CopyFace alone (engine/events/apply_copy.go copyTokenBasis), and the
-// continuous effects on it ended when it left the battlefield (CR 611.2), so
-// the record carries no P/T, type, keyword, colour or lose-abilities
-// override -- the token's continuous state is what applies to it on the
-// board. Pointer-free, so the cold record stays forkable and the transition
-// loop allocates nothing.
+// layer-1 copy exceptions and as-enters copy grants (CR 707.9b). The
+// immediate copy read these from the live template slot; after the CR 800.4a
+// sweep the slot is gone, so the sweep keeps them here. Nothing else a
+// continuous effect changed is staged: gorge mints the LKI copy from the
+// departed object's printed card and folded CopyFace alone
+// (engine/events/apply_copy.go copyTokenBasis), and the continuous effects on
+// it ended when it left the battlefield (CR 611.2), so the record carries no
+// P/T, type, keyword, colour or lose-abilities override -- the token's
+// continuous state is what applies to it on the board. Pointer-free, so the
+// cold record stays forkable and the transition loop allocates nothing.
 type contractMod struct {
 	card CardID   // perms[sl].card, the card it is (not the face it shows)
 	ovr  override // its copy basis (flags ovCopy, copyOf only)
 	nexc uint8    // copy exception records (Table.Overrides indexes)
 	exc  [maxOvr]uint8
+	ng   uint8 // as-enters copy grant records: (override, maker card) pairs
+	gr   [maxOvr]cgrantRef
 }
 
 // maxContractMods caps the modified permanents a departing seat stages. The
@@ -214,12 +216,15 @@ func (s *State) contractLossCopy(k *prep, p uint8) {
 // plain copy of its printed card cannot show, ok false when there are none.
 // The copy basis is ovr.copyOf under ovCopy (cardAt's own read, CR 707.3); the
 // copy exceptions are the layer-1 fxCopyExc records the live template mint
-// (copyExcAdd) would have read (CR 707.9b). No override flag, keyword,
-// generated type or walk mark is staged: the continuous effects that wrote
-// them ended when the permanent left the battlefield (CR 611.2), so gorge's
-// LKI mint reads none of them either, and an until-end-of-turn one is no
-// copiable value even before that (CR 707.2). Copy grants are not staged:
-// copyTokenEnterFrom never carries them on its early (exception) path either.
+// (copyExcAdd) would have read (CR 707.9b); the as-enters copy grants are the
+// fxOverride ovCopyGrant records the live mint's copyGrantsAdd carries from a
+// copied copy (Mercurial Pretender's AddAbilities$, CR 707.9b, 707.3: gorge
+// folds the grant into the copied face, engine/effects/clone_etb_sub.go
+// cloneGrantSVars, so the LKI copy carries it too). No override flag,
+// keyword, generated type or walk mark is staged: the continuous effects that
+// wrote them ended when the permanent left the battlefield (CR 611.2), so
+// gorge's LKI mint reads none of them either, and an until-end-of-turn one is
+// no copiable value even before that (CR 707.2).
 func (s *State) contractModAt(sl Slot) (contractMod, bool) {
 	p := &s.perms[sl]
 	if p.ovr.flags&ovCopy == 0 && !s.fxM.has(sl) {
@@ -236,8 +241,9 @@ func (s *State) contractModAt(sl Slot) (contractMod, bool) {
 				c.nexc++
 			}
 		}
+		c.ng = uint8(s.copyGrantRecs(sl, &c.gr))
 	}
-	if c.ovr.flags&ovCopy == 0 && c.nexc == 0 {
+	if c.ovr.flags&ovCopy == 0 && c.nexc == 0 && c.ng == 0 {
 		return contractMod{}, false
 	}
 	return c, true
@@ -291,7 +297,7 @@ func (s *State) mintTokenCopyCard(k *prep, p uint8, c CardID) bool {
 // mintTokenCopyStaged mints a token that is a copy of the modified permanent c
 // snapshotted at the CR 800.4a sweep, controlled by p. The host permanent has
 // already left the battlefield, so the token is entered from c's copiable face
-// and then given c's card, copy basis and copy exceptions. The enters check is
+// and then given c's card, copy basis, copy exceptions and copy grants. The enters check is
 // held until those values are in place, as the live template mint applies them
 // before its own ETB triggers.
 func (s *State) mintTokenCopyStaged(k *prep, p uint8, basis CardID, c *contractMod) bool {
@@ -313,6 +319,11 @@ func (s *State) mintTokenCopyStaged(k *prep, p uint8, basis CardID, c *contractM
 		}
 		if c.nexc != 0 {
 			pm.ovr.kw |= s.copyExcKw(k, sl)
+		}
+		// the as-enters copy grants, appended as the live mint's copyGrantsAdd
+		// applies them, each stamped anew (CR 707.9b)
+		for j := uint8(0); j < c.ng; j++ {
+			s.copyGrantAppend(k, sl, c.gr[j])
 		}
 		s.touchSl(sl)
 		s.refreshTy(k) // the exceptions' added types ride gty (ovGenTy), derived, not carried
