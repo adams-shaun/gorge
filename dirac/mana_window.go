@@ -1394,7 +1394,11 @@ func (s *State) unlessTapsDeferred(k *prep, p uint8) bool {
 // unlessWindowUnits' literal-mana-fee arm and UnlessManaReachable's fee
 // transition, CR 605.3b) -- without the disjunct the gate offers decline
 // only where gorge's census prices the source and this walk proves the
-// chain (kfuzz pair 25 of dr-mbc-baab).
+// chain (kfuzz pair 25 of dr-mbc-baab). A board whose land carries an
+// any-colour tap extra (Buried in the Garden, Dawn's Reflection) is walked too,
+// outside an unless window: the planner's census leaves the extra out, and
+// gorge's ward payment funds {2} through the window with the Plains' W and the
+// extra's W (CR 605.3b; kfuzz pair 68 of std-mkm).
 func (s *State) windowAffordsTake(k *prep, p uint8, cost *kop.ManaCost, takeDeferred, unless bool) (bool, uint8) {
 	s.setUnlessWin(unless)
 	defer s.setUnlessWin(false)
@@ -1402,7 +1406,7 @@ func (s *State) windowAffordsTake(k *prep, p uint8, cost *kop.ManaCost, takeDefe
 		s.g.turnF |= turnGateWin
 		defer func() { s.g.turnF &^= turnGateWin }()
 	}
-	if k.gen == nil || !(k.gen.anyEachCol && s.scriptGaps(k, p).any() || k.gen.anyComboAny && s.caGaps(k, p).any() || s.scriptDeferred(k, p).any() || takeDeferred && s.unlessTapsDeferred(k, p) || takeDeferred && s.unlessCtrGaps(k, p) || takeDeferred && s.unlessDynSacGaps(k, p) || takeDeferred && (k.gen.anyFiltFirst || unless) && s.unlessPricedFilt(k, s.scriptFilt(k, p)).any() || takeDeferred && s.unlessPricedFilt(k, s.unlessTapFilt(k, p)).any() || s.riderOfferable(k, p, takeDeferred)) {
+	if k.gen == nil || !(k.gen.anyEachCol && s.scriptGaps(k, p).any() || k.gen.anyComboAny && s.caGaps(k, p).any() || s.scriptDeferred(k, p).any() || takeDeferred && s.unlessTapsDeferred(k, p) || takeDeferred && s.unlessCtrGaps(k, p) || takeDeferred && s.unlessDynSacGaps(k, p) || !takeDeferred && s.tapAnyColDeferExtra(k, s.ctrlM[SeatIx(p)].and(s.occ)) || takeDeferred && (k.gen.anyFiltFirst || unless) && s.unlessPricedFilt(k, s.scriptFilt(k, p)).any() || takeDeferred && s.unlessPricedFilt(k, s.unlessTapFilt(k, p)).any() || s.riderOfferable(k, p, takeDeferred)) {
 		return false, 0
 	}
 	t := s.fork()
