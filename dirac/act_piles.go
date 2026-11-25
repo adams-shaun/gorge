@@ -104,7 +104,7 @@ func (s *State) applyAskPiles(k *prep, a Action) bool {
 		// gorge twoPilesPosePick: the answer naming pile B picks it; the
 		// instruction's B.N&1 flips which pile the mode-1 answer names (the
 		// chosen/unchosen piles swap, the lockstep mutation)
-		pickB := (a.Mode() == 1) != (each && in.B.N&1 != 0)
+		pickB := (a.Mode() == 1) != (each && in.B.N&1 != 0) // seat-ok: the pick's answer mode and the pile-swap flag bit, not a seat
 		pileA := s.g.sacM
 		rest := s.pilesPool(k, in, s.g.pickP).andNot(pileA)
 		hit := pileA
