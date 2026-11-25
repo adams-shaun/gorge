@@ -240,6 +240,14 @@ func effAlterAttribute(h Host, c *Ctx, sa *cards.SA) {
 			if prepared && activate && !o.HasPrepareSpell() {
 				continue
 			}
+			// CR 702.26b: a phased-out permanent is treated as though it
+			// does not exist, so it does not become prepared (Forge's
+			// AlterAttributeEffect skips a phased-out card): Kirol's own
+			// "becomes prepared" trigger resolving after it phased out
+			// mints no copy.
+			if prepared && activate && o.PhasedOut {
+				continue
+			}
 			// CR 719.3b: a solved Case stays solved -- no removal, and no
 			// second solve of an already-solved Case.
 			if solved && (!activate || o.Solved) {

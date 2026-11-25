@@ -50,9 +50,18 @@ var DebugPrepareStats *PrepareStats
 
 // preparedSrc reports whether DurPrepared record r still has its source: on
 // the battlefield with the recorded ver (gorge clears Prepared as it leaves).
+// A phased-out source (kop.ZonePhased, ZonePhasedInd) has not left: phasing
+// is no zone change (CR 702.26d), gorge keeps Object.Prepared and the exile
+// copy's PreparedSource through it and offers the copy's cast meanwhile, as
+// Forge does (its prepared effect lives in the command zone and only a
+// leaves-play command unprepares).
 func (s *State) preparedSrc(r mayPlay) bool {
 	src := &s.objs[r.heldObj()]
-	return src.zone == kop.ZoneBattlefield && src.ver == r.heldVer()
+	switch src.zone {
+	case kop.ZoneBattlefield, kop.ZonePhased, kop.ZonePhasedInd:
+		return src.ver == r.heldVer()
+	}
+	return false
 }
 
 // prepared reports whether battlefield object o is prepared (gorge
