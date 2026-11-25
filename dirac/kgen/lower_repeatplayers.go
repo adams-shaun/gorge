@@ -95,6 +95,16 @@ func (lc *lowerCtx) repeatEachPlayers(ps *params) error {
 	defer func(o bool) { lc.repeatAllPl = o }(lc.repeatAllPl)
 	lc.repeatAllPl = who.Kind == rEachPlayer
 	for n := body; n != nil; n = n.Sub {
+		if n.API == "ChooseCard" {
+			// A per-player ChooseCard's Choices$ filter names the repeated
+			// player's cards (RememberedPlayerCtrl, greatest*ControlledBy-
+			// Remembered); chooseCard reads every parameter and builds the
+			// filter inside the loop, so the blanket remembered-read check
+			// below would refuse the shape it is meant to lower. The
+			// chooseCard lowering itself still refuses any parameter or
+			// filter word it does not read.
+			continue
+		}
 		var bad []string
 		for k, v := range n.Params {
 			v = strings.TrimSpace(v)
@@ -186,7 +196,19 @@ func (lc *lowerCtx) repeatChooseGreatest(who lRef, body *cards.SA) (bool, error)
 		return false, nil
 	}
 	ps := newParams(body.Params)
-	if ps.str("Choices") != "Creature.greatestPowerControlledByRemembered" || ps.str("Defined") != "Player.IsRemembered" {
+	if ps.str("Choices") != "Creature.greatestPowerControlledByRemembered" {
+		return false, nil
+	}
+	// Defined$ Player.IsRemembered is the repeated player choosing for
+	// herself (Gix's Command); Defined$ You is the resolving controller
+	// choosing among the repeated opponent's creatures (Highcliff Felidar).
+	// Both read the same repeated-player aggregate; only the chooser differs.
+	chooser := lRef{Kind: rEach}
+	switch ps.str("Defined") {
+	case "Player.IsRemembered":
+	case "You":
+		chooser = lRef{Kind: rYou}
+	default:
 		return false, nil
 	}
 	if !ps.is("Mandatory", "True") || !ps.is("RememberChosen", "True") {
@@ -205,12 +227,53 @@ func (lc *lowerCtx) repeatChooseGreatest(who lRef, body *cards.SA) (bool, error)
 	if err != nil {
 		return true, err
 	}
-	f := &lFilter{Clauses: []lClause{{Types: tCreature, Ctrl: whoYou, CmpStat: cmpPower, CmpOp: opGE, CmpV: &maxV}}}
+	f := &lFilter{Clauses: []lClause{{Types: tCreature, Ctrl: whoEachPl, CmpStat: cmpPower, CmpOp: opGE, CmpV: &maxV}}}
 	at := len(lc.ab.Prog)
 	lc.emit(lInstr{Op: "RepeatEach", Obj: who, C: 1})
-	lc.emit(lInstr{Op: "ChooseCard", Obj: lRef{Kind: rEach}, F: f, C: zBattlefield, CS: "Remember"})
+	lc.emit(lInstr{Op: "ChooseCard", Obj: chooser, F: f, C: zBattlefield, CS: "Remember"})
 	lc.ab.Prog[at].Skip = len(lc.ab.Prog) - at - 1
 	return true, nil
+}
+
+// chooseCardFilter builds a ChooseCard's Choices$ filter. Inside a RepeatEach
+// player body the greatest-by-stat words read the repeated player's
+// permanents: the aggregate is computed there (kop.CtrlEachPl) and the
+// candidate clause compares its own stat against it. Every other filter goes
+// through the ordinary parser.
+func (lc *lowerCtx) chooseCardFilter(choices string) (*lFilter, error) {
+	if lc.repeatPl > 0 {
+		switch choices {
+		case "Creature.greatestPowerControlledByRemembered":
+			return lc.greatestControlledFilter("Creature", "Count$Valid Creature.RememberedPlayerCtrl$GreatestCardPower", cmpPower)
+		case "Creature.greatestCMC_CreatureControlledByRemembered":
+			return lc.greatestControlledFilter("Creature", "Count$Valid Creature.RememberedPlayerCtrl$GreatestCardManaCost", cmpCMC)
+		case "Permanent.greatestCMC_NonLandPermanentControlledByRemembered":
+			return lc.greatestControlledFilter("Permanent.nonLand", "Count$Valid Permanent.nonLand+RememberedPlayerCtrl$GreatestCardManaCost", cmpCMC)
+		}
+	}
+	return lc.filter(choices)
+}
+
+// greatestControlledFilter is chooseCardFilter's greatest-by-stat arm: base is
+// the candidate's ordinary filter (the repeated player's creatures or
+// nonland permanents) and count its greatest-stat aggregate. The aggregate is
+// read inside the loop, so it sees the iteration's player.
+func (lc *lowerCtx) greatestControlledFilter(base, count string, stat uint8) (*lFilter, error) {
+	maxV, err := lc.svarValue(count, 0)
+	if err != nil {
+		return nil, err
+	}
+	f, err := lc.filter(base)
+	if err != nil {
+		return nil, err
+	}
+	for i := range f.Clauses {
+		f.Clauses[i].CmpStat = stat
+		f.Clauses[i].CmpOp = opGE
+		f.Clauses[i].CmpV = &maxV
+		f.Clauses[i].CmpX = ""
+	}
+	return f, nil
 }
 
 // a RepeatEach player body reading the repeated

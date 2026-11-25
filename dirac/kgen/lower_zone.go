@@ -1813,7 +1813,7 @@ func (lc *lowerCtx) chooseCard(ps *params) error {
 		choices = addFilterProp(choices, "YouCtrl")
 		ps.consume("ControlledByPlayer")
 	}
-	f, err := lc.filter(choices)
+	f, err := lc.chooseCardFilter(choices)
 	lc.attachedTgtOK, lc.exwOK = false, false
 	if err != nil {
 		return err
@@ -1881,6 +1881,28 @@ func (lc *lowerCtx) chooseCard(ps *params) error {
 	case "Amount", "AmountOpt", "AtRandom":
 		in.A = maxV
 	}
+	if ps.is("RememberChosen", "True") {
+		// RememberChosen$ (gorge choiceRecord): the picked cards join the
+		// resolution's remembered set. The one-card pick rides the op's
+		// Remember code; a counted pick carries the flag in B, read by the
+		// kernel's answer as each card is taken (the post-loop
+		// SacrificeAll/ChangeZone reads the set, not just RefChosen). The
+		// counted mode word keeps its Remember spelling so the writer
+		// census sees the set is written in this resolution.
+		ps.consume("RememberChosen")
+		switch mode {
+		case "":
+			mode = "Remember"
+		case "Amount":
+			in.B = cst(1)
+			mode = "AmountRemember"
+		case "AmountOpt":
+			in.B = cst(1)
+			mode = "AmountOptRemember"
+		default:
+			return refuse("ChooseCard RememberChosen$ with %s", mode)
+		}
+	}
 	if ps.is("ForgetOtherRemembered", "True") {
 		if mode != "" && mode != "Optional" {
 			return refuse("ChooseCard ForgetOtherRemembered$ with %s", mode)
@@ -1920,6 +1942,16 @@ func (lc *lowerCtx) chooseCardMandatory(ps *params, in lRef, oppChooser bool) (o
 	case "Player":
 		out = lRef{Kind: rEachPlayer}
 		each, fromDefined = true, true
+	case "Player.IsRemembered", "Remembered":
+		// Inside a RepeatEach player body the loop binds the repeated
+		// player as Remembered (gorge effRepeatEach; the body check admits
+		// exactly that read): the pick is that player's. Outside the body
+		// the names mean something else and keep refusing.
+		if lc.repeatPl == 0 {
+			return out, false, false, false, "", refuse("ChooseCard Defined$ %q outside a RepeatEach player body", v)
+		}
+		out = lRef{Kind: rEach}
+		fromDefined = true
 	case "TriggeredPlayer", "TriggeredDefendingPlayer":
 		if out, err = lc.defined(v); err != nil {
 			return out, false, false, false, "", err
