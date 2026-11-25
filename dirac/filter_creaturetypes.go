@@ -24,7 +24,7 @@ Halfling Hamster Harpy Hedgehog Hellion Hero Hippo Hippogriff Homarid Homunculus
 Horror Horse Horsehead Human Hydra Hyena Illusion Imp Incarnation Inhuman Inkling
 Inquisitor Insect Jackal Jellyfish Judge Juggernaut Kangaroo Kavu Kelpien Killbot
 Kirin Kithkin Klingon Knight Kobold Kor Kraken Kree Llama Lamia Lammasu Lanthanite
-Leech Lemur Leviathan Lhurgoyf Licid Lizard Lobster Lord Mammoth Manticore Masticore
+Leech Lemur Leviathan Lhurgoyf Licid Lizard Lobster Mammoth Manticore Masticore
 Mercenary Merfolk Metathran Mindless-One Minion Minotaur Mite Mole Monger Mongoose
 Monk Monkey Moogle Moonfolk Mount Mouse Mutant Myr Mystic Nautilus Necron Nephilim
 Nightmare Nightstalker Ninja Noble Noggle Nomad Nymph Octopus Officer Ogre Ooze Orb
@@ -37,7 +37,7 @@ Shade Shaman Shapeshifter Shark Sheep Shi'ar Siren Skeleton Skrull Skunk Slith
 Sliver Sloth Slug Snail Snake Soldier Soltari Sorcerer Specter Spellshaper Sphinx
 Spider Spike Spawn Spirit Splinter Sponge Spy Squid Squirrel Stained Starfish
 Surrakar Survivor Symbiote Synth Talosian Teddy Tellarite Tentacle Tetravite
-Thalakos Tholian Thopter Thrull Tiefling Time Toy Treefolk Tribble Trilobite Trill
+Thalakos Tholian Thopter Thrull Tiefling Toy Treefolk Tribble Trilobite Trill
 Triskelavite Troll Tosk Turtle Tyranid Unicorn Utrom Vampire Varmint Vedalken
 Villain Volver Vorta Vulcan Wall Walrus Warlock Warrior Weasel Weird Werewolf Whale
 Wizard Wolf Wolverine Wombat Worm Wraith Wurm Xindi Yeti Zombie Zubera
@@ -47,6 +47,9 @@ Talaxian Tamarian Vau-N'Akat
 `) {
 		m[w] = true
 	}
+	// CR 205.3m's one two-word creature type, as gorge's list offers it; its
+	// words Time and Lord are not creature types.
+	m["Time Lord"] = true
 	return m
 }()
 
