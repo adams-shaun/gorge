@@ -41,7 +41,7 @@ func TestBlockTaxRefusesUnmodelledPartners(t *testing.T) {
 			{Kind: kop.AbMana, Cost: tap, ManaColors: kop.ColC, ManaN: 1},
 			{Kind: kop.AbMana, Cost: tap, ManaColors: kop.ColAny, ManaN: 1, ManaRestrict: 1}}}, false},
 		{kop.CardDef{Name: "Half Brute", Types: kop.TCreature, Power: 2, Toughness: 2,
-			Abilities: []kop.Ability{{Kind: kop.AbStatic, Static: kop.Static{Kind: kop.StatMustAttack}}}}, true},
+			Abilities: []kop.Ability{{Kind: kop.AbStatic, Static: kop.Static{Kind: kop.StatMustAttack}}}}, false}, // a broad requirement shapes only the attackers decision
 		{kop.CardDef{Name: "Half Goader", Types: kop.TSorcery, Abilities: []kop.Ability{{Kind: kop.AbSpell,
 			Prog: []kop.Instr{{Op: kop.OpGoad, Obj: kop.RefNone}}}}}, false},
 		{kop.CardDef{Name: "Half Lonely", Types: kop.TCreature, Power: 2, Toughness: 2, AloneAtk: true}, true},

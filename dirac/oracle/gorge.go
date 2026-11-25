@@ -1548,7 +1548,64 @@ func blockFloorsMatchable(fr *frame, chosen []int) bool {
 		}
 		return false
 	}
-	return blockFloorSlots(missing, free, canBlock)
+	if !blockFloorSlots(missing, free, canBlock) {
+		return false
+	}
+	return !d.HasBudget() || blockFloorsAffordable(fr, chosen, missing, free, usedPair)
+}
+
+// blockFloorsAffordable reports whether the blockers missing from the answer
+// so far (blockFloorsMatchable's missing and free slots) can be added within
+// Decision.MaxSum: the least sum of their pairs' Values (a block tax's
+// charges, CR 509.1d) beside the chosen picks' fits the budget. Without it a
+// pick whose menace attacker's second blocker the budget cannot pay is
+// completable only by an exhaustive search, which runs out of nodes on a wide
+// board and answers optimistically; the kernel's blkTaxFillCost prices the
+// same completion. A depth-first search bounded by the best found: one entry
+// per missing blocker, a handful.
+func blockFloorsAffordable(fr *frame, chosen []int, missing, free []state.ObjID, usedPair map[[2]state.ObjID]bool) bool {
+	d := fr.d
+	sum := 0
+	for _, c := range chosen {
+		sum += optByIndex(d, c).Value
+	}
+	limit := d.MaxSum - sum
+	if limit < 0 {
+		return false
+	}
+	value := func(b, a state.ObjID) (int, bool) {
+		for i := range d.Options {
+			if o := &d.Options[i]; fr.valid[i] && o.Obj == b && o.Attacker == a {
+				return o.Value, true
+			}
+		}
+		return 0, false
+	}
+	used := make([]bool, len(free))
+	pair := map[[2]state.ObjID]bool{}
+	best := limit + 1
+	var fill func(i, cost int)
+	fill = func(i, cost int) {
+		if i == len(missing) {
+			best = cost
+			return
+		}
+		a := missing[i]
+		for j, b := range free {
+			if used[j] || usedPair[[2]state.ObjID{b, a}] || pair[[2]state.ObjID{b, a}] {
+				continue
+			}
+			v, ok := value(b, a)
+			if !ok || cost+v >= best {
+				continue
+			}
+			used[j], pair[[2]state.ObjID{b, a}] = true, true
+			fill(i+1, cost+v)
+			used[j], pair[[2]state.ObjID{b, a}] = false, false
+		}
+	}
+	fill(0, 0)
+	return best <= limit
 }
 
 // blockRequirementPath reports whether the kernel offers this blockers

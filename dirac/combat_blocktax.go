@@ -1,10 +1,6 @@
 package dirac
 
-import (
-	"slices"
-
-	"github.com/adams-shaun/gorge/dirac/kop"
-)
+import "github.com/adams-shaun/gorge/dirac/kop"
 
 // The block tax (kop.StatBlockTax): a printed S:Mode$ CantBlockUnless with a
 // generic mana Cost$ (Archangel of Tithes, Qal Sisma Behemoth, Myr Prototype,
@@ -45,6 +41,10 @@ func init() { stallNames[StallBlkTax] = "blktax" }
 // DebugBlkTaxFree (test only, TestBlockTaxFreeMutation): no block is taxed.
 var DebugBlkTaxFree bool
 
+// DebugBlkTaxNoFill (test only, TestFourSeatBlkTaxMenaceLockstep): a block
+// pick's completion is not priced (blkTaxFillCost reads zero).
+var DebugBlkTaxNoFill bool
+
 // blkTaxOn reports whether the table carries a block tax.
 func blkTaxOn(k *prep) bool { return k.gen != nil && k.gen.anyBlkTax }
 
@@ -66,22 +66,19 @@ func prepBlkTax(t *kop.Table, g *genPrep) {
 		g.blkTaxStall = g.blkTaxStall || blkTaxGap(&t.Cards[i])
 	}
 	g.blkTaxStall = g.blkTaxStall || r.mustAttackEmblem(t, true) || atkTaxGrantGap(g)
-	for i := range t.Overrides {
-		g.blkTaxStall = g.blkTaxStall || r.override[i] && t.Overrides[i].AddKw&kop.KwMenace != 0
-	}
 }
 
 // blkTaxFloorPart reports whether card c can make a block floor or a block
-// duty: menace (printed, granted, a static's, a counter's, a suspect's), a
-// MinMaxBlocker floor, can't-block-alone, a lure, must-be-blocked or
-// blocks-if-able. The option builders decide Done from those rules without the
-// defender's mana (blocksCompletable, menaceDeficit, blockerOptionsLure's owed,
+// duty the block tax does not model: a MinMaxBlocker floor, can't-block-alone,
+// a lure, must-be-blocked, blocks-if-able or a suspect. The option builders
+// decide those rules without the defender's mana (blockerOptionsLure's owed,
 // mbReach), while gorge's KBlockers completes a declaration within
-// Decision.MaxSum: a budget that covers the first blocker of a menace attacker
-// but not the second strands the declaration (no pick fits, Done is withheld).
-// The kernel does not model the budgeted completion, so the table is refused.
+// Decision.MaxSum. Menace (printed, granted, a static's, a counter's) is
+// modelled: blkTaxFillCost prices a pick's cheapest completion against the
+// budget, so a budget that pays a menace attacker's first blocker but not its
+// second offers neither (CR 509.1c, 509.1d, 702.111b).
 func blkTaxFloorPart(c *kop.CardDef) bool {
-	if c.Keywords&kop.KwMenace != 0 || c.MinBlockers != 0 || c.AloneBlk || c.Lure || c.MustBeBlocked {
+	if c.MinBlockers != 0 || c.AloneBlk || c.Lure || c.MustBeBlocked {
 		return true
 	}
 	for j := range c.Abilities {
@@ -96,50 +93,30 @@ func blkTaxFloorPart(c *kop.CardDef) bool {
 	return false
 }
 
-// blkTaxFloorStatic: a lure or must-block static, or a continuous static
-// granting menace.
+// blkTaxFloorStatic: a lure or must-block static.
 func blkTaxFloorStatic(a *kop.Ability) bool {
-	return a.Kind == kop.AbStatic && (a.Static.Kind == kop.StatLure || a.Static.Kind == kop.StatMustBlock || a.Static.Kind == kop.StatContinuous && a.Static.Kw&kop.KwMenace != 0)
+	return a.Kind == kop.AbStatic && (a.Static.Kind == kop.StatLure || a.Static.Kind == kop.StatMustBlock)
 }
 
-// blkTaxFloorInstr: an instruction granting menace (a keyword grant, a menace
-// counter, a suspect) or a block duty (must-be-blocked, a lure, blocks-if-able,
-// a creature that blocks the resolving source if able).
+// blkTaxFloorInstr: an instruction making a block duty (must-be-blocked, a
+// lure, blocks-if-able, a creature that blocks the resolving source if able)
+// or a suspect (menace and can't block, CR 701.60c).
 func blkTaxFloorInstr(in *kop.Instr) bool {
-	switch in.Op {
-	case kop.OpGrantKeyword:
-		return (kop.KwMask(uint16(in.C))|kop.KwMask(uint16(in.B.N))<<16)&kop.KwMenace != 0
-	case kop.OpPutCounter, kop.OpPutCounterAll, kop.OpEnterWithCounters:
-		return kop.CounterKind(in.C) == kop.CtrMenace
-	case kop.OpMoveCounter:
-		return kop.CounterKind(in.B.N) == kop.CtrMenace
-	case kop.OpExt:
-		if in.Ext() == kop.ExtPutCounterChoice { // a menace counter among the kinds offered (ctr_choice.go)
-			ks, n := in.PutCtrChoiceKinds()
-			return slices.Contains(ks[:n], uint8(kop.CtrMenace))
-		}
-		return in.Ext() == kop.ExtMustBeBlocked || in.Ext() == kop.ExtBlocksIfAble || in.Ext() == kop.ExtMustBlock || in.Ext() == kop.ExtSuspect
+	if in.Op != kop.OpExt {
+		return false
 	}
-	return false
+	return in.Ext() == kop.ExtMustBeBlocked || in.Ext() == kop.ExtBlocksIfAble || in.Ext() == kop.ExtMustBlock || in.Ext() == kop.ExtSuspect
 }
 
 // blkTaxGap reports whether card c holds a part the block tax does not model:
 // what the attack window's source walk refuses (atkTaxGap: the block window
-// walks the same sources), and a block floor or duty (blkTaxFloorPart).
+// walks the same sources), and a block floor or duty (blkTaxFloorPart). A
+// broad attack requirement ("attacks each combat if able": Juggernaut, Graaz)
+// shapes only the attackers decision (CR 508.1d); the block window prices a
+// blocker pair from the defender's sources alone (TestFourSeatBlkTaxMustAttackLockstep).
 // Over-refusing is safe; admitting a shape the window misprices is not.
 func blkTaxGap(c *kop.CardDef) bool {
-	return atkTaxGap(c) || blkTaxFloorPart(c) || blkTaxMustAttack(c)
-}
-
-// blkTaxMustAttack reports whether card c has a MustAttack static: the attack
-// tax walk models it (atkTaxMustOK), no block-window lockstep test covers it.
-func blkTaxMustAttack(c *kop.CardDef) bool {
-	for j := range c.Abilities {
-		if a := &c.Abilities[j]; a.Kind == kop.AbStatic && a.Static.Kind == kop.StatMustAttack {
-			return true
-		}
-	}
-	return false
+	return atkTaxGap(c) || blkTaxFloorPart(c)
 }
 
 // blkTaxStallPair is pairRefusalN's StallBlkTax half: the text and the two
@@ -149,7 +126,7 @@ func blkTaxStallPair(t *kop.Table, g *genPrep) (string, func(*kop.CardDef, int) 
 	text := "a block tax beside an attack requirement, a can't-attack-alone creature, a Taps watcher, a land-type grant, a mana source of another shape, menace, a blocker floor or a block duty: gorge's budget, budgeted block completion and payment window for that part are not modelled (combat_blocktax.go)"
 	a := abilityOn(func(x *kop.Ability) bool { return x.Kind == kop.AbStatic && x.Static.Kind == kop.StatBlockTax })
 	b := func(c *kop.CardDef, i int) bool {
-		return atkB(c, i) || blkTaxFloorPart(c) || blkTaxMustAttack(c)
+		return atkB(c, i) || blkTaxFloorPart(c)
 	}
 	return text, a, b
 }
@@ -238,8 +215,12 @@ func (s *State) blkTaxFilter(k *prep, d *Decision) {
 	for i := 0; i < int(d.N); i++ {
 		a := d.Options[i]
 		if a.Kind() == AkBlock {
-			n, ok := s.blkTaxCharge(k, s.objs[a.Source()].slot, s.objs[a.Target()].slot)
+			b, at := s.objs[a.Source()].slot, s.objs[a.Target()].slot
+			n, ok := s.blkTaxCharge(k, b, at)
 			if !ok || n > budget || spent+n > budget {
+				continue
+			}
+			if f := s.blkTaxFillCost(k, b, at, budget-spent-n); f < 0 || spent+n+f > budget {
 				continue
 			}
 		}
@@ -253,6 +234,67 @@ func (s *State) blkTaxFilter(k *prep, d *Decision) {
 		// reach it). Stall, never pose an empty decision.
 		s.stall(StallBlkTax)
 		d.Kind = DkNone
+	}
+}
+
+// blkTaxFillCost is the least charge that completes the declaration with the
+// extra block (xb blocks xa) added: each blocker still owed to a menace
+// attacker (menaceDeficit2) taken by a distinct free blocker (blocksCompletable's
+// pool) whose pair is priceable, the sum of those pairs' charges; -1 when no
+// completion costs at most limit. gorge offers a pick only when some whole
+// answer holding it fits Decision.MaxSum (the oracle's completable over
+// admissible: blockFloorsMatchable prices the missing blockers the same way),
+// so a budget that pays a menace attacker's first blocker but not its second
+// offers neither. Zero when nothing is owed. A depth-first search over the
+// deficits, bounded by the best found: a deficit is one entry per missing
+// blocker, a handful on any board.
+func (s *State) blkTaxFillCost(k *prep, xb, xa Slot, limit int) int {
+	if DebugBlkTaxNoFill {
+		return 0
+	}
+	var def [MaxPerm]Slot
+	nd := s.menaceDeficit2(k, xa, NoSlot, &def)
+	if nd == 0 {
+		return 0
+	}
+	var free [MaxPerm]Slot
+	nf := 0
+	for bm := s.ctrlM[s.blockDef()]; bm.any(); bm = bm.rest() {
+		if b := bm.first(); b != xb && s.blockerReady(k, b) {
+			free[nf] = b
+			nf++
+		}
+	}
+	if nf < nd || nd > len(def) {
+		return -1
+	}
+	var used [MaxPerm]bool
+	best := limit + 1
+	s.blkTaxFill(k, &def, nd, 0, &free, nf, &used, 0, &best)
+	if best > limit {
+		return -1
+	}
+	return best
+}
+
+// blkTaxFill extends blkTaxFillCost's search from deficit i, cost spent so
+// far, lowering *best on a cheaper completion.
+func (s *State) blkTaxFill(k *prep, def *[MaxPerm]Slot, nd, i int, free *[MaxPerm]Slot, nf int, used *[MaxPerm]bool, cost int, best *int) {
+	if i == nd {
+		*best = cost
+		return
+	}
+	for j := 0; j < nf; j++ {
+		if used[j] || !s.canBlock(k, free[j], def[i]) {
+			continue
+		}
+		n, ok := s.blkTaxCharge(k, free[j], def[i])
+		if !ok || cost+n >= *best {
+			continue
+		}
+		used[j] = true
+		s.blkTaxFill(k, def, nd, i+1, free, nf, used, cost+n, best)
+		used[j] = false
 	}
 }
 

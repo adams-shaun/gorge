@@ -594,3 +594,41 @@ func TestFourSeatAtkTaxHasteRiderLockstep(t *testing.T) {
 	atkShapeLockstep(t, atkTaxHasteRiderDeck, 24, 20, 0, []string{"Carnelian Orb of Dragonkind"},
 		[]string{"Carnelian Orb of Dragonkind"}, &dirac.DebugAtkTaxHasteUnlisted)
 }
+
+// Menace beside a block tax (CR 509.1c, 509.1d, 702.111b): Archangel of
+// Tithes taxes every creature that blocks while it attacks, Awesome Presence
+// each creature that blocks the enchanted one ({3}), and the menace attackers
+// need two blockers. gorge offers a block pick only when a whole answer holding
+// it fits Decision.MaxSum, so a budget that pays a menace attacker's first
+// blocker but not its second offers neither; the kernel prices the pick's
+// cheapest completion (blkTaxFillCost). The mutation (DebugBlkTaxNoFill)
+// prices none.
+var blkTaxMenaceDeck = []cardset.Entry{
+	{Name: "Archangel of Tithes", Count: 3}, {Name: "Awesome Presence", Count: 3},
+	{Name: "Boggart Brute", Count: 4}, {Name: "Goblin Heelcutter", Count: 2},
+	{Name: "Savannah Lions", Count: 4}, {Name: "Elite Vanguard", Count: 4}, {Name: "Grizzly Bears", Count: 2},
+	{Name: "Mountain", Count: 8}, {Name: "Plains", Count: 8}, {Name: "Forest", Count: 2},
+}
+
+// TestFourSeatBlkTaxMenaceLockstep: four-seat block-tax games with menace
+// attackers play in lockstep, blockers paying through the window.
+func TestFourSeatBlkTaxMenaceLockstep(t *testing.T) {
+	atkShapeLockstep(t, blkTaxMenaceDeck, 32, 10, 4, nil, nil, &dirac.DebugBlkTaxNoFill)
+}
+
+// A broad attack requirement beside a block tax (Juggernaut and Darksteel
+// Juggernaut: "attacks each combat if able"; Archangel of Tithes): the
+// requirement shapes only the attackers decision (CR 508.1d) and the block
+// window prices a blocker pair from the defender's sources alone. The mutation
+// (DebugBlkTaxFree) lets every block go uncharged.
+var blkTaxMustAttackDeck = []cardset.Entry{
+	{Name: "Archangel of Tithes", Count: 3}, {Name: "Juggernaut", Count: 3}, {Name: "Darksteel Juggernaut", Count: 2},
+	{Name: "Savannah Lions", Count: 4}, {Name: "Elite Vanguard", Count: 4}, {Name: "Grizzly Bears", Count: 4},
+	{Name: "Mind Stone", Count: 2}, {Name: "Plains", Count: 12}, {Name: "Forest", Count: 6},
+}
+
+// TestFourSeatBlkTaxMustAttackLockstep: four-seat block-tax games with
+// creatures that attack each combat play in lockstep.
+func TestFourSeatBlkTaxMustAttackLockstep(t *testing.T) {
+	atkShapeLockstep(t, blkTaxMustAttackDeck, 32, 10, 4, nil, nil, &dirac.DebugBlkTaxFree)
+}

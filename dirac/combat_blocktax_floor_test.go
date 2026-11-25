@@ -11,9 +11,9 @@ import (
 )
 
 // A block tax refuses the matchup beside a block floor or a block duty
-// (blkTaxFloorPart): the option builders decide Done without the defender's
-// mana, so a budget covering one blocker of a menace attacker strands the
-// declaration.
+// (blkTaxFloorPart) other than menace: the option builders decide those
+// without the defender's mana. Menace (printed, a static's, a grant's) is
+// admitted: blkTaxFillCost prices a pick's completion against the budget.
 func TestBlockTaxRefusesFloorsAndDuties(t *testing.T) {
 	tax := kop.CardDef{Name: "Floor Block Tax", Types: kop.TEnchantment, Abilities: []kop.Ability{{Kind: kop.AbStatic,
 		Static: kop.Static{Kind: kop.StatBlockTax, A: 1}}}}
@@ -30,7 +30,12 @@ func TestBlockTaxRefusesFloorsAndDuties(t *testing.T) {
 		Static: kop.Static{Kind: kop.StatContinuous, Kw: kop.KwMenace}}}}
 	grant := kop.CardDef{Name: "Floor Grant", Types: kop.TInstant, Abilities: []kop.Ability{{Kind: kop.AbSpell,
 		Prog: []kop.Instr{{Op: kop.OpGrantKeyword, Obj: kop.RefSelf, C: int16(kop.KwMenace)}}}}}
-	for _, partner := range []kop.CardDef{menace, floor, alone, lure, mustBe, anthem, grant} {
+	for _, partner := range []kop.CardDef{menace, anthem, grant} {
+		if blkTaxGap(&partner) {
+			t.Errorf("%s: blkTaxGap, want menace admitted beside a block tax", partner.Name)
+		}
+	}
+	for _, partner := range []kop.CardDef{floor, alone, lure, mustBe} {
 		t.Run(partner.Name, func(t *testing.T) {
 			// PRECONDITION: the partner is a floor or duty part, and not an
 			// attack-window gap (the refusal is the new rule's).
@@ -56,12 +61,11 @@ func TestBlockTaxRefusesFloorsAndDuties(t *testing.T) {
 	}
 }
 
-// TestBlockTaxMenaceTaxerStalls: a 2/2 menace taxer charging {1} per blocker,
-// the defender holding two bears and one Plains. The budget covers the first
-// blocker but not menace's second: the kernel stalls the table at its start
-// rather than offering a pick it can never complete (a blockers decision with
-// no options).
-func TestBlockTaxMenaceTaxerStalls(t *testing.T) {
+// TestBlockTaxMenaceTaxerPlays: a 2/2 menace taxer charging {1} per blocker.
+// The table is not stalled at its start: a budget that covers the first
+// blocker but not menace's second offers neither pick (blkTaxFillCost;
+// TestFourSeatBlkTaxMenaceLockstep plays it).
+func TestBlockTaxMenaceTaxerPlays(t *testing.T) {
 	deck := []cardset.Entry{{Name: "Plains", Count: 20}}
 	tbl, _, _, err := cardsettest.Set(t, "fdn").Matchup(deck, deck)
 	if err != nil {
@@ -79,8 +83,8 @@ func TestBlockTaxMenaceTaxerStalls(t *testing.T) {
 	if !blkTaxOn(sc.k) || tbl.Cards[taxer].Keywords&kop.KwMenace == 0 {
 		t.Fatal("precondition: a block tax on a menace creature")
 	}
-	if !sc.k.gen.blkTaxStall || sc.s.g.stalled != StallBlkTax {
-		t.Fatalf("blkTaxStall %v stalled %s, want true and %s", sc.k.gen.blkTaxStall, StallName(sc.s.g.stalled), StallName(StallBlkTax))
+	if sc.k.gen.blkTaxStall || sc.s.g.stalled != 0 {
+		t.Fatalf("blkTaxStall %v stalled %s, want false and none", sc.k.gen.blkTaxStall, StallName(sc.s.g.stalled))
 	}
 }
 
