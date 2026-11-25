@@ -29,9 +29,15 @@ var flashLifeDecks = [2][]cardset.Entry{
 	},
 }
 
+// The 200 seeds play as two tests of 100 so each fits the 60 s test budget.
 func TestFlashLifeLowers(t *testing.T) {
 	t.Parallel()
-	lockstepSet(t, flashLifePool, flashLifeDecks, 200, "KFLASHLIFE_SEEDS")
+	lockstepSetRange(t, flashLifePool, flashLifeDecks, 1, 100)
+}
+
+func TestFlashLifeLowersHigh(t *testing.T) {
+	t.Parallel()
+	lockstepSetRange(t, flashLifePool, flashLifeDecks, 101, 200)
 }
 
 // TestFlashLifeDecksPlayable names a refused carrier here, not only by a

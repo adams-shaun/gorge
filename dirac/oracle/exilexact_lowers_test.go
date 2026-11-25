@@ -30,9 +30,15 @@ var exileXActDecks = [2][]cardset.Entry{
 	},
 }
 
+// The 200 seeds play as two tests of 100 so each fits the 60 s test budget.
 func TestExileXActLowers(t *testing.T) {
 	t.Parallel()
-	lockstepSet(t, exileXActPool, exileXActDecks, 200, "KEXILEXACT_SEEDS")
+	lockstepSetRange(t, exileXActPool, exileXActDecks, 1, 100)
+}
+
+func TestExileXActLowersHigh(t *testing.T) {
+	t.Parallel()
+	lockstepSetRange(t, exileXActPool, exileXActDecks, 101, 200)
 }
 
 // TestExileXActDecksPlayable names a refused carrier here, not only by a
