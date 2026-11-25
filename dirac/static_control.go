@@ -249,6 +249,9 @@ func (s *State) ctrlMove(sl Slot, to uint8) {
 	if k.gen != nil && k.gen.ringOn() {
 		s.ringControlChanged(p.obj, to) // CR 701.54b: a Ring-bearer designation ends on a control change
 	}
+	if k.gen != nil && k.gen.pairOn() {
+		s.pairControlChanged(sl) // CR 702.95e: a Soulbond pairing ends on a control change (kw_soulbond.go)
+	}
 }
 
 // ctrlUncombat removes the permanent at sl from combat (gorge

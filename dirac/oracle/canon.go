@@ -311,9 +311,11 @@ func (g *GorgeSide) optionAction(d *decision.Decision, o *decision.Option) (Cano
 // and counted under Stats.Unknown. The Ring-bearer pick is the exception:
 // effRingTemptsYou's "ring_bearer" (CR 701.54a) is the kernel's
 // ChGenRingBearer lowering, choose:other over the creature, and the kind stays
-// out of ChooseKinds because its position is the choose ordinal.
+// out of ChooseKinds because its position is the choose ordinal. Soulbond's
+// partner pick (effPair's "pair", CR 702.95a) is the kernel's ChGenPair, the
+// same choose:other over the creature.
 func (g *GorgeSide) chooseOtherAction(o *decision.Option) (Canon, bool) {
-	if o.Kind == "ring_bearer" {
+	if o.Kind == "ring_bearer" || o.Kind == "pair" {
 		return Pack(ActChoose+chooseOther, g.id.ref(g.E.G, o.Obj), RefNone, 0), true
 	}
 	g.Stats.note(&g.Stats.Unknown, "choose/"+o.Kind+" (as choose:other)")

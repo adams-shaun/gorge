@@ -1670,6 +1670,13 @@ const ExtOptInSeat ExtOp = 105
 
 func init() { extOpNames[ExtOptInSeat] = "OptInSeat" }
 
+// Pair (dirac/manifest/ExtOp/ExtPair)
+//
+// ExtPair: Soulbond's optional pairing (CR 702.95a; gorge engine/effects/soulbond.go effPair): the unpaired battlefield creature Obj may pair with another unpaired creature its trigger's controller controls; C 1 restricts the pick to the triggering entrant (RestrictToRemembered$).
+const ExtPair ExtOp = 105
+
+func init() { extOpNames[ExtPair] = "Pair" }
+
 // ExtOp (dirac/manifest/ExtOp/ExtPayLifeX)
 //
 // The as-enters "pay any amount of life" ask (CR 614.12; gorge's R:Event$ Moved ReplaceWith$ StoreSVar body costing Mandatory PayLife<X>, cast_etbchoice.go etbPayLifeBound / etbPayLifeOptions: a KChoose of Kind "paylife" options 0..bound, the amount on Amount), the first instruction of an enters program. B the cap value (gorge's XMax$; the constant 32767 when the body has none), C the ExtStoreNum C field of the stored name (name index, delete flag, printed default; kop.StoreNumC). The controller is asked 0..min(life, cap) as a ChGenPayLife decision (mode = the amount); the answer loses that much life through loseLife and writes it as the entering permanent's stored number (act_storenum.go numStore), the Count$xPaid the body stores. dirac/repl_paylife.go.
@@ -1798,15 +1805,25 @@ const FwWithKeyword FilterWord = 19
 // FwModal: the cast spell chose at least one mode of its charm (gorge's `Modal` predicate, engine/effects/filter.go: len(ChosenModes) > 0; SpellCast ValidSA$ Spell.Modal, Riku of Many Paths). A spell that is no charm, a face-down spell and a card off the stack read false; an MDFC is not modal.
 const FwModal FilterWord = 20
 
+// FilterWord (dirac/manifest/FilterWord/FwPaired)
+//
+// FwPaired: the battlefield permanent is paired with another creature by Soulbond (gorge predicates["Paired"], engine/effects/filter.go, o.Paired != 0; the kernel's kw_soulbond.go pair record). Negated, it is unpaired.
+const FwPaired FilterWord = 21
+
+// FilterWord (dirac/manifest/FilterWord/FwPairedWith)
+//
+// FwPairedWith: the battlefield permanent is the creature the reading source is paired with by Soulbond (gorge predicates["PairedWith"], engine/effects/filter.go, source.Paired == candidate; the kernel's kw_soulbond.go pair record). A source with no pair fails closed.
+const FwPairedWith FilterWord = 22
+
 // FilterWord (dirac/manifest/FilterWord/FwSingleTarget)
 //
 // FwSingleTarget: the cast spell has exactly one target, counting every chained sub-ability's targets with the root's (gorge's `singleTarget` predicate, engine/effects/filter.go: len(Targets)+len(SubTargets) == 1; SpellCast ValidSA$ Spell.singleTarget and Instant.singleTarget,Sorcery.singleTarget). No target and two targets both read false, and two slots naming one object count twice, as gorge counts them.
-const FwSingleTarget FilterWord = 21
+const FwSingleTarget FilterWord = 23
 
 // FilterWord (dirac/manifest/FilterWord/FwTeamwork)
 //
 // FwTeamwork: the cast spell paid its Teamwork cost (gorge's `Teamwork` predicate, Object.TeamworkPaid; SpellCast ValidSA$ Spell.Teamwork, Virtual Assistant). The kernel keeps the paid flag as sfKicked on the entry (kw_teamwork.go), which a kicker cast sets too, so the word also requires the spell's card to have Teamwork: a kicked non-teamwork spell reads false.
-const FwTeamwork FilterWord = 22
+const FwTeamwork FilterWord = 24
 
 // kw StickerSheet (dirac/manifest/KwID/KwStickerSheet)
 const KwStickerSheet KwID = 32
