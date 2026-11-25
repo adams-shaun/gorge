@@ -112,6 +112,14 @@ const (
 	// living seat and acts on EACH match; the corpus carrier's ETB exiles at
 	// most one card, so at most one seat can match.
 	RefExiledWithOwner Ref = 43
+	// RefEnchantedCtrl is a player ref: the controller of the permanent the
+	// source is attached to, read live while the source is still on the
+	// battlefield (gorge Defined$ EnchantedController, playerEnchantedController).
+	// None once the source has left, its attachment cleared (CR 704.5m), even
+	// when the permanent it was on is still there: unlike RefAttachedCtrl it
+	// keeps no last known attachment. Paralyze's upkeep "that player may pay
+	// {4}" trigger left on the stack by a departed Paralyze has no payer.
+	RefEnchantedCtrl Ref = 44
 )
 
 // RefTgtCtrl1 / RefTgtCtrl2 are RefTargetController for target slot 1 / 2
