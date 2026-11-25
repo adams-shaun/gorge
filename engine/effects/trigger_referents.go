@@ -319,6 +319,11 @@ type TriggerContext struct {
 	// cast in response to the trigger do not add copies. Zero outside a
 	// storm trigger.
 	TriggerStormCount int32
+	// TriggerScryNum is the number of cards a Mode$ Scry trigger's completed
+	// scry looked at (CR 701.22a; effects.ScryRecordLooked), captured at fire
+	// time. It is what the TriggerCount$ScryNum head answers. Zero outside a
+	// Scry trigger.
+	TriggerScryNum int32
 	// TriggerIncrementSpent is the mana spent to cast the triggering spell,
 	// captured when an Increment trigger fires (CR 702.191a). Increment's
 	// condition is an intervening "if" (CR 603.4) rechecked as the ability

@@ -193,8 +193,7 @@ func arrangeAnswerRecord(e *Engine, d *decision.Decision, in decision.Intent, sa
 		// RearrangeTopOfLibrary (Ponder) shares the "bottom" Kind with an
 		// always-empty pile B and must emit no scry record at all.
 		if sa != nil && sa.API == "Scry" {
-			e.emitScryRecord(events.Event{Kind: events.Scry, Player: d.Player,
-				Obj: d.Source, Amount: int32(len(pileB))})
+			e.emitScryRecord(effects.ScryRecord(d.Player, d.Source, int32(k), int32(len(pileB))))
 		}
 	case arrangeAnswerRecordGraveyard:
 		// Pile B leaves the library. The LibraryOrder for
