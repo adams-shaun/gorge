@@ -43,6 +43,22 @@ const (
 	// and PrevNextFrom and carries no rider.
 	PrevNextChosen = 128
 
+	// With PrevNextChosen, three upper bits that only the recipient-keyed
+	// shields read otherwise name the chosen shield's recipient and lifetime
+	// (dirac/repl_prevchosen.go):
+	//
+	// PrevNextChosenTo: the recipient is the instruction's Obj, a player or a
+	// permanent at its current version (ValidTarget$ Card.IsRemembered,
+	// Player.IsRemembered over a RememberObjects$ Targeted Effect: Martyr's
+	// Cause; ValidTarget$ Card.IsImprinted over ImprintCards$ Targeted:
+	// Samite Blessing).
+	PrevNextChosenTo = PrevNextMultiObj
+	// PrevNextChosenAny: any recipient (no ValidTarget$: Pilgrim of Justice).
+	PrevNextChosenAny = PrevNextMultiPlayer
+	// PrevNextChosenTurn: every event from the source this turn, never spent
+	// (Prevent$ True with no body: Pay No Heed).
+	PrevNextChosenTurn = PrevNextRadiance
+
 	// The remaining instruction bits are the multi-recipient and rider kinds
 	// (the record keeps a rider kind in genState.prevX, repl_prevx.go):
 	//

@@ -1,0 +1,15 @@
+# Gideon's "prevent all damage that would be dealt to him this turn" Effect
+# (Duration$ UntilHostLeavesPlayOrEOT, ValidTarget$ Card.EffectSource): the
+# unbounded PreventNext shield on the source (dirac/kgen/lower_preventallto.go,
+# dirac/oracle/gideonshield_lockstep_test.go)
+Gideon, Ally of Zendikar
+Gideon, Martial Paragon
+Gideon, the Oathsworn
+Gideon, Champion of Justice
+Savannah Lions
+Plains
+Hill Giant
+Raging Goblin
+Shock
+Lightning Bolt
+Mountain

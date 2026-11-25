@@ -1,0 +1,6 @@
+family: ask
+name: raPair
+value: next
+status: active
+ticket: gap-soulbond-pair
+doc: the Soulbond partner pick of ExtPair (CR 702.95a; kw_soulbond.go pairExt): up to one unpaired creature the trigger's controller controls, gorge effPair's Min 0 Max 1 KChoose; AkDone declines.

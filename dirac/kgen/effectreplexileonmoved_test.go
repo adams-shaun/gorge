@@ -25,10 +25,11 @@ func stackExileOps(lc *lCard) []int {
 // TestLowerEffectReplExileonmoved: the Effect that exiles a named spell
 // instead of putting it into a graveyard as it leaves the stack lowers to
 // OpExt ExtStackExileMark. Lilah, Undefeated Slickshot (trigger form, resolved
-// exit only, owner gate, plot rider) and Nita, Forum Conciliator (grant form)
-// lower whole; Goliath Daydreamer's Effect lowers (its dream counter stalls in
-// the kernel) and the card refuses only on its Play. Each out-of-shape variant
-// still refuses by name.
+// exit only, owner gate, plot rider) and Nita, Forum Conciliator, Dire Fleet
+// Daredevil and Sins of the Past (grant form) lower whole; Goliath
+// Daydreamer's Effect lowers (its dream counter stalls in the kernel) and the
+// card refuses only on its Play. Each out-of-shape variant still refuses by
+// name.
 func TestLowerEffectReplExileonmoved(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	lowerNamed := func(name string) *lCard {
@@ -55,6 +56,25 @@ func TestLowerEffectReplExileonmoved(t *testing.T) {
 	}
 	if got := stackExileOps(nita); len(got) != 1 || got[0] != kop.StackExileGrant {
 		t.Errorf("Nita: StackExileMark C %v, want [%d]", got, kop.StackExileGrant)
+	}
+
+	// the grant form widened: Dire Fleet Daredevil's enters trigger (the
+	// remembered exiled card, ValidCard$ Card.IsRemembered) and Sins of the
+	// Past (the targeted graveyard card its own MayPlay names)
+	for _, c := range []struct {
+		name string
+		want int
+	}{
+		{"Dire Fleet Daredevil", kop.StackExileGrant},
+		{"Sins of the Past", kop.StackExileGrant | kop.StackExileTarget},
+	} {
+		lcd := lowerNamed(c.name)
+		if got := keclReason(lcd.Refusals); got != "" {
+			t.Errorf("%s: refusals %q, want none", c.name, got)
+		}
+		if got := stackExileOps(lcd); len(got) != 1 || got[0] != c.want {
+			t.Errorf("%s: StackExileMark C %v, want [%d]", c.name, got, c.want)
+		}
 	}
 
 	goliath := lowerNamed("Goliath Daydreamer")
