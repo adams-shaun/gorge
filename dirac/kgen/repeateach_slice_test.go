@@ -32,6 +32,13 @@ var repeatEachSliceCards = map[string][]string{
 		"Torment of Hailfire", "Oath of Lim-Dûl", "Varchild's War-Riders",
 		"Trade Secrets",
 	},
+	// RepeatEach over players whose body is a ChooseCard naming the repeated
+	// player's cards: the repeated player picks the sacrifice/exile/tax target,
+	// and the post-loop node reads the picks.
+	"per-player ChooseCard": {
+		"Soul Shatter", "Flare of Malice", "Rite of Ruin", "Tariff",
+		"Grave Consequences", "Watchers of the Dead",
+	},
 }
 
 func TestRepeatEachSlice(t *testing.T) {
