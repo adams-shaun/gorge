@@ -1400,10 +1400,23 @@ const (
 	// order. Appended after AbilityResolved so every earlier ordinal, hash chain and
 	// golden replay is unchanged.
 	ReverseTurnOrder
+	// TokenBlocks marks an already-existing battlefield creature that entered
+	// blocking the attacking creature IDs[0] names (TokenBlocking$, CR
+	// 509.4/509.4a). Obj is the entering permanent and Player its controller.
+	// It is NOT a DeclareBlockers: the creature was never declared as a
+	// blocker, so the fold records the block state (the attacker's BlockedBy
+	// and the entering creature's IsBlocking) without firing a block
+	// declaration's triggers -- 509.4's "it never 'blocked'". The fold also
+	// applies 506.3e/509.4a: the attacker must still be attacking and the
+	// entering creature's controller must be its defender, else the creature
+	// is on the battlefield but not a blocking creature. Appended after
+	// ReverseTurnOrder, above NumKinds, so every earlier ordinal, hash chain
+	// and golden replay is unchanged.
+	TokenBlocks
 	// NumKinds is the explicit upper bound for the append-only event kind
 	// registry below. New kinds must be appended above this line: inserting or
 	// reordering a kind renumbers the hash-chained event stream and breaks replay.
-	NumKinds = int(ReverseTurnOrder) + 1
+	NumKinds = int(TokenBlocks) + 1
 )
 
 // AbilityResolved's Amount bits: the resolved ability is a triggered one, a

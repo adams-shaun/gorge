@@ -1,0 +1,8 @@
+family: ReplKind
+name: ReplDamageInstead
+value: next
+forge: DamageDone
+census: repl DamageDone replacement shape (prevent / replace the damage with counters, mill, exile or draw)
+state: code 0
+status: active
+ticket: repl-dmgdone-remaining-shapes
