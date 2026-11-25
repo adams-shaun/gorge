@@ -233,6 +233,7 @@ func (s *State) placeFromK(k *prep, o Obj, z kop.Zone, bottom bool, from kop.Zon
 	if s.placeGraveLib(k, o, pl, z, from, wasCreature, leftCounters) {
 		return
 	}
+	s.stackExitFrontFace(k, o, from, z) // a back-face cast leaving the stack (face_castface.go)
 	if pl.zoneFull(z) {
 		// tokens that left the battlefield together (a wipe of a token
 		// army) sit in their owner's zone until the next state-based
@@ -314,6 +315,7 @@ func (s *State) placeGraveLib(k *prep, o Obj, pl *player, z kop.Zone, from kop.Z
 	} else {
 		pl.libTop(o)
 	}
+	s.stackExitFrontFace(k, o, from, kop.ZoneLibrary) // a back-face cast leaving the stack (face_castface.go)
 	if s.g.enteredOn {
 		s.noteEnter(o, kop.ZoneLibrary, from, wasCreature, leftCounters)
 	}

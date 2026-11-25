@@ -1407,6 +1407,9 @@ type lCard struct {
 	Paradigm       bool      // K:Paradigm (SOS): resolved -> exile, a free cast from exile each first main phase
 	Sneak          *manaCost // K:Sneak:<cost> (CR 702.190a): the declare-blockers alternative cost (plus the return)
 	WebSling       *manaCost // K:Web-slinging:<cost> (CR 702.188a): the hand's alternative cost (plus returning a tapped creature)
+	FlipCast       uint8     // kop.FlipConverted (K:More Than Meets the Eye) or kop.FlipDisturb (K:Disturb): the back face's cast keyword (lower_flipcast.go)
+	FlipCost       *manaCost // FlipCast's printed cost
+	LivingMetal    bool      // K:Living metal (CR 702.161a): its static is the face's own lowered Override
 	MayFlash       *manaCost // K:MayFlashCost:<cost> (CR 702.8): the extra mana that buys an instant-timing cast from the hand
 	MayFlashBehold *lFilter  // K:MayFlashCost:Behold<1/Type>: the extra is beholding one of these, no mana (MayFlash is empty)
 	Offering       *lFilter  // K:Offering:<Type> (CR 702.48): the instant-speed cast that sacrifices one of these and is reduced by its mana cost
