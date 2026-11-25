@@ -284,6 +284,10 @@ func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
 		if err != nil {
 			return nil, err
 		}
+		rest, err = lc.grantMentor(rest, st) // lower_mentorgrant.go
+		if err != nil {
+			return nil, err
+		}
 		rest, saddles := splitSaddleGrant(rest)            // lower_saddlegrant.go
 		rest, livingWeapon := splitLivingWeaponGrant(rest) // lower_livingweapongrant.go
 		rest, extort := splitExtortGrant(rest)             // lower_extortgrant.go
