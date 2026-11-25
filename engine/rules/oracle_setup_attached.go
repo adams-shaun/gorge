@@ -166,8 +166,8 @@ func (r *oracleRun) placeSetupEntry(sc oracleScenario, p int, id state.ObjID, na
 		// granted none; without it the walker sits at 0 loyalty and
 		// the CR 704.5i state-based action removes it before its
 		// first-main-phase trigger can fire.
-		if n := setupBackFaceLoyalty(e.G.Obj(id)); n > 0 {
-			e.emit(events.Event{Kind: events.CounterChange, Obj: id, Counter: "LOYALTY", Amount: n})
+		if ev, ok := setupBackFaceLoyaltyCounter(e.G.Obj(id)); ok {
+			e.emit(ev)
 		}
 	}
 	for _, tapped := range seat.Tapped {

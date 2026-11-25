@@ -1,0 +1,30 @@
+# The replace-the-damage DamageDone lockstep pool
+# (dirac/oracle/repl_dmgshapes_lockstep_test.go): Angel of Suffering, Force
+# Bubble, Gloom Surgeon, Swans of Bryn Argoll, Panther Habit, Soul-Scar Mage,
+# Szadek, Undead Alchemist (ReplDamageInstead) and Ghosts of the Innocent (a
+# halving ReplDamageMinus). Each deck plays one such line, so no event meets
+# gorge's CR 616.1 order ask.
+Angel of Suffering
+Force Bubble
+Gloom Surgeon
+Swans of Bryn Argoll
+Panther Habit
+Soul-Scar Mage
+Szadek, Lord of Secrets
+Undead Alchemist
+Ghosts of the Innocent
+Walking Corpse
+Savannah Lions
+Wind Drake
+Hill Giant
+Raging Goblin
+Grizzly Bears
+Lava Axe
+Shock
+Lightning Bolt
+Pyroclasm
+Plains
+Island
+Swamp
+Mountain
+Forest

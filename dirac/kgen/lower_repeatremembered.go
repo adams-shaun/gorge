@@ -28,11 +28,9 @@ import (
 // controller (dirac act_repeatremembered.go).
 //
 // The loop runs its body inline in one call, so the body may not ask: only a
-// lone Token is lowered. A body that asks (Wave of Vitriol's optional search,
-// Reckless Crew's optional attach), a body under DamageMap$ True beside an
-// unless-payment ask (Stench of Evil: the batch would have to stay open across
-// the ask), a filtered DirectRemembered.<type> and the RememberedCard spelling
-// stay refused by name. The preceding instruction must be the one that
+// lone Token is lowered. A body that asks runs as the resumable frame instead
+// (repeatEachRememberedAsk). A filtered DirectRemembered.<type> and the
+// RememberedCard spelling stay refused by name. The preceding instruction must be the one that
 // remembered (a DestroyAll with RememberDestroyed$ or an Exile that
 // remembers): a loop over a set something else wrote is not this shape.
 func (lc *lowerCtx) repeatEachRemembered(ps *params, in lInstr) error {
@@ -40,7 +38,7 @@ func (lc *lowerCtx) repeatEachRemembered(ps *params, in lInstr) error {
 		return refuse("RepeatEach DefinedCards$ DirectRemembered without UseImprinted$ True")
 	}
 	if ps.peek("DamageMap") != "" {
-		return refuse("RepeatEach DefinedCards$ DirectRemembered under DamageMap$ (an unless-payment ask needs the damage batch open across the ask)")
+		return lc.repeatEachRememberedAsk(ps, in) // lower_repeatremembered_ask.go
 	}
 	if !ps.is("ChangeZoneTable", "True") {
 		return refuse("RepeatEach DefinedCards$ DirectRemembered without ChangeZoneTable$ True")
