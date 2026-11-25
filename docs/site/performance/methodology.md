@@ -52,7 +52,19 @@ Premier Draft lists sourced from 17lands (CC BY 4.0):
 The second workload, the **Burn mirror** (`burn.json`), is the 60-card mono-red Pauper list from mtg-kernel's pool (MIT). gorge, XMage, Forge and
 mtg-kernel play it; no dirac pool holds it. mtg-kernel lacks four cards of pair B, so it plays pair A and Burn.
 
-Seats alternate every game, at 20 life with 7-card hands. gorge and dirac runs have no mulligan round; XMage's and Forge's AIs may mulligan.
+The third workload is **four-player Commander pods** of the five official Foundations Commander precons
+(`testkit/testutil/decks/foundations-*`, 100 cards each), `PAIRS=fdc`: game `g` seats four of them, leaving out deck `(g/4) mod 5`, and
+rotates the seats by `g mod 4`, at 40 life with each commander in the command zone. `PAIRS=fdc-sub` is the same pods with every card dirac
+doesn't play replaced by its deck's basic land; `dirac/cmd/dpod -write` derives the list from the kernel's own refusals and the harness
+copies it to `$OUT/fdc-sub-substitutions.tsv`. gorge (`enginebench -pair fdc|fdc-sub`) and Forge play both, dirac (`dpod`, random policy)
+`fdc-sub` only; XMage's driver seats two players.
+
+| Pods | Seats | Decks | Who plays it |
+|---|---|---|---|
+| `fdc` | 4 | the FDC precons as printed | gorge, Forge |
+| `fdc-sub` | 4 | the precons with dirac's refused cards replaced by basics | gorge, dirac, Forge |
+
+Two-player seats alternate every game, at 20 life with 7-card hands. gorge and dirac runs have no mulligan round; XMage's and Forge's AIs may mulligan.
 Every game has a turn cap: 300 in `enginebench`, 100 in the other drivers.
 
 ## The player policies
@@ -113,7 +125,7 @@ busy, RSS reps). `$OUT/runs.jsonl` holds one line per run and `$OUT/summary.json
 ### XMage
 
 [gorge-compliance](https://github.com/adams-shaun/gorge-compliance) builds XMage out of tree for its compliance oracle, and the benchmark driver,
-`XEngineBench.java`, sits beside the oracle driver. These rows were last run on 2026-10-20.
+`XEngineBench.java`, sits beside the oracle driver. These rows were last run on 2026-11-25.
 
 ```sh
 git clone https://github.com/adams-shaun/gorge-compliance && cd gorge-compliance
@@ -129,9 +141,9 @@ OUT=/tmp/xengine CORES="2 4 6" SECS=60 WARM=40 scripts/xengine-bench.sh xmage
 
 ### Forge
 
-gorge-compliance's `make forge-oracle-setup` builds forge-core, forge-game and forge-ai with their classpath in `cp.txt`. The driver,
+gorge-compliance's `make forge-oracle-setup` builds forge-core, forge-game and forge-ai with their classpath in `cp.txt`. The pod rows need a fork build whose `GameReplay` takes `"format": "commander"` (`2323286a00` or later, the farm's `FORGE_CMDR_REF`). The driver,
 `forge.oracle.GameReplay`, is in the `forge-oracle` module on branch
-[`oracle-harness`](https://github.com/adams-shaun/forge/tree/oracle-harness) of gorge's Forge fork. These rows were last run on 2026-10-20.
+[`oracle-harness`](https://github.com/adams-shaun/forge/tree/oracle-harness) of gorge's Forge fork. These rows were last run on 2026-11-25.
 
 ```sh
 cd gorge-compliance && make forge-oracle-setup FORGE_ORACLE_DIR=$HOME/forgeoracle
@@ -171,7 +183,8 @@ The game rows use `dirac/cmd/dplay`, built from the checkout; it needs the corpu
 OUT=/tmp/xengine CORES="24 26 30" SECS=20 scripts/xengine-bench.sh dirac
 ```
 
-Both rows use `dplay`'s default `-config lockstep-autopay`, the configuration lockstep verifies against gorge's auto-pay seat, on a table holding only the pair's two decks.
+The `fdc-sub` pod row uses `dirac/cmd/dpod` (`PAIRS=fdc-sub`), the random policy on every seat under the same configuration, one
+kernel table per four-deck pod. Both two-seat rows use `dplay`'s default `-config lockstep-autopay`, the configuration lockstep verifies against gorge's auto-pay seat, on a table holding only the pair's two decks.
 
 The transition rows are Go benchmarks, one core, reporting no allocations:
 
