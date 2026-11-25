@@ -848,7 +848,7 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 			if k.gen != nil && k.gen.anyTapPower && s.tapPowerOptions(k, d) {
 				return true
 			}
-			if k.gen != nil && k.gen.anyTapXAnn && s.tapXAnnOptions(k, d) {
+			if k.gen != nil && k.gen.uses.has(useTapXAnn) && s.tapXAnnOptions(k, d) {
 				return true // an activation's announced tapXType<X/Spec> (cost_tapxann.go)
 			}
 			if s.costPickOptions(k, d, kop.CostTapX) {
@@ -907,7 +907,7 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 				if (k.gen == nil || !k.gen.anyLifeX || !s.lifeXBuilding(k)) &&
 					(k.gen == nil || !k.gen.anySacX || !s.sacXBuilding(k)) &&
 					(k.gen == nil || !k.gen.anyExileX || !s.exileXBuilding(k)) &&
-					(k.gen == nil || !k.gen.anyEnergyX || !s.energyXBuilding(k)) &&
+					(k.gen == nil || !k.gen.uses.has(useEnergyX) || !s.energyXBuilding(k)) &&
 					(k.gen == nil || !k.gen.uses.has(useDiscardX) || !s.discardXBuilding(k)) {
 					s.nextStage(k)
 					continue

@@ -23,7 +23,7 @@ func (s *State) xPartClamps(k *prep, cost *kop.ManaCost, mx int) int {
 		if k.gen.anyExileX {
 			mx = s.exileXClamp(k, cost, mx)
 		}
-		if k.gen.anyEnergyX {
+		if k.gen.uses.has(useEnergyX) {
 			mx = s.energyXClamp(k, cost, mx) // PayEnergy<X> (cost_energyx.go)
 		}
 	}

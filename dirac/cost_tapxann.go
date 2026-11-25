@@ -16,21 +16,22 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // picked, by itself (gorge's answer is complete at Max picks), as the oracle
 // walks a multi-pick decision. The entry's X is the count picked; payPicks
 // taps them with the rest of the cost. Cold code: reached only behind
-// genPrep.anyTapXAnn.
+// the useTapXAnn bit.
 
 // DebugTapXAnnUnbound is the mutation switch: the count tapped never binds X.
 var DebugTapXAnnUnbound bool
 
-// prepTapXAnn sets anyTapXAnn.
-func prepTapXAnn(t *kop.Table, g *genPrep) {
+// useTapXAnn: some activated ability costs an announced tapXType<X/Spec>.
+var useTapXAnn = newGenUse(func(t *kop.Table) bool {
 	for i := range t.Cards {
 		for j := range t.Cards[i].Abilities {
 			if tapXAnnCost(&t.Cards[i].Abilities[j].Cost) {
-				g.anyTapXAnn = true
+				return true
 			}
 		}
 	}
-}
+	return false
+})
 
 // tapXAnnCost reports whether c taps the announced X permanents.
 func tapXAnnCost(c *kop.Cost) bool {

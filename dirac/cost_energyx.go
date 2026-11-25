@@ -12,22 +12,23 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // payCast pays the announced X in energy. The table marks the part
 // kop.Cost.EnergyX (Cost.N stays the other counted part's). The X ask is the
 // ordinary bsX one, its values filtered by the target ask (addXOptions).
-// Cold code: the build reaches it only behind genPrep.anyEnergyX.
+// Cold code: the build reaches it only behind the useEnergyX bit.
 
 // DebugEnergyXUnpaid is the mutation switch: the announced energy is not
 // paid.
 var DebugEnergyXUnpaid bool
 
-// prepEnergyX sets anyEnergyX.
-func prepEnergyX(t *kop.Table, g *genPrep) {
+// useEnergyX: some activated ability costs an announced PayEnergy<X>.
+var useEnergyX = newGenUse(func(t *kop.Table) bool {
 	for i := range t.Cards {
 		for j := range t.Cards[i].Abilities {
 			if t.Cards[i].Abilities[j].Cost.EnergyX {
-				g.anyEnergyX = true
+				return true
 			}
 		}
 	}
-}
+	return false
+})
 
 // energyXBuilding reports whether the entry being built pays the announced X
 // in energy.
