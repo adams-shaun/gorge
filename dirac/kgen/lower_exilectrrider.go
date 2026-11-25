@@ -93,7 +93,7 @@ func exileTokenRider(w *cards.SA) (*cards.SA, bool) {
 // exileTokenNode reports whether t is exactly one token from a script for the
 // replacing permanent's controller, the body both token riders share.
 func exileTokenNode(t *cards.SA) bool {
-	if t == nil || t.API != "Token" || t.Sub != nil {
+	if t == nil || t.API != "Token" || t.Kind != "DB" || t.Sub != nil {
 		return false
 	}
 	tp := newParams(t.Params)
