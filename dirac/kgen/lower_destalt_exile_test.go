@@ -15,14 +15,15 @@ import (
 //
 // Neither card can reach that rider in kgen today, so a kernel exile-origin
 // DestAlt arm has no carrier it could lower or a lockstep game could play.
-// Ketria is a Plane: its rider sits under the ChaosEnsues trigger. Illuna's
-// rider sits under the Mutates trigger, and the card also prints K:Mutate.
-// lower_trigger.go's mode switch refuses both trigger modes in its default
-// arm, and lower.go refuses the unknown Mutate keyword, all before the
+// Ketria is a Plane: its rider sits under the ChaosEnsues trigger, which now
+// lowers; the card's remaining refusal is the PlaneswalkedTo trigger above it.
+// Illuna's rider sits under the Mutates trigger, and the card also prints
+// K:Mutate. lower_trigger.go's mode switch refuses both trigger modes in its
+// default arm, and lower.go refuses the unknown Mutate keyword, all before the
 // ChangeZone rider's parameters are read. These refusals are the upstream
 // shape, not a DestinationAlternative$ refusal.
 //
-// Whoever lowers Mutate, Mutates or ChaosEnsues must update this test: the
+// Whoever lowers Mutate, Mutates or PlaneswalkedTo must update this test: the
 // exile-origin DestinationAlternative$ arm then becomes reachable and must be
 // lowered as a prelude ask before the move, the way gorge's
 // askUnconditionalDestination does, or refused by name. Do not simply delete
@@ -36,7 +37,7 @@ func TestExileOriginDestAltCarriersRefuseUpstream(t *testing.T) {
 		{
 			name: "Ketria",
 			svar: "DBChoose",
-			want: []string{"trigger mode ChaosEnsues"},
+			want: []string{"trigger mode PlaneswalkedTo"},
 		},
 		{
 			name: "Illuna, Apex of Wishes",
