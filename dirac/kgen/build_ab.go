@@ -906,6 +906,12 @@ func (cb *cardBuilder) ability(a *lAbility) (kop.Ability, error) {
 	if a.Unless != nil {
 		return ka, fmt.Errorf("ability-level unless cost")
 	}
+	if a.GenericChoice {
+		if a.Kind != akTriggered || a.Modes == 0 {
+			return ka, fmt.Errorf("GenericChoice mark on a non-trigger charm")
+		}
+		ka.AFlags |= kop.AfCharmTrigger
+	}
 	if a.Name == "Equip" {
 		ka.AFlags |= kop.AfEquip
 	}
@@ -1411,10 +1417,9 @@ func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
 			if kt.Filter2, err = cb.filter(t.F2, kop.ZoneBattlefield); err != nil {
 				return kt, err
 			}
-		case t.Event == "DamageDone" && t.F2.Players == plBoth && len(t.F2.Clauses) == 1 && t.F2.Clauses[0] == (lClause{Types: tPlaneswalker}):
-			// ValidTarget$ Player,Planeswalker: TfToPlayer beside a Filter2
-			// reads "a player, or a permanent matching Filter2"
-			// (dirac/trig_damagedonce.go ddoRecipient)
+		case t.Event == "DamageDone" && t.F2.Players == plBoth && len(t.F2.Clauses) == 1 && dmgPlayerAltClause(t.F2.Clauses[0]):
+			// ValidTarget$ Player,Planeswalker or Player,Battle: TfToPlayer beside a
+			// Filter2, "a player or a matching permanent" (trig_damagedonce.go ddoRecipient)
 			kt.Flags |= kop.TfToPlayer
 			if kt.Filter2, err = cb.filter(&lFilter{Clauses: t.F2.Clauses}, kop.ZoneBattlefield); err != nil {
 				return kt, err
@@ -1560,7 +1565,7 @@ func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
 		}
 		kt.N = kop.TrigNTeamworkTap
 	}
-	if t.TapsForMana && (t.Event != "Taps" || kt.Flags&kop.TfSelf != 0) {
+	if t.TapsForMana && t.Event != "Taps" {
 		return kt, fmt.Errorf("TapsForMana on a %s trigger", t.Event)
 	}
 	if t.BlockedBySelf {
@@ -2264,6 +2269,9 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
 			return ka, nil, err
 		}
+		if s.Zone == zCommand {
+			st.Zone = kop.ZoneCommand // a Vanguard's command-zone static (Sisay)
+		}
 		st.A, st.B = int16(s.TapCol), int16(s.TapAmt)
 		for _, fl := range s.Flags {
 			f, ok := tapExtraFlag(fl)
@@ -2553,6 +2561,17 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		}
 	case "MustAttack":
 		if err := mustAttackStatic(s, st, filter); err != nil {
+			return ka, nil, err
+		}
+	case "AttackRequirement":
+		// the whole-declaration closure (War's Toll): Filter is the members
+		// ValidCard$ binds, Filter2 the ValidAttacker$ creatures whose
+		// attacking turns the requirement on (dirac/combat_attackrequirement.go)
+		st.Kind = kop.StatAttackRequirement
+		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
+			return ka, nil, err
+		}
+		if st.Filter2, err = filter(s.F2, kop.ZoneBattlefield); err != nil {
 			return ka, nil, err
 		}
 	case "Goad":
@@ -3417,4 +3436,12 @@ func tapExtraFlag(name string) (kop.StaticFlags, bool) {
 		return kop.StTapAnyCol, true
 	}
 	return 0, false
+}
+
+// dmgPlayerAltClause: the one-type permanent alternative a DamageDone
+// ValidTarget$ lists beside Player (Planeswalker or Battle: a permanent
+// combat damage can be assigned to as an attack's recipient). A creature
+// alternative stays refused (TestDamageTargetPlayerOrPlaneswalkerBuilds).
+func dmgPlayerAltClause(c lClause) bool {
+	return c == (lClause{Types: tPlaneswalker}) || c == (lClause{Types: tBattle})
 }

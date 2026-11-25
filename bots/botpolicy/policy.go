@@ -962,7 +962,7 @@ func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combine
 					in.Choices = candidate
 				}
 			}
-		case "dig", "hand_move", "hidden_pick", "counter_dist", "counter_pick", "setstate_pick", "counter_kind", "blight", "proliferate", "move_counter_kind", "reveal":
+		case "dig", "hand_move", "hidden_pick", "counter_dist", "counter_pick", "setstate_pick", "counter_kind", "blight", "proliferate", "move_counter_kind", "move_counter_origin", "reveal":
 			// A Dig look-and-take, a "choose N matching cards from hand"
 			// ChangeZone, a Hidden$ True public-origin pick,
 			// a DividedAsYouChoose$ PutCounter distribution
@@ -1248,6 +1248,16 @@ func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combine
 		}
 
 	case decision.KModes:
+		// UnlessAI$ Never is the card script's explicit "the AI must not pay
+		// this" hint (Forge's SpellAbilityAi.willPayUnlessCost). Lim-Dûl's
+		// Vault is the measured carrier: its "as many times as you choose,
+		// you may pay 1 life" Repeat re-asks after every paid iteration, so
+		// the first-option pay arm loops until the livelock watcher fires.
+		// Declining is the only answer the script permits the bot to give.
+		if c := unlessNeverPayOffer(d); c != nil {
+			in.Choices = c
+			return Clamp(d, in)
+		}
 		// The Sacrifice unless-pay damage offer (Vexing Devil: "any opponent
 		// may have it deal 4 damage to them") gets a deliberate arm, not the
 		// first-option clamp: an opponent offered "take N to kill it"
@@ -1616,6 +1626,23 @@ func (b Board) facingLethal(p state.PlayerID) bool {
 		total += c.Power
 	}
 	return total >= life
+}
+
+// unlessNeverPayOffer answers Forge's UnlessAI$ Never hint: the card script
+// tells the AI not to pay this optional unless cost. It returns the decline
+// marker's option (not its position) when the ask is an unless-pay election
+// carrying that hint and offers a decline; every other shape returns nil, so
+// the ordinary unless arms are unchanged.
+func unlessNeverPayOffer(d *decision.Decision) []int {
+	if d.ResumeKind != "unless_pay" || d.ResumeSA == nil || d.ResumeSA.Params["UnlessAI"] != "Never" {
+		return nil
+	}
+	for _, option := range d.Options {
+		if option.Mode == decision.ModeUnlessDecline {
+			return []int{option.Index}
+		}
+	}
+	return nil
 }
 
 // unlessManaPayOffer answers a payable UnlessCost$ election. It returns nil

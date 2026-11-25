@@ -25,6 +25,7 @@ Throne of Makindi
 Untaidake, the Cloud Keeper
 Voldaren Estate
 Corrupted Crossroads
+Underground River
 Life of Toshiro Umezawa
 Llanowar Elves
 Elvish Mystic
@@ -59,3 +60,4 @@ Kamahl, Pit Fighter
 Inkwell Leviathan
 Shivan Dragon
 Furnace Whelp
+Jace Beleren

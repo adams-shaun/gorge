@@ -74,6 +74,23 @@ func (s *State) FeatCtrlKw(o Obj) kop.KwMask {
 	return s.ctrlKw(ob.slot)
 }
 
+// FeatCtrlKwRep is FeatCtrlKw with the per-record repeats (FeatKwReps):
+// each control record grants its AddKWs$ keyword once, so two steals that
+// each grant haste list it twice (gorge lists a keyword once per effect).
+func (s *State) FeatCtrlKwRep(o Obj) (granted kop.KwMask, rep FeatKwReps) {
+	ob := &s.objs[o]
+	if s.g.nfx == 0 || ob.zone != kop.ZoneBattlefield || ob.slot == NoSlot {
+		return 0, rep
+	}
+	for i := 0; i < int(s.g.nfx); i++ {
+		if r := &s.g.fx[i]; r.sl == ob.slot && r.kind == fxControl && r.r.fl&fcHaste != 0 {
+			rep.add(granted, kop.KwHaste)
+			granted |= kop.KwHaste
+		}
+	}
+	return granted, rep
+}
+
 // FeatKwReps counts, per keyword bit, the listings of a granted keyword
 // past its first (saturating at 255): gorge lists a keyword once per
 // effect that grants it (two Fleeting Flights list flying twice; Soulstone
@@ -106,7 +123,16 @@ func (s *State) FeatGrantedRep(o Obj) (granted kop.KwMask, rep FeatKwReps, print
 	add(p.eotKwRep[0])
 	add(p.eotKwRep[1])
 	if s.g.nfx != 0 {
-		add(s.ctrlKw(ob.slot)) // the haste a control record carries (AddKWs$), listed as gorge lists it
+		// each control record grants its AddKWs$ keyword once (gorge lists
+		// it once per effect), so count the record's own listing past the
+		// union
+		g, r := s.FeatCtrlKwRep(o)
+		add(g)
+		for b, n := range r {
+			for ; n > 0; n-- {
+				add(kop.KwMask(1) << uint(b))
+			}
+		}
 	}
 	sup := false
 	if k.gen != nil && s.nkwx != 0 {
@@ -649,7 +675,17 @@ func (s *State) FeatPlannedCast(p uint8, o Obj, mode uint8) bool {
 	// leaves a paid filter (Flooded Grove) out, which gorge's planner still funds, so only a
 	// live granted ability can make a cast payable by the grant alone.
 	if (len(k.gen.grantPC) != 0 && s.liveGrantGap(k, p) || k.gen.anyComboDyn && s.comboDynLive(k, p) || s.eachPickSources(k, p).any()) && !s.affordsUngrantedCast(k, p, &cost, payDesc{class: pdSpell, card: s.objs[o].card, src: NoSlot, og: s.restrOriginOfObj(o)}) {
-		return false // payable only with a granted mana ability (the V1 exclusion above) or a Combo Any of an evaluated amount (mana_combodyn.go)
+		if !(s.g.mayPlayAny || s.mayPlayAnyType(k, p, o) || s.convAnyType(k, SeatIx(p), o)) {
+			return false // payable only with a granted mana ability (the V1 exclusion above) or a Combo Any of an evaluated amount (mana_combodyn.go)
+		}
+		// An any-type rider makes a twobrid pip's colour face one mana of any
+		// type (pay.PlanManaUnderRider; CR 107.4e, 609.4b), so the granted
+		// census check prices the folded cost: a Lantern's lands and two
+		// Islands pay Beseech the Queen's {2/B}{2/B}{2/B} without a grant.
+		priced := anyType(cost)
+		if !s.affordsUngrantedCast(k, p, &priced, payDesc{class: pdSpell, card: s.objs[o].card, src: NoSlot, og: s.restrOriginOfObj(o)}) {
+			return false
+		}
 	}
 	if s.dhWithholdsCast(k, p, o, &cost) {
 		// the Diamonds alone fund the hand cast and the census prices no

@@ -701,10 +701,12 @@ func (s *State) windowCensusComplete(k *prep, e *stackEntry) bool {
 }
 
 // selfTapsDefer reports whether a Taps watcher on sl itself would fire when
-// the window taps it for mana. kgen lowers a self Taps trigger only on a card
-// with no printed mana ability, so this can only matter to a granted mana
-// ability; gorge's paymentPlanTapObservers defers such a source for any body
-// the census doesn't price. It skips the carriers that walk skips: a permanent
+// the window taps it for mana. kgen lowers a self plain Taps trigger only on a
+// card with no printed mana ability, so a plain Taps line here can only matter
+// to a granted mana ability; a self TapsForMana line (Zhur-Taa Druid) rides
+// the general class walk (tapsWatchClass) and this recovery covers it too.
+// gorge's paymentPlanTapObservers defers such a source for any body the census
+// doesn't price. It skips the carriers that walk skips: a permanent
 // that lost all abilities has no printed watcher left (Honest Work's Humble
 // Merchant keeps only the granted {T}), and a latent line is never subscribed
 // (tapsWatchClass's genLost/AfLatent gates).

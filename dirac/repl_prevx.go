@@ -108,7 +108,15 @@ func (s *State) prevXAny() bool {
 func (s *State) prevRiderMatch(k *prep, sl Slot, c CardID, t prevTgt, combat bool) bool {
 	for i := range s.g.prevCol {
 		if s.g.prevX[i]&(pxFrom|pxRidGain) == pxFrom|pxRidGain {
-			if s.pnxMatches(i, TCode(NoTarget), sl, combat) {
+			code := TCode(NoTarget)
+			if pnxChosenForm(s.g.prevX[i]) {
+				// a chosen-source record reads its recipient (repl_prevchosen.go)
+				code = PlayerCode(t.rcp)
+				if t.dst != NoSlot {
+					code = TCode(s.perms[t.dst].obj)
+				}
+			}
+			if s.pnxMatches(i, code, sl, combat) {
 				return true
 			}
 			continue

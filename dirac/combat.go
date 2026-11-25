@@ -60,45 +60,57 @@ func (s *State) staticFlag(k *prep, sk kop.StaticKind, sl Slot) bool {
 
 // declareMustAttack declares every able creature a MustAttack static
 // applies to before the attackers decision (the requirement is satisfied
-// by construction; gorge marks such options Required).
+// by construction; gorge marks such options Required). An
+// AttackRequirement member (War's Toll) joins the declaration only after
+// one of its ValidAttacker$ creatures is declared, so the walk repeats to
+// the closure's fixed point: the first pass declares the MustAttack
+// creatures, later passes their newly required members.
 func (s *State) declareMustAttack(k *prep) {
 	if !s.statM.any() && !(k.embComb && s.anyEmb()) && !goadOn(k) && !attackDutyOn(k) || s.mustAttackAsked() {
 		return
 	}
-	m := s.ctrlM[s.active]
-	for m.any() {
-		sl := m.first()
-		m = m.rest()
-		if s.canAttack(k, sl) && (s.staticFlag(k, kop.StatMustAttack, sl) || s.attackDuty(k, sl) || s.mustAttackGoad(k, sl)) {
-			if s.aloneAtk(k, sl) && !s.alonePartner(k, sl) {
-				continue // CR 508.1d: no declaration obeys it alone (combat_alone.go)
-			}
-			if atkTaxOn(k) && !s.atkTaxRequired(k, sl) {
-				continue // CR 508.1d: a requirement that costs mana is none (combat_attacktax.go)
-			}
-			def := s.nextAlive(s.active)
-			if s.cantAtkPairPlayer(k, sl, def) {
-				// the player pair is forbidden (combat_cantattack.go): a
-				// plain attack duty still discharges at a battle pair, so
-				// the declaration names the battle (a goad or an Encore
-				// duty is satisfied by attacking a player only, and with no
-				// player pair the CR 508.1d requirement is ignored)
-				b, ok := s.battleOffer(k, sl)
-				if !ok || (goadOn(k) && s.goadedAt(k, sl)) || s.attackPlayerOnly(k, sl) {
+	for pass := 0; pass <= MaxPerm; pass++ {
+		changed := false
+		m := s.ctrlM[s.active]
+		for m.any() {
+			sl := m.first()
+			m = m.rest()
+			if s.canAttack(k, sl) && (s.staticFlag(k, kop.StatMustAttack, sl) || s.attackDuty(k, sl) || s.mustAttackGoad(k, sl) || s.attackRequirementDuty(k, sl)) {
+				if s.aloneAtk(k, sl) && !s.alonePartner(k, sl) {
+					continue // CR 508.1d: no declaration obeys it alone (combat_alone.go)
+				}
+				if atkTaxOn(k) && !s.atkTaxRequired(k, sl) {
+					continue // CR 508.1d: a requirement that costs mana is none (combat_attacktax.go)
+				}
+				def := s.nextAlive(s.active)
+				if s.cantAtkPairPlayer(k, sl, def) {
+					// the player pair is forbidden (combat_cantattack.go): a
+					// plain attack duty still discharges at a battle pair, so
+					// the declaration names the battle (a goad or an Encore
+					// duty is satisfied by attacking a player only, and with no
+					// player pair the CR 508.1d requirement is ignored)
+					b, ok := s.battleOffer(k, sl)
+					if !ok || (goadOn(k) && s.goadedAt(k, sl)) || s.attackPlayerOnly(k, sl) {
+						continue
+					}
+					s.perms[sl].flags |= pfAttacking
+					s.setAttackTarget(&s.perms[sl], TCode(s.perms[b].obj)) // the battle, as a planeswalker (face_battle.go)
+					s.perms[sl].bord = objWord(s.nAttackers)               // declaration order (fireAttacksGen)
+					s.touchSl(sl)
+					s.nAttackers++
+					changed = true
 					continue
 				}
 				s.perms[sl].flags |= pfAttacking
-				s.setAttackTarget(&s.perms[sl], TCode(s.perms[b].obj)) // the battle, as a planeswalker (face_battle.go)
-				s.perms[sl].bord = objWord(s.nAttackers)               // declaration order (fireAttacksGen)
+				s.setAttackTarget(&s.perms[sl], PlayerCode(def)) // two live seats only: mustAttackAsked asks at more
+				s.perms[sl].bord = objWord(s.nAttackers)         // declaration order (fireAttacksGen)
 				s.touchSl(sl)
 				s.nAttackers++
-				continue
+				changed = true
 			}
-			s.perms[sl].flags |= pfAttacking
-			s.setAttackTarget(&s.perms[sl], PlayerCode(def)) // two live seats only: mustAttackAsked asks at more
-			s.perms[sl].bord = objWord(s.nAttackers)         // declaration order (fireAttacksGen)
-			s.touchSl(sl)
-			s.nAttackers++
+		}
+		if !changed {
+			return
 		}
 	}
 }
@@ -192,7 +204,11 @@ func (s *State) attackerOptions(k *prep, d *Decision) bool {
 		s.atkTaxFilter(k, d, served) // combat_attacktax.go
 	}
 	s.restoreAttackPicks(served)
-	if (!s.mustAttackAsked() || !s.mustAttackLeft(k)) && !s.loneAloneAttacker(k) {
+	// An AttackRequirement closure (War's Toll) withholds Done even off the
+	// mustAttackAsked path: once one of its ValidAttacker$ creatures is in
+	// the declaration, every able member must join it before the declaration
+	// can close (gorge decision.AttackRequirementsSatisfied).
+	if (!s.mustAttackAsked() && !s.attackRequirementTriggered(k) || !s.mustAttackLeft(k)) && !s.loneAloneAttacker(k) {
 		d.add(MakeAction(AkDone, 0, 0, 0))
 	}
 	return true
@@ -386,7 +402,7 @@ func (s *State) mustAttackLeft(k *prep) bool {
 	}
 	for m := s.ctrlM[s.active]; m.any(); m = m.rest() {
 		sl := m.first()
-		if s.canAttack(k, sl) && (s.staticFlag(k, kop.StatMustAttack, sl) || s.attackDutyLive(k, sl) || s.mustAttackGoad(k, sl)) &&
+		if s.canAttack(k, sl) && (s.staticFlag(k, kop.StatMustAttack, sl) || s.attackDutyLive(k, sl) || s.mustAttackGoad(k, sl) || s.attackRequirementDuty(k, sl)) &&
 			!(s.aloneAtk(k, sl) && !s.alonePartner(k, sl)) && !s.cantAtkEveryPair(k, sl) && !s.atkHasteNoPair(k, sl) &&
 			(!atkTaxOn(k) || s.atkTaxRequired(k, sl)) {
 			return true

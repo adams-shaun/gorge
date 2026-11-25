@@ -252,6 +252,7 @@ const (
 	vSpellsLastTurn      // the spells cast last turn: N=0 whether any player cast one (0 or 1), N=1 the most one player cast (kop.ExSpellsCastLastTurn; value_spellslastturn.go)
 	vDevotionChosen      // the controller's devotion to the colour recorded on the source (Count$Devotion.Chosen, kop.ExDevotionChosen; value_devotion.go)
 	vSVarNum             // the evaluating source's StoreSVar number for the name S, else the printed body Sub[0] (kop.ExSVarNum; lower_storenum.go)
+	vReplLKIPow          // the replaced creature's derived power before a dies-to-exile rider moved it (ReplacedCardLKI$CardPower; value_repllki.go)
 	vCount_
 )
 
@@ -376,6 +377,7 @@ var valNames = [...]string{
 	vVoteTally:           "VoteTally",
 	vCmdCastTotal:        "CmdCastTotal",
 	vSpellsLastTurn:      "SpellsLastTurn",
+	vReplLKIPow:          "ReplLKIPow",
 }
 
 // lValue is an amount: Kind with its operand, then Mul/Div/Add applied in
@@ -1082,7 +1084,8 @@ type lAbility struct {
 	Reduce          *lValue // ReduceCost$: the generic reduction of an activated ability's own cost (lower_ownreduce.go)
 	ActCond         lCond   // CheckSVar$/SVarCompare$: activate only if (CR 602.5b)
 	Targets         []lTarget
-	Modes           int // charm: number of modes to choose from
+	Modes           int  // charm: number of modes to choose from
+	GenericChoice   bool // a triggered api:GenericChoice charm: each mode opens with its UnlessCost$ (kop.AfCharmTrigger)
 	// charm: CharmNum$ (the most picks) and MinCharmNum$ (default: the most)
 	ModesPick, ModesMin int
 	RepMax, RepCost     [4]uint8 // charm CanRepeatModes$ (lower_charmrepeat.go): the most each mode is chosen, its pawprint price

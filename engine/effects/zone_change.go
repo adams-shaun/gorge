@@ -1139,7 +1139,7 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 			}
 		}
 		markChangeZoneAttach(h, c, sa, cz, &ev)
-		entryCounters := withKind != "" && counterDestination(to) && entryWithCounters(&ev, to, withKind, withAmt)
+		entryCounters := changeZoneEntryCounters(h.Game(), cz, &ev, o.ID, to, withKind, withAmt)
 		applyStaticEffect(h, c, sa, to, []state.ObjID{o.ID})
 		emitEntryMove(h, c, cz.Riders.GainControl, to, ev)
 		moved = append(moved, o.ID)
@@ -1164,7 +1164,16 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 			emitChangeZoneCounters(h, o.ID, withKind, withAmt)
 		}
 		settleInlinedObjectEntry(h, c, o.ID, sa, cz, to, &rider)
-		if cz.Imprint && (to == state.ZExile || cz.ImprintLast) {
+		// Imprint$ True records the moved card in the source's persistent
+		// imprintedCards association whatever the destination (Forge's
+		// ChangeZoneEffect imprints every card it moved; CR 607.2a's linked
+		// ability then names it). A Return move (Phelia, Exuberant Shepherd's
+		// exiled card to the battlefield, Fishing Gear's optional enter) is
+		// exactly such a move, so the destination is not a gate. The
+		// post-move zone confirms the move landed, and a token is never
+		// imprinted off the battlefield (the same shape the shared settle path
+		// and the library-search mover use).
+		if cz.Imprint {
 			if landed := h.Game().Obj(o.ID); landed != nil && landed.Zone == to &&
 				(to == state.ZExile || !landed.IsToken) {
 				imprinted = append(imprinted, o.ID)
@@ -2181,7 +2190,7 @@ func settleChangeZoneMoveAs(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, 
 		applyTransformed(h, c, cz.Riders.Transformed, id)
 	}
 	markChangeZoneAttach(h, c, sa, cz, &ev)
-	entryCounters := withKind != "" && counterDestination(to) && entryWithCounters(&ev, to, withKind, withAmt)
+	entryCounters := changeZoneEntryCounters(h.Game(), cz, &ev, id, to, withKind, withAmt)
 	applyStaticEffect(h, c, sa, to, []state.ObjID{id})
 	// The hand-origin Tapped$ rider sets the entry state after the MoveZone,
 	// so hold this entry's CR 603.6b check until the Tap and the attacking

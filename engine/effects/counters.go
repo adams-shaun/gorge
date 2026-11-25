@@ -821,10 +821,13 @@ func effMoveCounter(h Host, c *Ctx, sa *cards.SA) {
 
 	// CounterNum$ All means "everything of the kind on the origin" -- resolved
 	// per origin below. A literal/X resolves once. CounterNum$ Any asks the
-	// amount: only a single-kind, single-origin shape can pose one ask.
+	// amount: a single origin gets one 0..held ask; several origins get the
+	// repeated "which origin, how many" election (CR 122.5: "move any number
+	// ... from other permanents"), whose per-origin totals the walk applies.
 	numAll := strings.EqualFold(numParam, "All")
 	numAny := strings.EqualFold(numParam, "Any")
 	var num int32
+	var anyAmounts map[state.ObjID]int32
 	if !numAll && !numAny {
 		num = Num(h, c, sa, "CounterNum", 1)
 		if num < 0 {
@@ -837,36 +840,38 @@ func effMoveCounter(h Host, c *Ctx, sa *cards.SA) {
 				Text: "unimplemented MoveCounter shape: CounterNum$ Any over multiple kinds"})
 			return
 		}
-		if len(origins) != 1 {
-			h.Emit(events.Event{Kind: events.Note, Obj: c.Source,
-				Text: "unimplemented MoveCounter shape: CounterNum$ Any over multiple origins"})
-			return
-		}
-		maxN := origins[0].Counter(chosenKind)
-		// No answer: the deterministic take-all stand-in.
-		num = maxN
-		if maxN > 0 {
-			chooser := c.Controller
-			d := &decision.Decision{Player: chooser, Kind: decision.KChoose,
-				Min: 0, Max: int(maxN), Source: c.Source, ResumeKind: "move_counter", ResumeSA: sa,
-				Prompt: "MoveCounter: choose how many counters to move"}
-			for i := 0; i <= int(maxN); i++ {
-				d.Options = append(d.Options, decision.Option{Index: len(d.Options),
-					Kind: "move_counter", Label: fmt.Sprintf("%d", i), Amount: i})
-			}
-			if ans, ok := AskTape(h, d); ok {
-				// The "move_counter" amount in hand (0 is a decline; a
-				// malformed answer moves nothing).
-				num = 0
-				if len(ans) > 0 {
-					num = int32(ans[0].Amount)
+		if len(origins) == 1 {
+			maxN := origins[0].Counter(chosenKind)
+			// No answer: the deterministic take-all stand-in.
+			num = maxN
+			if maxN > 0 {
+				chooser := c.Controller
+				d := &decision.Decision{Player: chooser, Kind: decision.KChoose,
+					Min: 0, Max: int(maxN), Source: c.Source, ResumeKind: "move_counter", ResumeSA: sa,
+					Prompt: "MoveCounter: choose how many counters to move"}
+				for i := 0; i <= int(maxN); i++ {
+					d.Options = append(d.Options, decision.Option{Index: len(d.Options),
+						Kind: "move_counter", Label: fmt.Sprintf("%d", i), Amount: i})
 				}
+				if ans, ok := AskTape(h, d); ok {
+					// The "move_counter" amount in hand (0 is a decline; a
+					// malformed answer moves nothing).
+					num = 0
+					if len(ans) > 0 {
+						num = int32(ans[0].Amount)
+					}
+				}
+			}
+		} else {
+			anyAmounts = moveCounterAskAnyOrigins(h, c, sa, origins, chosenKind)
+			if len(anyAmounts) == 0 {
+				return
 			}
 		}
 	}
 
 	// The move walk. Each origin loses `moved` of each kind; the moved total
-	// is DISTRIBUTED across the destinations (CR 122.5 -- see the walk).
+	// is DISTRIBUTED across the destinations (CR 122.5 -- see moveCounterMove).
 	// RememberPut$ appends the destinations that actually received a counter;
 	// RememberAmount$ appends the origin once per counter moved.
 	rememberPut := strings.EqualFold(strings.TrimSpace(sa.ParamStr(cards.PKRememberPut)), "True")
@@ -875,58 +880,16 @@ func effMoveCounter(h Host, c *Ctx, sa *cards.SA) {
 	var amountIDs []state.ObjID
 	for _, o := range origins {
 		for _, k := range moveCounterKindsFor(chosenKind, o, dests, g) {
-			count := o.Counter(k)
-			if count <= 0 {
-				continue
-			}
 			moved := num
 			if numAll {
-				moved = count
+				moved = o.Counter(k)
 			}
-			if moved > count {
-				moved = count
+			if anyAmounts != nil {
+				moved = anyAmounts[o.ID]
 			}
-			if moved <= 0 {
-				continue
-			}
-			// The live destinations for this origin: on the battlefield and
-			// not the origin itself (moving a counter from a permanent to
-			// itself is a no-op, never a -/+ pair on the same id). Built BEFORE
-			// the origin's loss is emitted: an origin whose every destination
-			// left the battlefield (or was never live) keeps its counters.
-			live := make([]*state.Object, 0, len(dests))
-			for _, t := range dests {
-				if d := g.Obj(t.Obj); d != nil && d.Zone == state.ZBattlefield && d.ID != o.ID {
-					live = append(live, d)
-				}
-			}
-			if len(live) == 0 {
-				continue
-			}
-			h.Emit(events.Event{Kind: events.CounterChange, Obj: o.ID, Counter: k, Amount: -moved})
-			// CR 122.5: a moved counter leaves the origin once and lands ONCE
-			// -- a multi-destination sweep (Forgotten Ancient's "move any number
-			// of +1/+1 counters ... onto other creatures") DISTRIBUTES moved
-			// across the destinations, it never gives each destination the
-			// whole moved set (that would mint (M-1)*moved counters out of
-			// nothing). Distribution is the deterministic round-robin in
-			// destination order (a stand-in for the per-destination election
-			// the card text implies): destination j receives
-			// floor((moved+M-1-j)/M), so 2 over 2 creatures is 1 and 1, and a
-			// single-destination shape -- every other measured carrier -- is
-			// byte-identical to the whole-set move it had before.
-			m := int32(len(live))
-			for j, d := range live {
-				share := (moved + m - 1 - int32(j)) / m
-				if share <= 0 {
-					continue
-				}
-				h.Emit(events.Event{Kind: events.CounterChange, Obj: d.ID, Counter: k, Amount: share})
-				rememberedDests = append(rememberedDests, state.Target{Obj: d.ID})
-			}
-			for i := int32(0); i < moved; i++ {
-				amountIDs = append(amountIDs, o.ID)
-			}
+			gotDests, ids := moveCounterMove(h, o, k, moved, dests, g)
+			rememberedDests = append(rememberedDests, gotDests...)
+			amountIDs = append(amountIDs, ids...)
 		}
 	}
 	if rememberPut && len(rememberedDests) > 0 {
@@ -935,6 +898,140 @@ func effMoveCounter(h Host, c *Ctx, sa *cards.SA) {
 	if rememberAmount && len(amountIDs) > 0 {
 		c.Remembered = append(c.Remembered, objTargets(amountIDs)...)
 	}
+}
+
+// moveCounterAskAnyOrigins runs CounterNum$ Any over SEVERAL origins (CR
+// 122.5's "move any number of counters ... from other permanents"): the
+// controller repeatedly picks one remaining origin and how many of the kind
+// to move from it. A single remaining origin poses only the amount ask (the
+// strict-supersets convention: a one-option pick is no choice), and an empty
+// answer or a 0 amount ends the election. The result is the per-origin
+// totals the move walk applies; empty means nothing moves.
+//
+// With no answer served (a host without the tape seam), the deterministic
+// stand-in is take-all in origin order -- the same play the single-origin
+// stand-in makes, so a host that never answers still moves what the card
+// offers rather than silently moving nothing.
+func moveCounterAskAnyOrigins(h Host, c *Ctx, sa *cards.SA, origins []*state.Object, kind string) map[state.ObjID]int32 {
+	pending := make(map[state.ObjID]int32, len(origins))
+	amounts := make(map[state.ObjID]int32, len(origins))
+	for {
+		remaining := make([]*state.Object, 0, len(origins))
+		for _, o := range origins {
+			if o.Counter(kind)-pending[o.ID] > 0 {
+				remaining = append(remaining, o)
+			}
+		}
+		if len(remaining) == 0 {
+			return amounts
+		}
+		chosen := remaining[0]
+		if len(remaining) > 1 {
+			d := &decision.Decision{Player: c.Controller, Kind: decision.KChoose,
+				Min: 0, Max: 1, Source: c.Source, ResumeKind: "move_counter_origin", ResumeSA: sa,
+				Prompt: "MoveCounter: choose a permanent to move counters from"}
+			for i, o := range remaining {
+				d.Options = append(d.Options, decision.Option{Index: i,
+					Kind: "move_counter_origin", Obj: o.ID, Label: o.Face().Name, Player: c.Controller})
+			}
+			if ans, ok := AskTape(h, d); ok {
+				if len(ans) == 0 {
+					return amounts // decline: move nothing further
+				}
+				// Selection is by Index; a stale answer cannot invent an
+				// origin outside the offered set.
+				if idx := ans[0].Index; idx < 0 || idx >= len(remaining) {
+					return amounts
+				}
+				chosen = remaining[ans[0].Index]
+			}
+		}
+		maxN := chosen.Counter(kind) - pending[chosen.ID]
+		if maxN <= 0 {
+			return amounts
+		}
+		num := maxN
+		d := &decision.Decision{Player: c.Controller, Kind: decision.KChoose,
+			Min: 0, Max: int(maxN), Source: c.Source, ResumeKind: "move_counter", ResumeSA: sa,
+			Prompt: "MoveCounter: choose how many counters to move"}
+		for i := 0; i <= int(maxN); i++ {
+			d.Options = append(d.Options, decision.Option{Index: len(d.Options),
+				Kind: "move_counter", Label: fmt.Sprintf("%d", i), Amount: i})
+		}
+		if ans, ok := AskTape(h, d); ok {
+			// A malformed or empty answer moves nothing from this origin.
+			num = 0
+			if len(ans) > 0 {
+				num = int32(ans[0].Amount)
+			}
+		}
+		if num <= 0 {
+			return amounts // the any-number election's decline
+		}
+		if num > maxN {
+			num = maxN
+		}
+		pending[chosen.ID] += num
+		amounts[chosen.ID] += num
+	}
+}
+
+// moveCounterMove moves up to `moved` counters of one kind off o onto the live
+// destinations. It returns the destinations that actually received a counter
+// and the origin id once per counter moved (RememberPut$/RememberAmount$'s
+// channels). Nothing is emitted when no live destination remains: the origin
+// keeps its counters (a move from a permanent to itself is a null move, never
+// a -/+ pair on one id).
+//
+// CR 122.5: a moved counter leaves the origin once and lands ONCE -- a
+// multi-destination sweep (Forgotten Ancient's "move any number of +1/+1
+// counters ... onto other creatures") DISTRIBUTES moved across the
+// destinations, it never gives each destination the whole moved set (that
+// would mint (M-1)*moved counters out of nothing). Distribution is the
+// deterministic round-robin in destination order (a stand-in for the
+// per-destination election the card text implies): destination j receives
+// floor((moved+M-1-j)/M), so 2 over 2 creatures is 1 and 1, and a
+// single-destination shape -- every other measured carrier -- is
+// byte-identical to the whole-set move it had before.
+func moveCounterMove(h Host, o *state.Object, kind string, moved int32, dests []state.Target, g *state.Game) ([]state.Target, []state.ObjID) {
+	count := o.Counter(kind)
+	if count <= 0 {
+		return nil, nil
+	}
+	if moved > count {
+		moved = count
+	}
+	if moved <= 0 {
+		return nil, nil
+	}
+	// The live destinations: on the battlefield and not the origin itself.
+	// Built BEFORE the origin's loss is emitted, so an origin whose every
+	// destination left the battlefield (or was never live) keeps its counters.
+	live := make([]*state.Object, 0, len(dests))
+	for _, t := range dests {
+		if d := g.Obj(t.Obj); d != nil && d.Zone == state.ZBattlefield && d.ID != o.ID {
+			live = append(live, d)
+		}
+	}
+	if len(live) == 0 {
+		return nil, nil
+	}
+	h.Emit(events.Event{Kind: events.CounterChange, Obj: o.ID, Counter: kind, Amount: -moved})
+	var gotDests []state.Target
+	m := int32(len(live))
+	for j, d := range live {
+		share := (moved + m - 1 - int32(j)) / m
+		if share <= 0 {
+			continue
+		}
+		h.Emit(events.Event{Kind: events.CounterChange, Obj: d.ID, Counter: kind, Amount: share})
+		gotDests = append(gotDests, state.Target{Obj: d.ID})
+	}
+	ids := make([]state.ObjID, 0, moved)
+	for i := int32(0); i < moved; i++ {
+		ids = append(ids, o.ID)
+	}
+	return gotDests, ids
 }
 
 // moveCounterChosen is the chosen-target set a MoveCounter's origin/

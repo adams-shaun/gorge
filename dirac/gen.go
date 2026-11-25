@@ -1093,7 +1093,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	g.anyUnion = tableUnion(t)
 	g.anyLinkRet = tableLinkRet(t)
 	g.anyLinkCtr = tableLinkCtr(t)
-	prepStaticClasses(t, g)
+	p.anyCmdTap = prepStaticClasses(t, g)
 	prepHexOwn(t, g)      // kw_hexproofcolor.go
 	prepEmblemCasts(t, p) // cast_selfflash.go
 	for i := range t.Cards {
@@ -1793,6 +1793,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 					g.embObjEv |= 1 << a.Trig.Event
 				case kop.TrigDamageDone, kop.TrigAttackersDeclared, kop.TrigAttacks, kop.TrigLifeGained, kop.TrigBecomesBlocked, kop.TrigBlocks:
 					g.embCombatEv |= 1 << a.Trig.Event
+					if a.Trig.Event == kop.TrigDamageDone && a.Trig.Flags2&kop.Tf2PerReferent != 0 {
+						g.anyDmgRef = true // fireEmblemsDmg latches its damaged player per batch (refLatch)
+					}
 				case kop.TrigDamageDealtOnce:
 					g.embCombatEv |= 1 << kop.TrigDamageDone // the same hook (fireEmblemsDmg)
 				}

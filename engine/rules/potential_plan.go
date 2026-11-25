@@ -548,7 +548,7 @@ func spellExtrasAreFixedTaps(f *cards.Face) bool {
 		return false
 	}
 	for _, part := range extras.TapPermanent {
-		if part.Dyn != "" || part.N <= 0 || part.MinPower > 0 {
+		if part.Dyn != "" || part.N <= 0 || part.MinPower > 0 || part.ShareCreatureType {
 			return false
 		}
 	}
@@ -1914,6 +1914,27 @@ func (e *Engine) planAbilityPaymentLifePips(p state.PlayerID, id state.ObjID, ab
 	if !ok {
 		return PaymentPlanOutcome{Reason: "unsupported", Detail: "cost:life_x"}
 	}
+	// A target-bound text-defined {X} (Reflecting Mirror) prices the cheapest
+	// legal candidate before CR 601.2c, exactly as the offer gate and the
+	// charge do; an unresolvable candidate census withholds, matching
+	// deferredManaXOffer's fail-closed direction. This runs first: it clears X
+	// when it folds, so the announced-X fold below prices only a remaining {X}.
+	cost, _, _, ok = deferredManaXOffer(asPayer(e), e, p, id, ab, pa.Merged, cost)
+	if !ok {
+		return PaymentPlanOutcome{Reason: "unsupported", Detail: "cost:target_x"}
+	}
+	// An announced {X} (CR 601.2b, 602.2b): the witness prices the least X
+	// the announcement allows, the activation the offer must prove payable;
+	// a larger announced X re-plans (rearmAutoPay) or keeps the window. A
+	// hand source is priced the same (Webstrike Elite's {X} cycling): CR
+	// 602.2b's mana abilities may be activated while paying it. A
+	// Waterbend<X> one keeps declining, its taps pay part of X (CR 701.67a),
+	// as does a hybrid {X} one (Fiend Artisan's {X}{B/G}): the walk's autopay
+	// arm skips a cost with no generic or coloured pip (abilityCostNeedsMana),
+	// so its witness would be a lowered play the payment does not follow.
+	if cost.X != 0 && !cost.WaterbendX && len(cost.Hybrid) == 0 {
+		cost = cost.WithX(cost.XMin)
+	}
 	if n := e.ownReduceCostOffer(p, id, ab, pa.Merged); n > 0 && cost.Generic >= n {
 		cost.Generic -= n
 	} else if n > 0 {
@@ -1937,7 +1958,14 @@ func (e *Engine) planAbilityPaymentLifePips(p state.PlayerID, id state.ObjID, ab
 	scope := abilityScope(ab)
 	statics := e.collectCostStatics()
 	composed := e.offerCostForUsing(statics, p, id, cost, scope)
-	out := e.planComposedCost(p, id, composed, true, true)
+	// The witness's hand-demand key excludes the card being activated, as the
+	// payment does (CR 602.2b): a hand source is discarded as its cost, so its
+	// own pips are no reserve (Webstrike Elite's {X} cycling, Valor's
+	// Flagship's {X}{2}{W}; planComposedCostFor's Object).
+	plan := func(c Cost) PaymentPlanOutcome {
+		return e.planComposedCostFor(p, id, decision.PlannedCast{Object: id}, c, true, true)
+	}
+	out := plan(composed)
 	if (out.Plan == nil || out.Reason != "") && statics.validTarget {
 		// No plan at the untargeted price: a ValidTarget$ cost static
 		// (Cloud, Planet's Champion's "Equip abilities that target Cloud cost
@@ -1953,7 +1981,7 @@ func (e *Engine) planAbilityPaymentLifePips(p state.PlayerID, id state.ObjID, ab
 		if _, max := targetBounds(ab); max == 1 {
 			var potential PaymentPlanOutcome
 			if _, ok := e.potentialCostModsUsing(statics, p, id, scope, e.costPotentialTargets(p, id, scope), 0, func(m costMods) bool {
-				potential = e.planComposedCost(p, id, e.composedOfferCost(p, id, cost, m, scope), true, true)
+				potential = plan(e.composedOfferCost(p, id, cost, m, scope))
 				return potential.Plan != nil && potential.Reason == ""
 			}); ok {
 				return potential
@@ -1968,7 +1996,7 @@ func (e *Engine) planAbilityPaymentLifePips(p state.PlayerID, id state.ObjID, ab
 	for _, red := range e.withWaterbendOfferCredit(p, id, cost.Tap, cost.XMin, costMods{Waterbend: cost.Waterbend}).Reduces {
 		composed.Generic -= red.Generic
 	}
-	return e.planComposedCost(p, id, composed, true, true)
+	return plan(composed)
 }
 
 // planComposedCost plans the mana part of composed, the offer-time cost
@@ -2263,6 +2291,17 @@ func (e *Engine) planEachReservation(p state.PlayerID, id state.ObjID, cost Cost
 			}
 			cands[i] = append(cands[i], oid)
 		}
+		// A sharesCreatureTypeWith tap part (Weight of Conscience) only has
+		// legal assignments inside one shared creature-type class. A class
+		// smaller than the required count leaves no enumeration; the
+		// per-pick share test in rec below keeps every emitted assignment
+		// legal. Only the literal N == 2 form is modelled.
+		if pt.part.SameCreatureType {
+			if pt.part.N != 2 ||
+				pay.SameCreatureTypeCapacity(pay.CreatureTypeSets(asPayer(e), cands[i])) < 2 {
+				cands[i] = nil
+			}
+		}
 	}
 	calls := 0
 	chosen := make([][]state.ObjID, len(parts))
@@ -2299,6 +2338,18 @@ func (e *Engine) planEachReservation(p state.PlayerID, id state.ObjID, cost Cost
 			oid := cands[part][i]
 			if taken(oid) {
 				continue
+			}
+			if parts[part].part.SameCreatureType && len(chosen[part]) > 0 {
+				shares := true
+				for _, prev := range chosen[part] {
+					if !pay.SameCreatureTypeShares(asPayer(e), prev, oid) {
+						shares = false
+						break
+					}
+				}
+				if !shares {
+					continue
+				}
 			}
 			chosen[part] = append(chosen[part], oid)
 			ok := rec(part, i+1)
@@ -2353,6 +2404,33 @@ func (e *Engine) planLeavesCostPayable(p state.PlayerID, id state.ObjID, cost Co
 		}
 		return n <= 0
 	}
+	// sameTypeEnough is enough for a CostPart.SameCreatureType tap part: the
+	// remaining candidates must contain a pair that shares a creature type
+	// with each other (the relation the tap election's SetPropShared
+	// enforces), not merely N untapped objects. It reserves that pair so a
+	// later part cannot claim one of them.
+	sameTypeEnough := func(cands []state.ObjID, n int32, spent map[state.ObjID]bool, skipSelf bool) bool {
+		if n != 2 {
+			return false
+		}
+		var avail []state.ObjID
+		for _, oid := range cands {
+			if spent[oid] || claimed[oid] || (skipSelf && oid == id) {
+				continue
+			}
+			avail = append(avail, oid)
+		}
+		sets := pay.CreatureTypeSets(asPayer(e), avail)
+		if pay.SameCreatureTypeCapacity(sets) < 2 {
+			return false
+		}
+		a, b, ok := pay.SameCreatureTypePair(avail, sets)
+		if !ok {
+			return false
+		}
+		claimed[a], claimed[b] = true, true
+		return true
+	}
 	if reserved != nil {
 		for _, oid := range reserved {
 			if tapped[oid] {
@@ -2362,7 +2440,17 @@ func (e *Engine) planLeavesCostPayable(p state.PlayerID, id state.ObjID, cost Co
 		}
 	} else {
 		for _, part := range cost.TapPermanent {
-			if part.Dyn == "" && part.N > 0 && !enough(pay.TapCostCandidates(asPayer(e), p, id, part), part.N, tapped, cost.Tap) {
+			if part.Dyn != "" || part.N <= 0 {
+				continue
+			}
+			cands := pay.TapCostCandidates(asPayer(e), p, id, part)
+			if part.SameCreatureType {
+				if !sameTypeEnough(cands, part.N, tapped, cost.Tap) {
+					return false
+				}
+				continue
+			}
+			if !enough(cands, part.N, tapped, cost.Tap) {
 				return false
 			}
 		}

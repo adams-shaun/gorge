@@ -545,6 +545,9 @@ func (s *State) windowPick(k *prep, p uint8, order []Slot, useful *kop.ManaCost,
 		if s.buildLive() && s.bld().pickN != 0 && s.waterbendPicked(s.perms[o].obj) {
 			continue // a waterbend pick cannot also pay the mana (gorge convokeCommitted)
 		}
+		if s.askColDeferred(k, o) && !s.askColFeePaid(k, p, o) {
+			continue // the ask's fee must come from other mana first (mana_askcolour.go)
+		}
 		if hit, skip := s.windowRiderPick(k, p, o, decided, want, census); skip {
 			continue // the clamp reads colours the cost still owes
 		} else if hit {
@@ -1630,6 +1633,18 @@ func (s *State) restrOptions(k *prep, d *Decision, p uint8) {
 	s.g.turnF = saved
 }
 
+// restrOptionsProbe is restrOptions at a node of the prefix search's own
+// script: the walk is read with the root probe's mode (prefixAnyProbe), so the
+// script's own listing of a play only a Taps-deferred any-colour extra pays
+// (actScriptPays, tapAnyColDeferExtra) does not stop the search before it taps
+// that gap. The root check needs the listing to offer the play; a node needs
+// its absence to keep tapping (mana_tapextra.go prefixAnyProbe).
+func (s *State) restrOptionsProbe(k *prep, d *Decision, p uint8) {
+	saved := s.withRootExhaust(p)
+	s.plainOptions(k, d, s.prefixAnyProbe(k, p))
+	s.g.turnF = saved
+}
+
 // pendListenerOrder sorts the triggers queued since lo into listener order
 // (p0's battlefield order, then p1's; stable): one gorge event's
 // listeners are walked once, so a combat damage event to a player queues
@@ -2180,16 +2195,16 @@ func (s *State) scriptGapTap(k *prep, p uint8, a Action, sl Slot, ctr, restr, an
 	}
 	if tapsDef.has(sl) && s.restrCensusTapsGapShape(k, sl) {
 		// the census float and the restricted colours are one ask
-		// (mana_tapsdefer.go)
-		s.restrCensusDeferGap(k, p, a, sl, c)
+		// (mana_tapsdefer.go), the tap's any-colour triggers' asks above it
+		c, forced := tapAnyColAnswerSplit(c)
+		s.restrCensusDeferGap(k, p, a, sl, c, forced)
 		return true
 	}
 	forced := 0
 	if tapsDef.has(sl) {
 		c, forced = tapAnyColAnswerSplit(c) // the search's answers to the tap's any-colour triggers ride above the gap's own
 	}
-	s.tapGapChoice(k, p, a, sl, restr, anyR, tapsDef, s.scriptEngineAnswer(k, a, sl, anyR, tapsDef, c)|forced<<4, spill)
-	return true
+	return s.tapGapChoiceOK(k, p, a, sl, restr, anyR, tapsDef, s.scriptEngineAnswer(k, a, sl, anyR, tapsDef, c)|forced<<4, spill)
 }
 
 // scriptEngineAnswer maps the script search's answer index c of gap sl to
@@ -2198,7 +2213,7 @@ func (s *State) scriptEngineAnswer(k *prep, a Action, sl Slot, anyR, tapsDef slo
 	if !anyR.has(sl) && !tapsDef.has(sl) {
 		return c
 	}
-	if tapsDef.has(sl) && s.askColDeferred(k, sl) {
+	if tapsDef.has(sl) && s.askColGap(k, sl) {
 		// gorge's mid-chain ChooseColor ask (answerNestedChooseColor): Kind
 		// "color" options with no ManaSymbol, so scriptOrderAnswers keeps
 		// W U B R G and c is the colour itself (askColDeferFloat)
@@ -2271,6 +2286,13 @@ func (s *State) scriptEngineAnswer(k *prep, a Action, sl Slot, anyR, tapsDef slo
 // does. spill counts restricted mana the pool's batches could not hold
 // (floating unrestricted: addRestr).
 func (s *State) tapGapChoice(k *prep, p uint8, a Action, sl Slot, restr, anyR, tapsDef slotMask, c int, spill *[kop.NumManaKinds]uint8) {
+	s.tapGapChoiceOK(k, p, a, sl, restr, anyR, tapsDef, c, spill)
+}
+
+// tapGapChoiceOK is tapGapChoice reporting whether the activation was legal: a
+// colour-asking source whose fee the pool does not cover cannot be activated
+// (mana_askcolour.go askColDo).
+func (s *State) tapGapChoiceOK(k *prep, p uint8, a Action, sl Slot, restr, anyR, tapsDef slotMask, c int, spill *[kop.NumManaKinds]uint8) bool {
 	cd := &k.t.Cards[s.cardAt(sl)]
 	if !anyR.has(sl) && !tapsDef.has(sl) {
 		var held [kop.NumManaKinds]uint8
@@ -2280,13 +2302,13 @@ func (s *State) tapGapChoice(k *prep, p uint8, a Action, sl Slot, restr, anyR, t
 			a := &cd.Abilities[k.gen.restr(s.cardAt(sl))]
 			spill[bits.TrailingZeros8(uint8(a.ManaColors))] += s.restrAbN(k, sl, a)
 		}
-		return
+		return true
 	}
 	if tapsDef.has(sl) {
 		c, forced := tapAnyColAnswerSplit(c)
 		if _, ok := s.riderAbilityOf(k, sl); ok {
 			s.riderGap(k, p, sl, c)
-			return
+			return true
 		}
 		s.perms[sl].flags |= pfTapped
 		s.touchSl(sl)
@@ -2298,8 +2320,7 @@ func (s *State) tapGapChoice(k *prep, p uint8, a Action, sl Slot, restr, anyR, t
 			// (manaRider's riderDeferred gate; CR 605.3b)
 			s.manaRider(k, sl)
 		}
-		s.tapDeferFloatAsks(k, p, sl, c, forced, a)
-		return
+		return s.tapDeferFloatAsks(k, p, sl, c, forced, a)
 	}
 	s.perms[sl].flags |= pfTapped
 	s.touchSl(sl)
@@ -2307,7 +2328,7 @@ func (s *State) tapGapChoice(k *prep, p uint8, a Action, sl Slot, restr, anyR, t
 	if ab := &cd.Abilities[k.gen.anyR(s.cardAt(sl))]; restrWideAnyMana(ab) {
 		if s.wideSecond(k, sl) { // its first ability's colours, then the multisets (mana_restrictedcombo.go)
 			s.wide2Float(k, p, sl, c, spill)
-			return
+			return true
 		}
 		c1, c2 := wideAnswer(c)
 		for _, col := range [2]int{c1, c2} {
@@ -2315,16 +2336,17 @@ func (s *State) tapGapChoice(k *prep, p uint8, a Action, sl Slot, restr, anyR, t
 				spill[col]++
 			}
 		}
-		return
+		return true
 	}
 	if c == 0 {
 		f := &cd.Abilities[firstManaAb(cd)]
 		s.pl[p].pool[bits.TrailingZeros8(uint8(f.ManaColors))] += max(f.ManaN, 1)
-		return
+		return true
 	}
 	if !s.floatRestrAb(k, p, sl, &cd.Abilities[k.gen.anyR(s.cardAt(sl))], c-1, 1) {
 		spill[c-1]++
 	}
+	return true
 }
 
 // anyRAnswers: the answers of gap sl's activation ask in the script search (a
@@ -2509,7 +2531,7 @@ func (s *State) scriptDFS(k *prep, a Action, p uint8, order []Slot, ctr, restr, 
 				stall = t.g.stalled // the chain taps may have latched a stall
 			}
 			t.hideDeferred(k, p, a, tapsDef)
-			t.restrOptions(k, &d, p)
+			t.restrOptionsProbe(k, &d, p)
 			// gorge's search completes at a payer priority only when the play
 			// is among the decision's options (offered). A trigger the path's
 			// taps queued (a Taps-deferred source the search gap-activates,
@@ -2547,7 +2569,7 @@ func (s *State) scriptDFS(k *prep, a Action, p uint8, order []Slot, ctr, restr, 
 				if t.over {
 					found = false
 				} else if resolve {
-					t.restrOptions(k, &d, p)
+					t.restrOptionsProbe(k, &d, p)
 					found = hasOption(&d, a)
 				}
 			}
@@ -2671,6 +2693,7 @@ func (s *State) scriptGapOrder(k *prep, a Action, p uint8, gaps slotMask, order 
 // or a counter-cost gap among the gaps.
 func (s *State) scriptDeadEndAny(k *prep, a Action, p uint8, restr, anyR, tapsDef, ctr, ca slotMask) bool {
 	tapsDef = s.deferGapsForPlay(k, a, tapsDef)
+	anyR = s.caSpendable(k, a, p, anyR) // a plain play's restriction must admit its payment (CR 106.6); any other keeps every gap
 	var order [MaxPerm]Slot
 	gaps := s.scriptGaps(k, p).or(restr).or(anyR).or(tapsDef).or(ctr).or(ca).or(s.lifeGapMask(k, p))
 	n := s.scriptGapOrder(k, a, p, gaps, order[:])
@@ -2702,6 +2725,7 @@ func (s *State) scriptPrefixAny(k *prep, a Action, p uint8, restr, anyR, tapsDef
 		return
 	}
 	tapsDef = s.deferGapsForPlay(k, a, tapsDef)
+	anyR = s.caSpendable(k, a, p, anyR) // a plain play's restriction must admit its payment (CR 106.6); any other keeps every gap
 	var order [MaxPerm]Slot
 	gaps := s.scriptGaps(k, p).or(restr).or(anyR).or(tapsDef).or(ctr).or(ca).or(s.lifeGapMask(k, p))
 	n := s.scriptGapOrder(k, a, p, gaps, order[:])
@@ -3145,6 +3169,7 @@ func (s *State) lowerWitnessEx(k *prep, p uint8, excl Obj) {
 	s.g.noTgtRed = false
 	s.witnessAtCheapest(k, p, &cost, &av)
 	var L uint8
+	var lent [kop.NumManaKinds]uint8 // the restricted units rbTake lends the plan (CR 106.6)
 	if s.rbAny(SeatIx(p)) && s.bld().e.kind == seSpell {
 		// the witness starts from the mana this payment may spend (pay.PlanPool)
 		if m := s.restrSpendable(k, p, s.bld().e.card, s.restrOriginOfObj(s.bld().e.obj)); m != 0 && cost.Hyb[0] != 0 && cost.Hyb[0] != kop.HybTwobrid {
@@ -3157,6 +3182,11 @@ func (s *State) lowerWitnessEx(k *prep, p uint8, excl Obj) {
 			pl := &s.pl[SeatIx(p)]
 			var tk [maxRB][kop.NumManaKinds]uint8
 			s.rbTake(p, m, &tk)
+			for i := range tk {
+				for c, n := range tk[i] {
+					lent[c] += n
+				}
+			}
 			defer func() {
 				// the units go back to their batches (rbTake left them in
 				// place, emptied), beside the restricted mana the plan's own
@@ -3232,6 +3262,7 @@ func (s *State) lowerWitnessEx(k *prep, p uint8, excl Obj) {
 	}
 	pool := s.pl[p].pool
 	var pk planner
+	pk.feeLent = lent // the lent units may pay the spell, not a fee unit's activation (CR 106.6)
 	s.tapForPK(k, p, &cost, x, excl, false, tapColor, &pk)
 	s.witnessManaRestricted(k, p, &pool, untapped, &pk)
 }
@@ -3945,7 +3976,7 @@ func (s *State) manaStep(k *prep) bool {
 		case s.paymentStranded(k, e, &strandCost):
 			s.reverseActivation(k, &saved, hostSl, sl, selfUntapped)
 			return true
-		case cost.X != 0 && s.cfg&cfgGorgeSurface != 0:
+		case s.xWindowPays(k, e, a, sl, &cost, &saved):
 			cc := s.waterbendXCharge(k, e, s.buildCostCharge(k))
 			if !s.xWindowPay(k, e, &cc) {
 				s.reverseActivation(k, &saved, hostSl, sl, selfUntapped)
@@ -4040,7 +4071,7 @@ func (s *State) gapWindowReverse(k *prep, e *stackEntry, cost *kop.ManaCost, sav
 // path that keeps the activation, and reports true when the activation was
 // reversed because neither reaches the cost (CR 733.1).
 func (s *State) abilityPlainMana(k *prep, e *stackEntry, cost kop.ManaCost, saved *[len(build{}.picks)]uint8, hostSl, sl Slot, selfUntapped bool) bool {
-	if !s.tapForTry(k, e.ctrl, &cost, int(e.x), NoObj, false) {
+	if !s.tapForTry(k, e.ctrl, &cost, int(e.x), s.abilityHandExclude(e), false) {
 		c := xFolded(cost, int(e.x))
 		if s.gapWindowReverse(k, e, &c, saved, hostSl, sl, selfUntapped) {
 			return true
@@ -4055,6 +4086,19 @@ func (s *State) abilityPlainMana(k *prep, e *stackEntry, cost kop.ManaCost, save
 	}
 	s.releaseCostTaps(k, saved)
 	return false
+}
+
+// abilityHandExclude is the object a hand ability's payment planner must leave
+// out of the hand-demand census: the card being activated is discarded as the
+// ability's cost, so gorge's PaymentPlanHandDemand excludes it (pay/planner.go
+// key 6), and the planner's source choice follows (Webstrike Elite's {X}
+// cycling). Only a hand source needs it: a battlefield source is no hand card,
+// and excluding it there would hide a mana ability it may still activate.
+func (s *State) abilityHandExclude(e *stackEntry) Obj {
+	if e != nil && e.obj != NoObj && s.objs[e.obj].zone == kop.ZoneHand {
+		return e.obj
+	}
+	return NoObj
 }
 
 // holdCostTaps marks the untapped tap-X and waterbend picks tapped for the
@@ -4213,12 +4257,13 @@ func (s *State) abilityPlanSettles(k *prep, e *stackEntry, offer, fallback, sett
 		return false
 	}
 	s.releaseCostTaps(k, saved)
+	exclude := s.abilityHandExclude(e)
 	chk := planner{dry: true, noGrant: true}
-	s.tapForPK(k, e.ctrl, &offer, 0, NoObj, false, false, &chk)
+	s.tapForPK(k, e.ctrl, &offer, 0, exclude, false, false, &chk)
 	armed := chk.needT != 0
 	if armed && !chk.found {
 		chk = planner{dry: true, noGrant: true}
-		s.tapForPK(k, e.ctrl, &fallback, 0, NoObj, false, false, &chk)
+		s.tapForPK(k, e.ctrl, &fallback, 0, exclude, false, false, &chk)
 		armed = chk.found
 	}
 	s.retakeCostTaps(saved)
@@ -4226,7 +4271,7 @@ func (s *State) abilityPlanSettles(k *prep, e *stackEntry, offer, fallback, sett
 		return false
 	}
 	chk = planner{dry: true, noGrant: true}
-	s.tapForPK(k, e.ctrl, &settled, int(e.x), NoObj, false, false, &chk)
+	s.tapForPK(k, e.ctrl, &settled, int(e.x), exclude, false, false, &chk)
 	return chk.found || chk.needT == 0
 }
 

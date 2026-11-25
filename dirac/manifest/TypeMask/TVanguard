@@ -1,0 +1,5 @@
+family: TypeMask
+name: TVanguard
+value: next
+status: active
+doc: TVanguard: the Vanguard card type (CR 205.2). A Vanguard is not a permanent: kgen builds it so a command-zone Vanguard face (Sisay's TapsForMana static) is identified, and the kernel seats it in the command zone without a cast.

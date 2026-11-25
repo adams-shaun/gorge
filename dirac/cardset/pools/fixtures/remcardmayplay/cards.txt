@@ -1,0 +1,11 @@
+# Effect RememberObjects$ RememberedCard with ForgetOnMoved$ Exile: the
+# per-card may-play grant over the cards a face-down Dig or a ChangeZoneAll
+# exiled (dirac/oracle/remcardmayplay_lockstep_test.go
+# TestRememberedCardMayPlayLockstep; kgen lower_zone.go partitionMayPlay)
+Klaw, Master of Sound
+Dream-Thief's Bandana
+Shadow of the Enemy
+Walking Corpse
+Vampire Bats
+Doom Blade
+Swamp

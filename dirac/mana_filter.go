@@ -54,6 +54,9 @@ const relaxedPaidLimit = 3
 // card's first mana ability (Three Tree Mascot's untapped {1}, Prophetic
 // Prism) is kop.FilterManaAb's (mana_filterfirst.go).
 func filterTapMana(cd *kop.CardDef, a *kop.Ability) bool {
+	if a.ManaAskColour {
+		return false // the colour-asking route's (mana_askcolour.go), not a filter
+	}
 	m := &a.Cost.Mana
 	_, pip := fixedPipFilt(a)        // a gated one-pip fixed-colour filter (mana_filterpip.go)
 	hyb := kop.HybridFilterManaAb(a) // a one-hybrid-pip fee, two of one chosen colour (mana_filterhybrid.go)
@@ -1228,7 +1231,9 @@ func sacOnlyManaAb(a *kop.Ability) bool {
 // life-only one, the planner's last-resort Consequence{Life} alternative the
 // pain unit prepSoleLifeMana classifies (mana_pain.go).
 func registersGapOther(c *kop.CardDef, a *kop.Ability, j int) bool {
-	return censusGapMana(a) && !lifePainLandAb(c, a) && !kop.ChosenSecondManaAb(c, firstManaAb(c), j) && !sacOnlyManaAb(a) &&
+	// A colour-asking ability is the Taps-deferred route's (mana_askcolour.go):
+	// registering it as a census gap too would price the same tap twice.
+	return !a.ManaAskColour && censusGapMana(a) && !lifePainLandAb(c, a) && !kop.ChosenSecondManaAb(c, firstManaAb(c), j) && !sacOnlyManaAb(a) &&
 		!restrLifeAb(a) && !kop.SoleGapLifeManaAb(c, j)
 }
 
@@ -1532,6 +1537,12 @@ type filtSearch struct {
 	// carry a multi-unit fee (feeGaps), then the other gaps (mana_filterfeeorder.go).
 	feeOrder bool
 	feeGaps  slotMask
+	// subsume: gorge's third run (potentialPrefixScript's subsume search):
+	// every multi-answer colour ask keeps only the colours the pool still
+	// lacks of the play's coloured-pip-only cost (gorge's subsumeAnswers).
+	// costCol is that cost's pips per colour (playCostCounts).
+	subsume bool
+	costCol [kop.NumManaKinds]uint8
 	// floated: the payer held floating mana when the search began. Under it
 	// holdDualFilter and freeBranchHopeless stand down for a fee-carrying
 	// filter, leaving the plain walk and fee-order fallback gorge runs.
@@ -1695,10 +1706,13 @@ func (fs *filtSearch) lifePainOnPath() bool {
 // plain witness arm's read): the filter search's life pass then activates a
 // sole life-only pain unit as the plan's last resort (lifePass's pain arm).
 // The read is scoped to the plain hand cast the witness arm prices -- gorge's
-// planner plans the composed cost of a PlannedCast (planComposedCostFor) -- and
-// to a may-play permission's plain cast from another zone (Junk's exile), and
-// runs only when the board holds an activatable life-only pain unit, the one
-// shape whose census unit a gap activation can fund (potential_plan.go).
+// planner plans the composed cost of a PlannedCast (planComposedCostFor) -- to
+// a may-play permission's plain cast from another zone (Junk's exile), and to
+// a bestowed cast at its bestow cost (CR 702.103a; potentialModeCastPlan's
+// altBestow mode, Celestial Archon's {5}{W}{W} through Heap Gate's filter
+// beside Treasonous Ogre), and runs only when the board holds an activatable
+// life-only pain unit, the one shape whose census unit a gap activation can
+// fund (potential_plan.go).
 //
 //go:noinline
 func (s *State) lifePainPlanAffords(k *prep, a Action, p uint8) bool {
@@ -1714,6 +1728,8 @@ func (s *State) lifePainPlanAffords(k *prep, a Action, p uint8) bool {
 		return s.lifePainActAffords(k, a, p, o)
 	case a.Kind() == AkCast && a.Mode() == 2 && s.objs[o].zone == kop.ZoneGraveyard && k.cards[s.objs[o].card].kw&kop.KwFlashback != 0:
 		return s.lifePainFlashbackAffords(k, p, o)
+	case a.Kind() == AkBestow:
+		return s.lifePainBestowAffords(k, p, o)
 	case a.Kind() != AkCast || !(a.Mode() == 0 && s.objs[o].zone == kop.ZoneHand || a.Mode() == castMayPlay && s.objs[o].zone != kop.ZoneHand):
 		return false // a hand cast, or a may-play permission's plain cast of the printed cost from another zone (Junk's exile)
 	}
@@ -1743,6 +1759,27 @@ func (s *State) lifePainFlashbackAffords(k *prep, p uint8, o Obj) bool {
 	cost := s.featCost(k, p, c, o, k.t.Cards[c].AltCost)
 	var pb avail
 	sp := payDesc{class: pdSpell, card: c, og: s.restrOriginOfObj(o)}
+	s.availPotentialFor(k, p, &pb, &sp, false)
+	return pb.affords(&cost, pipMaskOf(&cost), 0)
+}
+
+// lifePainBestowAffords is lifePainPlanAffords's arm for a bestowed cast (CR
+// 702.103a): gorge's planner prices the bestow cost (potentialModeCastPlan's
+// altBestow mode), so the filter search's life pass may fund a filter's fee
+// beside the sole life-only pain unit (Heap Gate's {1}, {T}: Add one mana of
+// any colour beside Treasonous Ogre's "Pay 3 life: Add {R}"). The descriptor
+// carries the bestow origin: the spell is an Aura, not a creature, so
+// creature-spell-only mana cannot pay it (CR 702.103b).
+func (s *State) lifePainBestowAffords(k *prep, p uint8, o Obj) bool {
+	if !s.lifePainLive(k, p) || s.objs[o].zone != kop.ZoneHand {
+		return false
+	}
+	c := s.objs[o].card
+	cost := s.adjustCost(k, p, c, o, k.t.Cards[c].BestowCost)
+	var pb avail
+	og := s.restrOriginOfObj(o)
+	og.bestowed = true
+	sp := payDesc{class: pdSpell, card: c, og: og}
 	s.availPotentialFor(k, p, &pb, &sp, false)
 	return pb.affords(&cost, pipMaskOf(&cost), 0)
 }
@@ -1868,6 +1905,29 @@ func (s *State) filtScript(k *prep, a Action, p uint8, apply bool) bool {
 			nodes = max(nodes, ph.nodes)
 			if fs.stall == 0 {
 				fs.stall = ph.stall
+			}
+		}
+	}
+	// The subsume run: gorge's plain search ran out of its node budget with
+	// no fee-carrying gap to fund (potentialPrefixScript's plain.limited &&
+	// funding == 0), so it searches the plain order again with every
+	// multi-answer colour ask narrowed to the colours the node's pool still
+	// lacks of the play's coloured-pip-only cost (subsumeKeeps; gorge's
+	// subsumeAnswers). A completed plain search saw the whole space, and a
+	// play with a generic or {X} pip has a colour any colour can pay, so
+	// neither takes the run.
+	if !found && nodes >= potentialScriptNodes && fs.fees == 0 {
+		if cnt, ok := s.playCostCounts(k, a); ok {
+			ss := filtSearch{a: fs.a, p: fs.p, gaps: fs.gaps, own: fs.own, sp0: fs.sp0, need: fs.need, useful: fs.useful,
+				usefulOK: fs.usefulOK, other: fs.other, feeOnly: fs.feeOnly, fees: fs.fees, dead: fs.dead, subsume: true, costCol: cnt, noHand: fs.noHand, lifePainBound: fs.lifePainBound}
+			if found = ss.visit(k, t, 0, false); found {
+				fs = ss
+				nodes = ss.nodes
+			} else {
+				nodes = max(nodes, ss.nodes)
+				if fs.stall == 0 {
+					fs.stall = ss.stall
+				}
 			}
 		}
 	}
@@ -3388,6 +3448,16 @@ func (fs *filtSearch) freeBranchHopeless(k *prep, t *State, sl Slot) bool {
 	return false
 }
 
+// subsumeKeeps is gorge's subsumeAnswers keep-rule for colour answer c of a
+// multi-answer ask: in the subsume run only a colour the pool holds fewer of
+// than the play's cost asks (a covered colour pays nothing more than a
+// lacking one, so its line is dominated); every ask of the other runs keeps
+// its answers whole. The read is the ask's pool, before the step's mana
+// floats in, as branchSel's is in the grant and Taps-deferred searches.
+func (fs *filtSearch) subsumeKeeps(t *State, c uint8) bool {
+	return !fs.subsume || fs.costCol[c] > t.pl[SeatIx(fs.p)].pool[c]
+}
+
 // filtColours branches on the colour ask of the filter at sl. asked is that the
 // source's ability ask was already spent (a free {C}
 // ability beside the filter): a hybrid-fee filter's colours are options of
@@ -3445,10 +3515,13 @@ func (fs *filtSearch) filtColoursOf(k *prep, t *State, sl Slot, funded int, part
 		if part == colNeeded && !fs.need[c] || part == colRest && fs.need[c] {
 			continue
 		}
+		if n > 1 && !fs.subsumeKeeps(t, c) {
+			continue // the subsume run's ask keeps only the colours the pool lacks
+		}
 		if n > 1 && oneShot && t.filtOneShotColStalls(k, fs.p, sl, &fs.useful, int(c)) {
 			continue // a one-shot gap's colour that fills no fixed pip
 		}
-		if n > 1 && fs.usefulOK && !fs.phased && t.filtFeeColStalls(k, fs.p, sl, &fs.useful, int(c), fs.own, pd) {
+		if n > 1 && fs.usefulOK && !fs.phased && !fs.subsume && t.filtFeeColStalls(k, fs.p, sl, &fs.useful, int(c), fs.own, pd) {
 			// the fee-only repeatable activation making c is doomed on this
 			// node (filtFeeColStalls: c fills no fixed pip the play's cost
 			// still lacks once the fee is paid): the ask offers the other
@@ -3471,7 +3544,7 @@ func (fs *filtSearch) filtColoursOf(k *prep, t *State, sl Slot, funded int, part
 // clamp cannot read -- an unpayable fee, an any-type rider, a producible
 // colour ManaColors does not name -- fails open.
 func (fs *filtSearch) activationStalls(k *prep, t *State, sl Slot) bool {
-	if !fs.usefulOK || fs.phased { // (the fee-stall prune is the plain run's alone)
+	if !fs.usefulOK || fs.phased || fs.subsume { // (the fee-stall prune is the plain run's alone, not the subsume run's)
 		return false
 	}
 	ab := t.filtAb(k, sl)

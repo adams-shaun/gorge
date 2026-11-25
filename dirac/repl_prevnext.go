@@ -332,7 +332,7 @@ func (s *State) prevNextDivided(k *prep, in *kop.Instr, rider uint8, rt TCode, g
 // poses no CR 616.1 ask (barePrevOnly).
 func (s *State) pnxBare(i int) bool {
 	r := &s.g.prevCol[i]
-	return r.sc&prevNextSc != 0 && r.col == prevNextAll && s.g.prevX[i]&(pxFrom|pxRider) == 0
+	return r.sc&prevNextSc != 0 && (r.col == prevNextAll && s.g.prevX[i]&(pxFrom|pxRider) == 0 || r.col != 0 && s.pnxChosenTurn(i))
 }
 
 // pnxBareMask is the bits of pnx (the candidates that are shield records, whose
@@ -446,9 +446,12 @@ func (s *State) prevNextTake(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID,
 	r := &s.g.prevCol[at]
 	if s.g.prevX[at]&pxFrom != 0 {
 		// a source-keyed shield: the first event from its source is prevented
-		// whole and the record is spent (the Effect exiles itself)
+		// whole and the record is spent (the Effect exiles itself), unless it
+		// lasts the turn (a chosen source's Prevent$ True: repl_prevchosen.go)
 		m := n
-		r.col = 0
+		if !s.pnxChosenTurn(at) {
+			r.col = 0
+		}
 		x := s.g.prevX[at]
 		if x&pxRidGain != 0 && !DebugNoPrevRider {
 			s.gainLife(k, x>>pxSeatShift, m)
@@ -695,7 +698,9 @@ func (s *State) prevNextSpend(i int) {
 	ro := &s.g.ro
 	r := &s.g.prevCol[ro.cand[i]]
 	if s.g.prevX[ro.cand[i]]&pxFrom != 0 {
-		r.col = 0 // a source-keyed shield: one event, spent
+		if !s.pnxChosenTurn(int(ro.cand[i])) {
+			r.col = 0 // a source-keyed shield: one event, spent
+		}
 		ro.an = 0
 		return
 	}

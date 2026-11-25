@@ -444,6 +444,13 @@ func (e *Engine) tapPermanentCostAsk() bool {
 			// A named-announcement count (Explosive Singularity's Announce$
 			// Tapped): namedAnnounceAsk already fixed how many; tap exactly
 			// that many. A shrunken board is the unpayable abort.
+			if part.ShareCreatureType {
+				// The named-count election cannot carry the share-a-creature-
+				// type set rule (no corpus carrier combines them), so it fails
+				// closed rather than silently dropping the constraint.
+				e.abortCast(pc, "tap cost no longer payable; cast aborted", true)
+				return true
+			}
 			n := int(pc.namedN)
 			if n > len(candidates) {
 				e.abortCast(pc, "tap cost no longer payable; cast aborted", true)
@@ -554,6 +561,16 @@ func (e *Engine) tapPermanentCostAsk() bool {
 			e.abortCast(pc, "tap cost no longer payable; cast aborted", true)
 			return true
 		}
+		// The set-level share-a-creature-type relation (Weight of Conscience)
+		// must be checked BEFORE the exactly-N auto-settle below: an auto-tap
+		// of N non-sharing candidates would pay an illegal election, and an
+		// ask whose every answer Validate rejects would wedge the game. The
+		// ask carries the same decision.SetPropShared rule the offer gate
+		// measured (pay.ShareCreatureTypeCapacity), one home.
+		if (part.ShareCreatureType || part.SameCreatureType) && pay.ShareCreatureTypeCapacity(asPayer(e), candidates) < int(part.N) {
+			e.abortCast(pc, "tap cost no longer payable; cast aborted", true)
+			return true
+		}
 		// A literal part with a group predicate that the shrinking board can
 		// no longer satisfy aborts like the Any form above -- an auto-tap of
 		// the only N candidates (next branch) or an election with no legal
@@ -569,10 +586,16 @@ func (e *Engine) tapPermanentCostAsk() bool {
 		}
 		d := &decision.Decision{Player: pc.player, Kind: decision.KChoose, Min: int(part.N), Max: int(part.N),
 			Prompt: "Choose permanents to tap", Source: pc.card, MinSum: int(part.MinPower)}
+		if part.ShareCreatureType || part.SameCreatureType {
+			d.SetPropMode = decision.SetPropShared
+		}
 		for _, id := range candidates {
 			opt := decision.Option{Index: len(d.Options), Kind: "tapcost", Obj: id, Label: e.targetName(id)}
 			if part.MinPower > 0 {
 				opt.Value = int(e.tapPowerValue(id, tapKind))
+			}
+			if part.ShareCreatureType || part.SameCreatureType {
+				opt.SetProps = e.setPropTokens("creaturetype", id)
 			}
 			d.Options = append(d.Options, opt)
 		}

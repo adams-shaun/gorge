@@ -98,6 +98,22 @@ type CostPart struct {
 	// count the announcement fixes first would need re-pricing at settle --
 	// no corpus carrier combines them).
 	MinPower int32
+	// ShareCreatureType marks the SET-level "share a creature type" relation a
+	// literal tapXType<N/Spec> part carries (Weight of Conscience's "Tap two
+	// untapped creatures you control that share a creature type"). The relation
+	// is BETWEEN the tapped creatures, not a filter each candidate passes, so
+	// stripShareCreatureType moves it out of the spec at parse time -- into
+	// this flag, leaving the ordinary per-object spec. The offer gate measures
+	// decision.SetPropCapacity(SetPropShared) over the candidates' derived
+	// creature-type tokens (the same setPropTokens "creaturetype" family the
+	// target-set constraint uses), and the tap election publishes the same
+	// SetPropShared rule over each option's SetProps, so Decision.Validate and
+	// botpolicy's Clamp enforce the one definition. A creature with no
+	// creature type shares nothing; a changeling shares with any typed
+	// creature (CR 702.73a, inside the token builder). Only the literal N form
+	// strips the term: the X/Any forms keep it in the spec and fail closed as
+	// before.
+	ShareCreatureType bool
 	// ThenExile marks a Behold part spelled BeholdExile<N/Spec> (the
 	// Lorwyn Champion cycle's "behold a Kithkin and exile it"): the beheld
 	// object -- a permanent the payer controls or a card revealed from their
@@ -131,6 +147,16 @@ type CostPart struct {
 	// the offer gate, the X announcement and the election (Decision.MinSum/
 	// MaxSum over Option.Value) enforce it. The zero value is no constraint.
 	Group GroupTotal
+	// SameCreatureType marks Forge's literal
+	// tapXType<2/Creature.sharesCreatureTypeWith> cost (Weight of
+	// Conscience): the predicate is a relation BETWEEN the tapped creatures,
+	// not a per-candidate filter against the source. The bare
+	// ".sharesCreatureTypeWith" term is moved out of the spec at parse time
+	// so the ordinary matcher never reads it against the Aura source, and
+	// the offer gate, the tap election (Decision.SetPropShared) and the
+	// planner enforce it over the elected pair. Only the literal N == 2 form
+	// is modelled; every other count and the dynamic heads fail closed.
+	SameCreatureType bool
 }
 
 // GroupTotal is one parsed withTotal<Prop><Cmp><Rhs> group predicate (see

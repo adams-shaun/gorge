@@ -374,7 +374,7 @@ func (s *State) riderPlainGap(k *prep, p uint8, a Action, sl Slot, c int) bool {
 		s.perms[sl].flags |= pfTapped
 		s.touchSl(sl)
 		s.manaTapped(k, sl)
-		s.tapDeferPlain(k, p, sl, 0)
+		s.tapDeferPlain(k, p, sl, 0, 0)
 		return true
 	}
 	return s.riderGap(k, p, sl, rider[c])

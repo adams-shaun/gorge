@@ -821,6 +821,9 @@ func init() { enum[kop.ExprKind]("kop.ExXColorPaid", kop.ExXColorPaid) }
 // dirac/manifest/ExprKind/ExDevotionChosen
 func init() { enum[kop.ExprKind]("kop.ExDevotionChosen", kop.ExDevotionChosen) }
 
+// dirac/manifest/ExprKind/ExReplLKIPower
+func init() { enum[kop.ExprKind]("kop.ExReplLKIPower", kop.ExReplLKIPower) }
+
 // dirac/manifest/ExprKind/ExRingTempted
 func init() { enum[kop.ExprKind]("kop.ExRingTempted", kop.ExRingTempted) }
 
@@ -1677,6 +1680,9 @@ func init() { enum[kop.TrigEvent]("kop.TrigVisitAttraction", kop.TrigVisitAttrac
 
 // dirac/manifest/TrigEvent/TrigLeaveExile
 func init() { enum[kop.TrigEvent]("kop.TrigLeaveExile", kop.TrigLeaveExile) }
+
+// dirac/manifest/TypeMask/TVanguard
+func init() { mask[kop.TypeMask]("kop.TVanguard", kop.TVanguard) }
 
 // dirac/manifest/Zone/ZonePlanarDeck
 func init() { enum[kop.Zone]("kop.ZonePlanarDeck", kop.ZonePlanarDeck) }

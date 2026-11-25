@@ -1114,6 +1114,23 @@ func init() {
 	// Enchant spec this filter cannot evaluate both fail closed inside the
 	// filter, never over-offering an attachment the SBA would just sweep.
 	predicates["CanEnchantEquippedBy"] = canEnchantEquippedBy
+	// CanEnchantSource: the candidate card could legally be attached to the
+	// ability's SOURCE -- Forge's CardProperty.CanEnchantSource. Bruna, Light
+	// of Alabaster's trigger attaches any battlefield Aura that could enchant
+	// her (RepeatCards$ Aura.CanEnchantSource+!Attached) and then puts Aura
+	// cards that could enchant her from hand/graveyard onto the battlefield
+	// attached to her (ChangeType$ Aura.CanEnchantSource+YouOwn and the same
+	// Count$Valid read), so the candidate may be a battlefield permanent or
+	// an off-battlefield card. Danitha, Benalia's Hope reads
+	// Equipment.CanEnchantSource beside the Aura spelling (her Aura or
+	// Equipment may be attached to her), so the referent test is the shared
+	// attachableTo: the candidate is an Aura when the source satisfies its
+	// K:Enchant spec, an Equipment when the source is a creature. The
+	// referent is the source ITSELF, never source.AttachedTo -- unlike
+	// CanEnchantEquippedBy, the Aura is being moved onto the source. A
+	// Face-less trigger wrapper unwraps to its Source permanent; a source
+	// that is gone or not a battlefield permanent fails closed.
+	predicates["CanEnchantSource"] = canEnchantSource
 	// equipped / enchanted: the IS-side counterpart of the pair above -- the
 	// candidate itself carries the attachment. Auriok Steelshaper's IsPresent$
 	// Card.Self+equipped ("as long as CARDNAME is equipped") reads the first;
@@ -1568,7 +1585,7 @@ func positiveRecognised(p string) bool {
 	if strings.HasPrefix(p, "greatestCMC_") || strings.HasPrefix(p, "lowestCMC") {
 		return true
 	}
-	if p == "TriggeredNewCard" || p == "TriggeredCard" || p == "TriggeredCards" || p == "TriggeredTarget" || p == "TriggeredAttacker" || p == "TriggeredDefender" || strings.HasPrefix(p, "ChosenMode") && len(p) > len("ChosenMode") {
+	if p == "TriggeredNewCard" || p == "TriggeredCard" || p == "TriggeredCards" || p == "TriggeredTarget" || p == "TriggeredAttacker" || p == "TriggeredDefender" || p == "canProduceSameManaTypeWith" || strings.HasPrefix(p, "ChosenMode") && len(p) > len("ChosenMode") {
 		return true
 	}
 	if _, ok := notDefinedTriggerReferent(p); ok {
@@ -2405,6 +2422,21 @@ func matchPositive(g *state.Game, p string, o *state.Object, sc SpecContext) (re
 			return false, false
 		}
 		return !match, true
+	}
+	if p == "canProduceSameManaTypeWith" {
+		// Mana Web's body predicate: the candidate shares at least one
+		// producible mana type with the triggering card. The referent is
+		// the trigger context's card (the tapped land for a TapsForMana
+		// trigger); with no bound trigger card the predicate fails closed,
+		// never widened.
+		if sc.TriggerCard == 0 {
+			return false, false
+		}
+		trigger := g.Obj(sc.TriggerCard)
+		if trigger == nil {
+			return false, false
+		}
+		return producibleTypesShare(o, trigger), true
 	}
 	if p == "TriggeredNewCard" || p == "TriggeredCard" {
 		// Forge's bare TriggeredNewCard / TriggeredCard property
@@ -3408,6 +3440,9 @@ func matchesObjectText(g *state.Game, spec string, o *state.Object, sc SpecConte
 		}
 		base, rest, _ := strings.Cut(alt, ".")
 		asc := sc
+		if b, r, ok := canProduceSameManaTypeContextBase(base, rest); ok {
+			base, rest = b, r
+		}
 		contextualSameName := sameNameContextBase(base, rest)
 		// Forge's sameName forms can name their referent in the base:
 		// Remembered.sameName, Targeted.Permanent+sameName, and

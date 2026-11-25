@@ -129,7 +129,7 @@ func (s *State) InitNStart(tbl *Table, decks [MaxSeats][]CardID, n uint8, seed u
 	}
 	toss := uint8(s.rng.IntN(ns))
 	for p := uint8(0); p < uint8(ns); p++ {
-		if s.cfg&cfgCommander != 0 {
+		if s.cfg&cfgCommander != 0 || cfg.SeatCommanders {
 			s.cmdGenesis(p, cfg.Commanders[p])
 		}
 		s.shuffleLib(p)

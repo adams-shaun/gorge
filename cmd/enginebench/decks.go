@@ -11,9 +11,27 @@ import (
 	"strings"
 
 	"github.com/adams-shaun/gorge/engine/cards"
+	"github.com/adams-shaun/gorge/engine/deck"
 	"github.com/adams-shaun/gorge/engine/rules"
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
+
+// fdcDecks are the five official Foundations Commander (FDC) precons
+// (testkit/testutil/decks, pinned by TestFoundationsCommanderDecksAreOfficial).
+// Pair "fdc" plays 4-seat Commander pods of them: game g leaves out deck
+// (g/4)%5 and rotates the remaining four seats by g%4, so twenty games seat
+// every pod in every seat order once. Commander is a four-player format here;
+// there is no two-seat Commander row.
+var fdcDecks = [...]string{
+	"foundations-calling-all-angels",
+	"foundations-keen-engineering",
+	"foundations-reign-of-dragons",
+	"foundations-tramplesaurus-rex",
+	"foundations-wretched-ranks",
+}
+
+// podSeats is the seat count of a Commander pod row.
+const podSeats = 4
 
 // corpusMode names which corpus shim this build links. One value survives:
 // every run opens the whole corpus.
@@ -48,6 +66,10 @@ type workload struct {
 	// census. A pre-flip binary reads the same flag as opt-in, so pairing
 	// across the flip with -paid-mana-census runs the census on both sides.
 	paidManaCensus bool
+	// podDir, when set, holds the five FDC deck files pair fdc-sub seats
+	// (dirac/cmd/dpod -write: the precons with the cards dirac does not play
+	// replaced by basics), so gorge and dirac play the same pods.
+	podDir string
 }
 
 // openCorpus opens the whole corpus. There is no subset route, so every run
@@ -82,6 +104,99 @@ func (w workload) decks(pair string) ([2][]*cards.Card, [2]string, error) {
 		out[i] = d
 	}
 	return out, names, nil
+}
+
+// fdc holds the resolved FDC decks and their commander indices
+// (rules.Config.Commanders), in fdcDecks order.
+type fdc struct {
+	decks [len(fdcDecks)][]*cards.Card
+	cmds  [len(fdcDecks)][]int
+}
+
+// fdcPod resolves the five FDC precons the way mtgsim's -format commander
+// does: each deck's commander field validated and turned into indices.
+func (w workload) fdcPod(dir string) (*fdc, error) {
+	var p fdc
+	for i, name := range fdcDecks {
+		var f deck.File
+		var err error
+		if dir == "" {
+			f, err = testutil.LoadRepoDeckFile(name)
+		} else {
+			var raw []byte
+			if raw, err = os.ReadFile(filepath.Join(dir, name+".json")); err == nil {
+				f, err = deck.Parse(raw)
+			}
+		}
+		if err != nil {
+			return nil, fmt.Errorf("deck %q: %w", name, err)
+		}
+		if len(f.CommanderNames()) == 0 {
+			return nil, fmt.Errorf("deck %q names no commander", name)
+		}
+		if err := f.ValidateCommander(w.reg); err != nil {
+			return nil, fmt.Errorf("deck %q: %w", name, err)
+		}
+		d, err := f.Resolve(w.reg)
+		if err != nil {
+			return nil, fmt.Errorf("deck %q: %w", name, err)
+		}
+		p.decks[i], p.cmds[i] = d, f.CommanderIndices()
+	}
+	return &p, nil
+}
+
+// podConfig is game g of the FDC pod row: a 4-seat Commander game at 40
+// life, the deck (g/4)%5 left out and the other four seated rotated by g%4,
+// engine seed base+g.
+func (w workload) podConfig(p *fdc, base uint64, g int) rules.Config {
+	skip, rot := (g/podSeats)%len(fdcDecks), g%podSeats
+	var order []int
+	for i := range fdcDecks {
+		if i != skip {
+			order = append(order, i)
+		}
+	}
+	cfg := rules.Config{
+		Seed:                  base + uint64(g),
+		Format:                rules.FormatCommander,
+		StartingLife:          40,
+		Tokens:                w.reg.Tokens,
+		NameUniverse:          w.reg.Universe(),
+		ExpectedEvents:        w.expectedEvents,
+		DisablePaidManaCensus: !w.paidManaCensus,
+	}
+	for s := range podSeats {
+		i := order[(s+rot)%podSeats]
+		cfg.Names = append(cfg.Names, fdcDecks[i])
+		cfg.Decks = append(cfg.Decks, p.decks[i])
+		cfg.Commanders = append(cfg.Commanders, p.cmds[i])
+	}
+	return cfg
+}
+
+// games is the row's game source: game g's config for pair (A, B, burn, the
+// fdc pod, or fdc-sub: the fdc pod read from -pod-dir).
+func (w workload) games(pair string, base uint64) (func(g int) rules.Config, error) {
+	if pair == "fdc" || pair == "fdc-sub" {
+		dir := ""
+		if pair == "fdc-sub" {
+			if w.podDir == "" {
+				return nil, fmt.Errorf("pair fdc-sub needs -pod-dir")
+			}
+			dir = w.podDir
+		}
+		p, err := w.fdcPod(dir)
+		if err != nil {
+			return nil, err
+		}
+		return func(g int) rules.Config { return w.podConfig(p, base, g) }, nil
+	}
+	decks, names, err := w.decks(pair)
+	if err != nil {
+		return nil, err
+	}
+	return func(g int) rules.Config { return w.config(decks, names, base, g) }, nil
 }
 
 type deckEntry struct {

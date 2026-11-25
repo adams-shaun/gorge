@@ -457,7 +457,7 @@ func (s *State) activateOffers(k *prep, d *Decision, p uint8, sorc bool, av *ava
 				s.availFor(k, p, av)
 				haveAv = true
 			}
-			if (a.Cost.Mana.X > 0 || a.Cost.XMin != 0) && s.cfg&cfgGorgeUnpriced != 0 || a.Cost.Mana.Snow != 0 {
+			if (a.Cost.Mana.X == 0 && a.Cost.XMin != 0 || waterbendIsX(a) || hybridX(a)) && s.cfg&cfgGorgeUnpriced != 0 || a.Cost.Mana.Snow != 0 {
 				m := xFloorCost(a.Cost.Mana, costXMin(&a.Cost)) // (gorge's cost:x is X != 0 || XMin != 0 (pay.PlanCostDetail); an announced Sac<X> part without {X} or XMin is planned like any other cost (Krav, the Unredeemed's {B}); the pool pays the cheapest legal announcement; cost_sacx.go)
 				if k.gen != nil && k.gen.anyPowerUp && a.Cost.Flags&kop.CostPowerUp != 0 {
 					m = s.powerUpReduced(k, s.perms[sl].obj, m) // CR 702.193b: gorge prices the reduced cost (legal_walk_battlefield.go)
@@ -469,16 +469,17 @@ func (s *State) activateOffers(k *prep, d *Decision, p uint8, sorc bool, av *ava
 					m = s.waterbendCredit(k, p, sl, a, m) // gorge mana.go: Waterbend<X>'s offer credit at the floor (act_waterbend.go)
 				}
 				if !s.poolPaysAct(k, p, &m, payDesc{class: pdAct, card: cid, src: sl}) {
-					// gorge's planner declines an {X} activation (PlanCostDetail
-					// cost:x, Domesticated Hydra's {X}{G}{G}{G}: Monstrosity X,
-					// Fiend Artisan's hybrid {X}): it is offered only when the
-					// floating pool alone pays it (Config.GorgeUnpriced). A hybrid
-					// cost without {X} is planned (each pip resolved to a colour:
-					// Puresight Merrow's {W/U}{Q}, kverify-c4).
+					// gorge plans an {X} activation at its least X
+					// (planAbilityPayment), but an XMin without an {X}
+					// symbol still declines (PlanCostDetail cost:x, Ruthless
+					// Technomancer's XMin1 {2}{B}, Sac<X/Artifact>), as does a
+					// Waterbend<X> one and a hybrid {X} one (Fiend Artisan's
+					// {X}{B/G}): each is offered only when the floating pool
+					// alone pays it (Config.GorgeUnpriced).
 					//
 					// A {S} activation (CR 107.4h; PlanCostDetail cost:snow,
-					// Boreal Centaur's {S}: Regenerate) is gated the same way
-					// and on every surface: gorge never plans it, so it is
+					// Boreal Centaur's {S}: Regenerate) is gated on every
+					// surface: gorge never plans it, so it is
 					// offered only when the pool's snow units pay it (poolPays
 					// reads snowPays). With cfgGorgeUnpriced off gorge's search
 					// surface would still plan the sources; the kernel keeps
@@ -2731,6 +2732,19 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 			open = true
 			continue
 		}
+		if s.askColDeferred(k, sl) {
+			// the head's own Mana params are one {C} (gorge addPotentialMana
+			// over a ChooseColor head), never the open any-colour production
+			// the generic tap below would fold (mana_askcolour.go
+			// askColPotential)
+			s.askColPotential(k, sl, pc, pain, life, add, fold, &cen)
+			cen.pain = 0
+			if n := gatePairPotential(pc); n != 0 {
+				cen.gatePairUnit(sl, uint8(pc.wideCol), n, add, fold)
+			}
+			s.potentialGrantedExtra(k, sl, d, boundedAny, add, fold, &cen, &open, &anyFree)
+			continue
+		}
 		dynamic := s.potentialDynamicSource(k, sl, pc, &done)
 		if dynamic {
 			cen.gapTap = cen.gapTap.with(sl)
@@ -3399,6 +3413,14 @@ func (s *State) potentialBuildAvail(a *avail, pot *[kop.NumManaKinds]int, open, 
 // control") was refused and the cast dropped from the priority options
 // (tail-07 pair 144, decision 335).
 func (s *State) addAnyDifferentOrOpen(k *prep, p uint8, sl Slot, ab *kop.Ability, boundedAny, census bool, add func(Slot, uint8, uint8), anyFree *int, open *bool) bool {
+	if ab.ManaAskColour {
+		// gorge's PotentialMana reads the AB$ ChooseColor head's own Mana
+		// params (no Produced$, no Amount$): one {C}, never an open any-colour
+		// bound (mana_askcolour.go askColBoundUnit). Nykthos's first {T}: {C}
+		// is the source's ordinary unit, this is the second ability's bound.
+		add(sl, uint8(kop.ColC), 1)
+		return true
+	}
 	if anyDifferentTapAb(ab) {
 		add(sl, 0x1f, 1)
 		return true

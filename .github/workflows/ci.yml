@@ -58,13 +58,13 @@ concurrency:
   cancel-in-progress: ${{ github.event_name != 'schedule' }}
 
 env:
-  SHARDS: 12
+  SHARDS: 6
   # One build/test cache per box, not per runner directory (without -trimpath
   # the cache keys include /opt/actions-runner-N/_work). tsgen sets GOROOT itself.
   GOFLAGS: -p=4 -trimpath
 
 # Runner priority (operator 11-16: "the mergify queue checks run w/ higher prio"): GitHub Actions has no job
-# priority, so a pull request's own checks (fast, lint) run only on the runners labelled gorge-pr (4 on metal+metal2, 4 on sub). The others
+# priority, so a pull request's own checks (fast, lint) run only on the runners labelled gorge-pr (on metal and metal2). The others
 # box runners always stay free for Mergify's queue batches (mergify/merge-queue/*), main, nightly and on demand.
 jobs:
   # A push to main only: did a queue batch or pull request's ci-ok already pass this exact tree?
@@ -101,7 +101,9 @@ jobs:
     # packages at once, and test (0) spent ~6 min compiling for 97 s of kgen tests.
     strategy:
       matrix:
-        box: [metal2, metal, sub]  # sub: the on-demand 128-vCPU box (16 runners, 11-24); drop it when the box goes
+        # The boxes come from the repo variable CI_BOXES (a JSON list, e.g. ["metal2","metal"]), so adding or
+        # dropping a box is `gh variable set CI_BOXES`, never a PR. Every listed box must have a gorge-box runner.
+        box: ${{ fromJSON(vars.CI_BOXES || '["metal2","metal"]') }}
     runs-on: ${{ vars.CI_SELF_HOSTED == 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && fromJSON(format('["gorge-box","box-{0}"]', matrix.box)) || 'ubuntu-24.04' }}
     steps:
       - name: Heal the runner's workspace (self-hosted)
@@ -359,7 +361,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
+        shard: [0, 1, 2, 3, 4, 5]
     steps:
       - name: Heal the runner's workspace (self-hosted)
         # 11-21: metal-gorge-box-4's workspace ref store broke ("fetching ref refs/remotes/origin/main failed: reference
@@ -480,9 +482,9 @@ jobs:
           for i in "${!pids[@]}"; do wait "${pids[$i]}" || rc=1; cat "${logs[$i]}"; done
           exit $rc
       - name: Golden chain heads
-        # Not shard 0: it holds dirac/kgen (250-550 s) and set the batch's wall time. Shard 2 (of 12 since 11-24: 323 pkg-s by ci-pkg-times.tsv, the lightest after kgen-only shard 0; 5 of 6 before) is light
+        # Not shard 0: it holds dirac/kgen (250-550 s) and set the batch's wall time. Shard 5 was the lightest
         # (145-465 pkg-seconds) in the 11-20 batches. ci_shard.sh has no weight for this step, so pin it here.
-        if: matrix.shard == 2
+        if: matrix.shard == 5
         run: go test -timeout 10m -run '^TestHeads$' ./engine/rules
       - name: Save the Go cache
         if: runner.environment == 'github-hosted' && github.ref == 'refs/heads/main' && github.event_name != 'pull_request'

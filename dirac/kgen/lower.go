@@ -157,6 +157,7 @@ type lowerCtx struct {
 	impFoldExiled  bool      // every ImpPersist writer is a ChangeZone exile: IsImprinted+ExiledWithSource may fold (lower_imppersist.go)
 	bluffPlay      bool      // lowering the Play behind a nothing-remembered gate: ValidSA$ Spell.nonCreature+YouOwn may lower (lower_zone.go, Brazen Bluff; Yue's hand population, playOwnHand)
 	replEnter      bool      // inside an ETB replacement's ReplaceWith chain
+	exileRider     bool      // inside a dies-to-exile rider's prog: ReplacedCardLKI$CardPower may read the pre-move capture (value_repllki.go)
 	breachStage    int       // Breach the Multiverse's imprint chain: 1 the ChangeZone of Imprinted is next, 2 the Cleanup (lower_repeatgravechoice.go)
 	exileLandStage int       // Ensign Pavel Chekov's imprint chain: 1 the Imprinted Effect is next, 2 the Cleanup (lower_repeatexilechoice.go)
 	blind          *blindDig // a blind face-down Dig whose Effect lowers next (lower_blinddig.go)
@@ -2949,6 +2950,13 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 			if parts[1] == "OriginalHost" {
 				c.TapHost = true
 				continue
+			}
+			if bareSharesCr(parts[1]) {
+				// Forge reads a tap cost's bare sharesCreatureTypeWith
+				// (Weight of Conscience) as the tapped creatures sharing a
+				// type with each other; gorge's filter reads the source, so
+				// the cost stays refused until gorge models the group.
+				return c, refuse("tap cost %q: shared-creature-type group", t)
 			}
 			f, err := lc.filter(strings.ReplaceAll(parts[1], ";", ","))
 			if err != nil {

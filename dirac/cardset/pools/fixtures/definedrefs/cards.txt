@@ -1,0 +1,16 @@
+# the Defined$ referents pool: Regenerate over Defined$ Valid, the
+# TriggeredSourceSAController unless payer and a DefinedPlayer$ Player hand
+# move, for the oracle's constructed lockstep
+# (dirac/oracle/definedrefs_lockstep_test.go)
+Amulet of Safekeeping
+Forest
+Grizzly Bears
+Loxodon Hierarch
+Mind Swords
+Mountain
+Plains
+Sadistic Augermage
+Shock
+Swamp
+Wail of the Nim
+Wrap in Vigor

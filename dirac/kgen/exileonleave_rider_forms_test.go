@@ -19,6 +19,9 @@ var exileOnLeaveRiderForms = []struct {
 	{card: "Dauthi Voidwalker", kind: kop.CtrVoid},
 	{card: "Draugr Necromancer", kind: kop.CtrIce},
 	{card: "Kalitas, Traitor of Ghet"},
+	{card: "Head of the Hunt"},
+	{card: "Nemata, Primeval Warden"},
+	{card: "Ravenous Slime"},
 }
 
 func TestExileOnLeaveRiderForms(t *testing.T) {

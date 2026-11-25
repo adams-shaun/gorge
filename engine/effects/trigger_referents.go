@@ -319,6 +319,11 @@ type TriggerContext struct {
 	// cast in response to the trigger do not add copies. Zero outside a
 	// storm trigger.
 	TriggerStormCount int32
+	// TriggerScryNum is the number of cards a Mode$ Scry trigger's completed
+	// scry looked at (CR 701.22a; effects.ScryRecordLooked), captured at fire
+	// time. It is what the TriggerCount$ScryNum head answers. Zero outside a
+	// Scry trigger.
+	TriggerScryNum int32
 	// TriggerIncrementSpent is the mana spent to cast the triggering spell,
 	// captured when an Increment trigger fires (CR 702.191a). Increment's
 	// condition is an intervening "if" (CR 603.4) rechecked as the ability
@@ -710,16 +715,31 @@ func controlReferentPlayerAltKnown(a *playerAlt) bool {
 	}
 	playerBase := a.base == "Player" || a.base == "Any"
 	if kind, is := strings.CutPrefix(a.qualifier, "withMost"); is {
-		return playerBase && playerHasMostCodes.Code(kind) != 0
+		// Mirror playerHasMost exactly: life/hand counts from the table,
+		// permanent count, and the Type<X> family (with an optional "Only"
+		// suffix). The Type family is a prefix read, not a table key, so a
+		// table-only check wrongly called No Witnesses' withMostTypeCreature
+		// and Tectonic Hellion's withMostTypeLand unread.
+		kind = strings.TrimSuffix(kind, "Only")
+		return playerBase && (playerHasMostCodes.Code(kind) != 0 ||
+			kind == "PermanentInPlay" || strings.HasPrefix(kind, "Type"))
 	}
-	if rem, is := strings.CutPrefix(a.qualifier, "controlsCard."); is {
-		return playerBase && rem != ""
+	if rem, is := strings.CutPrefix(a.qualifier, "controls"); is {
+		// The evaluator reads the generic controls<ValidCards> property on
+		// every known base (Player/Any/You/Opponent/Other), so the
+		// classifier must not restrict it to Player/Any.
+		return rem != ""
 	}
-	if rem, is := strings.CutPrefix(a.qualifier, "controlsCreature."); is {
-		return playerBase && rem != ""
+	if rem, is := strings.CutPrefix(a.qualifier, "HasCardsIn"); is {
+		// matchesPlayerSingleSpec's HasCardsIn<zone>_<objspec> arm reads the
+		// object filter through the shared restrictions parsers; the same
+		// every-base rule as controls applies.
+		return rem != ""
 	}
-	if rem, is := strings.CutPrefix(a.qualifier, "controlsPermanent."); is {
-		return playerBase && rem != ""
+	if ref, is := strings.CutPrefix(a.qualifier, "wasDealtDamageThisGameBy "); is {
+		// matchesPlayerSingleSpec resolves the ref through the shared
+		// damage-record reader; an empty ref is not a spelling it reads.
+		return ref != ""
 	}
 	if a.qualCode != 0 {
 		return true
@@ -730,8 +750,12 @@ func controlReferentPlayerAltKnown(a *playerAlt) bool {
 	if _, _, _, ok := splitPlayerCountCompare(a.qualifier); ok {
 		return true
 	}
-	if _, _, ok := splitPlayerCompare(a.qualifier); ok {
-		return true
+	if _, rhs, ok := splitPlayerCompareToken(a.qualifier); ok {
+		// The SHAPE is what makes the qualifier read: matchesPlayerSpecSVars
+		// resolves a symbolic right-hand side (lifeEQX) from the context's or
+		// the source's SVars before the comparison. A numeric-only check here
+		// wrongly called Celestial Convergence's lifeEQX unread.
+		return rhs != ""
 	}
 	return false
 }

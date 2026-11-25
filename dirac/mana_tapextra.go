@@ -25,6 +25,51 @@ const StallTapExtra = 143
 
 func init() { stallNames[StallTapExtra] = "tapextra" }
 
+// eachTapExtra visits every StatTapExtra static in force: the battlefield and
+// emblem statics eachStatic walks, then a command-zone Vanguard's printed
+// static (Sisay), whose source has no perm slot (st.sl is NoSlot, st.cmd true).
+// The command-zone half is gated on prep.anyCmdTap, so a table with no
+// such static pays nothing, and only the tap-extra readers call this: a
+// command-zone static must never reach a reader that indexes st.sl as a perm.
+func (s *State) eachTapExtra(k *prep, f func(st statSrc) bool) {
+	stop := false
+	s.eachStatic(k, func(st statSrc) bool {
+		if !f(st) {
+			stop = true
+			return false
+		}
+		return true
+	})
+	if stop || k.gen == nil || !k.anyCmdTap {
+		return
+	}
+	for p := uint8(0); p < s.nSeats(); p++ {
+		if s.out(p) {
+			continue
+		}
+		for j := 0; j < 2; j++ {
+			o := s.cmdObj(p, j)
+			if o == NoObj || s.objs[o].zone != kop.ZoneCommand {
+				continue
+			}
+			card := s.objs[o].card
+			if k.gen.sCls[card]&sclsTapCmd == 0 {
+				continue
+			}
+			cd := &k.t.Cards[card]
+			for i := range cd.Abilities {
+				a := &cd.Abilities[i]
+				if a.Kind != kop.AbStatic || a.Static.Kind != kop.StatTapExtra || a.Static.Zone != kop.ZoneCommand {
+					continue
+				}
+				if !f(statSrc{a: a, sl: NoSlot, ctrl: p, obj: o, cmd: true}) {
+					return
+				}
+			}
+		}
+	}
+}
+
 // srcExtra is the mana the controller's StatTapExtra statics add when the
 // permanent at sl taps for mana through the ability pc describes. A
 // source the extra cannot be modelled on stalls (StallTapExtra) and adds
@@ -95,7 +140,7 @@ func (s *State) srcExtraPainPick(k *prep, sl Slot, pc *pcard) (r uint8, xv [kop.
 	}
 	prod := uint8(pc.painCol) & 0x3f
 	ctl := s.perms[sl].ctrl
-	s.eachStatic(k, func(st statSrc) bool {
+	s.eachTapExtra(k, func(st statSrc) bool {
 		a := &st.a.Static
 		if !s.tapExtraReaches(k, st, sl, ctl) {
 			return true
@@ -149,8 +194,8 @@ func (s *State) srcExtraAlt(k *prep, sl Slot, pc *pcard, colour bool) (xv [kop.N
 // source's own tap, yet the permanent is still tapped for mana.
 func (s *State) srcExtraTapped(k *prep, sl Slot, pc *pcard, colour bool) (xv [kop.NumManaKinds]uint8, hit bool) {
 	ctl := s.perms[sl].ctrl
-	eachPick := !colour && s.srcEachPick(k, sl, pc) == 1
-	s.eachStatic(k, func(st statSrc) bool {
+	eachPick := !colour && s.srcEachPick(k, sl, pc) > 0
+	s.eachTapExtra(k, func(st statSrc) bool {
 		a := &st.a.Static
 		if !s.tapExtraReaches(k, st, sl, ctl) {
 			return true
@@ -248,7 +293,7 @@ func (s *State) filtReflectPick(k *prep, sl Slot) (r uint8) {
 		return 0
 	}
 	ctl := s.perms[sl].ctrl
-	s.eachStatic(k, func(st statSrc) bool {
+	s.eachTapExtra(k, func(st statSrc) bool {
 		if s.tapExtraReaches(k, st, sl, ctl) && st.a.Static.StFlags&kop.StTapReflect != 0 {
 			r += uint8(st.a.Static.B)
 		}
@@ -279,7 +324,7 @@ func (s *State) filtEachReflect(k *prep, sl Slot, a *kop.Ability, xv *[kop.NumMa
 		return
 	}
 	ctl := s.perms[sl].ctrl
-	s.eachStatic(k, func(st statSrc) bool {
+	s.eachTapExtra(k, func(st statSrc) bool {
 		if sa := &st.a.Static; s.tapExtraReaches(k, st, sl, ctl) && sa.StFlags&kop.StTapReflect != 0 {
 			xv[first] += uint8(sa.B)
 		}
@@ -296,7 +341,7 @@ func (s *State) srcExtraPick(k *prep, sl Slot, pc *pcard, col int) (xv [kop.NumM
 	}
 	ctl := s.perms[sl].ctrl
 	hit := false
-	s.eachStatic(k, func(st statSrc) bool {
+	s.eachTapExtra(k, func(st statSrc) bool {
 		a := &st.a.Static
 		if !s.tapExtraReaches(k, st, sl, ctl) {
 			return true
@@ -343,7 +388,7 @@ var DebugTapAnyColOff bool
 // resolution.
 func (s *State) tapExtraReaches(k *prep, st statSrc, sl Slot, ctl uint8) bool {
 	a := &st.a.Static
-	if st.a.Kind != kop.AbStatic || a.Kind != kop.StatTapExtra || st.sl == NoSlot ||
+	if st.a.Kind != kop.AbStatic || a.Kind != kop.StatTapExtra || st.sl == NoSlot && !st.cmd ||
 		a.Cond2 != 0 || a.StFlags&(kop.StTapChosen|kop.StTapAnyCol|kop.StTapDynamic) != 0 ||
 		st.ctrl != ctl && a.StFlags&kop.StTapAnyPlayer == 0 {
 		return false
@@ -591,9 +636,15 @@ func (s *State) fillTapAnyColCost(k *prep, p uint8, sl Slot, cost *kop.ManaCost,
 	}
 	// The ask is answered before the tap's own mana reaches the pool: its
 	// demand is windowCol's owed cost, the snapshot gorge's WindowChoices
-	// reads (ManaPayment.Owed), not cost less the pool after the tap.
+	// reads (ManaPayment.Owed), not cost less the pool after the tap. That
+	// snapshot still takes the pool the payment already holds off the pips:
+	// a {4}{R} cast with a Mountain's {R} floating owes no {R}, so the extra
+	// answers the lowest colour (W), not the printed pip.
 	var due kop.ManaCost
 	s.windowOwedCost(k, p, cost, &due)
+	for c := range due.Pips {
+		due.Pips[c] -= min(due.Pips[c], s.pl[p].pool[c])
+	}
 	s.fillTapAnyColOwed(k, p, sl, &due.Pips)
 }
 
@@ -683,7 +734,9 @@ func anyColOwedColour(owed *[kop.NumManaKinds]uint8) int {
 // does not price (paymentPlanTapObservers folds it once), and the kernel's one
 // fixed extra models neither half.
 func (s *State) tapExtraEchoStall(k *prep, st statSrc) {
-	if k.gen == nil || !k.gen.anyPanharm {
+	if k.gen == nil || !k.gen.anyPanharm || st.sl == NoSlot {
+		// a command-zone Vanguard static has no permanent slot: Panharmonicon
+		// echoes a Taps trigger of a permanent, not the Vanguard's own
 		return
 	}
 	l := trigListener{obj: s.perms[st.sl].obj, sl: st.sl, ctrl: st.ctrl, card: s.cardAt(st.sl)}
@@ -750,7 +803,7 @@ func (s *State) srcReflectPick(k *prep, sl Slot, pc *pcard) (r uint8) {
 		return 0
 	}
 	ctl := s.perms[sl].ctrl
-	s.eachStatic(k, func(st statSrc) bool {
+	s.eachTapExtra(k, func(st statSrc) bool {
 		if a := &st.a.Static; a.StFlags&kop.StTapReflect != 0 && s.tapExtraReaches(k, st, sl, ctl) {
 			r += uint8(a.B)
 		}
@@ -775,7 +828,7 @@ func (s *State) srcEachPick(k *prep, sl Slot, pc *pcard) (r uint8) {
 		return 0
 	}
 	ctl := s.perms[sl].ctrl
-	s.eachStatic(k, func(st statSrc) bool {
+	s.eachTapExtra(k, func(st statSrc) bool {
 		if a := &st.a.Static; a.StFlags&kop.StTapReflect != 0 && s.tapExtraReaches(k, st, sl, ctl) {
 			r += uint8(a.B)
 		}
@@ -790,11 +843,11 @@ func eachPickMask(pc *pcard) uint8 { return uint8(pc.manaCol)&0x3f | xvMask(pc) 
 
 // addEachPick adds the census unit of an all-at-once source's reflected pick:
 // one more mana of one of the produced types, beside the production's own units
-// (the unit's colour, srcExtra's rest). A single pick is one unit of the
-// produced mask; two carriers' picks are independent asks srcExtra stalls on.
+// (the unit's colour, srcExtra's rest). Each carrier's pick is one more unit
+// of the produced mask: independent asks, each of its own colour.
 func (s *State) addEachPick(k *prep, a *avail, sl Slot, pc *pcard) {
-	if s.srcEachPick(k, sl, pc) == 1 {
-		a.addUnits(eachPickMask(pc), 1)
+	if r := s.srcEachPick(k, sl, pc); r > 0 {
+		a.addUnits(eachPickMask(pc), r)
 	}
 }
 
@@ -815,7 +868,8 @@ func xvTotals(xv *[kop.NumManaKinds]uint8) (xm, xt uint8) {
 // mana of one of its types, which the search picks per need. It reports whether
 // the source is such a unit.
 func (s *State) planEachPick(k *prep, sl Slot, pc *pcard, xv *[kop.NumManaKinds]uint8, xm, xt, tn, mask, dmk *uint8) bool {
-	if pc.painCol != 0 || s.srcEachPick(k, sl, pc) != 1 {
+	r := s.srcEachPick(k, sl, pc)
+	if pc.painCol != 0 || r == 0 {
 		return false
 	}
 	col := bits.TrailingZeros8(uint8(pc.manaCol))
@@ -823,7 +877,7 @@ func (s *State) planEachPick(k *prep, sl Slot, pc *pcard, xv *[kop.NumManaKinds]
 	*xm |= 1 << col
 	*xt += pc.manaN
 	*mask = eachPickMask(pc)
-	*dmk, *tn = *mask, 1
+	*dmk, *tn = *mask, r // one pick per carrier (reflectPickPark asks each)
 	return true
 }
 
@@ -832,6 +886,12 @@ func (s *State) planEachPick(k *prep, sl Slot, pc *pcard, xv *[kop.NumManaKinds]
 // make (reflectPickPark): it reports whether the plan stops for that ask.
 func (s *State) addXvPick(p uint8, ty *utype, col int) bool {
 	s.addXv(p, &ty.xv)
+	return s.addXvPickPark(p, ty, col)
+}
+
+// addXvPickPark is addXvPick's reflected-pick tail, shared with
+// addXvPickLess (mana_eachrestr.go).
+func (s *State) addXvPickPark(p uint8, ty *utype, col int) bool {
 	return ty.pick && s.reflectPickPark(p, ty, col)
 }
 
@@ -986,8 +1046,8 @@ func (s *State) removeSrc(k *prep, a *avail, sl Slot, pc *pcard) {
 			a.remove(1<<c, xv[c])
 		}
 	}
-	if s.srcEachPick(k, sl, pc) == 1 {
-		a.remove(eachPickMask(pc), 1)
+	if r := s.srcEachPick(k, sl, pc); r > 0 {
+		a.remove(eachPickMask(pc), r)
 	}
 }
 
@@ -1300,8 +1360,9 @@ func (s *State) tapAnyColDeferExtra(k *prep, m slotMask) bool {
 // census's, so it must not stop the prefix from tapping the gap. Otherwise the
 // mana step's plan taps the land without the trigger's extra, while gorge's
 // tap resolves it (Dawn's Reflection on the Mountain paying Shiv's Embrace's
-// {R} floats the two extra mana in gorge only). This is the availNoActScript
-// probe scriptPrefix uses; elsewhere the probe stays the full listing.
+// {R} floats the two extra mana in gorge only). scriptPrefix uses it for its
+// root probe, and scriptDFS's node check reads it through restrOptionsProbe;
+// elsewhere the probe stays the full listing.
 func (s *State) prefixAnyProbe(k *prep, p uint8) uint16 {
 	if !s.scriptFilt(k, p).any() && s.tapAnyColDeferExtra(k, s.scriptTapsDefer(k, p)) {
 		return availNoActScript

@@ -379,6 +379,9 @@ func typeMask(t uint16) kop.TypeMask {
 	if t&tKindred != 0 {
 		m |= kop.TKindred
 	}
+	if t&tVanguard != 0 {
+		m |= kop.TVanguard
+	}
 	return m
 }
 
@@ -2814,15 +2817,6 @@ func changelingSubs(pt *poolTables, subs []uint8) []uint8 {
 	}
 	for _, w := range effects.CreatureTypeWordList() {
 		if i, ok := pt.subIdx[w]; ok && !have[uint8(i)] {
-			have[uint8(i)] = true
-			subs = append(subs, uint8(i))
-		}
-	}
-	// CR 205.3m's joined multi-word creature type (Time Lord) is a pool
-	// subtype gorge's Changeling has (effects.CreatureTypeWords) though the
-	// list offers only its words.
-	for i, w := range pt.subtypes {
-		if strings.IndexByte(w, ' ') >= 0 && effects.CreatureTypeWords(w) && !have[uint8(i)] {
 			have[uint8(i)] = true
 			subs = append(subs, uint8(i))
 		}

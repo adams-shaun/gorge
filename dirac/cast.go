@@ -268,10 +268,23 @@ func (s *State) tapRiderPlan(k *prep, e stackEntry) {
 	// gorge plans the cost paymentMana leaves, the announced convoke picks
 	// (applyConvoke) already off it
 	raw := s.convokeApplyPicks(k, s.buildCost(k))
-	pc := planUnderRider(raw, fl&sfAnyMana != 0, bf&bflAnyColor != 0)
 	s.bld().e.flags, s.bld().bfl, s.bld().fixedGen = fl, bf, fg
 	var av avail
 	s.availFor(k, e.ctrl, &av)
+	if fl&sfAnyMana != 0 && e.kind == seSpell && k.t != nil &&
+		k.t.Cards[e.card].Cost.Hyb[0] == kop.HybTwobrid && raw.Hyb[0] == 0 && raw.Tb == 0 {
+		// A twobrid cast's announced pips are colour pips; gorge's planner
+		// resolves them before the rider fold (planTwobridCost), so the plan
+		// is the printed sources' colour-face plan when they can fund it. The
+		// rider fold is the fallback for a board they cannot (a granted or
+		// any-colour source pays the colour face, CR 107.4e, 609.4b).
+		r := raw.AtX(int(e.x))
+		if av.affords(&r, pipMaskOf(&r), 0) {
+			s.tapFor(k, e.ctrl, &r, int(e.x), e.obj)
+			return
+		}
+	}
+	pc := planUnderRider(raw, fl&sfAnyMana != 0, bf&bflAnyColor != 0)
 	pcx := pc.AtX(int(e.x))
 	if pc.Hyb[0] == 0 && av.affords(&pcx, pipMaskOf(&pcx), 0) {
 		// an any-colour rider (not any type) keeps the fold only while its
@@ -1418,6 +1431,9 @@ func (s *State) modeTargetFeasible(k *prep, t *kop.TargetSpec) bool {
 func (s *State) modeFeasible(k *prep, a *kop.Ability, m int) bool {
 	if k.gen != nil && k.gen.anyCharmPick && s.charmPickBarred(a, s.bld().e.obj, m) {
 		return false // ChoiceRestriction$: chosen before (modal_charmpick.go)
+	}
+	if a.AFlags&kop.AfCharmTrigger != 0 && !s.modeUnlessPayable(k, a, m, s.bld().e.ctrl) {
+		return false // a GenericChoice mode whose UnlessCost$ the controller cannot pay (modal_unless.go)
 	}
 	for i := 0; i < int(a.NTargets); i++ {
 		t := &a.Targets[i]

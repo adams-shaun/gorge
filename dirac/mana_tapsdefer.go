@@ -75,12 +75,16 @@ func (s *State) tapsWatchClassForeign(k *prep, p uint8, sl Slot) (painN int, def
 				continue // Activator$ Player.NonActive: the payer taps on their own turn
 			}
 			if a.Trig.Flags&kop.TfSelf != 0 {
-				// the source's own Pain-class line (City of Brass) is priced
-				// with its printed mana ability (prepSelfTapsPain), and a
-				// self line classes no other source
-				continue
-			}
-			if !s.matchPermGen(k, a.Trig.Filter, sl, s.perms[w].ctrl, w, layerFull) {
+				// A self line classes only the tapped source's own tap. The
+				// Pain class stays with prepSelfTapsPain (City of Brass's
+				// printed mana ability); a Defer line classes the source when
+				// its listener slot is the tapped one (Zhur-Taa Druid's self
+				// TapsForMana line, whose ValidCard$ Card.Self is the
+				// builder's kop.TfSelf flag and not a filter).
+				if a.Trig.TapPlan != kop.TapPlanDefer || w != sl {
+					continue
+				}
+			} else if !s.matchPermGen(k, a.Trig.Filter, sl, s.perms[w].ctrl, w, layerFull) {
 				continue
 			}
 			// The gates gorge's real matcher applies (triggers_gen.go: FirstTime$
@@ -171,6 +175,11 @@ func (s *State) tapsDeferDead(k *prep, p uint8) slotMask {
 // is classed by the watchers like any other); tests only.
 var DebugNoReflTapsUnwatched bool
 
+// DebugNoDeferredRefl drops the reflected census unit reflCensusUnit keeps
+// for a Taps-deferred reflected source (it defers the whole source again);
+// tests only.
+var DebugNoDeferredRefl bool
+
 // reflTapsUnwatched reports whether sl's live mana view is a lone AB$
 // ManaReflected ability (pcard.manaRefl: Quirion Explorer, Exotic Orchard,
 // Mox Amber, Chrome Mox), whose tap gorge's planner never runs past the Taps
@@ -184,6 +193,22 @@ var DebugNoReflTapsUnwatched bool
 // intrinsic ability it leaves has a production, so its watchers still apply.
 func (s *State) reflTapsUnwatched(k *prep, sl Slot) bool {
 	return !DebugNoReflTapsUnwatched && k.gen.has(s.cardAt(sl), gfManaRefl) && s.manaPCGen(k, sl).manaRefl
+}
+
+// reflCensusUnit reports whether sl is a Taps-deferred source whose reflected
+// ability is one mana ability beside others (Plaza of Heroes), not the lone
+// reflected view reflTapsUnwatched already keeps. A reflected ability has no
+// Produced$, so gorge's interference walk names no production for it and
+// leaves it a TierNormal census unit whatever watches the tap (payment_plan_
+// interference.go paymentPlanSourceInterference); only the source's other
+// abilities are deferred. gorge's potential bound prices that unit
+// (addPotentialReflected), so the walks read it beside the source's
+// Taps-deferred gap, as availAnyR already assumes ("a Plaza counts twice").
+// The plain planner census keeps the source out, matching gorge's deferred
+// plan. A lone reflected view stays reflTapsUnwatched's (the mutation test's
+// source), so the debug switch keeps designing the same divergence.
+func (s *State) reflCensusUnit(k *prep, sl Slot) bool {
+	return !DebugNoDeferredRefl && k.gen != nil && k.gen.has(s.cardAt(sl), gfManaRefl) && !loneManaAb(&k.t.Cards[s.cardAt(sl)])
 }
 
 // grantedTapsClass classes the granted Taps watchers over sl (tapsWatchClass's
@@ -428,10 +453,10 @@ func (s *State) scriptTapsDefer(k *prep, p uint8) slotMask {
 			m = m.with(sl)
 			continue
 		}
-		if !s.planDeferred(k, p, sl) {
+		if !s.planDeferred(k, p, sl) && !s.askColGap(k, sl) {
 			continue
 		}
-		if s.askColDeferred(k, sl) {
+		if s.askColGap(k, sl) {
 			if s.askColUsable(k, sl) {
 				m = m.with(sl) // a colour-asking source (mana_askcolour.go): the prefix search poses its ask
 			}
@@ -658,8 +683,16 @@ func (s *State) restrCensusTapsGap(k *prep, p uint8, sl Slot) bool {
 // is (the play pays it from the floating batches). A source the extra cannot
 // be priced on stalls (srcExtra).
 func (s *State) addTapsDeferUnits(k *prep, sl Slot, av *avail) {
-	if s.askColDeferred(k, sl) {
-		s.askColBoundUnit(k, sl, av) // mana_askcolour.go
+	if s.askColGap(k, sl) {
+		if s.askColDeferred(k, sl) {
+			// the source's FIRST ability is the ask: it has no ordinary unit,
+			// so the relaxed gate prices the ask (mana_askcolour.go), its fee
+			// charged on top of the cost as availFilt does for a filter.
+			s.askColBoundUnit(k, sl, av)
+			av.total -= s.askColFee(k, sl)
+		}
+		// a later ask (Nykthos's {2}, {T} behind its {T}: {C}) keeps the first
+		// ability's ordinary unit; the one tap is priced there, not twice.
 		return
 	}
 	if s.restrCensusTapsGapShape(k, sl) {
@@ -674,6 +707,9 @@ func (s *State) addTapsDeferUnits(k *prep, sl Slot, av *avail) {
 		pc := s.manaPCGen(k, sl)
 		av.addUnits(s.srcMaskAt(pc, sl)|uint8(ab.ManaColors&kop.ColAny),
 			max(s.srcYieldAt(k, sl, pc), max(ab.ManaN, 1)))
+		if k.gen.anyTapExtra {
+			s.tapsDeferAnyColUnits(k, sl, av) // the relaxed alternative carries the open trigger's mana too
+		}
 		return
 	}
 	if s.restrTapsGapShape(k, sl) {
@@ -789,7 +825,7 @@ func (s *State) tapsDeferGapOwn(k *prep, sl Slot) bool {
 // the plain first ability as answer 0 when the rider is a later ability
 // (Grove of the Burnwillows; riderPlainFirst).
 func (s *State) deferGapAnswers(k *prep, sl Slot) uint8 {
-	if s.askColDeferred(k, sl) {
+	if s.askColGap(k, sl) {
 		return s.askColDeferAnswers(k, sl) // mana_askcolour.go
 	}
 	if s.restrCensusTapsGapShape(k, sl) {
@@ -845,10 +881,12 @@ func tapsDeferPainCol(k *prep, pc *pcard, mask uint8) (int, bool) {
 // answer-0 activation of a gap whose rider comes later (riderPlainFirst):
 // one fixed colour into the plain pool, exactly tapDeferFloat's non-rider
 // arm.
-func (s *State) tapDeferPlain(k *prep, p uint8, sl Slot, a Action) {
+func (s *State) tapDeferPlain(k *prep, p uint8, sl Slot, a Action, forced int) {
 	pc := s.manaPCGen(k, sl)
 	col := bits.TrailingZeros8(uint8(pc.manaCol))
-	s.fillTapAnyCol(k, p, sl, a, col, 1)
+	if forced == 0 {
+		s.fillTapAnyCol(k, p, sl, a, col, 1)
+	}
 	s.pl[p].pool[col]++
 	s.addExtra(k, p, sl, pc) // the tap's StatTapExtra mana floats beside it (addTapsDeferUnits)
 	s.artTag(k, p, sl, col)
@@ -866,12 +904,22 @@ func (s *State) tapDeferPlain(k *prep, p uint8, sl Slot, a Action) {
 // floats its plain {C} (tapDeferPlain), a colour answer floats the restricted
 // mana (floatRestrAb) the payment admits only on an Elemental play (CR
 // 605.1a).
-func (s *State) restrCensusDeferGap(k *prep, p uint8, a Action, sl Slot, c int) {
+func (s *State) restrCensusDeferGap(k *prep, p uint8, a Action, sl Slot, c, forced int) {
 	s.perms[sl].flags |= pfTapped
 	s.touchSl(sl)
 	s.manaTapped(k, sl)
+	if forced > 0 {
+		s.fillTapAnyCol(k, p, sl, a, 0, 0)
+		s.forceAnyColAnswers(forced) // the search's answers to the triggers' colour asks (tapAnyColAsks)
+	}
+	s.restrCensusFloat(k, p, a, sl, c, forced)
+	s.g.rsv[anyColForcedAt] = 0 // the search's answers end with the tap
+}
+
+// restrCensusFloat floats answer c of restrCensusDeferGap's tap.
+func (s *State) restrCensusFloat(k *prep, p uint8, a Action, sl Slot, c, forced int) {
 	if c == 0 {
-		s.tapDeferPlain(k, p, sl, a)
+		s.tapDeferPlain(k, p, sl, a, forced)
 		return
 	}
 	ab := &k.t.Cards[s.cardAt(sl)].Abilities[k.gen.restrRecOf(s.cardAt(sl)).ab]
@@ -891,6 +939,9 @@ func (s *State) restrCensusDeferGap(k *prep, p uint8, a Action, sl Slot, c int) 
 	if !s.floatRestrAb(k, p, sl, ab, int(order[c-1]), max(ab.ManaN, 1)) {
 		s.capFull(StallRestrSrc) // every batch is taken: never a silent spill
 	}
+	if forced > 0 {
+		s.addExtra(k, p, sl, s.manaPCGen(k, sl)) // the answered triggers' mana floats beside the restricted one
+	}
 }
 
 // tapDeferFloat floats the Taps-deferred source at sl's mana in the
@@ -904,12 +955,13 @@ func (s *State) tapDeferFloat(k *prep, p uint8, sl Slot, c int, play Action) {
 // tapDeferFloatAsks is tapDeferFloat with the search's packed answers to the
 // tap's any-colour triggers' colour asks (tapAnyColAnswerBits; 0: the
 // deterministic fill).
-func (s *State) tapDeferFloatAsks(k *prep, p uint8, sl Slot, c, forced int, play Action) {
-	s.tapDeferFloatBody(k, p, sl, c, forced, play)
+func (s *State) tapDeferFloatAsks(k *prep, p uint8, sl Slot, c, forced int, play Action) bool {
+	ok := s.tapDeferFloatBody(k, p, sl, c, forced, play)
 	s.g.rsv[anyColForcedAt] = 0 // the search's answers end with the tap
+	return ok
 }
 
-func (s *State) tapDeferFloatBody(k *prep, p uint8, sl Slot, c, forced int, play Action) {
+func (s *State) tapDeferFloatBody(k *prep, p uint8, sl Slot, c, forced int, play Action) bool {
 	// The ask, rider and restricted arms below float no pick this tap made
 	// (own mana 0); the pain and plain arms answer again with the colour and
 	// amount they float, which only the second answer (anyColOwed) reads —
@@ -919,13 +971,12 @@ func (s *State) tapDeferFloatBody(k *prep, p uint8, sl Slot, c, forced int, play
 	if forced > 0 {
 		s.forceAnyColAnswers(forced) // the search's answers to the triggers' colour asks (tapAnyColAsks)
 	}
-	if s.askColDeferred(k, sl) {
-		s.askColDeferFloat(k, p, sl, c) // mana_askcolour.go
-		return
+	if s.askColGap(k, sl) {
+		return s.askColDeferFloatOK(k, p, sl, c) // mana_askcolour.go
 	}
 	if a, ok := s.riderAbilityOf(k, sl); ok {
 		s.manaRiderFloat(k, p, sl, a, c)
-		return
+		return true
 	}
 	if s.restrTapsGapShape(k, sl) {
 		// the restricted gap's mana floats restricted (tapGap's restr arm):
@@ -934,7 +985,7 @@ func (s *State) tapDeferFloatBody(k *prep, p uint8, sl Slot, c, forced int, play
 		if !s.floatRestrAb(k, p, sl, ab, bits.TrailingZeros8(uint8(ab.ManaColors)), max(ab.ManaN, 1)) {
 			s.capFull(StallRestrSrc) // every batch is taken: never a silent spill
 		}
-		return
+		return true
 	}
 	pc := s.blgGapPC(k, sl)     // an intrinsic-unit rider source floats its rider's mana (blgGapPC)
 	mask := s.srcMaskAt(pc, sl) // a Combo Chosen source (Cliffgate) reads its chosen colour beside the printed one
@@ -947,7 +998,7 @@ func (s *State) tapDeferFloatBody(k *prep, p uint8, sl Slot, c, forced int, play
 		s.addExtraCol(k, p, sl, pc, pcol) // the tap's StatTapExtra mana floats beside it, of the pick this tap made (CR 106.12a)
 		s.artTag(k, p, sl, pcol)
 		s.painDamage(k, sl, p, int(pc.painN))
-		return
+		return true
 	}
 	for i := 0; i < c; i++ {
 		mask &= mask - 1
@@ -967,6 +1018,7 @@ func (s *State) tapDeferFloatBody(k *prep, p uint8, sl Slot, c, forced int, play
 	if k.painMana && pc.painCol != 0 && pc.painOnly {
 		s.painDamage(k, sl, p, int(pc.painN)) // a pain-only source's rider resolves with its mana (Elves of Deep Shadow)
 	}
+	return true
 }
 
 // deferSeenKey is gorge's scriptStateKey over the deferred gaps' search: the

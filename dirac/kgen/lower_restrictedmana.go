@@ -157,14 +157,17 @@ func restrictedManaUnit(c lCost, m *lMana) bool {
 // Hall of the Citadel, Orb of Dragonkind), or one mana of each of a fixed set
 // of colours (Cormela, Glamour Thief's {U}{B}{R}), or one mana of any colour
 // (Hydro-Channeler's Produced$ Any, a fee alternative beside a free restricted
-// one: refuseMultiMana refuses it anywhere else, refuseFeeAnyAlone). Combo AnyDifferent stays
-// refused: its units are distinct only together, and the availability model's
-// groups cannot couple two units.
+// one: refuseMultiMana refuses it anywhere else, refuseFeeAnyAlone), or two
+// mana of different colours (Combo AnyDifferent, Interplanar Beacon) as two
+// any-colour units the availability model couples (avail.nDist); a larger
+// amount of a distinct pair has no such model and keeps the refusal.
 func restrictedFeeProduction(m *lMana) bool {
 	if !m.Amount.isConst() || m.Amount.N < 1 || m.Amount.N > maxRestrictedFeeAmount {
 		return false
 	}
 	switch {
+	case m.Colors == "AnyDifferent":
+		return m.Choice && !m.Each && m.Amount.N == 2
 	case m.Each:
 		// one mana of each of a fixed set of colours (Cormela's {U}{B}{R}),
 		// two to five colours, each a literal amount
@@ -180,8 +183,9 @@ func restrictedFeeProduction(m *lMana) bool {
 
 // restrictedLifeTap reports whether c is exactly "{T}, Pay N life" (N a
 // fixed count): the cost of a restricted last-resort unit (kernel
-// mana_restrictedcost.go). A source with another mana ability stays refused
-// by refuseMultiMana, which models a life ability only unrestricted.
+// mana_restrictedcost.go). A source with another mana ability admits it only
+// through refuseMultiMana's pair arm (a plain census ability beside it,
+// kernel painUnit).
 func restrictedLifeTap(c lCost) bool {
 	if !c.Tap || c.PayLife < 1 {
 		return false

@@ -1961,7 +1961,10 @@ func (s *scan) closureReads(fi *fnInfo, exclude map[string]bool, visited map[str
 // reflected permanent's own mana abilities' Produced$ through effects.ManaOf;
 // followed, compileMana's reads (the AddsCounters$/PersistentMana$/... riders)
 // would join api:ManaReflected's read set and mask a reflected ability's own
-// unread rider. The rot guard fails on an entry naming no effects function.
+// unread rider. The set is cut from both an API implementation's closure and
+// effects.Resolve's generic closure (the filter matcher can also inspect a
+// foreign permanent's mana abilities). The rot guard fails on an entry naming
+// no effects function.
 var foreignAbilityReaders = map[string]bool{
 	"producibleSymbols": true,
 	// engine/effects/effect.go: effChangeZone's CR 610.3b guard
@@ -2601,7 +2604,13 @@ func (s *scan) derived() *derivedReads {
 	// same way the rules machinery does.
 	effectsGeneric := map[bucket]map[string]bool{}
 	if fi := s.fns["effects:Resolve"]; fi != nil {
-		s.closureReads(fi, nil, map[string]bool{}, effectsGeneric)
+		// Resolve's closure now reaches the generic filter matcher, and a
+		// filter predicate can inspect another permanent's mana abilities
+		// (Mana Web's canProduceSameManaTypeWith -> producibleSymbols). Those
+		// are foreign-ability reads exactly like the API-closure case below:
+		// cut them here too, or compileMana's rider keys join every API's
+		// read set and mask each primitive's genuinely unread riders.
+		s.closureReads(fi, foreignAbilityReaders, map[string]bool{}, effectsGeneric)
 	}
 	for api, fn := range s.apiImpl {
 		out := map[bucket]map[string]bool{}

@@ -97,7 +97,8 @@ type result struct {
 
 func main() {
 	row := flag.String("row", "", "random | bot | clone | step | az | sampler")
-	pair := flag.String("pair", "A", "A | B | burn (random, bot); search rows use A+B")
+	pair := flag.String("pair", "A", "A | B | burn | fdc | fdc-sub (random, bot; fdc is 4-seat Commander pods of the FDC precons, fdc-sub the same pods read from -pod-dir); search rows use A+B")
+	podDir := flag.String("pod-dir", "", "pair fdc-sub: directory of the five foundations-* deck files (dirac/cmd/dpod -write)")
 	deckDir := flag.String("decks", "cmd/enginebench/testdata/decks", "directory of FDN .dck files (the committed workload decks; see its README)")
 	burn := flag.String("burn", "cmd/enginebench/testdata/decks/burn.json", "Burn mirror deck (SpellBench pauper-kernel JSON)")
 	cardsDir := flag.String("cards", ".cards", "corpus directory")
@@ -161,7 +162,7 @@ func main() {
 		if err != nil {
 			return err
 		}
-		w := workload{reg: reg, deckDir: *deckDir, burn: *burn, paidManaCensus: *paidManaCensus}
+		w := workload{reg: reg, deckDir: *deckDir, burn: *burn, paidManaCensus: *paidManaCensus, podDir: *podDir}
 		runtime.GC()
 		var ms runtime.MemStats
 		runtime.ReadMemStats(&ms)

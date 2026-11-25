@@ -39,6 +39,21 @@ func xFolded(cost kop.ManaCost, x int) kop.ManaCost {
 	return cost.AtX(x)
 }
 
+// xWindowPays: an announced-X activation pays through gorge's manual window
+// (xWindowPay) unless gorge armed its planner's witness at the least X and the
+// announced X re-plans (rules armAbilityAutoPay at planAbilityPayment's X
+// floor, then rearmAutoPay; CR 602.2b), when the planner pays it instead.
+func (s *State) xWindowPays(k *prep, e *stackEntry, a *kop.Ability, sl Slot, cost *kop.ManaCost, saved *[len(build{}.picks)]uint8) bool {
+	if cost.X == 0 || s.cfg&cfgGorgeSurface == 0 {
+		return false
+	}
+	if k.gen != nil && k.gen.anyWaterbend && waterbendIsX(a) || hybridX(a) {
+		return true // gorge's planner keeps declining a Waterbend<X> or hybrid {X} cost (planAbilityPayment)
+	}
+	floor := xFolded(s.abPlannedCost(k, a, sl, e.ctrl), costXMin(&a.Cost))
+	return !s.abilityPlanSettles(k, e, floor, floor, *cost, saved)
+}
+
 // xWindowPay pays an announced X through gorge's manual CR 601.2g window, which its
 // planner leaves such a cost to (pay.PlanCostDetail "cost:x"): the first useful
 // source, repeated until the pool pays. It reports false when the sources run out;
@@ -56,6 +71,12 @@ func (s *State) xWindowPay(k *prep, e *stackEntry, cost *kop.ManaCost) bool {
 		s.pl[e.ctrl].pool[col] += held[col]
 	}
 	return ok
+}
+
+// hybridX: a's mana cost carries {X} and a two-colour hybrid pip, which
+// gorge's planner declines (planAbilityPayment; Fiend Artisan's {X}{B/G}).
+func hybridX(a *kop.Ability) bool {
+	return a.Cost.Mana.X != 0 && a.Cost.Mana.Hyb[0] != 0 && a.Cost.Mana.Hyb[0] != kop.HybTwobrid
 }
 
 // windowRestrDynMask is the colours of the restricted evaluated-amount ability at sl

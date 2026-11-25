@@ -84,32 +84,142 @@ func exileTokenRider(w *cards.SA) (*cards.SA, bool) {
 	if len(bp.unread()) != 0 {
 		return nil, false
 	}
-	t := w.Sub
-	if t.API != "Token" || t.Sub != nil {
+	if !exileTokenNode(w.Sub) {
 		return nil, false
+	}
+	return w.Sub, true
+}
+
+// exileTokenNode reports whether t is exactly one token from a script for the
+// replacing permanent's controller, the body both token riders share.
+func exileTokenNode(t *cards.SA) bool {
+	if t == nil || t.API != "Token" || t.Kind != "DB" || t.Sub != nil {
+		return false
 	}
 	tp := newParams(t.Params)
 	script := strings.TrimSpace(tp.str("TokenScript"))
 	if script == "" || strings.Contains(script, ",") || tp.str("TokenOwner") != "You" {
-		return nil, false
+		return false
 	}
 	if _, ok := tp.get("TokenAmount"); ok {
+		return false
+	}
+	return true
+}
+
+// exileReflexTokenRider reports whether w is the dies-to-exile move of
+// ReplacedCard whose linked sub-ability is an ImmediateTrigger (CR 603.12)
+// whose Execute$ resolves to the same single-token body exileTokenRider
+// accepts (Head of the Hunt's Wolf, Nemata's Saproling). The ImmediateTrigger
+// must carry only Execute$ and the descriptive TriggerDescription$: an amount,
+// a remember capture or Static$ is not this rider. It returns the resolved
+// Token node, the body the kernel puts on the stack as a reflexive trigger.
+func exileReflexTokenRider(w *cards.SA, face *cards.Face) (*cards.SA, bool) {
+	bp, ok := exileMoveHead(w)
+	if !ok || face == nil || w.Sub == nil {
+		return nil, false
+	}
+	if _, ok := bp.get("WithCountersType"); ok {
+		return nil, false
+	}
+	if _, ok := bp.get("WithCountersAmount"); ok {
+		return nil, false
+	}
+	if h, ok := bp.get("Hidden"); ok && !strings.EqualFold(h, "True") {
+		return nil, false
+	}
+	bp.consume("Defined", "Destination", "Origin", "Hidden", "SubAbility")
+	if len(bp.unread()) != 0 {
+		return nil, false
+	}
+	it := w.Sub
+	if it.API != "ImmediateTrigger" || it.Sub != nil {
+		return nil, false
+	}
+	for _, k := range sortedParamKeys(it.Params) {
+		if k != "Execute" && k != "TriggerDescription" {
+			return nil, false
+		}
+	}
+	t := cards.ResolveSVar(face.SVars, strings.TrimSpace(it.Params["Execute"]))
+	if !exileTokenNode(t) {
 		return nil, false
 	}
 	return t, true
 }
 
+// exileReplLKIRider reports whether w is the dies-to-exile move of
+// ReplacedCard whose linked PutCounter puts +1/+1 counters on the replacing
+// permanent equal to the exiled card's power (Ravenous Slime). The count's
+// SVar chain must resolve to ReplacedCardLKI$CardPower, the value the kernel
+// captures before the move (value_repllki.go). It is a prog rider: the
+// PutCounter runs after the exile move, like Kalitas's token.
+func exileReplLKIRider(w *cards.SA, face *cards.Face) bool {
+	bp, ok := exileMoveHead(w)
+	if !ok || face == nil || w.Sub == nil {
+		return false
+	}
+	if _, ok := bp.get("WithCountersType"); ok {
+		return false
+	}
+	if _, ok := bp.get("WithCountersAmount"); ok {
+		return false
+	}
+	if h, ok := bp.get("Hidden"); ok && !strings.EqualFold(h, "True") {
+		return false
+	}
+	bp.consume("Defined", "Destination", "Origin", "Hidden", "SubAbility")
+	if len(bp.unread()) != 0 {
+		return false
+	}
+	pc := w.Sub
+	if pc.API != "PutCounter" || pc.Sub != nil {
+		return false
+	}
+	pp := newParams(pc.Params)
+	if pp.str("Defined") != "Self" || pp.str("CounterType") != "P1P1" {
+		return false
+	}
+	n := strings.TrimSpace(pp.str("CounterNum"))
+	if n == "" {
+		return false
+	}
+	pp.consume("Defined", "CounterType", "CounterNum")
+	if len(pp.unread()) != 0 {
+		return false
+	}
+	for i := 0; i < 4 && n != ""; i++ {
+		if n == "ReplacedCardLKI$CardPower" {
+			return true
+		}
+		body, ok := face.SVars[n]
+		if !ok {
+			return false
+		}
+		n = strings.TrimSpace(body)
+	}
+	return false
+}
+
 // exileRiderClaim classifies a dies-to-exile body exileBody rejected.
 // claimed is false when the body is no rider shape and the caller falls
 // through to the other Moved-to-Graveyard lowerings. A claimed body is either
-// the token rider (token true, err nil) or refused by name: the counter
-// riders without a lowering and any other sub-ability chain name their first
-// node, never the generic "Moved to Graveyard shape".
-func exileRiderClaim(w *cards.SA) (token, claimed bool, err error) {
+// a token rider (token true, err nil) -- the direct Token chain or the
+// ImmediateTrigger reflexive form whose Execute$ resolves on face -- or
+// refused by name: the counter riders without a lowering and any other
+// sub-ability chain name their first node, never the generic "Moved to
+// Graveyard shape".
+func exileRiderClaim(w *cards.SA, face *cards.Face) (token, claimed bool, err error) {
 	if exileCounterRider(w) {
 		return false, true, refuse("repl-hard: dies-to-exile counter rider")
 	}
 	if _, ok := exileTokenRider(w); ok {
+		return true, true, nil
+	}
+	if _, ok := exileReflexTokenRider(w, face); ok {
+		return true, true, nil
+	}
+	if exileReplLKIRider(w, face) {
 		return true, true, nil
 	}
 	if _, ok := exileMoveHead(w); ok && w.Sub != nil {
@@ -127,6 +237,9 @@ func (lc *lowerCtx) exileRiderProg(w *cards.SA, anyZone bool, rl *lRepl) error {
 		return refuse("repl-hard: dies-to-exile rider on the any-zone path")
 	}
 	ab := &lAbility{Kind: akLatent}
+	saved := lc.exileRider
+	lc.exileRider = true
+	defer func() { lc.exileRider = saved }()
 	if err := lc.withAbility(ab, func() error { return lc.chain(w.Sub, nil) }); err != nil {
 		return err
 	}

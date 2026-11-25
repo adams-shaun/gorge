@@ -998,6 +998,12 @@ const (
 	// arm, 2 = DestinationZone2$) whose moved cards join Remembered. Read by
 	// effects' compileDig. Appended: earlier ordinals stay stable.
 	PKRememberMovedToZone
+	// NoteCounterDefined$ on an Effect and WithNotedCounters$ on a ChangeZone
+	// (Tawnos's Coffin): the Effect notes the defined objects' counters and the
+	// return puts them back. Read by effects' compileEffect and the ChangeZone
+	// compiler. Appended: earlier ordinals stay stable.
+	PKNoteCounterDefined
+	PKWithNotedCounters
 	paramKeyCount
 )
 
@@ -1211,6 +1217,8 @@ var paramKeyNames = [paramKeyCount]string{
 	PKRememberDamaged:                  "RememberDamaged",
 	PKRememberLKI:                      "RememberLKI",
 	PKRememberMovedToZone:              "RememberMovedToZone",
+	PKNoteCounterDefined:               "NoteCounterDefined",
+	PKWithNotedCounters:                "WithNotedCounters",
 	PKRememberObjects:                  "RememberObjects",
 	PKRememberOwnLoss:                  "RememberOwnLoss",
 	PKRememberPumped:                   "RememberPumped",
@@ -2242,6 +2250,7 @@ func (f *Face) deriveParamSets() {
 		t.ps = newParamSet(t.Params)
 		t.mode, t.modeBound = TriggerModeOf(t.Mode), true
 		t.bindOffBattlefieldTarget()
+		t.bindTrailingIf()
 	}
 	for i := range f.Repls {
 		r := &f.Repls[i]

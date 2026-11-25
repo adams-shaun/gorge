@@ -218,6 +218,19 @@ def fig_workloads(d):
                  rows, "CPU µs per turn, random policy (log scale)")
 
 
+def fig_pods(d):
+    rows = []
+    for wl, head in (("fdc", "The FDC precons as printed"), ("fdc-sub", "The same pods, cards dirac does not play replaced by basics")):
+        rows.append(("#", head))
+        for r in d["commander_pods"]["rows"]:
+            if r["workload"] == wl:
+                rows.append((name(r), r["us_turn"], None, None, ENGINE[r["engine"]],
+                             f"{wl} · {name(r)}: {num(r['us_turn'])} µs/turn, {num(r['games'])} games/core-s, "
+                             f"{r['turns']} turns/game, measured {r['date']}"))
+    return hbars("CPU per turn in 4-seat Commander pods", "Bar chart, log scale: microseconds per turn in Foundations Commander pods",
+                 rows, "CPU µs per turn, four seats (log scale); a turn is one player's turn")
+
+
 def fig_dirac_ops(d):
     rows = [(r["op"], r["instr"], None, None, "s3", f"{r['op']}: {r['instr']:,} instructions, {num(r['ns'])} ns per op, 0 allocations")
             for r in d["dirac_ops"]["rows"]]
@@ -391,6 +404,7 @@ FIGS = {
     "games-per-core-s.svg": fig_games,
     "peak-rss.svg": fig_rss,
     "kernel-workloads.svg": fig_workloads,
+    "commander-pods.svg": fig_pods,
     "dirac-ops.svg": fig_dirac_ops,
     "copy-vs-step.svg": fig_copy_vs_step,
     "gorge-rows.svg": fig_gorge_rows,

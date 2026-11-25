@@ -44,6 +44,13 @@ type EffectParams struct {
 	StaticAbilities    string
 	Triggers           string
 	ReplacementEffects string
+	// TriggerNames is Triggers$ split into its SVar names: Forge writes the
+	// list comma-separated (Tawnos's Coffin's `LeavesPlay,Untap`), some
+	// scripts space-separated.
+	TriggerNames []string
+	// NoteCounterDefined$ (Tawnos's Coffin's `Targeted`), trimmed: the
+	// objects whose counters the Effect notes for a later WithNotedCounters$.
+	NoteCounterDefined string
 	// Name$, trimmed.
 	Name string
 	// NotStackable is Stackable$ False.
@@ -82,11 +89,17 @@ type EffectParams struct {
 	Unread []string
 }
 
-// effectKnownKeys is every parameter key an Effect resolution consumes or
-// deliberately ignores, sorted (changeZoneKnownKeys' contract): rules'
-// TestEffectKnownKeysMatchTheCensus holds it equal to the parameter census's
-// measured api:Effect read set plus its ignored and structural keys.
-var effectKnownKeys = [...]string{
+// effectKnownKeyRows is every parameter key an Effect resolution consumes or
+// deliberately ignores (changeZoneKnownKeys' contract): rules'
+// TestEffectKnownKeysMatchTheCensus holds the normalized table equal to the
+// parameter census's measured api:Effect read set plus its ignored and
+// structural keys.
+//
+// The rows are not trusted to be sorted or duplicate-free: engine/effects/
+// *_params.go is merge=union, so rebasing this branch over a main-side key
+// addition leaves both rows in the source. normalizeKnownKeys computes the
+// union the table is meant to be.
+var effectKnownKeyRows = [...]string{
 	"AILifeThreshold", "AILogic", "AIMinTgts", "AINoRecursiveCheck", "AIPhyrexianPayment",
 	"AITgtOwnCards", "AITgts", "AIXMax", "Activation", "ActivationAfterBlockers", "ActivationFirstCombat",
 	"ActivationGameTypes", "ActivationLimit", "ActivationPhases", "ActivationZone",
@@ -106,7 +119,7 @@ var effectKnownKeys = [...]string{
 	"ImprintOnHost", "ImprintPlayed", "InstantSpeed", "IsCurse",
 	"IsPresent", "KW", "Keyword", "KeywordLine", "LockInText", "ManaConversion", "MaxTotalTargetCMC",
 	"MaxTotalTargetPower", "Mentor", "ModeCost", "Monstrosity", "Name",
-	"NewController", "NoPutDesc", "NoShuffle", "NonBasicSpell", "OneOff", "OpponentTurn", "OptionalDecider", "Origin", "Pawprint", "Phase",
+	"NewController", "NoPutDesc", "NoShuffle", "NonBasicSpell", "NoteCounterDefined", "OneOff", "OpponentTurn", "OptionalDecider", "Origin", "Pawprint", "Phase",
 	"Planeswalker", "PlayCost", "PlayerTurn", "PowerUp", "PrecostDesc",
 	"PresentCompare", "PresentDefined", "PresentZone", "PrimaryPrompt", "RandomNumTargets", "ReduceAmount", "ReduceCost",
 	"RememberAnimated", "RememberCostMana", "RememberLKI", "RememberObjects", "RememberTargets", "ReplaceColor",
@@ -127,6 +140,19 @@ var effectKnownKeys = [...]string{
 	"UnlessAI", "UnlessCost", "UnlessPayer", "UnlessResolveSubs", "UnlessSwitched",
 	"ValidAfterStack", "ValidCard", "ValidCards", "ValidCardsDesc", "ValidChoices", "ValidCounterType",
 	"ValidDescription", "ValidPlayer", "ValidSource", "ValidTgts", "ValidTgtsDesc", "VoteMessage", "WithoutManaCost", "XColor", "XMax", "XMin",
+}
+
+// effectKnownKeys is effectKnownKeyRows as the sorted, duplicate-free set
+// unreadKeys binary-searches and the census check compares. The normalization
+// is what makes a union merge of two key additions mean their union instead of
+// a duplicated key.
+var effectKnownKeys = normalizeKnownKeys(effectKnownKeyRows[:])
+
+// normalizeKnownKeys returns the sorted union of keys.
+func normalizeKnownKeys(keys []string) []string {
+	out := slices.Clone(keys)
+	slices.Sort(out)
+	return slices.Compact(out)
 }
 
 // isEffectSA reports whether sa resolves as api:Effect.
@@ -164,7 +190,11 @@ func compileEffect(sa *cards.SA) *EffectParams {
 	p.Duration = sa.ParamStr(cards.PKDuration)
 	p.StaticAbilities = sa.ParamStr(cards.PKStaticAbilities)
 	p.Triggers = sa.ParamStr(cards.PKTriggers)
+	p.TriggerNames = strings.FieldsFunc(p.Triggers, func(r rune) bool {
+		return r == ',' || r == ' ' || r == '\t' || r == '\n'
+	})
 	p.ReplacementEffects = sa.ParamStr(cards.PKReplacementEffects)
+	p.NoteCounterDefined = strings.TrimSpace(sa.ParamStr(cards.PKNoteCounterDefined))
 	p.Name = strings.TrimSpace(sa.ParamStr(cards.PKName))
 	if stackable, present := sa.Param(cards.PKStackable); present && strings.EqualFold(strings.TrimSpace(stackable), "False") {
 		p.NotStackable = true
@@ -203,7 +233,7 @@ type effectTriggerLine struct {
 	Execute         string
 	OptionalDecider string
 	ThisTurn        string
-	// OneOff is OneOff$ True; Static is a non-empty Static$.
+	// OneOff is OneOff$ True; Static is Static$ True.
 	OneOff bool
 	Static bool
 	// Phase is Phase$ as written; ValidPlayer$ trimmed.
@@ -244,7 +274,7 @@ func readEffectTriggerLine(tr *cards.Trigger) effectTriggerLine {
 		OptionalDecider: strings.TrimSpace(tr.ParamStr(cards.PKOptionalDecider)),
 		ThisTurn:        strings.TrimSpace(tr.ParamStr(cards.PKThisTurn)),
 		OneOff:          isTrue(tr.ParamStr(cards.PKOneOff)),
-		Static:          strings.TrimSpace(tr.ParamStr(cards.PKStatic)) != "",
+		Static:          isTrue(tr.ParamStr(cards.PKStatic)),
 		Phase:           tr.ParamStr(cards.PKPhase),
 		ValidPlayer:     strings.TrimSpace(tr.ParamStr(cards.PKValidPlayer)),
 		FirstCombat:     isTrue(tr.ParamStr(cards.PKFirstCombat)),
@@ -280,4 +310,28 @@ func EffectKnownKeys() []string { return slices.Clone(effectKnownKeys[:]) }
 // `Name$ Emblem — <name>` (115 raw lines, all Duration$ Permanent).
 func isEmblemEffectName(name string) bool {
 	return strings.HasPrefix(name, "Emblem")
+}
+
+// effectStaticSuffix is the bare "|ST" flag a Static$ True Effect Triggers$
+// body carries on its DelayedRegister text, so events.Apply sets
+// DelayedTrigger.Static and rules resolves it inline (CR 611.2a duration
+// bookkeeping, never a stack object). Every arm places it before
+// |BN=/|EF/|RN= and before |CN=/|CC=: the decode strips those first, and a
+// |ST after them would be swallowed by their LastIndex.
+func effectStaticSuffix(tl effectTriggerLine) string {
+	if tl.Static {
+		return "|ST"
+	}
+	return ""
+}
+
+// effectPhaseFlags is a Phase Triggers$ body's bare flags: "|1C" for
+// FirstCombat$ True, then effectStaticSuffix's "|ST". The decode strips |ST
+// before |1C, so the order is fixed.
+func effectPhaseFlags(tl effectTriggerLine) string {
+	flags := ""
+	if tl.FirstCombat {
+		flags = "|1C"
+	}
+	return flags + effectStaticSuffix(tl)
 }
