@@ -29,10 +29,10 @@ func TestCanProduceManaColorAndAttackingYouOrYourPW(t *testing.T) {
 		return o.ID
 	}
 	src := mk("Name:Charmaw Test\nManaCost:3 R R\nTypes:Creature Dragon\nPT:4/4\nOracle:x\n", 0)
-	wastes := mk("Name:Waste Test\nManaCost:no cost\nTypes:Land\nA:AB$ Mana | Cost$ T | Produced$ C | SpellDescription$ Add {C}.\nOracle:x\n", 1)
-	forest := mk("Name:Forest Test\nManaCost:no cost\nTypes:Land\nA:AB$ Mana | Cost$ T | Produced$ G | SpellDescription$ Add {G}.\nOracle:x\n", 1)
-	anyLand := mk("Name:Any Test\nManaCost:no cost\nTypes:Land\nA:AB$ Mana | Cost$ T | Produced$ Any | SpellDescription$ Add one mana of any color.\nOracle:x\n", 1)
-	painLand := mk("Name:Pain Test\nManaCost:no cost\nTypes:Land\nA:AB$ Mana | Cost$ T | Produced$ C | SpellDescription$ Add {C}.\nA:AB$ Mana | Cost$ T | Produced$ R | SpellDescription$ Add {R}.\nOracle:x\n", 1)
+	wastes := mk("Name:Waste Test\nManaCost:no cost\nTypes:Land\nA:AB$ Mana | Cost$ T | Produced$ C | SpellDescription$ x\nOracle:x\n", 1)
+	forest := mk("Name:Forest Test\nManaCost:no cost\nTypes:Land\nA:AB$ Mana | Cost$ T | Produced$ G | SpellDescription$ x\nOracle:x\n", 1)
+	anyLand := mk("Name:Any Test\nManaCost:no cost\nTypes:Land\nA:AB$ Mana | Cost$ T | Produced$ Any | SpellDescription$ x\nOracle:x\n", 1)
+	painLand := mk("Name:Pain Test\nManaCost:no cost\nTypes:Land\nA:AB$ Mana | Cost$ T | Produced$ C | SpellDescription$ x\nA:AB$ Mana | Cost$ T | Produced$ R | SpellDescription$ x\nOracle:x\n", 1)
 	for _, tc := range []struct {
 		spec string
 		id   state.ObjID
