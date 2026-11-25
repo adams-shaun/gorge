@@ -3157,6 +3157,7 @@ func (s *State) lowerWitnessEx(k *prep, p uint8, excl Obj) {
 	s.g.noTgtRed = false
 	s.witnessAtCheapest(k, p, &cost, &av)
 	var L uint8
+	var lent [kop.NumManaKinds]uint8 // the restricted units rbTake lends the plan (CR 106.6)
 	if s.rbAny(SeatIx(p)) && s.bld().e.kind == seSpell {
 		// the witness starts from the mana this payment may spend (pay.PlanPool)
 		if m := s.restrSpendable(k, p, s.bld().e.card, s.restrOriginOfObj(s.bld().e.obj)); m != 0 && cost.Hyb[0] != 0 && cost.Hyb[0] != kop.HybTwobrid {
@@ -3169,6 +3170,11 @@ func (s *State) lowerWitnessEx(k *prep, p uint8, excl Obj) {
 			pl := &s.pl[SeatIx(p)]
 			var tk [maxRB][kop.NumManaKinds]uint8
 			s.rbTake(p, m, &tk)
+			for i := range tk {
+				for c, n := range tk[i] {
+					lent[c] += n
+				}
+			}
 			defer func() {
 				// the units go back to their batches (rbTake left them in
 				// place, emptied), beside the restricted mana the plan's own
@@ -3244,6 +3250,7 @@ func (s *State) lowerWitnessEx(k *prep, p uint8, excl Obj) {
 	}
 	pool := s.pl[p].pool
 	var pk planner
+	pk.feeLent = lent // the lent units may pay the spell, not a fee unit's activation (CR 106.6)
 	s.tapForPK(k, p, &cost, x, excl, false, tapColor, &pk)
 	s.witnessManaRestricted(k, p, &pool, untapped, &pk)
 }
