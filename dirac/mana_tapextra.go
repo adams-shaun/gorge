@@ -832,6 +832,12 @@ func (s *State) planEachPick(k *prep, sl Slot, pc *pcard, xv *[kop.NumManaKinds]
 // make (reflectPickPark): it reports whether the plan stops for that ask.
 func (s *State) addXvPick(p uint8, ty *utype, col int) bool {
 	s.addXv(p, &ty.xv)
+	return s.addXvPickPark(p, ty, col)
+}
+
+// addXvPickPark is addXvPick's reflected-pick tail, shared with
+// addXvPickLess (mana_eachrestr.go).
+func (s *State) addXvPickPark(p uint8, ty *utype, col int) bool {
 	return ty.pick && s.reflectPickPark(p, ty, col)
 }
 

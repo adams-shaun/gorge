@@ -56,30 +56,37 @@ func (s *State) offerSurgeHand(k *prep, d *Decision, p uint8, o Obj, c CardID, a
 		return // no other spell cast this turn (CR 702.117a)
 	}
 	sc := s.adjustCost(k, p, c, o, k.t.Cards[c].SurgeCost) // the modifiers apply to an alternative cost too (CR 601.2f)
-	if s.cfg&cfgGorgeAutopay != 0 && s.cfg&cfgGorgeLowering == 0 && s.g.availX == 0 {
-		// Under gorge's autopay surface the surged cast is in gorge's list
-		// when the floating pool alone pays the surge cost (gorge's own offer
-		// prices it with offerCastable over the pool, legal_walk_hand.go) or
-		// its payment planner prices it (potential_plan.go plans a mode cast
-		// the plain planner does not witness). The planner has two routes: its
-		// tier-1 census (the printed sources and the pool, no granted or
-		// sacrifice-only source) pays outright, or its prefix script activates
-		// a census gap first (potential_script.go). Either route's payment
-		// must leave the spell a legal target (potentialWitnessReaches,
-		// cast_tgtkeep.go): pair 35's sole Spawn is the spell's only target and
-		// the payment sacrifices it, while pair 61's second Spawn stands.
-		if !s.surgePoolPays(k, p, c, o, &sc) {
-			if !s.surgePlannerPrices(k, p, c, o, &sc) && !s.surgeScriptPays(k, p, c, o, av, &sc) {
+	// The surged cast is in gorge's list when the floating pool alone pays
+	// the surge cost (gorge's own offer prices it with offerCastable over the
+	// pool, legal_walk_hand.go) or its payment planner prices it
+	// (potential_plan.go plans a mode cast the plain planner does not
+	// witness). The planner has two routes: its tier-1 census (the printed
+	// sources and the pool, no granted or sacrifice-only source) pays
+	// outright, or its prefix script activates a census gap first
+	// (potential_script.go). Either route's payment must leave the spell a
+	// legal target (potentialWitnessReaches, cast_tgtkeep.go): pair 35's sole
+	// Spawn is the spell's only target and the payment sacrifices it, while
+	// pair 61's second Spawn stands. The lowering surface reads the same
+	// routes, but its ordinary walk holds the script for the gaps walk
+	// (scriptOffers prices it); see the gate below.
+	if !s.surgePoolPays(k, p, c, o, &sc) {
+		// The lowering surface's ordinary walk reads only the planner's
+		// tier-1 census: a scripted play is the gaps walk's, which
+		// scriptOffers prices with its own prefix search. Without this gate
+		// the full census's granted unit offers a surged cast whose script
+		// gorge cannot price (Boulder Salvo: the surge cost's {R} must come
+		// from Paradise Mantle's granted tap, and the search's printed-cost
+		// colour read never asks for it), while the kernel's census counts
+		// the grant. surgeScriptPays still reads the full census in the gaps
+		// walk and on the autopay surface, where the search is the route.
+		if s.cfg&cfgGorgeLowering != 0 && s.g.availX&(availGaps|availAny) == 0 {
+			if !s.surgePlannerPrices(k, p, c, o, &sc) {
 				return
 			}
-			if !s.surgeKeepsTarget(k, p, c, o, &sc) {
-				return
-			}
+		} else if !s.surgePlannerPrices(k, p, c, o, &sc) && !s.surgeScriptPays(k, p, c, o, av, &sc) {
+			return
 		}
-	} else {
-		var fav avail
-		cav := s.castGrantAvail(k, p, o, av, &fav)
-		if !s.castAffordsR(k, p, c, s.restrOriginOfObj(o), &sc, cav) {
+		if !s.surgeKeepsTarget(k, p, c, o, &sc) {
 			return
 		}
 	}

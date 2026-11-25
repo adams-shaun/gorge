@@ -34,5 +34,5 @@ func (s *State) addXvPickLess(p uint8, ty *utype, col int, own *[kop.NumManaKind
 	for c := range ty.xv {
 		s.pl[p].pool[c] += ty.xv[c] - min(ty.xv[c], own[c])
 	}
-	return ty.pick && s.reflectPickPark(p, ty, col)
+	return s.addXvPickPark(p, ty, col)
 }
