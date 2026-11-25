@@ -248,8 +248,13 @@ func (lc *lowerCtx) moveCounter(ps *params) error {
 // up to N creatures. A permanent's ability is a resolution pick other than
 // the source (gorge's Creature.+Other); an instant or sorcery announces its
 // "up to N target creatures" while casting (CR 601.2c, gorge's cast-time
-// supportTargetSA), so the carrier gets a 0..N target slot and the kernel
-// applies one counter to each announced target instead of asking again. A
+// supportTargetSA), and an ACTIVATED ability announces at activation (CR
+// 602.2b, gorge's castStageSA wrapping supportTargetSA -- Joraga
+// Auxiliary's "{4}{G}{W}: Support 2") -- as does a printed trigger's own
+// folded-Cost$ body head (Jubilant Mascot's "you may pay {3}{W}. If you
+// do, support 2", whose targets gorge announces at the CR 603.3d push).
+// Each gets a 0..N target slot over Creature.+Other and the kernel applies
+// one counter to each announced target instead of asking again. A
 // Defined$/ValidTgts$/Choices$/CounterNum$ beside it refuses.
 func (lc *lowerCtx) support(ps *params) error {
 	for _, k := range []string{"Defined", "ValidTgts", "Choices", "CounterNum", "Adapt", "RememberCards", "RememberPut"} {
@@ -267,18 +272,32 @@ func (lc *lowerCtx) support(ps *params) error {
 	}
 	other := 1
 	in := lInstr{Op: "Support", A: n, CS: ct}
-	// Only a spell's OWN root ability announces Support's targets at cast
-	// (gorge supportTargetSA wraps just the cast-stage SA). A SubAbility$ or
-	// a mode body keeps gorge's resolution pick, so it stays an ask here.
-	if (lc.face.IsInstant() || lc.face.IsSorcery()) && lc.ab.Kind == akSpell && lc.head && lc.mode < 0 && lc.depth == 1 {
-		other = 0
-		if !n.isConst() || n.N > 0 {
-			f, err := lc.filter("Creature")
-			if err != nil {
-				return err
+	// A spell's OWN root ability announces Support's targets at cast (gorge
+	// supportTargetSA wraps just the cast-stage SA); an ACTIVATED ability's
+	// own root ability announces at activation (gorge castStageSA, CR
+	// 602.2b), and a printed trigger's own folded-Cost$ body head at the CR
+	// 603.3d push (gorge pushTrigger's supportTargetSA ask). A SubAbility$
+	// link or a mode body keeps gorge's resolution pick, so it stays an ask
+	// here. The announced slot's filter is Creature.+Other for the
+	// permanent-carried arms ("other than the resolving source") and bare
+	// Creature for the spell's ("up to N target creatures").
+	if lc.head && lc.mode < 0 && lc.depth == 1 {
+		spell := (lc.face.IsInstant() || lc.face.IsSorcery()) && lc.ab.Kind == akSpell
+		act := lc.ab.Kind == akActivated || (lc.ab.Kind == akTriggered && lc.trigPayBody)
+		if spell || act {
+			other = 0
+			if !n.isConst() || n.N > 0 {
+				spec := "Creature.Other"
+				if spell {
+					spec = "Creature"
+				}
+				f, err := lc.filter(spec)
+				if err != nil {
+					return err
+				}
+				tr := lRef{Kind: rTarget, N: lc.addTarget(lTarget{F: f, Zone: zBattlefield, Min: cst(0), Max: n})}
+				in.Obj = tr
 			}
-			tr := lRef{Kind: rTarget, N: lc.addTarget(lTarget{F: f, Zone: zBattlefield, Min: cst(0), Max: n})}
-			in.Obj = tr
 		}
 	}
 	in.C = other
