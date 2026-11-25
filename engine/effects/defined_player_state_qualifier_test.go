@@ -70,30 +70,36 @@ func TestDefinedPlayerStateQualifierControlsGrammar(t *testing.T) {
 	}
 }
 
-// TestDefinedPlayerStateQualifierUnmodelledSpellingsActOnNobody pins the
-// routing's empty-set semantics: definedSpec CLAIMS every Player.<...>
-// spelling (ok=true) but the qualifiers the grammar cannot evaluate -- Curse
-// attachment, the NotedFor* machinery this build lacks, per-turn mana-tap
-// history, the per-combat attackedBySourceThisCombat history, and an X right-hand side --
-// match NOBODY, so the resolving effect acts on nobody instead of falling
-// back to the spell's (object) targets.
-func TestDefinedPlayerStateQualifierUnmodelledSpellingsActOnNobody(t *testing.T) {
+// TestDefinedPlayerStateQualifierReadAndUnreadSpellings pins the routing's
+// two outcomes: a qualifier the shared player grammar READS but that matches
+// nobody in this state stays claimed (ok=true) and resolves to the empty set
+// -- Curse attachment and the NotedFor* machinery this build lacks -- while a
+// spelling the grammar does not read at all stays UNKNOWN (ok=false), so the
+// Defined$ census and the support gate can see it instead of treating the
+// silently-empty sweep as modelled.
+func TestDefinedPlayerStateQualifierReadAndUnreadSpellings(t *testing.T) {
 	g := state.NewGame([]string{"a", "b"})
 	h := &fakeHost{g: g}
 	c := &Ctx{Controller: 0}
 	for _, spec := range []string{
-		"Player.attackedBySourceThisCombat",
 		"Player.EnchantedBy",
 		"Player.NotedForDiscard",
-		"Player.TappedLandForManaThisTurn",
 	} {
 		ts, ok := definedSpec(h, c, spec)
 		if !ok {
-			t.Errorf("definedSpec(%q): ok=false -- the base-Player routing must claim it and act on nobody", spec)
+			t.Errorf("definedSpec(%q): ok=false -- the base-Player routing must claim a read qualifier", spec)
 			continue
 		}
 		if len(ts) != 0 {
 			t.Errorf("definedSpec(%q) = %v; want the empty set (act on nobody)", spec, ts)
+		}
+	}
+	for _, spec := range []string{
+		"Player.attackedBySourceThisCombat",
+		"Player.TappedLandForManaThisTurn",
+	} {
+		if ts, ok := definedSpec(h, c, spec); ok || len(ts) != 0 {
+			t.Errorf("definedSpec(%q) = %v, %v; an unread qualifier must stay unknown (ok=false)", spec, ts, ok)
 		}
 	}
 }
