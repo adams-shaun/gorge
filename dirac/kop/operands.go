@@ -755,9 +755,15 @@ const RepeatPlain = 1
 // subjects are the resolution's remembered objects, in remembered order, not
 // the battlefield's. RefEach, as a player ref in the body, is the bound
 // card's controller (its RememberLKI$ capture once it left the battlefield;
-// gorge's ImprintedController), so the body's Token mints for it. Never with
-// RepeatPlain (the plain frame walks the battlefield).
+// gorge's ImprintedController), so the body's Token mints for it. With
+// RepeatPlain the loop is the resumable frame over the remembered set (a body
+// that asks: Stench of Evil's unless-payment); alone it is the batched loop.
 const RepeatRemembered = 2
+
+// RepeatDmgBatch is OpRepeatEach's C bit 2 with RepeatPlain (DamageMap$ True):
+// the plain frame holds one damage batch from its first pass to its last,
+// across every pass's ask (Stench of Evil; gorge effRepeatEach's damage bracket).
+const RepeatDmgBatch = 4
 
 // OpGainControl riders (B.N).
 const (
