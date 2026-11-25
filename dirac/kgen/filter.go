@@ -25,6 +25,7 @@ const (
 	tBasic
 	tKindred   // a card type above the low byte (kop.TKindred is bit 8)
 	tEmblem    // an emblem (a filter alternative only; no card has it)
+	tVanguard  // the Vanguard card type (kop.TVanguard): seated in the command zone, never cast
 	tPermanent = tLand | tCreature | tArtifact | tEnchantment | tPlaneswalker | tBattle
 	tAnyCard   = tPermanent | tInstant | tSorcery
 )
@@ -32,8 +33,8 @@ const (
 var typeBits = map[string]uint16{
 	"Land": tLand, "Creature": tCreature, "Artifact": tArtifact, "Enchantment": tEnchantment,
 	"Planeswalker": tPlaneswalker, "Instant": tInstant, "Sorcery": tSorcery, "Battle": tBattle,
-	"Legendary": tLegendary, "Basic": tBasic, "Kindred": tKindred, "Permanent": tPermanent,
-	"Card": tAnyCard, "Emblem": tEmblem,
+	"Legendary": tLegendary, "Basic": tBasic, "Kindred": tKindred,
+	"Permanent": tPermanent, "Card": tAnyCard, "Emblem": tEmblem,
 }
 
 const tSupertype = tLegendary | tBasic

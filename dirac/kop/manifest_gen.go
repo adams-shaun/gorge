@@ -2697,6 +2697,11 @@ const TrigLeaveExile TrigEvent = 128
 // Tf5DmgNoContract: a combat DamageDone line's damaged player has no contract counter (ValidTarget$ Player.counters_EQ0_Contract, Miss Highwater; gorge state.Player.Counter("Contract"); kernel ctr_contract.go).
 const Tf5DmgNoContract TrigFlags5 = 1 << 7
 
+// TypeMask (dirac/manifest/TypeMask/TVanguard)
+//
+// TVanguard: the Vanguard card type (CR 205.2). A Vanguard is not a permanent: kgen builds it so a command-zone Vanguard face (Sisay's TapsForMana static) is identified, and the kernel seats it in the command zone without a cast.
+const TVanguard TypeMask = 1 << 15
+
 // zone PlanarDeck (dirac/manifest/Zone/ZonePlanarDeck)
 const ZonePlanarDeck Zone = 12
 

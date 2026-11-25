@@ -123,6 +123,7 @@ type genPrep struct {
 	anyExtraBlock            bool // a card has a printed CardDef.ExtraBlocks or a StatExtraBlock static (combat_extrablock.go)
 	anyUntapOther            bool // a card has a StatUntapOther static (static_untapother.go)
 	anyTapExtra              bool // a card has a StatTapExtra static (mana_tapextra.go)
+	anyCmdTapExtra           bool // a card has a command-zone StatTapExtra (a Vanguard's; static_classgates.go sclsTapCmd)
 	anyMaxBlk                bool // a card has a MinMaxBlocker Max$ 1 static (kop.StatMaxBlockers; combat_maxblockers.go)
 	anyCantGain, anyCantDraw bool // StatCantGainLife / StatCantDraw statics (static_cantdraw.go)
 	anyAsIfHaste             bool // a StatAsIfHaste static (static_asifhaste.go)

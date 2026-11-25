@@ -28,6 +28,9 @@ type statSrc struct {
 	ctrl uint8
 	obj  Obj
 	emb  uint8
+	// cmd: a command-zone static on a seated Vanguard (sl is NoSlot, as for
+	// an emblem; mana_tapextra.go eachTapExtra)
+	cmd bool
 	// gr: a static granted to sl by gsrc's Continuous static (static_granted.go)
 	gr   bool
 	gsrc Slot

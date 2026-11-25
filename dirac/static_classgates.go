@@ -25,6 +25,7 @@ const (
 	sclsGyCont                     // the card's own StatContinuous that works from its graveyard (static_gycont.go)
 	sclsOffKwG                     // StatOffZoneGrant, StatRetraceGrant or StatUnearthGrant, an off-zone grant (kw_offkwgrant.go)
 	sclsNonObj                     // a static that can change a characteristic and may read what is not an object's own fields (static_sbaskip.go)
+	sclsTapCmd                     // a command-zone StatTapExtra on a seated Vanguard (Sisay; mana_tapextra.go eachTapExtra)
 )
 
 // prepOverrideLandwalk (called from prepStaticClasses, once per table; kw_evasion.go landwalkPumped reads it) sets genPrep.anyLandwalk when any override record of
@@ -78,6 +79,13 @@ func prepStaticClasses(t *kop.Table, g *genPrep) {
 					m |= sclsExMay
 				default:
 					m |= sclsMayPlay
+				}
+			case kop.StatTapExtra:
+				if sa.Zone == kop.ZoneCommand {
+					// a Vanguard's printed static (Sisay): in force from the
+					// command zone, walked by eachTapExtra, never by eachStatic
+					m |= sclsTapCmd
+					g.anyCmdTapExtra = true
 				}
 			case kop.StatReduceCost:
 				if sa.Zone != kop.ZoneCommand {

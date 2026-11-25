@@ -379,6 +379,9 @@ func typeMask(t uint16) kop.TypeMask {
 	if t&tKindred != 0 {
 		m |= kop.TKindred
 	}
+	if t&tVanguard != 0 {
+		m |= kop.TVanguard
+	}
 	return m
 }
 

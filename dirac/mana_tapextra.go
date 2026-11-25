@@ -25,6 +25,51 @@ const StallTapExtra = 143
 
 func init() { stallNames[StallTapExtra] = "tapextra" }
 
+// eachTapExtra visits every StatTapExtra static in force: the battlefield and
+// emblem statics eachStatic walks, then a command-zone Vanguard's printed
+// static (Sisay), whose source has no perm slot (st.sl is NoSlot, st.cmd true).
+// The command-zone half is gated on genPrep.anyCmdTapExtra, so a table with no
+// such static pays nothing, and only the tap-extra readers call this: a
+// command-zone static must never reach a reader that indexes st.sl as a perm.
+func (s *State) eachTapExtra(k *prep, f func(st statSrc) bool) {
+	stop := false
+	s.eachStatic(k, func(st statSrc) bool {
+		if !f(st) {
+			stop = true
+			return false
+		}
+		return true
+	})
+	if stop || k.gen == nil || !k.gen.anyCmdTapExtra {
+		return
+	}
+	for p := uint8(0); p < s.nSeats(); p++ {
+		if s.out(p) {
+			continue
+		}
+		for j := 0; j < 2; j++ {
+			o := s.cmdObj(p, j)
+			if o == NoObj || s.objs[o].zone != kop.ZoneCommand {
+				continue
+			}
+			card := s.objs[o].card
+			if k.gen.sCls[card]&sclsTapCmd == 0 {
+				continue
+			}
+			cd := &k.t.Cards[card]
+			for i := range cd.Abilities {
+				a := &cd.Abilities[i]
+				if a.Kind != kop.AbStatic || a.Static.Kind != kop.StatTapExtra || a.Static.Zone != kop.ZoneCommand {
+					continue
+				}
+				if !f(statSrc{a: a, sl: NoSlot, ctrl: p, obj: o, cmd: true}) {
+					return
+				}
+			}
+		}
+	}
+}
+
 // srcExtra is the mana the controller's StatTapExtra statics add when the
 // permanent at sl taps for mana through the ability pc describes. A
 // source the extra cannot be modelled on stalls (StallTapExtra) and adds
@@ -95,7 +140,7 @@ func (s *State) srcExtraPainPick(k *prep, sl Slot, pc *pcard) (r uint8, xv [kop.
 	}
 	prod := uint8(pc.painCol) & 0x3f
 	ctl := s.perms[sl].ctrl
-	s.eachStatic(k, func(st statSrc) bool {
+	s.eachTapExtra(k, func(st statSrc) bool {
 		a := &st.a.Static
 		if !s.tapExtraReaches(k, st, sl, ctl) {
 			return true
@@ -150,7 +195,7 @@ func (s *State) srcExtraAlt(k *prep, sl Slot, pc *pcard, colour bool) (xv [kop.N
 func (s *State) srcExtraTapped(k *prep, sl Slot, pc *pcard, colour bool) (xv [kop.NumManaKinds]uint8, hit bool) {
 	ctl := s.perms[sl].ctrl
 	eachPick := !colour && s.srcEachPick(k, sl, pc) > 0
-	s.eachStatic(k, func(st statSrc) bool {
+	s.eachTapExtra(k, func(st statSrc) bool {
 		a := &st.a.Static
 		if !s.tapExtraReaches(k, st, sl, ctl) {
 			return true
@@ -248,7 +293,7 @@ func (s *State) filtReflectPick(k *prep, sl Slot) (r uint8) {
 		return 0
 	}
 	ctl := s.perms[sl].ctrl
-	s.eachStatic(k, func(st statSrc) bool {
+	s.eachTapExtra(k, func(st statSrc) bool {
 		if s.tapExtraReaches(k, st, sl, ctl) && st.a.Static.StFlags&kop.StTapReflect != 0 {
 			r += uint8(st.a.Static.B)
 		}
@@ -279,7 +324,7 @@ func (s *State) filtEachReflect(k *prep, sl Slot, a *kop.Ability, xv *[kop.NumMa
 		return
 	}
 	ctl := s.perms[sl].ctrl
-	s.eachStatic(k, func(st statSrc) bool {
+	s.eachTapExtra(k, func(st statSrc) bool {
 		if sa := &st.a.Static; s.tapExtraReaches(k, st, sl, ctl) && sa.StFlags&kop.StTapReflect != 0 {
 			xv[first] += uint8(sa.B)
 		}
@@ -296,7 +341,7 @@ func (s *State) srcExtraPick(k *prep, sl Slot, pc *pcard, col int) (xv [kop.NumM
 	}
 	ctl := s.perms[sl].ctrl
 	hit := false
-	s.eachStatic(k, func(st statSrc) bool {
+	s.eachTapExtra(k, func(st statSrc) bool {
 		a := &st.a.Static
 		if !s.tapExtraReaches(k, st, sl, ctl) {
 			return true
@@ -343,7 +388,7 @@ var DebugTapAnyColOff bool
 // resolution.
 func (s *State) tapExtraReaches(k *prep, st statSrc, sl Slot, ctl uint8) bool {
 	a := &st.a.Static
-	if st.a.Kind != kop.AbStatic || a.Kind != kop.StatTapExtra || st.sl == NoSlot ||
+	if st.a.Kind != kop.AbStatic || a.Kind != kop.StatTapExtra || st.sl == NoSlot && !st.cmd ||
 		a.Cond2 != 0 || a.StFlags&(kop.StTapChosen|kop.StTapAnyCol|kop.StTapDynamic) != 0 ||
 		st.ctrl != ctl && a.StFlags&kop.StTapAnyPlayer == 0 {
 		return false
@@ -689,7 +734,9 @@ func anyColOwedColour(owed *[kop.NumManaKinds]uint8) int {
 // does not price (paymentPlanTapObservers folds it once), and the kernel's one
 // fixed extra models neither half.
 func (s *State) tapExtraEchoStall(k *prep, st statSrc) {
-	if k.gen == nil || !k.gen.anyPanharm {
+	if k.gen == nil || !k.gen.anyPanharm || st.sl == NoSlot {
+		// a command-zone Vanguard static has no permanent slot: Panharmonicon
+		// echoes a Taps trigger of a permanent, not the Vanguard's own
 		return
 	}
 	l := trigListener{obj: s.perms[st.sl].obj, sl: st.sl, ctrl: st.ctrl, card: s.cardAt(st.sl)}
@@ -756,7 +803,7 @@ func (s *State) srcReflectPick(k *prep, sl Slot, pc *pcard) (r uint8) {
 		return 0
 	}
 	ctl := s.perms[sl].ctrl
-	s.eachStatic(k, func(st statSrc) bool {
+	s.eachTapExtra(k, func(st statSrc) bool {
 		if a := &st.a.Static; a.StFlags&kop.StTapReflect != 0 && s.tapExtraReaches(k, st, sl, ctl) {
 			r += uint8(a.B)
 		}
@@ -781,7 +828,7 @@ func (s *State) srcEachPick(k *prep, sl Slot, pc *pcard) (r uint8) {
 		return 0
 	}
 	ctl := s.perms[sl].ctrl
-	s.eachStatic(k, func(st statSrc) bool {
+	s.eachTapExtra(k, func(st statSrc) bool {
 		if a := &st.a.Static; a.StFlags&kop.StTapReflect != 0 && s.tapExtraReaches(k, st, sl, ctl) {
 			r += uint8(a.B)
 		}
