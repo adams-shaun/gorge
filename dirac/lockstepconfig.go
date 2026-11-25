@@ -48,6 +48,21 @@ func xFolded(cost kop.ManaCost, x int) kop.ManaCost {
 // (payexec.WindowAnswer) takes the first listed source -- a planner-deferred one
 // (Twitching Doll, a depletion land) in its battlefield place, the unit
 // availXWindow counted for the announcement.
+// xWindowPays: an announced-X activation pays through gorge's manual window
+// (xWindowPay) unless gorge armed its planner's witness at the least X and the
+// announced X re-plans (rules armAbilityAutoPay at planAbilityPayment's X
+// floor, then rearmAutoPay; CR 602.2b), when the planner pays it instead.
+func (s *State) xWindowPays(k *prep, e *stackEntry, a *kop.Ability, sl Slot, cost *kop.ManaCost, saved *[len(build{}.picks)]uint8) bool {
+	if cost.X == 0 || s.cfg&cfgGorgeSurface == 0 {
+		return false
+	}
+	if k.gen != nil && k.gen.anyWaterbend && waterbendIsX(a) {
+		return true // gorge's planner keeps declining a Waterbend<X> cost (planAbilityPayment)
+	}
+	floor := xFolded(s.abPlannedCost(k, a, sl, e.ctrl), costXMin(&a.Cost))
+	return !s.abilityPlanSettles(k, e, floor, floor, *cost, saved)
+}
+
 func (s *State) xWindowPay(k *prep, e *stackEntry, cost *kop.ManaCost) bool {
 	c := xFolded(*cost, int(e.x))
 	anyColor := s.bld().bfl&bflAnyColor != 0
