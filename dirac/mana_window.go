@@ -4085,7 +4085,7 @@ func (s *State) gapWindowReverse(k *prep, e *stackEntry, cost *kop.ManaCost, sav
 // path that keeps the activation, and reports true when the activation was
 // reversed because neither reaches the cost (CR 733.1).
 func (s *State) abilityPlainMana(k *prep, e *stackEntry, cost kop.ManaCost, saved *[len(build{}.picks)]uint8, hostSl, sl Slot, selfUntapped bool) bool {
-	if !s.tapForTry(k, e.ctrl, &cost, int(e.x), s.abilityHandExclude(e), false) {
+	if !s.tapForTry(k, e.ctrl, &cost, int(e.x), s.abilityHandExclude(k, e), false) {
 		c := xFolded(cost, int(e.x))
 		if s.gapWindowReverse(k, e, &c, saved, hostSl, sl, selfUntapped) {
 			return true
@@ -4108,8 +4108,14 @@ func (s *State) abilityPlainMana(k *prep, e *stackEntry, cost kop.ManaCost, save
 // key 6), and the planner's source choice follows (Webstrike Elite's {X}
 // cycling). Only a hand source needs it: a battlefield source is no hand card,
 // and excluding it there would hide a mana ability it may still activate.
-func (s *State) abilityHandExclude(e *stackEntry) Obj {
+// A granted cycling (kw_cyclinggrant.go) excludes nothing: gorge plans a
+// keyword-granted activation with no cast object (planKeywordAbility), so its
+// hand-demand key still counts the cycled card's pips.
+func (s *State) abilityHandExclude(k *prep, e *stackEntry) Obj {
 	if e != nil && e.obj != NoObj && s.objs[e.obj].zone == kop.ZoneHand {
+		if k.anyCyclingGrant && isCyclingGrantBody(&k.t.Cards[e.card], int(e.ab)) {
+			return NoObj
+		}
 		return e.obj
 	}
 	return NoObj
@@ -4271,7 +4277,7 @@ func (s *State) abilityPlanSettles(k *prep, e *stackEntry, offer, fallback, sett
 		return false
 	}
 	s.releaseCostTaps(k, saved)
-	exclude := s.abilityHandExclude(e)
+	exclude := s.abilityHandExclude(k, e)
 	chk := planner{dry: true, noGrant: true}
 	s.tapForPK(k, e.ctrl, &offer, 0, exclude, false, false, &chk)
 	armed := chk.needT != 0
