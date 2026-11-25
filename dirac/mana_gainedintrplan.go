@@ -80,11 +80,7 @@ func (s *State) planGainedIntr(k *prep, pk *planner, i int, sl Slot, pass int) b
 	}
 	pk.types[ti].avail++
 	pk.units[pk.nu] = sl
-	if pk.bfl {
-		pk.uobj[pk.nu] = Obj(i) // battlefield order (plan's hybrid census)
-	} else {
-		pk.uobj[pk.nu] = s.perms[sl].obj
-	}
+	pk.rankUnit(s, i, sl)
 	pk.utyp[pk.nu] = uint8(ti)
 	pk.rkind[pk.nu] = 0
 	pk.rAb[pk.nu] = -1 // the gained ability's number names nothing on sl's own card (planGrantUnit's)
