@@ -891,12 +891,14 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 				}
 				if (k.gen == nil || !k.gen.anyLifeX || !s.lifeXBuilding(k)) &&
 					(k.gen == nil || !k.gen.anySacX || !s.sacXBuilding(k)) &&
+					(k.gen == nil || !k.gen.anyExileX || !s.exileXBuilding(k)) &&
 					(k.gen == nil || !k.gen.uses.has(useDiscardX) || !s.discardXBuilding(k)) {
 					s.nextStage(k)
 					continue
 				}
-				// an announced PayLife<X>, Sac<X/Spec> or Discard<X/Spec> with
-				// no {X} mana asks X below (cost_paylifex.go, cost_sacx.go,
+				// an announced PayLife<X>, Sac<X/Spec>, ExileFromGrave<X/Spec>
+				// or Discard<X/Spec> with no {X} mana asks X below
+				// (cost_paylifex.go, cost_sacx.go, cost_exilex.go,
 				// cost_discardfiltered.go)
 			}
 			// X is announced (CR 601.2b) before the payment window opens, so it is

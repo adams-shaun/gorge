@@ -743,6 +743,9 @@ func (s *State) canActivate(k *prep, sl Slot, ab int, a *kop.Ability, sorc bool,
 	if mana.X == 0 && sacXCost(&a.Cost) && k.gen != nil && k.gen.anySacX {
 		return s.sacXTargetsFeasible(k, a, p.ctrl, sl) // cost_sacx.go
 	}
+	if mana.X == 0 && exileXCost(&a.Cost) && k.gen != nil && k.gen.anyExileX {
+		return s.sacXTargetsFeasible(k, a, p.ctrl, sl) // targets judged at X = 0 (cost_exilex.go)
+	}
 	return s.abilityTargetsFeasible(k, a, p.ctrl, sl, 0xff) && s.xBoundPayable(k, a, 0, p.ctrl, sl, &mana)
 }
 
