@@ -101,14 +101,16 @@ func TestKernelAskMiscSoulbond(t *testing.T) {
 }
 
 // extort: the trigger's KModes pay/decline, the pip charged by the shared
-// answer record from the mana left floating after the cast.
+// answer record from the mana left floating after the cast. Tape Gain costs
+// {W}, so every scenario floats a spare pip: an empty pool poses no ask (CR
+// 118.3; effExtort).
 func TestKernelAskMiscExtort(t *testing.T) {
 	const src = "Name:Tape Extorter\nManaCost:B\nTypes:Creature Spirit\nPT:1/1\nK:Extort\nOracle:x\n"
 	drained := 0
 	for _, tc := range []struct {
 		mana string
 		seed uint64
-	}{{"WB", 0}, {"WB", 1}, {"WB", 4}, {"W", 2}, {"W", 3}} {
+	}{{"WB", 0}, {"WB", 1}, {"WB", 4}, {"WW", 2}, {"WW", 3}} {
 		t.Run(fmt.Sprint(tc.mana, tc.seed), func(t *testing.T) {
 			e, st := runKernelScenario(t, 2, 13400+tc.seed, func(t *testing.T, e *Engine) {
 				moveByName(t, e, 0, "Tape Extorter", state.ZBattlefield)
