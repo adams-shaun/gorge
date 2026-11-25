@@ -129,7 +129,10 @@ func (lc *lowerCtx) etbChooseName(ps *params, node, sa *cards.SA, other bool, co
 		}
 		ps.consume("AILogic")
 		in.B, in.Note = cst(2), "choice of any card name as it enters, after the look at the chosen opponent's hand"
-	} else if v := ps.str("ValidCards"); v != "Card.nonLand" {
+	} else if v, ok := ps.get("ValidCards"); !ok && !hand {
+		// Pithing Needle, Disruptor Flute: any card name, lands included (B = 1)
+		in.B, in.Note = cst(1), "choice of any card name as it enters"
+	} else if v != "Card.nonLand" {
 		return refuse("ETB NameCard ValidCards$ %q", v)
 	}
 	if hand {
