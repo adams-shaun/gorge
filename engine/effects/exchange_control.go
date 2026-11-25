@@ -71,6 +71,14 @@ func effExchangeControl(h Host, c *Ctx, sa *cards.SA) {
 	if first == nil || second == nil || first.Zone != state.ZBattlefield || second.Zone != state.ZBattlefield {
 		return
 	}
+	// CR 702.26b: a phased-out permanent is treated as though it does not
+	// exist, so it is no member of the pair (Phyrexian Infiltrator phased
+	// out in response to its own exchange: Defined$ Self names an object
+	// still on the battlefield, phased out). Forge's isInPlay() is false for
+	// it, and the exchange does nothing.
+	if first.PhasedOut || second.PhasedOut {
+		return
+	}
 	// Exchanging with the same controller cannot change control, and does
 	// not create two artificial control-layer effects.
 	firstController, secondController := first.Controller, second.Controller

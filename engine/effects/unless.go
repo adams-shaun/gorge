@@ -662,6 +662,17 @@ func unlessPayerTargetsFor(h Host, c *Ctx, sa *cards.SA, ownTargets []state.Targ
 		// The attached permanent's controller is the named payer, not the
 		// Aura's controller (Power Taint and Paralyze).
 		source := g.Obj(c.Source)
+		if source != nil && source.AttachedTo == 0 && source.Zone != state.ZBattlefield && lkiBearer(g, source) != 0 {
+			// The Aura left the battlefield with its trigger on the stack
+			// (Slow Motion's upkeep trigger after the creature was
+			// sacrificed to an earlier copy): the payer is the controller of
+			// the creature it last enchanted (CR 608.2h), the LastBearer read
+			// Defined$ Enchanted makes (definedSpecEquipped).
+			if b := g.Obj(source.LastBearer); b != nil {
+				add(b.Controller)
+				break
+			}
+		}
 		if source == nil || source.AttachedTo == 0 {
 			return nil, false
 		}

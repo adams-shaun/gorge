@@ -1,0 +1,32 @@
+# the Defined$ referent pool, slice 2: hand moves over DefinedPlayer$
+# TargetedController / ParentTarget / TriggeredPlayer, Phases over a Defined$
+# host, target or Valid <filter>, ExchangeControl Defined$ Self, SacrificeAll
+# Defined$ Enchanted, TriggeredTargetController on a self-source damage line
+# and TriggeredAttackerController on a become-blocked line, for the oracle's
+# constructed lockstep (dirac/oracle/definedrefs2_lockstep_test.go)
+Assembled Alphas
+Avarice Totem
+Bellowing Fiend
+Braids, Conjurer Adept
+Conjured Currency
+Death Charmer
+Divine Gambit
+Eyes Everywhere
+Flayed Nim
+Forest
+Grizzly Bears
+Island
+Meglonoth
+Metamorphose
+Mountain
+Parasitic Implant
+Phyrexian Infiltrator
+Plains
+Prying Questions
+Robe of Stars
+Slip Out the Back
+Slow Motion
+Soul Charmer
+Swamp
+Taniwha
+Vanishing

@@ -706,7 +706,12 @@ func (s *State) objRefObj(r kop.Ref) Obj {
 		return s.res.eachObj
 	case kop.RefAttached:
 		ob := &s.objs[e.obj]
-		if ob.zone == kop.ZoneBattlefield {
+		if ob.zone == kop.ZoneBattlefield || ob.zone == kop.ZonePhased || ob.zone == kop.ZonePhasedInd {
+			// a phased-out source keeps its attachment (CR 702.26g: it
+			// phased out with its host, or alone and stays attached), the
+			// AttachedTo gorge's EnchantedController payer reads (Slow
+			// Motion's upkeep trigger resolving after Vanishing phased the
+			// creature out with it)
 			if a := s.perms[ob.slot].attached; a != NoSlot {
 				return s.perms[a].obj
 			}

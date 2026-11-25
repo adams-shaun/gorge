@@ -365,6 +365,15 @@ func (lc *lowerCtx) apiSacrificeAll(sa *cards.SA, ps *params) error {
 			// the battlefield: the body is a no-op, as gorge's
 			// TriggeredObjectLKICopy reference is (CR 608.2h)
 			cl = lClause{CmpStat: cmpTriggerObj, CmpN: 1}
+		case (d == "Enchanted" || d == "Equipped") && !hasT:
+			// gorge definedSpecEquipped: the source's host (its
+			// AttachedTo), the permanent EnchantedBy / EquippedBy name
+			// (Parasitic Implant, Slow Motion). A detached source names
+			// nothing: the sacrifice is a no-op on both sides
+			cl.Flags = fEnchantedBy
+			if d == "Equipped" {
+				cl.Flags = fEquippedBy
+			}
 		case d == "Targeted" && hasT:
 			if _, err := lc.objOrTarget(newParams(map[string]string{"ValidTgts": ps.str("ValidTgts")}), "", zBattlefield); err != nil {
 				return err
