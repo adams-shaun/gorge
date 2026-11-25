@@ -1,6 +1,7 @@
 package kgen
 
 import (
+	"maps"
 	"regexp"
 	"slices"
 	"strconv"
@@ -352,26 +353,29 @@ func (lc *lowerCtx) staticGateCond(s cards.Static, st *lStatic, c string) error 
 }
 
 // mayPlayStatic lowers "you may play/cast cards matching Affected from
-// AffectedZone" (Muldrotha, Tinybones, Quilled Greatwurm, Omniscience).
-func (lc *lowerCtx) mayPlayStatic(sp *params, st *lStatic, aff string) error {
+// AffectedZone" (Muldrotha, Tinybones, Quilled Greatwurm, Omniscience). The
+// statics it returns are extras the caller emits beside or instead of st
+// (staticBody: extras replace it); the single-zone shapes fill st itself and
+// return none.
+func (lc *lowerCtx) mayPlayStatic(sp *params, st *lStatic, aff string) ([]lStatic, error) {
 	if sp.str("AffectedZone") == "Library" {
 		if err := libTopRefusals(sp); err != nil {
-			return err
+			return nil, err
 		}
 		var err error
 		if aff, err = libTopAffected(aff); err != nil {
-			return err
+			return nil, err
 		}
 	}
 	if err := laterPermanentAlternative(aff); err != nil {
-		return err
+		return nil, err
 	}
 	f, err := lc.filter(aff)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if err := ownGraveLandsOnly(sp, f); err != nil {
-		return err
+		return nil, err
 	}
 	st.Kind = "MayPlayFrom"
 	st.F = f
@@ -383,12 +387,36 @@ func (lc *lowerCtx) mayPlayStatic(sp *params, st *lStatic, aff string) error {
 		// hand, the card's own cast-from-hand permission)
 		z = "Hand"
 	}
+	// A two-zone self grant (Squee, the Immortal's AffectedZone$
+	// Exile,Graveyard with EffectZone$ Exile,Graveyard): the kernel's self
+	// may-play walk (statics_gen.go mayPlayStaticsOf) keys a card's own
+	// StatMayPlayFrom to ONE zone -- sclsGyMay + StFunctionsInGraveyard read
+	// in the graveyard, sclsExMay + StFunctionsInExile in exile -- and a
+	// static's Filter compiles with the static's one zone (build_ab.go's
+	// MayPlayFrom arm), so an exile-zone filter never matches the card in
+	// the graveyard. The grant lowers to ONE STATIC PER ZONE, each with the
+	// zone word as its own AffectedZone$/EffectZone$ (its own filter zone
+	// and FunctionsIn flag). The card in one zone matches only that zone's
+	// static, the one grant gorge reads there (mayplay.go affectedZoneOK and
+	// chars.EffectZoneOK both take the comma list), so the offer set is the
+	// same. Only the card's own grant splits: a permanent's permission is
+	// one static with one once-per-turn count (the Sideboard, rider below),
+	// and any other two-zone Affected$ -- or one whose EffectZone$ names a
+	// different set, which gorge narrows per zone -- keeps the refusal
+	// below.
+	if aff == "Card.Self" {
+		if zs, ok := mayPlayZonePair(z); ok {
+			if ezs, ezOK := mayPlayZonePair(sp.str("EffectZone")); ezOK && zonePairSame(zs, ezs) {
+				return lc.mayPlaySelfZones(sp, st, zs)
+			}
+		}
+	}
 	if z == "All" {
 		// Weftwalking's first-spell free cast: the exact shape only
 		if !sp.is("MayPlayDontGrantZonePermissions", "True") ||
 			sp.str("MayPlayPlayer") != "Player.Active" ||
 			!sp.is("MayPlayWithoutManaCost", "True") {
-			return refuse("MayPlay zone %q outside the first-spell free shape", zRaw)
+			return nil, refuse("MayPlay zone %q outside the first-spell free shape", zRaw)
 		}
 		z = "Hand"
 		st.Flags = append(st.Flags, "FreeOnly")
@@ -403,11 +431,11 @@ func (lc *lowerCtx) mayPlayStatic(sp *params, st *lStatic, aff string) error {
 	}
 	st.Zone = zoneNames[z]
 	if st.Zone != zGraveyard && st.Zone != zExile && st.Zone != zHand && st.Zone != zLibrary && st.Zone != zSideboard {
-		return refuse("MayPlay zone %q", z)
+		return nil, refuse("MayPlay zone %q", z)
 	}
 	if dg, ok := sp.get("MayPlayDontGrantZonePermissions"); ok && (dg != "True" || zRaw != "All") {
 		if !exileZeroAltShape(sp, dg, zRaw) {
-			return refuse("MayPlayDontGrantZonePermissions$ %q on zone %q", dg, zRaw)
+			return nil, refuse("MayPlayDontGrantZonePermissions$ %q on zone %q", dg, zRaw)
 		}
 		// Dragon's Smile: once during each of your turns, {0} instead of the
 		// mana cost of a spell cast from exile through another permission
@@ -420,7 +448,7 @@ func (lc *lowerCtx) mayPlayStatic(sp *params, st *lStatic, aff string) error {
 	}
 	if mp, ok := sp.get("MayPlayPlayer"); ok {
 		if mp != "Player.Active" || zRaw != "All" {
-			return refuse("MayPlayPlayer$ %q", mp)
+			return nil, refuse("MayPlayPlayer$ %q", mp)
 		}
 		st.Flags = append(st.Flags, "SeatActive")
 	}
@@ -432,12 +460,12 @@ func (lc *lowerCtx) mayPlayStatic(sp *params, st *lStatic, aff string) error {
 		case "Exile":
 			st.Flags = append(st.Flags, "FunctionsInExile")
 		default:
-			return refuse("MayPlay EffectZone %q", ez)
+			return nil, refuse("MayPlay EffectZone %q", ez)
 		}
 	}
 	if l, ok := sp.get("MayPlayLimit"); ok {
 		if l != "1" {
-			return refuse("MayPlayLimit %q", l)
+			return nil, refuse("MayPlayLimit %q", l)
 		}
 		// once per turn PER STATIC, a library permission's too (gorge
 		// engine/rules/mayplay.go mayPlayKeyLimitReached)
@@ -462,12 +490,71 @@ func (lc *lowerCtx) mayPlayStatic(sp *params, st *lStatic, aff string) error {
 		// the count rides in Static.A (the flag keeps its spelling)
 		n, ok := removeAnyCounterN(rc)
 		if !ok {
-			return lc.mayRaiseStatic(rc, st) // PayLife / Discard / PayLife + Sac (lower_mayraise.go)
+			return nil, lc.mayRaiseStatic(rc, st) // PayLife / Discard / PayLife + Sac (lower_mayraise.go)
 		}
 		st.Flags = append(st.Flags, "RaiseCostRemove6CountersFromCreatures")
 		st.Amount = cst(n)
 	}
-	return mayPlayAltManaCost(sp, st)
+	return nil, mayPlayAltManaCost(sp, st)
+}
+
+// mayPlayZonePair splits a two-zone AffectedZone$/EffectZone$ word into its
+// zone words, or reports none: exactly two DISTINCT names among the zones a
+// self may-play grant lowers to (the kernel's self walk reads the graveyard
+// statics and the exile statics -- statics_gen.go mayPlayStaticsOf's
+// selfCls switch; the other zones' self shapes are no walk there). The word
+// order is the script's.
+func mayPlayZonePair(z string) ([]string, bool) {
+	words := strings.Split(z, ",")
+	if len(words) != 2 {
+		return nil, false
+	}
+	var zs []string
+	for _, w := range words {
+		w = strings.TrimSpace(w)
+		switch w {
+		case "Graveyard", "Exile":
+			if slices.Contains(zs, w) {
+				return nil, false
+			}
+			zs = append(zs, w)
+		default:
+			return nil, false
+		}
+	}
+	return zs, true
+}
+
+// zonePairSame compares two mayPlayZonePair lists as sets (each holds two
+// distinct zone words, so two pairwise hits are the same set).
+func zonePairSame(a, b []string) bool {
+	return len(a) == 2 && len(b) == 2 && slices.Contains(a, b[0]) && slices.Contains(a, b[1])
+}
+
+// mayPlaySelfZones lowers a two-zone self MayPlay$ grant (the Squee shape in
+// mayPlayStatic above) to one static per zone: each zone word becomes the
+// static's own AffectedZone$/EffectZone$, so the per-zone lowering compiles
+// the filter with the card's own zone and sets the zone's FunctionsIn flag
+// the kernel's self walk matches. The per-zone lowering runs over a copy of
+// the params, and the keys it read mark the original read too -- the
+// unread-key refusal must name the same keys the one static's lowering
+// would.
+func (lc *lowerCtx) mayPlaySelfZones(sp *params, st *lStatic, zs []string) ([]lStatic, error) {
+	var out []lStatic
+	for _, zn := range zs {
+		tsp := &params{m: maps.Clone(sp.m), used: map[string]bool{}}
+		tsp.m["AffectedZone"], tsp.m["EffectZone"] = zn, zn
+		var one lStatic
+		if _, err := lc.mayPlayStatic(tsp, &one, "Card.Self"); err != nil {
+			return nil, err
+		}
+		one.Cond = st.Cond
+		for k := range tsp.used {
+			sp.used[k] = true
+		}
+		out = append(out, one)
+	}
+	return out, nil
 }
 
 // mayPlayAltManaCost reads a MayPlay static's MayPlayAltManaCost$ as the
