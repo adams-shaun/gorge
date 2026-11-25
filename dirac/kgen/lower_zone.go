@@ -4280,6 +4280,17 @@ func (lc *lowerCtx) immediateTrigger(ps *params) error {
 		return err
 	}
 	lat := lc.newLatent("ReflexiveTrigger")
+	if od, ok := ps.get("OptionalDecider"); ok {
+		// "When you do, you may ..." (Etched Slith, Dream Eater): gorge's
+		// effImmediateTrigger copies the line's OptionalDecider$ onto the
+		// minted trigger (TriggerContext.OptionalSpec), so the reflexive
+		// ability is an optional trigger its controller is asked about as
+		// it resolves (CR 603.5): the latent carries kop.TfOptional.
+		if strings.TrimSpace(od) != "You" {
+			return refuse("ImmediateTrigger OptionalDecider %q", od)
+		}
+		lat.ReflexOptional = true
+	}
 	lat.TrigRem = lc.trigRemInit(ps) // lower_trigremembered.go
 	savedRemX := lc.trigRemX
 	lc.trigRemX = false

@@ -1062,6 +1062,7 @@ type lAbility struct {
 	TrigRem         string // a reflexive trigger's TriggerRemembered$ rest (lower_trigremembered.go)
 	RemTgt          bool   // a Pump RememberObjects$ ThisTargetedCard (lower_remembered.go)
 	ReflexObj       bool   // a reflexive latent whose ImmediateTrigger captured a target (lower_remembered.go)
+	ReflexOptional  bool   // a reflexive latent whose ImmediateTrigger carries OptionalDecider$ You: asked as it resolves (kop.TfOptional; lower_zone.go immediateTrigger)
 	DelayedObjOnly  bool   // a delayed latent whose RememberObjects$ set holds objects only (lower_delayedobjects.go)
 	DelayedPlayer   bool   // a delayed latent registered with a remembered PLAYER (the countered spell's controller): Defined$ DelayTriggerRemembered reads the trigger player (lower_delayremplayer.go)
 	DelayedSelf     bool   // the delayed program remembered the source's own card (Transformed$ return; lower_delayedobjects.go)
