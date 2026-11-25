@@ -2574,19 +2574,28 @@ func (s *State) copyTokenEnterFrom(k *prep, in *kop.Instr, t Obj, host, tmpl Slo
 			s.capFull(StallDelayed)
 		}
 	} else if fl&(kop.CpSacAtEnd|kop.CpExileAtEnd) != 0 && !upk {
-		act := kop.OpSacrifice
 		// AtEOTTrig$ Sacrifice is the token's own granted trigger: its source
 		// stays the token. Only the AtEOT$ rider is sourced on its creator
 		// (CR 603.7d-e; gorge copypermanent.go scheduleAtEOTRider). The
 		// record names the token as its own creator: delayed.ownTrig marks it
 		// for the Panharmonicon echo at fire (trig_ateotecho.go).
-		creator := t
 		if fl&kop.CpExileAtEnd != 0 {
-			act = kop.OpExile // AtEOT$ Exile (gorge scheduleAtEOT, __kwWarpExile)
-			creator = e.obj
-		}
-		if s.ndly < MaxDelayed {
-			s.dly[s.ndly] = delayed{act: uint8(act), ctrl: e.ctrl, obj: t, ver: objWord(s.objs[t].ver), creator: creator}
+			// AtEOT$ Exile over the copies of one resolution is one delayed
+			// triggered ability naming all of them (CR 603.7a/b; gorge
+			// scheduleAtEOTGroup, copypermanent.go's grouped rider), so a
+			// later copy joins the head's tracked exile promise
+			// (trig_ateotexilegroup.go) instead of registering its own.
+			later := eb != nil && eb.n >= 2 || s.res.flags&rfCopyGrp != 0
+			if !later || !s.exileAtEndJoin(t) {
+				if s.ndly < MaxDelayed {
+					s.dly[s.ndly] = delayed{act: uint8(kop.OpExile), ctrl: e.ctrl, obj: t, ver: objWord(s.objs[t].ver), creator: e.obj}
+					s.ndly++
+				} else {
+					s.capFull(StallDelayed)
+				}
+			}
+		} else if s.ndly < MaxDelayed {
+			s.dly[s.ndly] = delayed{act: uint8(kop.OpSacrifice), ctrl: e.ctrl, obj: t, ver: objWord(s.objs[t].ver), creator: t}
 			s.ndly++
 		} else {
 			s.capFull(StallDelayed)
