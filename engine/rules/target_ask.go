@@ -1015,8 +1015,20 @@ func offeredTargetSA(o *state.Object, svars map[string]string) *cards.SA {
 			}
 			return nil
 		}
-		if effects.TargetsOf(o.Ability).Targeted() {
-			return o.Ability
+		// The placement ask may have covered a declaration that is not on
+		// the printed SA: a permanent's Support N synthesizes one
+		// (supportTargetSA), exactly as the cast flow does for a spell's
+		// Support. Return that same synthesized SA so the offered marker
+		// (and putCounterSupport's announced arm) match the ask by Line.
+		//
+		// The nil face derives "Creature.+Other" where pushTrigger derives
+		// the spec from the source face: a delayed trigger of an instant or
+		// sorcery would have asked "Creature" at placement. Only Line is the
+		// marker key (putCounterSupport compares OfferedSA.Line == sa.Line),
+		// so that spec difference has no resolution effect; the announced
+		// targets themselves come from the ask, not from this clone.
+		if sa := supportTargetSA(o.Ability, nil); sa != nil && effects.TargetsOf(sa).Targeted() {
+			return sa
 		}
 		return nil
 	}
