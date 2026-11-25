@@ -17,9 +17,11 @@ func damageChoicePool(h Host, c *Ctx, dp *params.DealDamageParams) []state.Targe
 	g := h.Game()
 	var pool []state.Target
 	if dp.CardChoices != "" {
+		sc := c.SpecContext(c.Controller)
+		bindSpecLayerTables(h, &sc.Layers, dp.CardChoices, false)
 		for _, pl := range g.AliveFrom(0) {
 			for _, id := range g.Zone(state.ZBattlefield, pl) {
-				if MatchesSpecCtx(g, dp.CardChoices, id, c.SpecContext(c.Controller)) {
+				if MatchesSpecCtx(g, dp.CardChoices, id, sc) {
 					pool = append(pool, state.Target{Obj: id})
 				}
 			}
