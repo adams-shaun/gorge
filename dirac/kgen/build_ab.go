@@ -2269,6 +2269,9 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
 			return ka, nil, err
 		}
+		if s.Zone == zCommand {
+			st.Zone = kop.ZoneCommand // a Vanguard's command-zone static (Sisay)
+		}
 		st.A, st.B = int16(s.TapCol), int16(s.TapAmt)
 		for _, fl := range s.Flags {
 			f, ok := tapExtraFlag(fl)
