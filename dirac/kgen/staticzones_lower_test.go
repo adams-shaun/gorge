@@ -36,7 +36,7 @@ func TestStaticZonesSlice(t *testing.T) {
 // staticZonesRefusals are the slice's other carriers: the same classes, in
 // shapes the kernel does not model yet (a multi-zone MayPlay with the command
 // zone, a stack grant of Replicate, Prowl, Rebound, Freerunning or
-// Deathtouch, an off-zone grant of miracle, the vote
+// Deathtouch, the vote
 // counters, K'rrik's pay-life-instead-of-mana) or that gorge itself fails
 // closed on -- FatefulHour, ExtraTurn and Night, whose gate has no arm, so
 // the whole static is inert there (Gavony Ironwright, Medomai the Ageless,
@@ -46,7 +46,6 @@ func TestStaticZonesSlice(t *testing.T) {
 // it (lower_offzone.go offZoneUnearth), so the row would go stale on rebase.
 var staticZonesRefusals = []struct{ card, want string }{
 	{"Aluren", `MayPlay zone "Hand,Graveyard,Library,Exile,Command"`},
-	{"Aminatou, Veil Piercer", `AffectedZone "Hand" without MayPlay`},
 	{"Ballot Broker", "player static"},
 	{"Cast Through Time", `AffectedZone Stack grant of "Rebound"`},
 	{"Djinn Illuminatus", `AffectedZone Stack grant of "Replicate:CardManaCost"`},
