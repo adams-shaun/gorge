@@ -75,12 +75,16 @@ func (s *State) tapsWatchClassForeign(k *prep, p uint8, sl Slot) (painN int, def
 				continue // Activator$ Player.NonActive: the payer taps on their own turn
 			}
 			if a.Trig.Flags&kop.TfSelf != 0 {
-				// the source's own Pain-class line (City of Brass) is priced
-				// with its printed mana ability (prepSelfTapsPain), and a
-				// self line classes no other source
-				continue
-			}
-			if !s.matchPermGen(k, a.Trig.Filter, sl, s.perms[w].ctrl, w, layerFull) {
+				// A self line classes only the tapped source's own tap. The
+				// Pain class stays with prepSelfTapsPain (City of Brass's
+				// printed mana ability); a Defer line classes the source when
+				// its listener slot is the tapped one (Zhur-Taa Druid's self
+				// TapsForMana line, whose ValidCard$ Card.Self is the
+				// builder's kop.TfSelf flag and not a filter).
+				if a.Trig.TapPlan != kop.TapPlanDefer || w != sl {
+					continue
+				}
+			} else if !s.matchPermGen(k, a.Trig.Filter, sl, s.perms[w].ctrl, w, layerFull) {
 				continue
 			}
 			// The gates gorge's real matcher applies (triggers_gen.go: FirstTime$
