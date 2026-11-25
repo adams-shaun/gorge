@@ -1376,7 +1376,7 @@ func deferGapWalk(s *State, k *prep, a Action, p uint8, order []Slot, tapsDef sl
 					found = t.castRestPriced(k, p, cp.o, &cp.cost) && !foreign
 				} else {
 					var d Decision
-					t.restrOptions(k, &d, p)
+					t.restrOptionsProbe(k, &d, p) // a node reads no script listing of its own (prefixAnyProbe)
 					complete := w.nu == n
 					found = hasOption(&d, a) && (t.npend == 0 || complete || !resolvePlay || post) && !foreign
 					if found && t.npend != 0 {
@@ -1472,36 +1472,23 @@ func deferAnswerBranches(s *State, k *prep, a Action, p uint8, order []Slot, i i
 	}
 	// the tap's any-colour triggers ask a colour each, which the search
 	// branches on too (tapAnyColAsks), the play's needed colours first
-	// (scriptOrderAnswers)
-	nx := s.tapAnyColAsks(k, order[i])
-	xo := [kop.NumManaKinds - 1]uint8{0, 1, 2, 3, 4}
-	nxc := 1 // the answer combinations: five per ask
-	if nx > 0 {
-		needFirst(xo[:], s.playNeed(k, a))
-		for u := 0; u < nx; u++ {
-			nxc *= len(xo)
-		}
-	}
+	// (scriptOrderAnswers); a Combo Any's ask is one ask of its units' colours
+	var asks anyColAsks
+	s.anyColAsksOf(k, a, order[i], &asks)
+	nx, nxc, visits := asks.n, asks.total, asks.visits()
 	for ai := 0; ai < na; ai++ {
 		if w.subsume && na > 1 && !s.deferSubsumeKeeps(k, order[i], ai, &w.costCol, nodePool) {
 			continue // the subsume run's ask keeps only the colours the pool lacks
 		}
 		if nx > 0 {
 			// the ask visits: the first ask, then one under each answer of the earlier
-			if w.nodes += (nxc - 1) / (len(xo) - 1); w.nodes > potentialScriptNodes {
+			if w.nodes += visits; w.nodes > potentialScriptNodes {
 				w.budgetExit(s)
 				return false, true
 			}
 		}
 		for xi := 0; xi < nxc; xi++ {
-			enc := uint16(ai)
-			if nx > 0 {
-				var cols [anyColAskCap]uint8
-				for u, r := nx-1, xi; u >= 0; u, r = u-1, r/len(xo) {
-					cols[u] = xo[r%len(xo)]
-				}
-				enc = tapAnyColAnswerBits(ai, cols[:nx])
-			}
+			enc := asks.encode(ai, xi)
 			w.used[w.nu], w.answers[w.nu] = int8(i), enc
 			w.nu++
 			ok := deferGapWalk(s, k, a, p, order, tapsDef, cp, ans, pick, dead, noGrant, resolvePlay, twinCut, w, false)
