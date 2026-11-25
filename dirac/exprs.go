@@ -838,6 +838,11 @@ func (s *State) condEval(k *prep, id kop.CondID, ctx evalCtx) bool {
 		// state.Game.IsMonarch(sv.Controller)). The monarch seat is nobody
 		// until a BecomeMonarch effect makes one (act_monarch.go).
 		r = !DebugCondMonarchNone && s.Monarch() >= 0 && int8(ctx.ctrl) == s.Monarch()
+	case kop.CondEnduringStory:
+		// the controller holds the enduring story (CR 702.195; gorge
+		// condEnduringStory's state.Player.EnduringStory(sv.Controller)). The
+		// one-way latch is granted by the scan hooks (kw_storied.go).
+		r = s.hasStory(ctx.ctrl)
 	case kop.CondRefMatches:
 		r = cmp(c.Op, s.countRefMatches(k, c.Ref, c.F, ctx), s.evalV(k, c.A, ctx))
 	case kop.CondPromised:
