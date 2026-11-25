@@ -58,6 +58,9 @@ func (fs *filtSearch) gapFreeTry(k *prep, t *State, sl Slot, funded int, asked b
 	}
 	var order [kop.NumManaKinds]uint8
 	for _, c := range order[:fs.gapFreeOrder(k, t, sl, t.manaPCGen(k, sl), mask, &order)] {
+		if !fs.subsumeKeeps(t, c) {
+			continue // the subsume run's ask keeps only the colours the pool lacks
+		}
 		if fs.try(k, t, filtStep{sl: sl, gap: true, col: c + 1}, funded, true) {
 			return true
 		}
