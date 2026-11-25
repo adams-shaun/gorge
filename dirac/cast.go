@@ -1419,6 +1419,9 @@ func (s *State) modeFeasible(k *prep, a *kop.Ability, m int) bool {
 	if k.gen != nil && k.gen.anyCharmPick && s.charmPickBarred(a, s.bld().e.obj, m) {
 		return false // ChoiceRestriction$: chosen before (modal_charmpick.go)
 	}
+	if a.AFlags&kop.AfCharmTrigger != 0 && !s.modeUnlessPayable(k, a, m, s.bld().e.ctrl) {
+		return false // a GenericChoice mode whose UnlessCost$ the controller cannot pay (modal_unless.go)
+	}
 	for i := 0; i < int(a.NTargets); i++ {
 		t := &a.Targets[i]
 		if t.UpTo || (a.TgtModes[i] != 0 && a.TgtModes[i]&(1<<m) == 0) {
