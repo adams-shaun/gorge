@@ -114,6 +114,20 @@ type pendingTrigger struct {
 	// designation. Like MonarchDraw it mints a real stack ability through the
 	// synthetic DelayedPush body, so the venture can be responded to.
 	InitiativeVenture bool
+	// SuspendTick and SuspendLast are CR 702.62a/b's two real triggered
+	// abilities of a suspended card: the upkeep tick ("At the beginning of
+	// your upkeep, if this card is suspended, remove a time counter from it")
+	// and the last-counter may-cast ("When the last time counter is removed
+	// from this card, if it's exiled, you may play it without paying its mana
+	// cost"). Source is the suspended card in exile and Controller its owner;
+	// both mint respondable keyword-triggered abilities through
+	// resolveTimeKeywordPush's __kwSuspendTick/__kwSuspendCast payloads
+	// (cards' builtinSVars). The tick's body rules resolves
+	// (engine/rules/suspend_trigger.go's startSuspendTick, the intervening-if
+	// rechecked there, CR 603.4); the may-cast's resolution asks its owner
+	// (askSuspendCast), the SiegeDefeat shape.
+	SuspendTick bool
+	SuspendLast bool
 	// Merged marks a mutated pile's under-card trigger (CR 702.140d): like
 	// a delayed trigger its Ability is the Execute$ SVar-named body, but the
 	// push must resolve that name against the UNDER-CARD's own face, never

@@ -284,9 +284,6 @@ func (s *State) stepRaw(d *Decision) {
 		case ctlStepBegin:
 			s.beginStep(k)
 		case ctlPriority:
-			if k.gen != nil && k.gen.anySuspend && s.g.nmay > 0 && s.suspendAsk(k, d) {
-				return // CR 702.62a: the may-cast ask of a card whose last counter went (kw_suspend.go)
-			}
 			// state-based actions and triggers repeat until neither has anything
 			// left, and only then does a player receive priority (CR 117.5): a
 			// final chapter removed for want of a legal target (CR 603.3d) leaves

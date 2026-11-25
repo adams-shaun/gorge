@@ -156,6 +156,10 @@ func (e *Engine) askKeywordCast(o *state.Object) (handled, asked bool) {
 		return true, e.askMiracleCast(o)
 	case siegeDefeatAPI:
 		return true, e.askSiegeDefeat(o)
+	case "SuspendCast":
+		// CR 702.62a: suspend's last-counter may-cast (engine/rules/
+		// suspend_trigger.go), the same resolution-time choice shape.
+		return true, e.askSuspendCast(o)
 	}
 	return false, false
 }

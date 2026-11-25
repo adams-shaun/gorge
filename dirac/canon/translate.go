@@ -431,7 +431,7 @@ func (r *Translator) Action(a dirac.Action) Canon {
 		case dirac.ChWaterbend:
 			return ch("waterbend_generic", src, 0)
 		case dirac.ChSuspendCast:
-			// gorge startSuspendedCast: suspend_cast_yes / suspend_cast_no,
+			// gorge askSuspendCast: suspend_cast_yes / suspend_cast_no,
 			// both naming the suspended card (CR 702.62a)
 			if mode == 1 {
 				return ch("suspend_cast_yes", src, 0)

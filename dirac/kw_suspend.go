@@ -2,8 +2,9 @@ package dirac
 
 import "github.com/adams-shaun/gorge/dirac/kop"
 
-// Suspend (CR 702.62; gorge rules turn.go finishEnteredStep /
-// startSuspendedCast, cast_commit.go's suspend branch). 0 B of State:
+// Suspend (CR 702.62; gorge rules turn.go's upkeep walk queues the tick,
+// emit.go's TIME hook queues the may-cast, and engine/rules/suspend_trigger.go
+// resolves both; cast_commit.go's suspend branch). 0 B of State:
 //
 //   - a suspended card is a mayPlay record with until = kop.DurSuspend
 //     (obj/ver = the exiled card, ctrl = its owner, turn = its time counters);
@@ -12,12 +13,15 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 //   - the special action is AkPlot with mode plotModeSuspend, offered from
 //     the hand under the card's own cast timing and paid like plot's (a
 //     special action, never a spell);
-//   - the owner's upkeep removes a counter from each of its suspended cards
-//     in exile order (gorge ticks the exile zone without the stack); a card
-//     whose last counter went joins the ask queue (the record's kind), and
-//     the owner is asked, before priority, whether to cast it free (CR
-//     702.62a's "may", gorge's suspend_cast_yes / suspend_cast_no) -- only if
-//     it could be cast: no CantBeCast static and a legal target;
+//   - the owner's upkeep queues a REAL triggered ability per suspended card
+//     (gorge's SuspendTick trigger, CR 603.3): an abDelayed entry marked
+//     suspendTickAmt, placed and passed like any trigger, whose RESOLUTION
+//     (resolveSuspendTick) rechecks the intervening-if (CR 603.4) and removes
+//     one time counter. The last counter queues the may-cast trigger
+//     (suspendCastAmt; gorge's SuspendLast), whose resolution poses the
+//     owner's CR 702.62a cast-or-not ask (suspend_cast_yes /
+//     suspend_cast_no) -- only if it could be cast: no CantBeCast static and
+//     a legal target ("if able");
 //   - a creature spell cast that way gains haste until its caster loses
 //     control of the spell or the permanent: a suspendHaste record (obj/ver =
 //     the permanent, ctrl = the caster) that ctrKw reads while the permanent
@@ -33,14 +37,22 @@ const plotModeSuspend uint8 = 2
 // FeatPlotSuspend is plotModeSuspend for the oracle adapter.
 const FeatPlotSuspend = plotModeSuspend
 
-// A DurSuspend record's kind: counting (0), queued for the final-counter cast
-// ask, or its ask on screen.
+// A DurSuspend record's kind: counting (0) or queued for the final-counter
+// cast trigger.
 const (
 	suspendQueued uint8 = 1
-	suspendPosed  uint8 = 2
 	// suspendHaste marks the record of a creature on the battlefield that
 	// was cast through the last counter: haste while ctrl controls it.
 	suspendHaste uint8 = 3
+)
+
+// The abDelayed entry's trigAmt markers naming suspend's two triggers (speed's
+// is -1, the venture's -2, the monarch's -3/-4, the rad drain's -5, the Ring
+// emblem's -6/-7/-8, the extra-turn rider's -9, the staged loss copy's -10):
+// free offsets.
+const (
+	suspendTickAmt = -11 // the upkeep time-counter tick (CR 702.62b)
+	suspendCastAmt = -12 // the last-counter may-cast (CR 702.62a)
 )
 
 // DebugSuspendNoHaste skips the haste grant and DebugSuspendNoTick the upkeep
@@ -111,12 +123,14 @@ func (s *State) suspendExiled(k *prep, o Obj, n int) {
 	s.suspendAdd(o, n)
 }
 
-// suspendTick runs as the upkeep of the active player begins (gorge
-// finishEnteredStep): each of their suspended cards, in exile order, loses a
-// time counter; one that lost its last joins the cast-ask queue in that
-// order (gorge suspendedCasts).
+// suspendTick queues each of the active player's suspended cards' CR 702.62b
+// upkeep trigger as the upkeep begins (gorge's SuspendTick, queued by
+// turn.go's walk and placed by the ordinary drain): one abDelayed entry
+// marked suspendTickAmt per card, in exile order, after the step's other
+// triggers. The counter leaves only as the trigger RESOLVES
+// (resolveSuspendTick), the intervening-if rechecked there.
 func (s *State) suspendTick(k *prep) {
-	if DebugSuspendNoTick || s.g.nmay == 0 {
+	if DebugSuspendNoTick || s.g.nmay == 0 || s.npend+1 >= MaxPending {
 		return
 	}
 	pl := &s.pl[s.active]
@@ -131,85 +145,101 @@ func (s *State) suspendTick(k *prep) {
 		if r.kind != 0 || r.turn == 0 || r.ctrl != s.active {
 			continue
 		}
-		r.turn--
-		s.fireCtrRemovedExile(k, o, int(kop.CtrTime), 1, int(r.turn)) // trig_counterremoved.go
-		if r.turn > 0 {
-			continue
-		}
+		s.enqueue(o, uint8(s.objs[o].ver), s.objs[o].card, abDelayed, r.ctrl, NoObj, r.ctrl, suspendTickAmt)
+	}
+}
+
+// resolveSuspendTick is the upkeep tick trigger's resolution (gorge
+// startSuspendTick): the intervening-if — the card is still the exiled
+// suspended card the trigger names (CR 603.4) — is rechecked here, a card
+// that moved or lost its record fizzles with no effect, and the tick removes
+// exactly one time counter through the ordinary removal event
+// (fireCtrRemovedExile). The last counter converts the record to the
+// may-cast queue and queues the may-cast trigger (gorge's SuspendLast) after
+// the ones the removal event made.
+func (s *State) resolveSuspendTick(k *prep, e *stackEntry) {
+	o := e.obj
+	ob := &s.objs[o]
+	i := s.suspendRec(o)
+	if ob.zone != kop.ZoneExile || ob.ver != e.srcVer || i < 0 || DebugSuspendNoTick {
+		s.finishResolve(k, false) // the intervening-if no longer holds (CR 603.4)
+		return
+	}
+	r := s.mayAt(i)
+	if r.turn == 0 || r.ctrl != s.active || k.t.Cards[ob.card].Suspend == 0 {
+		s.finishResolve(k, false)
+		return
+	}
+	r.turn--
+	s.fireCtrRemovedExile(k, o, int(kop.CtrTime), 1, int(r.turn)) // trig_counterremoved.go
+	if r.turn == 0 {
 		q := *r
 		q.kind = suspendQueued
 		s.dropMay(i)
 		*s.mayAt(int(s.g.nmay)) = q
 		s.g.nmay++
+		s.enqueue(o, uint8(ob.ver), ob.card, abDelayed, q.ctrl, NoObj, q.ctrl, suspendCastAmt)
 	}
+	s.finishResolve(k, false)
 }
 
-// firstSuspendAsk is the index of the first queued or posed record, or -1.
-func (s *State) firstSuspendAsk() int {
-	for i := 0; i < int(s.g.nmay); i++ {
-		if r := s.mayAt(i); r.until == kop.DurSuspend && r.kind != 0 && r.kind != suspendHaste {
-			return i
-		}
-	}
-	return -1
-}
-
-// suspendAsk poses the owner's CR 702.62a may-cast ask for the first queued
-// card (gorge startSuspendedCast): a card that left exile, a CantBeCast static
-// forbids or that has no legal target is dropped without an ask ("if able").
-// It returns false when no ask is due, leaving control to the caller.
-func (s *State) suspendAsk(k *prep, d *Decision) bool {
-	for {
-		i := s.firstSuspendAsk()
-		if i < 0 {
-			return false
-		}
-		r := s.mayAt(i)
-		if r.kind == suspendPosed {
-			return false // its ask is on screen
-		}
-		ob := &s.objs[r.obj]
-		if ob.zone != kop.ZoneExile || ob.ver != r.ver || k.t.Cards[ob.card].Suspend == 0 ||
-			k.gen.anyCantCast && s.castForbidden(k, r.ctrl, ob.card, r.obj) || !s.spellTargetsFeasible(k, ob.card, r.ctrl) {
-			s.dropMay(i)
-			continue
-		}
-		r.kind = suspendPosed
-		s.g.ctlRet = s.ctl
-		s.ctl = ctlGenAsk
-		return s.genAskOptions(k, d)
-	}
-}
-
-// suspendPosedOptions fills the ask for the posed record.
-func (s *State) suspendPosedOptions(d *Decision) bool {
-	i := s.firstSuspendAsk()
-	if i < 0 || s.mayAt(i).kind != suspendPosed {
+// resolveSuspendCast is the may-cast trigger's resolution (gorge
+// askSuspendCast): a card that left exile, a CantBeCast static forbids or
+// that has no legal target consumes the record without an ask ("if able");
+// otherwise the owner's CR 702.62a cast-or-not ask is posed as a resolution
+// ask (raSuspendCast, like the Siege defeat's) and the resolution is spent —
+// suspendCastApply finishes it. It reports whether the ask was posed.
+func (s *State) resolveSuspendCast(k *prep, e *stackEntry) bool {
+	i := s.suspendRec(e.obj)
+	if i < 0 || s.mayAt(i).kind != suspendQueued {
 		return false
 	}
 	r := *s.mayAt(i)
-	d.Kind, d.Sub, d.Player = DkChoose, ChSuspendCast, r.ctrl
-	d.add(MakeAction(AkChoose, TCode(r.obj), 0, 1))
-	d.add(MakeAction(AkChoose, TCode(r.obj), 0, 0))
+	ob := &s.objs[r.obj]
+	if ob.zone != kop.ZoneExile || ob.ver != r.ver || k.t.Cards[ob.card].Suspend == 0 ||
+		k.gen.anyCantCast && s.castForbidden(k, r.ctrl, ob.card, r.obj) || !s.spellTargetsFeasible(k, ob.card, r.ctrl) {
+		s.dropMay(i) // "if able": nothing to choose, the card stays in exile
+		return false
+	}
+	s.res.ask, s.res.askP = raSuspendCast, r.ctrl
+	s.ctl = ctlResolve
 	return true
 }
 
-// applySuspendAnswer applies the posed ask's answer (gorge suspendCastAnswer):
-// the record is consumed either way; yes casts the card for no mana cost.
-func (s *State) applySuspendAnswer(k *prep, a Action) bool {
-	i := s.firstSuspendAsk()
-	if i < 0 || s.mayAt(i).kind != suspendPosed {
-		return false
+// suspendCastOptions fills the ask (gorge's KChoose suspend_cast_yes /
+// suspend_cast_no).
+//
+//kmanifest:askopts raSuspendCast
+func (s *State) suspendCastOptions(k *prep, d *Decision) {
+	d.Sub = ChSuspendCast
+	d.add(MakeAction(AkChoose, TCode(s.res.e.obj), 0, 1))
+	d.add(MakeAction(AkChoose, TCode(s.res.e.obj), 0, 0))
+}
+
+// suspendCastApply applies the ask's answer (gorge tapeSuspendAnswer): the
+// record is consumed either way and the trigger leaves the stack; yes casts
+// the card for no mana cost, the priority holder keeping priority after (CR
+// 117.3b, gorge's emit Priority(active) before beginCast).
+//
+//kmanifest:askapply raSuspendCast
+func (s *State) suspendCastApply(k *prep, a Action) {
+	s.res.ask = raNone
+	if i := s.suspendRec(s.res.e.obj); i >= 0 {
+		s.dropMay(i)
 	}
-	r := *s.mayAt(i)
-	s.dropMay(i)
-	s.ctl = s.g.ctlRet
+	s.finishResolve(k, false)
 	if a.Mode() == 0 {
-		return true // suspend_cast_no: it stays in exile
+		return // suspend_cast_no: it stays in exile
 	}
-	s.beginCast(k, r.obj, castFree, 0)
+	o := s.res.e.obj
+	if s.objs[o].zone != kop.ZoneExile {
+		return
+	}
+	holder := s.prio
+	s.prio = s.res.e.ctrl
+	s.beginCast(k, o, castFree, 0)
 	s.bld().e.trigPl = trigPlSuspend
-	return true
+	s.prio = holder
 }
 
 // suspendCast reports whether the spell entry e was cast by suspend's last

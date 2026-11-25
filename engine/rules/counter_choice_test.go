@@ -361,7 +361,11 @@ func amyPondAttack(t *testing.T, e *Engine, amyID state.ObjID) *decision.Decisio
 		if d == nil {
 			return nil
 		}
-		if d.Kind == decision.KChoose && d.ResumeKind == "counter_pick" {
+		if d.Kind == decision.KChoose && (d.ResumeKind == "counter_pick" ||
+			// Suspend's last-counter may-cast is now a real triggered ability:
+			// it resolves to this ask at a combat priority point, inside this
+			// drive. The caller decides whether to answer it.
+			d.ResumeKind == "suspend_cast") {
 			return d
 		}
 		if d.Kind == decision.KChoose && d.ResumeKind == "search_confirm" {

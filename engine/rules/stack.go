@@ -297,6 +297,15 @@ func (e *Engine) resolveTop() {
 			e.startCumulativeUpkeep(id, o.Source, o.Ability)
 			return
 		}
+		// Suspend's upkeep tick (CR 702.62b, kw:Suspend) is the same
+		// keyword-expansion shape: an ordinary beginning-of-upkeep trigger
+		// whose body needs rules (the intervening-if recheck, CR 603.4, and
+		// the counter removal that feeds emit.go's may-cast hook). It resolves
+		// through engine/rules/suspend_trigger.go's startSuspendTick.
+		if o.Ability.API == "SuspendTick" {
+			e.startSuspendTick(id)
+			return
+		}
 		// Echo (kw:Echo, CR 702.35a) is the same keyword-expansion shape: an
 		// ordinary Phase trigger whose DB$ Echo body needs rules' payment
 		// window and the pay-or-sacrifice election (engine/rules/echo.go). The

@@ -111,7 +111,7 @@ func replayReproValue(t *testing.T, reg *cards.Registry, set cardset.Set, r *Rep
 		t.Fatal(msg)
 	}
 	if res.Div != nil {
-		t.Fatalf("divergence at %d of %d: %s %s %v", res.Div.At, len(r.Actions), res.Div.What, res.Div.Field, res.Div.Diff)
+		t.Fatalf("divergence at %d of %d: %s %s %v\nDETAIL: %s", res.Div.At, len(r.Actions), res.Div.What, res.Div.Field, res.Div.Diff, res.Div.Detail)
 	}
 	return res
 }
@@ -149,7 +149,7 @@ func replayServedValue(t *testing.T, reg *cards.Registry, set cardset.Set, r *Re
 		t.Fatalf("recording served %d of %d actions (%d skipped): its game path has drifted", pol.next, len(r.Actions), pol.Skipped)
 	}
 	if res.Div != nil {
-		t.Fatalf("divergence at %d of %d: %s %s %v", res.Div.At, len(r.Actions), res.Div.What, res.Div.Field, res.Div.Diff)
+		t.Fatalf("divergence at %d of %d: %s %s %v\nDETAIL: %s", res.Div.At, len(r.Actions), res.Div.What, res.Div.Field, res.Div.Diff, res.Div.Detail)
 	}
 	return res
 }
@@ -348,7 +348,7 @@ func stdReproOtherSurface(t *testing.T, name, recorded, other string) {
 	r.Surface = other
 	res := replayDecodedScript(t, synthReg(t), globSet(t, r.Pool, r), r, &ScriptPolicy{Actions: r.Actions})
 	if res.Div != nil {
-		t.Fatalf("divergence at %d of %d: %s %s %v", res.Div.At, len(r.Actions), res.Div.What, res.Div.Field, res.Div.Diff)
+		t.Fatalf("divergence at %d of %d: %s %s %v\nDETAIL: %s", res.Div.At, len(r.Actions), res.Div.What, res.Div.Field, res.Div.Diff, res.Div.Detail)
 	}
 	stallCheck(t, r, res, false)
 }
