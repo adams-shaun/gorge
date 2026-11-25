@@ -235,6 +235,7 @@ func (s *State) cloneEntryLateFinish(k *prep) {
 	if s.anyETB(k) {
 		s.fireObj(k, kop.TrigETB, sl, o, ctrl, 0)
 	}
+	s.storyGrant(k) // the emit-tail grant, after the entry's triggers (kw_storied.go)
 	s.g.pre = preAsk{}
 	s.afterResolve()
 }

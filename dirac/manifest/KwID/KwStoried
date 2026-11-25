@@ -4,4 +4,5 @@ value: 85
 forge: Storied
 census: kw Storied all=9 std=4 mbc=0 sole=0
 state: code 0
-status: reserved
+status: active
+ticket: agent-20261125T102937Z-f7eacfda
