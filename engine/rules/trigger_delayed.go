@@ -683,7 +683,7 @@ func (e *Engine) checkEventDelayedTriggers(ev events.Event, lki *state.Object,
 			// card) and an Effect's source-leave promise: the registration's
 			// capture IS the referent this body resolves.
 			remembered = append([]state.Target(nil), dt.Remembered...)
-		} else if dt.EffectRepeat && (dt.EventMode == "ChangesZone" || dt.EventMode == "Untaps" || t.ModeKind() == cards.TriggerDamageDealtOnce) {
+		} else if dt.EffectRepeat && (dt.EventMode == "ChangesZone" || t.ModeKind() == cards.TriggerUntaps || t.ModeKind() == cards.TriggerDamageDealtOnce) {
 			// An Effect-owned ChangesZone trigger's `Defined$ Remembered`
 			// names the Effect's OWN capture (Forge's created-effect
 			// Remembered list), not the zone-changing card: Out of Time's
