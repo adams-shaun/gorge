@@ -16,9 +16,10 @@ import (
 
 // Aphelia, Viper Whisperer's lockstep (dirac/kgen/lower_zone.go emblem gate,
 // lower_damagedoneonce.go ddoEvent arm): the {4}{B} Effect's end-of-turn
-// DamageDoneOnce line lowers as the per-event DamageDone emblem line gorge's
-// delayed-trigger path queues (one trigger per Damage event; gorge never
-// latches the batch there). The deck is Aphelia plus Snake creatures, so
+// DamageDoneOnce line lowers as the per-referent DamageDone emblem line, and
+// both engines latch one instance per damaged player per damage batch (CR
+// 603.2c; gorge trigger_delayed.go checkEventDelayedTriggers, dirac
+// fireEmblemsDmg's refLatch). The deck is Aphelia plus Snake creatures, so
 // Aphelia's own attack makes more Snakes and two Gorgons/Snakes can hit the
 // same player in one combat damage step after the ability is activated.
 //
@@ -26,10 +27,11 @@ import (
 // of Aphelia's activation, the activation resolving (a DelayedPush, and
 // dirac's fireEmblemsDmg actually queueing), combat damage a Gorgon/Snake
 // deals a PLAYER read from events.DamageProvenance (a Damage event carries
-// the recipient, not the source), and each hit resolving into a LoseLife of
+// the recipient, not the source), and each batch resolving into a LoseLife of
 // half the player's current life (TriggeredTarget$LifeTotal/HalfUp) — so a
-// game where the emblem never resolves, or resolves per batch instead of per
-// event, fails here before the life comparison even matters.
+// game where the emblem never resolves, or one engine fires per Damage event
+// while the other latches the batch, fails here before the life comparison
+// even matters.
 func kapheliaDeck() []string {
 	var deck []string
 	for i := 0; i < 6; i++ {
@@ -274,8 +276,8 @@ func TestApheliaLockstep(t *testing.T) {
 	if st.popped == 0 {
 		t.Fatal("no Aphelia halving resolved in gorge; the emblem never affected a life total")
 	}
-	if st.popped < 2 {
-		t.Errorf("only %d halvings resolved in gorge; the two-source steps should resolve two", st.popped)
+	if st.popped < st.sameStep {
+		t.Errorf("only %d halvings resolved in gorge for %d two-source steps; each such batch should resolve one", st.popped, st.sameStep)
 	}
 	if len(st.lifeBad) != 0 {
 		t.Errorf("halvings that were not half the current life: %v", st.lifeBad)
