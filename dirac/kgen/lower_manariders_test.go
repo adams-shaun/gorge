@@ -50,11 +50,14 @@ var manaRiderCards = []struct {
 	// Produced$ G | Amount$ X (Count$Valid Elf): a StTapDynamic static beside
 	// a class-only Taps line, the extra read at the tap
 	{"Elvish Guidance", ""},
-	// TapsForMana triggers beyond a mana extra: a token for an opponent, a
-	// doubled land, a conditional extra
-	{"Forbidden Orchard", "trigger mode TapsForMana"},
+	// TapsForMana triggers beyond a mana extra: the source's own deferred
+	// token body lowers (lower_tapsformana.go), and a non-self line with
+	// Activator$ You lowers (Vorinclex, Voice of Hunger; Treasure Nabber);
+	// the self damage row is its own ticket and keeps a measured reason;
+	// Gauntlet of Power is still out
+	{"Forbidden Orchard", ""},
 	{"Gauntlet of Power", "trigger mode TapsForMana"},
-	{"Zhur-Taa Druid", "trigger mode TapsForMana"},
+	{"Zhur-Taa Druid", "TapsForMana self damage body"},
 }
 
 // TestLowerManaRiders lowers every card of the mana-rider class from the

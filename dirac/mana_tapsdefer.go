@@ -75,12 +75,16 @@ func (s *State) tapsWatchClassForeign(k *prep, p uint8, sl Slot) (painN int, def
 				continue // Activator$ Player.NonActive: the payer taps on their own turn
 			}
 			if a.Trig.Flags&kop.TfSelf != 0 {
-				// the source's own Pain-class line (City of Brass) is priced
-				// with its printed mana ability (prepSelfTapsPain), and a
-				// self line classes no other source
-				continue
-			}
-			if !s.matchPermGen(k, a.Trig.Filter, sl, s.perms[w].ctrl, w, layerFull) {
+				// A self TapsForMana line classes only its own permanent
+				// (Forbidden Orchard's deferred watcher). A self Taps line
+				// is the watermark path's (selfTapsDefer), and the source's
+				// own Pain-class line (City of Brass) is priced with its
+				// printed mana ability (prepSelfTapsPain): neither is a gap
+				// here.
+				if w != sl || a.Trig.TapPlan != kop.TapPlanDefer || a.Trig.Flags5&kop.Tf5TapsForMana == 0 {
+					continue
+				}
+			} else if !s.matchPermGen(k, a.Trig.Filter, sl, s.perms[w].ctrl, w, layerFull) {
 				continue
 			}
 			// The gates gorge's real matcher applies (triggers_gen.go: FirstTime$
