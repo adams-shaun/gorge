@@ -561,6 +561,7 @@ ExtGrantPanharm	ExtOp	248
 ExtHideaway	ExtOp	8
 ExtJoinForces	ExtOp	301
 ExtKwMark	ExtOp	10
+ExtLeaveExile	ExtOp	287
 ExtLibPlace	ExtOp	300
 ExtLibSweep	ExtOp	101
 ExtLockActs	ExtOp	140
