@@ -109,11 +109,11 @@ func (s *State) fbBeholdUnplanned(k *prep, p uint8, o Obj, mode uint8) bool {
 	return !granted
 }
 
-// beholdPayable: card c has no behold part, or p has enough candidates to
+// beholdPayable: card c has no behold or reveal part, or p has enough candidates to
 // pay it (src: the cast card, not a hand candidate).
 func (s *State) beholdPayable(k *prep, p uint8, c CardID, src Obj) bool {
 	cd := &k.t.Cards[c]
-	return cd.BeholdN == 0 || s.beholdCands(k, p, c, src, nil) >= int(cd.BeholdN)
+	return (cd.BeholdN == 0 || s.beholdCands(k, p, c, src, nil) >= int(cd.BeholdN)) && s.revealPayable(k, p, c, src) // act_revealpick.go: a reveal part one too
 }
 
 // beholdOptions poses the behold ask of the spell being built (bsCosts,

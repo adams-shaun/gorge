@@ -38,6 +38,7 @@ them after a `FORGE_REF` bump:
 | DMU | Tura Kennerud, Skyknight |
 | HOB | Dain Ironfoot; Dain's Company; Dain, Lord of the Iron Hills; Fili the Pathfinder; Gloin the Mighty; Kili the Resourceful; Oin the Brave; Thror's Map |
 | LCI | Bartolome del Presidio |
+| MH3 | Arna Kennerud, Skycaptain |
 | MSH | Mjolnir, Hammer of Thor |
 | SPM | Arana, Heart of the Spider |
 | TMT | Bespoke Bo |

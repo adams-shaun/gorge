@@ -1,10 +1,11 @@
 package kop
 
 // C of an ExtAddPhase: the extra phase's kind (ExtraPhase$ Combat,
-// Upkeep, End of Turn) in bits 0-1, its splice point (AfterPhase$, the LAST
-// step of the named phase, a Step) in bits 4-7. The omitted AfterPhase$ (the
-// step the grant resolves in) lowers only as AddPhaseCombatMain; its other
-// carrier, Full Throttle, stays refused for its Effect.
+// Upkeep, End of Turn) in bits 0-1, the AddPhaseBeginning flag in bit 2, its
+// splice point (AfterPhase$, the LAST step of the named phase, a Step) in bits
+// 4-7. The omitted AfterPhase$ (the step the grant resolves in) lowers only as
+// AddPhaseCombatMain or AddPhaseBeginning; its other carrier, Full Throttle,
+// stays refused for its Effect.
 const (
 	AddPhaseCombat = 0 // BeginCombat..EndCombat
 	AddPhaseUpkeep = 1 // Upkeep alone
@@ -13,6 +14,11 @@ const (
 	// (FollowedBy$ Main2, Relentless Assault). The splice point is the main
 	// phase the grant resolves in; the nibble is ignored.
 	AddPhaseCombatMain = 3
+	// AddPhaseBeginning: a flag on AddPhaseUpkeep (C bit 2), a whole
+	// additional beginning phase (ExtraPhase$ Beginning: untap, upkeep, draw;
+	// Shadow and Sphinx of the Second Sun) spliced after the main phase the
+	// grant resolves in; the nibble is ignored.
+	AddPhaseBeginning = 4
 )
 
 // AtEOT$ on a ChangeZoneAll sweep onto the battlefield.
@@ -56,6 +62,15 @@ const BecomeCopyCtr = 1 << 0
 // exceptions join); a hard-cast carrier enters as a plain copy. Gorge:
 // effects/clone.go cloneEmbalmGate, cloneEmbalmProvenance.
 const BecomeCopyEmbalm = 1 << 1
+
+// BecomeCopyGrave is OpBecomeCopy's ChoiceZone$ Graveyard bit (Body Double:
+// "enter as a copy of any creature card in a graveyard"): the clone ask's
+// pool is the cards in every living player's graveyard matching F (seat 0
+// first, each graveyard bottom to top), not the battlefield, and the copy is
+// of the picked card as printed; it must still be in a graveyard as the
+// permanent enters. Gorge: rules/cast_etbchoice.go etbCloneOptions over
+// ChoiceZoneKind, effects/clone.go cloneETBTemplateLegal.
+const BecomeCopyGrave = 1 << 2
 
 // MayGuardCloneCopy: the OpMayAsk guard of an Optional$ Clone: the next op is
 // an ExtCloneCopy that has a live template and at least one becomer (gorge

@@ -468,6 +468,8 @@ func (s *State) expr(k *prep, i int16, ctx evalCtx) int {
 	case kop.ExKicked:
 		if x.N == 1 {
 			v = s.timesKicked(ctx)
+		} else if x.N == 2 {
+			v = s.paidCount(ctx) // Count$SquadPaid / ReplicatePaid / Conspired (cost_paidcount.go)
 		} else if e != nil && e.flags&sfKicked != 0 && !optCostUnpaid(k, e) {
 			v = s.evalV(k, x.Sub[0], ctx)
 		} else {

@@ -576,10 +576,15 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 			s.lose(p)
 		}
 	case kop.OpShuffle:
-		if in.C != 0 {
+		switch in.C {
+		case 0:
+			if p := s.playerRef(k, in.Obj); p != 255 {
+				s.shuffleLib(p)
+			}
+		case 2:
+			s.shuffleRememberedSearchers() // zone_remembersearcher.go
+		default:
 			s.shuffleRememberedOwners() // zone_shuffleremowners.go
-		} else if p := s.playerRef(k, in.Obj); p != 255 {
-			s.shuffleLib(p)
 		}
 	case kop.OpEndTurn, kop.OpAddTurn:
 		if in.Op == kop.OpAddTurn {
