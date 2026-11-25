@@ -2127,8 +2127,7 @@ func effLookAndArrange(h Host, c *Ctx, sa *cards.SA, n int32, kind, verb string,
 		// once per instruction and the ToBottom$ True gate stays closed. The
 		// Surveil marker above already covers both routes for Surveil.
 		if verb == "Scry" {
-			h.EmitScryRecord(events.Event{Kind: events.Scry, Player: p,
-				Obj: c.Source, Amount: 0})
+			h.EmitScryRecord(ScryRecord(p, c.Source, k, 0))
 		}
 	}
 }
