@@ -24,10 +24,26 @@ func (s *State) digArrangeTop(k *prep) bool {
 // on-top order (gorge digTopOrderAsk's chooser), the library's player for
 // the bottom order.
 func (s *State) digArrangeAsker(k *prep) uint8 {
+	if s.prog(k)[s.res.pc].W != kop.RefNone {
+		return s.digChooser(k) // a Choser$ orders either rest (gorge's chooser)
+	}
 	if (s.prog(k)[s.res.pc].C>>3)&kop.DigRestTopAsk == kop.DigRestTopAsk {
 		return s.res.e.ctrl
 	}
 	return s.g.pickP
+}
+
+// digChooser is who picks from the dig's window (gorge digChooser, CR
+// 701.29a): the player the dig's W side input names (a Choser$: the
+// targeted or triggering library's player, or the opponent ExtChoosePlayerMid
+// chose; kgen lower_digparams.go digChoser), else the resolving controller.
+func (s *State) digChooser(k *prep) uint8 {
+	if w := s.prog(k)[s.res.pc].W; w != kop.RefNone {
+		if p := s.playerRef(k, w); p < s.nSeats() && !s.pl[p].lost {
+			return p
+		}
+	}
+	return s.res.e.ctrl
 }
 
 // digArrangeTopPick moves picked rest card o to just above the topmost

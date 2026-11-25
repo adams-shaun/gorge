@@ -88,6 +88,10 @@ type ForkPool struct {
 	// actScriptPays declines there. Pooled, not a State field: a fixed field
 	// fails TestNoNewFixedStateFields.
 	inFilt int
+	// inDeferTU: turnUpDeferSearch's Taps-deferred gaps search is running
+	// (nesting count): its nodes list the turn-up again, and that listing must
+	// not search the gaps a second time (face_turnupdefer.go).
+	inDeferTU int
 	// fmemo: filtScript's failed verdicts of the transition running (mana_filtmemo.go).
 	fmemo filtMemo
 	// paySeen: filtPay's visited table, kept so a payment probe allocates

@@ -59,9 +59,9 @@ func costProgCastRouteReason(c *lCard) string {
 //     cost field (Grafted Identity);
 //   - an alternative cost's mana beside a pick part rides the alternative's
 //     pick stages (a Borderpost, Sephara, Force of Virtue);
-//   - an AlternateAdditionalCost or morph Reveal<1/Spec> stays refused: gorge
-//     asks "Choose cards to reveal" over two or more candidates, and the
-//     kernel has no such pick on a cast or a turn-up.
+//   - an AlternateAdditionalCost or morph Reveal<1/Spec> rides CardDef.RevealN
+//     and RevealF: the kernel poses gorge's "revealcost" pick for it on a cast
+//     and a turn-up (dirac/act_revealpick.go).
 func TestCostProgCastRoute(t *testing.T) {
 	all, bs := costProgCastBuild(t, []string{
 		"Daring Buccaneer", "Dragon's Eye Savants", "Bog Down",
@@ -81,15 +81,23 @@ func TestCostProgCastRoute(t *testing.T) {
 		return i, bs[i]
 	}
 
-	t.Run("reveal routes stay refused", func(t *testing.T) {
-		for _, c := range []struct{ name, reason string }{
-			{"Daring Buccaneer", "alternate additional cost"},
-			{"Dragon's Eye Savants", "morph cost"},
-		} {
-			i, _ := index(c.name)
-			if got := costProgCastRouteReason(all[i]); !strings.Contains(got, c.reason) {
-				t.Errorf("%s: refusals %q, want one naming %q (no kernel reveal pick)", c.name, got, c.reason)
+	t.Run("reveal routes", func(t *testing.T) {
+		for _, name := range []string{"Daring Buccaneer", "Dragon's Eye Savants"} {
+			i, b := index(name)
+			if got := costProgCastRouteReason(all[i]); strings.Contains(got, "alternate additional cost") || strings.Contains(got, "morph cost") || strings.Contains(got, "reveal cost") {
+				t.Errorf("%s: refused: %s", name, got)
 			}
+			if b.def.RevealN != 1 || b.def.RevealF == 0 {
+				t.Errorf("%s: RevealN %d RevealF %d, want one reveal of a filtered hand card", name, b.def.RevealN, b.def.RevealF)
+			}
+		}
+		_, bucc := index("Daring Buccaneer")
+		if !bucc.def.HasAltAdd || bucc.def.MorphCost != (kop.ManaCost{}) {
+			t.Errorf("Daring Buccaneer: HasAltAdd %v MorphCost %+v, want the either-or reveal route", bucc.def.HasAltAdd, bucc.def.MorphCost)
+		}
+		_, sav := index("Dragon's Eye Savants")
+		if sav.def.HasAltAdd || sav.def.MorphFamily != kop.MorphMorph || sav.def.MorphCost != (kop.ManaCost{}) {
+			t.Errorf("Dragon's Eye Savants: HasAltAdd %v MorphFamily %d MorphCost %+v, want a {0} morph turn-up", sav.def.HasAltAdd, sav.def.MorphFamily, sav.def.MorphCost)
 		}
 	})
 

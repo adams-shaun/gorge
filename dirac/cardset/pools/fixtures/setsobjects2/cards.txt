@@ -1,0 +1,15 @@
+# CMM/CM2/MH3 as-enters copies of a graveyard card kgen now lowers
+# (dirac/oracle/setsobjects2_lockstep_test.go TestSetsObjects2Lockstep):
+# Clone ChoiceZone$ Graveyard (Body Double, Voq, Torchbearer, Activated
+# Sleeper, Invasion of Amonkhet's Lazotep Convert)
+Body Double
+Voq, Torchbearer
+Activated Sleeper
+Invasion of Amonkhet
+Walking Corpse
+Grizzly Bears
+Shock
+Island
+Swamp
+Forest
+Mountain
