@@ -618,6 +618,7 @@ func (lc *lowerCtx) lowerTail() {
 	lc.refuseDashCombos()          // lower_dash.go
 	lc.refuseMultikickerCombos()   // K:Multikicker beside another cast route
 	lc.refuseRepeatedCombos()      // K:Squad / K:Replicate (lower_squadreplicate.go)
+	lc.refuseConspireCombos()      // K:Conspire (lower_squadreplicate.go)
 	lc.refuseSuspendCombos()       // lower_suspend.go
 	lc.refuseForetellCombos()      // lower_foretell.go
 	lc.refuseSweepTgtPlayerMulti() // lower_sweeptargetplayer.go
