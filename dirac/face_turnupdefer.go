@@ -73,7 +73,7 @@ func (s *State) turnUpDeferPays(k *prep, p uint8, sl Slot, mode uint8) bool {
 //
 //go:noinline
 func (s *State) turnUpDeferOnly(k *prep, p uint8, cost *kop.ManaCost, sp kop.SpecialMask, sl Slot, mode uint8) bool {
-	return !s.sourcesPay(k, p, cost) && !s.turnUpRestrPays(k, p, cost, sp, sl) && !s.turnUpRiderPays(k, p, cost) &&
+	return !s.sourcesPay(k, p, cost) && !s.turnUpRestrPays(k, p, cost, sp, sl) &&
 		!s.turnUpPlannerPays(k, p, cost) && !s.turnUpFilterPays(k, p, sl, mode) && !s.turnUpTapXPays(k, p, sl, mode) &&
 		s.turnUpDeferPays(k, p, sl, mode)
 }
