@@ -3507,7 +3507,7 @@ func (s *State) potentialAdmits(k *prep, p uint8, sl Slot, j int, ab *kop.Abilit
 func (s *State) potentialGapCost(k *prep, p uint8, sl Slot, j int, ab *kop.Ability) bool {
 	c := s.cardAt(sl)
 	switch {
-	case int(k.ctrAb[c]) == j && (kop.CtrManaAb(ab) || kop.CtrTapSecondManaAb(ab)):
+	case int(k.ctrAb[c]) == j && (kop.CtrManaAb(ab) || kop.CtrRemoveManaAb(ab) || kop.CtrTapSecondManaAb(ab)):
 		return ab.Cost.Flags&kop.CostRemoveCtr == 0 || s.perms[sl].ctrN(s, int(ab.Cost.Ctr)) >= int(ab.Cost.N)
 	case ab.ManaRider == kop.ManaRiderDeplete && ab.Cost.Flags == kop.CostTap|kop.CostRemoveCtr:
 		// a depletion land (Sandstone Needle, Peat Bog): gorge's potentialManaFor counts its
