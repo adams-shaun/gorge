@@ -328,6 +328,13 @@ func (b startBuilder) placeStartBattlefield(pl *startSeatPlan, id, bearer state.
 	if o := h.G.Obj(id); o == nil || o.Zone != state.ZBattlefield {
 		return // refused on entry (an Aura with no bearer, CR 303.4g): it stays in the library
 	}
+	// A back-face planeswalker whose entering face prints no positive loyalty
+	// is seated with the front face's printed starting loyalty, the same
+	// convention the oracle runner uses (XMage's addCard); the spec's
+	// counters are then added on top.
+	if ev, ok := setupBackFaceLoyaltyCounter(h.G.Obj(id)); ok {
+		h.Emit(ev)
+	}
 	if slices.Contains(pl.spec.Tapped, idx) {
 		// Tapped is how the card is placed, not an action.
 		h.Emit(events.Event{Kind: events.Tap, Obj: id})
