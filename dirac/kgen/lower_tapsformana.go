@@ -17,14 +17,16 @@ import (
 //
 // The closed world is the shape the kernel prices:
 //   - ValidCard$ over any controller's permanents by type alone (a Land) or
-//     by that type plus a watcher-relative controller (Land.OppCtrl), not the
-//     source itself (a self line classes its own printed mana ability,
-//     prepSelfTapsPain);
+//     by that type plus a watcher-relative controller (Land.OppCtrl), or the
+//     bare Card.Self clause: the source's own tap (Zhur-Taa Druid, whose self
+//     line the kernel gates with kop.TfSelf; the builder turns the clause into
+//     that flag);
 //   - no Activator$ (any player's tap, Manabarbs), Activator$
 //     Player.NonActive, the tapping player is not the active player
 //     (effects.MatchesPlayerSpec over trigmatch.TapActor), or Activator$
 //     You/Opponent, a tap by the listener's controller or by an opponent of
-//     it (seat-exact, the same Trig.Whose gate);
+//     it (seat-exact, the same Trig.Whose gate); the self shape is
+//     Activator$ You only;
 //   - a body gorge's planner defers (tapsPlanClass == TapPlanDefer: it is no
 //     vetted payer damage), so a land the line matches is a tap the planner
 //     never makes (pay.PaymentPlanAbilityTier -> TierDeferred) and the
@@ -33,7 +35,11 @@ import (
 //     the tapped land stays an ordinary planner unit there, the trigger
 //     resolving after the payment that caused it (CR 405.6c/603.2, 605.4a).
 //
-// Anything else keeps the generic refusal.
+// A self line's source is the tapped permanent itself, and gorge's planner
+// defers it (pay.PaymentPlanTapDamageTrigger accepts Mode$ Taps only), so the
+// line keeps TapPlanDefer (Zhur-Taa Druid). Its body is the literal damage row
+// (kop.RefEachOpponent); a self line with another body (Forbidden Orchard's
+// token) is a separate lowering. Anything else keeps the generic refusal.
 func (lc *lowerCtx) tapsForManaWatch(tp *params, tr *lTrigger, t cards.Trigger, readF func(string) (*lFilter, error)) error {
 	const generic = "trigger mode TapsForMana"
 	// no Activator$: any player's tap (Manabarbs); Player.NonActive: only a
@@ -43,8 +49,9 @@ func (lc *lowerCtx) tapsForManaWatch(tp *params, tr *lTrigger, t cards.Trigger, 
 	// tapper gate Trig.Whose already carries (trig_tapsvalid.go tapsWhoseOK at
 	// the fire, tapsWatchClassForeign's whoseOK in the deferral classing), the
 	// gate gorge's real matcher reads the Activator$ with
-	// (paymentPlanTapObservers)
-	nonActive := false
+	// (paymentPlanTapObservers); You with Card.Self is the source's own tap
+	// (Zhur-Taa Druid, a self line)
+	nonActive, selfTap := false, false
 	var whose uint8
 	switch v := strings.TrimSpace(tp.str("Activator")); v {
 	case "":
@@ -53,6 +60,7 @@ func (lc *lowerCtx) tapsForManaWatch(tp *params, tr *lTrigger, t cards.Trigger, 
 		tp.consume("Activator")
 	case "You":
 		whose = whoYou
+		selfTap = true
 		tp.consume("Activator")
 	case "Opponent":
 		whose = whoOpp
@@ -66,7 +74,7 @@ func (lc *lowerCtx) tapsForManaWatch(tp *params, tr *lTrigger, t cards.Trigger, 
 		return refuse("TapsForMana ValidPlayer$ beside Activator$ You/Opponent")
 	}
 	vc := strings.TrimSpace(tp.str("ValidCard"))
-	if vc == "" || strings.Contains(vc, "Self") {
+	if vc == "" {
 		return refuse("%s", generic)
 	}
 	var err error
@@ -76,7 +84,12 @@ func (lc *lowerCtx) tapsForManaWatch(tp *params, tr *lTrigger, t cards.Trigger, 
 	if tr.F == nil || tr.F.Players != 0 || len(tr.F.Clauses) == 0 {
 		return refuse("TapsForMana ValidCard %q", vc)
 	}
+	self := false
 	for _, c := range tr.F.Clauses {
+		if c == (lClause{Flags: fSelf}) {
+			self = true
+			continue
+		}
 		// Ctrl is the watcher-relative controller the kernel's filter and
 		// tapsWatchClass already read (Land.OppCtrl on Mana Web: the tap of a
 		// land an opponent of the watcher controls). Any other controller
@@ -86,8 +99,23 @@ func (lc *lowerCtx) tapsForManaWatch(tp *params, tr *lTrigger, t cards.Trigger, 
 			return refuse("TapsForMana ValidCard %q: beyond a type filter", vc)
 		}
 	}
+	if self && (len(tr.F.Clauses) != 1 || !selfTap) {
+		// A self TapsForMana line is the card's own tap ("whenever you tap
+		// CARDNAME for mana") and names its activator: exactly the bare
+		// Card.Self clause with Activator$ You (Zhur-Taa Druid).
+		return refuse("TapsForMana ValidCard %q", vc)
+	}
 	if class, _ := tapsPlanClass(t.Effect); class != kop.TapPlanDefer {
 		return refuse("TapsForMana body that is vetted payer damage: gorge prices the source as a last-resort unit")
+	}
+	if self {
+		// The in-scope self line is the literal damage body (Zhur-Taa Druid:
+		// DealDamage | Defined$ Player.Opponent, the kernel's
+		// kop.RefEachOpponent). A self line with another body (Forbidden
+		// Orchard's token) is a separate lowering and stays refused.
+		if t.Effect == nil || t.Effect.API != "DealDamage" || strings.TrimSpace(t.Effect.ParamStr(cards.PKSubAbility)) != "" {
+			return refuse("TapsForMana self line without a literal damage body")
+		}
 	}
 	tr.Event, tr.TapsForMana, tr.TapperNonActive = "Taps", true, nonActive
 	tr.Whose = whose
