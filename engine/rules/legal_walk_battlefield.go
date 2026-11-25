@@ -396,12 +396,12 @@ func (w *legalWalk) battlefieldWalk() {
 							continue
 						}
 						// The configured facts carry the compiled Cost$ (the same
-						// frozen parse parseCost copies out of the cost table).
-						var cost Cost
-						if mf != nil && mf.cost != freeCost {
-							cost = mf.cost.Cost
-						} else {
-							cost = e.abilityCompiledCost(ab).Cost
+						// frozen parse parseCost copies out of the cost table); a
+						// target-bound {X} (Reflecting Mirror) is priced now, before
+						// CR 601.2c, and settled by repriceForTargets.
+						cost, _, _, ok := deferredManaXOffer(asPayer(e), e, p, id, ab, pa.Merged, abilityOfferBaseCost(mf, e.abilityCompiledCost(ab).Cost))
+						if !ok {
+							continue
 						}
 						// The ability's own ReduceCost$ (Otawara's Channel): the CR
 						// 601.2f composition the offer gate and beginActivation's
