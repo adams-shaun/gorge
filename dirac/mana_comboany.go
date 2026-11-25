@@ -123,14 +123,15 @@ func (s *State) caSearch(k *prep, a Action, p uint8, restr, anyR, tapsDef, ca sl
 	if s.caPure(k, p) {
 		return s.caScript(k, a, p, false)
 	}
-	return !s.scriptDeadEndAny(k, a, p, restr, s.caSpendable(k, a, p, anyR), tapsDef, s.scriptCtr(k, p), ca)
+	return !s.scriptDeadEndAny(k, a, p, restr, anyR, tapsDef, s.scriptCtr(k, p), ca)
 }
 
 // caSpendable is the any-colour restricted gaps (Gwenna, Eyes of Gaea) gorge's
 // search keeps for play a: a plain cast or an activation of the printed cost
 // drops each source whose mana the payment cannot spend (potential_script.go
 // scriptSpendableGaps, CR 106.6), so the search does not spend nodes on it nor
-// tap it.
+// tap it. scriptDeadEndAny and scriptPrefixAny apply it to every anyR they are
+// handed; any other play keeps every gap.
 func (s *State) caSpendable(k *prep, a Action, p uint8, anyR slotMask) slotMask {
 	plain := a.Kind() == AkActivate || a.Kind() == AkCast && a.Mode() == 0 && a.Target() == 0
 	if !plain {
@@ -155,7 +156,7 @@ func (s *State) caPrefix(k *prep, a Action, p uint8) {
 		}
 		return
 	}
-	s.scriptPrefixAny(k, a, p, s.scriptRestr(k, p), s.caSpendable(k, a, p, s.scriptAnyR(k, p)), s.scriptTapsDefer(k, p), s.scriptCtr(k, p), s.caGaps(k, p))
+	s.scriptPrefixAny(k, a, p, s.scriptRestr(k, p), s.scriptAnyR(k, p), s.scriptTapsDefer(k, p), s.scriptCtr(k, p), s.caGaps(k, p))
 }
 
 // caGapAnswers is the colour ask's answer count of the census gap at sl in the
