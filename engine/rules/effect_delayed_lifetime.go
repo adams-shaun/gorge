@@ -36,6 +36,16 @@ func (e *Engine) sweepEffectDelayed(ev events.Event) {
 			if dt.ForgetOnMoved != "" && effects.ParseZone(dt.ForgetOnMoved) == ev.From {
 				changes = append(changes, change{id: dt.ID, forget: true})
 			}
+		} else if ev.Kind == events.PhaseOut && ev.Amount < 0 && has && dt.ForgetOnPhasedIn {
+			// ForgetOnPhasedIn$ (CR 702.25): the permanent is back, so the
+			// Effect's memory of it ends; the last one retires the
+			// registration, whose comeback body would otherwise toggle the
+			// returned permanent out on the host's next untap or departure.
+			if len(dt.Remembered) == 1 {
+				changes = append(changes, change{id: dt.ID})
+			} else {
+				changes = append(changes, change{id: dt.ID, forget: true})
+			}
 		} else if ev.Kind == events.CounterChange && ev.Amount < 0 && has && dt.ForgetCounter == ev.Counter {
 			if obj := e.G.Obj(ev.Obj); obj == nil || obj.Counter(ev.Counter) == 0 {
 				changes = append(changes, change{id: dt.ID, forget: true})
@@ -82,5 +92,18 @@ func (e *Engine) endImprintedDelayed(source state.ObjID) {
 	}
 	for _, id := range ids {
 		e.emit(events.Event{Kind: events.DelayedRemove, Amount: int32(id)})
+	}
+}
+
+// sweepControlAndPhase runs the Effect-lifetime sweeps that ride a control
+// change or a phase transition: AsLongAsControl$ expiry on a control change or
+// a phase-out, and the ForgetOnPhasedIn$ sweep on a phase-in (Amount < 0).
+// Kept out of emit so its branch count does not grow.
+func (e *Engine) sweepControlAndPhase(ev events.Event) {
+	if ev.Kind == events.ControlChange || ev.Kind == events.PhaseOut && ev.Amount >= 1 {
+		e.expireAsLongAsControl(ev.Obj)
+	}
+	if ev.Kind == events.PhaseOut && ev.Amount < 0 {
+		e.sweepEffectDelayed(ev)
 	}
 }

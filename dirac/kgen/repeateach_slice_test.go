@@ -54,6 +54,9 @@ var repeatEachSliceCards = map[string][]string{
 		// half remembers an up-to-one graveyard pick (B&1) and casts it
 		// free out of that graveyard.
 		"Tariff", "Discovery", "Flotsam",
+		// Highcliff Felidar's greatest-power pick is asked of the resolving
+		// controller (Defined$ You) and destroyed by the post-loop DestroyAll.
+		"Highcliff Felidar",
 	},
 	// RepeatEach over players whose body is the per-player opponent choice
 	// feeding a battlefield TwoPiles (Bend or Break): the repeated player
