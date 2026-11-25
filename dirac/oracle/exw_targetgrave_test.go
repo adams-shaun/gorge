@@ -17,26 +17,25 @@ import (
 // creatures give the exiles a matching mana value for X = 0 and X = 2; each
 // deck holds both readers.
 //
-// What this proves: the readers lower and the duration exile records the link
-// on the kernel side with no divergent game. What it does not: it never
-// activates the {X} reader, because an {X} activation is offered only from
-// floating mana and the kernel diverges at the X ask once a floating source is
-// added (the activated-X ticket). The activated move is covered by the kernel
-// test TestExileToGraveyardTargetMove and the lowering by kgen's
-// TestExileToGraveyardTargetLowers; the read against gorge's link is unproven
-// by lockstep.
+// What this proves: the readers lower, the duration exile records the link
+// on the kernel side, and Crumbling Vestige's floating mana lets the decks
+// announce X and pick the exiled card whose mana value equals it, so the
+// target filter's ExiledWithSource+cmcEQX read runs with the activation on
+// the stack (the activated-X ticket's repro). The activated move itself is
+// also covered by the kernel test TestExileToGraveyardTargetMove and the
+// lowering by kgen's TestExileToGraveyardTargetLowers.
 var kexwTargetGravePair = kexwPair{name: "exwtargetgrave", decks: [2][]cardset.Entry{
 	{
 		{Name: "Bronzebeak Foragers", Count: 4}, {Name: "Gelatinous Cube", Count: 4},
 		{Name: "Ornithopter", Count: 4}, {Name: "Memnite", Count: 4},
 		{Name: "Savannah Lions", Count: 4}, {Name: "Walking Corpse", Count: 4},
-		{Name: "Plains", Count: 8}, {Name: "Swamp", Count: 8},
+		{Name: "Crumbling Vestige", Count: 4}, {Name: "Plains", Count: 6}, {Name: "Swamp", Count: 6},
 	},
 	{
 		{Name: "Bronzebeak Foragers", Count: 4}, {Name: "Gelatinous Cube", Count: 4},
 		{Name: "Ornithopter", Count: 4}, {Name: "Memnite", Count: 4},
 		{Name: "Savannah Lions", Count: 5}, {Name: "Walking Corpse", Count: 3},
-		{Name: "Plains", Count: 8}, {Name: "Swamp", Count: 8},
+		{Name: "Crumbling Vestige", Count: 4}, {Name: "Plains", Count: 6}, {Name: "Swamp", Count: 6},
 	},
 }}
 
