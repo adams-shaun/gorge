@@ -996,7 +996,17 @@ func (r *oracleRun) build(sc oracleScenario) error {
 		}
 		if life := sc.Setup[fmt.Sprintf("p%d", p)].Life; life != nil {
 			if d := *life - e.G.Players[p].Life; d != 0 {
+				// A setup life total is a stated fact, not a gain: no CR 614
+				// replacement may rewrite it, and no "whenever you gain life"
+				// trigger may fire for it (Ajani's Pridemate with a setup
+				// life would otherwise resolve its counter during setup).
+				pendingBefore := len(e.pendingTriggers)
+				prior := e.applyingReplacement
+				e.applyingReplacement = true
 				e.emit(events.Event{Kind: events.LifeChange, Player: pid, Amount: d})
+				e.applyingReplacement = prior
+				e.pendingTriggers = e.pendingTriggers[:pendingBefore]
+				e.orderedTriggers = min(e.orderedTriggers, pendingBefore)
 			}
 		}
 		if !sc.xmageFixture {

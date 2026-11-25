@@ -31,6 +31,11 @@ type Matchup struct {
 	// sideboard card is a card instance after both decks' (InstanceCard).
 	Sideboards [2][]*cards.Card
 	Side       [2][]CardIndex
+	// PlanarDecks are the cards in each seat's planar deck (CR 901): genesis
+	// configuration, like Sideboards, never dealt into the library. Planar[s]
+	// is their table indexes in planar-deck order.
+	PlanarDecks [2][]*cards.Card
+	Planar      [2][]CardIndex
 	// Mulligans is Config.Mulligans: London mulligans each player may take
 	// (0 skips the round), as in a gorge self-play game.
 	Mulligans int
@@ -367,12 +372,26 @@ func NewMatchup(reg *cards.Registry, names [2]string, decks [2][]*cards.Card, mu
 
 // NewMatchupSide is NewMatchup with each seat's sideboard.
 func NewMatchupSide(reg *cards.Registry, names [2]string, decks, sideboards [2][]*cards.Card, mulligans int) (*Matchup, error) {
-	m := &Matchup{Names: names, Decks: decks, Sideboards: sideboards, Mulligans: mulligans, Commanders: [2]int{-1, -1}, Partners: [2]int{-1, -1}, reg: reg}
+	return NewMatchupPlanar(reg, names, decks, sideboards, [2][]*cards.Card{}, mulligans)
+}
+
+// NewMatchupPlanar is NewMatchupSide with each seat's Planechase planar deck
+// (CR 901). The planar cards join the matchup's table and instance budget but
+// are not dealt into a library: they are genesis configuration.
+func NewMatchupPlanar(reg *cards.Registry, names [2]string, decks, sideboards, planars [2][]*cards.Card, mulligans int) (*Matchup, error) {
+	if len(sideboards[0])+len(sideboards[1]) > 0 && len(planars[0])+len(planars[1]) > 0 {
+		// The kernel numbers a seat's planar deck right after its deck, while
+		// gorge deals deck, sideboard, plane: supporting both at once needs a
+		// six-way genesis layout in identity.genesisInst. Refuse rather than
+		// compare two different object orders.
+		return nil, fmt.Errorf("matchup %v: a sideboard and a planar deck in one matchup", names)
+	}
+	m := &Matchup{Names: names, Decks: decks, Sideboards: sideboards, PlanarDecks: planars, Mulligans: mulligans, Commanders: [2]int{-1, -1}, Partners: [2]int{-1, -1}, reg: reg}
 	if holdsNameChooser(decks) {
 		m.NameUniverse = NameUniverseFor(reg, decks)
 	}
 	seen := map[string]bool{}
-	for _, ds := range [...][2][]*cards.Card{decks, sideboards} {
+	for _, ds := range [...][2][]*cards.Card{decks, sideboards, planars} {
 		for _, d := range ds {
 			for _, c := range d {
 				n := cardName(c)
@@ -387,7 +406,7 @@ func NewMatchupSide(reg *cards.Registry, names [2]string, decks, sideboards [2][
 	if len(m.Table) >= int(NoCardIndex) {
 		return nil, fmt.Errorf("matchup %v: %d distinct cards, the table holds %d", names, len(m.Table), NoCardIndex)
 	}
-	if n := len(decks[0]) + len(decks[1]) + len(sideboards[0]) + len(sideboards[1]); n >= MaxInst {
+	if n := len(decks[0]) + len(decks[1]) + len(sideboards[0]) + len(sideboards[1]) + len(planars[0]) + len(planars[1]); n >= MaxInst {
 		return nil, fmt.Errorf("matchup %v: %d deck cards, a projection holds %d instances", names, n, MaxInst)
 	}
 	for s, d := range decks {
@@ -398,6 +417,11 @@ func NewMatchupSide(reg *cards.Registry, names [2]string, decks, sideboards [2][
 	for s, d := range sideboards {
 		for _, c := range d {
 			m.Side[s] = append(m.Side[s], CardIndex(sort.SearchStrings(m.Table, cardName(c))))
+		}
+	}
+	for s, d := range planars {
+		for _, c := range d {
+			m.Planar[s] = append(m.Planar[s], CardIndex(sort.SearchStrings(m.Table, cardName(c))))
 		}
 	}
 	return m, nil
@@ -536,6 +560,9 @@ func (m *Matchup) Config(seed uint64) rules.Config {
 	}
 	if len(m.Sideboards[0])+len(m.Sideboards[1]) > 0 {
 		cfg.Sideboards = [][]*cards.Card{m.Sideboards[0], m.Sideboards[1]}
+	}
+	if len(m.PlanarDecks[0])+len(m.PlanarDecks[1]) > 0 {
+		cfg.PlanarDecks = [][]*cards.Card{m.PlanarDecks[0], m.PlanarDecks[1]}
 	}
 	if m.reg != nil {
 		if m.reg.IsSubset() {
