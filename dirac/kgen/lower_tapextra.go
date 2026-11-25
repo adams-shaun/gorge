@@ -451,19 +451,20 @@ func (lc *lowerCtx) tapExtraAnyColour(t cards.Trigger) (handled bool, err error)
 }
 
 // tapReflectLandFilters are the ValidCard$ filters of a reflected TapsForMana
-// body that the kernel prices: lands, and (Kinnan, Bonder Prodigy) any nonland
-// permanent. A nonland filter reaches the same one-plain-tap sources a land
-// filter does -- a mana rock's tap makes its types exactly as a land's does
-// (Roxanne's Artifact.token precedent) -- so the extra reads the tapped
-// permanent's produced types exactly as gorge folds it per production
-// (pay.PaymentPlanProductions, PaymentPlanReflectedMana): one mana of the
-// produced type for a one-type source, one more of the pick for a choice
-// source, a stall wherever the source is not one plain tap.
-var tapReflectLandFilters = cards.NewNameSet("Land.Basic", "Land", "Mountain,Forest,Plains", "Permanent.nonLand")
+// body that the kernel prices: lands, any permanent (Eloren Wilds), and
+// (Kinnan, Bonder Prodigy) any nonland permanent. A nonland filter reaches the
+// same one-plain-tap sources a land filter does -- a mana rock's tap makes its
+// types exactly as a land's does (Roxanne's Artifact.token precedent) -- so
+// the extra reads the tapped permanent's produced types exactly as gorge folds
+// it per production (pay.PaymentPlanProductions, PaymentPlanReflectedMana):
+// one mana of the produced type for a one-type source, one more of the pick
+// for a choice source, a stall wherever the source is not one plain tap.
+var tapReflectLandFilters = cards.NewNameSet("Land.Basic", "Land", "Mountain,Forest,Plains", "Permanent", "Permanent.nonLand")
 
 // tapExtraReflected lowers a reflected TapsForMana body (gorge
 // pay.PaymentPlanReflectedTapMana) to a StTapReflect StatTapExtra: one mana
-// of the type the tap produced. A land filter lowers (tapReflectLandFilters):
+// of the type the tap produced. A land or any-permanent filter lowers
+// (tapReflectLandFilters):
 // gorge folds the extra per production (pay.PaymentPlanReflectedMana over each
 // single-colour alternative of a choice source), so the kernel prices it on
 // the pick; a source making several types in one tap stays the kernel's
@@ -484,14 +485,19 @@ func (lc *lowerCtx) tapExtraReflected(t cards.Trigger) error {
 	tp.consume("Mode", "Execute", "Static", "TriggerZones", "TriggerDescription")
 	st := lStatic{Kind: "TapExtra", TapAmt: 1, Flags: []string{"TapReflect"}}
 	if strings.TrimSpace(t.ParamStr(cards.PKTriggerZones)) == "Command" {
-		// A Vanguard (Sisay) is not a battlefield permanent: its printed
-		// TapsForMana static lives in the command zone, and the kernel's
-		// eachTapExtra walks the seated Vanguard there. The classifier above
-		// admits Command only on a Vanguard face (pay paymentPlanStaticTapManaBody).
-		// Mark the type only on this lowered shape: every other Vanguard face
-		// keeps its old inert subtype, out of scope for this static.
-		lc.out.Types |= tVanguard
-		lc.out.Subtypes = slices.DeleteFunc(lc.out.Subtypes, func(s string) bool { return s == "Vanguard" })
+		// A face that is not a battlefield permanent: its printed TapsForMana
+		// static lives in the command zone, and the kernel's eachTapExtra walks
+		// it there. The classifier above admits Command only on a Vanguard face
+		// (Sisay) or a plane face (Eloren Wilds; pay
+		// paymentPlanStaticTapManaBody). A Vanguard is marked only on this
+		// lowered shape (every other Vanguard face keeps its old inert
+		// subtype, out of scope for this static); a plane keeps its own type
+		// and lives in its owner's planar deck, which eachTapExtra visits as
+		// the seat's face-up plane (CR 901).
+		if lc.face == nil || !lc.face.IsPlane() {
+			lc.out.Types |= tVanguard
+			lc.out.Subtypes = slices.DeleteFunc(lc.out.Subtypes, func(s string) bool { return s == "Vanguard" })
+		}
 		st.Zone = zCommand
 	}
 	switch v := strings.TrimSpace(tp.str("Activator")); {
