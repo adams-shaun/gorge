@@ -786,6 +786,12 @@ func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 			v = lValue{Kind: vMVOf, Ref: lRef{Kind: rRemembered}}
 			break
 		}
+		if rest == "CardPower" && lc.emblemUnblocked && !lc.hasRememberWriter() {
+			// an AttackerUnblocked emblem's captured attacker is the trigger
+			// object, one creature (Delif's Cone)
+			v = lValue{Kind: vPowerOf, Ref: lRef{Kind: rTriggered}}
+			break
+		}
 		if rest == "CardPower" {
 			// gorge count_ref_property.go:165-177 sums the power over the
 			// remembered set; the kernel's ExPowerOf reads one object, so
