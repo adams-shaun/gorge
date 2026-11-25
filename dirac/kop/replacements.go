@@ -44,6 +44,15 @@ const (
 	ReplDmgInsDrawSrc                 // the damage source's controller draws that many cards (Draw | Defined$ ReplacedSourceController)
 )
 
+// ReplDamageInstead's ask bodies sit in Repl.C's free top bits (the low byte
+// of Repl.A is full and ReplDmgInsKindShift's counter kind takes the rest; the
+// recipient words of the ReplDmg* block stop at ReplDmgHalfDown). The kernel
+// reads them back beside Repl.A's low byte as the body (repl_dminstead.go).
+const (
+	ReplDmgInsSac  = 1 << 14 // Dralnu, Lich Lord: its controller sacrifices that many permanents of their choice, all when fewer remain (Sacrifice | Defined$ You | SacValid$ Permanent | Amount$ X)
+	ReplDmgInsVind = 1 << 15 // Phyrexian Vindicator: with ReplDmgInsPrevent the damage is prevented and the host deals that much damage to a target its controller picks among Creature.Other,Player,Planeswalker.Other,Battle.Other (ImmediateTrigger with a DealDamage Execute)
+)
+
 // ReplDmgInsKindShift is where ReplDamageInstead's counter kind starts in Repl.A.
 const ReplDmgInsKindShift = 8
 
@@ -174,6 +183,13 @@ type Repl struct {
 	// ReplPreventDamageFilt and ReplPreventDamageN (replacements_staticprevent.go).
 	Filter2 FilterID // the damage source it applies to (0: any)
 	V       ValueRef // the damage a prevent-N shield prevents, read when the damage would be dealt (ReplSPAmtV)
+
+	// Trig of a ReplDamageInstead ask body (ReplDmgInsVind): the card's
+	// reflexive-trigger ability (a lowering latent) the body queues
+	// (Phyrexian Vindicator's ImmediateTrigger Execute: a DealDamage of the
+	// trigger amount at its own target, CR 603.12). The runtime's enqueue
+	// reaches it by this index.
+	Trig uint8
 }
 
 // Repl.C of a ReplCantLoseGame: 0 stops every loss of the game; CantLoseLife
