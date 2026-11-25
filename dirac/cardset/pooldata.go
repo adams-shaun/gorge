@@ -553,8 +553,8 @@ func (s dataSet) matchup(decks [][]Entry, mode matchupMode) (*kop.Table, [][]kop
 	}
 	pwTypes := false
 	for i := range dd.Exprs {
-		if x := &dd.Exprs[i]; x.Kind == kop.ExValidAgg && x.N == kop.AggCreatureTypes {
-			choosesType = true // a count of creature types reads every printed one
+		if x := &dd.Exprs[i]; (x.Kind == kop.ExValidAgg && x.N == kop.AggCreatureTypes) || x.Kind == kop.ExMostProminentCreatureType {
+			choosesType = true // a count of creature types, or of the most prominent one, reads every printed one
 		} else if x.Kind == kop.ExCount && x.N == 1 {
 			pwTypes = true // a count of planeswalker types reads every walker's printed ones
 		}
