@@ -1164,6 +1164,12 @@ func overrideString(o *lOverride) string {
 	if o.UntilEndCombat {
 		p = append(p, "eoc")
 	}
+	if o.UntilCtrlUntap {
+		p = append(p, "untilctrluntap")
+	}
+	if o.UntilCast != nil {
+		p = append(p, "untilcast")
+	}
 	if o.Horsemanship {
 		p = append(p, "horsemanship")
 	}

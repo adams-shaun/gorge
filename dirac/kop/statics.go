@@ -215,6 +215,19 @@ type Override struct {
 	// StepEndCombat and at cleanup, dirac/static_ovendcombat.go). It is applied
 	// with DurPermanent, so the end-of-turn drop leaves it alone.
 	UntilEndCombat bool
+	// UntilCtrlUntap: an Effect-delivered record over one targeted permanent
+	// that ends as its current controller's untap step ends (Orcish Farmer's
+	// "until its controller's next untap step": a Mode$ Phase Static$ True
+	// trigger that exiles the Effect). The applied record keeps the resolving
+	// Effect's host (r.p, -1 when it was not on the battlefield) and the
+	// host's version and controller (r.t); dirac/static_ovendevent.go.
+	UntilCtrlUntap bool
+	// UntilCast: the record ends when the player who resolved the Effect
+	// completes a cast of a spell matching this filter (Soul Sculptor's "until
+	// a player casts a creature spell", whose script reads ValidActivatingPlayer$
+	// You). The applied record's r.p/r.t are as UntilCtrlUntap's. 0 = no such
+	// end.
+	UntilCast FilterID
 	// Banding: the permanent gains banding (CR 702.22; a Pump's KW$ Banding,
 	// Battering Ram's UntilEndOfCombat grant). KwMask is full, so the grant is
 	// the record's own field, not a mask bit (kop/keywords.go; the manifest's
