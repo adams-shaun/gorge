@@ -705,6 +705,8 @@ func (a *SBT) chooseKey(s *dirac.State, d *dirac.Decision, x dirac.Action, zkey 
 		return uint32(s.FeatDivideIndex(dirac.TCode(src)))
 	case dirac.ChX, dirac.ChTrigX, dirac.ChMultikick, dirac.ChDivide, dirac.ChAsUnblocked, dirac.ChGenBranch, dirac.ChGenPileChoose, dirac.ChGenColor, dirac.ChGenManaChoice, dirac.ChAltAdd, dirac.ChGenPip, dirac.ChGenReplOrder, dirac.ChGenGift, dirac.ChCostForage, dirac.ChGenKeepTapped, dirac.ChGenDestAlt, dirac.ChBand, dirac.ChEnlist:
 		return uint32(mode)
+	case dirac.ChLearn:
+		return dirac.LearnKey(src, mode)
 	case dirac.ChGenType:
 		return s.FeatTypeKey(d.Player, int(x.Target())<<8|int(mode))
 	case dirac.ChGenChooseCard, dirac.ChGenFaceDownPick, dirac.ChGenCastFree:

@@ -70,7 +70,10 @@ var kchosenShields = map[string]bool{"Circle of Protection: Red": true, "Circle 
 // are declared and then makes one, answering the source pick with a creature
 // attacking the chooser (else a burn spell or creature of the pod), so the
 // shield meets the damage it prevents. Any other decision is castFirstPolicy's.
-func kchosenPolicy(seed uint64) Policy {
+func kchosenPolicy(seed uint64) Policy { return kchosenPolicyOf(seed, kchosenShields) }
+
+// kchosenPolicyOf is kchosenPolicy over the shield cards named in shields.
+func kchosenPolicyOf(seed uint64, shields map[string]bool) Policy {
 	inner := castFirstPolicy(seed)
 	rnd := RandomPolicy(seed)
 	var buf []Canon
@@ -113,7 +116,7 @@ func kchosenPolicy(seed uint64) Policy {
 				if k != ActCast && k != ActActivate {
 					continue
 				}
-				if n, _ := name(a); kchosenShields[n] == blockers {
+				if n, _ := name(a); shields[n] == blockers {
 					buf = append(buf, a)
 				}
 			}
@@ -126,7 +129,7 @@ func kchosenPolicy(seed uint64) Policy {
 				// the shields wait for the blockers: everything else is castFirst's
 				buf = buf[:0]
 				for _, a := range c.D.Options {
-					if n, _ := name(a); !kchosenShields[n] || (a.Kind() != ActCast && a.Kind() != ActActivate) {
+					if n, _ := name(a); !shields[n] || (a.Kind() != ActCast && a.Kind() != ActActivate) {
 						buf = append(buf, a)
 					}
 				}

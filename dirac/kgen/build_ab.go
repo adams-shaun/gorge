@@ -1417,10 +1417,9 @@ func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
 			if kt.Filter2, err = cb.filter(t.F2, kop.ZoneBattlefield); err != nil {
 				return kt, err
 			}
-		case t.Event == "DamageDone" && t.F2.Players == plBoth && len(t.F2.Clauses) == 1 && t.F2.Clauses[0] == (lClause{Types: tPlaneswalker}):
-			// ValidTarget$ Player,Planeswalker: TfToPlayer beside a Filter2
-			// reads "a player, or a permanent matching Filter2"
-			// (dirac/trig_damagedonce.go ddoRecipient)
+		case t.Event == "DamageDone" && t.F2.Players == plBoth && len(t.F2.Clauses) == 1 && dmgPlayerAltClause(t.F2.Clauses[0]):
+			// ValidTarget$ Player,Planeswalker or Player,Battle: TfToPlayer beside a
+			// Filter2, "a player or a matching permanent" (trig_damagedonce.go ddoRecipient)
 			kt.Flags |= kop.TfToPlayer
 			if kt.Filter2, err = cb.filter(&lFilter{Clauses: t.F2.Clauses}, kop.ZoneBattlefield); err != nil {
 				return kt, err
@@ -3423,4 +3422,12 @@ func tapExtraFlag(name string) (kop.StaticFlags, bool) {
 		return kop.StTapAnyCol, true
 	}
 	return 0, false
+}
+
+// dmgPlayerAltClause: the one-type permanent alternative a DamageDone
+// ValidTarget$ lists beside Player (Planeswalker or Battle: a permanent
+// combat damage can be assigned to as an attack's recipient). A creature
+// alternative stays refused (TestDamageTargetPlayerOrPlaneswalkerBuilds).
+func dmgPlayerAltClause(c lClause) bool {
+	return c == (lClause{Types: tPlaneswalker}) || c == (lClause{Types: tBattle})
 }

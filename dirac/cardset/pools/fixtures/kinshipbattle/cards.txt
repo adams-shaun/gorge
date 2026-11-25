@@ -1,0 +1,14 @@
+# the kinship / player-or-battle pool: Kinship's bare sharesCreatureTypeWith
+# and DamageDone ValidTarget$ Player,Battle recipients, for the oracle's
+# constructed lockstep (dirac/oracle/kinship_battle_lockstep_test.go)
+Archpriest of Shadows
+Deeproot Wayfinder
+Doomskar Warrior
+Forest
+Grizzly Bears
+Llanowar Elves
+Plains
+Plane-Merge Elf
+Swamp
+Winnower Patrol
+Wolf-Skull Shaman

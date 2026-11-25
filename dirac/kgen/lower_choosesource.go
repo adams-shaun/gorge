@@ -34,6 +34,11 @@ func chooseSourceMask(spec string) (int, error) {
 	mask := 0
 	for _, part := range strings.Split(spec, ",") {
 		part = strings.TrimSpace(part)
+		// gorge reads Card.ChosenCard and Card.ChosenCardStrict as one
+		// predicate (effects/filter.go): Pilgrim of Justice's spelling
+		if rest, ok := strings.CutPrefix(part, "Card.ChosenCard+"); ok {
+			part = "Card.ChosenCardStrict+" + rest
+		}
 		if part == "Emblem" || strings.HasPrefix(part, "Emblem.") {
 			continue // an emblem is no battlefield or stack object: it adds no option
 		}
@@ -86,9 +91,14 @@ func (lc *lowerCtx) chooseSource(ps *params) error {
 	return nil
 }
 
-// chosenSrcEffect is the Effect half: exactly the chosen-source DamageDone
-// replacement whose body is the Effect's self-exile (the shield spends on the
-// first event it prevents), recipient You.
+// chosenSrcEffect is the Effect half: the chosen-source DamageDone
+// replacement, either the shield whose body is the Effect's self-exile (spent
+// on the first event it prevents: PreventionEffect$ True), the same with a
+// gain-the-prevented-life body first (kop.PrevNextGain: Reverse Damage), or the bodyless
+// Prevent$ True line that prevents every event from the source this turn
+// (kop.PrevNextChosenTurn: Pay No Heed). The recipient is You, any (no
+// ValidTarget$: Pilgrim of Justice, kop.PrevNextChosenAny), or the Effect's
+// own target (kop.PrevNextChosenTo, chosenSrcTarget).
 func (lc *lowerCtx) chosenSrcEffect(ps *params) error {
 	lc.chosenSrc = false
 	if d := ps.peek("ConditionDefined"); d != "" {
@@ -115,20 +125,41 @@ func (lc *lowerCtx) chosenSrcEffect(ps *params) error {
 	sort.Strings(keys)
 	for _, k := range keys {
 		switch k {
-		case "Event", "Description", "ValidSource", "ValidTarget", "ReplaceWith", "PreventionEffect":
+		case "Event", "Description", "ValidSource", "ValidTarget", "ReplaceWith", "PreventionEffect", "Prevent":
 		default:
 			return refuse("ChooseSource Effect replacement param %s", k)
 		}
 	}
-	if strings.TrimSpace(rm["PreventionEffect"]) != "True" || strings.TrimSpace(rm["ValidTarget"]) != "You" ||
-		!lc.bodyIsSelfExile(strings.TrimSpace(rm["ReplaceWith"])) {
+	c := kop.PrevNextAll | kop.PrevNextFrom | kop.PrevNextChosen
+	_, hasW := rm["ReplaceWith"]
+	_, hasPE := rm["PreventionEffect"]
+	switch {
+	case strings.TrimSpace(rm["Prevent"]) == "True" && !hasW && !hasPE:
+		c |= kop.PrevNextChosenTurn
+	case strings.TrimSpace(rm["PreventionEffect"]) == "True" && rm["Prevent"] == "" && lc.bodyIsSelfExile(strings.TrimSpace(rm["ReplaceWith"])):
+	case strings.TrimSpace(rm["PreventionEffect"]) == "True" && rm["Prevent"] == "" && lc.riderBodyIsGainSub(strings.TrimSpace(rm["ReplaceWith"])):
+		// Reverse Damage: the controller gains the prevented damage, then the
+		// Effect exiles itself (lower_preventrider.go)
+		c |= kop.PrevNextGain
+	default:
 		return refuse("ChooseSource Effect replacement shape")
 	}
 	mask, err := chooseSourceMask(strings.TrimSpace(rm["ValidSource"]))
 	if err != nil {
 		return err
 	}
-	if v := ps.peek("RememberObjects"); v != "" {
+	var obj lRef
+	switch vt := strings.TrimSpace(rm["ValidTarget"]); vt {
+	case "You":
+	case "":
+		c |= kop.PrevNextChosenAny
+	default:
+		if obj, err = lc.chosenSrcTarget(ps, vt); err != nil {
+			return err
+		}
+		c |= kop.PrevNextChosenTo
+	}
+	if v := ps.peek("RememberObjects"); v != "" && c&kop.PrevNextChosenTo == 0 {
 		// Righteous Aura's RememberObjects$ Remembered remembers what the
 		// chain already remembers, which nothing here reads
 		if v != "Remembered" {
@@ -137,9 +168,42 @@ func (lc *lowerCtx) chosenSrcEffect(ps *params) error {
 		ps.consume("RememberObjects")
 	}
 	ps.consume("ReplacementEffects", "AILogic", "SubAbility")
-	lc.emit(lInstr{Op: "PreventNext", C: kop.PrevNextAll | kop.PrevNextFrom | kop.PrevNextChosen, A: cst(mask),
+	lc.emit(lInstr{Op: "PreventNext", Obj: obj, C: c, A: cst(mask),
 		Note: "prevent the next damage the chosen source would deal to you this turn"})
 	return nil
+}
+
+// chosenSrcTarget reads the Effect's own target as the shield's recipient:
+// ValidTarget$ Card.IsRemembered,Player.IsRemembered over RememberObjects$
+// Targeted (Martyr's Cause, Sanctum Guardian), with ExileOnMoved$ or
+// ForgetOnMoved$ Battlefield (the kernel matches the target at its version,
+// so a permanent that left is no recipient either way), or ValidTarget$
+// Card.IsImprinted over ImprintCards$ Targeted (Samite Blessing). It consumes
+// the Effect's target and memory parameters.
+func (lc *lowerCtx) chosenSrcTarget(ps *params, vt string) (lRef, error) {
+	if _, ok := ps.get("ValidTgts"); !ok {
+		return lRef{}, refuse("ChooseSource Effect replacement shape")
+	}
+	switch vt {
+	case "Card.IsRemembered,Player.IsRemembered", "Player.IsRemembered,Card.IsRemembered", "Card.IsRemembered":
+		if ps.peek("RememberObjects") != "Targeted" {
+			return lRef{}, refuse("ChooseSource Effect RememberObjects$ %q", ps.peek("RememberObjects"))
+		}
+		ps.consume("RememberObjects")
+	case "Card.IsImprinted":
+		if ps.peek("ImprintCards") != "Targeted" {
+			return lRef{}, refuse("ChooseSource Effect ImprintCards$ %q", ps.peek("ImprintCards"))
+		}
+		ps.consume("ImprintCards")
+	default:
+		return lRef{}, refuse("ChooseSource Effect replacement shape")
+	}
+	for _, k := range []string{"ExileOnMoved", "ForgetOnMoved"} {
+		if v, ok := ps.get(k); ok && strings.TrimSpace(v) != "Battlefield" {
+			return lRef{}, refuse("ChooseSource Effect %s$ %q", k, v)
+		}
+	}
+	return lc.objOrTarget(ps, "", zBattlefield)
 }
 
 // bodyIsSelfExile reports whether SVar name is exactly the Effect's own
