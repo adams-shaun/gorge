@@ -412,7 +412,7 @@ func (s *State) addGatedExtra(k *prep, p uint8, sl Slot, ctl uint8) {
 	if k.gen == nil || !k.gen.anyTapExtra {
 		return
 	}
-	ord := 0 // the reaching Produced$ Any carriers so far: a search's forced answers are per carrier (forceAnyColAnswers)
+	ord := 0 // the answer units of the reaching carriers so far: a search's forced answers are per unit (forceAnyColAnswers)
 	s.eachStatic(k, func(st statSrc) bool {
 		a := &st.a.Static
 		chosen := a.StFlags&kop.StTapChosen != 0   // Produced$ Chosen: gated like a Cond2 static, in the source's colour
@@ -439,7 +439,7 @@ func (s *State) addGatedExtra(k *prep, p uint8, sl Slot, ctl uint8) {
 		s.tapExtraEchoStall(k, st)
 		if anyCol {
 			s.addAnyColExtra(p, a, ord)
-			ord++
+			ord += int(anyColUnits(a))
 			return true
 		}
 		if dynamic {
@@ -483,7 +483,11 @@ func (s *State) anyColExtraColour(u int) uint8 {
 func (s *State) addAnyColExtra(p uint8, a *kop.Static, ord int) {
 	if a.A == 1 { // Combo Any: one unit per answer
 		for u := 0; u < int(a.B); u++ {
-			s.pl[p].pool[s.anyColExtraColour(u)%5]++
+			slot := u
+			if s.g.rsv[anyColForcedAt] != 0 {
+				slot = ord + u // a search's answers: this carrier's units follow the earlier carriers'
+			}
+			s.pl[p].pool[s.anyColExtraColour(slot)%5]++
 		}
 		return
 	}
@@ -568,7 +572,7 @@ func anyColFirst(need *[kop.NumManaKinds]bool, units int) (cols [3]uint8) {
 // payment's pips too (tapAnyColPips).
 func (s *State) anyColOwed(k *prep, p uint8, sl Slot, a Action, ownCol, ownN int) {
 	var owed [kop.NumManaKinds]uint8
-	if cnt, ok := s.tapAnyColPips(k, a); ok {
+	if cnt, ok := s.tapAnyColPips(k, p, a); ok {
 		owed = cnt // exact per-colour pips, e.g. a Combo Any amount of one colour
 	} else {
 		// a hybrid, twobrid or otherwise reduced cost: the play's need is the
@@ -600,9 +604,9 @@ func (s *State) anyColOwed(k *prep, p uint8, sl Slot, a Action, ownCol, ownN int
 // still driven by the two black pips. A flexible pip (X, snow, hybrid,
 // Phyrexian, twobrid) keeps the playNeed fallback: its announced face is not
 // the printed pips.
-func (s *State) tapAnyColPips(k *prep, a Action) (cnt [kop.NumManaKinds]uint8, ok bool) {
+func (s *State) tapAnyColPips(k *prep, p uint8, a Action) (cnt [kop.NumManaKinds]uint8, ok bool) {
 	m, f, base := s.playBaseCost(k, a)
-	if !base && s.anyColOwedRun() && s.kickedArmOffer(k, a) {
+	if !base && s.anyColOwedRun() && s.kickedTotalCast(k, a) {
 		// A kicked cast announces the printed pips and the kicker payment's,
 		// the total CR 601.2f composes. Bloodchief's Thirst kicked owes
 		// {B}{B}, so a Swamp under Dawn's Reflection answers {B}{W}, where
@@ -612,6 +616,17 @@ func (s *State) tapAnyColPips(k *prep, a Action) (cnt [kop.NumManaKinds]uint8, o
 		// decision 290).
 		cd := &k.t.Cards[s.objs[Obj(a.Source())].card]
 		m, base = addCost(cd.Cost, kickerPayment(cd)), true
+	}
+	if !base && s.anyColOwedRun() {
+		// Any other play whose base gorge leaves unread (a suspend or plot
+		// special action, an alternative-cost ability) still announces its own
+		// cost's pips when the ask is answered (WindowChoices reads the owed
+		// payment): Errant Ephemeron's suspend {1}{U} owes {U}, so a Forest
+		// under Dawn's Reflection answers {W}{U}, not {W}{W} (grantPlayCost,
+		// the price the prefix search itself uses).
+		if c, _, _, ok := s.grantPlayCost(k, p, a, true); ok {
+			m, base = c, true
+		}
 	}
 	if !base || m.X != 0 || m.Snow != 0 || m.Hyb[0] != 0 || m.Tb != 0 || f&kop.CostForage != 0 {
 		return cnt, false
@@ -638,16 +653,21 @@ func (s *State) fillTapAnyColCost(k *prep, p uint8, sl Slot, cost *kop.ManaCost,
 		s.fillTapAnyColOwed(k, p, sl, &owed)
 		return
 	}
-	// The ask is answered before the tap's own mana reaches the pool: its
-	// demand is windowCol's owed cost, the snapshot gorge's WindowChoices
-	// reads (ManaPayment.Owed), not cost less the pool after the tap. That
-	// snapshot still takes the pool the payment already holds off the pips:
-	// a {4}{R} cast with a Mountain's {R} floating owes no {R}, so the extra
-	// answers the lowest colour (W), not the printed pip.
+	// The ask is answered once the tap's own mana has reached the pool (the
+	// ManaAdd precedes the trigger's choose): the demand is the owed cost less
+	// the pool, the tap's mana included, as announcedPipsOwed reads it. The
+	// pool the payment already holds comes off the pips too: a {4}{R} cast with
+	// a Mountain's {R} floating owes no {R}, so the extra answers the lowest
+	// colour (W), not the printed pip; so does a {G} pip the tapped Forest's own
+	// {G} pays (a Phyrexian pip's mana half, Zopandrel's {G/P}{G/P}).
 	var due kop.ManaCost
 	s.windowOwedCost(k, p, cost, &due)
+	pool := s.pl[p].pool
+	if col >= 0 && col < len(pool) {
+		pool[col] += uint8(n)
+	}
 	for c := range due.Pips {
-		due.Pips[c] -= min(due.Pips[c], s.pl[p].pool[c])
+		due.Pips[c] -= min(due.Pips[c], pool[c])
 	}
 	s.fillTapAnyColOwed(k, p, sl, &due.Pips)
 }

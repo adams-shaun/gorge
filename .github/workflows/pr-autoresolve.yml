@@ -1,0 +1,92 @@
+# Merge main into every open PR that conflicts with it only in generated files, and push the merge (scripts/pr-autoresolve.sh).
+#
+# main regenerates dirac/docs/support.md, kgen's acceptance pins, the kop ordinals and the ratchet files many times a day,
+# and almost every open dirac PR then sat CONFLICTING on them alone until a human or an agent merged main and rebuilt
+# them by hand (11-25). The generated set is scripts/autoresolve-paths.tsv; a conflict in any other path is left alone.
+#
+# Token: a push made with the workflow's GITHUB_TOKEN starts no workflow, so the merged PR would get no fast/lint checks
+# and Mergify would never queue it. Like ratchet-lower.yml, the push and the API calls use the REGEN_TOKEN secret (a user
+# token, contents:write on this repo) and fall back to GITHUB_TOKEN when it is unset.
+#
+# Mergify cannot do this: its update action (queue_rules update_method merge|rebase, update_bot_account) only updates a
+# branch that merges cleanly, and it never rebuilds generated files.
+name: pr-autoresolve
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: read
+
+concurrency:
+  group: pr-autoresolve-list
+  cancel-in-progress: false
+
+jobs:
+  list:
+    if: github.repository == 'adams-shaun/gorge'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    outputs:
+      prs: ${{ steps.list.outputs.prs }}
+    steps:
+      - name: Open non-draft PRs to main that conflict
+        id: list
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        # GitHub computes mergeable lazily after main moves: UNKNOWN until then. Asking starts the computation, so
+        # retry until no PR is UNKNOWN (at most 5 min). regen/* branches rebuild themselves (scripts/regen-main.sh).
+        run: |
+          q='[.[] | select(.isDraft | not) | select(.headRefName | startswith("regen/") | not) | select(.isCrossRepository | not)]'
+          for i in $(seq 1 15); do
+            js=$(gh pr list -R "$REPO" --base main --state open --limit 200 --json number,isDraft,headRefName,isCrossRepository,mergeable --jq "$q")
+            unknown=$(jq '[.[] | select(.mergeable == "UNKNOWN")] | length' <<<"$js")
+            [ "$unknown" -eq 0 ] && break
+            echo "$unknown PRs not computed yet; retry $i"; sleep 20
+          done
+          prs=$(jq -c '[.[] | select(.mergeable == "CONFLICTING") | .number]' <<<"$js")
+          echo "conflicting: $prs"
+          echo "prs=$prs" >>"$GITHUB_OUTPUT"
+
+  resolve:
+    needs: list
+    if: needs.list.outputs.prs != '[]' && needs.list.outputs.prs != ''
+    # The box runners keep the corpus (scripts/ci-corpus.sh), which the regeneration needs.
+    runs-on: ${{ vars.CI_SELF_HOSTED == 'true' && 'gorge-box' || 'ubuntu-24.04' }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        pr: ${{ fromJSON(needs.list.outputs.prs) }}
+    concurrency:
+      group: pr-autoresolve-${{ matrix.pr }}
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          # No GITHUB_TOKEN header in the git config: it would override the REGEN_TOKEN credential below.
+          persist-credentials: false
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: Authenticate git with the bot token
+        env:
+          GH_TOKEN: ${{ secrets.REGEN_TOKEN || github.token }}
+        run: gh auth setup-git
+      - name: Merge main and rebuild the generated files
+        env:
+          GH_TOKEN: ${{ secrets.REGEN_TOKEN || github.token }}
+          PR: ${{ matrix.pr }}
+        # Exit 4: a conflict outside the generated set, which this workflow leaves alone (a notice, not a red job).
+        run: |
+          rc=0; bash scripts/pr-autoresolve.sh "$PR" || rc=$?
+          [ "$rc" -ne 4 ] || { echo "::notice::#$PR conflicts outside the generated set; left alone"; exit 0; }
+          exit "$rc"

@@ -703,8 +703,38 @@ func unreadDefinedPlayerSpec(spec string) bool {
 	return !controlReferentPlayerSpecKnown(spec)
 }
 
+// leadingDotPlayers resolves the qualifiers of a leading-dot player selector.
+func leadingDotPlayers(h Host, c *Ctx, quals string) ([]state.Target, bool) {
+	g := h.Game()
+	clauses := strings.Split(quals, ",")
+	for i, q := range clauses {
+		clauses[i] = "Player." + strings.TrimSpace(q)
+		if !controlReferentPlayerSpecKnown(clauses[i]) {
+			return nil, false
+		}
+	}
+	var out []state.Target
+	for _, p := range g.AliveFrom(c.Controller) {
+		for _, cl := range clauses {
+			if MatchesPlayerSpecWithSVars(h, c, cl, p, c.Controller) {
+				out = append(out, state.Target{Player: p, IsPlayer: true})
+				break
+			}
+		}
+	}
+	return out, true
+}
+
 func definedSpec(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 	g := h.Game()
+	// Forge's LEADING-DOT player selector (`.Chosen,You`: Benevolent/
+	// Intellectual/Infernal/Sylvan Offering): an EMPTY base is every player,
+	// filtered by the comma-separated `Player.<qualifier>` clauses, any one of
+	// which admits. Players come in turn order from the controller. An
+	// unread qualifier leaves the whole spec unknown rather than guessing.
+	if quals, ok := strings.CutPrefix(spec, "."); ok && quals != "" {
+		return leadingDotPlayers(h, c, quals)
+	}
 	// The DOTTED `AttachedTo <referent>[.<quals>]` selector (a Defined-/
 	// Object-/ChooseFromDefined-position read of "the objects attached to
 	// whatever <referent> names"). It is a prefix, not a whole-value case:
