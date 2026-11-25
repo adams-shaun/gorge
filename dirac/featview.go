@@ -758,7 +758,7 @@ func (s *State) plannedCastCostOf(k *prep, p uint8, o Obj, mode uint8, hyb, comp
 			return kop.ManaCost{}, false
 		}
 	}
-	if s.fbBeholdUnplanned(k, p, o, mode) {
+	if s.fbBeholdUnplanned(k, p, o, mode) || s.fbLifeUnplanned(k, p, o, mode) {
 		return kop.ManaCost{}, false
 	}
 	cost := k.cards[c].cost
