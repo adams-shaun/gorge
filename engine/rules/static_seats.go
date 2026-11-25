@@ -10,8 +10,19 @@ import "github.com/adams-shaun/gorge/engine/state"
 // types and abilities it had, as the creature it was (CR 603.10a) -- a Station
 // Spacecraft's "it's an artifact creature at 4+" among them.
 func (e *Engine) staticSeats() []state.PlayerID {
-	if e.sbaLossHeld {
-		return e.G.SeatsFrom(0)
+	if !e.sbaLossHeld {
+		return e.G.AliveFrom(0)
 	}
-	return e.G.AliveFrom(0)
+	// Every seat, departed or not, in the order AliveFrom(0) walks them
+	// (reversed turn order included).
+	n := state.PlayerID(len(e.G.Players))
+	out := make([]state.PlayerID, 0, n)
+	for i := state.PlayerID(0); i < n; i++ {
+		p := i
+		if e.G.ReverseTurnOrder {
+			p = (n - i) % n
+		}
+		out = append(out, p)
+	}
+	return out
 }
