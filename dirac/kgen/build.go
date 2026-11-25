@@ -488,7 +488,7 @@ func counterKind(s string) (kop.CounterKind, error) {
 
 var zoneMap = [...]kop.Zone{zNone: kop.ZoneNone, zBattlefield: kop.ZoneBattlefield, zHand: kop.ZoneHand,
 	zGraveyard: kop.ZoneGraveyard, zLibrary: kop.ZoneLibrary, zExile: kop.ZoneExile, zStack: kop.ZoneStack,
-	zCommand: kop.ZoneCommand, zAny: kop.ZoneNone}
+	zCommand: kop.ZoneCommand, zAny: kop.ZoneNone, zSideboard: kop.ZoneSideboard}
 
 func (cb *cardBuilder) subIndexes(ws []string) ([]uint8, error) {
 	var out []uint8
