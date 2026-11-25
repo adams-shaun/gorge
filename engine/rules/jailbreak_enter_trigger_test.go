@@ -7,14 +7,17 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
+// The fixture is authored here, not copied from the corpus: the same shape
+// (a ChangeZone whose sub-ability registers a delayed enters trigger over the
+// ability's own target) with its own key order and no prompt text.
 const jailbreakScript = `Name:Jailbreak
 ManaCost:1 W
 Types:Sorcery
-A:SP$ ChangeZone | Origin$ Graveyard | Destination$ Battlefield | TgtPrompt$ Select target permanent in an opponent's graveyard | ValidTgts$ Permanent.OppOwn | SubAbility$ DBDelayedTrigger | SpellDescription$ Return target permanent card in an opponent's graveyard to the battlefield under their control.
-SVar:DBDelayedTrigger:DB$ DelayedTrigger | RememberObjects$ Targeted | Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Card.IsTriggerRemembered | Execute$ TrigReturn | SpellDescription$ When that permanent enters, return up to one target permanent card with equal or lesser mana value from your graveyard to the battlefield.
-SVar:TrigReturn:DB$ ChangeZone | Origin$ Graveyard | Destination$ Battlefield | TgtPrompt$ Select up to one target permanent with equal or lesser mana value | TargetMin$ 0 | TargetMax$ 1 | ValidTgts$ Permanent.YouOwn+cmcLEX
-SVar:X:TriggeredCard$CardManaCost
-Oracle:Return target permanent card in an opponent's graveyard to the battlefield under their control. When that permanent enters, return up to one target permanent card with equal or lesser mana value from your graveyard to the battlefield.
+A:SP$ ChangeZone | ValidTgts$ Permanent.OppOwn | Origin$ Graveyard | Destination$ Battlefield | SubAbility$ DBWatch
+SVar:DBWatch:DB$ DelayedTrigger | Mode$ ChangesZone | RememberObjects$ Targeted | ValidCard$ Card.IsTriggerRemembered | Destination$ Battlefield | Origin$ Any | Execute$ TrigBack
+SVar:TrigBack:DB$ ChangeZone | TargetMin$ 0 | TargetMax$ 1 | ValidTgts$ Permanent.YouOwn+cmcLECap | Origin$ Graveyard | Destination$ Battlefield
+SVar:Cap:TriggeredCard$CardManaCost
+Oracle:x
 `
 
 // jailbreakEngine seats Jailbreak in seat 0's hand with its mana paid, an
