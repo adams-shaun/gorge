@@ -585,6 +585,7 @@ func (cb *cardBuilder) record() error {
 		cb.bargain = true
 	}
 	d.HandMana, d.GraveMana = c.HandMana, c.GraveMana // a Spirit Guide's hand mana, a graveyard source's colours: no ability (lower_handmana.go, lower_gravemana.go)
+	d.Conspire = c.Conspire
 	if c.Storm {
 		// the printed K:Storm trigger is the kernel's own native trigger
 		// (dirac/kw_storm.go); no ability, no cast-action bit
@@ -2470,6 +2471,7 @@ var exprKinds = map[valKind]kop.ExprKind{
 	vLifeLostLastTurn:   kop.ExLifeLostLastTurn,
 	vDmgAmount:          kop.ExDmgAmountReceived,
 	vTimesKicked:        kop.ExKicked, // Expr.N 1: the multikicker count, not the kicked bit
+	vPaidN:              kop.ExKicked, // Expr.N 2: the Squad/Replicate/Conspire paid count
 	vEnergyOf:           kop.ExEnergyOf,
 	vMonarch:            kop.ExMonarch,    // lower_monarch.go
 	vBlessing:           kop.ExBlessing,   // dirac/kw_ascend.go
@@ -2508,6 +2510,9 @@ func (cb *cardBuilder) expr(v lValue) (kop.Expr, error) {
 	}
 	if v.Kind == vTimesKicked {
 		e.N = 1 // ExKicked N 1: the multikicker payment count (eval's timesKicked)
+	}
+	if v.Kind == vPaidN {
+		e.N = 2 // ExKicked N 2: the paid count (eval's paidCount)
 	}
 	if v.Kind == vActivations {
 		e.N = int16(v.N) // ExActivations N 1: the evaluating source's count, an ActivationLimit$ gate (lower_activationlimitn.go)
