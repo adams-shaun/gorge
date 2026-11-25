@@ -585,11 +585,13 @@ func (e *Encoder) cardView(s *dirac.State, o dirac.Obj, z uint8) *vcore {
 	h := &e.ohint[o]
 	// a hint is valid only for the same control-record keywords: a control
 	// record's haste (FeatCtrlKw) is not an object write, so ChangedSince
-	// does not see it come or go
+	// does not see it come or go; a second record's repeat changes the view
+	// without changing the union, so key on it too
 	hc := e.ctx
 	if z == zBattlefield {
-		if kw := s.FeatCtrlKw(o); kw != 0 {
+		if kw, rep := s.FeatCtrlKwRep(o); kw != 0 {
 			hc = mix64(hc, uint64(kw)|0x6374726c6b77<<16)
+			hc = mix64(hc, uint64(rep[trailing(uint64(kop.KwHaste))]))
 		}
 	}
 	if line != 0 && h.line == line && h.z == z && h.ctx == hc && h.vc != nil &&
@@ -690,9 +692,11 @@ func (e *Encoder) cachedCard(s *dirac.State, o dirac.Obj, z uint8) *vcore {
 		// the projection names the attached-to and blocked objects by
 		// object; the hash has their slots
 		key = mix64(key, uint64(att)|uint64(blk)<<16)
-		if kw := s.FeatCtrlKw(o); kw != 0 {
-			// the haste a control record carries is not in the object hash
+		if kw, rep := s.FeatCtrlKwRep(o); kw != 0 {
+			// the haste a control record carries is not in the object hash,
+			// and a second record's repeat leaves the union unchanged
 			key = mix64(key, uint64(kw)|0x6374726c6b77<<16)
+			key = mix64(key, uint64(rep[trailing(uint64(kop.KwHaste))]))
 		}
 	} else if g, rep := s.FeatGrantedOffRep(o); g != 0 {
 		// a keyword granted off the battlefield (not in the hash), and how

@@ -74,6 +74,23 @@ func (s *State) FeatCtrlKw(o Obj) kop.KwMask {
 	return s.ctrlKw(ob.slot)
 }
 
+// FeatCtrlKwRep is FeatCtrlKw with the per-record repeats (FeatKwReps):
+// each control record grants its AddKWs$ keyword once, so two steals that
+// each grant haste list it twice (gorge lists a keyword once per effect).
+func (s *State) FeatCtrlKwRep(o Obj) (granted kop.KwMask, rep FeatKwReps) {
+	ob := &s.objs[o]
+	if s.g.nfx == 0 || ob.zone != kop.ZoneBattlefield || ob.slot == NoSlot {
+		return 0, rep
+	}
+	for i := 0; i < int(s.g.nfx); i++ {
+		if r := &s.g.fx[i]; r.sl == ob.slot && r.kind == fxControl && r.r.fl&fcHaste != 0 {
+			rep.add(granted, kop.KwHaste)
+			granted |= kop.KwHaste
+		}
+	}
+	return granted, rep
+}
+
 // FeatKwReps counts, per keyword bit, the listings of a granted keyword
 // past its first (saturating at 255): gorge lists a keyword once per
 // effect that grants it (two Fleeting Flights list flying twice; Soulstone
@@ -106,7 +123,16 @@ func (s *State) FeatGrantedRep(o Obj) (granted kop.KwMask, rep FeatKwReps, print
 	add(p.eotKwRep[0])
 	add(p.eotKwRep[1])
 	if s.g.nfx != 0 {
-		add(s.ctrlKw(ob.slot)) // the haste a control record carries (AddKWs$), listed as gorge lists it
+		// each control record grants its AddKWs$ keyword once (gorge lists
+		// it once per effect), so count the record's own listing past the
+		// union
+		g, r := s.FeatCtrlKwRep(o)
+		add(g)
+		for b, n := range r {
+			for ; n > 0; n-- {
+				add(kop.KwMask(1) << uint(b))
+			}
+		}
 	}
 	sup := false
 	if k.gen != nil && s.nkwx != 0 {
