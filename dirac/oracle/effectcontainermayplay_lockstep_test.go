@@ -63,6 +63,32 @@ var effectContainerMayPlayExtraTurnDecks = [2][]cardset.Entry{
 	},
 }
 
+// One Yawgmoth's Will and one Magus of the Will copy: two concurrent
+// grave-to-exile replacements compete on one move and pose gorge's CR 616.1
+// order ask, which the kernel's emblem walk never poses (a stall), so the
+// pool decks carry one carrier each, the Mission Briefing precedent.
+var effectContainerMayPlayYawgDecks = [2][]cardset.Entry{
+	{
+		{Name: "Yawgmoth's Will", Count: 1}, {Name: "Shock", Count: 8},
+		{Name: "Divination", Count: 8}, {Name: "Mountain", Count: 10},
+		{Name: "Island", Count: 6}, {Name: "Swamp", Count: 7},
+	},
+	{
+		{Name: "Grizzly Bears", Count: 20}, {Name: "Forest", Count: 20},
+	},
+}
+
+var effectContainerMayPlayMagusDecks = [2][]cardset.Entry{
+	{
+		{Name: "Magus of the Will", Count: 1}, {Name: "Shock", Count: 8},
+		{Name: "Divination", Count: 8}, {Name: "Grizzly Bears", Count: 6},
+		{Name: "Mountain", Count: 6}, {Name: "Island", Count: 6}, {Name: "Swamp", Count: 5},
+	},
+	{
+		{Name: "Grizzly Bears", Count: 20}, {Name: "Forest", Count: 20},
+	},
+}
+
 // effectContainerMayPlayStats counts the decisions the policy takes through
 // the carrier: an activation, a non-hand cast (graveyard or exile), the
 // carrier's own casts (a spell carrier's hand casts), and the casts of the
@@ -222,6 +248,22 @@ func TestEffectContainerMayPlayLockstep(t *testing.T) {
 		// back from the graveyard, leaving the stack to exile.
 		if st := effectContainerMayPlayRunCast(t, effectContainerMayPlayMissionDecks, "Mission Briefing"); st.zoneCasts == 0 {
 			t.Fatal("Mission Briefing's chosen-card permission offered no cast")
+		}
+	})
+	t.Run("graveyard-to-exile replacement", func(t *testing.T) {
+		// The Will group's emblem carries the graveyard permission beside the
+		// any-zone dies-to-exile replacement: Yawgmoth's Will's cast fills
+		// the graveyard with the spells played so far, the policy casts them
+		// back, and the card it exiles instead of a graveyard (the Will
+		// itself, a Shock played back and discarded) is the replacement's
+		// read; Magus of the Will activates the same shape from the
+		// battlefield. Gaea's Will lowers identically (the kgen table); its
+		// suspend cast is not reached by any policy here.
+		if st := effectContainerMayPlayRunCast(t, effectContainerMayPlayYawgDecks, "Yawgmoth's Will"); st.zoneCasts == 0 {
+			t.Fatal("Yawgmoth's Will's graveyard permission offered no cast")
+		}
+		if st := effectContainerMayPlayRun(t, effectContainerMayPlayMagusDecks, "Magus of the Will"); st.zoneCasts == 0 {
+			t.Fatal("Magus of the Will's graveyard permission offered no cast")
 		}
 	})
 	t.Run("until next turn ends before an extra turn", func(t *testing.T) {
