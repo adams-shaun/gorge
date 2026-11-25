@@ -9,6 +9,7 @@
 package rules
 
 import (
+	"slices"
 	"strconv"
 	"strings"
 
@@ -634,6 +635,24 @@ func (e *Engine) presentClauseHolds(t cards.Trigger, source state.ObjID, you sta
 	if tc != nil {
 		sc.TriggerContext = *tc
 	}
+	// A look-back walk matches a battlefield departure on the pre-departure
+	// board. A trigger whose SOURCE departed in this window is a CR 603.10a
+	// look-back trigger: its whole evaluation, this clause included, reads
+	// the board as it was (the SBA batch pins hold that -- every member's
+	// trigger sees every member's departure). Every other trigger reads the
+	// CR 603.4 intervening-if when the event occurs, after the object left,
+	// so its count skips the window's departed objects (Lifeline: the dying
+	// creature is not the "another creature" of its own death's condition).
+	// The skip rides only the look-back observer (windowDeparted is nil on
+	// the live engine, whose board already moved them), and the STATIC
+	// applicability gates keep their pre-departure counts (presentGate's own
+	// reads pass nil): a Continuous static is judged on the board the event
+	// occurred on (Relic Vial's "as long as you control a Cleric" grant is
+	// live when that Cleric dies).
+	var skip []state.ObjID
+	if !slices.Contains(e.windowDeparted, source) {
+		skip = e.windowDeparted
+	}
 	if pd := strings.TrimSpace(t.Params[definedKey]); pd != "" {
 		o := e.G.Obj(source)
 		if o == nil {
@@ -705,11 +724,11 @@ func (e *Engine) presentClauseHolds(t cards.Trigger, source state.ObjID, you sta
 		}
 		n := 0
 		for _, zone := range zones {
-			n += e.presentZoneCountScoped(zone, spec, source, you, sc, scope)
+			n += e.presentZoneCountScoped(zone, spec, source, you, sc, scope, skip)
 		}
 		return comparePresent(n, cmp)
 	}
-	return comparePresent(e.countPresentScoped(spec, source, you, sc, scope), cmp)
+	return comparePresent(e.countPresentScoped(spec, source, you, sc, scope, skip), cmp)
 }
 
 // presentPlayerScope is PresentPlayer$'s restriction on whose copies of the
@@ -788,12 +807,14 @@ func (e *Engine) presentZoneCount(zone state.Zone, spec string, source state.Obj
 // so a capture-aware spec resolves against a binding the generic constructor
 // does not carry (see presentClauseHolds).
 func (e *Engine) presentZoneCountCtx(zone state.Zone, spec string, source state.ObjID, you state.PlayerID, sc effects.SpecContext) int {
-	return e.presentZoneCountScoped(zone, spec, source, you, sc, presentPlayerAny)
+	return e.presentZoneCountScoped(zone, spec, source, you, sc, presentPlayerAny, nil)
 }
 
 // presentZoneCountScoped is presentZoneCountCtx restricted to the seats the
-// present clause's PresentPlayer$ counts.
-func (e *Engine) presentZoneCountScoped(zone state.Zone, spec string, source state.ObjID, you state.PlayerID, sc effects.SpecContext, scope presentPlayerScope) int {
+// present clause's PresentPlayer$ counts. A non-empty skip (the look-back
+// window's departed objects) is left out of the count; every other caller
+// passes nil.
+func (e *Engine) presentZoneCountScoped(zone state.Zone, spec string, source state.ObjID, you state.PlayerID, sc effects.SpecContext, scope presentPlayerScope, skip []state.ObjID) int {
 	n := 0
 	for _, p := range e.presentSeats(you, scope) {
 		if zone == state.ZCommand && spec == "Boon.YouOwn" {
@@ -801,6 +822,10 @@ func (e *Engine) presentZoneCountScoped(zone state.Zone, spec string, source sta
 			continue
 		}
 		for _, id := range e.G.Zone(zone, p) {
+			if presentSkips(skip, id) {
+				// A look-back window's departed object (presentClauseHolds).
+				continue
+			}
 			if o := e.G.Obj(id); o != nil && o.Ephemeral() {
 				continue // a token waiting to cease is no card (CR 111.7, 704.5d)
 			}
@@ -835,12 +860,20 @@ func (e *Engine) countPresent(spec string, source state.ObjID, you state.PlayerI
 // capture-aware spec resolves against a binding the generic constructor does
 // not carry (see presentClauseHolds).
 func (e *Engine) countPresentCtx(spec string, source state.ObjID, you state.PlayerID, sc effects.SpecContext) int {
-	return e.countPresentScoped(spec, source, you, sc, presentPlayerAny)
+	return e.countPresentScoped(spec, source, you, sc, presentPlayerAny, nil)
+}
+
+// presentSkips reports whether id is one of the look-back window's departed
+// objects a present count must leave out. The window lists are small (one
+// batch), so the linear scan reads nothing and allocates nothing.
+func presentSkips(skip []state.ObjID, id state.ObjID) bool {
+	return len(skip) != 0 && slices.Contains(skip, id)
 }
 
 // countPresentScoped is countPresentCtx restricted to permanents the present
-// clause's PresentPlayer$ counts.
-func (e *Engine) countPresentScoped(spec string, source state.ObjID, you state.PlayerID, sc effects.SpecContext, scope presentPlayerScope) int {
+// clause's PresentPlayer$ counts. A non-empty skip (the look-back window's
+// departed objects) is left out of the count; every other caller passes nil.
+func (e *Engine) countPresentScoped(spec string, source state.ObjID, you state.PlayerID, sc effects.SpecContext, scope presentPlayerScope, skip []state.ObjID) int {
 	n := 0
 	// Only battlefield permanents count, so read each living seat's battlefield
 	// slice directly rather than walking every zone of every seat through
@@ -849,6 +882,10 @@ func (e *Engine) countPresentScoped(spec string, source state.ObjID, you state.P
 	// matchesSpec only reads state.
 	for _, p := range e.G.AliveFrom(0) {
 		for _, id := range e.G.Zone(state.ZBattlefield, p) {
+			if presentSkips(skip, id) {
+				// A look-back window's departed object (presentClauseHolds).
+				continue
+			}
 			o := e.G.Obj(id)
 			if o == nil || o.Zone != state.ZBattlefield {
 				continue
