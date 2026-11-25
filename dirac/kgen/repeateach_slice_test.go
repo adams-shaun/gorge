@@ -48,6 +48,12 @@ var repeatEachSliceCards = map[string][]string{
 		"Grave Consequences", "Watchers of the Dead",
 		"Disciple of Caelus Nin", "Fortunate Few",
 		"Ultimate Magic: Meteor", "Thieves' Auction",
+		// Tariff prices the pick as an unless cost over the greatest-mv
+		// filter; Discovery // Dispersal's second half picks over the
+		// phased-out tokens too (CR 702.26b); Flotsam // Jetsam's second
+		// half remembers an up-to-one graveyard pick (B&1) and casts it
+		// free out of that graveyard.
+		"Tariff", "Discovery", "Flotsam",
 	},
 	// RepeatEach over players whose body is the per-player opponent choice
 	// feeding a battlefield TwoPiles (Bend or Break): the repeated player
