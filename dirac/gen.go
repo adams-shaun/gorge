@@ -3547,7 +3547,7 @@ var nonCreatureSubtype = map[string]bool{
 	"Room": true, "Rune": true, "Background": true, "Role": true, "Case": true, "Shard": true,
 	"Adventure": true, "Arcane": true, "Lesson": true, "Trap": true, "Omen": true,
 	"Ajani": true, "Liliana": true, "Vivien": true, "Chandra": true, "Kaito": true, "Kiora": true,
-	"Jace": true, "Garruk": true, "Elspeth": true, "Nissa": true, "Gideon": true, "Teferi": true,
+	"Jace": true, "Garruk": true, "Elspeth": true, "Nissa": true, "Gideon": true, "Teferi": true, "Ugin": true,
 }
 
 // capStall declares why when a failed search's fork latched one (0 = none): the
