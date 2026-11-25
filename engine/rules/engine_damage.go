@@ -193,7 +193,7 @@ func (e *Engine) BatchDepartures(ids []state.ObjID) {
 	// pre-batch board (see engine_scratch.go's windowDepartures). Members a
 	// replacement spares stay listed (an approximation: a spared member's
 	// fellows' triggers read the board without it).
-	e.windowDepartures = append(e.windowDepartures, ids...)
+	e.noteWindowDeparture(ids...)
 }
 
 // EndBatchDepartures closes a destruction/sacrifice batch even if one of its

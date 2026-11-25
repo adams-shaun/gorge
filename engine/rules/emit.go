@@ -316,7 +316,7 @@ func (e *Engine) emit(ev events.Event) events.Event {
 			// source's trigger on the post-event state (see
 			// engine_scratch.go's windowDepartures). A source inside the
 			// list keeps the pre-departure read, CR 603.10a.
-			e.windowDepartures = append(e.windowDepartures, ev.Obj)
+			e.noteWindowDeparture(ev.Obj)
 		}
 	}
 	// Open a singleton batch before the pre-fold snapshot, not after Apply.

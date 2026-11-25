@@ -643,14 +643,14 @@ func (e *Engine) presentClauseHolds(t cards.Trigger, source state.ObjID, you sta
 	// CR 603.4 intervening-if when the event occurs, after the object left,
 	// so its count skips the window's departed objects (Lifeline: the dying
 	// creature is not the "another creature" of its own death's condition).
-	// The skip rides only the look-back observer (checkTriggersNow builds
-	// windowDeparted); the live walk's board already moved them, and the
-	// STATIC applicability gates keep their pre-departure counts
-	// (presentGate's own reads pass nil): a Continuous static is judged on
-	// the board the event occurred on (Relic Vial's "as long as you control
-	// a Cleric" grant is live when that Cleric dies).
+	// The skip rides only the look-back observer (windowDeparted is nil on
+	// the live engine, whose board already moved them), and the STATIC
+	// applicability gates keep their pre-departure counts (presentGate's own
+	// reads pass nil): a Continuous static is judged on the board the event
+	// occurred on (Relic Vial's "as long as you control a Cleric" grant is
+	// live when that Cleric dies).
 	var skip []state.ObjID
-	if len(e.windowDepartures) != 0 && !slices.Contains(e.windowDepartures, source) {
+	if !slices.Contains(e.windowDeparted, source) {
 		skip = e.windowDeparted
 	}
 	if pd := strings.TrimSpace(t.Params[definedKey]); pd != "" {
@@ -823,14 +823,7 @@ func (e *Engine) presentZoneCountScoped(zone state.Zone, spec string, source sta
 		}
 		for _, id := range e.G.Zone(zone, p) {
 			if presentSkips(skip, id) {
-				// The object whose departure is the event a look-back walk is
-				// matching is not on the battlefield when the CR 603.4
-				// intervening-if is read (see engine_scratch.go's
-				// lookBackDeparture); it must not be counted. Only the
-				// trigger's present clause passes it -- a static's
-				// applicability gate is judged on the pre-departure board the
-				// event occurred on (Relic Vial's "as long as you control a
-				// Cleric" is live when that Cleric dies).
+				// A look-back window's departed object (presentClauseHolds).
 				continue
 			}
 			if o := e.G.Obj(id); o != nil && o.Ephemeral() {
@@ -890,14 +883,7 @@ func (e *Engine) countPresentScoped(spec string, source state.ObjID, you state.P
 	for _, p := range e.G.AliveFrom(0) {
 		for _, id := range e.G.Zone(state.ZBattlefield, p) {
 			if presentSkips(skip, id) {
-				// The object whose departure is the event a look-back walk is
-				// matching is not on the battlefield when the CR 603.4
-				// intervening-if is read (see engine_scratch.go's
-				// lookBackDeparture); it must not be counted. Only the
-				// trigger's present clause passes it -- a static's
-				// applicability gate is judged on the pre-departure board the
-				// event occurred on (Relic Vial's "as long as you control a
-				// Cleric" is live when that Cleric dies).
+				// A look-back window's departed object (presentClauseHolds).
 				continue
 			}
 			o := e.G.Obj(id)
