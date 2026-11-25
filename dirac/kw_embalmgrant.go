@@ -134,6 +134,9 @@ func (s *State) priorityEmbalmGrant(k *prep, d *Decision, p uint8, sorc bool, av
 			continue
 		}
 		mana := k.t.Cards[s.objs[o].card].Cost
+		if k.gen.anyAbReduce {
+			mana = s.abReducedGrave(k, a, o, p, mana) // the charge prices this embalm under a graveyard reduction static (cast.go abReducedCharge)
+		}
 		gd := payDesc{class: pdAct, card: s.objs[o].card, src: NoSlot}
 		if !av.affords(&mana, pipMaskOf(&mana), 0) &&
 			!(k.restrSrc && s.restrSrcAffords(k, p, gd, &mana, av, NoSlot, 0)) &&
