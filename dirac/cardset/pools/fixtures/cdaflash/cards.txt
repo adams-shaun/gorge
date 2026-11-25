@@ -1,0 +1,21 @@
+# the conditional CDA flash pool: the two carriers whose own
+# `Mode$ Continuous | CharacteristicDefining$ True | AddKeyword$ Flash`
+# static grants flash while its IsPresent$ gate holds (Colossal Rattlewurm
+# with a Desert, Crashing Tide with a Merfolk), their enablers, and the
+# vanilla green/blue cards the two 40-card decks play around them
+# (dirac/oracle/cdaflash_lockstep_test.go)
+Cancel
+Cloud Sprite
+Colossal Rattlewurm
+Crashing Tide
+Desert
+Divination
+Fog
+Forest
+Giant Growth
+Giant Spider
+Grizzly Bears
+Island
+Llanowar Elves
+Merfolk Looter
+Unsummon
