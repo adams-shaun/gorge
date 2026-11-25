@@ -90,7 +90,19 @@ func FormatCost(c Cost) string {
 			if part.Dyn != "" {
 				n = part.Dyn
 			}
-			add(kind + "<" + n + "/" + part.Spec + ">")
+			spec := part.Spec
+			// tapXType's set-level share-a-creature-type relation is out of
+			// Spec (CostPart.ShareCreatureType); spell it back the way Forge
+			// writes it, after the base or after a '.', so ParseCost's
+			// stripShareCreatureType round-trips the part.
+			if kind == "tapXType" && part.ShareCreatureType {
+				if strings.Contains(spec, ".") {
+					spec += "+" + shareCreatureTypeTerm
+				} else {
+					spec += "." + shareCreatureTypeTerm
+				}
+			}
+			add(kind + "<" + n + "/" + spec + ">")
 		}
 	}
 	appendCostParts("Sac", c.Sac)
