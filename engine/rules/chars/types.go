@@ -53,6 +53,24 @@ func TypesAndLandSubtypeSet(b Board, act []state.ContinuousEffect, id state.ObjI
 	return ty, all, landSet
 }
 
+// CreatureTypeTokens filters a derived type list to its CREATURE subtype
+// words (effects.CreatureTypeWords) and lower-cases them for a decision
+// set-property token set. A card, supertype or non-creature subtype word
+// (Artifact, Forest, Equipment) is not a creature type (CR 205.3g-205.3m) and
+// would make two unrelated permanents "share a type", so it is dropped. Two
+// callers ask the same question -- the target-set constraint in
+// engine/rules/setprops.go and the tap-pair cost in engine/rules/pay -- and
+// read this one definition.
+func CreatureTypeTokens(types []string) []string {
+	var out []string
+	for _, t := range types {
+		if effects.CreatureTypeWords(t) {
+			out = append(out, strings.ToLower(t))
+		}
+	}
+	return out
+}
+
 // typesBeforeEffect returns the layer-4 list as it stood immediately before
 // the first effect from target's static ability applied, plus that list's
 // all-creature-types marker and whether such an effect applied at all. CR

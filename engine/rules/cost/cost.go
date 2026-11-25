@@ -131,6 +131,16 @@ type CostPart struct {
 	// the offer gate, the X announcement and the election (Decision.MinSum/
 	// MaxSum over Option.Value) enforce it. The zero value is no constraint.
 	Group GroupTotal
+	// SameCreatureType marks Forge's literal
+	// tapXType<2/Creature.sharesCreatureTypeWith> cost (Weight of
+	// Conscience): the predicate is a relation BETWEEN the tapped creatures,
+	// not a per-candidate filter against the source. The bare
+	// ".sharesCreatureTypeWith" term is moved out of the spec at parse time
+	// so the ordinary matcher never reads it against the Aura source, and
+	// the offer gate, the tap election (Decision.SetPropShared) and the
+	// planner enforce it over the elected pair. Only the literal N == 2 form
+	// is modelled; every other count and the dynamic heads fail closed.
+	SameCreatureType bool
 }
 
 // GroupTotal is one parsed withTotal<Prop><Cmp><Rhs> group predicate (see

@@ -149,15 +149,10 @@ func cardTypeTokens(types []string) []string {
 // effects.CreatureTypeWords names. A land, artifact or enchantment subtype
 // (Forest, Cave, Equipment) is not a creature type (CR 205.3g-205.3m), so two
 // lands that are creatures share a creature type only through one both carry.
+// The filter is chars.CreatureTypeTokens so the tap-pair cost reads the same
+// words.
 func creatureTypeTokens(types []string) []string {
-	var out []string
-	for _, t := range types {
-		if !effects.CreatureTypeWords(t) {
-			continue
-		}
-		out = append(out, strings.ToLower(t))
-	}
-	return out
+	return chars.CreatureTypeTokens(types)
 }
 
 // setPropTargetBounds applies a target-SET property constraint to an ask's
