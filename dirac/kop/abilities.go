@@ -198,6 +198,13 @@ type Ability struct {
 	// prefix search or the manual window does (kernel mana_askcolour.go). A
 	// table byte: AbilityFlags has no free bit.
 	ManaAskColour bool
+	// ManaUnless: the colour-asking mana ability's Mana node carries
+	// UnlessCost$ 1 | UnlessPayer$ Player (Rhystic Cave): after the colour
+	// answer, every living player is asked in seat order whether to pay {1},
+	// and the mana is added only when no player pays (gorge's off-stack mana
+	// frame, engine/rules mana_activation.go askManaUnless). Kernel
+	// mana_askcolour.go askColUnless. A table byte, not State.
+	ManaUnless bool
 	// ManaHasteValid: a mana ability's rider granting haste until end of
 	// turn to a matching spell (Carnelian Orb of Dragonkind; CR 106.6):
 	// a spell matching this filter, paid with this ability's mana, gains

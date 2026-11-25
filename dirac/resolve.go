@@ -645,10 +645,11 @@ func (s *State) loopBack(k *prep) {
 			continue
 		}
 		if in := &s.prog(k)[r.loopS[d]-1]; in.Op == kop.OpRepeatEach { // act_repeatcards.go: the plain card loop's frame
-			if s.eachCardAdvance() {
+			if s.eachCardAdvance(in) {
 				r.pc = r.loopS[d]
 				return
 			}
+			s.eachCardClose(in)
 			r.eachObj, s.g.inLoop = NoObj, false
 			r.loopD--
 			continue
@@ -1021,7 +1022,7 @@ func (s *State) damageTo(k *prep, code TCode, n int) int {
 	}
 	e := &s.res.e
 	if k.gen != nil && (k.gen.anyRepl&(rbDblDmg|rbPrevNC|rbPrevDmgTo|rbProtAll|rbProtCol|rbPlusDmg|rbShield|rbPrevCol|rbPrevMill|rbSelfDmg) != 0 ||
-		k.gen.anyRepl2&(rb2DmgMinus|rb2DmgSet) != 0) {
+		k.gen.anyRepl2&rb2DmgAny != 0) {
 		if s.parkNC(k, s.srcCtrl(k), s.objRef(k, kop.RefSelf), e.card, code, n, s.srcKw(k)) {
 			if s.res.flags&rfNoPrev != 0 {
 				s.capFull(StallNoPrevent) // the parked event's later pass would not know its damage can't be prevented
@@ -1097,6 +1098,11 @@ func (s *State) refCode(k *prep, r kop.Ref) TCode {
 				return PlayerCode(p)
 			}
 			return TCode(NoTarget)
+		}
+		if s.eachRememberedLoop(k) {
+			// a remembered-set card loop's damage goes to the bound card's
+			// controller, not the card (act_repeatremembered.go)
+			return PlayerCode(s.eachCtrl(s.res.eachObj))
 		}
 	}
 	o := s.objRefObj(r)

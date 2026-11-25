@@ -40,7 +40,7 @@ func init() {
 	genNeed(func(t *kop.Table) bool { return tableHasReplKind(t, kop.ReplBeginPhase) })
 	genNeed(func(t *kop.Table) bool {
 		return tableHasReplKind(t, kop.ReplLifeReduced) || tableHasReplKind(t, kop.ReplDamageMinus) ||
-			tableHasReplKind(t, kop.ReplDamageSet)
+			tableHasReplKind(t, kop.ReplDamageSet) || tableHasReplKind(t, kop.ReplDamageInstead)
 	})
 }
 

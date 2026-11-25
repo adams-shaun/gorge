@@ -367,7 +367,7 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 		// ValidCard$ (Tf2Unblocked on the become-blocked subscription);
 		// ValidDefender$ stays unread, a zone other than the battlefield
 		// refuses
-		if tr.Zone != 0 && tr.Zone != zBattlefield {
+		if tr.Zone != 0 && tr.Zone != zBattlefield && !(tr.Zone == zCommand && lc.granted > 0) { // an Effect's emblem trigger sits in the command zone
 			return refuse("AttackerUnblocked TriggerZones %d", tr.Zone)
 		}
 		if tr.F, err = readF("ValidCard"); err != nil {

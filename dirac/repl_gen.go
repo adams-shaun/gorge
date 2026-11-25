@@ -121,6 +121,9 @@ func (s *State) replDamage(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, c
 	if g.anyRepl&rbPrevMill != 0 && sl == NoSlot && rcp != srcCtrl && s.preventMill(k, srcCtrl, rcp, combat, n) {
 		return 0 // The Mindskinner: prevented, the opponent mills that many (repl_preventmill.go)
 	}
+	if g.anyRepl2&rb2DmgInst != 0 && s.dmgInstead(k, srcCtrl, srcSl, srcCard, rcp, sl, combat, n) {
+		return 0 // Angel of Suffering, Soul-Scar Mage...: the damage is replaced by counters, mill, exile or draw (repl_dmginstead.go)
+	}
 	var stopped bool
 	if n, stopped = s.selfDmgStep(k, srcCtrl, srcSl, srcCard, sl, combat, n); stopped {
 		return 0 // Anti-Venom: prevented, that many +1/+1 counters; a Phantom: one removed; Istvan, Guardian Naga: prevented (repl_preventtoself.go)
@@ -304,7 +307,9 @@ func (s *State) replCombatGen(k *prep, r *dmgRec) {
 	// The host must be live: a card of the table that is not on the battlefield
 	// arms rbPrevCtrSelf but needs no ordering, and the walk covers only the
 	// events that existed before the loop (an appended event keeps its index).
-	byOrd := ordered || !s.g.ro.on && s.prevCtrSelfRecv(k, r) && s.replOrderOrder(r, &ord) == nord
+	// ReplDamageInstead bodies move cards of shared libraries (a draw, an exile, a
+	// mill), so their events run in that order too (repl_dminstead.go).
+	byOrd := ordered || !s.g.ro.on && (s.prevCtrSelfRecv(k, r) || k.gen.anyRepl2&rb2DmgInst != 0) && s.replOrderOrder(r, &ord) == nord
 	for j := 0; j < r.nev; j++ {
 		i := j
 		if byOrd && j < nord {

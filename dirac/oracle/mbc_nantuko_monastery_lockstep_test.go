@@ -8,5 +8,5 @@ import "testing"
 // did not).
 func TestMBCNantukoMonasteryThresholdReprosLockstep(t *testing.T) {
 	t.Parallel()
-	stdReproNamed(t, "nantuko_monastery_threshold_activation")
+	stdReproNamedServed(t, "nantuko_monastery_threshold_activation")
 }
