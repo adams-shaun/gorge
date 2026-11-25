@@ -1,0 +1,29 @@
+# the Strive spells (CR 702.52a, lowered as the self RaisePerTarget raise;
+# dirac/oracle/sets_strive_lowers_test.go TestSetsStriveLowers) beside the
+# creatures, Aura and artifact they target
+Ajani's Presence
+Blinding Flare
+Desperate Stand
+Harness by Force
+Launch the Fleet
+Phalanx Formation
+Rouse the Mob
+Twinflame
+Aerial Formation
+Colossal Heroics
+Consign to Dust
+Cruel Feeding
+Hour of Need
+Kiora's Dismissal
+Nature's Panoply
+Solidarity of Heroes
+Savannah Lions
+Raging Goblin
+Grizzly Bears
+Pacifism
+Ornithopter
+Mountain
+Plains
+Forest
+Island
+Swamp

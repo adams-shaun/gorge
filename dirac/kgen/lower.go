@@ -1590,6 +1590,8 @@ func (lc *lowerCtx) lowerKeywords() {
 			}
 		case head == "Escalate":
 			lc.lowerEscalate(node, param) // lower_escalate.go
+		case head == "Strive":
+			lc.lowerStrive(node, param) // lower_strive.go
 		case head == "Casualty":
 			// CR 702.153a: the optional creature sacrifice and the copy
 			// trigger are the kernel's casualty cast (kw_casualty.go). The
