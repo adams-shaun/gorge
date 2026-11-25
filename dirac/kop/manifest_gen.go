@@ -2486,18 +2486,23 @@ const StatRetraceGrant StaticKind = 73
 // StatCyclingGrant is a Continuous static's AffectedZone$ Hand AddKeyword$ Cycling or TypeCycling grant (Rhet-Tomb Mystic, Jo Grant, Tectonic Reformation, Homing Sliver; CR 702.29a, 702.29e): Filter matches the card in a hand and GrantBody-1 is the latent cycling body (the printed kwCycling / kwTypeCycling expansion, cards.GrantedKeywordAbility, AfCycling, ActZone hand) the hand offer runs with the affected card as its source, discarding it as the cost. The offer is the hand owner's, whoever controls the static (kw_cyclinggrant.go).
 const StatCyclingGrant StaticKind = 74
 
+// StaticKind (dirac/manifest/StaticKind/StatDefenderAssigns)
+//
+// StatDefenderAssigns is a Continuous static's `Affected$ You | AddKeyword$ You assign combat damage of each creature attacking you.` (Defensive Formation, kgen lower_playerstatic.go): its controller, not the attacking player, divides the combat damage of each creature attacking them among its blockers (CR 510.1c as the card rewrites it; gorge defenderAssignsAttackerDamage). Read live from the battlefield (dirac/static_plkeyword.go defenderAssigns, combat_band.go bandDivider); no State bytes.
+const StatDefenderAssigns StaticKind = 75
+
 // StaticKind (dirac/manifest/StaticKind/StatMiracleGrant)
 //
 // StatMiracleGrant is a Continuous static's AffectedZone$ Hand AddKeyword$ Miracle:<cost> grant (Lorehold, the Historian; Molecule Man; Aminatou, Veil Piercer; CR 702.94a): Filter matches the card in a hand and the granted miracle cost is GrantCost, or under CardCostLess the card's own mana cost reduced by CardCostLess-1 generic (Miracle:ManaCost:4). A card with printed miracle keeps its own (gorge derivedKeywordParamH reads the printed head first); the first grant in perm.ts order wins. Read live from the battlefield at the draw, the reveal-trigger resolution and the cast, never stamped on the card (kw_miracle.go miracleCostOf).
-const StatMiracleGrant StaticKind = 75
+const StatMiracleGrant StaticKind = 76
 
 // stat AssignNoCombatDamage (dirac/manifest/StaticKind/StatNoCombatDamage)
-const StatNoCombatDamage StaticKind = 76
+const StatNoCombatDamage StaticKind = 77
 
 // StaticKind (dirac/manifest/StaticKind/StatUnearthGrant)
 //
 // StatUnearthGrant is a Continuous static's AffectedZone$ Graveyard AddKeyword$ Unearth grant (Sedris, the Traitor King, Mishra, Tamer of Mak Fawa, Dregscape Sliver, Solemn Doomguide; CR 702.84a): Filter matches the card in the graveyard and GrantBody-1 is the latent unearth body (the printed kwUnearth expander's AB$ ChangeZone, cards.GrantedKeywordAbility) the graveyard offer runs with the affected card as its source. The body's own Cost prices the explicit-cost shape; a zero body cost is the CardManaCost mark, which the offer charges as the affected card's own mana cost (kw_unearthgrant.go).
-const StatUnearthGrant StaticKind = 77
+const StatUnearthGrant StaticKind = 78
 
 // trig ChaosEnsues (dirac/manifest/TrigEvent/TrigChaosEnsues)
 const TrigChaosEnsues TrigEvent = 52
@@ -2739,7 +2744,7 @@ const Tf5DmgNoContract TrigFlags5 = 1 << 7
 
 // TypeMask (dirac/manifest/TypeMask/TVanguard)
 //
-// TVanguard: the Vanguard card type (CR 205.2). A Vanguard is not a permanent: kgen builds it so a command-zone Vanguard face (Sisay's TapsForMana static) is identified, and the kernel seats it in the command zone without a cast.
+// TVanguard: the Vanguard card type (CR 205.2). A Vanguard is not a permanent: kgen still builds the bit on a lowered command-zone static carrier (Sisay's TapsForMana static, lower_tapextra.go), but the kernel reads no Vanguard type mask -- it classifies a command-zone static by its zone alone (static_classgates.go prepStaticClasses, a Vanguard's or a face-up plane's).
 const TVanguard TypeMask = 1 << 15
 
 // zone PlanarDeck (dirac/manifest/Zone/ZonePlanarDeck)

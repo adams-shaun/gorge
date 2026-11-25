@@ -213,8 +213,10 @@ func (s *State) applyChooseCard(k *prep, a Action) {
 	} else {
 		s.g.chosen[0] = Obj(a.Source())
 		s.g.nchosen = 1
-		if in.C == 2 {
-			s.remember(Obj(a.Source())) // RememberChosen$
+		if in.C == 2 || in.B.N&1 != 0 { // seat-ok: an instruction flag bit
+			// RememberChosen$: the op's own code (a mandatory pick) or B's
+			// flag (the up-to-one pick's, the counted picks' convention)
+			s.remember(Obj(a.Source()))
 		}
 		if in.B.N&2 != 0 {
 			s.forgetRemGen(Obj(a.Source())) // ForgetChosen$ (Thieves' Auction)
