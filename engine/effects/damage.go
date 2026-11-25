@@ -497,13 +497,19 @@ func emitPlayerDamage(r damageRider, target state.PlayerID) int32 {
 // no excess computation, so ok is false and NO value is bound (the
 // conservative direction: the sub reads its own default rather than an
 // invented number). Damage to a PLAYER never reaches here: excess is not
-// defined against a player.
-func excessLethal(h Host, o *state.Object) (int32, bool) {
+// defined against a player. deathtouch is whether the damage SOURCE has it
+// (CR 120.4a, 702.2c): any nonzero damage from it is lethal to a creature, so
+// a creature not yet dead has a lethal amount of 1, however much toughness it
+// has left. A planeswalker's loyalty is unaffected.
+func excessLethal(h Host, o *state.Object, deathtouch bool) (int32, bool) {
 	switch {
 	case h.IsCreature(o.ID):
 		lethal := h.Toughness(o.ID) - o.Damage
 		if lethal < 0 {
 			lethal = 0
+		}
+		if deathtouch && lethal > 1 {
+			lethal = 1
 		}
 		return lethal, true
 	case o.Face() != nil && o.Face().IsPlaneswalker():
@@ -600,7 +606,7 @@ func effFight(h Host, c *Ctx, sa *cards.SA) {
 			if o == nil {
 				continue
 			}
-			lethal, ok := excessLethal(h, o)
+			lethal, ok := excessLethal(h, o, h.HasKeyword(x.src, "Deathtouch"))
 			if !ok || !excessConditionHolds(h, c, excessCond, o) {
 				continue
 			}
