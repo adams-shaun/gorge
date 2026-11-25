@@ -1822,6 +1822,22 @@ func (e *Engine) triggerLabel(pt pendingTrigger) string {
 		}
 		return name + ": afflict " + pt.Afflict
 	}
+	// A layer-6 granted Exalted or Melee instance (melee.go) has no face
+	// trigger line, so name it by keyword as Ward and Cascade do: a bare
+	// source name (two Clue Tokens under Merchant of Truth) cannot be bound
+	// to one trigger by a client.
+	if pt.Exalted || pt.Melee {
+		name := "a creature"
+		if o := e.G.Obj(pt.Source); o != nil {
+			if f := o.Face(); f != nil && f.Name != "" {
+				name = f.Name
+			}
+		}
+		if pt.Exalted {
+			return name + ": exalted"
+		}
+		return name + ": melee"
+	}
 	if pt.Cascade {
 		name := "a spell"
 		if o := e.G.Obj(pt.Source); o != nil {
