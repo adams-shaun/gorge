@@ -187,4 +187,5 @@ func TestManaConvertLockstep(t *testing.T) {
 	if tl.creature != 0 {
 		t.Errorf("a green creature was offered %d times with no green mana", tl.creature)
 	}
+	t.Run("orrery", orreryLockstep) // manaconvert_orrery_test.go
 }

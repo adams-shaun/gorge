@@ -734,6 +734,9 @@ func (s *State) canActivate(k *prep, sl Slot, ab int, a *kop.Ability, sorc bool,
 			poolOK = true
 		}
 	}
+	if !poolOK && k.gen != nil && k.gen.uses.has(useAnyColorAll) && sourcesPay(&mana) {
+		poolOK = s.convActPoolPays(k, p.ctrl, &mana) // an any-colour conversion: the floating pool pays (mana_convertcreature.go)
+	}
 	if sourcesPay(&mana) && !poolOK && !s.actSourcesAfford(k, sl, ab, a, mana, av) {
 		return false
 	}
