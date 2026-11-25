@@ -1435,17 +1435,20 @@ func init() { enum[kop.StaticKind]("kop.StatWitherDamage", kop.StatWitherDamage)
 // dirac/manifest/StaticKind/StatExtraBlock
 func init() { enum[kop.StaticKind]("kop.StatExtraBlock", kop.StatExtraBlock) }
 
+// dirac/manifest/StaticKind/StatAnyColorAll
+func init() { enum[kop.StaticKind]("kop.StatAnyColorAll", kop.StatAnyColorAll) }
+
 // dirac/manifest/StaticKind/StatAnyColorSpells
 func init() { enum[kop.StaticKind]("kop.StatAnyColorSpells", kop.StatAnyColorSpells) }
-
-// dirac/manifest/StaticKind/StatNoCombatDamage
-func init() { enum[kop.StaticKind]("kop.StatNoCombatDamage", kop.StatNoCombatDamage) }
 
 // dirac/manifest/StaticKind/StatOffZoneGrant
 func init() { enum[kop.StaticKind]("kop.StatOffZoneGrant", kop.StatOffZoneGrant) }
 
 // dirac/manifest/StaticKind/StatRetraceGrant
 func init() { enum[kop.StaticKind]("kop.StatRetraceGrant", kop.StatRetraceGrant) }
+
+// dirac/manifest/StaticKind/StatNoCombatDamage
+func init() { enum[kop.StaticKind]("kop.StatNoCombatDamage", kop.StatNoCombatDamage) }
 
 // dirac/manifest/StaticKind/StatUnearthGrant
 func init() { enum[kop.StaticKind]("kop.StatUnearthGrant", kop.StatUnearthGrant) }

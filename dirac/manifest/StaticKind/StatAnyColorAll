@@ -1,0 +1,6 @@
+family: StaticKind
+name: StatAnyColorAll
+value: next
+forge: ManaConvert
+status: active
+doc: ManaConvert AnyType->AnyColor over every payment its controller makes, spells and activations (Chromatic Orrery).

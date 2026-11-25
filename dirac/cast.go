@@ -1874,7 +1874,7 @@ func (s *State) finishBuild(k *prep) {
 		if m := s.restrActNow(k, e.ctrl); m != 0 {
 			s.payRestrSpend(k, e.ctrl, m, &cost, int(e.x), NoObj, false) // an ability its restriction admits spends it first
 		} else {
-			s.pay(k, e.ctrl, &cost, int(e.x), NoObj)
+			s.payRider(k, e.ctrl, &cost, int(e.x), NoObj, anyColor && s.convAnyAll(k, e.ctrl)) // the any-colour conversion's pool route (convActRoute)
 		}
 		if k.gen != nil && k.gen.anyWaterbend && s.bld().bfl&bflPushed != 0 { // a failed waterbend payment reversed the activation
 			s.payWaterbend(k)

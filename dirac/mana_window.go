@@ -3937,6 +3937,8 @@ func (s *State) manaStep(k *prep) bool {
 				cost = s.restrAdmShortCost(k, e, cost)
 				s.tapForRider(k, e.ctrl, &cost, int(e.x), e.obj, anyColor)
 			}
+		} else if s.convAllPoolRoute(k, e.ctrl, anyColor) {
+			// the any-colour conversion's pool route: the pool pays, nothing to tap (mana_convertcreature.go)
 		} else {
 			// the unshortened cost: tapForSpellPlain's planner arms take what
 			// the admitted restricted mana leaves themselves (restrAdmShortCost,
@@ -3980,6 +3982,8 @@ func (s *State) manaStep(k *prep) bool {
 		}
 		s.bld().bfl |= bflManaStep
 		switch {
+		case s.convActRoute(k, e, cost):
+			// the floating pool pays under the any-colour conversion: nothing to tap (mana_convertcreature.go)
 		case planCut:
 			s.windowTapRider(k, e.ctrl, &cost, true, false)
 		case s.paymentStranded(k, e, &strandCost):
