@@ -114,8 +114,8 @@ func (s *State) ObjHash(o Obj) uint64 {
 	// every field but ver (unread by the encoder) and the in-hand history bit
 	h := hmix(0x6f626a6563740002, uint64(ob.card)|uint64(ob.owner())<<16|uint64(ob.zone)<<24|uint64(ob.slot)<<32|
 		uint64(ob.activations())<<48|uint64(ob.of&^ofInHand)<<56)
-	if s.g.on && (ob.zone == kop.ZoneExile || ob.zone == kop.ZoneBattlefield) && s.mObj(s.k(), mechStash, o) {
-		h = hmix(h, 0x7374617368) // Tinybones' stash counter (the view lists it: exiled cards and lands played from exile)
+	if s.g.on && ob.zone == kop.ZoneExile && s.mObj(s.k(), mechStash, o) {
+		h = hmix(h, 0x7374617368) // Tinybones' stash counter (the view lists it on exiled cards)
 	}
 	if ob.zone != kop.ZoneBattlefield || ob.slot == NoSlot {
 		return h

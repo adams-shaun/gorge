@@ -19,7 +19,8 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 //
 // Bits 0-3 hold the flips, 4-7 Exhaust and 8-11 damage dealt; bit 15 is the
 // unless-window walk (turnUnlessWin, mana_window.go), bit 14 its offer gate
-// (turnGateWin), 12-13 stay free.
+// (turnGateWin), bit 12 the turn-up's gap-prefix walk (turnGapPrefix,
+// face_turnupgap.go), 13 stays free.
 const turnFlipShift = 0
 
 func turnFlipMask(p uint8) turnFT {

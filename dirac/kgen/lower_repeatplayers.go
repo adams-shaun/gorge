@@ -95,10 +95,20 @@ func (lc *lowerCtx) repeatEachPlayers(ps *params) error {
 	defer func(o bool) { lc.repeatAllPl = o }(lc.repeatAllPl)
 	lc.repeatAllPl = who.Kind == rEachPlayer
 	for n := body; n != nil; n = n.Sub {
+		if n.API == "ChooseCard" {
+			// A per-player ChooseCard's Choices$ filter names the repeated
+			// player's cards (RememberedPlayerCtrl, greatest*ControlledBy-
+			// Remembered); chooseCard reads every parameter and builds the
+			// filter inside the loop, so the blanket remembered-read check
+			// below would refuse the shape it is meant to lower. The
+			// chooseCard lowering itself still refuses any parameter or
+			// filter word it does not read.
+			continue
+		}
 		var bad []string
 		for k, v := range n.Params {
 			v = strings.TrimSpace(v)
-			if (k == "Defined" || k == "TokenOwner" || k == "UnlessPayer" || k == "DefinedPlayer") && (v == "Remembered" || v == "Player.IsRemembered") || k == "SubAbility" {
+			if (k == "Defined" || k == "TokenOwner" || k == "UnlessPayer" || k == "DefinedPlayer" || k == "GainControl") && (v == "Remembered" || v == "Player.IsRemembered") || k == "SubAbility" {
 				continue
 			}
 			if k == "TokenAttacking" && (v == tokenAttackingRemembered || v == "Remembered" || v == "RememberedPlayer") && who.Kind == rEachOpp {
@@ -211,6 +221,22 @@ func (lc *lowerCtx) repeatChooseGreatest(who lRef, body *cards.SA) (bool, error)
 	lc.emit(lInstr{Op: "ChooseCard", Obj: lRef{Kind: rEach}, F: f, C: zBattlefield, CS: "Remember"})
 	lc.ab.Prog[at].Skip = len(lc.ab.Prog) - at - 1
 	return true, nil
+}
+
+// chooseCardFilter builds a ChooseCard's Choices$ filter through the ordinary
+// parser. Inside a RepeatEach player body whose chooser is the repeated player,
+// "not controlled by the remembered player" is the kernel's CtrlOpp read from
+// the chooser's perspective (Fortunate Few's !RememberedPlayerCtrl). A pick
+// whose chooser is not the repeated player keeps refusing the word: the two
+// are not the same set then. The greatest-power/-mana-value spellings stay
+// with Gix's Command's own lowering (repeatChooseGreatest); Highcliff Felidar
+// (Defined$ You) and Tariff (greatestCMC_...) refuse, see the lockstep-gaps
+// ticket.
+func (lc *lowerCtx) chooseCardFilter(choices string, chooserEach bool) (*lFilter, error) {
+	if lc.repeatPl > 0 && chooserEach {
+		choices = strings.ReplaceAll(choices, "!RememberedPlayerCtrl", "OppCtrl")
+	}
+	return lc.filter(choices)
 }
 
 // a RepeatEach player body reading the repeated

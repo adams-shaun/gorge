@@ -219,11 +219,15 @@ func (ic *instrCtx) opBecomeCopy() error {
 	in := &ic.in
 	cb := ic.cb
 	ki.Op = kop.OpBecomeCopy
-	if err := ic.objFilter(kop.ZoneBattlefield); err != nil {
+	zone := kop.ZoneBattlefield
+	if in.B.isConst() && in.B.N&kop.BecomeCopyGrave != 0 {
+		zone = kop.ZoneGraveyard // ChoiceZone$ Graveyard: the pool is graveyard cards
+	}
+	if err := ic.objFilter(zone); err != nil {
 		return err
 	}
 	if in.B.Kind != vNone {
-		if !in.B.isConst() || in.B.N&^(kop.BecomeCopyCtr|kop.BecomeCopyEmbalm) != 0 || in.B.N == 0 {
+		if !in.B.isConst() || in.B.N&^(kop.BecomeCopyCtr|kop.BecomeCopyEmbalm|kop.BecomeCopyGrave) != 0 || in.B.N == 0 {
 			return fmt.Errorf("BecomeCopy B %v", in.B)
 		}
 		ki.B = kop.Const(in.B.N)
