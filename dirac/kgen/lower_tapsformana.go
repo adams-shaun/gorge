@@ -18,7 +18,7 @@ import (
 // The closed world is the shape the kernel prices:
 //   - ValidCard$ over any controller's permanents by type alone (a Land), not
 //     the source itself (a self line classes its own printed mana ability,
-//     prepSelfTapsPain);
+//     prepSelfTapsPain), except the deferred self watcher below;
 //   - no Activator$ (any player's tap, Manabarbs), Activator$
 //     Player.NonActive, the tapping player is not the active player
 //     (effects.MatchesPlayerSpec over trigmatch.TapActor), or Activator$
@@ -30,7 +30,13 @@ import (
 //     kernel's census leaves it out (mana_tapsdefer.go tapsWatchClass) --
 //     except the vetted destroy-self row (Price of Glory, tapsDestroySelf):
 //     the tapped land stays an ordinary planner unit there, the trigger
-//     resolving after the payment that caused it (CR 405.6c/603.2, 605.4a).
+//     resolving after the payment that caused it (CR 405.6c/603.2, 605.4a);
+//   - or ValidCard$ Card.Self with Activator$ You (Forbidden Orchard: the
+//     source's own tap "for mana, target opponent creates ..."), same Defer
+//     class; the bare self clause becomes kop.TfSelf and only a deferred
+//     non-damage body is admitted (the self damage row is the Zhur-Taa Druid
+//     ticket's, and a vetted payer-damage self body is the source's own priced
+//     consequence, not a gap this line mirrors).
 //
 // Anything else keeps the generic refusal.
 func (lc *lowerCtx) tapsForManaWatch(tp *params, tr *lTrigger, t cards.Trigger, readF func(string) (*lFilter, error)) error {
@@ -44,8 +50,9 @@ func (lc *lowerCtx) tapsForManaWatch(tp *params, tr *lTrigger, t cards.Trigger, 
 	// gate gorge's real matcher reads the Activator$ with
 	// (paymentPlanTapObservers)
 	nonActive := false
+	activator := strings.TrimSpace(tp.str("Activator"))
 	var whose uint8
-	switch v := strings.TrimSpace(tp.str("Activator")); v {
+	switch activator {
 	case "":
 	case "Player.NonActive":
 		nonActive = true
@@ -65,6 +72,36 @@ func (lc *lowerCtx) tapsForManaWatch(tp *params, tr *lTrigger, t cards.Trigger, 
 		return refuse("TapsForMana ValidPlayer$ beside Activator$ You/Opponent")
 	}
 	vc := strings.TrimSpace(tp.str("ValidCard"))
+	if vc == "Card.Self" {
+		// The source's own watcher (Forbidden Orchard): only the payer's tap
+		// (Activator$ You) of the source itself fires it, and only a body the
+		// planner defers is a gap the kernel models. A vetted payer-damage
+		// body here would be the source's own priced consequence (City of
+		// Brass's self Taps row), a tier this line does not mirror.
+		if activator != "You" {
+			return refuse("%s", generic)
+		}
+		if t.Effect == nil || t.Effect.API == "DealDamage" {
+			// Zhur-Taa Druid's self damage row is its own ticket; this self
+			// shape reads only the deferred non-damage bodies (the token).
+			return refuse("TapsForMana self damage body")
+		}
+		if class, _ := tapsPlanClass(t.Effect); class != kop.TapPlanDefer {
+			return refuse("TapsForMana self body that is vetted payer damage")
+		}
+		var err error
+		if tr.F, err = readF("ValidCard"); err != nil {
+			return err
+		}
+		if tr.F == nil || tr.F.Players != 0 || len(tr.F.Clauses) != 1 ||
+			tr.F.Clauses[0] != (lClause{Flags: fSelf}) {
+			return refuse("TapsForMana ValidCard %q", vc)
+		}
+		tr.Event, tr.TapsForMana, tr.TapperNonActive = "Taps", true, false
+		tr.Whose = whose
+		tr.TapPlan = uint8(kop.TapPlanDefer)
+		return nil
+	}
 	if vc == "" || strings.Contains(vc, "Self") {
 		return refuse("%s", generic)
 	}
