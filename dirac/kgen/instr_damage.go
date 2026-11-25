@@ -248,6 +248,15 @@ func (ic *instrCtx) opBite() error {
 	cb := ic.cb
 	fl := ic.fl
 	ki.Op = kop.OpBite
+	if _, ok := fl["ExcessCtrl"]; ok && in.Op == "Bite" {
+		// ExcessDamage$ (lower_excessredirect.go): F the source's condition
+		ki.A = kop.Const(kop.BiteExcessCtrl)
+		if in.F != nil {
+			if err := ic.objFilter(kop.ZoneBattlefield); err != nil {
+				return err
+			}
+		}
+	}
 	if in.Op == "Fight" {
 		ki.Op = kop.OpFight
 		if _, ok := fl["TrackExcess"]; ok {

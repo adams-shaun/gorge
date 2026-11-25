@@ -1190,6 +1190,10 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 		if err := lc.scrySurveilTrigger(tp, tr, t.Mode); err != nil {
 			return err
 		}
+	case "FlippedCoin":
+		if err := lc.flippedCoinTrigger(tp, tr); err != nil { // lower_trigactions.go
+			return err
+		}
 	case "Explores":
 		if err := lc.exploresTrigger(tp, tr); err != nil {
 			return err

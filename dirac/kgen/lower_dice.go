@@ -216,6 +216,9 @@ func (lc *lowerCtx) flipCoin(ps *params) error {
 	}
 	rep := len(lc.ab.Prog)
 	coin := int(kop.RollDieCoin)
+	if noCall {
+		coin |= int(kop.RollDieCoinNoCall) // no FlippedCoin trigger unless forced (CR 705.2)
+	}
 	if batch {
 		lc.emit(lInstr{Op: "Repeat", A: amount, Note: "flip Amount$ coins: one batch"})
 		coin |= int(kop.RollDieCoinBatch)

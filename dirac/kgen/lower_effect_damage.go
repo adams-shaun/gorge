@@ -149,6 +149,9 @@ func (lc *lowerCtx) dealDamage(ps *params) error {
 	if err := lc.damageDecider(ps, &in); err != nil { // lower_optional.go
 		return err
 	}
+	if err := lc.excessDamage(ps, &in, dmgSrc); err != nil { // lower_excessredirect.go
+		return err
+	}
 	lc.emit(in)
 	return nil
 }

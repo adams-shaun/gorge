@@ -274,7 +274,11 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 		if in.Op == kop.OpFight && a == b {
 			hb.add(s, a, a, 2*pa) // a creature fighting itself (CR 701.14c)
 		} else {
-			hb.add(s, a, b, pa)
+			if in.Op == kop.OpBite {
+				s.biteHits(k, in, &hb, a, b, pa) // act_biteexcess.go
+			} else {
+				hb.add(s, a, b, pa)
+			}
 			if in.Op == kop.OpFight {
 				hb.add(s, b, a, s.power(k, b))
 			}

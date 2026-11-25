@@ -4,4 +4,5 @@ value: 65
 forge: FlippedCoin
 census: trig FlippedCoin all=7 std=0 mbc=0 sole=3
 state: code 0
-status: reserved
+status: active
+ticket: sets-params4

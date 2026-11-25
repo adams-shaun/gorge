@@ -124,6 +124,27 @@ func FlipCoinNote(source state.ObjID, flipper state.PlayerID, win bool) events.E
 		Amount: 0, Text: FlipNotePrefix + "tails"}
 }
 
+// flipNoCallSuffix marks the result Note of a NoCall$ True flip nobody called
+// (CR 705.2: only a called flip is won or lost). It still counts as a flip
+// (the prefix is kept, events.Apply's CoinFlipsThisTurn fold), but it fires
+// no FlippedCoin trigger: Forge's FlipCoinEffect.flipCoin runs
+// TriggerType.FlippedCoin only for a called flip or a FlipCoinMod-fixed one.
+const flipNoCallSuffix = " (no call)"
+
+// FlipCoinNoCallNote is FlipCoinNote for an uncalled NoCall$ True flip whose
+// result no FlipCoinMod static fixed: heads/tails, never a win or a loss.
+func FlipCoinNoCallNote(source state.ObjID, flipper state.PlayerID, heads bool) events.Event {
+	ev := FlipCoinNote(source, flipper, heads)
+	ev.Text += flipNoCallSuffix
+	return ev
+}
+
+// FlipNoteCalled reports whether the coin-flip result Note ev was a called
+// flip (won or lost), not an uncalled NoCall$ one (FlipCoinNoCallNote).
+func FlipNoteCalled(ev events.Event) bool {
+	return !strings.HasSuffix(ev.Text, flipNoCallSuffix)
+}
+
 // FlipNoteResult reports whether ev is a canonical coin-flip result Note and
 // which side it landed: the flipper (ev.Player), the win flag (ev.Amount == 1).
 // Shared by the FlippedCoin trigger matcher; a non-flip Note (any other text)
@@ -374,10 +395,15 @@ func effFlipCoin(h Host, c *Ctx, sa *cards.SA) {
 		forced := FlipCoinForced(h, p)
 		for i := int32(0); untilLose || i < amount; i++ {
 			win := forced && (i == 0 || !untilLose)
+			fixed := win
 			if !win {
 				win = coinResult(h, p, c.Source)
 			}
-			h.Emit(FlipCoinNote(c.Source, p, win))
+			if noCall && !fixed {
+				h.Emit(FlipCoinNoCallNote(c.Source, p, win))
+			} else {
+				h.Emit(FlipCoinNote(c.Source, p, win))
+			}
 			flipRecord(h, c, p, win, rememberResult, rememberKind)
 			if win {
 				c.X++

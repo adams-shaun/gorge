@@ -1,6 +1,9 @@
 package kgen
 
 import (
+	"strings"
+
+	"github.com/adams-shaun/gorge/dirac/kop"
 	"github.com/adams-shaun/gorge/engine/cards"
 )
 
@@ -79,6 +82,34 @@ func (lc *lowerCtx) tokenCreatedOnce(tp *params, tr *lTrigger, t cards.Trigger) 
 		return refuse("TokenCreatedOnce body reads the batch")
 	}
 	tr.Event, tr.Batch = "TokenCreated", true
+	return nil
+}
+
+// flippedCoinTrigger lowers Mode$ FlippedCoin ("whenever you win a coin
+// flip"; gorge trigmatch flippedCoinMatches on the per-coin result Note):
+// ValidPlayer$ against the flipper, ValidResult$ Win / Lose as Trigger.N
+// (kop.TrigNFlipWin / TrigNFlipLose; absent fires on either side). Forge
+// reads any ValidResult$ but Win as Lose and gorge any other spelling as
+// either side, so another value refuses; so does a line outside the
+// battlefield (the kernel scans the battlefield only).
+func (lc *lowerCtx) flippedCoinTrigger(tp *params, tr *lTrigger) error {
+	if tr.Zone != zNone && tr.Zone != zBattlefield {
+		return refuse("FlippedCoin trigger outside the battlefield")
+	}
+	w, ok := whoOfPlayer(tp.str("ValidPlayer"))
+	if !ok {
+		return refuse("FlippedCoin ValidPlayer %q", tp.str("ValidPlayer"))
+	}
+	switch v := strings.TrimSpace(tp.str("ValidResult")); v {
+	case "":
+	case "Win":
+		tr.N = kop.TrigNFlipWin
+	case "Lose":
+		tr.N = kop.TrigNFlipLose
+	default:
+		return refuse("FlippedCoin ValidResult %q", v)
+	}
+	tr.Event, tr.Whose = "FlippedCoin", w
 	return nil
 }
 

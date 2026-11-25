@@ -396,3 +396,26 @@ const (
 	RollDieCoinBatch int16 = 2
 	RollDieCoinMark  int16 = 4
 )
+
+// RollDieCoinNoCall marks a NoCall$ True flip (gorge effFlipCoin's
+// FlipCoinNoCallNote): nobody calls it, so unless a FlipCoinMod static fixed
+// it, it is neither won nor lost and fires no TrigFlippedCoin (CR 705.2;
+// Forge FlipCoinEffect.flipCoin).
+const RollDieCoinNoCall int16 = 8
+
+// BiteExcessCtrl is OpBite's A.N bit for DealDamage ExcessDamage$
+// TargetedController / ThisTargetedController (CR 120.4a, 120.10; gorge
+// effects emitObjectDamageExcess): when the source's power exceeds what is
+// lethal to the bitten creature (1 from a deathtouch source), the creature
+// is dealt exactly the lethal amount and its controller the rest, in the
+// one damage batch. A nonzero F is ExcessDamageCondition$, matched against
+// the source (Ram Through's Card.withTrample); a failed match is the plain
+// bite.
+const BiteExcessCtrl = 2
+
+// TrigNFlipWin / TrigNFlipLose are a TrigFlippedCoin line's Trigger.N
+// (ValidResult$ Win / Lose; 0 fires on either side).
+const (
+	TrigNFlipWin  int16 = 1
+	TrigNFlipLose int16 = 2
+)

@@ -1,0 +1,12 @@
+# DealDamage ExcessDamage$ ThisTargetedController with ExcessDamageCondition$
+# Card.withTrample (Ram Through; kop.BiteExcessCtrl, kernel
+# act_biteexcess.go, gorge emitObjectDamageExcess), beside tramplers and
+# non-tramplers, for the oracle's constructed lockstep
+# (dirac/oracle/setsparams4_lowers_test.go)
+Ram Through
+Colossal Dreadmaw
+Charging Monstrosaur
+Grizzly Bears
+Hill Giant
+Forest
+Mountain

@@ -24,10 +24,14 @@ func (s *State) rollDie(k *prep, in *kop.Instr) {
 		p := s.res.e.ctrl
 		mark := in.C&kop.RollDieCoinBatch == 0
 		if in.C&kop.RollDieCoinMark == 0 {
-			if s.flipForced(k, p) {
+			forced := s.flipForced(k, p)
+			if forced {
 				s.g.roll = 1
 			} else {
 				s.g.roll = uint8(max(0, min(s.rng.IntN(sides)+1+s.value(k, in.B), 255)))
+			}
+			if forced || in.C&kop.RollDieCoinNoCall == 0 {
+				s.fireFlippedCoin(k, p, s.g.roll == 1) // trig_flippedcoin.go
 			}
 		}
 		if mark && k.gen != nil && k.gen.anyTurnF {

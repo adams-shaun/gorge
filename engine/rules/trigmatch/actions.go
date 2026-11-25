@@ -125,7 +125,10 @@ func voteMatches(e Board, t cards.Trigger, source state.ObjID, ev events.Event) 
 
 func flippedCoinMatches(e Board, t cards.Trigger, source state.ObjID, ev events.Event) bool {
 	flipper, win, ok := effects.FlipNoteResult(ev)
-	if !ok {
+	if !ok || !effects.FlipNoteCalled(ev) {
+		// an uncalled NoCall$ flip is neither won nor lost (CR 705.2; Forge
+		// FlipCoinEffect.flipCoin fires FlippedCoin only for a called or
+		// FlipCoinMod-fixed flip)
 		return false
 	}
 	// ValidResult$ gates the side: Win = heads (Amount 1), Lose = tails
