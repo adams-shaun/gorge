@@ -146,8 +146,14 @@ func grantWalkKey(s *State, sl Slot) uint32 {
 // relative order listenerOrder's list does. Equal keys keep slot order, as
 // the walk's stable sort does.
 func (s *State) grantOrder(k *prep, ord *[MaxPerm]Slot) int {
+	return s.grantOrderIn(k, s.statM, ord)
+}
+
+// grantOrderIn is grantOrder restricted to the statM slots in from: the
+// same relative order, as the insertion is stable.
+func (s *State) grantOrderIn(k *prep, from slotMask, ord *[MaxPerm]Slot) int {
 	n := 0
-	for m := s.statM; m.any(); m = m.rest() {
+	for m := from; m.any(); m = m.rest() {
 		sl := m.first()
 		if !k.cards[s.cardAt(sl)].grantStat {
 			continue
@@ -172,6 +178,13 @@ func (s *State) grantOrder(k *prep, ord *[MaxPerm]Slot) int {
 //
 //go:noinline
 func (s *State) contGrants(k *prep, sl Slot, lost bool, lts uint16, f func(c CardID, ab uint8, n int)) {
+	s.contGrantsIn(k, s.statM, sl, lost, lts, f)
+}
+
+// contGrantsIn is contGrants over the statM sources in from (a superset of
+// the gfContGrant ones: grantSrcScan's); the walk skips every other source,
+// so the order it reads is grantOrder's restricted to from.
+func (s *State) contGrantsIn(k *prep, from slotMask, sl Slot, lost bool, lts uint16, f func(c CardID, ab uint8, n int)) {
 	// gorge lists the grants in its static walk's order (collectActionStatics:
 	// each seat's battlefield in entry order), which the activation ask
 	// and the prefix search follow (the first grant's colours are tried
@@ -181,7 +194,7 @@ func (s *State) contGrants(k *prep, sl Slot, lost bool, lts uint16, f func(c Car
 	// gfContGrant check keeps the ones f can be called for, in the same
 	// relative order.
 	var order [MaxPerm]Slot
-	n := s.grantOrder(k, &order)
+	n := s.grantOrderIn(k, from, &order)
 	for oi := 0; oi < n; oi++ {
 		src := order[oi]
 		cid := s.cardAt(src)
