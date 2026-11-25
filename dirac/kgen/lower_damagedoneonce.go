@@ -78,23 +78,28 @@ func (lc *lowerCtx) damageDoneOnce(tp *params, tr *lTrigger, t cards.Trigger) er
 	}
 	tr.Event = "DamageDone"
 	if lc.ddoEvent {
-		// an end-of-turn Effect's line: gorge's delayed-trigger path queues
-		// one trigger per Damage event and never latches the batch
-		// (trigger_delayed.go EffectRepeat arm), so this is the plain
-		// per-event line the emblem hook fires (fireEmblemsDmg). Its body
-		// reads still gate: the plain line's trigger object is the damage
+		// an end-of-turn Effect's line: gorge's delayed-trigger path latches
+		// the damage batch per damaged referent (trigger_delayed.go
+		// EffectRepeat arm), so this is the per-referent line the emblem hook
+		// fires (fireEmblemsDmg): Mode$ DamageDoneOnce without the object
+		// Filter2/Tf2ToYou pair, marked Tf2PerReferent for the refLatch. Its
+		// body reads still gate: the line's trigger object is the damage
 		// source and its trigger player the damaged seat, so a read the
 		// per-referent queue would carry (ddoReadOK) is not available here,
 		// and an unconditional plain read (TriggeredCardController lowers to
 		// the trigger player) would name the damaged seat where gorge reads
-		// the source's controller. ddoEmblemReads admits exactly what the
-		// plain lowering lowers exactly for this line.
+		// the source's controller. ddoEmblemReads admits exactly what this
+		// line's plain lowering lowers exactly.
 		if tr.DmgGate != 0 {
 			return refuse("Effect DamageDoneOnce trigger with DamageAmount")
 		}
 		if r := lc.ddoEmblemReads(t.Effect); r != "" {
 			return refuse("Effect DamageDoneOnce body reads %s", r)
 		}
+		// Batch marks the once-per-batch lowering and sets gen.anyBatch (the
+		// combat damage step opens its batch); PerRef marks the per-referent
+		// latch fireEmblemsDmg applies through the refLatch.
+		tr.Batch, tr.PerRef = true, true
 		return nil
 	}
 	tr.Batch, tr.PerRef = true, true
@@ -236,7 +241,7 @@ func (lc *lowerCtx) ddoReads(sa *cards.SA) string {
 }
 
 // ddoEmblemReads names the first trigger-context read of an end-of-turn
-// Effect's DamageDoneOnce body that the per-event emblem line
+// Effect's DamageDoneOnce body that the per-referent emblem line
 // (fireEmblemsDmg) does not carry exactly. The line is a plain DamageDone
 // trigger: its trigger object is the damage source and its trigger player
 // the damaged seat, and its ValidTarget$ is players only
