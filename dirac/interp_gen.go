@@ -708,6 +708,9 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		mk := uint8(in.B.N)&kop.MayPlayKinds | uint8(in.B.N>>8)&kop.MayPlayAdvKind
 		*s.mayAt(int(s.g.nmay)) = mayPlay{obj: o, ver: mayVerAt(s, o, kop.Zone(in.C&kop.MayPlayZoneMask), in.C&kop.MayPlayFollows != 0), ctrl: e.ctrl, until: grantUntil(uint8(in.A.N), mk, &headed) | payLifeMark(in.B.N), kind: mk | payLifeKind(in.B.N), turn: mayWord(s.turn)}
 		s.g.nmay++
+		if uint8(in.A.N) == kop.DurUntilYourNextTurn {
+			s.mayNTArm(e.ctrl) // cast_mayplaynt.go: the record's expiry counter
+		}
 		if k.gen.anyMayWhileSrc {
 			s.mayWhileSrcStamp(s.g.nmay-1, e.obj) // cast_whilesource.go
 		}
