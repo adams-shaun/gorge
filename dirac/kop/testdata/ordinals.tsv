@@ -1428,8 +1428,10 @@ StFunctionsInGraveyard	StaticFlags	16
 StHandDelta	StaticFlags	128
 StHandOpp	StaticFlags	256
 StHasteOppDef	StaticFlags	1
+StMayPayEnergy	StaticFlags	256
 StMayPayLife	StaticFlags	8192
 StMayRaise	StaticFlags	32768
+StMayZeroAlt	StaticFlags	64
 StNoPrevCombat	StaticFlags	2
 StNoPrevSpellSelf	StaticFlags	4
 StOncePerTurn	StaticFlags	2
