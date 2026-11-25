@@ -2145,6 +2145,20 @@ func (e *Engine) checkFaceTriggers(observer *Engine, ev *events.Event, lki *stat
 		})
 	} else {
 		observer.forEachTriggerObject(ev, skip, skip, func(id state.ObjID) { visited++; visit(id) }, verify)
+		// A face-up plane's printed triggers (CR 901): the plane lives in the
+		// private ZPlanarDeck zone, which the per-zone walk above never
+		// visits, so the walk visits each living seat's face-up current plane
+		// itself -- the checkChaosEnsuesTriggers precedent, scoped to the
+		// mana-activation context emitManaTap establishes around the Tap
+		// event (a combat or other plain tap is no mana production).
+		if observer == e && ev.Kind == events.Tap && e.tappingForMana != 0 {
+			for _, p := range e.G.AliveFrom(0) {
+				if o := e.currentPlane(p); o != nil {
+					visited++
+					visit(o.ID)
+				}
+			}
+		}
 	}
 	if noop && visited != 0 {
 		panic(fmt.Sprintf("rules: zero-interest trigger walk no-op memo at log %d skipped a walk that visits %d object(s)", len(e.L.Events), visited))
