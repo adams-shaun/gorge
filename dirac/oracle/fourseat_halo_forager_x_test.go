@@ -10,8 +10,9 @@ import (
 // -seats 4, pod 68). Halo Forager's ETB "you may pay {X}" announces X while
 // its controller's seven untapped mana sources include Exotic Orchard and
 // Arcane Signet: an open-colour source still produces one unit per tap, so
-// gorge bounds X at 7. The kernel's potential walk read the fixed any-colour
-// production as whole-pool open and kept the defensive cap, 0..64.
+// gorge bounds X at 7. The kernel's potential walk read the reflected or
+// ColorIdentity any-colour production as whole-pool open and kept the
+// defensive cap, 0..64.
 const haloForagerOpenSourceXRepro = "halo_forager_open_source_x_bound_four_seat_pod"
 
 // haloForagerOpenSourceXFirstAt is the decision the recording diverged at

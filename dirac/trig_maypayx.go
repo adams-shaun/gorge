@@ -37,15 +37,15 @@ const trigXCap = 64
 // past what the sources can fund (CR 106.6; a cycled Decree of Justice's
 // "you may pay {X}" beside a Sea Gate).
 //
-// The walk is the X-bound count's bounded mode (boundedAny): a fixed
-// any-colour production (Exotic Orchard, Arcane Signet's ColorIdentity) is
-// one unit of any colour, not the whole-pool open the plain walk prices it,
-// because it still makes exactly one mana per tap. Only a genuinely
-// unbounded production (a dynamic amount, an each-colour gap) reports open,
-// and the two open gates below keep its defensive cap. A fixed any-colour
-// source left the walk open, skipped the census, and offered X past what its
-// one tap funds (four-seat edh pod 68's Halo Forager beside Exotic Orchard:
-// 0..64 for gorge's 0..7).
+// The walk is marked reflBound: gorge's potential walk prices a reflected
+// or ColorIdentity any-colour source exactly -- its colours from the board
+// or the commander's identity, one mana per tap (addPotentialReflected,
+// addPotentialIdentityColours) -- so the count must price it as a unit, not
+// whole-pool open. Left open, it saturated the walk at trigXCap, skipped the
+// census, and offered X past what its one tap funds (four-seat edh pod 68's
+// Halo Forager beside Exotic Orchard and Arcane Signet: 0..64 for gorge's
+// 0..7). A plain Produced$ Any or a sacrifice-only source keeps gorge's
+// producedOpen fold and the defensive cap.
 //
 //go:noinline
 func (s *State) execTrigX(k *prep, p uint8, skip uint16, cap int) bool {
@@ -54,8 +54,8 @@ func (s *State) execTrigX(k *prep, p uint8, skip uint16, cap int) bool {
 	// source makes its chosen colour (a gate land's "{U} or the chosen colour"),
 	// not an open source (CR 106.1a, 601.2b). A trigger's own cost is no spell's,
 	// an ability's or a cast's, and has no source slot.
-	other := payDesc{class: pdOther, src: NoSlot}
-	open := s.availPotentialFor(k, p, &av, &other, true)
+	other := payDesc{class: pdOther, src: NoSlot, reflBound: true}
+	open := s.availPotentialFor(k, p, &av, &other, false)
 	cap = min(cap, trigXCap)
 	mx := 0
 	for x := 1; x <= cap; x++ {
@@ -110,6 +110,15 @@ func (s *State) execTrigX(k *prep, p uint8, skip uint16, cap int) bool {
 	s.g.pickP = p
 	s.res.ask, s.res.askP = raTrigX, p
 	return false
+}
+
+// trigXReflBound reports whether d, the trigger X announcement's descriptor,
+// prices pc's reflected or ColorIdentity any-colour source as one unit:
+// gorge's potential walk prices those exactly (addPotentialReflected,
+// addPotentialIdentityColours), so the count must not price them whole-pool
+// open. A dynamic amount or a plain Produced$ Any source keeps the open fold.
+func trigXReflBound(d *payDesc, pc *pcard, payment bool) bool {
+	return payment && d != nil && d.reflBound && !pc.manaDyn && (pc.manaRefl || pc.manaIdent)
 }
 
 // trigXFiltExcess is the mana the census's gap units add for p's filters past
