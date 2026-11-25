@@ -1,0 +1,6 @@
+package kgen
+
+func init() {
+	opsEntries = append(opsEntries, opsDoc{"card:Blitz", "CardDef.HasBlitz + BlitzCost",
+		"K:Blitz:<mana cost> (CR 702.152a; kop.KwBlitz; no free KwMask bit, so its own field): the hand offers the blitzed cast at BlitzCost (gorge's \"blitzed\" cast option, FlagBlitzed, which its planner does not price: only a floating pool that pays offers it, as the cleaved cast's); the permanent that cast produces gains haste until end of turn, a \"when this creature dies, draw a card\" trigger and a sacrifice at the beginning of the next end step. The draw is a leave-keyed record (delayed.when dlyBlitzDies) consumed by the permanent's departure from the battlefield: put into a graveyard it queues the draw for the cast's controller, any other zone drops it (gorge's granted trigger ends with the permanent). The sacrifice is the untracked next-end-step record (gorge __kwBlitzSacrifice: put on the stack even over a permanent that left, doing nothing). Provenance is the entry's impending mode bit, read only on a card with printed blitz. Refused beside another cast cost route, on an {X} spell, on a multi-face card, with a non-mana, {X} or CardManaCost cost, as a granted Blitz and as the graveyard cast of Spell.Blitz. Caldaia Guardian, Workshop Warchief. dirac/kw_blitz.go."})
+}
