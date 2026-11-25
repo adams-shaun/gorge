@@ -1,0 +1,6 @@
+family: CondKind
+name: CondEnduringStory
+value: next
+status: active
+ticket: agent-20261125T102937Z-f7eacfda
+doc: the controller holds the enduring story (Condition$ EnduringStory, CR 702.195; gorge condEnduringStory, state.Player.EnduringStory). The kernel holds the one-way latch in genState.story (kw_storied.go) and the condition reads it with the evaluating controller, the same context gorge's continuousConditionHolds reads sv.Controller in.
