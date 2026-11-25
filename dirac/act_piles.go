@@ -106,10 +106,9 @@ func (s *State) applyAskPiles(k *prep, a Action) bool {
 		// chosen/unchosen piles swap, the lockstep mutation)
 		pickB := (a.Mode() == 1) != (each && in.B.N&1 != 0)
 		pileA := s.g.sacM
+		rest := s.pilesPool(k, in, s.g.pickP).andNot(pileA)
 		hit := pileA
-		var rest slotMask
 		if pickB {
-			rest = s.pilesPool(k, in, s.g.pickP).andNot(pileA)
 			hit = rest
 		}
 		s.g.sacM, s.g.pickP = slotMask{}, 0
