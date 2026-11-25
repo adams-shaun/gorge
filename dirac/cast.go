@@ -105,8 +105,8 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8, tgt uint8) {
 				e.mode |= modeImpended // the overloaded cast (kw_overload.go: the bit reads as overloaded on a HasOverload card)
 			} else if k.t.Cards[c].HasEvoke {
 				e.spc |= spcEvoked // the evoked cast (kw_evoke.go)
-			} else if k.t.Cards[c].HasDash {
-				e.mode |= modeImpended // the dashed cast (kw_dash.go: the bit reads as dashed on a HasDash card)
+			} else if k.t.Cards[c].HasDash || k.t.Cards[c].HasBlitz {
+				e.mode |= modeImpended // the dashed or blitzed cast (kw_dash.go, kw_blitz.go: the bit reads as such on a HasDash or HasBlitz card)
 			} else {
 				e.mode |= modeImpended // kw_impending.go
 			}
@@ -150,7 +150,7 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8, tgt uint8) {
 		// a miracle cast begun as its trigger resolves has no payment
 		// witness: gorge pays it through the mana window, and a cost the
 		// window cannot finish reverses the cast (kw_miracle.go)
-	} else if (fl&sfKicked != 0 || k.gen != nil && (k.gen.anySurge && s.bld().e.surged(k) || k.gen.anyCleave && s.bld().e.cleaved(k))) && k.t.Cards[c].Cost.X == 0 && k.t.Cards[c].OptWaterbend == 0 {
+	} else if (fl&sfKicked != 0 || k.gen != nil && (k.gen.anySurge && s.bld().e.surged(k) || k.gen.anyCleave && s.bld().e.cleaved(k) || k.gen.anyBlitz() && s.bld().e.blitzed(k))) && k.t.Cards[c].Cost.X == 0 && k.t.Cards[c].OptWaterbend == 0 {
 		// (an optional waterbend cast taps nothing here: its window pays after
 		// the picks, manaStep's waterbendCastWindow, as gorge's convokeAsk
 		// precedes its manual window)
@@ -668,6 +668,9 @@ func (s *State) buildCostPreRaw(k *prep, pre, charge bool) (kop.ManaCost, bool) 
 		}
 		if cd.HasDash && e.impended() {
 			c = cd.DashCost // the dash cost (CR 702.109a; kw_dash.go)
+		}
+		if cd.HasBlitz && e.impended() {
+			c = cd.BlitzCost // the blitz cost (CR 702.152a; kw_blitz.go)
 		}
 		if cd.HasSurge && e.surged(k) {
 			c = surgeCostOf(cd) // the surge cost (CR 702.117a; kw_surge.go)

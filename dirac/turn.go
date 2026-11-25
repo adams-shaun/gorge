@@ -1186,6 +1186,10 @@ func (s *State) resolveDelayed(k *prep, e *stackEntry) {
 		s.resolveRingTrig(k, e) // the Ring emblem's loot, promise or drain (act_ring.go)
 		return
 	}
+	if e.trigAmt == opBlitzDraw {
+		s.draw(e.ctrl) // the blitzed creature's dies trigger (kw_blitz.go)
+		return
+	}
 	if k.gen != nil && e.trigAmt == opLeaveReturn {
 		s.leaveReturn(k, e) // trig_leavereturn.go: the card is in a graveyard
 		return

@@ -1513,18 +1513,20 @@ type lCard struct {
 	Unleash             bool     // printed K:Unleash (CR 702.86): CardDef.Unleash
 	Riot                bool     // printed K:Riot (CR 702.156): CardDef.Riot (lower_riot.go)
 	Enlist              bool     // printed K:Enlist (CR 702.154): CardDef.Enlist (lower_enlist.go)
-	Flanking            bool     // printed bare K:Flanking (CR 702.25a): CardDef.Flanking (lower_flanking.go)
-	Phasing             bool     // printed bare K:Phasing (CR 702.26a): CardDef.Phasing (lower_phasingkw.go)
-	AtkFace             bool     // the printed face's lines may observe an attack declaration (CardDef.AtkFace)
-	SagaN               int      // K:Chapter:<count>: the final chapter number (CR 714.1)
-	TapPowerCrew        int      // S:Mode$ TapPowerValue for Crew (graveexile)
-	TapPowerSaddle      int      // S:Mode$ TapPowerValue for Saddle (graveexile)
-	MinBlockers         int      // S:Mode$ MinMaxBlocker | ValidCard$ Creature.Self | Min$ N (CR 509.1b); Min$ All is kop.MinBlockersAll
-	ExtraBlocks         int      // S:Mode$ Continuous | AffectedDefined$ Self | CanBlockAmount$ 1 (CR 509.1a)
-	Lure                bool     // the all-must-block keyword: every able creature blocks it (CR 509.1c)
-	MustBeBlocked       bool     // the must-be-blocked keyword (CR 509.1c)
-	Daybound            bool     // K:Daybound (CR 702.145a-d)
-	Nightbound          bool     // K:Nightbound (CR 702.145e-g)
+	Blitz               bool     // printed K:Blitz:<mana> (CR 702.152a): CardDef.HasBlitz + BlitzCost (lower_blitz.go)
+	BlitzCost           kop.ManaCost
+	Flanking            bool // printed bare K:Flanking (CR 702.25a): CardDef.Flanking (lower_flanking.go)
+	Phasing             bool // printed bare K:Phasing (CR 702.26a): CardDef.Phasing (lower_phasingkw.go)
+	AtkFace             bool // the printed face's lines may observe an attack declaration (CardDef.AtkFace)
+	SagaN               int  // K:Chapter:<count>: the final chapter number (CR 714.1)
+	TapPowerCrew        int  // S:Mode$ TapPowerValue for Crew (graveexile)
+	TapPowerSaddle      int  // S:Mode$ TapPowerValue for Saddle (graveexile)
+	MinBlockers         int  // S:Mode$ MinMaxBlocker | ValidCard$ Creature.Self | Min$ N (CR 509.1b); Min$ All is kop.MinBlockersAll
+	ExtraBlocks         int  // S:Mode$ Continuous | AffectedDefined$ Self | CanBlockAmount$ 1 (CR 509.1a)
+	Lure                bool // the all-must-block keyword: every able creature blocks it (CR 509.1c)
+	MustBeBlocked       bool // the must-be-blocked keyword (CR 509.1c)
+	Daybound            bool // K:Daybound (CR 702.145a-d)
+	Nightbound          bool // K:Nightbound (CR 702.145e-g)
 	Abilities           []*lAbility
 	Statics             []lStatic
 	// GrantedStatics: the statics a Continuous static's AddStaticAbility$

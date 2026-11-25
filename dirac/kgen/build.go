@@ -1103,7 +1103,7 @@ func (cb *cardBuilder) record() error {
 	d.AloneBlk = c.AloneBlk
 	d.Engines = c.Engines
 	d.HasReconfigure = c.Reconfigure
-	d.Ascend, d.Unleash, d.Flanking, d.Phasing, d.Riot, d.Enlist = c.Ascend, c.Unleash, c.Flanking, c.Phasing, c.Riot, c.Enlist
+	d.Ascend, d.Unleash, d.Flanking, d.Phasing, d.Riot, d.Enlist, d.HasBlitz, d.BlitzCost = c.Ascend, c.Unleash, c.Flanking, c.Phasing, c.Riot, c.Enlist, c.Blitz, c.BlitzCost
 	d.AtkFace = c.AtkFace
 	d.SagaN = uint8(c.SagaN)
 	d.TapPowerCrew = int8(c.TapPowerCrew)

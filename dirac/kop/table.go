@@ -688,6 +688,15 @@ type CardDef struct {
 	HasDash bool
 	// DashCost is the printed dash cost (HasDash).
 	DashCost ManaCost
+	// HasBlitz is printed blitz (CR 702.152a; kop.KwBlitz; no KwMask bit is
+	// free): the hand offers the blitzed cast at BlitzCost (gorge's
+	// "blitzed" option, FlagBlitzed) when the floating pool pays it; the
+	// permanent that cast produces gains haste until end of turn, a "when
+	// this creature dies, draw a card" trigger and a sacrifice at the next
+	// end step (dirac/kw_blitz.go).
+	HasBlitz bool
+	// BlitzCost is the printed blitz cost (HasBlitz).
+	BlitzCost ManaCost
 	// HasForetell is printed foretell (CR 702.143a; no KwMask bit is free):
 	// during its owner's turn the hand offers the {2} special action that
 	// exiles the card face down, and on a later turn the exile offers the
