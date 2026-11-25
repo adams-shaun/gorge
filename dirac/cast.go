@@ -2690,6 +2690,9 @@ func (s *State) buildPickCost(k *prep) *kop.Cost {
 				return &a.Cost // the sacrifice / return / hand-exile alternative cost (Fireblast, Gush, Force of Will; cast_altfree.go)
 			}
 		}
+		if cd.HasEvoke && cd.EvokePick.Flags != 0 && e.evoked() {
+			return &cd.EvokePick // the hand-exile evoke cost (kw_evoke.go)
+		}
 		if s.bld().altAdd == buildBeamGrant {
 			g, _ := s.beamGrantor(k, e.ctrl)
 			return &k.t.Cards[s.cardAt(g)].FbCost // the return a granted beam me up cast pays (kw_beammeup.go)

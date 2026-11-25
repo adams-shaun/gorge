@@ -1529,11 +1529,10 @@ func (g *grantSrch) gapFlags(s *State, n int, sl Slot, ng int, fm, tm, dm, em, w
 	case xm.has(sl) && !fm.has(sl) && !tm.has(sl) && !em.has(sl) && !wm.has(sl):
 		g.tdef[n] = true // (mana_granttapsdefer.go)
 	case cm.has(sl) && !fm.has(sl) && !tm.has(sl) && !em.has(sl) && !wm.has(sl) && !xm.has(sl):
-		// the dead and storage shapes stay on the script route (a counter-scaled sacrifice source is a step: mana_sacctr.go): a dead gap
-		// makes no mana and a storage battery's X is announced, neither a
-		// branch of this search
+		// the storage shape stays on the script route (a counter-scaled sacrifice source is a step: mana_sacctr.go): a storage battery's X is
+		// announced, not a branch of this search
 		a := g.k.ctrAbOf(s.cardAt(sl))
-		g.ctr[n] = !deadCtrAb(a) && (!kop.StoreManaAb(a) || g.k.ctrSecond(s.cardAt(sl))) // (mana_countercost.go, mana_sacctr.go; a later storage battery beside its plain {T} is a chain, ctrBranch)
+		g.ctr[n] = (!kop.StoreManaAb(a) || g.k.ctrSecond(s.cardAt(sl))) // (mana_countercost.go, mana_sacctr.go; a later storage battery beside its plain {T} is a chain, ctrBranch)
 	}
 }
 
