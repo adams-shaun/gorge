@@ -377,11 +377,17 @@ func (s *State) globalGrantsGen(k *prep, sl Slot, lost bool, lts uint16, f func(
 
 // excessLethalGen is the damage that kills sl, for the excess-damage count:
 // a non-creature planeswalker loses loyalty counters, everything else
-// toughness minus damage already marked.
-func (s *State) excessLethalGen(k *prep, sl Slot) int {
+// toughness minus damage already marked. dt is whether the damage SOURCE has
+// deathtouch: any nonzero damage from it is lethal to a creature (CR 120.4a,
+// 702.2c), so a creature not yet dead has a lethal amount of 1 (gorge
+// effects.excessLethal).
+func (s *State) excessLethalGen(k *prep, sl Slot, dt bool) int {
 	if s.typesAt(k, sl)&kop.TPlaneswalker != 0 && !s.isCreature(k, sl) {
 		return s.perms[sl].ctrLow(int(kop.CtrLoyalty))
 	}
 	_, t := s.ptGen(k, sl)
-	return t - int(s.perms[sl].damage)
+	if l := t - int(s.perms[sl].damage); !dt || l <= 1 {
+		return l
+	}
+	return 1
 }
