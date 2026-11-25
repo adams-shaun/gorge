@@ -10,6 +10,9 @@ Twitching Doll
 # (dirac/oracle/manarider_lockstep_test.go plays the Land Cap deck).
 Vulshok Factory
 Land Cap
+# Veldt is the same counter rider printed out of WUBRG order ("Combo G W"):
+# the colour ask lists G then W (kop.Ability.ManaColOrd).
+Veldt
 Forest
 Gemstone Mine
 Grove of the Burnwillows

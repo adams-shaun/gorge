@@ -17,6 +17,8 @@ import (
 var manaConvertForms = []formCase{
 	{card: "Oath of Nissa", form: "ManaConvert Planeswalker.YouCtrl AnyType->AnyColor (StatAnyColorSpells)", lir: "static ManaConvert F={types=0x10 ctrl=1}"},
 	{card: "Vizier of the Menagerie", form: "ManaConvert Creature.YouCtrl AnyType->AnyType (StatAnyTypeCreatures)", lir: "static ManaConvert F=nil"},
+	{card: "Chromatic Orrery", form: "ManaConvert AnyType->AnyColor, no ValidSA/ValidCard (StatAnyColorAll)", lir: "static ManaConvert F=nil"},
+	{card: "Mycosynth Lattice", form: "ManaConvert with no ValidPlayer$ (and an AffectedZone$ All static) stays refused", refused: `AffectedZone "All" without MayPlay; S[2] Mode=ManaConvert: static mode ManaConvert`},
 	{card: "Case File Auditor", form: "ManaConvert Case.YouCtrl lowers; the CaseSolved trigger still refuses", refused: "trigger mode CaseSolved"},
 }
 
@@ -57,14 +59,15 @@ func TestManaConvertAuditorOnlyRefusesTrigger(t *testing.T) {
 
 // TestManaConvertBuildsKinds: the built static is StatAnyColorSpells with a
 // Filter for Oath of Nissa (the ValidCard$ spec, a planeswalker), and
-// StatAnyTypeCreatures with none for Vizier of the Menagerie.
+// StatAnyTypeCreatures with none for Vizier of the Menagerie, and the unscoped
+// StatAnyColorAll with none for Chromatic Orrery.
 func TestManaConvertBuildsKinds(t *testing.T) {
-	lw := lowerNamedPool(t, []string{"Oath of Nissa", "Vizier of the Menagerie"})
+	lw := lowerNamedPool(t, []string{"Oath of Nissa", "Vizier of the Menagerie", "Chromatic Orrery"})
 	all, bs, _, err := buildPool(lw)
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := map[string]kop.StaticKind{"Oath of Nissa": kop.StatAnyColorSpells, "Vizier of the Menagerie": kop.StatAnyTypeCreatures}
+	want := map[string]kop.StaticKind{"Oath of Nissa": kop.StatAnyColorSpells, "Vizier of the Menagerie": kop.StatAnyTypeCreatures, "Chromatic Orrery": kop.StatAnyColorAll}
 	seen := map[string]int{}
 	for i, c := range all {
 		kind, ok := want[c.Name]

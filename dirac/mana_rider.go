@@ -342,17 +342,17 @@ func (s *State) riderPlainGap(k *prep, p uint8, a Action, sl Slot, c int) bool {
 		return false
 	}
 	ra, _ := s.riderAbilityOf(k, sl)
-	var cols [kop.NumManaKinds]uint8
-	var rider [kop.NumManaKinds]int
+	var cols [kop.NumManaKinds + 1]uint8
+	var rider [kop.NumManaKinds + 1]int
 	n := 0
 	pc := s.manaPCGen(k, sl)
 	cols[n], rider[n] = uint8(bits.TrailingZeros8(uint8(pc.manaCol))), -1
 	n++
-	for col := 0; col < kop.NumManaKinds; col++ {
-		if uint8(ra.ManaColors)&(1<<uint(col)) != 0 {
-			cols[n], rider[n] = uint8(col), bits.OnesCount8(uint8(ra.ManaColors)&uint8((1<<uint(col))-1))
-			n++
-		}
+	var order [kop.NumManaKinds]uint8
+	no := riderAnswerOrder(ra, &order) // a printed Combo's printed order (ManaColOrd)
+	for i := 0; i < no; i++ {
+		cols[n], rider[n] = order[i], i
+		n++
 	}
 	need := s.playNeed(k, a)
 	for i := 1; i < n; i++ { // needFirst over colours and their productions
@@ -378,22 +378,6 @@ func (s *State) riderPlainGap(k *prep, p uint8, a Action, sl Slot, c int) bool {
 		return true
 	}
 	return s.riderGap(k, p, sl, rider[c])
-}
-
-// riderAnswerBit is the index of colour col among mask's bits (the script's
-// answer encoding); 0 when col is not in mask.
-func riderAnswerBit(mask uint8, col int) int {
-	n := 0
-	for c := 0; c < kop.NumManaKinds; c++ {
-		if mask&(1<<uint(c)) == 0 {
-			continue
-		}
-		if c == col {
-			return n
-		}
-		n++
-	}
-	return 0
 }
 
 // riderPC is the tap for mana the bounded rider activation at sl runs (its
@@ -435,18 +419,8 @@ func (s *State) manaRiderFloat(k *prep, p uint8, sl Slot, a *kop.Ability, answer
 		return
 	}
 	col := 0
-	if mask == uint8(kop.ColAny) || a.AFlags&kop.AfManaChoice != 0 {
-		i := answer
-		for c := 0; c < kop.NumManaKinds; c++ {
-			if mask&(1<<uint(c)) == 0 {
-				continue
-			}
-			if i == 0 {
-				col = c
-				break
-			}
-			i--
-		}
+	if mask == uint8(kop.ColAny) || a.AFlags&kop.AfManaChoice != 0 || a.ManaColOrd != 0 {
+		col = riderAnswerColour(a, answer) // a printed Combo's printed order, else W U B R G
 	} else if mask != 0 {
 		col = bits.TrailingZeros8(mask)
 	}

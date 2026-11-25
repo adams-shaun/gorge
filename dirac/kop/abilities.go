@@ -783,7 +783,9 @@ func SoleGapLifeManaAb(cd *CardDef, j int) bool {
 //     sacrifice this alone (pcard.manaTap / manaSac / manaSacOnly), a counter
 //     placed on or removed from the source once a turn (CtrManaAb), the dead
 //     counter-cost shape of CtrDeadManaAb (Component Pouch: a census gap whose
-//     chain activation adds no mana), the tap-another-
+//     chain activation adds no mana), a no-{T} counter removal shape of
+//     CtrRemoveManaAb (Pentad Prism, Runaway Steam-Kin: a repeatable gap), the
+//     tap-another-
 //     permanent shape of TapXManaAb, the sacrifice-another all-at-once shape
 //     of SacXEachManaAb, or a filter (FilterManaAb, a fee-only {cost} one
 //     included: FeeOnlyManaAb);
@@ -830,7 +832,7 @@ func ManaAbilityHonoured(cd *CardDef, j int) bool {
 	switch {
 	case plain && (f == CostTap || f == CostTap|CostOncePerGame || f == CostTap|CostSacSelf || f == CostSacSelf):
 		return true
-	case CtrManaAb(a), CtrDeadManaAb(a), TapXManaAb(a), TapXManaTwo(a), TapXManaOne(a), RestrictedTapXOneShape(a), FilterManaAb(a), SacXEachManaAb(a), SacAnyManaAb(a), SacTapAnyManaAb(a), SacXRestrManaAb(a), ExileGManaAb(a), SoleLifeManaAb(cd, j), RestrictedLifeManaAb(cd, j), GapLifeManaAb(a), StoreManaAb(a), ReflLifeManaAb(a), RestrictedManaCostShape(a):
+	case CtrManaAb(a), CtrRemoveManaAb(a), CtrDeadManaAb(a), TapXManaAb(a), TapXManaTwo(a), TapXManaOne(a), RestrictedTapXOneShape(a), FilterManaAb(a), SacXEachManaAb(a), SacAnyManaAb(a), SacTapAnyManaAb(a), SacXRestrManaAb(a), ExileGManaAb(a), SoleLifeManaAb(cd, j), RestrictedLifeManaAb(cd, j), GapLifeManaAb(a), StoreManaAb(a), ReflLifeManaAb(a), RestrictedManaCostShape(a):
 		return true
 	case ManaRiderAb(a) && riderManaCostOK(a):
 		return true
@@ -912,6 +914,25 @@ func SecondTapXManaAb(cd *CardDef, first, j int) bool {
 func CtrTapSecondManaAb(a *Ability) bool {
 	c := a.ManaColors
 	return a.Kind == AbMana && a.Cost.Flags == CostTap|CostRemoveCtr && a.Cost.N > 0 && a.Cost.Mana.MV() == 0 && a.Cost.Mana.X == 0 &&
+		a.AFlags == 0 && a.ManaRestrict == 0 && !a.ManaEach && (c != 0 && c&(c-1) == 0 && a.ManaN >= 1 || c == ColAny && a.ManaN <= 1) && len(a.Prog) == 0 &&
+		a.Gate.Ctr == 0 && a.Trig.Cond == 0 && (a.ActZone == ZoneNone || a.ActZone == ZoneBattlefield)
+}
+
+// CtrRemoveManaAb reports whether mana ability a is "Remove N counters from
+// this: Add <production>" with no {T} and no once-each-turn limit (Pentad
+// Prism's charge counter, Crystalline Crawler's +1/+1, Runaway Steam-Kin's
+// three +1/+1 for {R}{R}{R}): a mana-free cost of the source's own counters,
+// a fixed unrestricted production of one colour ({C} counts), ManaN of it, or
+// one mana of any colour (the activation asks the colour). Its cost is
+// repeatable and limited only by the counters left, so gorge's census leaves
+// it an unrelaxable gap with no bounded relaxation (potential_plan.go
+// paymentPlanRelaxedAlternatives: a repeatable non-tap cost). Kernel
+// mana_countercost.go reads it, through prep.ctrAb, as a counter-cost gap
+// whose activation removes the counters and may be repeated while it holds
+// them.
+func CtrRemoveManaAb(a *Ability) bool {
+	c := a.ManaColors
+	return a.Kind == AbMana && a.Cost.Flags == CostRemoveCtr && a.Cost.N > 0 && a.Cost.Mana.MV() == 0 && a.Cost.Mana.X == 0 &&
 		a.AFlags == 0 && a.ManaRestrict == 0 && !a.ManaEach && (c != 0 && c&(c-1) == 0 && a.ManaN >= 1 || c == ColAny && a.ManaN <= 1) && len(a.Prog) == 0 &&
 		a.Gate.Ctr == 0 && a.Trig.Cond == 0 && (a.ActZone == ZoneNone || a.ActZone == ZoneBattlefield)
 }
