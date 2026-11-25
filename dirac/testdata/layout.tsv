@@ -226,6 +226,7 @@ default	field	genState.plusSrc	6664	8
 default	field	genState.cast1	6672	1
 default	field	genState.ctrAdder	6673	1
 default	field	genState.ctrSettle	6674	1
+default	field	genState.story	6675	1
 default	field	genState.ctrAdd	6676	18
 default	field	genState.prevCol	6694	18
 default	field	genState.lingerM	6712	24
