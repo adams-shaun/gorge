@@ -73,15 +73,18 @@ func effectUnsupportedStatic(h Host, c *Ctx, mode string, params staticLineParam
 		return true
 	}
 	if (mode == ModeCantPhaseIn || mode == ModeCantPhaseOut) &&
-		staticKeysReadable(params, "Mode", "ValidCard", "Description") {
+		staticKeysReadable(params, "Mode", "ValidCard", "Description", "IsPresent", "PresentCompare") {
 		// CR 702.26's "can't phase in" / "can't phase out" delivered by a
 		// resolved ability (Ertai's Familiar, Spatial Binding, The Phasing of
 		// Zhalfir, Teferi, Timeless Voyager): registered as a restriction
 		// rules' phaseBlocked reads at the emit choke point, so neither the
 		// untap-step phasing nor an api:Phases effect phases the permanent.
-		// The IsPresent$-gated bodies (The Pandorica, The Doctor's Childhood
-		// Barn) are refused here: a registered restriction has no present
-		// gate, and a blanket reading would hold the permanent forever.
+		// An IsPresent$ gate (The Pandorica's `Card.EffectSource+tapped`,
+		// "for as long as The Pandorica remains tapped") rides on the
+		// registration's params and is evaluated by rules'
+		// registrationPresentHolds, so the restriction lapses with the gate.
+		// A PresentZone$ body (The Doctor's Childhood Barn, Command zone
+		// `faceUp`) stays refused: the battlefield-only gate cannot read it.
 		//
 		// Duration$ UntilYourNextUpkeep is handled by the generic duration
 		// machinery (IsUntilYourNextUpkeepDuration).
