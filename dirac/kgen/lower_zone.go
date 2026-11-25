@@ -54,6 +54,9 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 		lc.emit(lInstr{Op: "Unearth", Note: "haste until end of turn; exiled at the next end step or instead of leaving"})
 		return nil
 	}
+	if _, ok := ps.m["LeaveBattlefield"]; ok {
+		return lc.leaveExileMove(ps) // lower_leaveexile.go
+	}
 	if done, err := lc.stackExileOptional(ps); done || err != nil {
 		return err // lower_stackexile.go
 	}
@@ -1360,6 +1363,13 @@ func (lc *lowerCtx) dig(ps *params) error {
 			return err
 		}
 	}
+	// ChangeType$ is not a Dig key: Forge's DigEffect and gorge effDig
+	// filter the take by ChangeValid$ only. ChangeType$ Card (Chrome
+	// Courier) admits every card either way; any narrower spelling refuses
+	// so a script that meant it as a filter is not read as unfiltered.
+	if ct, ok := ps.get("ChangeType"); ok && strings.TrimSpace(ct) != "Card" {
+		return refuse("Dig ChangeType$ %q (not a Dig key; only Card is inert)", ct)
+	}
 	// WithTotalCMC$/WithDifferentPowers$ ride the pick filter's head; the
 	// kernel narrows the candidates and the running take (State.pickFits).
 	budget, hasBudget, err := pickTotalCMC(ps)
@@ -1422,6 +1432,9 @@ func (lc *lowerCtx) dig(ps *params) error {
 		return err
 	}
 	if err := digNoLooking(ps, who); err != nil { // lower_digparams.go
+		return err
+	}
+	if in.W, err = lc.digChoser(ps, who); err != nil { // lower_digparams.go
 		return err
 	}
 	for _, k := range []string{"Optional", "RestRandomOrder", "ForceRevealToController", "Reveal", "RememberChanged"} {

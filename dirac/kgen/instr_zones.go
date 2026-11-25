@@ -16,6 +16,7 @@ func init() {
 	instrOp("Return", (*instrCtx).opReturn)
 	instrOp("ExileUntilLeaves", (*instrCtx).opExileUntilLeaves)
 	instrOp("Unearth", (*instrCtx).opUnearth)
+	instrOp("LeaveExile", (*instrCtx).opLeaveExile)
 	instrOp("LibSweep", (*instrCtx).opLibSweep)
 	instrOp("ExileExMark", (*instrCtx).opExileExMark)
 	instrOp("SpellToLib", (*instrCtx).opSpellToLib)
@@ -233,6 +234,14 @@ func (ic *instrCtx) opExileUntilLeaves() error {
 	if ic.moveFlags()&kop.MvRemember != 0 {
 		ki.C = kop.MvRemember // RememberChanged$ (lower_remembered_writers.go)
 	}
+	return nil
+}
+
+func (ic *instrCtx) opLeaveExile() error {
+	ki := &ic.ki
+	// OpExt ExtLeaveExile over Obj, the object the move before it returned
+	// (lower_zone.go's LeaveBattlefield$ Exile, dirac/zone_leaveexile.go)
+	ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtLeaveExile))
 	return nil
 }
 
