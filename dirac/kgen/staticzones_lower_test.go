@@ -16,7 +16,7 @@ import (
 // gap-static-zones; the classes still refused keep their named reasons in
 // TestStaticZonesRefusals).
 var staticZonesCarriers = []string{
-	"Bladegraft Aspirant", "Case of the Locked Hothouse", "Dawnglade Regent",
+	"Bladegraft Aspirant", "Case of the Locked Hothouse", "Convergence of Dominion", "Dawnglade Regent",
 	"Dragon's Rage Channeler", "Field of Dreams", "Geist of the Lonely Vigil",
 	"Hurkyl's Final Meditation", "Ivory Mask", "Lantern of Insight", "Power Artifact",
 	"Queen Mother Ramonda", "Slithering Shade", "Solitary Confinement",
