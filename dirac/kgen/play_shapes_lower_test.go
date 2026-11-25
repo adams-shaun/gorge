@@ -11,11 +11,12 @@ import "testing"
 // whose CheckSVar gate was the same class's only blocker. The umbrella's
 // other classes (CastWithFlash shape, Play PlayCost, Play Valid$ without
 // YouOwn/YouCtrl, Play Card.Self outside Amount$ All/ValidZone$ Exile, Play
-// Amount "_", Play Defined$ "_") stay refused on their carriers: Boiling
-// Rock Rioter, Chandra Ablaze, Anrakyr the Traveller, Bismuth Mindrender,
+// Amount "_", Play Defined$ "_") stay refused on their carriers (Boiling
+// Rock Rioter and Sanwell, Avenger Ace since lowered: play_exilepop_lower_test.go):
+// Chandra Ablaze, Anrakyr the Traveller, Bismuth Mindrender,
 // Blur of Heroism, Flash Photography, Harness the Storm, Jadzi, Oracle of
 // Arcavios, Leonin Shikari, Mindleech Mass, Plargg and Nassari, Quantum
-// Reduction, Sanwell Avenger Ace, Silent-Blade Oni, Silver Scrutiny,
+// Reduction, Silent-Blade Oni, Silver Scrutiny,
 // Sorcerous Squall, Teferi Temporal Archmage, Teferi's Talent, The Face of
 // Boe, The Infamous Cruelclaw, The Wandering Emperor, Timely Ward, Twinning
 // Glass, Wizard's Spellbook, and each carries exactly its own class again.

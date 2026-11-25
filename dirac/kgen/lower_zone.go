@@ -2322,6 +2322,10 @@ func (lc *lowerCtx) playRememberedAlt(alt, valid string) (string, error) {
 		case part == "ExiledWithSource":
 			// exiled with the source (Flawless Forgery's forged copies)
 			cmc = andClause(cmc, part)
+		case playTypeDotType(part):
+			// a dotted type head (Sanwell's Artifact.Creature): both words
+			// narrow the population (lower_playexilepop.go)
+			cmc = andClause(cmc, strings.Replace(part, ".", "+", 1))
 		default:
 			return "", refuse("Play Valid$ %q", valid)
 		}
@@ -2557,7 +2561,7 @@ func (lc *lowerCtx) play(ps *params) error {
 	if landPlay {
 		return emit(lRef{Kind: rRemembered}, zExile, "")
 	}
-	if paid {
+	if playSelfExileArm(paid, valid, vzone, copyCard) {
 		// the source card itself, in exile (lower_exilegrant.go): Valid$
 		// Card.Self + ValidZone$ Exile, Amount$ All, ValidSA$ Spell
 		if saExpr != "" || amount != "All" || vzone != "Exile" || valid != "Card.Self" || forget || replace || repeat {
@@ -2569,7 +2573,7 @@ func (lc *lowerCtx) play(ps *params) error {
 	case "Exile":
 		// P1: Valid$ Card.IsRemembered... + ValidZone$ Exile.
 		if !strings.Contains(valid, "IsRemembered") {
-			return refuse("Play ValidZone$ Exile without IsRemembered")
+			return lc.playExileFilterPop(valid, saExpr, paid && !forget && !replace, emit) // lower_playexilepop.go
 		}
 		clause, err := lc.playRememberedClause(valid)
 		if err != nil {
