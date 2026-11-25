@@ -1935,28 +1935,16 @@ func (e *Engine) askTriggerModes(p state.PlayerID, obj state.ObjID, sa *cards.SA
 	if sa.API == "Vote" {
 		return false
 	}
-	// GenericChoice with a Defined$ other than the trigger controller is the
-	// same non-modal shape: its chooser is chosen at RESOLUTION
-	// (charmGenericPlayers asks each named player in turn and binds it as
-	// Ctx.Remembered), so a CR 603.3c placement ask would pose the mode to
-	// the wrong player and then run one body unbound before the per-chooser
-	// asks. `Defined$ You` and an ABSENT Defined$ still resolve to the
-	// controller alone, and charmGenericPlayers declines both -- the
-	// placement ask must be retained for those. Returning false is this
-	// function's "not modal: the primitive asks at resolution" verdict; the
-	// drain falls through to the target ask exactly as it does for
-	// VillainousChoice.
+	// GenericChoice is never CR 603.3c modal placement: "create a Food token
+	// or a Treasure token" is an instruction followed during resolution
+	// (CR 608.2d), not a printed "Choose one" (CR 700.2), which Forge scripts as
+	// Charm. effCharm asks the chooser(s) at resolution -- the controller
+	// alone for `Defined$ You` or an absent Defined$, each named player
+	// otherwise (charmGenericPlayers), or the engine for AtRandom$ so the
+	// rng draw stays in the replay-exact resolution path -- and applies the
+	// UnlessCost$ filter (GenericChoiceAvailable) there.
 	if sa.API == "GenericChoice" {
-		defined := effects.CharmOf(sa).Defined
-		if (defined != "" && defined != "You") || effects.GenericChoicePlayerChoosers(sa) {
-			return false
-		}
-		// param:api:GenericChoice.AtRandom: the engine picks at resolution
-		// (effects.GenericChoiceAtRandom), never at placement, so the rng
-		// draw stays in the replay-exact resolution path.
-		if effects.GenericChoiceAtRandom(sa) {
-			return false
-		}
+		return false
 	}
 	source, ctx := e.triggerModeCtx(p, obj, sa)
 	svars := ctx.SVars
@@ -1978,20 +1966,6 @@ func (e *Engine) askTriggerModes(p state.PlayerID, obj state.ObjID, sa *cards.SA
 	// posted.
 	eligible := effects.CharmEligibleModes(e, source, sa, choices)
 	eligible = triggerModesWithTargets(e, p, obj, svars, eligible)
-	if sa.API == "GenericChoice" {
-		// Forge ChooseGenericEffect drops every choice whose UnlessCost$ the
-		// chooser cannot pay. The placement ask is the trigger controller's,
-		// so p is the payer. When that empties a NON-empty list, Forge asks
-		// nothing and resolves FallbackAbility$ (or nothing) at resolution:
-		// let the trigger go on the stack and leave the ask to effCharm
-		// instead of removing it. (An empty list from the target/restriction
-		// filters above keeps the existing removeModelessTrigger path.)
-		if payable := effects.GenericChoiceAvailable(e, ctx, p, eligible); len(payable) == 0 && len(eligible) > 0 {
-			return false
-		} else if len(payable) > 0 {
-			eligible = payable
-		}
-	}
 	min, max, repeat := effects.CharmModeBounds(e, ctx, sa, len(eligible))
 	if max < 1 && effects.CharmCountReadsTriggeringSpell(ctx, sa) {
 		// the placement ctx carries no triggering spell, so a count that
