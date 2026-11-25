@@ -410,7 +410,11 @@ func effVillainousChoice(h Host, c *Ctx, sa *cards.SA) {
 	for c.Choosers.VictimIndex < len(c.Choosers.Victims) {
 		victim := c.Choosers.Victims[c.Choosers.VictimIndex]
 		// The body is evaluated against this victim, not an earlier victim.
-		c.Remembered = []state.Target{victim}
+		// A card the enclosing loop remembered (Hunted by The Family's
+		// RepeatEach over the targeted creatures) stays remembered beside
+		// the victim, so a body reading Defined$ Remembered acts on that
+		// card; the previous victim is dropped.
+		c.Remembered = append(villainousRememberedCards(c.Remembered), victim)
 		d := &decision.Decision{Player: victim.Player, Kind: decision.KModes,
 			Min: 1, Max: 1, Source: c.Source, ResumeKind: "villainous",
 			ResumeSA: sa, ResumeModes: append([]string(nil), choices...),
@@ -471,6 +475,18 @@ func runCharmBody(h Host, c *Ctx, sub *cards.SA) {
 	c.CharmModeSA = sub
 	Resolve(h, c, sub)
 	c.CharmModeSA = saved
+}
+
+// villainousRememberedCards is the remembered set without its players: the
+// cards the enclosing resolution remembered, kept in order.
+func villainousRememberedCards(rem []state.Target) []state.Target {
+	var out []state.Target
+	for _, t := range rem {
+		if !t.IsPlayer {
+			out = append(out, t)
+		}
+	}
+	return out
 }
 
 // villainousRunChoice runs the current victim's chosen body (names) and
