@@ -32,6 +32,8 @@ func (lc *lowerCtx) addPhase(ps *params) error {
 		kind = kop.AddPhaseUpkeep
 	case "End of Turn":
 		kind = kop.AddPhaseEnd
+	case "Beginning":
+		return lc.addPhaseBeginning(ps)
 	default:
 		return refuse("AddPhase ExtraPhase$ %q", ev)
 	}
@@ -94,6 +96,22 @@ func (lc *lowerCtx) firstAttackCombat(tp *params, tr *lTrigger, conds *[]lCond, 
 		return true, nil
 	}
 	return false, nil
+}
+
+// addPhaseBeginning lowers ExtraPhase$ Beginning with AfterPhase$, FollowedBy$
+// and NumPhases$ omitted (Shadow and Sphinx of the Second Sun): one whole
+// beginning phase spliced after the step the grant resolves in, resuming at
+// that step's successor (gorge effAddPhase, state.ExtraPhaseRangeEnd). The
+// kernel takes the splice point at resolution and stalls outside a main
+// phase.
+func (lc *lowerCtx) addPhaseBeginning(ps *params) error {
+	for _, k := range []string{"AfterPhase", "FollowedBy", "NumPhases"} {
+		if _, ok := ps.m[k]; ok {
+			return refuse("AddPhase ExtraPhase$ Beginning with %s$", k)
+		}
+	}
+	lc.emit(lInstr{Op: "AddPhase", A: cst(1), C: kop.AddPhaseUpkeep | kop.AddPhaseBeginning, Note: "queue an additional beginning phase (gorge effAddPhase ExtraPhase$ Beginning)"})
+	return nil
 }
 
 // addPhaseFollowedBy lowers the one FollowedBy$ shape: an extra combat spliced
