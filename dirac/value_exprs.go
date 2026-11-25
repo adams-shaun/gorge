@@ -180,6 +180,8 @@ func (s *State) exprCold(k *prep, x *kop.Expr, ctx evalCtx) int {
 		return s.remEachOwnNonLand(k) // value_remeachown.go
 	case kop.ExCounterKinds:
 		return s.counterKinds(k, x, ctx) // value_counterkinds.go
+	case kop.ExReplLKIPower:
+		return s.replLKIPower() // repl_exilerider.go
 	case kop.ExMVOf:
 		if DebugMVOfReplacedZero && x.Ref == kop.RefReplaced {
 			return 0 // mutation hook
