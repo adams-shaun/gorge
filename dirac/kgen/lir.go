@@ -1219,7 +1219,7 @@ type lStatic struct {
 	Grant   []int // latent abilities the affected objects gain
 	// GrantBody: the latent ability the affected objects' granted-keyword
 	// activation runs, a 0-based index into the card's Abilities like Grant
-	// (always set when the static's kind is UnearthGrant; kop.Static.GrantBody
+	// (always set when the static's kind is UnearthGrant or CyclingGrant; kop.Static.GrantBody
 	// is 1-based and 0 means none, the offer never grants it;
 	// lower_offzone.go offZoneUnearth)
 	GrantBody int
