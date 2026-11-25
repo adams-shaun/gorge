@@ -943,6 +943,8 @@ const ExDevotionDual ExprKind = 70
 const ExStartingPlayer ExprKind = 71
 
 // count AltCost (dirac/manifest/ExprKind/ExAltCost)
+//
+// Sub[0] when the spell being resolved or built was cast for its own S:Mode$ AlternativeCost static, else Sub[1] (Count$AltCost.<paid>.<unpaid>; gorge FlagAltCostPaid / PendingAltCost). Reads the stack entry's trigPlAltCost mark, set by takeAltCast on a table that reads ExAltCost; a copy drops it (CR 707.10). dirac/value_altcost.go.
 const ExAltCost ExprKind = 72
 
 // count Result (dirac/manifest/ExprKind/ExResult)
