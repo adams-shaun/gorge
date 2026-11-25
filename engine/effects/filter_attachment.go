@@ -53,6 +53,26 @@ func canEnchantEquippedBy(g *state.Game, o *state.Object, _ state.PlayerID, src 
 	return attachableTo(g, o, bearer)
 }
 
+// canEnchantSource is the CanEnchantSource predicate body; see the
+// registration above for the spelling's carriers and the referent rule.
+func canEnchantSource(g *state.Game, o *state.Object, _ state.PlayerID, src state.ObjID) bool {
+	s := g.Obj(src)
+	if s == nil {
+		return false
+	}
+	// The resolving source may be the Face-less ability/trigger wrapper a
+	// TriggerPush minted (the placement ask's SpecContext.Source is that
+	// wrapper, engine/rules/trigger_queue.go pushTrigger) -- its Source field
+	// names the permanent that carries the ability. Unwrap before reading the
+	// enchant referent, exactly as canEnchantEquippedBy does.
+	if s.Face() == nil && s.Source != 0 {
+		if real := g.Obj(s.Source); real != nil {
+			s = real
+		}
+	}
+	return attachableTo(g, o, s)
+}
+
 // attachableTo reports whether the (possibly off-battlefield) card o could
 // legally be attached to the battlefield permanent bearer: an Aura when the
 // bearer satisfies its K:Enchant spec, an Equipment when the bearer is a
