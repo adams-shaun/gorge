@@ -3526,6 +3526,10 @@ func (s *State) potentialGapCost(k *prep, p uint8, sl Slot, j int, ab *kop.Abili
 	switch {
 	case int(k.ctrAb[c]) == j && (kop.CtrManaAb(ab) || kop.CtrRemoveManaAb(ab) || kop.CtrTapSecondManaAb(ab)):
 		return s.ctrCostPayable(sl, p, ab)
+	case anyDifferentTapAb(ab):
+		// Component Pouch's "{T}, Remove a counter: Add two mana of different
+		// colors": priced while the source holds the counters its cost removes
+		return s.ctrCostPayable(sl, p, ab)
 	case ab.ManaRider == kop.ManaRiderDeplete && ab.Cost.Flags == kop.CostTap|kop.CostRemoveCtr:
 		// a depletion land (Sandstone Needle, Peat Bog): gorge's potentialManaFor counts its
 		// whole production while it still holds the counter its cost removes
