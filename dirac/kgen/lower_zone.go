@@ -2656,6 +2656,9 @@ func (lc *lowerCtx) effectStaticBodies(list string) ([]cards.Static, error) {
 
 func (lc *lowerCtx) effectAPI(ps *params) error {
 	if tr, ok := ps.get("Triggers"); ok {
+		if done, err := lc.effectImprintShieldFrom(ps); done || err != nil { // lower_effectimprintshield.go
+			return err
+		}
 		if _, st := ps.m["StaticAbilities"]; st {
 			if done, err := lc.effectUntapDenial(ps, tr); done || err != nil { // lower_untapdenial.go
 				return err
