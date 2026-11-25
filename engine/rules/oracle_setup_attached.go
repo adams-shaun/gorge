@@ -193,5 +193,14 @@ func (r *oracleRun) placeSetupEntry(sc oracleScenario, p int, id state.ObjID, na
 		// non-starting seat's {T} ability (Trap Runner on p1) would
 		// otherwise be unactivatable on p0's turn 1.
 		e.emit(events.Event{Kind: events.SetupSettled, Obj: id})
+		if sc.xmageFixture {
+			// The placement's synthetic tail (counters, SetupSettled) runs
+			// after placeSetupCard's MoveZone window, so it can queue a
+			// Mode$ Always state trigger against a partial battlefield
+			// (Marjhan before its Islands). Drop it with the placement's own
+			// state trigger; setup's first check re-queues it if the
+			// condition still holds (CR 603.8).
+			r.dropSetupStateTriggers()
+		}
 	}
 }
