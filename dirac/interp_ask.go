@@ -255,9 +255,18 @@ func (s *State) execPay(k *prep, in *kop.Instr) bool {
 // failed window probe's fork latched once that drop is final.
 func (s *State) payAnswerGate(k *prep, in *kop.Instr, p uint8, kind int, skip uint16, amt int, pips int16) uint16 {
 	stackSelfGone := kind == kop.PayExileGrave && in.B.N == kop.PayBSubStackSelf && s.objs[s.res.e.obj].zone != kop.ZoneStack
-	noPay := stackSelfGone
+	// gorge's unresolvable DefinedCost_ChosenCard (Tariff): with no chosen
+	// card the DefinedCost token passes through raw and the strict cost
+	// parser rejects it, so the ask is still posed and the payer declines
+	// (effects/unless.go unlessDefinedCost). The kernel's UnlessPaid A
+	// ExMVOf(RefChosen) reads 0 over an empty chosen set, which would price
+	// a free pay.
+	unpricedChosen := in.Op == kop.OpUnlessPaid && kind == kop.PayMana && s.g.nchosen == 0 &&
+		in.A.K == kop.VExpr && int(in.A.N) < len(k.t.Exprs) &&
+		k.t.Exprs[in.A.N].Kind == kop.ExMVOf && k.t.Exprs[in.A.N].Ref == kop.RefChosen
+	noPay := stackSelfGone || unpricedChosen
 	var stall uint8
-	if !stackSelfGone {
+	if !noPay {
 		ok := s.canPayGenFor(k, p, kind, skip, amt, pips, in.F)
 		if !ok && kind == kop.PayDraw && skip&pfModes == 0 {
 			// A trigger's own Draw cost is the window's pay/decline ask
