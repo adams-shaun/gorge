@@ -1,0 +1,24 @@
+# CMM/MH2 object-movement shapes kgen now lowers (dirac/oracle/setsobjects_lockstep_test.go
+# TestSetsObjectsLockstep): UseAllOriginZones$ on a battlefield sweep with no
+# Shuffle$ (Perilous Vault, Urza's Ruinous Blast), Dig ChangeType$ Card (Chrome
+# Courier), ChangesZoneAll Library->Graveyard (Sidisi, Brood Tyrant) and a hand
+# move whose owner is the Phase trigger's player (Braids, Conjurer Adept)
+Perilous Vault
+Urza's Ruinous Blast
+Chrome Courier
+Sidisi, Brood Tyrant
+Braids, Conjurer Adept
+Isamaru, Hound of Konda
+Savannah Lions
+Ornithopter
+Grizzly Bears
+Shock
+Plains
+Island
+Swamp
+Forest
+Mountain
+Devourer of Memory
+Unshakable Tail
+Underworld Cerberus
+Murder

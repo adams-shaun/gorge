@@ -272,7 +272,7 @@ func (s *State) windowTapWalk(k *prep, p uint8, cost, useful *kop.ManaCost, clam
 		// queued (CR 733.1), whichever window path reverses the cast (Spree's, a hybrid pip's)
 		s.bld().manaNP = 1 + uint8(s.npend)
 	}
-	for !s.windowSpellSettled(k, p, cost, anyColor) {
+	for !s.windowWalkSettled(k, p, cost, anyColor) {
 		if potential {
 			var pot avail
 			other := payDesc{class: pdOther, subBound: s.g.winMode == winTrig} // a trigger's own cost reads the trigger pay gate's bound (mana_repeatpotential.go)
@@ -283,7 +283,7 @@ func (s *State) windowTapWalk(k *prep, p uint8, cost, useful *kop.ManaCost, clam
 			}
 		}
 		var order [MaxPerm]Slot
-		n := s.battlefieldOrder(p, s.ctrlM[p].and(s.occ), order[:], 0)
+		n := s.windowOrder(k, p, order[:])
 		// gorge's manual window lists every untapped source in battlefield order and its
 		// answer is the first listed (payexec.WindowAnswer): a planner-deferred source (a land
 		// under Contaminated Ground's Taps watcher) is taken in its place, whoever calls

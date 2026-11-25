@@ -1415,11 +1415,13 @@ func putCounterSupport(h Host, c *Ctx, sa *cards.SA, kind string) {
 	}
 	// A SPELL's Support was announced at cast (CR 701.41a with 601.2c; the
 	// cast flow's supportTargetSA gives the generic targeting machinery the
-	// declaration). Its recipients are the targets already recorded on the
-	// stack object; asking again here would make a choice the rules have
-	// already made, and Forge/XMage put no counters on the creatures the
-	// caster never chose.
-	if sa.KindCode() == cards.SAKindSpell {
+	// declaration), and an ACTIVATED ability's at activation (CR 602.2b: the
+	// rest of activating an ability is the casting process). Their
+	// recipients are the targets already recorded on the stack object;
+	// asking again here would make a choice the rules have already made,
+	// and Forge/XMage put no counters on the creatures the caster never
+	// chose.
+	if k := sa.KindCode(); k == cards.SAKindSpell || k == cards.SAKindActivated {
 		putCounterSupportAnnounced(h, c, sa, kind, spec)
 		return
 	}
@@ -1470,8 +1472,9 @@ func putCounterSupport(h Host, c *Ctx, sa *cards.SA, kind string) {
 }
 
 // putCounterSupportAnnounced applies one counter of kind to each announced
-// Support target of a spell (CR 701.41a/601.2c). The targets were recorded
-// at cast through the ordinary targeting machinery, so this only re-applies
+// Support target of a spell (CR 701.41a/601.2c) or an activated ability
+// (CR 602.2b). The targets were recorded at cast or activation through the
+// ordinary targeting machinery, so this only re-applies
 // the Support spec (CR 608.2b's "does as much as possible": a target that
 // stopped matching drops out) and reads Support$ N as the cap. The
 // resolution must not open a counter_pick: that is the defect this shape

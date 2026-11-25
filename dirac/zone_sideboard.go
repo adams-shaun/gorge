@@ -78,8 +78,9 @@ func mayPlayZoneBits(st *kop.Static) uint16 {
 //go:noinline
 func (s *State) spendLandStatic(k *prep, o Obj, p uint8) {
 	s.mayPlayStatics(k, p, o, func(st statSrc) bool {
-		if st.a.Static.StFlags&kop.StOncePerTurn != 0 && st.sl != NoSlot && !s.mayPlayFolds(k, p, o) {
-			s.markUsed(st.obj, uint8(abIndex(k, s.cardAt(st.sl), st.a)))
+		if st.a.Static.StFlags&kop.StOncePerTurn != 0 && !s.mayPlayFolds(k, p, o) {
+			u, ab, host := s.staticUseKey(k, st)
+			s.markUsedBy(u, ab, host)
 		}
 		return false
 	})

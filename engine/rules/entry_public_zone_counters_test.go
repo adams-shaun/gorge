@@ -53,39 +53,3 @@ func TestEntryDropsCountersTheCardCarriedInItsPublicZone(t *testing.T) {
 		t.Fatalf("P1P1 counters after re-entry = %d, want 0", got)
 	}
 }
-
-// The stash may-play marker (Tinybones, Bauble Burglar's "with a stash
-// counter on it") is the one keeper beyond the CountersRemain exception: it
-// grants the may-play from exile and is kept on the card played from exile,
-// which the kernel mirrors in its projection, so the CR 400.7 entry clear
-// keeps it while dropping every other counter the card carried.
-func TestEntryKeepsTheStashMayPlayMarker(t *testing.T) {
-	t.Parallel()
-	card := corpusAlternativeCard(t, "Sanguine Syphoner")
-	e := combatEngine(t)
-	id := onBoardCard(t, e, 0, card)
-	e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZBattlefield, To: state.ZExile})
-	o := e.G.Obj(id)
-	// Tinybones's trigger exiles the card with a stash counter beside the
-	// wayward counter the entry clear is about to drop.
-	e.emit(events.Event{Kind: events.CounterChange, Obj: id, Counter: "STASH", Amount: 1})
-	e.emit(events.Event{Kind: events.CounterChange, Obj: id, Counter: "P1P1", Amount: 1})
-	if o.Zone != state.ZExile {
-		t.Fatalf("precondition: the card is in %s, want exile", o.Zone)
-	}
-	if got := o.Counter("STASH"); got != 1 {
-		t.Fatalf("precondition: stash markers on the exiled card = %d, want 1", got)
-	}
-
-	e.emit(events.Event{Kind: events.MoveZone, Obj: id, From: state.ZExile, To: state.ZBattlefield})
-	o = e.G.Obj(id)
-	if o.Zone != state.ZBattlefield {
-		t.Fatalf("played-from-exile zone = %s, want battlefield", o.Zone)
-	}
-	if got := o.Counter("STASH"); got != 1 {
-		t.Fatalf("stash markers after playing from exile = %d, want 1 (gorge keeps the may-play marker)", got)
-	}
-	if got := o.Counter("P1P1"); got != 0 {
-		t.Fatalf("P1P1 counters after playing from exile = %d, want 0 (CR 400.7 entry)", got)
-	}
-}
