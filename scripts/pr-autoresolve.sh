@@ -9,7 +9,7 @@
 # and almost every open dirac PR then conflicts on them alone (.github/workflows/pr-autoresolve.yml runs this for each
 # CONFLICTING PR on every push to main). Recipes, each checked by its own test after the rebuild:
 #   support        DIRAC_UPDATE_SUPPORT=1 TestSupportDocIsCurrent ./dirac/kgen (also after kgen-pins: it reads them)
-#   kgen-pins      KGEN_REPIN=1 then DIRAC_PIN_STRICT=1 over the pin tests ./dirac/kgen (a fall is refused)
+#   kgen-pins      main's rows plus the PR's added ones (--union), then KGEN_REPIN=1 then DIRAC_PIN_STRICT=1 over the pin tests ./dirac/kgen (a fall is refused)
 #   kop-ordinals   KOP_ORDINALS_REGEN=1 TestKopOrdinalsUnchanged ./dirac/kop: rows re-derived from the merged constants
 #   dirac-layout   DIRAC_UPDATE_LAYOUT=1 over the layout pin tests ./dirac
 #   func-ceilings  a keyed 3-way row merge (main's rows, plus each row the PR added, changed or deleted); never lowered
@@ -38,6 +38,16 @@ if [ "${1:-}" = --match ]; then
   shift; bad=0
   for p; do recipe_for "$p" >/dev/null || { echo "$p"; bad=1; }; done
   exit $bad
+fi
+
+# --union MAIN PR [BASE]: MAIN's file, then each data row of PR whose key (first column) MAIN lacks and BASE (the merge
+# base, optional) did not have: a row the PR added, e.g. the acceptance row of a new set list. Main's deletions stay.
+if [ "${1:-}" = --union ]; then
+  [ $# -ge 3 ] || { echo "usage: pr-autoresolve.sh --union MAIN PR [BASE]" >&2; exit 2; }
+  cat "$2"
+  awk -F'\t' 'FILENAME == ARGV[3] { if (!/^#/ && NF && !($1 in seen)) print; next }
+    !/^#/ && NF { seen[$1] = 1 }' "$2" "${4:-/dev/null}" "$3"
+  exit 0
 fi
 
 dry= keep=
@@ -119,6 +129,14 @@ for f in "${conflicted[@]}"; do
         for (k in r) print r[k] > rows
       }' "$t/b" "$t/o" "$t/m"
     { cat "$t/h"; LC_ALL=C sort "$t/r"; } >"$f"; rm -rf "$t" ;;
+  kgen-pins)
+    # Main's side, plus each row the PR added (a new list's acceptance row): KGEN_REPIN only revises rows that exist.
+    t=$(mktemp -d)
+    git show ":1:$f" >"$t/b" 2>/dev/null; git show ":2:$f" >"$t/o" 2>/dev/null
+    if git show ":3:$f" >"$t/m" 2>/dev/null; then
+      bash "$here/pr-autoresolve.sh" --union "$t/m" "$t/o" "$t/b" >"$f"
+    else git rm -q -- "$f"; rm -rf "$t"; continue; fi
+    rm -rf "$t" ;;
   *)
     # Main's side; the recipe rebuilds it below.
     if git cat-file -e ":3:$f" 2>/dev/null; then git checkout -q --theirs -- "$f"; else git rm -q -- "$f"; continue; fi ;;
