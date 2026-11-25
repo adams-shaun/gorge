@@ -174,7 +174,7 @@ func (s *State) applyChooseCard(k *prep, a Action) {
 		}
 		s.g.chosen[s.g.nchosen] = Obj(a.Source())
 		s.g.nchosen++
-		if in.B.N&1 != 0 {
+		if in.B.N&1 != 0 { // seat-ok: an instruction flag bit
 			// RememberChosen$ on a counted pick: the kernel's C code
 			// carries the count, so kgen rides the remember flag in B and
 			// each taken card joins the resolution's remembered set (the
