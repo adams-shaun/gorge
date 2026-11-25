@@ -27,9 +27,8 @@ import (
 //     graveyard rides kop.StatUnearthGrant (offZoneUnearth, kw_unearthgrant.go);
 //     Cycling and TypeCycling in a hand ride kop.StatCyclingGrant
 //     (offZoneCycling, kw_cyclinggrant.go);
-//   - a hand Miracle grant keeps the generic refusal: gorge offers the granted
-//     miracle trigger and cast, which the kernel does not (a lockstep decision
-//     divergence on Aminatou, Veil Piercer).
+//   - a hand Miracle grant rides kop.StatMiracleGrant (handMiracleGrant,
+//     lower_miraclegrant.go; kw_miracle.go miracleCostOf).
 //
 // None of them is a kop.StatContinuous: the kernel's battlefield readers
 // match a filter without reading its zone, so a Continuous static with an
@@ -441,6 +440,8 @@ func (lc *lowerCtx) affectedZone(sp *params, st *lStatic, aff, az string) (extra
 		return nil, true, lc.graveEscapeGrant(sp, st, aff) // lower_escapegrant.go
 	case az == "Hand" && !sp.is("MayPlay", "True") && strings.HasPrefix(sp.str("AddKeyword"), "Warp"):
 		return nil, true, lc.handWarpGrant(sp, st, aff) // lower_warpgrant.go
+	case az == "Hand" && !sp.is("MayPlay", "True") && strings.HasPrefix(sp.str("AddKeyword"), "Miracle"):
+		return nil, true, lc.handMiracleGrant(sp, st, aff) // lower_miraclegrant.go
 	case az == "Graveyard" && !sp.is("MayPlay", "True") && inertCountAs(sp.str("AddHiddenKeyword"), aff):
 		return nil, true, graveCountAsStatic(sp, st) // lower_escapegrant.go
 	case az == "All" && offZonePTShape(sp, aff):

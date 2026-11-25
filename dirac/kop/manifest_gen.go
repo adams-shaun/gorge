@@ -1638,75 +1638,89 @@ const ExtPutCounterChoice ExtOp = 98
 
 func init() { extOpNames[ExtPutCounterChoice] = "PutCounterChoice" }
 
+// ExtOp (dirac/manifest/ExtOp/ExtChoosePlayerEach)
+//
+// A RepeatEach player body's opponent choice whose chooser is the repeated player (Bend or Break: DB ChoosePlayer Defined$ Remembered Choices$ Player.OpponentOf Remembered; gorge effChoosePlayer pools over the remembered player's AliveFrom matching Player.OpponentOf Remembered): that player chooses one of their opponents (ChGenPlayer, mode = the seat, the pool of oppsFrom(eachPl)), asked only with more than one (one is recorded unasked, the oracle's forcedPlayerChoice; none records an empty choice). Kept in the resolution (res.chPl, seat + 1) for the chain's TwoPiles Chooser$ ChosenPlayer (ExtTwoPilesEach); a chain reader past the Cleanup ClearChosenPlayer$ finds none, as gorge's cleared choice is. dirac/act_pileseach.go.
+const ExtChoosePlayerEach ExtOp = 99
+
+func init() { extOpNames[ExtChoosePlayerEach] = "ChoosePlayerEach" }
+
 // Encore (dirac/manifest/ExtOp/ExtEncore)
 //
 // ExtEncore: AB$ Encore (CR 702.141a; gorge effEncore): for each opponent, from the resolving controller in turn order, one token copy of Obj (B and C as OpCopyAsTokenEx), which attacks that opponent this turn if able; one AtEOT$ sacrifice trigger for all of them. dirac/kw_encore.go.
-const ExtEncore ExtOp = 99
+const ExtEncore ExtOp = 102
 
 func init() { extOpNames[ExtEncore] = "Encore" }
 
 // ExtOp (dirac/manifest/ExtOp/ExtExileFaceDown)
 //
 // ChangeZone / ChangeZoneAll ExileFaceDown$ True (no WithMayLook$, no DefinedExiler$) beside RememberChanged$ True, the move first in its program: right after the move, each remembered object now in exile is marked exiled face down by the resolving source (gorge applyMoveFaceDown's blind exiled_with_face_down marker: FaceDown, ExiledWith the source, nobody the looker; apply_zone.go). The mark is the Dig face-down exile's (zone_exilefacedown.go exwFace). dirac/zone_exilefacedownmove.go.
-const ExtExileFaceDown ExtOp = 102
+const ExtExileFaceDown ExtOp = 103
 
 func init() { extOpNames[ExtExileFaceDown] = "ExileFaceDown" }
 
 // ExtOp (dirac/manifest/ExtOp/ExtMonarchJail)
 //
 // Palace Jailer's exile until an opponent becomes the monarch (CR 610.3, 610.3b; gorge ChangeZone exileUntilOpponentMonarchMet plus the Effect's BecomeMonarch promise): Obj the target is exiled and a monarch link is recorded, unless an opponent became the monarch since the ability was put on the stack.
-const ExtMonarchJail ExtOp = 103
+const ExtMonarchJail ExtOp = 104
 
 func init() { extOpNames[ExtMonarchJail] = "MonarchJail" }
 
 // Myriad (dirac/manifest/ExtOp/ExtMyriad)
 //
 // ExtMyriad: DB$ Myriad (CR 702.116a; gorge effMyriad): for each opponent other than the defending player, from the controller in turn order, the controller is asked (ChGenMyriad yes/no; gorge offers a planeswalker of the asked player too, each a yes over that walker) and a yes makes a token copy of Obj (B and C as OpCopyAsTokenEx) tapped and attacking that player; each copy registers its end-of-combat exile promise (gorge scheduleAtEOTRider __kwWarpExile at this turn's end of combat step). dirac/kw_myriad.go.
-const ExtMyriad ExtOp = 104
+const ExtMyriad ExtOp = 105
 
 func init() { extOpNames[ExtMyriad] = "Myriad" }
 
 // ExtOp (dirac/manifest/ExtOp/ExtOptInSeat)
 //
 // ExtOptInSeat: the head of an OpRepeatEachPlayer body under RepeatOptionalForEachPlayer$ True (gorge effRepeatEach's repeatEachElectionDecision, ResumeKind repeat_each_optional): the repeated player (the loop's own seat, not the controller) is asked yes / no (ChGenOptInSeat, canonical kinds yes_seat / no_seat); B.N the body's instructions after this one, which a no skips (the player's body is not run and the loop goes on to the next player). dirac/act_optinseat.go.
-const ExtOptInSeat ExtOp = 105
+const ExtOptInSeat ExtOp = 106
 
 func init() { extOpNames[ExtOptInSeat] = "OptInSeat" }
 
 // Pair (dirac/manifest/ExtOp/ExtPair)
 //
 // ExtPair: Soulbond's optional pairing (CR 702.95a; gorge engine/effects/soulbond.go effPair): the unpaired battlefield creature Obj may pair with another unpaired creature its trigger's controller controls; C 1 restricts the pick to the triggering entrant (RestrictToRemembered$).
-const ExtPair ExtOp = 106
+const ExtPair ExtOp = 107
 
 func init() { extOpNames[ExtPair] = "Pair" }
 
 // ExtOp (dirac/manifest/ExtOp/ExtPayLifeX)
 //
 // The as-enters "pay any amount of life" ask (CR 614.12; gorge's R:Event$ Moved ReplaceWith$ StoreSVar body costing Mandatory PayLife<X>, cast_etbchoice.go etbPayLifeBound / etbPayLifeOptions: a KChoose of Kind "paylife" options 0..bound, the amount on Amount), the first instruction of an enters program. B the cap value (gorge's XMax$; the constant 32767 when the body has none), C the ExtStoreNum C field of the stored name (name index, delete flag, printed default; kop.StoreNumC). The controller is asked 0..min(life, cap) as a ChGenPayLife decision (mode = the amount); the answer loses that much life through loseLife and writes it as the entering permanent's stored number (act_storenum.go numStore), the Count$xPaid the body stores. dirac/repl_paylife.go.
-const ExtPayLifeX ExtOp = 107
+const ExtPayLifeX ExtOp = 108
 
 func init() { extOpNames[ExtPayLifeX] = "PayLifeX" }
 
 // ExtOp (dirac/manifest/ExtOp/ExtRememberPlayer)
 //
 // Pump RememberObjects$ TargetedController: record the target's controller as the resolution's player (res.chPl) so the chained Draw can read it after the GainControl (Rules of Acquisition; CR 608.2c).
-const ExtRememberPlayer ExtOp = 108
+const ExtRememberPlayer ExtOp = 109
 
 func init() { extOpNames[ExtRememberPlayer] = "RememberPlayer" }
 
 // RepeatOptional (dirac/manifest/ExtOp/ExtRepeatOptional)
 //
 // ExtRepeatOptional: an OpRepeatWhile body's RepeatOptional$ election (gorge effRepeat's repeat_optional "Repeat this process?"). B.N 0 at the body's head: C is the pass's progress condition, and a pass that starts without it is the last one, no election follows it (gorge's changed-nothing shortcut, CR 732.2a). B.N 1 at the body's tail: unless the pass was the last, the resolving controller is asked yes / no (ChGenConfirm); a no ends the loop. dirac/act_repeatoptional.go.
-const ExtRepeatOptional ExtOp = 109
+const ExtRepeatOptional ExtOp = 111
 
 func init() { extOpNames[ExtRepeatOptional] = "RepeatOptional" }
 
 // ExtOp (dirac/manifest/ExtOp/ExtStoreNum)
 //
 // StoreSVar's per-object number write (gorge effStoreSVar, events.StoreSVar -> Object.RuntimeSVars; CR 400.7): B the value (any ValueRef, evaluated at the write), C the SVar name (Table.SVarNames index, low 4 bits) with the delete-on-default flag (kop.StoreNumDel) and the printed default beside it (kop.StoreNumDefault); the target is the resolving source. The number is a record of the object-set store (kind osNum) keyed by the object, whatever zone it is in: only a departure from the battlefield clears it (gorge's wasBattlefield reset), so a write after the source left persists on the departed object. dirac/act_storenum.go.
-const ExtStoreNum ExtOp = 111
+const ExtStoreNum ExtOp = 112
 
 func init() { extOpNames[ExtStoreNum] = "StoreNum" }
+
+// ExtOp (dirac/manifest/ExtOp/ExtTwoPilesEach)
+//
+// A RepeatEach player body's battlefield TwoPiles (Bend or Break: Defined$ Remembered, Separator$ Remembered, Chooser$ ChosenPlayer, ValidCards$ Land.!token+RememberedPlayerCtrl; gorge effTwoPiles' battlefield arm over the repeated player): F names the repeated player's permanents (CtrlEachPl). They separate them into two piles (ChGenPileSplit, a permanent per pick, AkDone-closed, picking them all ends it; a one-permanent pool poses no split), the opponent their chain's ExtChoosePlayerEach chose picks one (ChGenPileChoose mode 0 the picks, 1 the rest; resChosenPlayer), and the chosen pile is destroyed while the other is tapped (ChosenPile$ DestroyAll Land.IsRemembered then UnchosenPile$ TapAll Land.IsRemembered: each pile's members still matching F run the ordinary destroy / tap-all passes, gorge twoPilesRunPile's fresh Remembered = pile). Pile A rides genState.sacM, the pool player genState.pickP; both are cleared at the end. B.N&1: the pick's mode-1 answer names pile A (the chosen/unchosen piles swap; the lockstep mutation). dirac/act_pileseach.go.
+const ExtTwoPilesEach ExtOp = 113
+
+func init() { extOpNames[ExtTwoPilesEach] = "TwoPilesEach" }
 
 // FilterWord (dirac/manifest/FilterWord/FwAttacking)
 //
@@ -2472,13 +2486,18 @@ const StatRetraceGrant StaticKind = 73
 // StatCyclingGrant is a Continuous static's AffectedZone$ Hand AddKeyword$ Cycling or TypeCycling grant (Rhet-Tomb Mystic, Jo Grant, Tectonic Reformation, Homing Sliver; CR 702.29a, 702.29e): Filter matches the card in a hand and GrantBody-1 is the latent cycling body (the printed kwCycling / kwTypeCycling expansion, cards.GrantedKeywordAbility, AfCycling, ActZone hand) the hand offer runs with the affected card as its source, discarding it as the cost. The offer is the hand owner's, whoever controls the static (kw_cyclinggrant.go).
 const StatCyclingGrant StaticKind = 74
 
+// StaticKind (dirac/manifest/StaticKind/StatMiracleGrant)
+//
+// StatMiracleGrant is a Continuous static's AffectedZone$ Hand AddKeyword$ Miracle:<cost> grant (Lorehold, the Historian; Molecule Man; Aminatou, Veil Piercer; CR 702.94a): Filter matches the card in a hand and the granted miracle cost is GrantCost, or under CardCostLess the card's own mana cost reduced by CardCostLess-1 generic (Miracle:ManaCost:4). A card with printed miracle keeps its own (gorge derivedKeywordParamH reads the printed head first); the first grant in perm.ts order wins. Read live from the battlefield at the draw, the reveal-trigger resolution and the cast, never stamped on the card (kw_miracle.go miracleCostOf).
+const StatMiracleGrant StaticKind = 75
+
 // stat AssignNoCombatDamage (dirac/manifest/StaticKind/StatNoCombatDamage)
-const StatNoCombatDamage StaticKind = 75
+const StatNoCombatDamage StaticKind = 76
 
 // StaticKind (dirac/manifest/StaticKind/StatUnearthGrant)
 //
 // StatUnearthGrant is a Continuous static's AffectedZone$ Graveyard AddKeyword$ Unearth grant (Sedris, the Traitor King, Mishra, Tamer of Mak Fawa, Dregscape Sliver, Solemn Doomguide; CR 702.84a): Filter matches the card in the graveyard and GrantBody-1 is the latent unearth body (the printed kwUnearth expander's AB$ ChangeZone, cards.GrantedKeywordAbility) the graveyard offer runs with the affected card as its source. The body's own Cost prices the explicit-cost shape; a zero body cost is the CardManaCost mark, which the offer charges as the affected card's own mana cost (kw_unearthgrant.go).
-const StatUnearthGrant StaticKind = 76
+const StatUnearthGrant StaticKind = 77
 
 // trig ChaosEnsues (dirac/manifest/TrigEvent/TrigChaosEnsues)
 const TrigChaosEnsues TrigEvent = 52
