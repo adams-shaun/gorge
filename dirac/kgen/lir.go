@@ -60,6 +60,7 @@ const (
 	rTriggerOpps                  // each opponent of the trigger's player (kop.RefTriggerOpponents; Defined$ TriggeredCardOpponent, lower_triggeropps.go)
 	rResChosenPlayer              // the resolution's chosen player: OpChoosePlayer's random pick (gorge Ctx.Chosen's player entry, Maddening Hex's Attach destination)
 	rExiledWithOwner              // the seat whose exile holds a card exiled with the source (kop.RefExiledWithOwner; DefinedPlayer$ Player.HasCardsInExile_Card.ExiledWithSource_GE1, Unidentified Hovership's leave trigger)
+	rEnchantedCtrl                // the controller of the permanent the source is attached to, read live, nobody once the source left (kop.RefEnchantedCtrl; Defined$ EnchantedController, Paralyze)
 	rCount
 )
 
@@ -105,6 +106,7 @@ var refNames = [...]string{
 	rTriggerOpps:          "TriggerOpps",
 	rResChosenPlayer:      "ResChosenPlayer",
 	rExiledWithOwner:      "ExiledWithOwner",
+	rEnchantedCtrl:        "EnchantedCtrl",
 }
 
 type lRef struct {
@@ -252,6 +254,7 @@ const (
 	vSpellsLastTurn      // the spells cast last turn: N=0 whether any player cast one (0 or 1), N=1 the most one player cast (kop.ExSpellsCastLastTurn; value_spellslastturn.go)
 	vDevotionChosen      // the controller's devotion to the colour recorded on the source (Count$Devotion.Chosen, kop.ExDevotionChosen; value_devotion.go)
 	vSVarNum             // the evaluating source's StoreSVar number for the name S, else the printed body Sub[0] (kop.ExSVarNum; lower_storenum.go)
+	vMostProminentType   // the size of the largest group of battlefield objects matching F that share a creature type (Count$MostProminentCreatureType; kop.ExMostProminentCreatureType; value_mostprominent.go)
 	vReplLKIPow          // the replaced creature's derived power before a dies-to-exile rider moved it (ReplacedCardLKI$CardPower; value_repllki.go)
 	vCount_
 )
@@ -378,6 +381,7 @@ var valNames = [...]string{
 	vCmdCastTotal:        "CmdCastTotal",
 	vSpellsLastTurn:      "SpellsLastTurn",
 	vReplLKIPow:          "ReplLKIPow",
+	vMostProminentType:   "MostProminentType",
 }
 
 // lValue is an amount: Kind with its operand, then Mul/Div/Add applied in
@@ -1152,6 +1156,7 @@ type lMana struct {
 	Deferred   bool     // a TriggersWhenSpent$ source gorge's planner defers (kop.Ability.ManaDeferred; lower_deferredmana.go)
 	Split      *lSplit  // a Condition-split production's arm (kop.Ability.SplitGate; lower_condsplit.go)
 	AskColour  bool     // the activation asks one colour, records it and makes Amount mana of it (kop.Ability.ManaAskColour; lower_askcolourmana.go)
+	Unless     bool     // the ask's one mana is added unless any player pays {1} (kop.Ability.ManaUnless; lower_askcolourmana.go)
 	HasteValid *lFilter // AddsKeywords$ Haste: a spell matching it, paid with this mana, gains haste until end of turn (kop.Ability.ManaHasteValid)
 	// IdentityPotential: a Produced$ ColorIdentity source a rider or a cost
 	// beyond {T} kept out of the reflected shape; the potential walk still
@@ -1215,7 +1220,7 @@ type lStatic struct {
 	Grant   []int // latent abilities the affected objects gain
 	// GrantBody: the latent ability the affected objects' granted-keyword
 	// activation runs, a 0-based index into the card's Abilities like Grant
-	// (always set when the static's kind is UnearthGrant; kop.Static.GrantBody
+	// (always set when the static's kind is UnearthGrant or CyclingGrant; kop.Static.GrantBody
 	// is 1-based and 0 means none, the offer never grants it;
 	// lower_offzone.go offZoneUnearth)
 	GrantBody int
@@ -1339,6 +1344,7 @@ type lRepl struct {
 	LibBottom, LibShuffle, LibFromBattlefield bool
 	F2                                        *lFilter // PreventDamageFilt / PreventDamageN: the damage source (F is the recipient)
 	Phase                                     uint8    // BeginPhaseSkip: the kop.Step it skips (Repl.A)
+	Body                                      int      // DamageInstead: the kop.ReplDmgIns* effect bits (Repl.A's low byte); F2 is the damage source, F the damaged permanent, Ctr the counter kind
 }
 
 // lCard is a lowered card.
@@ -1401,6 +1407,9 @@ type lCard struct {
 	Paradigm       bool      // K:Paradigm (SOS): resolved -> exile, a free cast from exile each first main phase
 	Sneak          *manaCost // K:Sneak:<cost> (CR 702.190a): the declare-blockers alternative cost (plus the return)
 	WebSling       *manaCost // K:Web-slinging:<cost> (CR 702.188a): the hand's alternative cost (plus returning a tapped creature)
+	FlipCast       uint8     // kop.FlipConverted (K:More Than Meets the Eye) or kop.FlipDisturb (K:Disturb): the back face's cast keyword (lower_flipcast.go)
+	FlipCost       *manaCost // FlipCast's printed cost
+	LivingMetal    bool      // K:Living metal (CR 702.161a): its static is the face's own lowered Override
 	MayFlash       *manaCost // K:MayFlashCost:<cost> (CR 702.8): the extra mana that buys an instant-timing cast from the hand
 	MayFlashBehold *lFilter  // K:MayFlashCost:Behold<1/Type>: the extra is beholding one of these, no mana (MayFlash is empty)
 	FbBeholdN      int       // K:Flashback:<mana> Behold<N/Type>: the flashback cast also beholds N of FbBeholdF (lower_fbcost.go, CardDef.FbBehold)
