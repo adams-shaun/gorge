@@ -1,8 +1,15 @@
 package dirac
 
 import (
+	"sync/atomic"
+
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
+
+// MiracleGrantStats counts the reveal triggers a granted miracle (a
+// StatMiracleGrant static, miracleCostOf) queued for a card without printed
+// miracle.
+var MiracleGrantStats struct{ Reveals atomic.Int64 }
 
 // Miracle (CR 702.94a; gorge rules/miracle.go, trigger_queue.go,
 // stack.go): the first card a player draws in a turn (never the opening
@@ -31,8 +38,14 @@ const raGenMiracle = raGenManifestDread + 51 // the miracle cast-or-keep ask (Ch
 func (s *State) queueMiracle(o Obj) {
 	k := s.k()
 	ob := &s.objs[o]
-	if k.gen == nil || !k.gen.anyMiracle || !k.t.Cards[ob.card].HasMiracle {
+	if k.gen == nil || !k.gen.anyMiracle {
 		return
+	}
+	if _, ok := s.miracleCostOf(k, o); !ok {
+		return
+	}
+	if !k.t.Cards[ob.card].HasMiracle {
+		MiracleGrantStats.Reveals.Add(1)
 	}
 	p := ob.owner()
 	s.enqueue(o, ob.ver, ob.card, abMiracle, p, o, p, 0)
@@ -86,7 +99,11 @@ func (s *State) resolveMiracle(k *prep) {
 // pay. The kernel prices the same bound (availPotentialFor) and so offers it.
 func (s *State) miracleCastable(k *prep, o Obj, p uint8) bool {
 	c := s.objs[o].card
-	cost := s.adjustCost(k, p, c, o, k.t.Cards[c].MiracleCost)
+	base, ok := s.miracleCostOf(k, o)
+	if !ok {
+		return false // a granted miracle whose grant is gone (gorge askMiracleCast: no miracleCost, no ask)
+	}
+	cost := s.adjustCost(k, p, c, o, base)
 	return s.keywordCastAffords(k, p, o, &cost) && s.spellTargetsFeasible(k, c, p)
 }
 
@@ -125,9 +142,61 @@ const castMiracleTgt uint8 = 0xff
 // miracleCastPl is beginCast's trigPl for that cast: trigPlMiracle, so it is
 // priced at the miracle cost and lowers no witness from the start; pl
 // otherwise.
-func miracleCastPl(k *prep, c CardID, mode, tgt, pl uint8) uint8 {
-	if mode != 0 || tgt != castMiracleTgt || !k.t.Cards[c].HasMiracle {
+func (s *State) miracleCastPl(k *prep, o Obj, mode, tgt, pl uint8) uint8 {
+	if mode != 0 || tgt != castMiracleTgt {
+		return pl
+	}
+	if _, ok := s.miracleCostOf(k, o); !ok {
 		return pl
 	}
 	return trigPlMiracle
+}
+
+// miracleBase is the miracle cost a miracle cast prices each target at
+// (cost_reducespell.go): e is a miracle-priced spell entry.
+func (s *State) miracleBase(k *prep, e *stackEntry) (kop.ManaCost, bool) {
+	if e.trigPl != trigPlMiracle {
+		return kop.ManaCost{}, false
+	}
+	return s.miracleCostOf(k, e.obj)
+}
+
+// miracleCostOf is card o's miracle cost (gorge miracleCost): its printed one,
+// else the first grant in force (a StatMiracleGrant static, in perm.ts order
+// as gorge's derived keyword list is composed), read live; false when it has
+// none. The card is read as a card in its owner's hand even while the cast
+// has it on the stack: the grant is the hand's, and a cast begun from the
+// miracle trigger had it there.
+func (s *State) miracleCostOf(k *prep, o Obj) (kop.ManaCost, bool) {
+	ob := &s.objs[o]
+	c := ob.card
+	cd := &k.t.Cards[c]
+	if cd.HasMiracle {
+		return cd.MiracleCost, true
+	}
+	if k.gen == nil || !k.gen.anyMiracle {
+		return kop.ManaCost{}, false
+	}
+	var cost kop.ManaCost
+	got := false
+	mo := o
+	if ob.zone != kop.ZoneHand {
+		mo = NoObj // on the stack mid-cast: the hand-zone filter reads the printed card (matchCardOneAt's zone test needs the object)
+	}
+	s.eachStaticTS(k, sclsOffKwG, func(st statSrc) bool {
+		a := st.a
+		if a.Kind != kop.AbStatic || a.Static.Kind != kop.StatMiracleGrant {
+			return true
+		}
+		if !s.statCond(k, st) || !s.matchCardGenAt(k, a.Static.Filter, c, ob.owner(), st.ctrl, mo, nil) {
+			return true
+		}
+		cost, got = a.Static.GrantCost, true
+		if less := a.Static.CardCostLess; less != 0 {
+			cost = cd.Cost
+			cost.Generic -= min(cost.Generic, less-1) // CR 702.94a "reduced by": never below zero
+		}
+		return false
+	})
+	return cost, got
 }
