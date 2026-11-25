@@ -243,6 +243,10 @@ func runInitiativeUpkeepScenario(t *testing.T, reg *cards.Registry) (*Engine, Co
 	hunter := mustCorpusCard(t, reg, "Avenging Hunter")
 	e, cfg := initiativeEngine(t, reg, []*cards.Card{hunter}, nil)
 	resolveAvengingHunterETB(t, e)
+	// The ETB take is itself a CR 726.2 venture (its trigger went on the
+	// stack and resolved through drainInitiative), so the upkeep assertion
+	// counts the delta rather than every venture of the game.
+	etbVentures := initiativeVentureEvents(e, 0)
 
 	// A non-holder's upkeep must queue nothing: seat 1 has no initiative.
 	// beginTurn is the real turn entry (it runs the untap and upkeep
@@ -267,8 +271,8 @@ func runInitiativeUpkeepScenario(t *testing.T, reg *cards.Registry) (*Engine, Co
 		t.Fatal("the initiative holder's upkeep did not queue the venture into Undercity")
 	}
 	drainInitiative(t, e)
-	if n := initiativeVentureEvents(e, 0); n != 1 {
-		t.Fatalf("the initiative holder's upkeep pushed %d ventures, want 1", n)
+	if n := initiativeVentureEvents(e, 0); n != etbVentures+1 {
+		t.Fatalf("the initiative holder's upkeep pushed %d ventures, want %d (the ETB take plus one)", n, etbVentures+1)
 	}
 	_, room := dungeonRoom(t, e, 0)
 	if room != "Forge" {

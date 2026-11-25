@@ -459,6 +459,12 @@ type HostTriggers interface {
 	// (the body is not the resolving source's own Execute$ SVar); the caller
 	// then keeps the inline resolution.
 	QueueReflexiveTrigger(c *Ctx, execute string, body *cards.SA, remembered []state.Target) bool
+	// QueueInitiativeVenture puts the source-less CR 726.2 inherent ability
+	// ("Whenever a player takes the initiative, that player ventures into
+	// Undercity") into the trigger queue for p, so a TakeInitiative
+	// resolution only moves the designation: the venture goes on the stack
+	// at the next priority window like any other triggered ability.
+	QueueInitiativeVenture(p state.PlayerID)
 }
 
 // HostCastLedger is the cast-history half of the ledger role: what was cast this
