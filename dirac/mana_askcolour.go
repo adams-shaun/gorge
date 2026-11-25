@@ -81,14 +81,15 @@ func (s *State) askColUnits(k *prep, sl Slot, av *avail) {
 	}
 }
 
-// askColBoundUnit is the source's unit in the prefix search's relaxed gate
-// (addTapsDeferUnits). gorge's PotentialMana reads the AB$ ChooseColor head's
-// own Mana params (params.ManaOf: no Produced$, no Amount$), one {C}, so a
-// play only the source's devotion mana pays is never searched. Another
-// source opens the bound in its colours (an Amount$ X source, a Produced$ Any
-// one: potentialUnbounded), and gorge's search then reaches the answers of
-// those colours at their real amount (askColValue).
-func (s *State) askColBoundUnit(k *prep, sl Slot, av *avail) {
+// askColBoundUnits is the source's unit in the potential bound and in the
+// prefix search's relaxed gate (addTapsDeferUnits, availPotentialFor).
+// gorge's PotentialMana reads the AB$ ChooseColor head's own Mana params
+// (params.ManaOf: no Produced$, no Amount$), one {C}, so a play only the
+// source's devotion mana pays is never searched. Another source opens the
+// bound in its colours (an Amount$ X source, a Produced$ Any one:
+// potentialUnbounded), and gorge's search then reaches the answers of those
+// colours at their real amount (askColValue).
+func (s *State) askColBoundUnits(k *prep, sl Slot) (uint8, uint8) {
 	open := s.askColOpenMask(k, sl)
 	mask, best := uint8(0), 0
 	for col := uint8(0); col < 5; col++ {
@@ -101,10 +102,31 @@ func (s *State) askColBoundUnit(k *prep, sl Slot, av *avail) {
 		}
 	}
 	if mask == 0 {
-		av.addUnits(uint8(kop.ColC), 1)
-		return
+		return uint8(kop.ColC), 1
 	}
-	av.addUnits(mask, uint8(min(best, maxDynMana)))
+	return mask, uint8(min(best, maxDynMana))
+}
+
+// askColBoundUnit is askColBoundUnits added to a's prefix-search census.
+func (s *State) askColBoundUnit(k *prep, sl Slot, av *avail) {
+	mask, n := s.askColBoundUnits(k, sl)
+	av.addUnits(mask, n)
+}
+
+// askColPotential folds the colour-asking source at sl into the potential
+// walk's bound as askColBoundUnits reads it: one {C} unless another source
+// opens the bound. gorge's potential never prices the head's devotion mana on
+// its own, so an open any-colour unit here offers a play its planner does not
+// (the kicked-cast over-offer).
+func (s *State) askColPotential(k *prep, sl Slot, pc *pcard, pain, life int, add, fold func(Slot, uint8, uint8), cen *potCensus) {
+	mask, n := s.askColBoundUnits(k, sl)
+	painDrop, painAdd := cen.painGate(pain, life, mask, add, fold)
+	painAdd(sl, mask, n)
+	if painDrop == 0 {
+		cen.tapRec(sl, mask, n)
+	}
+	cen.pain = 0
+	s.potentialTapExtraGated(k, sl, pc, mask, fold, cen, painDrop != 0)
 }
 
 // askColOpenMask is the colours another usable source of sl's controller
