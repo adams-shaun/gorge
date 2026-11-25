@@ -75,13 +75,14 @@ func (s *State) tapsWatchClassForeign(k *prep, p uint8, sl Slot) (painN int, def
 				continue // Activator$ Player.NonActive: the payer taps on their own turn
 			}
 			if a.Trig.Flags&kop.TfSelf != 0 {
-				// A self line classes only the tapped source's own tap. The
-				// Pain class stays with prepSelfTapsPain (City of Brass's
-				// printed mana ability); a Defer line classes the source when
-				// its listener slot is the tapped one (Zhur-Taa Druid's self
-				// TapsForMana line, whose ValidCard$ Card.Self is the
-				// builder's kop.TfSelf flag and not a filter).
-				if a.Trig.TapPlan != kop.TapPlanDefer || w != sl {
+				// A self TapsForMana line classes only its own permanent
+				// (Zhur-Taa Druid's damage row, Forbidden Orchard's deferred
+				// token). A self Taps line is the watermark path's
+				// (selfTapsDefer), and the source's own Pain-class line (City
+				// of Brass) is priced with its printed mana ability
+				// (prepSelfTapsPain): neither is a gap here. The bare self
+				// clause is the builder's kop.TfSelf flag, not a filter.
+				if w != sl || a.Trig.TapPlan != kop.TapPlanDefer || a.Trig.Flags5&kop.Tf5TapsForMana == 0 {
 					continue
 				}
 			} else if !s.matchPermGen(k, a.Trig.Filter, sl, s.perms[w].ctrl, w, layerFull) {
