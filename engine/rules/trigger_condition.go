@@ -801,6 +801,13 @@ func (e *Engine) presentZoneCountScoped(zone state.Zone, spec string, source sta
 			continue
 		}
 		for _, id := range e.G.Zone(zone, p) {
+			if id == e.lookBackDeparture {
+				// The object whose departure is the event a look-back walk is
+				// matching is not on the battlefield when the CR 603.4
+				// intervening-if is read (see engine_scratch.go's
+				// lookBackDeparture); it must not be counted.
+				continue
+			}
 			if o := e.G.Obj(id); o != nil && o.Ephemeral() {
 				continue // a token waiting to cease is no card (CR 111.7, 704.5d)
 			}
@@ -849,6 +856,13 @@ func (e *Engine) countPresentScoped(spec string, source state.ObjID, you state.P
 	// matchesSpec only reads state.
 	for _, p := range e.G.AliveFrom(0) {
 		for _, id := range e.G.Zone(state.ZBattlefield, p) {
+			if id == e.lookBackDeparture {
+				// The object whose departure is the event a look-back walk is
+				// matching is not on the battlefield when the CR 603.4
+				// intervening-if is read (see engine_scratch.go's
+				// lookBackDeparture); it must not be counted.
+				continue
+			}
 			o := e.G.Obj(id)
 			if o == nil || o.Zone != state.ZBattlefield {
 				continue
