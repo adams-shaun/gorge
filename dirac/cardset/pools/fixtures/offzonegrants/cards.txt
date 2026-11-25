@@ -6,11 +6,17 @@
 # (AffectedZone$ Graveyard AddKeyword$ Unearth, the granted activation
 # kw_unearthgrant.go) beside the rituals, vanilla creatures and basic lands
 # the lockstep decks play (dirac/oracle/affectedzone_lockstep_test.go,
-# offzone_unearth_lockstep_test.go).
+# offzone_unearth_lockstep_test.go), and the hand cycling grants (Rhet-Tomb Mystic,
+# Jo Grant, Tectonic Reformation, Homing Sliver; kw_cyclinggrant.go,
+# offzone_cycling_lockstep_test.go).
 Six
 Leyline of Transformation
 Ashes of the Fallen
 Sedris, the Traitor King
+Rhet-Tomb Mystic
+Jo Grant
+Tectonic Reformation
+Homing Sliver
 Raging Goblin
 Ornithopter
 Hill Giant
@@ -21,3 +27,4 @@ Forest
 Mountain
 Island
 Swamp
+Plains
