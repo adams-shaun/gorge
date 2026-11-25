@@ -255,6 +255,9 @@ func (id *identity) setLayout(m *Matchup) {
 		for s := 0; s < m.NSeat(); s++ {
 			id.gen += len(m.seatIx(s))
 		}
+		for s := range m.Planar {
+			id.gen += len(m.Planar[s])
+		}
 	}
 	if m == nil || len(m.Side[0])+len(m.Side[1]) == 0 {
 		return

@@ -398,7 +398,7 @@ func (s *State) painDamage(k *prep, sl Slot, p uint8, n int) {
 	// rider cap StallReplPlus loudly (replPlus): safe-side; the pool cannot
 	// reach two candidates for a land's self-damage today.
 	if k.gen != nil && (k.gen.anyRepl&(rbDblDmg|rbPrevNC|rbPrevDmgTo|rbProtAll|rbProtCol|rbPlusDmg|rbShield|rbPrevCol|rbPrevMill) != 0 ||
-		k.gen.anyRepl2&(rb2DmgMinus|rb2DmgSet) != 0) {
+		k.gen.anyRepl2&rb2DmgAny != 0) {
 		if n = s.replDamage(k, p, sl, s.cardAt(sl), code, false, n); n <= 0 {
 			return
 		}
@@ -729,11 +729,7 @@ func (s *State) painUnit(k *prep, sl Slot, pc *pcard, pass int, pk *planner, i i
 		}
 		pk.types[tc].avail++
 		pk.units[pk.nu] = sl
-		if pk.bfl {
-			pk.uobj[pk.nu] = Obj(i)
-		} else {
-			pk.uobj[pk.nu] = s.perms[sl].obj
-		}
+		pk.rankUnit(s, i, sl)
 		pk.utyp[pk.nu] = uint8(tc)
 		pk.rAb[pk.nu] = -1
 		pk.nu++
@@ -752,11 +748,7 @@ func (s *State) painUnit(k *prep, sl Slot, pc *pcard, pass int, pk *planner, i i
 	}
 	pk.types[tp].avail++
 	pk.units[pk.nu] = sl
-	if pk.bfl {
-		pk.uobj[pk.nu] = Obj(i)
-	} else {
-		pk.uobj[pk.nu] = s.perms[sl].obj
-	}
+	pk.rankUnit(s, i, sl)
 	pk.utyp[pk.nu] = uint8(ti)
 	pk.rAb[pk.nu] = -1
 	if restricted {
