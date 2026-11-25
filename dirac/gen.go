@@ -570,6 +570,9 @@ type genPrep struct {
 	landSub kop.SubMask
 	setIdx  []int16
 	setPC   []pcard
+	// anyDrawProgram: some card has a ReplDrawProgram replacement, so draw()
+	// runs the program scan (repl_drawprogram.go).
+	anyDrawProgram bool
 	// uses: the registered per-table flags (newGenUse; genneed.go), where a
 	// feature's fact goes instead of a new bool here
 	uses useSet
@@ -588,11 +591,12 @@ const (
 // word filled its 32 bits. Bit 0 in anyRepl2 only marks the word's presence
 // sites, the way anyRepl does for the first word.
 const (
-	rb2BeginPhase uint32 = 1 << iota // ReplBeginPhase: the step boundary consults the skip (repl_beginphase.go)
-	rb2LifeFloor                     // ReplLifeReduced: damage's life loss is floored (repl_lifefloor.go)
-	rb2DmgMinus                      // ReplDamageMinus: the event's damage is that much minus Repl.A (repl_dmgminus.go)
-	rb2DmgSet                        // ReplDamageSet: damage of the gate and up is set to Repl.A (repl_dmgminus.go)
-	rb2DmgInst                       // ReplDamageInstead: the damage is replaced by counters, mill, exile or draw (repl_dmginstead.go)
+	rb2BeginPhase  uint32 = 1 << iota // ReplBeginPhase: the step boundary consults the skip (repl_beginphase.go)
+	rb2LifeFloor                      // ReplLifeReduced: damage's life loss is floored (repl_lifefloor.go)
+	rb2DmgMinus                       // ReplDamageMinus: the event's damage is that much minus Repl.A (repl_dmgminus.go)
+	rb2DmgSet                         // ReplDamageSet: damage of the gate and up is set to Repl.A (repl_dmgminus.go)
+	rb2DmgInst                        // ReplDamageInstead: the damage is replaced by counters, mill, exile or draw (repl_dmginstead.go)
+	rb2DrawProgram                    // ReplDrawProgram: the draw pipeline runs the ability's Prog (repl_drawprogram.go)
 )
 
 // rb2DmgAny are the rb2 damage replacements the damage sites' gates open for.
@@ -847,6 +851,8 @@ func prepReplBit2(g *genPrep, a *kop.Ability, i int, pc *pcard) {
 		bit = rb2DmgSet // replDamage's set rewrite (repl_dmgminus.go)
 	case kop.ReplDamageInstead:
 		bit = rb2DmgInst // replDamage's replace-the-damage step (repl_dmginstead.go)
+	case kop.ReplDrawProgram:
+		bit = rb2DrawProgram // the draw pipeline runs the program (repl_drawprogram.go)
 	}
 	g.replBits2[i] |= bit
 	pc.hasStat = true
@@ -862,6 +868,7 @@ func prepFoldReplBits(g *genPrep) {
 		g.anyRepl2 |= b
 	}
 	g.anyBeginPhase = g.anyRepl2&rb2BeginPhase != 0 // repl_beginphase.go's step-boundary gate
+	g.anyDrawProgram = g.anyRepl2&rb2DrawProgram != 0
 }
 
 // prepRedNCOpen opens every replDamage site when a noncombat redamage or a
@@ -1447,7 +1454,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 				case kop.ReplLifeLossDouble:
 					g.replBits[i] |= rbDblLoss
 					pc.hasStat = true
-				case kop.ReplBeginPhase, kop.ReplLifeReduced, kop.ReplDamageMinus, kop.ReplDamageSet, kop.ReplDamageInstead:
+				case kop.ReplBeginPhase, kop.ReplLifeReduced, kop.ReplDamageMinus, kop.ReplDamageSet, kop.ReplDamageInstead, kop.ReplDrawProgram:
 					prepReplBit2(g, a, i, pc)
 				case kop.ReplDestroyHeal:
 					g.replBits[i] |= rbDestroyHeal

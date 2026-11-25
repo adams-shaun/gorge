@@ -1295,8 +1295,12 @@ ReplDoubleCountersOn	ReplKind	20
 ReplDoubleCountersYou	ReplKind	23
 ReplDoubleDamageToOpps	ReplKind	10
 ReplDoubleTokens	ReplKind	12
+ReplDrawAnyPlayer	untyped int	8
 ReplDrawMore	ReplKind	29
 ReplDrawNotFirst	untyped int	1
+ReplDrawOpponent	untyped int	4
+ReplDrawOptional	untyped int	2
+ReplDrawSkip	untyped int	16
 ReplEntersAsChoice	ReplKind	5
 ReplEntersProgram	ReplKind	6
 ReplEntersTapped	ReplKind	1

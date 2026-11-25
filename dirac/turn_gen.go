@@ -441,8 +441,25 @@ func (s *State) runReplProgAs(k *prep, sl Slot, c CardID, ab, pc uint8, src Slot
 		s.res.e.ctrl = c
 		defer func() { s.res.e.ctrl = was }()
 	}
+	isDrawProgram := false
+	if ra := &k.t.Cards[c].Abilities[ab]; ra.Kind == kop.AbReplacement && ra.Repl.Kind == kop.ReplDrawProgram {
+		// a Draw replacement body: ReplacedPlayer is the player drawing the
+		// replaced card, bound on the cold in-flight record
+		// (repl_drawprogram.go)
+		isDrawProgram = true
+		if ds := s.drawState(); len(ds) > 0 && ds[0].active {
+			was := s.res.e.trigPl
+			s.res.e.trigPl = ds[0].p
+			defer func() { s.res.e.trigPl = was }()
+		}
+	}
 	for i := int(pc); i < len(prog); i++ {
 		in := &prog[i]
+		if isDrawProgram {
+			// a Draw replacement body's own pc: the ask builders and answers
+			// read s.prog(k)[s.res.pc] for the op that posed the ask
+			s.res.pc = uint8(i)
+		}
 		switch in.Op {
 		case kop.OpBecomeCopy:
 			s.becomeCopyEnter(k, sl, in)
@@ -571,6 +588,17 @@ func (s *State) runReplProgAs(k *prep, sl Slot, c CardID, ab, pc uint8, src Slot
 				i += skip
 			}
 		default:
+			if isDrawProgram {
+				// a Draw replacement body's ordinary effect op: exec falls
+				// through to the core executor when execGen does not claim it
+				if !s.exec(k, in) {
+					if !saved.active {
+						s.res = saved
+					}
+					return
+				}
+				continue
+			}
 			s.execGen(k, in)
 		}
 	}
@@ -1672,6 +1700,10 @@ func (s *State) answerQueuedAsk(k *prep, a Action) {
 		n0 := s.g.nask
 		s.runReplProg(k, ask.sl, ask.card, uint8(ask.ab), ask.pc)
 		s.g.replaced = saveRep
+		if a := &k.t.Cards[ask.card].Abilities[uint8(ask.ab)]; a.Kind == kop.AbReplacement &&
+			a.Repl.Kind == kop.ReplDrawProgram && s.res.ask == raNone && s.g.nask == n0 {
+			s.drawProgramDone() // the resumed body finished
+		}
 		if ask.ts&askETBDeferred != 0 {
 			s.deferredETBFire(k, ask, n0) // ctr_choice.go
 		}

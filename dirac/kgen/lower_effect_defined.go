@@ -289,6 +289,14 @@ func (lc *lowerCtx) defined(v string) (lRef, error) {
 		return lRef{Kind: rDelayedRemembered}, nil
 	case "ReplacedCard":
 		return lRef{Kind: rReplaced}, nil
+	case "ReplacedPlayer":
+		// a Draw replacement body: the player drawing the replaced card. The
+		// kernel binds it as the program's trigger player
+		// (dirac/repl_drawprogram.go).
+		if !lc.drawReplBody {
+			return lRef{}, refuse("Defined$ ReplacedPlayer outside a Draw replacement body")
+		}
+		return lRef{Kind: rTriggeredPlayer}, nil
 	case "ChosenCard":
 		return lRef{Kind: rChosen}, nil
 	case triggeredDefenderOrPW:

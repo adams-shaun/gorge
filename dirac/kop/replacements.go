@@ -177,6 +177,17 @@ const ReplCopyFirstAttached = 1
 // ReplDrawMore flags (Repl.C).
 const ReplDrawNotFirst = 1 // NotFirstCardInDrawStep$ True
 
+// ReplDrawProgram flags (Repl.C). The program in the ability's Prog replaces
+// the draw (gorge's R:Event$ Draw ReplaceWith$ body); the kind's other fields
+// are the line's match: ValidPlayer$ (You when neither of the two below is
+// set), Optional$, NotFirstCardInDrawStep$ and Prevent$ (a bodyless skip).
+const (
+	ReplDrawOptional  = 1 << 1 // Optional$ True: the drawer may decline (the ask is posed at the draw)
+	ReplDrawOpponent  = 1 << 2 // ValidPlayer$ Opponent: an opponent of the source's controller draws
+	ReplDrawAnyPlayer = 1 << 3 // ValidPlayer$ Player: any player draws
+	ReplDrawSkip      = 1 << 4 // Prevent$ True, no ReplaceWith$ body: the draw is skipped
+)
+
 // Repl is a replacement-lite effect.
 type Repl struct {
 	Kind ReplKind

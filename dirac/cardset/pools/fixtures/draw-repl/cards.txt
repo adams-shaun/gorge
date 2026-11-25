@@ -1,0 +1,16 @@
+# The ReplDrawProgram lockstep pool (dirac/oracle/repl_drawrepl_lockstep_test.go):
+# the Draw replacements whose ReplaceWith$ body is a draw, a life change or a
+# token, and the bodyless Prevent$ skip (Blood Scrivener, Hullbreacher,
+# Notion Thief, Possessed Portal).
+Blood Scrivener
+Hullbreacher
+Notion Thief
+Possessed Portal
+Grizzly Bears
+Hill Giant
+Divination
+Plains
+Island
+Swamp
+Mountain
+Forest

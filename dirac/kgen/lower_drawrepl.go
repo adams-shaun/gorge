@@ -2,6 +2,7 @@ package kgen
 
 import (
 	"strconv"
+	"strings"
 
 	"github.com/adams-shaun/gorge/dirac/kop"
 	"github.com/adams-shaun/gorge/engine/cards"
@@ -11,14 +12,35 @@ import (
 // instead" replacement (gorge applyReplacements, a Draw event whose
 // ReplaceWith$ body is exactly a draw of N cards by you): a Draw replacement
 // active on the battlefield for your own draws, optionally exempting the first
-// card of the draw step (NotFirstCardInDrawStep). Every other
-// Draw shape (an optional body, a prevention, a choice body, a condition
-// the kernel does not read) refuses.
+// card of the draw step (NotFirstCardInDrawStep). It also lowers a Draw
+// replacement whose ReplaceWith$ body is any program the kernel can run at a
+// draw (ReplDrawProgram: the draw's card is replaced by the program, run with
+// the draw's player as ReplacedPlayer) and the bodyless Prevent$ skip. Every
+// other Draw shape refuses.
 func (lc *lowerCtx) drawRepl(rp *params, w *cards.SA, rl *lRepl) error {
+	if rp.str("ActiveZones") != "Battlefield" {
+		return refuse("repl-hard: Draw replacement")
+	}
+	// AI hints on the line (Obstinate Familiar): no rules read.
+	rp.consume("AICheckSVar", "AISVarCompare")
+	var bits int
+	switch rp.str("ValidPlayer") {
+	case "You":
+	case "Opponent":
+		bits |= kop.ReplDrawOpponent
+	case "Player":
+		bits |= kop.ReplDrawAnyPlayer
+	default:
+		return refuse("repl-hard: Draw replacement")
+	}
 	if rp.is("Optional", "True") || w != nil && w.API == "GenericChoice" {
 		// the player is asked whether to replace the draw, then which kind
-		// of card to dig for: two asks the kernel does not pose at a draw
+		// of card to dig for: the draw pipeline does not yet pose that
+		// election (ReplDrawOptional), so the line refuses as before
 		return refuse("repl-hard: Draw replacement with an optional or choice body")
+	}
+	if rp.is("NotFirstCardInDrawStep", "True") {
+		bits |= kop.ReplDrawNotFirst
 	}
 	if w != nil && w.API == "WinsGame" {
 		// Laboratory Maniac, Jace, Wielder of Mysteries: the line replaces
@@ -28,17 +50,108 @@ func (lc *lowerCtx) drawRepl(rp *params, w *cards.SA, rl *lRepl) error {
 		// gorge applies it
 		return refuse("repl-hard: Draw replacement WinsGame (gorge never replaces an empty-library draw)")
 	}
-	if rp.str("ActiveZones") != "Battlefield" || rp.str("ValidPlayer") != "You" || w == nil ||
-		!withIs(w, "Draw", map[string]string{"Defined": "You", "NumCards": w.Params["NumCards"]}) {
+	// The line's own gates. A bodyless Prevent$ is the skip kind; a line
+	// with neither a body nor Prevent$ (or with both) is not a shape the
+	// kernel reads.
+	prevent := rp.is("Prevent", "True")
+	switch {
+	case prevent && w != nil, !prevent && w == nil:
+		return refuse("repl-hard: Draw replacement")
+	case prevent:
+		bits |= kop.ReplDrawSkip
+	}
+	if err := lc.drawReplCond(rp, rl); err != nil {
+		return err
+	}
+	// The plain "draw N cards instead" body keeps its own kind (and its old
+	// acceptance; a chained sub-ability on the body was read as nothing
+	// there). The program path is for every other body.
+	if w != nil && withIs(w, "Draw", map[string]string{"Defined": "You", "NumCards": w.Params["NumCards"]}) {
+		if n, err := strconv.Atoi(w.Params["NumCards"]); err == nil && n >= 2 && n <= 8 {
+			rl.Kind, rl.N, rl.Bits = "DrawMore", cst(n), bits&kop.ReplDrawNotFirst
+			return nil
+		}
+	}
+	if w == nil {
+		rl.Kind, rl.Bits = "DrawProgram", bits
+		return nil
+	}
+	// The body is a program of ordinary effects, run at the draw. Every ask
+	// it poses is the kernel's ask tape (q.v. repl_drawprogram.go); a body
+	// the lowerer cannot represent keeps the card refused.
+	ab := &lAbility{Kind: akLatent}
+	saved := lc.drawReplBody
+	lc.drawReplBody = true
+	err := lc.withAbility(ab, func() error { return lc.chain(w, nil) })
+	lc.drawReplBody = saved
+	if err != nil {
+		if lc.p != nil && lc.p.allBlockers {
+			return err
+		}
 		return refuse("repl-hard: Draw replacement")
 	}
-	n, err := strconv.Atoi(w.Params["NumCards"])
-	if err != nil || n < 2 || n > 8 {
-		return refuse("repl-hard: Draw replacement NumCards$ %q", w.Params["NumCards"])
+	if len(ab.Prog) == 0 {
+		return refuse("repl-hard: Draw replacement")
 	}
-	rl.Kind, rl.N = "DrawMore", cst(n)
-	if rp.is("NotFirstCardInDrawStep", "True") {
-		rl.Bits = kop.ReplDrawNotFirst
+	for i := range ab.Prog {
+		// This slice's bodies: a draw, a life change or a token. A body that
+		// moves library or graveyard cards (a dig, a ChooseMove, a Play)
+		// keeps the old refusal until its own slice proves the kernel's
+		// movement against gorge's (repl_drawprogram.go).
+		switch ab.Prog[i].Op {
+		case "Draw", "LoseLife", "GainLife", "CreateToken", "CreateTokenEx":
+		default:
+			return refuse("repl-hard: Draw replacement")
+		}
 	}
+	if len(ab.Prog) == 1 && ab.Prog[0].Op == "Draw" && bits&(kop.ReplDrawOpponent|kop.ReplDrawAnyPlayer) == 0 {
+		// "draw N cards instead" is ReplDrawMore's body, not a program; a
+		// lone self Draw program would also catch cards whose other
+		// replacement lines this slice has not proven (Phial of Galadriel).
+		return refuse("repl-hard: Draw replacement")
+	}
+	rl.Kind, rl.Bits, rl.Prog = "DrawProgram", bits, ab.Prog
+	return nil
+}
+
+// drawReplCond reads the R: line's own replacement gates into rl.Cond:
+// Hellbent$ True (the controller has no cards in hand) and IsPresent$ (a
+// battlefield count, or the library's emptiness when PresentZone$ Library is
+// named). PresentCompare$ EQ0 over the library is Out of the Tombs' "while
+// your library has no cards in it".
+func (lc *lowerCtx) drawReplCond(rp *params, rl *lRepl) error {
+	if v, ok := rp.get("Hellbent"); ok {
+		if strings.TrimSpace(v) != "True" {
+			return refuse("repl-hard: Draw replacement Hellbent$ %q", v)
+		}
+		if rl.Cond.Kind != cNone {
+			return refuse("two replacement conditions")
+		}
+		rl.Cond = lCond{Kind: cValue, A: lValue{Kind: vHandSizeOf, Ref: lRef{Kind: rYou}}, Op: opEQ, B: cst(0)}
+	}
+	ip, ok := rp.get("IsPresent")
+	if !ok {
+		return nil
+	}
+	zone := strings.TrimSpace(rp.str("PresentZone"))
+	_, hasCmp := rp.get("PresentCompare")
+	if zone == "Library" {
+		// "while your library has no cards in it" (Out of the Tombs, Living
+		// Conundrum): the draw pipeline marks an empty-library draw before
+		// the replacements run today, so the kernel cannot apply this gate
+		// yet. The line stays refused.
+		return refuse("repl-hard: Draw replacement IsPresent$ %q PresentZone$ Library", ip)
+	}
+	if zone != "" || hasCmp {
+		return refuse("repl-hard: Draw replacement IsPresent$ with PresentZone$ %q", zone)
+	}
+	if rl.Cond.Kind != cNone {
+		return refuse("two replacement conditions")
+	}
+	f, err := lc.filter(ip)
+	if err != nil {
+		return err
+	}
+	rl.Cond = lCond{Kind: cPresent, F: f, Op: opGE, A: cst(1)}
 	return nil
 }
