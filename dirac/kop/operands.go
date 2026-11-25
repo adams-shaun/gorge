@@ -57,6 +57,15 @@ const BecomeCopyCtr = 1 << 0
 // effects/clone.go cloneEmbalmGate, cloneEmbalmProvenance.
 const BecomeCopyEmbalm = 1 << 1
 
+// BecomeCopyGrave is OpBecomeCopy's ChoiceZone$ Graveyard bit (Body Double:
+// "enter as a copy of any creature card in a graveyard"): the clone ask's
+// pool is the cards in every living player's graveyard matching F (seat 0
+// first, each graveyard bottom to top), not the battlefield, and the copy is
+// of the picked card as printed; it must still be in a graveyard as the
+// permanent enters. Gorge: rules/cast_etbchoice.go etbCloneOptions over
+// ChoiceZoneKind, effects/clone.go cloneETBTemplateLegal.
+const BecomeCopyGrave = 1 << 2
+
 // MayGuardCloneCopy: the OpMayAsk guard of an Optional$ Clone: the next op is
 // an ExtCloneCopy that has a live template and at least one becomer (gorge
 // effClone's pairs, computed before the may-copy election).
