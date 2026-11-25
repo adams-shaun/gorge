@@ -193,6 +193,17 @@ func (s *State) offerPlay(k *prep, d *Decision, p uint8, o Obj, mode uint8, sorc
 	// not price with it
 	saved := av.delve
 	defer func() { av.delve = saved }()
+	if av.dynSac {
+		// A cast's census leaves a dynamic {T}, sacrifice source (Shrine of
+		// Boundless Growth) out, as a hand cast's does (priorityOptions): the
+		// activated-ability census the walk carries here prices it, so a
+		// may-play cast offered on that unit alone was applied plainly, with
+		// the source never activated, and its payment found no plan. The
+		// counter-cost gap offers the cast that source funds (mana_sacctr.go).
+		var cav avail
+		s.availFor(k, p, &cav)
+		av = &cav
+	}
 	c := s.objs[o].card
 	pc := &k.cards[c]
 	anyMana = anyMana || mode&castFree == 0 && s.convAnyType(k, p, o) // mana_convertcreature.go
