@@ -2950,6 +2950,13 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 				c.TapHost = true
 				continue
 			}
+			if bareSharesCr(parts[1]) {
+				// Forge reads a tap cost's bare sharesCreatureTypeWith
+				// (Weight of Conscience) as the tapped creatures sharing a
+				// type with each other; gorge's filter reads the source, so
+				// the cost stays refused until gorge models the group.
+				return c, refuse("tap cost %q: shared-creature-type group", t)
+			}
 			f, err := lc.filter(strings.ReplaceAll(parts[1], ";", ","))
 			if err != nil {
 				return c, err

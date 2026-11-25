@@ -59,6 +59,9 @@ func TestGenBattleRefused(t *testing.T) {
 		// election the kernel poses at a combat damage step,
 		// combat_asgngrant.go), the static kind's last refusal
 		"Invasion of Ikoria": true,
+		// its back face's combat damage "to a player or battle" (ValidTarget$
+		// Player,Battle: TfToPlayer beside a Battle Filter2)
+		"Invasion of Kamigawa": true,
 	}
 	var battles []string
 	for _, n := range names {
