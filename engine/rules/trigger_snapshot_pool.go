@@ -81,10 +81,7 @@ func (e *Engine) retainTriggerBefore() *triggerSnapshot {
 func (e *Engine) closeTriggerWindow(own, outer *triggerSnapshot) {
 	e.triggerBefore = outer
 	if outer == nil {
-		// The window's departure record dies with it: a later event's
-		// intervening-if must not skip objects this window's board still
-		// held (they can even have returned to the battlefield since).
-		e.windowDepartures, e.windowDeparted = e.windowDepartures[:0], e.windowDeparted[:0]
+		e.windowDepartures, e.windowDepartOwner = e.windowDepartures[:0], nil
 	}
 	if own == nil || own.retained || own == outer || own.game == nil {
 		return
@@ -102,6 +99,30 @@ func (e *Engine) closeTriggerWindow(own, outer *triggerSnapshot) {
 		clear(objs)
 	}
 	p.objs = append(p.objs, objs)
+}
+
+// noteWindowDeparture records battlefield departures under the open trigger
+// window (see engine_scratch.go's windowDepartures). A list left by a window
+// that ended by a direct restore of triggerBefore (windowDepartOwner is no
+// longer the open window) is dropped first, so a later window never skips an
+// object an earlier one saw leave -- it can be back on the battlefield.
+func (e *Engine) noteWindowDeparture(ids ...state.ObjID) {
+	if e.triggerBefore == nil {
+		return
+	}
+	if e.windowDepartOwner != e.triggerBefore {
+		e.windowDepartures, e.windowDepartOwner = e.windowDepartures[:0], e.triggerBefore
+	}
+	e.windowDepartures = append(e.windowDepartures, ids...)
+}
+
+// currentWindowDepartures is the open window's departure list, nil once the
+// window it belongs to is gone.
+func (e *Engine) currentWindowDepartures() []state.ObjID {
+	if e.triggerBefore == nil || e.windowDepartOwner != e.triggerBefore {
+		return nil
+	}
+	return e.windowDepartures
 }
 
 // openBatchWindow parks the pre-departure board for an effect's simultaneous
