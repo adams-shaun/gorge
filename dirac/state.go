@@ -793,6 +793,10 @@ const (
 	// are declared for each attacker with Enlist that has a creature to tap
 	// (kw_enlist.go; s.lastPick is the attacker asked)
 	ctlEnlist
+	// ctlTurnUpReveal: a keyword turn-up whose cost reveals a hand card,
+	// awaiting the pick among several candidates (act_revealpick.go; parked in
+	// genState.pick*)
+	ctlTurnUpReveal
 )
 
 // every seat's two command-zone ask states fit ctlCmdZone0..7

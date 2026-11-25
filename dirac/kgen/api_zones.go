@@ -81,6 +81,21 @@ func (lc *lowerCtx) apiShuffle(sa *cards.SA, ps *params) error {
 	if ps.is("Defined", "RememberedOwner") {
 		return lc.shuffleRememberedOwners(ps) // lower_shuffleremowners.go
 	}
+	if ps.is("Defined", "Player.IsRemembered") {
+		// each player who searched this way shuffles, in search order (Wave
+		// of Vitriol). The kernel holds the seats in a mask
+		// (zone_remembersearcher.go); only the remembered-searcher search
+		// that wrote it lowers.
+		if _, tgt := ps.get("ValidTgts"); tgt {
+			return refuse("Shuffle Defined$ Player.IsRemembered with a target")
+		}
+		if !lc.hasRememberedSearcher() {
+			return refuse("Shuffle Defined$ Player.IsRemembered without a RememberSearcher$ search in the ability")
+		}
+		ps.consume("Defined")
+		lc.emit(lInstr{Op: "Shuffle", C: 2})
+		return nil
+	}
 	who, err := lc.objOrTarget(ps, "You", zNone)
 	if err != nil {
 		return err
