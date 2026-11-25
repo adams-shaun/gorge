@@ -1806,7 +1806,6 @@ func splits(p, n int) int {
 	return c
 }
 
-// nextDivision finds the next attacker (slot order) whose damage its
 // lethalNeed is the damage attacker a must assign to blocker b before it may
 // assign to the next blocker or trample over (CR 510.1c, 702.19b/c): the
 // blocker's toughness less damage already marked on it, floored at zero. A
