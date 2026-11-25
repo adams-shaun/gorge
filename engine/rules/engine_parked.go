@@ -5,25 +5,20 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// engineParked groups the Engine's parked continuation windows (suspended
-// casts, mana activations, commander zone, replacement choices). It is
+// engineParked groups the Engine's parked continuation windows (mana
+// activations, commander zone, replacement choices). It is
 // embedded by value in Engine (engine/rules/engine_struct.go), so every field
 // keeps its documented contract comment and every existing e.<field>
 // access keeps compiling unchanged through Go's field promotion. Clone's
 // per-field copy classes (engine/rules/clone.go) are unchanged by the move.
 type engineParked struct {
-	// suspendedCasts is the mandatory "cast it if able" trigger created when
-	// a real suspended card loses its final TIME counter. IDs are appended in
-	// exile order and consumed before priority; it is plain replayable engine
-	// continuation state, not an inference from arbitrary exile cards.
-	suspendedCasts []state.ObjID `clone:"deep"`
 	// queuedPlays is the rest of an Amount$ Play answer (Etali, Primal
 	// Storm's "you may cast any number of spells from among them") whose
 	// earlier cast parked on its own question -- a target, an as-enters
 	// choice, a mana window. CR 608.2g casts each chosen card in turn, each
 	// cast fully completed before the next begins, so the remaining cards
 	// wait here and startQueuedPlay begins the next one once nothing is
-	// pending. Plain replayable continuation state like suspendedCasts.
+	// pending. Plain replayable continuation state like the trigger queue.
 	queuedPlays *queuedPlays `clone:"deep"`
 	// manaActivation is non-nil while a source with several available mana
 	// abilities waits for its controller to select one. manaColorActivation

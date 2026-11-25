@@ -199,15 +199,18 @@ func (s *State) beginStep(k *prep) {
 		s.step = s.phaseSkipNext(k, kop.StepUpkeep)
 	case kop.StepUpkeep:
 		s.upkeepStep(k) // Duration$ UntilYourNextUpkeep ends as the upkeep begins
-		if k.gen != nil && k.gen.anySuspend {
-			s.suspendTick(k) // CR 702.62a: gorge ticks as the step is entered (kw_suspend.go)
-		}
 		s.firePhase(k, kop.StepUpkeep)
 		if k.gen != nil && k.gen.anyDelayUp {
 			s.fireDelayedUpkeep(k)
 		}
 		if s.ndly != 0 {
 			s.fireDlyUpkeep(k) // AtEOT$ SacrificeUpkeep (trig_upkeepsac.go)
+		}
+		if k.gen != nil && k.gen.anySuspend {
+			// CR 702.62b: the tick triggers queue after the step's other
+			// triggers, before initiative's (gorge finishEnteredStep's walk
+			// order: StepChange triggers, then the suspend ticks).
+			s.suspendTick(k) // kw_suspend.go
 		}
 		if initOn(k) {
 			s.initUpkeep(k) // CR 726.2 (act_initiative.go)

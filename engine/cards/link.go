@@ -93,6 +93,13 @@ var builtinSVars = map[string]string{
 	// removed from this permanent, exile it, then you may cast it transformed
 	// without paying its mana cost" ability; rules resolves it (siege_defeat.go).
 	"__kwSiegeDefeat": "DB$ SiegeDefeat | Defined$ Self",
+	// Suspend's two real triggered abilities (CR 702.62a/b), minted by
+	// KeywordTriggerPush so players receive priority and may respond: the
+	// upkeep tick rules resolves (engine/rules/suspend_trigger.go's
+	// startSuspendTick, the intervening-if rechecked there), and the
+	// last-counter may-cast rules asks (askSuspendCast), the SiegeDefeat shape.
+	"__kwSuspendTick": "DB$ SuspendTick | Defined$ Self",
+	"__kwSuspendCast": "DB$ SuspendCast | Defined$ Self",
 	// Dash (CR 702): "returned from the battlefield to its owner's hand at
 	// the beginning of the next end step". The registered source is the
 	// dashed permanent itself, so Defined$ Self is it.
