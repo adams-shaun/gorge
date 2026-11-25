@@ -10,8 +10,9 @@ import (
 // TestTrampleDamageDivisionIsAsked pins the kernel side of CR 702.19b: a
 // blocked trampler with excess power poses the controller's damage division,
 // whose legal splits run from "lethal to the blocker, the rest tramples" to
-// "everything to the blocker". The sixth decision option must not be assumed
-// from the gorge side only: the kernel's own ask is the lockstep contract.
+// "everything to the blocker". The kernel's own ask is the lockstep contract,
+// so option 0 must stay the lethal-then-trample split and the last option the
+// all-to-the-blocker split, matching gorge's ask.
 func TestTrampleDamageDivisionIsAsked(t *testing.T) {
 	for _, tc := range []struct {
 		name     string

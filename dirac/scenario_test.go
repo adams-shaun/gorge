@@ -103,12 +103,9 @@ func (sc *scen) do(t *testing.T, kind ActionKind, src, tgt TCode) {
 	t.Fatalf("option kind %d src %d tgt %d not offered; decision kind %d player %d opts %v", kind, src, tgt, d.Kind, d.Player, d.Options[:d.N])
 }
 
-// passTo passes priority until the game reaches step st of the current
-// turn (or a non-priority decision). A trample attacker's damage division
-// (CR 702.19b) is answered with its default first option -- lethal to each
-// blocker, the rest tramples -- so a fixture that pinned the automatic
-// assignment keeps that result; any other decision stays pending for the
-// caller.
+// passUntil passes priority until the game reaches step st of the current
+// turn (or a non-priority decision), answering a trample attacker's damage
+// division with its default (see answerDefaultTrampleDivision).
 func (sc *scen) passUntil(t *testing.T, st kop.Step) {
 	t.Helper()
 	for i := 0; i < 50; i++ {
@@ -128,8 +125,9 @@ func (sc *scen) passUntil(t *testing.T, st kop.Step) {
 }
 
 // answerDefaultTrampleDivision answers a pending trample attacker division
-// with its first option (the deterministic lethal-then-trample assignment),
-// reporting whether it consumed the decision.
+// (CR 702.19b) with its first option -- lethal to each blocker, the rest
+// tramples -- so a fixture that pinned the automatic assignment keeps that
+// result. It reports whether it consumed the decision.
 func (sc *scen) answerDefaultTrampleDivision(d Decision) bool {
 	if d.Kind != DkChoose || d.Sub != ChDivide || d.N == 0 {
 		return false
