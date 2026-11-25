@@ -31,13 +31,14 @@ func (s *State) handTakeAll(k *prep) bool {
 	if in := &s.prog(k)[s.res.pc]; in.Op == kop.OpChooseMove && d.N >= 2 &&
 		in.C&7 == int16(kop.ZoneLibrary) && in.B.N&kop.SrHandPosAsk == 0 {
 		// Arm before the moves: placeFromK counts each card the move puts into
-		// its owner's library. A top arm's group is in reverse move order
-		// (each card went on top as it moved), so the ask reverses it back.
-		arm, rev := uint8(kop.PlaceArmTop)+1, uint8(1)
+		// its owner's library. A hand move's top group is already in move
+		// order -- moveFoundAns reverses the picks before placing them one by
+		// one on top -- so neither arm reverses at the ask.
+		arm := uint8(kop.PlaceArmTop) + 1
 		if in.B.N&kop.SrHandBottom != 0 {
-			arm, rev = kop.PlaceArmBottom+1, 0
+			arm = kop.PlaceArmBottom + 1
 		}
-		s.resArm().plc = libTally{arm: arm, rev: rev}
+		s.resArm().plc = libTally{arm: arm}
 		arrange = true
 	}
 	s.finishSearchNow(k)
