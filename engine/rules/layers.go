@@ -397,35 +397,9 @@ func (e *Engine) staticEffectsWalk(dst []ContinuousEffect, skip bool) []Continuo
 								out = append(out, n)
 							}
 						}
-						// A colour-word change static (CR 612.5, Swirl the Mists' "All
-						// instances of color words in the text of spells and permanents
-						// become the chosen color word"): one LText substitution effect
-						// per colour word the chosen word replaces -- the chosen word
-						// itself is a no-op, so it emits none. Layer 3 is where CR 613
-						// applies a text change, and the existing fields do the rest:
-						// chars/derive.go's LText arm substitutes them into the derived
-						// text, and colorwords_sync.go reconciles the same live set onto
-						// each affected object's Object.TextChanges, whose rewritten
-						// Face() is what makes the change behavioural (a target spec's
-						// nonBlack clause reads nonRed). A value that names no recorded
-						// choice (an unanswered as-enters ask) fails closed -- no effect,
-						// the same direction resolveChosenColors takes for the colour
-						// statics above.
-						if raw, isWords := st.Param(cards.PKChangeColorWordsTo); isWords {
-							if cols, ok := pay.ResolveChosenColors(raw, o); ok && len(cols) > 0 && len(cols[0]) == 1 {
-								at := strings.IndexByte(colourWordLetters, cols[0][0])
-								tx := base
-								tx.Layer = LText
-								tx.AffectedZone = strings.TrimSpace(st.ParamStr(cards.PKAffectedZone))
-								for i, from := range colourWordNames {
-									if i == at {
-										continue
-									}
-									tx.TextFrom, tx.TextTo = from, colourWordNames[at]
-									out = append(out, tx)
-								}
-							}
-						}
+						// A colour-word change static (CR 612.5, Swirl the Mists): its
+						// LText substitution effects, see colourWordEffects.
+						out = colourWordEffects(st, o, base, out)
 						// RemoveType$ (the layer-4 reverse grant, CR 613.1d: the named
 						// type words are removed from every object the static's Affected$
 						// matches, before this same effect's AddTypes apply -- CR 205.1b's

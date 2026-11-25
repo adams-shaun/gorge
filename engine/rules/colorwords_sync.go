@@ -1,9 +1,12 @@
 package rules
 
 import (
+	"strings"
+
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/events"
+	"github.com/adams-shaun/gorge/engine/rules/pay"
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
@@ -35,6 +38,45 @@ const colourWordLetters = "WUBRG"
 // capitalised form, the one SubstituteTextWord writes ("nonblack" reads
 // "nonred").
 var colourWordNames = [5]string{"White", "Blue", "Black", "Red", "Green"}
+
+// colourWordEffects appends the static walk's layer-3 effects for a
+// Mode$ Continuous ChangeColorWordsTo$ static (Swirl the Mists' "All instances
+// of color words in the text of spells and permanents become the chosen color
+// word"): one LText substitution per colour word the chosen word replaces --
+// the chosen word itself is a no-op, so it emits none. Layer 3 is where CR 613
+// applies a text change, and the existing fields do the rest: chars/derive.go's
+// LText arm substitutes them into the derived text, and reconcileColorWords
+// reconciles the same live set onto each affected object's
+// Object.TextChanges, whose rewritten Face() is what makes the change
+// behavioural (a target spec's nonBlack clause reads nonRed). A value that
+// names no recorded choice (an unanswered as-enters ask) fails closed -- no
+// effect, the direction pay.ResolveChosenColors takes for the colour statics.
+// o is the static's source object; base carries the shared effect fields.
+func colourWordEffects(st cards.Static, o *state.Object, base ContinuousEffect, out []ContinuousEffect) []ContinuousEffect {
+	raw, isWords := st.Param(cards.PKChangeColorWordsTo)
+	if !isWords {
+		return out
+	}
+	cols, ok := pay.ResolveChosenColors(raw, o)
+	if !ok || len(cols) == 0 || len(cols[0]) != 1 {
+		return out
+	}
+	at := strings.IndexByte(colourWordLetters, cols[0][0])
+	if at < 0 {
+		return out
+	}
+	tx := base
+	tx.Layer = LText
+	tx.AffectedZone = strings.TrimSpace(st.ParamStr(cards.PKAffectedZone))
+	for i, from := range colourWordNames {
+		if i == at {
+			continue
+		}
+		tx.TextFrom, tx.TextTo = from, colourWordNames[at]
+		out = append(out, tx)
+	}
+	return out
+}
 
 // allZones is every game zone an AffectedZone$ "All" reaches (the zone enum
 // up through ZCommand; ZCeased holds no objects).
