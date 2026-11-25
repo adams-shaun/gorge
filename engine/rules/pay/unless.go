@@ -246,6 +246,55 @@ func TextDefinesX(body string) bool {
 	return !isXPaidBody(body) && !lateBoundXBody(body)
 }
 
+// targetBoundXBody reports whether an SVar:X body reads the source's own
+// chosen targets: Targeted$ (the root's targets) or AllTargeted$ (the
+// root/sub-ability chain union). Unlike TargetedObjects$Amount (Deepwood
+// Elder, still announced), the value is defined by WHICH target is chosen,
+// so it is fixed at CR 601.2c rather than at activation.
+func targetBoundXBody(body string) bool {
+	const targeted = "Targeted$"
+	const allTargeted = "AllTargeted$"
+	b := trimBodySpace(body)
+	return hasBodyPrefix(b, targeted) || hasBodyPrefix(b, allTargeted)
+}
+
+// trimBodySpace strips the leading ASCII whitespace a script body can carry.
+func trimBodySpace(s string) string {
+	for i := 0; i < len(s); i++ {
+		switch s[i] {
+		case ' ', '\t', '\n', '\r':
+			continue
+		default:
+			return s[i:]
+		}
+	}
+	return s[len(s):]
+}
+
+// hasBodyPrefix reports whether s starts with prefix. The check is a byte
+// loop, not strings.HasPrefix: it runs on every cost read, inside the
+// no-strings ratchet's engine/rules scope.
+func hasBodyPrefix(s, prefix string) bool {
+	if len(s) < len(prefix) {
+		return false
+	}
+	for i := 0; i < len(prefix); i++ {
+		if s[i] != prefix[i] {
+			return false
+		}
+	}
+	return true
+}
+
+// TargetBoundManaX reports whether c's printed {X} is defined by the
+// ability's own targets: the only X-sharing part is the printed mana {X}
+// (definedManaXOnly) and the SVar:X body starts Targeted$/AllTargeted$. Such
+// a value cannot be folded at activation (no target exists yet, CR 601.2c);
+// the cost sites defer it to the moment the chosen target is known.
+func TargetBoundManaX(c costvocab.Cost, body string) bool {
+	return definedManaXOnly(c) && targetBoundXBody(body)
+}
+
 // definedManaX is the value a text-defined printed {X} takes on id's face
 // (CR 107.3c: "that's the value of X ... The controller ... doesn't get to
 // choose the value"): ok=false when the face is gone, the body is
@@ -253,11 +302,33 @@ func TextDefinesX(body string) bool {
 // or negative. The value is read now, at activation (CR 107.3c; Soul
 // Foundry with nothing exiled is X = 0, CR 202.3).
 func definedManaX(e Engine, p state.PlayerID, id state.ObjID, body string) (int32, bool) {
-	o := e.Game().Obj(id)
-	if o == nil || o.Face() == nil || !TextDefinesX(body) {
+	if !TextDefinesX(body) {
 		return 0, false
 	}
-	ctx := effects.NewCtxPtr(id, p, effects.CtxInit{SVars: o.Face().SVars})
+	return definedManaXAt(e, p, id, body, nil, nil)
+}
+
+// DefinedManaXForTargets is definedManaX's evaluation with a chosen target
+// set bound into the context. A target-bound body (TargetBoundManaX) reads
+// Ctx.Targets (CR 601.2c), so the value exists once the target answer does;
+// this is the deferred fold's evaluation, and definedManaX is the same read
+// with no targets.
+func DefinedManaXForTargets(e Engine, p state.PlayerID, id state.ObjID, body string, targets, allTargets []state.Target) (int32, bool) {
+	if !targetBoundXBody(body) {
+		return 0, false
+	}
+	return definedManaXAt(e, p, id, body, targets, allTargets)
+}
+
+// definedManaXAt evaluates body against id's SVar table with the given target
+// binding. Both callers have already established the body shape they accept.
+func definedManaXAt(e Engine, p state.PlayerID, id state.ObjID, body string, targets, allTargets []state.Target) (int32, bool) {
+	o := e.Game().Obj(id)
+	if o == nil || o.Face() == nil {
+		return 0, false
+	}
+	ctx := effects.NewCtxPtr(id, p, effects.CtxInit{SVars: o.Face().SVars, Targets: targets})
+	ctx.AllTargets = allTargets
 	n, resolvable := e.Eval().EvalCount(ctx, body)
 	if !resolvable || n < 0 {
 		return 0, false
