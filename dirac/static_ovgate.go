@@ -42,15 +42,6 @@ func (s *State) ovGranted(k *prep, sl Slot, g uint8) bool {
 	return hit
 }
 
-// ovGateReach reports whether a live override record could switch on an
-// OvGate-gated static: the combat guards' cheap companion to statM. The static
-// lives on the granting card's face, not on the holder's permanent, and statM
-// holds only battlefield permanents whose OWN card has a static, so a grant
-// whose source has left the battlefield is reachable only through the record.
-func (s *State) ovGateReach(k *prep) bool {
-	return k.gen != nil && k.gen.anyOvGateStat && s.fxM.any()
-}
-
 // grantedStaticFlag reads the statics of kind sk that a live override record
 // on sl grants: an Animate staticAbilities$ body lowered with an OvGate bit
 // (kgen animateGrantedStatic; Streetwise Negotiator's Backup rider, CR
@@ -119,61 +110,4 @@ func (s *State) ovGateKeptOnLoss(k *prep, sl Slot, a *kop.Ability) bool {
 // override-granted exception (ovGateKeptOnLoss).
 func (s *State) keptOnLossAt(k *prep, sl Slot, a *kop.Ability) bool {
 	return keptOnLoss(k.t, a) || s.ovGateKeptOnLoss(k, sl, a)
-}
-
-// grantedCantBlockBy reports whether a live override record on attacker a
-// grants a CantBlockBy static whose filters match a and blocker b: an Animate
-// staticAbilities$ body with an OvGate bit (Chomping Kavu's Backup rider,
-// "can't be blocked by creatures with power 2 or less"). The static lives on
-// the card that made the record, so the ordinary source-static walk
-// (blockForbiddenGen's eachStatic) never reaches the holder; this is its
-// gated arm, with the same filter/condition reads grantedStaticFlag uses.
-func (s *State) grantedCantBlockBy(k *prep, a, b Slot) bool {
-	lts, lost := uint16(0), false
-	known := false
-	hit := false
-	pm := &s.perms[a]
-	s.eachOvRec(a, func(r ovRec) {
-		if hit || r.idx == 0 {
-			return
-		}
-		o := &k.t.Overrides[r.idx-1]
-		if o.GrantStatics == 0 {
-			return
-		}
-		if !known {
-			lts, lost = s.lossAt(k, a)
-			known = true
-		}
-		if lost && r.ts < lts {
-			return
-		}
-		cd := &k.t.Cards[r.src]
-		for i := range cd.Abilities {
-			ab := &cd.Abilities[i]
-			if ab.Kind != kop.AbStatic || ab.Static.Kind != kop.StatCantBlockBy {
-				continue
-			}
-			st := &ab.Static
-			if st.OvGate == 0 || o.GrantStatics&st.OvGate == 0 {
-				continue
-			}
-			ctx := evalCtx{src: pm.obj, srcSl: a, ctrl: pm.ctrl}
-			if st.Cond2 != 0 && !s.condEval(k, st.Cond2, ctx) {
-				continue
-			}
-			if !s.matchPermGen(k, st.Filter, a, pm.ctrl, a, layerFull) {
-				continue
-			}
-			if st.Filter2 != 0 && !s.matchPermGen(k, st.Filter2, b, pm.ctrl, a, layerFull) {
-				continue
-			}
-			if k.anyPwVsSrc && !s.pwVsSrc(k, b, a, st.PwVsSrc) {
-				continue
-			}
-			hit = true
-			return
-		}
-	})
-	return hit
 }
