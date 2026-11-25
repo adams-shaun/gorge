@@ -485,6 +485,13 @@ func manaGapModelled(first, a *lAbility) bool {
 		// once-only gap its prefix search activates (the kernel's counter
 		// gap kind, read at the card's ctrAb ability, mana_countercost.go)
 		return ctrTapGapModelled(first, a)
+	case energyTapGapMana(a):
+		// {T}, Pay N {E}: the same productions (Aether Hub, Solar
+		// Transformer's one mana of any colour): gorge's census leaves it the
+		// same relaxable once-only gap, payable while its controller holds the
+		// energy (pay.EnergyPayable); the kernel's counter gap kind pays the
+		// energy (kop.CtrTapSecondManaAb's energy form)
+		return ctrTapGapModelled(first, a)
 	case restrictedFirstPair(first, a):
 		// a spell-only first ability beside an activation-only larger one of
 		// the same colour (Steelswarm Operator): the kernel plans each
@@ -583,6 +590,30 @@ func ctrTapGapMana(a *lAbility) bool {
 	}
 	b := *a
 	b.Cost.SubCtr, b.Cost.SubCtrKnd = 0, ""
+	return plainTapMana(&b, false)
+}
+
+// energyTapGapMana: a is a {T} ability whose cost also pays a literal amount
+// of energy, its cost otherwise plain.
+func energyTapGapMana(a *lAbility) bool {
+	if a.Mana == nil || !energyTapCost(a) {
+		return false
+	}
+	b := *a
+	b.Cost.Energy = 0
+	return plainTapMana(&b, false)
+}
+
+// energyTapCost: a's cost is {T} and a literal amount of energy, nothing
+// else, and a has no once-each-turn limit (its production aside: lowerAbility
+// reads it before the production is lowered).
+func energyTapCost(a *lAbility) bool {
+	if a.Cost.Energy < 1 || a.TurnOnce {
+		return false
+	}
+	b := *a
+	b.Cost.Energy = 0
+	b.Mana = &lMana{Colors: "C"}
 	return plainTapMana(&b, false)
 }
 
