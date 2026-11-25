@@ -425,6 +425,11 @@ func replAskKind(in *kop.Instr) (kind uint8, ok bool) {
 func (s *State) runReplProgAs(k *prep, sl Slot, c CardID, ab, pc uint8, src Slot) {
 	prog := k.t.Cards[c].Abilities[ab].Prog
 	saved := s.res
+	// A Draw replacement body can run inside an active outer resolution (a
+	// resolving spell's draw). It borrows the outer resCtx, so it must give
+	// its fields back when it returns: otherwise runProg resumes the spell
+	// from the body's pc and skips the instruction after the draw (the
+	// unconditional isDrawProgram restores below).
 	saveSrc := s.replSrcOf()
 	s.setReplSrc(uint8(src) + 1)
 	defer func() { s.setReplSrc(saveSrc) }()
@@ -496,7 +501,7 @@ func (s *State) runReplProgAs(k *prep, sl Slot, c CardID, ab, pc uint8, src Slot
 					continue
 				}
 				s.queueAskAt(sl, kind, c, ab, uint8(i+1))
-				if !saved.active {
+				if !saved.active || isDrawProgram {
 					s.res = saved
 				}
 				return
@@ -558,7 +563,7 @@ func (s *State) runReplProgAs(k *prep, sl Slot, c CardID, ab, pc uint8, src Slot
 				continue
 			}
 			s.queueAskAt(sl, kind, c, ab, uint8(i+1))
-			if !saved.active {
+			if !saved.active || isDrawProgram {
 				s.res = saved
 			}
 			return
@@ -566,7 +571,7 @@ func (s *State) runReplProgAs(k *prep, sl Slot, c CardID, ab, pc uint8, src Slot
 			if !s.replAskOp(k, sl, c, ab, i, in) { // repl_enterreveal.go
 				break
 			}
-			if !saved.active {
+			if !saved.active || isDrawProgram {
 				s.res = saved
 			}
 			return
@@ -580,7 +585,7 @@ func (s *State) runReplProgAs(k *prep, sl Slot, c CardID, ab, pc uint8, src Slot
 			case shockNo:
 				s.execGen(k, in)
 			case shockQueued:
-				if !saved.active {
+				if !saved.active || isDrawProgram {
 					s.res = saved
 				}
 				return
@@ -592,7 +597,7 @@ func (s *State) runReplProgAs(k *prep, sl Slot, c CardID, ab, pc uint8, src Slot
 				// a Draw replacement body's ordinary effect op: exec falls
 				// through to the core executor when execGen does not claim it
 				if !s.exec(k, in) {
-					if !saved.active {
+					if !saved.active || isDrawProgram {
 						s.res = saved
 					}
 					return
@@ -602,7 +607,7 @@ func (s *State) runReplProgAs(k *prep, sl Slot, c CardID, ab, pc uint8, src Slot
 			s.execGen(k, in)
 		}
 	}
-	if !saved.active {
+	if !saved.active || isDrawProgram {
 		s.res = saved
 	}
 }

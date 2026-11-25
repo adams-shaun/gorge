@@ -15,8 +15,11 @@ import (
 // competition instead of picking the CR 616.1 order).
 var kdrawReplDecks = map[string][2][]cardset.Entry{
 	"scrivener": {
-		{{Name: "Blood Scrivener", Count: 1}, {Name: "Grizzly Bears", Count: 8}, {Name: "Hill Giant", Count: 4},
-			{Name: "Divination", Count: 4}, {Name: "Swamp", Count: 12}, {Name: "Island", Count: 11}},
+		// A hand-emptying spell reaches Hellbent, where the body applies; one
+		// copy in a deck that draws cards never did. A second Scrivener would
+		// also match the body's draws, a competition the kernel stalls.
+		{{Name: "Blood Scrivener", Count: 1}, {Name: "One with Nothing", Count: 4}, {Name: "Dark Ritual", Count: 4},
+			{Name: "Swamp", Count: 31}},
 		{{Name: "Grizzly Bears", Count: 12}, {Name: "Hill Giant", Count: 8},
 			{Name: "Divination", Count: 4}, {Name: "Island", Count: 8}, {Name: "Forest", Count: 8}},
 	},
@@ -51,9 +54,10 @@ func TestReplDrawReplLockstep(t *testing.T) {
 	}
 }
 
-// TestReplDrawReplLockstepMutation: dropping every program body for a plain
-// skip (the draw replaced with nothing) diverges a seed, so the pool reads the
-// body, not just the match.
+// TestReplDrawReplLockstepMutation: each program body the pool carries is
+// actually applied in the pool's games: dropping it for a plain skip (the draw
+// replaced with nothing) diverges a seed. A deck whose replacement never
+// applies would pass the untouched pool vacuously.
 func TestReplDrawReplLockstepMutation(t *testing.T) {
 	t.Parallel()
 	skip := func(tbl *kop.Table) {
@@ -67,7 +71,13 @@ func TestReplDrawReplLockstepMutation(t *testing.T) {
 			}
 		}
 	}
-	if n := lockstepRun(t, "draw-repl", kdrawReplDecks["thief"], 200, false, skip); n == 0 {
-		t.Fatal("dropping the draw program's body diverged no seed")
+	for _, name := range []string{"scrivener", "thief", "hullbreacher"} {
+		name := name
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			if n := lockstepRun(t, "draw-repl", kdrawReplDecks[name], 200, false, skip); n == 0 {
+				t.Fatalf("%s: dropping the draw program's body diverged no seed (the deck never applies it)", name)
+			}
+		})
 	}
 }

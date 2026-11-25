@@ -1,11 +1,14 @@
 # The ReplDrawProgram lockstep pool (dirac/oracle/repl_drawrepl_lockstep_test.go):
 # the Draw replacements whose ReplaceWith$ body is a draw, a life change or a
 # token, and the bodyless Prevent$ skip (Blood Scrivener, Hullbreacher,
-# Notion Thief, Possessed Portal).
+# Notion Thief, Possessed Portal). One with Nothing and Dark Ritual reach
+# Blood Scrivener's Hellbent gate, where its body applies.
 Blood Scrivener
 Hullbreacher
 Notion Thief
 Possessed Portal
+One with Nothing
+Dark Ritual
 Grizzly Bears
 Hill Giant
 Divination

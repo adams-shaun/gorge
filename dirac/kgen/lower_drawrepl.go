@@ -66,7 +66,12 @@ func (lc *lowerCtx) drawRepl(rp *params, w *cards.SA, rl *lRepl) error {
 	// The plain "draw N cards instead" body keeps its own kind (and its old
 	// acceptance; a chained sub-ability on the body was read as nothing
 	// there). The program path is for every other body.
-	if w != nil && withIs(w, "Draw", map[string]string{"Defined": "You", "NumCards": w.Params["NumCards"]}) {
+	if w != nil && withIs(w, "Draw", map[string]string{"Defined": "You", "NumCards": w.Params["NumCards"]}) &&
+		bits&(kop.ReplDrawOpponent|kop.ReplDrawAnyPlayer) == 0 {
+		// ReplDrawMore is the controller's own draw only (drawMore scans
+		// ctrlM[p]): a line that names an opponent or any player must keep
+		// its player bits and take the program path instead of silently
+		// becoming the controller's replacement.
 		if n, err := strconv.Atoi(w.Params["NumCards"]); err == nil && n >= 2 && n <= 8 {
 			rl.Kind, rl.N, rl.Bits = "DrawMore", cst(n), bits&kop.ReplDrawNotFirst
 			return nil

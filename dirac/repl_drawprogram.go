@@ -56,6 +56,7 @@ func (s *State) drawReplace(p uint8, ch drawChain) bool {
 	var ab *kop.Ability
 	abi := 0
 	n := 0
+	hasProgram := false
 	for seat := uint8(0); seat < MaxSeats; seat++ {
 		for m := s.statM.and(s.ctrlM[seat]); m.any(); m = m.rest() {
 			sl := m.first()
@@ -70,6 +71,7 @@ func (s *State) drawReplace(p uint8, ch drawChain) bool {
 				if a.Kind != kop.AbReplacement {
 					continue
 				}
+				isProg := false
 				switch a.Repl.Kind {
 				case kop.ReplDrawMore:
 					// ReplDrawMore is the controller's own draw (ValidPlayer$ You)
@@ -86,6 +88,7 @@ func (s *State) drawReplace(p uint8, ch drawChain) bool {
 					if !drawProgramPlayer(a.Repl.C, seat, p) {
 						continue
 					}
+					isProg = true
 					if a.Repl.C&kop.ReplDrawNotFirst != 0 && s.g.drawFirst && p == s.active && s.step == kop.StepDraw {
 						continue
 					}
@@ -98,6 +101,9 @@ func (s *State) drawReplace(p uint8, ch drawChain) bool {
 				if n == 0 {
 					sel, ab, abi = sl, a, i
 				}
+				if isProg {
+					hasProgram = true
+				}
 				n++
 			}
 		}
@@ -106,6 +112,12 @@ func (s *State) drawReplace(p uint8, ch drawChain) bool {
 	case n == 0:
 		return false
 	case n > 1:
+		if !hasProgram {
+			// the candidates are all ReplDrawMore, whose composition is
+			// commutative; drawMore settles them in scan order exactly as
+			// gorge's commutative drawMoreCompetition does (repl_draw.go).
+			return s.drawMore(p, ch)
+		}
 		// gorge asks the CR 616.1 order: two draw replacements of one draw
 		// need not commute, so the kernel does not pick one.
 		s.capFull(StallDrawRepl)
