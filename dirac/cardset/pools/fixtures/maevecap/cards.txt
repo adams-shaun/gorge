@@ -1,0 +1,11 @@
+# An until-end-of-turn Effect's RememberObjects$ Targeted over an Attacks
+# line, the emblem's captured attacker
+# (dirac/oracle/maevecap_lockstep_test.go TestMaeveCaptureLockstep;
+# kgen lower_effeottrig.go emblemCapture)
+Maeve, Insidious Singer
+Grizzly Bears
+Savannah Lions
+Coral Merfolk
+Forest
+Island
+Plains

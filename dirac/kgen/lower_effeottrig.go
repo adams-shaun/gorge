@@ -109,7 +109,7 @@ func (lc *lowerCtx) emblemCapture(ps *params, t cards.Trigger, eot bool) (lRef, 
 		ps.consume("RememberObjects")
 		return ref, true, true, t, nil
 	}
-	if strings.TrimSpace(ro) != "Targeted" || !eot || t.Mode != "DamageDone" && t.Mode != "DamageDoneOnce" && t.Mode != "DamageDealtOnce" && t.Mode != "AttackerBlocked" && t.Mode != "AttackerUnblocked" {
+	if strings.TrimSpace(ro) != "Targeted" || !eot || t.Mode != "DamageDone" && t.Mode != "DamageDoneOnce" && t.Mode != "DamageDealtOnce" && t.Mode != "AttackerBlocked" && t.Mode != "AttackerUnblocked" && t.Mode != "Attacks" {
 		return lRef{}, false, false, t, refuse("Effect triggers with RememberObjects$ %q", ro)
 	}
 	var ref lRef
@@ -156,16 +156,18 @@ func (lc *lowerCtx) parentCapture() (lRef, error) {
 // ValidSource$ ...IsRemembered line captures the damage SOURCE (Emblem.Capture,
 // the hook's srcObj); a ValidTarget$ ...IsRemembered line captures the damage
 // RECIPIENT (Arcbond, Glyph of Life), and recipient reports that shape so the
-// hook compares the damaged permanent instead. An AttackerBlocked one's
-// ValidCard$ ...IsRemembered line is always a source capture. Any other
+// hook compares the damaged permanent instead. An AttackerBlocked or Attacks
+// one's ValidCard$ ...IsRemembered line is always the attacker's capture. Any other
 // Remembered read in the trigger refuses.
 func emblemCaptureFilter(ab *lAbility) (bool, error) {
 	t := ab.Trigger
-	if t == nil || t.Event != "DamageDone" && t.Event != "DamageDealtOnce" && t.Event != "AttackerBlocked" {
+	if t == nil || t.Event != "DamageDone" && t.Event != "DamageDealtOnce" && t.Event != "AttackerBlocked" && t.Event != "Attacks" {
 		return false, refuse("Effect RememberObjects$ Targeted beside a trigger that is not ValidSource$ ...IsRemembered")
 	}
 	recipient := false
-	if t.Event == "AttackerBlocked" {
+	if t.Event == "AttackerBlocked" || t.Event == "Attacks" {
+		// the attacker is the captured object: the kernel's Attacks emblem
+		// hook hands the line only that attacker (dirac emblemAtkListeners)
 		if t.F == nil || len(t.F.Clauses) != 1 || t.F.Players != 0 || t.F.Clauses[0].Flags&fRemembered == 0 {
 			return false, refuse("Effect RememberObjects$ Targeted beside a trigger that is not ValidSource$ ...IsRemembered")
 		}

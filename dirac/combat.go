@@ -757,7 +757,7 @@ func (s *State) fireAtkGroup(k *prep, ord *[MaxPerm]Slot, n int, atk, grp []Slot
 	isAtk := func(a *kop.Ability) bool {
 		return a.Trig.Event == kop.TrigAttacks || a.Trig.Event == kop.TrigAttackersDeclared
 	}
-	fire := func(l trigListener, a *kop.Ability) {
+	fireG := func(l trigListener, a *kop.Ability, grp []Slot) {
 		if a.Trig.Event == kop.TrigAttackersDeclared {
 			if a.Trig.Flags2&kop.Tf2DefPlayer != 0 {
 				s.fireDefPlayer(k, l, a, grp) // act_discover.go
@@ -798,6 +798,7 @@ func (s *State) fireAtkGroup(k *prep, ord *[MaxPerm]Slot, n int, atk, grp []Slot
 			}
 		}
 	}
+	fire := func(l trigListener, a *kop.Ability) { fireG(l, a, grp) }
 	for _, sl := range ord[:n] {
 		s.slotTriggers(k, sl, isAtk, fire)
 	}
@@ -806,7 +807,7 @@ func (s *State) fireAtkGroup(k *prep, ord *[MaxPerm]Slot, n int, atk, grp []Slot
 	}
 	s.eachCommandTrigger(k, kop.TrigAttackersDeclared, fire)
 	if emb {
-		s.emblemAtkListeners(k, fire) // gorge: the delayed registrations are checked after the event's face triggers
+		s.emblemAtkListeners(k, grp, fireG) // gorge: the delayed registrations are checked after the event's face triggers
 	}
 	if k.gen.ringOn() {
 		s.ringAtkTrigs(k, grp) // the Ring emblem's level 2 (act_ring.go), after the event's triggers
