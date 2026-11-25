@@ -36,6 +36,9 @@ type nonTapCostCase struct {
 	// victims: the cards whose sacrifice the games must see (the source's
 	// cost sacrifices them; none: the source sacrifices nothing)
 	victims []string
+	// multiCtr: the games must see the source remove two or more counters in
+	// one activation (Runaway Steam-Kin's three +1/+1)
+	multiCtr bool
 }
 
 var nonTapCostCases = []nonTapCostCase{
@@ -216,6 +219,30 @@ var nonTapCostCases = []nonTapCostCase{
 		cast:   []string{"Elvish Mystic", "Seton, Krosan Protector"},
 		source: "Seton, Krosan Protector",
 	},
+	{
+		// Pentad Prism's "Remove a charge counter from this: Add one mana of
+		// any color" and Runaway Steam-Kin's "Remove three +1/+1 counters from
+		// this: Add {R}{R}{R}", neither costing {T} nor limited to once a
+		// turn: gorge's census leaves each a repeatable, unrelaxable gap its
+		// prefix search activates, so one source may pay several activations
+		// (Pentad Prism spends its two charge counters in one game) and one
+		// activation removes more than one counter (Runaway's three). The
+		// lands make no red, so the red spells are paid only by these two;
+		// Runaway's counters come from the red spells Pentad's charge counters
+		// pay, and its three-counter activation is the last red source.
+		name: "counter",
+		deck: [2][]cardset.Entry{
+			{
+				{Name: "Pentad Prism", Count: 4}, {Name: "Runaway Steam-Kin", Count: 4}, {Name: "Raging Goblin", Count: 8},
+				{Name: "Hill Giant", Count: 8}, {Name: "Plains", Count: 8}, {Name: "Island", Count: 8},
+			},
+			{{Name: "Island", Count: 40}},
+		},
+		spells:   []string{"Raging Goblin", "Hill Giant"},
+		cast:     []string{"Pentad Prism", "Runaway Steam-Kin"},
+		source:   "Runaway Steam-Kin",
+		multiCtr: true,
+	},
 }
 
 func (c *nonTapCostCase) names() [2][]string {
@@ -238,6 +265,9 @@ func TestNonTapCostManaLockstep(t *testing.T) {
 			if tl.src == 0 || len(c.victims) != 0 && tl.sacs == 0 {
 				t.Fatalf("spells cast beside %s %d, sacrifices %d: the activation was not exercised", c.source, tl.src, tl.sacs)
 			}
+			if c.multiCtr && tl.bigCtr == 0 {
+				t.Fatalf("no activation of %s removed two or more counters: the multi-counter cost was not exercised", c.source)
+			}
 		})
 	}
 }
@@ -250,7 +280,8 @@ func TestNonTapCostManaLockstepMutation(t *testing.T) {
 		return
 	}
 	dirac.DebugNoTapMana = true
-	defer func() { dirac.DebugNoTapMana = false }()
+	dirac.DebugNoCtrMana = true
+	defer func() { dirac.DebugNoTapMana, dirac.DebugNoCtrMana = false, false }()
 	for i := range nonTapCostCases {
 		c := &nonTapCostCases[i]
 		if tl := c.run(t, 24, false, 30); tl.divs == 0 {
@@ -259,8 +290,19 @@ func TestNonTapCostManaLockstepMutation(t *testing.T) {
 	}
 }
 
+// canonNames maps each option string to the first card it names.
+func canonNames(m *Matchup, opts []string) []string {
+	var out []string
+	for _, o := range opts {
+		if n := firstObjectCard(m, o); n != "" {
+			out = append(out, n)
+		}
+	}
+	return out
+}
+
 type nonTapCostTally struct {
-	games, divs, paid, sacs, src int
+	games, divs, paid, sacs, src, bigCtr int
 }
 
 func (c *nonTapCostCase) run(t *testing.T, seeds uint64, failOnDiv bool, maxTurns int32) nonTapCostTally {
@@ -286,9 +328,10 @@ func (c *nonTapCostCase) run(t *testing.T, seeds uint64, failOnDiv bool, maxTurn
 		if res.Div != nil {
 			tl.divs++
 			if failOnDiv {
-				t.Fatalf("%s seed %d: diverged at decision %d: %s %s %v %s\nref %v\nker %v",
+				t.Fatalf("%s seed %d: diverged at decision %d: %s %s %v %s\nref %v (%v)\nker %v (%v)\nimplicates %v enablers %v",
 					c.name, seed, res.Div.At, res.Div.What, res.Div.Field, res.Div.Diff, res.Div.Detail,
-					res.Div.RefOptions, res.Div.KerOptions)
+					res.Div.RefOptions, canonNames(m, res.Div.RefOptions), res.Div.KerOptions, canonNames(m, res.Div.KerOptions),
+					res.Div.Implicates(m), res.Div.Enablers)
 			}
 			return tl
 		}
@@ -342,6 +385,10 @@ func (p *nonTapCostScenario) check(ref *GorgeSide, _ Side) *Divergence {
 	}
 	for j := p.evAt; j < len(evs); j++ {
 		e := &evs[j]
+		if e.Kind == events.CounterChange && e.Amount <= -2 && p.c.multiCtr && sideObjName(ref, e.Obj) == p.c.source {
+			p.tl.bigCtr++
+			continue
+		}
 		if e.Kind != events.MoveZone || !events.IsSacrifice(*e) {
 			continue
 		}

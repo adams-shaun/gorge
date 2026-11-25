@@ -10,10 +10,12 @@ import (
 // TestLowerNonTapCostManaAbilities: the mana abilities whose cost goes beyond
 // {T} (a sacrifice of another permanent, a tap of an untapped permanent with
 // no {T}) that the kernel's tap-another search activates (kernel
-// mana_tapanother.go) lower with no refusal and every mana ability honoured
-// (kop.ManaAbilityHonoured); the rest of the class stays refused with its
-// measured reason (lockstep or the kernel's mana walk does not yet match
-// gorge for it), so no card of it is lowered as an approximation.
+// mana_tapanother.go), and the no-{T} counter removal shape the kernel's
+// counter gap activates repeatedly while the counters last (kernel
+// mana_countercost.go, kop.CtrRemoveManaAb), lower with no refusal and every
+// mana ability honoured (kop.ManaAbilityHonoured); the rest of the class stays
+// refused with its measured reason (lockstep or the kernel's mana walk does not
+// yet match gorge for it), so no card of it is lowered as an approximation.
 func TestLowerNonTapCostManaAbilities(t *testing.T) {
 	lowered := map[string]string{
 		"Phyrexian Altar":             "Sacrifice a creature: Add one mana of any color (kop.SacAnyManaAb)",
@@ -25,6 +27,16 @@ func TestLowerNonTapCostManaAbilities(t *testing.T) {
 		"Relic of Legends":            "a second Tap an untapped legendary creature you control: Add one mana of any color (kop.SecondTapXOneManaAb)",
 		"Tarnished Citadel":           "{T}: any colour, 3 damage to you (f907ff6cf7; dirac/oracle/pain_anycolour_lockstep_test.go)",
 		"Grand Coliseum":              "{T}: any colour, 1 damage to you (f907ff6cf7; dirac/oracle/pain_anycolour_lockstep_test.go)",
+		"Pentad Prism":                "Remove a charge counter: Add one mana of any color (kop.CtrRemoveManaAb; dirac/oracle/nontapcost_mana_lockstep_test.go)",
+		"Crystalline Crawler":         "Remove a +1/+1 counter: Add one mana of any color (kop.CtrRemoveManaAb; the counter gap kind)",
+		"Runaway Steam-Kin":           "Remove three +1/+1 counters: Add {R}{R}{R} (kop.CtrRemoveManaAb; dirac/oracle/nontapcost_mana_lockstep_test.go)",
+		// the same no-{T} counter-removal shape elsewhere in the corpus: the
+		// predicate lowers them as the class, not one card at a time
+		"Workhorse":          "Remove a +1/+1 counter: Add {C} (kop.CtrRemoveManaAb)",
+		"Morselhoarder":      "Remove a -1/-1 counter: Add one mana of any color (kop.CtrRemoveManaAb)",
+		"Iceberg":            "Remove an ice counter: Add {C} (kop.CtrRemoveManaAb)",
+		"Druids' Repository": "Remove a charge counter: Add one mana of any color (kop.CtrRemoveManaAb)",
+		"Gemstone Array":     "Remove a charge counter: Add one mana of any color (kop.CtrRemoveManaAb)",
 	}
 	// refused: the substring of each refusal measured against the corpus
 	// (kgen -pool edhprobe, 2026-11-18); a card left refused is named here.
@@ -36,9 +48,6 @@ func TestLowerNonTapCostManaAbilities(t *testing.T) {
 		"Opal Palace":            "AddsCounters$ mana rider",
 		"Orcish Lumberjack":      "mana ability cost T+Sac: the kernel's mana walk cannot activate it", // Combo R G, three mana
 		"Heritage Druid":         "mana ability cost TapX: the kernel's mana walk cannot activate it",  // tap three Elves
-		"Pentad Prism":           "mana ability cost RemoveCtr: the kernel's mana walk cannot activate it",
-		"Crystalline Crawler":    "mana ability cost RemoveCtr: the kernel's mana walk cannot activate it",
-		"Runaway Steam-Kin":      "mana ability cost RemoveCtr: the kernel's mana walk cannot activate it",
 	}
 	var names []string
 	for n := range lowered {
