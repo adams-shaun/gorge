@@ -25,18 +25,6 @@ const payPickBlight = 250
 // --- unless / if-you-do costs ---
 
 func (s *State) canPayGen(k *prep, p uint8, kind int, amt int, pips int16, f kop.FilterID) bool {
-	return s.canPayGenMode(k, p, kind, amt, pips, f, false)
-}
-
-// canPayGenCapped is canPayGen with the planner-deferred mana sources counted
-// (availWindowForCapped). A mode's unless-cost gate reads it: the payment
-// window can tap a source whose mana rider the census leaves out, so the
-// offer must see it too.
-func (s *State) canPayGenCapped(k *prep, p uint8, kind int, amt int, pips int16, f kop.FilterID) bool {
-	return s.canPayGenMode(k, p, kind, amt, pips, f, true)
-}
-
-func (s *State) canPayGenMode(k *prep, p uint8, kind int, amt int, pips int16, f kop.FilterID, capped bool) bool {
 	switch kind {
 	case kop.PayMana:
 		if l := kop.PayManaLife(f); l != 0 && int(s.pl[p].life) < l {
@@ -47,11 +35,7 @@ func (s *State) canPayGenMode(k *prep, p uint8, kind int, amt int, pips int16, f
 		s.announcedHyb(&c)
 		var av avail
 		av.xd, av.xdOn = payDesc{class: pdOther}, true // an unless, ward or trigger cost is no spell's, an ability's or a cast's
-		if capped {
-			s.availWindowForCapped(k, p, &av)
-		} else {
-			s.availWindowFor(k, p, &av)
-		}
+		s.availWindowFor(k, p, &av)
 		if m := s.restrFloatAdmits(k, p, &av.xd); m != 0 {
 			// the floating restricted mana this payment admits is pool too
 			// (CR 106.6: gorge's unless, ward and trigger-cost gates price
@@ -255,9 +239,18 @@ func (s *State) execPay(k *prep, in *kop.Instr) bool {
 // failed window probe's fork latched once that drop is final.
 func (s *State) payAnswerGate(k *prep, in *kop.Instr, p uint8, kind int, skip uint16, amt int, pips int16) uint16 {
 	stackSelfGone := kind == kop.PayExileGrave && in.B.N == kop.PayBSubStackSelf && s.objs[s.res.e.obj].zone != kop.ZoneStack
-	noPay := stackSelfGone
+	// gorge's unresolvable DefinedCost_ChosenCard (Tariff): with no chosen
+	// card the DefinedCost token passes through raw and the strict cost
+	// parser rejects it, so the ask is still posed and the payer declines
+	// (effects/unless.go unlessDefinedCost). The kernel's UnlessPaid A
+	// ExMVOf(RefChosen) reads 0 over an empty chosen set, which would price
+	// a free pay.
+	unpricedChosen := in.Op == kop.OpUnlessPaid && kind == kop.PayMana && s.g.nchosen == 0 &&
+		in.A.K == kop.VExpr && int(in.A.N) < len(k.t.Exprs) &&
+		k.t.Exprs[in.A.N].Kind == kop.ExMVOf && k.t.Exprs[in.A.N].Ref == kop.RefChosen
+	noPay := stackSelfGone || unpricedChosen
 	var stall uint8
-	if !stackSelfGone {
+	if !noPay {
 		ok := s.canPayGenFor(k, p, kind, skip, amt, pips, in.F)
 		if !ok && kind == kop.PayDraw && skip&pfModes == 0 {
 			// A trigger's own Draw cost is the window's pay/decline ask
@@ -3057,7 +3050,7 @@ func (s *State) digTake(k *prep, o Obj, z kop.Zone, fl int16) {
 func (s *State) branchPayable(k *prep, b uint8, p uint8) bool {
 	prog := s.prog(k)
 	if prog[s.res.pc].C == 1 {
-		return true // VillainousChoice's every-choice KModes (kgen lower_villainous.go)
+		return true // the controller's KModes: gorge offers every choice (kgen genericChoiceYou)
 	}
 	for i := int(s.res.pc) + 1; i < len(prog); i++ {
 		in := &prog[i]
@@ -3071,7 +3064,7 @@ func (s *State) branchPayable(k *prep, b uint8, p uint8) bool {
 		if n.Op != kop.OpUnlessPaid && n.Op != kop.OpIfPaid && n.Op != kop.OpUnlessSwitched {
 			return true
 		}
-		return s.unlessInstrPayable(k, n, p)
+		return s.canPayGen(k, p, unlessPayKind(int(n.C&0xF), n), s.value(k, n.A), n.B.N, n.F)
 	}
 	return true
 }
