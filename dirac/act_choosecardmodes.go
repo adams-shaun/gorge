@@ -174,6 +174,18 @@ func (s *State) applyChooseCard(k *prep, a Action) {
 		}
 		s.g.chosen[s.g.nchosen] = Obj(a.Source())
 		s.g.nchosen++
+		if in.B.N&1 != 0 { // seat-ok: an instruction flag bit
+			// RememberChosen$ on a counted pick: the kernel's C code
+			// carries the count, so kgen rides the remember flag in B and
+			// each taken card joins the resolution's remembered set (the
+			// post-loop SacrificeAll/ChangeZone reads the set).
+			s.remember(Obj(a.Source()))
+		}
+		if in.B.N&2 != 0 {
+			// ForgetChosen$: the pick leaves the remembered set as it is
+			// recorded (gorge chooseCardRecord's forgetRememberedOne).
+			s.forgetRemGen(Obj(a.Source()))
+		}
 		if s.res.left > 0 {
 			s.res.left--
 		}
@@ -203,6 +215,9 @@ func (s *State) applyChooseCard(k *prep, a Action) {
 		s.g.nchosen = 1
 		if in.C == 2 {
 			s.remember(Obj(a.Source())) // RememberChosen$
+		}
+		if in.B.N&2 != 0 {
+			s.forgetRemGen(Obj(a.Source())) // ForgetChosen$ (Thieves' Auction)
 		}
 	}
 	s.continueRes(k, 0)
