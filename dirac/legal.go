@@ -375,6 +375,9 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 		if k.gen.anyAftermath {
 			s.offerAftermathCasts(k, d, p, sorc) // face_aftermath.go
 		}
+		if k.anyDisturb {
+			s.offerDisturbCasts(k, d, p, sorc) // face_flipcast.go
+		}
 	}
 	if k.gen != nil && k.gen.anyAirbend {
 		s.offerAirbendCasts(k, d, p, sorc) // act_airbend.go (gorge offers it before the warp recast)
@@ -2802,7 +2805,18 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 			continue
 		}
 		if !pc.manaMulti && potentialOpenProduction(pc, payment) {
-			open = s.potentialOpenTap(k, p, sl, pc, boundedAny, painAdd, fold, painDrop, &anyFree, &cen) || open
+			// a reflected or ColorIdentity any-colour source is priced exactly by
+			// gorge's potential walk (one mana per tap, its colours from the
+			// board or the commander's identity: addPotentialReflected,
+			// addPotentialIdentityColours), so the trigger X count's descriptor
+			// reads it as a unit and the census caps the per-colour over-bound.
+			// A plain Produced$ Any or a sacrifice-only source keeps gorge's
+			// producedOpen fold.
+			boundAny := boundedAny
+			if trigXReflBound(d, pc, payment) {
+				boundAny = true
+			}
+			open = s.potentialOpenTap(k, p, sl, pc, boundAny, painAdd, fold, painDrop, &anyFree, &cen) || open
 			s.potentialTapExtraOpen(k, sl, pc, fold, &cen, painRefused)
 			continue
 		}

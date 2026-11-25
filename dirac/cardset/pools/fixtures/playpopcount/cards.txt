@@ -1,0 +1,12 @@
+# Play Amount$/Defined$ population shapes: Plargg and Nassari's up-to-two
+# free casts over the remembered-but-chosen set, with instants, sorceries,
+# creatures and basics (dirac/oracle/playpopcount_lockstep_test.go)
+Plargg and Nassari
+Harness the Storm
+Shock
+Lightning Strike
+Volcanic Hammer
+Raging Goblin
+Goblin Piker
+Lava Axe
+Mountain

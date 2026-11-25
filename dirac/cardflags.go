@@ -50,7 +50,10 @@ type cardSmall struct {
 	eachCol  int8 // its "one mana of each colour among" ability, -1 none
 	restr    int8 // its restricted tap mana ability, -1 none
 	anyR     int8 // its restricted any-colour tap mana ability, -1 none
-	filt     int8 // its filter mana ability, -1 none
+	filt     int8 // its first filter mana ability, -1 none
+	filt2    int8 // its next filter ability (a paid filter set), -1 none
+	filt3    int8
+	filt4    int8
 	gapOther int8 // another mana ability gorge's census misses, -1 none
 	cdaAb    int16
 	manaVar  int16 // the varPC index of the card's dynamic-amount view, -1 none
@@ -93,7 +96,7 @@ func (g *genPrep) smallFor(c CardID) *cardSmall {
 		panic("kernel: genPrep small values set out of card order")
 	}
 	g.smallRecs = append(g.smallRecs, cardSmall{
-		card: c, eachCol: -1, restr: -1, anyR: -1, filt: -1, gapOther: -1, cdaAb: -1, manaVar: -1, splitAb: -1, askAb: -1,
+		card: c, eachCol: -1, restr: -1, anyR: -1, filt: -1, filt2: -1, filt3: -1, filt4: -1, gapOther: -1, cdaAb: -1, manaVar: -1, splitAb: -1, askAb: -1,
 	})
 	return &g.smallRecs[len(g.smallRecs)-1]
 }
@@ -136,6 +139,75 @@ func (g *genPrep) filt(c CardID) int8 {
 		return r.filt
 	}
 	return -1
+}
+
+// maxCardFilters is how many filter mana abilities of one card the table
+// records: a plain first ability beside a paid filter set (Koskun Keep's
+// {1},{T}: Add {R} and {2},{T}: Add {B} or {G}).
+const maxCardFilters = 4
+
+// filtAt returns the card's filter ability ordinal i (0 is its first), -1 none.
+func (g *genPrep) filtAt(c CardID, i int) int8 {
+	if g.flags[c]&gfFilt == 0 || i < 0 || i >= maxCardFilters {
+		return -1
+	}
+	r := g.small(c)
+	if r == nil {
+		return -1
+	}
+	switch i {
+	case 0:
+		return r.filt
+	case 1:
+		return r.filt2
+	case 2:
+		return r.filt3
+	default:
+		return r.filt4
+	}
+}
+
+// filtCount is how many filter abilities the card records.
+func (g *genPrep) filtCount(c CardID) int {
+	if g.flags[c]&gfFilt == 0 {
+		return 0
+	}
+	r := g.small(c)
+	if r == nil {
+		return 0
+	}
+	switch {
+	case r.filt < 0:
+		return 0
+	case r.filt2 < 0:
+		return 1
+	case r.filt3 < 0:
+		return 2
+	case r.filt4 < 0:
+		return 3
+	default:
+		return 4
+	}
+}
+
+// filtNext returns the card's next free filter ability ordinal, -1 full.
+func (g *genPrep) filtNext(c CardID) int8 {
+	for i := 0; i < maxCardFilters; i++ {
+		if g.filtAt(c, i) < 0 {
+			return int8(i)
+		}
+	}
+	return -1
+}
+
+// isFiltAb reports whether ability j of card c is one of its recorded filters.
+func (g *genPrep) isFiltAb(c CardID, j int) bool {
+	for i := 0; i < g.filtCount(c); i++ {
+		if int(g.filtAt(c, i)) == j {
+			return true
+		}
+	}
+	return false
 }
 
 func (g *genPrep) gapOther(c CardID) int8 {
