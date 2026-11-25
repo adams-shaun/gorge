@@ -23,10 +23,10 @@ func TestPayLifeCostBoardGateCompetingReplacements(t *testing.T) {
 			t.Fatalf("precondition: %s is not active for the payer: %+v", c.Faces[0].Name, o)
 		}
 	}
-	if got := tapeReplMayAsk(e, "PayLife"); !got {
+	if got := tapeReplMayAsk(e, "PayLife", replWalkScope{}); !got {
 		t.Fatal("precondition: two PayLife lines must compete")
 	}
-	if !tapeBoardCompetes(e) {
+	if !tapeBoardCompetes(e, replWalkScope{}) {
 		t.Fatal("PayLife cost replacement-order ask is not checkpointed")
 	}
 }

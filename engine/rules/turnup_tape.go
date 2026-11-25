@@ -14,5 +14,5 @@ package rules
 // e.choosing == chooseTurnUp, a priority answer whose first choice is
 // optTurnFaceUp); this is the board half.
 func tapeTurnUpReplMayAsk(e *Engine) bool {
-	return tapeReplMayAsk(e, "TurnFaceUp") || tapeAnyReplBodyMayAsk(e)
+	return tapeReplMayAsk(e, "TurnFaceUp", replWalkScope{}) || tapeAnyReplBodyMayAsk(e)
 }
