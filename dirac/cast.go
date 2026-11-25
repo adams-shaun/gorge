@@ -1452,9 +1452,6 @@ func (s *State) modeFeasible(k *prep, a *kop.Ability, m int) bool {
 	if k.gen != nil && k.gen.anyCharmPick && s.charmPickBarred(a, s.bld().e.obj, m) {
 		return false // ChoiceRestriction$: chosen before (modal_charmpick.go)
 	}
-	if a.AFlags&kop.AfCharmTrigger != 0 && !s.modeUnlessPayable(k, a, m, s.bld().e.ctrl) {
-		return false // a GenericChoice mode whose UnlessCost$ the controller cannot pay (modal_unless.go)
-	}
 	for i := 0; i < int(a.NTargets); i++ {
 		t := &a.Targets[i]
 		if t.UpTo || (a.TgtModes[i] != 0 && a.TgtModes[i]&(1<<m) == 0) {
@@ -1711,6 +1708,9 @@ func (s *State) payCastParts(k *prep, ep *stackEntry, anyColor bool) {
 	if s.bld().payLifeMV {
 		s.payMayPlayLife(k) // a may-play cast's alternative cost: life equal to its mana value (cast_mayplaypaylife.go)
 	}
+	if n := s.bld().payEnergy; n > 0 {
+		s.payEnergyN(e.ctrl, n) // a may-play cast's alternative cost: the static's energy (kop.StMayPayEnergy)
+	}
 	if k.phyMana {
 		s.payPhyrexianLife(k) // the two-life faces (mana_phyrexian.go)
 	}
@@ -1819,6 +1819,9 @@ func (s *State) finishBuild(k *prep) {
 			return // a free or Spree cast's window waits on a tap-another pick (mana_window.go)
 		}
 		s.obsWinSettle(k, e.ctrl, obsPool, obsOK)
+		if k.gen != nil && k.gen.anyManaHaste {
+			s.hasteSettle(e.ctrl) // mana_hastefloat.go
+		}
 		s.payDelvePicks() // gorge payCast exiles the delved cards after the mana
 		s.paySacsGen(k)
 		s.bld().e.flags &^= sfFbGranted

@@ -1783,6 +1783,18 @@ func (lc *lowerCtx) twoPiles(ps *params) error {
 	return lc.twoPilesRemembered(ps) // lower_twopiles.go
 }
 
+// chooseCardRememberModes maps a ChooseCard mode word to its RememberChosen$
+// spelling. "" is the one-card pick (the op's Remember code); the counted and
+// the plain up-to-one picks (Jetsam's graveyard pick, the Done beside the
+// cards) carry the remember flag in B, read by the kernel's answer as each
+// card is taken.
+var chooseCardRememberModes = map[string]string{
+	"":          "Remember",
+	"Amount":    "AmountRemember",
+	"AmountOpt": "AmountOptRemember",
+	"Optional":  "OptionalRemember",
+}
+
 func (lc *lowerCtx) chooseCard(ps *params) error {
 	if each, ok := ps.get("ChooseEach"); ok {
 		// Liliana's -9: each opponent chooses a permanent they control of
@@ -1926,20 +1938,14 @@ func (lc *lowerCtx) chooseCard(ps *params) error {
 		// counted mode word keeps its Remember spelling so the writer
 		// census sees the set is written in this resolution.
 		ps.consume("RememberChosen")
-		switch mode {
-		case "":
-			mode = "Remember"
-		case "Amount":
-			in.B = cst(1)
-			mode = "AmountRemember"
-		case "AmountOpt":
-			in.B = cst(1)
-			mode = "AmountOptRemember"
-		default:
-			// "Optional" (an up-to-one Done pick, Jetsam's graveyard pick)
-			// stays out: its split-card face lockstep diverged.
+		rm, ok := chooseCardRememberModes[mode]
+		if !ok {
 			return refuse("ChooseCard RememberChosen$ with %s", mode)
 		}
+		if mode != "" {
+			in.B = cst(1)
+		}
+		mode = rm
 	}
 	if lc.repeatPl > 0 && ps.is("ForgetChosen", "True") {
 		// RepeatEach player bodies only (as RememberChosen$ above).

@@ -494,8 +494,16 @@ func (s *State) castFlagsGenTgt(k *prep, o Obj, mode, tgt uint8) {
 	}
 	s.bld().e.flags |= sfMayPlay
 	p := s.bld().e.ctrl
-	if mode == castMayPlay|castFree && FeatIsZeroAltTgt(tgt) && k.gen.anyZeroAlt && s.spendZeroAlt(k, o, p) && tgt == zeroAltTgt {
-		mode &^= castFree // the {0} alternative beside a priced plain cast: that cast's permission is spent below (cast_mayzeroalt.go)
+	if mode == castMayPlay|castFree && FeatIsZeroAltTgt(tgt) && k.gen.anyZeroAlt {
+		if ok, zst := s.spendZeroAlt(k, o, p); ok && tgt == zeroAltTgt {
+			mode &^= castFree // the alternative beside a priced plain cast: that cast's permission is spent below (cast_mayzeroalt.go)
+			if zst.a.Static.StFlags&kop.StMayPayLife != 0 {
+				s.bld().payLifeMV = true // the alternative's cost is the mana value in life (Demon of Fate's Design)
+			}
+			if zst.a.Static.StFlags&kop.StMayPayEnergy != 0 {
+				s.bld().payEnergy = uint8(zst.a.Static.A) // the alternative's cost is the static's energy (Nissa, Worldsoul Speaker)
+			}
+		}
 	}
 	// a permission record is spent; a once-per-turn static is marked
 	if k.gen.anyMayKind && s.spendMayKind(k, o, p, mode) {
