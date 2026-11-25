@@ -36,6 +36,10 @@ const colourWordLetters = "WUBRG"
 // "nonred").
 var colourWordNames = [5]string{"White", "Blue", "Black", "Red", "Green"}
 
+// allZones is every game zone an AffectedZone$ "All" reaches (the zone enum
+// up through ZCommand; ZCeased holds no objects).
+var allZones = [...]state.Zone{state.ZLibrary, state.ZHand, state.ZBattlefield, state.ZGraveyard, state.ZExile, state.ZStack, state.ZCommand}
+
 // reconcileColorWords keeps every object in a zone the live colour-word
 // statics reach carrying exactly the substitutions those statics currently
 // derive, in active-effect order. Runs at the emit tail, next to
@@ -62,19 +66,49 @@ func (e *Engine) reconcileColorWords() {
 	// AffectedZone$ names the zones its effect reaches, so an object in one
 	// of them carries the substitutions and nothing else does. A value that
 	// cannot parse admits nothing (fail closed, the direction the derive
-	// walk takes).
+	// walk takes); an omitted AffectedZone$ narrows through PermanentsOnly
+	// alone (the derive walk skips the parse for the empty string), so it
+	// admits everywhere the PermanentsOnly check allows.
 	type zoneAdmission struct {
 		zones []state.Zone
 		all   bool
 	}
 	admits := make([]zoneAdmission, len(live))
+	reach := map[state.Zone]bool{}
+	if len(live) == 0 {
+		// No live effect: the only work is the retraction, which visits
+		// every zone the changed objects can sit in.
+		for _, z := range allZones {
+			reach[z] = true
+		}
+	}
 	for i := range live {
-		zones, all, ok := effects.ParseZones(live[i].AffectedZone)
-		admits[i] = zoneAdmission{zones: zones, all: all && ok}
+		az := live[i].AffectedZone
+		if az == "" {
+			admits[i].all = true
+			for _, z := range allZones {
+				reach[z] = true
+			}
+			continue
+		}
+		zones, all, ok := effects.ParseZones(az)
+		if !ok {
+			continue
+		}
+		admits[i].zones, admits[i].all = zones, all
+		if all {
+			for _, z := range allZones {
+				reach[z] = true
+			}
+		} else {
+			for _, z := range zones {
+				reach[z] = true
+			}
+		}
 	}
 	for i := range e.G.Objs {
 		o := &e.G.Objs[i]
-		if o.Zone != state.ZBattlefield && o.Zone != state.ZStack {
+		if !reach[o.Zone] {
 			continue
 		}
 		var want []cards.TextSub
