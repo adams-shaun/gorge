@@ -1,0 +1,31 @@
+# spells with their own timing restriction, gorge activationPhasesOK on the
+# spell's SA at the cast offer (CR 601.3): ActivationPhases$ (Savage Beating,
+# Panic, Gorilla War Cry, Disharmony, Berserk, Blood Frenzy, Teleport,
+# Necrologia, Angelic Favor, Surprise Deployment), PlayerTurn$ (Savage
+# Beating, Seedtime) and OpponentTurn$ (Take the Bait), beside creatures to
+# attack with, for the oracle's constructed lockstep
+# (dirac/oracle/spellwindow_lowers_test.go)
+Savage Beating
+Panic
+Gorilla War Cry
+Disharmony
+Berserk
+Blood Frenzy
+Seedtime
+Take the Bait
+Teleport
+Necrologia
+Angelic Favor
+Surprise Deployment
+Grizzly Bears
+Hill Giant
+Llanowar Elves
+Savannah Lions
+Serra Angel
+Wind Drake
+Memnite
+Mountain
+Forest
+Plains
+Island
+Swamp
