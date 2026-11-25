@@ -520,6 +520,30 @@ func copyKeptSets(d *kop.CardDef, c *lCard) {
 	d.HasUnearth, d.HasDecayed, d.HasPersist, d.HasDoctorsCompanion = c.HasUnearth, c.HasDecayed, c.HasPersist, c.HasDoctorsCompanion
 }
 
+// recordEvoke records an Evoke cost. CR 702.74a: no KwMask bit is free, so
+// the evoke marker is its own field; the cost is the hand's alternative cost,
+// and the permanent is sacrificed as it enters (dirac/kw_evoke.go). A
+// hand-exile pick (lower_evoke.go evokePickCost; kernel kw_evoke.go
+// offerEvokeHand and buildPickCost) rides beside it.
+func (cb *cardBuilder) recordEvoke() error {
+	c, d := cb.c, &cb.out.def
+	d.HasEvoke = true
+	var err error
+	if d.EvokeCost, err = manaCostOf(*c.Evoke); err != nil {
+		return err
+	}
+	if c.EvokePick == nil {
+		return nil
+	}
+	if d.EvokePick, err = cb.cost(*c.EvokePick); err != nil {
+		return err
+	}
+	if !altHandExileShape(&d.EvokePick) {
+		return fmt.Errorf("evoke pick cost outside the hand-exile shape")
+	}
+	return nil
+}
+
 func (cb *cardBuilder) record() error {
 	c := cb.c
 	d := &cb.out.def
@@ -880,22 +904,8 @@ func (cb *cardBuilder) record() error {
 		}
 	}
 	if c.Evoke != nil {
-		// CR 702.74a: no KwMask bit is free, so the evoke marker is its own
-		// field; the cost is the hand's alternative cost, and the permanent
-		// is sacrificed as it enters (dirac/kw_evoke.go)
-		d.HasEvoke = true
-		if d.EvokeCost, err = manaCostOf(*c.Evoke); err != nil {
+		if err := cb.recordEvoke(); err != nil {
 			return err
-		}
-		if c.EvokePick != nil {
-			// the hand-exile pick (lower_evoke.go evokePickCost; kernel
-			// kw_evoke.go offerEvokeHand and buildPickCost)
-			if d.EvokePick, err = cb.cost(*c.EvokePick); err != nil {
-				return err
-			}
-			if !altHandExileShape(&d.EvokePick) {
-				return fmt.Errorf("evoke pick cost outside the hand-exile shape")
-			}
 		}
 	}
 	if c.Dash != nil {

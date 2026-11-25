@@ -848,7 +848,7 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 			if k.gen != nil && k.gen.anyTapPower && s.tapPowerOptions(k, d) {
 				return true
 			}
-			if k.gen != nil && k.gen.uses.has(useTapXAnn) && s.tapXAnnOptions(k, d) {
+			if s.tapXAnnStep(k, d) {
 				return true // an activation's announced tapXType<X/Spec> (cost_tapxann.go)
 			}
 			if s.costPickOptions(k, d, kop.CostTapX) {
@@ -904,11 +904,7 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 				if e.kind == seAbility && k.gen != nil && k.gen.anyLoyaltyX && s.loyaltyXOptions(k, d) {
 					return true // a planeswalker's [-X] (cost_loyaltyx.go)
 				}
-				if (k.gen == nil || !k.gen.anyLifeX || !s.lifeXBuilding(k)) &&
-					(k.gen == nil || !k.gen.anySacX || !s.sacXBuilding(k)) &&
-					(k.gen == nil || !k.gen.anyExileX || !s.exileXBuilding(k)) &&
-					(k.gen == nil || !k.gen.uses.has(useEnergyX) || !s.energyXBuilding(k)) &&
-					(k.gen == nil || !k.gen.uses.has(useDiscardX) || !s.discardXBuilding(k)) {
+				if !s.announcedXBuilding(k) {
 					s.nextStage(k)
 					continue
 				}
@@ -2997,4 +2993,26 @@ func (s *State) poolRPays(k *prep, p uint8, c CardID, o Obj) bool {
 	// an {X} (a warp cost's) is priced at X = 0, as gorge's witness plans it
 	// before the announcement (CR 601.2b)
 	return av.affords(&cost, pipMaskOf(&cost), 0)
+}
+
+// announcedXBuilding reports whether the cost being built has an announced X
+// with no {X} mana that asks X at this stage: PayLife<X>, Sac<X/Spec>,
+// ExileFromGrave<X/Spec>, PayEnergy<X> or Discard<X/Spec> (cost_paylifex.go,
+// cost_sacx.go, cost_exilex.go, cost_energyx.go, cost_discardfiltered.go).
+func (s *State) announcedXBuilding(k *prep) bool {
+	g := k.gen
+	if g == nil {
+		return false
+	}
+	return (g.anyLifeX && s.lifeXBuilding(k)) ||
+		(g.anySacX && s.sacXBuilding(k)) ||
+		(g.anyExileX && s.exileXBuilding(k)) ||
+		(g.uses.has(useEnergyX) && s.energyXBuilding(k)) ||
+		(g.uses.has(useDiscardX) && s.discardXBuilding(k))
+}
+
+// tapXAnnStep asks an activation's announced tapXType<X/Spec> pick when the
+// table holds one (cost_tapxann.go).
+func (s *State) tapXAnnStep(k *prep, d *Decision) bool {
+	return k.gen != nil && k.gen.uses.has(useTapXAnn) && s.tapXAnnOptions(k, d)
 }
