@@ -226,7 +226,7 @@ func (s *State) placeFromK(k *prep, o Obj, z kop.Zone, bottom bool, from kop.Zon
 	}
 	pl := &s.pl[ob.owner()]
 	if z == kop.ZoneGraveyard && s.g.on {
-		if k.gen != nil && k.gen.exileAnyC != nil {
+		if k.gen != nil && (k.gen.exileAnyC != nil || k.gen.anyEmbExileAny) {
 			z = s.exileAnyDest(k, o, from) // Rest in Peace or the card itself from any zone (repl_exileonleave.go)
 		}
 	}
