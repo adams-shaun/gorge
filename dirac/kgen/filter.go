@@ -33,8 +33,8 @@ const (
 var typeBits = map[string]uint16{
 	"Land": tLand, "Creature": tCreature, "Artifact": tArtifact, "Enchantment": tEnchantment,
 	"Planeswalker": tPlaneswalker, "Instant": tInstant, "Sorcery": tSorcery, "Battle": tBattle,
-	"Legendary": tLegendary, "Basic": tBasic, "Kindred": tKindred,
-	"Permanent": tPermanent, "Card": tAnyCard, "Emblem": tEmblem,
+	"Legendary": tLegendary, "Basic": tBasic, "Kindred": tKindred, "Permanent": tPermanent,
+	"Card": tAnyCard, "Emblem": tEmblem,
 }
 
 const tSupertype = tLegendary | tBasic
