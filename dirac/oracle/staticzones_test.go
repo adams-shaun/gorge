@@ -36,7 +36,11 @@ var kstaticzonesDecks = [2][]cardset.Entry{
 		{Name: "Grizzly Bears", Count: 3}, {Name: "Dragon's Rage Channeler", Count: 2}, {Name: "Spire Serpent", Count: 2},
 		{Name: "Case of the Locked Hothouse", Count: 2},
 		{Name: "True Believer", Count: 2}, {Name: "Trusted Advisor", Count: 2},
-		{Name: "Plains", Count: 5}, {Name: "Island", Count: 3}, {Name: "Mountain", Count: 5},
+		// Squee, the Immortal: the two-zone self MayPlay (AffectedZone$
+		// Exile,Graveyard + EffectZone$ Exile,Graveyard), the slice's
+		// self-grant carrier (ticket dirac-squee-two-zone-self-mayplay).
+		{Name: "Squee, the Immortal", Count: 2},
+		{Name: "Plains", Count: 5}, {Name: "Island", Count: 1}, {Name: "Mountain", Count: 3}, {Name: "Swamp", Count: 2},
 	},
 }
 
