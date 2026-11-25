@@ -1032,7 +1032,18 @@ func (s *State) damageTo(k *prep, code TCode, n int) int {
 			}
 			return n // gorge's replacement-order ask, after the resolution
 		}
-		if n = s.replDamage(k, s.srcCtrl(k), s.objRef(k, kop.RefSelf), e.card, code, false, n); n <= 0 {
+		srcSl := s.objRef(k, kop.RefSelf)
+		var ba ncAsk
+		n0 := n
+		n = s.replDamageAsk(k, s.srcCtrl(k), srcSl, e.card, code, false, n, &ba)
+		if ba.body != 0 {
+			// an ask body's event (repl_dmbody.go): nothing is dealt now (a
+			// CR 615.12 stand deals after the answer), the body's decision is
+			// posed when the resolution suspends
+			s.parkBodyNC(k, code, s.srcCtrl(k), srcSl, e.card, &ba, n0, s.srcKw(k))
+			return 0
+		}
+		if n <= 0 {
 			return 0
 		}
 	}
