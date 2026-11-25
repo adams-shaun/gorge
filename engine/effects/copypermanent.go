@@ -938,6 +938,23 @@ func copyPermanentController(h Host, c *Ctx, g *state.Game, cp CopyPermanentPara
 	switch copyPermanentControllerCodes.Code(string(cp.Controller)) {
 	case copyPermanentControllerYou:
 	case copyPermanentControllerTargeted:
+		// Forge's Targeted/TargetedPlayer name the PLAYER the resolving
+		// ability targeted, not the controller of the copied object (CR
+		// 111.2: the player who creates a token owns and controls it).
+		// Wedding Ring copies itself yet its ETB says "target opponent
+		// creates the token"; Lucy MacLean copies the entering token yet
+		// names another player. The object-controller projection remains
+		// the fallback for the "Targeted" spelling when the ability named
+		// only objects.
+		if ps := targetedPlayers(c); len(ps) > 0 {
+			owner = ps[0].Player
+		} else if ps := controllersOf(g, targets); len(ps) > 0 {
+			owner = ps[0].Player
+		}
+	case copyPermanentControllerTargetedController:
+		// Forge's TargetedController: the controllers of the target
+		// OBJECTS (Waste Land, Dwarven Confluencer, Saw in Half). A target
+		// player contributes nothing.
 		if ps := controllersOf(g, targets); len(ps) > 0 {
 			owner = ps[0].Player
 		}
@@ -1049,13 +1066,14 @@ const (
 	copyPermanentControllerTriggeredCardController
 	copyPermanentControllerOpponent
 	copyPermanentControllerNonRememberedController
+	copyPermanentControllerTargetedController
 )
 
 var copyPermanentControllerCodes = state.NewStrCodes(
 	state.StrEntry[copyPermanentControllerCode]{Key: "", Val: copyPermanentControllerYou},
 	state.StrEntry[copyPermanentControllerCode]{Key: "You", Val: copyPermanentControllerYou},
 	state.StrEntry[copyPermanentControllerCode]{Key: "Targeted", Val: copyPermanentControllerTargeted},
-	state.StrEntry[copyPermanentControllerCode]{Key: "TargetedController", Val: copyPermanentControllerTargeted},
+	state.StrEntry[copyPermanentControllerCode]{Key: "TargetedController", Val: copyPermanentControllerTargetedController},
 	state.StrEntry[copyPermanentControllerCode]{Key: "TargetedPlayer", Val: copyPermanentControllerTargeted},
 	state.StrEntry[copyPermanentControllerCode]{Key: "Remembered", Val: copyPermanentControllerRemembered},
 	state.StrEntry[copyPermanentControllerCode]{Key: "RememberedController", Val: copyPermanentControllerRemembered},
