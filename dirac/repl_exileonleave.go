@@ -41,6 +41,9 @@ func (s *State) exileAnyN(k *prep, o Obj, c CardID, owner uint8) (int, kop.Count
 	n := s.embExileAnyN(k, o, c, owner) // an emblem's any-zone arm joins the count (repl_exileleaveemb.go)
 	var ctr kop.CounterKind
 	var ctrN uint8
+	if g.exileAnyC == nil {
+		return n, ctr, ctrN // no printed any-zone card: only an emblem (anyEmbExileAny) opened the gate
+	}
 	for m := s.statM; m.any(); m = m.rest() {
 		b := m.first()
 		sc := s.cardAt(b)
