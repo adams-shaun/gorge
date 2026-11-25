@@ -1537,6 +1537,12 @@ type filtSearch struct {
 	// carry a multi-unit fee (feeGaps), then the other gaps (mana_filterfeeorder.go).
 	feeOrder bool
 	feeGaps  slotMask
+	// subsume: gorge's third run (potentialPrefixScript's subsume search):
+	// every multi-answer colour ask keeps only the colours the pool still
+	// lacks of the play's coloured-pip-only cost (gorge's subsumeAnswers).
+	// costCol is that cost's pips per colour (playCostCounts).
+	subsume bool
+	costCol [kop.NumManaKinds]uint8
 	// floated: the payer held floating mana when the search began. Under it
 	// holdDualFilter and freeBranchHopeless stand down for a fee-carrying
 	// filter, leaving the plain walk and fee-order fallback gorge runs.
@@ -1899,6 +1905,29 @@ func (s *State) filtScript(k *prep, a Action, p uint8, apply bool) bool {
 			nodes = max(nodes, ph.nodes)
 			if fs.stall == 0 {
 				fs.stall = ph.stall
+			}
+		}
+	}
+	// The subsume run: gorge's plain search ran out of its node budget with
+	// no fee-carrying gap to fund (potentialPrefixScript's plain.limited &&
+	// funding == 0), so it searches the plain order again with every
+	// multi-answer colour ask narrowed to the colours the node's pool still
+	// lacks of the play's coloured-pip-only cost (subsumeKeeps; gorge's
+	// subsumeAnswers). A completed plain search saw the whole space, and a
+	// play with a generic or {X} pip has a colour any colour can pay, so
+	// neither takes the run.
+	if !found && nodes >= potentialScriptNodes && fs.fees == 0 {
+		if cnt, ok := s.playCostCounts(k, a); ok {
+			ss := filtSearch{a: fs.a, p: fs.p, gaps: fs.gaps, own: fs.own, sp0: fs.sp0, need: fs.need, useful: fs.useful,
+				usefulOK: fs.usefulOK, other: fs.other, feeOnly: fs.feeOnly, fees: fs.fees, dead: fs.dead, subsume: true, costCol: cnt, noHand: fs.noHand, lifePainBound: fs.lifePainBound}
+			if found = ss.visit(k, t, 0, false); found {
+				fs = ss
+				nodes = ss.nodes
+			} else {
+				nodes = max(nodes, ss.nodes)
+				if fs.stall == 0 {
+					fs.stall = ss.stall
+				}
 			}
 		}
 	}
@@ -3419,6 +3448,16 @@ func (fs *filtSearch) freeBranchHopeless(k *prep, t *State, sl Slot) bool {
 	return false
 }
 
+// subsumeKeeps is gorge's subsumeAnswers keep-rule for colour answer c of a
+// multi-answer ask: in the subsume run only a colour the pool holds fewer of
+// than the play's cost asks (a covered colour pays nothing more than a
+// lacking one, so its line is dominated); every ask of the other runs keeps
+// its answers whole. The read is the ask's pool, before the step's mana
+// floats in, as branchSel's is in the grant and Taps-deferred searches.
+func (fs *filtSearch) subsumeKeeps(t *State, c uint8) bool {
+	return !fs.subsume || fs.costCol[c] > t.pl[SeatIx(fs.p)].pool[c]
+}
+
 // filtColours branches on the colour ask of the filter at sl. asked is that the
 // source's ability ask was already spent (a free {C}
 // ability beside the filter): a hybrid-fee filter's colours are options of
@@ -3476,10 +3515,13 @@ func (fs *filtSearch) filtColoursOf(k *prep, t *State, sl Slot, funded int, part
 		if part == colNeeded && !fs.need[c] || part == colRest && fs.need[c] {
 			continue
 		}
+		if n > 1 && !fs.subsumeKeeps(t, c) {
+			continue // the subsume run's ask keeps only the colours the pool lacks
+		}
 		if n > 1 && oneShot && t.filtOneShotColStalls(k, fs.p, sl, &fs.useful, int(c)) {
 			continue // a one-shot gap's colour that fills no fixed pip
 		}
-		if n > 1 && fs.usefulOK && !fs.phased && t.filtFeeColStalls(k, fs.p, sl, &fs.useful, int(c), fs.own, pd) {
+		if n > 1 && fs.usefulOK && !fs.phased && !fs.subsume && t.filtFeeColStalls(k, fs.p, sl, &fs.useful, int(c), fs.own, pd) {
 			// the fee-only repeatable activation making c is doomed on this
 			// node (filtFeeColStalls: c fills no fixed pip the play's cost
 			// still lacks once the fee is paid): the ask offers the other
@@ -3502,7 +3544,7 @@ func (fs *filtSearch) filtColoursOf(k *prep, t *State, sl Slot, funded int, part
 // clamp cannot read -- an unpayable fee, an any-type rider, a producible
 // colour ManaColors does not name -- fails open.
 func (fs *filtSearch) activationStalls(k *prep, t *State, sl Slot) bool {
-	if !fs.usefulOK || fs.phased { // (the fee-stall prune is the plain run's alone)
+	if !fs.usefulOK || fs.phased || fs.subsume { // (the fee-stall prune is the plain run's alone, not the subsume run's)
 		return false
 	}
 	ab := t.filtAb(k, sl)
