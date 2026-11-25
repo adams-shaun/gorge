@@ -22,7 +22,7 @@ var llLifeline = "Name:Lifeline Fixture\nManaCost:5\nTypes:Artifact\n" +
 	"Oracle:x\n"
 
 var llKami = "Name:Kami Fixture\nManaCost:W\nTypes:Creature Spirit\nPT:1/1\n" +
-	"A:AB$ Fog | Cost$ Sac<1/CARDNAME> | SpellDescription$ Prevent all combat damage that would be dealt this turn.\n" +
+	"A:AB$ Fog | Cost$ Sac<1/CARDNAME> | SpellDescription$ Sacrifice this: no combat damage is dealt this turn.\n" +
 	"Oracle:x\n"
 
 var llBear = "Name:Bear Fixture\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n"
