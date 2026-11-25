@@ -32,6 +32,7 @@ type trigListener struct {
 func (s *State) eachTrigger(k *prep, ev kop.TrigEvent, f func(l trigListener, a *kop.Ability)) {
 	s.eachBattlefieldTrigger(k, ev, f)
 	s.eachCommandTrigger(k, ev, f)
+	s.eachPlaneTrigger(k, ev, f)
 }
 
 // eachBattlefieldTrigger calls f for every triggered ability of event ev on

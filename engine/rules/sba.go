@@ -355,7 +355,7 @@ func (e *Engine) checkStateBased() {
 		// choice (CR 800.4a), and rearm below must see the alive set the batch's
 		// own attempts are made under. That player's permanents stay until the
 		// batch has applied, so one that dies in this check still dies.
-		e.sbaLossHeld = len(b.losses) > 0
+		e.holdSBALoss(len(b.losses) > 0)
 		for _, l := range b.losses {
 			e.losePlayer(l.player, l.text)
 		}
@@ -372,7 +372,7 @@ func (e *Engine) checkStateBased() {
 				// left in the batch is already gone, one still standing returns to the controller the
 				// surviving effects give it
 				if e.sbaLossHeld {
-					e.sbaLossHeld = false
+					e.holdSBALoss(false)
 					e.expireControl(controlOnEvent)
 				}
 				e.sweepDepartedPlayers(tried)
@@ -400,7 +400,7 @@ func (e *Engine) checkStateBased() {
 		// left in the batch is already gone, one still standing returns to the controller the
 		// surviving effects give it
 		if e.sbaLossHeld {
-			e.sbaLossHeld = false
+			e.holdSBALoss(false)
 			e.expireControl(controlOnEvent)
 		}
 		forgetHealedCasualties(e.G, &b, tried)

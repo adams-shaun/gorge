@@ -1123,6 +1123,7 @@ func (cb *cardBuilder) mana(m *lMana, ka *kop.Ability) error {
 	ka.ManaEach = m.Each
 	ka.ManaDeferred = m.Deferred
 	ka.ManaAskColour = m.AskColour
+	ka.ManaUnless = m.Unless
 	ka.ManaNoCounter = m.NoCounter
 	ka.ManaIdentityPotential = m.IdentityPotential
 	ka.ManaRider = uint8(m.Rider)
@@ -1245,10 +1246,11 @@ var eventMap = map[string]kop.TrigEvent{"ETB": kop.TrigETB, "Dies": kop.TrigDies
 	"ClassLevelGained": kop.TrigCounterAddedOnce, // N = CtrLevel (lower_class.go)
 	"BecomesPlotted":   kop.TrigBecomesPlotted,   // the card's own
 	"BecomesSaddled":   kop.TrigBecomesSaddled,
-	"Evolved":          kop.TrigEvolved,    // the source's own, after its evolve counter lands
-	"Attached":         kop.TrigAttached,   // the attachment's own, Creature bearer (Assimilation Aegis)
-	"Unattached":       kop.TrigUnattached, // the attachment's own, the FORMER BEARER (Captain's Hook family)
-	"LeaveExile":       kop.TrigLeaveExile} // an imprinted card leaves exile (lower_changezonepairs.go; dirac/trig_leaveexile.go)
+	"Evolved":          kop.TrigEvolved,     // the source's own, after its evolve counter lands
+	"Attached":         kop.TrigAttached,    // the attachment's own, Creature bearer (Assimilation Aegis)
+	"Unattached":       kop.TrigUnattached,  // the attachment's own, the FORMER BEARER (Captain's Hook family)
+	"ChaosEnsues":      kop.TrigChaosEnsues, // the face-up plane's command-zone chaos ability (zone_planechase.go)
+	"LeaveExile":       kop.TrigLeaveExile}  // an imprinted card leaves exile (lower_changezonepairs.go; dirac/trig_leaveexile.go)
 
 // trigQualifierFlags is trigger's qualifier-flag block: the Evolve, the
 // SpellCast spend qualifiers (Increment, the mana-spend gate) and the split
@@ -1942,12 +1944,15 @@ func (cb *cardBuilder) staticFor(s lStatic) (kop.Ability, []uint8, error) {
 	if s.Kind == "RetraceGrant" {
 		return cb.offKwGrantAbility(s)
 	}
-	if s.Kind == "UnearthGrant" {
+	if s.Kind == "UnearthGrant" || s.Kind == "CyclingGrant" {
 		ka, _, err := cb.offKwGrantAbility(s)
 		if err != nil {
 			return ka, nil, err
 		}
 		ka.Static.Kind = kop.StatUnearthGrant
+		if s.Kind == "CyclingGrant" {
+			ka.Static.Kind = kop.StatCyclingGrant
+		}
 		j, ok := cb.abMap[s.GrantBody] // 0-based LIR index, like s.Grant above
 		if !ok {
 			return ka, nil, fmt.Errorf("granted unearth body %d not emitted", s.GrantBody)
@@ -2999,6 +3004,10 @@ func (cb *cardBuilder) repl(r lRepl) (kop.Ability, error) {
 		rp.A = int16(r.N.N)
 	case "BeginPhaseSkip", "LifeFloor", "DamageMinus", "DamageSet":
 		if err := cb.replRewrite(r, rp); err != nil {
+			return ka, err
+		}
+	case "DamageInstead":
+		if err := cb.replInstead(r, rp); err != nil { // lower_replinstead.go
 			return ka, err
 		}
 	default:
