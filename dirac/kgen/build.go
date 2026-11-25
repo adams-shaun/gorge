@@ -888,15 +888,8 @@ func (cb *cardBuilder) record() error {
 		if d.EvokeCost, err = manaCostOf(*c.Evoke); err != nil {
 			return err
 		}
-		if c.EvokePick != nil {
-			// the hand-exile pick (lower_evoke.go evokePickCost; kernel
-			// kw_evoke.go offerEvokeHand and buildPickCost)
-			if d.EvokePick, err = cb.cost(*c.EvokePick); err != nil {
-				return err
-			}
-			if !altHandExileShape(&d.EvokePick) {
-				return fmt.Errorf("evoke pick cost outside the hand-exile shape")
-			}
+		if err = cb.evokePickOf(d, c); err != nil {
+			return err
 		}
 	}
 	if c.Dash != nil {
