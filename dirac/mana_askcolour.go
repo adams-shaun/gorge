@@ -107,8 +107,31 @@ func (s *State) askColFeePaid(k *prep, p uint8, sl Slot) bool {
 	return fee <= 0 || poolTotal(&s.pl[SeatIx(p)])+s.filtFeeRestrN(k, p, sl) >= fee
 }
 
-// askColUsable: the source at sl can be activated now (scriptTapsDefer).
-func (s *State) askColUsable(k *prep, sl Slot) bool { return s.splitUsable(k, sl) }
+// askColUsable: the source at sl can be activated now (scriptTapsDefer). An
+// unless source (Rhystic Cave) is never a prefix gap: gorge's search activates
+// it on a clone, the activation asks the opponent whether to pay {1}, and any
+// ask of another player ends the line (potentialScriptSearch.visit), so no
+// script uses it (askColUnlessDead).
+func (s *State) askColUsable(k *prep, sl Slot) bool {
+	return s.splitUsable(k, sl) && !s.askColUnless(k, sl)
+}
+
+// askColUnlessDead is p's planner-deferred unless sources: gorge's census
+// never lists them (the first ability asks a colour) and its prefix search ends
+// at the opponent's unless ask, so the plain availability leaves them out as
+// it does a source under a foreign build ask (tapsDeferDead).
+func (s *State) askColUnlessDead(k *prep, p uint8) slotMask {
+	var m slotMask
+	if k.gen == nil || !k.gen.anyCondSplit {
+		return m
+	}
+	for b := s.ctrlM[SeatIx(p)]; b.any(); b = b.rest() {
+		if sl := b.first(); s.askColDeferred(k, sl) && s.askColUnless(k, sl) {
+			m = m.with(sl)
+		}
+	}
+	return m
+}
 
 // askColValue is the mana an activation of sl makes if its answer is col: ManaV
 // read with col recorded on the source. A pricing read, so the record is
@@ -116,9 +139,22 @@ func (s *State) askColUsable(k *prep, sl Slot) bool { return s.splitUsable(k, sl
 func (s *State) askColValue(k *prep, sl Slot, col uint8) int {
 	old := s.perms[sl].chosen
 	s.perms[sl].chosen = objWord(col)
-	n := s.dynManaN(k, s.askColAb(k, sl), sl)
+	n := s.askColAmount(k, s.askColAb(k, sl), sl)
 	s.perms[sl].chosen = old
 	return n
+}
+
+// askColAmount is the mana a's activation makes with its colour recorded: a
+// dynamic Amount$ reads its value (Count$Devotion.Chosen), a constant one
+// (Rhystic Cave's one mana) is ManaN.
+func (s *State) askColAmount(k *prep, a *kop.Ability, sl Slot) int {
+	if a == nil {
+		return 0
+	}
+	if a.ManaV == (kop.ValueRef{}) {
+		return max(int(a.ManaN), 1)
+	}
+	return s.dynManaN(k, a, sl)
 }
 
 // askColUnits prices the gap of the source at sl: one relaxed unit, the
@@ -206,8 +242,21 @@ func (s *State) askColOpenMask(k *prep, sl Slot) uint8 {
 // record col on the source, float ManaV mana of it in one unit, clear the
 // record (gorge's DB$ Cleanup | ClearChosenColor$ True). It reports false when
 // the fee could not be paid, so a prefix-search branch that tapped the source
-// too early is not a legal activation.
+// too early is not a legal activation. A silent answer declines the unless
+// cost (askColStart/askColFinish), as a potential play's prefix search cannot
+// consult the players.
 func (s *State) askColDo(k *prep, p uint8, sl Slot, col int) bool {
+	if !s.askColStart(k, p, sl, col) {
+		return false
+	}
+	s.askColFinish(k, p, sl, col)
+	return true
+}
+
+// askColStart is askColDo's first half: pay the activation fee and record the
+// chosen colour. The record stays until askColFinish, so a live colour window
+// can ask the UnlessCost$ before the mana is added (askColUnless).
+func (s *State) askColStart(k *prep, p uint8, sl Slot, col int) bool {
 	if fee := s.askColFee(k, sl); fee > 0 {
 		if !s.askColFeePaid(k, p, sl) {
 			return false
@@ -220,14 +269,173 @@ func (s *State) askColDo(k *prep, p uint8, sl Slot, col int) bool {
 		s.deferSync(p, dc, dn)
 	}
 	s.recordChosenColor(sl, uint8(col))
-	n := s.dynManaN(k, s.askColAb(k, sl), sl)
+	return true
+}
+
+// askColFinish is askColDo's second half: add the recorded colour's mana and
+// clear the record (the chain's DB$ Cleanup).
+func (s *State) askColFinish(k *prep, p uint8, sl Slot, col int) {
+	n := s.askColAmount(k, s.askColAb(k, sl), sl)
 	s.clearChosenColor(sl)
 	if n > 0 {
 		s.poolAdd(p, col, n)
 		s.addExtraCol(k, p, sl, s.manaPCGen(k, sl), col) // the tap's StatTapExtra mana floats beside it
 	}
 	s.artTag(k, p, sl, col)
-	return true
+}
+
+// askColUnless reports whether the colour-asking ability at sl carries the one
+// unless shape kgen lowers (kop.Ability.ManaUnless: UnlessCost$ 1 |
+// UnlessPayer$ Player, Rhystic Cave).
+func (s *State) askColUnless(k *prep, sl Slot) bool {
+	a := s.askColAb(k, sl)
+	return a != nil && a.ManaUnless
+}
+
+// manaUnlessPayable is the unless offer gate: payer p can fund {1} from the
+// pool or through the unless mana window (gorge's UnlessCostPayable). An
+// unpayable cost is still asked, decline only: the chain's DB$ Mana runs
+// through effects/unless.go's "unless_pay" ResumeKind, whose offer drops the
+// pay option when the cost is unpriceable (the path gorge's Rhystic Cave tests
+// drive), not through rules/mana_activation.go's direct-ability "mana_unless"
+// path, which always lists both options.
+func (s *State) manaUnlessPayable(k *prep, p uint8) bool {
+	if s.canPayGen(k, p, kop.PayMana, 1, 0, 0) {
+		return true
+	}
+	ok, _ := s.windowPays(k, p, kop.PayMana, pfModes, 1, 0)
+	return ok
+}
+
+// castWinUnlessStart begins the unless ask of the colour window's recorded
+// answer: the first living player in seat order (gorge's UnlessPayers,
+// AliveFrom(0)).
+func (s *State) castWinUnlessStart() {
+	s.g.winUnless, s.g.winUnlessPay = 0, 0
+	s.castWinUnlessNext()
+}
+
+// winUnlessPayer is the packed field's payer + 1 (0: no payer).
+func (s *State) winUnlessPayer() uint8 { return s.g.winUnless >> 4 }
+
+// winUnlessSetPayer writes the packed field's payer + 1, keeping the seen mask.
+func (s *State) winUnlessSetPayer(p uint8) { s.g.winUnless = s.g.winUnless&0x0f | p<<4 }
+
+// winUnlessPay is packed too: the payer + 1 whose mana window paused in bits
+// 0-2, the window's chosen colour + 1 in bits 3-7 (the payer's tap-another
+// pause overwrites winCol, so the colour rides here).
+func (s *State) winUnlessPayPayer() uint8 { return s.g.winUnlessPay & 7 }
+
+func (s *State) winUnlessSetPayPause(p uint8) {
+	s.g.winUnlessPay = s.g.winUnlessPay&^7 | p&7
+}
+
+func (s *State) winUnlessColor() uint8 { return s.g.winUnlessPay >> 3 }
+
+func (s *State) winUnlessSetColor(c uint8) {
+	s.g.winUnlessPay = s.g.winUnlessPay&7 | (c+1)<<3
+}
+
+// castWinUnlessNext asks the next living player not yet asked; when every
+// player has declined the state is cleared and the mana is added
+// (finishManaUnless).
+func (s *State) castWinUnlessNext() {
+	q := s.aliveFrom(0)
+	for i := uint8(0); i < q.n; i++ {
+		p := q.s[i]
+		if p < 4 && s.g.winUnless&(1<<p) == 0 {
+			s.g.winUnless |= 1 << p
+			s.winUnlessSetPayer(p + 1)
+			return
+		}
+	}
+	s.g.winUnless = 0
+}
+
+// castWinUnlessOptions poses the payer's pay/decline ask in gorge's unless
+// shape (ChGenPayMode, mode 0 = decline, 1 = pay). When the payer's {1} window
+// paused on a tap-another pick (winUnlessPay, res.ask raGenWinTap) the build
+// poses that pick instead: applyAskWinTap runs only from the resolve chain, so
+// this is the build's resume point (mana_windowtapx.go).
+func (s *State) castWinUnlessOptions(k *prep, d *Decision) {
+	if s.winUnlessPayPayer() != 0 && s.res.ask == raGenWinTap {
+		d.Kind, d.Player = DkChoose, s.res.askP
+		if s.askOptionsWinTap(k, d) {
+			return
+		}
+	}
+	p := s.winUnlessPayer() - 1
+	d.Kind, d.Sub, d.Player = DkChoose, ChGenPayMode, p
+	d.add(MakeAction(AkChoose, 0, 0, 0))
+	if s.manaUnlessPayable(k, p) {
+		d.add(MakeAction(AkChoose, 0, 0, 1))
+	}
+}
+
+// castWinUnlessPay opens the payer's unless mana window for {1}; paused when
+// the window's walk stops on a tap-another pick (winUnlessPay), whose answer
+// resumes it (mana_windowtapx.go applyAskWinTap). short: the window ran out of
+// useful sources, so the payer declines and the next player is asked.
+func (s *State) castWinUnlessPay(k *prep, p uint8) (paused, short bool) {
+	c := kop.ManaCost{Generic: 1}
+	s.g.winMode = winPay
+	if paused, short = s.payWindow(k, p, &c, true); paused {
+		s.winUnlessSetPayPause(p + 1)
+		return true, false
+	}
+	s.g.winMode = winNone
+	return false, short
+}
+
+// finishManaUnless ends the colour window's unless walk: a payment adds no
+// mana, and every decline adds it (askColFinish); the chosen colour is cleared
+// either way, as the chain's DB$ Cleanup still runs.
+func (s *State) finishManaUnless(k *prep, paid bool) {
+	b := s.bld()
+	sl := s.g.winUnlessSrc
+	col := int(s.winUnlessColor()) - 1
+	b.bfl &^= bflWinTap
+	s.g.winUnless, s.g.winUnlessPay = 0, 0
+	s.g.winMode = winNone
+	if paid {
+		s.clearChosenColor(sl)
+		return
+	}
+	if col < 0 {
+		col = int(s.g.winCol)
+	}
+	s.askColFinish(k, b.e.ctrl, sl, col)
+}
+
+// applyCastWinUnless answers the colour window's unless ask. The payer's
+// paused tap-another pick is answered by the window's own resume
+// (mana_windowtapx.go applyAskWinTap), reached only through this build dispatch
+// (castWinUnlessOptions poses it).
+func (s *State) applyCastWinUnless(k *prep, a Action) {
+	if s.winUnlessPayPayer() != 0 && s.res.ask == raGenWinTap {
+		s.applyAskWinTap(k, a)
+		return
+	}
+	if s.winUnlessPayer() == 0 {
+		s.finishManaUnless(k, false)
+		return
+	}
+	p := s.winUnlessPayer() - 1
+	if a.Mode() == 1 && s.manaUnlessPayable(k, p) {
+		paused, short := s.castWinUnlessPay(k, p)
+		if paused {
+			return
+		}
+		if !short {
+			s.finishManaUnless(k, true)
+			return
+		}
+	}
+	s.winUnlessSetPayer(0)
+	s.castWinUnlessNext()
+	if s.winUnlessPayer() == 0 {
+		s.finishManaUnless(k, false)
+	}
 }
 
 // askColPause is windowTapWalk's live arm: only a live cast's real window poses
@@ -283,11 +491,28 @@ func askColOptions(d *Decision) {
 	}
 }
 
-// applyCastWinAsk answers the cast window's colour ask of the source it paused on.
+// applyCastWinAsk answers the cast window's colour ask of the source it paused
+// on. The unless form keeps the window paused and poses the payers' ask next
+// (applyCastWinUnless), adding the mana only once every player declines.
 func (s *State) applyCastWinAsk(k *prep, a Action) {
 	b := s.bld()
 	b.bfl &^= bflWinTap
-	s.askColDo(k, b.e.ctrl, s.g.winSrc, int(a.Mode()))
+	col := int(a.Mode())
+	if !s.askColUnless(k, s.g.winSrc) {
+		s.askColDo(k, b.e.ctrl, s.g.winSrc, col)
+		return
+	}
+	if !s.askColStart(k, b.e.ctrl, s.g.winSrc, col) {
+		return // the fee went unpaid: the walk reverses the activation as before
+	}
+	s.g.winUnlessSrc = s.g.winSrc
+	s.castWinUnlessStart()
+	s.winUnlessSetColor(uint8(col))
+	if s.winUnlessPayer() == 0 {
+		s.finishManaUnless(k, false) // no living payer: the mana is added
+		return
+	}
+	b.bfl |= bflWinTap // keep the window paused on the unless answer
 }
 
 // askColDeferAnswers is how many colour answers the prefix search poses:

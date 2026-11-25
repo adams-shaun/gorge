@@ -67,6 +67,19 @@ func (s *State) eachCtrl(o Obj) uint8 {
 	return s.ctrlOfObj(o)
 }
 
+// eachRememberedLoop reports whether the innermost loop frame of the
+// resolution is a remembered-set card loop (kop.RepeatRemembered), whose
+// RefEach, read as a damage recipient, is the bound card's controller. Only the
+// plain frame has a loop stack entry; the batched loop's body is a Token.
+func (s *State) eachRememberedLoop(k *prep) bool {
+	r := &s.res
+	if r.loopD == 0 {
+		return false
+	}
+	in := &s.prog(k)[r.loopS[r.loopD-1]-1]
+	return in.Op == kop.OpRepeatEach && in.C&kop.RepeatRemembered != 0
+}
+
 // prepProgOps is prepareGen's pass over one ability's program: an emblem
 // grant's table entry, and the remembered-set loop's cold region
 // (genPrep.anyRemEach).

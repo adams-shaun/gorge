@@ -20,6 +20,10 @@ import (
 // repeated card to its controller under DamageMap$ True
 // (repeatEachCardsDamage), which moves no card, so it reads no
 // ChangeZoneTable$.
+//
+// DefinedCards$ DirectRemembered and RememberedCard route to the remembered
+// loops instead (lower_repeatremembered.go): a batched/inline body, or the
+// plain resumable frame over a preceding token mint.
 func (lc *lowerCtx) repeatEachCards(ps *params) error {
 	cardsSpec, defSpec := strings.TrimSpace(ps.str("RepeatCards")), strings.TrimSpace(ps.str("DefinedCards"))
 	if cardsSpec == "" && defSpec == "" {
@@ -45,6 +49,9 @@ func (lc *lowerCtx) repeatEachCards(ps *params) error {
 	in := lInstr{Op: "RepeatEachCard", Obj: lRef{Kind: rNone}}
 	if defSpec == "DirectRemembered" {
 		return lc.repeatEachRemembered(ps, in) // lower_repeatremembered.go
+	}
+	if defSpec == "RememberedCard" {
+		return lc.repeatEachRememberedCard(ps, in) // lower_repeatremembered.go
 	}
 	if defSpec != "" {
 		if defSpec != "Targeted" {

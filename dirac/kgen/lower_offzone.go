@@ -1,6 +1,7 @@
 package kgen
 
 import (
+	"reflect"
 	"slices"
 	"strings"
 
@@ -24,6 +25,8 @@ import (
 //     projected through FeatGrantedOffRep;
 //   - Retrace in a graveyard rides kop.StatRetraceGrant, and Unearth in a
 //     graveyard rides kop.StatUnearthGrant (offZoneUnearth, kw_unearthgrant.go);
+//     Cycling and TypeCycling in a hand ride kop.StatCyclingGrant
+//     (offZoneCycling, kw_cyclinggrant.go);
 //   - a hand Miracle grant keeps the generic refusal: gorge offers the granted
 //     miracle trigger and cast, which the kernel does not (a lockstep decision
 //     divergence on Aminatou, Veil Piercer).
@@ -36,8 +39,13 @@ import (
 // those zones is a layer the kernel projects only on the battlefield; those
 // shapes keep the generic refusal (the first slice's boundary). The keyword
 // grants whose cast or activation offer is not modelled (Encore, Scavenge,
-// Embalm, Dredge, Mayhem, Sneak, Foretell, Cycling, Plot, ...) also keep it,
-// Graveyard with its named reason.
+// Embalm, Dredge, Mayhem, Sneak, Foretell, Ninjutsu, Plot, ...) also keep it,
+// Graveyard with its named reason. Measured over the corpus carriers: gorge
+// mints no offer for Scavenge, Encore, Dredge, Mayhem, Sneak, Foretell or
+// Plot from a Continuous grant (engine/cards/kw_granted.go), so their named
+// refusal is lockstep-correct; Embalm's only carrier (Naktamun) and Cycling's
+// Bicycle Rack are command-zone planes (EffectZone$ Command); Satoru
+// Umezawa's Ninjutsu grant also needs an AbilityCast trigger.
 
 // offZone maps an AffectedZone$ value to the kernel zone the static applies
 // in. ZoneAny is All.
@@ -138,12 +146,13 @@ func (lc *lowerCtx) offZoneKeyword(sp *params, st *lStatic, aff, az string, z ko
 		switch k {
 		case "Mode", "Affected", "AffectedZone", "AddKeyword", "Description", "Condition", "Secondary":
 		case "EffectZone":
-			// the static's source zone. Only the Unearth grant reads one:
-			// the battlefield source every battlefield static walk sees
-			// (Sedris, the Traitor King). Anything else keeps the refusal it
-			// holds today (Grixis's command-zone source; every other
-			// keyword's carrier).
-			if head != "Unearth" || strings.TrimSpace(sp.str("EffectZone")) != "Battlefield" {
+			// the static's source zone. Only the Unearth and the hand Cycling
+			// grants read one: the battlefield source every battlefield
+			// static walk sees (Sedris, the Traitor King; Rhet-Tomb Mystic).
+			// Anything else keeps the refusal it holds today (Grixis's and
+			// Bicycle Rack's command-zone source; every other keyword's
+			// carrier).
+			if head != "Unearth" && head != "Cycling" && head != "TypeCycling" || strings.TrimSpace(sp.str("EffectZone")) != "Battlefield" {
 				return lc.refuseOffZoneKeyword(sp, az, z)
 			}
 		default:
@@ -187,6 +196,8 @@ func (lc *lowerCtx) offZoneKeyword(sp *params, st *lStatic, aff, az string, z ko
 		st.Cost = c
 	case head == "Unearth" && z == kop.ZoneGraveyard:
 		return lc.offZoneUnearth(sp, st, aff, az, z, param)
+	case (head == "Cycling" || head == "TypeCycling") && z == kop.ZoneHand:
+		return lc.offZoneCycling(sp, st, aff, az, z, head, param)
 	default:
 		return lc.refuseOffZoneKeyword(sp, az, z)
 	}
@@ -247,9 +258,7 @@ func (lc *lowerCtx) offZoneUnearth(sp *params, st *lStatic, aff, az string, z ko
 		line = "Unearth:0"
 	} else {
 		c, err := lc.cost(param)
-		if err != nil || c.DiscardF != nil || c.DiscardN != 0 || c.DiscardHand || c.DiscardSelf ||
-			c.Mana.X || c.Mana.XX || c.Mana.XXX || c.Mana.None || c.Mana.XColor != 0 || c.Mana.Snow != 0 ||
-			len(c.Mana.Hybrid) != 0 || len(c.Mana.Twobrid) != 0 || len(c.Mana.Phyrexian) != 0 {
+		if err != nil || !plainGrantMana(c) {
 			return lc.refuseOffZoneKeyword(sp, az, z)
 		}
 	}
@@ -262,6 +271,74 @@ func (lc *lowerCtx) offZoneUnearth(sp *params, st *lStatic, aff, az string, z ko
 		return lc.refuseOffZoneKeyword(sp, az, z)
 	}
 	st.Kind = "UnearthGrant"
+	st.Zone = int(z)
+	st.GrantBody = idx
+	sp.consume("AddKeyword", "AffectedZone", "EffectZone")
+	return lc.offZoneFilter(sp, st, aff)
+}
+
+// plainGrantMana reports whether the cost c is a plain mana cost an off-zone
+// keyword grant's offer can price: no discard part, no {X}, no hybrid,
+// Phyrexian or snow pip, no explicit no-cost mark.
+func plainGrantMana(c lCost) bool {
+	return c.DiscardF == nil && c.DiscardN == 0 && !c.DiscardHand && !c.DiscardSelf &&
+		!c.Mana.X && !c.Mana.XX && !c.Mana.XXX && !c.Mana.None && c.Mana.XColor == 0 && c.Mana.Snow == 0 &&
+		len(c.Mana.Hybrid) == 0 && len(c.Mana.Twobrid) == 0 && len(c.Mana.Phyrexian) == 0
+}
+
+// offZoneCycling lowers an AffectedZone$ Hand Cycling or TypeCycling grant
+// (CR 702.29a, 702.29e). gorge's derived-keyword walk mints the printed
+// cycling body (cards.GrantedKeywordAbility: AB$ Draw or the typecycling
+// search, Cost$ <cost> Discard<1/CARDNAME>, ActivationZone$ Hand) on the
+// affected hand card and offers it from the hand, so the grant lowers as one
+// kop.StatCyclingGrant static naming the same body as the granting card's
+// latent ability (grantedKeywordLatent): the kernel's hand offer (dirac
+// kw_cyclinggrant.go) runs it with the affected card as its source, which the
+// body's own discard-this cost moves to the graveyard.
+//
+// The cost is the grant's own and must be plain mana (the body bakes it). A
+// second cycling grant on one card (no corpus carrier has one) keeps the
+// refusal: the reader matches the first static. A grant whose cost is not
+// plain mana, whose body the expander cannot mint or whose static is read
+// from off the battlefield (Bicycle Rack's command-zone plane) refuses by
+// name.
+func (lc *lowerCtx) offZoneCycling(sp *params, st *lStatic, aff, az string, z kop.Zone, head, param string) error {
+	n := 0
+	for _, fs := range lc.face.Statics {
+		h := strings.TrimSpace(fs.Params["AddKeyword"])
+		if fs.Params["AffectedZone"] == "Hand" && (strings.HasPrefix(h, "Cycling") || strings.HasPrefix(h, "TypeCycling")) {
+			n++
+		}
+	}
+	if n > 1 {
+		return lc.refuseOffZoneKeyword(sp, az, z)
+	}
+	param = strings.TrimSpace(param)
+	cost := param
+	if head == "TypeCycling" {
+		// "TypeCycling:<type>:<cost>"
+		_, cost, _ = strings.Cut(param, ":")
+		cost = strings.TrimSpace(cost)
+	}
+	if cost == "" {
+		return lc.refuseOffZoneKeyword(sp, az, z)
+	}
+	c, err := lc.cost(cost)
+	if err != nil || !plainGrantMana(c) || !reflect.DeepEqual(c, lCost{Mana: c.Mana}) {
+		return lc.refuseOffZoneKeyword(sp, az, z)
+	}
+	sa := cards.GrantedKeywordAbility(head + ":" + param)
+	if sa == nil || sa.Kind != "AB" {
+		return lc.refuseOffZoneKeyword(sp, az, z)
+	}
+	idx, err := lc.grantedKeywordLatent(sa)
+	if err != nil {
+		return lc.refuseOffZoneKeyword(sp, az, z)
+	}
+	if b := lc.out.Abilities[idx]; !b.Cycling || !b.Cost.DiscardSelf {
+		return lc.refuseOffZoneKeyword(sp, az, z)
+	}
+	st.Kind = "CyclingGrant"
 	st.Zone = int(z)
 	st.GrantBody = idx
 	sp.consume("AddKeyword", "AffectedZone", "EffectZone")
