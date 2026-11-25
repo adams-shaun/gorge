@@ -38,9 +38,12 @@ func exileAnyDied() { atomic.AddUint64(&ExileAnyStats[1], 1) }
 // matching source leaves on the exiled card (0 when none).
 func (s *State) exileAnyN(k *prep, o Obj, c CardID, owner uint8) (int, kop.CounterKind, uint8) {
 	g := k.gen
-	n := 0
+	n := s.embExileAnyN(k, o, c, owner) // an emblem's any-zone arm joins the count (repl_exileleaveemb.go)
 	var ctr kop.CounterKind
 	var ctrN uint8
+	if g.exileAnyC == nil {
+		return n, ctr, ctrN // no printed any-zone card: only an emblem (prep.embExileAny) opened the gate
+	}
 	for m := s.statM; m.any(); m = m.rest() {
 		b := m.first()
 		sc := s.cardAt(b)
