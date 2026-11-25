@@ -2195,8 +2195,9 @@ func (s *State) scriptGapTap(k *prep, p uint8, a Action, sl Slot, ctr, restr, an
 	}
 	if tapsDef.has(sl) && s.restrCensusTapsGapShape(k, sl) {
 		// the census float and the restricted colours are one ask
-		// (mana_tapsdefer.go)
-		s.restrCensusDeferGap(k, p, a, sl, c)
+		// (mana_tapsdefer.go), the tap's any-colour triggers' asks above it
+		c, forced := tapAnyColAnswerSplit(c)
+		s.restrCensusDeferGap(k, p, a, sl, c, forced)
 		return true
 	}
 	forced := 0
