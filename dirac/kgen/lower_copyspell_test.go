@@ -8,7 +8,7 @@ import (
 
 // Sevinne's Reclamation's Optional$ Parent copy lowers to an OpMayAsk under
 // MayGuardCopyParent right over the copy; Chain of Acid's (Controller$
-// beside Optional$: another player is asked) keeps the refusal.
+// beside Optional$) asks the target's controller (TestCopySpellSlice).
 func TestCopyParentOptional(t *testing.T) {
 	found := 0
 	for _, c := range lowerNamed(t, []string{"Sevinne's Reclamation", "Chain of Acid"}) {
@@ -30,8 +30,8 @@ func TestCopyParentOptional(t *testing.T) {
 			}
 		case "Chain of Acid":
 			found++
-			if len(c.Refusals) == 0 {
-				t.Fatal("Chain of Acid lowered; its Controller$ may-copy asks another player")
+			if len(c.Refusals) != 0 {
+				t.Fatalf("Chain of Acid refused: %+v", c.Refusals)
 			}
 		}
 	}

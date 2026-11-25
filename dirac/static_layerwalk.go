@@ -461,6 +461,9 @@ func (s *State) lfxApply4(k *prep, sl Slot, e *lfx, c *dchars) {
 	if ovrCreatSub(o) && !DebugRmCreatSubKeep {
 		c.subs, c.all = c.subs.AndNot(k.gen.creatSub), false
 	}
+	if ovrArtifactSub(o) {
+		c.subs = stripArtifactSubs(c.subs, k.t.Subtypes) // CR 205.1a
+	}
 	if o.SetLandSub {
 		c.subs = c.subs.AndNot(k.gen.landSub) // CR 305.7 (static_landtypesetter.go)
 		// the chosen land-type setter (Convincing Mirage, Multiversal
