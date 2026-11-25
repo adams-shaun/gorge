@@ -85,6 +85,13 @@ func printedKeyword(cd *kop.CardDef, id kop.KwID) bool {
 	// face is gorge's derived keyword list.
 	case kop.KwFlanking:
 		return cd.Flanking
+	// Storied: the printed bare K:Storied (kgen lower.go's arm) records
+	// CardDef.Storied, the record the enduring-story scan reads
+	// (kw_storied.go). A granted Storied never lowers (no AddKeyword$ grant
+	// of it is lowered today), so the printed face is gorge's derived
+	// keyword list.
+	case kop.KwStoried:
+		return cd.Storied
 	// The back-face cast keywords and Living metal: the face's own record
 	// (kgen lower_flipcast.go). Disturb and More Than Meets the Eye are
 	// printed on the front only, so a back face up reads false, as gorge's
