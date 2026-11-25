@@ -82,8 +82,7 @@ func (s *State) eachRememberedLoop(k *prep) bool {
 
 // prepProgOps is prepareGen's pass over one ability's program: an emblem
 // grant's table entry, the remembered-set loop's cold region
-// (genPrep.anyRemEach), and the remembered-searcher seat mask
-// (genPrep.anyRemSearcher).
+// (genPrep.anyRemEach), which also sizes the remembered-searcher seat mask.
 func (g *genPrep) prepProgOps(t *kop.Table, card CardID, a *kop.Ability) {
 	for _, in := range a.Prog {
 		if in.Op == kop.OpCreateEmblem {
@@ -91,9 +90,6 @@ func (g *genPrep) prepProgOps(t *kop.Table, card CardID, a *kop.Ability) {
 		}
 		if in.Op == kop.OpRepeatEach && in.C&kop.RepeatRemembered != 0 {
 			g.anyRemEach = true
-		}
-		if in.Op == kop.OpExt && in.A.K == kop.VConst && kop.ExtOp(in.A.N) == kop.ExtRememberSearcher {
-			g.anyRemSearcher = true
 		}
 	}
 }
