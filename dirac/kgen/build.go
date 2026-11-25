@@ -520,6 +520,19 @@ func copyKeptSets(d *kop.CardDef, c *lCard) {
 	d.HasUnearth, d.HasDecayed, d.HasPersist, d.HasDoctorsCompanion = c.HasUnearth, c.HasDecayed, c.HasPersist, c.HasDoctorsCompanion
 }
 
+// hexQualityBits is the hexproof-from-quality bits (monocolored,
+// multicolored) a card's lowering read.
+func hexQualityBits(c *lCard) kop.ColorMask {
+	var b kop.ColorMask
+	if c.HexMono {
+		b |= kop.HexMono
+	}
+	if c.HexMulti {
+		b |= kop.HexMulti
+	}
+	return b
+}
+
 func (cb *cardBuilder) record() error {
 	c := cb.c
 	d := &cb.out.def
@@ -1116,12 +1129,7 @@ func (cb *cardBuilder) record() error {
 	for _, r := range c.HexColors {
 		d.HexColors |= kop.ColW << strings.IndexRune("WUBRG", r)
 	}
-	if c.HexMono {
-		d.HexColors |= kop.HexMono
-	}
-	if c.HexMulti {
-		d.HexColors |= kop.HexMulti
-	}
+	d.HexColors |= hexQualityBits(c)
 	if c.Landwalk != nil {
 		if d.Landwalk, err = cb.filter(c.Landwalk, kop.ZoneBattlefield); err != nil {
 			return err
