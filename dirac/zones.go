@@ -349,7 +349,7 @@ func (s *State) drawExcl(p uint8, ch drawChain) {
 	if pl.libLo == pl.libHi {
 		// the player loses at the next state-based check (CR 704.5b), not
 		// mid-resolution (Strix Lookout's draw then its other effects)
-		pl.drewEmpty = true
+		pl.mark |= pmDrewEmpty
 		return
 	}
 	if s.cfgx&cfgxDrawMore != 0 && s.drawMore(p, ch) {
