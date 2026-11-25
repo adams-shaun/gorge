@@ -163,19 +163,6 @@ newest first.
 
 --8<-- "support/_generated_sets.md:sets"
 
-### carddb: abilities per set
-
-Per set, how many abilities are agreed, owed or diverged between the engines,
-from carddb's xproof data.
-
---8<-- "support/_generated_carddb.md:sets"
-
-### carddb: data freshness
-
-How fresh each carddb data writer is.
-
---8<-- "support/_generated_carddb.md:freshness"
-
 - **Cards** is gorge-compliance's count: the printed card list for an audited
   set, otherwise XMage's manifest for the set.
 - **Playable %** = 1 − (unsupported + not in corpus) / cards.
@@ -190,6 +177,19 @@ How fresh each carddb data writer is.
   `-surface full`, from the newest main run of the CI `dirac-slices` job
   (see [Lockstep slices](#lockstep-slices)). It says "—" when no run's summary
   was available to the build.
+
+### carddb: abilities per set
+
+Per set, how many abilities are agreed, owed or diverged between the engines,
+from carddb's xproof data.
+
+--8<-- "support/_generated_carddb.md:sets"
+
+### carddb: data freshness
+
+How fresh each carddb data writer is.
+
+--8<-- "support/_generated_carddb.md:freshness"
 
 ## Lockstep slices
 
