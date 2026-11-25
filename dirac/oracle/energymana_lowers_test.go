@@ -113,14 +113,22 @@ func kenergyRun(t *testing.T, pol func(uint64) Policy, n uint64, byName map[stri
 	return nil
 }
 
-// TestEnergyManaLowers: random and explore policies, no divergence and no
-// unmodelled stall, and the explore run pays energy for mana on gorge's side
-// with both sources, so the lockstep compares the energy ability's walk.
-func TestEnergyManaLowers(t *testing.T) {
+// TestEnergyManaLowersRandom: the random policy's 48 seeds, no divergence and
+// no unmodelled stall. (Split from TestEnergyManaLowers for the 60 s test budget.)
+func TestEnergyManaLowersRandom(t *testing.T) {
 	if isolate(t) {
 		return
 	}
 	kenergyRun(t, pkPolicy, 48, nil, false)
+}
+
+// TestEnergyManaLowers: the explore policy, no divergence and no unmodelled
+// stall, and the run pays energy for mana on gorge's side with both sources,
+// so the lockstep compares the energy ability's walk.
+func TestEnergyManaLowers(t *testing.T) {
+	if isolate(t) {
+		return
+	}
 	byName := map[string]int{}
 	kenergyRun(t, ExplorePolicy, 64, byName, false)
 	for name := range kenergySources {
