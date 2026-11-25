@@ -8,20 +8,20 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// crookedScalesScript is the card's ability paragraph inline as a fixture:
-// Forge card scripts (GPL) live only in gitignored .cards/, so the test pins
-// the behaviour on a verbatim copy of the corpus line's SVar chain.
+// crookedScalesScript is an inline fixture with the gate shape of the card's
+// ability chain (Forge card scripts, GPL, live only in gitignored .cards/):
+// two targets, then a Repeat gated on the imprint pile, whose coin-flip subs
+// clear the imprint when the process ends.
 const crookedScalesScript = `Name:Crooked Scales
 ManaCost:4
 Types:Artifact
-A:AB$ TargetOnly | Cost$ 4 T | ValidTgts$ Creature.OppCtrl | TgtPrompt$ Select target creature an opponent controls | RememberObjects$ ThisTargetedCard | IsCurse$ True | StackDescription$ SpellDescription | SubAbility$ DBTarget
-SVar:DBTarget:DB$ TargetOnly | ValidTgts$ Creature.YouCtrl | TgtPrompt$ Select target creature you control | ImprintCards$ ThisTargetedCard | StackDescription$ None | SubAbility$ DBRepeat
-SVar:DBRepeat:DB$ Repeat | RepeatSubAbility$ DBFlip | RepeatDefined$ Imprinted | RepeatPresent$ Card | RepeatSVarCompare$ EQ0
-SVar:DBFlip:DB$ FlipCoin | WinSubAbility$ DestroyOpp | LoseSubAbility$ DestroyYours | StackDescription$ None
-SVar:DestroyOpp:DB$ Destroy | Defined$ Remembered | SubAbility$ DBCleanup
-SVar:DestroyYours:DB$ Destroy | Defined$ Imprinted | UnlessCost$ 3 | UnlessPayer$ You | SubAbility$ DBCleanup | UnlessResolveSubs$ WhenNotPaid
-SVar:DBCleanup:DB$ Cleanup | ClearRemembered$ True | ClearImprinted$ True
-Oracle:Flip a coin. If you win the flip, destroy target creature an opponent controls. If you lose the flip, destroy target creature you control unless you pay {3} and repeat this process.
+A:AB$ TargetOnly | Cost$ 4 T | ValidTgts$ Creature.OppCtrl | RememberObjects$ ThisTargetedCard | SubAbility$ PickYours
+SVar:PickYours:DB$ TargetOnly | ImprintCards$ ThisTargetedCard | ValidTgts$ Creature.YouCtrl | SubAbility$ Loop
+SVar:Loop:DB$ Repeat | RepeatPresent$ Card | RepeatDefined$ Imprinted | RepeatSVarCompare$ EQ0 | RepeatSubAbility$ Flip
+SVar:Flip:DB$ FlipCoin | LoseSubAbility$ KillYours | WinSubAbility$ KillOpp
+SVar:KillOpp:DB$ Destroy | SubAbility$ Wipe | Defined$ Remembered
+SVar:KillYours:DB$ Destroy | UnlessPayer$ You | Defined$ Imprinted | UnlessCost$ 3 | UnlessResolveSubs$ WhenNotPaid | SubAbility$ Wipe
+SVar:Wipe:DB$ Cleanup | ClearImprinted$ True | ClearRemembered$ True
 `
 
 // unpayableUnlessHost is the double standing in for a rules host whose payer
@@ -132,7 +132,8 @@ func TestCrookedScalesUnpaidLossDestroysYourCreatureOnce(t *testing.T) {
 	}
 }
 
-// TestUnlessCostUnaffordableOffersOnlyDecline pins the CR 118.3 half of the
+// TestUnlessCostUnaffordableOffersOnlyDecline is a pin, not a fix test (no
+// hunk of this change alters it): it guards the CR 118.3 half of the
 // symptom on the shared gate: a payer the host reports as unable to pay
 // ({3}, no mana of any kind) is offered only the decline option — never a
 // pay option they cannot honestly choose.
@@ -148,5 +149,64 @@ func TestUnlessCostUnaffordableOffersOnlyDecline(t *testing.T) {
 	}
 	if h.g.Players[0].Life != 22 {
 		t.Fatalf("life = %d, want 22 (the unswitched body still runs on the decline)", h.g.Players[0].Life)
+	}
+}
+
+// payingFlipHost loses the first flip and wins every later one, and settles
+// each unless election as paid in place the way rules' answer record does: it
+// remembers the resolution Ctx the payability probe was handed and writes the
+// "pay" answer into it when the ask is served.
+type payingFlipHost struct {
+	*fakeHost
+	ctx   *Ctx
+	asks  uint64
+	draws int
+}
+
+func (h *payingFlipHost) Rand(int) int {
+	h.draws++
+	if h.draws == 1 {
+		return 1
+	}
+	return 0
+}
+
+func (h *payingFlipHost) UnlessCostPayableFromCtx(_ state.PlayerID, _ string, c *Ctx) bool {
+	h.ctx = c
+	return true
+}
+
+func (h *payingFlipHost) AskCount() uint64 { return h.asks }
+
+func (h *payingFlipHost) TapeAnswer(d *decision.Decision) (decision.Intent, bool) {
+	h.asks++
+	for _, o := range d.Options {
+		if o.Mode == decision.ModeUnlessPay && h.ctx != nil {
+			h.ctx.UnlessPay, h.ctx.UnlessNext = "pay", 0
+			return decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{o.Index}}, true
+		}
+	}
+	return decision.Intent{}, false
+}
+
+// TestCrookedScalesPaidLossRepeatsTheProcess pins the continue side of the
+// gate: a lost flip whose {3} is paid skips DestroyYours and its Cleanup, the
+// imprint stays, and the process repeats — here into a win, which destroys the
+// opponent's creature and ends it. Two flips, Memnite alive, Ornithopter dead.
+func TestCrookedScalesPaidLossRepeatsTheProcess(t *testing.T) {
+	fh, head, c, memnite, ornith := crookedScalesBoard(t, state.NewGame(names(2)))
+	ph := &payingFlipHost{fakeHost: fh}
+	Resolve(ph, c, head)
+	if ph.asks != 1 {
+		t.Fatalf("unless elections served = %d, want 1 (the lost flip's {3} offer)", ph.asks)
+	}
+	if flips := flipsIn(fh); flips != 2 {
+		t.Fatalf("paid loss then win ran %d flips, want 2 (a paid loss repeats, a win ends)", flips)
+	}
+	if z := fh.g.Obj(ornith).Zone; z != state.ZGraveyard {
+		t.Fatalf("Ornithopter zone = %v, want graveyard (the second flip won)", z)
+	}
+	if z := fh.g.Obj(memnite).Zone; z != state.ZBattlefield {
+		t.Fatalf("Memnite zone = %v, want battlefield (the {3} was paid)", z)
 	}
 }
