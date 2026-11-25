@@ -230,17 +230,20 @@ func (s *State) grantIdxs(k *prep, sl Slot, out *[maxGrants]int16) (n int) {
 	// by the granting source's place in that walk. A grant without a
 	// source in it (an Animate record) keeps its place after them.
 	var order [MaxPerm]Slot
-	no := 0
-	if g.anyContGrant {
-		// the grant walk's order restricted to the slots whose card at
-		// cardAt can grant a static ability (pc.grantStat): grantsBetween's
-		// attached statics and contGrants' unattached ones, every source
-		// grantSrc names. The place scan below reads the same relative
-		// order off it as off listenerOrder's full walk.
-		no = s.grantOrder(k, &order)
-	}
+	no := -1 // the order is read on the first grant: most slots have none
 	var key [maxGrants]uint8
 	s.grantedAbilities(k, sl, func(c CardID, ab uint8) {
+		if no < 0 {
+			no = 0
+			if g.anyContGrant {
+				// the grant walk's order restricted to the slots whose card at
+				// cardAt can grant a static ability (pc.grantStat): grantsBetween's
+				// attached statics and contGrants' unattached ones, every source
+				// grantSrc names. The place scan below reads the same relative
+				// order off it as off listenerOrder's full walk.
+				no = s.grantOrder(k, &order)
+			}
+		}
 		pos := uint8(255)
 		for oi := 0; oi < no; oi++ {
 			if s.g.grantSrc != 0 && s.perms[order[oi]].obj+1 == s.g.grantSrc {
