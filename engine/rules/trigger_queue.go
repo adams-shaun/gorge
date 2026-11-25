@@ -1262,7 +1262,18 @@ func (e *Engine) triggerOf(pt pendingTrigger) (cards.Trigger, bool) {
 	// index Face().Triggers for it: that would hand back whatever printed
 	// line shares the index -- a granted Prowess reading Momo's
 	// leaves-the-battlefield TriggerDescription$ and OptionalDecider$.
-	if pt.Granted || pt.Trigger.Mode != "" {
+	//
+	// The ctx-keyword shapes (the Afflict: amount and Poisonous literals
+	// grantedPoisonousTriggers and checkGrantedAfflictTriggers queue) ride
+	// the same rule with nothing to read: Idx stays 0 and the push's
+	// KeywordTriggerPush payload carries the body, so a source whose face
+	// DOES print a trigger would have line 0 handed back for its poisonous
+	// instance -- on Brood Sliver (the first T: line is the optional token
+	// trigger, OptionalDecider$ TriggeredSourceController) the mandatory
+	// poisonous trigger (CR 702.70a, 603.5) was mislabelled with the printed
+	// description and posed as Brood's optional. Return false; the label arm
+	// in triggerLabel names these entries from the keyword instead.
+	if pt.Granted || pt.Trigger.Mode != "" || pt.Poisonous != "" || pt.Afflict != "" {
 		if pt.Trigger.Mode == "" {
 			return cards.Trigger{}, false
 		}
@@ -1792,6 +1803,24 @@ func (e *Engine) triggerLabel(pt pendingTrigger) string {
 			}
 		}
 		return name + ": ward (" + pt.Ward + ")"
+	}
+	// The ctx-keyword triggers (the Afflict/Poisonous arms of
+	// trigger_granted.go): no face trigger line exists for them, so -- as for
+	// Ward and Cascade -- the label names the keyword and its amount off the
+	// queue entry, not a printed TriggerDescription$ the source may not carry
+	// (a bare `Virulent Sliver`) or may carry for an unrelated line (Brood
+	// Sliver's token trigger).
+	if pt.Poisonous != "" || pt.Afflict != "" {
+		name := "a creature"
+		if o := e.G.Obj(pt.Source); o != nil {
+			if f := o.Face(); f != nil && f.Name != "" {
+				name = f.Name
+			}
+		}
+		if pt.Poisonous != "" {
+			return name + ": poisonous " + pt.Poisonous
+		}
+		return name + ": afflict " + pt.Afflict
 	}
 	if pt.Cascade {
 		name := "a spell"
