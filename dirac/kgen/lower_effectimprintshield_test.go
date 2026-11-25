@@ -60,3 +60,32 @@ func TestImprintHandPickRepeat(t *testing.T) {
 		}
 	}
 }
+
+// TestImprintMemoryShapes: the other gap-imprint-memory shapes lower whole.
+// Parallax Nexus's hand pick into exile records on the persist store, Phelia
+// brackets her Return with ImprintRef/ForgetImprinted (OpReturnEx has no
+// flag left), and Eye of Singularity's imprint loop folds into one
+// sharesNameWith Valid sweep.
+func TestImprintMemoryShapes(t *testing.T) {
+	want := map[string]string{
+		"Parallax Nexus":             "ChooseMove",
+		"Phelia, Exuberant Shepherd": "ImprintRef",
+		"Eye of Singularity":         "DestroyAll",
+	}
+	for name, op := range want {
+		c := lowerNamedCard(t, name)
+		if len(c.Refusals) != 0 {
+			t.Errorf("%s refusals = %v, want none", name, c.Refusals)
+			continue
+		}
+		found := false
+		for _, a := range c.Abilities {
+			for _, in := range a.Prog {
+				found = found || in.Op == op
+			}
+		}
+		if !found {
+			t.Errorf("%s: no %s", name, op)
+		}
+	}
+}

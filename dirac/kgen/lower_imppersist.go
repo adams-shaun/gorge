@@ -49,9 +49,13 @@ func impExileWriterSA(sa *cards.SA) bool {
 		return false
 	}
 	p := sa.Params
-	return strings.TrimSpace(p["Imprint"]) == "True" &&
-		strings.TrimSpace(p["Destination"]) == "Exile" &&
-		(strings.TrimSpace(p["ValidTgts"]) != "" || strings.TrimSpace(p["Defined"]) != "") &&
+	if strings.TrimSpace(p["Imprint"]) != "True" || strings.TrimSpace(p["Destination"]) != "Exile" {
+		return false
+	}
+	if strings.TrimSpace(p["Origin"]) == "Hand" && strings.TrimSpace(p["Hidden"]) == "True" && strings.TrimSpace(p["Defined"]) == "" {
+		return true // a hand pick into exile (Parallax Nexus; lower_imprintzone.go handMoveImprint)
+	}
+	return (strings.TrimSpace(p["ValidTgts"]) != "" || strings.TrimSpace(p["Defined"]) != "") &&
 		strings.TrimSpace(p["Hidden"]) == ""
 }
 

@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/adams-shaun/gorge/dirac/kop"
+	"github.com/adams-shaun/gorge/engine/cards"
 )
 
 // lower_imprintzone.go: the Imprint$ writers of a Token (ImprintTokens$) and
@@ -110,6 +111,13 @@ func (lc *lowerCtx) changeZoneImprint(ps *params, in *lInstr) error {
 	if v != "True" {
 		return refuse("ChangeZone Imprint$ %q", v)
 	}
+	if in.Op == "Return" && in.C == zBattlefield && in.Obj.Kind == rDelayedRemembered && !lc.impPersist {
+		if err := lc.openImprint("ChangeZone Imprint$"); err != nil {
+			return err
+		}
+		lc.retImprint = true // returnImprint brackets the move
+		return nil
+	}
 	if in.Op != "Exile" {
 		return refuse("ChangeZone Imprint$ on a %s move", in.Op)
 	}
@@ -117,6 +125,28 @@ func (lc *lowerCtx) changeZoneImprint(ps *params, in *lInstr) error {
 		return err
 	}
 	in.CS = strings.TrimPrefix(in.CS+"|ImprintMove", "|")
+	return nil
+}
+
+// returnImprint emits a Return whose ChangeZone carries Imprint$ True
+// (Phelia, Exuberant Shepherd's delayed return of DelayTriggerRememberedLKI):
+// gorge imprints the card when its post-move zone is the battlefield and it
+// is not a token (settleChangeZoneMoveAs). OpReturnEx's flag space is full,
+// so the kernel brackets the move instead: the delayed program's one object
+// joins the imprinted set before the Return (ImprintRef, a token never), and
+// after it ForgetImprinted drops it again when the ref still names the same
+// incarnation, that is when the Return did not move it (an Aura with nothing
+// to enchant stays in exile, CR 303.4g). A moved object is a new one (CR
+// 400.7), so RefDelayedRemembered reads nothing after the move and the
+// imprint stays. Only the plain single-object move lowers.
+func (lc *lowerCtx) returnImprint(in lInstr, optional, bracket, fd bool) error {
+	lc.retImprint = false
+	if optional || bracket || fd || in.Obj.Kind != rDelayedRemembered {
+		return refuse("ChangeZone Imprint$ on a Return beside Optional$, a library placement or a face-down exile")
+	}
+	lc.emit(lInstr{Op: "ImprintRef", Obj: in.Obj, Note: "imprints the object the Return is about to move"})
+	lc.emit(in)
+	lc.emit(lInstr{Op: "ForgetImprinted", Obj: in.Obj, Note: "forgets it again when the Return did not move it"})
 	return nil
 }
 
@@ -134,19 +164,20 @@ func (lc *lowerCtx) changeZoneUnimprint(what string) error {
 	return nil
 }
 
-// handMoveImprint reads Imprint$ True on a hand pick onto the battlefield
-// (Eureka, Hypergenesis): each card the pick puts onto the battlefield joins
-// the resolution's imprinted set (gorge settleChangeZoneMoveAs: a non-token
-// whose post-move zone is the destination; an Aura that stays in the hand is
-// not imprinted). The kernel reads kop.SrImprint on the ChooseMove's B
-// (dirac/zone_forget.go imprintFound). A face that keeps its Imprinted on the
-// source stays refused: the pick's writes do not reach the store.
+// handMoveImprint reads Imprint$ True on a hand pick: each card the pick
+// moves joins the resolution's imprinted set (gorge settleChangeZoneMoveAs: a
+// non-token whose post-move zone is the destination; an Aura that stays in
+// the hand is not imprinted). The kernel reads kop.SrImprint on the
+// ChooseMove's B (dirac/zone_forget.go imprintFound). Two shapes lower: a
+// put onto the battlefield in one resolution (Eureka, Hypergenesis), and an
+// exile on a face that keeps its Imprinted on the source (Parallax Nexus),
+// where the kernel's imprint also records the card in the source's store.
 func (lc *lowerCtx) handMoveImprint(ps *params, dest int) (bool, error) {
 	v, ok := ps.get("Imprint")
 	if !ok {
 		return false, nil
 	}
-	if v != "True" || dest != zBattlefield || lc.impPersist {
+	if v != "True" || dest == zBattlefield && lc.impPersist || dest == zExile && !lc.impPersist || dest != zBattlefield && dest != zExile {
 		return false, refuse("hand move Imprint$ %q to %s", v, zoneLabel[dest])
 	}
 	if err := lc.openImprint("ChangeZone Imprint$"); err != nil {
@@ -163,6 +194,76 @@ func (lc *lowerCtx) handMoveImprint(ps *params, dest int) (bool, error) {
 func (lc *lowerCtx) repeatGateImprinted() bool {
 	return lc.repeatCheckAb != nil && lc.repeatCheckAb == lc.ab && lc.repeatCheckSVar != "" && !lc.impPersist &&
 		strings.Contains(lc.face.SVars[lc.repeatCheckSVar], "IsImprinted")
+}
+
+// imprintNameSweep lowers Eye of Singularity's "each permanent with the same
+// name as another permanent": a RepeatEach over RepeatCards$ R whose one body
+// imprints `Valid X.sharesNameWith Remembered+!IsRemembered` (each other X
+// sharing the repeated card's name), followed by a DestroyAll of
+// Card.IsImprinted. The imprinted set is then exactly the X permanents that
+// share a name with another battlefield permanent matching R, which is the
+// filter X.sharesNameWith Valid R (gorge sharesNameValidMatches: another
+// battlefield permanent, not the candidate, matching R and sharing its
+// name). The loop asks nothing and the sweep is one destroy, so the
+// DestroyAll reads that filter (lc.impSweep) and no set is kept. Any other
+// body, rider or follower keeps its refusal.
+func (lc *lowerCtx) imprintNameSweep(ps *params, cardsSpec string) (bool, error) {
+	if cardsSpec == "" || strings.ContainsAny(cardsSpec, "+,") || lc.impPersist {
+		return false, nil
+	}
+	body := cards.ResolveSVar(lc.face.SVars, ps.peek("RepeatSubAbility"))
+	if body == nil || body.Sub != nil || body.API != "Pump" && body.API != "Bookkeeping" || len(body.Params) != 1 {
+		return false, nil
+	}
+	x, ok := strings.CutPrefix(strings.TrimSpace(body.Params["ImprintCards"]), "Valid ")
+	if !ok {
+		return false, nil
+	}
+	x, ok = strings.CutSuffix(x, ".sharesNameWith Remembered+!IsRemembered")
+	if !ok || strings.ContainsAny(x, ".+,") {
+		return false, nil
+	}
+	next := lc.curNode.Sub
+	if next == nil || next.API != "DestroyAll" || strings.TrimSpace(next.Params["ValidCards"]) != "Card.IsImprinted" {
+		return false, nil
+	}
+	for k := range ps.m {
+		switch k {
+		case "RepeatCards", "RepeatSubAbility", "SubAbility":
+		default:
+			return false, nil
+		}
+	}
+	ps.consume("RepeatCards", "RepeatSubAbility")
+	if err := lc.openImprint("RepeatEach ImprintCards$ sharesNameWith"); err != nil {
+		return true, err
+	}
+	lc.impSweep = x + ".sharesNameWith Valid " + cardsSpec
+	return true, nil
+}
+
+// imprintedReturnAll lowers ChangeZone Defined$ Imprinted Origin$ Exile
+// Destination$ Hand on a face that keeps its Imprinted on the source
+// (Parallax Nexus's leave trigger: "each player returns to their hand all
+// cards they own exiled with it"). The kernel's Bounce moves one object, the
+// first of a set ref, so the move is the exile sweep of Card.IsImprinted to
+// its owners' hands (OpChangeZoneAllEx): the same cards, in exile order,
+// which is the order they were imprinted. Any other rider keeps the plain
+// path.
+func (lc *lowerCtx) imprintedReturnAll(ps *params) (bool, error) {
+	if !lc.impPersist || ps.peek("Defined") != "Imprinted" || ps.peek("Origin") != "Exile" || ps.peek("Destination") != "Hand" {
+		return false, nil
+	}
+	for k := range ps.m {
+		switch k {
+		case "Defined", "Origin", "Destination", "SubAbility":
+		default:
+			return false, nil
+		}
+	}
+	delete(ps.m, "Defined")
+	ps.m["ChangeType"] = "Card.IsImprinted"
+	return true, lc.apiChangeZoneAll(lc.curNode, ps)
 }
 
 // millImprint reads Mill's Imprint$ True: each milled card joins the imprinted
@@ -230,7 +331,7 @@ func imprintWriter(in lInstr) bool {
 		return strings.Contains(in.CS, "ImprintMove")
 	case "ChooseMove":
 		return strings.Contains(in.CS, "from=Hand") && strings.Contains(in.CS, "|Imprint")
-	case "ImprintTriggered":
+	case "ImprintTriggered", "ImprintRef":
 		return true
 	}
 	return false
