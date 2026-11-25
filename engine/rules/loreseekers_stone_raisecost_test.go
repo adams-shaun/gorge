@@ -77,10 +77,9 @@ func TestLoreseekersStoneRaiseCostPerCardInHand(t *testing.T) {
 	if e.G.Obj(stone).Zone != state.ZBattlefield {
 		t.Fatalf("stone zone = %s", e.G.Obj(stone).Zone)
 	}
+	// putCardIn mints its objects outside the event log (game.go AddObject),
+	// so replayCheck cannot compare this game; no log-only replay is asserted.
 }
-
-// putCardIn mints its objects outside the event log (game.go AddObject), so
-// replayCheck cannot compare this game; no log-only replay is asserted here.
 
 // loreseekerAbilityOffer returns the ability option for id off the pending
 // priority decision, or nil when none is offered.
