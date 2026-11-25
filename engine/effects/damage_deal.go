@@ -335,6 +335,9 @@ func effDealDamage(h Host, c *Ctx, sa *cards.SA) {
 	// what that target took. The host opens the batch; emit opens a batch of
 	// one for a Damage event that arrives with none open, so a call this
 	// primitive never brackets (none today) still latches per event.
+	// CardChoices$/PlayerChoices$: the recipient is chosen here (asked before the
+	// batch opens), not read from Defined$/the targets.
+	recipients, chosen := dealDamageChoice(h, c, sa, dp)
 	h.BeginDamageBatch()
 	if !divided && emitFromEachSource(h, c, sa, dp, multiSources, n, remember, &dying, bindExcess) {
 		h.EndDamageBatch()
@@ -383,7 +386,10 @@ func effDealDamage(h Host, c *Ctx, sa *cards.SA) {
 		h.EndDamageBatch()
 		return
 	}
-	for _, t := range definedDelayRememberedTargets(h, c, sa) {
+	if !chosen {
+		recipients = definedDelayRememberedTargets(h, c, sa)
+	}
+	for _, t := range recipients {
 		if t.IsPlayer {
 			dealt := emitPlayerDamage(rider, t.Player)
 			if remember && dealt > 0 {
