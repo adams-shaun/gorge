@@ -1208,9 +1208,16 @@ func (e *Engine) checkGrantedStaticTriggersUsing(observer *Engine, statics []*Co
 			pt := pendingTrigger{
 				Source:     id,
 				Controller: o.Controller,
-				Granted:    true,
-				Grantor:    ce.Source,
-				Execute:    grantedKeywordPayload(line),
+				// The synthesized keyword line rides the pending trigger:
+				// a granted keyword has no face Triggers entry, so leaving
+				// Idx at its zero value would make triggerOf read the
+				// recipient's printed line 0 (its description and
+				// OptionalDecider$) in place of the grant.
+				Idx:     -1,
+				Trigger: *t,
+				Granted: true,
+				Grantor: ce.Source,
+				Execute: grantedKeywordPayload(line),
 				Ctx: effects.NewCtx(id, o.Controller, effects.CtxInit{
 					Remembered:     triggerRemembered(ev, id),
 					LKI:            objLKI,
