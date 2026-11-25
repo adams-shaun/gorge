@@ -1939,12 +1939,15 @@ func (cb *cardBuilder) staticFor(s lStatic) (kop.Ability, []uint8, error) {
 	if s.Kind == "RetraceGrant" {
 		return cb.offKwGrantAbility(s)
 	}
-	if s.Kind == "UnearthGrant" {
+	if s.Kind == "UnearthGrant" || s.Kind == "CyclingGrant" {
 		ka, _, err := cb.offKwGrantAbility(s)
 		if err != nil {
 			return ka, nil, err
 		}
 		ka.Static.Kind = kop.StatUnearthGrant
+		if s.Kind == "CyclingGrant" {
+			ka.Static.Kind = kop.StatCyclingGrant
+		}
 		j, ok := cb.abMap[s.GrantBody] // 0-based LIR index, like s.Grant above
 		if !ok {
 			return ka, nil, fmt.Errorf("granted unearth body %d not emitted", s.GrantBody)
@@ -2984,6 +2987,10 @@ func (cb *cardBuilder) repl(r lRepl) (kop.Ability, error) {
 		rp.A = int16(r.N.N)
 	case "BeginPhaseSkip", "LifeFloor", "DamageMinus", "DamageSet":
 		if err := cb.replRewrite(r, rp); err != nil {
+			return ka, err
+		}
+	case "DamageInstead":
+		if err := cb.replInstead(r, rp); err != nil { // lower_replinstead.go
 			return ka, err
 		}
 	default:

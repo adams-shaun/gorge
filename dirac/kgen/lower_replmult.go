@@ -39,8 +39,12 @@ func (lc *lowerCtx) damageMinusRepl(rp *params, w *cards.SA, rl *lRepl) (bool, e
 	if sv, ok := lc.face.SVars[vv]; ok {
 		vv = strings.TrimSpace(sv)
 	}
+	half := vv == "ReplaceCount$DamageAmount/HalfDown" // Ghosts of the Innocent: half of it, rounded down
 	ns, okN := strings.CutPrefix(vv, "ReplaceCount$DamageAmount/Minus.")
 	nn, errN := strconv.Atoi(ns)
+	if half {
+		nn, okN, errN = 1, true, nil // Repl.A is unused beside ReplDmgHalfDown
+	}
 	if !okN || errN != nil || nn < 1 {
 		return false, nil // the set-to-N shape (damageSetRepl) and the doubler read their own values
 	}
@@ -87,6 +91,9 @@ func (lc *lowerCtx) damageMinusRepl(rp *params, w *cards.SA, rl *lRepl) (bool, e
 				return true, refuse("repl-hard: DamageDone minus ValidTarget %q", targets)
 			}
 		}
+	}
+	if half {
+		bits |= kop.ReplDmgHalfDown
 	}
 	rl.Kind, rl.Bits, rl.N, rl.F = "DamageMinus", bits, cst(nn), tf
 	return true, nil

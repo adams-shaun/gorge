@@ -37,8 +37,8 @@ func (s *State) repeatEachCards(k *prep, in *kop.Instr) {
 	r := &s.res
 	pc := int(r.pc)
 	if n > 0 && body > 0 {
-		if _, tgt := tgtSlot(in.Obj); in.C&kop.RepeatPlain != 0 && in.C&kop.RepeatRemembered == 0 && !tgt && !s.g.inLoop && r.loopD < uint8(len(r.loopN)) {
-			s.repeatEachCardsFrame(k, in, &list, n, pc, body) // the caller's step moves pc onto the body
+		if _, tgt := tgtSlot(in.Obj); in.C&kop.RepeatPlain != 0 && !tgt && !s.g.inLoop && r.loopD < uint8(len(r.loopN)) {
+			s.repeatEachCardsFrame(in, &list, n, pc, body) // the caller's step moves pc onto the body
 			return
 		}
 	}
@@ -80,12 +80,19 @@ func (s *State) repeatEachCards(k *prep, in *kop.Instr) {
 // (battlefield order, seats from the controller): a subject that has left the
 // battlefield by its turn is skipped. The caller's step moves pc to the
 // body's first instruction.
-func (s *State) repeatEachCardsFrame(k *prep, in *kop.Instr, list *[MaxPerm]Obj, n, pc, body int) {
+func (s *State) repeatEachCardsFrame(in *kop.Instr, list *[MaxPerm]Obj, n, pc, body int) {
 	r := &s.res
 	rem := &s.resArm().eachRem
 	*rem = slotMask{}
-	for _, o := range list[1:n] {
-		*rem = rem.with(s.objs[o].slot)
+	if in.C&kop.RepeatRemembered != 0 {
+		s.eachRememberedMask(rem) // the subjects after the first, as g.rem indices
+	} else {
+		for _, o := range list[1:n] {
+			*rem = rem.with(s.objs[o].slot)
+		}
+	}
+	if in.C&kop.RepeatDmgBatch != 0 {
+		s.dmgBatchOpen() // closed by eachCardClose, behind the last pass
 	}
 	d := r.loopD
 	r.loopN[d], r.loopS[d], r.loopPC[d] = 1, uint8(pc+1), uint8(pc+1+body)
@@ -96,9 +103,21 @@ func (s *State) repeatEachCardsFrame(k *prep, in *kop.Instr, list *[MaxPerm]Obj,
 
 // eachCardAdvance binds the plain loop's next subject, the first of the
 // remaining ones in eachCardList's order that is still on the battlefield, and
-// reports whether there was one (loopBack; repeatEachCardsFrame).
-func (s *State) eachCardAdvance() bool {
+// reports whether there was one (loopBack; repeatEachCardsFrame). A
+// remembered-set loop (in.C kop.RepeatRemembered) walks g.rem instead: the
+// next index still in the mask, bound whether or not the card is on the
+// battlefield.
+func (s *State) eachCardAdvance(in *kop.Instr) bool {
 	rem := &s.resArm().eachRem
+	if in.C&kop.RepeatRemembered != 0 {
+		if !rem.any() {
+			return false
+		}
+		i := rem.first()
+		*rem = rem.without(i)
+		s.res.eachObj = s.g.rem[i]
+		return true
+	}
 	q := s.aliveFrom(s.res.e.ctrl)
 	var ord [MaxPerm]Slot
 	for i := uint8(0); i < q.n; i++ {
@@ -111,6 +130,32 @@ func (s *State) eachCardAdvance() bool {
 		}
 	}
 	return false
+}
+
+// eachRememberedMask sets rem to the remembered-set loop's subjects after the
+// first, as indices of g.rem: every remembered object but the first one, in
+// remembered order (eachCardList lists the same objects).
+func (s *State) eachRememberedMask(rem *slotMask) {
+	first := true
+	for i, o := range s.g.rem[:s.g.nrem] {
+		if o == NoObj {
+			continue
+		}
+		if first {
+			first = false
+			continue
+		}
+		*rem = rem.with(Slot(i))
+	}
+}
+
+// eachCardClose ends the plain loop whose header is in, once its last pass is
+// done: the loop's damage batch (DamageMap$ True, kop.RepeatDmgBatch), which
+// stayed open across every pass's ask, closes.
+func (s *State) eachCardClose(in *kop.Instr) {
+	if in.C&kop.RepeatDmgBatch != 0 {
+		s.dmgBatchClose()
+	}
 }
 
 // eachCardList lists OpRepeatEach's subjects (see repeatEachCards).

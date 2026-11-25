@@ -106,6 +106,9 @@ func (s *State) priorityGen(k *prep, d *Decision, p uint8, sorc bool, avp *avail
 	if k.gen.anyHandAct {
 		s.priorityHandAct(k, d, p, sorc, &av)
 	}
+	if k.anyCyclingGrant {
+		s.priorityCyclingGrant(k, d, p, sorc, &av) // kw_cyclinggrant.go: a StatCyclingGrant static's granted cycling
+	}
 	s.priorityEmbalmGrant(k, d, p, sorc, &av)  // kw_embalmgrant.go
 	s.priorityUnearthGrant(k, d, p, sorc, &av) // kw_unearthgrant.go: a StatUnearthGrant static's granted unearths
 	if k.gen.anyExileGrant {
@@ -651,7 +654,22 @@ func (s *State) buildCostGenPre(k *prep, pre bool) (kop.ManaCost, bool, bool) {
 func (s *State) activateGen(k *prep, a Action) bool {
 	o := Obj(a.Source())
 	ob := &s.objs[o]
-	if a.Mode() == unearthGrantMode && k.anyOffKwGrant && ob.zone == kop.ZoneGraveyard {
+	if a.Mode() == unearthGrantMode && k.anyCyclingGrant && ob.zone == kop.ZoneHand {
+		// a granted cycling (kw_cyclinggrant.go): the granting permanent's
+		// latent body run with the affected hand card as its source; the
+		// body's discard-this cost discards that card
+		host := Obj(a.Target())
+		hc := s.objs[host].card
+		if s.objs[host].zone == kop.ZoneBattlefield {
+			hc = s.cardAt(s.objs[host].slot)
+		}
+		ab := cyclingGrantBody(k, hc)
+		if ab < 0 {
+			return false
+		}
+		CyclingGrantStats.Activations.Add(1)
+		*s.bld() = build{e: stackEntry{kind: seAbility, obj: o, srcVer: ob.ver, card: hc, ab: uint8(ab), ctrl: s.prio, trigObj: NoObj}}
+	} else if a.Mode() == unearthGrantMode && k.anyOffKwGrant && ob.zone == kop.ZoneGraveyard {
 		// a granted unearth (kw_unearthgrant.go): the granting permanent's
 		// latent body run with the affected card as its source. The mode byte
 		// is a reserved granted index no ledger grant holds; the target byte
@@ -1243,7 +1261,7 @@ func (s *State) priorityGenReadsAv(k *prep, p uint8) bool {
 		k.manaOne || g.anyTapExtra || g.anyContGrant || len(g.grantPC) != 0 || g.anyTapsDefer ||
 		k.availExt || k.painMana || s.g.availX&3 != 0 ||
 		g.anyGrant && s.ctrlM[p].any() && s.grantsLive(k) || g.uses.has(useGainsOf) ||
-		g.uses.has(useOffKwGrant)
+		g.uses.has(useOffKwGrant) || g.uses.has(useCyclingGrant)
 }
 
 // tgtSource is the spell or ability the current targeting is for (the entry

@@ -272,6 +272,9 @@ type prep struct {
 	// the CardManaCost-priced bodies (the affected card's own mana cost;
 	// the body bakes zero) buildCostPreRaw charges through offKwCostOr.
 	anyOffKwGrant bool
+	// anyCyclingGrant: the table has a StatCyclingGrant static (prepCyclingGrant;
+	// kw_cyclinggrant.go), the granted hand cycling offer it arms.
+	anyCyclingGrant bool
 	// anyOffKwCC: some recorded off-kw grant body is CardManaCost-priced
 	anyOffKwCC bool
 	offKwCC    [4]offKwBody
