@@ -48,7 +48,7 @@ func (s *State) sbaScan(k *prep, r *sbaMasks) (busy bool) {
 				continue
 			}
 			lethal := tough
-			if k.gen != nil && k.gen.anyLethalPow && p.damage > 0 {
+			if k.gen != nil && k.gen.uses.has(useLethalPow) && p.damage > 0 {
 				// LethalDamageByPower$ (static_lethalbypower.go): the
 				// threshold reads power, which the clean-scan key was not
 				// built around: never a cached clean scan
