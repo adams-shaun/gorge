@@ -241,6 +241,12 @@ type CardDef struct {
 	// and a copy of a permanent spell resolves into a token
 	// (genPrep.anyPermCopy; dirac/copy_permanentspell.go, CR 707.10f).
 	Storm bool
+	// Conspire is K:Conspire (CR 702.78a; false = none): as the spell is cast
+	// its caster may tap two untapped creatures sharing a colour with it (the
+	// conspired cast, the granted keyword's AkCastConspire; dirac/kw_conspire.go).
+	// The paid count (Count$Conspired, 1 once both are tapped) lives in
+	// dirac/cost_paidcount.go and the copy is the keyword's own SpellCast trigger.
+	Conspire bool
 	// HandMana is the colour mask (one WUBRG bit) of a hand-zone mana
 	// ability whose only cost exiles the card itself from its owner's hand
 	// (Simian / Elvish Spirit Guide: "Exile this card from your hand: Add
