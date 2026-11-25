@@ -645,10 +645,11 @@ func (s *State) loopBack(k *prep) {
 			continue
 		}
 		if in := &s.prog(k)[r.loopS[d]-1]; in.Op == kop.OpRepeatEach { // act_repeatcards.go: the plain card loop's frame
-			if s.eachCardAdvance() {
+			if s.eachCardAdvance(in) {
 				r.pc = r.loopS[d]
 				return
 			}
+			s.eachCardClose(in)
 			r.eachObj, s.g.inLoop = NoObj, false
 			r.loopD--
 			continue
@@ -1097,6 +1098,11 @@ func (s *State) refCode(k *prep, r kop.Ref) TCode {
 				return PlayerCode(p)
 			}
 			return TCode(NoTarget)
+		}
+		if s.eachRememberedLoop(k) {
+			// a remembered-set card loop's damage goes to the bound card's
+			// controller, not the card (act_repeatremembered.go)
+			return PlayerCode(s.eachCtrl(s.res.eachObj))
 		}
 	}
 	o := s.objRefObj(r)

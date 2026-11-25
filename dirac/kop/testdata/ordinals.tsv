@@ -1219,6 +1219,7 @@ RefTriggerSource	Ref	21
 RefTriggerTgtCtrl	Ref	33
 RememberAllImprint	untyped int	2
 RememberAllObjOrder	untyped int	1
+RepeatDmgBatch	untyped int	4
 RepeatEachDmgBatch	untyped int	8
 RepeatEachSeatOrder	untyped int	2
 RepeatEachZoneBatch	untyped int	4
