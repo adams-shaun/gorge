@@ -16,10 +16,9 @@ import (
 // part of the tap, are the tap-extra statics (lower_tapextra.go).
 //
 // The closed world is the shape the kernel prices:
-//   - ValidCard$ over any controller's permanents by type alone (a Land), or
-//     with a YouCtrl/OppCtrl clause relative to the watcher's controller
-//     (Mana Web's Land.OppCtrl), not the source itself (a self line classes
-//     its own printed mana ability, prepSelfTapsPain);
+//   - ValidCard$ over any controller's permanents by type alone (a Land), not
+//     the source itself (a self line classes its own printed mana ability,
+//     prepSelfTapsPain);
 //   - no Activator$ (any player's tap, Manabarbs), Activator$
 //     Player.NonActive, the tapping player is not the active player
 //     (effects.MatchesPlayerSpec over trigmatch.TapActor), or Activator$
@@ -77,12 +76,7 @@ func (lc *lowerCtx) tapsForManaWatch(tp *params, tr *lTrigger, t cards.Trigger, 
 		return refuse("TapsForMana ValidCard %q", vc)
 	}
 	for _, c := range tr.F.Clauses {
-		// The controller clause (Mana Web's Land.OppCtrl) is relative to the
-		// watcher's controller in both engines: gorge's tap matcher and the
-		// kernel's objEventMatch/tapsWatchClass pass the listening source's
-		// controller to the filter, and a land an opponent of that controller
-		// controls is the tapper's own land. Owner and flags stay refused.
-		if c.Owner != whoAny || c.Ctrl > whoOpp || c.Flags != 0 || c.CmpStat != cmpNone || c.Special != 0 {
+		if c.Owner != whoAny || c.Ctrl != whoAny || c.Flags != 0 || c.CmpStat != cmpNone || c.Special != 0 {
 			return refuse("TapsForMana ValidCard %q: beyond a type filter", vc)
 		}
 	}

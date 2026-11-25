@@ -1789,20 +1789,15 @@ const FwWithKeyword FilterWord = 19
 // FwModal: the cast spell chose at least one mode of its charm (gorge's `Modal` predicate, engine/effects/filter.go: len(ChosenModes) > 0; SpellCast ValidSA$ Spell.Modal, Riku of Many Paths). A spell that is no charm, a face-down spell and a card off the stack read false; an MDFC is not modal.
 const FwModal FilterWord = 20
 
-// FilterWord (dirac/manifest/FilterWord/FwSameManaType)
-//
-// FwSameManaType: the battlefield permanent can produce a type of mana the trigger object can produce (Mana Web's "all lands that player controls that could produce any type of mana that land could produce"). Both read the printed mana abilities: CardDef.ProduceCol for the colours ({C} dropped) and each mana ability's ManaColors for {C}. An off-battlefield candidate or trigger object fails closed.
-const FwSameManaType FilterWord = 21
-
 // FilterWord (dirac/manifest/FilterWord/FwSingleTarget)
 //
 // FwSingleTarget: the cast spell has exactly one target, counting every chained sub-ability's targets with the root's (gorge's `singleTarget` predicate, engine/effects/filter.go: len(Targets)+len(SubTargets) == 1; SpellCast ValidSA$ Spell.singleTarget and Instant.singleTarget,Sorcery.singleTarget). No target and two targets both read false, and two slots naming one object count twice, as gorge counts them.
-const FwSingleTarget FilterWord = 22
+const FwSingleTarget FilterWord = 21
 
 // FilterWord (dirac/manifest/FilterWord/FwTeamwork)
 //
 // FwTeamwork: the cast spell paid its Teamwork cost (gorge's `Teamwork` predicate, Object.TeamworkPaid; SpellCast ValidSA$ Spell.Teamwork, Virtual Assistant). The kernel keeps the paid flag as sfKicked on the entry (kw_teamwork.go), which a kicker cast sets too, so the word also requires the spell's card to have Teamwork: a kicked non-teamwork spell reads false.
-const FwTeamwork FilterWord = 23
+const FwTeamwork FilterWord = 22
 
 // kw StickerSheet (dirac/manifest/KwID/KwStickerSheet)
 const KwStickerSheet KwID = 32
