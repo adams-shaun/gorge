@@ -19,8 +19,8 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // at the next registration or read. No State byte: the record lives in the
 // delayed array.
 
-// dlyLeaveExile is delayed.when for an exile-instead promise.
-const dlyLeaveExile = 8
+// dlyLeaveExile is delayed.when for an exile-instead promise (9: 8 is dlyBlitzDies).
+const dlyLeaveExile = 9
 
 // opLeaveExile is the promise record's act (kernel-internal, above every
 // kop.Op; never dispatched: the record never fires).
