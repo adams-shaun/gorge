@@ -1265,10 +1265,13 @@ func targetValidTargetingMatches(e targetSpecRecheck, o *state.Object, spec stri
 // selectors also preserve that offer when no parent binding exists. The two roles
 // only an attack-declaration trigger binds (TriggeredAttackingPlayer,
 // TriggeredAttackedTarget: Karazikar, Firkraag, Seifer, Gornog, Whirlwind
-// Killer) and NonTriggeredCardController (Confusion in the Ranks: "target
-// permanent another player controls") fail closed when unbound instead, since
-// offering every creature would widen "target creature that player controls"
-// to any player's, or "another player's permanent" to your own.
+// Killer), NonTriggeredCardController (Confusion in the Ranks: "target
+// permanent another player controls"), TriggeredSourceController (Scalelord
+// Reckoner: "destroy target nonland permanent that player controls", where
+// "that player" is the targeting spell's controller) fail closed when
+// unbound instead, since offering every creature would widen "target
+// creature that player controls" to any player's, or "another player's
+// permanent" to your own.
 func (e *Engine) filterTargetsWithDefinedController(in []targetCandidate, sa *cards.SA, sc effects.SpecContext) []targetCandidate {
 	ref := effects.TargetsOf(sa).DefinedController
 	if ref == "" {
@@ -1312,10 +1315,10 @@ func (e *Engine) filterTargetsWithDefinedController(in []targetCandidate, sa *ca
 // referent to the one player whose control the restriction names. ok reports
 // the referent resolved; failClosed and nonTriggered flag the arms that must
 // admit nothing when it did not (the attack-declaration roles, and
-// NonTriggeredCardController, whose predicate is the complement). It is the
-// ONE referent definition, shared by the offer post-filter
-// (filterTargetsWithDefinedController) and the CR 608.2b resolution recheck
-// (legalTargets) so the two cannot drift.
+// NonTriggeredCardController, whose predicate is the complement, and
+// TriggeredSourceController). It is the ONE referent definition, shared by
+// the offer post-filter (filterTargetsWithDefinedController) and the CR
+// 608.2b resolution recheck (legalTargets) so the two cannot drift.
 func (e *Engine) definedControllerPlayer(ref string, sc effects.SpecContext) (player state.PlayerID, ok, failClosed, nonTriggered bool) {
 	switch filterTargetsWithDefinedControllerCodes.Code(ref) {
 	case filterTargetsWithDefinedControllerNonTriggeredCardController:
@@ -1355,6 +1358,18 @@ func (e *Engine) definedControllerPlayer(ref string, sc effects.SpecContext) (pl
 		if sc.TriggerPlayer.IsPlayer {
 			player, ok = sc.TriggerPlayer.Player, true
 		}
+	case filterTargetsWithDefinedControllerTriggeredSourceController:
+		// "Whenever a Dragon you control becomes the target of a spell or
+		// ability an opponent controls, destroy target nonland permanent
+		// that player controls" (Scalelord Reckoner): for a BecomesTarget
+		// trigger the source role is the targeting spell or ability, so
+		// "that player" is its controller, captured at fire time
+		// (TriggerSourceController) with the source object as the LKI
+		// fallback. An unbound role admits nothing: leaving the candidates
+		// unchanged would offer the Dragon's controller's own permanents
+		// (and every other player's) when the caster controls none.
+		failClosed = true
+		player, ok = effects.TriggeredSourceController(e.G, sc.TriggerContext, sc.Remembered)
 	}
 	return player, ok, failClosed, nonTriggered
 }
@@ -1440,6 +1455,7 @@ const (
 	filterTargetsWithDefinedControllerTriggeredAttackedTarget
 	filterTargetsWithDefinedControllerTriggeredCardController
 	filterTargetsWithDefinedControllerTriggeredCauser
+	filterTargetsWithDefinedControllerTriggeredSourceController
 )
 
 var filterTargetsWithDefinedControllerCodes = state.NewStrCodes(
@@ -1451,6 +1467,7 @@ var filterTargetsWithDefinedControllerCodes = state.NewStrCodes(
 	state.StrEntry[filterTargetsWithDefinedControllerCode]{Key: "TriggeredAttackedTarget", Val: filterTargetsWithDefinedControllerTriggeredAttackedTarget},
 	state.StrEntry[filterTargetsWithDefinedControllerCode]{Key: "TriggeredCardController", Val: filterTargetsWithDefinedControllerTriggeredCardController},
 	state.StrEntry[filterTargetsWithDefinedControllerCode]{Key: "TriggeredCauser", Val: filterTargetsWithDefinedControllerTriggeredCauser},
+	state.StrEntry[filterTargetsWithDefinedControllerCode]{Key: "TriggeredSourceController", Val: filterTargetsWithDefinedControllerTriggeredSourceController},
 )
 
 // filterParentControllerTargets keeps only the candidates controlled by a

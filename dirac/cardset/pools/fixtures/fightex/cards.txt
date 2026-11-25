@@ -1,4 +1,4 @@
-# Rhino's Rampage / The Last Agni Kai: Fight ExcessSVar$ and Effect UnspentMana Red (dirac/oracle/fightex_test.go)
+# Rhino's Rampage / The Last Agni Kai: Fight ExcessSVar$ and Effect UnspentMana Red (dirac/oracle/fightex_test.go); Deadly Recluse: a deathtouch fighter (CR 120.4a)
 Rhino's Rampage
 The Last Agni Kai
 Grizzly Bears
@@ -10,6 +10,7 @@ Short Sword
 Soul-Guide Lantern
 Shock
 Fated Firepower
+Deadly Recluse
 Mountain
 Forest
 Plains

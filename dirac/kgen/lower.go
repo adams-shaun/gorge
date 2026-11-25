@@ -1904,13 +1904,23 @@ func (lc *lowerCtx) lowerKeywords() {
 			// pips are announced as for any cost; X, CardManaCost, a ":" or
 			// "<" rider (the granted form) and any non-mana part are
 			// refused.
+			if lc.out.Evoke != nil {
+				lc.refuseNode(node, "two Evoke keywords")
+				continue
+			}
+			if strings.Contains(param, "ExileFromHand<") && !strings.Contains(param, ":") {
+				// the hand-exile evoke (the MH2 Incarnations' "Evoke--Exile
+				// a <colour> card from your hand"): the alternative cost's
+				// hand-exile pick shape, PayLife<N> beside it or not, and
+				// plain mana (lower_evoke.go evokePickCost)
+				if err := lc.evokePickCost(param); err != nil {
+					lc.refuseNode(node, "evoke cost %q: %v", param, err)
+				}
+				continue
+			}
 			mc, err := parseManaCost(param)
 			if err != nil || param == "" || strings.ContainsAny(param, ":<") || mc.X || mc.None {
 				lc.refuseNode(node, "evoke cost %q", param)
-				continue
-			}
-			if lc.out.Evoke != nil {
-				lc.refuseNode(node, "two Evoke keywords")
 				continue
 			}
 			lc.out.Evoke = &mc
