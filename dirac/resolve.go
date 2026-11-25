@@ -560,6 +560,21 @@ func (s *State) prog(k *prep) []kop.Instr {
 	return k.t.Cards[e.card].Abilities[e.ab].Prog
 }
 
+// libPlaceAskNext reports whether the instruction after the one at res.pc is
+// the ask of a kop.ExtLibPlace bracket. The CR 401.4 arrangement of the cards
+// a move put into a library is part of that move: when the move's departure
+// returned a card exiled until it left, the return's as-enters choice is
+// asked after the owner has ordered the group, not before it.
+func (s *State) libPlaceAskNext(k *prep) bool {
+	prog := s.prog(k)
+	n := int(s.res.pc) + 1
+	if n >= len(prog) {
+		return false
+	}
+	in := &prog[n]
+	return in.Op == kop.OpExt && kop.ExtOp(in.A.N) == kop.ExtLibPlace && in.C == kop.PlaceAsk
+}
+
 // runProg executes from res.pc until the program ends or an op suspends.
 func (s *State) runProg(k *prep) {
 	prog := s.prog(k)
@@ -572,7 +587,7 @@ func (s *State) runProg(k *prep) {
 		if s.over {
 			return
 		}
-		if k.gen != nil && s.parkReturnAsk() {
+		if k.gen != nil && !s.libPlaceAskNext(k) && s.parkReturnAsk() {
 			return
 		}
 		if k.gen != nil && s.g.nc.n != 0 {
