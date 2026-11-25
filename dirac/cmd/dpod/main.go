@@ -172,7 +172,7 @@ func buildPod(reg *cards.Registry, deckDir string) (*pod, error) {
 			why[pd.Names[i]] = strings.ReplaceAll(pd.Reason[i], "\t", " ")
 		}
 	}
-	set := cardset.Raw(cardset.NewDataSet(pd))
+	set := cardset.AllowUnverified(cardset.NewDataSet(pd))
 	for round := 0; ; round++ {
 		if round > 64 {
 			return nil, fmt.Errorf("substitution did not converge")
