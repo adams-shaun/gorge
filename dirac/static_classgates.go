@@ -73,12 +73,18 @@ func prepStaticClasses(t *kop.Table, g *genPrep) (anyCmdTap bool) {
 			case kop.StatCDAPT, kop.StatOverride:
 				m |= sclsPTRel
 			case kop.StatMayPlayFrom:
-				switch {
-				case sa.StFlags&kop.StFunctionsInGraveyard != 0:
+				// a two-zone self grant (Squee, the Immortal's
+				// Exile,Graveyard with EffectZone$ Exile,Graveyard) carries
+				// BOTH function flags on one static, so the card's own
+				// permission is offered from either zone: both class gates
+				// set (the self walk keys on the flags)
+				if sa.StFlags&kop.StFunctionsInGraveyard != 0 {
 					m |= sclsGyMay
-				case sa.StFlags&kop.StFunctionsInExile != 0:
+				}
+				if sa.StFlags&kop.StFunctionsInExile != 0 {
 					m |= sclsExMay
-				default:
+				}
+				if sa.StFlags&(kop.StFunctionsInGraveyard|kop.StFunctionsInExile) == 0 {
 					m |= sclsMayPlay
 				}
 			case kop.StatTapExtra:

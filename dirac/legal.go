@@ -170,6 +170,14 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 		if pc.altCost {
 			s.offerAltHand(k, d, p, o, c, &av) // kw_impending.go
 		}
+		if k.gen != nil {
+			// a non-granting may-play alternative cost beside the plain hand
+			// cast (As Foretold's {0}, Demon of Fate's Design's pay-life,
+			// Nissa's pay-energy): gorge's hand walk lists each mayPlayAltCosts
+			// entry as its own "cast" option (legal_walk_hand.go's
+			// alternativeCosts loop), whether or not the plain price is payable
+			s.offerMayPlayHandAlt(k, d, p, o, c, sorc, &av) // cast_mayzeroalt.go
+		}
 		cost := &pc.cost
 		var credited kop.ManaCost
 		if k.gen != nil && k.gen.anyConvoke && s.tapPays(k, p, c, o, true) {

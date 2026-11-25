@@ -9,14 +9,27 @@
 # gates. The FatefulHour / ExtraTurn / Night carriers (Gavony Ironwright,
 # Medomai the Ageless, Moonrager's Slash, Thraben Doomsayer, Village
 # Survivors) stay out: their statics refuse (gorge fails closed on the
-# condition, reported), and a refused card cannot sit in a pool.
+# condition, reported), and a refused card cannot sit in a pool. So do the
+# round's other four MayPlay carriers (Aluren, Conspiracy Unraveler, Primal
+# Prayers, Durnan of the Yawning Portal) and One with the Multiverse (its
+# free line names a partial zone list the kernel's one-zone free ride would
+# over-read): each keeps a named refusal outside the MayPlay-zone class. The
+# MayPlay shapes the round lowers are in (As Foretold's {0} alternative,
+# Demon of Fate's Design's pay-life and Nissa, Worldsoul Speaker's pay-energy
+# alternatives, Dracogenesis's free cast, Squee, the Immortal's two-zone self
+# grant), played by dirac/oracle/staticzones_test.go and
+# dirac/oracle/staticzones_mayplay_test.go.
 # Defensive Formation (the defender divides a double-blocked attacker's damage)
 # reads the StatDefenderAssigns static; K'rrik stays refused.
+As Foretold
 Bladegraft Aspirant
 Case of the Locked Hothouse
 Dawnglade Regent
 Defensive Formation
+Demon of Fate's Design
 Dragon's Rage Channeler
+Dragon Whelp
+Dracogenesis
 Entourage of Trest
 Field of Dreams
 Geist of the Lonely Vigil
@@ -27,13 +40,14 @@ Ivory Mask
 Lantern of Insight
 Lightning Bolt
 Minamo Scrollkeeper
+Nissa, Worldsoul Speaker
 Power Artifact
 Queen Mother Ramonda
 Shock
 Slithering Shade
 Solitary Confinement
-Squee, the Immortal
 Spire Serpent
+Squee, the Immortal
 Swords to Plowshares
 Thought Devourer
 Thought Eater
