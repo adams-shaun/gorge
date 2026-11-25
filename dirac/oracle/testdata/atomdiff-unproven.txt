@@ -18,7 +18,6 @@ fw:Card.!EnchantedBy
 fw:Card.!EquippedBy
 fw:Card.!IsCommander
 fw:Card.!withIndestructible
-fw:Card.!withMenace
 fw:Card.!withShadow
 fw:Card.AdventureCard
 fw:Card.AttachedBy
@@ -40,20 +39,18 @@ fw:Card.Snow
 fw:Card.blockedBySource
 fw:Card.blockingSource
 fw:Card.counters_GE1_CHARGE
-fw:Card.counters_GE2_P1P1
+fw:Card.equipped
 fw:Card.faceDown
 fw:Card.faceUp
 fw:Card.inZoneBattlefield
 fw:Card.monstrous
 fw:Card.noName
 fw:Card.nonSnow
-fw:Card.sharesNameWith Valid Permanent.Legendary
 fw:Card.withIndestructible
 fw:Card.withInfect
-fw:Card.withMenace
 fw:Card.withShadow
 fw:Card.withWarp
 fw:Card.withoutIndestructible
-fw:Card.withoutMenace
 fw:Card.withoutShadow
 fw:Creature.attackingSame
+fw:Creature.powerEQ0

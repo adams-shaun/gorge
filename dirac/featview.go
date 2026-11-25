@@ -977,6 +977,9 @@ func (s *State) activationReduced(k *prep, a *kop.Ability, o Obj) kop.ManaCost {
 	if k.gen.anyAbReduce && ob.zone == kop.ZoneBattlefield {
 		cost = s.abReduced(k, a, ob.slot, ctrl, cost)
 	}
+	if k.gen.anyAbReduce && ob.zone == kop.ZoneGraveyard {
+		cost = s.abReducedGrave(k, a, o, ctrl, cost)
+	}
 	return cost
 }
 
