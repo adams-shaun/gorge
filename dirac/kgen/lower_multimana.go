@@ -437,6 +437,13 @@ func manaGapModelled(first, a *lAbility) bool {
 		// the fee paid from the floating mana before the production joins
 		// (gorge's cast window, castWindowGenericCostShape)
 		return true
+	case restrictedManaUnit(a.Cost, a.Mana) && restrictedDistinctPair(first, a):
+		// a restricted mana-fee pair of two different colours beside a plain {T}:
+		// Add {C} first ability (Interplanar Beacon's "{1}, {T}: Add two mana of
+		// different colors", planeswalker spells only): the kernel's restricted
+		// pair unit plans the two units coupled (avail.nDist), the fee paid from
+		// the floating mana before the production joins
+		return true
 	case tapXGapMana(a):
 		// {T}, tap an untapped creature you control: one mana of any
 		// colour, unrestricted, beside a plain {T} first ability (Scene of
@@ -778,6 +785,13 @@ func restrictedFeePair(first, a *lAbility) bool {
 		return a.Mana.Colors == "WUBRG" && a.Mana.Amount.N == maxRestrictedCombo && first.Mana.Colors == "C" && !first.Mana.Choice
 	}
 	return a.Mana.Colors == first.Mana.Colors
+}
+
+// restrictedDistinctPair: a is a restricted fee unit making two mana of
+// different colours (Combo AnyDifferent) beside first, a plain {T}: Add {C}.
+func restrictedDistinctPair(first, a *lAbility) bool {
+	return plainTapMana(first, false) && unrestrictedOne(first) && first.Mana.Colors == "C" && !first.Mana.Choice &&
+		a.Mana.Colors == "AnyDifferent" && a.Cost.Mana.Pips == [5]int{} && a.Cost.Mana.C == 0
 }
 
 // maxComboMana bounds the literal amount of a combination filter (Baxter

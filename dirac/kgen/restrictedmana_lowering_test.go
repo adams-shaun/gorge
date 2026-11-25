@@ -21,8 +21,8 @@ func TestRestrictedManaCostRefusalNamesThePart(t *testing.T) {
 		// Castle Garenbrig lowers (TestRestrictedManaCostUnit), and so do the
 		// wider fee productions (TestRestrictedManaFeeWideShape). What stays
 		// refused names the part that does, never "a mana fee" for a fee the
-		// model carries: Interplanar Beacon's two DISTINCT colours.
-		{"Interplanar Beacon", "an AnyDifferent production"},
+		// model carries. Interplanar Beacon's two DISTINCT colours lower too
+		// (TestRestrictedManaFeeAnyDifferentShape).
 		{"Crucible of the Spirit Dragon", "a counter cost"},
 		{"Cryptic Trilobite", "a counter cost"},
 		{"Throne of Makindi", "a counter cost"},
