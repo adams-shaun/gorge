@@ -692,9 +692,7 @@ func (s *State) painUnit(k *prep, sl Slot, pc *pcard, pass int, pk *planner, i i
 	// the same colours is ordinary mana).
 	findP := func() int {
 		for t := 0; t < pk.nt; t++ {
-			ty := &pk.types[t]
-			if ty.pain != 0 && ty.pain == pc.painN && ty.mask == pm && ty.creat == cr && ty.alt == !pc.painOnly && ty.xv == xp &&
-				ty.sacOnly == lifeOnlyPain(pc) && ty.rb == restricted && ty.life == restricted {
+			if painTypeMatches(&pk.types[t], pc.painN, pm, cr, !pc.painOnly, xp, lifeOnlyPain(pc), restricted) {
 				return t
 			}
 		}
@@ -710,14 +708,12 @@ func (s *State) painUnit(k *prep, sl Slot, pc *pcard, pass int, pk *planner, i i
 				// an unadmitted restricted pair is an ordinary unit of its
 				// normal ability: it must not count under a paired type, whose
 				// units all take the painful alternative (dfs's shared cap)
-				if ty.pair == 0 && !ty.alt && ty.pain == 0 && ty.mask == prim && ty.creat == cr && ty.xv == xc &&
-					ty.flex == fl && ty.n == 1 && !ty.rb && !ty.life && !ty.sacOnly && !ty.sac && !ty.inert && ty.irr == 0 {
+				if painNormalTypeMatches(ty, prim, cr, xc, fl) {
 					tc = t
 				}
 				continue
 			}
-			if ty.pair != 0 && !ty.alt && ty.mask == prim && ty.creat == cr && pk.types[ty.pair-1].mask == pm && pk.types[ty.pair-1].pain == pc.painN && ty.xv == xc && pk.types[ty.pair-1].xv == xp &&
-				pk.types[ty.pair-1].rb == restricted {
+			if painPairNormalMatches(ty, &pk.types, prim, pm, pc.painN, cr, xc, xp, restricted) {
 				tc = t
 			}
 		}
@@ -769,6 +765,34 @@ func (s *State) painUnit(k *prep, sl Slot, pc *pcard, pass int, pk *planner, i i
 	}
 	pk.nu++
 	return true
+}
+
+// painTypeMatches reports whether ty is a painful type of pc's shape: its
+// colours, damage, source kind, tap shape and restriction float all name it.
+func painTypeMatches(ty *utype, pain, pm uint8, cr, alt bool, xp [kop.NumManaKinds]uint8, sacOnly, restricted bool) bool {
+	return ty.pain != 0 && ty.pain == pain && ty.mask == pm && ty.creat == cr && ty.alt == alt &&
+		ty.xv == xp && ty.sacOnly == sacOnly && ty.rb == restricted && ty.life == restricted
+}
+
+// painNormalTypeMatches reports whether ty is the ordinary type an
+// unadmitted restricted life pair's normal ability joins: unpaired (a paired
+// type's units all take the painful alternative, so its shared avail cap
+// must not count this one) and of the same shape.
+func painNormalTypeMatches(ty *utype, prim uint8, cr bool, xc [kop.NumManaKinds]uint8, fl uint8) bool {
+	return ty.pair == 0 && !ty.alt && ty.pain == 0 && ty.mask == prim && ty.creat == cr && ty.xv == xc &&
+		ty.flex == fl && ty.n == 1 && !ty.rb && !ty.life && !ty.sacOnly && !ty.sac && !ty.inert && ty.irr == 0
+}
+
+// painPairNormalMatches reports whether ty is the normal type of the pair
+// whose painful alternative is pc's: same shape, and the same restriction
+// float (a restricted pair's ordinary {C} is not an unrestricted painland's).
+func painPairNormalMatches(ty *utype, types *[maxTypes]utype, prim, pm, pain uint8, cr bool, xc, xp [kop.NumManaKinds]uint8, restricted bool) bool {
+	if ty.pair == 0 {
+		return false
+	}
+	other := &types[ty.pair-1]
+	return !ty.alt && ty.mask == prim && ty.creat == cr && other.mask == pm && other.pain == pain &&
+		ty.xv == xc && other.xv == xp && other.rb == restricted
 }
 
 // DebugNoPainDamage drops the painful alternatives' damage. The pain
