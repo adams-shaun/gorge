@@ -459,8 +459,9 @@ func (s *State) resolveLowerCounterTriggers(k *prep, n0 uint8, instant bool) {
 		// optional trigger is answered "yes" by the lowering's default and
 		// resolved here like any other. An instant-speed cast is offered
 		// while the trigger is still on the stack (the instant branch below
-		// places it below the cast), so its optional ask belongs to the
-		// ordinary stack path, not to the lowering.
+		// places it below the cast, CR 603.3b: Quest for the Gravelord's
+		// "you may" counter under a face cast paid with an Eldrazi Scion),
+		// so its optional ask is the ordinary stack path's, at resolution.
 		if a.Kind != kop.AbTriggered || a.NModes != 0 {
 			i++
 			continue
