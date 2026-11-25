@@ -1,6 +1,7 @@
 package cards
 
 import (
+	"maps"
 	"math/bits"
 	"slices"
 	"strings"
@@ -2218,6 +2219,27 @@ func (r *Repl) SetParam(k ParamKey, v string) {
 	r.ps = nil
 }
 
+// respellCostAffectedSelf reads a cost static's Affected$ Card.Self as the
+// ValidCard$ Card.Self every cost reader scopes a card's own "costs more /
+// less" by (Hurkyl's Final Meditation is the one script spelling it
+// Affected$; the cost walks ignore Affected$, so unrespelled the static taxed
+// every spell in every hand, CR 601.2f). The Params map is cloned: it is
+// shared with the registry's cached copy.
+func (s *Static) respellCostAffectedSelf() {
+	switch s.mode {
+	case StaticRaiseCost, StaticReduceCost, StaticSetCost:
+	default:
+		return
+	}
+	if _, has := s.Params["ValidCard"]; has || strings.TrimSpace(s.Params["Affected"]) != "Card.Self" {
+		return
+	}
+	p := maps.Clone(s.Params)
+	delete(p, "Affected")
+	p["ValidCard"] = "Card.Self"
+	s.Params = p
+}
+
 // deriveParamSets binds each printed static's, trigger's and ability's
 // ParamSet (every ability reachable from the face: its Abilities, their
 // SubAbility$ chains, trigger Execute$ bodies and replacement bodies). It
@@ -2226,8 +2248,9 @@ func (r *Repl) SetParam(k ParamKey, v string) {
 func (f *Face) deriveParamSets() {
 	for i := range f.Statics {
 		st := &f.Statics[i]
-		st.ps = newParamSet(st.Params)
 		st.mode, st.modeBound = StaticModeOf(st.Mode), true
+		st.respellCostAffectedSelf()
+		st.ps = newParamSet(st.Params)
 	}
 	for i := range f.Triggers {
 		t := &f.Triggers[i]
