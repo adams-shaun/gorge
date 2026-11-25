@@ -222,8 +222,9 @@ if [ "$mode" = one ]; then
 	[ -n "${RUN:-}" ] || usage "RUN=<test regexp> is required"
 	case ${SHORT:-} in '' | 1) ;; *) usage "SHORT is 1 or empty (got '$SHORT')" ;; esac
 	case $pkg in ./engine/rules | ./dirac/oracle)
-		# An exact name (or a |-alternation of them), so a broad pattern cannot run the whole package.
-		[[ $RUN =~ ^\^[A-Za-z0-9_|^$]*[A-Za-z0-9_]\$$ ]] ||
+		# An exact name (or a |-alternation of them), so a broad pattern cannot run the whole package; it may end in
+		# one /subtest pattern ('^TestPinManifest$/^TestX\.0$': re-record one pin without the whole manifest's budget).
+		[[ $RUN =~ ^\^[A-Za-z0-9_|^$]*[A-Za-z0-9_]\$(/[][A-Za-z0-9_.|^$\\()-]+)?$ ]] ||
 			usage "$pkg is too big to run whole: name the exact tests in RUN (e.g. '^TestX\$'); got '$RUN'"
 		;;
 	esac
