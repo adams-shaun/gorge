@@ -30,7 +30,6 @@ var fdcDecks = []string{
 var fdcRefused = []string{
 	"Chandra's Ignition",
 	"Cursed Mirror",
-	"Cut a Deal",
 	"Dragonhawk, Fate's Tempest",
 	"Emeria Shepherd",
 	"Ezuri's Predation",

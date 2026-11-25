@@ -376,6 +376,10 @@ func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 			v, err = lc.oppCastCondValue(rest) // value_oppcondition.go
 		case rest == oppsDealtDamageBody:
 			v = lValue{Kind: vOppsLostLife, N: 3} // value_turntallies.go
+		case rest == "HasPropertyIsRememberedOrController":
+			// the opponents controlling a remembered object (Cut a Deal's
+			// drawn cards; dirac value_remctrl.go)
+			v = lValue{Kind: vOppExtreme, N: kop.OppExtRemCtrl}
 		default:
 			err = fmt.Errorf("PlayerCountOpponents$%s", rest)
 		}

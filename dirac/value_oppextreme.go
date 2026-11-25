@@ -21,6 +21,9 @@ func (s *State) oppExtreme(k *prep, x *kop.Expr, ctx evalCtx) int {
 	if int(x.N)&kop.OppExtCountCmp != 0 {
 		return s.groupCountCmp(k, x, ctx, what, skip)
 	}
+	if what == kop.OppExtRemCtrl {
+		return s.remCtrlCount(skip) // value_remctrl.go
+	}
 	if int(x.N)&kop.OppExtNonTrigPl != 0 {
 		skip = 255
 		if e := ctx.e; e != nil && e.kind == seTrigger {

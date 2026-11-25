@@ -306,6 +306,12 @@ const (
 	// Trap's "an opponent had two or more creatures enter under their
 	// control"). Sub[0] is the bound, read once from the controller's side.
 	OppExtMemberExpr = 9
+	// OppExtRemCtrl: the members that control some object of the
+	// resolution's remembered set (a battlefield permanent's controller,
+	// else its owner), counted once each (gorge
+	// PlayerCountOpponents$HasPropertyIsRememberedOrController: Cut a Deal's
+	// "each opponent who drew a card this way", the drawn cards remembered)
+	OppExtRemCtrl = 10
 )
 
 // ExStepIn is 1 while the game's current step is one of the kop.Step bits
