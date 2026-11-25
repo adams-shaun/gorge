@@ -173,7 +173,7 @@ func (s *State) availSansObj(k *prep, p uint8, o Obj, a *avail) {
 		s.addPainAvail(k, sl, pc, p, a, nil, true)
 		return
 	}
-	if pc.manaTap && !pc.manaSac && !pc.manaSacOnly && s.canTapForManaPC(k, sl, pc) {
+	if pc.manaTap && !pc.manaSac && !pc.manaSacOnly && s.canTapForManaPC(k, sl, pc) && !s.tapStrands(k, sl) {
 		if k.painMana && pc.painCol != 0 && !pc.painOnly && !a.pain.on {
 			// the census unit of a kept pain-tap source is the merged mask
 			// its faces make (a Talisman of Unity's "{T}: Add {C}" beside its
@@ -188,6 +188,28 @@ func (s *State) availSansObj(k *prep, p uint8, o Obj, a *avail) {
 		}
 		a.addUnits(s.srcMaskAt(pc, sl), s.srcYieldAt(k, sl, pc))
 	}
+}
+
+// tapStrands reports whether tapping the permanent at sl removes it from the
+// battlefield by the state-based actions: Castle Raptors's "As long as it is
+// untapped, it gets +0/+2" falls to a toughness the marked damage already
+// covers, so tapping it for Paradise Mantle's granted "{T}: Add one mana of
+// any color" kills it. A target the plan taps for mana is kept only when it
+// survives that tap: gorge's prefix search plays the tap and asks the cast
+// for a legal target (potential_script.go targetsGone, castTargetsAvailable),
+// and the target is then gone. Mirrors mana_grantequip.go's hostGone for the
+// play's own Equipment, whose host dies to the same tap.
+func (s *State) tapStrands(k *prep, sl Slot) bool {
+	if sl == NoSlot || sl >= MaxPerm || s.perms[sl].flags&pfTapped != 0 {
+		return false
+	}
+	c := s.fork()
+	c.touchSl(sl) // the fork sets pfTapped directly: the scan's clean-board cache must see the tap
+	c.perms[sl].flags |= pfTapped
+	c.sba(k)
+	gone := !c.occ.has(sl)
+	s.unfork()
+	return gone
 }
 
 // minTargetsKept is specKeepsTarget for a slot that announces at least
