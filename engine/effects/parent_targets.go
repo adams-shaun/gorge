@@ -130,6 +130,23 @@ func rememberChosenTargets(h Host, c *Ctx, sa *cards.SA, targets []state.Target,
 		clearEventRemembered(h, c)
 	}
 	for _, target := range targets {
+		// A target the trigger's fire-time capture already seeded is still a
+		// REAL memory: Forge's handleRemembering appends every chosen target to
+		// the host's list, the host included (Filigree Vector's ETB names
+		// itself). Record the write as its own occurrence -- the selection rule
+		// drops the seeded capture and keeps the written one in write order --
+		// and event-back it on the source so the persistent list holds it too.
+		// A delayed-trigger REGISTRATION's captured set is its own saved memory,
+		// not a fallback (DelayedRemembered), so only a capture-only
+		// registration takes the write-occurrence path there; the ordinary
+		// registration keeps the dedupe that set already encodes.
+		captureIsFallback := len(c.DelayedRemembered) == 0 || c.DelayedCaptureOnly
+		if captureIsFallback && containsTarget(c.Captured, target) &&
+			countTarget(c.Remembered, target) <= countTarget(c.Captured, target) {
+			c.Remembered = append(c.Remembered, target)
+			persistRemembered(h, c, target)
+			continue
+		}
 		rememberTarget(h, c, target)
 	}
 }
