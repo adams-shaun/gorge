@@ -22,6 +22,15 @@ func init() { Register("Extort", effExtort) }
 // one mana of either W or B if either colour is available; the drain is what
 // actually happens on a pay.
 func effExtort(h Host, c *Ctx, sa *cards.SA) {
+	g := h.Game()
+	pool := extortPoolPips(g, c.Controller)
+	// CR 118.3: a player can't pay a cost without the resources to pay it
+	// fully, so with no {W}/{B} to spend the one legal answer is not to pay.
+	// Posing "Pay {W/B}" would record a choice no engine can make (mana is
+	// activated before the ask, so the pool is the whole of what can pay).
+	if pool == 0 {
+		return
+	}
 	// Pose the optional payment to the caster.
 	d := &decision.Decision{Player: c.Controller, Kind: decision.KModes,
 		Min: 1, Max: 1, Source: c.Source, ResumeKind: "extort",
@@ -30,8 +39,6 @@ func effExtort(h Host, c *Ctx, sa *cards.SA) {
 			{Index: 0, Kind: "mode", Label: "Pay {W/B} — each opponent loses 1", Obj: c.Source, Player: c.Controller},
 			{Index: 1, Kind: "mode", Label: "Don't pay", Obj: c.Source, Player: c.Controller},
 		}}
-	g := h.Game()
-	pool := extortPoolPips(g, c.Controller)
 	if ans, ok := AskTape(h, d); ok {
 		// Answered in place. The "extort" answer record charged the pip on
 		// a "pay" when the pool held one; the drain runs exactly when that
@@ -63,10 +70,26 @@ func extortDrain(h Host, g *state.Game, controller state.PlayerID) {
 	}
 }
 
-// extortPoolPips counts the units in p's pool that can pay the {W/B} pip.
+// extortPoolPips counts the units in p's pool that can pay the {W/B} pip. Mana
+// a RestrictValid$ batch limits to casts or activations cannot pay it (CR
+// 106.6; the same rule as pay.PayExtortPip, which is downstream of this
+// package), so those units are not counted.
 func extortPoolPips(g *state.Game, p state.PlayerID) int32 {
 	if int(p) >= len(g.Players) {
 		return 0
 	}
-	return int32(g.Players[p].Pool[state.MW]) + int32(g.Players[p].Pool[state.MB])
+	pl := &g.Players[p]
+	w, b := int32(pl.Pool[state.MW]), int32(pl.Pool[state.MB])
+	for _, r := range pl.RestrictedMana {
+		if r.Valid == "" {
+			continue
+		}
+		switch state.ManaSlot(r.Color) {
+		case state.MW:
+			w -= int32(r.Amount)
+		case state.MB:
+			b -= int32(r.Amount)
+		}
+	}
+	return max(w, 0) + max(b, 0)
 }

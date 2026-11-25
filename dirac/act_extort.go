@@ -9,8 +9,10 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // OpExt ExtExtort (kop/ext.go). The trigger is an ordinary stack object; this
 // op poses the pay/decline election when it resolves, then drains.
 //
-// The election is gorge effExtort's two KModes options, both always offered
-// even when the pool has neither colour: option 0 pays, option 1 declines.
+// The election is gorge effExtort's two KModes options: option 0 pays, option 1
+// declines. Like gorge it is posed only when the pool holds a {W} or {B} to
+// pay with (CR 118.3: a cost cannot be paid without the resources); a pool
+// with neither resolves the trigger with no ask and no drain.
 // The generated ChGenPayMode choice is the same canonical pair (mode 1 = pay,
 // mode 0 = decline; dirac/canon/translate.go), so a lockstep compares it
 // decision for decision.
@@ -30,8 +32,7 @@ func (s *State) askOptionsExtort(k *prep, d *Decision) bool {
 
 // applyAskExtort applies the election and resumes the resolution. Paying
 // charges one W or B from the pool; the drain runs only on that charge, as
-// gorge's extortAnswerRecord reports it. A pool with neither colour is a
-// decline that drains nothing, exactly PayExtortPip's false.
+// gorge's extortAnswerRecord reports it.
 //
 //go:noinline
 func (s *State) applyAskExtort(k *prep, a Action) bool {
@@ -45,6 +46,14 @@ func (s *State) applyAskExtort(k *prep, a Action) bool {
 	}
 	s.continueRes(k, 0)
 	return true
+}
+
+// extortPayable reports whether p's pool holds a W or B unit that can pay
+// Extort's pip: the plain pool only (restricted batches live in s.rb and never
+// pay it), the same count as gorge's extortPoolPips.
+func (s *State) extortPayable(p uint8) bool {
+	pool := &s.pl[p].pool
+	return pool[kop.W] > 0 || pool[kop.B] > 0
 }
 
 // payExtortPip charges Extort's {W/B} hybrid pip: one fresh W then B before
