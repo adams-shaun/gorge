@@ -425,7 +425,11 @@ func opsUsage(pt *poolTables, all []*lCard, bs []built) map[string]map[string]bo
 					add("st:EmbNum", name)
 				}
 				if st.StFlags&kop.StTargetsFilter2 != 0 {
-					add("st:TargetsFilter2", name)
+					if st.Kind == kop.StatMayPlayFrom {
+						add("st:MayZeroAlt", name) // StMayZeroAlt aliases StTargetsFilter2
+					} else {
+						add("st:TargetsFilter2", name)
+					}
 				}
 				if st.StFlags&kop.StBargained != 0 {
 					add("st:Bargained", name)
@@ -450,7 +454,9 @@ func opsUsage(pt *poolTables, all []*lCard, bs []built) map[string]map[string]bo
 				if st.Kind == kop.StatIncreaseCost && st.StFlags&kop.StRaisePerTarget != 0 {
 					add("st:RaisePerTarget", name) // aliases StOncePerTurn
 				}
-				if st.StFlags&(kop.StRaiseYou|kop.StRaiseOpp) != 0 {
+				if st.Kind == kop.StatMayPlayFrom && st.StFlags&kop.StMayPayEnergy != 0 {
+					add("st:MayPayEnergy", name) // StMayPayEnergy aliases StRaiseOpp
+				} else if st.StFlags&(kop.StRaiseYou|kop.StRaiseOpp) != 0 {
 					add("st:RaiseYou", name)
 				}
 				grantUsage(&st, name, add)

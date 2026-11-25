@@ -37,8 +37,9 @@ func TestStaticZonesSlice(t *testing.T) {
 }
 
 // staticZonesRefusals are the slice's other carriers: the same classes, in
-// shapes the kernel does not model yet (a multi-zone MayPlay with the command
-// zone, a stack grant of Replicate, Prowl, Rebound, Freerunning or
+// shapes the kernel does not model yet (a multi-zone MayPlay list it cannot
+// spell -- Aluren's any-player rider, Durnan's Exile,Stack Effect list -- a
+// stack grant of Replicate, Prowl, Rebound, Freerunning or
 // Deathtouch, the vote
 // counters, K'rrik's pay-life-instead-of-mana) or that gorge itself fails
 // closed on -- FatefulHour, ExtraTurn and Night, whose gate has no arm, so
@@ -48,7 +49,7 @@ func TestStaticZonesSlice(t *testing.T) {
 // graveyard Unearth grant (Dregscape Sliver) is not pinned here: main lowers
 // it (lower_offzone.go offZoneUnearth), so the row would go stale on rebase.
 var staticZonesRefusals = []struct{ card, want string }{
-	{"Aluren", `MayPlay zone "Hand,Graveyard,Library,Exile,Command"`},
+	{"Aluren", `MayPlayPlayer$ "Player"`},
 	{"Ballot Broker", "player static"},
 	{"Cast Through Time", `AffectedZone Stack grant of "Rebound"`},
 	{"Djinn Illuminatus", `AffectedZone Stack grant of "Replicate:CardManaCost"`},
@@ -58,7 +59,7 @@ var staticZonesRefusals = []struct{ card, want string }{
 	{"Lens of Clarity", "MayLookAt shape"},
 	{"Medomai the Ageless", `static Condition "ExtraTurn" (gorge fails closed`},
 	{"Moonrager's Slash", `static Condition "Night" (gorge fails closed`},
-	{"Qasali Ambusher", `MayPlayDontGrantZonePermissions$ "True" on zone ""`},
+	{"Qasali Ambusher", "static unread params [CheckSecondSVar"},
 	{"Teferi, Mage of Zhalfir", `AffectedZone "Hand,Graveyard,Exile,Library,Command,Stack" without MayPlay`},
 	{"Thraben Doomsayer", `static Condition "FatefulHour" (gorge fails closed`},
 	{"Village Survivors", `static Condition "FatefulHour" (gorge fails closed`},
