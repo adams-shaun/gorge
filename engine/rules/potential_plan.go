@@ -1925,14 +1925,14 @@ func (e *Engine) planAbilityPaymentLifePips(p state.PlayerID, id state.ObjID, ab
 	}
 	// An announced {X} (CR 601.2b, 602.2b): the witness prices the least X
 	// the announcement allows, the activation the offer must prove payable;
-	// a larger announced X re-plans (rearmAutoPay) or keeps the window. Only
-	// a permanent's ability: an {X} hand activation (Webstrike Elite's X
-	// cycling) still declines, its dirac mirror pays other sources; so does a
-	// Waterbend<X> one, whose taps pay part of X (CR 701.67a), and a hybrid
-	// one (Fiend Artisan's {X}{B/G}): the walk's autopay arm skips a cost with
-	// no generic or coloured pip (abilityCostNeedsMana), so its witness would
-	// be a lowered play the payment does not follow.
-	if cost.X != 0 && !cost.WaterbendX && len(cost.Hybrid) == 0 && o.Zone == state.ZBattlefield {
+	// a larger announced X re-plans (rearmAutoPay) or keeps the window. A
+	// hand source is priced the same (Webstrike Elite's {X} cycling): CR
+	// 602.2b's mana abilities may be activated while paying it. A
+	// Waterbend<X> one keeps declining, its taps pay part of X (CR 701.67a),
+	// as does a hybrid {X} one (Fiend Artisan's {X}{B/G}): the walk's autopay
+	// arm skips a cost with no generic or coloured pip (abilityCostNeedsMana),
+	// so its witness would be a lowered play the payment does not follow.
+	if cost.X != 0 && !cost.WaterbendX && len(cost.Hybrid) == 0 {
 		cost = cost.WithX(cost.XMin)
 	}
 	if n := e.ownReduceCostOffer(p, id, ab, pa.Merged); n > 0 && cost.Generic >= n {
@@ -1958,7 +1958,14 @@ func (e *Engine) planAbilityPaymentLifePips(p state.PlayerID, id state.ObjID, ab
 	scope := abilityScope(ab)
 	statics := e.collectCostStatics()
 	composed := e.offerCostForUsing(statics, p, id, cost, scope)
-	out := e.planComposedCost(p, id, composed, true, true)
+	// The witness's hand-demand key excludes the card being activated, as the
+	// payment does (CR 602.2b): a hand source is discarded as its cost, so its
+	// own pips are no reserve (Webstrike Elite's {X} cycling, Valor's
+	// Flagship's {X}{2}{W}; planComposedCostFor's Object).
+	plan := func(c Cost) PaymentPlanOutcome {
+		return e.planComposedCostFor(p, id, decision.PlannedCast{Object: id}, c, true, true)
+	}
+	out := plan(composed)
 	if (out.Plan == nil || out.Reason != "") && statics.validTarget {
 		// No plan at the untargeted price: a ValidTarget$ cost static
 		// (Cloud, Planet's Champion's "Equip abilities that target Cloud cost
@@ -1974,7 +1981,7 @@ func (e *Engine) planAbilityPaymentLifePips(p state.PlayerID, id state.ObjID, ab
 		if _, max := targetBounds(ab); max == 1 {
 			var potential PaymentPlanOutcome
 			if _, ok := e.potentialCostModsUsing(statics, p, id, scope, e.costPotentialTargets(p, id, scope), 0, func(m costMods) bool {
-				potential = e.planComposedCost(p, id, e.composedOfferCost(p, id, cost, m, scope), true, true)
+				potential = plan(e.composedOfferCost(p, id, cost, m, scope))
 				return potential.Plan != nil && potential.Reason == ""
 			}); ok {
 				return potential
@@ -1989,7 +1996,7 @@ func (e *Engine) planAbilityPaymentLifePips(p state.PlayerID, id state.ObjID, ab
 	for _, red := range e.withWaterbendOfferCredit(p, id, cost.Tap, cost.XMin, costMods{Waterbend: cost.Waterbend}).Reduces {
 		composed.Generic -= red.Generic
 	}
-	return e.planComposedCost(p, id, composed, true, true)
+	return plan(composed)
 }
 
 // planComposedCost plans the mana part of composed, the offer-time cost

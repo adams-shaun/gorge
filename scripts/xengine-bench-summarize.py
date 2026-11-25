@@ -10,6 +10,10 @@
       print one normalised run line (KIND: enginebench, xmage, dplay, mtgkernel, forge:WARM:SECS)
   xengine-bench-summarize.py --forge-games DECKS DECK_A DECK_B SEED N
       print N forge.oracle.GameReplay request lines, seats alternating
+  xengine-bench-summarize.py --forge-pods DECKDIR SEED N
+      print N 4-seat Commander GameReplay request lines over the five FDC precon
+      files in DECKDIR (foundations-*.json): game g leaves out deck (g/4)%5 and
+      rotates the other four seats by g%4, as enginebench's fdc row does
   xengine-bench-summarize.py --dplay-decks DECKS DECK_A DECK_B DECKDIR PAIRSFILE SEED
       write a dplay -decks directory and a -pairs-file of 200000 games, seats alternating
 """
@@ -39,6 +43,35 @@ def forge_games(decks, a, b, seed, n):
             seats.reverse()
         print(json.dumps({"id": "%s-%s-%d" % (a, b, g), "seed": int(seed) + g,
                           "max_turns": 100, "max_ms": 600000, "seats": seats}))
+
+
+FDC_DECKS = ("foundations-calling-all-angels", "foundations-keen-engineering", "foundations-reign-of-dragons",
+             "foundations-tramplesaurus-rex", "foundations-wretched-ranks")
+
+
+def forge_pods(deckdir, seed, n):
+    """Commander pods for GameReplay: each seat's cards less one copy of its
+    commander, which goes to the command zone through the seat's "commander"."""
+    seats = []
+    for name in FDC_DECKS:
+        d = json.load(open(os.path.join(deckdir, name + ".json")))
+        cmd = d.get("commander") or (d.get("commanders") or [""])[0]
+        cards, dropped = [], False
+        for e in d["cards"]:
+            c = e["count"]
+            if not dropped and e["name"].lower() == cmd.lower():
+                c, dropped = c - 1, True
+            if c:
+                cards.append({"name": e["name"], "count": c})
+        if not dropped:
+            raise SystemExit("%s: commander %r is not in its cards" % (name, cmd))
+        seats.append({"name": name, "cards": cards, "commander": cmd})
+    for g in range(int(n)):
+        skip, rot = (g // 4) % 5, g % 4
+        order = [i for i in range(5) if i != skip]
+        pod = [seats[order[(s + rot) % 4]] for s in range(4)]
+        print(json.dumps({"id": "fdc-%d" % g, "seed": int(seed) + g, "format": "commander",
+                          "max_turns": 100, "max_ms": 600000, "seats": pod}))
 
 
 def dplay_decks(decks, a, b, deckdir, pairsfile, seed):
@@ -205,6 +238,8 @@ def main(argv):
         record(*argv[2:12])
     elif len(argv) >= 2 and argv[1] == "--forge-games":
         forge_games(*argv[2:7])
+    elif len(argv) >= 2 and argv[1] == "--forge-pods":
+        forge_pods(*argv[2:5])
     elif len(argv) >= 2 and argv[1] == "--dplay-decks":
         dplay_decks(*argv[2:8])
     elif len(argv) == 3 and argv[1] == "--json":
