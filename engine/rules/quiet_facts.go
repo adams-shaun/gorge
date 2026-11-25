@@ -950,7 +950,7 @@ func quietTapPermanentPart(part *CostPart) (quietPart, bool) {
 	if part.Announced || part.N <= 0 {
 		return quietPart{}, true
 	}
-	if part.Dyn != "" || part.MinPower != 0 || part.Referent != 0 {
+	if part.Dyn != "" || part.MinPower != 0 || part.ShareCreatureType || part.Referent != 0 {
 		return quietPart{}, false
 	}
 	if spec := sacrificeMatchSpec(part.Spec); spec == "CARDNAME" {
