@@ -281,7 +281,7 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 		}
 		lethal := 0
 		if track {
-			lethal = s.excessLethalGen(k, b) // captured before any hit lands
+			lethal = s.excessLethalGen(k, b, s.kw(k, a)&kop.KwDeathtouch != 0) // captured before any hit lands
 		}
 		// The damage the fight effect sees, after replacement and prevention
 		// (CR 120.4a, gorge effFight): gorge's EmitDamage returns the event
@@ -405,7 +405,7 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 			}
 		}
 		if k.gen != nil && (k.gen.anyRepl&(rbDblDmg|rbPrevNC|rbPrevDmgTo|rbPrevCol) != 0 || shieldBesidePlus(k.gen) || k.gen.uses.has(useStaticPrev) ||
-			k.gen.anyRepl2&(rb2DmgMinus|rb2DmgSet) != 0) {
+			k.gen.anyRepl2&rb2DmgAny != 0) {
 			// a sweep's events are dealt one at a time: park on each event two
 			// replacements match (CR 616.1) and resume the rest after the
 			// answer (a static prevention's optional ask is posed per event too:
@@ -574,10 +574,15 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 			s.lose(p)
 		}
 	case kop.OpShuffle:
-		if in.C != 0 {
+		switch in.C {
+		case 0:
+			if p := s.playerRef(k, in.Obj); p != 255 {
+				s.shuffleLib(p)
+			}
+		case 2:
+			s.shuffleRememberedSearchers() // zone_remembersearcher.go
+		default:
 			s.shuffleRememberedOwners() // zone_shuffleremowners.go
-		} else if p := s.playerRef(k, in.Obj); p != 255 {
-			s.shuffleLib(p)
 		}
 	case kop.OpEndTurn, kop.OpAddTurn:
 		if in.Op == kop.OpAddTurn {
@@ -696,7 +701,7 @@ func (s *State) execEachOpponentDamage(k *prep, in *kop.Instr) {
 		return
 	}
 	if k.gen != nil && (k.gen.anyRepl&(rbDblDmg|rbPrevNC|rbPrevDmgTo|rbPrevCol) != 0 || shieldBesidePlus(k.gen) ||
-		k.gen.anyRepl2&(rb2DmgMinus|rb2DmgSet) != 0) {
+		k.gen.anyRepl2&rb2DmgAny != 0) {
 		s.damageSeqStart(k, slotMask{}, false)
 		s.g.dmgSeqPl = seatBits(s.oppsFrom(e.ctrl))
 		s.damageSeqNext(k, n)

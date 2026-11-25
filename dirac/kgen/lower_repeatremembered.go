@@ -28,22 +28,26 @@ import (
 // controller (dirac act_repeatremembered.go).
 //
 // The loop runs its body inline in one call, so the body may not ask: only a
-// lone Token is lowered. A body that asks (Wave of Vitriol's optional search,
-// Reckless Crew's optional attach), a body under DamageMap$ True beside an
-// unless-payment ask (Stench of Evil: the batch would have to stay open across
-// the ask), a filtered DirectRemembered.<type> and the RememberedCard spelling
-// stay refused by name. The preceding instruction must be the one that
-// remembered (a DestroyAll with RememberDestroyed$ or an Exile that
-// remembers): a loop over a set something else wrote is not this shape.
+// lone Token is lowered. A body that asks runs as the resumable frame instead
+// (repeatEachRememberedAsk). A filtered DirectRemembered.<type> stays refused
+// by name. The preceding instruction must be the one that remembered (a
+// DestroyAll with RememberDestroyed$ or an Exile that remembers): a loop over
+// a set something else wrote is not this shape.
+//
+// RememberedCard is the other spelling of the same remembered set, over a
+// preceding token mint (RepeatEach DefinedCards$ RememberedCard over a Token
+// with RememberTokens$): repeatEachRememberedCard.
 func (lc *lowerCtx) repeatEachRemembered(ps *params, in lInstr) error {
 	if !ps.is("UseImprinted", "True") {
 		return refuse("RepeatEach DefinedCards$ DirectRemembered without UseImprinted$ True")
 	}
 	if ps.peek("DamageMap") != "" {
-		return refuse("RepeatEach DefinedCards$ DirectRemembered under DamageMap$ (an unless-payment ask needs the damage batch open across the ask)")
+		return lc.repeatEachRememberedAsk(ps, in) // lower_repeatremembered_ask.go
 	}
 	if !ps.is("ChangeZoneTable", "True") {
-		return refuse("RepeatEach DefinedCards$ DirectRemembered without ChangeZoneTable$ True")
+		// without a zone batch the loop is the resumable frame: the body
+		// may ask (the optional basic-land search, Wave of Vitriol)
+		return lc.repeatEachRememberedAsk(ps, in) // lower_repeatremembered_ask.go
 	}
 	if n := len(lc.ab.Prog); n == 0 || !remembersMoved(&lc.ab.Prog[n-1]) {
 		return refuse("RepeatEach DefinedCards$ DirectRemembered over a set no preceding DestroyAll/Exile remembered")
@@ -80,13 +84,87 @@ func (lc *lowerCtx) repeatEachRemembered(ps *params, in lInstr) error {
 	return nil
 }
 
+// repeatEachRememberedCard lowers the RememberedCard spelling over the tokens
+// a preceding Token mint remembered:
+//
+//	SP$ Token | TokenAmount$ X | RememberTokens$ True | SubAbility$ DBRepeat
+//	DBRepeat: DB$ RepeatEach | DefinedCards$ RememberedCard |
+//	  RepeatSubAbility$ ArmToken | ClearRemembered$ True
+//	ArmToken: DB$ Attach | Choices$ Equipment.YouCtrl | Defined$ Remembered |
+//	  Optional$ True
+//
+// (Reckless Crew). gorge effRepeatEach lists the tokens the mint remembered
+// (repeatedCards reads the RememberedCard spelling as the remembered set) and
+// runs ArmToken once per token as a resumable pass (RefEach): the
+// object-side Attach pick asks which Equipment to attach to that token. The
+// kernel's OpRepeatEach with kop.RepeatRemembered|kop.RepeatPlain is that
+// frame, and the ClearRemembered$ after the loop is gorge's loop hygiene (the
+// clear runs before the first pass there, after the subject list is taken;
+// this body writes no memory, so the set is empty either way). The preceding
+// instruction must be the token mint that remembered them, and the body must
+// be exactly the optional object-side pick onto RefEach.
+func (lc *lowerCtx) repeatEachRememberedCard(ps *params, in lInstr) error {
+	if ps.peek("UseImprinted") != "" {
+		return refuse("RepeatEach DefinedCards$ RememberedCard with UseImprinted$")
+	}
+	if ps.peek("DamageMap") != "" {
+		return refuse("RepeatEach DefinedCards$ RememberedCard with DamageMap$")
+	}
+	if ps.peek("ChangeZoneTable") != "" {
+		return refuse("RepeatEach DefinedCards$ RememberedCard with ChangeZoneTable$")
+	}
+	if n := len(lc.ab.Prog); n == 0 || lc.ab.Prog[n-1].Op != "CreateToken" || lc.ab.Prog[n-1].C&4 == 0 {
+		return refuse("RepeatEach DefinedCards$ RememberedCard over a set no preceding Token remembered")
+	}
+	clear := false
+	if v, ok := ps.get("ClearRemembered"); ok {
+		if strings.TrimSpace(v) != "True" {
+			return refuse("RepeatEach DefinedCards$ RememberedCard with ClearRemembered$ %q", v)
+		}
+		clear = true
+	}
+	name := ps.str("RepeatSubAbility")
+	body := cards.ResolveSVar(lc.face.SVars, name)
+	if body == nil {
+		return refuse("RepeatEach RepeatSubAbility %q", name)
+	}
+	in.C = kop.RepeatRemembered | kop.RepeatPlain
+	at, nt := len(lc.ab.Prog), len(lc.ab.Targets)
+	lc.emit(in)
+	lc.repeatCard++
+	err := lc.chain(body, nil)
+	lc.repeatCard--
+	if err != nil {
+		return err
+	}
+	if len(lc.ab.Targets) != nt {
+		return refuse("RepeatEach body with a target")
+	}
+	if len(lc.ab.Prog) != at+3 {
+		return refuse("RepeatEach RememberedCard body emitted %d instructions", len(lc.ab.Prog)-at-1)
+	}
+	pick, att := &lc.ab.Prog[at+1], &lc.ab.Prog[at+2]
+	if pick.Op != "ChooseCard" || pick.Obj.Kind != rYou || pick.F == nil || pick.CS != "AttachPickOpt" ||
+		att.Op != "AttachObj" || att.Obj.Kind != rEach || att.Obj2.Kind != rChosen {
+		return refuse("RepeatEach RememberedCard body is not one optional object-side Attach pick onto the repeated token")
+	}
+	lc.ab.Prog[at].Skip = 2
+	if clear {
+		lc.emit(lInstr{Op: "ClearRemembered"})
+	}
+	return nil
+}
+
 // remembersMoved reports whether in is an instruction that moved cards and
-// remembered them: a DestroyAll with RememberDestroyed$ (C bit 1), or an Exile
-// whose move flags remember (RememberLKI$).
+// remembered them: a DestroyAll with RememberDestroyed$ (C bit 1), a
+// SacrificeAll with RememberSacrificed$, or an Exile whose move flags remember
+// (RememberLKI$).
 func remembersMoved(in *lInstr) bool {
 	switch in.Op {
 	case "DestroyAll":
 		return in.C&1 != 0
+	case "SacrificeAll":
+		return strings.Contains(in.CS, "Remember")
 	case "Exile":
 		return strings.Contains(in.CS, "Remember")
 	}

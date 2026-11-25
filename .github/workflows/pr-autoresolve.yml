@@ -33,6 +33,13 @@ jobs:
     outputs:
       prs: ${{ steps.list.outputs.prs }}
     steps:
+      # The list step runs scripts/pr-autoresolve-list.py: check out scripts/ only (11-25: every run failed "can't open
+      # file" because this job had no checkout).
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          sparse-checkout: scripts
+          persist-credentials: false
       - name: Open non-draft PRs to main that conflict
         id: list
         env:
@@ -41,14 +48,15 @@ jobs:
         # GitHub computes mergeable lazily after main moves: UNKNOWN until then. Asking starts the computation, so
         # retry until no PR is UNKNOWN (at most 5 min). regen/* branches rebuild themselves (scripts/regen-main.sh).
         run: |
-          q='[.[] | select(.isDraft | not) | select(.headRefName | startswith("regen/") | not) | select(.isCrossRepository | not)]'
           for i in $(seq 1 15); do
-            js=$(gh pr list -R "$REPO" --base main --state open --limit 200 --json number,isDraft,headRefName,isCrossRepository,mergeable --jq "$q")
-            unknown=$(jq '[.[] | select(.mergeable == "UNKNOWN")] | length' <<<"$js")
+            curl -fsS -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" \
+              "https://api.github.com/repos/$REPO/pulls?state=open&base=main&per_page=100" >pulls.json
+            # The list endpoint carries no mergeable; ask each PR (this also starts GitHub's lazy computation).
+            python3 scripts/pr-autoresolve-list.py >prs.txt
+            read -r unknown prs <prs.txt
             [ "$unknown" -eq 0 ] && break
             echo "$unknown PRs not computed yet; retry $i"; sleep 20
           done
-          prs=$(jq -c '[.[] | select(.mergeable == "CONFLICTING") | .number]' <<<"$js")
           echo "conflicting: $prs"
           echo "prs=$prs" >>"$GITHUB_OUTPUT"
 
@@ -60,7 +68,9 @@ jobs:
     timeout-minutes: 45
     strategy:
       fail-fast: false
-      max-parallel: 2
+      # 11-25: 2 at a time took ~45 min to clear the ~40 PRs one merge batch re-conflicts, about one batch interval;
+      # 4 fits the box runners left free beside a running merge batch.
+      max-parallel: 4
       matrix:
         pr: ${{ fromJSON(needs.list.outputs.prs) }}
     concurrency:
@@ -77,16 +87,20 @@ jobs:
         with:
           go-version-file: go.mod
           cache: false
-      - name: Authenticate git with the bot token
-        env:
-          GH_TOKEN: ${{ secrets.REGEN_TOKEN || github.token }}
-        run: gh auth setup-git
       - name: Merge main and rebuild the generated files
         env:
           GH_TOKEN: ${{ secrets.REGEN_TOKEN || github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
           PR: ${{ matrix.pr }}
         # Exit 4: a conflict outside the generated set, which this workflow leaves alone (a notice, not a red job).
+        # The token rides in this process's git config (GIT_CONFIG_*), never ~/.gitconfig: the box runners share one
+        # HOME, whose ~/.gitconfig had collected one insteadOf per earlier job, most with an expired job token, and git
+        # picked among them (11-25: "Invalid username or token" on half the pushes). An empty per-job global config
+        # shuts those out. The value is masked in logs and never echoed.
         run: |
+          echo "::add-mask::$GH_TOKEN"
+          export GIT_CONFIG_GLOBAL="$RUNNER_TEMP/autoresolve.gitconfig"; : >"$GIT_CONFIG_GLOBAL"
+          export GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0="url.https://x-access-token:${GH_TOKEN}@github.com/.insteadOf" GIT_CONFIG_VALUE_0="https://github.com/"
           rc=0; bash scripts/pr-autoresolve.sh "$PR" || rc=$?
           [ "$rc" -ne 4 ] || { echo "::notice::#$PR conflicts outside the generated set; left alone"; exit 0; }
           exit "$rc"

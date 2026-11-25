@@ -441,8 +441,24 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 				e.drainAwaitsModes = true
 			}
 		}
-		if !handled && effects.TargetsOf(pt.SA).Targeted() {
-			e.askTargetChained(pt.Controller, id, pt.SA, e.triggerChainPreAsks(pt.SA))
+		// An activated Support carrier riding a trigger (Jubilant Mascot's
+		// "you may pay {3}{W}. If you do, support 2"): supportTargetSA's
+		// declaration announces its targets as the ability goes on the stack
+		// (CR 603.3d, with CR 701.41a and 602.2b), not as a resolution
+		// counter_pick. The IsPutCounter gate is offer-time-free and keeps
+		// the read typed: supportTargetSA reads Support$ through
+		// PutCounterOf, so no other trigger API's known-key census learns
+		// Support from this path.
+		tsa := pt.SA
+		if effects.IsPutCounter(pt.SA) {
+			var tf *cards.Face
+			if src := e.G.Obj(pt.Source); src != nil {
+				tf = src.Face()
+			}
+			tsa = supportTargetSA(pt.SA, tf)
+		}
+		if !handled && effects.TargetsOf(tsa).Targeted() {
+			e.askTargetChained(pt.Controller, id, tsa, e.triggerChainPreAsks(pt.SA))
 		}
 		if !handled {
 			e.startTriggerSubTargets(id, pt.Controller, pt.SA)

@@ -329,6 +329,23 @@ func (e *Engine) checkDelayedTriggers(ev events.Event) {
 			pushSource = dt.Creator
 			delayedSelf = dt.Source
 		}
+		// The registration's TriggerDescription$ stands in as the queue
+		// entry's own trigger line, which triggerOf returns before any face
+		// scan (the same carry a granted or event-matched entry makes), so
+		// the CR 603.3b order ask labels it "<source>: <description>"
+		// exactly like a face trigger -- Arcane Denial's two slowtrip
+		// promises ask "Arcane Denial: Draw a card." / "...Draw up to two
+		// cards.", never the bare source name twice. It also keeps
+		// optionalDecider off the source's face: today a Phase registration
+		// on a card whose first T: line carries OptionalDecider$ would be
+		// mis-read as optional through the face scan. A registration with no
+		// TriggerDescription$ queues with no line, exactly as before. The
+		// line is parsed at the card-script boundary (the fold only ever
+		// carries a description the registering arm checked pipe-free).
+		var line cards.Trigger
+		if dt.Description != "" {
+			line, _ = cards.ParseTriggerLine("Mode$ Phase | TriggerDescription$ " + dt.Description)
+		}
 		e.pendingTriggers = append(e.pendingTriggers, pendingTrigger{
 			Source:     pushSource,
 			Controller: dt.Controller,
@@ -336,6 +353,7 @@ func (e *Engine) checkDelayedTriggers(ev events.Event) {
 			DelayedID:  dt.ID,
 			Execute:    dt.Execute,
 			SA:         sa,
+			Trigger:    line,
 			// Static$ True: Forge runs the body off the stack (static_trigger.go).
 			DelayedStatic: dt.Static && dt.OptionalSpec == "",
 			Ctx: effects.NewCtx(dt.Source, dt.Controller, effects.CtxInit{
@@ -447,6 +465,21 @@ type delayedSpellCastFire struct {
 	lkiPTValid             bool
 }
 
+// delayedEventLine overlays the registration's TriggerDescription$ onto the
+// freshly parsed body, so the CR 603.3b order ask labels this fire
+// "<source>: <description>" like any face trigger: the stored body (an
+// inline SpellCast/ChangesZone clause list) never carries the key, so an
+// unlabelled line would show the bare source name. A body that spells
+// TriggerDescription$ itself (a rules-generated registration, whose fold
+// carries no |LB=) keeps its own text.
+func delayedEventLine(t cards.Trigger, desc string) cards.Trigger {
+	if desc == "" || t.Params == nil {
+		return t
+	}
+	t.Params[cards.PKTriggerDescription.String()] = desc
+	return t
+}
+
 func (e *Engine) checkEventDelayedTriggers(ev events.Event, lki *state.Object,
 	lkiPower, lkiToughness int32, lkiPTValid bool) {
 	var fires []delayedSpellCastFire
@@ -497,6 +530,7 @@ func (e *Engine) checkEventDelayedTriggers(ev events.Event, lki *state.Object,
 			raw = events.SVarAcrossFaces(src, raw)
 		}
 		t, ok := cards.ParseTriggerLine(raw)
+		t = delayedEventLine(t, dt.Description)
 		if !ok || t.Mode != dt.EventMode {
 			remove = append(remove, dt.ID)
 			continue
@@ -572,7 +606,15 @@ func (e *Engine) checkEventDelayedTriggers(ev events.Event, lki *state.Object,
 			if vp := strings.TrimSpace(t.ParamStr(cards.PKValidPlayer)); vp != "" {
 				p, ok := e.delayedEventPlayer(t, ev, lki)
 				pc := e.playerSpecCtx(dt.Source)
+				// The registration's capture IS the Effect's memory
+				// (CR 611.2a), so it is what both remembered-player
+				// spellings consult: IsTriggerRemembered
+				// (DelayedRemembered) and IsRemembered (RememberedBound).
+				// The Phase walk binds both; this event walk must too, or a
+				// LosesGame body's `ValidPlayer$ Player.IsRemembered` reads
+				// only the source card's own list and matches nobody.
 				pc.DelayedRemembered = dt.Remembered
+				pc.Remembered, pc.RememberedBound = dt.Remembered, true
 				if !ok || !effects.MatchesPlayerSpecCtx(e.G, vp, p, dt.Controller, pc) {
 					continue
 				}
@@ -932,6 +974,12 @@ func (e *Engine) delayedEventMatches(t cards.Trigger, dt *state.DelayedTrigger, 
 		return fn != nil && fn(boardOf(e), t, dt.Source, ev, lki)
 	case cards.TriggerChangesController:
 		return e.delayedChangesControllerMatches(t, dt, ev, lki)
+	case cards.TriggerLosesGame:
+		// CR 104.3/800.4a: in a multiplayer game a loss is an event other
+		// effects can trigger on (CR 603.2). The ValidPlayer$ gate above
+		// already bound the registration's capture; the mode itself has no
+		// further filter, so the loss event is the whole match.
+		return ev.Kind == events.PlayerLost
 	case cards.TriggerDamageDone:
 		return trigmatch.DamageMatchesWithCapture(boardOf(e), t, dt.Source, ev, dt.Remembered, delayedChosenOpts(dt))
 	case cards.TriggerAttackersDeclared:
@@ -955,6 +1003,9 @@ func (e *Engine) delayedEventPlayer(t cards.Trigger, ev events.Event, lki *state
 		}
 	case cards.TriggerSpellCast, cards.TriggerAbilityCast, cards.TriggerSpellAbilityCast:
 		return ev.Player, int(ev.Player) < len(e.G.Players)
+	case cards.TriggerLosesGame:
+		// The loser is the event's natural player (CR 104.3, 800.4a).
+		return ev.Player, ev.Kind == events.PlayerLost && int(ev.Player) < len(e.G.Players)
 	case cards.TriggerDamageDone:
 		if ev.Obj == 0 {
 			return ev.Player, int(ev.Player) < len(e.G.Players)
@@ -1100,6 +1151,7 @@ var delayedEventModeHandledSet = state.NewNameSet(
 	"ChangesController",
 	"DamageDone",
 	"AttackersDeclared",
+	"LosesGame",
 )
 
 type delayedRegistrationLiveCode uint16

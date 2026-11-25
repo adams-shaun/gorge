@@ -19,11 +19,19 @@ var repeatEachSliceCards = map[string][]string{
 	},
 	// RepeatEach over the remembered cards (kop.RepeatRemembered): a token
 	// minted for each remembered card's controller after a mass destroy or
-	// exile that remembers. Stench of Evil (DamageMap$ with an unless-payment
-	// ask), Wave of Vitriol (an optional search per card) and Reckless Crew
-	// (an optional attach) stay refused.
+	// exile that remembers. Stench of Evil's body asks (an unless-payment per
+	// card inside one damage batch): the resumable remembered frame. Wave of
+	// Vitriol's body asks too: an optional basic-land search per sacrificed
+	// card for that card's controller, then the searchers' shuffle.
 	"remembered cards": {
 		"Rampage of the Clans", "Curse of the Swine", "Rowan, Scholar of Sparks", "Will, Scholar of Frost",
+		"Stench of Evil", "Wave of Vitriol",
+	},
+	// RepeatEach over the tokens a preceding Token mint remembered
+	// (DefinedCards$ RememberedCard): Reckless Crew's per-token optional
+	// Equipment attach, the remembered frame's plain (unbatched) form.
+	"remembered tokens": {
+		"Reckless Crew",
 	},
 	// an ungated Repeat: the body MaxRepeat$ times (kop.OpRepeat). Trade
 	// Secrets reads MaxRepeat$ from a ChooseNumber answer (Count$ChosenNumber).
@@ -31,6 +39,15 @@ var repeatEachSliceCards = map[string][]string{
 		"Another Round", "Exponential Growth", "Full Flowering",
 		"Torment of Hailfire", "Oath of Lim-Dûl", "Varchild's War-Riders",
 		"Trade Secrets",
+	},
+	// RepeatEach over players whose body is a ChooseCard naming the repeated
+	// player's cards: the repeated player (or the resolving controller) picks
+	// the sacrifice/exile/tax target, and the post-loop node reads the picks.
+	"per-player ChooseCard": {
+		"Soul Shatter", "Flare of Malice", "Rite of Ruin",
+		"Grave Consequences", "Watchers of the Dead",
+		"Disciple of Caelus Nin", "Fortunate Few",
+		"Ultimate Magic: Meteor", "Thieves' Auction",
 	},
 }
 

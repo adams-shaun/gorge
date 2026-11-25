@@ -233,6 +233,7 @@ func (s *State) placeFromK(k *prep, o Obj, z kop.Zone, bottom bool, from kop.Zon
 	if s.placeGraveLib(k, o, pl, z, from, wasCreature, leftCounters) {
 		return
 	}
+	s.stackExitFrontFace(k, o, from, z) // a back-face cast leaving the stack (face_castface.go)
 	if pl.zoneFull(z) {
 		// tokens that left the battlefield together (a wipe of a token
 		// army) sit in their owner's zone until the next state-based
@@ -314,6 +315,7 @@ func (s *State) placeGraveLib(k *prep, o Obj, pl *player, z kop.Zone, from kop.Z
 	} else {
 		pl.libTop(o)
 	}
+	s.stackExitFrontFace(k, o, from, kop.ZoneLibrary) // a back-face cast leaving the stack (face_castface.go)
 	if s.g.enteredOn {
 		s.noteEnter(o, kop.ZoneLibrary, from, wasCreature, leftCounters)
 	}
@@ -421,6 +423,7 @@ func (s *State) newToken(c CardID, p uint8) Obj {
 		o := s.nobj
 		s.nobj++
 		s.objs[o] = object{card: c, chosen: 255, of: ofToken, slot: NoSlot, acts: p << objOwnerShift}
+		s.mintBirth(o)
 		s.touch(o)
 		return o
 	}
@@ -431,6 +434,7 @@ func (s *State) newToken(c CardID, p uint8) Obj {
 	}
 	s.reuseObj(o)
 	s.objs[o] = object{card: c, chosen: 255, of: ofToken, slot: NoSlot, acts: p << objOwnerShift, ver: s.objs[o].ver + 1}
+	s.mintBirth(o)
 	s.touch(o)
 	return o
 }
@@ -678,12 +682,18 @@ func (s *State) leave(k *prep, sl Slot, z kop.Zone, bottom bool) {
 		s.charmPickLeft(sl, s.perms[sl].obj) // modal_charmpick.go: leaving empties the source's pick log (CR 400.7)
 	}
 	s.fireLeave(k, sl, z)
+	if k.gen != nil && k.gen.anyContract {
+		s.contractSourceLeft(s.perms[sl].obj) // a Duration$ Permanent Effect ends with its source (ctr_losscopy.go)
+	}
 	s.removePerm(k, sl, z, bottom)
 }
 
 func (s *State) fireLeave(k *prep, sl Slot, z kop.Zone) {
 	if k.gen != nil && k.gen.anyUnearth && z != kop.ZoneExile {
 		z = s.unearthZone(sl, z) // cast_altfree.go
+	}
+	if k.gen != nil && k.gen.anyUnearth && z != kop.ZoneExile {
+		z = s.leaveExileZone(sl, z) // zone_leaveexile.go
 	}
 	p := &s.perms[sl]
 	n0 := s.npend
@@ -732,6 +742,9 @@ func (s *State) fireLeave(k *prep, sl Slot, z kop.Zone) {
 	if k.gen != nil && k.gen.anyLeaveRet && z == kop.ZoneGraveyard {
 		s.leaveGraveFired(p.obj) // trig_leavereturn.go
 	}
+	if k.gen != nil && k.gen.anyBlitz() {
+		s.blitzLeft(p.obj, z) // kw_blitz.go: the dies-draw record is consumed by any departure
+	}
 	if k.gen != nil && k.gen.anyDelayDies && z == kop.ZoneGraveyard && s.g.ndp != 0 {
 		s.fireDiesProgs(p.obj, p.ctrl) // trig_delayeddies.go: after the dies/leaves triggers
 	}
@@ -751,6 +764,9 @@ func (s *State) removePerm(k *prep, sl Slot, z kop.Zone, bottom bool) {
 	rider := s.exileRiderTake(k, sl, z) // the dies-to-exile rider to run after the move (repl_exilerider.go)
 	if k.gen != nil && k.gen.anyUnearth && z != kop.ZoneExile {
 		z = s.unearthZone(sl, z) // cast_altfree.go
+	}
+	if k.gen != nil && k.gen.anyUnearth && z != kop.ZoneExile {
+		z = s.leaveExileZone(sl, z) // zone_leaveexile.go
 	}
 	s.fireToGraveDies(k, sl, z) // the split's Dies half, before the move mutates the card (trig_tograve.go)
 	p := &s.perms[sl]

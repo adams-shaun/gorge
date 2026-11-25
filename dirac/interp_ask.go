@@ -456,6 +456,9 @@ func (s *State) openManaRefused(k *prep, p uint8, sl Slot, d *payDesc) bool {
 
 func (s *State) payerOf(k *prep, r kop.Ref) uint8 {
 	if r == kop.RefEach {
+		if o := s.res.eachObj; o != NoObj {
+			return s.eachCtrl(o) // an OpRepeatEach card loop: the bound card's controller (act_repeatremembered.go)
+		}
 		return s.g.eachPl
 	}
 	return s.playerRef(k, r)
@@ -1818,17 +1821,20 @@ func (s *State) addSac(sl Slot) {
 
 func (s *State) startSearch(k *prep, in *kop.Instr) bool {
 	if in.Op == kop.OpChooseMove && (in.B.N == 1 || battleLinkPick(k.t, in)) && s.handExileHostGone() {
-		return true // UntilHostLeavesPlay with the host gone: nothing (act_mayask.go, zone_hiddenpick.go pickLink)
+		s.rememberSearcherDrop() // an armed RememberSearcher$ behind a search that cannot run
+		return true              // UntilHostLeavesPlay with the host gone: nothing (act_mayask.go, zone_hiddenpick.go pickLink)
 	}
 	p := s.playerRef(k, handMoveOwnerRef(in.Obj))
 	if p == 255 {
 		if in.Op == kop.OpChooseMove && in.Obj != kop.RefController {
+			s.rememberSearcherDrop()
 			return true // the target player whose hand it is is gone: nothing moves
 		}
 		if r := handMoveOwnerRef(in.Obj); r == kop.RefTargetController || r == kop.RefTgtCtrl1 || r == kop.RefTgtCtrl2 {
 			// DefinedPlayer$ TargetedController over an "up to one" slot left
 			// empty (White Orchid Phantom's destroy chose no land): gorge's
 			// definedPlayers names no one, so no one searches
+			s.rememberSearcherDrop()
 			return true
 		}
 		p = s.res.e.ctrl
@@ -1858,6 +1864,7 @@ func (s *State) startSearch(k *prep, in *kop.Instr) bool {
 		s.res.ask, s.res.askP = raGenConfirm, ask // gorge's Optional$ confirmation first
 		return false
 	}
+	s.rememberSearcherCommit() // the search runs: RememberSearcher$ remembers the searcher
 	return s.searchPick(k) && !s.moveAsked()
 }
 
@@ -2367,7 +2374,7 @@ func (s *State) startDig(k *prep, in *kop.Instr) bool {
 			// allOrNothing election): one yes/no, never a subset. Yes takes
 			// every matching card; no leaves the looked-at window in place
 			// and moves nothing (no rest placement, reveal or capture).
-			s.res.ask, s.res.askP = raGenDigAllOpt, s.res.e.ctrl
+			s.res.ask, s.res.askP = raGenDigAllOpt, s.digChooser(k)
 			return false
 		}
 		if take == -1 {
@@ -2400,8 +2407,9 @@ func (s *State) startDig(k *prep, in *kop.Instr) bool {
 		s.digBoundMax(k) // zone_each.go
 		// the controller picks, whoever's library it is (gorge
 		// digChooser: the resolving controller, CR 701.29a; Coral
-		// Fighters looks at the defending player's library)
-		s.res.ask, s.res.askP = raGenDig, s.res.e.ctrl
+		// Fighters looks at the defending player's library), or the
+		// Choser$ the dig's W names (zone_digtoporder.go digChooser)
+		s.res.ask, s.res.askP = raGenDig, s.digChooser(k)
 		return false
 	}
 	return true

@@ -182,6 +182,13 @@ func describe(g *state.Game, ev events.Event) string {
 			return obj(g, ev.Obj) + " attacks " + player(g, state.PlayerID(firstID(ev.IDs)))
 		}
 		return obj(g, ev.Obj) + " attacks"
+	case events.TokenBlocks:
+		// A token that entered blocking (Brimaz, King of Oreskos): Obj is the
+		// minted token, IDs[0] the attacking creature it blocks.
+		if len(ev.IDs) > 0 {
+			return obj(g, ev.Obj) + " enters blocking " + obj(g, firstID(ev.IDs))
+		}
+		return obj(g, ev.Obj) + " enters blocking"
 	case events.CopyToken:
 		// DB$ CopyPermanent's mint (Flamerush Rider, Molten Echoes, populate):
 		// Obj is the COPIED card, so the line reads the copy's provenance;
@@ -781,7 +788,7 @@ func describe(g *state.Game, ev events.Event) string {
 		if i := strings.Index(phase, "|VP="); i >= 0 {
 			phase = phase[:i]
 		}
-		for _, sfx := range []string{"|CR=", "|DP=", "|ST", "|TT="} {
+		for _, sfx := range []string{"|CR=", "|DP=", "|ST", "|TT=", "|LB="} {
 			if i := strings.Index(phase, sfx); i >= 0 {
 				phase = phase[:i]
 			}

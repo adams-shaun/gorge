@@ -80,7 +80,10 @@ func (s *State) resolveTop(k *prep) {
 		s.g.nimp = 0
 		s.impSeedOnResolve(k, &e)               // its source's kept Imprinted (zone_imprint.go)
 		s.g.nrem, s.g.remCnt, s.g.tli = 0, 0, 0 // a resolution remembers afresh (gorge's per-resolution Ctx)
-		s.g.stkCt = 0                           // tgt_stackability.go
+		if c := coldRemSearchers.of(s); len(c) > 0 {
+			c[0] = remSearcherState{} // the remembered-searcher seats are per resolution too
+		}
+		s.g.stkCt = 0 // tgt_stackability.go
 		// A state trigger (Tf4StateCtr) starts with nothing remembered too.
 		// gorge seeds its Ctx with the source (stateTriggerRemembered), but
 		// as the fire-time capture, which a plain Remembered read leaves out
@@ -214,6 +217,9 @@ func (s *State) resolveTop(k *prep) {
 			}
 			if k.gen != nil && k.gen.anyDash && e.dashed(k) {
 				s.dashEnter(sl, &e) // haste and the end-step return to hand (kw_dash.go)
+			}
+			if k.gen != nil && k.gen.anyBlitz() && e.blitzed(k) {
+				s.blitzEnter(sl, &e) // haste, the end-step sacrifice and the dies-draw record (kw_blitz.go)
 			}
 			if k.gen != nil && k.gen.anyWarp && e.mode&modeWarped != 0 {
 				s.registerWarpExile(e.obj, e.ctrl) // kw_warp.go
@@ -645,10 +651,11 @@ func (s *State) loopBack(k *prep) {
 			continue
 		}
 		if in := &s.prog(k)[r.loopS[d]-1]; in.Op == kop.OpRepeatEach { // act_repeatcards.go: the plain card loop's frame
-			if s.eachCardAdvance() {
+			if s.eachCardAdvance(in) {
 				r.pc = r.loopS[d]
 				return
 			}
+			s.eachCardClose(in)
 			r.eachObj, s.g.inLoop = NoObj, false
 			r.loopD--
 			continue
@@ -1021,14 +1028,25 @@ func (s *State) damageTo(k *prep, code TCode, n int) int {
 	}
 	e := &s.res.e
 	if k.gen != nil && (k.gen.anyRepl&(rbDblDmg|rbPrevNC|rbPrevDmgTo|rbProtAll|rbProtCol|rbPlusDmg|rbShield|rbPrevCol|rbPrevMill|rbSelfDmg) != 0 ||
-		k.gen.anyRepl2&(rb2DmgMinus|rb2DmgSet) != 0) {
+		k.gen.anyRepl2&rb2DmgAny != 0) {
 		if s.parkNC(k, s.srcCtrl(k), s.objRef(k, kop.RefSelf), e.card, code, n, s.srcKw(k)) {
 			if s.res.flags&rfNoPrev != 0 {
 				s.capFull(StallNoPrevent) // the parked event's later pass would not know its damage can't be prevented
 			}
 			return n // gorge's replacement-order ask, after the resolution
 		}
-		if n = s.replDamage(k, s.srcCtrl(k), s.objRef(k, kop.RefSelf), e.card, code, false, n); n <= 0 {
+		srcSl := s.objRef(k, kop.RefSelf)
+		var ba ncAsk
+		n0 := n
+		n = s.replDamageAsk(k, s.srcCtrl(k), srcSl, e.card, code, false, n, &ba)
+		if ba.body != 0 {
+			// an ask body's event (repl_dmbody.go): nothing is dealt now (a
+			// CR 615.12 stand deals after the answer), the body's decision is
+			// posed when the resolution suspends
+			s.parkBodyNC(k, code, s.srcCtrl(k), srcSl, e.card, &ba, n0, s.srcKw(k))
+			return 0
+		}
+		if n <= 0 {
 			return 0
 		}
 	}
@@ -1097,6 +1115,11 @@ func (s *State) refCode(k *prep, r kop.Ref) TCode {
 				return PlayerCode(p)
 			}
 			return TCode(NoTarget)
+		}
+		if s.eachRememberedLoop(k) {
+			// a remembered-set card loop's damage goes to the bound card's
+			// controller, not the card (act_repeatremembered.go)
+			return PlayerCode(s.eachCtrl(s.res.eachObj))
 		}
 	}
 	o := s.objRefObj(r)

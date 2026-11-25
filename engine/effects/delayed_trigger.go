@@ -180,7 +180,7 @@ func effDelayedTrigger(h Host, c *Ctx, sa *cards.SA) {
 		}
 		h.Emit(events.Event{Kind: events.DelayedRegister, Obj: c.Source,
 			Player: c.Controller, Step: h.Game().Step, Counter: exec,
-			IDs: encodeRemembered(remembered), Text: eventText})
+			IDs: encodeRemembered(remembered), Text: eventText + delayedLabelSuffix(dp)})
 		return
 	}
 	if exec == "" {
@@ -267,7 +267,27 @@ func effDelayedTrigger(h Host, c *Ctx, sa *cards.SA) {
 	}
 	h.Emit(events.Event{Kind: events.DelayedRegister, Obj: c.Source,
 		Player: c.Controller, Step: step, Counter: exec, Amount: amount,
-		IDs: encodeRemembered(remembered), Text: text})
+		IDs: encodeRemembered(remembered), Text: text + delayedLabelSuffix(dp)})
+}
+
+// delayedLabelSuffix encodes a DelayedTrigger registration's TriggerDescription$
+// as the LAST Text trailer, "|LB=<text>", so events' foldDelayedRegister
+// strips it first into state.DelayedTrigger.Description. The description is
+// what a client labels the delayed trigger with ("Arcane Denial: Draw a
+// card."): a face trigger's own TriggerDescription$ is readable from its
+// T: line forever, but a DB$ DelayedTrigger has no such line, so two delayed
+// triggers from one source (Arcane Denial's slowtrip pair) are
+// indistinguishable in a CR 603.3b order ask without it. An empty
+// description -- a keyword-minted or generated registration, or one the
+// script gives no TriggerDescription$ -- encodes nothing, so every already-
+// logged registration is byte-identical. The fold's trailer delimiter "|"
+// ends a TriggerDescription$ value by construction (no corpus value carries
+// one), so a description that somehow does is dropped, never mangled.
+func delayedLabelSuffix(dp *DelayedTriggerParams) string {
+	if dp.Description == "" || strings.Contains(dp.Description, "|") {
+		return ""
+	}
+	return "|LB=" + dp.Description
 }
 
 // delayedManaSpentSuffix encodes the resolution-start spend snapshot
@@ -386,5 +406,6 @@ func effDelayedTriggerSpellCast(h Host, c *Ctx, dp *DelayedTriggerParams) {
 		text += "|GB=" + strconv.FormatUint(uint64(c.Grantor), 10)
 	}
 	h.Emit(events.Event{Kind: events.DelayedRegister, Obj: c.Source,
-		Player: c.Controller, Step: h.Game().Step, Counter: exec, Text: text})
+		Player: c.Controller, Step: h.Game().Step, Counter: exec,
+		Text: text + delayedLabelSuffix(dp)})
 }

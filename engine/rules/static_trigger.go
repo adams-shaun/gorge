@@ -44,26 +44,29 @@ import (
 //
 // A granted (AddTrigger$) or gained trigger carries its line on pt.Trigger; a
 // printed, merged or gained one is recovered by pointer from the source's
-// faces. A Mode$ Phase delayed registration carries no line at all (its body
-// was resolved from the Execute$ SVar when it was queued), and a printed
-// trigger whose face went inactive mid-batch is carried as Delayed too, so
-// both are skipped: they keep the stack path.
+// faces. A Static$ True Mode$ Phase registration is its own mark
+// (DelayedStatic): its registration may now carry a TriggerDescription$ line
+// on pt.Trigger (a label-only line with no Static$ of its own), so that mark
+// is checked FIRST -- without the order the label line would make the
+// registration look non-static and push it on the stack. A printed trigger
+// whose face went inactive mid-batch is carried as Delayed too, so both are
+// skipped: they keep the stack path.
 func (e *Engine) staticTriggerLine(pt pendingTrigger) (cards.Trigger, map[string]string, *cards.Face, bool) {
-	if pt.Trigger.Mode != "" {
-		if !strings.EqualFold(strings.TrimSpace(pt.Trigger.ParamStr(cards.PKStatic)), "True") {
-			return cards.Trigger{}, nil, nil, false
-		}
-		return pt.Trigger, pt.TriggerSVars, nil, true
-	}
 	if pt.Delayed && pt.DelayedStatic && pt.SA != nil {
-		// A Static$ True Mode$ Phase registration: no line was kept, so a
-		// synthetic bare one stands in (no Optional/Unless/cost riders).
+		// A Static$ True Mode$ Phase registration: no real line was kept, so
+		// a synthetic bare one stands in (no Optional/Unless/cost riders).
 		src := e.G.Obj(pt.Source)
 		if src == nil || src.Face() == nil {
 			return cards.Trigger{}, nil, nil, false
 		}
 		f := src.Face()
 		return cards.Trigger{Mode: "Phase"}, f.SVars, f, true
+	}
+	if pt.Trigger.Mode != "" {
+		if !strings.EqualFold(strings.TrimSpace(pt.Trigger.ParamStr(cards.PKStatic)), "True") {
+			return cards.Trigger{}, nil, nil, false
+		}
+		return pt.Trigger, pt.TriggerSVars, nil, true
 	}
 	if pt.Delayed || pt.SA == nil {
 		return cards.Trigger{}, nil, nil, false

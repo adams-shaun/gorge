@@ -82,6 +82,12 @@ func (lc *lowerCtx) value(raw string) (lValue, error) {
 		// only within that chain -- hence lc.excess, never the bare name.
 		return lValue{Kind: vExcessDamage}, nil
 	}
+	if !ok && !neg && raw == "TriggerAmount" && lc.ab != nil && lc.ab.Latent && lc.ab.Name == "ReflexiveTrigger" {
+		// a reflexive body's own amount (kernel-internal: the repl body's
+		// queueing rides it as the entry's trigAmt, and OpReflexiveTrigger's
+		// B is the spawner's): the body reads the trigger's captured one
+		return lValue{Kind: vTriggerAmount}, nil
+	}
 	if !ok && !neg && raw == "X" && lc.ab != nil && lc.xPaidAb == lc.ab {
 		// Forge's built-in X: a card whose own cost has {X} may write a bare
 		// "X" amount with no SVar (Consume Spirit's NumDmg$ X and LifeAmount$
@@ -776,6 +782,12 @@ func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 			// gorge evalRefProperty: the remembered objects' mana values
 			// summed (kernel rememberedMV)
 			v = lValue{Kind: vMVOf, Ref: lRef{Kind: rRemembered}}
+			break
+		}
+		if rest == "CardPower" && lc.emblemUnblocked && !lc.hasRememberWriter() {
+			// an AttackerUnblocked emblem's captured attacker is the trigger
+			// object, one creature (Delif's Cone)
+			v = lValue{Kind: vPowerOf, Ref: lRef{Kind: rTriggered}}
 			break
 		}
 		if rest == "CardPower" {

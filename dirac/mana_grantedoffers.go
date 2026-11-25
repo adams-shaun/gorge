@@ -336,7 +336,7 @@ func (s *State) planGrantsOf(k *prep, pc *pcard, sl Slot, g *planGrants) bool {
 // ability, so a plan with one is reached only when the printed units have no
 // plan), its sacrifice planGrantSacUnit's. It reports whether the source is
 // done for this pass; before phase 2 it only marks the shape as having a grant.
-func (s *State) planGrantSacOnly(k *prep, p uint8, pk *planner, sl Slot, pc *pcard, phase int, g *planGrants, hasGrant *bool) bool {
+func (s *State) planGrantSacOnly(k *prep, p uint8, pk *planner, i int, sl Slot, pc *pcard, phase int, g *planGrants, hasGrant *bool) bool {
 	if g.sacN == 0 || s.canTapForManaPC(k, sl, pc) {
 		return false
 	}
@@ -344,22 +344,22 @@ func (s *State) planGrantSacOnly(k *prep, p uint8, pk *planner, sl Slot, pc *pca
 		*hasGrant = true
 		return true
 	}
-	s.planGrantSacUnit(k, p, pk, sl, g.sacM, g.sacN, s.isCreature(k, sl))
+	s.planGrantSacUnit(k, p, pk, i, sl, g.sacM, g.sacN, s.isCreature(k, sl))
 	return true
 }
 
 // planGrantsPhase2 adds sl's granted units in phase 2, after its printed unit:
 // the granted {T} of a sacrifice-only source, and the granted sacrifice of an
 // untapped tap source (its printed unit is phase 0's; planTapGrantSac).
-func (s *State) planGrantsPhase2(k *prep, p uint8, pk *planner, sl Slot, pc *pcard, phase int, g *planGrants, cr bool) {
+func (s *State) planGrantsPhase2(k *prep, p uint8, pk *planner, i int, sl Slot, pc *pcard, phase int, g *planGrants, cr bool) {
 	if phase != 2 {
 		return
 	}
 	if g.tap != nil {
-		s.planGrantUnit(k, p, pk, sl, g.tap, cr)
+		s.planGrantUnit(k, p, pk, i, sl, g.tap, cr)
 	}
 	if g.sacN != 0 && s.canTapForManaPC(k, sl, pc) {
-		s.planGrantSacUnit(k, p, pk, sl, g.sacM, g.sacN, cr)
+		s.planGrantSacUnit(k, p, pk, i, sl, g.sacM, g.sacN, cr)
 	}
 }
 
@@ -383,7 +383,7 @@ func (s *State) planOwnSacGrant(k *prep, pc *pcard, sl Slot) *pcard {
 // planner beside the printed unit the loop emitted: the tap unit of
 // ownSacGrantTap, shaped like a grant-only source's unit (manaPCGen returns
 // its granted view there).
-func (s *State) planGrantUnit(k *prep, p uint8, pk *planner, sl Slot, gt *pcard, cr bool) {
+func (s *State) planGrantUnit(k *prep, p uint8, pk *planner, i int, sl Slot, gt *pcard, cr bool) {
 	if pk.nu >= maxUnits || pk.nt >= maxTypes {
 		return // the caller's loop holds the same guards
 	}
@@ -410,7 +410,7 @@ func (s *State) planGrantUnit(k *prep, p uint8, pk *planner, sl Slot, gt *pcard,
 	}
 	pk.types[ti].avail++
 	pk.units[pk.nu] = sl
-	pk.uobj[pk.nu] = s.perms[sl].obj
+	pk.rankUnit(s, i, sl)
 	pk.utyp[pk.nu] = uint8(ti)
 	pk.rkind[pk.nu] = 0
 	// the grant's ability number names nothing on sl's own card, and
@@ -463,11 +463,7 @@ func (s *State) planInertGrant(k *prep, pk *planner, i int, sl Slot, pc *pcard, 
 	}
 	pk.types[ti].avail++
 	pk.units[pk.nu] = sl
-	if pk.bfl {
-		pk.uobj[pk.nu] = Obj(i) // battlefield order (plan's hybrid census)
-	} else {
-		pk.uobj[pk.nu] = s.perms[sl].obj
-	}
+	pk.rankUnit(s, i, sl)
 	pk.utyp[pk.nu] = uint8(ti)
 	pk.rkind[pk.nu] = 0
 	pk.rAb[pk.nu] = -1 // planGrantUnit's: the grant's ability number names nothing on sl's own card
@@ -482,7 +478,7 @@ func (s *State) planInertGrant(k *prep, pk *planner, i int, sl Slot, pc *pcard, 
 // 605.1a), the colours joined, the amount the largest. It is the printed
 // last-resort unit's sacrifice (utype.sac) with no tap (sacOnly):
 // grantSacLive costs no {T}, tapped or summoning sick alike (CR 302.6).
-func (s *State) planGrantSacUnit(k *prep, p uint8, pk *planner, sl Slot, mask, n uint8, cr bool) {
+func (s *State) planGrantSacUnit(k *prep, p uint8, pk *planner, i int, sl Slot, mask, n uint8, cr bool) {
 	if pk.nu >= maxUnits || pk.nt >= maxTypes {
 		return // the caller's loop holds the same guards
 	}
@@ -508,7 +504,7 @@ func (s *State) planGrantSacUnit(k *prep, p uint8, pk *planner, sl Slot, mask, n
 	}
 	pk.types[ti].avail++
 	pk.units[pk.nu] = sl
-	pk.uobj[pk.nu] = s.perms[sl].obj
+	pk.rankUnit(s, i, sl)
 	pk.utyp[pk.nu] = uint8(ti)
 	pk.rkind[pk.nu] = 0
 	pk.rAb[pk.nu] = -1 // planGrantUnit's: the grant's ability number names nothing on sl's own card
@@ -1030,7 +1026,7 @@ func (s *State) availUngranted(k *prep, p uint8, a *avail) {
 	}
 	var deferGap slotMask
 	if s.deferLive(k) && s.g.availX&(availWalk|availHyp) == 0 {
-		deferGap = s.scriptTapsDefer(k, SeatIx(p)) // as availFor: gorge's census never lists a planner-deferred source (a counter rider, a Taps watcher), so the witness never pays with it
+		deferGap = s.scriptTapsDefer(k, SeatIx(p)).or(s.tapsDeferDead(k, SeatIx(p))) // as availFor: gorge's census never lists a planner-deferred source (a counter rider, a Taps watcher, an unless chooser), so the witness never pays with it
 	}
 	for m := s.ctrlM[SeatIx(p)]; m.any(); m = m.rest() {
 		sl := m.first()
@@ -3496,6 +3492,8 @@ func (s *State) grantPlayCostRaise(k *prep, p uint8, a Action, kicked bool) (cos
 				return s.adjustCost(k, p, c, Obj(a.Source()), dc), ex, need, true
 			case a.Target() == castOverloadTgt && cd.HasOverload:
 				return s.adjustCost(k, p, c, Obj(a.Source()), cd.OverloadCost), ex, need, true
+			case a.Target() == castBlitzTgt && cd.HasBlitz:
+				return s.adjustCost(k, p, c, Obj(a.Source()), cd.BlitzCost), ex, need, true
 			case a.Target() == castCleaveTgt && cd.CleaveAb != 0:
 				return s.adjustCost(k, p, c, Obj(a.Source()), cd.CleaveCost), ex, need, true
 			case a.Target() == castSurgeTgt && cd.HasSurge:
@@ -3724,7 +3722,7 @@ func (s *State) playBaseCost(k *prep, a Action) (m kop.ManaCost, f kop.CostFlags
 		// (usefulOK false) while gorge pruned the filter's colours, and the
 		// two walks paid different mana. A mode that is not exactly the
 		// may-play one (a kicked, bargained, flashback cast) stays unread.
-		if (a.Mode() == 0 || a.Mode() == castMayPlay) && a.Target() != castImpTgt && a.Target() != castEvokeTgt && a.Target() != castDashTgt && a.Target() != castOverloadTgt && a.Target() != castSurgeTgt && a.Target() != castCleaveTgt {
+		if (a.Mode() == 0 || a.Mode() == castMayPlay) && a.Target() != castImpTgt && a.Target() != castEvokeTgt && a.Target() != castDashTgt && a.Target() != castOverloadTgt && a.Target() != castSurgeTgt && a.Target() != castCleaveTgt && a.Target() != castBlitzTgt {
 			return k.cards[s.objs[a.Source()].card].cost, 0, true
 		}
 	}
