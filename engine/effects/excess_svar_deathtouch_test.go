@@ -49,4 +49,52 @@ func TestExcessSVarHonoursDeathtouch(t *testing.T) {
 	if got := excessSVarOf(t, excessSVarHit, 3); got != "2" {
 		t.Fatalf("deathtouch, 3 marked on a 4-toughness creature: Excess = %q, want 2", got)
 	}
+	// already at lethal (toughness 4, 4 marked): lethal is 0, not raised to 1,
+	// so the whole 3 is excess -- marked damage still counts on this path
+	if got := excessSVarOf(t, excessSVarHit, 4); got != "3" {
+		t.Fatalf("deathtouch, 4 marked on a 4-toughness creature: Excess = %q, want 3", got)
+	}
+}
+
+// excessSVarFight resolves Rhino's Rampage's Fight link shape: `fighter` (the
+// parent's target) fights the 0/4 wall, with the corpus ExcessSVarCondition$.
+func excessSVarFight(t *testing.T, keywords string) string {
+	t.Helper()
+	h := newHost(t, 2)
+	fighter := putCreature(t, h, 0, "Fighter", "3/3", keywords)
+	wall := putCreature(t, h, 1, "Wall", "0/4", "")
+	if p, tough := h.Power(fighter), h.Toughness(wall); p != 3 || tough != 4 {
+		t.Fatalf("precondition: power %d toughness %d, want 3 and 4", p, tough)
+	}
+	c := &Ctx{Source: fighter, Controller: 0,
+		Targets:       []state.Target{{Obj: fighter}},
+		PickedTargets: []state.Target{{Obj: wall}}}
+	Resolve(h, c, sa(t, "DB$ Fight | Defined$ ParentTarget | ValidTgts$ Creature.OppCtrl | "+
+		"ExcessSVar$ Excess | ExcessSVarCondition$ Creature.targetedBy+OppCtrl"))
+	return c.SVars["Excess"]
+}
+
+// TestExcessSVarFightHonoursDeathtouch: a deathtouch fighter's 3 damage to a
+// 0/4 is 2 excess (CR 120.4a); without deathtouch it is 0.
+func TestExcessSVarFightHonoursDeathtouch(t *testing.T) {
+	if got := excessSVarFight(t, ""); got != "0" {
+		t.Fatalf("no deathtouch: fight Excess = %q, want 0", got)
+	}
+	if got := excessSVarFight(t, "Deathtouch"); got != "2" {
+		t.Fatalf("deathtouch fighter: fight Excess = %q, want 2 (lethal is 1)", got)
+	}
+}
+
+// TestExcessDamageRedirectHonoursDeathtouch: Ram Through with a deathtouch
+// trampler: 1 damage is lethal to the 2/2, so the creature takes 1 and its
+// controller the other 4 (CR 120.4a, 702.19c).
+func TestExcessDamageRedirectHonoursDeathtouch(t *testing.T) {
+	victim, life, _ := ramThroughDamage(t,
+		"Name:Excess DT Trampler\nTypes:Creature Beast\nPT:5/5\nK:Trample\nK:Deathtouch\nOracle:x\n")
+	if victim.Damage != 1 {
+		t.Fatalf("the creature took %d damage, want exactly lethal 1", victim.Damage)
+	}
+	if life != 16 {
+		t.Fatalf("controller life = %d, want 16 (lost the 4 excess)", life)
+	}
 }
