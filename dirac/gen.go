@@ -2318,6 +2318,10 @@ type genState struct {
 	// ownEntryCounterExcluded); the entrant's other statics stay live. Set
 	// only across one placeEntryCounters call (turn_gen.go).
 	ctrSettle uint8
+	// story: bit p, seat p holds the enduring story (CR 702.195, the K:Storied
+	// scan's one-way latch, kw_storied.go). It fills the padding byte after
+	// ctrSettle, so State does not grow.
+	story uint8
 	// this turn's counter placements (ExCtrAdded; ctr_addedthisturn.go).
 	// pl: bit p set when player p put a counter on a creature; e: per object whose card
 	// reads a Self form (gfCtrAdd), fl bit p any kind by p, bit 2+p +1/+1
