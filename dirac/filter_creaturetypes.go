@@ -47,6 +47,8 @@ Talaxian Tamarian Vau-N'Akat
 `) {
 		m[w] = true
 	}
+	// CR 205.3m's one joined two-word creature type; gorge's list offers it whole.
+	m["Time Lord"] = true
 	return m
 }()
 
