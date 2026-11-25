@@ -15,15 +15,19 @@ import (
 //
 // Optional$ True (Sevinne's Reclamation's "you may copy this spell") is
 // gorge's copy_optional yes/no, asked of the copy's controller once the copy
-// is possible: an OpMayAsk under MayGuardCopyParent over the copy. Beside
-// Controller$ the asked player is another one, and that shape refuses.
+// is possible: an OpMayAsk under MayGuardCopyParent over the copy. Beside a
+// target-derived Controller$ (Chain of Acid's "that permanent's controller
+// may copy this spell", Chain of Smog's "that player may copy") gorge asks
+// the copy's controller (copyControllerFor, resolved before the election),
+// so the ask names target 0's controller or player (RefTargetController,
+// last known for a target that left the battlefield: CR 608.2h).
 func (lc *lowerCtx) copyParentSpell(ps *params) error {
 	if lc.ab.Kind != akSpell || lc.out.Types&^(tInstant|tSorcery) != 0 {
 		return refuse("CopySpellAbility Defined$ Parent outside an instant or sorcery spell")
 	}
 	optional := false
 	if v, ok := ps.get("Optional"); ok {
-		if _, hasCtrl := ps.get("Controller"); hasCtrl || strings.TrimSpace(v) != "True" {
+		if strings.TrimSpace(v) != "True" {
 			return refuse("CopySpellAbility Defined$ Parent Optional$")
 		}
 		optional = true
@@ -36,6 +40,7 @@ func (lc *lowerCtx) copyParentSpell(ps *params) error {
 	if ps.is("MayChooseTarget", "True") {
 		in.C = 1
 	}
+	ask := lInstr{Op: "MayAsk", C: kop.MayGuardCopyParent, Skip: 1, Note: "you may copy"}
 	if c, ok := ps.get("Controller"); ok {
 		switch c {
 		case "You":
@@ -44,12 +49,13 @@ func (lc *lowerCtx) copyParentSpell(ps *params) error {
 				return refuse("CopySpellAbility Controller$ %q over %d target slots", c, len(lc.ab.Targets))
 			}
 			in.C |= 4
+			ask.Obj, ask.Note = lRef{Kind: rTargetController}, "the target's controller may copy"
 		default:
 			return refuse("CopySpellAbility Controller$ %q", c)
 		}
 	}
 	if optional {
-		lc.emit(lInstr{Op: "MayAsk", C: kop.MayGuardCopyParent, Skip: 1, Note: "you may copy"})
+		lc.emit(ask)
 	}
 	lc.emit(in)
 	return nil

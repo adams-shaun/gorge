@@ -43,8 +43,13 @@ func (lc *lowerCtx) apiGainLife(sa *cards.SA, ps *params) error {
 	if err != nil {
 		return err
 	}
-	n, err := lc.amount(ps, "LifeAmount", 1)
-	if err != nil {
+	var n lValue
+	if sa.API == "GainLife" && strings.TrimSpace(ps.str("LifeAmount")) == "AFLifeLost" && lc.followsLoseLife() {
+		// Gonti's Machinations: the bare AFLifeLost token (no SVar), the sum
+		// the LoseLife just before it in this chain requested (gorge
+		// loseLife's StoreSVar), read as the life it took (ExLastLifeLost).
+		n = lValue{Kind: vLastLifeLost}
+	} else if n, err = lc.amount(ps, "LifeAmount", 1); err != nil {
 		return err
 	}
 	if sa.API == "GainLife" && n.Kind == vConst && lc.face.SVars[ps.str("LifeAmount")] == "Number$0" {
@@ -223,4 +228,11 @@ func (lc *lowerCtx) apiBlight(sa *cards.SA, ps *params) error {
 	}
 	lc.emit(lInstr{Op: "Blight", Obj: who, A: n})
 	return nil
+}
+
+// followsLoseLife reports whether the instruction emitted last is a LoseLife:
+// the GainLife that reads AFLifeLost then follows the loss it names.
+func (lc *lowerCtx) followsLoseLife() bool {
+	n := len(lc.ab.Prog)
+	return n > 0 && lc.ab.Prog[n-1].Op == "LoseLife"
 }
