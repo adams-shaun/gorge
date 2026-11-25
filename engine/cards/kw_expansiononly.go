@@ -74,6 +74,7 @@ var keywordRulesReads = map[KeywordHeadID]string{
 	InternKeywordHead("Training"):    "engine/rules/trigger_granted.go:427 — training trigger grant",
 	InternKeywordHead("Tribute"):     "engine/effects/counters_put_tribute.go:64 — tribute counter offer",
 	InternKeywordHead("TypeCycling"): "engine/rules/trigger_cause.go:18 — typecycling trigger cause",
+	InternKeywordHead("Undying"):     "engine/rules/scriptfacts/granted_keyword_trigger.go:37 — undying grant trigger table",
 	InternKeywordHead("Unearth"):     "engine/effects/changezone_params.go:440 — unearth return",
 	InternKeywordHead("Vanishing"):   "engine/rules/trigmatch/counters.go:205 — vanishing remove-counter trigger",
 	InternKeywordHead("Ward"):        "engine/rules/trigger_granted.go:755 — ward cost trigger",
