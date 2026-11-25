@@ -782,6 +782,8 @@ func (s *State) playerRef(k *prep, r kop.Ref) uint8 {
 		return s.res.chPl - 1 // the pick OpChoosePlayer recorded (chPl seat + 1; 0 wraps to 255, none)
 	case kop.RefAttachedCtrl:
 		return s.attachedCtrl(s.objRefObj(kop.RefAttached))
+	case kop.RefEnchantedCtrl:
+		return s.enchantedCtrl(e.obj) // trig_attachedctrl.go
 	}
 	if k.gen != nil {
 		return s.refPlayer(k, r, s.ctxEntry(&s.res.e))
@@ -1078,7 +1080,7 @@ func (s *State) refCode(k *prep, r kop.Ref) TCode {
 	case kop.RefTarget0, kop.RefTarget1, kop.RefTarget2, kop.RefTarget3, kop.RefTarget4:
 		sl, _ := tgtSlot(r)
 		return s.tgtCode(sl)
-	case kop.RefController, kop.RefOpponent, kop.RefTriggerPlayer, kop.RefDefendingPlayer, kop.RefTargetController, kop.RefEachOpponent, kop.RefPromised, kop.RefChosenPlayer, kop.RefChosenPlayerRes, kop.RefResChosenPlayer, kop.RefTriggerTgtCtrl, kop.RefTriggerObjOwner, kop.RefAttachedCtrl:
+	case kop.RefController, kop.RefOpponent, kop.RefTriggerPlayer, kop.RefDefendingPlayer, kop.RefTargetController, kop.RefEachOpponent, kop.RefPromised, kop.RefChosenPlayer, kop.RefChosenPlayerRes, kop.RefResChosenPlayer, kop.RefTriggerTgtCtrl, kop.RefTriggerObjOwner, kop.RefAttachedCtrl, kop.RefEnchantedCtrl:
 		p := s.playerRef(k, r)
 		if p == 255 {
 			return TCode(NoTarget)
