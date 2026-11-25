@@ -947,7 +947,12 @@ func (s *State) addXv(p uint8, xv *[kop.NumManaKinds]uint8) {
 // source leaves it neither.
 func (s *State) removeSrc(k *prep, a *avail, sl Slot, pc *pcard) {
 	if s.availLeavesOut(k, sl) {
-		return // availFor never counted it: the units standing are the pool's
+		// availFor never counted it: the units standing are the pool's, bar a
+		// reflected unit gorge's planner keeps beside the deferral
+		if m := s.deferredReflMask(k, s.perms[sl].ctrl, sl); m != 0 {
+			a.remove(m, 1)
+		}
+		return
 	}
 	noGrantWalk := k.gen != nil && s.g.noGrant && s.g.availX&availPlain != 0
 	if noGrantWalk && s.manaGranted(k, sl) {
