@@ -6,6 +6,7 @@ AbSpell	AbilityKind	0
 AbStatic	AbilityKind	4
 AbTriggered	AbilityKind	3
 AdamantLiveRead	untyped int	32
+AddPhaseBeginning	untyped int	4
 AddPhaseCombat	untyped int	0
 AddPhaseCombatMain	untyped int	3
 AddPhaseEnd	untyped int	2
@@ -54,6 +55,7 @@ AttacksOpponent	untyped int	1
 B	untyped int	2
 BecomeCopyCtr	untyped int	1
 BecomeCopyEmbalm	untyped int	2
+BecomeCopyGrave	untyped int	4
 BncDelayedMany	untyped int	8192
 BncFromLibrary	untyped int	4096
 BncShuffleOwed	untyped int	16384
@@ -560,6 +562,7 @@ ExtGrantPanharm	ExtOp	248
 ExtHideaway	ExtOp	8
 ExtJoinForces	ExtOp	301
 ExtKwMark	ExtOp	10
+ExtLeaveExile	ExtOp	287
 ExtLibPlace	ExtOp	300
 ExtLibSweep	ExtOp	101
 ExtLockActs	ExtOp	140
@@ -1262,6 +1265,8 @@ ReplDmgInsExileTop	untyped int	8
 ReplDmgInsKindShift	untyped int	8
 ReplDmgInsMill	untyped int	2
 ReplDmgInsPrevent	untyped int	1
+ReplDmgInsSac	untyped int	16384
+ReplDmgInsVind	untyped int	32768
 ReplDmgNonCombat	untyped int	16
 ReplDmgOppPerm	untyped int	2
 ReplDmgOppPlayer	untyped int	1

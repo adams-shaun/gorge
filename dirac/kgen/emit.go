@@ -344,6 +344,7 @@ func refSubs(pt *poolTables, d *kop.CardDef, ovVals []kop.ValueRef) []uint8 {
 	filt(d.KickerCost.Filter)
 	filt(d.BeholdF)
 	filt(d.OfferingF) // the offering's sacrifice filter (kw_offering.go)
+	filt(d.RevealF)
 	filt(d.WardSac)
 	filt(d.CastBF)   // the frozen count's filter (CardDef.CastBF)
 	filt(d.ProtFrom) // K:Protection:Coyote can't name a subtype the matchup then drops

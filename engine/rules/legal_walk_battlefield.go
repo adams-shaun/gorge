@@ -403,6 +403,22 @@ func (w *legalWalk) battlefieldWalk() {
 						if !ok {
 							continue
 						}
+						// The ability's own RaiseCost$ (Loreseeker's Stone's "{1} more
+						// for each card in your hand"): a CR 601.2f additional cost
+						// composed onto the total BEFORE the reductions below (CR
+						// 601.2f applies reductions to the total). An unpriceable
+						// raise withholds the ability -- a surcharge the offer can
+						// price is never dropped, and an unpriceable one is never
+						// offered (the same fail-closed direction mayPlayRaiseCost
+						// takes for a permission's raise). beginActivation's charge
+						// composes the identical read, so gate and charge agree.
+						raise, hasRaise, raiseOK := e.ownAbilityRaiseCost(p, id, ab, pa.Merged)
+						if !raiseOK {
+							continue
+						}
+						if hasRaise {
+							cost = cost.Plus(raise)
+						}
 						// The ability's own ReduceCost$ (Otawara's Channel): the CR
 						// 601.2f composition the offer gate and beginActivation's
 						// charge share, so an offered cost and the paid one agree.

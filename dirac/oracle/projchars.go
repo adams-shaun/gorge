@@ -184,6 +184,7 @@ var gorgeKwElsewhere = map[string]string{
 	"More Than Meets the Eye": "CardDef.FlipCast/FlipCost (the hand's converted cast of the back face; compared through the cast options; face_flipcast.go)",
 	"Disturb":                 "CardDef.FlipCast/FlipCost (the graveyard's transformed cast of the back face; compared through the cast options; face_flipcast.go)",
 	"Living metal":            "the face's own Override static (artifact creature during your turn; compared through the projected types) and CardDef.LivingMetal",
+	"Blitz":                   "CardDef.HasBlitz (a hand alt cost, haste, the dies-draw trigger and the end-step sacrifice; compared through the cast options, the stack and the battlefield; kw_blitz.go)",
 	"Dash":                    "CardDef.HasDash (a hand alt cost, haste and the end-step return to hand; compared through the cast options, the stack and the battlefield; kw_dash.go)",
 	"Surge":                   "CardDef.HasSurge (a hand alt cost once another spell was cast this turn, no battlefield characteristic; compared through the cast options; kw_surge.go)",
 	"Evoke":                   "CardDef.HasEvoke (a hand alt cost and the sacrifice trigger queued as it enters; compared through the cast options and the stack; kw_evoke.go)",

@@ -335,6 +335,9 @@ func effDealDamage(h Host, c *Ctx, sa *cards.SA) {
 	// what that target took. The host opens the batch; emit opens a batch of
 	// one for a Damage event that arrives with none open, so a call this
 	// primitive never brackets (none today) still latches per event.
+	// CardChoices$/PlayerChoices$: the recipient is chosen here (asked before the
+	// batch opens), not read from Defined$/the targets.
+	recipients, chosen := dealDamageChoice(h, c, sa, dp)
 	h.BeginDamageBatch()
 	if !divided && emitFromEachSource(h, c, sa, dp, multiSources, n, remember, &dying, bindExcess) {
 		h.EndDamageBatch()
@@ -362,7 +365,7 @@ func effDealDamage(h Host, c *Ctx, sa *cards.SA) {
 			if t.obj != 0 {
 				dealt := int32(0)
 				if o := h.Game().Obj(t.obj); o != nil {
-					lethal, ok := excessLethal(h, o)
+					lethal, ok := excessLethal(h, o, r.hasDeathtouch)
 					dealt = emitObjectDamageExcess(h, c, dp, r, t.obj)
 					if ok {
 						bindExcess(o, lethal, dealt)
@@ -383,7 +386,10 @@ func effDealDamage(h Host, c *Ctx, sa *cards.SA) {
 		h.EndDamageBatch()
 		return
 	}
-	for _, t := range definedDelayRememberedTargets(h, c, sa) {
+	if !chosen {
+		recipients = definedDelayRememberedTargets(h, c, sa)
+	}
+	for _, t := range recipients {
 		if t.IsPlayer {
 			dealt := emitPlayerDamage(rider, t.Player)
 			if remember && dealt > 0 {
@@ -392,7 +398,7 @@ func effDealDamage(h Host, c *Ctx, sa *cards.SA) {
 			continue
 		}
 		if o := h.Game().Obj(t.Obj); o != nil && o.Zone == state.ZBattlefield {
-			lethal, ok := excessLethal(h, o)
+			lethal, ok := excessLethal(h, o, rider.hasDeathtouch)
 			dealt := emitObjectDamageExcess(h, c, dp, rider, t.Obj)
 			if ok {
 				bindExcess(o, lethal, dealt)
@@ -491,7 +497,7 @@ func emitFromEachSource(h Host, c *Ctx, sa *cards.SA, dp *DealDamageParams, sour
 				continue
 			}
 			if to := h.Game().Obj(t.Obj); to != nil && to.Zone == state.ZBattlefield {
-				lethal, ok := excessLethal(h, to)
+				lethal, ok := excessLethal(h, to, rider.hasDeathtouch)
 				dealt := emitObjectDamageExcess(h, c, dp, rider, t.Obj)
 				if ok {
 					bindExcess(to, lethal, dealt)
