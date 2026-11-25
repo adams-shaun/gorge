@@ -718,6 +718,9 @@ func restrictedFixedPair(first, a *lAbility) bool {
 		a.Mana.Amount.Kind != vConst || a.Mana.Amount.N < 2 || a.Mana.Amount.N > maxRestrictedAmount {
 		return false
 	}
+	if bothHalvesColourlessPair(first, a) {
+		return true
+	}
 	if !(spellOnlyMana(a) || activationOnlyTapMana(a)) {
 		return false
 	}
@@ -726,6 +729,19 @@ func restrictedFixedPair(first, a *lAbility) bool {
 	}
 	return plainTapMana(first, false) && unrestrictedOne(first) && len(a.Mana.Colors) == 1 &&
 		strings.Contains("WUBRG", a.Mana.Colors) && a.Mana.Colors == first.Mana.Colors
+}
+
+// bothHalvesColourlessPair: a plain unrestricted {T}: Add {C} first ability
+// beside a plain {T} ability of several {C} whose restriction names both
+// spells and activated abilities (Eldrazi Temple's {C}{C}, colorless Eldrazi
+// spells and abilities of colorless Eldrazi only). gorge's planner prices both
+// alternatives of the one unit; the kernel's restricted pair unit widens the
+// census {C} to the larger colourless alternative (prepRestrSrc, colourless
+// counting as one colour: CR 106.1b), admitted per payment class by the
+// restriction's spell or activation half (restrSrcAdmits).
+func bothHalvesColourlessPair(first, a *lAbility) bool {
+	return a.Mana.Restrict != nil && a.Mana.RestrictAb != nil && plainTapMana(a, false) && a.Mana.Colors == "C" &&
+		plainTapMana(first, false) && unrestrictedOne(first) && first.Mana.Colors == "C"
 }
 
 // restrictedFreeFeePair: first is a spell-only restricted {T} ability of one
