@@ -1,27 +1,47 @@
 package kgen
 
-// K:Kicker with a non-mana cost (Vayne's Treachery's
-// Sac<1/Creature;Artifact>, Chocobo Kick's Return<1/Land>). gorge's
+// K:Kicker with a non-mana part (Vayne's Treachery's
+// Sac<1/Creature;Artifact>, Chocobo Kick's Return<1/Land>, Phyrexian
+// Scuta's PayLife<3>, Dralnu's Pet's {2}{B} and Discard<1/Creature>). gorge's
 // kickerCost is ParseCost(param), a full Cost the kicked cast adds to its
-// own (rules cast_begin.go: cost = cost.Plus(kc)), so a sacrifice or return
-// part is paid with the cast's other cost parts and the kicked mode is
-// offered only when it has a candidate (legal_walk_hand.go offerCastable).
-// The kernel keeps a zero-mana Kicker (the kicked cast option) and pays
-// CardDef.KickerCost on a kicked cast (kw_kicker.go).
+// own (rules cast_begin.go: cost = cost.Plus(kc)), so the part is paid with
+// the cast's other cost parts and the kicked mode is offered only when it has
+// a candidate (legal_walk_hand.go offerCastable). The kernel keeps the mana
+// in CardDef.Kicker and the one non-mana part in CardDef.KickerCost; pays
+// that on a kicked cast (kw_kicker.go). A part kop.Cost cannot carry (a
+// reveal, or two parts) is a cost program instead (lower_costprog.go).
 
-// kickerNonMana lowers a kicker parameter that is exactly one Sac<1/..> or
-// one Return<1/..> part with no mana; anything else reports false and the
-// caller refuses it by name.
-func (lc *lowerCtx) kickerNonMana(param string) (*lCost, bool) {
+// kickerNonMana splits a kicker parameter into the mana part and the one
+// non-mana part kop.Cost can carry alone; false when the parameter is not a
+// single such part (a second part, a reveal, an X kicker).
+func (lc *lowerCtx) kickerNonMana(param string) (manaCost, lCost, bool) {
 	c, err := lc.cost(param)
-	if err != nil || !c.Mana.None {
-		return nil, false
+	if err != nil || c.XMin != 0 || c.Mana.X || c.RevealN != 0 || c.RevealF != nil {
+		return manaCost{}, lCost{}, false
 	}
-	sac, ret := c.Sac != nil && c.SacN == 1, c.Return != nil && c.ReturnN == 1
-	rest := c
-	rest.Sac, rest.SacN, rest.Return, rest.ReturnN = nil, 0, nil, 0
-	if sac == ret || !rest.pureMana() || !rest.Mana.None {
-		return nil, false
+	base := c
+	base.Mana = manaCost{None: true}
+	if base.pureMana() {
+		return manaCost{}, lCost{}, false // no non-mana part
 	}
-	return &c, true
+	var found lCost
+	n := 0
+	try := func(zero func(*lCost)) {
+		r := base
+		zero(&r)
+		if r.pureMana() {
+			found = base
+			n++
+		}
+	}
+	try(func(r *lCost) { r.Sac, r.SacN = nil, 0 })
+	try(func(r *lCost) { r.Return, r.ReturnN = nil, 0 })
+	try(func(r *lCost) { r.DiscardN, r.DiscardSpec, r.DiscardF = 0, "", nil })
+	try(func(r *lCost) { r.TapN, r.TapF = 0, nil })
+	try(func(r *lCost) { r.PayLife = 0 })
+	try(func(r *lCost) { r.Forage = nil })
+	if n != 1 {
+		return manaCost{}, lCost{}, false
+	}
+	return c.Mana, found, true
 }
