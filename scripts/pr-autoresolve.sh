@@ -9,7 +9,7 @@
 # and almost every open dirac PR then conflicts on them alone (.github/workflows/pr-autoresolve.yml runs this for each
 # CONFLICTING PR on every push to main). Recipes, each checked by its own test after the rebuild:
 #   support        DIRAC_UPDATE_SUPPORT=1 TestSupportDocIsCurrent ./dirac/kgen (also after kgen-pins: it reads them)
-#   kgen-pins      KGEN_REPIN=1 then DIRAC_PIN_STRICT=1 over the pin tests ./dirac/kgen (a fall is refused)
+#   kgen-pins      main's rows plus the PR's added ones (--union), then KGEN_REPIN=1 then DIRAC_PIN_STRICT=1 over the pin tests ./dirac/kgen (a fall is refused)
 #   kop-ordinals   KOP_ORDINALS_REGEN=1 TestKopOrdinalsUnchanged ./dirac/kop: rows re-derived from the merged constants
 #   dirac-layout   DIRAC_UPDATE_LAYOUT=1 over the layout pin tests ./dirac
 #   func-ceilings  a keyed 3-way row merge (main's rows, plus each row the PR added, changed or deleted); never lowered
@@ -40,6 +40,23 @@ if [ "${1:-}" = --match ]; then
   exit $bad
 fi
 
+# --union MAIN PR [BASE]: MAIN's file, then each data row of PR whose key (first column) MAIN lacks and BASE (the merge
+# base, optional) did not have: a row the PR added, e.g. the acceptance row of a new set list. Main's deletions stay.
+if [ "${1:-}" = --union ]; then
+  [ $# -ge 3 ] || { echo "usage: pr-autoresolve.sh --union MAIN PR [BASE]" >&2; exit 2; }
+  # The added rows go in key order (bytewise) before the first of main's data rows with a greater key, so a table
+  # kept sorted (kgen's pin tables: parsePinTSV refuses a list that is not byte-after the one before it) stays
+  # sorted. A header (main's first non-comment line whose second field is not a count) is never preceded.
+  added=$(awk -F'\t' 'FILENAME == ARGV[3] { if (!/^#/ && NF && !($1 in seen)) print; next }
+    !/^#/ && NF { seen[$1] = 1 }' "$2" "${4:-/dev/null}" "$3" | LC_ALL=C sort -t "$(printf '\t')" -k1,1)
+  ADDED=$added LC_ALL=C awk -F'\t' 'BEGIN { n = split(ENVIRON["ADDED"], a, "\n"); i = 1; while (i <= n && a[i] == "") i++ }
+    /^#/ || !NF { print; next }
+    !hdr { hdr = 1; if ($2 !~ /^[0-9]+$/) { print; next } }
+    { while (i <= n && (a[i] == "" || substr(a[i], 1, index(a[i] "\t", "\t") - 1) < $1)) { if (a[i] != "") print a[i]; i++ } print }
+    END { for (; i <= n; i++) if (a[i] != "") print a[i] }' "$2"
+  exit 0
+fi
+
 dry= keep=
 while [ $# -gt 0 ]; do
   case $1 in --dry-run) dry=1 ;; --keep) keep=1 ;; -*) echo "usage: pr-autoresolve.sh [--dry-run] [--keep] PR" >&2; exit 2 ;; *) break ;; esac
@@ -50,8 +67,20 @@ pr=${1:-}
 remote=${AUTORESOLVE_REMOTE:-origin}
 say() { echo "pr-autoresolve #$pr: $*"; }
 
-info=$(gh pr view "$pr" --json headRefName,baseRefName,isCrossRepository,state \
-  --jq '"\(.headRefName) \(.baseRefName) \(.isCrossRepository) \(.state)"') || { say "gh pr view failed"; exit 1; }
+# PR facts: gh when it is on PATH and GH_TOKEN is unset (local use), else the REST API (the box runners have no gh).
+if command -v gh >/dev/null 2>&1 && [ -z "${GH_TOKEN:-}" ]; then
+  info=$(gh pr view "$pr" --json headRefName,baseRefName,isCrossRepository,state \
+    --jq '"\(.headRefName) \(.baseRefName) \(.isCrossRepository) \(.state)"') || { say "gh pr view failed"; exit 1; }
+else
+  : "${GH_TOKEN:?GH_TOKEN is required without gh}" "${GITHUB_REPOSITORY:?GITHUB_REPOSITORY is required without gh}"
+  info=$(curl -fsS -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" \
+    "https://api.github.com/repos/$GITHUB_REPOSITORY/pulls/$pr" | python3 -c '
+import json, sys
+d = json.load(sys.stdin)
+head = d["head"]
+cross = "true" if head.get("repo") is None or head["repo"]["full_name"] != d["base"]["repo"]["full_name"] else "false"
+print(head["ref"], d["base"]["ref"], cross, d["state"].upper())') || { say "PR lookup failed"; exit 1; }
+fi
 read -r branch base cross state <<<"$info"
 [ "$state" = OPEN ] || { say "is $state; left alone"; exit 0; }
 [ "$base" = main ] || { say "targets $base, not main; left alone"; exit 0; }
@@ -107,6 +136,14 @@ for f in "${conflicted[@]}"; do
         for (k in r) print r[k] > rows
       }' "$t/b" "$t/o" "$t/m"
     { cat "$t/h"; LC_ALL=C sort "$t/r"; } >"$f"; rm -rf "$t" ;;
+  kgen-pins)
+    # Main's side, plus each row the PR added (a new list's acceptance row): KGEN_REPIN only revises rows that exist.
+    t=$(mktemp -d)
+    git show ":1:$f" >"$t/b" 2>/dev/null; git show ":2:$f" >"$t/o" 2>/dev/null
+    if git show ":3:$f" >"$t/m" 2>/dev/null; then
+      bash "$here/pr-autoresolve.sh" --union "$t/m" "$t/o" "$t/b" >"$f"
+    else git rm -q -- "$f"; rm -rf "$t"; continue; fi
+    rm -rf "$t" ;;
   *)
     # Main's side; the recipe rebuilds it below.
     if git cat-file -e ":3:$f" 2>/dev/null; then git checkout -q --theirs -- "$f"; else git rm -q -- "$f"; continue; fi ;;

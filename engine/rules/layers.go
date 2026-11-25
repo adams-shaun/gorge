@@ -82,7 +82,7 @@ func (e *Engine) staticEffectsWalk(dst []ContinuousEffect, skip bool) []Continuo
 	e.staticColorGate = false
 	e.staticGates, e.staticGatesKnown = e.staticGates[:0], true
 	out := dst[:0]
-	for pi, p := range e.G.AliveFrom(0) {
+	for pi, p := range e.staticSeats() {
 		// staticSourceZones (below) walks the battlefield FIRST so every
 		// battlefield static keeps today's relative emission order, then the
 		// non-battlefield zones an EffectZone$ can name. The shared stack is

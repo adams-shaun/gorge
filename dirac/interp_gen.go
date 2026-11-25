@@ -2671,7 +2671,7 @@ func (s *State) damageBatch(k *prep, codes []TCode, amts []int, park bool) bool 
 	var dn [maxXTgt + 1]int16 // each recipient's dealt amount, for the per-referent pass
 	for i, code := range codes {
 		n := amts[i]
-		if n > 0 && k.gen.anyRepl&(rbDblDmg|rbPrevNC|rbPrevDmgTo|rbProtAll|rbProtCol|rbPlusDmg|rbShield|rbPrevCol|rbPrevMill|rbSelfDmg) != 0 {
+		if n > 0 && (k.gen.anyRepl&(rbDblDmg|rbPrevNC|rbPrevDmgTo|rbProtAll|rbProtCol|rbPlusDmg|rbShield|rbPrevCol|rbPrevMill|rbSelfDmg) != 0 || k.gen.anyRepl2&rb2DmgInst != 0) {
 			n = s.replDamagePend(k, s.srcCtrl(k), s.objRef(k, kop.RefSelf), s.res.e.card, code, n, s.res.e.obj)
 		}
 		if n <= 0 {

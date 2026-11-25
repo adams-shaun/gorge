@@ -71,6 +71,8 @@ func (s *State) FeatOffKwNames(o Obj) []string {
 			out = append(out, "Retrace")
 		case kop.StatUnearthGrant:
 			out = append(out, "Unearth")
+		case kop.StatCyclingGrant:
+			out = append(out, "Cycling") // a typecycling grant lists as Cycling too (kw_cyclinggrant.go)
 		}
 		return true
 	})
