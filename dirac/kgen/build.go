@@ -1117,6 +1117,7 @@ func (cb *cardBuilder) record() error {
 	d.Engines = c.Engines
 	d.HasReconfigure = c.Reconfigure
 	d.Ascend, d.Unleash, d.Flanking, d.Phasing, d.Riot, d.Enlist, d.HasBlitz, d.BlitzCost = c.Ascend, c.Unleash, c.Flanking, c.Phasing, c.Riot, c.Enlist, c.Blitz, c.BlitzCost
+	d.Storied = c.Storied
 	d.AtkFace = c.AtkFace
 	d.SagaN = uint8(c.SagaN)
 	d.TapPowerCrew = int8(c.TapPowerCrew)
@@ -2626,7 +2627,8 @@ var cmpOps = map[uint8]kop.CmpOp{opGE: kop.CmpGE, opLE: kop.CmpLE, opEQ: kop.Cmp
 var condKinds = map[condKind]kop.CondKind{cPresent: kop.CondPresent, cValue: kop.CondValue, cKicked: kop.CondKicked,
 	cThreshold: kop.CondThreshold, cYourTurn: kop.CondYourTurn, cRefMatches: kop.CondRefMatches,
 	cPromisedGift: kop.CondPromised, cAnd: kop.CondAnd, cEchoOwed: kop.CondEchoOwed, cSourceZone: kop.CondSourceZone,
-	cBlessing: kop.CondBlessing, cRemMark: kop.CondRemMark, cMonarch: kop.CondMonarch}
+	cBlessing: kop.CondBlessing, cRemMark: kop.CondRemMark, cMonarch: kop.CondMonarch,
+	cEnduringStory: kop.CondEnduringStory}
 
 // cond interns a condition (0 for none).
 func (cb *cardBuilder) cond(c lCond) (kop.CondID, error) {
