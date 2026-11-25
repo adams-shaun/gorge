@@ -148,9 +148,11 @@ func (s *State) applyAskCold1(k *prep, a Action) bool {
 	case raGenConfirm:
 		s.res.ask = raNone
 		if a.Mode() == 0 {
-			s.continueRes(k, 0) // declined: the owner is skipped
+			s.rememberSearcherDrop() // no search happened: forget its searcher
+			s.continueRes(k, 0)      // declined: the owner is skipped
 			return true
 		}
+		s.rememberSearcherCommit() // the accepted search remembers the searcher
 		if s.searchPick(k) && !s.moveAsked() {
 			s.continueRes(k, 0)
 		}
