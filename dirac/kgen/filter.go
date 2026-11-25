@@ -756,6 +756,12 @@ func (c *lClause) prop(p string, knownSub func(string) bool) error {
 		// link's target's controller, a player target read as itself and an
 		// object target as its controller (kop.Filter.CtrlTgt)
 		return c.setWho(&c.Ctrl, whoTgtOrCtrl)
+	case "ControlledBy Remembered":
+		// inside a RepeatEach player body Remembered is the repeated player
+		// (gorge controlReferentPlayers Remembered). The kernel reads the
+		// same CtrlEachPl as RememberedPlayerCtrl; lc.filter refuses the
+		// word outside the loop.
+		return c.setWho(&c.Ctrl, whoEachPl)
 	case "ControlledBy TriggeredDefendingPlayer", "DefenderCtrl":
 		// gorge controlReferentPlayers TriggeredDefendingPlayer: the
 		// trigger's DefendingPlayer (lc.filter admits it only in an

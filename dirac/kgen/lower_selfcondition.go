@@ -122,7 +122,7 @@ func valueRd(v lValue) condRd {
 	case vNone, vConst, vX, vCountGraveyard, vAttackedThisTurn, vLifeOf, vLibrarySizeOf, vStartingLife,
 		vLifeGainedThisTurn, vOppLifeLostThisTurn, vCreaturesDied, vLifeLostThisTurn, vLifeLostLastTurn, vHandSizeOf,
 		vOppsLostLife, vDrawnThisTurn, vGraveTypes, vGraveAgg, vYourSpeed, vHighestOppPoison,
-		vKicked, vTimesKicked, vMorbid, vSum, vPromisedGift, vCompare, vBranches, vCommittedCrime, vCountersOn,
+		vKicked, vTimesKicked, vPaidN, vMorbid, vSum, vPromisedGift, vCompare, vBranches, vCommittedCrime, vCountersOn,
 		vLowestLife, vOppsAttacked, vBlessing:
 	case vCount, vCountAtLeast, vCountExile:
 		// vCountExile: the count runs over the exile zones, whose cards no
