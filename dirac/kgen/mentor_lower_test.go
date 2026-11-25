@@ -36,6 +36,19 @@ func TestMentorGrantLowers(t *testing.T) {
 	if lir := cardLIR(c); !strings.Contains(lir, "GrantedMentor") {
 		t.Errorf("Nyxborn Unicorn LIR has no GrantedMentor trigger:\n%s", lir)
 	}
+	// The latent trigger must be what the Continuous static GRANTS, not just
+	// an ability on the card: the LIR's Grant list is the kernel's linkage.
+	granted := false
+	for _, st := range c.Statics {
+		for _, idx := range st.Grant {
+			if idx >= 0 && idx < len(c.Abilities) && c.Abilities[idx].Name == "GrantedMentor" {
+				granted = true
+			}
+		}
+	}
+	if !granted {
+		t.Errorf("Nyxborn Unicorn statics grant %v, want the GrantedMentor ability:\n%s", c.Statics, cardLIR(c))
+	}
 }
 
 // TestMentorGrantSplit: every bare Mentor term is its own instance; any other
