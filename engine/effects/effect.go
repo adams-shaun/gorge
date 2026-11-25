@@ -381,7 +381,9 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 		// ceiling -- |TT= is deliberately omitted so the registration survives
 		// every TurnChange -- and its retirement is the Effect's own
 		// DBExileSelf body (Host.EndEffectSource), never a turn boundary.
-		permanentComeback := forgetOnPhasedIn && tr.Mode == "ChangesZone" &&
+		// The Untaps sibling (The Pandorica's "when it becomes untapped, that
+		// permanent phases in") is the same promise on the host's untap.
+		permanentComeback := forgetOnPhasedIn && (tr.Mode == "ChangesZone" || tr.Mode == "Untaps") &&
 			effectDurationPermanent(rawDur)
 		sourceLeave := effectSourceLeaveOneShot(tl, rawDur, forgetOn, permanentComeback)
 		oneOff := tl.OneOff &&
@@ -484,7 +486,9 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 		}
 		expiry := "|TT=" + strconv.Itoa(int(h.Game().Turn))
 		if permanentComeback {
-			expiry = ""
+			// ForgetOnPhasedIn$: the registration forgets a remembered
+			// permanent as it phases in (rules' sweepEffectDelayed).
+			expiry = "|FP"
 		} else if !effectTriggerThisTurnDuration(rawDur) && dur != "untilyournextendstep" {
 			expiry = "|DU=" + dur
 		}
