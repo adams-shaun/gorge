@@ -1095,9 +1095,11 @@ func (s *State) cleanupGen(k *prep) {
 		s.dropEndOfNextTurnEmblems(k) // Duration$ UntilTheEndOfYourNextTurn (static_emblemdurations.go)
 	}
 	n := 0
+	mayNTEnds := s.mayNTSweep() // UntilYourNextTurn records end when their controller's turn is next (cast_mayplaynt.go)
 	for i := 0; i < int(s.g.nmay); i++ {
 		r := *s.mayAt(i)
 		keep := r.dur() == kop.DurYourNextTurn && !(s.active == r.ctrl && mayWord(s.turn) > r.turn) ||
+			r.dur() == kop.DurUntilYourNextTurn && mayNTEnds&(1<<r.ctrl) == 0 ||
 			r.until == kop.DurWarp && s.warpRecastLive(r) ||
 			r.until == kop.DurAirbend && s.warpRecastLive(r) ||
 			r.until == kop.DurPlot && s.plotLive(r) ||
