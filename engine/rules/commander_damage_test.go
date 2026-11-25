@@ -313,6 +313,8 @@ func TestPreventedCombatDamageDoesNotInflateTheTally(t *testing.T) {
 	e.askAttackers()
 	submitAttackers(t, e, atk)
 	submitBlockers(t, e, blk)
+	// CR 702.19b: 2 lethal to the 1/2 guard, the remaining 8 trample over.
+	submitDivision(t, e, []int32{2, 8})
 
 	if got := e.G.Players[1].CmdDamage[0]; got != 8 {
 		t.Fatalf("commander damage = %d, want 8 (the 2 dealt to the protected blocker is prevented and must not be tallied)", got)
