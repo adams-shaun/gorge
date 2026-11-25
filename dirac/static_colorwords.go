@@ -19,7 +19,7 @@ import (
 // nothing (gorge's colourWordEffects fails closed on an unanswered ask).
 //
 // Two checkpoints cover every read of a changed face without a hook in each
-// reader: beginCast (a spell takes the change as it reaches the stack, before
+// reader: pushBuild (a spell takes the change as it reaches the stack, before
 // its targets are asked) and the priority grant (every permanent and spell
 // already in play, before a player may act or a trigger's targets are asked).
 // Both sit behind genPrep.anyColorWords, so a pool with no such static pays
@@ -80,16 +80,24 @@ func (s *State) colorWordsStall(k *prep) bool {
 	return hit
 }
 
-// colorWordsCastStall stalls the game when the card about to be cast reads a
-// rewritten colour word (the cast checkpoint). It reports whether it stalled.
+// colorWordsCast is the cast checkpoint: pushBuild calls it as the spell
+// reaches the stack, before its modes and targets are asked. A pool with no
+// colour-word static pays this one inlined branch.
+func (s *State) colorWordsCast(k *prep, c CardID) {
+	if k.gen != nil && k.gen.anyColorWords {
+		s.colorWordsCastStall(k, c)
+	}
+}
+
+// colorWordsCastStall stalls the game when the card being cast reads a
+// rewritten colour word.
 //
 //go:noinline
-func (s *State) colorWordsCastStall(k *prep, c CardID) bool {
+func (s *State) colorWordsCastStall(k *prep, c CardID) {
 	bites := s.colorWordsBites(k)
 	if bites == 0 || k.t.Cards[c].TextWords&bites == 0 {
-		return false
+		return
 	}
 	ColorWordsStats.Casts.Add(1)
 	s.capFull(StallTextChange)
-	return true
 }

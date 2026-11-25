@@ -24,9 +24,6 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8, tgt uint8) {
 	ob := &s.objs[o]
 	p := s.prio
 	c := ob.card
-	if k.gen != nil && k.gen.anyColorWords && s.colorWordsCastStall(k, c) {
-		return // the cast card reads a word a colour-word static rewrites (static_colorwords.go)
-	}
 	if int(o) < len(s.cold.mkObj) {
 		s.cold.mkObj[o] = 0 // a card cast again starts with no payments (CR 702.43; kw_multikicker.go)
 	}
@@ -310,6 +307,7 @@ func (s *State) pushBuild(k *prep) {
 	if e.kind == seSpell {
 		ob := &s.objs[e.obj]
 		z := ob.zone
+		s.colorWordsCast(k, ob.card) // a colour-word static rewrites the cast card's text before its targets (static_colorwords.go)
 		copyCast := k.gen != nil && k.gen.anyCopyCast && s.copyCastFrom(e.obj)
 		if copyCast {
 			z = kop.ZoneLibrary // a Play CopyCard$ copy is cast from gorge's holding zone (cast_copycast.go)
