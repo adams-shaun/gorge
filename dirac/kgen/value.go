@@ -1521,7 +1521,7 @@ func (lc *lowerCtx) countValue(rest string, depth int) (lValue, error) {
 	}{{"Kicked.", vKicked, false}, {"Teamwork.", vKicked, false}, {"Morbid.", vMorbid, false}, {"PromisedGift.", vPromisedGift, false},
 		{"CommittedCrimeThisTurn.", vCommittedCrime, false}, {"Void.", vVoid, false}, {"IfCastInOwnMainPhase.", vIfCastOwnMain, false},
 		{"Monarch.", vMonarch, false}, {"Blessing.", vBlessing, false},
-		{"wasCastFromGraveyard.", vCastFromGrave, false},
+		{"wasCastFromGraveyard.", vCastFromGrave, false}, {"AltCost.", vAltCost, false},
 		{"Bargained.", vKicked, true}, {"Bargain.", vKicked, true}, {"OptionalGenericCostPaid.", vKicked, false}} {
 		if !strings.HasPrefix(rest, cv.pre) {
 			continue
@@ -1531,6 +1531,11 @@ func (lc *lowerCtx) countValue(rest string, depth int) (lValue, error) {
 			// kernel reads the resolving stack entry, so only a spell
 			// ability has the same object.
 			return lValue{}, refuse("Count$%s outside a spell ability", strings.TrimSuffix(cv.pre, "."))
+		}
+		if cv.kind == vAltCost {
+			if err := lc.altCostRead(); err != nil {
+				return lValue{}, err // value_altcost.go
+			}
 		}
 		if cv.kind == vIfCastOwnMain && (lc.ab == nil || lc.ab.Kind != akSpell) {
 			// the kernel reads the spell entry under resolution or announcement

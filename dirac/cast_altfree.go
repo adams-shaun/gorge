@@ -168,6 +168,9 @@ func (s *State) takeAltCast(k *prep, c CardID, mode uint8) {
 	s.g.altCast = false
 	if mode&2 == 0 {
 		s.bld().altAdd = buildAltCost
+		if k.gen.anyAltCostRead {
+			s.bld().e.trigPl = trigPlAltCost // the cast's AlternativeCost provenance (value_altcost.go)
+		}
 	} else if !k.t.Cards[c].BeamMeUp || s.g.beamGrant {
 		s.bld().altAdd = buildBeamGrant // kw_beammeup.go
 	}

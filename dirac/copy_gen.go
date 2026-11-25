@@ -155,6 +155,9 @@ func (s *State) mintSpellCopyExc(k *prep, si int, ctrl, exc uint8) bool {
 	if ce.trigPl == trigPlForetold {
 		ce.trigPl = 0 // nor foretold (kw_foretell.go)
 	}
+	if ce.trigPl == trigPlAltCost {
+		ce.trigPl = 0 // nor cast for its alternative cost (gorge: a copy carries no FlagAltCostPaid; value_altcost.go)
+	}
 	if ce.impended() {
 		ce.mode &^= modeImpended // nor impended (CR 707.10: gorge's FlagImpending is cast provenance)
 	}

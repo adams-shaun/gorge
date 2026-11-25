@@ -284,6 +284,7 @@ type genPrep struct {
 	anyBattle       bool           // some card is a Battle (kop.TBattle front; face_battle.go)
 	anyWorld        bool           // some card is a World (CardDef.World): the CR 704.5k arm (zone_worldrule.go)
 	anySneak        bool           // some card has sneak (CardDef.HasSneak; kw_sneak.go)
+	anyAltCostRead  bool           // some expression is ExAltCost: an own-alternative-cost cast is marked trigPlAltCost (value_altcost.go)
 	anyWebSling     bool           // some card has web-slinging (CardDef.HasWebSling; kw_websling.go)
 	anyMayFlash     bool           // some card has K:MayFlashCost (CardDef.HasMayFlash; kw_mayflash.go)
 	anyRebound      bool           // some card has printed rebound (CardDef.ReboundAb; kw_rebound.go): a hand-cast spell's resolution exits to exile and registers the upkeep recast
@@ -978,6 +979,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepOpus(t, g)
 	prepConverge(t, g)     // mana_converge.go
 	prepEvoke(t, g)        // kw_evoke.go
+	prepAltCostRead(t, g)  // value_altcost.go
 	prepEffEtbCtr(t, p, g) // ctr_effectentry.go: the rider counts, and the prepared bodies the entry order is asked over
 	prepCtrPlusEOT(t, g)   // ctr_pluseot.go
 	prepTurnRepl(t, g)     // repl_turnrepl.go

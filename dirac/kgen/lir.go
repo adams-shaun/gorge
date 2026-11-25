@@ -254,6 +254,7 @@ const (
 	vSpellsLastTurn      // the spells cast last turn: N=0 whether any player cast one (0 or 1), N=1 the most one player cast (kop.ExSpellsCastLastTurn; value_spellslastturn.go)
 	vDevotionChosen      // the controller's devotion to the colour recorded on the source (Count$Devotion.Chosen, kop.ExDevotionChosen; value_devotion.go)
 	vSVarNum             // the evaluating source's StoreSVar number for the name S, else the printed body Sub[0] (kop.ExSVarNum; lower_storenum.go)
+	vAltCost             // Sub[0] if the resolving spell was cast for its own AlternativeCost static, else Sub[1] (Count$AltCost.<paid>.<unpaid>; kop.ExAltCost; value_altcost.go)
 	vMostProminentType   // the size of the largest group of battlefield objects matching F that share a creature type (Count$MostProminentCreatureType; kop.ExMostProminentCreatureType; value_mostprominent.go)
 	vReplLKIPow          // the replaced creature's derived power before a dies-to-exile rider moved it (ReplacedCardLKI$CardPower; value_repllki.go)
 	vCount_
@@ -382,6 +383,7 @@ var valNames = [...]string{
 	vSpellsLastTurn:      "SpellsLastTurn",
 	vReplLKIPow:          "ReplLKIPow",
 	vMostProminentType:   "MostProminentType",
+	vAltCost:             "AltCost",
 }
 
 // lValue is an amount: Kind with its operand, then Mul/Div/Add applied in
