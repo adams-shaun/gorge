@@ -1378,6 +1378,10 @@ func (s *State) genAskOptions(k *prep, d *Decision) bool {
 		s.entryOrderOptions(k, d)
 		return true
 	}
+	if s.g.ro.bdy != 0 {
+		s.replBodyOptions(d) // the frozen walk's ask body (repl_dmbody.go)
+		return true
+	}
 	if s.g.ro.n > 0 && (s.g.ro.on || s.g.ro.nca) {
 		s.replOrderOptions(d)
 		return true
@@ -1481,6 +1485,10 @@ func (s *State) applyGen(k *prep, a Action) {
 	}
 	if s.entryAsked(k) {
 		s.applyEntryLand(k, a)
+		return
+	}
+	if s.g.ro.bdy != 0 {
+		s.replBodyCombatAnswer(k, a) // the frozen walk's ask body (repl_dmbody.go)
 		return
 	}
 	if s.g.ro.n > 0 && (s.g.ro.on || s.g.ro.nca) {
