@@ -136,7 +136,13 @@ func rememberChosenTargets(h Host, c *Ctx, sa *cards.SA, targets []state.Target,
 		// itself). Record the write as its own occurrence -- the selection rule
 		// drops the seeded capture and keeps the written one in write order --
 		// and event-back it on the source so the persistent list holds it too.
-		if containsTarget(c.Captured, target) && countTarget(c.Remembered, target) <= countTarget(c.Captured, target) {
+		// A delayed-trigger REGISTRATION's captured set is its own saved memory,
+		// not a fallback (DelayedRemembered), so only a capture-only
+		// registration takes the write-occurrence path there; the ordinary
+		// registration keeps the dedupe that set already encodes.
+		captureIsFallback := len(c.DelayedRemembered) == 0 || c.DelayedCaptureOnly
+		if captureIsFallback && containsTarget(c.Captured, target) &&
+			countTarget(c.Remembered, target) <= countTarget(c.Captured, target) {
 			c.Remembered = append(c.Remembered, target)
 			persistRemembered(h, c, target)
 			continue
