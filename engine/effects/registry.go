@@ -1458,6 +1458,9 @@ func Resolve(h Host, c *Ctx, sa *cards.SA) {
 				c.Targets = append([]state.Target(nil), ts...)
 			}
 			fn(h, c, sa)
+			// ImprintCards$ binds while the link's own answer is still
+			// Ctx.PickedTargets (Crooked Scales, Mogg Assassin).
+			imprint(h, c, sa)
 			c.PickedTargets = nil
 			recordParentLink(c, sa, ts, true)
 			rememberChosenTargets(h, c, sa, ts, true)
@@ -1478,20 +1481,9 @@ func Resolve(h Host, c *Ctx, sa *cards.SA) {
 			rootTargets, rootAnswered := c.Targets, d == 0 && !c.linkAnswered
 			recordParentLink(c, sa, rootTargets, rootAnswered)
 			rememberChosenTargets(h, c, sa, nil, false)
+			imprint(h, c, sa)
 		}
-		imprint(h, c, sa)
-		if strings.EqualFold(sa.ParamStr(cards.PKClearImprinted), "True") && c.Source != 0 {
-			releaseImprintedEffects(h, c.Source)
-			// Only a real clear is an event (the ClearRemembered$
-			// discipline effCleanup documents): clearing lists that are
-			// already empty is a no-op, and logging it as a state change hid
-			// a no-progress Repeat from effRepeat's guard (Rally the Horde
-			// over an empty library).
-			if o := h.Game().Obj(c.Source); o != nil &&
-				(len(o.Imprinted) > 0 || len(o.ImprintTokens) > 0 || len(o.SeekFound) > 0) {
-				h.Emit(events.Event{Kind: events.Imprint, Obj: c.Source, Text: "clear"})
-			}
-		}
+		clearImprinted(h, c, sa)
 		if c.Restarted {
 			// CR 727.4: the game restarted. The host performs the restart;
 			// the chain's remainder is not followed here.
