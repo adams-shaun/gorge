@@ -982,7 +982,12 @@ func (r *oracleRun) build(sc oracleScenario) error {
 		}
 		if life := sc.Setup[fmt.Sprintf("p%d", p)].Life; life != nil {
 			if d := *life - e.G.Players[p].Life; d != 0 {
+				// A setup life total is a stated fact, not a gain: no CR 614
+				// replacement may rewrite it.
+				prior := e.applyingReplacement
+				e.applyingReplacement = true
 				e.emit(events.Event{Kind: events.LifeChange, Player: pid, Amount: d})
+				e.applyingReplacement = prior
 			}
 		}
 		if !sc.xmageFixture {

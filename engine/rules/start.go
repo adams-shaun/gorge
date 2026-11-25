@@ -370,7 +370,11 @@ func (b startBuilder) finishStartSeat(pl *startSeatPlan) {
 	h.Emit(events.Event{Kind: events.LibraryOrder, Player: pl.seat, IDs: order, Secret: true})
 	if pl.spec.Life != nil {
 		if d := *pl.spec.Life - h.G.Players[pl.seat].Life; d != 0 {
+			// A setup life total is a stated fact, not a gain: no CR 614
+			// replacement may rewrite it.
+			prior := h.Replacing(true)
 			h.Emit(events.Event{Kind: events.LifeChange, Player: pl.seat, Amount: d})
+			h.Replacing(prior)
 		}
 	}
 }
