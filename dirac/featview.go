@@ -675,7 +675,17 @@ func (s *State) FeatPlannedCast(p uint8, o Obj, mode uint8) bool {
 	// leaves a paid filter (Flooded Grove) out, which gorge's planner still funds, so only a
 	// live granted ability can make a cast payable by the grant alone.
 	if (len(k.gen.grantPC) != 0 && s.liveGrantGap(k, p) || k.gen.anyComboDyn && s.comboDynLive(k, p) || s.eachPickSources(k, p).any()) && !s.affordsUngrantedCast(k, p, &cost, payDesc{class: pdSpell, card: s.objs[o].card, src: NoSlot, og: s.restrOriginOfObj(o)}) {
-		return false // payable only with a granted mana ability (the V1 exclusion above) or a Combo Any of an evaluated amount (mana_combodyn.go)
+		if !(s.g.mayPlayAny || s.mayPlayAnyType(k, p, o) || s.convAnyType(k, SeatIx(p), o)) {
+			return false // payable only with a granted mana ability (the V1 exclusion above) or a Combo Any of an evaluated amount (mana_combodyn.go)
+		}
+		// An any-type rider makes a twobrid pip's colour face one mana of any
+		// type (pay.PlanManaUnderRider; CR 107.4e, 609.4b), so the granted
+		// census check prices the folded cost: a Lantern's lands and two
+		// Islands pay Beseech the Queen's {2/B}{2/B}{2/B} without a grant.
+		priced := anyType(cost)
+		if !s.affordsUngrantedCast(k, p, &priced, payDesc{class: pdSpell, card: s.objs[o].card, src: NoSlot, og: s.restrOriginOfObj(o)}) {
+			return false
+		}
 	}
 	if s.dhWithholdsCast(k, p, o, &cost) {
 		// the Diamonds alone fund the hand cast and the census prices no
