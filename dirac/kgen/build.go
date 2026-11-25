@@ -878,6 +878,16 @@ func (cb *cardBuilder) record() error {
 		if d.EvokeCost, err = manaCostOf(*c.Evoke); err != nil {
 			return err
 		}
+		if c.EvokePick != nil {
+			// the hand-exile pick (lower_evoke.go evokePickCost; kernel
+			// kw_evoke.go offerEvokeHand and buildPickCost)
+			if d.EvokePick, err = cb.cost(*c.EvokePick); err != nil {
+				return err
+			}
+			if !altHandExileShape(&d.EvokePick) {
+				return fmt.Errorf("evoke pick cost outside the hand-exile shape")
+			}
+		}
 	}
 	if c.Dash != nil {
 		// CR 702.109a: no KwMask bit is free, so the dash marker is its own
