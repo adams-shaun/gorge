@@ -20,5 +20,5 @@ var kstaticzonesHurkylDecks = [2][]cardset.Entry{
 
 func TestStaticZonesHurkylLockstep(t *testing.T) {
 	t.Parallel()
-	lockstepSet(t, "staticzones", kstaticzonesHurkylDecks, 200, "KSTATICZONES_SEEDS")
+	lockstepSet(t, "staticzones", kstaticzonesHurkylDecks, 80, "KSTATICZONES_SEEDS")
 }

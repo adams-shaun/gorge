@@ -9,7 +9,7 @@ import (
 // hurkylRaiseSrc is Hurkyl's Final Meditation's raise line: Affected$ Card.Self
 // with no ValidCard$ (the corpus's one cost static spelled so).
 const hurkylRaiseSrc = "Name:Hurkyl Probe\nManaCost:1 U\nTypes:Instant\n" +
-	"S:Mode$ RaiseCost | Affected$ Card.Self | Type$ Spell | Condition$ NotPlayerTurn | EffectZone$ All | Amount$ 3 | Description$ As long as it's not your turn, this spell costs {3} more to cast.\n" +
+	"S:Mode$ RaiseCost | Condition$ NotPlayerTurn | Affected$ Card.Self | Type$ Spell | EffectZone$ All | Amount$ 3\n" +
 	"A:SP$ Draw | NumCards$ 1\nOracle:x\n"
 
 // TestHurkylSelfRaiseChargesOnlyItself pins that a RaiseCost spelled
