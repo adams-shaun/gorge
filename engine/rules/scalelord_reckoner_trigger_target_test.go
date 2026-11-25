@@ -47,7 +47,7 @@ func scalelordReckonerEngine(t *testing.T, reg *cards.Registry, p0Board []string
 	}
 	for _, id := range e.G.Zone(state.ZBattlefield, 0) {
 		o := e.G.Obj(id)
-		if o == nil {
+		if o == nil || len(p0Board) > 0 {
 			continue
 		}
 		nonland := false
