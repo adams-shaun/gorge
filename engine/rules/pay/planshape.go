@@ -684,15 +684,20 @@ func PaymentPlanFoldableTapMana(f *cards.Face, t cards.Trigger) (PlanTapMana, bo
 }
 
 // paymentPlanStaticTapManaBody is the body of a `Mode$ TapsForMana |
-// Static$ True` battlefield trigger of face f whose parameters are all in the
-// closed world paymentPlanTapManaTriggerCodes names and whose body is one api
-// ability with no SubAbility$, or nil.
+// Static$ True` trigger of face f whose parameters are all in the closed
+// world paymentPlanTapManaTriggerCodes names and whose body is one api
+// ability with no SubAbility$, or nil. A TriggerZones$ Command line is
+// admitted only on a Vanguard face: a Vanguard is not a battlefield
+// permanent, so its printed static lives in the command zone (Sisay).
 func paymentPlanStaticTapManaBody(f *cards.Face, t cards.Trigger, api string) *cards.SA {
 	if t.Mode != "TapsForMana" || !strings.EqualFold(strings.TrimSpace(t.ParamStr(cards.PKStatic)), "True") {
 		return nil
 	}
-	if v, ok := t.Param(cards.PKTriggerZones); ok && strings.TrimSpace(v) != "Battlefield" {
-		return nil
+	if v, ok := t.Param(cards.PKTriggerZones); ok {
+		zone := strings.TrimSpace(v)
+		if zone != "Battlefield" && !(zone == "Command" && f != nil && f.TypeMaskOf()&cards.TypeVanguard != 0) {
+			return nil
+		}
 	}
 	for _, k := range slices.Sorted(maps.Keys(t.Params)) {
 		if paymentPlanTapManaTriggerCodes.Code(string(k)) == 0 {

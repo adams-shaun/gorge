@@ -1678,6 +1678,9 @@ func init() { enum[kop.TrigEvent]("kop.TrigVisitAttraction", kop.TrigVisitAttrac
 // dirac/manifest/TrigEvent/TrigLeaveExile
 func init() { enum[kop.TrigEvent]("kop.TrigLeaveExile", kop.TrigLeaveExile) }
 
+// dirac/manifest/TypeMask/TVanguard
+func init() { mask[kop.TypeMask]("kop.TVanguard", kop.TVanguard) }
+
 // dirac/manifest/Zone/ZonePlanarDeck
 func init() { enum[kop.Zone]("kop.ZonePlanarDeck", kop.ZonePlanarDeck) }
 

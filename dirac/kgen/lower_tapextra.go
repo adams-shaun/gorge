@@ -2,6 +2,7 @@ package kgen
 
 import (
 	"maps"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -482,6 +483,17 @@ func (lc *lowerCtx) tapExtraReflected(t cards.Trigger) error {
 	tp := newParams(t.Params)
 	tp.consume("Mode", "Execute", "Static", "TriggerZones", "TriggerDescription")
 	st := lStatic{Kind: "TapExtra", TapAmt: 1, Flags: []string{"TapReflect"}}
+	if strings.TrimSpace(t.ParamStr(cards.PKTriggerZones)) == "Command" {
+		// A Vanguard (Sisay) is not a battlefield permanent: its printed
+		// TapsForMana static lives in the command zone, and the kernel's
+		// eachTapExtra walks the seated Vanguard there. The classifier above
+		// admits Command only on a Vanguard face (pay paymentPlanStaticTapManaBody).
+		// Mark the type only on this lowered shape: every other Vanguard face
+		// keeps its old inert subtype, out of scope for this static.
+		lc.out.Types |= tVanguard
+		lc.out.Subtypes = slices.DeleteFunc(lc.out.Subtypes, func(s string) bool { return s == "Vanguard" })
+		st.Zone = zCommand
+	}
 	switch v := strings.TrimSpace(tp.str("Activator")); {
 	case v == "You" && !tm.ToTapped:
 	case v == "" && tm.ToTapped:

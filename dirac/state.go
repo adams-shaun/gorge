@@ -112,6 +112,12 @@ type Config struct {
 	// StartingLife 40.
 	Commander  bool
 	Commanders [MaxSeats][2]int16
+	// SeatCommanders seats Commanders[p] in the command zone at genesis
+	// without playing a Commander game: no 40 life, no command-zone cast offer
+	// and no commander damage. It is how a Vanguard (Sisay) starts in the
+	// command zone, as gorge's genesis seats Config.Commanders regardless of
+	// format (a Vanguard's static functions from there, CR 605.3b).
+	SeatCommanders bool
 	// Side is each seat's sideboard, the cards "outside the game" (CR 400.11):
 	// Side[p][:SideN[p]], at most MaxSide per seat. They are objects of their
 	// own, numbered after both decks, in the zone ZoneSideboard; only a play

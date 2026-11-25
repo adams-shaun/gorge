@@ -332,7 +332,13 @@ func (e *Engine) potentialSpareGrew(p state.PlayerID, payment *paymentDescriptor
 func (e *Engine) tapExtraTriggerOnBoard() bool {
 	for _, oid := range pay.PaymentPlanInterferenceCarriers(asPayer(e)) {
 		o := e.G.Obj(oid)
-		if o == nil || o.Zone != state.ZBattlefield || o.Face() == nil {
+		if o == nil || o.Face() == nil {
+			continue
+		}
+		if o.Zone != state.ZBattlefield && !(o.Zone == state.ZCommand && o.Face().TypeMaskOf()&cards.TypeVanguard != 0) {
+			// a Vanguard's printed static functions from the command zone
+			// (Sisay): it is not a battlefield permanent, but its tap extra is
+			// real (CR 605.3b)
 			continue
 		}
 		for _, t := range o.Face().Triggers {
