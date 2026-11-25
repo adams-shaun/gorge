@@ -45,14 +45,41 @@ var coldContractOwed = newCold[contractOwed]("contractOwed", func(g *genPrep) in
 	return 0
 })
 
+// contractMod is one staged modified permanent's copiable values (CR 707.2):
+// the card it is, the override record it shows (its copy basis in
+// ovr.copyOf/ovCopy), the generated-table types that record derives, and its
+// layer-1 copy exceptions. The immediate copy read all of these from the live
+// template slot; after the CR 800.4a sweep the slot is gone, so the sweep
+// keeps them here. Pointer-free, so the cold record stays forkable and the
+// transition loop allocates nothing.
+type contractMod struct {
+	card CardID       // perms[sl].card, the card it is (not the face it shows)
+	gty  kop.TypeMask // perms[sl].gty, the ovGenTy types, provenance bits cleared
+	ovr  override     // its override record (copy basis, P/T, type, keyword)
+	nexc uint8        // copy exception records (Table.Overrides indexes)
+	exc  [maxOvr]uint8
+}
+
+// maxContractMods caps the modified permanents a departing seat stages. The
+// budget is the State bar (TestEveryPoolFitsTheStateBar): only a permanent a
+// plain card copy cannot describe takes a record, and a seat over the cap
+// stalls (a declared capacity limit) rather than dropping copiable values.
+const maxContractMods = 32
+
 // contractPending is p's staged loss copy: the Effect's controller and, in the
 // copy body's selector order, the cards of the artifacts and creatures p
-// controlled when it left. The CR 800.4a sweep takes those permanents before
-// the trigger resolves, so the snapshot is the copy's last-known basis.
+// controlled when it left. cards holds each permanent's copiable face
+// (cardAt); mod[i] is 1 + its contractMod index when a plain copy of that card
+// is not enough (a copy basis, a continuous override or a copy exception).
+// The CR 800.4a sweep takes those permanents before the trigger resolves, so
+// the snapshot is the copy's last-known basis.
 type contractPending struct {
 	ctrl  uint8
 	n     uint8
+	nm    uint8
 	cards [MaxPerm]CardID
+	mod   [MaxPerm]uint8
+	mods  [maxContractMods]contractMod
 }
 
 var coldContractPending = newCold[contractPending]("contractPending", func(g *genPrep) int {
@@ -142,6 +169,17 @@ func (s *State) contractLossCopy(k *prep, p uint8) {
 		}
 		crt := ty&kop.TCreature != 0
 		t := s.perms[sl].ts
+		basis := s.cardAt(sl)
+		mi := uint8(0)
+		if m, ok := s.contractModAt(sl); ok {
+			if int(rec.nm) >= len(rec.mods) {
+				s.stall(StallBoard)
+				return
+			}
+			rec.mods[rec.nm] = m
+			rec.nm++
+			mi = rec.nm // 1-based, 0 = a plain card copy
+		}
 		j := n
 		for j > 0 {
 			prevCrt := creature[j-1]
@@ -151,10 +189,10 @@ func (s *State) contractLossCopy(k *prep, p uint8) {
 			if prevCrt == crt && ts[j-1] <= t {
 				break
 			}
-			ts[j], creature[j], rec.cards[j] = ts[j-1], creature[j-1], rec.cards[j-1]
+			ts[j], creature[j], rec.cards[j], rec.mod[j] = ts[j-1], creature[j-1], rec.cards[j-1], rec.mod[j-1]
 			j--
 		}
-		ts[j], creature[j], rec.cards[j] = t, crt, s.cardAt(sl)
+		ts[j], creature[j], rec.cards[j], rec.mod[j] = t, crt, basis, mi
 		n++
 	}
 	rec.n = uint8(n)
@@ -166,6 +204,38 @@ func (s *State) contractLossCopy(k *prep, p uint8) {
 		ver, card = s.objs[src].ver, s.objs[src].card
 	}
 	s.enqueue(src, ver, card, abDelayed, c, NoObj, p, contractLossTrigAmt)
+}
+
+// contractModAt snapshots the copiable values of the permanent at sl, ok
+// false when a plain copy of its card (cardAt) already describes them. The
+// override record's walk mark is layer bookkeeping, not a copiable value, and
+// the face-down provenance bits are the departing permanent's own; both are
+// dropped. Copy exceptions are the layer-1 records the live template mint
+// (copyExcAdd) would have read. Copy grants are not staged: copyTokenEnterFrom
+// never carries them on its early (exception) path either.
+func (s *State) contractModAt(sl Slot) (contractMod, bool) {
+	p := &s.perms[sl]
+	c := contractMod{
+		card: p.card,
+		gty:  p.gty &^ (gtyFaceDown | gtyProvMask),
+		ovr:  p.ovr,
+	}
+	c.ovr.walk = 0
+	if s.fxM.has(sl) {
+		for i := 0; i < int(s.g.nfx) && int(c.nexc) < maxOvr; i++ {
+			if r := &s.g.fx[i]; r.sl == sl && r.kind == fxCopyExc {
+				c.exc[c.nexc] = r.r.idx
+				c.nexc++
+			}
+		}
+	}
+	// Only a permanent whose copiable values a plain card copy cannot show
+	// takes a record: a copy basis, a continuous override or an exception.
+	if p.card == s.cardAt(sl) && p.ovr.flags&(ovCopy|ovSetPT|ovSetPTEOT|ovTypes|ovTypesEOT|ovGenTy|ovLoseAll|ovLoseAllEOT) == 0 &&
+		p.ovr.kw == 0 && c.gty == 0 && c.nexc == 0 {
+		return c, false
+	}
+	return c, true
 }
 
 // contractLossCopyResolve mints the copies staged for seat p when the
@@ -186,16 +256,22 @@ func (s *State) contractLossCopyResolve(k *prep, ctrl, p uint8) {
 		return
 	}
 	for i := uint8(0); i < n; i++ {
-		if s.mintTokenCopyCard(k, ctrl, rec.cards[i]) {
-			return // the board is full (StallBoard)
+		mi := rec.mod[i]
+		if mi == 0 {
+			if s.mintTokenCopyCard(k, ctrl, rec.cards[i]) {
+				return // the board is full (StallBoard)
+			}
+			continue
+		}
+		if s.mintTokenCopyStaged(k, ctrl, rec.cards[i], &rec.mods[mi-1]) {
+			return
 		}
 	}
+	rec.nm = 0
 }
 
-// mintTokenCopyCard mints a token that is a copy of card c, controlled by p.
-// The staged copy's host permanent has already left the battlefield (the CR
-// 800.4a sweep ran before the trigger resolved), so the token is based on the
-// snapshotted card rather than a live template slot.
+// mintTokenCopyCard mints a plain token that is a copy of card c, controlled
+// by p (a permanent whose copiable values are exactly the card's).
 func (s *State) mintTokenCopyCard(k *prep, p uint8, c CardID) bool {
 	if s.nearCapacity(k) {
 		s.stall(StallBoard)
@@ -205,5 +281,37 @@ func (s *State) mintTokenCopyCard(k *prep, p uint8, c CardID) bool {
 	s.objs[t].of |= ofCopy
 	var in kop.Instr
 	s.copyTokenEnterFrom(k, &in, t, NoSlot, NoSlot, nil)
+	return false
+}
+
+// mintTokenCopyStaged mints a token that is a copy of the modified permanent c
+// snapshotted at the CR 800.4a sweep, controlled by p. The host permanent has
+// already left the battlefield, so the token is entered from c's copiable face
+// and then given c's card, override record, generated types and copy
+// exceptions. The enters check is held until those values are in place, as the
+// live template mint applies them before its own ETB triggers.
+func (s *State) mintTokenCopyStaged(k *prep, p uint8, basis CardID, c *contractMod) bool {
+	if s.nearCapacity(k) {
+		s.stall(StallBoard)
+		return true
+	}
+	t := s.newToken(basis, p)
+	s.objs[t].of |= ofCopy
+	var in kop.Instr
+	var eb entBatch
+	s.copyTokenEnterFrom(k, &in, t, NoSlot, NoSlot, &eb)
+	if sl := s.objs[t].slot; s.objs[t].zone == kop.ZoneBattlefield && s.occ.has(sl) {
+		pm := &s.perms[sl]
+		pm.card, pm.gty, pm.ovr = c.card, c.gty, c.ovr
+		s.objs[t].card = c.card
+		for j := uint8(0); j < c.nexc; j++ {
+			s.copyExcPush(sl, c.exc[j])
+		}
+		if c.nexc != 0 {
+			pm.ovr.kw |= s.copyExcKw(k, sl)
+		}
+		s.touchSl(sl)
+	}
+	s.fireOrHoldEntries(k, &eb)
 	return false
 }
