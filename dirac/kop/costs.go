@@ -215,7 +215,7 @@ const ExileGraveLiveCount = 0xFF
 type Cost struct {
 	Mana  ManaCost
 	Flags CostFlags
-	N     uint8 // count for Sac (0: the announced X, Sac<X/Spec>) / RemoveCtr / AddCtr / Discard / PayLife / TapX / ExileGrave
+	N     uint8 // count for Sac (0: the announced X, Sac<X/Spec>) / RemoveCtr / AddCtr / Discard / PayLife / TapX (0: tapXType<X/Spec>) / ExileGrave
 	// Host names a cost part paid on the permanent that granted the ability
 	// (an Equipment's or Aura's static): CostHostSac or CostHostExile. The CostFlags words are
 	// full, so the part rides its own byte. Only a granted ability reads it.
@@ -342,6 +342,14 @@ type Cost struct {
 	// own cost carries it, and the source is in hand whenever the ability is
 	// offered (canActivate's gate; the hand walk lists hand cards alone).
 	RevealSelf bool
+	// EnergyX: pay the announced X energy counters (PayEnergy<X>, CR 107.3,
+	// 107.14, 601.2b; gorge xAsk bounds the X by the payer's energy and
+	// cast_commit pays it). Cost.N stays the other counted part's (Chthonian
+	// Nightmare's Sac<1/Creature>), so the part rides its own byte, not
+	// CostPayEnergy. A table byte, not a CostFlags bit (the words are full);
+	// only a printed activated ability's own cost with no printed {X} and no
+	// other announced part carries it (kernel cost_energyx.go).
+	EnergyX bool
 }
 
 // CostHostSac: sacrifice the granting host (Sac<1/OriginalHost>: Deconstruction

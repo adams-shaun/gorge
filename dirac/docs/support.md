@@ -13,7 +13,7 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 | DFT | 276 | 259 | 0 | 1 | 258 | 258 | 0 |
 | DSK | 276 | 257 | 2 | 3 | 252 | 252 | 0 |
 | ECL | 273 | 249 | 0 | 1 | 248 | 248 | 0 |
-| EOE | 266 | 251 | 0 | 0 | 251 | 251 | 0 |
+| EOE | 266 | 252 | 0 | 1 | 251 | 251 | 0 |
 | FDN | 517 | 517 | 0 | 0 | 517 | 517 | 0 |
 | FIN | 312 | 283 | 0 | 1 | 282 | 282 | 0 |
 | FRA | 269 | 255 | 0 | 5 | 250 | 250 | 0 |
@@ -31,11 +31,11 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 | TRK | 311 | 311 | 1 | 0 | 310 | 310 | 0 |
 | WOE | 281 | 267 | 0 | 3 | 264 | 264 | 0 |
 | MBC | 2212 | 2033 | 3 | 38 | 1992 | 1992 | 0 |
-| CMM | 737 | 608 | 2 | 27 | 579 | 579 | 0 |
-| MH3 | 308 | 228 | 1 | 5 | 222 | 222 | 0 |
+| CMM | 737 | 609 | 2 | 28 | 579 | 579 | 0 |
+| MH3 | 308 | 229 | 1 | 6 | 222 | 222 | 0 |
 | MH2 | 309 | 260 | 0 | 8 | 252 | 252 | 0 |
 | CM2 | 279 | 238 | 0 | 4 | 234 | 234 | 0 |
-| ALL | 34480 | 26621 | 41 | 724 | 25856 | 25853 | 0 |
+| ALL | 34480 | 26631 | 41 | 734 | 25856 | 25853 | 0 |
 
 `ALL` is the whole corpus; `MBC` is the Mystery Booster Commander draft pool, every name its packs deal that gorge supports; `CMM`, `MH3`, `MH2` and `CM2` are Commander Masters, Modern Horizons 3 and 2 and Commander Anthology Volume II, from gorge-compliance's XMage manifests; the rest are the Standard sets. `4-seat` counts the supported cards whose lowering holds at any seat count: a card whose lowering reads the one opponent of a two-player game (`kop.CardDef.TwoSeat`) is refused in a game of three or more seats (`StallTwoSeat`). It is a ceiling, not evidence. `pod-evidenced` counts those cards whose evidence row carries a seats field — a clean game of three or more seats, which `kfuzz -evidence -seats 4` writes and `scripts/dirac-first-refusals.py evidence --pools pod-*` copies into `dirac/support/evidence` (`Name\t<seats>`; readers take the name and ignore trailing columns). A pod game does not evidence a card: the support rule below is unchanged.
 

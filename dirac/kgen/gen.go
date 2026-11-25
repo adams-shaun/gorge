@@ -709,6 +709,12 @@ func costString(c lCost) string {
 	if c.LifeX {
 		p = append(p, "LifeX")
 	}
+	if c.EnergyX {
+		p = append(p, "EnergyX")
+	}
+	if c.TapXVar {
+		p = append(p, fmt.Sprintf("TapXVar%s", c.TapF))
+	}
 	if c.TapN > 0 {
 		p = append(p, fmt.Sprintf("Tap%d%s", c.TapN, c.TapF))
 	}

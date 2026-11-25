@@ -1350,6 +1350,16 @@ func (cb *cardBuilder) cost(c lCost) (kop.Cost, error) {
 			return out, err
 		}
 	}
+	if c.TapXVar {
+		// an activated ability's tapXType<X/Spec>: CostTapX with N 0, the
+		// announced X the count tapped (kernel cost_tapxann.go); a trigger's
+		// own is its OpIfPaid instruction (payInstr clears the field)
+		set(kop.CostTapX, 0)
+		if out.Filter, err = cb.filter(c.TapF, kop.ZoneBattlefield); err != nil {
+			return out, err
+		}
+	}
+	out.EnergyX = c.EnergyX // PayEnergy<X>: the announced X energy (kernel cost_energyx.go)
 	if c.TapPowN > 0 {
 		set(kop.CostTapPower, c.TapPowN)
 		if c.TapPowCrew {

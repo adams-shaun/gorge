@@ -882,6 +882,13 @@ func (s *State) paySacsGen(k *prep) {
 	if k.gen.anyBatch {
 		defer s.batchClose(s.sacBatchOpen()) // gorge emitSacrifices: one sacrifice batch (act_proliferate.go)
 	}
+	if e := &s.bld().e; e.kind == seAbility && e.ab < uint8(len(k.t.Cards[e.card].Abilities)) {
+		if f := k.t.Cards[e.card].Abilities[e.ab].Cost.Flags; f&kop.CostReturnSelf != 0 && f&kop.CostSac != 0 {
+			// gorge payCast: the source's return before the sacrifices
+			// (Chthonian Nightmare); the deferred call below is then a no-op
+			s.returnSelfDeferred(k, e)
+		}
+	}
 	exile := s.pickExiles(k)
 	for i := 0; i < int(s.bld().pickN); i++ {
 		o := s.bld().picks[i]
