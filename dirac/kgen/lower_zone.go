@@ -3002,7 +3002,7 @@ func (lc *lowerCtx) effectTargetStatic(ps *params, s cards.Static, obj lRef) err
 		}
 		aff := sp.str("Affected")
 		nonLand := false
-		if (obj.Kind == rRemembered || obj.Kind == rTarget || lc.digImprintChosen && obj.Kind == rChosen) && (aff == "Card.IsRemembered+nonLand" || aff == "Card.nonLand+IsRemembered") {
+		if (obj.Kind == rRemembered || obj.Kind == rTarget || obj.Kind == rChosen) && (aff == "Card.IsRemembered+nonLand" || aff == "Card.nonLand+IsRemembered") {
 			// "you may cast" the remembered nonland cards, or (Silas Renn) the
 			// target RememberObjects$ Targeted remembers: the grant skips a
 			// land (its type cannot change off the battlefield)
@@ -3010,10 +3010,12 @@ func (lc *lowerCtx) effectTargetStatic(ps *params, s cards.Static, obj lRef) err
 		}
 		instSorc := false
 		azs := sp.str("AffectedZone")
-		if obj.Kind == rRemembered && (aff == "Instant.IsRemembered,Sorcery.IsRemembered" || aff == "Sorcery.IsRemembered,Instant.IsRemembered") && azs == "Exile,Stack" {
+		if obj.Kind == rRemembered && (aff == "Instant.IsRemembered,Sorcery.IsRemembered" || aff == "Sorcery.IsRemembered,Instant.IsRemembered") && (azs == "Exile" || azs == "Exile,Stack") {
 			// Chandra, Hope's Beacon: the grant covers the remembered instants
 			// and sorceries; the Stack half of the zone list adds no cast
-			// permission (a spell already on the stack is not cast again)
+			// permission (a spell already on the stack is not cast again).
+			// Nivix, Aerie of the Firemind names Exile alone and reads the
+			// same instant-or-sorcery gate.
 			aff, azs, instSorc = "Card.IsRemembered", "Exile", true
 		}
 		zone := zoneNames[azs]
@@ -3050,6 +3052,8 @@ func (lc *lowerCtx) effectTargetStatic(ps *params, s cards.Static, obj lRef) err
 			switch d {
 			case "UntilTheEndOfYourNextTurn":
 				dur = "EndOfYourNextTurn"
+			case "UntilYourNextTurn":
+				dur = "UntilYourNextTurn"
 			case "EndOfTurn", "UntilEndOfTurn", "UntilYourNextEndStep":
 				// gorge effectUntilEOTSet: the continuous side folds these
 				// into this turn (UntilEOT, dropped at cleanup)
@@ -3147,6 +3151,13 @@ func (lc *lowerCtx) effectTargetStatic(ps *params, s cards.Static, obj lRef) err
 		for _, z := range zones {
 			in.C = z
 			lc.emit(in)
+		}
+		if obj.Kind == rChosen && strings.TrimSpace(ps.m["ExileOnMoved"]) == "Stack" {
+			// Mission Briefing: the chosen card's permission carries the
+			// stack-exit exile mark the Effect's replacement registers.
+			if err := lc.stackExileChosenMark(ps, obj); err != nil {
+				return err
+			}
 		}
 	case "CantRegenerate":
 		if err := lc.noRegenMark(ps, sp, obj); err != nil { // lower_noregen.go

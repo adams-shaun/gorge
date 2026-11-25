@@ -29,58 +29,55 @@ import (
 var DebugDmgInsteadOff bool
 
 // DmgInsteadStats counts the bodies run, one counter per kop.ReplDmgIns* effect
-// bit (the oracle test's proof that its pools reach each replacement).
-var DmgInsteadStats [8]atomic.Int64
+// bit (the oracle test's proof that its pools reach each replacement; the ask
+// bodies' bits sit at 14 and 15, in Repl.C).
+var DmgInsteadStats [16]atomic.Int64
 
 // dmgInstead applies the matching ReplDamageInstead line to n damage a source
 // controlled by srcCtrl (permanent srcSl, else the resolving spell srcCard)
 // deals to the player rcp (sl == NoSlot) or the permanent at sl: true when the
-// damage is replaced and nothing is dealt. Only with prep's rb2DmgInst.
+// damage is replaced and nothing is dealt. Only with prep's rb2DmgInst. An
+// ask body's match is handed to the caller (ask; repl_dmbody.go): damageTo
+// parks the event on its decision, every other site stalls loudly, and a
+// frozen pass's recomputed run defers to the walk.
 //
 //go:noinline
-func (s *State) dmgInstead(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, rcp uint8, sl Slot, combat bool, n int) bool {
+func (s *State) dmgInstead(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, rcp uint8, sl Slot, combat bool, n int, ask *ncAsk) bool {
 	if DebugDmgInsteadOff || n <= 0 {
 		return false
 	}
-	g := k.gen
-	var host Slot = NoSlot
-	var line *kop.Repl
-	hits := 0
-	for m := s.statM; m.any(); m = m.rest() {
-		h := m.first()
-		if g.replBits2[s.cardAt(h)]&rb2DmgInst == 0 || s.genLost(k, h) || s.faceDown(k, h) {
-			continue
-		}
-		cd := &k.t.Cards[s.cardAt(h)]
-		for i := range cd.Abilities {
-			a := &cd.Abilities[i]
-			if a.Kind != kop.AbReplacement || a.Repl.Kind != kop.ReplDamageInstead || !s.dmgInsteadMatch(k, &a.Repl, h, srcCtrl, srcSl, srcCard, rcp, sl, combat) {
-				continue
-			}
-			host, line = h, &a.Repl
-			hits++
-		}
-	}
+	host, line, hits := s.dmgBodyScan(k, srcCtrl, srcSl, srcCard, rcp, sl, combat, false)
 	if hits == 0 {
 		return false
 	}
-	if hits > 1 || s.g.ro.on {
-		s.capFull(StallReplPlus) // gorge asks the CR 616.1 order of two lines; a walk's pass would run the body twice
+	if hits > 1 {
+		s.capFull(StallReplPlus) // gorge asks the CR 616.1 order of two lines
 		return true
 	}
-	body := int(line.A) & 0xff
-	if body&(kop.ReplDmgInsMill|kop.ReplDmgInsExileTop) != 0 && s.parkedAny() {
+	body := int(uint16(line.A))&0xff | int(uint16(line.C))&(kop.ReplDmgInsSac|kop.ReplDmgInsVind)
+	for b := 0; b < len(DmgInsteadStats); b++ {
+		// the ask bodies are counted where they run (repl_dmbody.go: the
+		// combat path never reaches dmgInstead, it defers to the frozen walk)
+		if body&(1<<b) != 0 && body&(kop.ReplDmgInsSac|kop.ReplDmgInsVind) == 0 {
+			DmgInsteadStats[b].Add(1)
+		}
+	}
+	if body&(kop.ReplDmgInsSac|kop.ReplDmgInsVind) != 0 {
+		// an ask body: the choice is asked as an ordinary decision
+		// (repl_dmbody.go); a frozen pass's recomputed run defers to the walk
+		return s.dmgBody(k, host, line, body, rcp, sl, combat, n, ask)
+	}
+	if s.g.ro.on {
+		s.capFull(StallReplPlus) // a walk's pass would run the body twice
+		return true
+	}
+	if body&(kop.ReplDmgInsMill|kop.ReplDmgInsExileTop|kop.ReplDmgInsSac) != 0 && s.parkedAny() {
 		s.capFull(StallReplPlus) // the moves would ask the graveyard-move competition's order
 		return true
 	}
 	// CR 615.12: under "damage can't be prevented" a prevention's body still
 	// runs and the damage stands
 	stands := body&kop.ReplDmgInsPrevent != 0 && s.noPrev(k, combat)
-	for b := 0; b < len(DmgInsteadStats); b++ {
-		if body&(1<<b) != 0 {
-			DmgInsteadStats[b].Add(1)
-		}
-	}
 	kind := int(uint16(line.A) >> kop.ReplDmgInsKindShift)
 	hc := s.perms[host].ctrl
 	if body&(kop.ReplDmgInsCtrHost|kop.ReplDmgInsCtrEquipped|kop.ReplDmgInsCtrTarget) != 0 {
