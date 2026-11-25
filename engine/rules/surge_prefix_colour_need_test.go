@@ -40,11 +40,11 @@ func TestSurgedCastPrefixNeedsModeColour(t *testing.T) {
 	// The mode cost's pip, not the printed cost's: the colour ask must be
 	// ordered by {R} or the search reaches for the wrong colours.
 	need := scriptNeedColours(e, e.G.Obj(salvo), 0,
-		decision.Option{Kind: "cast", Obj: salvo, Mode: "surged"}, true)
+		decision.PotentialAction{Kind: "cast", Obj: salvo, Mode: "surged"})
 	if !need[state.MR] {
 		t.Fatalf("surged cast need = %v, want R (the surge cost's pip)", need)
 	}
-	if c := scriptPlayCost(e, e.G.Obj(salvo), 0, decision.Option{Kind: "cast", Obj: salvo, Mode: "surged"}); c.Generic != 1 || c.Colored[state.MR] != 1 {
+	if c := scriptPlayCost(e, e.G.Obj(salvo), 0, decision.PotentialAction{Kind: "cast", Obj: salvo, Mode: "surged"}); c.Generic != 1 || c.Colored[state.MR] != 1 {
 		t.Fatalf("surged descriptor = %+v, want {1}{R} (not the printed {4}{R})", c)
 	}
 
