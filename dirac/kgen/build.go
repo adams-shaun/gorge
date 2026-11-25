@@ -512,6 +512,30 @@ func copyKeptSets(d *kop.CardDef, c *lCard) {
 	d.HasUnearth, d.HasDecayed, d.HasPersist, d.HasDoctorsCompanion = c.HasUnearth, c.HasDecayed, c.HasPersist, c.HasDoctorsCompanion
 }
 
+// recordEvoke records an Evoke cost. CR 702.74a: no KwMask bit is free, so
+// the evoke marker is its own field; the cost is the hand's alternative cost,
+// and the permanent is sacrificed as it enters (dirac/kw_evoke.go). A
+// hand-exile pick (lower_evoke.go evokePickCost; kernel kw_evoke.go
+// offerEvokeHand and buildPickCost) rides beside it.
+func (cb *cardBuilder) recordEvoke() error {
+	c, d := cb.c, &cb.out.def
+	d.HasEvoke = true
+	var err error
+	if d.EvokeCost, err = manaCostOf(*c.Evoke); err != nil {
+		return err
+	}
+	if c.EvokePick == nil {
+		return nil
+	}
+	if d.EvokePick, err = cb.cost(*c.EvokePick); err != nil {
+		return err
+	}
+	if !altHandExileShape(&d.EvokePick) {
+		return fmt.Errorf("evoke pick cost outside the hand-exile shape")
+	}
+	return nil
+}
+
 func (cb *cardBuilder) record() error {
 	c := cb.c
 	d := &cb.out.def
@@ -873,11 +897,7 @@ func (cb *cardBuilder) record() error {
 		}
 	}
 	if c.Evoke != nil {
-		// CR 702.74a: no KwMask bit is free, so the evoke marker is its own
-		// field; the cost is the hand's alternative cost, and the permanent
-		// is sacrificed as it enters (dirac/kw_evoke.go)
-		d.HasEvoke = true
-		if d.EvokeCost, err = manaCostOf(*c.Evoke); err != nil {
+		if err := cb.recordEvoke(); err != nil {
 			return err
 		}
 	}
@@ -1342,6 +1362,16 @@ func (cb *cardBuilder) cost(c lCost) (kop.Cost, error) {
 			return out, err
 		}
 	}
+	if c.TapXVar {
+		// an activated ability's tapXType<X/Spec>: CostTapX with N 0, the
+		// announced X the count tapped (kernel cost_tapxann.go); a trigger's
+		// own is its OpIfPaid instruction (payInstr clears the field)
+		set(kop.CostTapX, 0)
+		if out.Filter, err = cb.filter(c.TapF, kop.ZoneBattlefield); err != nil {
+			return out, err
+		}
+	}
+	out.EnergyX = c.EnergyX // PayEnergy<X>: the announced X energy (kernel cost_energyx.go)
 	if c.TapPowN > 0 {
 		set(kop.CostTapPower, c.TapPowN)
 		if c.TapPowCrew {

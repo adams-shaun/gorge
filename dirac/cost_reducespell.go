@@ -6,7 +6,8 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // (all copied from gorge, rules/statics_costapply.go and pay/costmods.go).
 //
 //   - StReduceColor (Brush Off, Color$ 1 U): the coloured pips come off the
-//     cost first, the shortfall spills to generic (CostMods.ApplyTo).
+//     cost first, the shortfall spills to generic (CostMods.ApplyTo), unless
+//     IgnoreGeneric$ (kop.ReduceColorNoSpill: Morophon, the Boundless).
 //   - StBargained (Hamlet Glutton, Ice Out, Johann's Stopgap): the static
 //     prices only the bargained cast, at the offer and at the charge.
 //   - A RaiseCost with a ValidTarget$ (Dragon's Prey): applies at the charge
@@ -37,8 +38,15 @@ func reduceColorTake(base *kop.ManaCost, b int16) int {
 		base.Pips[i] -= uint8(take)
 		spill += want - take
 	}
+	if b&kop.ReduceColorNoSpill != 0 && !DebugReduceNoSpillFlip {
+		return 0
+	}
 	return spill
 }
+
+// DebugReduceNoSpillFlip is the mutation hook of the IgnoreGeneric$ colour
+// reduction (kop.ReduceColorNoSpill): the shortfall spills to generic again.
+var DebugReduceNoSpillFlip bool
 
 // bargainCharge: the cost of card c (object o) is being charged for its
 // bargained cast, the one gorge's "bargained" mode prices with the

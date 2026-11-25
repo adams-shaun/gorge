@@ -1904,13 +1904,23 @@ func (lc *lowerCtx) lowerKeywords() {
 			// pips are announced as for any cost; X, CardManaCost, a ":" or
 			// "<" rider (the granted form) and any non-mana part are
 			// refused.
+			if lc.out.Evoke != nil {
+				lc.refuseNode(node, "two Evoke keywords")
+				continue
+			}
+			if strings.Contains(param, "ExileFromHand<") && !strings.Contains(param, ":") {
+				// the hand-exile evoke (the MH2 Incarnations' "Evoke--Exile
+				// a <colour> card from your hand"): the alternative cost's
+				// hand-exile pick shape, PayLife<N> beside it or not, and
+				// plain mana (lower_evoke.go evokePickCost)
+				if err := lc.evokePickCost(param); err != nil {
+					lc.refuseNode(node, "evoke cost %q: %v", param, err)
+				}
+				continue
+			}
 			mc, err := parseManaCost(param)
 			if err != nil || param == "" || strings.ContainsAny(param, ":<") || mc.X || mc.None {
 				lc.refuseNode(node, "evoke cost %q", param)
-				continue
-			}
-			if lc.out.Evoke != nil {
-				lc.refuseNode(node, "two Evoke keywords")
 				continue
 			}
 			lc.out.Evoke = &mc
@@ -2332,6 +2342,19 @@ func putLibSelfGate(ab *lAbility, cost lCost) error {
 // ability's printed cost is the constant kop.CostPayEnergy, so a dynamic one
 // there would lose its amount: refuse it.
 func (lc *lowerCtx) energyPayCost(c *lCost, parts []string, tok string) error {
+	if !lc.unlessParse && lc.actCost && len(parts) == 1 && parts[0] == "X" {
+		// a printed activated ability's announced PayEnergy<X> (Chthonian
+		// Nightmare): gorge xAsk poses the X, bounded by the payer's energy,
+		// before the targets (kernel cost_energyx.go)
+		if x, ok := lc.face.SVars["X"]; !ok || strings.TrimSpace(x) != "Count$xPaid" {
+			return refuse("activated PayEnergy<X> with SVar:X other than Count$xPaid")
+		}
+		if c.Energy != 0 || c.EnergyX {
+			return refuse("energy cost %q beside another energy part", tok)
+		}
+		c.EnergyX = true
+		return nil
+	}
 	if !lc.unlessParse {
 		return refuse("PayEnergy<%s> outside an unless cost", parts[0])
 	}
@@ -3420,8 +3443,10 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 				return refuse("mana ability with a return-self cost")
 			}
 			// gorge pays returns before the sacrifices: refuse beside any
-			// other non-mana part but {T} (the kernel orders only these)
-			if cost.Sac != nil || cost.SacSelf || cost.DiscardN > 0 || cost.DiscardSelf || cost.Loyalty != 0 || cost.SubCtr > 0 ||
+			// other non-mana part but {T}, an announced energy part and a
+			// Sac<N/Spec> of another permanent (paySacsGen returns the source
+			// before the sacrifice picks; Chthonian Nightmare)
+			if cost.Sac != nil && (cost.SacExile || cost.SacX) || cost.SacSelf || cost.DiscardN > 0 || cost.DiscardSelf || cost.Loyalty != 0 || cost.SubCtr > 0 ||
 				cost.PayLife > 0 || cost.TapN > 0 || cost.TapHost || cost.SacHost || cost.Forage != nil || cost.ExileG != nil || cost.Energy != 0 {
 				return refuse("return-self cost beside another non-mana part")
 			}
