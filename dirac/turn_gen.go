@@ -120,9 +120,7 @@ func (s *State) enterGen(k *prep, sl Slot, o Obj, from kop.Zone, face uint8) {
 	if s.g.enteredOn {
 		s.noteEnter(o, kop.ZoneBattlefield, from, false, false)
 	}
-	if s.typesGen(k, sl)&kop.TLand == 0 {
-		s.stashClr(k, o) // only a land played from exile keeps its stash counter (gorge)
-	}
+	s.stashClr(k, o) // an entry from exile is a new object: the stash counter does not follow it (CR 400.7)
 	if k.gen.anyEntryMerge && face == 0 {
 		s.entryWinOpen(k, sl, p) // ctr_entryperkind.go: the printed and requested counters start the entry's one put per kind
 	} else if n := s.g.enterCtr.n; n > 0 {
@@ -1095,9 +1093,11 @@ func (s *State) cleanupGen(k *prep) {
 		s.dropEndOfNextTurnEmblems(k) // Duration$ UntilTheEndOfYourNextTurn (static_emblemdurations.go)
 	}
 	n := 0
+	mayNTEnds := s.mayNTSweep() // UntilYourNextTurn records end when their controller's turn is next (cast_mayplaynt.go)
 	for i := 0; i < int(s.g.nmay); i++ {
 		r := *s.mayAt(i)
 		keep := r.dur() == kop.DurYourNextTurn && !(s.active == r.ctrl && mayWord(s.turn) > r.turn) ||
+			r.dur() == kop.DurUntilYourNextTurn && mayNTEnds&(1<<r.ctrl) == 0 ||
 			r.until == kop.DurWarp && s.warpRecastLive(r) ||
 			r.until == kop.DurAirbend && s.warpRecastLive(r) ||
 			r.until == kop.DurPlot && s.plotLive(r) ||
@@ -1376,6 +1376,10 @@ func (s *State) genAskOptions(k *prep, d *Decision) bool {
 		s.entryOrderOptions(k, d)
 		return true
 	}
+	if s.g.ro.bdy != 0 {
+		s.replBodyOptions(d) // the frozen walk's ask body (repl_dmbody.go)
+		return true
+	}
 	if s.g.ro.n > 0 && (s.g.ro.on || s.g.ro.nca) {
 		s.replOrderOptions(d)
 		return true
@@ -1479,6 +1483,10 @@ func (s *State) applyGen(k *prep, a Action) {
 	}
 	if s.entryAsked(k) {
 		s.applyEntryLand(k, a)
+		return
+	}
+	if s.g.ro.bdy != 0 {
+		s.replBodyCombatAnswer(k, a) // the frozen walk's ask body (repl_dmbody.go)
 		return
 	}
 	if s.g.ro.n > 0 && (s.g.ro.on || s.g.ro.nca) {
