@@ -232,7 +232,8 @@ func (pt pendingTrigger) printed() bool {
 	return !pt.Delayed && !pt.Granted && pt.Merged == 0 && !pt.Miracle && !pt.Madness && !pt.Siege &&
 		!pt.Evoke && !pt.Gift && pt.Ward == "" && pt.Afflict == "" && pt.Poisonous == "" && !pt.Conspire && !pt.Casualty && !pt.Cascade &&
 		!pt.Exploit && !pt.Offspring && !pt.Mentor && pt.RingEmblem == 0 && pt.Cipher == 0 && !pt.SpeedIncrease &&
-		!pt.InitiativeVenture && !pt.MonarchDraw && !pt.MonarchSteal
+		!pt.InitiativeVenture && !pt.MonarchDraw && !pt.MonarchSteal &&
+		!pt.SuspendTick && !pt.SuspendLast
 }
 
 // orderDuplicatesGroup returns the duplicate-group identity of pt's trigger
@@ -1758,6 +1759,18 @@ func (e *Engine) triggerLabel(pt pendingTrigger) string {
 	// to read a TriggerDescription$ from.
 	if pt.SpeedIncrease {
 		return "Speed: whenever an opponent loses life during your turn"
+	}
+	if pt.SuspendTick || pt.SuspendLast {
+		name := "it"
+		if o := e.G.Obj(pt.Source); o != nil {
+			if f := o.Face(); f != nil && f.Name != "" {
+				name = f.Name
+			}
+		}
+		if pt.SuspendTick {
+			return name + ": suspend — remove a time counter"
+		}
+		return name + ": suspend — you may cast it without paying its mana cost"
 	}
 	if pt.MonarchDraw {
 		return "The monarch: draw a card"

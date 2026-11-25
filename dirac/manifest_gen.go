@@ -75,10 +75,15 @@ const raRingBearer uint8 = 163
 // the loot discard of the Ring emblem's level 2 (CR 701.54c; act_ring.go ringLootDiscard): the looting player discards one card of their choice from their hand, gorge's Draw You 1 with the Discard You TgtChoose 1 Sub.
 const raRingLoot uint8 = 164
 
+// ask (dirac/manifest/ask/raSuspendCast)
+//
+// the free cast ask of a resolving suspend last-counter trigger (CR 702.62a, ChSuspendCast; kw_suspend.go resolveSuspendCast)
+const raSuspendCast uint8 = 165
+
 // ask (dirac/manifest/ask/raTrigDemoOpp)
 //
 // the demonstrate trigger's opponent pick (CR 702.152a; gorge effDemonstrate stage 1): which living opponent also copies the spell, asked with two or more of them (kw_demonstrate.go).
-const raTrigDemoOpp uint8 = 165
+const raTrigDemoOpp uint8 = 166
 
 // key named card (dirac/manifest/key/keyNamedCard)
 const keyNamedCard key = 0
@@ -952,6 +957,9 @@ func (s *State) askOptionsGen(k *prep, d *Decision) bool {
 	case raRingLoot:
 		s.ringAskLootOptions(k, d) // act_ring.go
 		return true
+	case raSuspendCast:
+		s.suspendCastOptions(k, d) // kw_suspend.go
+		return true
 	}
 	return false
 }
@@ -1006,6 +1014,9 @@ func (s *State) applyAskGen(k *prep, a Action) bool {
 		return true
 	case raRingLoot:
 		s.ringAskLootAnswer(k, a) // act_ring.go
+		return true
+	case raSuspendCast:
+		s.suspendCastApply(k, a) // kw_suspend.go
 		return true
 	}
 	return false

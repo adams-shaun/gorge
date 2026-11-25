@@ -1371,9 +1371,6 @@ func (s *State) genAskOptions(k *prep, d *Decision) bool {
 		s.untapAskOptions(d)
 		return true
 	}
-	if k.gen.anySuspend && s.g.nmay > 0 && s.suspendPosedOptions(d) {
-		return true
-	}
 	if s.entryAsked(k) {
 		s.entryOrderOptions(k, d)
 		return true
@@ -1478,9 +1475,6 @@ func (s *State) applyGen(k *prep, a Action) {
 	}
 	if s.g.untapOn && s.g.untapAns == 0 {
 		s.untapAnswer(a)
-		return
-	}
-	if k.gen.anySuspend && s.g.nmay > 0 && s.applySuspendAnswer(k, a) {
 		return
 	}
 	if s.entryAsked(k) {
