@@ -11,6 +11,12 @@ func (lc *lowerCtx) definedPlayer(v string) (lRef, error) {
 	switch v {
 	case "You":
 		return lRef{Kind: rYou}, nil
+	case "ImprintedController":
+		// the repeated card's controller inside a remembered-set card loop
+		// (Wave of Vitriol's per-pass search); eachCtrl resolves the ref
+		if lc.repeatRem {
+			return lRef{Kind: rEach}, nil
+		}
 	case "Targeted", "ParentTarget", "ParentTargeted":
 		t := lc.lastTarget()
 		if t < 0 {

@@ -45,7 +45,9 @@ func (lc *lowerCtx) repeatEachRemembered(ps *params, in lInstr) error {
 		return lc.repeatEachRememberedAsk(ps, in) // lower_repeatremembered_ask.go
 	}
 	if !ps.is("ChangeZoneTable", "True") {
-		return refuse("RepeatEach DefinedCards$ DirectRemembered without ChangeZoneTable$ True")
+		// without a zone batch the loop is the resumable frame: the body
+		// may ask (the optional basic-land search, Wave of Vitriol)
+		return lc.repeatEachRememberedAsk(ps, in) // lower_repeatremembered_ask.go
 	}
 	if n := len(lc.ab.Prog); n == 0 || !remembersMoved(&lc.ab.Prog[n-1]) {
 		return refuse("RepeatEach DefinedCards$ DirectRemembered over a set no preceding DestroyAll/Exile remembered")
@@ -154,12 +156,15 @@ func (lc *lowerCtx) repeatEachRememberedCard(ps *params, in lInstr) error {
 }
 
 // remembersMoved reports whether in is an instruction that moved cards and
-// remembered them: a DestroyAll with RememberDestroyed$ (C bit 1), or an Exile
-// whose move flags remember (RememberLKI$).
+// remembered them: a DestroyAll with RememberDestroyed$ (C bit 1), a
+// SacrificeAll with RememberSacrificed$, or an Exile whose move flags remember
+// (RememberLKI$).
 func remembersMoved(in *lInstr) bool {
 	switch in.Op {
 	case "DestroyAll":
 		return in.C&1 != 0
+	case "SacrificeAll":
+		return strings.Contains(in.CS, "Remember")
 	case "Exile":
 		return strings.Contains(in.CS, "Remember")
 	}
