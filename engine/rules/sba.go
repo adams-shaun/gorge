@@ -1192,7 +1192,8 @@ func (e *Engine) destroyLethalDamage(b *sbaBatch, tried *sbaAttempts) {
 // put it on, and spell/ability damage removes counters from it (CR 306.8,
 // engine/effects/damage.go); between the three, loyalty can only reach zero through
 // damage or a face whose printed starting loyalty is literally 0 (6 corpus
-// files), and either way this sweep is what removes the walker.
+// files) or X (CR 107.3/208.x: X is 0 everywhere but the stack), and either
+// way this sweep is what removes the walker.
 //
 // Discipline follows destroyLethalDamage's: a tried-set (shared objs), one move
 // per object per call, and the deterministic AliveFrom(0) seat /
@@ -1202,11 +1203,11 @@ func (e *Engine) destroyLethalDamage(b *sbaBatch, tried *sbaAttempts) {
 // destruction (no ReplaceDestruction, no regeneration -- the same treatment
 // "toughness <= 0" gets).
 //
-// A face whose printed starting loyalty this engine cannot READ (absent, or
-// Loyalty:X -- Nissa, Steward of Elements, 2 corpus files) never reaches the
-// sweep: CR 704.5i needs a known loyalty of 0 or less, and an unreadable one
-// is not known-zero. Such a walker keeps its place on the battlefield with no
-// loyalty counters -- the stand-in is recorded in AGENTS.md.
+// A face whose printed starting loyalty is absent never reaches the sweep:
+// CR 306.9/704.5i needs a known loyalty of 0 or less, and an absent one is
+// not known-zero. Printed Loyalty:X is different: CR 107.3/208.x makes X 0
+// anywhere but the stack, so such a walker at 0 counters is swept like any
+// other 0-loyalty planeswalker.
 func (e *Engine) planeswalkerZeroLoyalty(b *sbaBatch, tried *sbaAttempts) {
 	// stat:IgnorePlaneswalkerZeroLoyaltyRule (Sanctum Lurker): collected
 	// lazily, once per sweep, only when a zero-loyalty walker is found.
@@ -1238,9 +1239,20 @@ func (e *Engine) planeswalkerZeroLoyalty(b *sbaBatch, tried *sbaAttempts) {
 			if f == nil || !f.IsPlaneswalker() {
 				continue
 			}
-			n, err := strconv.Atoi(strings.TrimSpace(f.Loyalty))
-			if err != nil || n < 0 {
+			// CR 107.3/208.x: X in a printed loyalty is 0 anywhere but the
+			// stack. An absent printed loyalty is not known-zero (CR 306.9)
+			// and keeps skipping; any other unreadable value fails closed.
+			loyalty := strings.TrimSpace(f.Loyalty)
+			if loyalty == "" {
 				continue
+			}
+			n := 0
+			if !strings.EqualFold(loyalty, "X") {
+				var err error
+				n, err = strconv.Atoi(loyalty)
+				if err != nil || n < 0 {
+					continue
+				}
 			}
 			if o.Counter("LOYALTY") > 0 {
 				continue
