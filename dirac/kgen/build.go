@@ -2307,6 +2307,8 @@ func (cb *cardBuilder) ref(r lRef) (kop.Ref, error) {
 		return kop.RefPromised, nil
 	case rAttachedCtrl:
 		return kop.RefAttachedCtrl, nil
+	case rEnchantedCtrl:
+		return kop.RefEnchantedCtrl, nil
 	case rChosenPlayer:
 		return kop.RefChosenPlayer, nil
 	case rChosenPlayerRes:

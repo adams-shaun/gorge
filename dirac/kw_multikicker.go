@@ -247,6 +247,22 @@ func (s *State) kickedArmOffer(k *prep, a Action) bool {
 	return k.cards[c].kw&kop.KwKicker != 0 || k.t.Cards[c].HasMultikicker
 }
 
+// kickedTotalCast reports whether action a is a mode-1 cast whose total is the
+// card's cost plus kickerPayment: kickedArmOffer's kicker and multikicker
+// cards, and the cards that keep their additional cost in CardDef.Kicker as
+// the kicked option (Buyback, Offspring, Entwine; kw_offspring.go). The
+// any-colour tap extra's owed pips read it (tapAnyColPips): Evincar's
+// Justice with buyback owes {B}{B} beside the {5} the extras fund.
+func (s *State) kickedTotalCast(k *prep, a Action) bool {
+	if s.kickedArmOffer(k, a) {
+		return true
+	}
+	if a.Kind() != AkCast || a.Mode()&3 != 1 {
+		return false
+	}
+	return offspringOffer(k, s.objs[Obj(a.Source())].card)
+}
+
 // kickedPotentialPays is the kicked offer's potential-pool arm under gorge's
 // autopay surface: gorge keeps the kicked cast as one of its potential plays
 // (gorgeOffersKicked) and its potential planner prices it against the
