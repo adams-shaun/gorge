@@ -16,11 +16,14 @@ import (
 // against gorge: Lilah, Undefeated Slickshot (a multicolored instant cast
 // from hand, exiled and plotted, resolved or countered, and cast again from
 // its plot) and Nita, Forum Conciliator (an opponent's Lightning Bolt exiled
-// from their graveyard and cast this turn, exiled instead of going back).
+// from their graveyard and cast this turn, exiled instead of going back), Dire
+// Fleet Daredevil (the same from its enters trigger) and Sins of the Past (a
+// Bolt cast from its controller's graveyard).
 // TestStdSetReprosLockstep replays the repros; TestExileOnMovedReprosReach
 // requires each recorded game to reach the card.
 //
-// The games are recorded by TestExileOnMovedRecord (EXILE_ON_MOVED_RECORD=1)
+// The games are recorded by TestExileOnMovedRecord (EXILE_ON_MOVED_RECORD=1,
+// or PINS_RECORD=1 through make test-one's TESTENV)
 // on the kernel table built from the decks: the seats prefer the case's
 // cards, hold the gated spell back until its enabler is out, and otherwise
 // pick at random from the seed's stream.
@@ -99,6 +102,56 @@ func exileMovedCases() []exileMovedCase {
 			},
 			activate: "Nita, Forum Conciliator",
 		},
+		{
+			// the grant form from an enters trigger: the exiled Bolt is cast
+			// this turn and exiled again as it resolves
+			effectLongCase: effectLongCase{
+				name:    "daredevil_exiled_bolt_cast_this_turn_is_exiled_again",
+				prefer:  []string{"Dire Fleet Daredevil", "Lightning Bolt"},
+				decks:   [2][]string{append(deckOf(8, "Dire Fleet Daredevil"), deckOf(16, "Mountain")...), append(deckOf(8, "Lightning Bolt"), deckOf(16, "Mountain")...)},
+				surface: "autopay",
+				reached: recastExiled("Lightning Bolt", state.ZGraveyard, state.ZExile, leaveResolved),
+			},
+		},
+		{
+			// the targeted graveyard card: Sins of the Past's free cast of
+			// its controller's own Bolt is exiled as it resolves
+			effectLongCase: effectLongCase{
+				name:   "sins_of_the_past_bolt_cast_from_graveyard_is_exiled",
+				prefer: []string{"Sins of the Past", "Lightning Bolt"},
+				decks: [2][]string{append(append(deckOf(5, "Sins of the Past"), deckOf(5, "Lightning Bolt")...),
+					append(deckOf(7, "Swamp"), deckOf(7, "Mountain")...)...), append(deckOf(8, "Grizzly Bears"), deckOf(16, "Forest")...)},
+				surface: "autopay",
+				reached: graveCastLeft("Lightning Bolt", state.ZExile),
+			},
+		},
+	}
+}
+
+// graveCastLeft: an object named name was cast from a graveyard and left the
+// stack for zone to as it resolved.
+func graveCastLeft(name string, to state.Zone) func(g *GorgeSide) bool {
+	return func(g *GorgeSide) bool {
+		cast := map[state.ObjID]bool{}
+		resolved := map[state.ObjID]bool{}
+		for _, e := range g.E.L.Events {
+			if e.Kind == events.Resolve {
+				resolved[e.Obj] = true
+				continue
+			}
+			o := g.E.G.Obj(e.Obj)
+			if o == nil || o.Face() == nil || o.Face().Name != name {
+				continue
+			}
+			switch {
+			case e.Kind == events.PutOnStack:
+				cast[e.Obj] = e.From == state.ZGraveyard
+				resolved[e.Obj] = false
+			case e.Kind == events.MoveZone && e.From == state.ZStack && e.To == to && cast[e.Obj] && resolved[e.Obj]:
+				return true
+			}
+		}
+		return false
 	}
 }
 
@@ -245,7 +298,7 @@ func exileMovedReplay(t *testing.T, reg *cards.Registry, c exileMovedCase) {
 }
 
 func TestExileOnMovedRecord(t *testing.T) {
-	if os.Getenv("EXILE_ON_MOVED_RECORD") == "" {
+	if os.Getenv("EXILE_ON_MOVED_RECORD") == "" && os.Getenv("PINS_RECORD") != "1" {
 		return // a recording tool, not coverage: it returns rather than skips, since a skip here must name a missing pool (testdata/poolskips.txt)
 	}
 	reg := synthReg(t)
@@ -253,7 +306,7 @@ func TestExileOnMovedRecord(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			set := printedDelveSet(t, c.decks)
 			for seed := uint64(1); seed <= 400; seed++ {
-				r := &Repro{Format: reproFormat, Decks: [2]string{c.name + "_0", c.name + "_1"}, Cards: c.decks, Seed: seed, PassElision: true, Surface: c.surface, Kernel: "custom"}
+				r := &Repro{Format: reproFormat, Decks: [2]string{c.name + "_0", c.name + "_1"}, Cards: c.decks, Seed: seed, PassElision: true, Surface: c.surface, Kernel: "custom", Pool: "custom"}
 				m, err := r.Matchup(reg)
 				if err != nil {
 					t.Fatal(err)

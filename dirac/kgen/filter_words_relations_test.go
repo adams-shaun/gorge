@@ -178,7 +178,6 @@ func TestFilterWordsRelationsRefuse(t *testing.T) {
 		"Creature.Remembered+sameName", "Creature.Targeted+sameName", "Creature.Triggered+sameName",
 		"Remembered.!sameName",                              // the '!' token is not the contextual one; the base fails closed
 		"Card.!ChosenCtrl", "Card.!EnchantedControllerCtrl", // gorge refuses the '!' of the link words
-		"Creature.PairedWith", "Creature.!Paired", // need T10's pair record
 		"Creature.leastPower", "Card.CanEnchantSource", // no gorge reader
 		// the Valid form's zone-suffixed spelling is a different, unmodelled
 		// referent (gorge sharesNameValidBattlefield reads "Valid " only), and

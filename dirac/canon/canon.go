@@ -178,6 +178,8 @@ var ChooseKinds = []string{
 	// gorge repeatEachElectionDecision's yes / no (ResumeKind repeat_each_optional): the repeated player's own offer, asked of that seat (dirac ChGenOptInSeat), never the generic yes / no
 	"yes_seat", "no_seat",
 	"enlist", // CR 702.154a: gorge askNextEnlist's election (option 0 declines; a creature to enlist names its Obj; kw_enlist.go)
+	// CR 701.48a: gorge effLearn's election (LearnDecision): do nothing, a sideboard Lesson (names its Obj), or the rummage (dirac ChLearn; act_learn.go)
+	"nothing", "lesson", "rummage",
 }
 
 // ChooseOther is the ActChoose offset of an option kind ChooseKinds lacks.

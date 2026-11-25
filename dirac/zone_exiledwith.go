@@ -31,8 +31,9 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // Lockstep proves the fire arm (DebugExwNoFire diverges) and the ver test
 // (DebugExwIgnoreVer diverges). The forward list outlives a departed source on
 // its own, so a source that has left reads through it; a reverse-only link read
-// by a non-trigger ability after the source left is not modelled and no lifted
-// card has the shape.
+// by a non-trigger ability after the source left matches at the source's next
+// ver off the battlefield (gorge's ExiledWithInc == Incarnation arm; Bomat
+// Courier), and not after a further move.
 
 // The exiled-with flags, in osRec.kind's high nibble (zone_objsets.go);
 // exwRev and exwFwd are independent (a refresh restates the rest, keeping
@@ -57,6 +58,11 @@ var DebugExwIgnoreVer bool
 // DebugExwNoFire drops the resolving trigger's fire-ver arm of the reader
 // (TestExwMutation): a leaves trigger no longer finds its cards.
 var DebugExwNoFire bool
+
+// DebugExwNoLeft drops the departed-source arm of the reader
+// (TestExileFaceDownMutation): a sacrifice-cost activation no longer finds
+// the cards its source exiled.
+var DebugExwNoLeft bool
 
 // DebugExwAnySource makes every card in exile read as exiled with the reading
 // source (TestBorgExileMutation): Assimilation Assessor's choice then offers
@@ -264,6 +270,15 @@ func (s *State) exwHas(o, src Obj, trig bool, fire uint8) bool {
 		}
 		if DebugExwIgnoreVer || ver == rec.sver ||
 			!DebugExwNoFire && trig && (fire == rec.sver || fire == rec.sver+1) {
+			return true
+		}
+		if !DebugExwNoLeft && ver == rec.sver+1 && s.objs[src].zone != kop.ZoneBattlefield {
+			// gorge's ExiledWithInc == Incarnation with the source off the
+			// battlefield: the source has left since the exile, and a
+			// non-trigger reader (Bomat Courier's sacrifice-cost activation)
+			// still finds the cards. One zone change only: the kernel's ver
+			// moves on every change, gorge's Incarnation on a battlefield
+			// crossing, so a source moved on again reads nothing here.
 			return true
 		}
 	}

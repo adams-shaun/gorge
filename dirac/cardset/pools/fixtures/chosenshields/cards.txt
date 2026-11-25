@@ -1,0 +1,26 @@
+# ChooseSource's recipient and lifetime variants: the shield on the Effect's
+# target, on any recipient, and the Prevent$ True line that lasts the turn
+# (Martyr's Cause, Pilgrim of Justice, Pay No Heed), and the gain rider
+# (Reverse Damage): dirac/repl_prevchosen.go
+# (dirac/oracle/choosesource_variants_lockstep_test.go)
+Pay No Heed
+Auriok Replica
+Martyr's Cause
+Sanctum Guardian
+Pilgrim of Justice
+Pilgrim of Virtue
+Burrenton Forge-Tender
+Charm Peddler
+Samite Blessing
+Reverse Damage
+Cho-Arrim Alchemist
+Intervention Pact
+Savannah Lions
+Plains
+Hill Giant
+Raging Goblin
+Shock
+Lightning Bolt
+Dusk Imp
+Swamp
+Mountain

@@ -1,0 +1,5 @@
+family: ask
+name: raLearnDiscard
+value: next
+status: active
+doc: the learn rummage's discard (CR 701.48a; act_learn.go): gorge learnRummage's "discard" KChoose over the hand in hand order, asked even with one card; the draw follows.
