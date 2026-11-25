@@ -49,6 +49,13 @@ var repeatEachSliceCards = map[string][]string{
 		"Disciple of Caelus Nin", "Fortunate Few",
 		"Ultimate Magic: Meteor", "Thieves' Auction",
 	},
+	// RepeatEach over players whose body is the per-player opponent choice
+	// feeding a battlefield TwoPiles (Bend or Break): the repeated player
+	// picks one of their opponents, who splits their nontoken lands and picks
+	// a pile; the chosen pile is destroyed, the other tapped.
+	"per-player opponent choice over piles": {
+		"Bend or Break",
+	},
 }
 
 func TestRepeatEachSlice(t *testing.T) {

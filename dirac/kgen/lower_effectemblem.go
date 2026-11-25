@@ -154,6 +154,14 @@ func (lc *lowerCtx) effectStaticEOT(ps *params, ss []cards.Static) error {
 		ps.consume("ForgetOnCast")
 	}
 	ps.consume("Name", "Image", "Stackable")
+	// the graveyard-to-exile replacement an Effect resolves beside its
+	// statics (Yawgmoth's Will, Gaea's Will, Magus of the Will;
+	// lower_effectgravetoexile.go): the same emblem carries it, so the
+	// replacement lives exactly as long as the permission.
+	repl, err := lc.effectGraveRepl(ps)
+	if err != nil {
+		return err
+	}
 	left := ps.unread()
 	// The Effect's own Condition*$ keys (ConditionPresent$, the monarch's
 	// ConditionCheckSVar$) guard the whole node: the node's condition read
@@ -165,12 +173,16 @@ func (lc *lowerCtx) effectStaticEOT(ps *params, ss []cards.Static) error {
 	if len(left) > 0 {
 		return refuse("Effect static unread %v", left)
 	}
-	if len(sts) == 0 {
+	if len(sts) == 0 && repl == nil {
 		// gorge registers no continuous effect for the
 		// view-only look, so the Effect resolves without creating anything.
 		return nil
 	}
-	lc.out.Emblems = append(lc.out.Emblems, lEmblem{Statics: sts, UntilEOT: eot, UntilNextTurn: next, WhileHost: host, Forget: forget})
+	emb := lEmblem{Statics: sts, UntilEOT: eot, UntilNextTurn: next, WhileHost: host, Forget: forget}
+	if repl != nil {
+		emb.Repls = []lRepl{*repl}
+	}
+	lc.out.Emblems = append(lc.out.Emblems, emb)
 	lc.emit(lInstr{Op: "CreateEmblem", Obj: lRef{Kind: rYou}, C: len(lc.out.Emblems) - 1, A: chosen})
 	return nil
 }

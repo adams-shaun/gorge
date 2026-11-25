@@ -4354,6 +4354,9 @@ func (s *State) payAbilityCosts(k *prep, e *stackEntry) {
 	if f&kop.CostPayEnergy != 0 {
 		s.payEnergy(e.ctrl, &a.Cost)
 	}
+	if a.Cost.EnergyX {
+		s.payEnergyX(e.ctrl, uint8(e.x)) // the announced PayEnergy<X> (cost_energyx.go)
+	}
 	if a.Cost.Mill != 0 {
 		// Cost.Mill (CR 701.17b): the payer mills the count from their own
 		// library's top, where gorge's cast_commit pays it -- after the life
