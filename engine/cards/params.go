@@ -1004,6 +1004,11 @@ const (
 	// compiler. Appended: earlier ordinals stay stable.
 	PKNoteCounterDefined
 	PKWithNotedCounters
+	// XAnnounceTitle$ names what an announced X counts in a triggered
+	// ability's cost (Forge's announce prompt: Leyline Tyrant's "any amount
+	// of red mana to pay"). Read by rules' triggered-cost X window as the
+	// decision's prompt. Appended: earlier ordinals stay stable.
+	PKXAnnounceTitle
 	paramKeyCount
 )
 
@@ -1219,6 +1224,7 @@ var paramKeyNames = [paramKeyCount]string{
 	PKRememberMovedToZone:              "RememberMovedToZone",
 	PKNoteCounterDefined:               "NoteCounterDefined",
 	PKWithNotedCounters:                "WithNotedCounters",
+	PKXAnnounceTitle:                   "XAnnounceTitle",
 	PKRememberObjects:                  "RememberObjects",
 	PKRememberOwnLoss:                  "RememberOwnLoss",
 	PKRememberPumped:                   "RememberPumped",
