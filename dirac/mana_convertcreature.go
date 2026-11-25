@@ -10,8 +10,33 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // same sfAnyMana flag, and only the floating pool's spend differs
 // (payConvPips). The fact is read from the battlefield: no State bytes.
 
-// useAnyColorSpell: the table has a StatAnyColorSpells static (convAnyColor).
-var useAnyColorSpell = newGenUse(func(t *kop.Table) bool { return tableHasStatic(t, kop.StatAnyColorSpells) })
+// useAnyColorSpell: the table has a StatAnyColorSpells or StatAnyColorAll
+// static (convAnyColor).
+var useAnyColorSpell = newGenUse(func(t *kop.Table) bool {
+	return tableHasStatic(t, kop.StatAnyColorSpells) || tableHasStatic(t, kop.StatAnyColorAll)
+})
+
+// useAnyColorAll: the table has a StatAnyColorAll static (convAnyAll).
+var useAnyColorAll = newGenUse(func(t *kop.Table) bool { return tableHasStatic(t, kop.StatAnyColorAll) })
+
+// convAnyAll reports whether p controls a functioning StatAnyColorAll static
+// (Chromatic Orrery; CR 609.4b): the conversion covers every payment p makes,
+// a cast and an activation alike (gorge manaConversionParts gives a ValidSA$-less
+// static to pay.SAActivated and pay.SASpell both).
+func (s *State) convAnyAll(k *prep, p uint8) bool {
+	if k.gen == nil || !k.gen.uses.has(useAnyColorAll) {
+		return false
+	}
+	hit := false
+	s.eachStatic(k, func(st statSrc) bool {
+		if st.a.Kind == kop.AbStatic && st.a.Static.Kind == kop.StatAnyColorAll && st.ctrl == SeatIx(p) && s.statCond(k, st) {
+			hit = true
+			return false
+		}
+		return true
+	})
+	return hit
+}
 
 // convAnyType reports whether p's cast of o is under the conversion: o is a
 // creature card and p controls a functioning StatAnyTypeCreatures static.
@@ -82,6 +107,9 @@ func (s *State) payConvPips(k *prep, p uint8, cost kop.ManaCost) kop.ManaCost {
 func (s *State) convAnyColor(k *prep, p uint8, o Obj) bool {
 	if k.gen == nil || !k.gen.uses.has(useAnyColorSpell) || o == NoObj {
 		return false
+	}
+	if s.convAnyAll(k, p) {
+		return true // the unscoped static covers every cast (convAnyAll)
 	}
 	c := s.objs[o].card
 	hit := false
@@ -164,4 +192,65 @@ func (s *State) convRouteFlag(k *prep, e *stackEntry, cost kop.ManaCost) {
 	if !av.affords(&c, pipMaskOf(&c), 0) {
 		s.bld().bfl |= bflAnyColor
 	}
+}
+
+// convActPoolPays is convPoolPays for an activation's mana cost under a
+// StatAnyColorAll static (convAnyAll): the floating pool alone pays it with a
+// coloured pip taking any mana, {C} and the generic cost as printed. gorge
+// prices an activation's pips as printed (the planner's rider is empty), so
+// the conversion widens an offer only through the pool, which the charge then
+// spends under it. An {X}, {S} or Phyrexian cost stays priced as printed.
+func (s *State) convActPoolPays(k *prep, p uint8, cost *kop.ManaCost) bool {
+	if cost.X != 0 || cost.Snow != 0 || cost.Phyrexian() || !s.convAnyAll(k, p) {
+		return false
+	}
+	c := planUnderRider(*cost, false, true)
+	return s.poolPays(p, &c)
+}
+
+// convActRoute sets bflAnyColor on the activation being built (manaStep's
+// seAbility arm) when it pays through the conversion's pool route: the pool
+// alone pays the cost under it (convActPoolPays) and the printed price is out
+// of reach of the pool and the untapped sources, the plan gorge would have
+// funded. It reports the flag: the payment taps nothing, and the charge
+// spends the pool under the conversion (finishBuild, payFromPoolRider).
+func (s *State) convActRoute(k *prep, e *stackEntry, cost kop.ManaCost) bool {
+	if k.gen == nil || !k.gen.uses.has(useAnyColorAll) {
+		return false
+	}
+	if s.bld().bfl&bflAnyColor != 0 {
+		return true
+	}
+	if s.bld().bfl&bflMsDone != 0 || s.restrActNow(k, e.ctrl) != 0 {
+		return false
+	}
+	c := xFolded(cost, int(e.x))
+	if !s.convActPoolPays(k, e.ctrl, &c) {
+		return false
+	}
+	var av avail
+	s.availFor(k, e.ctrl, &av)
+	if av.affords(&c, pipMaskOf(&c), 0) {
+		return false
+	}
+	s.bld().bfl |= bflAnyColor
+	return true
+}
+
+// convAllPoolRoute reports whether the payment being built runs entirely from
+// the floating pool under a StatAnyColorAll static (convRouteFlag, convActRoute
+// set bflAnyColor for it): gorge lets any mana, {C} included, pay the converted
+// pips, so the sources are not tapped for a coloured unit the way a may-play
+// any-colour rider (whose {C} never pays a coloured pip) would plan them.
+func (s *State) convAllPoolRoute(k *prep, p uint8, anyColor bool) bool {
+	if !anyColor || k.gen == nil || s.ctl != ctlBuild || !s.convAnyAll(k, p) {
+		return false
+	}
+	switch e := &s.bld().e; e.kind {
+	case seAbility:
+		return true
+	case seSpell:
+		return e.flags&(sfAnyMana|sfMayPlay) == 0
+	}
+	return false
 }

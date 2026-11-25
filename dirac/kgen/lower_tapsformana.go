@@ -18,9 +18,10 @@ import (
 // The closed world is the shape the kernel prices:
 //   - ValidCard$ over any controller's permanents by type alone (a Land) or
 //     by that type plus a watcher-relative controller (Land.OppCtrl), or the
-//     bare Card.Self clause: the source's own tap (Zhur-Taa Druid, whose self
-//     line the kernel gates with kop.TfSelf; the builder turns the clause into
-//     that flag);
+//     bare Card.Self clause: the source's own tap (the builder turns the
+//     clause into kop.TfSelf), with Activator$ You only. A self line classes
+//     its own printed mana ability (prepSelfTapsPain), except the deferred
+//     self watcher below;
 //   - no Activator$ (any player's tap, Manabarbs), Activator$
 //     Player.NonActive, the tapping player is not the active player
 //     (effects.MatchesPlayerSpec over trigmatch.TapActor), or Activator$
@@ -33,13 +34,13 @@ import (
 //     kernel's census leaves it out (mana_tapsdefer.go tapsWatchClass) --
 //     except the vetted destroy-self row (Price of Glory, tapsDestroySelf):
 //     the tapped land stays an ordinary planner unit there, the trigger
-//     resolving after the payment that caused it (CR 405.6c/603.2, 605.4a).
-//
-// A self line's source is the tapped permanent itself, and gorge's planner
-// defers it (pay.PaymentPlanTapDamageTrigger accepts Mode$ Taps only), so the
-// line keeps TapPlanDefer (Zhur-Taa Druid). Its body is the literal damage row
-// (kop.RefEachOpponent); a self line with another body (Forbidden Orchard's
-// token) is a separate lowering. Anything else keeps the generic refusal.
+//     resolving after the payment that caused it (CR 405.6c/603.2, 605.4a);
+//   - or ValidCard$ Card.Self with Activator$ You (Zhur-Taa Druid: the
+//     source's own tap "for mana, it deals 1 damage to each opponent";
+//     Forbidden Orchard: "target opponent creates ..."), same Defer class;
+//     the bare self clause becomes kop.TfSelf. A self line's body is either
+//     the literal damage row (kop.RefEachOpponent) or a deferred non-damage
+//     body (the token), and anything else keeps the generic refusal.
 func (lc *lowerCtx) tapsForManaWatch(tp *params, tr *lTrigger, t cards.Trigger, readF func(string) (*lFilter, error)) error {
 	const generic = "trigger mode TapsForMana"
 	// no Activator$: any player's tap (Manabarbs); Player.NonActive: only a
@@ -50,10 +51,10 @@ func (lc *lowerCtx) tapsForManaWatch(tp *params, tr *lTrigger, t cards.Trigger, 
 	// the fire, tapsWatchClassForeign's whoseOK in the deferral classing), the
 	// gate gorge's real matcher reads the Activator$ with
 	// (paymentPlanTapObservers); You with Card.Self is the source's own tap
-	// (Zhur-Taa Druid, a self line)
+	// (Zhur-Taa Druid, Forbidden Orchard: a self line)
 	nonActive, selfTap := false, false
 	var whose uint8
-	switch v := strings.TrimSpace(tp.str("Activator")); v {
+	switch strings.TrimSpace(tp.str("Activator")) {
 	case "":
 	case "Player.NonActive":
 		nonActive = true
@@ -109,12 +110,15 @@ func (lc *lowerCtx) tapsForManaWatch(tp *params, tr *lTrigger, t cards.Trigger, 
 		return refuse("TapsForMana body that is vetted payer damage: gorge prices the source as a last-resort unit")
 	}
 	if self {
-		// The in-scope self line is the literal damage body (Zhur-Taa Druid:
+		// A self line carries either the literal damage row (Zhur-Taa Druid:
 		// DealDamage | Defined$ Player.Opponent, the kernel's
-		// kop.RefEachOpponent). A self line with another body (Forbidden
-		// Orchard's token) is a separate lowering and stays refused.
-		if t.Effect == nil || t.Effect.API != "DealDamage" || strings.TrimSpace(t.Effect.ParamStr(cards.PKSubAbility)) != "" {
-			return refuse("TapsForMana self line without a literal damage body")
+		// kop.RefEachOpponent) or a deferred non-damage body (Forbidden
+		// Orchard's token). A damage row with a sub-ability is not literal.
+		if t.Effect == nil {
+			return refuse("TapsForMana self line without a body")
+		}
+		if t.Effect.API == "DealDamage" && strings.TrimSpace(t.Effect.ParamStr(cards.PKSubAbility)) != "" {
+			return refuse("TapsForMana self damage body with a sub-ability")
 		}
 	}
 	tr.Event, tr.TapsForMana, tr.TapperNonActive = "Taps", true, nonActive

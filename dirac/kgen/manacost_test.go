@@ -106,10 +106,10 @@ func TestManaCostShapesAcceptedAndRefused(t *testing.T) {
 		"Cabal Coffers",                          // ({2}, {T}: Add {B} for each Swamp: kop.FeeDynManaAb)
 		"Agent of Stromgald",                     // ({R}: Add {B}: kop.FeeOnlyManaAb, a repeatable filter)
 		"Ashnod's Altar", "Krark-Clan Ironworks", // (no-{T} "Sacrifice a <spec>: Add one fixed colour": kop.SacAnyManaAb)
-		"Gilded Goose"} // ({T}, Sacrifice a Food: any colour; dirac/oracle/nontapcost_mana_lockstep_test.go)
+		"Gilded Goose",                       // ({T}, Sacrifice a Food: any colour; dirac/oracle/nontapcost_mana_lockstep_test.go)
+		"Druids' Repository", "Pentad Prism"} // (no-{T} "Remove counters from this: Add mana": kop.CtrRemoveManaAb; dirac/oracle/nontapcost_mana_lockstep_test.go)
 	refuse := map[string]string{
 		"Heritage Druid":      "TapX",
-		"Druids' Repository":  "RemoveCtr",
 		"Moonsnare Prototype": "T+TapX",
 	}
 	named := map[string]string{ // (the reason names a measured cause beyond the cost shape)

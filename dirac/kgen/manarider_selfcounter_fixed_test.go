@@ -13,10 +13,11 @@ import (
 // arm (mana_rider.go) is colour-agnostic and gorge's planner defers the
 // source off the SubAbility$ chain alone (pay.PaymentPlanAbilityTier). The
 // map pins the class over every corpus card whose mana ability's SubAbility$
-// is a PutCounter: the fixed-colour and in-order Combo forms lower
-// (Hourglass of the Lost's {W}, Strixhaven Stadium's {C}, the Ice Age
-// in-order storage lands), the shapes whose mana amount or another part
-// reads the counter stay refused with the reason fragment named.
+// is a PutCounter: the fixed-colour and finite Combo forms lower, in
+// printed order or not (Hourglass of the Lost's {W}, Strixhaven Stadium's
+// {C}, Land Cap's W U and Veldt's G W), the shapes whose mana amount or
+// another part reads the counter stay refused with the reason fragment
+// named.
 func TestManaRiderSelfCounterFixed(t *testing.T) {
 	// lowered -> "" (no refusals), refused -> a fragment of its reason.
 	want := map[string]string{
@@ -28,7 +29,7 @@ func TestManaRiderSelfCounterFixed(t *testing.T) {
 		"River Delta":             "",
 		"Timberline Ridge":        "",
 		"Twitching Doll":          "",
-		"Veldt":                   "rider program",        // its Combo G W is printed out of WUBRG order
+		"Veldt":                   "",
 		"Runecarved Obelisk":      "rider program",        // the mana amount is two
 		"Trenzalore Clocktower":   "exile-self cost",      // the second ability exiles the source
 		"Glittering Stockpile":    "counter rider beside", // the rider stands beside a second mana ability

@@ -1721,16 +1721,10 @@ func (rs *tapXSearch) riderStep(k *prep, t *State, sl Slot) (found, stop bool) {
 			return false, true
 		}
 		var order [kop.NumManaKinds]uint8
-		no := 0
-		for col := uint8(0); col < kop.NumManaKinds; col++ {
-			if mask&(1<<col) != 0 {
-				order[no] = col
-				no++
-			}
-		}
+		no := riderAnswerOrder(ra, &order) // a printed Combo's printed order
 		needFirst(order[:no], rs.need)
 		for i := 0; i < no; i++ {
-			if rs.try(k, t, tapXStep{kind: tapXRider, sl: sl, col: uint8(riderAnswerBit(mask, int(order[i])))}) {
+			if rs.try(k, t, tapXStep{kind: tapXRider, sl: sl, col: uint8(riderAnswerIndex(ra, int(order[i])))}) {
 				return true, true
 			}
 		}

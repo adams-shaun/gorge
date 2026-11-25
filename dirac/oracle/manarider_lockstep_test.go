@@ -41,8 +41,17 @@ var (
 		{Name: "Pacifism", Count: 4}, {Name: "Raise the Alarm", Count: 4}, {Name: "Unsummon", Count: 4},
 		{Name: "Divination", Count: 4}, {Name: "Grizzly Bears", Count: 4},
 	}
+	// Veldt is Land Cap printed out of WUBRG order ("Combo G W"): the same
+	// counter rider, the same deferred source, with gorge's colour ask G then
+	// W rather than the mask's W then G.
+	manaRiderDeckE = []cardset.Entry{
+		{Name: "Veldt", Count: 6}, {Name: "Forest", Count: 9}, {Name: "Plains", Count: 9},
+		{Name: "Pacifism", Count: 4}, {Name: "Raise the Alarm", Count: 4},
+		{Name: "Grizzly Bears", Count: 4}, {Name: "Giant Growth", Count: 4},
+	}
 	manaRiderMatchups = []fixtureDecks{{manaRiderDeckA, manaRiderDeckB}, {manaRiderDeckB, manaRiderDeckA},
-		{manaRiderDeckC, manaRiderDeckD}, {manaRiderDeckD, manaRiderDeckC}}
+		{manaRiderDeckC, manaRiderDeckD}, {manaRiderDeckD, manaRiderDeckC},
+		{manaRiderDeckE, manaRiderDeckD}, {manaRiderDeckD, manaRiderDeckE}}
 	manaRiderWatch = map[string]bool{
 		"Doom Blade": true, "Duress": true, "Black Knight": true, "Raise the Alarm": true,
 		"Pacifism": true, "Lightning Bolt": true, "Shock": true, "Grizzly Bears": true,

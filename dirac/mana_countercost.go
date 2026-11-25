@@ -56,7 +56,7 @@ func deadCtrAb(a *kop.Ability) bool { return kop.CtrDeadManaAb(a) }
 // gap (mana_countercost.go, mana_sacctr.go). prep marks the card's gap from
 // this one predicate so the census and the script walk cannot diverge.
 func ctrGapAb(a *kop.Ability) bool {
-	return ctrManaAb(a) || kop.StoreManaAb(a) || kop.CtrDeadManaAb(a) || sacCtrManaAb(a)
+	return ctrManaAb(a) || kop.CtrRemoveManaAb(a) || kop.StoreManaAb(a) || kop.CtrDeadManaAb(a) || sacCtrManaAb(a)
 }
 
 // deadCtrMask is p's activatable dead counter-cost sources among scriptCtr.
@@ -223,6 +223,26 @@ func (s *State) availCtr(k *prep, p uint8, av *avail) {
 			}
 			if n > 0 {
 				av.addUnits(uint8(a.ManaColors)&0x3f, uint8(n))
+			}
+			continue
+		}
+		if kop.CtrRemoveManaAb(a) {
+			// A no-{T} counter cost is limited only by the counters left:
+			// every activation removes Cost.N and makes tapXUnit's mana, so
+			// the source can pay floor(counters/Cost.N) activations in one
+			// prefix search (Pentad Prism's two charge counters pay a {2}
+			// cast with two activations; Runaway Steam-Kin's three +1/+1 pay
+			// one {R}{R}{R}). Gorge's census leaves the shape a repeatable,
+			// unrelaxable gap, so the kernel's gaps walk must count every
+			// activation or a play the search finds is never a candidate.
+			act := s.perms[sl].ctrN(s, int(a.Cost.Ctr)) / int(a.Cost.N)
+			cols, per := tapXUnit(a)
+			if n := act * int(per); n > 0 {
+				if n > 255 {
+					s.capFull(StallDynMana)
+					n = 255
+				}
+				av.addUnits(cols, uint8(n))
 			}
 			continue
 		}

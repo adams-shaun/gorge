@@ -126,15 +126,7 @@ func (lc *lowerCtx) selfFlashShape(s cards.Static, ez string) error {
 			return refuse("CastWithFlash self grant with %s$ (the gate is read with no source on the battlefield)", k)
 		}
 	}
-	if ip, ok := s.Params["IsPresent"]; ok && !selfFlashPresent.MatchString(strings.TrimSpace(ip)) {
-		return refuse("CastWithFlash self grant IsPresent %q", ip)
-	}
-	if _, ok := s.Params["IsPresent"]; !ok {
-		if _, ok := s.Params["PresentZone"]; ok {
-			return refuse("CastWithFlash self grant PresentZone$ without IsPresent$")
-		}
-	}
-	return nil
+	return lc.flashPresentShape(s.Params, "CastWithFlash self grant")
 }
 
 // staticBody lowers a static's parameters.

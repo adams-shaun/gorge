@@ -35,7 +35,7 @@ import (
 // census never prices it. The {T} + Chosen devotion forms lower through the
 // colour-asking arm (Nyx Lotus, Nykthos; lower_askcolourmana.go).
 
-const refuseDbManaMA = "DB$ Mana under a CR 605.1a mana ability gorge resolves on the stack (gorge cards/ability_class.go L48)"
+const refuseDbManaMA = "DB$ Mana under a CR 605.1a mana ability whose colour is asked at activation: no ask-at-activation chosen-colour mana arm (gorge resolves it off the stack; engine/cards/ability_class.go ManaChainProduction)"
 
 // dbManaActivatedOK reports whether the activated ability being lowered is
 // certainly no mana ability (loyalty, targeted, or library-moving), so its
