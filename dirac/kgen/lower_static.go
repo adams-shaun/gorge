@@ -402,7 +402,7 @@ func (lc *lowerCtx) mayPlayStatic(sp *params, st *lStatic, aff string) error {
 		st.Flags = append(st.Flags, "AlsoSideboard")
 	}
 	st.Zone = zoneNames[z]
-	if st.Zone != zGraveyard && st.Zone != zExile && st.Zone != zHand && st.Zone != zLibrary {
+	if st.Zone != zGraveyard && st.Zone != zExile && st.Zone != zHand && st.Zone != zLibrary && st.Zone != zSideboard {
 		return refuse("MayPlay zone %q", z)
 	}
 	if dg, ok := sp.get("MayPlayDontGrantZonePermissions"); ok && (dg != "True" || zRaw != "All") {
