@@ -352,7 +352,7 @@ var pumpKnownKeys = [...]string{
 	"PresentZone",
 	"PrimaryPrompt",
 	"PumpZone",
-	"RandomNumTargets",
+	"RaiseCost", "RandomNumTargets",
 	"ReduceAmount",
 	"ReduceCost",
 	"RememberAnimated",

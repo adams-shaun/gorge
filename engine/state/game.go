@@ -772,7 +772,18 @@ type DelayedTrigger struct {
 	Grantor    ObjID
 	Controller PlayerID
 	Execute    string // the SVar name of the ability to run when it fires
-	Remembered []Target
+	// Description is the registering DelayedTrigger SA's TriggerDescription$
+	// -- the prose a client labels the delayed trigger with ("Draw a card.",
+	// Arcane Denial's slowtrip). A face trigger's own TriggerDescription$
+	// stays readable from its T: line, but a DB$ DelayedTrigger has no such
+	// line, so without it two delayed triggers from one source are
+	// indistinguishable in a CR 603.3b order ask. Empty for a registration
+	// with no TriggerDescription$ (a keyword-minted or generated one), which
+	// labels from the source name as before. Folded from the DelayedRegister
+	// event's Text ("|LB=<text>", appended last so the decode strips it
+	// first); replay rebuilds it.
+	Description string
+	Remembered  []Target
 	// CaptureOnly marks a registration whose memory is nothing but its
 	// creating trigger's event capture (no RememberObjects$, and the chain
 	// remembered nothing of its own): the body's Defined$ Remembered reads
