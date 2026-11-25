@@ -245,7 +245,7 @@ var digKnownKeys = [...]string{
 	"PresentZone",
 	"PrimaryPrompt",
 	"PromptToSkipOptionalAbility",
-	"RandomChange",
+	"RaiseCost", "RandomChange",
 	"RandomNumTargets",
 	"ReduceAmount",
 	"ReduceCost",

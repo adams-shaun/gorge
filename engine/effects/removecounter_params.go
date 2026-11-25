@@ -180,7 +180,7 @@ var removeCounterKnownKeys = [...]string{
 	"PresentDefined",
 	"PresentZone",
 	"PrimaryPrompt",
-	"RandomNumTargets",
+	"RaiseCost", "RandomNumTargets",
 	"ReduceAmount",
 	"ReduceCost",
 	"RememberAmount",

@@ -215,7 +215,7 @@ func (s *State) beginStep(k *prep) {
 		s.openPriority()
 	case kop.StepDraw:
 		if s.drawStepSkipped(k) {
-			s.step = kop.StepMain1 // the draw step does not happen (act_skipphase.go)
+			s.step = s.firstDrawLanding() // the draw step does not happen (act_skipphase.go)
 			return
 		}
 		s.g.drawFirst = true // repl_draw.go: the first card drawn in this draw step
@@ -1184,6 +1184,10 @@ func (s *State) resolveDelayed(k *prep, e *stackEntry) {
 	}
 	if ringTrig(e) {
 		s.resolveRingTrig(k, e) // the Ring emblem's loot, promise or drain (act_ring.go)
+		return
+	}
+	if e.trigAmt == opBlitzDraw {
+		s.draw(e.ctrl) // the blitzed creature's dies trigger (kw_blitz.go)
 		return
 	}
 	if k.gen != nil && e.trigAmt == opLeaveReturn {

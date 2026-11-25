@@ -212,6 +212,12 @@ func (r *Translator) Action(a dirac.Action) Canon {
 			cm, _ := CastModeCode("dashed")
 			return Pack(ActCast, src, RefNone, cm)
 		}
+		if mode == 0 && tgt == dirac.FeatCastBlitzTgt && r.S.ObjZone(dirac.Obj(src)) == kop.ZoneHand {
+			// the blitz cast (CR 702.152a; kernel kw_blitz.go castBlitzTgt):
+			// gorge's "blitzed" cast option, AltCostIndex 0
+			cm, _ := CastModeCode("blitzed")
+			return Pack(ActCast, src, RefNone, cm)
+		}
 		if mode == 0 && tgt == dirac.FeatCastForetellTgt && r.S.ObjZone(dirac.Obj(src)) == kop.ZoneExile {
 			// a foretold card cast from exile (CR 702.143a; kw_foretell.go):
 			// gorge's "foretell_cast" option, which the full cast-mode table
