@@ -19,10 +19,7 @@ func (s *State) biteHits(k *prep, in *kop.Instr, hb *hitBatch, a, b Slot, pa int
 		hb.add(s, a, b, pa)
 		return
 	}
-	lethal := max(s.excessLethalGen(k, b), 0)
-	if lethal > 0 && s.isCreature(k, b) && s.kw(k, a)&kop.KwDeathtouch != 0 {
-		lethal = 1
-	}
+	lethal := max(s.excessLethalGen(k, b, s.kw(k, a)&kop.KwDeathtouch != 0), 0)
 	if pa <= lethal {
 		hb.add(s, a, b, pa)
 		return
