@@ -87,6 +87,11 @@ type Config struct {
 	Commander bool
 	// Full plays the lockstep-full surface instead of lockstep-autopay (dplay's -config).
 	Full bool
+	// Allow names cards of Set to play although no evidence list names them
+	// yet (cardset.AllowNamed). A card that does not lower, or that is refused
+	// by name, stays unplayable. It is for a caller that verifies those cards
+	// itself, in lockstep on its own decks.
+	Allow []string
 
 	// Table and IDs replace Set and Decks with a prebuilt table and one deck
 	// of CardIDs per seat (the vanilla table, a hand-made one).
@@ -143,6 +148,13 @@ func (su *Setup) build(cfg Config) error {
 	set, err := cardset.ByName(cfg.Set)
 	if err != nil {
 		return err
+	}
+	if len(cfg.Allow) > 0 {
+		names := make(map[string]bool, len(cfg.Allow))
+		for _, n := range cfg.Allow {
+			names[n] = true
+		}
+		set = cardset.AllowNamed(set, names)
 	}
 	lists := make([][]cardset.Entry, len(cfg.Decks))
 	for i, d := range cfg.Decks {
