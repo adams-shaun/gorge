@@ -329,8 +329,10 @@ var predicates = map[string]predFn{
 		if b == nil || b.Controller != you || b.Face() == nil {
 			return false
 		}
-		f := b.Face()
-		return f.IsPlaneswalker() && !f.IsCreature()
+		// Forge's CardProperty branch checks only isPlaneswalker (XMage's
+		// AttacksAllTriggeredAbility likewise), so an animated planeswalker
+		// (Gideon as a creature) still counts.
+		return b.Face().IsPlaneswalker()
 	},
 	"blocking": func(g *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool { return isBlocking(g, o.ID) },
 	"token":    func(g *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool { return o.IsToken },

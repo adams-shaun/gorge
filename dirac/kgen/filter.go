@@ -739,7 +739,7 @@ func (c *lClause) prop(p string, knownSub func(string) bool) error {
 		return c.setCmp(cmpAttackingYou, 0, 0, "", "")
 	case "attackingYouOrYourPW", "attackingYouOrYourPWLKI":
 		// gorge attackingYouOrYourPW(LKI): attacking "you" itself, or a
-		// planeswalker (a non-creature face) the evaluating player controls;
+		// planeswalker (animated or not) the evaluating player controls;
 		// a battle's attacker never counts. PredN 1 on the same predicate
 		// (kernel attackingYou's pw arm; Soul Snare, Mangara, Tomik).
 		c.Flags |= fAttacking

@@ -35,6 +35,13 @@ func TestAttackingYouOrYourPWLKICountAndBattleExclusion(t *testing.T) {
 	if got := predicates["attackingYouOrYourPWLKI"](g, g.Obj(atYou), 0, src); !got {
 		t.Fatal("attacker at controlled planeswalker did not match")
 	}
+	// An animated planeswalker (Gideon as a creature) is still a planeswalker:
+	// Forge's attackingYouOrYourPW branch checks only isPlaneswalker.
+	animated := mk("Name:Animated Walker\nManaCost:3 W\nTypes:Creature Planeswalker\nPT:5/5\nLoyalty:3\nOracle:x\n", 0)
+	g.Obj(atYou).AttackingBattle = animated
+	if got := predicates["attackingYouOrYourPWLKI"](g, g.Obj(atYou), 0, src); !got {
+		t.Fatal("attacker at controlled animated planeswalker did not match")
+	}
 	g.Obj(atYou).AttackingBattle = battle
 	if got := predicates["attackingYouOrYourPWLKI"](g, g.Obj(atYou), 0, src); got {
 		t.Fatal("attacker at protected battle incorrectly matched")

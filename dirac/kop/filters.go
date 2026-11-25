@@ -789,8 +789,8 @@ const PredTrigPlayerCtrl Pred = 239
 // attacked planeswalker or the protector of the attacked battle (gorge
 // attackingYou: o.Attacking == you; CR 506.2, 508.1b). At any seat count;
 // false off the battlefield. PredN 1 is gorge attackingYouOrYourPW(LKI):
-// attacking the evaluating controller itself or a non-creature planeswalker
-// it controls, never a battle. Explicit ordinal.
+// attacking the evaluating controller itself or a planeswalker it controls
+// (animated or not), never a battle. Explicit ordinal.
 const PredAttackingYou Pred = 235
 
 // PredSuspected: PredN 1, a suspected battlefield permanent; PredN 0, anything

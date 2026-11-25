@@ -2,6 +2,7 @@ package kgen
 
 import (
 	"github.com/adams-shaun/gorge/dirac/kop"
+	"strings"
 )
 
 // graveAggs are the Count$ValidGraveyard $<prop> folds the kernel's
@@ -33,6 +34,18 @@ var validAggs = map[string]int{
 	"DifferentCardNames":    kop.AggDistinctNames,
 	"CardTypes":             kop.AggCardTypes,
 	"CreatureType":          kop.AggCreatureTypes,
+}
+
+// Count$MostCardName <spec> (Endless Atlas, Mechanized Production, Chrome
+// Replicator, Sceptre of Eternal Glory) is gorge countMostCardName: the
+// greatest number of battlefield objects matching spec that share one face
+// name, the ExValidAgg fold kop.AggMostName.
+func (lc *lowerCtx) mostCardNameValue(spec string) (lValue, error) {
+	f, err := lc.filter(strings.TrimSpace(spec))
+	if err != nil {
+		return lValue{}, err
+	}
+	return lValue{Kind: vValidAgg, N: kop.AggMostName, F: f}, nil
 }
 
 // ptAggIn reports whether v reads a derived P/T aggregate (a CDA reading

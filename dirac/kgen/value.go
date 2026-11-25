@@ -597,6 +597,10 @@ func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 			return lValue{}, fmt.Errorf("TargetedPlayer$ with no target slot")
 		}
 		ref := lRef{Kind: rTarget, N: t}
+		if spec, ok := strings.CutPrefix(rest, "ValidGraveyard "); ok {
+			v, err = lc.targetedPlayerGraveyard(spec) // value_tgtplayeryard.go
+			break
+		}
 		switch rest {
 		case "LifeTotal":
 			v = lValue{Kind: vLifeOf, Ref: ref}
@@ -1602,6 +1606,9 @@ func (lc *lowerCtx) countValue(rest string, depth int) (lValue, error) {
 		// spell's own sneak provenance, 1 or 0. The stack entry's trigPlSneak
 		// mark is the stack-side read; a permanent's is the arena's mechSneaked.
 		return lValue{Kind: vSneaked, Sub: []lValue{cst(1), cst(0)}}, nil
+	}
+	if spec, ok := strings.CutPrefix(rest, "MostCardName "); ok {
+		return lc.mostCardNameValue(spec) // value_aggregates.go
 	}
 	if strings.HasPrefix(rest, "ValidStack ") {
 		return lValue{}, refuse("Count$%s: only ValidStack Card.Self+sneaked is read", rest)

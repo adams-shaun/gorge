@@ -11,8 +11,8 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // K. Ross's "attacks you with two or more creatures").
 //
 // pw 1 is gorge attackingYouOrYourPW(LKI) instead: the attacker is aimed at
-// ctrl itself, or at a permanent whose face is a non-creature planeswalker
-// controlled by ctrl. gorge reads the attacked object by id
+// ctrl itself, or at a permanent whose face is a planeswalker controlled by
+// ctrl, animated or not (Forge checks only isPlaneswalker). gorge reads the attacked object by id
 // (Object.AttackingBattle) through any later zone move, so a planeswalker
 // that left still answers by its card and its controller off the battlefield
 // (its owner here, as atkSeatLeft reads it).
@@ -46,7 +46,7 @@ func (s *State) attackingYouOrPW(k *prep, sl Slot, ctrl uint8) bool {
 	} else {
 		c, ty = ob.owner(), s.castRingTypes(k, Obj(t))
 	}
-	return c == ctrl && ty&kop.TPlaneswalker != 0 && ty&kop.TCreature == 0
+	return c == ctrl && ty&kop.TPlaneswalker != 0
 }
 
 // DebugAttackingYouOpp is the lockstep mutation of attackingYou: it reads
