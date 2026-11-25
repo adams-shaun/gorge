@@ -19,24 +19,14 @@ import (
 // registered grant, beside any printed K: line's own. Each lowers here to a
 // latent ability from that one synthesizer, listed once per grant.
 
-// refuseEffectReturnKw refuses an Undying or Persist grant made by a
-// resolving effect (Pump / PumpAll KW$: Cauldron of Souls, Endling, Haunted
-// One). gorge lists a dying creature's granted triggers in its active()
-// order, layer first and then timestamp, so a layer-6 Pump grant comes ahead
-// of a static that also sets P/T (Mikaeus, the Unhallowed's +1/+1 and
-// undying) whatever their timestamps, while the kernel lists static grants
-// by timestamp and effect grants after them: a creature granted both dies
-// with its two triggers offered in opposite orders (lockstep divergence on
-// the trigger-order ask). Until the kernel mirrors that order, only static
-// AddKeyword$ grants lower.
-func refuseEffectReturnKw(lines []string) error {
-	for _, l := range lines {
-		if l == "Undying" || l == "Persist" {
-			return refuse("effect-granted %s (trigger order beside a static grant)", l)
-		}
-	}
-	return nil
-}
+// An Undying or Persist grant made by a resolving effect (Pump / PumpAll KW$:
+// Cauldron of Souls, Endling, Haunted One) rides an end-of-turn override
+// record. gorge lists a dying creature's granted keyword triggers in its
+// active() order, layer then timestamp, and a Pump's KW$ grant and a static's
+// AddKeyword$ grant (Mikaeus, the Unhallowed's undying) are both layer 6, so
+// they come out by timestamp. The latent ability is kop.Ability.GrantedKw
+// (build_ab.go), so the kernel's grant walk (grantedAbilitiesOwn) lists the
+// record by its timestamp among the static grants, not after them.
 
 // splitAttackKwGrant takes every "Annihilator:<N>" (N a literal 1..20) and
 // bare "Battle cry", "Undying" or "Persist" term out of a `&` keyword list: the rest of the list and

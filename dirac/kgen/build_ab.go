@@ -716,6 +716,10 @@ func (cb *cardBuilder) ability(a *lAbility) (kop.Ability, error) {
 	if a.Latent {
 		ka.AFlags |= kop.AfLatent
 		ka.MeleeGrant = a.Name == "GrantedMelee" // lower_meleegrant.go
+		// the dies-return Undying and Persist a Pump grants (an override
+		// record) are layer-6 keyword grants gorge lists by timestamp beside
+		// a static's AddKeyword$ grant (lower_attackkwgrant.go)
+		ka.GrantedKw = a.Name == "GrantedUndying" || a.Name == "GrantedPersist"
 	}
 	if a.Kind == akSpell {
 		ka.Cost = cb.spellCost
