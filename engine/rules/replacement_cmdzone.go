@@ -427,7 +427,8 @@ func (e *Engine) handleCmdZone(d *decision.Decision, in decision.Intent) {
 		e.applyingReplacement, e.triggerBefore = true, pm.before
 		e.emit(events.Event{Kind: events.MoveZone, Obj: pm.ev.Obj, From: pm.ev.From,
 			To: state.ZCommand, Player: pm.ev.Player, Text: pm.ev.Text})
-		e.applyingReplacement, e.triggerBefore = saved, before
+		e.applyingReplacement = saved
+		e.setTriggerBefore(before)
 	default:
 		savedDeclined := e.cmdZoneDeclined
 		before := e.triggerBefore

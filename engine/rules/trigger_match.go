@@ -1069,7 +1069,7 @@ func (e *Engine) checkTriggersNow(ev *events.Event, lki *state.Object,
 		// every member's walk, moved yet or not. The snapshot
 		// board itself stays untouched: the SOURCE-existence look-back and
 		// every event-RELATIVE clause keep reading the pre-departure object.
-		observer.windowDeparted = e.currentWindowDepartures()
+		observer.windowDeparted = e.windowDepartures
 		// The no-ability-loss proof covers every object and registration
 		// the snapshot can hold (abilityloss.go).
 		observer.lossProof = abilityLossProof{seen: e.abilityLossPossible(), objs: e.lossProof.objs, contLen: -1}
