@@ -185,6 +185,14 @@ func (lc *lowerCtx) czallParams3(ps *params, in *lInstr, origin, dest int) error
 		switch {
 		case v != "True":
 			return refuse("ChangeZoneAll UseAllOriginZones$ %q", v)
+		case !ps.is("Shuffle", "True") && in.Obj.Kind == rNone &&
+			ps.m["ValidTgts"] == "" && ps.m["Defined"] == "":
+			// No Shuffle$, no target, no Defined$: gorge's unscoped sweep
+			// already covers every alive player, and the scope flag
+			// changeZoneAllPlayers returns is read only by the shuffle
+			// tail, so the key changes nothing (Perilous Vault, Urza's
+			// Ruinous Blast, Ugin's -X).
+			return lc.czallParams3Rest(ps, in, origin, dest)
 		case !ps.is("Shuffle", "True"):
 			return refuse("ChangeZoneAll UseAllOriginZones$ without Shuffle$ True")
 		case origin != zGraveyard || dest != zLibrary:
@@ -194,6 +202,11 @@ func (lc *lowerCtx) czallParams3(ps *params, in *lInstr, origin, dest int) error
 		}
 		in.Note = noteAllOrigin
 	}
+	return lc.czallParams3Rest(ps, in, origin, dest)
+}
+
+// czallParams3Rest reads czallParams3's keys after UseAllOriginZones$.
+func (lc *lowerCtx) czallParams3Rest(ps *params, in *lInstr, origin, dest int) error {
 	if v, ok := ps.get("ForgetOtherRemembered"); ok {
 		switch {
 		case v != "True":
