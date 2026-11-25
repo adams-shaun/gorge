@@ -672,7 +672,7 @@ func divTotalReads(v lValue) bool {
 
 func tgtBoundReads(v lValue) bool {
 	switch v.Kind {
-	case vConst, vX, vCount, vCountGraveyard, vValidAgg, vTriggerAmount, vOppsAttacked, vIfCastOwnMain, vTimesKicked:
+	case vConst, vX, vCount, vCountGraveyard, vValidAgg, vTriggerAmount, vOppsAttacked, vIfCastOwnMain, vTimesKicked, vPaidN:
 		return true
 	case vCountersOn:
 		// the source's own counters (Vile Requiem: up to X targets, X the verse

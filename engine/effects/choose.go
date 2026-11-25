@@ -505,7 +505,15 @@ func formatNumberPicks(picks []int32) string {
 // ability's stack object is resolving (resolvesAbility): CR 608.2 has each
 // resolution of an activated or triggered ability make its own choice, so
 // a second activation of Dream Thrush asks again and its answer replaces
-// the first one's. An answered
+// the first one's. It is also never a no-op inside a RepeatEach iteration
+// (c.RepeatSubject set, so as-enters replacements and cast-time-recorded
+// spells stay suppressed while the loop's own iterations do not): CR
+// 608.2c/608.2d follow the spell's instructions in order and each player
+// makes their own choice, so a RepeatEach over players whose body is a
+// ChooseType (Harsh Mercy, Patriarch's Bidding, Grave Sifter) asks every
+// player, not only the first -- the first iteration's answer folds onto the
+// resolving source, and a spell resolves as its own object, so without this
+// the second iteration read that stale answer as its own and returned. An answered
 // ask emits exactly the Choose event the fallback emits, with the answered
 // type. It poses a real KChoose ask over the
 // option list its Type$ CATEGORY ranges over when two or more options are
@@ -526,7 +534,8 @@ func formatNumberPicks(picks []int32) string {
 // list when one exists (never a nonsensical creature type).
 func effChooseType(h Host, c *Ctx, sa *cards.SA) {
 	g := h.Game()
-	if o := g.Obj(c.Source); o != nil && o.ChosenType != "" && !resolvesAbility(c) {
+	if o := g.Obj(c.Source); o != nil && o.ChosenType != "" &&
+		!resolvesAbility(c) && c.RepeatSubject == (state.Target{}) {
 		return
 	}
 	cat := strings.TrimSpace(sa.ParamStr(cards.PKType))
