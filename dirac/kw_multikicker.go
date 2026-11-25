@@ -101,11 +101,15 @@ func kickerPayment(cd *kop.CardDef) kop.ManaCost {
 }
 
 // addKickerPayments is c plus a kicked cast's additional cost: the chosen
-// count of Multikicker payments (CR 702.43), else the plain Kicker once. The
-// one home of that pricing for the cast build, the may-play cost and the
-// target affordability walk.
+// count of Multikicker payments (CR 702.43), else the first reaching
+// Offspring grant's cost (kw_offspring.go kickGrantEntry), else the plain
+// Kicker once. The one home of that pricing for the cast build, the may-play
+// cost and the target affordability walk.
 func (s *State) addKickerPayments(cd *kop.CardDef, e *stackEntry, c kop.ManaCost) kop.ManaCost {
 	if !cd.HasMultikicker {
+		if mc, ok := s.kickGrantEntry(s.k(), e); ok {
+			return addCost(c, mc)
+		}
 		return addCost(c, cd.Kicker)
 	}
 	for i := 0; i < s.multikickCount(e); i++ {
@@ -159,7 +163,7 @@ func (s *State) kickedAffords(k *prep, p uint8, c CardID, o Obj, kc *kop.ManaCos
 // or, under gorge's autopay surface, when gorge's potential planner prices it
 // against the potential pool (kickedPotentialPays).
 func (s *State) offerKickedHand(k *prep, d *Decision, p uint8, c CardID, o Obj, base kop.ManaCost, cav *avail) {
-	kc := addCost(base, kickerPayment(&k.t.Cards[c]))
+	kc := addCost(base, s.kickPayment(k, p, c, o, true))
 	if s.statM.any() || k.gen != nil {
 		kc = s.adjustCost(k, p, c, o, kc) // the reduction applies to the total (CR 601.2f)
 	}
@@ -245,7 +249,11 @@ func (s *State) kickedArmOffer(k *prep, a Action) bool {
 		return false
 	}
 	c := s.objs[Obj(a.Source())].card
-	return k.cards[c].kw&kop.KwKicker != 0 || k.t.Cards[c].HasMultikicker
+	if k.cards[c].kw&kop.KwKicker != 0 || k.t.Cards[c].HasMultikicker {
+		return true
+	}
+	p, _ := s.offspringCaster(Obj(a.Source()))
+	return s.offGrantOffer(k, p, c, Obj(a.Source()))
 }
 
 // kickedTotalCast reports whether action a is a mode-1 cast whose total is the
