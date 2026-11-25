@@ -2818,15 +2818,6 @@ func changelingSubs(pt *poolTables, subs []uint8) []uint8 {
 			subs = append(subs, uint8(i))
 		}
 	}
-	// CR 205.3m's joined multi-word creature type (Time Lord) is a pool
-	// subtype gorge's Changeling has (effects.CreatureTypeWords) though the
-	// list offers only its words.
-	for i, w := range pt.subtypes {
-		if strings.IndexByte(w, ' ') >= 0 && effects.CreatureTypeWords(w) && !have[uint8(i)] {
-			have[uint8(i)] = true
-			subs = append(subs, uint8(i))
-		}
-	}
 	sort.Slice(subs, func(a, b int) bool { return subs[a] < subs[b] })
 	return subs
 }
