@@ -1,0 +1,12 @@
+# Koskun Keep's paid filter set beside its plain {T}: Add {C}: {1},{T}: Add {R}
+# and {2},{T}: Add {B} or {G}, played against a white aggro deck. The green and
+# red spells can only be paid by the Keep's paid abilities (the deck's other
+# lands make black), so the prefix search funds and activates them.
+# (dirac/oracle/koskunkeep_lockstep_test.go)
+Koskun Keep
+Swamp
+Grizzly Bears
+Shock
+Black Knight
+Plains
+Savannah Lions

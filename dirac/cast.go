@@ -432,6 +432,11 @@ func (s *State) unpushSpell(k *prep) {
 		s.dropPendingRange(k, s.bld().pushNP, hi)
 	}
 	ob.zone = s.bld().origin
+	// CR 733.1: the cast never happened, so the card is the object it was
+	// (gorge's reversal moves the same object back): pushBuild's version
+	// bump is undone and another stack entry that targets the card still
+	// has a legal target (CR 608.2b; a second Harness the Storm trigger).
+	ob.ver--
 	ob.slot = NoSlot // off slotFaceDownSpell
 	switch s.bld().origin {
 	case kop.ZoneHand:
@@ -644,6 +649,9 @@ func (s *State) buildCostPreRaw(k *prep, pre, charge bool) (kop.ManaCost, bool) 
 	case seSpell:
 		cd := &k.t.Cards[e.card]
 		c := cd.Cost
+		if fc, ok := flipCastCost(k.t, e.card); ok {
+			c = fc // a converted or disturbed back face's keyword cost (CR 702.162a, 702.146a; face_flipcast.go)
+		}
 		if fb, ok := s.flashbackBase(k, e); ok {
 			c = fb
 		}
@@ -784,6 +792,10 @@ func (s *State) targetStageAborts(k *prep, t *kop.TargetSpec, e *stackEntry) boo
 // when a decision is needed.
 func (s *State) buildStep(k *prep, d *Decision) bool {
 	e := &s.bld().e
+	if s.winUnlessPayer() != 0 {
+		s.castWinUnlessOptions(k, d) // the colour window waits on the unless ask (mana_askcolour.go)
+		return true
+	}
 	if s.bld().bfl&bflWinTap != 0 {
 		return s.castWinTapOptions(k, d) // the cast window waits on a tap-another pick (mana_window.go)
 	}
@@ -1467,6 +1479,10 @@ func (s *State) excludeTapSource(k *prep, av *avail) {
 }
 
 func (s *State) applyBuild(k *prep, a Action) {
+	if s.winUnlessPayer() != 0 {
+		s.applyCastWinUnless(k, a) // the colour window's unless ask (mana_askcolour.go)
+		return
+	}
 	if s.bld().bfl&bflWinTap != 0 {
 		s.applyCastWinTap(k, a)
 		return
