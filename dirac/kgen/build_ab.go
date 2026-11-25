@@ -2770,7 +2770,11 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		}
 	case "Override":
 		st.Kind = kop.StatOverride
-		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
+		zone := kop.ZoneBattlefield
+		if slices.Contains(s.Flags, offZoneFlag) {
+			zone = continuousKind(st, s.Flags, s.Zone) // lower_offzone.go: StatOffZoneGrant over the grant's zone
+		}
+		if st.Filter, err = filter(s.F, zone); err != nil {
 			return ka, nil, err
 		}
 		i, err := cb.override(s.Override)

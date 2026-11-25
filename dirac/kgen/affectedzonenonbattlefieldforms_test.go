@@ -11,6 +11,8 @@ import "testing"
 var affectedZoneNonBattlefieldForms = []formCase{
 	{card: "Leyline of Transformation", form: "AffectedZone$ All AddType$ ChosenType", lir: "addchosen"},
 	{card: "Ashes of the Fallen", form: "AffectedZone$ Graveyard AddType$ ChosenType", lir: "addchosen"},
+	{card: "Maskwood Nexus", form: "AffectedZone$ All AddAllCreatureTypes$ True", lir: "override{allcreaturetypes}"},
+	{card: "Rootpath Purifier", form: "AffectedZone$ Battlefield,Library AddType$ Basic", lir: "override{addtypes=512}"},
 	{card: "Aminatou, Veil Piercer", form: "AffectedZone$ Hand AddKeyword$ Miracle:ManaCost:4", lir: "miraclecost="},
 	{card: "Six", form: "AffectedZone$ Graveyard AddKeyword$ Retrace", lir: "kw=[Retrace]"},
 }

@@ -261,6 +261,7 @@ type genPrep struct {
 	anyCantSac      bool           // some card has a StatCantSacrifice (static_cantsacrifice.go sacBlocked)
 	anyCantTgt      bool           // some card has a StatCantTarget (tgt_canttarget.go cantTargetGen)
 	anyCantTgtGrave bool           // some card has a StatCantTgtGrave (kw_canttgtgrave.go)
+	anyOffZoneChar  bool           // some StatOffZoneGrant carries an Override (static_offzonechars.go)
 	anyFaces        bool           // some card has faces (CardDef.Faces; face_multiface.go)
 	anyWarp         bool           // some card has warp (CardDef.HasWarp; kw_warp.go)
 	anyDash         bool           // some card has dash (CardDef.HasDash; kw_dash.go)

@@ -1385,10 +1385,17 @@ func (s *State) featViewTypesOff(k *prep, o Obj, ob *object) (types kop.TypeMask
 		subs = subs.Or(add)
 		return true
 	})
-	if subs == printed {
+	types = k.cards[c].types
+	if k.gen.anyOffZoneChar {
+		types, subs, all = s.offZoneChars(k, c, ob.owner(), o, types, subs) // static_offzonechars.go
+	}
+	if all && types == k.cards[c].types {
+		return 0, kop.SubMask{}, false, false, false // an all-creature-types grant alone leaves the line as printed, as on the battlefield
+	}
+	if subs == printed && types == k.cards[c].types {
 		return 0, kop.SubMask{}, false, false, false
 	}
-	return k.cards[c].types, subs, false, false, true
+	return types, subs, all, false, true
 }
 
 // FeatStaticKey fingerprints what the statics in play read beyond the
