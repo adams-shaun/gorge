@@ -78,7 +78,25 @@ func (lc *lowerCtx) raiseSelfAdditional(sp *params) (bool, error) {
 		return false, nil
 	}
 	c, err := lc.cost(strings.TrimSpace(cost))
-	if err != nil || !c.Mana.None || c.pureMana() {
+	if err != nil {
+		// an announced-X part (Discard<X/..>, Sac<X/..>) parses only as a
+		// spell's own cost (lifeXSpell); it is the announced amount only when
+		// the spell prints {X} and its SVar X reads that announcement
+		// (Count$xPaid), so a computed X (Tectonic Split's half the lands)
+		// keeps its refusal. Only those two parts are admitted this way: the
+		// flag also opens PayLife<X>, ExileFromGrave<X> and XMin parses.
+		prev := lc.lifeXSpell
+		lc.lifeXSpell = true
+		c, err = lc.cost(strings.TrimSpace(cost))
+		lc.lifeXSpell = prev
+		if err != nil || !(c.DiscardX || c.SacX) || c.LifeX || c.ExileGX || c.XMin != 0 {
+			return false, nil
+		}
+	}
+	if !c.Mana.None || c.pureMana() {
+		return false, nil
+	}
+	if (c.DiscardX || c.SacX) && (!lc.out.Cost.X || strings.TrimSpace(lc.face.SVars["X"]) != "Count$xPaid") {
 		return false, nil
 	}
 	sp.consume("Cost", "Mode", "ValidCard", "Activator", "Type", "EffectZone", "Description")
@@ -86,7 +104,9 @@ func (lc *lowerCtx) raiseSelfAdditional(sp *params) (bool, error) {
 		return true, refuse("RaiseCost Cost$ %q with unread params %v", strings.TrimSpace(cost), left)
 	}
 	o := lc.out
-	if o.SpellCost != nil || o.AltAddCost != nil || o.OptCost != nil || o.Kicker != nil ||
+	// the spell ability's own mana-only Cost$ leaves an empty SpellCost
+	// (lower.go) the self raise's part replaces
+	if o.SpellCost != nil && !o.SpellCost.pureMana() || o.AltAddCost != nil || o.OptCost != nil || o.Kicker != nil ||
 		o.BeholdN != 0 || o.BeholdExile || o.SpellWaterbend != 0 {
 		return true, refuse("RaiseCost Cost$ %q beside another additional cost", strings.TrimSpace(cost))
 	}
