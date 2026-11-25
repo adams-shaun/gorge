@@ -4,13 +4,13 @@ import "testing"
 
 // The per-player RepeatEach ChooseCard cards that lockstep showed diverging
 // stay refused by name until the divergence is fixed (see the lockstep-gaps
-// ticket): Tariff (greatest-mana-value pick priced as an unless cost),
-// Highcliff Felidar (Defined$ You over the greatest-power pick) and the split
-// faces Discovery/Dispersal and Flotsam/Jetsam. A lowering that diverges from
-// gorge must not ship, so a card here lowering clean means the divergence was
-// fixed and lockstepped: move it to TestRepeatEachSlice's list.
+// ticket): Highcliff Felidar (Defined$ You over the greatest-power pick, an
+// empty pick in gorge where the kernel offers a lesser creature). A lowering
+// that diverges from gorge must not ship, so a card here lowering clean means
+// the divergence was fixed and lockstepped: move it to TestRepeatEachSlice's
+// list (Tariff, Discovery/Dispersal and Flotsam/Jetsam moved that way).
 func TestRepeatEachChooseCardStillRefused(t *testing.T) {
-	names := []string{"Tariff", "Highcliff Felidar", "Discovery", "Flotsam"}
+	names := []string{"Highcliff Felidar"}
 	lw := lowerNamedPool(t, names)
 	refused := map[string]bool{}
 	for _, c := range append(append([]*lCard(nil), lw.cards...), lw.tokens...) {
