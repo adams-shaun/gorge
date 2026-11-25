@@ -1804,6 +1804,14 @@ func (s *State) execReturnObj(k *prep, in *kop.Instr, host Slot, o Obj) bool {
 	if in.B.N&kop.RetUnderOpponent != 0 {
 		ctrl = s.retUnderOppSeat(e.ctrl) // GainControl$ ChosenPlayer (kop.RetUnderOpponent; zone_returndefender.go)
 	}
+	if in.W != kop.RefNone {
+		// GainControl$ Player.IsRemembered inside an OpRepeatEachPlayer
+		// body: the card enters under the repeated player (Thieves'
+		// Auction, kgen's W ref).
+		if p := s.playerRef(k, in.W); p != 255 {
+			ctrl = p
+		}
+	}
 	if z == kop.ZoneBattlefield && fl&kop.MvTransformed != 0 {
 		s.enterTransformed(k, o)
 	}
