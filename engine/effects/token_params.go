@@ -61,6 +61,9 @@ type TokenParams struct {
 	// Attacking is TokenAttacking$ ("" when the tokens do not enter
 	// attacking).
 	Attacking string
+	// Blocking is TokenBlocking$ ("" when the tokens do not enter blocking):
+	// the Defined$ selector naming the attacking creature each token blocks.
+	Blocking string
 	// ImprintTokens is ImprintTokens$ True.
 	ImprintTokens bool
 	// RememberSource is RememberSource$ True (Saproling Burst): each minted
@@ -225,6 +228,7 @@ var tokenKnownKeys = [...]string{
 	"TgtZone",
 	"TokenAmount",
 	"TokenAttacking",
+	"TokenBlocking",
 	"TokenOwner",
 	"TokenPower",
 	"TokenRemembered",
@@ -306,6 +310,7 @@ func compileToken(sa *cards.SA) *TokenParams {
 	p.Tapped = isTrue(sa.ParamStr(cards.PKTokenTapped))
 	p.Remembered = strings.TrimSpace(sa.ParamStr(cards.PKTokenRemembered))
 	p.Attacking = strings.TrimSpace(sa.ParamStr(cards.PKTokenAttacking))
+	p.Blocking = strings.TrimSpace(sa.ParamStr(cards.PKTokenBlocking))
 	p.ImprintTokens = isTrue(sa.ParamStr(cards.PKImprintTokens))
 	p.RememberSource = isTrue(sa.ParamStr(cards.PKRememberSource))
 	p.Unread = unreadKeys(sa, tokenKnownKeys[:])
