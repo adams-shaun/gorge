@@ -424,7 +424,7 @@ func (s *State) damageHit(k *prep, h *dmgHit) int {
 	if !s.occ.has(b) {
 		return 0
 	}
-	if k.gen != nil && k.gen.anyRepl&(rbDblDmg|rbPrevNC|rbPrevDmgTo|rbProtAll|rbProtCol|rbPlusDmg|rbShield|rbPrevCol|rbPrevMill|rbSelfDmg) != 0 && n > 0 {
+	if k.gen != nil && (k.gen.anyRepl&(rbDblDmg|rbPrevNC|rbPrevDmgTo|rbProtAll|rbProtCol|rbPlusDmg|rbShield|rbPrevCol|rbPrevMill|rbSelfDmg) != 0 || k.gen.anyRepl2&rb2DmgInst != 0) && n > 0 {
 		n = s.replDamagePend(k, s.perms[a].ctrl, a, s.cardAt(a), TCode(s.perms[b].obj), n, s.perms[a].obj)
 	}
 	if n <= 0 {
@@ -464,7 +464,7 @@ func (s *State) damagePlayerHit(k *prep, h *dmgHit) int {
 	a := h.src
 	pl := h.pl - 1
 	code := PlayerCode(pl)
-	if k.gen != nil && k.gen.anyRepl&(rbDblDmg|rbPrevNC|rbPrevDmgTo|rbProtAll|rbProtCol|rbPlusDmg|rbShield|rbPrevCol|rbPrevMill|rbSelfDmg) != 0 {
+	if k.gen != nil && (k.gen.anyRepl&(rbDblDmg|rbPrevNC|rbPrevDmgTo|rbProtAll|rbProtCol|rbPlusDmg|rbShield|rbPrevCol|rbPrevMill|rbSelfDmg) != 0 || k.gen.anyRepl2&rb2DmgInst != 0) {
 		n = s.replDamage(k, s.perms[a].ctrl, a, s.cardAt(a), code, false, n)
 	}
 	if n <= 0 {

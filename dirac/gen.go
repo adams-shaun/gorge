@@ -586,7 +586,11 @@ const (
 	rb2LifeFloor                     // ReplLifeReduced: damage's life loss is floored (repl_lifefloor.go)
 	rb2DmgMinus                      // ReplDamageMinus: the event's damage is that much minus Repl.A (repl_dmgminus.go)
 	rb2DmgSet                        // ReplDamageSet: damage of the gate and up is set to Repl.A (repl_dmgminus.go)
+	rb2DmgInst                       // ReplDamageInstead: the damage is replaced by counters, mill, exile or draw (repl_dmginstead.go)
 )
+
+// rb2DmgAny are the rb2 damage replacements the damage sites' gates open for.
+const rb2DmgAny = rb2DmgMinus | rb2DmgSet | rb2DmgInst
 
 // Replacement bits (genPrep.replBits).
 const (
@@ -835,6 +839,8 @@ func prepReplBit2(g *genPrep, a *kop.Ability, i int, pc *pcard) {
 		bit = rb2DmgMinus // replDamage's minus rewrite (repl_dmgminus.go)
 	case kop.ReplDamageSet:
 		bit = rb2DmgSet // replDamage's set rewrite (repl_dmgminus.go)
+	case kop.ReplDamageInstead:
+		bit = rb2DmgInst // replDamage's replace-the-damage step (repl_dmginstead.go)
 	}
 	g.replBits2[i] |= bit
 	pc.hasStat = true
@@ -1407,7 +1413,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 				case kop.ReplLifeLossDouble:
 					g.replBits[i] |= rbDblLoss
 					pc.hasStat = true
-				case kop.ReplBeginPhase, kop.ReplLifeReduced, kop.ReplDamageMinus, kop.ReplDamageSet:
+				case kop.ReplBeginPhase, kop.ReplLifeReduced, kop.ReplDamageMinus, kop.ReplDamageSet, kop.ReplDamageInstead:
 					prepReplBit2(g, a, i, pc)
 				case kop.ReplDestroyHeal:
 					g.replBits[i] |= rbDestroyHeal

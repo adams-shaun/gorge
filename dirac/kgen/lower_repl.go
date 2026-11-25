@@ -412,6 +412,9 @@ func (lc *lowerCtx) damageRepl(rp *params, w *cards.SA, rl *lRepl) error {
 	if ok, err := lc.staticDmgRedirect(rp, w, rl); ok || err != nil { // lower_staticredirect.go
 		return err
 	}
+	if ok, err := lc.damageInstead(rp, w, rl); ok || err != nil { // lower_replinstead.go
+		return err
+	}
 	return lc.damageDoubler(rp, w, rl)
 }
 
