@@ -2472,13 +2472,13 @@ const StatRetraceGrant StaticKind = 73
 // StatCyclingGrant is a Continuous static's AffectedZone$ Hand AddKeyword$ Cycling or TypeCycling grant (Rhet-Tomb Mystic, Jo Grant, Tectonic Reformation, Homing Sliver; CR 702.29a, 702.29e): Filter matches the card in a hand and GrantBody-1 is the latent cycling body (the printed kwCycling / kwTypeCycling expansion, cards.GrantedKeywordAbility, AfCycling, ActZone hand) the hand offer runs with the affected card as its source, discarding it as the cost. The offer is the hand owner's, whoever controls the static (kw_cyclinggrant.go).
 const StatCyclingGrant StaticKind = 74
 
-// stat AssignNoCombatDamage (dirac/manifest/StaticKind/StatNoCombatDamage)
-const StatNoCombatDamage StaticKind = 75
-
-// StaticKind (dirac/manifest/StaticKind/StatPlayerKeyword)
+// StaticKind (dirac/manifest/StaticKind/StatDefenderAssigns)
 //
-// StatPlayerKeyword is a Continuous static's `Affected$ You | AddKeyword$ <player keyword>` grant the kernel reads (kgen lower_playerstatic.go): Static.A names the keyword, PlKwPayLifeInsteadOfB (K'rrik, Son of Yawgmoth, dirac/mana_plkeyword.go) or PlKwDefenderAssigns (Defensive Formation, dirac/combat_band.go bandDivider). Read live from the battlefield (playerKeyword); no State bytes.
-const StatPlayerKeyword StaticKind = 76
+// StatDefenderAssigns is a Continuous static's `Affected$ You | AddKeyword$ You assign combat damage of each creature attacking you.` (Defensive Formation, kgen lower_playerstatic.go): its controller, not the attacking player, divides the combat damage of each creature attacking them among its blockers (CR 510.1c as the card rewrites it; gorge defenderAssignsAttackerDamage). Read live from the battlefield (dirac/static_plkeyword.go defenderAssigns, combat_band.go bandDivider); no State bytes.
+const StatDefenderAssigns StaticKind = 75
+
+// stat AssignNoCombatDamage (dirac/manifest/StaticKind/StatNoCombatDamage)
+const StatNoCombatDamage StaticKind = 76
 
 // StaticKind (dirac/manifest/StaticKind/StatUnearthGrant)
 //

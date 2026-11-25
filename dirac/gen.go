@@ -406,7 +406,7 @@ type genPrep struct {
 	anyPoisonHigh   bool           // some expression reads the opponents' highest poison (ExHighestOppPoison; value_highestpoison.go)
 	anyDiesNC       bool           // some dies trigger can match a noncreature permanent (trig_diesnoncreature.go diesNC)
 	anyHandSize     bool           // some static or emblem is NoMaxHandSize (maxHand; static_playerstats.go)
-	anyPlKw         uint8          // bit kw: some static is a StatPlayerKeyword with A == kw (playerKeyword; static_plkeyword.go)
+	anyDefAssigns   bool           // some static is a StatDefenderAssigns (defenderAssigns; static_defenderassigns.go)
 	anyYouHex       bool           // some Continuous static gives its controller hexproof (StYouHexproof; ctr_shield.go)
 	anyRole         bool           // some card carries the Role subtype: the SBA runs the Role exclusivity check (static_roletokens.go)
 	roleSub         uint8          // the matchup subtype index of Role (static_roletokens.go)
@@ -1492,9 +1492,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 					}
 				case kop.StatPlayerHexproof, kop.StatNoMaxHandSize:
 					g.noteStaticPlayerStats(i, a)
-				case kop.StatPlayerKeyword:
-					g.anyPlKw |= 1 << uint(a.Static.A&7)
-					pc.hasStat = true // scanned through statM (static_plkeyword.go)
+				case kop.StatDefenderAssigns:
+					g.anyDefAssigns = true
+					pc.hasStat = true // scanned through statM (static_defenderassigns.go)
 				case kop.StatCantBeBeamedUp:
 					g.anyBeamBar = true
 					pc.hasStat = true // scanned through statM (kw_beammeup.go)

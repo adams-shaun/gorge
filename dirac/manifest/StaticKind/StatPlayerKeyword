@@ -1,5 +1,0 @@
-family: StaticKind
-name: StatPlayerKeyword
-value: next
-status: active
-doc: StatPlayerKeyword is a Continuous static's `Affected$ You | AddKeyword$ <player keyword>` grant the kernel reads (kgen lower_playerstatic.go): Static.A names the keyword, PlKwPayLifeInsteadOfB (K'rrik, Son of Yawgmoth, dirac/mana_plkeyword.go) or PlKwDefenderAssigns (Defensive Formation, dirac/combat_band.go bandDivider). Read live from the battlefield (playerKeyword); no State bytes.

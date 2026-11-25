@@ -37,8 +37,7 @@ func TestStaticZonesSlice(t *testing.T) {
 // shapes the kernel does not model yet (a multi-zone MayPlay with the command
 // zone, a stack grant of Replicate, Prowl, Rebound, Freerunning or
 // Deathtouch, an off-zone grant of miracle, the vote
-// counters; K'rrik's pay-life-instead-of-mana lowers, see
-// TestStaticZonesPlayerStaticForms) or that gorge itself fails
+// counters, K'rrik's pay-life-instead-of-mana) or that gorge itself fails
 // closed on -- FatefulHour, ExtraTurn and Night, whose gate has no arm, so
 // the whole static is inert there (Gavony Ironwright, Medomai the Ageless,
 // Moonrager's Slash: reported, not copied). Each must keep its named
@@ -54,6 +53,7 @@ var staticZonesRefusals = []struct{ card, want string }{
 	{"Embalmer's Tools", `ReduceCost AffectedZone "": "Creature.YouOwn+inZoneGraveyard" can match a non-battlefield activation`},
 	{"Gavony Ironwright", `static Condition "FatefulHour" (gorge fails closed`},
 	{"Hurkyl's Final Meditation", `static Condition "NotPlayerTurn"`},
+	{"K'rrik, Son of Yawgmoth", "player static"},
 	{"Lens of Clarity", "MayLookAt shape"},
 	{"Medomai the Ageless", `static Condition "ExtraTurn" (gorge fails closed`},
 	{"Moonrager's Slash", `static Condition "Night" (gorge fails closed`},

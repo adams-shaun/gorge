@@ -3,28 +3,20 @@ package kgen
 import (
 	"strings"
 	"testing"
-
-	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
-// playerStaticCarriers are the two `Affected$ You` player statics gorge
-// reads and the kernel now models: K'rrik's PayLifeInsteadOf:B
-// (engine/rules/mana.go PayLifeInsteadOfB) and Defensive Formation's "You
-// assign combat damage of each creature attacking you."
-// (engine/rules/playerkeywords.go). Each lowers to one StatPlayerKeyword
-// static whose Amount names the keyword.
-var playerStaticCarriers = []struct {
-	card   string
-	amount int
-}{
-	{"K'rrik, Son of Yawgmoth", kop.PlKwPayLifeInsteadOfB},
-	{"Defensive Formation", kop.PlKwDefenderAssigns},
-}
+// playerStaticCarriers are the `Affected$ You` player statics the kernel
+// models: Defensive Formation's "You assign combat damage of each creature
+// attacking you." (engine/rules/playerkeywords.go). It lowers to one
+// StatDefenderAssigns static.
+var playerStaticCarriers = []string{"Defensive Formation"}
 
-// playerStaticRefusals are the player-keyword carriers gorge has no reader
-// for: lowering them would copy a gorge gap, so each keeps the standing
-// "player static" refusal.
+// playerStaticRefusals are the player-keyword carriers that stay refused:
+// the four gorge has no reader for (lowering them would copy a gorge gap)
+// and K'rrik's PayLifeInsteadOf:B, which gorge reads
+// (engine/rules/mana.go PayLifeInsteadOfB) but the kernel does not model yet.
 var playerStaticRefusals = []struct{ card, want string }{
+	{"K'rrik, Son of Yawgmoth", "player static"},
 	{"Ballot Broker", "player static"},
 	{"Brago's Representative", "player static"},
 	{"Winter Orb", `keyword "UntapAdjust:Land:1"`},
@@ -32,22 +24,19 @@ var playerStaticRefusals = []struct{ card, want string }{
 }
 
 func TestStaticZonesPlayerStaticForms(t *testing.T) {
-	for _, w := range playerStaticCarriers {
-		c := lowerNamedCard(t, w.card)
+	for _, name := range playerStaticCarriers {
+		c := lowerNamedCard(t, name)
 		if len(c.Refusals) != 0 {
-			t.Errorf("%s refusals = %v, want none", w.card, c.Refusals)
+			t.Errorf("%s refusals = %v, want none", name, c.Refusals)
 		}
 		n := 0
 		for _, st := range c.Statics {
-			if st.Kind == "PlayerKeyword" {
+			if st.Kind == "DefenderAssigns" {
 				n++
-				if !st.Amount.isConst() || st.Amount.N != w.amount {
-					t.Errorf("%s PlayerKeyword amount = %v, want %d", w.card, st.Amount, w.amount)
-				}
 			}
 		}
 		if n != 1 {
-			t.Errorf("%s lowers %d PlayerKeyword statics, want 1", w.card, n)
+			t.Errorf("%s lowers %d DefenderAssigns statics, want 1", name, n)
 		}
 	}
 	for _, r := range playerStaticRefusals {
