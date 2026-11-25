@@ -488,7 +488,7 @@ func counterKind(s string) (kop.CounterKind, error) {
 
 var zoneMap = [...]kop.Zone{zNone: kop.ZoneNone, zBattlefield: kop.ZoneBattlefield, zHand: kop.ZoneHand,
 	zGraveyard: kop.ZoneGraveyard, zLibrary: kop.ZoneLibrary, zExile: kop.ZoneExile, zStack: kop.ZoneStack,
-	zCommand: kop.ZoneCommand, zAny: kop.ZoneNone}
+	zCommand: kop.ZoneCommand, zAny: kop.ZoneNone, zSideboard: kop.ZoneSideboard}
 
 func (cb *cardBuilder) subIndexes(ws []string) ([]uint8, error) {
 	var out []uint8
@@ -598,6 +598,7 @@ func (cb *cardBuilder) record() error {
 		cb.bargain = true
 	}
 	d.HandMana, d.GraveMana = c.HandMana, c.GraveMana // a Spirit Guide's hand mana, a graveyard source's colours: no ability (lower_handmana.go, lower_gravemana.go)
+	d.Conspire = c.Conspire
 	if c.Storm {
 		// the printed K:Storm trigger is the kernel's own native trigger
 		// (dirac/kw_storm.go); no ability, no cast-action bit
@@ -741,7 +742,7 @@ func (cb *cardBuilder) record() error {
 	}
 	if c.MorphCost != nil {
 		d.MorphFamily, d.MorphLife = c.MorphFamily, c.MorphLife
-		if d.MorphCost, err = manaCostOf(*c.MorphCost); err != nil {
+		if d.MorphCost, err = cb.morphCostOf(d, c); err != nil { // lower_revealpick.go
 			return err
 		}
 		if d.MorphReduce, err = cb.value(c.MorphReduce); err != nil {
@@ -1066,7 +1067,7 @@ func (cb *cardBuilder) record() error {
 			}
 			spc.BeholdN, spc.BeholdF = 0, nil
 		}
-		sc, err := cb.cost(spc)
+		sc, err := cb.spellPartCost(d, spc) // lower_revealpick.go
 		if err != nil {
 			return err
 		}
@@ -1116,7 +1117,7 @@ func (cb *cardBuilder) record() error {
 	d.AloneBlk = c.AloneBlk
 	d.Engines = c.Engines
 	d.HasReconfigure = c.Reconfigure
-	d.Ascend, d.Unleash, d.Flanking, d.Phasing, d.Riot, d.Enlist = c.Ascend, c.Unleash, c.Flanking, c.Phasing, c.Riot, c.Enlist
+	d.Ascend, d.Unleash, d.Flanking, d.Phasing, d.Riot, d.Enlist, d.HasBlitz, d.BlitzCost = c.Ascend, c.Unleash, c.Flanking, c.Phasing, c.Riot, c.Enlist, c.Blitz, c.BlitzCost
 	d.AtkFace = c.AtkFace
 	d.SagaN = uint8(c.SagaN)
 	d.TapPowerCrew = int8(c.TapPowerCrew)
@@ -2484,6 +2485,7 @@ var exprKinds = map[valKind]kop.ExprKind{
 	vLifeLostLastTurn:   kop.ExLifeLostLastTurn,
 	vDmgAmount:          kop.ExDmgAmountReceived,
 	vTimesKicked:        kop.ExKicked, // Expr.N 1: the multikicker count, not the kicked bit
+	vPaidN:              kop.ExKicked, // Expr.N 2: the Squad/Replicate/Conspire paid count
 	vEnergyOf:           kop.ExEnergyOf,
 	vMonarch:            kop.ExMonarch,    // lower_monarch.go
 	vBlessing:           kop.ExBlessing,   // dirac/kw_ascend.go
@@ -2522,6 +2524,9 @@ func (cb *cardBuilder) expr(v lValue) (kop.Expr, error) {
 	}
 	if v.Kind == vTimesKicked {
 		e.N = 1 // ExKicked N 1: the multikicker payment count (eval's timesKicked)
+	}
+	if v.Kind == vPaidN {
+		e.N = 2 // ExKicked N 2: the paid count (eval's paidCount)
 	}
 	if v.Kind == vActivations {
 		e.N = int16(v.N) // ExActivations N 1: the evaluating source's count, an ActivationLimit$ gate (lower_activationlimitn.go)

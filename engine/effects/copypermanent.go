@@ -80,16 +80,17 @@ func dedupeTargets(ts []state.Target) []state.Target {
 // Controller$ You/Targeted*/Remembered*/TriggeredCardController/Opponent and
 // the per-player NonRememberedController families. Any other Controller$ or
 // AtEOT$ value is one loud Note per call.
-// copyAtEOTSide registers one mint's AtEOT$ rider: a grouped-sacrifice value
+// copyAtEOTSide registers one mint's AtEOT$ rider: a rider with a group body
 // joins the resolution's grouped batch (one trigger over them all, even when
-// no copy was made, CR 603.7), every other value is the shared one-shot
+// no copy was made, CR 603.7a), every other value is the shared one-shot
 // rider, the token the affected object and this CopyPermanent resolution's
-// source the creator (CR 603.7d). ExileCombat rides this same path: its
-// promise fires at the beginning of the end-of-combat step (CR 511.2), where
-// the turn-structure sweep that used to exile it is gone.
+// source the creator (CR 603.7d). SacrificeCtrl has no group body and stays
+// per object; ExileCombat rides this same per-mint path: its promise fires at
+// the beginning of the end-of-combat step (CR 511.2), where the turn-structure
+// sweep that used to exile it is gone.
 func copyAtEOTSide(h Host, c *Ctx, atEOT string, owner state.PlayerID, want state.ObjID, grouped *[]state.ObjID, groupedOwner *state.PlayerID) {
 	if r, ok := atEOTRiders.Get(atEOT); ok {
-		if groupedSacrifice(atEOT, r) {
+		if atEOT != "ExileCombat" && groupedRider(r) {
 			*grouped = append(*grouped, want)
 			*groupedOwner = owner
 		} else {
@@ -896,10 +897,12 @@ func effCopyPermanent(h Host, c *Ctx, sa *cards.SA) {
 			}
 		}
 	}
-	// A sacrifice rider over the copies of one resolution is one delayed
-	// triggered ability naming all of them, created even when no copy was made
-	// (CR 603.7; Forge's TokenEffectBase registers it unconditionally).
-	if r, ok := atEOTRiders.Get(string(atEOT)); ok && groupedSacrifice(string(atEOT), r) {
+	// A rider with a group body over the copies of one resolution is one
+	// delayed triggered ability naming all of them, created even when no copy
+	// was made (CR 603.7a; Forge's TokenEffectBase registers it
+	// unconditionally). ExileCombat keeps its per-mint registration, and
+	// SacrificeCtrl has no group body.
+	if r, ok := atEOTRiders.Get(string(atEOT)); ok && atEOT != "ExileCombat" && groupedRider(r) {
 		var live []state.ObjID
 		for _, id := range grouped {
 			if g.Obj(id) != nil {
@@ -1006,11 +1009,37 @@ func copyPermanentController(h Host, c *Ctx, g *state.Game, cp CopyPermanentPara
 			}
 			break
 		}
+		// A `Player.<filter>` spelling (Tempt with Reflections'
+		// `Player.IsRemembered`: the iterating opponent creates its own
+		// copy, CR 111.2) is the first live player the shared player-filter
+		// grammar admits, with the iteration's Remembered list bound.
+		if p, ok := copyPermanentControllerPlayer(g, c, cp.Controller); ok {
+			owner = p
+			break
+		}
 		emitNote(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
 			Text: "Controller$ " + cp.Controller +
 				" is not implemented; the copy is controlled by the resolving controller"})
 	}
 	return owner, owners, multiOwner
+}
+
+// copyPermanentControllerPlayer resolves a `Player.<filter>` Controller$ to the
+// first player, in turn order from the resolving controller, that
+// MatchesPlayerSpecCtx admits. Player.IsRemembered reads the ctx's Remembered
+// list (a RepeatEach iteration binds its subject there), not the source
+// object's own. ok is false for any other spelling or when no player matches.
+func copyPermanentControllerPlayer(g *state.Game, c *Ctx, spec string) (state.PlayerID, bool) {
+	if !strings.HasPrefix(spec, "Player.") {
+		return 0, false
+	}
+	pc := PlayerSpecCtx{Source: c.Source, Remembered: c.Remembered, RememberedBound: true}
+	for _, p := range g.AliveFrom(c.Controller) {
+		if MatchesPlayerSpecCtx(g, spec, p, c.Controller, pc) {
+			return p, true
+		}
+	}
+	return 0, false
 }
 
 // copyTypeList parses Forge's multi-type grammar the way rules' statList

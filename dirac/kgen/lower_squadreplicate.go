@@ -22,6 +22,7 @@ import (
 func init() {
 	kwHandlers["Squad"] = (*lowerCtx).lowerSquad
 	kwHandlers["Replicate"] = (*lowerCtx).lowerReplicate
+	kwHandlers["Conspire"] = (*lowerCtx).lowerConspire
 }
 
 func (lc *lowerCtx) lowerSquad(node, param string) {
@@ -129,19 +130,65 @@ func repeatableCost(c lCost) bool {
 	return rest.pureMana()
 }
 
-// repeatedPaidValue lowers Count$SquadPaid / Count$ReplicatePaid to the
-// repeated-payment count Count$TimesKicked reads (vTimesKicked), but only on
-// a card whose own keyword is the matching one: anywhere else the SVar has
-// no cast-time payment behind it in the kernel.
+// repeatedPaidValue lowers Count$SquadPaid / Count$ReplicatePaid /
+// Count$Conspired to the paid count the kernel stores per spell
+// (vPaidN, dirac/cost_paidcount.go), but only on a card whose own keyword is the
+// matching one: anywhere else the SVar has no cast-time payment behind it in
+// the kernel.
 func (lc *lowerCtx) repeatedPaidValue(rest string) (lValue, bool, error) {
-	want := kop.RepeatSquad
-	if rest == "ReplicatePaid" {
-		want = kop.RepeatReplicate
+	ok := false
+	switch rest {
+	case "SquadPaid":
+		ok = lc.out.RepeatedKind == kop.RepeatSquad
+	case "ReplicatePaid":
+		ok = lc.out.RepeatedKind == kop.RepeatReplicate
+	case "Conspired":
+		ok = lc.out.Conspire
 	}
-	if lc.out.RepeatedKind != want {
+	if !ok {
 		return lValue{}, true, refuse("Count$%s without the matching keyword", rest)
 	}
-	return lValue{Kind: vTimesKicked}, true, nil
+	return lValue{Kind: vPaidN}, true, nil
+}
+
+// lowerConspire is printed K:Conspire (CR 702.78a): the conspired cast and its
+// tap election are the kernel's (dirac/kw_conspire.go, CardDef.Conspire), the
+// copy is gorge kwConspire's SpellCast Card.Self trigger lowered from its own
+// line (CheckSVar$ Count$Conspired, CopySpellAbility Amount$ Count$Conspired).
+// The conspired cast is offered beside the plain hand cast only, so
+// refuseConspireCombos refuses a card with another cast route, an additional
+// or optional cost, or a second face by name.
+func (lc *lowerCtx) lowerConspire(node, param string) {
+	switch {
+	case strings.TrimSpace(param) != "":
+		lc.refuseNode(node, "conspire parameter %q", param)
+	case lc.out.Conspire:
+		lc.refuseNode(node, "second Conspire keyword")
+	default:
+		lc.out.Conspire = true
+	}
+}
+
+// refuseConspireCombos refuses a Conspire card beside any other cast route or
+// cost the conspired cast does not carry (run after every line has lowered,
+// as refuseRepeatedCombos is).
+func (lc *lowerCtx) refuseConspireCombos() {
+	out := lc.out
+	if !out.Conspire {
+		return
+	}
+	if out.RepeatedKind != 0 || out.Kicker != nil || out.Warp != nil || out.Plot != nil || out.Flashback != nil || out.SpellCost != nil ||
+		out.AltAddCost != nil || out.Sneak != nil || out.Impending != nil || out.Bestow != nil || out.Mayhem != nil ||
+		out.Harmonize != nil || out.Madness != nil || out.Offspring != nil || out.Gift || out.MorphCost != nil ||
+		out.Casualty != 0 || out.Bargain || out.OptCost != nil || out.Teamwork != 0 || out.Spree ||
+		out.Convoke || out.Improvise || out.Storm || out.Buyback != nil || out.Entwine != nil ||
+		len(lc.card.Faces) > 1 || lc.card.AlternateMode != "" {
+		lc.refuseNode("K:Conspire", "Conspire beside another cast route or additional cost")
+		return
+	}
+	if out.Cost.X {
+		lc.refuseNode("K:Conspire", "Conspire on an {X} spell")
+	}
 }
 
 // refuseRepeatedCombos refuses Squad/Replicate beside any other cast route:

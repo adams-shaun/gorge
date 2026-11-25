@@ -524,8 +524,9 @@ func (s *State) castFlagsGenTgt(k *prep, o Obj, mode, tgt uint8) {
 		if st.a.Static.StFlags&kop.StAnyManaType != 0 {
 			s.bld().e.flags |= sfAnyMana
 		}
-		if st.a.Static.StFlags&kop.StOncePerTurn != 0 && st.sl != NoSlot && !s.mayPlayFolds(k, p, o) {
-			s.markUsed(st.obj, uint8(abIndex(k, s.cardAt(st.sl), st.a)))
+		if st.a.Static.StFlags&kop.StOncePerTurn != 0 && !s.mayPlayFolds(k, p, o) {
+			u, ab, host := s.staticUseKey(k, st)
+			s.markUsedBy(u, ab, host)
 			s.bld().bfl |= bflUsedMark
 		}
 		if st.a.Static.StFlags&kop.StRemove6Counters != 0 {

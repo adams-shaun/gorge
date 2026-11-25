@@ -124,8 +124,9 @@ func (s *State) spendZeroAlt(k *prep, o Obj, p uint8) bool {
 	if n == 0 {
 		return false
 	}
-	if st.a.Static.StFlags&kop.StOncePerTurn != 0 && st.sl != NoSlot {
-		s.markUsed(st.obj, uint8(abIndex(k, s.cardAt(st.sl), st.a)))
+	if st.a.Static.StFlags&kop.StOncePerTurn != 0 {
+		u, ab, host := s.staticUseKey(k, st)
+		s.markUsedBy(u, ab, host)
 		s.bld().bfl |= bflUsedMark
 	}
 	return true
