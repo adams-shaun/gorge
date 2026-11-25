@@ -45,6 +45,17 @@ func prepMultiMana(c *kop.CardDef, pc *pcard) {
 			}
 		}
 	}
+	if first >= 0 && nAb == 2 && colourlessThenAny(c, first) {
+		// Nightshade Dryad: {T}: Add {C}, then {T}: Add one mana of any
+		// colour. gorge's census unit is the {C} alternative then one per
+		// colour, Mirrex's gate-on view (mana_gate.go) with no gate: the
+		// union C|WUBRG
+		pc.manaCol, pc.manaMulti = kop.ColorMask(1)<<kop.C|kop.ColAny, true
+		if DebugColourlessAny {
+			pc.manaCol, pc.manaMulti = kop.ColorMask(1)<<kop.C, false
+		}
+		return
+	}
 	var col kop.ColorMask
 	n := 0
 	for j := range c.Abilities {
@@ -62,4 +73,28 @@ func prepMultiMana(c *kop.CardDef, pc *pcard) {
 	if n > 1 {
 		pc.manaCol, pc.manaMulti = col, true
 	}
+}
+
+// DebugColourlessAny is the TestNightshadeDryadMutation switch: the
+// {C}-then-any-colour pair keeps its first ability alone ({C}).
+var DebugColourlessAny bool
+
+// colourlessThenAny reports card c's two mana abilities, from first, as a
+// plain "{T}: Add {C}" then a plain "{T}: Add one mana of any color", both
+// unrestricted, amount 1 (kgen colourlessThenAny).
+func colourlessThenAny(c *kop.CardDef, first int) bool {
+	plain := func(a *kop.Ability) bool {
+		return a.AFlags == 0 && a.ManaRestrict == 0 && a.ManaN == 1 && a.Cost.Flags == kop.CostTap &&
+			a.Cost.Mana.MV() == 0 && a.Cost.Mana.X == 0 && a.Trig.Cond == 0 && !a.ManaEach && len(a.Prog) == 0
+	}
+	a0 := &c.Abilities[first]
+	if !plain(a0) || a0.ManaColors != kop.ColorMask(1)<<kop.C {
+		return false
+	}
+	for j := first + 1; j < len(c.Abilities); j++ {
+		if a := &c.Abilities[j]; a.Kind == kop.AbMana && a.AFlags&kop.AfLatent == 0 {
+			return plain(a) && a.ManaColors == kop.ColAny
+		}
+	}
+	return false
 }

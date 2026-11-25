@@ -81,6 +81,13 @@ func (lc *lowerCtx) refuseMultiMana() {
 	if multiFixedMana(ms) {
 		return
 	}
+	if len(ms) == 2 && colourlessThenAny(ms[0], ms[1]) {
+		// {T}: Add {C}, then {T}: Add one mana of any color (Nightshade
+		// Dryad): gorge's census unit is the {C} alternative then one per
+		// colour, the kernel's union C|WUBRG (mana_multicolour.go
+		// prepMultiMana), the ungated twin of Mirrex's gate-on view
+		return
+	}
 	if len(ms) == 2 && plainTapMana(ms[0], false) && unrestrictedOne(ms[0]) && ms[0].Mana.Colors == "C" && painTapMana(ms[1]) {
 		// a painland (Adarkar Wastes): {T}: Add {C}, then {T}: Add one of
 		// two colours with a "deals N damage to you" rider -- gorge's
@@ -396,6 +403,13 @@ func multiFixedMana(ms []*lAbility) bool {
 		last = c
 	}
 	return true
+}
+
+// colourlessThenAny: first is a plain unrestricted "{T}: Add {C}" and a is a plain
+// unrestricted "{T}: Add one mana of any color", in that printed order.
+func colourlessThenAny(first, a *lAbility) bool {
+	return plainTapMana(first, false) && unrestrictedOne(first) && !first.Mana.Choice && first.Mana.Colors == "C" &&
+		plainTapMana(a, false) && unrestrictedOne(a) && !a.Mana.Choice && !a.Mana.Each && a.Mana.Colors == "WUBRG"
 }
 
 // plainTapMana: a costs exactly {T} (plus generic mana when paid), has no

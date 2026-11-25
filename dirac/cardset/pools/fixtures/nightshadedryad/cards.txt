@@ -1,0 +1,19 @@
+# the colourless-then-any-colour pair: {T}: Add {C} beside {T}: Add one mana
+# of any color (Nightshade Dryad; kernel mana_multicolour.go's union C|WUBRG),
+# over coloured spells, a {C}-friendly artifact and a ward creature whose
+# payment runs the mana window, for the oracle's constructed lockstep
+# (dirac/oracle/nightshadedryad_lowers_test.go)
+Nightshade Dryad
+Wastes
+Forest
+Mountain
+Island
+Plains
+Grizzly Bears
+Savannah Lions
+Wind Drake
+Shock
+Cackling Prowler
+Hill Giant
+Memnite
+Llanowar Elves
