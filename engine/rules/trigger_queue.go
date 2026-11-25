@@ -1241,6 +1241,17 @@ func (e *Engine) triggerOf(pt pendingTrigger) (cards.Trigger, bool) {
 	if o == nil {
 		return cards.Trigger{}, false
 	}
+	// A granted/delayed/gained trigger carries its own line on the queue
+	// entry (a granted keyword has no face Triggers entry at all). Never
+	// index Face().Triggers for it: that would hand back whatever printed
+	// line shares the index -- a granted Prowess reading Momo's
+	// leaves-the-battlefield TriggerDescription$ and OptionalDecider$.
+	if pt.Granted || pt.Trigger.Mode != "" {
+		if pt.Trigger.Mode == "" {
+			return cards.Trigger{}, false
+		}
+		return pt.Trigger, true
+	}
 	// A mutated pile's under-card trigger is keyed to the UNDER-CARD's face:
 	// pt.Idx indexes that face's Triggers, and reading the TOP face at the
 	// same index would hand back a different trigger line entirely (both its
