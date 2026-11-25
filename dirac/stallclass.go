@@ -159,6 +159,8 @@ func (g *genPrep) initStallSkip(nseat uint8, skipCA bool) uint8 {
 		return StallReplPlus // repl_preventmill.go: gorge asks the order of a prevent-and-mill and an amount change
 	case g.anyRepl&rbSelfDmg != 0 && g.anyRepl&rbSelfDmgCompete != 0 && !selfPhLifted(g):
 		return StallReplPlus // repl_selfdamage.go: gorge asks the order of a self-damage replacement and another damage replacement
+	case dmgInsteadStall(g):
+		return StallReplPlus // repl_dminstead.go: gorge asks the order of a replace-the-damage line and another damage replacement
 	case staticPrevStall(g):
 		return StallReplPlus // repl_staticpreventpair.go: gorge asks the order of a static prevention and another damage replacement
 	case g.dhMix:
@@ -251,6 +253,10 @@ func pairRefusalN(t *kop.Table, nseat int) (r *kop.PairRefusal) {
 			})(c, i)
 		}
 	case StallReplPlus:
+		if dmgInsteadStall(g) && !dmgInsteadEarlier(g) {
+			text, a, b = dmgInsteadPair(g)
+			break
+		}
 		if staticPrevStall(g) {
 			text, a, b = staticPrevPair(g)
 			break
