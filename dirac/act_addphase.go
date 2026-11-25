@@ -25,8 +25,17 @@ import (
 //
 // xph[i].at: bits 0-3 the splice point (a Step), bits 4-5 the kind
 // (kop.AddPhaseCombat/Upkeep/End/CombatMain), bit 6 a phase of this entry is
-// running, bit 7 (CombatMain only) the entry's additional main phase is the
-// one running. xph[i].n: the grants of the entry still pending.
+// running, bit 7 for CombatMain the entry's additional main phase is the
+// one running, for Upkeep the entry is a whole beginning phase
+// (kop.AddPhaseBeginning: untap, upkeep, draw). xph[i].n: the grants of the
+// entry still pending.
+//
+// kop.AddPhaseBeginning (ExtraPhase$ Beginning, Shadow and Sphinx of the
+// Second Sun): the splice point is the main phase the grant resolves in (a
+// grant outside one is a loud StallLowering), the phase runs untap..draw and
+// the walk resumes at the splice point's successor. Its untap step is no new
+// turn: gorge ends summoning sickness at TurnChange, so the untap sites keep
+// pfSick while one runs (addPhaseExtraUntap).
 //
 // kop.AddPhaseCombatMain (FollowedBy$ Main2, Relentless Assault): an extra
 // combat followed by an additional main phase, splice point the main phase it
@@ -50,8 +59,10 @@ import (
 
 const (
 	xphConsumed = 1 << 6
-	xphFollow   = 1 << 7 // a CombatMain entry past its combat: its additional main phase is the one running
-	xphAtMask   = 0x3f   // splice point and kind
+	xphFollow   = 1 << 7 // a CombatMain entry past its combat: its additional main phase is the one running; an Upkeep entry: a whole beginning phase
+	xphBegin    = kop.AddPhaseUpkeep<<4 | xphFollow
+	xphKindBit7 = 3<<4 | xphFollow // the kind and bit 7: equal to xphBegin on a beginning-phase entry alone
+	xphAtMask   = 0x3f             // splice point and kind
 )
 
 // StallAddPhase: a fifth distinct pending extra-phase entry, or a run of more
@@ -59,6 +70,29 @@ const (
 const StallAddPhase = 131
 
 func init() { stallNames[StallAddPhase] = "addphase" }
+
+// DebugAddPhaseBeginningShort (TestSetsObjects6BeginningLockstep): an extra
+// beginning phase ends after its upkeep, its draw step never coming.
+var DebugAddPhaseBeginningShort bool
+
+// DebugAddPhaseUntapClearsSick (TestSetsObjects6BeginningLockstep): an extra
+// beginning phase's untap step ends summoning sickness as a turn's does.
+var DebugAddPhaseUntapClearsSick bool
+
+// addPhaseExtraUntap reports whether the untap step running is an extra
+// beginning phase's (a consumed kop.AddPhaseBeginning entry): no turn began,
+// so the sickness gorge clears at TurnChange stays.
+func (s *State) addPhaseExtraUntap() bool {
+	if DebugAddPhaseUntapClearsSick {
+		return false
+	}
+	for i := 0; i < int(s.g.nxph); i++ {
+		if at := s.g.xph[i].at; at&(xphKindBit7|xphConsumed) == xphBegin|xphConsumed {
+			return true
+		}
+	}
+	return false
+}
 
 // DebugAddPhaseResumeWrong (TestAddphaseMutation): a completed extra phase
 // resumes at its own last step's successor instead of the splice point's.
@@ -99,9 +133,12 @@ func addPhaseUses(t *kop.Table, u *[numMech]bool) {
 	}
 }
 
-// addPhaseEntry and addPhaseEnd are an extra phase kind's first and last step.
-func addPhaseEntry(kind uint8) kop.Step {
-	switch kind {
+// addPhaseEntry and addPhaseEnd are an extra phase entry's first and last step.
+func addPhaseEntry(at uint8) kop.Step {
+	if at&xphKindBit7 == xphBegin {
+		return kop.StepUntap
+	}
+	switch at >> 4 & 3 {
 	case kop.AddPhaseUpkeep:
 		return kop.StepUpkeep
 	case kop.AddPhaseEnd:
@@ -111,10 +148,17 @@ func addPhaseEntry(kind uint8) kop.Step {
 }
 
 func addPhaseEnd(at uint8) kop.Step {
-	if at&xphFollow != 0 {
-		return kop.StepMain2
+	if at&xphKindBit7 == xphBegin {
+		if DebugAddPhaseBeginningShort {
+			return kop.StepUpkeep
+		}
+		return kop.StepDraw
 	}
 	switch at >> 4 & 3 {
+	case kop.AddPhaseCombatMain:
+		if at&xphFollow != 0 {
+			return kop.StepMain2
+		}
 	case kop.AddPhaseUpkeep:
 		return kop.StepUpkeep
 	case kop.AddPhaseEnd:
@@ -132,6 +176,16 @@ func (s *State) addPhaseGrant(k *prep, in *kop.Instr) {
 	}
 	at := uint8(in.C>>4)&15 | uint8(in.C&3)<<4
 	g := &s.g
+	if in.C&kop.AddPhaseBeginning != 0 {
+		// the splice point is the step the grant resolves in (gorge
+		// effAddPhase with AfterPhase$ omitted); the Main2 trigger keeps it a
+		// main phase, any other is not reproduced
+		at = uint8(s.step) | xphBegin
+		if s.step != kop.StepMain1 && s.step != kop.StepMain2 {
+			s.capFull(StallLowering)
+			return
+		}
+	}
 	if in.C&3 == kop.AddPhaseCombatMain {
 		// the splice point is the step the grant resolves in, a main phase
 		// (the lowering's ConditionPhases$ gate keeps it there)
@@ -242,7 +296,7 @@ func (s *State) addPhaseNext(next kop.Step) kop.Step {
 		}
 		e.n--
 		e.at |= xphConsumed
-		next, found = addPhaseEntry(e.at>>4&3), true
+		next, found = addPhaseEntry(e.at), true
 		break
 	}
 	if !found && completed && resume <= kop.StepCleanup {
