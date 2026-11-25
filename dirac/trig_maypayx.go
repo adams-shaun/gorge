@@ -37,6 +37,16 @@ const trigXCap = 64
 // past what the sources can fund (CR 106.6; a cycled Decree of Justice's
 // "you may pay {X}" beside a Sea Gate).
 //
+// The walk is marked reflBound: gorge's potential walk prices a reflected
+// or ColorIdentity any-colour source exactly -- its colours from the board
+// or the commander's identity, one mana per tap (addPotentialReflected,
+// addPotentialIdentityColours) -- so the count must price it as a unit, not
+// whole-pool open. Left open, it saturated the walk at trigXCap, skipped the
+// census, and offered X past what its one tap funds (four-seat edh pod 68's
+// Halo Forager beside Exotic Orchard and Arcane Signet: 0..64 for gorge's
+// 0..7). A plain Produced$ Any or a sacrifice-only source keeps gorge's
+// producedOpen fold and the defensive cap.
+//
 //go:noinline
 func (s *State) execTrigX(k *prep, p uint8, skip uint16, cap int) bool {
 	var av avail
@@ -44,7 +54,7 @@ func (s *State) execTrigX(k *prep, p uint8, skip uint16, cap int) bool {
 	// source makes its chosen colour (a gate land's "{U} or the chosen colour"),
 	// not an open source (CR 106.1a, 601.2b). A trigger's own cost is no spell's,
 	// an ability's or a cast's, and has no source slot.
-	other := payDesc{class: pdOther, src: NoSlot}
+	other := payDesc{class: pdOther, src: NoSlot, reflBound: true}
 	open := s.availPotentialFor(k, p, &av, &other, false)
 	cap = min(cap, trigXCap)
 	mx := 0
@@ -70,10 +80,12 @@ func (s *State) execTrigX(k *prep, p uint8, skip uint16, cap int) bool {
 	// faces into two values (Volcanic Island's {U} and {R} at an XMax$ cap of
 	// 2), and the census reads the board once per source, so the old skip
 	// offered X past what the sources fund. Only the defensive cap (64)
-	// skips it there: the walk may still be growing and the shapes whose
-	// census is narrower than the walk -- a storage land's counters, an open
-	// or granted source -- report open themselves, so a non-open walk at 64
-	// is one the census could drop a really-payable value from.
+	// skips it there: the walk may still be growing, and the shapes whose
+	// census is narrower than the walk -- a storage land's counters, a
+	// dynamic or each-colour production -- keep the walk's 64 (the first by
+	// saturating it with its open fold, the others by reporting open), so a
+	// non-open walk at 64 is one the census could drop a really-payable
+	// value from.
 	if !open && (mx < cap || cap < trigXCap) {
 		// gorge's potentialManaFor prices a tap's extra mana (Mana Flare's) in
 		// the bound, so the walk's count grows by it before the census below
@@ -98,6 +110,15 @@ func (s *State) execTrigX(k *prep, p uint8, skip uint16, cap int) bool {
 	s.g.pickP = p
 	s.res.ask, s.res.askP = raTrigX, p
 	return false
+}
+
+// trigXReflBound reports whether d, the trigger X announcement's descriptor,
+// prices pc's reflected or ColorIdentity any-colour source as one unit:
+// gorge's potential walk prices those exactly (addPotentialReflected,
+// addPotentialIdentityColours), so the count must not price them whole-pool
+// open. A dynamic amount or a plain Produced$ Any source keeps the open fold.
+func trigXReflBound(d *payDesc, pc *pcard, payment bool) bool {
+	return payment && d != nil && d.reflBound && !pc.manaDyn && (pc.manaRefl || pc.manaIdent)
 }
 
 // trigXFiltExcess is the mana the census's gap units add for p's filters past

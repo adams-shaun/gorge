@@ -572,7 +572,15 @@ func (e *Engine) checkEventDelayedTriggers(ev events.Event, lki *state.Object,
 			if vp := strings.TrimSpace(t.ParamStr(cards.PKValidPlayer)); vp != "" {
 				p, ok := e.delayedEventPlayer(t, ev, lki)
 				pc := e.playerSpecCtx(dt.Source)
+				// The registration's capture IS the Effect's memory
+				// (CR 611.2a), so it is what both remembered-player
+				// spellings consult: IsTriggerRemembered
+				// (DelayedRemembered) and IsRemembered (RememberedBound).
+				// The Phase walk binds both; this event walk must too, or a
+				// LosesGame body's `ValidPlayer$ Player.IsRemembered` reads
+				// only the source card's own list and matches nobody.
 				pc.DelayedRemembered = dt.Remembered
+				pc.Remembered, pc.RememberedBound = dt.Remembered, true
 				if !ok || !effects.MatchesPlayerSpecCtx(e.G, vp, p, dt.Controller, pc) {
 					continue
 				}
@@ -932,6 +940,12 @@ func (e *Engine) delayedEventMatches(t cards.Trigger, dt *state.DelayedTrigger, 
 		return fn != nil && fn(boardOf(e), t, dt.Source, ev, lki)
 	case cards.TriggerChangesController:
 		return e.delayedChangesControllerMatches(t, dt, ev, lki)
+	case cards.TriggerLosesGame:
+		// CR 104.3/800.4a: in a multiplayer game a loss is an event other
+		// effects can trigger on (CR 603.2). The ValidPlayer$ gate above
+		// already bound the registration's capture; the mode itself has no
+		// further filter, so the loss event is the whole match.
+		return ev.Kind == events.PlayerLost
 	case cards.TriggerDamageDone:
 		return trigmatch.DamageMatchesWithCapture(boardOf(e), t, dt.Source, ev, dt.Remembered, delayedChosenOpts(dt))
 	case cards.TriggerAttackersDeclared:
@@ -955,6 +969,9 @@ func (e *Engine) delayedEventPlayer(t cards.Trigger, ev events.Event, lki *state
 		}
 	case cards.TriggerSpellCast, cards.TriggerAbilityCast, cards.TriggerSpellAbilityCast:
 		return ev.Player, int(ev.Player) < len(e.G.Players)
+	case cards.TriggerLosesGame:
+		// The loser is the event's natural player (CR 104.3, 800.4a).
+		return ev.Player, ev.Kind == events.PlayerLost && int(ev.Player) < len(e.G.Players)
 	case cards.TriggerDamageDone:
 		if ev.Obj == 0 {
 			return ev.Player, int(ev.Player) < len(e.G.Players)
@@ -1100,6 +1117,7 @@ var delayedEventModeHandledSet = state.NewNameSet(
 	"ChangesController",
 	"DamageDone",
 	"AttackersDeclared",
+	"LosesGame",
 )
 
 type delayedRegistrationLiveCode uint16

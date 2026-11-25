@@ -1058,14 +1058,16 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 				add(prioEntry{a: Pack(ActActivate, ref(o.Obj), ref(o.Obj), 255), opt: o.Index})
 				continue
 			}
-			if o.Keyword != "" && o.SVar == "" && o.GrantSource == 0 && o.GainedSource == 0 && o.AltCostIndex == 0 && (cards.KeywordHead(o.Keyword) == "Saddle" || cards.KeywordHead(o.Keyword) == "Unearth") {
+			if o.Keyword != "" && o.SVar == "" && o.GrantSource == 0 && o.GainedSource == 0 && o.AltCostIndex == 0 && grantedKeywordHeadModelled(cards.KeywordHead(o.Keyword)) {
 				// A saddle ability a static grants (Jandor, Fortuned Traveler's
-				// "has saddle 2") or a granted unearth (Sedris, the Traitor
-				// King's; kgen lower_offzone.go offZoneUnearth): the kernel's
-				// latent-ability activation, told apart by the granting
-				// permanent (kgen lower_saddlegrant.go, kw_unearthgrant.go).
-				// Only saddle, the unearth and the embalm below are modelled:
-				// the other granted-keyword abilities keep the anchored note
+				// "has saddle 2"), a granted unearth (Sedris, the Traitor
+				// King's; kgen lower_offzone.go offZoneUnearth) or a granted
+				// hand cycling (Rhet-Tomb Mystic's; offZoneCycling): the
+				// kernel's latent-ability activation, told apart by the
+				// granting permanent (kgen lower_saddlegrant.go,
+				// kw_unearthgrant.go, kw_cyclinggrant.go). Only saddle, the
+				// unearth, the cycling and the embalm below are modelled: the
+				// other granted-keyword abilities keep the anchored note
 				// below.
 				if src := g.E.KeywordGrantSource(o.Obj, o.Keyword); src != 0 {
 					add(prioEntry{a: Pack(ActActivate, ref(o.Obj), ref(src), 255), opt: o.Index})
@@ -2445,7 +2447,7 @@ func repeatedCastMode(mode string) bool {
 // keywords, as grantedEmbalm reads the pump's.
 func (g *GorgeSide) grantedUnearth(id state.ObjID) (state.ObjID, string) {
 	for _, k := range g.E.Derived(id).Keywords {
-		if cards.KeywordHead(k) != "Unearth" {
+		if h := cards.KeywordHead(k); h != "Unearth" && h != "Cycling" && h != "TypeCycling" {
 			continue
 		}
 		if src := g.E.KeywordGrantSource(id, k); src != 0 {
@@ -2472,4 +2474,16 @@ func (g *GorgeSide) potentialAbilityAction(pa decision.PotentialAction, ref func
 		}
 	}
 	return Pack(ActActivate, ref(pa.Obj), RefNone, uint8(pa.Ability)), ""
+}
+
+// grantedKeywordHeadModelled reports whether the kernel models a static's
+// grant of the keyword head as a latent-ability activation: Saddle, the
+// graveyard Unearth (kw_unearthgrant.go) and the hand Cycling and TypeCycling
+// (kw_cyclinggrant.go).
+func grantedKeywordHeadModelled(head string) bool {
+	switch head {
+	case "Saddle", "Unearth", "Cycling", "TypeCycling":
+		return true
+	}
+	return false
 }
