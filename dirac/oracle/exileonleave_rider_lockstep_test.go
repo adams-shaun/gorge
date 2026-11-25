@@ -14,7 +14,7 @@ import (
 // counter keys the may-play static over exile. The check proves the games
 // reach the exiled counter, so a run that never lowers the rider cannot pass
 // vacuously.
-var exileOnLeaveRiderDecks = [4][2][]cardset.Entry{
+var exileOnLeaveRiderDecks = [5][2][]cardset.Entry{
 	{
 		{
 			{Name: "Dauthi Voidwalker", Count: 4}, {Name: "Doom Blade", Count: 4},
@@ -59,22 +59,39 @@ var exileOnLeaveRiderDecks = [4][2][]cardset.Entry{
 			{Name: "Swamp", Count: 8}, {Name: "Forest", Count: 16},
 		},
 	},
+	// Head of the Hunt: the reflexive rider form, where the exile move's
+	// ImmediateTrigger puts a Wolf token on the stack after the move
+	{
+		{
+			{Name: "Head of the Hunt", Count: 4}, {Name: "Doom Blade", Count: 4},
+			{Name: "Grizzly Bears", Count: 10}, {Name: "Swamp", Count: 22},
+		},
+		{
+			{Name: "Grizzly Bears", Count: 12}, {Name: "Doom Blade", Count: 4},
+			{Name: "Swamp", Count: 8}, {Name: "Forest", Count: 16},
+		},
+	},
 }
 
-// kalitasZombies counts the 2/2 black Zombie tokens player p controls on
-// gorge's battlefield.
-func kalitasZombies(g *state.Game, p state.PlayerID) int {
+// riderTokens counts the name/pt/colors tokens player p controls on gorge's
+// battlefield.
+func riderTokens(g *state.Game, p state.PlayerID, name, pt, colors string) int {
 	n := 0
 	for _, o := range g.Zone(state.ZBattlefield, p) {
 		ob := g.Obj(o)
 		if !ob.IsToken || ob.Card == nil || len(ob.Card.Faces) == 0 {
 			continue
 		}
-		if f := ob.Card.Faces[0]; f.Name == "Zombie Token" && f.PT == "2/2" && f.Colors == "black" {
+		if f := ob.Card.Faces[0]; f.Name == name && f.PT == pt && f.Colors == colors {
 			n++
 		}
 	}
 	return n
+}
+
+// riderToken is the token one death-rider case proves the games mint.
+type riderToken struct {
+	name, pt, colors string
 }
 
 func TestExileOnLeaveRiderLockstep(t *testing.T) {
@@ -83,11 +100,13 @@ func TestExileOnLeaveRiderLockstep(t *testing.T) {
 		name  string
 		decks [2][]cardset.Entry
 		kind  string
+		token *riderToken
 	}{
-		{"dauthi", exileOnLeaveRiderDecks[0], "VOID"},
-		{"draugr", exileOnLeaveRiderDecks[1], "ICE"},
-		{"both", exileOnLeaveRiderDecks[2], "VOID"},
-		{"kalitas", exileOnLeaveRiderDecks[3], ""},
+		{"dauthi", exileOnLeaveRiderDecks[0], "VOID", nil},
+		{"draugr", exileOnLeaveRiderDecks[1], "ICE", nil},
+		{"both", exileOnLeaveRiderDecks[2], "VOID", nil},
+		{"kalitas", exileOnLeaveRiderDecks[3], "", &riderToken{name: "Zombie Token", pt: "2/2", colors: "black"}},
+		{"headofthehunt", exileOnLeaveRiderDecks[4], "", &riderToken{name: "Wolf Token", pt: "2/2", colors: "green"}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			reg, set, gd := lockstepPool(t, "exileonleavectr", tc.decks)
@@ -108,14 +127,15 @@ func TestExileOnLeaveRiderLockstep(t *testing.T) {
 					t.Fatal(err)
 				}
 				saw, played := false, false
-				zombies := 0
+				tokens := 0
 				prev := map[state.ObjID]*cards.Card{}
 				rc := RunConfig{Config: cfg, MaxDecisions: 4000, MaxTurns: 30}
 				rc.Check = func(ref *GorgeSide, _ Side) *Divergence {
 					g := ref.E.G
-					if tc.kind == "" {
-						if z := kalitasZombies(g, 0) + kalitasZombies(g, 1); z > zombies {
-							zombies, saw = z, true
+					if tc.token != nil {
+						tk := tc.token
+						if z := riderTokens(g, 0, tk.name, tk.pt, tk.colors) + riderTokens(g, 1, tk.name, tk.pt, tk.colors); z > tokens {
+							tokens, saw = z, true
 						}
 						return nil
 					}
@@ -163,11 +183,11 @@ func TestExileOnLeaveRiderLockstep(t *testing.T) {
 					playedSeeds++
 				}
 			}
-			if seen == 0 && tc.kind == "" {
-				t.Fatal("no seed minted a Zombie token from Kalitas's replacement")
-			}
-			if tc.kind == "" {
-				t.Logf("%d of 60 seeds minted a Zombie token", seen)
+			if tc.token != nil {
+				if seen == 0 {
+					t.Fatalf("no seed minted a %s from the replacement", tc.token.name)
+				}
+				t.Logf("%d of 60 seeds minted a %s token", seen, tc.token.name)
 				return
 			}
 			if seen == 0 {
