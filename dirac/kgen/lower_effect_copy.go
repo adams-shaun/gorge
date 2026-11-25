@@ -205,13 +205,47 @@ func (lc *lowerCtx) copySpell(ps *params) error {
 	if perm {
 		in.C |= 2 // may copy a permanent spell: the copy becomes a token (CR 707.10f)
 	}
-	// Controller$ You is the copy controller gorge defaults to; any other
-	// selector stays unread (and refuses) until a carrier needs it.
-	if v, ok := ps.m["Controller"]; ok && strings.TrimSpace(v) == "You" {
-		ps.consume("Controller")
-	}
+	lc.copyController(ps, &in, lRef{Kind: rTriggeredPlayer})
 	lc.emit(in)
 	return nil
+}
+
+// copyController reads a spell copy's Controller$ (gorge copyControllersFor)
+// into the CopySpell's W: You is the resolving controller gorge defaults to;
+// TriggeredCardController and TriggeredActivator (a SpellCast trigger's
+// caster, Bonus Round) and TargetedController (the targeted spell's
+// controller, Meletis Charlatan) name one player, tgt being the referent
+// those forms read here. Any other selector stays unread (and refuses).
+//
+// NonTriggeredCardController (Hive Mind's "each other player copies that
+// spell") is C&4 with W the caster: one copy for each other living player,
+// Amount$ unread beside it.
+func (lc *lowerCtx) copyController(ps *params, in *lInstr, tgt lRef) {
+	v, ok := ps.m["Controller"]
+	if !ok {
+		return
+	}
+	switch v = strings.TrimSpace(v); v {
+	case "You":
+	case "TriggeredCardController", "TriggeredActivator":
+		if tgt.Kind != rTriggeredPlayer {
+			return
+		}
+		in.W = tgt
+	case "NonTriggeredCardController":
+		if _, amt := ps.get("Amount"); tgt.Kind != rTriggeredPlayer || amt {
+			return
+		}
+		in.W, in.C = tgt, in.C|4
+	case "TargetedController":
+		if tgt.Kind != rTargetController {
+			return
+		}
+		in.W = tgt
+	default:
+		return
+	}
+	ps.consume("Controller")
 }
 
 // copyTargetSpell lowers "copy target instant or sorcery spell you
@@ -267,6 +301,7 @@ func (lc *lowerCtx) copyTargetSpell(ps *params) error {
 	if perm {
 		in.C |= 2 // may copy a permanent spell: the copy becomes a token (CR 707.10f)
 	}
+	lc.copyController(ps, &in, lRef{Kind: rTargetController, N: t})
 	lc.emit(in)
 	return nil
 }

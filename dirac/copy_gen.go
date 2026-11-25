@@ -53,6 +53,9 @@ func (s *State) execCopySpell(k *prep, in *kop.Instr) bool {
 	if s.res.e.ab == abStorm {
 		return s.copySpells(k, in, int(s.res.e.trigAmt)) // the count fixed when the cast trigger fired (kw_storm.go)
 	}
+	if in.C&4 != 0 && in.Obj != kop.RefSelf {
+		return s.copyEachOther(k, in, copyEachStart) // Hive Mind (copy_eachother.go)
+	}
 	return s.copySpells(k, in, s.value(k, in.A))
 }
 
@@ -61,7 +64,19 @@ func (s *State) copySpells(k *prep, in *kop.Instr, n int) bool {
 	if in.Obj == kop.RefSelf {
 		return s.copyParentSpell(k, in, n) // kw_madness.go
 	}
-	return s.copySpell(k, s.objRefObj(in.Obj), n, in.C&1 != 0) // seat-ok: an instruction flag bit
+	if in.C&4 != 0 {
+		return s.copyEachOther(k, in, n) // a resumed Hive Mind copy (copy_eachother.go)
+	}
+	ctrl := s.res.e.ctrl
+	if in.W != kop.RefNone {
+		// Controller$ (gorge copyControllersFor): the copy's controller is the
+		// player W names (Meletis Charlatan's TargetedController, Bonus
+		// Round's TriggeredCardController); none keeps the resolving one
+		if p := s.playerRef(k, in.W); p != 255 {
+			ctrl = p
+		}
+	}
+	return s.copySpellFor(k, s.objRefObj(in.Obj), n, in.C&1 != 0, ctrl) // seat-ok: an instruction flag bit
 }
 
 // copySpell copies the spell src (on the stack below the resolving entry) n
@@ -69,7 +84,11 @@ func (s *State) copySpells(k *prep, in *kop.Instr, n int) bool {
 // controller choose new targets (CR 707.10). False: a copy's election is posed,
 // and copyResume makes the rest.
 func (s *State) copySpell(k *prep, src Obj, n int, mayRetarget bool) bool {
-	e := &s.res.e
+	return s.copySpellFor(k, src, n, mayRetarget, s.res.e.ctrl)
+}
+
+// copySpellFor is copySpell with the copies controlled by ctrl (CR 707.10).
+func (s *State) copySpellFor(k *prep, src Obj, n int, mayRetarget bool, ctrl uint8) bool {
 	if src == NoObj || s.objs[src].zone != kop.ZoneStack {
 		return true
 	}
@@ -84,7 +103,7 @@ func (s *State) copySpell(k *prep, src Obj, n int, mayRetarget bool) bool {
 		return true
 	}
 	for c := n - 1; c >= 0; c-- {
-		if !s.mintSpellCopy(k, si, e.ctrl) {
+		if !s.mintSpellCopy(k, si, ctrl) {
 			return true
 		}
 		if mayRetarget && s.copyElect(k, uint8(c)) {
