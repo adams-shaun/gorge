@@ -171,7 +171,7 @@ func (s *State) tapsDeferDead(k *prep, p uint8) slotMask {
 // is classed by the watchers like any other); tests only.
 var DebugNoReflTapsUnwatched bool
 
-// DebugNoDeferredRefl drops the reflected census unit deferredReflMask keeps
+// DebugNoDeferredRefl drops the reflected census unit reflCensusUnit keeps
 // for a Taps-deferred reflected source (it defers the whole source again);
 // tests only.
 var DebugNoDeferredRefl bool
@@ -189,6 +189,22 @@ var DebugNoDeferredRefl bool
 // intrinsic ability it leaves has a production, so its watchers still apply.
 func (s *State) reflTapsUnwatched(k *prep, sl Slot) bool {
 	return !DebugNoReflTapsUnwatched && k.gen.has(s.cardAt(sl), gfManaRefl) && s.manaPCGen(k, sl).manaRefl
+}
+
+// reflCensusUnit reports whether sl is a Taps-deferred source whose reflected
+// ability is one mana ability beside others (Plaza of Heroes), not the lone
+// reflected view reflTapsUnwatched already keeps. A reflected ability has no
+// Produced$, so gorge's interference walk names no production for it and
+// leaves it a TierNormal census unit whatever watches the tap (payment_plan_
+// interference.go paymentPlanSourceInterference); only the source's other
+// abilities are deferred. gorge's potential bound prices that unit
+// (addPotentialReflected), so the walks read it beside the source's
+// Taps-deferred gap, as availAnyR already assumes ("a Plaza counts twice").
+// The plain planner census keeps the source out, matching gorge's deferred
+// plan. A lone reflected view stays reflTapsUnwatched's (the mutation test's
+// source), so the debug switch keeps designing the same divergence.
+func (s *State) reflCensusUnit(k *prep, sl Slot) bool {
+	return !DebugNoDeferredRefl && k.gen != nil && k.gen.has(s.cardAt(sl), gfManaRefl) && !loneManaAb(&k.t.Cards[s.cardAt(sl)])
 }
 
 // grantedTapsClass classes the granted Taps watchers over sl (tapsWatchClass's
