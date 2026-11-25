@@ -1489,6 +1489,7 @@ StatFlipCoinMod	StaticKind	226
 StatGoad	StaticKind	249
 StatHexproofOwnColors	StaticKind	19
 StatIncreaseCost	StaticKind	9
+StatLethalByPower	StaticKind	260
 StatLure	StaticKind	228
 StatMaxBlockers	StaticKind	241
 StatMayPlayFrom	StaticKind	13
@@ -1597,6 +1598,7 @@ Tf4PerCounter	TrigFlags4	128
 Tf4SingleCauseTarget	TrigFlags4	2
 Tf4SingleTarget	TrigFlags4	1
 Tf4StateCtr	TrigFlags4	64
+Tf5CastNoColoredMana	TrigFlags5	1
 Tf5DmgAttackedYouLastTurn	TrigFlags5	8
 Tf5FirstCardInDrawStep	TrigFlags5	1
 Tf5NotFirstCardInDrawStep	TrigFlags5	2
