@@ -239,6 +239,9 @@ func (lc *lowerCtx) countHeads8(rest string, depth int) (v lValue, ok bool, err 
 		return lValue{Kind: vCompare, N: 0, Op: opPrime, Sub: []lValue{val, {Kind: vBranches, Sub: arms[:]}}}, true, nil
 	case rest == "UnlockedDoors":
 		return lValue{Kind: vUnlockedDoors}, true, nil
+	case rest == "MostProminentCreatureType" || strings.HasPrefix(rest, "MostProminentCreatureType "):
+		v, err := lc.mostProminentValue(strings.TrimPrefix(rest, "MostProminentCreatureType"))
+		return v, true, err // value_mostprominent.go
 	}
 	return lValue{}, false, nil
 }
