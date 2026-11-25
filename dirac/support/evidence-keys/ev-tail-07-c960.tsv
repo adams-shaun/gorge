@@ -1,0 +1,83 @@
+card	lir16	plays	keys	unused	branches	missing_branches
+A-Leyline of Resonance	995b27c0ba588229	10	1/1		0/1	ix:resp
+Abduction	a52af41fa1fda349	18	2/2		2/2	
+Aberrant Researcher	8d0406a482f56b58	23	1/1		1/1	
+Aether Channeler	0f7d972e530ac1b6	26	1/1		1/1	
+Akoum Hellhound	bc52a5cbf5ba28aa	32	1/1		1/1	
+Ambassador Laquatus	9c26c5f908828d35	6	1/1		1/1	
+Apocalypse	db942b8b37bd8534	5	0/0		1/2	ix:resp
+Assault on Osgiliath	d247482c21f7a867	8	0/0		3/4	f0/s/x0
+Aven Envoy	42a32c6bc943f6e1	18	0/0		0/0	
+Barge In	ba7b42445cf43aa7	10	0/0		1/2	ix:resp
+Barrage of Expendables	95d2cabed5460864	6	1/1		0/1	ix:resp
+Bilbo's Burglaring	4c317e98bbcca73a	9	0/0		2/2	
+Burrowing	89fbe41dd15ba131	11	0/0		1/2	ix:resp
+Call of the Full Moon	9cc1bf84cafb86d4	16	1/1		2/2	
+Canoptek Scarab Swarm	fd114c27fa3205da	14	1/1		1/1	
+Castle Vantress	07c9471be8c79a0c	25	2/2		0/1	ix:resp
+Clambassadors	0e2080b49295bd85	17	1/1		1/1	
+Clamor Shaman	f782bf04efb61b44	17	1/1		1/1	
+Clinging Anemones	7b7571e7f38d9b6e	8	1/1		0/1	ix:resp
+Control Magic	97e10dc645eb4fb3	9	0/0		2/2	
+Coral Fighters	39a2b26a470af821	22	1/1		1/1	
+Crystacean	3347199bea0c19c6	11	0/0		0/0	
+Cunning Strike	e9ee31cd586d6e96	9	0/0		1/2	ix:resp
+Daredevil, Fearless Fighter	db9be38ebb0bb68b	22	2/2		0/1	ix:resp
+Distorting Wake	d1bdc485ba4992ee	5	0/0		3/4	f0/s/x0
+Dunes of the Dead	bbdbf9e7ea1f71bf	45	2/2		0/1	ix:resp
+Encase in Ice	d0647c7094a34a40	13	1/1		2/2	
+Fierce Guardianship	6dfe8a24aeddbb65	18	0/0		2/2	
+Fire	b764aae955f41478	166	0/0		2/3	f1/s
+Firemantle Mage	f098e473659d43c9	24	1/1		0/1	ix:resp
+Goblin Spelunkers	db72365ab1ccc1c4	22	0/0		0/0	
+Gouged Zealot	ebc6e1aaa5fd48f5	12	1/1		0/1	ix:resp
+Ice Over	30503976d6969cd2	15	0/0		1/2	ix:resp
+Irenicus's Vile Duplication	24caaf207d19cd9c	8	0/0		2/2	
+Iroas's Blessing	18efdd8fa34eacfd	12	1/1		2/2	
+Island	763c67ef7a27eaf5	575	1/1		0/1	ix:resp
+Knacksaw Clique	e0ea5c31bc09953e	9	1/1		0/1	ix:resp
+Krark-Clan Engineers	f73864e6b195cd3e	7	1/1		0/1	ix:resp
+Lock and Load	60b54b930451692c	14	0/0		1/2	ix:resp
+Master of Waves	012a99fd53650eb9	4	1/1		0/1	ix:resp
+Merchant of the Vale	d9b6eff99cf382c7	29	1/1		2/2	
+Mists of Littjara	61e43d90276ae8b2	27	0/0		1/2	ix:resp
+Mordenkainen's Polymorph	fa8292c814dbd90c	4	0/0		1/2	ix:resp
+Mountain	9e71388353e907ed	438	1/1		0/1	ix:resp
+Neurok Prodigy	d8bfef5e7619e65c	12	1/1		1/1	
+Noise Marine	84f483c5b266bbdd	7	1/1		1/1	
+Orcish Cannonade	539efdf6ab2c6c09	18	0/0		2/2	
+Psychic Membrane	091528e7f177c39f	12	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Quiet Speculation	5e48f2d2c8299182	15	0/0		1/2	ix:resp
+Riddlekeeper	53dda49a024b79fc	11	1/1		1/1	
+Ring of Thune	57beb9ddd26eab4e	10	2/2		1/1	
+Ripscale Predator	69949f2709d4212b	3	0/0		0/0	
+Riptide Director	5cdbcb4617f9bb1c	12	1/1		0/1	ix:resp
+Rishadan Dockhand	9b5a25616400f754	7	1/1		1/1	
+Roku's Mastery	b80c2ea5fe19a03e	10	0/0		2/4	f0/s/x0,ix:resp
+Rona's Vortex	11bd67363ceb0314	26	0/0		3/4	ix:resp
+Rootwater Mystic	98dcc52c258504d8	7	1/1		1/1	
+Rust Elemental	355106b3d4ca3813	17	1/1		1/1	
+Saving Grasp	1ec68806aae06ac7	32	0/0		4/4	
+Scoria Elemental	8458dbd528521ff5	7	0/0		0/0	
+Screamreach Brawler	15811925513028f5	23	0/0		2/2	
+Sethron, Hurloon General	b522c1f999e08e0b	8	2/2		1/1	
+Sharding Sphinx	0acb0e9e78b4659d	4	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Shimmer Myr	db93de85fde9a550	23	0/0		0/0	
+Shoreline Raider	343140ec08f057fe	15	0/0		0/0	
+Skull of Orm	04fe7354ad01e75d	7	1/1		0/1	ix:resp
+Soulcipher Board	de7de5a775f7deab	12	3/3		1/1	
+Spark Mage	9a4e8e7cd4ebd574	22	1/1		0/1	ix:resp
+Sphinx's Tutelage	c983a1f64579b5f5	10	2/2		1/1	
+Storm Skreelix	d3a2d4aff5f63960	10	1/1		0/1	ix:resp
+Taigam's Strike	2d6fd460960398fc	22	0/0		1/2	ix:resp
+Tempest Caller	52985748306fbd11	16	1/1		1/1	
+The Vision and Scarlet Witch	8490853e7cf8c4b9	3	1/1		0/1	ix:resp
+Triton Shorethief	e56ce1aca00531d8	22	0/0		0/0	
+Two-Headed Cerberus	d6e246c04d9b702b	18	0/0		0/0	
+Viashino Cutthroat	4ecca2d51605323b	19	1/1		0/1	ix:resp
+Viscerid Armor	9175f39a7674948b	12	1/1		2/2	
+Windrider Patrol	3fed54226afef4a6	13	1/1		1/1	
+You Find the Villains' Lair	0c24663f2ab8c3dc	13	0/0		1/2	ix:resp
+Zap	3b5c3d2d2126e7cf	13	0/0		2/2	
+Zektar Shrine Expedition	651c1efd6cf0e485	20	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Zephyr Winder	7b20ecf83bd7b23f	24	1/1		0/1	ix:resp

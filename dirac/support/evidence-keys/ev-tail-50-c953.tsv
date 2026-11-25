@@ -1,0 +1,64 @@
+card	lir16	plays	keys	unused	branches	missing_branches
+A-Urza's Command	ee398b603ca34123	5	0/0		1/2	ix:resp
+Arrogant Wurm	3b75c14557e3c967	3	0/0		0/0	
+Ashenmoor Cohort	ade3ac9ea3117488	7	0/0		0/0	
+Aviary Mechanic	2c3d145cda1fc70d	11	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Balshan Beguiler	ef0f95af196ba3c3	6	1/1		1/1	
+Blazing Hope	de123716215a8c6f	4	0/0		2/2	
+Boomerang	6c4c3d6a44a35400	4	0/0		1/2	ix:resp
+Bull Aurochs	e8b7614363e5c2af	9	1/1		1/1	
+By Invitation Only	eb41e9baf672f81a	4	0/0		1/2	ix:resp
+Byway Courier	4fca732fb18a4ce4	5	1/1		0/1	ix:resp
+Careful Study	9bee2c21aa6be18d	9	0/0		1/2	ix:resp
+Citadel Siege	ddd52ea3e303b714	6	0/0		0/0	
+Crafty Pathmage	64152afeaae1f683	10	1/1		0/1	ix:resp
+Deviant Glee	dd0d2f86f3b2ae0f	5	0/0		1/2	ix:resp
+Ephemeral Shields	64fcd6d30ddb58a2	3	0/0		1/2	ix:resp
+Feral Ghoul	aca90f1f75ad4ac5	9	2/2		1/1	
+Force of Negation	3ee7e1c8c2a70d16	3	0/0		1/2	ix:resp
+Forest	6d0466c30f825dba	165	1/1		0/1	ix:resp
+Fully Grown	284daebd73fc7889	4	0/0		1/2	ix:resp
+Grasping Scoundrel	69fe93562492d29c	17	0/0		0/0	
+Grim Reaper's Scythe	677bdbb1fd88b07e	8	2/2		0/1	ix:resp
+Gut Shot	79d0d95e643664d4	22	0/0		2/2	
+Hired Blade	c8fcacd83f41658c	8	0/0		0/0	
+Horn of Valhalla	51bb24a100bea019	6	1/1		2/4	f1/s/x+,ix:resp
+Ironwright's Cleansing	7e4afc3b69fca35e	4	0/0		1/2	ix:resp
+Island	763c67ef7a27eaf5	232	1/1		0/1	ix:resp
+Latulla, Keldon Overseer	596ef1c7f4c3c4e5	5	1/1		0/1	ix:resp
+Ledger Shredder	0bc8be44c90c9941	10	1/1		1/1	
+Lithomantic Barrage	3c8cda1bef2ca2f9	5	0/0		1/2	ix:resp
+Lord of the Undead	498b6552bbb8a52a	7	1/1		1/1	
+Mantle of Leadership	363169de3dad98dd	4	1/1		1/2	ix:resp
+Metallic Mimic	53349e62b630d1e4	5	0/0		0/0	
+Mind Drain	0a0d9ad43731699a	10	0/0		1/2	ix:resp
+Mountain	9e71388353e907ed	260	1/1		0/1	ix:resp
+Mox Sapphire	54c024c7fb550b25	18	1/1		0/1	ix:resp
+Nature's Ruin	cbcde0793d4e3258	14	0/0		1/2	ix:resp
+Noble Hierarch	d92221f4f7ce44ab	13	2/2		0/1	ix:resp
+Ogre's Cleaver	447b1ebcb57c7d25	7	1/1		1/1	
+Plains	82d63a695487e567	143	1/1		0/1	ix:resp
+Power Word Kill	45318a71ccacfe63	3	0/0		1/2	ix:resp
+Primal Empathy	b43066bab1f00666	6	1/1		1/1	
+Reckless Barbarian	d5a839ac81afaf50	4	1/1		0/1	ix:resp
+Renewing Dawn	02ebccc3809a2f14	6	0/0		1/2	ix:resp
+Revoke Existence	07699404bde91ba8	6	0/0		1/2	ix:resp
+Righteous War	40c51f9efd125c33	10	0/0		0/0	
+Scaretiller	281193a79e032b23	9	1/1		1/1	
+Seller of Songbirds	7a1c808074703ce2	4	1/1		0/1	ix:resp
+Serra Zealot	c8dece0ba9eca89a	5	0/0		0/0	
+Shadowbeast Sighting	d285a1bebc8ada0a	8	0/0		4/4	
+Sheltering Word	a6296dbac38b1c64	11	0/0		1/2	ix:resp
+Skirsdag High Priest	9c164175e8123932	9	1/1		0/1	ix:resp
+Soratami Mindsweeper	c0f7757d96f5ed1e	7	1/1		1/1	
+Spitting Slug	e1dbeced879c8690	11	2/2		1/1	
+Standard Bearer	1a955fe3fdad8934	8	0/0		0/0	
+Static Prison	4679fe6b0023e49a	4	2/2		0/1	ix:resp
+Stormfront Riders	3351143dec9d6f1e	8	2/2		1/1	
+Swamp	342b413902f441c3	253	1/1		0/1	ix:resp
+Thalia's Lieutenant	2c443093fd803eb4	9	2/2		0/1	ix:resp
+Traveling Minister	f427fce6e8a9a732	6	1/1		1/1	
+Uchuulon	714dc700afae66a6	7	1/1		1/1	
+Vampire's Kiss	efb69597140fa2ad	13	0/0		1/2	ix:resp
+Vivid Flying Fish	4388e4184bb6ef94	9	0/0		0/0	
+Wanted Scoundrels	cd0716629c5d6d86	7	1/1		0/1	ix:resp

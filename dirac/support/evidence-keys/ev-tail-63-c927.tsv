@@ -1,0 +1,116 @@
+card	lir16	plays	keys	unused	branches	missing_branches
+Aether Membrane	2c04434088e66f9c	31	1/1		0/1	ix:resp
+Ainok Artillerist	0e7ceb885e9ac362	26	0/0		0/0	
+Ambassador Oak	72913fa562500a63	40	1/1		0/1	ix:resp
+Amorphous Axe	0b626680df9b5c28	46	1/1		1/1	
+Amrou Kithkin	8a803f8c6559d754	18	0/0		0/0	
+Arcane Proxy	3a033ceb832236fa	22	1/1		2/3	ix:resp
+Atmosphere Surgeon	7f33b113d668d517	61	2/2		0/1	ix:resp
+Barbed Shocker	0631153cb836a431	54	1/1		1/1	
+Bifurcate	4b70a57d8d5ccb4a	55	0/0		2/2	
+Black Carriage	57b69cfff2be299d	17	1/1		0/1	ix:resp
+Blinding Fog	9be3609fda2b77b5	37	0/0		2/2	
+Boros Guildmage	2ce63d04fe4526a2	7	2/2		0/1	ix:resp
+Bureau Headmaster	57caa67bc3a36b07	13	0/0		0/0	
+Cackling Fiend	b1fa0decd167be20	35	1/1		0/1	ix:resp
+Cavern Lampad	81ed2e03643e5836	25	0/0		2/2	
+Celestial Unicorn	3e40e5a6e19fff07	10	1/1		0/1	ix:resp
+Darklit Gargoyle	2986469a90f21411	16	1/1		0/1	ix:resp
+Deadeye Rig-Hauler	4847ea6c450aa8a1	53	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Delayed Blast Fireball	1a696c449689605c	50	0/0		3/4	cast/alt:foretold
+Dryad's Favor	3e5e66a900bf4542	45	0/0		1/2	ix:resp
+Durkwood Baloth	a7ca52badda895ef	7	0/0		2/2	
+Ether Well	1db8876f1ec112bf	33	0/0		2/2	
+Eyes of the Beholder	afee9fac03c06404	22	0/0		1/2	ix:resp
+Fearless Fledgling	49905a013681878e	17	1/1		0/1	ix:resp
+Flaying Tendrils	f1a370a3b7beac10	29	0/0		2/2	
+Forest	6d0466c30f825dba	846	1/1		0/1	ix:resp
+Gaea's Protector	0c8d48b6d41c6070	45	0/0		0/0	
+Gideon Blackblade	5df264fcff642f48	6	2/2		0/1	ix:resp
+Go-Shintai of Ancient Wars	e4aee387713d7886	45	1/1		0/1	ix:resp
+Goblin Medics	89fe84df9cd9b759	41	1/1		0/1	ix:resp
+Goldspan Dragon	2eff3b9931db5a13	30	2/2		0/1	ix:resp
+Grand Warlord Radha	5101dde60beb28d1	30	1/1		0/1	ix:resp
+Greenwheel Liberator	6ad8a27c8ac3c8b5	52	0/0		0/0	
+Grizzlegom, Hurloon Hero	64ae7147ec58e895	24	1/1		1/1	
+Hawkeye's Shot	9cbb3e38f2212632	14	0/0		1/2	ix:resp
+Heartwood Dryad	7beff098fc927361	34	0/0		0/0	
+Heir of the Ancient Fang	9bbae5d9b5042697	29	0/0		0/0	
+Herald of the Host	00893f152af766be	3	1/1		0/1	ix:resp
+Homestead Courage	a4efc00355473861	14	0/0		3/4	ix:resp
+Hordeling Outburst	e2516558a88528e2	42	0/0		2/2	
+Horizon Drake	d60bb9ff673c65e7	30	0/0		0/0	
+Howlgeist	8f8840cc2040ae94	18	1/1		1/1	
+Ice Storm	60305d3d2f197fdf	20	0/0		1/2	ix:resp
+Invigorated Rampage	21b0f4745d02c191	51	0/0		2/2	
+Island	763c67ef7a27eaf5	1429	1/1		0/1	ix:resp
+Jabs, Mistress of Mockery	e249bf943167db92	60	0/0		0/0	
+Jubilation	ad27251ce2c3e659	21	2/2		0/1	ix:resp
+Jwari Disruption	b5be07b5cdffdfaa	68	1/1		2/2	
+Kaldra Compleat	bc214c4f0811d5cc	26	2/2		1/1	
+Kinetic Augur	e4a302e488d0c83a	71	1/1		1/1	
+Lamplighter of Selhoff	b85ad82fccf6ecd3	22	1/1		0/1	ix:resp
+Llanowar Cavalry	552097b83e96bac7	40	1/1		1/1	
+Lovisa Coldeyes	8095a8bfedbd8780	21	0/0		0/0	
+Mesa Enchantress	269ece48381f596b	13	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Mountain	9e71388353e907ed	3409	1/1		0/1	ix:resp
+Nantuko Disciple	c5ceb815aded1f0c	29	1/1		1/1	
+Norwood Priestess	e4c44104f8726ce5	36	1/1		1/1	
+Nurturer Initiate	64476e8993efb869	26	1/1		1/1	
+Omen of the Forge	f9096367cf2d8ce5	43	2/2		1/1	
+Painiac	f93a9eb99d9b400c	50	1/1		1/1	
+Palace Siege	932b9814f244cf6c	37	0/0		0/0	
+Phantom Blade	7ccb9e702e704439	20	2/2		0/1	ix:resp
+Pillarfield Ox	1bab2e321b3f2786	12	0/0		0/0	
+Plains	82d63a695487e567	448	1/1		0/1	ix:resp
+Political Trickery	e589007c11daa518	33	0/0		2/2	
+Priest of Urabrask	58b8f50b6d350c2b	45	1/1		0/1	ix:resp
+Primal Visitation	81878c41232b4d1c	26	0/0		2/2	
+Pristine Angel	4a98910026b3aaa5	5	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Protection of the Hekma	48a1ed14bc39a555	10	0/0		0/0	
+Pygmy Razorback	71e29f6e827a5eae	30	0/0		0/0	
+Pyromancer's Swath	787c01eeca6d58b3	28	1/1		0/1	ix:resp
+Quag Sickness	80ad1c2796d94cfd	35	0/0		2/2	
+Ratcatcher	ad9bbe80e7584d98	39	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Reaping the Graves	9f08d5896d991922	36	1/1		2/2	
+Salvage	8577aee2c2d3c623	34	0/0		2/2	
+Scout the Wilderness	7b1c0cb0b554a541	39	0/0		4/4	
+Shimmerwing Chimera	4ef77b40296b3f4e	50	1/1		1/1	
+Short Circuit	b9122ac90da5416a	38	0/0		2/2	
+Simon, Wild Magic Sorcerer	33919409de4d4f0f	38	1/1		1/1	
+Singe	333b3c1c77967be7	70	0/0		2/2	
+Sky-Blessed Samurai	ce0f3fb937c63d8b	12	0/0		0/0	
+Snarling Undorak	15b7c4799af68e08	24	1/1		2/3	cast/alt:morphed
+Sowing Mycospawn	bb635a03f0a5bdf0	35	2/2		3/3	
+Sparring Mummy	bafe30c97a7d0bec	10	1/1		0/1	ix:resp
+Stalking Drone	2763f7406e8f00d4	37	1/1		1/1	
+Stampeding Wildebeests	c00a1011b119f614	38	1/1		1/1	
+Steel Exemplar	2a66c28bcbe1b173	17	0/0		0/0	
+Stitcher's Graft	e57dcf959c492130	55	3/3		1/1	
+Stormblood Berserker	c6014266d543b730	38	0/0		0/0	
+Stronghold Zeppelin	5e6d9b53a2e28f3e	28	0/0		0/0	
+Sunhome Enforcer	954d665c1c4a44d7	12	2/2		1/1	
+Swamp	342b413902f441c3	1048	1/1		0/1	ix:resp
+Tabaxi Toucaneers	bd83d09250cdd012	4	1/1		0/1	ix:resp
+Tempting Licid	859afe3e541fef5c	36	1/1		1/1	
+Thallid	ef28b7c87fd0d7a5	43	2/2		1/1	
+Thicket Basilisk	011566224595e3db	27	2/2		1/1	
+Throes of Chaos	04047dc8e4baf2e9	21	0/0		2/2	
+Toil to Renown	3726479d5a837f3f	53	0/0		2/2	
+Tower of Fortunes	198879bcc40f78e3	36	1/1		0/1	ix:resp
+Treetop Rangers	4fa1f0986cbc7592	16	0/0		0/0	
+Turn the Tide	d64b7aa49a7acde0	62	0/0		2/2	
+Urborg Justice	0172d9971ab4a9a9	25	0/0		1/2	ix:resp
+Vacuumelt	a1ebbfbfee4f13bc	45	1/1		4/4	
+Vastwood Animist	07ebac74107c0ebb	44	1/1		1/1	
+Vengevine	81286ae19f340ebb	24	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Viper's Kiss	a243475ac0dd7e63	22	0/0		2/2	
+Viridian Shaman	dc8232f167e179fd	30	1/1		1/1	
+Wallop	e68ba9086fa468e9	3	0/0		1/2	ix:resp
+Wanderguard Sentry	d65806b3023486b0	31	1/1		1/1	
+War Machine, Avenging Arsenal	e386cd7f2e6922b9	27	1/1		0/1	ix:resp
+Weapon Surge	f779d43cdaa6ee92	35	0/0		4/4	
+Whispergear Sneak	4614ebcfd67cd858	51	0/0		0/0	
+Wojek Halberdiers	34b556e0712a1749	11	1/1		0/1	ix:resp
+Yavimaya Sojourner	463d377c73a42fec	29	0/0		0/0	
+Young Wolf	c83665296a954082	30	1/1		1/1	

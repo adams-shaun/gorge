@@ -1,0 +1,81 @@
+card	lir16	plays	keys	unused	branches	missing_branches
+Abolish	0ef68ef586d04323	131	0/0		2/2	
+About Face	f6c8796991030b6a	139	0/0		2/2	
+Against All Odds	8e0c5faf11b789b4	101	0/0		2/2	
+Ancient Hydra	1d6b1f03245622a0	83	2/2		1/1	
+Ancient Silverback	d267d6a555fe934e	47	1/1		1/1	
+Assault Formation	92df6603b58b8614	112	2/2		1/1	
+Ballynock Cohort	2a8977159e26a462	112	0/0		0/0	
+Banishing Slash	febf18b340355138	129	0/0		2/2	
+Battle Angels of Tyr	3f671ba536129558	99	2/2		1/1	
+Bellowing Aegisaur	7e2bab72ece3023b	78	1/1		0/1	ix:resp
+Boggart Harbinger	eb2ba9743938cd6d	111	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Challenger Troll	783ed452b945433c	58	0/0		0/0	
+Condemn	77893513c6bd5225	89	0/0		2/2	
+Cytoplast Root-Kin	5791a0e2db10fd55	55	3/3		1/3	f0/t1/opt:n,f0/t1/opt:y
+Darksteel Mutation	e7c8fac27a36752d	127	0/0		2/2	
+Deceiver Exarch	2b21a5f4f8601e6e	216	1/1		1/1	
+Emrakul's Messenger	5fac83f11283f62b	184	1/1		1/1	
+Evangel of Heliod	a07259ed7a66b942	66	1/1		1/1	
+Exsanguinate	1132aca7332a5ed5	51	0/0		3/4	f0/s/x0
+Fae Offering	2673882d2a0a6567	96	1/1		1/1	
+Faerie Mechanist	d52284cc6f60ee53	144	1/1		1/1	
+Felidar Umbra	99db4a60643e631a	128	1/1		2/2	
+Feral Hydra	6077a7089b2cbe25	57	1/1		1/1	
+Flock Impostor	04fcb7352439d021	129	1/1		1/1	
+Forest	6d0466c30f825dba	1334	1/1		0/1	ix:resp
+Furnace Punisher	85ffd2cc11ca7158	132	1/1		1/1	
+Generous Gift	99ef723b7270c912	160	0/0		2/2	
+Giant Spider	483542faca64a414	64	0/0		0/0	
+Goblinslide	8a27c2612f6d80f0	118	1/1		1/1	
+Goldlust Triad	c03817f71c7d5c26	101	2/2		1/1	
+Goldmeadow Harrier	b91c521e10039418	163	1/1		1/1	
+Guardian of Faith	5356bd879f7dfd06	128	1/1		1/1	
+Halimar Depths	7493fed802903935	651	2/2		1/1	
+Healer's Hawk	8f8feddee07aade2	124	0/0		0/0	
+Imperious Perfect	4b38802053176ad6	67	1/1		1/1	
+Intangible Virtue	1b6b1833d16a530c	106	0/0		0/0	
+Island	763c67ef7a27eaf5	3946	1/1		0/1	ix:resp
+Kami of False Hope	d2be1c3946e2a958	136	1/1		1/1	
+Kelpie Guide	a0352f41c8530b08	178	2/2		1/1	
+Kenrith's Transformation	ce5d204ed9f1641b	88	1/1		2/2	
+Kor Cartographer	1d0b9a025e607225	105	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Kor Firewalker	dfb876411ab03679	110	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Leap	e9790221ec848e27	204	0/0		2/2	
+Linvala, the Preserver	687c0eae8c5a9aa2	75	2/2		1/1	
+Lore Weaver	556249d5d3f50502	132	2/2		1/1	
+Mage Slayer	efec0575ac37c990	25	2/2		1/1	
+Merciless Executioner	e813a9b8a926e850	115	1/1		1/1	
+Merfolk Seastalkers	e82d29f926e6691a	145	1/1		1/1	
+Mountain	9e71388353e907ed	1801	1/1		0/1	ix:resp
+Myth Realized	681988063eced015	112	3/3		1/1	
+Nature's Way	391c8c421d784fc5	77	0/0		2/2	
+Neheb, the Eternal	518ff6c1dc2ddea0	78	2/2		1/1	
+Nevermaker	e9c7e078f8b28d76	180	1/1		3/3	
+Nyxborn Hydra	9c25b758482a9cc4	102	0/0		2/2	
+Plains	82d63a695487e567	2229	1/1		0/1	ix:resp
+Portent	fa4b5839839d69a8	160	0/0		2/2	
+Pyrohemia	ea83acaa6c386b7e	69	2/2		1/1	
+Quirion Elves	3ed3dcaa9ec24e75	97	2/2		0/1	ix:resp
+Ramosian Rally	d86a39e42e2f43cd	140	0/0		2/2	
+Reality Shift	84fc1f7ca3bb0d0c	195	0/0		2/2	
+Recross the Paths	0f2572fcd43e9193	109	0/0		2/2	
+Reverent Mantra	b6d100c622180da9	159	0/0		2/2	
+Sage's Reverie	d6466dc7d7560781	117	1/1		2/2	
+Scholar of the Ages	f51d072df9f76e16	54	1/1		1/1	
+Sejiri Merfolk	f230e9ed6a92627c	194	0/0		0/0	
+Send in the Pest	2c3ae66b17de743c	120	0/0		2/2	
+Set Adrift	200c7ecbeca5ce1c	3	0/0		1/2	ix:resp
+Sparkmage Apprentice	e1a322295080ed29	120	1/1		1/1	
+Spectral Sailor	66ae2c6a42de5881	175	1/1		1/1	
+Stand Together	38eb655d7f939356	65	0/0		2/2	
+Starlit Angel	de16ea44303d57ae	95	0/0		0/0	
+Swamp	342b413902f441c3	1866	1/1		0/1	ix:resp
+Swell of Courage	326c1929345e3f62	33	1/1		2/2	
+Turnabout	39f0619628aba853	157	0/0		2/2	
+Vigean Graftmage	3ccd0ed1c483cb70	157	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
+Wall of Corpses	7bcaf2a2e862e36f	136	1/1		1/1	
+Wall of Roots	9fc6da95d4e6fdce	88	1/1		1/1	
+War Priest of Thune	a7622933a7379e4e	131	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Woodland Changeling	91d97ba155ce29de	92	0/0		0/0	
+Young Red Dragon	f9fe59f77f093e52	239	0/0		2/2	

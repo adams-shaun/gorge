@@ -1,0 +1,102 @@
+card	lir16	plays	keys	unused	branches	missing_branches
+A-Skyclave Shadowcat	a872fe442266b9f5	12	2/2		1/1	
+Abduction	a52af41fa1fda349	4	2/2		1/2	ix:resp
+Aether Channeler	0f7d972e530ac1b6	4	1/1		0/1	ix:resp
+Akoum Hellhound	bc52a5cbf5ba28aa	16	1/1		0/1	ix:resp
+Apocalypse	db942b8b37bd8534	4	0/0		2/2	
+Assemble the Entmoot	7c2e24d9acbd24fd	6	1/1		0/1	ix:resp
+Astrid Peth	a6fb6e6ff9af5a8b	6	3/3		0/1	ix:resp
+Barge In	ba7b42445cf43aa7	6	0/0		1/2	ix:resp
+Barrage of Expendables	95d2cabed5460864	8	1/1		1/1	
+Blazing Hellhound	916d20dd551072e9	6	1/1		1/1	
+Bloodcurdler	ca48995f08669433	6	1/1		0/1	ix:resp
+Burrowing	89fbe41dd15ba131	15	0/0		1/2	ix:resp
+Call of the Full Moon	9cc1bf84cafb86d4	10	1/1		1/2	ix:resp
+Canoptek Scarab Swarm	fd114c27fa3205da	4	1/1		0/1	ix:resp
+Carrier Pigeons	6a6f25a9ca1408e3	6	1/1		0/1	ix:resp
+Carrion	f6cda8c4f4155aa9	6	0/0		2/2	
+Clambassadors	0e2080b49295bd85	10	1/1		0/1	ix:resp
+Clamor Shaman	f782bf04efb61b44	4	1/1		0/1	ix:resp
+Coral Fighters	39a2b26a470af821	3	1/1		0/1	ix:resp
+Crabapple Cohort	a4cdf6fbb374f8ca	4	0/0		0/0	
+Crystacean	3347199bea0c19c6	8	0/0		0/0	
+Cunning Strike	e9ee31cd586d6e96	4	0/0		2/2	
+Cyclopean Mummy	aeea2b20962b33eb	14	1/1		1/1	
+Daredevil, Fearless Fighter	db9be38ebb0bb68b	10	2/2		0/1	ix:resp
+Dredge the Mire	a05d2a8b5b6c0cdb	9	0/0		1/2	ix:resp
+Encase in Ice	d0647c7094a34a40	6	1/1		1/2	ix:resp
+Erebos's Emissary	61b708e5f0ed83c3	6	1/1		2/3	ix:resp
+Etched Familiar	1e46a0067df118ab	12	1/1		1/1	
+Fierce Guardianship	6dfe8a24aeddbb65	6	0/0		1/2	ix:resp
+Fire	b764aae955f41478	9	0/0		1/3	f1/s,ix:resp
+Firemantle Mage	f098e473659d43c9	12	1/1		0/1	ix:resp
+Forest	6d0466c30f825dba	117	1/1		0/1	ix:resp
+Fresh Meat	a4f252f16336a49d	10	0/0		1/2	ix:resp
+Glint Hawk	21493f276acc28fc	4	1/1		0/1	ix:resp
+Goblin Spelunkers	db72365ab1ccc1c4	8	0/0		0/0	
+Gouged Zealot	ebc6e1aaa5fd48f5	14	1/1		0/1	ix:resp
+Ice Over	30503976d6969cd2	5	0/0		2/2	
+Ichor Drinker	c55e54c27d77ac33	5	1/1		0/1	ix:resp
+Iroas's Blessing	18efdd8fa34eacfd	4	1/1		2/2	
+Island	763c67ef7a27eaf5	83	1/1		0/1	ix:resp
+Kjeldoran Dead	277bfda9ac11b818	14	2/2		1/1	
+Legion Guildmage	9309c7a60b2fef1a	8	2/2		1/1	
+Lightning Coils	ee4d544e37d6f732	21	2/2		0/1	ix:resp
+Lock and Load	60b54b930451692c	8	0/0		2/2	
+Luxurious Libation	599b4c2046b47359	3	0/0		3/4	f0/s/x0
+Merchant of the Vale	d9b6eff99cf382c7	29	1/1		2/2	
+Mirkwood Spider	07d35e047f3c38e5	4	1/1		0/1	ix:resp
+Mists of Littjara	61e43d90276ae8b2	8	0/0		1/2	ix:resp
+Mogis's Favor	7400229b433671d7	4	0/0		2/4	cast/alt:escaped,ix:resp
+Mountain	9e71388353e907ed	475	1/1		0/1	ix:resp
+Myth Realized	681988063eced015	8	3/3		1/1	
+Natural Emergence	d130bfdd019a3c90	6	1/1		0/1	ix:resp
+Obstinate Baloth	d7a837f9e21f895a	4	1/1		1/1	
+Olivia's Attendants	1e3615126862a268	4	2/2		0/1	ix:resp
+Orcish Cannonade	539efdf6ab2c6c09	7	0/0		2/2	
+Perimeter Sergeant	f6f00256288e0373	9	1/1		0/1	ix:resp
+Plains	82d63a695487e567	143	1/1		0/1	ix:resp
+Psychic Membrane	091528e7f177c39f	4	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Pulse of Murasa	b64da712cc8d9f02	7	0/0		2/2	
+Putrid Goblin	3f324dc11c143f10	8	1/1		0/1	ix:resp
+Rabid Bloodsucker	2bd33f7209741171	4	1/1		0/1	ix:resp
+Ransack the Lab	bf1e9ba2a7705658	4	0/0		1/2	ix:resp
+Reiterate	50a4631b57be512f	4	0/0		2/4	cast/alt:buyback,ix:resp
+Riddlekeeper	53dda49a024b79fc	4	1/1		0/1	ix:resp
+Ring of Thune	57beb9ddd26eab4e	8	2/2		1/1	
+Ripscale Predator	69949f2709d4212b	10	0/0		0/0	
+Rishadan Dockhand	9b5a25616400f754	4	1/1		1/1	
+Rona's Vortex	11bd67363ceb0314	6	0/0		2/4	cast/alt:kicked,ix:resp
+Rust Elemental	355106b3d4ca3813	4	1/1		0/1	ix:resp
+Saving Grasp	1ec68806aae06ac7	6	0/0		4/4	
+Scattershot Archer	f9da1577e69f2459	6	1/1		1/1	
+Scoria Elemental	8458dbd528521ff5	6	0/0		0/0	
+Screamreach Brawler	15811925513028f5	20	0/0		2/2	
+Scurrid Colony	bacb3e2e071e7de5	3	0/0		0/0	
+Sethron, Hurloon General	b522c1f999e08e0b	5	2/2		1/1	
+Sharding Sphinx	0acb0e9e78b4659d	8	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Shimmer Myr	db93de85fde9a550	10	0/0		0/0	
+Skull of Orm	04fe7354ad01e75d	6	1/1		1/1	
+Soulcipher Board	de7de5a775f7deab	9	3/3		0/1	ix:resp
+Spark Mage	9a4e8e7cd4ebd574	10	1/1		1/1	
+Spectral Sliver	3a744e83d5d210f9	14	0/0		0/0	
+Sphinx's Tutelage	c983a1f64579b5f5	4	2/2		0/1	ix:resp
+Spike Drone	25e5b33a6b4ff4a7	12	1/1		1/1	
+Spirit Mantle	eba02dec60b18756	4	0/0		1/2	ix:resp
+Steadfast Sentinel	dd19dd1b2fcb8b5c	5	1/1		1/1	
+Swamp	342b413902f441c3	118	1/1		0/1	ix:resp
+Taigam's Strike	2d6fd460960398fc	6	0/0		1/2	ix:resp
+The Vision and Scarlet Witch	8490853e7cf8c4b9	7	1/1		1/1	
+Tread Upon	70555757fd66f1f9	4	0/0		1/2	ix:resp
+Two-Headed Cerberus	d6e246c04d9b702b	12	0/0		0/0	
+Vampire Bats	3a39e55b748554a7	15	1/1		1/1	
+Viashino Cutthroat	4ecca2d51605323b	10	1/1		1/1	
+Virtue's Ruin	cdbb1a8be0a38f7c	6	0/0		1/2	ix:resp
+Viscerid Armor	9175f39a7674948b	8	1/1		1/2	ix:resp
+Vow of Malice	8b4d7d1d556708c5	4	0/0		1/2	ix:resp
+Vraska's Fall	abb601dc435858a5	12	0/0		1/2	ix:resp
+Wolfsbane, Highland Hero	71931a44ed137a0e	12	1/1		0/1	ix:resp
+Wurm's Tooth	426163d9b6ef4979	11	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+You Find the Villains' Lair	0c24663f2ab8c3dc	5	0/0		1/2	ix:resp
+Zap	3b5c3d2d2126e7cf	10	0/0		2/2	
+Zektar Shrine Expedition	651c1efd6cf0e485	19	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp

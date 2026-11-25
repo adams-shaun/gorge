@@ -1,0 +1,257 @@
+A-Hobbling Zombie
+A-Llanowar Loamspeaker
+A.I.M. Bot
+Abbey Gargoyles
+Abolish
+Accelerate
+Admiral's Order
+Aerie Ouphes
+Ajani, the Greathearted
+Alesha's Vanguard
+Amok
+Apocalypse Hydra
+Assassin's Strike
+Backfire
+Barbarian Riftcutter
+Basri's Solidarity
+Benthic Biomancer
+Biomathematician
+Blanchwood Treefolk
+Bloodfire Infusion
+Bogardan Firefiend
+Boggart Forager
+Bonded Construct
+Bonds of Quicksilver
+Born to Drive
+Bramblesnap
+Brass Knuckles
+Bright Reprisal
+Brimstone Trebuchet
+Brood Weaver
+Cadaverous Knight
+Canal Dredger
+Candelabra of Tawnos
+Capashen Unicorn
+Casting of Bones
+Cat Warriors
+Chaos Maw
+Chardalyn Dragon
+Charging Bandits
+Cinder Pyromancer
+Clan Guildmage
+Contagious Vorrac
+Coveted Peacock
+Cruel Fate
+Dapper Shieldmate
+Daru Warchief
+Daxiver, Izzet Electromancer
+Deadly Grub
+Death Ward
+Deluge
+Devoted Caretaker
+Disciple of Freyalise
+Disciple of Law
+Disempower
+Dormant Sliver
+Dovin's Acuity
+Dreadwing
+Drownyard Explorers
+Druid of the Anima
+Dusk Feaster
+Dwarfhold Champion
+Dwarven Strike Force
+Dúnedain Rangers
+Elder Owyn Lyons
+Elgaud Inquisitor
+Elite Arrester
+Elite Headhunter
+Enraged Giant
+Enraged Killbot
+Essence Flare
+Fantastic Elasticity
+Farsight Mask
+Fateful Handoff
+Fatigue
+Festival Crasher
+Fire at Will
+Flame Rift
+Flood of Tears
+Forest
+Galadriel of Lothlórien
+Garenbrig Carver
+Gate Hound
+Gate of the Black Dragon
+General's Enforcer
+Ghirapur Aether Grid
+Giant Dustwasp
+Glint-Horn Buccaneer
+Glint-Nest Crane
+Goblin Engineer
+Graf Reaver
+Grave Strength
+Gravecrawler
+Gravedig
+Grief Tyrant
+Grotag Night-Runner
+Ground Rift
+Guardian of Pilgrims
+Guma
+Hajar, Loyal Bodyguard
+Harbor Bandit
+Heavy Arbalest
+Hellkite Punisher
+Hold the Gates
+Hook Swords
+Hound of the Farbogs
+House Guildmage
+Hunger of the Nim
+Icingdeath, Frost Tyrant
+Incite
+Infernal Captor
+Inquisitor Exarch
+Inspired Insurgent
+Iron Myr
+Iron Will
+Ironfist Crusher
+Island
+Ivory Tower
+Journey to Oblivion
+Kavu Primarch
+Kinjalli's Caller
+Kitesail Apprentice
+Kithkin Daggerdare
+Knights' Charge
+Lambholt Harrier
+Lawless Broker
+Lazotep Plating
+Leopard-Spotted Jiao
+Lifeblood Hydra
+Lightning Dragon
+Lightning Talons
+Liliana, the Necromancer
+Magma Mine
+Mandible Justiciar
+Marionette Master
+Maul of the Skyclaves
+Meletis Astronomer
+Mesmeric Fiend
+Minds Aglow
+Minion's Return
+Mishra's Research Desk
+Molderhulk
+Moldervine Cloak
+Molting Snakeskin
+Mountain
+Murder of Crows
+Mutagenic Growth
+Mystic Meditation
+Nemesis Trap
+Nest of Scarabs
+Nether Void
+Nezumi Prowler
+Nightshade Stinger
+Nissa's Encouragement
+No Mercy
+Opportunistic Dragon
+Oracle's Insight
+Oreskos Sun Guide
+Peema Aether-Seer
+Pegasus Courser
+Pelt Collector
+Plague Witch
+Plains
+Power Plant Worker
+Prognostic Sphinx
+Prophet of the Peak
+Pyrostatic Pillar
+Quandrix Cultivator
+Quarrel's End
+Quasiduplicate
+Rampaging Classmate
+Rank Officer
+Rat King, Pale Piper
+Rebuke
+Reckless One
+Reito Sentinel
+Relic Runner
+Reshape the Earth
+Resolute Blademaster
+Riddlesmith
+Rise of the Ants
+Rishadan Airship
+Riveteers Initiate
+Rosecot Knight
+Ruinous Intrusion
+Rush of Battle
+Sand Scout
+Sanguinary Priest
+Saprazzan Bailiff
+Scornful Aether-Lich
+Seize the Day
+Sengir Bats
+Serpent of the Endless Sea
+Setessan Oathsworn
+Shade's Form
+Shadowborn Demon
+Shambling Vent
+Shard Volley
+Shield of the Realm
+Shrieking Grotesque
+Sinew Sliver
+Six
+Skittering Horror
+Slith Ascendant
+Sparkcaster
+Spider-Man 2099, Miguel O'Hara
+Spidery Grasp
+Spike Tiller
+Spirit Loop
+Spoils of Adventure
+Sprouting Phytohydra
+Staff of Titania
+Stag Beetle
+Stand Together
+Status
+Summit Apes
+Summit Prowler
+Sunder
+Suspended Sentence
+Swamp
+Tainted Well
+Telepathy
+Temple Thief
+Terminal Moraine
+Thopter Architect
+Thoughts of Ruin
+Thundersong Trumpeter
+Ticked Off
+Tomb Fortress
+Touch of Death
+Toymaker
+Traverse the Outlands
+Treacherous Blessing
+Turbulent Springs
+Umbral Mantle
+Unbender Tine
+Urza's Armor
+Vedalken Blademaster
+Vengeful Warchief
+Vessel of Paramnesia
+Visions of Brutality
+Voidslime
+Voltaic Construct
+Vraska the Unseen
+Vryn Wingmare
+Wailing Ghoul
+Wall of Kelp
+Warchief Giant
+Weatherseed Faeries
+Welkin Guide
+Whipcorder
+Wild Wanderer
+Wildfire Awakener
+Wistful Selkie
+Woebringer Demon
+Woodland Patrol
+Yisan, the Wanderer Bard
+Zealous Conscripts
