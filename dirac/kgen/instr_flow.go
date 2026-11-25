@@ -88,6 +88,14 @@ func (ic *instrCtx) opCopySpell() error {
 	ki := &ic.ki
 	in := &ic.in
 	ki.Op, ki.C = kop.OpCopySpell, int16(in.C)
+	if in.B.isConst() && in.B.N > 0 {
+		// NonLegendary$'s copy exception (lower_effect_copy.go copyNonLegendary)
+		i, err := ic.cb.override(ic.cb.c.overrides[in.B.N-1])
+		if err != nil {
+			return err
+		}
+		ki.B = kop.Const(i + 1)
+	}
 	return nil
 }
 
