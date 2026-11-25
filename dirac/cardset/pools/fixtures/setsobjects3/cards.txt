@@ -1,0 +1,15 @@
+# As-enters card-name choices over any card name kgen now lowers
+# (dirac/oracle/setsobjects3_lockstep_test.go TestSetsObjects3Lockstep):
+# ETB NameCard with no ValidCards$ (Disruptor Flute, Pithing Needle,
+# Declaration of Naught, Gideon's Intervention)
+Disruptor Flute
+Pithing Needle
+Declaration of Naught
+Gideon's Intervention
+Mind Stone
+Prodigal Sorcerer
+Grizzly Bears
+Shock
+Plains
+Island
+Mountain

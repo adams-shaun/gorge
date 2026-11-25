@@ -1,0 +1,279 @@
+Abzan Falconer
+Acidic Slime
+Ancient Amphitheater
+Ancient Excavation
+Angel of Serenity
+Anya, Merciless Angel
+Arbiter of Knollridge
+Arcane Lighthouse
+Arcane Sanctum
+Artisan of Kozilek
+Ash Barrens
+Astral Cornucopia
+Atraxa, Praetors' Voice
+Avatar of Woe
+Azorius Chancery
+Bane of the Living
+Banishing Light
+Barren Moor
+Basalt Monolith
+Beetleback Chief
+Bitter Feud
+Blade of Selves
+Blasphemous Act
+Blasted Landscape
+Bogardan Hellkite
+Borderland Behemoth
+Boros Cluestone
+Boros Garrison
+Boros Guildgate
+Boros Signet
+Bosh, Iron Golem
+Bottle Gnomes
+Brave the Sands
+Brawn
+Breath of Darigaaz
+Bred for the Hunt
+Buried Alive
+Buried Ruin
+Butcher of Malakir
+Caged Sun
+Cathars' Crusade
+Cathodion
+Cauldron of Souls
+Champion of Lambholt
+Chaos Warp
+Citadel Siege
+Coldsteel Heart
+Command Tower
+Commander's Sphere
+Corpsejack Menace
+Crib Swap
+Crystalline Crawler
+Cultivate
+Curse of the Nightly Hunt
+Custodi Soulbinders
+Damia, Sage of Stone
+Daretti, Scrap Savant
+Dark Hatchling
+Darksteel Citadel
+Darksteel Ingot
+Darkwater Catacombs
+Dawnbreak Reclaimer
+Dawnglare Invoker
+Deepglow Skate
+Desecrator Hag
+Desolation Giant
+Dimir Aqueduct
+Dimir Signet
+Disaster Radius
+Disdainful Stroke
+Dormant Volcano
+Dreadship Reef
+Dream Pillager
+Dreamborn Muse
+Dreamstone Hedron
+Drifting Meadow
+Dualcaster Mage
+Duelist's Heritage
+Duneblast
+Earthquake
+Elite Scaleguard
+Enduring Scalelord
+Epochrasite
+Eternal Witness
+Everflowing Chalice
+Evolving Wilds
+Exotic Orchard
+Extractor Demon
+Fact or Fiction
+Faith's Fetters
+Faithless Looting
+Fall of the Hammer
+Fathom Mage
+Feldon of the Third Path
+Fellwar Stone
+Festercreep
+Fiery Confluence
+Fire Diamond
+Flamekin Village
+Flametongue Kavu
+Fleshbag Marauder
+Forest
+Forgotten Ancient
+Forgotten Cave
+Fumiko the Lowblood
+Ghave, Guru of Spores
+Ghost Quarter
+Gisela, Blade of Goldnight
+Goblin Welder
+Golgari Rot Farm
+Golgari Signet
+Grave Pact
+Gravedigger
+Great Furnace
+Grip of Phyresis
+Hamletback Goliath
+Hammerfist Giant
+Hardened Scales
+Herald of the Host
+Hoard-Smelter Dragon
+Hostility
+Hunted Dragon
+Ichor Wellspring
+Ikra Shidiqi, the Usurper
+Impact Resonance
+Incite Rebellion
+Inferno Titan
+Ingot Chewer
+Inspiring Call
+Ishai, Ojutai Dragonspeaker
+Island
+Jalum Tome
+Jareth, Leonine Titan
+Juniper Order Ranger
+Junk Diver
+Jwar Isle Refuge
+Kalemne's Captain
+Kalemne, Disciple of Iroas
+Kalonian Hydra
+Languish
+Lhurgoyf
+Lightning Greaves
+Liquimetal Coating
+Living Death
+Lonely Sandbar
+Loreseeker's Stone
+Loxodon Warhammer
+Magma Giant
+Magmaquake
+Magus of the Wheel
+Manifold Insights
+Master Biomancer
+Memory Erosion
+Merciless Eviction
+Meteor Blast
+Migratory Route
+Mind Stone
+Minds Aglow
+Mirrorweave
+Mortify
+Mortivore
+Mountain
+Mulldrifter
+Murmuring Bosk
+Mycosynth Wellspring
+Myr Battlesphere
+Myr Retriever
+Myr Sire
+Necroplasm
+Nezumi Graverobber
+Oblivion Stone
+Opal Palace
+Opulent Palace
+Oreskos Explorer
+Orim's Thunder
+Orzhov Advokist
+Orzhov Signet
+Palladium Myr
+Panic Spellbomb
+Patron of the Nezumi
+Pentavus
+Phyrexia's Core
+Pilgrim's Eye
+Plains
+Pristine Talisman
+Putrefy
+Relic Crush
+Reliquary Tower
+Reveillark
+Reyhan, Last of the Abzan
+Riddlekeeper
+Rise from the Grave
+Rite of the Raging Storm
+Ruby Medallion
+Rupture Spire
+Sandsteppe Citadel
+Sandstone Oracle
+Scavenging Ooze
+Scrap Mastery
+Scythe Specter
+Seaside Citadel
+Secluded Steppe
+Seer's Sundial
+Sewer Nemesis
+Shared Trauma
+Sign in Blood
+Simic Growth Chamber
+Simic Signet
+Skullbriar, the Walking Grave
+Slipstream Eel
+Smoldering Crater
+Sol Ring
+Solemn Simulacrum
+Solidarity of Heroes
+Spell Crumple
+Spine of Ish Sah
+Spitebellows
+Spitting Image
+Staff of Nin
+Starstorm
+Steel Hellkite
+Stinkdrinker Daredevil
+Stitch Together
+Stoneshock Giant
+Sublime Exhalation
+Sun Titan
+Sungrass Prairie
+Sunrise Sovereign
+Svogthos, the Restless Tomb
+Swamp
+Swiftfoot Boots
+Sylvan Reclamation
+Syphon Flesh
+Syphon Mind
+Szadek, Lord of Secrets
+Taurean Mauler
+Temple of the False God
+Terramorphic Expanse
+Tezzeret's Gambit
+The Mimeoplasm
+Thought Vessel
+Thrummingbird
+Thundercloud Shaman
+Trading Post
+Tranquil Thicket
+Treasure Cruise
+Tribute to the Wild
+Triskelavus
+Troll Ascetic
+Tuktuk the Explorer
+Tuskguard Captain
+Tyrant's Familiar
+Underground River
+Unnerve
+Unstable Obelisk
+Urza's Incubator
+Victory's Herald
+Vivid Crag
+Vivid Meadow
+Volcanic Offering
+Vorel of the Hull Clade
+Vorosh, the Hunter
+Vow of Flight
+Vow of Malice
+Vow of Wildness
+Vulturous Zombie
+Warchief Giant
+Warmonger Hellkite
+Warstorm Surge
+Wayfarer's Bauble
+Whipflare
+Wind-Scarred Crag
+Windfall
+Wonder
+Word of Seizing
+Worn Powerstone
+Wrexial, the Risen Deep
+Wurmcoil Engine
+Yavimaya Elder
