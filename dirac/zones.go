@@ -742,6 +742,9 @@ func (s *State) fireLeave(k *prep, sl Slot, z kop.Zone) {
 	if k.gen != nil && k.gen.anyLeaveRet && z == kop.ZoneGraveyard {
 		s.leaveGraveFired(p.obj) // trig_leavereturn.go
 	}
+	if k.gen != nil && k.gen.anyBlitz() {
+		s.blitzLeft(p.obj, z) // kw_blitz.go: the dies-draw record is consumed by any departure
+	}
 	if k.gen != nil && k.gen.anyDelayDies && z == kop.ZoneGraveyard && s.g.ndp != 0 {
 		s.fireDiesProgs(p.obj, p.ctrl) // trig_delayeddies.go: after the dies/leaves triggers
 	}
