@@ -760,7 +760,7 @@ func (e *Engine) applyLegendBatch(kept state.ObjID) {
 	before := e.triggerBefore
 	e.triggerBefore = lb.before
 	e.applySBABatch(&b)
-	e.triggerBefore = before
+	e.setTriggerBefore(before)
 }
 
 // legendaryUnderLayers reports whether the object's DERIVED type list still

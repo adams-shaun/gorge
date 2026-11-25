@@ -687,15 +687,17 @@ func PaymentPlanFoldableTapMana(f *cards.Face, t cards.Trigger) (PlanTapMana, bo
 // Static$ True` trigger of face f whose parameters are all in the closed
 // world paymentPlanTapManaTriggerCodes names and whose body is one api
 // ability with no SubAbility$, or nil. A TriggerZones$ Command line is
-// admitted only on a Vanguard face: a Vanguard is not a battlefield
-// permanent, so its printed static lives in the command zone (Sisay).
+// admitted only on a face that is not a battlefield permanent: a Vanguard's
+// printed static lives in the command zone (Sisay), and a face-up plane's
+// functions from there while the plane lives in its owner's planar deck
+// (Eloren Wilds, The Fertile Lands of Saulvinia; CR 901).
 func paymentPlanStaticTapManaBody(f *cards.Face, t cards.Trigger, api string) *cards.SA {
 	if t.Mode != "TapsForMana" || !strings.EqualFold(strings.TrimSpace(t.ParamStr(cards.PKStatic)), "True") {
 		return nil
 	}
 	if v, ok := t.Param(cards.PKTriggerZones); ok {
 		zone := strings.TrimSpace(v)
-		if zone != "Battlefield" && !(zone == "Command" && f != nil && f.TypeMaskOf()&cards.TypeVanguard != 0) {
+		if zone != "Battlefield" && !(zone == "Command" && f != nil && (f.TypeMaskOf()&cards.TypeVanguard != 0 || f.IsPlane())) {
 			return nil
 		}
 	}
