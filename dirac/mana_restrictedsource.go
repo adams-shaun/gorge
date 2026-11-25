@@ -887,6 +887,7 @@ func (s *State) restrSrcAvailD(k *prep, p uint8, d payDesc, av *avail, skip Slot
 			// (mana_restrictedfeefund.go). A cleared paid list funds nothing.
 			fund, wiped := s.restrFeeFund(k, p)
 			poolLeft := s.restrFeePool(p) // each fee takes its part of the pool, the next sees the rest
+			var feeFund *avail            // the fee sources' plain funding (restrFeeFundAvail), lazily built
 			// A distinct pair's source taps once, for the pair or for its census
 			// {C}, and its fee is paid from unrestricted mana, never from a
 			// pair's restricted units (CR 106.6; gorge's activation fees read the
@@ -916,12 +917,14 @@ func (s *State) restrSrcAvailD(k *prep, p uint8, d payDesc, av *avail, skip Slot
 				fc := restrFeeCost(v)
 				pool := min(poolLeft, fc.MV())
 				if rest := restrComboGapTake(v, &gapLeft, fc.MV()-pool); rest > 0 {
-					// the prefix search taps covered sources for the rest,
-					// at most the census's funding of them
-					if wiped != 0 || fund < rest {
-						continue // the census stands: no paid entry funds the fee
+					if !s.restrFeeCastFunded(k, p, d, own, v, kind, sl, &feeFund, deferSkip, fc, cost, extra) {
+						// the prefix search taps covered sources for the
+						// rest, at most the census's funding of them
+						if wiped != 0 || fund < rest {
+							continue // the census stands: no paid entry funds the fee
+						}
+						fund -= rest
 					}
-					fund -= rest
 				}
 				poolLeft -= pool
 				if kop.RestrDistinctPair(vab) {
