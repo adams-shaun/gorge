@@ -425,11 +425,41 @@ func choiceChoosers(h Host, c *Ctx, sa *cards.SA) []state.PlayerID {
 	return out
 }
 
+// chooseCardTargetsOnly reports a ChooseCard that targets and names no
+// Defined$ chooser (Hunted by The Family: the ChooseCard is only the carrier
+// of its targets). Forge's getDefinedPlayersOrTargeted then reads the targeted
+// PLAYERS alone, so a card target never makes its controller a chooser
+// (CR 115.1).
+func chooseCardTargetsOnly(sa *cards.SA) bool {
+	return DefinedRefOf(sa).Raw == "" && TargetsOf(sa).Has(TgtValidPresent)
+}
+
+// targetedPlayerChoosers is the chooser walk for chooseCardTargetsOnly: the
+// resolution's targets that are players, in target order, deduplicated and
+// without players who left the game. Empty when every target is a card.
+func targetedPlayerChoosers(h Host, c *Ctx, sa *cards.SA) []state.PlayerID {
+	var out []state.PlayerID
+	seen := map[state.PlayerID]bool{}
+	for _, t := range DefinedRef(h, c, DefinedRefOf(sa), sa) {
+		if !t.IsPlayer || seen[t.Player] || int(t.Player) >= len(h.Game().Players) || h.Game().Players[t.Player].Lost {
+			continue
+		}
+		seen[t.Player] = true
+		out = append(out, t.Player)
+	}
+	return out
+}
+
 // chooseCardChoosers applies ChooseCard's StartingWith$ modifier after the
 // shared chooser walk has filtered duplicates and players who left the game.
 // Other choice APIs retain their own unmodified Defined$ order.
 func chooseCardChoosers(h Host, c *Ctx, sa *cards.SA) []state.PlayerID {
-	out := choiceChoosers(h, c, sa)
+	var out []state.PlayerID
+	if chooseCardTargetsOnly(sa) {
+		out = targetedPlayerChoosers(h, c, sa)
+	} else {
+		out = choiceChoosers(h, c, sa)
+	}
 	if strings.EqualFold(strings.TrimSpace(sa.ParamStr(cards.PKStartingWith)), "You") {
 		for i, p := range out {
 			if p == c.Controller {
