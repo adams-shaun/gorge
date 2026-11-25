@@ -272,6 +272,8 @@ func copyExcOf(in *kop.Instr) int16 {
 		}
 	case kop.OpBecomeCopy:
 		return in.C >> 1
+	case kop.OpCopySpell:
+		return in.B.N // NonLegendary$ (copy_spellnonlegendary.go)
 	}
 	return 0
 }
