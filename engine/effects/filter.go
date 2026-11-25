@@ -1585,7 +1585,7 @@ func positiveRecognised(p string) bool {
 	if strings.HasPrefix(p, "greatestCMC_") || strings.HasPrefix(p, "lowestCMC") {
 		return true
 	}
-	if p == "TriggeredNewCard" || p == "TriggeredCard" || p == "TriggeredCards" || p == "TriggeredTarget" || p == "TriggeredAttacker" || p == "TriggeredDefender" || strings.HasPrefix(p, "ChosenMode") && len(p) > len("ChosenMode") {
+	if p == "TriggeredNewCard" || p == "TriggeredCard" || p == "TriggeredCards" || p == "TriggeredTarget" || p == "TriggeredAttacker" || p == "TriggeredDefender" || p == "canProduceSameManaTypeWith" || strings.HasPrefix(p, "ChosenMode") && len(p) > len("ChosenMode") {
 		return true
 	}
 	if _, ok := notDefinedTriggerReferent(p); ok {
@@ -2422,6 +2422,21 @@ func matchPositive(g *state.Game, p string, o *state.Object, sc SpecContext) (re
 			return false, false
 		}
 		return !match, true
+	}
+	if p == "canProduceSameManaTypeWith" {
+		// Mana Web's body predicate: the candidate shares at least one
+		// producible mana type with the triggering card. The referent is
+		// the trigger context's card (the tapped land for a TapsForMana
+		// trigger); with no bound trigger card the predicate fails closed,
+		// never widened.
+		if sc.TriggerCard == 0 {
+			return false, false
+		}
+		trigger := g.Obj(sc.TriggerCard)
+		if trigger == nil {
+			return false, false
+		}
+		return producibleTypesShare(o, trigger), true
 	}
 	if p == "TriggeredNewCard" || p == "TriggeredCard" {
 		// Forge's bare TriggeredNewCard / TriggeredCard property
@@ -3425,6 +3440,9 @@ func matchesObjectText(g *state.Game, spec string, o *state.Object, sc SpecConte
 		}
 		base, rest, _ := strings.Cut(alt, ".")
 		asc := sc
+		if b, r, ok := canProduceSameManaTypeContextBase(base, rest); ok {
+			base, rest = b, r
+		}
 		contextualSameName := sameNameContextBase(base, rest)
 		// Forge's sameName forms can name their referent in the base:
 		// Remembered.sameName, Targeted.Permanent+sameName, and

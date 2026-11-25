@@ -98,6 +98,11 @@ func init() {
 	for _, p := range [...]string{"withoutFlash", "!withFlash"} {
 		fwArms[p] = func(c *lClause, _ string) error { return c.setCmp(cmpLacksKw, 0, flashBit, "", "") }
 	}
+	// Mana Web's body predicate: the candidate shares a producible mana type
+	// with the triggering object (kernel FwCanProduceSameManaTypeWith).
+	fwArms["canProduceSameManaTypeWith"] = func(c *lClause, _ string) error {
+		return c.fwLit(lSpillLit{W: kop.FwCanProduceSameManaTypeWith, R: kop.RefTriggerObj})
+	}
 	// ChosenCtrl: controlled by the player the source chose as it entered.
 	fwArms["ChosenCtrl"] = func(c *lClause, _ string) error {
 		return c.fwLit(lSpillLit{W: kop.FwChosenCtrl})
@@ -212,7 +217,8 @@ func (c *lClause) fwArmOrUnknown(p string, knownSub func(string) bool) error {
 		p == "ChosenCtrl" || p == "EnchantedControllerCtrl" ||
 		p == "suspended" || p == "TopLibrary" || p == "DoubleFaced" ||
 		p == "Modal" || p == "singleTarget" ||
-		p == "Paired" || p == "!Paired" || p == "PairedWith" {
+		p == "Paired" || p == "!Paired" || p == "PairedWith" ||
+		p == "canProduceSameManaTypeWith" {
 		if arm, ok := fwArms[p]; ok {
 			return arm(c, p)
 		}
