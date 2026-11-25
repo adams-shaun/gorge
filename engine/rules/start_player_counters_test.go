@@ -11,8 +11,8 @@ import (
 // scripted start must drop, and the control proving the seed event reached
 // trigger discovery in the first place.
 const startCounterWatcher = "Name:Start Counter Watcher\nManaCost:1\nTypes:Creature Elf\nPT:1/1\n" +
-	"T:Mode$ CounterPlayerAddedAll | ValidObject$ Player | Execute$ TrigDraw | TriggerDescription$ x\n" +
-	"SVar:TrigDraw:DB$ Draw | NumCards$ 1 | Defined$ You\nOracle:x\n"
+	"T:Mode$ CounterPlayerAddedAll | ValidObject$ Player | Execute$ WatcherDraw | TriggerDescription$ x\n" +
+	"SVar:WatcherDraw:DB$ Draw | NumCards$ 1 | Defined$ You\nOracle:x\n"
 
 // TestScriptedStartPlayerCounters seeds player counters through a scripted
 // start: the counts are ordinary logged PlayerCounterChange events in the hash
