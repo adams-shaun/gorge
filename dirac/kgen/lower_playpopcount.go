@@ -33,14 +33,16 @@ func playUpToOK(ps *params, amount string, copyCard bool) bool {
 // playDefinedPop lowers the Defined$ populations play does not read inline:
 // Plargg and Nassari's Remembered.!ChosenCard, the remembered cards where they
 // lie with the chosen card filtered out. Every other Defined$ refuses by name;
-// Harness the Storm's Defined$ Targeted (the chain's TargetOnly graveyard
-// card, a paid cast) stays refused: two of its triggers on one target diverge
-// in lockstep after the first cast.
+// Harness the Storm's Defined$ Targeted is the chain's one TargetOnly
+// graveyard slot, a paid cast of that card.
 func (lc *lowerCtx) playDefinedPop(ps *params, def, saExpr string, emit func(lRef, int, string) error) error {
 	_, hasValid := ps.m["Valid"]
 	_, hasVZ := ps.m["ValidZone"]
 	_, forget := ps.m["ForgetPlayed"]
 	_, replace := ps.m["ReplaceGraveyard"]
+	if def == "Targeted" && !hasValid && !hasVZ && !forget && !replace && len(lc.chainT) == 1 {
+		return emit(lRef{Kind: rTarget, N: lc.lastTarget()}, zGraveyard, saExpr)
+	}
 	if def != playRemNotChosen || hasValid || hasVZ || forget || replace {
 		return refuse("Play Defined$ %q", def)
 	}

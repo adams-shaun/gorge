@@ -13,17 +13,21 @@ import (
 // Remembered.!ChosenCard, Amount$ 2: CastFree's UpTo bit over the remembered
 // set with the chosen card filtered out), the casts walking either player's
 // exiled cards.
+// Harness the Storm's Play Defined$ Targeted joins the deck: two of its
+// triggers share one graveyard card, and a paid cast the pool cannot cover is
+// reversed with the card still a legal target for the second trigger.
 // Run as its own shard (-run '^TestPlayPopCountLockstep$').
 func playPopCountDecks() [2][]cardset.Entry {
 	d := []cardset.Entry{
 		{Name: "Plargg and Nassari", Count: 4},
+		{Name: "Harness the Storm", Count: 4},
 		{Name: "Shock", Count: 4},
 		{Name: "Lightning Strike", Count: 4},
 		{Name: "Volcanic Hammer", Count: 3},
 		{Name: "Raging Goblin", Count: 4},
 		{Name: "Goblin Piker", Count: 3},
 		{Name: "Lava Axe", Count: 3},
-		{Name: "Mountain", Count: 15},
+		{Name: "Mountain", Count: 11},
 	}
 	return [2][]cardset.Entry{append([]cardset.Entry(nil), d...), append([]cardset.Entry(nil), d...)}
 }

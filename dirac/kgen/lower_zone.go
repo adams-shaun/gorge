@@ -3184,24 +3184,20 @@ func (lc *lowerCtx) emblem(ps *params, tr string) error {
 	lc.capRem = hasCap && (t.Mode == "DamageDealtOnce" || t.Mode == "DamageDoneOnce")
 	lc.ddoEvent = eot && t.Mode == "DamageDoneOnce"
 	lc.effCount = mem.kind == memCount
-	lc.emblemBlocked = hasCap && t.Mode == "AttackerBlocked"
+	lc.emblemBlocked = hasCap && (t.Mode == "AttackerBlocked" || t.Mode == "AttackerUnblocked")
 	lc.emblemBlocks = eot && t.Mode == "Blocks"
+	lc.emblemUnblocked = hasCap && t.Mode == "AttackerUnblocked"
 	lc.emblemDmg = hasCap && !player && t.Mode == "DamageDone"
 	err = lc.withAbility(lc.ab, func() error { return lc.lowerTriggered(t, "Command") })
-	lc.capRem, lc.effCount, lc.ddoEvent, lc.emblemBlocked, lc.emblemBlocks, lc.emblemDmg = false, false, false, false, false, false
+	lc.capRem, lc.effCount, lc.ddoEvent, lc.emblemBlocked, lc.emblemBlocks, lc.emblemDmg, lc.emblemUnblocked = false, false, false, false, false, false, false
 	if err != nil {
 		return err
 	}
 	if len(lc.out.Abilities) != saved+1 {
 		return refuse("emblem trigger lowering")
 	}
-	if t.Mode == "AttackerBlocked" {
-		// the capture ends as gorge forgets the object (lower_effeottrig.go)
-		if !hasCap || !ps.is("ForgetOnMoved", "Battlefield") {
-			return refuse("Effect AttackerBlocked trigger without a captured object and ForgetOnMoved$ Battlefield")
-		}
-		ps.consume("ForgetOnMoved")
-		lapse = true
+	if lapse, err = emblemBlockedLapse(ps, t.Mode, hasCap, lapse); err != nil { // lower_effeottrig.go
+		return err
 	}
 	ab := lc.out.Abilities[saved]
 	if mem.kind != memNone {
@@ -3255,6 +3251,9 @@ func emblemTimedMode(mode string, eot, paired bool) bool {
 		return eot
 	case "DamageDealtOnce":
 		return paired
+	case "AttackerUnblocked":
+		// the end-of-turn unblocked-attacker hook (fireEmblemsUnblocked)
+		return eot
 	}
 	return false
 }

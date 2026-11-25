@@ -332,3 +332,18 @@ func setupBackFaceLoyalty(o *state.Object) int32 {
 	}
 	return int32(n)
 }
+
+// setupBackFaceLoyaltyCounter is setupBackFaceLoyalty as the CounterChange a
+// placement emits: the one convention both setup paths use for a back-face
+// planeswalker whose entering face prints no positive loyalty. The oracle
+// runner (placeSetupEntry) and the scripted start (placeStartBattlefield) call
+// it after the move and before their setup counters, so a placement's
+// "counters" are added to the front face's printed starting loyalty in both.
+// ok is false when the placement grants nothing.
+func setupBackFaceLoyaltyCounter(o *state.Object) (events.Event, bool) {
+	n := setupBackFaceLoyalty(o)
+	if n <= 0 {
+		return events.Event{}, false
+	}
+	return events.Event{Kind: events.CounterChange, Obj: o.ID, Counter: "LOYALTY", Amount: n}, true
+}

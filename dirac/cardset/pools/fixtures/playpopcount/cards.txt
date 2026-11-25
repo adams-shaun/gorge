@@ -2,6 +2,7 @@
 # free casts over the remembered-but-chosen set, with instants, sorceries,
 # creatures and basics (dirac/oracle/playpopcount_lockstep_test.go)
 Plargg and Nassari
+Harness the Storm
 Shock
 Lightning Strike
 Volcanic Hammer
