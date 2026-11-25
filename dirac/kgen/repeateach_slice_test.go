@@ -25,6 +25,12 @@ var repeatEachSliceCards = map[string][]string{
 		"Rampage of the Clans", "Curse of the Swine", "Rowan, Scholar of Sparks", "Will, Scholar of Frost",
 		"Stench of Evil",
 	},
+	// RepeatEach over the tokens a preceding Token mint remembered
+	// (DefinedCards$ RememberedCard): Reckless Crew's per-token optional
+	// Equipment attach, the remembered frame's plain (unbatched) form.
+	"remembered tokens": {
+		"Reckless Crew",
+	},
 	// an ungated Repeat: the body MaxRepeat$ times (kop.OpRepeat). Trade
 	// Secrets reads MaxRepeat$ from a ChooseNumber answer (Count$ChosenNumber).
 	"fixed Repeat": {
