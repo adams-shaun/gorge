@@ -27,6 +27,7 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8, tgt uint8) {
 	if int(o) < len(s.cold.mkObj) {
 		s.cold.mkObj[o] = 0 // a card cast again starts with no payments (CR 702.43; kw_multikicker.go)
 	}
+	s.clearPaidN(o)
 	var fl uint8
 	if mode&1 != 0 { // seat-ok: a cast-mode bit
 		fl |= sfKicked
@@ -1851,6 +1852,7 @@ func (s *State) finishBuild(k *prep) {
 		if k.gen != nil && k.gen.anyManaHaste {
 			s.manaHasteRider(k) // mana_spentrider.go
 		}
+		s.notePaidConspire(k, &e) // cost_paidcount.go: before the spell's own cast trigger reads Count$Conspired
 		s.onCast(k, &e)
 		s.conspireTrigger(k, &e)
 		s.casualtyTrigger(k, &e)

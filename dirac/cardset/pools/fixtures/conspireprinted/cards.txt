@@ -1,0 +1,22 @@
+# the printed-conspire pool: spells that print K:Conspire (CR 702.78a) beside
+# creatures of each colour to tap and basics (dirac/oracle/conspire_printed_test.go)
+Burn Trail
+Barkshell Blessing
+Memory Sluice
+Mine Excavation
+Aethertow
+Disturbing Plot
+Rally the Galadhrim
+Ghastly Discovery
+Gleeful Sabotage
+Grizzly Bears
+Hill Giant
+Gray Ogre
+Merfolk of the Pearl Trident
+Burning-Tree Emissary
+Iridescent Tiger
+Forest
+Island
+Mountain
+Plains
+Swamp
