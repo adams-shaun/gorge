@@ -18,7 +18,7 @@ import (
 var staticZonesCarriers = []string{
 	"Bladegraft Aspirant", "Case of the Locked Hothouse", "Dawnglade Regent",
 	"Dragon's Rage Channeler", "Field of Dreams", "Geist of the Lonely Vigil",
-	"Ivory Mask", "Lantern of Insight", "Power Artifact",
+	"Hurkyl's Final Meditation", "Ivory Mask", "Lantern of Insight", "Power Artifact",
 	"Queen Mother Ramonda", "Slithering Shade", "Solitary Confinement",
 	"Spire Serpent", "Thought Devourer", "Thought Eater", "Thought Nibbler",
 	"True Believer", "Trusted Advisor", "Wizened Snitches",
@@ -52,7 +52,6 @@ var staticZonesRefusals = []struct{ card, want string }{
 	{"Djinn Illuminatus", `AffectedZone Stack grant of "Replicate:CardManaCost"`},
 	{"Embalmer's Tools", `ReduceCost AffectedZone "": "Creature.YouOwn+inZoneGraveyard" can match a non-battlefield activation`},
 	{"Gavony Ironwright", `static Condition "FatefulHour" (gorge fails closed`},
-	{"Hurkyl's Final Meditation", `static Condition "NotPlayerTurn"`},
 	{"K'rrik, Son of Yawgmoth", "player static"},
 	{"Lens of Clarity", "MayLookAt shape"},
 	{"Medomai the Ageless", `static Condition "ExtraTurn" (gorge fails closed`},
