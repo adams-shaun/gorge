@@ -2597,8 +2597,11 @@ func (s *State) copyTokenEnterFrom(k *prep, in *kop.Instr, t Obj, host, tmpl Slo
 	if eb != nil && eb.n < len(eb.sl) {
 		eb.sl[eb.n], eb.o[eb.n] = sl, t
 		eb.n++
-	} else if s.anyETB(k) {
-		s.fireObj(k, kop.TrigETB, sl, t, e.ctrl, 0)
+	} else {
+		if s.anyETB(k) {
+			s.fireObj(k, kop.TrigETB, sl, t, e.ctrl, 0)
+		}
+		s.storyGrant(k) // the emit-tail grant, after the entry's triggers, ETB or not (kw_storied.go); the held batch grants in fireEntries
 	}
 	if uint16(in.B.N)>>kop.CopyPumpShift&0x3f != 0 {
 		s.copyPumpEnter(k, sl, in) // PumpKeywords$: a permanent, non-copiable grant
