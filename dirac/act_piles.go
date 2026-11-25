@@ -93,15 +93,40 @@ func (s *State) applyAskPiles(k *prep, a Action) bool {
 			}
 		}
 		r.ask, r.askP = raPileChooseSac, s.g.pickP
+		if in.Ext() == kop.ExtTwoPilesEach {
+			// the repeated player's chosen opponent picks (act_pileseach.go)
+			r.askP = s.resChosenPlayer()
+		}
 	case raPileChooseSac:
 		r.ask = raNone
 		in := &s.prog(k)[r.pc]
-		hit := s.g.sacM
-		if a.Mode() == 1 {
-			hit = s.pilesPool(k, in, s.g.pickP).andNot(hit)
+		each := in.Ext() == kop.ExtTwoPilesEach
+		// gorge twoPilesPosePick: the answer naming pile B picks it; the
+		// instruction's B.N&1 flips which pile the mode-1 answer names (the
+		// chosen/unchosen piles swap, the lockstep mutation)
+		pickB := (a.Mode() == 1) != (each && in.B.N&1 != 0)
+		pileA := s.g.sacM
+		hit := pileA
+		var rest slotMask
+		if pickB {
+			rest = s.pilesPool(k, in, s.g.pickP).andNot(pileA)
+			hit = rest
 		}
 		s.g.sacM, s.g.pickP = slotMask{}, 0
-		if hit.any() {
+		if each {
+			// the chosen pile destroyed, the other tapped (act_pileseach.go:
+			// gorge twoPilesRunPile's ChosenPile$ then UnchosenPile$)
+			unchosen := rest
+			if pickB {
+				unchosen = pileA
+			}
+			if hit.any() {
+				s.pilesEachDestroy(k, in, hit)
+			}
+			if unchosen.any() {
+				s.pilesEachTap(k, in, unchosen)
+			}
+		} else if hit.any() {
 			s.fireSacAll(k, hit)
 			s.leaveAll(k, hit, kop.ZoneGraveyard)
 		}

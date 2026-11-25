@@ -401,6 +401,12 @@ type lowerCtx struct {
 	// the resolution's chosen player in that ability only
 	// (lower_chooseplayerres.go).
 	chosenResAb *lAbility
+	// chosenEachAb is the ability whose per-player opponent ChoosePlayer
+	// (kop ExtChoosePlayerEach) is lowered inside a RepeatEach player body:
+	// the chain's TwoPiles Chooser$ ChosenPlayer reads the resolution's
+	// choice (res.chPl) in that ability only (lower_chooseplayer.go
+	// choosePlayerEach, lower_twopiles.go twoPilesEach).
+	chosenEachAb *lAbility
 	// remOppLinks are the chain links after a Pump RememberObjects$
 	// TargetedController whose Defined$ Remembered reads the target's
 	// controller (lower_remembered.go pumpRememberOppController);
