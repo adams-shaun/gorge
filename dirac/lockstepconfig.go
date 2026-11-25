@@ -47,11 +47,7 @@ func (s *State) xWindowPays(k *prep, e *stackEntry, a *kop.Ability, sl Slot, cos
 	if cost.X == 0 || s.cfg&cfgGorgeSurface == 0 {
 		return false
 	}
-	if k.gen != nil && k.gen.anyWaterbend && waterbendIsX(a) || hybridX(a) {
-		return true // gorge's planner keeps declining a Waterbend<X> or hybrid {X} cost (planAbilityPayment)
-	}
-	floor := xFolded(s.abPlannedCost(k, a, sl, e.ctrl), costXMin(&a.Cost))
-	return !s.abilityPlanSettles(k, e, floor, floor, *cost, saved)
+	return true // gorge's planner declines every {X} activation (planAbilityPayment; hotfix/fl-oracle-5)
 }
 
 // xWindowPay pays an announced X through gorge's manual CR 601.2g window, which its

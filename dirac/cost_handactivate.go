@@ -80,6 +80,9 @@ func (s *State) handActOffer(k *prep, d *Decision, p uint8, sorc bool, av *avail
 	if !s.handActCensusPays(k, p, mana, pd, av) {
 		return
 	}
+	if mana.X > 0 && s.cfg&cfgGorgeUnpriced != 0 && !s.poolPaysAct(k, p, mana, pd) {
+		return // gorge's planner declines an {X} activation (PlanCostDetail cost:x): a hand one is offered only when the floating pool pays it
+	}
 	if a.AFlags&kop.AfNinjutsu != 0 && !s.ninjutsuOfferOK(k, a, p, o) {
 		return // its window and its Return candidate (kw_ninjutsu.go)
 	}
