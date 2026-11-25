@@ -281,8 +281,10 @@ func (s *State) canLifeOnlyMana(k *prep, sl Slot, p uint8) bool {
 // prepPainMana sets pc's pain alternative: the card's mana abilities are a
 // plain {T} normal alternative ({C}, one WUBRG colour, or a two-colour
 // choice; kgen primaryMana) and a painful {T} ability of one or more colours
-// (kgen refuseMultiMana's painland and life shapes). It reports whether it
-// did.
+// (kgen refuseMultiMana's painland and life shapes). A spend-restricted life
+// ability (Great Hall of the Biblioplex, Voldaren Estate) is the same pair's
+// painful alternative; pc.restrLife names its restriction, admitted per
+// payment by painUnit. It reports whether it did.
 //
 //go:noinline
 func prepPainMana(c *kop.CardDef, pc *pcard) bool {
@@ -290,6 +292,7 @@ func prepPainMana(c *kop.CardDef, pc *pcard) bool {
 	var col kop.ColorMask
 	var dmg uint8
 	life := false
+	restricted := uint8(0)
 	for j := range c.Abilities {
 		a := &c.Abilities[j]
 		if a.Kind != kop.AbMana || a.AFlags&kop.AfLatent != 0 {
@@ -303,6 +306,13 @@ func prepPainMana(c *kop.CardDef, pc *pcard) bool {
 					return false
 				}
 				life = true
+				if restrLifeAb(a) {
+					// the pair arm of kgen's refuseMultiMana admits this:
+					// the life unit's restriction rides the pair, admitted
+					// per payment by painUnit; the record below still prices
+					// it for the restricted-source availability walk
+					restricted = a.Cost.N
+				}
 			}
 			col, dmg = a.ManaColors, d
 		}
@@ -313,8 +323,24 @@ func prepPainMana(c *kop.CardDef, pc *pcard) bool {
 	if n != 2 || pc.manaAb < 0 || !primaryNormalAb(&c.Abilities[pc.manaAb]) {
 		return false
 	}
-	pc.painCol, pc.painN, pc.painLife = col, dmg, life
+	pc.painCol, pc.painN, pc.painLife, pc.restrLife = col, dmg, life, restricted
 	return true
+}
+
+// painLifeAb is the ability index of pc's pain alternative (prepPainMana's
+// second mana ability).
+func painLifeAb(c *kop.CardDef) int8 {
+	n := 0
+	for j := range c.Abilities {
+		a := &c.Abilities[j]
+		if a.Kind != kop.AbMana || a.AFlags&kop.AfLatent != 0 {
+			continue
+		}
+		if n++; n == 2 {
+			return int8(j)
+		}
+	}
+	return -1
 }
 
 // tapPain deals the pain rider of source sl's mana ability that made col,
@@ -429,6 +455,13 @@ func painFlexAll(pc *pcard, xc, xp [kop.NumManaKinds]uint8) uint8 {
 // only the latter. The summed guard over several painful units is the
 // planner's (the option walk counts each unit alone).
 func (s *State) painAvailMask(pc *pcard, p uint8) uint8 {
+	if pc.restrLife != 0 {
+		// a restricted life pair's life alternative is priced per payment by
+		// the restricted-source walk (restrSrcAvailD), which admits only the
+		// payments its filter names; the offer census holds the normal
+		// ability alone
+		return uint8(pc.manaCol) & 0x3f
+	}
 	prim := uint8(pc.manaCol)
 	if s.g.availX&availWin != 0 {
 		// an unless / ward window's affordability: gorge's shared census
@@ -468,6 +501,11 @@ func (s *State) painAvailMask(pc *pcard, p uint8) uint8 {
 // Town, Hashep Oasis: painLife, not painOnly) joins its normal ability, so a
 // later source sees less.
 func (s *State) painAvailMaskAt(k *prep, sl Slot, pc *pcard, p uint8) uint8 {
+	if pc.restrLife != 0 {
+		// the restricted life alternative is the restricted-source walk's
+		// (painAvailMask), admitted per payment
+		return s.painAvailMask(pc, p)
+	}
 	// The offer walk (neither window's availX) sums a life-only unit's cost
 	// across the census, as gorge's planner phase 2 does (a plan whose summed
 	// life reaches the payer's life is never a plan, CR 119.4): a life-only
@@ -562,8 +600,23 @@ func painCensusPass(choice bool, pc *pcard) int {
 // It reports whether the caller has nothing left to do for sl.
 //
 //go:noinline
-func (s *State) painUnit(k *prep, sl Slot, pc *pcard, pass int, pk *planner, i int, want int) bool {
-	if int(pc.painN) >= pk.life {
+func (s *State) painUnit(k *prep, sl Slot, pc *pcard, pass int, pk *planner, i int, want int, d payDesc) bool {
+	// A restricted life pair's painful alternative is admitted per payment
+	// (gorge's AvailableFor): a payment its restriction does not admit, or a
+	// life that reaches the payer's (CR 119.4), leaves only the normal
+	// ability. The normal type is then registered here rather than by the
+	// caller, whose restrLifeIrr would make it a life unit.
+	restricted := restrLifePair(pc)
+	normalOnly := false
+	lifeAb := int8(-1)
+	if restricted {
+		lifeAb = painLifeAb(&k.t.Cards[s.cardAt(sl)])
+		if lifeAb < 0 {
+			return true
+		}
+		normalOnly = int(pc.painN) >= pk.life ||
+			!s.restrSrcAdmits(k, s.perms[sl].ctrl, sl, &k.t.Cards[s.cardAt(sl)].Abilities[lifeAb], &d)
+	} else if int(pc.painN) >= pk.life {
 		return pc.painOnly
 	}
 	if pass != want {
@@ -612,6 +665,11 @@ func (s *State) painUnit(k *prep, sl Slot, pc *pcard, pass int, pk *planner, i i
 			n += r
 		}
 		pk.types[t] = utype{mask: mask, dmask: mask, n: n, creat: cr, flex: fl, pain: pain, alt: alt, irr: 3 * pain, nocol: pain != 0, sacOnly: lifeOnlyPain(pc)}
+		if pain != 0 && restricted {
+			// a life unit's restriction rides its pair: the unit's mana
+			// floats restricted and the life is paid, not dealt as damage
+			pk.types[t].rb, pk.types[t].life = true, true
+		}
 		if pain != 0 {
 			pk.types[t].xv, pk.types[t].xmask, pk.types[t].xt = xp, xmp, xtp
 		} else {
@@ -629,12 +687,12 @@ func (s *State) painUnit(k *prep, sl Slot, pc *pcard, pass int, pk *planner, i i
 	// name it (a painful any-colour source of 3 damage, Tarnished Citadel, and
 	// one of 1, Grand Coliseum, are two types: key 1 prices each its own); a
 	// life-only unit (lifeOnlyPain) shares no type with a {T} one — the type's
-	// activation taps or not (utype.sacOnly), so the shape is part of the key
+	// activation taps or not (utype.sacOnly), so the shape is part of the key.
+	// A restricted life pair's type also names its float (a painland's unit of
+	// the same colours is ordinary mana).
 	findP := func() int {
 		for t := 0; t < pk.nt; t++ {
-			ty := &pk.types[t]
-			if ty.pain != 0 && ty.pain == pc.painN && ty.mask == pm && ty.creat == cr && ty.alt == !pc.painOnly && ty.xv == xp &&
-				ty.sacOnly == lifeOnlyPain(pc) {
+			if painTypeMatches(&pk.types[t], pc.painN, pm, cr, !pc.painOnly, xp, lifeOnlyPain(pc), restricted) {
 				return t
 			}
 		}
@@ -646,7 +704,16 @@ func (s *State) painUnit(k *prep, sl Slot, pc *pcard, pass int, pk *planner, i i
 	if !pc.painOnly {
 		for t := 0; t < pk.nt && tc < 0; t++ {
 			ty := &pk.types[t]
-			if ty.pair != 0 && !ty.alt && ty.mask == prim && ty.creat == cr && pk.types[ty.pair-1].mask == pm && pk.types[ty.pair-1].pain == pc.painN && ty.xv == xc && pk.types[ty.pair-1].xv == xp {
+			if normalOnly {
+				// an unadmitted restricted pair is an ordinary unit of its
+				// normal ability: it must not count under a paired type, whose
+				// units all take the painful alternative (dfs's shared cap)
+				if painNormalTypeMatches(ty, prim, cr, xc, fl) {
+					tc = t
+				}
+				continue
+			}
+			if painPairNormalMatches(ty, &pk.types, prim, pm, pc.painN, cr, xc, xp, restricted) {
 				tc = t
 			}
 		}
@@ -655,6 +722,22 @@ func (s *State) painUnit(k *prep, sl Slot, pc *pcard, pass int, pk *planner, i i
 				return true
 			}
 		}
+	}
+	if normalOnly {
+		if tc < 0 {
+			return true
+		}
+		pk.types[tc].avail++
+		pk.units[pk.nu] = sl
+		if pk.bfl {
+			pk.uobj[pk.nu] = Obj(i)
+		} else {
+			pk.uobj[pk.nu] = s.perms[sl].obj
+		}
+		pk.utyp[pk.nu] = uint8(tc)
+		pk.rAb[pk.nu] = -1
+		pk.nu++
+		return true
 	}
 	tp := findP()
 	if tp < 0 {
@@ -676,8 +759,40 @@ func (s *State) painUnit(k *prep, sl Slot, pc *pcard, pass int, pk *planner, i i
 	}
 	pk.utyp[pk.nu] = uint8(ti)
 	pk.rAb[pk.nu] = -1
+	if restricted {
+		pk.rAb[pk.nu] = lifeAb
+		pk.rkind[pk.nu] = rkExt // the tap floats restricted when the plan picks the painful type (mana.go)
+	}
 	pk.nu++
 	return true
+}
+
+// painTypeMatches reports whether ty is a painful type of pc's shape: its
+// colours, damage, source kind, tap shape and restriction float all name it.
+func painTypeMatches(ty *utype, pain, pm uint8, cr, alt bool, xp [kop.NumManaKinds]uint8, sacOnly, restricted bool) bool {
+	return ty.pain != 0 && ty.pain == pain && ty.mask == pm && ty.creat == cr && ty.alt == alt &&
+		ty.xv == xp && ty.sacOnly == sacOnly && ty.rb == restricted && ty.life == restricted
+}
+
+// painNormalTypeMatches reports whether ty is the ordinary type an
+// unadmitted restricted life pair's normal ability joins: unpaired (a paired
+// type's units all take the painful alternative, so its shared avail cap
+// must not count this one) and of the same shape.
+func painNormalTypeMatches(ty *utype, prim uint8, cr bool, xc [kop.NumManaKinds]uint8, fl uint8) bool {
+	return ty.pair == 0 && !ty.alt && ty.pain == 0 && ty.mask == prim && ty.creat == cr && ty.xv == xc &&
+		ty.flex == fl && ty.n == 1 && !ty.rb && !ty.life && !ty.sacOnly && !ty.sac && !ty.inert && ty.irr == 0
+}
+
+// painPairNormalMatches reports whether ty is the normal type of the pair
+// whose painful alternative is pc's: same shape, and the same restriction
+// float (a restricted pair's ordinary {C} is not an unrestricted painland's).
+func painPairNormalMatches(ty *utype, types *[maxTypes]utype, prim, pm, pain uint8, cr bool, xc, xp [kop.NumManaKinds]uint8, restricted bool) bool {
+	if ty.pair == 0 {
+		return false
+	}
+	other := &types[ty.pair-1]
+	return !ty.alt && ty.mask == prim && ty.creat == cr && other.mask == pm && other.pain == pain &&
+		ty.xv == xc && other.xv == xp && other.rb == restricted
 }
 
 // DebugNoPainDamage drops the painful alternatives' damage. The pain
@@ -763,6 +878,11 @@ func (s *State) painTightAt(k *prep, p uint8, a *avail, eff int) {
 		sl := m.first()
 		pc := s.manaPCAt(k, sl)
 		if pc.painCol == 0 || !s.canTapForManaPC(k, sl, pc) {
+			continue
+		}
+		if pc.restrLife != 0 {
+			// a restricted life pair's life is charged by the restricted
+			// walk's restrLifeCharge, and its normal ability is already in a
 			continue
 		}
 		if int(pc.painN) >= life {
