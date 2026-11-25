@@ -548,8 +548,8 @@ func (s *State) availForMode(k *prep, p uint8, a *avail, ex slotMask, withDeferr
 		// so it falls through to the ordinary unit below.
 		// deferredFiltFree: a Taps watcher defers a filter land's free ability
 		// in gorge's planner like any land's tap, so the census never lists it.
-		if deferSkip && (deferGap.has(sl) || s.deferredFiltFree(k, sl)) && s.planDeferred(k, p, sl) && !s.blgIntrinsicUnit(k, sl) {
-			s.availDeferredRefl(k, p, sl, a)
+		reflBound := (withDeferred || s.g.availX&(availGaps|availWalk|availHyp) != 0) && s.reflCensusUnit(k, sl)
+		if deferSkip && (deferGap.has(sl) || s.deferredFiltFree(k, sl)) && s.planDeferred(k, p, sl) && !s.blgIntrinsicUnit(k, sl) && !reflBound {
 			if dual && s.grantIdx(k, sl) >= 0 {
 				// its granted ability is a census gap of its own, which the
 				// grant search taps (Enduring Vitality on Twitching Doll):
