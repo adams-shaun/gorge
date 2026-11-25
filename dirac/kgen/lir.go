@@ -488,6 +488,7 @@ const (
 	cBlessing               // the controller has the city's blessing (Condition$ Blessing, CR 702.131)
 	cMonarch                // the controller is the monarch (Condition$ Monarch, CR 719.2)
 	cRemMark                // the source's persistent remembered list is non-empty (the ConditionDefined$ Remembered group's host half; gorge rememberedWithSource)
+	cEnduringStory          // the controller holds the enduring story (Condition$ EnduringStory, CR 702.195; gorge condEnduringStory)
 	cCount_
 )
 
@@ -508,6 +509,7 @@ var condNames = [...]string{
 	cBlessing:      "Blessing",
 	cMonarch:       "Monarch",
 	cRemMark:       "RemMark",
+	cEnduringStory: "EnduringStory",
 }
 
 type lCond struct {
@@ -1521,6 +1523,7 @@ type lCard struct {
 	Engines             bool     // printed K:Start your engines (CR 702.179a)
 	Reconfigure         bool     // printed K:Reconfigure (CR 702.151): CardDef.HasReconfigure
 	Ascend              bool     // printed K:Ascend (CR 702.131)
+	Storied             bool     // printed K:Storied (CR 702.195): CardDef.Storied
 	Unleash             bool     // printed K:Unleash (CR 702.86): CardDef.Unleash
 	Riot                bool     // printed K:Riot (CR 702.156): CardDef.Riot (lower_riot.go)
 	Enlist              bool     // printed K:Enlist (CR 702.154): CardDef.Enlist (lower_enlist.go)
