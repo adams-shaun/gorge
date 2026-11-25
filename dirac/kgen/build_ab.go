@@ -2378,20 +2378,8 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		if err := amounts(s.Amount, lValue{}); err != nil {
 			return ka, nil, err
 		}
-		for _, fl := range s.Flags {
-			switch fl {
-			case "ActivatorYou":
-				st.StFlags |= kop.StRaiseYou
-			case "ActivatorOpp":
-				st.StFlags |= kop.StRaiseOpp
-			case "RaiseLife":
-				st.StFlags |= kop.StRaiseLife // Static.A is life (kernel cost_raiselife.go)
-			case "RaisePerTarget":
-				st.StFlags |= kop.StRaisePerTarget
-				st.B = int16(s.RaiseCol) // the coloured pips per charge (cost_raise.go)
-			default:
-				return ka, nil, fmt.Errorf("raise cost flag %q", fl)
-			}
+		if err := raiseCostStFlags(s, st); err != nil {
+			return ka, nil, err
 		}
 		if s.Zone == zAny {
 			st.Zone = kop.ZoneCommand
@@ -2596,23 +2584,22 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		if ka.Cost.Flags&(kop.CostForage|kop.CostExileGrave) != 0 && !cb.altHandExileOK(&ka.Cost) {
 			if altHandExileShape(&ka.Cost) {
 				// the hand-exile shape lowers (the Force cycle); the card
-				// carries no alternative-cost cast (Force of Virtue: an
-				// enchantment, where altSacOK prices instants, sorceries
-				// and creatures alone)
-				return ka, nil, fmt.Errorf("alternative cost with an exile-from-hand part on a card the kernel offers no alternative cast for (instants, sorceries and creatures alone)")
+				// carries no alternative-cost cast (altSacOK: a spell
+				// ability with a non-mana cost, an either-or or printed
+				// additional cost)
+				return ka, nil, fmt.Errorf("alternative cost with an exile-from-hand part on a card the kernel offers no alternative cast for")
 			}
 			return ka, nil, fmt.Errorf("alternative cost with a forage / exile-from-graveyard part")
 		}
-		sacAlt := ka.Cost.Flags == kop.CostSac && ka.Cost.N > 0 && ka.Cost.Mana == (kop.ManaCost{}) && cb.altSacOK()
-		// the return alternative (Gush's "return two Islands you control to
-		// their owner's hand rather than pay this spell's mana cost"): the
-		// sacrifice shape with the permanents returned (kernel cast_altfree.go
-		// altReturnCost, the cast's pkReturn picks)
-		sacAlt = sacAlt || ka.Cost.Flags == kop.CostReturn && ka.Cost.N > 0 && ka.Cost.Mana == (kop.ManaCost{}) && cb.altSacOK()
-		if !sacAlt && !cb.altHandExileOK(&ka.Cost) && !(altSacGatedShape(&ka.Cost) && cb.altSacOK()) && (ka.Cost.Flags != 0 || ka.Cost.N != 0 || ka.Cost.Mana.X != 0) {
+		// a sacrifice (alone or with life), a return, a hand exile, a
+		// discard, life alone or taps: the kernel's altPickCost picks, now
+		// with the mana part beside them too (a Borderpost's {1} plus a
+		// Return, Sephara's {W} plus taps; prepAltFree)
+		sacAlt := altPickShape(&ka.Cost) && cb.altSacOK()
+		if !sacAlt && (ka.Cost.Flags != 0 || ka.Cost.N != 0 || ka.Cost.Mana.X != 0) {
 			// the kernel offers a mana-only alternative cost
-			// (prepAltFree); a Return / Sac / PayLife / exile-from-hand
-			// part (Daze, Force of Will) would never be offered
+			// (prepAltFree); a part the pick stages cannot carry would
+			// never be offered
 			return ka, nil, fmt.Errorf("alternative cost with a non-mana part (the kernel offers mana-only alternatives)")
 		}
 	case "NoMaxHandSize":
@@ -3222,10 +3209,12 @@ func (cb *cardBuilder) altSacOK() bool {
 		return false
 	}
 	if kop.TypeMask(c.Types)&(kop.TInstant|kop.TSorcery) == 0 {
-		// a creature spell with no spell ability of its own (Hand of
-		// Emrakul): the alternative cast's pick parts are the static's alone
-		// as well, and no target is asked
-		if kop.TypeMask(c.Types)&kop.TCreature == 0 {
+		// a permanent spell with no spell ability of its own (Hand of
+		// Emrakul, a Borderpost, Force of Virtue): the alternative cast's
+		// pick parts are the static's alone as well, and no target is asked.
+		// A printed additional cost beside it would go unpaid: the pick
+		// cost is the alternative's alone (buildPickCost).
+		if c.SpellCost != nil {
 			return false
 		}
 		for _, a := range c.Abilities {
@@ -3245,6 +3234,30 @@ func (cb *cardBuilder) altSacOK() bool {
 		}
 	}
 	return n == 1
+}
+
+// raiseCostStFlags maps a RaiseCost static's lowered flags onto its
+// kop.StFlags bits and coloured pips (kernel cost_raise.go, cost_raiselife.go).
+func raiseCostStFlags(s lStatic, st *kop.Static) error {
+	for _, fl := range s.Flags {
+		switch fl {
+		case "ActivatorYou":
+			st.StFlags |= kop.StRaiseYou
+		case "ActivatorOpp":
+			st.StFlags |= kop.StRaiseOpp
+		case "RaiseLife":
+			st.StFlags |= kop.StRaiseLife // Static.A is life (kernel cost_raiselife.go)
+		case "RaisePerTarget":
+			st.StFlags |= kop.StRaisePerTarget
+			st.B = int16(s.RaiseCol) // the coloured pips per charge (cost_raise.go)
+		case "RaiseColor":
+			st.StFlags |= kop.StReduceColor // the packed coloured pips (cost_raise.go)
+			st.B = int16(s.RaiseCol)
+		default:
+			return fmt.Errorf("raise cost flag %q", fl)
+		}
+	}
+	return nil
 }
 
 // originMask is OpReturn's B.N: the zones of an Origin$ list, as 1<<kop.Zone bits;

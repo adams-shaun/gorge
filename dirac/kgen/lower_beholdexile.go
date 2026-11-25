@@ -28,6 +28,9 @@ func (lc *lowerCtx) raiseSelfBehold(sp *params, st *lStatic) (bool, error) {
 	if _, life := raiseLifeN(cost); life {
 		return false, nil // a life raise: raiseCost lowers it (lower_raiselife.go)
 	}
+	if cr, err := lc.cost(cost); err == nil && cr.pureMana() && !cr.Mana.None {
+		return false, nil // a mana raise: raiseCost lowers it (lower_raisecost.go raiseMana)
+	}
 	sp.consume("Cost")
 	rest, found := strings.CutPrefix(cost, "BeholdExile<")
 	if !found {
