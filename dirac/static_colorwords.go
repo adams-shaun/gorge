@@ -22,7 +22,7 @@ import (
 // reader: pushBuild (a spell takes the change as it reaches the stack, before
 // its targets are asked) and the priority grant (every permanent and spell
 // already in play, before a player may act or a trigger's targets are asked).
-// Both sit behind genPrep.anyColorWords, so a pool with no such static pays
+// Both sit behind prep.anyColorWords, so a pool with no such static pays
 // one branch.
 
 // ColorWordsStats counts the mechanism for the lockstep tests: Live is each
@@ -84,7 +84,7 @@ func (s *State) colorWordsStall(k *prep) bool {
 // reaches the stack, before its modes and targets are asked. A pool with no
 // colour-word static pays this one inlined branch.
 func (s *State) colorWordsCast(k *prep, c CardID) {
-	if k.gen != nil && k.gen.anyColorWords {
+	if k.anyColorWords {
 		s.colorWordsCastStall(k, c)
 	}
 }

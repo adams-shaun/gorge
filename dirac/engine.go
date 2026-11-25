@@ -296,7 +296,7 @@ func (s *State) stepRaw(d *Decision) {
 			}
 			// a Swirl-class colour-word static reads a rewritten word: stall before any
 			// trigger's targets are asked or a player acts (static_colorwords.go)
-			if k.gen != nil && k.gen.anyColorWords && s.colorWordsStall(k) {
+			if k.anyColorWords && s.colorWordsStall(k) {
 				return
 			}
 			// the pass queued a returning Aura's host ask (queueAskRet):
