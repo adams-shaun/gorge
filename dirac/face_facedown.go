@@ -384,7 +384,10 @@ func (s *State) turnFaceUp(k *prep, o Obj, p uint8, proc ...uint8) {
 				return // mana_storecensus.go: the post-tap plan falls short, so gorge's turn-up no-ops
 			}
 		}
-		if s.turnUpRiderOnly(k, p, &c0, sp, sl) {
+		if s.turnUpDeferOnly(k, p, &c0, sp, sl, mode) {
+			s.playTurnUpDefer(k, p, o, mode) // face_turnupdefer.go: the Taps-deferred gaps' search prefix
+			s.tapForTurnUp(k, p, &c0, sp, o) // the planner taps what the floats leave owed
+		} else if s.turnUpRiderOnly(k, p, &c0, sp, sl) {
 			s.tapTurnUpRiders(k, p, &c0) // face_turnfaceup.go: a depletion land's activation
 		} else if s.turnUpFilterOnly(k, p, &c0, sp, sl, mode) {
 			s.playTurnUpFilter(k, p, o, mode) // face_turnupfilter.go: a first-and-only filter's activation
