@@ -19,7 +19,8 @@ import (
 const undercityKey = "undercity"
 
 // takeInitiative lowers TakeInitiative: the resolving controller takes the
-// initiative and ventures into Undercity. Defined$ other than You refuses.
+// initiative and queues the CR 726.2 venture trigger into Undercity. Defined$
+// other than You refuses.
 func (lc *lowerCtx) takeInitiative(ps *params) error {
 	if d, ok := ps.get("Defined"); ok && strings.TrimSpace(d) != "You" {
 		return refuse("TakeInitiative Defined$ %q", d)
