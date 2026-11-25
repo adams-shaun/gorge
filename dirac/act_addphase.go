@@ -61,7 +61,8 @@ const (
 	xphConsumed = 1 << 6
 	xphFollow   = 1 << 7 // a CombatMain entry past its combat: its additional main phase is the one running; an Upkeep entry: a whole beginning phase
 	xphBegin    = kop.AddPhaseUpkeep<<4 | xphFollow
-	xphAtMask   = 0x3f // splice point and kind
+	xphKindBit7 = 3<<4 | xphFollow // the kind and bit 7: equal to xphBegin on a beginning-phase entry alone
+	xphAtMask   = 0x3f             // splice point and kind
 )
 
 // StallAddPhase: a fifth distinct pending extra-phase entry, or a run of more
@@ -86,7 +87,7 @@ func (s *State) addPhaseExtraUntap() bool {
 		return false
 	}
 	for i := 0; i < int(s.g.nxph); i++ {
-		if at := s.g.xph[i].at; at&(xphBegin|xphConsumed) == xphBegin|xphConsumed {
+		if at := s.g.xph[i].at; at&(xphKindBit7|xphConsumed) == xphBegin|xphConsumed {
 			return true
 		}
 	}
@@ -134,7 +135,7 @@ func addPhaseUses(t *kop.Table, u *[numMech]bool) {
 
 // addPhaseEntry and addPhaseEnd are an extra phase entry's first and last step.
 func addPhaseEntry(at uint8) kop.Step {
-	if at&xphBegin == xphBegin {
+	if at&xphKindBit7 == xphBegin {
 		return kop.StepUntap
 	}
 	switch at >> 4 & 3 {
@@ -147,7 +148,7 @@ func addPhaseEntry(at uint8) kop.Step {
 }
 
 func addPhaseEnd(at uint8) kop.Step {
-	if at&xphBegin == xphBegin {
+	if at&xphKindBit7 == xphBegin {
 		if DebugAddPhaseBeginningShort {
 			return kop.StepUpkeep
 		}
