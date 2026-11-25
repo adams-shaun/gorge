@@ -460,12 +460,7 @@ func dumpLIR(w io.Writer, c *lCard) {
 	if c.HexColors != "" {
 		fmt.Fprintf(w, " hexproof=%s", c.HexColors)
 	}
-	if c.HexMono {
-		fmt.Fprintf(w, " hexproof=monocolored")
-	}
-	if c.HexMulti {
-		fmt.Fprintf(w, " hexproof=multicolored")
-	}
+	dumpHexQuality(w, c)
 	if c.ProtColors != "" {
 		fmt.Fprintf(w, " protection=%s", c.ProtColors)
 	}
@@ -790,4 +785,14 @@ func nameCard(cards []*lCard, key string) *lCard {
 		}
 	}
 	return c
+}
+
+// dumpHexQuality prints a card's hexproof-from-quality words in dumpLIR's CARD line.
+func dumpHexQuality(w io.Writer, c *lCard) {
+	if c.HexMono {
+		fmt.Fprintf(w, " hexproof=monocolored")
+	}
+	if c.HexMulti {
+		fmt.Fprintf(w, " hexproof=multicolored")
+	}
 }
