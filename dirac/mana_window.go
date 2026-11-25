@@ -389,7 +389,7 @@ func (s *State) windowGapArm(k *prep, p uint8, sl Slot, cost, useful *kop.ManaCo
 		ans := 0
 		if !a.ManaEach && (uint8(a.ManaColors) == uint8(kop.ColAny) || a.AFlags&kop.AfManaChoice != 0) {
 			pc := s.manaPCGen(k, sl)
-			ans = riderAnswerBit(uint8(a.ManaColors), s.windowCol(k, p, cost, sl, pc, anyColor, noOwed))
+			ans = riderAnswerIndex(a, s.windowCol(k, p, cost, sl, pc, anyColor, noOwed))
 		}
 		s.riderGap(k, p, sl, ans)
 		return false, false
@@ -2220,7 +2220,8 @@ func (s *State) scriptEngineAnswer(k *prep, a Action, sl Slot, anyR, tapsDef slo
 		return c
 	}
 	var mask uint8
-	var chosenPC *pcard
+	var gapPC *pcard
+	var riderAb *kop.Ability
 	multi := false
 	off := 0
 	if anyR.has(sl) {
@@ -2238,12 +2239,11 @@ func (s *State) scriptEngineAnswer(k *prep, a Action, sl Slot, anyR, tapsDef slo
 		off, c = 1, c-1
 	} else if a, ok := s.riderAbilityOf(k, sl); ok {
 		mask = uint8(a.ManaColors)
+		riderAb = a
 	} else {
-		pc := s.blgGapPC(k, sl) // an intrinsic-unit rider source's answers are its rider's colours (blgGapPC)
-		mask = s.srcMaskAt(pc, sl)
-		if pc.manaChosen {
-			chosenPC = pc
-		} else if pc.manaMulti {
+		gapPC = s.blgGapPC(k, sl) // an intrinsic-unit rider source's answers are its rider's colours (blgGapPC)
+		mask = s.srcMaskAt(gapPC, sl)
+		if gapPC.manaMulti {
 			// a multi-ability fold (mana_multicolour.go): kgen orders the
 			// abilities W U B R G C, so mask-ascending is the engine order
 			// the ask's options follow. gorge's scriptOrderAnswers reads
@@ -2254,18 +2254,22 @@ func (s *State) scriptEngineAnswer(k *prep, a Action, sl Slot, anyR, tapsDef slo
 			multi = true
 		}
 	}
-	var order [kop.NumManaKinds]uint8
+	var engine, order [kop.NumManaKinds]uint8
 	no := 0
-	if chosenPC != nil {
-		no = s.chosenAskOrder(k, sl, chosenPC, (*[5]uint8)(order[:5])) // gorge's ask: printed colours, then the chosen one
-	} else {
+	switch {
+	case riderAb != nil:
+		no = riderAnswerOrder(riderAb, &engine) // a printed Combo's printed order
+	case gapPC != nil:
+		no = s.deferAnswerOrder(k, sl, gapPC, mask, &engine) // the Taps-deferred decode's order (tapDeferFloatBody)
+	default:
 		for col := uint8(0); col < kop.NumManaKinds; col++ {
 			if mask&(1<<col) != 0 {
-				order[no] = col
+				engine[no] = col
 				no++
 			}
 		}
 	}
+	order = engine
 	if c >= no {
 		return off + c // beyond the mask's colours: engine order as before
 	}
@@ -2274,7 +2278,12 @@ func (s *State) scriptEngineAnswer(k *prep, a Action, sl Slot, anyR, tapsDef slo
 	}
 	col := order[c]
 	if tapsDef.has(sl) {
-		return bits.OnesCount8(mask & ((1 << col) - 1)) // tapDeferFloat's engine-order index
+		for i := 0; i < no; i++ {
+			if engine[i] == col {
+				return i // tapDeferFloatBody's engine-order answer
+			}
+		}
+		return 0
 	}
 	return off + int(col) // floatRestrAb takes the colour itself
 }
@@ -3928,6 +3937,8 @@ func (s *State) manaStep(k *prep) bool {
 				cost = s.restrAdmShortCost(k, e, cost)
 				s.tapForRider(k, e.ctrl, &cost, int(e.x), e.obj, anyColor)
 			}
+		} else if s.convAllPoolRoute(k, e.ctrl, anyColor) {
+			// the any-colour conversion's pool route: the pool pays, nothing to tap (mana_convertcreature.go)
 		} else {
 			// the unshortened cost: tapForSpellPlain's planner arms take what
 			// the admitted restricted mana leaves themselves (restrAdmShortCost,
@@ -3971,6 +3982,8 @@ func (s *State) manaStep(k *prep) bool {
 		}
 		s.bld().bfl |= bflManaStep
 		switch {
+		case s.convActRoute(k, e, cost):
+			// the floating pool pays under the any-colour conversion: nothing to tap (mana_convertcreature.go)
 		case planCut:
 			s.windowTapRider(k, e.ctrl, &cost, true, false)
 		case s.paymentStranded(k, e, &strandCost):

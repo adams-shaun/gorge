@@ -19,12 +19,18 @@ func (sc *staticCtx) modeContinuous() ([]lStatic, bool, error) {
 		return nil, true, err
 	}
 	var sts []lStatic
+	took, err := lc.cdaFlash(sp, &sc.st) // lower_cdaflash.go
+	if err != nil {
+		return nil, true, err
+	}
 	if lureOnly {
 		sc.st = lure
+	} else if took {
+		// the conditional CDA flash static: sc.st already carries it
 	} else if sts, err = lc.continuous(sp, &sc.st); err != nil {
 		return nil, true, err
 	}
-	if sts == nil && !lureOnly { // the one plain Continuous static: nothing else carries the grant
+	if !took && sts == nil && !lureOnly { // the one plain Continuous static: nothing else carries the grant
 		if err := lc.grantedStaticParam(sp, &sc.st); err != nil {
 			return nil, true, err // lower_grantedstatic.go
 		}

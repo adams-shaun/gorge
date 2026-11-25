@@ -634,6 +634,10 @@ func (s *State) fillTapAnyColCost(k *prep, p uint8, sl Slot, cost *kop.ManaCost,
 		s.fillTapAnyColOwed(k, p, sl, &owed)
 		return
 	}
+	if owed, ok := s.phyPipsOwed(k, p, cost, col, n); ok {
+		s.fillTapAnyColOwed(k, p, sl, &owed)
+		return
+	}
 	// The ask is answered before the tap's own mana reaches the pool: its
 	// demand is windowCol's owed cost, the snapshot gorge's WindowChoices
 	// reads (ManaPayment.Owed), not cost less the pool after the tap. That
@@ -673,6 +677,27 @@ func (s *State) announcedPipsOwed(k *prep, p uint8, col, n int) (owed [kop.NumMa
 	}
 	for c := range owed {
 		owed[c] -= min(owed[c], pool[c])
+	}
+	return owed, true
+}
+
+// phyPipsOwed is the demand of an any-colour extra's ask in a Phyrexian
+// build's manual window (CR 107.4f, 601.2g): the announced pips paid with
+// life are already out of cost, and the ask comes after the tap's own mana n
+// of col reached the pool, as in a hybrid cast's (announcedPipsOwed), so a
+// {G/P}{G/P} activation whose second pip was announced as two life owes
+// nothing once a Forest's {G} floats, and the extra answers the lowest colour.
+// False for a build that carries no Phyrexian pip.
+func (s *State) phyPipsOwed(k *prep, p uint8, cost *kop.ManaCost, col, n int) (owed [kop.NumManaKinds]uint8, ok bool) {
+	if !s.buildLive() || !s.phyBuild(k) {
+		return owed, false
+	}
+	pool := s.pl[p].pool
+	if col >= 0 && col < len(pool) {
+		pool[col] += uint8(n)
+	}
+	for c := range owed {
+		owed[c] = cost.Pips[c] - min(cost.Pips[c], pool[c])
 	}
 	return owed, true
 }
