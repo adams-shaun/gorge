@@ -430,6 +430,20 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 	// gained trigger (drainAlways) marks the mode drain even when the mode
 	// ask answered in place.
 	defer emitAbilityTriggered(e.G, e.emit, pt, len(e.G.Stack))
+	// CR 603.3d: a permanent's Support N is an ETB trigger with no printed
+	// ValidTgts$ (Forge's CountersPutEffect Support branch supplies it), so
+	// synthesize the same declaration the cast flow uses before asking. The
+	// clone reaches only the placement ask; the resolution marker derives it
+	// again from the same SA (offeredTargetSA). The API guard keeps the
+	// PutCounter compile off every non-PutCounter trigger pushed.
+	targetSA := pt.SA
+	if targetSA != nil && targetSA.API == "PutCounter" {
+		var sourceFace *cards.Face
+		if o := e.G.Obj(pt.Source); o != nil {
+			sourceFace = o.Face()
+		}
+		targetSA = supportTargetSA(pt.SA, sourceFace)
+	}
 	announce := func(id state.ObjID, drainAlways bool) {
 		handled := false
 		if pt.SA.ParamStr(cards.PKChoices) != "" {
@@ -441,8 +455,8 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 				e.drainAwaitsModes = true
 			}
 		}
-		if !handled && effects.TargetsOf(pt.SA).Targeted() {
-			e.askTargetChained(pt.Controller, id, pt.SA, e.triggerChainPreAsks(pt.SA))
+		if !handled && effects.TargetsOf(targetSA).Targeted() {
+			e.askTargetChained(pt.Controller, id, targetSA, e.triggerChainPreAsks(pt.SA))
 		}
 		if !handled {
 			e.startTriggerSubTargets(id, pt.Controller, pt.SA)

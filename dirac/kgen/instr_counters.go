@@ -119,9 +119,11 @@ func (ic *instrCtx) opSupport() error {
 	}
 	ki.C = int16(k) | int16(in.C)<<8 // C=1: other than the source
 	if in.Obj.Kind == rTarget {
-		// C&0x1000: the cast announced the targets (an instant or sorcery's
-		// Support, CR 601.2c); the kernel applies one counter to each target
-		// of Obj's slot instead of opening a resolution pick.
+		// C&0x1000: the ability's targets were announced as it was put on
+		// the stack (a spell at cast, CR 601.2c; a permanent's triggered or
+		// activated ability at placement/activation, CR 603.3d/602.2b); the
+		// kernel applies one counter to each target of Obj's slot instead of
+		// opening a resolution pick.
 		ki.C |= 0x1000
 	}
 	if in.C&2 != 0 { // the remove form (2 remove, 4 exact, 8 remember amount) elects over F
