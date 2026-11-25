@@ -130,7 +130,7 @@ func tapeStepMayAsk(e *Engine) bool {
 	case state.StepDeclareBlockers, state.StepCombatDamage:
 		// The pass into the combat damage step: a DamageDone replacement
 		// that elects asks as the damage is dealt.
-		return tapeReplMayAsk(e, "DamageDone") || tapeAnyReplBodyMayAsk(e)
+		return tapeReplMayAsk(e, "DamageDone", replWalkScope{}) || tapeAnyReplBodyMayAsk(e)
 	}
 	return false
 }
@@ -140,11 +140,14 @@ func tapeStepMayAsk(e *Engine) bool {
 // ask, or an Optional$ election, for any event: the broad board gate of a
 // turn-based action whose emissions can run any replacement (combat damage
 // and the deaths it causes).
-func tapeAnyReplBodyMayAsk(e *Engine) bool { return tapeReplBodyMayAsk(e, ^uint32(0)) }
+func tapeAnyReplBodyMayAsk(e *Engine) bool {
+	return tapeReplBodyMayAsk(e, ^uint32(0), replWalkScope{})
+}
 
 // tapeReplBodyMayAsk is tapeAnyReplBodyMayAsk over the replacements of the
-// events in bits (replEventBit), all of them for a full mask.
-func tapeReplBodyMayAsk(e *Engine, bits uint32) bool {
+// events in bits (replEventBit), all of them for a full mask; the walk is
+// narrowed by sc (replWalkScope).
+func tapeReplBodyMayAsk(e *Engine, bits uint32, sc replWalkScope) bool {
 	for ceI, ceL := 0, e.active(); ceI < len(ceL); ceI++ {
 		if ce := &ceL[ceI]; ce.ReplacementEvent != "" && replBitIn(replEventBit(ce.ReplacementEvent), bits) &&
 			(cards.ReplParamsMayElect(ce.ReplacementParams) || effectReplBodyMayAsk(e, ce)) {
@@ -154,20 +157,37 @@ func tapeReplBodyMayAsk(e *Engine, bits uint32) bool {
 	if !replArenaAskFor(e, replAskBody) {
 		// No arena object carries a line the walk below could count
 		// (replArenaMask.ask).
-		if replZoneSkipVerify && tapeReplBodyWalk(e, bits) {
+		if replZoneSkipVerify && tapeReplBodyWalk(e, bits, sc) {
 			panic("rules: replacement ask class skipped a body walk that asks")
 		}
 		return false
 	}
-	return tapeReplBodyWalk(e, bits)
+	return tapeReplBodyWalk(e, bits, sc)
+}
+
+// replWalkScope narrows tapeReplBodyWalk for a resolution whose body cannot
+// move any object but mover (a Static$ True self-exile): a printed line whose
+// ActiveZones$ excludes its source's current zone (Vizier of Remedies' AddCounter
+// line from a library, CR 614.4 via ActiveZones$) cannot become active during
+// it, so it is skipped. mover itself is always walked, its move may make one of
+// its own lines active. The zero scope walks every line.
+type replWalkScope struct {
+	offZoneInert bool
+	mover        state.ObjID
+}
+
+// skips reports whether the scope sets line r of source id aside.
+func (sc replWalkScope) skips(e *Engine, r *cards.Repl, id state.ObjID) bool {
+	return sc.offZoneInert && id != sc.mover && !e.activeZonesGateOK(*r, id, events.Event{})
 }
 
 // replBitIn reports whether an event bit is in bits; a full mask admits a line of
 // any event, a bitless one too.
 func replBitIn(bit, bits uint32) bool { return bits == ^uint32(0) || bit&bits != 0 }
 
-// tapeReplBodyWalk is tapeReplBodyMayAsk's walk over every replacement source.
-func tapeReplBodyWalk(e *Engine, bits uint32) bool {
+// tapeReplBodyWalk is tapeReplBodyMayAsk's walk over every replacement source
+// sc does not set aside.
+func tapeReplBodyWalk(e *Engine, bits uint32, sc replWalkScope) bool {
 	ask := false
 	e.forEachReplacementSourceFor(^uint32(0), func(id state.ObjID) {
 		o := e.G.Obj(id)
@@ -182,6 +202,9 @@ func tapeReplBodyWalk(e *Engine, bits uint32) bool {
 			r := &f.Repls[i]
 			if r.Event == "Moved" || !replBitIn(replLineBit(r), bits) {
 				continue // entries are asked where they happen (the land play, a resolution)
+			}
+			if sc.skips(e, r, id) {
+				continue
 			}
 			if cards.ReplMayElect(r) || (r.With != nil && (cards.SAChainMayAsk(r.With, f.SVars, nil, false) ||
 				// An ask-free body can still open a board gate: Lich's

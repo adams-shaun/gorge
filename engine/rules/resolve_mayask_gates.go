@@ -26,23 +26,23 @@ type replEventGate struct {
 
 var replEventGates = [cards.ReplEventCount]replEventGate{
 	cards.ReplMoved:   {ask: tapeMovedReplMayAsk},
-	cards.ReplUntap:   {ask: func(e *Engine) bool { return tapeReplMayAsk(e, "Untap") }},
-	cards.ReplCounter: {ask: func(e *Engine) bool { return tapeReplMayAsk(e, "Counter") }},
+	cards.ReplUntap:   {ask: func(e *Engine) bool { return tapeReplMayAsk(e, "Untap", replWalkScope{}) }},
+	cards.ReplCounter: {ask: func(e *Engine) bool { return tapeReplMayAsk(e, "Counter", replWalkScope{}) }},
 	// AddCounter is gated for every resolution (tapeBoardCompetes); reading
 	// it again here keeps the census uniform.
-	cards.ReplAddCounter:  {ask: func(e *Engine) bool { return tapeReplMayAsk(e, "AddCounter") }},
-	cards.ReplGainLife:    {ask: func(e *Engine) bool { return tapeReplMayAsk(e, "GainLife") }},
-	cards.ReplLifeReduced: {ask: func(e *Engine) bool { return tapeReplMayAsk(e, "LifeReduced") }},
-	cards.ReplPayLife:     {ask: func(e *Engine) bool { return tapeReplMayAsk(e, "PayLife") }},
-	cards.ReplDamageDone:  {ask: func(e *Engine) bool { return tapeReplMayAsk(e, "DamageDone") }},
-	cards.ReplCreateToken: {ask: func(e *Engine) bool { return tapeReplMayAsk(e, "CreateToken") }},
-	cards.ReplAttached:    {ask: func(e *Engine) bool { return tapeReplMayAsk(e, "Attached") }},
+	cards.ReplAddCounter:  {ask: func(e *Engine) bool { return tapeReplMayAsk(e, "AddCounter", replWalkScope{}) }},
+	cards.ReplGainLife:    {ask: func(e *Engine) bool { return tapeReplMayAsk(e, "GainLife", replWalkScope{}) }},
+	cards.ReplLifeReduced: {ask: func(e *Engine) bool { return tapeReplMayAsk(e, "LifeReduced", replWalkScope{}) }},
+	cards.ReplPayLife:     {ask: func(e *Engine) bool { return tapeReplMayAsk(e, "PayLife", replWalkScope{}) }},
+	cards.ReplDamageDone:  {ask: func(e *Engine) bool { return tapeReplMayAsk(e, "DamageDone", replWalkScope{}) }},
+	cards.ReplCreateToken: {ask: func(e *Engine) bool { return tapeReplMayAsk(e, "CreateToken", replWalkScope{}) }},
+	cards.ReplAttached:    {ask: func(e *Engine) bool { return tapeReplMayAsk(e, "Attached", replWalkScope{}) }},
 	// A draw: competing Draw/DrawCards replacements, or a Dredge card in a
 	// graveyard offering its election (CR 702.55).
-	cards.ReplDraw:      {ask: func(e *Engine) bool { return tapeReplMayAsk(e, "Draw") || tapeDredgeMayAsk(e) }},
+	cards.ReplDraw:      {ask: func(e *Engine) bool { return tapeReplMayAsk(e, "Draw", replWalkScope{}) || tapeDredgeMayAsk(e) }},
 	cards.ReplDrawCards: {unreachable: "an alias of Draw: replEventBit shares Draw's bit and the Draw gate counts both"},
-	cards.ReplMill:      {ask: func(e *Engine) bool { return tapeReplMayAsk(e, "Mill") }},
-	cards.ReplDestroy:   {ask: func(e *Engine) bool { return tapeReplMayAsk(e, "Destroy") }},
+	cards.ReplMill:      {ask: func(e *Engine) bool { return tapeReplMayAsk(e, "Mill", replWalkScope{}) }},
+	cards.ReplDestroy:   {ask: func(e *Engine) bool { return tapeReplMayAsk(e, "Destroy", replWalkScope{}) }},
 
 	cards.ReplBeginPhase:     {unreachable: "turn structure; no allowlisted API begins a phase"},
 	cards.ReplBeginTurn:      {unreachable: "turn structure; no allowlisted API begins a turn"},
