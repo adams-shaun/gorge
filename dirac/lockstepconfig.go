@@ -39,21 +39,6 @@ func xFolded(cost kop.ManaCost, x int) kop.ManaCost {
 	return cost.AtX(x)
 }
 
-// xWindowPay pays an announced X through gorge's manual CR 601.2g window, which its
-// planner leaves such a cost to (pay.PlanCostDetail "cost:x"): the first useful
-// source, repeated until the pool pays. It reports false when the sources run out;
-// what the window tapped stays tapped and its mana floats (CR 733.1). The window
-// has no auto-fill option (the oracle's seat never sends Intent.Announce, so
-// manaWindowAsk poses the ordinary window), so gorge's answerer
-// (payexec.WindowAnswer) takes the first listed source -- a planner-deferred one
-// (Twitching Doll, a depletion land) in its battlefield place, the unit
-// availXWindow counted for the announcement.
-// hybridX: a's mana cost carries {X} and a two-colour hybrid pip, which
-// gorge's planner declines (planAbilityPayment; Fiend Artisan's {X}{B/G}).
-func hybridX(a *kop.Ability) bool {
-	return a.Cost.Mana.X != 0 && a.Cost.Mana.Hyb[0] != 0 && a.Cost.Mana.Hyb[0] != kop.HybTwobrid
-}
-
 // xWindowPays: an announced-X activation pays through gorge's manual window
 // (xWindowPay) unless gorge armed its planner's witness at the least X and the
 // announced X re-plans (rules armAbilityAutoPay at planAbilityPayment's X
@@ -69,6 +54,15 @@ func (s *State) xWindowPays(k *prep, e *stackEntry, a *kop.Ability, sl Slot, cos
 	return !s.abilityPlanSettles(k, e, floor, floor, *cost, saved)
 }
 
+// xWindowPay pays an announced X through gorge's manual CR 601.2g window, which its
+// planner leaves such a cost to (pay.PlanCostDetail "cost:x"): the first useful
+// source, repeated until the pool pays. It reports false when the sources run out;
+// what the window tapped stays tapped and its mana floats (CR 733.1). The window
+// has no auto-fill option (the oracle's seat never sends Intent.Announce, so
+// manaWindowAsk poses the ordinary window), so gorge's answerer
+// (payexec.WindowAnswer) takes the first listed source -- a planner-deferred one
+// (Twitching Doll, a depletion land) in its battlefield place, the unit
+// availXWindow counted for the announcement.
 func (s *State) xWindowPay(k *prep, e *stackEntry, cost *kop.ManaCost) bool {
 	c := xFolded(*cost, int(e.x))
 	anyColor := s.bld().bfl&bflAnyColor != 0
@@ -77,6 +71,12 @@ func (s *State) xWindowPay(k *prep, e *stackEntry, cost *kop.ManaCost) bool {
 		s.pl[e.ctrl].pool[col] += held[col]
 	}
 	return ok
+}
+
+// hybridX: a's mana cost carries {X} and a two-colour hybrid pip, which
+// gorge's planner declines (planAbilityPayment; Fiend Artisan's {X}{B/G}).
+func hybridX(a *kop.Ability) bool {
+	return a.Cost.Mana.X != 0 && a.Cost.Mana.Hyb[0] != 0 && a.Cost.Mana.Hyb[0] != kop.HybTwobrid
 }
 
 // windowRestrDynMask is the colours of the restricted evaluated-amount ability at sl
