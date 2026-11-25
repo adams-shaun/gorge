@@ -1836,7 +1836,11 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 				hasGrant = true
 			}
 			if k.restrSrc && k.gen.flags[s.cardAt(sl)]&gfRestrSrc != 0 {
-				if v, kd, ab, dmask, abi := s.restrViewW(k, p, sl, pcs[i], &rd); v != nil {
+				if restrLifePair(pcs[i]) {
+					// the pair carries the restricted life alternative: painUnit
+					// admits it per payment and floats its tap (mana_pain.go);
+					// the census ability stays the source's ordinary unit
+				} else if v, kd, ab, dmask, abi := s.restrViewW(k, p, sl, pcs[i], &rd); v != nil {
 					if pk.noChosenPair && v.wideChosen {
 						// The census-only trial: gorge's census omits a choice-shaped
 						// larger alternative whose amount is not 1
@@ -1956,7 +1960,7 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 				}
 				if k.painMana && pc.painCol != 0 && phase > 0 {
 					want := painCensusPass(choice, pc)
-					if s.painUnit(k, sl, pc, pass, pk, i, want) {
+					if s.painUnit(k, sl, pc, pass, pk, i, want, rd) {
 						continue
 					}
 				}
@@ -2154,7 +2158,7 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 			s.manaTapped(k, sl)
 		}
 		pk.lastSl = sl
-		if r := pk.rkind[u]; (r == rkExt || r == rkWiden) && pk.rtapN < maxUnits {
+		if r := pk.rkind[u]; (r == rkWiden || r == rkExt && ty.rb) && pk.rtapN < maxUnits {
 			pk.rtap[pk.rtapN] = struct {
 				sl  Slot
 				col uint8

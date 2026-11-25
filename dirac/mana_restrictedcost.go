@@ -27,11 +27,20 @@ func restrSacSelfAb(a *kop.Ability) bool { return kop.RestrictedSacSelfShape(a) 
 // restrLifeUnit: pc is the view of a restricted last-resort life ability.
 func restrLifeUnit(pc *pcard) bool { return pc.restrLife != 0 }
 
+// restrLifePair: pc is a pain source whose painful alternative is a
+// spend-restricted {T}, Pay N life ability (prepPainMana; Great Hall of the
+// Biblioplex, Voldaren Estate). The pair itself carries the restriction and
+// the float: plan leaves it to painUnit, which admits it per payment, rather
+// than to a restricted unit of its own (restrViewW).
+func restrLifePair(pc *pcard) bool { return pc.restrLife != 0 && pc.painCol != 0 && !pc.painOnly }
+
 // restrLifeIrr is the irreversible cost of a unit whose view is pc: base plus
 // 3 a point of a restricted life unit's life (pay.ConsequenceCost), and the
 // life its activation pays (0: none).
 func restrLifeIrr(pc *pcard, base uint8) (irr, life uint8) {
-	if !restrLifeUnit(pc) {
+	if !restrLifeUnit(pc) || restrLifePair(pc) {
+		// a pain pair's normal ability is an ordinary unit: only its painful
+		// alternative pays the life (painUnit)
 		return base, 0
 	}
 	if DebugRestrictedLifeFirst {
@@ -64,8 +73,12 @@ func (s *State) restrLifePayable(k *prep, p uint8, rec *restrRec) bool {
 func restrLifeOn(k *prep) bool { return k.gen != nil && k.gen.rs != nil && k.gen.rs.life }
 
 // restrLifeLast: pc is a restricted life unit plan leaves to phase 1, spent
-// only after every other unit (gorge's TierLastResort).
-func restrLifeLast(pc *pcard) bool { return restrLifeUnit(pc) && !DebugRestrictedLifeFirst }
+// only after every other unit (gorge's TierLastResort). A pain pair's normal
+// ability is not one: it stays in the ordinary census and only the pair's
+// painful alternative joins the last-resort phase (painUnit).
+func restrLifeLast(pc *pcard) bool {
+	return restrLifeUnit(pc) && !restrLifePair(pc) && !DebugRestrictedLifeFirst
+}
 
 // restrLifeCharge counts a restricted life unit's n life against t, the
 // census of a payment the unit may fund: gorge's lethal guard sums the unit's

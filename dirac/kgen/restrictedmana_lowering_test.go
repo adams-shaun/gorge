@@ -55,7 +55,8 @@ func TestRestrictedManaCostRefusalNamesThePart(t *testing.T) {
 // Varmint's two mana, "spells you don't own") lowers: the kernel plans it as a
 // last-resort unit (dirac mana_restrictedcost.go); no refusal names its cost.
 func TestRestrictedLifeSourcesLower(t *testing.T) {
-	for _, name := range []string{"Gnarlroot Trapper", "Untaidake, the Cloud Keeper", "Thieving Varmint"} {
+	for _, name := range []string{"Gnarlroot Trapper", "Untaidake, the Cloud Keeper", "Thieving Varmint",
+		"Great Hall of the Biblioplex", "Voldaren Estate"} {
 		for _, rf := range lowerCorpusCard(t, name).Refusals {
 			t.Errorf("%s: refused: %s", name, rf.Reason)
 		}
@@ -78,24 +79,5 @@ func TestRestrictedSacSelfSourceLowers(t *testing.T) {
 func TestRestrictedTapXSourceLowers(t *testing.T) {
 	for _, rf := range lowerCorpusCard(t, "Grand Architect").Refusals {
 		t.Errorf("Grand Architect: refused: %s", rf.Reason)
-	}
-}
-
-// TestRestrictedLifePairRefusesBesideItsSecondAbility pins the narrowed
-// refusal of a restricted "{T}, Pay N life" ability that is not the card's
-// only mana ability (Great Hall of the Biblioplex, Voldaren Estate): the cost
-// part is no longer the reason named, the pair is
-// (refuseMultiMana; the restricted-life-pair follow-up ticket).
-func TestRestrictedLifePairRefusesBesideItsSecondAbility(t *testing.T) {
-	for _, name := range []string{"Great Hall of the Biblioplex", "Voldaren Estate"} {
-		lc := lowerCorpusCard(t, name)
-		var got []string
-		for _, rf := range lc.Refusals {
-			got = append(got, rf.Reason)
-		}
-		const want = "2 mana abilities: mana ability 1 (cost none, produces WUBRG) is not modelled beside the first: a cost beyond {T} the kernel's mana walk cannot activate"
-		if len(got) != 1 || got[0] != want {
-			t.Fatalf("%s: refusals = %v, want exactly %q", name, got, want)
-		}
 	}
 }
