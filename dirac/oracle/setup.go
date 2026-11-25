@@ -44,6 +44,11 @@ type Matchup struct {
 	Commander  bool
 	Commanders [2]int
 	Partners   [2]int
+	// SeatCommandZone seats Commanders[s] in the command zone without playing
+	// a Commander game: the Vanguard seating (Sisay), the same command zone
+	// on both sides and no command-zone cast offer, exactly gorge's genesis
+	// with Config.Commanders and no FormatCommander.
+	SeatCommandZone bool
 	// DraftPartners is Config.DraftPartners: a seat's two commanders are a
 	// Commander-draft pair (deck.IsDraftCommanderPair, the rule Mystery
 	// Booster Commander drafts play by) and not a constructed one, which
@@ -501,7 +506,9 @@ func nameUniverseOf(decks [][]*cards.Card) *cards.Universe {
 // matchup and seed: the same Names, Decks, Tokens, NameUniverse and
 // Mulligans, and bench.PlayGame's default object cap. (-mull-heuristic is a
 // seat policy there, not setup; here the Policy answers the mulligan asks.)
-// A Commander matchup adds FormatCommander, 40 life and its commanders.
+// A Commander matchup adds FormatCommander, 40 life and its commanders; a
+// SeatCommandZone matchup adds only the commanders (a Vanguard's command-zone
+// static, never a cast).
 func (m *Matchup) Config(seed uint64) rules.Config {
 	cfg := rules.Config{
 		Seed: seed, Names: []string{"p0", "p1"}, Decks: [][]*cards.Card{m.Decks[0], m.Decks[1]},
@@ -515,6 +522,8 @@ func (m *Matchup) Config(seed uint64) rules.Config {
 	if m.Commander {
 		cfg.Format, cfg.StartingLife = rules.FormatCommander, 40
 		cfg.DraftPartners = m.DraftPartners
+	}
+	if m.Commander || m.SeatCommandZone {
 		cfg.Commanders = make([][]int, m.NSeat())
 		for s := range cfg.Commanders {
 			if ix, p := m.SeatCommanders(s); ix >= 0 {

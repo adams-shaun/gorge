@@ -123,6 +123,7 @@ func RealKernel(tbl *kop.Table, names map[string]string, cfg Config) SideFactory
 		r.kcfg.NoElide = !cfg.PassElision
 		r.kcfg.Mulligans = uint8(m.Mulligans)
 		r.kcfg.Commander, r.kcfg.Commanders = m.kernelCommanders()
+		r.kcfg.SeatCommanders = m.SeatCommandZone
 		r.kcfg.RecordChance = cfg.RecordChance
 		r.kcfg.ArrangeRestOrder = cfg.ArrangeRestOrder
 		for s := 0; s < 2; s++ {

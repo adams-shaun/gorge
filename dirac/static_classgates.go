@@ -25,6 +25,7 @@ const (
 	sclsGyCont                     // the card's own StatContinuous that works from its graveyard (static_gycont.go)
 	sclsOffKwG                     // StatOffZoneGrant, StatRetraceGrant or StatUnearthGrant, an off-zone grant (kw_offkwgrant.go)
 	sclsNonObj                     // a static that can change a characteristic and may read what is not an object's own fields (static_sbaskip.go)
+	sclsTapCmd                     // a command-zone StatTapExtra on a seated Vanguard (Sisay; mana_tapextra.go eachTapExtra)
 )
 
 // prepOverrideLandwalk (called from prepStaticClasses, once per table; kw_evasion.go landwalkPumped reads it) sets genPrep.anyLandwalk when any override record of
@@ -37,8 +38,9 @@ func prepOverrideLandwalk(t *kop.Table, g *genPrep) {
 	}
 }
 
-// prepStaticClasses fills g.sCls.
-func prepStaticClasses(t *kop.Table, g *genPrep) {
+// prepStaticClasses fills g.sCls and returns whether any card carries a
+// command-zone StatTapExtra static (a Vanguard's; mana_tapextra.go eachTapExtra).
+func prepStaticClasses(t *kop.Table, g *genPrep) (anyCmdTap bool) {
 	prepOverrideLandwalk(t, g)
 	g.sCls = make([]uint16, len(t.Cards))
 	for i := range t.Cards {
@@ -79,6 +81,13 @@ func prepStaticClasses(t *kop.Table, g *genPrep) {
 				default:
 					m |= sclsMayPlay
 				}
+			case kop.StatTapExtra:
+				if sa.Zone == kop.ZoneCommand && c.Types&kop.TVanguard != 0 {
+					// a Vanguard's printed static (Sisay): in force from the
+					// command zone, walked by eachTapExtra, never by eachStatic
+					m |= sclsTapCmd
+					anyCmdTap = true
+				}
 			case kop.StatReduceCost:
 				if sa.Zone != kop.ZoneCommand {
 					m |= sclsReduce
@@ -97,6 +106,7 @@ func prepStaticClasses(t *kop.Table, g *genPrep) {
 		}
 		g.sCls[i] = m
 	}
+	return anyCmdTap
 }
 
 // eachStaticC is eachStatic over the permanents whose card prints a static
