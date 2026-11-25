@@ -1015,6 +1015,12 @@ type planner struct {
 	anyFee bool
 	fpool  [kop.NumManaKinds]int
 	maxFee int
+	// feeLent: restricted mana the hybrid witness lent into the pool for the
+	// spell's own cost (lowerWitnessEx's rbTake). A fee unit's activation is a
+	// different payment, so feeOK and payPlanFee keep the lent units out of its
+	// supply (CR 106.6); the witness puts them back in their batches after.
+	// Zero outside that witness.
+	feeLent [kop.NumManaKinds]uint8
 	// cpips: the cost's pips (tapNeed), the mana a fee's generic leaves to
 	// the cost while it can (feeClaim, takeFeeGeneric)
 	cpips [kop.NumManaKinds]uint8
@@ -2137,7 +2143,7 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 		s.fireViewAbilityCast(k, p, sl, pk.rAb[u]) // the activation precedes its cost's tap and sacrifice
 		ty := &pk.types[pk.bestTy[i]]
 		col := int(cols[i])
-		s.planPayFee(k, p, ty, &claim, pk.anyColor)
+		s.planPayFee(k, p, ty, &claim, pk.anyColor, pk.feeLent)
 		if k.gen != nil && k.gen.castTapOn && s.buildLive() && s.bld().e.kind == seSpell && k.cards[s.cardAt(sl)].castSrc != 0 {
 			s.planNoteTap(k, sl, col)
 		}
@@ -2589,8 +2595,8 @@ func (pk *planner) runOrder(bn int, run *[maxUnits]uint8) {
 // planPayFee pays a running plan unit's mana fee from the floating pool before
 // its production joins it (CR 605.3b, 601.2h; feeOK priced it from the pool
 // and the plan's earlier units).
-func (s *State) planPayFee(k *prep, p uint8, ty *utype, claim *[kop.NumManaKinds]int, anyCol bool) {
-	if (ty.fee != 0 || ty.feeCol != 0) && !s.payPlanFee(k, p, ty, claim, anyCol) {
+func (s *State) planPayFee(k *prep, p uint8, ty *utype, claim *[kop.NumManaKinds]int, anyCol bool, lent [kop.NumManaKinds]uint8) {
+	if (ty.fee != 0 || ty.feeCol != 0) && !s.payPlanFee(k, p, ty, claim, anyCol, lent) {
 		s.capFull(StallRestrSrc)
 	}
 }
@@ -2644,7 +2650,7 @@ func (pk *planner) feeOK() bool {
 		if pips[c] == 0 {
 			continue
 		}
-		have := pk.fpool[c]
+		have := pk.fpool[c] - int(pk.feeLent[c])
 		for t := 0; t < pk.nt; t++ {
 			ty := &pk.types[t]
 			if ty.fee != 0 || ty.feeCol != 0 {
@@ -2661,7 +2667,10 @@ func (pk *planner) feeOK() bool {
 	}
 	tot, pool := 0, 0
 	for c := 0; c < kop.NumManaKinds; c++ {
-		pool += pk.fpool[c]
+		// feeLent is the hybrid witness's lent restricted mana: it pays the
+		// spell's own cost, not a fee unit's activation (CR 106.6), so it is
+		// out of the pool both fee checks below count.
+		pool += pk.fpool[c] - int(pk.feeLent[c])
 	}
 	tot = pool
 	distFee, distC := 0, 0
