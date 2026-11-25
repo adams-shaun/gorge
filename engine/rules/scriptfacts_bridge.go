@@ -70,9 +70,6 @@ func foretellCost(f *cards.Face) (Cost, bool) { return scriptfacts.ForetellCost(
 // (scriptfacts.TriggerOptionalSpec).
 func triggerOptionalSpec(t cards.Trigger) string { return scriptfacts.TriggerOptionalSpec(t) }
 
-// presentIsOwnCostPrecheck forwards scriptfacts.PresentIsOwnCostPrecheck.
-func presentIsOwnCostPrecheck(t cards.Trigger) bool { return scriptfacts.PresentIsOwnCostPrecheck(t) }
-
 // grantedKeywordTrigger synthesizes a granted keyword line's triggered
 // ability (scriptfacts.GrantedKeywordTrigger).
 func grantedKeywordTrigger(line string) *cards.Trigger {

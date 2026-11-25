@@ -1639,8 +1639,12 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 			conds = append(conds, lCond{Kind: cValue, A: lValue{Kind: vCommittedCrime, Sub: []lValue{cst(1), cst(0)}}, Op: opGE, B: cst(1)})
 		}
 	}
-	if conds, err = lc.triggerIsPresentConds(t, tp, tr, conds); err != nil {
-		return err
+	if ip, ok := tp.get("IsPresent"); ok {
+		c, err := lc.triggerIsPresent(tp, tr, ip)
+		if err != nil {
+			return err
+		}
+		conds = append(conds, c)
 	}
 	if v, ok := tp.get("Revolt"); ok {
 		// gorge trigger_condition.go: Revolt$ True, a permanent the
