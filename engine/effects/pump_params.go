@@ -405,7 +405,7 @@ var pumpKnownKeys = [...]string{
 	"ThisDefinedAndTgts", "TokenScript",
 	"TriggerController", "TriggerDescription",
 	"Type",
-	"Ultimate",
+	"Types", "Ultimate",
 	"UnlessAI",
 	"UnlessCost",
 	"UnlessPayer",

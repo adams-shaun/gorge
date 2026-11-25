@@ -276,7 +276,7 @@ var changeZoneAllKnownKeys = [...]string{
 	"TriggerController", "TriggerDescription",
 	"Type",
 	"TypeLimit",
-	"Ultimate",
+	"Types", "Ultimate",
 	"Unearth",
 	"UnlessAI",
 	"UnlessCost",
