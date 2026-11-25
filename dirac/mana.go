@@ -961,7 +961,7 @@ type utype struct {
 
 type planner struct {
 	units    [maxUnits]Slot
-	uobj     [maxUnits]Obj
+	uobj     [maxUnits]Obj // each unit's creation rank: gorge's ObjID order (birthOf); a hybrid unit's census position
 	utyp     [maxUnits]uint8
 	nu       int
 	types    [maxTypes]utype
@@ -971,7 +971,7 @@ type planner struct {
 	needAny  int                   // any-colour rider: coloured pips the units must cover
 	rawT     int                   // the cost's total less the pool, before needT's clamps: gorge's deficit and surplus read it (limitPlan)
 	anyColor bool                  // the may-play MayPlayIgnoreColor rider is active
-	bfl      bool                  // rank units in battlefield order, not ObjID (hybrid)
+	bfl      bool                  // rank units in battlefield order, not creation order (hybrid)
 	colSrc   [5]int                // eligible units per colour (WUBRG)
 	demand   [5]int
 	dOrder   [5]uint8
@@ -2058,10 +2058,10 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 					// a hybrid cast is paid through gorge's manual CR 601.2g
 					// window (pay.PlanCostDetail "cost:hybrid"), whose source
 					// order is pay.ManaSourceIDs: battlefield (entry) order,
-					// not the planner witness's ObjID order (pay.CompareSteps)
+					// not the planner witness's creation order (pay.CompareSteps)
 					pk.uobj[pk.nu] = Obj(i)
 				} else {
-					pk.uobj[pk.nu] = s.perms[sl].obj
+					pk.uobj[pk.nu] = Obj(s.birthOf(s.perms[sl].obj))
 				}
 				pk.utyp[pk.nu] = uint8(ti)
 				pk.rkind[pk.nu] = rv[i]
@@ -2112,7 +2112,7 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 		s.limitPlan(k, pk)
 	}
 	// key 8 (consider): among the tied count vectors, the lexicographically
-	// least ObjID sequence in unit order.
+	// least creation-rank sequence in unit order.
 	best, bn := &pk.bestSeq, pk.bestN
 	if pk.first && bn > 1 {
 		bn = 1 // pickColour below still reads the whole plan
@@ -2915,9 +2915,9 @@ func (pk *planner) seqCols(tys *[maxUnits]uint8, n int, col *[maxUnits]uint8) {
 	}
 }
 
-// lexLeast builds, for count vector kv, the unit choice whose ObjID
+// lexLeast builds, for count vector kv, the unit choice whose creation-rank
 // sequence in unit order is lexicographically least, as gorge's witness
-// defines it (pay materialize): each step is the smallest-ID unit of one
+// defines it (pay materialize): each step is the smallest-birth unit of one
 // type drawn from that type's not-yet-passed members up to its limit — the
 // latest position that still leaves the type's remaining need enough later
 // members — and no type steps past the second-smallest limit's
@@ -2991,10 +2991,10 @@ func (pk *planner) lexLeast(kv *[maxTypes]uint8, out *[maxUnits]uint8) int {
 }
 
 // seqLess is gorge's key 8 (pay.CompareSteps) over two witnesses: step by
-// step the source's ObjID, then its ability (a gated source's first ability
-// is the smaller, whichever colour it makes), then the mana it produces as a
-// WUBRGC vector (so a later colour in that order is the smaller: {U} before
-// {W}, pair 8715), then the length.
+// step the source's creation rank (gorge's ObjID), then its ability (a gated
+// source's first ability is the smaller, whichever colour it makes), then the
+// mana it produces as a WUBRGC vector (so a later colour in that order is the
+// smaller: {U} before {W}, pair 8715), then the length.
 func (pk *planner) seqLess(a, ac, at *[maxUnits]uint8, an int, b, bc, bt *[maxUnits]uint8, bn int) bool {
 	for i := 0; i < an && i < bn; i++ {
 		x, y := pk.uobj[a[i]], pk.uobj[b[i]]

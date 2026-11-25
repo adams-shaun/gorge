@@ -421,6 +421,7 @@ func (s *State) newToken(c CardID, p uint8) Obj {
 		o := s.nobj
 		s.nobj++
 		s.objs[o] = object{card: c, chosen: 255, of: ofToken, slot: NoSlot, acts: p << objOwnerShift}
+		s.mintBirth(o)
 		s.touch(o)
 		return o
 	}
@@ -431,6 +432,7 @@ func (s *State) newToken(c CardID, p uint8) Obj {
 	}
 	s.reuseObj(o)
 	s.objs[o] = object{card: c, chosen: 255, of: ofToken, slot: NoSlot, acts: p << objOwnerShift, ver: s.objs[o].ver + 1}
+	s.mintBirth(o)
 	s.touch(o)
 	return o
 }
