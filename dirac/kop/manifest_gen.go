@@ -2444,13 +2444,15 @@ const StatWitherDamage StaticKind = 68
 // StatExtraBlock is a printed S:Mode$ Continuous | Affected$ <filter> | CanBlockAmount$ 1 (Brave the Sands, High Ground; CR 509.1a): each creature matching Filter, relative to the static's controller, can block an additional creature each combat (gorge combat.BlockCapacity). The kernel reads it in blockCap beside CardDef.ExtraBlocks; two sources on one blocker are a capacity three the kernel does not model. Static.A = kop.ExtraBlocksAny is CanBlockAny$ True (Entangler's enchanted creature): any number of attackers (combat_blockany.go).
 const StatExtraBlock StaticKind = 69
 
+// ManaConvert (dirac/manifest/StaticKind/StatAnyColorAll)
+//
+// ManaConvert AnyType->AnyColor over every payment its controller makes, spells and activations (Chromatic Orrery).
+const StatAnyColorAll StaticKind = 70
+
 // ManaConvert (dirac/manifest/StaticKind/StatAnyColorSpells)
 //
 // ManaConvert AnyType->AnyColor over a cast card matching Filter (Oath of Nissa).
-const StatAnyColorSpells StaticKind = 70
-
-// stat AssignNoCombatDamage (dirac/manifest/StaticKind/StatNoCombatDamage)
-const StatNoCombatDamage StaticKind = 71
+const StatAnyColorSpells StaticKind = 71
 
 // StaticKind (dirac/manifest/StaticKind/StatOffZoneGrant)
 //
@@ -2462,10 +2464,13 @@ const StatOffZoneGrant StaticKind = 72
 // StatRetraceGrant is a Continuous static's AffectedZone$ Graveyard AddKeyword$ Retrace grant (Six, Deeproot Historian, Wrenn and Six's emblem; CR 702.81a): Filter matches the card in the graveyard and the ability's own Cost is the retrace additional cost (Discard<1/Land>). The kernel reads it live: the graveyard retrace offer and cast (kw_offkwgrant.go, kw_retrace.go) and the keyword projection.
 const StatRetraceGrant StaticKind = 73
 
+// stat AssignNoCombatDamage (dirac/manifest/StaticKind/StatNoCombatDamage)
+const StatNoCombatDamage StaticKind = 74
+
 // StaticKind (dirac/manifest/StaticKind/StatUnearthGrant)
 //
 // StatUnearthGrant is a Continuous static's AffectedZone$ Graveyard AddKeyword$ Unearth grant (Sedris, the Traitor King, Mishra, Tamer of Mak Fawa, Dregscape Sliver, Solemn Doomguide; CR 702.84a): Filter matches the card in the graveyard and GrantBody-1 is the latent unearth body (the printed kwUnearth expander's AB$ ChangeZone, cards.GrantedKeywordAbility) the graveyard offer runs with the affected card as its source. The body's own Cost prices the explicit-cost shape; a zero body cost is the CardManaCost mark, which the offer charges as the affected card's own mana cost (kw_unearthgrant.go).
-const StatUnearthGrant StaticKind = 74
+const StatUnearthGrant StaticKind = 75
 
 // trig ChaosEnsues (dirac/manifest/TrigEvent/TrigChaosEnsues)
 const TrigChaosEnsues TrigEvent = 52
