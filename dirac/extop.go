@@ -310,9 +310,12 @@ func (s *State) execExt(k *prep, in *kop.Instr) (ok, done bool) {
 	case kop.ExtLibPlace:
 		return s.libPlaceExt(k, in), true // act_libplace.go
 	case kop.ExtExtort:
-		// CR 702.101a: the trigger's controller may pay {W/B}; both
-		// options are always offered (gorge effExtort), the ask answered
-		// in place (act_extort.go)
+		// CR 702.101a: the trigger's controller may pay {W/B}; the ask is
+		// answered in place (act_extort.go) and is not posed when the pool
+		// holds neither colour (CR 118.3; gorge effExtort's extortPoolPips)
+		if !s.extortPayable(s.res.e.ctrl) {
+			return true, true
+		}
 		s.res.ask, s.res.askP = raGenExtort, s.res.e.ctrl
 		return false, true
 	case kop.ExtPreventNext:
