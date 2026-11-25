@@ -1,7 +1,6 @@
 package kgen
 
 import (
-	"strings"
 	"testing"
 )
 
@@ -30,27 +29,9 @@ func TestRestrictedManaFeeEachShape(t *testing.T) {
 	}
 }
 
-// TestRestrictedManaFeeWiderKeepsRefusing: the wider fee productions that need
-// a kernel model this change does not add stay refused, and the reason names
-// that production or the source's second ability, never the plain fee the
-// model does carry. Each is a separate follow-up: Interplanar Beacon's Combo
-// AnyDifferent pair needs a coupled group the availability model has no form
-// for. (Great Hall of the Citadel's Combo Any beside a census ability is
-// modelled by restrComboWide and no longer belongs here; Hydro-Channeler's fee
-// ability beside its restricted {U} one lowers
-// (restrictedmana_feepair_test.go).)
-func TestRestrictedManaFeeWiderKeepsRefusing(t *testing.T) {
-	for _, name := range []string{"Interplanar Beacon"} {
-		t.Run(name, func(t *testing.T) {
-			lc := lowerCorpusCard(t, name)
-			if len(lc.Refusals) == 0 {
-				t.Fatalf("lowered, want a refusal")
-			}
-			for _, rf := range lc.Refusals {
-				if strings.Contains(rf.Reason, "a mana fee") {
-					t.Errorf("refusal names the plain fee the model carries: %s", rf.Reason)
-				}
-			}
-		})
-	}
-}
+// The three wider fee productions that once needed a kernel model now lower:
+// Great Hall of the Citadel's Combo Any beside a census ability
+// (restrComboWide), Hydro-Channeler's fee ability beside its restricted {U}
+// one (restrFeePairOf), and Interplanar Beacon's Combo AnyDifferent pair
+// (avail.nDist). Their lowering tests are restrictedmana_feepair_test.go and
+// restrictedmana_anydifferent_test.go.

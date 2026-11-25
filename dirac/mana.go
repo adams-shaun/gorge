@@ -116,6 +116,11 @@ type avail struct {
 	// of any colour): 0 reads one. The block is one tap's mana, the fixed face the other.
 	oneCol [maxOneColour]uint8
 	nOne   uint8
+	// nDist: the count of distinct-colour pairs (two mana of different colours,
+	// Interplanar Beacon's restricted {1}, {T}) whose two units are in the 0x1f
+	// group: a pair makes at most one mana of any one colour, so hallUnits takes
+	// one unit per pair out of a single-colour subset's supply (CR 106.1)
+	nDist uint8
 	// nModal: the painful sources that make either {C} and a {C}-only extra
 	// or a colour (mana_tapextra.go addPainAvail); painTight holds them in pain
 	nModal uint8
@@ -629,6 +634,10 @@ func (a *avail) hallUnits(cost *kop.ManaCost, pipMask uint8, extra int) bool {
 				have += int(a.cnt[i])
 			}
 		}
+		if a.nDist != 0 && bits.OnesCount8(q&0x1f) == 1 {
+			// a distinct pair's two units never both make the one colour of q
+			have -= int(a.nDist)
+		}
 		if need > have {
 			return false
 		}
@@ -913,6 +922,10 @@ type utype struct {
 	// rb: a restricted source's larger alternative (restrPairUnit): the
 	// mana a tap makes floats restricted
 	rb bool
+	// dist: the unit's n mana are of DIFFERENT colours of its mask, one of each
+	// of two colours (Interplanar Beacon's restricted pair, kop.RestrDistinctPair): it
+	// covers one pip of any colour, two of different ones (distCols)
+	dist bool
 	// irr: key 1's irreversible cost of one unit (pay.ConsequenceCost: 10
 	// a sacrificed source, 20 a creature, 3 a point of damage); nocol: a
 	// last-resort unit, whose colours take nothing from the remainder
@@ -2099,9 +2112,15 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 	// activated with the sacrificing ones last, as gorge orders its witness
 	// (pay/plancost.go SacrificesLast): a Treasure's sacrifice that waits on a
 	// replacement choice finds every other source of the plan already tapped.
-	var cols, run [maxUnits]uint8
+	var cols, cols2, run [maxUnits]uint8
 	for i := 0; i < bn; i++ {
 		ty := &pk.types[pk.bestTy[i]]
+		if ty.dist {
+			c1, c2 := distCols(ty, &rem)
+			cols[i], cols2[i] = uint8(c1), uint8(c2)
+			rem[c1], rem[c2] = max(rem[c1]-1, 0), max(rem[c2]-1, 0)
+			continue
+		}
 		col := s.planTapCol(k, p, pk, i, ty, &rem, remAny)
 		cols[i] = uint8(col)
 		if pk.anyColor && col != kop.C {
@@ -2137,6 +2156,10 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 				ab  int8
 			}{sl, uint8(col), r == rkExt, pk.rAb[u]}
 			pk.rtapN++
+		}
+		if ty.dist {
+			s.planDistTap(k, p, pk, ty, sl, u, col, int(cols2[i]))
+			continue
 		}
 		s.pl[p].pool[col] += ty.n
 		s.planTapsInExtra(k, p, pk, sl) // a Taps-deferred source's trigger extra (mana_tapsinextra.go)
@@ -2346,6 +2369,9 @@ func (pk *planner) coverable(r *[kop.NumManaKinds]int, tys *[maxUnits]uint8, fro
 				if bits.OnesCount8(q) > 1 && cap > mx {
 					cap = mx
 				}
+				if ty.dist {
+					cap = min(int(ty.n), bits.OnesCount8(q&ty.mask)) // one mana of each of two colours
+				}
 				have += cap
 			}
 		}
@@ -2376,6 +2402,9 @@ func (pk *planner) assignable(r [kop.NumManaKinds]int, tys *[maxUnits]uint8, fro
 		return false
 	}
 	ty := &pk.types[tys[from]]
+	if ty.dist {
+		return pk.assignableDist(r, ty, tys, from, n)
+	}
 	pays := false
 	for c, v := range r {
 		if v > 0 && ty.mask&(1<<c) != 0 {
@@ -2388,6 +2417,85 @@ func (pk *planner) assignable(r [kop.NumManaKinds]int, tys *[maxUnits]uint8, fro
 		}
 	}
 	return !pays && pk.assignable(r, tys, from+1, n)
+}
+
+// assignableDist is assignable's step for a distinct pair: it makes one mana
+// each of two different colours of its mask, so it pays one short colour (and
+// one more, short or not).
+func (pk *planner) assignableDist(r [kop.NumManaKinds]int, ty *utype, tys *[maxUnits]uint8, from, n int) bool {
+	pays := false
+	for c1 := 0; c1 < 5; c1++ {
+		if r[c1] <= 0 || ty.mask&(1<<c1) == 0 {
+			continue
+		}
+		pays = true
+		for c2 := 0; c2 < 5; c2++ {
+			if c2 == c1 || ty.mask&(1<<c2) == 0 {
+				continue
+			}
+			next := r
+			next[c1]--
+			if next[c2] > 0 {
+				next[c2]--
+			}
+			if pk.assignable(next, tys, from+1, n) {
+				return true
+			}
+		}
+	}
+	return !pays && pk.assignable(r, tys, from+1, n)
+}
+
+// planDistTap adds the mana of one tap of a distinct pair, unit u of the plan
+// at sl: one mana of c1 and one of c2, each floated restricted (CR 106.6) like
+// the mana of any restricted larger alternative (the plan's tap loop).
+func (s *State) planDistTap(k *prep, p uint8, pk *planner, ty *utype, sl Slot, u uint8, c1, c2 int) {
+	for _, col := range [2]int{c1, c2} {
+		if ty.rb && DebugRestrictedSource != 5 {
+			abi := pk.rAb[u]
+			if abi < 0 {
+				abi = k.gen.restrRecOf(s.cardAt(sl)).ab
+			}
+			if !s.floatRestrOnly(k, p, sl, &k.t.Cards[s.cardAt(sl)].Abilities[abi], col, 1) {
+				s.capFull(StallRestrSrc)
+			}
+			pk.rbOn = true
+		} else {
+			s.pl[p].pool[col]++
+		}
+		s.artTag(k, p, sl, col)
+	}
+	s.planTapsInExtra(k, p, pk, sl) // a Taps-deferred source's trigger extra (mana_tapsinextra.go)
+}
+
+// distCols are the two colours a distinct pair's tap makes: the colours the
+// cost still owes first, then the lowest unused one, as gorge's window answers
+// the pair's colour ask (windowAnyDifferentTap; CR 106.1).
+func distCols(ty *utype, rem *[kop.NumManaKinds]int) (c1, c2 int) {
+	var used [5]bool
+	owed := *rem
+	var got [2]int
+	for i := range got {
+		col := -1
+		for c := 0; c < 5; c++ {
+			if ty.mask&(1<<c) != 0 && !used[c] && owed[c] > 0 {
+				col = c
+				owed[c]--
+				break
+			}
+		}
+		if col < 0 {
+			for c := 0; c < 5; c++ {
+				if ty.mask&(1<<c) != 0 && !used[c] {
+					col = c
+					break
+				}
+			}
+		}
+		used[col] = true
+		got[i] = col
+	}
+	return got[0], got[1]
 }
 
 func (pk *planner) dfs(t int, prod int, creat int) {
@@ -2447,7 +2555,11 @@ func (pk *planner) unitNeeded(ty *utype, c int) bool {
 		}
 		per := int(ty.xv[col])
 		if ty.mask&(1<<col) != 0 {
-			per += int(ty.n)
+			if ty.dist {
+				per++ // one mana of each colour
+			} else {
+				per += int(ty.n)
+			}
 		}
 		if per > 0 {
 			owed += (pk.need[col] + per - 1) / per
@@ -2547,18 +2659,26 @@ func (pk *planner) feeOK() bool {
 			return false
 		}
 	}
-	tot := 0
+	tot, pool := 0, 0
 	for c := 0; c < kop.NumManaKinds; c++ {
-		tot += pk.fpool[c]
+		pool += pk.fpool[c]
 	}
+	tot = pool
+	distFee, distC := 0, 0
 	for t := 0; t < pk.nt; t++ {
 		ty := &pk.types[t]
+		if ty.dist {
+			distFee += int(ty.k) * (int(ty.fee) + int(ty.feeN))
+			distC += int(pk.types[ty.pair-1].k) // the source's plain {T}: Add {C}, a tap of another pair source
+		}
 		if ty.fee != 0 || ty.feeCol != 0 {
 			continue
 		}
 		tot += int(ty.k) * (int(ty.n) + int(ty.xt))
 	}
-	return mv <= tot
+	// a distinct pair's fee is paid from the pool or another pair source's
+	// plain {C} (gorge's prefix search: restrSrcAvailD's pair arm)
+	return mv <= tot && distFee <= pool+distC
 }
 
 // valid: the chosen units can cover the pips (Hall over colour subsets).
@@ -2625,6 +2745,9 @@ func (pk *planner) valid() bool {
 				cap := int(ty.n)
 				if bits.OnesCount8(q) > 1 && cap > mx {
 					cap = mx
+				}
+				if ty.dist {
+					cap = min(int(ty.n), bits.OnesCount8(q&ty.mask)) // one mana of each of two colours
 				}
 				have += int(ty.k) * cap
 			}
@@ -2753,6 +2876,12 @@ func (pk *planner) seqCols(tys *[maxUnits]uint8, n int, col *[maxUnits]uint8) {
 	pk.fixedOffSeq(&rem, &remAny, tys, n)
 	for i := 0; i < n; i++ {
 		ty := &pk.types[tys[i]]
+		if ty.dist {
+			c1, c2 := distCols(ty, &rem)
+			col[i] = uint8(c1)
+			rem[c1], rem[c2] = max(rem[c1]-1, 0), max(rem[c2]-1, 0)
+			continue
+		}
 		c := pk.pickUnitColour(ty, &rem, remAny, tys, i+1, n)
 		col[i] = uint8(c)
 		if pk.anyColor && c != kop.C {
