@@ -1,6 +1,10 @@
 package kgen
 
-import "github.com/adams-shaun/gorge/dirac/kop"
+import (
+	"strings"
+
+	"github.com/adams-shaun/gorge/dirac/kop"
+)
 
 // effectStackExile lowers the Effect that exiles a named spell instead of
 // putting it into a graveyard as it leaves the stack (gorge effects/effect.go
@@ -117,6 +121,53 @@ func (lc *lowerCtx) effectStackExile(ps *params) (bool, error) {
 	}
 	lc.emit(lInstr{Op: "StackExileMark", Obj: obj, C: c})
 	return true, nil
+}
+
+// stackExileChosenMark lowers Mission Briefing's chosen-card stack-exit
+// replacement: the Effect grants the chosen card's may-play permission and
+// its replacement exiles that card instead of putting it into a graveyard as
+// it leaves the stack. The permission is already emitted, so the mark names
+// the chosen reference (StackExileTarget) and stackExileGrantOn marks its
+// record. Only the exact replacement body lowers.
+func (lc *lowerCtx) stackExileChosenMark(ps *params, obj lRef) error {
+	if obj.Kind != rChosen {
+		return nil
+	}
+	if _, ok := ps.m["ReplacementEffects"]; !ok {
+		return nil
+	}
+	if strings.TrimSpace(ps.m["ExileOnMoved"]) != "Stack" {
+		return refuse("Effect chosen-card stack-exile ExileOnMoved$ %q", ps.m["ExileOnMoved"])
+	}
+	name := ps.str("ReplacementEffects")
+	if name == "" || strings.Contains(name, ",") {
+		return refuse("Effect chosen-card stack-exile ReplacementEffects$ %q", name)
+	}
+	r := etbParams(lc.face.SVars[name])
+	if r == nil {
+		return refuse("Effect chosen-card stack-exile ReplacementEffects$ %q", name)
+	}
+	rp := newParams(r)
+	rp.consume("Event", "Description")
+	if !rp.is("Origin", "Stack") || !rp.is("Destination", "Graveyard") {
+		return refuse("Effect chosen-card stack-exile Origin$/Destination$")
+	}
+	switch vc := rp.str("ValidCard"); vc {
+	case "Card.IsRemembered", "Card.nonLand+IsRemembered":
+	default:
+		return refuse("Effect chosen-card stack-exile ValidCard$ %q", vc)
+	}
+	body := etbParams(lc.face.SVars[rp.str("ReplaceWith")])
+	if left := rp.unread(); len(left) > 0 {
+		return refuse("Effect chosen-card stack-exile replacement unread %v", left)
+	}
+	if body == nil || body["DB"] != "ChangeZone" || body["Defined"] != "ReplacedCard" ||
+		body["Origin"] != "Stack" || body["Destination"] != "Exile" || len(body) != 4 {
+		return refuse("Effect chosen-card stack-exile replacement body")
+	}
+	ps.consume("ExileOnMoved", "ReplacementEffects")
+	lc.emit(lInstr{Op: "StackExileMark", Obj: obj, C: kop.StackExileGrant | kop.StackExileTarget})
+	return nil
 }
 
 // stackExilePlotSub verifies a replacement body's SubAbility is the exact
