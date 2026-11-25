@@ -128,7 +128,7 @@ func (ic *instrCtx) opRepeatWhile() error {
 func (ic *instrCtx) opGenericChoice() error {
 	ki := &ic.ki
 	in := &ic.in
-	ki.Op, ki.C = kop.OpChooseBranch, int16(in.C) // C 1: no payability filter (lower_genericchoice.go genericChoiceYou)
+	ki.Op, ki.C = kop.OpChooseBranch, int16(in.C) // C 1: VillainousChoice offers every branch (lower_villainous.go); C 0 lets branchPayable drop unpayable UnlessCost$ branches
 	return nil
 }
 
