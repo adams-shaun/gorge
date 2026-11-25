@@ -1,6 +1,7 @@
 package kgen
 
 import (
+	"strconv"
 	"strings"
 
 	"github.com/adams-shaun/gorge/dirac/kop"
@@ -20,11 +21,11 @@ import (
 // The chain lowers as ONE mana ability: the head's cost, the ask flag, ManaV
 // the devotion-of-chosen amount, and no program. The record on the source and
 // its clearing are the kernel's own (dirac/mana_askcolour.go askColDo), so the
-// DB$ Cleanup is the flag, not a program. Every other shape of the chain
-// (Rhystic Cave's UnlessCost$, Foraging Wickermaw's Animate, a cost beyond
-// {T} such as Nykthos's "{2}, {T}", an ability that is not the card's first
-// mana ability, a granted ability) is not matched here and refuses where it
-// always did (chooseColorPrevent, manaEffect).
+// DB$ Cleanup is the flag, not a program. The cost is a tap with an optional
+// generic fee (Nykthos's "{2}, {T}"); every other shape of the chain (Rhystic
+// Cave's UnlessCost$, Foraging Wickermaw's Animate, a cost beyond a tap and a
+// generic fee, a second asking ability, a granted ability) is not matched here
+// and refuses where it always did (chooseColorPrevent, manaEffect).
 
 // askColourHeadParams, askColourManaParams and askColourCleanupParams are the
 // only params the three nodes may carry.
@@ -48,12 +49,32 @@ func paramsWithin(m map[string]string, keys []string) bool {
 	return true
 }
 
-// askColourCost reports whether cost is the plain {T} the kernel's
-// colour-asking source models (kop.Ability.ManaAskColour; prepManaAsk reads
-// the card's first mana ability and a plain tap). Nykthos's "{2}, {T}"
-// ability is a fee beside its first mana ability: the kernel prices it as a
-// filter and lockstep diverges, so it stays refused.
-func askColourCost(cost string) bool { return strings.TrimSpace(cost) == "T" }
+// askColourCost reports whether cost is a tap with an optional generic fee
+// (a plain "{T}", or Nykthos's "{2}, {T}"): the kernel's colour-asking source
+// prices the fee like a filter's activation and pays it before the ask
+// (dirac/mana_askcolour.go askColFee, askColDo).
+func askColourCost(cost string) bool {
+	taps := 0
+	for _, f := range strings.Fields(cost) {
+		if f == "T" {
+			taps++
+			continue
+		}
+		for _, r := range f {
+			if r < '0' || r > '9' {
+				return false
+			}
+		}
+		if f == "" {
+			return false
+		}
+		n, err := strconv.Atoi(f)
+		if err != nil || n > 255 {
+			return false // the generic rides kop.ManaCost.Generic
+		}
+	}
+	return taps == 1
+}
 
 // askColourManaChain reports whether sa is the colour-asking mana chain: the
 // exact three nodes above, a plain cost, and a chain gorge classes as a mana
@@ -72,14 +93,16 @@ func askColourManaChain(sa *cards.SA) bool {
 }
 
 // askColourManaHead reports whether the AB sa being lowered is the
-// colour-asking mana chain of a printed (not granted) ability.
+// colour-asking mana chain of a printed (not granted) ability. The ask may sit
+// on a later mana ability (Nykthos's {2}, {T} beside its {T}: {C}), but a card
+// carries at most one: the kernel records one asking ability index.
 func (lc *lowerCtx) askColourManaHead(sa *cards.SA) bool {
 	if lc.granted != 0 || !askColourManaChain(sa) {
 		return false
 	}
 	for _, o := range lc.out.Abilities {
-		if o.Kind == akMana {
-			return false // the kernel reads the colour ask on the card's first mana ability only
+		if o.Kind == akMana && o.Mana != nil && o.Mana.AskColour {
+			return false
 		}
 	}
 	return true

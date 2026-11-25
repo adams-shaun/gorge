@@ -545,6 +545,9 @@ func (s *State) windowPick(k *prep, p uint8, order []Slot, useful *kop.ManaCost,
 		if s.buildLive() && s.bld().pickN != 0 && s.waterbendPicked(s.perms[o].obj) {
 			continue // a waterbend pick cannot also pay the mana (gorge convokeCommitted)
 		}
+		if s.askColDeferred(k, o) && !s.askColFeePaid(k, p, o) {
+			continue // the ask's fee must come from other mana first (mana_askcolour.go)
+		}
 		if hit, skip := s.windowRiderPick(k, p, o, decided, want, census); skip {
 			continue // the clamp reads colours the cost still owes
 		} else if hit {
@@ -2188,8 +2191,7 @@ func (s *State) scriptGapTap(k *prep, p uint8, a Action, sl Slot, ctr, restr, an
 	if tapsDef.has(sl) {
 		c, forced = tapAnyColAnswerSplit(c) // the search's answers to the tap's any-colour triggers ride above the gap's own
 	}
-	s.tapGapChoice(k, p, a, sl, restr, anyR, tapsDef, s.scriptEngineAnswer(k, a, sl, anyR, tapsDef, c)|forced<<4, spill)
-	return true
+	return s.tapGapChoiceOK(k, p, a, sl, restr, anyR, tapsDef, s.scriptEngineAnswer(k, a, sl, anyR, tapsDef, c)|forced<<4, spill)
 }
 
 // scriptEngineAnswer maps the script search's answer index c of gap sl to
@@ -2198,7 +2200,7 @@ func (s *State) scriptEngineAnswer(k *prep, a Action, sl Slot, anyR, tapsDef slo
 	if !anyR.has(sl) && !tapsDef.has(sl) {
 		return c
 	}
-	if tapsDef.has(sl) && s.askColDeferred(k, sl) {
+	if tapsDef.has(sl) && s.askColGap(k, sl) {
 		// gorge's mid-chain ChooseColor ask (answerNestedChooseColor): Kind
 		// "color" options with no ManaSymbol, so scriptOrderAnswers keeps
 		// W U B R G and c is the colour itself (askColDeferFloat)
@@ -2271,6 +2273,13 @@ func (s *State) scriptEngineAnswer(k *prep, a Action, sl Slot, anyR, tapsDef slo
 // does. spill counts restricted mana the pool's batches could not hold
 // (floating unrestricted: addRestr).
 func (s *State) tapGapChoice(k *prep, p uint8, a Action, sl Slot, restr, anyR, tapsDef slotMask, c int, spill *[kop.NumManaKinds]uint8) {
+	s.tapGapChoiceOK(k, p, a, sl, restr, anyR, tapsDef, c, spill)
+}
+
+// tapGapChoiceOK is tapGapChoice reporting whether the activation was legal: a
+// colour-asking source whose fee the pool does not cover cannot be activated
+// (mana_askcolour.go askColDo).
+func (s *State) tapGapChoiceOK(k *prep, p uint8, a Action, sl Slot, restr, anyR, tapsDef slotMask, c int, spill *[kop.NumManaKinds]uint8) bool {
 	cd := &k.t.Cards[s.cardAt(sl)]
 	if !anyR.has(sl) && !tapsDef.has(sl) {
 		var held [kop.NumManaKinds]uint8
@@ -2280,13 +2289,13 @@ func (s *State) tapGapChoice(k *prep, p uint8, a Action, sl Slot, restr, anyR, t
 			a := &cd.Abilities[k.gen.restr(s.cardAt(sl))]
 			spill[bits.TrailingZeros8(uint8(a.ManaColors))] += s.restrAbN(k, sl, a)
 		}
-		return
+		return true
 	}
 	if tapsDef.has(sl) {
 		c, forced := tapAnyColAnswerSplit(c)
 		if _, ok := s.riderAbilityOf(k, sl); ok {
 			s.riderGap(k, p, sl, c)
-			return
+			return true
 		}
 		s.perms[sl].flags |= pfTapped
 		s.touchSl(sl)
@@ -2298,8 +2307,7 @@ func (s *State) tapGapChoice(k *prep, p uint8, a Action, sl Slot, restr, anyR, t
 			// (manaRider's riderDeferred gate; CR 605.3b)
 			s.manaRider(k, sl)
 		}
-		s.tapDeferFloatAsks(k, p, sl, c, forced, a)
-		return
+		return s.tapDeferFloatAsks(k, p, sl, c, forced, a)
 	}
 	s.perms[sl].flags |= pfTapped
 	s.touchSl(sl)
@@ -2307,7 +2315,7 @@ func (s *State) tapGapChoice(k *prep, p uint8, a Action, sl Slot, restr, anyR, t
 	if ab := &cd.Abilities[k.gen.anyR(s.cardAt(sl))]; restrWideAnyMana(ab) {
 		if s.wideSecond(k, sl) { // its first ability's colours, then the multisets (mana_restrictedcombo.go)
 			s.wide2Float(k, p, sl, c, spill)
-			return
+			return true
 		}
 		c1, c2 := wideAnswer(c)
 		for _, col := range [2]int{c1, c2} {
@@ -2315,16 +2323,17 @@ func (s *State) tapGapChoice(k *prep, p uint8, a Action, sl Slot, restr, anyR, t
 				spill[col]++
 			}
 		}
-		return
+		return true
 	}
 	if c == 0 {
 		f := &cd.Abilities[firstManaAb(cd)]
 		s.pl[p].pool[bits.TrailingZeros8(uint8(f.ManaColors))] += max(f.ManaN, 1)
-		return
+		return true
 	}
 	if !s.floatRestrAb(k, p, sl, &cd.Abilities[k.gen.anyR(s.cardAt(sl))], c-1, 1) {
 		spill[c-1]++
 	}
+	return true
 }
 
 // anyRAnswers: the answers of gap sl's activation ask in the script search (a

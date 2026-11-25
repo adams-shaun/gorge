@@ -3399,6 +3399,14 @@ func (s *State) potentialBuildAvail(a *avail, pot *[kop.NumManaKinds]int, open, 
 // control") was refused and the cast dropped from the priority options
 // (tail-07 pair 144, decision 335).
 func (s *State) addAnyDifferentOrOpen(k *prep, p uint8, sl Slot, ab *kop.Ability, boundedAny, census bool, add func(Slot, uint8, uint8), anyFree *int, open *bool) bool {
+	if ab.ManaAskColour {
+		// gorge's PotentialMana reads the AB$ ChooseColor head's own Mana
+		// params (no Produced$, no Amount$): one {C}, never an open any-colour
+		// bound (mana_askcolour.go askColBoundUnit). Nykthos's first {T}: {C}
+		// is the source's ordinary unit, this is the second ability's bound.
+		add(sl, uint8(kop.ColC), 1)
+		return true
+	}
 	if anyDifferentTapAb(ab) {
 		add(sl, 0x1f, 1)
 		return true
