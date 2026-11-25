@@ -1167,6 +1167,10 @@ func (s *State) resolveDelayed(k *prep, e *stackEntry) {
 		s.lose(e.ctrl) // the extra turn's end-step lose rider (act_extraturn.go); its source (the resolving spell) is only the trigger's named source
 		return
 	}
+	if e.trigAmt == contractLossTrigAmt {
+		s.contractLossCopyResolve(k, e.ctrl, e.trigPl) // Miss Highwater's staged loss copy (ctr_losscopy.go)
+		return
+	}
 	if monarchTrig(e) {
 		s.resolveMonarchTrig(k, e) // the monarch's draw or steal (act_monarch.go)
 		return

@@ -324,6 +324,12 @@ func dumpRepl(w io.Writer, r lRepl) {
 	if r.Kind == "PreventDamageFilt" || r.Kind == "PreventDamageN" {
 		fmt.Fprintf(w, "    source=%s bits=%#x n=%v ctr=%q\n", r.F2, r.Bits, r.N, r.Ctr)
 	}
+	if r.Kind == "DamageInstead" {
+		fmt.Fprintf(w, "    source=%s bits=%#x body=%#x ctr=%q\n", r.F2, r.Bits, r.Body, r.Ctr)
+	}
+	if r.Kind == "DamageMinus" && r.Bits&kop.ReplDmgHalfDown != 0 {
+		fmt.Fprintf(w, "    halved bits=%#x\n", r.Bits)
+	}
 	if r.Kind == "GraveToLibrary" {
 		fmt.Fprintf(w, "    lib bottom=%v shuffle=%v fromBF=%v\n", r.LibBottom, r.LibShuffle, r.LibFromBattlefield)
 	}
