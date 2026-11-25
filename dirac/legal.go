@@ -2731,6 +2731,19 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 			open = true
 			continue
 		}
+		if s.askColDeferred(k, sl) {
+			// the head's own Mana params are one {C} (gorge addPotentialMana
+			// over a ChooseColor head), never the open any-colour production
+			// the generic tap below would fold (mana_askcolour.go
+			// askColPotential)
+			s.askColPotential(k, sl, pc, pain, life, add, fold, &cen)
+			cen.pain = 0
+			if n := gatePairPotential(pc); n != 0 {
+				cen.gatePairUnit(sl, uint8(pc.wideCol), n, add, fold)
+			}
+			s.potentialGrantedExtra(k, sl, d, boundedAny, add, fold, &cen, &open, &anyFree)
+			continue
+		}
 		dynamic := s.potentialDynamicSource(k, sl, pc, &done)
 		if dynamic {
 			cen.gapTap = cen.gapTap.with(sl)
