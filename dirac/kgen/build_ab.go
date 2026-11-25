@@ -2989,6 +2989,10 @@ func (cb *cardBuilder) repl(r lRepl) (kop.Ability, error) {
 		if err := cb.replRewrite(r, rp); err != nil {
 			return ka, err
 		}
+	case "DamageInstead":
+		if err := cb.replInstead(r, rp); err != nil { // lower_replinstead.go
+			return ka, err
+		}
 	default:
 		return ka, fmt.Errorf("replacement %s", r.Kind)
 	}
