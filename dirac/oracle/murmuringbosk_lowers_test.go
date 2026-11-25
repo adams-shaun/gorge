@@ -112,16 +112,30 @@ func kboskRun(t *testing.T, pol func(uint64) Policy, lo, hi uint64, tal *kboskTa
 	return nil
 }
 
-// TestMurmuringBoskLowers: random and explore policies, no divergence and no
-// unmodelled stall, and gorge's side activates both of the Bosk's abilities,
-// so the lockstep compares the pair's {G} and its painful colours.
+// TestMurmuringBoskLowers: the random policy over seeds 1-80, no divergence
+// and no unmodelled stall, and gorge's side activates both of the Bosk's
+// abilities, so the lockstep compares the pair's {G} and its painful colours.
 func TestMurmuringBoskLowers(t *testing.T) {
 	if isolate(t) {
 		return
 	}
+	kboskBoth(t, pkPolicy)
+}
+
+// TestMurmuringBoskLowersExplore is TestMurmuringBoskLowers under the
+// explore policy (split to keep each test inside the 60 s budget).
+func TestMurmuringBoskLowersExplore(t *testing.T) {
+	if isolate(t) {
+		return
+	}
+	kboskBoth(t, ExplorePolicy)
+}
+
+// kboskBoth plays seeds 1-80 with pol and asks for both abilities.
+func kboskBoth(t *testing.T, pol func(uint64) Policy) {
+	t.Helper()
 	var tal kboskTally
-	kboskRun(t, pkPolicy, 1, 40, &tal, false)
-	kboskRun(t, ExplorePolicy, 1, 48, &tal, false)
+	kboskRun(t, pol, 1, 80, &tal, false)
 	t.Logf("Murmuring Bosk on gorge's side: painful {W}/{B} %d, {G} %d", tal.pain, tal.green)
 	if tal.pain == 0 || tal.green == 0 {
 		t.Errorf("Murmuring Bosk activations: painful %d, {G} %d; want both", tal.pain, tal.green)

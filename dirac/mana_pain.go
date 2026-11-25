@@ -383,6 +383,18 @@ func prepPainFirst(c *kop.CardDef, pc *pcard) bool {
 	return true
 }
 
+// painColNormal is the colours gorge's census counts a damage-pain pair
+// under (pay planalts.go Alt.Colours: the normal tier's colours, {C} aside,
+// on every alternative of the source): a coloured normal alternative's
+// (Murmuring Bosk's {G}, prepPainFirst), none for a painland's {C}. A life
+// pair keeps its measured reading (0).
+func painColNormal(pc *pcard) uint8 {
+	if pc.painOnly || pc.painLife || DebugPainFirstOff {
+		return 0
+	}
+	return uint8(pc.manaCol) & 0x1f
+}
+
 // painLifeAb is the ability index of pc's pain alternative (prepPainMana's
 // second mana ability; a restricted life pair's only, never prepPainFirst's).
 func painLifeAb(c *kop.CardDef) int8 {
@@ -704,6 +716,7 @@ func (s *State) painUnit(k *prep, sl Slot, pc *pcard, pass int, pk *planner, i i
 		}
 	}
 	fl := painFlexAll(pc, xc, xp) // FlexAll: the normal mana and the colours, and the extra's
+	colNormal := painColNormal(pc)
 	add := func(mask, pain uint8, alt bool) int {
 		if pk.nt == len(pk.types) {
 			return -1
@@ -721,6 +734,13 @@ func (s *State) painUnit(k *prep, sl Slot, pc *pcard, pass int, pk *planner, i i
 			n += r
 		}
 		pk.types[t] = utype{mask: mask, dmask: mask, n: n, creat: cr, flex: fl, pain: pain, alt: alt, irr: 3 * pain, nocol: pain != 0, sacOnly: lifeOnlyPain(pc)}
+		if pain != 0 && colNormal != 0 {
+			// gorge's Alt.Colours is the source's normal colours on every
+			// alternative, the painful one's too (pay planalts.go), so a
+			// coloured pair's painful pick still spends its {G} from keys 6
+			// and 7's remainder (painColNormal)
+			pk.types[t].dmask, pk.types[t].nocol = colNormal, false
+		}
 		if pain != 0 && restricted {
 			// a life unit's restriction rides its pair: the unit's mana
 			// floats restricted and the life is paid, not dealt as damage
@@ -748,7 +768,8 @@ func (s *State) painUnit(k *prep, sl Slot, pc *pcard, pass int, pk *planner, i i
 	// the same colours is ordinary mana).
 	findP := func() int {
 		for t := 0; t < pk.nt; t++ {
-			if painTypeMatches(&pk.types[t], pc.painN, pm, cr, !pc.painOnly, xp, lifeOnlyPain(pc), restricted) {
+			if painTypeMatches(&pk.types[t], pc.painN, pm, cr, !pc.painOnly, xp, lifeOnlyPain(pc), restricted) && (colNormal == 0) == pk.types[t].nocol &&
+				(colNormal == 0 || pk.types[t].dmask == colNormal) {
 				return t
 			}
 		}
@@ -777,6 +798,11 @@ func (s *State) painUnit(k *prep, sl Slot, pc *pcard, pass int, pk *planner, i i
 			if tc = add(prim, 0, false); tc < 0 {
 				return true
 			}
+		}
+	}
+	for c := 0; c < 5; c++ {
+		if colNormal&(1<<c) != 0 {
+			pk.colSrc[c]++ // NewRankContext's ColourSources: alts[0].Colours, the normal colours
 		}
 	}
 	if normalOnly {
