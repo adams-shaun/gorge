@@ -21,7 +21,7 @@ var DebugNoDefenderAssigns bool
 //
 //go:noinline
 func (s *State) defenderAssigns(k *prep, a Slot) bool {
-	if k.gen == nil || !k.gen.anyDefAssigns || DebugNoDefenderAssigns || !isPlayerTarget(s.perms[a].atk) {
+	if DebugNoDefenderAssigns || !isPlayerTarget(s.perms[a].atk) {
 		return false
 	}
 	for m := s.statM.and(s.ctrlM[CodeSeat(s.perms[a].atk)]); m.any(); m = m.rest() {
