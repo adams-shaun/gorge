@@ -2134,6 +2134,16 @@ func oracleAnswerManaStage(r *oracleRun, st oracleStep, seat state.PlayerID, id 
 		// only when the scenario did not queue one, so a costed any-colour
 		// wheel behaves like every other colour wheel.
 		if hasOracleAnswer(r.answers, choice.Kind) {
+			// Except when the step names its ability by index and the wheel
+			// offers that ability as exactly one option (Sliver Hive's "Add
+			// any color" beside "Add C"): the wheel then has nothing left to
+			// decide, so it is answered here and the queued colour answer
+			// stays for the ability's own colour ask. A flattened combo
+			// (Shivan Reef's "Add U", "Add R") offers one option per colour,
+			// and the queued colour answer still picks among them.
+			if own := oracleOnlyWheelOption(choice, id, wantIdx); own >= 0 && len(abilities) > 1 {
+				return r.submit(choice, []int{own}, "mana ability")
+			}
 			return nil
 		}
 		want := oracleRequestedManaLabel(st, wantSA, e.G, id)
@@ -2212,6 +2222,26 @@ func oracleAnswerManaStage(r *oracleRun, st oracleStep, seat state.PlayerID, id 
 		return harnessf("mana ability %q not offered (available: %v)", st.Ability, manaLabels)
 	}
 	return nil
+}
+
+// oracleOnlyWheelOption is the index of the one mana-wheel option of source id
+// that carries available-ability index want, or -1 when want is unset or the
+// wheel offers that ability as none or several options.
+func oracleOnlyWheelOption(d *decision.Decision, id state.ObjID, want int) int {
+	if want < 0 {
+		return -1
+	}
+	idx := -1
+	for _, o := range d.Options {
+		if o.Kind != "mana" || o.Obj != id || o.Ability != want {
+			continue
+		}
+		if idx >= 0 {
+			return -1
+		}
+		idx = o.Index
+	}
+	return idx
 }
 
 // oracleRequestedManaLabel is the wheel label the stage carries for the
