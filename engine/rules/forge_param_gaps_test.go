@@ -55,8 +55,8 @@ func TestLethalDamageByPowerJudgesByPower(t *testing.T) {
 }
 
 const mirrorGlass = "Name:Hollow Glass\nManaCost:2\nTypes:Artifact\n" +
-	"T:Mode$ SpellCast | ValidCard$ Card | ValidActivatingPlayer$ Player | TriggerZones$ Battlefield | Execute$ TrigCounter | NoColoredMana$ True | TriggerDescription$ x\n" +
-	"SVar:TrigCounter:DB$ Counter | Defined$ TriggeredSpellAbility\nOracle:x\n"
+	"T:Mode$ SpellCast | ValidCard$ Card | ValidActivatingPlayer$ Player | TriggerZones$ Battlefield | Execute$ TrigVoid | NoColoredMana$ True | TriggerDescription$ x\n" +
+	"SVar:TrigVoid:DB$ Counter | Defined$ TriggeredSpellAbility\nOracle:x\n"
 
 const mirrorBauble = "Name:Plain Bauble\nManaCost:2\nTypes:Artifact\nOracle:x\n"
 
