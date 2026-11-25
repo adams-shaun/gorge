@@ -20,6 +20,10 @@ import (
 // repeated card to its controller under DamageMap$ True
 // (repeatEachCardsDamage), which moves no card, so it reads no
 // ChangeZoneTable$.
+//
+// DefinedCards$ DirectRemembered and RememberedCard route to the remembered
+// loops instead (lower_repeatremembered.go): a batched/inline body, or the
+// plain resumable frame over a preceding token mint.
 func (lc *lowerCtx) repeatEachCards(ps *params) error {
 	cardsSpec, defSpec := strings.TrimSpace(ps.str("RepeatCards")), strings.TrimSpace(ps.str("DefinedCards"))
 	if cardsSpec == "" && defSpec == "" {
@@ -43,8 +47,19 @@ func (lc *lowerCtx) repeatEachCards(ps *params) error {
 		return refuse("RepeatEach cards Zone$ %q", z)
 	}
 	in := lInstr{Op: "RepeatEachCard", Obj: lRef{Kind: rNone}}
+	if strings.HasPrefix(defSpec, "DirectRemembered.") {
+		// gorge's repeatedCards reads the subject spelling up to its first
+		// dot (engine/effects/repeateach.go repeatedCards), so a filtered
+		// DirectRemembered.<type> is the whole remembered list. Only the
+		// optional remembered-searcher body lowers it (Wave of Vitriol);
+		// lower_repeatremembered_ask.go refuses every other shape.
+		return lc.repeatEachRememberedSearch(ps, in)
+	}
 	if defSpec == "DirectRemembered" {
 		return lc.repeatEachRemembered(ps, in) // lower_repeatremembered.go
+	}
+	if defSpec == "RememberedCard" {
+		return lc.repeatEachRememberedCard(ps, in) // lower_repeatremembered.go
 	}
 	if defSpec != "" {
 		if defSpec != "Targeted" {
