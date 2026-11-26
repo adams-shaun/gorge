@@ -604,6 +604,11 @@ type lInstr struct {
 	// is back in the grant's zone within the duration (lower_zone.go's
 	// continuous case), not only at the version the grant was made at.
 	Follows bool
+	// ConvC: a MayPlay grant whose record lets the controller spend
+	// colourless mana as though it were mana of any colour to cast the card
+	// (kop MayPlayConvC on the emitted C): Abstruse Appropriation's
+	// ManaConversion$ C->AnyColor static (lower_zone.go partitionMayPlay).
+	ConvC bool
 }
 
 func (in lInstr) String() string {
@@ -626,6 +631,9 @@ func (in lInstr) String() string {
 	}
 	if in.Follows {
 		parts = append(parts, "follows")
+	}
+	if in.ConvC {
+		parts = append(parts, "convc")
 	}
 	if len(in.Hyb) != 0 {
 		parts = append(parts, "hyb="+strings.Join(in.Hyb, ","))
