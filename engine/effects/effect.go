@@ -641,6 +641,31 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			if !tl.OneOff {
 				text += "|EF"
 			}
+			// The Effect's own ImprintCards$ capture rides a Phase registration
+			// whose body reads IsImprinted (Flickerform's end-step return, the
+			// only corpus carrier). Forge's EffectEffect imprints the
+			// ImprintCards$ set on the CREATED EFFECT token, so the delayed
+			// body's Card.IsImprinted later reads the Effect's imprint; this
+			// build has no effect token, so the set rides the registration
+			// (state.DelayedTrigger.Imprinted) and the resolving body's
+			// predicate reads it (TriggerContext.DelayedImprinted) instead of
+			// the host's live association -- which the chain's own Cleanup
+			// (Flickerform's DBCleanup ClearImprinted$ True) cleared before
+			// the trigger ever fired (CR 603.7a/610.3). Captured HERE, inside
+			// the link's binding window (the registry's ImprintCards$ rider
+			// resolves in the same one) and before that cleanup. A body that
+			// never reads IsImprinted (Ertai's Meddling's upkeep counter)
+			// carries no spelling, so its registration is byte-identical.
+			imSuffix := ""
+			if ep.ImprintCards != "" && strings.Contains(c.SVars[exec], "IsImprinted") {
+				if ids := imprintCaptureIDs(h, c, ep.ImprintCards); len(ids) > 0 {
+					parts := make([]string, 0, len(ids))
+					for _, id := range ids {
+						parts = append(parts, strconv.Itoa(int(id)))
+					}
+					imSuffix = "|IM=" + strings.Join(parts, ",")
+				}
+			}
 			// The Effect's remembered PLAYERS join the capture (Rowan
 			// Kenrith's RememberObjects$ Targeted names a player): the phase
 			// scan's ValidPlayer$ Player.IsRemembered gate and the body's
@@ -650,7 +675,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			for _, owner := range owners {
 				h.Emit(events.Event{Kind: events.DelayedRegister, Obj: c.Source,
 					Player: owner, Step: step, Counter: exec,
-					IDs: encodeRemembered(phaseIDs), Text: text + cnSuffix + ccSuffix})
+					IDs: encodeRemembered(phaseIDs), Text: text + cnSuffix + ccSuffix + imSuffix})
 			}
 			registered = true
 		default:

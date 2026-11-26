@@ -897,6 +897,20 @@ type DelayedTrigger struct {
 	// that took no snapshot.
 	ChosenCard       []ObjID
 	ChosenCardFrozen bool
+	// Imprinted is an Effect-created trigger's snapshot of the Effect's own
+	// ImprintCards$ capture at REGISTRATION (Forge's EffectEffect imprints
+	// that set on the effect card it creates). The body's IsImprinted filter
+	// is re-evaluated at fire time against the source object, whose live
+	// imprint association the chain's own `DB$ Cleanup | ClearImprinted$
+	// True` cleared before the trigger ever fired (Flickerform's end-step
+	// return: the body's Card.IsRemembered+IsImprinted must read the
+	// Effect's capture, CR 603.7a/610.3); a bound set makes the IsImprinted
+	// predicate read THIS set instead (TriggerContext.DelayedImprinted).
+	// The set rides the DelayedRegister event's Text ("|IM=<id>[,<id>...]")
+	// because the event gains no field. nil is a registration that took no
+	// snapshot, which keeps the live association the only reader, exactly as
+	// before.
+	Imprinted []ObjID
 	// Effect-created trigger lifetime riders, folded from DelayedRegister.Text.
 	// BirthTurn distinguishes a later turn belonging to the effect controller
 	// from the turn in which the promise was created.
