@@ -2745,6 +2745,8 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 				st.StFlags |= kop.StMayZeroAlt // a non-granting alternative cost (cast_mayzeroalt.go)
 			case "MayPayEnergy":
 				st.StFlags |= kop.StMayPayEnergy // the alternative's energy rides Static.A
+			case "MayPayEvidence":
+				st.StFlags |= kop.StMayPayEvidence // the alternative's evidence rides Static.A
 			case "RaiseCostRemove6CountersFromCreatures":
 				st.StFlags |= kop.StRemove6Counters
 			case "MayRaise":

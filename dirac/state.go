@@ -866,39 +866,40 @@ type build struct {
 	// cost picks (discard / sacrifice / tap-creatures costs): pickK is the
 	// cost flag being chosen, pickLeft the picks still owed, picks the
 	// objects chosen so far (paid at bsPay).
-	pickK     pickKind
-	pickLeft  uint8
-	pickN     uint8
-	picks     [24]Obj // Lathril taps ten Elves; 24 since kcaps2x (was 12: a tap-any-number cost past 12 picks, c6)
-	pickKs    [24]pickKind
-	donePicks pickKind
-	dilLo     uint8 // bflDilemma: the pending triggers that dilemma queued, [dilLo, dilHi)
-	dilHi     uint8
-	bfl       uint16   // bflPushed: the entry is on the stack (top); bflLowered: the oracle lowered the cast
-	altAdd    uint8    // either-or additional cost: 0 the spell's own, 1 CardDef.AltAddCost
-	pipN      uint8    // hybrid pips announced so far
-	pipC      [2]uint8 // their colours (W U B R G = 0..4), in pip order
-	pushNP    uint8    // pending triggers when the spell was pushed: a reversed cast drops the ones its own move queued (CR 733.1)
-	manaNP    uint8    // 1 + pending triggers when the spell's mana step began (0 = not begun): the reversal keeps what its mana abilities queued after it (unpushSpell)
-	fbGrants  uint8    // the card's flashback grants before this cast ended them (the undo restores them)
-	divSlot   uint8    // bsDivide: the divided target slot
-	divLeft   uint8    // bsDivide: points still to place beyond each target's 1
-	cas       uint8    // casElected / casPaid: the casualty cast (kw_casualty.go)
-	origin    kop.Zone // a pushed spell's zone before the push (the CR 733.1 reversal returns it there)
-	libPos    uint8    // origin library: the card's index from the top before the push (the reversal puts it back there, CR 733.2)
-	castN     uint8    // the ring entry noteCast recorded for this cast (index+1; 0 = none)
-	obsSl     Slot     // 1 + the slot of the observed mana source (a Tf2ManaFromSelf reader) this cast tapped; 0 none (mana_spendtrigger.go)
-	obsMore   [7]Slot  // 1 + each further plain observed source the same cast tapped (several Path of Ancestry), each rider reading its own; 0 free (noteTapSrc)
-	raiseSl   Slot     // the may-play static whose non-mana RaiseCost$ this cast owes: its slot (NoSlot = the cast card's own static); raiseAb 0 = none (cost_mayplayraise.go)
-	raiseAb   uint8    // Static.B of that static: 1 + the latent ability holding the raise cost
-	fixedGen  uint8    // the generic part as last priced (bflCostFixed: the total cost, CR 601.2f)
-	obsWin    uint8    // obsWinTapped: obsSl was set by a manual-window tap before the payment, so it counts only if the payment spends that source's colour; obsWinPaying: the payment began (mana_spendtrigger.go obsWinSettle)
-	pipShort  bool     // the lowered pip window ran dry (loweredPipWindow): the cost objects are still asked, and the payment reverses the cast
-	altAbort  bool     // the chosen either-or part cannot be paid: the fallback CR 601.2g window runs at bsMana (manaStep) and reverses the cast (CR 733.1)
-	impPlan   bool     // gorge's planner priced this Improvise cast (kw_improvisepay.go)
-	snowPre   uint8    // a SpentSnow card's cast: the seat's snow units before the mana payment (snowSpentRec, mana_snow.go)
-	payLifeMV bool     // the cast went through a may-play permission whose alternative cost is life equal to its mana value (cast_mayplaypaylife.go)
-	payEnergy uint8    // the cast went through a may-play permission whose alternative cost is this much energy (kop.StMayPayEnergy, Nissa, Worldsoul Speaker; paid beside payLifeMV)
+	pickK       pickKind
+	pickLeft    uint8
+	pickN       uint8
+	picks       [24]Obj // Lathril taps ten Elves; 24 since kcaps2x (was 12: a tap-any-number cost past 12 picks, c6)
+	pickKs      [24]pickKind
+	donePicks   pickKind
+	dilLo       uint8 // bflDilemma: the pending triggers that dilemma queued, [dilLo, dilHi)
+	dilHi       uint8
+	bfl         uint16   // bflPushed: the entry is on the stack (top); bflLowered: the oracle lowered the cast
+	altAdd      uint8    // either-or additional cost: 0 the spell's own, 1 CardDef.AltAddCost
+	pipN        uint8    // hybrid pips announced so far
+	pipC        [2]uint8 // their colours (W U B R G = 0..4), in pip order
+	pushNP      uint8    // pending triggers when the spell was pushed: a reversed cast drops the ones its own move queued (CR 733.1)
+	manaNP      uint8    // 1 + pending triggers when the spell's mana step began (0 = not begun): the reversal keeps what its mana abilities queued after it (unpushSpell)
+	fbGrants    uint8    // the card's flashback grants before this cast ended them (the undo restores them)
+	divSlot     uint8    // bsDivide: the divided target slot
+	divLeft     uint8    // bsDivide: points still to place beyond each target's 1
+	cas         uint8    // casElected / casPaid: the casualty cast (kw_casualty.go)
+	origin      kop.Zone // a pushed spell's zone before the push (the CR 733.1 reversal returns it there)
+	libPos      uint8    // origin library: the card's index from the top before the push (the reversal puts it back there, CR 733.2)
+	castN       uint8    // the ring entry noteCast recorded for this cast (index+1; 0 = none)
+	obsSl       Slot     // 1 + the slot of the observed mana source (a Tf2ManaFromSelf reader) this cast tapped; 0 none (mana_spendtrigger.go)
+	obsMore     [7]Slot  // 1 + each further plain observed source the same cast tapped (several Path of Ancestry), each rider reading its own; 0 free (noteTapSrc)
+	raiseSl     Slot     // the may-play static whose non-mana RaiseCost$ this cast owes: its slot (NoSlot = the cast card's own static); raiseAb 0 = none (cost_mayplayraise.go)
+	raiseAb     uint8    // Static.B of that static: 1 + the latent ability holding the raise cost
+	fixedGen    uint8    // the generic part as last priced (bflCostFixed: the total cost, CR 601.2f)
+	obsWin      uint8    // obsWinTapped: obsSl was set by a manual-window tap before the payment, so it counts only if the payment spends that source's colour; obsWinPaying: the payment began (mana_spendtrigger.go obsWinSettle)
+	pipShort    bool     // the lowered pip window ran dry (loweredPipWindow): the cost objects are still asked, and the payment reverses the cast
+	altAbort    bool     // the chosen either-or part cannot be paid: the fallback CR 601.2g window runs at bsMana (manaStep) and reverses the cast (CR 733.1)
+	impPlan     bool     // gorge's planner priced this Improvise cast (kw_improvisepay.go)
+	snowPre     uint8    // a SpentSnow card's cast: the seat's snow units before the mana payment (snowSpentRec, mana_snow.go)
+	payLifeMV   bool     // the cast went through a may-play permission whose alternative cost is life equal to its mana value (cast_mayplaypaylife.go)
+	payEnergy   uint8    // the cast went through a may-play permission whose alternative cost is this much energy (kop.StMayPayEnergy, Nissa, Worldsoul Speaker; paid beside payLifeMV)
+	payEvidence uint8    // the cast went through a may-play permission whose alternative cost is this much evidence (kop.StMayPayEvidence, Conspiracy Unraveler; the bsEvidence pick asked over the graveyard, exiled beside payLifeMV)
 	// repeatCost is the Squad/Replicate payment's pick cost scaled to the
 	// answered count, returned by buildPickCost so the ordinary pick stages
 	// pay it (kw_squadreplicate.go).

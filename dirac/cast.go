@@ -1767,6 +1767,9 @@ func (s *State) payCastParts(k *prep, ep *stackEntry, anyColor bool) {
 	if k.gen != nil && k.gen.anyRaiseLife {
 		s.payRaiseLife(k) // a RaiseCost PayLife<N> the chosen target owes (cost_raiselife.go)
 	}
+	if n := s.bld().payEvidence; n > 0 {
+		s.payMayEvidence(k) // a may-play cast's alternative cost: the picked evidence (kop.StMayPayEvidence)
+	}
 	if s.bld().payLifeMV {
 		s.payMayPlayLife(k) // a may-play cast's alternative cost: life equal to its mana value (cast_mayplaypaylife.go)
 	}
