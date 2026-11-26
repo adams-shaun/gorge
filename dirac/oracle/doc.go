@@ -120,6 +120,15 @@
 // manual window is answered by its auto-fill, else a source making an owed
 // colour (Stats.Fallbacks).
 //
+// Config.PriorityManaAsk (off by default) adds one exception: the activation
+// of a colour-asking mana source whose Mana node asks every player to pay {1}
+// (Rhystic Cave) is a canonical priority option, and its colour ask
+// (choose:mana) and each player's pay/decline ask (mode) are canonical
+// decisions. gorge's payment windows never list it (CR 605.4, an
+// instant-speed-only ability), so no other route reaches those asks. The
+// kernel mirrors it (dirac mana_priask.go); the payer's own mana window is
+// answered beneath the surface like any payment window.
+//
 // A cast's payment window can list a hand-zone source (Elvish Spirit Guide
 // or Simian Spirit Guide) after every battlefield source; the kernel's window
 // walk takes it there once no battlefield source is listed, and its

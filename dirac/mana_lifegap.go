@@ -278,7 +278,7 @@ func (s *State) windowLifeCtrGapTap(k *prep, p uint8, sl Slot, cost *kop.ManaCos
 // never prices (an {X} cost: plannedCastCost's shape test) stays dropped.
 func (s *State) lifeGapPriced(k *prep, p uint8, o Obj) bool {
 	life := s.lifeGapMask(k, p)
-	if !life.any() || k.gen.anyFilt && (s.scriptFilt(k, p).any() || s.mixBoard(k, p)) {
+	if !life.any() || k.gen.anyFilt && (s.scriptFilt(k, p).any() || s.mixBoardFilt(k, p, filtNone)) {
 		return false
 	}
 	if _, shape := s.plannedCastCost(k, p, o, 0); !shape {

@@ -146,8 +146,14 @@ func grantWalkKey(s *State, sl Slot) uint32 {
 // relative order listenerOrder's list does. Equal keys keep slot order, as
 // the walk's stable sort does.
 func (s *State) grantOrder(k *prep, ord *[MaxPerm]Slot) int {
+	return s.grantOrderIn(k, s.statM, ord)
+}
+
+// grantOrderIn is grantOrder restricted to the statM slots in from: the
+// same relative order, as the insertion is stable.
+func (s *State) grantOrderIn(k *prep, from slotMask, ord *[MaxPerm]Slot) int {
 	n := 0
-	for m := s.statM; m.any(); m = m.rest() {
+	for m := from; m.any(); m = m.rest() {
 		sl := m.first()
 		if !k.cards[s.cardAt(sl)].grantStat {
 			continue
@@ -172,6 +178,13 @@ func (s *State) grantOrder(k *prep, ord *[MaxPerm]Slot) int {
 //
 //go:noinline
 func (s *State) contGrants(k *prep, sl Slot, lost bool, lts uint16, f func(c CardID, ab uint8, n int)) {
+	s.contGrantsIn(k, s.statM, sl, lost, lts, f)
+}
+
+// contGrantsIn is contGrants over the statM sources in from (a superset of
+// the gfContGrant ones: grantSrcScan's); the walk skips every other source,
+// so the order it reads is grantOrder's restricted to from.
+func (s *State) contGrantsIn(k *prep, from slotMask, sl Slot, lost bool, lts uint16, f func(c CardID, ab uint8, n int)) {
 	// gorge lists the grants in its static walk's order (collectActionStatics:
 	// each seat's battlefield in entry order), which the activation ask
 	// and the prefix search follow (the first grant's colours are tried
@@ -181,7 +194,7 @@ func (s *State) contGrants(k *prep, sl Slot, lost bool, lts uint16, f func(c Car
 	// gfContGrant check keeps the ones f can be called for, in the same
 	// relative order.
 	var order [MaxPerm]Slot
-	n := s.grantOrder(k, &order)
+	n := s.grantOrderIn(k, from, &order)
 	for oi := 0; oi < n; oi++ {
 		src := order[oi]
 		cid := s.cardAt(src)
@@ -230,17 +243,20 @@ func (s *State) grantIdxs(k *prep, sl Slot, out *[maxGrants]int16) (n int) {
 	// by the granting source's place in that walk. A grant without a
 	// source in it (an Animate record) keeps its place after them.
 	var order [MaxPerm]Slot
-	no := 0
-	if g.anyContGrant {
-		// the grant walk's order restricted to the slots whose card at
-		// cardAt can grant a static ability (pc.grantStat): grantsBetween's
-		// attached statics and contGrants' unattached ones, every source
-		// grantSrc names. The place scan below reads the same relative
-		// order off it as off listenerOrder's full walk.
-		no = s.grantOrder(k, &order)
-	}
+	no := -1 // the order is read on the first grant: most slots have none
 	var key [maxGrants]uint8
 	s.grantedAbilities(k, sl, func(c CardID, ab uint8) {
+		if no < 0 {
+			no = 0
+			if g.anyContGrant {
+				// the grant walk's order restricted to the slots whose card at
+				// cardAt can grant a static ability (pc.grantStat): grantsBetween's
+				// attached statics and contGrants' unattached ones, every source
+				// grantSrc names. The place scan below reads the same relative
+				// order off it as off listenerOrder's full walk.
+				no = s.grantOrder(k, &order)
+			}
+		}
 		pos := uint8(255)
 		for oi := 0; oi < no; oi++ {
 			if s.g.grantSrc != 0 && s.perms[order[oi]].obj+1 == s.g.grantSrc {
@@ -3508,7 +3524,11 @@ func (s *State) grantPlayCostRaise(k *prep, p uint8, a Action, kicked bool) (cos
 			}
 			// the composed cost (pair 8638)
 			c := s.objs[a.Source()].card
-			cost = s.featCost(k, SeatIx(p), c, Obj(a.Source()), addCost(k.cards[c].cost, kickAdd(&k.t.Cards[c])))
+			kp := s.kickPayment(k, SeatIx(p), c, Obj(a.Source()), true)
+			if DebugGrantKickNoMulti && k.t.Cards[c].HasMultikicker {
+				kp = k.t.Cards[c].Kicker // the mutation switch: a Multikicker play priced at its base alone
+			}
+			cost = s.featCost(k, SeatIx(p), c, Obj(a.Source()), addCost(k.cards[c].cost, kp))
 			if s.convAnyType(k, SeatIx(p), Obj(a.Source())) {
 				cost = anyTypePips(cost) // a creature's kicked total under Vizier's conversion, as plannedCastCostOf prices the plain one (featview.go)
 			}

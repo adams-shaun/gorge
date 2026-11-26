@@ -39,6 +39,7 @@ type pinConfig struct {
 	GorgeAutopaySurface bool `json:"gorge_autopay_surface,omitempty"`
 	RecordChance        bool `json:"record_chance,omitempty"`
 	ArrangeRestOrder    bool `json:"arrange_rest_order,omitempty"`
+	PriorityManaAsk     bool `json:"priority_mana_ask,omitempty"`
 }
 
 func (c pinConfig) config() Config {
@@ -47,6 +48,7 @@ func (c pinConfig) config() Config {
 		GorgeAutopaySurface: c.GorgeAutopaySurface,
 		RecordChance:        c.RecordChance,
 		ArrangeRestOrder:    c.ArrangeRestOrder,
+		PriorityManaAsk:     c.PriorityManaAsk,
 	}
 }
 
