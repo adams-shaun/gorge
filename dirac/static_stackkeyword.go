@@ -115,6 +115,8 @@ func stackKwGates(a *kop.Ability, g *genPrep, p *prep) {
 	case kop.StackKwStorm:
 		g.anyStorm, g.anyHist = true, true         // the count reads the history bank
 		g.anyCopyElect, g.anyPermCopy = true, true // its copies choose new targets, and a granted spell may be a permanent
+	case kop.StackKwRipple:
+		g.anyRippleGrant = true // the cast trigger queues beside the spell (kw_ripple.go)
 	}
 }
 

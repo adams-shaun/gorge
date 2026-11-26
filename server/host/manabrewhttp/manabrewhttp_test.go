@@ -92,7 +92,7 @@ func newTestServer(t *testing.T, humans []int, thinkTimeout time.Duration, mulli
 // server/host/httpapi's own parkedSeat helper.
 func waitForPending(t *testing.T, r *host.Registry, table host.TableID, k int, seat state.PlayerID) *decision.Decision {
 	t.Helper()
-	deadline := time.Now().Add(20 * time.Second)
+	deadline := time.Now().Add(testutil.WaitBudget)
 	for {
 		if d, err := r.Pending(table, k, seat); err == nil {
 			return d
@@ -181,7 +181,7 @@ type sseStream struct {
 
 func openStream(t *testing.T, srv *httptest.Server, path, token string) *sseStream {
 	t.Helper()
-	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), testutil.WaitBudget)
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, srv.URL+path, nil)
 	if err != nil {
 		cancel()
@@ -410,7 +410,7 @@ func TestStaleAfterCaretaker(t *testing.T) {
 	d := waitForPending(t, ts.reg, "t1", 1, 0)
 	staleSeq := d.Seq
 
-	deadline := time.Now().Add(10 * time.Second)
+	deadline := time.Now().Add(testutil.WaitBudget)
 	for {
 		nd, err := ts.reg.Pending("t1", 1, 0)
 		if err == nil && nd.Seq != staleSeq {
@@ -468,7 +468,7 @@ func TestConcedeQueuedToPriority(t *testing.T) {
 		t.Fatalf("keeping the opening hand: status %d body %+v, want 204", code, pe)
 	}
 
-	deadline := time.Now().Add(15 * time.Second)
+	deadline := time.Now().Add(testutil.WaitBudget)
 	for {
 		v, err := ts.reg.ViewAtSeat("t1", 1, headSeqFor(t, ts.reg, "t1", 1), 1)
 		if err == nil {

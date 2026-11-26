@@ -306,4 +306,8 @@ func TestStaticZonesStackKwMutation(t *testing.T) {
 	if diverged, _ := staticZonesOffspringRun(t, 64, false); !diverged {
 		t.Fatal("DebugStackKwOff: no divergence in 64 seeds of the offspring pool")
 	}
+	if diverged, _ := staticZonesRippleRun(t, 64, false); !diverged {
+		t.Fatal("DebugStackKwOff: no divergence in 64 seeds of the ripple pool")
+	}
+
 }

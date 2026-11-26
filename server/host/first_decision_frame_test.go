@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/adams-shaun/gorge/server/protocol"
+	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
 // With every seat human no Submit can run, so the only frame that can carry the
@@ -28,7 +29,7 @@ func TestFirstDecisionReachesAnEarlySubscriber(t *testing.T) {
 	if err := r.Start("t1"); err != nil {
 		t.Fatal(err)
 	}
-	deadline := time.After(30 * time.Second)
+	deadline := time.After(testutil.WaitBudget)
 	for {
 		select {
 		case f := <-s.Out():

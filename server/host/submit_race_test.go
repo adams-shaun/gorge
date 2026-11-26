@@ -9,6 +9,7 @@ import (
 
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/view"
+	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
 // TestConcurrentIdenticalSubmitsAnswerOnceAndNeverHang pins D2: two POSTs of
@@ -40,7 +41,7 @@ func TestConcurrentIdenticalSubmitsAnswerOnceAndNeverHang(t *testing.T) {
 	go func() { wg.Wait(); close(done) }()
 	select {
 	case <-done:
-	case <-time.After(10 * time.Second):
+	case <-time.After(testutil.WaitBudget):
 		t.Fatal("concurrent identical submits hung: a handler waited for a verdict it could never receive")
 	}
 
@@ -101,7 +102,7 @@ func TestSubmitClaimsTheSlotBeforeTheAnswerIsConsumed(t *testing.T) {
 		select {
 		case <-done:
 			finished++
-		case <-time.After(10 * time.Second):
+		case <-time.After(testutil.WaitBudget):
 			t.Fatalf("only %d of %d submits were refused before the answer was consumed: a losing submit is blocked on a verdict it can never receive", finished, n-1)
 		}
 	}
@@ -123,7 +124,7 @@ func TestSubmitClaimsTheSlotBeforeTheAnswerIsConsumed(t *testing.T) {
 
 	select {
 	case <-done:
-	case <-time.After(10 * time.Second):
+	case <-time.After(testutil.WaitBudget):
 		t.Fatal("the admitted submit hung waiting for its verdict")
 	}
 
