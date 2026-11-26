@@ -857,6 +857,7 @@ const (
 	bsReplicate // the replicate count ask (CR 702.56a: gorge replicateAsk, after the tap costs and before the multikicker ask; kw_squadreplicate.go)
 	bsMulti     // the multikicker count ask (CR 702.43: gorge multikickAsk, after the tap costs and before Convoke/X; kw_multikicker.go)
 	bsSquad     // the squad count ask (CR 702.157a: gorge squadAsk in preCostAsks, after the multikicker ask and before Convoke/X; kw_squadreplicate.go)
+	bsDefiler   // the Defiler yes/no asks (gorge defilerAsk, after the multikicker ask and before the squad ask; cost_defiler.go)
 	nBuildStages
 )
 
@@ -914,6 +915,13 @@ type build struct {
 	// answered count, returned by buildPickCost so the ordinary pick stages
 	// pay it (kw_squadreplicate.go).
 	repeatCost kop.Cost
+	// the Defiler cycle's answers (cost_defiler.go; scratch only, no State bytes):
+	// defN the applicable statics consulted, defPend an ask posed (defCol its
+	// colour, defAsk its life), defLife the life the yeses owe, defRed their
+	// pips per colour (W U B R G)
+	defN, defCol, defAsk, defLife uint8
+	defPend                       bool
+	defRed                        [5]uint8
 }
 
 // build.bfl bits. bflLowered: a cast gorge's planner does not price,
