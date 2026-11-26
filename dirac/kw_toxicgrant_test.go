@@ -93,3 +93,26 @@ func TestGrantedToxicReads(t *testing.T) {
 		t.Errorf("a mark while the abilities are lost: stall %s, want %s", StallName(sc.s.StallReason()), StallName(StallToxicGrant))
 	}
 }
+
+// TestToxicGrantTableStall: a granted toxic alone does not make the table an
+// infect table for the damage replacement-order ask (toxic is a trigger, CR
+// 702.164b, no conversion to order), but still stalls beside a counter-added
+// trigger and beside a printed infect.
+func TestToxicGrantTableStall(t *testing.T) {
+	grant := kop.CardDef{Abilities: []kop.Ability{{Kind: kop.AbStatic, Static: kop.Static{Kind: kop.StatContinuous, Toxic: 1}}}}
+	ctr := kop.CardDef{Abilities: []kop.Ability{{Kind: kop.AbTriggered, Trig: kop.Trigger{Event: kop.TrigCounterAddedOnce}}}}
+	run := func(repl uint32, cs ...kop.CardDef) genPrep {
+		g := genPrep{anyRepl: repl}
+		prepInfect(&kop.Table{Cards: cs}, &g)
+		return g
+	}
+	if g := run(rbPrevNC, grant); !g.anyInfect || !g.anyInfectGrant || g.infectStall {
+		t.Errorf("toxic grant + prevention: any %v grant %v stall %v, want true true false", g.anyInfect, g.anyInfectGrant, g.infectStall)
+	}
+	if g := run(0, grant, ctr); !g.infectStall {
+		t.Error("toxic grant + counter-added trigger: no stall")
+	}
+	if g := run(rbPrevNC, grant, kop.CardDef{Infect: true}); !g.infectStall {
+		t.Error("toxic grant + printed infect + prevention: no stall")
+	}
+}

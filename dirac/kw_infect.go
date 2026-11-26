@@ -25,7 +25,9 @@ func prepInfect(t *kop.Table, g *genPrep) {
 	if g.anyInfectGrant {
 		g.anyInfect = true // a granted infect (kw_kwmark.go)
 	}
+	toxicOnly := false // a granted toxic alone makes the table an infect table (kw_toxicgrant.go)
 	if tableGrantsToxic(t) {
+		toxicOnly = !g.anyInfect
 		g.anyInfect, g.anyInfectGrant = true, true // a granted toxic (kw_toxicgrant.go)
 	}
 	if !g.anyInfect {
@@ -59,6 +61,12 @@ func prepInfect(t *kop.Table, g *genPrep) {
 				}
 			}
 		}
+	}
+	if toxicOnly {
+		// toxic is a triggered ability, no replacement (CR 702.164b): a
+		// replacement-order ask beside it orders no conversion, so only the
+		// counter-added trigger shape above stalls such a table
+		return
 	}
 	if g.anyRepl&(rbDblDmg|rbPrevNC|rbPlusDmg) != 0 || g.anyRepl&rbPrevCol != 0 && ask {
 		g.infectStall = true
