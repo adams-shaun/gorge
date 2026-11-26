@@ -397,6 +397,9 @@ func (e *Engine) staticEffectsWalk(dst []ContinuousEffect, skip bool) []Continuo
 								out = append(out, n)
 							}
 						}
+						// A colour-word change static (CR 612.5, Swirl the Mists): its
+						// LText substitution effects, see colourWordEffects.
+						out = colourWordEffects(st, o, base, out)
 						// RemoveType$ (the layer-4 reverse grant, CR 613.1d: the named
 						// type words are removed from every object the static's Affected$
 						// matches, before this same effect's AddTypes apply -- CR 205.1b's

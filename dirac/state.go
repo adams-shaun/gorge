@@ -61,6 +61,14 @@ type Config struct {
 	// carries the pile-B order (the SpellBench v2 mapping's Intent.Rest)
 	// turns it on.
 	ArrangeRestOrder bool
+	// PriorityManaAsk offers the activation of a colour-asking mana source
+	// that asks every player whether to pay its UnlessCost$ (Rhystic Cave) as a
+	// priority option, and poses its colour ask and the players' unless asks as
+	// decisions (mana_priask.go). The oracle sets it with oracle.Config's knob:
+	// gorge's payment windows never list such a source (CR 605.4), so its asks
+	// are reachable only through this priority option. Off (the zero value) the
+	// source is offered nowhere, as before.
+	PriorityManaAsk bool
 	// GorgeAltAdd poses an either-or additional cost the way gorge does:
 	// the ask lists the unpayable parts too (choosing one undoes the cast,
 	// the card going to the end of the hand, and returns to priority).
@@ -803,6 +811,11 @@ const (
 	// awaiting the pick among several candidates (act_revealpick.go; parked in
 	// genState.pick*)
 	ctlTurnUpReveal
+	// ctlManaAsk: a priority-time activation of a colour-asking unless source
+	// (Rhystic Cave) under Config.PriorityManaAsk: the colour ask, then each
+	// player's unless ask (mana_priask.go; parked in genState.winSrc,
+	// winUnless*)
+	ctlManaAsk
 )
 
 // every seat's two command-zone ask states fit ctlCmdZone0..7
