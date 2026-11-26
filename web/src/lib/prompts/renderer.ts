@@ -4,6 +4,7 @@ import { isNamePick } from '../name-pick';
 import { isDiscardPick } from '../discard';
 import { manaWindow } from '../announcepay';
 import { mulliganPhase } from './decision';
+import { isDivideTarget } from './divide';
 
 /**
  * RendererKind names the one renderer a decision is drawn by: one renderer
@@ -19,6 +20,8 @@ import { mulliganPhase } from './decision';
  *    families that already had their own layout.
  *  - priority: the action list under the ACTIONS strip; never the dock.
  *  - target: chips with art thumbnails, highlighted on the board.
+ *  - divide: a target ask that carries a total to divide among its targets
+ *    (divide_total): one stepper per target, both asks answered in one prompt.
  *  - attackers / blockers: assigned on the board, summarised in the dock.
  *  - list: every other kind — modes, choose, replacement, trigger_order,
  *    trigger_optional, commander_zone, starting_player — as numbered rows;
@@ -26,7 +29,7 @@ import { mulliganPhase } from './decision';
  */
 export type RendererKind =
   | 'mulligan' | 'arrange' | 'discard' | 'search' | 'name' | 'payment'
-  | 'priority' | 'target' | 'attackers' | 'blockers' | 'list';
+  | 'priority' | 'target' | 'divide' | 'attackers' | 'blockers' | 'list';
 
 /** rendererFor resolves a decision's renderer, in the precedence SeatPanel's old branch chain used. */
 export function rendererFor(d: Decision): RendererKind {
@@ -38,7 +41,7 @@ export function rendererFor(d: Decision): RendererKind {
   if (manaWindow(d) !== null) return 'payment';
   switch (d.kind) {
     case 'priority': return 'priority';
-    case 'target': return 'target';
+    case 'target': return isDivideTarget(d) ? 'divide' : 'target';
     case 'attackers': return 'attackers';
     case 'blockers': return 'blockers';
     default: return 'list';

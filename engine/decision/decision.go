@@ -846,6 +846,14 @@ type Decision struct {
 	// cannot be asked, in the same way MaxSum 0 means "no budget" -- so
 	// every decision without a combat charge serialises byte-identically.
 	PayerLife int32 `json:"payer_life,omitempty"`
+	// DivideTotal, on a KTarget decision whose spell or ability divides a
+	// total among its targets (DividedAsYouChoose$, CR 601.2d / 603.3d), is
+	// that total: the engine asks the targets first and the division second,
+	// and this lets a client collect both in one prompt. Informational only:
+	// Validate ignores it, the follow-up division decision is unchanged.
+	// 0 (omitted) means no division follows, so every other decision
+	// serialises byte-identically.
+	DivideTotal int32 `json:"divide_total,omitempty"`
 	// ChargeTapPool is the number of permanents eligible to pay the
 	// declaration's tapXType obligation(s), measured BEFORE any attacker is
 	// declared -- the pool the obligation draws from. The engine plans the

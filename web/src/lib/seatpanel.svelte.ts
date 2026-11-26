@@ -49,6 +49,7 @@ import {
   type RememberedStore,
 } from './remembered';
 
+import { canStepDown, canStepUp, canSubmitDivide, divisionAnswer, expectationOf, isDivideTarget, step, targetChoices, type Counts, type Expectation } from './prompts/divide';
 import { actedOption, actedPayment, answersByToggle, followUpArm, identicalTriggerOrder, isConcede, namedDecision, optionAt, paymentActionForBase, pickOption, primaryOf, triggerOrderPermutation, unpickOption } from './prompts/decision';
 import { MAX_DIGIT, renderedOrder } from './prompts/order';
 import { attackAllPicks, noAttackAllowed, noBlocksAllowed } from './prompts/combat';
@@ -136,6 +137,10 @@ export class SeatPanelState {
   private board: View | null = null;
   /** picked holds the chosen option indices, in click order: for a permutation decision the ORDER is the answer (Chosen returns options in client order), so picks must never be reordered. */
   picked = $state<number[]>([]);
+  /** divideCounts is the divide prompt's points per target option index (divide_total target asks); reset with every new decision. */
+  divideCounts = $state<Counts>({});
+  /** divideExpect is what the posted target answer of a divided ask left for the engine's follow-up division ask to be matched against; one-shot. */
+  private divideExpect: Expectation | null = null;
   /** postedSeq is the seq of the last intent the server accepted; while the pending decision has this seq the answer is in and the options stay hidden. */
   postedSeq = $state<number | null>(null);
   /**
@@ -1785,6 +1790,7 @@ export class SeatPanelState {
     this.pending = namedDecision(d, this.board);
     this.postedSeq = null;
     this.picked = [];
+    this.divideCounts = {};
     this.confirming = false;
     // The arrange popup, when open, belongs to the PREVIOUS ask: a new
     // decision closes it, so its edit state can never be presented as (or
@@ -1812,6 +1818,7 @@ export class SeatPanelState {
     this.searchFilter = '';
     if (!this.maybeAutoOrderTriggers()) this.maybeRememberedTrigger();
     this.maybeAutoFill();
+    this.maybeAutoDivide();
   }
 
   /**
@@ -1930,6 +1937,56 @@ export class SeatPanelState {
   get showSubmit(): boolean {
     const d = this.pending;
     return d !== null && d.seq !== this.postedSeq && !(d.min === 1 && d.max === 1);
+  }
+
+  /** stepDivide moves one target's share of the divided total by one point. */
+  stepDivide(index: number, delta: 1 | -1) {
+    const d = this.pending;
+    if (d === null || d.seq === this.postedSeq || this.busy || !isDivideTarget(d)) return;
+    this.divideCounts = step(d, this.divideCounts, index, delta);
+  }
+
+  canStepDivideUp(index: number): boolean {
+    const d = this.pending;
+    return d !== null && isDivideTarget(d) && canStepUp(d, this.divideCounts, index);
+  }
+
+  canStepDivideDown(index: number): boolean {
+    return canStepDown(this.divideCounts, index);
+  }
+
+  /** canSubmitDivision is the divide prompt's submit gate: every point assigned, target count within the ask's bounds. */
+  get canSubmitDivision(): boolean {
+    const d = this.pending;
+    return d !== null && isDivideTarget(d) && canSubmitDivide(d, this.divideCounts);
+  }
+
+  /**
+   * submitDivide posts the target answer (targets holding a point, in list
+   * order) and remembers the shares so the engine's follow-up division ask,
+   * when it matches, is answered from them without being shown.
+   */
+  submitDivide() {
+    const d = this.pending;
+    if (d === null || d.seq === this.postedSeq || this.busy || !isDivideTarget(d) || !canSubmitDivide(d, this.divideCounts)) return;
+    this.handAnswer();
+    this.divideExpect = expectationOf(d, this.divideCounts);
+    void this.post(targetChoices(d, this.divideCounts), false, undefined, true);
+  }
+
+  /**
+   * maybeAutoDivide answers the follow-up division ask from the stored
+   * shares. It runs when a decision is adopted and when a post settles (the
+   * ask can arrive while the target answer is still in flight). Anything that
+   * does not match (another source, other targets) is shown as usual.
+   */
+  private maybeAutoDivide() {
+    const want = this.divideExpect;
+    const d = this.pending;
+    if (want === null || d === null || this.busy || d.seq === this.postedSeq) return;
+    this.divideExpect = null;
+    const picks = divisionAnswer(d, want);
+    if (picks !== null) void this.post(picks);
   }
 
   /** canSubmit gates the submit button on the decision's OWN min/max — the only selection constraints the client may enforce. */
@@ -2253,6 +2310,7 @@ export class SeatPanelState {
       // moved the game. Stay silent; the restored decision is pending.
       if (stale) return;
       this.picked = [];
+      this.divideExpect = null;
       this.confirming = false;
       // A 409 says the match is not where this post assumed, most often
       // because the decision moved on while the click was in flight. Re-read
@@ -2278,6 +2336,7 @@ export class SeatPanelState {
       if (epoch === this.seqEpoch) this.busy = false;
     }
     this.maybeAutoFill();
+    this.maybeAutoDivide();
   }
 
   /** refreshPending re-reads the current decision from /pending: the recovery path after a rejection, and the not-yet-viewed case at mount. A 409 conflict IS the normal "nothing pending" answer (the wait is on someone else), not an error. */
