@@ -248,3 +248,26 @@ func TestExchangeControlNoOpBoundaries(t *testing.T) {
 		})
 	}
 }
+
+// A phased-out member is no member of the pair (CR 702.26b): Phyrexian
+// Infiltrator phased out in response to its own exchange keeps its
+// controller, and so does the target.
+func TestExchangeControlPhasedOutSourceExchangesNothing(t *testing.T) {
+	h := newHost(t, 2)
+	sourceObj := h.g.AddObject(mkCard(t, "Name:Source\nTypes:Creature\nPT:2/2\nOracle:x\n"), 0)
+	theirs := h.g.AddObject(mkCard(t, "Name:Theirs\nTypes:Creature\nPT:2/2\nOracle:x\n"), 1)
+	for _, o := range []*state.Object{sourceObj, theirs} {
+		h.Emit(events.Event{Kind: events.MoveZone, Obj: o.ID, From: state.ZLibrary, To: state.ZBattlefield})
+	}
+	h.Emit(events.Event{Kind: events.PhaseOut, Obj: sourceObj.ID, Amount: 1})
+	if !h.g.Obj(sourceObj.ID).PhasedOut {
+		t.Fatal("fixture requires the source phased out")
+	}
+	body := sa(t, "AB$ ExchangeControl | Cost$ 2 U U | Defined$ Self | ValidTgts$ Creature")
+	ctx := &Ctx{Source: sourceObj.ID, Controller: 0, Targets: []state.Target{{Obj: theirs.ID}}}
+	effExchangeControl(h, ctx, body)
+	if h.g.Obj(sourceObj.ID).Controller != 0 || h.g.Obj(theirs.ID).Controller != 1 {
+		t.Fatalf("phased-out exchange controllers = %d,%d, want 0,1; events=%+v",
+			h.g.Obj(sourceObj.ID).Controller, h.g.Obj(theirs.ID).Controller, h.log)
+	}
+}
