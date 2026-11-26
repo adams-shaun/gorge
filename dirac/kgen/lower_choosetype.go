@@ -288,8 +288,8 @@ func (lc *lowerCtx) animateChosenLandType(ps *params, obj lRef) error {
 	for k := range rest.used {
 		ps.used[k] = true
 	}
-	if chosen || o.WhileHost {
-		return refuse("chosen-type Animate beside a chosen colour or a host-bound duration")
+	if chosen || o.WhileHost || o.CwWord {
+		return refuse("chosen-type Animate beside a chosen colour, a word-list colour or a host-bound duration")
 	}
 	lc.landTypeGrant = false
 	start := len(lc.out.overrides)
