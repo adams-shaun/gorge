@@ -492,6 +492,9 @@ func (s *State) castFlagsGenTgt(k *prep, o Obj, mode, tgt uint8) {
 	if mode&castMayPlay == 0 || k.gen.altFree != nil && s.altFreeCast(k, o, mode) {
 		return // (a free alternative cost spends no permission: cast_altfree.go)
 	}
+	if tgt == embAltTgt && mode == castMayPlay|castFree && s.embAltCastMark(k, s.bld().e.ctrl, o) {
+		return // the Effect-delivered alternative cost replaces the mana and spends no permission (cast_embaltcost.go)
+	}
 	s.bld().e.flags |= sfMayPlay
 	p := s.bld().e.ctrl
 	if mode == castMayPlay|castFree && FeatIsZeroAltTgt(tgt) && k.gen.anyZeroAlt {
