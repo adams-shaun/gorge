@@ -60,7 +60,12 @@ func (s *State) tapForSpellPlain(k *prep, e *stackEntry, cost *kop.ManaCost, any
 	if s.tapForTryCensus(k, e.ctrl, &short, int(e.x), e.obj, anyColor) {
 		return false
 	}
-	if s.tapForTry(k, e.ctrl, &short, int(e.x), e.obj, anyColor) {
+	if s.cfg&cfgGorgeAutopay == 0 && s.tapForTry(k, e.ctrl, &short, int(e.x), e.obj, anyColor) {
+		// the phased script's plan: the full surface's payment prices it
+		// (CR 605.3b). Gorge's autopay payment planner prices the census
+		// alone and the play only a funded fee gap pays stays for the
+		// payment window (legal_walk_autopay.go: the offer is the script's
+		// existence proof, the payment the ordinary window's).
 		return false
 	}
 	// the planner has no witness for the cost: the CR 601.2g window pays it when its sources do

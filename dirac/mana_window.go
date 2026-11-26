@@ -4150,7 +4150,7 @@ func (s *State) abilityPlainMana(k *prep, e *stackEntry, cost kop.ManaCost, save
 	// a fee gap beside it is the phased script's plan for a play the census
 	// cannot pay.
 	if !s.tapForTryCensus(k, e.ctrl, &cost, int(e.x), s.abilityHandExclude(k, e), false) &&
-		!s.tapForTry(k, e.ctrl, &cost, int(e.x), s.abilityHandExclude(k, e), false) {
+		!(s.cfg&cfgGorgeAutopay == 0 && s.tapForTry(k, e.ctrl, &cost, int(e.x), s.abilityHandExclude(k, e), false)) {
 		c := xFolded(cost, int(e.x))
 		if s.gapWindowReverse(k, e, &c, saved, hostSl, sl, selfUntapped) {
 			return true
