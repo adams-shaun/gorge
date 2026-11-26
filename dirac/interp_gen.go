@@ -777,6 +777,14 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 			s.g.ewDone--
 			break // applied as the return entered (enterAssimilated)
 		}
+		if in.B.N == kop.OvCwWord {
+			// a word-list Animate Colors$: the frozen colour-word colour picks
+			// the row (static_colorwords.go ovCwRow); everything below, the
+			// remembered walk and the WhileHost arm included, runs on the
+			// picked row
+			var ci kop.Instr
+			in = s.ovCwRow(k, in, &ci)
+		}
 		if in.Obj == kop.RefRemembered && s.g.nrem > 1 {
 			s.overrideRemembered(k, in) // zone_changezoneall.go: every remembered object
 			break

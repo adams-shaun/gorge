@@ -1316,32 +1316,38 @@ type lOverride struct {
 	RemoveCreatureSub bool
 	SetColors         string
 	HasSetColors      bool
-	LoseAbilities     bool
-	AddKw             []string
-	GrantAbility      []int    // latent ability indexes granted
-	Name              string   // SetName: the layer-3 name (a name card, lowerPool)
-	KeepP, KeepT      bool     // a set of base toughness / power only (Maha)
-	RemoveKw          []string // RemoveKeyword$: keywords removed (layer 6)
-	CantHaveKw        []string // CantHaveKeyword$: keywords the affected can't have or gain (a final layer-6 filter)
-	Dedup             bool     // share a byte-identical pool record across cards (Earthbend)
-	UntilUpkeep       bool     // Duration$ UntilYourNextUpkeep: the Override row carries the class (kop.Override.UntilUpkeep)
-	WhileHost         bool     // Duration$ UntilHostLeavesPlay / AsLongAsInPlay
-	WhileTapped       bool     // Duration$ UntilUntaps: WhileHost, and the host's untap ends it too
-	AsLongAsControl   bool     // Pump Duration$ AsLongAsControl: WhileHost, gated on and ended by the host's control (kop.Override.AsLongAsControl)
-	CantAttack        bool     // HiddenKeywords$ CARDNAME can't attack or block. (with AddKw CantBlock)
-	UntilEndCombat    bool     // Pump Duration$ UntilEndOfCombat: the kernel drops the record leaving the end-of-combat step
-	UntilCtrlUntap    bool     // an Effect's Phase$ Untap end (Orcish Farmer): the record ends as its controller's untap step does (kop.Override.UntilCtrlUntap)
-	UntilCast         *lFilter // an Effect's SpellCast end (Soul Sculptor): the record ends when its resolver casts a spell matching this filter (kop.Override.UntilCast)
-	Banding           bool     // a granted Banding (KW$ Banding): no KwMask bit is free, so the record carries it (kop.Override.Banding)
-	Horsemanship      bool     // a Duration$ Permanent KW$ Horsemanship grant: no KwMask bit, so the record carries it (kop.Override.Horsemanship)
-	MustBeBlocked     bool     // HiddenKeywords$ CARDNAME must be blocked if able.: emitOverride follows the record with ExtMustBeBlocked on the same ref (not a record field)
-	NoCost            bool     // a copy exception's "with no mana cost" (RemoveCost$)
-	AddColors         string   // a copy exception's AddColors$: colour letters added after any set
-	RemoveLegendary   bool     // a copy exception's NonLegendary$ (CR 707.9b)
-	PTDelta           bool     // PVal/TVal are a +N/+M pump (layer 7c), not a base P/T: PumpAll Duration$ UntilYourNextTurn NumAtt$/NumDef$ (kop.Override.PTDelta)
-	GrantStatics      uint8    // an Animate staticAbilities$ grant of card statics gated by lStatic.OvGate (kop.Override.GrantStatics)
-	Landwalk          *lFilter // a Pump KW$ Landwalk:<spec> grant's land filter (kop.Override.Landwalk)
-	SetLandSub        bool     // RemoveLandTypes$ True with basic land types added: a CR 305.7 land-type setter (kop.Override.SetLandSub)
+	// CwWord: SetColors/AddColors came from a word-list Colors$ (An Animate
+	// Colors$ Red,Green), so the colour-word statics' colour frozen as the
+	// ability was put on the stack rewrites the applied record (kop.Override
+	// .CwWord, static_colorwords.go ovCw). The ChosenColor token leaves it
+	// clear: its colour is resolved at application, no word names it.
+	CwWord          bool
+	LoseAbilities   bool
+	AddKw           []string
+	GrantAbility    []int    // latent ability indexes granted
+	Name            string   // SetName: the layer-3 name (a name card, lowerPool)
+	KeepP, KeepT    bool     // a set of base toughness / power only (Maha)
+	RemoveKw        []string // RemoveKeyword$: keywords removed (layer 6)
+	CantHaveKw      []string // CantHaveKeyword$: keywords the affected can't have or gain (a final layer-6 filter)
+	Dedup           bool     // share a byte-identical pool record across cards (Earthbend)
+	UntilUpkeep     bool     // Duration$ UntilYourNextUpkeep: the Override row carries the class (kop.Override.UntilUpkeep)
+	WhileHost       bool     // Duration$ UntilHostLeavesPlay / AsLongAsInPlay
+	WhileTapped     bool     // Duration$ UntilUntaps: WhileHost, and the host's untap ends it too
+	AsLongAsControl bool     // Pump Duration$ AsLongAsControl: WhileHost, gated on and ended by the host's control (kop.Override.AsLongAsControl)
+	CantAttack      bool     // HiddenKeywords$ CARDNAME can't attack or block. (with AddKw CantBlock)
+	UntilEndCombat  bool     // Pump Duration$ UntilEndOfCombat: the kernel drops the record leaving the end-of-combat step
+	UntilCtrlUntap  bool     // an Effect's Phase$ Untap end (Orcish Farmer): the record ends as its controller's untap step does (kop.Override.UntilCtrlUntap)
+	UntilCast       *lFilter // an Effect's SpellCast end (Soul Sculptor): the record ends when its resolver casts a spell matching this filter (kop.Override.UntilCast)
+	Banding         bool     // a granted Banding (KW$ Banding): no KwMask bit is free, so the record carries it (kop.Override.Banding)
+	Horsemanship    bool     // a Duration$ Permanent KW$ Horsemanship grant: no KwMask bit, so the record carries it (kop.Override.Horsemanship)
+	MustBeBlocked   bool     // HiddenKeywords$ CARDNAME must be blocked if able.: emitOverride follows the record with ExtMustBeBlocked on the same ref (not a record field)
+	NoCost          bool     // a copy exception's "with no mana cost" (RemoveCost$)
+	AddColors       string   // a copy exception's AddColors$: colour letters added after any set
+	RemoveLegendary bool     // a copy exception's NonLegendary$ (CR 707.9b)
+	PTDelta         bool     // PVal/TVal are a +N/+M pump (layer 7c), not a base P/T: PumpAll Duration$ UntilYourNextTurn NumAtt$/NumDef$ (kop.Override.PTDelta)
+	GrantStatics    uint8    // an Animate staticAbilities$ grant of card statics gated by lStatic.OvGate (kop.Override.GrantStatics)
+	Landwalk        *lFilter // a Pump KW$ Landwalk:<spec> grant's land filter (kop.Override.Landwalk)
+	SetLandSub      bool     // RemoveLandTypes$ True with basic land types added: a CR 305.7 land-type setter (kop.Override.SetLandSub)
 	// Chosen: the setter's added type is the source's own as-enters ChooseType
 	// answer (Convincing Mirage's AddType$ ChosenType): the record adds no
 	// subtype of its own and the static carries AddChosen; the walk grants
