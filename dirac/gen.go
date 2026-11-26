@@ -1463,6 +1463,8 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 					pc.hasStat = true // scanned through statM (face_turnfaceup.go)
 				case kop.ReplTurnUpProgram:
 					g.anyTurnUpRepl = true
+				case kop.ReplTurnUpAttach:
+					g.anyTurnUpRepl = true // the attach ask the fold waits on (face_turnupattach.go)
 				}
 			case kop.AbStatic:
 				switch a.Static.Kind {
