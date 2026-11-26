@@ -136,6 +136,7 @@ var stallUnmodelledReasons = [...]uint8{
 	StallGainsOf,           // a gained (GainsAbilitiesOf$) limited, once-each-turn, loyalty, exhaust, host-cost or off-battlefield ability, or one past index 63 (static_gainsof.go)
 	StallExileRider,        // a dies-to-exile rider (Kalitas's Zombie token) that competes with another replacement, whose source left before the move, or whose prog asks: gorge orders or resolves it in full (repl_exilerider.go)
 	StallRetraceGrant,      // a granted retrace offer the retrace walk does not price: gorge offers the cast, the kernel withholds it (kw_retrace.go)
+	StallGraveLossGrant,    // a graveyard card that lost all abilities beside a grant the kernel cannot order against the removal (static_graveabilityloss.go)
 }
 
 // initStall is the reason a game of nseat players on this table stalls at its
