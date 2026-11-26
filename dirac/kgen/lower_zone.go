@@ -3537,7 +3537,11 @@ func (lc *lowerCtx) animate(ps *params) error {
 			})
 		}
 		return lc.guardBlock(guard, func() error {
-			lc.emitOverride(ref, o, dur)
+			if o.CwWord {
+				lc.emitCwWordAnimate(ref, o, dur)
+			} else {
+				lc.emitOverride(ref, o, dur)
+			}
 			return nil
 		})
 	}
@@ -3615,6 +3619,8 @@ func (lc *lowerCtx) animate(ps *params) error {
 				return refuse("Animate HiddenKeywords$ must be blocked with a chosen colour")
 			}
 			lc.emitChosenColorAnimate(obj, o, dur)
+		} else if o.CwWord {
+			lc.emitCwWordAnimate(obj, o, dur)
 		} else {
 			lc.emitOverride(obj, o, dur)
 		}
@@ -3667,6 +3673,7 @@ func (lc *lowerCtx) animateColors(ps *params, o *lOverride) (ret bool, err error
 	} else {
 		o.AddColors = cols // ORed in at layer 5
 	}
+	o.CwWord = colorMask(cols) != 0 // a colour-word list: the frozen colour-word colour picks the row (static_colorwords.go ovCwRow); a Colors$ Colorless names no word a colour-word static rewrites
 	return false, nil
 }
 
@@ -3896,6 +3903,45 @@ func (lc *lowerCtx) emitChosenColorAnimate(obj lRef, o *lOverride, dur string) {
 	in.Note = overrideString(&first)
 	in.C = start
 	lc.emit(in)
+}
+
+// cwWordRows appends o (the printed colours) and one row per colour after it,
+// for an op whose B = kop.OvCwWord picks the frozen colour-word colour's row
+// at resolution (dirac/static_colorwords.go cwFreeze, ovCwRow); it returns
+// the base row's index. The rows are identical to the printed one apart from
+// the one colour field.
+func (lc *lowerCtx) cwWordRows(o *lOverride) int {
+	start := len(lc.out.overrides)
+	lc.out.overrides = append(lc.out.overrides, o) // the printed colours
+	for _, col := range "WUBRG" {
+		r := *o
+		if o.HasSetColors {
+			r.SetColors = string(col)
+		} else {
+			r.AddColors = string(col)
+		}
+		lc.out.overrides = append(lc.out.overrides, &r)
+	}
+	return start
+}
+
+// emitCwWordAnimate emits a word-list Animate Colors$ (o.CwWord, Raging
+// Ravine's "becomes a 2/2 red and green Elemental creature") as the printed
+// row plus one row per colour, and the op whose B = kop.OvCwWord picks the
+// frozen colour-word colour's row at resolution (dirac/static_colorwords.go
+// cwFreeze, ovCwRow): gorge reads the ability's Colors$ from its face as it
+// was put on the stack (CR 112.7a, 608.2h), so the printed row applies with
+// no frozen colour and a later static change moves nothing installed.
+func (lc *lowerCtx) emitCwWordAnimate(obj lRef, o *lOverride, dur string) {
+	start := lc.cwWordRows(o)
+	in := lInstr{Op: "Override", Obj: obj, CS: dur + "|cwWord"}
+	first := *lc.out.overrides[start]
+	in.Note = overrideString(&first)
+	in.C = start
+	lc.emit(in)
+	if o.MustBeBlocked {
+		lc.emit(lInstr{Op: "MustBeBlocked", Obj: obj}) // animateHiddenKeywords
+	}
 }
 
 // latentTrigger lowers a granted trigger (an SVar trigger line) as a latent
