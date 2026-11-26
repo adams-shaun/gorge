@@ -302,6 +302,12 @@ func (lc *lowerCtx) payInstr(c lCost, payer lRef, subCtrOK bool) (lInstr, error)
 		c.ExileHandN = 0
 		n++
 	}
+	if c.MoveGraveN > 0 {
+		if err := lc.moveGravePayInstr(&in, &c, n); err != nil {
+			return in, err
+		}
+		n++
+	}
 	if c.BeholdN > 0 {
 		// Behold<1/Type> as a resolution cost (CR 701.4a): an UnlessCost$ or
 		// a printed trigger's own cost. gorge's unless and triggered-cost
@@ -338,6 +344,20 @@ func (lc *lowerCtx) payInstr(c lCost, payer lRef, subCtrOK bool) (lInstr, error)
 	return in, nil
 }
 
+// moveGravePayInstr lowers ExiledMoveToGrave<N/Spec> as a printed trigger's
+// own cost (gorge's triggered-cost window: the pay/decline ask, then the
+// "graveyard_cost" pick over every alive seat's exile, unasked with exactly N
+// cards): PayExileGrave with the move-to-graveyard sentinel (kernel
+// cost_exiledmovegrave.go). Alone (n parts already lowered), and only there.
+func (lc *lowerCtx) moveGravePayInstr(in *lInstr, c *lCost, n int) error {
+	if !lc.trigOwnCost || lc.unlessCost || n != 0 {
+		return refuse("resolution ExiledMoveToGrave cost shape")
+	}
+	in.CS, in.A, in.F = "MoveGrave", cst(c.MoveGraveN), c.MoveGraveF
+	c.MoveGraveN, c.MoveGraveF = 0, nil
+	return nil
+}
+
 // forageOnly reports whether a forage is the cost's only payment part. The
 // Forage arm returns before the final one-part shape check below, so it needs
 // its own complete gate: pureMana's field list covers every other part once
@@ -357,7 +377,7 @@ func (c lCost) forageOnly() bool {
 // Mill/Reveal fields only when its own first-match arm consumes them, so an
 // unconsumed part refuses here instead of being silently dropped.
 func (c lCost) resolutionCostShape(n int) bool {
-	return n == 1 && !c.Tap && !c.SacSelf && c.Loyalty == 0 && c.SubCtr == 0 && c.SubAmongN == 0 && c.TapN == 0 && !c.TapHost && !c.SacHost && c.BlightN == 0 && c.EvidenceN == 0 && !c.EvidenceX && c.AddCtr == 0 && c.AddCtrRef.Kind == rNone && c.MillN == 0 && c.RevealN == 0 && c.RevealF == nil
+	return n == 1 && c.MoveGraveN == 0 && !c.Tap && !c.SacSelf && c.Loyalty == 0 && c.SubCtr == 0 && c.SubAmongN == 0 && c.TapN == 0 && !c.TapHost && !c.SacHost && c.BlightN == 0 && c.EvidenceN == 0 && !c.EvidenceX && c.AddCtr == 0 && c.AddCtrRef.Kind == rNone && c.MillN == 0 && c.RevealN == 0 && c.RevealF == nil
 }
 
 // packPips packs WUBRG pip counts 3 bits each.

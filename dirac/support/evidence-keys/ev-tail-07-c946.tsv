@@ -1,0 +1,86 @@
+card	lir16	plays	keys	unused	branches	missing_branches
+A-Skyclave Shadowcat	a872fe442266b9f5	10	2/2		0/1	ix:resp
+Abbot of Keral Keep	e87756d6038ebdb9	27	2/2		0/1	ix:resp
+Aberrant Researcher	8d0406a482f56b58	4	1/1		0/1	ix:resp
+Alpine Grizzly	044dfea665528d2f	7	0/0		0/0	
+Angrath, Captain of Chaos	533bed112b952fb2	3	1/1		0/1	ix:resp
+Archon of Sun's Grace	c9f91927208fe5be	4	1/1		0/1	ix:resp
+Basri, Devoted Paladin	8a00e062284d067c	9	3/3		0/1	ix:resp
+Blood Price	044e5023d1493ae7	7	0/0		1/2	ix:resp
+Bloodcurdler	ca48995f08669433	10	1/1		1/1	
+Burrowing	89fbe41dd15ba131	9	0/0		2/2	
+Call of the Full Moon	9cc1bf84cafb86d4	6	1/1		2/2	
+Carrion	f6cda8c4f4155aa9	6	0/0		1/2	ix:resp
+Centaur Veteran	c8963714cf9d783a	3	1/1		1/1	
+Cunning Strike	e9ee31cd586d6e96	6	0/0		1/2	ix:resp
+Dredge the Mire	a05d2a8b5b6c0cdb	8	0/0		1/2	ix:resp
+Ekundu Griffin	ec725ebcdd3cdbca	6	0/0		0/0	
+Erebos's Emissary	61b708e5f0ed83c3	13	1/1		3/3	
+Etched Familiar	1e46a0067df118ab	14	1/1		0/1	ix:resp
+Fevered Suspicion	f6c90671f215affe	5	0/0		1/2	ix:resp
+Forest	6d0466c30f825dba	117	1/1		0/1	ix:resp
+Foriysian Interceptor	abd0e80971e60fd8	8	0/0		0/0	
+Fragmentize	a3b95c911af06944	3	0/0		1/2	ix:resp
+Gadrak, the Crown-Scourge	6d419791f9840ca2	16	1/1		1/1	
+Glint Hawk	21493f276acc28fc	7	1/1		0/1	ix:resp
+Grasp of Fate	d65a1c61804b6049	8	1/1		1/1	
+Hallowed Burial	d2496ed561b16c77	3	0/0		1/2	ix:resp
+Ichor Drinker	c55e54c27d77ac33	5	1/1		0/1	ix:resp
+Island	763c67ef7a27eaf5	111	1/1		0/1	ix:resp
+Kessig Recluse	cee5da80ef6451a3	4	0/0		0/0	
+Kithkin Rabble	b6a0f9aa0e69e1a2	4	0/0		0/0	
+Kjeldoran Dead	277bfda9ac11b818	12	2/2		1/1	
+Legion Guildmage	9309c7a60b2fef1a	8	2/2		0/1	ix:resp
+Lock and Load	60b54b930451692c	8	0/0		1/2	ix:resp
+Luxurious Libation	599b4c2046b47359	5	0/0		2/4	f0/s/x0,ix:resp
+Manor Skeleton	db8801cf789bd2c9	3	1/1		1/1	
+Master of Waves	012a99fd53650eb9	4	1/1		0/1	ix:resp
+Merchant of the Vale	d9b6eff99cf382c7	30	1/1		2/2	
+Mighty Leap	e8e3fbd3bd55c900	8	0/0		2/2	
+Mnemonic Sphere	4439c4772694f202	4	2/2		0/1	ix:resp
+Mogis's Favor	7400229b433671d7	5	0/0		3/4	cast/alt:escaped
+Mordenkainen's Polymorph	fa8292c814dbd90c	8	0/0		2/2	
+Mountain	9e71388353e907ed	539	1/1		0/1	ix:resp
+Natural Emergence	d130bfdd019a3c90	13	1/1		0/1	ix:resp
+Noise Marine	84f483c5b266bbdd	4	1/1		1/1	
+Obstinate Baloth	d7a837f9e21f895a	6	1/1		0/1	ix:resp
+Orcish Cannonade	539efdf6ab2c6c09	6	0/0		1/2	ix:resp
+Perimeter Sergeant	f6f00256288e0373	4	1/1		0/1	ix:resp
+Plains	82d63a695487e567	143	1/1		0/1	ix:resp
+Psychic Membrane	091528e7f177c39f	6	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Putrid Goblin	3f324dc11c143f10	14	1/1		1/1	
+Quagmire Lamprey	98c22fbf301584a1	6	1/1		1/1	
+Queen's Commission	9768658988e7bd74	6	0/0		2/2	
+Ransack the Lab	bf1e9ba2a7705658	22	0/0		1/2	ix:resp
+Renowned Weaver	795e3bfdc4a3bd3d	6	1/1		1/1	
+Repentance	2c15986f77ae2824	3	0/0		1/2	ix:resp
+Scurrid Colony	bacb3e2e071e7de5	6	0/0		0/0	
+Shimmer Myr	db93de85fde9a550	23	0/0		0/0	
+Spark Reaper	e391261e0795fae3	12	1/1		0/1	ix:resp
+Spectral Sliver	3a744e83d5d210f9	13	0/0		0/0	
+Sphinx's Tutelage	c983a1f64579b5f5	3	2/2		0/1	ix:resp
+Spike Drone	25e5b33a6b4ff4a7	3	1/1		0/1	ix:resp
+Spirit Mantle	eba02dec60b18756	5	0/0		1/2	ix:resp
+Stench of Decay	49aef8eff5e1f4f2	10	0/0		1/2	ix:resp
+Stinging Shot	ee5fea486795e1ff	3	1/1		2/2	
+Swamp	342b413902f441c3	173	1/1		0/1	ix:resp
+Symbiosis	a9d9cce102ace4b4	15	0/0		2/2	
+Taigam's Strike	2d6fd460960398fc	4	0/0		1/2	ix:resp
+Telim'Tor's Darts	8994782b31b6a08b	12	1/1		1/1	
+Thalia, Guardian of Thraben	e41cea1a3f043d8d	11	0/0		0/0	
+The Mending of Dominaria	d46e7600499050b6	3	0/0		0/0	
+Thrive	311737cd0cea3dd1	3	0/0		2/4	f0/s/x0,ix:resp
+Thwart the Grave	170a7f28145265ab	3	0/0		1/2	ix:resp
+Valko Indorian	57da29cffc378d88	8	0/0		0/0	
+Vampire Bats	3a39e55b748554a7	6	1/1		0/1	ix:resp
+Violent Outburst	2528d805168fa0ba	5	0/0		2/2	
+Virtue's Ruin	cdbb1a8be0a38f7c	12	0/0		2/2	
+Viscerid Armor	9175f39a7674948b	11	1/1		1/2	ix:resp
+Vow of Malice	8b4d7d1d556708c5	4	0/0		1/2	ix:resp
+Vraska's Fall	abb601dc435858a5	14	0/0		2/2	
+Wolfsbane, Highland Hero	71931a44ed137a0e	8	1/1		0/1	ix:resp
+Woolly Mammoths	74afb16803347b5d	6	0/0		0/0	
+Wreak Havoc	4cd62fdee6c3e86e	3	0/0		1/2	ix:resp
+Yavimaya Iconoclast	fdbd5109e1db1da1	10	1/1		2/3	ix:resp
+You Find the Villains' Lair	0c24663f2ab8c3dc	7	0/0		1/2	ix:resp
+Zoetic Cavern	957f7e71c68968ac	30	1/1		0/3	cast/alt:morphed,cast/alt:none,ix:resp

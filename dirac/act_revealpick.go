@@ -98,10 +98,10 @@ func (s *State) turnUpRevealOK(k *prep, p uint8, sl Slot) bool {
 	return !s.turnUpRevealOwed(k, sl, true) || s.revealPickCands(k, p, s.cardAt(sl), NoObj, nil) >= int(k.t.Cards[s.cardAt(sl)].RevealN)
 }
 
-// turnUpKwPayable: the keyword turn-up's non-mana cost, its life and its
-// reveal, is payable by p.
+// turnUpKwPayable: the keyword turn-up's non-mana cost, its life, its reveal
+// and its pick part, is payable by p.
 func (s *State) turnUpKwPayable(k *prep, p uint8, sl Slot) bool {
-	return s.turnUpLifeOK(k, p, sl) && s.turnUpRevealOK(k, p, sl)
+	return s.turnUpLifeOK(k, p, sl) && s.turnUpRevealOK(k, p, sl) && s.turnUpPickOK(k, p, sl)
 }
 
 // turnUpRevealStage runs the turn-up's reveal before it settles (gorge
@@ -131,6 +131,8 @@ func (s *State) turnUpRevealOptions(k *prep, d *Decision) {
 // applyTurnUpReveal takes the revealed card of a parked turn-up and settles it.
 func (s *State) applyTurnUpReveal(k *prep) {
 	p, mode, o := s.g.pickP, s.g.pickZ, Obj(s.g.pickF)
+	if s.settleTurnUp(k, o, p, mode, 0) {
+		return // face_turnupattach.go: the attach ask parks the turn-up still face down
+	}
 	s.ctl = ctlPriority
-	s.settleTurnUp(k, o, p, mode, 0)
 }

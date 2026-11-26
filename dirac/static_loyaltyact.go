@@ -9,7 +9,7 @@ var DebugNumLoyaltyActOff bool
 
 // useNumLoyaltyAct opens the generated forms for a table carrying the static
 // and sizes its per-slot cold region (coldLoyaltyAct). A table without it keeps
-// no region, so State itself does not grow (TestStateLayoutPinned).
+// no region, so State itself does not grow (TestNoNewFixedStateFields).
 var useNumLoyaltyAct = newGenUse(func(t *kop.Table) bool {
 	return tableHasStatic(t, kop.StatNumLoyaltyAct)
 })

@@ -1,0 +1,5 @@
+family: ask
+name: raGenTurnUpAttach
+value: next
+status: active
+doc: the effect-driven turn-up's attach election (an ExtTurnFaceUp op turning up a card with a ReplTurnUpAttach replacement; gorge applyTurnFaceUpReplacements parks the event for the body's Optional$ attach ask): Done declines, each destination a choose (face_turnupattach.go).
