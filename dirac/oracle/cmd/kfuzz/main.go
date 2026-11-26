@@ -7,6 +7,7 @@
 //
 //	go run ./dirac/oracle/cmd/kfuzz -kernel fdn -pairs 200 -seed 1 -policy random
 //	go run ./dirac/oracle/cmd/kfuzz -repro <repro.json>     # re-run a repro
+//	go run ./dirac/oracle/cmd/kfuzz -repro <repro.json> -remap # rewrite its vocabulary picks from their labels
 //	go run ./dirac/oracle/cmd/kfuzz -replay <game.json>     # re-execute a kernel game in gorge
 //	go run ./dirac/oracle/cmd/kfuzz -synth std-dsk -pairs 1500 # a synthetic evidence pool, dealt in memory
 //
@@ -589,7 +590,10 @@ func run() int {
 			fmt.Fprintln(os.Stderr, "kfuzz:", err)
 			return 1
 		}
-		res := rep.Rerun(m, mk, 200)
+		res, code := rerunRepro(rep, *reproPath, m, mk)
+		if code != 0 {
+			return code
+		}
 		if res.Div == nil {
 			printReproClean(&res)
 			return 0
@@ -797,12 +801,17 @@ func runRepro(c *oracle.Corpus, path, lead string, rc oracle.RunConfig, newSide 
 		fmt.Fprintln(os.Stderr, "kfuzz:", err)
 		return 1
 	}
-	res, k, err := lockstepDir(m, rep.Seed, lead, mk, &oracle.ScriptPolicy{Actions: rep.Actions}, rrc)
+	pol := rep.Script()
+	pol.Remap = reproRemap
+	res, k, err := lockstepDir(m, rep.Seed, lead, mk, pol, rrc)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "kfuzz:", err)
 		return 1
 	}
 	oracle.CloseSide(k)
+	if reproRemap {
+		return remapRepro(path, rep, pol, &res)
+	}
 	if res.Div == nil {
 		printReproClean(&res)
 		return 0
