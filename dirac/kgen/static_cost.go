@@ -138,6 +138,9 @@ func (sc *staticCtx) modeAlternativeCost() ([]lStatic, bool, error) {
 	lc := sc.lc
 	sp := sc.sp
 	var err error
+	if sp.str("ValidSA") == "Activated.Crew+Vehicle" {
+		return sc.crewAltCost() // static_crewalt.go
+	}
 	if sp.str("ValidSA") == "Activated.Cycling" {
 		return sc.modeCyclingAlt() // static_cyclingalt.go
 	}
