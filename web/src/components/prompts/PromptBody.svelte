@@ -10,6 +10,7 @@
   import CombatPrompt from './CombatPrompt.svelte';
   import DiscardPrompt from './DiscardPrompt.svelte';
   import DivisionPrompt from './DivisionPrompt.svelte';
+  import CastManaWindow from './CastManaWindow.svelte';
   import ListPrompt from './ListPrompt.svelte';
   import MulliganPrompt from './MulliganPrompt.svelte';
   import NamePickPrompt from './NamePickPrompt.svelte';
@@ -28,7 +29,7 @@
    */
   let { decision, view, logic, seat, placement }: { decision: Decision; view: View; logic: SeatPanelState; seat: number; placement: Placement } = $props();
 
-  const kind = $derived(rendererFor(decision));
+  const kind = $derived(rendererFor(decision, view));
   const pay = $derived(manaWindow(decision));
 </script>
 
@@ -44,6 +45,8 @@
   <NamePickPrompt {decision} {logic} />
 {:else if kind === 'payment' && pay !== null}
   <ManaPaymentPanel decision={pay} {view} busy={logic.busy} onPick={(index) => logic.click(index)} digits={digitMap(renderedOrder(decision, { filter: '' }))} />
+{:else if kind === 'castmana'}
+  <CastManaWindow {decision} {view} {logic} />
 {:else if kind === 'priority'}
   <PriorityOptions {decision} {view} {logic} {seat} {placement} />
 {:else if kind === 'target'}
