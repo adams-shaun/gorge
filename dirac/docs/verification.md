@@ -212,7 +212,9 @@ this. After such a change:
   ```
 
   A re-pin is not a parity fix and should follow a real count change. A lower accepted count fails unless
-  `KGEN_REPIN_FALL=<reason>` is also set. By default the ratchets fail only on a fall; `DIRAC_PIN_STRICT=1` (set in the
+  `KGEN_REPIN_FALL=<reason>` is also set; outside strict it also passes when the branch gave at least that many of the
+  list's cards a new entry under `dirac/support/refused/` (each is logged by name), and the remembered-span census table
+  `dirac/kgen/testdata/remspan.tsv` is bot-owned: any move only warns. `DIRAC_PIN_STRICT=1` (set in the
   nightly run in `.github/workflows/ci.yml` and in main's regeneration scripts) holds every pin exact.
 
 ## Bot and transcript parity
