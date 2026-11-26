@@ -49,15 +49,19 @@ func displayParam(k string) bool {
 
 // textWordsMasks is a card's TextWords beside CWUnmodelled: the colour words
 // (bits 0..4) that sit on a surface the kernel's colour-word model does not
-// read (dirac/static_colorwords.go rewrites target-spec filters and printed
-// protection only, and stalls a face whose rewritten word also sits on any
+// read (dirac/static_colorwords.go rewrites target-spec filters, printed
+// protection, and an Animate activation's word-list Colors$, whose override
+// record carries the colour-word colour frozen as the ability was put on the
+// stack -- static_colorwords.go cwFreeze, ovCw -- and stalls a face whose
+// rewritten word also sits on any
 // other surface). The modelled surfaces are the display-only Oracle text, the
 // printed Protection keywords (a Protection spelling rides CardDef.ProtColors;
 // any other keyword's colour word is unmodelled), the display-only description
 // parameters (displayParam), a script line's text beside its parsed parameters
-// (the line's own words are inert; every read goes through Params), and the
+// (the line's own words are inert; every read goes through Params), the
 // ValidTgts$ parameter of a spell, triggered-ability or replacement body (a
-// kop.TargetSpec, read through the kernel's target funnel). Every other
+// kop.TargetSpec, read through the kernel's target funnel), and an Animate
+// activation's (AB$) word-list Colors$. Every other
 // surface - the type line, the SVars, and every other parameter of any
 // ability, trigger, static and replacement - marks its colour words
 // unmodelled. A basic land type word is
@@ -100,6 +104,15 @@ func textWordsMasks(c *cards.Card) (tw struct{ words, unmodelled uint16 }) {
 		for k, v := range a.Params {
 			keyModelled := modelled
 			if keyModelled != 2 && k == "ValidTgts" {
+				keyModelled = 1
+			}
+			if keyModelled != 2 && k == "Colors" && a.API == "Animate" && a.Kind == "AB" {
+				// an Animate activation's word-list Colors$: the override record
+				// carries the colour-word colour frozen as the ability was put
+				// on the stack (static_colorwords.go cwFreeze, ovCw), so the
+				// words are read (dirac/static_layerwalk.go layer 5, chars_gen
+				// colorsGen) and never stall. A spell's (SP$) or a static's
+				// stays unmodelled: no frozen colour reaches its record.
 				keyModelled = 1
 			}
 			if displayParam(k) {
