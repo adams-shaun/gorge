@@ -10,10 +10,11 @@ import "testing"
 // names an SVar), Nasty End (Sacrificed$Valid Card.Legendary), the four
 // Count$MostProminentCreatureType cards with a Creature.YouCtrl spec (Kindred
 // Summons reads it only in an AI SVar), and Gonti's Machinations (the bare
-// AFLifeLost amount after a LoseLife); then three Masteries
-// (Count$AltCost.1.0: the stack entry's trigPlAltCost mark, ExAltCost); then
-// the two kicker-{X} Count$xPaid cards (Verdeloth the Ancient and Kangee,
-// Aerie Keeper), whose announced X the kernel now asks, prices and stamps
+// AFLifeLost amount after a LoseLife); Baleful, Fervent and Ingenious Mastery
+// (Count$AltCost.1.0, the ExAltCost read at the spell's own resolution; their
+// hand alternatives run in TestAltCostGraveyardSelfLockstep); then the two
+// kicker-{X} Count$xPaid cards (Verdeloth the Ancient and Kangee, Aerie
+// Keeper), whose announced X the kernel now asks, prices and stamps
 // (kickerx_lower_test.go).
 var countConditionsLowered = []string{
 	"Athreos, God of Passage", "Iroas, God of Victory", "Karametra, God of Harvests",
@@ -31,8 +32,8 @@ var countConditionsLowered = []string{
 // Hellbent and Surge (gorge fails both closed: conditionUnmodelledBare), the
 // loyalty/equip/power-up activation kinds (the activation ledger records no
 // kind), Graxiplon's DefenderCtrl read in a CantBlockBy static, Devastating
-// and Verdant Mastery (their Count$AltCost lowers; a ChangeZone to or under
-// the ChosenPlayer does not), Ugin's
+// Mastery's ChangeZone DefinedPlayer$ ChosenPlayer and Verdant Mastery's
+// GainControl$ ChosenPlayer (the Count$AltCost branch itself lowers), Ugin's
 // Labyrinth's ExiledWithSource count, the TargetedByTarget$ and
 // TargetedController$CardsInGraveyard heads, Galloping Lizrog's "any number"
 // RemoveCounter and Sanctum Prelate's CantBeCast bound "Chosen". A card that

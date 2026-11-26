@@ -590,6 +590,7 @@ default	field	genPrep.anyCantAct	1
 default	field	genPrep.anyCantSac	1
 default	field	genPrep.anyCantTgt	1
 default	field	genPrep.anyCantTgtGrave	1
+default	field	genPrep.anyOffZoneChar	1
 default	field	genPrep.anyFaces	1
 default	field	genPrep.anyWarp	1
 default	field	genPrep.anyDash	1
@@ -613,7 +614,6 @@ default	field	genPrep.anyM2M1	1
 default	field	genPrep.anyBattle	1
 default	field	genPrep.anyWorld	1
 default	field	genPrep.anySneak	1
-default	field	genPrep.anyAltCostRead	1
 default	field	genPrep.anyWebSling	1
 default	field	genPrep.anyMayFlash	1
 default	field	genPrep.anyRebound	1
@@ -720,6 +720,7 @@ default	field	genPrep.anyBlightX	1
 default	field	genPrep.anySacX	1
 default	field	genPrep.anyXMin	1
 default	field	genPrep.anyCopyCast	1
+default	field	genPrep.anyCipher	1
 default	field	genPrep.anyExileGrant	1
 default	field	genPrep.anyNumTimes	1
 default	field	genPrep.anyExHaste	1

@@ -5,25 +5,31 @@ import (
 	"testing"
 
 	"github.com/adams-shaun/gorge/dirac"
+	"github.com/adams-shaun/gorge/dirac/canon"
 	"github.com/adams-shaun/gorge/dirac/cardset"
 )
 
 // Swirl the Mists (a Continuous ChangeColorWordsTo$ static over the spells
 // and permanents, CR 612.5; kop.StatColorWords) in lockstep against gorge on
 // the fixture pool dirac/cardset/pools/fixtures/colorwords. The kernel holds
-// no per-object text, so it models the change where it is a no-op (no spell
-// or permanent in play reads a colour word the chosen one replaces) and
-// stalls where it is not (dirac.StallTextChange). Both halves are asserted:
+// no per-object text, so it rewrites the colour words where the faces are
+// read (dirac/static_colorwords.go: a target spec's filter masks and a
+// printed Protection keyword of an affected spell or permanent) and stalls
+// (dirac.StallTextChange) only where a rewritten word also sits on a surface
+// the model does not read. Both halves are asserted:
 //
 //   - TestColorWordsLockstepNoOp: no card of the decks names a colour word,
 //     so Swirl resolves, records a colour and stays live while the games run
 //     clean and unstalled and the kernel agrees with gorge decision for
 //     decision; the live counter proves the static was read.
-//   - TestColorWordsLockstepReadsStall: Doom Blade (target nonblack creature)
-//     and Northern Paladin (target black permanent) name black, so a game that
-//     chose any other colour stalls the kernel (unmodelled) the moment the
-//     card is cast or in play instead of leaving the unchanged text standing,
-//     and no seed diverges before it.
+//   - TestColorWordsLockstepReadsAgree: Doom Blade (target nonblack creature)
+//     and Northern Paladin (target black permanent) name black, so a game that chose another colour reads their rewritten
+//     faces (nonred, target red permanent) and still agrees with gorge
+//     decision for decision, unstalled, with the rewrite counter proving the
+//     masks moved. Raging Ravine (an Animate activation's word-list Colors$
+//     Red,Green) sits in play and activates: its override record reads the
+//     colour-word colour frozen at its activation
+//     (dirac/static_colorwords.go ovCw), unstalled.
 
 const colorWordsPool = "colorwords"
 
@@ -40,8 +46,8 @@ var colorWordsNoOpDecks = [2][]cardset.Entry{
 
 var colorWordsReadDecks = [2][]cardset.Entry{
 	{
-		{Name: "Swirl the Mists", Count: 8}, {Name: "Doom Blade", Count: 6}, {Name: "Grizzly Bears", Count: 6},
-		{Name: "Island", Count: 10}, {Name: "Swamp", Count: 10},
+		{Name: "Swirl the Mists", Count: 8}, {Name: "Doom Blade", Count: 6}, {Name: "Raging Ravine", Count: 8},
+		{Name: "Island", Count: 4}, {Name: "Swamp", Count: 4}, {Name: "Forest", Count: 5}, {Name: "Mountain", Count: 5},
 	},
 	{
 		{Name: "Northern Paladin", Count: 8}, {Name: "Doom Blade", Count: 6}, {Name: "Hill Giant", Count: 4},
@@ -52,6 +58,12 @@ var colorWordsReadDecks = [2][]cardset.Entry{
 // colorWordsPlay plays seeds lo..hi of the pool and calls each with the
 // game's result.
 func colorWordsPlay(t *testing.T, decks [2][]cardset.Entry, lo, hi uint64, each func(seed uint64, res *Result)) {
+	t.Helper()
+	colorWordsPlayPol(t, decks, lo, hi, castFirstPolicy, each)
+}
+
+// colorWordsPlayPol is colorWordsPlay with the seed's policy.
+func colorWordsPlayPol(t *testing.T, decks [2][]cardset.Entry, lo, hi uint64, pol func(uint64) Policy, each func(seed uint64, res *Result)) {
 	t.Helper()
 	reg, set, gd := lockstepPool(t, colorWordsPool, decks)
 	tbl, _, _, err := set.Matchup(decks[0], decks[1])
@@ -68,7 +80,7 @@ func colorWordsPlay(t *testing.T, decks [2][]cardset.Entry, lo, hi uint64, each 
 		if err != nil {
 			t.Fatal(err)
 		}
-		res := Lockstep(m, seed, k, castFirstPolicy(seed), RunConfig{Config: cfg, MaxDecisions: 4000, MaxTurns: 40})
+		res := Lockstep(m, seed, k, pol(seed), RunConfig{Config: cfg, MaxDecisions: 4000, MaxTurns: 40})
 		CloseSide(k)
 		each(seed, &res)
 	}
@@ -110,35 +122,84 @@ func TestColorWordsLockstepNoOp(t *testing.T) {
 	}
 }
 
-func TestColorWordsLockstepReadsStall(t *testing.T) {
+// colorWordsActivatePolicy casts and plays lands when offered, else
+// activates an ability (the read decks' only one is the Ravine's Animate),
+// else random: the game reaches the Ravine's animation without starving its
+// casts.
+func colorWordsActivatePolicy(seed uint64) Policy {
+	rnd := castFirstPolicy(seed)
+	return PolicyFunc(func(c *PickCtx) Canon {
+		for _, acts := range [][]Canon{
+			canonOf(c, ActCast, ActCastFace, ActPlayLand),
+			canonOf(c, ActActivate),
+		} {
+			if len(acts) > 0 {
+				d := *c.D
+				d.Options = acts
+				return rnd.Pick(&PickCtx{D: &d, G: c.G, Seq: c.Seq})
+			}
+		}
+		return rnd.Pick(c)
+	})
+}
+
+// canonOf is c.D's options of these action kinds.
+func canonOf(c *PickCtx, kinds ...canon.CanonKind) []Canon {
+	var buf []Canon
+	for _, a := range c.D.Options {
+		k := a.Kind()
+		for _, want := range kinds {
+			if k == want {
+				buf = append(buf, a)
+				break
+			}
+		}
+	}
+	return buf
+}
+
+func TestColorWordsLockstepReadsAgree(t *testing.T) {
 	t.Parallel()
 	before := dirac.ColorWordsStats.Stalls.Load() + dirac.ColorWordsStats.Casts.Load()
+	beforeInst := dirac.ColorWordsStats.Installs.Load()
 	var mu sync.Mutex
-	stalls := 0
+	played, acts := 0, 0
 	seedChunks(t, 1, 160, lockstepChunk, func(t *testing.T, lo, hi uint64, _ *sync.Mutex) {
-		n := 0
-		colorWordsPlay(t, colorWordsReadDecks, lo, hi, func(seed uint64, res *Result) {
+		n, na := 0, 0
+		colorWordsPlayPol(t, colorWordsReadDecks, lo, hi, colorWordsActivatePolicy, func(seed uint64, res *Result) {
+			if err := unmodelledStallError(t.Name(), res); err != nil {
+				t.Errorf("seed %d: %v", seed, err)
+			}
 			if d := res.Div; d != nil {
-				t.Errorf("seed %d: diverged at decision %d: %s %s %v", seed, d.At, d.What, d.Field, d.Diff)
+				t.Errorf("seed %d: diverged at decision %d: %s %s %v %s\nref %v\nker %v", seed, d.At, d.What, d.Field, d.Diff, d.Detail, d.RefOptions, d.KerOptions)
 				return
 			}
-			if res.Stall == KernelStallPrefix+dirac.StallName(dirac.StallTextChange) {
-				if !res.StallUnmodelled {
-					t.Errorf("seed %d: the text-change stall is not classed unmodelled", seed)
+			n++
+			for _, a := range res.Actions {
+				if a.Kind() == ActActivate {
+					na++ // the Ravine's Animate: the frozen colour-word colour its record reads
 				}
-				n++
 			}
 		})
 		mu.Lock()
-		stalls += n
+		played += n
+		acts += na
 		mu.Unlock()
 	})
 	if t.Failed() {
 		return
 	}
-	reads := dirac.ColorWordsStats.Stalls.Load() + dirac.ColorWordsStats.Casts.Load() - before
-	t.Logf("%d games stalled on a colour word a Swirl rewrites; %d stalls", stalls, reads)
-	if stalls == 0 || reads < int64(stalls) {
-		t.Fatalf("%d stalled games, %d reads: no Swirl reached a card that reads a colour word it rewrites", stalls, reads)
+	stalls := dirac.ColorWordsStats.Stalls.Load() + dirac.ColorWordsStats.Casts.Load() - before
+	reads := dirac.ColorWordsStats.Reads.Load()
+	installs := dirac.ColorWordsStats.Installs.Load() - beforeInst
+	t.Logf("%d seeds agree unstalled over the rewritten faces; %d Ravine activations, %d frozen-colour record installs, %d rewritten mask reads, %d stalls", played, acts, installs, reads, stalls)
+	if stalls != 0 {
+		t.Errorf("%d unmodelled stalls: a deck card reads a rewritten colour word on a surface the model does not rewrite", stalls)
+	}
+	if reads == 0 {
+		t.Fatal("no colour mask read a rewritten face: the decks never reach the model")
+	}
+	if acts == 0 || installs == 0 {
+		t.Fatal("no Ravine activation under a live colour-word colour: the decks never reach the frozen colour-word colour of an Animate Colors$")
 	}
 }

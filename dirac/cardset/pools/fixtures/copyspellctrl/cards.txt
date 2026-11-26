@@ -1,0 +1,16 @@
+# the copy-controller lockstep (CR 707.10, 707.10c): Meletis Charlatan's
+# target spell's controller, Bonus Round's caster and Hive Mind's each other
+# player own the copies they make (dirac/oracle/copyspell_controller_test.go)
+Meletis Charlatan
+Bonus Round
+Hive Mind
+Prodigal Sorcerer
+Fire Imp
+Wind Drake
+Hill Giant
+Shock
+Lightning Bolt
+Opt
+Divination
+Island
+Mountain

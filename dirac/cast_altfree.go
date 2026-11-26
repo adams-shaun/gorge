@@ -23,6 +23,13 @@ func prepAltFree(t *kop.Table, g *genPrep, p *prep) {
 				}
 				g.altFree[i] = uint8(j + 1)
 				p.cards[i].altCost = true
+				if a.Static.Zone == kop.ZoneGraveyard {
+					// an EffectZone$ Graveyard static names the graveyard
+					// explicitly: the offer is the grave walk's alone
+					// (cast_gravealt.go offerGraveyardAltCasts); the hand
+					// walk declines it (offerAltFreeHand)
+					p.graveAlt = true
+				}
 				break
 			}
 		}
@@ -84,11 +91,20 @@ func altTapCost(c *kop.Cost) bool {
 	return c.Flags == kop.CostTapX && c.N > 0
 }
 
+// altGraveExileCost: the alternative cost is exiling N graveyard cards
+// matching its filter beside its mana and nothing else (Squee, Dubious
+// Monarch's ExileFromGrave<4/Card.Other/other cards>, CR 118.9; kgen
+// altGraveExileShape): the cast poses the picks (costObjOptions' exile ask,
+// gorge exAsk over the payer's graveyard).
+func altGraveExileCost(c *kop.Cost) bool {
+	return c.Flags == kop.CostExileGrave && !c.ExileHand && c.N > 0
+}
+
 // altPickCost: the alternative cost's non-mana parts are picks the cast asks
-// (the sacrifice, the return, the hand exile, the two discards or the taps) or
-// life it pays, rather than a bare mana price.
+// (the sacrifice, the return, the hand exile, the graveyard exile, the two
+// discards or the taps) or life it pays, rather than a bare mana price.
 func altPickCost(c *kop.Cost) bool {
-	return altSacCost(c) || altReturnCost(c) || altHandExileCost(c) || altDiscardCost(c) || altLifeCost(c) || altTapCost(c)
+	return altSacCost(c) || altReturnCost(c) || altHandExileCost(c) || altGraveExileCost(c) || altDiscardCost(c) || altLifeCost(c) || altTapCost(c)
 }
 
 // offerAltFreeHand offers hand card o's cast for its own free alternative
@@ -103,6 +119,12 @@ func altPickCost(c *kop.Cost) bool {
 //go:noinline
 func (s *State) offerAltFreeHand(k *prep, d *Decision, p uint8, o Obj, c CardID, av *avail) {
 	a := &k.t.Cards[c].Abilities[k.gen.altFree[c]-1]
+	if a.Static.Zone == kop.ZoneGraveyard {
+		// an EffectZone$ Graveyard static names the graveyard explicitly
+		// (gorge statics_altcost.go graveyardSelfAltCost): the hand walk
+		// never offers it -- offerGraveyardAltCasts does (cast_gravealt.go)
+		return
+	}
 	if a.Static.Cond2 != 0 && !s.condEval(k, a.Static.Cond2, evalCtx{src: o, srcSl: NoSlot, ctrl: p}) {
 		return
 	}
@@ -160,7 +182,10 @@ const buildAltCost = 2
 
 // takeAltCast marks the build beginCast starts with the alternative cost
 // genState.altCast names (buildAltCost, or kw_beammeup.go's buildBeamGrant)
-// and clears the flags.
+// and clears the flags. A buildAltCost cast stamps the spell entry's
+// trigPlAltCost mark, the Count$AltCost read (exprs.go ExAltCost) resolves
+// through; the mark rides the same takeAltCast that sets the cost, so the
+// pushed entry carries it before its own SpellCast triggers queue.
 func (s *State) takeAltCast(k *prep, c CardID, mode uint8) {
 	if k.gen == nil || !s.g.altCast {
 		return
@@ -168,13 +193,38 @@ func (s *State) takeAltCast(k *prep, c CardID, mode uint8) {
 	s.g.altCast = false
 	if mode&2 == 0 {
 		s.bld().altAdd = buildAltCost
-		if k.gen.anyAltCostRead {
-			s.bld().e.trigPl = trigPlAltCost // the cast's AlternativeCost provenance (value_altcost.go)
-		}
+		s.bld().e.trigPl = trigPlAltCost // trigpl.go; the Count$AltCost read
 	} else if !k.t.Cards[c].BeamMeUp || s.g.beamGrant {
 		s.bld().altAdd = buildBeamGrant // kw_beammeup.go
 	}
 	s.g.beamGrant = false
+}
+
+// altCostCast reports whether the evaluation's provenance is a cast for the
+// card's own AlternativeCost static's alternative: e itself when it is the
+// spell, else the source spell entry still on the stack (a self cast trigger
+// resolves above its spell, CR 603.2; gorge reads FlagAltCostPaid there too).
+// With no entry in scope (the trigger's condition at queue time, trigOK:
+// evalCtx{src} alone) the source object's own spell entry is the one read.
+// An evaluation with no source spell on the stack (a delayed trigger, a
+// permanent's ability) has no alternative-cost provenance.
+func (s *State) altCostCast(ctx evalCtx) bool {
+	e, o := ctx.e, ctx.src
+	if e != nil {
+		if e.kind == seSpell {
+			return e.trigPl == trigPlAltCost
+		}
+		o = e.obj
+	}
+	if o == NoObj {
+		return false
+	}
+	for i := 0; i < int(s.sp); i++ {
+		if se := &s.stack[i]; se.kind == seSpell && se.obj == o {
+			return se.trigPl == trigPlAltCost
+		}
+	}
+	return false
 }
 
 // altCostOf is the adjusted alternative mana cost of the spell being built.

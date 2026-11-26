@@ -318,6 +318,17 @@ const OvEnterWith = 2
 // source's ChosenType AT RESOLUTION.
 const OvChosenType = 3
 
+// OvCwWord, in an OpOverride's B field: a word-list Animate Colors$ (Raging
+// Ravine's "becomes a 2/2 red and green Elemental creature"). C names the
+// FIRST of SIX consecutive Overrides records, the printed colours then one
+// colour each (W, U, B, R, G in that order; kgen emitCwWordAnimate). At
+// resolution the kernel applies the record whose colour is the colour-word
+// statics' colour frozen as the ability was put on the stack
+// (static_colorwords.go cwFreeze, ovCwRow), the printed one with none: gorge
+// reads the ability's Colors$ from its face as it was put on the stack (CR
+// 112.7a, 608.2h), so a later static change moves nothing installed.
+const OvCwWord = 4
+
 // ChooseTypeBasicLand, in a mid-resolution OpChooseType's B field: the ask
 // offers the five basic land types (gorge effChooseType Type$ Basic Land,
 // CR 205.3i) rather than the creature-type vocabulary. The answer is the
@@ -796,7 +807,9 @@ const PredTrigPlayerCtrl Pred = 239
 // is the evaluating controller: the attacked player, the controller of the
 // attacked planeswalker or the protector of the attacked battle (gorge
 // attackingYou: o.Attacking == you; CR 506.2, 508.1b). At any seat count;
-// false off the battlefield. Explicit ordinal.
+// false off the battlefield. PredN 1 is gorge attackingYouOrYourPW(LKI):
+// attacking the evaluating controller itself or a planeswalker it controls
+// (animated or not), never a battle. Explicit ordinal.
 const PredAttackingYou Pred = 235
 
 // PredSuspected: PredN 1, a suspected battlefield permanent; PredN 0, anything

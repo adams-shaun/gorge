@@ -3,6 +3,5 @@ name: ExAltCost
 value: 72
 forge: AltCost
 census: count AltCost all=8 std=0 mbc=0 sole=6
-state: slotbyte 112 (cast facts)
 status: active
-doc: Sub[0] when the spell being resolved or built was cast for its own S:Mode$ AlternativeCost static, else Sub[1] (Count$AltCost.<paid>.<unpaid>; gorge FlagAltCostPaid / PendingAltCost). Reads the stack entry's trigPlAltCost mark, set by takeAltCast on a table that reads ExAltCost; a copy drops it (CR 707.10). dirac/value_altcost.go.
+doc: Sub[0] if the resolving spell was cast for its own S:Mode$ AlternativeCost static's alternative (kernel build.altAdd buildAltCost, stamped as the spell entry's trigPlAltCost mark), else Sub[1] (Count$AltCost.<paid>.<unpaid>; Worldheart Phoenix's SpellCast CheckSVar; gorge count_body_heads.go reads FlagAltCostPaid or the pending cast's PendingAltCost). Read through the stack for a trigger above its spell, as ExSneaked is.

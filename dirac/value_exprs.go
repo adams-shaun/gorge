@@ -148,8 +148,6 @@ func (s *State) exprCold(k *prep, x *kop.Expr, ctx evalCtx) int {
 		return s.lifeLostOf(k, x.Ref, ctx) // value_lifelost.go
 	case kop.ExLifeLostLastTurn:
 		return int(s.pl[ctx.ctrl].lastLost)
-	case kop.ExAltCost:
-		return s.altCostValue(k, x, ctx) // value_altcost.go
 	case kop.ExMostProminentCreatureType:
 		return s.mostProminentType(k, x, ctx) // value_mostprominent.go
 	case kop.ExMostCardName:
@@ -165,10 +163,9 @@ func (s *State) exprCold(k *prep, x *kop.Expr, ctx evalCtx) int {
 		}
 		return 0
 	case kop.ExCountExile:
-		if x.N == 1 {
-			return s.exileTypeAgg(k, x, ctx) // zone_exiledwithstatic.go
-		}
-		return s.countExile(k, x, ctx)
+		return s.countExileOrAgg(k, x, ctx) // value_delayedexile.go
+	case kop.ExDelayedExileCount:
+		return s.delayedExileCount(ctx) // value_delayedexile.go
 	case kop.ExPhaseCount:
 		return s.phaseCount(x) // act_addphase.go
 	case kop.ExStepIn:
