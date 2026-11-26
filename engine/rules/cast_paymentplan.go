@@ -512,4 +512,26 @@ func (e *Engine) installPaidCostLists(pc *pendingCast) {
 		}
 		e.castReturned[pc.stackObj] = append([]state.ObjID(nil), pc.returns...)
 	}
+	if n := pc.countersRemoved(); n > 0 {
+		if e.castCountersRemoved == nil {
+			e.castCountersRemoved = make(map[state.ObjID]int32)
+		}
+		e.castCountersRemoved[pc.stackObj] = n
+	}
+}
+
+// countersRemoved is the number of counters pc's SubCounter cost parts
+// remove: an announced (SubCounter<X/KIND>) part counts the announced X, a
+// fixed part its N (a SubCounter<All/KIND> part's N is the pile fixed at
+// payment, pay.FixLifeXCost). trigBoard.LiveActivation reads the same count.
+func (pc *pendingCast) countersRemoved() int32 {
+	var n int32
+	for _, part := range pc.cost.SubCounter {
+		if part.Announced {
+			n += pc.x
+		} else {
+			n += part.N
+		}
+	}
+	return n
 }

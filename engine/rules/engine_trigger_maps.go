@@ -107,6 +107,13 @@ type engineTriggerMaps struct {
 	// Incubation's enchanted creature).
 	castTapped   map[state.ObjID][]state.ObjID `clone:"deep"`
 	castReturned map[state.ObjID][]state.ObjID `clone:"deep"`
+	// castCountersRemoved is the number of counters the activation's
+	// SubCounter cost parts removed (an announced part its X, a
+	// SubCounter<All/KIND> part the pile fixed at payment), read through
+	// effects.Ctx.Paid.CountersRemoved by SVar$CostCountersRemoved (Forge's
+	// CostRemoveCounter: the ability's CostCountersRemoved SVar). Same
+	// discipline as castReturned; a zero is not recorded.
+	castCountersRemoved map[state.ObjID]int32 `clone:"deep"`
 	// fuseTargets maps a fused (FlagFused) stack object id to its two target
 	// stages' own chosen targets (index 0 the front half's, index 1 the
 	// alternate half's). Recorded by payCast at payment, read by resolveFused
