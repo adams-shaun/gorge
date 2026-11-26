@@ -138,6 +138,10 @@ func prepLandGrant(t *kop.Table, p *prep, g *genPrep) {
 			continue
 		}
 		g.blgIdx[i] = int16(len(g.blgPC) / 32)
+		ml := uint8(0)
+		if !DebugNoAbRaise {
+			ml = manaLifeRaise(&t.Cards[i])
+		}
 		for m := 0; m < 32; m++ {
 			v := base
 			first := bits.TrailingZeros8(uint8(m))
@@ -159,6 +163,18 @@ func prepLandGrant(t *kop.Table, p *prep, g *genPrep) {
 			v.manaN, v.manaTap = 1, true
 			v.manaMulti = bits.OnesCount8(uint8(v.manaCol&0x3f)) > 1
 			v.blgFirst = uint8(first + 1)
+			if ml > 0 {
+				// the card's own mana-abilities' life raise (RaiseAbMana with
+				// StRaiseLife, Thran Portal): every mana ability it has — the
+				// intrinsic views here — costs ml life more to activate, so
+				// the view prices the life the walk's pain arm pays (a
+				// Mana Confluence-class tap: censusOpenTap, potentialTapUnit,
+				// windowCanTap and printedAbPain all read the view's pain).
+				// manaLifeRaise returned 0 beside a printed mana ability, so
+				// only the intrinsic views fold it.
+				v.painCol, v.painN, v.painLife, v.painOnly = v.manaCol, ml, true, true
+				v.manaRaiseLife = true
+			}
 			g.blgPC = append(g.blgPC, v)
 		}
 	}

@@ -145,3 +145,36 @@ func AbReduceRefusal(reducers, costed []string) error {
 	}
 	return fmt.Errorf("ReduceCost Type Ability beside a mana-costed mana ability: %s reduces abilities and %s has a mana ability with a mana cost", reducers[0], costed[0])
 }
+
+// AbRaiseRefusal refuses a matchup holding a StatRaiseAbility static
+// (raisers: kop.StatRaiseAbility) and a card whose raise the kernel does not
+// price. A mana ability is one: the kernel's mana window prices no ability
+// raise (manaable). A pick cost of the raised ability's own beside the
+// raise's pick part is another: the one pick Cost a build poses cannot carry
+// both, and gorge asks the ability's own tap-creatures cost before the CR
+// 601.2h sacrifice ask the raise's part rides (picked). Two raisers with a
+// pick part are a third (pickers): the Cost carries one filter, where copies of
+// one card share it and compose as one Sac<N/f>. A raiser whose filter
+// names no type the card has (the types masks disjoint) lowers nothing and
+// does not refuse. A generic raise beside an activated ability that taps its
+// source is a fourth (tapped): measured, gorge never offers an Errant
+// Doomsayers or Blightspeaker under Oppressive Rays where the kernel prices it
+// {3} (ticket raise-generic-tap-ability).
+func AbRaiseRefusal(raisers, manaable, picked, pickers, tapped []string) error {
+	if len(raisers) == 0 {
+		return nil
+	}
+	if len(manaable) != 0 {
+		return fmt.Errorf("RaiseCost Type Ability beside a mana ability: %s raises abilities and %s has a mana ability the mana window prices no raise on", raisers[0], manaable[0])
+	}
+	if len(pickers) > 1 {
+		return fmt.Errorf("RaiseCost Type Ability with two pick parts: %s and %s each raise abilities with a sacrifice pick, and the one pick Cost a build poses carries one filter", pickers[0], pickers[1])
+	}
+	if len(tapped) != 0 {
+		return fmt.Errorf("RaiseCost Type Ability with a generic raise beside a {T} ability: %s raises abilities and %s has an activated ability that taps its source, which gorge withholds under the raise where the kernel prices it", raisers[0], tapped[0])
+	}
+	if len(picked) != 0 {
+		return fmt.Errorf("RaiseCost Type Ability beside a pick cost: %s raises abilities with a pick part and %s has an activated ability with a pick cost of its own", raisers[0], picked[0])
+	}
+	return nil
+}
