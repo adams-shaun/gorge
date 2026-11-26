@@ -105,4 +105,26 @@ func TestFuncGrowthEndToEnd(t *testing.T) {
 	if code != 0 || !strings.Contains(out, "funcgrowth: ok") || strings.Contains(out, "ok bigA") {
 		t.Fatalf("shrunk tree: exit %d, output %q", code, out)
 	}
+
+	// A brand-new untracked file is invisible to git diff, so the tool lists
+	// untracked files under the shape trees as well: a local run must not
+	// pass a new over-threshold function that the CI checkout would catch.
+	untracked := filepath.Join(repo, "engine", "rules", "g.go")
+	if err := os.WriteFile(untracked, []byte("package p\n\n"+bigFunc("untracked", 400)), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	out, code = run()
+	if code != 1 {
+		t.Fatalf("untracked over-threshold file: exit %d, output %q", code, out)
+	}
+	if !strings.Contains(out, "untracked (engine/rules/g.go") || !strings.Contains(out, "new function over lines 400") {
+		t.Errorf("output %q does not report the untracked function", out)
+	}
+	// And gone again, the tree is clean.
+	if err := os.Remove(untracked); err != nil {
+		t.Fatal(err)
+	}
+	if out, code = run(); code != 0 || !strings.Contains(out, "funcgrowth: ok") {
+		t.Fatalf("cleaned tree: exit %d, output %q", code, out)
+	}
 }

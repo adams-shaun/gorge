@@ -5,13 +5,16 @@
 // cyclomatic complexity) may not have grown by more than a percentage of its
 // size at the merge base (codeshape.GrowthPercent, floors
 // codeshape.GrowthFloorLines and codeshape.ComplexGrowthFloor), and a
-// function newly over a threshold, or one that crosses it, is refused. A
+// function newly over a threshold, or one that crosses it, is refused at the
+// threshold (the allowance does not carry a function past it). A
 // function at or below both thresholds is never checked, and shrinking always
 // passes.
 //
 // It measures the changed files of the diff from the merge base of -base and
-// HEAD (origin/main by default) to the head, so a stacked merge-queue batch
-// is measured against the batch's real base. It runs in `make lint` and in
+// HEAD (origin/main by default) to the head, plus untracked new files under
+// the shape trees, so a stacked merge-queue batch is measured against the
+// batch's real base and a local run does not pass a new over-threshold
+// function that the CI checkout would catch. It runs in `make lint` and in
 // ci.yml's lint job (against the pull request's base there, origin/main
 // otherwise); a run on an unchanged tree measures nothing and passes.
 //
@@ -71,10 +74,11 @@ func main() {
 	fmt.Println("funcgrowth: ok")
 }
 
-// run measures the changed files of base..head in dir and holds them to lim.
-// The head side is the working tree (so an uncommitted change is checked
-// locally; in CI the checkout is the head); the base side is extracted from
-// git into a temp directory, never a worktree switch.
+// run measures the changed files of base..head in dir, plus untracked new
+// files under the shape trees, and holds them to lim. The head side is the
+// working tree (so an uncommitted change is checked locally; in CI the
+// checkout is the head); the base side is extracted from git into a temp
+// directory, never a worktree switch.
 func run(dir, baseRef string, lim codeshape.GrowthLimits) (fails, oks []codeshape.GrowthFailure, changed int, mergeBase string, err error) {
 	root, err := git(dir, "rev-parse", "--show-toplevel")
 	if err != nil {
@@ -99,12 +103,24 @@ func run(dir, baseRef string, lim codeshape.GrowthLimits) (fails, oks []codeshap
 	if err != nil {
 		return nil, nil, 0, "", fmt.Errorf("diff %s..worktree: %v", mb[:12], err)
 	}
+	// Untracked files are invisible to git diff, so they are listed
+	// separately: a brand-new file not yet added must not pass a local run
+	// that the CI checkout would catch.
+	others, err := git(dir, append([]string{"ls-files", "--others", "--exclude-standard", "-z", "--"},
+		codeshape.ShapeDirs...)...)
+	if err != nil {
+		return nil, nil, 0, "", fmt.Errorf("ls-files --others: %v", err)
+	}
+	seen := map[string]bool{}
 	var rels []string
-	for _, rel := range strings.Split(strings.TrimRight(out, "\x00"), "\x00") {
-		if rel == "" || !isShapeFile(rel) {
-			continue
+	for _, out := range []string{out, others} {
+		for _, rel := range strings.Split(strings.TrimRight(out, "\x00"), "\x00") {
+			if rel == "" || seen[rel] || !isShapeFile(rel) {
+				continue
+			}
+			seen[rel] = true
+			rels = append(rels, rel)
 		}
-		rels = append(rels, rel)
 	}
 	if len(rels) == 0 {
 		return nil, nil, 0, mb, nil
