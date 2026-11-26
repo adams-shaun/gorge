@@ -11,6 +11,7 @@ import "testing"
 // not, even when the same word also sits on a modelled surface.
 func TestColorWordsUnmodelledMask(t *testing.T) {
 	const (
+		white = 1 << 0
 		black = 1 << 2
 		red   = 1 << 3
 		green = 1 << 4
@@ -30,6 +31,25 @@ func TestColorWordsUnmodelledMask(t *testing.T) {
 		{"Raging Ravine", red | green, 0},
 		// "a 1/1 blue Bird creature token": the description is display text
 		{"Ordered Migration", blue, 0},
+		// K:etbCounter's Adamant$ White: the gate's colour is read live at the
+		// kernel's ExAdamant (kw_evoke.go exAdamant, the composed colour-word
+		// colour of the source face's spend); the keyword line beside its
+		// parsed expansion is inert
+		{"Ardenvale Paladin", white, 0},
+		// S:Mode$ Continuous Affected$ Creature.Blue: the kernel reads the
+		// static's Affected$ filter's colour clauses on the static's source
+		// face (matchPermOne, cwTextObj of the source slot)
+		{"Sunken City", blue, 0},
+		// A:AB$ Pump KWChoice$ Protection from red: the choice's grant
+		// (OpGrantKeyword) reads the term's colour by the resolving entry's
+		// colour-word colour (cwProtGrant)
+		{"Jodah's Avenger", red, 0},
+		// S:Mode$ AlternativeCost ValidSA$ Spell.Self Cost$ ExileFromHand<1/
+		// Card.Blue+Other>: the alternative cost is read from the cast card's
+		// printed face in its cast zone (gorge alternativeCosts at
+		// beginCastWith, statics_altcost.go) and frozen for the pick
+		// (cast_asks.go exAsk), so the word is read but never rewritten
+		{"Snapback", blue, 0},
 	} {
 		c := lowerNamedCard(t, tc.card)
 		if c.TextWords&tc.words != tc.words {

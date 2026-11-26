@@ -247,7 +247,14 @@ func (s *State) costObjOptions(k *prep, d *Decision) bool {
 			continue
 		}
 		if int(d.N) < left {
-			panic("kernel: exile cost no longer payable")
+			// the pick's candidates shrank below what the entry owes since
+			// the offer counted them: gorge exAsk's "exile cost no longer
+			// payable" abortCast (CR 733.1, cast_asks.go) -- the hand moved
+			// between the offer walk and the pick, nothing has moved yet, so
+			// the build reverses with the pool intact
+			d.N = 0
+			s.reverseCast(k)
+			return false
 		}
 		d.Kind, d.Sub, d.Player = DkChoose, ChCostExile, e.ctrl
 		return true

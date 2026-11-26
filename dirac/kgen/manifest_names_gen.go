@@ -1296,6 +1296,9 @@ func init() { enum[kop.ReplKind]("kop.ReplDamageMinus", kop.ReplDamageMinus) }
 // dirac/manifest/ReplKind/ReplDamageSet
 func init() { enum[kop.ReplKind]("kop.ReplDamageSet", kop.ReplDamageSet) }
 
+// dirac/manifest/ReplKind/ReplDrawProgram
+func init() { enum[kop.ReplKind]("kop.ReplDrawProgram", kop.ReplDrawProgram) }
+
 // dirac/manifest/ReplKind/ReplLifeReduced
 func init() { enum[kop.ReplKind]("kop.ReplLifeReduced", kop.ReplLifeReduced) }
 
