@@ -74,8 +74,17 @@ func (lc *lowerCtx) animateAll(ps *params) error {
 		return refuse("AnimateAll Colors$ ChosenColor")
 	}
 	in := lInstr{Op: "OverrideAll", F: f, Obj: scope, CS: dur, Note: overrideString(o)}
-	lc.out.overrides = append(lc.out.overrides, o)
-	in.C = len(lc.out.overrides) - 1
+	if o.CwWord {
+		// a word-list Colors$ reads the frozen colour-word colour at
+		// resolution (kop.OvCwWord): the printed row plus one row per colour
+		in.CS = dur + "|cwWord"
+		in.C = lc.cwWordRows(o)
+		first := *lc.out.overrides[in.C]
+		in.Note = overrideString(&first)
+	} else {
+		lc.out.overrides = append(lc.out.overrides, o)
+		in.C = len(lc.out.overrides) - 1
+	}
 	lc.emit(in)
 	return nil
 }
