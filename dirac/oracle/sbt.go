@@ -266,6 +266,10 @@ func (a *SBT) priority(s *dirac.State, d *dirac.Decision, seat *builtins.Seat) [
 				cm = "bargained" // CR 702.166: gorge's "bargained" cast option
 			case x.Kind() == dirac.AkCastCasualty:
 				cm = "casualty"
+			case mode&1 != 0 && s.FeatKicker2Card(dirac.Obj(src)) && dirac.FeatKickAltSel(uint8(x.Target())) != 0:
+				// CR 702.33b: the two-alternative Kicker's per-alternative
+				// casts, named by the target byte (kw_kickalt.go)
+				cm = kickedAltMode(dirac.FeatKickAltSel(uint8(x.Target())))
 			case mode&1 != 0 && s.FeatOptCostCard(dirac.Obj(src)):
 				cm = "optionalcost" // CR 601.2b: gorge's "optionalcost" cast option
 			case mode&1 != 0 && s.FeatOffspringCast(dirac.Obj(src)):

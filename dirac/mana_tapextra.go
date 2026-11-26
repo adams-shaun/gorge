@@ -657,6 +657,12 @@ func (s *State) tapAnyColPips(k *prep, p uint8, a Action) (cnt [kop.NumManaKinds
 		o := Obj(a.Source())
 		cp, fromHand := s.offspringCaster(o)
 		m, base = addCost(cd.Cost, s.kickPayment(k, cp, s.objs[o].card, o, fromHand)), true
+		if sel := s.kickAltActionSel(a); sel != 0 {
+			// the two-alternative Kicker's selection announces its own parts'
+			// pips alone (kickSelPayment's home; kw_kickalt.go; gorge
+			// windowOwed reads the composed cost)
+			m = addCost(cd.Cost, kickSelPayment(cd, sel))
+		}
 	}
 	if !base && s.anyColOwedRun() {
 		// Any other play whose base gorge leaves unread (a suspend or plot

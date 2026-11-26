@@ -891,6 +891,12 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		replBits2:   make([]uint32, len(t.Cards)),
 		uses:        tableUses(t), // genneed.go
 	}
+	if g.uses.has(useKickAlt) {
+		// the two-alternative Kicker's selection byte shares the multikicker
+		// count's per-object region (filter_kickedalt.go): one kicked family
+		// per card, so the byte is never both
+		g.anyMultikick |= mkAny
+	}
 	g.anySnow = tableAnySnow(t) // the pool's snow tally (mana_snow.go)
 	for i := range t.Cards {
 		// the printed K:Prevent facts (dirac/kgen/lower_preventkw.go)
