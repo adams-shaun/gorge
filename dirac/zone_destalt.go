@@ -36,6 +36,10 @@ func (s *State) destAltOptions(d *Decision) {
 // destAltAnswer moves the found cards to the answered zone and finishes the
 // search (its shuffle and the rest of the resolution).
 func (s *State) destAltAnswer(k *prep, a Action) {
+	if n, ok := s.askDestAltSkip(k, a); ok { // zone_destaltask.go: OpAskDestAlt
+		s.continueRes(k, n)
+		return
+	}
 	s.res.ask = raNone
 	if a.Mode() == 1 {
 		s.g.pickZ = uint8(kop.ZoneGraveyard)
