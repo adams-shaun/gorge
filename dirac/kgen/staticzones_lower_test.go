@@ -39,7 +39,7 @@ func TestStaticZonesSlice(t *testing.T) {
 // staticZonesRefusals are the slice's other carriers: the same classes, in
 // shapes the kernel does not model yet (a multi-zone MayPlay list it cannot
 // spell -- Aluren's any-player rider, Durnan's Exile,Stack Effect list -- a
-// stack grant of Replicate, Prowl, Rebound, Freerunning or
+// stack grant of Replicate, Prowl, Freerunning or
 // Deathtouch, the vote
 // counters, K'rrik's pay-life-instead-of-mana) or that gorge itself fails
 // closed on -- FatefulHour, ExtraTurn and Night, whose gate has no arm, so
@@ -51,7 +51,6 @@ func TestStaticZonesSlice(t *testing.T) {
 var staticZonesRefusals = []struct{ card, want string }{
 	{"Aluren", `MayPlayPlayer$ "Player"`},
 	{"Ballot Broker", "player static"},
-	{"Cast Through Time", `AffectedZone Stack grant of "Rebound"`},
 	{"Djinn Illuminatus", `AffectedZone Stack grant of "Replicate:CardManaCost"`},
 	{"Embalmer's Tools", `ReduceCost AffectedZone "": "Creature.YouOwn+inZoneGraveyard" can match a non-battlefield activation`},
 	{"Gavony Ironwright", `static Condition "FatefulHour" (gorge fails closed`},
