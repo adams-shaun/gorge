@@ -15,9 +15,9 @@ flowchart LR
 ```
 
 <ul class="gg-facts">
-  <li><strong>Speed:</strong> games per core-second and the cost of a dirac transition, measured and dated, are on <a href="../performance/index.md">Performance</a></li>
-  <li><strong>No allocation</strong> in a dirac transition or copy</li>
   <li><strong>2 to 4 seats</strong> on dirac, up to 8 on gorge</li>
+  <li><strong>No allocation</strong> in a dirac transition or copy</li>
+  <li><strong>Measured</strong> games per core-second and the cost of a transition, dated, on <a href="../performance/">Performance</a></li>
 </ul>
 
 <div class="grid cards" markdown>

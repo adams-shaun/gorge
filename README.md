@@ -12,6 +12,22 @@ replays byte for byte.
 and one buffer sized to its card table, copied in place. It plays only cards it has
 shown it agrees with gorge on, decision by decision, and refuses the rest by name.
 
+[![daily image](https://github.com/adams-shaun/gorge/actions/workflows/daily-image.yml/badge.svg)](https://github.com/adams-shaun/gorge/actions/workflows/daily-image.yml)
+
+**Run it: a container image of green `main`, published daily.** The newest oracle-green
+commit on `main` is built at 06:30 UTC and pushed as
+[`ghcr.io/adams-shaun/gorge`](https://github.com/adams-shaun/gorge/pkgs/container/gorge),
+tagged `:latest`, `:YYYY-MM-DD` (the build day, UTC; the newest date tag is the image's date) and `:<sha>`.
+
+```sh
+docker run --rm -p 8080:8080 ghcr.io/adams-shaun/gorge:latest        # then open http://localhost:8080
+```
+
+The image holds no card scripts (Forge's are GPL-3.0): on first start it downloads them
+into `/cards` (a few minutes). Add `-v gorge-cards:/cards -v gorge-data:/data` to keep them and
+your games between runs. A local Kubernetes pod and the compose demo:
+[`deploy/k8s`](deploy/k8s/README.md), [`deploy/docker`](docs/site/web/docker.md).
+
 **Documentation: [adams-shaun.github.io/gorge](https://adams-shaun.github.io/gorge/)**
 
 | I want to… | Start at |
