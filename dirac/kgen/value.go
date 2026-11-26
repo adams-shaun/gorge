@@ -385,7 +385,7 @@ func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 		case rest == "HasPropertyIsRememberedOrController":
 			// the opponents controlling a remembered object (Cut a Deal's
 			// drawn cards; dirac value_remctrl.go). The general seat-count
-			// read; main's two-seat reduction of this same body
+			// read, seat-exact at every count; main's two-seat reduction
 			// (value_remdrawrecipients.go) is superseded by it.
 			v = lValue{Kind: vOppExtreme, N: kop.OppExtRemCtrl}
 		default:
