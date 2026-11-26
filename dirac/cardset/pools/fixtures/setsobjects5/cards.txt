@@ -1,0 +1,16 @@
+# Will of the council over a graveyard card ballot (Vote Zone$ Graveyard)
+# (dirac/oracle/setsobjects5_lockstep_test.go TestSetsObjects5VoteGraveLockstep):
+# Custodi Squire's voters pick an artifact, creature or enchantment card in its
+# controller's graveyard and the most-voted return to hand
+Custodi Squire
+Ornithopter
+Elite Vanguard
+Lightning Bolt
+Plains
+Mountain
+# LeaveBattlefield$ Exile on a move to the battlefield
+# (TestSetsObjects5LeaveExileLockstep): the returned creature is exiled
+# instead of leaving the battlefield any other way
+Isareth the Awakener
+From the Catacombs
+Swamp

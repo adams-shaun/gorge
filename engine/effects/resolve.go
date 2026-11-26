@@ -825,10 +825,16 @@ func repeatGateEvaluates(h Host, c *Ctx, sa *cards.SA, check, cmp, defined, pres
 	if defined == "" {
 		return holds, evaluated
 	}
+	// The defined/present gate's compare is RepeatCompare$ alone (Forge's
+	// RepeatEffect reads getParamOrDefault("RepeatCompare", "GE1"); an absent
+	// compare means presence, evalConditionCount's empty-compare arm).
+	// RepeatSVarCompare$ is the RepeatCheckSVar$ gate's compare only -- Forge
+	// never consults it here. The old fallback to cmp read Crooked Scales'
+	// "RepeatSVarCompare$ EQ0" as the pile gate and repeated the process while
+	// the pile was EMPTY (its Destroy subs' Cleanup runs every iteration): a
+	// win flipped again and an unpaid loss flipped again, to the 1000-iteration
+	// cap. Forge and XMage stop after the first flip.
 	definedCmp := strings.TrimSpace(sa.ParamStr(cards.PKRepeatCompare))
-	if definedCmp == "" && check == "" {
-		definedCmp = cmp
-	}
 	definedHolds, definedEvaluated := repeatDefinedGateHolds(h, c, sa, defined, present, definedCmp)
 	return holds && definedHolds, evaluated && definedEvaluated
 }
@@ -918,6 +924,20 @@ func repeatDefinedGateHolds(h Host, c *Ctx, sa *cards.SA, defined, present, comp
 		return false, false
 	}
 	objects := DefinedSpec(h, c, defined)
+	if defined == "Imprinted" && len(objects) == 0 {
+		// The CR 607.2a-gated pile read is empty for the corpus's scratch-pile
+		// repeats (Crooked Scales is the only RepeatDefined$ Imprinted carrier
+		// besides Tainted Pact, whose exiled links the gated read resolves):
+		// its ImprintCards$ ThisTargetedCard imprints a battlefield creature
+		// that never touches exile, so the gate must read the associations RAW
+		// the way Forge's getDefinedCards does, or the between-iteration count
+		// is zero for the whole process. The same scoped raw fallback
+		// damage.go's damage-source reader and effDestroy's Defined$ Imprinted
+		// mover keep.
+		if raw := rawImprintTargets(h.Game(), c); len(raw) > 0 {
+			objects = raw
+		}
+	}
 	if present != "" && len(UnknownPredicates(present)) != 0 {
 		return false, false
 	}

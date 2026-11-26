@@ -130,11 +130,16 @@ func (ic *instrCtx) opMayPlay() error {
 	if in.Follows {
 		ki.C |= kop.MayPlayFollows // the record follows its card (kop/operands.go)
 	}
+	if in.ConvC {
+		ki.C |= kop.MayPlayConvC // colourless mana pays a coloured pip of the cast (kop/operands.go)
+	}
 	switch in.CS {
 	case "EOT":
 		ki.A = kop.Const(kop.DurEOT)
 	case "EndOfYourNextTurn":
 		ki.A = kop.Const(kop.DurYourNextTurn)
+	case "UntilYourNextTurn":
+		ki.A = kop.Const(kop.DurUntilYourNextTurn)
 	case "WhileGraveForget":
 		ki.A = kop.Const(kop.DurWhileGraveForget) // the record survives a return to the graveyard; a move to exile ends it
 	case "WhileExiled":

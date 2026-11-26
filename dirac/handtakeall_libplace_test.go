@@ -52,8 +52,12 @@ func startHandTakeAll(t *testing.T, bottom bool) (sc *scen, first, second Obj, o
 	if s.res.ask != raGenLibPlace {
 		t.Fatalf("ask %d, want the library placement ask after the no-choice take-all", s.res.ask)
 	}
-	if !started {
-		t.Fatal("the take-all did not report the move done")
+	if started {
+		// gorge's handLibraryTail asks the arrangement mid-resolution (the
+		// spell still on the stack), so startSearch parks the resolution at
+		// the ask; the answered arrangement continues the program
+		// (applyAskCold2's raGenLibPlace).
+		t.Fatal("the take-all reported the search done with the arrangement ask pending")
 	}
 	if s.res.askP != 0 {
 		t.Fatalf("asked seat %d, want the cards' owner 0", s.res.askP)

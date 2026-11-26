@@ -82,6 +82,12 @@ func (lc *lowerCtx) value(raw string) (lValue, error) {
 		// only within that chain -- hence lc.excess, never the bare name.
 		return lValue{Kind: vExcessDamage}, nil
 	}
+	if !ok && !neg && raw == "TriggerAmount" && lc.ab != nil && lc.ab.Latent && lc.ab.Name == "ReflexiveTrigger" {
+		// a reflexive body's own amount (kernel-internal: the repl body's
+		// queueing rides it as the entry's trigAmt, and OpReflexiveTrigger's
+		// B is the spawner's): the body reads the trigger's captured one
+		return lValue{Kind: vTriggerAmount}, nil
+	}
 	if !ok && !neg && raw == "X" && lc.ab != nil && lc.xPaidAb == lc.ab {
 		// Forge's built-in X: a card whose own cost has {X} may write a bare
 		// "X" amount with no SVar (Consume Spirit's NumDmg$ X and LifeAmount$
@@ -778,6 +784,12 @@ func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 			v = lValue{Kind: vMVOf, Ref: lRef{Kind: rRemembered}}
 			break
 		}
+		if rest == "CardPower" && lc.emblemUnblocked && !lc.hasRememberWriter() {
+			// an AttackerUnblocked emblem's captured attacker is the trigger
+			// object, one creature (Delif's Cone)
+			v = lValue{Kind: vPowerOf, Ref: lRef{Kind: rTriggered}}
+			break
+		}
 		if rest == "CardPower" {
 			// gorge count_ref_property.go:165-177 sums the power over the
 			// remembered set; the kernel's ExPowerOf reads one object, so
@@ -1162,7 +1174,7 @@ func (lc *lowerCtx) countValue(rest string, depth int) (lValue, error) {
 		// the spell became (the kernel's kicked mark), 0 for a token copy. The
 		// trigger reads it as it fires and is not checked again, so its body knows
 		// it was paid, and a source that has left still mints.
-		if lc.out.Offspring == nil {
+		if lc.out.Offspring == nil && !lc.offGrant {
 			return lValue{}, fmt.Errorf("Count$OffspringPaid without K:Offspring")
 		}
 		if lc.trigBody {

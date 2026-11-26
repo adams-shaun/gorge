@@ -91,6 +91,13 @@ func (lc *lowerCtx) changesZoneAll(tp *params, tr *lTrigger, t cards.Trigger) er
 		// whole batch, so a batch mixing a death and a mill still queues
 		// once. N 0 = any origin (kernel fireToGrave).
 		tr.Event, tr.Origin, tr.Dest, tr.N = "ToGraveyard", zAny, zGraveyard, 0
+	case len(dests) == 1 && dests[zGraveyard] && origin == zLibrary:
+		// "one or more creature cards are put into your graveyard from your
+		// library" (Sidisi, Brood Tyrant): ChangesZone's Library->Graveyard
+		// line (Dreadhound, lower_changezonepairs.go), TrigToGraveyard From
+		// Library fired where each card is placed (trig_libtograve.go),
+		// collapsed per batch like the from-anywhere line above
+		tr.Event, tr.Origin, tr.Dest, tr.From = "ToGraveyard", zLibrary, zGraveyard, zLibrary
 	default:
 		return refuse("ChangesZoneAll %s->%s", zoneLabel[origin], d)
 	}

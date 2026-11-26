@@ -88,6 +88,10 @@ type ForkPool struct {
 	// actScriptPays declines there. Pooled, not a State field: a fixed field
 	// fails TestNoNewFixedStateFields.
 	inFilt int
+	// inDeferTU: turnUpDeferSearch's Taps-deferred gaps search is running
+	// (nesting count): its nodes list the turn-up again, and that listing must
+	// not search the gaps a second time (face_turnupdefer.go).
+	inDeferTU int
 	// fmemo: filtScript's failed verdicts of the transition running (mana_filtmemo.go).
 	fmemo filtMemo
 	// paySeen: filtPay's visited table, kept so a payment probe allocates
@@ -194,7 +198,7 @@ type coldArrays struct {
 
 // maxCold is how many regions the registry holds; registering one more panics
 // at start-up.
-const maxCold = 64
+const maxCold = 72
 
 // coldLayout is where a table's cold regions sit in the buffer, by registry
 // position: n elements at byte offset off. set fills n, size the rest.

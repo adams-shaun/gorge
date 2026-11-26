@@ -26,14 +26,17 @@ const StallTapExtra = 143
 func init() { stallNames[StallTapExtra] = "tapextra" }
 
 // eachTapExtra visits every StatTapExtra static in force: the battlefield and
-// emblem statics eachStatic walks, then a command-zone Vanguard's printed
-// static (Sisay), whose source has no perm slot (st.sl is NoSlot, st.cmd true).
+// emblem statics eachStatic walks (the battlefield half only over the cards
+// printing a StatTapExtra, prep.tapExtraCard: every caller drops any other
+// static before reading it, tapExtraReaches), then a command-zone
+// Vanguard's printed static (Sisay) and a face-up plane's (Eloren Wilds), whose sources have no
+// perm slot (st.sl is NoSlot, st.cmd true).
 // The command-zone half is gated on prep.anyCmdTap, so a table with no
 // such static pays nothing, and only the tap-extra readers call this: a
 // command-zone static must never reach a reader that indexes st.sl as a perm.
 func (s *State) eachTapExtra(k *prep, f func(st statSrc) bool) {
 	stop := false
-	s.eachStatic(k, func(st statSrc) bool {
+	s.eachStaticOf(k, k.tapExtraCard, func(st statSrc) bool {
 		if !f(st) {
 			stop = true
 			return false
@@ -65,6 +68,29 @@ func (s *State) eachTapExtra(k *prep, f func(st statSrc) bool) {
 				if !f(statSrc{a: a, sl: NoSlot, ctrl: p, obj: o, cmd: true}) {
 					return
 				}
+			}
+		}
+		// A face-up plane's printed static (Eloren Wilds, The Fertile Lands of
+		// Saulvinia; CR 901): the plane lives in the seat's planar deck, which
+		// neither the battlefield walk nor the command-zone walk above visits,
+		// and its top card is the one plane in force. Same shape as a
+		// command-zone Vanguard's: no perm slot, st.cmd true.
+		o := s.planeTop(p)
+		if o == NoObj || s.objs[o].zone != kop.ZonePlanarDeck {
+			continue
+		}
+		card := s.objs[o].card
+		if k.gen.sCls[card]&sclsTapCmd == 0 {
+			continue
+		}
+		cd := &k.t.Cards[card]
+		for i := range cd.Abilities {
+			a := &cd.Abilities[i]
+			if a.Kind != kop.AbStatic || a.Static.Kind != kop.StatTapExtra || a.Static.Zone != kop.ZoneCommand {
+				continue
+			}
+			if !f(statSrc{a: a, sl: NoSlot, ctrl: p, obj: o, cmd: true}) {
+				return
 			}
 		}
 	}
@@ -251,10 +277,17 @@ func (s *State) srcExtraTapped(k *prep, sl Slot, pc *pcard, colour bool) (xv [ko
 // production's colour is picked after the tap, so a carrier limited to a {C}
 // tap does not reach it; a fixed one-colour production's type is known.
 func (s *State) filtExtra(k *prep, sl Slot) (xv [kop.NumManaKinds]uint8) {
+	return s.filtExtraAt(k, sl, 0)
+}
+
+// filtExtraAt is filtExtra for the card's filter ability at ordinal ord: a
+// paid filter set's choice ability asks its colour after the tap, its fixed
+// one is known (setFilterMana).
+func (s *State) filtExtraAt(k *prep, sl Slot, ord int8) (xv [kop.NumManaKinds]uint8) {
 	if k.gen == nil || !k.gen.anyTapExtra {
 		return xv
 	}
-	a := s.filtAb(k, sl)
+	a := s.filtAbAt(k, sl, ord)
 	if a.Cost.Flags&kop.CostTap == 0 {
 		return xv
 	}
@@ -284,10 +317,16 @@ func (s *State) filtExtra(k *prep, sl Slot) (xv [kop.NumManaKinds]uint8) {
 // beside its own mana. A fixed one-colour production already carries it in
 // filtExtra, and an all-at-once one's is filtEachReflect's (filtExtra).
 func (s *State) filtReflectPick(k *prep, sl Slot) (r uint8) {
+	return s.filtReflectPickAt(k, sl, 0)
+}
+
+// filtReflectPickAt is filtReflectPick for the card's filter ability at
+// ordinal ord.
+func (s *State) filtReflectPickAt(k *prep, sl Slot, ord int8) (r uint8) {
 	if k.gen == nil || !k.gen.anyTapExtra {
 		return 0
 	}
-	a := s.filtAb(k, sl)
+	a := s.filtAbAt(k, sl, ord)
 	if a.Cost.Flags&kop.CostTap == 0 || a.ManaEach ||
 		a.AFlags&kop.AfManaChoice == 0 && bits.OnesCount8(uint8(a.ManaColors)&0x3f) == 1 {
 		return 0
@@ -615,7 +654,9 @@ func (s *State) tapAnyColPips(k *prep, p uint8, a Action) (cnt [kop.NumManaKinds
 		// answer that pays the kicked offer (pool dr-mbc-abbb pair 77,
 		// decision 290).
 		cd := &k.t.Cards[s.objs[Obj(a.Source())].card]
-		m, base = addCost(cd.Cost, kickerPayment(cd)), true
+		o := Obj(a.Source())
+		cp, fromHand := s.offspringCaster(o)
+		m, base = addCost(cd.Cost, s.kickPayment(k, cp, s.objs[o].card, o, fromHand)), true
 	}
 	if !base && s.anyColOwedRun() {
 		// Any other play whose base gorge leaves unread (a suspend or plot

@@ -47,6 +47,9 @@ type StartSeat struct {
 	// Counters are placed on battlefield cards, applied in the order given
 	// (the caller sorts by (Card, Kind)).
 	Counters []StartCounter
+	// PlayerCounters are placed on this seat, applied in the order given
+	// (the caller sorts by Kind). They are setup state, like card counters.
+	PlayerCounters []StartPlayerCounter
 	// Attach binds a battlefield Aura of this seat to its bearer.
 	Attach []StartAttach
 	// Tokens are minted onto this seat's battlefield, in the order given,
@@ -60,6 +63,13 @@ type StartSeat struct {
 // StartCounter puts N counters of Kind on the battlefield card Card.
 type StartCounter struct {
 	Card int
+	Kind string
+	N    int32
+}
+
+// StartPlayerCounter puts N counters of Kind on the seat itself. It is not a
+// StartCounter: that type's Card is a deck index, meaningless for a player.
+type StartPlayerCounter struct {
 	Kind string
 	N    int32
 }
@@ -328,6 +338,13 @@ func (b startBuilder) placeStartBattlefield(pl *startSeatPlan, id, bearer state.
 	if o := h.G.Obj(id); o == nil || o.Zone != state.ZBattlefield {
 		return // refused on entry (an Aura with no bearer, CR 303.4g): it stays in the library
 	}
+	// A back-face planeswalker whose entering face prints no positive loyalty
+	// is seated with the front face's printed starting loyalty, the same
+	// convention the oracle runner uses (XMage's addCard); the spec's
+	// counters are then added on top.
+	if ev, ok := setupBackFaceLoyaltyCounter(h.G.Obj(id)); ok {
+		h.Emit(ev)
+	}
 	if slices.Contains(pl.spec.Tapped, idx) {
 		// Tapped is how the card is placed, not an action.
 		h.Emit(events.Event{Kind: events.Tap, Obj: id})
@@ -363,8 +380,15 @@ func (b startBuilder) finishStartSeat(pl *startSeatPlan) {
 	h.Emit(events.Event{Kind: events.LibraryOrder, Player: pl.seat, IDs: order, Secret: true})
 	if pl.spec.Life != nil {
 		if d := *pl.spec.Life - h.G.Players[pl.seat].Life; d != 0 {
+			// A setup life total is a stated fact, not a gain: no CR 614
+			// replacement may rewrite it.
+			prior := h.Replacing(true)
 			h.Emit(events.Event{Kind: events.LifeChange, Player: pl.seat, Amount: d})
+			h.Replacing(prior)
 		}
+	}
+	for _, pc := range pl.spec.PlayerCounters {
+		h.Emit(events.Event{Kind: events.PlayerCounterChange, Player: pl.seat, Counter: pc.Kind, Amount: pc.N})
 	}
 }
 

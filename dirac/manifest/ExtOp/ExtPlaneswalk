@@ -3,5 +3,5 @@ name: ExtPlaneswalk
 value: 19
 forge: Planeswalk
 census: api Planeswalk all=30 std=0 mbc=0 sole=1
-state: objspace (planechase)
-status: blocked objspace:tcode
+state: code 0
+status: active

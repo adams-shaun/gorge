@@ -17,7 +17,36 @@ func (s *State) lowerHybridOnly(k *prep, ab uint8) {
 	}
 	if c := &k.t.Cards[s.bld().e.card].Abilities[ab].Cost.Mana; c.Hyb[0] != 0 && !c.Phyrexian() && c.X == 0 && c.Generic == 0 && pipMaskOf(c) == 0 {
 		s.lowerHybridActivation(k, c)
+		return
 	}
+	s.lowerXOnly(k, ab)
+}
+
+// lowerXOnly lowers a battlefield activation whose mana cost is {X} symbols
+// alone (Gogo, Master of Mimicry's {X}{X}, an artifact's "Cost$ X"): gorge's
+// walk offers an activation through its autopay arm only when the printed
+// cost has a generic or coloured pip (rules abilityCostNeedsMana), so an {X}-only
+// one the pool does not pay is a potential play the oracle lowers (#4587): the
+// planner's witness at the least X (planAbilityPayment) is tapped before
+// activating, so the mana floats through the X ask and the target ask. The pool
+// guard is lowerHybridActivation's: a floating pool (or restricted mana) that
+// already pays the witness at the least X taps nothing, and an empty witness (an
+// XMin of 0 with no cost increase) pays trivially.
+func (s *State) lowerXOnly(k *prep, ab uint8) {
+	if s.cfg&cfgGorgeUnpriced == 0 || ab >= abCascade {
+		return
+	}
+	sl := s.srcSlot()
+	if sl == NoSlot {
+		return
+	}
+	a := &k.t.Cards[s.bld().e.card].Abilities[ab]
+	c := &a.Cost.Mana
+	if c.X == 0 || c.Generic != 0 || c.Hyb[0] != 0 || c.Snow != 0 || c.Phyrexian() || pipMaskOf(c) != 0 || a.Cost.Flags&kop.CostWaterbend != 0 {
+		return
+	}
+	w := xFolded(s.abPlannedCost(k, a, sl, s.bld().e.ctrl), costXMin(&a.Cost))
+	s.lowerHybridActivation(k, &w)
 }
 
 // lowerHybridActivation taps the witness of a hybrid activation the
@@ -587,6 +616,8 @@ func (s *State) castRestRefuses(k *prep, o Obj, a Action) bool {
 		return k.gen.anyForetell && cd.ForetellCost != (kop.ManaCost{})
 	case a.Target() == castOverloadTgt:
 		return k.gen.anyOverload && cd.HasOverload
+	case a.Target() == castBlitzTgt:
+		return k.gen.anyBlitz() && cd.HasBlitz
 	case a.Target() == castCleaveTgt:
 		return k.gen.anyCleave && cd.CleaveAb != 0
 	case a.Target() == castSurgeTgt:

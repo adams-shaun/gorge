@@ -134,7 +134,12 @@ func (s *State) healMarked(sl Slot) {
 // A placement that would pose the counter replacements' order ask stalls:
 // the ask inside a damage event is not modelled.
 func (s *State) selfDamageCounters(k *prep, sl Slot, n int) {
-	kind := int(kop.CtrP1P1)
+	s.putCountersDmg(k, sl, int(kop.CtrP1P1), n)
+}
+
+// putCountersDmg puts n counters of kind on sl as a damage replacement's body
+// (selfDamageCounters' placement for any kind: ReplDamageInstead's counters).
+func (s *State) putCountersDmg(k *prep, sl Slot, kind, n int) {
 	// a prohibited placement (CantPutCounter) places nothing, so it asks no order
 	if k.gen.anyRepl&(rbCtrOn|rbPlusCtrEOT) != 0 && !s.putCounterBlocked(k, sl, kind) {
 		if c := s.ctrGather(k, sl, kind); c.ok && c.n == 2 && c.mixed() {
@@ -150,7 +155,7 @@ func (s *State) selfDamageCounters(k *prep, sl Slot, n int) {
 	if m > 0 && k.anyCtrAdded {
 		s.ctrNoteBy(k, sl, kind, adder) // the ledger's actor is the putter used above, not counterAdder()
 	}
-	s.g.lastCK = kop.CtrP1P1
+	s.g.lastCK = kop.CounterKind(kind)
 	if m > 0 && s.subs[kop.TrigCounterAddedOnce].any() {
 		s.fireObj(k, kop.TrigCounterAddedOnce, sl, s.perms[sl].obj, s.perms[sl].ctrl, int16(m))
 	}

@@ -154,16 +154,20 @@ func (s *State) beginStep(k *prep) {
 		}
 		if k.gen != nil && (k.gen.untapRepl || k.gen.anySkipUntap) {
 			s.untapStepGen(k) // untap replacements of other permanents (act_energy.go)
+			s.ctrlUntapEnd(k) // an Effect's Phase$ Untap end (static_ovendevent.go)
 			return
 		}
 		pre := s.tappedMask(s.active)
 		m := s.ctrlM[s.active]
+		keepSick := s.g.nxph != 0 && s.addPhaseExtraUntap() // an extra beginning phase's untap: no turn began (act_addphase.go)
 		for m.any() {
 			sl := m.first()
 			m = m.rest()
 			p := &s.perms[sl]
 			f := p.flags
-			p.flags &^= pfSick
+			if !keepSick {
+				p.flags &^= pfSick
+			}
 			if p.flags&pfSkipUntap != 0 {
 				p.flags &^= pfSkipUntap // CR 611.2b one-shot, consumed even untapped (gorge CantUntapNextStep)
 				s.touchSl(sl)
@@ -190,6 +194,7 @@ func (s *State) beginStep(k *prep) {
 		if k.gen != nil && k.gen.anyUntapOther {
 			s.untapOthers(k)
 		}
+		s.ctrlUntapEnd(k) // an Effect's Phase$ Untap end (Orcish Farmer; static_ovendevent.go)
 		// the untap step has no priority round, so its end proposes the next
 		// StepChange here: a printed phase-skip rewrites it (gorge's replacement
 		// pass on the proposal, repl_beginphase.go)
@@ -212,7 +217,7 @@ func (s *State) beginStep(k *prep) {
 		s.openPriority()
 	case kop.StepDraw:
 		if s.drawStepSkipped(k) {
-			s.step = kop.StepMain1 // the draw step does not happen (act_skipphase.go)
+			s.step = s.firstDrawLanding() // the draw step does not happen (act_skipphase.go)
 			return
 		}
 		s.g.drawFirst = true // repl_draw.go: the first card drawn in this draw step
@@ -579,7 +584,7 @@ func (s *State) sba(k *prep) bool {
 	}
 	var sm sbaMasks // each pass's board scan (sbaBoard fills it in place)
 	for {
-		pre := s.outMask() // the seats out before this pass: its losses end their control effects together (sweepDeparted)
+		pre := s.beginSBAPass() // the seats out before this pass: its losses end their control effects together (sweepDeparted)
 		if k.gen != nil && k.gen.ctrlSBA {
 			s.ctrlSBA(k) // layer-2 control records and statics (static_control.go)
 		}
@@ -607,9 +612,9 @@ func (s *State) sba(k *prep) bool {
 			}
 		}
 		for p := uint8(0); p < s.nSeats(); p++ {
-			if s.pl[p].drewEmpty {
+			if s.pl[p].mark&pmDrewEmpty != 0 {
 				// drew from an empty library since the last check (CR 704.5b)
-				s.pl[p].drewEmpty = false
+				s.pl[p].mark &^= pmDrewEmpty
 				s.lose(p)
 			}
 		}
@@ -617,6 +622,7 @@ func (s *State) sba(k *prep) bool {
 			s.poisonSBA(k) // CR 704.5c
 		}
 		s.cmdDamageSBA(k) // CR 704.6c (combat_cmddamage.go)
+		s.markPassLosses(pre)
 		s.checkOver()
 		if s.over {
 			if k.gen != nil || s.cfg&cfgCommander != 0 {
@@ -687,6 +693,9 @@ func (s *State) sba(k *prep) bool {
 		}
 		if k.ascend {
 			s.blessScan(k) // CR 702.131b "any time": after the pass's checks, before its batch (gorge sba.go; kw_ascend.go)
+		}
+		if k.storied {
+			s.storiedScan(k) // CR 702.195a "any time": the same post-pass hook (gorge sba.go; kw_storied.go)
 		}
 		all := die.or(gy)
 		if all.any() {
@@ -1107,12 +1116,15 @@ func (s *State) regenerateBody(sl Slot) {
 // registering player; it performs its action on resolution if the affected
 // object is still the same permanent.
 func (s *State) fireDelayed(k *prep) {
+	if k.gen != nil && k.gen.anyUnearth {
+		s.leaveExilePrune() // zone_leaveexile.go: a promise whose object moved on is dead
+	}
 	n := s.ndly
 	s.ndly = 0
 	var keep uint8
 	var fol [MaxDelayed]delayed
 	var nf uint8
-	if k.gen != nil && (k.gen.anyEarthbend || k.gen.anyLeaveRet) {
+	if k.gen != nil && (k.gen.anyEarthbend || k.gen.anyLeaveRet || k.gen.anyUnearth) {
 		n, keep = s.splitLeaveDelayed(n) // leave-keyed records survive the end step
 	}
 	for i := 0; i < int(n); i++ {
@@ -1164,6 +1176,10 @@ func (s *State) resolveDelayed(k *prep, e *stackEntry) {
 		s.lose(e.ctrl) // the extra turn's end-step lose rider (act_extraturn.go); its source (the resolving spell) is only the trigger's named source
 		return
 	}
+	if e.trigAmt == contractLossTrigAmt {
+		s.contractLossCopyResolve(k, e.ctrl, e.trigPl) // Miss Highwater's staged loss copy (ctr_losscopy.go)
+		return
+	}
 	if monarchTrig(e) {
 		s.resolveMonarchTrig(k, e) // the monarch's draw or steal (act_monarch.go)
 		return
@@ -1174,6 +1190,10 @@ func (s *State) resolveDelayed(k *prep, e *stackEntry) {
 	}
 	if ringTrig(e) {
 		s.resolveRingTrig(k, e) // the Ring emblem's loot, promise or drain (act_ring.go)
+		return
+	}
+	if e.trigAmt == opBlitzDraw {
+		s.draw(e.ctrl) // the blitzed creature's dies trigger (kw_blitz.go)
 		return
 	}
 	if k.gen != nil && e.trigAmt == opLeaveReturn {

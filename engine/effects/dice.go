@@ -424,6 +424,26 @@ func retainedDice(dice []int32, ignoreLower int32, useHighest bool) []int32 {
 // that reads Sides$ and Amount$ (Wyll's Reversal and Danse Macabre's Y, Song
 // of Inspiration's X); the modified result is what ranges match and what
 // every publication totals. The unmodified die remains the only random draw.
+// publishNoDice publishes the zero counts a roll of no dice reports, so the
+// chained subs (Clown Car's token/counter) read 0 rather than an unset name.
+func publishNoDice(c *Ctx, sa *cards.SA) {
+	pub := func(name string) {
+		if name = strings.TrimSpace(name); name != "" {
+			c.Roll.Pubs = append(c.Roll.Pubs, RollPub{Name: name, Value: 0})
+		}
+	}
+	pub(sa.ParamStr(cards.PKResultSVar))
+	pub(sa.ParamStr(cards.PKChosenSVar))
+	pub(sa.ParamStr(cards.PKOtherSVar))
+	if sa.ParamStr(cards.PKMaxRollsResults) == "True" {
+		pub("MaxRolls")
+	}
+	if sa.ParamStr(cards.PKEvenOddResults) == "True" {
+		pub("EvenResults")
+		pub("OddResults")
+	}
+}
+
 func effRollDice(h Host, c *Ctx, sa *cards.SA) {
 	sides := Num(h, c, sa, "Sides", 6)
 	if sides <= 0 {
@@ -431,6 +451,16 @@ func effRollDice(h Host, c *Ctx, sa *cards.SA) {
 	}
 	amount := Num(h, c, sa, "Amount", 1)
 	if amount < 1 {
+		// An explicit Amount$ that evaluates to 0 or less (Clown Car's copy,
+		// never cast, has X = 0: CR 107.3m) rolls NO dice (CR 706.2): no
+		// roll replacement proposal, no Notes, no publications, no range
+		// subs. The count publications still read 0 (an unpublished name
+		// would fall back to the SVar default and put a counter anyway).
+		// Only an absent Amount$ defaults to one die.
+		if sa.HasParam(cards.PKAmount) {
+			publishNoDice(c, sa)
+			return
+		}
 		amount = 1
 	}
 	// IgnoreLower$ is read once here, not at the retainedDice call: the

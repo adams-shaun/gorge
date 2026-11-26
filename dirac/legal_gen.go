@@ -106,6 +106,9 @@ func (s *State) priorityGen(k *prep, d *Decision, p uint8, sorc bool, avp *avail
 	if k.gen.anyHandAct {
 		s.priorityHandAct(k, d, p, sorc, &av)
 	}
+	if k.anyCyclingGrant {
+		s.priorityCyclingGrant(k, d, p, sorc, &av) // kw_cyclinggrant.go: a StatCyclingGrant static's granted cycling
+	}
 	s.priorityEmbalmGrant(k, d, p, sorc, &av)  // kw_embalmgrant.go
 	s.priorityUnearthGrant(k, d, p, sorc, &av) // kw_unearthgrant.go: a StatUnearthGrant static's granted unearths
 	if k.gen.anyExileGrant {
@@ -264,7 +267,7 @@ func (s *State) offerPlay(k *prep, d *Decision, p uint8, o Obj, mode uint8, sorc
 			if !av.affordsAnyColor(&cost, 0) {
 				return
 			}
-		} else if !s.castAffordsR(k, p, c, s.restrOriginOfObj(o), &cost, av) && !s.convPoolPays(k, p, o, &cost) {
+		} else if !s.castAffordsR(k, p, c, s.restrOriginOfObj(o), &cost, av) && !s.convAnyPoolPays(k, p, o, &cost) {
 			return // (the any-colour conversion's pool route: mana_convertcreature.go)
 		}
 	} else if !s.freeCastRaisePayable(k, p, c, o, unpriced, av) {
@@ -491,8 +494,19 @@ func (s *State) castFlagsGenTgt(k *prep, o Obj, mode, tgt uint8) {
 	}
 	s.bld().e.flags |= sfMayPlay
 	p := s.bld().e.ctrl
-	if mode == castMayPlay|castFree && FeatIsZeroAltTgt(tgt) && k.gen.anyZeroAlt && s.spendZeroAlt(k, o, p) && tgt == zeroAltTgt {
-		mode &^= castFree // the {0} alternative beside a priced plain cast: that cast's permission is spent below (cast_mayzeroalt.go)
+	if mode == castMayPlay|castFree && FeatIsZeroAltTgt(tgt) && k.gen.anyZeroAlt {
+		if ok, zst := s.spendZeroAlt(k, o, p); ok && tgt == zeroAltTgt {
+			mode &^= castFree // the alternative beside a priced plain cast: that cast's permission is spent below (cast_mayzeroalt.go)
+			if zst.a.Static.StFlags&kop.StMayPayLife != 0 {
+				s.bld().payLifeMV = true // the alternative's cost is the mana value in life (Demon of Fate's Design)
+			}
+			if zst.a.Static.StFlags&kop.StMayPayEnergy != 0 {
+				s.bld().payEnergy = uint8(zst.a.Static.A) // the alternative's cost is the static's energy (Nissa, Worldsoul Speaker)
+			}
+			if zst.a.Static.StFlags&kop.StMayPayEvidence != 0 {
+				s.bld().payEvidence = uint8(zst.a.Static.A) // the alternative's cost is the static's evidence (Conspiracy Unraveler)
+			}
+		}
 	}
 	// a permission record is spent; a once-per-turn static is marked
 	if k.gen.anyMayKind && s.spendMayKind(k, o, p, mode) {
@@ -521,8 +535,9 @@ func (s *State) castFlagsGenTgt(k *prep, o Obj, mode, tgt uint8) {
 		if st.a.Static.StFlags&kop.StAnyManaType != 0 {
 			s.bld().e.flags |= sfAnyMana
 		}
-		if st.a.Static.StFlags&kop.StOncePerTurn != 0 && st.sl != NoSlot && !s.mayPlayFolds(k, p, o) {
-			s.markUsed(st.obj, uint8(abIndex(k, s.cardAt(st.sl), st.a)))
+		if st.a.Static.StFlags&kop.StOncePerTurn != 0 && !s.mayPlayFolds(k, p, o) {
+			u, ab, host := s.staticUseKey(k, st)
+			s.markUsedBy(u, ab, host)
 			s.bld().bfl |= bflUsedMark
 		}
 		if st.a.Static.StFlags&kop.StRemove6Counters != 0 {
@@ -543,6 +558,9 @@ func (s *State) spendMayRecord(k *prep, o Obj, p uint8) bool {
 			continue
 		}
 		s.stampMayExile(k, i) // repl_stackexile.go
+		if r.turn&mayTurnConvC != 0 && s.buildLive() {
+			s.bld().convC = true // the cast pays under the colourless-mana conversion (cast_mayconvc.go)
+		}
 		if !r.follows() && !(r.dur() == kop.DurWhileGrave && r.kind&kop.MayPlayLimitMask == 0) {
 			// A following record outlives its own cast (gorge's continuous
 			// grant); an Effect-delivered graveyard grant stays live after
@@ -651,7 +669,22 @@ func (s *State) buildCostGenPre(k *prep, pre bool) (kop.ManaCost, bool, bool) {
 func (s *State) activateGen(k *prep, a Action) bool {
 	o := Obj(a.Source())
 	ob := &s.objs[o]
-	if a.Mode() == unearthGrantMode && k.anyOffKwGrant && ob.zone == kop.ZoneGraveyard {
+	if a.Mode() == unearthGrantMode && k.anyCyclingGrant && ob.zone == kop.ZoneHand {
+		// a granted cycling (kw_cyclinggrant.go): the granting permanent's
+		// latent body run with the affected hand card as its source; the
+		// body's discard-this cost discards that card
+		host := Obj(a.Target())
+		hc := s.objs[host].card
+		if s.objs[host].zone == kop.ZoneBattlefield {
+			hc = s.cardAt(s.objs[host].slot)
+		}
+		ab := cyclingGrantBody(k, hc)
+		if ab < 0 {
+			return false
+		}
+		CyclingGrantStats.Activations.Add(1)
+		*s.bld() = build{e: stackEntry{kind: seAbility, obj: o, srcVer: ob.ver, card: hc, ab: uint8(ab), ctrl: s.prio, trigObj: NoObj}}
+	} else if a.Mode() == unearthGrantMode && k.anyOffKwGrant && ob.zone == kop.ZoneGraveyard {
 		// a granted unearth (kw_unearthgrant.go): the granting permanent's
 		// latent body run with the affected card as its source. The mode byte
 		// is a reserved granted index no ledger grant holds; the target byte
@@ -864,6 +897,13 @@ func (s *State) paySacsGen(k *prep) {
 	if k.gen.anyBatch {
 		defer s.batchClose(s.sacBatchOpen()) // gorge emitSacrifices: one sacrifice batch (act_proliferate.go)
 	}
+	if e := &s.bld().e; e.kind == seAbility && e.ab < uint8(len(k.t.Cards[e.card].Abilities)) {
+		if f := k.t.Cards[e.card].Abilities[e.ab].Cost.Flags; f&kop.CostReturnSelf != 0 && f&kop.CostSac != 0 {
+			// gorge payCast: the source's return before the sacrifices
+			// (Chthonian Nightmare); the deferred call below is then a no-op
+			s.returnSelfDeferred(k, e)
+		}
+	}
 	exile := s.pickExiles(k)
 	for i := 0; i < int(s.bld().pickN); i++ {
 		o := s.bld().picks[i]
@@ -1042,6 +1082,10 @@ func (s *State) priorityGraveAct(k *prep, d *Decision, p uint8, sorc bool, av *a
 			var red kop.ManaCost
 			if k.gen.anyOwnReduce && a.OwnReduce != (kop.ValueRef{}) {
 				red = s.ownReduced(k, a, o, p) // a graveyard ability's own ReduceCost$ (cost_ownreduce.go)
+				mana = &red
+			}
+			if z == kop.ZoneGraveyard && k.gen.anyAbReduce {
+				red = s.abReducedGrave(k, a, o, p, *mana) // a graveyard-zone reduction static (Convergence of Dominion; cost_reduceability.go)
 				mana = &red
 			}
 			gd := payDesc{class: pdAct, card: s.objs[o].card, src: NoSlot}
@@ -1243,7 +1287,7 @@ func (s *State) priorityGenReadsAv(k *prep, p uint8) bool {
 		k.manaOne || g.anyTapExtra || g.anyContGrant || len(g.grantPC) != 0 || g.anyTapsDefer ||
 		k.availExt || k.painMana || s.g.availX&3 != 0 ||
 		g.anyGrant && s.ctrlM[p].any() && s.grantsLive(k) || g.uses.has(useGainsOf) ||
-		g.uses.has(useOffKwGrant)
+		g.uses.has(useOffKwGrant) || g.uses.has(useCyclingGrant)
 }
 
 // tgtSource is the spell or ability the current targeting is for (the entry

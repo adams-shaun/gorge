@@ -9,6 +9,16 @@ import (
 // two Condition keys that both stay outside the gate group
 // (ConditionDefined and ConditionTargetValidTargeting), so the refusal loop
 // has two candidates and must name the sorted-first one.
+// playCondEffectTwoRefusedScript is an Effect whose Continuous static carries
+// two params outside effectContinuousKeys, so that loop has two candidates and
+// must name the sorted-first one (Raphael, Most Attitude used to be the
+// corpus witness before its MayPlay grant lowered).
+const playCondEffectTwoRefusedScript = "Name:Test Effector\nManaCost:2 R\nTypes:Creature Elf\nPT:1/1\n" +
+	"T:Mode$ Attacks | ValidCard$ Card.Self | Execute$ TrigEffect | TriggerZones$ Battlefield | TriggerDescription$ x\n" +
+	"SVar:TrigEffect:DB$ Effect | StaticAbilities$ STX | SpellDescription$ x\n" +
+	"SVar:STX:Mode$ Continuous | Affected$ Creature.YouCtrl | AddKeyword$ Flying | Zeta$ True | Alpha$ True\n" +
+	"Oracle:x\n"
+
 const playCondTwoRefusedScript = "Name:Test Peeker\nManaCost:2 U\nTypes:Sorcery\n" +
 	"A:SP$ PeekAndReveal | NoReveal$ True | SubAbility$ DBCastTop | SpellDescription$ x\n" +
 	"SVar:DBCastTop:DB$ Play | Optional$ True | Defined$ TopOfLibrary | ValidSA$ Spell | WithoutManaCost$ True | ConditionTargetValidTargeting$ Card | ConditionDefined$ TopOfLibrary\n" +
@@ -17,8 +27,8 @@ const playCondTwoRefusedScript = "Name:Test Peeker\nManaCost:2 U\nTypes:Sorcery\
 // TestPlayConditionKeySorted pins the sorted-first key named by the two
 // refusal loops that used to iterate a params map. The inline Play carries
 // two refused Condition keys (ConditionDefined, ConditionTargetValidTargeting);
-// Raphael, Most Attitude's Effect static Continuous carries MayPlay and
-// ValidSA. Without the sorted iteration the named key changes from run to run.
+// the inline Effect static Continuous carries two params outside its
+// whitelist (Alpha, Zeta). Without the sorted iteration the named key changes from run to run.
 func TestPlayConditionKeySorted(t *testing.T) {
 	collect := func(c *lCard) []string {
 		var named []string
@@ -39,17 +49,8 @@ func TestPlayConditionKeySorted(t *testing.T) {
 		c := lowerScriptCard(t, "Test Peeker", playCondTwoRefusedScript)
 		check("Test Peeker", i, collect(c), "Play ConditionDefined")
 	}
-	cardsDir := ratchetCards(t)
-	p, err := loadCardNames([]string{"Raphael, Most Attitude"}, cardsDir)
-	if err != nil {
-		t.Fatal(err)
-	}
 	for i := 0; i < 20; i++ {
-		lw := lowerPool(p)
-		var named []string
-		for _, c := range lw.cards {
-			named = append(named, collect(c)...)
-		}
-		check("Raphael, Most Attitude", i, named, "Effect static Continuous param MayPlay")
+		c := lowerScriptCard(t, "Test Effector", playCondEffectTwoRefusedScript)
+		check("Test Effector", i, collect(c), "Effect static Continuous param Alpha")
 	}
 }

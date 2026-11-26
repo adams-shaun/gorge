@@ -95,6 +95,20 @@ func (s *State) cloneOptions(k *prep, d *Decision) {
 	if s.res.ask == raGenRetChoice || s.res.ask == raGenTokChoice {
 		ctrl = s.res.askP // a returned card's or a copy token's controller, not the resolving spell's
 	}
+	if in.B.K == kop.VConst && in.B.N&kop.BecomeCopyGrave != 0 {
+		s.cloneGraveOptions(k, d, in, o, ctrl)
+	} else {
+		s.cloneBattlefieldOptions(k, d, in, ctrl)
+	}
+	s.res = saved
+	if in.C&1 != 0 || d.N == 0 { // seat-ok: an instruction flag bit
+		d.add(MakeAction(AkChoose, TCode(o), 0, 1)) // "enter as itself"
+	}
+}
+
+// cloneBattlefieldOptions lists the battlefield permanents matching the
+// clone's filter, seat 0's battlefield first, in entry order.
+func (s *State) cloneBattlefieldOptions(k *prep, d *Decision, in *kop.Instr, ctrl uint8) {
 	var ord [MaxPerm]Slot
 	for p := uint8(0); p < s.nSeats(); p++ {
 		if s.out(p) {
@@ -111,10 +125,45 @@ func (s *State) cloneOptions(k *prep, d *Decision) {
 			}
 		}
 	}
-	s.res = saved
-	if in.C&1 != 0 || d.N == 0 { // seat-ok: an instruction flag bit
-		d.add(MakeAction(AkChoose, TCode(o), 0, 1)) // "enter as itself"
+}
+
+// cloneGraveOptions lists the ChoiceZone$ Graveyard pool (kop.BecomeCopyGrave,
+// Body Double): every living player's graveyard cards matching the filter,
+// seat 0 first, each graveyard in zone order (gorge etbCloneOptions sweeps
+// AliveFrom(0), each zone in insertion order). Other excludes the entering
+// card itself (a returning clone still in its graveyard).
+func (s *State) cloneGraveOptions(k *prep, d *Decision, in *kop.Instr, o Obj, ctrl uint8) {
+	other := in.F != 0 && k.t.Filters[in.F].Flags&kop.FOther != 0
+	for p := uint8(0); p < s.nSeats(); p++ {
+		if s.out(p) {
+			continue
+		}
+		pl := &s.pl[p]
+		for i := 0; i < int(pl.graveN); i++ {
+			t := pl.grave[i]
+			if other && t == o {
+				continue
+			}
+			if s.matchCardGen(k, in.F, s.objs[t].card, p, ctrl, t) {
+				d.add(MakeAction(AkChoose, TCode(t), 0, 0))
+			}
+		}
 	}
+}
+
+// cloneTmplCard is the card an as-enters copy of the picked object t copies:
+// a permanent's copiable card (its own copy, if it is one), or a graveyard
+// card as printed (kop.BecomeCopyGrave). ok is false when t is in neither
+// zone (it left: nothing is copied).
+func (s *State) cloneTmplCard(t Obj) (c CardID, src Slot, ok bool) {
+	switch s.objs[t].zone {
+	case kop.ZoneBattlefield:
+		src = s.objs[t].slot
+		return s.cardAt(src), src, true
+	case kop.ZoneGraveyard:
+		return s.objs[t].card, NoSlot, true
+	}
+	return 0, NoSlot, false
 }
 
 // becomeCopyEnter is OpBecomeCopy as the permanent at sl enters: it
@@ -128,7 +177,16 @@ func (s *State) becomeCopyEnter(k *prep, sl Slot, in *kop.Instr) {
 	}
 	s.g.pre.state = 0
 	t := Obj(s.g.pre.val)
-	if t == NoObj || s.objs[t].zone != kop.ZoneBattlefield {
+	if t == NoObj {
+		return
+	}
+	// the template must still be in the zone the pool was drawn from
+	// (gorge cloneETBTemplateLegal)
+	want := kop.ZoneBattlefield
+	if in.B.K == kop.VConst && in.B.N&kop.BecomeCopyGrave != 0 {
+		want = kop.ZoneGraveyard
+	}
+	if s.objs[t].zone != want {
 		return
 	}
 	if s.g.pre.ask2 != 0 {
@@ -136,8 +194,7 @@ func (s *State) becomeCopyEnter(k *prep, sl Slot, in *kop.Instr) {
 		// program takes it below (runReplProgAs)
 		s.g.pre.val, s.g.pre.state, s.g.pre.ask2 = objWord(s.g.pre.val2), 2, 0
 	}
-	src := s.objs[t].slot
-	c := s.cardAt(src)
+	c, src, _ := s.cloneTmplCard(t)
 	// Embalm$ provenance (gorge cloneEmbalmProvenance): a token whose own
 	// copiable values already carry the no-mana-cost exception, read before
 	// the template's exceptions join the slot

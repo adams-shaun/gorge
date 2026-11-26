@@ -54,6 +54,9 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 		lc.emit(lInstr{Op: "Unearth", Note: "haste until end of turn; exiled at the next end step or instead of leaving"})
 		return nil
 	}
+	if _, ok := ps.m["LeaveBattlefield"]; ok {
+		return lc.leaveExileMove(ps) // lower_leaveexile.go
+	}
 	if done, err := lc.stackExileOptional(ps); done || err != nil {
 		return err // lower_stackexile.go
 	}
@@ -148,12 +151,19 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 		}
 	}
 	underOpp := false
+	underEach := false
 	if gc, ok := ps.get("GainControl"); ok { // lower_hiddendefined.go: True, or ChosenPlayer on a Defined$ return
 		switch {
 		case gainControlTrue(gc) == nil:
 			flags = append(flags, "UnderYourControl")
 		case lc.gainControlChosen(ps, gc, dest, dual || hg):
 			underOpp = true // the flag is added where the move becomes a Return (below)
+		case (strings.TrimSpace(gc) == "Player.IsRemembered" || strings.TrimSpace(gc) == "Remembered") && lc.repeatPl > 0 && dest == zBattlefield:
+			// inside a RepeatEach player body the remembered player is the
+			// repeated player: the card enters under that player (Thieves'
+			// Auction). The kernel reads the new controller from the
+			// instruction's W ref.
+			underEach = true
 		default:
 			return gainControlTrue(gc)
 		}
@@ -782,6 +792,11 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 		flags = append(flags, "Transformed")
 	}
 	in := lInstr{Obj: obj, CS: strings.Join(flags, "|")}
+	if underEach {
+		// GainControl$ Player.IsRemembered inside the loop: the returned
+		// card enters under the repeated player (kernel W ref).
+		in.W = lRef{Kind: rEach}
+	}
 	switch dest {
 	case zExile:
 		in.Op = "Exile"
@@ -1149,6 +1164,12 @@ func overrideString(o *lOverride) string {
 	if o.UntilEndCombat {
 		p = append(p, "eoc")
 	}
+	if o.UntilCtrlUntap {
+		p = append(p, "untilctrluntap")
+	}
+	if o.UntilCast != nil {
+		p = append(p, "untilcast")
+	}
 	if o.Horsemanship {
 		p = append(p, "horsemanship")
 	}
@@ -1360,6 +1381,13 @@ func (lc *lowerCtx) dig(ps *params) error {
 			return err
 		}
 	}
+	// ChangeType$ is not a Dig key: Forge's DigEffect and gorge effDig
+	// filter the take by ChangeValid$ only. ChangeType$ Card (Chrome
+	// Courier) admits every card either way; any narrower spelling refuses
+	// so a script that meant it as a filter is not read as unfiltered.
+	if ct, ok := ps.get("ChangeType"); ok && strings.TrimSpace(ct) != "Card" {
+		return refuse("Dig ChangeType$ %q (not a Dig key; only Card is inert)", ct)
+	}
 	// WithTotalCMC$/WithDifferentPowers$ ride the pick filter's head; the
 	// kernel narrows the candidates and the running take (State.pickFits).
 	budget, hasBudget, err := pickTotalCMC(ps)
@@ -1422,6 +1450,9 @@ func (lc *lowerCtx) dig(ps *params) error {
 		return err
 	}
 	if err := digNoLooking(ps, who); err != nil { // lower_digparams.go
+		return err
+	}
+	if in.W, err = lc.digChoser(ps, who); err != nil { // lower_digparams.go
 		return err
 	}
 	for _, k := range []string{"Optional", "RestRandomOrder", "ForceRevealToController", "Reveal", "RememberChanged"} {
@@ -1750,9 +1781,24 @@ func (lc *lowerCtx) peekAndReveal(ps *params) error {
 
 func (lc *lowerCtx) twoPiles(ps *params) error {
 	if ps.str("Zone") == "Battlefield" {
+		if ps.str("Defined") == "Remembered" {
+			return lc.twoPilesEach(ps) // lower_twopiles.go: the repeated player's piles
+		}
 		return lc.twoPilesSac(ps)
 	}
 	return lc.twoPilesRemembered(ps) // lower_twopiles.go
+}
+
+// chooseCardRememberModes maps a ChooseCard mode word to its RememberChosen$
+// spelling. "" is the one-card pick (the op's Remember code); the counted and
+// the plain up-to-one picks (Jetsam's graveyard pick, the Done beside the
+// cards) carry the remember flag in B, read by the kernel's answer as each
+// card is taken.
+var chooseCardRememberModes = map[string]string{
+	"":          "Remember",
+	"Amount":    "AmountRemember",
+	"AmountOpt": "AmountOptRemember",
+	"Optional":  "OptionalRemember",
 }
 
 func (lc *lowerCtx) chooseCard(ps *params) error {
@@ -1813,7 +1859,7 @@ func (lc *lowerCtx) chooseCard(ps *params) error {
 		choices = addFilterProp(choices, "YouCtrl")
 		ps.consume("ControlledByPlayer")
 	}
-	f, err := lc.filter(choices)
+	f, err := lc.chooseCardFilter(choices, ps.str("Defined") == "Player.IsRemembered" || ps.str("Defined") == "Remembered")
 	lc.attachedTgtOK, lc.exwOK = false, false
 	if err != nil {
 		return err
@@ -1864,8 +1910,13 @@ func (lc *lowerCtx) chooseCard(ps *params) error {
 		return lc.chooseLibraryUpTo(ps, f, maxV)
 	}
 	mode = chooseCardMode(optional, each, atRandom, minZero, maxV, mode)
-	if optional && (!optionalPickZone(zone) || ps.str("Amount") != "" && ps.str("Amount") != "1") {
+	if optional && !optionalPickZone(zone) {
 		return refuse("optional ChooseCard")
+	}
+	if optional && !minZero {
+		// an optional counted pick with a positive floor would race the
+		// kernel's Done answer against a minimum it does not carry
+		return refuse("optional ChooseCard with MinAmount %s", minV)
 	}
 	if !targeted && !fromDefined {
 		chooser = lRef{Kind: rYou}
@@ -1880,6 +1931,40 @@ func (lc *lowerCtx) chooseCard(ps *params) error {
 	switch mode {
 	case "Amount", "AmountOpt", "AtRandom":
 		in.A = maxV
+	}
+	if lc.repeatPl > 0 && ps.is("RememberChosen", "True") {
+		// Scope: RepeatEach player bodies only. Outside a loop the
+		// remembered set is read by no lowered node, so the param stays
+		// unconsumed and the card keeps refusing.
+		// RememberChosen$ (gorge choiceRecord): the picked cards join the
+		// resolution's remembered set. The one-card pick rides the op's
+		// Remember code; a counted pick carries the flag in B, read by the
+		// kernel's answer as each card is taken (the post-loop
+		// SacrificeAll/ChangeZone reads the set, not just RefChosen). The
+		// counted mode word keeps its Remember spelling so the writer
+		// census sees the set is written in this resolution.
+		ps.consume("RememberChosen")
+		rm, ok := chooseCardRememberModes[mode]
+		if !ok {
+			return refuse("ChooseCard RememberChosen$ with %s", mode)
+		}
+		if mode != "" {
+			in.B = cst(1)
+		}
+		mode = rm
+	}
+	if lc.repeatPl > 0 && ps.is("ForgetChosen", "True") {
+		// RepeatEach player bodies only (as RememberChosen$ above).
+		// ForgetChosen$ True (gorge chooseCardRecord): after the choice is
+		// recorded, each picked card leaves the resolution's remembered set
+		// (Thieves' Auction's repeat-until-empty loop). The kernel's
+		// forget flag is B's value 2; a plain pick carries it here.
+		if mode != "" {
+			return refuse("ChooseCard ForgetChosen$ with %s", mode)
+		}
+		ps.consume("ForgetChosen")
+		in.B = cst(2)
+		mode = "ForgetChosen"
 	}
 	if ps.is("ForgetOtherRemembered", "True") {
 		if mode != "" && mode != "Optional" {
@@ -1920,6 +2005,16 @@ func (lc *lowerCtx) chooseCardMandatory(ps *params, in lRef, oppChooser bool) (o
 	case "Player":
 		out = lRef{Kind: rEachPlayer}
 		each, fromDefined = true, true
+	case "Player.IsRemembered", "Remembered":
+		// Inside a RepeatEach player body the loop binds the repeated
+		// player as Remembered (gorge effRepeatEach; the body check admits
+		// exactly that read): the pick is that player's. Outside the body
+		// the names mean something else and keep refusing.
+		if lc.repeatPl == 0 {
+			return out, false, false, false, "", refuse("ChooseCard Defined$ %q outside a RepeatEach player body", v)
+		}
+		out = lRef{Kind: rEach}
+		fromDefined = true
 	case "TriggeredPlayer", "TriggeredDefendingPlayer":
 		if out, err = lc.defined(v); err != nil {
 			return out, false, false, false, "", err
@@ -1983,19 +2078,26 @@ func (lc *lowerCtx) chooseCardOptional(ps *params, in lRef) (out lRef, fromDefin
 	}
 	ps.consume("AILogic")
 	if v := ps.str("Defined"); v != "" && v != "You" {
-		if v != "TargetedOrController" {
+		switch {
+		case v == "TargetedOrController":
+			// gorge definedAliases spells TargetedOrController as
+			// TargetedController: a player target is that player, an object
+			// target its controller (lower_effect.go's rTargetController).
+			// The referent is the chain's target, not this pick's.
+			t := lc.lastTarget()
+			if t < 0 {
+				return out, false, atRandom, refuse("optional ChooseCard Defined$ TargetedOrController without an earlier target")
+			}
+			out = lRef{Kind: rTargetController, N: t}
+			fromDefined = true
+		case (v == "Player.IsRemembered" || v == "Remembered") && lc.repeatPl > 0:
+			// the RepeatEach player body's repeated player picks (Disciple
+			// of Caelus Nin's optional up-to-five)
+			out = lRef{Kind: rEach}
+			fromDefined = true
+		default:
 			return out, false, atRandom, refuse("optional ChooseCard Defined$ %q", v)
 		}
-		// gorge definedAliases spells TargetedOrController as
-		// TargetedController: a player target is that player, an object
-		// target its controller (lower_effect.go's rTargetController).
-		// The referent is the chain's target, not this pick's.
-		t := lc.lastTarget()
-		if t < 0 {
-			return out, false, atRandom, refuse("optional ChooseCard Defined$ TargetedOrController without an earlier target")
-		}
-		out = lRef{Kind: rTargetController, N: t}
-		fromDefined = true
 	}
 	if v := ps.str("MinAmount"); v != "" && v != "0" {
 		return out, false, atRandom, refuse("optional ChooseCard MinAmount$ %q", v)
@@ -2019,8 +2121,14 @@ func chooseCardMode(optional, each, atRandom, minZero bool, maxV lValue, mode st
 	}
 	if optional && !atRandom {
 		// gorge choiceBounds: no Mandatory$ True is "up to one" (Min 0),
-		// a Done beside the cards (Gix's Command)
-		mode = "Optional"
+		// a Done beside the cards (Gix's Command). A Min 0 pick with a
+		// larger Amount$ is the same Done but up to that many (Disciple of
+		// Caelus Nin's "choose up to five").
+		if minZero && !(maxV.isConst() && maxV.N == 1) {
+			mode = "AmountOpt"
+		} else {
+			mode = "Optional"
+		}
 	}
 	return mode
 }
@@ -2322,6 +2430,10 @@ func (lc *lowerCtx) playRememberedAlt(alt, valid string) (string, error) {
 		case part == "ExiledWithSource":
 			// exiled with the source (Flawless Forgery's forged copies)
 			cmc = andClause(cmc, part)
+		case playTypeDotType(part):
+			// a dotted type head (Sanwell's Artifact.Creature): both words
+			// narrow the population (lower_playexilepop.go)
+			cmc = andClause(cmc, strings.Replace(part, ".", "+", 1))
 		default:
 			return "", refuse("Play Valid$ %q", valid)
 		}
@@ -2403,7 +2515,7 @@ func (lc *lowerCtx) play(ps *params) error {
 		// a literal Amount$ N (gorge effPlay: one ask, Max N, the picks
 		// begun in answer order) on P1's remembered-exile population only
 		// (Doom Reigns Supreme's "up to two spells")
-		if n, err := strconv.Atoi(amount); err != nil || n < 2 || ps.m["ValidZone"] != "Exile" || !strings.Contains(ps.m["Valid"], "IsRemembered") || ps.m["Defined"] != "" || copyCard {
+		if !playUpToOK(ps, amount, copyCard) { // lower_playpopcount.go
 			return refuse("Play Amount %q", amount)
 		}
 		upTo = true
@@ -2549,7 +2661,7 @@ func (lc *lowerCtx) play(ps *params) error {
 		return emit(lRef{Kind: rRemembered}, zExile, saExpr)
 	}
 	if def != "" {
-		return refuse("Play Defined$ %q", def)
+		return lc.playDefinedPop(ps, def, saExpr, emit) // lower_playpopcount.go
 	}
 	if !hasValid {
 		return refuse("Play shape")
@@ -2557,7 +2669,7 @@ func (lc *lowerCtx) play(ps *params) error {
 	if landPlay {
 		return emit(lRef{Kind: rRemembered}, zExile, "")
 	}
-	if paid {
+	if playSelfExileArm(paid, valid, vzone, copyCard) {
 		// the source card itself, in exile (lower_exilegrant.go): Valid$
 		// Card.Self + ValidZone$ Exile, Amount$ All, ValidSA$ Spell
 		if saExpr != "" || amount != "All" || vzone != "Exile" || valid != "Card.Self" || forget || replace || repeat {
@@ -2569,7 +2681,7 @@ func (lc *lowerCtx) play(ps *params) error {
 	case "Exile":
 		// P1: Valid$ Card.IsRemembered... + ValidZone$ Exile.
 		if !strings.Contains(valid, "IsRemembered") {
-			return refuse("Play ValidZone$ Exile without IsRemembered")
+			return lc.playExileFilterPop(valid, saExpr, paid && !forget && !replace, emit) // lower_playexilepop.go
 		}
 		clause, err := lc.playRememberedClause(valid)
 		if err != nil {
@@ -2739,6 +2851,9 @@ func (lc *lowerCtx) effectAPI(ps *params) error {
 		return err
 	}
 	if len(ss) != 1 && !attackBlockPair(ss) { // lower_effectattacksifable.go
+		if ok, err := lc.effectPlayLocks(ps, st, ss); ok || err != nil { // lower_effectplaylocks.go
+			return err
+		}
 		return refuse("Effect static %q", st)
 	}
 	s := ss[0]
@@ -2902,7 +3017,7 @@ func (lc *lowerCtx) effectTargetStatic(ps *params, s cards.Static, obj lRef) err
 		}
 		aff := sp.str("Affected")
 		nonLand := false
-		if (obj.Kind == rRemembered || obj.Kind == rTarget || lc.digImprintChosen && obj.Kind == rChosen) && (aff == "Card.IsRemembered+nonLand" || aff == "Card.nonLand+IsRemembered") {
+		if (obj.Kind == rRemembered || obj.Kind == rTarget || obj.Kind == rChosen) && (aff == "Card.IsRemembered+nonLand" || aff == "Card.nonLand+IsRemembered") {
 			// "you may cast" the remembered nonland cards, or (Silas Renn) the
 			// target RememberObjects$ Targeted remembers: the grant skips a
 			// land (its type cannot change off the battlefield)
@@ -2910,10 +3025,12 @@ func (lc *lowerCtx) effectTargetStatic(ps *params, s cards.Static, obj lRef) err
 		}
 		instSorc := false
 		azs := sp.str("AffectedZone")
-		if obj.Kind == rRemembered && (aff == "Instant.IsRemembered,Sorcery.IsRemembered" || aff == "Sorcery.IsRemembered,Instant.IsRemembered") && azs == "Exile,Stack" {
+		if obj.Kind == rRemembered && (aff == "Instant.IsRemembered,Sorcery.IsRemembered" || aff == "Sorcery.IsRemembered,Instant.IsRemembered") && (azs == "Exile" || azs == "Exile,Stack") {
 			// Chandra, Hope's Beacon: the grant covers the remembered instants
 			// and sorceries; the Stack half of the zone list adds no cast
-			// permission (a spell already on the stack is not cast again)
+			// permission (a spell already on the stack is not cast again).
+			// Nivix, Aerie of the Firemind names Exile alone and reads the
+			// same instant-or-sorcery gate.
 			aff, azs, instSorc = "Card.IsRemembered", "Exile", true
 		}
 		zone := zoneNames[azs]
@@ -2950,6 +3067,8 @@ func (lc *lowerCtx) effectTargetStatic(ps *params, s cards.Static, obj lRef) err
 			switch d {
 			case "UntilTheEndOfYourNextTurn":
 				dur = "EndOfYourNextTurn"
+			case "UntilYourNextTurn":
+				dur = "UntilYourNextTurn"
 			case "EndOfTurn", "UntilEndOfTurn", "UntilYourNextEndStep":
 				// gorge effectUntilEOTSet: the continuous side folds these
 				// into this turn (UntilEOT, dropped at cleanup)
@@ -2991,6 +3110,16 @@ func (lc *lowerCtx) effectTargetStatic(ps *params, s cards.Static, obj lRef) err
 			obj.Kind == rRemembered && (zone == zExile || len(zones) == 2) {
 			fl |= kop.MayPlayOwner
 			ps.consume("EffectOwner")
+		}
+		if mv := sp.str("MayPlayPlayer"); mv != "" {
+			// gorge MayPlayCardOwner (engine/effects/staticline.go): the
+			// permission's subject is the remembered card's owner (Memory
+			// Vessel: each player may play the cards THEY exiled), not the
+			// effect's controller -- the kernel's MayPlayOwner record
+			if mv != "CardOwner" {
+				return refuse("Effect MayPlayPlayer %q", mv)
+			}
+			fl |= kop.MayPlayOwner
 		}
 		if _, ok := ps.get("ExileOnMoved"); ok && obj.Kind == rRemembered {
 			// gorge effectMoveSweep: a remembered card leaving the zone ENDS
@@ -3048,6 +3177,13 @@ func (lc *lowerCtx) effectTargetStatic(ps *params, s cards.Static, obj lRef) err
 			in.C = z
 			lc.emit(in)
 		}
+		if obj.Kind == rChosen && strings.TrimSpace(ps.m["ExileOnMoved"]) == "Stack" {
+			// Mission Briefing: the chosen card's permission carries the
+			// stack-exit exile mark the Effect's replacement registers.
+			if err := lc.stackExileChosenMark(ps, obj); err != nil {
+				return err
+			}
+		}
 	case "CantRegenerate":
 		if err := lc.noRegenMark(ps, sp, obj); err != nil { // lower_noregen.go
 			return err
@@ -3083,11 +3219,27 @@ func (lc *lowerCtx) emblemStatic(ps *params, s cards.Static) error {
 // likewise): the effect leaves the command zone at cleanup, so it is the
 // kernel's EOT emblem, and both fire only for the events emblems listen to
 // (emblemTimedMode).
-func (lc *lowerCtx) emblemTrigDuration(t cards.Trigger, eot, next bool) error {
-	if (eot || next) && !emblemTimedMode(t.Mode, eot, lc.pairCap != nil) {
-		return refuse("Effect triggers without a permanent duration")
+//
+// combatCap marks the combat-damage line over a Targeted capture (Vigorous
+// Charge): the one DamageDealtOnce shape without the pair lowering the emblem
+// hook has lockstep cover for (a noncombat one, Paladin of Prahv, stays
+// refused).
+func (lc *lowerCtx) emblemTrigDuration(t cards.Trigger, eot, next, combatCap bool) error {
+	if (eot || next) && !emblemTimedMode(t.Mode, eot, lc.pairCap != nil || combatCap) {
+		return emblemDurationRefuse(t.Mode)
 	}
 	return nil
+}
+
+// emblemDurationRefuse is the refusal for an Effect trigger no kernel emblem
+// hook covers, naming the trigger's Mode$ so the census shows which event hook
+// each carrier is waiting for (the Effect-container trigger-Mode ticket). The
+// leading words stay the umbrella class's.
+func emblemDurationRefuse(mode string) error {
+	if mode == "" {
+		return refuse("Effect triggers without a permanent duration")
+	}
+	return refuse("Effect triggers without a permanent duration (Mode$ %s)", mode)
 }
 
 // emblemExileLapse reads an Effect's ExileOnMoved$ rider: Battlefield lapses
@@ -3108,12 +3260,14 @@ func emblemExileLapse(ps *params, hasCap bool) (bool, error) {
 // emblem lowers a planeswalker emblem with one trigger (Kaito).
 func (lc *lowerCtx) emblem(ps *params, tr string) error {
 	lc.granted++
-	defer func() { lc.granted-- }()
+	defer func() { lc.granted--; lc.remSelf = false }()
 	_, hasDur := ps.get("Duration")
-	eot := !hasDur
+	eot := !hasDur || ps.is("Duration", "EndOfTurn") // the spelled-out default (Jace, Cunning Castaway)
 	next := hasDur && ps.is("Duration", "UntilYourNextTurn")
-	if hasDur && !next && !ps.is("Duration", "Permanent") {
-		return refuse("Effect triggers without a permanent duration")
+	if hasDur && !eot && !next && !ps.is("Duration", "Permanent") {
+		first, _, _ := strings.Cut(tr, ",")                                     // the first body of a list names the Mode$
+		t, _ := cards.ParseTriggerLine(lc.face.SVars[strings.TrimSpace(first)]) // a body that does not parse names none
+		return emblemDurationRefuse(t.Mode)
 	}
 	ps.consume("Name", "Image", "Stackable")
 	if sa, ok := ps.get("StaticAbilities"); ok && lc.pairCap == nil {
@@ -3137,7 +3291,7 @@ func (lc *lowerCtx) emblem(ps *params, tr string) error {
 	if eot && t.Mode == "TapsForMana" {
 		return effectTapExtraRefuse() // lower_tapextra.go
 	}
-	if err := lc.emblemTrigDuration(t, eot, next); err != nil {
+	if err := lc.emblemTrigDuration(t, eot, next, ps.is("RememberObjects", "Targeted") && strings.TrimSpace(t.Params["CombatDamage"]) == "True"); err != nil {
 		return err
 	}
 	if err := emblemBlocksEarlyRefuse(ps, t, eot); err != nil {
@@ -3180,24 +3334,20 @@ func (lc *lowerCtx) emblem(ps *params, tr string) error {
 	lc.capRem = hasCap && (t.Mode == "DamageDealtOnce" || t.Mode == "DamageDoneOnce")
 	lc.ddoEvent = eot && t.Mode == "DamageDoneOnce"
 	lc.effCount = mem.kind == memCount
-	lc.emblemBlocked = hasCap && t.Mode == "AttackerBlocked"
+	lc.emblemBlocked = hasCap && (t.Mode == "AttackerBlocked" || t.Mode == "AttackerUnblocked")
 	lc.emblemBlocks = eot && t.Mode == "Blocks"
+	lc.emblemUnblocked = hasCap && t.Mode == "AttackerUnblocked"
 	lc.emblemDmg = hasCap && !player && t.Mode == "DamageDone"
 	err = lc.withAbility(lc.ab, func() error { return lc.lowerTriggered(t, "Command") })
-	lc.capRem, lc.effCount, lc.ddoEvent, lc.emblemBlocked, lc.emblemBlocks, lc.emblemDmg = false, false, false, false, false, false
+	lc.capRem, lc.effCount, lc.ddoEvent, lc.emblemBlocked, lc.emblemBlocks, lc.emblemDmg, lc.emblemUnblocked, lc.remSelf = false, false, false, false, false, false, false, false
 	if err != nil {
 		return err
 	}
 	if len(lc.out.Abilities) != saved+1 {
 		return refuse("emblem trigger lowering")
 	}
-	if t.Mode == "AttackerBlocked" {
-		// the capture ends as gorge forgets the object (lower_effeottrig.go)
-		if !hasCap || !ps.is("ForgetOnMoved", "Battlefield") {
-			return refuse("Effect AttackerBlocked trigger without a captured object and ForgetOnMoved$ Battlefield")
-		}
-		ps.consume("ForgetOnMoved")
-		lapse = true
+	if lapse, err = emblemBlockedLapse(ps, t.Mode, hasCap, lapse); err != nil { // lower_effeottrig.go
+		return err
 	}
 	ab := lc.out.Abilities[saved]
 	if mem.kind != memNone {
@@ -3251,6 +3401,9 @@ func emblemTimedMode(mode string, eot, paired bool) bool {
 		return eot
 	case "DamageDealtOnce":
 		return paired
+	case "AttackerUnblocked":
+		// the end-of-turn unblocked-attacker hook (fireEmblemsUnblocked)
+		return eot
 	}
 	return false
 }
@@ -5356,7 +5509,7 @@ func (lc *lowerCtx) partitionMayPlay(ps *params, ss []cards.Static) (bool, error
 	plain := !owner && !checked && ps.str("Duration") == "Permanent"
 	flags, gate, affOK := lc.rememberedAffected(may.str("Affected"), plain)
 	if ss[0].Mode != "Continuous" || !may.is("MayPlay", "True") || !affOK ||
-		may.str("AffectedZone") != "Exile" || (!owner && (may.str("MayPlayPlayer") != "" || len(ss) != 1)) {
+		may.str("AffectedZone") != "Exile" || (!owner && (may.str("MayPlayPlayer") != "" || len(ss) != 1 && !abstruseConvertStatic(ss))) {
 		return false, nil
 	}
 	may.consume("Mode", "Description", "MayPlay", "Affected", "AffectedZone", "MayPlayPlayer")
@@ -5395,8 +5548,10 @@ func (lc *lowerCtx) partitionMayPlay(ps *params, ss []cards.Static) (bool, error
 		}
 		return true, refuse("Effect MayPlay unread %v", left)
 	}
-	raise := 0
-	if len(ss) == 2 {
+	raise, convC := 0, false
+	if len(ss) == 2 && !owner {
+		convC = true // abstruseConvertStatic checked ss[1] above
+	} else if len(ss) == 2 {
 		rc := newParams(ss[1].Params)
 		if ss[1].Mode != "RaiseCost" || rc.str("ValidCard") != "Card.IsRemembered+CastSa Spell.MayPlaySource" ||
 			rc.str("AffectedZone") != "Exile" || rc.str("Type") != "Spell" {
@@ -5424,7 +5579,7 @@ func (lc *lowerCtx) partitionMayPlay(ps *params, ss []cards.Static) (bool, error
 		raise = n
 	}
 	ps.consume("Duration", "RememberObjects", "ForgetOnMoved", "StaticAbilities")
-	in := lInstr{Op: "MayPlay", Obj: obj, C: zExile, CS: "WhileExiled"}
+	in := lInstr{Op: "MayPlay", Obj: obj, C: zExile, CS: "WhileExiled", ConvC: convC}
 	if valid != nil {
 		in.CS, in.F = "WhileValid", valid
 	} else if gate != nil {
@@ -5433,6 +5588,31 @@ func (lc *lowerCtx) partitionMayPlay(ps *params, ss []cards.Static) (bool, error
 	in.B = cst(flags | raise<<kop.MayPlayRaiseShift)
 	lc.emit(in)
 	return true, nil
+}
+
+// abstruseConvertStatic reports whether a controller permission's two-static
+// list is the MayPlay static plus Abstruse Appropriation's colourless-mana
+// conversion: Mode$ ManaConvert over the effect controller's cast of the
+// remembered exiled card through its permission, ManaConversion$ C->AnyColor
+// (gorge pay.ApplyConversionTo: only the pool's {C} becomes any colour, as
+// the cast is paid). Every parameter is the exact printed spelling and no
+// other key is present (Description$ aside), so another ManaConvert shape
+// keeps the emblem lowering's refusal. The record carries the whole static:
+// ValidPlayer$ You is its controller, ValidCard$ Card.IsRemembered with
+// AffectedZone$ Exile its object and zone, ValidSA$ Spell.MayPlaySource the
+// cast through it (kop.MayPlayConvC).
+func abstruseConvertStatic(ss []cards.Static) bool {
+	if len(ss) != 2 || ss[1].Mode != "ManaConvert" {
+		return false
+	}
+	cv := newParams(ss[1].Params)
+	if cv.str("ValidPlayer") != "You" || cv.str("ValidCard") != "Card.IsRemembered" ||
+		cv.str("ValidSA") != "Spell.MayPlaySource" || cv.str("ManaConversion") != "C->AnyColor" ||
+		cv.str("AffectedZone") != "Exile" {
+		return false
+	}
+	cv.consume("Mode", "Description", "ValidPlayer", "ValidCard", "ValidSA", "ManaConversion", "AffectedZone")
+	return len(cv.unread()) == 0
 }
 
 // partitionRiders reads the controller permission's record riders
@@ -5776,6 +5956,10 @@ func (lc *lowerCtx) libSearchOwner(ps *params, arm bool, tgtLib int, flags []str
 		lc.twoSeat("Chooser$ Opponent on a library search")
 		ps.consume("Chooser")
 		flags = append(flags, "ChooserOpp")
+	case ch == "ImprintedController" && obj.Kind == rEach:
+		// the repeated card's controller both owns and answers their own
+		// search (Wave of Vitriol): the default asker, no SrChooser bit
+		ps.consume("Chooser")
 	}
 	return obj, flags, nil
 }
@@ -5815,10 +5999,10 @@ func fromAnyOrigin(ps *params, obj lRef, dest int, in *lInstr) {
 }
 
 // copyAtEOTFlag reads a CopyPermanent's AtEOT$ into its copy-flag name.
-// gorge scheduleAtEOT: a one-shot delayed registration per copy, exiled at the
-// beginning of the next end step (Stormsplitter), or sacrificed
-// (__kwEncoreSacrifice: Reflection of Kiki-Jiki), the kernel's one-shot dly
-// entry either way.
+// gorge scheduleAtEOT: one delayed registration over the resolution's copies
+// (the group join for a later copy, CR 603.7a), exiled at the beginning of the
+// next end step (Stormsplitter), or sacrificed (__kwEncoreSacrifice:
+// Reflection of Kiki-Jiki), the kernel's one-shot dly entry either way.
 func (lc *lowerCtx) copyAtEOTFlag(ps *params, a string) (string, error) {
 	switch a {
 	case "Exile":

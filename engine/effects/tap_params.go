@@ -34,3 +34,15 @@ func compileTapParams(sa *cards.SA) tapParams {
 		hasChoiceAmount: hasAmount,
 	}
 }
+
+// IsEntryTap reports whether sa is a bare "enters tapped" body (api:Tap with
+// ETB$ True and no chain, tapper or card choice, the shape every ETBTapped
+// land carries), the rules-side gate for a copied replacement line that taps
+// the entering permanent.
+func IsEntryTap(sa *cards.SA) bool {
+	if sa == nil || sa.Sub != nil || (sa.CompiledAPI() != cards.APITap && sa.API != "Tap") {
+		return false
+	}
+	p := compileTapParams(sa)
+	return p.ETB && p.Tapper == "" && p.CardChoices == "" && !p.RememberTapped
+}

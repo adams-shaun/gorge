@@ -126,6 +126,15 @@ func (s *State) filtPaid(k *prep, p uint8, sl Slot) bool {
 	return poolTotal(&s.pl[SeatIx(p)])+s.filtFeeRestrN(k, p, sl) >= s.filtFee(k, sl)
 }
 
+// filtPaidAt is filtPaid for the card's filter ability at ordinal ord: a
+// paid filter set's later ability has its own fee (Koskun Keep's {2}).
+func (s *State) filtPaidAt(k *prep, p uint8, sl Slot, ord int8) bool {
+	if ord == 0 {
+		return s.filtPaid(k, p, sl)
+	}
+	return poolTotal(&s.pl[SeatIx(p)])+s.filtFeeRestrN(k, p, sl) >= s.filtFeeAt(k, sl, ord)
+}
+
 // filtPayPip pays the pip of the filter at sl: the restricted mana the
 // activation may spend first (gorge carves those batches before ordinary
 // mana), else the pool.

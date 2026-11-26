@@ -2585,6 +2585,22 @@ func forgetRememberedOne(h Host, c *Ctx, id state.ObjID) {
 // clearEventRemembered mirrors Forge host.clearRemembered.  Rider primitives
 // call it before replacing their ctx set, so Count$RememberedSize and a later
 // resolution observe exactly the same persistent set as the current chain.
+// clearImprinted runs ClearImprinted$ True: release the source's imprinted
+// effects and emit an Imprint "clear" event only when something was held.
+// Only a real clear is an event (the ClearRemembered$ discipline effCleanup
+// documents): logging an already-empty clear hid a no-progress Repeat from
+// effRepeat's guard (Rally the Horde over an empty library).
+func clearImprinted(h Host, c *Ctx, sa *cards.SA) {
+	if !strings.EqualFold(sa.ParamStr(cards.PKClearImprinted), "True") || c.Source == 0 {
+		return
+	}
+	releaseImprintedEffects(h, c.Source)
+	if o := h.Game().Obj(c.Source); o != nil &&
+		(len(o.Imprinted) > 0 || len(o.ImprintTokens) > 0 || len(o.SeekFound) > 0) {
+		h.Emit(events.Event{Kind: events.Imprint, Obj: c.Source, Text: "clear"})
+	}
+}
+
 // imprint records Forge's host.addImprintedCards. TargetedSource names the
 // source card of a targeted stack ability when one exists; ordinary targets
 // are themselves cards. The one shared resolver is used by every API so a

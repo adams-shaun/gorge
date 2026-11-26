@@ -111,6 +111,7 @@ func (s *State) holdBatch(b *entBatch) {
 func (s *State) fireEntries(k *prep, b *entBatch) {
 	if !s.anyETB(k) {
 		b.n = 0
+		s.storyGrant(k) // the batch's entrants still grant (kw_storied.go)
 		return
 	}
 	if k.gen != nil && k.gen.anyBatch {
@@ -121,6 +122,7 @@ func (s *State) fireEntries(k *prep, b *entBatch) {
 		if s.occ.has(sl) && s.perms[sl].obj == o {
 			s.fireObj(k, kop.TrigETB, sl, o, s.perms[sl].ctrl, 0)
 		}
+		s.storyGrant(k) // gorge grants on each entrant's own emit tail, so a later entrant's triggers see an earlier entrant's grant (kw_storied.go)
 	}
 	b.n = 0
 }
@@ -424,7 +426,7 @@ func (s *State) damageHit(k *prep, h *dmgHit) int {
 	if !s.occ.has(b) {
 		return 0
 	}
-	if k.gen != nil && k.gen.anyRepl&(rbDblDmg|rbPrevNC|rbPrevDmgTo|rbProtAll|rbProtCol|rbPlusDmg|rbShield|rbPrevCol|rbPrevMill|rbSelfDmg) != 0 && n > 0 {
+	if k.gen != nil && (k.gen.anyRepl&(rbDblDmg|rbPrevNC|rbPrevDmgTo|rbProtAll|rbProtCol|rbPlusDmg|rbShield|rbPrevCol|rbPrevMill|rbSelfDmg) != 0 || k.gen.anyRepl2&rb2DmgInst != 0) && n > 0 {
 		n = s.replDamagePend(k, s.perms[a].ctrl, a, s.cardAt(a), TCode(s.perms[b].obj), n, s.perms[a].obj)
 	}
 	if n <= 0 {
@@ -464,7 +466,7 @@ func (s *State) damagePlayerHit(k *prep, h *dmgHit) int {
 	a := h.src
 	pl := h.pl - 1
 	code := PlayerCode(pl)
-	if k.gen != nil && k.gen.anyRepl&(rbDblDmg|rbPrevNC|rbPrevDmgTo|rbProtAll|rbProtCol|rbPlusDmg|rbShield|rbPrevCol|rbPrevMill|rbSelfDmg) != 0 {
+	if k.gen != nil && (k.gen.anyRepl&(rbDblDmg|rbPrevNC|rbPrevDmgTo|rbProtAll|rbProtCol|rbPlusDmg|rbShield|rbPrevCol|rbPrevMill|rbSelfDmg) != 0 || k.gen.anyRepl2&rb2DmgInst != 0) {
 		n = s.replDamage(k, s.perms[a].ctrl, a, s.cardAt(a), code, false, n)
 	}
 	if n <= 0 {

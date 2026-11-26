@@ -43,9 +43,12 @@ func (lc *lowerCtx) searchOwner(ps *params, arm bool) (lRef, error) {
 }
 
 // eachSearchLoop opens the one-instruction each-player loop around the Search
-// emitted next when searchOwner returned the loop variable.
+// emitted next when searchOwner returned the loop variable. Inside a
+// remembered-set card loop (lc.repeatRem) rEach is already the bound card and
+// the search's owner is that card's controller (Wave of Vitriol), so no
+// each-player loop opens.
 func (lc *lowerCtx) eachSearchLoop(obj lRef) {
-	if obj.Kind == rEach {
+	if obj.Kind == rEach && !lc.repeatRem {
 		lc.emit(lInstr{Op: "RepeatEach", Obj: lRef{Kind: rEachPlayer}, C: 1, Skip: 1})
 	}
 }

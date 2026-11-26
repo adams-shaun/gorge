@@ -114,7 +114,7 @@ func guardLists(bs []built, filters []kop.Filter) (rooms, readers, abRed []int, 
 		// Equip or Room unlock never does. Its MinMana$ floor (0 none) is what the
 		// cost keeps.
 		for _, a := range bs[i].def.Abilities {
-			if a.Kind == kop.AbStatic && a.Static.Kind == kop.StatReduceAbility && a.Static.B&(1|kop.ReduceAbUnlock|kop.ReduceAbPowerUp|kop.ReduceAbEquip) == 0 {
+			if a.Kind == kop.AbStatic && a.Static.Kind == kop.StatReduceAbility && a.Static.Zone != kop.ZoneGraveyard && a.Static.B&(1|kop.ReduceAbUnlock|kop.ReduceAbPowerUp|kop.ReduceAbEquip) == 0 {
 				abRed = append(abRed, i)
 				abRedFloor = append(abRedFloor, uint8(a.Static.B>>kop.ReduceAbMinShift)&15)
 				abRedTypes = append(abRedTypes, reducerTypes(filters, a.Static.Filter))
@@ -343,12 +343,14 @@ func refSubs(pt *poolTables, d *kop.CardDef, ovVals []kop.ValueRef) []uint8 {
 	filt(d.AltAddCost.Filter)
 	filt(d.KickerCost.Filter)
 	filt(d.BeholdF)
+	filt(d.RevealF)
 	filt(d.WardSac)
 	filt(d.CastBF)   // the frozen count's filter (CardDef.CastBF)
 	filt(d.ProtFrom) // K:Protection:Coyote can't name a subtype the matchup then drops
 	filt(d.Landwalk)
 	filt(d.OptCost.Filter)
 	filt(d.FbCost.Filter)
+	filt(d.EvokePick.Filter)   // the evoked cast's hand-exile candidates (CardDef.EvokePick)
 	filt(d.RetraceCost.Filter) // the retrace cast's discard candidates (CardDef.RetraceCost)
 	val(d.ModesPickV)          // a dynamic triggered charm's count filter (the matchup keeps the subtype it names)
 	val(d.MorphReduce)

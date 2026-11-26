@@ -51,7 +51,10 @@ func (s *State) copyExiledWith(k *prep, in *kop.Instr) bool {
 		}
 	}
 	if n == 0 {
-		return false // nothing exiled with the source: no copy (gorge's empty set)
+		// nothing exiled with the source: no copy, but the AtEOT$ rider's
+		// delayed trigger still exists (CR 603.7a; gorge's empty set)
+		s.delayEmptyRider(in)
+		return false
 	}
 	ctrl := e.ctrl
 	// Size every source's copy count before the first copy enters, as gorge's
@@ -71,11 +74,14 @@ func (s *State) copyExiledWith(k *prep, in *kop.Instr) bool {
 	}
 	if rewritten {
 		// a rewriter replaced every copy with a plain mint of its card: no
-		// copy is left for the riders (copyAllEach's arm)
+		// copy is left for the riders (copyAllEach's arm), but the AtEOT$
+		// rider's delayed trigger still exists (CR 603.7a)
 		s.mintRewritten(k, ctrl, rwCard, rwN)
+		s.delayEmptyRider(in)
 		return false
 	}
 	var eb entBatch
+	made := 0
 	for i := 0; i < n; i++ {
 		c := s.objs[ord[i]].card
 		aura := k.cards[c].types&kop.TAura != 0 && k.t.Cards[c].Enchant.Kind == kop.TgtObject
@@ -117,9 +123,15 @@ func (s *State) copyExiledWith(k *prep, in *kop.Instr) bool {
 			t := s.newToken(c, ctrl)
 			s.objs[t].of |= ofCopy
 			s.copyTokenEnterFrom(k, in, t, host, NoSlot, &eb)
+			made++
 		}
 	}
 	s.fireEntries(k, &eb)
+	if made == 0 && n > 0 {
+		// every copy was an Aura with no legal host (CR 303.4g): no token,
+		// but the AtEOT$ rider's delayed trigger still exists (CR 603.7a)
+		s.delayEmptyRider(in)
+	}
 	return false
 }
 

@@ -62,21 +62,28 @@ func (s *State) eachRun(k *prep, in *kop.Instr, i uint8, j0 int, w eachSusp) boo
 		if s.res.ask == raGenCmdZone && cmdZoneEach(in) {
 			e.tgt[i], e.tver[i], s.res.bad = w.t, w.v, w.bad // CR 903.9b: the answer reruns the instruction
 			s.g.inLoop = false
+			s.res.flags &^= rfCopyGrp
 			return false
 		}
 		if !ok && (s.eachParks(in) || s.eachReturnParked(in)) || ok && s.eachReturnParks(k, in, n0) {
 			w.j = uint8(j + 2)
 			s.g.each = w
 			s.g.inLoop = false
-			return true
+			return true // the flag stays: the resumed target joins the first copy's rider
 		}
 	}
 	if w.hold.on {
 		s.holdClose(k, w.hold) // the targets still enter together (CR 603.6a)
 	}
 	e.tgt[i], e.tver[i], s.res.bad = w.t, w.v, w.bad
+	if in.Op == kop.OpCopyAsTokenEx && s.res.flags&rfCopyGrp == 0 {
+		// no target made a copy: the resolution still creates the AtEOT$
+		// rider's one empty delayed trigger (CR 603.7a; copy_emptyrider.go)
+		s.delayEmptyRider(in)
+	}
 	s.g.inLoop = false
 	s.g.tokFrzOn = false
+	s.res.flags &^= rfCopyGrp
 	return false
 }
 

@@ -27,6 +27,7 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8, tgt uint8) {
 	if int(o) < len(s.cold.mkObj) {
 		s.cold.mkObj[o] = 0 // a card cast again starts with no payments (CR 702.43; kw_multikicker.go)
 	}
+	s.clearPaidN(o)
 	var fl uint8
 	if mode&1 != 0 { // seat-ok: a cast-mode bit
 		fl |= sfKicked
@@ -67,7 +68,7 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8, tgt uint8) {
 			RetraceGrantStats.Casts.Add(1) // a StatRetraceGrant retrace (kw_offkwgrant.go)
 		}
 	}
-	e.trigPl = miracleCastPl(k, c, mode, tgt, e.trigPl) // priced at the miracle cost from here on (kw_miracle.go)
+	e.trigPl = s.miracleCastPl(k, o, mode, tgt, e.trigPl) // priced at the miracle cost from here on (kw_miracle.go)
 	if mode&castFaceDown != 0 {
 		e.ab = 255
 		fam := k.t.Cards[c].MorphFamily
@@ -105,8 +106,8 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8, tgt uint8) {
 				e.mode |= modeImpended // the overloaded cast (kw_overload.go: the bit reads as overloaded on a HasOverload card)
 			} else if k.t.Cards[c].HasEvoke {
 				e.spc |= spcEvoked // the evoked cast (kw_evoke.go)
-			} else if k.t.Cards[c].HasDash {
-				e.mode |= modeImpended // the dashed cast (kw_dash.go: the bit reads as dashed on a HasDash card)
+			} else if k.t.Cards[c].HasDash || k.t.Cards[c].HasBlitz {
+				e.mode |= modeImpended // the dashed or blitzed cast (kw_dash.go, kw_blitz.go: the bit reads as such on a HasDash or HasBlitz card)
 			} else {
 				e.mode |= modeImpended // kw_impending.go
 			}
@@ -150,7 +151,7 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8, tgt uint8) {
 		// a miracle cast begun as its trigger resolves has no payment
 		// witness: gorge pays it through the mana window, and a cost the
 		// window cannot finish reverses the cast (kw_miracle.go)
-	} else if (fl&sfKicked != 0 || k.gen != nil && (k.gen.anySurge && s.bld().e.surged(k) || k.gen.anyCleave && s.bld().e.cleaved(k))) && k.t.Cards[c].Cost.X == 0 && k.t.Cards[c].OptWaterbend == 0 {
+	} else if (fl&sfKicked != 0 || k.gen != nil && (k.gen.anySurge && s.bld().e.surged(k) || k.gen.anyCleave && s.bld().e.cleaved(k) || k.gen.anyBlitz() && s.bld().e.blitzed(k))) && k.t.Cards[c].Cost.X == 0 && k.t.Cards[c].OptWaterbend == 0 {
 		// (an optional waterbend cast taps nothing here: its window pays after
 		// the picks, manaStep's waterbendCastWindow, as gorge's convokeAsk
 		// precedes its manual window)
@@ -306,6 +307,7 @@ func (s *State) pushBuild(k *prep) {
 	if e.kind == seSpell {
 		ob := &s.objs[e.obj]
 		z := ob.zone
+		s.colorWordsCast(k, ob.card) // a colour-word static rewrites the cast card's text before its targets (static_colorwords.go)
 		copyCast := k.gen != nil && k.gen.anyCopyCast && s.copyCastFrom(e.obj)
 		if copyCast {
 			z = kop.ZoneLibrary // a Play CopyCard$ copy is cast from gorge's holding zone (cast_copycast.go)
@@ -432,6 +434,11 @@ func (s *State) unpushSpell(k *prep) {
 		s.dropPendingRange(k, s.bld().pushNP, hi)
 	}
 	ob.zone = s.bld().origin
+	// CR 733.1: the cast never happened, so the card is the object it was
+	// (gorge's reversal moves the same object back): pushBuild's version
+	// bump is undone and another stack entry that targets the card still
+	// has a legal target (CR 608.2b; a second Harness the Storm trigger).
+	ob.ver--
 	ob.slot = NoSlot // off slotFaceDownSpell
 	switch s.bld().origin {
 	case kop.ZoneHand:
@@ -644,6 +651,9 @@ func (s *State) buildCostPreRaw(k *prep, pre, charge bool) (kop.ManaCost, bool) 
 	case seSpell:
 		cd := &k.t.Cards[e.card]
 		c := cd.Cost
+		if fc, ok := flipCastCost(k.t, e.card); ok {
+			c = fc // a converted or disturbed back face's keyword cost (CR 702.162a, 702.146a; face_flipcast.go)
+		}
 		if fb, ok := s.flashbackBase(k, e); ok {
 			c = fb
 		}
@@ -660,6 +670,9 @@ func (s *State) buildCostPreRaw(k *prep, pre, charge bool) (kop.ManaCost, bool) 
 		}
 		if cd.HasDash && e.impended() {
 			c = cd.DashCost // the dash cost (CR 702.109a; kw_dash.go)
+		}
+		if cd.HasBlitz && e.impended() {
+			c = cd.BlitzCost // the blitz cost (CR 702.152a; kw_blitz.go)
 		}
 		if cd.HasSurge && e.surged(k) {
 			c = surgeCostOf(cd) // the surge cost (CR 702.117a; kw_surge.go)
@@ -682,14 +695,16 @@ func (s *State) buildCostPreRaw(k *prep, pre, charge bool) (kop.ManaCost, bool) 
 		if e.trigPl == trigPlMadness && cd.HasMadness {
 			c = cd.MadnessCost // the madness cast from exile (CR 702.35b)
 		}
-		if e.trigPl == trigPlMiracle && cd.HasMiracle {
-			c = cd.MiracleCost // the miracle cast from hand (CR 702.94a; kw_miracle.go)
+		if e.trigPl == trigPlMiracle {
+			if mc, ok := s.miracleCostOf(k, e.obj); ok {
+				c = mc // the miracle cast from hand (CR 702.94a; kw_miracle.go), printed or granted
+			}
 		}
 		if k.gen != nil && k.gen.anySneak && e.trigPl == trigPlSneak && cd.HasSneak {
 			c = cd.SneakCost // the sneak cost (CR 702.190a; kw_sneak.go)
 		}
-		if k.gen != nil && k.gen.anyWebSling && e.trigPl == trigPlWebSling && cd.HasWebSling {
-			c = cd.WebSlingCost // the web-slinging cost (CR 702.188a; kw_websling.go)
+		if k.gen != nil && k.gen.anyWebSling && e.trigPl == trigPlWebSling {
+			c = s.webSlingCost(k, e.ctrl, e.card, e.obj) // the web-slinging cost, printed or granted (CR 702.188a; kw_websling.go)
 		}
 		if e.flags&sfKicked != 0 {
 			c = s.addKickerPayments(cd, e, c)
@@ -784,6 +799,10 @@ func (s *State) targetStageAborts(k *prep, t *kop.TargetSpec, e *stackEntry) boo
 // when a decision is needed.
 func (s *State) buildStep(k *prep, d *Decision) bool {
 	e := &s.bld().e
+	if s.winUnlessPayer() != 0 {
+		s.castWinUnlessOptions(k, d) // the colour window waits on the unless ask (mana_askcolour.go)
+		return true
+	}
 	if s.bld().bfl&bflWinTap != 0 {
 		return s.castWinTapOptions(k, d) // the cast window waits on a tap-another pick (mana_window.go)
 	}
@@ -835,6 +854,9 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 		case bsTapCost:
 			if k.gen != nil && k.gen.anyTapPower && s.tapPowerOptions(k, d) {
 				return true
+			}
+			if s.tapXAnnStep(k, d) {
+				return true // an activation's announced tapXType<X/Spec> (cost_tapxann.go)
 			}
 			if s.costPickOptions(k, d, kop.CostTapX) {
 				return s.ctl == ctlBuild // false: a short tap cost reversed the build (sacShort)
@@ -889,14 +911,13 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 				if e.kind == seAbility && k.gen != nil && k.gen.anyLoyaltyX && s.loyaltyXOptions(k, d) {
 					return true // a planeswalker's [-X] (cost_loyaltyx.go)
 				}
-				if (k.gen == nil || !k.gen.anyLifeX || !s.lifeXBuilding(k)) &&
-					(k.gen == nil || !k.gen.anySacX || !s.sacXBuilding(k)) &&
-					(k.gen == nil || !k.gen.uses.has(useDiscardX) || !s.discardXBuilding(k)) {
+				if !s.announcedXBuilding(k) {
 					s.nextStage(k)
 					continue
 				}
-				// an announced PayLife<X>, Sac<X/Spec> or Discard<X/Spec> with
-				// no {X} mana asks X below (cost_paylifex.go, cost_sacx.go,
+				// an announced PayLife<X>, Sac<X/Spec>, ExileFromGrave<X/Spec>
+				// or Discard<X/Spec> with no {X} mana asks X below
+				// (cost_paylifex.go, cost_sacx.go, cost_exilex.go,
 				// cost_discardfiltered.go)
 			}
 			// X is announced (CR 601.2b) before the payment window opens, so it is
@@ -1067,10 +1088,24 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 			}
 			if d.N == 0 {
 				if e.kind == seTrigger {
-					// CR 603.3c: with no mode to choose, it is removed
-					s.sp--
-					s.ctl = ctlPlaceTriggers
-					return false
+					if a.AFlags&kop.AfCharmTrigger == 0 || !s.charmModesHaveTargets(k, a) {
+						// CR 603.3c: with no mode to choose, it is removed. A
+						// marked GenericChoice trigger goes the same way when
+						// even its eligible list (targets, no UnlessCost$ gate)
+						// is empty: gorge's askTriggerModes removes it there.
+						s.sp--
+						s.ctl = ctlPlaceTriggers
+						return false
+					}
+					// a triggered api:GenericChoice whose every mode's
+					// UnlessCost$ the controller cannot pay: gorge's placement
+					// ask lets the trigger go on the stack unasked
+					// (trigger_queue.go askTriggerModes) and effCharm resolves
+					// FallbackAbility$ or nothing instead of posing a mode ask,
+					// so the trigger stays with no mode chosen (the Charm
+					// guards skip every body; modal_unless.go)
+					s.bld().modesN = 255
+					continue
 				}
 				if e.kind == seSpell && s.noModeAbort(k, a) {
 					return false
@@ -1427,12 +1462,42 @@ func (s *State) modeTargetFeasible(k *prep, t *kop.TargetSpec) bool {
 	return s.hasTarget(k, t, e.ctrl, s.srcSlot(), e.obj)
 }
 
-// modeFeasible: mode m's mandatory targets have candidates.
+// modeFeasible: mode m's mandatory targets have candidates (and, for a marked
+// GenericChoice charm, its UnlessCost$ is payable).
 func (s *State) modeFeasible(k *prep, a *kop.Ability, m int) bool {
+	return s.modeFeasibleGate(k, a, m, true)
+}
+
+// modeFeasibleTargets is modeFeasible without the AfCharmTrigger UnlessCost$
+// gate: the eligible list gorge's placement ask removes a trigger on
+// (trigger_queue.go askTriggerModes removes on an empty eligible list, and
+// keeps the trigger on the stack unasked when only the UnlessCost$ gate
+// empties the non-empty list).
+func (s *State) modeFeasibleTargets(k *prep, a *kop.Ability, m int) bool {
+	return s.modeFeasibleGate(k, a, m, false)
+}
+
+// charmModesHaveTargets reports whether some not-yet-chosen mode of the
+// ability being built passes the target (and ChoiceRestriction) half of
+// modeFeasible: the eligible list gorge's placement ask removes a marked
+// trigger on (trigger_queue.go askTriggerModes).
+func (s *State) charmModesHaveTargets(k *prep, a *kop.Ability) bool {
+	for m := 0; m < int(a.NModes); m++ {
+		if s.bld().e.mode&(1<<m) != 0 {
+			continue
+		}
+		if s.modeFeasibleTargets(k, a, m) {
+			return true
+		}
+	}
+	return false
+}
+
+func (s *State) modeFeasibleGate(k *prep, a *kop.Ability, m int, unless bool) bool {
 	if k.gen != nil && k.gen.anyCharmPick && s.charmPickBarred(a, s.bld().e.obj, m) {
 		return false // ChoiceRestriction$: chosen before (modal_charmpick.go)
 	}
-	if a.AFlags&kop.AfCharmTrigger != 0 && !s.modeUnlessPayable(k, a, m, s.bld().e.ctrl) {
+	if unless && a.AFlags&kop.AfCharmTrigger != 0 && !s.modeUnlessPayable(k, a, m, s.bld().e.ctrl) {
 		return false // a GenericChoice mode whose UnlessCost$ the controller cannot pay (modal_unless.go)
 	}
 	for i := 0; i < int(a.NTargets); i++ {
@@ -1467,6 +1532,10 @@ func (s *State) excludeTapSource(k *prep, av *avail) {
 }
 
 func (s *State) applyBuild(k *prep, a Action) {
+	if s.winUnlessPayer() != 0 {
+		s.applyCastWinUnless(k, a) // the colour window's unless ask (mana_askcolour.go)
+		return
+	}
 	if s.bld().bfl&bflWinTap != 0 {
 		s.applyCastWinTap(k, a)
 		return
@@ -1509,6 +1578,20 @@ func (s *State) applyBuild(k *prep, a Action) {
 			s.bld().altAdd = part
 			s.nextStage(k)
 			if !s.altAddPayable(k, part) && !s.altAddOpenTargets(k) && !s.altAddPipsFirst(k) {
+				if !s.requiredTarget(k) && k.t.Cards[e.card].BeholdN == 0 &&
+					s.altAddPickPayable(k, part) && s.windowUnpricedOpen(k, e) {
+					// The choice's census prices no unit of a source the CR
+					// 601.2g window can still fund the part from (a deferred
+					// Condition-split source, a graveyard mana one, gorge
+					// castWindowCensusComplete): gorge keeps the cast alive to
+					// the mana stage, whose fallback window (a chosen mana part
+					// that changed the plan's cost, manaStep's HasAltAdd arm)
+					// pays what the part owes and reverses the cast only when
+					// it cannot finish it (CR 733.1). The part's non-mana costs
+					// are payable (a window pays no discard), so only its mana
+					// waits.
+					return
+				}
 				if k.t.Cards[e.card].BeholdN != 0 && !s.requiredTarget(k) {
 					// The seat chose an unpayable part of a behold-or-mana
 					// cost: gorge pays through its fallback CR 601.2g
@@ -1684,8 +1767,14 @@ func (s *State) payCastParts(k *prep, ep *stackEntry, anyColor bool) {
 	if k.gen != nil && k.gen.anyRaiseLife {
 		s.payRaiseLife(k) // a RaiseCost PayLife<N> the chosen target owes (cost_raiselife.go)
 	}
+	if n := s.bld().payEvidence; n > 0 {
+		s.payMayEvidence(k) // a may-play cast's alternative cost: the picked evidence (kop.StMayPayEvidence)
+	}
 	if s.bld().payLifeMV {
 		s.payMayPlayLife(k) // a may-play cast's alternative cost: life equal to its mana value (cast_mayplaypaylife.go)
+	}
+	if n := s.bld().payEnergy; n > 0 {
+		s.payEnergyN(e.ctrl, n) // a may-play cast's alternative cost: the static's energy (kop.StMayPayEnergy)
 	}
 	if k.phyMana {
 		s.payPhyrexianLife(k) // the two-life faces (mana_phyrexian.go)
@@ -1795,6 +1884,9 @@ func (s *State) finishBuild(k *prep) {
 			return // a free or Spree cast's window waits on a tap-another pick (mana_window.go)
 		}
 		s.obsWinSettle(k, e.ctrl, obsPool, obsOK)
+		if k.gen != nil && k.gen.anyManaHaste {
+			s.hasteSettle(e.ctrl) // mana_hastefloat.go
+		}
 		s.payDelvePicks() // gorge payCast exiles the delved cards after the mana
 		s.paySacsGen(k)
 		s.bld().e.flags &^= sfFbGranted
@@ -1835,6 +1927,7 @@ func (s *State) finishBuild(k *prep) {
 		if k.gen != nil && k.gen.anyManaHaste {
 			s.manaHasteRider(k) // mana_spentrider.go
 		}
+		s.notePaidConspire(k, &e) // cost_paidcount.go: before the spell's own cast trigger reads Count$Conspired
 		s.onCast(k, &e)
 		s.conspireTrigger(k, &e)
 		s.casualtyTrigger(k, &e)
@@ -2021,6 +2114,9 @@ func (s *State) onCast(k *prep, e *stackEntry) {
 		// gorge checkEventDelayedTriggers: after the face triggers, before
 		// the cascade triggers (trig_delayedspell.go)
 		s.fireDelayedSpell(k, e)
+	}
+	if k.gen != nil && k.gen.uses.has(useUntilCastOv) {
+		s.dropUntilCastOv(k, e) // an Effect's SpellCast end (Soul Sculptor): gorge's fireStaticDelayed, same walk (static_ovendevent.go)
 	}
 	if k.gen != nil && k.gen.anyDeferred {
 		s.fireDeferredRider(k, e) // gorge fireManaSpentTriggers: after the cast triggers, before cascade
@@ -2408,7 +2504,9 @@ func (s *State) costPickOptions(k *prep, d *Decision, allowed kop.CostFlags) boo
 			if s.bld().pickK == pkDiscard {
 				s.bld().pickLeft += pc.Discard2N // the second discard part's picks follow (cost_discardfiltered.go)
 			}
-			if s.bld().pickK == pkSac && pc.N == 0 {
+			if s.bld().pickK == pkSac && pc.SacHalf {
+				s.bld().pickLeft = uint8(min(s.sacOwed(k, e.ctrl, pc, src), 255)) // cost_sachalf.go
+			} else if s.bld().pickK == pkSac && pc.N == 0 {
 				s.bld().pickLeft = uint8(e.x) // Sac<X/Spec>: the announced X (cost_sacx.go; 0 asks nothing)
 			}
 		}
@@ -2669,6 +2767,9 @@ func (s *State) buildPickCost(k *prep) *kop.Cost {
 				return &a.Cost // the sacrifice / return / hand-exile alternative cost (Fireblast, Gush, Force of Will; cast_altfree.go)
 			}
 		}
+		if cd.HasEvoke && cd.EvokePick.Flags != 0 && e.evoked() {
+			return &cd.EvokePick // the hand-exile evoke cost (kw_evoke.go)
+		}
 		if s.bld().altAdd == buildBeamGrant {
 			g, _ := s.beamGrantor(k, e.ctrl)
 			return &k.t.Cards[s.cardAt(g)].FbCost // the return a granted beam me up cast pays (kw_beammeup.go)
@@ -2738,7 +2839,7 @@ func (s *State) pickCostPayable(k *prep, p uint8, c *kop.Cost, exclude Obj) bool
 	if f&kop.CostDiscard != 0 && !s.discardPayable(k, p, c, exclude) {
 		return false
 	}
-	if f&kop.CostSac != 0 && s.countCostSac(k, p, c, NoSlot) < int(c.N) {
+	if f&kop.CostSac != 0 && s.countCostSac(k, p, c, NoSlot) < s.sacOwed(k, p, c, NoSlot) {
 		return false
 	}
 	if f&kop.CostTapX != 0 && s.countUntapped(k, p, c.Filter, NoSlot) < int(c.N) {
@@ -2972,4 +3073,26 @@ func (s *State) poolRPays(k *prep, p uint8, c CardID, o Obj) bool {
 	// an {X} (a warp cost's) is priced at X = 0, as gorge's witness plans it
 	// before the announcement (CR 601.2b)
 	return av.affords(&cost, pipMaskOf(&cost), 0)
+}
+
+// announcedXBuilding reports whether the cost being built has an announced X
+// with no {X} mana that asks X at this stage: PayLife<X>, Sac<X/Spec>,
+// ExileFromGrave<X/Spec>, PayEnergy<X> or Discard<X/Spec> (cost_paylifex.go,
+// cost_sacx.go, cost_exilex.go, cost_energyx.go, cost_discardfiltered.go).
+func (s *State) announcedXBuilding(k *prep) bool {
+	g := k.gen
+	if g == nil {
+		return false
+	}
+	return (g.anyLifeX && s.lifeXBuilding(k)) ||
+		(g.anySacX && s.sacXBuilding(k)) ||
+		(g.anyExileX && s.exileXBuilding(k)) ||
+		(g.uses.has(useEnergyX) && s.energyXBuilding(k)) ||
+		(g.uses.has(useDiscardX) && s.discardXBuilding(k))
+}
+
+// tapXAnnStep asks an activation's announced tapXType<X/Spec> pick when the
+// table holds one (cost_tapxann.go).
+func (s *State) tapXAnnStep(k *prep, d *Decision) bool {
+	return k.gen != nil && k.gen.uses.has(useTapXAnn) && s.tapXAnnOptions(k, d)
 }

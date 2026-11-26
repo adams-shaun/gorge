@@ -41,15 +41,14 @@ func selfCombatDamageDone(tp *params, tr *lTrigger, t cards.Trigger) bool {
 // Permanent Effect remembering the damaged player whose Triggers$ are one
 // LosesGame line on that player (ValidPlayer$ Player.IsRemembered) and,
 // optionally, the Effect's Static$ Always self-exile once the player has no
-// contract counter. The Effect lowers to nothing at every seat count, because
-// gorge, the reference, never fires it: effects.effEffect registers the
-// LosesGame line, but rules' delayed-trigger walk has no LosesGame matcher
-// (delayedEventModeHandled), so in a pod, where a loss does not end the game,
-// no copy of the loser's artifacts and creatures is ever made. The kernel
-// matches that; when gorge fires the LosesGame line, the four-seat pod
-// lockstep (TestFourSeatMissHighwaterPodsLockstep) diverges at the first
-// contracted loss and this lowering owes the trigger. done is false for any
-// other Triggers$ list, which the emblem lowering reads (and refuses) as before.
+// contract counter. Gorge arms the LosesGame line (effects.effEffect splits
+// the comma list "LoseGameTrigger,ExileEffect"), so the kernel must too: the
+// Effect's own body lowers to nothing, but the contract-counter put that
+// created it in the same chain keeps the loss-copy debt (dirac/ctr_losscopy.go),
+// which is the kernel's whole form of this Effect. The put is armed here, when
+// the Effect proves the shape, so a bare Contract counter put cannot record a
+// copy the card does not owe. done is false for any other Triggers$ list,
+// which the emblem lowering reads (and refuses) as before.
 func (lc *lowerCtx) contractLossEffect(ps *params, list string) (done bool, err error) {
 	names := strings.FieldsFunc(list, func(r rune) bool { return r == ',' || r == ' ' })
 	if len(names) == 0 || len(names) > 2 {
@@ -72,8 +71,30 @@ func (lc *lowerCtx) contractLossEffect(ps *params, list string) (done bool, err 
 	if loses != 1 || exile > 1 || !ps.is("Duration", "Permanent") || ps.str("RememberObjects") != "TriggeredTarget" {
 		return false, nil
 	}
+	if !lc.armContractPut() {
+		return false, refuse("Effect LosesGame loss copy with no contract PutCounter in its chain")
+	}
 	ps.consume("Triggers", "Duration", "RememberObjects")
 	return true, nil
+}
+
+// armContractPut marks the contract-counter put the Effect's own trigger chain
+// emitted as the armed put: the instruction's C is the kernel's
+// ExtPutContract marker (instr_counters.go), and ctr_contract.go records the
+// loss-copy debt only for an armed put. The Effect body and its put are
+// adjacent chain links in the one shape this lowering accepts (Miss
+// Highwater's DBPutCounter -> DBEffect), so the nearest earlier contract put
+// is that put. An absent put refuses the card rather than lowering an Effect
+// that would never make its copies.
+func (lc *lowerCtx) armContractPut() bool {
+	for i := len(lc.ab.Prog) - 1; i >= 0; i-- {
+		in := &lc.ab.Prog[i]
+		if in.Op == "PutCounter" && in.CS == contractCounter {
+			in.C = 1
+			return true
+		}
+	}
+	return false
 }
 
 // contractSelfExile reports whether t, an Effect's Mode$ Always line, exiles

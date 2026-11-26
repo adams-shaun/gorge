@@ -211,6 +211,15 @@ type CardDef struct {
 	// CostFlags bit (none is free); kernel act_behold.go.
 	BeholdN uint8
 	BeholdF FilterID
+	// RevealN, RevealF: the either-or additional cost's part one is "reveal a
+	// card of type T from your hand" (AlternateAdditionalCost
+	// Reveal<1/Spec>:<mana>, CR 701.20a, 601.2b; RevealN is 1), or, on a
+	// Morph-family card, the keyword's turn-up cost is that reveal
+	// (K:Morph:Reveal<1/Card.Color>, CR 702.37e): one hand card matching
+	// RevealF, the cast card itself never a candidate. Nothing moves or is
+	// marked. Table data, not a CostFlags bit; kernel act_reveal.go.
+	RevealN uint8
+	RevealF FilterID
 	// BeholdExile: the behold is a mandatory additional cost that exiles what
 	// it beholds (RaiseCost Cost$ BeholdExile<1/Type>, the Lorwyn Champions;
 	// BeholdN is 1, no either-or): the pick is recorded, exiled at payment and
@@ -241,6 +250,12 @@ type CardDef struct {
 	// and a copy of a permanent spell resolves into a token
 	// (genPrep.anyPermCopy; dirac/copy_permanentspell.go, CR 707.10f).
 	Storm bool
+	// Conspire is K:Conspire (CR 702.78a; false = none): as the spell is cast
+	// its caster may tap two untapped creatures sharing a colour with it (the
+	// conspired cast, the granted keyword's AkCastConspire; dirac/kw_conspire.go).
+	// The paid count (Count$Conspired, 1 once both are tapped) lives in
+	// dirac/cost_paidcount.go and the copy is the keyword's own SpellCast trigger.
+	Conspire bool
 	// HandMana is the colour mask (one WUBRG bit) of a hand-zone mana
 	// ability whose only cost exiles the card itself from its owner's hand
 	// (Simian / Elvish Spirit Guide: "Exile this card from your hand: Add
@@ -449,6 +464,11 @@ type CardDef struct {
 	// blessing once they control ten or more permanents, and an instant or
 	// sorcery carrying it grants it as it resolves (dirac/kw_ascend.go).
 	Ascend bool
+	// Storied is printed Storied (CR 702.195; kop.KwStoried): its controller
+	// gets the one-way enduring-story latch once they control three or more
+	// permanents that are artifacts, legendaries and/or Sagas, one of them
+	// carrying Storied (dirac/kw_storied.go).
+	Storied bool
 	// Unleash is printed Unleash (CR 702.86; kop.KwUnleash): the permanent
 	// may enter with a +1/+1 counter (the as-enters ask, dirac/kw_unleash.go)
 	// and can't block while it has a +1/+1 counter on it.
@@ -617,6 +637,20 @@ type CardDef struct {
 	// card): it enters with that many CtrDefense counters
 	// (dirac/face_battle.go).
 	Defense int8
+	// FlipCast is the front face's back-face cast keyword (no KwMask bit is
+	// free): FlipConverted, printed More Than Meets the Eye (CR 702.162a),
+	// casts the back face from the hand; FlipDisturb, printed disturb (CR
+	// 702.146a), casts it from its owner's graveyard. Either cast is a face
+	// cast (AkCast castFace, target 1) of a FaceTransform card at FlipCost
+	// instead of a mana cost; the spell is the back face and resolves into a
+	// permanent showing it (dirac/face_flipcast.go). 0: none.
+	FlipCast uint8
+	// FlipCost is the printed keyword cost of FlipCast.
+	FlipCost ManaCost
+	// LivingMetal is printed Living metal (CR 702.161a; no KwMask bit is
+	// free): the record the with-keyword word reads. The keyword's static is
+	// the face's own lowered Override (gorge cards/kw_livingmetal.go).
+	LivingMetal bool
 	// HasSneak is printed sneak (CR 702.190a; no KwMask bit is free): in
 	// its controller's declare-blockers step the hand offers the sneak cast
 	// at SneakCost plus returning an unblocked attacker, and a permanent
@@ -657,6 +691,13 @@ type CardDef struct {
 	HasEvoke bool
 	// EvokeCost is the printed evoke cost (HasEvoke).
 	EvokeCost ManaCost
+	// EvokePick is the printed evoke cost's non-mana part (HasEvoke; the
+	// MH2 Incarnations' ExileFromHand<1/Card.<colour>+Other>): the hand-exile
+	// pick shape of an alternative cost (dirac.altHandExileCost), paid
+	// through the evoked cast's pick stage in place of the spell's
+	// additional cost (gorge keywordAltCost parses the keyword parameter as a
+	// whole cost). The zero value is no such part.
+	EvokePick Cost
 	// HasDash is printed dash (CR 702.109a; no KwMask bit is free): the hand
 	// offers the dashed cast at DashCost (gorge's "dashed" option,
 	// FlagDashed); the permanent that cast produces gains haste and returns
@@ -665,6 +706,15 @@ type CardDef struct {
 	HasDash bool
 	// DashCost is the printed dash cost (HasDash).
 	DashCost ManaCost
+	// HasBlitz is printed blitz (CR 702.152a; kop.KwBlitz; no KwMask bit is
+	// free): the hand offers the blitzed cast at BlitzCost (gorge's
+	// "blitzed" option, FlagBlitzed) when the floating pool pays it; the
+	// permanent that cast produces gains haste until end of turn, a "when
+	// this creature dies, draw a card" trigger and a sacrifice at the next
+	// end step (dirac/kw_blitz.go).
+	HasBlitz bool
+	// BlitzCost is the printed blitz cost (HasBlitz).
+	BlitzCost ManaCost
 	// HasForetell is printed foretell (CR 702.143a; no KwMask bit is free):
 	// during its owner's turn the hand offers the {2} special action that
 	// exiles the card face down, and on a later turn the exile offers the
@@ -884,6 +934,13 @@ const (
 	MorphMorph
 	MorphMegamorph
 	MorphDisguise
+)
+
+// CardDef.FlipCast values: the keyword whose cost casts the back face.
+const (
+	FlipNone      uint8 = iota
+	FlipConverted       // More Than Meets the Eye (CR 702.162a): from the hand, gorge "converted"
+	FlipDisturb         // disturb (CR 702.146a): from its owner's graveyard, gorge "disturb"
 )
 
 // CardDef.FaceMode layouts (gorge's Card.AlternateMode).

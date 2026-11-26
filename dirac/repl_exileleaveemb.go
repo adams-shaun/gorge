@@ -24,14 +24,33 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // replacement.
 var useEmbExileLeave = newGenUse(tableEmbHasExileLeave)
 
+// useEmbExileAny: the table has an emblem carrying an any-zone
+// dies-to-exile replacement (an Effect's "if a card would be put into a
+// graveyard from anywhere, exile it instead"; kgen's
+// lower_effectgravetoexile.go).
+var useEmbExileAny = newGenUse(tableEmbHasExileAny)
+
 // tableEmbHasExileLeave: some emblem of t carries a battlefield-origin
-// dies-to-exile replacement (Repl.C 1 is the any-zone arm, exileAnyN's, which
-// kgen refuses for this shape).
+// dies-to-exile replacement (Repl.C 1 is the any-zone arm).
 func tableEmbHasExileLeave(t *kop.Table) bool {
 	for i := range t.Emblems {
 		for j := range t.Emblems[i].Abilities {
 			a := &t.Emblems[i].Abilities[j]
 			if a.Kind == kop.AbReplacement && a.Repl.Kind == kop.ReplExileOnLeave && a.Repl.C != 1 {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// tableEmbHasExileAny: some emblem of t carries an any-zone dies-to-exile
+// replacement (Repl.C 1).
+func tableEmbHasExileAny(t *kop.Table) bool {
+	for i := range t.Emblems {
+		for j := range t.Emblems[i].Abilities {
+			a := &t.Emblems[i].Abilities[j]
+			if a.Kind == kop.AbReplacement && a.Repl.Kind == kop.ReplExileOnLeave && a.Repl.C == 1 {
 				return true
 			}
 		}
@@ -49,18 +68,32 @@ func prepEmbExileLeave(p *prep, g *genPrep) {
 	}
 }
 
+// prepEmbExileAny opens every death site and every placeFrom move when some
+// emblem carries an any-zone dies-to-exile replacement (prep.embExileAny):
+// the death sites through g.anyRepl, the placeFrom gate through
+// prep.embExileAny itself (a printed any-zone host carries its bits on
+// genPrep.exileAnyC; the emblem is created at resolution, no card does).
+func prepEmbExileAny(p *prep, g *genPrep) {
+	if p.embExileAny {
+		g.anyRepl |= rbExileOnLeave
+	}
+}
+
 // prepEmbRepls folds the emblem-carried replacements' need bits: the static
 // damage prevention's (repl_staticpreventemblem.go) and this family's.
 func prepEmbRepls(p *prep, g *genPrep) {
 	prepEmbPrev(p, g)
 	prepEmbExileLeave(p, g)
+	prepEmbExileAny(p, g)
 }
 
 // embExileLeaveN counts the matching dies-to-exile replacements of every live
 // emblem of every seat (eachEmbPrev's walk: a departing seat's emblem no
-// longer applies, CR 800.4a).
+// longer applies, CR 800.4a). Both forms count at a battlefield death: a
+// battlefield-origin replacement (Repl.C != 1) and the any-zone arm
+// (Repl.C == 1) alike.
 func (s *State) embExileLeaveN(k *prep, sl Slot) int {
-	if !k.embExileLeave {
+	if !k.embExileLeave && !k.embExileAny {
 		return 0
 	}
 	n := 0
@@ -72,8 +105,36 @@ func (s *State) embExileLeaveN(k *prep, sl Slot) int {
 			e := &k.t.Emblems[s.embIdx(p, i)-1]
 			for j := range e.Abilities {
 				a := &e.Abilities[j]
-				if a.Kind == kop.AbReplacement && a.Repl.Kind == kop.ReplExileOnLeave && a.Repl.C != 1 &&
+				if a.Kind == kop.AbReplacement && a.Repl.Kind == kop.ReplExileOnLeave &&
 					s.matchPerm(k, a.Repl.Filter, sl, p, NoSlot) {
+					n++
+				}
+			}
+		}
+	}
+	return n
+}
+
+// embExileAnyN counts the any-zone dies-to-exile replacements (Repl.C 1) of
+// every live emblem of every seat over card c (object o, owned by owner)
+// moving to a graveyard from a non-battlefield zone (exileAnyN's walk over
+// emblems). An emblem record carries no counter and no rider (Repl.A 0), so
+// only the count is read.
+func (s *State) embExileAnyN(k *prep, o Obj, c CardID, owner uint8) int {
+	if !k.embExileAny {
+		return 0
+	}
+	n := 0
+	for p := uint8(0); p < s.nSeats(); p++ {
+		if s.out(p) {
+			continue
+		}
+		for i := 0; i < int(s.g.nemb[p]); i++ {
+			e := &k.t.Emblems[s.embIdx(p, i)-1]
+			for j := range e.Abilities {
+				a := &e.Abilities[j]
+				if a.Kind == kop.AbReplacement && a.Repl.Kind == kop.ReplExileOnLeave && a.Repl.C == 1 &&
+					s.matchCardGen(k, a.Repl.Filter, c, owner, p, o) {
 					n++
 				}
 			}

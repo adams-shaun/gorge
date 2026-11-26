@@ -114,8 +114,8 @@ func (s *State) ObjHash(o Obj) uint64 {
 	// every field but ver (unread by the encoder) and the in-hand history bit
 	h := hmix(0x6f626a6563740002, uint64(ob.card)|uint64(ob.owner())<<16|uint64(ob.zone)<<24|uint64(ob.slot)<<32|
 		uint64(ob.activations())<<48|uint64(ob.of&^ofInHand)<<56)
-	if s.g.on && (ob.zone == kop.ZoneExile || ob.zone == kop.ZoneBattlefield) && s.mObj(s.k(), mechStash, o) {
-		h = hmix(h, 0x7374617368) // Tinybones' stash counter (the view lists it: exiled cards and lands played from exile)
+	if s.g.on && ob.zone == kop.ZoneExile && s.mObj(s.k(), mechStash, o) {
+		h = hmix(h, 0x7374617368) // Tinybones' stash counter (the view lists it on exiled cards)
 	}
 	if ob.zone != kop.ZoneBattlefield || ob.slot == NoSlot {
 		return h
@@ -531,8 +531,11 @@ func (s *State) DecisionHash(d *Decision) uint64 {
 	h = hmix(h, uint64(s.npend)|uint64(s.orderLeft)<<8|uint64(s.orderN)<<16|uint64(s.orderPlace)<<24|
 		uint64(s.discardLeft)<<32|uint64(s.legP)<<40|uint64(s.legCard)<<48)
 	h = hmixSlots(h, s.legDie)
-	if s.ctl == ctlBand || s.ctl == ctlEnlist {
-		h = hmix(h, uint64(s.lastPick)) // the leader asked (combat_band.go), the enlisting attacker (kw_enlist.go)
+	if s.ctl == ctlBand || s.ctl == ctlEnlist || s.ctl == ctlExert {
+		h = hmix(h, uint64(s.lastPick)) // the leader asked (combat_band.go), the enlisting attacker (kw_enlist.go), the exerting one (combat_exert.go)
+	}
+	if s.ctl == ctlManaAsk {
+		h = hmix(h, uint64(s.g.winUnless)|uint64(s.g.winUnlessPay)<<8|uint64(s.g.winUnlessSrc)<<16|uint64(s.g.winSrc)<<24) // the activation's asks (mana_priask.go)
 	}
 	if s.ctl == ctlReflectPick {
 		h = hmix(h, uint64(s.g.reflMask)|uint64(s.g.reflP)<<8) // the colours asked and the payer (mana_reflectpickask.go)

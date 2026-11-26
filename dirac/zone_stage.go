@@ -487,7 +487,7 @@ func (s *State) initFromWorld(w *World) error {
 	for p := range s.pl {
 		pl := &s.pl[p]
 		pl.libLo, pl.libHi, pl.handN, pl.graveN, pl.exileN = 0, 0, 0, 0, 0
-		pl.drewEmpty, pl.drawnTurn = false, 0
+		pl.mark, pl.drawnTurn = 0, 0
 		pl.landsPlayed = 0
 	}
 	for i := range w.Objs {

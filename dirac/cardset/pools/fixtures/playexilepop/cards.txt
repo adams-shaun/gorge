@@ -1,0 +1,15 @@
+# paid Play populations over exile: Boiling Rock Rioter's ExiledWithSource
+# Ally filter and Sanwell, Avenger Ace's remembered Vehicle/artifact-creature
+# dig, with Allies, artifact creatures, a Vehicle and basics
+# (dirac/oracle/playexilepop_lockstep_test.go)
+Boiling Rock Rioter
+Sanwell, Avenger Ace
+Hada Freeblade
+Ondu Cleric
+Kazandu Blademaster
+Ornithopter
+Memnite
+Bronze Sable
+Smuggler's Copter
+Plains
+Swamp

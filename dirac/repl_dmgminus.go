@@ -72,9 +72,12 @@ func (s *State) dmgMinusN(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, rc
 				}
 			}
 			hits++
-			if n > int(r.A) {
+			switch {
+			case r.C&kop.ReplDmgHalfDown != 0:
+				n /= 2 // ReplaceCount$DamageAmount/HalfDown: half, rounded down (Ghosts of the Innocent)
+			case n > int(r.A):
 				n -= int(r.A) // CR 614.1: the rewrite replaces the event's amount
-			} else {
+			default:
 				n = 0
 			}
 		}

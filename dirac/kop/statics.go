@@ -58,11 +58,12 @@ type Static struct {
 	GrantSt uint8
 	// GrantBody: the source card's ability GrantBody-1 is the granted-keyword
 	// activation body the offer runs with the affected card as its source
-	// (0 = none; StatUnearthGrant, kw_unearthgrant.go). Not a Grant: the body
+	// (0 = none; StatUnearthGrant, kw_unearthgrant.go; StatStackKw Rebound: the
+	// carrier's upkeep recast body, kw_rebound.go). Not a Grant: the body
 	// is never granted to the affected objects, so no grant ledger or grant
 	// prep reads it.
 	GrantBody uint8
-	Zone      Zone   // StatMayPlayFrom: the zone played from; StatReduceCost: ZoneNone = battlefield only, ZoneCommand = any zone (the card itself)
+	Zone      Zone   // StatMayPlayFrom: the zone played from; StatReduceCost: ZoneNone = battlefield only, ZoneCommand = any zone (the card itself); StatCantBeCast: ZoneNone = every origin, ZoneCommand = the card itself (EffectZone$ All), a real zone = the Origin$ origin the cast must begin from; StatCantPlayLand: the Origin$ zone the play may not come from
 	Override  uint16 // StatOverride: Table.Overrides[Override-1]
 	// Ward: a StatContinuous grant's ward {Ward} (Kw holds KwWard; CR
 	// 702.21a): each such static is its own ward instance
@@ -92,6 +93,11 @@ type Static struct {
 	// grant costs each card's mana cost. A StatWarpGrant's warp cost
 	// (AddKeyword$ Warp:2 R, Tannuk, Steadfast Second).
 	GrantCost ManaCost
+	// CardCostLess: a StatMiracleGrant's miracle cost is each affected card's
+	// own mana cost reduced by CardCostLess-1 generic mana (AddKeyword$
+	// Miracle:ManaCost:4, Aminatou, Veil Piercer; Madness:ManaCost is 1, no
+	// reduction); 0 = the cost is GrantCost.
+	CardCostLess uint8
 	// ProtFrom: a StatContinuous grant of protection from a quality, besides
 	// its other parts: the affected objects have protection from the sources
 	// this filter matches (CR 702.16; the grant's AddKeyword$ Protection:
@@ -210,6 +216,19 @@ type Override struct {
 	// StepEndCombat and at cleanup, dirac/static_ovendcombat.go). It is applied
 	// with DurPermanent, so the end-of-turn drop leaves it alone.
 	UntilEndCombat bool
+	// UntilCtrlUntap: an Effect-delivered record over one targeted permanent
+	// that ends as its current controller's untap step ends (Orcish Farmer's
+	// "until its controller's next untap step": a Mode$ Phase Static$ True
+	// trigger that exiles the Effect). The applied record keeps the resolving
+	// Effect's host (r.p, -1 when it was not on the battlefield) and the
+	// host's version and controller (r.t); dirac/static_ovendevent.go.
+	UntilCtrlUntap bool
+	// UntilCast: the record ends when the player who resolved the Effect
+	// completes a cast of a spell matching this filter (Soul Sculptor's "until
+	// a player casts a creature spell", whose script reads ValidActivatingPlayer$
+	// You). The applied record's r.p/r.t are as UntilCtrlUntap's. 0 = no such
+	// end.
+	UntilCast FilterID
 	// Banding: the permanent gains banding (CR 702.22; a Pump's KW$ Banding,
 	// Battering Ram's UntilEndOfCombat grant). KwMask is full, so the grant is
 	// the record's own field, not a mask bit (kop/keywords.go; the manifest's
@@ -505,6 +524,39 @@ const StCasterActive = StTargetsFilter2
 // static's controller. It aliases StEmbNum (1<<14), a ReduceCost-emblem bit
 // no MayPlayFrom static reads; StaticFlags is full at 16 bits.
 const StSeatActive = StEmbNum
+
+// StMayZeroAlt: on a StatMayPlayFrom only, a NON-granting alternative-cost
+// permission (MayPlayDontGrantZonePermissions$ True with a MayPlayAltManaCost$
+// rider; Dragon's Smile's {0}, As Foretold, Demon of Fate's Design's
+// pay-life, Nissa, Worldsoul Speaker's pay-energy). It opens no zone: gorge
+// (rules/mayplay.go mayPlayCastAlts) lists it beside the plain cast another
+// permission makes, and the hand walk lists it beside the plain hand cast.
+// It is the marker cast_mayzeroalt.go's zeroAlts walks apart (StFreeOnly
+// keeps Weftwalking's plain free shape). It aliases StTargetsFilter2, whose
+// every reader is gated on Kind == StatReduceCost, so the StaticFlags iota
+// tail stays untouched.
+const StMayZeroAlt = StTargetsFilter2
+
+// StMayPayEnergy: on a StatMayPlayFrom only, the non-granting alternative's
+// cost is Static.A energy (MayPlayAltManaCost$ PayEnergy<N>; Nissa, Worldsoul
+// Speaker's "pay eight {E} rather than pay the mana cost"), the flag
+// cast_mayzeroalt.go's hand and may-play alternative offers gate and pay
+// beside StMayPayLife (life equal to the mana value, the granting shape's
+// flag). It aliases StRaiseOpp, an IncreaseCost-only flag whose readers
+// (StReduceAny, StBanOpp, StHandOpp) are gated on their own kinds.
+const StMayPayEnergy = StRaiseOpp
+
+// StMayPayEvidence: on a StatMayPlayFrom only, the non-granting alternative's
+// cost is Static.A evidence (MayPlayAltManaCost$ CollectEvidence<N>; Conspiracy
+// Unraveler's "You may collect evidence 10 rather than pay the mana cost for
+// spells that you cast", CR 701.59a/118.9), the flag cast_mayzeroalt.go's hand
+// and may-play alternative offers gate and the build's bsEvidence stage asks.
+// It aliases StPanhETB, a Panharmonicon-only bit: StPanhETB's one runtime
+// reader is gated on Kind == StatPanharmonicon (trig_doubling.go), StRaiseLife
+// (its other MayPlayFrom-era alias) on Kind == StatIncreaseCost
+// (cost_raise.go, cost_raiselife.go, cost_raisetgt.go, cost_reducespell.go),
+// so no reader ever sees the bit on a StatMayPlayFrom static.
+const StMayPayEvidence = StPanhETB
 
 // StatDisableETB: S:Mode$ DisableTriggers | ValidMode$
 // ChangesZone[,ChangesZoneAll] | Destination$ Battlefield (CR 603.2g; gorge

@@ -157,6 +157,8 @@ func (ic *instrCtx) opChooseCard() error {
 		ki.C = 1 // up to one: the ask carries a Done
 	case "Remember":
 		ki.C = 2 // RememberChosen$: the chosen card joins the remembered set
+	case "OptionalRemember":
+		ki.C = 1 // up to one, a Done beside the cards; B = 1 remembers the pick
 	case "LibraryUpTo":
 		ki.C = 3 // up to B picks among the top A library cards
 	case "AttachPick":
@@ -175,8 +177,12 @@ func (ic *instrCtx) opChooseCard() error {
 		ki.C = 9 // choosePopulatePick: the Populate$ token pick, a lone candidate taken unasked
 	case "Amount":
 		ki.C = kop.ChooseCardAmount // A = the pick count, every pick taken
+	case "AmountRemember":
+		ki.C = kop.ChooseCardAmount // B = 1: each pick also joins the remembered set
 	case "AmountOpt":
 		ki.C = kop.ChooseCardAmountOpt // A = the most picks, Done ends it early
+	case "AmountOptRemember":
+		ki.C = kop.ChooseCardAmountOpt // B = 1: each pick also joins the remembered set
 	case "AtRandom":
 		ki.C = kop.ChooseCardAtRandom // A = the pick count, the engine rng picks
 	case "EachPlayer":

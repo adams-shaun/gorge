@@ -241,8 +241,18 @@ func (s *State) minTargetsKept(k *prep, p uint8, o Obj, sp *kop.TargetSpec, cost
 	r := s.fork()
 	defer s.unfork()
 	r.g.availX = availPlain // the planner prices the printed sources (script_gen.go plainOptions)
-	if a := MakeAction(AkCast, TCode(o), 0, 0); r.scriptAny(k) {
+	if a := MakeAction(AkCast, TCode(o), 0, 0); !s.tkPrefixOn() && r.scriptAny(k) {
+		// gorge never nests its prefix search: a node's options are the plain
+		// priority list and potentialPlayVerdict, neither of which searches
+		// (potential_script.go childOffers, priced). The search's own plain
+		// probe (scriptPrefix's plainOptions) lists the may-play cast again
+		// and reads this guard again; that nested read prices the planner's
+		// plan where it stands, as gorge's plain list does, instead of
+		// replaying the same prefix without end (Lzeutschler/commander_ai
+		// issue #5: a fatal stack overflow).
+		r.setTkPrefix(true)
 		r.scriptPrefix(k, a, p)
+		r.setTkPrefix(false)
 		if r.npend != 0 {
 			r.flushPrefixTriggers(k)
 		}
@@ -257,6 +267,30 @@ func (s *State) minTargetsKept(k *prep, p uint8, o Obj, sp *kop.TargetSpec, cost
 		return true
 	}
 	return t.spellTargetsFeasible(k, c, p) || r.targetsKept(k, p, sp, t, o) || t.witnessEndsGameWon(k, p, c, n0)
+}
+
+// coldTkPrefix is one flag, set while minTargetsKept plays gorge's prefix
+// search on its fork, so a nested keep-targets read prices the plan where it
+// stands. A may-play cast with a kind rider is the only offer that reaches the
+// read from inside the search's plain probe (its rider-folded cost passes the
+// plain census the printed cost fails), so only such a table lays it out. It
+// is false whenever the transition loop is at rest.
+var coldTkPrefix = newCold[bool]("tkPrefix", func(g *genPrep) int {
+	if g.anyMayKind {
+		return 1
+	}
+	return 0
+})
+
+func (s *State) tkPrefixOn() bool {
+	f := coldTkPrefix.of(s)
+	return len(f) != 0 && f[0]
+}
+
+func (s *State) setTkPrefix(on bool) {
+	if f := coldTkPrefix.of(s); len(f) != 0 {
+		f[0] = on
+	}
 }
 
 // fodderOnlySources: the sacrifice-another mana sources of p's script walk

@@ -1923,6 +1923,19 @@ func (e *Engine) planAbilityPaymentLifePips(p state.PlayerID, id state.ObjID, ab
 	if !ok {
 		return PaymentPlanOutcome{Reason: "unsupported", Detail: "cost:target_x"}
 	}
+	// The ability's own RaiseCost$ (Loreseeker's Stone's "{1} more for each
+	// card in your hand"): the CR 601.2f additional cost the offer gate and
+	// the charge compose, so the witness prices the SAME cost the payment
+	// will charge -- a cheaper witness would "prove" an activation the
+	// payment window cannot complete. An unpriceable raise withholds the
+	// witness (unsupported), the planner's fail-closed direction.
+	raise, hasRaise, raiseOK := e.ownAbilityRaiseCost(p, id, ab, pa.Merged)
+	if !raiseOK {
+		return PaymentPlanOutcome{Reason: "unsupported", Detail: "cost:raise"}
+	}
+	if hasRaise {
+		cost = cost.Plus(raise)
+	}
 	// An announced {X} (CR 601.2b, 602.2b): the witness prices the least X
 	// the announcement allows, the activation the offer must prove payable;
 	// a larger announced X re-plans (rearmAutoPay) or keeps the window. A

@@ -368,14 +368,16 @@ func (s *State) mayPlayStatics(k *prep, p uint8, o Obj, f func(st statSrc) bool)
 
 // mayPlayStaticsOf is mayPlayStatics over the {0}-alternative statics
 // (zeroAlt) or the permissions. A free-only static on Weftwalking's hand
-// spelling reaches every zone; any other static reaches its own.
+// spelling reaches every zone, and so does a full-zone-list {0} alternative
+// (As Foretold: kgen marks it StFreeOnly beside StMayZeroAlt, gorge's
+// affectedZoneOK per listed zone); any other static reaches its own.
 func (s *State) mayPlayStaticsOf(k *prep, p uint8, o Obj, zeroAlt bool, f func(st statSrc) bool) {
 	ob := &s.objs[o]
 	stopped := false
 	check := func(st statSrc) bool {
 		a := st.a
 		if a.Kind != kop.AbStatic || a.Static.Kind != kop.StatMayPlayFrom || zeroAltStatic(&a.Static) != zeroAlt ||
-			(a.Static.StFlags&kop.StFreeOnly == 0 || zeroAlt) && !mayPlayFromZone(&a.Static, ob.zone) {
+			a.Static.StFlags&kop.StFreeOnly == 0 && !mayPlayFromZone(&a.Static, ob.zone) {
 			return true
 		}
 		if a.Static.StFlags&kop.StSeatActive != 0 {
@@ -394,8 +396,11 @@ func (s *State) mayPlayStaticsOf(k *prep, p uint8, o Obj, zeroAlt bool, f func(s
 		if !s.statCond(k, st) || !s.matchMayPlayFilter(k, a.Static.Filter, ob.card, ob.owner(), p, o, st, &sctx) {
 			return true
 		}
-		if a.Static.StFlags&kop.StOncePerTurn != 0 && s.usedThisTurn(st.obj, uint8(abIndex(k, s.cardAt(st.sl), a))) {
-			return true
+		if a.Static.StFlags&kop.StOncePerTurn != 0 {
+			o, ab, host := s.staticUseKey(k, st)
+			if s.usedThisTurnBy(o, ab, host) {
+				return true
+			}
 		}
 		if !f(st) {
 			stopped = true
@@ -431,7 +436,8 @@ func (s *State) mayPlayStaticsOf(k *prep, p uint8, o Obj, zeroAlt bool, f func(s
 	cd := &k.t.Cards[ob.card]
 	for i := range cd.Abilities {
 		a := &cd.Abilities[i]
-		if a.Kind == kop.AbStatic && a.Static.Kind == kop.StatMayPlayFrom && a.Static.StFlags&selfFlag != 0 {
+		if a.Kind == kop.AbStatic && a.Static.Kind == kop.StatMayPlayFrom &&
+			zeroAltStatic(&a.Static) == zeroAlt && a.Static.StFlags&selfFlag != 0 {
 			st := statSrc{a: a, sl: NoSlot, ctrl: p, obj: o}
 			sctx := s.ctxStatic(st)
 			if !s.statCond(k, st) || !s.matchCardGenAt(k, a.Static.Filter, ob.card, ob.owner(), p, o, &sctx) {
@@ -456,6 +462,24 @@ func abIndex(k *prep, c CardID, a *kop.Ability) int {
 }
 
 func (s *State) usedThisTurn(o Obj, ab uint8) bool { return s.usedThisTurnBy(o, ab, 0) }
+
+// staticUseKey is the used-pool key of a once-per-turn MayPlayFrom static:
+// the source permanent's ability line, or, for an emblem static, NoObj plus
+// the emblem instance in host (an emblem is no object, and NoObj skips the
+// version test the pool applies to a real object). The emblem arm assumes the
+// caller is mayPlayStaticsOf over an emblem's statics, and that one emblem
+// lowers at most one OncePerTurn MayPlayFrom static (TestEffectContainerMayPlay
+// pins one static per lowered Effect): two such statics on one instance would
+// share the (NoObj, 255, emb) key, and a command-zone (Vanguard) static
+// (sl == NoSlot with emb == 0) would share (NoObj, 255, 0) across every such
+// static -- neither shape reaches mayPlayStaticsOf today, so a new one needs
+// a distinct key or a kgen refusal, not this arm silently.
+func (s *State) staticUseKey(k *prep, st statSrc) (Obj, uint8, Obj) {
+	if st.sl != NoSlot {
+		return st.obj, uint8(abIndex(k, s.cardAt(st.sl), st.a)), 0
+	}
+	return NoObj, 255, Obj(st.emb) // code-ok: an emblem identifier, not an object code, used as the used-pool host key
+}
 
 func (s *State) markUsed(o Obj, ab uint8) { s.markUsedBy(o, ab, 0) }
 

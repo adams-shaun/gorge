@@ -120,10 +120,15 @@ func (s *State) filtFunding(k *prep, p uint8, f slotMask) int {
 	// hybrid fees still owe their funding below (Sunken Ruins' {U/B} beside Sand Silos).
 	relaxable := s.filtFundable(k, p, f) && s.filtRelaxable(k, f)
 	for ; f.any(); f = f.rest() {
-		if !relaxable && s.filtFeeUncounted(k, f.first()) {
+		sl := f.first()
+		if !relaxable && s.filtFeeUncounted(k, sl) {
 			continue // an unrelaxable census clears paid: a first-and-only filter's fee is no funding step (census.fees)
 		}
-		n += s.filtFee(k, f.first())
+		// A paid filter set's every ability is a paid census entry with its own
+		// fee (Koskun Keep's {1} and {2}: gorge fees() sums both).
+		for i, nc := 0, s.filtCount(k, sl); i < nc; i++ {
+			n += s.filtFeeAt(k, sl, int8(i))
+		}
 	}
 	return n
 }

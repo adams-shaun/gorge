@@ -1,0 +1,17 @@
+# The remembered-searcher RepeatEach pool (dirac/oracle/repeateach_remembered_search_test.go):
+# Wave of Vitriol sacrifices every artifact, enchantment and nonbasic land each
+# player controls, then for each sacrificed card its controller may search a
+# basic land onto the battlefield tapped and each searcher shuffles. Radiant
+# Fountain is the nonbasic land, Bonesplitter the artifact and Spirit Link the
+# enchantment; the basics are the search targets, left on the battlefield.
+Wave of Vitriol
+Radiant Fountain
+Bonesplitter
+Spirit Link
+Grizzly Bears
+Hill Giant
+Llanowar Elves
+Forest
+Plains
+Island
+Mountain

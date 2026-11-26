@@ -174,7 +174,7 @@ var attachKnownKeys = [...]string{
 	"PresentDefined",
 	"PresentZone",
 	"PrimaryPrompt",
-	"RandomNumTargets",
+	"RaiseCost", "RandomNumTargets",
 	"ReduceAmount",
 	"ReduceCost",
 	"RememberAnimated",

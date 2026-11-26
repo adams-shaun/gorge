@@ -286,6 +286,15 @@ func (m *Matchup) instanceTable(o int) int {
 			return int(d[o])
 		}
 		o -= len(d)
+		// gorge deals each seat's planar deck after its sideboard (and the
+		// kernel numbers it right after the seat's deck; a matchup with both
+		// a sideboard and a planar deck needs the interleaved layout below).
+		if s < len(m.Planar) && o < len(m.Planar[s]) {
+			return int(m.Planar[s][o])
+		}
+		if s < len(m.Planar) {
+			o -= len(m.Planar[s])
+		}
 	}
 	for s := range m.Side {
 		if o < len(m.Side[s]) {

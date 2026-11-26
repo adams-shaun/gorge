@@ -34,6 +34,11 @@ func (s *State) returnDefenderAsk(k *prep, in *kop.Instr, host Slot) bool {
 	if in.B.N&kop.RetUnderOpponent != 0 {
 		ctrl = s.retUnderOppSeat(s.res.e.ctrl) // GainControl$ ChosenPlayer (kop.RetUnderOpponent)
 	}
+	if in.W != kop.RefNone {
+		if p := s.playerRef(k, in.W); p != 255 {
+			ctrl = p // GainControl$ Player.IsRemembered (kgen's W ref)
+		}
+	}
 	if ctrl != s.active || s.step < kop.StepAttackers || s.step > kop.StepEndCombat {
 		return false
 	}

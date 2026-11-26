@@ -121,7 +121,7 @@ var effectKnownKeyRows = [...]string{
 	"MaxTotalTargetPower", "Mentor", "ModeCost", "Monstrosity", "Name",
 	"NewController", "NoPutDesc", "NoShuffle", "NonBasicSpell", "NoteCounterDefined", "OneOff", "OpponentTurn", "OptionalDecider", "Origin", "Pawprint", "Phase",
 	"Planeswalker", "PlayCost", "PlayerTurn", "PowerUp", "PrecostDesc",
-	"PresentCompare", "PresentDefined", "PresentZone", "PrimaryPrompt", "RandomNumTargets", "ReduceAmount", "ReduceCost",
+	"PresentCompare", "PresentDefined", "PresentZone", "PrimaryPrompt", "RaiseCost", "RandomNumTargets", "ReduceAmount", "ReduceCost",
 	"RememberAnimated", "RememberCostMana", "RememberLKI", "RememberObjects", "RememberTargets", "ReplaceColor",
 	"ReplaceGraveyard", "ReplaceGraveyardValid", "ReplaceMana", "ReplaceOnly",
 	"ReplaceType", "ReplacementEffects", "ReturnAbility", "ReturnValid", "SVarCompare",

@@ -12,7 +12,7 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // __kwReboundCast delayed trigger (resolution_chain.go registerRebound).
 //
 // The kernel reads the same three facts off the resolving entry: the card has
-// a ReboundAb body, the entry's cast zone (stackEntry.prov, recorded because
+// a ReboundAb body (or a live StatStackKw Rebound grant names the carrier's), the entry's cast zone (stackEntry.prov, recorded because
 // genPrep.anyCastProv is set for any such table) is the hand, and the spell
 // is not a copy (a copy is put on the stack, never cast: CR 707.10). The
 // recast from exile carries prov = exile, so it does not rebound again.
@@ -24,9 +24,32 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // reboundRests reports whether resolved (not fizzled) spell entry e is
 // exiled by its Rebound.
 func (s *State) reboundRests(k *prep, e *stackEntry, fizzled bool) bool {
-	return !fizzled && k.gen != nil && k.gen.anyRebound && e.kind == seSpell &&
-		k.t.Cards[e.card].ReboundAb != 0 && kop.Zone(e.prov&7) == kop.ZoneHand &&
-		s.objs[e.obj].of&ofCopy == 0
+	_, _, ok := s.reboundPlan(k, e, fizzled)
+	return ok
+}
+
+// reboundPlan is reboundRests that also names the recast body the upkeep
+// program runs: the spell card's own ReboundAb for a printed Rebound, else
+// the GrantBody of the carrier of a live StatStackKw Rebound grant (Cast
+// Through Time; gorge spellReboundGranted reads the derived keyword as the
+// spell resolves, a printed face being stamped at cast instead). It must run
+// while the spell is still on the stack: the grant's filter reads it there.
+func (s *State) reboundPlan(k *prep, e *stackEntry, fizzled bool) (card CardID, ab uint8, ok bool) {
+	if fizzled || k.gen == nil || !k.gen.anyRebound || e.kind != seSpell ||
+		kop.Zone(e.prov&7) != kop.ZoneHand || s.objs[e.obj].of&ofCopy != 0 {
+		return 0, 0, false
+	}
+	if rb := k.t.Cards[e.card].ReboundAb; rb != 0 {
+		return e.card, rb - 1, true
+	}
+	if !k.gen.anyStackKw {
+		return 0, 0, false
+	}
+	n, _, src := s.stackKwScan(k, kop.StackKwRebound, e.card, e.obj, e.ctrl, true)
+	if n == 0 || src.sl == NoSlot || src.emb != 0 || src.gr {
+		return 0, 0, false
+	}
+	return s.cardAt(src.sl), src.a.Static.GrantBody - 1, true
 }
 
 // reboundRegister registers the your-next-upkeep delayed program of the
@@ -36,7 +59,7 @@ func (s *State) reboundRests(k *prep, e *stackEntry, fizzled bool) bool {
 // registers nothing.
 //
 //go:noinline
-func (s *State) reboundRegister(k *prep, e *stackEntry) {
+func (s *State) reboundRegister(k *prep, e *stackEntry, card CardID, ab uint8) {
 	if s.objs[e.obj].zone != kop.ZoneExile {
 		return
 	}
@@ -44,7 +67,7 @@ func (s *State) reboundRegister(k *prep, e *stackEntry) {
 		s.capFull(StallDProg)
 		return
 	}
-	d := dprog{card: e.card, ab: k.t.Cards[e.card].ReboundAb - 1, ctrl: e.ctrl, src: e.obj, sv: s.objs[e.obj].ver,
+	d := dprog{card: card, ab: ab, ctrl: e.ctrl, src: e.obj, sv: s.objs[e.obj].ver,
 		n: 1 | uint8(kop.DelayYourUpkeep)<<dpWhenShift}
 	d.objs[0] = NoObj
 	s.g.dp[s.g.ndp] = d
