@@ -1592,6 +1592,14 @@ func (lc *lowerCtx) lowerKeywords() {
 		case expandedKeywords[head]:
 			// Lowered from the expansion's own lines.
 		case head == "Kicker":
+			if ma, mb, ok := lc.kickerTwoCosts(param); ok {
+				// the two-alternative "and/or" Kicker (CR 702.33b; gorge
+				// twoPartKickerCosts): part one rides Kicker, part two
+				// Kicker2; the kernel offers the per-part kicked casts
+				// (kw_kickalt.go)
+				lc.out.Kicker, lc.out.Kicker2 = &ma, &mb
+				continue
+			}
 			if mc, rest, ok := lc.kickerNonMana(param); ok {
 				// one non-mana part kop.Cost carries alone (gorge kickerCost
 				// is a full Cost, folded into the kicked cast's cost); the

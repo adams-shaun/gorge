@@ -1548,6 +1548,11 @@ func (lc *lowerCtx) countValue(rest string, depth int) (lValue, error) {
 			return lValue{}, refuse("Count$TimesKicked with both Kicker and Multikicker")
 		case lc.out.Multikicker != nil:
 			return lValue{Kind: vTimesKicked}, nil
+		case lc.out.Kicker2 != nil:
+			// the two-alternative "and/or" Kicker (CR 702.33b): the count is
+			// the paid alternatives, 0/1/2 (kernel kw_kickalt.go; gorge
+			// count_body_paid.go reads the per-part flags)
+			return lValue{Kind: vTimesKicked}, nil
 		case lc.out.Kicker != nil:
 			return lValue{Kind: vKicked, Sub: []lValue{cst(1), cst(0)}}, nil
 		case faceHasKeyword(lc.face, "Multikicker"):
