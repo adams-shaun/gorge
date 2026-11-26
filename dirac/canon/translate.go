@@ -887,7 +887,7 @@ func (r *Translator) generatedChoose(a dirac.Action) (Canon, bool) {
 		// gorge's face_down_choice pick: the hand card to put onto the
 		// battlefield face down (CR 701.58a)
 		return Pack(kind("face_down_choice"), Ref(src), RefNone, 0), true
-	case dirac.ChGenChooseCard, dirac.ChGenResTarget, dirac.ChGenChooseEach:
+	case dirac.ChGenChooseCard, dirac.ChGenResTarget, dirac.ChGenChooseEach, dirac.ChTurnUpAttach:
 		// (ChGenChooseEach: gorge's ChooseCard per permanent type, Liliana's -9)
 		return Pack(kind("card"), Ref(src), RefNone, 0), true
 	case dirac.ChGenEnchant:
