@@ -11,6 +11,7 @@ cluster-scoped except the namespace itself.
 | PVC `data` (2Gi) | gorged's persistence, `/data` |
 | PVC `cards` (4Gi) | the Forge card scripts, `/cards`, fetched on first start (GPL-3.0, never in the image; a few minutes) |
 | PVC `carddb` (1Gi) | a copy of carddb, mounted read-only at `/carddb` |
+| HTTPRoute `gorged` | on gateway `eg` (namespace `envoy-gateway-system`, listener `http`), hosts `master-edh.net` and `www.master-edh.net`, open to everyone; a `BackendTrafficPolicy` lifts the request timeout to 1h for the server-sent event streams |
 | `emptyDir` | `/art` (card art cache), `/feedback` |
 
 Probes: all three (startup, readiness, liveness) read `GET /api/capabilities` on port 8080,
@@ -25,6 +26,13 @@ kubectl --context k3d-bm -n gorge port-forward svc/gorged 8080:8080
 
 The image name is set once, under `images:` in `kustomization.yaml`; change it there if
 the repository variable `IMAGE_NAME` does. A private GHCR package needs an `imagePullSecret`.
+
+## Reaching it from outside
+
+The route needs Envoy Gateway's `eg` gateway (LoadBalancer `172.23.255.200:80` on k3d-bm). The one
+external step, which is not in these manifests: the Cloudflare tunnel's ingress must send
+`master-edh.net -> http://172.23.255.200:80` (and `www.master-edh.net` likewise). To rename the
+site, change the two `hostnames` in `httproute.yaml`.
 
 ## The carddb copy
 
