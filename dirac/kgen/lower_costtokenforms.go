@@ -144,6 +144,8 @@ func (lc *lowerCtx) namedCostToken(c *lCost, head string, parts []string, t stri
 		return true, lc.drawXCost(c, parts, t)
 	case head == "RevealChosen":
 		return true, lc.revealChosenCost(c, parts, t)
+	case head == "ExiledMoveToGrave":
+		return true, lc.exiledMoveGraveCost(c, parts, t) // lower_exiledmovegrave.go
 	}
 	return false, nil
 }

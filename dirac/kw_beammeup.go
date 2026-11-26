@@ -104,6 +104,12 @@ func (s *State) offerBeamCasts(k *prep, d *Decision, p uint8, sorc bool, av *ava
 		if !cd.BeamMeUp && !granted || !k.cards[c].instant && !sorc && !s.castFlash(k, p, c) {
 			continue
 		}
+		printedOK := cd.BeamMeUp
+		if graveLossOn(k) {
+			if printedOK, granted = s.graveBeamHidden(k, o, p, cd.BeamMeUp, granted); !printedOK && !granted {
+				continue // the card lost all abilities (static_graveabilityloss.go)
+			}
+		}
 		if k.gen.anyCantCast && s.castForbidden(k, p, c, o) {
 			continue
 		}
@@ -111,7 +117,7 @@ func (s *State) offerBeamCasts(k *prep, d *Decision, p uint8, sorc bool, av *ava
 			s.availFor(k, p, av)
 			have = true
 		}
-		if cd.BeamMeUp && s.beamCastOffered(k, p, o, cd.AltCost, &cd.FbCost, false, av) {
+		if printedOK && s.beamCastOffered(k, p, o, cd.AltCost, &cd.FbCost, false, av) {
 			d.add(MakeAction(AkCast, TCode(o), castBeamTgt, 2))
 		}
 		if granted && s.beamCastOffered(k, p, o, cd.Cost, &k.t.Cards[s.cardAt(grantor)].FbCost, true, av) {
