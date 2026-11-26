@@ -162,21 +162,7 @@ var kstaticzonesOffspring = [2][]cardset.Entry{
 		{Name: "Sol Ring", Count: 2}, {Name: "Mind Stone", Count: 2},
 		{Name: "Island", Count: 5}, {Name: "Mountain", Count: 5}, {Name: "Plains", Count: 5}, {Name: "Forest", Count: 7},
 	},
-	// the slice's baseline second deck, not the shared pool's kstaticzonesDecks[1]:
-	// Squee, the Immortal and Defensive Formation stay out of this pool. With
-	// them in, seed 158's trajectories reach a window this pool must not gate
-	// its count on until the ticket lands: Swords to Plowshares exiles the
-	// offspring-cast Grizzly Bears while its granted offspring trigger is
-	// still pending, and the kernel mints the 1/1 copy (seed 158, decision
-	// 156) where gorge holds the trigger on the stack
-	// (dirac-granted-offspring-exile-window).
-	{
-		{Name: "Lightning Bolt", Count: 4}, {Name: "Shock", Count: 4}, {Name: "Swords to Plowshares", Count: 3}, {Name: "Giant Growth", Count: 3},
-		{Name: "Grizzly Bears", Count: 3}, {Name: "Dragon's Rage Channeler", Count: 2}, {Name: "Spire Serpent", Count: 2},
-		{Name: "Case of the Locked Hothouse", Count: 2},
-		{Name: "True Believer", Count: 2}, {Name: "Trusted Advisor", Count: 2},
-		{Name: "Plains", Count: 5}, {Name: "Island", Count: 3}, {Name: "Mountain", Count: 5},
-	},
+	kstaticzonesDecks[1],
 }
 
 // offStats tallies the offspring pool's exercise: an offspring cast (the
