@@ -54,7 +54,7 @@ func (s *State) atkTaxGoadRequired(k *prep, sl Slot) bool {
 	if s.atkTaxGoadFreePlayer(k, sl) {
 		return true
 	}
-	return (s.statM.any() || k.embComb && s.anyEmb()) && s.staticFlag(k, kop.StatMustAttack, sl) && s.atkTaxFreePair(k, sl)
+	return (s.statM.any() || k.embComb && s.anyEmb() || s.ovGateReach(k)) && s.staticFlag(k, kop.StatMustAttack, sl) && s.atkTaxFreePair(k, sl)
 }
 
 // atkTaxDefenderBanned reports whether target tgt (a player code or a
