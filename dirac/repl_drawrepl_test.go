@@ -31,8 +31,8 @@ func TestReplDrawProgramScenarios(t *testing.T) {
 		if !sc.onBF(h) {
 			t.Fatal("precondition: the replacement host is not on the battlefield")
 		}
-		if sc.k.gen == nil || !sc.k.gen.anyDrawProgram {
-			t.Fatal("precondition: the gen flag anyDrawProgram is not set")
+		if sc.k.gen == nil || !sc.k.gen.hasDrawProgram() {
+			t.Fatal("precondition: the gen flag hasDrawProgram is not set")
 		}
 		hand, life := sc.s.pl[0].handN, sc.s.pl[0].life
 		sc.s.draw(0)

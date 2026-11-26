@@ -570,9 +570,6 @@ type genPrep struct {
 	landSub kop.SubMask
 	setIdx  []int16
 	setPC   []pcard
-	// anyDrawProgram: some card has a ReplDrawProgram replacement, so draw()
-	// runs the program scan (repl_drawprogram.go).
-	anyDrawProgram bool
 	// uses: the registered per-table flags (newGenUse; genneed.go), where a
 	// feature's fact goes instead of a new bool here
 	uses useSet
@@ -868,7 +865,6 @@ func prepFoldReplBits(g *genPrep) {
 		g.anyRepl2 |= b
 	}
 	g.anyBeginPhase = g.anyRepl2&rb2BeginPhase != 0 // repl_beginphase.go's step-boundary gate
-	g.anyDrawProgram = g.anyRepl2&rb2DrawProgram != 0
 }
 
 // prepRedNCOpen opens every replDamage site when a noncombat redamage or a

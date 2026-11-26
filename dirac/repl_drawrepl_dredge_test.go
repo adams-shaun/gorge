@@ -26,7 +26,7 @@ func TestReplDrawProgramDredgeBodyStalls(t *testing.T) {
 			{Op: kop.OpDraw, Obj: kop.RefTriggerPlayer, A: kop.Const(2)},
 			{Op: kop.OpLoseLife, Obj: kop.RefTriggerPlayer, A: kop.Const(1)}}}}})
 	sc := newScenTableLib(t, tbl, CardID(0), Config{NoElide: true})
-	if !dredgeOn(sc.k) || sc.k.gen == nil || !sc.k.gen.anyDrawProgram {
+	if !dredgeOn(sc.k) || sc.k.gen == nil || !sc.k.gen.hasDrawProgram() {
 		t.Fatal("precondition: the table lacks dredge use or a draw program")
 	}
 	s, pl := sc.s, &sc.s.pl[0]

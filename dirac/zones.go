@@ -339,7 +339,7 @@ func (s *State) draw(p uint8) {
 // drawExcl is draw with the draw replacements already applied to this
 // draw's lineage (repl_draw.go); the zero chain is an ordinary draw.
 func (s *State) drawExcl(p uint8, ch drawChain) {
-	if s.g.on && s.k().gen.anyDrawProgram && ch.n == 0 {
+	if s.g.on && s.k().gen.hasDrawProgram() && ch.n == 0 {
 		// a ReplDrawProgram body's own draw: the replacement being run is
 		// already applied to this lineage (CR 614.5). Cleared when the
 		// program finishes (repl_drawprogram.go).
@@ -360,7 +360,7 @@ func (s *State) drawExcl(p uint8, ch drawChain) {
 		pl.mark |= pmDrewEmpty
 		return
 	}
-	if (s.cfgx&cfgxDrawMore != 0 || s.g.on && s.k().gen.anyDrawProgram) && s.drawReplace(p, ch) {
+	if (s.cfgx&cfgxDrawMore != 0 || s.g.on && s.k().gen.hasDrawProgram()) && s.drawReplace(p, ch) {
 		return // repl_draw.go, repl_drawprogram.go: the replacement drew in this draw's place
 	}
 	if int(pl.handN) >= len(pl.hand) {

@@ -26,7 +26,7 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 func init() { genNeed(func(t *kop.Table) bool { return tableHasReplKind(t, kop.ReplDrawProgram) }) }
 
 var coldDraw = newCold[drawProgram]("drawProgram", func(g *genPrep) int {
-	if g.anyDrawProgram {
+	if g.hasDrawProgram() {
 		return 1
 	}
 	return 0
@@ -48,7 +48,7 @@ func (s *State) drawState() []drawProgram { return coldDraw.of(s) }
 // program keeps drawMore's own scan.
 func (s *State) drawReplace(p uint8, ch drawChain) bool {
 	k := s.k()
-	if !k.gen.anyDrawProgram {
+	if !k.gen.hasDrawProgram() {
 		return s.drawMore(p, ch)
 	}
 	g := k.gen
@@ -178,3 +178,8 @@ func (s *State) drawProgramDone() {
 		ds[0] = drawProgram{}
 	}
 }
+
+// hasDrawProgram: some card has a ReplDrawProgram replacement, so draw() runs
+// the program scan. It reads anyRepl2 rather than a field of its own: a new
+// genPrep field is fixed State (TestNoNewFixedStateFields).
+func (g *genPrep) hasDrawProgram() bool { return g.anyRepl2&rb2DrawProgram != 0 }
