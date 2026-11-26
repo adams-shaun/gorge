@@ -31,7 +31,22 @@ func (s *State) refNumColors(k *prep, r kop.Ref, ctx evalCtx) int {
 			c = k.t.Cards[ob.card].Colors // a face-down spell is colourless (CR 708.4)
 		}
 	default:
-		return 0
+		// a target slot (Targeted$CardNumColors, Breathe Your Last): the
+		// chosen object wherever it now is, live colours on the battlefield
+		// and the printed card elsewhere (gorge h.ObjectColors over the
+		// target, whose id survives its moves)
+		if _, ok := tgtSlot(r); !ok {
+			return 0
+		}
+		o := s.refObjCtx(r, ctx)
+		if o == NoObj {
+			return 0
+		}
+		if ob := &s.objs[o]; ob.zone == kop.ZoneBattlefield {
+			c = s.colorsAt(k, ob.slot)
+		} else if !(k.gen != nil && k.gen.anyFaceDown && s.faceDownAt(k, o)) {
+			c = k.t.Cards[ob.card].Colors
+		}
 	}
 	return bits.OnesCount8(uint8(c & kop.ColAny))
 }
