@@ -1,6 +1,9 @@
 package cards
 
-import "strings"
+import (
+	"strconv"
+	"strings"
+)
 
 // affectedDefinedFilter maps an `AffectedDefined$` value onto the filter
 // property the legacy `Affected$` form carried for the same object.
@@ -25,6 +28,20 @@ var affectedDefinedFilter = map[string]string{
 // alternatives, is left untouched, so the param census still reports it
 // rather than the static quietly changing scope.
 func NormalizeAffectedDefined(p map[string]string) {
+	// Card-Forge acaef15177 spelled a Spacecraft's STATION N+ static
+	// `AffectedDefined$ Self | Station$ <N>`: the effects hold while the source
+	// has at least N charge counters. Read it as the Affected$
+	// Card.counters_GE<N>_CHARGE spelling it replaced (which the rewrite below
+	// turns into Card.Self+counters_GE<N>_CHARGE), so gorge's static walk and
+	// dirac's kgen see one form. Only a Continuous static on its own source
+	// with a literal threshold 1..255 is read; any other shape keeps its
+	// Station key, which no reader takes, so the param census and kgen still
+	// report it.
+	if n, err := strconv.Atoi(p["Station"]); err == nil && n >= 1 && n <= 255 && p["Station"][0] >= '1' && p["Station"][0] <= '9' &&
+		p["Mode"] == "Continuous" && p["AffectedDefined"] == "Self" && p["Affected"] == "" {
+		p["Affected"] = "Card.counters_GE" + p["Station"] + "_CHARGE"
+		delete(p, "Station")
+	}
 	defined, ok := p["AffectedDefined"]
 	if !ok {
 		return
