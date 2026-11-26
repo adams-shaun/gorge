@@ -455,9 +455,27 @@ func (s *State) featPoolPays(p uint8, o Obj, mode uint8, extra *[6]int32, anyCol
 			}
 		}
 		if !s.pickCostPayable(k, SeatIx(p), &cd.AltAddCost, o) {
-			return false
+			if cd.AltAddCost2 == (kop.Cost{}) || !s.pickCostPayable(k, SeatIx(p), &cd.AltAddCost2, o) {
+				return false
+			}
+			cost = addCost(cost, cd.AltAddCost2.Mana) // the either-or's third part (Dusk Mangler)
+		} else {
+			cost = addCost(cost, cd.AltAddCost.Mana)
+			// The gate is existential over the parts: the second part's
+			// picks are payable, so the third part's own mana is an
+			// alternative the offer must try beside it (its picks payable
+			// too, its mana joining the spell's the same way, CR 601.2f), as
+			// the part-0 block above tries the spell's own cost.
+			if cd.AltAddCost2 != (kop.Cost{}) && s.pickCostPayable(k, SeatIx(p), &cd.AltAddCost2, o) {
+				t := addCost(pre, cd.AltAddCost2.Mana)
+				if a.delve == 0 || !tb { // the faces took the credit (tb: adjustFit priced them)
+					t = s.delveOfferCredit(k, SeatIx(p), c, o, true, t)
+				}
+				if a.affords(&t, pipMaskOf(&t), 0) {
+					return true
+				}
+			}
 		}
-		cost = addCost(cost, cd.AltAddCost.Mana)
 	}
 	if mode&4 == 0 && (a.delve == 0 || !tb) {
 		cost = s.delveOfferCredit(k, SeatIx(p), c, o, mode&2 == 0, cost)
@@ -857,6 +875,9 @@ func (s *State) FeatAltAddMana(p uint8, o Obj) (kop.ManaCost, bool) {
 	part := spellAddCost(k, c)
 	if manaEmpty(&part.Mana) {
 		part = &cd.AltAddCost
+		if manaEmpty(&part.Mana) && cd.AltAddCost2 != (kop.Cost{}) {
+			part = &cd.AltAddCost2
+		}
 	}
 	if !s.pickCostPayable(k, p, part, o) {
 		return kop.ManaCost{}, false

@@ -279,7 +279,7 @@ func (s *State) turnUpRiderOnly(k *prep, p uint8, cost *kop.ManaCost, sp kop.Spe
 //
 //go:noinline
 func (s *State) tapTurnUpRiders(k *prep, p uint8, cost *kop.ManaCost) {
-	s.windowTapWalk(k, p, cost, cost, false, false, false, false, false, false, false)
+	s.windowTapWalk(k, p, cost, cost, false, false, false, false, false, false, false, false)
 }
 
 // turnUpRestrPays: the turn-up's potential witness counts the restricted mana

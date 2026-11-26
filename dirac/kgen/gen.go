@@ -264,6 +264,18 @@ func lowerTokenEntry(p *pool, cards []*lCard, k string) *lCard {
 	return lowerCard(p, k, c, true)
 }
 
+// altAddCostDump is dumpLIR's either-or additional cost fields: the parts of
+// an AlternateAdditionalCost beyond the spell's own (Dusk Mangler's third).
+func altAddCostDump(w io.Writer, c *lCard) {
+	if c.AltAddCost == nil {
+		return
+	}
+	fmt.Fprintf(w, " altaddcost=%s", costString(*c.AltAddCost))
+	if c.AltAddCost2 != nil {
+		fmt.Fprintf(w, " altaddcost2=%s", costString(*c.AltAddCost2))
+	}
+}
+
 // dumpLIR writes a readable LIR listing.
 func dumpLIR(w io.Writer, c *lCard) {
 	fmt.Fprintf(w, "CARD %s token=%v cost=%s types=%#x sub=%v colors=%q pt=%d/%d star=%v loyalty=%d kw=%v flash=%v",
@@ -383,9 +395,7 @@ func dumpLIR(w io.Writer, c *lCard) {
 	if c.SpellCost != nil {
 		fmt.Fprintf(w, " spellcost=%s", costString(*c.SpellCost))
 	}
-	if c.AltAddCost != nil {
-		fmt.Fprintf(w, " altaddcost=%s", costString(*c.AltAddCost))
-	}
+	altAddCostDump(w, c) // altaddcost= / altaddcost2= (the either-or's parts, Dusk Mangler's third)
 	if c.KickerCost != nil {
 		fmt.Fprintf(w, " kickercost=%s", costString(*c.KickerCost))
 	}
