@@ -88,6 +88,13 @@ func stackKwGates(a *kop.Ability, g *genPrep, p *prep) {
 		g.castRingOn = true
 	}
 	switch a.Static.A {
+	case kop.StackKwWebSling:
+		g.anyWebSling = true
+		p.costObj = true // the return pick (kw_websling.go)
+	case kop.StackKwOffspring:
+		p.anyOffGrant = true // the kicked-cost reads and the ETB copy queue (kw_offspring.go)
+	case kop.StackKwRebound:
+		g.anyRebound, g.anyCastProv = true, true // reboundPlan reads the cast's zone (stackEntry.prov)
 	case kop.StackKwCascade:
 		g.anyCascade = true
 	case kop.StackKwImprovise, kop.StackKwConvoke:
@@ -120,9 +127,19 @@ func stackKwGates(a *kop.Ability, g *genPrep, p *prep) {
 // EffectZone$ Stack self grant (Bloodbraid Marauder), read off the stack
 // entry below.
 func (s *State) stackKwN(k *prep, code int16, c CardID, o Obj, caster uint8, fromHand bool) (n int, b int16) {
+	n, b, _ = s.stackKwScan(k, code, c, o, caster, fromHand)
+	return n, b
+}
+
+// stackKwScan is stackKwN that also returns the first matching battlefield
+// static's source (its slot's card is the carrier; sl NoSlot for an emblem or
+// a self grant), for a grant whose body lives on the carrier (Rebound's
+// GrantBody).
+func (s *State) stackKwScan(k *prep, code int16, c CardID, o Obj, caster uint8, fromHand bool) (n int, b int16, first statSrc) {
 	if DebugStackKwOff {
-		return 0, 0
+		return 0, 0, statSrc{sl: NoSlot}
 	}
+	first.sl = NoSlot
 	s.eachStatic(k, func(st statSrc) bool {
 		a := st.a
 		if a.Kind != kop.AbStatic || a.Static.Kind != kop.StatStackKw || a.Static.A != code || st.ctrl != caster {
@@ -147,8 +164,11 @@ func (s *State) stackKwN(k *prep, code int16, c CardID, o Obj, caster uint8, fro
 			return true
 		}
 		if s.matchSpellCard(k, a.Static.Filter, c, caster, caster, o, st.sl, st.emb) {
+			if a.Static.Filter2 != 0 && !s.matchSpellCard(k, a.Static.Filter2, c, caster, caster, o, st.sl, st.emb) {
+				return true // a web-slinging grant's own spell spec
+			}
 			if n == 0 {
-				b = a.Static.B
+				b, first = a.Static.B, st
 			}
 			n++
 		}
@@ -160,7 +180,7 @@ func (s *State) stackKwN(k *prep, code int16, c CardID, o Obj, caster uint8, fro
 		}
 		n += sn
 	}
-	return n, b
+	return n, b, first
 }
 
 // stackKwSelfN counts the EffectZone$ Stack self grants on the spell being

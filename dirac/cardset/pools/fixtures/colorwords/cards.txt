@@ -1,0 +1,15 @@
+# The colour-word static family: Swirl the Mists (S:Mode$ Continuous |
+# ChangeColorWordsTo$ ChosenColor over the spells and permanents), beside a
+# spell that reads a colour word (Doom Blade, nonblack), a permanent that does
+# (Northern Paladin, "target black permanent") and cards that read none, to be
+# cast and to be its targets (dirac/oracle/colorwords_lockstep_test.go).
+Swirl the Mists
+Doom Blade
+Northern Paladin
+Grizzly Bears
+Hill Giant
+Island
+Swamp
+Plains
+Mountain
+Forest

@@ -43,14 +43,17 @@ import (
 var kstaticzonesDecks = [2][]cardset.Entry{
 	{
 		{Name: "As Foretold", Count: 1},
-		{Name: "Ivory Mask", Count: 3},
-		{Name: "Minamo Scrollkeeper", Count: 2}, {Name: "Trusted Advisor", Count: 2},
-		{Name: "Dawnglade Regent", Count: 2}, {Name: "Queen Mother Ramonda", Count: 2}, {Name: "Entourage of Trest", Count: 2},
-		{Name: "Spire Serpent", Count: 2}, {Name: "Slithering Shade", Count: 2},
-		{Name: "Dragon's Rage Channeler", Count: 1},
+		{Name: "Ivory Mask", Count: 1}, {Name: "Solitary Confinement", Count: 1},
+		{Name: "Minamo Scrollkeeper", Count: 2}, {Name: "Trusted Advisor", Count: 1}, {Name: "Thought Eater", Count: 1},
+		{Name: "Dawnglade Regent", Count: 2}, {Name: "Queen Mother Ramonda", Count: 2}, {Name: "Entourage of Trest", Count: 1},
+		{Name: "Spire Serpent", Count: 1}, {Name: "Slithering Shade", Count: 1}, {Name: "Geist of the Lonely Vigil", Count: 1},
+		// the AffectedZone$ Stack keyword carriers (lower_stackkw.go): Cast
+		// Through Time grants rebound to this deck's instants and sorceries
+		{Name: "Cast Through Time", Count: 1}, {Name: "Opt", Count: 1}, {Name: "Sol Ring", Count: 1},
+		{Name: "Dragon's Rage Channeler", Count: 2},
 		{Name: "Case of the Locked Hothouse", Count: 1}, {Name: "Power Artifact", Count: 1},
-		{Name: "Defensive Formation", Count: 2},
-		{Name: "Plains", Count: 6}, {Name: "Island", Count: 1}, {Name: "Forest", Count: 2}, {Name: "Mountain", Count: 2},
+		{Name: "Defensive Formation", Count: 1},
+		{Name: "Plains", Count: 5}, {Name: "Island", Count: 2}, {Name: "Forest", Count: 2}, {Name: "Mountain", Count: 2},
 		{Name: "Fíli the Pathfinder", Count: 2},
 		{Name: "Bifur, Melodic Rider", Count: 2},
 		{Name: "Dáin, Lord of the Iron Hills", Count: 2},

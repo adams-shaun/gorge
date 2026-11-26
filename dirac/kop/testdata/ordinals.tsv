@@ -1475,8 +1475,11 @@ StackKwDelve	int16	9
 StackKwDemonstrate	int16	10
 StackKwImprovise	int16	1
 StackKwLifelink	int16	4
+StackKwOffspring	int16	14
+StackKwRebound	int16	11
 StackKwSplitSecond	int16	6
 StackKwStorm	int16	5
+StackKwWebSling	int16	12
 StatActivationLimit	StaticKind	227
 StatAlternativeCost	StaticKind	5
 StatAnyTypeCreatures	StaticKind	239

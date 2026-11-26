@@ -142,6 +142,7 @@ const (
 	PKCantHaveKeyword
 	PKCaster
 	PKChangeColorWord
+	PKChangeColorWordsTo
 	PKChangeController
 	PKChangeLater
 	PKChangeNum
@@ -1111,6 +1112,7 @@ var paramKeyNames = [paramKeyCount]string{
 	PKCantHaveKeyword:                  "CantHaveKeyword",
 	PKCaster:                           "Caster",
 	PKChangeColorWord:                  "ChangeColorWord",
+	PKChangeColorWordsTo:               "ChangeColorWordsTo",
 	PKChangeController:                 "ChangeController",
 	PKChangeLater:                      "ChangeLater",
 	PKChangeNum:                        "ChangeNum",

@@ -44,6 +44,13 @@ type Config struct {
 	// decision stream, so a side that left it off would pose a different
 	// decision list. Off by default (gorge's legacy answer with no Rest).
 	ArrangeRestOrder bool
+	// PriorityManaAsk sets the kernel's dirac.Config.PriorityManaAsk and
+	// mirrors it on the GorgeSide: the activation of a colour-asking unless
+	// source (Rhystic Cave) is a canonical priority option, and its colour ask
+	// and each player's pay/decline ask are canonical decisions (doc.go,
+	// "Autopay priority vocabulary"; priority_manaask.go). Both sides must agree
+	// on it. Off by default (the source is offered nowhere).
+	PriorityManaAsk bool
 }
 
 // Stats counts what the gorge side did beneath the canonical surface.
@@ -1084,7 +1091,11 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 				continue
 			}
 			add(prioEntry{a: Pack(ActActivate, ref(o.Obj), RefNone, uint8(o.Ability)), opt: o.Index})
-		case "activate", "concede", censusOfferKind:
+		case "activate":
+			if a, ok := g.manaAskActivation(o); ok {
+				add(prioEntry{a: a, opt: o.Index}) // an unless source's activation (priority_manaask.go)
+			}
+		case "concede", censusOfferKind:
 		default:
 			if c, ok := specialCode(o.Kind); ok {
 				sub := turnUpModeCode(o.Mode)
