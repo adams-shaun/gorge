@@ -44,7 +44,9 @@ const (
 	ClonePick      = 1 << 3 // the Choices$ pick itself (F the candidates)
 	CloneTmplShift = 4      // bits 4-5: the template's target slot
 	CloneBatch     = 1 << 6 // the Choices$ pool is the trigger's batch members in exile (with ClonePick and CloneTmplPick; the copy is of the picked card, not a permanent)
-	CloneGrant     = 1 << 7 // GainThisAbility$: the override record after C (index C+1) is a grant-only record, applied as the copy's own granted ability (CR 707.9b)
+	CloneGrant     = 1 << 7 // GainThisAbility$ or AddTriggers$: the override record after C (index C+1) is a grant-only record, applied as the copy's own granted abilities (CR 707.9b)
+	CloneTmplCard  = 1 << 8 // the template is the target slot's card off the battlefield (TgtZone$ Graveyard), copied as its printed card (CR 400.7)
+	CloneTmplSac   = 1 << 9 // the template is the card the activation's own Exile<> cost exiled (Defined$ Exiled), copied as its printed card
 )
 
 // BecomeCopyCtr is OpBecomeCopy's B.N bit (a different op from ExtCloneCopy,

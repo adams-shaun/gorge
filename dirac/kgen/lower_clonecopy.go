@@ -24,9 +24,9 @@ import (
 // refuses by name before copyExceptions (which reads some of them for
 // CopyPermanent) can lower it.
 var cloneCopyRefused = []string{
-	"NewName", "AddTypes", "AddColors", "SetColor", "SetPower", "SetToughness", "RemoveCost",
-	"Controller", "AddTriggers", "AddAbilities", "AddStaticAbilities",
-	"ExcludeChosen", "ChoiceZone", "TgtZone", "CloneZone", "ChoiceOptional", "PumpKeywords",
+	"NewName", "AddColors", "SetColor", "SetPower", "SetToughness", "RemoveCost",
+	"Controller", "AddAbilities", "AddStaticAbilities",
+	"ExcludeChosen", "ChoiceZone", "CloneZone", "ChoiceOptional", "PumpKeywords",
 	"PumpDuration", "RemoveCardTypes", "RemoveCreatureTypes", "RemoveSubTypes", "CopyFromChosenName",
 	"FaceDown", "KeepFacedownFalse", "AttachedTo", "IntoPlayTapped", "RememberCloneOrigin", "IfNew",
 }
@@ -107,9 +107,7 @@ func (lc *lowerCtx) cloneCopy(ps *params) error {
 		lc.emit(in)
 		return nil
 	}
-	_, hasVT := ps.m["ValidTgts"]
-	_, hasCh := ps.m["Choices"]
-	d, hasD := ps.get("Defined")
+	d, _ := ps.get("Defined")
 	ct, hasCT := ps.get("CloneTarget")
 	ct = strings.TrimSpace(ct)
 	switch {
@@ -118,7 +116,9 @@ func (lc *lowerCtx) cloneCopy(ps *params) error {
 		// becomes an artifact, The Mycosynth Gardens, is not in a lockstep pool)
 		bodied := false
 		for _, t := range lc.face.Types {
-			bodied = bodied || t == "Creature" || t == "Planeswalker"
+			// a land is one only for a graveyard card's copy (Shifting
+			// Woodland, lower_clonecard.go)
+			bodied = bodied || t == "Creature" || t == "Planeswalker" || t == "Land" && ps.is("TgtZone", "Graveyard")
 		}
 		if !bodied {
 			return refuse("Clone: the source is not a creature or planeswalker")
@@ -158,61 +158,8 @@ func (lc *lowerCtx) cloneCopy(ps *params) error {
 		return refuse("Clone CloneTarget$ %q", ct)
 	}
 
-	// the template
-	switch {
-	case hasVT && !hasCh && !hasD:
-		if valid != nil {
-			return refuse("Clone CloneTarget$ Valid with its own ValidTgts$")
-		}
-		tr, err := lc.objOrTarget(ps, "", zBattlefield)
-		if err != nil {
-			return err
-		}
-		if err := lc.cloneTemplate(tr, &flags); err != nil {
-			return err
-		}
-	case selfCopy && hasVT && !hasCh:
-		// Defined$ Targeted names the node's own ValidTgts$ target
-		tr, err := lc.objOrTarget(newParams(map[string]string{"ValidTgts": ps.str("ValidTgts")}), "", zBattlefield)
-		if err != nil {
-			return err
-		}
-		ps.consume("ValidTgts", "Defined")
-		if err := lc.cloneTemplate(tr, &flags); err != nil {
-			return err
-		}
-	case hasD && !hasCh && !hasVT:
-		if d != "Targeted" && d != "ParentTarget" {
-			return refuse("Clone Defined$ %q", d)
-		}
-		if valid == nil {
-			return refuse("Clone Defined$ %q without a Valid CloneTarget$", d)
-		}
-		tr, err := lc.defined(d)
-		if err != nil {
-			return err
-		}
-		if err := lc.cloneTemplate(tr, &flags); err != nil {
-			return err
-		}
-	case hasCh && !hasVT && !hasD:
-		if valid != nil {
-			return refuse("Clone CloneTarget$ Valid with Choices$")
-		}
-		if becomer.Kind != rSelf {
-			return refuse("Clone Choices$ with CloneTarget$ %q", ct)
-		}
-		f, err := lc.filter(ps.str("Choices"))
-		if err != nil {
-			return err
-		}
-		if err := cloneTemplateFilter(f); err != nil {
-			return err
-		}
-		lc.emit(lInstr{Op: "CloneCopy", F: f, B: cst(kop.ClonePick), Note: "pick the Choices$ template"})
-		flags |= kop.CloneTmplPick
-	default:
-		return refuse("Clone template: need exactly one of ValidTgts$, Defined$, Choices$")
+	if err := lc.cloneCopyTemplate(ps, &flags, becomer, valid, selfCopy, optional); err != nil {
+		return err
 	}
 	if valid == nil && hasCT && ct != "ParentTarget" {
 		return refuse("Clone CloneTarget$ %q", ct)
@@ -241,6 +188,80 @@ func (lc *lowerCtx) cloneCopy(ps *params) error {
 	return nil
 }
 
+// cloneCopyTemplate selects the template the copy takes: the node's own
+// ValidTgts$, a Defined$ target (Targeted, ParentTarget, or the exile batch's
+// Exiled card), or a Choices$ pick. It packs the target slot into flags.
+func (lc *lowerCtx) cloneCopyTemplate(ps *params, flags *int, becomer lRef, valid *lFilter, selfCopy, optional bool) error {
+	_, hasVT := ps.m["ValidTgts"]
+	_, hasCh := ps.m["Choices"]
+	d, hasD := ps.get("Defined")
+	ct, hasCT := ps.get("CloneTarget")
+	ct = strings.TrimSpace(ct)
+	switch {
+	case hasVT && !hasCh && !hasD:
+		if valid != nil {
+			return refuse("Clone CloneTarget$ Valid with its own ValidTgts$")
+		}
+		tr, err := lc.objOrTarget(ps, "", zBattlefield)
+		if err != nil {
+			return err
+		}
+		if err := lc.cloneTemplate(tr, flags); err != nil {
+			return err
+		}
+	case selfCopy && hasVT && !hasCh:
+		// Defined$ Targeted names the node's own ValidTgts$ target
+		tr, err := lc.objOrTarget(newParams(map[string]string{"ValidTgts": ps.str("ValidTgts")}), "", zBattlefield)
+		if err != nil {
+			return err
+		}
+		ps.consume("ValidTgts", "Defined")
+		if err := lc.cloneTemplate(tr, flags); err != nil {
+			return err
+		}
+	case hasD && d == "Exiled" && !hasCh && !hasVT && !hasCT:
+		if optional {
+			return refuse("Clone Defined$ Exiled with Optional$")
+		}
+		if err := lc.cloneExiledTemplate(flags); err != nil {
+			return err
+		}
+	case hasD && !hasCh && !hasVT:
+		if d != "Targeted" && d != "ParentTarget" {
+			return refuse("Clone Defined$ %q", d)
+		}
+		if valid == nil {
+			return refuse("Clone Defined$ %q without a Valid CloneTarget$", d)
+		}
+		tr, err := lc.defined(d)
+		if err != nil {
+			return err
+		}
+		if err := lc.cloneTemplate(tr, flags); err != nil {
+			return err
+		}
+	case hasCh && !hasVT && !hasD:
+		if valid != nil {
+			return refuse("Clone CloneTarget$ Valid with Choices$")
+		}
+		if becomer.Kind != rSelf {
+			return refuse("Clone Choices$ with CloneTarget$ %q", ct)
+		}
+		f, err := lc.filter(ps.str("Choices"))
+		if err != nil {
+			return err
+		}
+		if err := cloneTemplateFilter(f); err != nil {
+			return err
+		}
+		lc.emit(lInstr{Op: "CloneCopy", F: f, B: cst(kop.ClonePick), Note: "pick the Choices$ template"})
+		*flags |= kop.CloneTmplPick
+	default:
+		return refuse("Clone template: need exactly one of ValidTgts$, Defined$, Choices$")
+	}
+	return nil
+}
+
 // cloneTemplate checks template ref tr (a target slot) and packs its slot
 // into flags.
 func (lc *lowerCtx) cloneTemplate(tr lRef, flags *int) error {
@@ -248,6 +269,9 @@ func (lc *lowerCtx) cloneTemplate(tr lRef, flags *int) error {
 		return refuse("Clone template is not a target slot 0..2")
 	}
 	t := &lc.ab.Targets[tr.N]
+	if t.Zone == zGraveyard && !t.GraveExileCard && !t.PermOrGraveCard {
+		return lc.cloneGraveTemplate(tr, flags) // lower_clonecard.go
+	}
 	if t.Zone != zBattlefield || t.F == nil || t.F.Players != 0 {
 		return refuse("Clone template target is not a battlefield permanent")
 	}
@@ -297,6 +321,9 @@ func flagsEOT(flags int) bool { return flags&kop.CloneEOT != 0 }
 // kernel's own ability already has, so it lowers only beside GainThisAbility$.
 // A grant makes *hasExc true: the pair stays together.
 func (lc *lowerCtx) cloneGrant(ps *params, flags *int, hasExc *bool) (*lOverride, error) {
+	if _, ok := ps.get("AddTriggers"); ok {
+		return lc.cloneTriggerGrant(ps, flags, hasExc) // lower_clonecard.go
+	}
 	v, ok := ps.get("GainThisAbility")
 	if !ok {
 		if _, ok := ps.get("AddSVars"); ok {
