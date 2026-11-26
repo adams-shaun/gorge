@@ -100,6 +100,51 @@ func TestEffectContainerMayPlay(t *testing.T) {
 		}
 	}
 
+	// Memory Vessel: the multi-static remembered Effect. The per-owner
+	// permission over the remembered exiled cards lowers to the MayPlay
+	// instruction the remembered grant route emits (each player may play the
+	// cards THEY exiled, until the controller's next turn); the two hand
+	// locks lower onto one emblem whose lifetime is that same boundary.
+	mv := lowerNamedCard(t, "Memory Vessel")
+	if len(mv.Refusals) != 0 {
+		t.Errorf("Memory Vessel refusals = %v, want none", mv.Refusals)
+	} else {
+		if mp := firstProgOp(mv, "MayPlay"); mp == nil {
+			t.Error("Memory Vessel lowers no MayPlay instruction")
+		} else {
+			if mp.Obj.Kind != rRemembered {
+				t.Errorf("Memory Vessel MayPlay obj = %v, want Remembered", mp.Obj)
+			}
+			if mp.C != zExile {
+				t.Errorf("Memory Vessel MayPlay zone = %d, want exile", mp.C)
+			}
+			if mp.CS != "UntilYourNextTurn" {
+				t.Errorf("Memory Vessel MayPlay lifetime = %q, want UntilYourNextTurn", mp.CS)
+			}
+			if int(mp.B.N)&int(kop.MayPlayOwner) == 0 {
+				t.Errorf("Memory Vessel MayPlay flags = %v, want MayPlayOwner", mp.B.N)
+			}
+		}
+		if len(mv.Emblems) != 1 {
+			t.Errorf("Memory Vessel emblems = %d, want 1", len(mv.Emblems))
+		} else {
+			e := mv.Emblems[0]
+			if !e.UntilNextTurn || e.UntilEOT {
+				t.Errorf("Memory Vessel emblem lifetime = UntilEOT %v UntilNextTurn %v, want UntilNextTurn", e.UntilEOT, e.UntilNextTurn)
+			}
+			if len(e.Statics) != 2 {
+				t.Errorf("Memory Vessel emblem statics = %+v, want the two hand locks", e.Statics)
+			} else {
+				if e.Statics[0].Kind != "CantPlayLand" || e.Statics[0].Zone != zHand {
+					t.Errorf("Memory Vessel emblem static[0] = %+v, want CantPlayLand over the hand", e.Statics[0])
+				}
+				if e.Statics[1].Kind != "CantBeCast" || e.Statics[1].Zone != zHand {
+					t.Errorf("Memory Vessel emblem static[1] = %+v, want CantBeCast over the hand", e.Statics[1])
+				}
+			}
+		}
+	}
+
 	// Mission Briefing: the chosen card, marked so the stack exit exiles it.
 	mission := lowerNamedCard(t, "Mission Briefing")
 	if len(mission.Refusals) != 0 {
@@ -134,21 +179,16 @@ func TestEffectContainerMayPlayRemainingRefusals(t *testing.T) {
 		// target remembered permission plus a literal {8} mana RaiseCost
 		// (no kernel mana raise on a may-play permission)
 		{"Mavinda, Students' Advocate", "RaiseCost"},
-		// permission over each player's exiled cards plus CantPlayLand and a
-		// hand-cast lock: the multi-static Effect keeps its list refusal
-		{"Memory Vessel", "STPlay,NoLand,NoCast"},
 		// EffectOwner$ Player.Opponent's opponent emblem: the kernel's
 		// emblem trigger diverges from gorge's in lockstep (the follow-up
 		// ticket carries the measured reproduction)
 		{"Chandra, Awakened Inferno", "EffectOwner"},
 		// the multi-static Effects whose primitives the kernel lacks: the
 		// colourless-mana ManaConvert arm (Abstruse), the {8} mana raise on
-		// a may-play permission (Mavinda) and the unmodelled CantPlayLand
-		// static (Memory Vessel); each keeps today's named refusal until
-		// its own ticket lands the primitive
+		// a may-play permission (Mavinda); each keeps today's named refusal
+		// until its own ticket lands the primitive
 		{"Abstruse Appropriation", "ManaConvert"},
 		{"Mavinda, Students' Advocate", "RaiseCost"},
-		{"Memory Vessel", "STPlay,NoLand,NoCast"},
 	} {
 		c := lowerNamedCard(t, tc.name)
 		if len(c.Refusals) == 0 {

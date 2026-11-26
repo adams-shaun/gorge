@@ -1353,6 +1353,7 @@ func (s *State) applyOverridePT(k *prep, sl Slot, idx int, src CardID, fl uint8,
 		// (kop.Override.UntilUpkeep; static_untilnextupkeep.go).
 		r.p, r.t = int16(s.res.e.ctrl), 0
 	}
+	s.ovEndStamp(&r, &k.t.Overrides[idx]) // an event-ended Effect record's source binding (static_ovendevent.go)
 	if o := &k.t.Overrides[idx]; o.GrantStatics != 0 && !o.HasPT && !o.UntilUpkeep && k.gen != nil && k.gen.anyStatGoad {
 		r.t = grantGoader(k, src, o, s.res.e.ctrl) // act_goad.go
 	}
