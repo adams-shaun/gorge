@@ -293,6 +293,10 @@ func (b *resolveBoard) Restore(cp *resolve.Checkpoint, evEnd int) {
 	// must replay the same forced results (forcedFlips rewinds its cursor
 	// by the log), so it stays attached instead of being parked or dropped.
 	coinHook := e.CoinFlipHook
+	// The taped die-roll override is the same kind of forced result: the
+	// re-executed prefix must replay the recorded rolls (draw rewinds its
+	// cursor by the log, like forcedFlips), so it stays attached too.
+	dieRoll := e.dieRollOverride
 	evs, ints := l.Events, l.Intents
 	l.Events, l.Intents = nil, nil
 	// The decision arena stays out of the release: Release clears its
@@ -360,6 +364,7 @@ func (b *resolveBoard) Restore(cp *resolve.Checkpoint, evEnd int) {
 	e.tapeHeldHook, e.tapeHeldStats = hook, stats
 	e.tapeHeldStaticHook = staticHook
 	e.CoinFlipHook = coinHook
+	e.dieRollOverride = dieRoll
 	tapeRebindOwner(e, sc, arenaOn)
 }
 
