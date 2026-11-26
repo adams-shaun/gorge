@@ -684,7 +684,8 @@ func (e *Engine) checkEventDelayedTriggers(ev events.Event, lki *state.Object,
 			// card) and an Effect's source-leave promise: the registration's
 			// capture IS the referent this body resolves.
 			remembered = append([]state.Target(nil), dt.Remembered...)
-		} else if dt.EffectRepeat && (dt.EventMode == "ChangesZone" || t.ModeKind() == cards.TriggerUntaps || t.ModeKind() == cards.TriggerDamageDealtOnce) {
+		} else if dt.EffectRepeat && (dt.EventMode == "ChangesZone" || t.ModeKind() == cards.TriggerUntaps || t.ModeKind() == cards.TriggerDamageDealtOnce ||
+			dt.EventMode == "SpellCast" && e.effectTriggerRemembersObjects(dt)) {
 			// An Effect-owned ChangesZone trigger's `Defined$ Remembered`
 			// names the Effect's OWN capture (Forge's created-effect
 			// Remembered list), not the zone-changing card: Out of Time's
@@ -1172,6 +1173,21 @@ var delayedRegistrationLiveCodes = state.NewStrCodes(
 	state.StrEntry[delayedRegistrationLiveCode]{Key: "untilyournextturn", Val: delayedRegistrationLiveUntilYourNextTurn},
 	state.StrEntry[delayedRegistrationLiveCode]{Key: "untiltheendofyournextturn", Val: delayedRegistrationLiveUntilYourNextTurn},
 )
+
+// effectTriggerRemembersObjects reports whether dt, a recurring Effect
+// trigger, was registered by an Effect with RememberObjects$ (Forge's created
+// effect card holds that memory, and its trigger body's Defined$ Remembered
+// reads it). A SpellCast event's object is the cast spell, so Mountain
+// Titan's "put a +1/+1 counter on Mountain Titan" (RememberObjects$ Self)
+// otherwise named the spell. The registration carries no such mark, so the
+// source face's Effect that names the trigger answers it.
+func (e *Engine) effectTriggerRemembersObjects(dt *state.DelayedTrigger) bool {
+	src := e.G.Obj(dt.Source)
+	if src == nil || src.Face() == nil {
+		return false
+	}
+	return effects.EffectTriggerRemembersObjects(src.Face(), dt.Trigger)
+}
 
 // delayedRemembersOwnCapture reports whether a firing registration's
 // Remembered referent is its own capture rather than the firing event's
