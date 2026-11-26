@@ -10,15 +10,15 @@
 # Medomai the Ageless, Moonrager's Slash, Thraben Doomsayer, Village
 # Survivors) stay out: their statics refuse (gorge fails closed on the
 # condition, reported), and a refused card cannot sit in a pool. So do the
-# round's other four MayPlay carriers (Aluren, Conspiracy Unraveler, Primal
-# Prayers, Durnan of the Yawning Portal) and One with the Multiverse (its
-# free line names a partial zone list the kernel's one-zone free ride would
-# over-read): each keeps a named refusal outside the MayPlay-zone class. The
-# MayPlay shapes the round lowers are in (As Foretold's {0} alternative,
-# Demon of Fate's Design's pay-life and Nissa, Worldsoul Speaker's pay-energy
-# alternatives, Dracogenesis's free cast, Squee, the Immortal's two-zone self
-# grant), played by dirac/oracle/staticzones_test.go and
-# dirac/oracle/staticzones_mayplay_test.go.
+# round's other three MayPlay carriers (Aluren, Primal Prayers, Durnan of the
+# Yawning Portal) and One with the Multiverse (its free line names a partial
+# zone list the kernel's one-zone free ride would over-read): each keeps a
+# named refusal outside the MayPlay-zone class. The MayPlay shapes the round
+# lowers are in (As Foretold's {0} alternative, Demon of Fate's Design's
+# pay-life and Nissa, Worldsoul Speaker's pay-energy alternatives, Conspiracy
+# Unraveler's collect-evidence alternative, Dracogenesis's free cast, Squee,
+# the Immortal's two-zone self grant), played by
+# dirac/oracle/staticzones_test.go and dirac/oracle/staticzones_mayplay_test.go.
 # The AffectedZone$ Stack keyword grants (dirac/kgen/lower_stackkw.go): Cast
 # Through Time (rebound) over blue instants and sorceries, with mana rocks;
 # Peter Parker's Amazing Spider-Man face (web-slinging) over legendary spells.
@@ -28,6 +28,7 @@ As Foretold
 Bladegraft Aspirant
 Case of the Locked Hothouse
 Cast Through Time
+Conspiracy Unraveler
 Dawnglade Regent
 Defensive Formation
 Demon of Fate's Design
