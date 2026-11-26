@@ -2,7 +2,6 @@ package kgen
 
 import (
 	"fmt"
-	"slices"
 	"strings"
 
 	"github.com/adams-shaun/gorge/dirac/kop"
@@ -2446,42 +2445,6 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 			// (prepAltFree); a part the pick stages cannot carry would
 			// never be offered
 			return ka, nil, fmt.Errorf("alternative cost with a non-mana part (the kernel offers mana-only alternatives)")
-		}
-	case "NoMaxHandSize":
-		st.Kind = kop.StatNoMaxHandSize
-		if slices.Contains(s.Flags, "HandDelta") {
-			// CR 402.2: the additive RaiseMaxHandSize$ statics apply on top of
-			// the set maximum, never below zero (gorge maxHandSizeFor): A is
-			// the signed delta, read after the set-maximum walk (kernel
-			// maxHand, static_playerstats.go)
-			if !s.Amount.isConst() || s.Amount.N < -255 || s.Amount.N > 255 {
-				return ka, nil, fmt.Errorf("NoMaxHandSize delta %v", s.Amount)
-			}
-			st.StFlags |= kop.StHandDelta
-			st.A = int16(s.Amount.N)
-		} else {
-			switch {
-			case s.Amount.Kind == vNone: // Unlimited: A 0
-			case s.Amount.isConst() && s.Amount.N >= 0 && s.Amount.N <= 255:
-				st.A = int16(s.Amount.N + 1) // a numeric maximum: A = N+1
-			case len(s.Flags) == 1 && s.Flags[0] == "HandOpp":
-				// the opponents' maximum from an SVar (Winter): VA, read per
-				// cleanup under Cond2 (kernel maxHand)
-				st.StFlags |= kop.StDynamic
-				if st.VA, err = cb.value(s.Amount); err != nil {
-					return ka, nil, err
-				}
-			default:
-				return ka, nil, fmt.Errorf("NoMaxHandSize amount %v", s.Amount)
-			}
-		}
-		for _, fl := range s.Flags {
-			if fl != "HandOpp" && fl != "HandDelta" {
-				return ka, nil, fmt.Errorf("NoMaxHandSize flag %q", fl)
-			}
-			if fl == "HandOpp" {
-				st.StFlags |= kop.StHandOpp
-			}
 		}
 	case "ExtraLandPlay":
 		st.Kind = kop.StatExtraLandPlay
