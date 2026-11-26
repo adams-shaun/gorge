@@ -1,4 +1,4 @@
-# K:ETBReplacement:Copy:DBCopy:Optional with Duration$ UntilEndOfTurn:
+# An optional as-enters Copy replacement with an until-end-of-turn duration:
 # Cursed Mirror enters as a copy of a battlefield creature until end of
 # turn, except it has haste; the cleanup step ends the copy
 # (dirac/oracle/cursedmirror_test.go)

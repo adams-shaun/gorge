@@ -12,8 +12,8 @@ import (
 )
 
 // The as-enters clone with a duration: Cursed Mirror's
-// K:ETBReplacement:Copy:DBCopy:Optional (DB$ Clone | Choices$ Creature |
-// AddKeywords$ Haste | Duration$ UntilEndOfTurn) asks the optional election as
+// optional as-enters Copy replacement (a Clone choosing a creature, adding
+// haste, lasting until end of turn) asks the optional election as
 // the artifact is cast, enters as a copy of a battlefield creature except it
 // has haste, and the cleanup step (CR 514.2) ends the copy — the mirror is an
 // artifact again. The kernel bounds the copy with OpBecomeCopy's BecomeCopyEOT

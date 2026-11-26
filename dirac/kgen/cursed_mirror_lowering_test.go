@@ -7,8 +7,8 @@ import (
 )
 
 // Cursed Mirror: an ETBReplacement Clone whose copy lasts until end of turn
-// (K:ETBReplacement:Copy:DBCopy:Optional, DB$ Clone | Choices$ Creature |
-// AddKeywords$ Haste | Duration$ UntilEndOfTurn). The as-enters copy is
+// (an optional as-enters Copy replacement whose Clone chooses a creature,
+// adds haste and lasts until end of turn). The as-enters copy is
 // duration-bounded: the entering permanent's copy ends at the end step
 // (gorge edh_etbclone_riders_test.go TestEDHETBCloneRidersCursedMirrorHastyUntilEOT).
 func TestCursedMirrorLowering(t *testing.T) {
