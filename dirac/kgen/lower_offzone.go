@@ -459,6 +459,9 @@ func (lc *lowerCtx) affectedZone(sp *params, st *lStatic, aff, az string) (extra
 		return nil, true, lc.colorWordsStatic(sp, st, aff, az) // lower_colorwords.go
 	case az == "All" && offZonePTShape(sp, aff):
 		return nil, true, offZonePTStatic(sp, st) // lower_offzonept.go
+	case !sp.is("MayPlay", "True") && strings.HasPrefix(sp.str("AddKeyword"), "Madness"):
+		extra, err = lc.madnessGrant(sp, st, aff) // lower_madnessgrant.go
+		return extra, true, err
 	case offZoneEligible(sp, az):
 		z, _ := offZone(az)
 		handled, err := lc.offZoneStatic(sp, st, aff, az, z) // the type/keyword arms above

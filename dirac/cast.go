@@ -699,8 +699,10 @@ func (s *State) buildCostPreRaw(k *prep, pre, charge bool) (kop.ManaCost, bool) 
 		if cd.Escape && e.trigPl == trigPlEscape {
 			c = cd.AltCost // the escape cost (CR 702.138a; kw_escape.go)
 		}
-		if e.trigPl == trigPlMadness && cd.HasMadness {
-			c = cd.MadnessCost // the madness cast from exile (CR 702.35b)
+		if e.trigPl == trigPlMadness {
+			if mc, ok := s.madnessCostOf(k, e.obj); ok {
+				c = mc // the madness cast from exile (CR 702.35b; kw_madness.go), printed or granted
+			}
 		}
 		if e.trigPl == trigPlMiracle {
 			if mc, ok := s.miracleCostOf(k, e.obj); ok {
