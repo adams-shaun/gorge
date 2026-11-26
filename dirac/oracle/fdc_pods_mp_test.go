@@ -28,11 +28,11 @@ var fdcDecks = []string{
 // A card here plays as Wastes in TestFDCFourSeatPodsLockstep; a card refused
 // and not listed, or listed and lowered, fails it. The merge with main shrank
 // it by three: main's newer kgen lowered Cursed Mirror, Dragonhawk, Fate's
-// Tempest and Goddric, Cloaked Reveler.
+// Tempest and Goddric, Cloaked Reveler. The MaxOppDamageThisTurn lowering
+// (Spinerock Knoll) shrank it again.
 var fdcRefused = []string{
 	"Ezuri's Predation",
 	"Leyline Tyrant",
-	"Spinerock Knoll",
 	"Thundermane Dragon",
 }
 
