@@ -610,7 +610,7 @@ func (cb *cardBuilder) record() error {
 	if c.OptCost != nil {
 		// an OptionalCost part rides sfKicked and the kicked cast action
 		// (dirac/cost_optional.go): no other optional cost may share it
-		if c.Kicker != nil || c.Offspring != nil || c.Casualty != 0 || c.Bargain || c.Teamwork != 0 || c.SpellCost != nil || c.AltAddCost != nil {
+		if c.Kicker != nil || c.Offspring != nil || c.Casualty != 0 || c.Bargain || c.Teamwork != 0 || c.SpellCost != nil || c.AltAddCost != nil || c.AltAddCost2 != nil {
 			return fmt.Errorf("optional cost with another optional cost")
 		}
 		oc := *c.OptCost
@@ -644,7 +644,7 @@ func (cb *cardBuilder) record() error {
 		if c.Kicker != nil || c.Offspring != nil || c.Casualty != 0 || c.Bargain {
 			return fmt.Errorf("teamwork with a kicker/offspring/casualty/bargain")
 		}
-		for _, sc := range []*lCost{c.SpellCost, c.AltAddCost} {
+		for _, sc := range []*lCost{c.SpellCost, c.AltAddCost, c.AltAddCost2} {
 			if sc != nil && (sc.TapN != 0 || sc.TapPowN != 0) {
 				// the Taps teamwork gate reads every pkTapX pick of the build as a teamwork tap
 				return fmt.Errorf("Teamwork beside a tap-creatures cost")
@@ -1080,6 +1080,12 @@ func (cb *cardBuilder) record() error {
 	}
 	if c.AltAddCost != nil {
 		if d.AltAddCost, err = cb.cost(*c.AltAddCost); err != nil {
+			return err
+		}
+		d.HasAltAdd = true
+	}
+	if c.AltAddCost2 != nil {
+		if d.AltAddCost2, err = cb.cost(*c.AltAddCost2); err != nil {
 			return err
 		}
 		d.HasAltAdd = true
