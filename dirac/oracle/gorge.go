@@ -130,6 +130,11 @@ type GorgeSide struct {
 	// with no kernel bit, projchars.go); "" when none.
 	CharErr string
 
+	// Labels are the vocabulary picks Apply answered, by index into the actions
+	// the policy served (noteLabel); Step's own elision answers are not counted.
+	Labels []ActionLabel
+	applyN int
+
 	E     *rules.Engine
 	M     *Matchup
 	Cfg   Config
@@ -414,7 +419,7 @@ func (g *GorgeSide) Step() CDecision {
 			// The kernel's single-option elision: a decision (or pick) with
 			// one option is answered in place, never posed.
 			g.Stats.Elided++
-			g.Apply(fr.cur.Options[0])
+			g.apply(fr.cur.Options[0])
 			if g.err != nil {
 				return CDecision{Kind: DNone}
 			}
@@ -1773,6 +1778,14 @@ func optByIndex(d *decision.Decision, idx int) *decision.Option {
 
 // Apply implements Side: a must be one of the last Step's options.
 func (g *GorgeSide) Apply(a Canon) {
+	g.noteLabel(a)
+	g.apply(a)
+}
+
+// apply answers the posed decision with a. Step's own PassElision answers go
+// through it, not Apply: they are not in Result.Actions, so they are neither
+// counted nor labelled by noteLabel (ActionLabel.At indexes Actions).
+func (g *GorgeSide) apply(a Canon) {
 	g.committed = false
 	// Track the pip faces announced for the cast/activation in flight. A new
 	// cast, activation or priority action starts a fresh payment; a pip
