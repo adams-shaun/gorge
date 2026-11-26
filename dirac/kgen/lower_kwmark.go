@@ -1,6 +1,7 @@
 package kgen
 
 import (
+	"strconv"
 	"strings"
 
 	"github.com/adams-shaun/gorge/dirac/kop"
@@ -27,6 +28,7 @@ import (
 // list: the rest of the list and the kop.KwMark* bits of the terms taken.
 func splitKwMarks(kw string) (rest string, marks int) {
 	var keep []string
+	toxic := 0
 	for _, k := range strings.Split(kw, "&") {
 		switch k = strings.TrimSpace(k); k {
 		case "Intimidate":
@@ -38,6 +40,10 @@ func splitKwMarks(kw string) (rest string, marks int) {
 		case "Horsemanship":
 			marks |= kop.KwMarkHorsemanship
 		default:
+			if n, ok := toxicTerm(k); ok && toxic+n <= maxToxicMark {
+				toxic += n // CR 702.164c: instances add (lower_toxicgrant.go)
+				continue
+			}
 			if cards.IsHiddenSwitchPTKeyword(k) {
 				// CR 613.4d until end of turn (gorge PumpGrant.SwitchPT, a
 				// layer-7 SubSwitch effect, read by the same helper): the
@@ -47,6 +53,9 @@ func splitKwMarks(kw string) (rest string, marks int) {
 			}
 			keep = append(keep, k)
 		}
+	}
+	if toxic > 0 {
+		marks |= kop.KwMarkToxic | toxic<<kop.KwMarkToxicShift
 	}
 	return strings.Join(keep, " & "), marks
 }
@@ -74,8 +83,9 @@ func takePermanentHorsemanship(kw string) (rest string, has bool) {
 
 // splitStaticKwMarks is splitKwMarks for a Continuous static's AddKeyword$
 // list: the rest, and the static's Evasion / Infect grant.
-func splitStaticKwMarks(kw string) (rest string, evasion uint8, infect bool) {
+func splitStaticKwMarks(kw string) (rest string, evasion uint8, infect bool, toxic uint8) {
 	rest, marks := splitKwMarks(kw)
+	toxic = uint8(marks >> kop.KwMarkToxicShift) // a static's toxic N rides kop.Static.Toxic
 	if marks&kop.KwMarkSwitchPT != 0 {
 		// a static's switch is no until-end-of-turn mark: keep the term so
 		// the keyword read still refuses it
@@ -92,7 +102,7 @@ func splitStaticKwMarks(kw string) (rest string, evasion uint8, infect bool) {
 	if marks&kop.KwMarkSkulk != 0 {
 		evasion |= kop.EvSkulk
 	}
-	return rest, evasion, marks&kop.KwMarkInfect != 0
+	return rest, evasion, marks&kop.KwMarkInfect != 0, toxic
 }
 
 // kwMarkNames spells the marks for a refusal or a note.
@@ -112,6 +122,9 @@ func kwMarkNames(marks int) string {
 	}
 	if marks&kop.KwMarkSwitchPT != 0 {
 		w = append(w, "SwitchPT")
+	}
+	if marks&kop.KwMarkToxic != 0 {
+		w = append(w, "Toxic:"+strconv.Itoa(marks>>kop.KwMarkToxicShift))
 	}
 	return strings.Join(w, " & ")
 }
