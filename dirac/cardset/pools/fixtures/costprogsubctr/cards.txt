@@ -1,0 +1,19 @@
+# the SubCounter<All/KIND> cost-program pool (dirac/oracle/costprog_subcounter_lockstep_test.go):
+# each carrier's activated ability removes every counter of one kind from the
+# source as its cost (a kop.CostAtom program, dirac/cost_prog.go) and its
+# effect reads how many were removed (SVar$CostCountersRemoved), beside the
+# creatures, burn and basics that put the counters on and spend them.
+Molten Hydra
+Essence Bottle
+Jar of Eyeballs
+Torture Chamber
+Relic Amulet
+Geometric Nexus
+Vish Kal, Blood Arbiter
+Catti-brie of Mithral Hall
+Grizzly Bears
+Lightning Bolt
+Mountain
+Forest
+Plains
+Swamp

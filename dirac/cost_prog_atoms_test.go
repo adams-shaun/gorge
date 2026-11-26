@@ -400,3 +400,54 @@ func TestCostProgOffer(t *testing.T) {
 		}
 	}
 }
+
+// TestCostProgSubCounterAllRecords: a SubCounter atom whose count is the
+// source's whole pile (VCountersSelf, kgen's SubCounter<All/KIND>) is offered
+// with no counter at all, removes the pile, and records the count removed as
+// the activation's amount, which the body reads (SVar$CostCountersRemoved):
+// three counters gain three life, none gains none.
+func TestCostProgSubCounterAllRecords(t *testing.T) {
+	for _, n := range []int{3, 0} {
+		pile := kop.ValueRef{K: kop.VCountersSelf, N: int16(kop.CtrCharge)}
+		sc, o := newCPScen(t, cpCost(kop.Cost{}),
+			cpAtoms(kop.CostAtom{K: kop.CostAtomSubCounter, N: pile, Ctr: kop.CtrCharge}))
+		sc.s.k().t.Cards[sc.src].Abilities[0].Prog[0].A = kop.ValueRef{K: kop.VTriggerAmount}
+		p := &sc.s.perms[sc.slot(o)]
+		p.setCtrN(sc.s, int(kop.CtrCharge), n)
+		life := sc.s.pl[0].life
+		if !sc.run(t, o) {
+			t.Fatalf("%d counters: not offered", n)
+		}
+		if c := p.ctrN(sc.s, int(kop.CtrCharge)); c != 0 {
+			t.Fatalf("%d counters: %d left, want 0", n, c)
+		}
+		if got := int(sc.s.pl[0].life - life); got != n {
+			t.Fatalf("%d counters: gained %d life, want %d", n, got, n)
+		}
+	}
+}
+
+// TestCostProgTwoSacrifices: two filtered Sac atoms need two distinct
+// permanents (gorge SacrificeRemainderFeasible): one creature is not offered,
+// two are, and both are asked and sacrificed, the second pick excluding the
+// first.
+func TestCostProgTwoSacrifices(t *testing.T) {
+	sc, o := newCPScen(t, func(fl kop.FilterID) kop.Cost { return kop.Cost{Flags: kop.CostSac, N: 1, Filter: fl} },
+		func(fl kop.FilterID) []kop.CostAtom {
+			return []kop.CostAtom{{K: kop.CostAtomSac, N: kop.Const(1), F: fl}, {K: kop.CostAtomSac, N: kop.Const(1), F: fl}}
+		})
+	if sc.k.gen == nil {
+		t.Skip("the hand table is not generated: the multi-sacrifice path is a generated table's")
+	}
+	a := sc.perm(sc.fodder, 0)
+	if sc.activateOffered(o, 0) {
+		t.Fatal("offered with one creature for two sacrifices")
+	}
+	b := sc.perm(sc.fodder, 0)
+	if !sc.run(t, o) {
+		t.Fatal("not offered with two creatures")
+	}
+	if !sc.inGrave(a) || !sc.inGrave(b) {
+		t.Fatalf("zones %d %d, want both sacrificed", sc.s.objs[a].zone, sc.s.objs[b].zone)
+	}
+}
