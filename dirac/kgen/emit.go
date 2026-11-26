@@ -99,9 +99,24 @@ func buildForOutput(p *pool, prev []idEntry) (*poolBuild, error) {
 	return &poolBuild{lw: lw, all: all, bs: bs, pt: pt, ids: ids, idx: idx, cv: computeCoverage(p, lw), cls: cls}, nil
 }
 
+// hasManaGrant reports whether a static grants a mana ability: its Grant or
+// GrantBody body (1-based, the card's Abilities) is one (cardset's
+// mana-abilities' life-raise guard refuses a mana grant beside one).
+func hasManaGrant(st kop.Static, def kop.CardDef) bool {
+	for _, g := range []uint8{st.Grant, st.GrantBody} {
+		if g > 0 && int(g)-1 < len(def.Abilities) && def.Abilities[g-1].Kind == kop.AbMana {
+			return true
+		}
+	}
+	return false
+}
+
 // guardLists are the pool indexes the matchup guards read: the Room cards, the
-// cards that read a name, the ab-reduce statics and the mana-costed mana abilities.
-func guardLists(bs []built, filters []kop.Filter) (rooms, readers, abRed []int, abRedFloor []uint8, abRedTypes []uint16, abMana []int, abManaMV []uint8, abManaTypes []uint16) {
+// cards that read a name, the ab-reduce statics, the mana-costed mana
+// abilities, the ab-raise statics (stat:RaiseAbility), the cards carrying any
+// mana ability and the cards carrying an activated ability whose cost has a
+// pick part the build poses beside a raise pick.
+func guardLists(bs []built, filters []kop.Filter, subs []string) (rooms, readers, abRed []int, abRedFloor []uint8, abRedTypes []uint16, abMana []int, abManaMV []uint8, abManaTypes []uint16, abRaise []int, abRaiseTypes []uint16, abRaisePick []bool, abRaiseManaLife []bool, manaGrants []int, manaAny []int, manaAnyTypes []uint16, pickActs []int, pickActsTypes []uint16) {
 	for i := range bs {
 		if bs[i].def.FaceMode == kop.FaceRoom {
 			rooms = append(rooms, i)
@@ -113,13 +128,62 @@ func guardLists(bs []built, filters []kop.Filter) (rooms, readers, abRed []int, 
 		// (CR 601.2f, 602.2b); one that lowers only an Exhaust, Power-up,
 		// Equip or Room unlock never does. Its MinMana$ floor (0 none) is what the
 		// cost keeps.
+		sawRaise, sawRed, sawGrant := false, false, false
 		for _, a := range bs[i].def.Abilities {
-			if a.Kind == kop.AbStatic && a.Static.Kind == kop.StatReduceAbility && a.Static.Zone != kop.ZoneGraveyard && a.Static.B&(1|kop.ReduceAbUnlock|kop.ReduceAbPowerUp|kop.ReduceAbEquip) == 0 {
+			if a.Kind != kop.AbStatic {
+				continue
+			}
+			if !sawRaise && a.Static.Kind == kop.StatRaiseAbility {
+				sawRaise = true
+				abRaise = append(abRaise, i)
+				abRaiseTypes = append(abRaiseTypes, raiserTypes(filters, subs, a.Static.Filter))
+				abRaisePick = append(abRaisePick, a.Static.B&kop.RaiseAbPick != 0)
+				// the mana-abilities' life arm (RaiseAbMana with StRaiseLife,
+				// Thran Portal): the raise reaches only the static's own
+				// source's mana abilities and the mana window prices it, so
+				// the guard's mana arm does not refuse beside other cards
+				// (cardset.AbRaiseRefusal)
+				abRaiseManaLife = append(abRaiseManaLife, a.Static.B&kop.RaiseAbMana != 0 && a.Static.StFlags&kop.StRaiseLife != 0)
+			}
+			if !sawGrant && hasManaGrant(a.Static, bs[i].def) {
+				sawGrant = true
+				manaGrants = append(manaGrants, i)
+			}
+			if !sawRed && a.Static.Kind == kop.StatReduceAbility && a.Static.Zone != kop.ZoneGraveyard && a.Static.B&(1|kop.ReduceAbUnlock|kop.ReduceAbPowerUp|kop.ReduceAbEquip) == 0 {
+				sawRed = true
 				abRed = append(abRed, i)
 				abRedFloor = append(abRedFloor, uint8(a.Static.B>>kop.ReduceAbMinShift)&15)
 				abRedTypes = append(abRedTypes, reducerTypes(filters, a.Static.Filter))
-				break
 			}
+		}
+		// any mana ability the card can activate: a printed AbMana ability, a
+		// filter's fee (the kernel prices the fee at the slot), or a land's
+		// own -- CR 305.7 gives every land with a basic land type the type's
+		// mana ability, which the kernel grants off the type, so the built def
+		// need not print one (Thran Portal's Gate). The raise guards read it:
+		// the mana window prices no ability raise.
+		manaable := bs[i].def.Types&kop.TLand != 0
+		picked := false
+		for j := range bs[i].def.Abilities {
+			a := &bs[i].def.Abilities[j]
+			if a.Kind == kop.AbMana || dirac.FilterTapMana(&bs[i].def, a) {
+				manaable = true
+			}
+			// an activated ability whose cost has a pick part the build poses
+			// beside a raise's pick (a sacrifice, tap-creatures, tap-power,
+			// waterbend, forage/exile/return/blight): the one pick Cost a build
+			// poses cannot carry both (cardset.AbRaiseRefusal)
+			if !picked && a.Kind == kop.AbActivated && a.Cost.Flags&(kop.CostSac|kop.CostTapX|kop.CostTapPower|kop.CostWaterbend|kop.CostForage|kop.CostExileGrave|kop.CostReturn|kop.CostBlight) != 0 {
+				picked = true
+			}
+		}
+		if manaable {
+			manaAny = append(manaAny, i)
+			manaAnyTypes = append(manaAnyTypes, uint16(bs[i].def.Types))
+		}
+		if picked {
+			pickActs = append(pickActs, i)
+			pickActsTypes = append(pickActsTypes, uint16(bs[i].def.Types))
 		}
 		// The dearest mana cost among a card's mana abilities the kernel
 		// does not price itself: a filter's fee is priced at the slot after
@@ -139,7 +203,53 @@ func guardLists(bs []built, filters []kop.Filter) (rooms, readers, abRed []int, 
 			abManaTypes = append(abManaTypes, uint16(bs[i].def.Types))
 		}
 	}
-	return rooms, readers, abRed, abRedFloor, abRedTypes, abMana, abManaMV, abManaTypes
+	return rooms, readers, abRed, abRedFloor, abRedTypes, abMana, abManaMV, abManaTypes, abRaise, abRaiseTypes, abRaisePick, abRaiseManaLife, manaGrants, manaAny, manaAnyTypes, pickActs, pickActsTypes
+}
+
+// raiseTapLists is guardLists' companion for the generic raise: per raiser
+// (AbRaisers' order) whether its raise carries generic mana, and the cards
+// with an activated ability whose cost taps its source ({T}). gorge withholds
+// such a creature's ability under Oppressive Rays' {3} where the kernel prices
+// it (cardset.AbRaiseRefusal's tapped arm).
+func raiseTapLists(bs []built) (gen []bool, tapActs []int, tapActsTypes []uint16) {
+	for i := range bs {
+		sawRaise, tapped := false, false
+		for j := range bs[i].def.Abilities {
+			a := &bs[i].def.Abilities[j]
+			if !sawRaise && a.Kind == kop.AbStatic && a.Static.Kind == kop.StatRaiseAbility {
+				sawRaise = true
+				// a mana-abilities' life raise (RaiseAbMana with StRaiseLife)
+				// carries generic in no part of it: A is the life
+				gen = append(gen, !(a.Static.B&kop.RaiseAbMana != 0 && a.Static.StFlags&kop.StRaiseLife != 0) &&
+					(a.Static.A > 0 || a.Static.StFlags&kop.StDynamic != 0))
+			}
+			if a.Kind == kop.AbActivated && a.Cost.Flags&kop.CostTap != 0 {
+				tapped = true
+			}
+		}
+		if tapped {
+			tapActs = append(tapActs, i)
+			tapActsTypes = append(tapActsTypes, uint16(bs[i].def.Types))
+		}
+	}
+	return gen, tapActs, tapActsTypes
+}
+
+// raiserTypes is reducerTypes for a StatRaiseAbility static, which also reads a
+// creature subtype as the creature type (Brutal Suppression's Rebel.!token, so
+// its raise guard does not reach a land's mana ability): a filter that names no
+// type, no alternative and a subtype outside the non-creature vocabulary
+// matches creatures. subs is the pool's subtype names (Filter.Sub-1).
+func raiserTypes(filters []kop.Filter, subs []string, id kop.FilterID) uint16 {
+	t := reducerTypes(filters, id)
+	if t != 0 || int(id) >= len(filters) {
+		return t
+	}
+	f := &filters[id]
+	if f.Or == 0 && f.Sub != 0 && int(f.Sub) <= len(subs) && !dirac.NonCreatureSubtype(subs[f.Sub-1]) {
+		return uint16(kop.TCreature)
+	}
+	return 0
 }
 
 // reducerTypes is the card types a StatReduceAbility static's filter can

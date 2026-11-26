@@ -1994,6 +1994,55 @@ func (cb *cardBuilder) combatAmountFilter(st *kop.Static, kind kop.StaticKind, f
 	return err
 }
 
+// staticAbRaise emits a RaiseCost Type$ Ability static (kop.StatRaiseAbility;
+// kernel cost_abraise.go abRaised): the battlefield sources' filter, the
+// Sac<1/pick>'s permanents in Filter2, the raise amount (a literal, or a
+// dynamic value with StDynamic) and the SacPick flag.
+func (cb *cardBuilder) staticAbRaise(s lStatic, st *kop.Static) error {
+	if s.F != nil {
+		f, err := cb.filter(s.F, kop.ZoneBattlefield)
+		if err != nil {
+			return err
+		}
+		st.Filter = f
+	}
+	if s.F2 != nil {
+		f, err := cb.filter(s.F2, kop.ZoneBattlefield)
+		if err != nil {
+			return err
+		}
+		st.Filter2 = f
+	}
+	a := s.Amount
+	if a.Kind == vNone || a.isConst() {
+		st.A = int16(a.N)
+	} else {
+		st.StFlags |= kop.StDynamic
+		v, err := cb.value(a)
+		if err != nil {
+			return err
+		}
+		st.VA = v
+	}
+	for _, fl := range s.Flags {
+		switch fl {
+		case "SacPick":
+			st.B |= kop.RaiseAbPick
+		case "ManaLife":
+			// the mana-abilities' life arm (ValidSpell$ Activated.ManaAbility
+			// with a self filter, Thran Portal): RaiseAbMana narrows the
+			// raise to mana abilities and StRaiseLife makes A the life each
+			// activation pays (the kernel's mana window pays it at each tap
+			// of the source, static_landtype.go prepLandGrant's fold)
+			st.B |= kop.RaiseAbMana
+			st.StFlags |= kop.StRaiseLife
+		default:
+			return fmt.Errorf("raise ability flag %q", fl)
+		}
+	}
+	return nil
+}
+
 // static builds a static ability and its granted subtypes.
 func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 	ka := kop.Ability{Kind: kop.AbStatic}
@@ -2178,6 +2227,12 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 			}
 		}
 	case "RaiseCost":
+		if s.AbilityRaise != 0 {
+			// a RaiseCost of activated abilities (static_raiseability.go): the
+			// battlefield sources' cost raises (kernel cost_abraise.go abRaised)
+			st.Kind = kop.StatRaiseAbility
+			return ka, nil, cb.staticAbRaise(s, st)
+		}
 		st.Kind = kop.StatIncreaseCost
 		if st.Filter, err = filter(s.F, kop.ZoneStack); err != nil {
 			return ka, nil, err
