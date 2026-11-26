@@ -620,6 +620,9 @@ func (s *State) firePhaseGen(k *prep, st kop.Step) {
 					if a.Kind != kop.AbTriggered || a.Trig.Zone != kop.ZoneGraveyard || a.Trig.Event != kop.TrigPhase || a.Trig.Step != st {
 						continue
 					}
+					if s.gravePrintedHidden(k, o) {
+						continue // the card lost all abilities in the graveyard (static_graveabilityloss.go)
+					}
 					l := trigListener{obj: o, sl: NoSlot, ctrl: pp, card: c, ab: uint8(j)}
 					if !whoseOK(a.Trig.Whose, pp, s.active) || !s.trigOK(k, l, a) {
 						continue

@@ -38,7 +38,7 @@ const maxXblk = 8
 
 // xblkRecs is the further-block table (nil when the pool has no ExtraBlocks
 // card), a record to each further attacker of a blocker, found by its b. It
-// sits in the cold buffer, so State itself does not grow (TestStateLayoutPinned).
+// sits in the cold buffer, so State itself does not grow (TestNoNewFixedStateFields).
 // A slot's records are dropped as the slot takes a new permanent (xblkDrop,
 // from arenaClrSlot).
 func (s *State) xblkRecs() []xblkRec { return coldXblk.of(s) }
