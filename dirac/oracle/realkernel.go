@@ -126,6 +126,7 @@ func RealKernel(tbl *kop.Table, names map[string]string, cfg Config) SideFactory
 		r.kcfg.SeatCommanders = m.SeatCommandZone
 		r.kcfg.RecordChance = cfg.RecordChance
 		r.kcfg.ArrangeRestOrder = cfg.ArrangeRestOrder
+		r.kcfg.PriorityManaAsk = cfg.PriorityManaAsk
 		for s := 0; s < 2; s++ {
 			if len(sides[s]) > dirac.MaxSide {
 				return nil, fmt.Errorf("realkernel: sideboard of %d cards, the kernel holds %d", len(sides[s]), dirac.MaxSide)

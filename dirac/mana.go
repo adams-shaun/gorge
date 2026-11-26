@@ -1102,7 +1102,7 @@ func (s *State) payRider(k *prep, p uint8, cost *kop.ManaCost, x int, exclude Ob
 	if k.restrSrc {
 		s.payRiderRestr(k, p, cost, x, exclude, anyColor)
 	} else {
-		if !s.convAllPoolRoute(k, p, anyColor) {
+		if !s.convAllPoolRoute(k, p, anyColor) && !s.convCRoute(k, *cost, x) {
 			s.tapForRider(k, p, cost, x, exclude, anyColor) // (the any-colour conversion's pool route taps nothing)
 		}
 		s.payFromPoolRider(k, p, cost, x, anyColor)
@@ -1499,6 +1499,10 @@ func (s *State) payFromPoolRider(k *prep, p uint8, cost *kop.ManaCost, x int, an
 	}
 	if k.gen != nil && s.ctl == ctlBuild && s.bld().e.kind == seSpell && s.bld().e.flags&sfAnyMana == 0 && k.gen.uses.has(useAnyColorSpell) && s.convAnyColor(k, p, s.bld().e.obj) {
 		c := s.payConvColorPips(k, p, *cost) // the any-colour conversion: exact colours first (mana_convertcreature.go)
+		cost = &c
+	}
+	if k.gen != nil && s.ctl == ctlBuild && s.bld().convC && s.bld().e.kind == seSpell && s.bld().e.flags&sfAnyMana == 0 {
+		c := s.payConvCPips(k, p, *cost) // the may-play record's colourless-mana conversion: own colour, else {C} (cast_mayconvc.go)
 		cost = &c
 	}
 	if anyColor && k.gen != nil && s.ctl == ctlBuild && s.bld().e.kind == seAbility && s.convAnyAll(k, p) {

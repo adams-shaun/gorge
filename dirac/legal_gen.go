@@ -267,7 +267,7 @@ func (s *State) offerPlay(k *prep, d *Decision, p uint8, o Obj, mode uint8, sorc
 			if !av.affordsAnyColor(&cost, 0) {
 				return
 			}
-		} else if !s.castAffordsR(k, p, c, s.restrOriginOfObj(o), &cost, av) && !s.convPoolPays(k, p, o, &cost) {
+		} else if !s.castAffordsR(k, p, c, s.restrOriginOfObj(o), &cost, av) && !s.convAnyPoolPays(k, p, o, &cost) {
 			return // (the any-colour conversion's pool route: mana_convertcreature.go)
 		}
 	} else if !s.freeCastRaisePayable(k, p, c, o, unpriced, av) {
@@ -494,8 +494,19 @@ func (s *State) castFlagsGenTgt(k *prep, o Obj, mode, tgt uint8) {
 	}
 	s.bld().e.flags |= sfMayPlay
 	p := s.bld().e.ctrl
-	if mode == castMayPlay|castFree && FeatIsZeroAltTgt(tgt) && k.gen.anyZeroAlt && s.spendZeroAlt(k, o, p) && tgt == zeroAltTgt {
-		mode &^= castFree // the {0} alternative beside a priced plain cast: that cast's permission is spent below (cast_mayzeroalt.go)
+	if mode == castMayPlay|castFree && FeatIsZeroAltTgt(tgt) && k.gen.anyZeroAlt {
+		if ok, zst := s.spendZeroAlt(k, o, p); ok && tgt == zeroAltTgt {
+			mode &^= castFree // the alternative beside a priced plain cast: that cast's permission is spent below (cast_mayzeroalt.go)
+			if zst.a.Static.StFlags&kop.StMayPayLife != 0 {
+				s.bld().payLifeMV = true // the alternative's cost is the mana value in life (Demon of Fate's Design)
+			}
+			if zst.a.Static.StFlags&kop.StMayPayEnergy != 0 {
+				s.bld().payEnergy = uint8(zst.a.Static.A) // the alternative's cost is the static's energy (Nissa, Worldsoul Speaker)
+			}
+			if zst.a.Static.StFlags&kop.StMayPayEvidence != 0 {
+				s.bld().payEvidence = uint8(zst.a.Static.A) // the alternative's cost is the static's evidence (Conspiracy Unraveler)
+			}
+		}
 	}
 	// a permission record is spent; a once-per-turn static is marked
 	if k.gen.anyMayKind && s.spendMayKind(k, o, p, mode) {
@@ -547,6 +558,9 @@ func (s *State) spendMayRecord(k *prep, o Obj, p uint8) bool {
 			continue
 		}
 		s.stampMayExile(k, i) // repl_stackexile.go
+		if r.turn&mayTurnConvC != 0 && s.buildLive() {
+			s.bld().convC = true // the cast pays under the colourless-mana conversion (cast_mayconvc.go)
+		}
 		if !r.follows() && !(r.dur() == kop.DurWhileGrave && r.kind&kop.MayPlayLimitMask == 0) {
 			// A following record outlives its own cast (gorge's continuous
 			// grant); an Effect-delivered graveyard grant stays live after
@@ -883,6 +897,13 @@ func (s *State) paySacsGen(k *prep) {
 	if k.gen.anyBatch {
 		defer s.batchClose(s.sacBatchOpen()) // gorge emitSacrifices: one sacrifice batch (act_proliferate.go)
 	}
+	if e := &s.bld().e; e.kind == seAbility && e.ab < uint8(len(k.t.Cards[e.card].Abilities)) {
+		if f := k.t.Cards[e.card].Abilities[e.ab].Cost.Flags; f&kop.CostReturnSelf != 0 && f&kop.CostSac != 0 {
+			// gorge payCast: the source's return before the sacrifices
+			// (Chthonian Nightmare); the deferred call below is then a no-op
+			s.returnSelfDeferred(k, e)
+		}
+	}
 	exile := s.pickExiles(k)
 	for i := 0; i < int(s.bld().pickN); i++ {
 		o := s.bld().picks[i]
@@ -1061,6 +1082,10 @@ func (s *State) priorityGraveAct(k *prep, d *Decision, p uint8, sorc bool, av *a
 			var red kop.ManaCost
 			if k.gen.anyOwnReduce && a.OwnReduce != (kop.ValueRef{}) {
 				red = s.ownReduced(k, a, o, p) // a graveyard ability's own ReduceCost$ (cost_ownreduce.go)
+				mana = &red
+			}
+			if z == kop.ZoneGraveyard && k.gen.anyAbReduce {
+				red = s.abReducedGrave(k, a, o, p, *mana) // a graveyard-zone reduction static (Convergence of Dominion; cost_reduceability.go)
 				mana = &red
 			}
 			gd := payDesc{class: pdAct, card: s.objs[o].card, src: NoSlot}

@@ -8,6 +8,9 @@ TestTapAllLockstep
 TestSpiritGuideFundTryExemptMutation
 TestUnpayableAltAddPartAnEachColourSourceMayFundLockstep
 TestManaRidersLockstep
+# Named by 11-25 red (whole-oracle run at 32bfe4888a and d6d98cb720)
+TestFourSeatHornChosenTypeRevealMutation
+TestFourSeatHornChosenTypeReveal
 
 # Four-seat, pod, commander and EDH lockstep and deck tests
 TestCanBlockAnyFourSeatLockstep
@@ -192,3 +195,4 @@ TestTypedArtifactManaFourSeatLockstep
 TestUnlessCommandTowerOfferLockstep
 TestVoteChoicesFourSeatLockstep
 TestVoteStoreNumFourSeatLockstep
+TestPinManifest

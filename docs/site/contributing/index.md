@@ -1,8 +1,9 @@
 # Contributing
 
 How to set up a checkout, run tests the way the project expects, read the
-ratchets that will fail on you, and get a change merged. Unfamiliar words (IR,
-primitive, ratchet, chain head) are in the [glossary](glossary.md).
+ratchets that will fail on you, and get a change merged.
+
+Unfamiliar words (IR, primitive, ratchet, chain head) are in the [glossary](glossary.md).
 
 ```mermaid
 flowchart LR
@@ -18,10 +19,10 @@ flowchart LR
 
 [Install and build](../guide/install.md#prerequisites) lists the prerequisites.
 
-```sh
+```sh title="One-time setup"
 git clone https://github.com/adams-shaun/gorge && cd gorge
-make fetch-cards      # Forge card + token scripts at FORGE_REF into .cards/ (about 140 MB on disk)
-make compile-cards    # parse them into the IR cache, .cards/ir-<fingerprint>.gob.gz
+make fetch-cards      # Forge card + token scripts at FORGE_REF into .cards/ (about 140 MB)
+make compile-cards    # parse them into the IR cache
 make report           # corpus coverage against the implemented primitives
 ```
 
@@ -39,7 +40,7 @@ When the pin moves, `make fetch-cards` also clears Go's test cache, because
 
 Optionally enable the git hooks:
 
-```sh
+```sh title="Optional: the repository's git hooks"
 git config core.hooksPath .githooks
 ```
 
@@ -53,11 +54,11 @@ before CI. `pre-push` runs the race detector, one package at a time, only when y
 Make each change in its own [git worktree](https://git-scm.com/docs/git-worktree),
 branched from `origin/main`, so your main checkout stays clean:
 
-```sh
+```sh title="One worktree per change"
 git fetch origin
 git worktree add ../gorge-myfix -b myfix origin/main
-ln -s "$PWD/.cards" ../gorge-myfix/.cards      # the corpus is untracked: link it in
 cd ../gorge-myfix
+scripts/link-cards.sh     # link the corpus for this tree's FORGE_REF
 ```
 
 !!! warning "A worktree without `.cards/` reads green and tests nothing"
@@ -67,32 +68,26 @@ cd ../gorge-myfix
     make test targets report that as `ENV`. CI refuses to run without the
     corpus.
 
-## Run tests
+## Check your change
 
-Use the make targets, never raw `go test`: [Testing](testing.md#focused-runs).
+| Check | Run | What to know |
+|---|---|---|
+| Tests | `make test-targeted` while iterating, `make test-smart` once before the PR | Never raw `go test`: [Testing](testing.md#focused-runs). A verdict of `ENV` is not green. |
+| Lint | `make lint` | gofmt, `go vet ./...`, `gentypes -check`, and the web client's svelte-check and eslint, so it needs `web/node_modules`. CI's `lint` job runs the Go half plus `make fresh-clone-check`. |
+| Replays | `make sim` | Every game prints `replay OK`. |
 
-## Lint
-
-```sh
-make lint    # gofmt, go vet ./..., gentypes -check, plus the web client's svelte-check and eslint (needs Node)
-```
-
-`make lint` needs `web/node_modules`. CI's `lint` job runs the Go half plus
-`make fresh-clone-check`.
-
-## The ratchets you will hit
-
-A **ratchet** is a test whose expected value is a committed table and which
-fails in both directions: a new gap fails, and a gap your change closed is a
-stale entry that fails too. Delete the entry in the same commit; never add one
-([why](../architecture/invariants.md#ratchets-only-shrink)).
-[Testing](testing.md#ratchets-and-goldens-what-a-failure-means) lists each
-ratchet and what to do when it fails.
+!!! warning "Ratchets fail in both directions"
+    A **ratchet** is a test whose expected value is a committed table. A new gap fails, and a
+    gap your change closed is a stale entry that fails too. Delete the entry in the same commit;
+    never add one ([why](../architecture/invariants.md#ratchets-only-shrink)).
+    [Testing](testing.md#ratchets-and-goldens-what-a-failure-means) lists each ratchet and what
+    to do when it fails.
 
 ## Commits and pull requests
 
-**Landing.** Open your PR **against `main`**. Nothing is pushed to `main`
-directly.
+### How a PR lands
+
+Open your PR **against `main`**. Nothing is pushed to `main` directly.
 
 1. Mergify queues every non-draft PR (no label, no approval) once its two
    checks pass: `lint` (above) and `fast` (`scripts/ci-fast.sh`: the packages
@@ -116,7 +111,7 @@ began in the last 5h30m, so about every 6 hours) and on demand. A PR that
 touches `docs/site/`, `dirac/docs/support.md` or `mkdocs.yml` also gets a
 strict docs build. [Branch flow](../repos/index.md#branch-flow) has the diagram.
 
-**Commit messages.**
+### Commit messages
 
 - Subject `kind(area): what changed`, as in the history:
   `fix(effects): …`, `feat(bots): …`, `test(spellbench): …`, `docs(design): …`.
@@ -129,13 +124,17 @@ strict docs build. [Branch flow](../repos/index.md#branch-flow) has the diagram.
   "Generated with …") and no issue-tracker references
   (`CONTRIBUTING.md`).
 
-**The pull request.** `.github/pull_request_template.md` asks for an overview,
+### The pull request
+
+`.github/pull_request_template.md` asks for an overview,
 the changes by area, how you tested, and notes for reviewers. `make pr` pushes
 your branch and opens (or refreshes) the PR against `main` with a generated
 overview. It needs an authenticated `gh`; `DRY=1` prints the body without
 pushing, `DRAFT=1` opens a draft.
 
-**Checklist.** Modelled on the first outside contribution,
+### Checklist
+
+Modelled on the first outside contribution,
 [`786510b3f`](https://github.com/adams-shaun/gorge/commit/786510b3f):
 
 - [ ] A test that fails without your change, in the package you changed,
@@ -155,7 +154,7 @@ pushing, `DRAFT=1` opens a draft.
 A bug report filed from a game on `gorged` carries a replayable snapshot (`match.json`, `log.json`,
 the seat's `view.json`). `cmd/repro` turns it into a failing test:
 
-```sh
+```sh title="cmd/repro"
 go run ./cmd/repro <feedback-dir>                     # replay, verify the chain head, print the board
 go run ./cmd/repro -list <feedback-dir>               # the timeline of recorded answers (intents)
 go run ./cmd/repro -at N <feedback-dir>               # stop at intent N
@@ -178,7 +177,7 @@ TODO with your assertion.
 This site is `docs/site/`, built by MkDocs Material from `mkdocs.yml` and
 published from `main` by `.github/workflows/docs.yml`. To preview it:
 
-```sh
+```sh title="Preview the site"
 go run ./cmd/pkgmap > docs/site/architecture/_generated_packages.md   # the generated package tables
 python3 scripts/docs_sets.py --dirac-support dirac/docs/support.md      # the set tables, without gorge's columns
 uvx --with mkdocs-material==9.7.7 mkdocs serve                        # or: pip install -r docs/site/requirements.txt
@@ -192,13 +191,32 @@ as `https://github.com/adams-shaun/gorge/blob/main/<path>`.
 
 ## Where next
 
-- [Your first card fix](first-card-fix.md): one bug from report to merged fix.
-- [Testing](testing.md): helpers, oracle scenarios and the ratchets in depth.
-- [The card pipeline](card-pipeline.md): how a script becomes behaviour, and
-  how coverage is measured.
-- [Repository layout](repo-layout.md): the tree, the tiers, and where a
-  change goes.
-- [Invariants](../architecture/invariants.md): the rules every change keeps.
-- [The three repositories](../repos/index.md): what lives in gorge-compliance
-  and why gorge never imports a companion.
-- [Glossary](glossary.md).
+<div class="grid cards" markdown>
+
+-   [**Your first card fix**](first-card-fix.md)
+
+    One bug from report to merged fix.
+
+-   [**Testing**](testing.md)
+
+    Helpers, oracle scenarios and the ratchets in depth.
+
+-   [**The card pipeline**](card-pipeline.md)
+
+    How a script becomes behaviour, and how coverage is measured.
+
+-   [**Repository layout**](repo-layout.md)
+
+    The tree, the tiers, and where a change goes.
+
+-   [**Invariants**](../architecture/invariants.md)
+
+    The rules every change keeps.
+
+-   [**The three repositories**](../repos/index.md)
+
+    What lives in gorge-compliance and why gorge never imports a companion.
+
+</div>
+
+The [glossary](glossary.md) defines the project's terms.

@@ -706,7 +706,7 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		}
 		headed := false
 		mk := uint8(in.B.N)&kop.MayPlayKinds | uint8(in.B.N>>8)&kop.MayPlayAdvKind
-		*s.mayAt(int(s.g.nmay)) = mayPlay{obj: o, ver: mayVerAt(s, o, kop.Zone(in.C&kop.MayPlayZoneMask), in.C&kop.MayPlayFollows != 0), ctrl: e.ctrl, until: grantUntil(uint8(in.A.N), mk, &headed) | payLifeMark(in.B.N), kind: mk | payLifeKind(in.B.N), turn: mayWord(s.turn)}
+		*s.mayAt(int(s.g.nmay)) = mayPlay{obj: o, ver: mayVerAt(s, o, kop.Zone(in.C&kop.MayPlayZoneMask), in.C&kop.MayPlayFollows != 0), ctrl: e.ctrl, until: grantUntil(uint8(in.A.N), mk, &headed) | payLifeMark(in.B.N), kind: mk | payLifeKind(in.B.N), turn: mayWord(s.turn) | convCMark(in.C)}
 		s.g.nmay++
 		if uint8(in.A.N) == kop.DurUntilYourNextTurn {
 			s.mayNTArm(e.ctrl) // cast_mayplaynt.go: the record's expiry counter
@@ -2535,11 +2535,23 @@ func (s *State) copyTokenEnter(k *prep, in *kop.Instr, t Obj, host Slot, eb *ent
 // copyTokenEnterFrom is copyTokenEnter with the copied permanent's slot tmpl
 // (NoSlot: none on the battlefield) given. eb, when not nil, holds its enters check.
 func (s *State) copyTokenEnterFrom(k *prep, in *kop.Instr, t Obj, host, tmpl Slot, eb *entBatch) {
+	fd := uint8(0)
+	if tmpl != NoSlot && s.faceDown(k, tmpl) {
+		fd = 1 + uint8(s.perms[tmpl].gty&gtyProvMask>>13) // CR 707.2: its copiable values are the face-down characteristics
+	}
+	s.copyTokenEnterFd(k, in, t, host, tmpl, eb, fd)
+}
+
+// copyTokenEnterFd is copyTokenEnterFrom with the copied permanent's face-down
+// mark fd given: 0 for a face-up copy, else 1 + the provenance bits (gtyProvMask
+// >> 13) of the face-down permanent it copies. The loss copy of a departed
+// face-down permanent (ctr_losscopy.go) has no template slot to read it from.
+func (s *State) copyTokenEnterFd(k *prep, in *kop.Instr, t Obj, host, tmpl Slot, eb *entBatch, fd uint8) {
 	e := &s.res.e
 	fl := in.B.N & 0xff
 	face := uint8(0)
-	if tmpl != NoSlot && s.faceDown(k, tmpl) {
-		face = 1 // CR 707.2: its copiable values are the face-down characteristics
+	if fd != 0 {
+		face = 1
 	}
 	early := !k.gen.anyBecomeCopy && (in.C != 0 || tmpl != NoSlot && s.fxM.has(tmpl))
 	if !early && k.gen.anyBecomeCopy && s.embalmMint(k, in, t) {
@@ -2557,7 +2569,7 @@ func (s *State) copyTokenEnterFrom(k *prep, in *kop.Instr, t Obj, host, tmpl Slo
 		// the token's own face-down status. A blank permanent copy (both bits,
 		// gtyBlankCopy) keeps its both-bit mark, which permBlank reads as a copy
 		// that keeps its printed name.
-		s.perms[sl].gty |= s.perms[tmpl].gty & gtyProvMask
+		s.perms[sl].gty |= kop.TypeMask((fd-1)&3) << 13
 		s.perms[sl].spare |= spareCopyFaceDown
 	}
 	s.touch(t)
@@ -2597,8 +2609,11 @@ func (s *State) copyTokenEnterFrom(k *prep, in *kop.Instr, t Obj, host, tmpl Slo
 	if eb != nil && eb.n < len(eb.sl) {
 		eb.sl[eb.n], eb.o[eb.n] = sl, t
 		eb.n++
-	} else if s.anyETB(k) {
-		s.fireObj(k, kop.TrigETB, sl, t, e.ctrl, 0)
+	} else {
+		if s.anyETB(k) {
+			s.fireObj(k, kop.TrigETB, sl, t, e.ctrl, 0)
+		}
+		s.storyGrant(k) // the emit-tail grant, after the entry's triggers, ETB or not (kw_storied.go); the held batch grants in fireEntries
 	}
 	if uint16(in.B.N)>>kop.CopyPumpShift&0x3f != 0 {
 		s.copyPumpEnter(k, sl, in) // PumpKeywords$: a permanent, non-copiable grant

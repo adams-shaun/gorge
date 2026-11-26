@@ -343,6 +343,9 @@ func dumpLIR(w io.Writer, c *lCard) {
 	}
 	if c.Evoke != nil {
 		fmt.Fprintf(w, " evoke=%s", c.Evoke)
+		if c.EvokePick != nil {
+			fmt.Fprintf(w, "+%s", costString(*c.EvokePick))
+		}
 	}
 	if c.Dash != nil {
 		fmt.Fprintf(w, " dash=%s", c.Dash)
@@ -629,6 +632,9 @@ func dumpStatics(w io.Writer, c *lCard) {
 		if s.Kind == "FbGrant" && len(s.Flags) != 0 {
 			fmt.Fprintf(w, " fbcost=%s", s.Cost.Mana)
 		}
+		if s.Kind == "MiracleGrant" {
+			fmt.Fprintf(w, " miraclecost=%s less=%d", s.Cost.Mana, s.CardCostLess)
+		}
 		if s.Kind == "WarpGrant" {
 			fmt.Fprintf(w, " warpcost=%s", s.Cost.Mana)
 		}
@@ -668,6 +674,9 @@ func costString(c lCost) string {
 	}
 	if c.SacX {
 		p = append(p, "SacX")
+	}
+	if c.SacHalf {
+		p = append(p, "SacHalf")
 	}
 	if c.XMin > 0 {
 		p = append(p, fmt.Sprintf("XMin%d", c.XMin))
@@ -711,6 +720,12 @@ func costString(c lCost) string {
 	}
 	if c.LifeX {
 		p = append(p, "LifeX")
+	}
+	if c.EnergyX {
+		p = append(p, "EnergyX")
+	}
+	if c.TapXVar {
+		p = append(p, fmt.Sprintf("TapXVar%s", c.TapF))
 	}
 	if c.TapN > 0 {
 		p = append(p, fmt.Sprintf("Tap%d%s", c.TapN, c.TapF))

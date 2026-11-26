@@ -49,6 +49,8 @@ func (lc *lowerCtx) repeatEachCardsLoop(in lInstr, body *cards.SA) error {
 // (lower_effeottrig.go capturedTriggerRef).
 func (lc *lowerCtx) rememberedAlias(v string) (lRef, bool) {
 	switch {
+	case v == "Remembered" && lc.remSelf:
+		return lRef{Kind: rSelf}, true // the Effect's source (lower_effectremself.go)
 	case v == "Remembered" && lc.repeatCard > 0:
 		return lRef{Kind: rEach}, true
 	case v == "Remembered" && lc.remOppLink():

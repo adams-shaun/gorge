@@ -65,14 +65,15 @@ func TestAraumiGrantsEncore(t *testing.T) {
 		t.Fatalf("Araumi target slot bounds %v..%v, want 1..1", tg.Min, tg.Max)
 	}
 
-	// The class stays refused: a Count$xPaid X is the paid mana X the
-	// ability's body reads at resolution (NumAtt$ -X), which the kernel's
-	// ability body cannot read, and Wire Surgeons' static Encore grant is a
-	// different card family (out of scope).
-	for _, name := range []string{"Painbringer", "Taigam, Sidisi's Hand", "Necropolis Fiend", "Wire Surgeons"} {
-		lc := lower(name)
-		if len(lc.Refusals) == 0 {
-			t.Fatalf("%s lowers: want the refusal", name)
+	// The announced-X exile of an activated ability lowers (lower_exilex.go;
+	// lockstep dirac/oracle/exilexact_lowers_test.go); Wire Surgeons' static
+	// Encore grant is a different card family (out of scope).
+	for _, name := range []string{"Painbringer", "Taigam, Sidisi's Hand", "Necropolis Fiend"} {
+		if lc := lower(name); len(lc.Refusals) != 0 {
+			t.Fatalf("%s refusals = %v, want none", name, lc.Refusals)
 		}
+	}
+	if lc := lower("Wire Surgeons"); len(lc.Refusals) == 0 {
+		t.Fatal("Wire Surgeons lowers: want the refusal")
 	}
 }

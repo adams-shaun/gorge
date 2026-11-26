@@ -107,10 +107,22 @@ func playLandsFlag(landPlay bool) string {
 
 // playRememberedZone is the zone a Play of Defined$ Remembered reads its cards
 // in: the hand straight after a Draw that remembered its cards (Mad Wizard's
-// Lair's free cast of one of three drawn cards), else exile.
+// Lair's free cast of one of three drawn cards), the graveyard straight after
+// an up-to-one graveyard pick that remembered its card (Jetsam's DBPlayAll
+// casts the card DBChoose read in ChoiceZone$ Graveyard), else exile.
 func (lc *lowerCtx) playRememberedZone() int {
-	if n := len(lc.ab.Prog); n > 0 && lc.ab.Prog[n-1].Op == "Draw" && lc.ab.Prog[n-1].CS == "Remember" {
-		return zHand
+	if n := len(lc.ab.Prog); n > 0 {
+		last := &lc.ab.Prog[n-1]
+		if last.Op == "Draw" && last.CS == "Remember" {
+			return zHand
+		}
+		if last.Op == "ChooseCard" && last.C == zGraveyard {
+			// gorge effPlay's Defined$ Remembered population is
+			// zone-unrestricted and the picked card is still in the
+			// graveyard it was read from (the chain's ClearRemembered runs
+			// after the Play)
+			return zGraveyard
+		}
 	}
 	return zExile
 }

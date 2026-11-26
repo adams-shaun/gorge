@@ -115,7 +115,7 @@ func (s *State) sbaFingerprint() (fp [6]byte) {
 	for p := uint8(0); p < s.nSeats(); p++ {
 		pl := &s.pl[p]
 		h = hmix(h, uint64(uint16(pl.life))|uint64(uint16(pl.lifeGained))<<16|uint64(uint16(pl.lifeLost))<<32|uint64(uint16(pl.lastLost))<<48)
-		h = hmix(h, uint64(b2u(pl.lost))|uint64(b2u(pl.drewEmpty))<<8|uint64(pl.landsPlayed)<<16|uint64(pl.drawnTurn)<<24|uint64(pl.scry)<<32|
+		h = hmix(h, uint64(b2u(pl.lost))|uint64(pl.mark&pmDrewEmpty)<<8|uint64(pl.landsPlayed)<<16|uint64(pl.drawnTurn)<<24|uint64(pl.scry)<<32|
 			uint64(pl.sac[0])<<40|uint64(pl.sac[1])<<48|uint64(pl.sac[2])<<56)
 		h = hmix(h, uint64(pl.disc)|uint64(pl.mulls)<<8)
 	}

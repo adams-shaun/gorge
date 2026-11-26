@@ -9,9 +9,10 @@ import (
 
 // TestTapXVarTriggerCost: a trigger's own tapXType<X/Spec> cost (a Myr
 // Battlesphere-shaped attack trigger) lowers to an IfPaid PayTapX carrying
-// PayBSubTapXVar, its spec the filter; every other home of the X form (an
-// activated ability, a cost beside mana, an SVar:X that is not the plain
-// Count$xPaid) refuses by name.
+// PayBSubTapXVar, its spec the filter; a printed activated ability's lowers
+// to the announced CostTapX with N 0 (cost_tapxann.go); every other home of
+// the X form (an activated ability beside a printed {X}, a trigger's cost
+// beside mana, an SVar:X that is not the plain Count$xPaid) refuses by name.
 func TestTapXVarTriggerCost(t *testing.T) {
 	const head = "Name:Tap Probe\nManaCost:4\nTypes:Artifact Creature Myr\nPT:2/2\n"
 	trig := func(cost, x string) string {
@@ -37,8 +38,16 @@ func TestTapXVarTriggerCost(t *testing.T) {
 		t.Errorf("IfPaid kind %d B %d F %d, want PayTapX / PayBSubTapXVar / a spec", got.C&0xf, got.B.N, got.F)
 	}
 
+	d, rs = kwardpowBuild(t, "Tap Probe", head+"A:AB$ Pump | Cost$ T tapXType<X/Myr> | Defined$ Self | NumAtt$ +X\nSVar:X:Count$xPaid\n")
+	if len(rs) != 0 {
+		t.Fatalf("activated: refused: %v", rs)
+	}
+	if c := d.Abilities[len(d.Abilities)-1].Cost; c.Flags&kop.CostTapX == 0 || c.N != 0 || c.Filter == 0 {
+		t.Errorf("activated: cost flags %#x N %d F %d, want the announced CostTapX (N 0) with the spec", c.Flags, c.N, c.Filter)
+	}
+
 	for _, p := range []struct{ name, src, want string }{
-		{"activated", head + "A:AB$ Pump | Cost$ T tapXType<X/Myr> | Defined$ Self | NumAtt$ +X\nSVar:X:Count$xPaid\n", "outside a printed trigger's own cost"},
+		{"activated beside {X}", head + "A:AB$ Pump | Cost$ X T tapXType<X/Myr> | Defined$ Self | NumAtt$ +X\nSVar:X:Count$xPaid\n", "beside a printed {X}"},
 		{"beside mana", trig("2 tapXType<X/Myr>", "Count$xPaid"), "resolution tapXType<X> cost shape"},
 		{"other X", trig("tapXType<X/Myr>", "Count$CardPower"), "other than Count$xPaid"},
 	} {

@@ -255,9 +255,18 @@ func (s *State) execPay(k *prep, in *kop.Instr) bool {
 // failed window probe's fork latched once that drop is final.
 func (s *State) payAnswerGate(k *prep, in *kop.Instr, p uint8, kind int, skip uint16, amt int, pips int16) uint16 {
 	stackSelfGone := kind == kop.PayExileGrave && in.B.N == kop.PayBSubStackSelf && s.objs[s.res.e.obj].zone != kop.ZoneStack
-	noPay := stackSelfGone
+	// gorge's unresolvable DefinedCost_ChosenCard (Tariff): with no chosen
+	// card the DefinedCost token passes through raw and the strict cost
+	// parser rejects it, so the ask is still posed and the payer declines
+	// (effects/unless.go unlessDefinedCost). The kernel's UnlessPaid A
+	// ExMVOf(RefChosen) reads 0 over an empty chosen set, which would price
+	// a free pay.
+	unpricedChosen := in.Op == kop.OpUnlessPaid && kind == kop.PayMana && s.g.nchosen == 0 &&
+		in.A.K == kop.VExpr && int(in.A.N) < len(k.t.Exprs) &&
+		k.t.Exprs[in.A.N].Kind == kop.ExMVOf && k.t.Exprs[in.A.N].Ref == kop.RefChosen
+	noPay := stackSelfGone || unpricedChosen
 	var stall uint8
-	if !stackSelfGone {
+	if !noPay {
 		ok := s.canPayGenFor(k, p, kind, skip, amt, pips, in.F)
 		if !ok && kind == kop.PayDraw && skip&pfModes == 0 {
 			// A trigger's own Draw cost is the window's pay/decline ask
@@ -1869,11 +1878,14 @@ func (s *State) startSearch(k *prep, in *kop.Instr) bool {
 }
 
 // moveAsked reports a found card's move waiting on an answer: a hand move's Aura for
-// its host (handAuraEnter), a card entering for its as-enters choice (rerunMove), or
-// an Attacking$ entry's CR 508.4 defender (zone_changezoneparams.go).
+// its host (handAuraEnter), a card entering for its as-enters choice (rerunMove), an
+// Attacking$ entry's CR 508.4 defender (zone_changezoneparams.go), or a required
+// take-all hand move's CR 401.4 arrangement (raGenLibPlace, handTakeAll via
+// act_libplace.go: gorge's handLibraryTail asks it mid-resolution, the spell still
+// on the stack, so the resolution parks here like at any other move ask).
 func (s *State) moveAsked() bool {
 	return s.res.ask == raGenTopBottom || s.res.ask == raGenEnchant || s.res.ask == raGenRetChoice || s.res.ask == raGenEntryOrder ||
-		s.res.ask == raGenEnterDefender || s.res.ask == raGenCmdZone || s.res.ask == raGenPayETB
+		s.res.ask == raGenEnterDefender || s.res.ask == raGenCmdZone || s.res.ask == raGenPayETB || s.res.ask == raGenLibPlace
 }
 
 // searchPick poses a search's (or a choose-move's) first pick, or finishes

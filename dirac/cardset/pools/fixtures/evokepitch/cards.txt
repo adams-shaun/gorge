@@ -1,0 +1,18 @@
+# The hand-exile evoke (CR 702.74a, 118.9): the MH2 Incarnations whose
+# "Evoke--Exile a <colour> card from your hand" is the alternative cast's
+# hand-exile pick (kgen lower_evoke.go evokePickCost, kernel CardDef.EvokePick),
+# with the coloured fodder they pitch and their lands, for the oracle's
+# constructed lockstep (dirac/oracle/evokepitch_lowers_test.go)
+Endurance
+Fury
+Grief
+Solitude
+Savannah Lions
+Grizzly Bears
+Raging Goblin
+Scathe Zombies
+Hill Giant
+Plains
+Forest
+Mountain
+Swamp

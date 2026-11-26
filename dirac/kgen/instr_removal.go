@@ -14,6 +14,7 @@ func init() {
 	instrOp("Counter", (*instrCtx).opCounter)
 	instrOp("CounterAll", (*instrCtx).opCounterAll)
 	instrOp("TwoPilesSac", (*instrCtx).opTwoPilesSac)
+	instrOp("TwoPilesEach", (*instrCtx).opTwoPilesEach)
 	instrOp("SacrificeDelayed", (*instrCtx).opSacrificeDelayed)
 	instrOp("Sacrifice", (*instrCtx).opSacrifice)
 	instrOp("SacrificeAll", (*instrCtx).opSacrificeAll)
@@ -70,6 +71,18 @@ func (ic *instrCtx) opTwoPilesSac() error {
 	ki := &ic.ki
 	// (Liliana of the Veil) OpExt ExtTwoPilesSac
 	ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtTwoPilesSac))
+	if err := ic.objFilter(kop.ZoneBattlefield); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (ic *instrCtx) opTwoPilesEach() error {
+	ki := &ic.ki
+	// (Bend or Break) OpExt ExtTwoPilesEach over the repeated player's piles
+	// (lower_twopiles.go twoPilesEach): no Obj, the loop's binding owns the
+	// pool and separates it
+	ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtTwoPilesEach))
 	if err := ic.objFilter(kop.ZoneBattlefield); err != nil {
 		return err
 	}

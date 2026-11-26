@@ -1,15 +1,8 @@
 # Performance
 
-Part of [Engines](../engines/index.md).
-
 How fast gorge and dirac play Magic, and how they compare with XMage, Forge and mtg-kernel on one machine, the same decks and one CPU
 core each. [How it is measured](methodology.md) has the method and commands, [gorge's speed](engine.md) its benchmark rows and profile,
 and [Bot speed](bots.md) the cost per decision and per simulation.
-
-**Where the numbers come from.** Every figure on these pages is drawn by `scripts/docs_perf_figs.py` from
-[`data/perf.json`](https://github.com/adams-shaun/gorge/blob/main/docs/site/performance/data/perf.json), which transcribes the tables
-(`scripts/docs_perf_figs_test.py` checks the committed SVGs match it). Each table names its commit and date; the commands are in
-[Measuring again](methodology.md#measuring-again). These are measurements at those commits, not live numbers.
 
 !!! abstract "The short version: one core, FDN limited decks"
     Measured 2026-11-25 at `b6db453064` for gorge, dirac, XMage and Forge, all in one run on one box; mtg-kernel's rows are from 2026-10-20.
@@ -27,6 +20,12 @@ and [Bot speed](bots.md) the cost per decision and per simulation.
     - **Memory:** a game-playing process peaks at about 120-125 MB for gorge with the whole corpus loaded,
       about 135-140 MB for dirac, 0.6 GB for Forge, 0.9-1.1 GB
       for XMage with a 2 GB heap cap and 11-16 MB for mtg-kernel, with its cards compiled in.
+
+!!! info "Where the numbers come from"
+    Every figure on these pages is drawn by `scripts/docs_perf_figs.py` from
+    [`data/perf.json`](https://github.com/adams-shaun/gorge/blob/main/docs/site/performance/data/perf.json), which transcribes the tables
+    (`scripts/docs_perf_figs_test.py` checks the committed SVGs match it). Each table names its commit and date; the commands are in
+    [Measuring again](methodology.md#measuring-again). These are measurements at those commits, not live numbers.
 
 ## The numbers
 

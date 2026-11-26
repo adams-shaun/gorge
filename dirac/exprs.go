@@ -427,11 +427,16 @@ func (s *State) expr(k *prep, i int16, ctx evalCtx) int {
 			v = s.countPerm(k, x.F, ctx)
 		}
 	case kop.ExCountGraveyard:
+		// a seat out of the game counts nothing (gorge's AliveFrom walk), but
+		// one the running pass lost (lostPass) still counts: gorge queues the
+		// pass's losses in its batch and marks them when it applies, after the
+		// casualty scan this count feeds (CR 704.3, 800.4a). A seat an effect
+		// took out earlier is Lost in gorge's scan and stays skipped here.
 		for pp := uint8(0); pp < s.nSeats(); pp++ {
-			if s.out(pp) {
+			pl := &s.pl[pp]
+			if s.out(pp) && pl.mark&pmLostPass == 0 {
 				continue
 			}
-			pl := &s.pl[pp]
 			for j := 0; j < int(pl.graveN); j++ {
 				o := pl.grave[j]
 				if s.objs[o].of&ofToken != 0 && x.N != 1 {
@@ -833,6 +838,11 @@ func (s *State) condEval(k *prep, id kop.CondID, ctx evalCtx) bool {
 		// state.Game.IsMonarch(sv.Controller)). The monarch seat is nobody
 		// until a BecomeMonarch effect makes one (act_monarch.go).
 		r = !DebugCondMonarchNone && s.Monarch() >= 0 && int8(ctx.ctrl) == s.Monarch()
+	case kop.CondEnduringStory:
+		// the controller holds the enduring story (CR 702.195; gorge
+		// condEnduringStory's state.Player.EnduringStory(sv.Controller)). The
+		// one-way latch is granted by the scan hooks (kw_storied.go).
+		r = s.hasStory(ctx.ctrl)
 	case kop.CondRefMatches:
 		r = cmp(c.Op, s.countRefMatches(k, c.Ref, c.F, ctx), s.evalV(k, c.A, ctx))
 	case kop.CondPromised:

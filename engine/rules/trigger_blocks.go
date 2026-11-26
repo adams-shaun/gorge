@@ -295,10 +295,35 @@ func (e *Engine) queueGrantedFlanking(id state.ObjID, o *state.Object, ev events
 // -- "becomes blocked" triggers when an effect blocks the creature) but never
 // the by-a-creature pair mode or flanking (CR 509.3d), and a ValidBlocker$
 // spec matches no absent blocker.
+//
+// A TokenBlocks event (TokenBlocking$, CR 509.4) is read as the one pair
+// (attacker, entering token) when the token is a real blocking creature: the
+// attacker-side become-blocked triggers fire (CR 509.3d -- "a creature is put
+// onto the battlefield blocking the specified creature" is one of their
+// triggering events), while the token itself never blocked (CR 509.4), so its
+// own blocker-side lines stay inert -- the tokenInert skips below. The
+// "becomes blocked" modes (AttackerBlocked, AttackerBlockedOnce) are CR 509.3c
+// and fire off a put-onto-the-battlefield block only when the attacker was
+// unblocked at that time, so a token entering on an already-blocked attacker
+// (Brimaz's Cat) skips them (alreadyBlocked); the by-a-creature pair mode and
+// flanking (CR 509.3d) fire either way.
 func (e *Engine) checkAttackerBlockedTriggers(ev events.Event) {
 	byEffect := ev.Kind == events.BlockedByEffect
+	var tokenInert state.ObjID
+	alreadyBlocked := false
 	if byEffect {
 		ev = events.Event{Kind: events.DeclareBlockers, Player: ev.Player, Pairs: [][2]state.ObjID{{ev.Obj, 0}}}
+	} else if ev.Kind == events.TokenBlocks {
+		a, b, ok := e.tokenBlocksPair(ev)
+		if !ok {
+			return
+		}
+		ev = events.Event{Kind: events.DeclareBlockers, Player: ev.Player, Pairs: [][2]state.ObjID{{a, b}}}
+		tokenInert = b
+		// The fold appended the token last: it is the attacker's only
+		// blocker exactly when the attacker was unblocked before it entered
+		// (a zero entry is a block by effect, which counts as blocked).
+		alreadyBlocked = len(e.G.Obj(a).BlockedBy) != 1
 	} else if ev.Kind != events.DeclareBlockers {
 		return
 	}
@@ -330,6 +355,9 @@ func (e *Engine) checkAttackerBlockedTriggers(ev events.Event) {
 		for ti, t := range e.printedTriggersOf(o, f) {
 			switch t.ModeKind() {
 			case cards.TriggerAttackerBlocked, cards.TriggerAttackerBlockedOnce:
+				if alreadyBlocked {
+					continue // CR 509.3c: the attacker was already blocked.
+				}
 			case cards.TriggerAttackerBlockedByCreature:
 				if byEffect {
 					continue
@@ -337,12 +365,22 @@ func (e *Engine) checkAttackerBlockedTriggers(ev events.Event) {
 			default:
 				continue
 			}
+			if tokenInert != 0 && id == tokenInert && triggerAnchoredAtBlocker(t) {
+				// CR 509.4: the entering token never blocked, so its own
+				// blocker-side line ("whenever this creature blocks a
+				// creature", the ValidBlocker$-anchored shape both modes
+				// carry -- Brimaz's own block trigger is the AttackerBlocked
+				// one) never fires off its own entry.
+				continue
+			}
 			e.queueAttackerBlockedTrigger(t, id, o.Controller, ti, false, 0, ev)
 		}
 	})
-	e.checkGrantedAttackerBlockedTriggers(ev, byEffect)
+	e.checkGrantedAttackerBlockedTriggers(ev, byEffect, tokenInert, alreadyBlocked)
 	if byEffect {
 		e.checkEffectCombatTriggers(ev, "AttackerBlocked")
+	} else if alreadyBlocked {
+		e.checkEffectCombatTriggers(ev, "AttackerBlockedByCreature")
 	} else {
 		e.checkEffectCombatTriggers(ev, "AttackerBlocked", "AttackerBlockedByCreature")
 	}
@@ -524,6 +562,23 @@ func (e *Engine) attackerBlockedCtx(t cards.Trigger, aid, bid state.ObjID, ev ev
 	}
 }
 
+// tokenBlocksPair reports the (attacker, token) pair one TokenBlocks event
+// names when its fold made the token a real blocking creature: the fold's
+// legality (CR 509.4a/b) is re-read from the folded state, so an event whose
+// fold declined -- the attacker not attacking, the mint's controller not the
+// defender, the token gone -- names no pair.
+func (e *Engine) tokenBlocksPair(ev events.Event) (state.ObjID, state.ObjID, bool) {
+	if ev.Obj == 0 || len(ev.IDs) == 0 {
+		return 0, 0, false
+	}
+	a, b := e.G.Obj(ev.IDs[0]), e.G.Obj(ev.Obj)
+	if a == nil || b == nil || b.Zone != state.ZBattlefield ||
+		!a.IsAttacking || b.Controller != a.Attacking || len(a.BlockedBy) == 0 || a.BlockedBy[len(a.BlockedBy)-1] != b.ID {
+		return 0, 0, false
+	}
+	return a.ID, b.ID, true
+}
+
 // checkGrantedAttackerBlockedTriggers is the AddTrigger$ half of the
 // become-blocked walk. The ordinary granted-trigger event matcher
 // (checkGrantedStaticTriggersUsing) cannot dispatch these two modes: neither
@@ -534,8 +589,10 @@ func (e *Engine) attackerBlockedCtx(t cards.Trigger, aid, bid state.ObjID, ev ev
 // printed trigger uses, preserving its grantor so GrantTriggerPush can
 // rebuild the Execute$ body during replay (checkGrantedAttackerUnblockedTriggers'
 // precedent). Stormsurge Kraken, Retaliation and Mirror Shield are the
-// corpus carriers.
-func (e *Engine) checkGrantedAttackerBlockedTriggers(ev events.Event, byEffect bool) {
+// corpus carriers. inert is the TokenBlocks entering token (0 when the event
+// is not one): its own blocker-anchored grants stay inert with the printed
+// ones (CR 509.4).
+func (e *Engine) checkGrantedAttackerBlockedTriggers(ev events.Event, byEffect bool, inert state.ObjID, alreadyBlocked bool) {
 	for ceI, ceL := 0, e.active(); ceI < len(ceL); ceI++ {
 		ce := &ceL[ceI]
 		if ce.AddTrigger == nil {
@@ -543,6 +600,9 @@ func (e *Engine) checkGrantedAttackerBlockedTriggers(ev events.Event, byEffect b
 		}
 		if ce.AddTrigger.Mode != "AttackerBlocked" && (byEffect || ce.AddTrigger.Mode != "AttackerBlockedByCreature") {
 			continue
+		}
+		if alreadyBlocked && ce.AddTrigger.Mode == "AttackerBlocked" {
+			continue // CR 509.3c: the attacker was already blocked.
 		}
 		grantorID := ce.Source
 		if ce.TriggerGrantor != 0 {
@@ -564,6 +624,9 @@ func (e *Engine) checkGrantedAttackerBlockedTriggers(ev events.Event, byEffect b
 			}
 			if !e.matchesSpecFrom(ce.Affects, id, ce.Controller, ce.Source) {
 				return
+			}
+			if inert != 0 && id == inert && triggerAnchoredAtBlocker(t) {
+				return // CR 509.4: the entering token never blocked.
 			}
 			e.queueAttackerBlockedTrigger(t, id, o.Controller, -1, true, grantorID, ev)
 		})

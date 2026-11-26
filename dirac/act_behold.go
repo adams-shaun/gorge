@@ -109,6 +109,24 @@ func (s *State) fbBeholdUnplanned(k *prep, p uint8, o Obj, mode uint8) bool {
 	return !granted
 }
 
+// DebugFbLifePlanned prices a flashback life part as planned (the oracle's
+// mutation test: dirac/oracle/flashlife_lowers_test.go).
+var DebugFbLifePlanned bool
+
+// fbLifeUnplanned reports a printed flashback cast whose cost carries a life
+// part (Deep Analysis's "{1}{U}, Pay 3 life", kgen lower_fbcost.go FbCost):
+// gorge's cast planner admits no life part (pay.PlanNonManaAdmissible
+// "cost:life"), so the cast is a potential play the oracle lowers, its
+// witness tapped at priority before the target ask (CR 601.2g-h pays the
+// floated mana; the kernel must tap at the same point).
+func (s *State) fbLifeUnplanned(k *prep, p uint8, o Obj, mode uint8) bool {
+	if mode&2 == 0 || DebugFbLifePlanned || k.t.Cards[s.objs[o].card].FbCost.Flags&kop.CostPayLife == 0 {
+		return false
+	}
+	_, _, granted := s.fbInstances(k, SeatIx(p), o)
+	return !granted
+}
+
 // beholdPayable: card c has no behold or reveal part, or p has enough candidates to
 // pay it (src: the cast card, not a hand candidate).
 func (s *State) beholdPayable(k *prep, p uint8, c CardID, src Obj) bool {
