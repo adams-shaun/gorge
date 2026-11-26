@@ -225,7 +225,14 @@ func (e *Engine) madnessReplacementApplies(ev events.Event) bool {
 	if o == nil || o.Face() == nil {
 		return false
 	}
-	_, ok := o.Face().KeywordParam("Madness")
+	// The DERIVED keyword list, not the printed face: a continuous-effect
+	// grant (Falkenrath Gorger's "Each Vampire creature card you own that
+	// isn't on the battlefield has madness") carries the keyword the same
+	// way a printed K:Madness line does. The event is still pre-Apply -- the
+	// move's destination is rewritten in place -- so the card is judged in
+	// the hand, where the grant's AffectedZone$ scope applies. The
+	// granted-Miracle read (derivedKeywordParamH) is the precedent.
+	_, ok := e.derivedKeywordParamH(ev.Obj, kwhMadness)
 	return ok
 }
 
@@ -238,7 +245,10 @@ func (e *Engine) offerMadness(ev events.Event) {
 	if o == nil || o.Face() == nil {
 		return
 	}
-	if _, ok := o.Face().KeywordParam("Madness"); !ok {
+	// The derived keyword read, like madnessReplacementApplies: the card is
+	// in the exile the replacement moved it to, and the grant's
+	// AffectedZone$ scope covers that zone too.
+	if _, ok := e.derivedKeywordParamH(ev.Obj, kwhMadness); !ok {
 		return
 	}
 	if !events.IsDiscard(ev) {
@@ -285,7 +295,10 @@ func (e *Engine) askMadnessCast(ability *state.Object) bool {
 		return false
 	}
 	m := &altCastModes[altMadness]
-	cost, ok := m.faceCost(card.Face(), e.walkFaceFactsOf(card.Face()))
+	// The ONE cost read the offer, the potential plan and the cast's charge
+	// share (altRowCosts): the printed parameter for a printed carrier, the
+	// derived grant (Falkenrath Gorger) for a face that prints no Madness.
+	cost, ok := altRowCost(e, m, card.ID, card.Face(), 0)
 	if !ok {
 		return false
 	}
@@ -341,7 +354,13 @@ func (e *Engine) askMadnessCast(ability *state.Object) bool {
 	if e.offerCastablePotential(card.Owner, card.ID, offerCost, spellScope(m.mode), false) &&
 		!provenUnpayable() &&
 		e.castTargetsAvailable(card.Owner, card.ID, card.Face().SpellAbility()) {
-		raw, _ := card.Face().KeywordParam(m.head)
+		raw, printed := card.Face().KeywordParam(m.head)
+		if !printed {
+			// A granted madness: the label prints the cost the cast charges,
+			// the derived parameter with its ManaCost placeholder expanded
+			// to the face's mana cost.
+			raw = madnessCostLabel(e, card.ID, card.Face())
+		}
 		d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "yes",
 			Label: "Cast " + name + " for " + raw, Obj: card.ID})
 	}
