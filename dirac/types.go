@@ -144,7 +144,7 @@ const (
 	ChLegend                    // source = the legendary permanent to keep (legend rule)
 	ChDivide                    // source = a blocker, mode = combat damage assigned to it
 	ChCleanupDiscard            // source = a hand card discarded to hand size in cleanup
-	ChAltAdd                    // target = the either-or additional cost part (0 the spell's own, 1 the alternative), mode = option position (payable parts first)
+	ChAltAdd                    // target = the either-or additional cost part (0 the spell's own, 1 the alternative, 2 its third part), mode = option position (payable parts first)
 	ChCostSubCtr                // source = a creature to remove one counter from to pay a cost, mode = its counter kind (Quilled Greatwurm)
 	ChCostBlight                // source = a creature to blight to pay a cost (CR 701.68)
 	ChOptDiscMay                // mode 1 = yes / 0 = no: a discard election ("you may discard") (act_optionalask.go)
@@ -154,6 +154,7 @@ const (
 	ChBand                      // mode 0 = decline (no source); mode 1+i, source = the i-th candidate to band with the asked leader (gorge's CR 702.22c "band" KChoose; combat_band.go)
 	ChAsUnblocked               // source = the attacking creature; mode 1 = assign its combat damage as though not blocked / 0 = assign normally (gorge askNextCombatAsk's "asunblocked" KChoose; combat_asgngrant.go)
 	ChEnlist                    // mode 0 = decline (no source); mode 1+i, source = the i-th creature the asked attacker may enlist (gorge's CR 702.154a "enlist" KChoose; kw_enlist.go)
+	ChTurnUpAttach              // the face-down turn-up's attach election: Done declines, AkChoose's source is the destination (gorge's DB$ Attach destination ask, Min 0: an empty answer declines too; face_turnupattach.go)
 	ChExert                     // mode 0 = decline (no source); mode 1, source = the asked attacker (gorge's CR 702.100a "exert" KChoose; combat_exert.go)
 )
 

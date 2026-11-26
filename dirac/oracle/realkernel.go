@@ -505,6 +505,7 @@ func (r *realSide) Project(p *Projection) {
 	case st <= kop.StepBlockers:
 		p.Step = uint8(st)
 	case st == kop.StepFirstStrikeDamage || st == kop.StepDamage:
+		//lockstep:const engine/state.StepCombatDamage
 		p.Step = 7 // gorge's single combat-damage step
 	default:
 		p.Step = uint8(st) - 1
