@@ -242,6 +242,9 @@ func (lc *lowerCtx) countHeads8(rest string, depth int) (v lValue, ok bool, err 
 	case rest == "MostProminentCreatureType" || strings.HasPrefix(rest, "MostProminentCreatureType "):
 		v, err := lc.mostProminentValue(strings.TrimPrefix(rest, "MostProminentCreatureType"))
 		return v, true, err // value_mostprominent.go
+	case rest == "MostCardName" || strings.HasPrefix(rest, "MostCardName "):
+		v, err := lc.mostCardNameValue(strings.TrimPrefix(rest, "MostCardName"))
+		return v, true, err // value_mostcardname.go
 	}
 	return lValue{}, false, nil
 }
