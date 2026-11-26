@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/adams-shaun/gorge/server/protocol"
+	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
 // TestSearchSlotsAcquireObservesStop is the deterministic unit-level pin for
@@ -45,7 +46,7 @@ func TestSearchSlotsAcquireObservesStop(t *testing.T) {
 	// Precondition: the waiter is deterministically IN the queue behind the
 	// holder before we touch the stop channel — a waiter that never queued
 	// would make the assertion below vacuous.
-	deadline := time.After(10 * time.Second)
+	deadline := time.After(testutil.WaitBudget)
 	for {
 		s.mu.Lock()
 		queued := len(s.waiters)
@@ -70,7 +71,7 @@ func TestSearchSlotsAcquireObservesStop(t *testing.T) {
 		if !errors.Is(err, errTableClosed) {
 			t.Fatalf("acquire returned %v on a live context after stop closed; want errTableClosed", err)
 		}
-	case <-time.After(10 * time.Second):
+	case <-time.After(testutil.WaitBudget):
 		t.Fatal("acquire did not return after its stop closed")
 	}
 
@@ -101,7 +102,7 @@ func TestSearchSlotWaitNeverDecidesAfterClose(t *testing.T) {
 	first := awaitSlot(t, h.enteredC, "table A's search decision to enter DecideEnv")
 	// Table B reaches its projection, is queued behind A's slot...
 	other := ""
-	deadline := time.After(10 * time.Second)
+	deadline := time.After(testutil.WaitBudget)
 	for other == "" || slotTag(other) == slotTag(first) {
 		select {
 		case w := <-h.wantC:
@@ -129,7 +130,7 @@ func TestSearchSlotWaitNeverDecidesAfterClose(t *testing.T) {
 	go func() { r.Wait("s1"); r.Wait("s2"); close(done) }()
 	select {
 	case <-done:
-	case <-time.After(10 * time.Second):
+	case <-time.After(testutil.WaitBudget):
 		t.Fatal("tables did not finish after Close; a search-slot wait did not abort on cancellation")
 	}
 

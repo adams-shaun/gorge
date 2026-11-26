@@ -120,7 +120,7 @@ func runPaymentPlanHumanSeat(t *testing.T, seats int, decks []string, seed uint6
 		t.Fatal(err)
 	}
 
-	deadline := time.Now().Add(2 * time.Minute)
+	deadline := time.Now().Add(testutil.WaitBudget)
 	var last uint64 = ^uint64(0)
 	selected := 0
 	legacyAfterPlan := false
@@ -282,7 +282,7 @@ func TestSubmitIntentPreflightsPaymentPlanBeforeAccepting(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	deadline := time.Now().Add(30 * time.Second)
+	deadline := time.Now().Add(testutil.WaitBudget)
 	last := ^uint64(0)
 	for {
 		if time.Now().After(deadline) {
@@ -361,7 +361,7 @@ func TestAutoManaDisabledKeepsHumanPriorityOnTheLegacyWire(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	deadline := time.Now().Add(10 * time.Second)
+	deadline := time.Now().Add(testutil.WaitBudget)
 	var last uint64 = ^uint64(0)
 	answered := 0
 	for answered < 12 {

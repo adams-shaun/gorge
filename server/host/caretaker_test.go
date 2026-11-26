@@ -15,6 +15,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 	"github.com/adams-shaun/gorge/engine/view"
 	"github.com/adams-shaun/gorge/server/protocol"
+	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
 func TestHumanCaretakerUsesConfiguredPolicy(t *testing.T) {
@@ -114,7 +115,7 @@ func TestThinkTimeoutCaretakerTurnsADecisionAndReplays(t *testing.T) {
 	// Wait until the live match's event count grows past its initial value:
 	// with never a human answer, only the caretaker can turn slot 0, so this
 	// proves both that slot 0 parked and that ThinkTimeout converted it.
-	deadline := time.Now().Add(10 * time.Second)
+	deadline := time.Now().Add(testutil.WaitBudget)
 	var initial int
 	for {
 		ms, merr := r.Matches("t1")
@@ -187,7 +188,7 @@ func TestTimeoutTurnsDecisionThenNextDecisionAcceptsHuman(t *testing.T) {
 	case in1 = <-got1:
 	case err := <-errc1:
 		t.Fatalf("caretaker failed: %v", err)
-	case <-time.After(10 * time.Second):
+	case <-time.After(testutil.WaitBudget):
 		t.Fatal("ThinkTimeout did not fire the caretaker")
 	}
 	if in1.Seq != d1.Seq || len(in1.Choices) == 0 {
@@ -225,7 +226,7 @@ func TestTimeoutTurnsDecisionThenNextDecisionAcceptsHuman(t *testing.T) {
 		if in2.Seq != d2.Seq || len(in2.Choices) != 1 || in2.Choices[0] != 0 {
 			t.Fatalf("d2 intent %+v", in2)
 		}
-	case <-time.After(10 * time.Second):
+	case <-time.After(testutil.WaitBudget):
 		t.Fatal("next decision not answered by the human submit")
 	}
 }
@@ -252,7 +253,7 @@ func TestZeroThinkTimeoutMeansNoTimeout(t *testing.T) {
 		if in.Seq != 7 || len(in.Choices) != 1 || in.Choices[0] != 0 {
 			t.Fatalf("intent %+v", in)
 		}
-	case <-time.After(10 * time.Second):
+	case <-time.After(testutil.WaitBudget):
 		t.Fatal("seat did not answer after a submit under zero ThinkTimeout")
 	}
 }
@@ -291,7 +292,7 @@ func TestCaretakerAnswersOnContextCancelWithZeroTimeout(t *testing.T) {
 		}
 	case err := <-errc:
 		t.Fatalf("cancel errored instead of answering with the caretaker: %v", err)
-	case <-time.After(10 * time.Second):
+	case <-time.After(testutil.WaitBudget):
 		t.Fatal("cancel did not fall back to the caretaker")
 	}
 }
