@@ -142,7 +142,17 @@ func (lc *lowerCtx) defined(v string) (lRef, error) {
 		if tr := lc.ab.Trigger; tr != nil && (tr.Event == "Attacks" || tr.Event == "Blocks") {
 			return lRef{Kind: rTriggeredPlayer}, nil
 		}
-		return lRef{}, refuse("Defined$ %q outside an Attacks or Blocks trigger", v)
+		// a printed become-blocked line (gorge attackerBlockedCtx, and the
+		// blocker-anchored half of AttackerBlockedByCreature) captures
+		// AttackingPlayer as the attacker's controller when it queues; the
+		// kernel queues it with the same seat as its trigger player
+		// (fireBlockedGen, firePairTrig's other member: the attacker). The
+		// attacker-anchored pair half captures no attacking player in gorge,
+		// and an Effect's emblem line queues its own way: both refuse.
+		if tr := lc.ab.Trigger; tr != nil && tr.Event == "AttackerBlocked" && !lc.emblemBlocked && (!tr.ByCreature || tr.AnchorBlocker) {
+			return lRef{Kind: rTriggeredPlayer}, nil
+		}
+		return lRef{}, refuse("Defined$ %q outside an Attacks, Blocks or become-blocked trigger", v)
 	case "TriggeredBlockerController":
 		return lc.triggeredBlockerController(v)
 	case "TriggeredBlocker", "TriggeredBlockerLKICopy":
