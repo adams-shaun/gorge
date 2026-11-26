@@ -1,0 +1,21 @@
+# the restricted colourless pair: a plain {T}: Add {C} beside a {T}: Add {C}{C}
+# spendable only on colorless Eldrazi spells and abilities (Eldrazi Temple;
+# kernel mana_restrictedsource.go's widened pair unit), over Eldrazi with {C}
+# costs and activations, non-Eldrazi colourless spells and coloured ones, for
+# the oracle's constructed lockstep (dirac/oracle/eldrazitemple_lowers_test.go)
+Eldrazi Temple
+Wastes
+Forest
+Mountain
+Eldrazi Mimic
+Matter Reshaper
+Thought-Knot Seer
+Endbringer
+Kozilek's Pathfinder
+Reality Smasher
+Ulamog's Crusher
+Memnite
+Hangarback Walker
+Grizzly Bears
+Hill Giant
+Lightning Bolt

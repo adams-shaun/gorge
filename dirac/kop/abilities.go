@@ -918,9 +918,16 @@ func SecondTapXManaAb(cd *CardDef, first, j int) bool {
 // ability: the activation asks the colour). Its {T} is the source's, so the limit is the tap
 // alone. Kernel mana_countercost.go reads it, through prep.ctrAb, as a
 // counter-cost gap beside a plain first ability (SecondCtrTapManaAb).
+//
+// The energy form, "{T}, Pay N {E}: Add <the same productions>" (Aether Hub,
+// Solar Transformer), is the same gap with the counters on its controller:
+// gorge's census leaves it the same relaxable once-only gap (a cost beyond
+// {T}, bounded by the tap), its payability the controller's energy
+// (pay.EnergyPayable), its activation charging the energy
+// (pay.ChargeEnergyCost); the kernel reads ctrCostPayable / ctrCostPay.
 func CtrTapSecondManaAb(a *Ability) bool {
 	c := a.ManaColors
-	return a.Kind == AbMana && a.Cost.Flags == CostTap|CostRemoveCtr && a.Cost.N > 0 && a.Cost.Mana.MV() == 0 && a.Cost.Mana.X == 0 &&
+	return a.Kind == AbMana && (a.Cost.Flags == CostTap|CostRemoveCtr || a.Cost.Flags == CostTap|CostPayEnergy) && a.Cost.N > 0 && a.Cost.Mana.MV() == 0 && a.Cost.Mana.X == 0 &&
 		a.AFlags == 0 && a.ManaRestrict == 0 && !a.ManaEach && (c != 0 && c&(c-1) == 0 && a.ManaN >= 1 || c == ColAny && a.ManaN <= 1) && len(a.Prog) == 0 &&
 		a.Gate.Ctr == 0 && a.Trig.Cond == 0 && (a.ActZone == ZoneNone || a.ActZone == ZoneBattlefield)
 }

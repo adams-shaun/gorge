@@ -1,0 +1,19 @@
+# the "{T}, Pay N {E}: Add one mana of any color" gap beside a plain {T}: Add {C}
+# (Aether Hub, Solar Transformer; kernel mana_countercost.go's energy form of
+# kop.CtrTapSecondManaAb), over a colourless-heavy mana base whose coloured
+# spells the energy ability alone funds, for the oracle's constructed lockstep
+# (dirac/oracle/energymana_lowers_test.go)
+Aether Hub
+Solar Transformer
+Wastes
+Mountain
+Swamp
+Forest
+Plains
+Lightning Bolt
+Doom Blade
+Grizzly Bears
+Hill Giant
+Serra Angel
+Wind Drake
+Memnite
