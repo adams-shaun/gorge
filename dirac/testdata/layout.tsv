@@ -722,6 +722,7 @@ default	field	genPrep.anyNumTimes	1
 default	field	genPrep.anyExHaste	1
 default	field	genPrep.anyColGrant	1
 default	field	genPrep.anyDiscRef	1
+default	field	genPrep.anyEncRef	1
 default	field	genPrep.anySpellCond	1
 default	field	genPrep.anyEntUntap	1
 default	field	genPrep.anyEntAttack	1
