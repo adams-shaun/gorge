@@ -11,7 +11,7 @@ repo=$(git rev-parse --show-toplevel)
 main=$(cd "$(git rev-parse --git-common-dir)/.." && pwd)
 cap=(systemd-run --user --scope -q -p MemoryMax=4G -p CPUQuota=400% env GOMAXPROCS=4 GOMEMLIMIT=3GiB)
 pins='^(TestCorpusAcceptance|TestSetAcceptance|TestCorpusBuildAcceptance|TestPinTablesParse|TestRememberedSpanCensus|TestStdMetaPoolBuilds)$'
-files=(dirac/docs/support.md dirac/kgen/testdata/acceptance.tsv dirac/kgen/testdata/build_acceptance.tsv dirac/kgen/testdata/remspan.tsv dirac/kgen/stdmeta_test.go)
+files=(dirac/docs/support.md dirac/kgen/testdata/acceptance.tsv dirac/kgen/testdata/build_acceptance.tsv dirac/kgen/testdata/remspan.tsv dirac/kgen/stdmeta_test.go dirac/support/refused dirac/support/unrefused.tsv dirac/support/evidence dirac/support/evidence-keys dirac/oracle/testdata/repro)
 
 pr=$(gh pr list --head "$branch" --state open --json number,labels,mergeable,statusCheckRollup --jq '.[0] | select(.) | "\(.number) \(if any(.statusCheckRollup[]?; .name == "fast" and .conclusion == "FAILURE") then "RED" else .mergeable end) \([.labels[].name] | join(","))"')
 # An open regen PR that still merges is left alone: a push restarts its checks, and main moves more often than they
@@ -27,6 +27,20 @@ git -C "$repo" worktree add -q --detach "$wt" "$remote/main" || { echo "regen-ma
 trap 'git -C "$repo" worktree remove --force "$wt" 2>/dev/null' EXIT
 cd "$wt" || exit 1
 source scripts/pr-cards.sh
+# A refusal that no longer diverges is a fixed card, not a red batch: outside DIRAC_PIN_STRICT
+# the refused test warns (the nightly keeps it a failure), and DIRAC_UNREFUSE_STALE makes it
+# record each stale card's clean game and a stale.tsv line; unrefuse-stale.sh turns them into
+# the unrefusals (kgen -unrefuse, the proof row, the recorded repro). It runs before the pins'
+# regen, so the support page and the strict check see the post-unrefuse records.
+stale=$(mktemp -d)
+# A failed or timed-out refused test must not halt the pins' regen (the bot's other job): it
+# unrefuses nothing, and the pins go on.
+if "${cap[@]}" env DIRAC_UNREFUSE_STALE="$stale" go test -timeout 20m -run '^TestRefusedEntriesStillDiverge$' ./dirac/oracle; then
+  scripts/unrefuse-stale.sh "$stale" || { rm -rf "$stale"; echo "regen-main: unrefuse-stale failed"; exit 1; }
+else
+  echo "regen-main: TestRefusedEntriesStillDiverge failed; unrefusing nothing this run"
+fi
+rm -rf "$stale"
 "${cap[@]}" env KGEN_REPIN=1 go test -timeout 5m -run "$pins" ./dirac/kgen >/dev/null 2>&1
 "${cap[@]}" env DIRAC_UPDATE_SUPPORT=1 go test -timeout 5m -run '^TestSupportDocIsCurrent$' ./dirac/kgen >/dev/null 2>&1
 "${cap[@]}" env DIRAC_PIN_STRICT=1 DIRAC_SUPPORT_STRICT=1 go test -timeout 5m -run "${pins%)\$}|TestSupportDocIsCurrent)\$" ./dirac/kgen >/dev/null 2>&1 ||
