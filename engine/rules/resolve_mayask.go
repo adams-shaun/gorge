@@ -187,6 +187,11 @@ func tapeTextMayAsk(e *Engine) bool {
 		}
 		// CumulativeUpkeep, Echo and CopySpellAbility bodies are outside the
 		// text allowlist, so the chain walk already says "may ask".
+		if e.triggerContexts[id].OptionalSpec != "" {
+			// An OptionalDecider$ riding the context (an Effect registration
+			// or a reflexive "when you do, you may"): resolveTop asks it.
+			return true
+		}
 		if t, ok := e.triggerForAbilityObject(id, o); ok {
 			if e.triggerBodyNeedsCostWindow(ab) || cards.TriggerLineMayAsk(t) {
 				return true
