@@ -753,6 +753,9 @@ func (s *State) buildCostPreRaw(k *prep, pre, charge bool) (kop.ManaCost, bool) 
 		if charge && k.gen != nil && k.gen.anyPowerUp && a.Cost.Flags&kop.CostPowerUp != 0 {
 			c = s.powerUpReduced(k, e.obj, c) // CR 702.193b, before the cost statics
 		}
+		if k.gen != nil && k.gen.anyAbRaise {
+			c = s.abRaisedCharge(k, a, e.obj, e.ctrl, c) // the static raises compose before the reductions (cost_abraise.go)
+		}
 		if k.gen != nil && k.gen.anyAbReduce {
 			c = s.abReducedCharge(k, a, e.obj, e.ctrl, c)
 		}
@@ -2834,6 +2837,18 @@ func (s *State) buildPickCost(k *prep) *kop.Cost {
 		return spellAddCost(k, e.card)
 	case seAbility:
 		if a := s.buildAbility(k); a != nil {
+			// a StatRaiseAbility pick part is the entry's pick cost while it is
+			// owed: gorge's CR 601.2h sac ask covers the raise's part beside
+			// the ability's own (cost_abraise.go); the own cost's picks (a
+			// discard, the counter removals) follow it. A raised ability with
+			// a pick cost of its own is unmodelled on the one pick Cost a
+			// build poses (cardset.AbRaiseRefusal).
+			if k.gen != nil && k.gen.anyAbRaise &&
+				(s.bld().pickK == pkSac || s.bld().pickK == 0 && s.bld().donePicks&pkSac == 0) {
+				if pc := s.abRaisePick(k, e); pc != nil {
+					return pc
+				}
+			}
 			return &a.Cost
 		}
 	}
