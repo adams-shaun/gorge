@@ -141,7 +141,7 @@ func (s *State) costPartDisjointD(k *prep, p uint8, sl Slot, c *kop.Cost, mana *
 		cons[nc] = x
 		nc++
 	}
-	need := int(c.N) - free
+	need := s.sacOwed(k, p, c, sl) - free
 	if need <= 0 {
 		return true
 	}
