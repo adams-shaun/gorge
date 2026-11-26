@@ -22,7 +22,7 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // controller's next completed cast (ForgetOnCast$ Card.YouCtrl as the
 // emblem's Forget filter; kernel embFlashForget behind prepEmblemCasts'
 // anyEmbForget), whether or not that cast used the alternative (gorge
-// effectCastSweep). Cold: every site sits behind genPrep.anyEmbAltCost, and
+// effectCastSweep). Cold: every site sits behind prep.anyEmbAltCost, and
 // the read lives in embAlts' emblem scan (the embFlash shape,
 // cast_selfflash.go).
 
@@ -76,7 +76,7 @@ func (s *State) embAlts(k *prep, p uint8) int {
 }
 
 // tableEmbAltCost reports whether some table emblem carries the
-// StatAlternativeCost static (genPrep.anyEmbAltCost).
+// StatAlternativeCost static (prep.anyEmbAltCost).
 func tableEmbAltCost(t *kop.Table) bool {
 	for i := range t.Emblems {
 		for j := range t.Emblems[i].Abilities {
@@ -100,7 +100,7 @@ func tableEmbAltCost(t *kop.Table) bool {
 //
 //go:noinline
 func (s *State) offerEmbAltCostHand(k *prep, d *Decision, p uint8, o Obj, c CardID, sorc bool, av *avail) {
-	if k.gen == nil || !k.gen.anyEmbAltCost || k.cards[c].land {
+	if !k.anyEmbAltCost || k.cards[c].land {
 		return
 	}
 	n := s.embAlts(k, p)
@@ -155,7 +155,7 @@ func (s *State) offerEmbAltCostHand(k *prep, d *Decision, p uint8, o Obj, c Card
 // replaced by the spell's mana value in life and no permission is spent
 // (castFlagsGenTgt).
 func (s *State) embAltCastMark(k *prep, p uint8, o Obj) bool {
-	if k.gen == nil || !k.gen.anyEmbAltCost || s.embAlts(k, p) != 1 {
+	if !k.anyEmbAltCost || s.embAlts(k, p) != 1 {
 		return false
 	}
 	s.bld().payLifeMV = true

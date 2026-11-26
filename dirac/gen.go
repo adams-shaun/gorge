@@ -82,7 +82,6 @@ type genPrep struct {
 	anyMayRaise     bool     // some may-play static owes a non-mana RaiseCost$ (cost_mayplayraise.go)
 	anyMayKind      bool     // some OpMayPlay grants a record with a kind rider (cast_maypermission.go)
 	anyZeroAlt      bool     // some MayPlayFrom static is a non-granting {0} alternative (cast_mayzeroalt.go)
-	anyEmbAltCost   bool     // some Effect emblem carries the StatAlternativeCost static: the Effect-delivered alternative cost (cast_embaltcost.go)
 	anyEmbCold      bool     // some activated or triggered ability creates an emblem: the cold buffer holds maxEmbCold more per player (static_emblemcold.go)
 	anyMayCold      bool     // some OpMayPlay grants over a remembered set: the cold buffer holds maxMayCold more records (cast_maycold.go)
 	anyMayLimit     bool     // some OpMayPlay record carries a MayPlayLimit cap (cast_maypermission.go)
@@ -1094,7 +1093,6 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	g.anySpellMana = prepDbMana(t) // mana_dbresolve.go
 	g.anyMayKind = tableMayPlayKinds(t)
 	g.anyZeroAlt = tableZeroAlt(t)
-	g.anyEmbAltCost = tableEmbAltCost(t)
 	g.anyMayCold = tableMayPlayRemembered(t)
 	g.anyEmbCold, g.anyEmbName = tableEmblemRepeats(t), tableEmbNamed(t)
 	g.anyMayRaise = tableMayRaise(t)
@@ -1121,8 +1119,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 			}
 		}
 	}
-	prepHexOwn(t, g)      // kw_hexproofcolor.go
-	prepEmblemCasts(t, p) // cast_selfflash.go
+	prepHexOwn(t, g)                     // kw_hexproofcolor.go
+	prepEmblemCasts(t, p)                // cast_selfflash.go
+	p.anyEmbAltCost = tableEmbAltCost(t) // cast_embaltcost.go
 	for i := range t.Cards {
 		c := &t.Cards[i]
 		pc := &p.cards[i]
