@@ -209,8 +209,10 @@ func (lc *lowerCtx) cloneCopyTemplate(ps *params, flags *int, becomer lRef, vali
 		if err := lc.cloneTemplate(tr, flags); err != nil {
 			return err
 		}
-	case selfCopy && hasVT && !hasCh:
-		// Defined$ Targeted names the node's own ValidTgts$ target
+	case hasD && d == "Targeted" && valid != nil && hasVT && !hasCh:
+		// Defined$ Targeted names the node's own ValidTgts$ target: the
+		// other becomers are CloneTarget$ Valid ...+NotDefinedTargeted
+		// (Masterful Replication's mode) or the template too (selfCopy)
 		tr, err := lc.objOrTarget(newParams(map[string]string{"ValidTgts": ps.str("ValidTgts")}), "", zBattlefield)
 		if err != nil {
 			return err

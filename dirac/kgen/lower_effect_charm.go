@@ -36,7 +36,7 @@ func (lc *lowerCtx) charm(ps *params) error {
 		}
 		lc.out.TrigCharmFixed = true
 	}
-	pick, minPick, err := charmCounts(ps, len(choices), plainPick)
+	pick, minPick, err := charmCounts(ps, len(choices), plainPick, lc.out.ModesMinKicked)
 	if err != nil {
 		return err
 	}
@@ -157,7 +157,7 @@ func (lc *lowerCtx) teamworkCharmNum(ps *params, nModes int) (tw, plain int, err
 // charmCounts reads CharmNum$/MinCharmNum$ (gorge CharmModeBounds): literal
 // single digits only; the maximum defaults to 1 and the minimum to the
 // maximum. AdditionalDescription$ is display text.
-func charmCounts(ps *params, nModes int, num int) (pick, minPick int, err error) {
+func charmCounts(ps *params, nModes int, num int, minKicked bool) (pick, minPick int, err error) {
 	ps.consume("AdditionalDescription")
 	pick, minPick = 1, -1
 	if num > 0 {
@@ -184,7 +184,10 @@ func charmCounts(ps *params, nModes int, num int) (pick, minPick int, err error)
 			pick = n
 		}
 	}
-	if m, ok, err := lit("MinCharmNum"); err != nil {
+	if minKicked {
+		// MinCharmNum$ Count$Kicked.0.<n> (charmMinKicked): the offer gate's
+		// minimum is the unkicked arm, set by the caller
+	} else if m, ok, err := lit("MinCharmNum"); err != nil {
 		return 0, 0, err
 	} else if ok {
 		minPick = m
@@ -230,15 +233,19 @@ func (lc *lowerCtx) charmMultiTargets(nModes int, rootTargeted []bool) error {
 			if t.Unique {
 				return refuse("multi-pick charm with TargetUnique")
 			}
+			// "up to X" (TargetMin$ 0, TargetMax$ a bound read when the slot is
+			// announced: Kozilek's Command's X cards from graveyards) is a
+			// sequential slot whose maximum the build evaluates (TgfBoundsV)
+			upToV := t.Min.isConst() && t.Min.N == 0 && !t.Max.isConst() && tgtBoundV(t.Max, false)
 			if t.SameCtrl || t.DiffCtrl || t.SharedCrType || t.DistinctName || t.MaxMV != 0 || t.Divided != 0 || t.ParentPlus1 != 0 || t.AtRes ||
-				!t.Min.isConst() || t.Min.N < 1 || t.Min.N > 2 || !t.Max.isConst() || t.Max.N < t.Min.N || t.Max.N > kop.MaxTargets {
+				!upToV && (!t.Min.isConst() || t.Min.N < 1 || t.Min.N > 2 || !t.Max.isConst() || t.Max.N < t.Min.N || t.Max.N > kop.MaxTargets) {
 				return refuse("multi-pick charm mode target bounds %s..%s", t.Min, t.Max)
 			}
 			// a slot of more than one target takes gorge's sequential per-mode asks
 			// (askCharmSeqSlot), which the kernel derives from the slot
 			// bounds (modal_charmseq.go); the chain links' place among
 			// those asks is not read
-			plural = plural || t.Max.N > 1
+			plural = plural || upToV || t.Max.N > 1
 		}
 		if n > 0 && !rootTargeted[m] {
 			return refuse("multi-pick charm mode whose root declares no target")

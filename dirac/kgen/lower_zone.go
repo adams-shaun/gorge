@@ -2819,24 +2819,7 @@ func (lc *lowerCtx) effectStaticBodies(list string) ([]cards.Static, error) {
 
 func (lc *lowerCtx) effectAPI(ps *params) error {
 	if tr, ok := ps.get("Triggers"); ok {
-		if done, err := lc.effectImprintShieldFrom(ps); done || err != nil { // lower_effectimprintshield.go
-			return err
-		}
-		if _, st := ps.m["StaticAbilities"]; st {
-			if done, err := lc.effectUntapDenial(ps, tr); done || err != nil { // lower_untapdenial.go
-				return err
-			}
-		}
-		if _, st := ps.m["StaticAbilities"]; st && ps.m["RememberObjects"] != "" {
-			if done, err := lc.effectPlaneCurse(ps, tr); done || err != nil { // lower_planecurse.go
-				return err
-			}
-			return lc.effectStaticTriggerPair(ps, tr) // lower_effectcaptured.go
-		}
-		if done, err := lc.contractLossEffect(ps, tr); done || err != nil { // lower_contract.go
-			return err
-		}
-		return lc.emblem(ps, tr)
+		return lc.effectTriggers(ps, tr) // lower_effecttriggers.go
 	}
 	// EffectOwner$ (CR 611.2): effEffect resolves the created effect's owner
 	// lazily with EffectOwnerPlayers, whose empty value and You both name the
@@ -2859,6 +2842,9 @@ func (lc *lowerCtx) effectAPI(ps *params) error {
 			return lc.effectPrevent(ps)
 		}
 		return refuse("Effect without statics")
+	}
+	if ok, err := lc.effectPreventSpell(ps); ok || err != nil { // lower_effectpreventspell.go
+		return err
 	}
 	ss, serr := lc.effectStaticBodies(st)
 	if serr != nil {
