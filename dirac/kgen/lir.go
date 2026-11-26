@@ -62,6 +62,7 @@ const (
 	rResChosenPlayer              // the resolution's chosen player: OpChoosePlayer's random pick (gorge Ctx.Chosen's player entry, Maddening Hex's Attach destination)
 	rExiledWithOwner              // the seat whose exile holds a card exiled with the source (kop.RefExiledWithOwner; DefinedPlayer$ Player.HasCardsInExile_Card.ExiledWithSource_GE1, Unidentified Hovership's leave trigger)
 	rEnchantedCtrl                // the controller of the permanent the source is attached to, read live, nobody once the source left (kop.RefEnchantedCtrl; Defined$ EnchantedController, Paralyze)
+	rEmblemSource                 // inside an emblem trigger's body: the object whose Effect made the emblem, as it was when the trigger was queued (kop.RefEmblemSource; an Effect's RememberObjects$ Self read as Defined$ Remembered, lower_effeottrig.go)
 	rCount
 )
 
@@ -109,6 +110,7 @@ var refNames = [...]string{
 	rResChosenPlayer:      "ResChosenPlayer",
 	rExiledWithOwner:      "ExiledWithOwner",
 	rEnchantedCtrl:        "EnchantedCtrl",
+	rEmblemSource:         "EmblemSource",
 }
 
 type lRef struct {
