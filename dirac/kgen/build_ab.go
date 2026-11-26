@@ -2244,6 +2244,8 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		if st.GrantCost, err = manaCostOf(s.Cost.Mana); err != nil {
 			return ka, nil, err
 		}
+	case "ColorWords":
+		st.Kind = kop.StatColorWords // static_colorwords.go: no filter, no zone; the stall rule reads the live sources
 	case "MiracleGrant":
 		st.Kind = kop.StatMiracleGrant // kw_miracle.go
 		if st.Filter, err = filter(s.F, kop.ZoneHand); err != nil {

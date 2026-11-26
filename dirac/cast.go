@@ -307,6 +307,7 @@ func (s *State) pushBuild(k *prep) {
 	if e.kind == seSpell {
 		ob := &s.objs[e.obj]
 		z := ob.zone
+		s.colorWordsCast(k, ob.card) // a colour-word static rewrites the cast card's text before its targets (static_colorwords.go)
 		copyCast := k.gen != nil && k.gen.anyCopyCast && s.copyCastFrom(e.obj)
 		if copyCast {
 			z = kop.ZoneLibrary // a Play CopyCard$ copy is cast from gorge's holding zone (cast_copycast.go)
