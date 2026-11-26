@@ -172,6 +172,7 @@ type lowerCtx struct {
 	imprintMox     bool      // the face is the imprint-mox shape: its two static bookkeeping triggers lower to nothing (lower_imprintmox.go)
 	impPersist     bool      // the face keeps its Imprinted on the source (lower_imppersist.go)
 	impFoldExiled  bool      // every ImpPersist writer is a ChangeZone exile: IsImprinted+ExiledWithSource may fold (lower_imppersist.go)
+	cipher         bool      // the face prints K:Cipher: lowerTail appends the encode (lower_cipher.go)
 	bluffPlay      bool      // lowering the Play behind a nothing-remembered gate: ValidSA$ Spell.nonCreature+YouOwn may lower (lower_zone.go, Brazen Bluff; Yue's hand population, playOwnHand)
 	replEnter      bool      // inside an ETB replacement's ReplaceWith chain
 	exileRider     bool      // inside a dies-to-exile rider's prog: ReplacedCardLKI$CardPower may read the pre-move capture (value_repllki.go)
@@ -230,6 +231,7 @@ type lowerCtx struct {
 	head           bool      // the node being lowered heads its chain
 	inGroup        bool      // lowering a Mobilize group program's body (SacrificeDelayed is legal)
 	groupMany      bool      // ... of Mobilize 3-4: the DpMany program, SacrificeDelayed reads up to four objects
+	delayedSetDmg  bool      // delayedRemember accepted a dig's whole remembered set for a count-of-the-still-exiled body (lower_delayedsetdmg.go)
 	czForgetSet    bool      // a ChangeZoneAll ForgetOtherRemembered$ ran in this ability: Remembered is a many-object set (lower_changezoneall.go)
 	chains         int       // chain entries so far (every-blocker census: did a node's body get read?)
 	guardNode      string    // the top-level node guard is lowering (every-blocker census names extra refusals by it)
@@ -273,7 +275,14 @@ type lowerCtx struct {
 	// Rotisserie Elemental; lower_digimprintset.go): only that chain's
 	// Effect, Defined$ Imprinted and Cleanup read it
 	digImprintRoot *cards.SA
-	known          func(string) bool
+	// retImprint: the ChangeZone being lowered is a Return with Imprint$
+	// True whose writer brackets its move (lower_imprintzone.go
+	// returnImprint).
+	retImprint bool
+	// impSweep: the filter a following DestroyAll ValidCards$
+	// Card.IsImprinted reads instead (lower_imprintzone.go imprintNameSweep).
+	impSweep string
+	known    func(string) bool
 	// granted > 0 while an ability or trigger another object is granted
 	// (an AddAbility$/AddTrigger$ SVar, an emblem's trigger) is lowered
 	granted int
@@ -639,6 +648,7 @@ func (lc *lowerCtx) lowerTail() {
 	lc.refusePlotCombos()
 	lc.refuseHarmonizeCombos()
 	lc.refuseReboundCombos() // lower_rebound.go
+	lc.lowerCipher()         // lower_cipher.go
 	lc.refuseMayhemCombos()
 	lc.refuseEscapeCombos()
 	lc.lowerRetrace()
@@ -1585,6 +1595,14 @@ func (lc *lowerCtx) lowerKeywords() {
 		case expandedKeywords[head]:
 			// Lowered from the expansion's own lines.
 		case head == "Kicker":
+			if ma, mb, ok := lc.kickerTwoCosts(param); ok {
+				// the two-alternative "and/or" Kicker (CR 702.33b; gorge
+				// twoPartKickerCosts): part one rides Kicker, part two
+				// Kicker2; the kernel offers the per-part kicked casts
+				// (kw_kickalt.go)
+				lc.out.Kicker, lc.out.Kicker2 = &ma, &mb
+				continue
+			}
 			if mc, rest, ok := lc.kickerNonMana(param); ok {
 				// one non-mana part kop.Cost carries alone (gorge kickerCost
 				// is a full Cost, folded into the kicked cast's cost); the
