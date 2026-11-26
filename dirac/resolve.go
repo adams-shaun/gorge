@@ -709,6 +709,9 @@ func (s *State) objRef(k *prep, r kop.Ref) Slot {
 	if r == kop.RefTriggerObj && s.res.flags&rfTrigGone != 0 {
 		return NoSlot // the triggering permanent left and came back meanwhile: a new object (CR 400.7)
 	}
+	if r == kop.RefEmblemSource && ob.ver+1 != s.res.e.srcVer {
+		return NoSlot // the emblem trigger was queued at srcVer = ver+1: the source moved since (CR 400.7)
+	}
 	return ob.slot
 }
 
@@ -727,8 +730,8 @@ func (s *State) objRefObj(r kop.Ref) Obj {
 			return NoObj
 		}
 		return Obj(t)
-	case kop.RefSelf:
-		return e.obj
+	case kop.RefSelf, kop.RefEmblemSource:
+		return e.obj // RefEmblemSource: the emblem's source object; objRef holds it to its queued version
 	case kop.RefTriggerObj:
 		return e.trigObj
 	case kop.RefLastCreated:

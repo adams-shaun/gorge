@@ -1,0 +1,14 @@
+# the targeted-player graveyard and most-card-name pool:
+# TargetedPlayer$ValidGraveyard <spec> (Corpse Augur, The Mouth of Sauron,
+# Liliana, Death Mage) and Count$MostCardName <spec> (Endless Atlas, Chrome
+# Replicator, Mechanized Production) beside small creatures and basics
+# (dirac/oracle/tpyardmost_lowers_test.go)
+Corpse Augur
+The Mouth of Sauron
+Liliana, Death Mage
+Endless Atlas
+Chrome Replicator
+Mechanized Production
+Walking Corpse
+Swamp
+Island

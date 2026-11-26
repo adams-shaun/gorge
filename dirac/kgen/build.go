@@ -1130,6 +1130,7 @@ func (cb *cardBuilder) record() error {
 	}
 	if cb.pt.textWords {
 		d.TextWords = c.TextWords
+		d.CWUnmodelled = c.CWUnmodelled
 	}
 	d.Leyline = c.Leyline
 	d.LeylineGem, d.LeylineCtr, d.LeylineCtrN = c.LeylineGem, c.LeylineCtr, c.LeylineCtrN
@@ -2415,6 +2416,8 @@ func (cb *cardBuilder) ref(r lRef) (kop.Ref, error) {
 		return kop.RefRememberedOwner, nil
 	case rExiledWithOwner:
 		return kop.RefExiledWithOwner, nil
+	case rEmblemSource:
+		return kop.RefEmblemSource, nil
 	case rImprinted:
 		return kop.RefImprinted, nil
 	case rTargetUnion:
@@ -2509,6 +2512,7 @@ var exprKinds = map[valKind]kop.ExprKind{
 	vSelfPrepared:       kop.ExSelfPrepared,
 	vThisTurnActGrave:   kop.ExThisTurnActGrave,
 	vSneaked:            kop.ExSneaked,
+	vAltCost:            kop.ExAltCost,
 	vTriggerSpellMVLKI:  kop.ExTriggerSpellMVLKI,
 	vPoisonOf:           kop.ExPoisonOf,
 	vProduct:            kop.ExProduct,

@@ -108,6 +108,7 @@ func refuse(format string, a ...any) error { return errRefuse{fmt.Sprintf(format
 type lowerCtx struct {
 	proto    bool  // lowering a FacePrototype card's face 1: lowerRecord applies the inset (lower_prototype.go)
 	ddoEvent bool  // lowering an end-of-turn Effect's DamageDoneOnce line as the per-event DamageDone line gorge's delayed path queues (lower_damagedoneonce.go)
+	selfRem  bool  // lowering the body of an Effect trigger whose Effect remembers its source (RememberObjects$ Self): Defined$ Remembered is the emblem's source object (lower_effeottrig.go emblemSelfRemember)
 	capRem   bool  // lowering the body of a capturing emblem's DamageDealtOnce/DamageDoneOnce trigger: a Remembered read before the body writes its own set is the captured object, the damage source or the damaged object (lower_effectcaptured.go, lower_zone.go emblem)
 	effCount bool  // lowering the body of an Effect trigger that remembers a count: Remembered$Amount reads the frozen trigger amount (lower_effectremember.go)
 	pairCap  *lRef // the capture slot the pair lowering already resolved for the emblem (lower_effectcaptured.go)
@@ -290,6 +291,10 @@ type lowerCtx struct {
 	// altCostHand while a spell's own AlternativeCost static's Cost$ is
 	// lowered: an ExileFromHand<1/Spec> part keeps its filter (lower_trigger.go)
 	altCostHand bool
+	// crewAltCost while a Vehicle's own crew AlternativeCost static's Cost$ is
+	// lowered: its SubCounter<N/LOYALTY/Filter> removal reads the filter
+	// (static_crewalt.go), which no other cost spelling does
+	crewAltCost bool
 	// grantAttached while the trigger an Equipment's or Aura's static grants
 	// its attached permanent is lowered (AffectedDefined$ Equipped/Enchanted)
 	grantAttached bool
@@ -919,7 +924,9 @@ func (lc *lowerCtx) lowerRecord() {
 		out.Snow = out.Snow || t == "Snow"
 		out.Subtypes = append(out.Subtypes, t)
 	}
-	out.TextWords = textWordsOf(lc.card)
+	tw := textWordsMasks(lc.card)
+	out.TextWords = tw.words
+	out.CWUnmodelled = tw.unmodelled
 	out.NoAbilities = effects.FaceHasNoAbilities(f, out.Types&tLand != 0)
 	out.HasManaAbility = effects.FaceHasManaAbility(f)
 	out.Colors = colorsOf(f)
@@ -2906,7 +2913,10 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 				return c, refuse("counter cost %q", t)
 			}
 			kind := parts[1]
-			if kind == "LOYALTY" && head != "RemoveAnyCounter" {
+			if filteredLoyalty := kind == "LOYALTY" && len(parts) != 2 && lc.crewAltCost && head == "SubCounter"; kind == "LOYALTY" && head != "RemoveAnyCounter" && !filteredLoyalty {
+				// (a filtered loyalty removal -- "remove a loyalty counter from a
+				// planeswalker you control" -- is the among cost below, only for
+				// the crew alternative: static_crewalt.go)
 				if len(parts) != 2 {
 					return c, refuse("counter cost %q", t)
 				}
@@ -3797,9 +3807,8 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 			if ab.ActCond.Kind != cNone {
 				return refuse("two activation conditions")
 			}
-			if sa.API == "Mana" {
-				return refuse("CheckSVar$ on a mana ability")
-			}
+			// on a mana ability the gate rides the kernel's planner/window
+			// variant (mana_gate.go), read per call by condEval
 			v, err := lc.value(cs)
 			if err != nil {
 				return err

@@ -172,6 +172,12 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 			// alternativeCosts loop), whether or not the plain price is payable
 			s.offerMayPlayHandAlt(k, d, p, o, c, sorc, &av) // cast_mayzeroalt.go
 		}
+		if k.anyEmbAltCost {
+			// the Effect-delivered alternative cost beside the plain hand
+			// cast (Marshland Bloodcaster's pay-life grant; gorge's hand
+			// walk lists it whether or not the plain price is payable)
+			s.offerEmbAltCostHand(k, d, p, o, c, sorc, &av) // cast_embaltcost.go
+		}
 		cost := &pc.cost
 		var credited kop.ManaCost
 		if k.gen != nil && k.gen.anyConvoke && s.tapPays(k, p, c, o, true) {
@@ -350,6 +356,9 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 			continue
 		}
 		d.add(MakeAction(AkCast, TCode(o), 0, 2))
+	}
+	if k.graveAlt {
+		s.offerGraveyardAltCasts(k, d, p, sorc, &av) // cast_gravealt.go: the graveyard casts a card's own EffectZone$ Graveyard AlternativeCost static grants
 	}
 	if k.gen != nil && k.gen.anyHarmonize {
 		s.offerHarmonizeCasts(k, d, p, sorc, &av) // kw_harmonize.go
@@ -1825,7 +1834,7 @@ func (s *State) targetOK(k *prep, t *kop.TargetSpec, p uint8, src Slot, self Obj
 				return s.objTargetable(k, sl, p)
 			}
 		}
-		return s.matchPerm(k, t.Filter, sl, p, src) && s.objTargetable(k, sl, p)
+		return s.matchPermTgt(k, t.Filter, sl, p, src) && s.objTargetable(k, sl, p)
 	case kop.TgtSpell:
 		if ob.zone != kop.ZoneStack || o == self || o+1 == s.g.tgtSelf {
 			// CR 115.5: a spell on the stack is an illegal target for itself;
@@ -1834,7 +1843,7 @@ func (s *State) targetOK(k *prep, t *kop.TargetSpec, p uint8, src Slot, self Obj
 			// (xask_self_spell_target: the cmcEQX ask of Spell Blast's X)
 			return false
 		}
-		return s.matchCardAt(k, t.Filter, ob.card, s.stackCtrl(o), p, o) && (t.TFlags&kop.TgfSingleTgt == 0 || s.ksrSingleSpell(o))
+		return s.matchCardAtTgt(k, t.Filter, ob.card, s.stackCtrl(o), p, o, src) && (t.TFlags&kop.TgfSingleTgt == 0 || s.ksrSingleSpell(o))
 	case kop.TgtCard:
 		z := k.t.Filters[t.Filter].Zone
 		if z == kop.ZoneNone {
