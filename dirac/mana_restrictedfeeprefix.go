@@ -229,35 +229,7 @@ func (s *State) restrComboPrefix(k *prep, p uint8, a Action, pd *payDesc) bool {
 	}
 	last := gaps[ng-1]
 	_, _, ab := s.restrView(k, p, last, s.manaPCGen(k, last), pd)
-	s.perms[last].flags |= pfTapped
-	s.touchSl(last)
-	s.manaTapped(k, last)
-	dc, dn := s.deferSnap(p)
-	s.filtFeeSpend(k, p, last, fee)
-	if k.artMana {
-		s.artSync(p)
-	}
-	s.deferSync(p, dc, dn)
-	need := s.playNeed(k, a)
-	rb, pool := s.rb[SeatIx(p)], pl.pool
-	var d Decision
-	for c := 0; c < wideAnswers; c++ {
-		x, y := wideAnswer(wideEngineAnswer(need, c))
-		s.rb[SeatIx(p)], pl.pool = rb, pool
-		if !s.floatRestrAb(k, p, last, ab, x, 1) || !s.floatRestrAb(k, p, last, ab, y, 1) {
-			s.capFull(StallRestrSrc) // never a silent spill
-			return true
-		}
-		s.plainOptions(k, &d, availNoActScript|availNoFeeUnit)
-		if hasOption(&d, a) {
-			return true
-		}
-	}
-	s.rb[SeatIx(p)], pl.pool = rb, pool
-	x, y := wideAnswer(wideEngineAnswer(need, 0))
-	if !s.floatRestrAb(k, p, last, ab, x, 1) || !s.floatRestrAb(k, p, last, ab, y, 1) {
-		s.capFull(StallRestrSrc)
-	}
+	s.restrFeeActivateWide(k, p, a, last, ab, fee)
 	return true
 }
 
