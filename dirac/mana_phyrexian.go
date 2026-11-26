@@ -68,6 +68,11 @@ func (s *State) phyCastPlanSettles(k *prep, e *stackEntry, half, settled kop.Man
 		return false
 	}
 	chk = planner{dry: true}
+	// the settled cost's window gate reads the grant suspended (gorge
+	// manaWindowAsk's CostPayableClassLife lifeGrant false: a {B} pip the
+	// PayLifeInsteadOf:B grant could settle with 2 life is not pool-paid, so
+	// the CR 601.2g window opens and the mana-or-life choice is the payer's)
+	chk.noPayLife = true
 	s.tapForPK(k, e.ctrl, &settled, int(e.x), NoObj, false, false, &chk)
 	return chk.found || chk.needT == 0
 }
@@ -85,6 +90,29 @@ func phyPlanHalf(cost kop.ManaCost) kop.ManaCost {
 	half := cost
 	half.Tb, half.Hyb = 0, [len(kop.ManaCost{}.Hyb)]kop.ColorMask{}
 	return half
+}
+
+// phyLibraryDeadEnd reports that gorge's lowering of p's top-of-library cast
+// of o dead-ends (oracle libraryMayPlayLowersFirst): the witness floats the
+// pip-free mana half (pay.PlanManaHalf) and gorge then offers the cast only
+// when the pool pays it whole, which a Phyrexian pip the life cannot pay
+// leaves it short of (the half funds no colour face; castPlanPipsOutcome's
+// life < 2 per pip). The cast is then the planned payment: nothing is
+// tapped before the pip announcement and the sources pay once it is answered.
+func (s *State) phyLibraryDeadEnd(k *prep, p uint8, o Obj) bool {
+	cost := k.cards[s.objs[o].card].cost
+	if k.gen != nil && k.gen.anyPayLife && s.payLifeInsteadOfB(k, p) {
+		cost = payLifeGrantCost(cost)
+	}
+	if !cost.Phyrexian() || int(s.pl[p].life) >= 2*cost.TbN() {
+		return false
+	}
+	for _, n := range s.pl[p].pool {
+		if n != 0 {
+			return false
+		}
+	}
+	return true
 }
 
 // phyCastGateAffords is the offer gate's affordability read for p's cast of
@@ -197,7 +225,10 @@ func (s *State) phyPay(k *prep, p uint8, cost *kop.ManaCost, x int, exclude Obj)
 	if s.winPaused() {
 		return true // a tap-another pick is pending: the payment runs on when it answers
 	}
-	return ok && s.windowSpellSettled(k, p, cost, false)
+	// the grant's life settles the {B} pips the window's sources left unpaid
+	// (gorge's window opens only while a source can still pay; "done" then
+	// spends the life through the ordinary payment, static_paylife.go)
+	return ok && s.windowSpellSettled(k, p, cost, false) || s.payLifeGrantCovers(k, p, cost)
 }
 
 // phyFilterReach: some filter (Bog Initiate's "{1}: Add {B}.", Selesnya

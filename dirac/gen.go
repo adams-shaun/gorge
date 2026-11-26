@@ -305,6 +305,7 @@ type genPrep struct {
 	anyAftermath    bool           // some split card's right half has aftermath (CardDef.Aftermath; face_aftermath.go)
 	anyFuse         bool           // some split card has fuse (CardDef.FuseDef; face_fuse.go)
 	anyTwobrid      bool           // some card has a twobrid pip in its printed cost (kop.ManaCost.Tb; mana_twobrid.go)
+	anyPayLife      bool           // some card's static grants PayLifeInsteadOf:B (static_paylife.go)
 	anyBeamGrant    bool           // some card has a StatBeamGrant static
 	anyFbGrant      bool           // some card has a StatFbGrant static (kw_fbgrant.go)
 	anyWarpGrant    bool           // some card has a StatWarpGrant static (kw_warpgrant.go; sets anyWarp too)
@@ -1051,6 +1052,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	g.anyComboDyn = tableComboDyn(t)
 	g.anyComboOff = tableComboAny(t)
 	g.anyTwobrid = tableTwobrid(t)
+	g.anyPayLife = tableHasStatic(t, kop.StatPayLifeInsteadOfB)
 	g.anyBeamGrant = tableHasStatic(t, kop.StatBeamGrant)
 	// prepSpellCond first: it sets anySpellCond, which an || must not skip
 	// tableHasPlaneCurse joins: the plane-source curse's cast gate lowers to

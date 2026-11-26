@@ -633,6 +633,7 @@ default	field	genPrep.anySplit	1
 default	field	genPrep.anyAftermath	1
 default	field	genPrep.anyFuse	1
 default	field	genPrep.anyTwobrid	1
+default	field	genPrep.anyPayLife	1
 default	field	genPrep.anyBeamGrant	1
 default	field	genPrep.anyFbGrant	1
 default	field	genPrep.anyWarpGrant	1

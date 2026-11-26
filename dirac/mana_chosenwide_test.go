@@ -33,7 +33,7 @@ func CheckChosenWidePairCensusFirst(t *testing.T, tbl *kop.Table, citadel, opCar
 	var c kop.ManaCost
 	c.Generic, c.Pips[kop.R] = 1, 1 // {1}{R}
 	var pk planner
-	sc.s.tapNeed(&pk, 0, &c, 0, false)
+	sc.s.tapNeed(sc.k, &pk, 0, &c, 0, false)
 	sc.s.plan(sc.k, 0, &pk, NoObj)
 	if !pk.found {
 		t.Fatal("no plan for {1}{R} from two Citadels")
@@ -68,7 +68,7 @@ func CheckChosenWidePairCensusFirst(t *testing.T, tbl *kop.Table, citadel, opCar
 	var cf kop.ManaCost
 	cf.Generic, cf.Pips[kop.R] = 1, 1 // {1}{R}
 	var pkf planner
-	sc.s.tapNeed(&pkf, 0, &cf, 0, false)
+	sc.s.tapNeed(sc.k, &pkf, 0, &cf, 0, false)
 	sc.s.plan(sc.k, 0, &pkf, NoObj)
 	if !pkf.found || pkf.bestN != 1 {
 		t.Fatalf("one-Citadel plan: found %v taps %d, want the one pair", pkf.found, pkf.bestN)
@@ -92,7 +92,7 @@ func CheckChosenWidePairCensusFirst(t *testing.T, tbl *kop.Table, citadel, opCar
 	var cu kop.ManaCost
 	cu.Pips[kop.U] = 2
 	var pku planner
-	sc.s.tapNeed(&pku, 0, &cu, 0, false)
+	sc.s.tapNeed(sc.k, &pku, 0, &cu, 0, false)
 	sc.s.plan(sc.k, 0, &pku, NoObj)
 	if !pku.found || pku.bestN != 1 {
 		t.Fatalf("Operator plan: found %v taps %d, want the one {U}{U} unit", pku.found, pku.bestN)

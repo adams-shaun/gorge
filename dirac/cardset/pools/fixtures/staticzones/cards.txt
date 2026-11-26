@@ -23,7 +23,10 @@
 # Through Time (rebound) over blue instants and sorceries, with mana rocks;
 # Peter Parker's Amazing Spider-Man face (web-slinging) over legendary spells.
 # Defensive Formation (the defender divides a double-blocked attacker's damage)
-# reads the StatDefenderAssigns static; K'rrik stays refused.
+# reads the StatDefenderAssigns static. K'rrik, Son of Yawgmoth's
+# PayLifeInsteadOf:B grant reads the StatPayLifeInsteadOfB static: the cast
+# announces each {B} as a Phyrexian pip's two faces and the payment splits
+# mana-or-life per pip (CR 601.2h).
 As Foretold
 Bladegraft Aspirant
 Case of the Locked Hothouse
@@ -74,3 +77,7 @@ Mountain
 Fíli the Pathfinder
 Bifur, Melodic Rider
 Dáin, Lord of the Iron Hills
+Typhoid Rats
+Doom Blade
+Vampire Nighthawk
+K'rrik, Son of Yawgmoth
