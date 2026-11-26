@@ -1852,26 +1852,8 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 					// admits it per payment and floats its tap (mana_pain.go);
 					// the census ability stays the source's ordinary unit
 				} else if v, kd, ab, dmask, abi := s.restrViewW(k, p, sl, pcs[i], &rd); v != nil {
-					if (v.restrFee != 0 || v.restrFeeCol != 0) && s.g.availX&availNoFeeUnit != 0 {
-						// The census-only probe prices no restricted fee
-						// ability: gorge's composed plan prices its census
-						// alone (paid_mana_census.go), so when a census-only
-						// plan affords it is the payment and a fee unit beside
-						// it -- an Orb of Dragonkind's {1},{T} whose {1} the
-						// plan's own units fund -- must not replace it (that
-						// plan is the phased script's, priced only for a play
-						// the census cannot pay). The probe's caller holds
-						// availNoFeeUnit for the pass (restrSrcAvailD's gate,
-						// mana_restrictedfeeprefix.go). A fee ability is the
-						// source's own mana ability (the prep keeps its
-						// fee-less plain shape on the card, manaAb naming it
-						// or the deferral shape manaCol keeps with manaAb -1)
-						// unless a free one is paired with it: then the source
-						// prices nothing at all in this pass, its real census
-						// unit (a pair's free view, pc.restrPair, or a
-						// dynamic-amount layer) stays.
-						if pcs[i].restrPair == 0 && kd == rkExt &&
-							(int(pcs[i].manaAb) == int(abi) || pcs[i].manaAb < 0) {
+					if s.planFeeUnitPriced(v) {
+						if planFeeUnitDropped(pcs[i], kd, abi) {
 							pcs[i] = &noManaPC
 						}
 					} else if pk.noChosenPair && v.wideChosen {
@@ -3166,4 +3148,34 @@ func (s *State) availPlainUnit(k *prep, sl Slot, pc *pcard, a *avail) {
 			}
 		}
 	}
+}
+
+// planFeeUnitPriced reports whether the plan is the census-only probe and
+// the source's view v carries a restricted fee ability.
+func (s *State) planFeeUnitPriced(v *pcard) bool {
+	return (v.restrFee != 0 || v.restrFeeCol != 0) && s.g.availX&availNoFeeUnit != 0
+}
+
+// planFeeUnitDropped reports whether the census-only probe prices the source
+// pc nothing (the view's kind kd, ability abi).
+// The census-only probe prices no restricted fee
+// ability: gorge's composed plan prices its census
+// alone (paid_mana_census.go), so when a census-only
+// plan affords it is the payment and a fee unit beside
+// it -- an Orb of Dragonkind's {1},{T} whose {1} the
+// plan's own units fund -- must not replace it (that
+// plan is the phased script's, priced only for a play
+// the census cannot pay). The probe's caller holds
+// availNoFeeUnit for the pass (restrSrcAvailD's gate,
+// mana_restrictedfeeprefix.go). A fee ability is the
+// source's own mana ability (the prep keeps its
+// fee-less plain shape on the card, manaAb naming it
+// or the deferral shape manaCol keeps with manaAb -1)
+// unless a free one is paired with it: then the source
+// prices nothing at all in this pass, its real census
+// unit (a pair's free view, pc.restrPair, or a
+// dynamic-amount layer) stays.
+func planFeeUnitDropped(pc *pcard, kd uint8, abi int8) bool {
+	return pc.restrPair == 0 && kd == rkExt &&
+		(int(pc.manaAb) == int(abi) || pc.manaAb < 0)
 }

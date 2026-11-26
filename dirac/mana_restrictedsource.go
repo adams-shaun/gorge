@@ -840,29 +840,7 @@ func (s *State) restrSrcAvailD(k *prep, p uint8, d payDesc, av *avail, skip Slot
 	t = *av
 	deferSkip := !withDeferred && s.deferLive(k) && s.g.availX&(availWalk|availHyp) == 0
 	lifeUsed := 0 // the life the restricted life units counted so far pay
-	// gorge's autopay payment planner never funds a restricted fee ability
-	// (the census lists none: engine/rules paid_mana_census.go), so the
-	// autopay surface prices the census ability alone; the full surface's
-	// cast window prices the fee (CR 605.3b). Gorge's census-gap arm offers a
-	// play only a funded fee gap pays on the autopay surface too
-	// (legal_walk_autopay.go autoPayOffer, potentialCensusFallback), so the
-	// ability afford checks -- the callers charging the fee against an
-	// activation's payment (cost, class pdAct) -- count the funded fee unit
-	// there as well, and a may-play cast's offer does (mayPlayAffordable's
-	// ordinary affordable read, the census-gap arm; the origin is the exile
-	// or the graveyard). A plain hand or commander cast is not: the autopay
-	// surface offers only the casts gorge's planner prices (the census),
-	// and a nil-cost read (a witness, a filter's bound) keeps the
-	// census-only one. The X ask's bound is the exception (availXFeeBound:
-	// gorge's paymentPlanCensusTotal counts every census source's largest
-	// alternative, the fee charged from the mana already counted).
-	feeUnits := k.gen != nil && k.gen.rs != nil && k.gen.rs.fee && s.g.availX&availNoFeeUnit == 0 &&
-		(s.cfg&cfgGorgeAutopay == 0 || cost != nil &&
-			(d.class == pdAct || d.class == pdSpell &&
-				(d.og.from == kop.ZoneGraveyard || d.og.from == kop.ZoneExile)))
-	if s.g.availX&availXFeeBound != 0 && d.class == pdSpell {
-		feeUnits = k.gen != nil && k.gen.rs != nil && k.gen.rs.fee && s.g.availX&availNoFeeUnit == 0
-	}
+	feeUnits := s.restrFeeUnitsPriced(k, d, cost)
 	for pass := 0; pass < 2; pass++ {
 		if pass == 1 && !feeUnits {
 			break
@@ -1762,4 +1740,33 @@ func (s *State) potentialRestrSeed(k *prep, p uint8, d *payDesc, pot *[kop.NumMa
 	for c, n := range t {
 		(*pot)[c] += int(n)
 	}
+}
+
+// restrFeeUnitsPriced reports whether restrSrcAvailD prices the restricted
+// fee abilities' units for the payment d (cost: the charged cost, nil for a
+// witness read).
+// gorge's autopay payment planner never funds a restricted fee ability
+// (the census lists none: engine/rules paid_mana_census.go), so the
+// autopay surface prices the census ability alone; the full surface's
+// cast window prices the fee (CR 605.3b). Gorge's census-gap arm offers a
+// play only a funded fee gap pays on the autopay surface too
+// (legal_walk_autopay.go autoPayOffer, potentialCensusFallback), so the
+// ability afford checks -- the callers charging the fee against an
+// activation's payment (cost, class pdAct) -- count the funded fee unit
+// there as well, and a may-play cast's offer does (mayPlayAffordable's
+// ordinary affordable read, the census-gap arm; the origin is the exile
+// or the graveyard). A plain hand or commander cast is not: the autopay
+// surface offers only the casts gorge's planner prices (the census),
+// and a nil-cost read (a witness, a filter's bound) keeps the
+// census-only one. The X ask's bound is the exception (availXFeeBound:
+// gorge's paymentPlanCensusTotal counts every census source's largest
+// alternative, the fee charged from the mana already counted).
+func (s *State) restrFeeUnitsPriced(k *prep, d payDesc, cost *kop.ManaCost) bool {
+	fee := k.gen != nil && k.gen.rs != nil && k.gen.rs.fee && s.g.availX&availNoFeeUnit == 0
+	if s.g.availX&availXFeeBound != 0 && d.class == pdSpell {
+		return fee
+	}
+	return fee && (s.cfg&cfgGorgeAutopay == 0 || cost != nil &&
+		(d.class == pdAct || d.class == pdSpell &&
+			(d.og.from == kop.ZoneGraveyard || d.og.from == kop.ZoneExile)))
 }

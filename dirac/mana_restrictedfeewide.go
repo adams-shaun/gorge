@@ -54,8 +54,8 @@ func (s *State) windowFeeWideCost(k *prep, p uint8, sl Slot) (fee kop.ManaCost, 
 // priced it, restrSrcAvailD's fee pass), where the window's clamp keeps only
 // the colours the cost still owes. A Sol Ring's {C}{C} funds an Orb of
 // Dragonkind's {1} for a {R} pump (the Orb's {R} floats restricted).
-func (s *State) windowFeeFund(k *prep, p uint8, order []Slot) Slot {
-	if k.gen == nil || !k.gen.anyRestrSrc || s.cfg&cfgGorgeAutopay == 0 {
+func (s *State) windowFeeFund(k *prep, p uint8, order []Slot, decided, census, potential bool) Slot {
+	if !decided || census || potential || k.gen == nil || !k.gen.anyRestrSrc || s.cfg&cfgGorgeAutopay == 0 {
 		return NoSlot
 	}
 	for _, g := range order {
