@@ -2124,40 +2124,6 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 			}
 			st.StFlags |= kop.StTapDynamic
 		}
-	case "CantBeCast":
-		st.Kind = kop.StatCantBeCast
-		if s.F != nil { // nil: the card's own static (Card.Self | EffectZone$ All)
-			if st.Filter, err = filter(s.F, kop.ZoneStack); err != nil {
-				return ka, nil, err
-			}
-		}
-		if s.Zone == zAny {
-			st.Zone = kop.ZoneCommand
-		} else if s.Zone == zHand {
-			st.Zone = kop.ZoneHand // Origin$ Hand: the origin the cast gate reads (cast_cantself.go)
-		}
-		for _, fl := range s.Flags {
-			switch fl {
-			case "ActivatorYou":
-				st.StFlags |= kop.StRaiseYou
-			case "ActivatorOpp":
-				st.StFlags |= kop.StRaiseOpp
-			case "CasterActive":
-				st.StFlags |= kop.StCasterActive
-			case "NamedCard":
-				st.B |= kop.CantCastNamed
-			case "SorcerySpeed":
-				st.B |= kop.CantCastSorcery
-			default:
-				return ka, nil, fmt.Errorf("cant be cast flag %q", fl)
-			}
-		}
-		if s.Amount.Kind != vNone {
-			if !s.Amount.isConst() {
-				return ka, nil, fmt.Errorf("cant be cast limit %v", s.Amount)
-			}
-			st.A = int16(s.Amount.N)
-		}
 	case "CantPlayLand":
 		if err := cantPlayLandStatic(s, st); err != nil {
 			return ka, nil, err
