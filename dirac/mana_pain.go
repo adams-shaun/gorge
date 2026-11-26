@@ -52,10 +52,13 @@ func manaLifePain(a *kop.Ability) (uint8, bool) {
 
 // prepPainSource reports whether c's mana production pains its controller: a
 // self-Taps line (prepSelfTapsPain, mana_tapsdefer.go), a pain-only or a
-// sole-life source (below), or a printed reflected ability whose cost pays
-// life (reflLifePain, Horizon of Progress). prepare's painMana flag reads it.
+// sole-life source (below), a printed reflected ability whose cost pays
+// life (reflLifePain, Horizon of Progress), or the card's own mana-abilities'
+// life raise (manaLifeRaise: Thran Portal, whose intrinsic views carry the
+// life as pain, prepLandGrant's fold). prepare's painMana flag reads it.
 func prepPainSource(c *kop.CardDef, pc *pcard) bool {
-	return prepSelfTapsPain(c, pc) || prepPainOnlyLife(c, pc) || prepSoleLifeMana(c, pc) || reflLifePain(c)
+	return prepSelfTapsPain(c, pc) || prepPainOnlyLife(c, pc) || prepSoleLifeMana(c, pc) || reflLifePain(c) ||
+		!DebugNoAbRaise && manaLifeRaise(c) > 0
 }
 
 // reflLifePain reports whether c has a printed reflected mana ability whose
@@ -1229,7 +1232,17 @@ func (s *State) painAnyOwed(p uint8, useful *kop.ManaCost, pc *pcard) (int, bool
 // ability pc names; 0 when it has none.
 func (s *State) printedAbPain(k *prep, sl Slot, pc *pcard) int {
 	if pc.manaIntrinsic {
-		return 0 // the view is a granted basic land type's intrinsic ability (blgView): its activation costs no life; the card's rider's pain prices its own fold (availPotentialFor's fixpoint, abPainOf)
+		// the view is a granted basic land type's intrinsic ability (blgView).
+		// Its activation costs the life the source's mana-abilities' raise
+		// charges (Thran Portal, prepLandGrant's fold): gorge's census prices
+		// the raise composed onto the intrinsic ability (manaAbilityCC's
+		// costModifiersWithTargetsUsing), so the lethal gate reads it. A view
+		// without the fold costs nothing; the card's rider's pain prices its
+		// own fold (availPotentialFor's fixpoint, abPainOf).
+		if pc.manaRaiseLife {
+			return int(pc.painN)
+		}
+		return 0
 	}
 	if pc.manaAb < 0 {
 		return 0
