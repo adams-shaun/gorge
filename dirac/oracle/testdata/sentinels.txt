@@ -192,3 +192,4 @@ TestTypedArtifactManaFourSeatLockstep
 TestUnlessCommandTowerOfferLockstep
 TestVoteChoicesFourSeatLockstep
 TestVoteStoreNumFourSeatLockstep
+TestPinManifest

@@ -123,6 +123,7 @@ default	field	genState.entHost	2379	1
 default	field	genState.dmg	2380	32
 default	field	genState.ndmg	2412	1
 default	field	genState.fbProbe	2413	1
+default	field	genState.priAsk	2414	1
 default	field	genState.may	2416	192
 default	field	genState.nmay	2608	1
 default	field	genState.parad	2609	4

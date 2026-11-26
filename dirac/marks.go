@@ -534,6 +534,9 @@ func (s *State) DecisionHash(d *Decision) uint64 {
 	if s.ctl == ctlBand || s.ctl == ctlEnlist {
 		h = hmix(h, uint64(s.lastPick)) // the leader asked (combat_band.go), the enlisting attacker (kw_enlist.go)
 	}
+	if s.ctl == ctlManaAsk {
+		h = hmix(h, uint64(s.g.winUnless)|uint64(s.g.winUnlessPay)<<8|uint64(s.g.winUnlessSrc)<<16|uint64(s.g.winSrc)<<24) // the activation's asks (mana_priask.go)
+	}
 	if s.ctl == ctlReflectPick {
 		h = hmix(h, uint64(s.g.reflMask)|uint64(s.g.reflP)<<8) // the colours asked and the payer (mana_reflectpickask.go)
 	}
