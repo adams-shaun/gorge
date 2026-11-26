@@ -40,6 +40,14 @@ const (
 	ColAny ColorMask = 0x1f
 )
 
+// HexMono and HexMulti ride CardDef.HexColors beside the colour bits, in two
+// bits no colour uses: printed "hexproof from monocolored" (K:Hexproof:
+// Card.MonoColor) and "from multicolored" (Card.MultiColor), CR 702.11d.
+const (
+	HexMono  ColorMask = 1 << 6
+	HexMulti ColorMask = 1 << 7
+)
+
 // CtrlSel selects by controller relative to the source's controller.
 type CtrlSel uint8
 

@@ -1293,6 +1293,9 @@ func init() { enum[kop.ReplKind]("kop.ReplDamageSet", kop.ReplDamageSet) }
 // dirac/manifest/ReplKind/ReplLifeReduced
 func init() { enum[kop.ReplKind]("kop.ReplLifeReduced", kop.ReplLifeReduced) }
 
+// dirac/manifest/ReplKind/ReplTurnUpAttach
+func init() { enum[kop.ReplKind]("kop.ReplTurnUpAttach", kop.ReplTurnUpAttach) }
+
 // dirac/manifest/StaticKind/StatOptionalAttackCost
 func init() { enum[kop.StaticKind]("kop.StatOptionalAttackCost", kop.StatOptionalAttackCost) }
 

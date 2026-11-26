@@ -607,6 +607,9 @@ func (s *State) askOptionsUnread(k *prep, d *Decision) bool {
 		if s.askOptionsTurnUpEff(k, d) { // face_turnupeffect.go
 			return true
 		}
+		if s.askOptionsTurnUpAttach(k, d) { // face_turnupattach.go
+			return true
+		}
 		if s.askOptionsDistPick(k, d) { // ctr_distpick.go
 			return true
 		}
@@ -688,6 +691,9 @@ func (s *State) applyAskUnread(k *prep, a Action) bool {
 			return true
 		}
 		if s.applyAskTurnUpEff(k, a) { // face_turnupeffect.go
+			return true
+		}
+		if s.applyAskTurnUpAttach(k, a) { // face_turnupattach.go
 			return true
 		}
 		if s.applyAskDistPick(k, a) { // ctr_distpick.go
