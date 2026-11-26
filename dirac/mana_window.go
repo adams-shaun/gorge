@@ -3942,6 +3942,8 @@ func (s *State) manaStep(k *prep) bool {
 				cost = s.restrAdmShortCost(k, e, cost)
 				s.tapForRider(k, e.ctrl, &cost, int(e.x), e.obj, anyColor)
 			}
+		} else if s.convCRoute(k, cost, int(e.x)) {
+			// the colourless-mana conversion's pool route: the pool pays, nothing to tap (cast_mayconvc.go)
 		} else if s.convAllPoolRoute(k, e.ctrl, anyColor) {
 			// the any-colour conversion's pool route: the pool pays, nothing to tap (mana_convertcreature.go)
 		} else {
@@ -4089,6 +4091,13 @@ func (s *State) gapWindowReverse(k *prep, e *stackEntry, cost *kop.ManaCost, sav
 // path that keeps the activation, and reports true when the activation was
 // reversed because neither reaches the cost (CR 733.1).
 func (s *State) abilityPlainMana(k *prep, e *stackEntry, cost kop.ManaCost, saved *[len(build{}.picks)]uint8, hostSl, sl Slot, selfUntapped bool) bool {
+	if cost.X != 0 {
+		if m := s.restrActNow(k, e.ctrl); m != 0 {
+			// the admitted restricted mana pays the announced {X} too (pay.PlanPool), which
+			// the unfolded cost's shortening could not fold in (Boommobile's {A})
+			cost = s.restrShortAdm(e.ctrl, m, xFolded(s.buildCost(k), int(e.x)))
+		}
+	}
 	if !s.tapForTry(k, e.ctrl, &cost, int(e.x), s.abilityHandExclude(k, e), false) {
 		c := xFolded(cost, int(e.x))
 		if s.gapWindowReverse(k, e, &c, saved, hostSl, sl, selfUntapped) {
@@ -4115,13 +4124,8 @@ func (s *State) abilityPlainMana(k *prep, e *stackEntry, cost kop.ManaCost, save
 // A granted cycling (kw_cyclinggrant.go) excludes nothing: gorge plans a
 // keyword-granted activation with no cast object (planKeywordAbility), so its
 // hand-demand key still counts the cycled card's pips.
-// handExcludeOn is off while gorge's ability witness plans without the hand
-// exclusion (hotfix/fl-oracle-5 backs out #4737's hand-demand key: the
-// lockstep diverged on TestTapExtraGrantedPrefixLockstep).
-const handExcludeOn = false
-
 func (s *State) abilityHandExclude(k *prep, e *stackEntry) Obj {
-	if handExcludeOn && e != nil && e.obj != NoObj && s.objs[e.obj].zone == kop.ZoneHand {
+	if e != nil && e.obj != NoObj && s.objs[e.obj].zone == kop.ZoneHand {
 		if k.anyCyclingGrant && isCyclingGrantBody(&k.t.Cards[e.card], int(e.ab)) {
 			return NoObj
 		}

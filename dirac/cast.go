@@ -1767,6 +1767,9 @@ func (s *State) payCastParts(k *prep, ep *stackEntry, anyColor bool) {
 	if k.gen != nil && k.gen.anyRaiseLife {
 		s.payRaiseLife(k) // a RaiseCost PayLife<N> the chosen target owes (cost_raiselife.go)
 	}
+	if n := s.bld().payEvidence; n > 0 {
+		s.payMayEvidence(k) // a may-play cast's alternative cost: the picked evidence (kop.StMayPayEvidence)
+	}
 	if s.bld().payLifeMV {
 		s.payMayPlayLife(k) // a may-play cast's alternative cost: life equal to its mana value (cast_mayplaypaylife.go)
 	}
@@ -2501,7 +2504,9 @@ func (s *State) costPickOptions(k *prep, d *Decision, allowed kop.CostFlags) boo
 			if s.bld().pickK == pkDiscard {
 				s.bld().pickLeft += pc.Discard2N // the second discard part's picks follow (cost_discardfiltered.go)
 			}
-			if s.bld().pickK == pkSac && pc.N == 0 {
+			if s.bld().pickK == pkSac && pc.SacHalf {
+				s.bld().pickLeft = uint8(min(s.sacOwed(k, e.ctrl, pc, src), 255)) // cost_sachalf.go
+			} else if s.bld().pickK == pkSac && pc.N == 0 {
 				s.bld().pickLeft = uint8(e.x) // Sac<X/Spec>: the announced X (cost_sacx.go; 0 asks nothing)
 			}
 		}
@@ -2834,7 +2839,7 @@ func (s *State) pickCostPayable(k *prep, p uint8, c *kop.Cost, exclude Obj) bool
 	if f&kop.CostDiscard != 0 && !s.discardPayable(k, p, c, exclude) {
 		return false
 	}
-	if f&kop.CostSac != 0 && s.countCostSac(k, p, c, NoSlot) < int(c.N) {
+	if f&kop.CostSac != 0 && s.countCostSac(k, p, c, NoSlot) < s.sacOwed(k, p, c, NoSlot) {
 		return false
 	}
 	if f&kop.CostTapX != 0 && s.countUntapped(k, p, c.Filter, NoSlot) < int(c.N) {

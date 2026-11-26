@@ -721,7 +721,7 @@ func (s *State) FeatPlannedCast(p uint8, o Obj, mode uint8) bool {
 // admissible (PlanNonManaAdmissible's Announced and N<=0 arms).
 func planDeclinesAddCost(k *prep, c CardID) bool {
 	ac := spellAddCost(k, c)
-	return ac.Flags&^(kop.CostSac|kop.CostDiscard|kop.CostDiscardFiltered) != 0 || ac.ExileBf || sacXCost(ac) || discardXCost(ac) // an Exile<N/Spec> part is "cost:exile" (cost_exilebf.go); an announced Sac<X/Spec> is not "cost:sacrifice" admissible, nor an announced Discard<X/Spec> "cost:discard" (PlanNonManaAdmissible; cost_sacx.go, cost_discardfiltered.go)
+	return ac.Flags&^(kop.CostSac|kop.CostDiscard|kop.CostDiscardFiltered) != 0 || ac.ExileBf || sacXCost(ac) || ac.SacHalf || discardXCost(ac) // an Exile<N/Spec> part is "cost:exile" (cost_exilebf.go); an announced Sac<X/Spec> is not "cost:sacrifice" admissible, nor an announced Discard<X/Spec> "cost:discard" (PlanNonManaAdmissible; cost_sacx.go, cost_discardfiltered.go)
 }
 
 // plannedCastCost is the cost gorge's cast planner prices for p's cast of
