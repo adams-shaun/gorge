@@ -152,6 +152,7 @@ func cloneFieldsEngine(c, e *Engine, sp *Spare, remap *cloneRemap) {
 	c.setNameInPool = e.setNameInPool
 	c.layer4InPool = e.layer4InPool
 	c.controlStaticInPool = e.controlStaticInPool
+	c.colorWordsInPool = e.colorWordsInPool
 }
 
 func cloneFieldsEngineTurnLedger(c, e *Engine, sp *Spare, remap *cloneRemap) {

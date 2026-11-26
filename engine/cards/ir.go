@@ -554,6 +554,32 @@ var layer4TypeParams = map[string]bool{
 // silently miss the derived type at a target offer.
 func (c *Card) ChangesTypes() bool { return c.probe().changesTypes }
 
+// ChangesColourWords is the pool probe of a CR 612.5 colour-word change
+// (Swirl the Mists' "All instances of color words in the text of spells and
+// permanents become the chosen color word"): a Mode$ Continuous static
+// whose ChangeColorWordsTo$ parameter the rules engine's static walk reads.
+// Like the other probes it is card-data introspection over the printed
+// statics only -- a card outside the match's pool can never register one of
+// these effects from its printed text.
+func (c *Card) ChangesColourWords() bool { return c.probe().colourWords }
+
+func (c *Card) changesColourWordsScan() bool {
+	if c == nil {
+		return false
+	}
+	for _, f := range c.Faces {
+		if f == nil {
+			continue
+		}
+		for _, st := range f.Statics {
+			if _, ok := st.Params["ChangeColorWordsTo"]; ok {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 func (c *Card) changesTypesScan() bool {
 	if c == nil {
 		return false
