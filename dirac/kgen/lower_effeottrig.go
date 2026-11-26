@@ -376,19 +376,19 @@ func emblemBodyMemory(ab *lAbility, mem effMem, selfRem bool) error {
 // Defined$ Remembered. The kernel's emblem already names that object (the
 // entry's source, State.g.embO), so nothing is captured: the body's
 // Remembered lowers to rEmblemSource (kop.RefEmblemSource), held to the
-// object the source was when the trigger was queued. found reports the
-// shape; a Self beside any other mode, a duration or a ForgetOnMoved$
-// refuses, as does a trigger line that reads the remembered set itself.
+// object the source was when the trigger was queued (the kernel queues the
+// emblem trigger at srcVer = ver+1, so plain RefSelf no-slots there).
+// found reports the shape. The refusals keep effectRememberSelf's census
+// order and texts (lower_effectremself.go): a trigger line or body that
+// reads the remembered set refuses by name before the mode does; a Self
+// beside a duration, a ForgetOnMoved$ or any other mode refuses too.
 func emblemSelfRemember(ps *params, t cards.Trigger, eot bool) (bool, error) {
 	ro, ok := ps.m["RememberObjects"]
 	if !ok || strings.TrimSpace(ro) != "Self" {
 		return false, nil
 	}
-	if !eot || t.Mode != "SpellCast" && t.Mode != "DamageDone" {
-		return false, refuse("Effect triggers with RememberObjects$ %q", ro)
-	}
-	if _, ok := ps.m["ForgetOnMoved"]; ok {
-		return false, refuse("Effect RememberObjects$ Self beside ForgetOnMoved$")
+	if !eot {
+		return false, refuse("Effect triggers with RememberObjects$ \"Self\" beside a Duration$")
 	}
 	keys := make([]string, 0, len(t.Params))
 	for k := range t.Params {
@@ -397,8 +397,21 @@ func emblemSelfRemember(ps *params, t cards.Trigger, eot bool) (bool, error) {
 	sort.Strings(keys) // the refusal text reaches the census: name the same key every run
 	for _, k := range keys {
 		if k != "Execute" && strings.Contains(t.Params[k], "Remembered") {
-			return false, refuse("Effect RememberObjects$ Self beside a trigger %s$ that reads Remembered", k)
+			return false, refuse("Effect triggers with RememberObjects$ \"Self\" and trigger %s$ %q", k, t.Params[k])
 		}
+	}
+	for sa := t.Effect; sa != nil; sa = sa.Sub {
+		for _, k := range sortedKeys(sa.Params) {
+			if v := sa.Params[k]; strings.Contains(v, "Remembered") && (k != "Defined" || strings.TrimSpace(v) != "Remembered") {
+				return false, refuse("Effect triggers with RememberObjects$ \"Self\" and body %s$ %q", k, v)
+			}
+		}
+	}
+	if _, ok := ps.m["ForgetOnMoved"]; ok {
+		return false, refuse("Effect RememberObjects$ Self beside ForgetOnMoved$")
+	}
+	if t.Mode != "SpellCast" && t.Mode != "DamageDone" {
+		return false, refuse("Effect triggers with RememberObjects$ \"Self\" over Mode$ %s", t.Mode)
 	}
 	ps.consume("RememberObjects")
 	return true, nil
