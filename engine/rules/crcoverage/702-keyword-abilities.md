@@ -125,7 +125,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 702.76a | follows | `engine/rules/altcast_modes.go#altCastMode.gateOpen` `engine/rules/combat_hit_facts.go#combatHitThisTurn` `engine/rules/combat_hit_facts.go#prowlHit` | `TestProwlNeedsASharedTypeCombatHit` `TestProwlFreerunningCardsAreSupported` | printed K:Prowl only; a granted prowl (Hunting Velociraptor) is not offered |
 | 702.77a,b | not-impl | - | - | LOUD (11) |
 | 702.78a,b | follows | `engine/cards/kw_conspire.go#kwConspire` `engine/rules/cast_asks.go#Engine.conspireAsk` | `TestConspirePrintedOfferPayAndCopy` `TestConspireDeclinedPlainCast` |  |
-| 702.79a | follows | `engine/cards/kw_persist.go#kwPersist` | - |  |
+| 702.79a | follows | `engine/cards/kw_persist.go#kwPersist` `engine/rules/scriptfacts/granted_keyword_trigger.go#GrantedKeywordTrigger` | `TestGrantedPersistAndUndyingReturn` | a layer-6 grant synthesizes the printed expansion's trigger |
 | 702.80a-d | follows | `engine/rules/combat.go#Engine.damageStep` `engine/rules/combat.go#Engine.runCombatAssignments` | `TestWitherVillagePillagersETBDamageAllDealsCounters` |  |
 | 702.81a | follows | `engine/rules/cast_altcost.go#retraceExtra` | `TestGrantedRetraceChargesTheLandDiscard` |  |
 | 702.82a-c | follows | `engine/cards/kw_devour.go#kwDevour` | - |  |
@@ -140,7 +140,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by gorge. Seede
 | 702.90a-f | follows | `engine/rules/combat.go#Engine.damageStep` `engine/rules/combat.go#Engine.runCombatAssignments` | `TestInfectDamageToCreatureIsMinusOneCountersNotMarkedDamage` |  |
 | 702.91a,b | follows | `engine/cards/kw_battle_cry.go#kwBattleCry` `engine/rules/scriptfacts/granted_keyword_trigger.go#GrantedKeywordTrigger` | `TestBattleCryPumpsOtherAttackingCreatures` `TestGrantedBattleCryPumpsOtherAttackers` | a layer-6 grant synthesizes the printed expansion's trigger |
 | 702.92a | follows | `engine/cards/kw_livingweapon.go#kwLivingWeapon` | `TestBatterskullLivingWeaponCreatesAGermAndReachesAttach` |  |
-| 702.93a | follows | `engine/cards/kw_undying.go#kwUndying` | `TestUndyingReturnsOnceWithACounter` |  |
+| 702.93a | follows | `engine/cards/kw_undying.go#kwUndying` `engine/rules/scriptfacts/granted_keyword_trigger.go#GrantedKeywordTrigger` | `TestUndyingReturnsOnceWithACounter` `TestGrantedPersistAndUndyingReturn` | a layer-6 grant synthesizes the printed expansion's trigger |
 | 702.94a,b | follows | `engine/rules/miracle.go#Engine.offerMiracle` `engine/rules/miracle.go#Engine.drawsThisTurn` `engine/rules/miracle.go#Engine.miracleCost` | `TestMiracleOffersOnTheFirstDrawOnly` `TestMiracleNotOfferedOnTheOpeningHand` `TestMiracleGrantedInHandOffersAndCharges` | no offer on the opening deal or a mulligan redraw (CR 103.5) |
 | 702.95a-d | follows | `engine/cards/kw_soulbond.go#kwSoulbond` `engine/effects/soulbond.go#effPair` | `TestSoulbondPairsCurrentCreatures` `TestSoulbondAloneDoesNotTrigger` |  |
 | 702.95e | follows | `engine/rules/sba.go#Engine.unpairNoncreatures` `engine/events/apply_player.go#foldControlChange` `engine/events/apply_zone.go#foldMoveZone` | `TestSoulbondPairEnds` | checked with the state-based actions: the rule names no time, and no player can act before the next check |

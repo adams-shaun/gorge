@@ -17,6 +17,8 @@ import (
 
 // trigXFoldCap is gorge's xFoldBoundCap (rules cumulative.go L979): the
 // mana bound's cap, the whole cap when the body has no XMax$.
+//
+//lockstep:const engine/rules.xFoldBoundCap
 const trigXFoldCap = 64
 
 // trigXCost reads the XMax$ of the trigger-own {X} cost (trigXFoldCap when
