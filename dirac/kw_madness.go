@@ -1,6 +1,8 @@
 package dirac
 
 import (
+	"sync/atomic"
+
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
@@ -31,10 +33,74 @@ func SetDebugMadnessMutate(m uint8) { debugMadnessMutate = m }
 
 const raGenMadness = raGenManifestDread + 50 // the madness cast-or-graveyard ask (ChOptional)
 
+// MadnessGrantStats counts the discards a granted madness (a StatMadnessGrant
+// static, madnessCostOf) sent to exile for a card without printed madness.
+var MadnessGrantStats struct{ Exiled atomic.Int64 }
+
 // madnessExiled reports whether discarding hand card o exiles it (printed
-// madness).
+// madness, or a grant in force over its Hand zone).
 func (s *State) madnessExiled(k *prep, o Obj) bool {
-	return k.gen != nil && k.gen.anyMadness && k.t.Cards[s.objs[o].card].HasMadness
+	if k.gen == nil || !k.gen.anyMadness {
+		return false
+	}
+	if _, ok := s.madnessCostAt(k, o, kop.ZoneHand); !ok {
+		return false
+	}
+	if !k.t.Cards[s.objs[o].card].HasMadness {
+		MadnessGrantStats.Exiled.Add(1)
+	}
+	return true
+}
+
+// madnessCostOf is card o's madness cost (gorge derivedKeywordParamH
+// kwhMadness, madnessCostLabel): its printed one, else the first grant in
+// force (a StatMadnessGrant static whose zone is the card's own, in perm.ts
+// order as gorge's derived keyword list is composed), read live; false when it
+// has none. The card is read where it is: the exiled card at the ask, the spell
+// on the stack mid-cast.
+func (s *State) madnessCostOf(k *prep, o Obj) (kop.ManaCost, bool) {
+	return s.madnessCostAt(k, o, s.objs[o].zone)
+}
+
+// madnessCostAt is madnessCostOf with card o read as a card in zone z. The
+// discard reads a hand card already detached from it (zone none), so the
+// zone-filtered match reads the printed card instead of the object
+// (matchCardOneAt's zone test needs the object in z).
+func (s *State) madnessCostAt(k *prep, o Obj, z kop.Zone) (kop.ManaCost, bool) {
+	ob := &s.objs[o]
+	c := ob.card
+	cd := &k.t.Cards[c]
+	if cd.HasMadness {
+		return cd.MadnessCost, true
+	}
+	if k.gen == nil || !k.gen.anyMadness {
+		return kop.ManaCost{}, false
+	}
+	var cost kop.ManaCost
+	got := false
+	mo := o
+	if ob.zone != z {
+		mo = NoObj
+	}
+	s.eachStaticTS(k, sclsOffKwG, func(st statSrc) bool {
+		a := st.a
+		if a.Kind != kop.AbStatic || a.Static.Kind != kop.StatMadnessGrant {
+			return true
+		}
+		if a.Static.Zone != kop.ZoneAny && a.Static.Zone != z {
+			return true
+		}
+		if !s.statCond(k, st) || !s.matchCardGenAt(k, a.Static.Filter, c, ob.owner(), st.ctrl, mo, nil) {
+			return true
+		}
+		cost, got = a.Static.GrantCost, true
+		if less := a.Static.CardCostLess; less != 0 {
+			cost = cd.Cost
+			cost.Generic -= min(cost.Generic, less-1) // CR 702.35a "madness cost equal to": never below zero
+		}
+		return false
+	})
+	return cost, got
 }
 
 // queueMadness queues the madness trigger of exiled card o.
@@ -74,7 +140,11 @@ func (s *State) resolveMadness(k *prep) {
 func (s *State) madnessCastable(k *prep, o Obj, p uint8) bool {
 	c := s.objs[o].card
 	fh := s.objs[o].zone == kop.ZoneHand
-	cost, used := s.convokeCreditUsed(k, p, c, o, fh, k.t.Cards[c].MadnessCost)
+	mcost, granted := s.madnessCostOf(k, o)
+	if !granted {
+		return false // a grant gone since the discard: gorge's ask offers no cast
+	}
+	cost, used := s.convokeCreditUsed(k, p, c, o, fh, mcost)
 	credited := used.any() || s.hasCastDelve(k, p, c, o, fh)
 	// the CR 601.2f modifiers compose over the credited cost (gorge
 	// offerCastablePotential: the gate composes the very charge the payment

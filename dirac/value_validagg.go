@@ -35,8 +35,8 @@ func (s *State) validAgg(k *prep, x *kop.Expr, ctx evalCtx) int {
 	var pows [MaxPerm]int // distinct powers seen (at most one per slot)
 	np := 0
 	var names [MaxPerm]CardID // distinct names seen (AggDistinctNames, AggMostName)
-	var nameN [MaxPerm]uint8  // each seen name's matches (AggMostName)
-	nn := 0
+	var nameN [MaxPerm]int    // matches per seen name (AggMostName)
+	nn, most := 0, 0
 	var types kop.TypeMask // the matches' face card types (AggCardTypes)
 	var crSubs kop.SubMask // the matches' current creature types (AggCreatureTypes)
 	for m := s.occ; m.any(); m = m.rest() {
@@ -64,7 +64,7 @@ func (s *State) validAgg(k *prep, x *kop.Expr, ctx evalCtx) int {
 			continue
 		case kop.AggDistinctNames, kop.AggMostName:
 			// CR 201.2: gorge zoneFold seenDiffNames[o.Face().Name];
-			// countMostCardName's counts[o.Face().Name], the largest
+			// AggMostName is gorge countMostCardName's per-name tally
 			nc := s.nameCardAt(sl)
 			at := -1
 			for i := 0; i < nn; i++ {
@@ -75,11 +75,13 @@ func (s *State) validAgg(k *prep, x *kop.Expr, ctx evalCtx) int {
 			}
 			if at < 0 {
 				at = nn
-				names[nn] = nc
+				names[nn], nameN[nn] = nc, 0
 				nn++
 			}
 			nameN[at]++
-			best = max(best, int(nameN[at]))
+			if nameN[at] > most {
+				most = nameN[at]
+			}
 			continue
 		case kop.AggCardTypes:
 			// CR 205.2a: the face's card types (gorge o.Face().Types in
@@ -106,6 +108,10 @@ func (s *State) validAgg(k *prep, x *kop.Expr, ctx evalCtx) int {
 			}
 			continue
 		case kop.AggSumCounters:
+			if x.Ctr == kop.CtrAll {
+				n += s.permCountersAll(sl) // gorge CardCounters.ALL (Object.Counter("ALL"))
+				continue
+			}
 			n += s.perms[sl].ctrN(s, int(x.Ctr)) // CR 122.1
 			continue
 		}
@@ -137,6 +143,8 @@ func (s *State) validAgg(k *prep, x *kop.Expr, ctx evalCtx) int {
 		return np
 	case kop.AggDistinctNames:
 		return nn
+	case kop.AggMostName:
+		return most
 	case kop.AggCardTypes:
 		return bits.OnesCount16(uint16(types & cardTypeBits))
 	case kop.AggCreatureTypes:

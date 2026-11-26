@@ -163,10 +163,9 @@ func (s *State) exprCold(k *prep, x *kop.Expr, ctx evalCtx) int {
 		}
 		return 0
 	case kop.ExCountExile:
-		if x.N == 1 {
-			return s.exileTypeAgg(k, x, ctx) // zone_exiledwithstatic.go
-		}
-		return s.countExile(k, x, ctx)
+		return s.countExileOrAgg(k, x, ctx) // value_delayedexile.go
+	case kop.ExDelayedExileCount:
+		return s.delayedExileCount(ctx) // value_delayedexile.go
 	case kop.ExPhaseCount:
 		return s.phaseCount(x) // act_addphase.go
 	case kop.ExStepIn:

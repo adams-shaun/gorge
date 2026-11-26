@@ -151,7 +151,7 @@ func (s *State) statRdrMatch(k *prep, b Slot, a *kop.Ability, e *rdrEv) bool {
 		} else if c&kop.RdrSrcChosen != 0 {
 			// the source's own choice against the spell's colours (Harsh
 			// Judgment; Diamond Mare's spell-of-the-chosen-colour read)
-			if !s.matchCardSrc(k, r.Filter2, e.srcCard, e.srcCtrl, hc, NoObj, b, s.perms[b].obj) {
+			if !s.matchCardSrc(k, r.Filter2, e.srcCard, e.srcCtrl, hc, NoObj, b, s.perms[b].obj, NoObj) {
 				return false
 			}
 		} else {

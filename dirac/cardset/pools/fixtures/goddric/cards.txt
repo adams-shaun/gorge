@@ -1,0 +1,21 @@
+# the Goddric, Cloaked Reveler pool: a Self override that strips the creature
+# subtypes and adds Dragon while two nonland permanents entered this turn,
+# beside cheap nonland permanents that open the gate and Human / Dragon
+# readers, for the oracle's constructed lockstep
+# (dirac/oracle/goddric_celebration_test.go)
+Champion of the Parish
+Dragon Whelp
+Dragonlord's Servant
+Elite Vanguard
+Forest
+Goblin Chieftain
+Goddric, Cloaked Reveler
+Grizzly Bears
+Lightning Bolt
+Mogg Fanatic
+Mountain
+Plains
+Raging Goblin
+Shivan Dragon
+Silvercoat Lion
+Thalia's Lieutenant

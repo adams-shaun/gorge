@@ -348,6 +348,18 @@ func (e *Engine) askCommandZone(owner state.PlayerID) {
 			{Index: 0, Kind: "command_zone", Label: into, Obj: pm.obj, Player: owner},
 			{Index: 1, Kind: "leave", Label: leave, Obj: pm.obj, Player: owner, Mode: keep},
 		}}
+	// A CR 903.9a state-based-action choice is the engine's own flow, like
+	// the legend rule's ask (parkLegendChoice): it is posed as an ordinary
+	// decision even inside a tape run, whose state-based pass then holds on
+	// it (cmdZoneSBAHolds) and the re-check after the answer asks the rest
+	// of the queue. Serving it from the tape would apply the answer
+	// mid-pass and skip that hold, deferring the rest of the queue behind
+	// the whole settled check -- behind the next priority, where the kernel
+	// poses the next commander's choice first.
+	if pm.sba {
+		e.ask(d)
+		return
+	}
 	// Inside a tape run's resolution the choice is served from the tape and
 	// handled in place (the parked move applies where it happened), so a
 	// later ask of the same resolution ("its controller may search") is
