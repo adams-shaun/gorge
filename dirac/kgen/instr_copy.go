@@ -227,7 +227,7 @@ func (ic *instrCtx) opBecomeCopy() error {
 		return err
 	}
 	if in.B.Kind != vNone {
-		if !in.B.isConst() || in.B.N&^(kop.BecomeCopyCtr|kop.BecomeCopyEmbalm|kop.BecomeCopyGrave) != 0 || in.B.N == 0 {
+		if !in.B.isConst() || in.B.N&^(kop.BecomeCopyCtr|kop.BecomeCopyEmbalm|kop.BecomeCopyGrave|kop.BecomeCopyEOT) != 0 || in.B.N == 0 {
 			return fmt.Errorf("BecomeCopy B %v", in.B)
 		}
 		ki.B = kop.Const(in.B.N)
