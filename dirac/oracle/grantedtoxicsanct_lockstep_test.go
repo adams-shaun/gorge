@@ -9,7 +9,7 @@ import (
 
 // A granted toxic beside Personal Sanctuary's prevention (no printed toxic or
 // infect in the pool): the table is not an infect table for the replacement
-// ask, since toxic is a trigger (CR 702.164b) and nothing orders. 64 seeds
+// ask and beside a Saga (a lore counter trigger), since toxic is a trigger (CR 702.164b) and nothing orders. 64 seeds
 // play without a divergence or a stall, and the grants placed poison, so a
 // green game is not one where no grant mattered.
 const grantedToxicSanctPool = "grantedtoxicsanct"
@@ -21,7 +21,7 @@ var grantedToxicSanctDecks = [2][]cardset.Entry{
 	},
 	{
 		{Name: "Aspirant's Ascent", Count: 6}, {Name: "Grizzly Bears", Count: 6}, {Name: "Glory Seeker", Count: 6}, {Name: "Personal Sanctuary", Count: 4},
-		{Name: "Prosthetic Injector", Count: 2}, {Name: "Island", Count: 6}, {Name: "Plains", Count: 6}, {Name: "Forest", Count: 4},
+		{Name: "Prosthetic Injector", Count: 2}, {Name: "History of Benalia", Count: 4}, {Name: "Island", Count: 4}, {Name: "Plains", Count: 4}, {Name: "Forest", Count: 4},
 	},
 }
 

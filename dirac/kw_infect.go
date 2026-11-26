@@ -47,7 +47,9 @@ func prepInfect(t *kop.Table, g *genPrep) {
 	for i := range t.Cards {
 		for j := range t.Cards[i].Abilities {
 			a := &t.Cards[i].Abilities[j]
-			if a.Kind == kop.AbTriggered && a.Trig.Event == kop.TrigCounterAddedOnce {
+			if a.Kind == kop.AbTriggered && a.Trig.Event == kop.TrigCounterAddedOnce && (!toxicOnly || a.Trig.N == kop.TrigNAnyCounter) {
+				// a granted toxic alone adds player poison, which no object
+				// counter kind names: only an any-kind watcher can see it
 				g.infectStall = true
 			}
 			for _, in := range a.Prog {
