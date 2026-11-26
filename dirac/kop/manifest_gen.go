@@ -2526,6 +2526,11 @@ const StatMiracleGrant StaticKind = 78
 // stat AssignNoCombatDamage (dirac/manifest/StaticKind/StatNoCombatDamage)
 const StatNoCombatDamage StaticKind = 79
 
+// StaticKind (dirac/manifest/StaticKind/StatPayLifeInsteadOfB)
+//
+// StatPayLifeInsteadOfB is a Continuous static's `Affected$ You | AddKeyword$ PayLifeInsteadOf:B` grant (K'rrik, Son of Yawgmoth; gorge engine/rules/mana.go PayLifeInsteadOfB): "For each {B} in a cost, you may pay 2 life rather than pay that mana" (CR 601.2h), the controller's mana payment reads it. The printed {B} pips of every cost the payer pays read as the kernel's Phyrexian form at the payment read sites (buildCostPreRaw, the hand cast's cost, plannedCastCostOf), so each pip's two faces price through the twobrid machinery, and a pip's colour face the units leave unfunded costs 2 life from the life the life faces left. Read live from the battlefield (dirac/static_paylife.go payLifeInsteadOfB); no State bytes.
+const StatPayLifeInsteadOfB StaticKind = 79
+
 // StaticKind (dirac/manifest/StaticKind/StatUnearthGrant)
 //
 // StatUnearthGrant is a Continuous static's AffectedZone$ Graveyard AddKeyword$ Unearth grant (Sedris, the Traitor King, Mishra, Tamer of Mak Fawa, Dregscape Sliver, Solemn Doomguide; CR 702.84a): Filter matches the card in the graveyard and GrantBody-1 is the latent unearth body (the printed kwUnearth expander's AB$ ChangeZone, cards.GrantedKeywordAbility) the graveyard offer runs with the affected card as its source. The body's own Cost prices the explicit-cost shape; a zero body cost is the CardManaCost mark, which the offer charges as the affected card's own mana cost (kw_unearthgrant.go).

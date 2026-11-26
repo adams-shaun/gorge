@@ -90,7 +90,8 @@ func (s *State) payPlotRestr(k *prep, p uint8, cost *kop.ManaCost, o Obj) {
 		s.payRestrSpend(k, p, m, cost, 0, o, false)
 		return
 	}
-	s.payFromPool(p, cost, 0)
+	var rc kop.ManaCost
+	s.payFromPool(p, s.payLifeGrantReduce(k, p, cost, 0, &rc), 0) // the grant's life settles what the plan's discount left (static_paylife.go)
 }
 
 // nonSpellRestrAffords: p pays cost, a payment that is no spell's (a ward's {N},
@@ -196,5 +197,6 @@ func (s *State) paySpecial(k *prep, p uint8, cost *kop.ManaCost, sp kop.SpecialM
 		s.payRestrSpend(k, p, m, cost, x, NoObj, false)
 		return
 	}
-	s.payFromPool(p, cost, x)
+	var rc kop.ManaCost
+	s.payFromPool(p, s.payLifeGrantReduce(k, p, cost, x, &rc), x) // the grant's life settles what the plan's discount left (static_paylife.go)
 }

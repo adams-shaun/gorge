@@ -201,7 +201,8 @@ func (s *State) payHandSpecial(k *prep, p uint8, cost kop.ManaCost, o Obj) {
 	if s.rbAny(p) {
 		s.payPlotRestr(k, p, &cost, o) // mana_specialaction.go
 	} else {
-		s.payFromPool(p, &cost, 0)
+		var rc kop.ManaCost
+		s.payFromPool(p, s.payLifeGrantReduce(k, p, &cost, 0, &rc), 0) // the {B} pips the plan's discount left to the grant's life
 	}
 }
 

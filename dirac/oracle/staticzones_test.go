@@ -44,12 +44,18 @@ import (
 // (staticzones_mayplay_test.go): a free plain cast beside it would share the
 // cast's mode (StallZeroAltShared), so the free family and the evidence one
 // do not share a deck.
+// Both decks add K'rrik, Son of Yawgmoth (its PayLifeInsteadOf:B grant makes
+// every {B} a Phyrexian pip's two faces), Typhoid Rats, Doom Blade and
+// Vampire Nighthawk, with the Swamps to cast them: a cast under the grant
+// pays some {B} pips with 2 life each (TestStaticZonesPayLifeMutation). The
+// package fits the 40 cards by trimming copies and basic lands, never a
+// carrier: every earlier card keeps at least one copy.
 var kstaticzonesDecks = [2][]cardset.Entry{
 	{
 		{Name: "As Foretold", Count: 1},
 		{Name: "Ivory Mask", Count: 1}, {Name: "Solitary Confinement", Count: 1},
-		{Name: "Minamo Scrollkeeper", Count: 2}, {Name: "Trusted Advisor", Count: 1}, {Name: "Thought Eater", Count: 1},
-		{Name: "Dawnglade Regent", Count: 2}, {Name: "Queen Mother Ramonda", Count: 2}, {Name: "Entourage of Trest", Count: 1},
+		{Name: "Minamo Scrollkeeper", Count: 1}, {Name: "Trusted Advisor", Count: 1}, {Name: "Thought Eater", Count: 1},
+		{Name: "Dawnglade Regent", Count: 1}, {Name: "Queen Mother Ramonda", Count: 1}, {Name: "Entourage of Trest", Count: 1},
 		{Name: "Spire Serpent", Count: 1}, {Name: "Slithering Shade", Count: 1}, {Name: "Geist of the Lonely Vigil", Count: 1},
 		// the AffectedZone$ Stack keyword carriers (lower_stackkw.go): Cast
 		// Through Time grants rebound to this deck's instants and sorceries
@@ -57,19 +63,23 @@ var kstaticzonesDecks = [2][]cardset.Entry{
 		{Name: "Dragon's Rage Channeler", Count: 2},
 		{Name: "Case of the Locked Hothouse", Count: 1}, {Name: "Power Artifact", Count: 1},
 		{Name: "Defensive Formation", Count: 1},
-		{Name: "Plains", Count: 5}, {Name: "Island", Count: 2}, {Name: "Forest", Count: 2}, {Name: "Mountain", Count: 2},
+		{Name: "K'rrik, Son of Yawgmoth", Count: 2}, {Name: "Typhoid Rats", Count: 1},
+		{Name: "Doom Blade", Count: 1}, {Name: "Vampire Nighthawk", Count: 1},
+		{Name: "Plains", Count: 3}, {Name: "Island", Count: 1}, {Name: "Forest", Count: 1}, {Name: "Mountain", Count: 1}, {Name: "Swamp", Count: 4},
 		{Name: "Fíli the Pathfinder", Count: 2},
 		{Name: "Bifur, Melodic Rider", Count: 2},
-		{Name: "Dáin, Lord of the Iron Hills", Count: 2},
+		{Name: "Dáin, Lord of the Iron Hills", Count: 1},
 	},
 	{
-		{Name: "Lightning Bolt", Count: 4}, {Name: "Shock", Count: 4}, {Name: "Swords to Plowshares", Count: 3}, {Name: "Giant Growth", Count: 3},
-		{Name: "Grizzly Bears", Count: 3}, {Name: "Dragon's Rage Channeler", Count: 2}, {Name: "Spire Serpent", Count: 2},
-		{Name: "Case of the Locked Hothouse", Count: 2},
-		{Name: "True Believer", Count: 2}, {Name: "Trusted Advisor", Count: 2},
+		{Name: "Lightning Bolt", Count: 3}, {Name: "Shock", Count: 3}, {Name: "Swords to Plowshares", Count: 2}, {Name: "Giant Growth", Count: 2},
+		{Name: "Grizzly Bears", Count: 2}, {Name: "Dragon's Rage Channeler", Count: 2}, {Name: "Spire Serpent", Count: 1},
+		{Name: "Case of the Locked Hothouse", Count: 1},
+		{Name: "True Believer", Count: 1}, {Name: "Trusted Advisor", Count: 1},
 		{Name: "Dracogenesis", Count: 1}, {Name: "Squee, the Immortal", Count: 2}, {Name: "Dragon Whelp", Count: 2},
-		{Name: "Defensive Formation", Count: 2},
-		{Name: "Plains", Count: 1}, {Name: "Island", Count: 1}, {Name: "Mountain", Count: 4},
+		{Name: "Defensive Formation", Count: 1},
+		{Name: "K'rrik, Son of Yawgmoth", Count: 2}, {Name: "Typhoid Rats", Count: 1},
+		{Name: "Doom Blade", Count: 1}, {Name: "Vampire Nighthawk", Count: 1},
+		{Name: "Plains", Count: 1}, {Name: "Island", Count: 1}, {Name: "Mountain", Count: 4}, {Name: "Swamp", Count: 5},
 	},
 }
 
