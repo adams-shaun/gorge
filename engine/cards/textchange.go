@@ -10,6 +10,13 @@ type TextSub struct {
 	// UntilEOT marks a change that ends in the cleanup step (CR 514.2):
 	// api:ChangeText without Duration$ Permanent. WithTextChanges ignores it.
 	UntilEOT bool
+	// Static marks a change derived from a live Mode$ Continuous static (a
+	// CR 612.5 colour-word change, Swirl the Mists) rather than from a
+	// resolving effect: events.ColorWordsSync's fold replaces exactly the
+	// Static-marked subs with the live set (a resolving api:ChangeText's
+	// subs on the same object outlive it), so WithTextChanges applies the
+	// two families composed in list order and never distinguishes them.
+	Static bool
 }
 
 // textLockedKeys are the parameters whose values are never text-changed:
