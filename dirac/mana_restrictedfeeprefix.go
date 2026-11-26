@@ -260,3 +260,17 @@ func (s *State) restrFeeActivate(k *prep, p uint8, sl Slot, ab *kop.Ability, fee
 func restrNoColour(lastResort bool, fee, feeCol, rkind uint8) bool {
 	return lastResort || (fee != 0 || feeCol != 0) && rkind == rkExt
 }
+
+// tapForTryCensus is tapForTry's census-only probe: it holds availNoFeeUnit
+// over the pass, so the planner prices no restricted fee unit and a plan the
+// census alone affords is the payment (gorge's composed plan prices the
+// census alone; the fee gap is the play's prefix and the window's arm, not a
+// plan unit beside the census's -- plancost.go prices the fee only for a play
+// the census cannot pay, PaymentPlanRelaxedFee).
+func (s *State) tapForTryCensus(k *prep, p uint8, cost *kop.ManaCost, x int, exclude Obj, anyColor bool) bool {
+	ax := s.g.availX
+	s.g.availX |= availNoFeeUnit
+	ok := s.tapForTry(k, p, cost, x, exclude, anyColor)
+	s.g.availX = ax
+	return ok
+}

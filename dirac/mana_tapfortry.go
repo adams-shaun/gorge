@@ -50,6 +50,16 @@ func (s *State) tapForSpellPlain(k *prep, e *stackEntry, cost *kop.ManaCost, any
 		}
 		return false
 	}
+	// The executed payment prefers the census's plan: gorge's composed plan
+	// prices the census alone, so when it affords, a fee gap beside it -- an
+	// Orb of Dragonkind's {1},{T} whose {1} the plan's own units fund -- is a
+	// rank the search never composes (the phased script prices the fee only
+	// for a play the census cannot pay). A cast the census cannot pay keeps
+	// the fee-inclusive witness, the phased script's plan, and the window
+	// after it.
+	if s.tapForTryCensus(k, e.ctrl, &short, int(e.x), e.obj, anyColor) {
+		return false
+	}
 	if s.tapForTry(k, e.ctrl, &short, int(e.x), e.obj, anyColor) {
 		return false
 	}
