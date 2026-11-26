@@ -338,8 +338,9 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 		// chosen-card set rides the registration, before the chain's own
 		// ClearChosenCard$ cleanup wipes the source (Azra Oddsmaker).
 		ccSuffix := effectChosenCardSuffix(h, c, raw)
-		if effectSelfExileOnCastTrigger(h, c, tr) {
-			// The Effect's cast-driven lifetime, already consumed by the
+		if effectSelfExileOnCastTrigger(h, c, tr) || effectPlaneCurseTrigger(h, c, ep, tr) {
+			// The Effect's cast-driven lifetime (or Eloren Wilds'
+			// planeswalk-driven one), already consumed by the
 			// effectSelfExileOnCastSpec scan above. It is not a delayed
 			// promise this build can run: there is no effect-token object
 			// for the body's `Origin$ Command` self-exile to move, so
@@ -1564,7 +1565,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			if mode == "CantBlockBy" {
 				freezeChosenColor(h, c, &ce)
 			}
-			effectRegisterRestriction(h, c, ownerSel, mode, ce)
+			effectRegisterRestriction(h, c, ownerSel, mode, effectPlaneCurseEnd(h, c, ep, ce))
 			registered = true
 		case cards.StaticPanharmonicon:
 			// An Effect-delivered trigger doubler (Lwaxana Troi, Charming
