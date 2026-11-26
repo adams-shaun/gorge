@@ -1,11 +1,10 @@
 package precheckgate
 
-// scripts/check-forge-ref-driver.sh refuses a FORGE_REF move that the Forge oracle driver (gorge-compliance develop's
-// FORGE_ORACLE_REF) does not contain: on 2026-11-25 FORGE_REF moved to 5bc5851a54 ahead of the driver and every
+// scripts/check-forge-ref-driver.sh refuses a FORGE_REF move that the Forge oracle driver (the fork's oracle-driver
+// branch) does not contain: on 2026-11-25 FORGE_REF moved to 5bc5851a54 ahead of the driver and every
 // xproof cycle failed the pin invariant. The test runs the real script in a temporary repository with a stub gh.
 
 import (
-	"encoding/base64"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -16,7 +15,6 @@ import (
 const (
 	forgeRefOld = "ff076d4432844aaab45693a971ce84bfb95841fd"
 	forgeRefNew = "5bc5851a54a0fbbbf7f1a38b48d8ff9b7714ddb2"
-	driverRef   = "4385467a9eb5f1953a34498e07be47e24ae4b66c"
 )
 
 // runForgeRefCheck commits a Makefile at oldRef, writes newRef into the working tree and runs the script against
@@ -41,10 +39,8 @@ func runForgeRefCheck(t *testing.T, oldRef, newRef, status string, env ...string
 	if err := os.WriteFile(filepath.Join(repo, "Makefile"), []byte("# pin\nFORGE_REF  ?= "+newRef+"\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	contents := base64.StdEncoding.EncodeToString([]byte("FORGE_ORACLE_REF ?= " + driverRef + "\n"))
 	stub := "#!/usr/bin/env bash\necho \"gh $*\" >> \"$GH_LOG\"\ncase \"$2\" in\n" +
 		"*/compare/*) echo \"$GH_STATUS\" ;;\n" +
-		"*/contents/Makefile*) echo \"$GH_CONTENTS\" ;;\n" +
 		"*) exit 2 ;;\nesac\n"
 	if err := os.MkdirAll(bin, 0o755); err != nil {
 		t.Fatal(err)
@@ -54,7 +50,7 @@ func runForgeRefCheck(t *testing.T, oldRef, newRef, status string, env ...string
 	}
 	cmd := exec.Command("bash", script, "HEAD")
 	cmd.Dir = repo
-	cmd.Env = append(os.Environ(), "PATH="+bin+":"+os.Getenv("PATH"), "GH_LOG="+log, "GH_STATUS="+status, "GH_CONTENTS="+contents)
+	cmd.Env = append(os.Environ(), "PATH="+bin+":"+os.Getenv("PATH"), "GH_LOG="+log, "GH_STATUS="+status)
 	cmd.Env = append(cmd.Env, env...)
 	out, err := cmd.CombinedOutput()
 	code := 0
@@ -77,11 +73,10 @@ func TestForgeRefDriverUnchangedMakesNoCall(t *testing.T) {
 func TestForgeRefDriverContainedPasses(t *testing.T) {
 	for _, st := range []string{"behind", "identical"} {
 		code, out, calls := runForgeRefCheck(t, forgeRefOld, forgeRefNew, st)
-		if code != 0 || !strings.Contains(out, "is contained in the driver 4385467a9e") {
+		if code != 0 || !strings.Contains(out, "is contained in the driver oracle-driver on adams-shaun/forge") {
 			t.Fatalf("%s: code=%d out=%q", st, code, out)
 		}
-		if !strings.Contains(calls, "repos/adams-shaun/gorge-compliance/contents/Makefile?ref=develop") ||
-			!strings.Contains(calls, "repos/adams-shaun/forge/compare/"+driverRef+"..."+forgeRefNew) {
+		if !strings.Contains(calls, "gh api repos/adams-shaun/forge/compare/oracle-driver..."+forgeRefNew+" --jq .status") {
 			t.Fatalf("%s: calls=%q", st, calls)
 		}
 	}
@@ -91,7 +86,7 @@ func TestForgeRefDriverContainedPasses(t *testing.T) {
 func TestForgeRefDriverNotContainedFails(t *testing.T) {
 	for _, st := range []string{"diverged", "ahead"} {
 		code, out, _ := runForgeRefCheck(t, forgeRefOld, forgeRefNew, st)
-		if code != 1 || !strings.Contains(out, "is not contained in the Forge oracle driver") || !strings.Contains(out, "Merge 5bc5851a54 into the driver") {
+		if code != 1 || !strings.Contains(out, "is not contained in the Forge oracle driver") || !strings.Contains(out, "forge-driver-follow") {
 			t.Fatalf("%s: code=%d out=%q", st, code, out)
 		}
 	}
@@ -100,7 +95,7 @@ func TestForgeRefDriverNotContainedFails(t *testing.T) {
 func TestForgeRefDriverOverride(t *testing.T) {
 	other := strings.Repeat("a", 40)
 	code, out, calls := runForgeRefCheck(t, forgeRefOld, forgeRefNew, "behind", "FORGE_DRIVER_REF="+other)
-	if code != 0 || strings.Contains(calls, "contents") || !strings.Contains(calls, "compare/"+other+"...") {
+	if code != 0 || !strings.Contains(calls, "compare/"+other+"...") {
 		t.Fatalf("code=%d out=%q calls=%q", code, out, calls)
 	}
 }
