@@ -22,7 +22,9 @@ func (lc *lowerCtx) thisTurnActivatedValue(spec string) (lValue, error) {
 	if spec == "Activated.Equip+YouCtrl" {
 		// Kili the Resourceful's "first equip ability you activate each turn"
 		// gate: the same turn fact, its Equip arm (kop.ExThisTurnActExhaust N 1,
-		// dirac/static_turnbits.go thisTurnActEquip).
+		// dirac/static_turnbits.go thisTurnActEquip). Limit: the fact is the
+		// active player's only (one bit), so it is exact for sorcery-speed equip
+		// and wrong where a grant lets a non-active player equip at instant speed.
 		return lValue{Kind: vThisTurnActExhaust, N: 1}, nil
 	}
 	return lValue{}, refuse("other:count ThisTurnActivated %q: only Activated.YouCtrl+inZoneGraveyard, Activated.Exhaust+YouCtrl and Activated.Equip+YouCtrl are lowered", spec)

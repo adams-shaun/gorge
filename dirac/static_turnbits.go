@@ -152,7 +152,8 @@ func (s *State) exhaustOnceWaived(k *prep, p uint8, a *kop.Ability) bool {
 	return hit
 }
 
-// thisTurnActExhaust evaluates ExThisTurnActExhaust: 1 if ctx's controller
+// thisTurnActExhaust evaluates ExThisTurnActExhaust (the N operand selects the
+// arm: 0 Exhaust, 1 Equip; the name predates the Equip arm). 1 if ctx's controller
 // activated an Exhaust ability this turn (n 0) or an Equip ability (n 1),
 // else 0. The kernel keeps presence, not a count, which is all the lowered
 // statics' LT1 / EQ0 comparisons read.

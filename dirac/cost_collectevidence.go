@@ -260,6 +260,8 @@ func (s *State) payCostEvidence(k *prep) {
 //
 //go:noinline
 func (s *State) unpushActivation(k *prep) {
+	// turnEquipBit is not rolled back, the same as noteAct; gorge's
+	// activationsThisTurn is the ground truth (check it in the Equip lockstep).
 	e := &s.bld().e
 	s.sp--
 	s.bld().bfl &^= bflPushed
