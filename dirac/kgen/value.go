@@ -1545,6 +1545,11 @@ func (lc *lowerCtx) countValue(rest string, depth int) (lValue, error) {
 			return lValue{}, refuse("Count$TimesKicked with both Kicker and Multikicker")
 		case lc.out.Multikicker != nil:
 			return lValue{Kind: vTimesKicked}, nil
+		case lc.out.Kicker2 != nil:
+			// the two-alternative "and/or" Kicker (CR 702.33b): the count is
+			// the paid alternatives, 0/1/2 (kernel kw_kickalt.go; gorge
+			// count_body_paid.go reads the per-part flags)
+			return lValue{Kind: vTimesKicked}, nil
 		case lc.out.Kicker != nil:
 			return lValue{Kind: vKicked, Sub: []lValue{cst(1), cst(0)}}, nil
 		case faceHasKeyword(lc.face, "Multikicker"):
@@ -1671,6 +1676,13 @@ func (lc *lowerCtx) countValue(rest string, depth int) (lValue, error) {
 		}
 		if strings.Contains(expr, "$") {
 			return lValue{}, fmt.Errorf("Count$%s: aggregate", rest)
+		}
+		if expr == "Card.IsTriggerRemembered" && zc.pre == "ValidExile " && lc.ab != nil && lc.ab.DelayedSetDmg {
+			// Dragonhawk's body count: the cards its delayed trigger
+			// remembered that are still in exile (lower_zone.go's
+			// DelayedSetDmg registration; value_delayedexile.go). The
+			// /Twice suffix applies as usual.
+			return lValue{Kind: vDelayedExileCount}, nil
 		}
 		f, own, err := lc.zoneCountFilter(zc.pre, expr) // value_filterheads.go
 		if err != nil {
