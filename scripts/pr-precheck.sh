@@ -9,6 +9,19 @@ source scripts/pr-cards.sh
 cap=(systemd-run --user --scope -q -p MemoryMax=4G -p CPUQuota=400% env GOMAXPROCS=4 GOMEMLIMIT=3GiB)
 log=$(mktemp); trap 'rm -f "$log"' EXIT
 fail() { echo "pr-precheck: $*"; exit 1; }
+# A pass is stamped by the hash of the branch's own diff against $base (the merge-base diff). When main moves and a
+# CLEAN merge or rebase leaves that diff unchanged, the stamp matches and the checks below are not run again: the
+# merge queue's batch is the gate for the merge itself (11-26: a GLM subagent merged main and re-ran the whole
+# battery in a loop, each time main had moved again). PR_PRECHECK_FORCE=1 re-runs. The key is read on stdin.
+already_passed() {
+  read -r key
+  [ -n "$key" ] && [ -e "${PRECHECK_STAMP_DIR:-$HOME/.cache/gorge-precheck}/$key" ]
+}
+own_key=$(git diff --binary "$base"...HEAD | sha256sum | cut -d' ' -f1)
+if [ -z "${PR_PRECHECK_FORCE:-}" ] && already_passed <<<"$own_key"; then
+  echo "pr-precheck: ok (this diff already passed; main moving does not re-run it, the merge queue gates the merge)"
+  exit 0
+fi
 # gofmt, the lint job's first step (.github/workflows/ci.yml): #1964 printed "pr-precheck: ok" here and then failed
 # lint on ./dirac/turn_gen.go and ./dirac/combat_mustbeblocked.go, needing a hand gofmt commit and a requeue. First,
 # before any heavy step. --diff-filter=ACMR is the "still exist" half: a file the branch deletes is not there for
@@ -156,4 +169,6 @@ if [ -n "$fresh" ]; then
   done
   rm -rf "$scratch"
 fi
+sd=${PRECHECK_STAMP_DIR:-$HOME/.cache/gorge-precheck}
+mkdir -p "$sd" && : >"$sd/$own_key" && find "$sd" -type f -mtime +7 -delete 2>/dev/null
 echo "pr-precheck: ok"
