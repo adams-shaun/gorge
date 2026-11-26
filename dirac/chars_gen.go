@@ -40,9 +40,16 @@ type statSrc struct {
 // permanents that haven't lost their abilities -- a lost one keeps only a
 // static its own live override grant switches on -- then emblems); f returns
 // false to stop.
-func (s *State) eachStatic(k *prep, f func(st statSrc) bool) {
+func (s *State) eachStatic(k *prep, f func(st statSrc) bool) { s.eachStaticOf(k, nil, f) }
+
+// eachStaticOf is eachStatic over the permanents whose card has keep set
+// (nil: every one); emblems are all walked.
+func (s *State) eachStaticOf(k *prep, keep []bool, f func(st statSrc) bool) {
 	for m := s.statM; m.any(); m = m.rest() {
 		sl := m.first()
+		if keep != nil && !keep[s.cardAt(sl)] {
+			continue
+		}
 		lost := s.genLost(k, sl)
 		p := &s.perms[sl]
 		cd := &k.t.Cards[s.cardAt(sl)]
@@ -1353,6 +1360,7 @@ func (s *State) applyOverridePT(k *prep, sl Slot, idx int, src CardID, fl uint8,
 		// (kop.Override.UntilUpkeep; static_untilnextupkeep.go).
 		r.p, r.t = int16(s.res.e.ctrl), 0
 	}
+	s.ovEndStamp(&r, &k.t.Overrides[idx]) // an event-ended Effect record's source binding (static_ovendevent.go)
 	if o := &k.t.Overrides[idx]; o.GrantStatics != 0 && !o.HasPT && !o.UntilUpkeep && k.gen != nil && k.gen.anyStatGoad {
 		r.t = grantGoader(k, src, o, s.res.e.ctrl) // act_goad.go
 	}

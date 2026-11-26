@@ -1164,6 +1164,12 @@ func overrideString(o *lOverride) string {
 	if o.UntilEndCombat {
 		p = append(p, "eoc")
 	}
+	if o.UntilCtrlUntap {
+		p = append(p, "untilctrluntap")
+	}
+	if o.UntilCast != nil {
+		p = append(p, "untilcast")
+	}
 	if o.Horsemanship {
 		p = append(p, "horsemanship")
 	}
@@ -2845,6 +2851,9 @@ func (lc *lowerCtx) effectAPI(ps *params) error {
 		return err
 	}
 	if len(ss) != 1 && !attackBlockPair(ss) { // lower_effectattacksifable.go
+		if ok, err := lc.effectPlayLocks(ps, st, ss); ok || err != nil { // lower_effectplaylocks.go
+			return err
+		}
 		return refuse("Effect static %q", st)
 	}
 	s := ss[0]
@@ -3101,6 +3110,16 @@ func (lc *lowerCtx) effectTargetStatic(ps *params, s cards.Static, obj lRef) err
 			obj.Kind == rRemembered && (zone == zExile || len(zones) == 2) {
 			fl |= kop.MayPlayOwner
 			ps.consume("EffectOwner")
+		}
+		if mv := sp.str("MayPlayPlayer"); mv != "" {
+			// gorge MayPlayCardOwner (engine/effects/staticline.go): the
+			// permission's subject is the remembered card's owner (Memory
+			// Vessel: each player may play the cards THEY exiled), not the
+			// effect's controller -- the kernel's MayPlayOwner record
+			if mv != "CardOwner" {
+				return refuse("Effect MayPlayPlayer %q", mv)
+			}
+			fl |= kop.MayPlayOwner
 		}
 		if _, ok := ps.get("ExileOnMoved"); ok && obj.Kind == rRemembered {
 			// gorge effectMoveSweep: a remembered card leaving the zone ENDS
@@ -5490,7 +5509,7 @@ func (lc *lowerCtx) partitionMayPlay(ps *params, ss []cards.Static) (bool, error
 	plain := !owner && !checked && ps.str("Duration") == "Permanent"
 	flags, gate, affOK := lc.rememberedAffected(may.str("Affected"), plain)
 	if ss[0].Mode != "Continuous" || !may.is("MayPlay", "True") || !affOK ||
-		may.str("AffectedZone") != "Exile" || (!owner && (may.str("MayPlayPlayer") != "" || len(ss) != 1)) {
+		may.str("AffectedZone") != "Exile" || (!owner && (may.str("MayPlayPlayer") != "" || len(ss) != 1 && !abstruseConvertStatic(ss))) {
 		return false, nil
 	}
 	may.consume("Mode", "Description", "MayPlay", "Affected", "AffectedZone", "MayPlayPlayer")
@@ -5529,8 +5548,10 @@ func (lc *lowerCtx) partitionMayPlay(ps *params, ss []cards.Static) (bool, error
 		}
 		return true, refuse("Effect MayPlay unread %v", left)
 	}
-	raise := 0
-	if len(ss) == 2 {
+	raise, convC := 0, false
+	if len(ss) == 2 && !owner {
+		convC = true // abstruseConvertStatic checked ss[1] above
+	} else if len(ss) == 2 {
 		rc := newParams(ss[1].Params)
 		if ss[1].Mode != "RaiseCost" || rc.str("ValidCard") != "Card.IsRemembered+CastSa Spell.MayPlaySource" ||
 			rc.str("AffectedZone") != "Exile" || rc.str("Type") != "Spell" {
@@ -5558,7 +5579,7 @@ func (lc *lowerCtx) partitionMayPlay(ps *params, ss []cards.Static) (bool, error
 		raise = n
 	}
 	ps.consume("Duration", "RememberObjects", "ForgetOnMoved", "StaticAbilities")
-	in := lInstr{Op: "MayPlay", Obj: obj, C: zExile, CS: "WhileExiled"}
+	in := lInstr{Op: "MayPlay", Obj: obj, C: zExile, CS: "WhileExiled", ConvC: convC}
 	if valid != nil {
 		in.CS, in.F = "WhileValid", valid
 	} else if gate != nil {
@@ -5567,6 +5588,31 @@ func (lc *lowerCtx) partitionMayPlay(ps *params, ss []cards.Static) (bool, error
 	in.B = cst(flags | raise<<kop.MayPlayRaiseShift)
 	lc.emit(in)
 	return true, nil
+}
+
+// abstruseConvertStatic reports whether a controller permission's two-static
+// list is the MayPlay static plus Abstruse Appropriation's colourless-mana
+// conversion: Mode$ ManaConvert over the effect controller's cast of the
+// remembered exiled card through its permission, ManaConversion$ C->AnyColor
+// (gorge pay.ApplyConversionTo: only the pool's {C} becomes any colour, as
+// the cast is paid). Every parameter is the exact printed spelling and no
+// other key is present (Description$ aside), so another ManaConvert shape
+// keeps the emblem lowering's refusal. The record carries the whole static:
+// ValidPlayer$ You is its controller, ValidCard$ Card.IsRemembered with
+// AffectedZone$ Exile its object and zone, ValidSA$ Spell.MayPlaySource the
+// cast through it (kop.MayPlayConvC).
+func abstruseConvertStatic(ss []cards.Static) bool {
+	if len(ss) != 2 || ss[1].Mode != "ManaConvert" {
+		return false
+	}
+	cv := newParams(ss[1].Params)
+	if cv.str("ValidPlayer") != "You" || cv.str("ValidCard") != "Card.IsRemembered" ||
+		cv.str("ValidSA") != "Spell.MayPlaySource" || cv.str("ManaConversion") != "C->AnyColor" ||
+		cv.str("AffectedZone") != "Exile" {
+		return false
+	}
+	cv.consume("Mode", "Description", "ValidPlayer", "ValidCard", "ValidSA", "ManaConversion", "AffectedZone")
+	return len(cv.unread()) == 0
 }
 
 // partitionRiders reads the controller permission's record riders

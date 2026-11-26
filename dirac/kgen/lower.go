@@ -112,6 +112,10 @@ type lowerCtx struct {
 	effCount bool  // lowering the body of an Effect trigger that remembers a count: Remembered$Amount reads the frozen trigger amount (lower_effectremember.go)
 	pairCap  *lRef // the capture slot the pair lowering already resolved for the emblem (lower_effectcaptured.go)
 
+	// exertRider: lowering an OptionalAttackCost static's Trigger$ rider as
+	// the self-Exerted trigger (static_optattack.go)
+	exertRider bool
+
 	// condNodeAt: while a node's condition lowers, the index of the node's
 	// first instruction; earlier instructions belong to earlier nodes
 	// (markDestroyedTargetLKI, lower_remembered.go). 0 outside that window.
@@ -3313,6 +3317,9 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 			}
 			ab.ActCond = c
 		}
+		if err := lc.spellWindow(ps, ab); err != nil { // lower_actwindow.go
+			return err
+		}
 		if lc.out.Types&tLegendary != 0 && lc.out.Types&(tInstant|tSorcery) != 0 {
 			// CR 205.4e: a legendary instant or sorcery is cast only while
 			// its caster controls a legendary creature or planeswalker
@@ -3509,9 +3516,11 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 				return refuse("waterbend cost beside another non-mana part")
 			}
 		}
-		if ab.Kind == akMana && cost.Energy != 0 {
+		if ab.Kind == akMana && cost.Energy != 0 && !energyTapCost(ab) {
 			// gorge pays it in the mana-activation walk; kernel mana
-			// abilities pay only {T} / sacrifice-self
+			// abilities pay only {T} / sacrifice-self, and the "{T}, Pay N
+			// {E}" gap beside a plain {T} first ability (Aether Hub:
+			// refuseMultiMana's energyTapGapMana, kernel mana_countercost.go)
 			return refuse("mana ability with an energy cost")
 		}
 		if ab.Kind == akMana && exileGraveManaRefused(cost) {

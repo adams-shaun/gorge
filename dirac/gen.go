@@ -257,6 +257,7 @@ type genPrep struct {
 	anyComboDyn     bool           // some card's mana ability adds an evaluated amount in any combination of colours (mana_combodyn.go)
 	anyComboOff     bool           // some card has a {T} Combo Any mana ability, which gorge's planner does not witness (mana_comboanyplan.go)
 	anyCantCast     bool           // some card has a StatCantBeCast (trig_delayedtiming.go castForbidden)
+	anyCantPlayLand bool           // some card has a StatCantPlayLand (cast_cantplayland.go cantPlayLandLock)
 	anyCantAct      bool           // some card has a StatCantActivate (cast_cantactivate.go actForbidden), or a StatCantSacrifice
 	anyCantSac      bool           // some card has a StatCantSacrifice (static_cantsacrifice.go sacBlocked)
 	anyCantTgt      bool           // some card has a StatCantTarget (tgt_canttarget.go cantTargetGen)
@@ -1053,6 +1054,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	g.anyBeamGrant = tableHasStatic(t, kop.StatBeamGrant)
 	// prepSpellCond first: it sets anySpellCond, which an || must not skip
 	g.anyCantCast = prepSpellCond(t, g) || tableHasStatic(t, kop.StatCantBeCast)
+	g.anyCantPlayLand = tableHasStatic(t, kop.StatCantPlayLand)
 	prepCastLimit(t, g)  // static_castlimit.go
 	prepCantSac(t, g)    // static_cantsacrifice.go, before prepCantAct reads it
 	prepCantAct(t, p, g) // cast_cantactivate.go
@@ -1101,6 +1103,14 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	g.anyLinkRet = tableLinkRet(t)
 	g.anyLinkCtr = tableLinkCtr(t)
 	p.anyCmdTap = prepStaticClasses(t, g)
+	p.tapExtraCard = make([]bool, len(t.Cards))
+	for i := range t.Cards {
+		for j := range t.Cards[i].Abilities {
+			if a := &t.Cards[i].Abilities[j]; a.Kind == kop.AbStatic && a.Static.Kind == kop.StatTapExtra {
+				p.tapExtraCard[i] = true
+			}
+		}
+	}
 	prepHexOwn(t, g)      // kw_hexproofcolor.go
 	prepEmblemCasts(t, p) // cast_selfflash.go
 	for i := range t.Cards {
@@ -1949,6 +1959,10 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepEmbalmGrant(t, p)  // kw_embalmgrant.go; on prep, not genPrep
 	prepOffKwGrant(t, p)   // kw_unearthgrant.go; on prep, not genPrep
 	prepCyclingGrant(t, p) // kw_cyclinggrant.go; on prep, not genPrep
+	p.grantsMana = make([]bool, len(t.Cards))
+	for _, r := range g.grantOf {
+		p.grantsMana[r.card] = true
+	}
 	return g
 }
 

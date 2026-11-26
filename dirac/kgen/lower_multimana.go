@@ -81,11 +81,25 @@ func (lc *lowerCtx) refuseMultiMana() {
 	if multiFixedMana(ms) {
 		return
 	}
+	if len(ms) == 2 && colourlessThenAny(ms[0], ms[1]) {
+		// {T}: Add {C}, then {T}: Add one mana of any color (Nightshade
+		// Dryad): gorge's census unit is the {C} alternative then one per
+		// colour, the kernel's union C|WUBRG (mana_multicolour.go
+		// prepMultiMana), the ungated twin of Mirrex's gate-on view
+		return
+	}
 	if len(ms) == 2 && plainTapMana(ms[0], false) && unrestrictedOne(ms[0]) && ms[0].Mana.Colors == "C" && painTapMana(ms[1]) {
 		// a painland (Adarkar Wastes): {T}: Add {C}, then {T}: Add one of
 		// two colours with a "deals N damage to you" rider -- gorge's
 		// normal C alternative beside last-resort coloured ones
 		// (pay.PaymentPlanDamageRider; kernel mana_pain.go)
+		return
+	}
+	if len(ms) == 2 && painFirstColoured(ms[0], ms[1]) {
+		// Murmuring Bosk: {T}: Add {W} or {B}, CARDNAME deals 1 damage to
+		// you, then its Forest's {G}: the painland pair with the ability
+		// indices swapped and a coloured normal alternative (kernel
+		// mana_pain.go prepPainFirst)
 		return
 	}
 	if len(ms) == 2 && plainTapMana(ms[0], false) && unrestrictedOne(ms[0]) && primaryMana(ms[0]) && riderTapMana(ms[1]) {
@@ -217,25 +231,39 @@ func paidFilterMana(a *lAbility) bool {
 	return len(a.Mana.Colors) == 1 && strings.Contains("WUBRG", a.Mana.Colors)
 }
 
-// refuseColouredPain: a coloured plain {T} ability beside a plain {T}
-// two-colour choice with a pain rider, in either printed order (Murmuring
-// Bosk's {W} or {B}. CARDNAME deals 1 damage to you, then its forest {G}).
-// gorge's planner prices the coloured one as a normal alternative and the
-// painful choice as a last resort with Consequence{Damage: N}
-// (pay.PaymentPlanDamageRider); the kernel's pain unit pair carries a
-// colourless normal alternative only (a painland's {C}, mana_pain.go), no
-// coloured one. It reports whether it refused.
+// painFirstColoured: p, the first mana ability, is a plain {T} two-colour
+// choice with a pain rider and c a plain {T}: Add one WUBRG colour outside
+// that choice (Murmuring Bosk's {W} or {B}. CARDNAME deals 1 damage to you,
+// then the {G} its Forest type gives it, appended after the printed
+// abilities). gorge's planner prices the coloured one as a normal
+// alternative and the painful choice as a last resort with
+// Consequence{Damage: N} (pay.PaymentPlanDamageRider); the kernel's pain pair
+// reads the swapped indices (mana_pain.go prepPainFirst).
+func painFirstColoured(p, c *lAbility) bool {
+	if !painTapMana(p) || !p.Mana.Choice || len(p.Mana.Colors) != 2 || !plainTapMana(c, false) || !unrestrictedOne(c) ||
+		c.Mana.Choice || len(c.Mana.Colors) != 1 || !strings.Contains("WUBRG", c.Mana.Colors) {
+		return false
+	}
+	return !strings.Contains(p.Mana.Colors, c.Mana.Colors)
+}
+
+// refuseColouredPain: a coloured plain {T} ability first, then a plain {T}
+// two-colour choice with a pain rider (the printed order painFirstColoured
+// does not take). gorge's planner prices the coloured one as a normal
+// alternative and the painful choice as a last resort with
+// Consequence{Damage: N} (pay.PaymentPlanDamageRider); the kernel's pain
+// pair is read and proven for the pain-first order only (Murmuring Bosk),
+// so this order stays refused until a card needs it. It reports whether it
+// refused.
 func (lc *lowerCtx) refuseColouredPain(ms []*lAbility) bool {
 	if len(ms) != 2 {
 		return false
 	}
-	for i := 0; i < 2; i++ {
-		p, c := ms[i], ms[1-i]
-		if painTapMana(p) && plainTapMana(c, false) && unrestrictedOne(c) &&
-			len(c.Mana.Colors) == 1 && strings.Contains("WUBRG", c.Mana.Colors) {
-			lc.refuseNode("card", "2 mana abilities: a pain rider beside a coloured plain {T} ability: the kernel's pain unit pair carries a colourless normal alternative only")
-			return true
-		}
+	p, c := ms[1], ms[0]
+	if painTapMana(p) && plainTapMana(c, false) && unrestrictedOne(c) &&
+		len(c.Mana.Colors) == 1 && strings.Contains("WUBRG", c.Mana.Colors) {
+		lc.refuseNode("card", "2 mana abilities: a pain rider after a coloured plain {T} ability: the kernel's coloured pain pair is proven only pain-first (Murmuring Bosk)")
+		return true
 	}
 	return false
 }
@@ -401,6 +429,13 @@ func multiFixedMana(ms []*lAbility) bool {
 	return true
 }
 
+// colourlessThenAny: first is a plain unrestricted "{T}: Add {C}" and a is a plain
+// unrestricted "{T}: Add one mana of any color", in that printed order.
+func colourlessThenAny(first, a *lAbility) bool {
+	return plainTapMana(first, false) && unrestrictedOne(first) && !first.Mana.Choice && first.Mana.Colors == "C" &&
+		plainTapMana(a, false) && unrestrictedOne(a) && !a.Mana.Choice && !a.Mana.Each && a.Mana.Colors == "WUBRG"
+}
+
 // plainTapMana: a costs exactly {T} (plus generic mana when paid), has no
 // rider, condition, limit or gate, and is unrestricted with amount 1.
 func plainTapMana(a *lAbility, paid bool) bool {
@@ -487,6 +522,13 @@ func manaGapModelled(first, a *lAbility) bool {
 		// any (Weather Maker's {C}{C}): gorge's census leaves it a relaxable
 		// once-only gap its prefix search activates (the kernel's counter
 		// gap kind, read at the card's ctrAb ability, mana_countercost.go)
+		return ctrTapGapModelled(first, a)
+	case energyTapGapMana(a):
+		// {T}, Pay N {E}: the same productions (Aether Hub, Solar
+		// Transformer's one mana of any colour): gorge's census leaves it the
+		// same relaxable once-only gap, payable while its controller holds the
+		// energy (pay.EnergyPayable); the kernel's counter gap kind pays the
+		// energy (kop.CtrTapSecondManaAb's energy form)
 		return ctrTapGapModelled(first, a)
 	case restrictedFirstPair(first, a):
 		// a spell-only first ability beside an activation-only larger one of
@@ -586,6 +628,30 @@ func ctrTapGapMana(a *lAbility) bool {
 	}
 	b := *a
 	b.Cost.SubCtr, b.Cost.SubCtrKnd = 0, ""
+	return plainTapMana(&b, false)
+}
+
+// energyTapGapMana: a is a {T} ability whose cost also pays a literal amount
+// of energy, its cost otherwise plain.
+func energyTapGapMana(a *lAbility) bool {
+	if a.Mana == nil || !energyTapCost(a) {
+		return false
+	}
+	b := *a
+	b.Cost.Energy = 0
+	return plainTapMana(&b, false)
+}
+
+// energyTapCost: a's cost is {T} and a literal amount of energy, nothing
+// else, and a has no once-each-turn limit (its production aside: lowerAbility
+// reads it before the production is lowered).
+func energyTapCost(a *lAbility) bool {
+	if a.Cost.Energy < 1 || a.TurnOnce {
+		return false
+	}
+	b := *a
+	b.Cost.Energy = 0
+	b.Mana = &lMana{Colors: "C"}
 	return plainTapMana(&b, false)
 }
 
@@ -690,6 +756,9 @@ func restrictedFixedPair(first, a *lAbility) bool {
 		a.Mana.Amount.Kind != vConst || a.Mana.Amount.N < 2 || a.Mana.Amount.N > maxRestrictedAmount {
 		return false
 	}
+	if bothHalvesColourlessPair(first, a) {
+		return true
+	}
 	if !(spellOnlyMana(a) || activationOnlyTapMana(a)) {
 		return false
 	}
@@ -698,6 +767,19 @@ func restrictedFixedPair(first, a *lAbility) bool {
 	}
 	return plainTapMana(first, false) && unrestrictedOne(first) && len(a.Mana.Colors) == 1 &&
 		strings.Contains("WUBRG", a.Mana.Colors) && a.Mana.Colors == first.Mana.Colors
+}
+
+// bothHalvesColourlessPair: a plain unrestricted {T}: Add {C} first ability
+// beside a plain {T} ability of several {C} whose restriction names both
+// spells and activated abilities (Eldrazi Temple's {C}{C}, colorless Eldrazi
+// spells and abilities of colorless Eldrazi only). gorge's planner prices both
+// alternatives of the one unit; the kernel's restricted pair unit widens the
+// census {C} to the larger colourless alternative (prepRestrSrc, colourless
+// counting as one colour: CR 106.1b), admitted per payment class by the
+// restriction's spell or activation half (restrSrcAdmits).
+func bothHalvesColourlessPair(first, a *lAbility) bool {
+	return a.Mana.Restrict != nil && a.Mana.RestrictAb != nil && plainTapMana(a, false) && a.Mana.Colors == "C" &&
+		plainTapMana(first, false) && unrestrictedOne(first) && first.Mana.Colors == "C"
 }
 
 // restrictedFreeFeePair: first is a spell-only restricted {T} ability of one
