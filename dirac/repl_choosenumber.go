@@ -20,24 +20,35 @@ func (s *State) numberOptions(k *prep, d *Decision) {
 		s.payLifeOptions(k, d, pa) // repl_paylife.go: the as-enters pay-any-amount-of-life ask
 		return
 	}
+	c, o := s.numberAskCard()
+	lo, hi := s.numberBounds(k, c)
+	if c != NoCard && readAheadCard(&k.t.Cards[c]) {
+		s.readAheadOptions(d, o, lo, hi) // kw_readahead.go: the chapter a read-ahead Saga enters on
+		return
+	}
 	d.Sub = ChGenNumber
-	lo, hi := s.numberBounds(k)
 	for n := lo; n <= hi; n++ {
 		d.add(MakeAction(AkChoose, 0, 0, uint8(n)))
 	}
 }
 
-// numberBounds is the ExtChooseNumber bounds of the entering card whose
-// number ask is being posed: the pre-entry ask's object, else the queued
-// ask's permanent (colorExclude's lookup).
-func (s *State) numberBounds(k *prep) (lo, hi int) {
-	c := NoCard
+// numberAskCard is the entering card whose number ask is being posed and its
+// object: the pre-entry ask's, else the queued ask's permanent (colorExclude's
+// lookup); NoCard when neither.
+func (s *State) numberAskCard() (CardID, Obj) {
 	switch {
 	case s.preAskPosed() || s.res.ask == raGenTokChoice || s.res.ask == raGenRetChoice:
-		c = s.preAskCard()
+		return s.preAskCard(), s.g.pre.obj
 	case s.g.nask > 0:
-		c = s.cardAt(s.g.ask[0].sl)
+		sl := s.g.ask[0].sl
+		return s.cardAt(sl), s.perms[sl].obj
 	}
+	return NoCard, NoObj
+}
+
+// numberBounds is the ExtChooseNumber bounds of the entering card c whose
+// number ask is being posed.
+func (s *State) numberBounds(k *prep, c CardID) (lo, hi int) {
 	if c == NoCard {
 		return 0, -1
 	}
