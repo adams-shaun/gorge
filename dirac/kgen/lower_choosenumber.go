@@ -52,6 +52,9 @@ func (lc *lowerCtx) etbChooseNumber(ps *params, node, sa *cards.SA, other bool, 
 	if other || node != sa || sa.Sub != nil || cond.Kind != cNone || len(lc.ab.Prog) != 0 {
 		return refuse("ETB ChooseNumber beside another ETB replacement part")
 	}
+	if lc.out.SagaN != 0 {
+		return refuse("ETB ChooseNumber on a Saga: the kernel reads a Saga's number ask as its read-ahead chapter (kw_readahead.go)")
+	}
 	if d, ok := ps.get("Defined"); ok && strings.TrimSpace(d) != "You" {
 		return refuse("ETB ChooseNumber Defined$ %q", d)
 	}
