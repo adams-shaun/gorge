@@ -745,6 +745,11 @@ func (cb *cardBuilder) record() error {
 	}
 	if c.MorphCost != nil {
 		d.MorphFamily, d.MorphLife = c.MorphFamily, c.MorphLife
+		if c.MorphPick != nil {
+			if d.MorphPick, err = cb.cost(*c.MorphPick); err != nil {
+				return err
+			}
+		}
 		if d.MorphCost, err = cb.morphCostOf(d, c); err != nil { // lower_revealpick.go
 			return err
 		}
