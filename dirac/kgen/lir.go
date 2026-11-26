@@ -1391,6 +1391,7 @@ type lCard struct {
 	TwoSeat        bool     // the lowering holds only for 2 players (CardDef.TwoSeat, set by lowerCtx.twoSeat)
 	HasChangeText  bool     // a ChangeText body or a ColorWords static lowered (textreach.go, lower_colorwords.go): the pool's cards carry CardDef.TextWords
 	TextWords      uint16   // the colour and basic land type words the face reads (textreach.go); copied to CardDef.TextWords in such a pool
+	CWUnmodelled   uint16   // the colour words the face reads on a surface the colour-word model does not rewrite (textreach.go); copied to CardDef.CWUnmodelled
 	TwoSeatWhy     []string // the reasons that set TwoSeat, in first-seen order (TestTwoSeatReasons)
 	Loyalty        int
 	Defense        int // a Battle's printed Defense (lower_battle.go)
