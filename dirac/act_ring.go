@@ -266,6 +266,9 @@ func (s *State) fireRingTempt(k *prep, p uint8, bearer Obj) {
 					if a.Kind != kop.AbTriggered || a.Trig.Zone != kop.ZoneGraveyard || a.Trig.Event != kop.TrigRingTemptsYou {
 						continue
 					}
+					if s.gravePrintedHidden(k, o) {
+						continue // the card lost all abilities in the graveyard (static_graveabilityloss.go)
+					}
 					l := trigListener{obj: o, sl: NoSlot, ctrl: pp, card: c, ab: uint8(j)}
 					b := s.npend
 					s.playerTrigGenObj(k, kop.TrigRingTemptsYou, l, a, p, 0, bearer)

@@ -59,7 +59,7 @@ func TestStdCensus(t *testing.T) {
 		if !ok {
 			t.Fatalf("%s has no acceptance pin", s.set)
 		}
-		if err := judgePin(s.set+" census", pin, [2]int{s.accepted, s.listed}, pinStrict()); err != nil {
+		if err := judgePin(s.set+" census", pin, [2]int{s.accepted, s.listed}, pinStrict(), nil); err != nil {
 			t.Error(err)
 		}
 		if s.std {
@@ -72,7 +72,7 @@ func TestStdCensus(t *testing.T) {
 		t.Errorf("std total short = %d, want %d from the per-set counts", first.stdTotalShort, wantShort)
 	}
 	// The ALL pin: the check the separate TestStdCensusMatchesRatchet made on a fifth census (11-20: 19 s).
-	if err := judgePin("ALL census", pins["ALL"], [2]int{first.allAccepted, first.allListed}, pinStrict()); err != nil {
+	if err := judgePin("ALL census", pins["ALL"], [2]int{first.allAccepted, first.allListed}, pinStrict(), nil); err != nil {
 		t.Error(err)
 	}
 	// Two runs are byte-identical: the shared pass against one fresh one.
