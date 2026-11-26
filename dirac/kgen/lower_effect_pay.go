@@ -303,16 +303,9 @@ func (lc *lowerCtx) payInstr(c lCost, payer lRef, subCtrOK bool) (lInstr, error)
 		n++
 	}
 	if c.MoveGraveN > 0 {
-		// ExiledMoveToGrave<N/Spec> as a printed trigger's own cost (gorge's
-		// triggered-cost window: the pay/decline ask, then the
-		// "graveyard_cost" pick over every alive seat's exile, unasked with
-		// exactly N cards): PayExileGrave with the move-to-graveyard
-		// sentinel (kernel cost_exiledmovegrave.go). Alone, and only there.
-		if !lc.trigOwnCost || lc.unlessCost || n != 0 {
-			return in, refuse("resolution ExiledMoveToGrave cost shape")
+		if err := lc.moveGravePayInstr(&in, &c, n); err != nil {
+			return in, err
 		}
-		in.CS, in.A, in.F = "MoveGrave", cst(c.MoveGraveN), c.MoveGraveF
-		c.MoveGraveN, c.MoveGraveF = 0, nil
 		n++
 	}
 	if c.BeholdN > 0 {
@@ -349,6 +342,20 @@ func (lc *lowerCtx) payInstr(c lCost, payer lRef, subCtrOK bool) (lInstr, error)
 		return in, refuse("resolution cost shape")
 	}
 	return in, nil
+}
+
+// moveGravePayInstr lowers ExiledMoveToGrave<N/Spec> as a printed trigger's
+// own cost (gorge's triggered-cost window: the pay/decline ask, then the
+// "graveyard_cost" pick over every alive seat's exile, unasked with exactly N
+// cards): PayExileGrave with the move-to-graveyard sentinel (kernel
+// cost_exiledmovegrave.go). Alone (n parts already lowered), and only there.
+func (lc *lowerCtx) moveGravePayInstr(in *lInstr, c *lCost, n int) error {
+	if !lc.trigOwnCost || lc.unlessCost || n != 0 {
+		return refuse("resolution ExiledMoveToGrave cost shape")
+	}
+	in.CS, in.A, in.F = "MoveGrave", cst(c.MoveGraveN), c.MoveGraveF
+	c.MoveGraveN, c.MoveGraveF = 0, nil
+	return nil
 }
 
 // forageOnly reports whether a forage is the cost's only payment part. The

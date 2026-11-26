@@ -745,6 +745,7 @@ MayGuardSuspect	untyped int	3
 MayPlayAdvKind	untyped int	1
 MayPlayAdventure	untyped int	256
 MayPlayAnyType	untyped int	8
+MayPlayConvC	untyped int	128
 MayPlayExileOnMoved	untyped int	1
 MayPlayFollows	untyped int	64
 MayPlayFree	untyped int	4
