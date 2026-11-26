@@ -39,7 +39,7 @@ func prepSacX(t *kop.Table, g *genPrep) {
 
 // sacXCost reports whether c sacrifices the announced X permanents.
 func sacXCost(c *kop.Cost) bool {
-	return c != nil && c.Flags&kop.CostSac != 0 && c.N == 0
+	return c != nil && c.Flags&kop.CostSac != 0 && c.N == 0 && !c.SacHalf
 }
 
 // costXMin is cost c's announced-X floor.
