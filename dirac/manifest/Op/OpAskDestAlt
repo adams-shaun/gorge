@@ -1,0 +1,9 @@
+family: Op
+name: OpAskDestAlt
+value: next
+approval: emeria-shepherd-destzone brief (a mid-program two-zone choice rides no existing op: OpSearchEx's SrDestAltGrave is search-only, OpChooseBranch poses ChGenBranch not gorge's changezone_dest_alt, and ExtOp is full)
+census: other:ChangeZone DestAltSVar without MANDATORY (a destination choice)
+state: code 0
+status: active
+ticket: emeria-shepherd-destzone
+doc: the resolving controller chooses between a ChangeZone's primary and alternate destination (gorge changezone_dest_alt, ChGenDestAlt): primary falls through to the next instruction, alternate skips the next A.N instructions (Emeria Shepherd's "if that land is a Plains, you may return that card to the battlefield instead")
