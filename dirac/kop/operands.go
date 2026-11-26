@@ -530,6 +530,8 @@ const (
 	// the chosen set (gorge ImprintFound$ True emits one seek-found Imprint
 	// on the source after the player walk; the kernel accumulates per
 	// player, which only the later Effect reads).
+	// The dig's planar arm (DigZone$ PlanarDeck) rides W, not a flag bit:
+	// the flag field is int16, so a bit 13 shifted by 3 falls off the top.
 	DuImprintFound = 1 << 12
 )
 

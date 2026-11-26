@@ -2244,6 +2244,10 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		}
 	case "ColorWords":
 		st.Kind = kop.StatColorWords // static_colorwords.go: no filter, no zone; the stall rule reads the live sources
+	case "GraveNoAbilities":
+		if err = cb.graveNoAbilities(st, s); err != nil { // lower_offzone_abilityloss.go
+			return ka, nil, err
+		}
 	case "MiracleGrant":
 		st.Kind = kop.StatMiracleGrant // kw_miracle.go
 		if st.Filter, err = filter(s.F, kop.ZoneHand); err != nil {
@@ -3020,6 +3024,11 @@ func (cb *cardBuilder) repl(r lRepl) (kop.Ability, error) {
 	case "TurnUpProgram":
 		rp.Kind = kop.ReplTurnUpProgram // lower_turnfaceuprepl.go
 		if ka.Prog, err = cb.prog(r.Prog); err != nil {
+			return ka, err
+		}
+	case "TurnUpAttach":
+		rp.Kind = kop.ReplTurnUpAttach // lower_turnfaceuprepl.go: the optional attach ask (Gift of Doom)
+		if rp.Filter, err = cb.filter(r.F, kop.ZoneBattlefield); err != nil {
 			return ka, err
 		}
 	case "SpellsCantBeCountered":
