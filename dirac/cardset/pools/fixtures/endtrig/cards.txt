@@ -1,0 +1,20 @@
+# Event-ended Effect statics (kop.Override.UntilCtrlUntap / UntilCast): Orcish
+# Farmer turns a land into a Swamp until its controller's next untap step and
+# Soul Sculptor makes a creature an enchantment that loses all abilities until
+# its resolver casts a creature spell, among lands (the Farmer's targets),
+# creature spells (the Sculptor's end) and creatures with activated and
+# keyword abilities (so the ability loss shows)
+# (dirac/oracle/effect_endtrig_lockstep_test.go)
+Orcish Farmer
+Soul Sculptor
+Prodigal Sorcerer
+Serra Angel
+Llanowar Elves
+Grizzly Bears
+Hill Giant
+Elite Vanguard
+Plains
+Island
+Swamp
+Mountain
+Forest
