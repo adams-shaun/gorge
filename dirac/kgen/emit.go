@@ -184,6 +184,32 @@ func guardLists(bs []built, filters []kop.Filter, subs []string) (rooms, readers
 	return rooms, readers, abRed, abRedFloor, abRedTypes, abMana, abManaMV, abManaTypes, abRaise, abRaiseTypes, abRaisePick, manaAny, manaAnyTypes, pickActs, pickActsTypes
 }
 
+// raiseTapLists is guardLists' companion for the generic raise: per raiser
+// (AbRaisers' order) whether its raise carries generic mana, and the cards
+// with an activated ability whose cost taps its source ({T}). gorge withholds
+// such a creature's ability under Oppressive Rays' {3} where the kernel prices
+// it (cardset.AbRaiseRefusal's tapped arm).
+func raiseTapLists(bs []built) (gen []bool, tapActs []int, tapActsTypes []uint16) {
+	for i := range bs {
+		sawRaise, tapped := false, false
+		for j := range bs[i].def.Abilities {
+			a := &bs[i].def.Abilities[j]
+			if !sawRaise && a.Kind == kop.AbStatic && a.Static.Kind == kop.StatRaiseAbility {
+				sawRaise = true
+				gen = append(gen, a.Static.StFlags&kop.StRaiseLife == 0 && (a.Static.A > 0 || a.Static.StFlags&kop.StDynamic != 0))
+			}
+			if a.Kind == kop.AbActivated && a.Cost.Flags&kop.CostTap != 0 {
+				tapped = true
+			}
+		}
+		if tapped {
+			tapActs = append(tapActs, i)
+			tapActsTypes = append(tapActsTypes, uint16(bs[i].def.Types))
+		}
+	}
+	return gen, tapActs, tapActsTypes
+}
+
 // raiserTypes is reducerTypes for a StatRaiseAbility static, which also reads a
 // creature subtype as the creature type (Brutal Suppression's Rebel.!token, so
 // its raise guard does not reach a land's mana ability): a filter that names no

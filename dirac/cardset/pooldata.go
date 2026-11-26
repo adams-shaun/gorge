@@ -79,6 +79,9 @@ type PoolData struct {
 	AbManaAnyTypes      []uint16 // AbManaAny's card types
 	AbPickActs          []int    // cards with an activated ability whose cost has a pick part beside a raise pick
 	AbPickActsTypes     []uint16 // AbPickActs' card types
+	AbRaiseGen          []bool   // AbRaisers' raise carries generic mana
+	AbTapActs           []int    // cards with an activated ability whose cost taps its source
+	AbTapActsTypes      []uint16 // AbTapActs' card types
 	// CardPrinted is a changeling's printed subtypes (pool indexes), before
 	// kgen adds every pool creature type to its CardSubs; nil for any other
 	// card. A matchup renumbers them into CardDef.PrintedSubtypes.
@@ -335,7 +338,7 @@ func (s dataSet) abReduceGuard(pool []int) error {
 // prices none), or a pick part beside an own pick cost (AbRaiseRefusal).
 func (s dataSet) abRaiseGuard(pool []int) error {
 	d := s.d
-	var raisers, manaable, picked, pickers []string
+	var raisers, manaable, picked, pickers, tapped []string
 	for k, r := range d.AbRaisers {
 		if !slices.Contains(pool, r) {
 			continue
@@ -349,6 +352,11 @@ func (s dataSet) abRaiseGuard(pool []int) error {
 			if ma := slices.Index(d.AbManaAny, i); ma >= 0 && (rt == 0 || rt&d.AbManaAnyTypes[ma] != 0) {
 				manaable = append(manaable, d.Names[i])
 			}
+			if k < len(d.AbRaiseGen) && d.AbRaiseGen[k] {
+				if ta := slices.Index(d.AbTapActs, i); ta >= 0 && (rt == 0 || rt&d.AbTapActsTypes[ta] != 0) {
+					tapped = append(tapped, d.Names[i])
+				}
+			}
 			if d.AbRaisePick[k] {
 				if pa := slices.Index(d.AbPickActs, i); pa >= 0 && (rt == 0 || rt&d.AbPickActsTypes[pa] != 0) {
 					picked = append(picked, d.Names[i])
@@ -356,7 +364,7 @@ func (s dataSet) abRaiseGuard(pool []int) error {
 			}
 		}
 	}
-	return AbRaiseRefusal(raisers, manaable, picked, pickers)
+	return AbRaiseRefusal(raisers, manaable, picked, pickers, tapped)
 }
 
 // filtersShareCreatureType reports whether any filter of the pool shares a

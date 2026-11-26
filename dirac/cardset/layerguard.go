@@ -156,8 +156,11 @@ func AbReduceRefusal(reducers, costed []string) error {
 // pick part are a third (pickers): the Cost carries one filter, where copies of
 // one card share it and compose as one Sac<N/f>. A raiser whose filter
 // names no type the card has (the types masks disjoint) lowers nothing and
-// does not refuse.
-func AbRaiseRefusal(raisers, manaable, picked, pickers []string) error {
+// does not refuse. A generic raise beside an activated ability that taps its
+// source is a fourth (tapped): measured, gorge never offers an Errant
+// Doomsayers or Blightspeaker under Oppressive Rays where the kernel prices it
+// {3} (ticket raise-generic-tap-ability).
+func AbRaiseRefusal(raisers, manaable, picked, pickers, tapped []string) error {
 	if len(raisers) == 0 {
 		return nil
 	}
@@ -166,6 +169,9 @@ func AbRaiseRefusal(raisers, manaable, picked, pickers []string) error {
 	}
 	if len(pickers) > 1 {
 		return fmt.Errorf("RaiseCost Type Ability with two pick parts: %s and %s each raise abilities with a sacrifice pick, and the one pick Cost a build poses carries one filter", pickers[0], pickers[1])
+	}
+	if len(tapped) != 0 {
+		return fmt.Errorf("RaiseCost Type Ability with a generic raise beside a {T} ability: %s raises abilities and %s has an activated ability that taps its source, which gorge withholds under the raise where the kernel prices it", raisers[0], tapped[0])
 	}
 	if len(picked) != 0 {
 		return fmt.Errorf("RaiseCost Type Ability beside a pick cost: %s raises abilities with a pick part and %s has an activated ability with a pick cost of its own", raisers[0], picked[0])
