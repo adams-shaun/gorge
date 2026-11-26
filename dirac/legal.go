@@ -3737,11 +3737,7 @@ func (s *State) applyPriority(k *prep, a Action) {
 	case AkWebSling:
 		s.beginWebSling(k, Obj(a.Source())) // CR 702.188a; kw_websling.go
 	case AkMayFlash:
-		if c := s.objs[a.Source()].card; k.gen != nil && k.gen.uses.has(useOffering) && k.t.Cards[c].HasOffering {
-			s.beginOffering(k, Obj(a.Source())) // CR 702.48; kw_offering.go
-			break
-		}
-		s.beginMayFlash(k, Obj(a.Source())) // CR 702.8; kw_mayflash.go
+		s.beginMayFlashCast(k, Obj(a.Source()))
 	default:
 		panic("kernel: bad priority action")
 	}
@@ -3898,4 +3894,15 @@ func (s *State) availOnce(k *prep, p uint8, av *avail, have *bool) {
 		s.availFor(k, p, av)
 		*have = true
 	}
+}
+
+// beginMayFlashCast begins an AkMayFlash cast: an offering card's
+// sacrifice-election cast (CR 702.48; kw_offering.go) or the plain
+// may-flash cast (CR 702.8; kw_mayflash.go).
+func (s *State) beginMayFlashCast(k *prep, o Obj) {
+	if c := s.objs[o].card; k.gen != nil && k.gen.uses.has(useOffering) && k.t.Cards[c].HasOffering {
+		s.beginOffering(k, o)
+		return
+	}
+	s.beginMayFlash(k, o)
 }
