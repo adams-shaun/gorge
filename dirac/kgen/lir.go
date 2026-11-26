@@ -62,6 +62,7 @@ const (
 	rResChosenPlayer              // the resolution's chosen player: OpChoosePlayer's random pick (gorge Ctx.Chosen's player entry, Maddening Hex's Attach destination)
 	rExiledWithOwner              // the seat whose exile holds a card exiled with the source (kop.RefExiledWithOwner; DefinedPlayer$ Player.HasCardsInExile_Card.ExiledWithSource_GE1, Unidentified Hovership's leave trigger)
 	rEnchantedCtrl                // the controller of the permanent the source is attached to, read live, nobody once the source left (kop.RefEnchantedCtrl; Defined$ EnchantedController, Paralyze)
+	rEmblemSource                 // inside an emblem trigger's body: the object whose Effect made the emblem, as it was when the trigger was queued (kop.RefEmblemSource; an Effect's RememberObjects$ Self read as Defined$ Remembered, lower_effeottrig.go)
 	rCount
 )
 
@@ -109,6 +110,7 @@ var refNames = [...]string{
 	rResChosenPlayer:      "ResChosenPlayer",
 	rExiledWithOwner:      "ExiledWithOwner",
 	rEnchantedCtrl:        "EnchantedCtrl",
+	rEmblemSource:         "EmblemSource",
 }
 
 type lRef struct {
@@ -189,6 +191,7 @@ const (
 	vThisTurnActGrave    // activations this turn by the controller whose source now sits in a graveyard
 	vSelfPrepared        // 1 if the source is prepared, else 0; N=1 negates (Count$ValidSelf Card.[!]IsPrepared)
 	vSneaked             // Sub[0] if the resolving spell was cast for its sneak cost, else Sub[1]
+	vAltCost             // Sub[0] if the resolving spell was cast for its own AlternativeCost static's alternative, else Sub[1] (Count$AltCost.<paid>.<unpaid>; kop.ExAltCost)
 	vTriggerSpellMVLKI   // the mana value of the spell that triggered a SpellCast ability, as gorge's LKI
 	vPoisonOf            // poison counters of player Ref
 	vProduct             // Sub[0] * Sub[1]
@@ -317,6 +320,7 @@ var valNames = [...]string{
 	vThisTurnActGrave:    "ThisTurnActGrave",
 	vSelfPrepared:        "SelfPrepared",
 	vSneaked:             "Sneaked",
+	vAltCost:             "AltCost",
 	vTriggerSpellMVLKI:   "TriggerSpellMVLKI",
 	vPoisonOf:            "PoisonOf",
 	vProduct:             "Product",
@@ -1391,6 +1395,7 @@ type lCard struct {
 	TwoSeat        bool     // the lowering holds only for 2 players (CardDef.TwoSeat, set by lowerCtx.twoSeat)
 	HasChangeText  bool     // a ChangeText body or a ColorWords static lowered (textreach.go, lower_colorwords.go): the pool's cards carry CardDef.TextWords
 	TextWords      uint16   // the colour and basic land type words the face reads (textreach.go); copied to CardDef.TextWords in such a pool
+	CWUnmodelled   uint16   // the colour words the face reads on a surface the colour-word model does not rewrite (textreach.go); copied to CardDef.CWUnmodelled
 	TwoSeatWhy     []string // the reasons that set TwoSeat, in first-seen order (TestTwoSeatReasons)
 	Loyalty        int
 	Defense        int // a Battle's printed Defense (lower_battle.go)

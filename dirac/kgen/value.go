@@ -382,6 +382,8 @@ func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 			v, err = lc.oppCastCondValue(rest) // value_oppcondition.go
 		case rest == oppsDealtDamageBody:
 			v = lValue{Kind: vOppsLostLife, N: 3} // value_turntallies.go
+		case rest == remDrawRecipientsBody:
+			v, err = lc.remDrawRecipientsValue() // value_remdrawrecipients.go
 		default:
 			err = fmt.Errorf("PlayerCountOpponents$%s", rest)
 		}
@@ -603,6 +605,10 @@ func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 			return lValue{}, fmt.Errorf("TargetedPlayer$ with no target slot")
 		}
 		ref := lRef{Kind: rTarget, N: t}
+		if spec, ok := strings.CutPrefix(rest, "ValidGraveyard "); ok {
+			v, err = lc.targetedPlayerGraveyard(spec) // value_tgtplayeryard.go
+			break
+		}
 		switch rest {
 		case "LifeTotal":
 			v = lValue{Kind: vLifeOf, Ref: ref}
@@ -1556,6 +1562,12 @@ func (lc *lowerCtx) countValue(rest string, depth int) (lValue, error) {
 		{"CommittedCrimeThisTurn.", vCommittedCrime, false}, {"Void.", vVoid, false}, {"IfCastInOwnMainPhase.", vIfCastOwnMain, false},
 		{"Monarch.", vMonarch, false}, {"Blessing.", vBlessing, false},
 		{"wasCastFromGraveyard.", vCastFromGrave, false},
+		// AltCost.<paid>.<unpaid> (Worldheart Phoenix's trigger CheckSVar,
+		// the mastery cards' BranchConditionSVar): the cast's alternative
+		// cost, its own StatAlternativeCost static's (kop.ExAltCost; gorge
+		// count_body_heads.go reads FlagAltCostPaid / the pending cast's
+		// PendingAltCost)
+		{"AltCost.", vAltCost, false},
 		{"Bargained.", vKicked, true}, {"Bargain.", vKicked, true}, {"OptionalGenericCostPaid.", vKicked, false}} {
 		if !strings.HasPrefix(rest, cv.pre) {
 			continue
@@ -1625,6 +1637,9 @@ func (lc *lowerCtx) countValue(rest string, depth int) (lValue, error) {
 		// spell's own sneak provenance, 1 or 0. The stack entry's trigPlSneak
 		// mark is the stack-side read; a permanent's is the arena's mechSneaked.
 		return lValue{Kind: vSneaked, Sub: []lValue{cst(1), cst(0)}}, nil
+	}
+	if spec, ok := strings.CutPrefix(rest, "MostCardName "); ok {
+		return lc.mostCardNameValue(spec) // value_mostcardname.go
 	}
 	if strings.HasPrefix(rest, "ValidStack ") {
 		return lValue{}, refuse("Count$%s: only ValidStack Card.Self+sneaked is read", rest)

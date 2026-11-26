@@ -948,6 +948,8 @@ const ExDevotionDual ExprKind = 70
 const ExStartingPlayer ExprKind = 71
 
 // count AltCost (dirac/manifest/ExprKind/ExAltCost)
+//
+// Sub[0] if the resolving spell was cast for its own S:Mode$ AlternativeCost static's alternative (kernel build.altAdd buildAltCost, stamped as the spell entry's trigPlAltCost mark), else Sub[1] (Count$AltCost.<paid>.<unpaid>; Worldheart Phoenix's SpellCast CheckSVar; gorge count_body_heads.go reads FlagAltCostPaid or the pending cast's PendingAltCost). Read through the stack for a trigger above its spell, as ExSneaked is.
 const ExAltCost ExprKind = 72
 
 // count Result (dirac/manifest/ExprKind/ExResult)
@@ -2524,7 +2526,7 @@ const StatRetraceGrant StaticKind = 73
 
 // StaticKind (dirac/manifest/StaticKind/StatColorWords)
 //
-// StatColorWords is a Continuous static's ChangeColorWordsTo$ ChosenColor over Affected$ Spell,Permanent in AffectedZone$ Stack,Battlefield (Swirl the Mists; CR 612.5): every colour word in the text of the spells on the stack and the permanents on the battlefield becomes the source's recorded colour word. The kernel holds no per-object text (kop.ExtChangeText), so it models the change where it is a no-op and stalls where it is not: a spell about to be cast, a spell on the stack or a permanent whose card face reads (CardDef.TextWords) a colour word other than the source's chosen one stalls the game (StallTextChange, unmodelled) instead of answering from the unchanged face; a source with no recorded colour changes nothing, as gorge's colourWordEffects fails closed. Read at pushBuild and before each priority grant behind prep.anyColorWords (static_colorwords.go).
+// StatColorWords is a Continuous static's ChangeColorWordsTo$ ChosenColor over Affected$ Spell,Permanent in AffectedZone$ Stack,Battlefield (Swirl the Mists; CR 612.5): every colour word in the text of the spells on the stack and the permanents on the battlefield becomes the source's recorded colour word. The kernel holds no per-object text (kop.ExtChangeText), so it rewrites the colour words where the faces are read (static_colorwords.go): a target spec's filter colour masks and a printed Protection keyword's colours of an affected spell or permanent read as gorge's rewritten face reads them (every colour word of the face replaced by the last-live source's colour; a source with no recorded colour changes nothing, as gorge's colourWordEffects fails closed), and an ability on the stack keeps the colour it was put on the stack under (its text is frozen then). A face whose rewritten word also sits on a surface the model does not read (CardDef.CWUnmodelled: the type line, the SVars, any other ability, trigger, static or replacement parameter) stalls the game (StallTextChange, unmodelled) at pushBuild and before each priority grant, behind prep.anyColorWords.
 const StatColorWords StaticKind = 74
 
 // StaticKind (dirac/manifest/StaticKind/StatCyclingAlt)
