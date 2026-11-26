@@ -981,6 +981,7 @@ OptAsk	int16	4
 OptDefined	untyped int	32
 OvChosenColor	untyped int	1
 OvChosenType	untyped int	3
+OvCwWord	untyped int	4
 OvEnterWith	untyped int	2
 PTBoxOpen	untyped int	15
 PTRelEQ	int16	1
@@ -1234,6 +1235,7 @@ RefTriggerPlayer	Ref	10
 RefTriggerSource	Ref	21
 RefTriggerTgtCtrl	Ref	33
 RememberAllImprint	untyped int	2
+RememberAllImprintCard	untyped int	4
 RememberAllObjOrder	untyped int	1
 RepeatDmgBatch	untyped int	4
 RepeatEachDmgBatch	untyped int	8
