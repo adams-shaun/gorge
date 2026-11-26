@@ -870,6 +870,31 @@ func (s *State) grantedAbilitiesN(k *prep, sl Slot, f func(c CardID, ab uint8, n
 	s.grantedAbilitiesOwn(k, sl, nil, f)
 }
 
+// grantSrcs is the statM sources of each global grant walk: the cards with a
+// gfGlobOvr (globalGrants), gfGlobGrant (globalGrantsGen) or gfContGrant
+// (contGrants) static.
+type grantSrcs struct{ ovr, glob, cont slotMask }
+
+// grantSrcScan reads every statM slot's card once for the three walks of
+// grantedAbilitiesOwn, which each filter their own sources again in the
+// same slot order; a subset of statM walked in order gives the same calls.
+func (s *State) grantSrcScan(k *prep) (g grantSrcs) {
+	for m := s.statM; m.any(); m = m.rest() {
+		sl := m.first()
+		f := k.gen.flags[s.cardAt(sl)]
+		if f&gfGlobOvr != 0 {
+			g.ovr = g.ovr.with(sl)
+		}
+		if f&gfGlobGrant != 0 {
+			g.glob = g.glob.with(sl)
+		}
+		if f&gfContGrant != 0 {
+			g.cont = g.cont.with(sl)
+		}
+	}
+	return g
+}
+
 // grantedAbilitiesOwn is grantedAbilitiesN with own, when not nil, called
 // once at sl's own timestamp among the statics' grants: the triggers sl's
 // own static grants it (a Station threshold's), listed as gorge lists a
@@ -896,6 +921,10 @@ func (s *State) grantedAbilitiesOwn(k *prep, sl Slot, own func(), f func(c CardI
 	// global grant are listed first (grantsBetween), then that grant, so
 	// the statics come out in one timestamp order, then the plain records.
 	wm := uint32(0)
+	var src grantSrcs
+	if k.gen.globGrant || k.gen.anyContGrant {
+		src = s.grantSrcScan(k)
+	}
 	kinds := uint8(grantAny)
 	if k.gen.globGrant || s.grantM.any() {
 		kinds = grantKw
@@ -914,8 +943,8 @@ func (s *State) grantedAbilitiesOwn(k *prep, sl Slot, own func(), f func(c CardI
 			wm = uint32(ts)
 			f(c, ab, n)
 		}
-		s.globalGrants(k, sl, lost, lts, g)
-		s.globalGrantsGen(k, sl, lost, lts, g)
+		s.globalGrantsIn(k, src.ovr, sl, lost, lts, g)
+		s.globalGrantsGenIn(k, src.glob, sl, lost, lts, g)
 	}
 	if own != nil {
 		if ots >= wm {
@@ -935,7 +964,7 @@ func (s *State) grantedAbilitiesOwn(k *prep, sl Slot, own func(), f func(c CardI
 		if !read {
 			lts, lost = s.lossAt(k, sl)
 		}
-		s.contGrants(k, sl, lost, lts, f)
+		s.contGrantsIn(k, src.cont, sl, lost, lts, f)
 	}
 }
 

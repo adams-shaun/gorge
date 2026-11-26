@@ -91,7 +91,15 @@ func (s *State) grantTapOK(k *prep, sl Slot) bool {
 	if s.canTapForMana(k, sl) {
 		return true
 	}
-	if pc := s.manaPCGen(k, sl); !pc.grantSac && !(k.sacOnlyMana && pc.manaSacOnly) {
+	return s.grantTapByGrant(k, sl, s.manaPCGen(k, sl))
+}
+
+// grantTapByGrant is grantTapOK past its canTapForMana test, with pc the
+// manaPCGen view of sl, which a caller may have read already in this state
+// (filtOtherMana's sacrifice-only test): each manaPCGen walks sl's granted
+// abilities.
+func (s *State) grantTapByGrant(k *prep, sl Slot, pc *pcard) bool {
+	if !pc.grantSac && !(k.sacOnlyMana && pc.manaSacOnly) {
 		return false // (a printed sacrifice-only source, an Eldrazi Spawn, taps only by a grant)
 	}
 	var gi [maxGrants]int16
