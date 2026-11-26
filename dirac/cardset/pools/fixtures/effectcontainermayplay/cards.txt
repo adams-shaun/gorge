@@ -20,6 +20,14 @@ Chandra, Awakened Inferno
 Yawgmoth's Will
 Gaea's Will
 Magus of the Will
+# Abstruse Appropriation's remembered exile permission beside its
+# colourless-mana ManaConvert static (the C->AnyColor arm), with the Plains,
+# Wastes and Energy Tap (whose floating {C} pays the exile cast) its
+# lockstep deck plays
+Abstruse Appropriation
+Plains
+Wastes
+Energy Tap
 Memory Vessel
 # the multi-static remembered Effect (lower_effectplaylocks.go): the
 # per-owner MayPlay over the dig's remembered exiled cards beside the
