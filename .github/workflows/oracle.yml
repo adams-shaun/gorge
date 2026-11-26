@@ -188,13 +188,20 @@ jobs:
         id: bisect
         if: steps.pin.outcome == 'success'
         run: bash scripts/oracle-bisect.sh "${{ steps.good.outputs.good }}" "$GITHUB_SHA" failing.txt
+      # REGEN_TOKEN, never github.token: a PR opened or pushed with GITHUB_TOKEN starts no CI (its ci/docs runs sit at
+      # action_required), so the revert could never pass the queue (11-26: #5150 waited with no checks). The checkout's
+      # GITHUB_TOKEN header is dropped so the push goes out as the user token.
       - name: Open a draft revert PR
         if: steps.bisect.outcome == 'success' && steps.bisect.outputs.pr != ''
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.REGEN_TOKEN }}
           PR: ${{ steps.bisect.outputs.pr }}
           CULPRIT: ${{ steps.bisect.outputs.culprit }}
         run: |
+          [ -n "$GH_TOKEN" ] || { echo "::error::secrets.REGEN_TOKEN is empty: a GITHUB_TOKEN revert PR starts no CI, so none is opened. Culprit #$PR ($CULPRIT)."; exit 1; }
+          echo "::add-mask::$GH_TOKEN"
+          git config --unset-all http.https://github.com/.extraheader || true
+          export GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0="url.https://x-access-token:${GH_TOKEN}@github.com/.insteadOf" GIT_CONFIG_VALUE_0="https://github.com/"
           git config user.name "gorge oracle bisect"
           git config user.email "noreply@github.com"
           br="hotfix/auto-revert-$PR"
