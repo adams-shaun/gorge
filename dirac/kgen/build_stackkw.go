@@ -10,7 +10,7 @@ import (
 
 // stackKwStatic builds one StatStackKw ability (lower_stackkw.go): the filter
 // matches the spell being cast (a card in hand or on the stack), A is the
-// keyword code, B the casualty threshold, and Zone the cast-origin marker
+// keyword code, B the casualty threshold or the ripple count, and Zone the cast-origin marker
 // (ZoneHand, ZoneExile, ZoneAny for !wasCastFromYourHand) or ZoneStack for an
 // EffectZone$ Stack self grant. Split out of (*cardBuilder).static so that
 // function keeps its length ceiling.
@@ -98,6 +98,14 @@ func (cb *cardBuilder) stackKwStatic(st *kop.Static, s lStatic) error {
 			return fmt.Errorf("stack keyword grant %q", s.Kw[0])
 		}
 		st.A, st.B = kop.StackKwCasualty, int16(n)
+	case "Ripple":
+		// CR 702.60a: the count is fixed (lower_stackkw.go held 1..127); the
+		// trigger carries it in trigAmt (kw_ripple.go)
+		n, err := strconv.Atoi(param)
+		if err != nil || n < 1 || n > 127 {
+			return fmt.Errorf("stack keyword grant %q", s.Kw[0])
+		}
+		st.A, st.B = kop.StackKwRipple, int16(n)
 	default:
 		return fmt.Errorf("stack keyword grant %q", s.Kw[0])
 	}
