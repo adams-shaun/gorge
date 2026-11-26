@@ -267,7 +267,7 @@ func (s *State) offerPlay(k *prep, d *Decision, p uint8, o Obj, mode uint8, sorc
 			if !av.affordsAnyColor(&cost, 0) {
 				return
 			}
-		} else if !s.castAffordsR(k, p, c, s.restrOriginOfObj(o), &cost, av) && !s.convPoolPays(k, p, o, &cost) {
+		} else if !s.castAffordsR(k, p, c, s.restrOriginOfObj(o), &cost, av) && !s.convAnyPoolPays(k, p, o, &cost) {
 			return // (the any-colour conversion's pool route: mana_convertcreature.go)
 		}
 	} else if !s.freeCastRaisePayable(k, p, c, o, unpriced, av) {
@@ -555,6 +555,9 @@ func (s *State) spendMayRecord(k *prep, o Obj, p uint8) bool {
 			continue
 		}
 		s.stampMayExile(k, i) // repl_stackexile.go
+		if r.turn&mayTurnConvC != 0 && s.buildLive() {
+			s.bld().convC = true // the cast pays under the colourless-mana conversion (cast_mayconvc.go)
+		}
 		if !r.follows() && !(r.dur() == kop.DurWhileGrave && r.kind&kop.MayPlayLimitMask == 0) {
 			// A following record outlives its own cast (gorge's continuous
 			// grant); an Effect-delivered graveyard grant stays live after
