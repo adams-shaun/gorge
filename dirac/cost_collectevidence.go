@@ -88,10 +88,14 @@ func prepCostEvidence(t *kop.Table, g *genPrep) {
 // 0 for none.
 func (s *State) buildEvidenceN(k *prep) uint8 {
 	if s.bld().e.kind == seSpell {
-		if n := s.optEvidenceN(k); n != 0 { // cost_optionalevidence.go
-			return n
-		}
-		return s.targetsEvidenceN(k) // cost_collectevidencex.go
+		// gorge evidenceAmount sums every CollectEvidence part of the pending
+		// cast into ONE ask (cast_targets.go): a may-play alternative's
+		// amount (cast_mayzeroalt.go) rides beside the spell's own parts --
+		// a kicked OptionalCost (cost_optionalevidence.go) and the
+		// targets'-mana-value cost (cost_collectevidencex.go; Urgent
+		// Necropsy through Conspiracy Unraveler)
+		n := int(s.optEvidenceN(k)) + int(s.targetsEvidenceN(k)) + int(s.bld().payEvidence)
+		return uint8(min(n, 255))
 	}
 	if s.bld().e.kind != seAbility {
 		return 0
@@ -250,6 +254,18 @@ func (s *State) payCostEvidence(k *prep) {
 	if DebugCostEvidenceStats != nil {
 		DebugCostEvidenceStats.Activations.Add(1)
 	}
+	if s.exileEvidence() > 0 && k.gen.anyExplEvTrig {
+		s.fireEvidence(k, s.bld().e.ctrl) // trig_exploreevidence.go
+	}
+}
+
+// payMayEvidence exiles the may-play alternative's picked graveyard cards
+// with the other cost objects (a spell's evidence part; gorge cast_commit
+// settles the CollectEvidence parts with the cost exiles, before the energy
+// and life parts).
+//
+//go:noinline
+func (s *State) payMayEvidence(k *prep) {
 	if s.exileEvidence() > 0 && k.gen.anyExplEvTrig {
 		s.fireEvidence(k, s.bld().e.ctrl) // trig_exploreevidence.go
 	}

@@ -250,6 +250,11 @@ func (e *Engine) staticGrantTracked(w staticWant) bool {
 // re-enter the emit tail (whose expireControl and reconcile both early-
 // return on the flags) and the deferred clears restore the ordinary path.
 func (e *Engine) reconcileControlStatics() {
+	// The colour-word change statics (Swirl the Mists, CR 612.5) keep their
+	// affected objects' text substitutions in step at the same emit tail: the
+	// deferred sync runs after the control sync on every return path, and is
+	// itself a no-op unless such a static is in the pool.
+	defer e.reconcileColorWords()
 	if e.expiringControl || e.reconcilingControlStatics || !e.controlStaticInPool {
 		// No card this match can put into play carries a GainControl$
 		// static (poolHasControlStatic), so the wanted set is empty on every

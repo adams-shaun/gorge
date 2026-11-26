@@ -335,7 +335,15 @@ func (e *Engine) tapExtraTriggerOnBoard() bool {
 		if o == nil || o.Face() == nil {
 			continue
 		}
-		if o.Zone != state.ZBattlefield && !(o.Zone == state.ZCommand && o.Face().TypeMaskOf()&cards.TypeVanguard != 0) {
+		if o.Zone == state.ZPlanarDeck {
+			// a face-up plane's printed static functions from the command
+			// zone while the plane lives in its owner's planar deck (Eloren
+			// Wilds; CR 901): it is not a battlefield permanent, but its tap
+			// extra is real (CR 605.3b)
+			if cur := e.currentPlane(o.Controller); cur == nil || cur.ID != o.ID {
+				continue
+			}
+		} else if o.Zone != state.ZBattlefield && !(o.Zone == state.ZCommand && o.Face().TypeMaskOf()&cards.TypeVanguard != 0) {
 			// a Vanguard's printed static functions from the command zone
 			// (Sisay): it is not a battlefield permanent, but its tap extra is
 			// real (CR 605.3b)
@@ -415,10 +423,32 @@ func (e *Engine) potentialPoolFor(p state.PlayerID, d paymentDescriptor, hyp sta
 		// planner for this very payment: it already spent only mana the
 		// restriction admits. Rebuilding it from the board's over-bound (which
 		// counts a Combo source in both its colours) would price the offer
-		// against mana the plan never makes.
+		// against mana the plan never makes. The plan's own activations are
+		// admitted mana only, but the floating pool the witness walk adds
+		// beside them (potentialWitnessOffers) may hold restricted batches
+		// this payment cannot spend (CR 106.6): those units are hidden, as
+		// the ordinary offer reads the pool through pay.AvailableFor.
+		if e.potentialWitness && len(e.G.Players[p].RestrictedMana) != 0 {
+			return hideUnspendableFloating(asPayer(e), p, d, hyp)
+		}
 		return hyp
 	}
 	return e.potentialManaFor(p, &d)
+}
+
+// hideUnspendableFloating is hyp without the floating restricted mana the
+// payment d cannot spend: per pool slot, the units pay.AvailableFor hides from
+// p's floating pool. hyp holds that pool (plus a witness's activations), so
+// the units are removed from it, never below zero.
+func hideUnspendableFloating(e pay.Engine, p state.PlayerID, d paymentDescriptor, hyp state.Mana) state.Mana {
+	pool := e.Game().Players[p].Pool
+	avail := pay.AvailableFor(e, p, d).Pool
+	for i := range hyp {
+		if hidden := pool[i] - avail[i]; hidden > 0 {
+			hyp[i] = max(0, hyp[i]-hidden)
+		}
+	}
+	return hyp
 }
 
 // potentialRestrictionAdmits reports whether mana ability ma of source id

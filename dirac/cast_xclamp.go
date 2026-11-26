@@ -21,7 +21,10 @@ func (s *State) xPartClamps(k *prep, cost *kop.ManaCost, mx int) int {
 			mx = s.sacXClamp(k, cost, mx)
 		}
 		if k.gen.anyExileX {
-			mx = s.exileXClamp(k, mx)
+			mx = s.exileXClamp(k, cost, mx)
+		}
+		if k.gen.uses.has(useEnergyX) {
+			mx = s.energyXClamp(k, cost, mx) // PayEnergy<X> (cost_energyx.go)
 		}
 	}
 	if pc := s.buildPickCost(k); pc != nil && pc.DiscardX {
@@ -36,7 +39,7 @@ func (s *State) xPartClamps(k *prep, cost *kop.ManaCost, mx int) int {
 //go:noinline
 func (s *State) xPartClampsHi(k *prep, cost *kop.ManaCost, hi int) int {
 	if k.gen != nil && k.gen.anyExileX {
-		hi = s.exileXClamp(k, hi)
+		hi = s.exileXClamp(k, cost, hi)
 	}
 	if pc := s.buildPickCost(k); pc != nil && pc.DiscardX {
 		hi = s.discardXClamp(k, cost, hi)

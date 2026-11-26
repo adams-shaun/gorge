@@ -80,6 +80,13 @@ type DelayedTriggerParams struct {
 	ThisTurn bool
 	// Static is Static$, trimmed.
 	Static string
+	// EntersRemembered marks the "when that permanent enters" shape: Mode$
+	// ChangesZone, Destination$ Battlefield from any origin, ValidCard$
+	// Card.IsTriggerRemembered, nothing else gating it (Jailbreak). Such a
+	// registration made after its remembered object already entered during
+	// the same resolution still triggers for that entry (CR 603.12), so the
+	// resolution queues the reflexive ability instead of registering.
+	EntersRemembered bool
 
 	// Unread are the parameters present on the ability that no
 	// DelayedTrigger reader consumes: the resolution Notes them once.
@@ -327,6 +334,15 @@ func compileDelayedTrigger(sa *cards.SA, ap *ActivationParams) *DelayedTriggerPa
 	p.Description = sa.ParamStr(cards.PKTriggerDescription)
 	p.ThisTurn = isTrue(sa.ParamStr(cards.PKThisTurn))
 	p.Static = strings.TrimSpace(sa.ParamStr(cards.PKStatic))
+	if origin := strings.TrimSpace(sa.ParamStr(cards.PKOrigin)); p.Mode == "ChangesZone" &&
+		(origin == "" || origin == "Any") &&
+		strings.TrimSpace(sa.ParamStr(cards.PKDestination)) == "Battlefield" &&
+		strings.TrimSpace(sa.ParamStr(cards.PKValidCard)) == "Card.IsTriggerRemembered" &&
+		strings.TrimSpace(sa.ParamStr(cards.PKValidCards)) == "" &&
+		strings.TrimSpace(sa.ParamStr(cards.PKValidPlayer)) == "" &&
+		ap.IsPresent.Text == "" && !p.ThisTurn {
+		p.EntersRemembered = true
+	}
 
 	// The Phase registration's Text (see effDelayedTrigger).
 	text := p.Phase

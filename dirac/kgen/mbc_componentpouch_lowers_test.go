@@ -5,7 +5,7 @@ import "testing"
 // TestComponentPouchManaAbilityLowers pins that Component Pouch's first mana
 // ability ({T}, remove a component counter: two mana of different colours)
 // lowers beside the roll ability that puts the counters on the card. land
-// models the counter-cost mana gap (dirac/oracle TestComponentPouchLowers
+// reads it as an AnyDifferent gap (dirac/oracle TestComponentPouchLowers
 // plays it in lockstep); this is the lowering-level guard that the card has
 // no refusal left.
 func TestComponentPouchManaAbilityLowers(t *testing.T) {

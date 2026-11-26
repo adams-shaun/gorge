@@ -5,7 +5,6 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/adams-shaun/gorge/dirac"
 	"github.com/adams-shaun/gorge/dirac/cardset"
 	"github.com/adams-shaun/gorge/dirac/cardset/cardsettest"
 	"github.com/adams-shaun/gorge/engine/cards"
@@ -13,18 +12,14 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// The dead mana-ability census gap (Component Pouch): "{T}, Remove a
+// The counter-cost AnyDifferent census gap (Component Pouch): "{T}, Remove a
 // component counter from Component Pouch: Add two mana of different colors."
-// gorge's planner records the source as an unrelaxable, unbounded census gap
-// while the cost is payable (potential_plan.go paymentPlanCensusOf;
-// paymentPlanRelaxedAlternatives enumerates no colour for the Produced$ Combo
-// AnyDifferent production), and its resolution fail-closes with no mana
-// (engine/effects/mana_effect.go's rune gate). The kernel models it as a dead
-// chain member of the prefix search (dirac mana_countercost.go ctrDeadGap):
-// never a planner unit or window pick, no units in any gaps walk, its one
-// chain branch pays the cost and taps without mana, and the search's slot
-// accounting counts every insufficient play whatever it finds (potentialPlans
-// counts one before the search runs).
+// gorge resolves it as a bounded choice of two different colours once the
+// counter is paid (engine/effects/mana_effect.go), and its planner records the
+// source as an unrelaxable census gap while the counter is there. The kernel
+// reads it as an AnyDifferent gap beside the plain {T} one (dirac
+// mana_distinctcolours.go): a prefix-search gap whose activation taps, removes
+// the counter and floats two distinct colours.
 
 // The d20 (its {T}: Roll a d20 ability) puts the component counters on; the
 // Wall of Roots beside it is the real counter-cost census gap the chain's
@@ -47,7 +42,7 @@ var kpouchDecks = [2][]cardset.Entry{
 
 // TestComponentPouchLowers plays Component Pouch in lockstep with gorge
 // leading: the deck casts it, rolls its d20 for counters, and spends the
-// counters through the dead chain steps a scripted play activates. Each
+// counters through the counter-cost activations a scripted play makes. Each
 // carrier must be played by some game.
 func TestComponentPouchLowers(t *testing.T) {
 	if isolate(t) {
@@ -110,22 +105,15 @@ func TestComponentPouchLowers(t *testing.T) {
 }
 
 // TestDeadGapScriptChain is the chain itself, in one deterministic game:
-// gorge's prefix script activates the dead pouch (Component Pouch, one
-// component counter on it, untapped) before the real gap (a Wall of Roots
-// that entered after it, so the census's gap order is [dead, roots]) and both
-// sides replay the same steps. The board: one Forest is the only green mana
-// the lands make, so Colossal Dreadmaw ({4}{G}{G}) is payable only through the
-// roots gap -- the planner is insufficient, the census is incomplete and, the
-// dead gap being unrelaxable, the prefix search explores the gaps in
-// battlefield order and finds [dead, roots] before [roots]. The policy casts
-// the pouch before the roots so the order holds, rolls the d20 for the
-// counter, and casts the Dreadmaw when it is offered.
-//
-// The mutation round proves the pool reaches it: with the dead gaps dropped
-// from the kernel's chain the canonical script steps differ (gorge's [dead,
-// roots] against the kernel's [roots]) and some seed diverges -- the dead
-// step's cost is gorge's alone, so the pouch stays tapped with its counter
-// spent on the kernel's side.
+// gorge's prefix script activates the pouch (Component Pouch, one component
+// counter on it, untapped) before the real gap (a Wall of Roots that entered
+// after it, so the census's gap order is [pouch, roots]) and both sides replay
+// the same steps. The board: one Forest is the only green mana the lands make,
+// so Colossal Dreadmaw ({4}{G}{G}) is payable only through the roots gap -- the
+// planner is insufficient, the census is incomplete and the prefix search
+// explores the gaps in battlefield order. The policy casts the pouch before the
+// roots so the order holds, rolls the d20 for the counter, and casts the
+// Dreadmaw when it is offered.
 func TestDeadGapScriptChain(t *testing.T) {
 	if isolate(t) {
 		return
@@ -135,14 +123,6 @@ func TestDeadGapScriptChain(t *testing.T) {
 		tal := kpouchChainRun(t, 24, true)
 		if tal.dead == 0 {
 			t.Fatal("the dead pouch activation never ran: the script never activates Component Pouch before the roots")
-		}
-	})
-	t.Run("mutation", func(t *testing.T) {
-		dirac.DebugNoDeadCtr = true
-		defer func() { dirac.DebugNoDeadCtr = false }()
-		tal := kpouchChainRun(t, 40, false)
-		if tal.divs == 0 {
-			t.Fatal("no seed diverged without the dead gaps: the game never funds a play through the [dead pouch, roots] script")
 		}
 	})
 }

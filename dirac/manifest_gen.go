@@ -831,6 +831,8 @@ func (s *State) execExtGen(k *prep, in *kop.Instr) (ok, done bool) {
 		return s.changeCombatantsExt(k, in) // act_changecombatants.go
 	case kop.ExtChaosEnsues:
 		return s.chaosEnsuesExt(k, in) // zone_planechase.go
+	case kop.ExtChoosePlayerEach:
+		return s.choosePlayerEachOp(k, in) // act_pileseach.go
 	case kop.ExtChooseSource:
 		return s.chooseSourceExt(k, in) // act_choosesource.go
 	case kop.ExtClash:
@@ -879,6 +881,8 @@ func (s *State) execExtGen(k *prep, in *kop.Instr) (ok, done bool) {
 		return s.rollPlanarDiceExt(k, in) // zone_planechase.go
 	case kop.ExtStoreNum:
 		return s.storeNumOp(k, in) // act_storenum.go
+	case kop.ExtTwoPilesEach:
+		return s.pilesEachOp(k, in) // act_pileseach.go
 	case kop.ExtUnattach:
 		return s.unattachExt(k, in) // act_unattach.go
 	case kop.ExtVenture:

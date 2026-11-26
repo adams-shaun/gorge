@@ -157,8 +157,9 @@ Make each change in its own git worktree and keep the main checkout clean. Sever
 sessions may share one checkout: never `git checkout`, `git switch`, `git reset`
 or bare `git stash` in it, and stage explicit paths (never `git add -A`).
 
-A worktree carries only tracked files. Link the corpus (`ln -s <main>/.cards
-.cards`) and check it resolves (`ls .cards/cardsfolder`), or every
+A worktree carries only tracked files. Link the corpus with
+`scripts/link-cards.sh` (it links the store's corpus of THIS tree's `FORGE_REF`, never
+the main checkout's, whose ref may differ) and check it resolves (`ls .cards/cardsfolder`), or every
 corpus-dependent test SKIPS through `testutil.CorpusRegistry` and the package
 still prints `ok` in about 2ms. In a worktree with no `.cards`, stop and say so
 rather than reporting a green suite.

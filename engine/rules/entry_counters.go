@@ -949,6 +949,8 @@ func isolatePreviewScratch(p *Engine) {
 	p.controlGrants = slices.Clone(p.controlGrants)
 	p.setupEntryDrops = slices.Clone(p.setupEntryDrops)
 	p.pendingTriggers = slices.Clone(p.pendingTriggers)
+	p.windowDepartures = slices.Clone(p.windowDepartures)
+	p.windowDeparted = slices.Clone(p.windowDeparted)
 	p.layer4Types = slices.Clone(p.layer4Types)
 	p.activationsThisTurn = slices.Clone(p.activationsThisTurn)
 	p.combatHitsThisTurn = slices.Clone(p.combatHitsThisTurn)

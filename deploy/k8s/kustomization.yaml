@@ -1,0 +1,12 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - namespace.yaml
+  - pvc.yaml
+  - deployment.yaml
+  - service.yaml
+  - httproute.yaml
+# The one place the image name lives; override with IMAGE_NAME's value when it changes.
+images:
+  - name: ghcr.io/adams-shaun/gorge
+    newTag: latest

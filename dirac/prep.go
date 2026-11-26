@@ -140,8 +140,11 @@ type prep struct {
 	anyDisturb    bool   // some front carries K:Disturb (CardDef.FlipCast; face_flipcast.go): the graveyard walk's gate; on prep, not genPrep, so the pinned fixed-State inventory is unchanged
 	handStat      []bool // card i has a static whose condition reads a hand size (Hellbent; prepHandStat, cast_handleaves.go); on prep, not genPrep, so the pinned fixed-State inventory is unchanged
 	gainsOfAttach bool   // a GainsAbilitiesOf$ static and an Equip ability: a non-attachment can gain Equip and attach itself (CR 704.5p sba arm; static_unattachcreature.go); on prep, not genPrep, so the pinned fixed-State inventory is unchanged
+	anyColorWords bool   // a card has a StatColorWords static (static_colorwords.go): gates the colour-word stall checkpoints; on prep, not genPrep, so the pinned fixed-State inventory is unchanged
 	anyNoDmg      bool   // a card or emblem has a StatNoCombatDamage static (combat.go's combatAmount); on prep, not genPrep, so the pinned fixed-State inventory is unchanged
 	anyAsUnblk    bool   // a card or emblem has a StatAssignCombatDamageAsUnblocked static (the as-unblocked election, combat_asgngrant.go); on prep, not genPrep, so the pinned fixed-State inventory is unchanged
+	grantsMana    []bool // per card: holds a grantOf mana ability (mana_grantedoffers.go manaGrantMay); on prep, not genPrep
+	tapExtraCard  []bool // per card: prints a StatTapExtra static (mana_tapextra.go eachTapExtra); on prep, not genPrep
 	anyCmdTap     bool   // a card has a command-zone StatTapExtra static (a Vanguard's; static_classgates.go sclsTapCmd); on prep, not genPrep, so the pinned fixed-State inventory is unchanged
 	// embPrev: some emblem carries a static damage prevention
 	// (tableEmbHasStaticPrev, repl_staticprevent_emblem.go); on prep, not
@@ -151,7 +154,11 @@ type prep struct {
 	// replacement (tableEmbHasExileLeave, repl_exileleaveemb.go); on prep,
 	// not genPrep, so the pinned fixed-State inventory is unchanged
 	embExileLeave bool
-	cda           bool // some card has a characteristic-defining P/T (StatCDAPT)
+	// embExileAny: some emblem carries an any-zone dies-to-exile replacement
+	// (tableEmbHasExileAny, repl_exileleaveemb.go); on prep for the same
+	// reason
+	embExileAny bool
+	cda         bool // some card has a characteristic-defining P/T (StatCDAPT)
 	// grantSrcCard: per card, a Continuous static grants a mana ability,
 	// whoever it applies to (prepTokMana; contGrantLive); contGrantAlways: a
 	// mana grant no battlefield card marks (an override record's, a printed
@@ -276,6 +283,10 @@ type prep struct {
 	// anyCyclingGrant: the table has a StatCyclingGrant static (prepCyclingGrant;
 	// kw_cyclinggrant.go), the granted hand cycling offer it arms.
 	anyCyclingGrant bool
+	// anyOffGrant: some StatStackKw Offspring grant (Zinnia): the kicked-cost
+	// reads and the ETB copy queue (kw_offspring.go; prepStackKw). Prep data,
+	// never a pinned genPrep field: TestNoNewFixedStateFields.
+	anyOffGrant bool
 	// anyOffKwCC: some recorded off-kw grant body is CardManaCost-priced
 	anyOffKwCC bool
 	offKwCC    [4]offKwBody
@@ -351,6 +362,9 @@ type prep struct {
 	// (kw_ascend.go); a prep bool, not a genPrep one, so the hot hooks
 	// (enterNF, ctrlMove, sba, resolveTop) cost one byte load
 	ascend bool
+	// storied: some card prints Storied: the enduring-story scan runs
+	// (kw_storied.go); a prep bool like ascend, for the same reason
+	storied bool
 	// unleash: some card prints Unleash: the as-enters counter ask queues at
 	// entry and the block gate reads it (kw_unleash.go); a prep bool like
 	// ascend, for the same reason
@@ -362,6 +376,9 @@ type prep struct {
 	// enlist: some card prints Enlist: the declare-attackers election
 	// (kw_enlist.go); a prep bool like riot
 	enlist bool
+	// exertOffer: some card prints the exert offer (StatOptionalAttackCost):
+	// the declare-attackers exert election (combat_exert.go)
+	exertOffer bool
 	// engAsc: engines || ascend, enterNF's single entry-hook guard
 	engAsc bool
 	// painMana: some card has a painful mana alternative (pcard.painCol;
@@ -390,7 +407,7 @@ type prep struct {
 	// kop.SecondTapXManaAb), -1 none: cold, read through tapXAbOf
 	tapXAb []int8
 	// ctrAb: per card, the index of its counter-cost mana ability (the first
-	// mana ability, kop.CtrManaAb or the dead gap kop.CtrDeadManaAb, or a
+	// mana ability, kop.CtrManaAb, or a
 	// later {T} one beside a plain {T} first, kop.SecondCtrTapManaAb), -1
 	// none: cold, read through ctrAbOf (mana_countercost.go)
 	ctrAb []int8
@@ -414,10 +431,12 @@ func prepare(t *kop.Table) *prep {
 	typedSub := typedManaSubtypes(t)
 	p.speed, p.engines = prepSpeed(t)
 	p.ascend = tableHasAscend(t)
+	p.storied = tableHasStoried(t)
 	p.anyFbCard = tableHasFlashback(t)
 	p.unleash = tableHasUnleash(t)
 	p.riot = tableHasRiot(t)
 	p.enlist = tableHasEnlist(t)
+	p.exertOffer = tableHasExertOffer(t)
 	p.engAsc = p.engines || p.ascend
 	for i := range t.Cards {
 		c := &t.Cards[i]
@@ -456,7 +475,7 @@ func prepare(t *kop.Table) *prep {
 		p.teamwork = p.teamwork || c.Teamwork != 0
 		p.entwine = p.entwine || c.Entwine
 		p.offspring = p.offspring || c.Offspring || c.Buyback || c.Entwine
-		p.costObj = p.costObj || (c.SpellCost.Flags|c.AltAddCost.Flags|c.OptCost.Flags|c.KickerCost.Flags|c.FbCost.Flags|c.EscCost.Flags|c.EscBfCost.Flags|c.Repeated.Flags)&costObjFlags != 0 || c.BeholdN != 0 || c.RevealN != 0 || c.HasSneak || c.HasWebSling // a behold part's ask (act_behold.go); a sneak or web-slinging cast's return pick (kw_sneak.go, kw_websling.go); a Squad/Replicate payment's exile part (kw_squadreplicate.go)
+		p.costObj = p.costObj || (c.SpellCost.Flags|c.AltAddCost.Flags|c.OptCost.Flags|c.KickerCost.Flags|c.FbCost.Flags|c.EscCost.Flags|c.EscBfCost.Flags|c.Repeated.Flags|c.EvokePick.Flags)&costObjFlags != 0 || c.BeholdN != 0 || c.RevealN != 0 || c.HasSneak || c.HasWebSling // a behold part's ask (act_behold.go); a sneak or web-slinging cast's return pick (kw_sneak.go, kw_websling.go); a Squad/Replicate payment's exile part (kw_squadreplicate.go)
 		pc.spellAb, pc.manaAb = -1, -1
 		p.tapXAb[i], p.ctrAb[i], p.riderAb[i] = -1, -1, -1
 		// the card's mana is typed by its types (mana_artifact.go) whether
@@ -611,6 +630,7 @@ func prepare(t *kop.Table) *prep {
 	p.anyTapPowerStatic = tableHasStatic(t, kop.StatTapPower)
 	p.embPrev = tableEmbHasStaticPrev(t)
 	p.embExileLeave = tableEmbHasExileLeave(t)
+	p.embExileAny = tableEmbHasExileAny(t)
 	p.gen = prepareGen(t, p)
 	prepLayerSrc(t, p) // static_layerwalk.go: the walk's per-card ability masks
 	prepHandStat(t, p) // cast_handleaves.go

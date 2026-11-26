@@ -172,7 +172,12 @@ func runDragonsSmile(t *testing.T, seeds int, report, mutate bool) (fixtureRun, 
 		cd.Abilities = append([]kop.Ability(nil), cd.Abilities...) // a copy: the set's table is shared
 		for j := range cd.Abilities {
 			if a := &cd.Abilities[j]; a.Kind == kop.AbStatic && a.Static.Kind == kop.StatMayPlayFrom &&
-				a.Static.StFlags&kop.StFreeOnly != 0 && a.Static.Zone == kop.ZoneExile {
+				a.Static.StFlags&kop.StMayZeroAlt != 0 && a.Static.Zone == kop.ZoneExile {
+				// the non-granting alternative marker (kop.StMayZeroAlt), the
+				// kernel shape for the {0} static since the flag split it from
+				// Weftwalking's plain free shape: the static's zone byte is the
+				// reach, so the alternative is listed beside the exile casts
+				// gorge's may-play walk lists (mayPlayCastAlts) and nowhere else
 				found = true
 				if mutate {
 					a.Static.Kind = kop.StatNone
@@ -181,7 +186,7 @@ func runDragonsSmile(t *testing.T, seeds int, report, mutate bool) (fixtureRun, 
 		}
 	}
 	if !found {
-		t.Fatal("Dragon's Smile has no FreeOnly MayPlayFrom static on Exile in the table")
+		t.Fatal("Dragon's Smile has no non-granting alternative MayPlayFrom static on Exile in the table")
 	}
 	run := fixtureRun{casts: map[string]int{}}
 	var st dragonsSmileStats

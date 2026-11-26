@@ -174,6 +174,9 @@ func effDelayedTrigger(h Host, c *Ctx, sa *cards.SA) {
 				Text: "registers a delayed " + mode + " trigger with no Execute"})
 			return
 		}
+		if dp.EntersRemembered && queueEnteredRememberedTrigger(h, c, exec, remembered) {
+			return
+		}
 		eventText := dp.EventText
 		if dp.ThisTurn {
 			eventText += "|TT=" + strconv.Itoa(int(h.Game().Turn))
@@ -268,6 +271,36 @@ func effDelayedTrigger(h Host, c *Ctx, sa *cards.SA) {
 	h.Emit(events.Event{Kind: events.DelayedRegister, Obj: c.Source,
 		Player: c.Controller, Step: step, Counter: exec, Amount: amount,
 		IDs: encodeRemembered(remembered), Text: text + delayedLabelSuffix(dp)})
+}
+
+// queueEnteredRememberedTrigger is the registration-after-the-move case of a
+// "when that permanent enters" delayed trigger (Jailbreak: the ChangeZone
+// returns the target, then the sub-ability registers the trigger inside the
+// same resolution). Forge runs the resolution's waiting zone-change triggers
+// once the spell is done, so the just-registered trigger sees the entry, and
+// XMage fires it as a reflexive ability (CR 603.12). A remembered object that
+// is on the battlefield now though the resolving spell or ability targeted it
+// elsewhere (its ZoneGen moved since the target stamp) entered during this
+// resolution: queue the Execute$ body for that entry instead of registering a
+// trigger that no later event can satisfy. It reports false -- the caller
+// registers as before -- when no remembered object qualifies or the host
+// cannot mint the body.
+func queueEnteredRememberedTrigger(h Host, c *Ctx, exec string, remembered []state.Target) bool {
+	body := cards.ResolveSVar(c.SVars, exec)
+	so := h.Game().Obj(c.ResolvingObj)
+	if body == nil || so == nil {
+		return false
+	}
+	for _, t := range remembered {
+		o := h.Game().Obj(t.Obj)
+		if t.IsPlayer || o == nil || o.Zone != state.ZBattlefield || !targetStampMoved(h.Game(), so, t.Obj) {
+			continue
+		}
+		cc := *c
+		cc.TriggerCard, cc.TriggerSource, cc.DelayedObject = t.Obj, t.Obj, t.Obj
+		return h.QueueReflexiveTrigger(&cc, exec, body, []state.Target{{Obj: t.Obj}})
+	}
+	return false
 }
 
 // delayedLabelSuffix encodes a DelayedTrigger registration's TriggerDescription$
