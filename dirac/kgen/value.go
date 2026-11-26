@@ -382,6 +382,8 @@ func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 			v, err = lc.oppCastCondValue(rest) // value_oppcondition.go
 		case rest == oppsDealtDamageBody:
 			v = lValue{Kind: vOppsLostLife, N: 3} // value_turntallies.go
+		case rest == remDrawRecipientsBody:
+			v, err = lc.remDrawRecipientsValue() // value_remdrawrecipients.go
 		default:
 			err = fmt.Errorf("PlayerCountOpponents$%s", rest)
 		}
