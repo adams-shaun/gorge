@@ -1403,13 +1403,16 @@ func (e *Engine) applyReplacement(ev events.Event, m replMatch) (events.Event, b
 			// not reach the battlefield, so report it handled.
 			return ev, true
 		}
-		if ev.Kind == events.Draw || ev.Kind == events.DrawBatchProposal {
+		if ev.Kind == events.Draw || ev.Kind == events.DrawBatchProposal || emptyDrawProposal(ev) {
 			// A bodyless R:Event$ Draw line's complete replacement is stopping
 			// the draw (CR 614.1a). Reaching here means the election has already
 			// been made: a lone Optional$ replacement is asked at dispatch, and
 			// selecting one in a competition is itself the election. The
 			// DrawCards batch proposal is the same shape: its complete
-			// replacement is that the batch draws nothing.
+			// replacement is that the batch draws nothing. The attempted draw
+			// from an empty library (CR 614.11, emptyDrawProposal) stops the
+			// same way: the DrawEmpty mark is left unrecorded, so the CR 704.5b
+			// loss never follows.
 			return ev, true
 		}
 		return ev, false
