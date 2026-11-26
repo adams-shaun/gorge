@@ -31,7 +31,7 @@ func TestIsCommanderWordOnBattlefield(t *testing.T) {
 		t.Fatalf("commander on battlefield=%v, other on battlefield=%v", sc.onBF(cmd), sc.onBF(other))
 	}
 	matches := func(s *scen, o Obj) bool {
-		return s.s.matchPermOne(s.k, &s.k.t.Filters[fid], s.slot(o), 0, NoSlot, layerFull)
+		return s.s.matchPermOne(s.k, &s.k.t.Filters[fid], s.slot(o), 0, NoSlot, layerFull, NoObj)
 	}
 	if !matches(sc, cmd) {
 		t.Error("Commander game: the IsCommander filter does not match the seat's commander permanent")
