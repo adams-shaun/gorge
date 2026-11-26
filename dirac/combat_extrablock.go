@@ -437,8 +437,8 @@ func (s *State) blockerMultiDamage(k *prep, r *dmgRec, b Slot, pw int) {
 		default:
 			give = left
 			if i < n-1 {
-				_, t := s.pt(k, a)
-				lethal := t - int(s.perms[a].damage) // marked damage only, as gorge lethalDamageNeed
+				ap, t := s.pt(k, a)
+				lethal := s.lethalThreshold(k, a, ap, t) - int(s.perms[a].damage) // marked damage only, as gorge lethalDamageNeed
 				if dt {
 					if s.perms[a].flags&pfDeathtouched != 0 {
 						lethal = 0

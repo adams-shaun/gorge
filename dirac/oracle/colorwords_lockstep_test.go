@@ -29,7 +29,13 @@ import (
 //     masks moved. Raging Ravine (an Animate activation's word-list Colors$
 //     Red,Green) sits in play and activates: its override record reads the
 //     colour-word colour frozen at its activation
-//     (dirac/static_colorwords.go ovCw), unstalled.
+//     (dirac/static_colorwords.go ovCw), unstalled. Ardenvale Paladin
+//     (K:etbCounter Adamant$ White) casts: its gate reads the composed colour
+//     (kw_evoke.go exAdamant), Sunken City (a Continuous static's Affected$
+//     Creature.Blue) sits in play: its filter reads its own rewritten face,
+//     and Jodah's Avenger (a KWChoice$ "Protection from red" term) activates:
+//     the grant reads the resolving entry's colour-word colour
+//     (dirac/static_colorwords.go cwProtGrant), unstalled.
 
 const colorWordsPool = "colorwords"
 
@@ -46,12 +52,15 @@ var colorWordsNoOpDecks = [2][]cardset.Entry{
 
 var colorWordsReadDecks = [2][]cardset.Entry{
 	{
-		{Name: "Swirl the Mists", Count: 8}, {Name: "Doom Blade", Count: 6}, {Name: "Raging Ravine", Count: 8},
-		{Name: "Island", Count: 4}, {Name: "Swamp", Count: 4}, {Name: "Forest", Count: 5}, {Name: "Mountain", Count: 5},
+		{Name: "Swirl the Mists", Count: 7}, {Name: "Doom Blade", Count: 5}, {Name: "Raging Ravine", Count: 6},
+		{Name: "Ardenvale Paladin", Count: 4}, {Name: "Sunken City", Count: 4},
+		{Name: "Island", Count: 3}, {Name: "Swamp", Count: 2}, {Name: "Forest", Count: 2},
+		{Name: "Mountain", Count: 2}, {Name: "Plains", Count: 5},
 	},
 	{
-		{Name: "Northern Paladin", Count: 8}, {Name: "Doom Blade", Count: 6}, {Name: "Hill Giant", Count: 4},
-		{Name: "Plains", Count: 12}, {Name: "Swamp", Count: 10},
+		{Name: "Northern Paladin", Count: 7}, {Name: "Doom Blade", Count: 5}, {Name: "Jodah's Avenger", Count: 4},
+		{Name: "Hill Giant", Count: 5},
+		{Name: "Plains", Count: 8}, {Name: "Swamp", Count: 4}, {Name: "Island", Count: 7},
 	},
 }
 
@@ -123,9 +132,9 @@ func TestColorWordsLockstepNoOp(t *testing.T) {
 }
 
 // colorWordsActivatePolicy casts and plays lands when offered, else
-// activates an ability (the read decks' only one is the Ravine's Animate),
-// else random: the game reaches the Ravine's animation without starving its
-// casts.
+// activates an ability (the read decks' ones are the Ravine's Animate and
+// Jodah's Avenger's choice pump), else random: the game reaches an
+// activation without starving its casts.
 func colorWordsActivatePolicy(seed uint64) Policy {
 	rnd := castFirstPolicy(seed)
 	return PolicyFunc(func(c *PickCtx) Canon {
@@ -158,6 +167,57 @@ func canonOf(c *PickCtx, kinds ...canon.CanonKind) []Canon {
 	return buf
 }
 
+// colorWordsChoiceDecks is the Jodah's Avenger pair: Swirl the Mists in play,
+// the choice pump's activations few enough to resolve (a priority-spammed
+// activation stalls the kernel's action budget before any resolves).
+var colorWordsChoiceDecks = [2][]cardset.Entry{
+	{
+		{Name: "Swirl the Mists", Count: 8}, {Name: "Grizzly Bears", Count: 6},
+		{Name: "Island", Count: 14}, {Name: "Mountain", Count: 6}, {Name: "Plains", Count: 6},
+	},
+	{
+		{Name: "Jodah's Avenger", Count: 10}, {Name: "Hill Giant", Count: 4},
+		{Name: "Island", Count: 20}, {Name: "Swamp", Count: 6},
+	},
+}
+
+// colorWordsChoicePolicy casts and plays lands when offered, takes the first
+// six activations, answers the pump's KWChoice$ branch ask (a mode ask) with
+// "protection from ..." (Jodah's Avenger's second term, mode index 1) and
+// offers no activation otherwise: the game resolves its few activations, so
+// the grant reads the resolving entry's colour-word colour (cwProtGrant).
+func colorWordsChoicePolicy(seed uint64) Policy {
+	rnd := castFirstPolicy(seed)
+	picked := 0
+	return PolicyFunc(func(c *PickCtx) Canon {
+		for _, a := range c.D.Options {
+			if a.Kind() == ActMode && a.Mode() == 1 {
+				return a
+			}
+		}
+		if picked < 6 {
+			for _, a := range c.D.Options {
+				if a.Kind() == ActActivate {
+					picked++
+					return a
+				}
+			}
+		}
+		d := *c.D
+		keep := make([]Canon, 0, len(d.Options))
+		for _, a := range d.Options {
+			if a.Kind() != ActActivate {
+				keep = append(keep, a)
+			}
+		}
+		if len(keep) == 0 {
+			return rnd.Pick(c)
+		}
+		d.Options = keep
+		return rnd.Pick(&PickCtx{D: &d, G: c.G, Seq: c.Seq})
+	})
+}
+
 func TestColorWordsLockstepReadsAgree(t *testing.T) {
 	t.Parallel()
 	before := dirac.ColorWordsStats.Stalls.Load() + dirac.ColorWordsStats.Casts.Load()
@@ -186,13 +246,37 @@ func TestColorWordsLockstepReadsAgree(t *testing.T) {
 		acts += na
 		mu.Unlock()
 	})
+	// The Jodah's Avenger pair: the choice pump's activations resolve, so the
+	// grant's rewrite is exercised over the same pool.
+	protBefore := dirac.ColorWordsStats.ProtGrants.Load()
+	jplayed := 0
+	seedChunks(t, 1, 40, lockstepChunk, func(t *testing.T, lo, hi uint64, _ *sync.Mutex) {
+		n := 0
+		colorWordsPlayPol(t, colorWordsChoiceDecks, lo, hi, colorWordsChoicePolicy, func(seed uint64, res *Result) {
+			if err := unmodelledStallError(t.Name(), res); err != nil {
+				t.Errorf("choice seed %d: %v", seed, err)
+			}
+			if d := res.Div; d != nil {
+				t.Errorf("choice seed %d: diverged at decision %d: %s %s %v %s\nref %v\nker %v", seed, d.At, d.What, d.Field, d.Diff, d.Detail, d.RefOptions, d.KerOptions)
+				return
+			}
+			n++
+		})
+		mu.Lock()
+		jplayed += n
+		mu.Unlock()
+	})
 	if t.Failed() {
 		return
 	}
+	played += jplayed
 	stalls := dirac.ColorWordsStats.Stalls.Load() + dirac.ColorWordsStats.Casts.Load() - before
 	reads := dirac.ColorWordsStats.Reads.Load()
 	installs := dirac.ColorWordsStats.Installs.Load() - beforeInst
-	t.Logf("%d seeds agree unstalled over the rewritten faces; %d Ravine activations, %d frozen-colour record installs, %d rewritten mask reads, %d stalls", played, acts, installs, reads, stalls)
+	adamants := dirac.ColorWordsStats.Adamants.Load()
+	protGrants := dirac.ColorWordsStats.ProtGrants.Load() - protBefore
+	filters := dirac.ColorWordsStats.Filters.Load()
+	t.Logf("%d seeds agree unstalled over the rewritten faces; %d Ravine activations, %d frozen-colour record installs, %d rewritten mask reads, %d Adamant gate reads, %d rewritten protection grants, %d source-face filter reads, %d stalls", played, acts, installs, reads, adamants, protGrants, filters, stalls)
 	if stalls != 0 {
 		t.Errorf("%d unmodelled stalls: a deck card reads a rewritten colour word on a surface the model does not rewrite", stalls)
 	}
@@ -201,5 +285,14 @@ func TestColorWordsLockstepReadsAgree(t *testing.T) {
 	}
 	if acts == 0 || installs == 0 {
 		t.Fatal("no Ravine activation under a live colour-word colour: the decks never reach the frozen colour-word colour of an Animate Colors$")
+	}
+	if adamants == 0 {
+		t.Fatal("no Count$Adamant_<n>.<colour> gate read the composed colour: the decks never reach the Ardenvale Paladin surface")
+	}
+	if protGrants == 0 {
+		t.Fatal("no KWChoice$ protection grant read the resolving entry's colour-word colour: the decks never reach the Jodah's Avenger surface")
+	}
+	if filters == 0 {
+		t.Fatal("no source-slot filter read a rewritten face: the decks never reach the Sunken City surface")
 	}
 }

@@ -1,0 +1,10 @@
+# ImmediateTrigger OptionalDecider$ You, the optional reflexive trigger
+# (Dream Eater: "When you do, you may return target nonland permanent an
+# opponent controls"; kgen immediateTrigger, kernel resolve.go raOptional),
+# a blue deck against green creatures, for the oracle's constructed lockstep
+# (dirac/oracle/setsparams3_lowers_test.go)
+Dream Eater
+Wind Drake
+Island
+Grizzly Bears
+Forest

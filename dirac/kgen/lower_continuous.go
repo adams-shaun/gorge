@@ -139,6 +139,17 @@ func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
 		return nil, err
 	}
 	st.F = f
+	if v, ok := sp.get("LethalDamageByPower"); ok {
+		// Zilortha, Strength Incarnate: lethal damage to the affected
+		// creatures is judged by power (gorge LethalDamageThreshold;
+		// kop.StatLethalByPower). Any effect param beside it stays unread
+		// and refuses.
+		if strings.TrimSpace(v) != "True" {
+			return nil, refuse("LethalDamageByPower %q", v)
+		}
+		st.Kind = "LethalByPower"
+		return nil, nil
+	}
 	if gc, ok := sp.get("GainControl"); ok {
 		// layer 2 (CR 613.1b): "You control enchanted creature";
 		// the kernel settles it on the source's attached object, so the
@@ -308,7 +319,7 @@ func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
 		if err != nil {
 			return nil, err
 		}
-		rest, st.Evasion, st.Infect = splitStaticKwMarks(rest) // lower_kwmark.go
+		rest, st.Evasion, st.Infect, st.Toxic = splitStaticKwMarks(rest) // lower_kwmark.go
 		if rest, err = lc.staticBandingGrant(sp, st, rest); err != nil {
 			return nil, err // lower_banding.go
 		}

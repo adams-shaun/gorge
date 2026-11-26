@@ -333,7 +333,7 @@ var copyPermanentKnownKeys = [...]string{
 	"WithCountersType",
 	"WithDifferentNames",
 	"WithoutManaCost",
-	"XColor", "XMax",
+	"XAnnounceTitle", "XColor", "XMax",
 	"XMin",
 }
 

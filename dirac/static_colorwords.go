@@ -39,8 +39,15 @@ import (
 // Stalls those that stalled on a card reading another colour word on a
 // surface the model does not rewrite, Casts the spells whose cast stalled,
 // Reads the mask reads the model rewrote, Installs the word-list Animate
-// Colors$ applications that read a frozen colour-word colour (ovCwRow).
-var ColorWordsStats struct{ Live, Stalls, Casts, Reads, Installs atomic.Int64 }
+// Colors$ applications that read a frozen colour-word colour (ovCwRow),
+// Adamants the Count$Adamant_<n>.<colour> gate reads whose colour followed
+// the composed one (exAdamant), ProtGrants the granted protection-from-colour
+// keyword grants whose colour followed the resolving entry's colour-word
+// colour (cwProtGrant), Filters the source-slot filter reads the model
+// rewrote on the source's face (a Continuous static's Affected$).
+var ColorWordsStats struct {
+	Live, Stalls, Casts, Reads, Installs, Adamants, ProtGrants, Filters atomic.Int64
+}
 
 // colorWordsBites is the colour words (CardDef.TextWords bits 0..4) the live
 // StatColorWords sources rewrite: every word but a source's chosen one, over
@@ -320,6 +327,107 @@ func (s *State) matchCardAtTgt(k *prep, f kop.FilterID, c CardID, owner, ctrl ui
 		}
 	}
 	return s.matchCardAt(k, f, c, owner, ctrl, o)
+}
+
+// cwAdamantCol is the colour index a Count$Adamant_<n>.<colour> read uses: the
+// printed index, rewritten to the composed colour-word colour when the source
+// face reads one. gorge evaluates the gate from the spell's or the entering
+// source's face as it resolves (the Adamant$ parameter the spell's CR 612.5
+// rewrite reaches), so the read is live wherever the spend is nonzero: a
+// spell's own chain and an ETB replacement's CheckSVar$ read the spell on the
+// stack, a self-ETB trigger's queue-time bind the entering source, a live body
+// gate the source on the battlefield; the resolution recheck reads the bound
+// count and no colour.
+//
+//go:noinline
+func (s *State) cwAdamantCol(k *prep, src Obj, ci uint8) uint8 {
+	if !k.anyColorWords || ci >= 5 || src == NoObj || !s.cwAffected(src) {
+		return ci
+	}
+	aff := kop.ColorMask(k.t.Cards[s.cwFace(k, src)].TextWords & 0x1f)
+	if aff&(1<<ci) == 0 {
+		return ci
+	}
+	to, _ := s.cwTo(k)
+	if to >= 5 {
+		return ci
+	}
+	ColorWordsStats.Adamants.Add(1)
+	return to
+}
+
+// cwGrantCol is the colour a grant the resolving entry makes reads: an
+// ability's frozen colour-word colour (cwFrozen; gorge builds an ability from
+// its source's face as it is put on the stack, CR 112.7a/608.2h, so its
+// choice list and its grants read that colour), a spell's the live one (a
+// spell on the stack carries the live substitutions, CR 612.5), no entry the
+// live one too. 255 with no colour to read.
+func (s *State) cwGrantCol(k *prep) uint8 {
+	if e := s.curEntry(); e != nil && e.kind != seSpell {
+		return s.cwFrozen(k)
+	}
+	to, _ := s.cwTo(k)
+	return to
+}
+
+// cwProtGrant is the colour-word rewrite of a granted
+// protection-from-a-colour keyword grant (OpGrantKeyword's KwProtBlack /
+// KwProtRed bits, a Pump KWChoice$'s "Protection from <colour>" term): the
+// printed colour bit is replaced by the resolving entry's colour-word colour
+// (cwGrantCol) when the granting card's face names the printed word
+// (CardDef.TextWords). The grant is gorge's frozen grant text -- the derive
+// walk substitutes colour words into the text box alone (chars/derive.go), so
+// a granted keyword's colour never moves after the grant -- so the colour is
+// fixed here: black and red keep keyword bits, white, blue and green become
+// the arena marks colProtMark reads (the same marks a chosen-colour
+// protection grant sets). The second result carries the colours to mark; the
+// first the bits to grant.
+func (s *State) cwProtGrant(k *prep, c CardID, m kop.KwMask) (kop.KwMask, kop.ColorMask) {
+	prot := m & protColKw
+	if !k.anyColorWords || prot == 0 || c == 0 {
+		return m, 0
+	}
+	aff := kop.ColorMask(k.t.Cards[c].TextWords & 0x1f)
+	if aff == 0 {
+		return m, 0
+	}
+	to := s.cwGrantCol(k)
+	if to >= 5 {
+		return m, 0
+	}
+	col := kop.ColorMask(1) << to
+	var marks kop.ColorMask
+	var rest kop.KwMask
+	if prot&kop.KwProtBlack != 0 {
+		if aff&kop.ColB != 0 && col != kop.ColB {
+			marks |= col
+		} else {
+			rest |= kop.KwProtBlack
+		}
+	}
+	if prot&kop.KwProtRed != 0 {
+		if aff&kop.ColR != 0 && col != kop.ColR {
+			marks |= col
+		} else {
+			rest |= kop.KwProtRed
+		}
+	}
+	if marks == 0 {
+		return m, 0
+	}
+	ColorWordsStats.ProtGrants.Add(1)
+	return m&^protColKw | rest, marks
+}
+
+// colProtMarkAll marks the permanent at sl with protection from the colours
+// in m (cwProtGrant's marks), the marks a chosen-colour grant sets
+// (static_colourprot.go colProtMark).
+func (s *State) colProtMarkAll(k *prep, sl Slot, m kop.ColorMask) {
+	for c := mech(0); c < 5; c++ {
+		if m&(kop.ColW<<c) != 0 {
+			s.colProtMark(k, sl, c)
+		}
+	}
 }
 
 // colorWordsStall stalls the game when a permanent or a spell on the stack
