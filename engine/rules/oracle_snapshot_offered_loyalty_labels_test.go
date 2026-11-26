@@ -30,6 +30,13 @@ func TestOracleSnapshotOfferedLoyaltyLabelsCarryTheCostAndWholeText(t *testing.T
 	if err != nil {
 		t.Fatal(err)
 	}
+	// The find's steps replay cleanly: the labels the snapshot spells are
+	// presentation-only, so the scenario's own activate step -- whose
+	// `ability` text matches the decision options' label, unchanged here --
+	// still selects the same ability.
+	if len(res.Fails) != 0 {
+		t.Fatalf("the scenario's steps must still replay: %v", res.Fails)
+	}
 	if len(res.Snapshots) == 0 || res.Snapshots[0].Checkpoint != "setup" {
 		t.Fatalf("precondition: snapshots = %+v", res.Snapshots)
 	}
