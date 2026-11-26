@@ -21,7 +21,7 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 //     outlives the loss, CR 613.7) or past the count's seven stalls
 //     (StallToxicGrant): a declared limit, never a dropped grant.
 //
-// All behind genPrep.anyToxicGrant. DebugNoGrantedToxic (the mutation switch)
+// All behind genPrep.anyInfectGrant (set by prepInfect for a table that grants toxic). DebugNoGrantedToxic (the mutation switch)
 // makes the read ignore every grant.
 
 const (

@@ -29,8 +29,8 @@ func TestGrantedToxicReads(t *testing.T) {
 	permOv := len(tbl.Overrides)
 	tbl.Overrides = append(tbl.Overrides, kop.Override{Toxic: 9}, kop.Override{LoseAbilities: true}, kop.Override{Toxic: 3})
 	sc := newScenTable(t, tbl, Config{NoElide: true})
-	if !sc.k.gen.anyToxicGrant || !sc.k.gen.anyInfect {
-		t.Fatalf("anyToxicGrant %v anyInfect %v, want both", sc.k.gen.anyToxicGrant, sc.k.gen.anyInfect)
+	if !sc.k.gen.anyInfectGrant || !sc.k.gen.anyInfect {
+		t.Fatalf("anyInfectGrant %v anyInfect %v, want both", sc.k.gen.anyInfectGrant, sc.k.gen.anyInfect)
 	}
 	a := sc.slot(sc.perm(n, 0))
 	tox := func(sl Slot) int { return sc.s.toxicAt(sc.k, sl) }
