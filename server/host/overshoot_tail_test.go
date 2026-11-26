@@ -147,7 +147,7 @@ func parkedOvershootMatch(t *testing.T, dir string) (*Registry, *table, *match, 
 		select {
 		case <-gates[0].reached:
 		case <-gates[1].reached:
-		case <-time.After(30 * time.Second):
+		case <-time.After(testutil.WaitBudget):
 			t.Fatal("the gated match never reached the overshoot burst")
 		}
 		tb.mu.RLock()
@@ -162,7 +162,7 @@ func parkedOvershootMatch(t *testing.T, dir string) (*Registry, *table, *match, 
 		select {
 		case gates[0].release <- struct{}{}:
 		case gates[1].release <- struct{}{}:
-		case <-time.After(30 * time.Second):
+		case <-time.After(testutil.WaitBudget):
 			t.Fatal("the gated match never accepted a release")
 		}
 	}

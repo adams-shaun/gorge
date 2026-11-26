@@ -170,9 +170,21 @@ func replayRawRepro(t *testing.T, name string) Result {
 	if err != nil {
 		t.Fatal(err)
 	}
-	m, err := r.Matchup(synthReg(t))
+	res, _, err := replayOnOwnCards(t, r)
 	if err != nil {
 		t.Fatal(err)
+	}
+	return res
+}
+
+// replayOnOwnCards replays r by its script on a raw table of its own decks' cards, the table a
+// recorded proof is judged on (the pool table a search played on is another). It returns the
+// result and the rebuilt matchup.
+func replayOnOwnCards(t *testing.T, r *Repro) (Result, *Matchup, error) {
+	t.Helper()
+	m, err := r.Matchup(synthReg(t))
+	if err != nil {
+		return Result{}, nil, err
 	}
 	set := cardset.Raw(printedDelveSet(t, r.Cards))
 	entries := func(names []string) []cardset.Entry {
@@ -184,16 +196,16 @@ func replayRawRepro(t *testing.T, name string) Result {
 	}
 	tbl, _, _, err := set.Matchup(entries(r.Cards[0]), entries(r.Cards[1]))
 	if err != nil {
-		t.Fatal(err)
+		return Result{}, nil, err
 	}
 	rc := r.RunConfig()
 	rc.MaxDecisions = len(r.Actions) + 200
 	k, err := SetSide(set, tbl, rc.Config)(m, r.Seed)
 	if err != nil {
-		t.Fatal(err)
+		return Result{}, nil, err
 	}
 	defer CloseSide(k)
-	return Lockstep(m, r.Seed, k, &ScriptPolicy{Actions: r.Actions}, rc)
+	return Lockstep(m, r.Seed, k, &ScriptPolicy{Actions: r.Actions}, rc), m, nil
 }
 
 // TestUnrefusalNeedsProof: a card that had a dirac/support/refused entry at the merge base with

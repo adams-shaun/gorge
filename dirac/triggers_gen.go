@@ -406,7 +406,7 @@ func (s *State) objTrigGen(k *prep, ev kop.TrigEvent, l trigListener, a *kop.Abi
 				if s.stateTrigOutstanding(l.obj, l.ab) {
 					return
 				}
-			} else if (a.Gate.Ctr != 0 || a.Gate.N != 0) && !s.crossingOK(l.sl, a, int(amt)) {
+			} else if (a.Gate.Ctr != 0 || a.Gate.N != 0) && !s.crossingOK(k, l.sl, a, int(amt)) {
 				return // a Saga chapter / "Nth counter" line triggers only when its number is reached
 			}
 		}
@@ -619,6 +619,9 @@ func (s *State) firePhaseGen(k *prep, st kop.Step) {
 					a := &cd.Abilities[j]
 					if a.Kind != kop.AbTriggered || a.Trig.Zone != kop.ZoneGraveyard || a.Trig.Event != kop.TrigPhase || a.Trig.Step != st {
 						continue
+					}
+					if s.gravePrintedHidden(k, o) {
+						continue // the card lost all abilities in the graveyard (static_graveabilityloss.go)
 					}
 					l := trigListener{obj: o, sl: NoSlot, ctrl: pp, card: c, ab: uint8(j)}
 					if !whoseOK(a.Trig.Whose, pp, s.active) || !s.trigOK(k, l, a) {

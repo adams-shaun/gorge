@@ -36,13 +36,11 @@ func main() {
 	}
 	if len(lowered) > 0 {
 		fmt.Fprint(os.Stderr, codeshape.LoweringReport(lowered))
-		fmt.Fprintln(os.Stderr, "A ratchet is lowered on main after merge, so a lowering branch cannot race a branch that grows the same function. Drop the lowering from this pull request. (A function deleted with its ceiling row: leave the row; the daily job, CODESHAPE_LOWER=1 go test -run '^TestFuncCeilingsLowerOnly$' ./internal/codeshape, drops a stale one. It lowers only func_ceilings.tsv: a ratchet_test.go constant is lowered by a follow-up change after the merge.)")
+		fmt.Fprintln(os.Stderr, "A ratchet is lowered on main after merge, so a lowering branch cannot race a branch that grows the same measurement. Drop the lowering from this pull request. (A ratchet_test.go constant is lowered by a follow-up change after the merge.)")
 		os.Exit(1)
 	}
 	fmt.Printf("checkratchet: no ratchet lowered from %s\n", mb[:12])
 }
-
-const ceilingsPath = "internal/codeshape/testdata/func_ceilings.tsv"
 
 // check compares head's tree with its merge base with base and returns what it lowers, with the
 // merge base's sha. It reads both trees from git, never the working tree: the checkout in a
@@ -77,9 +75,14 @@ func check(dir, base, head string) (lowered []string, mb string, err error) {
 		path string
 		run  func(base, head []byte) ([]string, error)
 	}
-	files := []file{{path: ceilingsPath, run: codeshape.LoweredCeilings}}
+	var files []file
 	for _, name := range names {
-		if strings.HasSuffix(name, "ratchet_test.go") {
+		// internal/codeshape's count ratchets became the base-relative
+		// count growth rule (cmd/countgrowth): their ratchet tests and
+		// constants are gone, so there is nothing there left to lower and
+		// their removal is not a lowering. The other packages' ratchet
+		// tables are still guarded.
+		if strings.HasSuffix(name, "ratchet_test.go") && !strings.HasPrefix(name, "internal/codeshape/") {
 			files = append(files, file{path: name, run: codeshape.LoweredConstants})
 		}
 	}

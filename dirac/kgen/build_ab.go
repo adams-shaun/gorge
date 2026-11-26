@@ -2,7 +2,6 @@ package kgen
 
 import (
 	"fmt"
-	"slices"
 	"strings"
 
 	"github.com/adams-shaun/gorge/dirac/kop"
@@ -151,6 +150,7 @@ func (cb *cardBuilder) abilities() error {
 			}
 		}
 	}
+	cb.cyclingTwins() // build_cyclingalt.go: a pool with a cycling alternative cost
 	return nil
 }
 
@@ -2026,106 +2026,22 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		return ka, nil, err
 	}
 	st.OvGate = s.OvGate
-	filter := func(f *lFilter, zone kop.Zone) (kop.FilterID, error) {
-		if f == nil {
-			return 0, nil
-		}
-		return cb.filter(f, zone)
-	}
-	amounts := func(a, b lValue) error {
-		if (a.Kind == vNone || a.isConst()) && (b.Kind == vNone || b.isConst()) {
-			st.A, st.B = int16(a.N), int16(b.N)
-			return nil
-		}
-		st.StFlags |= kop.StDynamic
-		if st.VA, err = cb.value(a); err != nil {
-			return err
-		}
-		st.VB, err = cb.value(b)
-		return err
-	}
+	// the prologue's closures are methods now (staticFilter, staticAmounts,
+	// staticTargets2 below), so the registered build arms (static_reg.go)
+	// and this switch share them
+	filter := cb.staticFilter
+	amounts := func(a, b lValue) error { return cb.staticAmounts(st, a, b) }
 	// targets2 lowers a cost static's ValidTarget$ spec (ReduceCost, RaiseCost)
 	// into Filter2 under StTargetsFilter2
-	targets2 := func() error {
-		if s.F2 == nil {
-			return nil
-		}
-		st.StFlags |= kop.StTargetsFilter2
-		// a Spell head (Out of Air's Spell.Creature) targets a spell:
-		// the whole filter reads the stack (costTargetOK's stack
-		// branch); a filter mixing it with a permanent head refuses
-		zone, spells := kop.ZoneBattlefield, 0
-		for _, c := range s.F2.Clauses {
-			if c.SpellBase {
-				spells++
-			}
-		}
-		switch {
-		case spells == 0:
-		case spells == len(s.F2.Clauses) && s.F2.Players == 0:
-			zone = kop.ZoneStack
-		default:
-			return refuse("ReduceCost ValidTarget$ mixes a Spell head with another")
-		}
-		st.Filter2, err = filter(s.F2, zone)
-		return err
-	}
+	targets2 := func() error { return cb.staticTargets2(st, s.F2) }
 	var add []uint8
+	// a registered build arm lowers through staticBuilds (static_reg.go);
+	// the arms still in the switch below fall through to it
+	if f, ok := staticBuilds[s.Kind]; ok {
+		add, err = f(cb, s, st)
+		return ka, add, err
+	}
 	switch s.Kind {
-	case "FlipCoinMod":
-		st.Kind = kop.StatFlipCoinMod // static_turnbits.go
-	case "ActivationLimit":
-		st.Kind = kop.StatActivationLimit // static_turnbits.go
-	case "Continuous":
-		zone := continuousKind(st, s.Flags, s.Zone) // lower_offzone.go
-		if s.F != nil && s.F.Players != 0 {
-			// "You and <objects> you control have hexproof" (Captain America,
-			// Shalai, Sigarda): the controller half rides StYouHexproof (the
-			// kernel's playerHexproof reads it under Cond2). Any other
-			// player half was dropped by filter() before shield: refused.
-			if s.F.Players != plYou || len(s.Kw) != 1 || s.Kw[0] != "Hexproof" || s.Power.Kind != vNone || s.Tough.Kind != vNone ||
-				len(s.Grant) != 0 || len(s.AddSub) != 0 || s.AddChosen {
-				return ka, nil, fmt.Errorf("continuous static affecting players %d (only \"you have hexproof\" is read)", s.F.Players)
-			}
-			st.StFlags |= kop.StYouHexproof
-		}
-		st.StFlags |= gyContStFlag(s.Flags)
-		if st.Filter, err = filter(s.F, zone); err != nil {
-			return ka, nil, err
-		}
-		if err := amounts(s.Power, s.Tough); err != nil {
-			return ka, nil, err
-		}
-		if err := continuousStFlags(s, st); err != nil {
-			return ka, nil, err
-		}
-		if st.Kw, err = kwMask(s.Kw); err != nil {
-			return ka, nil, err
-		}
-		st.Ward = uint8(s.Ward)
-		st.WardLife = uint8(s.WardLife)
-		if add, err = cb.subIndexes(s.AddSub); err != nil {
-			return ka, nil, err
-		}
-		st.AddChosen = s.AddChosen
-		st.OutlivesLoss = s.OutlivesLoss
-		if err := cb.staticGrant(st, s); err != nil {
-			return ka, nil, err
-		}
-		if st.ProtFrom, err = filter(s.ProtFrom, kop.ZoneBattlefield); err != nil {
-			return ka, nil, err
-		}
-		st.ProtChosen = s.ProtChosen
-		if st.ProtExc, err = filter(s.ProtExc, kop.ZoneBattlefield); err != nil {
-			return ka, nil, err
-		}
-		if st.Landwalk, st.GainsOf, err = continuousFilterPair(filter, &s, st); err != nil {
-			return ka, nil, err
-		}
-		st.Evasion, st.Infect = s.Evasion, s.Infect // lower_kwmark.go
-		if err := cb.staticOverride(st, s); err != nil {
-			return ka, nil, err
-		}
 	case "CDAPT":
 		st.Kind = kop.StatCDAPT
 		st.StFlags |= kop.StDynamic
@@ -2134,59 +2050,6 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		}
 		if st.VB, err = cb.value(s.Tough); err != nil {
 			return ka, nil, err
-		}
-	case "ReduceCost":
-		if s.AbilityRed != 0 {
-			// activated abilities of battlefield permanents (lower_reduceab.go)
-			st.Kind = kop.StatReduceAbility
-			fz := kop.ZoneBattlefield
-			if s.Zone == zGraveyard {
-				st.Zone, fz = kop.ZoneGraveyard, kop.ZoneGraveyard // lower_reduceab.go: a graveyard card's own activation
-			}
-			if st.Filter, err = filter(s.F, fz); err != nil {
-				return ka, nil, err
-			}
-			if err := amounts(s.Amount, lValue{}); err != nil {
-				return ka, nil, err
-			}
-			rb, rf := reduceAbBits(s)
-			st.B, st.StFlags = st.B|rb, st.StFlags|rf
-			if s.F2 != nil {
-				if err := targets2(); err != nil { // a target-gated reduction (the equip's Card.Self; Bladegraft's ability target)
-					return ka, nil, err
-				}
-			}
-			break
-		}
-		st.Kind = kop.StatReduceCost
-		if st.Filter, err = filter(s.F, kop.ZoneStack); err != nil {
-			return ka, nil, err
-		}
-		if err := amounts(s.Amount, lValue{}); err != nil {
-			return ka, nil, err
-		}
-		if err := targets2(); err != nil {
-			return ka, nil, err
-		}
-		if s.Zone == zAny {
-			st.Zone = kop.ZoneCommand
-		}
-		for _, fl := range s.Flags {
-			switch fl {
-			case "Bargained", "OptPaid":
-				st.StFlags |= kop.StBargained // lower_reducespell.go, lower_optcost.go
-			case "ReduceColor":
-				st.StFlags |= kop.StReduceColor
-				st.B = int16(s.RedCol)
-			case "AnyCaster":
-				st.StFlags |= kop.StReduceAny
-			case "EmbNum":
-				// the amount is the emblem's frozen
-				// SetChosenNumber$, read by adjustCostGen from embN
-				st.StFlags |= kop.StEmbNum
-			default:
-				return ka, nil, fmt.Errorf("reduce cost flag %q", fl)
-			}
 		}
 	case "CantBeBeamedUp":
 		st.Kind = kop.StatCantBeBeamedUp
@@ -2215,47 +2078,6 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 				return ka, nil, err
 			}
 		}
-	case "TapPower":
-		// a Mode$ TapPowerValue static: Filter is ValidCard$, AddSub the
-		// host subtype its ValidSA$ qualifier names, A the literal bonus or
-		// TapPowToughness, and VA the tapped creature's own value under
-		// StDynamic (kop.StatTapPower; kernel value_tappower.go)
-		st.Kind = kop.StatTapPower
-		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
-			return ka, nil, err
-		}
-		if s.F2 != nil {
-			if st.Filter2, err = filter(s.F2, kop.ZoneBattlefield); err != nil {
-				return ka, nil, err
-			}
-		}
-		for _, fl := range s.Flags {
-			switch fl {
-			case "Crew":
-				st.StFlags |= kop.StTapPowerCrew
-			case "Saddle":
-				st.StFlags |= kop.StTapPowerSaddle
-			case "Station":
-				st.StFlags |= kop.StTapPowerStation
-			case "Toughness":
-				st.StFlags |= kop.StTapPowerTough
-			default:
-				return ka, nil, fmt.Errorf("tap power flag %q", fl)
-			}
-		}
-		if s.Amount.Kind != vNone {
-			if s.Amount.isConst() {
-				st.A = int16(s.Amount.N)
-			} else {
-				st.StFlags |= kop.StDynamic
-				if st.VA, err = cb.value(s.Amount); err != nil {
-					return ka, nil, err
-				}
-			}
-		}
-		if s.Amount.Kind != vNone && st.StFlags&kop.StTapPowerTough != 0 {
-			return ka, nil, fmt.Errorf("tap power static with both a value and Toughness")
-		}
 	case "WarpGrant":
 		st.Kind = kop.StatWarpGrant // kw_warpgrant.go
 		if st.Filter, err = filter(s.F, kop.ZoneHand); err != nil {
@@ -2266,6 +2088,10 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		}
 	case "ColorWords":
 		st.Kind = kop.StatColorWords // static_colorwords.go: no filter, no zone; the stall rule reads the live sources
+	case "GraveNoAbilities":
+		if err = cb.graveNoAbilities(st, s); err != nil { // lower_offzone_abilityloss.go
+			return ka, nil, err
+		}
 	case "MiracleGrant":
 		st.Kind = kop.StatMiracleGrant // kw_miracle.go
 		if st.Filter, err = filter(s.F, kop.ZoneHand); err != nil {
@@ -2320,40 +2146,6 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 				return ka, nil, err
 			}
 			st.StFlags |= kop.StTapDynamic
-		}
-	case "CantBeCast":
-		st.Kind = kop.StatCantBeCast
-		if s.F != nil { // nil: the card's own static (Card.Self | EffectZone$ All)
-			if st.Filter, err = filter(s.F, kop.ZoneStack); err != nil {
-				return ka, nil, err
-			}
-		}
-		if s.Zone == zAny {
-			st.Zone = kop.ZoneCommand
-		} else if s.Zone == zHand {
-			st.Zone = kop.ZoneHand // Origin$ Hand: the origin the cast gate reads (cast_cantself.go)
-		}
-		for _, fl := range s.Flags {
-			switch fl {
-			case "ActivatorYou":
-				st.StFlags |= kop.StRaiseYou
-			case "ActivatorOpp":
-				st.StFlags |= kop.StRaiseOpp
-			case "CasterActive":
-				st.StFlags |= kop.StCasterActive
-			case "NamedCard":
-				st.B |= kop.CantCastNamed
-			case "SorcerySpeed":
-				st.B |= kop.CantCastSorcery
-			default:
-				return ka, nil, fmt.Errorf("cant be cast flag %q", fl)
-			}
-		}
-		if s.Amount.Kind != vNone {
-			if !s.Amount.isConst() {
-				return ka, nil, fmt.Errorf("cant be cast limit %v", s.Amount)
-			}
-			st.A = int16(s.Amount.N)
 		}
 	case "CantPlayLand":
 		if err := cantPlayLandStatic(s, st); err != nil {
@@ -2564,6 +2356,8 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		if st.Filter2, err = filter(s.F2, kop.ZoneStack); err != nil { // an emblem's ForgetOnCast$ (lower_effectemblem.go)
 			return ka, nil, err
 		}
+	case "CyclingAlt":
+		st.Kind = kop.StatCyclingAlt // static_cyclingalt.go: the gate is Cond2, the cost the twin's (build_cyclingalt.go)
 	case "AlternativeCost":
 		st.Kind = kop.StatAlternativeCost
 		if ka.Cost, err = cb.cost(s.Cost); err != nil {
@@ -2589,42 +2383,6 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 			// (prepAltFree); a part the pick stages cannot carry would
 			// never be offered
 			return ka, nil, fmt.Errorf("alternative cost with a non-mana part (the kernel offers mana-only alternatives)")
-		}
-	case "NoMaxHandSize":
-		st.Kind = kop.StatNoMaxHandSize
-		if slices.Contains(s.Flags, "HandDelta") {
-			// CR 402.2: the additive RaiseMaxHandSize$ statics apply on top of
-			// the set maximum, never below zero (gorge maxHandSizeFor): A is
-			// the signed delta, read after the set-maximum walk (kernel
-			// maxHand, static_playerstats.go)
-			if !s.Amount.isConst() || s.Amount.N < -255 || s.Amount.N > 255 {
-				return ka, nil, fmt.Errorf("NoMaxHandSize delta %v", s.Amount)
-			}
-			st.StFlags |= kop.StHandDelta
-			st.A = int16(s.Amount.N)
-		} else {
-			switch {
-			case s.Amount.Kind == vNone: // Unlimited: A 0
-			case s.Amount.isConst() && s.Amount.N >= 0 && s.Amount.N <= 255:
-				st.A = int16(s.Amount.N + 1) // a numeric maximum: A = N+1
-			case len(s.Flags) == 1 && s.Flags[0] == "HandOpp":
-				// the opponents' maximum from an SVar (Winter): VA, read per
-				// cleanup under Cond2 (kernel maxHand)
-				st.StFlags |= kop.StDynamic
-				if st.VA, err = cb.value(s.Amount); err != nil {
-					return ka, nil, err
-				}
-			default:
-				return ka, nil, fmt.Errorf("NoMaxHandSize amount %v", s.Amount)
-			}
-		}
-		for _, fl := range s.Flags {
-			if fl != "HandOpp" && fl != "HandDelta" {
-				return ka, nil, fmt.Errorf("NoMaxHandSize flag %q", fl)
-			}
-			if fl == "HandOpp" {
-				st.StFlags |= kop.StHandOpp
-			}
 		}
 	case "ExtraLandPlay":
 		st.Kind = kop.StatExtraLandPlay
@@ -2661,62 +2419,6 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		st.Kind = kop.StatDefenderAssigns
 	case "PlayerProtAll":
 		st.Kind = kop.StatPlayerProtAll // the controller has protection from everything (static_plprot.go)
-	case "MayPlayFrom":
-		st.Kind = kop.StatMayPlayFrom
-		st.Zone = zoneMap[s.Zone]
-		fz := st.Zone
-		if slices.Contains(s.Flags, "AlsoSideboard") || slices.Contains(s.Flags, "FreeOnly") {
-			fz = kop.ZoneNone // the filter also reads a sideboard card; the static's zones are tested apart (mayPlayFromZone)
-		}
-		if slices.Contains(s.Flags, "FunctionsInGraveyard") && slices.Contains(s.Flags, "FunctionsInExile") {
-			fz = kop.ZoneNone // a two-zone self grant (Squee, the Immortal): the self walk keys on the flags, and one zone in the filter would withhold the other
-		}
-		if st.Filter, err = filter(s.F, fz); err != nil {
-			return ka, nil, err
-		}
-		// the count of "RemoveAnyCounter<N/Any/Creature>" (RaiseCostRemove6...)
-		if err := amounts(s.Amount, lValue{}); err != nil {
-			return ka, nil, err
-		}
-		for _, fl := range s.Flags {
-			switch fl {
-			case "OncePerTurn":
-				st.StFlags |= kop.StOncePerTurn
-			case "AnyManaType":
-				st.StFlags |= kop.StAnyManaType
-			case "WithoutManaCost":
-				st.StFlags |= kop.StWithoutManaCost
-			case "SeatActive":
-				st.StFlags |= kop.StSeatActive
-			case "FunctionsInGraveyard":
-				st.StFlags |= kop.StFunctionsInGraveyard
-			case "FunctionsInExile":
-				st.StFlags |= kop.StFunctionsInExile
-			case "AlsoSideboard":
-				st.StFlags |= kop.StAlsoSideboard
-			case "FreeOnly":
-				st.StFlags |= kop.StFreeOnly
-			case "MayPayLife":
-				st.StFlags |= kop.StMayPayLife
-			case "MayZeroAlt":
-				st.StFlags |= kop.StMayZeroAlt // a non-granting alternative cost (cast_mayzeroalt.go)
-			case "MayPayEnergy":
-				st.StFlags |= kop.StMayPayEnergy // the alternative's energy rides Static.A
-			case "MayPayEvidence":
-				st.StFlags |= kop.StMayPayEvidence // the alternative's evidence rides Static.A
-			case "RaiseCostRemove6CountersFromCreatures":
-				st.StFlags |= kop.StRemove6Counters
-			case "MayRaise":
-				st.StFlags |= kop.StMayRaise
-				j, ok := cb.abMap[s.RaiseAb-1]
-				if !ok {
-					return ka, nil, fmt.Errorf("MayRaise ability %d not emitted", s.RaiseAb-1)
-				}
-				st.B = int16(j + 1)
-			default:
-				return ka, nil, fmt.Errorf("MayPlay flag %s", fl)
-			}
-		}
 	case "Panharmonicon":
 		st.Kind = kop.StatPanharmonicon
 		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
@@ -2740,21 +2442,6 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		if err := cb.stackKwStatic(st, s); err != nil {
 			return ka, nil, err
 		}
-	case "Override":
-		st.Kind = kop.StatOverride
-		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
-			return ka, nil, err
-		}
-		i, err := cb.override(s.Override)
-		if err != nil {
-			return ka, nil, err
-		}
-		st.Override = uint16(i + 1)
-		// the chosen land-type setter's read (Convincing Mirage's AddType$
-		// ChosenType): the static reads its source's perm.chosen
-		// (act_choosetype.go chosenGrant); any other static kind's AddChosen
-		// lowering is the Continuous case's
-		st.AddChosen = s.AddChosen
 	default:
 		k, ok := filterOnlyStatics[s.Kind]
 		if !ok {
@@ -2766,6 +2453,60 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		}
 	}
 	return ka, add, err
+}
+
+// staticFilter is the shared prologue's filter read of (*cardBuilder).static:
+// a nil filter builds nothing (static_reg.go's registered arms and the
+// unregistered switch share it).
+func (cb *cardBuilder) staticFilter(f *lFilter, zone kop.Zone) (kop.FilterID, error) {
+	if f == nil {
+		return 0, nil
+	}
+	return cb.filter(f, zone)
+}
+
+// staticAmounts lowers a static's two numeric operands: two constants (or
+// absences) ride A and B, anything else reads dynamic values under StDynamic.
+func (cb *cardBuilder) staticAmounts(st *kop.Static, a, b lValue) error {
+	if (a.Kind == vNone || a.isConst()) && (b.Kind == vNone || b.isConst()) {
+		st.A, st.B = int16(a.N), int16(b.N)
+		return nil
+	}
+	st.StFlags |= kop.StDynamic
+	var err error
+	if st.VA, err = cb.value(a); err != nil {
+		return err
+	}
+	st.VB, err = cb.value(b)
+	return err
+}
+
+// staticTargets2 lowers a cost static's ValidTarget$ spec (ReduceCost,
+// RaiseCost) into Filter2 under StTargetsFilter2.
+func (cb *cardBuilder) staticTargets2(st *kop.Static, f2 *lFilter) error {
+	if f2 == nil {
+		return nil
+	}
+	st.StFlags |= kop.StTargetsFilter2
+	// a Spell head (Out of Air's Spell.Creature) targets a spell:
+	// the whole filter reads the stack (costTargetOK's stack
+	// branch); a filter mixing it with a permanent head refuses
+	zone, spells := kop.ZoneBattlefield, 0
+	for _, c := range f2.Clauses {
+		if c.SpellBase {
+			spells++
+		}
+	}
+	switch {
+	case spells == 0:
+	case spells == len(f2.Clauses) && f2.Players == 0:
+		zone = kop.ZoneStack
+	default:
+		return refuse("ReduceCost ValidTarget$ mixes a Spell head with another")
+	}
+	fid, err := cb.staticFilter(f2, zone)
+	st.Filter2 = fid
+	return err
 }
 
 // staticGrant records the one ability a Continuous static grants (kept apart from (*cardBuilder).static so
@@ -2993,6 +2734,11 @@ func (cb *cardBuilder) repl(r lRepl) (kop.Ability, error) {
 		if ka.Prog, err = cb.prog(r.Prog); err != nil {
 			return ka, err
 		}
+	case "TurnUpAttach":
+		rp.Kind = kop.ReplTurnUpAttach // lower_turnfaceuprepl.go: the optional attach ask (Gift of Doom)
+		if rp.Filter, err = cb.filter(r.F, kop.ZoneBattlefield); err != nil {
+			return ka, err
+		}
 	case "SpellsCantBeCountered":
 		return cantCounterRepl(ka, r, cb) // lower_uncounterable.go
 	case "CantTurnUp":
@@ -3102,11 +2848,6 @@ func (cb *cardBuilder) replRewrite(r lRepl, rp *kop.Repl) (err error) {
 func (cb *cardBuilder) prog(p []lInstr) ([]kop.Instr, error) {
 	if len(p) == 0 {
 		return nil, nil
-	}
-	if kvDiscoverTailRefused(p) {
-		// The kernel runs a Discover's tail before the free cast; see
-		// value_modifiers.go and kernel-discover-freecast-order.
-		return nil, refuse("Discover free cast with a program tail (the kernel defers the cast past the tail)")
 	}
 	out := make([]kop.Instr, 0, len(p))
 	for i, in := range p {

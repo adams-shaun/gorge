@@ -2,8 +2,7 @@
 
 Three Git repositories with one-way dependencies: the public engine, a public compliance
 repository that checks it, and a private module that builds on it. Read this to decide where a
-change belongs. It covers what each holds, which way imports run, licensing, pinning, and how
-changes reach `main`.
+change belongs and how it reaches `main`.
 
 | | **gorge** | **gorge-compliance** | **private companion** |
 |---|---|---|---|
@@ -61,47 +60,48 @@ Both engines and everything to use them ([layout](../contributing/repo-layout.md
 | `engine/rules`' exported oracle runner (`RunOracleScenarioJSON`, `RunOracleAuditScenarioJSON`, `CheckOracleScenarioJSON`) | gorge-compliance's scenario drivers |
 | `testkit/` (`testutil`, `bench`, `paymirror`) and `cli/` | test fixtures, the head-to-head game runner, command-line plumbing |
 
-Changing a seam is an API change for the companions: [sequence it](#a-change-that-spans-repositories).
+!!! note "A seam is API"
+    Changing a seam is an API change for the companions: [sequence it](#a-change-that-spans-repositories).
 
 ## gorge-compliance
 
-[gorge-compliance](https://github.com/adams-shaun/gorge-compliance) exists to
-give confidence in the rules engine. It checks gorge card by card against
-three independent references and holds the results to coverage targets:
+[gorge-compliance](https://github.com/adams-shaun/gorge-compliance) gives confidence in the rules
+engine: it checks gorge card by card against independent references and holds the results to
+coverage targets.
 
-- **hand-written Oracle-text scenarios**: JSON files written from a card's
-  printed text and the Comprehensive Rules by an author who has not read the
-  card's script (`scenarios/oracle/`);
-- **XMage**, an independent Java engine (MIT): generated scenarios are
-  replayed in both engines and their snapshots diffed;
-- **Forge**, the engine the card scripts come from, adjudicated against the
-  other two;
-- plus XMage's own interaction tests, translated into gorge's scenario schema
-  (`scenarios/xmageport/`).
+| Reference | What it is |
+|---|---|
+| Oracle-text scenarios (`scenarios/oracle/`) | JSON written from a card's printed text and the Comprehensive Rules by an author who has not read the card's script |
+| XMage | an independent Java engine (MIT); generated scenarios are replayed in both engines and their snapshots diffed |
+| Forge | the engine the card scripts come from, adjudicated against the other two |
+| XMage's interaction tests (`scenarios/xmageport/`) | translated into gorge's scenario schema |
 
-It drives gorge only through the exported oracle runner. gorge keeps that
-runner (`engine/rules/oracle_*.go`), its unit tests, and the residual
-scenario files its own card tests load
-(`engine/rules/testdata/oracle/`), played by
-`engine/rules/oracle_contract_test.go` (`TestOracleRunnerContract`) as the
-runner's contract check. A scenario file lives in exactly one of the two
-repositories.
+### How it reaches gorge
 
-gorge does **not** gate on gorge-compliance, but its published figures come
-from there. A nightly job on gorge-compliance's `main` measures every set's
-compliance status at the pinned gorge and force-pushes it as one commit to an
-orphan **`docs-data`** branch: per-set status rows for Level A and Level B,
-and a `meta.json` naming the gorge-compliance commit, the gorge pin,
-`FORGE_REF` and the date. gorge's docs build fetches that branch and renders
-the per-set table on [Card support](../support/sets.md), with that date and
-corpus in its caption; if the branch is missing, the gorge columns say the data
-isn't available. The same nightly
-workflow runs the `drift` check described under [Pinning](#pinning).
+It drives gorge only through the exported oracle runner. gorge keeps that runner
+(`engine/rules/oracle_*.go`), its unit tests, and the residual scenario files its own card tests
+load (`engine/rules/testdata/oracle/`), played by `engine/rules/oracle_contract_test.go`
+(`TestOracleRunnerContract`) as the runner's contract check. A scenario file lives in exactly one
+of the two repositories.
+
+### Where the published figures come from
+
+gorge does **not** gate on gorge-compliance, but its published figures come from there. A nightly
+job on gorge-compliance's `main` measures every set's compliance status at the pinned gorge and
+force-pushes it as one commit to an orphan **`docs-data`** branch:
+
+- per-set status rows for Level A and Level B;
+- a `meta.json` naming the gorge-compliance commit, the gorge pin, `FORGE_REF` and the date.
+
+gorge's docs build fetches that branch and renders the per-set table on
+[Card support](../support/sets.md), with that date and corpus in its caption; if the branch is
+missing, the gorge columns say the data isn't available. The same nightly workflow runs the `drift`
+check described under [Pinning](#pinning).
 
 ## The private companion
 
-The maintainers' private companion module holds machine learning, reinforcement learning and private
-experiments. It imports gorge at a pinned commit, the same way gorge-compliance does
+The maintainers' private companion module holds machine learning, reinforcement learning and
+private experiments. It imports gorge at a pinned commit, the same way gorge-compliance does
 ([Pinning](#pinning)). gorge never imports it, and nothing in gorge needs it to build or test.
 
 ## Dependency direction and what enforces it
@@ -126,23 +126,21 @@ blocked on code its contributors cannot see.
 
 ## Licensing and the Forge card scripts
 
-gorge compiles [Forge](https://github.com/Card-Forge/forge)'s card scripts.
-Those scripts are **GPL-3.0**; gorge is **Apache-2.0**. So gorge ships a
-compiler for the script format and never the scripts themselves:
+gorge compiles [Forge](https://github.com/Card-Forge/forge)'s card scripts. Those scripts are
+**GPL-3.0**; gorge is **Apache-2.0**. So gorge ships a compiler for the script format and never the
+scripts themselves.
 
-- `make fetch-cards` downloads the scripts into `.cards/`, which is
-  gitignored, at the commit pinned by `FORGE_REF` in the
-  [`Makefile`](https://github.com/adams-shaun/gorge/blob/main/Makefile), from
-  gorge's fork [adams-shaun/forge](https://github.com/adams-shaun/forge)
-  (`FORGE_REPO`).
-- [`engine/cards/boundary_test.go`](https://github.com/adams-shaun/gorge/blob/main/engine/cards/boundary_test.go)
-  (`TestNoForgeScriptsTracked`) fails the build if a Forge script is tracked
-  in the working tree, the index or `HEAD`. It recognises a script by its
-  content, not its path.
-- Replay fixtures strip embedded token-script text before they are committed.
-- Tests, docs and coverage tables name cards; they never contain script text.
-- A script that disagrees with the printed card is fixed on the fork and offered
-  upstream, never patched inside gorge.
+!!! warning "Never commit a Forge card script"
+    [`engine/cards/boundary_test.go`](https://github.com/adams-shaun/gorge/blob/main/engine/cards/boundary_test.go)
+    (`TestNoForgeScriptsTracked`) fails the build if a Forge script is tracked in the working tree,
+    the index or `HEAD`. It recognises a script by its content, not its path.
+
+| Rule | How |
+|---|---|
+| Scripts are fetched, not shipped | `make fetch-cards` downloads them into the gitignored `.cards/`, at the commit pinned by `FORGE_REF` in the [`Makefile`](https://github.com/adams-shaun/gorge/blob/main/Makefile), from gorge's fork [adams-shaun/forge](https://github.com/adams-shaun/forge) (`FORGE_REPO`) |
+| Fixtures carry no script text | replay fixtures strip embedded token-script text before they are committed |
+| Tests, docs and tables name cards only | they never contain script text |
+| A wrong script is fixed upstream | a script that disagrees with the printed card is fixed on the fork and offered upstream, never patched inside gorge |
 
 gorge-compliance follows the same rule with its own guard and reaches the corpus through a
 gitignored link to a gorge checkout's `.cards/`. Its `NOTICE` credits XMage (MIT);
@@ -151,32 +149,30 @@ data source.
 
 ## Pinning
 
-Both companions build against **one gorge commit**, expressed twice:
+Both companions build against **one gorge commit**, written twice:
 
-- a `GORGE_PIN` file at the repository root holding the full SHA, and
-- a `require github.com/adams-shaun/gorge <pseudo-version>` line in `go.mod`
-  naming the same commit, so `go build` fetches exactly that code from the
-  module proxy.
+| Where | What |
+|---|---|
+| `GORGE_PIN` at the repository root | the full SHA |
+| `go.mod` | `require github.com/adams-shaun/gorge <pseudo-version>` naming the same commit, so `go build` fetches exactly that code from the module proxy |
 
-A pin bump is a pull request in the companion, never a side effect. For
-gorge-compliance it also reruns the scenario audits and the XMage pass and
-updates every target, because each target (the certification ratchet, the
-verdicts, the `known-divergent` rows) is a statement about the pinned commit.
-The procedure is gorge-compliance's
-[`docs/PINNING.md`](https://github.com/adams-shaun/gorge-compliance/blob/main/docs/PINNING.md).
-A nightly `drift` job there builds against gorge `main` instead of the pin
-and **reports** what would change without failing.
+Pinning gorge also pins the card corpus: the companions read `FORGE_REF` from the pinned gorge's
+`Makefile`.
 
-Pinning gorge also pins the card corpus: the companions read `FORGE_REF` from
-the pinned gorge's `Makefile`.
+!!! note "A pin bump is a pull request, never a side effect"
+    For gorge-compliance it also reruns the scenario audits and the XMage pass and updates every
+    target, because each target (the certification ratchet, the verdicts, the `known-divergent`
+    rows) is a statement about the pinned commit. The procedure is gorge-compliance's
+    [`docs/PINNING.md`](https://github.com/adams-shaun/gorge-compliance/blob/main/docs/PINNING.md).
 
-Neither companion commits a `go.work` or a `replace` for gorge; the pin is the only way gorge reaches
-them. To try gorge-compliance against unmerged gorge work, use a gitignored local `go.work`.
+A nightly `drift` job there builds against gorge `main` instead of the pin and **reports** what
+would change without failing. Neither companion commits a `go.work` or a `replace` for gorge; the
+pin is the only way gorge reaches them. To try gorge-compliance against unmerged gorge work, use a
+gitignored local `go.work`.
 
 ## Branch flow
 
 Both repositories merge with a merge commit, never a squash, and nothing pushes `main` directly.
-gorge lands through the Mergify queue (step 1); gorge-compliance differs (step 2).
 
 ```mermaid
 flowchart LR
@@ -185,26 +181,34 @@ flowchart LR
   main -->|"docs.yml"| site["this site"]
 ```
 
-1. **gorge.** Branch from `origin/main` (`git worktree add ../gorge-myfix -b myfix origin/main`) and open
-   the PR against `main` (`make pr`). Mergify queues every non-draft PR (no label, no approval) once its
-   `fast` and `lint` checks pass; `fast` is `scripts/ci-fast.sh` (the diff's packages and their test
-   importers, with `-short`). Mergify batches up to 10 queued PRs on a `mergify/merge-queue/*` branch,
-   where `.github/workflows/ci.yml` runs the full suite once per batch: the six test shards, `examples`,
-   `wire-matrix` and `dirac-slices` (and `browser`, which is not part of `ci-ok`). The batch merges when
-   `ci-ok` is green; a red batch is split. A fix for a red `main` goes on a `hotfix/*` branch (or carries
-   the `hotfix` label) and is batched first. The whole `dirac/oracle` runs on `main` from
-   `.github/workflows/oracle.yml` about every 6 hours, never on a PR or a batch. Details:
-   [Contributing](../contributing/index.md#commits-and-pull-requests).
-2. **gorge-compliance** lands work on `develop` and snapshots it to a `promote/develop-<stamp>` pull
-   request to `main`; it merges when its checks are green.
-3. **Publishing.** A push to `main` publishes this site (`docs.yml`, which also builds on pull
-   requests, daily and on dispatch) and the card-coverage tables (`coverage.yml`, as a workflow
-   artifact).
+=== "gorge"
+
+    Branch from `origin/main` and open the PR against `main` (`make pr`):
+
+    ```sh title="A branch in its own worktree"
+    git worktree add ../gorge-myfix -b myfix origin/main
+    ```
+
+    | Stage | What runs |
+    |---|---|
+    | Pull request | `fast` (`scripts/ci-fast.sh`: the diff's packages and their test importers, with `-short`) and `lint`. Mergify queues every non-draft PR once both pass: no label, no approval. |
+    | Merge-queue batch | up to 10 queued PRs on a `mergify/merge-queue/*` branch; `.github/workflows/ci.yml` runs the six test shards, `examples`, `wire-matrix`, `dirac-slices` and `oracle-sentinels` once per batch (and `browser`, which is not part of `ci-ok`). The batch merges when `ci-ok` is green; a red batch is split. |
+    | `main` | the whole `dirac/oracle`, from `.github/workflows/oracle.yml`, about every 2 hours; never on a PR or a batch. |
+
+    A fix for a red `main` goes on a `hotfix/*` branch (or carries the `hotfix` label) and is
+    batched first. Details: [Contributing](../contributing/index.md#commits-and-pull-requests).
+
+=== "gorge-compliance"
+
+    Work lands on `develop` and is snapshotted to a `promote/develop-<stamp>` pull request to
+    `main`; it merges when its checks are green.
+
+A push to `main` publishes this site (`docs.yml`, which also builds on pull requests, daily and on
+dispatch) and the card-coverage tables (`coverage.yml`, as a workflow artifact).
 
 ## A change that spans repositories
 
-Because the arrows run one way, a cross-repository change always lands in
-gorge first:
+Because the arrows run one way, a cross-repository change always lands in gorge first:
 
 ```mermaid
 sequenceDiagram
@@ -216,13 +220,11 @@ sequenceDiagram
   Note over G,C: the private companion bumps its own pin the same way
 ```
 
-- **Push the gorge commit first**: the pseudo-version resolves through the module proxy.
-- **Prefer additive changes** to a seam (a new function beside the old one); the companion moves at
-  its own pace, and the nightly drift report shows an incompatible change before its next bump.
-- **Say so in the PR** when you change a seam [above](#gorge-this-repository) or a format a
-  companion reads (`server/protocol` frames, the `bots/gonet` network file, the `bots/policynet`
-  checkpoint).
+| Do | Why |
+|---|---|
+| Push the gorge commit first | the pseudo-version resolves through the module proxy |
+| Prefer additive changes to a seam (a new function beside the old one) | the companion moves at its own pace, and the nightly drift report shows an incompatible change before its next bump |
+| Say so in the PR when you change a seam [above](#gorge-this-repository) or a format a companion reads (`server/protocol` frames, the `bots/gonet` network file, the `bots/policynet` checkpoint) | the companion's next pin bump has to adopt it |
 
-A change that fixes a card in gorge typically shows up in gorge-compliance as
-a stale ratchet row (a scenario that now passes) at the next pin bump; that
-row is deleted in the bump PR.
+A change that fixes a card in gorge typically shows up in gorge-compliance as a stale ratchet row
+(a scenario that now passes) at the next pin bump; that row is deleted in the bump PR.

@@ -39,6 +39,8 @@ import (
 // colour the play's cost announces to the front, order kept inside each half.
 
 // maxCAAnswers is gorge's cap on an N-unit allocation's answers (scriptAnswers).
+//
+//lockstep:const engine/rules.scriptAnswersCap
 const maxCAAnswers = 64
 
 // comboAnyMana reports whether a is an unrestricted "{T}: Add N mana in any
