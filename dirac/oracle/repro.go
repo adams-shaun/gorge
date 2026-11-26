@@ -354,13 +354,19 @@ func (s *ScriptPolicy) Exhausted() bool { return s.next >= len(s.Actions) }
 // Rerun replays the repro in lockstep against mk: the scripted prefix, then
 // FirstPolicy for at most tail more decisions.
 func (r *Repro) Rerun(m *Matchup, mk SideFactory, tail int) Result {
+	return r.RerunWith(m, mk, tail, r.Script())
+}
+
+// RerunWith is Rerun under pol, a policy that serves the repro's actions
+// (Script, adjusted).
+func (r *Repro) RerunWith(m *Matchup, mk SideFactory, tail int, pol *ScriptPolicy) Result {
 	k, err := mk(m, r.Seed)
 	if err != nil {
 		return Result{Div: &Divergence{What: "kernel", Field: "setup", Detail: err.Error()}}
 	}
 	rc := r.RunConfig()
 	rc.MaxDecisions = len(r.Actions) + tail
-	return Lockstep(m, r.Seed, k, r.Script(), rc)
+	return Lockstep(m, r.Seed, k, pol, rc)
 }
 
 // Shrink drops prefix actions while the repro still diverges in the same
