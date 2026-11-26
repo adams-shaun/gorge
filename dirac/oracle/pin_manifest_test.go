@@ -261,6 +261,12 @@ func trimJSONExt(name string) string {
 
 // TestPinManifest plays every data-driven pin, one subtest each. PINS_RECORD=1
 // records the games again from the document's own pool, surface and conditions.
+// A recording that plays clean but no longer reaches a condition is stale, not
+// red: the document's pool is searched in memory for a fresh game that does
+// (playPinnedGames), and one found passes with a warning to re-record. A pin
+// whose set refuses a card suspends with a warning. DIRAC_PIN_STRICT=1, which
+// the nightly sets, fails both, so a re-record or suspension is seen daily; a
+// divergence or a stall fails either way.
 func TestPinManifest(t *testing.T) {
 	paths := pinManifestFiles(t)
 	if len(paths) == 0 {
@@ -290,13 +296,7 @@ func TestPinManifest(t *testing.T) {
 					t.Fatal(err)
 				}
 			}
-			for i, r := range doc.Games {
-				res, hit, err := playPinned(set, reg, r, rc, reached)
-				if err != nil {
-					t.Fatalf("%s game %d: %v", path, i, err)
-				}
-				reportPinned(t, fmt.Sprintf("%s game %d", path, i), res, hit)
-			}
+			playPinnedGames(t, path, doc.Pool, set, reg, doc.Games, rc, doc.Mulligans, reached)
 		})
 	}
 }

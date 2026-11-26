@@ -1463,6 +1463,8 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 					pc.hasStat = true // scanned through statM (face_turnfaceup.go)
 				case kop.ReplTurnUpProgram:
 					g.anyTurnUpRepl = true
+				case kop.ReplTurnUpAttach:
+					g.anyTurnUpRepl = true // the attach ask the fold waits on (face_turnupattach.go)
 				}
 			case kop.AbStatic:
 				switch a.Static.Kind {
@@ -2683,7 +2685,7 @@ type dmgAmtRec struct {
 // player-damage fold calls it beside its life/poison fold; a paid life cost
 // never does (gorge: a life payment is no Damage event). Cleared at the turn
 // change beside dmgTurn (turn_gen.go). It lives in genState.turnF's free
-// bits, so State does not grow (TestStateLayoutPinned).
+// bits, so State does not grow (TestNoNewFixedStateFields).
 func (s *State) plDmgMark(p uint8, n int) {
 	if n > 0 {
 		s.g.turnF |= turnDamagedMask(p)
