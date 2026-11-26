@@ -25,6 +25,14 @@ import (
 // alone list this play" probe: restrSrcAvailD's fee pass counts no fee unit.
 const availNoFeeUnit uint16 = 32768
 
+// availXFeeBound is an availX mode bit for the X ask's bound (restrSrcMaxX):
+// gorge's bound reads the census with every census source's largest
+// alternative in it (payment_plan.go paymentPlanCensusTotal), a restricted
+// fee source's production counted and its fee charged from the mana already
+// counted (CR 605.3b), where an afford check on the autopay surface prices
+// the census alone. The bit is held over restrSrcMaxX's own census only.
+const availXFeeBound uint16 = 1024
+
 // maxFeePrefix bounds the fee units one prefix activates.
 const maxFeePrefix = 4
 

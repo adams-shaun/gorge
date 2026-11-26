@@ -853,11 +853,16 @@ func (s *State) restrSrcAvailD(k *prep, p uint8, d payDesc, av *avail, skip Slot
 	// or the graveyard). A plain hand or commander cast is not: the autopay
 	// surface offers only the casts gorge's planner prices (the census),
 	// and a nil-cost read (a witness, a filter's bound) keeps the
-	// census-only one.
+	// census-only one. The X ask's bound is the exception (availXFeeBound:
+	// gorge's paymentPlanCensusTotal counts every census source's largest
+	// alternative, the fee charged from the mana already counted).
 	feeUnits := k.gen != nil && k.gen.rs != nil && k.gen.rs.fee && s.g.availX&availNoFeeUnit == 0 &&
 		(s.cfg&cfgGorgeAutopay == 0 || cost != nil &&
 			(d.class == pdAct || d.class == pdSpell &&
 				(d.og.from == kop.ZoneGraveyard || d.og.from == kop.ZoneExile)))
+	if s.g.availX&availXFeeBound != 0 && d.class == pdSpell {
+		feeUnits = k.gen != nil && k.gen.rs != nil && k.gen.rs.fee && s.g.availX&availNoFeeUnit == 0
+	}
 	for pass := 0; pass < 2; pass++ {
 		if pass == 1 && !feeUnits {
 			break
@@ -1501,7 +1506,10 @@ func (s *State) restrSrcMaxX(k *prep, p uint8, cost *kop.ManaCost, av *avail) in
 	if d.class == pdAct {
 		skip = d.src
 	}
-	t, multi, nm := s.restrSrcAvail(k, p, d, av, skip, nil, 0)
+	x := s.g.availX | availXFeeBound // the bound's census counts the fee units (availXFeeBound)
+	s.g.availX = x
+	t, multi, nm := s.restrSrcAvail(k, p, d, av, skip, cost, 0)
+	s.g.availX ^= availXFeeBound
 	s.wideSrcAvailAdd(k, p, &t, &d, skip)
 	return t.maxXMulti(cost, pipMaskOf(cost), multi[:nm])
 }

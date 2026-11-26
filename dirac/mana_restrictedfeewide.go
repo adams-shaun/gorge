@@ -60,7 +60,13 @@ func (s *State) windowFeeWideTap(k *prep, p uint8, sl Slot, cost, useful *kop.Ma
 	}
 	s.deferSync(p, dc, dn)
 	mask := uint8(ab.ManaColors)
-	if clamp {
+	// askManaColor clamps a payment-window colour ask to the useful colours
+	// only when the window pays a CAST (`cast && e.cast != nil`): an
+	// ability's payment (Lathliss's {1}{R} pump) asks the activation's colour
+	// unclamped, every colour of the wide production listed, so the spare
+	// unit takes the lowest (WUBRGC) and the owed pip its colour -- clamping
+	// here would mis-colour the spare (a {W} left as an {R}).
+	if clamp && d.class == pdSpell {
 		if want, decided := s.windowUseful(k, p, useful); decided && want&mask != 0 {
 			mask &= want
 		}
