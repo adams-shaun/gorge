@@ -521,7 +521,12 @@ func (e *Engine) startTriggeredEffectCost(rp *resumePoint, source state.ObjID) {
 		return
 	}
 	label := rp.sa.ParamStr(cards.PKCost)
-	amount := e.parseCost(label)
+	// AbilityCompiledCost is parseCost plus the ability's own XColor$: the
+	// announced X of a trigger's Cost$ X must be paid with that colour
+	// (Leyline Tyrant's "any amount of {R}", CR 107.3, 601.2b). parseCost
+	// alone leaves the cost generic, so the X fold and every price/charge
+	// read would spend any colour.
+	amount := pay.AbilityCompiledCost(asPayer(e), rp.sa).Cost
 	// A granted trigger's OriginalHost cost part names the granting static's
 	// host (Sunfire Torch's "you may sacrifice [the Equipment]"), not the
 	// recipient the window's source is (CR 603.5, 701.21a).

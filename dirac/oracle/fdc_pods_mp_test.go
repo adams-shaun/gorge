@@ -29,10 +29,10 @@ var fdcDecks = []string{
 // and not listed, or listed and lowered, fails it. The merge with main shrank
 // it by three: main's newer kgen lowered Cursed Mirror, Dragonhawk, Fate's
 // Tempest and Goddric, Cloaked Reveler. The MaxOppDamageThisTurn lowering
-// (Spinerock Knoll) shrank it again.
+// (Spinerock Knoll) shrank it again. Leyline Tyrant's coloured trigger X
+// (Cost$ X with XColor$ R) lowered since, shrinking it again.
 var fdcRefused = []string{
 	"Ezuri's Predation",
-	"Leyline Tyrant",
 	"Thundermane Dragon",
 }
 

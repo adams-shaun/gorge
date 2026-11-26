@@ -327,6 +327,28 @@ func (s *State) trigCostPotentialPays(k *prep, p uint8, kind int, skip uint16, a
 	if l := kop.PayManaLife(life); l != 0 && int(s.pl[SeatIx(p)].life) < l {
 		return false
 	}
+	c := s.numTimesCost(k, amt, pips)
+	s.payManaHyb(k, life, &c) // cost_trighybrid.go
+	s.announcedHyb(&c)
+	return s.trigCostPotentialPaysCost(k, p, &c)
+}
+
+// trigCostPotentialPaysX is trigCostPotentialPays over a trigger's own
+// announced {X} with an XColor$ (Leyline Tyrant): the cost is x pips of one
+// colour, which the pips argument of the generic form cannot carry. The
+// caller has already built the coloured cost (trigXCostAt).
+//
+//go:noinline
+func (s *State) trigCostPotentialPaysX(k *prep, p uint8, skip uint16, c *kop.ManaCost) bool {
+	if skip&pfModes != 0 || s.res.e.kind != seTrigger {
+		return false
+	}
+	return s.trigCostPotentialPaysCost(k, p, c)
+}
+
+// trigCostPotentialPaysCost is the over-bound both forms share: the payer's
+// potential mana (gorge's potentialManaFor) priced against c.
+func (s *State) trigCostPotentialPaysCost(k *prep, p uint8, c *kop.ManaCost) bool {
 	if s.caPotentialOpen(k, p) {
 		return true // Sage of the Maze: gorge's potential walk prices a Combo Any production unbounded in every colour (mana_comboany.go)
 	}
@@ -341,16 +363,13 @@ func (s *State) trigCostPotentialPays(k *prep, p uint8, kind int, skip uint16, a
 	if !s.anyDifferentOpen(k, p) && !sacAny && !s.anyLiveSource(k, p, &other) {
 		return false
 	}
-	c := s.numTimesCost(k, amt, pips)
-	s.payManaHyb(k, life, &c) // cost_trighybrid.go
-	s.announcedHyb(&c)
-	if s.potentialDynOpen(k, p, &c, &other) {
+	if s.potentialDynOpen(k, p, c, &other) {
 		return true // a dynamic-amount source's potentialUnbounded fold (mana_dyntrigcost.go)
 	}
 	var av avail
 	s.availPotentialFor(k, p, &av, &other, false)
 	s.availSacAny(k, p, &av, &other)
-	return av.affords(&c, pipMaskOf(&c), 0)
+	return av.affords(c, pipMaskOf(c), 0)
 }
 
 // anyManaSource reports whether p has an untapped source to fund payment d with:
