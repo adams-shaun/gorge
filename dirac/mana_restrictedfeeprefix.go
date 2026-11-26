@@ -165,6 +165,19 @@ func (s *State) restrPairFreeLists(k *prep, p uint8, a Action, sl Slot, ab *kop.
 // false when that source is not a fixed-colour plain tap the kernel replays
 // (the search would branch on a colour ask, or the source is restricted).
 func (s *State) restrFeeFundTap(k *prep, p uint8, gap Slot) bool {
+	sl, col, ok := s.restrFeeFundSrc(k, p, gap)
+	if !ok {
+		return false
+	}
+	s.restrFeeTapCensus(k, p, sl, s.manaPCGen(k, sl), col)
+	return true
+}
+
+// restrFeeFundSrc is the source restrFeeFundTap taps: the first covered
+// source of p in battlefield order that is neither the gap nor a restricted
+// one, and its colour; false when none, or when it is not a fixed-colour
+// plain tap the kernel replays.
+func (s *State) restrFeeFundSrc(k *prep, p uint8, gap Slot) (sl Slot, col int, ok bool) {
 	var order [MaxPerm]Slot
 	n := s.battlefieldOrder(p, s.ctrlM[p], order[:], 0)
 	for _, sl := range order[:n] {
@@ -178,12 +191,11 @@ func (s *State) restrFeeFundTap(k *prep, p uint8, gap Slot) bool {
 		}
 		m := s.srcMaskAt(pc, sl) & 0x3f
 		if m == 0 || m&(m-1) != 0 || pc.manaMulti || pc.manaDyn || pc.painCol != 0 || pc.manaRefl {
-			return false
+			return NoSlot, 0, false
 		}
-		s.restrFeeTapCensus(k, p, sl, pc, bits.TrailingZeros8(m))
-		return true
+		return sl, bits.TrailingZeros8(m), true
 	}
-	return false
+	return NoSlot, 0, false
 }
 
 // restrFeeTapCensus taps sl's census ability (view pc, colour col) into p's

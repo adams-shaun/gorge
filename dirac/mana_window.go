@@ -652,6 +652,11 @@ func (s *State) windowPick(k *prep, p uint8, order []Slot, useful *kop.ManaCost,
 			return o, true // a restricted fee gap the pool's mana funds (windowFeeWideTap)
 		}
 	}
+	if decided && !census && !potential {
+		if o := s.windowFeeFund(k, p, order); o != NoSlot {
+			return o, false // the fee gap's funding: a source the clamp skipped (mana_restrictedfeewide.go)
+		}
+	}
 	return NoSlot, false
 }
 

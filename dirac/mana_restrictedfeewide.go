@@ -29,16 +29,46 @@ func restrFeeWideAb(ab *kop.Ability) bool {
 // engine/rules mana_activation.go) and the payment may spend the production
 // (CR 106.6). The walk takes it there (windowFeeWideTap).
 func (s *State) windowFeeWide(k *prep, p uint8, sl Slot) bool {
+	fee, ok := s.windowFeeWideCost(k, p, sl)
+	return ok && s.windowPoolPays(p, &fee, false)
+}
+
+// windowFeeWideCost is windowFeeWide's gap test without the pool: the fee of
+// p's untapped wide restricted fee gap sl, and whether sl is one.
+func (s *State) windowFeeWideCost(k *prep, p uint8, sl Slot) (fee kop.ManaCost, ok bool) {
 	if k.gen == nil || !k.gen.anyRestrSrc || !s.restrUsable(k, sl) {
-		return false
+		return fee, false
 	}
 	d := s.payDescNow(NoObj)
 	v, kind, ab := s.restrView(k, p, sl, s.manaPCGen(k, sl), &d)
 	if v == nil || kind != rkExt || v.restrFeeCol != 0 || restrFeeEmpty(v) || !restrFeeWideAb(ab) {
-		return false
+		return fee, false
 	}
-	fee := restrFeeCost(v)
-	return s.windowPoolPays(p, &fee, false)
+	return restrFeeCost(v), true
+}
+
+// windowFeeFund is the autopay window's pick for a wide restricted fee gap
+// the pool cannot pay yet and no listed source is useful for: gorge's script
+// search taps the first covered source in battlefield order to fund the gap's
+// fee whatever colour it makes (potentialPrefixScript's funding; the offer
+// priced it, restrSrcAvailD's fee pass), where the window's clamp keeps only
+// the colours the cost still owes. A Sol Ring's {C}{C} funds an Orb of
+// Dragonkind's {1} for a {R} pump (the Orb's {R} floats restricted).
+func (s *State) windowFeeFund(k *prep, p uint8, order []Slot) Slot {
+	if k.gen == nil || !k.gen.anyRestrSrc || s.cfg&cfgGorgeAutopay == 0 {
+		return NoSlot
+	}
+	for _, g := range order {
+		fee, ok := s.windowFeeWideCost(k, p, g)
+		if !ok || s.windowPoolPays(p, &fee, false) {
+			continue
+		}
+		if sl, _, ok := s.restrFeeFundSrc(k, p, g); ok && s.windowSourceUsable(k, sl, p) {
+			return sl
+		}
+		return NoSlot
+	}
+	return NoSlot
 }
 
 // windowFeeWideTap activates the restricted fee gap sl in the payment's
