@@ -1577,15 +1577,69 @@ func (lc *lowerCtx) digUntil(ps *params) error {
 	if err != nil {
 		return err
 	}
-	found, err := zoneOf(ps, "FoundDestination", zNone)
-	if err != nil {
-		return err
-	}
-	rev, err := zoneOf(ps, "RevealedDestination", zNone)
-	if err != nil {
-		return err
+	// The planar dig (DigZone$ PlanarDeck, The Fertile Lands of Saulvinia):
+	// the scan and both placements are the seat's planar deck's face-down
+	// remainder (gorge diguntil.go's planar arm: the face-up current plane at
+	// the zone's head is not part of the reveal, and a planar placement's
+	// same-zone MoveZone fold appends the card at the deck's bottom). The
+	// dig's planar arm rides Instr.W == kop.RefPlanarDeck, which redirects
+	// its OpDigUntil to the planar record;
+	// the C/CS zone slots keep the library encoding, which the planar arm
+	// ignores (the planar zone id does not fit the op's three-bit zone
+	// fields). No other DigZone$ value lowers.
+	planar := strings.TrimSpace(ps.str("DigZone")) == "PlanarDeck"
+	found, rev := zLibrary, zLibrary
+	if planar {
+		ps.consume("DigZone")
+		for _, k := range []string{"FoundDestination", "RevealedDestination"} {
+			v, ok := ps.get(k)
+			if ok && strings.TrimSpace(v) != "PlanarDeck" {
+				return refuse("DigUntil planar %s$ %q", k, v)
+			}
+			if !ok {
+				// An absent FoundDestination$ joins the found card with the
+				// revealed pile (gorge diguntil.go's foundJoinedRevealed: the
+				// pile returns in scan order, [a,b,F] lands a,b,F), a joined
+				// order the kernel's found-then-rest move does not model (it
+				// lands F,a,b) -- the corpus carrier names both destinations,
+				// so a dig without one refuses.
+				return refuse("DigUntil planar scan without %s$ PlanarDeck", k)
+			}
+			ps.consume(k)
+		}
+		for _, k := range []string{"FoundLibraryPosition", "RevealedLibraryPosition"} {
+			v, ok := ps.get(k)
+			if !ok {
+				// gorge leaves an unpositioned dug card in place (diguntil.go's
+				// stay-in-place arms) where the kernel moves it to the bottom.
+				return refuse("DigUntil planar scan without %s$ -1", k)
+			}
+			if strings.TrimSpace(v) != "-1" {
+				return refuse("DigUntil planar %s$ %q", k, v)
+			}
+			ps.consume(k)
+		}
+		for _, k := range []string{"Tapped", "Attacking", "NoMoveFound", "NoMoveRevealed", "Optional", "OptionalFoundMove",
+			"RevealRandomOrder", "Shuffle", "ShuffleCondition", "RememberRevealed", "ImprintFound", "ImprintRevealed",
+			"DugMark", "MinTotalCMC", "NoneFoundDestination", "NoneFoundLibraryPosition"} {
+			if _, ok := ps.get(k); ok {
+				return refuse("DigUntil planar with %s$", k)
+			}
+		}
+	} else {
+		found, err = zoneOf(ps, "FoundDestination", zNone)
+		if err != nil {
+			return err
+		}
+		rev, err = zoneOf(ps, "RevealedDestination", zNone)
+		if err != nil {
+			return err
+		}
 	}
 	in := lInstr{Op: "DigUntil", Obj: who, A: n, F: f, C: found, CS: "revealed=" + zoneLabel[rev]}
+	if planar {
+		in.CS += "|Planar"
+	}
 	if found == zBattlefield {
 		// The kernel's battlefield arm enters the found card plainly: only
 		// a Valid$ that cannot admit an Aura (no bearer choice, CR 303.4f;
