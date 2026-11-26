@@ -2,7 +2,6 @@ package rules
 
 import (
 	"strconv"
-	"strings"
 
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
@@ -41,9 +40,11 @@ import (
 // you control." beside zero artifacts) rendered "Pay U: Add U" and lost the
 // clause the printed text keeps. Only this surface reads the text; the
 // player-facing wheel keeps pay.ManaAbilityLabel, and the runner's step
-// matching keeps matching the recorded wheel labels.
+// matching keeps matching the recorded wheel labels. No trim here: the
+// card-script boundary (parseParams) already trims every parameter value,
+// and the engine's strings ratchet counts this file's calls.
 func snapManaAbilityLabel(ma *cards.SA, chosen string) string {
-	if desc := strings.TrimSpace(ma.ParamStr(cards.PKSpellDescription)); desc != "" {
+	if desc := ma.ParamStr(cards.PKSpellDescription); desc != "" {
 		return desc
 	}
 	return pay.ManaAbilityLabel(ma, chosen)
