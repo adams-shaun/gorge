@@ -1805,6 +1805,25 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 	// castPaySpellBuild for gorge's shape and the class (tail-74 pairs 31, 47).
 	// A pre-build cast payment (payCastPrefixRest) arms the pass itself.
 	castPay := pk.castPay || s.castPaySpellBuild(k)
+	// A cast's payment is gorge's composed-cost plan, whose census prices no
+	// restricted fee ability (paid_mana_census.go: a generic or coloured mana
+	// fee is the cast window's own price): a fee unit whose fee feeOK draws
+	// from the pool the plan's own units fill (CR 605.3b) is a plan gorge's
+	// script search never composes -- it funds a fee gap only beside funding
+	// steps of the potential prefix's script, and the kernel mirrors that
+	// admission in the window's arms alone (windowFeeWide, windowFeeFund,
+	// their gate the live pool). So a cast-payment pass holds the fee unit out
+	// the X-witness's way (availNoFeeUnit around the x computation's
+	// restrSrcAvail read, mana_window.go): the pass prices the census alone,
+	// and a play only a funded fee gap pays keeps the window's paths. (cmd5
+	// Orb pool, full surface: the kernel's plan activated a Treasure to fill
+	// the pool, drew the Orb's {1} fee from it and paid one fewer sacrifice
+	// than gorge's census plan -- a composition the search never composed.)
+	if castPay {
+		ax := s.g.availX
+		s.g.availX |= availNoFeeUnit
+		defer func() { s.g.availX = ax }()
+	}
 	// phase 1: normal sources only; phase 2 (only when phase 1 proves no
 	// plan) adds the last-resort tap-and-sacrifice sources (Treasure),
 	// ranked by irreversible cost (gorge plancost.go:160-179, plan.go:104),
