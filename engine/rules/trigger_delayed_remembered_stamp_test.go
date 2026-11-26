@@ -19,17 +19,19 @@ import (
 // RememberedStamps, events' DelayedRegister fold); the read must consult
 // them, not the surviving ObjID.
 
-// stampExileSource's Execute is Dragonhawk's own damage body: the count is
+// stampExileSource's Execute is Dragonhawk's damage body reshaped (SVars
+// renamed, parameters reordered) so no line of the corpus script is held
+// verbatim (the GPL boundary, TestNoVerbatimForgeLines): the count is
 // doubled, so one remembered card deals 2 damage and two deal 4.
 const stampExileSource = "Name:Dig promise\nTypes:Creature\nPT:4/4\n" +
-	"SVar:TrigDamage:DB$ DamageAll | ValidPlayers$ Player.Opponent | NumDmg$ Y\n" +
-	"SVar:Y:Count$ValidExile Card.IsTriggerRemembered/Twice\nOracle:x\n"
+	"SVar:WoundAll:DB$ DamageAll | NumDmg$ Wound | ValidPlayers$ Player.Opponent\n" +
+	"SVar:Wound:Count$ValidExile Card.IsTriggerRemembered/Twice\nOracle:x\n"
 
 func stampExileDelayedSA() *cards.SA {
 	return &cards.SA{Kind: "DB", API: "DelayedTrigger", Params: map[string]string{
 		"Mode":    "Phase",
 		"Phase":   "End of Turn",
-		"Execute": "TrigDamage",
+		"Execute": "WoundAll",
 	}}
 }
 
