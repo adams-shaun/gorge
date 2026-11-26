@@ -489,6 +489,9 @@ func (s *State) runReplProgAs(k *prep, sl Slot, c CardID, ab, pc uint8, src Slot
 				if isPayLifeOp(in) {
 					s.payLifeApply(k, sl, in, int(s.g.pre.val)) // repl_paylife.go: the answer pays now the entry happens
 				}
+				if kind == akNumber && readAheadCard(&k.t.Cards[c]) {
+					s.readAheadPlace(k, sl, int(s.g.pre.val), false) // kw_readahead.go: the answer is the entry's lore count
+				}
 				s.g.pre.state = 0
 				continue
 			}
@@ -670,6 +673,9 @@ func (s *State) entryAskDefault(k *prep, sl Slot, c CardID, kind uint8, in *kop.
 	a := d.Options[0]
 	p := &s.perms[sl]
 	s.touchSl(sl)
+	if kind == akNumber && readAheadCard(&k.t.Cards[c]) {
+		s.readAheadPlace(k, sl, int(a.Mode()), false) // kw_readahead.go: the floor chapter's lore count enters with it
+	}
 	if kind == akCard {
 		p.chosen = objWord(a.Source()) // the chosen object rides the action's code
 	} else if kind == akColor || kind == akNumber || kind == akPlayer || isNameAsk(kind) {
@@ -1656,7 +1662,8 @@ func (s *State) answerQueuedAsk(k *prep, a Action) {
 		p.chosen = objWord(s.typeVocabCode(k, v))
 	}
 	if ask.kind == akNumber {
-		s.payLifeAnswer(k, ask, a) // repl_paylife.go: a no-op unless ExtPayLifeX posed it
+		s.payLifeAnswer(k, ask, a)   // repl_paylife.go: a no-op unless ExtPayLifeX posed it
+		s.readAheadAnswer(k, ask, a) // kw_readahead.go: a no-op unless a read-ahead Saga posed it
 	}
 	if ask.card != NoCard {
 		saveRep := s.g.replaced

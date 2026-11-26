@@ -567,7 +567,7 @@ func (s *State) enterNF(k *prep, o Obj, ctrl uint8, tapped bool, from kop.Zone, 
 		if pc.enterCtr != 0 && !(k.gen != nil && k.gen.anyEntryMerge) { // anyEntryMerge: enterGen's window places it (ctr_entryperkind.go)
 			s.placeEntryCounters(k, sl, int(pc.enterCK), int(pc.enterCtr), p.ctrl)
 		}
-		if pc.sagaN != 0 {
+		if pc.sagaN != 0 && !readAheadCard(&k.t.Cards[ob.card]) { // kw_readahead.go: its ask's answer is the entry's lore count
 			// CR 702.151a: a Saga enters with a lore counter (gorge
 			// events.EntryCounterGrants), placed through the counter
 			// replacements; the CounterAddedOnce loop below fires the chapters
