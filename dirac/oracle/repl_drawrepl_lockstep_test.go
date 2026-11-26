@@ -67,7 +67,7 @@ func TestReplDrawReplLockstepMutation(t *testing.T) {
 			}
 		}
 	}
-	if n := lockstepRun(t, "draw-repl", kdrawReplDecks["scrivener"], 200, false, skip); n == 0 {
+	if n := lockstepRun(t, "draw-repl", kdrawReplDecks["thief"], 200, false, skip); n == 0 {
 		t.Fatal("dropping the draw program's body diverged no seed")
 	}
 }
