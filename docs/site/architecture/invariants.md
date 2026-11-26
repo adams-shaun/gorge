@@ -383,7 +383,7 @@ a missing corpus as `ENV`, never green. A bare `go test` is convention: run with
 `-v` and look for `SKIP`.
 
 **Classic mistake.** Testing in a fresh `git worktree`, which carries only tracked
-files and so no `.cards/`. Link it in: `ln -s <main checkout>/.cards .cards`. See
+files and so no `.cards/`. Link it in with `scripts/link-cards.sh`, which picks the corpus of this tree's own `FORGE_REF`. See
 [Contributing](../contributing/index.md#work-in-a-worktree).
 
 ## A card dirac supports plays identically to gorge
