@@ -2318,6 +2318,9 @@ const ReplDamageSet ReplKind = 69
 // repl LifeReduced (dirac/manifest/ReplKind/ReplLifeReduced)
 const ReplLifeReduced ReplKind = 70
 
+// repl TurnFaceUp replacement shape (the optional Attach body: as this face-down permanent is turned face up, its controller may attach it to a permanent the body's Choices$ names; Gift of Doom) (dirac/manifest/ReplKind/ReplTurnUpAttach)
+const ReplTurnUpAttach ReplKind = 71
+
 // stat OptionalAttackCost (dirac/manifest/StaticKind/StatOptionalAttackCost)
 const StatOptionalAttackCost StaticKind = 22
 
