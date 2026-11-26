@@ -1224,37 +1224,42 @@ const ExWasCastFromYourLibrary ExprKind = 162
 // count xColorPaid (dirac/manifest/ExprKind/ExXColorPaid)
 const ExXColorPaid ExprKind = 163
 
+// ExprKind (dirac/manifest/ExprKind/ExDelayedExileCount)
+//
+// The fired delayed program's remembered objects (at most four, kop.DpMany's carriers, dirac/trig_delayedmany.go dpManyCarrier) that are still the same object in exile (the version the program registered them at). Dragonhawk, Fate's Tempest's end-step body counts them (gorge Count$ValidExile Card.IsTriggerRemembered, the trigger's remembered set read over the exile zones); the body's /Twice suffix doubles it through the usual modifier. dirac/value_delayedexile.go.
+const ExDelayedExileCount ExprKind = 164
+
 // ExprKind (dirac/manifest/ExprKind/ExDevotionChosen)
 //
 // The controller's devotion (CR 700.5) to the colour recorded on the evaluating source (Count$Devotion.Chosen; gorge evalCountBodyDottedDevotion reads Object.ChosenColor): the source permanent's chosen byte, 0..4 = WUBRG, the same slot the as-enters ChooseColor writes. 0 with no colour recorded. dirac/act_chosencolor.go.
-const ExDevotionChosen ExprKind = 164
+const ExDevotionChosen ExprKind = 165
 
 // ReplacedCardLKI$CardPower (dirac/manifest/ExprKind/ExReplLKIPower)
-const ExReplLKIPower ExprKind = 165
+const ExReplLKIPower ExprKind = 166
 
 // count RingTemptedYou (dirac/manifest/ExprKind/ExRingTempted)
-const ExRingTempted ExprKind = 166
+const ExRingTempted ExprKind = 167
 
 // ExprKind (dirac/manifest/ExprKind/ExSVarNum)
 //
 // A stored SVar's number (gorge runtimeSVar before the printed SVar, effects/count.go): the evaluating source's ExtStoreNum record for the name N (Table.SVarNames index), else the printed SVar body Sub[0]. dirac/act_storenum.go.
-const ExSVarNum ExprKind = 167
+const ExSVarNum ExprKind = 168
 
 // WerewolfTransformCondition | WerewolfUntransformCondition (dirac/manifest/ExprKind/ExSpellsCastLastTurn)
-const ExSpellsCastLastTurn ExprKind = 168
+const ExSpellsCastLastTurn ExprKind = 169
 
 // Remembered$CardCounters (dirac/manifest/ExprKind/ExSrcRemCounters)
 //
 // ExSrcRemCounters (Ctr): the counters of kind Ctr on the object the evaluating source remembers, read live on the battlefield (0 when it is elsewhere): the first live smRem record keyed by the source, which a token minted under TokRememberSrc (RememberSource$ True) keeps for its creator. It is `Remembered$CardCounters.<KIND>` in a token's characteristic-defining P/T (Saproling Burst's token reads the fade counters on the Burst). dirac/zone_tokrem.go.
-const ExSrcRemCounters ExprKind = 169
+const ExSrcRemCounters ExprKind = 170
 
 // SharedKeywordsZone$ Exile (dirac/manifest/ExprKind/ExStaticExileKw)
 //
 // ExStaticExileKw (F, N): exiled cards matching F (every player's exile, F.Owner narrows) that print the keyword N names, read off the printed card (CR 400.7, gorge effects.PrintedChars). N below 32 is a KwMask bit index; N 32 and up is the protection colour (N-32, in kop.ExileKwProtN order) in the card's printed ProtColors. It is the per-keyword gate of a SharedKeywordsZone$ Exile static (Rayami, First of the Fallen). dirac/value_exilekw.go.
-const ExStaticExileKw ExprKind = 170
+const ExStaticExileKw ExprKind = 171
 
 // ExprKind (dirac/manifest/ExprKind/ExVoteTally)
-const ExVoteTally ExprKind = 171
+const ExVoteTally ExprKind = 172
 
 // api MakeCard (dirac/manifest/ExtOp/ExtMakeCard)
 const ExtMakeCard ExtOp = 11
