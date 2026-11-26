@@ -1,0 +1,14 @@
+# the two-sacrifice-part cost-program pool (dirac/oracle/costprog_sac_lockstep_test.go):
+# Viscerid Drone's abilities sacrifice a creature and a Swamp (or a snow Swamp),
+# each part its own Sac atom of a kop.CostAtom program (dirac/cost_progsac.go),
+# beside creatures, basics and snow basics to pay them.
+Viscerid Drone
+Grizzly Bears
+Llanowar Elves
+Lightning Bolt
+Swamp
+Snow-Covered Swamp
+Island
+Snow-Covered Island
+Forest
+Mountain

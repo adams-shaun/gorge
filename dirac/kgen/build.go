@@ -37,6 +37,9 @@ type poolTables struct {
 	missing   map[string]bool  // subtypes a build looked up that the table lacks
 	paradigm  map[string]int   // Paradigm card name -> the table's Paradigm-name index
 	svarNames []string         // the SVar names ExtStoreNum writes, first-use order (index = kop.Table.SVarNames; lower_storenum.go)
+	// costProgs are the pool's cost programs (kop.Table.CostProgs, lower_costprog.go): nil until one is interned, [0] unused
+	costProgs   [][]kop.CostAtom
+	costProgKey map[string]uint16
 }
 
 // ovSub carries an override's subtype sets as pool subtype indexes (the
