@@ -918,7 +918,9 @@ func (lc *lowerCtx) lowerRecord() {
 		out.Snow = out.Snow || t == "Snow"
 		out.Subtypes = append(out.Subtypes, t)
 	}
-	out.TextWords = textWordsOf(lc.card)
+	tw := textWordsMasks(lc.card)
+	out.TextWords = tw.words
+	out.CWUnmodelled = tw.unmodelled
 	out.NoAbilities = effects.FaceHasNoAbilities(f, out.Types&tLand != 0)
 	out.HasManaAbility = effects.FaceHasManaAbility(f)
 	out.Colors = colorsOf(f)

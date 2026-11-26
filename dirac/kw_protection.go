@@ -7,17 +7,32 @@ import (
 // Trigger-event and keyword classes 19-62: cold,
 // out-of-line arms.
 
-// protPrinted is the permanent at sl's printed protection-from-colour
-// colours (CardDef.ProtColors; CR 702.16), none once it has lost its
-// abilities (gorge protectedFrom reads the derived keywords), and the
-// colours a chosen-colour grant gave it until end of turn (cgProtOf).
+// protPrintedCw is the permanent at sl's printed protection-from-colour
+// colours (CardDef.ProtColors; CR 702.16) as the colour-word statics rewrite
+// that face (static_colorwords.go: gorge's sync rewrites the keyword, a
+// Protection from black reads its chosen colour), none once it has lost its
+// abilities. A printed mask of all five is the "Protection from each color"
+// spelling, no colour word to rewrite (gorge's SharedKeywordSpellings), and
+// is read unchanged.
 //
 //go:noinline
-func (s *State) protPrinted(k *prep, sl Slot) kop.ColorMask {
+func (s *State) protPrintedCw(k *prep, sl Slot) kop.ColorMask {
 	c := k.t.Cards[s.cardAt(sl)].ProtColors
 	if c != 0 && s.genLost(k, sl) {
 		c = 0
 	}
+	if k.anyColorWords && c != 0 && c != kop.ColW|kop.ColU|kop.ColB|kop.ColR|kop.ColG {
+		c, _ = s.cwMask(k, s.cardAt(sl), s.perms[sl].obj, c)
+	}
+	return c
+}
+
+// protPrinted is protPrintedCw beside the colours a chosen-colour grant gave
+// sl until end of turn (cgProtOf).
+//
+//go:noinline
+func (s *State) protPrinted(k *prep, sl Slot) kop.ColorMask {
+	c := s.protPrintedCw(k, sl)
 	if k.gen.anyColGrant {
 		c |= s.colProtOf(k, sl) // static_colourprot.go
 	}
@@ -49,7 +64,7 @@ func (s *State) protQuality(k *prep, sl, srcSl Slot, srcCard CardID) bool {
 //
 //go:noinline
 func (s *State) protQualityAt(k *prep, sl, srcSl Slot, srcCard CardID, sba bool) bool {
-	if f := k.t.Cards[s.cardAt(sl)].ProtFrom; f != 0 && !s.genLost(k, sl) && s.protMatch(k, f, sl, srcSl, srcCard) {
+	if f := k.t.Cards[s.cardAt(sl)].ProtFrom; f != 0 && !s.genLost(k, sl) && s.protMatchPrinted(k, f, sl, srcSl, srcCard) {
 		return true
 	}
 	return k.gen.anyProtGrant && (s.protOvF(k, sl, srcSl, srcCard, sba) || s.protGranted(k, sl, srcSl, srcCard, sba) || s.protYours(k, sl, srcSl, srcCard))
@@ -165,14 +180,34 @@ func (s *State) protOvMatch(k *prep, f kop.FilterID, sl, srcSl Slot, srcCard Car
 // protMatch: the protection quality filter f matches the source, read for
 // a permanent controlled as sl is.
 func (s *State) protMatch(k *prep, f kop.FilterID, sl, srcSl Slot, srcCard CardID) bool {
+	return s.protMatchCw(k, f, sl, srcSl, srcCard, NoObj)
+}
+
+// protMatchPrinted is protMatch reading the printed quality filter as the
+// protected card's face: the colour-word statics rewrite its colour words
+// (static_colorwords.go), so a Protection from black clause reads its chosen
+// colour. A granted quality (protGranted's) is read as its grant's face.
+func (s *State) protMatchPrinted(k *prep, f kop.FilterID, sl, srcSl Slot, srcCard CardID) bool {
+	return s.protMatchCw(k, f, sl, srcSl, srcCard, s.perms[sl].obj)
+}
+
+// protMatchCw is protMatch with the colour-word rewrite read on cwObj's face
+// (NoObj: the resolving or built spell's, the default).
+func (s *State) protMatchCw(k *prep, f kop.FilterID, sl, srcSl Slot, srcCard CardID, cwObj Obj) bool {
 	p := s.perms[sl].ctrl
 	if srcSl != NoSlot && s.occ.has(srcSl) {
-		return s.matchPermGen(k, f, srcSl, p, NoSlot, layerFull)
+		return s.matchPermGenCw(k, f, srcSl, p, NoSlot, layerFull, cwObj)
 	}
 	if x := s.protSpellXMV(k, srcCard); x != 0 {
 		ctx := s.ctxCur()
+		ctx.cwObj = cwObj
 		ctx.xmv = x
 		return s.matchCardChain(k, f, srcCard, p, p, NoObj, &ctx)
+	}
+	if k.anyColorWords {
+		ctx := s.ctxCur()
+		ctx.cwObj = cwObj
+		return s.matchCardGenAt(k, f, srcCard, p, p, NoObj, &ctx)
 	}
 	return s.matchCardGen(k, f, srcCard, p, p, NoObj)
 }

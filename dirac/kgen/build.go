@@ -1113,6 +1113,7 @@ func (cb *cardBuilder) record() error {
 	}
 	if cb.pt.textWords {
 		d.TextWords = c.TextWords
+		d.CWUnmodelled = c.CWUnmodelled
 	}
 	d.Leyline = c.Leyline
 	d.LeylineGem, d.LeylineCtr, d.LeylineCtrN = c.LeylineGem, c.LeylineCtr, c.LeylineCtrN

@@ -937,6 +937,15 @@ type CardDef struct {
 	// replacement parameter; dirac/kgen textreach.go). Set only in a table
 	// that holds an ExtChangeText, so every other table is unchanged.
 	TextWords uint16
+	// CWUnmodelled is the colour words of TextWords (bits 0..4) the face reads
+	// on a surface the StatColorWords model does not rewrite: a target spec's
+	// filter and the printed Protection keywords are rewritten in place
+	// (dirac/static_colorwords.go); every other surface - the type line, the
+	// SVars, any other ability, trigger, static or replacement parameter -
+	// keeps the stall (display text is inert), so a face with a rewritten word there still stalls
+	// StallTextChange. Set only in a table that holds an ExtChangeText, so
+	// every other table is unchanged.
+	CWUnmodelled uint16
 	// FaceName is a token's or face entry's printed name (its script's
 	// Name: line, "Soldier Token"; lCard.printed): the table Name is the
 	// pool key (the script stem, "w_1_1_soldier"), and the legend rule
