@@ -468,7 +468,8 @@ const (
 	PKNoCall
 	// NoColoredMana$ True on a SpellCast trigger (Void Mirror): the trigger
 	// fires only when no coloured mana was spent to cast the spell (Forge
-	// TriggerSpellAbilityCastOrCopy). Read by trigmatch's SpellCastEval.
+	// TriggerSpellAbilityCastOrCopy, every paying Mana isColorless). Read by
+	// trigmatch's SpellCastEval.
 	PKNoColoredMana
 	PKNoLonger
 	PKNoLooking
