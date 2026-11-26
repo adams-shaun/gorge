@@ -276,6 +276,7 @@ func (e *Engine) checkDelayedTriggers(ev events.Event) {
 		// ValidPlayer$ IsRemembered, so only Effect registrations read it.
 		pc := e.playerSpecCtx(dt.Source)
 		pc.DelayedRemembered = dt.Remembered
+		pc.DelayedRememberedStamps = dt.RememberedStamps
 		pc.Remembered, pc.RememberedBound = dt.Remembered, true
 		if dt.ValidPlayer != "" && !effects.MatchesPlayerSpecCtx(e.G, dt.ValidPlayer, e.G.Active, dt.Controller, pc) {
 			continue
@@ -594,6 +595,7 @@ func (e *Engine) checkEventDelayedTriggers(ev events.Event, lki *state.Object,
 				p, ok := e.delayedEventPlayer(t, ev, lki)
 				pc := e.playerSpecCtx(dt.Source)
 				pc.DelayedRemembered = dt.Remembered
+				pc.DelayedRememberedStamps = dt.RememberedStamps
 				if !ok || !effects.MatchesPlayerSpecCtx(e.G, vp, p, dt.Controller, pc) {
 					continue
 				}
@@ -615,6 +617,7 @@ func (e *Engine) checkEventDelayedTriggers(ev events.Event, lki *state.Object,
 				// LosesGame body's `ValidPlayer$ Player.IsRemembered` reads
 				// only the source card's own list and matches nobody.
 				pc.DelayedRemembered = dt.Remembered
+				pc.DelayedRememberedStamps = dt.RememberedStamps
 				pc.Remembered, pc.RememberedBound = dt.Remembered, true
 				if !ok || !effects.MatchesPlayerSpecCtx(e.G, vp, p, dt.Controller, pc) {
 					continue
