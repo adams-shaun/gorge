@@ -2457,6 +2457,11 @@ var definedAliases = map[string]string{
 	// copies stored them (Supplant Form, Dance of the Dead): the same
 	// capture-excluding set RememberedLKI names.
 	"DirectRemembered": "RememberedLKI",
+	// Player.OpponentOf <referent> -- "each of that player's opponents"
+	// spelled through the OpponentOf prefix (Bounty Board's dies trigger, over
+	// TriggeredCardController): the same set the modelled
+	// definedSpecTriggeredCardOpponent names through its own resolver.
+	"Player.OpponentOf TriggeredCardController": "TriggeredCardOpponent",
 }
 
 // uniqueTargets drops repeated entries, keeping first-occurrence order.
