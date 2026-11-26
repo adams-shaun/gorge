@@ -154,12 +154,23 @@ jobs:
           python3 -m unittest discover -s scripts -p 'docs_slices_test.py'
           args=(--dirac-support dirac/docs/support.md)
           if [ -s .slices/slices-summary.json ]; then args+=(--slices .slices/slices-summary.json); fi
+          carddb=docs/site/support/_generated_carddb.md
+          rm -f "$carddb"
           if git fetch --depth=1 https://github.com/adams-shaun/gorge-compliance.git docs-data 2>/dev/null; then
             d=$(mktemp -d)
             for f in status-A.jsonl status-B.jsonl meta.json; do git show "FETCH_HEAD:$f" > "$d/$f"; done
             args+=("$d/status-A.jsonl" --level-b "$d/status-B.jsonl" --meta "$d/meta.json")
+            # carddb's finished snippet (sections headline, sets, freshness),
+            # rendered by gorge-compliance; gorge only includes it.
+            git show "FETCH_HEAD:sets-carddb.md" > "$carddb" 2>/dev/null || rm -f "$carddb"
           else
             echo "no gorge-compliance docs-data branch; the gorge columns render as not available"
+          fi
+          if [ ! -s "$carddb" ]; then
+            echo "no sets-carddb.md on docs-data; the carddb sections render as not available"
+            for sec in headline sets freshness; do
+              printf '<!-- --8<-- [start:%s] -->\n*carddb data not available.*\n\n<!-- --8<-- [end:%s] -->\n' "$sec" "$sec"
+            done > "$carddb"
           fi
           python3 scripts/docs_sets.py "${args[@]}"
 

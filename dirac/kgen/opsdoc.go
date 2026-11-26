@@ -445,9 +445,12 @@ func opsUsage(pt *poolTables, all []*lCard, bs []built) map[string]map[string]bo
 					add("st:YouHexproof", name)
 				}
 				if st.StFlags&kop.StPanhETB != 0 {
-					if st.Kind == kop.StatIncreaseCost {
+					switch {
+					case st.Kind == kop.StatIncreaseCost:
 						add("st:RaiseLife", name) // StRaiseLife aliases StPanhETB
-					} else {
+					case st.Kind == kop.StatMayPlayFrom:
+						add("st:MayPayEvidence", name) // StMayPayEvidence aliases StPanhETB
+					default:
 						add("st:PanhETB", name)
 					}
 				}
@@ -632,6 +635,7 @@ func opsUsage(pt *poolTables, all []*lCard, bs []built) map[string]map[string]bo
 		filt(d.ProtFrom)
 		if d.SpellCost != (kop.Cost{}) {
 			add("card:SpellCost", name)
+			usageSacHalf(d.SpellCost, name, add)
 		}
 		if d.HasAltAdd {
 			add("card:AltAddCost", name)

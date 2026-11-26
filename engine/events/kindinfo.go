@@ -145,6 +145,7 @@ var kindInfo = [NumKinds]KindInfo{
 	ManaActivate:          {Name: "mana_activate", Trigger: TriggerNone},
 	TokenAttacks:          {Name: "token_attacks", Trigger: TriggerNone},
 	TokenBlocks:           {Name: "token_blocks", Trigger: TriggerNone},
+	ColorWordsSync:        {Name: "color_words_sync", Trigger: TriggerNone, Describe: "{obj}'s colour words change"},
 	XChange:               {Name: "x_change", Trigger: TriggerNone},
 	NoteNumber:            {Name: "note_number", Trigger: TriggerNone, Describe: "{obj} notes {amount}"},
 	ExtraPhase:            {Name: "extra_phase", Trigger: TriggerNone},

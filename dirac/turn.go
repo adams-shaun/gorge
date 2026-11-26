@@ -154,6 +154,7 @@ func (s *State) beginStep(k *prep) {
 		}
 		if k.gen != nil && (k.gen.untapRepl || k.gen.anySkipUntap) {
 			s.untapStepGen(k) // untap replacements of other permanents (act_energy.go)
+			s.ctrlUntapEnd(k) // an Effect's Phase$ Untap end (static_ovendevent.go)
 			return
 		}
 		pre := s.tappedMask(s.active)
@@ -193,6 +194,7 @@ func (s *State) beginStep(k *prep) {
 		if k.gen != nil && k.gen.anyUntapOther {
 			s.untapOthers(k)
 		}
+		s.ctrlUntapEnd(k) // an Effect's Phase$ Untap end (Orcish Farmer; static_ovendevent.go)
 		// the untap step has no priority round, so its end proposes the next
 		// StepChange here: a printed phase-skip rewrites it (gorge's replacement
 		// pass on the proposal, repl_beginphase.go)

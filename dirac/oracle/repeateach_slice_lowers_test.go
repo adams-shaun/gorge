@@ -55,6 +55,11 @@ import (
 // walk; Jetsam casts its graveyard pick free (the play of Defined$ Remembered
 // reads the graveyard straight after the pick that remembered it) and Jetsam's
 // up-to-one graveyard pick rides the counted picks' remember flag in B.
+//
+// Highcliff Felidar (Defined$ You over the greatest-power pick, the post-loop
+// DestroyAll destroying the picks) lowers too: the controller chooses among the
+// repeated opponent's creatures, and the phased-out ones stay out of the
+// comparison set (CR 702.26b).
 func TestRepeatEachSliceLowers(t *testing.T) {
 	if isolate(t) {
 		return
@@ -67,7 +72,8 @@ func TestRepeatEachSliceLowers(t *testing.T) {
 			"Rite of Ruin": 5, "Disciple of Caelus Nin": 10,
 			"Fortunate Few": 6, "Ultimate Magic: Meteor": 10, "Thieves' Auction": 5,
 			"Tariff": 10, "Discovery // Dispersal": 10, "Flotsam // Jetsam": 10,
-			"Bend or Break": 5} {
+			"Highcliff Felidar": 2,
+			"Bend or Break":     5} {
 			if run.casts[name] < min {
 				t.Errorf("only %d %s casts (want %d)", run.casts[name], name, min)
 			}
@@ -269,7 +275,8 @@ var repeatEachSliceWatch = map[string]bool{
 	"Rite of Ruin": true, "Disciple of Caelus Nin": true,
 	"Fortunate Few": true, "Ultimate Magic: Meteor": true, "Thieves' Auction": true,
 	"Tariff": true, "Discovery // Dispersal": true, "Flotsam // Jetsam": true,
-	"Bend or Break": true,
+	"Highcliff Felidar": true,
+	"Bend or Break":     true,
 }
 
 var repeatEachSliceDecks = []fixtureDecks{
@@ -369,9 +376,12 @@ var repeatEachSliceDecks = []fixtureDecks{
 			{Name: "Thieves' Auction", Count: 3},
 			{Name: "Discovery // Dispersal", Count: 4},
 			{Name: "Flotsam // Jetsam", Count: 2},
+			// beside Disciple of Caelus Nin, whose phased-out creatures stay
+			// out of Felidar's greatest-power comparison set
+			{Name: "Highcliff Felidar", Count: 2},
 			{Name: "Llanowar Elves", Count: 2},
 			{Name: "Island", Count: 5}, {Name: "Plains", Count: 5},
-			{Name: "Mountain", Count: 5}, {Name: "Forest", Count: 5}, {Name: "Swamp", Count: 3},
+			{Name: "Mountain", Count: 5}, {Name: "Forest", Count: 4}, {Name: "Swamp", Count: 2},
 		},
 		{
 			{Name: "Grizzly Bears", Count: 2}, {Name: "Hill Giant", Count: 3},

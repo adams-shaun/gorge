@@ -604,6 +604,11 @@ type lInstr struct {
 	// is back in the grant's zone within the duration (lower_zone.go's
 	// continuous case), not only at the version the grant was made at.
 	Follows bool
+	// ConvC: a MayPlay grant whose record lets the controller spend
+	// colourless mana as though it were mana of any colour to cast the card
+	// (kop MayPlayConvC on the emitted C): Abstruse Appropriation's
+	// ManaConversion$ C->AnyColor static (lower_zone.go partitionMayPlay).
+	ConvC bool
 }
 
 func (in lInstr) String() string {
@@ -626,6 +631,9 @@ func (in lInstr) String() string {
 	}
 	if in.Follows {
 		parts = append(parts, "follows")
+	}
+	if in.ConvC {
+		parts = append(parts, "convc")
 	}
 	if len(in.Hyb) != 0 {
 		parts = append(parts, "hyb="+strings.Join(in.Hyb, ","))
@@ -789,6 +797,7 @@ type lCost struct {
 	TapHost        bool // tap the granting host (tapXType<1/OriginalHost>)
 	SacHost        bool // sacrifice the granting host (Sac<1/OriginalHost>), or exile it when HostExile (Exile<1/OriginalHost>)
 	HostExile      bool // SacHost's part exiles the granting host (kop.CostHostExile; an activated ability's cost only)
+	SacHalf        bool // Sac<X/Spec> whose SVar X is Count$Valid Spec.YouCtrl/HalfUp: sacrifice half of those permanents, rounded up, counted at payment (kop.Cost.SacHalf; a spell's own additional cost; lower_raisecost.go)
 	SacExile       bool // Sac/SacN's part is Exile<N/Spec> from the battlefield (kop.Cost.ExileBf; an activated ability's or a spell's additional cost only)
 	TapPowN        int  // tap any number of untapped creatures you control matching TapPowF with total power >= TapPowN (Crew, Saddle; lower_tappower.go)
 	TapPowF        *lFilter
@@ -839,7 +848,7 @@ type lCost struct {
 func (c lCost) pureMana() bool {
 	return !c.Tap && !c.Untap && !c.SacSelf && c.Sac == nil && c.SacN == 0 &&
 		c.DiscardN == 0 && c.DiscardSpec == "" && !c.DiscardHand && !c.DiscardSelf && c.DiscardF == nil && !c.DiscardX && c.Discard2N == 0 && c.Loyalty == 0 && !c.LoyaltyX &&
-		c.SubCtr == 0 && !c.SubCtrX && c.SubAmongN == 0 && c.AddCtr == 0 && c.PayLife == 0 && !c.LifeX && c.LifeBy == nil && !c.LifeIdent && !c.SacX && c.XMin == 0 && c.TapN == 0 && !c.TapHost && !c.SacHost && !c.HostExile && !c.SacExile && c.TapPowN == 0 && !c.Exert &&
+		c.SubCtr == 0 && !c.SubCtrX && c.SubAmongN == 0 && c.AddCtr == 0 && c.PayLife == 0 && !c.LifeX && c.LifeBy == nil && !c.LifeIdent && !c.SacX && !c.SacHalf && c.XMin == 0 && c.TapN == 0 && !c.TapHost && !c.SacHost && !c.HostExile && !c.SacExile && c.TapPowN == 0 && !c.Exert &&
 		c.Forage == nil && c.ExileG == nil && !c.ExileGSelf && c.ExileHandN == 0 && c.Energy == 0 && c.EnergyBy == nil && !c.EnergyX && !c.ReturnSelf &&
 		!c.ExileSelf && !c.ExileStackSelf && c.Return == nil && c.DrawN == 0 && c.DrawBy == nil && c.DamageYouN == 0 && c.BlightN == 0 && c.EvidenceN == 0 && !c.EvidenceX && !c.TapXVar && !c.ExileTrigNew &&
 		c.pureManaTail()
@@ -1094,7 +1103,8 @@ type lAbility struct {
 	Reduce          *lValue // ReduceCost$: the generic reduction of an activated ability's own cost (lower_ownreduce.go)
 	ActCond         lCond   // CheckSVar$/SVarCompare$: activate only if (CR 602.5b)
 	Targets         []lTarget
-	Modes           int // charm: number of modes to choose from
+	Modes           int  // charm: number of modes to choose from
+	GenericChoice   bool // a triggered api:GenericChoice charm: each mode opens with its UnlessCost$ (kop.AfCharmTrigger)
 	// charm: CharmNum$ (the most picks) and MinCharmNum$ (default: the most)
 	ModesPick, ModesMin int
 	RepMax, RepCost     [4]uint8 // charm CanRepeatModes$ (lower_charmrepeat.go): the most each mode is chosen, its pawprint price
@@ -1308,6 +1318,8 @@ type lOverride struct {
 	AsLongAsControl   bool     // Pump Duration$ AsLongAsControl: WhileHost, gated on and ended by the host's control (kop.Override.AsLongAsControl)
 	CantAttack        bool     // HiddenKeywords$ CARDNAME can't attack or block. (with AddKw CantBlock)
 	UntilEndCombat    bool     // Pump Duration$ UntilEndOfCombat: the kernel drops the record leaving the end-of-combat step
+	UntilCtrlUntap    bool     // an Effect's Phase$ Untap end (Orcish Farmer): the record ends as its controller's untap step does (kop.Override.UntilCtrlUntap)
+	UntilCast         *lFilter // an Effect's SpellCast end (Soul Sculptor): the record ends when its resolver casts a spell matching this filter (kop.Override.UntilCast)
 	Banding           bool     // a granted Banding (KW$ Banding): no KwMask bit is free, so the record carries it (kop.Override.Banding)
 	Horsemanship      bool     // a Duration$ Permanent KW$ Horsemanship grant: no KwMask bit, so the record carries it (kop.Override.Horsemanship)
 	MustBeBlocked     bool     // HiddenKeywords$ CARDNAME must be blocked if able.: emitOverride follows the record with ExtMustBeBlocked on the same ref (not a record field)
@@ -1369,7 +1381,7 @@ type lCard struct {
 	PTStar         bool
 	NoPT           bool     // the face prints no power or toughness (CardDef.NoPT)
 	TwoSeat        bool     // the lowering holds only for 2 players (CardDef.TwoSeat, set by lowerCtx.twoSeat)
-	HasChangeText  bool     // a ChangeText body lowered (textreach.go): the pool's cards carry CardDef.TextWords
+	HasChangeText  bool     // a ChangeText body or a ColorWords static lowered (textreach.go, lower_colorwords.go): the pool's cards carry CardDef.TextWords
 	TextWords      uint16   // the colour and basic land type words the face reads (textreach.go); copied to CardDef.TextWords in such a pool
 	TwoSeatWhy     []string // the reasons that set TwoSeat, in first-seen order (TestTwoSeatReasons)
 	Loyalty        int

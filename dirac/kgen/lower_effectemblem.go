@@ -341,6 +341,10 @@ func (lc *lowerCtx) effectEmblemStaticHost(s cards.Static, host bool) (lStatic, 
 		// gorge cantBeCastParamsReadableKeys; the lowering consumes the
 		// subset the kernel's cast gate reads, the rest refuses as unread
 		keys = map[string]bool{"Mode": true, "ValidCard": true, "Caster": true, "Origin": true, "NumLimitEachTurn": true, "AffectedZone": true, "Phases": true, "Condition": true, "ClassBand": true, "IsPresent": true, "PresentCompare": true, "PresentZone": true, "CheckSVar": true, "SVarCompare": true, "Description": true}
+	case "CantPlayLand":
+		// gorge CantPlayLandParamsReadable's keys; the hand lock is the one
+		// shape the kernel's land gate reads (cast_cantplayland.go)
+		keys = map[string]bool{"Mode": true, "Player": true, "ValidPlayer": true, "Origin": true, "Description": true, "Secondary": true}
 	case "CastWithFlash":
 		if lc.face != nil && lc.face.Name == "Complete the Circuit" {
 			// the grant beside a delayed SpellCast copy trigger: the lockstep
@@ -411,6 +415,10 @@ func (lc *lowerCtx) effectEmblemStaticHost(s cards.Static, host bool) (lStatic, 
 			// Card.Self binds the card's own object; an emblem has none
 			return lStatic{}, refuse("Effect static CantBeCast lowered to %s over its own card", st.Kind)
 		}
+	} else if s.Mode == "CantPlayLand" {
+		if st.Kind != "CantPlayLand" {
+			return lStatic{}, refuse("Effect static CantPlayLand lowered to %s", st.Kind)
+		}
 	} else if s.Mode == "Continuous" {
 		switch st.Kind {
 		case "CantBlock", "ExtraLandPlay", "NoMaxHandSize", "Continuous", "Override",
@@ -428,6 +436,11 @@ func (lc *lowerCtx) effectEmblemStaticHost(s cards.Static, host bool) (lStatic, 
 			if fl == "SelfStack" {
 				return lStatic{}, refuse("Effect static stack grant with EffectZone Stack")
 			}
+		}
+		if st.Kind == "StackKw" && len(st.Kw) == 1 && st.Kw[0] == "Rebound" {
+			// a granted Rebound runs the carrier card's recast body
+			// (kw_rebound.go reboundPlan); an emblem has no card
+			return lStatic{}, refuse("Effect static stack grant of Rebound")
 		}
 	}
 	if host {

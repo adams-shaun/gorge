@@ -1,0 +1,24 @@
+# A throwaway pod that mounts the carddb volume read-write and waits, so a copy of the current carddb can be
+# pushed in:   kubectl --context k3d-bm -n gorge cp <carddb dir>/. carddb-seed:/carddb
+# gorge-pod.sh seed does it (and deletes the pod after). Not part of kustomization.yaml.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: carddb-seed
+  namespace: gorge
+spec:
+  restartPolicy: Never
+  securityContext:
+    fsGroup: 10001
+  containers:
+    - name: seed
+      image: busybox:1.37.0
+      command: ["sleep", "3600"]
+      resources:
+        requests: {cpu: 10m, memory: 16Mi}
+        limits: {cpu: 200m, memory: 64Mi}
+      volumeMounts:
+        - {name: carddb, mountPath: /carddb}
+  volumes:
+    - name: carddb
+      persistentVolumeClaim: {claimName: carddb}

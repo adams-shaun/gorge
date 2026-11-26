@@ -12,8 +12,8 @@ machine and a `main` checkout, so most of these hurt someone else.
 - **Don't `git checkout` inside another worktree.** It discards that session's
   uncommitted work. Back it up with `cp`, or make a WIP commit first.
 - **Don't use a worktree without `.cards/`.** A bare `git worktree add`
-  carries only tracked files: link the main checkout's `.cards` into it
-  (`ln -s <main>/.cards .cards`) and check the link resolves.
+  carries only tracked files: run `scripts/link-cards.sh` in it (the corpus of this tree's
+  own `FORGE_REF`, not the main checkout's, which may sit on another ref) and check the link resolves.
   Without the corpus, tests skip and read green.
 - **Don't `git add -A`.** Stage explicit paths.
 - **Don't leave a worktree behind after its merge.** Stale worktrees double

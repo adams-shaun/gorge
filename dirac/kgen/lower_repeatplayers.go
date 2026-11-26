@@ -193,20 +193,32 @@ var repeatPlayerOps = map[string]bool{
 }
 
 // repeatChooseGreatest lowers Gix's Command's fourth mode body: RepeatEach
-// Player.Opponent whose body is one ChooseCard by the repeated player of
-// "a creature with the greatest power among creatures they control"
-// (Choices$ Creature.greatestPowerControlledByRemembered, Mandatory$,
-// RememberChosen$; gorge choose_control.go), the SacrificeAll IsRemembered
-// after the loop reading it. The greatest power is the repeated player's
-// (Count$Valid Creature.RememberedPlayerCtrl, kop.CtrlEachPl), read inside
-// the body at any seat count; the chooser's filter is a creature it
-// controls with power >= that (kop.PredPowerGEV). ok false: not this shape.
+// Player.Opponent whose body is one ChooseCard of "a creature with the
+// greatest power among creatures they control" (Choices$
+// Creature.greatestPowerControlledByRemembered, Mandatory$, RememberChosen$;
+// gorge choose_control.go), the SacrificeAll IsRemembered after the loop
+// reading it. Defined$ Player.IsRemembered is the repeated player choosing for
+// herself (Gix's Command); Defined$ You is the resolving controller choosing
+// among the repeated opponent's creatures (Highcliff Felidar). Both read the
+// same repeated-player aggregate; only the chooser differs. The greatest power
+// is the repeated player's (Count$Valid Creature.RememberedPlayerCtrl,
+// kop.CtrlEachPl), read inside the body at any seat count; the chooser's
+// filter is a creature of the repeated player's with power >= that
+// (kop.PredPowerGEV). ok false: not this shape.
 func (lc *lowerCtx) repeatChooseGreatest(who lRef, body *cards.SA) (bool, error) {
 	if body.API != "ChooseCard" || body.Sub != nil || who.Kind != rEachOpp {
 		return false, nil
 	}
 	ps := newParams(body.Params)
-	if ps.str("Choices") != "Creature.greatestPowerControlledByRemembered" || ps.str("Defined") != "Player.IsRemembered" {
+	if ps.str("Choices") != "Creature.greatestPowerControlledByRemembered" {
+		return false, nil
+	}
+	chooser := lRef{Kind: rEach}
+	switch ps.str("Defined") {
+	case "Player.IsRemembered":
+	case "You":
+		chooser = lRef{Kind: rYou}
+	default:
 		return false, nil
 	}
 	if !ps.is("Mandatory", "True") || !ps.is("RememberChosen", "True") {
@@ -225,10 +237,10 @@ func (lc *lowerCtx) repeatChooseGreatest(who lRef, body *cards.SA) (bool, error)
 	if err != nil {
 		return true, err
 	}
-	f := &lFilter{Clauses: []lClause{{Types: tCreature, Ctrl: whoYou, CmpStat: cmpPower, CmpOp: opGE, CmpV: &maxV}}}
+	f := &lFilter{Clauses: []lClause{{Types: tCreature, Ctrl: whoEachPl, CmpStat: cmpPower, CmpOp: opGE, CmpV: &maxV}}}
 	at := len(lc.ab.Prog)
 	lc.emit(lInstr{Op: "RepeatEach", Obj: who, C: 1})
-	lc.emit(lInstr{Op: "ChooseCard", Obj: lRef{Kind: rEach}, F: f, C: zBattlefield, CS: "Remember"})
+	lc.emit(lInstr{Op: "ChooseCard", Obj: chooser, F: f, C: zBattlefield, CS: "Remember"})
 	lc.ab.Prog[at].Skip = len(lc.ab.Prog) - at - 1
 	return true, nil
 }
@@ -247,8 +259,7 @@ func (lc *lowerCtx) repeatChooseGreatest(who lRef, body *cards.SA) (bool, error)
 // inside the loop so it sees the iteration's player; each candidate clause
 // compares its own mana value against it with == (ties match, gorge
 // filter.go's greatestCMC branch). The greatest-power spelling stays with
-// Gix's Command's own lowering (repeatChooseGreatest); Highcliff Felidar
-// (Defined$ You) refuses, see the lockstep-gaps ticket.
+// repeatChooseGreatest (Gix's Command, Highcliff Felidar).
 func (lc *lowerCtx) chooseCardFilter(choices string, chooserEach bool) (*lFilter, error) {
 	if lc.repeatPl > 0 && chooserEach {
 		switch choices {
