@@ -77,19 +77,9 @@ func (s *State) costPartDisjoint(k *prep, p uint8, sl Slot, c *kop.Cost, mana *k
 // such a source is a tap candidate whose use takes its restricted mana away,
 // never a free one (CR 601.2g-h; gorge planReserving).
 func (s *State) costPartDisjointD(k *prep, p uint8, sl Slot, c *kop.Cost, mana *kop.ManaCost, av *avail, pm uint8, rd *payDesc) bool {
-	return s.costPartDisjointR(k, p, sl, c, mana, av, pm, rd, false)
-}
-
-// costPartDisjointR is costPartDisjointD with sacRes set for a Sac part whose
-// every mana-making candidate is reserved from the mana (a plain land
-// sacrificed is gone, so it is not also tapped; a tapped candidate stays a free
-// one, its mana is not in av): the RaiseCost raise pick's folded part in
-// gorge's target-ask probe (cost_abraise.go abRaiseSacShort).
-func (s *State) costPartDisjointR(k *prep, p uint8, sl Slot, c *kop.Cost, mana *kop.ManaCost, av *avail, pm uint8, rd *payDesc, sacRes bool) bool {
 	f := c.Flags
 	tapX := f&kop.CostTapX != 0
 	selfTap := f&kop.CostTap != 0
-	sacRes = sacRes && !tapX
 	var cons [MaxPerm]Slot
 	nc, free := 0, 0
 	for m := s.ctrlM[p]; m.any(); m = m.rest() {
@@ -104,10 +94,6 @@ func (s *State) costPartDisjointR(k *prep, p uint8, sl Slot, c *kop.Cost, mana *
 			free++ // its {T} already took its mana out of av
 			continue
 		}
-		if sacRes && s.perms[x].flags&pfTapped != 0 {
-			free++ // a tapped candidate's mana is not in av
-			continue
-		}
 		if tapX && av.ungr && k.gen != nil && s.manaGranted(k, x) && !s.restrUnitIn(k, p, x, rd) {
 			// the ungranted census holds no unit of a source whose only mana
 			// is a granted ability: tapping it for the part takes nothing out
@@ -119,7 +105,7 @@ func (s *State) costPartDisjointR(k *prep, p uint8, sl Slot, c *kop.Cost, mana *
 		}
 		pc := s.manaPCAt(k, x)
 		sacOnly := s.canSacOnlyNow(k, x, pc)
-		if !s.canTapForManaPC(k, x, pc) && !sacOnly || !tapX && !sacRes && !(pc.manaSac || sacOnly) {
+		if !s.canTapForManaPC(k, x, pc) && !sacOnly || !tapX && !(pc.manaSac || sacOnly) {
 			if tapX && rd != nil && nc < len(cons) {
 				if _, ok := s.restrTapUnit(k, p, x, rd); ok {
 					cons[nc] = x
