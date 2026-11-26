@@ -28,18 +28,19 @@ func replayCmd5ReproUnverified(t *testing.T, name string, at int, field string) 
 		t.Fatalf("set cmd5: %v", err)
 	}
 	set = cardset.AllowUnverified(set)
-	m, err := r.Matchup(synthReg(t))
+	reg := synthReg(t)
+	m, err := r.Matchup(reg)
 	if err != nil {
 		t.Fatal(err)
 	}
-	entries := func(names []string) []cardset.Entry {
-		es := make([]cardset.Entry, len(names))
-		for i, n := range names {
-			es[i] = cardset.Entry{Name: n, Count: 1}
-		}
-		return es
+	// A pod records its further seats in MoreCards: build the table over
+	// every deck, not just the first two.
+	lists := append([][]string{r.Cards[0], r.Cards[1]}, r.MoreCards...)
+	es := make([][]cardset.Entry, len(lists))
+	for i, names := range lists {
+		es[i] = ReproEntries(reg, set, names)
 	}
-	tbl, _, _, err := set.Matchup(entries(r.Cards[0]), entries(r.Cards[1]))
+	tbl, _, err := set.MatchupN(es)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -396,3 +396,16 @@ const (
 	RollDieCoinBatch int16 = 2
 	RollDieCoinMark  int16 = 4
 )
+
+// RollDieCoinNoCall marks a NoCall$ True flip (gorge effFlipCoin's
+// FlipCoinNoCallNote): nobody calls it, so unless a FlipCoinMod static fixed
+// it, it is neither won nor lost and fires no TrigFlippedCoin (CR 705.2;
+// Forge FlipCoinEffect.flipCoin).
+const RollDieCoinNoCall int16 = 8
+
+// TrigNFlipWin / TrigNFlipLose are a TrigFlippedCoin line's Trigger.N
+// (ValidResult$ Win / Lose; 0 fires on either side).
+const (
+	TrigNFlipWin  int16 = 1
+	TrigNFlipLose int16 = 2
+)

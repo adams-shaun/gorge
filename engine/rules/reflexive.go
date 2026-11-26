@@ -168,6 +168,12 @@ func (e *Engine) bindReflexiveContext(id state.ObjID, pt *pendingTrigger) {
 		}
 		e.castReturned[id] = pt.Ctx.Paid.Returned
 	}
+	if pt.Ctx.Paid.CountersRemoved > 0 {
+		if e.castCountersRemoved == nil {
+			e.castCountersRemoved = make(map[state.ObjID]int32)
+		}
+		e.castCountersRemoved[id] = pt.Ctx.Paid.CountersRemoved
+	}
 }
 
 // ptReader is the derived power/toughness read rememberedPTLKI needs.

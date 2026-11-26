@@ -461,4 +461,9 @@ type PaidCostLists struct {
 	// Return part returned to hand (Forge's paid lists "Tapped"/"Returned").
 	Tapped   []state.ObjID
 	Returned []state.ObjID
+	// CountersRemoved is the number of counters the cost's SubCounter parts
+	// removed (Forge's CostRemoveCounter sets the ability's
+	// CostCountersRemoved SVar to it): Jar of Eyeballs' and Molten Hydra's
+	// SVar$CostCountersRemoved, "the number of counters removed this way".
+	CountersRemoved int32
 }

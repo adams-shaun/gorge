@@ -39,6 +39,9 @@ type poolTables struct {
 	svarNames []string         // the SVar names ExtStoreNum writes, first-use order (index = kop.Table.SVarNames; lower_storenum.go)
 
 	cyclingAlt bool // some lowered card carries a StatCyclingAlt static: every cycling ability gets its twin (build_cyclingalt.go)
+	// costProgs are the pool's cost programs (kop.Table.CostProgs, lower_costprog.go): nil until one is interned, [0] unused
+	costProgs   [][]kop.CostAtom
+	costProgKey map[string]uint16
 }
 
 // ovSub carries an override's subtype sets as pool subtype indexes (the
@@ -2574,9 +2577,11 @@ var exprKinds = map[valKind]kop.ExprKind{
 	vJoinForces:         kop.ExJoinForces, // lower_storesvar.go
 	vExileKw:            kop.ExStaticExileKw,
 	vCmdGreatestMV:      kop.ExCmdGreatestMV,
-	vDmgOppsTaken:       kop.ExDmgOppsTaken,   // lower_bloodthirst.go
-	vSrcRemCounters:     kop.ExSrcRemCounters, // lower_tokenrem.go
-	vVoteTally:          kop.ExVoteTally,      // lower_vote.go
+	vDmgOppsTaken:       kop.ExDmgOppsTaken,         // lower_bloodthirst.go
+	vMaxOppDmgTaken:     kop.ExMaxOppDamageThisTurn, // value.go: MaxOppDamageThisTurn
+	vSrcRemCounters:     kop.ExSrcRemCounters,       // lower_tokenrem.go
+	vVoteTally:          kop.ExVoteTally,            // lower_vote.go
+	vCardBasePower:      kop.ExCardBasePower,        // Count$CardBasePower
 }
 
 func (cb *cardBuilder) expr(v lValue) (kop.Expr, error) {

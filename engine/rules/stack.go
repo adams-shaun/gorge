@@ -471,6 +471,7 @@ func (e *Engine) resolveTop() {
 		ctx.Paid.CounterPut = e.castCounterPut[id]
 		ctx.Paid.Tapped = e.castTapped[id]
 		ctx.Paid.Returned = e.castReturned[id]
+		ctx.Paid.CountersRemoved = e.castCountersRemoved[id]
 		if link, ok := e.sourceLifelinkLKI[id]; ok {
 			ctx.Snap.SourceLifelink = link
 			ctx.Snap.SourceLifelinkValid = true
@@ -791,6 +792,7 @@ func (e *Engine) resolveTop() {
 		ctx.Paid.CounterPut = e.castCounterPut[id]
 		ctx.Paid.Tapped = e.castTapped[id]
 		ctx.Paid.Returned = e.castReturned[id]
+		ctx.Paid.CountersRemoved = e.castCountersRemoved[id]
 		effects.SetSVars(ctx, f.SVars)
 		// CR 601.2b: a modal spell's choice was recorded on its proposal before
 		// targets and payment. Pre-seeding Modes makes effCharm execute exactly

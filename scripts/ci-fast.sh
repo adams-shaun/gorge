@@ -73,6 +73,25 @@ while IFS=$'\t' read -r m p r; do
   [ "$p" = ./dirac/oracle ] && to=15m
   go test -timeout "$to" -short -run "$r" "$p" || rc=1
 done <<<"$list"
+# Derived records: freshness tests for generated files, which `test-targets.sh list` does not select — the diff
+# changes an input (a manifest entry, a wire type, a decision kind), never the generated file itself. Three cases
+# in ~3 h on 11-26: #5248 added a StatDefiler entry under dirac/manifest/ without regenerating
+# dirac/kop/manifest_gen.go (fast and lint green, the queue's precheck red on TestManifestGenIsCurrent and
+# TestKopOrdinalsUnchanged); #5315 added Decision.DivideTotal without regenerating docs/site/api/openapi.json/yaml
+# and schemas/gorge-protocol.schema.json (the queue red on TestOpenAPISchemasMatchGo); #4896 was a derived-record
+# rise that only pr-precheck's pr-derived.sh caught. Both tests are cheap (measured 11-26 on main:
+# TestManifestGenIsCurrent 46 s, the four TestOpenAPI checks 12 s) and are diff-scoped: a web-only or oracle-only
+# PR must not pay a ./dirac compile. A pathspec `dir/*` matches recursively (git's fnmatch has no PATHNAME flag).
+# The diff is captured, not piped into grep -q: under pipefail, git diff's next write after grep exits at the first
+# match gets SIGPIPE and the if reads false, silently skipping exactly on the large PRs (pr-precheck.sh 11-26).
+if [ -n "$(git diff --name-only "$1"...HEAD -- 'dirac/manifest/*' 'dirac/kop/*' 'dirac/cmd/kmanifest/*' 'dirac/kgen/*' 2>/dev/null)" ]; then
+  echo "ci-fast: the diff touches a manifest or kmanifest input; running TestManifestGenIsCurrent"
+  bg derived-manifest go test -timeout 5m -short -run '^TestManifestGenIsCurrent$' ./dirac
+fi
+if [ -n "$(git diff --name-only "$1"...HEAD -- 'server/*' 'engine/decision/*' 'docs/site/api/*' 2>/dev/null)" ]; then
+  echo "ci-fast: the diff touches a wire type or decision kind; running the four OpenAPI freshness checks"
+  bg derived-openapi go test -timeout 5m -short -run '^TestOpenAPI(RoutesMatchSpec|SchemasMatchGo|YAMLIsRendered|ProtocolSchemaIsRendered)$' ./server/host/httpapi
+fi
 # Always, whatever the diff selects: nothing under .ds4/ (seat scratch) is tracked. A seat that force-adds a .ds4
 # report passes its own targeted tests and only a batch shard catches it (11-23: #3835 reddened batches 4024 and
 # 4074 with .ds4/report-cs1.md). The test reads git ls-files only, in milliseconds. It and the named rows above run

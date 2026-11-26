@@ -13,8 +13,8 @@ package dirac
 // too, which gives poison rather than life loss), after prevention; cleared
 // as the turn changes. Life loss that is not damage does not count. It costs
 // no State bytes: a cold-buffer record (coldDmgT) that exists only for
-// a table reading ExDmgOppsTaken (genPrep.anyDmgTaken); without it nothing
-// is recorded and the read is 0.
+// a table reading ExDmgOppsTaken or ExMaxOppDamageThisTurn (genPrep.anyDmgTaken);
+// without either nothing is recorded and the read is 0.
 
 // dmgTakenCold is the per-player tally, nil when the table has none.
 func (s *State) dmgTakenCold() []int16 { return coldDmgT.of(s) }
@@ -72,4 +72,24 @@ func (s *State) oppsDmgTaken(p uint8) int {
 		}
 	}
 	return v
+}
+
+// maxOppDmgTaken is the most damage any one living opponent of p was dealt
+// this turn (gorge count_cov3.go evalCov3HeadMaxOppDamageThisTurn, Count$
+// MaxOppDamageThisTurn; Spinerock Knoll's Hideaway Play gate). An empty
+// group, or a table that reads neither this nor ExDmgOppsTaken, reads 0.
+func (s *State) maxOppDmgTaken(p uint8) int {
+	t := s.dmgTakenCold()
+	if t == nil {
+		return 0
+	}
+	best := 0
+	for q := uint8(0); q < s.nSeats(); q++ {
+		if q != p && !s.out(q) {
+			if v := int(t[q]); v > best {
+				best = v
+			}
+		}
+	}
+	return best
 }
