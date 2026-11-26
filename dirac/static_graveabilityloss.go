@@ -288,3 +288,16 @@ func (s *State) graveFbViewGrants(k *prep, o Obj, stamp uint16) uint8 {
 	}
 	return 0
 }
+
+// graveLeaveLost judges the loss for a graveyard card o about to leave for
+// zone to, as gorge's trigger walk does (trigger_match.go lossObj; CR
+// 603.10a): an ability that triggers when a card leaves a graveyard looks
+// back at the card as it was before the move, so the answer is read while o
+// is still in the graveyard. A card moving to the battlefield is judged on
+// the new object, which no graveyard removal reaches. Call it BEFORE detach.
+func (s *State) graveLeaveLost(k *prep, o Obj, to kop.Zone) (stamp uint16, lost bool) {
+	if to == kop.ZoneBattlefield {
+		return 0, false
+	}
+	return s.graveAbilitiesLost(k, o)
+}

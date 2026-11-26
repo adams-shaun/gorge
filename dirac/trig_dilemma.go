@@ -46,6 +46,9 @@ func (s *State) faceDilemma(k *prep, p uint8) {
 					if a.Kind != kop.AbTriggered || a.Trig.Zone != kop.ZoneGraveyard || a.Trig.Event != kop.TrigFacesDilemma {
 						continue
 					}
+					if s.gravePrintedHidden(k, o) {
+						continue // the card lost all abilities in the graveyard (static_graveabilityloss.go)
+					}
 					s.playerTrigGen(k, kop.TrigFacesDilemma, trigListener{obj: o, sl: NoSlot, ctrl: pp, card: c, ab: uint8(j)}, a, p, 0)
 				}
 			}

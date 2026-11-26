@@ -387,6 +387,9 @@ func (s *State) fireCrime(k *prep, actor uint8) {
 					if a.Kind != kop.AbTriggered || a.Trig.Zone != kop.ZoneGraveyard || a.Trig.Event != kop.TrigCommitCrime {
 						continue
 					}
+					if s.gravePrintedHidden(k, o) {
+						continue // the card lost all abilities in the graveyard (static_graveabilityloss.go)
+					}
 					l := trigListener{obj: o, sl: NoSlot, ctrl: pp, card: c, ab: uint8(j)}
 					b := s.npend
 					s.playerTrigGen(k, kop.TrigCommitCrime, l, a, actor, 0)

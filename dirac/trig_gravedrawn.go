@@ -40,6 +40,9 @@ func (s *State) fireGraveDrawn(k *prep, who uint8, amt int16) {
 					if a.Kind != kop.AbTriggered || a.Trig.Zone != kop.ZoneGraveyard || a.Trig.Event != kop.TrigDrawn {
 						continue
 					}
+					if s.gravePrintedHidden(k, o) {
+						continue // the card lost all abilities in the graveyard (static_graveabilityloss.go)
+					}
 					s.playerTrigGen(k, kop.TrigDrawn, trigListener{obj: o, sl: NoSlot, ctrl: pp, card: c, ab: uint8(j)}, a, who, amt)
 				}
 			}

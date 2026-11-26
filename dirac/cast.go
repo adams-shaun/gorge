@@ -2146,7 +2146,7 @@ func (s *State) castTrigGraves(k *prep, e *stackEntry) {
 				}
 				for j := range cd.Abilities {
 					a := &cd.Abilities[j]
-					if a.Kind == kop.AbTriggered && a.Trig.Zone == kop.ZoneGraveyard && a.Trig.Event == kop.TrigSpellCast {
+					if a.Kind == kop.AbTriggered && a.Trig.Zone == kop.ZoneGraveyard && a.Trig.Event == kop.TrigSpellCast && !s.gravePrintedHidden(k, o) {
 						s.castTrigGen(k, trigListener{obj: o, sl: NoSlot, ctrl: pp, card: c, ab: uint8(j)}, a, e)
 					}
 				}

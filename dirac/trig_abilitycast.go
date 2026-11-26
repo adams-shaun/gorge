@@ -188,6 +188,9 @@ func (s *State) fireAbilityCast(k *prep, e *stackEntry) {
 					if a.Kind != kop.AbTriggered || a.Trig.Zone != kop.ZoneGraveyard || a.Trig.Event != kop.TrigAbilityCast {
 						continue
 					}
+					if s.gravePrintedHidden(k, o) {
+						continue // the card lost all abilities in the graveyard (static_graveabilityloss.go)
+					}
 					l := trigListener{obj: o, sl: NoSlot, ctrl: pp, card: c, ab: uint8(j)}
 					amt, ok := s.abilityCastFires(k, e, l, a)
 					if !ok {

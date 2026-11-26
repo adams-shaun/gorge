@@ -35,6 +35,9 @@ func (s *State) fireGraveDamage(k *prep, src Slot, o Obj, ctrl uint8, amt int16,
 					if a.Kind != kop.AbTriggered || a.Trig.Zone != kop.ZoneGraveyard || a.Trig.Event != kop.TrigDamageDone {
 						continue
 					}
+					if s.gravePrintedHidden(k, ob) {
+						continue // the card lost all abilities in the graveyard (static_graveabilityloss.go)
+					}
 					t := &a.Trig
 					if t.Flags&kop.TfSelf != 0 || t.Flags&kop.TfCombat != 0 && !combat || t.Flags2&kop.Tf2NonCombat != 0 && combat {
 						continue // a graveyard card is never its own damage source

@@ -114,3 +114,83 @@ func TestGraveAbilityLossHidesFlashback(t *testing.T) {
 		t.Error("flashback not offered again once the Jailer left")
 	}
 }
+
+// TestGraveAbilityLossLeaveLookBack: a card leaving the graveyard for another
+// zone is judged before the move (CR 603.10a), where the removal still
+// applies; one moving to the battlefield is judged on the new object. After
+// the move the plain predicate no longer sees a graveyard card, which is why
+// the look-back reads first.
+func TestGraveAbilityLossLeaveLookBack(t *testing.T) {
+	tbl, jailer := graveLossTable()
+	sc := newScenTable(t, &tbl, Config{NoElide: true})
+	s, k := sc.s, sc.k
+	card := sc.grave(v.ThinkTwice, 0, 1)[0]
+	if _, lost := s.graveLeaveLost(k, card, kop.ZoneHand); lost {
+		t.Fatal("look-back lost with no Jailer on the battlefield")
+	}
+	sc.perm(jailer, 1)
+	for _, z := range []kop.Zone{kop.ZoneHand, kop.ZoneExile, kop.ZoneLibrary, kop.ZoneGraveyard} {
+		if _, lost := s.graveLeaveLost(k, card, z); !lost {
+			t.Errorf("a card leaving for zone %v is judged lost before the move", z)
+		}
+	}
+	if _, lost := s.graveLeaveLost(k, card, kop.ZoneBattlefield); lost {
+		t.Error("a card moving to the battlefield is judged on the new object, not lost")
+	}
+	DebugNoGraveLoss = true
+	_, lost := s.graveLeaveLost(k, card, kop.ZoneHand)
+	DebugNoGraveLoss = false
+	if lost {
+		t.Error("DebugNoGraveLoss did not silence the look-back")
+	}
+	// the card has left: the live predicate answers for a graveyard card only
+	s.detach(card)
+	if _, lost := s.graveAbilitiesLost(k, card); lost {
+		t.Error("the live predicate read a card that already left the graveyard")
+	}
+}
+
+// TestGraveAbilityLossHidesTrigger: a graveyard card's printed trigger
+// (TriggerZones$ Graveyard) is queued with no Jailer and suppressed, and
+// counted, while one is; the other listeners' order is untouched.
+func TestGraveAbilityLossHidesTrigger(t *testing.T) {
+	tbl, jailer := graveLossTable()
+	tbl.Cards = append([]kop.CardDef(nil), tbl.Cards...)
+	tbl.Cards = append(tbl.Cards, kop.CardDef{
+		Name:      "Grave Drawn Test",
+		Types:     kop.TCreature,
+		Power:     1,
+		Toughness: 1,
+		Abilities: []kop.Ability{{
+			Kind: kop.AbTriggered,
+			Trig: kop.Trigger{Event: kop.TrigDrawn, Zone: kop.ZoneGraveyard},
+		}},
+	})
+	watcher := CardID(len(tbl.Cards) - 1)
+	sc := newScenTable(t, &tbl, Config{NoElide: true})
+	s, k := sc.s, sc.k
+	if len(k.gen.graveTrig) == 0 {
+		t.Skip("the table lists no graveyard trigger card")
+	}
+	sc.grave(watcher, 0, 1)
+	queued := func() int {
+		b := s.npend
+		s.fireGraveDrawn(k, 0, 1)
+		return int(s.npend - b)
+	}
+	if queued() != 1 {
+		t.Fatal("precondition: the graveyard Drawn trigger is not queued with no Jailer")
+	}
+	j := sc.perm(jailer, 1)
+	before := GraveLossStats.Hits.Load()
+	if n := queued(); n != 0 {
+		t.Errorf("%d trigger(s) queued although the card lost all abilities", n)
+	}
+	if GraveLossStats.Hits.Load() == before {
+		t.Error("GraveLossStats counted no hit for the suppressed trigger")
+	}
+	s.destroy(k, sc.slot(j))
+	if queued() != 1 {
+		t.Error("the trigger is not queued again once the Jailer left")
+	}
+}
