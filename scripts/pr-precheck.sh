@@ -31,6 +31,14 @@ if ! "${cap[@]}" go test -timeout 3m -run '^TestComplexFunctionsOnlyShrink$|^Tes
   # string compares and failed its batch's test (0), as no affected-package rule selects ./internal/codeshape (#662, 11-17).
   cat "$log"; fail "codeshape: $(grep -o -E '[^ ]+ \([^)]*\) grew to [a-z]+ [0-9]+, above its ceiling of [0-9]+|[A-Za-z]+: measured [0-9]+, above the frozen ceiling of [0-9]+' "$log" | head -1)"
 fi
+# The base-relative function growth rule (cmd/funcgrowth, #5106) runs in lint and in every merge batch; run it here so a
+# PR learns it grew a function past its allowance before the push, not in the queue (11-26: batch #5138's lint failed on
+# featPoolPays 45 -> 52 although each PR passed this script). A tree without the rule yet skips the step. Two PRs that each
+# grow one function inside its allowance can still cross the threshold together: only the batch sees that sum, so keep a
+# function's headroom for the other PRs (extract a helper) instead of using all of it.
+if [ -d cmd/funcgrowth ]; then
+  "${cap[@]}" go run ./cmd/funcgrowth -base "$base" >"$log" 2>&1 || { cat "$log"; fail "funcgrowth: $(grep -m1 -E 'grew to|grew past' "$log" | sed 's/^[[:space:]]*//' | cut -c1-200)"; }
+fi
 # The public boundary scans every tracked file, so no affected-package rule selects it: a test fixture holding a
 # Forge script line verbatim passed the seat's checks and failed fast's TestNoVerbatimForgeLines (#613, 11-17).
 if ! "${cap[@]}" go test -timeout 3m -run '^TestPublicBoundary$|^TestNoVerbatimForgeLines$' ./internal/archtest >"$log" 2>&1; then
