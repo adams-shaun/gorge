@@ -7,13 +7,14 @@ import (
 	v "github.com/adams-shaun/gorge/dirac/vanilla"
 )
 
-// mayPlayHandAltTable is the vanilla table plus three non-granting
+// mayPlayHandAltTable is the vanilla table plus four non-granting
 // alternative-cost may-play statics over the hand (MayPlayDontGrantZonePermissions$
-// True with MayPlayAltManaCost$ 0, PayLife<ConvertedManaCost> or PayEnergy<8>:
-// As Foretold, Demon of Fate's Design and Nissa, Worldsoul Speaker), each
-// once per turn. They open no zone (kop.StMayZeroAlt): the alternative is
-// offered only beside the plain hand cast (offerMayPlayHandAlt).
-func mayPlayHandAltTable() (t *kop.Table, zeroC, lifeC, energyC CardID) {
+// True with MayPlayAltManaCost$ 0, PayLife<ConvertedManaCost>, PayEnergy<8> or
+// CollectEvidence<10>: As Foretold, Demon of Fate's Design, Nissa, Worldsoul
+// Speaker and Conspiracy Unraveler), each once per turn. They open no zone
+// (kop.StMayZeroAlt): the alternative is offered only beside the plain hand
+// cast (offerMayPlayHandAlt).
+func mayPlayHandAltTable() (t *kop.Table, zeroC, lifeC, energyC, evidenceC CardID) {
 	t = v.NewTable()
 	t.Exprs = []kop.Expr{}
 	mk := func(name string, fl kop.StaticFlags, a int) CardID {
@@ -27,7 +28,8 @@ func mayPlayHandAltTable() (t *kop.Table, zeroC, lifeC, energyC CardID) {
 	zeroC = mk("Test Zero Alt", 0, 0)
 	lifeC = mk("Test Life Alt", kop.StMayPayLife, 0)
 	energyC = mk("Test Energy Alt", kop.StMayPayEnergy, 8)
-	return t, zeroC, lifeC, energyC
+	evidenceC = mk("Test Evidence Alt", kop.StMayPayEvidence, 10)
+	return t, zeroC, lifeC, energyC, evidenceC
 }
 
 // handAltOpts steps to the next decision and reports whether it offers the
@@ -69,7 +71,7 @@ func handAltSetup(t *testing.T, tbl *kop.Table, permC CardID) (sc *scen, first, 
 // once-per-turn turn -- the next cast of the same or another card lists the
 // plain cast alone.
 func TestMayPlayHandAltZeroCast(t *testing.T) {
-	tbl, zeroC, _, _ := mayPlayHandAltTable()
+	tbl, zeroC, _, _, _ := mayPlayHandAltTable()
 	sc, first, second := handAltSetup(t, tbl, zeroC)
 
 	plain, alt := handAltOpts(t, sc, first)
@@ -135,7 +137,7 @@ func TestMayPlayHandAltZeroCast(t *testing.T) {
 // value in life) is withheld while the life cannot cover it, offered at or
 // above it, and takes exactly the mana value -- no mana, no energy.
 func TestMayPlayHandAltLifeCast(t *testing.T) {
-	tbl, _, lifeC, _ := mayPlayHandAltTable()
+	tbl, _, lifeC, _, _ := mayPlayHandAltTable()
 	mv := int(v.Table.Cards[v.ThinkTwice].Cost.MV())
 	if mv != 2 {
 		t.Fatalf("precondition: Think Twice has mana value %d, want 2", mv)
@@ -173,7 +175,7 @@ func TestMayPlayHandAltLifeCast(t *testing.T) {
 // static's energy) is withheld under the energy, offered at it, and takes
 // exactly that much energy -- no life, no mana.
 func TestMayPlayHandAltEnergyCast(t *testing.T) {
-	tbl, _, _, energyC := mayPlayHandAltTable()
+	tbl, _, _, energyC, _ := mayPlayHandAltTable()
 	sc, first, _ := handAltSetup(t, tbl, energyC)
 	sc.s.g.energy[0] = 7
 	if _, alt := handAltOpts(t, sc, first); alt {
@@ -200,6 +202,86 @@ func TestMayPlayHandAltEnergyCast(t *testing.T) {
 	}
 	if sc.s.pl[0].life != 14 {
 		t.Fatalf("life after the cast is %d, want 14", sc.s.pl[0].life)
+	}
+}
+
+// TestMayPlayHandAltEvidenceCast: Conspiracy Unraveler's alternative (the
+// static's evidence, CR 701.59a) is withheld while the graveyard's total
+// mana value does not reach it, offered at it, and is paid by exiling the
+// picked graveyard cards -- no life, no energy, no mana.
+func TestMayPlayHandAltEvidenceCast(t *testing.T) {
+	tbl, _, _, _, evidenceC := mayPlayHandAltTable()
+	mv := int(v.Table.Cards[v.ThinkTwice].Cost.MV())
+	if mv != 2 {
+		t.Fatalf("precondition: Think Twice has mana value %d, want 2", mv)
+	}
+	sc := newScenTable(t, tbl, Config{NoElide: true})
+	sc.perm(evidenceC, 0)
+	sc.perm(v.Island, 0)
+	sc.perm(v.Island, 0)
+	first := sc.hand(v.ThinkTwice, 0)
+	sc.grave(v.ThinkTwice, 0, 4) // total mana value 8 < 10
+	if plain, alt := handAltOpts(t, sc, first); !plain || alt {
+		t.Fatalf("at grave total 8: plain %v alt %v, want the plain cast only", plain, alt)
+	}
+	grave := sc.grave(v.ThinkTwice, 0, 1) // total mana value 10
+	tappedIsland := func() int {
+		n := 0
+		for sl := Slot(0); sl < Slot(sc.s.permHi); sl++ {
+			if sc.s.cardAt(sl) == v.Island && sc.s.perms[sl].flags&pfTapped != 0 {
+				n++
+			}
+		}
+		return n
+	}
+	if plain, alt := handAltOpts(t, sc, first); !plain || !alt {
+		t.Fatalf("at grave total 10: plain %v alt %v, want both", plain, alt)
+	}
+	sc.do(t, AkCast, TCode(first), TCode(zeroAltTgt))
+	// the card is on the stack from the push on (CR 601.2a), so the loop
+	// drives the build stages to the next priority, not to the push
+	for i := 0; i < 24; i++ {
+		d := sc.s.Step()
+		if d.N == 0 || d.Kind == DkPriority {
+			break
+		}
+		if d.Kind == DkChoose && d.Sub == ChCostEvidence {
+			// the build's evidence pick: take the Done once the picked total
+			// reaches the static's evidence, else the first grave card
+			done := -1
+			for j := 0; j < int(d.N); j++ {
+				if d.Options[j].Kind() == AkDone {
+					done = j
+				}
+			}
+			if done >= 0 {
+				sc.s.Apply(d.Options[done])
+			} else {
+				sc.s.Apply(d.Options[0])
+			}
+			continue
+		}
+		sc.s.Apply(d.Options[0])
+	}
+	if sc.s.objs[first].zone != kop.ZoneStack {
+		t.Fatalf("the evidence cast did not reach the stack (zone %d)", sc.s.objs[first].zone)
+	}
+	if sc.s.pl[0].life != 20 {
+		t.Fatalf("life after the evidence cast is %d, want 20", sc.s.pl[0].life)
+	}
+	if sc.s.g.energy[0] != 0 {
+		t.Fatalf("energy after the evidence cast is %d, want 0", sc.s.g.energy[0])
+	}
+	if n := tappedIsland(); n != 0 {
+		t.Fatalf("the evidence cast tapped %d mana sources", n)
+	}
+	for _, o := range grave {
+		if sc.s.objs[o].zone != kop.ZoneExile {
+			t.Fatalf("a picked evidence card is in zone %d, want exile", sc.s.objs[o].zone)
+		}
+	}
+	if n := int(sc.s.pl[0].graveN); n != 0 {
+		t.Fatalf("the graveyard holds %d cards after the payment, want none", n)
 	}
 }
 

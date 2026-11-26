@@ -15,7 +15,8 @@ flowchart LR
   G <-->|"lockstep"| D["dirac"]
 ```
 
-Agreement is evidence, not proof. A ruling that gorge is wrong rests on the printed card or the Comprehensive Rules, never on a vote of engines.
+!!! note "Agreement is evidence, not proof"
+    A ruling that gorge is wrong rests on the printed card or the Comprehensive Rules, never on a vote of engines.
 
 <div class="grid cards" markdown>
 

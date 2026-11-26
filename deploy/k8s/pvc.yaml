@@ -1,0 +1,35 @@
+# local-path (the k3d default class) provisions each on first use.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: data
+  namespace: gorge
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 2Gi
+---
+# The Forge card scripts, fetched on first start (GPL-3.0; never in the image).
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: cards
+  namespace: gorge
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 4Gi
+---
+# A copy of the carddb data set, seeded by carddb-seed.yaml; gorged mounts it read-only.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: carddb
+  namespace: gorge
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 1Gi
