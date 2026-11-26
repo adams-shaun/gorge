@@ -12,12 +12,13 @@ import (
 //go:noinline
 func (s *State) priorityHandAct(k *prep, d *Decision, p uint8, sorc bool, av *avail) {
 	pl := &s.pl[p]
+	var altMemo uint8 // the cycling alternative cost's live read (kw_cyclingalt.go)
 	for i := 0; i < int(pl.handN); i++ {
 		o := pl.hand[i]
 		cd := &k.t.Cards[s.objs[o].card]
 		for ai := range cd.Abilities {
 			a := &cd.Abilities[ai]
-			if a.Kind != kop.AbActivated || a.ActZone != kop.ZoneHand {
+			if a.Kind != kop.AbActivated || a.ActZone != kop.ZoneHand || !s.cyclingTwinOffered(k, p, a, &altMemo) {
 				continue
 			}
 			if k.anyCyclingGrant && a.AFlags&kop.AfLatent != 0 && isCyclingGrantBody(cd, ai) {
