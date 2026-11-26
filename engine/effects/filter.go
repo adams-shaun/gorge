@@ -2570,6 +2570,20 @@ func matchPositive(g *state.Game, p string, o *state.Object, sc SpecContext) (re
 		}
 		for _, t := range sc.DelayedRemembered {
 			if !t.IsPlayer && t.Obj == o.ID {
+				// CR 400.7: the registration stamps each remembered object's
+				// Incarnation and ZoneGen at registration (TriggerContext.
+				// DelayedRememberedStamps). One whose stamps differ left the
+				// zone and came back, so it is a NEW object the delayed
+				// trigger cannot find -- Dragonhawk, Fate's Tempest's
+				// "for each of those cards that are still exiled" counts
+				// nothing for a card that was cast out of exile and
+				// Swords to Plowshares'd back in. A stamp-less capture (a
+				// registration that predates stamping, a hand-built context)
+				// keeps the ObjID read: the same direction
+				// dropDelayedRememberedMoved keeps an unstamped target.
+				if lo := g.Obj(o.ID); lo != nil && delayedRememberedStampMoved(lo, sc.DelayedRememberedStamps) {
+					return false, true
+				}
 				return true, true
 			}
 		}
