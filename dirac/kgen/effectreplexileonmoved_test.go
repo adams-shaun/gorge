@@ -27,9 +27,8 @@ func stackExileOps(lc *lCard) []int {
 // OpExt ExtStackExileMark. Lilah, Undefeated Slickshot (trigger form, resolved
 // exit only, owner gate, plot rider) and Nita, Forum Conciliator, Dire Fleet
 // Daredevil and Sins of the Past (grant form) lower whole; Goliath
-// Daydreamer's Effect lowers (its dream counter stalls in the kernel) and the
-// card refuses only on its Play. Each out-of-shape variant still refuses by
-// name.
+// Daydreamer's Effect lowers and so does its Play (the dream counter kind is
+// refused at emit). Each out-of-shape variant still refuses by name.
 func TestLowerEffectReplExileonmoved(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	lowerNamed := func(name string) *lCard {
@@ -82,8 +81,10 @@ func TestLowerEffectReplExileonmoved(t *testing.T) {
 	if strings.Contains(got, "Effect replacement") || strings.Contains(got, "stack-exile") {
 		t.Errorf("Goliath: still refuses on the Effect: %q", got)
 	}
-	if strings.Contains(got, "Play ValidZone$ Exile without IsRemembered") {
-		t.Errorf("Goliath: refusals %q, its dream-counter Play filter lowers (lower_playexilepop.go)", got)
+	// its Play lowers over the exile filter population; the dream-counter kind
+	// is refused later, at emit (play_exilepop_lower_test.go)
+	if got != "" {
+		t.Errorf("Goliath: refusals %q, want none at lowering", got)
 	}
 	if ops := stackExileOps(goliath); len(ops) != 1 || ops[0]&kop.StackExileDream == 0 {
 		t.Errorf("Goliath: StackExileMark C %v, want the dream bit", ops)

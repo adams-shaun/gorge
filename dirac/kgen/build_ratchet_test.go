@@ -19,5 +19,5 @@ func TestCorpusBuildAcceptance(t *testing.T) {
 	}
 	cv := corpusAcceptance(t)
 	t.Logf("ALL build-level: %d of %d build (%v)", cv.lowered, cv.cards, corpusAccTook)
-	checkPin(t, buildAcceptanceTSV, "ALL", "ALL build-level", pin, [2]int{cv.lowered, cv.cards})
+	checkPin(t, buildAcceptanceTSV, "ALL", "ALL build-level", pin, [2]int{cv.lowered, cv.cards}, corpusAccNames)
 }

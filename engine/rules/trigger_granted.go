@@ -1238,8 +1238,16 @@ func (e *Engine) checkGrantedStaticTriggersUsing(observer *Engine, statics []*Co
 // pushes the KeywordTriggerPush payload (the GrantTriggerPush replay shape)
 // instead of a printed TriggerPush.
 func markGrantedKeywordTrigger(pt *pendingTrigger, t *cards.Trigger, line string) {
-	mentor := cards.KeywordHeadIDOf(cards.KeywordHead(line)) == kwhMentor.ID
-	if t.ParamStr(cards.PKEvolve) != "" || mentor {
+	head := cards.KeywordHeadIDOf(cards.KeywordHead(line))
+	mentor := head == kwhMentor.ID
+	// A granted Annihilator (CR 702.86a) carries its body too: its Defined$
+	// TriggeredDefendingPlayer reads the TriggerContext the Granted push
+	// records only when SA is set. Battle cry (CR 702.91a) rides the same
+	// arm so its line is recorded like the printed expansion's.
+	// Undying and Persist (CR 702.93a, 702.79a) carry theirs so the body's
+	// Defined$ TriggeredNewCardLKICopy reads the recorded dies context.
+	if t.ParamStr(cards.PKEvolve) != "" || mentor || head == kwhAnnihilator.ID || head == kwhBattleCry.ID ||
+		head == kwhUndying.ID || head == kwhPersist.ID {
 		pt.SA, pt.Trigger = t.Effect, *t
 	}
 	pt.Mentor = mentor

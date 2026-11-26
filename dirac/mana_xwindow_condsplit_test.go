@@ -45,7 +45,7 @@ func TestXWindowCondSplitTap(t *testing.T) {
 	// loweredWindowOK's walk for an announced-X lowered cast (cast.go bsPay):
 	// clamp = !anyType && !anyColor, noOwed = pipN == 0, takeDeferred = the
 	// X announcement, payAsk false.
-	ok, held := sc.s.windowTapWalk(sc.k, 0, &c, &c, true, false, true, false, true, false, false)
+	ok, held := sc.s.windowTapWalk(sc.k, 0, &c, &c, true, false, true, false, true, false, false, false)
 	if !ok {
 		t.Fatal("the window walk failed")
 	}

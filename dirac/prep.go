@@ -292,8 +292,9 @@ type prep struct {
 	offKwCC    [4]offKwBody
 	offKwCCN   uint8
 	// costObj: some card's cost forages or exiles cards from a graveyard
-	// (kop.CostForage / kop.CostExileGrave; act_forage.go): guards their
-	// payability and pick paths
+	// (kop.CostForage / kop.CostExileGrave; act_forage.go) or is the Close
+	// Encounter choose pick (a.Cost.CloseEnc; cost_closeenc.go, asked by the
+	// same costObjOptions): guards their payability and pick paths
 	costObj bool
 	// subAmong: some ability's cost removes counters from among permanents
 	// (kop.CostSubAmong; kw_training.go): guards its pick
@@ -475,7 +476,7 @@ func prepare(t *kop.Table) *prep {
 		p.teamwork = p.teamwork || c.Teamwork != 0
 		p.entwine = p.entwine || c.Entwine
 		p.offspring = p.offspring || c.Offspring || c.Buyback || c.Entwine
-		p.costObj = p.costObj || (c.SpellCost.Flags|c.AltAddCost.Flags|c.OptCost.Flags|c.KickerCost.Flags|c.FbCost.Flags|c.EscCost.Flags|c.EscBfCost.Flags|c.Repeated.Flags|c.EvokePick.Flags)&costObjFlags != 0 || c.BeholdN != 0 || c.RevealN != 0 || c.HasSneak || c.HasWebSling // a behold part's ask (act_behold.go); a sneak or web-slinging cast's return pick (kw_sneak.go, kw_websling.go); a Squad/Replicate payment's exile part (kw_squadreplicate.go)
+		p.costObj = p.costObj || (c.SpellCost.Flags|c.AltAddCost.Flags|c.AltAddCost2.Flags|c.OptCost.Flags|c.KickerCost.Flags|c.FbCost.Flags|c.EscCost.Flags|c.EscBfCost.Flags|c.Repeated.Flags|c.EvokePick.Flags)&costObjFlags != 0 || c.BeholdN != 0 || c.RevealN != 0 || c.HasSneak || c.HasWebSling || c.SpellCost.CloseEnc // a behold part's ask (act_behold.go); a sneak or web-slinging cast's return pick (kw_sneak.go, kw_websling.go); a Squad/Replicate payment's exile part (kw_squadreplicate.go); the Close Encounter choose pick (cost_closeenc.go)
 		pc.spellAb, pc.manaAb = -1, -1
 		p.tapXAb[i], p.ctrAb[i], p.riderAb[i] = -1, -1, -1
 		// the card's mana is typed by its types (mana_artifact.go) whether
@@ -492,7 +493,7 @@ func prepare(t *kop.Table) *prep {
 			a := &c.Abilities[j]
 			p.anyGate = p.anyGate || a.Gate.Ctr != 0
 			p.anyStateCtr = p.anyStateCtr || a.Kind == kop.AbTriggered && a.Trig.Flags4&kop.Tf4StateCtr != 0
-			p.costObj = p.costObj || a.Cost.Flags&costObjFlags != 0 || a.Cost.PutLibSelf
+			p.costObj = p.costObj || a.Cost.Flags&costObjFlags != 0 || a.Cost.PutLibSelf || a.Cost.CloseEnc
 			p.subAmong = p.subAmong || a.Cost.Flags&kop.CostSubAmong != 0
 			p.bargainRed = p.bargainRed || a.Kind == kop.AbStatic && a.Static.StFlags&kop.StBargained != 0
 			switch a.Kind {

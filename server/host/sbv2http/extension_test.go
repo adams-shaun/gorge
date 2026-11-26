@@ -111,7 +111,7 @@ func TestSBV2ExtensionCarriesLogLabelsPlans(t *testing.T) {
 	key := seatKey{table: "ext", match: 1, seat: 0}
 	ss := hub.seat(key)
 	p := &picker{bot: referenceBot(t, seed)}
-	deadline := time.Now().Add(90 * time.Second)
+	deadline := time.Now().Add(testutil.WaitBudget)
 	nativeSeen := 0
 	decisions := 0
 	sawLog := false
@@ -231,7 +231,7 @@ func TestSBV2ExtensionCarriesLogLabelsPlans(t *testing.T) {
 
 func awaitExtensionRequest(t *testing.T, base string, table host.TableID, ss *seatState, p *picker, pred func(stateBody) bool) (stateBody, []byte) {
 	t.Helper()
-	deadline := time.Now().Add(30 * time.Second)
+	deadline := time.Now().Add(testutil.WaitBudget)
 	path := "/api/sbv2/v1/tables/" + string(table) + "/matches/1/state"
 	for {
 		if time.Now().After(deadline) {
@@ -327,7 +327,7 @@ func TestSBV2ExtensionConcede(t *testing.T) {
 	if status, body := postHumanAction(t, base, "/api/sbv2/v1/tables/concede/matches/1/send", "tok", doc.Request.RequestID, map[string]bool{"concede": true}); status != http.StatusNoContent {
 		t.Fatalf("concede: %d %q", status, body)
 	}
-	deadline := time.Now().Add(10 * time.Second)
+	deadline := time.Now().Add(testutil.WaitBudget)
 	for {
 		if done, _ := matchDone(t, r, "concede"); done {
 			break
@@ -381,7 +381,7 @@ func TestSBV2ExtensionUndo(t *testing.T) {
 	if status, body := postHumanAction(t, base, "/api/sbv2/v1/tables/undo/matches/1/send", "tok", doc.Request.RequestID, map[string]bool{"undo": true}); status != http.StatusNoContent {
 		t.Fatalf("undo: %d %q", status, body)
 	}
-	deadline := time.Now().Add(10 * time.Second)
+	deadline := time.Now().Add(testutil.WaitBudget)
 	for {
 		_, evs := matchHead(t, r, "undo")
 		if evs == beforeEvents {

@@ -185,9 +185,17 @@
       "tier": "cmd",
       "status": "TOOL"
     },
+    "cmd/countgrowth": {
+      "tier": "cmd",
+      "status": "TOOL"
+    },
     "cmd/forgec": {
       "tier": "cmd",
       "status": "CORE"
+    },
+    "cmd/funcgrowth": {
+      "tier": "cmd",
+      "status": "TOOL"
     },
     "cmd/gcgate": {
       "tier": "cmd",

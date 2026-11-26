@@ -42,6 +42,13 @@ func (s *State) castForbiddenCost(k *prep, p uint8, c CardID, o Obj, cost *kop.M
 	if !hit {
 		hit = s.castForbiddenSelf(k, p, c, o) // cast_cantself.go
 	}
+	if !hit {
+		// Eloren Wilds' plane-source curse: a registered CantBeCast
+		// restriction gorge consults after its face statics
+		// (castRestrictionSources' registered arm). The kernel's narrow
+		// record stands in for the registration; dirac/zone_planecurse.go.
+		hit = s.planeCurseBlocks(p)
+	}
 	return hit
 }
 
