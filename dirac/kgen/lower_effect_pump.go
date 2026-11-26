@@ -523,9 +523,6 @@ func (lc *lowerCtx) pumpGrantKw(kw string, obj lRef, zone int) error {
 	if err != nil {
 		return err
 	}
-	if err := refuseEffectReturnKw(attackKws); err != nil {
-		return err
-	}
 	if len(attackKws) > 0 && (zone != zBattlefield || lc.pumpPlayerRef(obj)) {
 		return refuse("granted %s to a non-battlefield object", attackKws[0])
 	}
