@@ -14,7 +14,7 @@ const grantedAnyManaRepro = "granted_any_mana_prefix_search_budget_overoffers"
 // tail-71, surface full, the recorded game; decision 636): CR 605.1a lets the
 // five granted abilities pay it, but gorge's composed planner skips granted
 // abilities (census_incomplete) and its prefix search, whose plain, phased and
-// subsume runs all spend the 164-node budget over the granted gaps, finds no
+// subsume runs all spend the potentialScriptNodes budget over the granted gaps, finds no
 // script, so gorge offers only pass. The kernel's subsume run reaches the
 // five-G line at its 162nd node and offers the play. Wakeroot Elemental is
 // refused by name; the recorded game still shows the divergence with it

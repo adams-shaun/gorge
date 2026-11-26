@@ -8,7 +8,7 @@ const lavaStormRepro = "lava_storm_instant_offered_without_combat"
 // filter land) beside Mage-Ring Network (a storage-counter battery): the Mountain
 // pays the Bluffs fee and three Swamps pay the {3} (pool tail-55 pair 46, seed
 // 839419, decision 715). Gorge's prefix search (rules/potential_script.go) once
-// ran out of its 160-node budget on that board, so the plan was census_incomplete
+// ran out of its potentialScriptNodes budget on that board, so the plan was census_incomplete
 // and gorge withheld cast(#49{Lava Storm}) while dirac offered it. The mana
 // planner changes that arrived with origin/main (potential_script.go,
 // potential_plan.go, paid_mana_census.go and the new potential_repeat_fee.go)

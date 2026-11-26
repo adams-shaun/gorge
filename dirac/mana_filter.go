@@ -174,7 +174,7 @@ func (s *State) scriptFilt(k *prep, p uint8) slotMask {
 	// source's own mana (mana_filterfree.go's gate-on view): it stays out of
 	// the gap set on both paths. Otherwise a table holding any first-ability
 	// filter (anyFiltFirst) would leave a later free filter in it, and the
-	// prefix search spends its 160-node budget on the extra branch instead of
+	// prefix search spends its potentialScriptNodes budget on the extra branch instead of
 	// funding the paid filters beside it.
 	if k.gen.anyAbReduce {
 		for b := m; b.any(); b = b.rest() {
@@ -1797,7 +1797,7 @@ func (s *State) filtFunders(k *prep, p uint8, gap slotMask) int {
 // filtScript reports whether gorge's prefix search finds a script for play
 // a of p; with apply it plays the script on s (the play's prefix).
 //
-// On the autopay surface, when the search spends its whole 160-node budget on
+// On the autopay surface, when the search spends its whole potentialScriptNodes budget on
 // an activation, a staged fallback reruns it with a funding cap at the play's
 // mana value and
 // then one step at a time: a fixed cost needs at most its mana value's taps
@@ -2703,7 +2703,7 @@ func (fs *filtSearch) twinTried(k *prep, t *State, sl Slot, tried []Slot) bool {
 // animated into a creature (Kamahl, Fist of Krosa's {G} on a Plains) still
 // pairs with an unanimated one: gorge reads the options and the mana-ability
 // sets, which the animate leaves alone (twinSlotFx, ovrKeepsMana); a strict
-// test walked the second Plains' subtree gorge's cut skips, spent the 160-node
+// test walked the second Plains' subtree gorge's cut skips, spent the potentialScriptNodes
 // budget, and left a payable {2}{G}{G}{G} unoffered (CR 605.3a, 601.2g).
 func (fs *filtSearch) twinSlot(k *prep, t *State, a, b Slot) bool { return twinSlotFx(k, t, a, b) }
 
@@ -3014,7 +3014,7 @@ func (fs *filtSearch) passShape(pass, funded int, feeGapsOut *bool) (gap, freeOn
 
 // holdDualFilter reports whether sl is a lone dual filter on a cast whose
 // fee the funding pass can pay: its free {C} tap must wait, or it spends the
-// 160-node budget before the fee floats and the paid activation is never
+// potentialScriptNodes budget before the fee floats and the paid activation is never
 // reached (Baxter Building beside four lands, King T'Challa). A board with a
 // second filter or with too few funders keeps the plain walk's free tap.
 //
@@ -3518,7 +3518,7 @@ func (fs *filtSearch) freeBranchHopeless(k *prep, t *State, sl Slot) bool {
 		// A root gap that is no filter (a tap-another Holdout Settlement
 		// whose plain {C} answer the path already took): the census below
 		// no longer lists it, but gorge's search walked the same dead
-		// subtree beside it and spent its 160 nodes there before the paying
+		// subtree beside it and spent its potentialScriptNodes budget there before the paying
 		// line, so the prune must not hide it (CR 605.3a, 601.2h).
 		return false
 	}

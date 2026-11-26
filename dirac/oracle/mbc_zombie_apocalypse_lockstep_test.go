@@ -8,7 +8,7 @@ import "testing"
 // the Envoy and makes {B}, the Envoy turns its fee into a second {B}. gorge's
 // plain prefix search prunes the Caretaker's colour ask to the colours that fill
 // a pip still owed (oneShotAskPrune) and finds the line in 35 nodes; the kernel
-// walked all five colours of the first tapped creature and spent its 160-node
+// walked all five colours of the first tapped creature and spent its potentialScriptNodes
 // budget before it tried the Envoy as the tapped one (tail-28-c000 pair 7,
 // decision 339).
 func TestMBCZombieApocalypseReprosLockstep(t *testing.T) {

@@ -29,7 +29,7 @@ var grantSearchPainlandSeeds = []uint64{10, 14, 21, 23, 41, 59, 145, 170, 218}
 
 // TestGrantSearchPainlandFundingLockstep: a painland funding a granted-mana
 // prefix search asks its painful colours too (gorge's mana ask for Karplusan
-// Forest answers {C}, {R} and {G}, each a node of the 160-node budget, CR
+// Forest answers {C}, {R} and {G}, each a node of the potentialScriptNodes budget, CR
 // 605.3a/605.3b), so the kernel's search reaches no funding line gorge's
 // budget ran out before.
 func TestGrantSearchPainlandFundingLockstep(t *testing.T) {

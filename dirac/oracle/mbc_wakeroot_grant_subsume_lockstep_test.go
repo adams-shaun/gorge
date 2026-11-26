@@ -7,7 +7,7 @@ import "testing"
 // empty and the printed sources alone make two green, so the payment is the
 // granted any-colour taps. gorge's offer pipeline lists the activation where
 // its script search finds the prefix (its subsume run, 143 nodes at turn 26)
-// and withholds it where that search exhausts its 160-node budget (turn 20),
+// and withholds it where that search exhausts its potentialScriptNodes budget (turn 20),
 // while the kernel's grant search drops the play at both points. The pair
 // parts at decision 610, gorge [pass, activate(#43 Dune Chanter),
 // activate(#78 Wakeroot Elemental)], kernel [pass, activate(#43 Dune Chanter)]

@@ -14,7 +14,7 @@ const sacAnyScriptRepro = "sac_any_script_beside_lethal_deferred_gap_overoffers"
 // recorded shrunk game; gorge ids 3/1): gorge's one prefix search over the two
 // census gaps walks the deferred land first, its tap's lethal trigger waits on
 // the stack while the repeatable sac-any asks branch per creature, and the
-// 160-node budget dies before the Altar-only line is reached — so gorge offers
+// potentialScriptNodes budget dies before the Altar-only line is reached — so gorge offers
 // neither Drana, Kalastria Bloodchief's cast nor Spiked Ripsaw's equip at
 // decision 614. The kernel's sac-any tapX search walks its own 24-path budget
 // with the defer gap last and prices both plays. The Altar is refused by name;

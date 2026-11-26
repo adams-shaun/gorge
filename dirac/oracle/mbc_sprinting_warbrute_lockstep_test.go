@@ -10,7 +10,7 @@ const worldTreeRedPrefixBudgetRepro = "world_tree_any_colour_red_prefix_budget"
 // ({4}{R}, dash {3}{R}) is payable by tapping a land for {R} and sacrificing
 // lands for the rest. The recorded game (tail-08 pair 62, decision 406) once
 // showed the kernel offer both casts while gorge's potentialPrefixScript spent
-// its 160-clone budget on the sacrifice answers and withheld them. The filter
+// its potentialScriptNodes budget on the sacrifice answers and withheld them. The filter
 // prefix search now counts gorge's free {C} node and counter-ability colour
 // ask in its budget (aad8a3ce95), so both engines agree on the offer; the card
 // is not refused and this test pins the recorded game replaying clean.

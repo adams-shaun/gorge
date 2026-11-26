@@ -304,7 +304,7 @@ type scriptSearch struct {
 	// whose options run W U B R G otherwise spends the node budget proving the
 	// colours a cost does not name dead before the first one it does -- a
 	// 4GG cast behind Great Divide Guide's granted any-colour abilities went
-	// budget-limited at 160 clones exploring B before G at the deepest asks.
+	// budget-limited at potentialScriptNodes clones exploring B before G at the deepest asks.
 	need   [state.MC + 1]bool
 	passes bool // also pass priority while the stack is non-empty
 	// phased runs the visit activation loop in its phased order with the

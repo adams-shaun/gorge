@@ -14,7 +14,7 @@ const radiantSolarRepro = "radiant_solar_henge_fee_offer"
 // 602.2b). With Mercadian Bazaar beside them holding one storage counter, its
 // "{T}, Remove X storage counters" mana ability adds an X branch to every node
 // of gorge's prefix search (potentialPrefixScript), which finds no script
-// within its 164-node budget (potentialScriptNodes): the activation is
+// within its potentialScriptNodes budget: the activation is
 // census_incomplete and never offered, while the kernel prices it and offers it
 // (tail-26-c001 pair 45, decision 179). Matching the search's node accounting
 // over that X branch is far more than the kernel's script mirror holds, so the

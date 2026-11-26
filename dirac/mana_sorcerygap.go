@@ -10,7 +10,7 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // takes a prefix search (potentialCensusFallback). A sorcery-speed play is
 // not offered while a trigger the line's tap set off is on the stack
 // (scriptSearch.waitsForStack), so the depth-first search taps another gap
-// before it passes, and with every land a gap the 160-clone budget is spent
+// before it passes, and with every land a gap the potentialScriptNodes budget is spent
 // before the line resolves its first trigger: the equip is withheld
 // (unsupported/census_incomplete). dirac keeps a filter source's census unit
 // through the deferral (scriptTapsDefer), so the printed census pays the

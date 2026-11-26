@@ -1264,7 +1264,7 @@ func (s *State) mayPlayJoinCensusPays(k *prep, p uint8, a Action, cost *kop.Mana
 // Spawn under Elven Chorus) beside its printed sacrifice: two units of one
 // permanent (CR 602.2b, 605.1a). gorge's composed planner counts the source's
 // sacrifice alone and never its granted tap, so the cast is priced by its
-// prefix search, which a Spawn's sacrifice-first walk starves (the 160-node
+// prefix search, which a Spawn's sacrifice-first walk starves (the potentialScriptNodes
 // budget): the offer falls to grantSearch's mirror of that budget, not the
 // census's.
 func (s *State) ownSacTapNeeded(k *prep, p uint8, cost *kop.ManaCost) bool {

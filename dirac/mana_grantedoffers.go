@@ -1599,13 +1599,13 @@ func (g *grantSrch) node() bool {
 		// scriptSearch.try takes one clone per answer and scriptSearch.visit
 		// charges the node at the clone. The kernel also charges each ask
 		// branch separately (the choose-a-mana-ability and colour asks), so a
-		// phased run that charged both would spend gorge's 160 clones on half
+		// phased run that charged both would spend gorge's potentialScriptNodes clones on half
 		// the states. A repeatable fee-only filter's run charges payer states
 		// alone (gorge hoists the visited-state check for it, so a duplicate
 		// state is no node); any other phased run charges every ask clone as
 		// the plain one does (Alchemist's Talent's two Treasures and Graven
 		// Cairns: gorge's 7-step script is its 260th node, not the 164th
-		// payer state, and the 160 budget refuses it).
+		// payer state, and the potentialScriptNodes budget refuses it).
 		return true
 	}
 	limit := potentialScriptNodes
@@ -3642,7 +3642,7 @@ func (s *State) xFlashbackPlanCost(k *prep, p uint8, a Action) (cost kop.ManaCos
 // search (filtScript) does not take this hint: it mirrors gorge's prefix
 // search, which reads no pips for a flashback cast, so it reads
 // playNeedPrinted (a Calibrated Blast flashback beside two fee filters spends
-// gorge's 160-node budget in engine order and is withheld). The card's
+// gorge's potentialScriptNodes budget in engine order and is withheld). The card's
 // printed cost is read unreduced (CR 601.2b announces the printed pip
 // colours).
 func (s *State) playNeed(k *prep, a Action) (need [kop.NumManaKinds]bool) {

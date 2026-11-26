@@ -9,7 +9,7 @@ import (
 // of any color") while all of the player's Forests are tapped (decision 968 of
 // pair 66, pool tail-51, surface autopay): gorge offered pass only; the kernel
 // offered the activation. gorge's prefix search branches a tapped Spawn's
-// printed sacrifice and spends its 160-node budget before reaching the play;
+// printed sacrifice and spends its potentialScriptNodes budget before reaching the play;
 // the kernel's grantSrch skipped that branch (printedSacPass) and so reached
 // it. Both engines now cut an indistinguishable funder twice over (gorge's
 // scriptTwin, the grant search's fundTwinTried), reach the play inside the

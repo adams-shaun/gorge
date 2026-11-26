@@ -18,7 +18,7 @@ import (
 // board arises: Steel Wrecking Ball in hand beside an untapped Daily Bugle
 // Building and Interdimensional Web Watch. gorge's census misses both mana
 // sources (a filter and a wide restricted one), so its prefix search prices
-// the play and spends its 160 nodes before the Swamp-funded filter's {R}
+// the play and spends its potentialScriptNodes budget before the Swamp-funded filter's {R}
 // (CR 601.2g, 605.3a); dirac's mirror of the Web Watch's colour-pair ask
 // dropped its W pairs, found the script inside the budget gorge spends, and
 // offered the play gorge withholds: Steel Wrecking Ball's discard ability, on

@@ -10,7 +10,7 @@ const svogthosRepro = "svogthos_green_only_from_candleguide_filter_search_unmode
 // nodes) tries the colour ask's B answer before its G one, both being announced
 // pips, and leaves the activation census_incomplete (found=false limited=true)
 // on a Candleguide, three Islands, four Swamps and the land, so gorge offers
-// none. The kernel's filter search now bounds a path by the same 160-node
+// none. The kernel's filter search now bounds a path by the same potentialScriptNodes
 // budget instead of sixteen steps, so on the pinned game it spends the budget
 // the way gorge does and also offers none: the recorded game replays clean.
 // The card is therefore no longer refused (dirac/support/unrefused.tsv); this

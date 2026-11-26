@@ -14,7 +14,7 @@ import (
 // fee-free gaps and one-unit filters (scriptSearch.feeOrder). A board where
 // the filter beside it (Surveillance Room's {1},{T} any colour) taps for {C}
 // after Baxter in entry order is priced only by that run: the plain order
-// spends its 160 nodes on Baxter's 64 allocations before the Room's {C} has
+// spends its potentialScriptNodes budget on Baxter's 64 allocations before the Room's {C} has
 // floated the fourth unit of the fee (std-msh pair 138: Hellcat from Island,
 // Island, Villainous Hideout, Baxter Building and Surveillance Room).
 

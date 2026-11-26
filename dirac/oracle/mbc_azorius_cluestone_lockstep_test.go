@@ -16,7 +16,7 @@ const azoriusCluestoneRepro = "azorius_cluestone_draw_offer"
 // prices the play by one prefix-search slot. Its Vigil for the Lost beside
 // the Prism makes the sacrifice a dies trigger with an {X} payment: the search's
 // first answer (W) walks the trigger's X answers and their manual-source
-// windows, spends the 160-node budget and never answers U, so gorge offers no
+// windows, spends the potentialScriptNodes budget and never answers U, so gorge offers no
 // draw. The kernel's tapX search walks the trigger's ask as one two-answer node
 // and reaches U in 37 nodes. The Cluestone is refused by name; the recorded
 // game still shows the divergence with it implicated.
