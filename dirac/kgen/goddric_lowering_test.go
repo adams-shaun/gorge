@@ -16,6 +16,9 @@ func TestGoddricLowering(t *testing.T) {
 	if len(c.overrides) == 0 {
 		t.Fatalf("no override lowered (refusals %v)", c.Refusals)
 	}
+	if len(c.Refusals) != 0 {
+		t.Fatalf("refused: %v", c.Refusals)
+	}
 	o := c.overrides[0]
 	if !o.RemoveCreatureSub {
 		t.Errorf("RemoveCreatureSub not set")
