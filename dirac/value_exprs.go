@@ -305,7 +305,7 @@ func (s *State) exprCold(k *prep, x *kop.Expr, ctx evalCtx) int {
 		return s.refNumColors(k, x.Ref, ctx) // trig_colours.go
 	case kop.ExChromaOf:
 		return s.refChroma(k, x.Ref, int(x.N), ctx) // trig_colours.go
-	case kop.ExPoisonOf, kop.ExEnergyOf, kop.ExProduct, kop.ExAttackersAll, kop.ExSrcRemCounters, kop.ExStaticExileKw:
+	case kop.ExPoisonOf, kop.ExEnergyOf, kop.ExProduct, kop.ExAttackersAll, kop.ExSrcRemCounters, kop.ExStaticExileKw, kop.ExCardBasePower:
 		return s.exprKvf(k, x, ctx) // filter_valueheads.go
 	}
 	if v, ok := s.exprColdAgg(k, x, ctx); ok {

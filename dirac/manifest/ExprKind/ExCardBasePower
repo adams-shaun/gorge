@@ -4,4 +4,6 @@ value: 103
 forge: CardBasePower
 census: count CardBasePower all=2 std=1 mbc=0 sole=0
 state: code 0
-status: reserved
+status: active
+ticket: demo-dirac-clone-add
+doc: ExCardBasePower: the evaluating source's base power (Count$CardBasePower, gorge h.Chars(Source).BasePower: layer 7b before counters and pumps, CR 613.4); a source off the battlefield reads its printed power. Curie, Emergent Intelligence's draw. dirac/value_basepower.go.

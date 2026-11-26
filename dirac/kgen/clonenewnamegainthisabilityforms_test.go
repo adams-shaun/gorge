@@ -11,8 +11,8 @@ func TestCloneExceptionsForms(t *testing.T) {
 		{card: "Cryptoplasm", form: "GainThisAbility$ + AddSVars$, an upkeep trigger", lir: "CloneCopy"},
 		{card: "Protean Thaumaturge", form: "GainThisAbility$ + AddSVars$, an ETB-style trigger", lir: "CloneCopy"},
 		{card: "Irma, Part-Time Mutant", form: "NewName$ still refuses (the kernel's copy exceptions carry no name)", refused: "Clone NewName$ on the battlefield"},
-		{card: "Aurora Shifter", form: "AddTriggers$ still refuses", refused: "Clone AddTriggers$ on the battlefield"},
+		{card: "Aurora Shifter", form: "AddTriggers$ beside GainThisAbility$ still refuses", refused: "Clone AddTriggers$ beside GainThisAbility$"},
 		{card: "Absorbing Man", form: "NewName$ still refuses", refused: "Clone NewName$ on the battlefield"},
-		{card: "Likeness Looter", form: "TgtZone$ Graveyard still refuses", refused: "Clone TgtZone$ on the battlefield"},
+		{card: "Likeness Looter", form: "TgtZone$ Graveyard without UntilEndOfTurn still refuses", refused: "Clone TgtZone$ Graveyard without Duration$ UntilEndOfTurn"},
 	})
 }
