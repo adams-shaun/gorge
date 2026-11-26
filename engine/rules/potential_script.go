@@ -57,7 +57,7 @@ type ScriptStep struct {
 // mirror prices such a play; the limit is the pair's (dirac/mana_filter.go).)
 const (
 	potentialScriptPlays = 16
-	potentialScriptNodes = 164
+	potentialScriptNodes = 512
 	// potentialMayPlayNodes is the budget of the may-play fallback run
 	// (potentialPrefixScript): a plain run, after the three above found none
 	// and the first spent its budget.
