@@ -179,6 +179,7 @@ type lowerCtx struct {
 	blind          *blindDig // a blind face-down Dig whose Effect lowers next (lower_blinddig.go)
 	grantInner     []lStatic // a station self grant's inner statics, emitted after the outer static (lower_stationgrant.go)
 	station        bool      // the face prints K:Station (lower_station.go)
+	readAhead      bool      // the face prints K:Read ahead (lower_readahead.go)
 	revealOK       bool      // the cost being read is a spell's AlternateAdditionalCost first part: Reveal<1/Spec> may lower (kernel act_revealpick.go)
 	beholdOK       bool      // the cost being read is a spell's AlternateAdditionalCost first part or a MayFlashCost extra: Behold<N/Type> may lower (kernel act_behold.go)
 	unblockedOK    bool      // the filter being read is K:Ninjutsu's Return cost: "unblocked" may lower (lower_ninjutsu.go)
@@ -378,6 +379,10 @@ type lowerCtx struct {
 	// announced life part) may lower on a spell or an
 	// activated ability (actCost) and nowhere else
 	lifeXSpell bool
+	// blightXOK while a spell's own RaiseCost Cost$ is retried for an announced
+	// Blight<X> (raiseSelfAdditional, lower_blightx.go); every other cost
+	// refuses a variable Blight
+	blightXOK bool
 	// prevColor while a mid-resolution ChooseColor waits for its
 	// prevent-the-chosen-colour Effect (Prismatic Strands)
 	prevColor bool
@@ -611,6 +616,9 @@ func (lc *lowerCtx) lowerLines(origin, perm bool) {
 func (lc *lowerCtx) lowerTail() {
 	if lc.station {
 		lc.guard("K:Station", lc.lowerStation)
+	}
+	if lc.readAhead {
+		lc.guard("K:Read ahead", lc.lowerReadAhead)
 	}
 	lc.lowerGift()
 	lc.refuseCrossAbilityRemembered()
@@ -1168,6 +1176,18 @@ var protColourLetters = map[string]string{"white": "W", "blue": "U", "black": "B
 // stays refused.
 var hexColourLetters = map[string]string{"white": "W", "blue": "U", "black": "B", "red": "R", "green": "G"}
 
+// hexQualityParam is the spec of a "Hexproof:<spec>:<display text>"
+// parameter when it is one of the colour-count specs the kernel reads
+// (Card.MonoColor, Card.MultiColor, Card.nonColorless), else "".
+func hexQualityParam(param string) string {
+	q, _, _ := strings.Cut(param, ":")
+	switch q = strings.TrimSpace(q); q {
+	case "Card.MonoColor", "Card.MultiColor", "Card.nonColorless":
+		return q
+	}
+	return ""
+}
+
 // mergeColours unions two WUBRG letter sets in WUBRG order.
 func mergeColours(a, b string) string {
 	var out strings.Builder
@@ -1228,6 +1248,18 @@ func (lc *lowerCtx) lowerKeywords() {
 			// consumed with its minted R: lines
 		case head == "Hexproof" && hexColourLetters[strings.ToLower(param)] != "":
 			lc.out.HexColors = mergeColours(lc.out.HexColors, hexColourLetters[strings.ToLower(param)])
+		case head == "Hexproof" && hexQualityParam(param) != "":
+			// K:Hexproof:<spec>:<display text> over a colour-count spec
+			// (CR 702.11d): gorge hexproofQuality keeps the spec and matches
+			// the source against it (sourceHasQuality)
+			switch hexQualityParam(param) {
+			case "Card.MonoColor":
+				lc.out.HexMono = true
+			case "Card.MultiColor":
+				lc.out.HexMulti = true
+			case "Card.nonColorless":
+				lc.out.HexColors = mergeColours(lc.out.HexColors, "WUBRG") // a source of any colour
+			}
 		case head == "Hexproof" && param == "Instant":
 			lc.out.Kw = append(lc.out.Kw, "HexproofFromInstants")
 		case simpleKeywords[head] && param == "":
@@ -1456,11 +1488,9 @@ func (lc *lowerCtx) lowerKeywords() {
 			// lore counter, gated at its chapter number (kw_saga.go)
 			lc.lowerChapters(param)
 		case head == "Read ahead":
-			// CR 714.3b: gorge implements it since (the lore-count
-			// choice on entry; chapters below it do not trigger that turn),
-			// but the kernel has no entry choice for it yet; refuse rather
-			// than silently drop a keyword with rules meaning
-			lc.refuseNode(node, "read ahead (CR 714.3b): the kernel has no lore-count entry choice")
+			// CR 702.155 / 714.3b: the as-enters chapter choice, lowered once
+			// the Chapter count is known (lowerTail, lower_readahead.go)
+			lc.readAhead = true
 		case head == "Station":
 			// rules-side in gorge (rules/station.go); appended after the
 			// face's own abilities (lowerFace, lower_station.go). The older
@@ -1554,6 +1584,12 @@ func (lc *lowerCtx) lowerKeywords() {
 				lc.out.Kicker, lc.out.KickerCost = &mc, &rest
 				continue
 			}
+			if mc, floor, ok := lc.kickerXMin(param); ok {
+				// an announced {X} kicker with a floor (Thieving Skydiver's
+				// XMin1 X): the floor rides KickerCost.XMin (lower_kickerx.go)
+				lc.out.Kicker, lc.out.KickerCost = &mc, &floor
+				continue
+			}
 			mc, err := parseManaCost(param)
 			if err != nil || strings.Contains(param, ":") {
 				lc.refuseNode(node, "kicker cost %q", param)
@@ -1570,6 +1606,16 @@ func (lc *lowerCtx) lowerKeywords() {
 			// (lower_morphreduce.go).
 			cs, red, rok := lc.morphReduceParam(param)
 			mc, life, rev, err := lc.morphCostParse(cs) // lower_morphlife.go, lower_revealpick.go
+			var pick lCost
+			if err != nil && life == 0 && rev == nil {
+				// not a mana, life or reveal cost: one Discard/Sac/Return
+				// pick part lowers too (lower_morphpick.go)
+				mp, pok, perr := lc.morphPickParse(cs)
+				if pok {
+					err = perr
+					pick = mp
+				}
+			}
 			if !rok || err != nil || cs == "" || strings.Contains(cs, ":") || mc.None || red.Kind != vNone && (life != 0 || mc.X || mc.Generic == 0) {
 				lc.refuseNode(node, "%s cost %q", strings.ToLower(head), param)
 				continue
@@ -1579,6 +1625,9 @@ func (lc *lowerCtx) lowerKeywords() {
 				continue
 			}
 			lc.out.MorphCost, lc.out.MorphReduce, lc.out.MorphLife, lc.out.MorphReveal = &mc, red, life, rev
+			if pick.Sac != nil || pick.DiscardN > 0 || pick.Return != nil {
+				lc.out.MorphPick = &pick
+			}
 			switch head {
 			case "Morph":
 				lc.out.MorphFamily = kop.MorphMorph
@@ -2046,14 +2095,17 @@ func (lc *lowerCtx) lowerKeywords() {
 			}
 			lc.out.Paradigm = true
 		case head == "AlternateAdditionalCost":
-			// "Sac<1/Creature>:3 B": pay either the first or the second.
-			a, b, ok := strings.Cut(param, ":")
-			if !ok && lc.out.SpellCost == nil {
+			// "Sac<1/Creature>:3 B": pay either the first or the second;
+			// a third part (Dusk Mangler's "Sac<1/Creature>:Discard<1/
+			// Card>:PayLife<4>") joins as CardDef.AltAddCost2, the either-or's
+			// third slot (kernel cast.go altAddOptions).
+			parts := strings.SplitN(param, ":", 3)
+			if len(parts) == 1 && lc.out.SpellCost == nil {
 				// one part (Dusk Rose Reliquary's "Sac<1/Creature;Artifact/
 				// creature or artifact>"): gorge altAddAsk folds a lone
 				// part into the cost unasked, an ordinary additional cost;
 				// its ";" alternation is ParseCost's "," (cost/parse.go)
-				c, err := lc.cost(strings.ReplaceAll(a, ";", ","))
+				c, err := lc.cost(strings.ReplaceAll(parts[0], ";", ","))
 				rest := c
 				rest.Sac, rest.SacN = nil, 0
 				if err != nil || c.Sac == nil || c.SacN != 1 || !rest.pureMana() || c.Mana.Generic != 0 || c.Mana.Pips != [5]int{} || c.Mana.X || len(c.Mana.Hybrid) != 0 {
@@ -2063,26 +2115,35 @@ func (lc *lowerCtx) lowerKeywords() {
 				lc.out.SpellCost, lc.out.AltAddOne = &c, true
 				continue
 			}
-			if !ok {
+			if len(parts) == 1 {
 				lc.refuseNode(node, "alternate additional cost %q", param)
 				continue
 			}
-			c1, err1 := lc.altAddFirstPart(a) // the spell's first part only (kernel act_behold.go, act_revealpick.go; lower_revealpick.go)
-			c2, err2 := lc.cost(b)
+			c1, err1 := lc.altAddFirstPart(parts[0]) // the spell's first part only (kernel act_behold.go, act_revealpick.go; lower_revealpick.go)
+			c2, err2 := lc.cost(parts[1])
+			var c3 lCost
+			var err3 error
+			if len(parts) == 3 {
+				c3, err3 = lc.cost(parts[2])
+			}
 			if c1.BeholdN != 0 {
 				// "Behold<1/Kithkin>:2": the behold is the whole of part one
 				rest := c1
 				rest.BeholdN, rest.BeholdF = 0, nil
 				if err1 == nil && (lc.out.BeholdExile || c1.BeholdN != 1 || !rest.pureMana() || !c1.Mana.None) {
-					err1 = refuse("behold cost %q", a)
+					err1 = refuse("behold cost %q", parts[0])
 				}
 			}
-			if err1 != nil || err2 != nil || c1.Energy != 0 || c2.Energy != 0 || c1.Return != nil || c2.Return != nil {
+			bad3 := len(parts) == 3 && (c3.Energy != 0 || c3.Return != nil || c3.BeholdN != 0 || c3.RevealN != 0)
+			if err1 != nil || err2 != nil || err3 != nil || c1.Energy != 0 || c2.Energy != 0 || c1.Return != nil || c2.Return != nil || bad3 {
 				lc.refuseNode(node, "alternate additional cost %q", param)
 				continue
 			}
 			lc.out.SpellCost = &c1
 			lc.out.AltAddCost = &c2
+			if len(parts) == 3 {
+				lc.out.AltAddCost2 = &c3
+			}
 		case head == "MayEffectFromOpeningHand" && param == "FromHand":
 			body := lc.face.SVars["FromHand"]
 			sa := cards.ResolveSVar(lc.face.SVars, "FromHand")
@@ -2529,6 +2590,10 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 			// A variable Blight<X> is not modelled.
 			if len(parts) != 1 {
 				return c, refuse("blight cost %q", t)
+			}
+			if parts[0] == "X" && lc.blightXOK && c.BlightN == 0 && !c.BlightX {
+				c.BlightX = true // the announced count (lower_blightx.go)
+				continue
 			}
 			n, err := strconv.Atoi(parts[0])
 			if err != nil {
@@ -3138,6 +3203,19 @@ func (lc *lowerCtx) filter(expr string) (*lFilter, error) {
 	for i := range f.Clauses {
 		c := &f.Clauses[i]
 		lc.foldImprintExiledWith(c)
+		if c.GreatestCMCSet != "" {
+			// a greatestCMC_<set> property's bound: the greatest mana value
+			// over the set, every battlefield (greatestCMCFilter's RepeatEach
+			// twin reads it through the loop's SVar; Padeem, Consul of
+			// Innovation)
+			set, err := lc.filter(c.GreatestCMCSet)
+			if err != nil {
+				return nil, refuse("filter %q: greatestCMC set %q: %v", expr, c.GreatestCMCSet, err)
+			}
+			v := lValue{Kind: vValidAgg, N: kop.AggGreatestMV, F: set}
+			c.CmpV = &v
+			c.GreatestCMCSet = ""
+		}
 		if c.Flags&fNamedAsSource != 0 {
 			// every named<X> is a literal clause (gorge wordNamed ->
 			// sharesName reads the NAME, not the source; CR 201.2):
@@ -3317,6 +3395,10 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 			}
 			ab.ActCond = c
 		}
+		if err := lc.spellWindow(ps, ab); err != nil { // lower_actwindow.go
+			return err
+		}
+		lc.blightXBody(sa, ps) // XMax$ of a Blight<X> raise (lower_blightx.go)
 		if lc.out.Types&tLegendary != 0 && lc.out.Types&(tInstant|tSorcery) != 0 {
 			// CR 205.4e: a legendary instant or sorcery is cast only while
 			// its caster controls a legendary creature or planeswalker
@@ -3513,9 +3595,11 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 				return refuse("waterbend cost beside another non-mana part")
 			}
 		}
-		if ab.Kind == akMana && cost.Energy != 0 {
+		if ab.Kind == akMana && cost.Energy != 0 && !energyTapCost(ab) {
 			// gorge pays it in the mana-activation walk; kernel mana
-			// abilities pay only {T} / sacrifice-self
+			// abilities pay only {T} / sacrifice-self, and the "{T}, Pay N
+			// {E}" gap beside a plain {T} first ability (Aether Hub:
+			// refuseMultiMana's energyTapGapMana, kernel mana_countercost.go)
 			return refuse("mana ability with an energy cost")
 		}
 		if ab.Kind == akMana && exileGraveManaRefused(cost) {

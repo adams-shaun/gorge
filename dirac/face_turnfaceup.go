@@ -279,7 +279,7 @@ func (s *State) turnUpRiderOnly(k *prep, p uint8, cost *kop.ManaCost, sp kop.Spe
 //
 //go:noinline
 func (s *State) tapTurnUpRiders(k *prep, p uint8, cost *kop.ManaCost) {
-	s.windowTapWalk(k, p, cost, cost, false, false, false, false, false, false, false)
+	s.windowTapWalk(k, p, cost, cost, false, false, false, false, false, false, false, false)
 }
 
 // turnUpRestrPays: the turn-up's potential witness counts the restricted mana
@@ -319,8 +319,10 @@ func (s *State) tapForTurnUp(k *prep, p uint8, cost *kop.ManaCost, sp kop.Specia
 // applyTurnUpX takes the announced X of a parked keyword turn-up.
 func (s *State) applyTurnUpX(k *prep, a Action) {
 	p, mode, o := s.g.pickP, s.g.pickZ, Obj(s.g.pickF)
+	if s.settleTurnUp(k, o, p, mode, int(a.Mode())) {
+		return // face_turnupattach.go: the attach ask parks the turn-up still face down
+	}
 	s.ctl = ctlPriority
-	s.settleTurnUp(k, o, p, mode, int(a.Mode()))
 }
 
 // turnUpXOptions poses the X ask of a parked keyword turn-up.

@@ -265,7 +265,7 @@ func (e *Engine) scanBoardStaticsPrintedLists(out boardStatics, lists []boardSca
 				// CR 708.8: a face-down battlefield permanent's printed
 				// statics do not exist -- every arm, the scanActionStatics /
 				// scanCostStatics / scanManaConvSources gate alike.
-				if z == state.ZBattlefield && e.printedAbilitiesGone(o) {
+				if e.printedStaticsGone(z, o) {
 					continue
 				}
 				for si, sn := 0, o.PileStaticCount(); si < sn; si++ {
@@ -375,7 +375,7 @@ func (e *Engine) scanManaConvSources(out []manaConvSource) []manaConvSource {
 			}
 			for _, oid := range e.staticSourceIDs(p, z) {
 				o := e.G.Obj(oid)
-				if o == nil || o.Face() == nil || (z == state.ZBattlefield && e.printedAbilitiesGone(o)) ||
+				if o == nil || o.Face() == nil || e.printedStaticsGone(z, o) ||
 					offBattlefieldStaticsInert(z, o) {
 					continue
 				}

@@ -117,6 +117,7 @@ func (ic *instrCtx) opCastFree() error {
 	if _, ok := fl["Lands"]; ok {
 		ki.C |= 1 << 12 // the population may hold lands, offered as land plays (dirac/cast_freeland.go)
 	}
+	ic.castFreeRemember() // lower_playremember.go: C bit 13
 	if err := ic.objFilter(zoneMap[in.C]); err != nil {
 		return err
 	}
@@ -129,6 +130,9 @@ func (ic *instrCtx) opMayPlay() error {
 	ki.Op, ki.C = kop.OpMayPlay, int16(zoneMap[in.C])
 	if in.Follows {
 		ki.C |= kop.MayPlayFollows // the record follows its card (kop/operands.go)
+	}
+	if in.ConvC {
+		ki.C |= kop.MayPlayConvC // colourless mana pays a coloured pip of the cast (kop/operands.go)
 	}
 	switch in.CS {
 	case "EOT":

@@ -53,7 +53,7 @@ func (s *State) turnUpGapPrefix(k *prep, p uint8, cost *kop.ManaCost) bool {
 	}
 	t := s.fork()
 	t.g.turnF |= turnGapPrefix
-	t.windowTapWalk(k, p, cost, cost, false, false, false, false, false, false, false)
+	t.windowTapWalk(k, p, cost, cost, false, false, false, false, false, false, false, false)
 	ok := t.turnUpPoolPlanPays(k, p, cost)
 	t.g.turnF &^= turnGapPrefix
 	s.unfork()
@@ -61,7 +61,7 @@ func (s *State) turnUpGapPrefix(k *prep, p uint8, cost *kop.ManaCost) bool {
 		return false
 	}
 	s.g.turnF |= turnGapPrefix
-	s.windowTapWalk(k, p, cost, cost, false, false, false, false, false, false, false)
+	s.windowTapWalk(k, p, cost, cost, false, false, false, false, false, false, false, false)
 	s.g.turnF &^= turnGapPrefix
 	return true
 }

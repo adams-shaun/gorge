@@ -296,6 +296,12 @@ func (s *State) grantIdxs(k *prep, sl Slot, out *[maxGrants]int16) (n int) {
 //go:noinline
 func (s *State) grantIdx(k *prep, sl Slot) int {
 	var gi [maxGrants]int16
+	if !s.manaGrantMay(k, sl) {
+		if DebugGrantGateShadow {
+			grantGateShadow(s, k, sl, &gi)
+		}
+		return -1
+	}
 	if s.grantIdxs(k, sl, &gi) == 0 {
 		return -1
 	}
@@ -1106,11 +1112,15 @@ func (s *State) availUngranted(k *prep, p uint8, a *avail) {
 // proof; the ask branches between states are not charged, matching gorge's
 // clone count (scriptSearch.try clones per answer, scriptSearch.visit charges
 // the clone).
+//
+//lockstep:const engine/rules.potentialScriptNodes * 5 / 4
 const phasedScriptNodes = potentialScriptNodes + potentialScriptNodes/4
 
 // mayPlayScriptNodes is gorge's potentialMayPlayNodes: the node bound of the
 // may-play fallback run (grantSearch's last), a plain run after the others
 // found none and the first spent its budget (CR 601.2g, 605.3a).
+//
+//lockstep:const engine/rules.potentialMayPlayNodes
 const mayPlayScriptNodes = 1024
 
 // grantSrch is one prefix search (gorge scriptSearch under gapsOnly): the
@@ -1401,6 +1411,7 @@ func (g *grantSrch) candidates(s *State) {
 			continue
 		}
 		ng := s.grantIdxs(g.k, sl, &g.gi[g.n])
+		ng = s.uncoveredGrants(g.k, sl, &g.gi[g.n], ng) // a grant the source's own printed ability equals is no census gap (mana_grantcovered.go)
 		smi := sm
 		if ng > 0 && si.has(sl) {
 			smi = sm.with(sl) // an idle battery beside its grant: the printed ask answer first
@@ -1704,7 +1715,7 @@ func (g *grantSrch) phasedScope(s *State) bool {
 	}
 	cd := &g.k.t.Cards[s.castFaceCard(g.k, g.d.play)]
 	const sacOrReturn = kop.CostSac | kop.CostSacSelf | kop.CostReturn | kop.CostReturnSelf
-	if cd.SpellCost.Flags&sacOrReturn != 0 || cd.AltAddCost.Flags&sacOrReturn != 0 {
+	if cd.SpellCost.Flags&sacOrReturn != 0 || cd.AltAddCost.Flags&sacOrReturn != 0 || cd.AltAddCost2.Flags&sacOrReturn != 0 {
 		return true
 	}
 	for ai := range cd.Abilities {
@@ -4002,4 +4013,38 @@ func kickAdd(cd *kop.CardDef) kop.ManaCost {
 // Chromatic Lantern's grant).
 func kickMultiPriced(k *prep, c CardID) bool {
 	return k.t.Cards[c].HasMultikicker && !DebugGrantKickNoMulti
+}
+
+// manaGrantMay reports whether grantIdxs can find a mana ability granted to
+// sl: a table with a GainsAbilitiesOf$ static (gainedIdxs), an override
+// record on sl, or a battlefield static or attached source whose card holds
+// a grantOf ability (prep.grantsMana; a static's AddAbility$ mana ability is
+// a latent ability of the granting card). False skips the grant walk: about
+// 78% of grantIdx calls on BenchmarkTransitionEDH4, which find no grant.
+func (s *State) manaGrantMay(k *prep, sl Slot) bool {
+	if k.gen.uses.has(useGainedMana) || s.fxM.has(sl) {
+		return true
+	}
+	for m := s.statM.or(s.grantM); m.any(); m = m.rest() {
+		if k.grantsMana[s.cardAt(m.first())] {
+			return true
+		}
+	}
+	return false
+}
+
+// DebugGrantGateShadow makes grantIdx run the full grant walk behind every
+// manaGrantMay no and panic if it finds a grant or moves the stall state
+// (TestGrantGateShadow).
+var DebugGrantGateShadow = false
+
+// grantGateShadowN counts the walks grantGateShadow checked.
+var grantGateShadowN int
+
+func grantGateShadow(s *State, k *prep, sl Slot, gi *[maxGrants]int16) {
+	grantGateShadowN++
+	st, over := s.g.stalled, s.over
+	if n := s.grantIdxs(k, sl, gi); n != 0 || s.g.stalled != st || s.over != over {
+		panic("dirac: manaGrantMay skipped a grant walk that finds a mana grant or stalls")
+	}
 }

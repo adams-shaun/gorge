@@ -809,3 +809,183 @@
   .md-typeset .grid.cards > ul > li,
   .md-typeset .grid > .card { transition: none; }
 }
+
+/* ======================================================================
+ * Page structure. Every page reads the same way: a title, one lead
+ * paragraph in the secondary ink, then scannable sections. The lead is
+ * the first paragraph after the title, so no page has to opt in.
+ * ====================================================================== */
+.md-typeset > h1:first-child + p,
+.md-typeset > h1 + p {
+  font-size: 1.14em;
+  line-height: 1.55;
+  max-width: 40rem;
+  color: var(--md-default-fg-color--light);
+  margin: -0.2em 0 1.8em;
+}
+.md-typeset h1 { text-wrap: balance; }
+.md-typeset h2, .md-typeset h3 { text-wrap: balance; }
+.md-typeset p, .md-typeset li { text-wrap: pretty; }
+/* The section rule is the stratum line: quiet, and closer to its heading. */
+.md-typeset h2 { margin-top: 2.4em; padding-top: 0.8em; }
+.md-typeset h2 + p, .md-typeset h3 + p { margin-top: 0.4em; }
+
+/* Breadcrumbs (navigation.path): small, in the secondary ink. */
+.md-path { font-size: 0.66rem; margin: 0.4rem 0.8rem -0.2rem; }
+@media screen and (min-width: 76.25em) { .md-path { margin-left: 1.2rem; margin-right: 1.2rem; } }
+.md-path__link { color: var(--md-default-fg-color--light); }
+.md-path__link:hover { color: var(--md-accent-fg-color); }
+
+/* ---------- figures: a caption reads as a note under the figure ---------- */
+.md-typeset figcaption {
+  font-style: normal;
+  font-size: 0.72rem;
+  line-height: 1.5;
+  color: var(--md-default-fg-color--light);
+  text-align: left;
+  max-width: 40rem;
+  margin-left: 0;
+  margin-right: auto;
+}
+.md-typeset figure:has(> figcaption) { align-items: stretch; }
+
+/* ---------- code: a title names what the block is ----------
+ * ```sh title="From a fresh clone" puts a tab above the block. */
+.md-typeset .highlight > .filename {
+  font-family: var(--md-text-font-family);
+  font-size: 0.68rem;
+  font-weight: 650;
+  letter-spacing: 0;
+  color: var(--md-default-fg-color--light);
+  background: color-mix(in srgb, var(--md-default-fg-color) 7%, var(--md-code-bg-color));
+  border-radius: 4px 4px 0 0;
+  padding: 0.45em 1.2em;
+}
+.md-typeset .highlight > .filename + pre > code { border-top-left-radius: 0; border-top-right-radius: 0; }
+/* Output blocks (```text) sit on the page ground with a rule, so a
+ * command and what it prints read as two different things. */
+.md-typeset .language-text.highlight pre > code {
+  background: transparent;
+  box-shadow: inset 2px 0 0 var(--gg-rule);
+  color: var(--md-default-fg-color--light);
+}
+
+/* ---------- steps: a real sequence, drawn as one core sample ----------
+ * <div class="gg-steps" markdown> around a run of h2 sections. Each h2
+ * gets its number on the line; the line is the order. */
+.md-typeset .gg-steps {
+  counter-reset: gg-step;
+  position: relative;
+  margin: 1.4rem 0 0 0.85rem;
+  padding-left: 1.9rem;
+  border-left: 2px solid var(--gg-rule);
+}
+.md-typeset .gg-steps > h2 {
+  counter-increment: gg-step;
+  position: relative;
+  border-top: 0;
+  padding-top: 0;
+  margin-top: 2.2rem;
+}
+.md-typeset .gg-steps > h2:first-child { margin-top: 0; }
+.md-typeset .gg-steps > h2::before {
+  content: counter(gg-step);
+  position: absolute;
+  left: calc(-1.9rem - 0.85rem - 1px);
+  top: 0.05em;
+  width: 1.7rem;
+  height: 1.7rem;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--md-default-bg-color);
+  box-shadow: inset 0 0 0 2px var(--md-accent-fg-color);
+  color: var(--md-accent-fg-color);
+  font-size: 0.62em;
+  font-weight: 800;
+  letter-spacing: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- prerequisites and quick references: a two-column key ---------- */
+.md-typeset .gg-needs table:not([class]) { font-size: 0.76rem; }
+.md-typeset .gg-needs table:not([class]) td:first-child { font-weight: 650; min-width: 8rem; }
+/* Code in a table breaks at its hyphens and slashes, never mid-word; a
+ * table too wide for a phone scrolls inside its own frame. */
+.md-typeset table:not([class]) code { word-break: normal; overflow-wrap: normal; }
+
+/* ---------- home: entry doors ----------
+ * Four things a visitor comes to do. Each is a column under a stratum
+ * line, with a short promise and two next links. */
+.md-typeset .gg-doors .grid.cards,
+.md-typeset .gg-hero .gg-doors .grid.cards {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 12.5rem), 1fr));
+  gap: 1.8rem 1.6rem;
+  margin: 2.4rem 0 0;
+}
+.md-typeset .gg-doors .grid.cards > ul > li {
+  border-top-width: 3px;
+  padding-top: 0.9rem;
+}
+.md-typeset .gg-hero .gg-doors .grid.cards > ul > li > p:first-child {
+  font-size: 1.2em;
+  letter-spacing: -0.015em;
+  margin-bottom: 0.45em;
+}
+.md-typeset .gg-hero .gg-doors .grid.cards > ul > li > p:not(:first-child) { font-size: 0.92em; }
+.md-typeset .gg-doors .grid.cards > ul > li > p:last-child:not(:nth-child(2)) {
+  margin-top: 0.7em;
+  font-size: 0.84em;
+}
+
+/* The rest of the site as a compact index: name, then what it is. */
+.md-typeset .gg-more {
+  margin: 3rem 0 0;
+  padding-top: 1.2rem;
+  border-top: 1px solid var(--gg-rule);
+}
+.md-typeset .gg-more h2 {
+  border-top: 0;
+  padding-top: 0;
+  margin: 0 0 0.8rem;
+  font-size: 0.95rem;
+  letter-spacing: -0.01em;
+}
+.md-typeset .gg-more dl {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr));
+  gap: 0.9rem 1.6rem;
+  margin: 0;
+}
+.md-typeset .gg-more dl > div { margin: 0; }
+.md-typeset .gg-more dt { font-weight: 700; margin: 0; }
+.md-typeset .gg-more dd {
+  margin: 0.1rem 0 0;
+  color: var(--md-default-fg-color--light);
+  font-size: 0.9em;
+  line-height: 1.45;
+}
+.md-typeset .gg-more dd p { margin: 0; }
+
+/* ---------- footer: the riverbed, in both themes ---------- */
+[data-md-color-scheme="default"] {
+  --md-footer-bg-color: var(--gg-riverbed);
+  --md-footer-bg-color--dark: #121c21;
+  --md-footer-fg-color: #eef0ec;
+  --md-footer-fg-color--light: #b9c4c0;
+  --md-footer-fg-color--lighter: #8a979c;
+}
+[data-md-color-scheme="slate"] {
+  --md-footer-bg-color: #0f171b;
+  --md-footer-bg-color--dark: #0b1114;
+}
+.md-footer__inner { padding: 0.6rem 0; }
+.md-footer__title { font-weight: 650; }
+.md-copyright { font-size: 0.64rem; }
+
+@media (max-width: 40em) {
+  .md-typeset > h1 + p { font-size: 1.04em; }
+  .md-typeset .gg-steps { margin-left: 0.6rem; padding-left: 1.1rem; }
+  .md-typeset .gg-steps > h2::before { left: calc(-1.1rem - 0.6rem - 1px); width: 1.2rem; height: 1.2rem; }
+  .md-typeset .gg-hero .gg-lede { font-size: 0.9rem; }
+}

@@ -55,7 +55,7 @@ func init() {
 		"kop.RefRememberedController", kop.RefRememberedController, "kop.RefDiscarded", kop.RefDiscarded, "kop.RefTgtCtrl1", kop.RefTgtCtrl1, "kop.RefTgtCtrl2", kop.RefTgtCtrl2, "kop.RefLibTop", kop.RefLibTop,
 		"kop.RefOppNonRemCtrl", kop.RefOppNonRemCtrl, "kop.RefSrcOwner", kop.RefSrcOwner, "kop.RefPromised", kop.RefPromised, "kop.RefTriggerAttackers", kop.RefTriggerAttackers,
 		"kop.RefRememberedOwner", kop.RefRememberedOwner, "kop.RefImprinted", kop.RefImprinted, "kop.RefTriggerTgtCtrl", kop.RefTriggerTgtCtrl, "kop.RefAttachedCtrl", kop.RefAttachedCtrl, "kop.RefChosenPlayer", kop.RefChosenPlayer, "kop.RefTaxedAttacker", kop.RefTaxedAttacker, "kop.RefTriggerObjOwner", kop.RefTriggerObjOwner, "kop.RefChosenPlayerRes", kop.RefChosenPlayerRes, "kop.RefTriggerOpponents", kop.RefTriggerOpponents, "kop.RefResChosenPlayer", kop.RefResChosenPlayer,
-		"kop.RefExiledWithOwner", kop.RefExiledWithOwner, "kop.RefEnchantedCtrl", kop.RefEnchantedCtrl, "kop.RefRememberedSet", kop.RefRememberedSet, "kop.RefConvoked", kop.RefConvoked)
+		"kop.RefExiledWithOwner", kop.RefExiledWithOwner, "kop.RefEnchantedCtrl", kop.RefEnchantedCtrl, "kop.RefRememberedSet", kop.RefRememberedSet, "kop.RefConvoked", kop.RefConvoked, "kop.RefPlanarDeck", kop.RefPlanarDeck, "kop.RefChosenEnc", kop.RefChosenEnc)
 	enum[kop.VKind]("kop.VConst", kop.VConst, "kop.VX", kop.VX, "kop.VCountFilter", kop.VCountFilter,
 		"kop.VLastDamage", kop.VLastDamage, "kop.VTargetPower", kop.VTargetPower, "kop.VSelfPower", kop.VSelfPower,
 		"kop.VCountersSelf", kop.VCountersSelf, "kop.VCardsInHand", kop.VCardsInHand, "kop.VTriggerAmount", kop.VTriggerAmount,
@@ -236,6 +236,7 @@ func init() {
 		"kop.StFunctionsInExile", kop.StFunctionsInExile, "kop.StPanhETB", kop.StPanhETB, "kop.StAlsoSideboard", kop.StAlsoSideboard, "kop.StFreeOnly", kop.StFreeOnly,
 		"kop.StTapPowerCrew", kop.StTapPowerCrew, "kop.StTapPowerSaddle", kop.StTapPowerSaddle, "kop.StTapPowerStation", kop.StTapPowerStation, "kop.StTapPowerTough", kop.StTapPowerTough,
 		"kop.StMayZeroAlt", kop.StMayZeroAlt, "kop.StMayPayEnergy", kop.StMayPayEnergy,
+		"kop.StMayPayEvidence", kop.StMayPayEvidence,
 		"kop.StAtkTaxPlayer", kop.StAtkTaxPlayer, "kop.StAtkTaxWalker", kop.StAtkTaxWalker)
 	mask[kop.AbilityFlags]("kop.AfLatent", kop.AfLatent, "kop.AfManaDynamic", kop.AfManaDynamic, "kop.AfManaChosen", kop.AfManaChosen, "kop.AfOptionalCost", kop.AfOptionalCost,
 		"kop.AfCheckOnTrigger", kop.AfCheckOnTrigger, "kop.AfEquip", kop.AfEquip, "kop.AfCharmTrigger", kop.AfCharmTrigger, "kop.AfManaEachColor", kop.AfManaEachColor,

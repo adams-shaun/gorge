@@ -298,6 +298,7 @@ type genPrep struct {
 	anyConspire     bool           // some card has a StatStackKw Conspire grant (kw_conspire.go)
 	anyStorm        bool           // some card has a StatStackKw Storm grant (kw_storm.go)
 	anyDemoGrant    bool           // some card has a StatStackKw Demonstrate grant (kw_demonstrate.go)
+	anyRippleGrant  bool           // some card has a StatStackKw Ripple grant (kw_ripple.go)
 	anySplitSecond  bool           // some card has printed split second or a StatStackKw Split second grant (kw_splitsecond.go)
 	anyStackLife    bool           // some card has a StatStackKw Lifelink grant (static_stacklifelink.go)
 	anyOffZonePT    bool           // some card has a StatOffZonePT: an AffectedZone$ All P/T grant (static_offzonept.go)
@@ -386,6 +387,7 @@ type genPrep struct {
 	anyLoyaltyX     bool           // some ability costs a planeswalker's [-X] (CostLoyaltyX; cost_loyaltyx.go)
 	anyLifeX        bool           // some spell or ability costs an announced PayLife<X> (Cost.N 0; cost_paylifex.go)
 	anyExileX       bool           // some spell or activated ability costs an announced ExileFromGrave<X/Spec> (CostExileGrave with Cost.N 0; cost_exilex.go)
+	anyBlightX      bool           // some spell or ability costs an announced Blight<X> (CostBlight with Cost.N 0; cost_blightx.go)
 	anySacX         bool           // some spell or ability costs an announced Sac<X/Spec> (CostSac with Cost.N 0; cost_sacx.go)
 	anyXMin         bool           // some spell or ability floors its announced X (Cost.XMin; cost_sacx.go)
 	anyCopyCast     bool           // some OpCastFree casts a copy (C bit 6; cast_copycast.go)
@@ -394,6 +396,7 @@ type genPrep struct {
 	anyExHaste      bool           // some ability can't be blocked except by creatures with haste (Ext ExHaste; static_cantblockexcept.go)
 	anyColGrant     bool           // some ability grants by a chosen colour (Ext ColorGrant; static_colourgrant.go)
 	anyDiscRef      bool           // some expression reads RefDiscarded (value_discardedref.go)
+	anyEncRef       bool           // some expression reads RefChosenEnc (value_chosenenc.go)
 	anySpellCond    bool           // some spell ability carries a cast restriction in Trig.Cond (cast_spellcondition.go)
 	anyEntUntap     bool           // some ReplOthersEnterProgram untaps the entrant (ExtEnterUntapped): a tap/untap pair asks the CR 616.1 order (repl_entryorder.go)
 	anyEntAttack    bool           // some ReplOthersEnterProgram enters the entrant attacking (ExtEnterAttacking): beside another enter body it competes (repl_entryorder.go)
@@ -1018,7 +1021,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepLifeX(t, g)
 	prepExileX(t, g)
 	prepSacX(t, g)
+	prepBlightX(t, g)
 	prepDiscarded(t, g)
+	prepChosenEnc(t, g)
 	prepUniqueChain(t, g)
 	prepTgtSet(t, g) // tgt_setconstraints.go
 	prepEachDamage(t, g)
@@ -1053,7 +1058,10 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	g.anyTwobrid = tableTwobrid(t)
 	g.anyBeamGrant = tableHasStatic(t, kop.StatBeamGrant)
 	// prepSpellCond first: it sets anySpellCond, which an || must not skip
-	g.anyCantCast = prepSpellCond(t, g) || tableHasStatic(t, kop.StatCantBeCast)
+	// tableHasPlaneCurse joins: the plane-source curse's cast gate lowers to
+	// ExtPlaneCurse (dirac/zone_planecurse.go), whose record no StatCantBeCast
+	// static carries, so the flag must arm for its table too.
+	g.anyCantCast = prepSpellCond(t, g) || tableHasStatic(t, kop.StatCantBeCast) || tableHasPlaneCurse(t)
 	g.anyCantPlayLand = tableHasStatic(t, kop.StatCantPlayLand)
 	prepCastLimit(t, g)  // static_castlimit.go
 	prepCantSac(t, g)    // static_cantsacrifice.go, before prepCantAct reads it
@@ -1103,6 +1111,14 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	g.anyLinkRet = tableLinkRet(t)
 	g.anyLinkCtr = tableLinkCtr(t)
 	p.anyCmdTap = prepStaticClasses(t, g)
+	p.tapExtraCard = make([]bool, len(t.Cards))
+	for i := range t.Cards {
+		for j := range t.Cards[i].Abilities {
+			if a := &t.Cards[i].Abilities[j]; a.Kind == kop.AbStatic && a.Static.Kind == kop.StatTapExtra {
+				p.tapExtraCard[i] = true
+			}
+		}
+	}
 	prepHexOwn(t, g)      // kw_hexproofcolor.go
 	prepEmblemCasts(t, p) // cast_selfflash.go
 	for i := range t.Cards {
@@ -1455,6 +1471,8 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 					pc.hasStat = true // scanned through statM (face_turnfaceup.go)
 				case kop.ReplTurnUpProgram:
 					g.anyTurnUpRepl = true
+				case kop.ReplTurnUpAttach:
+					g.anyTurnUpRepl = true // the attach ask the fold waits on (face_turnupattach.go)
 				}
 			case kop.AbStatic:
 				switch a.Static.Kind {
@@ -1951,6 +1969,10 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepEmbalmGrant(t, p)  // kw_embalmgrant.go; on prep, not genPrep
 	prepOffKwGrant(t, p)   // kw_unearthgrant.go; on prep, not genPrep
 	prepCyclingGrant(t, p) // kw_cyclinggrant.go; on prep, not genPrep
+	p.grantsMana = make([]bool, len(t.Cards))
+	for _, r := range g.grantOf {
+		p.grantsMana[r.card] = true
+	}
 	return g
 }
 
@@ -2671,7 +2693,7 @@ type dmgAmtRec struct {
 // player-damage fold calls it beside its life/poison fold; a paid life cost
 // never does (gorge: a life payment is no Damage event). Cleared at the turn
 // change beside dmgTurn (turn_gen.go). It lives in genState.turnF's free
-// bits, so State does not grow (TestStateLayoutPinned).
+// bits, so State does not grow (TestNoNewFixedStateFields).
 func (s *State) plDmgMark(p uint8, n int) {
 	if n > 0 {
 		s.g.turnF |= turnDamagedMask(p)
@@ -3595,6 +3617,7 @@ var nonCreatureSubtype = map[string]bool{
 	"Adventure": true, "Arcane": true, "Lesson": true, "Trap": true, "Omen": true,
 	"Ajani": true, "Liliana": true, "Vivien": true, "Chandra": true, "Kaito": true, "Kiora": true,
 	"Jace": true, "Garruk": true, "Elspeth": true, "Nissa": true, "Gideon": true, "Teferi": true,
+	"Ugin": true, // a planeswalker subtype no pool card of a pool without Ugin planeswalkers carries (Haven of the Spirit Dragon's Planeswalker.Ugin target; gorge predicateTypeWords)
 }
 
 // capStall declares why when a failed search's fork latched one (0 = none): the

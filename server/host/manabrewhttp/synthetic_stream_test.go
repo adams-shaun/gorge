@@ -338,7 +338,7 @@ func syntheticAckBody(pm mb.PromptMessage) mb.ClientMessage {
 // a decision -- the game really started.
 func parkedAny(t *testing.T, r *host.Registry) {
 	t.Helper()
-	deadline := time.Now().Add(20 * time.Second)
+	deadline := time.Now().Add(testutil.WaitBudget)
 	for {
 		if ms, err := r.Matches("t1"); err == nil && len(ms) == 1 && ms[0].State == protocol.MatchLive {
 			for _, seat := range []state.PlayerID{0, 1} {
@@ -398,7 +398,7 @@ func TestSyntheticPromptsOverStream(t *testing.T) {
 	reveals := map[state.PlayerID]int{}
 	dices := map[state.PlayerID]int{}
 
-	deadline := time.Now().Add(90 * time.Second)
+	deadline := time.Now().Add(testutil.WaitBudget)
 	over := false
 	for !over && time.Now().Before(deadline) {
 		// Drive every parked decision exactly once.
@@ -508,7 +508,7 @@ func TestSyntheticPromptsOverStream(t *testing.T) {
 	// Assertion 4: exactly ONE terminal prompt per seat, and the once-per-
 	// seat latch means a later poll of the same seat carries no second one.
 	for seat, c := range map[state.PlayerID]*syntheticCollector{0: c0, 1: c1} {
-		gDeadline := time.Now().Add(10 * time.Second)
+		gDeadline := time.Now().Add(testutil.WaitBudget)
 		for c.gameOvers() == 0 && time.Now().Before(gDeadline) && !c.done1() {
 			time.Sleep(2 * time.Millisecond)
 		}

@@ -25,11 +25,37 @@ fi
 heads_gate() {
   grep -q -E '^(engine/(events|effects|state|rules|cards)/|cmd/forgec/)'
 }
+# The branch name on stdin: regen/* owns the derived records (scripts/regen-main.sh
+# regenerates them wholesale) and mergify/merge-queue/* replays regen branches, so the derived step below skips
+# them. Detached HEAD resolves to "HEAD": not exempt.
+derived_exempt() {
+  case $(cat) in
+  regen/* | mergify/merge-queue/*) return 0 ;;
+  *) return 1 ;;
+  esac
+}
 changed=$(git diff --name-only "$base"...HEAD)
-if ! "${cap[@]}" go test -timeout 3m -run '^TestComplexFunctionsOnlyShrink$|^TestLongFunctionsOnlyShrink$|^TestFuncCeilingsLowerOnly$|^TestCodeShapeOnlyShrinks$' ./internal/codeshape >"$log" 2>&1; then
+# A branch still carrying a rise in the derived records conflicts with regen/main the moment it merges (11-26: 25
+# open wt/* PRs CONFLICTING after each regen merge, every one rewriting support.md or a pin table). pr-derived.sh
+# --check flags one: a record the diff touches is stale iff the tolerant test passes on $base's copy — a rise
+# regen/main owns; a fall is kept by design. The corpus lives only here (pr-cards.sh), so the CI lint job and
+# queue-precheck cannot run this step (a path-only rule would block every legitimate fall).
+if grep -qxF -f <(bash scripts/pr-derived.sh --list) <<<"$changed"; then
+  if ! derived_exempt <<<"${PR_PRECHECK_BRANCH:-$(git rev-parse --abbrev-ref HEAD)}"; then
+    rc=0; out=$(bash scripts/pr-derived.sh --check "$base") || rc=$?
+    if [ "$rc" = 1 ]; then
+      files=${out##*pr-derived: stale }
+      files=${files%%$'\n'*}
+      fail "derived records $files carry a rise that regen/main owns: run scripts/pr-derived.sh $base and commit what it changes (a fall is kept by design)"
+    elif [ "$rc" != 0 ]; then
+      fail "derived records check: $out"
+    fi
+  fi
+fi
+if ! "${cap[@]}" go test -timeout 3m -run '^TestCodeShapeOnlyShrinks$' ./internal/codeshape >"$log" 2>&1; then
   # TestCodeShapeOnlyShrinks holds the tree-wide counts (stringLiteralCompares and the rest): a dirac ticket added two
   # string compares and failed its batch's test (0), as no affected-package rule selects ./internal/codeshape (#662, 11-17).
-  cat "$log"; fail "codeshape: $(grep -o -E '[^ ]+ \([^)]*\) grew to [a-z]+ [0-9]+, above its ceiling of [0-9]+|[A-Za-z]+: measured [0-9]+, above the frozen ceiling of [0-9]+' "$log" | head -1)"
+  cat "$log"; fail "codeshape: $(grep -o -E '[A-Za-z]+: measured [0-9]+, above the frozen ceiling of [0-9]+' "$log" | head -1)"
 fi
 # The public boundary scans every tracked file, so no affected-package rule selects it: a test fixture holding a
 # Forge script line verbatim passed the seat's checks and failed fast's TestNoVerbatimForgeLines (#613, 11-17).

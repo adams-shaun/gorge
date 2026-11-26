@@ -141,7 +141,7 @@ func (s *State) costPartDisjointD(k *prep, p uint8, sl Slot, c *kop.Cost, mana *
 		cons[nc] = x
 		nc++
 	}
-	need := int(c.N) - free
+	need := s.sacOwed(k, p, c, sl) - free
 	if need <= 0 {
 		return true
 	}
@@ -182,6 +182,8 @@ func (s *State) costPartDisjointD(k *prep, p uint8, sl Slot, c *kop.Cost, mana *
 
 // planReservationLimit is gorge's bound on the candidate assignments
 // planComposedCost tries (potential_plan.go).
+//
+//lockstep:const engine/rules.planReservationLimit
 const planReservationLimit = 64
 
 // manaPCAt is the mana facts of the permanent at sl (manaPCGen on a

@@ -283,6 +283,28 @@ type Cost struct {
 	// words are full). Only a printed activated ability's or a permanent
 	// spell's own additional cost carries it.
 	ExileBf bool
+	// SacHalf: the CostSac part (N 0, Filter the permanents the payer
+	// controls) sacrifices half of them, rounded up, counted when the cost is
+	// paid: Tectonic Split's "sacrifice half the lands you control, rounded
+	// up" (Sac<X/Land> with SVar X Count$Valid Land.YouCtrl/HalfUp; CR 118.3,
+	// 601.2b). gorge folds the count into a fixed Sac<N/Land> where the cost
+	// is composed (raise_cost_extra.go), so nothing is announced: Cost.N stays
+	// 0 but the part is not the announced X (dirac.sacXCost). A table byte,
+	// not a CostFlags bit (the words are full). Only a spell's own additional
+	// cost carries it.
+	SacHalf bool
+	// CloseEnc: the spell's own additional cost is Close Encounter's
+	// ChooseCard pick — choose one creature you control or a warped creature
+	// card you own in exile (gorge's costvocab.CloseEncounterChooseSpec, the
+	// sole spec its cost parser admits; CR 118.3, 601.2b). The choice moves
+	// and marks nothing: it rides the cast's paid "Revealed" list (gorge
+	// castPayChoosecost), and the spell body's RevealedCards$ value reads the
+	// chosen object through RefChosenEnc (the entry's trigObj, dirac
+	// cost_closeenc.go). gorge offers the cast only with a candidate
+	// (pay.RevealOrChooseCandidates) and asks only over several; a lone one is
+	// taken unasked. A table byte, not a CostFlags bit (the words are full).
+	// Only a spell's own additional cost carries it.
+	CloseEnc bool
 	// ExileGSelf: the source card itself, in its owner's graveyard, is
 	// exiled as a first ExileFromGrave<1/CARDNAME> part beside the
 	// CostExileGrave part (Cost.N cards matching Filter, the other cards;
@@ -396,6 +418,11 @@ const PayBSubTrigNew = 3
 // trigger's own ExileFromHand<N/Card> cost (N cards of the payer's hand
 // exiled), not a graveyard exile.
 const PayBSubExileHand = 9
+
+// PayBSubMoveGrave: a PayExileGrave whose B.N carries this sentinel is a
+// trigger's own ExiledMoveToGrave<N/Spec> cost (N cards matching F put from
+// any seat's exile zone into their owners' graveyards), not a graveyard exile.
+const PayBSubMoveGrave = 19
 
 // PayBSubTrigNewEvidence: a PayExileGrave whose B.N carries this sentinel is
 // a dies trigger's own ExileAnyGrave<1/Card.TriggeredNewCard>

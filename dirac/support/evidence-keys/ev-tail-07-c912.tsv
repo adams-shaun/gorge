@@ -1,0 +1,117 @@
+card	lir16	plays	keys	unused	branches	missing_branches
+A-Capenna Express	017af5c7f911be7d	16	2/2		1/1	
+A-Skyclave Shadowcat	a872fe442266b9f5	23	2/2		1/1	
+Abdel Adrian, Gorion's Ward	1b7b79688e1f2407	13	1/1		1/1	
+Akoum Hellhound	bc52a5cbf5ba28aa	85	1/1		1/1	
+Alpine Grizzly	044dfea665528d2f	19	0/0		0/0	
+Angelic Observer	64f296e2e054696b	21	0/0		0/0	
+Angrath, Captain of Chaos	533bed112b952fb2	29	1/1		1/1	
+Archon of Sun's Grace	c9f91927208fe5be	20	1/1		1/1	
+Assemble the Entmoot	7c2e24d9acbd24fd	15	1/1		1/1	
+Astrid Peth	a6fb6e6ff9af5a8b	17	3/3		0/1	ix:resp
+Basri, Devoted Paladin	8a00e062284d067c	8	3/3		1/1	
+Biogenic Ooze	f9f4d95b37366a32	15	3/3		1/1	
+Blazing Hellhound	916d20dd551072e9	26	1/1		1/1	
+Blood Price	044e5023d1493ae7	22	0/0		1/2	ix:resp
+Bloodcurdler	ca48995f08669433	45	1/1		1/1	
+Captain's Defense	45afc1ec003ebed1	14	0/0		1/2	ix:resp
+Carrier Pigeons	6a6f25a9ca1408e3	31	1/1		1/1	
+Carrion	f6cda8c4f4155aa9	50	0/0		2/2	
+Centaur Courser	564bf70d8d27b031	21	0/0		0/0	
+Centaur Veteran	c8963714cf9d783a	6	1/1		1/1	
+Compleat Devotion	b2ce23a7485c7a47	38	0/0		1/2	ix:resp
+Coral Fighters	39a2b26a470af821	113	1/1		1/1	
+Crabapple Cohort	a4cdf6fbb374f8ca	9	0/0		0/0	
+Cyclopean Mummy	aeea2b20962b33eb	39	1/1		1/1	
+Darien, King of Kjeldor	1633a54e7f6c54f1	22	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Darksteel Gargoyle	9ee52c34afcc6bb4	16	0/0		0/0	
+Dredge the Mire	a05d2a8b5b6c0cdb	28	0/0		2/2	
+Dust to Dust	6a41cb08f7af11e9	4	0/0		1/2	ix:resp
+Eager Cadet	29721ea4dc9ddd31	22	0/0		0/0	
+Ekundu Griffin	ec725ebcdd3cdbca	21	0/0		0/0	
+Erebos's Emissary	61b708e5f0ed83c3	58	1/1		3/3	
+Etched Familiar	1e46a0067df118ab	38	1/1		1/1	
+Fevered Suspicion	f6c90671f215affe	12	0/0		2/2	
+Forest	6d0466c30f825dba	427	1/1		0/1	ix:resp
+Foriysian Interceptor	abd0e80971e60fd8	26	0/0		0/0	
+Fragmentize	a3b95c911af06944	29	0/0		1/2	ix:resp
+Fresh Meat	a4f252f16336a49d	19	0/0		2/2	
+Glimmerpoint Stag	95860e7fcbe8a673	24	1/1		0/1	ix:resp
+Glint Hawk	21493f276acc28fc	33	1/1		0/1	ix:resp
+Grasp of Fate	d65a1c61804b6049	43	1/1		0/1	ix:resp
+Hallowed Burial	d2496ed561b16c77	25	0/0		2/2	
+Ice Over	30503976d6969cd2	84	0/0		2/2	
+Ichor Drinker	c55e54c27d77ac33	55	1/1		0/1	ix:resp
+Indomitable Will	3e61acbe75fb2332	46	0/0		1/2	ix:resp
+Island	763c67ef7a27eaf5	3333	1/1		0/1	ix:resp
+Jukai Preserver	436b33ddccde72a2	3	2/2		1/1	
+Karametra's Acolyte	915dca505eae733c	20	1/1		0/1	ix:resp
+Kessig Recluse	cee5da80ef6451a3	16	0/0		0/0	
+Kithkin Rabble	b6a0f9aa0e69e1a2	22	0/0		0/0	
+Kjeldoran Dead	277bfda9ac11b818	29	2/2		1/1	
+Legion Guildmage	9309c7a60b2fef1a	48	2/2		1/1	
+Leonin Warleader	32992ec389623b10	17	1/1		0/1	ix:resp
+Luxurious Libation	599b4c2046b47359	11	0/0		3/4	f0/s/x0
+Mageta the Lion	7120ecd9b4716e63	29	1/1		1/1	
+Manor Skeleton	db8801cf789bd2c9	41	1/1		1/1	
+Mighty Leap	e8e3fbd3bd55c900	38	0/0		2/2	
+Mirkwood Spider	07d35e047f3c38e5	17	1/1		1/1	
+Mogis's Favor	7400229b433671d7	37	0/0		2/4	cast/alt:escaped,ix:resp
+Mountain	9e71388353e907ed	4522	1/1		0/1	ix:resp
+Myth Realized	681988063eced015	20	3/3		1/1	
+Natural Emergence	d130bfdd019a3c90	8	1/1		0/1	ix:resp
+Obstinate Baloth	d7a837f9e21f895a	10	1/1		1/1	
+Pacification Array	c023a06a711cf654	105	1/1		1/1	
+Perimeter Sergeant	f6f00256288e0373	32	1/1		1/1	
+Plains	82d63a695487e567	654	1/1		0/1	ix:resp
+Pulse of Murasa	b64da712cc8d9f02	22	0/0		2/2	
+Putrid Goblin	3f324dc11c143f10	43	1/1		1/1	
+Quagmire Lamprey	98c22fbf301584a1	54	1/1		1/1	
+Queen's Commission	9768658988e7bd74	22	0/0		1/2	ix:resp
+Rabid Bloodsucker	2bd33f7209741171	26	1/1		0/1	ix:resp
+Ransack the Lab	bf1e9ba2a7705658	32	0/0		1/2	ix:resp
+Renowned Weaver	795e3bfdc4a3bd3d	40	1/1		1/1	
+Repentance	2c15986f77ae2824	33	0/0		2/2	
+Ring of Thune	57beb9ddd26eab4e	137	2/2		1/1	
+Roku's Mastery	b80c2ea5fe19a03e	36	0/0		4/4	
+Sage's Reverie	d6466dc7d7560781	34	1/1		1/2	ix:resp
+Samut, Voice of Dissent	1d4bb3db4aaed2d7	26	1/1		1/1	
+Saving Grasp	1ec68806aae06ac7	124	0/0		4/4	
+Sawtooth Ogre	2a9c0e5ed019b25a	43	2/2		1/1	
+Scattershot Archer	f9da1577e69f2459	13	1/1		1/1	
+Screamreach Brawler	15811925513028f5	232	0/0		2/2	
+Scurrid Colony	bacb3e2e071e7de5	19	0/0		0/0	
+Settlement Blacksmith	760446a30a10f7f8	21	1/1		0/1	ix:resp
+Shattering Blow	1d3fd86eb8c61c3d	12	0/0		1/2	ix:resp
+Skarrg Goliath	f7431b01c6a4f1c3	5	1/1		0/1	ix:resp
+Spark Mage	9a4e8e7cd4ebd574	87	1/1		0/1	ix:resp
+Spark Reaper	e391261e0795fae3	20	1/1		1/1	
+Spectral Sliver	3a744e83d5d210f9	13	0/0		0/0	
+Spike Drone	25e5b33a6b4ff4a7	17	1/1		1/1	
+Spiked Baloth	e69d6e3dc3d2948c	14	0/0		0/0	
+Spirit Mantle	eba02dec60b18756	25	0/0		2/2	
+Steadfast Sentinel	dd19dd1b2fcb8b5c	27	1/1		0/1	ix:resp
+Stench of Decay	49aef8eff5e1f4f2	25	0/0		2/2	
+Stoneforge Mystic	2d1acce1ed008f87	35	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
+Swamp	342b413902f441c3	669	1/1		0/1	ix:resp
+Symbiosis	a9d9cce102ace4b4	29	0/0		2/2	
+Thalia, Guardian of Thraben	e41cea1a3f043d8d	26	0/0		0/0	
+The Mending of Dominaria	d46e7600499050b6	7	0/0		0/0	
+The Torment of Gollum	1bc968fb10affa61	25	0/0		2/2	
+Thrive	311737cd0cea3dd1	11	0/0		3/4	f0/s/x0
+Thwart the Grave	170a7f28145265ab	23	0/0		1/2	ix:resp
+Trail of Crumbs	e8338ecd3f9853af	21	2/2		1/1	
+Tread Upon	70555757fd66f1f9	17	0/0		2/2	
+Uktabi Wildcats	e6459cdab5471be2	13	1/1		1/1	
+Valko Indorian	57da29cffc378d88	7	0/0		0/0	
+Vampire Bats	3a39e55b748554a7	36	1/1		1/1	
+Violent Outburst	2528d805168fa0ba	50	0/0		2/2	
+Virtue's Ruin	cdbb1a8be0a38f7c	33	0/0		2/2	
+Vow of Malice	8b4d7d1d556708c5	28	0/0		2/2	
+Vraska's Fall	abb601dc435858a5	55	0/0		2/2	
+Wandering Treefolk	41514db5a0667735	30	1/1		1/1	
+Will of the All-Hunter	a5c86edbb6a10e9f	15	1/1		1/2	ix:resp
+Wolfsbane, Highland Hero	71931a44ed137a0e	22	1/1		1/1	
+Woolly Mammoths	74afb16803347b5d	15	0/0		0/0	
+Wreak Havoc	4cd62fdee6c3e86e	12	0/0		1/2	ix:resp
+Yavimaya Iconoclast	fdbd5109e1db1da1	24	1/1		3/3	

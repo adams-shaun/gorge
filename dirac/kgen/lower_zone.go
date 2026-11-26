@@ -1583,15 +1583,65 @@ func (lc *lowerCtx) digUntil(ps *params) error {
 	if err != nil {
 		return err
 	}
-	found, err := zoneOf(ps, "FoundDestination", zNone)
-	if err != nil {
-		return err
-	}
-	rev, err := zoneOf(ps, "RevealedDestination", zNone)
-	if err != nil {
-		return err
+	// The planar dig (DigZone$ PlanarDeck, The Fertile Lands of Saulvinia):
+	// the scan and both placements are the seat's planar deck's non-current
+	// remainder (gorge diguntil.go's planar arm: the face-up current plane at
+	// the zone's head is not part of the reveal, and a planar placement's
+	// same-zone MoveZone fold appends the card at the deck's bottom). The
+	// kernel's DuPlanar bit redirects its OpDigUntil to the planar record;
+	// the C/CS zone slots keep the library encoding, which the planar arm
+	// ignores (the planar zone id does not fit the op's three-bit zone
+	// fields). No other DigZone$ value lowers.
+	planar := strings.TrimSpace(ps.str("DigZone")) == "PlanarDeck"
+	found, rev := zLibrary, zLibrary
+	if planar {
+		ps.consume("DigZone")
+		for _, k := range []string{"FoundDestination", "RevealedDestination"} {
+			v, ok := ps.get(k)
+			if ok && strings.TrimSpace(v) != "PlanarDeck" {
+				return refuse("DigUntil planar %s$ %q", k, v)
+			}
+			if !ok {
+				// An absent FoundDestination$ makes gorge return the found card with
+				// the revealed pile in scan order, which the kernel's found-then-rest
+				// move does not reproduce.
+				return refuse("DigUntil planar scan without %s$ PlanarDeck", k)
+			}
+			ps.consume(k)
+		}
+		for _, k := range []string{"FoundLibraryPosition", "RevealedLibraryPosition"} {
+			v, ok := ps.get(k)
+			if !ok {
+				// gorge leaves an unpositioned dug card in place (diguntil.go's
+				// stay-in-place arms) where the kernel moves it to the bottom.
+				return refuse("DigUntil planar scan without %s$ -1", k)
+			}
+			if strings.TrimSpace(v) != "-1" {
+				return refuse("DigUntil planar %s$ %q", k, v)
+			}
+			ps.consume(k)
+		}
+		for _, k := range []string{"Tapped", "Attacking", "NoMoveFound", "NoMoveRevealed", "Optional", "OptionalFoundMove",
+			"RevealRandomOrder", "Shuffle", "ShuffleCondition", "RememberRevealed", "ImprintFound", "ImprintRevealed",
+			"DugMark", "MinTotalCMC", "NoneFoundDestination", "NoneFoundLibraryPosition"} {
+			if _, ok := ps.get(k); ok {
+				return refuse("DigUntil planar with %s$", k)
+			}
+		}
+	} else {
+		found, err = zoneOf(ps, "FoundDestination", zNone)
+		if err != nil {
+			return err
+		}
+		rev, err = zoneOf(ps, "RevealedDestination", zNone)
+		if err != nil {
+			return err
+		}
 	}
 	in := lInstr{Op: "DigUntil", Obj: who, A: n, F: f, C: found, CS: "revealed=" + zoneLabel[rev]}
+	if planar {
+		in.CS += "|Planar"
+	}
 	if found == zBattlefield {
 		// The kernel's battlefield arm enters the found card plainly: only
 		// a Valid$ that cannot admit an Aura (no bearer choice, CR 303.4f;
@@ -2447,7 +2497,7 @@ func (lc *lowerCtx) playRememberedAlt(alt, valid string) (string, error) {
 // play lowers api:Play's four resolution-time free-cast spellings.
 func (lc *lowerCtx) play(ps *params) error {
 	// Named parameters this reader does not model: refuse rather than drop.
-	for _, k := range []string{"PlayCost", "WithTotalCMC", "RememberPlayed", "ManaConversion",
+	for _, k := range []string{"PlayCost", "WithTotalCMC", "ManaConversion",
 		"SorcerySpeed", "ShowCardToActivator", "ImprintPlayed", "ReplaceGraveyardValid", "TargetMin", "TargetMax"} {
 		if _, ok := ps.get(k); ok {
 			return refuse("Play %s", k)
@@ -2523,12 +2573,9 @@ func (lc *lowerCtx) play(ps *params) error {
 	if err := playMandatoryOK(mandatory, hideDef, copyCard, repeat, upTo); err != nil {
 		return err
 	}
-	forget := false
-	if v, ok := ps.get("ForgetPlayed"); ok {
-		if v != "True" {
-			return refuse("Play ForgetPlayed %q", v)
-		}
-		forget = true
+	forget, remember, err := playForgetRemember(ps) // lower_playremember.go
+	if err != nil {
+		return err
 	}
 	replace := false
 	if v, ok := ps.get("ReplaceGraveyard"); ok {
@@ -2544,8 +2591,8 @@ func (lc *lowerCtx) play(ps *params) error {
 				return refuse("Play Defined$ ExiledWith with %s$", k)
 			}
 		}
-		if forget || replace {
-			return refuse("Play Defined$ ExiledWith with ForgetPlayed$/ReplaceGraveyard$")
+		if forget || replace || remember {
+			return refuse("Play Defined$ ExiledWith with ForgetPlayed$/ReplaceGraveyard$/RememberPlayed$")
 		}
 		ps.consume("Defined")
 		return lc.hidePlay(ps, amount)
@@ -2556,7 +2603,6 @@ func (lc *lowerCtx) play(ps *params) error {
 	// cards that player owns, so YouOwn filters nothing there
 	lc.bluffPlay = playRememberedEmptyKey(ps, "ConditionDefined") || playOwnHand(ps)
 	var saExpr string
-	var err error
 	landPlay := playLandShape(ps, paid, mandatory, copyCard, repeat, upTo, forget, replace, amount)
 	if !playCommandZone(ps) && !landPlay {
 		// (the command-zone Play reads its absent ValidSA$: lower_playcommand.go)
@@ -2602,9 +2648,7 @@ func (lc *lowerCtx) play(ps *params) error {
 		}
 		cs += "|UpTo"
 	}
-	if forget {
-		cs += "|Forget"
-	}
+	cs += playRememberFlags(forget, remember)
 	if replace {
 		cs += "|ReplaceGY"
 	}
@@ -2774,6 +2818,9 @@ func (lc *lowerCtx) effectAPI(ps *params) error {
 			}
 		}
 		if _, st := ps.m["StaticAbilities"]; st && ps.m["RememberObjects"] != "" {
+			if done, err := lc.effectPlaneCurse(ps, tr); done || err != nil { // lower_planecurse.go
+				return err
+			}
 			return lc.effectStaticTriggerPair(ps, tr) // lower_effectcaptured.go
 		}
 		if done, err := lc.contractLossEffect(ps, tr); done || err != nil { // lower_contract.go
@@ -5509,7 +5556,7 @@ func (lc *lowerCtx) partitionMayPlay(ps *params, ss []cards.Static) (bool, error
 	plain := !owner && !checked && ps.str("Duration") == "Permanent"
 	flags, gate, affOK := lc.rememberedAffected(may.str("Affected"), plain)
 	if ss[0].Mode != "Continuous" || !may.is("MayPlay", "True") || !affOK ||
-		may.str("AffectedZone") != "Exile" || (!owner && (may.str("MayPlayPlayer") != "" || len(ss) != 1)) {
+		may.str("AffectedZone") != "Exile" || (!owner && (may.str("MayPlayPlayer") != "" || len(ss) != 1 && !abstruseConvertStatic(ss))) {
 		return false, nil
 	}
 	may.consume("Mode", "Description", "MayPlay", "Affected", "AffectedZone", "MayPlayPlayer")
@@ -5548,8 +5595,10 @@ func (lc *lowerCtx) partitionMayPlay(ps *params, ss []cards.Static) (bool, error
 		}
 		return true, refuse("Effect MayPlay unread %v", left)
 	}
-	raise := 0
-	if len(ss) == 2 {
+	raise, convC := 0, false
+	if len(ss) == 2 && !owner {
+		convC = true // abstruseConvertStatic checked ss[1] above
+	} else if len(ss) == 2 {
 		rc := newParams(ss[1].Params)
 		if ss[1].Mode != "RaiseCost" || rc.str("ValidCard") != "Card.IsRemembered+CastSa Spell.MayPlaySource" ||
 			rc.str("AffectedZone") != "Exile" || rc.str("Type") != "Spell" {
@@ -5577,7 +5626,7 @@ func (lc *lowerCtx) partitionMayPlay(ps *params, ss []cards.Static) (bool, error
 		raise = n
 	}
 	ps.consume("Duration", "RememberObjects", "ForgetOnMoved", "StaticAbilities")
-	in := lInstr{Op: "MayPlay", Obj: obj, C: zExile, CS: "WhileExiled"}
+	in := lInstr{Op: "MayPlay", Obj: obj, C: zExile, CS: "WhileExiled", ConvC: convC}
 	if valid != nil {
 		in.CS, in.F = "WhileValid", valid
 	} else if gate != nil {
@@ -5586,6 +5635,31 @@ func (lc *lowerCtx) partitionMayPlay(ps *params, ss []cards.Static) (bool, error
 	in.B = cst(flags | raise<<kop.MayPlayRaiseShift)
 	lc.emit(in)
 	return true, nil
+}
+
+// abstruseConvertStatic reports whether a controller permission's two-static
+// list is the MayPlay static plus Abstruse Appropriation's colourless-mana
+// conversion: Mode$ ManaConvert over the effect controller's cast of the
+// remembered exiled card through its permission, ManaConversion$ C->AnyColor
+// (gorge pay.ApplyConversionTo: only the pool's {C} becomes any colour, as
+// the cast is paid). Every parameter is the exact printed spelling and no
+// other key is present (Description$ aside), so another ManaConvert shape
+// keeps the emblem lowering's refusal. The record carries the whole static:
+// ValidPlayer$ You is its controller, ValidCard$ Card.IsRemembered with
+// AffectedZone$ Exile its object and zone, ValidSA$ Spell.MayPlaySource the
+// cast through it (kop.MayPlayConvC).
+func abstruseConvertStatic(ss []cards.Static) bool {
+	if len(ss) != 2 || ss[1].Mode != "ManaConvert" {
+		return false
+	}
+	cv := newParams(ss[1].Params)
+	if cv.str("ValidPlayer") != "You" || cv.str("ValidCard") != "Card.IsRemembered" ||
+		cv.str("ValidSA") != "Spell.MayPlaySource" || cv.str("ManaConversion") != "C->AnyColor" ||
+		cv.str("AffectedZone") != "Exile" {
+		return false
+	}
+	cv.consume("Mode", "Description", "ValidPlayer", "ValidCard", "ValidSA", "ManaConversion", "AffectedZone")
+	return len(cv.unread()) == 0
 }
 
 // partitionRiders reads the controller permission's record riders

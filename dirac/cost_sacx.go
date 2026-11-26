@@ -31,6 +31,7 @@ func prepSacX(t *kop.Table, g *genPrep) {
 	}
 	for i := range t.Cards {
 		note(&t.Cards[i].SpellCost)
+		note(&t.Cards[i].KickerCost) // a kicker {X}'s floor (Thieving Skydiver), Flags 0
 		for j := range t.Cards[i].Abilities {
 			note(&t.Cards[i].Abilities[j].Cost)
 		}
@@ -39,7 +40,7 @@ func prepSacX(t *kop.Table, g *genPrep) {
 
 // sacXCost reports whether c sacrifices the announced X permanents.
 func sacXCost(c *kop.Cost) bool {
-	return c != nil && c.Flags&kop.CostSac != 0 && c.N == 0
+	return c != nil && c.Flags&kop.CostSac != 0 && c.N == 0 && !c.SacHalf
 }
 
 // costXMin is cost c's announced-X floor.
@@ -65,10 +66,16 @@ func (s *State) xFloor(k *prep) int {
 	if k.gen == nil || !k.gen.anyXMin {
 		return 0
 	}
+	fl := 0
 	if pc := s.buildPickCost(k); pc != nil {
-		return costXMin(pc)
+		fl = costXMin(pc)
 	}
-	return 0
+	if e := &s.bld().e; e.kind == seSpell && e.flags&sfKicked != 0 {
+		// a kicked cast folds the kicker's floor by maximum (gorge cost.Plus);
+		// it rides CardDef.KickerCost.XMin, inert for the pick (Flags 0)
+		fl = max(fl, costXMin(&k.t.Cards[e.card].KickerCost))
+	}
+	return fl
 }
 
 // sacXClamp bounds the X ask of a Sac<X> cost being built by the permanents
@@ -181,4 +188,13 @@ func (s *State) sacXDiscountBounds(k *prep, cost *kop.ManaCost, av *avail, mx, h
 		}
 	}
 	return mx, hi
+}
+
+// kickerXCast reports whether a cast with flags fl is a kicked one whose
+// {X} is the kicker's (Thieving Skydiver, Kangee, Verdeloth): a card without
+// an {X} of its own, so the plain kicked witness (cast.go) is not its plan; it
+// is the kicked {X} cast's, which taps at the largest X the sources pay and
+// then announces X. Multikicker stays outside it.
+func kickerXCast(cd *kop.CardDef, fl uint8) bool {
+	return fl&sfKicked != 0 && cd.Cost.X == 0 && cd.Kicker.X != 0 && !cd.HasMultikicker
 }

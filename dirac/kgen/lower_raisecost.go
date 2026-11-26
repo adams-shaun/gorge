@@ -1,6 +1,7 @@
 package kgen
 
 import (
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -77,27 +78,48 @@ func (lc *lowerCtx) raiseSelfAdditional(sp *params) (bool, error) {
 	if _, has := sp.m["Condition"]; has {
 		return false, nil
 	}
-	c, err := lc.cost(strings.TrimSpace(cost))
-	if err != nil {
-		// an announced-X part (Discard<X/..>, Sac<X/..>) parses only as a
-		// spell's own cost (lifeXSpell); it is the announced amount only when
-		// the spell prints {X} and its SVar X reads that announcement
-		// (Count$xPaid), so a computed X (Tectonic Split's half the lands)
-		// keeps its refusal. Only those two parts are admitted this way: the
-		// flag also opens PayLife<X>, ExileFromGrave<X> and XMin parses.
-		prev := lc.lifeXSpell
-		lc.lifeXSpell = true
+	var c lCost
+	if body, isEnc := closeEncCostToken(cost); isEnc {
+		// Close Encounter's ChooseCard pick: the sole ChooseCard cost gorge's
+		// parser admits (cost/token_match.go) — a choice-only additional cost
+		// over two zones. The choice is asked at payment (gorge
+		// revealCostOrChooseAsk) and the body's X reads the chosen object's
+		// power off the cast's paid list, so the part lowers as card data
+		// (kop.Cost.CloseEnc; kernel cost_closeenc.go), nothing announced.
+		if body != closeEncSpec {
+			return true, refuse("RaiseCost Cost$ %q: not Close Encounter's ChooseCard spec", strings.TrimSpace(cost))
+		}
+		c = lCost{CloseEnc: true}
+	} else {
+		var err error
 		c, err = lc.cost(strings.TrimSpace(cost))
-		lc.lifeXSpell = prev
-		if err != nil || !(c.DiscardX || c.SacX) || c.LifeX || c.ExileGX || c.XMin != 0 {
+		if bc, ok := lc.blightXRaise(strings.TrimSpace(cost)); ok && err != nil {
+			c, err = bc, nil // Soul Immolation's announced Blight<X> (lower_blightx.go)
+		}
+		if err != nil {
+			// an announced-X part (Discard<X/..>, Sac<X/..>) parses only as a
+			// spell's own cost (lifeXSpell); it is the announced amount only when
+			// the spell prints {X} and its SVar X reads that announcement
+			// (Count$xPaid), so a computed X (Tectonic Split's half the lands)
+			// keeps its refusal. Only those two parts are admitted this way: the
+			// flag also opens PayLife<X>, ExileFromGrave<X> and XMin parses.
+			prev := lc.lifeXSpell
+			lc.lifeXSpell = true
+			c, err = lc.cost(strings.TrimSpace(cost))
+			lc.lifeXSpell = prev
+			if err != nil || !(c.DiscardX || c.SacX) || c.LifeX || c.ExileGX || c.XMin != 0 {
+				return false, nil
+			}
+		}
+		if !c.Mana.None || c.pureMana() {
 			return false, nil
 		}
-	}
-	if !c.Mana.None || c.pureMana() {
-		return false, nil
-	}
-	if (c.DiscardX || c.SacX) && (!lc.out.Cost.X || strings.TrimSpace(lc.face.SVars["X"]) != "Count$xPaid") {
-		return false, nil
+		if c.SacX && lc.sacHalfOfControlled(&c, strings.TrimSpace(cost)) {
+			c.SacX, c.SacHalf = false, true
+		}
+		if (c.DiscardX || c.SacX) && (!lc.out.Cost.X || strings.TrimSpace(lc.face.SVars["X"]) != "Count$xPaid") {
+			return false, nil
+		}
 	}
 	sp.consume("Cost", "Mode", "ValidCard", "Activator", "Type", "EffectZone", "Description")
 	if left := sp.unread(); len(left) != 0 {
@@ -112,6 +134,46 @@ func (lc *lowerCtx) raiseSelfAdditional(sp *params) (bool, error) {
 	}
 	o.SpellCost = &c
 	return true, nil
+}
+
+// sacHalfX matches a lone Sac<X/Spec[/desc]> cost.
+var sacHalfX = regexp.MustCompile(`^Sac<X/([^/>.]+)(?:/[^>]*)?>$`)
+
+// closeEncSpec mirrors gorge's costvocab.CloseEncounterChooseSpec
+// (engine/rules/cost/token_match.go), the sole ChooseCard cost spec its
+// parser admits: one creature you control or a warped creature card you own
+// in exile. kgen keeps the printed wording, not a filter: gorge's candidate
+// home is hand-coded over the two zones (pay.RevealOrChooseCandidates), and
+// so is the kernel's (dirac cost_closeenc.go).
+const closeEncSpec = "Creature.YouCtrl+inZoneBattlefield;Creature.YouOwn+inZoneExile+warped"
+
+// closeEncCostToken matches a lone ChooseCard<1/SPEC> cost: ok when the cost
+// is that head, with the inner "1/<spec>" for the caller to check.
+func closeEncCostToken(cost string) (spec string, ok bool) {
+	rest, found := strings.CutPrefix(strings.TrimSpace(cost), "ChooseCard<")
+	if !found || !strings.HasSuffix(rest, ">") {
+		return "", false
+	}
+	n, spec, found := strings.Cut(strings.TrimSuffix(rest, ">"), "/")
+	if !found || n != "1" {
+		return "", false
+	}
+	return spec, true
+}
+
+// sacHalfOfControlled reports whether cost, a lone Sac<X/Spec> already parsed
+// into c, sacrifices half of the permanents Spec names: SVar X is exactly
+// Count$Valid Spec.YouCtrl/HalfUp (Tectonic Split's "half the lands you
+// control, rounded up"). gorge folds the count into a fixed Sac<N/Spec> where
+// the cost is composed (raise_cost_extra.go), so no X is announced: the kernel
+// counts the permanents as the pick is posed (kop.Cost.SacHalf). Any other
+// body of X stays refused.
+func (lc *lowerCtx) sacHalfOfControlled(c *lCost, cost string) bool {
+	m := sacHalfX.FindStringSubmatch(cost)
+	if m == nil || c.Sac == nil || c.SacExile || c.SacSelf || c.XMin != 0 {
+		return false
+	}
+	return strings.TrimSpace(lc.face.SVars["X"]) == "Count$Valid "+m[1]+".YouCtrl/HalfUp"
 }
 
 func (lc *lowerCtx) raiseCost(sp *params, st *lStatic) error {

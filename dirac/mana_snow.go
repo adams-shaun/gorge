@@ -55,7 +55,7 @@ func tableAnySnow(t *kop.Table) bool {
 	for i := range t.Cards {
 		c := &t.Cards[i]
 		if c.SpentSnow || c.Cost.Snow != 0 ||
-			c.SpellCost.Mana.Snow != 0 || c.AltAddCost.Mana.Snow != 0 || c.OptCost.Mana.Snow != 0 ||
+			c.SpellCost.Mana.Snow != 0 || c.AltAddCost.Mana.Snow != 0 || c.AltAddCost2.Mana.Snow != 0 || c.OptCost.Mana.Snow != 0 ||
 			c.KickerCost.Mana.Snow != 0 || c.FbCost.Mana.Snow != 0 || c.EscCost.Mana.Snow != 0 || c.EscBfCost.Mana.Snow != 0 {
 			return true
 		}

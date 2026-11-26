@@ -22,6 +22,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 	"github.com/adams-shaun/gorge/engine/view"
 	"github.com/adams-shaun/gorge/server/protocol"
+	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
 // undoTable is a 2-seat table whose seat 0 is the table's only human seat
@@ -49,7 +50,7 @@ func undoTable(t *testing.T, o Options, id TableID) *Registry {
 // none within a deadline.
 func liveMatch(t *testing.T, r *Registry, id TableID) *match {
 	t.Helper()
-	deadline := time.Now().Add(20 * time.Second)
+	deadline := time.Now().Add(testutil.WaitBudget)
 	for {
 		r.mu.RLock()
 		tb := r.tables[id]
@@ -72,7 +73,7 @@ func liveMatch(t *testing.T, r *Registry, id TableID) *match {
 // waitIntents polls until the live match has recorded at least want intents.
 func waitIntents(t *testing.T, r *Registry, id TableID, want int) int {
 	t.Helper()
-	deadline := time.Now().Add(20 * time.Second)
+	deadline := time.Now().Add(testutil.WaitBudget)
 	for {
 		m := liveMatch(t, r, id)
 		m.mu.RLock()
@@ -96,7 +97,7 @@ func waitRewind(t *testing.T, rewound <-chan int) int {
 	select {
 	case n := <-rewound:
 		return n
-	case <-time.After(20 * time.Second):
+	case <-time.After(testutil.WaitBudget):
 		t.Fatal("rewind hook did not fire")
 		return 0
 	}
@@ -114,7 +115,7 @@ func answerOnce(t *testing.T, r *Registry, id TableID, after uint64) *decision.D
 	if err := r.SubmitIntent(id, 1, 0, legalIntent(d)); err != nil {
 		t.Fatalf("SubmitIntent(seq %d): %v", d.Seq, err)
 	}
-	deadline := time.Now().Add(20 * time.Second)
+	deadline := time.Now().Add(testutil.WaitBudget)
 	for {
 		d2, err := r.Pending(id, 1, 0)
 		if err == nil && d2.Seq != d.Seq {
@@ -129,7 +130,7 @@ func answerOnce(t *testing.T, r *Registry, id TableID, after uint64) *decision.D
 
 func waitPendingSeq(t *testing.T, r *Registry, id TableID, want uint64) *decision.Decision {
 	t.Helper()
-	deadline := time.Now().Add(20 * time.Second)
+	deadline := time.Now().Add(testutil.WaitBudget)
 	for {
 		if d, err := r.Pending(id, 1, 0); err == nil && d.Seq == want {
 			return d
@@ -146,7 +147,7 @@ func waitPendingSeq(t *testing.T, r *Registry, id TableID, want uint64) *decisio
 // intent belongs to seat 0, which exposes the terminal undo boundary.
 func driveHumanUntil(t *testing.T, r *Registry, done <-chan struct{}) {
 	t.Helper()
-	deadline := time.Now().Add(20 * time.Second)
+	deadline := time.Now().Add(testutil.WaitBudget)
 	var last uint64
 	var answered bool
 	for {
@@ -263,7 +264,7 @@ func TestUndoAfterGameEndingIntentWinsBeforeFinish(t *testing.T) {
 
 	select {
 	case <-rewound:
-	case <-time.After(20 * time.Second):
+	case <-time.After(testutil.WaitBudget):
 		t.Fatal("accepted terminal Undo did not call OnRewind")
 	}
 	select {
@@ -271,7 +272,7 @@ func TestUndoAfterGameEndingIntentWinsBeforeFinish(t *testing.T) {
 		if got == protocol.TMatchEnd {
 			t.Fatal("match_end was emitted before the accepted terminal Undo rewound")
 		}
-	case <-time.After(20 * time.Second):
+	case <-time.After(testutil.WaitBudget):
 		t.Fatal("focus stream did not receive rewind")
 	}
 	select {
@@ -330,7 +331,7 @@ func TestUndoRacingFinishIsLinearizable(t *testing.T) {
 	case <-rewound:
 	case <-ended:
 		t.Fatal("Undo returned success but finish emitted match_end")
-	case <-time.After(20 * time.Second):
+	case <-time.After(testutil.WaitBudget):
 		t.Fatal("Undo returned success but neither rewind nor match_end was observed")
 	}
 }
@@ -402,7 +403,7 @@ func TestUndoRewindsToTheRequesterLastDecisionAndReplaysIdentically(t *testing.T
 	if err := r.SubmitIntent("t1", 1, 0, legalIntent(d)); err != nil {
 		t.Fatalf("SubmitIntent after undo: %v", err)
 	}
-	deadline := time.Now().Add(20 * time.Second)
+	deadline := time.Now().Add(testutil.WaitBudget)
 	for {
 		d3, err := r.Pending("t1", 1, 0)
 		if err == nil && d3.Seq != d.Seq {
@@ -600,7 +601,7 @@ func TestUndoTruncatesDiskAndAppendsFromTheNewEnd(t *testing.T) {
 	if err := r.SubmitIntent("t1", 1, 0, legalIntent(d)); err != nil {
 		t.Fatal(err)
 	}
-	deadline := time.Now().Add(20 * time.Second)
+	deadline := time.Now().Add(testutil.WaitBudget)
 	for {
 		if next, err := r.Pending("t1", 1, 0); err == nil && next.Seq != d.Seq {
 			break
@@ -746,7 +747,7 @@ func TestUndoHookFiresOnceAndOnBurstStaysOneIntentPerBurst(t *testing.T) {
 	if err := r.SubmitIntent("t1", 1, 0, legalIntent(d)); err != nil {
 		t.Fatalf("SubmitIntent after undo: %v", err)
 	}
-	deadline := time.Now().Add(20 * time.Second)
+	deadline := time.Now().Add(testutil.WaitBudget)
 	for {
 		d3, err := r.Pending("t1", 1, 0)
 		if err == nil && d3.Seq != d.Seq {
@@ -833,7 +834,7 @@ func TestUndoStreamReceivesRewindThenConsistentFrames(t *testing.T) {
 	if err := r.Undo("t1", 1, 0); err != nil {
 		t.Fatalf("Undo: %v", err)
 	}
-	deadline := time.Now().Add(20 * time.Second)
+	deadline := time.Now().Add(testutil.WaitBudget)
 	var rewindSeen, decisionAfter bool
 	var newHead uint64
 	for time.Now().Before(deadline) {

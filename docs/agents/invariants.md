@@ -178,39 +178,45 @@ commit. Adding an entry is a regression, and a branch cannot land one.
 **Code-shape ratchets fail on growth only.** `internal/codeshape` holds two kinds,
 run by every precheck (`scripts/test_targets.py` always selects the package):
 
-- `TestCodeShapeOnlyShrinks`: the constants in `ratchet_test.go` (interface
-  widths, `*Engine` surface, string-keyed dispatch and parameter leaks in
-  `engine/rules` and `engine/effects`).
-- `TestLongFunctionsOnlyShrink`, `TestComplexFunctionsOnlyShrink`: every non-test,
+- `cmd/countgrowth`: a base-relative growth rule over the tree-wide count
+  metrics (interface widths, `*Engine` surface, string-keyed dispatch and
+  parameter leaks in `engine/rules` and `engine/effects`; the no-strings
+  counts of `engine/rules`, `engine/cards` and the bots). A metric at the
+  head may have grown by at most 2% of its value at the merge base
+  (`CountGrowthPercent`), with a floor of 3 units (`CountGrowthFloor`); a
+  metric absent at the merge base (a new scope, or a census that reached
+  zero) is held to the floor alone. The merge-base value is recomputed
+  there, never stored. `make lint` runs it against `origin/main` (local only, no CI step, as
+  for `cmd/funcgrowth`); there are no stored ceilings to share between
+  pull requests, so nothing races.
+- `cmd/funcgrowth` (local only since 11-26: `.githooks/pre-push` and `make lint`, no CI step): a base-relative growth rule over every non-test,
   non-generated function in `engine/rules`, `engine/effects` and `dirac/` (kgen
-  included) over 300 lines or cyclomatic complexity 50 has a row in
-  `internal/codeshape/testdata/func_ceilings.tsv`. A listed function fails when
-  it grows past its row; an unlisted one fails when it crosses a threshold.
+  included). A function over 300 lines (`LongFuncLines`) or cyclomatic
+  complexity 50 (`ComplexFuncThreshold`) at the head may have grown by at most
+  5% of its size at the merge base (`GrowthPercent`; floors of 10 lines and 2
+  complexity, `GrowthFloorLines` and `ComplexGrowthFloor`). A function newly
+  over a threshold, or one that crosses it, is refused at the threshold (the
+  allowance does not carry a function past it); a function at or below
+  both thresholds is never checked, and shrinking always passes. Functions
+  match by package directory, name and receiver, so a move keeps its history
+  and a rename starts fresh. `make lint` and `.githooks/pre-push` run it against
+  `origin/main`; there are no
+  per-function rows to share between pull requests, so nothing races.
 
-Each check has a slack (`internal/codeshape/slack.go`): a count may exceed its
-ceiling by max(2, 1%) (`Slack`; a zero ceiling stays exact), a function its row
-or threshold by max(5, 3%) (`FuncSlack`). Growth within the slack passes with a
-logged WARNING; never raise a ceiling to absorb it.
+Shrinking always passes, so concurrent refactors never fail on each other.
 
-Shrinks and deletions only log, so concurrent refactors never fail on each other.
-`CODESHAPE_LOWER=1 go test -run '^TestFuncCeilingsLowerOnly$' ./internal/codeshape`
-lowers the rows to the measurement and drops stale ones; it never raises or adds
-one. A renamed or moved function takes its row under the new key in the same
-commit at no higher value.
-
-A pull request that lowers a row or a `ratchet_test.go` constant fails the
+A pull request that lowers a `ratchet_test.go` constant fails the
 lint job with "lowering is post-merge only": `cmd/checkratchet` compares the
 branch with its merge base. Lowering is post-merge only, so a lowering cannot
-race a branch that grows the same function into one queue batch. The daily
-`ratchet-lower` workflow runs the generator on main and opens a bot PR (rebuilt
-over main when it goes red or conflicting).
+race a branch that grows the same measurement into one queue batch.
+(`internal/codeshape`'s own ratchet tests and constants are gone — their
+metrics run under `cmd/countgrowth` — so `cmd/checkratchet` skips that
+directory; the other packages' ratchet tables stay guarded.)
 
 **A ratchet is never raised by a branch.** That covers the coverage tables above,
-the constants and `func_ceilings.tsv` in `internal/codeshape`, the constants and
+the constants and
 allow-lists of `internal/archtest`, and `testkit/testutil/agentsdoc_test.go`.
-Review refuses a raised or deleted constant, an added allow-list entry, a removed
-or rewired `TestCodeShapeOnlyShrinks` row, a new or raised `func_ceilings.tsv`
-row, or a new known-unsupported file. A raise is a maintainer's decision.
+Review refuses a raised or deleted constant, an added allow-list entry, or a new known-unsupported file. A raise is a maintainer's decision.
 
 ### 9. Golden chain heads move only with a named cause
 
@@ -304,7 +310,9 @@ and BLB slices, the size bar, allocations and instructions per transition),
    - `make sim`: 20/20 `replay OK`.
    - If you touched `web/` or changed when a decision is posed, also run the
      `./engine/view` package and `make test-web`.
-4. **How a PR lands.** Every non-draft PR to `main` is queued by Mergify once its
+4. **How a PR lands.** Open or refresh it only with `scripts/pr-submit.sh`, run
+   in the branch's worktree (merge `origin/main`, `pr-derived.sh`, `pr-precheck.sh`
+   ok on the exact head, push, open; `--draft` for review-first). Every non-draft PR to `main` is queued by Mergify once its
    own checks, `fast` (`scripts/ci-fast.sh`: the diff's packages and their test
    importers) and `lint`, pass. Mergify batches up to 10 queued PRs on a
    `mergify/merge-queue/*` branch, where `ci.yml` runs the full suite once per

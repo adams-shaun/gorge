@@ -28,7 +28,7 @@ var (
 		"shield", "replctr", "replleave", "copyface", "rolemulti", "defenderpw", "tokatkask", "enterdefender",
 		"endure", "linkctr", "aegis", "sacother", "copycast", "netmana", "tokenpt", "staticask", "handsize",
 		"mayraise", "uncounterorder", "entryorder", "copyallask", "clonelayer", "gravepower", "landgrant",
-		"outsidetype", "exileonmoved", "multiretarget", "l6walk", "lowering", "tokrewrite", "stackkwgrant", "paylifeshared", "noprevent", "dmgmarkorder", "fbgrantstamp", "restrdefer", "diamondmix", "comboanymix", "extrablockreq", "paybeforeetb", "atktax", "blktax", "myriadpw", "prevnext", "chooseplayerorder", "offzonept", "zeroaltshared", "radmill", "textchange", "dredge", "prevscopecopy", "gainsof", "retracegrant", "exilerider", "band"}
+		"outsidetype", "exileonmoved", "multiretarget", "l6walk", "lowering", "tokrewrite", "stackkwgrant", "paylifeshared", "noprevent", "dmgmarkorder", "fbgrantstamp", "restrdefer", "diamondmix", "comboanymix", "extrablockreq", "paybeforeetb", "atktax", "blktax", "myriadpw", "prevnext", "chooseplayerorder", "offzonept", "zeroaltshared", "radmill", "textchange", "dredge", "prevscopecopy", "gainsof", "retracegrant", "exilerider", "band", "gravelossgrant"}
 )
 
 // Every registered reason has a class, and it is the one the lists above name.

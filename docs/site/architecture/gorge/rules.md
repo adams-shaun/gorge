@@ -1,12 +1,12 @@
 # The rules core
 
-Package `engine/rules` is where the Comprehensive Rules (CR) live: casting and
-the stack, state-based actions, triggers, replacement effects, layers, combat
-and zones. Each section names the functions that implement a mechanism and the
-CR rules they cite. Read [Events and replay](events.md) and
-[Game loop and decisions](game-loop.md) first.
+Package `engine/rules` is where the Comprehensive Rules (CR) live. Each section
+below names the functions that implement one mechanism and the CR rules they cite.
 
-## The shape of the package
+Read [Events and replay](events.md) and [Game loop and decisions](game-loop.md) first:
+this page assumes the one mutation path and the decision loop.
+
+## How the package is layered { #the-shape-of-the-package }
 
 Around `engine/rules` sit seven sub-packages that each compute one thing and
 never hold an engine:
@@ -287,7 +287,9 @@ before switching; the current CR text folds counters into 7c and calls
 switching 7d. Counters and modifiers both add, so the result is the same.</figcaption>
 </figure>
 
-**The effect list.** A `state.ContinuousEffect` has a source, layer and sublayer,
+### The effect list
+
+A `state.ContinuousEffect` has a source, layer and sublayer,
 timestamp, an `Affects` filter (the `ValidTgts$` filter language) and the
 modification (`AddPower`, `SetPower`, `AddKeywords`, `AddTypes`, `SetName`, ...).
 Statics on permanents are rescanned into effects; resolving spells add them
@@ -296,7 +298,9 @@ with the game clock, so timestamps are part of the log. The registry lives on th
 engine (`Engine.continuous`) and is rebuilt identically on replay by
 re-execution.
 
-**Ordering.** `active()` ([`engine/rules/layers.go`](https://github.com/adams-shaun/gorge/blob/main/engine/rules/layers.go))
+### Ordering
+
+`active()` ([`engine/rules/layers.go`](https://github.com/adams-shaun/gorge/blob/main/engine/rules/layers.go))
 returns the live effects in CR 613 order (layer, sublayer, timestamp) with a
 stable sort, so equal keys keep registration order. An effect whose source left
 the battlefield drops out (a lord's bonus vanishes when it dies), except one-shot
@@ -304,22 +308,27 @@ until-end-of-turn effects. In layer 6, `abilityDependencyOrder` (`rules/chars`)
 applies CR 613.8 dependencies: an effect that changes whether another applies
 goes first, and a dependency loop falls back to timestamp order.
 
-**The walk.** The read-only computation lives in package `rules/chars`:
+### The walk
+
+The read-only computation lives in package `rules/chars`:
 `chars.Types` is the layer-4 walk, `chars.Compute` the full layer 3/5/6 walk,
 `chars.PT` the layer-7 walk. A caller asks the engine:
 
-```go
+```go title="engine/rules: reading characteristics"
 func (e *Engine) Derived(id state.ObjID) Derived   // type Derived = effects.Chars
 func (e *Engine) Chars(id state.ObjID) *effects.Chars // the effects.Host form
 func (e *Engine) Power(id state.ObjID) int32
 func (e *Engine) Toughness(id state.ObjID) int32
 ```
 
-The returned slices (keywords, types) alias the engine's scratch buffers and are
-rewritten by the next call; callers copy what they keep. That is what lets
-repeated derivation run without allocating.
+!!! warning "Copy what you keep"
+    The returned slices (keywords, types) alias the engine's scratch buffers and
+    are rewritten by the next call. That is what lets repeated derivation run
+    without allocating.
 
-**Caching.** Every filter match reads keywords and types, so several caches sit
+### Caching
+
+Every filter match reads keywords and types, so several caches sit
 in front of derivation, each keyed on something only an event can move:
 
 | Cache | Keyed on | Why it is safe |
@@ -329,9 +338,10 @@ in front of derivation, each keyed on something only an event can move:
 | walk-scoped `Derived` memo | per legal-actions walk, plus log length, registry version and arena size | the walk is a pure read, and derivations inside one walk repeat objects |
 | incremental layer 4/5/6 tables | type, colour and keyword grants | rebuilt when their inputs change |
 
-The layer-inert reuse and the `Derived` memo each have a verify mode
-(`layerInertVerify`, `derivedMemoVerify`) that recomputes on every hit and panics
-on a difference, so a stale entry fails loudly in tests.
+!!! tip "Stale caches fail loudly"
+    The layer-inert reuse and the `Derived` memo each have a verify mode
+    (`layerInertVerify`, `derivedMemoVerify`) that recomputes on every hit and
+    panics on a difference, so a stale entry fails in tests.
 
 ## Combat
 
@@ -373,11 +383,15 @@ sequenceDiagram
 
 ## Zones and object identity (CR 400.7)
 
-**The arena.** Every card, token, spell and ability is a `state.Object` in one
+### The arena
+
+Every card, token, spell and ability is a `state.Object` in one
 dense slice, `Game.Objs`; `Objs[i]` has ID `i+1`, so `ObjID` 0 means "no object".
 Zones are lists of IDs indexed by zone and player; the stack is its own list.
 
-**Identity.** An object keeps its `ObjID` for the whole match, in every zone.
+### Identity
+
+An object keeps its `ObjID` for the whole match, in every zone.
 CR 400.7 makes a permanent that leaves the battlefield and returns a *new*
 object, so each object carries an `Incarnation`, bumped by the `MoveZone` fold
 whenever it crosses the battlefield boundary. Anything that must name one
@@ -406,7 +420,9 @@ reference (the card a trigger remembered, the creature an Aura was cast on). It
 also fixes the mapping from each deck card to one object, which dirac's oracle
 relies on.
 
-**The game record.** `state.Game`
+### The game record
+
+`state.Game`
 ([`engine/state/game.go`](https://github.com/adams-shaun/gorge/blob/main/engine/state/game.go))
 holds the players (life, pool, counters, per-turn tallies), the object arena, the
 stack, turn, step, active player, priority holder and pass count, game-over and
@@ -425,14 +441,12 @@ only on certain things. Mana abilities resolve immediately without the stack (CR
 
 ## Changing the rules core safely
 
-- Mutate state only by emitting an event (`e.emit`); add a new event kind at
-  the end of the list if no existing one fits.
-- Read characteristics through `Derived`/`Chars`, never from the printed face.
-- Ask through `e.ask` (or `Host.Ask` from an effect), and give the ask a
-  deterministic fallback for a host that cannot answer.
-- Run the focused tests for the mechanism and `TestHeads`; if a golden head
-  moves, find the first diverging event before re-pinning
-  ([Events and replay](events.md#golden-heads)).
+| Do | Never |
+|---|---|
+| Mutate state by emitting an event (`e.emit`); append a new event kind at the end of the list if none fits | write a `state.Game` field directly |
+| Read characteristics through `Derived`/`Chars` | read them from the printed face |
+| Ask through `e.ask` (or `Host.Ask` from an effect), with a deterministic fallback for a host that cannot answer | leave an ask with no fallback |
+| Run the mechanism's focused tests and `TestHeads`; find the first diverging event before re-pinning a moved head ([Events and replay](events.md#golden-heads)) | re-pin a head without naming its cause |
 
 [Invariants](../invariants.md) lists the rules these follow and what enforces
 each one.
