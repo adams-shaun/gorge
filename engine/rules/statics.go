@@ -839,6 +839,12 @@ func (sv staticView) ParamStr(k cards.ParamKey) string {
 	return v
 }
 
+// ParamTrue reports whether Params[k] is the exact True flag: the one
+// compare the staticView flag reads share (strings ratchet).
+func (sv staticView) ParamTrue(k cards.ParamKey) bool {
+	return sv.ParamStr(k) == "True"
+}
+
 // ParamCode is key k's value code stored at load (cards.RegisterParamCoder).
 func (sv staticView) ParamCode(k cards.ParamKey) (uint16, bool) {
 	return cards.ParamSetCode(sv.PS, sv.Params, k)

@@ -521,7 +521,7 @@ func (e *Engine) mayPlayLandAny(p state.PlayerID) bool {
 // card's exiler (MayPlayPlayer$ Exiler, Shared Fate).
 func mayPlayExilerGrantOpen(statics []staticView) bool {
 	for _, sv := range statics {
-		if sv.ParamStr(cards.PKMayPlay) == "True" && mayPlayExiler(sv.ParamStr(cards.PKMayPlayPlayer)) {
+		if sv.ParamTrue(cards.PKMayPlay) && mayPlayExiler(sv.ParamStr(cards.PKMayPlayPlayer)) {
 			return true
 		}
 	}
