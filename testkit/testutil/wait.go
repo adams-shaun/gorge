@@ -1,7 +1,5 @@
 package testutil
 
-import "time"
-
 // WaitBudget is the shared, generous ceiling for a test's wait on a server, a
 // subprocess or a goroutine: the deadline of a poll loop, the time.After arm
 // whose expiry fails the test, or a context.WithTimeout whose expiry is the
@@ -14,4 +12,8 @@ import "time"
 // literal carry a `// wait:ok <reason>` comment: a negative wait ("nothing
 // happens within N s" — its expiry is the success arm) or a value that is
 // itself under test. TestNoFixedLongWaitsInTests keeps new literals out.
-const WaitBudget = 2 * time.Minute
+//
+// It is an untyped constant — two minutes in nanoseconds — so it converts to
+// time.Duration at each use: testkit/testutil imports no time (D16,
+// TestTimeIsImportedOnlyByTheHost).
+const WaitBudget = 120_000_000_000
