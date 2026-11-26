@@ -797,6 +797,27 @@ func (e *Engine) effectMoveSweep(ev events.Event) {
 		}
 		if (exile != "" && effects.ParseZone(exile) == ev.From ||
 			exileAlso != "" && effects.ParseZone(exileAlso) == ev.From) && objIDIn(ce.Remembered, ev.Obj) {
+			// CR 400.7a: a grant to a permanent SPELL stays with the spell on
+			// the stack and carries onto the permanent the spell becomes.
+			// combatfx anchored the sweep to the zone the grant was made in --
+			// Stack for a spell-grant -- so the spell's stack-to-battlefield
+			// move (it resolving) must CARRY the grant, not end it: the
+			// anchor re-points at the battlefield, so the carried grant still
+			// ends when that permanent later leaves it (CR 400.7). Any other
+			// departure from the anchor zone still ends it here: a countered
+			// spell's card in the graveyard carries nothing, so casting it
+			// again the same turn never inherits the old grant.
+			if ev.From == state.ZStack && ev.To == state.ZBattlefield {
+				if ce.ExileOnMoved == "Stack" {
+					ce.ExileOnMoved = "Battlefield"
+				}
+				if ce.ExileOnMovedAlso == "Stack" {
+					ce.ExileOnMovedAlso = "Battlefield"
+				}
+				changed = true
+				kept = append(kept, ce)
+				continue
+			}
 			changed = true
 			continue // the effect ends: not kept
 		}
