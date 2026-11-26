@@ -102,6 +102,12 @@ func CastOptCanon(src Ref, mode string, alt int) Canon {
 	if mode == "impended" {
 		return Pack(ActCastImpended, src, RefNone, uint8(alt)<<4)
 	}
+	if sel := KickedAltSelector(mode); sel != 0 {
+		// CR 702.33b: the two-alternative Kicker's per-alternative cast is
+		// its own action kind, the 16-entry cast-mode table being full
+		// (kw_kickalt.go)
+		return Pack(ActCastKickedAlt, src, RefNone, sel|uint8(alt)<<4)
+	}
 	mc, _ := CastModeCode(mode)
 	return Pack(ActCast, src, RefNone, mc|uint8(alt)<<4)
 }
@@ -170,6 +176,8 @@ func CastModeOf(c Canon) string {
 		return "impended"
 	case ActCastAirbend:
 		return "airbend_cast"
+	case ActCastKickedAlt:
+		return KickedAltMode(c.Mode() & 15)
 	}
 	return CastModeName(c.Mode() & 15)
 }
@@ -188,7 +196,7 @@ func BeamAlt(mode string, alt int, cost string) int {
 // CastAlt is the Option.AltCostIndex of a cast's canonical action.
 func CastAlt(c Canon) int {
 	switch c.Kind() {
-	case ActCast, ActCastCasualty, ActCastImpended:
+	case ActCast, ActCastCasualty, ActCastImpended, ActCastKickedAlt:
 		return int(c.Mode() >> 4)
 	}
 	return 0

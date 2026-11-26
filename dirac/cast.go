@@ -29,6 +29,9 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8, tgt uint8) {
 	}
 	s.clearPaidN(o)
 	s.clearKickAlt(o)
+	if sel := kickAltSelOf(tgt); sel != 0 {
+		s.setKickAlt(o, sel) // the two-alternative Kicker's selection: the byte the kicked N filters, Count$TimesKicked and the build's pricing read (kw_kickalt.go)
+	}
 	var fl uint8
 	if mode&1 != 0 { // seat-ok: a cast-mode bit
 		fl |= sfKicked
