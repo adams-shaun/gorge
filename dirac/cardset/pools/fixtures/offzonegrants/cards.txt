@@ -38,3 +38,27 @@ Mountain
 Island
 Swamp
 Plains
+# the off-zone layer-4 override grants (dirac/kgen/lower_offzoneoverride.go,
+# dirac/static_offzonechars.go): Maskwood Nexus (AffectedZone$ All
+# AddAllCreatureTypes$ True) and Rootpath Purifier (AffectedZone$
+# Battlefield,Library AddType$ Basic), beside a creature-type tutor, basic-land
+# searches and the nonbasic lands and creatures they read
+# (dirac/oracle/offzone_override_lockstep_test.go).
+Maskwood Nexus
+Rootpath Purifier
+Goblin Matron
+Goblin Recruiter
+Goblin Chieftain
+Mogg Fanatic
+Llanowar Elves
+Rampant Growth
+Kodama's Reach
+Evolving Wilds
+Terramorphic Expanse
+Blood Crypt
+Cinder Glade
+Stomping Ground
+Temple Garden
+Blackcleave Cliffs
+Goblin Warchief
+Goblin King
