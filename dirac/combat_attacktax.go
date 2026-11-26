@@ -320,11 +320,15 @@ func atkTaxRestricted(a *kop.Ability) bool {
 // attackChoiceManaSources): a cost of {T} alone, a literal amount, no spend
 // restriction, rider, gate, deferral or simultaneous production, and one
 // colour, a choice of colours or the chosen colour, or the commander's colour
-// identity (ManaIdentity), which the window never lists (atkTaxShape).
+// identity (ManaIdentity), which the window never lists (atkTaxShape). The
+// spent-mana haste rider (ManaHasteValid: Carnelian Orb of Dragonkind) is no
+// restriction: gorge lists the source as the plain unit it makes and pays the
+// charge from it, the grant riding only a spell's payment (mana_spentrider.go;
+// the tap tags the unit, artTag).
 func atkTaxManaAb(a *kop.Ability) bool {
 	return a.Cost == (kop.Cost{Flags: kop.CostTap}) && a.ManaN > 0 && len(a.Prog) == 0 &&
 		(a.AFlags&^(kop.AfManaChoice|kop.AfManaChosen) == 0 || a.ManaIdentity && a.AFlags&^(kop.AfManaChoice|kop.AfManaReflect) == 0 || atkTaxReflAb(a)) && a.ManaRestrict == 0 && a.ManaRestrictAb == 0 &&
-		(!a.ManaEach || atkTaxEachAb(a)) && !a.ManaDeferred && (a.SplitGate == 0 || atkTaxSplitAb(a)) && a.ManaHasteValid == 0 && a.ManaRider == 0 &&
+		(!a.ManaEach || atkTaxEachAb(a)) && !a.ManaDeferred && (a.SplitGate == 0 || atkTaxSplitAb(a)) && a.ManaRider == 0 &&
 		a.ActZone == kop.ZoneNone && a.Gate == (kop.Gate{}) && !a.Exhaust && a.Once == 0
 }
 
