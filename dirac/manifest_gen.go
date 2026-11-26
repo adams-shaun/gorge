@@ -911,6 +911,8 @@ func (s *State) execExtGen(k *prep, in *kop.Instr) (ok, done bool) {
 //go:noinline
 func (s *State) execOpGen(k *prep, in *kop.Instr) (ok, done bool) {
 	switch in.Op {
+	case kop.OpAskDestAlt:
+		return s.execAskDestAlt(k, in) // zone_destaltask.go
 	case kop.OpGrantEmbalmOwnCost:
 		return s.execGrantEmbalm(k, in) // kw_embalmgrant.go
 	case kop.OpMarkNoRegen:
