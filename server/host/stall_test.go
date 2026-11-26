@@ -236,7 +236,7 @@ func TestStallGuardSetToZeroDoesNotHalt(t *testing.T) {
 	// until the stalled loop has answered beyond the hand's 40 castable cards
 	// (i.e. it is genuinely churning on repeatable activations, not about to
 	// run dry), then Close and verify the ONLY thing that ended it was Close.
-	deadline := time.Now().Add(30 * time.Second)
+	deadline := time.Now().Add(testutil.WaitBudget)
 	for liveIntents(t, r, "t1") < 200 {
 		if time.Now().After(deadline) {
 			t.Fatalf("the stalled table never answered 200 decisions; it is not churning")

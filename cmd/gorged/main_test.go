@@ -43,7 +43,7 @@ func startGorged(t *testing.T, dir string, extra ...string) string {
 	client := http.Client{Timeout: 2 * time.Second}
 	// A generous budget: the loop returns on the first answer and fails at
 	// once if Serve exits, so only a loaded CI runner ever waits this long.
-	deadline := time.Now().Add(120 * time.Second)
+	deadline := time.Now().Add(testutil.WaitBudget)
 	for {
 		select {
 		case <-done:

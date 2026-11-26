@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/adams-shaun/gorge/server/gorged"
+	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
 // deployScript is the demo deploy, relative to this package (cmd/gorged).
@@ -121,7 +122,7 @@ func TestDeployStartsTheServersWhenTheArtFillFails(t *testing.T) {
 			}
 			defer outFile.Close()
 
-			ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+			ctx, cancel := context.WithTimeout(context.Background(), testutil.WaitBudget)
 			defer cancel()
 			cmd := exec.CommandContext(ctx, "bash", script)
 			cmd.Dir = tmp
@@ -167,7 +168,7 @@ func TestDeployStartsTheServersWhenTheArtFillFails(t *testing.T) {
 
 			// The stub servers are started in the background: wait for both.
 			var calls [][]string
-			deadline := time.Now().Add(10 * time.Second)
+			deadline := time.Now().Add(testutil.WaitBudget)
 			for {
 				calls = readDeployCalls(t, rec)
 				if len(calls) >= 3 || time.Now().After(deadline) {
@@ -361,7 +362,7 @@ func startGorgedProbe(t *testing.T, port int) *gorgedProbe {
 		_ = cmd.Process.Kill()
 		<-done
 	})
-	deadline := time.Now().Add(10 * time.Second)
+	deadline := time.Now().Add(testutil.WaitBudget)
 	for {
 		if _, err := os.Stat(ready); err == nil {
 			break
@@ -384,7 +385,7 @@ func startGorgedProbe(t *testing.T, port int) *gorgedProbe {
 	// Prove the probe really is the shape that used to be swept: a listening
 	// socket rendered exactly as [::1]:port in ss -lptn — matched by the old
 	// port-only filter, which is how such a probe once got killed.
-	deadline = time.Now().Add(10 * time.Second)
+	deadline = time.Now().Add(testutil.WaitBudget)
 	for {
 		out, err := exec.Command("ss", "-lptn").Output()
 		if err != nil {
@@ -543,7 +544,7 @@ func dryRun(t *testing.T, env ...string) (string, error) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), testutil.WaitBudget)
 	defer cancel()
 	cmd := exec.CommandContext(ctx, "bash", script, "--dry-run")
 	cmd.Dir = t.TempDir()

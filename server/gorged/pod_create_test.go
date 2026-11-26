@@ -17,6 +17,7 @@ import (
 	"github.com/adams-shaun/gorge/server/host"
 	"github.com/adams-shaun/gorge/server/host/httpapi"
 	"github.com/adams-shaun/gorge/server/protocol"
+	"github.com/adams-shaun/gorge/testkit/testutil"
 
 	mb "github.com/adams-shaun/gorge/server/protocol/manabrew"
 )
@@ -157,7 +158,7 @@ func TestCreatePodSeatsAFourSeatCommanderTableFromOneRequest(t *testing.T) {
 	// 10 s deadline is the bound; the 1 ms tick only paces the poll, so no
 	// PASS/FAIL depends on a short wall-clock window.
 	var ms []protocol.MatchInfo
-	for deadline := time.Now().Add(10 * time.Second); len(ms) == 0 && time.Now().Before(deadline); time.Sleep(time.Millisecond) {
+	for deadline := time.Now().Add(testutil.WaitBudget); len(ms) == 0 && time.Now().Before(deadline); time.Sleep(time.Millisecond) {
 		ms, _ = r.Matches(host.TableID(resp.Table))
 	}
 	if len(ms) != 1 {

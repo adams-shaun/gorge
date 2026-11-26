@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/adams-shaun/gorge/server/host"
+	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
 // TestIntentAutoFlagForwarded POSTs one intent with ?auto=1 and the next
@@ -90,7 +91,7 @@ func TestIntentAutoFlagForwarded(t *testing.T) {
 // entries — the accepted intent has logged — and fails after a deadline.
 func waitLedgerPast(t *testing.T, r *host.Registry, n int) int {
 	t.Helper()
-	deadline := time.Now().Add(30 * time.Second)
+	deadline := time.Now().Add(testutil.WaitBudget)
 	for {
 		prov, err := r.Provenance("t1", 1)
 		if err != nil {

@@ -12,6 +12,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/view"
 	"github.com/adams-shaun/gorge/server/host"
 	"github.com/adams-shaun/gorge/server/protocol"
+	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
 // gameCreator builds the Options.CreateGame closure the endpoint needs, in
@@ -90,7 +91,7 @@ func TestCreateGameStartsARealHumanVsBotMatch(t *testing.T) {
 	}
 	// The table is live and the human seat is parked on a decision it must
 	// answer — a real match, not a config that merely registered.
-	deadline := time.Now().Add(20 * time.Second)
+	deadline := time.Now().Add(testutil.WaitBudget)
 	for {
 		if time.Now().After(deadline) {
 			t.Fatal("no human decision parked after POST /api/games")

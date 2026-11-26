@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/adams-shaun/gorge/server/host/httpapi"
+	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
 // routePattern finds a mux registration, with or without a method.
@@ -137,7 +138,7 @@ func fileFeedback(t *testing.T, base, dir, table string) (string, string) {
 // concede ends the game for seat 0, waiting for its priority.
 func concede(t *testing.T, match, token string) {
 	t.Helper()
-	deadline := time.Now().Add(30 * time.Second)
+	deadline := time.Now().Add(testutil.WaitBudget)
 	for time.Now().Before(deadline) {
 		req, _ := http.NewRequest(http.MethodGet, match+"/pending?seat=0", nil)
 		req.Header.Set("Authorization", "Bearer "+token)
