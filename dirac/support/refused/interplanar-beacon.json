@@ -1,0 +1,13 @@
+{
+  "card": "Interplanar Beacon",
+  "class": "lockstep",
+  "why": "gorge's payment planner and the kernel's pick different sources around Beacon: gorge taps Beacon's {T}: {C} for a chained activation's generic where the kernel taps an Island (Energy Refractor's {2}), and for Atalya's white-only {X} gorge taps Beacon for an unspendable {C} (its colour reach counts the planeswalker-only {1},{T} Combo ability) where the kernel does not; kfuzz -synth tail-02 -focus -only, seed 23",
+  "repro": {
+    "pool": "tail-02",
+    "surface": "autopay",
+    "seed": 1,
+    "pair": 51,
+    "policy": "random",
+    "mulligans": 1
+  }
+}

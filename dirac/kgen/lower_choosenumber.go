@@ -22,6 +22,8 @@ func init() { exprKinds[vChosenNumber] = kop.ExChosenNumber }
 
 // numberOfferCeiling is gorge's chooseNumberMaxOffer: without a Max$ the ask
 // offers Min$ (or 0) to this.
+//
+//lockstep:const engine/effects.chooseNumberMaxOffer
 const numberOfferCeiling = 12
 
 // numberKernelCeiling is the largest number the kernel's chosen byte keeps
