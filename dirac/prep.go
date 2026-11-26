@@ -34,6 +34,10 @@ type pcard struct {
 	// blgView). A source whose own ability is a planner-deferred rider keeps
 	// the intrinsic unit and the tap runs no rider.
 	manaIntrinsic bool
+	// manaRaiseLife: the intrinsic view carries the card's own mana-abilities'
+	// life raise as its pain (Thran Portal, prepLandGrant's fold); only that
+	// fold sets it, so printedAbPain never reads a copied base's painLife.
+	manaRaiseLife bool
 	// castSrc: tapping this source for a cast is recorded (noteTapSrc):
 	// csTreasure, the card's printed subtypes include Treasure (CastSpecTreasure;
 	// set only when the cast ring is on); csObserved, the card carries a
