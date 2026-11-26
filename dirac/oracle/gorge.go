@@ -938,9 +938,11 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 				add(prioEntry{a: Pack(ActCast, ref(o.Obj), RefNone, castModeOther|uint8(o.AltCostIndex)<<4), opt: o.Index})
 				continue
 			}
-			if o.Mode == "mayflash" {
+			if o.Mode == "mayflash" || o.Mode == "offering" {
 				// CR 702.8: the kernel's AkMayFlash canonicalises to
-				// castModeOther, like "web-slinging" (kw_mayflash.go)
+				// castModeOther, like "web-slinging" (kw_mayflash.go); so
+				// does the offering cast that rides it (CR 702.48;
+				// kw_offering.go)
 				if o.AltCostIndex > 15 {
 					note("cast/mayflash")
 					continue
@@ -1084,6 +1086,12 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 			if o.Keyword == grantedEmbalmLine && o.SVar == "" && o.GrantSource == 0 && o.GainedSource == 0 && o.AltCostIndex == 0 {
 				// Cursecloth Wrappings' granted embalm (kgen lower_embalmgrant.go)
 				add(prioEntry{a: grantedEmbalmAction(ref(o.Obj)), opt: o.Index})
+				continue
+			}
+			if g.cyclingAltOption(o) {
+				// a cycling activation at the alternative cost (New Perspectives,
+				// kop.StatCyclingAlt): the kernel's twin ability, cyclingAltBit
+				add(prioEntry{a: Pack(ActActivate, ref(o.Obj), RefNone, cyclingAltBit|uint8(o.Ability)), opt: o.Index})
 				continue
 			}
 			if o.SVar != "" || o.Keyword != "" || o.GainedSource != 0 || o.AltCostIndex != 0 || o.Ability > 0x7F {

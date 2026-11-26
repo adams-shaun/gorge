@@ -216,7 +216,7 @@ func (s *State) offerPlay(k *prep, d *Decision, p uint8, o Obj, mode uint8, sorc
 		}
 		return
 	}
-	if !pc.instant && !sorc && !s.castFlash(k, p, c) {
+	if (!pc.instant || s.graveFlashLost(k, o, pc)) && !sorc && !s.castFlash(k, p, c) {
 		return
 	}
 	if k.gen.anyCantCast {
@@ -492,6 +492,9 @@ func (s *State) castFlagsGenTgt(k *prep, o Obj, mode, tgt uint8) {
 	if mode&castMayPlay == 0 || k.gen.altFree != nil && s.altFreeCast(k, o, mode) {
 		return // (a free alternative cost spends no permission: cast_altfree.go)
 	}
+	if tgt == embAltTgt && mode == castMayPlay|castFree && s.embAltCastMark(k, s.bld().e.ctrl, o) {
+		return // the Effect-delivered alternative cost replaces the mana and spends no permission (cast_embaltcost.go)
+	}
 	s.bld().e.flags |= sfMayPlay
 	p := s.bld().e.ctrl
 	if mode == castMayPlay|castFree && FeatIsZeroAltTgt(tgt) && k.gen.anyZeroAlt {
@@ -615,6 +618,9 @@ func (s *State) buildCostGenPre(k *prep, pre bool) (kop.ManaCost, bool, bool) {
 		if cd.HasAltAdd && s.bld().altAdd == 1 {
 			c = cd.AltAddCost.Mana
 		}
+		if cd.HasAltAdd && s.bld().altAdd == buildAltAdd2 {
+			c = cd.AltAddCost2.Mana // the either-or's third part, Dusk Mangler's (CR 118.9d)
+		}
 		if cd.HasModeCost {
 			c = spreeCost(cd, e.mode, c) // Spree's mode costs are additional costs (CR 702.172a)
 		}
@@ -647,6 +653,9 @@ func (s *State) buildCostGenPre(k *prep, pre bool) (kop.ManaCost, bool, bool) {
 		}
 		if cd.HasAltAdd && s.bld().altAdd == 1 {
 			c = addCost(c, cd.AltAddCost.Mana) // Eaten Alive's {3}{B} part (CR 601.2f)
+		}
+		if cd.HasAltAdd && s.bld().altAdd == buildAltAdd2 {
+			c = addCost(c, cd.AltAddCost2.Mana) // the either-or's third part, Dusk Mangler's (CR 601.2f)
 		}
 		if cd.HasModeCost {
 			c = spreeCost(cd, e.mode, c)
@@ -819,8 +828,11 @@ func (s *State) targetableGen(k *prep, sl Slot, p uint8) bool {
 	if kw&kop.KwProtBlack != 0 && c&kop.ColB != 0 || kw&kop.KwProtRed != 0 && c&kop.ColR != 0 {
 		return false
 	}
-	if hexC&c != 0 {
+	if hexC&c&kop.ColAny != 0 {
 		return false // CR 702.11d: a source of that colour an opponent controls
+	}
+	if hexC&(kop.HexMono|kop.HexMulti) != 0 && hexCountBlocks(hexC, c) {
+		return false // CR 702.11d: from monocolored / multicolored (kw_hexproofcolor.go)
 	}
 	if k.gen.anyProtCol && s.protPrinted(k, sl)&c != 0 {
 		return false
@@ -1061,10 +1073,19 @@ func (s *State) priorityGraveAct(k *prep, d *Decision, p uint8, sorc bool, av *a
 			z, o = kop.ZoneExile, pl.exile[i-int(pl.graveN)]
 		}
 		cd := &k.t.Cards[s.objs[o].card]
+		lostChecked, lost := false, false
 		for ai := range cd.Abilities {
 			a := &cd.Abilities[ai]
 			if a.Kind != kop.AbActivated || a.ActZone != z || a.AFlags&kop.AfLatent != 0 {
 				continue
+			}
+			if z == kop.ZoneGraveyard && graveLossOn(k) {
+				if !lostChecked {
+					lostChecked, lost = true, s.gravePrintedHidden(k, o)
+				}
+				if lost {
+					continue // the card lost all abilities: its printed activated abilities do not exist (static_graveabilityloss.go)
+				}
 			}
 			if a.Gate.Ctr == kop.CtrMaxSpeed && !s.maxSpeedGraveOK(k, p, o, a) {
 				continue // kw_maxspeed.go

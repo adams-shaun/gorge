@@ -604,6 +604,9 @@ func (g *Game) chooseOption(x dirac.Action, c canon.Canon) (decision.Option, uin
 	case "paylife":
 		o.Amount = int(c.Mode()) // gorge etbPayLifeOptions: "N life", the amount on Amount
 		o.Label = strconv.Itoa(o.Amount) + " life"
+	case "readahead":
+		o.Amount = int(c.Mode()) // gorge readAheadOptions: "Chapter <numeral>", the chapter on Amount
+		o.Label = "Chapter " + romanChapter(o.Amount)
 	case "altaddcost":
 		o.Amount = int(x.Target()) // the part; the canonical mode is its position, payable parts first
 		o.Label = g.altAddLabel(o.Amount)
@@ -1103,4 +1106,13 @@ func removalKind(dest string) string {
 		return "bounce"
 	}
 	return ""
+}
+
+// romanChapter is the numeral gorge's read-ahead option label ends with
+// (engine/rules readAheadLabels: Chapter I .. VIII).
+func romanChapter(n int) string {
+	if n >= 1 && n <= 8 {
+		return [...]string{"I", "II", "III", "IV", "V", "VI", "VII", "VIII"}[n-1]
+	}
+	return strconv.Itoa(n)
 }

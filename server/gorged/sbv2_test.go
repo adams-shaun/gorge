@@ -3,6 +3,7 @@ package gorged
 import (
 	"bytes"
 	"encoding/json"
+	"github.com/adams-shaun/gorge/testkit/testutil"
 	"io"
 	"io/fs"
 	"net/http"
@@ -146,7 +147,7 @@ func TestSBV2TokenIsTheSeat(t *testing.T) {
 	// Both seats are human, so they take turns: answer seat 1's own v2
 	// requests (candidate 0 is always legal) until seat 0 is the one asked.
 	var seat0 *sbv2State
-	deadline := time.Now().Add(20 * time.Second)
+	deadline := time.Now().Add(testutil.WaitBudget)
 	for time.Now().Before(deadline) {
 		status, st, _ := sbv2StateOf(t, url, "tok")
 		if status == http.StatusOK && st.Request != nil {

@@ -31,8 +31,11 @@ func TestStaticZonesOffZoneForms(t *testing.T) {
 // named refusals of TestStaticZonesOffZoneOverride). Each keeps its generic AffectedZone refusal until
 // its own projection and kernel reader land (the tickets filed with this
 // slice); a lowering that lands moves its row into staticZonesOffZoneForms.
+// Yixlid Jailer is not a row: its static lowers
+// (TestStaticZonesOffZoneAbilityLoss) and the card stays refused, by name,
+// until dsub-jailer's readers are all wired.
 var staticZonesOffZoneDeferred = []string{
-	"Falkenrath Gorger", "Yixlid Jailer",
+	"Falkenrath Gorger",
 }
 
 func TestStaticZonesOffZoneDeferred(t *testing.T) {

@@ -19,6 +19,7 @@ import (
 	"github.com/adams-shaun/gorge/server/manabrew"
 	"github.com/adams-shaun/gorge/server/protocol"
 	mb "github.com/adams-shaun/gorge/server/protocol/manabrew"
+	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
 // mustAttackCard is a free 2/2 that must attack, so the engine's KAttackers
@@ -125,7 +126,7 @@ func requiredAssignments(d *decision.Decision) []mb.AttackerAssignment {
 // stays pending, and a legal declaration then answers it.
 func TestSendEngineRefusalNamesReasonAndKeepsPrompt(t *testing.T) {
 	ts := newRefusalTestServer(t)
-	deadline := time.Now().Add(30 * time.Second)
+	deadline := time.Now().Add(testutil.WaitBudget)
 	for {
 		if time.Now().After(deadline) {
 			t.Fatal("match never reached a Required attackers decision")

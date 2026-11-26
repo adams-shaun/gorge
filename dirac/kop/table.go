@@ -184,7 +184,13 @@ type CardDef struct {
 	SelfFlash  bool
 	SpellCost  Cost // the spell's additional cost (sacrifice / discard; mana zero)
 	AltAddCost Cost // AlternateAdditionalCost: may be paid instead of SpellCost (HasAltAdd)
-	HasAltAdd  bool
+	// AltAddCost2 is the either-or's third part (Dusk Mangler's
+	// PayLife<4>), paid instead of SpellCost when the ask chose it (the
+	// build's altAdd buildAltAdd2, 4; kernel cast.go altAddOptions offers
+	// all three parts, the payable ones first, as gorge's altAddAsk orders
+	// them).
+	AltAddCost2 Cost
+	HasAltAdd   bool
 	// KickerCost: the kicker's non-mana cost (one Sac<1/..> or Return<1/..>
 	// part, Vayne's Treachery, Chocobo Kick; CR 702.33a). Kicker is then
 	// zero mana; a kicked cast pays this through the cost stages (kernel
@@ -361,7 +367,9 @@ type CardDef struct {
 	ProtColors ColorMask
 	// HexColors are the printed "hexproof from <colour>" keywords' colours
 	// (CR 702.11d; 0 = none): a spell or ability of one of them an opponent
-	// controls can't target the permanent.
+	// controls can't target the permanent. HexMono and HexMulti (bits no
+	// colour uses) are "hexproof from monocolored" / "from multicolored": a
+	// source of exactly one colour / of two or more.
 	HexColors ColorMask
 	// ProtFrom is the printed K:Protection:<spec> keywords' source filter
 	// (CR 702.16; type, subtype and colour terms only; 0 = none).
@@ -619,6 +627,17 @@ type CardDef struct {
 	// then {0}, and the action is offered only while the controller's life
 	// covers N (dirac/face_morphlife.go).
 	MorphLife uint8
+	// MorphPick (zero = none) is the pick part of a keyword turn-up whose
+	// cost is one Discard, Sac or Return part (CR 702.37e; Gathan Raiders'
+	// Morph—Discard a card, Fathom Seer's return two Islands, Gift of Doom's
+	// sacrifice another creature): exactly one of CostDiscard (N cards from
+	// the payer's hand), CostSac or CostReturn (N permanents the payer
+	// controls; the face-down permanent itself never a candidate — the
+	// printed spec is "another ..."), with MorphCost {0}. The kernel's
+	// turn-up window poses gorge's pick ask for it before the permanent
+	// turns up (dirac/face_morphpick.go; gorge morph_turnup.go's
+	// turnUpSacAsk / turnUpDiscardAsk / turnUpReturnAsk).
+	MorphPick Cost
 	// CostEmpty is an EMPTY printed mana-cost text, the one case gorge's
 	// manifestFaceUpCost rejects outright (strings.TrimSpace(f.ManaCost)=="");
 	// Cost is also the zero ManaCost for {0} and for a printed "no cost", so
@@ -679,6 +698,15 @@ type CardDef struct {
 	// Exhale), no mana: the cast is offered only with a candidate and owes
 	// the behold (BeholdN/BeholdF) in its cost-pick stage (kw_mayflash.go).
 	MayFlashBehold bool
+	// HasOffering is printed K:Offering:<Type> (CR 702.48; no KwMask bit is
+	// free): the hand offers the offering cast (AkMayFlash on this card) at
+	// instant speed, beside the plain cast; it sacrifices a permanent of
+	// OfferingF and its cost is reduced by that permanent's mana cost,
+	// symbol by symbol (dirac/kw_offering.go).
+	HasOffering bool
+	// OfferingF is the offering's sacrifice filter (a battlefield permanent
+	// of the printed type its caster controls; HasOffering).
+	OfferingF FilterID
 	// FbBehold: the printed flashback cost carries Behold<N/Type> beside
 	// its mana (Kindle the Inner Flame): the printed flashback cast is
 	// offered only with BeholdN candidates and owes the behold (BeholdN/

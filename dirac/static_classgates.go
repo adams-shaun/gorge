@@ -23,7 +23,7 @@ const (
 	sclsWarpG                      // StatWarpGrant (kw_warpgrant.go)
 	sclsEscapeG                    // StatEscapeGrant (kw_escape.go)
 	sclsGyCont                     // the card's own StatContinuous that works from its graveyard (static_gycont.go)
-	sclsOffKwG                     // StatOffZoneGrant, StatRetraceGrant, StatUnearthGrant, StatCyclingGrant or StatMiracleGrant, an off-zone grant (kw_offkwgrant.go)
+	sclsOffKwG                     // StatOffZoneGrant, StatRetraceGrant, StatUnearthGrant, StatCyclingGrant, StatMiracleGrant or StatCyclingAlt, an off-zone grant (kw_offkwgrant.go)
 	sclsNonObj                     // a static that can change a characteristic and may read what is not an object's own fields (static_sbaskip.go)
 	sclsTapCmd                     // a command-zone StatTapExtra: a seated Vanguard's (Sisay) or a face-up plane's (Eloren Wilds; mana_tapextra.go eachTapExtra)
 )
@@ -109,7 +109,7 @@ func prepStaticClasses(t *kop.Table, g *genPrep) (anyCmdTap bool) {
 				m |= sclsWarpG
 			case kop.StatEscapeGrant:
 				m |= sclsEscapeG
-			case kop.StatOffZoneGrant, kop.StatRetraceGrant, kop.StatUnearthGrant, kop.StatCyclingGrant, kop.StatMiracleGrant:
+			case kop.StatOffZoneGrant, kop.StatRetraceGrant, kop.StatUnearthGrant, kop.StatCyclingGrant, kop.StatMiracleGrant, kop.StatCyclingAlt:
 				m |= sclsOffKwG
 			}
 		}
@@ -238,7 +238,7 @@ func (s *State) sbaPTQuiet(k *prep) bool {
 func staticObjectOnly(t *kop.Table, sa *kop.Static) bool {
 	switch sa.Kind {
 	case kop.StatReduceCost, kop.StatIncreaseCost, kop.StatMayPlayFrom, kop.StatReduceAbility, kop.StatFbGrant, kop.StatWarpGrant,
-		kop.StatEscapeGrant, kop.StatOffZoneGrant, kop.StatRetraceGrant, kop.StatCantBlock, kop.StatCantBlockBy, kop.StatCantAttack,
+		kop.StatEscapeGrant, kop.StatOffZoneGrant, kop.StatRetraceGrant, kop.StatGraveNoAbilities, kop.StatCantBlock, kop.StatCantBlockBy, kop.StatCantAttack,
 		kop.StatMustAttack, kop.StatCastWithFlash, kop.StatAlternativeCost, kop.StatNoMaxHandSize, kop.StatExtraLandPlay, kop.StatCantBeCast:
 		return true
 	case kop.StatContinuous:

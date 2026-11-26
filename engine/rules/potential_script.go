@@ -1486,6 +1486,10 @@ func scriptStepOf(d *decision.Decision, in decision.Intent) ScriptStep {
 	return st
 }
 
+// scriptAnswersCap bounds each scriptAnswers enumeration branch: the answer
+// list a prefix search branches on (dirac mirrors it as maxCAAnswers).
+const scriptAnswersCap = 64
+
 // scriptAnswers enumerates the answers to an activation's ask that
 // validate: every single option (and the empty answer when Min is 0), for a
 // Min == Max == n object election every n-combination of its options, for a
@@ -1508,7 +1512,7 @@ func scriptAnswers(d *decision.Decision) []decision.Intent {
 	case d.Min == d.Max && len(d.Options)%d.Min == 0:
 		n, per := d.Min, len(d.Options)/d.Min
 		idx := make([]int, n)
-		for len(out) < 64 {
+		for len(out) < scriptAnswersCap {
 			ch := make([]int, n)
 			for u := 0; u < n; u++ {
 				ch[u] = d.Options[u*per+idx[u]].Index
@@ -1574,7 +1578,7 @@ func scriptSubsets(d *decision.Decision, n int, mk func([]int) decision.Intent) 
 	for i := range idx {
 		idx[i] = i
 	}
-	for len(out) < 64 {
+	for len(out) < scriptAnswersCap {
 		ch := make([]int, n)
 		for i, j := range idx {
 			ch[i] = d.Options[j].Index
