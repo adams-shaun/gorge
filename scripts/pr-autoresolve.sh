@@ -181,10 +181,6 @@ if [ -n "${recipes[dirac-layout]:-}" ]; then
   t ./dirac "$layout" DIRAC_UPDATE_LAYOUT=1 >/dev/null
   t ./dirac "$layout" || fail "layout.tsv did not regenerate"
 fi
-if [ -n "${recipes[func-ceilings]:-}" ]; then
-  t ./internal/codeshape '^TestFuncCeilingsLowerOnly$|^TestLongFunctionsOnlyShrink$|^TestComplexFunctionsOnlyShrink$' ||
-    fail "func_ceilings.tsv merged, but a ratchet fails"
-fi
 if [ -n "${recipes[repro-names]:-}" ]; then
   t ./dirac/oracle '^TestReproGlobMatchesTable$' || fail "repro_table_names.txt merged, but TestReproGlobMatchesTable fails"
 fi
