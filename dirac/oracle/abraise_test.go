@@ -6,6 +6,7 @@ import (
 
 	"github.com/adams-shaun/gorge/dirac"
 	"github.com/adams-shaun/gorge/dirac/cardset"
+	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
 // The activated-ability cost-raise lockstep, two pairs over one fixture pool
@@ -80,6 +81,7 @@ func TestAbraiseMutation(t *testing.T) {
 // TestAbraiseTapRefused: a generic raise beside a creature whose ability taps
 // is refused at the matchup (gorge withholds it under the raise).
 func TestAbraiseTapRefused(t *testing.T) {
+	testutil.CorpusRegistry(t) // first: without .cards the test skips before the corpus-built set loads
 	set, err := cardset.RawByName("abraise")
 	if err != nil {
 		t.Fatal(err)
