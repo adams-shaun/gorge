@@ -374,6 +374,9 @@ type prep struct {
 	// enlist: some card prints Enlist: the declare-attackers election
 	// (kw_enlist.go); a prep bool like riot
 	enlist bool
+	// exertOffer: some card prints the exert offer (StatOptionalAttackCost):
+	// the declare-attackers exert election (combat_exert.go)
+	exertOffer bool
 	// engAsc: engines || ascend, enterNF's single entry-hook guard
 	engAsc bool
 	// painMana: some card has a painful mana alternative (pcard.painCol;
@@ -431,6 +434,7 @@ func prepare(t *kop.Table) *prep {
 	p.unleash = tableHasUnleash(t)
 	p.riot = tableHasRiot(t)
 	p.enlist = tableHasEnlist(t)
+	p.exertOffer = tableHasExertOffer(t)
 	p.engAsc = p.engines || p.ascend
 	for i := range t.Cards {
 		c := &t.Cards[i]
