@@ -677,12 +677,12 @@ const W7HasProtEachColor int16 = 45
 // Creature.withoutFlanking blocker filter (Benalish Cavalry, Knight of Valor).
 const W7WithoutFlanking int16 = 46
 
-// W7GreatestMVArtifact (PredWord7 sub-kind 47): gorge's greatestCMC_Artifact
-// (Forge CardProperty): a battlefield artifact whose mana value no other
-// battlefield artifact exceeds, ties matching (CR 202.3; a face-down
-// permanent's is 0, CR 708.2); off the battlefield nothing matches. Padeem,
-// Consul of Innovation's "you control the artifact with the highest mana value
-// or tied for the highest".
+// W7GreatestMVArtifact (PredWord7 sub-kind 47) is reserved: gorge's
+// greatestCMC_<prop> lowers through the ExValidAgg AggGreatestMV bound
+// (kgen/filter.go's greatestCMC) instead of a word — a battlefield artifact
+// whose mana value no other battlefield artifact exceeds, ties matching
+// (CR 202.3). The ordinal stays consumed (ordinals.tsv); no filter lowers
+// to it.
 const W7GreatestMVArtifact int16 = 47
 
 // PredPowerLTToughness's PredN: the power/toughness relation it reads. 0 is

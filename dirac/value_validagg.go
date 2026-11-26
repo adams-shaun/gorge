@@ -8,6 +8,11 @@ import (
 
 // Cold code, out of line.
 
+// DebugAggGreatestMVPlusOne (test only, TestFourSeatPadeemGreatestMVLockstep):
+// the AggGreatestMV fold reads one past the true maximum (gorge zoneFold's
+// $GreatestCardManaCost), so a CMC == AggGreatestMV bound matches nothing.
+var DebugAggGreatestMVPlusOne bool
+
 // cardTypeBits are the CR 205.2a card types gorge's cardTypeWords counts on
 // a battlefield face (instant and sorcery cannot be there). It includes
 // Kindred (CR 308.3): gorge's cardTypeWords holds it, so the
@@ -48,6 +53,9 @@ func (s *State) validAgg(k *prep, x *kop.Expr, ctx evalCtx) int {
 		case kop.AggGreatestMV, kop.AggSumMV:
 			if !s.faceDown(k, sl) && !s.cpxNoCost(k, sl) {
 				v = int(k.cards[s.cardAt(sl)].total)
+				if x.N == kop.AggGreatestMV && DebugAggGreatestMVPlusOne {
+					v++ // test-only mutation (Padeem's greatestCMC_Artifact bound)
+				}
 			} // else CR 708.2: a face-down permanent has no mana cost
 		case kop.AggColors:
 			if !s.faceDown(k, sl) { // CR 708.2: a face-down permanent is colourless
