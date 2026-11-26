@@ -143,7 +143,7 @@ func (s *nativeScript) answer(d *decision.Decision) decision.Intent {
 func playNativeScript(t *testing.T, r *host.Registry, s *nativeScript, done func() bool) string {
 	t.Helper()
 	answered := [2]uint64{}
-	deadline := time.Now().Add(45 * time.Second)
+	deadline := time.Now().Add(testutil.WaitBudget)
 	for {
 		if fin, head := matchDone(t, r, "t"); fin {
 			return head
@@ -222,7 +222,7 @@ func TestNativeSeatPlaysTheSameGameWithTheTapArmed(t *testing.T) {
 // lostCodec waits for the hub to let go of a finished match's codec.
 func (s *seatState) lostCodec(t *testing.T) bool {
 	t.Helper()
-	for deadline := time.Now().Add(20 * time.Second); time.Now().Before(deadline); time.Sleep(time.Millisecond) {
+	for deadline := time.Now().Add(testutil.WaitBudget); time.Now().Before(deadline); time.Sleep(time.Millisecond) {
 		s.mu.Lock()
 		gone := s.codec == nil
 		s.mu.Unlock()
@@ -240,7 +240,7 @@ func TestThinkTimeoutAnswersAPassiveAndAnAttachedSeat(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 	const think = time.Millisecond
 	finish := func(r *host.Registry) string {
-		deadline := time.Now().Add(30 * time.Second)
+		deadline := time.Now().Add(testutil.WaitBudget)
 		for time.Now().Before(deadline) {
 			ms, err := r.Matches("t")
 			if err == nil && len(ms) == 1 && ms[0].State != protocol.MatchLive {
@@ -295,7 +295,7 @@ func TestEngineWithNoV2ReaderStaysNative(t *testing.T) {
 // waitV2Request waits for an open request other than the one numbered not.
 func waitV2Request(t *testing.T, ss *seatState, not uint64) *request {
 	t.Helper()
-	deadline := time.Now().Add(20 * time.Second)
+	deadline := time.Now().Add(testutil.WaitBudget)
 	for time.Now().Before(deadline) {
 		if req, _ := ss.snapshot(); req != nil && req.id != not {
 			return req
@@ -327,7 +327,7 @@ func TestV2AttachHoldAndHandBack(t *testing.T) {
 	var answered uint64
 	pending := func() *decision.Decision {
 		t.Helper()
-		deadline := time.Now().Add(20 * time.Second)
+		deadline := time.Now().Add(testutil.WaitBudget)
 		for time.Now().Before(deadline) {
 			if d, err := r.Pending("t", 1, 0); err == nil && d.Seq != answered {
 				return d
@@ -405,7 +405,7 @@ func TestV2AttachHoldAndHandBack(t *testing.T) {
 	// With the stream gone the seat stays attached until a native answer. That
 	// answer closes the open request, and from then on the seat is asked.
 	closeStream()
-	deadline := time.Now().Add(20 * time.Second)
+	deadline := time.Now().Add(testutil.WaitBudget)
 	for ss.held() {
 		if time.Now().After(deadline) {
 			t.Fatal("the closed stream still holds the seat")
@@ -478,7 +478,7 @@ func TestV2LeavesAsksToAClientThatTakesThem(t *testing.T) {
 		}()
 	}
 	var last [2]uint64
-	deadline := time.Now().Add(45 * time.Second)
+	deadline := time.Now().Add(testutil.WaitBudget)
 	for s.asked["choose/mana"] == 0 || s.asked["choose/trigger_cost"] == 0 || s.asked["choose/division"] == 0 {
 		if time.Now().After(deadline) {
 			t.Fatalf("not every ask reached the client; asked %v", s.asked)
@@ -540,7 +540,7 @@ func TestSwitchingWiresPlaysOneGame(t *testing.T) {
 			overV2 := false
 			count := 0
 			seen := map[string]bool{}
-			deadline := time.Now().Add(40 * time.Second)
+			deadline := time.Now().Add(testutil.WaitBudget)
 			for {
 				if done, _ := matchDone(t, r, "flip"); done {
 					break

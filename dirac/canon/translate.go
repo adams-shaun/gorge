@@ -496,6 +496,11 @@ func (r *Translator) Action(a dirac.Action) Canon {
 			return r.combatDamageChoose(src, mode)
 		case dirac.ChAltAdd:
 			return ch("altaddcost", RefNone, mode)
+		case dirac.ChCostChosenEnc:
+			// gorge revealCostOrChooseAsk's Close Encounter choose-cost pick:
+			// the option kind "choosecost" over the chosen object (CR 601.2b,
+			// 601.2h; dirac cost_closeenc.go)
+			return ch("choosecost", src, 0)
 		case dirac.ChCostForage:
 			// gorge forageAsk: forage_exile (no object), forage_food
 			if mode == 1 {

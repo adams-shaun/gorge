@@ -198,7 +198,7 @@ func TestSBV2PlaysAGame(t *testing.T) {
 	nativeSeen := 0
 	events := openSBV2Stream(t, srv.URL, "/api/sbv2/v1/tables/v2/matches/1/stream", "tok")
 
-	deadline := time.Now().Add(2 * time.Minute)
+	deadline := time.Now().Add(testutil.WaitBudget)
 	for {
 		if done, head := matchDone(t, r, "v2"); done {
 			t.Logf("v2 head %s", head)
@@ -339,7 +339,7 @@ func playSBV2NativeReference(t *testing.T, reg *cards.Registry, seed uint64, rec
 		t.Fatal(err)
 	}
 	skipped := map[uint64]bool{}
-	deadline := time.Now().Add(2 * time.Minute)
+	deadline := time.Now().Add(testutil.WaitBudget)
 	for {
 		if done, head := matchDone(t, r, "native"); done {
 			return head, len(skipped)

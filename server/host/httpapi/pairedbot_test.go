@@ -64,7 +64,7 @@ func pairedEntry(t *testing.T) *bots.Entry {
 
 func parkedSeq(t *testing.T, r *host.Registry, seat state.PlayerID) uint64 {
 	t.Helper()
-	deadline := time.Now().Add(30 * time.Second)
+	deadline := time.Now().Add(testutil.WaitBudget)
 	for time.Now().Before(deadline) {
 		if d, err := r.Pending("t1", 1, seat); err == nil {
 			return d.Seq

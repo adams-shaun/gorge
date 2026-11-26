@@ -15,6 +15,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/game/gorgegame"
 	engineseat "github.com/adams-shaun/gorge/engine/seat"
 	"github.com/adams-shaun/gorge/engine/state"
+	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
 func TestStartupBudgetKillsSilentHello(t *testing.T) {
@@ -53,7 +54,7 @@ func TestStartupBudgetKillsSilentHello(t *testing.T) {
 		if err != nil {
 			t.Fatalf("AttachMatch: %v", err)
 		}
-	case <-time.After(10 * time.Second):
+	case <-time.After(testutil.WaitBudget):
 		t.Fatal("startup budget did not interrupt a silent hello")
 	}
 	if agent.forfeit != forfeitTimeout {

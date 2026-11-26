@@ -86,14 +86,14 @@ func TestReproSideboardCaptureReplaysWithSideboards(t *testing.T) {
 	for i := 0; i < 2; i++ {
 		select {
 		case <-gate.reached:
-		case <-time.After(30 * time.Second):
+		case <-time.After(testutil.WaitBudget):
 			t.Fatalf("seat 0 never reached decision %d", i+1)
 		}
 		gate.release <- struct{}{}
 	}
 	select {
 	case <-gate.reached:
-	case <-time.After(30 * time.Second):
+	case <-time.After(testutil.WaitBudget):
 		t.Fatal("seat 0 never reached its post-advance decision; capture point not quiescent")
 	}
 

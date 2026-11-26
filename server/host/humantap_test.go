@@ -66,7 +66,7 @@ func tapTable(t *testing.T, autoMana bool, tap HumanTap) (*Registry, TableID) {
 
 func waitMatch(t *testing.T, r *Registry, id TableID) protocol.MatchInfo {
 	t.Helper()
-	deadline := time.Now().Add(2 * time.Minute)
+	deadline := time.Now().Add(testutil.WaitBudget)
 	for time.Now().Before(deadline) {
 		if ms, err := r.Matches(id); err == nil && len(ms) == 1 && (ms[0].State == protocol.MatchFinished || ms[0].State == protocol.MatchCrashed) {
 			return ms[0]
