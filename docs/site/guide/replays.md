@@ -1,6 +1,8 @@
 # Replays
 
-Every finished game can be replayed event by event. A replay rebuilds the game from the seed, the decks and each player's answers ([How replays work](../web/replays.md)); it is not a screen recording. On a **review server** you can also read every decision: the options offered, the one chosen and, for a searching bot, what it considered.
+Step through any finished game event by event, and on a review server read every decision: the options offered, the one chosen and, for a searching bot, what it considered.
+
+A replay is not a screen recording: it rebuilds the game from the seed, the decks and each player's answers ([How replays work](../web/replays.md)).
 
 <figure class="gg-annot" markdown>
 <div class="gg-annot-frame" markdown>
@@ -55,8 +57,7 @@ Every finished game can be replayed event by event. A replay rebuilds the game f
 
 ## Open a replay
 
-There are two places a replay comes from. Any `gorged` server keeps one for
-each match it finished, and `gorged review` serves games you saved.
+Any `gorged` server keeps a replay of each match it finished; `gorged review` serves games you saved.
 
 | | A finished match on a server | `gorged review` |
 |---|---|---|
@@ -77,12 +78,11 @@ flags.
 
 ### Review a saved game
 
-`gorged review` is a separate, read-only mode of the server. It takes one or
-more saved games and serves each one as a table you can only watch. Like any
-page of `gorged`, it needs the [browser client](install.md#2-build-the-browser-client-if-you-want-one)
-built first:
+`gorged review` is a read-only mode of the server: it serves each saved game as a table you can
+only watch. Like any page of `gorged`, it needs the
+[browser client](install.md#2-build-the-browser-client-if-you-want-one) built first.
 
-```sh
+```sh title="Serve a committed bug report"
 go run ./cmd/gorged review cmd/repro/testdata/feedback/20260914T120000Z-fb01
 ```
 
@@ -91,19 +91,17 @@ gorged review: 1 recorded games on http://127.0.0.1:8090/
 gorged review: 20260914T120000Z-fb01 at http://127.0.0.1:8090/t/20260914T120000Z-fb01/m/1
 ```
 
-That input is a bug report committed in the repository. A saved game is
-either:
+| A saved game is | Written by | Carries bot notes |
+|---|---|---|
+| a **feedback snapshot**: a directory (`match.json`, `log.json`) | a player's [bug report](play.md#reporting-a-bug-from-a-game) | no |
+| a **match record**: one `<id>.match.json.gz` file | a bot-game driver ([below](#record-games-for-review)) | when recorded with notes |
 
-- **a feedback snapshot**: the directory a player's bug report writes
-  (`match.json`, `log.json`), see [Reporting a bug from a game](play.md#reporting-a-bug-from-a-game);
-- **a match record**: one `<id>.match.json.gz` file, written by a bot-game
-  driver as [below](#record-games-for-review). Only a record can carry the
-  bots' notes.
+The table id is the input's file or directory name. Pass several inputs as arguments or with
+`-records a,b,c`.
 
-The table id is the input's file or directory name. Pass several inputs as
-arguments or with `-records a,b,c`. The server replays every input when it
-starts and refuses to start if any one fails to load or replay, so a game
-that diverges is reported instead of quietly left out.
+!!! note "Every input must replay"
+    The server replays every input at startup and refuses to start if one fails to load or
+    replay, so a game that diverges is reported instead of quietly left out.
 
 | Flag | Default | What it does |
 |---|---|---|
@@ -112,19 +110,19 @@ that diverges is reported instead of quietly left out.
 | `-art-dir` | none | fetch card images into this directory and serve them. Without it the board draws no art and nothing is written to disk |
 | `-records` | | saved games, comma-separated; repeatable; positional arguments work too |
 
-A review table has no seats: nothing can be played at it, and every seat
-route answers `403`.
+A review table has no seats: nothing can be played at it, and every seat route answers `403`.
+
+!!! warning "`-review-public` exposes every hidden card"
+    Off a loopback address, anyone who can reach the port can read every hand and library.
 
 ### Record games for review
 
-A match record is written by whatever plays the games. In gorge that is
-`testkit/bench`, the driver behind [bot-vs-bot games](bot-games.md): give
-its `Hooks.Record` a sink and it writes one record per game. While a sink is
-set, the driver also asks each seat that can explain its decisions to do so
-(the search bots and the policy-net bot can) and stores the answers in the
-record.
+Whatever plays the games writes the record. In gorge that is `testkit/bench`, the driver behind
+[bot-vs-bot games](bot-games.md): give its `Hooks.Record` a sink and it writes one record per
+game. While a sink is set, the driver also asks each seat that can explain its decisions (the
+search bots and the policy-net bot) to do so, and stores the answers in the record.
 
-```go
+```go title="Record each game with notes"
 hooks := bench.Hooks{EnvSeats: true}
 hooks.Record = &matchrecord.Sink{
 	Producer: matchrecord.Producer{Tool: "my-run", Policies: []string{"az-redeal", "heuristic"}},
@@ -139,11 +137,10 @@ outcome, eng, err := bench.PlayGame(cfg, seats, 60, 6000, hooks)
 the driver records nothing and asks the seats for nothing. A two-player record
 is about 10 to 20 KB gzipped, notes included.
 
-To try it without writing a driver, one test writes three example records
-(a search bot against the heuristic, twice, and a rollout search against
-the heuristic):
+To try it without a driver, one test writes three example records (a search bot against the
+heuristic, twice, and a rollout search against the heuristic):
 
-```sh
+```sh title="Write three example records and review them"
 GORGE_EXPLAIN_DEMO_DIR=/tmp/gorge-records \
   go test -run TestWriteExplainDemoRecords -v ./testkit/bench
 go run ./cmd/gorged review -art-dir /tmp/gorge-art \
@@ -235,25 +232,17 @@ The transport runs across the bottom of the board.
 <figcaption>The transport of the game above, drawn larger and in two rows; on screen it is one strip. Decision is the step unit, Skip passes is on, and the cursor sits early in turn 1.</figcaption>
 </figure>
 
-From left to right:
+Its controls, left to right:
 
-- **Play and step.** The outer buttons jump a whole turn back or forward.
-  The inner ones step one unit, and the round button plays and pauses.
-  Pressing play at the end of the game starts it again from the beginning.
-- **Turn and active player.** The turn number counts every player's turn, the
-  same "Turn N" the table and the log show, so in a two-player game turn 3 is
-  the first player's second turn. Before the first turn it reads *Setup*.
-- **Timeline.** One band per turn, tinted with the active player's colour,
-  with the turn number under each round's first turn. Click or drag to
-  move, and hover to see the turn and the event under the pointer. On a
-  review server, ticks mark the decisions worth a look: green where a bot
-  overrode its own heuristic, ember where a fallback answered. Hover a tick
-  for which decision it is.
-- **Position.** The cursor as an event number, out of the game's total.
-- **Step by.** What one step moves. See the table below.
-- **Skip passes.** Only on a review server, and only while stepping by
-  Decision. See [Skip passes](#skip-passes).
-- **Speed.** ½×, 1×, 2×, 4× or 8×.
+| Control | What it does |
+|---|---|
+| Play and step | The outer buttons jump a whole turn back or forward, the inner ones one unit; the round button plays and pauses. Play at the end of the game starts it again |
+| Turn and active player | The turn number counts every player's turn, as the table and the log do, so in a two-player game turn 3 is the first player's second turn. Before the first turn it reads *Setup* |
+| Timeline | One band per turn in the active player's colour, numbered under each round's first turn. Click or drag to move; hover for the turn and event. On a review server, ticks mark decisions worth a look: green where a bot overrode its own heuristic, ember where a fallback answered |
+| Position | The cursor as an event number, out of the game's total |
+| Step by | What one step moves (below) |
+| Skip passes | Review server only, while stepping by Decision ([Skip passes](#skip-passes)) |
+| Speed | ½×, 1×, 2×, 4× or 8× |
 
 | Step by | One step moves to | One play step at 1× |
 |---|---|---|
@@ -566,30 +555,21 @@ glance, so a cluster of them stands out before you step anywhere.
 
 ## What the notes can and cannot tell you
 
-- **An override is measured against the bot's own heuristic**, not against
-  the best move. It shows where the search changed the answer, not whether
-  the change was right. A set answer (attackers, blockers) counts as the
-  same if it has the same members; an ordered one (trigger order, arranging
-  cards) only in the same order.
-- **Values are the deciding player's**, so in a two-player game the same
-  position reads +0.4 for one player and about −0.4 for the other. They are
-  rounded to three decimals and shown to two.
-- **Visits matter more than Q.** A candidate the search barely visited can
-  have a high Q from a few lucky simulations. The search picks by visits.
-- **The time column is wall-clock time** on the machine that played the
-  game. It is never part of the replay, and two runs of the same game agree
-  on everything else.
-- **Notes do not change the game.** They are stored beside the log, are
-  never replayed and never hashed. A record whose notes don't line up with
-  its decisions is still served, without notes, with a warning in the
-  server's output.
+| Note | Read it as |
+|---|---|
+| An override | measured against the bot's own heuristic, not the best move: it shows where the search changed the answer, not whether the change was right. A set answer (attackers, blockers) is the same if it has the same members; an ordered one (trigger order, arranging cards) only in the same order |
+| A value | the deciding player's, so in a two-player game one position reads +0.4 for one player and about −0.4 for the other. Rounded to three decimals, shown to two |
+| Visits against Q | visits matter more: a barely visited candidate can have a high Q from a few lucky simulations. The search picks by visits |
+| The time column | wall-clock time on the machine that played the game. Never part of the replay; two runs of the same game agree on everything else |
+
+!!! note "Notes do not change the game"
+    They are stored beside the log, never replayed and never hashed. A record whose notes don't
+    line up with its decisions is still served, without notes, with a warning in the server's output.
 
 ## Limits
 
-- Only a review server has the decision panel, Skip passes, ticks and jump
-  keys. An ordinary server's replays have the board, log and transport.
-- The decision index loads in one piece, which is fine for a game of a few
-  thousand decisions.
-- `gorged review` serves only games played by the gorge engine. A record
-  from another engine that carries its own random draws is refused at
-  startup.
+| Limit | Detail |
+|---|---|
+| Review server only | the decision panel, Skip passes, ticks and jump keys. An ordinary server's replays have the board, log and transport |
+| One-piece decision index | fine for a game of a few thousand decisions |
+| gorge games only | `gorged review` refuses at startup a record from another engine that carries its own random draws |
