@@ -593,6 +593,9 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		inheritCopyRecord(e.castCounterPut, ev.Obj, copyID)
 		inheritCopyRecord(e.castTapped, ev.Obj, copyID)
 		inheritCopyRecord(e.castReturned, ev.Obj, copyID)
+		if n, ok := e.castCountersRemoved[ev.Obj]; ok {
+			e.castCountersRemoved[copyID] = n
+		}
 		if tc, ok := e.triggerContexts[ev.Obj]; ok {
 			e.triggerContexts[copyID] = tc
 		}
@@ -666,6 +669,7 @@ func (e *Engine) emit(ev events.Event) events.Event {
 		delete(e.castCounterPut, ev.Obj)
 		delete(e.castTapped, ev.Obj)
 		delete(e.castReturned, ev.Obj)
+		delete(e.castCountersRemoved, ev.Obj)
 		delete(e.fuseTargets, ev.Obj)
 		delete(e.spliceFor, ev.Obj)
 		delete(e.spliceTargets, ev.Obj)

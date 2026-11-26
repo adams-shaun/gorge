@@ -178,6 +178,9 @@ func (lc *lowerCtx) svarHead(rest string, depth int) (lValue, error) {
 	if fv, fok := lc.flipSideValue(rest); !ok && fok {
 		return fv, nil
 	}
+	if !ok && rest == "CostCountersRemoved" {
+		return lc.costCountersRemoved() // gorge runtimePublished, after the face's SVars (lower_costprog.go)
+	}
 	if !ok {
 		return lValue{}, fmt.Errorf("value head SVar$%s names no SVar", rest)
 	}
