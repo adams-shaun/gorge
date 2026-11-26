@@ -28,6 +28,14 @@ func init() {
 	instrOp("Shuffle", (*instrCtx).opShuffle)
 	instrOp("Rearrange", (*instrCtx).opRearrange)
 	instrOp("DelayLeaveReturn", (*instrCtx).opDelayLeaveReturn)
+	instrOp("AskDestAlt", (*instrCtx).opAskDestAlt)
+}
+
+// opAskDestAlt is OpAskDestAlt: the controller's primary-or-alternate
+// destination ask (lower_czaltdest.go); A is the alternate's skip.
+func (ic *instrCtx) opAskDestAlt() error {
+	ic.ki.Op, ic.ki.A = kop.OpAskDestAlt, ic.skip()
+	return nil
 }
 
 func (ic *instrCtx) opExile() error {
