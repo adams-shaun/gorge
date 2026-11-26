@@ -29,13 +29,26 @@ func (s *State) forgetFound(k *prep, o Obj) {
 	}
 }
 
-// imprintFound is the chosen-set append of a library hidden pick that carries
-// SrImprint (ChangeZone Imprint$ True): the card that actually moved joins
-// the chosen set, deduped (gorge zone_change's imprint append).
+// DebugHandPickNoImprint is TestEurekaMutation's switch: a hand pick's
+// Imprint$ adds nothing. Never set outside a test.
+var DebugHandPickNoImprint bool
+
+// imprintFound is the imprint append of a hidden pick that carries SrImprint
+// (ChangeZone Imprint$ True). A library pick's moved card joins the chosen
+// set, deduped (the DigUntil ImprintFound$ shape, lower_digimprint.go); a
+// hand pick onto the battlefield (Eureka) adds the card to the resolution's
+// imprinted set when it is a non-token now in zone z (gorge
+// settleChangeZoneMoveAs confirms the post-move zone).
 //
 //go:noinline
-func (s *State) imprintFound(k *prep, o Obj) {
+func (s *State) imprintFound(k *prep, o Obj, z kop.Zone) {
 	if p := s.prog(k); int(s.res.pc) < len(p) && p[s.res.pc].Op == kop.OpChooseMove && p[s.res.pc].B.N&kop.SrImprint != 0 {
-		s.imprintChosen(o)
+		if s.searchZone(k) != kop.ZoneHand {
+			s.imprintChosen(o)
+			return
+		}
+		if ob := &s.objs[o]; ob.zone == z && ob.of&ofToken == 0 && !DebugHandPickNoImprint {
+			s.imprint(o)
+		}
 	}
 }

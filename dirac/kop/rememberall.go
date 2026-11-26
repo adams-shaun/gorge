@@ -18,4 +18,9 @@ const RememberAllObjOrder = 1
 // source keeps it when CardDef.ImpPersist). Oblivious Bookworm.
 const RememberAllImprint = 2
 
+// RememberAllImprintCard (ExtRememberAll C, with RememberAllImprint): a
+// token is not imprinted (gorge settleChangeZoneMoveAs imprints a non-token
+// only). The pre-move half of a Return's Imprint$ (kgen returnImprint).
+const RememberAllImprintCard = 4
+
 func init() { extOpNames[ExtRememberAll] = "RememberAll" }
