@@ -113,7 +113,9 @@ CloneEOT	untyped int	1
 CloneExclTmpl	untyped int	2
 CloneGrant	untyped int	128
 ClonePick	untyped int	8
+CloneTmplCard	untyped int	256
 CloneTmplPick	untyped int	4
+CloneTmplSac	untyped int	512
 CloneTmplShift	untyped int	4
 CmdMVAllZones	untyped int	1
 CmpEQ	CmpOp	3

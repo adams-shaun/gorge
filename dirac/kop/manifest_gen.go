@@ -1042,6 +1042,8 @@ const ExValidCommand ExprKind = 101
 const ExValidSideboard ExprKind = 102
 
 // count CardBasePower (dirac/manifest/ExprKind/ExCardBasePower)
+//
+// ExCardBasePower: the evaluating source's base power (Count$CardBasePower, gorge h.Chars(Source).BasePower: layer 7b before counters and pumps, CR 613.4); a source off the battlefield reads its printed power. Curie, Emergent Intelligence's draw. dirac/value_basepower.go.
 const ExCardBasePower ExprKind = 103
 
 // count DomainActivePlayer (dirac/manifest/ExprKind/ExDomainActivePlayer)
