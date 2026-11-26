@@ -30,7 +30,7 @@ func poolReproPrefixLockstep(t *testing.T, file, pool string, cfg Config, tail i
 }
 
 // poolReproRun plays the fixture's script and tail decisions beyond it.
-func poolReproRun(t *testing.T, file, pool string, cfg Config, tail int) (Result, *ScriptPolicy) {
+func poolReproRun(t *testing.T, file, pool string, cfg Config, tail int, tailPolicy ...Policy) (Result, *ScriptPolicy) {
 	t.Helper()
 	r, err := ReadRepro("testdata/" + file + ".repro.json")
 	if err != nil {
@@ -67,6 +67,9 @@ func poolReproRun(t *testing.T, file, pool string, cfg Config, tail int) (Result
 	defer CloseSide(k)
 	rc := RunConfig{Config: cfg, MaxDecisions: len(r.Actions) + tail}
 	script := &ScriptPolicy{Actions: r.Actions}
+	if len(tailPolicy) > 0 {
+		script.Tail = tailPolicy[0]
+	}
 	return Lockstep(m, r.Seed, k, script, rc), script
 }
 
@@ -97,9 +100,25 @@ func TestLandGrantPlainCastPricedBesideItsAltCostLockstep(t *testing.T) {
 // A tapped Eldrazi Spawn still sacrifices for {C} (its cost has no {T}), so both sides
 // price Makeshift Munitions' {1}{R} from an untapped Bridge and the Spawn, rather than
 // reaching the Spawn only through a prefix that leaves its sacrifice trigger on the stack.
+// The recording is the original witness (994 scripted decisions; the old game diverged at
+// the last, where gorge offered the Munitions cast and the kernel did not) with one answer
+// remapped, 11-25: the burn seat's Highway Robbery now drops the Discard choice it cannot
+// pay (the restored ChooseGenericEffect filter), so the unless ask at decision 223 answers
+// "decline" (mode 1), which is what the original answer meant. The tail observer asserts
+// the scenario is still reached: the Munitions cast is offered at the script's end.
 func TestTappedSpawnPaysTheCastLockstep(t *testing.T) {
 	t.Parallel()
-	poolReproLockstep(t, "tapped_spawn_pays_the_cast", "pauper", Config{})
+	w := &munitionsOfferWatch{}
+	res, script := poolReproRun(t, "tapped_spawn_pays_the_cast", "pauper", Config{}, 200, w)
+	if script.Skipped != 0 {
+		t.Errorf("%d scripted actions were not offered", script.Skipped)
+	}
+	if res.Div != nil {
+		t.Fatalf("divergence at %d: %s %s\n gorge %v\n dirac %v\n %v", res.Div.At, res.Div.What, res.Div.Field, res.Div.RefOptions, res.Div.KerOptions, res.Div.Diff)
+	}
+	if !w.offered {
+		t.Fatalf("the scripted game never offered Makeshift Munitions' cast at its end (first tail decision %d): the fixture no longer reaches the tapped-Spawn pricing", w.at)
+	}
 }
 
 // Nyxborn Hydra's {X}{G} beside two Writhing Chrysalis and three Eldrazi Spawn: the
