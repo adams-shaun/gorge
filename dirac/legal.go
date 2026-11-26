@@ -170,6 +170,7 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 		if pc.altCost {
 			s.offerAltHand(k, d, p, o, c, &av) // kw_impending.go
 		}
+		s.offerAltGrantHand(k, d, p, o, c, &av) // cast_altgrant.go
 		if k.gen != nil {
 			// a non-granting may-play alternative cost beside the plain hand
 			// cast (As Foretold's {0}, Demon of Fate's Design's pay-life,
@@ -3725,8 +3726,8 @@ func (s *State) applyPriority(k *prep, a Action) {
 		if a.Target() == castSurgeTgt && a.Mode() == 0 && k.gen != nil && k.gen.anySurge {
 			s.g.impCast = true // the surge cost (kw_surge.go): beginCast marks the entry surged
 		}
-		if a.Target() == castAltTgt && a.Mode() == 0 && k.gen != nil && k.gen.altFree != nil {
-			s.g.altCast = true // the card's own mana alternative cost (cast_altfree.go)
+		if a.Mode() == 0 && k.gen != nil && (a.Target() == castAltTgt && k.gen.altFree != nil || k.gen.anyAltGrant && a.Target() > castAltIdxTgt) {
+			s.noteAltTgtCast(k, p, a) // the card's own mana alternative cost or a grant's (cast_altfree.go, cast_altgrant.go)
 		}
 		if a.Mode()&castWarp != 0 && a.Mode() != castAirbend && k.gen != nil && k.gen.anyWarpGrant {
 			// the warp instance the action names (kw_warpgrant.go): a grant's
