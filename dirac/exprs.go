@@ -696,6 +696,9 @@ func (s *State) refObjCtx(r kop.Ref, ctx evalCtx) Obj {
 	if r == kop.RefDiscarded {
 		return discardedObj(e) // value_discardedref.go
 	}
+	if r == kop.RefChosenEnc {
+		return chosenEncObj(e) // value_chosenenc.go
+	}
 	switch r {
 	case kop.RefTarget0, kop.RefTarget1, kop.RefTarget2, kop.RefTarget3, kop.RefTarget4:
 		sl, _ := tgtSlot(r)
