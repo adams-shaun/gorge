@@ -16,6 +16,7 @@
   import NamePickPrompt from './NamePickPrompt.svelte';
   import PriorityOptions from './PriorityOptions.svelte';
   import SearchPrompt from './SearchPrompt.svelte';
+  import DividePrompt from './DividePrompt.svelte';
   import TargetChips from './TargetChips.svelte';
 
   /**
@@ -49,6 +50,8 @@
   <CastManaWindow {decision} {view} {logic} />
 {:else if kind === 'priority'}
   <PriorityOptions {decision} {view} {logic} {seat} {placement} />
+{:else if kind === 'divide'}
+  <DividePrompt {decision} {view} {logic} />
 {:else if kind === 'target'}
   <TargetChips {decision} {view} {logic} />
 {:else if kind === 'attackers' || kind === 'blockers'}

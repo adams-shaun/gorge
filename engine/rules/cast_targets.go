@@ -545,6 +545,9 @@ func (e *Engine) targetAsk() bool {
 		Prompt: "Choose a target for " + e.targetName(pc.card),
 		Source: src, TargetEffect: e.describeTargetEffect(pc.player, pc.card, sa, pc.x),
 		TargetsWithSameController: sameController, SetPropMode: setMode}
+	if total, ok := e.castDivisionTotal(pc, sa); ok && total > 1 && max > 1 {
+		d.DivideTotal = total
+	}
 	if !pc.isAbility() && pc.stackObj == pc.card {
 		lim := max
 		if lim < 0 || lim > len(candidates) {
