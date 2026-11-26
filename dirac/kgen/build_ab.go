@@ -1243,6 +1243,7 @@ var eventMap = map[string]kop.TrigEvent{"ETB": kop.TrigETB, "Dies": kop.TrigDies
 	"ClassLevelGained": kop.TrigCounterAddedOnce, // N = CtrLevel (lower_class.go)
 	"BecomesPlotted":   kop.TrigBecomesPlotted,   // the card's own
 	"BecomesSaddled":   kop.TrigBecomesSaddled,
+	"Exerted":          kop.TrigExerted,     // the OptionalAttackCost rider (static_optattack.go)
 	"Evolved":          kop.TrigEvolved,     // the source's own, after its evolve counter lands
 	"Attached":         kop.TrigAttached,    // the attachment's own, Creature bearer (Assimilation Aegis)
 	"Unattached":       kop.TrigUnattached,  // the attachment's own, the FORMER BEARER (Captain's Hook family)
@@ -1968,6 +1969,9 @@ func (cb *cardBuilder) staticFor(s lStatic) (kop.Ability, []uint8, error) {
 	}
 	if s.Kind == "UnspentMana" {
 		return cb.unspentManaAbility(s) // static_unspentmana.go
+	}
+	if s.Kind == "OptionalAttackCost" {
+		return cb.optionalAttackCostAbility(s) // static_optattack.go
 	}
 	if s.Kind == "CanBlockIfShadow" {
 		return cb.canBlockIfShadowAbility(s) // static_canblockifshadow.go
