@@ -181,7 +181,7 @@ run by every precheck (`scripts/test_targets.py` always selects the package):
 - `TestCodeShapeOnlyShrinks`: the constants in `ratchet_test.go` (interface
   widths, `*Engine` surface, string-keyed dispatch and parameter leaks in
   `engine/rules` and `engine/effects`).
-- `cmd/funcgrowth`: a base-relative growth rule over every non-test,
+- `cmd/funcgrowth` (local only since 11-26: `.githooks/pre-push` and `make lint`, no CI step): a base-relative growth rule over every non-test,
   non-generated function in `engine/rules`, `engine/effects` and `dirac/` (kgen
   included). A function over 300 lines (`LongFuncLines`) or cyclomatic
   complexity 50 (`ComplexFuncThreshold`) at the head may have grown by at most
