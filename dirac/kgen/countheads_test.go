@@ -16,6 +16,7 @@ var countHeadsForms = []formCase{
 	{card: "All-Fates Scroll", form: "Land.YouCtrl$DifferentCardNames (AggDistinctNames)", lir: "A=ValidAgg({types=0x1 ctrl=1},agg=9)"},
 	{card: "Audience with Trostani", form: "Creature.YouCtrl+token$DifferentCardNames: the filter keeps +token", lir: "A=ValidAgg({types=0x2 ctrl=1 Token},agg=9)"},
 	{card: "Loot, the Key to Everything", form: "$CardTypes (AggCardTypes)", lir: ",agg=10)"},
+	{card: "Maester Seymour", form: "$CardCounters.ALL (AggSumCounters, Ctr CtrAll: every kind)", lir: "A=ValidAgg({types=0x2 ctrl=1},agg=11,ALL)"},
 	{card: "Toph, the Blind Bandit", form: "$CardCounters.P1P1 (AggSumCounters, Ctr P1P1)", lir: "P=ValidAgg({types=0x1 ctrl=1},agg=11,P1P1)"},
 	{card: "Triumphant Chomp", form: "/LimitMin.2: v >= 2 keeps v, else 2", lir: "A=Compare(op=1,n=2,ValidAgg({types=0x0 sub=Dinosaur ctrl=1},agg=1),Branches(ValidAgg({types=0x0 sub=Dinosaur ctrl=1},agg=1),2))"},
 	{card: "Flow State", form: "SVar$Z1/Plus.Z2 over /LimitMax.1: v <= 1 keeps v, else 1", lir: "Sum(Compare(op=2,n=1,CountGraveyard({types=0x20 owner=1}),Branches(CountGraveyard({types=0x20 owner=1}),1)),Compare(op=2,n=1,"},
@@ -75,7 +76,6 @@ func TestCountHeadsStillRefused(t *testing.T) {
 	checkForms(t, []formCase{
 		{card: "Bat Colony", form: "CastTotalManaSpent Cave (filtered form)", refused: "CastTotalManaSpent"},
 		{card: "Summon: Brynhildr", form: "CountersAddedThisTurn LORE You Card.EffectSource (an Effect emblem static has no source object)", refused: "CountersAddedThisTurn"},
-		{card: "Backstreet Bruiser", form: "CardCounters.ALL has no kernel read", refused: `Count$Valid aggregate "CardCounters.ALL"`},
 	})
 }
 

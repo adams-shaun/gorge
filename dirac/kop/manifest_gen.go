@@ -948,6 +948,8 @@ const ExDevotionDual ExprKind = 70
 const ExStartingPlayer ExprKind = 71
 
 // count AltCost (dirac/manifest/ExprKind/ExAltCost)
+//
+// Sub[0] if the resolving spell was cast for its own S:Mode$ AlternativeCost static's alternative (kernel build.altAdd buildAltCost, stamped as the spell entry's trigPlAltCost mark), else Sub[1] (Count$AltCost.<paid>.<unpaid>; Worldheart Phoenix's SpellCast CheckSVar; gorge count_body_heads.go reads FlagAltCostPaid or the pending cast's PendingAltCost). Read through the stack for a trigger above its spell, as ExSneaked is.
 const ExAltCost ExprKind = 72
 
 // count Result (dirac/manifest/ExprKind/ExResult)
@@ -1222,37 +1224,42 @@ const ExWasCastFromYourLibrary ExprKind = 162
 // count xColorPaid (dirac/manifest/ExprKind/ExXColorPaid)
 const ExXColorPaid ExprKind = 163
 
+// ExprKind (dirac/manifest/ExprKind/ExDelayedExileCount)
+//
+// The fired delayed program's remembered objects (at most four, kop.DpMany's carriers, dirac/trig_delayedmany.go dpManyCarrier) that are still the same object in exile (the version the program registered them at). Dragonhawk, Fate's Tempest's end-step body counts them (gorge Count$ValidExile Card.IsTriggerRemembered, the trigger's remembered set read over the exile zones); the body's /Twice suffix doubles it through the usual modifier. dirac/value_delayedexile.go.
+const ExDelayedExileCount ExprKind = 164
+
 // ExprKind (dirac/manifest/ExprKind/ExDevotionChosen)
 //
 // The controller's devotion (CR 700.5) to the colour recorded on the evaluating source (Count$Devotion.Chosen; gorge evalCountBodyDottedDevotion reads Object.ChosenColor): the source permanent's chosen byte, 0..4 = WUBRG, the same slot the as-enters ChooseColor writes. 0 with no colour recorded. dirac/act_chosencolor.go.
-const ExDevotionChosen ExprKind = 164
+const ExDevotionChosen ExprKind = 165
 
 // ReplacedCardLKI$CardPower (dirac/manifest/ExprKind/ExReplLKIPower)
-const ExReplLKIPower ExprKind = 165
+const ExReplLKIPower ExprKind = 166
 
 // count RingTemptedYou (dirac/manifest/ExprKind/ExRingTempted)
-const ExRingTempted ExprKind = 166
+const ExRingTempted ExprKind = 167
 
 // ExprKind (dirac/manifest/ExprKind/ExSVarNum)
 //
 // A stored SVar's number (gorge runtimeSVar before the printed SVar, effects/count.go): the evaluating source's ExtStoreNum record for the name N (Table.SVarNames index), else the printed SVar body Sub[0]. dirac/act_storenum.go.
-const ExSVarNum ExprKind = 167
+const ExSVarNum ExprKind = 168
 
 // WerewolfTransformCondition | WerewolfUntransformCondition (dirac/manifest/ExprKind/ExSpellsCastLastTurn)
-const ExSpellsCastLastTurn ExprKind = 168
+const ExSpellsCastLastTurn ExprKind = 169
 
 // Remembered$CardCounters (dirac/manifest/ExprKind/ExSrcRemCounters)
 //
 // ExSrcRemCounters (Ctr): the counters of kind Ctr on the object the evaluating source remembers, read live on the battlefield (0 when it is elsewhere): the first live smRem record keyed by the source, which a token minted under TokRememberSrc (RememberSource$ True) keeps for its creator. It is `Remembered$CardCounters.<KIND>` in a token's characteristic-defining P/T (Saproling Burst's token reads the fade counters on the Burst). dirac/zone_tokrem.go.
-const ExSrcRemCounters ExprKind = 169
+const ExSrcRemCounters ExprKind = 170
 
 // SharedKeywordsZone$ Exile (dirac/manifest/ExprKind/ExStaticExileKw)
 //
 // ExStaticExileKw (F, N): exiled cards matching F (every player's exile, F.Owner narrows) that print the keyword N names, read off the printed card (CR 400.7, gorge effects.PrintedChars). N below 32 is a KwMask bit index; N 32 and up is the protection colour (N-32, in kop.ExileKwProtN order) in the card's printed ProtColors. It is the per-keyword gate of a SharedKeywordsZone$ Exile static (Rayami, First of the Fallen). dirac/value_exilekw.go.
-const ExStaticExileKw ExprKind = 170
+const ExStaticExileKw ExprKind = 171
 
 // ExprKind (dirac/manifest/ExprKind/ExVoteTally)
-const ExVoteTally ExprKind = 171
+const ExVoteTally ExprKind = 172
 
 // api MakeCard (dirac/manifest/ExtOp/ExtMakeCard)
 const ExtMakeCard ExtOp = 11
@@ -1652,94 +1659,101 @@ const ExtChoosePlayerEach ExtOp = 99
 
 func init() { extOpNames[ExtChoosePlayerEach] = "ChoosePlayerEach" }
 
+// ExtOp (dirac/manifest/ExtOp/ExtCipherEncode)
+//
+// The resolving Cipher spell's tail (CR 702.99a; gorge cipherTailFor appends DB$ Cipher as the chain's last instruction, effCipher): no operands. A spell card (not a copy) still on the stack asks its controller to encode it on a creature they control (raGenCipher, ChGenCipher: the creatures in battlefield order, then Done; gorge's KModes Min 0 Max 1, posed with one creature too, none asking nothing). A pick exiles the card from the stack and records the link (osEncoded, the creature at its ver). dirac/kw_cipher.go.
+const ExtCipherEncode ExtOp = 102
+
+func init() { extOpNames[ExtCipherEncode] = "CipherEncode" }
+
 // Encore (dirac/manifest/ExtOp/ExtEncore)
 //
 // ExtEncore: AB$ Encore (CR 702.141a; gorge effEncore): for each opponent, from the resolving controller in turn order, one token copy of Obj (B and C as OpCopyAsTokenEx), which attacks that opponent this turn if able; one AtEOT$ sacrifice trigger for all of them. dirac/kw_encore.go.
-const ExtEncore ExtOp = 102
+const ExtEncore ExtOp = 103
 
 func init() { extOpNames[ExtEncore] = "Encore" }
 
 // ExtOp (dirac/manifest/ExtOp/ExtExileFaceDown)
 //
 // ChangeZone / ChangeZoneAll ExileFaceDown$ True (no WithMayLook$, no DefinedExiler$) beside RememberChanged$ True, the move first in its program: right after the move, each remembered object now in exile is marked exiled face down by the resolving source (gorge applyMoveFaceDown's blind exiled_with_face_down marker: FaceDown, ExiledWith the source, nobody the looker; apply_zone.go). The mark is the Dig face-down exile's (zone_exilefacedown.go exwFace). dirac/zone_exilefacedownmove.go.
-const ExtExileFaceDown ExtOp = 103
+const ExtExileFaceDown ExtOp = 104
 
 func init() { extOpNames[ExtExileFaceDown] = "ExileFaceDown" }
 
 // ExtOp (dirac/manifest/ExtOp/ExtMonarchJail)
 //
 // Palace Jailer's exile until an opponent becomes the monarch (CR 610.3, 610.3b; gorge ChangeZone exileUntilOpponentMonarchMet plus the Effect's BecomeMonarch promise): Obj the target is exiled and a monarch link is recorded, unless an opponent became the monarch since the ability was put on the stack.
-const ExtMonarchJail ExtOp = 104
+const ExtMonarchJail ExtOp = 105
 
 func init() { extOpNames[ExtMonarchJail] = "MonarchJail" }
 
 // Myriad (dirac/manifest/ExtOp/ExtMyriad)
 //
 // ExtMyriad: DB$ Myriad (CR 702.116a; gorge effMyriad): for each opponent other than the defending player, from the controller in turn order, the controller is asked (ChGenMyriad yes/no; gorge offers a planeswalker of the asked player too, each a yes over that walker) and a yes makes a token copy of Obj (B and C as OpCopyAsTokenEx) tapped and attacking that player; each copy registers its end-of-combat exile promise (gorge scheduleAtEOTRider __kwWarpExile at this turn's end of combat step). dirac/kw_myriad.go.
-const ExtMyriad ExtOp = 105
+const ExtMyriad ExtOp = 106
 
 func init() { extOpNames[ExtMyriad] = "Myriad" }
 
 // ExtOp (dirac/manifest/ExtOp/ExtOptInSeat)
 //
 // ExtOptInSeat: the head of an OpRepeatEachPlayer body under RepeatOptionalForEachPlayer$ True (gorge effRepeatEach's repeatEachElectionDecision, ResumeKind repeat_each_optional): the repeated player (the loop's own seat, not the controller) is asked yes / no (ChGenOptInSeat, canonical kinds yes_seat / no_seat); B.N the body's instructions after this one, which a no skips (the player's body is not run and the loop goes on to the next player). dirac/act_optinseat.go.
-const ExtOptInSeat ExtOp = 106
+const ExtOptInSeat ExtOp = 107
 
 func init() { extOpNames[ExtOptInSeat] = "OptInSeat" }
 
 // Pair (dirac/manifest/ExtOp/ExtPair)
 //
 // ExtPair: Soulbond's optional pairing (CR 702.95a; gorge engine/effects/soulbond.go effPair): the unpaired battlefield creature Obj may pair with another unpaired creature its trigger's controller controls; C 1 restricts the pick to the triggering entrant (RestrictToRemembered$).
-const ExtPair ExtOp = 107
+const ExtPair ExtOp = 108
 
 func init() { extOpNames[ExtPair] = "Pair" }
 
 // ExtOp (dirac/manifest/ExtOp/ExtPayLifeX)
 //
 // The as-enters "pay any amount of life" ask (CR 614.12; gorge's R:Event$ Moved ReplaceWith$ StoreSVar body costing Mandatory PayLife<X>, cast_etbchoice.go etbPayLifeBound / etbPayLifeOptions: a KChoose of Kind "paylife" options 0..bound, the amount on Amount), the first instruction of an enters program. B the cap value (gorge's XMax$; the constant 32767 when the body has none), C the ExtStoreNum C field of the stored name (name index, delete flag, printed default; kop.StoreNumC). The controller is asked 0..min(life, cap) as a ChGenPayLife decision (mode = the amount); the answer loses that much life through loseLife and writes it as the entering permanent's stored number (act_storenum.go numStore), the Count$xPaid the body stores. dirac/repl_paylife.go.
-const ExtPayLifeX ExtOp = 108
+const ExtPayLifeX ExtOp = 109
 
 func init() { extOpNames[ExtPayLifeX] = "PayLifeX" }
 
 // ExtOp (dirac/manifest/ExtOp/ExtPlaneCurse)
 //
 // Eloren Wilds' plane-source curse Effect (DB$ Effect | StaticAbilities$ STCantCast beside Triggers$ PlaneswalkedTo self-exile, Duration$ Permanent): the targeted player may not cast spells until any player planeswalks. gorge registers the CantBeCast static with the UntilPlaneswalk lifetime (effEffect's effectPlaneCurseEnd; rules' checkPlaneswalkTriggers ends it via withoutUntilPlaneswalk); the kernel keeps the narrow record instead -- planeSeat.curse's per-seat bitset, set by the instr's player target and cleared in planeswalk -- and castForbiddenCost reads it after the static scan (gorge consults registered effects after face statics). The Effect lives over the plane as its source; the record is the narrow equivalent the planebodies slice keeps on the cold planar record.
-const ExtPlaneCurse ExtOp = 109
+const ExtPlaneCurse ExtOp = 111
 
 func init() { extOpNames[ExtPlaneCurse] = "PlaneCurse" }
 
 // ExtOp (dirac/manifest/ExtOp/ExtRememberPlayer)
 //
 // Pump RememberObjects$ TargetedController: record the target's controller as the resolution's player (res.chPl) so the chained Draw can read it after the GainControl (Rules of Acquisition; CR 608.2c).
-const ExtRememberPlayer ExtOp = 111
+const ExtRememberPlayer ExtOp = 112
 
 func init() { extOpNames[ExtRememberPlayer] = "RememberPlayer" }
 
 // RepeatOptional (dirac/manifest/ExtOp/ExtRepeatOptional)
 //
 // ExtRepeatOptional: an OpRepeatWhile body's RepeatOptional$ election (gorge effRepeat's repeat_optional "Repeat this process?"). B.N 0 at the body's head: C is the pass's progress condition, and a pass that starts without it is the last one, no election follows it (gorge's changed-nothing shortcut, CR 732.2a). B.N 1 at the body's tail: unless the pass was the last, the resolving controller is asked yes / no (ChGenConfirm); a no ends the loop. dirac/act_repeatoptional.go.
-const ExtRepeatOptional ExtOp = 112
+const ExtRepeatOptional ExtOp = 113
 
 func init() { extOpNames[ExtRepeatOptional] = "RepeatOptional" }
 
 // ExtOp (dirac/manifest/ExtOp/ExtRippleBottom)
 //
 // ExtRippleBottom: the tail of a granted ripple's trigger body (gorge effRippleBottom): every card of the resolution's remembered set still in its owner's library goes to the bottom of that library, in remembered order. Two or more pose the owner the CR 401.4 arrangement ask (ChArrange, gorge libraryPlacementOrder over the cards still at the top — the ask precedes the move), and the answer's order is the bottom order (libraryOrderPlacement bottom=true); one or none bottoms unasked. A cast card is on the stack and skipped; a card a response moved is skipped by the same zone recheck (gorge's placed). The kernel-native ripple body arms it (kw_ripple.go rippleProg); no ExtLibPlace bracket, the op asks itself. dirac/kw_ripple.go rippleBottomExt.
-const ExtRippleBottom ExtOp = 113
+const ExtRippleBottom ExtOp = 114
 
 func init() { extOpNames[ExtRippleBottom] = "RippleBottom" }
 
 // ExtOp (dirac/manifest/ExtOp/ExtStoreNum)
 //
 // StoreSVar's per-object number write (gorge effStoreSVar, events.StoreSVar -> Object.RuntimeSVars; CR 400.7): B the value (any ValueRef, evaluated at the write), C the SVar name (Table.SVarNames index, low 4 bits) with the delete-on-default flag (kop.StoreNumDel) and the printed default beside it (kop.StoreNumDefault); the target is the resolving source. The number is a record of the object-set store (kind osNum) keyed by the object, whatever zone it is in: only a departure from the battlefield clears it (gorge's wasBattlefield reset), so a write after the source left persists on the departed object. dirac/act_storenum.go.
-const ExtStoreNum ExtOp = 114
+const ExtStoreNum ExtOp = 115
 
 func init() { extOpNames[ExtStoreNum] = "StoreNum" }
 
 // ExtOp (dirac/manifest/ExtOp/ExtTwoPilesEach)
 //
 // A RepeatEach player body's battlefield TwoPiles (Bend or Break: Defined$ Remembered, Separator$ Remembered, Chooser$ ChosenPlayer, ValidCards$ Land.!token+RememberedPlayerCtrl; gorge effTwoPiles' battlefield arm over the repeated player): F names the repeated player's permanents (CtrlEachPl). They separate them into two piles (ChGenPileSplit, a permanent per pick, AkDone-closed, picking them all ends it; a one-permanent pool poses no split), the opponent their chain's ExtChoosePlayerEach chose picks one (ChGenPileChoose mode 0 the picks, 1 the rest; resChosenPlayer), and the chosen pile is destroyed while the other is tapped (ChosenPile$ DestroyAll Land.IsRemembered then UnchosenPile$ TapAll Land.IsRemembered: each pile's members still matching F run the ordinary destroy / tap-all passes, gorge twoPilesRunPile's fresh Remembered = pile). Pile A rides genState.sacM, the pool player genState.pickP; both are cleared at the end. B.N&1: the pick's mode-1 answer names pile A (the chosen/unchosen piles swap; the lockstep mutation). dirac/act_pileseach.go.
-const ExtTwoPilesEach ExtOp = 115
+const ExtTwoPilesEach ExtOp = 116
 
 func init() { extOpNames[ExtTwoPilesEach] = "TwoPilesEach" }
 
@@ -1838,35 +1852,40 @@ const FwToughnessCmp FilterWord = 18
 // FwWithKeyword: the object prints keyword Arg (a KwID), gorge's with<Keyword> over the printed face (effects/filter.go objectHasKeyword); a permanent reads none while face down or after a lose-all-abilities effect.
 const FwWithKeyword FilterWord = 19
 
+// FilterWord (dirac/manifest/FilterWord/FwCanProduceManaColor)
+//
+// FwCanProduceManaColor: the battlefield permanent's printed mana abilities can produce a mana type in the colour mask Arg (gorge's canProduceManaColor <Colour> predicate, Forge CardProperty canProduceManaColor over AbilityManaPart.canProduce; Break the Ice's and Obsidian Charmaw's Land.canProduceManaColor Colorless). The producible set is the kernel's cardProducible: kop.CardDef.ProduceCol for WUBRG (an "Any" production counts as every colour but never colourless) plus {C} when a printed mana ability makes it.
+const FwCanProduceManaColor FilterWord = 20
+
 // FilterWord (dirac/manifest/FilterWord/FwCanProduceSameManaTypeWith)
 //
 // FwCanProduceSameManaTypeWith: the battlefield permanent can produce at least one type of mana the object the referent R names can also produce (gorge's canProduceSameManaTypeWith predicate over SpecContext.TriggerCard, engine/effects/filter_word_manatype.go; Mana Web's TapAll body). The producible set is the printed mana abilities' types: kop.CardDef.ProduceCol for WUBRG plus {C} when a printed mana ability makes it, the same census kernel mana_reflected.go producesColourless reads. R is RefTriggerObj for the kgen shape TriggeredCard.canProduceSameManaTypeWith+<type>. An unbound referent or an object that produces nothing matches nothing, fail closed.
-const FwCanProduceSameManaTypeWith FilterWord = 20
+const FwCanProduceSameManaTypeWith FilterWord = 21
 
 // FilterWord (dirac/manifest/FilterWord/FwModal)
 //
 // FwModal: the cast spell chose at least one mode of its charm (gorge's `Modal` predicate, engine/effects/filter.go: len(ChosenModes) > 0; SpellCast ValidSA$ Spell.Modal, Riku of Many Paths). A spell that is no charm, a face-down spell and a card off the stack read false; an MDFC is not modal.
-const FwModal FilterWord = 21
+const FwModal FilterWord = 22
 
 // FilterWord (dirac/manifest/FilterWord/FwPaired)
 //
 // FwPaired: the battlefield permanent is paired with another creature by Soulbond (gorge predicates["Paired"], engine/effects/filter.go, o.Paired != 0; the kernel's kw_soulbond.go pair record). Negated, it is unpaired.
-const FwPaired FilterWord = 22
+const FwPaired FilterWord = 23
 
 // FilterWord (dirac/manifest/FilterWord/FwPairedWith)
 //
 // FwPairedWith: the battlefield permanent is the creature the reading source is paired with by Soulbond (gorge predicates["PairedWith"], engine/effects/filter.go, source.Paired == candidate; the kernel's kw_soulbond.go pair record). A source with no pair fails closed.
-const FwPairedWith FilterWord = 23
+const FwPairedWith FilterWord = 24
 
 // FilterWord (dirac/manifest/FilterWord/FwSingleTarget)
 //
 // FwSingleTarget: the cast spell has exactly one target, counting every chained sub-ability's targets with the root's (gorge's `singleTarget` predicate, engine/effects/filter.go: len(Targets)+len(SubTargets) == 1; SpellCast ValidSA$ Spell.singleTarget and Instant.singleTarget,Sorcery.singleTarget). No target and two targets both read false, and two slots naming one object count twice, as gorge counts them.
-const FwSingleTarget FilterWord = 24
+const FwSingleTarget FilterWord = 25
 
 // FilterWord (dirac/manifest/FilterWord/FwTeamwork)
 //
 // FwTeamwork: the cast spell paid its Teamwork cost (gorge's `Teamwork` predicate, Object.TeamworkPaid; SpellCast ValidSA$ Spell.Teamwork, Virtual Assistant). The kernel keeps the paid flag as sfKicked on the entry (kw_teamwork.go), which a kicker cast sets too, so the word also requires the spell's card to have Teamwork: a kicked non-teamwork spell reads false.
-const FwTeamwork FilterWord = 25
+const FwTeamwork FilterWord = 26
 
 // kw StickerSheet (dirac/manifest/KwID/KwStickerSheet)
 const KwStickerSheet KwID = 32
@@ -2519,7 +2538,7 @@ const StatRetraceGrant StaticKind = 73
 
 // StaticKind (dirac/manifest/StaticKind/StatColorWords)
 //
-// StatColorWords is a Continuous static's ChangeColorWordsTo$ ChosenColor over Affected$ Spell,Permanent in AffectedZone$ Stack,Battlefield (Swirl the Mists; CR 612.5): every colour word in the text of the spells on the stack and the permanents on the battlefield becomes the source's recorded colour word. The kernel holds no per-object text (kop.ExtChangeText), so it models the change where it is a no-op and stalls where it is not: a spell about to be cast, a spell on the stack or a permanent whose card face reads (CardDef.TextWords) a colour word other than the source's chosen one stalls the game (StallTextChange, unmodelled) instead of answering from the unchanged face; a source with no recorded colour changes nothing, as gorge's colourWordEffects fails closed. Read at pushBuild and before each priority grant behind prep.anyColorWords (static_colorwords.go).
+// StatColorWords is a Continuous static's ChangeColorWordsTo$ ChosenColor over Affected$ Spell,Permanent in AffectedZone$ Stack,Battlefield (Swirl the Mists; CR 612.5): every colour word in the text of the spells on the stack and the permanents on the battlefield becomes the source's recorded colour word. The kernel holds no per-object text (kop.ExtChangeText), so it rewrites the colour words where the faces are read (static_colorwords.go): a target spec's filter colour masks and a printed Protection keyword's colours of an affected spell or permanent read as gorge's rewritten face reads them (every colour word of the face replaced by the last-live source's colour; a source with no recorded colour changes nothing, as gorge's colourWordEffects fails closed), and an ability on the stack keeps the colour it was put on the stack under (its text is frozen then). A face whose rewritten word also sits on a surface the model does not read (CardDef.CWUnmodelled: the type line, the SVars, any other ability, trigger, static or replacement parameter) stalls the game (StallTextChange, unmodelled) at pushBuild and before each priority grant, behind prep.anyColorWords.
 const StatColorWords StaticKind = 74
 
 // StaticKind (dirac/manifest/StaticKind/StatCyclingAlt)
@@ -2542,18 +2561,23 @@ const StatDefenderAssigns StaticKind = 77
 // StatGraveNoAbilities is a Continuous static's AffectedZone$ Graveyard RemoveAllAbilities$ True (Yixlid Jailer; CR 613.1f): each card in a graveyard that Filter matches loses all abilities while the static's battlefield source is in force. Zone is the graveyard and the filter reads the card as a card, wherever it lies. It is not a StatContinuous, so no battlefield reader (the layer walks, loss6) sees it; only the graveyard readers ask it, through graveAbilitiesLost (static_graveabilityloss.go), which also answers the removal's timestamp so a granted graveyard ability that is newer than the removal survives (gorge grantLostTo).
 const StatGraveNoAbilities StaticKind = 78
 
+// StaticKind (dirac/manifest/StaticKind/StatMadnessGrant)
+//
+// StatMadnessGrant is a Continuous static's AddKeyword$ Madness:ManaCost[:<N>] grant over the zones its AffectedZone$ lists, one static per zone (Falkenrath Gorger; CR 702.35a-b): Filter matches the card in Static.Zone and the granted madness cost is the card's own mana cost reduced by CardCostLess-1 generic (Madness:ManaCost is CardCostLess 1, no reduction). A card with printed madness keeps its own cost; the first grant in perm.ts order wins. Read live from the battlefield at the discard (Hand zone), the cast-or-graveyard ask and the cast from exile, never stamped on the card (kw_madness.go madnessCostOf).
+const StatMadnessGrant StaticKind = 79
+
 // StaticKind (dirac/manifest/StaticKind/StatMiracleGrant)
 //
 // StatMiracleGrant is a Continuous static's AffectedZone$ Hand AddKeyword$ Miracle:<cost> grant (Lorehold, the Historian; Molecule Man; Aminatou, Veil Piercer; CR 702.94a): Filter matches the card in a hand and the granted miracle cost is GrantCost, or under CardCostLess the card's own mana cost reduced by CardCostLess-1 generic (Miracle:ManaCost:4). A card with printed miracle keeps its own (gorge derivedKeywordParamH reads the printed head first); the first grant in perm.ts order wins. Read live from the battlefield at the draw, the reveal-trigger resolution and the cast, never stamped on the card (kw_miracle.go miracleCostOf).
-const StatMiracleGrant StaticKind = 79
+const StatMiracleGrant StaticKind = 80
 
 // stat AssignNoCombatDamage (dirac/manifest/StaticKind/StatNoCombatDamage)
-const StatNoCombatDamage StaticKind = 80
+const StatNoCombatDamage StaticKind = 81
 
 // StaticKind (dirac/manifest/StaticKind/StatUnearthGrant)
 //
 // StatUnearthGrant is a Continuous static's AffectedZone$ Graveyard AddKeyword$ Unearth grant (Sedris, the Traitor King, Mishra, Tamer of Mak Fawa, Dregscape Sliver, Solemn Doomguide; CR 702.84a): Filter matches the card in the graveyard and GrantBody-1 is the latent unearth body (the printed kwUnearth expander's AB$ ChangeZone, cards.GrantedKeywordAbility) the graveyard offer runs with the affected card as its source. The body's own Cost prices the explicit-cost shape; a zero body cost is the CardManaCost mark, which the offer charges as the affected card's own mana cost (kw_unearthgrant.go).
-const StatUnearthGrant StaticKind = 81
+const StatUnearthGrant StaticKind = 82
 
 // trig ChaosEnsues (dirac/manifest/TrigEvent/TrigChaosEnsues)
 const TrigChaosEnsues TrigEvent = 52

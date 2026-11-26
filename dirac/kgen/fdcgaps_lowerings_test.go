@@ -133,9 +133,8 @@ func TestFDCGapsLowerings(t *testing.T) {
 		t.Fatal("Chandra's Ignition: no SweepFrom instruction lowered")
 	}
 
-	// and the other two Count$MostCardName carriers lower: Sceptre of Eternal
-	// Glory lowers the same count head but refuses for its own reason (its
-	// mana ability's CheckSVar gate), so it stays out.
+	// and the other two Count$MostCardName carriers lower (Sceptre of Eternal
+	// Glory's gated mana ability is TestSceptreLowering's).
 	lw2 := lowerNamedPool(t, []string{"Mechanized Production", "Chrome Replicator"})
 	for _, c := range lw2.cards {
 		if len(c.Refusals) != 0 {

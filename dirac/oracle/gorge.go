@@ -743,6 +743,11 @@ func paymentCastAction(pa decision.PaymentAction, ref func(state.ObjID) Ref) (a 
 		return Pack(ActCastCasualty, ref(pa.Cast.Object), RefNone, 0), false, ""
 	case "impended":
 		return Pack(ActCastImpended, ref(pa.Cast.Object), RefNone, 0), false, ""
+	case "kicked1", "kicked2", "kickedboth":
+		// CR 702.33b: the two-alternative Kicker's per-alternative cast is
+		// its own action kind (the 16-entry cast-mode table is full;
+		// kw_kickalt.go)
+		return Pack(ActCastKickedAlt, ref(pa.Cast.Object), RefNone, kickedAltSelector(mode)), false, ""
 	case "conspired":
 		return Pack(ActCast, ref(pa.Cast.Object), RefNone, castModeOther|15<<4), false, ""
 	case "suspend", "bargained", "teamworked", "harmonize", "mayhem", "buyback", "entwined", "optionalcost", "web-slinging", "overloaded", "cleaved":
@@ -866,6 +871,17 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 				// CR 702.176a: the impending cast is its own action kind (the
 				// 16-entry cast-mode table is full; kw_impending.go)
 				add(prioEntry{a: Pack(ActCastImpended, ref(o.Obj), RefNone, uint8(o.AltCostIndex)<<4), opt: o.Index})
+				continue
+			}
+			if sel := kickedAltSelector(o.Mode); sel != 0 {
+				// CR 702.33b: the two-alternative Kicker's per-alternative
+				// cast is its own action kind (the 16-entry cast-mode table
+				// is full; kw_kickalt.go)
+				if o.AltCostIndex > 15 {
+					note("cast/" + o.Mode)
+					continue
+				}
+				add(prioEntry{a: Pack(ActCastKickedAlt, ref(o.Obj), RefNone, sel|uint8(o.AltCostIndex)<<4), opt: o.Index})
 				continue
 			}
 			if o.Mode == "harmonize" {
@@ -1092,6 +1108,11 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 				// a cycling activation at the alternative cost (New Perspectives,
 				// kop.StatCyclingAlt): the kernel's twin ability, cyclingAltBit
 				add(prioEntry{a: Pack(ActActivate, ref(o.Obj), RefNone, cyclingAltBit|uint8(o.Ability)), opt: o.Index})
+				continue
+			}
+			if o.AltCostIndex == 1 && o.SVar == "" && o.Keyword == "" && o.GrantSource == 0 && o.GainedSource == 0 && o.Ability >= 0 && o.Ability < maxSpeedBase-altActivateBase {
+				// a Vehicle's own crew alternative cost (Heart of Kiran; kop.Ability.AltOf)
+				add(prioEntry{a: Pack(ActActivate, ref(o.Obj), RefNone, altActivateBase+uint8(o.Ability)), opt: o.Index})
 				continue
 			}
 			if o.SVar != "" || o.Keyword != "" || o.GainedSource != 0 || o.AltCostIndex != 0 || o.Ability > 0x7F {
@@ -1783,7 +1804,7 @@ func (g *GorgeSide) Apply(a Canon) {
 	// election is its own payment (no pips): reset so its manual window keeps
 	// the no-owed first-colour answer.
 	switch a.Kind() {
-	case ActActivate, ActCast, ActCastFace, ActCastCasualty, ActCastImpended, ActCastAirbend, ActPass, ActPlayLand, ActSpecial:
+	case ActActivate, ActCast, ActCastFace, ActCastCasualty, ActCastImpended, ActCastAirbend, ActCastKickedAlt, ActPass, ActPlayLand, ActSpecial:
 		g.payPips = [6]uint8{}
 	}
 	if a.Kind() >= ActChoose {

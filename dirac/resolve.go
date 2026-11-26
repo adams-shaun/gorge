@@ -275,6 +275,10 @@ func (s *State) resolveTop(k *prep) {
 				}
 				return
 			}
+			if isCipherTrig(&e) {
+				s.cipherResolve(k) // kw_cipher.go: the copy cast, a program
+				return
+			}
 			s.resolveDelayed(k, &e)
 			if s.res.ask != raNone {
 				return // casualty's copy elects (copy_gen.go); copyResume finishes it
@@ -584,6 +588,9 @@ func (s *State) prog(k *prep) []kop.Instr {
 		if e.ab == abRipple {
 			return rippleProg[:] // the reveal + may-cast + bottom body (kw_ripple.go)
 		}
+		if isCipherTrig(e) {
+			return cipherProg[:] // kw_cipher.go
+		}
 		return nil
 	}
 	if p := s.overloadProg(k); p != nil {
@@ -709,6 +716,9 @@ func (s *State) objRef(k *prep, r kop.Ref) Slot {
 	if r == kop.RefTriggerObj && s.res.flags&rfTrigGone != 0 {
 		return NoSlot // the triggering permanent left and came back meanwhile: a new object (CR 400.7)
 	}
+	if r == kop.RefEmblemSource && ob.ver+1 != s.res.e.srcVer {
+		return NoSlot // the emblem trigger was queued at srcVer = ver+1: the source moved since (CR 400.7)
+	}
 	return ob.slot
 }
 
@@ -727,8 +737,8 @@ func (s *State) objRefObj(r kop.Ref) Obj {
 			return NoObj
 		}
 		return Obj(t)
-	case kop.RefSelf:
-		return e.obj
+	case kop.RefSelf, kop.RefEmblemSource:
+		return e.obj // RefEmblemSource: the emblem's source object; objRef holds it to its queued version
 	case kop.RefTriggerObj:
 		return e.trigObj
 	case kop.RefLastCreated:

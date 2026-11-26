@@ -821,6 +821,9 @@ func init() { enum[kop.ExprKind]("kop.ExWasCastFromYourLibrary", kop.ExWasCastFr
 // dirac/manifest/ExprKind/ExXColorPaid
 func init() { enum[kop.ExprKind]("kop.ExXColorPaid", kop.ExXColorPaid) }
 
+// dirac/manifest/ExprKind/ExDelayedExileCount
+func init() { enum[kop.ExprKind]("kop.ExDelayedExileCount", kop.ExDelayedExileCount) }
+
 // dirac/manifest/ExprKind/ExDevotionChosen
 func init() { enum[kop.ExprKind]("kop.ExDevotionChosen", kop.ExDevotionChosen) }
 
@@ -1473,6 +1476,9 @@ func init() { enum[kop.StaticKind]("kop.StatDefenderAssigns", kop.StatDefenderAs
 
 // dirac/manifest/StaticKind/StatGraveNoAbilities
 func init() { enum[kop.StaticKind]("kop.StatGraveNoAbilities", kop.StatGraveNoAbilities) }
+
+// dirac/manifest/StaticKind/StatMadnessGrant
+func init() { enum[kop.StaticKind]("kop.StatMadnessGrant", kop.StatMadnessGrant) }
 
 // dirac/manifest/StaticKind/StatMiracleGrant
 func init() { enum[kop.StaticKind]("kop.StatMiracleGrant", kop.StatMiracleGrant) }

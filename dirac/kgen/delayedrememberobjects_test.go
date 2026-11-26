@@ -43,22 +43,45 @@ func TestDelayedRememberObjects(t *testing.T) {
 	}
 }
 
-// TestDelayedRememberObjectsRefusesSets: Dragonhawk's chain exiles the top X
-// cards and remembers all of them, so its delayed record would hold several
-// objects (it carries one): both its triggers refuse by name.
+// dugSetProbe is Dragonhawk's shape (an enters trigger that digs, remembers the
+// dug cards and delays an end-step damage trigger over them) with the delayed
+// body's damage amount given: only the exact count-read body lowers.
+func dugSetProbe(numDmg, y string) string {
+	return strings.Join([]string{
+		"Name:Probe",
+		"ManaCost:3 R R",
+		"Types:Creature Dragon",
+		"PT:5/5",
+		"T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ TrigDig | TriggerDescription$ probe",
+		"SVar:TrigDig:DB$ Dig | Defined$ You | DigNum$ 2 | ChangeNum$ All | DestinationZone$ Exile | RememberChanged$ True | SubAbility$ DBDelay",
+		"SVar:DBDelay:DB$ DelayedTrigger | Mode$ Phase | Phase$ End of Turn | ValidPlayer$ You | RememberObjects$ Remembered | Execute$ TrigDamage | SubAbility$ DBClear",
+		"SVar:TrigDamage:DB$ DamageAll | ValidPlayers$ Player.Opponent | NumDmg$ " + numDmg,
+		"SVar:DBClear:DB$ Cleanup | ClearRemembered$ True",
+		"SVar:Y:" + y,
+		"Oracle:probe",
+	}, "\n")
+}
+
+// TestDelayedRememberObjectsRefusesSets: a dig's several remembered cards are
+// carried only for the one body the count read covers (Dragonhawk, Fate's
+// Tempest, pinned by TestDragonhawkLowering): the same shape with another
+// count (no doubling), another amount (a fixed 3) or another reader keeps the
+// refusal by name. The step-keyed arms keep refusing the set too
+// (delayedstepremember_test.go).
 func TestDelayedRememberObjectsRefusesSets(t *testing.T) {
-	cs := lowerNamed(t, []string{"Dragonhawk, Fate's Tempest"})
-	if len(cs) != 1 {
-		t.Fatalf("lowered %d cards, want 1", len(cs))
-	}
-	want := `delayed trigger RememberObjects "Remembered" in a triggered ability: a set of several objects`
-	n := 0
-	for _, r := range cs[0].Refusals {
-		if strings.Contains(r.Reason, want) {
-			n++
+	const want = "a set of several objects"
+	for name, c := range map[string]struct{ numDmg, y string }{
+		"the count without the doubling": {"Y", "Count$ValidExile Card.IsTriggerRemembered"},
+		"a fixed amount":                 {"3", "Count$ValidExile Card.IsTriggerRemembered/Twice"},
+		"another zone":                   {"Y", "Count$ValidGraveyard Card.IsTriggerRemembered/Twice"},
+	} {
+		got := abReasons(abLower(t, dugSetProbe(c.numDmg, c.y), false))
+		if !strings.Contains(got, want) {
+			t.Errorf("%s: refusals %q, want %q", name, got, want)
 		}
 	}
-	if n != 2 {
-		t.Errorf("%d refusals name %q, want 2 (enters and attacks): %v", n, want, cs[0].Refusals)
+	// and the exact shape lowers, so the refusals above are the shape guard's
+	if got := abReasons(abLower(t, dugSetProbe("Y", "Count$ValidExile Card.IsTriggerRemembered/Twice"), false)); got != "" {
+		t.Errorf("the count-read shape refused: %q", got)
 	}
 }

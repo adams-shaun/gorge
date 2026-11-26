@@ -29,6 +29,9 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8, tgt uint8) {
 	}
 	s.clearPaidN(o)
 	s.clearKickAlt(o)
+	if sel := kickAltSelOf(tgt); sel != 0 {
+		s.setKickAlt(o, sel) // the two-alternative Kicker's selection: the byte the kicked N filters, Count$TimesKicked and the build's pricing read (kw_kickalt.go)
+	}
 	var fl uint8
 	if mode&1 != 0 { // seat-ok: a cast-mode bit
 		fl |= sfKicked
@@ -380,6 +383,9 @@ func (s *State) pushBuild(k *prep) {
 	if e.kind != seSpell && k.gen != nil && (k.gen.anyStackTgt || k.gen.anyWard || k.gen.anyWardGrant || s.subs[kop.TrigBecomesTarget].any()) {
 		s.stackSid(e) // a stack-ability target's identity (tgt_stackability.go); a ward trigger's warded ability (wardedIndex); a BecomesTarget TriggeredSourceSA's targeting ability (trig_becomestarget.go)
 	}
+	if e.kind != seSpell && k.anyColorWords {
+		e.prov = s.cwFreeze(k) // the ability's text as it is put on the stack (static_colorwords.go)
+	}
 	s.push(*e)
 	s.bld().bfl |= bflPushed
 }
@@ -693,8 +699,10 @@ func (s *State) buildCostPreRaw(k *prep, pre, charge bool) (kop.ManaCost, bool) 
 		if cd.Escape && e.trigPl == trigPlEscape {
 			c = cd.AltCost // the escape cost (CR 702.138a; kw_escape.go)
 		}
-		if e.trigPl == trigPlMadness && cd.HasMadness {
-			c = cd.MadnessCost // the madness cast from exile (CR 702.35b)
+		if e.trigPl == trigPlMadness {
+			if mc, ok := s.madnessCostOf(k, e.obj); ok {
+				c = mc // the madness cast from exile (CR 702.35b; kw_madness.go), printed or granted
+			}
 		}
 		if e.trigPl == trigPlMiracle {
 			if mc, ok := s.miracleCostOf(k, e.obj); ok {

@@ -466,8 +466,9 @@ const (
 	PKNextRoom
 	PKNextTurn
 	PKNoCall
-	// NoColoredMana$ True on a SpellCast trigger (Void Mirror): fires only when no
-	// coloured mana was spent to cast the spell. Read by trigmatch's SpellCastEval.
+	// NoColoredMana$ True on a SpellCast trigger (Void Mirror): the trigger
+	// fires only when no coloured mana was spent to cast the spell (Forge
+	// TriggerSpellAbilityCastOrCopy). Read by trigmatch's SpellCastEval.
 	PKNoColoredMana
 	PKNoLonger
 	PKNoLooking

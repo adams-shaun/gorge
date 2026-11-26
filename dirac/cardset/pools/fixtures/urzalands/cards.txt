@@ -1,0 +1,13 @@
+# the Urza lands pool: Urza's Mine, Urza's Power Plant and Urza's Tower
+# (Count$UrzaLands, the extra colourless once all three are controlled)
+# beside Wastes and colourless creatures of every size
+# (dirac/oracle/urzalands_lowers_test.go)
+Urza's Mine
+Urza's Power Plant
+Urza's Tower
+Wastes
+Ornithopter
+Bronze Sable
+Juggernaut
+Wurmcoil Engine
+Steel Wall

@@ -1,0 +1,10 @@
+# the every-player life-extreme pool: PlayerCountPlayers$HighestLifeTotal
+# (Arbiter of Knollridge, Scourge of the Skyclaves, Sorin, Grim Nemesis)
+# beside small attackers and basics (dirac/oracle/valueheads2_lowers_test.go)
+Arbiter of Knollridge
+Scourge of the Skyclaves
+Sorin, Grim Nemesis
+Savannah Lions
+Elite Vanguard
+Plains
+Swamp

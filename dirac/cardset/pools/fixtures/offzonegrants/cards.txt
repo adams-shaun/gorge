@@ -11,7 +11,9 @@
 # offzone_cycling_lockstep_test.go), and the hand miracle grants (Lorehold, the
 # Historian; Molecule Man; Aminatou, Veil Piercer; kw_miracle.go,
 # offzone_miracle_lockstep_test.go) beside the instants, sorceries and
-# enchantments they reach.
+# enchantments they reach, and the six-zone madness grant (Falkenrath Gorger;
+# kw_madness.go, offzone_madness_lockstep_test.go) beside the Vampire it
+# reaches and the looting spell that discards it.
 Six
 Leyline of Transformation
 Ashes of the Fallen
@@ -38,3 +40,30 @@ Mountain
 Island
 Swamp
 Plains
+# the off-zone layer-4 override grants (dirac/kgen/lower_offzoneoverride.go,
+# dirac/static_offzonechars.go): Maskwood Nexus (AffectedZone$ All
+# AddAllCreatureTypes$ True) and Rootpath Purifier (AffectedZone$
+# Battlefield,Library AddType$ Basic), beside a creature-type tutor, basic-land
+# searches and the nonbasic lands and creatures they read
+# (dirac/oracle/offzone_override_lockstep_test.go).
+Maskwood Nexus
+Rootpath Purifier
+Goblin Matron
+Goblin Recruiter
+Goblin Chieftain
+Mogg Fanatic
+Llanowar Elves
+Rampant Growth
+Kodama's Reach
+Evolving Wilds
+Terramorphic Expanse
+Blood Crypt
+Cinder Glade
+Stomping Ground
+Temple Garden
+Blackcleave Cliffs
+Goblin Warchief
+Goblin King
+Falkenrath Gorger
+Vampire Interloper
+Faithless Looting
