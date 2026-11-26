@@ -82,8 +82,8 @@ func TestLowerEffectReplExileonmoved(t *testing.T) {
 	if strings.Contains(got, "Effect replacement") || strings.Contains(got, "stack-exile") {
 		t.Errorf("Goliath: still refuses on the Effect: %q", got)
 	}
-	if !strings.Contains(got, "Play ValidZone$ Exile without IsRemembered") {
-		t.Errorf("Goliath: refusals %q, want its Play", got)
+	if strings.Contains(got, "Play ValidZone$ Exile without IsRemembered") {
+		t.Errorf("Goliath: refusals %q, its dream-counter Play filter lowers (lower_playexilepop.go)", got)
 	}
 	if ops := stackExileOps(goliath); len(ops) != 1 || ops[0]&kop.StackExileDream == 0 {
 		t.Errorf("Goliath: StackExileMark C %v, want the dream bit", ops)
