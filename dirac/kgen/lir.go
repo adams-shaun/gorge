@@ -256,6 +256,7 @@ const (
 	vSVarNum             // the evaluating source's StoreSVar number for the name S, else the printed body Sub[0] (kop.ExSVarNum; lower_storenum.go)
 	vMostProminentType   // the size of the largest group of battlefield objects matching F that share a creature type (Count$MostProminentCreatureType; kop.ExMostProminentCreatureType; value_mostprominent.go)
 	vReplLKIPow          // the replaced creature's derived power before a dies-to-exile rider moved it (ReplacedCardLKI$CardPower; value_repllki.go)
+	vMostCardName        // the greatest number of battlefield objects matching F that share one face name (Count$MostCardName; kop.ExMostCardName; value_mostcardname.go)
 	vPaidN               // the spell's Squad/Replicate payment count or Conspire's 1 (Count$SquadPaid / ReplicatePaid / Conspired; kop.ExKicked N 2; lower_squadreplicate.go)
 	vCount_
 )
@@ -384,6 +385,7 @@ var valNames = [...]string{
 	vReplLKIPow:          "ReplLKIPow",
 	vPaidN:               "PaidN",
 	vMostProminentType:   "MostProminentType",
+	vMostCardName:        "MostCardName",
 }
 
 // lValue is an amount: Kind with its operand, then Mul/Div/Add applied in

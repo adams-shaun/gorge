@@ -3138,6 +3138,19 @@ func (lc *lowerCtx) filter(expr string) (*lFilter, error) {
 	for i := range f.Clauses {
 		c := &f.Clauses[i]
 		lc.foldImprintExiledWith(c)
+		if c.GreatestCMCSet != "" {
+			// a greatestCMC_<set> property's bound: the greatest mana value
+			// over the set, every battlefield (greatestCMCFilter's RepeatEach
+			// twin reads it through the loop's SVar; Padeem, Consul of
+			// Innovation)
+			set, err := lc.filter(c.GreatestCMCSet)
+			if err != nil {
+				return nil, refuse("filter %q: greatestCMC set %q: %v", expr, c.GreatestCMCSet, err)
+			}
+			v := lValue{Kind: vValidAgg, N: kop.AggGreatestMV, F: set}
+			c.CmpV = &v
+			c.GreatestCMCSet = ""
+		}
 		if c.Flags&fNamedAsSource != 0 {
 			// every named<X> is a literal clause (gorge wordNamed ->
 			// sharesName reads the NAME, not the source; CR 201.2):

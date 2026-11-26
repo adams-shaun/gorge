@@ -990,6 +990,8 @@ const ExDraftNotesHighest ExprKind = 84
 const ExManaPool ExprKind = 85
 
 // count MostCardName (dirac/manifest/ExprKind/ExMostCardName)
+//
+// the greatest number of objects matching the spec that share one face name (Endless Atlas, Mechanized Production, Chrome Replicator, Sceptre of Eternal Glory); dirac/value_mostcardname.go
 const ExMostCardName ExprKind = 86
 
 // count NumDamageThisTurn (dirac/manifest/ExprKind/ExNumDamageThisTurn)
