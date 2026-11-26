@@ -391,10 +391,16 @@ func (s *State) castWinUnlessPay(k *prep, p uint8) (paused, short bool) {
 // mana, and every decline adds it (askColFinish); the chosen colour is cleared
 // either way, as the chain's DB$ Cleanup still runs.
 func (s *State) finishManaUnless(k *prep, paid bool) {
-	b := s.bld()
 	sl := s.g.winUnlessSrc
 	col := int(s.winUnlessColor()) - 1
-	b.bfl &^= bflWinTap
+	var ctrl uint8
+	if s.ctl == ctlManaAsk {
+		ctrl, s.ctl, s.passes = s.prio, ctlPriority, 0 // the activation ends: its holder keeps priority, and the passes before it no longer succeed each other (CR 117.4; mana_priask.go)
+	} else {
+		b := s.bld()
+		b.bfl &^= bflWinTap
+		ctrl = b.e.ctrl
+	}
 	s.g.winUnless, s.g.winUnlessPay = 0, 0
 	s.g.winMode = winNone
 	if paid {
@@ -404,7 +410,7 @@ func (s *State) finishManaUnless(k *prep, paid bool) {
 	if col < 0 {
 		col = int(s.g.winCol)
 	}
-	s.askColFinish(k, b.e.ctrl, sl, col)
+	s.askColFinish(k, ctrl, sl, col)
 }
 
 // applyCastWinUnless answers the colour window's unless ask. The payer's
