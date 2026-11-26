@@ -4,4 +4,4 @@ value: 72
 forge: Exerted
 census: trig Exerted all=5 std=0 mbc=0 sole=0
 state: slotbit 16 (exerted)
-status: reserved
+status: active
