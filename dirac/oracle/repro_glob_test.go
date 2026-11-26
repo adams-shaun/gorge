@@ -346,7 +346,9 @@ func stdReproOtherSurface(t *testing.T, name, recorded, other string) {
 		t.Fatalf("recorded on %q, want %q: this test is the other surface", r.Surface, recorded)
 	}
 	r.Surface = other
-	res := replayDecodedScript(t, synthReg(t), globSet(t, r.Pool, r), r, &ScriptPolicy{Actions: r.Actions})
+	// The other surface offers a different payment set, so a scripted action it
+	// does not offer is expected here, not drift.
+	res := replayDecodedScript(t, synthReg(t), globSet(t, r.Pool, r), r, &ScriptPolicy{Actions: r.Actions, AllowSkips: true})
 	if res.Div != nil {
 		t.Fatalf("divergence at %d of %d: %s %s %v", res.Div.At, len(r.Actions), res.Div.What, res.Div.Field, res.Div.Diff)
 	}
