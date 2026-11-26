@@ -1,0 +1,8 @@
+# a draw spell that mills first (Mental Note) beside a Dredge creature (Golgari Thug):
+# the draw after the mill meets the dredge replacement (CR 702.52)
+# (dirac/oracle/dredgedraw_lockstep_test.go)
+Mental Note
+Golgari Thug
+Island
+Swamp
+Mountain

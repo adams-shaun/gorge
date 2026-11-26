@@ -256,6 +256,9 @@ const (
 	// (rules' castSubPreAskable); it asks only if that link has a candidate
 	// at resolution.
 	MayAskCondParentSub
+	// MayAskCondDredgeFill: a link fills a graveyard before a later Draw link
+	// (mayask_dredge.go); it asks only if a Dredge card can be the one filled.
+	MayAskCondDredgeFill
 )
 
 // SAChainMayAskCond is SAChainMayAsk that reports the conditional reasons
@@ -264,6 +267,9 @@ const (
 // cond's reasons (and its board gates).
 func SAChainMayAskCond(sa *SA, svars map[string]string, self *Face, root bool) (may bool, cond uint32) {
 	may = saChainMayAsk(sa, svars, self, root, 0, &cond)
+	if !may && ChainDrawsAfterGraveyardFill(sa, svars, 0) {
+		cond |= MayAskCondDredgeFill
+	}
 	return may, cond
 }
 
