@@ -2,14 +2,18 @@ package oracle
 
 import "testing"
 
-// CR 603.3c-d with CR 601.2c: a triggered ability's controller announces
-// its mode when putting it on the stack and then chooses the targets the
-// ability requires. Inspirit, Flagship Vessel's granted trigger is a
-// GenericChoice whose own ValidTgts$ ("up to one other target artifact")
-// sits on the choice, not inside either mode, and its chosen mode's
-// Defined$ Targeted reads that ability target. gorge asked the mode and
-// then resolved without ever offering the target, so the kernel's target
-// ask (decision 134, tail-38 focus game) had no gorge counterpart.
+// CR 603.3d with CR 601.2c: a triggered ability's controller chooses its
+// targets when putting it on the stack, and the GenericChoice's own choice
+// is an instruction followed at resolution (CR 608.2d; 701aa4756f moved it
+// there), so the target ask comes first and the modes ask at resolution.
+// Inspirit, Flagship Vessel's granted trigger is a GenericChoice whose own
+// ValidTgts$ ("up to one other target artifact") sits on the choice, not
+// inside either mode, and its chosen mode's Defined$ Targeted reads that
+// ability target. The recording first pinned a shape where gorge asked the
+// mode at placement and then resolved without ever offering the target, so
+// the kernel's target ask (then decision 134, tail-38 focus game) had no
+// gorge counterpart; it is re-aimed to the resolution ask (target at
+// decision 133, mode at 136).
 //
 // The same table holds the recordings added with the gate-xcount and Orgg
 // fixes; one MBC table per set, so later causes add rows here.
