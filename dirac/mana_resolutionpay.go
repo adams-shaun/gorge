@@ -28,7 +28,10 @@ func (s *State) lowerHybridOnly(k *prep, ab uint8) {
 // cost has a generic or coloured pip (rules abilityCostNeedsMana), so an {X}-only
 // one the pool does not pay is a potential play the oracle lowers (#4587): the
 // planner's witness at the least X (planAbilityPayment) is tapped before
-// activating, so the mana floats through the X ask and the target ask.
+// activating, so the mana floats through the X ask and the target ask. The pool
+// guard is lowerHybridActivation's: a floating pool (or restricted mana) that
+// already pays the witness at the least X taps nothing, and an empty witness (an
+// XMin of 0 with no cost increase) pays trivially.
 func (s *State) lowerXOnly(k *prep, ab uint8) {
 	if s.cfg&cfgGorgeUnpriced == 0 || ab >= abCascade {
 		return
