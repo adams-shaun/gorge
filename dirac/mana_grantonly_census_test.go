@@ -34,7 +34,7 @@ func TestGrantOnlySourceCensusUnit(t *testing.T) {
 		var c kop.ManaCost
 		c.Pips[kop.G] = 2
 		var pk planner
-		sc.s.tapNeed(&pk, 0, &c, 0, false)
+		sc.s.tapNeed(sc.k, &pk, 0, &c, 0, false)
 		sc.s.plan(sc.k, 0, &pk, NoObj)
 		return &pk, sl
 	}

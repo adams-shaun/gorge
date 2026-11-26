@@ -76,7 +76,7 @@ func TestGrantedRestrictedGrantKeepsChoiceSourceOutOfCensus(t *testing.T) {
 	var c kop.ManaCost
 	c.Pips[kop.G] = 2
 	var pk planner
-	sc.s.tapNeed(&pk, 0, &c, 0, false)
+	sc.s.tapNeed(sc.k, &pk, 0, &c, 0, false)
 	sc.s.plan(sc.k, 0, &pk, NoObj)
 	if !pk.found || pk.nu != 2 {
 		t.Fatalf("plan: found %v units %d, want the two one-mana sources", pk.found, pk.nu)

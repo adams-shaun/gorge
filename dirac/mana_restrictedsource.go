@@ -1266,6 +1266,10 @@ func (s *State) payRiderRestr(k *prep, p uint8, cost *kop.ManaCost, x int, exclu
 	sv := s.rb[SeatIx(p)]
 	var pk planner
 	s.tapForPK(k, p, cost, x, exclude, false, anyColor, &pk)
+	// the grant's life settles the {B} pips the plan's discount (tapNeed) left
+	// off the taps (static_paylife.go)
+	var rc kop.ManaCost
+	cost = s.payLifeGrantReduce(k, p, cost, x, &rc)
 	if !pk.rbOn && !pk.rdynOn {
 		s.payFromPoolRider(k, p, cost, x, anyColor)
 		return
