@@ -9,12 +9,16 @@ import (
 // matching ValidCard$ (absent: every spell) can't be cast by the casters
 // Caster$ names (You / Opponent / Player; absent: anyone), under the
 // static's conditions (Condition$ PlayerTurn: during its controller's
-// turn). The kernel withholds the cast offers (hand, flashback, play
+// turn). Origin$ names the zone the cast may begin from (gorge
+// castOriginGateHolds, Memory Vessel's NoCast): only the Hand spelling
+// lowers, the static's Zone carrying it for the kernel's cast gate. The
+// kernel withholds the cast offers (hand, flashback, play
 // permissions, free casts). NumLimitEachTurn$ N (a positive literal, an
 // unfiltered ValidCard$) binds once the caster has cast N spells this turn
 // OnlySorcerySpeed$ True (Teferi, Time Raveler) binds only outside the
 // caster's sorcery-speed window (flag SorcerySpeed, kop CantCastSorcery).
-// Refused: a filtered NumLimitEachTurn$, Origin$, Phases$, and a mana-value
+// Refused: a filtered NumLimitEachTurn$, an Origin$ other than Hand, Phases$,
+// and a mana-value
 // filter whose bound is not a constant (a CmpX SVar; the kernel's X
 // look-ahead in cast_cantself.go reads the constant comparisons against the
 // spell's announced X, CR 202.3e, 601.3a). ValidCard$ Card.Self | EffectZone$ All is the card's own "you
@@ -74,6 +78,19 @@ func (lc *lowerCtx) cantBeCast(sp *params, st *lStatic) error {
 		st.Flags = append(st.Flags, "CasterActive")
 	default:
 		return refuse("CantBeCast Caster %q", c)
+	}
+	if o, ok := sp.get("Origin"); ok {
+		// the zone the cast may begin from (gorge castOriginGateHolds, Memory
+		// Vessel's NoCast): the static's Zone carries it and the kernel's
+		// cast gate reads the candidate's current zone. Only the hand
+		// spelling lowers; a self static's Zone is the EffectZone$ All mark.
+		if self {
+			return refuse("CantBeCast Origin$ beside Card.Self")
+		}
+		if o != "Hand" {
+			return refuse("CantBeCast Origin$ %q", o)
+		}
+		st.Zone = zHand
 	}
 	if sp.is("OnlySorcerySpeed", "True") {
 		// gorge castSorceryTimingExempt: the prohibition binds only while the
