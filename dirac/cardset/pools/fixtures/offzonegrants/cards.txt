@@ -11,7 +11,9 @@
 # offzone_cycling_lockstep_test.go), and the hand miracle grants (Lorehold, the
 # Historian; Molecule Man; Aminatou, Veil Piercer; kw_miracle.go,
 # offzone_miracle_lockstep_test.go) beside the instants, sorceries and
-# enchantments they reach.
+# enchantments they reach, and the six-zone madness grant (Falkenrath Gorger;
+# kw_madness.go, offzone_madness_lockstep_test.go) beside the Vampire it
+# reaches and the looting spell that discards it.
 Six
 Leyline of Transformation
 Ashes of the Fallen
@@ -62,3 +64,6 @@ Temple Garden
 Blackcleave Cliffs
 Goblin Warchief
 Goblin King
+Falkenrath Gorger
+Vampire Interloper
+Faithless Looting
