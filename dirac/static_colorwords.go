@@ -38,8 +38,9 @@ import (
 // priority grant that found a StatColorWords source with a recorded colour,
 // Stalls those that stalled on a card reading another colour word on a
 // surface the model does not rewrite, Casts the spells whose cast stalled,
-// Reads the mask reads the model rewrote.
-var ColorWordsStats struct{ Live, Stalls, Casts, Reads atomic.Int64 }
+// Reads the mask reads the model rewrote, Installs the word-list Animate
+// Colors$ applications that read a frozen colour-word colour (ovCwRow).
+var ColorWordsStats struct{ Live, Stalls, Casts, Reads, Installs atomic.Int64 }
 
 // colorWordsBites is the colour words (CardDef.TextWords bits 0..4) the live
 // StatColorWords sources rewrite: every word but a source's chosen one, over
@@ -221,6 +222,38 @@ func (s *State) cwToFor(k *prep, o Obj) uint8 {
 	}
 	to, _ := s.cwTo(k)
 	return to
+}
+
+// cwFrozen is the colour-word colour the resolving ability's text was frozen
+// at (cwFreeze, the entry's prov byte): 255 when none. gorge reads an
+// ability's parameters from its face as it was put on the stack (CR 112.7a,
+// 608.2h), so a spell's (SP$) has no frozen colour and a later static change
+// moves nothing already resolved.
+func (s *State) cwFrozen(k *prep) uint8 {
+	e := s.curEntry()
+	if e == nil || e.kind == seSpell || e.prov < 2 {
+		return 255
+	}
+	return e.prov - 2
+}
+
+// ovCwRow is OpOverride's word-list row pick (interp_gen.go): B = OvCwWord's
+// C names the FIRST of six override records, the printed colours then one
+// colour each (W, U, B, R, G; kgen emitCwWordAnimate), and the colour-word
+// colour frozen as the ability was put on the stack (cwFrozen) picks the row,
+// so an Animate Colors$ reads the colour its text was frozen at and a later
+// static change moves nothing installed. The printed row applies with none.
+// It counts the pick for the lockstep tests and returns the instruction to
+// run, a per-colour copy when one was picked.
+func (s *State) ovCwRow(k *prep, in *kop.Instr) *kop.Instr {
+	to := s.cwFrozen(k)
+	if to >= 5 {
+		return in
+	}
+	ColorWordsStats.Installs.Add(1)
+	ci := *in
+	ci.C += int16(1 + to)
+	return &ci
 }
 
 // cwTextObj is the object whose face a filter read at source slot src

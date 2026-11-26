@@ -71,6 +71,9 @@ func (s *State) execCold2(k *prep, in *kop.Instr) (ok, done bool) {
 	case kop.OpGainEnergy:
 		s.gainEnergy(k, in)
 	case kop.OpOverrideAll:
+		if in.B.N == kop.OvCwWord {
+			in = s.ovCwRow(k, in) // a word-list Colors$ reads the frozen colour-word colour (static_colorwords.go)
+		}
 		if in.Obj != kop.RefNone {
 			s.overrideAllScoped(k, in)
 		} else {

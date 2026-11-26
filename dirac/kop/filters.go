@@ -318,6 +318,17 @@ const OvEnterWith = 2
 // source's ChosenType AT RESOLUTION.
 const OvChosenType = 3
 
+// OvCwWord, in an OpOverride's B field: a word-list Animate Colors$ (Raging
+// Ravine's "becomes a 2/2 red and green Elemental creature"). C names the
+// FIRST of SIX consecutive Overrides records, the printed colours then one
+// colour each (W, U, B, R, G in that order; kgen emitCwWordAnimate). At
+// resolution the kernel applies the record whose colour is the colour-word
+// statics' colour frozen as the ability was put on the stack
+// (static_colorwords.go cwFreeze, ovCwRow), the printed one with none: gorge
+// reads the ability's Colors$ from its face as it was put on the stack (CR
+// 112.7a, 608.2h), so a later static change moves nothing installed.
+const OvCwWord = 4
+
 // ChooseTypeBasicLand, in a mid-resolution OpChooseType's B field: the ask
 // offers the five basic land types (gorge effChooseType Type$ Basic Land,
 // CR 205.3i) rather than the creature-type vocabulary. The answer is the
