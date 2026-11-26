@@ -597,6 +597,9 @@ func (r *Translator) CardAbility(card dirac.CardID, idx uint8) uint8 {
 	if int(card) < len(r.Tbl.Cards) && ImpendTickAb(&r.Tbl.Cards[card], idx) {
 		return 255 // Impending's end-step removal: gorge grants it at entry, no face index (kgen lowerImpending)
 	}
+	if int(card) < len(r.Tbl.Cards) && int(idx) < len(r.Tbl.Cards[card].Abilities) && r.Tbl.Cards[card].Abilities[idx].Kind == kop.AbTriggered && r.Tbl.Cards[card].Abilities[idx].Trig.Event == kop.TrigExerted {
+		return 255 // the OptionalAttackCost rider: gorge's checkExertTriggers queues a granted trigger (Idx -1), in no face list (kgen static_optattack.go)
+	}
 	if r.Origin != nil && int(card) < len(r.Tbl.Cards) {
 		if o, ok := r.Origin(card, idx); ok {
 			return o
@@ -1271,16 +1274,19 @@ func (r *Translator) grantedOrGained(src, tgt Ref, mode uint8) (Canon, bool) {
 	return 0, false
 }
 
-// chooseGen is generatedChoose plus the band declaration (CR 702.22c) and the
-// enlist election (CR 702.154a): gorge askNextBand's KChoose of kind "band"
-// and askNextEnlist's of kind "enlist", whose decline (mode 0) names no
-// object and whose candidate names itself.
+// chooseGen is generatedChoose plus the band declaration (CR 702.22c), the
+// enlist election (CR 702.154a) and the exert election (CR 702.100a): gorge
+// askNextBand's KChoose of kind "band", askNextEnlist's of kind "enlist" and
+// askNextExert's of kind "exert", whose decline (mode 0) names no object and
+// whose candidate names itself.
 func (r *Translator) chooseGen(a dirac.Action) (Canon, bool) {
 	kind := "band"
 	switch r.D.Sub {
 	case dirac.ChBand:
 	case dirac.ChEnlist:
 		kind = "enlist"
+	case dirac.ChExert:
+		kind = "exert"
 	default:
 		return r.generatedChoose(a)
 	}
