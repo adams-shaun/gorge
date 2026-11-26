@@ -27,5 +27,14 @@ func (s *State) spellKicked(o Obj) bool {
 		return true
 	}
 	cd := &s.k().t.Cards[c]
-	return !offspringOffer(s.k(), c) && cd.RepeatedKind != kop.RepeatReplicate && cd.RepeatedKind != kop.RepeatSquad
+	if offspringOffer(s.k(), c) {
+		return false
+	}
+	// a kicked spell of a card that prints no offspring/buyback/entwine is a
+	// kicker or multikicker cast -- or a granted offspring one (Zinnia;
+	// gorge's FlagOffspringPaid rides the same payment), which is no kicked
+	// cast either
+	p, fromHand := s.offspringCaster(o)
+	n, _ := s.stackKwN(s.k(), kop.StackKwOffspring, c, o, p, fromHand)
+	return n == 0 && cd.RepeatedKind != kop.RepeatReplicate && cd.RepeatedKind != kop.RepeatSquad
 }

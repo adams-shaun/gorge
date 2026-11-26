@@ -126,6 +126,7 @@ func (s *State) spellHoldLeaves(k *prep) {
 			return // still on the stack (not held)
 		}
 	}
+	rbCard, rbAb, rebound := s.reboundPlan(k, e, false) // kw_rebound.go: read while the spell is on the stack
 	s.touch(e.obj)
 	ob.zone = kop.ZoneNone
 	z := kop.ZoneGraveyard
@@ -135,7 +136,6 @@ func (s *State) spellHoldLeaves(k *prep) {
 	if s.spellRestExiles(e) || e.markExiles(false) {
 		z = kop.ZoneExile
 	}
-	rebound := s.reboundRests(k, e, false) // kw_rebound.go
 	if rebound {
 		z = kop.ZoneExile
 	}
@@ -152,7 +152,7 @@ func (s *State) spellHoldLeaves(k *prep) {
 		s.placeFrom(e.obj, z, false, kop.ZoneStack, false, false)
 		s.markedPlot(k, e) // repl_stackexile.go
 		if rebound {
-			s.reboundRegister(k, e)
+			s.reboundRegister(k, e, rbCard, rbAb)
 		}
 	}
 }

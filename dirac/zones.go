@@ -477,8 +477,15 @@ func (s *State) enter(k *prep, o Obj, ctrl uint8, tapped bool, from kop.Zone) Sl
 	if s.g.entHost != 0 {
 		host = s.attachEntering(k, sl) // zone_handmoveaura.go
 	}
-	if s.anyETB(k) && !(s.g.pre.ordMid && s.g.pre.obj == o) && !s.deferETBToCtrPick(k, sl, n0) { // a copy waiting on gorge's second order ask fires them once applied (repl_entryclone.go); an as-enters counter pick once answered (ctr_choice.go)
-		s.fireObj(k, kop.TrigETB, sl, o, ctrl, 0)
+	// k.anyOffGrant: the granted-offspring copy trigger is a granted walk, not a
+	// subscription (gorge's checkGrantedOffspringTriggers runs on the MoveZone
+	// visit whatever the battlefield's printed ETB listeners), so a board with
+	// no ETB listener still fires the event for its queueOffspringGrant
+	// (kw_offspring.go).
+	if s.anyETB(k) || k.anyOffGrant {
+		if !(s.g.pre.ordMid && s.g.pre.obj == o) && !s.deferETBToCtrPick(k, sl, n0) { // a copy waiting on gorge's second order ask fires them once applied (repl_entryclone.go); an as-enters counter pick once answered (ctr_choice.go)
+			s.fireObj(k, kop.TrigETB, sl, o, ctrl, 0)
+		}
 	}
 	s.attachedEntered(k, sl, host)
 	if k.anyRoom && from == kop.ZoneStack {
