@@ -68,7 +68,7 @@ func TestStdMetaPoolBuilds(t *testing.T) {
 	// DIRAC_PIN_STRICT=1 (the nightly), and scripts/regen-main.sh re-pins main.
 	// An exact pin turned every ticket that lowers one more card red (#4317,
 	// 11-24) without the change being wrong.
-	if err := judgePin("standard-meta", pin, got, pinStrict()); err != nil {
+	if err := judgePin("standard-meta", pin, got, pinStrict(), nil); err != nil {
 		t.Error(err)
 	}
 }

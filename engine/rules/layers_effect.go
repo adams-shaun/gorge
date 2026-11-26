@@ -222,6 +222,27 @@ func (e *Engine) EndEffectSource(source state.ObjID, spareAfter uint32) {
 	e.continuousChanged()
 }
 
+// withoutUntilPlaneswalk drops every Effect-created registration whose
+// Duration names the plane-source curse lifetime -- Eloren Wilds' DB$ Effect
+// ("target player can't cast spells until a player planeswalks"): the Effect's
+// own unscoped PlaneswalkedTo self-exile trigger is the Duration$ Permanent
+// reading's end, and its firing point is any player's PlanarWalk. The
+// UntilPlaneswalk spelling is written only by effects'
+// effectPlaneCurseEnd; a printed static can never spell it, and the
+// FromEffect marker keeps the sweep to Effect-created grants regardless. It
+// reports whether anything was dropped. Engine-runtime only, rebuilt by
+// re-execution on replay exactly like EndEffect; it emits no event.
+func withoutUntilPlaneswalk(ces []state.ContinuousEffect) ([]state.ContinuousEffect, bool) {
+	kept := ces[:0]
+	for _, ce := range ces {
+		if ce.FromEffect && ce.Duration == effects.DurationUntilPlaneswalk {
+			continue
+		}
+		kept = append(kept, ce)
+	}
+	return kept, len(kept) != len(ces)
+}
+
 // EndImprintedEffects ends every live DB$ Effect registration that an
 // ImprintOnHost$ True Effect imprinted on the named host card (the entries
 // carrying state.ContinuousEffect.ImprintOnHost with that Source) -- the
