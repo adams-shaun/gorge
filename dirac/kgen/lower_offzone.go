@@ -364,6 +364,11 @@ const offZoneFlag = "OffZoneGrant"
 // never see a StatOffZoneGrant) and the off-zone grant for every other zone.
 func (sc *staticCtx) allZoneTwin() {
 	st := &sc.st
+	if len(sc.extra) == 1 && sc.extra[0].Kind == "Override" && twinsOffZone(sc.extra[0]) {
+		bf, off := splitOffZone(sc.extra[0]) // lower_offzoneoverride.go: the override shapes
+		sc.extra = []lStatic{bf, off}
+		return
+	}
 	if sc.extra != nil || st.Zone != int(kop.ZoneAny) || !slices.Contains(st.Flags, offZoneFlag) {
 		return
 	}
@@ -428,6 +433,9 @@ func (cb *cardBuilder) offKwGrantAbility(s lStatic) (kop.Ability, []uint8, error
 // that the static was handled (lowered or refused) and continuous must
 // return; the off-zone type arm leaves the static to continuous' common tail.
 func (lc *lowerCtx) affectedZone(sp *params, st *lStatic, aff, az string) (extra []lStatic, done bool, err error) {
+	if took, err := offZoneOverride(sp, st, az); took {
+		return nil, err != nil, err // lower_offzoneoverride.go: a refusal ends it; the accepted override is lowered by continuous' tail
+	}
 	switch {
 	case az == "Battlefield":
 		return nil, false, nil // the default
