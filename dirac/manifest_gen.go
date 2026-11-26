@@ -47,38 +47,43 @@ const raGenPileOpp uint8 = 157
 // ask (dirac/manifest/ask/raGenRepeatOptional)
 const raGenRepeatOptional uint8 = 158
 
+// ask (dirac/manifest/ask/raGenTurnUpAttach)
+//
+// the effect-driven turn-up's attach election (an ExtTurnFaceUp op turning up a card with a ReplTurnUpAttach replacement; gorge applyTurnFaceUpReplacements parks the event for the body's Optional$ attach ask): Done declines, each destination a choose (face_turnupattach.go).
+const raGenTurnUpAttach uint8 = 159
+
 // ask (dirac/manifest/ask/raLearn)
 //
 // the learn election (CR 701.48a; act_learn.go): gorge effLearn's "learn" KChoose, nothing first, then each sideboard Lesson, then the rummage.
-const raLearn uint8 = 159
+const raLearn uint8 = 160
 
 // ask (dirac/manifest/ask/raLearnDiscard)
 //
 // the learn rummage's discard (CR 701.48a; act_learn.go): gorge learnRummage's "discard" KChoose over the hand in hand order, asked even with one card; the draw follows.
-const raLearnDiscard uint8 = 160
+const raLearnDiscard uint8 = 161
 
 // ask (dirac/manifest/ask/raPair)
 //
 // the Soulbond partner pick of ExtPair (CR 702.95a; kw_soulbond.go pairExt): up to one unpaired creature the trigger's controller controls, gorge effPair's Min 0 Max 1 KChoose; AkDone declines.
-const raPair uint8 = 161
+const raPair uint8 = 162
 
 // ask (dirac/manifest/ask/raPodClashOpp)
-const raPodClashOpp uint8 = 162
+const raPodClashOpp uint8 = 163
 
 // ask (dirac/manifest/ask/raRingBearer)
 //
 // the Ring-bearer choice of ExtRingTemptsYou (CR 701.54a; act_ring.go ringTemptsExt): the tempted player's pick among the creatures they control, the deterministic default (the existing Ring-bearer when still controlled, else the first eligible in zone order) offered first exactly as gorge's KChoose does.
-const raRingBearer uint8 = 163
+const raRingBearer uint8 = 164
 
 // ask (dirac/manifest/ask/raRingLoot)
 //
 // the loot discard of the Ring emblem's level 2 (CR 701.54c; act_ring.go ringLootDiscard): the looting player discards one card of their choice from their hand, gorge's Draw You 1 with the Discard You TgtChoose 1 Sub.
-const raRingLoot uint8 = 164
+const raRingLoot uint8 = 165
 
 // ask (dirac/manifest/ask/raTrigDemoOpp)
 //
 // the demonstrate trigger's opponent pick (CR 702.152a; gorge effDemonstrate stage 1): which living opponent also copies the spell, asked with two or more of them (kw_demonstrate.go).
-const raTrigDemoOpp uint8 = 165
+const raTrigDemoOpp uint8 = 166
 
 // key named card (dirac/manifest/key/keyNamedCard)
 const keyNamedCard key = 0
@@ -863,6 +868,8 @@ func (s *State) execExtGen(k *prep, in *kop.Instr) (ok, done bool) {
 		return s.pairExt(k, in) // kw_soulbond.go
 	case kop.ExtPayLifeX:
 		return s.payLifeExt(k, in) // repl_paylife.go
+	case kop.ExtPlaneCurse:
+		return s.planeCurseExt(k, in) // zone_planecurse.go
 	case kop.ExtPlaneswalk:
 		return s.planeswalkExt(k, in) // zone_planechase.go
 	case kop.ExtPutContract:

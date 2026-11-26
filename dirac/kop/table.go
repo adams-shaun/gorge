@@ -184,7 +184,13 @@ type CardDef struct {
 	SelfFlash  bool
 	SpellCost  Cost // the spell's additional cost (sacrifice / discard; mana zero)
 	AltAddCost Cost // AlternateAdditionalCost: may be paid instead of SpellCost (HasAltAdd)
-	HasAltAdd  bool
+	// AltAddCost2 is the either-or's third part (Dusk Mangler's
+	// PayLife<4>), paid instead of SpellCost when the ask chose it (the
+	// build's altAdd buildAltAdd2, 4; kernel cast.go altAddOptions offers
+	// all three parts, the payable ones first, as gorge's altAddAsk orders
+	// them).
+	AltAddCost2 Cost
+	HasAltAdd   bool
 	// KickerCost: the kicker's non-mana cost (one Sac<1/..> or Return<1/..>
 	// part, Vayne's Treachery, Chocobo Kick; CR 702.33a). Kicker is then
 	// zero mana; a kicked cast pays this through the cost stages (kernel
@@ -621,6 +627,17 @@ type CardDef struct {
 	// then {0}, and the action is offered only while the controller's life
 	// covers N (dirac/face_morphlife.go).
 	MorphLife uint8
+	// MorphPick (zero = none) is the pick part of a keyword turn-up whose
+	// cost is one Discard, Sac or Return part (CR 702.37e; Gathan Raiders'
+	// Morph—Discard a card, Fathom Seer's return two Islands, Gift of Doom's
+	// sacrifice another creature): exactly one of CostDiscard (N cards from
+	// the payer's hand), CostSac or CostReturn (N permanents the payer
+	// controls; the face-down permanent itself never a candidate — the
+	// printed spec is "another ..."), with MorphCost {0}. The kernel's
+	// turn-up window poses gorge's pick ask for it before the permanent
+	// turns up (dirac/face_morphpick.go; gorge morph_turnup.go's
+	// turnUpSacAsk / turnUpDiscardAsk / turnUpReturnAsk).
+	MorphPick Cost
 	// CostEmpty is an EMPTY printed mana-cost text, the one case gorge's
 	// manifestFaceUpCost rejects outright (strings.TrimSpace(f.ManaCost)=="");
 	// Cost is also the zero ManaCost for {0} and for a printed "no cost", so

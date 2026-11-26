@@ -30,8 +30,8 @@ const ChGenTurnUpPick ChoiceKind = 203
 // extTurnFaceUp runs one ExtTurnFaceUp instruction; false: it asks.
 func (s *State) extTurnFaceUp(k *prep, in *kop.Instr) bool {
 	if in.C == 0 {
-		if sl := s.objRef(k, in.Obj); sl != NoSlot {
-			s.turnUpByEffect(k, sl)
+		if sl := s.objRef(k, in.Obj); sl != NoSlot && s.turnUpByEffect(k, sl) {
+			return false // the attach election parked the resolution (face_turnupattach.go)
 		}
 		return true
 	}
@@ -52,18 +52,25 @@ func (s *State) turnUpEffOK(k *prep, sl Slot) bool {
 }
 
 // turnUpByEffect turns the battlefield permanent at sl face up, if it would.
-func (s *State) turnUpByEffect(k *prep, sl Slot) {
+// It reports whether the turn-up parked on the attach election
+// (face_turnupattach.go): the caller must then not continue the program, the
+// election's answer does.
+func (s *State) turnUpByEffect(k *prep, sl Slot) bool {
 	if !s.turnUpEffOK(k, sl) {
-		return
+		return false
 	}
 	if k.gen.anyTurnUpRepl && s.turnUpBlocked(k, sl) {
-		return // face_turnfaceup.go: the CantHappen replacement prevents it
+		return false // face_turnfaceup.go: the CantHappen replacement prevents it
+	}
+	if k.gen.anyTurnUpRepl && s.turnUpAttachEffStage(k, sl) {
+		return true // face_turnupattach.go: the attach ask parks the effect's resolution
 	}
 	pm := &s.perms[sl]
 	// The turn-up event's actor is the resolving effect's controller, not the
 	// permanent's: CR 603.2's ValidCause$ SpellAbility.YouCtrl reads that
 	// controller (gorge turnFaceUpCauseAdmits's InResolution/ActionCause arm).
 	s.turnUpFlip(k, sl, pm.obj, s.res.e.ctrl, 0) // face_facedown.go
+	return false
 }
 
 // transformPickOK is gorge setStateObjWouldChange's Transform arm for a
@@ -123,8 +130,8 @@ func (s *State) applyAskTurnUpEff(k *prep, a Action) bool {
 		if ob := &s.objs[Obj(a.Source())]; ob.zone == kop.ZoneBattlefield {
 			if s.prog(k)[s.res.pc].C == turnUpPickTransform {
 				s.transformObj(k, Obj(a.Source())) // act_transform.go
-			} else {
-				s.turnUpByEffect(k, ob.slot)
+			} else if s.turnUpByEffect(k, ob.slot) {
+				return true // parked on the attach election: its answer continues the program
 			}
 		}
 	}
