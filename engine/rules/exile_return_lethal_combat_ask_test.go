@@ -28,10 +28,10 @@ func TestExileReturnAsksAfterLethalCombatDamage(t *testing.T) {
 		"SVar:TrigExile:DB$ ChangeZone | Origin$ Battlefield | Destination$ Exile | ValidTgts$ Permanent.nonLand+OppCtrl | TgtPrompt$ Select target | Duration$ UntilHostLeavesPlay\n"+
 		"Oracle:x\n")
 	siege := "Name:Test Siege\nManaCost:3 R\nTypes:Enchantment\n" +
-		"K:ETBReplacement:Other:SiegeChoice\n" +
-		"SVar:SiegeChoice:DB$ GenericChoice | Choices$ Khans,Dragons | Defined$ You | SetChosenMode$ True | SpellDescription$ As CARDNAME enters, choose Khans or Dragons.\n" +
-		"SVar:Khans:DB$ Nothing | SpellDescription$ Khans\n" +
-		"SVar:Dragons:DB$ Nothing | SpellDescription$ Dragons\n" +
+		"K:ETBReplacement:Other:PickSide\n" +
+		"SVar:PickSide:DB$ GenericChoice | Defined$ You | SetChosenMode$ True | Choices$ Dawn,Wards\n" +
+		"SVar:Dawn:DB$ Nothing\n" +
+		"SVar:Wards:DB$ Nothing\n" +
 		"Oracle:x\n"
 	attacker := "Name:Test Bearer\nManaCost:3 R\nTypes:Creature Beast\nPT:5/5\nOracle:x\n"
 
