@@ -910,6 +910,9 @@
 /* ---------- prerequisites and quick references: a two-column key ---------- */
 .md-typeset .gg-needs table:not([class]) { font-size: 0.76rem; }
 .md-typeset .gg-needs table:not([class]) td:first-child { font-weight: 650; min-width: 8rem; }
+/* Code in a table breaks at its hyphens and slashes, never mid-word; a
+ * table too wide for a phone scrolls inside its own frame. */
+.md-typeset table:not([class]) code { word-break: normal; overflow-wrap: normal; }
 
 /* ---------- home: entry doors ----------
  * Four things a visitor comes to do. Each is a column under a stratum

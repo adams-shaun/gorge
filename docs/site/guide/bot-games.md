@@ -1,8 +1,10 @@
 # Bot-vs-bot games
 
-Compare bot strategies, check that a policy change helps, or watch bots play. For a bot in another language see [Bots](../bots/index.md); for limited events, [Draft events](draft.md).
+Compare bot strategies, check that a policy change really helps, or watch bots play.
 
-Commands and output are from 2026-11-08, on 4 CPUs of a shared Linux box. Output depends on the gorge commit and the corpus pin.
+For a bot in another language see [Bots](../bots/index.md); for limited events,
+[Draft events](draft.md). Commands and output are from 2026-11-08, on 4 CPUs of a shared Linux box;
+output depends on the gorge commit and the corpus pin.
 
 ## Which tool?
 
@@ -18,14 +20,15 @@ Commands and output are from 2026-11-08, on 4 CPUs of a shared Linux box. Output
 
 A **policy** is a named bot strategy in the [`bots`](https://github.com/adams-shaun/gorge/blob/main/bots/registry.go) registry. A program links them with a blank import of `bots/all` and builds one with `bots.New(name, bots.Options{...})`. List a build's policies (name, label, tier):
 
-```sh
+```sh title="List a build's policies"
 go run ./cmd/spellbench-gorge-agent -list-policies
 ```
 
 [Each bot in detail](../bots/catalogue.md) gives each policy's formats, seats, cost and whether it is fair or clairvoyant.
 
-`sb-tactical` and `az-redeal` are *environment* policies: they need a driver that supplies a rebuilt
-game to search or score. The matchup program below does, and `mtgsim` doesn't.
+!!! note "Environment policies need a driver"
+    `sb-tactical` and `az-redeal` need a driver that supplies a rebuilt game to search or score.
+    The matchup program below does; `mtgsim` doesn't.
 
 A policy may declare options (`bots.Info.Options`). `gorged` sets them with `-bot-opt`, `-bot-config` or the
 environment ([Bots at the table](play.md#bots-at-the-table)); your own program passes
@@ -36,7 +39,7 @@ environment ([Bots at the table](play.md#bots-at-the-table)); your own program p
 `mtgsim` plays games one after another on one goroutine. Game *i* uses seed `-seed + i` for the engine and the
 bots, so a run is a pure function of its flags. `-a` and `-b` put registered policies on seats 0 and 1:
 
-```sh
+```sh title="Three two-seat games"
 go run ./cmd/mtgsim -seats 2 -games 3 -seed 1 -a forge-heuristic -b bot -decks uw-tempo,mono-red-goblins
 ```
 
@@ -46,23 +49,23 @@ seed 2: 2 seats,    215 intents,   1225 events,  10 turns, winner=mono-red-gobli
 seed 3: 2 seats,    282 intents,   1623 events,  12 turns, winner=mono-red-goblins, chain=2479a7a2c1ca2f5d
 ```
 
-Each line names the **winning deck**, not the winning policy. Seat 0 always holds the first deck, so a deck
-advantage and a policy advantage are mixed up in one run. Swap `-a` and `-b`, run again over the same seeds, and
-add up per policy.
+!!! warning "Each line names the winning deck, not the winning policy"
+    Seat 0 always holds the first deck, so a deck advantage and a policy advantage are mixed up in
+    one run, and in a mirror the line can't tell you who won. Swap `-a` and `-b`, run again over the
+    same seeds, and add up per policy.
 
-`mtgsim`'s limits:
-
-- **The winner is a deck name.** In a mirror the line can't tell you who won.
-- **Repo decks only.** `-decks` takes names from `testkit/testutil/decks`, not file paths (`-deckdir` reads `<deckdir>/<name>.json` instead).
-- **Environment policies don't work.** `-a sb-tactical` fails with `Deps.Cards is nil`. `-a az-redeal` runs but never searches: `mtgsim` calls plain `Decide`, and the policy falls back to `bot`.
-- **Seats without `-a` or `-b`** play the plain heuristic with manual mana tapping and its coin mulligan, not `bot` or any registered policy. `-policies` sets a policy per seat.
-- **`-format commander`** plays real Commander: 40 life, commander in the command zone, commander tax, CR 903.9 choices. Without `-decks` it deals the first `-seats` Commander repo decks; every deck must name a commander and pass the Commander checks. Needs at least 2 seats. No mulligan round unless `-mulligans N` is set. Example: `go run ./cmd/mtgsim -format commander -seats 4 -games 1 -verify`.
+| `mtgsim` limit | Detail |
+|---|---|
+| Repo decks only | `-decks` takes names from `testkit/testutil/decks`, not file paths (`-deckdir` reads `<deckdir>/<name>.json` instead) |
+| Environment policies don't work | `-a sb-tactical` fails with `Deps.Cards is nil`. `-a az-redeal` runs but never searches: `mtgsim` calls plain `Decide`, and the policy falls back to `bot` |
+| Seats without `-a` or `-b` | play the plain heuristic with manual mana tapping and its coin mulligan, not `bot` or any registered policy. `-policies` sets a policy per seat |
+| `-format commander` | real Commander: 40 life, commander in the command zone, commander tax, CR 903.9 choices. Without `-decks` it deals the first `-seats` Commander repo decks; every deck must name a commander and pass the Commander checks. At least 2 seats; no mulligan round unless `-mulligans N` is set. Example: `go run ./cmd/mtgsim -format commander -seats 4 -games 1 -verify` |
 
 ### Measuring game shape
 
 `-shape <path>` writes a read-only census for sizing a search or a reimplementation: one JSON line per game, then one aggregate line. Stdout is unchanged and the file is a pure function of the flags.
 
-```sh
+```sh title="Two censuses"
 go run ./cmd/mtgsim -seats 2 -games 20 -shape /tmp/constructed.jsonl
 go run ./cmd/mtgsim -format commander -seats 4 -games 20 -shape /tmp/commander.jsonl
 ```
@@ -72,7 +75,7 @@ Each line has `kind` (`constructed/2`, `commander/4`) and `row`. A game row has 
 For three to eight seats, `-seats N` deals the first N pinned decks, or `-decks` with one name per seat.
 Rotate the deck list across runs to balance seats:
 
-```sh
+```sh title="Eight seats, verified"
 go run ./cmd/mtgsim -seats 8 -games 2 -verify -a forge-heuristic
 ```
 
@@ -93,7 +96,7 @@ need.
 
 The program below is a complete matchup tool on top of it. Put it in a directory next to your gorge checkout:
 
-```sh
+```sh title="Set up the matchup module"
 mkdir matchup && cd matchup
 go mod init example.com/matchup
 go mod edit -require github.com/adams-shaun/gorge@v0.0.0 -replace github.com/adams-shaun/gorge=../gorge
@@ -200,7 +203,7 @@ go build -o matchup .
 Run it from the gorge checkout, so `.cards` resolves. The control plays the baseline against itself; `-pairs all` plays
 every unordered pair of the 12 decks in `testutil.LegacyDeckNames()` (66 pairs):
 
-```sh
+```sh title="The control, from the gorge checkout"
 cd ../gorge
 ../matchup/matchup -a bot -b bot -pairs all -games 20      # the control
 ```
@@ -214,7 +217,9 @@ seat order look like at this size. To compare policies, run `-a yours -b bot` wi
 result means something only when it sits outside the control's interval. `-verify` replays every game and checks its chain
 head.
 
-**A single pair** prints one line per pair as well as the total:
+### A single pair
+
+`-pairs` with one pair prints one line per pair as well as the total:
 
 ```text
 uw-tempo:mono-red-goblins                A  13  B   7  draws 0  stalls 0  seat0 wins 3
@@ -223,11 +228,13 @@ uw-tempo:mono-red-goblins                A  13  B   7  draws 0  stalls 0  seat0 
 Here `seat0 wins 3` says the deck in seat 1 won 17 of 20. The deck pairing dominates a single pair, which is why the seats
 trade and why you want many pairs.
 
-**Your own decks.** `testutil.LoadRepoDeck` reads only the repo decks. To play deck files of your own (for example from
+### Your own decks and policy
+
+`testutil.LoadRepoDeck` reads only the repo decks. To play deck files of your own (for example from
 [`deckimport`](play.md#decks)), load them with `_, cards, err := deck.Load(reg, path)` from `engine/deck`, and build the pair
 list yourself instead of calling `bench.ParsePairs`.
 
-**Your own policy.** Write a type that implements
+For your own policy, write a type that implements
 [`seat.Seat`](https://github.com/adams-shaun/gorge/blob/main/engine/seat/seat.go), register it in an `init` with
 `bots.Register(bots.Entry{Info: ..., New: ...})`, and blank-import its package in `main.go`; `-a yourpolicy` then works.
 [Writing a native Go bot](../bots/native-go.md) covers the seat contract.
@@ -237,7 +244,7 @@ list yourself instead of calling `bench.ParsePairs`.
 To see a policy in action rather than count its wins, run bot-only tables and open the lobby (this needs the
 [browser client](install.md#2-build-the-browser-client-if-you-want-one)):
 
-```sh
+```sh title="Four bot-only tables"
 go run ./cmd/gorged -addr 127.0.0.1:8080 -dir /tmp/gorge-watch -feedback /tmp/gorge-play-feedback \
   -tables 4 -seats 2 -format constructed,commander -commander-seats 4 \
   -bot-policy forge-heuristic -pace 1s
@@ -248,10 +255,14 @@ humans, and each finished match has a replay at `/t/<table>/m/<k>`.
 
 ## Reading the result
 
-**Count decided games.** Draws and stalls (a game a watchdog stopped) are neither a win nor a loss; leave them out of the rate
-and look at why they happened. A livelock or a panic stall is an engine bug.
+### Count decided games
 
-**How many games?** A win rate from *n* independent decided games has a 95% interval of about ±1.96·√(p(1−p)/n), widest at p =
+Draws and stalls (a game a watchdog stopped) are neither a win nor a loss; leave them out of the
+rate and look at why they happened. A livelock or a panic stall is an engine bug.
+
+### How many games?
+
+A win rate from *n* independent decided games has a 95% interval of about ±1.96·√(p(1−p)/n), widest at p =
 50%. The table gives the games needed at 50%:
 
 | Difference from 50% | Games for a 95% interval this narrow | Games to detect it 80% of the time |
@@ -262,13 +273,18 @@ and look at why they happened. A livelock or a panic stall is an engine bug.
 | 2 points | 2,401 | 4,906 |
 | 1 point | 9,604 | 19,623 |
 
-So a 20-game run (±22 points) tells you almost nothing, and a change worth 2 points needs about five thousand games. The normal
-approximation is also poor below about 30 games.
+!!! warning "20 games tell you almost nothing"
+    A 20-game run is ±22 points, and a change worth 2 points needs about five thousand games. The
+    normal approximation is also poor below about 30 games.
 
-**Run a control.** Play the baseline against itself with the same pairs, games and seeds. If the control isn't within its interval
-of 50%, something in the setup favours a side.
+### Run a control
 
-**Look at the structure.** `seat0 wins` and the per-pair lines show how much the deck pairing, rather than the policy, decides games.
+Play the baseline against itself with the same pairs, games and seeds. If the control isn't within
+its interval of 50%, something in the setup favours a side.
+
+### Look at the structure
+
+`seat0 wins` and the per-pair lines show how much the deck pairing, rather than the policy, decides games.
 A policy that only wins one archetype's games is a different finding from one that is a little better everywhere.
 
 ## Replays and determinism
@@ -277,18 +293,18 @@ Every game is a pure function of its configuration (decks, seed) and the answers
 `-verify` replays each finished game from that log and compares the rebuilt event chain head with the live one. A
 `replay diverged at event N` line is an engine bug; please report it with the command that produced it.
 
-- **Same build, same corpus, same flags, same output.** That holds across `-workers` too.
-- **The seed is the game.** `mtgsim` game *i* uses `-seed + i`. `RunPairs` gives pair *p*, game *g* the seed `base + p·games + g`, so the
-  first 20 games of a 40-game run on one pair are the 20-game run. On a server, table *i* has seed `-seed + i − 1` and match *k* derives its
-  own from that; a play-vs-bot game draws a fresh random seed and returns it from `POST /api/games`.
-- **A different engine or corpus is a different game.** Record the gorge commit and `.cards/cards.lock` with any result you keep.
+| Rule | Detail |
+|---|---|
+| Same build, corpus and flags, same output | holds across `-workers` too |
+| The seed is the game | `mtgsim` game *i* uses `-seed + i`. `RunPairs` gives pair *p*, game *g* the seed `base + p·games + g`, so the first 20 games of a 40-game run on one pair are the 20-game run. On a server, table *i* has seed `-seed + i − 1` and match *k* derives its own; a play-vs-bot game draws a fresh random seed and returns it from `POST /api/games` |
+| A different engine or corpus is a different game | record the gorge commit and `.cards/cards.lock` with any result you keep |
 
 ## Speed
 
-- Parallelism comes from `-workers`, the games in flight. Set `GOMAXPROCS` to the cores you want to use; more workers than cores buys
-  nothing.
-- Memory is mostly the loaded corpus plus one engine per game in flight; on a shared machine cap it, for example
-  `systemd-run --user --scope -p MemoryMax=4G -p CPUQuota=400% env GOMAXPROCS=4 ../matchup/matchup ...`.
-- Search policies cost far more per decision than the heuristics. On a server, `-bot-search-slots` bounds how many searched decisions
-  run at once.
-- [gorge's speed](../performance/engine.md) measures engine throughput.
+| Lever | Detail |
+|---|---|
+| CPU | parallelism comes from `-workers`, the games in flight. Set `GOMAXPROCS` to the cores you want; more workers than cores buys nothing |
+| Memory | mostly the loaded corpus plus one engine per game in flight. On a shared machine cap it, for example `systemd-run --user --scope -p MemoryMax=4G -p CPUQuota=400% env GOMAXPROCS=4 ../matchup/matchup ...` |
+| Search policies | cost far more per decision than the heuristics. On a server, `-bot-search-slots` bounds how many searched decisions run at once |
+
+[gorge's speed](../performance/engine.md) measures engine throughput.

@@ -232,22 +232,51 @@ func TestOverrideRecordsFitEight(t *testing.T) {
 	}
 }
 
-// TestCapacityHashPins: ObjHash and ViewHash of a slot with three override
-// records are pinned per size class in testdata/layout.tsv. The hash reads
-// the first four records as the base [4]ovRec layout did and mixes the second
-// four only when record four exists, so three records hash as before. Both
-// hashes read the build's layout (the object hash a perm whose code fields
-// are MaxSeats-dependent widths, the view hash the generated state's per-seat
-// banks whole), so each class has its own pins.
+// TestCapacityHashPins: a slot's ObjHash and ViewHash read the override
+// records ovRecs returns, never the storage they sit in. It asserts the
+// property, not a pinned constant: the hashes of a slot with three records
+// equal the hashes of an identical slot built the same way in a fresh
+// scenario table, and stale bytes in the record storage past the last record
+// (where a fourth..eighth record would sit) move neither hash.
 func TestCapacityHashPins(t *testing.T) {
 	tbl, base := overrideRecordsTable()
-	hsc := newScenTable(t, &tbl, Config{NoElide: true})
-	ht := hsc.perm(vanilla.GrizzlyBears, 0)
-	hsl := hsc.slot(ht)
-	for i := 0; i < 3; i++ {
-		hsc.s.applyOverridePT(hsc.k, hsl, base+i, vanilla.GrizzlyBears, 0, 10, 10)
+	three := func(t *testing.T) (*scen, Obj, Slot) {
+		t.Helper()
+		sc := newScenTable(t, &tbl, Config{NoElide: true})
+		ht := sc.perm(vanilla.GrizzlyBears, 0)
+		sl := sc.slot(ht)
+		for i := 0; i < 3; i++ {
+			sc.s.applyOverridePT(sc.k, sl, base+i, vanilla.GrizzlyBears, 0, 10, 10)
+		}
+		return sc, ht, sl
 	}
-	checkLayoutHashes(t, hsc.s.ObjHash(ht), hsc.s.ViewHash(0, nil))
+	a, ht, sl := three(t)
+	obj, view := a.s.ObjHash(ht), a.s.ViewHash(0, nil)
+	// Stale records past the third, written beyond nfx where no reader of
+	// the pool looks (hasOvRec and ovRecs stop at nfx): neither hash moves.
+	stale := ovRec{idx: 9, src: vanilla.GrizzlyBears, ts: 0xffff, fl: ovEOT, p: 3, t: 3}
+	if int(a.s.g.nfx)+5 > maxFx {
+		t.Fatalf("nfx %d leaves no room for stale records", a.s.g.nfx)
+	}
+	for i := 0; i < 5; i++ {
+		a.s.g.fx[int(a.s.g.nfx)+i] = fxRec{sl: sl, kind: fxOverride, r: stale}
+	}
+	if h := a.s.ObjHash(ht); h != obj {
+		t.Fatalf("stale record storage moved ObjHash: %#x, want %#x", h, obj)
+	}
+	if h := a.s.ViewHash(0, nil); h != view {
+		t.Fatalf("stale record storage moved ViewHash: %#x, want %#x", h, view)
+	}
+	// An identical slot built the same way in a fresh scenario table hashes
+	// the same: the hashes are pure functions of the records (and of the
+	// build's layout), so no pinned number is needed.
+	b, ht2, _ := three(t)
+	if h := b.s.ObjHash(ht2); h != obj {
+		t.Fatalf("fresh three-record slot: ObjHash %#x, want %#x", h, obj)
+	}
+	if h := b.s.ViewHash(0, nil); h != view {
+		t.Fatalf("fresh three-record slot: ViewHash %#x, want %#x", h, view)
+	}
 }
 
 // TestReplCandsOverflowStalls: the three CR 616.1 candidate writers stall
