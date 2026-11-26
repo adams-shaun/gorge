@@ -1086,6 +1086,18 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 		}
 		return false
 	case wordImprinted:
+		// An api:Effect registration's ImprintCards$ capture (state.
+		// DelayedTrigger.Imprinted, bound to the resolving body as
+		// TriggerContext.DelayedImprinted) IS the imprint the delayed body's
+		// IsImprinted reads: the creating chain's own Cleanup cleared the
+		// source's live association before the trigger ever fired (Flickerform's
+		// end-step return, CR 603.7a/610.3), so the live read below would
+		// answer from an empty association. A registration that took no
+		// snapshot (every one that carries no |IM=) reads the live association
+		// exactly as before.
+		if sc.DelayedImprinted != nil {
+			return imprintCaptureAssociationContainsCandidate(sc.DelayedImprinted, o)
+		}
 		// Forge's IsImprinted: the candidate is in the SOURCE object's
 		// persistent imprint association -- state.Object.Imprinted (the
 		// exiled cards ImprintCards$ recorded), ImprintTokens (the tokens
