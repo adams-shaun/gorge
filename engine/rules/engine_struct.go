@@ -180,6 +180,16 @@ type Engine struct {
 	// static (cards.MayCarryControlStatic). False for most matches, which
 	// reduces the per-event static-control reconcile to one branch.
 	controlStaticInPool bool `clone:"deep"`
+	// colorWordsInPool is the same genesis-time fact for a CR 612.5
+	// colour-word change static (cards.ChangesColourWords, Swirl the Mists).
+	// False for almost every match, which reduces the per-event text sync to
+	// one predictable branch.
+	colorWordsInPool bool `clone:"deep"`
+	// reconcilingColorWords re-enters guard: the sync's own ColorWordsSync
+	// events pass back through emit, whose tail would rescan mid-walk. Set
+	// and cleared around one synchronous reconcile (the same shape
+	// reconcilingControlStatics takes), never read across a suspension.
+	reconcilingColorWords bool `clone:"reset"`
 	// continuousVersion is bumped by every direct mutation of e.continuous
 	// (layers.go's AddContinuous and EndOfTurnCleanup). It stands in for the
 	// events a board change would signal through the log head: while
