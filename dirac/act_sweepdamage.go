@@ -27,6 +27,7 @@ var DebugSweepStats *DebugSweepCounters
 const (
 	sweepNotSrc = 1 // the source's own slot excluded (the ValidCards$ NotDefinedTargeted suffix, a capture's !IsRemembered)
 	sweepPlHits = 2 // each living player takes a hit after the creatures (a capture sweep's ValidPlayers$ Player)
+	sweepOpps   = 4 // each living opponent of the resolving controller takes a hit after the creatures (Chandra's Ignition's ValidPlayers$ Player.Opponent)
 )
 
 // sweepFrom is ExtSweepFrom (gorge effDamageAll with a DamageSource$): the
@@ -73,7 +74,10 @@ func (s *State) sweepFrom(k *prep, in *kop.Instr) {
 			}
 		}
 		if in.C&sweepPlHits != 0 && !DebugSweepNoPlHits { // seat-ok: a test-only mutation (DebugSweepNoPlHits)
-			s.sweepPlayersTo(k, n)
+			s.sweepPlayersTo(k, n, 255)
+		}
+		if in.C&sweepOpps != 0 && !DebugSweepNoPlHits { // seat-ok: a test-only mutation (DebugSweepNoPlHits)
+			s.sweepPlayersTo(k, n, s.res.e.ctrl)
 		}
 		return
 	}
@@ -88,10 +92,14 @@ func (s *State) sweepFrom(k *prep, in *kop.Instr) {
 			m++
 		}
 	}
-	if in.C&sweepPlHits != 0 && !DebugSweepNoPlHits { // seat-ok: a test-only mutation (DebugSweepNoPlHits)
+	if in.C&(sweepPlHits|sweepOpps) != 0 && !DebugSweepNoPlHits { // seat-ok: a test-only mutation (DebugSweepNoPlHits)
 		pl0 = m
+		except := uint8(255)
+		if in.C&sweepOpps != 0 {
+			except = s.res.e.ctrl // the resolving controller's opponents only (ValidPlayers$ Player.Opponent)
+		}
 		for p := uint8(0); p < s.nSeats(); p++ {
-			if s.out(p) {
+			if s.out(p) || p == except {
 				continue
 			}
 			hs[m] = dmgHit{src: src, n: int16(min(n, 1<<14)), pl: p + 1}
@@ -106,10 +114,11 @@ func (s *State) sweepFrom(k *prep, in *kop.Instr) {
 
 // sweepPlayersTo is the gone-source sweep's player arm: each living player
 // takes n from the resolving effect, seat order (gorge effDamageAll's
-// ValidPlayers$ arm through the same rider).
-func (s *State) sweepPlayersTo(k *prep, n int) {
+// ValidPlayers$ arm through the same rider), except = the one seat left out
+// (a sweepOpps arm's resolving controller; 255 leaves everyone in).
+func (s *State) sweepPlayersTo(k *prep, n int, except uint8) {
 	for p := uint8(0); p < s.nSeats(); p++ {
-		if s.out(p) {
+		if s.out(p) || p == except {
 			continue
 		}
 		s.damageTo(k, PlayerCode(p), n)

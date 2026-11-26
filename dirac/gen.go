@@ -1053,7 +1053,10 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	g.anyTwobrid = tableTwobrid(t)
 	g.anyBeamGrant = tableHasStatic(t, kop.StatBeamGrant)
 	// prepSpellCond first: it sets anySpellCond, which an || must not skip
-	g.anyCantCast = prepSpellCond(t, g) || tableHasStatic(t, kop.StatCantBeCast)
+	// tableHasPlaneCurse joins: the plane-source curse's cast gate lowers to
+	// ExtPlaneCurse (dirac/zone_planecurse.go), whose record no StatCantBeCast
+	// static carries, so the flag must arm for its table too.
+	g.anyCantCast = prepSpellCond(t, g) || tableHasStatic(t, kop.StatCantBeCast) || tableHasPlaneCurse(t)
 	g.anyCantPlayLand = tableHasStatic(t, kop.StatCantPlayLand)
 	prepCastLimit(t, g)  // static_castlimit.go
 	prepCantSac(t, g)    // static_cantsacrifice.go, before prepCantAct reads it
@@ -3609,6 +3612,7 @@ var nonCreatureSubtype = map[string]bool{
 	"Adventure": true, "Arcane": true, "Lesson": true, "Trap": true, "Omen": true,
 	"Ajani": true, "Liliana": true, "Vivien": true, "Chandra": true, "Kaito": true, "Kiora": true,
 	"Jace": true, "Garruk": true, "Elspeth": true, "Nissa": true, "Gideon": true, "Teferi": true,
+	"Ugin": true, // a planeswalker subtype no pool card of a pool without Ugin planeswalkers carries (Haven of the Spirit Dragon's Planeswalker.Ugin target; gorge predicateTypeWords)
 }
 
 // capStall declares why when a failed search's fork latched one (0 = none): the

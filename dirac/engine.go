@@ -4,6 +4,7 @@ import (
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
+//lockstep:const engine/rules.openingHand
 const openingHand = 7
 
 // New starts a game with the default Config (pass-elision on, no mulligan
@@ -147,6 +148,7 @@ func (s *State) InitNStart(tbl *Table, decks [MaxSeats][]CardID, n uint8, seed u
 		// gorge's genesis deal order: the planar deck's shuffle, then the
 		// commander leaves the library, then the library shuffle and hand.
 		s.shufflePlanar(p)
+		s.revealPlaneTop(p)
 		if s.cfg&cfgCommander != 0 || cfg.SeatCommanders {
 			s.cmdGenesis(p, cfg.Commanders[p])
 		}

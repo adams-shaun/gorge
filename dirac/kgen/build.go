@@ -512,6 +512,19 @@ func copyKeptSets(d *kop.CardDef, c *lCard) {
 	d.HasUnearth, d.HasDecayed, d.HasPersist, d.HasDoctorsCompanion = c.HasUnearth, c.HasDecayed, c.HasPersist, c.HasDoctorsCompanion
 }
 
+// hexQualityBits is the hexproof-from-quality bits (monocolored,
+// multicolored) a card's lowering read.
+func hexQualityBits(c *lCard) kop.ColorMask {
+	var b kop.ColorMask
+	if c.HexMono {
+		b |= kop.HexMono
+	}
+	if c.HexMulti {
+		b |= kop.HexMulti
+	}
+	return b
+}
+
 // recordEvoke records an Evoke cost. CR 702.74a: no KwMask bit is free, so
 // the evoke marker is its own field; the cost is the hand's alternative cost,
 // and the permanent is sacrificed as it enters (dirac/kw_evoke.go). A
@@ -610,7 +623,7 @@ func (cb *cardBuilder) record() error {
 	if c.OptCost != nil {
 		// an OptionalCost part rides sfKicked and the kicked cast action
 		// (dirac/cost_optional.go): no other optional cost may share it
-		if c.Kicker != nil || c.Offspring != nil || c.Casualty != 0 || c.Bargain || c.Teamwork != 0 || c.SpellCost != nil || c.AltAddCost != nil {
+		if c.Kicker != nil || c.Offspring != nil || c.Casualty != 0 || c.Bargain || c.Teamwork != 0 || c.SpellCost != nil || c.AltAddCost != nil || c.AltAddCost2 != nil {
 			return fmt.Errorf("optional cost with another optional cost")
 		}
 		oc := *c.OptCost
@@ -644,7 +657,7 @@ func (cb *cardBuilder) record() error {
 		if c.Kicker != nil || c.Offspring != nil || c.Casualty != 0 || c.Bargain {
 			return fmt.Errorf("teamwork with a kicker/offspring/casualty/bargain")
 		}
-		for _, sc := range []*lCost{c.SpellCost, c.AltAddCost} {
+		for _, sc := range []*lCost{c.SpellCost, c.AltAddCost, c.AltAddCost2} {
 			if sc != nil && (sc.TapN != 0 || sc.TapPowN != 0) {
 				// the Taps teamwork gate reads every pkTapX pick of the build as a teamwork tap
 				return fmt.Errorf("Teamwork beside a tap-creatures cost")
@@ -1089,6 +1102,12 @@ func (cb *cardBuilder) record() error {
 		}
 		d.HasAltAdd = true
 	}
+	if c.AltAddCost2 != nil {
+		if d.AltAddCost2, err = cb.cost(*c.AltAddCost2); err != nil {
+			return err
+		}
+		d.HasAltAdd = true
+	}
 	if cb.pt.textWords {
 		d.TextWords = c.TextWords
 	}
@@ -1144,6 +1163,7 @@ func (cb *cardBuilder) record() error {
 	for _, r := range c.HexColors {
 		d.HexColors |= kop.ColW << strings.IndexRune("WUBRG", r)
 	}
+	d.HexColors |= hexQualityBits(c)
 	if c.Landwalk != nil {
 		if d.Landwalk, err = cb.filter(c.Landwalk, kop.ZoneBattlefield); err != nil {
 			return err
@@ -2067,6 +2087,9 @@ func (cb *cardBuilder) clause(c lClause, zone kop.Zone) (kop.Filter, error) {
 		}
 		kf.Pred, kf.PredN = kop.PredHasKeyword, int16(c.CmpN)
 	case cmpCMC:
+		if err := greatestCMCZoneRefusal(c, zone); err != nil {
+			return kf, err
+		}
 		if c.CmpV != nil {
 			bound := *c.CmpV
 			switch c.CmpOp {

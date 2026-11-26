@@ -256,6 +256,7 @@ const (
 	vSVarNum             // the evaluating source's StoreSVar number for the name S, else the printed body Sub[0] (kop.ExSVarNum; lower_storenum.go)
 	vMostProminentType   // the size of the largest group of battlefield objects matching F that share a creature type (Count$MostProminentCreatureType; kop.ExMostProminentCreatureType; value_mostprominent.go)
 	vReplLKIPow          // the replaced creature's derived power before a dies-to-exile rider moved it (ReplacedCardLKI$CardPower; value_repllki.go)
+	vMostCardName        // the greatest number of battlefield objects matching F that share one face name (Count$MostCardName; kop.ExMostCardName; value_mostcardname.go)
 	vPaidN               // the spell's Squad/Replicate payment count or Conspire's 1 (Count$SquadPaid / ReplicatePaid / Conspired; kop.ExKicked N 2; lower_squadreplicate.go)
 	vCount_
 )
@@ -384,6 +385,7 @@ var valNames = [...]string{
 	vReplLKIPow:          "ReplLKIPow",
 	vPaidN:               "PaidN",
 	vMostProminentType:   "MostProminentType",
+	vMostCardName:        "MostCardName",
 }
 
 // lValue is an amount: Kind with its operand, then Mul/Div/Add applied in
@@ -1468,6 +1470,7 @@ type lCard struct {
 	RetraceCost    *lCost    // the retrace cast's additional cost: Discard<1/Land> (CardDef.RetraceCost)
 	JumpStart      bool      // K:Jump-start (CR 702.84a): the retrace cast with Discard<1/Card> and the flashback exile (Retrace set beside it; dirac/kw_jumpstart.go)
 	AltAddCost     *lCost    // AlternateAdditionalCost: pay this instead of the printed additional cost
+	AltAddCost2    *lCost    // the either-or's third part (Dusk Mangler's PayLife<4>): CardDef.AltAddCost2
 	SpellCost      *lCost    // additional costs on the spell (Sac/Discard)
 	AltAddOne      bool      // SpellCost is a one-part AlternateAdditionalCost (gorge's planner: shape:optional_cost)
 	Leyline        bool
@@ -1518,6 +1521,7 @@ type lCard struct {
 	Landwalk            *lFilter // K:Landwalk:<land filter> (CR 702.14)
 	ProtColors          string   // printed "Protection from <colour>" (CR 702.16): WUBRG letters
 	HexColors           string   // printed K:Hexproof:<Colour> (CR 702.11d): WUBRG letters
+	HexMono, HexMulti   bool     // printed K:Hexproof:Card.MonoColor / Card.MultiColor (CR 702.11d; kop.HexMono, kop.HexMulti)
 	ProtFrom            *lFilter // printed K:Protection:<spec> (CR 702.16): the sources it protects from
 	Infect              bool     // printed K:Infect (CR 702.90)
 	Devoid              bool     // printed K:Devoid (CR 702.114a): CardDef.Devoid, read by the withDevoid filter word

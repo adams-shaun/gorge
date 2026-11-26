@@ -184,7 +184,13 @@ type CardDef struct {
 	SelfFlash  bool
 	SpellCost  Cost // the spell's additional cost (sacrifice / discard; mana zero)
 	AltAddCost Cost // AlternateAdditionalCost: may be paid instead of SpellCost (HasAltAdd)
-	HasAltAdd  bool
+	// AltAddCost2 is the either-or's third part (Dusk Mangler's
+	// PayLife<4>), paid instead of SpellCost when the ask chose it (the
+	// build's altAdd buildAltAdd2, 4; kernel cast.go altAddOptions offers
+	// all three parts, the payable ones first, as gorge's altAddAsk orders
+	// them).
+	AltAddCost2 Cost
+	HasAltAdd   bool
 	// KickerCost: the kicker's non-mana cost (one Sac<1/..> or Return<1/..>
 	// part, Vayne's Treachery, Chocobo Kick; CR 702.33a). Kicker is then
 	// zero mana; a kicked cast pays this through the cost stages (kernel
@@ -361,7 +367,9 @@ type CardDef struct {
 	ProtColors ColorMask
 	// HexColors are the printed "hexproof from <colour>" keywords' colours
 	// (CR 702.11d; 0 = none): a spell or ability of one of them an opponent
-	// controls can't target the permanent.
+	// controls can't target the permanent. HexMono and HexMulti (bits no
+	// colour uses) are "hexproof from monocolored" / "from multicolored": a
+	// source of exactly one colour / of two or more.
 	HexColors ColorMask
 	// ProtFrom is the printed K:Protection:<spec> keywords' source filter
 	// (CR 702.16; type, subtype and colour terms only; 0 = none).

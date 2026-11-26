@@ -252,10 +252,15 @@ type lClause struct {
 	Flags          uint64
 	CmpStat        uint8
 	CmpOp          uint8
-	CmpN           int      // the constant, or
-	CmpX           string   // the SVar naming the bound (cmcLEX)
-	CmpV           *lValue  // CmpX lowered
-	CmpCounter     string   // counter kind for cmpCounters
+	CmpN           int     // the constant, or
+	CmpX           string  // the SVar naming the bound (cmcLEX)
+	CmpV           *lValue // CmpX lowered
+	CmpCounter     string  // counter kind for cmpCounters
+	// GreatestCMCSet: the comparison set a greatestCMC_<set> property names,
+	// "" = none ("Permanent.nonLand", or the set's type word). lc.filter
+	// lowers it into CmpV, the greatest-mana-value aggregate over the set,
+	// which the == CmpOp reads (Padeem, Consul of Innovation).
+	GreatestCMCSet string
 	CmpFilter      *lFilter // the compiled land/quality filter cmpHasLandwalk / cmpHasProtQuality read
 	Colors         string   // must have this colour (one of WUBRG; "" = none)
 	NotColors      string   // must have none of these colours
@@ -1042,6 +1047,9 @@ func (c *lClause) prop(p string, knownSub func(string) bool) error {
 		}
 		return c.setCmp(cmpPowerLTToughness, opEQ, int(rel), "", "")
 	}
+	if rest, ok := strings.CutPrefix(p, "greatestCMC_"); ok {
+		return c.greatestCMC(p, rest)
+	}
 	if strings.HasPrefix(p, "named") {
 		// named<X> (gorge wordNamed, sharesName; CR 201.2): Name is X
 		// normalised as gorge's nameArg does (';' -> ',', '_' -> ' ').
@@ -1474,3 +1482,67 @@ var bareCmpPreds = map[uint8]kop.Pred{cmpMonstrous: kop.PredMonstrous, cmpNoCoun
 // battlefieldPreds maps the compare words build.go's clause reads as one
 // battlefield-only predicate each.
 var battlefieldPreds = map[uint8]kop.Pred{cmpRenowned: kop.PredRenowned, cmpAttackingYou: kop.PredAttackingYou, cmpGoaded: kop.PredGoaded}
+
+// greatestCMC lowers the greatestCMC_<set> property p (suffix rest) onto the
+// clause. Forge's greatestCMC_<type>[ControlledBy <players>] (CardProperty;
+// gorge filter.go): the candidate is a battlefield card of the suffix's
+// type whose mana value no other battlefield card of that type exceeds
+// -- ties match, every card at the maximum. The comparison set is the
+// suffix's type over every battlefield, not the filter base (a
+// ControlledBy suffix only appears in the RepeatEach spellings
+// chooseCardFilter lowers, so it refuses here), and the candidate must
+// be in the set, so the set's type joins the clause. The bound is the
+// greatest-mana-value aggregate over the set (kop ExValidAgg
+// AggGreatestMV, gorge zoneFold's $GreatestCardManaCost), read live at
+// count time; the value-bounded CMC compare lowers it (PredCMCLEV with
+// the == PredN), the same shape greatestCMCFilter gives a RepeatEach
+// body (Padeem, Consul of Innovation).
+func (c *lClause) greatestCMC(p, rest string) error {
+	if c.CmpStat != 0 || c.CmpV != nil {
+		return fmt.Errorf("%q beside a bound", p)
+	}
+	setType, setNonLand := "", false
+	switch rest {
+	case "NonLandPermanent":
+		setNonLand = true
+	default:
+		bits, ok := typeBits[rest]
+		if !ok || bits&^tAnyCard != 0 || rest == "Card" || rest == "Permanent" {
+			return fmt.Errorf("unknown property %q", p)
+		}
+		setType = rest
+		if c.Types != 0 && c.Types != bits {
+			// gorge's read is the head's own words AND the set's membership
+			// (filter.go cmcSetMember beside the candidate clause): the
+			// any-of mask would read head OR set, matching a candidate of
+			// either type at the bound. Only a head of the set's type (or an
+			// untyped head, whose words the set then are) lowers.
+			return fmt.Errorf("%q beside a different head type", p)
+		}
+		c.Types |= bits
+	}
+	if setNonLand {
+		// the candidate is a nonland permanent (a head word may name less)
+		c.NotTypes |= tLand
+	}
+	spec := "Permanent.nonLand"
+	if setType != "" {
+		spec = setType
+	}
+	c.CmpStat, c.CmpOp, c.GreatestCMCSet = cmpCMC, opEQ, spec
+	return nil
+}
+
+// greatestCMCZoneRefusal refuses a greatestCMC_<set> bound (Padeem's property)
+// compiled beside a zone other than the battlefield: the aggregate reads every
+// battlefield, and gorge's candidate read also requires the candidate itself
+// there (filter.go o.Zone == ZBattlefield). A clause compiled in another zone
+// would match an off-battlefield card at the tied maximum, where gorge would
+// not; the clause cannot express the zone it needs (Filter.Zone is the
+// candidate's), so it fails closed. Any other clause is nil.
+func greatestCMCZoneRefusal(c lClause, zone kop.Zone) error {
+	if c.CmpV != nil && c.CmpV.Kind == vValidAgg && c.CmpV.N == kop.AggGreatestMV && zone != kop.ZoneBattlefield {
+		return refuse("greatestCMC beside a non-battlefield zone")
+	}
+	return nil
+}

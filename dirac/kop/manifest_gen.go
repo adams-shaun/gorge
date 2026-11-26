@@ -990,6 +990,8 @@ const ExDraftNotesHighest ExprKind = 84
 const ExManaPool ExprKind = 85
 
 // count MostCardName (dirac/manifest/ExprKind/ExMostCardName)
+//
+// the greatest number of objects matching the spec that share one face name (Endless Atlas, Mechanized Production, Chrome Replicator, Sceptre of Eternal Glory); dirac/value_mostcardname.go
 const ExMostCardName ExprKind = 86
 
 // count NumDamageThisTurn (dirac/manifest/ExprKind/ExNumDamageThisTurn)
@@ -1699,31 +1701,38 @@ const ExtPayLifeX ExtOp = 108
 
 func init() { extOpNames[ExtPayLifeX] = "PayLifeX" }
 
+// ExtOp (dirac/manifest/ExtOp/ExtPlaneCurse)
+//
+// Eloren Wilds' plane-source curse Effect (DB$ Effect | StaticAbilities$ STCantCast beside Triggers$ PlaneswalkedTo self-exile, Duration$ Permanent): the targeted player may not cast spells until any player planeswalks. gorge registers the CantBeCast static with the UntilPlaneswalk lifetime (effEffect's effectPlaneCurseEnd; rules' checkPlaneswalkTriggers ends it via withoutUntilPlaneswalk); the kernel keeps the narrow record instead -- planeSeat.curse's per-seat bitset, set by the instr's player target and cleared in planeswalk -- and castForbiddenCost reads it after the static scan (gorge consults registered effects after face statics). The Effect lives over the plane as its source; the record is the narrow equivalent the planebodies slice keeps on the cold planar record.
+const ExtPlaneCurse ExtOp = 109
+
+func init() { extOpNames[ExtPlaneCurse] = "PlaneCurse" }
+
 // ExtOp (dirac/manifest/ExtOp/ExtRememberPlayer)
 //
 // Pump RememberObjects$ TargetedController: record the target's controller as the resolution's player (res.chPl) so the chained Draw can read it after the GainControl (Rules of Acquisition; CR 608.2c).
-const ExtRememberPlayer ExtOp = 109
+const ExtRememberPlayer ExtOp = 111
 
 func init() { extOpNames[ExtRememberPlayer] = "RememberPlayer" }
 
 // RepeatOptional (dirac/manifest/ExtOp/ExtRepeatOptional)
 //
 // ExtRepeatOptional: an OpRepeatWhile body's RepeatOptional$ election (gorge effRepeat's repeat_optional "Repeat this process?"). B.N 0 at the body's head: C is the pass's progress condition, and a pass that starts without it is the last one, no election follows it (gorge's changed-nothing shortcut, CR 732.2a). B.N 1 at the body's tail: unless the pass was the last, the resolving controller is asked yes / no (ChGenConfirm); a no ends the loop. dirac/act_repeatoptional.go.
-const ExtRepeatOptional ExtOp = 111
+const ExtRepeatOptional ExtOp = 112
 
 func init() { extOpNames[ExtRepeatOptional] = "RepeatOptional" }
 
 // ExtOp (dirac/manifest/ExtOp/ExtStoreNum)
 //
 // StoreSVar's per-object number write (gorge effStoreSVar, events.StoreSVar -> Object.RuntimeSVars; CR 400.7): B the value (any ValueRef, evaluated at the write), C the SVar name (Table.SVarNames index, low 4 bits) with the delete-on-default flag (kop.StoreNumDel) and the printed default beside it (kop.StoreNumDefault); the target is the resolving source. The number is a record of the object-set store (kind osNum) keyed by the object, whatever zone it is in: only a departure from the battlefield clears it (gorge's wasBattlefield reset), so a write after the source left persists on the departed object. dirac/act_storenum.go.
-const ExtStoreNum ExtOp = 112
+const ExtStoreNum ExtOp = 113
 
 func init() { extOpNames[ExtStoreNum] = "StoreNum" }
 
 // ExtOp (dirac/manifest/ExtOp/ExtTwoPilesEach)
 //
 // A RepeatEach player body's battlefield TwoPiles (Bend or Break: Defined$ Remembered, Separator$ Remembered, Chooser$ ChosenPlayer, ValidCards$ Land.!token+RememberedPlayerCtrl; gorge effTwoPiles' battlefield arm over the repeated player): F names the repeated player's permanents (CtrlEachPl). They separate them into two piles (ChGenPileSplit, a permanent per pick, AkDone-closed, picking them all ends it; a one-permanent pool poses no split), the opponent their chain's ExtChoosePlayerEach chose picks one (ChGenPileChoose mode 0 the picks, 1 the rest; resChosenPlayer), and the chosen pile is destroyed while the other is tapped (ChosenPile$ DestroyAll Land.IsRemembered then UnchosenPile$ TapAll Land.IsRemembered: each pile's members still matching F run the ordinary destroy / tap-all passes, gorge twoPilesRunPile's fresh Remembered = pile). Pile A rides genState.sacM, the pool player genState.pickP; both are cleared at the end. B.N&1: the pick's mode-1 answer names pile A (the chosen/unchosen piles swap; the lockstep mutation). dirac/act_pileseach.go.
-const ExtTwoPilesEach ExtOp = 113
+const ExtTwoPilesEach ExtOp = 114
 
 func init() { extOpNames[ExtTwoPilesEach] = "TwoPilesEach" }
 
