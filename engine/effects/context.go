@@ -2067,6 +2067,32 @@ func imprintAssociationContainsCandidate(g *state.Game, source *state.Object, o 
 	return false
 }
 
+// imprintCaptureAssociationContainsCandidate is the registration-capture twin
+// of imprintAssociationContainsCandidate: membership in an api:Effect
+// registration's ImprintCards$ snapshot (state.DelayedTrigger.Imprinted,
+// bound to the resolving body as TriggerContext.DelayedImprinted) instead of
+// the source object's live association, which the creating chain's Cleanup
+// (ClearImprinted$ True) cleared before the trigger ever fired (Flickerform's
+// end-step return, CR 603.7a/610.3). The zone rule is the live association's
+// own, with the candidate's own zone in the linked-card slot: a candidate
+// matches while it stands in exile (the ordinary Imprinted association's CR
+// 607.2a liveness zone) or on the battlefield (the association recorded on a
+// battlefield permanent, the Winnowing read).
+func imprintCaptureAssociationContainsCandidate(ids []state.ObjID, o *state.Object) bool {
+	if o == nil {
+		return false
+	}
+	if o.Zone != state.ZExile && o.Zone != state.ZBattlefield {
+		return false
+	}
+	for _, id := range ids {
+		if id == o.ID {
+			return true
+		}
+	}
+	return false
+}
+
 // imprintAssociationContainsInZone is the shared membership rule behind both
 // readers above: ordinary Imprinted links are live only while the linked card
 // is in the zone the caller supplies (the live zone for the Defined$ reader,
@@ -2610,6 +2636,20 @@ func imprint(h Host, c *Ctx, sa *cards.SA) {
 	if c.Source == 0 || strings.TrimSpace(spec) == "" {
 		return
 	}
+	if ids := imprintCaptureIDs(h, c, spec); len(ids) > 0 {
+		h.Emit(events.Event{Kind: events.Imprint, Obj: c.Source, IDs: ids})
+	}
+}
+
+// imprintCaptureIDs resolves an ImprintCards$ spec into the object ids it
+// records: the set the rider `imprint` emits as the source's live
+// association. effEffect snapshots the same resolver for an api:Effect that
+// carries ImprintCards$ (Forge's EffectEffect imprints that set on the
+// effect card it creates): the registration carries it
+// (state.DelayedTrigger.Imprinted), because the chain's own Cleanup
+// (ClearImprinted$ True) clears the source's live association before the
+// Effect's delayed trigger ever fires (Flickerform's end-step return).
+func imprintCaptureIDs(h Host, c *Ctx, spec string) []state.ObjID {
 	var ids []state.ObjID
 	for _, t := range imprintCardsTargets(h, c, spec) {
 		if t.IsPlayer {
@@ -2625,9 +2665,7 @@ func imprint(h Host, c *Ctx, sa *cards.SA) {
 			ids = append(ids, id)
 		}
 	}
-	if len(ids) > 0 {
-		h.Emit(events.Event{Kind: events.Imprint, Obj: c.Source, IDs: ids})
-	}
+	return ids
 }
 
 // imprintCardsTargets resolves an ImprintCards$ spec. A bare Remembered is
