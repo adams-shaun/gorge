@@ -3,6 +3,8 @@ package kgen
 import (
 	"fmt"
 	"os"
+	"os/exec"
+	"path"
 	"path/filepath"
 	"regexp"
 	"strconv"
@@ -23,8 +25,11 @@ import (
 //
 // By default a fall fails and a rise passes, so a pull request or a merge-queue
 // batch need not commit the table (two PRs each +1 failed a batch on an exact
-// pin, 11-17). DIRAC_PIN_STRICT=1, which the nightly CI run sets, makes every pin
-// exact; KGEN_REPIN=1 re-measures them.
+// pin, 11-17). Outside strict a fall of N also passes when the branch gave at
+// least N of the list's cards a new entry under dirac/support/refused — the
+// refusals the ticket recorded explain its fall, and re-pinning is main's bot
+// (scripts/regen-main.sh). DIRAC_PIN_STRICT=1, which the nightly CI run sets,
+// makes every pin exact; KGEN_REPIN=1 re-measures them.
 //
 // The count is LOWER + BUILD (checkAcceptance runs buildPool): a card the LIR
 // pass accepts but `generate` refuses (counter kinds, cost shapes, filter
@@ -101,12 +106,18 @@ func acceptancePins(t *testing.T) map[string][2]int {
 }
 
 // judgePin says whether got satisfies pin: equal always does; a fall (fewer
-// accepted) never does; any other difference does only when strict is false.
-func judgePin(name string, pin, got [2]int, strict bool) error {
+// accepted) fails unless newRefused, the list's cards newly given an entry
+// under dirac/support/refused since the pin base, is at least as long as the
+// fall — the branch refused cards of that list, and outside strict that
+// explains its fall — and any other difference does only when strict is false.
+func judgePin(name string, pin, got [2]int, strict bool, newRefused []string) error {
 	switch {
 	case got == pin:
 		return nil
 	case got[0] < pin[0]:
+		if !strict && len(newRefused) >= pin[0]-got[0] {
+			return nil
+		}
 		return fmt.Errorf("%s: accepted %d of %d, pinned %d of %d: a fall is a lowering regression; fix it, or re-pin with KGEN_REPIN=1 KGEN_REPIN_FALL=<reason>",
 			name, got[0], got[1], pin[0], pin[1])
 	case strict:
@@ -116,9 +127,84 @@ func judgePin(name string, pin, got [2]int, strict bool) error {
 	return nil
 }
 
+// pinBaseCommit is the commit the fall judgement reads dirac/support/refused
+// at: KGEN_PIN_BASE when set, else git merge-base HEAD origin/main. A branch's
+// newly refused entries are the ones its merge-base lacks, so a re-pin of main
+// by the bot cannot mask or manufacture them.
+func pinBaseCommit() (string, bool) {
+	if b := os.Getenv("KGEN_PIN_BASE"); b != "" {
+		return b, true
+	}
+	out, err := exec.Command("git", "merge-base", "HEAD", "origin/main").Output()
+	if err != nil {
+		return "", false
+	}
+	if base := strings.TrimSpace(string(out)); base != "" {
+		return base, true
+	}
+	return "", false
+}
+
+var (
+	refusedOnce sync.Once
+	refusedNow  map[string]bool
+	refusedBase map[string]bool
+)
+
+// refusedEntries returns the refused-entry file names in the working tree and
+// at the pin base. refusedBase is nil when the base cannot be read (no git, no
+// origin/main), which leaves the fall judgement at today's rule.
+func refusedEntries() (now, base map[string]bool) {
+	refusedOnce.Do(func() {
+		ents, err := os.ReadDir(filepath.Join("..", "..", cardset.RefusedDir))
+		if err != nil {
+			return
+		}
+		refusedNow = map[string]bool{}
+		for _, e := range ents {
+			refusedNow[e.Name()] = true
+		}
+		commit, ok := pinBaseCommit()
+		if !ok {
+			return
+		}
+		out, err := exec.Command("git", "ls-tree", "-r", "--name-only", commit, "--", ":(top)"+cardset.RefusedDir).Output()
+		if err != nil {
+			return
+		}
+		refusedBase = map[string]bool{}
+		for _, line := range strings.Split(strings.TrimRight(string(out), "\n"), "\n") {
+			if line != "" {
+				refusedBase[path.Base(line)] = true
+			}
+		}
+	})
+	return refusedNow, refusedBase
+}
+
+// newlyRefusedIn returns the cards of listCards (sorted, as its callers keep
+// them) that have a refused entry now but none at the pin base, so also
+// sorted; nil when the base cannot be read. Each returns its entry by
+// cardset.SupportSlug, the file stem a refused entry is written under.
+func newlyRefusedIn(listCards []string) []string {
+	now, base := refusedEntries()
+	if base == nil || len(listCards) == 0 {
+		return nil
+	}
+	var out []string
+	for _, c := range listCards {
+		if f := cardset.SupportSlug(c) + ".json"; now[f] && !base[f] {
+			out = append(out, c)
+		}
+	}
+	return out
+}
+
 // checkPin holds got against list's pin in the table at path: KGEN_REPIN=1
 // rewrites a moved row, and otherwise judgePin decides under DIRAC_PIN_STRICT.
-func checkPin(t *testing.T, path, list, name string, pin, got [2]int) {
+// listCards are the list's card names, sorted, for the fall explanation; nil
+// leaves a fall unexplained.
+func checkPin(t *testing.T, path, list, name string, pin, got [2]int, listCards []string) {
 	t.Helper()
 	if got != pin && os.Getenv("KGEN_REPIN") == "1" {
 		msg, err := repinTSV(path, list, pin, got, os.Getenv("KGEN_REPIN_FALL"))
@@ -128,9 +214,16 @@ func checkPin(t *testing.T, path, list, name string, pin, got [2]int) {
 		t.Logf("%s: %s", path, msg)
 		return
 	}
-	if err := judgePin(name, pin, got, pinStrict()); err != nil {
+	newRefused := newlyRefusedIn(listCards)
+	if err := judgePin(name, pin, got, pinStrict(), newRefused); err != nil {
 		t.Error(err)
 	} else if got != pin {
+		if got[0] < pin[0] {
+			t.Logf("%s: accepted fell %d -> %d, explained by the newly refused cards:", name, pin[0], got[0])
+			for _, c := range newRefused {
+				t.Logf("  %s", c)
+			}
+		}
 		t.Logf("%s: %d of %d, not the pin %d of %d but no fall: land re-pins it (dirac/kgen/%s)",
 			name, got[0], got[1], pin[0], pin[1], path)
 	}
@@ -174,7 +267,7 @@ func checkAcceptance(t *testing.T, cardsDir, list string) {
 	}
 	cv := computeCoverage(p, lw)
 	t.Logf("%s: %d of %d accepted", list, cv.lowered, cv.cards)
-	checkPin(t, acceptanceTSV, list, list, pin, [2]int{cv.lowered, cv.cards})
+	checkPin(t, acceptanceTSV, list, list, pin, [2]int{cv.lowered, cv.cards}, p.names)
 }
 
 // The ALL list's lower+build pass, shared by the two corpus ratchets: they
@@ -182,10 +275,11 @@ func checkAcceptance(t *testing.T, cardsDir, list string) {
 // result is read-only — the callers hold its coverage against their own pins
 // (ratchet_test.go's ALL row and build_acceptance.tsv's).
 var (
-	corpusAccOnce sync.Once
-	corpusAccCv   coverage
-	corpusAccTook time.Duration
-	corpusAccErr  error
+	corpusAccOnce  sync.Once
+	corpusAccCv    coverage
+	corpusAccNames []string // the ALL list's card names, for the fall explanation
+	corpusAccTook  time.Duration
+	corpusAccErr   error
 )
 
 // corpusAcceptance runs that pass once per package run, in process and writing
@@ -199,6 +293,15 @@ func corpusAcceptance(t *testing.T) coverage {
 		if err != nil {
 			corpusAccErr = err
 			return
+		}
+		// The ALL list's card names, for the fall explanation; a read failure
+		// leaves them nil, which leaves a fall unexplained.
+		if b, err := os.ReadFile(allPath); err == nil {
+			for _, l := range strings.Split(strings.TrimRight(string(b), "\n"), "\n") {
+				if l != "" {
+					corpusAccNames = append(corpusAccNames, l)
+				}
+			}
 		}
 		p, err := loadCardList(allPath, cardsDir)
 		if err != nil {
@@ -231,7 +334,7 @@ func TestCorpusAcceptance(t *testing.T) {
 	}
 	cv := corpusAcceptance(t)
 	t.Logf("ALL: %d of %d accepted", cv.lowered, cv.cards)
-	checkPin(t, acceptanceTSV, "ALL", "ALL", pin, [2]int{cv.lowered, cv.cards})
+	checkPin(t, acceptanceTSV, "ALL", "ALL", pin, [2]int{cv.lowered, cv.cards}, corpusAccNames)
 }
 
 // TestSetAcceptance is the per-set ratchet, one subtest per list.
@@ -378,10 +481,10 @@ func TestPinRiseNonStrictPassesStrictFails(t *testing.T) {
 		{"list grows, accepted holds", [2]int{pin[0], pin[1] + 1}, true, false},
 		{"fall", [2]int{pin[0] - 1, pin[1]}, false, false},
 	} {
-		if err := judgePin("ALL", pin, c.got, false); (err == nil) != c.lenient {
+		if err := judgePin("ALL", pin, c.got, false, nil); (err == nil) != c.lenient {
 			t.Errorf("%s, non-strict: err = %v, want pass %v", c.name, err, c.lenient)
 		}
-		if err := judgePin("ALL", pin, c.got, true); (err == nil) != c.strict {
+		if err := judgePin("ALL", pin, c.got, true, nil); (err == nil) != c.strict {
 			t.Errorf("%s, strict: err = %v, want pass %v", c.name, err, c.strict)
 		}
 	}
