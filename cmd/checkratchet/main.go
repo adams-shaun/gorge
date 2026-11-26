@@ -77,7 +77,12 @@ func check(dir, base, head string) (lowered []string, mb string, err error) {
 	}
 	var files []file
 	for _, name := range names {
-		if strings.HasSuffix(name, "ratchet_test.go") {
+		// internal/codeshape's count ratchets became the base-relative
+		// count growth rule (cmd/countgrowth): their ratchet tests and
+		// constants are gone, so there is nothing there left to lower and
+		// their removal is not a lowering. The other packages' ratchet
+		// tables are still guarded.
+		if strings.HasSuffix(name, "ratchet_test.go") && !strings.HasPrefix(name, "internal/codeshape/") {
 			files = append(files, file{path: name, run: codeshape.LoweredConstants})
 		}
 	}

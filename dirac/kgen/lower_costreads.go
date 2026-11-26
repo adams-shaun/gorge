@@ -1,5 +1,7 @@
 package kgen
 
+import "github.com/adams-shaun/gorge/engine/cards"
+
 // sacrificedIsCost: the ability's Sacrificed$ group is exactly the one
 // object a sacrifice paid as its own cast or activation cost, whose last
 // known information the kernel snapshots into the entry (snapSacPick).
@@ -18,6 +20,28 @@ func (lc *lowerCtx) sacrificedIsCost() bool {
 		return c != nil && c.Sac != nil && c.SacN == 1 && !c.SacSelf && lc.out.AltAddCost == nil
 	case akActivated:
 		return lc.ab.Cost.Sac != nil && lc.ab.Cost.SacN == 1 && !lc.ab.Cost.SacSelf
+	}
+	return false
+}
+
+// chosenEncIsCost: the ability is a spell whose own additional cost is the
+// CloseEncounter ChooseCard pick, the one object the kernel records
+// (stackEntry.trigObj, RefChosenEnc; gorge Ctx.Paid.Revealed). The cost rides
+// a RaiseCost static, which lowers after the abilities: the face's statics
+// are scanned, the shape whose lowering sets kop.Cost.CloseEnc
+// (lower_raisecost.go). A static that keeps its own refusal fails the card
+// wholesale, so an optimistic match never reads a cost that is not there.
+func (lc *lowerCtx) chosenEncIsCost() bool {
+	if lc.ab == nil || lc.ab.Kind != akSpell || lc.ab.Latent {
+		return false
+	}
+	for _, s := range lc.face.Statics {
+		if s.Mode != "RaiseCost" {
+			continue
+		}
+		if body, ok := closeEncCostToken(s.ParamStr(cards.PKCost)); ok && body == closeEncSpec {
+			return true
+		}
 	}
 	return false
 }
