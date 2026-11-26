@@ -1,0 +1,18 @@
+# the mana-colour and attacking-you pool: Land.canProduceManaColor Colorless
+# (Break the Ice, Obsidian Charmaw), Creature.attackingYouOrYourPW (Soul
+# Snare) and Count$ValidAll Creature.attackingYouOrYourPWLKI (Mangara, the
+# Diplomat, Tomik, Wielder of Law) beside small creatures and basics, Wastes among them
+# (dirac/oracle/manacolour_lowers_test.go)
+Break the Ice
+Obsidian Charmaw
+Soul Snare
+Mangara, the Diplomat
+Tomik, Wielder of Law
+Hill Giant
+Walking Corpse
+Grizzly Bears
+Swamp
+Mountain
+Plains
+Forest
+Wastes

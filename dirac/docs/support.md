@@ -9,33 +9,33 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 | list | cards | lowered | refused | unverified | supported | 4-seat | pod-evidenced |
 |---|---:|---:|---:|---:|---:|---:|---:|
 | BIG | 30 | 28 | 0 | 3 | 25 | 25 | 0 |
-| BLB | 278 | 263 | 1 | 0 | 262 | 262 | 0 |
+| BLB | 278 | 264 | 1 | 1 | 262 | 262 | 0 |
 | DFT | 276 | 259 | 0 | 1 | 258 | 258 | 0 |
 | DSK | 276 | 259 | 2 | 5 | 252 | 252 | 0 |
-| ECL | 273 | 250 | 0 | 2 | 248 | 248 | 0 |
-| EOE | 266 | 253 | 0 | 2 | 251 | 251 | 0 |
+| ECL | 273 | 251 | 0 | 3 | 248 | 248 | 0 |
+| EOE | 266 | 254 | 0 | 3 | 251 | 251 | 0 |
 | FDN | 517 | 517 | 0 | 0 | 517 | 517 | 0 |
 | FIN | 312 | 283 | 0 | 1 | 282 | 282 | 0 |
 | FRA | 269 | 255 | 0 | 5 | 250 | 250 | 0 |
 | HOB | 172 | 164 | 0 | 4 | 160 | 160 | 0 |
-| LCI | 290 | 262 | 1 | 1 | 260 | 260 | 0 |
-| MKM | 279 | 258 | 1 | 8 | 249 | 249 | 0 |
+| LCI | 290 | 264 | 1 | 3 | 260 | 260 | 0 |
+| MKM | 279 | 260 | 1 | 10 | 249 | 249 | 0 |
 | MSH | 276 | 252 | 1 | 2 | 249 | 249 | 0 |
 | OTJ | 276 | 258 | 0 | 5 | 253 | 253 | 0 |
 | SOS | 270 | 261 | 0 | 2 | 259 | 259 | 0 |
 | SPM | 192 | 178 | 2 | 9 | 167 | 167 | 0 |
 | TDM | 276 | 261 | 1 | 1 | 259 | 259 | 0 |
 | TLA | 285 | 264 | 1 | 2 | 261 | 261 | 0 |
-| TMT | 194 | 187 | 0 | 0 | 187 | 187 | 0 |
+| TMT | 194 | 188 | 0 | 1 | 187 | 187 | 0 |
 | TRC | 337 | 307 | 0 | 32 | 275 | 275 | 0 |
 | TRK | 311 | 311 | 1 | 0 | 310 | 310 | 0 |
-| WOE | 281 | 267 | 0 | 3 | 264 | 264 | 0 |
-| MBC | 2212 | 2045 | 3 | 49 | 1993 | 1993 | 0 |
-| CMM | 737 | 625 | 3 | 33 | 589 | 589 | 0 |
-| MH3 | 308 | 238 | 1 | 12 | 225 | 225 | 0 |
-| MH2 | 309 | 264 | 0 | 10 | 254 | 254 | 0 |
-| CM2 | 279 | 240 | 1 | 4 | 235 | 235 | 0 |
-| ALL | 34480 | 26909 | 43 | 992 | 25874 | 25871 | 0 |
+| WOE | 281 | 268 | 0 | 4 | 264 | 264 | 0 |
+| MBC | 2212 | 2053 | 3 | 57 | 1993 | 1993 | 0 |
+| CMM | 737 | 634 | 3 | 42 | 589 | 589 | 0 |
+| MH3 | 308 | 241 | 1 | 15 | 225 | 225 | 0 |
+| MH2 | 309 | 269 | 0 | 15 | 254 | 254 | 0 |
+| CM2 | 279 | 245 | 1 | 9 | 235 | 235 | 0 |
+| ALL | 34480 | 27052 | 43 | 1135 | 25874 | 25871 | 0 |
 
 `ALL` is the whole corpus; `MBC` is the Mystery Booster Commander draft pool, every name its packs deal that gorge supports; `CMM`, `MH3`, `MH2` and `CM2` are Commander Masters, Modern Horizons 3 and 2 and Commander Anthology Volume II, from gorge-compliance's XMage manifests; the rest are the Standard sets. `4-seat` counts the supported cards whose lowering holds at any seat count: a card whose lowering reads the one opponent of a two-player game (`kop.CardDef.TwoSeat`) is refused in a game of three or more seats (`StallTwoSeat`). It is a ceiling, not evidence. `pod-evidenced` counts those cards whose evidence row carries a seats field — a clean game of three or more seats, which `kfuzz -evidence -seats 4` writes and `scripts/dirac-first-refusals.py evidence --pools pod-*` copies into `dirac/support/evidence` (`Name\t<seats>`; readers take the name and ignore trailing columns). A pod game does not evidence a card: the support rule below is unchanged.
 

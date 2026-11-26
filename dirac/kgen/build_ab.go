@@ -52,7 +52,7 @@ func (cb *cardBuilder) abilities() error {
 		}
 		d.Abilities = append(d.Abilities, ka)
 		cb.out.stAddSub = append(cb.out.stAddSub, add)
-		cb.out.origins = append(cb.out.origins, 0xFF)
+		cb.out.origins = append(cb.out.origins, crewAltOrigin(cb.out.origins, ka))
 	}
 	for i, s := range c.GrantedStatics {
 		cb.node = fmt.Sprintf("granted static[%d] %s", i, s.Kind)
@@ -716,6 +716,10 @@ func (cb *cardBuilder) ability(a *lAbility) (kop.Ability, error) {
 	if a.Latent {
 		ka.AFlags |= kop.AfLatent
 		ka.MeleeGrant = a.Name == "GrantedMelee" // lower_meleegrant.go
+		// the dies-return Undying and Persist a Pump grants (an override
+		// record) are layer-6 keyword grants gorge lists by timestamp beside
+		// a static's AddKeyword$ grant (lower_attackkwgrant.go)
+		ka.GrantedKw = a.Name == "GrantedUndying" || a.Name == "GrantedPersist"
 	}
 	if a.Kind == akSpell {
 		ka.Cost = cb.spellCost
@@ -1961,6 +1965,9 @@ func (cb *cardBuilder) staticFor(s lStatic) (kop.Ability, []uint8, error) {
 		ka.Static.GrantBody = uint8(j + 1)
 		return ka, nil, nil
 	}
+	if s.Kind == crewAltKind {
+		return cb.crewAltAbility(s) // static_crewalt.go
+	}
 	if s.Kind == "NumLoyaltyAct" {
 		return cb.numLoyaltyActStatic(s) // static_loyalty.go
 	}
@@ -2007,501 +2014,19 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		return ka, nil, err
 	}
 	st.OvGate = s.OvGate
-	// the prologue's closures are methods now (staticFilter, staticAmounts,
-	// staticTargets2 below), so the registered build arms (static_reg.go)
-	// and this switch share them
-	filter := cb.staticFilter
-	amounts := func(a, b lValue) error { return cb.staticAmounts(st, a, b) }
-	// targets2 lowers a cost static's ValidTarget$ spec (ReduceCost, RaiseCost)
-	// into Filter2 under StTargetsFilter2
-	targets2 := func() error { return cb.staticTargets2(st, s.F2) }
-	var add []uint8
-	// a registered build arm lowers through staticBuilds (static_reg.go);
-	// the arms still in the switch below fall through to it
-	if f, ok := staticBuilds[s.Kind]; ok {
-		add, err = f(cb, s, st)
-		return ka, add, err
-	}
-	switch s.Kind {
-	case "CDAPT":
-		st.Kind = kop.StatCDAPT
-		st.StFlags |= kop.StDynamic
-		if st.VA, err = cb.value(s.Power); err != nil {
-			return ka, nil, err
-		}
-		if st.VB, err = cb.value(s.Tough); err != nil {
-			return ka, nil, err
-		}
-	case "CantBeBeamedUp":
-		st.Kind = kop.StatCantBeBeamedUp
-		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
-			return ka, nil, err
-		}
-		for _, fl := range s.Flags {
-			if fl != "BeamGranted" {
-				return ka, nil, fmt.Errorf("CantBeBeamedUp flag %q", fl)
-			}
-			st.StFlags |= kop.StBeamGranted
-		}
-	case "BeamGrant":
-		st.Kind = kop.StatBeamGrant
-	case "FbGrant":
-		st.Kind = kop.StatFbGrant // kw_fbgrant.go
-		if st.Filter, err = filter(s.F, kop.ZoneGraveyard); err != nil {
-			return ka, nil, err
-		}
-		for _, fl := range s.Flags {
-			if fl != "OwnCost" {
-				return ka, nil, fmt.Errorf("FbGrant flag %q", fl)
-			}
-			st.StFlags |= kop.StFbOwnCost
-			if st.GrantCost, err = manaCostOf(s.Cost.Mana); err != nil {
-				return ka, nil, err
-			}
-		}
-	case "WarpGrant":
-		st.Kind = kop.StatWarpGrant // kw_warpgrant.go
-		if st.Filter, err = filter(s.F, kop.ZoneHand); err != nil {
-			return ka, nil, err
-		}
-		if st.GrantCost, err = manaCostOf(s.Cost.Mana); err != nil {
-			return ka, nil, err
-		}
-	case "ColorWords":
-		st.Kind = kop.StatColorWords // static_colorwords.go: no filter, no zone; the stall rule reads the live sources
-	case "GraveNoAbilities":
-		if err = cb.graveNoAbilities(st, s); err != nil { // lower_offzone_abilityloss.go
-			return ka, nil, err
-		}
-	case "MiracleGrant":
-		st.Kind = kop.StatMiracleGrant // kw_miracle.go
-		if st.Filter, err = filter(s.F, kop.ZoneHand); err != nil {
-			return ka, nil, err
-		}
-		st.Zone = kop.ZoneHand
-		st.CardCostLess = uint8(s.CardCostLess)
-		if st.GrantCost, err = manaCostOf(s.Cost.Mana); err != nil {
-			return ka, nil, err
-		}
-	case "EscapeGrant":
-		// an AffectedZone$ Graveyard AddKeyword$ Escape static: each matching
-		// card in its controller's graveyard has escape at its mana cost plus
-		// N other cards from the same graveyard (kop.StatEscapeGrant;
-		// kw_escape.go; CR 702.42a; Underworld Breach). Filter is the affected
-		// cards; the ability's own Cost is the fodder part, as an
-		// AlternativeCost static's is: CostExileGrave of N cards matching
-		// Cost.Filter (the grant's ExileFromGrave spec), a table cost the
-		// kernel's cost builder returns in place. The mana part is the card's
-		// own cost, priced at the offer like any spell's.
-		st.Kind = kop.StatEscapeGrant // kw_escape.go
-		if st.Filter, err = filter(s.F, kop.ZoneGraveyard); err != nil {
-			return ka, nil, err
-		}
-		if s.Cost.ExileG == nil || s.Cost.ExileGN < 1 || s.Cost.ExileGN > 15 {
-			return ka, nil, fmt.Errorf("escape grant without an exile cost")
-		}
-		if ka.Cost, err = cb.cost(s.Cost); err != nil {
-			return ka, nil, err
-		}
-		if ka.Cost.Flags != kop.CostExileGrave || ka.Cost.Mana != (kop.ManaCost{}) {
-			return ka, nil, fmt.Errorf("escape grant cost beside its exile part")
-		}
-	case "TapExtra":
-		st.Kind = kop.StatTapExtra
-		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
-			return ka, nil, err
-		}
-		if s.Zone == zCommand {
-			st.Zone = kop.ZoneCommand // a Vanguard's command-zone static (Sisay)
-		}
-		st.A, st.B = int16(s.TapCol), int16(s.TapAmt)
-		for _, fl := range s.Flags {
-			f, ok := tapExtraFlag(fl)
-			if !ok {
-				return ka, nil, fmt.Errorf("tap extra flag %q", fl)
-			}
-			st.StFlags |= f
-		}
-		if s.Amount.Kind != 0 {
-			if st.VA, err = cb.value(s.Amount); err != nil {
-				return ka, nil, err
-			}
-			st.StFlags |= kop.StTapDynamic
-		}
-	case "CantPlayLand":
-		if err := cantPlayLandStatic(s, st); err != nil {
-			return ka, nil, err
-		}
-	case "CantBeActivated":
-		st.Kind = kop.StatCantActivate // lower_cantact.go
-		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
-			return ka, nil, err
-		}
-		for _, fl := range s.Flags {
-			switch fl {
-			case "ActivatorYou":
-				st.StFlags |= kop.StRaiseYou
-			case "ActivatorOpp":
-				st.StFlags |= kop.StRaiseOpp
-			case "SpareMana":
-				st.A |= 1
-			case "LoyaltyOnly":
-				st.A |= 2
-			case "NamedCard":
-				st.A |= kop.CantActNamed
-			default:
-				return ka, nil, fmt.Errorf("cant be activated flag %q", fl)
-			}
-		}
-	case "CantTgtGrave":
-		// Ground Seal's class (lower_canttarget.go): every card in every
-		// graveyard untargetable (kw_canttgtgrave.go). No operands.
-		st.Kind = kop.StatCantTgtGrave
-	case "CantTarget", "MustTarget":
-		st.Kind = targetStaticKind(s.Kind) // lower_canttarget.go, static_musttarget.go
-		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
-			return ka, nil, err
-		}
-		if st.Filter2, err = filter(s.F2, kop.ZoneBattlefield); err != nil {
-			return ka, nil, err
-		}
-		for _, fl := range s.Flags {
-			switch fl {
-			case "ActivatorYou":
-				st.StFlags |= kop.StRaiseYou
-			case "ActivatorOpp":
-				st.StFlags |= kop.StRaiseOpp
-			case "SASpell":
-				st.A |= kop.CantTgtSpell
-			case "SAActivated":
-				st.A |= kop.CantTgtActivated
-			case "SATriggered":
-				st.A |= kop.CantTgtTriggered
-			default:
-				return ka, nil, fmt.Errorf("cant target flag %q", fl)
-			}
-		}
-	case "RaiseCost":
-		st.Kind = kop.StatIncreaseCost
-		if st.Filter, err = filter(s.F, kop.ZoneStack); err != nil {
-			return ka, nil, err
-		}
-		if err := targets2(); err != nil {
-			return ka, nil, err
-		}
-		if err := amounts(s.Amount, lValue{}); err != nil {
-			return ka, nil, err
-		}
-		if err := raiseCostStFlags(s, st); err != nil {
-			return ka, nil, err
-		}
-		if s.Zone == zAny {
-			st.Zone = kop.ZoneCommand
-		} else if s.Zone == zStack {
-			st.Zone = kop.ZoneStack // the spell's own stack-zone raise (lower_raisecost.go)
-		}
-	case "CantBlock":
-		st.Kind = kop.StatCantBlock
-		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
-			return ka, nil, err
-		}
-	case "Lure":
-		st.Kind = kop.StatLure // combat_lure.go isLure
-		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
-			return ka, nil, err
-		}
-	case "CantPhaseIn":
-		st.Kind = kop.StatCantPhaseIn // kw_phasing.go phaseBlocked
-	case "CantSacrifice":
-		st.Kind = kop.StatCantSacrifice // static_cantsacrifice.go
-		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
-			return ka, nil, err
-		}
-	case "CantPutCounter":
-		st.Kind = kop.StatCantPutCounter
-		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
-			return ka, nil, err
-		}
-		st.A = s.Ctr
-	case "UntapOtherPlayer":
-		st.Kind = kop.StatUntapOther
-		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
-			return ka, nil, err
-		}
-	case "CantGainLife":
-		st.Kind = kop.StatCantGainLife
-		if err := banOppFlag(s.Flags, st); err != nil {
-			return ka, nil, err
-		}
-	case "ActivateAbilityAsIfHaste":
-		st.Kind = kop.StatAsIfHaste // static_asifhaste.go
-		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
-			return ka, nil, err
-		}
-	case "CantBeSuspected":
-		st.Kind = kop.StatCantBeSuspected // act_suspect.go suspectOne
-		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
-			return ka, nil, err
-		}
-	case "ManaConvert":
-		st.Kind, st.Filter, err = cb.manaConvertOp(s) // lower_manaconvert.go (err is returned below)
-	case "CantDraw":
-		st.Kind = kop.StatCantDraw
-		if err := banOppFlag(s.Flags, st); err != nil {
-			return ka, nil, err
-		}
-		if s.Amount.Kind != vNone {
-			// DrawLimit$ N as N+1 (static_restrict.go; kernel playerBanned)
-			if !s.Amount.isConst() || s.Amount.N < 1 || s.Amount.N > 255 {
-				return ka, nil, fmt.Errorf("CantDraw limit %v", s.Amount)
-			}
-			st.A = int16(s.Amount.N)
-		}
-	case "CantPreventDamage":
-		st.Kind = kop.StatCantPreventDamage // static_cantprevent.go
-		for _, fl := range s.Flags {
-			switch fl {
-			case "NoPrevCombat":
-				st.StFlags |= kop.StNoPrevCombat
-			case "NoPrevSpellSelf":
-				st.StFlags |= kop.StNoPrevSpellSelf
-			default:
-				return ka, nil, fmt.Errorf("CantPreventDamage flag %q", fl)
-			}
-		}
-	case "MinMaxBlocker":
-		st.Kind = kop.StatMaxBlockers
-		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
-			return ka, nil, err
-		}
-	case "CombatDamageToughness":
-		return ka, nil, cb.combatAmountFilter(st, kop.StatCombatDmgToughness, s.F)
-	case "AssignNoCombatDamage":
-		return ka, nil, cb.combatAmountFilter(st, kop.StatNoCombatDamage, s.F)
-	case "AssignCombatDamageAsUnblocked":
-		// the as-unblocked election's static (CR 510.1c): the filter reads its
-		// creature on the battlefield, and the kernel asks the creature's
-		// controller the election in the combat damage step (combat_asgngrant.go)
-		return ka, nil, cb.combatAmountFilter(st, kop.StatAssignCombatDamageAsUnblocked, s.F)
-	case "DisableTriggers":
-		st.Kind = kop.StatDisableETB
-		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
-			return ka, nil, err
-		}
-	case "LethalByPower":
-		st.Kind = kop.StatLethalByPower // static_lethalbypower.go
-		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
-			return ka, nil, err
-		}
-	case "ProtYourColors":
-		st.Kind = kop.StatProtYourColors // kw_protyours.go
-		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
-			return ka, nil, err
-		}
-	case "HexproofOwnColors":
-		st.Kind = kop.StatHexproofOwnColors
-		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
-			return ka, nil, err
-		}
-	case "CantBlockBy":
-		st.Kind = kop.StatCantBlockBy
-		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
-			return ka, nil, err
-		}
-		if st.Filter2, err = filter(s.F2, kop.ZoneBattlefield); err != nil {
-			return ka, nil, err
-		}
-		st.PwVsSrc = s.PwVsSrc
-	case "CantAttack":
-		st.Kind = kop.StatCantAttack
-		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
-			return ka, nil, err
-		}
-		if err := atkScopeBits(st, "CantAttack", s.Flags); err != nil {
-			return ka, nil, err
-		}
-	case "CantAttackUnless":
-		st.Kind = kop.StatAttackTax // lower_attacktax.go
-		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
-			return ka, nil, err
-		}
-		if err := amounts(s.Amount, lValue{}); err != nil {
-			return ka, nil, err
-		}
-		if err := atkScopeBits(st, "CantAttackUnless", s.Flags); err != nil {
-			return ka, nil, err
-		}
-	case "CantBlockUnless":
-		st.Kind = kop.StatBlockTax // lower_blocktax.go
-		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
-			return ka, nil, err
-		}
-		if s.F2 != nil {
-			if st.Filter2, err = filter(s.F2, kop.ZoneBattlefield); err != nil {
-				return ka, nil, err
-			}
-		}
-		if err := amounts(s.Amount, lValue{}); err != nil {
-			return ka, nil, err
-		}
-	case "OffZonePT":
-		// AffectedZone$ All P/T grant (lower_offzonept.go): a marker the
-		// kernel's off-battlefield P/T readers stall on (static_offzonept.go)
-		st.Kind = kop.StatOffZonePT
-		if err := amounts(s.Power, s.Tough); err != nil {
-			return ka, nil, err
-		}
-	case "CanAttackIfHaste":
-		st.Kind = kop.StatCanAttackIfHaste // static_canattackifhaste.go
-		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
-			return ka, nil, err
-		}
-		for _, fl := range s.Flags {
-			if fl != "OppDef" {
-				return ka, nil, fmt.Errorf("CanAttackIfHaste flag %q", fl)
-			}
-			st.StFlags |= kop.StHasteOppDef
-		}
-	case "ExtraBlock":
-		st.Kind = kop.StatExtraBlock // combat_extrablock.go blockCap
-		st.A = int16(s.BlockAmount)  // kop.ExtraBlocksAny: combat_blockany.go
-		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
-			return ka, nil, err
-		}
-	case "CanAttackDefender":
-		st.Kind = kop.StatCanAttackDefender
-		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
-			return ka, nil, err
-		}
-	case "MustAttack":
-		if err := mustAttackStatic(s, st, filter); err != nil {
-			return ka, nil, err
-		}
-	case "AttackRequirement":
-		// the whole-declaration closure (War's Toll): Filter is the members
-		// ValidCard$ binds, Filter2 the ValidAttacker$ creatures whose
-		// attacking turns the requirement on (dirac/combat_attackrequirement.go)
-		st.Kind = kop.StatAttackRequirement
-		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
-			return ka, nil, err
-		}
-		if st.Filter2, err = filter(s.F2, kop.ZoneBattlefield); err != nil {
-			return ka, nil, err
-		}
-	case "Goad":
-		st.Kind = kop.StatGoad // lower_trigger.go's Continuous Goad$ True
-		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
-			return ka, nil, err
-		}
-	case "CastWithFlash":
-		st.Kind = kop.StatCastWithFlash
-		st.StFlags |= s.flashCasterFlag()
-		if st.Filter, err = filter(s.F, kop.ZoneHand); err != nil {
-			return ka, nil, err
-		}
-		if st.Filter2, err = filter(s.F2, kop.ZoneStack); err != nil { // an emblem's ForgetOnCast$ (lower_effectemblem.go)
-			return ka, nil, err
-		}
-	case "CyclingAlt":
-		st.Kind = kop.StatCyclingAlt // static_cyclingalt.go: the gate is Cond2, the cost the twin's (build_cyclingalt.go)
-	case "AlternativeCost":
-		st.Kind = kop.StatAlternativeCost
-		if ka.Cost, err = cb.cost(s.Cost); err != nil {
-			return ka, nil, err
-		}
-		if ka.Cost.Flags&(kop.CostForage|kop.CostExileGrave) != 0 && !cb.altHandExileOK(&ka.Cost) {
-			if altHandExileShape(&ka.Cost) {
-				// the hand-exile shape lowers (the Force cycle); the card
-				// carries no alternative-cost cast (altSacOK: a spell
-				// ability with a non-mana cost, an either-or or printed
-				// additional cost)
-				return ka, nil, fmt.Errorf("alternative cost with an exile-from-hand part on a card the kernel offers no alternative cast for")
-			}
-			return ka, nil, fmt.Errorf("alternative cost with a forage / exile-from-graveyard part")
-		}
-		// a sacrifice (alone or with life), a return, a hand exile, a
-		// discard, life alone or taps: the kernel's altPickCost picks, now
-		// with the mana part beside them too (a Borderpost's {1} plus a
-		// Return, Sephara's {W} plus taps; prepAltFree)
-		sacAlt := altPickShape(&ka.Cost) && cb.altSacOK(&ka.Cost)
-		if !sacAlt && (ka.Cost.Flags != 0 || ka.Cost.N != 0 || ka.Cost.Mana.X != 0) {
-			// the kernel offers a mana-only alternative cost
-			// (prepAltFree); a part the pick stages cannot carry would
-			// never be offered
-			return ka, nil, fmt.Errorf("alternative cost with a non-mana part (the kernel offers mana-only alternatives)")
-		}
-	case "ExtraLandPlay":
-		st.Kind = kop.StatExtraLandPlay
-		if err := amounts(s.Amount, lValue{}); err != nil {
-			return ka, nil, err
-		}
-	case "PlayerHexproof":
-		st.Kind = kop.StatPlayerHexproof
-		switch {
-		case s.Amount.Kind == vNone:
-		case s.Amount.isConst() && s.Amount.N == 1:
-			st.A = 1 // also protection from each opponent
-		default:
-			return ka, nil, fmt.Errorf("PlayerHexproof amount %v", s.Amount)
-		}
-	case "PlayerShroud":
-		// "You have shroud" (Ivory Mask, True Believer, Solitary
-		// Confinement): A == 2 is the shroud read, the symmetric one of the
-		// A == 1 protection bit (kernel static_playerstats.go playerShroud;
-		// gorge playerShroudBlocksTarget). The static is unconditional: a
-		// conditioned grant is refused at the lowering (the kernel's reader
-		// consults no Cond2).
-		if s.Cond.Kind != cNone || s.Amount.Kind != vNone {
-			return ka, nil, fmt.Errorf("PlayerShroud beside %s", s.Cond)
-		}
-		st.Kind = kop.StatPlayerHexproof
-		st.A = 2
-	case "DefenderAssigns":
-		// Defensive Formation (lower_playerstatic.go): unconditional, as the
-		// kernel read (static_plkeyword.go) consults no Cond2
-		if s.Cond.Kind != cNone || s.Amount.Kind != vNone {
-			return ka, nil, fmt.Errorf("DefenderAssigns beside %s", s.Cond)
-		}
-		st.Kind = kop.StatDefenderAssigns
-	case "PlayerProtAll":
-		st.Kind = kop.StatPlayerProtAll // the controller has protection from everything (static_plprot.go)
-	case "Control":
-		st.Kind = kop.StatControl
-		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
-			return ka, nil, err
-		}
-	case "Panharmonicon":
-		st.Kind = kop.StatPanharmonicon
-		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
-			return ka, nil, err
-		}
-		if err = panharmoniconFlags(st, s.Flags); err != nil {
-			return ka, nil, err
-		}
-		if s.F2 != nil {
-			// ValidCause$ (the entering permanent): kop.StPanhETB; the dies
-			// form (A == PanhModeDies) reads Filter2 as the dying permanent
-			if st.A != kop.PanhModeDies {
-				st.StFlags |= kop.StPanhETB
-			}
-			if st.Filter2, err = filter(s.F2, kop.ZoneBattlefield); err != nil {
-				return ka, nil, err
-			}
-		}
-	case "StackKw":
-		// AffectedZone$ Stack keyword grant (lower_stackkw.go)
-		if err := cb.stackKwStatic(st, s); err != nil {
-			return ka, nil, err
-		}
-	default:
+	// every Mode$ is a registered build arm (static_reg.go, static_arms_*.go,
+	// static_<mode>.go); the shared prologue above is all they inherit
+	f, ok := staticBuilds[s.Kind]
+	if !ok {
 		return ka, nil, fmt.Errorf("static kind %s", s.Kind)
 	}
+	add, err := f(cb, s, &ka)
 	return ka, add, err
 }
 
 // staticFilter is the shared prologue's filter read of (*cardBuilder).static:
-// a nil filter builds nothing (static_reg.go's registered arms and the
-// unregistered switch share it).
+// a nil filter builds nothing (every registered static build arm shares
+// it).
 func (cb *cardBuilder) staticFilter(f *lFilter, zone kop.Zone) (kop.FilterID, error) {
 	if f == nil {
 		return 0, nil
@@ -2892,11 +2417,6 @@ func (cb *cardBuilder) replRewrite(r lRepl, rp *kop.Repl) (err error) {
 func (cb *cardBuilder) prog(p []lInstr) ([]kop.Instr, error) {
 	if len(p) == 0 {
 		return nil, nil
-	}
-	if kvDiscoverTailRefused(p) {
-		// The kernel runs a Discover's tail before the free cast; see
-		// value_modifiers.go and kernel-discover-freecast-order.
-		return nil, refuse("Discover free cast with a program tail (the kernel defers the cast past the tail)")
 	}
 	out := make([]kop.Instr, 0, len(p))
 	for i, in := range p {

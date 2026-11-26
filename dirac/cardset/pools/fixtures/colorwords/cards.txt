@@ -2,10 +2,19 @@
 # ChangeColorWordsTo$ ChosenColor over the spells and permanents), beside a
 # spell that reads a colour word (Doom Blade, nonblack), a permanent that does
 # (Northern Paladin, "target black permanent") and cards that read none, to be
-# cast and to be its targets (dirac/oracle/colorwords_lockstep_test.go).
+# cast and to be its targets (dirac/oracle/colorwords_lockstep_test.go). White
+# Knight carries a printed Protection from black, the keyword the model
+# rewrites; Herald of Kozilek a Colorless cost reducer, a colour mask no colour
+# word names, which a live Swirl must leave as printed
+# (dirac/oracle/colorwords_masks_lockstep_test.go). Raging Ravine carries an
+# Animate activation's word-list Colors$ Red,Green, whose override record reads
+# the colour-word colour frozen at its activation
+# (dirac/static_colorwords.go ovCw); Mountain and Forest pay its {R}{G}.
 Swirl the Mists
 Doom Blade
 Northern Paladin
+White Knight
+Herald of Kozilek
 Grizzly Bears
 Hill Giant
 Island
@@ -13,3 +22,4 @@ Swamp
 Plains
 Mountain
 Forest
+Raging Ravine

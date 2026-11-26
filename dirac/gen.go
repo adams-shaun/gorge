@@ -262,6 +262,7 @@ type genPrep struct {
 	anyCantSac      bool           // some card has a StatCantSacrifice (static_cantsacrifice.go sacBlocked)
 	anyCantTgt      bool           // some card has a StatCantTarget (tgt_canttarget.go cantTargetGen)
 	anyCantTgtGrave bool           // some card has a StatCantTgtGrave (kw_canttgtgrave.go)
+	anyOffZoneChar  bool           // some StatOffZoneGrant carries an Override (static_offzonechars.go)
 	anyFaces        bool           // some card has faces (CardDef.Faces; face_multiface.go)
 	anyWarp         bool           // some card has warp (CardDef.HasWarp; kw_warp.go)
 	anyDash         bool           // some card has dash (CardDef.HasDash; kw_dash.go)
@@ -391,6 +392,7 @@ type genPrep struct {
 	anySacX         bool           // some spell or ability costs an announced Sac<X/Spec> (CostSac with Cost.N 0; cost_sacx.go)
 	anyXMin         bool           // some spell or ability floors its announced X (Cost.XMin; cost_sacx.go)
 	anyCopyCast     bool           // some OpCastFree casts a copy (C bit 6; cast_copycast.go)
+	anyCipher       bool           // some spell encodes (Ext CipherEncode; kw_cipher.go)
 	anyExileGrant   bool           // some program holds an ExtGrantExile (cast_exilegrant.go)
 	anyNumTimes     bool           // some ability announces a pay-N-times count (Ext NumTimes; cast_announcetimes.go)
 	anyExHaste      bool           // some ability can't be blocked except by creatures with haste (Ext ExHaste; static_cantblockexcept.go)
@@ -889,6 +891,12 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		replBits2:   make([]uint32, len(t.Cards)),
 		uses:        tableUses(t), // genneed.go
 	}
+	if g.uses.has(useKickAlt) {
+		// the two-alternative Kicker's selection byte shares the multikicker
+		// count's per-object region (filter_kickedalt.go): one kicked family
+		// per card, so the byte is never both
+		g.anyMultikick |= mkAny
+	}
 	g.anySnow = tableAnySnow(t) // the pool's snow tally (mana_snow.go)
 	for i := range t.Cards {
 		// the printed K:Prevent facts (dirac/kgen/lower_preventkw.go)
@@ -1004,6 +1012,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepCharmPick(t, g)
 	prepPermCopy(t, g)
 	prepCopyCast(t, g)
+	prepCipher(t, g)     // kw_cipher.go
 	prepExileGrant(t, g) // cast_exilegrant.go
 	prepWaterbend(t, g)
 	prepCostEvidence(t, g)
@@ -1119,8 +1128,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 			}
 		}
 	}
-	prepHexOwn(t, g)      // kw_hexproofcolor.go
-	prepEmblemCasts(t, p) // cast_selfflash.go
+	prepHexOwn(t, g)                     // kw_hexproofcolor.go
+	prepEmblemCasts(t, p)                // cast_selfflash.go
+	p.anyEmbAltCost = tableEmbAltCost(t) // cast_embaltcost.go
 	for i := range t.Cards {
 		c := &t.Cards[i]
 		pc := &p.cards[i]
@@ -1531,6 +1541,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 				case kop.StatEscapeGrant:
 					g.anyEscapeGrant = true
 					pc.hasStat = true // scanned through statM (kw_escape.go)
+				case kop.StatMadnessGrant:
+					g.anyMadness = true // a granted madness exiles the discard too (kw_madness.go)
+					pc.hasStat = true   // scanned through statM
 				case kop.StatMiracleGrant:
 					g.anyMiracle = true // a granted miracle queues the draw trigger too (kw_miracle.go)
 					pc.hasStat = true   // scanned through statM
