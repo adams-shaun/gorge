@@ -54,6 +54,8 @@ func (s *State) flashbackReachable(k *prep, p uint8, c CardID, o Obj, fc kop.Man
 
 // flashbackSearchNodes is gorge's potentialScriptNodes: the distinct tap states
 // one prefix search may visit.
+//
+//lockstep:const engine/rules.potentialScriptNodes
 const flashbackSearchNodes = potentialScriptNodes
 
 // flashbackSearchExhausts reports whether the ways to pick the taps that pay fc

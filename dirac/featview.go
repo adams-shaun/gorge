@@ -400,7 +400,6 @@ func (s *State) FeatPoolPaysPlus(p uint8, o Obj, mode uint8, extra *[6]int32) bo
 // cast under the rider, CR 609.4b).
 func (s *State) featPoolPays(p uint8, o Obj, mode uint8, extra *[6]int32, anyColor bool) bool {
 	k := s.k()
-	pl := &s.pl[SeatIx(p)]
 	a := s.poolAvailPlus(p, extra)
 	c := s.objs[o].card
 	if s.rbAny(p) {
@@ -443,24 +442,11 @@ func (s *State) featPoolPays(p uint8, o Obj, mode uint8, extra *[6]int32, anyCol
 	if mode&2 != 0 && k.t.Cards[c].Harmonize {
 		cost = s.harmonizeCredit(k, SeatIx(p), cost) // gorge harmonizePayment prices the offer after the reductions
 	}
-	if cd := &k.t.Cards[c]; cd.HasAltAdd && mode&2 == 0 {
-		pre := cost
-		// gorge's gate is existential over the either-or parts: one whose
-		// picks can be paid and whose mana the pool pays with the spell's
-		ac := spellAddCost(k, c)
-		if s.pickCostPayable(k, SeatIx(p), ac, o) && (ac.Flags&kop.CostDiscard == 0 || int(pl.handN)-s.inHandN(o) >= discardCount(ac)) && s.beholdPayable(k, SeatIx(p), c, o) {
-			t := addCost(pre, ac.Mana)
-			if a.delve == 0 || !tb { // the faces took the credit (tb: adjustFit priced them)
-				t = s.delveOfferCredit(k, SeatIx(p), c, o, true, t)
-			}
-			if a.affords(&t, pipMaskOf(&t), 0) {
-				return true
-			}
+	if k.t.Cards[c].HasAltAdd && mode&2 == 0 {
+		var verdict, done bool
+		if cost, verdict, done = s.featAltAddPays(k, p, o, c, &a, tb, cost); done {
+			return verdict
 		}
-		if !s.pickCostPayable(k, SeatIx(p), &cd.AltAddCost, o) {
-			return false
-		}
-		cost = addCost(cost, cd.AltAddCost.Mana)
 	}
 	if mode&4 == 0 && (a.delve == 0 || !tb) {
 		cost = s.delveOfferCredit(k, SeatIx(p), c, o, mode&2 == 0, cost)
@@ -480,6 +466,49 @@ func (s *State) featPoolPays(p uint8, o Obj, mode uint8, extra *[6]int32, anyCol
 		return a.affordsAnyColor(&cost, 0) // the credited composed cost, as offerPlay's pool half reads it
 	}
 	return a.affords(&cost, pipMaskOf(&cost), 0)
+}
+
+// featAltAddPays is featPoolPays's either-or additional-cost gate (a card
+// with HasAltAdd, cast other than by flashback). gorge's gate is existential
+// over the parts: done reports that the offer is decided (verdict) because
+// one part whose picks can be paid has mana the pool pays with the spell's;
+// otherwise cost is the cost with the payable second part's mana joined (CR
+// 601.2f), or done with a false verdict when no part's picks are payable.
+func (s *State) featAltAddPays(k *prep, p uint8, o Obj, c CardID, a *avail, tb bool, cost kop.ManaCost) (kop.ManaCost, bool, bool) {
+	cd := &k.t.Cards[c]
+	pl := &s.pl[SeatIx(p)]
+	// one whose picks can be paid and whose mana the pool pays with the spell's
+	ac := spellAddCost(k, c)
+	if s.pickCostPayable(k, SeatIx(p), ac, o) && (ac.Flags&kop.CostDiscard == 0 || int(pl.handN)-s.inHandN(o) >= discardCount(ac)) && s.beholdPayable(k, SeatIx(p), c, o) &&
+		s.altAddPartAffords(k, p, o, c, a, tb, cost, ac.Mana) {
+		return cost, true, true
+	}
+	if !s.pickCostPayable(k, SeatIx(p), &cd.AltAddCost, o) {
+		if cd.AltAddCost2 == (kop.Cost{}) || !s.pickCostPayable(k, SeatIx(p), &cd.AltAddCost2, o) {
+			return cost, false, true
+		}
+		return addCost(cost, cd.AltAddCost2.Mana), false, false // the either-or's third part (Dusk Mangler)
+	}
+	// The gate is existential over the parts: the second part's picks are
+	// payable, so the third part's own mana is an alternative the offer must
+	// try beside it (its picks payable too, its mana joining the spell's the
+	// same way, CR 601.2f), as the part-0 block above tries the spell's own cost.
+	if cd.AltAddCost2 != (kop.Cost{}) && s.pickCostPayable(k, SeatIx(p), &cd.AltAddCost2, o) &&
+		s.altAddPartAffords(k, p, o, c, a, tb, cost, cd.AltAddCost2.Mana) {
+		return cost, true, true
+	}
+	return addCost(cost, cd.AltAddCost.Mana), false, false
+}
+
+// altAddPartAffords is whether the pool pays pre plus one either-or part's
+// mana, the delve credit applied unless the faces took it (tb: adjustFit
+// priced them).
+func (s *State) altAddPartAffords(k *prep, p uint8, o Obj, c CardID, a *avail, tb bool, pre kop.ManaCost, part kop.ManaCost) bool {
+	t := addCost(pre, part)
+	if a.delve == 0 || !tb {
+		t = s.delveOfferCredit(k, SeatIx(p), c, o, true, t)
+	}
+	return a.affords(&t, pipMaskOf(&t), 0)
 }
 
 // poolAvailPlus is p's floating pool plus extra as an avail.
@@ -860,6 +889,9 @@ func (s *State) FeatAltAddMana(p uint8, o Obj) (kop.ManaCost, bool) {
 	part := spellAddCost(k, c)
 	if manaEmpty(&part.Mana) {
 		part = &cd.AltAddCost
+		if manaEmpty(&part.Mana) && cd.AltAddCost2 != (kop.Cost{}) {
+			part = &cd.AltAddCost2
+		}
 	}
 	if !s.pickCostPayable(k, p, part, o) {
 		return kop.ManaCost{}, false

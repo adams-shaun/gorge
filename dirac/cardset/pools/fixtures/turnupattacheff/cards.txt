@@ -1,0 +1,25 @@
+# the effect turn-up pool: Gift of Doom (the turn-up attach replacement,
+# dirac/face_turnupattach.go) turned up by an effect -- Break Open's targeted
+# SetState (ExtTurnFaceUp C 0) and Zimone's pick (C 1) -- beside the face-down
+# creatures that must NOT pose its election (Manifest Dread / Soul Summons
+# manifests, Bubble Smuggler cast face down) and the turn-up replacement
+# carriers that set the table's turn-up flag without holding it (Karlov
+# Watchdog, Bubble Smuggler); the Moxen float the mana, the ramp feeds
+# Zimone's landfall (dirac/oracle/turnupattach_effect_test.go)
+Gift of Doom
+Break Open
+Zimone, Mystery Unraveler
+Karlov Watchdog
+Bubble Smuggler
+Manifest Dread
+Soul Summons
+Memnite
+Rampant Growth
+Evolving Wilds
+Mox Emerald
+Mox Ruby
+Mox Pearl
+Mox Sapphire
+Forest
+Island
+Mountain
