@@ -120,6 +120,11 @@ const (
 	// keeps no last known attachment. Paralyze's upkeep "that player may pay
 	// {4}" trigger left on the stack by a departed Paralyze has no payer.
 	RefEnchantedCtrl Ref = 44
+	// RefPlanarDeck is the seat's planar deck (CR 901): OpDigUntil's W names
+	// the planar arm (DigZone$ PlanarDeck, lower_zone.go digUntil) -- the scan
+	// digs the planar record's face-down remainder and both placements land on
+	// its bottom (zone_digplanar.go). No other op reads it.
+	RefPlanarDeck Ref = 45
 )
 
 // RefTgtCtrl1 / RefTgtCtrl2 are RefTargetController for target slot 1 / 2
