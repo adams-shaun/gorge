@@ -162,21 +162,7 @@ var kstaticzonesOffspring = [2][]cardset.Entry{
 		{Name: "Sol Ring", Count: 2}, {Name: "Mind Stone", Count: 2},
 		{Name: "Island", Count: 5}, {Name: "Mountain", Count: 5}, {Name: "Plains", Count: 5}, {Name: "Forest", Count: 7},
 	},
-	// the slice's baseline second deck, not the shared pool's kstaticzonesDecks[1]:
-	// Squee, the Immortal and Defensive Formation stay out of this pool. With
-	// them in, seed 158's trajectories reach a window this pool must not gate
-	// its count on until the ticket lands: Swords to Plowshares exiles the
-	// offspring-cast Grizzly Bears while its granted offspring trigger is
-	// still pending, and the kernel mints the 1/1 copy (seed 158, decision
-	// 156) where gorge holds the trigger on the stack
-	// (dirac-granted-offspring-exile-window).
-	{
-		{Name: "Lightning Bolt", Count: 4}, {Name: "Shock", Count: 4}, {Name: "Swords to Plowshares", Count: 3}, {Name: "Giant Growth", Count: 3},
-		{Name: "Grizzly Bears", Count: 3}, {Name: "Dragon's Rage Channeler", Count: 2}, {Name: "Spire Serpent", Count: 2},
-		{Name: "Case of the Locked Hothouse", Count: 2},
-		{Name: "True Believer", Count: 2}, {Name: "Trusted Advisor", Count: 2},
-		{Name: "Plains", Count: 5}, {Name: "Island", Count: 3}, {Name: "Mountain", Count: 5},
-	},
+	kstaticzonesDecks[1],
 }
 
 // offStats tallies the offspring pool's exercise: an offspring cast (the
@@ -305,5 +291,156 @@ func TestStaticZonesStackKwMutation(t *testing.T) {
 	}
 	if diverged, _ := staticZonesOffspringRun(t, 64, false); !diverged {
 		t.Fatal("DebugStackKwOff: no divergence in 64 seeds of the offspring pool")
+	}
+	if diverged, _, _ := staticZonesOffExileRun(t, 64, false); !diverged {
+		t.Fatal("DebugStackKwOff: no divergence in 64 seeds of the offspring source-exile pair")
+	}
+	if diverged, _ := staticZonesRippleRun(t, 64, false); !diverged {
+		t.Fatal("DebugStackKwOff: no divergence in 64 seeds of the ripple pool")
+	}
+}
+
+// kstaticzonesOffExile: Zinnia over green Bears and the lands for a granted
+// offspring cast, against Swords to Plowshares. The policy casts offspring
+// Bears and answers each paid Bears on a battlefield with Swords, so the
+// granted offspring trigger and the exile of its source meet in both engines.
+var kstaticzonesOffExile = [2][]cardset.Entry{
+	{{Name: "Zinnia, Valley's Voice", Count: 4}, {Name: "Grizzly Bears", Count: 6},
+		{Name: "Plains", Count: 8}, {Name: "Island", Count: 6}, {Name: "Mountain", Count: 6}, {Name: "Forest", Count: 10}},
+	{{Name: "Swords to Plowshares", Count: 4},
+		{Name: "Plains", Count: 20}, {Name: "Island", Count: 8}, {Name: "Forest", Count: 8}},
+}
+
+// offPaidBears reports whether the gorge object is an offspring-paid Grizzly
+// Bears on a battlefield.
+func offPaidBears(g *state.Game, id state.ObjID) bool {
+	o := g.Obj(id)
+	return o != nil && o.Zone == state.ZBattlefield && o.OffspringPaid && o.Face() != nil && o.Face().Name == "Grizzly Bears"
+}
+
+// offPaidBearsInPlay reports an offspring-paid Grizzly Bears on any battlefield.
+func offPaidBearsInPlay(g *state.Game) bool {
+	for p := state.PlayerID(0); int(p) < len(g.Players); p++ {
+		for _, id := range g.Zone(state.ZBattlefield, p) {
+			if offPaidBears(g, id) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// offBearsExiled reports a Grizzly Bears in either exile zone.
+func offBearsExiled(g *state.Game) bool {
+	for p := state.PlayerID(0); int(p) < len(g.Players); p++ {
+		for _, id := range g.Zone(state.ZExile, p) {
+			if o := g.Obj(id); o != nil && o.Face() != nil && o.Face().Name == "Grizzly Bears" {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// staticZonesOffExileRun plays seeds 1..seeds of the source-exile pair and
+// returns whether a game diverged, the Swords casts aimed at an
+// offspring-paid Bears and the seeds that minted a token copy.
+func staticZonesOffExileRun(t *testing.T, seeds uint64, report bool) (diverged bool, exiles, tokenSeeds int) {
+	t.Helper()
+	reg, set, gd := lockstepPool(t, "staticzones", kstaticzonesOffExile)
+	tbl, _, _, err := set.Matchup(kstaticzonesOffExile[0], kstaticzonesOffExile[1])
+	if err != nil {
+		t.Fatal(err)
+	}
+	offCode, _ := canon.CastModeCode("offspring")
+	for seed := uint64(1); seed <= seeds; seed++ {
+		cfg := Config{GorgeAutopaySurface: seed%2 == 0}
+		m, err := NewMatchup(reg, [2]string{"staticzones-a", "staticzones-b"}, gd, 1)
+		if err != nil {
+			t.Fatal(err)
+		}
+		k, err := SetSide(set, tbl, cfg)(m, seed)
+		if err != nil {
+			t.Fatal(err)
+		}
+		base := RandomPolicy(seed)
+		minted, seedExiles := false, 0
+		pol := PolicyFunc(func(c *PickCtx) Canon {
+			if c.G == nil {
+				return base.Pick(c)
+			}
+			g := c.G.E.G
+			if !minted {
+				minted = offTokens(g) > 0
+			}
+			switch c.D.Kind {
+			case DPriority:
+				if c.D.Player == 0 {
+					for _, x := range c.D.Options {
+						if x.Kind() == ActCast && x.Mode()&0xf == offCode && !offBearsExiled(g) {
+							return x
+						}
+					}
+					for _, x := range c.D.Options {
+						if x.Kind() == ActCast && refCardName(c.G, x.Src()) == "Zinnia, Valley's Voice" {
+							return x
+						}
+					}
+				} else {
+					for _, x := range c.D.Options {
+						if x.Kind() != ActCast || refCardName(c.G, x.Src()) != "Swords to Plowshares" {
+							continue
+						}
+						if offPaidBearsInPlay(g) {
+							return x
+						}
+					}
+				}
+			case DTarget:
+				for _, x := range c.D.Options {
+					if o, ok := c.G.GorgeOption(x); ok && x.Kind() == ActTarget && offPaidBears(g, o.Obj) {
+						seedExiles++
+						return x
+					}
+				}
+			}
+			return base.Pick(c)
+		})
+		res := Lockstep(m, seed, k, pol, RunConfig{Config: cfg, MaxDecisions: 2000, MaxTurns: 20})
+		CloseSide(k)
+		if res.Div != nil {
+			diverged = true
+			if report {
+				d := res.Div
+				lo := max(d.At-12, 0)
+				t.Logf("seed %d last actions %v", seed, actionStrings(res.Actions[lo:d.At]))
+				t.Errorf("seed %d: diverged at decision %d: %s %s %v %s\nref %v\nker %v", seed, d.At, d.What, d.Field, d.Diff, d.Detail, d.RefOptions, d.KerOptions)
+			}
+			return
+		}
+		exiles += seedExiles
+		if minted {
+			tokenSeeds++
+		}
+	}
+	return
+}
+
+// TestStaticZonesOffspringSourceExile: Swords to Plowshares exiles an
+// offspring-paid Grizzly Bears around its granted offspring trigger and both
+// engines agree on the copy (the granted trigger resolves at the enter in
+// gorge, so no priority window sits between the enter and the copy).
+func TestStaticZonesOffspringSourceExile(t *testing.T) {
+	t.Parallel()
+	div, exiles, tokens := staticZonesOffExileRun(t, 40, true)
+	if div {
+		return
+	}
+	t.Logf("paid-Bears exiles %d, seeds with a token copy %d", exiles, tokens)
+	if exiles < 1 {
+		t.Errorf("no Swords to Plowshares cast at an offspring-paid Grizzly Bears in 40 games")
+	}
+	if tokens < 1 {
+		t.Errorf("no offspring token copy in 40 games")
 	}
 }

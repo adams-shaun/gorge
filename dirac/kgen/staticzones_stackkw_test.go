@@ -17,6 +17,7 @@ var staticZonesStackKwCarriers = []struct {
 	face int // the face that carries the static (Peter Parker's back face, Amazing Spider-Man)
 }{
 	{"Cast Through Time", 0}, {"Peter Parker", 1}, {"Zinnia, Valley's Voice", 0},
+	{"Thrumming Stone", 0},
 }
 
 // lowerNamedFace lowers face i of the named corpus card (i > 0: the face

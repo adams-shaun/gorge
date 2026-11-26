@@ -75,6 +75,18 @@ import (
 //     (Static.GrantCost) and names the carrier's latent trigger (GrantBody);
 //     the CardManaCost placeholder, an X/hybrid/phyrexian cost, a gate, a
 //     cast-origin word and an EffectZone$ Stack self grant refuse.
+//   - Ripple:<n> lowers to Kind "StackKw" too (Thrumming Stone's "Spells you
+//     cast have ripple 4"): the cast trigger is kernel-native (kw_ripple.go),
+//     queued one per granting static instance as the spell is cast (gorge's
+//     checkGrantedRippleTriggers: one trigger per derived Ripple line past the
+//     printed ones, each instance separately, CR 702.60b), read with the
+//     in-flight cast hidden like Storm and Cascade. The count is fixed,
+//     1..127 in Static.B; the trigger carries it in trigAmt and the body reads
+//     it as it resolves. gorge reads a gate on the grant with the in-flight
+//     cast hidden too, but no corpus carrier has one, so a gate refuses by
+//     name; a printed K:Ripple has no lowering (no corpus card prints it in
+//     the standard sets), and the native body added here is what it would
+//     reuse.
 //   - Delve lowers to Kind "StackKw" too: the cast announces graveyard cards
 //     to exile toward its generic cost (CR 702.66a; kernel kw_delve.go), read
 //     as the spell is cast. A cast-from-hand restriction is legal; a printed
@@ -133,7 +145,7 @@ func (lc *lowerCtx) stackKwGrant(sp *params, st *lStatic, aff string) ([]lStatic
 		}
 	}
 	switch head {
-	case "Affinity", "Cascade", "Improvise", "Convoke", "Casualty", "Lifelink", "Storm", "Split second", "Conspire", "Delve", "Demonstrate", "Rebound", "Web-slinging", "Offspring":
+	case "Affinity", "Cascade", "Improvise", "Convoke", "Casualty", "Lifelink", "Storm", "Split second", "Conspire", "Delve", "Demonstrate", "Rebound", "Web-slinging", "Offspring", "Ripple":
 	default:
 		// The face-only grants stay refused by name (Replicate: Djinn
 		// Illuminatus, Hatchery Sliver, Hugh, Ian Chesterton, Threefold
@@ -157,7 +169,7 @@ func (lc *lowerCtx) stackKwGrant(sp *params, st *lStatic, aff string) ([]lStatic
 		// priority time, where the kernel has no cast-time carrier to match
 		// gorge's point in the cast.
 		switch head {
-		case "Improvise", "Convoke", "Lifelink", "Split second", "Rebound", "Web-slinging", "Offspring":
+		case "Improvise", "Convoke", "Lifelink", "Split second", "Rebound", "Web-slinging", "Offspring", "Ripple":
 			return nil, refuse("AffectedZone Stack %s grant with a condition", head)
 		}
 	}
@@ -229,6 +241,14 @@ func (lc *lowerCtx) stackKwGrant(sp *params, st *lStatic, aff string) ([]lStatic
 			}
 			one.GrantBody = j
 		case "Casualty":
+			if n, err := strconv.Atoi(p); err != nil || n < 1 || n > 127 || strconv.Itoa(n) != p {
+				return nil, refuse("AffectedZone Stack grant of %q", tok)
+			}
+			one.Kind = "StackKw"
+		case "Ripple":
+			// CR 702.60a: the count is fixed, 1..127 in Static.B
+			// (build_stackkw.go); the native trigger carries it in trigAmt
+			// and reads it as it resolves, like gorge's derived line (kw_ripple.go)
 			if n, err := strconv.Atoi(p); err != nil || n < 1 || n > 127 || strconv.Itoa(n) != p {
 				return nil, refuse("AffectedZone Stack grant of %q", tok)
 			}

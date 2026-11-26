@@ -252,6 +252,15 @@ func (s *State) resolveTop(k *prep) {
 			s.runProg(k)
 			return
 		}
+		if e.ab == abRipple {
+			// CR 603.5: the ripple trigger's OptionalDecider$ You may, asked
+			// as it resolves (gorge askOptionalAtResolution); a decline
+			// resolves nothing (applyAsk's raOptional finishResolve). The
+			// decider is the trigger's controller.
+			s.res.ask, s.res.askP = raOptional, e.ctrl
+			s.ctl = ctlResolve
+			return
+		}
 		if e.ab == abWard {
 			s.resolveWard(k)
 			return
@@ -340,7 +349,18 @@ func (s *State) finishResolve(k *prep, fizzled bool) {
 		s.ctl = ctlResolve // another held return parks its own ask (zone_untilleavesbatch.go)
 		return
 	}
-	s.sp-- // the resolving entry leaves the stack
+	if s.g.hold && s.res.active {
+		// resumeFreeCast kept the held copy in place under the casts (gorge's
+		// suspended resolution object leaves from where it sits, CR 608.2g):
+		// take it off there, not from the top.
+		if i := s.holdIndex(); i >= 0 {
+			copy(s.stack[i:s.sp], s.stack[i+1:s.sp])
+			s.sp--
+		}
+		s.g.hold = false
+	} else {
+		s.sp-- // the resolving entry leaves the stack
+	}
 	e := &s.res.e
 	if k.gen != nil && k.gen.anyRemPersist && remPersistKeeps(k, e) {
 		s.remPersistKeep(e) // zone_rememberpersist.go
@@ -560,6 +580,9 @@ func (s *State) prog(k *prep) []kop.Instr {
 				return demonstrateProg[:]
 			}
 			return stormProg[:]
+		}
+		if e.ab == abRipple {
+			return rippleProg[:] // the reveal + may-cast + bottom body (kw_ripple.go)
 		}
 		return nil
 	}
