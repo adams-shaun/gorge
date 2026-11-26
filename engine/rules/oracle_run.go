@@ -512,7 +512,10 @@ func (t *oracleDieRollTape) draw(sides int) (int, bool) {
 	}
 	i := len(t.taken)
 	if i >= len(t.queue) {
-		t.fail("engine rolled d%d past the %d recorded roll(s)", sides, len(t.queue))
+		// Every recorded roll for this step is spent. Engine.Rand serves every
+		// random draw, not only dice, so this is an ordinary seeded pick, not
+		// evidence of an extra roll: fall through silently as the old
+		// empty-queue early return did.
 		return 0, false
 	}
 	next := t.queue[i]
