@@ -1677,6 +1677,13 @@ func (lc *lowerCtx) countValue(rest string, depth int) (lValue, error) {
 		if strings.Contains(expr, "$") {
 			return lValue{}, fmt.Errorf("Count$%s: aggregate", rest)
 		}
+		if expr == "Card.IsTriggerRemembered" && zc.pre == "ValidExile " && lc.ab != nil && lc.ab.DelayedSetDmg {
+			// Dragonhawk's body count: the cards its delayed trigger
+			// remembered that are still in exile (lower_zone.go's
+			// DelayedSetDmg registration; value_delayedexile.go). The
+			// /Twice suffix applies as usual.
+			return lValue{Kind: vDelayedExileCount}, nil
+		}
 		f, own, err := lc.zoneCountFilter(zc.pre, expr) // value_filterheads.go
 		if err != nil {
 			return lValue{}, err
