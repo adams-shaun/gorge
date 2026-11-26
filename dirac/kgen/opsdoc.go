@@ -226,6 +226,7 @@ func opsUsage(pt *poolTables, all []*lCard, bs []built) map[string]map[string]bo
 				add("cost:ExileSelf", name)
 			}
 			usagePutLib(ab.Cost, name, add)
+			usageBlightX(ab.Cost, name, add)
 			if ab.Cost.ExileHand {
 				add("cost:ExileHand", name)
 			}
@@ -636,6 +637,7 @@ func opsUsage(pt *poolTables, all []*lCard, bs []built) map[string]map[string]bo
 		if d.SpellCost != (kop.Cost{}) {
 			add("card:SpellCost", name)
 			usageSacHalf(d.SpellCost, name, add)
+			usageCloseEnc(d.SpellCost, name, add)
 		}
 		if d.HasAltAdd {
 			add("card:AltAddCost", name)

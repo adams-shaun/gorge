@@ -28,6 +28,7 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8, tgt uint8) {
 		s.cold.mkObj[o] = 0 // a card cast again starts with no payments (CR 702.43; kw_multikicker.go)
 	}
 	s.clearPaidN(o)
+	s.clearKickAlt(o)
 	var fl uint8
 	if mode&1 != 0 { // seat-ok: a cast-mode bit
 		fl |= sfKicked
@@ -151,7 +152,7 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8, tgt uint8) {
 		// a miracle cast begun as its trigger resolves has no payment
 		// witness: gorge pays it through the mana window, and a cost the
 		// window cannot finish reverses the cast (kw_miracle.go)
-	} else if (fl&sfKicked != 0 || k.gen != nil && (k.gen.anySurge && s.bld().e.surged(k) || k.gen.anyCleave && s.bld().e.cleaved(k) || k.gen.anyBlitz() && s.bld().e.blitzed(k))) && k.t.Cards[c].Cost.X == 0 && k.t.Cards[c].OptWaterbend == 0 {
+	} else if (fl&sfKicked != 0 || k.gen != nil && (k.gen.anySurge && s.bld().e.surged(k) || k.gen.anyCleave && s.bld().e.cleaved(k) || k.gen.anyBlitz() && s.bld().e.blitzed(k))) && k.t.Cards[c].Cost.X == 0 && k.t.Cards[c].OptWaterbend == 0 && !kickerXCast(&k.t.Cards[c], fl) {
 		// (an optional waterbend cast taps nothing here: its window pays after
 		// the picks, manaStep's waterbendCastWindow, as gorge's convokeAsk
 		// precedes its manual window)
@@ -181,7 +182,7 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8, tgt uint8) {
 			cost = s.gateDelveCredit(k, p, c, o, ob.zone == kop.ZoneHand, cost)
 		}
 		s.tapFor(k, p, &cost, 0, NoObj)
-	} else if fl&sfKicked != 0 && k.t.Cards[c].Cost.X != 0 && !k.t.Cards[c].HasMultikicker && k.t.Cards[c].OptWaterbend == 0 {
+	} else if fl&sfKicked != 0 && (k.t.Cards[c].Cost.X != 0 || kickerXCast(&k.t.Cards[c], fl)) && !k.t.Cards[c].HasMultikicker && k.t.Cards[c].OptWaterbend == 0 {
 		// a kicked or buyback {X} cast is a potential play too (gorge's
 		// "kicked"/"buyback" mode): its witness is the composed cost at the
 		// largest X the sources pay (rules potentialModeCastPlan's binary
@@ -2852,6 +2853,9 @@ func (s *State) pickCostPayable(k *prep, p uint8, c *kop.Cost, exclude Obj) bool
 	if f&kop.CostTapX != 0 && s.countUntapped(k, p, c.Filter, NoSlot) < int(c.N) {
 		return false
 	}
+	if c.CloseEnc && s.chooseEncCands(k, p, nil) < 1 {
+		return false // the choose pick owes one candidate (cost_closeenc.go)
+	}
 	if f&kop.CostPayLife != 0 && int(s.pl[p].life) < lifeCostOwed(c) {
 		return false
 	}
@@ -3139,6 +3143,7 @@ func (s *State) announcedXBuilding(k *prep) bool {
 	return (g.anyLifeX && s.lifeXBuilding(k)) ||
 		(g.anySacX && s.sacXBuilding(k)) ||
 		(g.anyExileX && s.exileXBuilding(k)) ||
+		(g.anyBlightX && s.blightXBuilding(k)) ||
 		(g.uses.has(useEnergyX) && s.energyXBuilding(k)) ||
 		(g.uses.has(useDiscardX) && s.discardXBuilding(k))
 }

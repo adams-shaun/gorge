@@ -46,30 +46,33 @@ const clueToken = "c_a_clue_draw"
 // one one-token CreateToken repeated by the value (read once, as gorge's
 // Num is). Defined$ Player.withMostTypeCreature (gorge playerHasMost over
 // AliveFrom(controller)) runs the mint once per player who controls the
-// most creatures, controller first, both on a tie. Defined$
-// TargetedController mints for the chain's target's controller. Other
-// Defined$ and ValidTgts$ than You, Optional$ and RememberInvestigatingPlayers$
-// refuse.
+// most creatures, controller first, both on a tie. Other Defined$ and
+// ValidTgts$ than You, Optional$ and RememberInvestigatingPlayers$ refuse.
 func (lc *lowerCtx) investigate(ps *params) error {
 	most := false
-	var ctrl lRef // Defined$ TargetedController: the targeted object's controller
+	fromTgt := -1
 	if d, ok := ps.get("Defined"); ok {
 		switch strings.TrimSpace(d) {
 		case "You":
 		case "Player.withMostTypeCreature":
 			most = true
 		case "TargetedController":
-			// Fateful Absence's "Its controller investigates" (gorge
-			// effInvestigate's Defined$ through definedPlayerIDs, the same
-			// referent a Swords to Plowshares life gain reads after its exile)
-			r, err := lc.defined("TargetedController")
-			if err != nil {
-				return err
+			// the controller of the current link's one earlier object target
+			// (Fateful Absence's Destroy, then "Its controller investigates"):
+			// gorge effInvestigate's Defined$ read resolves TargetedController
+			// the same selector the Defined$ TargetedController arm lowers,
+			// the target's controller (lower_effect_defined.go); a target
+			// destroyed in the same resolution reads its controller where it
+			// is now, its LKI included (CR 603.7a). The mint is once, to that
+			// player, no target of its own.
+			fromTgt = lc.lastTarget()
+			if fromTgt < 0 {
+				return refuse("Investigate Defined$ TargetedController with no target slot")
 			}
-			if _, ok := ps.get("ValidTgts"); ok {
-				return refuse("Investigate Defined$ TargetedController beside its own ValidTgts$")
+			if lc.ab.Targets[fromTgt].Spell || lc.ab.Targets[fromTgt].F == nil || lc.ab.Targets[fromTgt].F.Players != 0 {
+				return refuse("Investigate Defined$ TargetedController over a slot that is not one object target")
 			}
-			ctrl = r
+			ps.consume("Defined")
 		default:
 			return refuse("Investigate Defined$ %q", d)
 		}
@@ -82,11 +85,10 @@ func (lc *lowerCtx) investigate(ps *params) error {
 		return err
 	}
 	who := lRef{Kind: rEach}
-	switch {
-	case ctrl.Kind != rNone:
-		who = ctrl
-	case !most:
-		if who, err = lc.investigator(ps); err != nil {
+	if !most {
+		if fromTgt >= 0 {
+			who = lRef{Kind: rTargetController, N: fromTgt}
+		} else if who, err = lc.investigator(ps); err != nil {
 			return err
 		}
 	}

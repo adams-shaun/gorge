@@ -21,11 +21,14 @@ import (
 func (w *legalWalk) autoPayOffer(p state.PlayerID, id state.ObjID, idx int, base Cost, ab *cards.SA) bool {
 	// A printed {X} the text defines is that much generic mana (CR 107.3c).
 	base = pay.FixDefinedManaX(asPayer(w.e), p, id, base)
-	if w.hyp != nil || !w.e.paidManaCensus || !(abilityCostNeedsMana(base) || len(base.Phyrexian) > 0) {
+	if w.hyp != nil || !w.e.paidManaCensus {
 		return false
 	}
 	scope := abilityScope(ab)
 	statics := w.costStatics.get()
+	if !(abilityCostNeedsMana(base) || len(base.Phyrexian) > 0 || w.e.costStaticsRaiseMana(statics, p, id, scope)) {
+		return false
+	}
 	if w.autoBound == nil {
 		b := w.e.PotentialMana(p)
 		w.autoBound = &b
@@ -137,6 +140,19 @@ func (w *legalWalk) autoPayConfirm(p state.PlayerID, id state.ObjID, base Cost, 
 	}
 	probe := base
 	return w.e.offerCastableUsing(statics, p, id, &probe, scope, true, &pool)
+}
+
+// costStaticsRaiseMana reports whether a RaiseCost static in force adds mana
+// to id's ability, so a {T}-only printed cost (Errant Doomsayers under
+// Oppressive Rays' {3}) still needs the planner's land taps: the offer's
+// composed cost, not the printed one, decides whether mana is owed.
+func (e *Engine) costStaticsRaiseMana(statics costStaticViews, p state.PlayerID, id state.ObjID, scope costScope) bool {
+	if costStaticsInertFor(&statics, id) {
+		return false
+	}
+	var mayApply bool
+	mods := e.costModifiersCompose(statics, p, id, scope, nil, false, 0, &mayApply)
+	return mods.RaiseGen > 0 || mods.RaiseCol.Total() > 0 || len(mods.Raises) > 0
 }
 
 // abilityCostNeedsMana reports whether c has a mana part a tap could pay.

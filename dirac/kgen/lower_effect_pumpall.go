@@ -80,6 +80,9 @@ func (lc *lowerCtx) pumpAll(ps *params) error {
 			if kw, attackKws, err = splitAttackKwGrant(kw); err != nil { // lower_attackkwgrant.go
 				return err
 			}
+			if err := refuseEffectReturnKw(attackKws); err != nil {
+				return err
+			}
 			if len(attackKws) > 0 && scope.Kind != rNone {
 				return refuse("PumpAll KW$ %s with a ValidTgts$ player scope", attackKws[0])
 			}

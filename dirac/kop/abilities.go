@@ -258,6 +258,12 @@ type Ability struct {
 	// none, the cost is Cost alone. kop.Cost has no spare field. A table byte
 	// pair, not State.
 	CostProg uint16
+	// CycAltOf: 1 + the index of the printed cycling ability this one is the
+	// StatCyclingAlt twin of (New Perspectives, CR 118.9): the same body with
+	// the discard alone as its cost. 0 = an ordinary ability. A twin is
+	// offered only while a live StatCyclingAlt static of the hand owner holds
+	// (dirac kw_cyclingalt.go); kgen builds it beside the printed one.
+	CycAltOf uint8
 }
 
 // Timing is when a card may be cast.

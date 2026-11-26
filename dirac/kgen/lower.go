@@ -179,6 +179,7 @@ type lowerCtx struct {
 	blind          *blindDig // a blind face-down Dig whose Effect lowers next (lower_blinddig.go)
 	grantInner     []lStatic // a station self grant's inner statics, emitted after the outer static (lower_stationgrant.go)
 	station        bool      // the face prints K:Station (lower_station.go)
+	readAhead      bool      // the face prints K:Read ahead (lower_readahead.go)
 	revealOK       bool      // the cost being read is a spell's AlternateAdditionalCost first part: Reveal<1/Spec> may lower (kernel act_revealpick.go)
 	beholdOK       bool      // the cost being read is a spell's AlternateAdditionalCost first part or a MayFlashCost extra: Behold<N/Type> may lower (kernel act_behold.go)
 	unblockedOK    bool      // the filter being read is K:Ninjutsu's Return cost: "unblocked" may lower (lower_ninjutsu.go)
@@ -378,6 +379,10 @@ type lowerCtx struct {
 	// announced life part) may lower on a spell or an
 	// activated ability (actCost) and nowhere else
 	lifeXSpell bool
+	// blightXOK while a spell's own RaiseCost Cost$ is retried for an announced
+	// Blight<X> (raiseSelfAdditional, lower_blightx.go); every other cost
+	// refuses a variable Blight
+	blightXOK bool
 	// prevColor while a mid-resolution ChooseColor waits for its
 	// prevent-the-chosen-colour Effect (Prismatic Strands)
 	prevColor bool
@@ -611,6 +616,9 @@ func (lc *lowerCtx) lowerLines(origin, perm bool) {
 func (lc *lowerCtx) lowerTail() {
 	if lc.station {
 		lc.guard("K:Station", lc.lowerStation)
+	}
+	if lc.readAhead {
+		lc.guard("K:Read ahead", lc.lowerReadAhead)
 	}
 	lc.lowerGift()
 	lc.refuseCrossAbilityRemembered()
@@ -1168,6 +1176,18 @@ var protColourLetters = map[string]string{"white": "W", "blue": "U", "black": "B
 // stays refused.
 var hexColourLetters = map[string]string{"white": "W", "blue": "U", "black": "B", "red": "R", "green": "G"}
 
+// hexQualityParam is the spec of a "Hexproof:<spec>:<display text>"
+// parameter when it is one of the colour-count specs the kernel reads
+// (Card.MonoColor, Card.MultiColor, Card.nonColorless), else "".
+func hexQualityParam(param string) string {
+	q, _, _ := strings.Cut(param, ":")
+	switch q = strings.TrimSpace(q); q {
+	case "Card.MonoColor", "Card.MultiColor", "Card.nonColorless":
+		return q
+	}
+	return ""
+}
+
 // mergeColours unions two WUBRG letter sets in WUBRG order.
 func mergeColours(a, b string) string {
 	var out strings.Builder
@@ -1228,6 +1248,18 @@ func (lc *lowerCtx) lowerKeywords() {
 			// consumed with its minted R: lines
 		case head == "Hexproof" && hexColourLetters[strings.ToLower(param)] != "":
 			lc.out.HexColors = mergeColours(lc.out.HexColors, hexColourLetters[strings.ToLower(param)])
+		case head == "Hexproof" && hexQualityParam(param) != "":
+			// K:Hexproof:<spec>:<display text> over a colour-count spec
+			// (CR 702.11d): gorge hexproofQuality keeps the spec and matches
+			// the source against it (sourceHasQuality)
+			switch hexQualityParam(param) {
+			case "Card.MonoColor":
+				lc.out.HexMono = true
+			case "Card.MultiColor":
+				lc.out.HexMulti = true
+			case "Card.nonColorless":
+				lc.out.HexColors = mergeColours(lc.out.HexColors, "WUBRG") // a source of any colour
+			}
 		case head == "Hexproof" && param == "Instant":
 			lc.out.Kw = append(lc.out.Kw, "HexproofFromInstants")
 		case simpleKeywords[head] && param == "":
@@ -1456,11 +1488,9 @@ func (lc *lowerCtx) lowerKeywords() {
 			// lore counter, gated at its chapter number (kw_saga.go)
 			lc.lowerChapters(param)
 		case head == "Read ahead":
-			// CR 714.3b: gorge implements it since (the lore-count
-			// choice on entry; chapters below it do not trigger that turn),
-			// but the kernel has no entry choice for it yet; refuse rather
-			// than silently drop a keyword with rules meaning
-			lc.refuseNode(node, "read ahead (CR 714.3b): the kernel has no lore-count entry choice")
+			// CR 702.155 / 714.3b: the as-enters chapter choice, lowered once
+			// the Chapter count is known (lowerTail, lower_readahead.go)
+			lc.readAhead = true
 		case head == "Station":
 			// rules-side in gorge (rules/station.go); appended after the
 			// face's own abilities (lowerFace, lower_station.go). The older
@@ -1552,6 +1582,12 @@ func (lc *lowerCtx) lowerKeywords() {
 				// is a full Cost, folded into the kicked cast's cost); the
 				// mana rides Kicker and the part KickerCost
 				lc.out.Kicker, lc.out.KickerCost = &mc, &rest
+				continue
+			}
+			if mc, floor, ok := lc.kickerXMin(param); ok {
+				// an announced {X} kicker with a floor (Thieving Skydiver's
+				// XMin1 X): the floor rides KickerCost.XMin (lower_kickerx.go)
+				lc.out.Kicker, lc.out.KickerCost = &mc, &floor
 				continue
 			}
 			mc, err := parseManaCost(param)
@@ -2555,6 +2591,10 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 			if len(parts) != 1 {
 				return c, refuse("blight cost %q", t)
 			}
+			if parts[0] == "X" && lc.blightXOK && c.BlightN == 0 && !c.BlightX {
+				c.BlightX = true // the announced count (lower_blightx.go)
+				continue
+			}
 			n, err := strconv.Atoi(parts[0])
 			if err != nil {
 				return c, refuse("blight cost %q: a variable amount", t)
@@ -3163,6 +3203,19 @@ func (lc *lowerCtx) filter(expr string) (*lFilter, error) {
 	for i := range f.Clauses {
 		c := &f.Clauses[i]
 		lc.foldImprintExiledWith(c)
+		if c.GreatestCMCSet != "" {
+			// a greatestCMC_<set> property's bound: the greatest mana value
+			// over the set, every battlefield (greatestCMCFilter's RepeatEach
+			// twin reads it through the loop's SVar; Padeem, Consul of
+			// Innovation)
+			set, err := lc.filter(c.GreatestCMCSet)
+			if err != nil {
+				return nil, refuse("filter %q: greatestCMC set %q: %v", expr, c.GreatestCMCSet, err)
+			}
+			v := lValue{Kind: vValidAgg, N: kop.AggGreatestMV, F: set}
+			c.CmpV = &v
+			c.GreatestCMCSet = ""
+		}
 		if c.Flags&fNamedAsSource != 0 {
 			// every named<X> is a literal clause (gorge wordNamed ->
 			// sharesName reads the NAME, not the source; CR 201.2):
@@ -3345,6 +3398,7 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 		if err := lc.spellWindow(ps, ab); err != nil { // lower_actwindow.go
 			return err
 		}
+		lc.blightXBody(sa, ps) // XMax$ of a Blight<X> raise (lower_blightx.go)
 		if lc.out.Types&tLegendary != 0 && lc.out.Types&(tInstant|tSorcery) != 0 {
 			// CR 205.4e: a legendary instant or sorcery is cast only while
 			// its caster controls a legendary creature or planeswalker

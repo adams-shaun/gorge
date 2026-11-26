@@ -44,6 +44,7 @@ const (
 	rTargetUnion                  // every target of the slots in bit mask N, in slot order (gorge's chain target union)
 	rRememberedController         // the remembered object's controller (its RememberLKI$ capture off the battlefield)
 	rDiscarded                    // the card a spell's Discard<1/...> cost discarded (Grab the Prize)
+	rChosenEnc                    // the object the spell's own CloseEncounter ChooseCard additional cost chose (RevealedCards$CardPower)
 	rLibTop                       // the top card of the controller's library (Defined$ TopOfLibrary)
 	rOppNonRemCtrl                // the opponent unless a remembered object's controller is that opponent (OppNonRememberedController)
 	rSrcOwner                     // the source object's owner (Defined$ CardOwner)
@@ -90,6 +91,7 @@ var refNames = [...]string{
 	rTargetUnion:          "Targets",
 	rRememberedController: "RememberedController",
 	rDiscarded:            "Discarded",
+	rChosenEnc:            "ChosenEnc",
 	rLibTop:               "LibTop",
 	rOppNonRemCtrl:        "OppNonRemCtrl",
 	rSrcOwner:             "SrcOwner",
@@ -256,6 +258,7 @@ const (
 	vSVarNum             // the evaluating source's StoreSVar number for the name S, else the printed body Sub[0] (kop.ExSVarNum; lower_storenum.go)
 	vMostProminentType   // the size of the largest group of battlefield objects matching F that share a creature type (Count$MostProminentCreatureType; kop.ExMostProminentCreatureType; value_mostprominent.go)
 	vReplLKIPow          // the replaced creature's derived power before a dies-to-exile rider moved it (ReplacedCardLKI$CardPower; value_repllki.go)
+	vMostCardName        // the greatest number of battlefield objects matching F that share one face name (Count$MostCardName; kop.ExMostCardName; value_mostcardname.go)
 	vPaidN               // the spell's Squad/Replicate payment count or Conspire's 1 (Count$SquadPaid / ReplicatePaid / Conspired; kop.ExKicked N 2; lower_squadreplicate.go)
 	vCount_
 )
@@ -384,6 +387,7 @@ var valNames = [...]string{
 	vReplLKIPow:          "ReplLKIPow",
 	vPaidN:               "PaidN",
 	vMostProminentType:   "MostProminentType",
+	vMostCardName:        "MostCardName",
 }
 
 // lValue is an amount: Kind with its operand, then Mul/Div/Add applied in
@@ -798,6 +802,7 @@ type lCost struct {
 	SacHost        bool // sacrifice the granting host (Sac<1/OriginalHost>), or exile it when HostExile (Exile<1/OriginalHost>)
 	HostExile      bool // SacHost's part exiles the granting host (kop.CostHostExile; an activated ability's cost only)
 	SacHalf        bool // Sac<X/Spec> whose SVar X is Count$Valid Spec.YouCtrl/HalfUp: sacrifice half of those permanents, rounded up, counted at payment (kop.Cost.SacHalf; a spell's own additional cost; lower_raisecost.go)
+	CloseEnc       bool // the spell's own additional cost is Close Encounter's ChooseCard pick over two zones (kop.Cost.CloseEnc; a spell's own additional cost; lower_raisecost.go)
 	SacExile       bool // Sac/SacN's part is Exile<N/Spec> from the battlefield (kop.Cost.ExileBf; an activated ability's or a spell's additional cost only)
 	TapPowN        int  // tap any number of untapped creatures you control matching TapPowF with total power >= TapPowN (Crew, Saddle; lower_tappower.go)
 	TapPowF        *lFilter
@@ -820,6 +825,7 @@ type lCost struct {
 	EnergyX        bool     // PayEnergy<X>: pay the announced X energy (a printed activated ability's own cost, no printed {X}; kop.Cost.EnergyX, kernel cost_energyx.go)
 	Waterbend      int      // Waterbend<N>: N generic payable by tapping artifacts/creatures (an activated ability's cost only)
 	WaterbendX     bool     // Waterbend<X>: the cost's one {X} payable by tapping artifacts/creatures (kop.CostWaterbend with N 0; an activated ability's cost only)
+	BlightX        bool     // Blight<X>: X -1/-1 counters on a creature you control, X the announced count bounded by the greatest toughness among them (kop.CostBlight with Cost.N 0; a spell's own RaiseCost additional cost; lower_blightx.go)
 	BlightN        int      // Blight<N>: put N -1/-1 counters on a creature you control (CR 701.68; shares Cost.N/Filter)
 	ReturnSelf     bool     // Return<1/CARDNAME>: return this permanent to its owner's hand (an activated ability's cost only)
 	ExileSelf      bool     // Exile<1/CARDNAME>: exile this permanent (an activated ability's cost only)
@@ -850,7 +856,7 @@ type lCost struct {
 func (c lCost) pureMana() bool {
 	return !c.Tap && !c.Untap && !c.SacSelf && c.Sac == nil && c.SacN == 0 &&
 		c.DiscardN == 0 && c.DiscardSpec == "" && !c.DiscardHand && !c.DiscardSelf && c.DiscardF == nil && !c.DiscardX && c.Discard2N == 0 && c.Loyalty == 0 && !c.LoyaltyX &&
-		c.SubCtr == 0 && !c.SubCtrX && c.SubAmongN == 0 && c.AddCtr == 0 && c.PayLife == 0 && !c.LifeX && c.LifeBy == nil && !c.LifeIdent && !c.SacX && !c.SacHalf && c.XMin == 0 && c.TapN == 0 && !c.TapHost && !c.SacHost && !c.HostExile && !c.SacExile && c.TapPowN == 0 && !c.Exert &&
+		c.SubCtr == 0 && !c.SubCtrX && c.SubAmongN == 0 && c.AddCtr == 0 && c.PayLife == 0 && !c.LifeX && c.LifeBy == nil && !c.LifeIdent && !c.SacX && !c.SacHalf && !c.BlightX && c.XMin == 0 && c.TapN == 0 && !c.TapHost && !c.SacHost && !c.HostExile && !c.SacExile && c.TapPowN == 0 && !c.Exert &&
 		c.Forage == nil && c.ExileG == nil && !c.ExileGSelf && c.ExileHandN == 0 && c.MoveGraveN == 0 && c.Energy == 0 && c.EnergyBy == nil && !c.EnergyX && !c.ReturnSelf &&
 		!c.ExileSelf && !c.ExileStackSelf && c.Return == nil && c.DrawN == 0 && c.DrawBy == nil && c.DamageYouN == 0 && c.BlightN == 0 && c.EvidenceN == 0 && !c.EvidenceX && !c.TapXVar && !c.ExileTrigNew &&
 		c.pureManaTail()
@@ -859,7 +865,7 @@ func (c lCost) pureMana() bool {
 // pureManaTail is the rest of pureMana's conjunction: the token and library
 // parts a power-up cost (CR 702.193b) cannot carry beside its mana cost.
 func (c lCost) pureManaTail() bool {
-	return !c.PutLibSelf && c.BeholdN == 0 && c.BeholdF == nil && c.RevealN == 0 && c.RevealF == nil && c.MillN == 0
+	return !c.PutLibSelf && c.BeholdN == 0 && c.BeholdF == nil && c.RevealN == 0 && c.RevealF == nil && c.MillN == 0 && !c.CloseEnc
 }
 
 // manaCost is a printed mana cost.
@@ -1519,6 +1525,7 @@ type lCard struct {
 	Landwalk            *lFilter // K:Landwalk:<land filter> (CR 702.14)
 	ProtColors          string   // printed "Protection from <colour>" (CR 702.16): WUBRG letters
 	HexColors           string   // printed K:Hexproof:<Colour> (CR 702.11d): WUBRG letters
+	HexMono, HexMulti   bool     // printed K:Hexproof:Card.MonoColor / Card.MultiColor (CR 702.11d; kop.HexMono, kop.HexMulti)
 	ProtFrom            *lFilter // printed K:Protection:<spec> (CR 702.16): the sources it protects from
 	Infect              bool     // printed K:Infect (CR 702.90)
 	Devoid              bool     // printed K:Devoid (CR 702.114a): CardDef.Devoid, read by the withDevoid filter word

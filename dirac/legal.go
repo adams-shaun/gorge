@@ -468,7 +468,7 @@ func (s *State) activateOffers(k *prep, d *Decision, p uint8, sorc bool, av *ava
 				s.availFor(k, p, av)
 				haveAv = true
 			}
-			if (a.Cost.Mana.X == 0 && a.Cost.XMin != 0 || waterbendIsX(a) || hybridX(a)) && s.cfg&cfgGorgeUnpriced != 0 || a.Cost.Mana.Snow != 0 {
+			if (a.Cost.Mana.X > 0 || a.Cost.XMin != 0) && s.cfg&cfgGorgeUnpriced != 0 || a.Cost.Mana.Snow != 0 {
 				m := xFloorCost(a.Cost.Mana, costXMin(&a.Cost)) // (gorge's cost:x is X != 0 || XMin != 0 (pay.PlanCostDetail); an announced Sac<X> part without {X} or XMin is planned like any other cost (Krav, the Unredeemed's {B}); the pool pays the cheapest legal announcement; cost_sacx.go)
 				if k.gen != nil && k.gen.anyPowerUp && a.Cost.Flags&kop.CostPowerUp != 0 {
 					m = s.powerUpReduced(k, s.perms[sl].obj, m) // CR 702.193b: gorge prices the reduced cost (legal_walk_battlefield.go)
@@ -957,7 +957,7 @@ func (s *State) countUntapped(k *prep, p uint8, f kop.FilterID, src Slot) int {
 // object o (from hand, o itself is not a discard candidate).
 func (s *State) spellCostsFeasible(k *prep, c CardID, p uint8, o Obj) bool {
 	ac := spellAddCost(k, c)
-	if ac.Flags == 0 && !k.t.Cards[c].HasAltAdd && !k.t.Cards[c].BeholdExile {
+	if ac.Flags == 0 && !ac.CloseEnc && !k.t.Cards[c].HasAltAdd && !k.t.Cards[c].BeholdExile {
 		return true
 	}
 	// the cards a discard cost can take: the hand, less the card cast from
@@ -1156,6 +1156,9 @@ func (s *State) gorgeLowersRider(p uint8, o Obj, mayPlay, anyColor bool) bool {
 	}
 	if spellAddCost(k, c).SacHalf {
 		return s.sacHalfLowers(k, p, c, o, mayPlay, anyColor) // cost_sachalf.go
+	}
+	if spellAddCost(k, c).CloseEnc {
+		return s.chooseEncLowers(k, p, c, o, mayPlay, anyColor) // cost_closeenc.go
 	}
 	if cd.HasAltAdd {
 		return s.altAddLowers(k, p, c, o, mayPlay, anyColor)

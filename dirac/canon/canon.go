@@ -182,6 +182,8 @@ var ChooseKinds = []string{
 	"nothing", "lesson", "rummage",
 	"exert",          // CR 702.100a: gorge askNextExert's election (option 0 declines with no object; option 1 names the attacker; combat_exert.go)
 	"graveyard_cost", // gorge advanceTriggeredMandatory's ExiledMoveToGrave pick (dirac ChGenPayMoveGrave; cost_exiledmovegrave.go)
+	"choosecost",     // gorge revealCostOrChooseAsk's Close Encounter choose-cost pick (CR 601.2b, 601.2h; the option names the chosen object; dirac ChCostChosenEnc)
+	"readahead",      // CR 702.155b: gorge readAheadOptions' as-enters chapter pick (Kind "readahead", Obj the Saga, the chapter on Amount; dirac ChGenReadAhead; kw_readahead.go)
 }
 
 // ChooseOther is the ActChoose offset of an option kind ChooseKinds lacks.

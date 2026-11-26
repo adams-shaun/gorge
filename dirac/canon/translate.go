@@ -339,6 +339,11 @@ func (r *Translator) Action(a dirac.Action) Canon {
 		if c, ok := r.grantedOrGained(src, tgt, mode); ok {
 			return c
 		}
+		if of := r.cyclingAltOf(dirac.Obj(src), mode); of != 0 {
+			// the cycling alternative cost's twin (kop.StatCyclingAlt): gorge's
+			// ability option at AltCostIndex 1, over the printed cycling's index
+			return Pack(ActActivate, src, RefNone, CyclingAltBit|r.FaceAbility(dirac.Obj(src), of-1, false))
+		}
 		return Pack(ActActivate, src, RefNone, r.FaceAbility(dirac.Obj(src), mode, false))
 	case dirac.AkAttack:
 		if dirac.IsObjTarget(dirac.TCode(tgt)) {
@@ -496,6 +501,11 @@ func (r *Translator) Action(a dirac.Action) Canon {
 			return r.combatDamageChoose(src, mode)
 		case dirac.ChAltAdd:
 			return ch("altaddcost", RefNone, mode)
+		case dirac.ChCostChosenEnc:
+			// gorge revealCostOrChooseAsk's Close Encounter choose-cost pick:
+			// the option kind "choosecost" over the chosen object (CR 601.2b,
+			// 601.2h; dirac cost_closeenc.go)
+			return ch("choosecost", src, 0)
 		case dirac.ChCostForage:
 			// gorge forageAsk: forage_exile (no object), forage_food
 			if mode == 1 {
@@ -570,6 +580,26 @@ func (r *Translator) FaceAbility(o dirac.Obj, idx uint8, _ bool) uint8 {
 		return MaxSpeedCode(r.Tbl.Cards[c].Abilities, int(idx))
 	}
 	return r.CardAbility(r.KP.Objs[o].Card, idx)
+}
+
+// CyclingAltBit marks a canonical activation as the cycling alternative cost's
+// (a New Perspectives static, kop.StatCyclingAlt): the printed cycling
+// ability's face index with this bit, the way gorge lists it as an "ability"
+// option at AltCostIndex 1 (activate_static_altcost.go). Face indexes stay
+// below it and the max-speed codes (MaxSpeedBase) above its range.
+const CyclingAltBit uint8 = 0x40
+
+// cyclingAltOf is 1 + the printed ability index ability idx of object o is the
+// cycling alternative cost's twin of (kop.Ability.CycAltOf), 0 for any other.
+func (r *Translator) cyclingAltOf(o dirac.Obj, idx uint8) uint8 {
+	if int(o) >= int(r.KP.NObj) {
+		return 0
+	}
+	c := r.KP.Objs[o].Card
+	if int(c) >= len(r.Tbl.Cards) || int(idx) >= len(r.Tbl.Cards[c].Abilities) {
+		return 0
+	}
+	return r.Tbl.Cards[c].Abilities[idx].CycAltOf
 }
 
 // stationAbility reports whether ability idx of object o is a Station

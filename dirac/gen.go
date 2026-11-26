@@ -298,6 +298,7 @@ type genPrep struct {
 	anyConspire     bool           // some card has a StatStackKw Conspire grant (kw_conspire.go)
 	anyStorm        bool           // some card has a StatStackKw Storm grant (kw_storm.go)
 	anyDemoGrant    bool           // some card has a StatStackKw Demonstrate grant (kw_demonstrate.go)
+	anyRippleGrant  bool           // some card has a StatStackKw Ripple grant (kw_ripple.go)
 	anySplitSecond  bool           // some card has printed split second or a StatStackKw Split second grant (kw_splitsecond.go)
 	anyStackLife    bool           // some card has a StatStackKw Lifelink grant (static_stacklifelink.go)
 	anyOffZonePT    bool           // some card has a StatOffZonePT: an AffectedZone$ All P/T grant (static_offzonept.go)
@@ -386,6 +387,7 @@ type genPrep struct {
 	anyLoyaltyX     bool           // some ability costs a planeswalker's [-X] (CostLoyaltyX; cost_loyaltyx.go)
 	anyLifeX        bool           // some spell or ability costs an announced PayLife<X> (Cost.N 0; cost_paylifex.go)
 	anyExileX       bool           // some spell or activated ability costs an announced ExileFromGrave<X/Spec> (CostExileGrave with Cost.N 0; cost_exilex.go)
+	anyBlightX      bool           // some spell or ability costs an announced Blight<X> (CostBlight with Cost.N 0; cost_blightx.go)
 	anySacX         bool           // some spell or ability costs an announced Sac<X/Spec> (CostSac with Cost.N 0; cost_sacx.go)
 	anyXMin         bool           // some spell or ability floors its announced X (Cost.XMin; cost_sacx.go)
 	anyCopyCast     bool           // some OpCastFree casts a copy (C bit 6; cast_copycast.go)
@@ -394,6 +396,7 @@ type genPrep struct {
 	anyExHaste      bool           // some ability can't be blocked except by creatures with haste (Ext ExHaste; static_cantblockexcept.go)
 	anyColGrant     bool           // some ability grants by a chosen colour (Ext ColorGrant; static_colourgrant.go)
 	anyDiscRef      bool           // some expression reads RefDiscarded (value_discardedref.go)
+	anyEncRef       bool           // some expression reads RefChosenEnc (value_chosenenc.go)
 	anySpellCond    bool           // some spell ability carries a cast restriction in Trig.Cond (cast_spellcondition.go)
 	anyEntUntap     bool           // some ReplOthersEnterProgram untaps the entrant (ExtEnterUntapped): a tap/untap pair asks the CR 616.1 order (repl_entryorder.go)
 	anyEntAttack    bool           // some ReplOthersEnterProgram enters the entrant attacking (ExtEnterAttacking): beside another enter body it competes (repl_entryorder.go)
@@ -1018,7 +1021,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepLifeX(t, g)
 	prepExileX(t, g)
 	prepSacX(t, g)
+	prepBlightX(t, g)
 	prepDiscarded(t, g)
+	prepChosenEnc(t, g)
 	prepUniqueChain(t, g)
 	prepTgtSet(t, g) // tgt_setconstraints.go
 	prepEachDamage(t, g)
@@ -3611,7 +3616,8 @@ var nonCreatureSubtype = map[string]bool{
 	"Room": true, "Rune": true, "Background": true, "Role": true, "Case": true, "Shard": true,
 	"Adventure": true, "Arcane": true, "Lesson": true, "Trap": true, "Omen": true,
 	"Ajani": true, "Liliana": true, "Vivien": true, "Chandra": true, "Kaito": true, "Kiora": true,
-	"Jace": true, "Garruk": true, "Elspeth": true, "Nissa": true, "Gideon": true, "Teferi": true, "Ugin": true,
+	"Jace": true, "Garruk": true, "Elspeth": true, "Nissa": true, "Gideon": true, "Teferi": true,
+	"Ugin": true, // a planeswalker subtype no pool card of a pool without Ugin planeswalkers carries (Haven of the Spirit Dragon's Planeswalker.Ugin target; gorge predicateTypeWords)
 }
 
 // capStall declares why when a failed search's fork latched one (0 = none): the

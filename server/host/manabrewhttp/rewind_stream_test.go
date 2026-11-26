@@ -17,6 +17,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/view"
 	"github.com/adams-shaun/gorge/server/host"
 	mb "github.com/adams-shaun/gorge/server/protocol/manabrew"
+	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
 // gatedWriter is a stream's ResponseWriter whose Flush blocks until the test
@@ -114,7 +115,7 @@ func TestStreamResendsPromptAnsweredThenRewound(t *testing.T) {
 		<-done
 	}()
 
-	deadline := time.Now().Add(10 * time.Second)
+	deadline := time.Now().Add(testutil.WaitBudget)
 	for len(w.prompts(t)) == 0 {
 		if time.Now().After(deadline) {
 			t.Fatal("the stream never sent the open prompt")

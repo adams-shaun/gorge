@@ -87,12 +87,13 @@ func TestAnimateAddTypeSupertype(t *testing.T) {
 // cost of its own binds the X of its trigger object's spell (kxpaid, CR
 // 107.3m) only for a self enters trigger and a SpellCast trigger of a
 // source with no {X}; the rest stay refused (Hydroid Krasis' own cast
-// trigger, which the kernel never fires from the stack; Rampaging War
-// Verdeloth's kicker {X}); a card's own cycle trigger binds the cycling
-// activation's X (Rampaging War Mammoth, Valor's Flagship).
+// trigger, which the kernel never fires from the stack); a card's own cycle
+// trigger binds the cycling activation's X (Rampaging War Mammoth, Valor's
+// Flagship), and a kicker {X}'s self enters trigger the kicked spell's
+// (Verdeloth the Ancient; kickerx_lower_test.go).
 func TestTriggerXPaidRefused(t *testing.T) {
 	want := map[string]bool{"Triceraton Commander": false, "Sporocyst": false, "Zaxara, the Exemplary": false, "Walking Ballista": false,
-		"Hydroid Krasis": false, "Old Stickfingers": false, "Rampaging War Mammoth": false, "Verdeloth the Ancient": true} // Krasis, Stickfingers: the spell's own cast trigger (selfcast)
+		"Hydroid Krasis": false, "Old Stickfingers": false, "Rampaging War Mammoth": false, "Verdeloth the Ancient": false} // Krasis, Stickfingers: the spell's own cast trigger (selfcast)
 	var names []string
 	for n := range want {
 		names = append(names, n)

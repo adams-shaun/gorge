@@ -229,6 +229,21 @@ func TestMeasureFailsWhenAMeasuredTypeIsMissing(t *testing.T) {
 	}
 }
 
+// measureRepo measures this repository's own tree (the module root two
+// levels up from the package).
+func measureRepo(t *testing.T) Metrics {
+	t.Helper()
+	root, err := filepath.Abs(filepath.Join("..", ".."))
+	if err != nil {
+		t.Fatalf("resolve repo root: %v", err)
+	}
+	m, err := Measure(root)
+	if err != nil {
+		t.Fatalf("measure: %v", err)
+	}
+	return m
+}
+
 func TestMeasureIsDeterministic(t *testing.T) {
 	a := measureRepo(t)
 	b := measureRepo(t)
