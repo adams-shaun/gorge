@@ -1,0 +1,150 @@
+# Publish the container image of the latest GREEN main to GHCR once a day.
+#
+# "Green main" is the head of the newest oracle.yml run on main that concluded
+# success and ran at least one oracle job that was not skipped: the same test
+# oracle.yml's own bisect step uses to find the last good run. When no such run
+# exists the workflow ends green with a notice and pushes nothing.
+#
+# The image is deploy/docker/Dockerfile (targets gorged and proxy, as
+# demo-image.yml builds them) built at that exact sha. It carries no Forge card
+# scripts (GPL-3.0): gorged fetches them into a volume on first start. Tags:
+# :YYYY-MM-DD (UTC build day), :latest and :<sha>; the proxy image is
+# <image>-proxy with the same tags. The image name is the IMAGE_NAME repository
+# variable, default ghcr.io/<owner>/<repo>. No secrets: GITHUB_TOKEN pushes.
+name: daily-image
+
+on:
+  schedule:
+    - cron: "30 6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: daily-image
+  cancel-in-progress: false
+
+jobs:
+  green:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      actions: read
+    outputs:
+      sha: ${{ steps.pick.outputs.sha }}
+    steps:
+      - name: Pick the newest green oracle run on main
+        id: pick
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # The head of the newest run on main whose oracle jobs all passed, with at least one that ran
+          # (the way oracle.yml's bisect step reads runs).
+          good=""
+          while read -r id sha; do
+            bad=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$id/jobs?per_page=50" \
+              --jq '[.jobs[] | select(.name | startswith("oracle")) | select(.conclusion != "skipped" and .conclusion != "success")] | length')
+            ran=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$id/jobs?per_page=50" \
+              --jq '[.jobs[] | select(.name | startswith("oracle")) | select(.conclusion == "success")] | length')
+            if [ "$bad" = 0 ] && [ "$ran" -gt 0 ]; then good=$sha; break; fi
+          done < <(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/oracle.yml/runs?branch=main&status=completed&per_page=30" \
+            --jq '.workflow_runs[] | select(.conclusion == "success") | "\(.id) \(.head_sha)"')
+          if [ -z "$good" ]; then
+            echo "::notice::no green oracle run on main in the last 30 runs; nothing to publish"
+            exit 0
+          fi
+          echo "green main: $good"
+          echo "sha=$good" >> "$GITHUB_OUTPUT"
+
+  image:
+    needs: green
+    if: needs.green.outputs.sha != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      packages: write
+    env:
+      SHA: ${{ needs.green.outputs.sha }}
+      IMAGE_VAR: ${{ vars.IMAGE_NAME }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.green.outputs.sha }}
+      - name: Names and tags
+        id: names
+        run: |
+          image=${IMAGE_VAR:-ghcr.io/$GITHUB_REPOSITORY}
+          image=$(printf '%s' "$image" | tr '[:upper:]' '[:lower:]')
+          echo "image=$image" >> "$GITHUB_OUTPUT"
+          echo "day=$(date -u +%F)" >> "$GITHUB_OUTPUT"
+          # FORGE_REF as the Makefile pins it at THIS sha (the corpus commit gorged fetches on first start).
+          echo "ref=$(sed -n 's/^FORGE_REF *?= *\([0-9a-f]\{40\}\).*/\1/p' Makefile)" >> "$GITHUB_OUTPUT"
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+      - name: Already published at this sha?
+        id: have
+        run: |
+          # Idempotent: when :<sha> is already in the registry, retag it for today instead of building again.
+          if docker buildx imagetools inspect "${{ steps.names.outputs.image }}:$SHA" >/dev/null 2>&1 \
+             && docker buildx imagetools inspect "${{ steps.names.outputs.image }}-proxy:$SHA" >/dev/null 2>&1; then
+            echo "built=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "built=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Retag the existing images for today
+        if: steps.have.outputs.built == 'true'
+        run: |
+          image=${{ steps.names.outputs.image }}
+          for i in "$image" "$image-proxy"; do
+            docker buildx imagetools create -t "$i:${{ steps.names.outputs.day }}" -t "$i:latest" "$i:$SHA"
+          done
+      - name: Build and push the gorged image
+        if: steps.have.outputs.built != 'true'
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: deploy/docker/Dockerfile
+          target: gorged
+          build-args: FORGE_REF=${{ steps.names.outputs.ref }}
+          push: true
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ env.SHA }}
+          tags: |
+            ${{ steps.names.outputs.image }}:${{ steps.names.outputs.day }}
+            ${{ steps.names.outputs.image }}:latest
+            ${{ steps.names.outputs.image }}:${{ env.SHA }}
+          cache-from: type=gha,scope=daily-image
+          cache-to: type=gha,mode=max,scope=daily-image
+      - name: Build and push the proxy image
+        if: steps.have.outputs.built != 'true'
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: deploy/docker/Dockerfile
+          target: proxy
+          push: true
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ env.SHA }}
+          tags: |
+            ${{ steps.names.outputs.image }}-proxy:${{ steps.names.outputs.day }}
+            ${{ steps.names.outputs.image }}-proxy:latest
+            ${{ steps.names.outputs.image }}-proxy:${{ env.SHA }}
+          cache-from: type=gha,scope=daily-image
+          cache-to: type=gha,mode=max,scope=daily-image
+      - name: Summary
+        run: |
+          {
+            echo "### daily image"
+            echo "- image: \`${{ steps.names.outputs.image }}\` (and \`-proxy\`)"
+            echo "- tags: \`${{ steps.names.outputs.day }}\`, \`latest\`, \`$SHA\`"
+            echo "- retagged only (sha already built): ${{ steps.have.outputs.built }}"
+          } >> "$GITHUB_STEP_SUMMARY"
