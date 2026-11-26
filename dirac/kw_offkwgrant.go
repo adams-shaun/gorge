@@ -87,4 +87,7 @@ func (g *genPrep) offZoneGrantPrep(a *kop.Ability, p *prep) {
 	if a.Static.Kind == kop.StatRetraceGrant {
 		p.retrace = true
 	}
+	if a.Static.Kind == kop.StatOffZoneGrant && a.Static.Override != 0 {
+		g.anyOffZoneChar = true // static_offzonechars.go
+	}
 }
