@@ -1,817 +1,818 @@
-# Generated State layout pins (layout_pins_test.go); do not edit by hand. Regenerate: DIRAC_UPDATE_LAYOUT=1 go test -run 'TestStateLayoutPinned|TestNoNewFixedStateFields|TestCapacityHashPins' ./dirac
-# class	key	value; field rows: class	field	Type.field	offset	size
-default	size	42576
-default	perms%64	0
-default	ObjHash	0x3d6b15d7a9e2fa00
-default	ViewHash	0x63791655cd1c915f
-default	field	stateCore.tbl	0	2
-default	field	stateCore.cfg	2	1
-default	field	stateCore.ctl	3	1
-default	field	stateCore.over	4	1
-default	field	stateCore.win	5	1
-default	field	stateCore.turn	6	2
-default	field	stateCore.step	8	1
-default	field	stateCore.active	9	1
-default	field	stateCore.prio	10	1
-default	field	stateCore.passes	11	1
-default	field	stateCore.startPl	12	1
-default	field	stateCore.cfgx	13	1
-default	field	stateCore.ts	14	2
-default	field	stateCore.rng	16	168
-default	field	stateCore.pl	184	3424
-default	field	stateCore.objs	3608	3904
-default	field	stateCore.nobj	7512	2
-default	field	stateCore.permHi	7514	1
-default	field	stateCore.lstamp	7516	384
-default	field	stateCore.kwx	7900	96
-default	field	stateCore.nkwx	7996	1
-default	field	stateCore.ptx	7998	24
-default	field	stateCore.nptx	8022	1
-default	field	stateCore.occ	8024	24
-default	field	stateCore.ctrlM	8048	96
-default	field	stateCore.subs	8144	552
-default	field	stateCore.statM	8696	24
-default	field	stateCore.fxM	8720	24
-default	field	stateCore.grantM	8744	24
-default	field	stateCore.legM	8768	24
-default	field	stateCore.stack	8792	4800
-default	field	stateCore.sp	13592	1
-default	field	stateCore.pend	13594	2080
-default	field	stateCore.npend	15674	1
-default	field	stateCore.orderLeft	15675	1
-default	field	stateCore.orderN	15676	1
-default	field	stateCore.orderPlace	15677	1
-default	field	stateCore.ordList	15678	80
-default	field	stateCore.dly	15758	320
-default	field	stateCore.ndly	16078	1
-default	field	stateCore.res	16080	328
-default	field	stateCore.mullOrder	16408	4
-default	field	stateCore.mullCur	16412	1
-default	field	stateCore.mullKept	16413	4
-default	field	stateCore.mullMull	16417	4
-default	field	stateCore.mullLeft	16421	1
-default	field	stateCore.mullMax	16422	1
-default	field	stateCore.nAttackers	16423	1
-default	field	stateCore.fsStep	16424	1
-default	field	stateCore.blockSeq	16425	1
-default	field	stateCore.declared	16426	1
-default	field	stateCore.carry	16427	1
-default	field	stateCore.lastPick	16428	1
-default	field	stateCore.discardLeft	16429	1
-default	field	stateCore.legP	16430	1
-default	field	stateCore.legCard	16432	2
-default	field	stateCore.legDie	16440	24
-default	field	stateCore.legSaga	16464	24
-default	field	stateCore.divA	16488	1
-default	field	stateCore.divI	16489	1
-default	field	stateCore.divRem	16490	1
-default	field	stateCore.divFirst	16491	1
-default	field	stateCore.fbR	16492	4
-default	field	stateCore.rb	16496	128
-default	field	stateCore.pm	16624	24
-default	field	stateCore.pmOn	16648	1
-default	field	stateCore.sbaOK	16649	1
-default	field	stateCore.sbaT	16652	4
-default	field	stateCore.chg	16656	64
-default	field	stateCore.epoch	16720	4
-default	field	stateCore.touchN	16724	4
-default	field	stateCore.line	16728	8
-default	field	stateCore.undos	16736	1
-default	field	stateCore.heldObj	16738	2
-default	field	stateCore.heldN	16740	1
-default	field	stateCore.heldTurn	16742	2
-default	field	stateCore.heldStep	16744	1
-default	field	stateCore.heldTouch	16748	4
-default	field	stateCore.stamp	16752	488
-default	field	stateCore.Skipped	17240	16
-default	field	stateCore.nlC	17256	8
-default	field	stateCore.g	17264	10568
-default	field	stateCore.outCode	27832	512
-default	field	stateCore.Decisions	28344	4
-default	field	stateCore.payHyb	28348	1
-default	field	genState.graveKept	0	1
-default	field	genState.cskip	1	1
-default	field	genState.fx	2	768
-default	field	genState.nfx	770	1
-default	field	genState.xtp	776	1312
-default	field	genState.atkHi	2088	1
-default	field	genState.cvokHi	2089	1
-default	field	genState.tli	2090	1
-default	field	genState.energy	2091	4
-default	field	genState.roll	2095	1
-default	field	genState.drawFirst	2096	1
-default	field	genState.drawStepN	2097	1
-default	field	genState.conn	2098	1
-default	field	genState.held	2099	1
-default	field	genState.rem	2100	128
-default	field	genState.nrem	2228	1
-default	field	genState.chosen	2230	128
-default	field	genState.nchosen	2358	1
-default	field	genState.remCnt	2360	2
-default	field	genState.availX	2362	2
-default	field	genState.noGrant	2364	1
-default	field	genState.roleOut	2365	1
-default	field	genState.digLo	2366	1
-default	field	genState.raiseO	2367	1
-default	field	genState.raiseB	2368	1
-default	field	genState.excess	2370	2
-default	field	genState.lostAmt	2372	2
-default	field	genState.tokMade	2374	1
-default	field	genState.tokDef	2376	2
-default	field	genState.tokDefSet	2378	1
-default	field	genState.entHost	2379	1
-default	field	genState.dmg	2380	32
-default	field	genState.ndmg	2412	1
-default	field	genState.fbProbe	2413	1
-default	field	genState.priAsk	2414	1
-default	field	genState.may	2416	192
-default	field	genState.nmay	2608	1
-default	field	genState.parad	2609	4
-default	field	genState.sidN	2613	1
-default	field	genState.dp	2614	132
-default	field	genState.dpLKI	2746	6
-default	field	genState.ndp	2752	1
-default	field	genState.stkCt	2753	1
-default	field	genState.emb	2754	16
-default	field	genState.embC	2770	32
-default	field	genState.embO	2802	32
-default	field	genState.embN	2834	32
-default	field	genState.embT	2866	32
-default	field	genState.nemb	2898	4
-default	field	genState.qgO	2902	16
-default	field	genState.qgV	2918	8
-default	field	genState.qgH	2926	16
-default	field	genState.pgT	2942	8
-default	field	genState.pgH	2950	8
-default	field	genState.nlA	2958	8
-default	field	genState.untapUp	2968	24
-default	field	genState.untapNext	2992	1
-default	field	genState.untapSl	2993	1
-default	field	genState.untapAns	2994	1
-default	field	genState.untapOn	2995	1
-default	field	genState.lki	2996	2268
-default	field	genState.lkiPad	5264	8
-default	field	genState.used	5272	96
-default	field	genState.nused	5368	1
-default	field	genState.died	5369	1
-default	field	genState.attacked	5370	4
-default	field	genState.oppAtt	5374	1
-default	field	genState.isCast	5375	4
-default	field	genState.hist	5379	12
-default	field	genState.actRing	5392	128
-default	field	genState.ask	5520	48
-default	field	genState.nask	5568	1
-default	field	genState.askPrio	5569	1
-default	field	genState.priSave	5570	1
-default	field	genState.holdPrio	5571	1
-default	field	genState.ctlRet	5572	1
-default	field	genState.pre	5574	28
-default	field	genState.ley	5602	4
-default	field	genState.leyP	5606	1
-default	field	genState.leyOn	5607	1
-default	field	genState.leyDn	5608	1
-default	field	genState.crime	5609	1
-default	field	genState.chPick	5610	12
-default	field	genState.nchPick	5622	1
-default	field	genState.trigTurn	5624	2
-default	field	genState.dilemmas	5626	4
-default	field	genState.on	5630	1
-default	field	genState.tapBatch	5631	1
-default	field	genState.batchLatch	5632	1
-default	field	genState.tyM	5640	24
-default	field	genState.stalled	5664	1
-default	field	genState.noTgtRed	5665	1
-default	field	genState.mayPlayAny	5666	1
-default	field	genState.probe	5668	8
-default	field	genState.tgtSelf	5676	2
-default	field	genState.inLoop	5678	1
-default	field	genState.each	5680	10
-default	field	genState.sbaFP	5690	6
-default	field	genState.tokFrz	5696	24
-default	field	genState.tokFrzOn	5720	1
-default	field	genState.sweep	5722	586
-default	field	genState.mt	6308	5
-default	field	genState.lastCK	6314	2
-default	field	genState.disc	6316	2
-default	field	genState.nlB	6318	8
-default	field	genState.redNC	6326	4
-default	field	genState.grantSrc	6330	2
-default	field	genState.cast	6336	24
-default	field	genState.zoneTurn	6360	64
-default	field	genState.dmgTurn	6424	64
-default	field	genState.enteredN	6488	1
-default	field	genState.enteredFull	6489	1
-default	field	genState.enteredOn	6490	1
-default	field	genState.initH	6491	1
-default	field	genState.room	6492	4
-default	field	genState.dObj	6496	8
-default	field	genState.retMiss	6504	1
-default	field	genState.ewDone	6505	1
-default	field	genState.ewPend	6506	1
-default	field	genState.retAt	6507	1
-default	field	genState.retTS	6508	2
-default	field	genState.batchTS	6510	2
-default	field	genState.spent	6512	8
-default	field	genState.sacM	6520	24
-default	field	genState.sacOrd	6544	64
-default	field	genState.nsac	6608	1
-default	field	genState.linger	6610	32
-default	field	genState.nlinger	6642	1
-default	field	genState.poison	6643	4
-default	field	genState.poolArt	6647	4
-default	field	genState.defSrc	6651	4
-default	field	genState.speed	6656	2
-default	field	genState.noPoison	6658	1
-default	field	genState.plusCtr	6659	4
-default	field	genState.plusSrc	6664	8
-default	field	genState.cast1	6672	1
-default	field	genState.ctrAdder	6673	1
-default	field	genState.ctrSettle	6674	1
-default	field	genState.story	6675	1
-default	field	genState.ctrAdd	6676	18
-default	field	genState.prevCol	6694	18
-default	field	genState.lingerM	6712	24
-default	field	genState.declM	6736	24
-default	field	genState.replaced	6760	2
-default	field	genState.free	6762	32
-default	field	genState.nfree	6794	1
-default	field	genState.freeAll	6796	32
-default	field	genState.nfreeAll	6828	1
-default	field	genState.freeQ	6830	32
-default	field	genState.nfq	6862	1
-default	field	genState.freeP	6864	2
-default	field	genState.hold	6866	1
-default	field	genState.branch	6867	1
-default	field	genState.eachPl	6868	1
-default	field	genState.repNext	6869	1
-default	field	genState.repPC	6870	1
-default	field	genState.repEnd	6871	1
-default	field	genState.pickLeft	6872	1
-default	field	genState.pickP	6873	1
-default	field	genState.reflMask	6874	1
-default	field	genState.reflP	6875	1
-default	field	genState.pickZ	6876	1
-default	field	genState.pickF	6878	2
-default	field	genState.winSrc	6880	1
-default	field	genState.winMode	6881	1
-default	field	genState.winCol	6882	1
-default	field	genState.winFirst	6883	1
-default	field	genState.winHeld	6884	6
-default	field	genState.nlook	6890	1
-default	field	genState.attLKI	6892	24
-default	field	genState.evSel	6920	8
-default	field	genState.endTurn	6928	1
-default	field	genState.fog	6929	1
-default	field	genState.beamPick	6930	1
-default	field	genState.altCast	6931	1
-default	field	genState.beamGrant	6932	1
-default	field	genState.impCast	6933	1
-default	field	genState.warpGrant	6934	1
-default	field	genState.escapeCast	6935	1
-default	field	genState.bargainCast	6936	1
-default	field	genState.noUntapL	6937	1
-default	field	genState.yourTurns	6938	4
-default	field	genState.extraTurnBegun	6942	1
-default	field	genState.exQ	6943	32
-default	field	genState.exQSrc	6976	64
-default	field	genState.exRide	7040	4
-default	field	genState.exRideS	7044	4
-default	field	genState.exRideO	7048	8
-default	field	genState.exRideV	7056	4
-default	field	genState.exRideC	7060	8
-default	field	genState.exN	7068	1
-default	field	genState.exBase	7069	1
-default	field	genState.exRideN	7070	1
-default	field	genState.dayNight	7071	1
-default	field	genState.links	7072	128
-default	field	genState.nlinks	7200	1
-default	field	genState.linkHide	7202	2
-default	field	genState.linkAeg	7204	2
-default	field	genState.linkHand	7206	2
-default	field	genState.linkPad	7208	68
-default	field	genState.retHeld	7276	16
-default	field	genState.nretHeld	7292	1
-default	field	genState.retCtrl	7294	2
-default	field	genState.retHold	7296	1
-default	field	genState.retOld	7297	1
-default	field	genState.retStamp	7298	2
-default	field	genState.entExc	7300	4
-default	field	genState.enterCtr	7304	8
-default	field	genState.entrySelf	7312	1
-default	field	genState.tokPT	7314	8
-default	field	genState.dmgBOn	7322	1
-default	field	genState.dmgBn	7323	1
-default	field	genState.lookSel	7324	4
-default	field	genState.ro	7328	36
-default	field	genState.scr	7368	2400
-default	field	genState.nc	9768	14
-default	field	genState.tok	9782	26
-default	field	genState.dmgSeqOn	9808	1
-default	field	genState.dmgSeqN	9809	1
-default	field	genState.dmgSeqI	9810	1
-default	field	genState.dmgSeqPl	9811	1
-default	field	genState.plusBatchAsked	9812	1
-default	field	genState.colG	9814	36
-default	field	genState.cdh	9850	16
-default	field	genState.ncdh	9866	1
-default	field	genState.cdLeg	9867	1
-default	field	genState.plDmg	9868	1
-default	field	genState.xph	9869	8
-default	field	genState.nxph	9877	1
-default	field	genState.phCnt	9878	1
-default	field	genState.marks	9880	88
-default	field	genState.ctrCell	9968	24
-default	field	genState.ctrCellHit	9992	1
-default	field	genState.ctrEntry	9993	1
-default	field	genState.ctrOver	9994	320
-default	field	genState.nctrOver	10314	1
-default	field	genState.ctrPad	10315	0
-default	field	genState.imp	10316	32
-default	field	genState.nimp	10348	1
-default	field	genState.linkImp	10349	1
-default	field	genState.embF	10350	4
-default	field	genState.embR	10354	32
-default	field	genState.nseat	10386	1
-default	field	genState.poolTre	10387	24
-default	field	genState.blkDef	10411	1
-default	field	genState.ul	10412	24
-default	field	genState.nul	10436	1
-default	field	genState.dmk	10437	4
-default	field	genState.tgtSpent	10441	1
-default	field	genState.turnF	10442	2
-default	field	genState.dmgAmt	10444	16
-default	field	genState.defCol	10460	2
-default	field	genState.prevX	10462	3
-default	field	genState.tgtMVCd	10466	10
-default	field	genState.tgtMV	10476	5
-default	field	genState.trigMVCd	10482	2
-default	field	genState.trigMV	10484	1
-default	field	genState.fbp	10488	36
-default	field	genState.winUnless	10524	1
-default	field	genState.winUnlessSrc	10525	1
-default	field	genState.winUnlessPay	10526	1
-default	field	genState.rsv	10527	5
-default	field	genState.embX	10532	0
-default	field	genState.atkDef	10532	1
-default	field	genState.mon	10533	1
-default	field	genState.redir	10534	32
-default	field	perm.eotKw	0	4
-default	field	perm.eotKwRep	4	8
-default	field	perm.ovr	12	12
-default	field	perm.flags	24	2
-default	field	perm.ts	26	2
-default	field	perm.p1	28	2
-default	field	perm.cn	30	6
-default	field	perm.obj	36	2
-default	field	perm.ctrl	38	1
-default	field	perm.damage	39	1
-default	field	perm.eotP	40	1
-default	field	perm.eotT	41	1
-default	field	perm.attached	42	1
-default	field	perm.blocking	43	1
-default	field	perm.nblock	44	1
-default	field	perm.actUsed	45	1
-default	field	perm.chosen	46	2
-default	field	perm.bord	48	2
-default	field	perm.atk	50	2
-default	field	perm.ck	52	6
-default	field	perm.cs	58	6
-default	field	perm.cseen	64	1
-default	field	perm.atkVer	65	1
-default	field	perm.spare	66	1
-default	field	perm.card	68	2
-default	field	perm.gty	70	2
-default	field	genPrep.creatSub	0	24
-default	field	genPrep.auraSub	24	1
-default	field	genPrep.graveTrig	32	24
-default	field	genPrep.graveDies	56	1
-default	field	genPrep.graveDrawn	57	1
-default	field	genPrep.graveDmg	58	1
-default	field	genPrep.graveETB	59	1
-default	field	genPrep.graveSac	60	1
-default	field	genPrep.anyCastProv	61	1
-default	field	genPrep.anyCastBF	62	1
-default	field	genPrep.anyRad	63	1
-default	field	genPrep.flags	64	24
-default	field	genPrep.smallRecs	88	24
-default	field	genPrep.leyline	112	1
-default	field	genPrep.anyUmbra	113	1
-default	field	genPrep.anySrcMem	114	1
-default	field	genPrep.anySnow	115	1
-default	field	genPrep.anyExwTgt	116	1
-default	field	genPrep.grantPC	120	24
-default	field	genPrep.grantOf	144	24
-default	field	genPrep.grantRestr	168	24
-default	field	genPrep.varPC	192	24
-default	field	genPrep.anyOvrStat	216	1
-default	field	genPrep.anyLoseStat	217	1
-default	field	genPrep.fxNeed	218	1
-default	field	genPrep.enteredNeed	219	1
-default	field	genPrep.actRingOn	220	1
-default	field	genPrep.anyTurnF	221	1
-default	field	genPrep.castTapOn	222	1
-default	field	genPrep.anyManaHaste	223	1
-default	field	genPrep.castRingOn	224	1
-default	field	genPrep.embSubGrant	225	1
-default	field	genPrep.anyTypeValid	226	1
-default	field	genPrep.anyAddChosen	227	1
-default	field	genPrep.chosenSet	228	1
-default	field	genPrep.chosenCardTgt	229	1
-default	field	genPrep.castBoundSrc	230	1
-default	field	genPrep.anyLoseRec	231	1
-default	field	genPrep.tyCombat	232	1
-default	field	genPrep.l6RecOnly	233	1
-default	field	genPrep.lossSlow	234	1
-default	field	genPrep.ctrlSBA	235	1
-default	field	genPrep.anyPTDelta	236	1
-default	field	genPrep.anyPlProtAll	237	1
-default	field	genPrep.anyEmbPlHex	238	1
-default	field	genPrep.anyNTOv	239	1
-default	field	genPrep.legendGrant	240	1
-default	field	genPrep.anyMayPlay	241	1
-default	field	genPrep.anyMayRaise	242	1
-default	field	genPrep.anyMayKind	243	1
-default	field	genPrep.anyZeroAlt	244	1
-default	field	genPrep.anyEmbCold	245	1
-default	field	genPrep.anyMayCold	246	1
-default	field	genPrep.anyMayLimit	247	1
-default	field	genPrep.anyEmbName	248	1
-default	field	genPrep.sCls	256	24
-default	field	genPrep.anyGraveAct	280	1
-default	field	genPrep.anyHandAct	281	1
-default	field	genPrep.anyRemPersist	282	1
-default	field	genPrep.anyNinjutsu	283	1
-default	field	genPrep.anyPowerUp	284	1
-default	field	genPrep.anyManaOnce	285	1
-default	field	genPrep.anyStackTgt	286	1
-default	field	genPrep.anyCopyAb	287	1
-default	field	genPrep.anyBestow	288	1
-default	field	genPrep.anyReconfigure	289	1
-default	field	genPrep.anyKickCost	290	1
-default	field	genPrep.anyMultikick	291	1
-default	field	genPrep.anyEvTargets	292	1
-default	field	genPrep.anyOptCost	293	1
-default	field	genPrep.equipAnim	294	1
-default	field	genPrep.tyPost	295	1
-default	field	genPrep.anyDiscAll	296	1
-default	field	genPrep.anyAbilityCast	297	1
-default	field	genPrep.anyCanAtkDef	298	1
-default	field	genPrep.anyPanharm	299	1
-default	field	genPrep.anyOwnReduce	300	1
-default	field	genPrep.anyAbReduce	301	1
-default	field	genPrep.anyVergeOrder	302	1
-default	field	genPrep.anyGatePair	303	1
-default	field	genPrep.anyLandwalk	304	1
-default	field	genPrep.anyEvasion	305	1
-default	field	genPrep.anyAloneAtk	306	1
-default	field	genPrep.anyAloneBlk	307	1
-default	field	genPrep.anyStatGoad	308	1
-default	field	genPrep.anyTokEndCombat	309	1
-default	field	genPrep.anyProwessGrant	310	1
-default	field	genPrep.anyMinBlk	311	1
-default	field	genPrep.anyExtraBlock	312	1
-default	field	genPrep.anyUntapOther	313	1
-default	field	genPrep.anyTapExtra	314	1
-default	field	genPrep.anyMaxBlk	315	1
-default	field	genPrep.anyCantGain	316	1
-default	field	genPrep.anyCantDraw	317	1
-default	field	genPrep.anyAsIfHaste	318	1
-default	field	genPrep.anyAtkHaste	319	1
-default	field	genPrep.anyCantSuspect	320	1
-default	field	genPrep.anyNoPrev	321	1
-default	field	genPrep.anyTypeCreat	322	1
-default	field	genPrep.anyCdmgTough	323	1
-default	field	genPrep.anyOvGateStat	324	1
-default	field	genPrep.anyDisETB	325	1
-default	field	genPrep.anyLatentDies	326	1
-default	field	genPrep.anyMadness	327	1
-default	field	genPrep.anyMiracle	328	1
-default	field	genPrep.anyHexCol	329	1
-default	field	genPrep.anyHexOwn	330	1
-default	field	genPrep.anyProtCol	331	1
-default	field	genPrep.grantTrigEv	332	4
-default	field	genPrep.globTrigGrant	336	1
-default	field	genPrep.anyProtF	337	1
-default	field	genPrep.anyProtGrant	338	1
-default	field	genPrep.manaTaps	339	1
-default	field	genPrep.anyTapAll	340	1
-default	field	genPrep.tapsWhose	341	1
-default	field	genPrep.anyTWTap	342	1
-default	field	genPrep.anyGameOnce	343	1
-default	field	genPrep.anyTapsMana	344	1
-default	field	genPrep.anySelfDisc	345	1
-default	field	genPrep.anyInfect	346	1
-default	field	genPrep.infectStall	347	1
-default	field	genPrep.twoSeatOnly	348	1
-default	field	genPrep.fbStampOwnCost	349	1
-default	field	genPrep.anyAtkTax	350	1
-default	field	genPrep.anyBlkTax	351	1
-default	field	genPrep.blkTaxStall	352	1
-default	field	genPrep.atkTaxStall	353	1
-default	field	genPrep.chPlOrder	354	1
-default	field	genPrep.tokListAdd	355	1
-default	field	genPrep.anyWitherGrant	356	1
-default	field	genPrep.anyInfectGrant	357	1
-default	field	genPrep.anyEvasionGrant	358	1
-default	field	genPrep.anyKwMark	359	1
-default	field	genPrep.anyEOTEmb	360	1
-default	field	genPrep.anyNTEmb	361	1
-default	field	genPrep.anyNTEndEmb	362	1
-default	field	genPrep.anyEmbGrant	363	1
-default	field	genPrep.embObjEv	364	4
-default	field	genPrep.embCombatEv	368	4
-default	field	genPrep.anyGrant	372	1
-default	field	genPrep.meleeGrant	373	1
-default	field	genPrep.anyWard	374	1
-default	field	genPrep.anyWardGrant	375	1
-default	field	genPrep.btWatch	376	1
-default	field	genPrep.btSpell	377	1
-default	field	genPrep.anyContGrant	378	1
-default	field	genPrep.anySelfGrant	379	1
-default	field	genPrep.grantSelf	384	24
-default	field	genPrep.selfPC	408	3328
-default	field	genPrep.blgOn	3736	1
-default	field	genPrep.blgSub	3737	5
-default	field	genPrep.blgIdx	3744	24
-default	field	genPrep.blgPC	3768	24
-default	field	genPrep.altIdx	3792	24
-default	field	genPrep.altPC	3816	24
-default	field	genPrep.gateIdx	3840	24
-default	field	genPrep.gatePC	3864	24
-default	field	genPrep.globGrant	3888	1
-default	field	genPrep.anyHist	3889	1
-default	field	genPrep.anyPrevFrom	3890	1
-default	field	genPrep.anyTokRew	3891	1
-default	field	genPrep.anyTurnScope	3892	1
-default	field	genPrep.anyUncScope	3893	1
-default	field	genPrep.anyPlHexRec	3894	1
-default	field	genPrep.anyHexUB	3895	1
-default	field	genPrep.anyPlusCre	3896	1
-default	field	genPrep.anyAtkLast	3897	1
-default	field	genPrep.anyContract	3898	1
-default	field	genPrep.anyDmgMark	3899	1
-default	field	genPrep.anyRedir	3900	1
-default	field	genPrep.anyFiltRepl	3901	1
-default	field	genPrep.anyDblAnySrc	3902	1
-default	field	genPrep.untapRepl	3903	1
-default	field	genPrep.anyUntapBlock	3904	1
-default	field	genPrep.anyCtrBlock	3905	1
-default	field	genPrep.anyCastSpent	3906	1
-default	field	genPrep.anySpentGate	3907	1
-default	field	genPrep.anySpent	3908	1
-default	field	genPrep.anyTgtSpent	3909	1
-default	field	genPrep.anyDmgAmt	3910	1
-default	field	genPrep.anyDmgTaken	3911	1
-default	field	genPrep.anyBecomeCopy	3912	1
-default	field	genPrep.anyEntryMerge	3913	1
-default	field	genPrep.anyEffEtbCtr	3914	1
-default	field	genPrep.anyEtbOwnOther	3915	1
-default	field	genPrep.anyStaticTrig	3916	1
-default	field	genPrep.anyColSpent	3917	1
-default	field	genPrep.anyBatch	3918	1
-default	field	genPrep.anyLinkCtr	3919	1
-default	field	genPrep.anyLinkRet	3920	1
-default	field	genPrep.anyDmgRef	3921	1
-default	field	genPrep.anyUnion	3922	1
-default	field	genPrep.anyUnblocked	3923	1
-default	field	genPrep.anyOrCopy	3924	1
-default	field	genPrep.anySkipUntap	3925	1
-default	field	genPrep.anyDelayUp	3926	1
-default	field	genPrep.anyDelayDies	3927	1
-default	field	genPrep.anyDelaySpell	3928	1
-default	field	genPrep.anyRaise	3929	1
-default	field	genPrep.anyRaiseLife	3930	1
-default	field	genPrep.anyRaiseTgt	3931	1
-default	field	genPrep.anyComboDyn	3932	1
-default	field	genPrep.anyComboOff	3933	1
-default	field	genPrep.anyCantCast	3934	1
-default	field	genPrep.anyCantPlayLand	3935	1
-default	field	genPrep.anyCantAct	3936	1
-default	field	genPrep.anyCantSac	3937	1
-default	field	genPrep.anyCantTgt	3938	1
-default	field	genPrep.anyCantTgtGrave	3939	1
-default	field	genPrep.anyOffZoneChar	3940	1
-default	field	genPrep.anyFaces	3941	1
-default	field	genPrep.anyWarp	3942	1
-default	field	genPrep.anyDash	3943	1
-default	field	genPrep.anySurge	3944	1
-default	field	genPrep.anyEvoke	3945	1
-default	field	genPrep.anyCleave	3946	1
-default	field	genPrep.anyOverload	3947	1
-default	field	genPrep.anyImpending	3948	1
-default	field	genPrep.anyPrepare	3949	1
-default	field	genPrep.anyPlot	3950	1
-default	field	genPrep.anySuspend	3951	1
-default	field	genPrep.anyNoManaCost	3952	1
-default	field	genPrep.anyForetell	3953	1
-default	field	genPrep.anyParadigm	3954	1
-default	field	genPrep.anyNetLock	3955	1
-default	field	genPrep.anyUnearth	3956	1
-default	field	genPrep.anyFinality	3957	1
-default	field	genPrep.anyHone	3958	1
-default	field	genPrep.anyExper	3959	1
-default	field	genPrep.anyM2M1	3960	1
-default	field	genPrep.anyBattle	3961	1
-default	field	genPrep.anyWorld	3962	1
-default	field	genPrep.anySneak	3963	1
-default	field	genPrep.anyWebSling	3964	1
-default	field	genPrep.anyMayFlash	3965	1
-default	field	genPrep.anyRebound	3966	1
-default	field	genPrep.anyDelve	3967	1
-default	field	genPrep.anyConvoke	3968	1
-default	field	genPrep.anyBeam	3969	1
-default	field	genPrep.anyBeamBar	3970	1
-default	field	genPrep.anyHarmonize	3971	1
-default	field	genPrep.anyCascade	3972	1
-default	field	genPrep.anyStackKw	3973	1
-default	field	genPrep.anyConspire	3974	1
-default	field	genPrep.anyStorm	3975	1
-default	field	genPrep.anyDemoGrant	3976	1
-default	field	genPrep.anySplitSecond	3977	1
-default	field	genPrep.anyStackLife	3978	1
-default	field	genPrep.anyOffZonePT	3979	1
-default	field	genPrep.anySplit	3980	1
-default	field	genPrep.anyAftermath	3981	1
-default	field	genPrep.anyFuse	3982	1
-default	field	genPrep.anyTwobrid	3983	1
-default	field	genPrep.anyBeamGrant	3984	1
-default	field	genPrep.anyFbGrant	3985	1
-default	field	genPrep.anyWarpGrant	3986	1
-default	field	genPrep.anyEscapeGrant	3987	1
-default	field	genPrep.warpGrantCost	3988	18
-default	field	genPrep.partyRole	4006	4
-default	field	genPrep.outlawSub	4010	5
-default	field	genPrep.anyRemSac	4015	1
-default	field	genPrep.anyRemLKIPick	4016	1
-default	field	genPrep.anyDiscard	4017	1
-default	field	genPrep.anyRemDisc	4018	1
-default	field	genPrep.anySpellMana	4019	1
-default	field	genPrep.cpxPT	4020	1
-default	field	genPrep.cpxSub	4021	1
-default	field	genPrep.cpxCol	4022	1
-default	field	genPrep.cpxNoCost	4023	1
-default	field	genPrep.cpxTy	4024	1
-default	field	genPrep.cpxNoLeg	4025	1
-default	field	genPrep.anyProlif	4026	1
-default	field	genPrep.anyExplEvTrig	4027	1
-default	field	genPrep.anyScryTrig	4028	1
-default	field	genPrep.anyLandPlayed	4029	1
-default	field	genPrep.anyCzPair	4030	1
-default	field	genPrep.anyLeavesGrave	4031	1
-default	field	genPrep.anyToGrave	4032	1
-default	field	genPrep.anyKwAct	4033	1
-default	field	genPrep.anyDilemma	4034	1
-default	field	genPrep.anyScryTally	4035	1
-default	field	genPrep.anyTokCr	4036	1
-default	field	genPrep.anyAnyAct	4037	1
-default	field	genPrep.anyMonstrosity	4038	1
-default	field	genPrep.anyAirbend	4039	1
-default	field	genPrep.anyMeld	4040	1
-default	field	genPrep.anyMayWhileSrc	4041	1
-default	field	genPrep.anyGoad	4042	1
-default	field	genPrep.anyPermMark	4043	1
-default	field	genPrep.anyTappedTurn	4044	1
-default	field	genPrep.anyBtTurn	4045	1
-default	field	genPrep.anyCombatHit	4046	1
-default	field	genPrep.cdLegOn	4047	1
-default	field	genPrep.cdDamOn	4048	1
-default	field	genPrep.plDmgOn	4049	1
-default	field	genPrep.anyAddPhase	4050	1
-default	field	genPrep.anySkipPhase	4051	1
-default	field	genPrep.anyMonarch	4052	1
-default	field	genPrep.anyAttackedObj	4053	1
-default	field	genPrep.anySuspect	4054	1
-default	field	genPrep.anyRemEach	4055	1
-default	field	genPrep.anySacSub	4056	1
-default	field	genPrep.ix	4057	64
-default	field	genPrep.anyInit	4121	1
-default	field	genPrep.dungeon	4122	2
-default	field	genPrep.anyFaceDown	4124	1
-default	field	genPrep.anyTurnUpRepl	4125	1
-default	field	genPrep.anyTransformed	4126	1
-default	field	genPrep.crimeOn	4127	1
-default	field	genPrep.anyEmpower	4128	1
-default	field	genPrep.anyTapPower	4129	1
-default	field	genPrep.anyEarthbend	4130	1
-default	field	genPrep.anyLeaveRet	4131	1
-default	field	genPrep.anyOnePoison	4132	1
-default	field	genPrep.anyCopyElect	4133	1
-default	field	genPrep.anyPermCopy	4134	1
-default	field	genPrep.anyCharmNum	4135	1
-default	field	genPrep.anyCharmV	4136	1
-default	field	genPrep.anyCharmPick	4137	1
-default	field	genPrep.anyWaterbend	4138	1
-default	field	genPrep.anyXBoundAb	4139	1
-default	field	genPrep.anyLure	4140	1
-default	field	genPrep.anyLureStat	4141	1
-default	field	genPrep.anyMustBlock	4142	1
-default	field	genPrep.anyFaceExile	4143	1
-default	field	genPrep.anyExW	4144	1
-default	field	genPrep.exwRec	4152	24
-default	field	genPrep.anyCloneCopy	4176	1
-default	field	genPrep.anyAegis	4177	1
-default	field	genPrep.anyUnattach	4178	1
-default	field	genPrep.anyHideaway	4179	1
-default	field	genPrep.anyLoyaltyX	4180	1
-default	field	genPrep.anyLifeX	4181	1
-default	field	genPrep.anyExileX	4182	1
-default	field	genPrep.anySacX	4183	1
-default	field	genPrep.anyXMin	4184	1
-default	field	genPrep.anyCopyCast	4185	1
-default	field	genPrep.anyExileGrant	4186	1
-default	field	genPrep.anyNumTimes	4187	1
-default	field	genPrep.anyExHaste	4188	1
-default	field	genPrep.anyColGrant	4189	1
-default	field	genPrep.anyDiscRef	4190	1
-default	field	genPrep.anySpellCond	4191	1
-default	field	genPrep.anyEntUntap	4192	1
-default	field	genPrep.anyEntAttack	4193	1
-default	field	genPrep.anyEachTgt	4194	1
-default	field	genPrep.anyXBadMV	4195	1
-default	field	genPrep.anyTgtSetBf	4196	1
-default	field	genPrep.anyUniqLater	4197	1
-default	field	genPrep.anySaddle	4198	1
-default	field	genPrep.anySolve	4199	1
-default	field	genPrep.anyStation	4200	1
-default	field	genPrep.anyPoisonHigh	4201	1
-default	field	genPrep.anyDiesNC	4202	1
-default	field	genPrep.anyHandSize	4203	1
-default	field	genPrep.anyYouHex	4204	1
-default	field	genPrep.anyRole	4205	1
-default	field	genPrep.roleSub	4206	1
-default	field	genPrep.anyWhileHost	4207	1
-default	field	genPrep.anyEmbCtrl	4208	1
-default	field	genPrep.anyWhileTapped	4209	1
-default	field	genPrep.anyOvCantAtk	4210	1
-default	field	genPrep.anyCantAtk	4211	1
-default	field	genPrep.anyCantAtkScope	4212	1
-default	field	genPrep.anySrcMark	4213	1
-default	field	genPrep.dmgBy	4216	24
-default	field	genPrep.crewerRec	4240	24
-default	field	genPrep.crewBy	4264	24
-default	field	genPrep.replBits	4288	24
-default	field	genPrep.anyRepl	4312	4
-default	field	genPrep.replBits2	4320	24
-default	field	genPrep.anyRepl2	4344	4
-default	field	genPrep.anyBeginPhase	4348	1
-default	field	genPrep.exileOnLeave	4352	24
-default	field	genPrep.exileAnyC	4376	24
-default	field	genPrep.destroyHeal	4400	24
-default	field	genPrep.anyExileAny	4424	1
-default	field	genPrep.altFree	4432	24
-default	field	genPrep.anyDeferred	4456	1
-default	field	genPrep.anyTapsDefer	4457	1
-default	field	genPrep.anyTapsPain	4458	1
-default	field	genPrep.anyManaRider	4459	1
-default	field	genPrep.anyCondSplit	4460	1
-default	field	genPrep.anySelfTaps	4461	1
-default	field	genPrep.anyDiscHand	4462	1
-default	field	genPrep.anyComboAny	4463	1
-default	field	genPrep.dhMix	4464	1
-default	field	genPrep.caMix	4465	1
-default	field	genPrep.anyEachCol	4466	1
-default	field	genPrep.anyRestr	4467	1
-default	field	genPrep.anyRestrScript	4468	1
-default	field	genPrep.anyRestrSrc	4469	1
-default	field	genPrep.rs	4472	8
-default	field	genPrep.restrF	4480	16
-default	field	genPrep.restrV	4496	8
-default	field	genPrep.restrVar	4504	24
-default	field	genPrep.restrPers	4528	1
-default	field	genPrep.anyAnyR	4529	1
-default	field	genPrep.anyRefl	4530	1
-default	field	genPrep.anyMultiR	4531	1
-default	field	genPrep.anyFilt	4532	1
-default	field	genPrep.anyFiltPip	4533	1
-default	field	genPrep.anyFiltFirst	4534	1
-default	field	genPrep.anyFiltRepeat	4535	1
-default	field	genPrep.anyDynGap	4536	1
-default	field	genPrep.anyDynFilt	4537	1
-default	field	genPrep.anyScriptGap	4538	1
-default	field	genPrep.anyWindowGap	4539	1
-default	field	genPrep.l6Stall	4540	1
-default	field	genPrep.anyTriggerAttackers	4541	1
-default	field	genPrep.anyBatchPool	4542	1
-default	field	genPrep.anyFirstCast	4543	1
-default	field	genPrep.landSet	4544	1
-default	field	genPrep.landSub	4552	24
-default	field	genPrep.setIdx	4576	24
-default	field	genPrep.setPC	4600	24
-default	field	genPrep.uses	4624	32
-default	field	coldArrays.layout	0	8
-default	field	coldArrays.buf	8	24
-default	field	coldArrays.ms	32	24
-default	field	coldArrays.mo	56	24
-default	field	coldArrays.objSets	80	24
-default	field	coldArrays.atkGrp	104	24
-default	field	coldArrays.convoked	128	24
-default	field	coldArrays.exH	152	24
-default	field	coldArrays.entered	176	24
-default	field	coldArrays.exMark	200	24
-default	field	coldArrays.parked	224	24
-default	field	coldArrays.castRing	248	24
-default	field	coldArrays.discHeld	272	24
-default	field	coldArrays.copyHeld	296	24
-default	field	coldArrays.mk	320	24
-default	field	coldArrays.mkObj	344	24
-default	field	coldArrays.hexUB	368	24
+# Generated fixed-State field inventory (layout_pins_test.go); do not edit by hand. Regenerate: DIRAC_UPDATE_LAYOUT=1 go test -run '^(TestNoNewFixedStateFields|TestCapacityHashPins)$' ./dirac
+# class	field	Type.field	size
+# struct stateCore
+default	field	stateCore.tbl	2
+default	field	stateCore.cfg	1
+default	field	stateCore.ctl	1
+default	field	stateCore.over	1
+default	field	stateCore.win	1
+default	field	stateCore.turn	2
+default	field	stateCore.step	1
+default	field	stateCore.active	1
+default	field	stateCore.prio	1
+default	field	stateCore.passes	1
+default	field	stateCore.startPl	1
+default	field	stateCore.cfgx	1
+default	field	stateCore.ts	2
+default	field	stateCore.rng	168
+default	field	stateCore.pl	3424
+default	field	stateCore.objs	3904
+default	field	stateCore.nobj	2
+default	field	stateCore.permHi	1
+default	field	stateCore.lstamp	384
+default	field	stateCore.kwx	96
+default	field	stateCore.nkwx	1
+default	field	stateCore.ptx	24
+default	field	stateCore.nptx	1
+default	field	stateCore.occ	24
+default	field	stateCore.ctrlM	96
+default	field	stateCore.subs	552
+default	field	stateCore.statM	24
+default	field	stateCore.fxM	24
+default	field	stateCore.grantM	24
+default	field	stateCore.legM	24
+default	field	stateCore.stack	4800
+default	field	stateCore.sp	1
+default	field	stateCore.pend	2080
+default	field	stateCore.npend	1
+default	field	stateCore.orderLeft	1
+default	field	stateCore.orderN	1
+default	field	stateCore.orderPlace	1
+default	field	stateCore.ordList	80
+default	field	stateCore.dly	320
+default	field	stateCore.ndly	1
+default	field	stateCore.res	328
+default	field	stateCore.mullOrder	4
+default	field	stateCore.mullCur	1
+default	field	stateCore.mullKept	4
+default	field	stateCore.mullMull	4
+default	field	stateCore.mullLeft	1
+default	field	stateCore.mullMax	1
+default	field	stateCore.nAttackers	1
+default	field	stateCore.fsStep	1
+default	field	stateCore.blockSeq	1
+default	field	stateCore.declared	1
+default	field	stateCore.carry	1
+default	field	stateCore.lastPick	1
+default	field	stateCore.discardLeft	1
+default	field	stateCore.legP	1
+default	field	stateCore.legCard	2
+default	field	stateCore.legDie	24
+default	field	stateCore.legSaga	24
+default	field	stateCore.divA	1
+default	field	stateCore.divI	1
+default	field	stateCore.divRem	1
+default	field	stateCore.divFirst	1
+default	field	stateCore.fbR	4
+default	field	stateCore.rb	128
+default	field	stateCore.pm	24
+default	field	stateCore.pmOn	1
+default	field	stateCore.sbaOK	1
+default	field	stateCore.sbaT	4
+default	field	stateCore.chg	64
+default	field	stateCore.epoch	4
+default	field	stateCore.touchN	4
+default	field	stateCore.line	8
+default	field	stateCore.undos	1
+default	field	stateCore.heldObj	2
+default	field	stateCore.heldN	1
+default	field	stateCore.heldTurn	2
+default	field	stateCore.heldStep	1
+default	field	stateCore.heldTouch	4
+default	field	stateCore.stamp	488
+default	field	stateCore.Skipped	16
+default	field	stateCore.nlC	8
+default	field	stateCore.g	10568
+default	field	stateCore.outCode	512
+default	field	stateCore.Decisions	4
+default	field	stateCore.payHyb	1
+# struct genState
+default	field	genState.graveKept	1
+default	field	genState.cskip	1
+default	field	genState.fx	768
+default	field	genState.nfx	1
+default	field	genState.xtp	1312
+default	field	genState.atkHi	1
+default	field	genState.cvokHi	1
+default	field	genState.tli	1
+default	field	genState.energy	4
+default	field	genState.roll	1
+default	field	genState.drawFirst	1
+default	field	genState.drawStepN	1
+default	field	genState.conn	1
+default	field	genState.held	1
+default	field	genState.rem	128
+default	field	genState.nrem	1
+default	field	genState.chosen	128
+default	field	genState.nchosen	1
+default	field	genState.remCnt	2
+default	field	genState.availX	2
+default	field	genState.noGrant	1
+default	field	genState.roleOut	1
+default	field	genState.digLo	1
+default	field	genState.raiseO	1
+default	field	genState.raiseB	1
+default	field	genState.excess	2
+default	field	genState.lostAmt	2
+default	field	genState.tokMade	1
+default	field	genState.tokDef	2
+default	field	genState.tokDefSet	1
+default	field	genState.entHost	1
+default	field	genState.dmg	32
+default	field	genState.ndmg	1
+default	field	genState.fbProbe	1
+default	field	genState.priAsk	1
+default	field	genState.may	192
+default	field	genState.nmay	1
+default	field	genState.parad	4
+default	field	genState.sidN	1
+default	field	genState.dp	132
+default	field	genState.dpLKI	6
+default	field	genState.ndp	1
+default	field	genState.stkCt	1
+default	field	genState.emb	16
+default	field	genState.embC	32
+default	field	genState.embO	32
+default	field	genState.embN	32
+default	field	genState.embT	32
+default	field	genState.nemb	4
+default	field	genState.qgO	16
+default	field	genState.qgV	8
+default	field	genState.qgH	16
+default	field	genState.pgT	8
+default	field	genState.pgH	8
+default	field	genState.nlA	8
+default	field	genState.untapUp	24
+default	field	genState.untapNext	1
+default	field	genState.untapSl	1
+default	field	genState.untapAns	1
+default	field	genState.untapOn	1
+default	field	genState.lki	2268
+default	field	genState.lkiPad	8
+default	field	genState.used	96
+default	field	genState.nused	1
+default	field	genState.died	1
+default	field	genState.attacked	4
+default	field	genState.oppAtt	1
+default	field	genState.isCast	4
+default	field	genState.hist	12
+default	field	genState.actRing	128
+default	field	genState.ask	48
+default	field	genState.nask	1
+default	field	genState.askPrio	1
+default	field	genState.priSave	1
+default	field	genState.holdPrio	1
+default	field	genState.ctlRet	1
+default	field	genState.pre	28
+default	field	genState.ley	4
+default	field	genState.leyP	1
+default	field	genState.leyOn	1
+default	field	genState.leyDn	1
+default	field	genState.crime	1
+default	field	genState.chPick	12
+default	field	genState.nchPick	1
+default	field	genState.trigTurn	2
+default	field	genState.dilemmas	4
+default	field	genState.on	1
+default	field	genState.tapBatch	1
+default	field	genState.batchLatch	1
+default	field	genState.tyM	24
+default	field	genState.stalled	1
+default	field	genState.noTgtRed	1
+default	field	genState.mayPlayAny	1
+default	field	genState.probe	8
+default	field	genState.tgtSelf	2
+default	field	genState.inLoop	1
+default	field	genState.each	10
+default	field	genState.sbaFP	6
+default	field	genState.tokFrz	24
+default	field	genState.tokFrzOn	1
+default	field	genState.sweep	586
+default	field	genState.mt	5
+default	field	genState.lastCK	2
+default	field	genState.disc	2
+default	field	genState.nlB	8
+default	field	genState.redNC	4
+default	field	genState.grantSrc	2
+default	field	genState.cast	24
+default	field	genState.zoneTurn	64
+default	field	genState.dmgTurn	64
+default	field	genState.enteredN	1
+default	field	genState.enteredFull	1
+default	field	genState.enteredOn	1
+default	field	genState.initH	1
+default	field	genState.room	4
+default	field	genState.dObj	8
+default	field	genState.retMiss	1
+default	field	genState.ewDone	1
+default	field	genState.ewPend	1
+default	field	genState.retAt	1
+default	field	genState.retTS	2
+default	field	genState.batchTS	2
+default	field	genState.spent	8
+default	field	genState.sacM	24
+default	field	genState.sacOrd	64
+default	field	genState.nsac	1
+default	field	genState.linger	32
+default	field	genState.nlinger	1
+default	field	genState.poison	4
+default	field	genState.poolArt	4
+default	field	genState.defSrc	4
+default	field	genState.speed	2
+default	field	genState.noPoison	1
+default	field	genState.plusCtr	4
+default	field	genState.plusSrc	8
+default	field	genState.cast1	1
+default	field	genState.ctrAdder	1
+default	field	genState.ctrSettle	1
+default	field	genState.story	1
+default	field	genState.ctrAdd	18
+default	field	genState.prevCol	18
+default	field	genState.lingerM	24
+default	field	genState.declM	24
+default	field	genState.replaced	2
+default	field	genState.free	32
+default	field	genState.nfree	1
+default	field	genState.freeAll	32
+default	field	genState.nfreeAll	1
+default	field	genState.freeQ	32
+default	field	genState.nfq	1
+default	field	genState.freeP	2
+default	field	genState.hold	1
+default	field	genState.branch	1
+default	field	genState.eachPl	1
+default	field	genState.repNext	1
+default	field	genState.repPC	1
+default	field	genState.repEnd	1
+default	field	genState.pickLeft	1
+default	field	genState.pickP	1
+default	field	genState.reflMask	1
+default	field	genState.reflP	1
+default	field	genState.pickZ	1
+default	field	genState.pickF	2
+default	field	genState.winSrc	1
+default	field	genState.winMode	1
+default	field	genState.winCol	1
+default	field	genState.winFirst	1
+default	field	genState.winHeld	6
+default	field	genState.nlook	1
+default	field	genState.attLKI	24
+default	field	genState.evSel	8
+default	field	genState.endTurn	1
+default	field	genState.fog	1
+default	field	genState.beamPick	1
+default	field	genState.altCast	1
+default	field	genState.beamGrant	1
+default	field	genState.impCast	1
+default	field	genState.warpGrant	1
+default	field	genState.escapeCast	1
+default	field	genState.bargainCast	1
+default	field	genState.noUntapL	1
+default	field	genState.yourTurns	4
+default	field	genState.extraTurnBegun	1
+default	field	genState.exQ	32
+default	field	genState.exQSrc	64
+default	field	genState.exRide	4
+default	field	genState.exRideS	4
+default	field	genState.exRideO	8
+default	field	genState.exRideV	4
+default	field	genState.exRideC	8
+default	field	genState.exN	1
+default	field	genState.exBase	1
+default	field	genState.exRideN	1
+default	field	genState.dayNight	1
+default	field	genState.links	128
+default	field	genState.nlinks	1
+default	field	genState.linkHide	2
+default	field	genState.linkAeg	2
+default	field	genState.linkHand	2
+default	field	genState.linkPad	68
+default	field	genState.retHeld	16
+default	field	genState.nretHeld	1
+default	field	genState.retCtrl	2
+default	field	genState.retHold	1
+default	field	genState.retOld	1
+default	field	genState.retStamp	2
+default	field	genState.entExc	4
+default	field	genState.enterCtr	8
+default	field	genState.entrySelf	1
+default	field	genState.tokPT	8
+default	field	genState.dmgBOn	1
+default	field	genState.dmgBn	1
+default	field	genState.lookSel	4
+default	field	genState.ro	36
+default	field	genState.scr	2400
+default	field	genState.nc	14
+default	field	genState.tok	26
+default	field	genState.dmgSeqOn	1
+default	field	genState.dmgSeqN	1
+default	field	genState.dmgSeqI	1
+default	field	genState.dmgSeqPl	1
+default	field	genState.plusBatchAsked	1
+default	field	genState.colG	36
+default	field	genState.cdh	16
+default	field	genState.ncdh	1
+default	field	genState.cdLeg	1
+default	field	genState.plDmg	1
+default	field	genState.xph	8
+default	field	genState.nxph	1
+default	field	genState.phCnt	1
+default	field	genState.marks	88
+default	field	genState.ctrCell	24
+default	field	genState.ctrCellHit	1
+default	field	genState.ctrEntry	1
+default	field	genState.ctrOver	320
+default	field	genState.nctrOver	1
+default	field	genState.ctrPad	0
+default	field	genState.imp	32
+default	field	genState.nimp	1
+default	field	genState.linkImp	1
+default	field	genState.embF	4
+default	field	genState.embR	32
+default	field	genState.nseat	1
+default	field	genState.poolTre	24
+default	field	genState.blkDef	1
+default	field	genState.ul	24
+default	field	genState.nul	1
+default	field	genState.dmk	4
+default	field	genState.tgtSpent	1
+default	field	genState.turnF	2
+default	field	genState.dmgAmt	16
+default	field	genState.defCol	2
+default	field	genState.prevX	3
+default	field	genState.tgtMVCd	10
+default	field	genState.tgtMV	5
+default	field	genState.trigMVCd	2
+default	field	genState.trigMV	1
+default	field	genState.fbp	36
+default	field	genState.winUnless	1
+default	field	genState.winUnlessSrc	1
+default	field	genState.winUnlessPay	1
+default	field	genState.rsv	5
+default	field	genState.embX	0
+default	field	genState.atkDef	1
+default	field	genState.mon	1
+default	field	genState.redir	32
+# struct perm
+default	field	perm.eotKw	4
+default	field	perm.eotKwRep	8
+default	field	perm.ovr	12
+default	field	perm.flags	2
+default	field	perm.ts	2
+default	field	perm.p1	2
+default	field	perm.cn	6
+default	field	perm.obj	2
+default	field	perm.ctrl	1
+default	field	perm.damage	1
+default	field	perm.eotP	1
+default	field	perm.eotT	1
+default	field	perm.attached	1
+default	field	perm.blocking	1
+default	field	perm.nblock	1
+default	field	perm.actUsed	1
+default	field	perm.chosen	2
+default	field	perm.bord	2
+default	field	perm.atk	2
+default	field	perm.ck	6
+default	field	perm.cs	6
+default	field	perm.cseen	1
+default	field	perm.atkVer	1
+default	field	perm.spare	1
+default	field	perm.card	2
+default	field	perm.gty	2
+# struct genPrep
+default	field	genPrep.creatSub	24
+default	field	genPrep.auraSub	1
+default	field	genPrep.graveTrig	24
+default	field	genPrep.graveDies	1
+default	field	genPrep.graveDrawn	1
+default	field	genPrep.graveDmg	1
+default	field	genPrep.graveETB	1
+default	field	genPrep.graveSac	1
+default	field	genPrep.anyCastProv	1
+default	field	genPrep.anyCastBF	1
+default	field	genPrep.anyRad	1
+default	field	genPrep.flags	24
+default	field	genPrep.smallRecs	24
+default	field	genPrep.leyline	1
+default	field	genPrep.anyUmbra	1
+default	field	genPrep.anySrcMem	1
+default	field	genPrep.anySnow	1
+default	field	genPrep.anyExwTgt	1
+default	field	genPrep.grantPC	24
+default	field	genPrep.grantOf	24
+default	field	genPrep.grantRestr	24
+default	field	genPrep.varPC	24
+default	field	genPrep.anyOvrStat	1
+default	field	genPrep.anyLoseStat	1
+default	field	genPrep.fxNeed	1
+default	field	genPrep.enteredNeed	1
+default	field	genPrep.actRingOn	1
+default	field	genPrep.anyTurnF	1
+default	field	genPrep.castTapOn	1
+default	field	genPrep.anyManaHaste	1
+default	field	genPrep.castRingOn	1
+default	field	genPrep.embSubGrant	1
+default	field	genPrep.anyTypeValid	1
+default	field	genPrep.anyAddChosen	1
+default	field	genPrep.chosenSet	1
+default	field	genPrep.chosenCardTgt	1
+default	field	genPrep.castBoundSrc	1
+default	field	genPrep.anyLoseRec	1
+default	field	genPrep.tyCombat	1
+default	field	genPrep.l6RecOnly	1
+default	field	genPrep.lossSlow	1
+default	field	genPrep.ctrlSBA	1
+default	field	genPrep.anyPTDelta	1
+default	field	genPrep.anyPlProtAll	1
+default	field	genPrep.anyEmbPlHex	1
+default	field	genPrep.anyNTOv	1
+default	field	genPrep.legendGrant	1
+default	field	genPrep.anyMayPlay	1
+default	field	genPrep.anyMayRaise	1
+default	field	genPrep.anyMayKind	1
+default	field	genPrep.anyZeroAlt	1
+default	field	genPrep.anyEmbCold	1
+default	field	genPrep.anyMayCold	1
+default	field	genPrep.anyMayLimit	1
+default	field	genPrep.anyEmbName	1
+default	field	genPrep.sCls	24
+default	field	genPrep.anyGraveAct	1
+default	field	genPrep.anyHandAct	1
+default	field	genPrep.anyRemPersist	1
+default	field	genPrep.anyNinjutsu	1
+default	field	genPrep.anyPowerUp	1
+default	field	genPrep.anyManaOnce	1
+default	field	genPrep.anyStackTgt	1
+default	field	genPrep.anyCopyAb	1
+default	field	genPrep.anyBestow	1
+default	field	genPrep.anyReconfigure	1
+default	field	genPrep.anyKickCost	1
+default	field	genPrep.anyMultikick	1
+default	field	genPrep.anyEvTargets	1
+default	field	genPrep.anyOptCost	1
+default	field	genPrep.equipAnim	1
+default	field	genPrep.tyPost	1
+default	field	genPrep.anyDiscAll	1
+default	field	genPrep.anyAbilityCast	1
+default	field	genPrep.anyCanAtkDef	1
+default	field	genPrep.anyPanharm	1
+default	field	genPrep.anyOwnReduce	1
+default	field	genPrep.anyAbReduce	1
+default	field	genPrep.anyVergeOrder	1
+default	field	genPrep.anyGatePair	1
+default	field	genPrep.anyLandwalk	1
+default	field	genPrep.anyEvasion	1
+default	field	genPrep.anyAloneAtk	1
+default	field	genPrep.anyAloneBlk	1
+default	field	genPrep.anyStatGoad	1
+default	field	genPrep.anyTokEndCombat	1
+default	field	genPrep.anyProwessGrant	1
+default	field	genPrep.anyMinBlk	1
+default	field	genPrep.anyExtraBlock	1
+default	field	genPrep.anyUntapOther	1
+default	field	genPrep.anyTapExtra	1
+default	field	genPrep.anyMaxBlk	1
+default	field	genPrep.anyCantGain	1
+default	field	genPrep.anyCantDraw	1
+default	field	genPrep.anyAsIfHaste	1
+default	field	genPrep.anyAtkHaste	1
+default	field	genPrep.anyCantSuspect	1
+default	field	genPrep.anyNoPrev	1
+default	field	genPrep.anyTypeCreat	1
+default	field	genPrep.anyCdmgTough	1
+default	field	genPrep.anyOvGateStat	1
+default	field	genPrep.anyDisETB	1
+default	field	genPrep.anyLatentDies	1
+default	field	genPrep.anyMadness	1
+default	field	genPrep.anyMiracle	1
+default	field	genPrep.anyHexCol	1
+default	field	genPrep.anyHexOwn	1
+default	field	genPrep.anyProtCol	1
+default	field	genPrep.grantTrigEv	4
+default	field	genPrep.globTrigGrant	1
+default	field	genPrep.anyProtF	1
+default	field	genPrep.anyProtGrant	1
+default	field	genPrep.manaTaps	1
+default	field	genPrep.anyTapAll	1
+default	field	genPrep.tapsWhose	1
+default	field	genPrep.anyTWTap	1
+default	field	genPrep.anyGameOnce	1
+default	field	genPrep.anyTapsMana	1
+default	field	genPrep.anySelfDisc	1
+default	field	genPrep.anyInfect	1
+default	field	genPrep.infectStall	1
+default	field	genPrep.twoSeatOnly	1
+default	field	genPrep.fbStampOwnCost	1
+default	field	genPrep.anyAtkTax	1
+default	field	genPrep.anyBlkTax	1
+default	field	genPrep.blkTaxStall	1
+default	field	genPrep.atkTaxStall	1
+default	field	genPrep.chPlOrder	1
+default	field	genPrep.tokListAdd	1
+default	field	genPrep.anyWitherGrant	1
+default	field	genPrep.anyInfectGrant	1
+default	field	genPrep.anyEvasionGrant	1
+default	field	genPrep.anyKwMark	1
+default	field	genPrep.anyEOTEmb	1
+default	field	genPrep.anyNTEmb	1
+default	field	genPrep.anyNTEndEmb	1
+default	field	genPrep.anyEmbGrant	1
+default	field	genPrep.embObjEv	4
+default	field	genPrep.embCombatEv	4
+default	field	genPrep.anyGrant	1
+default	field	genPrep.meleeGrant	1
+default	field	genPrep.anyWard	1
+default	field	genPrep.anyWardGrant	1
+default	field	genPrep.btWatch	1
+default	field	genPrep.btSpell	1
+default	field	genPrep.anyContGrant	1
+default	field	genPrep.anySelfGrant	1
+default	field	genPrep.grantSelf	24
+default	field	genPrep.selfPC	3328
+default	field	genPrep.blgOn	1
+default	field	genPrep.blgSub	5
+default	field	genPrep.blgIdx	24
+default	field	genPrep.blgPC	24
+default	field	genPrep.altIdx	24
+default	field	genPrep.altPC	24
+default	field	genPrep.gateIdx	24
+default	field	genPrep.gatePC	24
+default	field	genPrep.globGrant	1
+default	field	genPrep.anyHist	1
+default	field	genPrep.anyPrevFrom	1
+default	field	genPrep.anyTokRew	1
+default	field	genPrep.anyTurnScope	1
+default	field	genPrep.anyUncScope	1
+default	field	genPrep.anyPlHexRec	1
+default	field	genPrep.anyHexUB	1
+default	field	genPrep.anyPlusCre	1
+default	field	genPrep.anyAtkLast	1
+default	field	genPrep.anyContract	1
+default	field	genPrep.anyDmgMark	1
+default	field	genPrep.anyRedir	1
+default	field	genPrep.anyFiltRepl	1
+default	field	genPrep.anyDblAnySrc	1
+default	field	genPrep.untapRepl	1
+default	field	genPrep.anyUntapBlock	1
+default	field	genPrep.anyCtrBlock	1
+default	field	genPrep.anyCastSpent	1
+default	field	genPrep.anySpentGate	1
+default	field	genPrep.anySpent	1
+default	field	genPrep.anyTgtSpent	1
+default	field	genPrep.anyDmgAmt	1
+default	field	genPrep.anyDmgTaken	1
+default	field	genPrep.anyBecomeCopy	1
+default	field	genPrep.anyEntryMerge	1
+default	field	genPrep.anyEffEtbCtr	1
+default	field	genPrep.anyEtbOwnOther	1
+default	field	genPrep.anyStaticTrig	1
+default	field	genPrep.anyColSpent	1
+default	field	genPrep.anyBatch	1
+default	field	genPrep.anyLinkCtr	1
+default	field	genPrep.anyLinkRet	1
+default	field	genPrep.anyDmgRef	1
+default	field	genPrep.anyUnion	1
+default	field	genPrep.anyUnblocked	1
+default	field	genPrep.anyOrCopy	1
+default	field	genPrep.anySkipUntap	1
+default	field	genPrep.anyDelayUp	1
+default	field	genPrep.anyDelayDies	1
+default	field	genPrep.anyDelaySpell	1
+default	field	genPrep.anyRaise	1
+default	field	genPrep.anyRaiseLife	1
+default	field	genPrep.anyRaiseTgt	1
+default	field	genPrep.anyComboDyn	1
+default	field	genPrep.anyComboOff	1
+default	field	genPrep.anyCantCast	1
+default	field	genPrep.anyCantPlayLand	1
+default	field	genPrep.anyCantAct	1
+default	field	genPrep.anyCantSac	1
+default	field	genPrep.anyCantTgt	1
+default	field	genPrep.anyCantTgtGrave	1
+default	field	genPrep.anyOffZoneChar	1
+default	field	genPrep.anyFaces	1
+default	field	genPrep.anyWarp	1
+default	field	genPrep.anyDash	1
+default	field	genPrep.anySurge	1
+default	field	genPrep.anyEvoke	1
+default	field	genPrep.anyCleave	1
+default	field	genPrep.anyOverload	1
+default	field	genPrep.anyImpending	1
+default	field	genPrep.anyPrepare	1
+default	field	genPrep.anyPlot	1
+default	field	genPrep.anySuspend	1
+default	field	genPrep.anyNoManaCost	1
+default	field	genPrep.anyForetell	1
+default	field	genPrep.anyParadigm	1
+default	field	genPrep.anyNetLock	1
+default	field	genPrep.anyUnearth	1
+default	field	genPrep.anyFinality	1
+default	field	genPrep.anyHone	1
+default	field	genPrep.anyExper	1
+default	field	genPrep.anyM2M1	1
+default	field	genPrep.anyBattle	1
+default	field	genPrep.anyWorld	1
+default	field	genPrep.anySneak	1
+default	field	genPrep.anyWebSling	1
+default	field	genPrep.anyMayFlash	1
+default	field	genPrep.anyRebound	1
+default	field	genPrep.anyDelve	1
+default	field	genPrep.anyConvoke	1
+default	field	genPrep.anyBeam	1
+default	field	genPrep.anyBeamBar	1
+default	field	genPrep.anyHarmonize	1
+default	field	genPrep.anyCascade	1
+default	field	genPrep.anyStackKw	1
+default	field	genPrep.anyConspire	1
+default	field	genPrep.anyStorm	1
+default	field	genPrep.anyDemoGrant	1
+default	field	genPrep.anySplitSecond	1
+default	field	genPrep.anyStackLife	1
+default	field	genPrep.anyOffZonePT	1
+default	field	genPrep.anySplit	1
+default	field	genPrep.anyAftermath	1
+default	field	genPrep.anyFuse	1
+default	field	genPrep.anyTwobrid	1
+default	field	genPrep.anyBeamGrant	1
+default	field	genPrep.anyFbGrant	1
+default	field	genPrep.anyWarpGrant	1
+default	field	genPrep.anyEscapeGrant	1
+default	field	genPrep.warpGrantCost	18
+default	field	genPrep.partyRole	4
+default	field	genPrep.outlawSub	5
+default	field	genPrep.anyRemSac	1
+default	field	genPrep.anyRemLKIPick	1
+default	field	genPrep.anyDiscard	1
+default	field	genPrep.anyRemDisc	1
+default	field	genPrep.anySpellMana	1
+default	field	genPrep.cpxPT	1
+default	field	genPrep.cpxSub	1
+default	field	genPrep.cpxCol	1
+default	field	genPrep.cpxNoCost	1
+default	field	genPrep.cpxTy	1
+default	field	genPrep.cpxNoLeg	1
+default	field	genPrep.anyProlif	1
+default	field	genPrep.anyExplEvTrig	1
+default	field	genPrep.anyScryTrig	1
+default	field	genPrep.anyLandPlayed	1
+default	field	genPrep.anyCzPair	1
+default	field	genPrep.anyLeavesGrave	1
+default	field	genPrep.anyToGrave	1
+default	field	genPrep.anyKwAct	1
+default	field	genPrep.anyDilemma	1
+default	field	genPrep.anyScryTally	1
+default	field	genPrep.anyTokCr	1
+default	field	genPrep.anyAnyAct	1
+default	field	genPrep.anyMonstrosity	1
+default	field	genPrep.anyAirbend	1
+default	field	genPrep.anyMeld	1
+default	field	genPrep.anyMayWhileSrc	1
+default	field	genPrep.anyGoad	1
+default	field	genPrep.anyPermMark	1
+default	field	genPrep.anyTappedTurn	1
+default	field	genPrep.anyBtTurn	1
+default	field	genPrep.anyCombatHit	1
+default	field	genPrep.cdLegOn	1
+default	field	genPrep.cdDamOn	1
+default	field	genPrep.plDmgOn	1
+default	field	genPrep.anyAddPhase	1
+default	field	genPrep.anySkipPhase	1
+default	field	genPrep.anyMonarch	1
+default	field	genPrep.anyAttackedObj	1
+default	field	genPrep.anySuspect	1
+default	field	genPrep.anyRemEach	1
+default	field	genPrep.anySacSub	1
+default	field	genPrep.ix	64
+default	field	genPrep.anyInit	1
+default	field	genPrep.dungeon	2
+default	field	genPrep.anyFaceDown	1
+default	field	genPrep.anyTurnUpRepl	1
+default	field	genPrep.anyTransformed	1
+default	field	genPrep.crimeOn	1
+default	field	genPrep.anyEmpower	1
+default	field	genPrep.anyTapPower	1
+default	field	genPrep.anyEarthbend	1
+default	field	genPrep.anyLeaveRet	1
+default	field	genPrep.anyOnePoison	1
+default	field	genPrep.anyCopyElect	1
+default	field	genPrep.anyPermCopy	1
+default	field	genPrep.anyCharmNum	1
+default	field	genPrep.anyCharmV	1
+default	field	genPrep.anyCharmPick	1
+default	field	genPrep.anyWaterbend	1
+default	field	genPrep.anyXBoundAb	1
+default	field	genPrep.anyLure	1
+default	field	genPrep.anyLureStat	1
+default	field	genPrep.anyMustBlock	1
+default	field	genPrep.anyFaceExile	1
+default	field	genPrep.anyExW	1
+default	field	genPrep.exwRec	24
+default	field	genPrep.anyCloneCopy	1
+default	field	genPrep.anyAegis	1
+default	field	genPrep.anyUnattach	1
+default	field	genPrep.anyHideaway	1
+default	field	genPrep.anyLoyaltyX	1
+default	field	genPrep.anyLifeX	1
+default	field	genPrep.anyExileX	1
+default	field	genPrep.anySacX	1
+default	field	genPrep.anyXMin	1
+default	field	genPrep.anyCopyCast	1
+default	field	genPrep.anyExileGrant	1
+default	field	genPrep.anyNumTimes	1
+default	field	genPrep.anyExHaste	1
+default	field	genPrep.anyColGrant	1
+default	field	genPrep.anyDiscRef	1
+default	field	genPrep.anySpellCond	1
+default	field	genPrep.anyEntUntap	1
+default	field	genPrep.anyEntAttack	1
+default	field	genPrep.anyEachTgt	1
+default	field	genPrep.anyXBadMV	1
+default	field	genPrep.anyTgtSetBf	1
+default	field	genPrep.anyUniqLater	1
+default	field	genPrep.anySaddle	1
+default	field	genPrep.anySolve	1
+default	field	genPrep.anyStation	1
+default	field	genPrep.anyPoisonHigh	1
+default	field	genPrep.anyDiesNC	1
+default	field	genPrep.anyHandSize	1
+default	field	genPrep.anyYouHex	1
+default	field	genPrep.anyRole	1
+default	field	genPrep.roleSub	1
+default	field	genPrep.anyWhileHost	1
+default	field	genPrep.anyEmbCtrl	1
+default	field	genPrep.anyWhileTapped	1
+default	field	genPrep.anyOvCantAtk	1
+default	field	genPrep.anyCantAtk	1
+default	field	genPrep.anyCantAtkScope	1
+default	field	genPrep.anySrcMark	1
+default	field	genPrep.dmgBy	24
+default	field	genPrep.crewerRec	24
+default	field	genPrep.crewBy	24
+default	field	genPrep.replBits	24
+default	field	genPrep.anyRepl	4
+default	field	genPrep.replBits2	24
+default	field	genPrep.anyRepl2	4
+default	field	genPrep.anyBeginPhase	1
+default	field	genPrep.exileOnLeave	24
+default	field	genPrep.exileAnyC	24
+default	field	genPrep.destroyHeal	24
+default	field	genPrep.anyExileAny	1
+default	field	genPrep.altFree	24
+default	field	genPrep.anyDeferred	1
+default	field	genPrep.anyTapsDefer	1
+default	field	genPrep.anyTapsPain	1
+default	field	genPrep.anyManaRider	1
+default	field	genPrep.anyCondSplit	1
+default	field	genPrep.anySelfTaps	1
+default	field	genPrep.anyDiscHand	1
+default	field	genPrep.anyComboAny	1
+default	field	genPrep.dhMix	1
+default	field	genPrep.caMix	1
+default	field	genPrep.anyEachCol	1
+default	field	genPrep.anyRestr	1
+default	field	genPrep.anyRestrScript	1
+default	field	genPrep.anyRestrSrc	1
+default	field	genPrep.rs	8
+default	field	genPrep.restrF	16
+default	field	genPrep.restrV	8
+default	field	genPrep.restrVar	24
+default	field	genPrep.restrPers	1
+default	field	genPrep.anyAnyR	1
+default	field	genPrep.anyRefl	1
+default	field	genPrep.anyMultiR	1
+default	field	genPrep.anyFilt	1
+default	field	genPrep.anyFiltPip	1
+default	field	genPrep.anyFiltFirst	1
+default	field	genPrep.anyFiltRepeat	1
+default	field	genPrep.anyDynGap	1
+default	field	genPrep.anyDynFilt	1
+default	field	genPrep.anyScriptGap	1
+default	field	genPrep.anyWindowGap	1
+default	field	genPrep.l6Stall	1
+default	field	genPrep.anyTriggerAttackers	1
+default	field	genPrep.anyBatchPool	1
+default	field	genPrep.anyFirstCast	1
+default	field	genPrep.landSet	1
+default	field	genPrep.landSub	24
+default	field	genPrep.setIdx	24
+default	field	genPrep.setPC	24
+default	field	genPrep.uses	32
+# struct coldArrays
+default	field	coldArrays.layout	8
+default	field	coldArrays.buf	24
+default	field	coldArrays.ms	24
+default	field	coldArrays.mo	24
+default	field	coldArrays.objSets	24
+default	field	coldArrays.atkGrp	24
+default	field	coldArrays.convoked	24
+default	field	coldArrays.exH	24
+default	field	coldArrays.entered	24
+default	field	coldArrays.exMark	24
+default	field	coldArrays.parked	24
+default	field	coldArrays.castRing	24
+default	field	coldArrays.discHeld	24
+default	field	coldArrays.copyHeld	24
+default	field	coldArrays.mk	24
+default	field	coldArrays.mkObj	24
+default	field	coldArrays.hexUB	24

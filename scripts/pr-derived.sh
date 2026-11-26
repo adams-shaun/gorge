@@ -6,7 +6,6 @@
 #   dirac/kgen/testdata/acceptance.tsv,        kgen's acceptance pins pass a rise outside DIRAC_PIN_STRICT=1
 #   dirac/kgen/testdata/build_acceptance.tsv
 #   dirac/kgen/testdata/remspan.tsv            TestRememberedSpanCensus passes a shrink (refused cards fewer) outside strict
-#   internal/codeshape/testdata/func_ceilings.tsv  a lowered row: the shape ratchets pass main's higher rows
 # Every dirac ticket raised the same few lines of these files, so each batch merge put the open ones in conflict with
 # main (11-17: 10 PRs dequeued per batch). A rise now reaches main through one regen PR (scripts/regen-main.sh). A fall
 # fails the tolerant check on the base copy, so the ticket keeps its own copy and its reason. The nightly
@@ -32,12 +31,6 @@ leave() {
 
 pinfiles=(dirac/kgen/testdata/acceptance.tsv dirac/kgen/testdata/build_acceptance.tsv)
 remspan=dirac/kgen/testdata/remspan.tsv
-ceilings=internal/codeshape/testdata/func_ceilings.tsv
-# A ticket's lowered function ceilings are hygiene, never needed by its own change (a growth cannot raise a row), and
-# they race: #853 lowered matchCardOneAt 131 -> 130 while #847 grew it to 131, each green alone, the batch red
-# (11-17). The PR keeps main's rows; a branch may not lower one at all (cmd/checkratchet, lint). The daily
-# ratchet-lower workflow lowers main's rows after merge, where no growth can race them.
-[ -n "$(changed "$ceilings")" ] && PKG=./internal/codeshape leave '^(TestFuncCeilingsLowerOnly|TestLongFunctionsOnlyShrink|TestComplexFunctionsOnlyShrink)$' "$ceilings"
 [ -n "$(changed dirac/docs/support.md "${pinfiles[@]}" "$remspan")" ] || exit 0
 source scripts/pr-cards.sh
 # The pins first: both tables in one step, as KGEN_REPIN writes them together.

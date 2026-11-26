@@ -2684,7 +2684,7 @@ type dmgAmtRec struct {
 // player-damage fold calls it beside its life/poison fold; a paid life cost
 // never does (gorge: a life payment is no Damage event). Cleared at the turn
 // change beside dmgTurn (turn_gen.go). It lives in genState.turnF's free
-// bits, so State does not grow (TestStateLayoutPinned).
+// bits, so State does not grow (TestNoNewFixedStateFields).
 func (s *State) plDmgMark(p uint8, n int) {
 	if n > 0 {
 		s.g.turnF |= turnDamagedMask(p)
