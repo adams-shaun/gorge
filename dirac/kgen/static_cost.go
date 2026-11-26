@@ -138,6 +138,9 @@ func (sc *staticCtx) modeAlternativeCost() ([]lStatic, bool, error) {
 	lc := sc.lc
 	sp := sc.sp
 	var err error
+	if sp.str("ValidSA") == "Activated.Cycling" {
+		return sc.modeCyclingAlt() // static_cyclingalt.go
+	}
 	if sp.str("ValidSA") == "Spell" && sp.str("ValidCard") == "Card.Self" && sp.str("ValidPlayer") == "You" && sp.str("EffectZone") == "All" {
 		// (Land Grant) gorge alternativeCosts' face walk
 		// prices a card's own static; bare ValidSA$ Spell, its own
