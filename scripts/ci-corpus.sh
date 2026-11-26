@@ -4,22 +4,30 @@
 # .cards from the Actions cache instead (ci.yml).
 #
 # The box's runners share these directories, so each is keyed by everything that can change its contents:
-#   base/<ref>-<cards>        the fetched and compiled corpus (FORGE_REF, engine/cards sources); never written after
-#   tree/<ref>-<cards>-<tables>  a copy of base for one set of table sources (every file kgen builds from:
-#                                scripts/table-key-files.sh), where make dirac-tables writes its tables
+#   base/<ref>-<cards>            the fetched and compiled corpus (FORGE_REF, engine/cards sources); never written after
+#   tree/<ref>-<cards>-<tables>-<rule>  a copy of base for one set of table sources (every file kgen builds from:
+#                                 scripts/table-key-files.sh), where make dirac-tables writes its tables; <rule>
+#                                 is the reuse rule the tree's .tables-ok was marked under (bump it to orphan every
+#                                 tree marked earlier)
 # A PR that changes dirac gets its own tree (a local copy of base, seconds), so it never rewrites the tables another
 # job is reading. Trees unused for 2 days are removed.
 set -euo pipefail
 ref=$(awk '/^FORGE_REF/ {print $3}' Makefile)
 h() { git ls-files -z -- "$@" | sort -z | xargs -0 cat | sha256sum | cut -c1-12; }
 ck=$ref-$(h 'engine/cards/*.go')
-# dk covers every file whose bytes can decide the tables: the non-test Go files and embedded files of each in-module
-# package kgen is built from (scripts/table-key-files.sh, from go list), not only tablesrc.go's embeds. 11-21:
-# keyed by the embeds alone, a box served tables an older tree had built after engine/rules/pay changed, and batch
-# #3110 passed a replay its own tables fail (main red; revert #3141). 11-17: dirac/support alone must re-key too,
-# which the embeds in this list still do.
-dk=$(bash scripts/table-key-files.sh | tr '\n' '\0' | xargs -0 cat | sha256sum | cut -c1-12)
-root=${CI_CORPUS_ROOT:-$HOME/gorge-cards}; base=$root/base/$ck; tree=$root/tree/$ck-$dk
+# dk covers every file whose bytes and PATH can decide the tables: the non-test Go files and embedded files of each
+# in-module package kgen is built from (scripts/table-key-files.sh, from go list), not only tablesrc.go's embeds.
+# The published key hashes each embed's path, length and bytes (gorge.hashSources), so the key must see the list of
+# paths as well as their concatenation: a file added empty, removed or moved among the listed paths re-keys the
+# tables while a content-only hash stays. 11-21: keyed by the embeds alone, a box served tables an older tree had
+# built after engine/rules/pay changed, and batch #3110 passed a replay its own tables fail (main red; revert
+# #3141). 11-17: dirac/support alone must re-key too, which the embeds in this list still do.
+kl=$(bash scripts/table-key-files.sh)
+dk=$( { printf '%s\n' "$kl"; printf '%s\n' "$kl" | tr '\n' '\0' | xargs -0 cat; } | sha256sum | cut -c1-12)
+# RULE is the reuse rule a tree's .tables-ok was marked under (see the tables build below); bump it to orphan every
+# tree marked under an earlier rule rather than serve one.
+RULE=2
+root=${CI_CORPUS_ROOT:-$HOME/gorge-cards}; base=$root/base/$ck; tree=$root/tree/$ck-$dk-$RULE
 mkdir -p "$root/base" "$root/tree"
 # Orphaned temp dirs (11-20: metal2's / sat at 80% for hours with ~1.1 TB in this user's /tmp: go-build work dirs and
 # test temp dirs from 11-17 on, left by jobs the merge queue cancelled; go removes its work dir only on a clean exit).
@@ -49,12 +57,28 @@ touch "$tree"
 # dirac's tables for this tree, built once (the first job of the tree: the prepare stage), under the tree's own
 # lock, not the box's: a job waits only for a build of its own tables. 11-22: queue-precheck's attribution builds a
 # tree per queue prefix, 36-62 s each, and under the box lock they ran one at a time, behind every other job's.
+#
+# A tree is marked .tables-ok (reusable by later checkouts) only by a build that left the checkout's committed bytes
+# intact. When kgen -tables finds a committed ids.tsv its own sources no longer produce, it rewrites the file IN THE
+# CHECKOUT (its exit 3) and make rebuilds kgen around the rewritten bytes: the tables then carry a published key
+# (gorge.TableSourceHash over the embeds) that exists only in that mutated workspace, and marking the tree would
+# serve every later fresh checkout of the same stack tables its own binary asks for under another key — every dirac
+# test red with "no card tables for this binary" (11-26: 703 reds, 10 merge-queue batches bisected ~2 h, #5256 and
+# #4754 dequeued; the run that built the tree passed green, its tests compiled after the rewrite). The Makefile
+# target leaves bin/.ids-rewritten behind when it did that; such a build leaves the tree unmarked, so every checkout
+# rebuilds for itself (~52 s) and runs green on its own tables until the stale ids.tsv is repinned, and reuse
+# resumes by itself.
 exec 9>&-
 exec 7>"$tree.lock"; flock 7
 if [ ! -e "$tree/.tables-ok" ] && [ -z "${CI_CORPUS_NO_TABLES:-}" ]; then
   rm -rf .cards; ln -sfn "$tree" .cards
   make dirac-tables
-  touch "$tree/.tables-ok"
+  if [ -e bin/.ids-rewritten ]; then
+    rm -f bin/.ids-rewritten
+    echo "ci-corpus: kgen rewrote ids.tsv in this checkout; $tree left unmarked (its tables match no committed tree)" >&2
+  else
+    touch "$tree/.tables-ok"
+  fi
 fi
 exec 7>&-
 exec 9>"$root/.lock"; flock 9

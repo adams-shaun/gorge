@@ -244,11 +244,14 @@ compile-cards: $(BIN_DIR)/forgec
 # synthetic evidence pools' under $(CARDS_DIR)/kernel-synth-tables/<key>. Exit 3
 # means kgen wrote an ids.tsv: the binary embeds the old bytes, so it is rebuilt
 # and rerun. Built, not `go run`, because go run exits 1 whatever the program's
-# status was, which would hide the 3.
+# status was, which would hide the 3. A rerun leaves $(BIN_DIR)/.ids-rewritten
+# behind, for scripts/ci-corpus.sh to refuse marking the shared tree reusable:
+# the tables then carry a key over the rewritten embeds, which no committed
+# tree has (11-26 mred-b74f).
 dirac-tables:
-	@mkdir -p $(BIN_DIR)
+	@mkdir -p $(BIN_DIR); rm -f $(BIN_DIR)/.ids-rewritten
 	go build -o $(BIN_DIR)/kgen ./dirac/cmd/kgen && $(BIN_DIR)/kgen -tables; rc=$$?; \
-	if [ $$rc -eq 3 ]; then go build -o $(BIN_DIR)/kgen ./dirac/cmd/kgen && $(BIN_DIR)/kgen -tables || exit $$?; elif [ $$rc -ne 0 ]; then exit $$rc; fi; \
+	if [ $$rc -eq 3 ]; then touch $(BIN_DIR)/.ids-rewritten; go build -o $(BIN_DIR)/kgen ./dirac/cmd/kgen && $(BIN_DIR)/kgen -tables || exit $$?; elif [ $$rc -ne 0 ]; then exit $$rc; fi; \
 	$(BIN_DIR)/kgen -synth-pools
 
 .PHONY: dirac-slices
