@@ -161,12 +161,7 @@ func (s *State) powerUpPlanRejected(k *prep, a *kop.Ability) bool {
 func (s *State) powerUpAbilityMana(k *prep, e *stackEntry, a *kop.Ability, sl Slot, saved *[len(build{}.picks)]uint8, hostSl, srcSl Slot, selfUntapped bool) bool {
 	cc := s.buildCostCharge(k)
 	w := s.powerUpWitness(k, a, sl, e.ctrl)
-	// #4587: planAbilityPayment witnesses the printed cost at its least X
-	// (cost.WithX(XMin), CR 601.2b), so a witness with {X} symbols is
-	// priceable and arms; the entry-turn charge stays the settled cost the
-	// window check prices (Stature, Size Shifter's {X}{U}{U} less its own {U}).
-	wf := xFolded(w, costXMin(&a.Cost))
-	if !s.powerUpArmsNone(k) && s.abilityPlanSettles(k, e, wf, wf, cc, saved) {
+	if !s.powerUpArmsNone(k) && s.abilityPlanSettles(k, e, w, w, cc, saved) {
 		s.tapFor(k, e.ctrl, &cc, int(e.x), NoObj)
 		return true
 	}
