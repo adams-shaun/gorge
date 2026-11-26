@@ -54,12 +54,12 @@ func (s *State) castGateAffordable(k *prep, p uint8, c CardID, o Obj, cost *kop.
 // castGateOrPoolPays is the plain cast's affordability read: the gate's own
 // read, or the conversion pool paying the pips (mana_convertcreature.go).
 func (s *State) castGateOrPoolPays(k *prep, p uint8, c CardID, o Obj, cost *kop.ManaCost, cav *avail) bool {
-	return s.castGateAffordable(k, p, c, o, cost, cav) || s.convPoolPays(k, p, o, cost)
+	return s.castGateAffordable(k, p, c, o, cost, cav) || s.convAnyPoolPays(k, p, o, cost)
 }
 
 // kickedAffordsOrPoolPays is the kicked cast's corresponding read over kc.
 func (s *State) kickedAffordsOrPoolPays(k *prep, p uint8, c CardID, o Obj, kc *kop.ManaCost, cav *avail) bool {
-	return s.kickedAffords(k, p, c, o, kc, cav) || s.convPoolPays(k, p, o, kc)
+	return s.kickedAffords(k, p, c, o, kc, cav) || s.convAnyPoolPays(k, p, o, kc)
 }
 
 func (s *State) priorityOptions(k *prep, d *Decision) {

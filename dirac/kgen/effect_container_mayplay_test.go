@@ -100,6 +100,26 @@ func TestEffectContainerMayPlay(t *testing.T) {
 		}
 	}
 
+	// Abstruse Appropriation: a permanent remembered permission for the
+	// nonland exiled card, with the colourless-mana ManaConvert static
+	// riding the same record (kop.MayPlayConvC on the instruction's C).
+	abstruse := lowerNamedCard(t, "Abstruse Appropriation")
+	if len(abstruse.Refusals) != 0 {
+		t.Errorf("Abstruse Appropriation refusals = %v, want none", abstruse.Refusals)
+	} else if mp := firstProgOp(abstruse, "MayPlay"); mp == nil {
+		t.Error("Abstruse Appropriation lowers no MayPlay instruction")
+	} else {
+		if mp.Obj.Kind != rRemembered || mp.CS != "WhileExiled" {
+			t.Errorf("Abstruse Appropriation MayPlay obj = %v dur = %q, want Remembered WhileExiled", mp.Obj, mp.CS)
+		}
+		if mp.B.Kind != vConst || int(mp.B.N)&kop.MayPlayNonLand == 0 {
+			t.Errorf("Abstruse Appropriation MayPlay B = %v, want the nonland flag", mp.B)
+		}
+		if !mp.ConvC {
+			t.Error("Abstruse Appropriation MayPlay does not carry the colourless-mana conversion")
+		}
+	}
+
 	// Memory Vessel: the multi-static remembered Effect. The per-owner
 	// permission over the remembered exiled cards lowers to the MayPlay
 	// instruction the remembered grant route emits (each player may play the
@@ -173,9 +193,6 @@ func TestEffectContainerMayPlayRemainingRefusals(t *testing.T) {
 		name string
 		why  string
 	}{
-		// permanent remembered permission plus a colourless-mana
-		// ManaConvert static (no kernel C->AnyColor conversion)
-		{"Abstruse Appropriation", "ManaConvert"},
 		// target remembered permission plus a literal {8} mana RaiseCost
 		// (no kernel mana raise on a may-play permission)
 		{"Mavinda, Students' Advocate", "RaiseCost"},
@@ -183,11 +200,10 @@ func TestEffectContainerMayPlayRemainingRefusals(t *testing.T) {
 		// emblem trigger diverges from gorge's in lockstep (the follow-up
 		// ticket carries the measured reproduction)
 		{"Chandra, Awakened Inferno", "EffectOwner"},
-		// the multi-static Effects whose primitives the kernel lacks: the
-		// colourless-mana ManaConvert arm (Abstruse), the {8} mana raise on
-		// a may-play permission (Mavinda); each keeps today's named refusal
-		// until its own ticket lands the primitive
-		{"Abstruse Appropriation", "ManaConvert"},
+		// the multi-static Effects whose primitives the kernel lacks:
+		// the {8} mana raise on a may-play permission (Mavinda), which
+		// keeps today's named refusal until its own ticket lands the
+		// primitive
 		{"Mavinda, Students' Advocate", "RaiseCost"},
 	} {
 		c := lowerNamedCard(t, tc.name)

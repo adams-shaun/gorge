@@ -130,6 +130,9 @@ func (ic *instrCtx) opMayPlay() error {
 	if in.Follows {
 		ki.C |= kop.MayPlayFollows // the record follows its card (kop/operands.go)
 	}
+	if in.ConvC {
+		ki.C |= kop.MayPlayConvC // colourless mana pays a coloured pip of the cast (kop/operands.go)
+	}
 	switch in.CS {
 	case "EOT":
 		ki.A = kop.Const(kop.DurEOT)
