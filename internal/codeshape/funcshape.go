@@ -6,7 +6,6 @@ import (
 	"go/parser"
 	"go/token"
 	"path"
-	"path/filepath"
 	"sort"
 )
 
@@ -82,34 +81,6 @@ func shapesByKey(shapes []FuncShape) (map[string]FuncShape, []string) {
 	}
 	sort.Strings(keys)
 	return by, keys
-}
-
-// MeasureFuncShapes returns every non-test, non-generated function under
-// dirs (relative to root) that is over LongFuncLines lines or over
-// ComplexFuncThreshold, sorted by key then file and line. It parses syntax
-// only, so it is fast and needs no build.
-func MeasureFuncShapes(root string, dirs []string) ([]FuncShape, error) {
-	files := map[string]string{}
-	for _, dir := range dirs {
-		rels, err := goFiles(root, dir)
-		if err != nil {
-			return nil, err
-		}
-		for _, rel := range rels {
-			files[rel] = filepath.Join(root, filepath.FromSlash(rel))
-		}
-	}
-	all, err := MeasureFuncShapesIn(files)
-	if err != nil {
-		return nil, err
-	}
-	var out []FuncShape
-	for _, s := range all {
-		if s.Lines > LongFuncLines || s.Complexity > ComplexFuncThreshold {
-			out = append(out, s)
-		}
-	}
-	return out, nil
 }
 
 // MeasureFuncShapesIn measures every non-test function declared in files —

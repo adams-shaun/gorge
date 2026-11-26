@@ -11,8 +11,9 @@ import (
 // function
 // over a threshold at head may have grown by a percentage of its size at
 // base, with a floor so a small function is not jumpy; a function newly over
-// a threshold, or one that crosses it, is refused. The operator tunes the
-// numbers through these constants (the tool's flags override them per run).
+// a threshold, or one that crosses it, is refused — the allowance does not
+// carry a function past the threshold. The operator tunes the numbers
+// through these constants (the tool's flags override them per run).
 
 // GrowthPercent is the share of its size at base a function may grow by.
 const GrowthPercent = 5
@@ -29,7 +30,9 @@ const ComplexGrowthPercent = 5
 const ComplexGrowthFloor = 2
 
 // GrowthLimits is the growth rule's numbers: the two thresholds and, per
-// metric, the percentage and floor of the allowance.
+// metric, the percentage and floor of the allowance. A threshold of zero or
+// less disables its metric (the tool's -long-lines and -complex-threshold
+// flags document 0 as disabling).
 type GrowthLimits struct {
 	Lines, LinesPercent, LinesFloor                int
 	Complexity, ComplexityPercent, ComplexityFloor int
@@ -59,9 +62,11 @@ type growthMetric struct {
 	advice    string
 }
 
-// growthMetrics returns the rule's two metrics from lim.
+// growthMetrics returns the rule's metrics from lim, dropping any whose
+// threshold is zero or less (0 disables the metric, as the tool's flags
+// document).
 func growthMetrics(lim GrowthLimits) []growthMetric {
-	return []growthMetric{
+	all := []growthMetric{
 		{
 			name: "lines", threshold: lim.Lines, pct: lim.LinesPercent, floor: lim.LinesFloor,
 			measure: func(s FuncShape) int { return s.Lines },
@@ -75,6 +80,13 @@ func growthMetrics(lim GrowthLimits) []growthMetric {
 				"or a helper) instead of another case or condition in the function.",
 		},
 	}
+	var out []growthMetric
+	for _, m := range all {
+		if m.threshold > 0 {
+			out = append(out, m)
+		}
+	}
+	return out
 }
 
 // GrowthFailure is one function the growth rule reports: over a threshold at
@@ -87,6 +99,7 @@ type GrowthFailure struct {
 	Limit                int  // the largest head value the rule allows
 	AllowPct, AllowFloor int  // the limit's make-up, as rendered by String
 	New                  bool // no function of that key at the base
+	Crossed              bool // at or below the threshold at base, over it at head
 	advice               string
 }
 
@@ -98,6 +111,11 @@ func (f GrowthFailure) String() string {
 		return fmt.Sprintf("%s (%s:%d) is a new function over %s %d at head (no function of that name and "+
 			"receiver in that package at the base; the threshold is %d). %s",
 			s.Name, s.File, s.Line, f.Metric, f.Head, f.Limit, f.advice)
+	}
+	if f.Crossed {
+		return fmt.Sprintf("%s (%s:%d) grew to %s %d from %d at base, over the threshold %d it crossed "+
+			"(a function newly over a threshold is refused; the allowance does not extend past it). %s",
+			s.Name, s.File, s.Line, f.Metric, f.Head, f.Base, f.Limit, f.advice)
 	}
 	return fmt.Sprintf("%s (%s:%d) grew to %s %d from %d at base, over its allowed limit of %d "+
 		"(base %d + max(%d%% of %d, floor %d)). %s",
@@ -111,11 +129,19 @@ func growthReport(s FuncShape, m growthMetric, head, base int, isNew bool) Growt
 	f := GrowthFailure{Shape: s, Metric: m.name, Head: head, New: isNew, Limit: m.threshold,
 		AllowPct: m.pct, AllowFloor: m.floor, advice: m.advice}
 	if !isNew {
-		allow := base * m.pct / 100
-		if allow < m.floor {
-			allow = m.floor
+		f.Base = base
+		if base <= m.threshold {
+			// Crossing: at or below the threshold at base and over it at head,
+			// so it is refused at the threshold itself; the percentage of its
+			// base size does not carry it past.
+			f.Crossed, f.Limit = true, m.threshold
+		} else {
+			allow := base * m.pct / 100
+			if allow < m.floor {
+				allow = m.floor
+			}
+			f.Limit = base + allow
 		}
-		f.Base, f.Limit = base, base+allow
 	}
 	return f
 }
@@ -127,7 +153,9 @@ func growthReport(s FuncShape, m growthMetric, head, base int, isNew bool) Growt
 // checked: shrinking always passes, and a function under both thresholds at
 // base and head is invisible to the rule. A function over a threshold at head
 // with no function of its key at the base (new, renamed, or moved across
-// packages) is a failure.
+// packages) is a failure, and so is a function that crosses a threshold: one
+// at or below it at base and over it at head is refused at the threshold
+// itself, whatever its base-relative allowance would allow.
 func CheckFuncGrowth(base, head []FuncShape, lim GrowthLimits) (fails, oks []GrowthFailure) {
 	baseByKey, _ := shapesByKey(base)
 	headByKey, headKeys := shapesByKey(head)

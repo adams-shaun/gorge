@@ -187,7 +187,8 @@ run by every precheck (`scripts/test_targets.py` always selects the package):
   complexity 50 (`ComplexFuncThreshold`) at the head may have grown by at most
   5% of its size at the merge base (`GrowthPercent`; floors of 10 lines and 2
   complexity, `GrowthFloorLines` and `ComplexGrowthFloor`). A function newly
-  over a threshold, or one that crosses it, is refused; a function at or below
+  over a threshold, or one that crosses it, is refused at the threshold (the
+  allowance does not carry a function past it); a function at or below
   both thresholds is never checked, and shrinking always passes. Functions
   match by package directory, name and receiver, so a move keeps its history
   and a rename starts fresh. `make lint` and ci.yml's lint job run it against
