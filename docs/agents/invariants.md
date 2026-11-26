@@ -304,7 +304,9 @@ and BLB slices, the size bar, allocations and instructions per transition),
    - `make sim`: 20/20 `replay OK`.
    - If you touched `web/` or changed when a decision is posed, also run the
      `./engine/view` package and `make test-web`.
-4. **How a PR lands.** Every non-draft PR to `main` is queued by Mergify once its
+4. **How a PR lands.** Open or refresh it only with `scripts/pr-submit.sh`, run
+   in the branch's worktree (merge `origin/main`, `pr-derived.sh`, `pr-precheck.sh`
+   ok on the exact head, push, open; `--draft` for review-first). Every non-draft PR to `main` is queued by Mergify once its
    own checks, `fast` (`scripts/ci-fast.sh`: the diff's packages and their test
    importers) and `lint`, pass. Mergify batches up to 10 queued PRs on a
    `mergify/merge-queue/*` branch, where `ci.yml` runs the full suite once per
