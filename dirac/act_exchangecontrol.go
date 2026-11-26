@@ -19,7 +19,15 @@ func (s *State) exchangeControl(k *prep, in *kop.Instr) {
 		return
 	}
 	var pair [MaxPerm]Slot
-	if s.eachDamageSlots(k, uint8(in.C), 0, &pair) != 2 {
+	if in.Obj == kop.RefSelf {
+		// Defined$ Self: the source, then the one target (gorge resolves
+		// Defined$ first); a gone source or a self-target is no pair
+		self := s.objRef(k, kop.RefSelf)
+		if self == NoSlot || s.eachDamageSlots(k, uint8(in.C), 0, &pair) != 1 || pair[0] == self {
+			return
+		}
+		pair[1], pair[0] = pair[0], self
+	} else if s.eachDamageSlots(k, uint8(in.C), 0, &pair) != 2 {
 		return
 	}
 	a, b := pair[0], pair[1]
