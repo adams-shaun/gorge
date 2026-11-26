@@ -138,6 +138,11 @@ func (s *State) matchPermOne(k *prep, fl *kop.Filter, sl Slot, ctrl uint8, src S
 			textObj := cwObj
 			if textObj == NoObj {
 				textObj = s.cwTextObj(k, src)
+				if textObj != NoObj {
+					// the read is the face of the object at src's own (a
+					// Continuous static's Affected$, an ability's spec)
+					ColorWordsStats.Filters.Add(1)
+				}
 			}
 			cols, notCols = s.cwMasks(k, textObj, cols, notCols)
 		}

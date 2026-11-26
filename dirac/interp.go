@@ -720,8 +720,20 @@ func (s *State) execGrantKeyword(k *prep, in *kop.Instr) {
 		return
 	}
 	m := kop.KwMask(uint16(in.C)) | kop.KwMask(uint16(in.B.N))<<16
+	// a granted protection-from-colour keyword's colour reads as the
+	// colour-word statics rewrite the granting entry's text
+	// (static_colorwords.go cwProtGrant): the composed colour, marked where no
+	// keyword bit names it
+	var srcCard CardID
+	if e := s.curEntry(); e != nil {
+		srcCard = e.card
+	}
+	m, marks := s.cwProtGrant(k, srcCard, m)
 	s.grantEOT(sl, m)
 	s.promoKw(k, sl, m)
+	if marks != 0 {
+		s.colProtMarkAll(k, sl, marks)
+	}
 	if in.A.K == kop.VConst && in.A.N != 0 {
 		s.recordPrevGrant(sl, m) // an Effect's grant (kgen effectPrevent): gorge's option names the Effect
 	}
