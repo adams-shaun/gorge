@@ -55,12 +55,40 @@ func libTopAffected(aff string) (string, error) {
 
 // libTopRefusals refuses the riders a library permission does not model.
 func libTopRefusals(sp *params) error {
-	for _, k := range []string{"ValidAfterStack", "MayPlayIgnoreType", "MayPlayWithoutManaCost", "MayPlayIgnoreColor", "RaiseCost"} {
+	for _, k := range []string{"MayPlayIgnoreType", "MayPlayWithoutManaCost", "MayPlayIgnoreColor", "RaiseCost"} {
 		if _, ok := sp.get(k); ok {
 			return refuse("MayPlay Library with %s$", k)
 		}
 	}
 	return nil
+}
+
+// libTopAfterStack folds a library permission's ValidAfterStack$ spell
+// qualifier (Thundermane Dragon's Spell.Creature+powerGE4) into the stripped
+// Affected$ alternatives. gorge asks the qualifier of every non-land card the
+// permission offers (engine/rules/mayplay.go: the spell view of a card still
+// in its origin zone) and never of a land (CR 305.1), so an alternative that
+// excludes lands with nonLand is narrowed by the qualifier's words; one that
+// admits lands is refused (Glarb's Land.TopLibrary alternative), as is a
+// qualifier that is not one Spell.<words> alternative.
+func libTopAfterStack(sp *params, aff string) (string, error) {
+	q, ok := sp.get("ValidAfterStack")
+	if !ok {
+		return aff, nil
+	}
+	words, found := strings.CutPrefix(q, "Spell.")
+	if !found || words == "" || strings.ContainsAny(words, ", ") {
+		return "", refuse("MayPlay Library with ValidAfterStack$ %q", q)
+	}
+	alts := strings.Split(aff, ",")
+	for i, alt := range alts {
+		if !strings.Contains("+"+alt[strings.IndexByte(alt, '.')+1:]+"+", "+nonLand+") {
+			return "", refuse("MayPlay Library with ValidAfterStack$ beside an alternative that admits lands: %q", aff)
+		}
+		alts[i] = alt + "+" + words
+	}
+	sp.consume("ValidAfterStack")
+	return strings.Join(alts, ","), nil
 }
 
 // libTopAffectedOK reports whether libTopAffected would accept aff: every
