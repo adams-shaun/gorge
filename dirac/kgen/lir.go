@@ -1282,6 +1282,8 @@ type lStatic struct {
 	// RedCol: a ReduceCost's Color$ counts, two bits per colour W U B R G C
 	// (flag "ReduceColor"; lower_reducespell.go)
 	RedCol uint16
+	// Defiler: a Defiler static's colour, 1 + the WUBRG index (Amount is its life; lower_defiler.go)
+	Defiler uint8
 	// RaiseCol: a per-target RaiseCost's Cost$ pips per charge, packed like
 	// RedCol (flag "RaisePerTarget"; lower_raisecost.go)
 	RaiseCol uint16

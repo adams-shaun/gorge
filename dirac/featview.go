@@ -421,6 +421,7 @@ func (s *State) featPoolPays(p uint8, o Obj, mode uint8, extra *[6]int32, anyCol
 	// convoke credit came off the printed cost (gorge castOfferBase), the
 	// delve credit comes after
 	addCommanderTax(&cost, s.commanderTax(SeatIx(p), o))
+	raw := cost // the base the Defilers' second chance counts pips in (cost_defiler.go)
 	tb := false
 	if mode&4 != 0 || mode&1 != 0 && k.bargainRed && k.gen != nil && k.gen.anyOptCost && optCostCard(k, c) { // seat-ok: a cast-mode bit
 		cost = s.bargainedPrice(k, SeatIx(p), c, o, cost) // the bargained cast's price, or the optional-cost cast's (cost_reducespell.go)
@@ -465,7 +466,18 @@ func (s *State) featPoolPays(p uint8, o Obj, mode uint8, extra *[6]int32, anyCol
 	if anyColor && cost.Snow == 0 {
 		return a.affordsAnyColor(&cost, 0) // the credited composed cost, as offerPlay's pool half reads it
 	}
-	return a.affords(&cost, pipMaskOf(&cost), 0)
+	if a.affords(&cost, pipMaskOf(&cost), 0) {
+		return true
+	}
+	if mode == 0 && defilerOn(k) {
+		own := 0
+		if ac := spellAddCost(k, c); ac.Flags&kop.CostPayLife != 0 {
+			own = lifeCostOwed(ac)
+		}
+		rd, ok := s.defilerOfferCost(k, SeatIx(p), c, o, &raw, own, cost)
+		return ok && !DebugDefilerNoOffer && a.affords(&rd, pipMaskOf(&rd), 0) // the Defilers' second chance, the pool's alone (cost_defiler.go)
+	}
+	return false
 }
 
 // featAltAddPays is featPoolPays's either-or additional-cost gate (a card
@@ -776,7 +788,7 @@ func (s *State) plannedCastCost(k *prep, p uint8, o Obj, mode uint8) (kop.ManaCo
 func (s *State) plannedCastCostOf(k *prep, p uint8, o Obj, mode uint8, hyb, composed bool) (kop.ManaCost, bool) {
 	c := s.objs[o].card
 	refused := planNeverPricesCore(k, c, hyb, composed, false) || s.boardLifeTgtDep(k, p, c, o) || s.boardRaiseTgtDep(k, p, c, o) || s.stackTgtDep(k, c)
-	optRefused := k.gen != nil && k.gen.anyOptCost && optCostCard(k, c)
+	optRefused := k.gen != nil && k.gen.anyOptCost && optCostCard(k, c) || defilerOn(k) && s.defilerApplies(k, p, c, o) // (shape:optional_cost: an OptionalCost card, or an applicable Defiler)
 	spendRefused := !composed && k.gen != nil && k.gen.anyCastSpent && s.spendReaderOut(k)
 	fromHand := s.objs[o].zone == kop.ZoneHand
 	lifted := !refused && !optRefused && !spendRefused && mode&3 == 0 && s.improviseLiftedFrom(k, p, c, o, fromHand, plainCastZone(s.objs[o].zone))
