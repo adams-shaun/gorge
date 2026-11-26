@@ -17,8 +17,10 @@ func kwHeadOf(s string) kwHead { return kwHead{S: s, ID: cards.KeywordHeadIDOf(s
 // The literal heads the rules hot paths read.
 var (
 	kwhAfflict          = newKWHead("Afflict")
+	kwhAnnihilator      = newKWHead("Annihilator")
 	kwhAscend           = newKWHead("Ascend")
 	kwhBargain          = newKWHead("Bargain")
+	kwhBattleCry        = newKWHead("Battle cry")
 	kwhBeamMeUp         = newKWHead("Beam me up")
 	kwhBlitz            = newKWHead("Blitz")
 	kwhBloodthirst      = newKWHead("Bloodthirst")
@@ -62,6 +64,7 @@ var (
 	kwhMentor           = newKWHead("Mentor")
 	kwhModular          = newKWHead("Modular")
 	kwhOffspring        = newKWHead("Offspring")
+	kwhPersist          = newKWHead("Persist")
 	kwhPhasing          = newKWHead("Phasing")
 	kwhPoisonous        = newKWHead("Poisonous")
 	kwhProwess          = newKWHead("Prowess")
@@ -82,6 +85,7 @@ var (
 	kwhTeamwork         = newKWHead("Teamwork")
 	kwhTypeCycling      = newKWHead("TypeCycling")
 	kwhUmbraArmor       = newKWHead("Umbra armor")
+	kwhUndying          = newKWHead("Undying")
 	kwhUnleash          = newKWHead("Unleash")
 	kwhWebSlinging      = newKWHead("Web-slinging")
 	kwhVigilance        = newKWHead("Vigilance")
