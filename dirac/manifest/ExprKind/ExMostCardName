@@ -4,4 +4,6 @@ value: 86
 forge: MostCardName
 census: count MostCardName all=4 std=0 mbc=0 sole=3
 state: code 0
-status: reserved
+status: active
+ticket: cli-20261125T191555Z-fdbcc0d7
+doc: the greatest number of objects matching the spec that share one face name (Endless Atlas, Mechanized Production, Chrome Replicator, Sceptre of Eternal Glory); dirac/value_mostcardname.go

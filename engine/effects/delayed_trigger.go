@@ -181,6 +181,7 @@ func effDelayedTrigger(h Host, c *Ctx, sa *cards.SA) {
 		if dp.ThisTurn {
 			eventText += "|TT=" + strconv.Itoa(int(h.Game().Turn))
 		}
+		eventText += delayedGrantorSuffix(c)
 		h.Emit(events.Event{Kind: events.DelayedRegister, Obj: c.Source,
 			Player: c.Controller, Step: h.Game().Step, Counter: exec,
 			IDs: encodeRemembered(remembered), Text: eventText + delayedLabelSuffix(dp)})
@@ -268,6 +269,7 @@ func effDelayedTrigger(h Host, c *Ctx, sa *cards.SA) {
 	if suffix := delayedRegisterStampSuffix(h, c, remembered); suffix != "" {
 		text += suffix
 	}
+	text += delayedGrantorSuffix(c)
 	h.Emit(events.Event{Kind: events.DelayedRegister, Obj: c.Source,
 		Player: c.Controller, Step: step, Counter: exec, Amount: amount,
 		IDs: encodeRemembered(remembered), Text: text + delayedLabelSuffix(dp)})
@@ -301,6 +303,21 @@ func queueEnteredRememberedTrigger(h Host, c *Ctx, exec string, remembered []sta
 		return h.QueueReflexiveTrigger(&cc, exec, body, []state.Target{{Obj: t.Obj}})
 	}
 	return false
+}
+
+// delayedGrantorSuffix is the "|GB=<id>" trailer of a registration a GRANTED
+// ability made: the Execute body lives on the grantor's face, which the
+// grantee Ctx.Source lacks, so every registration arm (Phase, event-matched,
+// SpellCast) carries the grantor or the registration is collected as dead at
+// the next turn change (Frenetic Sliver's granted "return it at the beginning
+// of the next end step" on a Changeling). Empty for every non-granted
+// registration, so its Text is byte-identical to before. It rides just before
+// the |LB= label, where the fold strips it.
+func delayedGrantorSuffix(c *Ctx) string {
+	if c.Grantor == 0 {
+		return ""
+	}
+	return "|GB=" + strconv.FormatUint(uint64(c.Grantor), 10)
 }
 
 // delayedLabelSuffix encodes a DelayedTrigger registration's TriggerDescription$
@@ -435,9 +452,7 @@ func effDelayedTriggerSpellCast(h Host, c *Ctx, dp *DelayedTriggerParams) {
 	// trailer so the registration can resolve the body and its SVar table
 	// against the face that owns them; absent for every non-granted
 	// registration.
-	if c.Grantor != 0 {
-		text += "|GB=" + strconv.FormatUint(uint64(c.Grantor), 10)
-	}
+	text += delayedGrantorSuffix(c)
 	h.Emit(events.Event{Kind: events.DelayedRegister, Obj: c.Source,
 		Player: c.Controller, Step: h.Game().Step, Counter: exec,
 		Text: text + delayedLabelSuffix(dp)})

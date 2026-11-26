@@ -4,7 +4,9 @@
 # Dilu Horse a printed horsemanship body); Indebted Spirit's bestowed afterlife
 # 1 beside the Bears that wear it and the Bolts that kill them; Reckless
 # Pyrosurfer's landfall-granted battle cry and Eldrazi Conscription's
-# enchanted annihilator beside the Bears that carry them
+# enchanted annihilator beside the Bears that carry them; Mikaeus, the
+# Unhallowed's granted undying and Rattleblaze Scarecrow's granted persist
+# beside the Bears and Bolts that die under them
 Sun Quan, Lord of Wu
 Herald of Hoofbeats
 The Dilu Horse
@@ -20,3 +22,5 @@ Forest
 Reckless Pyrosurfer
 Eldrazi Conscription
 Swamp
+Mikaeus, the Unhallowed
+Rattleblaze Scarecrow
