@@ -16,7 +16,7 @@
 #
 # Fork PRs get a read-only token and no secrets; nothing here needs either.
 #
-# Runner: pull_request jobs from forks ALWAYS run on GitHub-hosted runners; same-repo PRs use gorge-box (metal2) when CI_SELF_HOSTED. Push, schedule
+# Runner: pull_request jobs from forks ALWAYS run on GitHub-hosted runners; same-repo PRs use gorge-box when CI_SELF_HOSTED. Push, schedule
 # and dispatch jobs run on the maintainers' ephemeral k8s runners (label
 # gorge-box) when the repository variable
 # CI_SELF_HOSTED is 'true', and on GitHub-hosted runners otherwise. The fork-PR
@@ -64,7 +64,7 @@ env:
   GOFLAGS: -p=4 -trimpath
 
 # Runner priority (operator 11-16: "the mergify queue checks run w/ higher prio"): GitHub Actions has no job
-# priority, so a pull request's own checks (fast, lint) run only on the runners labelled gorge-pr (on metal2 and the spot boxes). The others
+# priority, so a pull request's own checks (fast, lint) run only on the runners labelled gorge-pr (the boxes named in the CI_BOXES repo variable). The others
 # box runners always stay free for Mergify's queue batches (mergify/merge-queue/*), main, nightly and on demand.
 jobs:
   # A push to main only: did a queue batch or pull request's ci-ok already pass this exact tree?
@@ -90,20 +90,37 @@ jobs:
           echo "tree ${tree:-unknown}: passed by a promote PR: $passed"
           echo "passed=$passed" >> "$GITHUB_OUTPUT"
 
+  # The self-hosted boxes come only from the repo variable CI_BOXES (a JSON list); the workflow names none. Unset or
+  # empty fails here, loudly, instead of falling back to a box that may not exist.
+  boxes:
+    runs-on: ubuntu-24.04
+    outputs:
+      list: ${{ steps.check.outputs.list }}
+    steps:
+      - id: check
+        env:
+          CI_BOXES: ${{ vars.CI_BOXES }}
+        run: |
+          if ! printf '%s' "$CI_BOXES" | python3 -c 'import json,sys; v=json.load(sys.stdin); sys.exit(0 if isinstance(v,list) and v and all(isinstance(b,str) and b for b in v) else 1)' 2>/dev/null; then
+            echo "::error::repo variable CI_BOXES is unset, empty or not a non-empty JSON list of box names: set it with 'gh variable set CI_BOXES --body [\"<box>\"]' (there is no default)"
+            exit 1
+          fi
+          echo "list=$CI_BOXES" >> "$GITHUB_OUTPUT"
+
   # Stage 1 of the pipeline: on the box, build the corpus and dirac's tables once for this tree (scripts/ci-corpus.sh
   # keys them by FORGE_REF, engine/cards and dirac sources); the test stage's jobs then find them built. On a
   # GitHub-hosted runner it does nothing: each hosted job restores .cards from the Actions cache.
   prepare:
-    needs: prior
-    if: ${{ !cancelled() && needs.prior.outputs.passed != 'true' && (github.event_name != 'pull_request' || startsWith(github.head_ref, 'mergify/merge-queue/')) }}
+    needs: [prior, boxes]
+    if: ${{ !cancelled() && needs.boxes.result == 'success' && needs.prior.outputs.passed != 'true' && (github.event_name != 'pull_request' || startsWith(github.head_ref, 'mergify/merge-queue/')) }}
     # Once per box: the corpus and tables for this tree, then every shard's test binaries compiled into the box's
     # shared Go cache (its runners share ~/.cache/go-build). 11-17: six shards on a box compiled the same changed
     # packages at once, and test (0) spent ~6 min compiling for 97 s of kgen tests.
     strategy:
       matrix:
-        # The boxes come from the repo variable CI_BOXES (a JSON list, e.g. ["metal2"]), so adding or
+        # The boxes come from the repo variable CI_BOXES (a JSON list of box names), so adding or
         # dropping a box is `gh variable set CI_BOXES`, never a PR. Every listed box must have a gorge-box runner.
-        box: ${{ fromJSON(vars.CI_BOXES || '["metal2"]') }}
+        box: ${{ fromJSON(needs.boxes.outputs.list) }}
     runs-on: ${{ vars.CI_SELF_HOSTED == 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && fromJSON(format('["gorge-box","box-{0}"]', matrix.box)) || 'ubuntu-24.04' }}
     steps:
       - name: Heal the runner's workspace (self-hosted)
@@ -1155,7 +1172,7 @@ jobs:
   # One required check to name in branch protection, whatever the shard count.
   ci-ok:
     if: always()
-    needs: [prior, fast, lint, test, examples, wire-matrix, wire-nightly, dirac-slices, dirac-repros, oracle-sentinels, oracle]
+    needs: [prior, boxes, fast, lint, test, examples, wire-matrix, wire-nightly, dirac-slices, dirac-repros, oracle-sentinels, oracle]
     runs-on: ubuntu-24.04
     steps:
       - run: |
@@ -1171,7 +1188,7 @@ jobs:
             workflow_dispatch) oracle=success ;;
             schedule) nightly=success ;;
           esac
-          [ "${{ needs.lint.result }}" = "$lint" ] && [ "${{ needs.fast.result }}" = "$fast" ] && [ "${{ needs.test.result }}" = "$heavy" ] && [ "${{ needs.examples.result }}" = "$heavy" ] && [ "${{ needs.wire-matrix.result }}" = "$heavy" ] && [ "${{ needs.wire-nightly.result }}" = "$nightly" ] && [ "${{ needs.dirac-slices.result }}" = "$slices" ] && [ "${{ needs.dirac-repros.result }}" = "$slices" ] && [ "${{ needs.oracle-sentinels.result }}" = "$slices" ] && [ "${{ needs.oracle.result }}" = "$oracle" ] || { echo "prior=${{ needs.prior.outputs.passed }} fast=${{ needs.fast.result }} lint=${{ needs.lint.result }} test=${{ needs.test.result }} examples=${{ needs.examples.result }} wire-matrix=${{ needs.wire-matrix.result }} wire-nightly=${{ needs.wire-nightly.result }} dirac-slices=${{ needs.dirac-slices.result }} dirac-repros=${{ needs.dirac-repros.result }} oracle-sentinels=${{ needs.oracle-sentinels.result }} oracle=${{ needs.oracle.result }}"; exit 1; }
+          [ "${{ needs.boxes.result }}" = success ] && [ "${{ needs.lint.result }}" = "$lint" ] && [ "${{ needs.fast.result }}" = "$fast" ] && [ "${{ needs.test.result }}" = "$heavy" ] && [ "${{ needs.examples.result }}" = "$heavy" ] && [ "${{ needs.wire-matrix.result }}" = "$heavy" ] && [ "${{ needs.wire-nightly.result }}" = "$nightly" ] && [ "${{ needs.dirac-slices.result }}" = "$slices" ] && [ "${{ needs.dirac-repros.result }}" = "$slices" ] && [ "${{ needs.oracle-sentinels.result }}" = "$slices" ] && [ "${{ needs.oracle.result }}" = "$oracle" ] || { echo "prior=${{ needs.prior.outputs.passed }} fast=${{ needs.fast.result }} lint=${{ needs.lint.result }} test=${{ needs.test.result }} examples=${{ needs.examples.result }} wire-matrix=${{ needs.wire-matrix.result }} wire-nightly=${{ needs.wire-nightly.result }} dirac-slices=${{ needs.dirac-slices.result }} dirac-repros=${{ needs.dirac-repros.result }} oracle-sentinels=${{ needs.oracle-sentinels.result }} oracle=${{ needs.oracle.result }}"; exit 1; }
       # A pull request or queue batch that passed records the tree it passed, so the push that merges it can skip a rerun
       # (prior, above). Best effort: a failure here only means that push runs everything.
       - name: Read the tree this pull request passed
