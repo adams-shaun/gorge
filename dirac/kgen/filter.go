@@ -191,6 +191,7 @@ const (
 	cmpHasProtColor     // hasKeywordProtection:<colour>: has protection from a colour in CmpN (no operator)
 	cmpHasProtEachColor // hasKeywordProtection:each color: has protection from all five colours (no operator)
 	cmpMonarchCtrl      // ControlledBy Player.isMonarch (CmpN 0) / ControlledBy EnchantedController.!isMonarch (CmpN 1): the controller is / is not the monarch (kop.PredMonarchCtrl; filter_monarch.go; no operator)
+	cmpKickedAlt        // kicked 1 (CmpN 1) / kicked 2 (CmpN 2): the kicker alternative paid (kop.PredKickedAlt; filter_kickedalt.go; no operator)
 )
 
 // cmpWasCastSpell's CmpN (kernel PredWasCastSpell's PredN): the origin the
@@ -1385,6 +1386,8 @@ func (c *lClause) designationWord(p string) (ok bool, err error) {
 		return true, c.goadedWord(n) // filter_goaded.go
 	case monarchCtrlWord, monarchEnchNotWrd:
 		return c.monarchCtrlProp(p) // filter_monarch.go
+	case kickedAltFirst, kickedAltSecond:
+		return c.kickedAltProp(p) // filter_kickedalt.go (a negated spelling stays an unknown property)
 	}
 	return false, nil
 }
