@@ -1086,6 +1086,12 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 				add(prioEntry{a: grantedEmbalmAction(ref(o.Obj)), opt: o.Index})
 				continue
 			}
+			if g.cyclingAltOption(o) {
+				// a cycling activation at the alternative cost (New Perspectives,
+				// kop.StatCyclingAlt): the kernel's twin ability, cyclingAltBit
+				add(prioEntry{a: Pack(ActActivate, ref(o.Obj), RefNone, cyclingAltBit|uint8(o.Ability)), opt: o.Index})
+				continue
+			}
 			if o.SVar != "" || o.Keyword != "" || o.GainedSource != 0 || o.AltCostIndex != 0 || o.Ability > 0x7F {
 				note("ability/anchored")
 				continue
