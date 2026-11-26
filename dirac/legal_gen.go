@@ -216,7 +216,7 @@ func (s *State) offerPlay(k *prep, d *Decision, p uint8, o Obj, mode uint8, sorc
 		}
 		return
 	}
-	if !pc.instant && !sorc && !s.castFlash(k, p, c) {
+	if (!pc.instant || s.graveFlashLost(k, o, pc)) && !sorc && !s.castFlash(k, p, c) {
 		return
 	}
 	if k.gen.anyCantCast {

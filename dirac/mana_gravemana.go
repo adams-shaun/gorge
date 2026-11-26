@@ -46,7 +46,7 @@ var DebugNoGraveMana bool
 func (s *State) graveManaPick(k *prep, p uint8) (o Obj, mask uint8) {
 	pl := &s.pl[SeatIx(p)]
 	for i := 0; i < int(pl.graveN); i++ {
-		if m := k.t.Cards[s.objs[pl.grave[i]].card].GraveMana; m != 0 {
+		if m := k.t.Cards[s.objs[pl.grave[i]].card].GraveMana; m != 0 && !s.graveManaLost(k, pl.grave[i]) {
 			return pl.grave[i], m
 		}
 	}
@@ -149,7 +149,7 @@ func (s *State) graveFundDo(k *prep, p uint8, st filtStep) {
 		return
 	}
 	o := pl.grave[st.gidx]
-	if k.t.Cards[s.objs[o].card].GraveMana == 0 {
+	if k.t.Cards[s.objs[o].card].GraveMana == 0 || s.graveManaLost(k, o) {
 		return
 	}
 	s.graveManaFee(p)
@@ -183,7 +183,7 @@ func (fs *filtSearch) graveFund(k *prep, t *State, funded int, gapUsed bool) boo
 	pl := &t.pl[SeatIx(fs.p)]
 	for i := 0; i < int(pl.graveN); i++ {
 		mask := k.t.Cards[t.objs[pl.grave[i]].card].GraveMana & 0x1f
-		if mask == 0 {
+		if mask == 0 || t.graveManaLost(k, pl.grave[i]) {
 			continue
 		}
 		var order [5]uint8
@@ -208,4 +208,12 @@ func (fs *filtSearch) graveFund(k *prep, t *State, funded int, gapUsed bool) boo
 		fs.hands--
 	}
 	return false
+}
+
+// graveManaLost reports whether graveyard card o lost its printed mana
+// ability (Yixlid Jailer; CR 613.1f): gorge's mana walk takes a lost card's
+// printed mana abilities in every zone (mana_activation.go lossStamp), so the
+// window and the funding pass list no such source (static_graveabilityloss.go).
+func (s *State) graveManaLost(k *prep, o Obj) bool {
+	return graveLossOn(k) && s.gravePrintedHidden(k, o)
 }

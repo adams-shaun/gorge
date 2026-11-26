@@ -1,0 +1,25 @@
+# Yixlid Jailer ("cards in graveyards lose all abilities", S:Mode$ Continuous |
+# Affected$ Card | AffectedZone$ Graveyard | RemoveAllAbilities$ True;
+# dirac/static_graveabilityloss.go) beside the graveyard abilities it silences:
+# flashback spells (Faithless Looting, Think Twice), an unearth creature
+# (Hellspark Elemental), a graveyard trigger (Bloodghast), dredge (Golgari Thug),
+# a graveyard mana ability (Jack-o'-Lantern), and the discard and self-mill that
+# fill graveyards (Cathartic Reunion, Stitcher's Supplier). No graveyard keyword GRANTOR:
+# a grant beside the removal stalls by name (StallGraveLossGrant). The lockstep
+# is dirac/oracle/offzone_abilityloss_lockstep_test.go.
+Yixlid Jailer
+Faithless Looting
+Think Twice
+Hellspark Elemental
+Bloodghast
+Golgari Thug
+Jack-o'-Lantern
+Cathartic Reunion
+Stitcher's Supplier
+Grizzly Bears
+Lightning Bolt
+Island
+Swamp
+Mountain
+Forest
+Plains

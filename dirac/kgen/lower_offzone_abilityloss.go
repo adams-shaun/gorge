@@ -8,7 +8,7 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // readers (dsub-jailer, split 1: the keyword and offer readers, split 2: the
 // trigger scans and the leave-graveyard look-back, split 3: the graveyard
 // statics and mana abilities) are not all wired. Split 3 flips it on.
-var graveLossReadersDone = false
+var graveLossReadersDone = true
 
 // graveLossPending is the refusal a Jailer-shaped card carries until the
 // readers are done.

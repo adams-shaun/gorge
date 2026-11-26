@@ -462,3 +462,12 @@ func faceMayRemoveAbilities(f *cards.Face) bool {
 	}
 	return false
 }
+
+// printedStaticsGone is printedAbilitiesGone for a static scan over zone z:
+// the CR 708.8 face-down gate holds only on the battlefield, while a "loses
+// all abilities" effect (CR 613.1f) takes a graveyard card's statics too,
+// as scanActiveStatics reads it in every zone (Forge: CardTraitChanges
+// applyStaticAbility, zone-blind).
+func (e *Engine) printedStaticsGone(z state.Zone, o *state.Object) bool {
+	return (z == state.ZBattlefield && e.faceDownPrintedHides(o)) || e.printedAbilitiesLost(o)
+}
