@@ -2447,7 +2447,7 @@ func (lc *lowerCtx) playRememberedAlt(alt, valid string) (string, error) {
 // play lowers api:Play's four resolution-time free-cast spellings.
 func (lc *lowerCtx) play(ps *params) error {
 	// Named parameters this reader does not model: refuse rather than drop.
-	for _, k := range []string{"PlayCost", "WithTotalCMC", "RememberPlayed", "ManaConversion",
+	for _, k := range []string{"PlayCost", "WithTotalCMC", "ManaConversion",
 		"SorcerySpeed", "ShowCardToActivator", "ImprintPlayed", "ReplaceGraveyardValid", "TargetMin", "TargetMax"} {
 		if _, ok := ps.get(k); ok {
 			return refuse("Play %s", k)
@@ -2523,12 +2523,9 @@ func (lc *lowerCtx) play(ps *params) error {
 	if err := playMandatoryOK(mandatory, hideDef, copyCard, repeat, upTo); err != nil {
 		return err
 	}
-	forget := false
-	if v, ok := ps.get("ForgetPlayed"); ok {
-		if v != "True" {
-			return refuse("Play ForgetPlayed %q", v)
-		}
-		forget = true
+	forget, remember, err := playForgetRemember(ps) // lower_playremember.go
+	if err != nil {
+		return err
 	}
 	replace := false
 	if v, ok := ps.get("ReplaceGraveyard"); ok {
@@ -2544,8 +2541,8 @@ func (lc *lowerCtx) play(ps *params) error {
 				return refuse("Play Defined$ ExiledWith with %s$", k)
 			}
 		}
-		if forget || replace {
-			return refuse("Play Defined$ ExiledWith with ForgetPlayed$/ReplaceGraveyard$")
+		if forget || replace || remember {
+			return refuse("Play Defined$ ExiledWith with ForgetPlayed$/ReplaceGraveyard$/RememberPlayed$")
 		}
 		ps.consume("Defined")
 		return lc.hidePlay(ps, amount)
@@ -2556,7 +2553,6 @@ func (lc *lowerCtx) play(ps *params) error {
 	// cards that player owns, so YouOwn filters nothing there
 	lc.bluffPlay = playRememberedEmptyKey(ps, "ConditionDefined") || playOwnHand(ps)
 	var saExpr string
-	var err error
 	landPlay := playLandShape(ps, paid, mandatory, copyCard, repeat, upTo, forget, replace, amount)
 	if !playCommandZone(ps) && !landPlay {
 		// (the command-zone Play reads its absent ValidSA$: lower_playcommand.go)
@@ -2602,9 +2598,7 @@ func (lc *lowerCtx) play(ps *params) error {
 		}
 		cs += "|UpTo"
 	}
-	if forget {
-		cs += "|Forget"
-	}
+	cs += playRememberFlags(forget, remember)
 	if replace {
 		cs += "|ReplaceGY"
 	}
