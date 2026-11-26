@@ -22,13 +22,15 @@ const flipSkipSrc = "Name:Test Flip Skip\nManaCost:2 R\nTypes:Sorcery\n" +
 	"SVar:DBSkip:DB$ SkipTurn | NumTurns$ X\n" +
 	"Oracle:Flip three coins. Skip X turns, where X is the number of heads.\n"
 
-// countFlipHeads counts the canonical heads-flip Notes a resolution emitted
-// (FlipCoinNote is the encoding the FlippedCoin trigger matcher reads).
+// countFlipHeads counts the heads-flip result Notes a resolution emitted,
+// via the shared effects.FlipNoteResult parser (the encoding the FlippedCoin
+// trigger matcher reads). A NoCall$ flip's Note carries the " (no call)"
+// annotation, and it is still a flip that landed heads even though it wins
+// nothing, so the parser -- not an exact-text match -- is what counts it.
 func countFlipHeads(e *Engine, flipper state.PlayerID) int {
 	n := 0
 	for _, ev := range e.L.Events {
-		if ev.Kind == events.Note && ev.Player == flipper &&
-			ev.Text == effects.FlipNotePrefix+"heads" {
+		if f, win, ok := effects.FlipNoteResult(ev); ok && win && f == flipper {
 			n++
 		}
 	}
