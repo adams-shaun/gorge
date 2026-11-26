@@ -55,10 +55,12 @@ func (s *State) reuseObj(o Obj) {
 		s.cold.mo[i].clr(o)
 	}
 	if int(o) < len(s.cold.mkObj) {
-		s.cold.mkObj[o] = 0 // the old object's multikicker count ends with it (CR 702.43)
+		// the old object's multikicker count -- and the two-alternative
+		// Kicker's selection byte that shares the region
+		// (filter_kickedalt.go) -- ends with it (CR 702.43, 400.7)
+		s.cold.mkObj[o] = 0
 	}
 	s.clearPaidN(o)
-	s.clearKickAlt(o)
 	s.gyStampClr(o)
 	s.clearExileCounter(o) // the reused id is a new object; its ver can wrap onto a stamped record (repl_exilectr.go)
 	// a departed attachment's record names the old object; its host is
