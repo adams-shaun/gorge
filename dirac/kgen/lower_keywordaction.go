@@ -50,11 +50,29 @@ const clueToken = "c_a_clue_draw"
 // ValidTgts$ than You, Optional$ and RememberInvestigatingPlayers$ refuse.
 func (lc *lowerCtx) investigate(ps *params) error {
 	most := false
+	fromTgt := -1
 	if d, ok := ps.get("Defined"); ok {
 		switch strings.TrimSpace(d) {
 		case "You":
 		case "Player.withMostTypeCreature":
 			most = true
+		case "TargetedController":
+			// the controller of the current link's one earlier object target
+			// (Fateful Absence's Destroy, then "Its controller investigates"):
+			// gorge effInvestigate's Defined$ read resolves TargetedController
+			// the same selector the Defined$ TargetedController arm lowers,
+			// the target's controller (lower_effect_defined.go); a target
+			// destroyed in the same resolution reads its controller where it
+			// is now, its LKI included (CR 603.7a). The mint is once, to that
+			// player, no target of its own.
+			fromTgt = lc.lastTarget()
+			if fromTgt < 0 {
+				return refuse("Investigate Defined$ TargetedController with no target slot")
+			}
+			if lc.ab.Targets[fromTgt].Spell || lc.ab.Targets[fromTgt].F == nil || lc.ab.Targets[fromTgt].F.Players != 0 {
+				return refuse("Investigate Defined$ TargetedController over a slot that is not one object target")
+			}
+			ps.consume("Defined")
 		default:
 			return refuse("Investigate Defined$ %q", d)
 		}
@@ -68,7 +86,9 @@ func (lc *lowerCtx) investigate(ps *params) error {
 	}
 	who := lRef{Kind: rEach}
 	if !most {
-		if who, err = lc.investigator(ps); err != nil {
+		if fromTgt >= 0 {
+			who = lRef{Kind: rTargetController, N: fromTgt}
+		} else if who, err = lc.investigator(ps); err != nil {
 			return err
 		}
 	}
