@@ -1,0 +1,15 @@
+# The granted-toxic pool with no printed toxic or infect, beside Personal
+# Sanctuary prevention (dirac/oracle/grantedtoxicsanct_lockstep_test.go): a
+# granted toxic alone does not stall the table (kw_infect.go prepInfect).
+Aspirant's Ascent
+Forest
+Glory Seeker
+Grizzly Bears
+Island
+Muck Rats
+Necrogen Communion
+Personal Sanctuary
+Plains
+Prosthetic Injector
+Swamp
+History of Benalia
