@@ -19,6 +19,7 @@ func init() {
 	registerStaticBuild("FbGrant", cbFbGrantStatic)       // kw_fbgrant.go
 	registerStaticBuild("WarpGrant", cbWarpGrantStatic)   // kw_warpgrant.go
 	registerStaticBuild("MiracleGrant", cbMiracleGrant)   // kw_miracle.go
+	registerStaticBuild("MadnessGrant", cbMadnessGrant)   // kw_madness.go
 	registerStaticCostBuild("EscapeGrant", cbEscapeGrant) // kw_escape.go
 	registerStaticBuild("ColorWords", func(cb *cardBuilder, s lStatic, st *kop.Static) ([]uint8, error) {
 		st.Kind = kop.StatColorWords // static_colorwords.go: no filter, no zone; the stall rule reads the live sources
@@ -93,6 +94,21 @@ func cbMiracleGrant(cb *cardBuilder, s lStatic, st *kop.Static) ([]uint8, error)
 		return nil, err
 	}
 	st.Zone = kop.ZoneHand
+	st.CardCostLess = uint8(s.CardCostLess)
+	st.GrantCost, err = manaCostOf(s.Cost.Mana)
+	return nil, err
+}
+
+// cbMadnessGrant: an AffectedZone$ <six zones> AddKeyword$ Madness static,
+// one static per listed zone (kop.StatMadnessGrant; kw_madness.go; CR
+// 702.35a; Falkenrath Gorger). Filter is read in the static's own zone.
+func cbMadnessGrant(cb *cardBuilder, s lStatic, st *kop.Static) ([]uint8, error) {
+	var err error
+	st.Kind = kop.StatMadnessGrant
+	st.Zone = zoneMap[s.Zone]
+	if st.Filter, err = cb.staticFilter(s.F, st.Zone); err != nil {
+		return nil, err
+	}
 	st.CardCostLess = uint8(s.CardCostLess)
 	st.GrantCost, err = manaCostOf(s.Cost.Mana)
 	return nil, err

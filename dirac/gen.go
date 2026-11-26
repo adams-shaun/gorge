@@ -1541,6 +1541,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 				case kop.StatEscapeGrant:
 					g.anyEscapeGrant = true
 					pc.hasStat = true // scanned through statM (kw_escape.go)
+				case kop.StatMadnessGrant:
+					g.anyMadness = true // a granted madness exiles the discard too (kw_madness.go)
+					pc.hasStat = true   // scanned through statM
 				case kop.StatMiracleGrant:
 					g.anyMiracle = true // a granted miracle queues the draw trigger too (kw_miracle.go)
 					pc.hasStat = true   // scanned through statM
