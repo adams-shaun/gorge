@@ -2731,6 +2731,13 @@ func (cb *cardBuilder) override(o *lOverride) (int, error) {
 	ko.WhileTapped = o.WhileTapped
 	ko.AsLongAsControl = o.AsLongAsControl
 	ko.UntilEndCombat = o.UntilEndCombat
+	ko.UntilCtrlUntap = o.UntilCtrlUntap
+	if o.UntilCast != nil {
+		if ko.UntilCast, err = cb.filter(o.UntilCast, kop.ZoneStack); err != nil {
+			return 0, err
+		}
+		cb.out.ovVals = append(cb.out.ovVals, kop.ValueRef{K: kop.VCountFilter, N: int16(ko.UntilCast)})
+	}
 	ko.Banding = o.Banding
 	ko.Horsemanship = o.Horsemanship
 	ko.NoCost = o.NoCost
