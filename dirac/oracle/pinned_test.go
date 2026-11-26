@@ -1,6 +1,7 @@
 package oracle
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -92,13 +93,7 @@ func pinnedGamesRun(t *testing.T, pool string, rc RunConfig, mulligans int, reac
 	if err != nil || len(games) == 0 {
 		t.Fatalf("%s: %v", path, err)
 	}
-	for i, r := range games {
-		res, hit, err := playPinned(set, reg, r, rc, reached)
-		if err != nil {
-			t.Fatalf("%s game %d: %v", path, i, err)
-		}
-		reportPinned(t, fmt.Sprintf("%s game %d", path, i), res, hit)
-	}
+	playPinnedGames(t, path, pool, set, reg, games, rc, mulligans, reached)
 }
 
 // reportPinned fails t unless the game ran clean and reached every condition.
@@ -115,6 +110,119 @@ func reportPinned(t *testing.T, what string, res Result, hit []bool) {
 			t.Errorf("%s never reaches condition %d of %d: the recorded actions no longer lead there; record the games again (PINS_RECORD=1)", what, i+1, len(hit))
 		}
 	}
+}
+
+// pinStrict reports whether DIRAC_PIN_STRICT=1 holds the pins exact: the
+// nightly wants every pin to play and reach its conditions, so a suspended or
+// stale pin fails there where a PR run, a batch or the 2-hourly oracle warns
+// and passes (the kgen ratchet pins judge the same way).
+func pinStrict() bool { return os.Getenv("DIRAC_PIN_STRICT") == "1" }
+
+// pinRefusal is the card and reason of a cardset refusal, when err is one: a
+// card the kgen table refuses by name is a declared limit of the corpus, not a
+// regression of the engine.
+func pinRefusal(err error) (card, reason string, ok bool) {
+	var re *cardset.RefusedError
+	if !errors.As(err, &re) {
+		return "", "", false
+	}
+	return re.Card, re.Reason, true
+}
+
+// stalePin reports whether a recorded game played clean but missed a condition:
+// the actions still lead where they lead, just not where the pin is named for.
+// A divergence or a stall is never stale: it is the regression the pin exists
+// to catch.
+func stalePin(res Result, hit []bool) bool {
+	return res.Div == nil && (res.Stall == "" || res.Stall == "decisions") && contains(hit, false)
+}
+
+// pinVerdict is what playing one recorded game does to its pin.
+type pinVerdict int
+
+const (
+	pinReport  pinVerdict = iota // ran clean and reached every condition
+	pinSuspend                   // the set refuses a card of the recording: the pin cannot run until the card is supported again
+	pinStale                     // the actions still play clean but no longer reach a condition
+	pinFail                      // a regression, or a suspended or stale pin under DIRAC_PIN_STRICT=1
+)
+
+// judgePinned classifies one recorded game's outcome — playPinned's res, hit
+// and err — under strict (DIRAC_PIN_STRICT=1, passed in so a test can judge
+// both ways without a refused card or a broken recording). A refused card
+// suspends the pin, a stale one waits for the caller's fresh-game search, and a
+// divergence or a stall fails at once; strict fails a suspended or stale pin
+// too, so the nightly still drives the re-records.
+func judgePinned(res Result, hit []bool, err error, strict bool) pinVerdict {
+	if err != nil {
+		if _, _, refused := pinRefusal(err); refused && !strict {
+			return pinSuspend
+		}
+		return pinFail
+	}
+	if stalePin(res, hit) {
+		if strict {
+			return pinFail
+		}
+		return pinStale
+	}
+	return pinReport
+}
+
+// pinStaleGame is a recorded game that played clean but no longer reaches a
+// condition, kept so the pin fails as before when no fresh game replaces it.
+type pinStaleGame struct {
+	what   string
+	res    Result
+	hit    []bool
+	missed int // the first condition not reached, 1-based
+}
+
+// playPinnedGames plays each recorded game of the pin at path and reports what
+// it found on t. A pinReport game is held to reportPinned, which fails on a
+// divergence or a stall; a suspended one passes with a warning outside
+// DIRAC_PIN_STRICT=1 and fails under it; a stale one is excused when the pin's
+// own pool still holds a game that reaches every condition and plays clean
+// (buildPins, bounded by pinScan, writing nothing) and fails as before when it
+// does not. It reports whether a stale recording was so excused.
+func playPinnedGames(t *testing.T, path, pool string, set cardset.Set, reg *cards.Registry, games []*Repro, rc RunConfig, mulligans int, reached []func(ref *GorgeSide) bool) (replaced bool) {
+	t.Helper()
+	strict := pinStrict()
+	var stale []pinStaleGame
+	for i, r := range games {
+		what := fmt.Sprintf("%s game %d", path, i)
+		res, hit, err := playPinned(set, reg, r, rc, reached)
+		switch judgePinned(res, hit, err, strict) {
+		case pinReport:
+			reportPinned(t, what, res, hit)
+		case pinSuspend:
+			card, reason, _ := pinRefusal(err)
+			t.Logf("WARNING: %s suspended: %s is refused (%s)", what, card, reason)
+		case pinStale:
+			stale = append(stale, pinStaleGame{what: what, res: res, hit: hit, missed: slices.Index(hit, false) + 1})
+		case pinFail:
+			if err != nil {
+				t.Fatalf("%s: %v", what, err)
+			}
+			reportPinned(t, what, res, hit)
+		}
+	}
+	if len(stale) == 0 {
+		return false
+	}
+	// The recorded actions still play clean but no longer lead where the pin is
+	// named for; the pool may still hold a game that does.
+	fresh, err := buildPins(t, path, pool, set, reg, rc, mulligans, reached)
+	if err == nil && len(fresh) > 0 {
+		for _, g := range stale {
+			t.Logf("WARNING: %s is stale (recorded actions no longer reach condition %d of %d); a fresh game reaches it: re-record with PINS_RECORD=1", g.what, g.missed, len(g.hit))
+		}
+		return true
+	}
+	for _, g := range stale {
+		reportPinned(t, g.what, g.res, g.hit)
+	}
+	return false
 }
 
 // playPinned plays the recorded game r in lockstep, ending with its last action, and
