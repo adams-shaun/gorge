@@ -2603,7 +2603,7 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		}
 	case "AlternativeCost":
 		st.Kind = kop.StatAlternativeCost
-		if ka.Cost, err = cb.cost(s.Cost); err != nil {
+		if ka.Cost, err = cb.altCostStatic(s, st); err != nil { // static_cost.go: a grant's flag and filter too
 			return ka, nil, err
 		}
 		if ka.Cost.Flags&(kop.CostForage|kop.CostExileGrave) != 0 && !cb.altHandExileOK(&ka.Cost) {

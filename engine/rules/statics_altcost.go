@@ -174,6 +174,14 @@ func (e *Engine) alternativeCosts(p state.PlayerID, id state.ObjID) []altCostVie
 				if st.Mode != "AlternativeCost" {
 					continue
 				}
+				if st.ParamStr(cards.PKEffectZone) == "" {
+					// No EffectZone$: the static functions on the battlefield
+					// only (CR 113.6), where the activeStatics walk above
+					// already priced it. Read here it would let Fist of Suns
+					// in hand pay {W}{U}{B}{R}{G} for itself, and Rooftop
+					// Storm in hand {0} for itself, a grant to other spells.
+					continue
+				}
 				if !e.alternativeCostScopeOK(st.Params, id, id, p, o.Controller) {
 					continue
 				}
