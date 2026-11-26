@@ -687,6 +687,9 @@ func costString(c lCost) string {
 	if c.Sac != nil {
 		p = append(p, fmt.Sprintf("Sac%d%s", c.SacN, c.Sac))
 	}
+	for _, m := range c.SacMore {
+		p = append(p, fmt.Sprintf("Sac%d%s", m.N, m.F))
+	}
 	if c.SacX {
 		p = append(p, "SacX")
 	}
@@ -726,6 +729,9 @@ func costString(c lCost) string {
 	}
 	if c.SubCtr > 0 {
 		p = append(p, fmt.Sprintf("Remove%d%s", c.SubCtr, c.SubCtrKnd))
+	}
+	if c.SubCtrAll != "" {
+		p = append(p, "RemoveAll"+c.SubCtrAll)
 	}
 	if c.PayLife > 0 {
 		p = append(p, fmt.Sprintf("Life%d", c.PayLife))

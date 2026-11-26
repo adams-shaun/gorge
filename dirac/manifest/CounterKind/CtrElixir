@@ -4,4 +4,4 @@ value: 150
 forge: ELIXIR
 census: ctr ELIXIR all=1 std=0 mbc=0 sole=0
 state: code 0
-status: reserved
+status: active
