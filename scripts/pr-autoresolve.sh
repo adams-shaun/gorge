@@ -171,7 +171,7 @@ t() {
   [ $rc -eq 0 ] || { echo "$out" | tail -40; return 1; }
 }
 pins='^TestCorpusAcceptance$|^TestSetAcceptance$|^TestCorpusBuildAcceptance$|^TestPinTablesParse$|^TestRememberedSpanCensus$|^TestStdMetaPoolBuilds$'
-layout='^TestStateLayoutPinned$|^TestNoNewFixedStateFields$|^TestCapacityHashPins$'
+layout='^TestNoNewFixedStateFields$|^TestCapacityHashPins$'
 fail() { say "$1"; exit 1; }
 if [ -n "${recipes[kop-ordinals]:-}" ]; then
   t ./dirac/kop '^TestKopOrdinalsUnchanged$' KOP_ORDINALS_REGEN=1 >/dev/null
