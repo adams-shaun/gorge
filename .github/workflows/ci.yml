@@ -96,9 +96,11 @@ jobs:
   prepare:
     needs: prior
     if: ${{ !cancelled() && needs.prior.outputs.passed != 'true' && (github.event_name != 'pull_request' || startsWith(github.head_ref, 'mergify/merge-queue/')) }}
-    # Once per box: the corpus and tables for this tree, then every shard's test binaries compiled into the box's
-    # shared Go cache (its runners share ~/.cache/go-build). 11-17: six shards on a box compiled the same changed
-    # packages at once, and test (0) spent ~6 min compiling for 97 s of kgen tests.
+    # Once per box: the corpus and tables for this tree, then the compile work two or more jobs share — a
+    # small representative set's test binaries plus ./dirac/oracle — into the box's shared Go cache (its
+    # runners share ~/.cache/go-build); every shard's own binaries compile in that shard's job. 11-17: six
+    # shards on a box compiled the same changed packages at once, and test (0) spent ~6 min compiling for
+    # 97 s of kgen tests; one owner per compile action is what keeps that from coming back.
     strategy:
       matrix:
         # The boxes come from the repo variable CI_BOXES (a JSON list, e.g. ["metal2"]), so adding or
@@ -155,9 +157,23 @@ jobs:
           # -exec /bin/true builds and vets each test binary and runs none of them.
           # <package>#A is a split package's second entry (ci_shard.sh, scripts/ci-splits.tsv), the same package.
           pkgs=$(bash scripts/ci_shard.sh all "$SHARDS" | awk '{print $2}' | sed 's/#A$//' | sort -u)
-          # ./dirac/oracle too: ci_shard.sh leaves it out, and dirac-repros compiled it itself (~100-170 s, 11-20).
+          # S1b (11-26): compile only what two or more jobs need, not every shard's leaf: the heaviest
+          # package of each top-level directory (the balancer's own weights, scripts/ci-pkg-times.tsv,
+          # default 3 as ci_shard.sh's) — 11 packages whose test builds cover 95 of the 118 repo packages
+          # two or more shard closures share (measured at tree 61f994c1fc); the rest compile lazily in
+          # the first shard that needs them. ./dirac/oracle stays here: ci_shard.sh leaves it out and the
+          # sentinels, slices and repros read it warm. Each shard's own binaries compile at the head of
+          # that shard's job (the test stage's compile step). The split rides go test's cache identity —
+          # a go build does not serve a later go test (shard 2's warm-up was still 25.6 s of its 31.9 s
+          # after a go build of the shared set, but 2.1 s after another shard's go test) — so no package
+          # compiles twice, which is what killed the 11-17 fan-out. -exec /bin/true runs no tests.
+          repkgs=$(awk -F'\t' 'NR==FNR { if ($1 !~ /^#/ && NF >= 2) w[$1] = $2 + 0; next }
+            { n = split($1, a, "/"); top = n < 4 ? $1 : a[1] "/" a[4]
+              wt = ($1 in w) ? w[$1] : 3
+              if (!(top in best) || wt > bw[top]) { best[top] = $1; bw[top] = wt } }
+            END { for (t in best) print best[t] }' scripts/ci-pkg-times.tsv <(printf '%s\n' "$pkgs") | sort)
           # shellcheck disable=SC2086
-          go test -exec /bin/true $pkgs ./dirac/oracle >/dev/null
+          go test -exec /bin/true $repkgs ./dirac/oracle >/dev/null
 
   # Two-step CI (Mergify): a pull request runs only this fast stage, the diff's packages and the tests that
   # import them (scripts/ci-fast.sh). The full suite runs once per queue batch, on mergify/merge-queue/* branches,
@@ -450,6 +466,21 @@ jobs:
           if [ "${{ runner.environment }}" != self-hosted ]; then make dirac-tables; fi
       - name: Stable mtimes for the Go test cache
         run: bash scripts/ci-stable-mtimes.sh .
+      - name: Compile this shard's test binaries
+        if: runner.environment == 'self-hosted'
+        # S1b (11-26): prepare compiled what two or more jobs need; this shard's own test binaries and
+        # the libraries only its closure imports compile here, at the head of its own job, off prepare's
+        # serial path. go test reuses go test's cached work, and no compile action has two jobs racing
+        # for it (the 11-17 six-shard fan-out paid 127.5 s of work for one tree against prepare's 53.4 s
+        # here; the split pays 40.8 s across six jobs that run beside each other). -exec /bin/true runs
+        # no tests. GitHub-hosted runners already compile per shard in the test step below and keep
+        # their own Actions cache.
+        run: |
+          pkgs=$(bash scripts/ci_shard.sh ${{ matrix.shard }} "$SHARDS" | sed 's/#A$//' | sort -u)
+          if [ -n "$pkgs" ]; then
+            # shellcheck disable=SC2086
+            go test -exec /bin/true $pkgs >/dev/null
+          fi
       - name: Test shard ${{ matrix.shard }} of ${{ env.SHARDS }}
         env:
           # Load is 55-90 on 32 threads with 6 runners x go -p=4 test binaries, each defaulting to GOMAXPROCS=32. The
