@@ -72,6 +72,16 @@ const BecomeCopyEmbalm = 1 << 1
 // ChoiceZoneKind, effects/clone.go cloneETBTemplateLegal.
 const BecomeCopyGrave = 1 << 2
 
+// BecomeCopyEOT is OpBecomeCopy's Duration$ UntilEndOfTurn bit (Cursed
+// Mirror: "you may have it become a copy of any creature on the battlefield
+// until end of turn, except it has haste"): the entering copy is
+// duration-bounded, so becomeCopyEnter records it as an fxCopyEOT record and
+// the cleanup step (cloneCleanup, CR 514.2) ends it — the permanent goes back
+// to its printed card and drops the copy's exceptions and grants, as an
+// ExtCloneCopy until-end-of-turn copy's. Gorge: effects/clone.go cloneDuration
+// untilEOT, EndOfTurnCleanup's clone sweep.
+const BecomeCopyEOT = 1 << 3
+
 // MayGuardCloneCopy: the OpMayAsk guard of an Optional$ Clone: the next op is
 // an ExtCloneCopy that has a live template and at least one becomer (gorge
 // effClone's pairs, computed before the may-copy election).
