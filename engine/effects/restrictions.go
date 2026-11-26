@@ -1469,6 +1469,29 @@ func effectSelfExileOnCastSpec(h Host, c *Ctx, names []string) string {
 	return ""
 }
 
+// effectSelfExileOnPlaneswalkTrigger reports whether tr is the plane-source
+// curse's self-exile idiom: a PlaneswalkedTo trigger (Eloren Wilds' TrigPlaneswalk,
+// live on the DB$ Effect its chaos body creates) whose Execute$ body moves the
+// Effect itself out of the Command zone into exile. gorge keeps no effect-token
+// object, so the trigger is read as the Effect's end condition, not a delayed
+// promise: the unscoped PlaneswalkedTo fires at any player's planeswalk, and
+// every live registration carrying the UntilPlaneswalk lifetime ends there
+// (rules' checkPlaneswalkTriggers -> withoutUntilPlaneswalk).
+func effectSelfExileOnPlaneswalkTrigger(h Host, c *Ctx, tr cards.Trigger) bool {
+	if tr.Mode != "PlaneswalkedTo" {
+		return false
+	}
+	exec := strings.TrimSpace(tr.ParamStr(cards.PKExecute))
+	if exec == "" {
+		return false
+	}
+	body := strings.ReplaceAll(effectTriggerBody(h, c, exec), " ", "")
+	return strings.Contains(body, "ChangeZone") &&
+		strings.Contains(body, "Origin$Command") &&
+		strings.Contains(body, "Destination$Exile") &&
+		strings.Contains(body, "Defined$Self")
+}
+
 // effectUntilEOT decides expiry for an Effect registration: a one-shot spell
 // (instant/sorcery) source with no explicit Duration$ Permanent, an absent
 // Duration$, or an explicit this-turn Duration$ is UntilEOT and is dropped at end-of-turn cleanup

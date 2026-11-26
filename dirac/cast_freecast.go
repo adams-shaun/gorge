@@ -43,6 +43,8 @@ func (s *State) freeQueued(o Obj) bool {
 //   - C bit 13 (freeRemember): RememberPlayed$ True (add the begun card, the
 //     minted copy for a CopyCard$ play, to s.g.rem once its cast commits; the
 //     first begun card only; cast_playremember.go).
+//   - C bit 14 (freeSameName): a remembered candidate is offered only when it shares the resolving
+//     trigger's source object's printed name (gorge effRipple's CR 201.2 read; kw_ripple.go).
 //   - Obj: RefRemembered (P1), a target slot (P2: the targeted card; a
 //     player target: that player's hand), or RefNone with F (P3/P4 filter
 //     population over the zone; over exile, every alive seat's).
@@ -61,6 +63,12 @@ const (
 	freeMandatory = 1 << 11
 	// freeLands is OpCastFree's C bit 12 (see the operands above).
 	freeLands = 1 << 12
+	// freeSameName is OpCastFree's C bit 14: a remembered candidate is
+	// offered only when it shares the resolving entry's source object's
+	// printed name (gorge effRipple's CR 201.2 face-name read over the
+	// revealed same-name set; kw_ripple.go's rippleProg; the ripple spell is
+	// a spell, never a land, so its same-name cards are never lands).
+	freeSameName = 1 << 14
 
 	freeSeatBits  = MaxSeats / 2 // one bit at two seats, two at four
 	freeSeatMask  = 1<<freeSeatBits - 1
@@ -128,6 +136,11 @@ func (s *State) castFreeFillGen(k *prep, in *kop.Instr, e *stackEntry) {
 		ob := &s.objs[o]
 		land := k.cards[ob.card].land
 		if ob.zone != zone || land && in.C&freeLands == 0 {
+			return true
+		}
+		// freeSameName: the candidate must share the resolving trigger's
+		// source object's printed name (the ripple spell; CR 201.2).
+		if in.C&freeSameName != 0 && !s.sharesNameSelf(NoSlot, e.obj, NoSlot, ob.card, o, false, false) {
 			return true
 		}
 		if castFreeFilterOn(in, zone) && !s.matchCardGenAt(k, in.F, ob.card, ob.owner(), e.ctrl, o, spellCtx) {

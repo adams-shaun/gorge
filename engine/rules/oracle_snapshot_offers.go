@@ -31,6 +31,25 @@ import (
 // its source's last mana. Generic mana actions expand through the same named
 // legal-ability reader the oracle assertion uses; the labels keep that
 // reader's spelling. This must not implement another legality walk.
+// snapManaAbilityLabel is the snapshot's offered label for a mana ability:
+// the ability's own SpellDescription when the script prints one, else the
+// wheel's pay.ManaAbilityLabel. The offered set is the compare surface
+// (xproof's compare:[offered]), and XMage spells the ability text, so the
+// snapshot spells it too: a resolved `Amount$ X` grant whose X the board
+// fixes (Uthros, Titanic Godcore's Station 12+ "Add {U} for each artifact
+// you control." beside zero artifacts) rendered "Pay U: Add U" and lost the
+// clause the printed text keeps. Only this surface reads the text; the
+// player-facing wheel keeps pay.ManaAbilityLabel, and the runner's step
+// matching keeps matching the recorded wheel labels. No trim here: the
+// card-script boundary (parseParams) already trims every parameter value,
+// and the engine's strings ratchet counts this file's calls.
+func snapManaAbilityLabel(ma *cards.SA, chosen string) string {
+	if desc := ma.ParamStr(cards.PKSpellDescription); desc != "" {
+		return desc
+	}
+	return pay.ManaAbilityLabel(ma, chosen)
+}
+
 func oracleSnapshotOffers(r *oracleRun, d *decision.Decision) []OracleSnapOffered {
 	var out []OracleSnapOffered
 	seen := make(map[OracleSnapOffered]bool, len(d.Options))
@@ -47,8 +66,12 @@ func oracleSnapshotOffers(r *oracleRun, d *decision.Decision) []OracleSnapOffere
 		}
 		source := r.objRef(r.e.G.Obj(o.Obj))
 		if oracleOpCodes.Code(o.Kind) == oracleOpActivate {
-			for _, label := range r.manaAbilityLabels(d.Player, o.Obj) {
-				add(OracleSnapOffered{Source: source, Kind: "activate", Label: label})
+			// The same membership manaAbilityLabels labels (the priority
+			// offer's authoritative set), spelled by the snapshot's own
+			// composer so the two halves cannot drift.
+			chosen := pay.ChosenProducedColour(r.e.G, o.Obj)
+			for _, ma := range r.e.availableManaAbilities(d.Player, o.Obj) {
+				add(OracleSnapOffered{Source: source, Kind: "activate", Label: snapManaAbilityLabel(ma, chosen)})
 			}
 			continue
 		}
@@ -345,9 +368,11 @@ func (r *oracleRun) manaFeeFeasible(p state.PlayerID, id state.ObjID, cc *compil
 // manaFeeFeasible, the per-source-exclusive read of the fee -- the pooled
 // untapped-source bound itself is never the answer, because it counts both
 // of a dual's faces and the production of a source the fee's own tap spends.
-// Both halves label through the same ManaAbilityLabel manaAbilityLabels
-// uses, so an ability the floating pool already pays dedupes against the
-// priority offer's row instead of duplicating it. A granted ManaReflected
+// Both halves label through the snapshot's own composer
+// (snapManaAbilityLabel, the SpellDescription text the compare reads), the
+// same labels the priority half emits, so an ability the floating pool
+// already pays dedupes against the priority offer's row instead of
+// duplicating it. A granted ManaReflected
 // member is left to the choke point's own read (its candidate walk is a
 // separate surface).
 func (r *oracleRun) potentialManaLabels(seat state.PlayerID, id state.ObjID, units []windowManaUnit) []string {
@@ -366,7 +391,7 @@ func (r *oracleRun) potentialManaLabels(seat state.PlayerID, id state.ObjID, uni
 		}
 		cc = r.e.pricedManaCC(seat, id, ma, cc)
 		if price(ma, cc) {
-			labels = append(labels, pay.ManaAbilityLabel(ma, pay.ChosenProducedColour(r.e.G, id)))
+			labels = append(labels, snapManaAbilityLabel(ma, pay.ChosenProducedColour(r.e.G, id)))
 		}
 	}
 	for _, ga := range r.e.grantedAbilities(seat, id) {
@@ -383,7 +408,7 @@ func (r *oracleRun) potentialManaLabels(seat state.PlayerID, id state.ObjID, uni
 		}
 		cc = r.e.pricedManaCC(seat, id, ma, cc)
 		if price(ma, cc) {
-			labels = append(labels, pay.ManaAbilityLabel(ma, pay.ChosenProducedColour(r.e.G, id)))
+			labels = append(labels, snapManaAbilityLabel(ma, pay.ChosenProducedColour(r.e.G, id)))
 		}
 	}
 	return labels

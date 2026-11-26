@@ -31,6 +31,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/view"
 	"github.com/adams-shaun/gorge/server/host"
 	"github.com/adams-shaun/gorge/server/protocol"
+	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
 // claimResolver resolves a request to the seat its X-Seat-Session header
@@ -123,7 +124,7 @@ func tableClaimServer(t *testing.T) (*httptest.Server, *host.Registry) {
 // business; the test must not care.
 func parkedSeat(t *testing.T, r *host.Registry) (parked, other state.PlayerID) {
 	t.Helper()
-	deadline := time.Now().Add(30 * time.Second)
+	deadline := time.Now().Add(testutil.WaitBudget)
 	for {
 		if time.Now().After(deadline) {
 			t.Fatal("no human seat parked on a decision within deadline")
@@ -160,7 +161,7 @@ func pastStartingChoice(t *testing.T, srv *httptest.Server, r *host.Registry) (p
 			t.Fatalf("answering the starting-player choice: %d %+v", code, e)
 		}
 		// Wait for the head to move past the answered choice before re-parking.
-		deadline := time.Now().Add(30 * time.Second)
+		deadline := time.Now().Add(testutil.WaitBudget)
 		for {
 			nd, err := r.Pending("t1", 1, parked)
 			if err != nil || nd.Seq != d.Seq {

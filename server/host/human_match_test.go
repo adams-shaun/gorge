@@ -86,7 +86,7 @@ func humanFirstSeat(human **HumanSeat) func(names []string, seed uint64) []seat.
 // exactly once and a racing duplicate is refused by the seat.
 func driveHumanSeat(t *testing.T, r *Registry, id TableID) {
 	t.Helper()
-	deadline := time.Now().Add(5 * time.Minute)
+	deadline := time.Now().Add(testutil.WaitBudget)
 	for {
 		if time.Now().After(deadline) {
 			r.Close()

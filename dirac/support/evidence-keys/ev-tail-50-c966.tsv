@@ -1,0 +1,81 @@
+card	lir16	plays	keys	unused	branches	missing_branches
+A-Urza's Command	ee398b603ca34123	4	0/0		1/2	ix:resp
+Ancient Craving	7e9f61399cd41db0	9	0/0		1/2	ix:resp
+Armament of Nyx	81ffcddfd7ad7e76	7	0/0		1/2	ix:resp
+Army of Allah	9edf6df49370360b	5	0/0		1/2	ix:resp
+Arrogant Wurm	3b75c14557e3c967	4	0/0		0/0	
+Brazen Wolves	89c1a76fab268c29	12	1/1		1/1	
+Cabal Pit	34bfba562cbbc2e4	11	2/2		0/1	ix:resp
+Careful Study	9bee2c21aa6be18d	6	0/0		1/2	ix:resp
+Catalog	872a9c67e13fb888	7	0/0		1/2	ix:resp
+Cathartic Adept	c39e9dbf867fe164	3	1/1		0/1	ix:resp
+Cemetery Reaper	c1de090c446eba3d	6	1/1		0/1	ix:resp
+Chandra's Fury	d0b3bea2994e8ff4	4	0/0		1/2	ix:resp
+Civic Guildmage	2d227bef54f5bbbc	8	2/2		0/1	ix:resp
+Conifer Wurm	fb074469d9753401	4	1/1		0/1	ix:resp
+Curse of Predation	c3f99128ab8d53ab	12	1/1		2/2	
+Dawn of the Dead	6193e808b5a05970	8	2/2		1/3	f0/t1/opt:n,f0/t1/opt:y
+Deviant Glee	dd0d2f86f3b2ae0f	15	0/0		1/2	ix:resp
+Doom Whisperer	867a5161e29e264c	8	1/1		1/1	
+Double Vision	bd14e298b0ec17b0	3	1/1		0/1	ix:resp
+Elite Cat Warrior	59c660662f5645e5	8	0/0		0/0	
+Emmessi Tome	7898ce5210055fd3	3	1/1		1/1	
+Extra Arms	1f9369e3fea4a554	5	1/1		1/2	ix:resp
+Festering Mummy	c1abb4e33863f564	13	1/1		1/3	f0/t0/opt:n,f0/t0/opt:y
+Forest	6d0466c30f825dba	176	1/1		0/1	ix:resp
+Fully Grown	284daebd73fc7889	11	0/0		1/2	ix:resp
+Furious Reprisal	5d9913f74a0495b9	4	0/0		1/2	ix:resp
+Ghostly Sentinel	1158400962cd11d0	4	0/0		0/0	
+Grasping Scoundrel	69fe93562492d29c	7	0/0		0/0	
+Grey Havens Navigator	987885f4239f43ef	4	1/1		1/1	
+Grim Physician	c082936d5a3d26cc	5	1/1		0/1	ix:resp
+Gush	fdcdce078901e099	4	0/0		1/2	ix:resp
+Gut Shot	79d0d95e643664d4	7	0/0		1/2	ix:resp
+Headless Rider	040ea30427e0da3e	6	1/1		0/1	ix:resp
+Intrepid Ace	786bb71a604100a9	5	0/0		0/0	
+Island	763c67ef7a27eaf5	105	1/1		0/1	ix:resp
+Living Hive	800f8f3d64c237fd	4	1/1		0/1	ix:resp
+Lord of the Undead	498b6552bbb8a52a	10	1/1		0/1	ix:resp
+Mesa Cavalier	488579a287d3d72f	12	1/1		0/1	ix:resp
+Metallic Mimic	53349e62b630d1e4	5	0/0		0/0	
+Moorland Inquisitor	88e9b50642003f4f	6	1/1		1/1	
+Mountain	9e71388353e907ed	201	1/1		0/1	ix:resp
+Murasa Rootgrazer	9bae8032e0caa212	3	2/2		1/1	
+Noble Hierarch	d92221f4f7ce44ab	4	2/2		0/1	ix:resp
+Nurturing Licid	7e7eb238f25cf407	8	2/2		1/1	
+Obelisk of Undoing	224aa4bffee5d89d	4	1/1		0/1	ix:resp
+Oil-Gorger Troll	f5464d6b99819a5e	5	1/1		0/1	ix:resp
+Orcish Hellraiser	806a5ea6b710d1f8	10	2/2		0/1	ix:resp
+Plains	82d63a695487e567	226	1/1		0/1	ix:resp
+Plunder	b244c34cfa001166	3	0/0		4/4	
+Power Word Kill	45318a71ccacfe63	9	0/0		1/2	ix:resp
+Raph's Bravado	50f5c621784b12e7	5	0/0		0/0	
+Renegade Map	ad683f12431e944c	3	1/1		0/1	ix:resp
+Righteous War	40c51f9efd125c33	5	0/0		0/0	
+Runed Servitor	70918e788a3415c1	4	1/1		0/1	ix:resp
+Sagu Archer	bd22e4d8eb801518	3	0/0		1/2	cast/alt:morphed
+Saheeli, Filigree Master	0d202d772e9e541e	4	3/3		0/1	ix:resp
+Scaretiller	281193a79e032b23	10	1/1		0/1	ix:resp
+Shadowbeast Sighting	d285a1bebc8ada0a	7	0/0		3/4	ix:resp
+Skirk Outrider	3083ed800b52abb4	9	0/0		0/0	
+Soratami Mindsweeper	c0f7757d96f5ed1e	4	1/1		0/1	ix:resp
+Static Prison	4679fe6b0023e49a	8	2/2		0/1	ix:resp
+Stonefury	8fe4e9e5606e0414	5	0/0		2/2	
+Stonework Puma	a8b5b797db518d38	15	0/0		0/0	
+Stormfront Riders	3351143dec9d6f1e	21	2/2		0/1	ix:resp
+Swamp	342b413902f441c3	148	1/1		0/1	ix:resp
+Talas Lookout	95d02d7d45266511	4	1/1		0/1	ix:resp
+Thalia's Lieutenant	2c443093fd803eb4	4	2/2		1/1	
+Thopter Squadron	0cb7c50a0b6711b1	9	2/2		0/1	ix:resp
+Uchuulon	714dc700afae66a6	11	1/1		0/1	ix:resp
+Unfriendly Fire	82b9ea4c6e73f2e8	3	0/0		1/2	ix:resp
+Urn of Godfire	b4c4878f8578b035	7	2/2		0/1	ix:resp
+Uruk-hai Berserker	a5c5b847617d468f	4	1/1		0/1	ix:resp
+Vampire's Kiss	efb69597140fa2ad	4	0/0		1/2	ix:resp
+Vivid Flying Fish	4388e4184bb6ef94	6	0/0		0/0	
+Volcanic Rush	56290a59bb4c427a	9	0/0		2/2	
+Waker of the Wilds	312dc061fd5f0680	3	1/1		0/1	ix:resp
+Wall of Ice	4b10cdf56035180a	3	0/0		0/0	
+Wayward Guide-Beast	1132410438bda427	12	1/1		1/1	
+Zhur-Taa Ancient	b84405aa439b78f5	4	1/1		0/1	ix:resp
+Zodiac Dog	9ec75ece1ef2d8b8	8	0/0		0/0	

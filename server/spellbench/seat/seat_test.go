@@ -151,7 +151,7 @@ func TestV2AgentSeatForfeitsOnTimeout(t *testing.T) {
 	ctx.fire()
 	select {
 	case <-done:
-	case <-time.After(10 * time.Second):
+	case <-time.After(testutil.WaitBudget):
 		t.Fatal("Decide did not return after the deadline fired")
 	}
 	if err != nil {
