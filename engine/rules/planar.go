@@ -207,17 +207,20 @@ func (e *Engine) checkChaosEnsuesTriggers(ev events.Event) {
 	if ev.Kind != events.ChaosEnsues || ev.Obj == 0 {
 		return
 	}
-	// The marker is only valid when it names the seat's own face-up current
-	// plane: an event boundary that named another seat's plane, a face-down
-	// plane, or a non-top plane must not queue anything (a hand-built or
-	// fuzzed marker must fail closed rather than erupt a plane that is not in
-	// play). Ordinary emitters construct exactly this shape.
-	cur := e.currentPlane(ev.Player)
-	if cur == nil || cur.ID != ev.Obj {
-		return
-	}
+	// The marker must name a plane of ev.Player's own planar deck, and the
+	// plane must still be face up ("chaos ensues on that plane" erupts the
+	// plane's printed ability; a face-down plane has none). The die roll and
+	// the DB$ ChaosEnsues verb's default both name the face-up current
+	// plane; The Fertile Lands of Saulvinia's arm (DB$ ChaosEnsues |
+	// Defined$ Remembered) names the plane its planar dig just revealed,
+	// which the found move has already put on the deck's bottom -- Forge's
+	// own chain order runs the DigUntil's found move before its SubAbility,
+	// and the same-zone MoveZone fold clears the moved plane's FaceDown, so
+	// the erupted plane reads from its bottom seat, face up. Only a foreign
+	// seat's plane, a plane that left the deck, a face-down plane, or a
+	// hand-built event naming a non-member fails closed.
 	o := e.G.Obj(ev.Obj)
-	if o == nil || o.Zone != state.ZPlanarDeck || o.FaceDown {
+	if o == nil || o.Zone != state.ZPlanarDeck || o.Face() == nil || o.FaceDown || !e.inPlanarDeck(ev.Player, ev.Obj) {
 		return
 	}
 	f := o.Face()

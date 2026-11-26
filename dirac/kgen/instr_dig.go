@@ -91,11 +91,26 @@ func (ic *instrCtx) opDigUntil() error {
 	if _, ok := fl["ImprintFound"]; ok {
 		df |= kop.DuImprintFound
 	}
+	if _, ok := fl["Planar"]; ok {
+		// DigZone$ PlanarDeck (lower_zone.go digUntil): the planar arm rides
+		// W (kop.RefPlanarDeck), not a flag bit -- the flag field is int16 and
+		// a bit 13 shifted by 3 falls off the top. The kernel digs the seat's
+		// planar record's face-down remainder and both placements land on its
+		// bottom (dirac zone_digplanar.go).
+		ki.W = kop.RefPlanarDeck
+	}
 	if _, ok := fl["MinTotalCMC"]; ok {
 		df |= kop.DuMinTotalCMC
 	}
 	ki.C = int16(int(zoneMap[in.C]) | df<<3)
-	if err := ic.objFilter(kop.ZoneLibrary); err != nil {
+	zone := kop.ZoneLibrary
+	if _, ok := fl["Planar"]; ok {
+		// the scan's cards live in ZonePlanarDeck (zone_digplanar.go); the
+		// filter must admit that zone or every plane fails it
+		// (filters_gen.go's zone gate).
+		zone = kop.ZonePlanarDeck
+	}
+	if err := ic.objFilter(zone); err != nil {
 		return err
 	}
 	return nil
