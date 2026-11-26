@@ -120,6 +120,20 @@ const (
 	// keeps no last known attachment. Paralyze's upkeep "that player may pay
 	// {4}" trigger left on the stack by a departed Paralyze has no payer.
 	RefEnchantedCtrl Ref = 44
+	// RefPlanarDeck is the seat's planar deck (CR 901): OpDigUntil's W names
+	// the planar arm (DigZone$ PlanarDeck, lower_zone.go digUntil) -- the scan
+	// digs the planar record's face-down remainder and both placements land on
+	// its bottom (zone_digplanar.go). No other op reads it.
+	RefPlanarDeck Ref = 45
+	// RefChosenEnc is the object the resolving spell's own CloseEncounter
+	// ChooseCard additional cost chose (kop.Cost.CloseEnc; gorge's Ctx.Paid.
+	// Revealed, the cast-cost PAID list its RevealedCards$ value reads). It
+	// rides the spell entry's trigObj, as RefDiscarded does: a spell's
+	// trigObj is otherwise unused but by a sneak cast's attack, which never
+	// pays a ChooseCard cost, and a copy keeps it (CR 707.10, gorge
+	// inheritCopyRecord). 0 when the cast chose nothing (a copy's own cast,
+	// or a resolution that began before the answer landed).
+	RefChosenEnc Ref = 46
 )
 
 // RefTgtCtrl1 / RefTgtCtrl2 are RefTargetController for target slot 1 / 2

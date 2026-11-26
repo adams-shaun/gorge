@@ -17,6 +17,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/view"
 	"github.com/adams-shaun/gorge/server/host"
 	"github.com/adams-shaun/gorge/server/protocol"
+	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
 type sseFrame struct {
@@ -544,7 +545,7 @@ func TestOlderGraceTimerCannotCloseAfterReschedule(t *testing.T) {
 		if open {
 			t.Fatal("Out() delivered a frame instead of closing")
 		}
-	case <-time.After(10 * time.Second):
+	case <-time.After(testutil.WaitBudget):
 		t.Fatal("grace never closed the session")
 	}
 	if _, ok := r.Session(s.ID); ok {

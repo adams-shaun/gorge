@@ -1,0 +1,123 @@
+card	lir16	plays	keys	unused	branches	missing_branches
+A-Case the Joint	1f633f416309ed08	29	0/0		2/2	
+Acolyte of Xathrid	ed95bc79e42dba84	32	1/1		0/1	ix:resp
+Akiri, Line-Slinger	328392a9b2673dd9	50	0/0		0/0	
+Alluring Scent	71719373bd5bb56a	22	0/0		2/2	
+Ana Sanctuary	a4eaec1f551fc0b0	19	1/1		0/1	ix:resp
+Aven Fleetwing	b555f071a43bd780	31	0/0		0/0	
+Axgard Braggart	8f2ccdca152cb876	20	1/1		1/1	
+Basalt Gargoyle	da581032782023de	33	2/2		1/1	
+Berserkers of Blood Ridge	ad002e0843b009e1	29	0/0		0/0	
+Bone Shredder	9d0b40221dfe6869	31	2/2		1/1	
+Breeding Pit	813fe45c3d5aaba5	7	2/2		0/1	ix:resp
+Browse	576521f1f28dcf0a	25	1/1		1/1	
+Caustic Crawler	c703e6352fa1ef1b	16	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Chandra's Pyrohelix	d6f4b39445ab8374	55	0/0		2/2	
+Child of Thorns	738950d09cd245b8	26	1/1		0/1	ix:resp
+Collective Restraint	f356554f5ba50fcf	27	0/0		0/0	
+Commander Eesha	01564814b0cbbf9b	57	0/0		0/0	
+Covert Technician	9d164c676247a258	26	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
+Curse of the Restless Dead	a5f685f87cbe747a	27	1/1		1/2	ix:resp
+Cursed Minotaur	b6b177ab7c24eb3d	18	0/0		0/0	
+Daring Escape	f3c7436f56ec6a20	37	0/0		2/2	
+Deepwood Denizen	33eb5926ff2c928f	33	1/1		1/1	
+Defeat	13ca763ba3cbfbc9	25	0/0		2/2	
+Dhund Operative	5f9867838f7449d9	41	0/0		0/0	
+Disciple of the Sun	edf7978e02d89e80	43	1/1		1/1	
+Disturbed Burial	59d5512d0ebc870d	38	0/0		3/4	ix:resp
+Diviner's Lockbox	8a57416517841a65	13	1/1		0/1	ix:resp
+Doomskar Oracle	2d50908c4ab0014f	48	1/1		2/3	cast/alt:foretold
+Dreadhorde Invasion	ce2f457ac58e71f3	17	2/2		1/1	
+Drivnod, Carnage Dominus	13af746f76e2a721	12	1/1		0/1	ix:resp
+Drunau Corpse Trawler	ed8ad5b4fe915391	22	2/2		1/1	
+Ecologist's Terrarium	50b7f827340f4525	49	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Enthrall	bd28bd6ab2b6dc73	31	0/0		2/2	
+Evil Eye of Orms-by-Gore	76859646582375f0	12	0/0		0/0	
+Evolving Adaptive	7cbcfe572bfcceba	57	1/1		1/1	
+Expendable Lackey	2c524398d5af8f67	80	1/1		1/1	
+Extinguish All Hope	2ec47796f273c5a2	10	0/0		2/2	
+Faerie Duelist	073a93e5dd376b59	57	1/1		1/1	
+Fatal Fumes	f70a1ea81692d487	26	0/0		2/2	
+Feed the Serpent	4361690611248881	22	0/0		2/2	
+Fire Nation Salvagers	3d2d2f20e8916b4c	10	2/2		0/1	ix:resp
+Flameskull	583a9bdfefdd2bb1	45	1/1		1/1	
+Flurry of Horns	eec29ddaae9f0f47	17	0/0		1/2	ix:resp
+Folk of An-Havva	b100cb127b290dec	22	1/1		1/1	
+Forest	6d0466c30f825dba	710	1/1		0/1	ix:resp
+Fretwork Colony	c039cb2cad44d36d	32	1/1		1/1	
+Gilded Scuttler	321212aa546749f1	52	1/1		1/1	
+Goblin Wardriver	6a71fdce10dcf5e5	29	1/1		0/1	ix:resp
+Gulping Scraptrap	4fbf01ed0fc4d457	14	2/2		0/1	ix:resp
+Heir of Falkenrath	0f1e80a190922c6a	36	1/1		0/1	ix:resp
+Hellfire	aa52e7d9c507f6dc	10	0/0		2/2	
+Horned Troll	76281f6b3ae60a25	47	1/1		1/1	
+Hunted Dragon	7722d7486c24b5bf	27	1/1		1/1	
+Immolating Glare	dda967308e0ea56b	33	0/0		2/2	
+Intermediate Chirography	5b97ab8b5ff927db	30	5/5		1/1	
+Invasion of Innistrad	f5cd7ca3e22fc119	22	3/3		1/1	
+Island	763c67ef7a27eaf5	1019	1/1		0/1	ix:resp
+Jinxed Ring	95752352434c3d96	61	2/2		1/1	
+Kagemaro, First to Suffer	ddeaf74ff7ce2603	9	1/1		0/1	ix:resp
+Kamahl, Pit Fighter	724a9202ffcb2d8c	17	1/1		0/1	ix:resp
+Kothophed, Soul Hoarder	6ca8823cb007c8c5	7	1/1		1/1	
+Kuldotha Cackler	096b9a49e105c554	46	1/1		1/1	
+Liliana's Scorn	4004746f9dee59b4	24	0/0		2/2	
+Mass of Ghouls	120f6ac36640d3ca	34	0/0		0/0	
+Mountain	9e71388353e907ed	773	1/1		0/1	ix:resp
+Murmuring Mystic	08bbe40e10c024f3	43	1/1		1/1	
+Naturalize	93132945846dcfb1	32	0/0		2/2	
+Noble Quarry	032c470ba778bd3b	14	0/0		2/2	
+Order of the Mirror	55fb8dad34d5022b	60	2/2		1/1	
+Order of the White Shield	ccbe80041e9200f4	44	2/2		1/1	
+Oviya Pashiri, Sage Lifecrafter	c3f9586f08ed7117	52	2/2		1/1	
+Patagia Tiger	da30b1cc49d378a4	45	1/1		1/1	
+Phyrexian Boon	49dd2f5b6d4dac1f	12	0/0		2/2	
+Phyrexian Negator	d1842d51ecc9f793	11	1/1		0/1	ix:resp
+Plains	82d63a695487e567	3894	1/1		0/1	ix:resp
+Privileged Position	be53c314c5620048	4	0/0		0/0	
+Putrid Imp	5168acdbba687bdb	24	1/1		1/1	
+Reaper from the Abyss	eecfab6278955b84	16	1/1		0/1	ix:resp
+Refuse to Yield	bf9914c9ab23d1f5	89	0/0		2/2	
+Relic Putrescence	5df1678a7cd22bc7	10	1/1		1/2	ix:resp
+Rift Sower	b85ff8e3d512ca95	32	1/1		3/3	
+Rites of Refusal	6d0b6b1178933b9b	38	0/0		1/2	ix:resp
+Roadkill Rodney	705050660e737242	52	2/2		3/3	
+Rolling Temblor	1d710f87e8715466	57	0/0		4/4	
+Rot Shambler	727d7ebf02dcaae4	24	1/1		1/1	
+Runic Shot	8ed1893950a2351d	46	0/0		4/4	
+Ruthless Waterbender	bd93572c9dccb3ba	37	1/1		1/1	
+Sabertooth Alley Cat	9ebfd33dd87aa03d	19	1/1		1/1	
+Scourge of the Undercity	f1a66ec0a4311e27	10	1/1		1/1	
+Segovian Leviathan	eb9af0740e3b52e1	17	0/0		0/0	
+Shattering Pulse	09e182a4b9d93c88	40	0/0		4/4	
+Shivan Meteor	271b2dbb29ef2a4a	15	0/0		4/4	
+Skyswimmer Koi	b01df64153289e93	49	1/1		0/1	ix:resp
+Slash Panther	db594ce3d2fc5686	30	0/0		0/0	
+Slaughter Cry	f3862554976e406d	34	0/0		2/2	
+Smashing Success	9e53e224a71af3eb	40	0/0		1/2	ix:resp
+Soaring Drake	0e4e1e50c8965718	39	0/0		0/0	
+Sorcerer's Wand	d179de298be9de59	76	1/1		1/1	
+Sorceress Queen	1276477f7f653f8b	16	1/1		1/1	
+Spelleater Wolverine	ff3c00debf219683	37	0/0		0/0	
+Steel Seraph	ffa1661ee6aef150	44	1/1		2/3	ix:resp
+Strength-Testing Hammer	50ceb4936d63ce99	74	2/2		1/1	
+Stromkirk Patrol	e4b052fde3588968	27	1/1		1/1	
+Sudden Disappearance	484365d2cb7c1b54	37	0/0		2/2	
+Surrakar Marauder	74782463dc5a6e66	23	1/1		0/1	ix:resp
+Swamp	342b413902f441c3	690	1/1		0/1	ix:resp
+Sword of the Paruns	d0c2d900a68ce3c7	66	2/2		1/1	
+Tenacious Dead	f210fe79f1bd0116	15	1/1		1/1	
+Thran War Machine	f1cc9fb346302648	63	1/1		1/1	
+Tine Shrike	8eb2681a0689f241	42	0/0		0/0	
+Titanium Man	1c71a38a9760bfa3	24	1/1		1/1	
+Toothy, Imaginary Friend	45bae41c2254fb93	61	3/3		1/1	
+Typhoid Rats	63a29ae645939b9c	19	0/0		0/0	
+Vampire Cutthroat	d086488993531d51	23	0/0		0/0	
+Viashino Lashclaw	808f7324397655c2	26	1/1		1/1	
+Waking Nightmare	b6dc5794aae3912d	14	0/0		1/2	ix:resp
+Wanda's Vision	780d824735e5177e	29	1/1		1/1	
+Westgate Regent	66db1c37494bd699	29	2/2		1/1	
+Whisper of the Dross	a86f05f1ae4195ab	31	0/0		2/2	
+Wight of Precinct Six	d33264c08f8f15f2	42	0/0		0/0	
+Wind-Kin Raiders	04637b72a22d4dff	33	0/0		0/0	
+World Shaper	5766a830c4bb71ae	18	2/2		1/1	

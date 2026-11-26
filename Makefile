@@ -470,6 +470,8 @@ lint: lint-web
 		fi
 	go vet ./...
 	go run ./cmd/gentypes -check
+	go run ./cmd/funcgrowth -base origin/main
+	go run ./cmd/countgrowth -base origin/main
 
 # seat-check is the fast structural gate to run before finishing a change:
 # formatting, the generated wire types, and the two architecture/shape ratchets.

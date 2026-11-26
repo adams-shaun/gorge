@@ -14,6 +14,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/deck"
 	"github.com/adams-shaun/gorge/engine/view"
 	"github.com/adams-shaun/gorge/server/protocol"
+	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
 // errServeExited says serve() returned before it served the table under test.
@@ -83,7 +84,7 @@ func TestDiracServeCommanderTable(t *testing.T) {
 	defer cancel()
 
 	var tables []protocol.TableInfo
-	deadline := time.Now().Add(10 * time.Second)
+	deadline := time.Now().Add(testutil.WaitBudget)
 	for {
 		err := pollJSON(done, url+"/api/tables", &tables)
 		if errors.Is(err, errServeExited) {
@@ -102,7 +103,7 @@ func TestDiracServeCommanderTable(t *testing.T) {
 	}
 
 	var v view.View
-	deadline = time.Now().Add(10 * time.Second)
+	deadline = time.Now().Add(testutil.WaitBudget)
 	for {
 		err := pollJSON(done, url+"/api/tables/t1/matches/1/view?seq=0", &v)
 		if errors.Is(err, errServeExited) {

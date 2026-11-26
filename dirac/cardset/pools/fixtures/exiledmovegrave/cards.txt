@@ -1,0 +1,23 @@
+# The ExiledMoveToGrave trigger-own-cost pool (kgen lower_exiledmovegrave.go,
+# kernel cost_exiledmovegrave.go): the Eldrazi processors whose "you may put
+# a card an opponent owns from exile into that player's graveyard. If you
+# do, ..." trigger lowers, beside exile removal (Swords to Plowshares, Path to
+# Exile, Journey to Nowhere, Castigate) that fills the opponents' exile
+# zones, cheap creatures and basics, for the oracle's constructed lockstep
+# (dirac/oracle/exiledmovegrave_lockstep_test.go).
+Blight Herder
+Mind Raker
+Murk Strider
+Ruin Processor
+Ulamog's Nullifier
+Ulamog's Reclaimer
+Wasteland Strangler
+Swords to Plowshares
+Path to Exile
+Journey to Nowhere
+Castigate
+Cancel
+Elite Vanguard
+Plains
+Island
+Swamp

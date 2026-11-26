@@ -56,6 +56,7 @@ const (
 	StackKwDemonstrate int16 = 10 // a granted demonstrate (CR 702.144a), read as the spell is cast like Storm: the cast trigger offers the copy and the opponent's (dirac kw_demonstrate.go)
 	StackKwRebound     int16 = 11 // a granted rebound (CR 702.88a), read as the spell resolves: the resolved hand-cast spell is exiled and its upkeep recast runs the carrier's GrantBody latent (dirac kw_rebound.go)
 	StackKwWebSling    int16 = 12 // a granted web-slinging (CR 702.188a; Static.GrantCost is its cost, Filter2 the grant's own spell spec): the hand card is offered a web-slinging cast beside the plain one (dirac kw_websling.go webSlingGrant)
+	StackKwRipple      int16 = 13 // a granted ripple:<n> (CR 702.60a; Static.B is the count): each instance queues its cast trigger beside the spell (dirac kw_ripple.go queueRipple)
 	StackKwOffspring   int16 = 14 // a granted offspring (CR 702.175a; Static.GrantCost is its cost): the kicked cast charges it and the ETB copy trigger runs the carrier's GrantBody latent (dirac kw_offspring.go)
 	StackKwDelve       int16 = 9  // read as the spell is cast: the cast announces graveyard cards to exile toward its generic cost (CR 702.66a; kernel kw_delve.go)
 )

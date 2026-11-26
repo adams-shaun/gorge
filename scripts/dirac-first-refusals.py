@@ -937,7 +937,10 @@ def prune_legacy(top, keyed):
 def run_kernel(pool):
     """The name a run's verdict line carries. A pod run is dealt as -kernel <pool without pod->
     (scripts/dirac-evidence.sh's pod case), so its out file names the set (cmd5), not the run
-    (pod-cmd5); every other run names its own pool."""
+    (pod-cmd5), and fdc-gaps is the committed decks played as -kernel fdn -set cmd5 (its verdict
+    names cmd5); every other run names its own pool."""
+    if pool == "fdc-gaps":
+        return "cmd5"
     return pool[len("pod-"):] if pool.startswith("pod-") else pool
 
 
