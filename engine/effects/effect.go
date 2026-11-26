@@ -92,6 +92,36 @@ func effectChosenCardSuffix(h Host, c *Ctx, body string) string {
 	return "|CC=" + strings.Join(ids, ",")
 }
 
+// effectImprintSuffix is the "|IM=<id>[,<id>...]" tail an Effect's Phase
+// registration carries when its body reads IsImprinted and the Effect holds
+// an ImprintCards$ capture (Flickerform's end-step return, the only corpus
+// carrier). Forge's EffectEffect imprints the ImprintCards$ set on the
+// CREATED EFFECT token, so the delayed body's Card.IsImprinted later reads
+// the Effect's imprint; this build has no effect token, so the set rides the
+// registration (state.DelayedTrigger.Imprinted) and the resolving body's
+// predicate reads it (TriggerContext.DelayedImprinted) instead of the host's
+// live association -- which the chain's own Cleanup (Flickerform's DBCleanup
+// ClearImprinted$ True) cleared before the trigger ever fired
+// (CR 603.7a/610.3). Captured at registration, inside the link's binding
+// window (the registry's ImprintCards$ rider resolves in the same one) and
+// before that cleanup. A body that never reads IsImprinted (Ertai's
+// Meddling's upkeep counter) carries no spelling, so its registration is
+// byte-identical.
+func effectImprintSuffix(h Host, c *Ctx, imprintCards, body string) string {
+	if imprintCards == "" || !strings.Contains(body, "IsImprinted") {
+		return ""
+	}
+	ids := imprintCaptureIDs(h, c, imprintCards)
+	if len(ids) == 0 {
+		return ""
+	}
+	parts := make([]string, 0, len(ids))
+	for _, id := range ids {
+		parts = append(parts, strconv.Itoa(int(id)))
+	}
+	return "|IM=" + strings.Join(parts, ",")
+}
+
 // effEffect creates a lasting effect object holding StaticAbilities$ for
 // Duration$. This is the part that turns a Note into a real
 // registration: a StaticAbilities$ entry naming a RESTRICTION static
@@ -641,6 +671,9 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			if !tl.OneOff {
 				text += "|EF"
 			}
+			// The Effect's ImprintCards$ capture rides the registration when
+			// the body reads IsImprinted (see effectImprintSuffix).
+			imSuffix := effectImprintSuffix(h, c, ep.ImprintCards, c.SVars[exec])
 			// The Effect's remembered PLAYERS join the capture (Rowan
 			// Kenrith's RememberObjects$ Targeted names a player): the phase
 			// scan's ValidPlayer$ Player.IsRemembered gate and the body's
@@ -650,7 +683,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			for _, owner := range owners {
 				h.Emit(events.Event{Kind: events.DelayedRegister, Obj: c.Source,
 					Player: owner, Step: step, Counter: exec,
-					IDs: encodeRemembered(phaseIDs), Text: text + cnSuffix + ccSuffix})
+					IDs: encodeRemembered(phaseIDs), Text: text + cnSuffix + ccSuffix + imSuffix})
 			}
 			registered = true
 		default:

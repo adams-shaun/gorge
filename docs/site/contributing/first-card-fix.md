@@ -1,53 +1,67 @@
 # Your first card fix
 
-One report, "a card plays wrong", from triage to a merged fix. The worked
-example is the first outside contribution to gorge,
-[`786510b3f`](https://github.com/adams-shaun/gorge/commit/786510b3f) (it predates the
-`engine/` directory, so its diff says `rules/` where this page says `engine/rules/`):
-*Omniscience* in its owner's hand offered a free cast of itself, and *Future
-Sight* on top of its library let its owner cast it from there. Both cards
-were reading their own static ability in a zone where it does not function.
+One report, "a card plays wrong", taken from triage to a merged fix in six steps. The worked
+example is the first outside contribution to gorge.
 
-You need the corpus fetched and compiled (`make fetch-cards compile-cards`) and,
-in a git worktree, `.cards` linked into it ([Contributing](index.md)). Terms in
-*italics* are in the [glossary](glossary.md).
+!!! example "The worked example: [`786510b3f`](https://github.com/adams-shaun/gorge/commit/786510b3f)"
+    *Omniscience* in its owner's hand offered a free cast of itself, and *Future Sight* on top of
+    its library let its owner cast it from there. Both cards were reading their own static
+    ability in a zone where it does not function. (The commit predates the `engine/` directory,
+    so its diff says `rules/` where this page says `engine/rules/`.)
 
-## 1. Confirm and triage
+<div class="gg-needs" markdown>
+
+| You need | For |
+|---|---|
+| The corpus fetched and compiled | `make fetch-cards compile-cards` |
+| `.cards` linked into your worktree | every corpus test ([Contributing](index.md)) |
+| The [glossary](glossary.md) | terms in *italics* |
+
+</div>
+
+<div class="gg-steps" markdown>
+
+## Confirm and triage { #1-confirm-and-triage }
 
 **Read the card's script**: `.cards/cardsfolder/<first letter>/<name>.txt`, lower-case with
 underscores (`o/omniscience.txt`). Lines are characteristics (`Name:`, `Types:`) or abilities:
 `A:` activated or spell, `T:` trigger, `S:` static, `R:` replacement, `K:` keyword, `SVar:` a
 named sub-ability or value, as `|`-separated `Key$ Value` *parameters*. Omniscience's one `S:`
 line is a `Mode$ Continuous` static with `MayPlay$ True`, `MayPlayWithoutManaCost$ True` and
-`AffectedZone$ Hand`, and **no** `EffectZone$`. That absence was the whole bug. The scripts are
-GPL-3.0: read them, never paste one into a commit, test or issue.
+`AffectedZone$ Hand`, and **no** `EffectZone$`. That absence was the whole bug.
+
+!!! warning "Read a script; never paste one"
+    The scripts are GPL-3.0. Never paste one into a commit, test or issue.
 
 **Check that it is not already known or deliberate.**
 
-- [`docs/agents/known-approximations/`](https://github.com/adams-shaun/gorge/tree/main/docs/agents/known-approximations)
-  lists primitives that knowingly behave more narrowly than the card text.
-- `docs/design/2026-09-22-engine-contracts.md` lists behaviour
-  that is a deliberate contract, not a bug.
-- `engine/rules/testdata/known-unsupported/` names repo-deck cards the build
-  does not fully support.
-- gorge-compliance's `scenarios/oracle/*/known-divergent/` lists audit
-  scenarios already known to fail (and `known_bug` rows in its
-  `scenarios/xmageport/` the XMage-ported ones).
+| Look in | It lists |
+|---|---|
+| [`docs/agents/known-approximations/`](https://github.com/adams-shaun/gorge/tree/main/docs/agents/known-approximations) | primitives that knowingly behave more narrowly than the card text |
+| `docs/design/2026-09-22-engine-contracts.md` | behaviour that is a deliberate contract, not a bug |
+| `engine/rules/testdata/known-unsupported/` | repo-deck cards the build does not fully support |
+| gorge-compliance's `scenarios/oracle/*/known-divergent/` | audit scenarios already known to fail (`known_bug` rows in its `scenarios/xmageport/` for the XMage-ported ones) |
 
 **Decide whose bug it is.** Compare the script with the printed card (the `Oracle:` line, or
 Scryfall) and the [Comprehensive Rules](https://magic.wizards.com/en/rules) ("CR"):
 
-- **The script is wrong**: a *Forge* bug. Fix it on the `gorge` branch of
-  [adams-shaun/forge](https://github.com/adams-shaun/forge), open the same fix as a PR to
-  [Card-Forge/forge](https://github.com/Card-Forge/forge), and bump `FORGE_REF` in the `Makefile`
-  (its comment block lists past examples).
-- **The script is right and gorge misbehaves**: an engine bug; continue below. Omniscience's
-  script is right: under CR 113.6 a permanent's static ability functions only on the
-  battlefield unless it says otherwise, which Forge expresses with `EffectZone$`.
+| If | It is | Then |
+|---|---|---|
+| The script is wrong | a *Forge* bug | Fix it on the `gorge` branch of [adams-shaun/forge](https://github.com/adams-shaun/forge), open the same fix as a PR to [Card-Forge/forge](https://github.com/Card-Forge/forge), and bump `FORGE_REF` in the `Makefile` (its comment block lists past examples). |
+| The script is right and gorge misbehaves | an engine bug | Continue below. |
 
-## 2. Reproduce it in a failing test
+Omniscience's script is right: under CR 113.6 a permanent's static ability functions only on
+the battlefield unless it says otherwise, which Forge expresses with `EffectZone$`.
 
-A, B and C each end in a test that fails before your fix and passes after.
+## Reproduce it in a failing test { #2-reproduce-it-in-a-failing-test }
+
+Each option ends in a test that fails before your fix and passes after.
+
+| Option | Use it when |
+|---|---|
+| [A: an Oracle scenario](#option-a-an-oracle-scenario-json-no-go) | the bug is observable through player actions; JSON, no Go |
+| [B: a Go test in `engine/rules`](#option-b-a-go-test-in-enginerules) | the bug is about what the engine *offers*, or needs precise setup |
+| [C: a feedback capture](#option-c-a-players-feedback-capture) | a player sent a report from a server |
 
 ### Option A: an Oracle scenario (JSON, no Go)
 
@@ -64,7 +78,7 @@ directories (`combat-damage`, `keywords`, `replacement`, …). Copy a
 neighbour such as `scenarios/oracle/combat-damage/balefire-dragon.json` (trimmed
 here to one scenario and two expectations):
 
-```json
+```json title="scenarios/oracle/combat-damage/balefire-dragon.json (trimmed)"
 {
  "card": "Balefire Dragon",
  "family": "combat-damage",
@@ -102,7 +116,7 @@ here to one scenario and two expectations):
 Run it in gorge-compliance, with a `go.work` pointing at your gorge checkout
 so it plays your engine change (subtest names replace spaces with `_`):
 
-```sh
+```sh title="In gorge-compliance"
 make oracle-audit ORACLE_RUN=Balefire_Dragon
 # or: go test -run 'TestOracleAudit/Balefire_Dragon' ./audit/
 ```
@@ -133,7 +147,7 @@ itself, so they can call unexported helpers. The ones you will reach for:
 The contribution's test (`engine/rules/mayplay_self_effectzone_test.go`) is the shape to
 copy:
 
-```go
+```go title="engine/rules/mayplay_self_effectzone_test.go"
 func TestOmniscienceInHandGrantsNothing(t *testing.T) {
 	t.Parallel()
 	e := handEngine(t, corpusAlternativeCard(t, "Omniscience"), corpusAlternativeCard(t, "Craw Wurm"))
@@ -149,11 +163,10 @@ func TestOmniscienceInHandGrantsNothing(t *testing.T) {
 }
 ```
 
-Habits to copy:
-
-- **Assert the control** as well as the bug: the card must still work where it should.
-- **Move things with events** (`e.emit(events.Event{...})`) once the game runs, so the log stays truthful.
-- **Fixtures may write state directly** (`e.G.AddObject`, `e.G.SetZone`); engine code never writes `state.Game` outside `events.Apply`.
+!!! tip "Habits to copy"
+    - **Assert the control** as well as the bug: the card must still work where it should.
+    - **Move things with events** (`e.emit(events.Event{...})`) once the game runs, so the log stays truthful.
+    - **Fixtures may write state directly** (`e.G.AddObject`, `e.G.SetZone`); engine code never writes `state.Game` outside `events.Apply`.
 
 ### Option C: a player's feedback capture
 
@@ -162,7 +175,7 @@ writes a failing test skeleton (`feedback.EngineAt(t, dir, n)`, from `testkit/te
 replace its TODO with your assertion. Flags and the `DIVERGED` caveat:
 [Contributing](index.md#reproduce-a-feedback-report).
 
-## 3. Find the code that implements it
+## Find the code that implements it { #3-find-the-code-that-implements-it }
 
 Behaviour is dispatched by *primitive* name, so search for the name:
 
@@ -176,16 +189,18 @@ Behaviour is dispatched by *primitive* name, so search for the name:
 `make report` lists the primitives no implementation registers yet, ranked
 by how many cards each would unlock.
 
-## 4. Fix it, keeping the invariants
+## Fix it, keeping the invariants { #4-fix-it-keeping-the-invariants }
 
-- Mutate state only through events (`e.emit` in `engine/rules`; `h.Emit` in `engine/effects`).
-- No wall clock, no `math/rand` outside the game's seeded RNG, no `map` range whose order reaches an event.
-- `engine/effects` must not import `engine/rules`; logic that needs more than `effects.Host` belongs in `rules`.
-- Comment the *rule*, with its CR number, at the line that enforces it.
+!!! warning "The rules a fix must keep"
+    - Mutate state only through events (`e.emit` in `engine/rules`; `h.Emit` in `engine/effects`).
+    - No wall clock, no `math/rand` outside the game's seeded RNG, no `map` range whose order reaches an event.
+    - `engine/effects` must not import `engine/rules`; logic that needs more than `effects.Host` belongs in `rules`.
 
-## 5. Measure the class, not the card
+Comment the *rule*, with its CR number, at the line that enforces it.
 
-A bug in one card is usually a bug in every card of the same shape. Find the siblings before
+## Measure the class, not the card { #5-measure-the-class-not-the-card }
+
+A bug in one card is usually a bug in every card of the same shape: find the siblings before
 calling it done. The example commit counted the 105 corpus cards with a `Continuous MayPlay$ True`
 static and no `EffectZone$`, and the card/zone pairs where a card granted itself a play
 permission: 45 before the fix, 0 after, with a control group of 32 cards that name `EffectZone$`
@@ -195,17 +210,18 @@ per-card ratchet if it is worth keeping.
 
 Then check that the existing ratchets agree (see [Testing](testing.md)):
 
-- `TestEveryRepoDeckIsFullySupported`: if your fix makes a card in
-  `engine/rules/testdata/known-unsupported/` supported, delete its file.
-- `TestEveryRepoDeckParamsAreRead`: same, for
-  `engine/rules/testdata/paramcensus/`.
-- `TestHeads`: a moved chain head means the golden bot games now play
-  differently. Re-pin it only if that is intended, and name the cause.
+| Ratchet | If your fix moves it |
+|---|---|
+| `TestEveryRepoDeckIsFullySupported` | a card in `engine/rules/testdata/known-unsupported/` is now supported: delete its file |
+| `TestEveryRepoDeckParamsAreRead` | the same, for `engine/rules/testdata/paramcensus/` |
+| `TestHeads` | the golden bot games now play differently: re-pin only if that is intended, and name the cause |
 
-## 6. Gates and the PR
+## Run the gates and open the PR { #6-gates-and-the-pr }
 
 Run the [PR checklist](index.md#commits-and-pull-requests) (`make lint`,
 `make test-targeted` then `make test-smart`, `make sim`, `TestHeads`). Write
 the commit message the way `git show 786510b3f` does: the rule and its CR
 number, what was wrong and where, what you measured, and the gates you ran.
 Open the pull request against `main`; the merge queue takes it from there.
+
+</div>

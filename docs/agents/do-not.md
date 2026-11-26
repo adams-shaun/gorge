@@ -18,6 +18,12 @@ machine and a `main` checkout, so most of these hurt someone else.
 - **Don't `git add -A`.** Stage explicit paths.
 - **Don't leave a worktree behind after its merge.** Stale worktrees double
   every `git grep` and `find` hit.
+- **Don't open a pull request with `gh pr create` or a bare `git push`.** Run
+  `scripts/pr-submit.sh` from the branch's worktree: it merges `origin/main`,
+  leaves derived records at main's copy (`scripts/pr-derived.sh`), requires
+  `pr-precheck: ok` on the pushed head, then pushes and opens the PR (rerun it to
+  refresh one). On 11-26, 9 of 10 red PRs were subagent `wt/*` branches that skipped
+  these steps and went DIRTY on `dirac/docs/support.md` and kgen's pins every time main moved.
 - **Don't add `Co-Authored-By:`, "Generated with …", `Ref:` or issue-tracker
   references to commits.** This is a repo rule, and it overrides harness
   defaults.

@@ -1918,6 +1918,7 @@ func (s *State) finishBuild(k *prep) {
 		if s.freePlayCast() && s.g.freeP&freeForget != 0 && s.bld().bfl&bflPushed != 0 {
 			s.forgetRemGen(e.obj)
 		}
+		s.rememberPlayedCommit(e.obj) // RememberPlayed$ True (cast_playremember.go)
 		if k.gen != nil && k.gen.anyHist {
 			s.histCast(k, &e, &cost)
 		}
@@ -2152,7 +2153,7 @@ func (s *State) castTrigGraves(k *prep, e *stackEntry) {
 				}
 				for j := range cd.Abilities {
 					a := &cd.Abilities[j]
-					if a.Kind == kop.AbTriggered && a.Trig.Zone == kop.ZoneGraveyard && a.Trig.Event == kop.TrigSpellCast {
+					if a.Kind == kop.AbTriggered && a.Trig.Zone == kop.ZoneGraveyard && a.Trig.Event == kop.TrigSpellCast && !s.gravePrintedHidden(k, o) {
 						s.castTrigGen(k, trigListener{obj: o, sl: NoSlot, ctrl: pp, card: c, ab: uint8(j)}, a, e)
 					}
 				}
