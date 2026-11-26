@@ -9,12 +9,12 @@ package kgen
 // (a target spec's nonBlack reads nonRed).
 //
 // The kernel holds no per-object text, so the static rides kop.StatColorWords
-// and is modelled where it is a no-op: a spell about to be cast, a spell on
-// the stack or a permanent whose card reads (CardDef.TextWords) a colour word
-// other than the source's chosen one stalls the game (StallTextChange,
-// unmodelled) instead of answering from the unchanged face (dirac
-// static_colorwords.go), the rule api:ChangeText lowers under (textreach.go).
-// The pool therefore carries CardDef.TextWords (HasChangeText).
+// and the kernel rewrites the colour words where the faces are read (dirac
+// static_colorwords.go: a target spec's colour masks and a printed Protection
+// keyword); a face whose rewritten word also sits on a surface that read does
+// not model (CardDef.CWUnmodelled, textreach.go) stalls the game
+// (StallTextChange, unmodelled). The pool therefore carries CardDef.TextWords
+// and CWUnmodelled (HasChangeText).
 //
 // Only the exact shape lowers: the chosen colour word as the replacement, over
 // Spell,Permanent in Stack,Battlefield, with no condition and no key beside

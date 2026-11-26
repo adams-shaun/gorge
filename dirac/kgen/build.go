@@ -515,6 +515,20 @@ func copyKeptSets(d *kop.CardDef, c *lCard) {
 	d.HasUnearth, d.HasDecayed, d.HasPersist, d.HasDoctorsCompanion = c.HasUnearth, c.HasDecayed, c.HasPersist, c.HasDoctorsCompanion
 }
 
+// recordOffering records K:Offering. CR 702.48: no KwMask bit is free, so the
+// offering marker is its own field; the filter is the sacrifice's
+// (dirac/kw_offering.go).
+func (cb *cardBuilder) recordOffering() error {
+	c, d := cb.c, &cb.out.def
+	if c.Offering == nil {
+		return nil
+	}
+	d.HasOffering = true
+	var err error
+	d.OfferingF, err = cb.filter(c.Offering, kop.ZoneBattlefield)
+	return err
+}
+
 // hexQualityBits is the hexproof-from-quality bits (monocolored,
 // multicolored) a card's lowering read.
 func hexQualityBits(c *lCard) kop.ColorMask {
@@ -753,6 +767,13 @@ func (cb *cardBuilder) record() error {
 				return err
 			}
 		}
+		if c.Kicker2 != nil {
+			// the two-alternative "and/or" Kicker's part two (CR 702.33b;
+			// lower_kickercost.go): always beside a set Kicker
+			if d.Kicker2, err = manaCostOf(*c.Kicker2); err != nil {
+				return err
+			}
+		}
 	}
 	if c.Multikicker != nil {
 		if err := cb.repeated(d, c); err != nil { // lower_squadreplicate.go
@@ -905,6 +926,9 @@ func (cb *cardBuilder) record() error {
 				return err
 			}
 		}
+	}
+	if err := cb.recordOffering(); err != nil {
+		return err
 	}
 	if c.FbBeholdN != 0 {
 		// the flashback cost's behold part (kernel act_behold.go): the
@@ -1113,6 +1137,7 @@ func (cb *cardBuilder) record() error {
 	}
 	if cb.pt.textWords {
 		d.TextWords = c.TextWords
+		d.CWUnmodelled = c.CWUnmodelled
 	}
 	d.Leyline = c.Leyline
 	d.LeylineGem, d.LeylineCtr, d.LeylineCtrN = c.LeylineGem, c.LeylineCtr, c.LeylineCtrN
@@ -2398,6 +2423,8 @@ func (cb *cardBuilder) ref(r lRef) (kop.Ref, error) {
 		return kop.RefRememberedOwner, nil
 	case rExiledWithOwner:
 		return kop.RefExiledWithOwner, nil
+	case rEmblemSource:
+		return kop.RefEmblemSource, nil
 	case rImprinted:
 		return kop.RefImprinted, nil
 	case rTargetUnion:
@@ -2479,8 +2506,9 @@ var exprKinds = map[valKind]kop.ExprKind{
 	vRememberedCount: kop.ExRememberedCount, vExcessDamage: kop.ExExcessDamage, vLastLifeLost: kop.ExLastLifeLost,
 	vTokensCreated: kop.ExTokensCreated, vLifeLostThisTurn: kop.ExLifeLostThisTurn, vSum: kop.ExSum,
 	vHandSizeOf: kop.ExHandSizeOf, vCountExile: kop.ExCountExile, vExileTypes: kop.ExCountExile, vOppsLostLife: kop.ExOppsLostLife, vMVOf: kop.ExMVOf, vNotOwnLibMV: kop.ExNotOwnLibMV, vRemEachOwnNonLand: kop.ExRemEachOwnNonLand,
-	vCountAtLeast: kop.ExCountAtLeast,
-	vPromisedGift: kop.ExPromisedGift, vResolvedThisTurn: kop.ExResolvedThisTurn,
+	vCountAtLeast:      kop.ExCountAtLeast,
+	vDelayedExileCount: kop.ExDelayedExileCount,
+	vPromisedGift:      kop.ExPromisedGift, vResolvedThisTurn: kop.ExResolvedThisTurn,
 	vThisTurnCast: kop.ExThisTurnCast,
 	vRollResult:   kop.ExRollResult, vCastManaSpent: kop.ExCastManaSpent, vConverge: kop.ExConverge,
 	vCompare: kop.ExCompare, vBranches: kop.ExBranches,
@@ -2492,6 +2520,7 @@ var exprKinds = map[valKind]kop.ExprKind{
 	vSelfPrepared:       kop.ExSelfPrepared,
 	vThisTurnActGrave:   kop.ExThisTurnActGrave,
 	vSneaked:            kop.ExSneaked,
+	vAltCost:            kop.ExAltCost,
 	vTriggerSpellMVLKI:  kop.ExTriggerSpellMVLKI,
 	vPoisonOf:           kop.ExPoisonOf,
 	vProduct:            kop.ExProduct,
@@ -2648,7 +2677,7 @@ func (cb *cardBuilder) expr(v lValue) (kop.Expr, error) {
 			return e, err
 		}
 	}
-	if v.Kind == vCountersOn && v.S == "ALL" {
+	if (v.Kind == vCountersOn || v.Kind == vValidAgg) && v.S == "ALL" {
 		e.Ctr = kop.CtrAll // Count$CardCounters.ALL: every kind summed (kernel refCounters)
 	} else if v.S != "" && v.Kind != vRememberedCount && v.Kind != vSVarNum { // vRememberedCount's S is the ctx marker (value.go), not a counter kind
 		if e.Ctr, err = counterKind(v.S); err != nil {
@@ -2888,6 +2917,46 @@ func (cb *cardBuilder) chosenColorOverridesOK(first int) error {
 		}
 		if o.SetColors != col {
 			return fmt.Errorf("chosen-colour override %d has SetColors %#x, want %#x", first+i, o.SetColors, col)
+		}
+	}
+	return nil
+}
+
+// cwWordOverridesOK asserts the word-list contract: the six records from
+// first are consecutive; the first is the printed colours and records 1..5
+// are identical to it apart from the one colour field, one colour each W, U,
+// B, R, G in that order, so the kernel's frozen-colour pick first + 1 +
+// colour names the colour's record (static_colorwords.go ovCwRow).
+func (cb *cardBuilder) cwWordOverridesOK(first int) error {
+	if first+6 > len(cb.pt.overrides) {
+		return fmt.Errorf("cw-word override: %d records from %d", len(cb.pt.overrides)-first, first)
+	}
+	base := cb.pt.overrides[first]
+	isSet := base.HasColors
+	if isSet {
+		if base.SetColors == 0 {
+			return fmt.Errorf("cw-word override %d: the printed row sets no colour", first)
+		}
+	} else if base.AddColors == 0 {
+		return fmt.Errorf("cw-word override %d: the printed row adds no colour", first)
+	}
+	want := [5]kop.ColorMask{kop.ColW, kop.ColU, kop.ColB, kop.ColR, kop.ColG}
+	for i, col := range want {
+		o := cb.pt.overrides[first+1+i]
+		cmp, bcmp := o, base
+		if isSet {
+			cmp.SetColors, bcmp.SetColors = 0, 0
+			if o.SetColors != col {
+				return fmt.Errorf("cw-word override %d has SetColors %#x, want %#x", first+1+i, o.SetColors, col)
+			}
+		} else {
+			cmp.AddColors, bcmp.AddColors = 0, 0
+			if o.AddColors != col {
+				return fmt.Errorf("cw-word override %d has AddColors %#x, want %#x", first+1+i, o.AddColors, col)
+			}
+		}
+		if cmp != bcmp {
+			return fmt.Errorf("cw-word override %d differs beyond its colour", first+1+i)
 		}
 	}
 	return nil

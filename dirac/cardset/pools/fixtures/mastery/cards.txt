@@ -1,0 +1,16 @@
+# the Mastery pool: Baleful, Fervent and Ingenious Mastery, whose
+# Count$AltCost.1.0 branch reads whether the spell was cast for its own
+# AlternativeCost static (kernel ExAltCost, the trigPlAltCost mark), the
+# rituals that float the alternative's mana at priority, and the creature
+# decks they play against (dirac/oracle/mastery_lockstep_test.go)
+Baleful Mastery
+Dark Ritual
+Fervent Mastery
+Forest
+Grizzly Bears
+Ingenious Mastery
+Island
+Llanowar Elves
+Mountain
+Seething Song
+Swamp

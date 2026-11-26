@@ -41,7 +41,7 @@ func (s *State) peekMayReveal(k *prep, in *kop.Instr, p uint8) bool {
 	}
 	o := pl.lib[int(pl.libLo)]
 	self, srcSl := s.resolutionTypeSource()
-	if !DebugPeekRevealAlwaysAsk && !s.matchCardSrc(k, in.F, s.objs[o].card, p, s.res.e.ctrl, o, srcSl, self) {
+	if !DebugPeekRevealAlwaysAsk && !s.matchCardSrc(k, in.F, s.objs[o].card, p, s.res.e.ctrl, o, srcSl, self, NoObj) {
 		if st != nil {
 			st.Skips++
 		}

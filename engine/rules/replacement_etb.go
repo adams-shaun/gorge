@@ -166,6 +166,15 @@ func (e *Engine) applyETBChoiceReplacement(ev events.Event) bool {
 		}
 		return false
 	}
+	if e.gameDecided() {
+		// A decided game asks no one (the kernel poses nothing after a
+		// loss): a card the loss's sweep returns (CR 610.3d, an Aura's CR
+		// 303.4f choice included) enters unasked, as in the branch below.
+		if front {
+			popETBQueue(e)
+		}
+		return false
+	}
 	if e.pending != nil && (e.pending.Kind == decision.KPriority || !queuesBehindAsk(choice.kind)) {
 		// Only the CR 303.4f non-cast Aura choice and the CR 702.136a Riot
 		// election queue behind another decision; every other as-enters ask

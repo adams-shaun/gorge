@@ -2015,6 +2015,14 @@ func (e *Engine) completeCombatPass(pass bool) {
 		e.combatRound.firstDone = true
 		e.combatRound.active = false
 		e.checkStateBased()
+		// The pass's tape run is still inside its resolution while the SBA
+		// tail runs: a lethal-damage death it lands (or a departure it
+		// sweeps, CR 800.4a) returns an "exile until this leaves the
+		// battlefield" host's cards here, and a returned card's as-enters
+		// choice (CR 610.3d) is served inside the run only while inRes holds.
+		// The run ends after the tail, before the priority work below, which
+		// poses ordinary decisions.
+		e.tape.ResolutionDone()
 		if e.G.Over {
 			return
 		}
@@ -2034,6 +2042,9 @@ func (e *Engine) completeCombatPass(pass bool) {
 	e.combatRound.regularDone = true
 	e.combatRound.active = false
 	e.checkStateBased()
+	// Same as the first-strike branch above: the SBA tail may return an
+	// exiled card whose entry asks, so the run's resolution ends only here.
+	e.tape.ResolutionDone()
 	if e.G.Over {
 		return
 	}
@@ -2496,7 +2507,7 @@ func (e *Engine) fogUnpreventable(as []assignment) []assignment {
 // already carries a Deathtouched mark (CR 704.5g).
 func (e *Engine) lethalDamageNeed(bid state.ObjID, deathtouch bool) int32 {
 	o := e.G.Obj(bid)
-	need := e.Toughness(bid)
+	need := e.LethalDamageThreshold(bid)
 	if o != nil {
 		if deathtouch && o.Counter("Deathtouched") > 0 {
 			return 0
@@ -2745,7 +2756,6 @@ func (e *Engine) runCombatAssignments() {
 		e.combatRound.initCtrls = e.combatRound.initCtrls[:0]
 	}
 	e.closeDamageBatch()
-	e.tape.ResolutionDone()
 	e.combatRound.assignments = nil
 	e.combatRound.damageNext = 0
 	e.EndLifeLossBatch()

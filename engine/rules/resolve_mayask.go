@@ -94,6 +94,18 @@ func tapeBoardCompetes(e *Engine, sc replWalkScope) bool {
 	if tapeSelfExileMayAsk(e) {
 		return true
 	}
+	return tapeExileReturnMayAsk(e)
+}
+
+// tapeExileReturnMayAsk is the exile-return half of tapeBoardCompetes: any
+// battlefield holder's ChangeZone Duration$ UntilHostLeavesPlay return whose
+// card still sits in exile and may ask as it enters. The exile zones are read
+// first, so the battlefield is walked only when an exiled card could ask. The
+// combat damage pass reads it too (tapeStepMayAsk's StepDeclareBlockers and
+// StepCombatDamage arm): the state-based pass that follows a lethal hit
+// returns an exiled card there, and a card coming back onto the battlefield
+// asks as it enters exactly as a targeted entry would.
+func tapeExileReturnMayAsk(e *Engine) bool {
 	cand := false
 	for p := 0; p < len(e.G.Players) && !cand; p++ {
 		for _, id := range e.G.Zone(state.ZExile, state.PlayerID(p)) {
@@ -187,6 +199,11 @@ func tapeTextMayAsk(e *Engine) bool {
 		}
 		// CumulativeUpkeep, Echo and CopySpellAbility bodies are outside the
 		// text allowlist, so the chain walk already says "may ask".
+		if e.triggerContexts[id].OptionalSpec != "" {
+			// An OptionalDecider$ riding the context (an Effect registration
+			// or a reflexive "when you do, you may"): resolveTop asks it.
+			return true
+		}
 		if t, ok := e.triggerForAbilityObject(id, o); ok {
 			if e.triggerBodyNeedsCostWindow(ab) || cards.TriggerLineMayAsk(t) {
 				return true

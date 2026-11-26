@@ -33,7 +33,7 @@ func (s *State) targetOKPermOrSpell(k *prep, t *kop.TargetSpec, p uint8, src Slo
 	ob := &s.objs[o]
 	switch ob.zone {
 	case kop.ZoneBattlefield:
-		return s.matchPerm(k, t.Filter, ob.slot, p, src) && s.objTargetable(k, ob.slot, p)
+		return s.matchPermTgt(k, t.Filter, ob.slot, p, src) && s.objTargetable(k, ob.slot, p)
 	case kop.ZoneStack:
 		if o == self && !DebugPermOrSpellSelf {
 			return false

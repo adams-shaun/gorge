@@ -15,6 +15,11 @@ type evalCtx struct {
 	src   Obj
 	srcSl Slot
 	ctrl  uint8
+	// cwObj is the object whose face a filter's colour masks read under the
+	// colour-word statics (static_colorwords.go); NoObj reads them as printed.
+	// Only the target-spec funnels (matchCardTgt, matchCardAtTgt) and protMatch
+	// set it: the filter is that face's own.
+	cwObj Obj
 	// uncounted is one more than the spell a cost static is pricing, which its
 	// zone counts skip: CR 601.2a has it on the stack by the time CR 601.2f
 	// determines the total cost. 0 skips nothing, and NoObj+1 wraps to 0.
@@ -81,6 +86,12 @@ func (s *State) ctxEntry(e *stackEntry) evalCtx {
 // by slot, written as it entered). A permanent that changed zones reads 0, as
 // gorge's Object.TimesKicked resets.
 func (s *State) timesKicked(ctx evalCtx) int {
+	// the two-alternative "and/or" Kicker's count (CR 702.33b; kw_kickalt.go):
+	// the paid alternatives, the popcount of the kickAlt byte the cast stored,
+	// 0/1/2; a copy keeps the spell's bits (CR 707.10)
+	if n, ok := s.kickAltCount(ctx); ok {
+		return n
+	}
 	if ctx.srcSl != NoSlot && int(ctx.srcSl) < len(s.cold.mk) {
 		return int(s.cold.mk[ctx.srcSl])
 	}
@@ -482,6 +493,17 @@ func (s *State) expr(k *prep, i int16, ctx evalCtx) int {
 		}
 	case kop.ExSneaked:
 		if s.sneakProv(e) {
+			v = s.evalV(k, x.Sub[0], ctx)
+		} else {
+			v = s.evalV(k, x.Sub[1], ctx)
+		}
+	case kop.ExAltCost:
+		// Count$AltCost.<paid>.<unpaid> (Worldheart Phoenix's SpellCast
+		// CheckSVar): the spell was cast for its own StatAlternativeCost
+		// static's alternative (the spell entry's trigPlAltCost mark,
+		// cast_altfree.go takeAltCast; gorge reads FlagAltCostPaid or the
+		// pending cast's PendingAltCost)
+		if s.altCostCast(ctx) {
 			v = s.evalV(k, x.Sub[0], ctx)
 		} else {
 			v = s.evalV(k, x.Sub[1], ctx)
@@ -1059,7 +1081,7 @@ func (s *State) objRefGen(r kop.Ref) (Obj, bool) {
 // sourceChosen does; matchCardGen sees only a resolution's own ChooseType answer.
 func (s *State) refCardMatch(k *prep, f kop.FilterID, ob *object, o Obj, ctx evalCtx) bool {
 	if k.gen.chosenCardTgt && !DebugRefChosenResOnly {
-		return s.matchCardSrc(k, f, ob.card, ob.owner(), ctx.ctrl, o, ctx.srcSl, ctx.src)
+		return s.matchCardSrc(k, f, ob.card, ob.owner(), ctx.ctrl, o, ctx.srcSl, ctx.src, NoObj)
 	}
 	return s.matchCardGen(k, f, ob.card, ob.owner(), ctx.ctrl, o)
 }

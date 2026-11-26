@@ -69,6 +69,9 @@ func (lc *lowerCtx) apiDestroyAll(sa *cards.SA, ps *params) error {
 		// target's permanents; the kernel instruction is one filter
 		return refuse("DestroyAll ValidTgts$ %q: a target-scoped sweep is not modelled", vt)
 	}
+	if lc.impSweep != "" && ps.peek("ValidCards") == "Card.IsImprinted" {
+		ps.m["ValidCards"], lc.impSweep = lc.impSweep, "" // lower_imprintzone.go imprintNameSweep
+	}
 	f, err := lc.destroyAllFilter(ps) // lower_destroyalltargeted.go
 	if err != nil {
 		return err

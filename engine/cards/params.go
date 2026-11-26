@@ -397,6 +397,11 @@ const (
 	PKLayer
 	PKLeaveBattlefield
 	PKLeftRightPile
+	// LethalDamageByPower$ True on a Mode$ Continuous static (Zilortha,
+	// Strength Incarnate): lethal damage for the affected creatures is judged
+	// by power, not toughness (Forge Card.getLethal). Read by rules'
+	// lethalDamageThreshold.
+	PKLethalDamageByPower
 	// PKLevel is the target level of a Class level-up activator (kw:Class
 	// synthesises `AB$ ClassLevelUp | Level$ N`; CR 716.2d sets the designation to
 	// N).
@@ -461,6 +466,10 @@ const (
 	PKNextRoom
 	PKNextTurn
 	PKNoCall
+	// NoColoredMana$ True on a SpellCast trigger (Void Mirror): the trigger
+	// fires only when no coloured mana was spent to cast the spell (Forge
+	// TriggerSpellAbilityCastOrCopy). Read by trigmatch's SpellCastEval.
+	PKNoColoredMana
 	PKNoLonger
 	PKNoLooking
 	// NoPrevention$ True on DealDamage: this ability's damage can't be prevented (CR
@@ -979,6 +988,9 @@ const (
 	PKWithoutManaCost
 	PKWon
 	PKWontPhaseInNormal
+	// XAnnounceTitle$ names what an announced X counts in a triggered ability's
+	// cost (Leyline Tyrant). Read by rules' triggered-cost X window as the prompt.
+	PKXAnnounceTitle
 	PKXChoice
 	// XColor$ names the colour(s) the {X} part of a cost must be paid with (Forge's
 	// SpellAbility.getXColor; Consume Spirit, Crimson Hellkite). Read by
@@ -1343,6 +1355,7 @@ var paramKeyNames = [paramKeyCount]string{
 	PKLayer:                            "Layer",
 	PKLeaveBattlefield:                 "LeaveBattlefield",
 	PKLeftRightPile:                    "LeftRightPile",
+	PKLethalDamageByPower:              "LethalDamageByPower",
 	PKLevel:                            "Level",
 	PKLibraryPosition:                  "LibraryPosition",
 	PKLibraryPositionAlternative:       "LibraryPositionAlternative",
@@ -1395,6 +1408,7 @@ var paramKeyNames = [paramKeyCount]string{
 	PKNextRoom:                         "NextRoom",
 	PKNextTurn:                         "NextTurn",
 	PKNoCall:                           "NoCall",
+	PKNoColoredMana:                    "NoColoredMana",
 	PKNoLonger:                         "NoLonger",
 	PKNoLooking:                        "NoLooking",
 	PKNoPrevention:                     "NoPrevention",
@@ -1836,6 +1850,7 @@ var paramKeyNames = [paramKeyCount]string{
 	PKWithoutManaCost:                  "WithoutManaCost",
 	PKWon:                              "Won",
 	PKWontPhaseInNormal:                "WontPhaseInNormal",
+	PKXAnnounceTitle:                   "XAnnounceTitle",
 	PKXChoice:                          "XChoice",
 	PKXColor:                           "XColor",
 	PKXMax:                             "XMax",

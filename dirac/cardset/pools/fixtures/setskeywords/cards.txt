@@ -6,7 +6,10 @@
 # Pyrosurfer's landfall-granted battle cry and Eldrazi Conscription's
 # enchanted annihilator beside the Bears that carry them; Mikaeus, the
 # Unhallowed's granted undying and Rattleblaze Scarecrow's granted persist
-# beside the Bears and Bolts that die under them
+# beside the Bears and Bolts that die under them; Cauldron of Souls', Undying
+# Evil's, Cauldron Haze's, Endling's, Antler Skulkin's and Dusk Legion
+# Sergeant's Pump-granted persist and undying beside Mikaeus's (Child of Night
+# and Savannah Lions the Vampire and white bodies)
 Sun Quan, Lord of Wu
 Herald of Hoofbeats
 The Dilu Horse
@@ -24,3 +27,11 @@ Eldrazi Conscription
 Swamp
 Mikaeus, the Unhallowed
 Rattleblaze Scarecrow
+Cauldron of Souls
+Undying Evil
+Cauldron Haze
+Endling
+Antler Skulkin
+Dusk Legion Sergeant
+Child of Night
+Savannah Lions
