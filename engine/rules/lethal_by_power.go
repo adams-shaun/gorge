@@ -25,7 +25,7 @@ func (e *Engine) lethalDamageByPower(id state.ObjID) bool {
 	for _, list := range [2][]staticView{e.activeStatics("Continuous"), e.grantedStatics("Continuous")} {
 		for i := range list {
 			sv := list[i]
-			if sv.ParamStr(cards.PKLethalDamageByPower) != "True" {
+			if sv.ParamStr(cards.PKLethalDamageByPower) != staticTrue {
 				continue
 			}
 			if !e.continuousGateHolds(sv) {

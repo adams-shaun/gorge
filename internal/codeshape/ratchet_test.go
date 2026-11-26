@@ -173,7 +173,7 @@ const (
 	stringLiteralCompares = 2756
 	// rawBoolParamParses is the strings.EqualFold calls whose argument holds a
 	// Param/ParamStr call: a flag parameter re-parsed at each use.
-	rawBoolParamParses = 266
+	rawBoolParamParses = 264
 	// stringKeyedParamReads is the string literals passed at the key position
 	// of a string-keyed parameter helper (effects.Num and kin, found
 	// automatically: codeshape.Metrics.StringKeyedParamHelpers): the helper

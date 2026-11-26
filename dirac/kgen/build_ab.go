@@ -1999,6 +1999,25 @@ func (cb *cardBuilder) combatAmountFilter(st *kop.Static, kind kop.StaticKind, f
 }
 
 // static builds a static ability and its granted subtypes.
+// filterOnlyStatics are the static kinds whose lowering is just the kind and
+// its battlefield filter (the default arm of cardBuilder.static).
+var filterOnlyStatics = map[string]kop.StaticKind{
+	"CantBlock":                kop.StatCantBlock,
+	"Lure":                     kop.StatLure,          // combat_lure.go isLure
+	"CantSacrifice":            kop.StatCantSacrifice, // static_cantsacrifice.go
+	"UntapOtherPlayer":         kop.StatUntapOther,
+	"ActivateAbilityAsIfHaste": kop.StatAsIfHaste,       // static_asifhaste.go
+	"CantBeSuspected":          kop.StatCantBeSuspected, // act_suspect.go suspectOne
+	"MinMaxBlocker":            kop.StatMaxBlockers,
+	"DisableTriggers":          kop.StatDisableETB,
+	"LethalByPower":            kop.StatLethalByPower,  // static_lethalbypower.go
+	"ProtYourColors":           kop.StatProtYourColors, // kw_protyours.go
+	"HexproofOwnColors":        kop.StatHexproofOwnColors,
+	"CanAttackDefender":        kop.StatCanAttackDefender,
+	"Goad":                     kop.StatGoad, // lower_trigger.go's Continuous Goad$ True
+	"Control":                  kop.StatControl,
+}
+
 func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 	ka := kop.Ability{Kind: kop.AbStatic}
 	st := &ka.Static
@@ -2408,47 +2427,17 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		} else if s.Zone == zStack {
 			st.Zone = kop.ZoneStack // the spell's own stack-zone raise (lower_raisecost.go)
 		}
-	case "CantBlock":
-		st.Kind = kop.StatCantBlock
-		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
-			return ka, nil, err
-		}
-	case "Lure":
-		st.Kind = kop.StatLure // combat_lure.go isLure
-		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
-			return ka, nil, err
-		}
 	case "CantPhaseIn":
 		st.Kind = kop.StatCantPhaseIn // kw_phasing.go phaseBlocked
-	case "CantSacrifice":
-		st.Kind = kop.StatCantSacrifice // static_cantsacrifice.go
-		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
-			return ka, nil, err
-		}
 	case "CantPutCounter":
 		st.Kind = kop.StatCantPutCounter
 		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
 			return ka, nil, err
 		}
 		st.A = s.Ctr
-	case "UntapOtherPlayer":
-		st.Kind = kop.StatUntapOther
-		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
-			return ka, nil, err
-		}
 	case "CantGainLife":
 		st.Kind = kop.StatCantGainLife
 		if err := banOppFlag(s.Flags, st); err != nil {
-			return ka, nil, err
-		}
-	case "ActivateAbilityAsIfHaste":
-		st.Kind = kop.StatAsIfHaste // static_asifhaste.go
-		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
-			return ka, nil, err
-		}
-	case "CantBeSuspected":
-		st.Kind = kop.StatCantBeSuspected // act_suspect.go suspectOne
-		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
 			return ka, nil, err
 		}
 	case "ManaConvert":
@@ -2477,11 +2466,6 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 				return ka, nil, fmt.Errorf("CantPreventDamage flag %q", fl)
 			}
 		}
-	case "MinMaxBlocker":
-		st.Kind = kop.StatMaxBlockers
-		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
-			return ka, nil, err
-		}
 	case "CombatDamageToughness":
 		return ka, nil, cb.combatAmountFilter(st, kop.StatCombatDmgToughness, s.F)
 	case "AssignNoCombatDamage":
@@ -2491,26 +2475,6 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		// creature on the battlefield, and the kernel asks the creature's
 		// controller the election in the combat damage step (combat_asgngrant.go)
 		return ka, nil, cb.combatAmountFilter(st, kop.StatAssignCombatDamageAsUnblocked, s.F)
-	case "DisableTriggers":
-		st.Kind = kop.StatDisableETB
-		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
-			return ka, nil, err
-		}
-	case "LethalByPower":
-		st.Kind = kop.StatLethalByPower // static_lethalbypower.go
-		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
-			return ka, nil, err
-		}
-	case "ProtYourColors":
-		st.Kind = kop.StatProtYourColors // kw_protyours.go
-		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
-			return ka, nil, err
-		}
-	case "HexproofOwnColors":
-		st.Kind = kop.StatHexproofOwnColors
-		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
-			return ka, nil, err
-		}
 	case "CantBlockBy":
 		st.Kind = kop.StatCantBlockBy
 		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
@@ -2576,11 +2540,6 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
 			return ka, nil, err
 		}
-	case "CanAttackDefender":
-		st.Kind = kop.StatCanAttackDefender
-		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
-			return ka, nil, err
-		}
 	case "MustAttack":
 		if err := mustAttackStatic(s, st, filter); err != nil {
 			return ka, nil, err
@@ -2594,11 +2553,6 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 			return ka, nil, err
 		}
 		if st.Filter2, err = filter(s.F2, kop.ZoneBattlefield); err != nil {
-			return ka, nil, err
-		}
-	case "Goad":
-		st.Kind = kop.StatGoad // lower_trigger.go's Continuous Goad$ True
-		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
 			return ka, nil, err
 		}
 	case "CastWithFlash":
@@ -2763,11 +2717,6 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 				return ka, nil, fmt.Errorf("MayPlay flag %s", fl)
 			}
 		}
-	case "Control":
-		st.Kind = kop.StatControl
-		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
-			return ka, nil, err
-		}
 	case "Panharmonicon":
 		st.Kind = kop.StatPanharmonicon
 		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
@@ -2807,7 +2756,14 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		// lowering is the Continuous case's
 		st.AddChosen = s.AddChosen
 	default:
-		return ka, nil, fmt.Errorf("static kind %s", s.Kind)
+		k, ok := filterOnlyStatics[s.Kind]
+		if !ok {
+			return ka, nil, fmt.Errorf("static kind %s", s.Kind)
+		}
+		st.Kind = k
+		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
+			return ka, nil, err
+		}
 	}
 	return ka, add, err
 }
