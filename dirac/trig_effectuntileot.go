@@ -331,7 +331,7 @@ func (s *State) fireEmblemsAttack(k *prep) {
 	}
 }
 
-// emblemAtkListeners calls f for each emblem trigger on the declaration's
+// emblemAtkListeners fires (fireAtkListener) each emblem trigger on the declaration's
 // combat events, as a listener of the emblem's owner (no source permanent):
 // the creating card's latent command-zone copy, queued with the emblem's own
 // object version after the card left (as fireEmblems does). It reaches the
@@ -344,7 +344,7 @@ func (s *State) fireEmblemsAttack(k *prep) {
 // group, gorge's ValidCard$ Creature.IsRemembered over the registration's
 // Remembered set (kgen's emblemCaptureFilter strips the flag); a group
 // without it, or a lapsed capture, fires nothing.
-func (s *State) emblemAtkListeners(k *prep, grp []Slot, f func(l trigListener, a *kop.Ability, grp []Slot)) {
+func (s *State) emblemAtkListeners(k *prep, grp, atk []Slot, first bool) {
 	if DebugIgnoreAtkEmblem {
 		return
 	}
@@ -368,7 +368,7 @@ func (s *State) emblemAtkListeners(k *prep, grp []Slot, f func(l trigListener, a
 					la := &cd.Abilities[ab]
 					if la.Kind == kop.AbTriggered && la.AFlags&kop.AfLatent != 0 && la.Trig.Event == ea.Trig.Event && la.Trig.Zone == kop.ZoneCommand {
 						n0 := s.npend
-						f(trigListener{obj: s.embObj(pp, i), sl: NoSlot, ctrl: pp, card: c, ab: uint8(ab)}, la, g)
+						s.fireAtkListener(k, trigListener{obj: s.embObj(pp, i), sl: NoSlot, ctrl: pp, card: c, ab: uint8(ab)}, la, g, atk, first)
 						for x := n0; x < s.npend; x++ {
 							s.pend[x].srcVer++ // the emblem's creator left its zone: the entry carries the version after it
 						}
