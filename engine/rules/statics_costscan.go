@@ -126,7 +126,7 @@ func markCostValidTarget(out *costStaticViews) {
 			// amounts read chosen targets, so the offer gate must retry with
 			// potential targets for either shape.
 			if validSpellHasTargeting(sv.ParamStr(cards.PKValidSpell)) ||
-				(group.mode == "ReduceCost" && sv.ParamTrue(cards.PKRelative)) {
+				(group.mode == "ReduceCost" && staticFlagTrue(sv, cards.PKRelative)) {
 				out.validTarget = true
 				return
 			}

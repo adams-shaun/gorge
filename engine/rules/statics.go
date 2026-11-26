@@ -839,9 +839,15 @@ func (sv staticView) ParamStr(k cards.ParamKey) string {
 	return v
 }
 
-// ParamTrue reports whether Params[k] is the exact True flag: the one
-// compare the staticView flag reads share (strings ratchet).
-func (sv staticView) ParamTrue(k cards.ParamKey) bool {
+// staticFlagTrue reports whether staticView sv's Params[k] is the exact True
+// flag: the one compare the staticView flag reads share (strings ratchet).
+// A free function on purpose: the paramcensus keys a value-receiver method
+// by its bare name, so a staticView.ParamTrue method would merge with
+// trigmatch.ParamTrue (the trigger-bool helper the matchers read through)
+// and attribute the matchers' trigger reads to the stat bucket
+// (TestParamCensusScanIsComplete's rot guard). The first-argument form is
+// also what gives the census its caller attribution edge.
+func staticFlagTrue(sv staticView, k cards.ParamKey) bool {
 	return sv.ParamStr(k) == "True"
 }
 

@@ -149,7 +149,7 @@ func (e *Engine) costAmountCtx(sv staticView, sub costSubject, x int32, targets 
 	// Explosive Singularity's Tapped) binds the SVar its name spells.
 	svars = e.namedAnnounceSVars(sv.Source, svars)
 	you := sv.Controller
-	if sv.ParamTrue(cards.PKRelative) && sub.id != 0 {
+	if staticFlagTrue(sv, cards.PKRelative) && sub.id != 0 {
 		you = sub.p
 	}
 	// An Effect-delivered cost static carries its SetChosenNumber$ binding
@@ -463,7 +463,7 @@ func (e *Engine) costModifiersComposeEval(statics costStaticViews, p state.Playe
 				// exactly as it leaves every other target-conditional raise
 				// out; the chosen targets are repriced before payment.
 				raiseTargets := amountTargets
-				if potential && sv.ParamTrue(cards.PKRelative) {
+				if potential && staticFlagTrue(sv, cards.PKRelative) {
 					raiseTargets = nil
 				}
 				// A RaiseCost Cost$ names the whole additional cost (Forge's
@@ -482,7 +482,7 @@ func (e *Engine) costModifiersComposeEval(statics costStaticViews, p state.Playe
 				continue
 			}
 			red := costMod{
-				IgnoreGeneric: sv.ParamTrue(cards.PKIgnoreGeneric),
+				IgnoreGeneric: staticFlagTrue(sv, cards.PKIgnoreGeneric),
 				Floor:         parseAmount(sv.ParamStr(cards.PKMinMana), 0),
 			}
 			if col, ok := sv.Param(cards.PKColor); ok && strings.TrimSpace(col) != "" {
