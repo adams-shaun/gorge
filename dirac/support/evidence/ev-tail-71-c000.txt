@@ -25,6 +25,7 @@ Angel's Tomb
 Angelic Quartermaster
 Arcane Spyglass
 Arrow Volley Trap
+Ashnod's Altar
 Assembly-Worker
 Audacious Thief
 Aven of Enduring Hope
