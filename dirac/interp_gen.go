@@ -781,7 +781,8 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 			// the row (static_colorwords.go ovCwRow); everything below, the
 			// remembered walk and the WhileHost arm included, runs on the
 			// picked row
-			in = s.ovCwRow(k, in)
+			var ci kop.Instr
+			in = s.ovCwRow(k, in, &ci)
 		}
 		if in.Obj == kop.RefRemembered && s.g.nrem > 1 {
 			s.overrideRemembered(k, in) // zone_changezoneall.go: every remembered object

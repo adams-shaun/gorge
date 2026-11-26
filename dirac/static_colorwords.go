@@ -237,23 +237,25 @@ func (s *State) cwFrozen(k *prep) uint8 {
 	return e.prov - 2
 }
 
-// ovCwRow is OpOverride's word-list row pick (interp_gen.go): B = OvCwWord's
-// C names the FIRST of six override records, the printed colours then one
-// colour each (W, U, B, R, G; kgen emitCwWordAnimate), and the colour-word
-// colour frozen as the ability was put on the stack (cwFrozen) picks the row,
-// so an Animate Colors$ reads the colour its text was frozen at and a later
-// static change moves nothing installed. The printed row applies with none.
-// It counts the pick for the lockstep tests and returns the instruction to
-// run, a per-colour copy when one was picked.
-func (s *State) ovCwRow(k *prep, in *kop.Instr) *kop.Instr {
+// ovCwRow is the OpOverride / OpOverrideAll word-list row pick
+// (interp_gen.go, dispatch.go): B = OvCwWord's C names the FIRST of six
+// override records, the printed colours then one colour each (W, U, B, R, G;
+// kgen emitCwWordAnimate / emitCwWordAll), and the colour-word colour frozen
+// as the ability was put on the stack (cwFrozen) picks the row, so an Animate
+// Colors$ reads the colour its text was frozen at and a later static change
+// moves nothing installed. The printed row applies with none. It counts the
+// pick for the lockstep tests and returns the instruction to run, a per-colour
+// copy in the caller's ci when one was picked (the program is shared, so the
+// table instr is never written).
+func (s *State) ovCwRow(k *prep, in *kop.Instr, ci *kop.Instr) *kop.Instr {
 	to := s.cwFrozen(k)
 	if to >= 5 {
 		return in
 	}
 	ColorWordsStats.Installs.Add(1)
-	ci := *in
+	*ci = *in
 	ci.C += int16(1 + to)
-	return &ci
+	return ci
 }
 
 // cwTextObj is the object whose face a filter read at source slot src
