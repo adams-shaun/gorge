@@ -445,8 +445,9 @@ lint-web: web/node_modules/.package-lock.json
 # the board killed every table page, and the one the omniscient-only unit
 # fixtures cannot see), one -spectator omniscient, one SEATED 1v1
 # play-vs-bot server (-vsbot -humans 1), two fixtures, and one server per
-# engine offering all three wires — on smoke ports in
-# 8090-8099, and drives the headless-browser test at web/e2e against them.
+# engine offering all three wires — each on a kernel-assigned port
+# (`-addr 127.0.0.1:0`, read back from the server's startup line), and drives
+# the headless-browser test at web/e2e against them.
 # It fails on any pageerror, any console.error, any failed request to
 # the server's own origin, a page still in its loading state after a bounded
 # wait, or a blank page that never mounts. It also asserts the SEATED layout
