@@ -68,7 +68,9 @@ func (e *Engine) QueueReflexiveTrigger(c *effects.Ctx, execute string, body *car
 	// The spawning resolution's delayed-registration capture is not this
 	// ability's: DelayTriggerRemembered names the instance's own set.
 	tc.DelayedRemembered = nil
-	tc.OptionalSpec = ""
+	// OptionalSpec is the ImmediateTrigger line's own OptionalDecider$
+	// (effImmediateTrigger sets it, "" when absent), never the spawning
+	// ability's: resolveTop asks it at resolution (CR 603.5).
 	// CR 107.3: "you may pay {X}. When you do, ... X ..." -- the reflexive
 	// ability's X is the value the spawning ability was paid or announced
 	// with (triggerPaidX reads it back for the minted ability).

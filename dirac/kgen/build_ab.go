@@ -870,6 +870,9 @@ func (cb *cardBuilder) ability(a *lAbility) (kop.Ability, error) {
 			ka.ManaV = kop.ValueRef{K: kop.VCountersSelf, N: int16(ka.Cost.Ctr)}
 		}
 	}
+	if a.ReflexOptional {
+		ka.Trig.Flags |= kop.TfOptional // the kernel asks a TfOptional seTrigger entry as it resolves (resolve.go)
+	}
 	if a.Trigger != nil {
 		if a.Trigger.OncePer && (a.Latent || a.Trigger.Zone == zCommand) && a.Trigger.Event != "CounterAddedOnce" {
 			// the kernel's once-each-turn record is keyed by (object,
@@ -2250,6 +2253,13 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		if err := banOppFlag(s.Flags, st); err != nil {
 			return ka, nil, err
 		}
+		if s.Amount.Kind != vNone {
+			// DrawLimit$ N as N+1 (static_restrict.go; kernel playerBanned)
+			if !s.Amount.isConst() || s.Amount.N < 1 || s.Amount.N > 255 {
+				return ka, nil, fmt.Errorf("CantDraw limit %v", s.Amount)
+			}
+			st.A = int16(s.Amount.N)
+		}
 	case "CantPreventDamage":
 		st.Kind = kop.StatCantPreventDamage // static_cantprevent.go
 		for _, fl := range s.Flags {
@@ -2278,6 +2288,11 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		return ka, nil, cb.combatAmountFilter(st, kop.StatAssignCombatDamageAsUnblocked, s.F)
 	case "DisableTriggers":
 		st.Kind = kop.StatDisableETB
+		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
+			return ka, nil, err
+		}
+	case "LethalByPower":
+		st.Kind = kop.StatLethalByPower // static_lethalbypower.go
 		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
 			return ka, nil, err
 		}
