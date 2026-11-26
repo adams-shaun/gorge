@@ -2029,59 +2029,6 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		if st.VB, err = cb.value(s.Tough); err != nil {
 			return ka, nil, err
 		}
-	case "ReduceCost":
-		if s.AbilityRed != 0 {
-			// activated abilities of battlefield permanents (lower_reduceab.go)
-			st.Kind = kop.StatReduceAbility
-			fz := kop.ZoneBattlefield
-			if s.Zone == zGraveyard {
-				st.Zone, fz = kop.ZoneGraveyard, kop.ZoneGraveyard // lower_reduceab.go: a graveyard card's own activation
-			}
-			if st.Filter, err = filter(s.F, fz); err != nil {
-				return ka, nil, err
-			}
-			if err := amounts(s.Amount, lValue{}); err != nil {
-				return ka, nil, err
-			}
-			rb, rf := reduceAbBits(s)
-			st.B, st.StFlags = st.B|rb, st.StFlags|rf
-			if s.F2 != nil {
-				if err := targets2(); err != nil { // a target-gated reduction (the equip's Card.Self; Bladegraft's ability target)
-					return ka, nil, err
-				}
-			}
-			break
-		}
-		st.Kind = kop.StatReduceCost
-		if st.Filter, err = filter(s.F, kop.ZoneStack); err != nil {
-			return ka, nil, err
-		}
-		if err := amounts(s.Amount, lValue{}); err != nil {
-			return ka, nil, err
-		}
-		if err := targets2(); err != nil {
-			return ka, nil, err
-		}
-		if s.Zone == zAny {
-			st.Zone = kop.ZoneCommand
-		}
-		for _, fl := range s.Flags {
-			switch fl {
-			case "Bargained", "OptPaid":
-				st.StFlags |= kop.StBargained // lower_reducespell.go, lower_optcost.go
-			case "ReduceColor":
-				st.StFlags |= kop.StReduceColor
-				st.B = int16(s.RedCol)
-			case "AnyCaster":
-				st.StFlags |= kop.StReduceAny
-			case "EmbNum":
-				// the amount is the emblem's frozen
-				// SetChosenNumber$, read by adjustCostGen from embN
-				st.StFlags |= kop.StEmbNum
-			default:
-				return ka, nil, fmt.Errorf("reduce cost flag %q", fl)
-			}
-		}
 	case "CantBeBeamedUp":
 		st.Kind = kop.StatCantBeBeamedUp
 		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
