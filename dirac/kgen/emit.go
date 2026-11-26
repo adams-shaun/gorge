@@ -378,6 +378,11 @@ func refSubs(pt *poolTables, d *kop.CardDef, ovVals []kop.ValueRef) []uint8 {
 	var abil func(ab *kop.Ability)
 	abil = func(ab *kop.Ability) {
 		filt(ab.Cost.Filter)
+		if int(ab.CostProg) < len(pt.costProgs) {
+			for _, at := range pt.costProgs[ab.CostProg] {
+				filt(at.F) // a cost program's atom filters (lower_costprog.go)
+			}
+		}
 		for _, t := range ab.Targets {
 			filt(t.Filter)
 			filt(t.SpellF) // TgtSpellTgting's and TgtStackTgting's spell-side filter

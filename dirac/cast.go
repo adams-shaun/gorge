@@ -2523,6 +2523,11 @@ func (s *State) costPickOptions(k *prep, d *Decision, allowed kop.CostFlags) boo
 			} else if s.bld().pickK == pkSac && pc.N == 0 {
 				s.bld().pickLeft = uint8(e.x) // Sac<X/Spec>: the announced X (cost_sacx.go; 0 asks nothing)
 			}
+			if s.bld().pickK == pkSac && k.gen != nil && k.gen.uses.has(useCostProg) {
+				if mp := multiSacProg(k, s.buildAbility(k)); mp != nil {
+					s.bld().pickLeft = multiSacUnits(mp) // every Sac atom's units (cost_progsac.go)
+				}
+			}
 		}
 		if s.bld().pickLeft == 0 {
 			s.bld().donePicks |= s.bld().pickK &^ pickSubCtr // a posed counter pick stepped again owes no done bit
@@ -2530,8 +2535,13 @@ func (s *State) costPickOptions(k *prep, d *Decision, allowed kop.CostFlags) boo
 			continue
 		}
 		d.N = 0
-		s.costCands(k, pc, src, d)
-		if s.bld().pickK == pkSac && int(d.N) < int(s.bld().pickLeft) || s.bld().pickK == pkDiscard && d.N == 0 ||
+		need := int(s.bld().pickLeft)
+		if mp := s.pickMultiSac(k); mp != nil {
+			need = s.multiSacCands(k, mp, e.ctrl, src, d) // the current Sac atom's units (cost_progsac.go)
+		} else {
+			s.costCands(k, pc, src, d)
+		}
+		if s.bld().pickK == pkSac && int(d.N) < need || s.bld().pickK == pkDiscard && d.N == 0 ||
 			s.bld().pickK == pkTapX && e.kind == seSpell && int(d.N) < int(s.bld().pickLeft) {
 			// no card left to discard, or too few permanents to tap: a free cast begun without
 			// the offer's cost census (Wishing Well's Play, a discover's Guardian of the Great

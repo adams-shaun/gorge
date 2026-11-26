@@ -744,6 +744,9 @@ func (cb *cardBuilder) ability(a *lAbility) (kop.Ability, error) {
 		if ka.Cost, err = cb.cost(abCost); err != nil {
 			return ka, err
 		}
+		if ka.CostProg, err = cb.costProg(a); err != nil { // lower_costprog.go
+			return ka, err
+		}
 		if a.Kind == akMana && exileGraveManaCostRefused(ka.Cost) {
 			// gorge pays these through the mana-activation walk
 			// (AskManaForage); the kernel's mana abilities have no cost picks
