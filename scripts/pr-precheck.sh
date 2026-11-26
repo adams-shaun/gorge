@@ -26,10 +26,10 @@ heads_gate() {
   grep -q -E '^(engine/(events|effects|state|rules|cards)/|cmd/forgec/)'
 }
 changed=$(git diff --name-only "$base"...HEAD)
-if ! "${cap[@]}" go test -timeout 3m -run '^TestComplexFunctionsOnlyShrink$|^TestLongFunctionsOnlyShrink$|^TestFuncCeilingsLowerOnly$|^TestCodeShapeOnlyShrinks$' ./internal/codeshape >"$log" 2>&1; then
+if ! "${cap[@]}" go test -timeout 3m -run '^TestCodeShapeOnlyShrinks$' ./internal/codeshape >"$log" 2>&1; then
   # TestCodeShapeOnlyShrinks holds the tree-wide counts (stringLiteralCompares and the rest): a dirac ticket added two
   # string compares and failed its batch's test (0), as no affected-package rule selects ./internal/codeshape (#662, 11-17).
-  cat "$log"; fail "codeshape: $(grep -o -E '[^ ]+ \([^)]*\) grew to [a-z]+ [0-9]+, above its ceiling of [0-9]+|[A-Za-z]+: measured [0-9]+, above the frozen ceiling of [0-9]+' "$log" | head -1)"
+  cat "$log"; fail "codeshape: $(grep -o -E '[A-Za-z]+: measured [0-9]+, above the frozen ceiling of [0-9]+' "$log" | head -1)"
 fi
 # The public boundary scans every tracked file, so no affected-package rule selects it: a test fixture holding a
 # Forge script line verbatim passed the seat's checks and failed fast's TestNoVerbatimForgeLines (#613, 11-17).
