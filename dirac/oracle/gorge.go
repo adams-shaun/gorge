@@ -783,6 +783,64 @@ func priorityOptionKind(o *decision.Option) string {
 	return o.Kind
 }
 
+// dropRetappedTapSources removes a script's second activation of a source
+// whose own {T} cost an earlier activation on the same script paid. The
+// script search re-reads the live option list at every node, so an untap
+// trigger a tap set off offers the source again (Hydraulic Helper's {T}
+// untaps it, and the kernel's ordered prefix taps each gap source once:
+// dirac/mana_window.go scriptGapOrder, scriptDFS). Dropping the repeat keeps
+// the lowering the kernel's line instead of resolving the trigger mid-prefix
+// and floating a second unit. changed reports whether a step was dropped.
+func dropRetappedTapSources(e *rules.Engine, script []rules.ScriptStep) ([]rules.ScriptStep, bool) {
+	if len(script) == 0 {
+		return script, false
+	}
+	tapped := map[state.ObjID]bool{}
+	out := make([]rules.ScriptStep, 0, len(script))
+	changed := false
+	for _, st := range script {
+		if len(st.Picks) != 1 || st.Picks[0].Kind != "activate" || !scriptPickTapsSource(e, st.Picks[0]) {
+			out = append(out, st)
+			continue
+		}
+		if tapped[st.Picks[0].Obj] {
+			changed = true
+			continue
+		}
+		tapped[st.Picks[0].Obj] = true
+		out = append(out, st)
+	}
+	if !changed {
+		return script, false
+	}
+	return out, true
+}
+
+// scriptPickTapsSource reports whether a script's "activate" pick pays the
+// source's own {T}. A granted or anchored ability (an Ability out of range of
+// the printed pile) is left alone rather than guessed.
+func scriptPickTapsSource(e *rules.Engine, pk rules.ScriptPick) bool {
+	if e == nil {
+		return false
+	}
+	o := e.G.Obj(pk.Obj)
+	if o == nil {
+		return false
+	}
+	pa, ok := o.PileAbilityAt(pk.Ability)
+	if !ok || pa.SA == nil {
+		return false
+	}
+	for _, part := range strings.FieldsFunc(pa.SA.ParamStr(cards.PKCost), func(r rune) bool {
+		return r == ',' || r == ' '
+	}) {
+		if part == "T" || part == "{T}" {
+			return true
+		}
+	}
+	return false
+}
+
 // priorityVocabulary is the autopay priority vocabulary (doc.go): pass,
 // every land play, every cast gorge's planner pays (PaymentActions), every
 // potential play PotentialPaymentPlans prices, and every cast/ability/special
@@ -1168,6 +1226,7 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 		}
 	}
 	// Potential plays the pool cannot pay yet: lower the planner's witness.
+outerScript:
 	for _, pp := range e.PotentialPaymentPlans(d.Player) {
 		pa := pp.Action
 		var a Canon
@@ -1253,7 +1312,28 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 			// Offered only when that completes on a clone: after some
 			// scripts the planner refuses the floating pool ("unsupported
 			// pool") and the play would be stranded half paid.
-			pe := prioEntry{a: a, kind: prScript, script: pp.Script}
+			//
+			// The search re-reads the live option list at every node, so a
+			// tap whose trigger untaps the source makes the same source a
+			// unit again. The kernel's ordered prefix taps each gap source
+			// once, so prefer the same script with the repeated activation
+			// dropped when it still completes; otherwise keep the searched
+			// script (a fee-only source may legitimately repeat).
+			script := pp.Script
+			if short, changed := dropRetappedTapSources(g.E, script); changed {
+				// The dropped activation's own trigger answers follow it in the
+				// script; a prefix that stops before them is the kernel's line
+				// (one tap, one trigger batch, then the play). Take the longest
+				// prefix that still completes.
+				for cut := len(short); cut >= 1; cut-- {
+					pe := prioEntry{a: a, kind: prScript, script: short[:cut]}
+					if g.scriptCompletes(pe) {
+						add(pe)
+						continue outerScript
+					}
+				}
+			}
+			pe := prioEntry{a: a, kind: prScript, script: script}
 			if !g.scriptCompletes(pe) {
 				g.Stats.note(&g.Stats.Unpriced, pa.Kind+"/script_dead_end")
 				g.Stats.note(&g.Stats.UnpricedPlays, "script dead end: "+pa.Label)
