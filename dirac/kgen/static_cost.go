@@ -87,6 +87,11 @@ func (sc *staticCtx) modeReduceCost() ([]lStatic, bool, error) {
 func (sc *staticCtx) modeRaiseCost() ([]lStatic, bool, error) {
 	lc := sc.lc
 	sp := sc.sp
+	if done, err := lc.raiseAbility(sp, &sc.st); err != nil {
+		return nil, true, err // static_raiseability.go
+	} else if done {
+		return nil, false, nil
+	}
 	done, err := lc.raiseSelfWaterbend(sp, &sc.st) // lower_raisewaterbend.go
 	if err == nil && !done {
 		done, err = lc.raiseSelfAdditional(sp) // lower_raisecost.go
