@@ -3355,8 +3355,13 @@ func (lc *lowerCtx) emblem(ps *params, tr string) error {
 		return err
 	}
 	var capture lRef
-	var hasCap, player bool
+	var hasCap, player, selfRem bool
 	if mem.kind == memNone {
+		if selfRem, err = emblemSelfRemember(ps, t, eot); err != nil { // lower_effeottrig.go
+			return err
+		}
+	}
+	if mem.kind == memNone && !selfRem {
 		if capture, hasCap, player, t, err = lc.emblemCapture(ps, t, eot); err != nil {
 			return err
 		}
@@ -3385,7 +3390,9 @@ func (lc *lowerCtx) emblem(ps *params, tr string) error {
 	lc.emblemBlocks = eot && t.Mode == "Blocks"
 	lc.emblemUnblocked = hasCap && t.Mode == "AttackerUnblocked"
 	lc.emblemDmg = hasCap && !player && t.Mode == "DamageDone"
+	lc.selfRem = selfRem
 	err = lc.withAbility(lc.ab, func() error { return lc.lowerTriggered(t, "Command") })
+	lc.selfRem = false
 	lc.capRem, lc.effCount, lc.ddoEvent, lc.emblemBlocked, lc.emblemBlocks, lc.emblemDmg, lc.emblemUnblocked, lc.remSelf = false, false, false, false, false, false, false, false
 	if err != nil {
 		return err
@@ -3399,6 +3406,11 @@ func (lc *lowerCtx) emblem(ps *params, tr string) error {
 	ab := lc.out.Abilities[saved]
 	if mem.kind != memNone {
 		if err := effectRememberBody(ab, mem); err != nil { // lower_effectremember.go
+			return err
+		}
+	}
+	if selfRem {
+		if err := emblemSelfRememberBody(ab); err != nil { // lower_effeottrig.go
 			return err
 		}
 	}

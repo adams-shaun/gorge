@@ -324,6 +324,9 @@ func (lc *lowerCtx) chosenCardCapture(t cards.Trigger, eot bool) (lRef, bool, bo
 // is the trigger object, the blocked attacker (the capture filter makes it the
 // captured object).
 func (lc *lowerCtx) capturedTriggerRef(v string) (lRef, bool) {
+	if v == "Remembered" && lc.selfRem {
+		return lRef{Kind: rEmblemSource}, true // emblemSelfRemember
+	}
 	if v == "Remembered" && lc.capRem && !lc.hasRememberWriter() {
 		return lRef{Kind: rTriggeredSource}, true
 	}
@@ -331,6 +334,69 @@ func (lc *lowerCtx) capturedTriggerRef(v string) (lRef, bool) {
 		return lRef{Kind: rTriggered}, true
 	}
 	return lRef{}, false
+}
+
+// emblemSelfRemember reads an until-end-of-turn Effect's RememberObjects$ Self
+// beside its SpellCast or DamageDone trigger (Mountain Titan: "until end of
+// turn, whenever you cast a black spell, put a +1/+1 counter on Mountain
+// Titan"; Dovin, Grand Arbiter's +1). gorge's effectRemembered stores the
+// Effect's source by id, and the registered trigger's body reads it back as
+// Defined$ Remembered. The kernel's emblem already names that object (the
+// entry's source, State.g.embO), so nothing is captured: the body's
+// Remembered lowers to rEmblemSource (kop.RefEmblemSource), held to the
+// object the source was when the trigger was queued. found reports the
+// shape; a Self beside any other mode, a duration or a ForgetOnMoved$
+// refuses, as does a trigger line that reads the remembered set itself.
+func emblemSelfRemember(ps *params, t cards.Trigger, eot bool) (bool, error) {
+	ro, ok := ps.m["RememberObjects"]
+	if !ok || strings.TrimSpace(ro) != "Self" {
+		return false, nil
+	}
+	if !eot || t.Mode != "SpellCast" && t.Mode != "DamageDone" {
+		return false, refuse("Effect triggers with RememberObjects$ %q", ro)
+	}
+	if _, ok := ps.m["ForgetOnMoved"]; ok {
+		return false, refuse("Effect RememberObjects$ Self beside ForgetOnMoved$")
+	}
+	keys := make([]string, 0, len(t.Params))
+	for k := range t.Params {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys) // the refusal text reaches the census: name the same key every run
+	for _, k := range keys {
+		if k != "Execute" && strings.Contains(t.Params[k], "Remembered") {
+			return false, refuse("Effect RememberObjects$ Self beside a trigger %s$ that reads Remembered", k)
+		}
+	}
+	ps.consume("RememberObjects")
+	return true, nil
+}
+
+// emblemSelfRememberBody checks the lowered body of a RememberObjects$ Self
+// emblem trigger: the source is read only as the object a PutCounter acts on
+// (the one op the kernel's RefEmblemSource is resolved for, through objRef),
+// and no other Remembered read is left (it would read the kernel's
+// per-resolution set, empty here).
+func emblemSelfRememberBody(ab *lAbility) error {
+	n := 0
+	for _, in := range ab.Prog {
+		s := in.String()
+		if kremReads(s) {
+			return refuse("Effect RememberObjects$ Self trigger body reads Remembered as %s", in.Op)
+		}
+		c := strings.Count(s, refNames[rEmblemSource])
+		if c == 0 {
+			continue
+		}
+		if in.Op != "PutCounter" || in.Obj.Kind != rEmblemSource || c != 1 || in.W.Kind != rNone {
+			return refuse("Effect RememberObjects$ Self read by %s", in.Op)
+		}
+		n++
+	}
+	if n == 0 {
+		return refuse("Effect RememberObjects$ Self never read by its trigger body")
+	}
+	return nil
 }
 
 // emblemBlockedLapse reads the capture's end for a become-blocked emblem: an

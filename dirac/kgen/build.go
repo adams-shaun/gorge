@@ -2395,6 +2395,8 @@ func (cb *cardBuilder) ref(r lRef) (kop.Ref, error) {
 		return kop.RefRememberedOwner, nil
 	case rExiledWithOwner:
 		return kop.RefExiledWithOwner, nil
+	case rEmblemSource:
+		return kop.RefEmblemSource, nil
 	case rImprinted:
 		return kop.RefImprinted, nil
 	case rTargetUnion:
