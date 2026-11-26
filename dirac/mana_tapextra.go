@@ -652,7 +652,9 @@ func (s *State) tapAnyColPips(k *prep, p uint8, a Action) (cnt [kop.NumManaKinds
 		// answer that pays the kicked offer (pool dr-mbc-abbb pair 77,
 		// decision 290).
 		cd := &k.t.Cards[s.objs[Obj(a.Source())].card]
-		m, base = addCost(cd.Cost, kickerPayment(cd)), true
+		o := Obj(a.Source())
+		cp, fromHand := s.offspringCaster(o)
+		m, base = addCost(cd.Cost, s.kickPayment(k, cp, s.objs[o].card, o, fromHand)), true
 	}
 	if !base && s.anyColOwedRun() {
 		// Any other play whose base gorge leaves unread (a suspend or plot

@@ -31,10 +31,13 @@ var kunlesssubsDecks = [2][]cardset.Entry{
 }
 
 // kunlesssubsTally counts the unless asks by card: paid / declined for the
-// two counterspells and the Butcher's scry, and branches whose unless ask
-// had no way to pay (Detective and K'un-Lun: decline-only).
+// two counterspells and the Butcher's scry, branches whose unless ask had no
+// way to pay (Detective and K'un-Lun: decline-only), and the Detective /
+// K'un-Lun placement asks the UnlessCost$ gate filtered to one mode
+// (trigger_queue.go askTriggerModes; the drop of the other mode's cost the
+// controller cannot presently pay).
 type kunlesssubsTally struct {
-	games, counterPaid, counterDeclined, scryPaid, scryDeclined, unpayable int
+	games, counterPaid, counterDeclined, scryPaid, scryDeclined, unpayable, gated int
 }
 
 func kunlesssubsPolicy(seed uint64, tal *kunlesssubsTally) Policy {
@@ -44,12 +47,23 @@ func kunlesssubsPolicy(seed uint64, tal *kunlesssubsTally) Policy {
 			return rnd.Pick(c)
 		}
 		d := c.G.E.Pending()
-		if d == nil || d.ResumeKind != "unless_pay" {
+		if d == nil {
 			return rnd.Pick(c)
 		}
 		name := ""
 		if o := c.G.E.G.Obj(d.Source); o != nil && o.Face() != nil {
 			name = o.Face().Name
+		}
+		if d.ResumeKind == "modes" && (name == "Reckless Detective" || name == "K'un-Lun Warrior") && len(d.Options) == 1 {
+			// the placement ask the UnlessCost$ gate filtered: one mode's
+			// cost the controller cannot pay was dropped from the offer
+			if tal != nil {
+				tal.gated++
+			}
+			return rnd.Pick(c)
+		}
+		if d.ResumeKind != "unless_pay" {
+			return rnd.Pick(c)
 		}
 		want := "unless_decline"
 		if (seed+uint64(c.Seq))%2 == 0 {
@@ -165,11 +179,18 @@ func TestUnlesssubsLockstep(t *testing.T) {
 	t.Parallel()
 	var tal kunlesssubsTally
 	div := kunlesssubsRun(t, 256, true, &tal, nil)
-	t.Logf("%d games, %d divergences: counter paid %d declined %d, scry paid %d declined %d, unpayable branches %d",
-		tal.games, div, tal.counterPaid, tal.counterDeclined, tal.scryPaid, tal.scryDeclined, tal.unpayable)
-	if tal.counterPaid < 20 || tal.counterDeclined < 20 || tal.scryPaid < 10 || tal.scryDeclined < 5 || tal.unpayable < 10 {
-		t.Errorf("unless asks: counter paid %d declined %d, scry paid %d declined %d, unpayable %d; want at least 20, 20, 10, 5, 10",
-			tal.counterPaid, tal.counterDeclined, tal.scryPaid, tal.scryDeclined, tal.unpayable)
+	t.Logf("%d games, %d divergences: counter paid %d declined %d, scry paid %d declined %d, unpayable branches %d, gated offers %d",
+		tal.games, div, tal.counterPaid, tal.counterDeclined, tal.scryPaid, tal.scryDeclined, tal.unpayable, tal.gated)
+	// The UnlessCost$ gate (trigger_queue.go askTriggerModes) dropped a mode
+	// from a Detective / K'un-Lun placement ask at least gatedFloor times, and
+	// a chosen mode's unless ask still went decline-only once in a while (a
+	// mode payable at placement whose cost the resolution cannot price; logged,
+	// not floored: the 11-25 run measured exactly one, so any floor on it is one
+	// shifted game from red). The floors are well under the 11-25 run's counts
+	// (108, 611, 63, 64, 605).
+	if tal.counterPaid < 20 || tal.counterDeclined < 20 || tal.scryPaid < 10 || tal.scryDeclined < 5 || tal.gated < 200 {
+		t.Errorf("unless asks: counter paid %d declined %d, scry paid %d declined %d, gated %d; want at least 20, 20, 10, 5, 200",
+			tal.counterPaid, tal.counterDeclined, tal.scryPaid, tal.scryDeclined, tal.gated)
 	}
 }
 
