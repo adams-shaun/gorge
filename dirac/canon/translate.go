@@ -252,6 +252,13 @@ func (r *Translator) Action(a dirac.Action) Canon {
 			// kernel cast_altfree.go castAltTgt): gorge's
 			// alternativeCosts cast, mode "", AltCostIndex 1
 			cm = 1 << 4
+		case mode == 0 && tgt == 1 && r.S.ObjZone(dirac.Obj(src)) == kop.ZoneGraveyard:
+			// the same alternative from the graveyard (kernel
+			// cast_gravealt.go offerGraveyardAltCasts; gorge
+			// legal_walk_grave_altcost.go, a card's own EffectZone$
+			// Graveyard static): gorge's alternativeCosts cast, mode "",
+			// the same AltCostIndex
+			cm = 1 << 4
 		case mode&dirac.FeatCastWarp != 0:
 			cm, _ = CastModeCode("warped") // a hand cast for its warp cost (kw_warp.go)
 			cm |= uint8(tgt) << 4          // the warp instance, gorge's AltCostIndex (kw_warpgrant.go)
