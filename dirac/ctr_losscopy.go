@@ -55,12 +55,30 @@ var coldContractOwed = newCold[contractOwed]("contractOwed", func(g *genPrep) in
 // (engine/events/apply_copy.go copyTokenBasis), and the continuous effects on
 // it ended when it left the battlefield (CR 611.2), so the record carries no
 // P/T, type, keyword, colour or lose-abilities override -- the token's
-// continuous state is what applies to it on the board. Pointer-free, so the
-// cold record stays forkable and the transition loop allocates nothing.
+// continuous state is what applies to it on the board. A face-down permanent's
+// face-down copiable values (CR 708.2a) are not staged either: the kernel
+// derives them from the fd mark exactly as copyTokenEnterFrom's face-down
+// branch derives a live template's. The mint basis is cardAt, the same card
+// the live mint's newToken takes (the hidden card for a plain face-down
+// permanent); gorge mints its copy on the empty faceDownCopyCard over
+// CopiableFace's face-down set (copyTokenBasis reads CopiesFaceDown first),
+// so its token never carries the hidden card, and the kernel's face-down mark
+// is what hides it here. Pointer-free, so the cold record stays forkable and
+// the transition loop allocates nothing.
 type contractMod struct {
 	card CardID   // perms[sl].card, the card it is (not the face it shows)
 	ovr  override // its copy basis (flags ovCopy, copyOf only)
-	nexc uint8    // copy exception records (Table.Overrides indexes)
+	// fd is 0 when the permanent was face up, else 1 + its provenance
+	// (gtyProvMask >> 13): 1 a plain face-down permanent (a Morph-family
+	// cast), 2 manifested, 3 cloaked, 4 both (a permanent copy of one).
+	// Gorge mints the copy on its empty faceDownCopyCard over
+	// CopiableFace's face-down set (copyTokenBasis); the kernel mints on
+	// the snapshot basis with copyTokenEnterFrom's face-down branch, which
+	// derives the same values from gtyFaceDown and the walk and keeps the
+	// provenance for faceDownWard (a cloak's ward {2}, CR 701.58a; a
+	// manifested card's none, CR 701.40a).
+	fd   uint8
+	nexc uint8 // copy exception records (Table.Overrides indexes)
 	exc  [maxOvr]uint8
 	ng   uint8 // as-enters copy grant records: (override, maker card) pairs
 	gr   [maxOvr]cgrantRef
@@ -220,19 +238,24 @@ func (s *State) contractLossCopy(k *prep, p uint8) {
 // fxOverride ovCopyGrant records the live mint's copyGrantsAdd carries from a
 // copied copy (Mercurial Pretender's AddAbilities$, CR 707.9b, 707.3: gorge
 // folds the grant into the copied face, engine/effects/clone_etb_sub.go
-// cloneGrantSVars, so the LKI copy carries it too). No override flag,
+// cloneGrantSVars, so the LKI copy carries it too); a face-down permanent's
+// face-down copiable values are the fd mark (CR 708.2a), which the mint
+// derives as copyTokenEnterFrom's face-down branch does. No override flag,
 // keyword, generated type or walk mark is staged: the continuous effects that
 // wrote them ended when the permanent left the battlefield (CR 611.2), so
 // gorge's LKI mint reads none of them either, and an until-end-of-turn one is
 // no copiable value even before that (CR 707.2).
 func (s *State) contractModAt(sl Slot) (contractMod, bool) {
 	p := &s.perms[sl]
-	if p.ovr.flags&ovCopy == 0 && !s.fxM.has(sl) {
+	if p.ovr.flags&ovCopy == 0 && !s.fxM.has(sl) && p.gty&gtyFaceDown == 0 {
 		return contractMod{}, false
 	}
 	c := contractMod{card: p.card}
 	if p.ovr.flags&ovCopy != 0 {
 		c.ovr = override{flags: ovCopy, copyOf: p.ovr.copyOf}
+	}
+	if p.gty&gtyFaceDown != 0 {
+		c.fd = 1 + uint8(p.gty&gtyProvMask>>13)
 	}
 	if s.fxM.has(sl) {
 		for i := 0; i < int(s.g.nfx) && int(c.nexc) < maxOvr; i++ {
@@ -243,7 +266,7 @@ func (s *State) contractModAt(sl Slot) (contractMod, bool) {
 		}
 		c.ng = uint8(s.copyGrantRecs(sl, &c.gr))
 	}
-	if c.ovr.flags&ovCopy == 0 && c.nexc == 0 && c.ng == 0 {
+	if c.ovr.flags&ovCopy == 0 && c.nexc == 0 && c.ng == 0 && c.fd == 0 {
 		return contractMod{}, false
 	}
 	return c, true
@@ -299,7 +322,11 @@ func (s *State) mintTokenCopyCard(k *prep, p uint8, c CardID) bool {
 // already left the battlefield, so the token is entered from c's copiable face
 // and then given c's card, copy basis, copy exceptions and copy grants. The enters check is
 // held until those values are in place, as the live template mint applies them
-// before its own ETB triggers.
+// before its own ETB triggers. A face-down c (fd != 0) enters through the
+// face-down branch of copyTokenEnterFd, given the departed template's mark:
+// the face-down characteristics ride the enter's face and the walk,
+// the provenance bits and the spareCopyFaceDown copy mark carry over (CR
+// 707.2, 708.2a, 701.58a), and the token is face up (projFaceDown).
 func (s *State) mintTokenCopyStaged(k *prep, p uint8, basis CardID, c *contractMod) bool {
 	if s.nearCapacity(k) {
 		s.stall(StallBoard)
@@ -309,10 +336,18 @@ func (s *State) mintTokenCopyStaged(k *prep, p uint8, basis CardID, c *contractM
 	s.objs[t].of |= ofCopy
 	var in kop.Instr
 	var eb entBatch
-	s.copyTokenEnterFrom(k, &in, t, NoSlot, NoSlot, &eb)
+	s.copyTokenEnterFd(k, &in, t, NoSlot, NoSlot, &eb, c.fd)
 	if sl := s.objs[t].slot; s.objs[t].zone == kop.ZoneBattlefield && s.occ.has(sl) {
 		pm := &s.perms[sl]
 		pm.card, pm.ovr = c.card, c.ovr
+		if c.fd != 0 {
+			// the face-down derivation enterNF's face branch put on the
+			// token: a face-down permanent's copiable types ride ovGenTy
+			// and the walk (face_facedown.go), and the record's copy basis
+			// is only the ovr.copyOf read cardAt makes
+			pm.ovr.flags |= ovGenTy
+			pm.ovr.walk = walkOn
+		}
 		s.objs[t].card = c.card
 		for j := uint8(0); j < c.nexc; j++ {
 			s.copyExcPush(sl, c.exc[j])
