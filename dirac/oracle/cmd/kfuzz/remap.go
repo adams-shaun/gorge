@@ -60,14 +60,14 @@ func remapRepro(path string, rep *oracle.Repro, pol *oracle.ScriptPolicy, res *o
 }
 
 // rerunRepro is rep.Rerun, or with -remap the same replay under a Remap policy
-// whose result is written back to path (remapRepro).
-func rerunRepro(rep *oracle.Repro, path string, m *oracle.Matchup, mk oracle.SideFactory) oracle.Result {
+// whose result is written back to path (remapRepro). The code is remapRepro's
+// exit code: non-zero when the rewrite was refused or failed.
+func rerunRepro(rep *oracle.Repro, path string, m *oracle.Matchup, mk oracle.SideFactory) (oracle.Result, int) {
 	if !reproRemap {
-		return rep.Rerun(m, mk, 200)
+		return rep.Rerun(m, mk, 200), 0
 	}
 	pol := rep.Script()
 	pol.Remap = true
 	res := rep.RerunWith(m, mk, 200, pol)
-	remapRepro(path, rep, pol, &res)
-	return res
+	return res, remapRepro(path, rep, pol, &res)
 }

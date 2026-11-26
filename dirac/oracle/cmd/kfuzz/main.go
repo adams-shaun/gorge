@@ -590,7 +590,10 @@ func run() int {
 			fmt.Fprintln(os.Stderr, "kfuzz:", err)
 			return 1
 		}
-		res := rerunRepro(rep, *reproPath, m, mk)
+		res, code := rerunRepro(rep, *reproPath, m, mk)
+		if code != 0 {
+			return code
+		}
 		if res.Div == nil {
 			printReproClean(&res)
 			return 0
