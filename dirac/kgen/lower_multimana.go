@@ -81,6 +81,13 @@ func (lc *lowerCtx) refuseMultiMana() {
 	if multiFixedMana(ms) {
 		return
 	}
+	if len(ms) == 2 && colourlessThenAny(ms[0], ms[1]) {
+		// {T}: Add {C}, then {T}: Add one mana of any color (Nightshade
+		// Dryad): gorge's census unit is the {C} alternative then one per
+		// colour, the kernel's union C|WUBRG (mana_multicolour.go
+		// prepMultiMana), the ungated twin of Mirrex's gate-on view
+		return
+	}
 	if len(ms) == 2 && plainTapMana(ms[0], false) && unrestrictedOne(ms[0]) && ms[0].Mana.Colors == "C" && painTapMana(ms[1]) {
 		// a painland (Adarkar Wastes): {T}: Add {C}, then {T}: Add one of
 		// two colours with a "deals N damage to you" rider -- gorge's
@@ -399,6 +406,13 @@ func multiFixedMana(ms []*lAbility) bool {
 		last = c
 	}
 	return true
+}
+
+// colourlessThenAny: first is a plain unrestricted "{T}: Add {C}" and a is a plain
+// unrestricted "{T}: Add one mana of any color", in that printed order.
+func colourlessThenAny(first, a *lAbility) bool {
+	return plainTapMana(first, false) && unrestrictedOne(first) && !first.Mana.Choice && first.Mana.Colors == "C" &&
+		plainTapMana(a, false) && unrestrictedOne(a) && !a.Mana.Choice && !a.Mana.Each && a.Mana.Colors == "WUBRG"
 }
 
 // plainTapMana: a costs exactly {T} (plus generic mana when paid), has no
@@ -721,6 +735,9 @@ func restrictedFixedPair(first, a *lAbility) bool {
 		a.Mana.Amount.Kind != vConst || a.Mana.Amount.N < 2 || a.Mana.Amount.N > maxRestrictedAmount {
 		return false
 	}
+	if bothHalvesColourlessPair(first, a) {
+		return true
+	}
 	if !(spellOnlyMana(a) || activationOnlyTapMana(a)) {
 		return false
 	}
@@ -729,6 +746,19 @@ func restrictedFixedPair(first, a *lAbility) bool {
 	}
 	return plainTapMana(first, false) && unrestrictedOne(first) && len(a.Mana.Colors) == 1 &&
 		strings.Contains("WUBRG", a.Mana.Colors) && a.Mana.Colors == first.Mana.Colors
+}
+
+// bothHalvesColourlessPair: a plain unrestricted {T}: Add {C} first ability
+// beside a plain {T} ability of several {C} whose restriction names both
+// spells and activated abilities (Eldrazi Temple's {C}{C}, colorless Eldrazi
+// spells and abilities of colorless Eldrazi only). gorge's planner prices both
+// alternatives of the one unit; the kernel's restricted pair unit widens the
+// census {C} to the larger colourless alternative (prepRestrSrc, colourless
+// counting as one colour: CR 106.1b), admitted per payment class by the
+// restriction's spell or activation half (restrSrcAdmits).
+func bothHalvesColourlessPair(first, a *lAbility) bool {
+	return a.Mana.Restrict != nil && a.Mana.RestrictAb != nil && plainTapMana(a, false) && a.Mana.Colors == "C" &&
+		plainTapMana(first, false) && unrestrictedOne(first) && first.Mana.Colors == "C"
 }
 
 // restrictedFreeFeePair: first is a spell-only restricted {T} ability of one
