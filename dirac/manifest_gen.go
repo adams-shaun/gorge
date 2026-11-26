@@ -868,6 +868,8 @@ func (s *State) execExtGen(k *prep, in *kop.Instr) (ok, done bool) {
 		return s.pairExt(k, in) // kw_soulbond.go
 	case kop.ExtPayLifeX:
 		return s.payLifeExt(k, in) // repl_paylife.go
+	case kop.ExtPlaneCurse:
+		return s.planeCurseExt(k, in) // zone_planecurse.go
 	case kop.ExtPlaneswalk:
 		return s.planeswalkExt(k, in) // zone_planechase.go
 	case kop.ExtPutContract:
