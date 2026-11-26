@@ -1097,7 +1097,7 @@ func (s *State) cleanupGen(k *prep) {
 	for i := 0; i < int(s.g.nmay); i++ {
 		r := *s.mayAt(i)
 		keep := r.dur() == kop.DurYourNextTurn && !(s.active == r.ctrl && mayWord(s.turn) > r.turn) ||
-			r.dur() == kop.DurUntilYourNextTurn && mayNTEnds&(1<<r.ctrl) == 0 ||
+			r.dur() == kop.DurUntilYourNextTurn && mayNTEnds&(1<<r.ntSeat()) == 0 ||
 			r.until == kop.DurWarp && s.warpRecastLive(r) ||
 			r.until == kop.DurAirbend && s.warpRecastLive(r) ||
 			r.until == kop.DurPlot && s.plotLive(r) ||

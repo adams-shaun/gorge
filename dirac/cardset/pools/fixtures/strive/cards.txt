@@ -1,0 +1,18 @@
+# the Strive pool: spells costing more for each target beyond the first (CR 702.52)
+# (dirac/oracle/strive_lockstep_test.go)
+Ajani's Presence
+Rouse the Mob
+Launch the Fleet
+Twinflame
+Harness by Force
+Nature's Panoply
+Colossal Heroics
+Hour of Need
+Blinding Flare
+Savannah Lions
+Raging Goblin
+Grizzly Bears
+Plains
+Mountain
+Forest
+Island

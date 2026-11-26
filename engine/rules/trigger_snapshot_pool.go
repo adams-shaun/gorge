@@ -79,7 +79,7 @@ func (e *Engine) retainTriggerBefore() *triggerSnapshot {
 // closeTriggerWindow restores the window's outer snapshot and recycles the
 // window's own, unless a record retained it. Deferred by every window.
 func (e *Engine) closeTriggerWindow(own, outer *triggerSnapshot) {
-	e.triggerBefore = outer
+	e.setTriggerBefore(outer)
 	if own == nil || own.retained || own == outer || own.game == nil {
 		return
 	}
@@ -96,6 +96,26 @@ func (e *Engine) closeTriggerWindow(own, outer *triggerSnapshot) {
 		clear(objs)
 	}
 	p.objs = append(p.objs, objs)
+}
+
+// noteWindowDeparture records battlefield departures under the open trigger
+// window (see engine_scratch.go's windowDepartures).
+func (e *Engine) noteWindowDeparture(ids ...state.ObjID) {
+	if e.triggerBefore != nil {
+		e.windowDepartures = append(e.windowDepartures, ids...)
+	}
+}
+
+// setTriggerBefore is the ONE way a trigger window ends or is restored:
+// leaving the window empties its departure list, so a later window never
+// skips an object an earlier one saw leave (it can be back on the battlefield
+// by then). Every restore of triggerBefore to a window's outer value goes
+// through here, not a bare assignment.
+func (e *Engine) setTriggerBefore(s *triggerSnapshot) {
+	e.triggerBefore = s
+	if s == nil {
+		e.windowDepartures = e.windowDepartures[:0]
+	}
 }
 
 // openBatchWindow parks the pre-departure board for an effect's simultaneous

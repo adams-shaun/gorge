@@ -544,6 +544,9 @@ func (s *State) declareAttacksDone(k *prep) {
 	if s.bandAsk(k) {
 		return // CR 702.22c: gorge asks the band declaration before the triggers are placed (combat_band.go)
 	}
+	if s.exertAsk(k) {
+		return // CR 702.100a: then the exert elections (combat_exert.go)
+	}
 	s.openPriority()
 }
 

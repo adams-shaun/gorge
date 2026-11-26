@@ -1,0 +1,19 @@
+# Flashback with a mana part and a life part (CR 702.34a, 601.2g-h): the
+# "Flashback--{1}{C}, Pay 3 life" cycle, whose life part kgen lowers as the
+# flashback cast's FbCost (lower_fbcost.go) beside its mana (CardDef.Flashback),
+# with creatures and lands, for the oracle's constructed lockstep
+# (dirac/oracle/flashlife_lowers_test.go)
+Acorn Harvest
+Crippling Fatigue
+Deep Analysis
+Flash of Defiance
+Spirit Flare
+Savannah Lions
+Grizzly Bears
+Scathe Zombies
+Hill Giant
+Plains
+Forest
+Island
+Mountain
+Swamp

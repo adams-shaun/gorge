@@ -425,7 +425,11 @@ func opsUsage(pt *poolTables, all []*lCard, bs []built) map[string]map[string]bo
 					add("st:EmbNum", name)
 				}
 				if st.StFlags&kop.StTargetsFilter2 != 0 {
-					add("st:TargetsFilter2", name)
+					if st.Kind == kop.StatMayPlayFrom {
+						add("st:MayZeroAlt", name) // StMayZeroAlt aliases StTargetsFilter2
+					} else {
+						add("st:TargetsFilter2", name)
+					}
 				}
 				if st.StFlags&kop.StBargained != 0 {
 					add("st:Bargained", name)
@@ -441,16 +445,21 @@ func opsUsage(pt *poolTables, all []*lCard, bs []built) map[string]map[string]bo
 					add("st:YouHexproof", name)
 				}
 				if st.StFlags&kop.StPanhETB != 0 {
-					if st.Kind == kop.StatIncreaseCost {
+					switch {
+					case st.Kind == kop.StatIncreaseCost:
 						add("st:RaiseLife", name) // StRaiseLife aliases StPanhETB
-					} else {
+					case st.Kind == kop.StatMayPlayFrom:
+						add("st:MayPayEvidence", name) // StMayPayEvidence aliases StPanhETB
+					default:
 						add("st:PanhETB", name)
 					}
 				}
 				if st.Kind == kop.StatIncreaseCost && st.StFlags&kop.StRaisePerTarget != 0 {
 					add("st:RaisePerTarget", name) // aliases StOncePerTurn
 				}
-				if st.StFlags&(kop.StRaiseYou|kop.StRaiseOpp) != 0 {
+				if st.Kind == kop.StatMayPlayFrom && st.StFlags&kop.StMayPayEnergy != 0 {
+					add("st:MayPayEnergy", name) // StMayPayEnergy aliases StRaiseOpp
+				} else if st.StFlags&(kop.StRaiseYou|kop.StRaiseOpp) != 0 {
 					add("st:RaiseYou", name)
 				}
 				grantUsage(&st, name, add)
@@ -626,6 +635,7 @@ func opsUsage(pt *poolTables, all []*lCard, bs []built) map[string]map[string]bo
 		filt(d.ProtFrom)
 		if d.SpellCost != (kop.Cost{}) {
 			add("card:SpellCost", name)
+			usageSacHalf(d.SpellCost, name, add)
 		}
 		if d.HasAltAdd {
 			add("card:AltAddCost", name)

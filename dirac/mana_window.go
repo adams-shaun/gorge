@@ -3942,6 +3942,8 @@ func (s *State) manaStep(k *prep) bool {
 				cost = s.restrAdmShortCost(k, e, cost)
 				s.tapForRider(k, e.ctrl, &cost, int(e.x), e.obj, anyColor)
 			}
+		} else if s.convCRoute(k, cost, int(e.x)) {
+			// the colourless-mana conversion's pool route: the pool pays, nothing to tap (cast_mayconvc.go)
 		} else if s.convAllPoolRoute(k, e.ctrl, anyColor) {
 			// the any-colour conversion's pool route: the pool pays, nothing to tap (mana_convertcreature.go)
 		} else {
@@ -4089,6 +4091,13 @@ func (s *State) gapWindowReverse(k *prep, e *stackEntry, cost *kop.ManaCost, sav
 // path that keeps the activation, and reports true when the activation was
 // reversed because neither reaches the cost (CR 733.1).
 func (s *State) abilityPlainMana(k *prep, e *stackEntry, cost kop.ManaCost, saved *[len(build{}.picks)]uint8, hostSl, sl Slot, selfUntapped bool) bool {
+	if cost.X != 0 {
+		if m := s.restrActNow(k, e.ctrl); m != 0 {
+			// the admitted restricted mana pays the announced {X} too (pay.PlanPool), which
+			// the unfolded cost's shortening could not fold in (Boommobile's {A})
+			cost = s.restrShortAdm(e.ctrl, m, xFolded(s.buildCost(k), int(e.x)))
+		}
+	}
 	if !s.tapForTry(k, e.ctrl, &cost, int(e.x), s.abilityHandExclude(k, e), false) {
 		c := xFolded(cost, int(e.x))
 		if s.gapWindowReverse(k, e, &c, saved, hostSl, sl, selfUntapped) {
@@ -4353,6 +4362,9 @@ func (s *State) payAbilityCosts(k *prep, e *stackEntry) {
 	}
 	if f&kop.CostPayEnergy != 0 {
 		s.payEnergy(e.ctrl, &a.Cost)
+	}
+	if a.Cost.EnergyX {
+		s.payEnergyX(e.ctrl, uint8(e.x)) // the announced PayEnergy<X> (cost_energyx.go)
 	}
 	if a.Cost.Mill != 0 {
 		// Cost.Mill (CR 701.17b): the payer mills the count from their own

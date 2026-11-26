@@ -35,10 +35,14 @@ func tableAnyDifferent(t *kop.Table) bool {
 
 var useAnyDifferent = newGenUse(tableAnyDifferent)
 
-// anyDifferentTapAb reports whether a is the plain {T} AnyDifferent mana
-// ability: a mana-free cost of {T}, the choice flag the Combo$ parse sets and no
-// colour, restriction, rider or program.
+// anyDifferentTapAb reports whether a is an AnyDifferent mana ability: the
+// plain {T} one (a mana-free cost of {T}, the choice flag the Combo$ parse
+// sets and no colour, restriction, rider or program) or the same beside a
+// counter removal from its source (Component Pouch, kop.AnyDifferentCtrManaAb).
 func anyDifferentTapAb(a *kop.Ability) bool {
+	if kop.AnyDifferentCtrManaAb(a) {
+		return true
+	}
 	return a.Kind == kop.AbMana && a.Cost.Flags == kop.CostTap && a.Cost.Mana.MV() == 0 && a.Cost.Mana.X == 0 &&
 		a.AFlags == kop.AfManaChoice && a.ManaColors == 0 && a.ManaN > 0 && a.ManaRestrict == 0 && a.ManaRestrictAb == 0 &&
 		!a.ManaEach && !a.ManaDeferred && a.ManaRider == kop.ManaRiderNone && len(a.Prog) == 0 &&
@@ -59,7 +63,8 @@ func (s *State) anyDifferentAbilityAt(k *prep, sl Slot) *kop.Ability {
 }
 
 // anyDifferentAt reports whether the permanent at sl is an untapped, usable
-// source with the plain {T} AnyDifferent mana ability.
+// source with an AnyDifferent mana ability whose counter cost, if it has one,
+// the source can pay.
 func (s *State) anyDifferentAt(k *prep, sl Slot) bool {
 	if k.gen != nil && !k.gen.uses.has(useAnyDifferent) {
 		return false // no card of the table has the ability
@@ -68,7 +73,21 @@ func (s *State) anyDifferentAt(k *prep, sl Slot) bool {
 	if pp.flags&pfTapped != 0 || pp.ovr.flags&(ovLoseAll|ovLoseAllEOT) != 0 || s.genLost(k, sl) || s.activationSick(k, sl) {
 		return false
 	}
-	return s.anyDifferentAbilityAt(k, sl) != nil
+	a := s.anyDifferentAbilityAt(k, sl)
+	return a != nil && (a.Cost.Flags&kop.CostRemoveCtr == 0 || pp.ctrN(s, int(a.Cost.Ctr)) >= int(a.Cost.N))
+}
+
+// anyDifferentPay pays AnyDifferent ability a's cost on the source at sl: its
+// {T} and the counters its cost removes (CR 602.2b; the activation path's
+// CostRemoveCtr, mana_window.go).
+func (s *State) anyDifferentPay(k *prep, sl Slot, a *kop.Ability) {
+	s.perms[sl].flags |= pfTapped
+	s.touchSl(sl)
+	s.manaTapped(k, sl)
+	if a.Cost.Flags&kop.CostRemoveCtr != 0 {
+		s.perms[sl].seeCtr(s)
+		s.subCtrFire(k, sl, int(a.Cost.Ctr), int(a.Cost.N)) // trig_counterremoved.go
+	}
 }
 
 // anyDifferentGaps is p's usable AnyDifferent sources as a slot mask: the
@@ -182,9 +201,7 @@ func (s *State) anyDifferentTap(k *prep, p uint8, sl Slot, ans int) {
 	if n > 5 {
 		n = 5
 	}
-	s.perms[sl].flags |= pfTapped
-	s.touchSl(sl)
-	s.manaTapped(k, sl)
+	s.anyDifferentPay(k, sl, a)
 	var got [5]int
 	for u := 0; u < n; u++ {
 		got[caDigit(ans, n, u)]++
@@ -210,9 +227,7 @@ func (s *State) windowAnyDifferentTap(k *prep, p uint8, sl Slot, cost, useful *k
 	if n > 5 {
 		n = 5
 	}
-	s.perms[sl].flags |= pfTapped
-	s.touchSl(sl)
-	s.manaTapped(k, sl)
+	s.anyDifferentPay(k, sl, a)
 	mask := uint8(kop.ColAny)
 	if clamp {
 		if want, decided := s.windowUseful(k, p, useful); decided && want&mask != 0 {

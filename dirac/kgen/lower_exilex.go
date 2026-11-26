@@ -9,10 +9,12 @@ import (
 // ExileFromGrave<X/Spec> (CR 601.2b, 107.3a; gorge cost.CostPart.Announced,
 // kernel dirac/cost_exilex.go): "exile X cards from your graveyard" with the
 // X the spell announces for its printed {X} (Skeletal Scrying's
-// X B ExileFromGrave<X/Card>, SVar X Count$xPaid). Only a spell's own Cost$
-// beside that {X}: gorge announces an X for the part even with no mana {X} and
-// for an activated ability, where the kernel has no matching ask, so those
-// stay refused. A script whose SVar X is not Count$xPaid
+// X B ExileFromGrave<X/Card>, SVar X Count$xPaid), or that a printed
+// activated ability announces beside a printed {X} (Necropolis Fiend) or alone
+// (Taigam, Sidisi's Hand's B T ExileFromGrave<X/Card>: gorge xAsk poses the X
+// for the announced part, bounded by the matching graveyard cards). A spell's
+// own Cost$ with no printed {X} (Gorex) and an escape cost stay refused
+// (announcedXCheck, lower_escape.go). A script whose SVar X is not Count$xPaid
 // fixes the count (gorge pay.FixLifeXCost drops the announcement): Araumi of
 // the Dead Tide's "equal to the number of opponents" lowers as the live
 // opponent count (kop.ExileGraveLiveCount, paid by act_forage.go); any other
@@ -34,8 +36,8 @@ func (lc *lowerCtx) exileXCost(c *lCost, parts []string, t string) error {
 		}
 		fixed = true
 	}
-	if !fixed && !lc.lifeXSpell {
-		return refuse("exile cost %q outside a spell's own cost", t)
+	if !fixed && !lc.lifeXSpell && (!lc.actCost || lc.escCost) {
+		return refuse("exile cost %q outside a spell's or activated ability's own cost", t)
 	}
 	if parts[1] == "CARDNAME" || c.ExileG != nil || c.ExileHandN != 0 || c.ExileGBf {
 		return refuse("exile cost %q beside another exile part or of the source", t)

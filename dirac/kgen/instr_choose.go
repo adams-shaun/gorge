@@ -20,6 +20,7 @@ func init() {
 	instrOp("EnterCtrPick", (*instrCtx).opEnterCtrPick)
 	instrOp("ChoosePlayerEnter", (*instrCtx).opChoosePlayerEnter)
 	instrOp("ChoosePlayerMid", (*instrCtx).opChoosePlayerMid)
+	instrOp("ChoosePlayerEach", (*instrCtx).opChoosePlayerEach)
 	instrOp("ChooseNumber", (*instrCtx).opChooseNumber)
 	instrOp("ChooseNumberMid", (*instrCtx).opChooseNumberMid)
 	instrOp("NameCard", (*instrCtx).opNameCard)
@@ -139,6 +140,14 @@ func (ic *instrCtx) opChoosePlayerMid() error {
 	ki := &ic.ki
 	// a mid-resolution opponent choice (lower_chooseplayermid.go)
 	ki.Op, ki.A, ki.C = kop.OpExt, kop.Const(int(kop.ExtChoosePlayerMid)), int16(ic.in.C&kop.ChoosePlayerMidHigh)
+	return nil
+}
+
+func (ic *instrCtx) opChoosePlayerEach() error {
+	ki := &ic.ki
+	// the repeated player's opponent choice (lower_chooseplayer.go
+	// choosePlayerEach): no operands, the loop's binding is the chooser
+	ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtChoosePlayerEach))
 	return nil
 }
 

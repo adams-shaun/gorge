@@ -1247,6 +1247,7 @@ var eventMap = map[string]kop.TrigEvent{"ETB": kop.TrigETB, "Dies": kop.TrigDies
 	"ClassLevelGained": kop.TrigCounterAddedOnce, // N = CtrLevel (lower_class.go)
 	"BecomesPlotted":   kop.TrigBecomesPlotted,   // the card's own
 	"BecomesSaddled":   kop.TrigBecomesSaddled,
+	"Exerted":          kop.TrigExerted,     // the OptionalAttackCost rider (static_optattack.go)
 	"Evolved":          kop.TrigEvolved,     // the source's own, after its evolve counter lands
 	"Attached":         kop.TrigAttached,    // the attachment's own, Creature bearer (Assimilation Aegis)
 	"Unattached":       kop.TrigUnattached,  // the attachment's own, the FORMER BEARER (Captain's Hook family)
@@ -1973,6 +1974,9 @@ func (cb *cardBuilder) staticFor(s lStatic) (kop.Ability, []uint8, error) {
 	if s.Kind == "UnspentMana" {
 		return cb.unspentManaAbility(s) // static_unspentmana.go
 	}
+	if s.Kind == "OptionalAttackCost" {
+		return cb.optionalAttackCostAbility(s) // static_optattack.go
+	}
 	if s.Kind == "CanBlockIfShadow" {
 		return cb.canBlockIfShadowAbility(s) // static_canblockifshadow.go
 	}
@@ -2087,15 +2091,8 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		}
 		st.AddChosen = s.AddChosen
 		st.OutlivesLoss = s.OutlivesLoss
-		if len(s.Grant) > 1 {
-			return ka, nil, fmt.Errorf("static grants %d abilities", len(s.Grant))
-		}
-		if len(s.Grant) == 1 {
-			j, ok := cb.abMap[s.Grant[0]]
-			if !ok {
-				return ka, nil, fmt.Errorf("granted ability %d not emitted", s.Grant[0])
-			}
-			st.Grant = uint8(j + 1)
+		if err := cb.staticGrant(st, s); err != nil {
+			return ka, nil, err
 		}
 		if st.ProtFrom, err = filter(s.ProtFrom, kop.ZoneBattlefield); err != nil {
 			return ka, nil, err
@@ -2108,13 +2105,8 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 			return ka, nil, err
 		}
 		st.Evasion, st.Infect = s.Evasion, s.Infect // lower_kwmark.go
-		if s.Override != nil {
-			// RemoveKeyword$ beside the Continuous parts (layer 6)
-			i, err := cb.override(s.Override)
-			if err != nil {
-				return ka, nil, err
-			}
-			st.Override = uint16(i + 1)
+		if err := cb.staticOverride(st, s); err != nil {
+			return ka, nil, err
 		}
 	case "CDAPT":
 		st.Kind = kop.StatCDAPT
@@ -2129,7 +2121,11 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		if s.AbilityRed != 0 {
 			// activated abilities of battlefield permanents (lower_reduceab.go)
 			st.Kind = kop.StatReduceAbility
-			if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
+			fz := kop.ZoneBattlefield
+			if s.Zone == zGraveyard {
+				st.Zone, fz = kop.ZoneGraveyard, kop.ZoneGraveyard // lower_reduceab.go: a graveyard card's own activation
+			}
+			if st.Filter, err = filter(s.F, fz); err != nil {
 				return ka, nil, err
 			}
 			if err := amounts(s.Amount, lValue{}); err != nil {
@@ -2250,6 +2246,18 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		if st.GrantCost, err = manaCostOf(s.Cost.Mana); err != nil {
 			return ka, nil, err
 		}
+	case "ColorWords":
+		st.Kind = kop.StatColorWords // static_colorwords.go: no filter, no zone; the stall rule reads the live sources
+	case "MiracleGrant":
+		st.Kind = kop.StatMiracleGrant // kw_miracle.go
+		if st.Filter, err = filter(s.F, kop.ZoneHand); err != nil {
+			return ka, nil, err
+		}
+		st.Zone = kop.ZoneHand
+		st.CardCostLess = uint8(s.CardCostLess)
+		if st.GrantCost, err = manaCostOf(s.Cost.Mana); err != nil {
+			return ka, nil, err
+		}
 	case "EscapeGrant":
 		// an AffectedZone$ Graveyard AddKeyword$ Escape static: each matching
 		// card in its controller's graveyard has escape at its mana cost plus
@@ -2304,6 +2312,8 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		}
 		if s.Zone == zAny {
 			st.Zone = kop.ZoneCommand
+		} else if s.Zone == zHand {
+			st.Zone = kop.ZoneHand // Origin$ Hand: the origin the cast gate reads (cast_cantself.go)
 		}
 		for _, fl := range s.Flags {
 			switch fl {
@@ -2326,6 +2336,10 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 				return ka, nil, fmt.Errorf("cant be cast limit %v", s.Amount)
 			}
 			st.A = int16(s.Amount.N)
+		}
+	case "CantPlayLand":
+		if err := cantPlayLandStatic(s, st); err != nil {
+			return ka, nil, err
 		}
 	case "CantBeActivated":
 		st.Kind = kop.StatCantActivate // lower_cantact.go
@@ -2673,6 +2687,13 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		}
 		st.Kind = kop.StatPlayerHexproof
 		st.A = 2
+	case "DefenderAssigns":
+		// Defensive Formation (lower_playerstatic.go): unconditional, as the
+		// kernel read (static_plkeyword.go) consults no Cond2
+		if s.Cond.Kind != cNone || s.Amount.Kind != vNone {
+			return ka, nil, fmt.Errorf("DefenderAssigns beside %s", s.Cond)
+		}
+		st.Kind = kop.StatDefenderAssigns
 	case "PlayerProtAll":
 		st.Kind = kop.StatPlayerProtAll // the controller has protection from everything (static_plprot.go)
 	case "MayPlayFrom":
@@ -2681,6 +2702,9 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		fz := st.Zone
 		if slices.Contains(s.Flags, "AlsoSideboard") || slices.Contains(s.Flags, "FreeOnly") {
 			fz = kop.ZoneNone // the filter also reads a sideboard card; the static's zones are tested apart (mayPlayFromZone)
+		}
+		if slices.Contains(s.Flags, "FunctionsInGraveyard") && slices.Contains(s.Flags, "FunctionsInExile") {
+			fz = kop.ZoneNone // a two-zone self grant (Squee, the Immortal): the self walk keys on the flags, and one zone in the filter would withhold the other
 		}
 		if st.Filter, err = filter(s.F, fz); err != nil {
 			return ka, nil, err
@@ -2709,6 +2733,12 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 				st.StFlags |= kop.StFreeOnly
 			case "MayPayLife":
 				st.StFlags |= kop.StMayPayLife
+			case "MayZeroAlt":
+				st.StFlags |= kop.StMayZeroAlt // a non-granting alternative cost (cast_mayzeroalt.go)
+			case "MayPayEnergy":
+				st.StFlags |= kop.StMayPayEnergy // the alternative's energy rides Static.A
+			case "MayPayEvidence":
+				st.StFlags |= kop.StMayPayEvidence // the alternative's evidence rides Static.A
 			case "RaiseCostRemove6CountersFromCreatures":
 				st.StFlags |= kop.StRemove6Counters
 			case "MayRaise":
@@ -2769,6 +2799,34 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		return ka, nil, fmt.Errorf("static kind %s", s.Kind)
 	}
 	return ka, add, err
+}
+
+// staticGrant records the one ability a Continuous static grants (kept apart from (*cardBuilder).static so
+// that function stays under its shrink-only ceiling).
+func (cb *cardBuilder) staticGrant(st *kop.Static, s lStatic) error {
+	if len(s.Grant) > 1 {
+		return fmt.Errorf("static grants %d abilities", len(s.Grant))
+	}
+	if len(s.Grant) == 1 {
+		j, ok := cb.abMap[s.Grant[0]]
+		if !ok {
+			return fmt.Errorf("granted ability %d not emitted", s.Grant[0])
+		}
+		st.Grant = uint8(j + 1)
+	}
+	return nil
+}
+
+// staticOverride records a Continuous static's RemoveKeyword$ override (layer 6).
+func (cb *cardBuilder) staticOverride(st *kop.Static, s lStatic) error {
+	if s.Override != nil {
+		i, err := cb.override(s.Override)
+		if err != nil {
+			return err
+		}
+		st.Override = uint16(i + 1)
+	}
+	return nil
 }
 
 // graveLibFlags is the Repl.C placement bits of a GraveToLibrary replacement:
@@ -3488,4 +3546,25 @@ func tapExtraFlag(name string) (kop.StaticFlags, bool) {
 // alternative stays refused (TestDamageTargetPlayerOrPlaneswalkerBuilds).
 func dmgPlayerAltClause(c lClause) bool {
 	return c == (lClause{Types: tPlaneswalker}) || c == (lClause{Types: tBattle})
+}
+
+// cantPlayLandStatic builds the hand land-play lock (cast_cantplayland.go):
+// Origin$ Hand in the static's Zone, the player scope in StFlags, no filter
+// (the lowering refuses a ValidCard$).
+func cantPlayLandStatic(s lStatic, st *kop.Static) error {
+	st.Kind = kop.StatCantPlayLand
+	if s.Zone == zHand {
+		st.Zone = kop.ZoneHand
+	}
+	for _, fl := range s.Flags {
+		switch fl {
+		case "ActivatorYou":
+			st.StFlags |= kop.StRaiseYou
+		case "ActivatorOpp":
+			st.StFlags |= kop.StRaiseOpp
+		default:
+			return fmt.Errorf("cant play land flag %q", fl)
+		}
+	}
+	return nil
 }

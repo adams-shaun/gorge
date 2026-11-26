@@ -82,6 +82,9 @@ func (lc *lowerCtx) emblemCapture(ps *params, t cards.Trigger, eot bool) (lRef, 
 	if !ok {
 		return lc.chosenCardCapture(t, eot)
 	}
+	if strings.TrimSpace(ro) == "Self" {
+		return lRef{}, false, false, t, lc.effectRememberSelf(ps, t, eot) // lower_effectremself.go
+	}
 	if strings.TrimSpace(ro) == "TargetedPlayer" {
 		if !eot || t.Mode != "DamageDone" && t.Mode != "DamageDealtOnce" {
 			return lRef{}, false, false, t, refuse("Effect triggers with RememberObjects$ %q", ro)

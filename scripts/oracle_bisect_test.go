@@ -127,3 +127,22 @@ func TestOracleBisectDefaultTestCommandStartsUnderSetU(t *testing.T) {
 		t.Fatalf("all steps skipped: want exit 3, got %d\n%s", code, out)
 	}
 }
+
+// TestOracleBisectCulpritWithoutTheFirstBadLine: the culprit comes from refs/bisect/bad, not from the text of
+// `git bisect run`. A git whose run output had no "<sha> is the first bad commit" line ended a 36-minute CI
+// bisect with exit 1 and no output (oracle run 45685389788). The shim drops that line from git's output.
+func TestOracleBisectCulpritWithoutTheFirstBadLine(t *testing.T) {
+	t.Parallel()
+	repo, good, bad, tests := bisectRepo(t)
+	realGit, err := exec.LookPath("git")
+	if err != nil {
+		t.Skip("no git")
+	}
+	bin := filepath.Join(t.TempDir(), "bin")
+	write(t, filepath.Join(bin, "git"), "#!/usr/bin/env bash\n\""+realGit+"\" \"$@\" 2>&1 | sed '/is the first bad commit/d'\nexit ${PIPESTATUS[0]}\n", 0o755)
+	env := []string{"PATH=" + bin + string(os.PathListSeparator) + os.Getenv("PATH"), "ORACLE_ENV_CHECK=true", "ORACLE_STEP_BUILD=true", stubTest}
+	out, code := runBisect(t, repo, env, good, bad, tests)
+	if code != 0 || !strings.Contains(out, "CULPRIT ") || !strings.Contains(out, "PR 103 ") {
+		t.Fatalf("want culprit PR 103, got %d\n%s", code, out)
+	}
+}

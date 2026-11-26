@@ -16,6 +16,7 @@ type cardProbes struct {
 	controlStatic bool
 	changesTypes  bool
 	setsName      bool
+	colourWords   bool
 }
 
 // probe returns c's probe answers, computing and publishing them on first
@@ -29,7 +30,8 @@ func (c *Card) probe() *cardProbes {
 	if p := (*cardProbes)(atomic.LoadPointer(&c.probes)); p != nil && p.card == c {
 		return p
 	}
-	p := &cardProbes{card: c, controlStatic: c.mayCarryControlStaticScan(), changesTypes: c.changesTypesScan(), setsName: c.setsNameScan()}
+	p := &cardProbes{card: c, controlStatic: c.mayCarryControlStaticScan(), changesTypes: c.changesTypesScan(),
+		setsName: c.setsNameScan(), colourWords: c.changesColourWordsScan()}
 	atomic.CompareAndSwapPointer(&c.probes, nil, unsafe.Pointer(p))
 	return p
 }

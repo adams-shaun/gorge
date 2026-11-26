@@ -226,7 +226,7 @@ func (s *State) placeFromK(k *prep, o Obj, z kop.Zone, bottom bool, from kop.Zon
 	}
 	pl := &s.pl[ob.owner()]
 	if z == kop.ZoneGraveyard && s.g.on {
-		if k.gen != nil && k.gen.exileAnyC != nil {
+		if k.gen != nil && (k.gen.exileAnyC != nil || k.embExileAny) {
 			z = s.exileAnyDest(k, o, from) // Rest in Peace or the card itself from any zone (repl_exileonleave.go)
 		}
 	}
@@ -346,7 +346,7 @@ func (s *State) drawExcl(p uint8, ch drawChain) {
 	if pl.libLo == pl.libHi {
 		// the player loses at the next state-based check (CR 704.5b), not
 		// mid-resolution (Strix Lookout's draw then its other effects)
-		pl.drewEmpty = true
+		pl.mark |= pmDrewEmpty
 		return
 	}
 	if s.cfgx&cfgxDrawMore != 0 && s.drawMore(p, ch) {
@@ -477,13 +477,21 @@ func (s *State) enter(k *prep, o Obj, ctrl uint8, tapped bool, from kop.Zone) Sl
 	if s.g.entHost != 0 {
 		host = s.attachEntering(k, sl) // zone_handmoveaura.go
 	}
-	if s.anyETB(k) && !(s.g.pre.ordMid && s.g.pre.obj == o) && !s.deferETBToCtrPick(k, sl, n0) { // a copy waiting on gorge's second order ask fires them once applied (repl_entryclone.go); an as-enters counter pick once answered (ctr_choice.go)
-		s.fireObj(k, kop.TrigETB, sl, o, ctrl, 0)
+	// k.anyOffGrant: the granted-offspring copy trigger is a granted walk, not a
+	// subscription (gorge's checkGrantedOffspringTriggers runs on the MoveZone
+	// visit whatever the battlefield's printed ETB listeners), so a board with
+	// no ETB listener still fires the event for its queueOffspringGrant
+	// (kw_offspring.go).
+	if s.anyETB(k) || k.anyOffGrant {
+		if !(s.g.pre.ordMid && s.g.pre.obj == o) && !s.deferETBToCtrPick(k, sl, n0) { // a copy waiting on gorge's second order ask fires them once applied (repl_entryclone.go); an as-enters counter pick once answered (ctr_choice.go)
+			s.fireObj(k, kop.TrigETB, sl, o, ctrl, 0)
+		}
 	}
 	s.attachedEntered(k, sl, host)
 	if k.anyRoom && from == kop.ZoneStack {
 		s.roomEntryUnlock(k, sl, o) // the cast door's UnlockDoor (face_rooms.go)
 	}
+	s.storyGrant(k) // CR 702.195a: the emit-tail grant, after the entry's triggers (kw_storied.go)
 	return sl
 }
 
@@ -606,7 +614,7 @@ func (s *State) enterNF(k *prep, o Obj, ctrl uint8, tapped bool, from kop.Zone, 
 			}
 		}
 	}
-	if k.engAsc { // engines || ascend: the one entry-hook test (a table with neither pays one byte load)
+	if k.engAsc { // engines || ascend: the one entry-hook test (a table with neither pays one byte load); the storied grant runs after the entry's triggers (storyGrant, kw_storied.go)
 		if k.engines {
 			s.speedStart(k, SpeedCntStartEntry) // kw_speed.go
 		}

@@ -466,6 +466,11 @@ type CardDef struct {
 	// blessing once they control ten or more permanents, and an instant or
 	// sorcery carrying it grants it as it resolves (dirac/kw_ascend.go).
 	Ascend bool
+	// Storied is printed Storied (CR 702.195; kop.KwStoried): its controller
+	// gets the one-way enduring-story latch once they control three or more
+	// permanents that are artifacts, legendaries and/or Sagas, one of them
+	// carrying Storied (dirac/kw_storied.go).
+	Storied bool
 	// Unleash is printed Unleash (CR 702.86; kop.KwUnleash): the permanent
 	// may enter with a +1/+1 counter (the as-enters ask, dirac/kw_unleash.go)
 	// and can't block while it has a +1/+1 counter on it.
@@ -688,6 +693,13 @@ type CardDef struct {
 	HasEvoke bool
 	// EvokeCost is the printed evoke cost (HasEvoke).
 	EvokeCost ManaCost
+	// EvokePick is the printed evoke cost's non-mana part (HasEvoke; the
+	// MH2 Incarnations' ExileFromHand<1/Card.<colour>+Other>): the hand-exile
+	// pick shape of an alternative cost (dirac.altHandExileCost), paid
+	// through the evoked cast's pick stage in place of the spell's
+	// additional cost (gorge keywordAltCost parses the keyword parameter as a
+	// whole cost). The zero value is no such part.
+	EvokePick Cost
 	// HasDash is printed dash (CR 702.109a; no KwMask bit is free): the hand
 	// offers the dashed cast at DashCost (gorge's "dashed" option,
 	// FlagDashed); the permanent that cast produces gains haste and returns

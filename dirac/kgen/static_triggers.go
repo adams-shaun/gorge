@@ -32,7 +32,12 @@ func (sc *staticCtx) modePanharmonicon() ([]lStatic, bool, error) {
 	if !ok {
 		return nil, true, refuse("Panharmonicon without ValidCard$")
 	}
-	if sc.st.Cond.Kind != cNone {
+	if sc.st.Cond.Kind != cNone && sc.st.Cond.Kind != cEnduringStory {
+		// the EnduringStory gate lowers (staticGateCond, gorge
+		// panharmoniconEchoes' continuousGateHolds read: Bifur, Melodic
+		// Rider, the corpus's only gated Panharmonicon static); any other
+		// Condition$ / IsPresent$ / CheckSVar$ gate is unread, so the shared
+		// unread check refuses it by name.
 		return nil, true, refuse("Panharmonicon with a Condition$ / IsPresent$ / CheckSVar$ gate")
 	}
 	if sc.st.F, err = lc.filter(v); err != nil {

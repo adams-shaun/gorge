@@ -39,13 +39,12 @@ var effectContainerMayPlayNivixDecks = [2][]cardset.Entry{
 	},
 }
 
-// One Mission Briefing copy: the kernel's ExileOnMoved$ remembered grant is
-// exact for one card (dirac/cast_mayplayremembered.go), and two concurrent
-// Effect grants would conflate the global remembered pool into an unmodelled
-// stall -- a limitation of the remembered-grant class, not of this lowering.
+// Four Mission Briefing copies: two resolving in one turn can choose the same
+// graveyard card, which marks its permission twice (the second mark is not a
+// stall; TestEffectContainerMayPlayDoubleGrantLockstep drives the pair).
 var effectContainerMayPlayMissionDecks = [2][]cardset.Entry{
 	{
-		{Name: "Mission Briefing", Count: 1}, {Name: "Divination", Count: 16}, {Name: "Island", Count: 23},
+		{Name: "Mission Briefing", Count: 4}, {Name: "Divination", Count: 13}, {Name: "Island", Count: 23},
 	},
 	{
 		{Name: "Grizzly Bears", Count: 20}, {Name: "Forest", Count: 20},
@@ -63,6 +62,64 @@ var effectContainerMayPlayExtraTurnDecks = [2][]cardset.Entry{
 	},
 }
 
+// One Yawgmoth's Will and one Magus of the Will copy: two concurrent
+// grave-to-exile replacements compete on one move and pose gorge's CR 616.1
+// order ask, which the kernel's emblem walk never poses (a stall), so the
+// pool decks carry one carrier each, the Mission Briefing precedent.
+var effectContainerMayPlayYawgDecks = [2][]cardset.Entry{
+	{
+		{Name: "Yawgmoth's Will", Count: 1}, {Name: "Shock", Count: 8},
+		{Name: "Divination", Count: 8}, {Name: "Mountain", Count: 10},
+		{Name: "Island", Count: 6}, {Name: "Swamp", Count: 7},
+	},
+	{
+		{Name: "Grizzly Bears", Count: 20}, {Name: "Forest", Count: 20},
+	},
+}
+
+var effectContainerMayPlayMagusDecks = [2][]cardset.Entry{
+	{
+		{Name: "Magus of the Will", Count: 1}, {Name: "Shock", Count: 8},
+		{Name: "Divination", Count: 8}, {Name: "Grizzly Bears", Count: 6},
+		{Name: "Mountain", Count: 6}, {Name: "Island", Count: 6}, {Name: "Swamp", Count: 5},
+	},
+	{
+		{Name: "Grizzly Bears", Count: 20}, {Name: "Forest", Count: 20},
+	},
+}
+
+// Abstruse Appropriation exiles the opponent's Grizzly Bears; casting it from
+// exile owes {1}{G}, which Energy Tap's floating {C}{C}{C}{C} (it taps a Hill
+// Giant) cover only through the record's ManaConversion$ C->AnyColor ({G}
+// takes a {C}); the caster has no green source, so a payment the arm refuses
+// (coloured mana on another colour's pip) is the offer the cast must not
+// make. The policy floats the colourless mana with the spell, as the other
+// conversion lockstep decks do (a mana ability is no priority option).
+var effectContainerMayPlayAbstruseDecks = [2][]cardset.Entry{
+	{
+		{Name: "Abstruse Appropriation", Count: 4}, {Name: "Energy Tap", Count: 4}, {Name: "Hill Giant", Count: 6},
+		{Name: "Plains", Count: 5}, {Name: "Swamp", Count: 5}, {Name: "Island", Count: 5}, {Name: "Mountain", Count: 5},
+		{Name: "Wastes", Count: 6},
+	},
+	{
+		{Name: "Grizzly Bears", Count: 20}, {Name: "Forest", Count: 20},
+	},
+}
+
+// One Memory Vessel copy: two concurrent dig Effects would conflate the
+// remembered pool (each player may play the cards THEIR dig exiled), which
+// the per-owner records already keep apart; the pool decks carry one.
+var effectContainerMayPlayVesselDecks = [2][]cardset.Entry{
+	{
+		{Name: "Memory Vessel", Count: 1}, {Name: "Shock", Count: 8},
+		{Name: "Divination", Count: 8}, {Name: "Grizzly Bears", Count: 4},
+		{Name: "Mountain", Count: 10}, {Name: "Swamp", Count: 9},
+	},
+	{
+		{Name: "Grizzly Bears", Count: 20}, {Name: "Forest", Count: 20},
+	},
+}
+
 // effectContainerMayPlayStats counts the decisions the policy takes through
 // the carrier: an activation, a non-hand cast (graveyard or exile), the
 // carrier's own casts (a spell carrier's hand casts), and the casts of the
@@ -70,6 +127,15 @@ var effectContainerMayPlayExtraTurnDecks = [2][]cardset.Entry{
 // zone cast).
 type effectContainerMayPlayStats struct {
 	activates, zoneCasts, carrierCasts, preferCasts int
+	// float names a mana spell the policy casts while a card sits in exile
+	// and no zone cast is offered, floating its mana for the exile cast
+	// (Energy Tap's colourless mana for Abstruse Appropriation); floats
+	// counts the casts.
+	float  string
+	floats int
+	// greenCasts counts the exile casts of a Grizzly Bears: its {G} is payable
+	// only by the floated {C} through the colourless-mana conversion.
+	greenCasts int
 }
 
 // effectContainerMayPlayPolicy activates card whenever it is offered, then
@@ -88,7 +154,13 @@ func effectContainerMayPlayPolicy(card, prefer string, st *effectContainerMayPla
 			if c.D.Kind != DPriority || c.G == nil {
 				return base.Pick(c)
 			}
-			var act, zone, land, cast, zoneCarrier, handCarrier, pre []Canon
+			var act, zone, land, cast, zoneCarrier, handCarrier, pre, floatAct []Canon
+			exiled := false
+			if st.float != "" {
+				for p := state.PlayerID(0); p < 2; p++ {
+					exiled = exiled || len(c.G.E.G.Zone(state.ZExile, p)) > 0
+				}
+			}
 			for _, a := range c.D.Options {
 				switch a.Kind() {
 				case ActActivate:
@@ -101,6 +173,9 @@ func effectContainerMayPlayPolicy(card, prefer string, st *effectContainerMayPla
 						continue
 					}
 					carrier := effectContainerMayPlayName(c.G, o.Obj) == card
+					if exiled && effectContainerMayPlayName(c.G, o.Obj) == st.float {
+						floatAct = append(floatAct, a)
+					}
 					if prefer != "" && !carrier && effectContainerMayPlayName(c.G, o.Obj) == prefer {
 						pre = append(pre, a)
 					}
@@ -121,6 +196,9 @@ func effectContainerMayPlayPolicy(card, prefer string, st *effectContainerMayPla
 			}
 			taken := func(opts []Canon, carriers []Canon) Canon {
 				a := pick(opts)
+				if o, ok := c.G.GorgeOption(a); ok && st.float != "" && effectContainerMayPlayName(c.G, o.Obj) == "Grizzly Bears" {
+					st.greenCasts++
+				}
 				for _, z := range carriers {
 					if z == a {
 						st.carrierCasts++ // the carrier itself was cast
@@ -139,6 +217,9 @@ func effectContainerMayPlayPolicy(card, prefer string, st *effectContainerMayPla
 			case len(zone) > 0:
 				st.zoneCasts++
 				return taken(zone, zoneCarrier)
+			case len(floatAct) > 0:
+				st.floats++
+				return pick(floatAct)
 			case len(land) > 0:
 				return pick(land)
 			case len(cast) > 0:
@@ -222,6 +303,56 @@ func TestEffectContainerMayPlayLockstep(t *testing.T) {
 		// back from the graveyard, leaving the stack to exile.
 		if st := effectContainerMayPlayRunCast(t, effectContainerMayPlayMissionDecks, "Mission Briefing"); st.zoneCasts == 0 {
 			t.Fatal("Mission Briefing's chosen-card permission offered no cast")
+		}
+	})
+	t.Run("graveyard-to-exile replacement", func(t *testing.T) {
+		// The Will group's emblem carries the graveyard permission beside the
+		// any-zone dies-to-exile replacement: Yawgmoth's Will's cast fills
+		// the graveyard with the spells played so far, the policy casts them
+		// back, and the card it exiles instead of a graveyard (the Will
+		// itself, a Shock played back and discarded) is the replacement's
+		// read; Magus of the Will activates the same shape from the
+		// battlefield. Gaea's Will lowers identically (the kgen table); its
+		// suspend cast is not reached by any policy here.
+		if st := effectContainerMayPlayRunCast(t, effectContainerMayPlayYawgDecks, "Yawgmoth's Will"); st.zoneCasts == 0 {
+			t.Fatal("Yawgmoth's Will's graveyard permission offered no cast")
+		}
+		if st := effectContainerMayPlayRun(t, effectContainerMayPlayMagusDecks, "Magus of the Will"); st.zoneCasts == 0 {
+			t.Fatal("Magus of the Will's graveyard permission offered no cast")
+		}
+	})
+	t.Run("colourless mana as any colour", func(t *testing.T) {
+		// Abstruse Appropriation's Effect exiles the opponent's permanent and
+		// grants its cast for as long as it stays exiled, with colourless
+		// mana spendable as any colour: the policy casts the carrier, then
+		// takes the exile cast of the Bears, whose {G} only a {C} pays.
+		reg, set, gd := lockstepPool(t, effectContainerMayPlayPool, effectContainerMayPlayAbstruseDecks)
+		if !SetDeckSupported(set, gd[0]) {
+			t.Fatal("the Abstruse Appropriation deck is not playable in the pool")
+		}
+		st := effectContainerMayPlayStats{float: "Energy Tap"}
+		clean, casts, div := lockstepSeeds(t, reg, set, effectContainerMayPlayPool, effectContainerMayPlayAbstruseDecks, gd, 1, 24, true, nil, nil,
+			effectContainerMayPlayPolicy("Abstruse Appropriation", "", &st))
+		if div > 0 {
+			t.Fatalf("Abstruse Appropriation: %d of %d games diverged", div, clean+div)
+		}
+		t.Logf("Abstruse Appropriation: %d clean games, %d carrier casts, %d Energy Tap casts, %d non-hand casts (%d of a Grizzly Bears), %d casts/activations",
+			clean, st.carrierCasts, st.floats, st.zoneCasts, st.greenCasts, casts)
+		if st.carrierCasts == 0 || st.floats == 0 || st.greenCasts == 0 {
+			t.Fatalf("the scenario never ran (%d carrier casts, %d Energy Tap casts, %d exile casts of a Grizzly Bears)", st.carrierCasts, st.floats, st.greenCasts)
+		}
+	})
+	t.Run("per-owner dig permission beside the hand locks", func(t *testing.T) {
+		// Memory Vessel's dig remembers each player's exiled cards; the
+		// until-your-next-turn Effect grants each player the casts of the
+		// cards THEY exiled (the per-owner records) and locks both players'
+		// hand lands and hand casts while it is live, ending at the
+		// activator's next turn. The policy activates the Vessel and takes
+		// the exile casts; a lock either side misses turns the hand walk's
+		// or cast gate's option lists apart, and a boundary either side gets
+		// wrong diverges at the cleanup it expires on.
+		if st := effectContainerMayPlayRun(t, effectContainerMayPlayVesselDecks, "Memory Vessel"); st.zoneCasts == 0 {
+			t.Fatal("Memory Vessel's per-owner permission offered no exile cast")
 		}
 	})
 	t.Run("until next turn ends before an extra turn", func(t *testing.T) {

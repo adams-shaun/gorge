@@ -111,6 +111,7 @@ func (s *State) holdBatch(b *entBatch) {
 func (s *State) fireEntries(k *prep, b *entBatch) {
 	if !s.anyETB(k) {
 		b.n = 0
+		s.storyGrant(k) // the batch's entrants still grant (kw_storied.go)
 		return
 	}
 	if k.gen != nil && k.gen.anyBatch {
@@ -121,6 +122,7 @@ func (s *State) fireEntries(k *prep, b *entBatch) {
 		if s.occ.has(sl) && s.perms[sl].obj == o {
 			s.fireObj(k, kop.TrigETB, sl, o, s.perms[sl].ctrl, 0)
 		}
+		s.storyGrant(k) // gorge grants on each entrant's own emit tail, so a later entrant's triggers see an earlier entrant's grant (kw_storied.go)
 	}
 	b.n = 0
 }

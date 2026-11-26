@@ -115,7 +115,12 @@ func atomSynth(t *testing.T) *atomSeed {
 			}
 			c.AddDecks(files)
 			cfg := Config{GorgeAutopaySurface: true}
+			idx := make([]int, 0, atomPairs+1)
 			for i := 0; i < atomPairs; i++ {
+				idx = append(idx, i)
+			}
+			idx = append(idx, atomSynthExtra[name]...)
+			for _, i := range idx {
 				p := PairingAt(pool, i, 1)
 				m, tbl, err := SetMatchup(set, c, p.A, p.B, 0)
 				if err != nil {
@@ -131,6 +136,14 @@ func atomSynth(t *testing.T) *atomSeed {
 		a.done = true
 	})
 }
+
+// atomSynthExtra names the pairs a synthetic pool plays beyond its first
+// atomPairs. std-blb's pair 1 is refused (comboanymix) and std-otj's pair 0
+// plays a game that reads fw:Card.counters_GE2_P1P1 false throughout, so
+// the pool's first pairs never put two +1/+1 counters on a permanent while
+// the atom is read: pair 2 does (a permanent with two counters and one
+// with fewer both stand in its game).
+var atomSynthExtra = map[string][]int{"std-blb": {2}}
 
 func atomPod(t *testing.T) *atomSeed {
 	a := atomSeeds["pod"]
