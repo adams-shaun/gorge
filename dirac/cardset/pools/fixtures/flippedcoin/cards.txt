@@ -1,0 +1,13 @@
+# Mode$ FlippedCoin, whenever you win a coin flip (kop.TrigFlippedCoin,
+# kernel trig_flippedcoin.go, gorge trigmatch flippedCoinMatches), beside
+# called coin flips, for the oracle's constructed lockstep
+# (dirac/oracle/setsparams4_lowers_test.go)
+Tavern Scoundrel
+Chance Encounter
+Setzer, Wandering Gambler
+Goblin Archaeologist
+Ornithopter
+Grizzly Bears
+Mountain
+Swamp
+Forest
