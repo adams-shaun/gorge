@@ -24,14 +24,25 @@ import (
 // and a raw set can still play it.
 const supportNode = "support"
 
+// A pod evidence row's seats field (Name\t<seats>) tells a pod game from a
+// two-seat one. A three-seat row is report only: it feeds podEvidenced, the
+// support page's column. A four-seat row evidences the card (OD-4 stage 2): a
+// Commander-legal card's own key that a two-seat game never reaches, such as
+// Command Tower's colour-identity mana, is credited from a clean four-seat game
+// exactly as a two-seat game's key is. The evidence writer applies the protected
+// oracle.EvidencePodMinPlays clean-game floor before it writes a row.
+const (
+	podReportSeats = 3 // a clean pod game the support page reports
+	podCreditSeats = 4 // a clean pod game that evidences the card
+)
+
 // supportLists is the parsed dirac/support tree.
 type supportLists struct {
 	refused   map[string]*cardset.RefusedEntry
 	evidenced map[string]bool
-	// podEvidenced names whose evidence row carries a seats field of three or
-	// more: the card has a clean pod game. It is report only — statusOf does
-	// not read it, so a pod game does not evidence a card the support rule
-	// (which stage 2, OD-4, may change) does not already cover.
+	// podEvidenced names whose evidence row carries a seats field of podReportSeats
+	// or more: the card has a clean pod game. statusOf reads evidenced, which a
+	// four-seat row also sets; a three-seat row only feeds this report column.
 	podEvidenced map[string]bool
 }
 
@@ -56,14 +67,20 @@ func readSupport(src fs.FS) (*supportLists, error) {
 		for _, r := range parseCardRows(b) {
 			if r.col == "" {
 				// A plain row is the evidence that makes a card supported.
-				// A tabbed row (Name\t<seats>) is pod evidence, and a pod game
-				// does not evidence a card: stage 1's support rule is
-				// unchanged, so it only feeds podEvidenced.
 				s.evidenced[r.name] = true
 				continue
 			}
-			if n, err := strconv.Atoi(strings.TrimSpace(r.col)); err == nil && n >= 3 {
+			// A tabbed row is a pod run's row (Name\t<seats>): three seats
+			// report, four seats also evidence.
+			n, err := strconv.Atoi(strings.TrimSpace(r.col))
+			if err != nil {
+				continue
+			}
+			if n >= podReportSeats {
 				s.podEvidenced[r.name] = true
+			}
+			if n >= podCreditSeats {
+				s.evidenced[r.name] = true
 			}
 		}
 	}
