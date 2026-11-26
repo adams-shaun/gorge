@@ -2073,6 +2073,9 @@ func (cb *cardBuilder) clause(c lClause, zone kop.Zone) (kop.Filter, error) {
 		}
 		kf.Pred, kf.PredN = kop.PredHasKeyword, int16(c.CmpN)
 	case cmpCMC:
+		if err := greatestCMCZoneRefusal(c, zone); err != nil {
+			return kf, err
+		}
 		if c.CmpV != nil {
 			bound := *c.CmpV
 			switch c.CmpOp {
