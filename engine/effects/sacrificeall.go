@@ -57,6 +57,13 @@ func effSacrificeAll(h Host, c *Ctx, sa *cards.SA) {
 		if o == nil || o.Zone != state.ZBattlefield {
 			return
 		}
+		if o.PhasedOut {
+			// CR 702.26b: a phased-out permanent is treated as though it
+			// does not exist, so nothing sacrifices it (Parasitic Implant's
+			// upkeep trigger resolving after its creature phased out with
+			// Slip Out the Back: Defined$ Enchanted still names the host).
+			return
+		}
 		captureSacrificed(h, c, id, remember)
 		h.Emit(events.Sacrifice(id))
 	}
