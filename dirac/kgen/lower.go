@@ -2756,6 +2756,12 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 			c.SubCtrX, c.SubCtrXKnd = true, parts[1]
 			continue
 		}
+		if head == "SubCounter" && len(parts) >= 2 && parts[0] == "All" {
+			if err := lc.subCtrAllCost(&c, parts, t); err != nil { // lower_costprog.go
+				return c, err
+			}
+			continue
+		}
 		if head == "tapXType" && parts[0] == "X" {
 			// tapXType<X/Spec>: tap any number, X the count (lower_tapxvar.go)
 			if err := lc.tapXVarCost(&c, parts, t); err != nil {
@@ -2810,6 +2816,19 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 				continue
 			}
 			// gorge cost.parse folds a cost spec's ";" alternation to ","
+			if c.Sac != nil && !c.SacX && !c.SacExile && n >= 1 && len(mana) == 0 && lc.sacMoreOK() {
+				// a further filtered part of a printed activated ability's
+				// cost: its own pick, paid by the cost program (lower_costprog.go).
+				// Beside a mana part it keeps the refusal below (the planner's
+				// sacrifice reservation claims one part; costProg refuses a
+				// mana part written after the sacrifices)
+				f, err := lc.filter(strings.ReplaceAll(parts[1], ";", ","))
+				if err != nil {
+					return c, err
+				}
+				c.SacMore = append(c.SacMore, lSacPart{F: f, N: n})
+				continue
+			}
 			if c.SacX || c.SacExile || c.Sac != nil {
 				// the kernel pays one Sac pick: a second part (Jarad's Sac<1/Swamp>
 				// Sac<1/Forest>) would overwrite the first and offer the wrong land
