@@ -2004,50 +2004,14 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		return ka, nil, err
 	}
 	st.OvGate = s.OvGate
-	filter := func(f *lFilter, zone kop.Zone) (kop.FilterID, error) {
-		if f == nil {
-			return 0, nil
-		}
-		return cb.filter(f, zone)
-	}
-	amounts := func(a, b lValue) error {
-		if (a.Kind == vNone || a.isConst()) && (b.Kind == vNone || b.isConst()) {
-			st.A, st.B = int16(a.N), int16(b.N)
-			return nil
-		}
-		st.StFlags |= kop.StDynamic
-		if st.VA, err = cb.value(a); err != nil {
-			return err
-		}
-		st.VB, err = cb.value(b)
-		return err
-	}
+	// the prologue's closures are methods now (staticFilter, staticAmounts,
+	// staticTargets2 below), so the registered build arms (static_reg.go)
+	// and this switch share them
+	filter := cb.staticFilter
+	amounts := func(a, b lValue) error { return cb.staticAmounts(st, a, b) }
 	// targets2 lowers a cost static's ValidTarget$ spec (ReduceCost, RaiseCost)
 	// into Filter2 under StTargetsFilter2
-	targets2 := func() error {
-		if s.F2 == nil {
-			return nil
-		}
-		st.StFlags |= kop.StTargetsFilter2
-		// a Spell head (Out of Air's Spell.Creature) targets a spell:
-		// the whole filter reads the stack (costTargetOK's stack
-		// branch); a filter mixing it with a permanent head refuses
-		zone, spells := kop.ZoneBattlefield, 0
-		for _, c := range s.F2.Clauses {
-			if c.SpellBase {
-				spells++
-			}
-		}
-		switch {
-		case spells == 0:
-		case spells == len(s.F2.Clauses) && s.F2.Players == 0:
-			zone = kop.ZoneStack
-		default:
-			return refuse("ReduceCost ValidTarget$ mixes a Spell head with another")
-		}
-		st.Filter2, err = filter(s.F2, zone)
-		return err
-	}
+	targets2 := func() error { return cb.staticTargets2(st, s.F2) }
 	var add []uint8
 	// a registered build arm lowers through staticBuilds (static_reg.go);
 	// the arms still in the switch below fall through to it
@@ -2056,56 +2020,6 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		return ka, add, err
 	}
 	switch s.Kind {
-	case "Continuous":
-		zone := continuousKind(st, s.Flags, s.Zone) // lower_offzone.go
-		if s.F != nil && s.F.Players != 0 {
-			// "You and <objects> you control have hexproof" (Captain America,
-			// Shalai, Sigarda): the controller half rides StYouHexproof (the
-			// kernel's playerHexproof reads it under Cond2). Any other
-			// player half was dropped by filter() before shield: refused.
-			if s.F.Players != plYou || len(s.Kw) != 1 || s.Kw[0] != "Hexproof" || s.Power.Kind != vNone || s.Tough.Kind != vNone ||
-				len(s.Grant) != 0 || len(s.AddSub) != 0 || s.AddChosen {
-				return ka, nil, fmt.Errorf("continuous static affecting players %d (only \"you have hexproof\" is read)", s.F.Players)
-			}
-			st.StFlags |= kop.StYouHexproof
-		}
-		st.StFlags |= gyContStFlag(s.Flags)
-		if st.Filter, err = filter(s.F, zone); err != nil {
-			return ka, nil, err
-		}
-		if err := amounts(s.Power, s.Tough); err != nil {
-			return ka, nil, err
-		}
-		if err := continuousStFlags(s, st); err != nil {
-			return ka, nil, err
-		}
-		if st.Kw, err = kwMask(s.Kw); err != nil {
-			return ka, nil, err
-		}
-		st.Ward = uint8(s.Ward)
-		st.WardLife = uint8(s.WardLife)
-		if add, err = cb.subIndexes(s.AddSub); err != nil {
-			return ka, nil, err
-		}
-		st.AddChosen = s.AddChosen
-		st.OutlivesLoss = s.OutlivesLoss
-		if err := cb.staticGrant(st, s); err != nil {
-			return ka, nil, err
-		}
-		if st.ProtFrom, err = filter(s.ProtFrom, kop.ZoneBattlefield); err != nil {
-			return ka, nil, err
-		}
-		st.ProtChosen = s.ProtChosen
-		if st.ProtExc, err = filter(s.ProtExc, kop.ZoneBattlefield); err != nil {
-			return ka, nil, err
-		}
-		if st.Landwalk, st.GainsOf, err = continuousFilterPair(filter, &s, st); err != nil {
-			return ka, nil, err
-		}
-		st.Evasion, st.Infect = s.Evasion, s.Infect // lower_kwmark.go
-		if err := cb.staticOverride(st, s); err != nil {
-			return ka, nil, err
-		}
 	case "CDAPT":
 		st.Kind = kop.StatCDAPT
 		st.StFlags |= kop.StDynamic
@@ -2786,6 +2700,60 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		return ka, nil, fmt.Errorf("static kind %s", s.Kind)
 	}
 	return ka, add, err
+}
+
+// staticFilter is the shared prologue's filter read of (*cardBuilder).static:
+// a nil filter builds nothing (static_reg.go's registered arms and the
+// unregistered switch share it).
+func (cb *cardBuilder) staticFilter(f *lFilter, zone kop.Zone) (kop.FilterID, error) {
+	if f == nil {
+		return 0, nil
+	}
+	return cb.filter(f, zone)
+}
+
+// staticAmounts lowers a static's two numeric operands: two constants (or
+// absences) ride A and B, anything else reads dynamic values under StDynamic.
+func (cb *cardBuilder) staticAmounts(st *kop.Static, a, b lValue) error {
+	if (a.Kind == vNone || a.isConst()) && (b.Kind == vNone || b.isConst()) {
+		st.A, st.B = int16(a.N), int16(b.N)
+		return nil
+	}
+	st.StFlags |= kop.StDynamic
+	var err error
+	if st.VA, err = cb.value(a); err != nil {
+		return err
+	}
+	st.VB, err = cb.value(b)
+	return err
+}
+
+// staticTargets2 lowers a cost static's ValidTarget$ spec (ReduceCost,
+// RaiseCost) into Filter2 under StTargetsFilter2.
+func (cb *cardBuilder) staticTargets2(st *kop.Static, f2 *lFilter) error {
+	if f2 == nil {
+		return nil
+	}
+	st.StFlags |= kop.StTargetsFilter2
+	// a Spell head (Out of Air's Spell.Creature) targets a spell:
+	// the whole filter reads the stack (costTargetOK's stack
+	// branch); a filter mixing it with a permanent head refuses
+	zone, spells := kop.ZoneBattlefield, 0
+	for _, c := range f2.Clauses {
+		if c.SpellBase {
+			spells++
+		}
+	}
+	switch {
+	case spells == 0:
+	case spells == len(f2.Clauses) && f2.Players == 0:
+		zone = kop.ZoneStack
+	default:
+		return refuse("ReduceCost ValidTarget$ mixes a Spell head with another")
+	}
+	fid, err := cb.staticFilter(f2, zone)
+	st.Filter2 = fid
+	return err
 }
 
 // staticGrant records the one ability a Continuous static grants (kept apart from (*cardBuilder).static so
