@@ -1,0 +1,11 @@
+# the referenced-object pool: Targeted$CardNumColors (Breathe Your Last,
+# Might of the Nephilim) and TriggeredSource$CardToughness (Ikra Shidiqi)
+# beside mono and two-colour creatures and basics
+# (dirac/oracle/valueheads2_lowers_test.go)
+Breathe Your Last
+Might of the Nephilim
+Ikra Shidiqi, the Usurper
+Putrid Leech
+Grizzly Bears
+Swamp
+Forest
