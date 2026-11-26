@@ -2394,7 +2394,7 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		st.Kind = kop.StatCyclingAlt // static_cyclingalt.go: the gate is Cond2, the cost the twin's (build_cyclingalt.go)
 	case "AlternativeCost":
 		st.Kind = kop.StatAlternativeCost
-		if ka.Cost, err = cb.cost(s.Cost); err != nil {
+		if ka.Cost, err = cb.altCostStatic(s, st); err != nil { // static_cost.go: a grant's flag and filter too
 			return ka, nil, err
 		}
 		// the zone the static is offered from (kernel prepAltFree's one

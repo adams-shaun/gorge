@@ -252,6 +252,11 @@ func (r *Translator) Action(a dirac.Action) Canon {
 			// kernel cast_altfree.go castAltTgt): gorge's
 			// alternativeCosts cast, mode "", AltCostIndex 1
 			cm = 1 << 4
+		case mode == 0 && tgt > dirac.FeatCastAltIdxTgt && tgt <= dirac.FeatCastAltIdxTgt+dirac.FeatMaxAltGrants && r.S.ObjZone(dirac.Obj(src)) == kop.ZoneHand:
+			// a granted mana alternative cost (Fist of Suns, Rooftop Storm;
+			// kernel cast_altgrant.go): the target byte is the entry's
+			// AltCostIndex in gorge's alternativeCosts list
+			cm = uint8(tgt-dirac.FeatCastAltIdxTgt) << 4
 		case mode == 0 && tgt == 1 && r.S.ObjZone(dirac.Obj(src)) == kop.ZoneGraveyard:
 			// the same alternative from the graveyard (kernel
 			// cast_gravealt.go offerGraveyardAltCasts; gorge
