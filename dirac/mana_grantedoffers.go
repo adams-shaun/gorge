@@ -1401,6 +1401,9 @@ func (g *grantSrch) candidates(s *State) {
 			continue
 		}
 		ng := s.grantIdxs(g.k, sl, &g.gi[g.n])
+		if ng > 0 && s.grantsDominated(g.k, sl, &g.gi[g.n], int(ng)) {
+			ng = 0 // gorge's census covers it (mana_grantdominated.go)
+		}
 		smi := sm
 		if ng > 0 && si.has(sl) {
 			smi = sm.with(sl) // an idle battery beside its grant: the printed ask answer first
