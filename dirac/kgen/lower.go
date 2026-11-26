@@ -3800,9 +3800,8 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 			if ab.ActCond.Kind != cNone {
 				return refuse("two activation conditions")
 			}
-			if sa.API == "Mana" {
-				return refuse("CheckSVar$ on a mana ability")
-			}
+			// on a mana ability the gate rides the kernel's planner/window
+			// variant (mana_gate.go), read per call by condEval
 			v, err := lc.value(cs)
 			if err != nil {
 				return err
