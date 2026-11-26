@@ -278,9 +278,9 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 		c := s.objs[o].card
 		pc := &k.cards[c]
 		marked := fbLo != nil && (fbLo.has(o) || fbHi.has(o))
-		granted := pc.kw&kop.KwFlashback == 0 && (marked || s.fbLive(k, o)) // a stamped grant or a live static's (kw_fbgrant.go)
-		if pc.kw&kop.KwFlashback == 0 && !granted || (!pc.instant && !sorc && !s.castFlash(k, p, c)) {
-			continue // (cast as though it had flash: High Fae Trickster)
+		skip, granted := s.flashbackSkips(k, p, c, o, pc, marked, sorc)
+		if skip {
+			continue
 		}
 		s.availOnce(k, p, &av, &haveAv)
 		fc := k.t.Cards[c].AltCost
