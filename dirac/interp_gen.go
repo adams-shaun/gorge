@@ -2175,6 +2175,12 @@ func (s *State) execChangeZoneAll(k *prep, in *kop.Instr, resume bool) (done boo
 // cards are still in the library, each ask answered in turn, and the rest move after
 // the last answer (gorge effDigUntil's emit order, Forge DigUntilEffect).
 func (s *State) execDigUntil(k *prep, in *kop.Instr, resume bool) bool {
+	if in.W == kop.RefPlanarDeck {
+		// DigZone$ PlanarDeck (W RefPlanarDeck): the planar arm
+		// (zone_digplanar.go). It scans the seat's planar record and parks
+		// nothing, so there is no resume arm.
+		return s.digUntilPlanar(k, in)
+	}
 	q := s.eachPlayers(k, in.Obj)
 	for i := uint8(0); i < q.n; i++ {
 		p := q.s[i]

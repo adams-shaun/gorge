@@ -223,6 +223,7 @@ var auraEntryCensusEffects = map[string]string{
 	"digmultiple.go:effDigMultiple":             "gate: DigMultiple's destination may be the battlefield",
 	"diguntil.go:effDigUntil":                   "marks: revealed-Aura bearer (its own diguntil_aura ask) precedes the move",
 	"diguntil.go:digUntilReturnRest":            "noentry: the revealed rest returns to the library bottom or a non-battlefield zone; the found card's own move stays in effDigUntil",
+	"diguntil.go:digUntilFoundPlainMove":        "noentry: the found card's library or same-zone placement and its plain non-battlefield move; the battlefield entry stays in effDigUntil",
 	"clone.go:effClone":                         "attach: re-attaches the object becoming a copy; no zone change",
 	"context.go:moveZoneEvent":                  "gate: the shared MoveZone constructor (variable destination)",
 	"copypermanent.go:effCopyPermanent":         "marks: AttachedTo$ copy token",

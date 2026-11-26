@@ -202,6 +202,7 @@ func effDigUntil(h Host, c *Ctx, sa *cards.SA) {
 	var imprintObjs []state.ObjID
 	for _, p := range players {
 		lib := zoneOf(g, state.ZLibrary, p)
+		scanFrom, lib := digUntilScanZone(g, dp, p, lib)
 		if len(lib) == 0 {
 			continue
 		}
@@ -381,22 +382,7 @@ func effDigUntil(h Host, c *Ctx, sa *cards.SA) {
 					}
 					continue
 				}
-				if dest == state.ZLibrary {
-					// The found card's destination IS the library (an explicit
-					// FoundDestination$ Library, or NoMoveFound$ True).
-					// FoundLibraryPosition$ "-1" puts it on the bottom via a real
-					// library-to-library move (Move's zone append — the same
-					// contract the revealed-rest "-1" arm below uses); "0"/absent
-					// is the stay-in-place top default, so no event.
-					if foundPos == "-1" {
-						h.Emit(events.Event{Kind: events.MoveZone, Obj: id,
-							From: state.ZLibrary, To: state.ZLibrary, Player: p, Secret: true})
-					}
-					continue
-				}
-				ev := moveZoneEvent(c, id, state.ZLibrary, dest)
-				ev.Player, ev.Secret = p, true
-				h.Emit(ev)
+				digUntilFoundPlainMove(h, c, id, p, scanFrom, dest, foundPos)
 			}
 		}
 		// The revealed rest (plus a found card whose decline joined the pile)
@@ -409,7 +395,7 @@ func effDigUntil(h Host, c *Ctx, sa *cards.SA) {
 			restDest, restPos = noneFoundDest, noneFoundPos
 		}
 		digUntilReturnRest(h, c, p, revealed, found, foundJoinedRevealed, noMoveRevealed,
-			revealRandomOrder, foundDest, foundWithRevealed, restDest, restPos)
+			revealRandomOrder, foundDest, foundWithRevealed, restDest, restPos, scanFrom)
 		// Shuffle$ True: after the found move and the revealed-rest moves,
 		// shuffle the dug player's library (the same Fisher-Yates +
 		// Secret events.Shuffle contract effShuffle emits). ShuffleCondition$
@@ -445,6 +431,55 @@ func effDigUntil(h Host, c *Ctx, sa *cards.SA) {
 	}
 }
 
+// digUntilScanZone picks the scanned zone. DigZone$ PlanarDeck (The Fertile Lands of Saulvinia): the scan digs
+// the seat's planar deck's face-down remainder -- the face-up current
+// plane at the zone's head is not part of the reveal (Forge's
+// planar-deck zone holds exactly the non-current planes; CR 901's
+// current plane is already public, so "reveal cards from the top"
+// starts behind it). Every move below reports this scan zone as the
+// From, and a planar-deck destination placement is a same-zone move
+// whose fold appends the card at the zone's tail -- the deck's bottom,
+// face up (the same-zone move clears the face-down state; only the head
+// was revealed before, and it never moved).
+func digUntilScanZone(g *state.Game, dp *DigUntilParams, p state.PlayerID, lib []state.ObjID) (state.Zone, []state.ObjID) {
+	if dp.DigZone != state.ZPlanarDeck {
+		return state.ZLibrary, lib
+	}
+	if deck := g.Zone(state.ZPlanarDeck, p); len(deck) > 1 {
+		return state.ZPlanarDeck, deck[1:]
+	}
+	return state.ZPlanarDeck, nil
+}
+
+// digUntilFoundPlainMove is the found card's non-battlefield, non-hand
+// placement: a stay-in-place or bottom placement in the scanned zone, or a
+// plain move to another zone.
+func digUntilFoundPlainMove(h Host, c *Ctx, id state.ObjID, p state.PlayerID, scanFrom, dest state.Zone, foundPos string) {
+	bottom := foundPos == "-1"
+	if dest == state.ZLibrary {
+		// The found card's destination IS the library (an explicit
+		// FoundDestination$ Library, or NoMoveFound$ True).
+		// FoundLibraryPosition$ "-1" puts it on the bottom via a real
+		// library-to-library move (Move's zone append — the same
+		// contract the revealed-rest "-1" arm below uses); "0"/absent
+		// is the stay-in-place top default, so no event.
+		if bottom {
+			h.Emit(events.Event{Kind: events.MoveZone, Obj: id,
+				From: state.ZLibrary, To: state.ZLibrary, Player: p, Secret: true})
+		}
+		return
+	}
+	if dest == scanFrom && !bottom {
+		// A stay-in-place placement in the scanned zone (the planar
+		// deck's "0"/absent twin of the library's top default): the
+		// card keeps its planar-deck seat, no event.
+		return
+	}
+	ev := moveZoneEvent(c, id, scanFrom, dest)
+	ev.Player, ev.Secret = p, true
+	h.Emit(ev)
+}
+
 // digUntilReturnRest is the revealed-rest tail of one scanned player's
 // DigUntil walk: it moves the rest to restDest at restPos (both already
 // resolved — the NoneFound* override decided at the call site). The rest is
@@ -456,7 +491,8 @@ func effDigUntil(h Host, c *Ctx, sa *cards.SA) {
 // scan order.
 func digUntilReturnRest(h Host, c *Ctx, p state.PlayerID, revealed, found []state.ObjID,
 	foundJoinedRevealed, noMoveRevealed, revealRandomOrder bool,
-	foundDest state.Zone, foundWithRevealed bool, restDest state.Zone, restPos string) {
+	foundDest state.Zone, foundWithRevealed bool, restDest state.Zone, restPos string,
+	scanFrom state.Zone) {
 	if noMoveRevealed {
 		// NoMoveRevealed$ True (8 corpus lines) leaves the rest where it is.
 		return
@@ -527,7 +563,13 @@ func digUntilReturnRest(h Host, c *Ctx, p state.PlayerID, revealed, found []stat
 			}
 			continue
 		}
-		ev := moveZoneEvent(c, id, state.ZLibrary, restDest)
+		if restDest == scanFrom && !restBottom {
+			// A stay-in-place placement in the scanned zone (the planar deck's
+			// "0"/absent): the revealed cards already sit in the deck in reveal
+			// order; only a "-1" bottom placement moves.
+			continue
+		}
+		ev := moveZoneEvent(c, id, scanFrom, restDest)
 		ev.Player, ev.Secret = p, true
 		h.Emit(ev)
 	}

@@ -33,6 +33,11 @@ type DigUntilParams struct {
 
 	// Spec is Valid$ (default "Card") through permanentCardSpec.
 	Spec string
+	// DigZone is DigZone$ PlanarDeck: the scan digs the resolving
+	// controller's planar deck (its face-down remainder, the face-up current
+	// plane excluded -- Forge's planar-deck zone holds exactly the non-current
+	// planes) instead of the library. ZNone (absent) is the library scan.
+	DigZone state.Zone
 	// RevDest is RevealedDestination$ (default Library), parsed; RevPos is
 	// RevealedLibraryPosition$.
 	RevDest state.Zone
@@ -321,6 +326,17 @@ func DigUntilOf(sa *cards.SA) *DigUntilParams {
 // digUntilFront is DigUntilOf's direct-mapped front cache (czFront's shape).
 var digUntilFront [1 << 10]atomic.Pointer[DigUntilParams]
 
+// digUntilZone reads a DigUntil zone word: PlanarDeck (The Fertile Lands of
+// Saulvinia's planar scan) is DigUntil's own vocabulary and maps to
+// state.ZPlanarDeck; every other word goes through ParseZone, so the shared
+// zone vocabulary (ChangeZone, conditions, filters) keeps failing closed on it.
+func digUntilZone(raw string) state.Zone {
+	if strings.TrimSpace(raw) == "PlanarDeck" {
+		return state.ZPlanarDeck
+	}
+	return ParseZone(raw)
+}
+
 // compileDigUntil is the one reader of a DigUntil ability's own
 // parameters; the Defined$ selector comes from the Defined-reference tier's
 // compiled DefinedParams.
@@ -333,13 +349,13 @@ func compileDigUntil(sa *cards.SA, dr *DefinedParams) *DigUntilParams {
 	p.Spec = permanentCardSpec(spec)
 	p.RevDest = state.ZLibrary
 	if raw := strings.TrimSpace(rawParamText(sa, "RevealedDestination").Text); raw != "" {
-		p.RevDest = ParseZone(raw)
+		p.RevDest = digUntilZone(raw)
 	}
 	foundDestName := strings.TrimSpace(rawParamText(sa, "FoundDestination").Text)
 	p.FoundWithRevealed = foundDestName == ""
 	p.FoundDest = p.RevDest
 	if !p.FoundWithRevealed {
-		p.FoundDest = ParseZone(foundDestName)
+		p.FoundDest = digUntilZone(foundDestName)
 	}
 	p.RevPos = strings.TrimSpace(rawParamText(sa, "RevealedLibraryPosition").Text)
 	p.OptionalMove = isTrue(rawParamText(sa, "OptionalFoundMove").Text)
@@ -358,10 +374,15 @@ func compileDigUntil(sa *cards.SA, dr *DefinedParams) *DigUntilParams {
 	}
 	p.MinTotalCMC = rawParamText(sa, "MinTotalCMC")
 	// The withheld riders, in the resolution's historical Note order.
-	// DigZone$ stays withheld: every corpus value is PlanarDeck, and this
-	// build has no planar deck or planar zone.
+	// DigZone$ PlanarDeck (The Fertile Lands of Saulvinia) is the planar arm:
+	// the scan digs the seat's planar deck instead of the library (diguntil.go).
+	// Any other value stays withheld: no corpus carrier names one.
 	if v := digUntilParamValue(rawParamText(sa, "DigZone").Text); v != "" {
-		p.Withheld = append(p.Withheld, "DigZone$ "+v)
+		if z := digUntilZone(v); z == state.ZPlanarDeck {
+			p.DigZone = z
+		} else {
+			p.Withheld = append(p.Withheld, "DigZone$ "+v)
+		}
 	}
 	p.NoMoveFound = digUntilTrueFlag("NoMoveFound", rawParamText(sa, "NoMoveFound").Text, &p.Withheld)
 	p.Shuffle = digUntilTrueFlag("Shuffle", sa.ParamStr(cards.PKShuffle), &p.Withheld)
@@ -384,6 +405,20 @@ func compileDigUntil(sa *cards.SA, dr *DefinedParams) *DigUntilParams {
 	if p.FoundPos != "" && p.FoundPos != "0" && p.FoundPos != "-1" {
 		p.Withheld = append(p.Withheld, "FoundLibraryPosition$ "+p.FoundPos)
 		p.FoundPos = ""
+	}
+	// The planar arm's riders this build does not carry beside a planar scan
+	// are named loudly and left unapplied: the shuffle (h.ShuffleLibrary) and
+	// the random bottom-return ordering (the restBottom arm) are library
+	// reads; no corpus planar carrier names one.
+	if p.DigZone == state.ZPlanarDeck {
+		if p.Shuffle {
+			p.Withheld = append(p.Withheld, "Shuffle$ True beside DigZone$ PlanarDeck")
+			p.Shuffle = false
+		}
+		if p.RevealRandomOrder {
+			p.Withheld = append(p.Withheld, "RevealRandomOrder$ True beside DigZone$ PlanarDeck")
+			p.RevealRandomOrder = false
+		}
 	}
 	// NoneFound* is the nothing-found branch (Tunnel Vision carries both).
 	noneFoundDest := strings.TrimSpace(rawParamText(sa, "NoneFoundDestination").Text)
