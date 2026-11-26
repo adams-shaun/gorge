@@ -10,11 +10,11 @@ import (
 	"sort"
 )
 
-// ShapeDirs are the repo-relative trees the per-function ratchets hold
-// (TestLongFunctionsOnlyShrink, TestComplexFunctionsOnlyShrink): the rules
-// engine and the whole of dirac, kgen included. Each is walked as goFiles
-// walks ScannedDirs; test files and generated files (the standard
-// "Code generated ... DO NOT EDIT." header) are skipped.
+// ShapeDirs are the repo-relative trees the per-function growth rule holds
+// (cmd/funcgrowth, backed by CheckFuncGrowth): the rules engine and the whole
+// of dirac, kgen included. cmd/funcgrowth diffs them against the base commit;
+// the walk skips test files and generated files (the standard "Code generated
+// ... DO NOT EDIT." header).
 var ShapeDirs = []string{"engine/rules", "engine/effects", "dirac"}
 
 // ComplexFuncThreshold is the cyclomatic complexity above which a function
@@ -64,39 +64,84 @@ func Cyclomatic(fn *ast.FuncDecl) int {
 	return c
 }
 
+// shapesByKey folds the measured functions by key, keeping the larger of two
+// that share one (a name declared in two build-tagged files of one package).
+func shapesByKey(shapes []FuncShape) (map[string]FuncShape, []string) {
+	by := map[string]FuncShape{}
+	var keys []string
+	for _, s := range shapes {
+		k := s.Key()
+		old, seen := by[k]
+		if !seen {
+			keys = append(keys, k)
+		}
+		if !seen || s.Lines > old.Lines || s.Complexity > old.Complexity {
+			s.Lines, s.Complexity = max(s.Lines, old.Lines), max(s.Complexity, old.Complexity)
+			by[k] = s
+		}
+	}
+	sort.Strings(keys)
+	return by, keys
+}
+
 // MeasureFuncShapes returns every non-test, non-generated function under
 // dirs (relative to root) that is over LongFuncLines lines or over
 // ComplexFuncThreshold, sorted by key then file and line. It parses syntax
 // only, so it is fast and needs no build.
 func MeasureFuncShapes(root string, dirs []string) ([]FuncShape, error) {
-	var out []FuncShape
+	files := map[string]string{}
 	for _, dir := range dirs {
-		files, err := goFiles(root, dir)
+		rels, err := goFiles(root, dir)
 		if err != nil {
 			return nil, err
 		}
-		for _, rel := range files {
-			fset := token.NewFileSet()
-			f, err := parser.ParseFile(fset, filepath.Join(root, filepath.FromSlash(rel)), nil,
-				parser.SkipObjectResolution|parser.ParseComments)
-			if err != nil {
-				return nil, fmt.Errorf("codeshape: parse %s: %w", rel, err)
-			}
-			if ast.IsGenerated(f) {
+		for _, rel := range rels {
+			files[rel] = filepath.Join(root, filepath.FromSlash(rel))
+		}
+	}
+	all, err := MeasureFuncShapesIn(files)
+	if err != nil {
+		return nil, err
+	}
+	var out []FuncShape
+	for _, s := range all {
+		if s.Lines > LongFuncLines || s.Complexity > ComplexFuncThreshold {
+			out = append(out, s)
+		}
+	}
+	return out, nil
+}
+
+// MeasureFuncShapesIn measures every non-test function declared in files —
+// the map's keys are repo-relative slash-separated paths, its values the
+// files' absolute paths — with no threshold filter, sorted by key then file
+// and line. cmd/funcgrowth measures the changed files of a diff through it,
+// at the base (extracted from git) and at the head.
+func MeasureFuncShapesIn(files map[string]string) ([]FuncShape, error) {
+	rels := make([]string, 0, len(files))
+	for rel := range files {
+		rels = append(rels, rel)
+	}
+	sort.Strings(rels)
+	var out []FuncShape
+	for _, rel := range rels {
+		fset := token.NewFileSet()
+		f, err := parser.ParseFile(fset, files[rel], nil,
+			parser.SkipObjectResolution|parser.ParseComments)
+		if err != nil {
+			return nil, fmt.Errorf("codeshape: parse %s: %w", rel, err)
+		}
+		if ast.IsGenerated(f) {
+			continue
+		}
+		for _, decl := range f.Decls {
+			d, ok := decl.(*ast.FuncDecl)
+			if !ok {
 				continue
 			}
-			for _, decl := range f.Decls {
-				d, ok := decl.(*ast.FuncDecl)
-				if !ok {
-					continue
-				}
-				start := fset.Position(d.Pos()).Line
-				s := FuncShape{Name: QualName(d), File: rel, Line: start,
-					Lines: fset.Position(d.End()).Line - start + 1, Complexity: Cyclomatic(d)}
-				if s.Lines > LongFuncLines || s.Complexity > ComplexFuncThreshold {
-					out = append(out, s)
-				}
-			}
+			start := fset.Position(d.Pos()).Line
+			out = append(out, FuncShape{Name: QualName(d), File: rel, Line: start,
+				Lines: fset.Position(d.End()).Line - start + 1, Complexity: Cyclomatic(d)})
 		}
 	}
 	sort.Slice(out, func(i, j int) bool {
