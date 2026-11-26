@@ -1,4 +1,10 @@
 #!/bin/sh
-# A change that adds, deletes or renames a Go package must leave it classified
-# (see pkgmap-check).
+# gofmt on the staged Go files (the lint job's first step, which every red PR learned late), then a change that adds,
+# deletes or renames a Go package must leave it classified (see pkgmap-check).
+bad=$(git diff --cached --name-only --diff-filter=ACMR -- '*.go' | xargs -r gofmt -l)
+if [ -n "$bad" ]; then
+	echo "pre-commit: gofmt -w needed on:" >&2
+	echo "$bad" >&2
+	exit 1
+fi
 exec "$(dirname "$0")/pkgmap-check" pre-commit
