@@ -691,6 +691,8 @@ KwMarkInfect	untyped int	2
 KwMarkIntimidate	untyped int	1
 KwMarkSkulk	untyped int	8
 KwMarkSwitchPT	untyped int	4
+KwMarkToxic	untyped int	32
+KwMarkToxicShift	untyped int	8
 KwMenace	KwMask	512
 KwPreventCombatDamageFrom	KwMask	536870912
 KwPreventCombatDamageTo	KwMask	134217728
