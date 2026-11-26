@@ -31,7 +31,7 @@ func TestStationThresholdParamReadsAsCounterGate(t *testing.T) {
 		t.Error("Station key survived the rewrite")
 	}
 	for _, rest := range []string{
-		"AffectedDefined$ Self | Station$ 0", "AffectedDefined$ Self | Station$ 256", "AffectedDefined$ Self | Station$ X",
+		"AffectedDefined$ Self | Station$ 0", "AffectedDefined$ Self | Station$ +5", "AffectedDefined$ Self | Station$ 08", "AffectedDefined$ Self | Station$ 256", "AffectedDefined$ Self | Station$ X",
 		"Affected$ Creature.YouCtrl | Station$ 3", "AffectedDefined$ Enchanted | Station$ 3",
 	} {
 		if _, kept := line(rest)["Station"]; !kept {

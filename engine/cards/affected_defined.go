@@ -28,32 +28,20 @@ var affectedDefinedFilter = map[string]string{
 // alternatives, is left untouched, so the param census still reports it
 // rather than the static quietly changing scope.
 func NormalizeAffectedDefined(p map[string]string) {
-	normalizeAffectedDefined(p)
-	normalizeStationThreshold(p)
-}
-
-// normalizeStationThreshold rewrites the Station$ <N> spelling of a
-// Spacecraft's STATION N+ static (Card-Forge acaef15177) into the Affected$
-// Card.Self+counters_GE<N>_CHARGE spelling it replaced, and drops the
-// Station key, so every reader (gorge's static walk, dirac's kgen) sees one
-// form: the static holds while the source has at least N charge counters.
-// Only a Continuous static on its own source with a literal threshold 1..255
-// is rewritten; any other shape keeps its Station key, which no reader
-// takes, so the param census and kgen still report it.
-func normalizeStationThreshold(p map[string]string) {
-	v, ok := p["Station"]
-	if !ok || strings.TrimSpace(p["Mode"]) != "Continuous" || strings.TrimSpace(p["Affected"]) != "Card.Self" {
-		return
+	// Card-Forge acaef15177 spelled a Spacecraft's STATION N+ static
+	// `AffectedDefined$ Self | Station$ <N>`: the effects hold while the source
+	// has at least N charge counters. Read it as the Affected$
+	// Card.counters_GE<N>_CHARGE spelling it replaced (which the rewrite below
+	// turns into Card.Self+counters_GE<N>_CHARGE), so gorge's static walk and
+	// dirac's kgen see one form. Only a Continuous static on its own source
+	// with a literal threshold 1..255 is read; any other shape keeps its
+	// Station key, which no reader takes, so the param census and kgen still
+	// report it.
+	if n, err := strconv.Atoi(p["Station"]); err == nil && n >= 1 && n <= 255 && p["Station"][0] >= '1' && p["Station"][0] <= '9' &&
+		p["Mode"] == "Continuous" && p["AffectedDefined"] == "Self" && p["Affected"] == "" {
+		p["Affected"] = "Card.counters_GE" + p["Station"] + "_CHARGE"
+		delete(p, "Station")
 	}
-	n, err := strconv.Atoi(strings.TrimSpace(v))
-	if err != nil || n < 1 || n > 255 {
-		return
-	}
-	p["Affected"] = "Card.Self+counters_GE" + strconv.Itoa(n) + "_CHARGE"
-	delete(p, "Station")
-}
-
-func normalizeAffectedDefined(p map[string]string) {
 	defined, ok := p["AffectedDefined"]
 	if !ok {
 		return
