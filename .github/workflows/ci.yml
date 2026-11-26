@@ -334,6 +334,13 @@ jobs:
           else
             git merge --abort; echo "::warning::conflicts with the current base; Mergify will report it"
           fi
+      - name: FORGE_REF is in the Forge oracle driver
+        # A FORGE_REF the driver (gorge-compliance develop's FORGE_ORACLE_REF) lacks fails forge-oracle-setup's pin
+        # invariant on every xproof cycle (2026-11-25, 5bc5851a54). Only a diff that moves FORGE_REF calls the API.
+        if: github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash scripts/check-forge-ref-driver.sh "${{ github.event.pull_request.base.sha }}"
       - name: gofmt
         run: |
           out=$(gofmt -l $(find . \( -name node_modules -o -name .worktrees \) -prune -o -type f -name '*.go' -print))
