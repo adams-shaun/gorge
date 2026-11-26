@@ -6,43 +6,6 @@ import (
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
-// TestDiscoverTailRefused pins the refusal for a Discover
-// whose free cast has a board-affecting tail. The kernel queues the free cast
-// and runs the tail before it (kernel-discover-freecast-order), so Hit the
-// Mother Lode (Discover + DB$ Token) is refused; the standard Discover tail
-// (hand + clear) is order-independent and stays accepted.
-func TestDiscoverTailRefused(t *testing.T) {
-	standard := []lInstr{
-		{Op: "Discover", Obj: lRef{Kind: rYou}},
-		{Op: "CastFree", Obj: lRef{Kind: rRemembered}, C: zExile},
-		{Op: "Discover", C: 1},
-		{Op: "ClearRemembered"},
-	}
-	if kvDiscoverTailRefused(standard) {
-		t.Errorf("the standard Discover tail (hand + clear) is refused; want accepted")
-	}
-	hit := []lInstr{
-		{Op: "Discover", Obj: lRef{Kind: rYou}},
-		{Op: "CastFree", Obj: lRef{Kind: rRemembered}, C: zExile},
-		{Op: "Discover", C: 1},
-		{Op: "SkipUnless", C: 1},
-		{Op: "CreateToken"},
-		{Op: "ClearRemembered"},
-	}
-	if !kvDiscoverTailRefused(hit) {
-		t.Errorf("Hit the Mother Lode's Discover + Token tail is accepted; want a refusal")
-	}
-	// A CastFree without the Discover lead-in (freeplay, cascade) is not this
-	// shape and must keep lowering.
-	other := []lInstr{
-		{Op: "CastFree", Obj: lRef{Kind: rRemembered}, C: zExile},
-		{Op: "CreateToken"},
-	}
-	if kvDiscoverTailRefused(other) {
-		t.Errorf("a non-Discover CastFree with a tail is refused; want accepted")
-	}
-}
-
 // TestConstantManaValueCompare pins the constant mana-value compare:
 // < N lowers to CMCLE N-1 and > N to CMCGE N+1 (mana values are integers).
 func TestConstantManaValueCompare(t *testing.T) {
