@@ -97,7 +97,7 @@ func (e *Engine) beginActivationPaid(p state.PlayerID, opt decision.Option, auto
 	// SAs (isAttachCostSA): no other activation family reads AlternateCost$.
 	raw := e.abilityCompiledCost(ab).Cost
 	if opt.AltCostIndex > 0 {
-		if alt, ok := e.abilityAlternateCostFor(p, ab); ok {
+		if alt, ok := e.abilityAlternateCostFor(p, opt.Obj, ab); ok {
 			raw = alt
 		}
 	}
