@@ -12,8 +12,8 @@ import "testing"
 func TestDefinedTargetedParentForms(t *testing.T) {
 	checkForms(t, []formCase{
 		{card: "Orcish Captain", form: "FlipCoin own slot; win/lose arm Pump Defined$ Targeted", lir: "Target0"},
-		{card: "Aleatory", form: "FlipCoin own slot; win arm Pump Defined$ Targeted", refused: "unread params [ActivationAfterBlockers ActivationPhases]"},
-		{card: "Chaotic Strike", form: "FlipCoin own slot; win arm Pump Defined$ Targeted", refused: "unread params [ActivationAfterBlockers ActivationPhases]"},
+		{card: "Aleatory", form: "FlipCoin own slot; win arm Pump Defined$ Targeted", refused: "unread params [ActivationAfterBlockers]"},
+		{card: "Chaotic Strike", form: "FlipCoin own slot; win arm Pump Defined$ Targeted", refused: "unread params [ActivationAfterBlockers]"},
 		{card: "Drillworks Mole", form: "PutCounter Defined$ Self & Targeted", lir: "Target0"},
 		{card: "Beta Ray Bill", form: "trigger PutCounter Defined$ Self & Targeted", lir: "Target0"},
 	})
