@@ -47,14 +47,19 @@ type ScriptStep struct {
 // beyond either stays unpriced (never a proof). Both are stated limits, not
 // proofs of completeness: a query with more than sixteen plays the printed
 // sources cannot pay leaves the later ones census_incomplete, and so does a
-// search that needs more than 164 clones. (Four plays left a legal play
+// search that needs more than 512 clones. (Four plays left a legal play
 // unoffered on boards with a gap source; sixteen was never reached in 1500
-// Standard games, at about 2% more clones than four. 164: a board whose
+// Standard games, at about 2% more clones than four. 512: a board whose
 // every land tap is Taps-deferred by an outside watcher -- Manabarbs, whose
 // trigger each gap activation stacks for the walk's passes arm to resolve --
-// reached a fee-gap's funding line at 163 clones (the fee gap's {1} beside
-// Silver Myr paying a {U}{U} attach), three past the old 160, and the kernel's
-// mirror prices such a play; the limit is the pair's (dirac/mana_filter.go).)
+// reached a fee-gap's funding line at 163 clones, and repeatable fee-only
+// filters (funding 328) and multi-gap sources (Grunn kicked, Nykthos Paragon,
+// Orzhova) hit the old 164 and were offered by the kernel alone; a sweep of
+// the cap (200, 256, 300, 512, 1000) over those plays cleared each by
+// 512 and Grunn needed more than 300. Not larger: the may-play budget-gap
+// board's script is the 657th node, and a plain cap past that would make the
+// may-play fallback below dead code. The limit is the pair's, one value and
+// one stop rule (dirac/mana_filter.go, tied by //lockstep:const).)
 const (
 	potentialScriptPlays = 16
 	potentialScriptNodes = 512
