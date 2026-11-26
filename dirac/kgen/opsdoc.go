@@ -226,6 +226,7 @@ func opsUsage(pt *poolTables, all []*lCard, bs []built) map[string]map[string]bo
 				add("cost:ExileSelf", name)
 			}
 			usagePutLib(ab.Cost, name, add)
+			usageBlightX(ab.Cost, name, add)
 			if ab.Cost.ExileHand {
 				add("cost:ExileHand", name)
 			}

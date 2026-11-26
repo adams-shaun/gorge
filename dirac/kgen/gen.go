@@ -689,6 +689,9 @@ func costString(c lCost) string {
 	if c.SacHalf {
 		p = append(p, "SacHalf")
 	}
+	if c.BlightX {
+		p = append(p, "BlightX")
+	}
 	if c.XMin > 0 {
 		p = append(p, fmt.Sprintf("XMin%d", c.XMin))
 	}
