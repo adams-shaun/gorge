@@ -2572,20 +2572,20 @@ const StatGraveNoAbilities StaticKind = 79
 // StaticKind (dirac/manifest/StaticKind/StatMadnessGrant)
 //
 // StatMadnessGrant is a Continuous static's AddKeyword$ Madness:ManaCost[:<N>] grant over the zones its AffectedZone$ lists, one static per zone (Falkenrath Gorger; CR 702.35a-b): Filter matches the card in Static.Zone and the granted madness cost is the card's own mana cost reduced by CardCostLess-1 generic (Madness:ManaCost is CardCostLess 1, no reduction). A card with printed madness keeps its own cost; the first grant in perm.ts order wins. Read live from the battlefield at the discard (Hand zone), the cast-or-graveyard ask and the cast from exile, never stamped on the card (kw_madness.go madnessCostOf).
-const StatMadnessGrant StaticKind = 79
+const StatMadnessGrant StaticKind = 80
 
 // StaticKind (dirac/manifest/StaticKind/StatMiracleGrant)
 //
 // StatMiracleGrant is a Continuous static's AffectedZone$ Hand AddKeyword$ Miracle:<cost> grant (Lorehold, the Historian; Molecule Man; Aminatou, Veil Piercer; CR 702.94a): Filter matches the card in a hand and the granted miracle cost is GrantCost, or under CardCostLess the card's own mana cost reduced by CardCostLess-1 generic (Miracle:ManaCost:4). A card with printed miracle keeps its own (gorge derivedKeywordParamH reads the printed head first); the first grant in perm.ts order wins. Read live from the battlefield at the draw, the reveal-trigger resolution and the cast, never stamped on the card (kw_miracle.go miracleCostOf).
-const StatMiracleGrant StaticKind = 80
+const StatMiracleGrant StaticKind = 81
 
 // stat AssignNoCombatDamage (dirac/manifest/StaticKind/StatNoCombatDamage)
-const StatNoCombatDamage StaticKind = 81
+const StatNoCombatDamage StaticKind = 82
 
 // StaticKind (dirac/manifest/StaticKind/StatUnearthGrant)
 //
 // StatUnearthGrant is a Continuous static's AffectedZone$ Graveyard AddKeyword$ Unearth grant (Sedris, the Traitor King, Mishra, Tamer of Mak Fawa, Dregscape Sliver, Solemn Doomguide; CR 702.84a): Filter matches the card in the graveyard and GrantBody-1 is the latent unearth body (the printed kwUnearth expander's AB$ ChangeZone, cards.GrantedKeywordAbility) the graveyard offer runs with the affected card as its source. The body's own Cost prices the explicit-cost shape; a zero body cost is the CardManaCost mark, which the offer charges as the affected card's own mana cost (kw_unearthgrant.go).
-const StatUnearthGrant StaticKind = 82
+const StatUnearthGrant StaticKind = 83
 
 // trig ChaosEnsues (dirac/manifest/TrigEvent/TrigChaosEnsues)
 const TrigChaosEnsues TrigEvent = 52
