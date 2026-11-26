@@ -54,12 +54,12 @@ func (s *State) castGateAffordable(k *prep, p uint8, c CardID, o Obj, cost *kop.
 // castGateOrPoolPays is the plain cast's affordability read: the gate's own
 // read, or the conversion pool paying the pips (mana_convertcreature.go).
 func (s *State) castGateOrPoolPays(k *prep, p uint8, c CardID, o Obj, cost *kop.ManaCost, cav *avail) bool {
-	return s.castGateAffordable(k, p, c, o, cost, cav) || s.convPoolPays(k, p, o, cost)
+	return s.castGateAffordable(k, p, c, o, cost, cav) || s.convAnyPoolPays(k, p, o, cost)
 }
 
 // kickedAffordsOrPoolPays is the kicked cast's corresponding read over kc.
 func (s *State) kickedAffordsOrPoolPays(k *prep, p uint8, c CardID, o Obj, kc *kop.ManaCost, cav *avail) bool {
-	return s.kickedAffords(k, p, c, o, kc, cav) || s.convPoolPays(k, p, o, kc)
+	return s.kickedAffords(k, p, c, o, kc, cav) || s.convAnyPoolPays(k, p, o, kc)
 }
 
 func (s *State) priorityOptions(k *prep, d *Decision) {
@@ -1153,6 +1153,9 @@ func (s *State) gorgeLowersRider(p uint8, o Obj, mayPlay, anyColor bool) bool {
 	}
 	if sacXCost(spellAddCost(k, c)) {
 		return false // an announced Sac<X/Spec>: the potential planner's composition declines it too, so only the floating pool offers it (cost_sacx.go)
+	}
+	if spellAddCost(k, c).SacHalf {
+		return s.sacHalfLowers(k, p, c, o, mayPlay, anyColor) // cost_sachalf.go
 	}
 	if cd.HasAltAdd {
 		return s.altAddLowers(k, p, c, o, mayPlay, anyColor)
