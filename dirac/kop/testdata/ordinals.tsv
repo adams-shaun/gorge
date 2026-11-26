@@ -54,6 +54,7 @@ AttachUnattach	untyped int	2
 AttacksOpponent	untyped int	1
 B	untyped int	2
 BecomeCopyCtr	untyped int	1
+BecomeCopyEOT	untyped int	8
 BecomeCopyEmbalm	untyped int	2
 BecomeCopyGrave	untyped int	4
 BncDelayedMany	untyped int	8192
