@@ -1373,7 +1373,7 @@ func (s *State) tbResolveTappable(k *prep, p uint8, cost *kop.ManaCost, x int, e
 // turn too (windowTap, script_gen.go).
 func (s *State) payWindow(k *prep, p uint8, cost *kop.ManaCost, unless bool) (paused, short bool) {
 	s.setUnlessWin(unless)
-	_, held := s.windowTapWalk(k, p, cost, cost, false, false, true, false, true, false, false) // an unless / ward window takes a deferred source once the plan cannot cover the cost
+	_, held := s.windowTapWalk(k, p, cost, cost, false, false, true, false, true, false, false, false) // an unless / ward window takes a deferred source once the plan cannot cover the cost
 	s.setUnlessWin(false)
 	if s.g.winMode != winNone {
 		for c := range held {
