@@ -138,6 +138,9 @@ func (sc *staticCtx) modeAlternativeCost() ([]lStatic, bool, error) {
 	lc := sc.lc
 	sp := sc.sp
 	var err error
+	if sp.str("ValidSA") == "Activated.Crew+Vehicle" {
+		return sc.crewAltCost() // static_crewalt.go
+	}
 	if sp.str("ValidSA") == "Activated.Cycling" {
 		return sc.modeCyclingAlt() // static_cyclingalt.go
 	}
@@ -149,8 +152,16 @@ func (sc *staticCtx) modeAlternativeCost() ([]lStatic, bool, error) {
 		sp.consume("ValidCard", "ValidPlayer")
 		sp.m["ValidSA"] = "Spell.Self"
 	}
-	if sp.str("ValidSA") != "Spell.Self" || sp.str("EffectZone") != "All" {
+	if sp.str("ValidSA") != "Spell.Self" || !altCostZoneOK(sp.str("EffectZone")) {
 		return nil, true, refuse("AlternativeCost shape")
+	}
+	// EffectZone$ Graveyard names the graveyard explicitly: the zone the
+	// lowered static carries, the kernel's one home for the hand walk's
+	// exclusion (offerAltFreeHand) and the graveyard offer's arm
+	// (offerGraveyardAltCasts). gorge graveyardSelfAltCost: an EffectZone$
+	// All one admits the graveyard too but is never a graveyard cast.
+	if sp.str("EffectZone") == "Graveyard" {
+		sc.st.Zone = zGraveyard
 	}
 	if sp.str("Cost") == "Reveal<1/Hand>" {
 		// "reveal your hand" (gorge cost.go
@@ -164,7 +175,7 @@ func (sc *staticCtx) modeAlternativeCost() ([]lStatic, bool, error) {
 	// a Return<N/Spec> part lowers alone (Gush, Thwart, Daze: the
 	// kernel's return alternative, build_ab.go altReturnOK); beside any
 	// other part build_ab.go refuses it as a non-mana alternative
-	if sc.st.Cost.Forage != nil || sc.st.Cost.ExileG != nil && !sc.st.Cost.ExileHand || sc.st.Cost.Energy != 0 {
+	if sc.st.Cost.Forage != nil || sc.st.Cost.ExileG != nil && !sc.st.Cost.ExileHand && !altGraveExileCost(&sc.st.Cost) || sc.st.Cost.Energy != 0 {
 		return nil, true, refuse("alternative cost with a forage / exile-from-graveyard part")
 	}
 	return nil, false, nil
@@ -184,6 +195,13 @@ func (sc *staticCtx) modeManaConvert() ([]lStatic, bool, error) {
 		return nil, true, err // lower_manaconvert.go
 	}
 	return nil, false, nil
+}
+
+// altCostZoneOK is a printed AlternativeCost static's EffectZone$ the kernel
+// prices: All (the hand walk's grant, the Land Grant and Force cycle shapes)
+// or Graveyard (the self-carried graveyard cast, T18b-B's four).
+func altCostZoneOK(ez string) bool {
+	return ez == "All" || ez == "Graveyard"
 }
 
 // flashCasterFlag is a CastWithFlash static's Static.StFlags caster bit.

@@ -380,6 +380,9 @@ func (s *State) pushBuild(k *prep) {
 	if e.kind != seSpell && k.gen != nil && (k.gen.anyStackTgt || k.gen.anyWard || k.gen.anyWardGrant || s.subs[kop.TrigBecomesTarget].any()) {
 		s.stackSid(e) // a stack-ability target's identity (tgt_stackability.go); a ward trigger's warded ability (wardedIndex); a BecomesTarget TriggeredSourceSA's targeting ability (trig_becomestarget.go)
 	}
+	if e.kind != seSpell && k.anyColorWords {
+		e.prov = s.cwFreeze(k) // the ability's text as it is put on the stack (static_colorwords.go)
+	}
 	s.push(*e)
 	s.bld().bfl |= bflPushed
 }
