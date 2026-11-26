@@ -275,6 +275,10 @@ func (s *State) resolveTop(k *prep) {
 				}
 				return
 			}
+			if isCipherTrig(&e) {
+				s.cipherResolve(k) // kw_cipher.go: the copy cast, a program
+				return
+			}
 			s.resolveDelayed(k, &e)
 			if s.res.ask != raNone {
 				return // casualty's copy elects (copy_gen.go); copyResume finishes it
@@ -583,6 +587,9 @@ func (s *State) prog(k *prep) []kop.Instr {
 		}
 		if e.ab == abRipple {
 			return rippleProg[:] // the reveal + may-cast + bottom body (kw_ripple.go)
+		}
+		if isCipherTrig(e) {
+			return cipherProg[:] // kw_cipher.go
 		}
 		return nil
 	}
