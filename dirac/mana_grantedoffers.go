@@ -1411,6 +1411,7 @@ func (g *grantSrch) candidates(s *State) {
 			continue
 		}
 		ng := s.grantIdxs(g.k, sl, &g.gi[g.n])
+		ng = s.uncoveredGrants(g.k, sl, &g.gi[g.n], ng) // a grant the source's own printed ability equals is no census gap (mana_grantcovered.go)
 		smi := sm
 		if ng > 0 && si.has(sl) {
 			smi = sm.with(sl) // an idle battery beside its grant: the printed ask answer first
