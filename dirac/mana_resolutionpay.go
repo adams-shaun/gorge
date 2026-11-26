@@ -239,7 +239,8 @@ func (s *State) payTrigPool(k *prep, p uint8, c *kop.ManaCost) {
 		s.payRestrSpend(k, p, m, c, 0, NoObj, false)
 		return
 	}
-	s.payFromPool(p, c, 0)
+	var rc kop.ManaCost
+	s.payFromPool(p, s.payLifeGrantReduce(k, p, c, 0, &rc), 0) // the grant's life settles what the plan's discount left (static_paylife.go)
 }
 
 // trigWindowPays runs the manual window for a payment the planner has no
@@ -400,7 +401,7 @@ func (s *State) payPrefixRest(k *prep, a Action, p uint8, force bool) {
 	// window arm.
 	var chk planner
 	chk.dry = true
-	s.tapNeed(&chk, p, &cost, 0, false)
+	s.tapNeed(k, &chk, p, &cost, 0, false)
 	if chk.needT == 0 {
 		return
 	}
@@ -546,7 +547,7 @@ type castRestPay struct {
 func (s *State) castRestPriced(k *prep, p uint8, o Obj, cost *kop.ManaCost) bool {
 	var pk planner
 	pk.dry, pk.try, pk.castPay = true, true, true
-	s.tapNeed(&pk, p, cost, 0, false)
+	s.tapNeed(k, &pk, p, cost, 0, false)
 	if pk.needT == 0 {
 		return true
 	}
@@ -685,7 +686,7 @@ func (s *State) payCastPrefixRest(k *prep, a Action, p uint8) {
 	}
 	var chk planner
 	chk.dry, chk.try, chk.tapsIn, chk.castPay = true, true, true, true
-	s.tapNeed(&chk, p, &cost, 0, false)
+	s.tapNeed(k, &chk, p, &cost, 0, false)
 	s.plan(k, p, &chk, o)
 	if !chk.found {
 		return // a play no gap subset prices keeps manaStep's window arm

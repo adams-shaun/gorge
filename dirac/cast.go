@@ -727,6 +727,14 @@ func (s *State) buildCostPreRaw(k *prep, pre, charge bool) (kop.ManaCost, bool) 
 			// (offerCommanderSlot, offerDashCommand); both reach this path.
 			addCommanderTax(&c, s.commanderTax(e.ctrl, e.obj))
 		}
+		// a PayLifeInsteadOf:B grant turns the cost's plain {B} pips into
+		// Phyrexian pips, so the cast announces each pip's face before its
+		// targets (static_paylife.go payLifeGrantCost; gorge manaAsk's
+		// AnnounceGrantedBlackPips at PayIdx 0, CR 601.2h: the payment is
+		// the payer's per-pip choice, the shape of a Phyrexian pip's). The
+		// modifiers compose on the converted pips as gorge's composed cost
+		// carries them into the ask.
+		c = s.payLifeGrantCostFor(k, e.ctrl, c)
 		// a reduction applies to the total cost, a flashback or kicked one
 		// or a taxed one too (CR 601.2f)
 		done := false
@@ -758,9 +766,23 @@ func (s *State) buildCostPreRaw(k *prep, pre, charge bool) (kop.ManaCost, bool) 
 		if k.gen != nil && k.gen.anyWaterbend {
 			c = s.waterbendApplyPicks(c)
 		}
+		// an activation's plain {B} pips announce their faces the way a
+		// spell's do (gorge manaAsk converts every cost the grant's holder
+		// pays, static_paylife.go payLifeGrantCost)
+		c = s.payLifeGrantCostFor(k, e.ctrl, c)
 		return c, false
 	}
 	return kop.ManaCost{}, false
+}
+
+// payLifeGrantCostFor is c with the plain {B} pips Phyrexian when ctrl holds a
+// PayLifeInsteadOf:B grant (static_paylife.go payLifeGrantCost), c unchanged
+// otherwise.
+func (s *State) payLifeGrantCostFor(k *prep, ctrl uint8, c kop.ManaCost) kop.ManaCost {
+	if k.gen != nil && k.gen.anyPayLife && s.payLifeInsteadOfB(k, ctrl) {
+		return payLifeGrantCost(c)
+	}
+	return c
 }
 
 func (s *State) srcSlot() Slot {

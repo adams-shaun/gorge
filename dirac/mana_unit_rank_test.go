@@ -53,7 +53,7 @@ func TestPainlandAndBasicAdjacentIdsRankByCreationOrder(t *testing.T) {
 	var c kop.ManaCost
 	c.Generic, c.Pips[kop.W] = 1, 1
 	var pk planner
-	sc.s.tapNeed(&pk, 0, &c, 0, false)
+	sc.s.tapNeed(sc.k, &pk, 0, &c, 0, false)
 	sc.s.plan(sc.k, 0, &pk, NoObj)
 	if !pk.found {
 		t.Fatal("no plan for {1}{W} from a painland, a Forest and a painland")
