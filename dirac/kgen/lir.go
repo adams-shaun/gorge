@@ -825,6 +825,7 @@ type lCost struct {
 	EnergyX        bool     // PayEnergy<X>: pay the announced X energy (a printed activated ability's own cost, no printed {X}; kop.Cost.EnergyX, kernel cost_energyx.go)
 	Waterbend      int      // Waterbend<N>: N generic payable by tapping artifacts/creatures (an activated ability's cost only)
 	WaterbendX     bool     // Waterbend<X>: the cost's one {X} payable by tapping artifacts/creatures (kop.CostWaterbend with N 0; an activated ability's cost only)
+	BlightX        bool     // Blight<X>: X -1/-1 counters on a creature you control, X the announced count bounded by the greatest toughness among them (kop.CostBlight with Cost.N 0; a spell's own RaiseCost additional cost; lower_blightx.go)
 	BlightN        int      // Blight<N>: put N -1/-1 counters on a creature you control (CR 701.68; shares Cost.N/Filter)
 	ReturnSelf     bool     // Return<1/CARDNAME>: return this permanent to its owner's hand (an activated ability's cost only)
 	ExileSelf      bool     // Exile<1/CARDNAME>: exile this permanent (an activated ability's cost only)
@@ -855,7 +856,7 @@ type lCost struct {
 func (c lCost) pureMana() bool {
 	return !c.Tap && !c.Untap && !c.SacSelf && c.Sac == nil && c.SacN == 0 &&
 		c.DiscardN == 0 && c.DiscardSpec == "" && !c.DiscardHand && !c.DiscardSelf && c.DiscardF == nil && !c.DiscardX && c.Discard2N == 0 && c.Loyalty == 0 && !c.LoyaltyX &&
-		c.SubCtr == 0 && !c.SubCtrX && c.SubAmongN == 0 && c.AddCtr == 0 && c.PayLife == 0 && !c.LifeX && c.LifeBy == nil && !c.LifeIdent && !c.SacX && !c.SacHalf && c.XMin == 0 && c.TapN == 0 && !c.TapHost && !c.SacHost && !c.HostExile && !c.SacExile && c.TapPowN == 0 && !c.Exert &&
+		c.SubCtr == 0 && !c.SubCtrX && c.SubAmongN == 0 && c.AddCtr == 0 && c.PayLife == 0 && !c.LifeX && c.LifeBy == nil && !c.LifeIdent && !c.SacX && !c.SacHalf && !c.BlightX && c.XMin == 0 && c.TapN == 0 && !c.TapHost && !c.SacHost && !c.HostExile && !c.SacExile && c.TapPowN == 0 && !c.Exert &&
 		c.Forage == nil && c.ExileG == nil && !c.ExileGSelf && c.ExileHandN == 0 && c.MoveGraveN == 0 && c.Energy == 0 && c.EnergyBy == nil && !c.EnergyX && !c.ReturnSelf &&
 		!c.ExileSelf && !c.ExileStackSelf && c.Return == nil && c.DrawN == 0 && c.DrawBy == nil && c.DamageYouN == 0 && c.BlightN == 0 && c.EvidenceN == 0 && !c.EvidenceX && !c.TapXVar && !c.ExileTrigNew &&
 		c.pureManaTail()
