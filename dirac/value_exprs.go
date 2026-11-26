@@ -150,6 +150,8 @@ func (s *State) exprCold(k *prep, x *kop.Expr, ctx evalCtx) int {
 		return int(s.pl[ctx.ctrl].lastLost)
 	case kop.ExMostProminentCreatureType:
 		return s.mostProminentType(k, x, ctx) // value_mostprominent.go
+	case kop.ExMostCardName:
+		return s.mostCardName(k, x, ctx) // value_mostcardname.go
 	case kop.ExSum:
 		return s.evalV(k, x.Sub[0], ctx) + s.evalV(k, x.Sub[1], ctx)
 	case kop.ExHandSizeOf:

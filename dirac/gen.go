@@ -3612,6 +3612,7 @@ var nonCreatureSubtype = map[string]bool{
 	"Adventure": true, "Arcane": true, "Lesson": true, "Trap": true, "Omen": true,
 	"Ajani": true, "Liliana": true, "Vivien": true, "Chandra": true, "Kaito": true, "Kiora": true,
 	"Jace": true, "Garruk": true, "Elspeth": true, "Nissa": true, "Gideon": true, "Teferi": true,
+	"Ugin": true, // a planeswalker subtype no pool card of a pool without Ugin planeswalkers carries (Haven of the Spirit Dragon's Planeswalker.Ugin target; gorge predicateTypeWords)
 }
 
 // capStall declares why when a failed search's fork latched one (0 = none): the
