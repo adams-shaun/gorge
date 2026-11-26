@@ -137,6 +137,9 @@ func (s *State) cloneBecomers(k *prep, in *kop.Instr, tmpl Slot, ord *[MaxPerm]S
 			m++
 		}
 	}
+	if m > 0 && DebugCharmShapeStats != nil {
+		DebugCharmShapeStats.CloneBecomers += int64(m)
+	}
 	return m
 }
 

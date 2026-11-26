@@ -60,3 +60,21 @@ func (s *State) loseStatOn(k *prep, sl Slot) bool {
 	}
 	return false
 }
+
+// tableClonesBattlefield reports whether some ability of t runs Ext
+// CloneCopy: a battlefield permanent becomes a copy of another, which can
+// leave a combatant without the creature type (an Ornithopter that becomes a
+// copy of a Sol Ring until end of turn: Masterful Replication), so CR 506.4's
+// removal walk must run (gen.tyCombat).
+func tableClonesBattlefield(t *kop.Table) bool {
+	for i := range t.Cards {
+		for j := range t.Cards[i].Abilities {
+			for _, in := range t.Cards[i].Abilities[j].Prog {
+				if in.Op == kop.OpExt && in.Ext() == kop.ExtCloneCopy {
+					return true
+				}
+			}
+		}
+	}
+	return false
+}

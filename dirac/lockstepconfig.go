@@ -462,12 +462,23 @@ func (s *State) addXOptions(k *prep, d *Decision, e *stackEntry, mx, hi int, av 
 	n0 := d.N
 	fl := s.xFloor(k) // the announced X's floor (cost_sacx.go)
 	dxb := s.xDiscardBound(k)
+	modeBlocked := false
 	if bound || dxb {
 		for x := fl; x <= hi; x++ {
 			if (!bound || s.xAnswerable(k, a, e, x)) && (!dxb || s.xDiscardPays(k, e, x)) && pays(x) {
 				d.add(MakeAction(AkChoose, 0, 0, uint8(x)))
+			} else if bound && a.NModes > 0 && e.kind == seSpell && pays(x) {
+				modeBlocked = true // a payable X no chosen mode set can answer (xAnswerable's modes)
 			}
 		}
+	}
+	if d.N == n0 && modeBlocked {
+		// gorge xAsk: some X was payable but none keeps the chosen modes
+		// targetable (X is announced after the modes, CR 601.2b): the cast
+		// is aborted with no decision (CR 733.1; "no legal modal choice")
+		d.N = 0
+		s.reverseCast(k)
+		return false
 	}
 	convokeFallback := picks && !wbX
 	if d.N == n0 {

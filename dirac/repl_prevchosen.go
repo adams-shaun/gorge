@@ -41,7 +41,15 @@ const (
 	pcTo   uint8 = 1 << 0
 	pcAny  uint8 = 1 << 1
 	pcTurn uint8 = 1 << 2
+	// pcSpell: the source is a stack spell at its cast version (kop.PrevNextChosenSpell,
+	// Dromoka's Command): the record's ctl is the spell's object, prevRidRec.n its
+	// version, so a later cast of the same card is another source.
+	pcSpell uint8 = 1 << 3
 )
+
+// DebugNoPrevSpell (the Dromoka's Command lockstep mutation): a spell-keyed
+// shield is never installed.
+var DebugNoPrevSpell bool
 
 // DebugNoPrevChosen (the chosen-source lockstep mutation): the shield is
 // installed but prevents nothing.
@@ -50,12 +58,21 @@ var DebugNoPrevChosen bool
 // prevChosenAdd installs the shield on the chosen source; no source chosen (an
 // empty pool) is no Effect.
 func (s *State) prevChosenAdd(k *prep, in *kop.Instr) {
-	if s.g.nchosen == 0 {
+	spell := in.C&kop.PrevNextChosenSpell != 0 // seat-ok: an instruction flag bit
+	var src TCode
+	if spell {
+		if src = s.prevSpellSource(k, in); src == NoTarget {
+			return
+		}
+	} else if s.g.nchosen == 0 {
 		return // no source chosen (an empty pool, or a stack ability: act_choosesource.go) is no Effect
 	}
 	mask := s.value(k, in.B)
 	sc, rt, ver := prevNextSc, TCode(NoTarget), uint8(0)
 	switch {
+	case spell:
+		sc |= pcAny | pcSpell
+		ver = s.objs[src].ver
 	case in.C&kop.PrevNextChosenTo != 0:
 		rt = s.refCode(k, in.Obj)
 		if rt == NoTarget {
@@ -77,17 +94,24 @@ func (s *State) prevChosenAdd(k *prep, in *kop.Instr) {
 	for i := range s.g.prevCol {
 		if r := &s.g.prevCol[i]; r.col == 0 && r.sc == 0 {
 			rr := s.prevRidAt(i)
-			if sc&pcTo != 0 && rr == nil {
-				s.capFull(StallPrevCol) // the recipient has nowhere to live
+			if sc&(pcTo|pcSpell) != 0 && rr == nil {
+				s.capFull(StallPrevCol) // the recipient (or the spell's version) has nowhere to live
 				return
 			}
-			r.obj, r.col, r.sc, r.ctl = s.res.e.obj, prevChosenLive|kop.ColorMask(mask), sc, TCode(s.g.chosen[0])
+			if spell {
+				r.obj, r.col, r.sc, r.ctl = s.res.e.obj, prevChosenLive|kop.ColorMask(mask), sc, src
+			} else {
+				r.obj, r.col, r.sc, r.ctl = s.res.e.obj, prevChosenLive|kop.ColorMask(mask), sc, TCode(s.g.chosen[0])
+			}
 			s.g.prevX[i] = pxFrom | pxPlayers | s.res.e.ctrl<<pxSeatShift
 			if in.C&kop.PrevNextGain != 0 {
 				s.g.prevX[i] |= pxRidGain // prevNextTake gains the prevented damage for the seat
 			}
 			if rr != nil {
 				rr.t, rr.n, rr.gate = rt, ver, false
+				if spell {
+					rr.t = src
+				}
 			}
 			return
 		}
@@ -149,5 +173,24 @@ func (s *State) pnxChosenMatches(i int, code TCode, srcSl Slot) bool {
 	default:
 		return false
 	}
+	if r.sc&pcSpell != 0 {
+		// a spell-keyed shield: the spell at its cast version, on the stack
+		rr := s.prevRidAt(i)
+		if rr == nil || int(src) >= MaxObj || s.objs[src].ver != rr.n || s.objs[src].zone != kop.ZoneStack {
+			return false
+		}
+	}
 	return TCode(src) == r.ctl && chosenSrcMatches(int(r.col&^prevChosenLive), cols, ty)
+}
+
+// prevSpellSource is the stack spell a kop.PrevNextChosenSpell shield names
+// (the instruction's Obj, a target slot): NoTarget when there is none, it is
+// no spell on the stack any longer (gorge: the Effect is exiled as the
+// remembered spell leaves it, so it prevents nothing) or the mutation is on.
+func (s *State) prevSpellSource(k *prep, in *kop.Instr) TCode {
+	c := s.refCode(k, in.Obj)
+	if DebugNoPrevSpell || c == NoTarget || isPlayerOrNone(c) || int(c) >= MaxObj || s.objs[c].zone != kop.ZoneStack {
+		return NoTarget
+	}
+	return c
 }
