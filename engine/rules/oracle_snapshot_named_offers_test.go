@@ -14,10 +14,11 @@ func TestOracleSnapshotNamedManaOffers(t *testing.T) {
 	for _, tc := range []struct {
 		name              string
 		battlefield, want []string
+		snapWant          []string
 	}{
-		{"one ability", []string{"Mountain"}, []string{"Add R"}},
-		{"two abilities", []string{"Blazemire Verge", "Swamp"}, []string{"Add B", "Add R"}},
-		{"gated out red ability", []string{"Blazemire Verge"}, []string{"Add B"}},
+		{"one ability", []string{"Mountain"}, []string{"Add R"}, []string{"Add R"}},
+		{"two abilities", []string{"Blazemire Verge", "Swamp"}, []string{"Add B", "Add R"}, []string{"Add {B}.", "Add {R}. Activate only if you control a Swamp or a Mountain."}},
+		{"gated out red ability", []string{"Blazemire Verge"}, []string{"Add B"}, []string{"Add {B}."}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			fails, _, r := runOracleScenario(reg, oracleScenario{Setup: map[string]oracleSeat{"p0": {Battlefield: tc.battlefield}}})
@@ -49,14 +50,19 @@ func TestOracleSnapshotNamedManaOffers(t *testing.T) {
 			if generic != 1 {
 				t.Fatalf("precondition: one generic mana action required, got %d", generic)
 			}
+			// The snapshot spells each named ability's own text
+			// (snapManaAbilityLabel, the compare:[offered] surface -- the
+			// engine-synthesized intrinsic on Mountain has no SpellDescription
+			// and keeps the wheel's resolved label), not a generic display
+			// action; snapWant is asserted per case beside the wheel labels.
 			var got []string
 			for _, o := range r.snapshot("setup").Offered {
 				if o.Source == ref && o.Kind == "activate" {
 					got = append(got, o.Label)
 				}
 			}
-			if !reflect.DeepEqual(got, tc.want) {
-				t.Fatalf("snapshot named abilities=%v, want %v (not the generic display action)", got, tc.want)
+			if !reflect.DeepEqual(got, tc.snapWant) {
+				t.Fatalf("snapshot named abilities=%q, want %v (not the generic display action)", got, tc.snapWant)
 			}
 		})
 	}
