@@ -39,7 +39,7 @@ const (
 )
 
 // staleRemedy is what a stale entry asks of the seat: either cause, and what each needs.
-const staleRemedy = "A stale entry means either the defect is fixed (add the passing test and a row in dirac/support/unrefused.tsv, then go run ./dirac/cmd/kgen -unrefuse <card>) or the pinned game moved (re-record the game with pool custom; see checkRefusedRepro)"
+const staleRemedy = "A stale entry means the defect is fixed and the bot handles it (scripts/regen-main.sh warns, records the clean game and unrefuses the card with a proof row); a ticket fixing the card on purpose may still unrefuse it in its own PR (add the passing test and a row in dirac/support/unrefused.tsv, then go run ./dirac/cmd/kgen -unrefuse <card>); if only the pinned game moved, re-record it with pool custom (see checkRefusedRepro)"
 
 // refusedRun is one entry's pool: its raw set and the decks its pairs draw from.
 type refusedRun struct {
@@ -139,37 +139,76 @@ func (r *refusedRun) holdsCard(p Pairing) bool {
 	return false
 }
 
-// diverges plays pair p and reports whether its divergence implicates the card. A
-// pair that cannot be built or does not finish in time shows nothing.
-func (r *refusedRun) diverges(p Pairing) bool {
-	done := make(chan bool, 1)
+// searchedPair is one pair a search played.
+type searchedPair struct {
+	res        *Result  // nil: the game could not be built or did not finish
+	m          *Matchup // the game's matchup (nil with res)
+	implicates bool     // the result implicates the card (gameImplicates)
+}
+
+// cleanGame is the last clean game a search played with the card dealt in: what
+// NewRepro needs to record it as the unrefusal's proof.
+type cleanGame struct {
+	res  *Result
+	m    *Matchup
+	seed uint64
+	rc   RunConfig
+}
+
+// refusedSearch is what searching a refused entry's games ended on: the pairs played
+// with the card dealt in, the pair whose game still implicates it (-1: none did, a
+// stale refusal), and the last clean game (the unrefusal's proof).
+type refusedSearch struct {
+	card, pool string
+	played     int
+	found      int
+	clean      *cleanGame
+}
+
+// runConfig is the config every search game runs under.
+func (r *refusedRun) runConfig() RunConfig {
+	return RunConfig{Config: Config{GorgeAutopaySurface: r.surface == "autopay"}, MaxDecisions: 20000, MaxTurns: 100}
+}
+
+// search plays pair p and reports its result and whether the game implicates the card.
+// ok is false when the game could not be built or did not finish in refusedGameCap: it
+// shows nothing.
+func (r *refusedRun) search(p Pairing) (sp searchedPair, ok bool) {
+	rc := r.runConfig()
+	done := make(chan searchedPair, 1)
 	go func() {
 		defer func() {
 			if recover() != nil {
-				done <- false
+				done <- searchedPair{}
 			}
 		}()
 		m, tbl, err := SetMatchup(r.set, r.c, p.A, p.B, r.mulls)
 		if err != nil {
-			done <- false
+			done <- searchedPair{}
 			return
 		}
-		rc := RunConfig{Config: Config{GorgeAutopaySurface: r.surface == "autopay"}, MaxDecisions: 20000, MaxTurns: 100}
 		k, err := SetSide(r.set, tbl, rc.Config)(m, p.Seed)
 		if err != nil {
-			done <- false
+			done <- searchedPair{}
 			return
 		}
 		res := Lockstep(m, p.Seed, k, r.policy(p.Seed), rc)
 		CloseSide(k)
-		done <- gameImplicates(&res, m, r.card)
+		done <- searchedPair{res: &res, m: m, implicates: gameImplicates(&res, m, r.card)}
 	}()
 	select {
-	case d := <-done:
-		return d
+	case sp = <-done:
+		return sp, sp.res != nil
 	case <-time.After(refusedGameCap):
-		return false
+		return searchedPair{}, false
 	}
+}
+
+// diverges is search's boolean: whether the game implicates the card. A pair that
+// cannot be built or does not finish in time shows nothing.
+func (r *refusedRun) diverges(p Pairing) bool {
+	sp, ok := r.search(p)
+	return ok && sp.implicates
 }
 
 // gameImplicates reports whether a bad game points at card, as the refusal loop reads
@@ -267,21 +306,41 @@ func checkRefusedEntry(t *testing.T, e *cardset.RefusedEntry) {
 	if err := refusedPlayable(r); err != nil {
 		t.Fatal(err)
 	}
-	if r.diverges(PairingAt(r.pool, e.Repro.Pair, r.seed)) {
+	if sp, ok := r.search(PairingAt(r.pool, e.Repro.Pair, r.seed)); ok && sp.implicates {
 		return
 	}
-	played := 0
-	for pair := 0; played < refusedPairsMax && pair < refusedPairsMax*100; pair++ {
+	s := refusedSearch{card: e.Card, pool: e.Repro.Pool, found: -1}
+	for pair := 0; s.played < refusedPairsMax && pair < refusedPairsMax*100; pair++ {
 		p := PairingAt(r.pool, pair, r.seed)
 		if !r.holdsCard(p) {
 			continue
 		}
-		played++
-		if !r.diverges(p) {
+		s.played++
+		sp, ok := r.search(p)
+		if !ok {
 			continue
 		}
-		e.Repro.Pair = pair
-		t.Logf("%s's repro plays clean; %s pair %d still diverges", e.Card, e.Repro.Pool, pair)
+		if sp.implicates {
+			s.found = pair
+			break
+		}
+		if sp.res.Clean() {
+			s.clean = &cleanGame{res: sp.res, m: sp.m, seed: p.Seed, rc: r.runConfig()}
+		}
+	}
+	staleMsg := fmt.Sprintf("stale: %d pairs of %s with %s dealt in and none implicates it. %s", s.played, s.pool, s.card, staleRemedy)
+	warnBase := fmt.Sprintf("WARNING: %s no longer diverges (%d pairs of %s)", s.card, s.played, s.pool)
+	failed, warn := staleVerdict(s, staleMsg, warnBase, os.Getenv("DIRAC_PIN_STRICT") == "1", os.Getenv("DIRAC_UNREFUSE_STALE"))
+	if failed != "" {
+		t.Error(failed)
+		return
+	}
+	if warn != "" {
+		t.Log(warn)
+	}
+	if s.found >= 0 {
+		e.Repro.Pair = s.found
+		t.Logf("%s's repro plays clean; %s pair %d still diverges", e.Card, e.Repro.Pool, s.found)
 		if os.Getenv("DIRAC_UPDATE_SUPPORT") == "1" {
 			b, err := e.Marshal()
 			if err != nil {
@@ -292,9 +351,7 @@ func checkRefusedEntry(t *testing.T, e *cardset.RefusedEntry) {
 				t.Fatal(err)
 			}
 		}
-		return
 	}
-	t.Errorf("stale: %d pairs of %s with %s dealt in and none implicates it. %s", played, e.Repro.Pool, e.Card, staleRemedy)
 }
 
 // checkRefusedRepro is checkRefusedEntry for an entry pinned to a recorded game (pool
@@ -333,9 +390,67 @@ func checkRefusedRepro(t *testing.T, e *cardset.RefusedEntry) {
 	}
 	defer CloseSide(k)
 	res := Lockstep(m, r.Seed, k, &ScriptPolicy{Actions: r.Actions}, rc)
-	if !gameImplicates(&res, m, e.Card) {
-		t.Errorf("stale: %s's recorded game %s no longer diverges with it implicated. %s", e.Card, e.Repro.File, staleRemedy)
+	if gameImplicates(&res, m, e.Card) {
+		return
 	}
+	// A stale recorded game has no pool to search, so it records nothing: the repro it
+	// sits beside is already the proof an unrefusal names.
+	s := refusedSearch{card: e.Card, pool: "custom", played: 1, found: -1}
+	staleMsg := fmt.Sprintf("stale: %s's recorded game %s no longer diverges with it implicated. %s", e.Card, e.Repro.File, staleRemedy)
+	warnBase := fmt.Sprintf("WARNING: %s no longer diverges (its recorded game %s)", e.Card, e.Repro.File)
+	failed, warn := staleVerdict(s, staleMsg, warnBase, os.Getenv("DIRAC_PIN_STRICT") == "1", os.Getenv("DIRAC_UNREFUSE_STALE"))
+	if failed != "" {
+		t.Error(failed)
+		return
+	}
+	if warn != "" {
+		t.Log(warn)
+	}
+}
+
+// staleVerdict is the decision a refused entry's search ends on (checkRefusedEntry's and
+// checkRefusedRepro's tail). A pair that still implicates the card holds the register's
+// assertion: the check passes. A stale refusal — no searched game implicates the card —
+// fails under DIRAC_PIN_STRICT=1 (the nightly, which keeps the assertion); outside it a
+// fixed card is progress, not a red batch: it warns, and DIRAC_UNREFUSE_STALE=<dir>
+// records clean (the last clean game, the unrefusal's proof) and a stale.tsv line for
+// scripts/unrefuse-stale.sh, which unrefuses the card. staleMsg is the failure the pin
+// demands, warnBase the warning's head ("WARNING: <card> no longer diverges (<played>
+// pairs of <pool>)"). It returns the failure to raise ("" when the check passes) and the
+// warning to log ("" under the pin).
+func staleVerdict(s refusedSearch, staleMsg, warnBase string, strict bool, staleDir string) (failed, warn string) {
+	if s.found >= 0 {
+		return "", ""
+	}
+	if strict {
+		return staleMsg, ""
+	}
+	warn = warnBase + ": scripts/regen-main.sh unrefuses it"
+	if staleDir == "" || s.clean == nil {
+		return "", warn
+	}
+	if err := writeStaleUnrefuse(staleDir, s); err != nil {
+		warn += " (recording the stale game failed: " + err.Error() + ")"
+	}
+	return "", warn
+}
+
+// writeStaleUnrefuse records a stale search's unrefusal under dir: the clean game as
+// <slug>.repro.json, and the stale.tsv line the unrefusal script acts on (card, slug,
+// the pairs played, the pool searched).
+func writeStaleUnrefuse(dir string, s refusedSearch) error {
+	slug := cardset.SupportSlug(s.card)
+	r := NewRepro(s.clean.m, s.clean.seed, s.clean.rc, s.clean.res)
+	if err := r.Write(filepath.Join(dir, slug+".repro.json")); err != nil {
+		return err
+	}
+	f, err := os.OpenFile(filepath.Join(dir, "stale.tsv"), os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o644)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	_, err = fmt.Fprintf(f, "%s\t%s\t%d\t%s\n", s.card, slug, s.played, s.pool)
+	return err
 }
 
 // refusedPlayable: an entry naming a card kgen does not lower has nothing to replay.
