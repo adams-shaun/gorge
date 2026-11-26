@@ -142,6 +142,7 @@ const (
 	ChGenOptInSeat                            // mode 1 = yes / 0 = no, asked of the repeated player (the loop's seat, not the controller): RepeatOptionalForEachPlayer$ True's offer (gorge's repeat_each_optional "yes" / "no"; canonical kinds yes_seat / no_seat; act_optinseat.go)
 	ChGenPayMoveGrave                         // source = an exiled card put into its owner's graveyard to pay a trigger's own ExiledMoveToGrave cost (gorge's "graveyard_cost"; cost_exiledmovegrave.go)
 	ChGenReadAhead                            // source = the entering read-ahead Saga; mode = the chapter chosen, its lore count (gorge's "readahead" KChoose, the chapter on Amount, CR 702.155b; kw_readahead.go)
+	ChGenCipher                               // source = the creature a resolving Cipher spell is encoded on, mode its battlefield-order index; Done declines (gorge effCipher's KModes Min 0 Max 1; kw_cipher.go)
 )
 
 // sfFree marks a spell cast without paying its mana cost (OpCastFree);
