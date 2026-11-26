@@ -95,8 +95,8 @@ func (s *State) scriptCtrIdle(k *prep, p uint8, idle bool) slotMask {
 		if a == nil || s.perms[sl].actUsed&(1<<uint(k.ctrAb[c])) != 0 || s.genLost(k, sl) || k.gen != nil && k.gen.anyCantAct && s.actForbidden(k, sl, true) {
 			continue
 		}
-		if a.Cost.Flags&kop.CostRemoveCtr != 0 && s.perms[sl].ctrN(s, int(a.Cost.Ctr)) < int(a.Cost.N) {
-			continue // too few counters to remove (legal.go actCostOK's CostRemoveCtr)
+		if !s.ctrCostPayable(sl, p, a) {
+			continue // too few counters to remove (legal.go actCostOK's CostRemoveCtr), or too little energy
 		}
 		if sacCtrManaAb(a) {
 			if !s.sacCtrUsable(k, sl, a) {
@@ -118,6 +118,17 @@ func (s *State) scriptCtrIdle(k *prep, p uint8, idle bool) slotMask {
 		m = m.with(sl)
 	}
 	return m
+}
+
+// ctrCostPayable reports whether counter-cost gap a's non-tap cost can be paid
+// at sl for p: the counters it removes from its source (CostRemoveCtr), or the
+// energy its controller pays (CostPayEnergy, the energy form of
+// kop.CtrTapSecondManaAb: gorge pay.EnergyPayable).
+func (s *State) ctrCostPayable(sl Slot, p uint8, a *kop.Ability) bool {
+	if a.Cost.Flags&kop.CostRemoveCtr != 0 && s.perms[sl].ctrN(s, int(a.Cost.Ctr)) < int(a.Cost.N) {
+		return false
+	}
+	return a.Cost.Flags&kop.CostPayEnergy == 0 || s.energyPayable(SeatIx(p), &a.Cost)
 }
 
 // ctrBesideGrant reports whether p has an activatable counter-cost gap while
@@ -373,6 +384,8 @@ func (s *State) ctrGapDo(k *prep, p uint8, sl Slot, col int, fire bool) {
 			// the search's fork-side probe leaves the trigger passes to grantApply
 			pm.subCtrN(s, int(a.Cost.Ctr), int(a.Cost.N))
 		}
+	} else if a.Cost.Flags&kop.CostPayEnergy != 0 {
+		s.payEnergy(SeatIx(p), &a.Cost) // the energy form (Aether Hub): gorge pay.ChargeEnergyCost
 	} else {
 		n := s.placeCounters(k, sl, int(a.Cost.Ctr), int(a.Cost.N), p, ctrPutCost) // a cost: only the non-EffectOnly$ replacements
 		if n > 0 && k.anyCtrAdded {
@@ -446,8 +459,7 @@ func (g *grantSrch) ctrBranch(t *State, i int, sl Slot) bool {
 	}
 	off := g.k.ctrFirstN(c)
 	tap := t.canTapForMana(g.k, sl) // its {T}: untapped and, a creature, not sick
-	ctrOK := t.perms[sl].actUsed&(1<<uint(g.k.ctrAb[c])) == 0 &&
-		(a.Cost.Flags&kop.CostRemoveCtr == 0 || t.perms[sl].ctrN(t, int(a.Cost.Ctr)) >= int(a.Cost.N)) &&
+	ctrOK := t.perms[sl].actUsed&(1<<uint(g.k.ctrAb[c])) == 0 && t.ctrCostPayable(sl, g.p, a) &&
 		(a.Cost.Flags&kop.CostTap == 0 || tap)
 	// The subsume run's colour asks keep only the colours the pool still
 	// lacks (subsumeCols: gorge's subsumeAnswers on the ask's answers, the
