@@ -1,0 +1,18 @@
+# CopyCard$ True over a Defined$ Remembered card just exiled (dirac/kgen/lower_playcopypop.go):
+# Narset, Enlightened Exile's attack trigger and Roving Actuator's Void enter trigger,
+# with cheap instants and sorceries to fill graveyards, creatures to trade so the
+# Void condition holds, and basics (dirac/oracle/playcopycard_lockstep_test.go)
+Narset, Enlightened Exile
+Roving Actuator
+Shock
+Lightning Bolt
+Opt
+Think Twice
+Brute Strength
+Grizzly Bears
+Runeclaw Bear
+Hill Giant
+Plains
+Island
+Mountain
+Forest

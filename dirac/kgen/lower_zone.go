@@ -2515,9 +2515,8 @@ func (lc *lowerCtx) play(ps *params) error {
 		if v != "True" {
 			return refuse("Play CopyCard %q", v)
 		}
-		if ps.m["ValidSA"] != "Spell" || ps.m["ValidZone"] != "Exile" || !(strings.Contains(ps.m["Valid"], "IsRemembered") || lc.grantExile && ps.m["Valid"] == "Card.Self") ||
-			ps.m["Defined"] != "" || ps.m["ValidTgts"] != "" || ps.m["ForgetPlayed"] != "" || ps.m["ReplaceGraveyard"] != "" {
-			return refuse("Play CopyCard outside Valid$ IsRemembered, ValidZone$ Exile, ValidSA$ Spell")
+		if err := lc.playCopyPopOK(ps); err != nil { // lower_playcopypop.go
+			return err
 		}
 		copyCard = true
 	}
