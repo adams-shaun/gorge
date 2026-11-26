@@ -1152,6 +1152,8 @@ PutCtrChoiceNone	untyped int	255
 PutCtrRemAmount	untyped int	5
 PutCtrRememberPut	untyped int	2
 R	untyped int	3
+RaiseAbMana	untyped int	2
+RaiseAbPick	untyped int	1
 RdrAsAttached	int16	16
 RdrAsSelf	int16	8
 RdrAsSrcCtrl	int16	32
