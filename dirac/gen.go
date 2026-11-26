@@ -183,7 +183,7 @@ type genPrep struct {
 	chPlOrder       bool           // an as-enters opponent choice beside another object's enters replacement (repl_chooseplayer.go prepChoosePlayer): StallChoosePlayerOrder
 	tokListAdd      bool           // a comma-listed TokenScript$ mint beside a ReplAddToken (repl_toklistadd.go prepTokListAdd): StallTokRewrite
 	anyWitherGrant  bool           // some table part grants kop.KwWither (kw_wither.go); sets anyInfect
-	anyInfectGrant  bool           // some static or ExtKwMark grants infect (kw_kwmark.go); sets anyInfect
+	anyInfectGrant  bool           // some static, override record or ExtKwMark grants infect or toxic (kw_kwmark.go, kw_toxicgrant.go); sets anyInfect
 	anyEvasionGrant bool           // some static or ExtKwMark grants intimidate (kw_kwmark.go); sets anyEvasion
 	anyKwMark       bool           // some program has an ExtKwMark (kw_kwmark.go: the cleanup clear)
 	anyEOTEmb       bool           // some emblem ends at cleanup (kop.Emblem.UntilEOT; kw_protection.go)
@@ -262,6 +262,7 @@ type genPrep struct {
 	anyCantSac      bool           // some card has a StatCantSacrifice (static_cantsacrifice.go sacBlocked)
 	anyCantTgt      bool           // some card has a StatCantTarget (tgt_canttarget.go cantTargetGen)
 	anyCantTgtGrave bool           // some card has a StatCantTgtGrave (kw_canttgtgrave.go)
+	anyOffZoneChar  bool           // some StatOffZoneGrant carries an Override (static_offzonechars.go)
 	anyFaces        bool           // some card has faces (CardDef.Faces; face_multiface.go)
 	anyWarp         bool           // some card has warp (CardDef.HasWarp; kw_warp.go)
 	anyDash         bool           // some card has dash (CardDef.HasDash; kw_dash.go)
@@ -391,6 +392,7 @@ type genPrep struct {
 	anySacX         bool           // some spell or ability costs an announced Sac<X/Spec> (CostSac with Cost.N 0; cost_sacx.go)
 	anyXMin         bool           // some spell or ability floors its announced X (Cost.XMin; cost_sacx.go)
 	anyCopyCast     bool           // some OpCastFree casts a copy (C bit 6; cast_copycast.go)
+	anyCipher       bool           // some spell encodes (Ext CipherEncode; kw_cipher.go)
 	anyExileGrant   bool           // some program holds an ExtGrantExile (cast_exilegrant.go)
 	anyNumTimes     bool           // some ability announces a pay-N-times count (Ext NumTimes; cast_announcetimes.go)
 	anyExHaste      bool           // some ability can't be blocked except by creatures with haste (Ext ExHaste; static_cantblockexcept.go)
@@ -586,11 +588,12 @@ const (
 // word filled its 32 bits. Bit 0 in anyRepl2 only marks the word's presence
 // sites, the way anyRepl does for the first word.
 const (
-	rb2BeginPhase uint32 = 1 << iota // ReplBeginPhase: the step boundary consults the skip (repl_beginphase.go)
-	rb2LifeFloor                     // ReplLifeReduced: damage's life loss is floored (repl_lifefloor.go)
-	rb2DmgMinus                      // ReplDamageMinus: the event's damage is that much minus Repl.A (repl_dmgminus.go)
-	rb2DmgSet                        // ReplDamageSet: damage of the gate and up is set to Repl.A (repl_dmgminus.go)
-	rb2DmgInst                       // ReplDamageInstead: the damage is replaced by counters, mill, exile or draw (repl_dmginstead.go)
+	rb2BeginPhase  uint32 = 1 << iota // ReplBeginPhase: the step boundary consults the skip (repl_beginphase.go)
+	rb2LifeFloor                      // ReplLifeReduced: damage's life loss is floored (repl_lifefloor.go)
+	rb2DmgMinus                       // ReplDamageMinus: the event's damage is that much minus Repl.A (repl_dmgminus.go)
+	rb2DmgSet                         // ReplDamageSet: damage of the gate and up is set to Repl.A (repl_dmgminus.go)
+	rb2DmgInst                        // ReplDamageInstead: the damage is replaced by counters, mill, exile or draw (repl_dmginstead.go)
+	rb2DrawProgram                    // ReplDrawProgram: the draw pipeline runs the ability's Prog (repl_drawprogram.go)
 )
 
 // rb2DmgAny are the rb2 damage replacements the damage sites' gates open for.
@@ -845,6 +848,8 @@ func prepReplBit2(g *genPrep, a *kop.Ability, i int, pc *pcard) {
 		bit = rb2DmgSet // replDamage's set rewrite (repl_dmgminus.go)
 	case kop.ReplDamageInstead:
 		bit = rb2DmgInst // replDamage's replace-the-damage step (repl_dmginstead.go)
+	case kop.ReplDrawProgram:
+		bit = rb2DrawProgram // the draw pipeline runs the program (repl_drawprogram.go)
 	}
 	g.replBits2[i] |= bit
 	pc.hasStat = true
@@ -888,6 +893,12 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		replBits:    make([]uint32, len(t.Cards)),
 		replBits2:   make([]uint32, len(t.Cards)),
 		uses:        tableUses(t), // genneed.go
+	}
+	if g.uses.has(useKickAlt) {
+		// the two-alternative Kicker's selection byte shares the multikicker
+		// count's per-object region (filter_kickedalt.go): one kicked family
+		// per card, so the byte is never both
+		g.anyMultikick |= mkAny
 	}
 	g.anySnow = tableAnySnow(t) // the pool's snow tally (mana_snow.go)
 	for i := range t.Cards {
@@ -1004,6 +1015,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepCharmPick(t, g)
 	prepPermCopy(t, g)
 	prepCopyCast(t, g)
+	prepCipher(t, g)     // kw_cipher.go
 	prepExileGrant(t, g) // cast_exilegrant.go
 	prepWaterbend(t, g)
 	prepCostEvidence(t, g)
@@ -1119,8 +1131,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 			}
 		}
 	}
-	prepHexOwn(t, g)      // kw_hexproofcolor.go
-	prepEmblemCasts(t, p) // cast_selfflash.go
+	prepHexOwn(t, g)                     // kw_hexproofcolor.go
+	prepEmblemCasts(t, p)                // cast_selfflash.go
+	p.anyEmbAltCost = tableEmbAltCost(t) // cast_embaltcost.go
 	for i := range t.Cards {
 		c := &t.Cards[i]
 		pc := &p.cards[i]
@@ -1437,7 +1450,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 				case kop.ReplLifeLossDouble:
 					g.replBits[i] |= rbDblLoss
 					pc.hasStat = true
-				case kop.ReplBeginPhase, kop.ReplLifeReduced, kop.ReplDamageMinus, kop.ReplDamageSet, kop.ReplDamageInstead:
+				case kop.ReplBeginPhase, kop.ReplLifeReduced, kop.ReplDamageMinus, kop.ReplDamageSet, kop.ReplDamageInstead, kop.ReplDrawProgram:
 					prepReplBit2(g, a, i, pc)
 				case kop.ReplDestroyHeal:
 					g.replBits[i] |= rbDestroyHeal
@@ -1531,6 +1544,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 				case kop.StatEscapeGrant:
 					g.anyEscapeGrant = true
 					pc.hasStat = true // scanned through statM (kw_escape.go)
+				case kop.StatMadnessGrant:
+					g.anyMadness = true // a granted madness exiles the discard too (kw_madness.go)
+					pc.hasStat = true   // scanned through statM
 				case kop.StatMiracleGrant:
 					g.anyMiracle = true // a granted miracle queues the draw trigger too (kw_miracle.go)
 					pc.hasStat = true   // scanned through statM

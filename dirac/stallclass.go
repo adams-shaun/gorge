@@ -99,6 +99,7 @@ var stallCapacityReasons = [...]uint8{
 	StallMeld,        // a seventeenth melded permanent at once (maxMeldLinks; face_meld.go)
 	StallConvokedSet, // a seventeenth convoked set held at once, or a seventeenth convoked creature on one cast (kw_convokelist.go)
 	StallPayLife,     // an as-enters pay-any-amount-of-life range past the action's mode byte (repl_paylife.go)
+	StallToxicGrant,  // an until-end-of-turn toxic grant past perm.spare's three bits (seven), or made while the permanent has lost its abilities (kw_toxicgrant.go)
 }
 
 var stallUnmodelledReasons = [...]uint8{
@@ -130,6 +131,7 @@ var stallUnmodelledReasons = [...]uint8{
 	StallOffZonePT,         // an off-battlefield P/T read of a card a live AffectedZone$ All P/T grant boosts (static_offzonept.go)
 	StallRadMill,           // a rad drain's mill whose graveyard move competes between replacements: gorge asks the order mid-drain (act_radiation.go)
 	StallZeroAltShared,     // a {0} may-play alternative beside a free, pay-life or otherwise priced permission, or a second one: two of gorge's casts would share one mode (cast_mayzeroalt.go)
+	StallEmbAltShared,      // a second Effect-delivered alternative-cost emblem beside the first, the card's own alternative cost, or a free may-play admission: two of gorge's casts would share one canon code (cast_embaltcost.go)
 	StallBand,              // a band declaration answered with a candidate: gorge forms the band (CR 702.22), the kernel poses the ask and mirrors only the decline (combat_band.go)
 	StallDredge,            // a draw-replacement body (repl_draw.go) or another unresumable draw path meets a dredge candidate: gorge asks, the kernel cannot suspend there (kw_dredge.go)
 	StallPrevScopeCopy,     // a filtered scoped prevention resolving from a copy of its card: the record cannot find its filters again from the copier's object (repl_prevscopefilter.go)

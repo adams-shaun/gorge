@@ -246,7 +246,12 @@ func (e *Engine) resolveTop() {
 			if triggered {
 				label = e.abilityLabel(o, rt)
 			}
-			e.askOptionalAtResolution(who, o, o.Ability, label, e.triggerContexts[id].OptionalSpec != "")
+			// EffectOptional marks an api:Effect registration's election (the
+			// bot policy's default decline); a reflexive "when you do, you
+			// may" carries its spec on the same channel but is no such
+			// election.
+			tcx := e.triggerContexts[id]
+			e.askOptionalAtResolution(who, o, o.Ability, label, tcx.OptionalSpec != "" && !tcx.Reflexive)
 			return
 		}
 		// ResolvedLimit$ ("Do this only once each turn."): a MANDATORY

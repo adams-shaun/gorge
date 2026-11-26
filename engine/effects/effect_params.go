@@ -139,7 +139,7 @@ var effectKnownKeyRows = [...]string{
 	"TriggerController", "TriggerDescription", "Triggers", "Type", "Types", "Ultimate",
 	"UnlessAI", "UnlessCost", "UnlessPayer", "UnlessResolveSubs", "UnlessSwitched",
 	"ValidAfterStack", "ValidCard", "ValidCards", "ValidCardsDesc", "ValidChoices", "ValidCounterType",
-	"ValidDescription", "ValidPlayer", "ValidSource", "ValidTgts", "ValidTgtsDesc", "VoteMessage", "WithoutManaCost", "XColor", "XMax", "XMin",
+	"ValidDescription", "ValidPlayer", "ValidSource", "ValidTgts", "ValidTgtsDesc", "VoteMessage", "WithoutManaCost", "XAnnounceTitle", "XColor", "XMax", "XMin",
 }
 
 // effectKnownKeys is effectKnownKeyRows as the sorted, duplicate-free set
@@ -334,4 +334,35 @@ func effectPhaseFlags(tl effectTriggerLine) string {
 		flags = "|1C"
 	}
 	return flags + effectStaticSuffix(tl)
+}
+
+// EffectTriggerRemembersObjects reports whether some Effect on face f (a
+// printed ability or an SVar body, down each SubAbility chain) names the
+// trigger SVar trig in its Triggers$ and carries RememberObjects$: the
+// Effect's trigger body reads that memory as Defined$ Remembered (Forge's
+// created effect card's remembered list).
+func EffectTriggerRemembersObjects(f *cards.Face, trig string) bool {
+	if f == nil || trig == "" {
+		return false
+	}
+	names := make([]string, 0, len(f.SVars))
+	for k := range f.SVars {
+		names = append(names, k)
+	}
+	slices.Sort(names)
+	roots := append([]*cards.SA(nil), f.Abilities...)
+	for _, k := range names {
+		roots = append(roots, cards.ResolveSVar(f.SVars, k))
+	}
+	for _, sa := range roots {
+		for n := 0; sa != nil && n < 64; sa, n = sa.Sub, n+1 {
+			if sa.APIKind() != cards.APIEffect {
+				continue
+			}
+			if p := EffectOf(sa); p.RemembersObjects && slices.Contains(p.TriggerNames, trig) {
+				return true
+			}
+		}
+	}
+	return false
 }

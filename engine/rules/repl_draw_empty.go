@@ -1,6 +1,8 @@
 package rules
 
 import (
+	"strings"
+
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
@@ -16,11 +18,16 @@ func emptyDrawProposal(ev events.Event) bool {
 // emptyDrawReplacement is the Draw-class line shape CR 614.11 lets meet an
 // attempted draw from an empty library: a mandatory line whose body is not
 // itself a draw (Laboratory Maniac's and Jace, Wielder of Mysteries' "you
-// win the game instead"). A "draw N cards instead" body would draw from the
-// same empty library, so those lines keep meeting only a draw that takes a
-// card.
+// win the game instead"), or a bodyless Prevent$ line (Living Conundrum's
+// "skip that draw instead"), whose complete replacement is the skip itself
+// (CR 614.1a, the shape applyReplacement's bodyless Draw arm already stops
+// with). A "draw N cards instead" body would draw from the same empty
+// library, so those lines keep meeting only a draw that takes a card.
 func emptyDrawReplacement(r *cards.Repl) bool {
-	return r.With != nil && r.With.API != "Draw" && !r.OptionalValue()
+	if r.With != nil {
+		return r.With.API != "Draw" && !r.OptionalValue()
+	}
+	return strings.EqualFold(r.ParamStr(cards.PKPrevent), "True") && !r.OptionalValue()
 }
 
 // applyEmptyDrawReplacement applies the first live Draw replacement that

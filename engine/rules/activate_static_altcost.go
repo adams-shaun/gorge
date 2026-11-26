@@ -26,7 +26,7 @@ import (
 // printed cost already carried, so the alternative drops the mana and any
 // Pay-life part and keeps the discard. TypeCycling is a variant of cycling
 // (cyclingKeyword), so it takes the same alternative.
-func (e *Engine) abilityAlternateCostFor(p state.PlayerID, ab *cards.SA) (Cost, bool) {
+func (e *Engine) abilityAlternateCostFor(p state.PlayerID, src state.ObjID, ab *cards.SA) (Cost, bool) {
 	if c, ok := e.abilityAlternateCost(ab); ok {
 		return c, true
 	}
@@ -35,7 +35,7 @@ func (e *Engine) abilityAlternateCostFor(p state.PlayerID, ab *cards.SA) (Cost, 
 		return Cost{}, false
 	}
 	for _, sv := range e.activeStatics("AlternativeCost") {
-		if !staticAltCostScopesAbility(sv, kw, p) {
+		if !staticAltCostScopesAbility(sv, kw, p) && !e.staticAltCostScopesCrew(sv, kw, p, src) {
 			continue
 		}
 		if !e.continuousConditionHolds(sv) || !e.checkSVarHolds(sv) {
@@ -51,7 +51,8 @@ func (e *Engine) abilityAlternateCostFor(p state.PlayerID, ab *cards.SA) (Cost, 
 }
 
 // staticAltCostKind is the ValidSA$ Activated.<kind> an AlternativeCost static
-// names for ab: the attach-cost SA's own keyword (Equip, Fortify), or Cycling
+// names for ab: the attach-cost SA's own keyword (Equip, Fortify), Crew for the
+// minted crew ability (a Vehicle's own alternative, staticAltCostScopesCrew), or Cycling
 // for a cycling / typecycling body (cyclingKeywordCodes). ok is false for every
 // other activation.
 func staticAltCostKind(ab *cards.SA) (string, bool) {
@@ -59,7 +60,7 @@ func staticAltCostKind(ab *cards.SA) (string, bool) {
 		return "", false
 	}
 	kw := strings.TrimSpace(ab.ParamStr(cards.PKKeyword))
-	if isAttachCostSA(ab) {
+	if isAttachCostSA(ab) || isCrewSA(ab) {
 		return kw, true
 	}
 	if cyclingKeywordCodes.Code(kw) == cyclingKeywordCycling {
@@ -91,4 +92,33 @@ func staticAltCostScopesAbility(sv staticView, kw string, p state.PlayerID) bool
 		return false
 	}
 	return true
+}
+
+// isCrewSA reports whether ab is the crew ability engine/cards/kw_crew.go
+// mints (Keyword$ Crew, CR 702.122).
+func isCrewSA(ab *cards.SA) bool {
+	return ab != nil && strings.TrimSpace(ab.ParamStr(cards.PKKeyword)) == "Crew"
+}
+
+// staticAltCostScopesCrew is staticAltCostScopesAbility's twin for the
+// Vehicle's own crew alternative (Heart of Kiran: ValidSA$
+// Activated.Crew+Vehicle, ValidCard$ Card.Self, ValidPlayer$ You): the static
+// grants its alternative only to the crew ability of the permanent that
+// carries it (CR 118.9), activated by its controller. Any other rider shape
+// fails closed.
+func (e *Engine) staticAltCostScopesCrew(sv staticView, kw string, p state.PlayerID, src state.ObjID) bool {
+	if kw != "Crew" || sv.Source != src || p != sv.Controller {
+		return false
+	}
+	if vc, has := sv.Param(cards.PKValidCard); !has || strings.TrimSpace(vc) != "Card.Self" {
+		return false
+	}
+	if !strings.EqualFold(strings.TrimSpace(sv.ParamStr(cards.PKValidPlayer)), "You") {
+		return false
+	}
+	if strings.TrimSpace(sv.ParamStr(cards.PKValidSA)) != "Activated.Crew+Vehicle" {
+		return false
+	}
+	o := e.G.Obj(src)
+	return o != nil && e.hasType(o, "Vehicle")
 }

@@ -34,7 +34,18 @@ const (
 	cgToxic         = 2 // the toxic amount is fl >> cgToxic
 )
 
-// prepColGrant sets anyColGrant (and anyInfect for a toxic grant).
+// grantKwMask is an OpGrantKeyword's keyword mask: the low half carries one
+// keyword (C), the high half a keyword list (B.N) (interp.go's same form).
+func grantKwMask(in *kop.Instr) kop.KwMask {
+	return kop.KwMask(uint16(in.C)) | kop.KwMask(uint16(in.B.N))<<16
+}
+
+// prepColGrant sets anyColGrant (and anyInfect for a toxic grant), and arms
+// the protection-from-a-colour reads an OpGrantKeyword of a protection
+// keyword may make: the grant's colour-word rewrite (static_colorwords.go
+// cwProtGrant) marks the arena protW..protG runs, so the reads those marks
+// arm (protPrinted, protColFrom) need anyProtCol beside the damage sites'
+// rbProtCol.
 func prepColGrant(t *kop.Table, g *genPrep) {
 	for i := range t.Cards {
 		for j := range t.Cards[i].Abilities {
@@ -43,6 +54,11 @@ func prepColGrant(t *kop.Table, g *genPrep) {
 					g.anyColGrant = true
 					g.anyInfect = g.anyInfect || in.B.N > 0
 					prepColProt(&in, g, i) // static_colourprot.go
+				}
+				if in.Op == kop.OpGrantKeyword && grantKwMask(&in)&protColKw != 0 {
+					g.anyProtCol = true
+					g.anyColGrant = true
+					g.replBits[i] |= rbProtCol
 				}
 			}
 		}

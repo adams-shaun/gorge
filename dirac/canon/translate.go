@@ -184,6 +184,13 @@ func (r *Translator) Action(a dirac.Action) Canon {
 			cm, _ := CastModeCode("mayplay")
 			return Pack(ActCast, src, RefNone, cm)
 		}
+		if mode&1 != 0 && dirac.FeatKickAltSel(uint8(tgt)) != 0 &&
+			dirac.FeatKicker2(&r.Tbl.Cards[r.S.ObjCard(dirac.Obj(src))]) {
+			// the two-alternative Kicker's per-alternative cast the target
+			// byte names (CR 702.33b; kw_kickalt.go): gorge's
+			// "kicked1"/"kicked2"/"kickedboth" cast option
+			return Pack(ActCastKickedAlt, src, RefNone, dirac.FeatKickAltSel(uint8(tgt)))
+		}
 		if mode&(dirac.FeatCastPlotted|dirac.FeatCastMayPlay) == dirac.FeatCastPlotted {
 			// a plotted card cast from exile (CR 702.170b): gorge's
 			// "plot_cast" face route (kw_plot.go)
@@ -251,6 +258,13 @@ func (r *Translator) Action(a dirac.Action) Canon {
 			// the card's own mana alternative cost (Blasphemous Edict's {B};
 			// kernel cast_altfree.go castAltTgt): gorge's
 			// alternativeCosts cast, mode "", AltCostIndex 1
+			cm = 1 << 4
+		case mode == 0 && tgt == 1 && r.S.ObjZone(dirac.Obj(src)) == kop.ZoneGraveyard:
+			// the same alternative from the graveyard (kernel
+			// cast_gravealt.go offerGraveyardAltCasts; gorge
+			// legal_walk_grave_altcost.go, a card's own EffectZone$
+			// Graveyard static): gorge's alternativeCosts cast, mode "",
+			// the same AltCostIndex
 			cm = 1 << 4
 		case mode&dirac.FeatCastWarp != 0:
 			cm, _ = CastModeCode("warped") // a hand cast for its warp cost (kw_warp.go)
@@ -338,6 +352,9 @@ func (r *Translator) Action(a dirac.Action) Canon {
 		}
 		if c, ok := r.grantedOrGained(src, tgt, mode); ok {
 			return c
+		}
+		if c, ok := r.altActivation(dirac.Obj(src), mode); ok {
+			return Pack(ActActivate, src, RefNone, c)
 		}
 		if of := r.cyclingAltOf(dirac.Obj(src), mode); of != 0 {
 			// the cycling alternative cost's twin (kop.StatCyclingAlt): gorge's
@@ -820,6 +837,30 @@ func (r *Translator) StackAbility(srcCard, card dirac.CardID, ab uint8) uint8 {
 // SVar (GorgeSide), the kernel as the card's Gate{CtrMaxSpeed} ability.
 const MaxSpeedBase = 0xE0
 
+// AltActivateBase is the first canonical ability code of an activation paid
+// at its alternative cost (gorge's "ability" option at AltCostIndex 1, CR
+// 118.9): AltActivateBase+n is face ability n's alternative, the kernel's
+// kop.Ability.AltOf twin of it (Heart of Kiran's crew alternative). Codes
+// 0xC0..0xDF, below MaxSpeedBase.
+const AltActivateBase = 0xC0
+
+// altActivation is the canonical code of ability mode of object o when it is
+// the alternative-cost twin of a face ability (kop.Ability.AltOf).
+func (r *Translator) altActivation(o dirac.Obj, mode uint8) (uint8, bool) {
+	if int(o) >= int(r.KP.NObj) || int(r.KP.Objs[o].Card) >= len(r.Tbl.Cards) {
+		return 0, false
+	}
+	abs := r.Tbl.Cards[r.KP.Objs[o].Card].Abilities
+	if int(mode) >= len(abs) || abs[mode].AltOf == 0 {
+		return 0, false
+	}
+	host := r.FaceAbility(o, abs[mode].AltOf-1, false)
+	if host >= MaxSpeedBase-AltActivateBase {
+		return 0, false
+	}
+	return AltActivateBase + host, true
+}
+
 // MaxSpeedCode is the canonical code of the max-speed activated ability abs[idx].
 func MaxSpeedCode(abs []kop.Ability, idx int) uint8 {
 	n := 0
@@ -990,6 +1031,10 @@ func (r *Translator) generatedChoose(a dirac.Action) (Canon, bool) {
 		// gorge's modes over the castable cards, in object order, an index
 		// kept after a cast
 		return Pack(ActMode, RefNone, RefNone, r.S.CastFreeIndex(dirac.Obj(src))), true
+	case dirac.ChGenCipher:
+		// gorge effCipher's KModes over the creatures, in battlefield order
+		// (kw_cipher.go): the option index
+		return Pack(ActMode, RefNone, RefNone, mode), true
 	case dirac.ChGenLookAck:
 		return Pack(kind("yes"), RefNone, RefNone, 0), true
 	case dirac.ChGenDestAlt:
@@ -1248,7 +1293,7 @@ func confirmChoice(mode uint8) (Canon, bool) {
 
 func GeneratedKind(sub dirac.ChoiceKind) (DKind, bool) {
 	switch sub {
-	case dirac.ChGenBranch, dirac.ChGenCastFree, dirac.ChGenPayMode, dirac.ChWardPay:
+	case dirac.ChGenBranch, dirac.ChGenCastFree, dirac.ChGenPayMode, dirac.ChWardPay, dirac.ChGenCipher:
 		return DModes, true
 	case dirac.ChGenReplOrder:
 		return DReplacement, true

@@ -25,6 +25,14 @@ import (
 // alone list this play" probe: restrSrcAvailD's fee pass counts no fee unit.
 const availNoFeeUnit uint16 = 32768
 
+// availXFeeBound is an availX mode bit for the X ask's bound (restrSrcMaxX):
+// gorge's bound reads the census with every census source's largest
+// alternative in it (payment_plan.go paymentPlanCensusTotal), a restricted
+// fee source's production counted and its fee charged from the mana already
+// counted (CR 605.3b), where an afford check on the autopay surface prices
+// the census alone. The bit is held over restrSrcMaxX's own census only.
+const availXFeeBound uint16 = 1024
+
 // maxFeePrefix bounds the fee units one prefix activates.
 const maxFeePrefix = 4
 
@@ -67,7 +75,11 @@ func (s *State) restrFeePrefix(k *prep, a Action, p uint8) {
 			}
 			fund--
 		}
-		s.restrFeeActivate(k, p, sl, ab, fee, s.restrFeeGapColour(k, a, p, sl, ab, fee))
+		if restrFeeWideAb(ab) {
+			s.restrFeeActivateWide(k, p, a, sl, ab, fee)
+		} else {
+			s.restrFeeActivate(k, p, sl, ab, fee, s.restrFeeGapColour(k, a, p, sl, ab, fee))
+		}
 		s.plainOptions(k, &d, availNoActScript|availNoFeeUnit)
 		if hasOption(&d, a) {
 			return
@@ -153,6 +165,19 @@ func (s *State) restrPairFreeLists(k *prep, p uint8, a Action, sl Slot, ab *kop.
 // false when that source is not a fixed-colour plain tap the kernel replays
 // (the search would branch on a colour ask, or the source is restricted).
 func (s *State) restrFeeFundTap(k *prep, p uint8, gap Slot) bool {
+	sl, col, ok := s.restrFeeFundSrc(k, p, gap)
+	if !ok {
+		return false
+	}
+	s.restrFeeTapCensus(k, p, sl, s.manaPCGen(k, sl), col)
+	return true
+}
+
+// restrFeeFundSrc is the source restrFeeFundTap taps: the first covered
+// source of p in battlefield order that is neither the gap nor a restricted
+// one, and its colour; false when none, or when it is not a fixed-colour
+// plain tap the kernel replays.
+func (s *State) restrFeeFundSrc(k *prep, p uint8, gap Slot) (sl Slot, col int, ok bool) {
 	var order [MaxPerm]Slot
 	n := s.battlefieldOrder(p, s.ctrlM[p], order[:], 0)
 	for _, sl := range order[:n] {
@@ -166,12 +191,11 @@ func (s *State) restrFeeFundTap(k *prep, p uint8, gap Slot) bool {
 		}
 		m := s.srcMaskAt(pc, sl) & 0x3f
 		if m == 0 || m&(m-1) != 0 || pc.manaMulti || pc.manaDyn || pc.painCol != 0 || pc.manaRefl {
-			return false
+			return NoSlot, 0, false
 		}
-		s.restrFeeTapCensus(k, p, sl, pc, bits.TrailingZeros8(m))
-		return true
+		return sl, bits.TrailingZeros8(m), true
 	}
-	return false
+	return NoSlot, 0, false
 }
 
 // restrFeeTapCensus taps sl's census ability (view pc, colour col) into p's
@@ -225,35 +249,7 @@ func (s *State) restrComboPrefix(k *prep, p uint8, a Action, pd *payDesc) bool {
 	}
 	last := gaps[ng-1]
 	_, _, ab := s.restrView(k, p, last, s.manaPCGen(k, last), pd)
-	s.perms[last].flags |= pfTapped
-	s.touchSl(last)
-	s.manaTapped(k, last)
-	dc, dn := s.deferSnap(p)
-	s.filtFeeSpend(k, p, last, fee)
-	if k.artMana {
-		s.artSync(p)
-	}
-	s.deferSync(p, dc, dn)
-	need := s.playNeed(k, a)
-	rb, pool := s.rb[SeatIx(p)], pl.pool
-	var d Decision
-	for c := 0; c < wideAnswers; c++ {
-		x, y := wideAnswer(wideEngineAnswer(need, c))
-		s.rb[SeatIx(p)], pl.pool = rb, pool
-		if !s.floatRestrAb(k, p, last, ab, x, 1) || !s.floatRestrAb(k, p, last, ab, y, 1) {
-			s.capFull(StallRestrSrc) // never a silent spill
-			return true
-		}
-		s.plainOptions(k, &d, availNoActScript|availNoFeeUnit)
-		if hasOption(&d, a) {
-			return true
-		}
-	}
-	s.rb[SeatIx(p)], pl.pool = rb, pool
-	x, y := wideAnswer(wideEngineAnswer(need, 0))
-	if !s.floatRestrAb(k, p, last, ab, x, 1) || !s.floatRestrAb(k, p, last, ab, y, 1) {
-		s.capFull(StallRestrSrc)
-	}
+	s.restrFeeActivateWide(k, p, a, last, ab, fee)
 	return true
 }
 
@@ -283,4 +279,18 @@ func (s *State) restrFeeActivate(k *prep, p uint8, sl Slot, ab *kop.Ability, fee
 // TierNormal alternatives only).
 func restrNoColour(lastResort bool, fee, feeCol, rkind uint8) bool {
 	return lastResort || (fee != 0 || feeCol != 0) && rkind == rkExt
+}
+
+// tapForTryCensus is tapForTry's census-only probe: it holds availNoFeeUnit
+// over the pass, so the planner prices no restricted fee unit and a plan the
+// census alone affords is the payment (gorge's composed plan prices the
+// census alone; the fee gap is the play's prefix and the window's arm, not a
+// plan unit beside the census's -- plancost.go prices the fee only for a play
+// the census cannot pay, PaymentPlanRelaxedFee).
+func (s *State) tapForTryCensus(k *prep, p uint8, cost *kop.ManaCost, x int, exclude Obj, anyColor bool) bool {
+	ax := s.g.availX
+	s.g.availX |= availNoFeeUnit
+	ok := s.tapForTry(k, p, cost, x, exclude, anyColor)
+	s.g.availX = ax
+	return ok
 }

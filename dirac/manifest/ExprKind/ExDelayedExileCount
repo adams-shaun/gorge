@@ -1,0 +1,7 @@
+family: ExprKind
+name: ExDelayedExileCount
+value: next
+status: active
+ticket: cli-20261125T191555Z-fdbcc0d7
+state: code 0
+doc: The fired delayed program's remembered objects (at most four, kop.DpMany's carriers, dirac/trig_delayedmany.go dpManyCarrier) that are still the same object in exile (the version the program registered them at). Dragonhawk, Fate's Tempest's end-step body counts them (gorge Count$ValidExile Card.IsTriggerRemembered, the trigger's remembered set read over the exile zones); the body's /Twice suffix doubles it through the usual modifier. dirac/value_delayedexile.go.

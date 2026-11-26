@@ -121,7 +121,7 @@ const (
 	OpChooseBranch      // player Obj chooses one of A.N branches (the OpBranch blocks that follow); branch A.N (the fallback) runs when none can be chosen
 	OpChooseTargets     // the controller chooses target slot C now (a TgfAtResolution slot: one object, or none for an up-to slot)
 	OpRepeatWhile       // run the next B.N instructions at most A times, again only while Table.Conds[C] holds after a pass
-	OpCopySpell         // copy the spell Obj (RefTriggerObj: the spell whose cast triggered this) A times; C&1: each copy's controller may choose new targets as it resolves (CR 707.10c)
+	OpCopySpell         // copy the spell Obj (RefTriggerObj: the spell whose cast triggered this) A times; C&1: each copy's controller may choose new targets as it resolves (CR 707.10c); W: the copies' controller (Controller$; 0 = the resolving controller); C&4 (Obj not RefSelf): one copy for each living player but W's, in turn order from the resolving controller (Hive Mind)
 
 	OpPutCounterAll    // each battlefield permanent matching F gets A counters of kind C (gorge effPutCounterAll; battlefield order, seat 0 first)
 	OpUntapAll         // each tapped battlefield permanent matching F untaps (a stun counter is removed instead; gorge effUntapAll)
