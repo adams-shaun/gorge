@@ -262,6 +262,8 @@ default	field	genState.endTurn	1
 default	field	genState.fog	1
 default	field	genState.beamPick	1
 default	field	genState.altCast	1
+default	field	genState.altGrantAb	1
+default	field	genState.altGrantC	2
 default	field	genState.beamGrant	1
 default	field	genState.impCast	1
 default	field	genState.warpGrant	1
@@ -762,6 +764,7 @@ default	field	genPrep.exileAnyC	24
 default	field	genPrep.destroyHeal	24
 default	field	genPrep.anyExileAny	1
 default	field	genPrep.altFree	24
+default	field	genPrep.anyAltGrant	1
 default	field	genPrep.anyDeferred	1
 default	field	genPrep.anyTapsDefer	1
 default	field	genPrep.anyTapsPain	1
