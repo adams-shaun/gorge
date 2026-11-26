@@ -1,0 +1,5 @@
+family: StaticKind
+name: StatDefiler
+value: next
+status: active
+doc: StatDefiler is the Defiler cycle's board static (S:Mode$ OptionalCost | ValidCard$ Permanent.<Colour> | ValidSA$ Spell | Activator$ You | Cost$ PayLife<N> | ReduceColor$ <C>; Defiler of Dreams, Faith, Flesh, Instinct and Vigor): as an additional cost to cast the static controller's spells matching Filter, the caster may pay N life (A), and then the spell costs one pip of colour B (W U B R G = 0..4) less, never spilling to generic (CR 601.2b, 601.2f, 119.4). Not a ReduceCost: the reduction reads the caster's answer (build.def*, cost_defiler.go), one yes/no (ChGenConfirm) per applicable static in battlefield order, asked at bsDefiler beside gorge's defilerAsk.

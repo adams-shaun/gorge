@@ -5,8 +5,8 @@ package rules
 // is a modal machinery carrier like Charm — a Choices$ list naming SVar
 // ability bodies — and since it registered onto the same handler
 // (engine/effects/misc.go: GenericChoice -> effCharm) both of its paths resolve:
-// a trigger body poses the CR 603.3c placement KModes ask (askTriggerModes,
-// engine/rules/trigger_queue.go), a DB$ reached mid-resolution poses effCharm's own
+// a trigger body poses effCharm's KModes ask at resolution (askTriggerModes
+// declines GenericChoice: CR 608.2d, not CR 603.3c), a DB$ reached mid-resolution poses effCharm's own
 // KModes ask, and a DB$ reached as a CHAINED SubAbility$ is dispatched by
 // effects.Resolve's chain walk exactly like any other registered API — pinned
 // by TestDayOfTheDoctorChapterIVAsks on the real corpus carrier (The Day of
@@ -51,8 +51,8 @@ const foodTokenScript = "Name:Food Token\nManaCost:no cost\nTypes:Artifact Food\
 const treasureTokenScript = "Name:Treasure Token\nManaCost:no cost\nTypes:Artifact Treasure\nOracle:x\n"
 
 // provisionerAtModes drives a battlefield Tireless Provisioner through a land
-// entering under seat 0's control to its Landfall trigger's placement modes
-// ask and returns the engine with that decision pending.
+// entering under seat 0's control to its Landfall trigger's modes ask, posed
+// while the trigger resolves, and returns the engine with that decision pending.
 func provisionerAtModes(t *testing.T, seed uint64) (*Engine, Config) {
 	t.Helper()
 	e, cfg, _ := newFixtureDeck(t, seed, provisionerScript, provForestScript)
@@ -67,9 +67,18 @@ func provisionerAtModes(t *testing.T, seed uint64) (*Engine, Config) {
 	if len(e.G.Stack) != 1 {
 		t.Fatalf("stack = %v, want exactly the Landfall trigger", e.G.Stack)
 	}
-	d := e.Pending()
-	if d == nil || d.Kind != decision.KModes || d.ResumeKind != "modes" {
-		t.Fatalf("pending = %+v, want the placement KModes ask", d)
+	// CR 608.2d: the choice is an instruction followed at resolution, so the
+	// trigger goes on the stack with no modes ask (CR 603.3c is for printed
+	// "Choose one" modal abilities, CR 700.2).
+	if d := e.Pending(); d != nil && d.Kind == decision.KModes {
+		t.Fatalf("pending = %+v, want no placement KModes ask", d)
+	}
+	if e.Pending() == nil {
+		e.askPriority(e.G.Active)
+	}
+	d := passPriorityUntil(t, e, decision.KModes)
+	if d.ResumeKind != "modes" {
+		t.Fatalf("pending = %+v, want the resolution KModes ask", d)
 	}
 	if len(d.Options) != 2 {
 		t.Fatalf("mode options = %d, want the two Choices$ candidates", len(d.Options))
@@ -82,6 +91,21 @@ func provisionerAtModes(t *testing.T, seed uint64) (*Engine, Config) {
 		t.Fatalf("modal labels %+v, want exactly Food and Treasure (the SVars' SpellDescription$)", d.Options)
 	}
 	return e, cfg
+}
+
+// TestGenericChoiceTriggerChoosesAtResolution: the Landfall trigger goes on
+// the stack without a modes ask and the Food/Treasure ask is posed only when
+// it resolves (CR 608.2d), after both seats have passed.
+func TestGenericChoiceTriggerChoosesAtResolution(t *testing.T) {
+	e, _ := provisionerAtModes(t, 6302)
+	if len(e.G.Stack) != 1 {
+		t.Fatalf("stack = %v, want the trigger still resolving", e.G.Stack)
+	}
+	submitChoices(t, e, 0) // Food
+	passUntilStackEmpty(t, e, 20)
+	if findByName(e, "Food Token", 0) == 0 {
+		t.Fatal("the Food answer created no Food token")
+	}
 }
 
 func TestTirelessProvisionerLandfallCreatesChosenFood(t *testing.T) {
