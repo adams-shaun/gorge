@@ -128,7 +128,7 @@ func (s *State) exprCold(k *prep, x *kop.Expr, ctx evalCtx) int {
 	case kop.ExTotalCommanderCastFromCommandZone:
 		return s.cmdCastTotal(ctx.ctrl) // value_cmdcast.go
 	case kop.ExCmdGreatestMV:
-		return s.cmdGreatestMV(k, ctx.ctrl) // value_cmdmv.go
+		return s.cmdGreatestMV(k, ctx.ctrl, x.N == kop.CmdMVAllZones) // value_cmdmv.go
 	case kop.ExRevolt:
 		if s.revoltHolds(ctx.ctrl) { // zone_leftzonering.go
 			return 1
