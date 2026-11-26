@@ -124,7 +124,7 @@ func (s *State) fireGraveSac(k *prep, sl Slot) {
 				}
 				for j := range cd.Abilities {
 					a := &cd.Abilities[j]
-					if a.Kind == kop.AbTriggered && a.Trig.Zone == kop.ZoneGraveyard && a.Trig.Event == kop.TrigSacrificed {
+					if a.Kind == kop.AbTriggered && a.Trig.Zone == kop.ZoneGraveyard && a.Trig.Event == kop.TrigSacrificed && !s.gravePrintedHidden(k, o) {
 						s.objTrigGen(k, kop.TrigSacrificed, trigListener{obj: o, sl: NoSlot, ctrl: pp, card: c, ab: uint8(j)}, a, sl, ev.obj, ev.ctrl, 0)
 					}
 				}
@@ -154,7 +154,7 @@ func (s *State) fireGraveDies(k *prep, sl Slot) {
 				}
 				for j := range cd.Abilities {
 					a := &cd.Abilities[j]
-					if a.Kind == kop.AbTriggered && a.Trig.Zone == kop.ZoneGraveyard && a.Trig.Event == kop.TrigDies {
+					if a.Kind == kop.AbTriggered && a.Trig.Zone == kop.ZoneGraveyard && a.Trig.Event == kop.TrigDies && !s.gravePrintedHidden(k, o) {
 						s.objTrigGen(k, kop.TrigDies, trigListener{obj: o, sl: NoSlot, ctrl: pp, card: c, ab: uint8(j)}, a, sl, ev.obj, ev.ctrl, 0)
 					}
 				}

@@ -1,0 +1,21 @@
+# RememberPlayed$ True (dirac/cast_playremember.go): Kellan, the Kid's
+# free cast from hand with its "if you don't" land arm, Helmut Zemo, Mastermind's
+# paid graveyard cast and counter gate, cards that cast from
+# anywhere but the hand (flashback, cascade) to trigger it, permanents and
+# spells to play, and basics (dirac/oracle/playremember_lockstep_test.go)
+Kellan, the Kid
+Helmut Zemo, Mastermind
+Think Twice
+Faithless Looting
+Bloodbraid Elf
+Shock
+Opt
+Divination
+Grizzly Bears
+Hill Giant
+Runeclaw Bear
+Plains
+Island
+Forest
+Mountain
+Swamp

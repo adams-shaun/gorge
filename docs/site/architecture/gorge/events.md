@@ -1,12 +1,10 @@
 # Events and replay
 
 gorge is event-sourced: every change to a game is an `events.Event`, folded into
-state by one function and appended to a hash-chained log. This page covers that
-mechanism, the event kinds, the hash chain and golden heads, replay, clones and
-the resolution kernel's verify window. Read it before writing engine code that
-changes anything: these rules keep replays, bug reports and search correct.
+state by one function and appended to a hash-chained log. Read this before writing
+engine code that changes anything; these rules keep replays, bug reports and search correct.
 
-## The loop
+## One trip round the loop { #the-loop }
 
 <figure markdown>
 <svg viewBox="0 0 780 370" width="100%" role="img" aria-label="The event loop: an intent enters the engine, the engine proposes events, each event is appended to the hash-chained log and folded into state by events.Apply, and the view projects state for each seat">
@@ -58,13 +56,14 @@ into <code>state.Game</code> by <code>events.Apply</code> (3). The view reads
 state and the redacted log (4) and hands the next seat its projection and
 decision (5).</figcaption>
 </figure>
-## One mutation path
+
+## How a change reaches state { #one-mutation-path }
 
 Package [`events`](https://github.com/adams-shaun/gorge/blob/main/engine/events/apply.go)
 is the only package allowed to write `state.Game`. Both engine entry points end
 in the same place:
 
-```go
+```go title="engine/events/apply.go"
 // Emit is the engine's only mutation path: append to the log, then fold into
 // state. Replay calls Apply directly with logged events, so post-replay state
 // equals post-play state by construction.
@@ -112,12 +111,12 @@ only ever *proposes* an event.
     ([`engine/rules/doc.go`](https://github.com/adams-shaun/gorge/blob/main/engine/rules/doc.go)).
     From `GameStart` onward, everything is an event.
 
-## The event record
+## What an event carries { #the-event-record }
 
 Every event has one flat shape
 ([`engine/events/event.go`](https://github.com/adams-shaun/gorge/blob/main/engine/events/event.go)):
 
-```go
+```go title="engine/events/event.go"
 type Event struct {
 	Seq     uint64           `json:"seq"`
 	Kind    Kind             `json:"kind"`
@@ -141,11 +140,12 @@ New kinds reuse these fields; each kind's comment says what `Amount`, `Text` or
 `IDs` mean for it. One shape keeps the encoding, the hash and the wire format
 uniform.
 
-Events carry **results, not dice**. `Shuffle` carries the resulting order in
-`IDs` (and is `Secret`); `Apply` installs it and never touches the RNG.
-Randomness happens in the engine, before the event is proposed.
+!!! note "Events carry results, not dice"
+    `Shuffle` carries the resulting order in `IDs` (and is `Secret`); `Apply`
+    installs it and never touches the RNG. Randomness happens in the engine,
+    before the event is proposed.
 
-## Event kinds
+## Which kinds exist, and why the list only grows { #event-kinds }
 
 `events.Kind` is a `uint8`, declared in order in
 [`engine/events/event.go`](https://github.com/adams-shaun/gorge/blob/main/engine/events/event.go)
@@ -156,30 +156,26 @@ its log and wire name, its trigger-interest class (which triggered abilities
 could care) and its transcript template. `TestEveryKindHasADescriptor` fails for
 a kind with no entry.
 
-**The list is append-only.** The ordinal is part of the encoding, which is
-hashed; inserting a kind would renumber every later one and change the hash of
-every recorded game. A new kind goes after the last one, above `NumKinds`, so
-kinds are in the order they were added, not grouped by topic.
+!!! warning "The list is append-only"
+    The ordinal is part of the encoding, which is hashed; inserting a kind would
+    renumber every later one and change the hash of every recorded game. A new
+    kind goes after the last one, above `NumKinds`, so kinds are in the order they
+    were added, not grouped by topic
+    ([invariant](../invariants.md#eventskind-is-append-only)).
 
-Kinds worth a note:
+| Kinds worth a note | Why |
+|---|---|
+| `DecisionAsk`, `DecisionMade`, `ModeChosen` | Markers that fold nothing. They put the questions and answers in the hashed stream, so a replay that asks a different question diverges there. |
+| `Note` | The engine's "tell everyone" channel: a prevented damage, a fallback taken by a host that could not answer, an unimplemented primitive. Notes are hashed like any event, so a new `Note` moves the chain head. |
+| `TriggerPush`, `AbilityPush` | Create a stack object *and* place it in one event, so the log alone reproduces the object. |
+| `ClockTick` | Advances the timestamp clock. Even that bookkeeping is an event, because a direct field write would be invisible to replay. |
 
-- **Markers.** `DecisionAsk`, `DecisionMade` and `ModeChosen` fold nothing. They
-  put the questions and answers in the hashed stream, so a replay that asks a
-  different question diverges there.
-- **`Note`** is the engine's "tell everyone" channel: a prevented damage, a
-  fallback taken by a host that could not answer, an unimplemented primitive.
-  Notes are hashed like any event, so a new `Note` moves the chain head.
-- **`TriggerPush` and `AbilityPush`** create a stack object *and* place it in
-  one event, so the log alone reproduces the object.
-- **`ClockTick`** advances the timestamp clock. Even that bookkeeping is an
-  event, because a direct field write would be invisible to replay.
-
-## The hash chain
+## How the hash chain fingerprints a game { #the-hash-chain }
 
 The log ([`engine/events/log.go`](https://github.com/adams-shaun/gorge/blob/main/engine/events/log.go))
 holds the events, the intents that produced them and the seed:
 
-```go
+```go title="engine/events/log.go"
 type Log struct {
 	Seed    uint64            `json:"seed"`
 	Events  []Event           `json:"events"`
@@ -217,6 +213,7 @@ type Log struct {
 event's compact encoding. <code>Head()</code> prints the first 8 bytes as 16
 hex digits.</figcaption>
 </figure>
+
 `Event.Append` writes every field, length-prefixing the variable ones, so two
 different events never encode identically. Two logs with the same head describe
 the same match, so comparing games is one string comparison. `HeadAt(n)`
@@ -229,7 +226,7 @@ clone never pays a SHA-256 per event, and the eventual head is byte-identical to
 an eager fold. Benchmarks set `Log.NoHash` to price the audit trail; production
 never does.
 
-## Golden heads
+## When a golden head moves { #golden-heads }
 
 The acceptance game plays the repo decks at 2, 4, 6 and 8 seats from one seed
 (`rules.AcceptanceSeatCounts`, `AcceptanceSeed` in
@@ -243,7 +240,7 @@ do. A moved head is not automatically a bug: it means "this change altered
 gameplay", and the commit that moves it names the first diverging event in its
 message. To find that event and re-pin:
 
-```sh
+```sh title="Find the first diverging event, then re-pin"
 make test-one PKG=./engine/rules RUN='^TestHeads$'  # fails and names the seat count
 go run ./cmd/headdiff -seats 2 -dump before.json    # on the old commit: write the event stream
 go run ./cmd/headdiff -seats 2 -against before.json # on the new one: print the first divergence
@@ -257,13 +254,13 @@ are `-dir`, `-seats`, `-heads`, `-dump`, `-against` and `-context`.
 `TestRepoDeckGamesReplayExactly` is the companion check: it plays several seeds,
 replays each game, and requires the replay's head to equal the original's.
 
-## Replay
+## How replay rebuilds and checks a match { #replay }
 
 Package [`engine/replay`](https://github.com/adams-shaun/gorge/blob/main/engine/replay/replay.go)
 rebuilds a match from `(Config, Log)`. A host reaches it through the
 same-named methods of `game.Engine`:
 
-```go
+```go title="engine/replay/replay.go"
 func Replay(l *events.Log, cfg rules.Config) (*rules.Engine, error)
 func ReplayTo(l *events.Log, cfg rules.Config, n int) (*rules.Engine, error)
 func Walk(l *events.Log, cfg rules.Config, n int, visit func(e *rules.Engine, i int) error) (*rules.Engine, error)
@@ -272,8 +269,8 @@ func FirstDivergence(want, got []events.Event) *Divergence
 
 Replay **re-executes** the game: it builds a fresh engine from the config (with
 the log's seed), calls `Advance`, then `Submit`s each recorded intent in order,
-comparing the rebuilt event stream with the recorded one after every step. It
-does not just re-fold logged events. That is what makes replay a test: an engine
+comparing the rebuilt event stream with the recorded one after every step.
+It does not just re-fold logged events, and that is what makes replay a test: an engine
 that changed since recording either rejects a recorded intent (a plain error) or
 produces a different event, and `Divergence` names the first one:
 
@@ -313,7 +310,7 @@ The server does not resume an in-progress match after a restart: a live match is
 marked aborted, and finished matches are served by replay
 ([The server tier](server.md)).
 
-## Clones
+## When it is safe to clone { #clones }
 
 `Engine.Clone` ([`engine/rules/clone.go`](https://github.com/adams-shaun/gorge/blob/main/engine/rules/clone.go))
 deep-copies the game, the log (sharing the history prefix), the RNG position,
@@ -321,10 +318,11 @@ the pending decision, continuous effects and trigger bookkeeping. Card data is
 shared because it is immutable. The guarantee: the same intents submitted to
 both produce the same events, chain head and RNG draw count.
 
-Clone only at an **intent boundary**: after `New`, `Advance` or `Submit` has
-returned, so a decision is pending or the game is over. At any other moment an
-engine frame may be half-way through writing its own fields. The host clones at
-every turn start to serve historical views.
+!!! warning "Clone only at an intent boundary"
+    That is, after `New`, `Advance` or `Submit` has returned, so a decision is
+    pending or the game is over. At any other moment an engine frame may be
+    half-way through writing its own fields. The host clones at every turn start
+    to serve historical views.
 
 Batch runners use `CloneInto(&spare)` and `Release()` to hand the log and object
 arena back for reuse; capacity is never observable, so a recycled game is
@@ -354,7 +352,7 @@ checkpoint and re-executing. The log makes that safe:
 Re-execution therefore cannot rewrite history: it reproduces what was logged and
 continues, or the engine stops.
 
-## Determinism
+## What keeps a log deterministic { #determinism }
 
 A log describes a match only if the same inputs always produce the same events.
 The rules and what enforces them:

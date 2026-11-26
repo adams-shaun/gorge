@@ -171,6 +171,7 @@ var fingerprintCensus = map[string]fingerprintFile{
 	"link.go":                 {true, "SVar and sub-ability linking during compile"},
 	"mana_production.go":      {true, "ManaProduction summary derived during compile"},
 	"mayask.go":               {false, "runtime may-ask queries for rules; compile reaches only its var tables"},
+	"mayask_dredge.go":        {false, "runtime Dredge-after-fill may-ask query (reached only from mayask.go's runtime query); no vars or compile callers"},
 	"modes.go":                {false, "runtime SplitModeNames over Choices$"},
 	"mustblock_shape.go":      {false, "runtime certification of MustBlock target shapes"},
 	"name_choice.go":          {false, "runtime MentionsNameChoice text probe for the oracle runner"},
