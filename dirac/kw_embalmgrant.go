@@ -133,6 +133,9 @@ func (s *State) priorityEmbalmGrant(k *prep, d *Decision, p uint8, sorc bool, av
 		if !s.embalmGranted(k, o) || k.cards[s.objs[o].card].types&kop.TCreature == 0 || s.castHeldOut(o) {
 			continue
 		}
+		if graveLossOn(k) && s.graveStampedHidden(k, o) {
+			continue // the card lost all abilities and the grant's mark carries no timestamp (static_graveabilityloss.go)
+		}
 		mana := k.t.Cards[s.objs[o].card].Cost
 		if k.gen.anyAbReduce {
 			mana = s.abReducedGrave(k, a, o, p, mana) // the charge prices this embalm under a graveyard reduction static (cast.go abReducedCharge)

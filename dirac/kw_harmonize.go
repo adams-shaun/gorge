@@ -94,6 +94,9 @@ func (s *State) offerHarmonizeCasts(k *prep, d *Decision, p uint8, sorc bool, av
 		if !cd.Harmonize || !k.cards[c].instant && !sorc && !s.castFlash(k, p, c) {
 			continue
 		}
+		if graveLossOn(k) && s.gravePrintedHidden(k, o) {
+			continue // the card lost all abilities (static_graveabilityloss.go)
+		}
 		if k.gen.anyCantCast && s.castForbidden(k, p, c, o) {
 			continue
 		}

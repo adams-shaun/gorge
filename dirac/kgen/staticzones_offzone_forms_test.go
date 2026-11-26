@@ -29,9 +29,12 @@ func TestStaticZonesOffZoneForms(t *testing.T) {
 // kop.StatColorWords, lower_colorwords.go). Each keeps its generic AffectedZone refusal until
 // its own projection and kernel reader land (the tickets filed with this
 // slice); a lowering that lands moves its row into staticZonesOffZoneForms.
+// Yixlid Jailer is not a row: its static lowers
+// (TestStaticZonesOffZoneAbilityLoss) and the card stays refused, by name,
+// until dsub-jailer's readers are all wired.
 var staticZonesOffZoneDeferred = []string{
 	"Falkenrath Gorger", "Conspiracy", "Maskwood Nexus", "Painter's Servant",
-	"Rootpath Purifier", "Secret Arcade", "Yixlid Jailer",
+	"Rootpath Purifier", "Secret Arcade",
 }
 
 func TestStaticZonesOffZoneDeferred(t *testing.T) {

@@ -58,6 +58,7 @@ func (s *State) FeatOffKwNames(o Obj) []string {
 		return nil
 	}
 	var out []string
+	lossTs, lost := s.graveViewLost(k, o)
 	s.eachStaticC(k, sclsOffKwG, func(st statSrc) bool {
 		a := st.a
 		if a.Kind != kop.AbStatic || a.Static.Zone != kop.ZoneAny && a.Static.Zone != ob.zone {
@@ -65,6 +66,9 @@ func (s *State) FeatOffKwNames(o Obj) []string {
 		}
 		if !s.statCond(k, st) || !s.matchCardGenAt(k, a.Static.Filter, ob.card, ob.owner(), st.ctrl, o, nil) {
 			return true
+		}
+		if lost && lossTs > s.grantTs(st) {
+			return true // the removal is newer than the grant (gorge grantLostTo)
 		}
 		switch a.Static.Kind {
 		case kop.StatRetraceGrant:

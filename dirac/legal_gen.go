@@ -1055,10 +1055,19 @@ func (s *State) priorityGraveAct(k *prep, d *Decision, p uint8, sorc bool, av *a
 			z, o = kop.ZoneExile, pl.exile[i-int(pl.graveN)]
 		}
 		cd := &k.t.Cards[s.objs[o].card]
+		lostChecked, lost := false, false
 		for ai := range cd.Abilities {
 			a := &cd.Abilities[ai]
 			if a.Kind != kop.AbActivated || a.ActZone != z || a.AFlags&kop.AfLatent != 0 {
 				continue
+			}
+			if z == kop.ZoneGraveyard && graveLossOn(k) {
+				if !lostChecked {
+					lostChecked, lost = true, s.gravePrintedHidden(k, o)
+				}
+				if lost {
+					continue // the card lost all abilities: its printed activated abilities do not exist (static_graveabilityloss.go)
+				}
 			}
 			if a.Gate.Ctr == kop.CtrMaxSpeed && !s.maxSpeedGraveOK(k, p, o, a) {
 				continue // kw_maxspeed.go

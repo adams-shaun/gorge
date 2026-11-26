@@ -81,6 +81,9 @@ func (s *State) dredgeCands(k *prep, p uint8, buf *[dredgeMaxCands]Obj) int {
 		if d == 0 || d > lib || n == dredgeMaxCands {
 			continue
 		}
+		if graveLossOn(k) && s.gravePrintedHidden(k, o) {
+			continue // the card lost all abilities: gorge reads the derived keyword (static_graveabilityloss.go)
+		}
 		if buf != nil {
 			buf[n] = o
 		}

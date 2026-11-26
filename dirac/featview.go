@@ -47,6 +47,9 @@ func (s *State) FeatKeywords(o Obj) (m kop.KwMask, printed bool) {
 	ob := &s.objs[o]
 	k := s.k()
 	if ob.zone != kop.ZoneBattlefield || ob.slot == NoSlot {
+		if _, lost := s.graveViewLost(k, o); lost {
+			return 0, false // a graveyard card that lost all abilities has no printed keyword (static_graveabilityloss.go)
+		}
 		return k.cards[ob.card].kw, true
 	}
 	p := &s.perms[ob.slot]
@@ -1754,6 +1757,7 @@ func (s *State) FeatGrantedOffRep(o Obj) (kop.KwMask, FeatKwReps) {
 	k := s.k()
 	ob := &s.objs[o]
 	var granted kop.KwMask
+	lossTs, lost := s.graveViewLost(k, o)
 	if k.gen != nil && s.statM.any() {
 		// a StatOffZoneGrant keyword grant in the card's
 		// zone (ZoneAny for All), projected as a keyword bit
@@ -1769,6 +1773,9 @@ func (s *State) FeatGrantedOffRep(o Obj) (kop.KwMask, FeatKwReps) {
 			if !s.statCond(k, st) || !s.matchCardGenAt(k, a.Static.Filter, ob.card, ob.owner(), st.ctrl, o, nil) {
 				return true
 			}
+			if lost && lossTs > s.grantTs(st) {
+				return true // the removal is newer than the grant (gorge grantLostTo)
+			}
 			rep.add(granted, a.Static.Kw)
 			granted |= a.Static.Kw
 			return true
@@ -1777,6 +1784,9 @@ func (s *State) FeatGrantedOffRep(o Obj) (kop.KwMask, FeatKwReps) {
 	n := s.fbGrants(k, o)
 	if s.fbLive(k, o) {
 		n++ // a live static's grant (kw_fbgrant.go), listed after the stamped ones
+	}
+	if lost {
+		n = s.graveFbViewGrants(k, o, lossTs) // static_graveabilityloss.go
 	}
 	if n == 0 {
 		return granted, rep

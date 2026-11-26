@@ -67,6 +67,9 @@ func (s *State) offerMayhemCasts(k *prep, d *Decision, p uint8, sorc bool, av *a
 		if !cd.Mayhem || !DebugMayhemAnyGrave && !s.mObj(k, mechMayhem, o) {
 			continue
 		}
+		if graveLossOn(k) && s.gravePrintedHidden(k, o) {
+			continue // the card lost all abilities (static_graveabilityloss.go)
+		}
 		if !k.cards[c].instant && !sorc && !s.castFlash(k, p, c) {
 			continue
 		}

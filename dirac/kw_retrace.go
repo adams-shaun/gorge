@@ -170,6 +170,9 @@ func (s *State) offerRetraceCasts(k *prep, d *Decision, p uint8, sorc bool, av *
 		o := pl.grave[i]
 		c := s.objs[o].card
 		cd := &k.t.Cards[c]
+		if graveLossOn(k) && (cd.Retrace || s.retraceLive(k, o)) && s.graveRetraceHidden(k, o, cd.Retrace) {
+			continue // the card lost all abilities (static_graveabilityloss.go)
+		}
 		if !cd.Retrace {
 			if !s.retraceLive(k, o) {
 				continue

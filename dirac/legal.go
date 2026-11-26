@@ -287,6 +287,9 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 		c := s.objs[o].card
 		pc := &k.cards[c]
 		marked := fbLo != nil && (fbLo.has(o) || fbHi.has(o))
+		if graveLossOn(k) && s.graveFbHidden(k, o, pc.kw&kop.KwFlashback != 0, marked) {
+			continue // the card lost all abilities (static_graveabilityloss.go)
+		}
 		granted := pc.kw&kop.KwFlashback == 0 && (marked || s.fbLive(k, o)) // a stamped grant or a live static's (kw_fbgrant.go)
 		if pc.kw&kop.KwFlashback == 0 && !granted || (!pc.instant && !sorc && !s.castFlash(k, p, c)) {
 			continue // (cast as though it had flash: High Fae Trickster)

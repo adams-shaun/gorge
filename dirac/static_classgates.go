@@ -238,7 +238,7 @@ func (s *State) sbaPTQuiet(k *prep) bool {
 func staticObjectOnly(t *kop.Table, sa *kop.Static) bool {
 	switch sa.Kind {
 	case kop.StatReduceCost, kop.StatIncreaseCost, kop.StatMayPlayFrom, kop.StatReduceAbility, kop.StatFbGrant, kop.StatWarpGrant,
-		kop.StatEscapeGrant, kop.StatOffZoneGrant, kop.StatRetraceGrant, kop.StatCantBlock, kop.StatCantBlockBy, kop.StatCantAttack,
+		kop.StatEscapeGrant, kop.StatOffZoneGrant, kop.StatRetraceGrant, kop.StatGraveNoAbilities, kop.StatCantBlock, kop.StatCantBlockBy, kop.StatCantAttack,
 		kop.StatMustAttack, kop.StatCastWithFlash, kop.StatAlternativeCost, kop.StatNoMaxHandSize, kop.StatExtraLandPlay, kop.StatCantBeCast:
 		return true
 	case kop.StatContinuous:
