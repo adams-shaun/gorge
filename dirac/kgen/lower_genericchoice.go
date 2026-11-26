@@ -72,13 +72,8 @@ func (lc *lowerCtx) genericChoiceTargeted(ps *params) error {
 
 // genericChoiceYou lowers a GenericChoice the controller answers (Defined$
 // You or absent: gorge charmGenericPlayers declines it and effCharm asks
-// the controller one mode). A triggered ability's is asked as the trigger
-// is put on the stack (gorge's CR 603.3c placement ask keeps it modal):
-// lowered as a one-mode charm, marked kop.AfCharmTrigger so the kernel's
-// mode offer drops a mode whose UnlessCost$ the controller cannot pay
-// (dirac/cast.go modeFeasible, gorge effects.GenericChoiceAvailable, Forge
-// ChooseGenericEffect). A spell's or an activated ability's is asked at
-// resolution (KModes over every choice): OpChooseBranch and one Branch per
+// the controller one mode). Every one, a triggered ability's included, is
+// asked at resolution (CR 608.2d; KModes over every choice): OpChooseBranch and one Branch per
 // choice with C 0, so branchPayable applies the same unless-cost gate. The
 // FallbackAbility$ / random shapes refuse.
 func (lc *lowerCtx) genericChoiceYou(ps *params) error {
@@ -119,14 +114,7 @@ func (lc *lowerCtx) genericChoiceYou(ps *params) error {
 			return err
 		}
 	}
-	if lc.ab.Kind == akTriggered {
-		if lc.mode >= 0 || lc.ab.Modes != 0 || !lc.head || lc.depth != 1 {
-			return refuse("GenericChoice of the controller below a triggered ability's head")
-		}
-		lc.ab.GenericChoice = true
-		return lc.charm(ps)
-	}
-	if lc.ab.Kind != akSpell && lc.ab.Kind != akActivated {
+	if lc.ab.Kind != akSpell && lc.ab.Kind != akActivated && lc.ab.Kind != akTriggered {
 		return refuse("GenericChoice of the controller in a %d ability", lc.ab.Kind)
 	}
 	at := len(lc.ab.Prog)
