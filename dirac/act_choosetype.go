@@ -439,15 +439,24 @@ func (s *State) matchCardTgt(k *prep, f kop.FilterID, c CardID, owner, ctrl uint
 }
 
 // srcChosen is the chosen type of the ability source: the permanent's, or
-// once it left (a Sac<1/CARDNAME> cost) the resolving entry's last known
-// information of it (gorge sourceChosen reads SourceChosenType); 255 none.
+// once it left (a Sac<1/CARDNAME> cost, or a trigger whose source was
+// destroyed in response) the resolving entry's last known information of it
+// (gorge sourceChosen reads SourceChosenType); 255 none.
 func (s *State) srcChosen(src Slot, self Obj) uint8 {
 	if src != NoSlot {
 		return uint8(s.perms[src].chosen)
 	}
-	if s.res.active && s.res.e.obj == self && self != NoObj && s.res.e.li != 0 {
-		if r := s.lk(s.res.e.li); r.obj == self {
-			return r.chosen
+	if s.res.active && s.res.e.obj == self && self != NoObj {
+		if s.res.e.li != 0 {
+			if r := s.lk(s.res.e.li); r.obj == self {
+				return r.chosen
+			}
+		}
+		// An activated ability's entry records the source's departure in li
+		// (stackSrcChosenLKI), but a trigger's li is the triggering object's:
+		// read the source's own departure snapshot (CR 608.2h).
+		if i := s.srcDepartIdx(&s.res.e); i != 0 {
+			return s.lk(i).chosen
 		}
 	}
 	return 255
