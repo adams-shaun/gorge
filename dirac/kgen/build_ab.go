@@ -52,7 +52,7 @@ func (cb *cardBuilder) abilities() error {
 		}
 		d.Abilities = append(d.Abilities, ka)
 		cb.out.stAddSub = append(cb.out.stAddSub, add)
-		cb.out.origins = append(cb.out.origins, 0xFF)
+		cb.out.origins = append(cb.out.origins, crewAltOrigin(cb.out.origins, ka))
 	}
 	for i, s := range c.GrantedStatics {
 		cb.node = fmt.Sprintf("granted static[%d] %s", i, s.Kind)
@@ -1961,6 +1961,9 @@ func (cb *cardBuilder) staticFor(s lStatic) (kop.Ability, []uint8, error) {
 		}
 		ka.Static.GrantBody = uint8(j + 1)
 		return ka, nil, nil
+	}
+	if s.Kind == crewAltKind {
+		return cb.crewAltAbility(s) // static_crewalt.go
 	}
 	if s.Kind == "NumLoyaltyAct" {
 		return cb.numLoyaltyActStatic(s) // static_loyalty.go
