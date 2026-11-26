@@ -160,6 +160,9 @@ func (s *State) adjustCostGenB(k *prep, p uint8, c CardID, o, priced Obj, base k
 		}
 		g += s.waterbendOwnPart(k, p, c, own) // the spell's own waterbend {N} (RaiseCost Cost$ Waterbend<N>)
 	}
+	if defilerOn(k) && s.defilerPricing(c) {
+		g -= s.defilerTake(&base) // the answered Defilers' pips, after the statics (cost_defiler.go)
+	}
 	if g < 0 {
 		if base.X != 0 {
 			base.XRed = uint8(min(-g, 255)) // CR 601.2f: the excess pays into {X}

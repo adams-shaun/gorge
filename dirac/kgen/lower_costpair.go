@@ -18,7 +18,7 @@ func discardBesideSacFiltered(c lCost) bool {
 		return false
 	}
 	return c.Forage == nil && c.ExileG == nil && !c.SacSelf && c.Loyalty == 0 && !c.LoyaltyX &&
-		c.SubCtr == 0 && !c.SubCtrX && c.SubAmongN == 0 && c.AddCtr == 0 &&
+		c.SubCtr == 0 && !c.SubCtrX && c.SubCtrAll == "" && c.SubAmongN == 0 && c.AddCtr == 0 &&
 		c.PayLife == 0 && !c.LifeX && c.LifeBy == nil && c.TapN == 0 && c.TapPowN == 0 &&
 		c.EvidenceN == 0 && !c.EvidenceX && c.Return == nil && c.BlightN == 0 &&
 		c.Waterbend == 0 && !c.WaterbendX && c.XMin == 0

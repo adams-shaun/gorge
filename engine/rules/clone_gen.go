@@ -381,6 +381,12 @@ func cloneFieldsEngineTriggerMaps(c, e *Engine, sp *Spare, remap *cloneRemap) {
 			c.castReturned[k0] = nv0
 		}
 	}
+	if e.castCountersRemoved != nil {
+		c.castCountersRemoved = make(map[state.ObjID]int32, len(e.castCountersRemoved))
+		for k0, v0 := range e.castCountersRemoved {
+			c.castCountersRemoved[k0] = v0
+		}
+	}
 	if e.fuseTargets != nil {
 		c.fuseTargets = make(map[state.ObjID][][]state.Target, len(e.fuseTargets))
 		for k0, v0 := range e.fuseTargets {
@@ -424,10 +430,10 @@ func cloneFieldsEngineTriggerMaps(c, e *Engine, sp *Spare, remap *cloneRemap) {
 			c.resolutionTargets[k0] = nv0
 		}
 	}
-	c.trigSub = e.trigSub.clone()
 }
 
 func cloneFieldsEngineTriggerMaps2(c, e *Engine, sp *Spare, remap *cloneRemap) {
+	c.trigSub = e.trigSub.clone()
 	if e.charmTargets != nil {
 		c.charmTargets = make(map[state.ObjID][][]state.Target, len(e.charmTargets))
 		for k0, v0 := range e.charmTargets {

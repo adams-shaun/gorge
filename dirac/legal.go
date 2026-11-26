@@ -210,7 +210,19 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 		}
 		var fav avail
 		cav := s.castGrantAvail(k, p, o, &av, &fav) // a restricted grant the cast cannot spend is no unit of its census
-		if !s.castPaysUnderPain(k, p, c, o, cost, cav) && !s.instantTapsLethalPays(k, p, c, o, cost) {
+		paid := s.castPaysUnderPain(k, p, c, o, cost, cav) || s.instantTapsLethalPays(k, p, c, o, cost)
+		var rd kop.ManaCost
+		if !paid && defilerOn(k) {
+			own := 0
+			if ac := spellAddCost(k, c); ac.Flags&kop.CostPayLife != 0 {
+				own = lifeCostOwed(ac)
+			}
+			rd, paid = s.defilerPoolPays(k, p, c, o, &base, own, *cost) // the Defilers' second chance, the pool's alone (cost_defiler.go)
+			if paid {
+				cost = &rd
+			}
+		}
+		if !paid {
 			if k.bargainRed {
 				s.offerBargainOnly(k, d, p, o, c, &av) // the discount alone pays it (cost_reducespell.go)
 				s.offerOptCostOnly(k, d, p, o, c, &av)

@@ -17,6 +17,9 @@ func (lc *lowerCtx) lowerStatic(s cards.Static) error {
 	if s.Mode == "TapPowerValue" {
 		return lc.tapPowerValueStatic(s) // lower_hiddenpick.go
 	}
+	if s.Mode == "OptionalCost" && defilerShape(s) {
+		return lc.defilerStatic(s) // lower_defiler.go
+	}
 	if s.Mode == "OptionalCost" {
 		return lc.optCostStatic(s) // lower_optcost.go
 	}
