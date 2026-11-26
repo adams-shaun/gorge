@@ -78,16 +78,22 @@ func kwMarkUses(in *kop.Instr, u *[numMech]bool) {
 // Obj RefNone (the sweep fixed before any mark lands, CR 611.2c), gains the
 // keywords C names until end of turn.
 func (s *State) kwMarkExt(k *prep, in *kop.Instr) {
+	tox := 0
+	if in.C&kop.KwMarkToxic != 0 {
+		tox = int(in.C) >> kop.KwMarkToxicShift // granted toxic N (kw_toxicgrant.go)
+	}
 	if in.Obj == kop.RefNone {
 		var ord [MaxPerm]Slot
 		n := s.sweepHits(k, in.F, &ord)
 		for _, sl := range ord[:n] {
 			s.kwMark(k, sl, in.C)
+			s.toxicMark(k, sl, tox)
 		}
 		return
 	}
 	if sl := s.objRef(k, in.Obj); sl != NoSlot {
 		s.kwMark(k, sl, in.C)
+		s.toxicMark(k, sl, tox)
 	}
 }
 
