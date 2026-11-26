@@ -307,6 +307,7 @@ func (s *State) pushBuild(k *prep) {
 	if e.kind == seSpell {
 		ob := &s.objs[e.obj]
 		z := ob.zone
+		s.colorWordsCast(k, ob.card) // a colour-word static rewrites the cast card's text before its targets (static_colorwords.go)
 		copyCast := k.gen != nil && k.gen.anyCopyCast && s.copyCastFrom(e.obj)
 		if copyCast {
 			z = kop.ZoneLibrary // a Play CopyCard$ copy is cast from gorge's holding zone (cast_copycast.go)
@@ -702,8 +703,8 @@ func (s *State) buildCostPreRaw(k *prep, pre, charge bool) (kop.ManaCost, bool) 
 		if k.gen != nil && k.gen.anySneak && e.trigPl == trigPlSneak && cd.HasSneak {
 			c = cd.SneakCost // the sneak cost (CR 702.190a; kw_sneak.go)
 		}
-		if k.gen != nil && k.gen.anyWebSling && e.trigPl == trigPlWebSling && cd.HasWebSling {
-			c = cd.WebSlingCost // the web-slinging cost (CR 702.188a; kw_websling.go)
+		if k.gen != nil && k.gen.anyWebSling && e.trigPl == trigPlWebSling {
+			c = s.webSlingCost(k, e.ctrl, e.card, e.obj) // the web-slinging cost, printed or granted (CR 702.188a; kw_websling.go)
 		}
 		if e.flags&sfKicked != 0 {
 			c = s.addKickerPayments(cd, e, c)
@@ -1087,10 +1088,24 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 			}
 			if d.N == 0 {
 				if e.kind == seTrigger {
-					// CR 603.3c: with no mode to choose, it is removed
-					s.sp--
-					s.ctl = ctlPlaceTriggers
-					return false
+					if a.AFlags&kop.AfCharmTrigger == 0 || !s.charmModesHaveTargets(k, a) {
+						// CR 603.3c: with no mode to choose, it is removed. A
+						// marked GenericChoice trigger goes the same way when
+						// even its eligible list (targets, no UnlessCost$ gate)
+						// is empty: gorge's askTriggerModes removes it there.
+						s.sp--
+						s.ctl = ctlPlaceTriggers
+						return false
+					}
+					// a triggered api:GenericChoice whose every mode's
+					// UnlessCost$ the controller cannot pay: gorge's placement
+					// ask lets the trigger go on the stack unasked
+					// (trigger_queue.go askTriggerModes) and effCharm resolves
+					// FallbackAbility$ or nothing instead of posing a mode ask,
+					// so the trigger stays with no mode chosen (the Charm
+					// guards skip every body; modal_unless.go)
+					s.bld().modesN = 255
+					continue
 				}
 				if e.kind == seSpell && s.noModeAbort(k, a) {
 					return false
@@ -1447,10 +1462,43 @@ func (s *State) modeTargetFeasible(k *prep, t *kop.TargetSpec) bool {
 	return s.hasTarget(k, t, e.ctrl, s.srcSlot(), e.obj)
 }
 
-// modeFeasible: mode m's mandatory targets have candidates.
+// modeFeasible: mode m's mandatory targets have candidates (and, for a marked
+// GenericChoice charm, its UnlessCost$ is payable).
 func (s *State) modeFeasible(k *prep, a *kop.Ability, m int) bool {
+	return s.modeFeasibleGate(k, a, m, true)
+}
+
+// modeFeasibleTargets is modeFeasible without the AfCharmTrigger UnlessCost$
+// gate: the eligible list gorge's placement ask removes a trigger on
+// (trigger_queue.go askTriggerModes removes on an empty eligible list, and
+// keeps the trigger on the stack unasked when only the UnlessCost$ gate
+// empties the non-empty list).
+func (s *State) modeFeasibleTargets(k *prep, a *kop.Ability, m int) bool {
+	return s.modeFeasibleGate(k, a, m, false)
+}
+
+// charmModesHaveTargets reports whether some not-yet-chosen mode of the
+// ability being built passes the target (and ChoiceRestriction) half of
+// modeFeasible: the eligible list gorge's placement ask removes a marked
+// trigger on (trigger_queue.go askTriggerModes).
+func (s *State) charmModesHaveTargets(k *prep, a *kop.Ability) bool {
+	for m := 0; m < int(a.NModes); m++ {
+		if s.bld().e.mode&(1<<m) != 0 {
+			continue
+		}
+		if s.modeFeasibleTargets(k, a, m) {
+			return true
+		}
+	}
+	return false
+}
+
+func (s *State) modeFeasibleGate(k *prep, a *kop.Ability, m int, unless bool) bool {
 	if k.gen != nil && k.gen.anyCharmPick && s.charmPickBarred(a, s.bld().e.obj, m) {
 		return false // ChoiceRestriction$: chosen before (modal_charmpick.go)
+	}
+	if unless && a.AFlags&kop.AfCharmTrigger != 0 && !s.modeUnlessPayable(k, a, m, s.bld().e.ctrl) {
+		return false // a GenericChoice mode whose UnlessCost$ the controller cannot pay (modal_unless.go)
 	}
 	for i := 0; i < int(a.NTargets); i++ {
 		t := &a.Targets[i]
