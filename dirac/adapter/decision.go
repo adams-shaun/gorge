@@ -99,7 +99,15 @@ func (g *Game) priorityEntry(p uint8, x dirac.Action) entry {
 		e.opt.LandWontStay = g.landWontStay(p, g.face(po.Card))
 		e.key = zidx << 8
 	case canon.ActActivate:
-		e.opt.Kind, e.opt.Ability = "ability", int(c.Mode())
+		alt := x.Target() == dirac.AltEquipTgt // the StatAltEquipCost alternative (static_altcost.go)
+		am := c.Mode()
+		if alt {
+			am &^= canon.AltAbilityMode
+		}
+		e.opt.Kind, e.opt.Ability = "ability", int(am)
+		if alt {
+			e.opt.AltCostIndex = 1 // the same field gorge's option carries (rules legal_walk_battlefield.go)
+		}
 		if x.Mode()&0xC0 == 0xC0 { // a gained ability (GainsAbilitiesOf$): the foreign permanent's face index (rules' Option.GainedSource/GainedIdx)
 			e.opt.Ability = 0
 			e.opt.GainedSource, e.opt.GainedIdx = g.ids.obj(canon.Ref(x.Target())), int(c.Mode())
@@ -112,11 +120,17 @@ func (g *Game) priorityEntry(p uint8, x dirac.Action) entry {
 				e.opt.SVar, e.opt.GrantSource = name, g.ids.obj(canon.Ref(x.Target()))
 				e.opt.Cost = offerCost(sa)
 			}
-		} else if sa := g.faceSA(po.Card, c.Mode()); sa != nil {
+		} else if sa := g.faceSA(po.Card, am); sa != nil {
 			e.opt.Cost = offerCost(sa)
 			e.opt.Loyalty = loyaltyOf(sa, e.opt.Cost)
 		}
-		e.key = 3<<40 | abilityZoneKey(po)<<36 | abilitySeat(po)<<32 | zidx<<8 | uint64(mode)
+		if alt {
+			// a key of its own: the printed option's key would alias it
+			// (ZoneIdx occupies bits 8..15, so bit 16 is free)
+			e.key = 3<<40 | abilityZoneKey(po)<<36 | abilitySeat(po)<<32 | zidx<<8 | uint64(mode) | uint64(1)<<16
+		} else {
+			e.key = 3<<40 | abilityZoneKey(po)<<36 | abilitySeat(po)<<32 | zidx<<8 | uint64(mode)
+		}
 	case canon.ActSpecial:
 		e.opt.Kind = canon.SpecialKinds[c.Mode()&15]
 		e.opt.Mode = specialMode(e.opt.Kind, c.Mode()>>4)

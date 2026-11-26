@@ -508,6 +508,21 @@ func (s *State) activateOffers(k *prep, d *Decision, p uint8, sorc bool, av *ava
 					st.Offered++
 				}
 			}
+			// A StatAltEquipCost static's alternative (Kíli the Resourceful):
+			// a second action beside the printed cost, gated on the
+			// alternative being payable INDEPENDENTLY of the printed one
+			// (gorge legal_walk_battlefield.go: "an equip whose printed cost
+			// is unpayable but whose alternate is payable must still be
+			// offered"). The alternative's activation is the same ability
+			// with its mana cost replaced; the target field carries
+			// altEquipTgt (every plain battlefield activation's is 0).
+			if altMana, ok := s.altEquipCost(k, a, sl, p); ok {
+				alt := *a
+				alt.Cost.Mana, alt.Cost.Flags = altMana, kop.CostSorcery
+				if s.canActivate(k, sl, ai, &alt, sorc, av) {
+					d.add(MakeAction(AkActivate, TCode(s.perms[sl].obj), altEquipTgt, uint8(ai)))
+				}
+			}
 		}
 	}
 	s.priManaAskOffers(k, d, p) // an unless source's activation (Config.PriorityManaAsk; mana_priask.go)
@@ -3726,8 +3741,12 @@ func (s *State) applyPriority(k *prep, a Action) {
 		if k.gen != nil && s.activateGen(k, a) {
 			break
 		}
+		altEquip := s.altEquipPicked(k, a)
 		s.activatePrefixRest(k, a, p, pref, tapX) // the prefix's untapped cost part, before the push (mana_resolutionpay.go)
 		s.beginActivate(k, Obj(a.Source()), a.Mode())
+		if altEquip {
+			s.bld().e.mode |= seAltEquip // the offer's choice rides the entry: the push already recorded the activation the count gate reads (static_altcost.go)
+		}
 	case AkTurnFaceUp:
 		s.turnFaceUp(k, Obj(a.Source()), p, a.Mode()) // CR 708.6; mode = procedure
 	case AkPlot:

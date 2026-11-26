@@ -31,7 +31,12 @@ import (
 // equip abilities lowers nothing until the kernel prices an attach-cost
 // alternative (gorge activate_static_altcost.go; dirac ticket
 // dirac-kili-attach-alternative), so its EnduringStory condition has no
-// lowered static to read.
+// lowered static to read. Kíli the Resourceful IS in the pool now that the
+// StatAltEquipCost static lowers (dirac/static_altcost.go), with Kor Halberd
+// to equip and the Dwarfs to equip it onto: the attach-cost alternative is
+// the pool's other static (dirac/oracle/staticzones_altequip_test.go), and
+// seat 0's deck trades a Fíli, a Bifur, a Dáin and an Island for Kíli, Kor
+// Halberd and the room to equip (each carrier's class keeps a copy).
 // Seat 0's deck adds As Foretold, the {0} alternative over the full zone
 // list (the hand alternative the kernel offers beside the plain cast,
 // cast_mayzeroalt.go's hand hook); seat 1's adds Dracogenesis's free Dragon
@@ -57,10 +62,12 @@ var kstaticzonesDecks = [2][]cardset.Entry{
 		{Name: "Dragon's Rage Channeler", Count: 2},
 		{Name: "Case of the Locked Hothouse", Count: 1}, {Name: "Power Artifact", Count: 1},
 		{Name: "Defensive Formation", Count: 1},
-		{Name: "Plains", Count: 5}, {Name: "Island", Count: 2}, {Name: "Forest", Count: 2}, {Name: "Mountain", Count: 2},
-		{Name: "Fíli the Pathfinder", Count: 2},
-		{Name: "Bifur, Melodic Rider", Count: 2},
-		{Name: "Dáin, Lord of the Iron Hills", Count: 2},
+		{Name: "Plains", Count: 5}, {Name: "Island", Count: 1}, {Name: "Forest", Count: 2}, {Name: "Mountain", Count: 2},
+		{Name: "Fíli the Pathfinder", Count: 1},
+		{Name: "Bifur, Melodic Rider", Count: 1},
+		{Name: "Dáin, Lord of the Iron Hills", Count: 1},
+		{Name: "Kíli the Resourceful", Count: 2},
+		{Name: "Kor Halberd", Count: 2},
 	},
 	{
 		{Name: "Lightning Bolt", Count: 4}, {Name: "Shock", Count: 4}, {Name: "Swords to Plowshares", Count: 3}, {Name: "Giant Growth", Count: 3},

@@ -251,7 +251,13 @@ func (p *hbotParityPol) gorgeAnswer(c *PickCtx, gd *decision.Decision) ([]Canon,
 		case "cast":
 			return []Canon{castOptCanon(ref(o.Obj), o.Mode, beamAlt(o.Mode, o.AltCostIndex, o.Cost))}, false
 		case "ability":
-			return []Canon{Pack(ActActivate, ref(o.Obj), RefNone, uint8(o.Ability))}, false
+			// the alternative-cost option carries its own canonical code
+			// (canon.AltAbilityMode), as the kernel's does (canon/translate.go)
+			m := uint8(o.Ability)
+			if o.AltCostIndex == 1 {
+				m |= altAbilityMode
+			}
+			return []Canon{Pack(ActActivate, ref(o.Obj), RefNone, m)}, false
 		case "activate":
 			// the manual path: follow the bot's taps on a clone of the
 			// engine to the play they float mana for
@@ -336,7 +342,11 @@ func (p *hbotParityPol) followManual(c *PickCtx, in decision.Intent) []Canon {
 		case "cast":
 			return []Canon{castOptCanon(ref(o.Obj), o.Mode, beamAlt(o.Mode, o.AltCostIndex, o.Cost))}
 		case "ability":
-			return []Canon{Pack(ActActivate, ref(o.Obj), RefNone, uint8(o.Ability))}
+			m := uint8(o.Ability)
+			if o.AltCostIndex == 1 {
+				m |= altAbilityMode // the alternative-cost option's own canonical code
+			}
+			return []Canon{Pack(ActActivate, ref(o.Obj), RefNone, m)}
 		}
 		return nil
 	}

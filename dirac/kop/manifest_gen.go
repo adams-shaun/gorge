@@ -2466,15 +2466,15 @@ const StatWitherDamage StaticKind = 68
 // StatExtraBlock is a printed S:Mode$ Continuous | Affected$ <filter> | CanBlockAmount$ 1 (Brave the Sands, High Ground; CR 509.1a): each creature matching Filter, relative to the static's controller, can block an additional creature each combat (gorge combat.BlockCapacity). The kernel reads it in blockCap beside CardDef.ExtraBlocks; two sources on one blocker are a capacity three the kernel does not model. Static.A = kop.ExtraBlocksAny is CanBlockAny$ True (Entangler's enchanted creature): any number of attackers (combat_blockany.go).
 const StatExtraBlock StaticKind = 69
 
+// StaticKind (dirac/manifest/StaticKind/StatAltEquipCost)
+//
+// StatAltEquipCost is the battlefield static that grants the activated abilities it scopes an alternative cost (Kíli the Resourceful's "As long as you have an enduring story, you may pay {0} rather than pay the equip cost of the first equip ability you activate each turn"; S:Mode$ AlternativeCost | ValidSA$ Activated.Equip, gorge activate_static_altcost.go): the ability's Cost is the alternative (kop.Ability.Cost, CR 118.9: it replaces the printed one), Filter (no ValidCard$: the any-permanent one) matches the activated ability's source, StFlags kop.StReduceAny is a ValidPlayer$-less grant (every activator's; ValidPlayer$ You keeps the activator the static's controller) and Cond2 is the Condition$/CheckSVar$ gate read with the static's controller as "you" at the offer (the count gate is the zero count of the turn's first equip, which the activation's push already flips, so the charge carries the offer's choice on the stack entry and never re-reads it). The offer lists it as a second AkActivate action beside the printed cost, payable independently (altEquipTgt in the target field); the charge prices the alternative. Scoped to an Equip ability whose printed cost is mana plus kop.CostSorcery (gorge replaces the whole cost; a non-mana part needs a matchup refusal on cardset.AbReduceRefusal). Read live from the battlefield at the offer (kernel altEquipCost, legal.go), never stamped on the card.
+const StatAltEquipCost StaticKind = 70
+
 // ManaConvert (dirac/manifest/StaticKind/StatAnyColorAll)
 //
 // ManaConvert AnyType->AnyColor over every payment its controller makes, spells and activations (Chromatic Orrery).
-const StatAnyColorAll StaticKind = 70
-
-// ManaConvert (dirac/manifest/StaticKind/StatAnyColorSpells)
-//
-// ManaConvert AnyType->AnyColor over a cast card matching Filter (Oath of Nissa).
-const StatAnyColorSpells StaticKind = 71
+const StatAnyColorAll StaticKind = 71
 
 // StaticKind (dirac/manifest/StaticKind/StatOffZoneGrant)
 //
@@ -2486,33 +2486,38 @@ const StatOffZoneGrant StaticKind = 72
 // StatRetraceGrant is a Continuous static's AffectedZone$ Graveyard AddKeyword$ Retrace grant (Six, Deeproot Historian, Wrenn and Six's emblem; CR 702.81a): Filter matches the card in the graveyard and the ability's own Cost is the retrace additional cost (Discard<1/Land>). The kernel reads it live: the graveyard retrace offer and cast (kw_offkwgrant.go, kw_retrace.go) and the keyword projection.
 const StatRetraceGrant StaticKind = 73
 
+// ManaConvert (dirac/manifest/StaticKind/StatAnyColorSpells)
+//
+// ManaConvert AnyType->AnyColor over a cast card matching Filter (Oath of Nissa).
+const StatAnyColorSpells StaticKind = 74
+
 // StaticKind (dirac/manifest/StaticKind/StatColorWords)
 //
 // StatColorWords is a Continuous static's ChangeColorWordsTo$ ChosenColor over Affected$ Spell,Permanent in AffectedZone$ Stack,Battlefield (Swirl the Mists; CR 612.5): every colour word in the text of the spells on the stack and the permanents on the battlefield becomes the source's recorded colour word. The kernel holds no per-object text (kop.ExtChangeText), so it models the change where it is a no-op and stalls where it is not: a spell about to be cast, a spell on the stack or a permanent whose card face reads (CardDef.TextWords) a colour word other than the source's chosen one stalls the game (StallTextChange, unmodelled) instead of answering from the unchanged face; a source with no recorded colour changes nothing, as gorge's colourWordEffects fails closed. Read at pushBuild and before each priority grant behind prep.anyColorWords (static_colorwords.go).
-const StatColorWords StaticKind = 74
+const StatColorWords StaticKind = 75
 
 // StaticKind (dirac/manifest/StaticKind/StatCyclingGrant)
 //
 // StatCyclingGrant is a Continuous static's AffectedZone$ Hand AddKeyword$ Cycling or TypeCycling grant (Rhet-Tomb Mystic, Jo Grant, Tectonic Reformation, Homing Sliver; CR 702.29a, 702.29e): Filter matches the card in a hand and GrantBody-1 is the latent cycling body (the printed kwCycling / kwTypeCycling expansion, cards.GrantedKeywordAbility, AfCycling, ActZone hand) the hand offer runs with the affected card as its source, discarding it as the cost. The offer is the hand owner's, whoever controls the static (kw_cyclinggrant.go).
-const StatCyclingGrant StaticKind = 75
+const StatCyclingGrant StaticKind = 76
 
 // StaticKind (dirac/manifest/StaticKind/StatDefenderAssigns)
 //
 // StatDefenderAssigns is a Continuous static's `Affected$ You | AddKeyword$ You assign combat damage of each creature attacking you.` (Defensive Formation, kgen lower_playerstatic.go): its controller, not the attacking player, divides the combat damage of each creature attacking them among its blockers (CR 510.1c as the card rewrites it; gorge defenderAssignsAttackerDamage). Read live from the battlefield (dirac/static_plkeyword.go defenderAssigns, combat_band.go bandDivider); no State bytes.
-const StatDefenderAssigns StaticKind = 76
+const StatDefenderAssigns StaticKind = 77
 
 // StaticKind (dirac/manifest/StaticKind/StatMiracleGrant)
 //
 // StatMiracleGrant is a Continuous static's AffectedZone$ Hand AddKeyword$ Miracle:<cost> grant (Lorehold, the Historian; Molecule Man; Aminatou, Veil Piercer; CR 702.94a): Filter matches the card in a hand and the granted miracle cost is GrantCost, or under CardCostLess the card's own mana cost reduced by CardCostLess-1 generic (Miracle:ManaCost:4). A card with printed miracle keeps its own (gorge derivedKeywordParamH reads the printed head first); the first grant in perm.ts order wins. Read live from the battlefield at the draw, the reveal-trigger resolution and the cast, never stamped on the card (kw_miracle.go miracleCostOf).
-const StatMiracleGrant StaticKind = 77
+const StatMiracleGrant StaticKind = 78
 
 // stat AssignNoCombatDamage (dirac/manifest/StaticKind/StatNoCombatDamage)
-const StatNoCombatDamage StaticKind = 78
+const StatNoCombatDamage StaticKind = 79
 
 // StaticKind (dirac/manifest/StaticKind/StatUnearthGrant)
 //
 // StatUnearthGrant is a Continuous static's AffectedZone$ Graveyard AddKeyword$ Unearth grant (Sedris, the Traitor King, Mishra, Tamer of Mak Fawa, Dregscape Sliver, Solemn Doomguide; CR 702.84a): Filter matches the card in the graveyard and GrantBody-1 is the latent unearth body (the printed kwUnearth expander's AB$ ChangeZone, cards.GrantedKeywordAbility) the graveyard offer runs with the affected card as its source. The body's own Cost prices the explicit-cost shape; a zero body cost is the CardManaCost mark, which the offer charges as the affected card's own mana cost (kw_unearthgrant.go).
-const StatUnearthGrant StaticKind = 79
+const StatUnearthGrant StaticKind = 80
 
 // trig ChaosEnsues (dirac/manifest/TrigEvent/TrigChaosEnsues)
 const TrigChaosEnsues TrigEvent = 52

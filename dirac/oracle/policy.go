@@ -175,7 +175,11 @@ func (h *heurPolicy) translate(c *PickCtx, d *decision.Decision) []Canon {
 		case "cast":
 			return []Canon{castOptCanon(c.G.InstRef(o.Obj), o.Mode, beamAlt(o.Mode, o.AltCostIndex, o.Cost))}
 		case "ability":
-			return []Canon{Pack(ActActivate, c.G.InstRef(o.Obj), RefNone, uint8(o.Ability))}
+			m := uint8(o.Ability)
+			if o.AltCostIndex == 1 {
+				m |= altAbilityMode // the alternative-cost option's own canonical code
+			}
+			return []Canon{Pack(ActActivate, c.G.InstRef(o.Obj), RefNone, m)}
 		}
 		return nil
 	}

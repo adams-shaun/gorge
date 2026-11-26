@@ -198,8 +198,9 @@ func TestThisTurnCastCtrlTrig(t *testing.T) {
 }
 
 // TestThisTurnActivated: only Activated.YouCtrl+inZoneGraveyard (Laboratory
-// Drudge, kop.ExThisTurnActGrave) and Activated.Exhaust+YouCtrl (Elvish
-// Refueler, kop.ExThisTurnActExhaust) lower; every other
+// Drudge, kop.ExThisTurnActGrave), Activated.Exhaust+YouCtrl (Elvish
+// Refueler) and Activated.Equip+YouCtrl (Kili, kop.ExThisTurnActExhaust arms
+// 0 and 1; TestThisTurnActEquipLowers) lower; every other
 // Count$ThisTurnActivated_ spec refuses with a named reason.
 func TestThisTurnActivated(t *testing.T) {
 	lc := &lowerCtx{face: &cards.Face{SVars: map[string]string{}}, known: func(string) bool { return false }}
@@ -208,7 +209,7 @@ func TestThisTurnActivated(t *testing.T) {
 		t.Fatalf("got %v err %v, want ThisTurnActGrave", v, err)
 	}
 	for _, spec := range []string{
-		"Activated.YouCtrl", "Activated.Equip+YouCtrl", "Activated.Cycling+YouCtrl", "Activated.Loyalty",
+		"Activated.YouCtrl", "Activated.Cycling+YouCtrl", "Activated.Loyalty",
 		"Activated.YouCtrl+inZoneBattlefield", "Activated.inZoneGraveyard", "Activated.YouCtrl+inZoneGraveyard,Activated.OppCtrl",
 	} {
 		_, err := lc.countValue("ThisTurnActivated_"+spec, 0)

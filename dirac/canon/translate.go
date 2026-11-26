@@ -339,6 +339,12 @@ func (r *Translator) Action(a dirac.Action) Canon {
 		if c, ok := r.grantedOrGained(src, tgt, mode); ok {
 			return c
 		}
+		if a.Target() == dirac.AltEquipTgt {
+			// the StatAltEquipCost alternative (static_altcost.go): its own
+			// canonical code, the face index with AltAbilityMode set,
+			// distinct from the printed cost's option
+			return Pack(ActActivate, src, RefNone, r.FaceAbility(dirac.Obj(src), mode, false)|AltAbilityMode)
+		}
 		return Pack(ActActivate, src, RefNone, r.FaceAbility(dirac.Obj(src), mode, false))
 	case dirac.AkAttack:
 		if dirac.IsObjTarget(dirac.TCode(tgt)) {
@@ -789,6 +795,16 @@ func (r *Translator) StackAbility(srcCard, card dirac.CardID, ab uint8) uint8 {
 // grant is MaxSpeedBase+n. Gorge offers it as a "granted" option naming the
 // SVar (GorgeSide), the kernel as the card's Gate{CtrMaxSpeed} ability.
 const MaxSpeedBase = 0xE0
+
+// AltAbilityMode is the bit over a face ability's index that marks an
+// activated ability's ALTERNATIVE-cost activation (Kíli the Resourceful's
+// StatAltEquipCost static, CR 118.9): gorge offers it as the same "ability"
+// option at AltCostIndex 1 beside the printed cost's, the kernel as a second
+// AkActivate action (dirac.AltEquipTgt in the target field). The bit is the
+// free half of a plain face index: no face's ability list reaches 0x40, and
+// the granted forms (255) and the max-speed grants (MaxSpeedBase) sit above
+// the byte's other half.
+const AltAbilityMode = 0x40
 
 // MaxSpeedCode is the canonical code of the max-speed activated ability abs[idx].
 func MaxSpeedCode(abs []kop.Ability, idx int) uint8 {

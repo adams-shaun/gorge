@@ -13,7 +13,7 @@ import (
 // when the card prints no ability that predicate accepts.
 type staticClassCase struct {
 	name string
-	cls  uint16
+	cls  uint32
 	pred func(*kop.Ability) bool
 }
 

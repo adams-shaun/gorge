@@ -10,20 +10,23 @@ import "testing"
 // names an SVar), Nasty End (Sacrificed$Valid Card.Legendary), the four
 // Count$MostProminentCreatureType cards with a Creature.YouCtrl spec (Kindred
 // Summons reads it only in an AI SVar), and Gonti's Machinations (the bare
-// AFLifeLost amount after a LoseLife).
+// AFLifeLost amount after a LoseLife), and Bruenor Battlehammer (the
+// Activated.Equip turn-activation count under an equip-cost AlternativeCost
+// static; the staticzones lockstep pool carries it through Kíli the
+// Resourceful's identical grant).
 var countConditionsLowered = []string{
 	"Athreos, God of Passage", "Iroas, God of Victory", "Karametra, God of Harvests",
 	"Klothys, God of Destiny", "Mogis, God of Slaughter", "Phenax, God of Deception",
 	"Xenagos, God of Revels", "March of the Canonized", "Decommission", "Poison the Cup",
 	"Teachings of the Archaics", "Anchor to Reality", "Nasty End",
 	"White Lotus Tile", "Basalt Ravager", "Littjara Kinseekers", "Skemfar Shadowsage",
-	"Gonti's Machinations", "Kindred Summons",
+	"Gonti's Machinations", "Kindred Summons", "Bruenor Battlehammer",
 }
 
 // countConditionsRefused are the cards the slice still refuses, each a class of
 // its own with a kernel read (or a gorge model) the slice does not carry:
 // Hellbent and Surge (gorge fails both closed: conditionUnmodelledBare), the
-// loyalty/equip/power-up activation kinds (the activation ledger records no
+// loyalty/power-up activation kinds (the activation ledger records no
 // kind), Graxiplon's DefenderCtrl read in a CantBlockBy static, the five
 // Masteries' Count$AltCost, the kicker-{X} Count$xPaid forms, Ugin's
 // Labyrinth's ExiledWithSource count, the TargetedByTarget$ and
@@ -32,7 +35,7 @@ var countConditionsLowered = []string{
 // lowers must move to countConditionsLowered with its lockstep evidence.
 var countConditionsRefused = []string{
 	"Twinstrike", "Crush of Tentacles",
-	"Kiora of Salt and Sand", "Bruenor Battlehammer", "Advancing the Spirit",
+	"Kiora of Salt and Sand", "Advancing the Spirit",
 	"Graxiplon",
 	"Baleful Mastery", "Devastating Mastery", "Fervent Mastery", "Ingenious Mastery", "Verdant Mastery",
 	"Verdeloth the Ancient", "Kangee, Aerie Keeper", "Plumb the Forbidden", "Relentless Dead",

@@ -138,6 +138,58 @@ func (sc *staticCtx) modeAlternativeCost() ([]lStatic, bool, error) {
 	lc := sc.lc
 	sp := sc.sp
 	var err error
+	if vs := sp.str("ValidSA"); vs != "Spell.Self" && vs != "Spell" {
+		// the activated-ability alternative (gorge activate_static_altcost.go's
+		// staticAltCostScopesAbility: no ValidCard$, ValidSA$ exactly
+		// Activated.<kw>, a ValidPlayer$ that is absent or You, any other
+		// rider shape failing closed): the corpus's one shape is Kíli the
+		// Resourceful's ValidSA$ Activated.Equip, lowered to kop.
+		// StatAltEquipCost (static_altcost.go). The kernel reads the static
+		// live at the offer and the charge carries the offered choice, so the
+		// gates are the Cond2 composite (Condition$/CheckSVar$, already
+		// lowered by staticCond) and the activator's.
+		if !strings.HasPrefix(vs, "Activated.") {
+			return nil, true, refuse("AlternativeCost shape")
+		}
+		kind := strings.TrimPrefix(vs, "Activated.")
+		if kind != "Equip" {
+			return nil, true, refuse("AlternativeCost ValidSA %q", vs)
+		}
+		if vc := sp.str("ValidCard"); vc != "" {
+			return nil, true, refuse("AlternativeCost ValidCard %q", vc) // a spell-scoped grant's key, never an ability alternative's
+		}
+		switch vp := sp.str("ValidPlayer"); vp {
+		case "":
+			sc.st.Flags = append(sc.st.Flags, "AnyCaster") // every activator's (gorge staticAltCostScopesAbility's absent ValidPlayer$)
+		case "You":
+		default:
+			return nil, true, refuse("AlternativeCost ValidPlayer %q", vp)
+		}
+		if ez := sp.str("EffectZone"); ez != "" {
+			return nil, true, refuse("AlternativeCost EffectZone %q", ez)
+		}
+		sp.consume("ValidSA", "ValidPlayer")
+		if sc.st.Cost, err = lc.altCostCost(sp.str("Cost")); err != nil {
+			return nil, true, err
+		}
+		if !sc.st.Cost.pureMana() {
+			// the alternative replaces the printed cost whole (CR 118.9):
+			// the kernel offers a mana-only one, so a non-mana part keeps
+			// the shape refused (a sacrifice-cost equip beside Kíli needs a
+			// matchup refusal, cardset.AbEquipAltRefusal)
+			return nil, true, refuse("alternative cost with a non-mana part")
+		}
+		if sc.st.F == nil {
+			// no ValidCard$ is any permanent's ability (gorge
+			// staticAltCostScopesAbility): the filter the kernel's gate
+			// matches the activated ability's source with
+			if sc.st.F, err = lc.filter("Card"); err != nil {
+				return nil, true, err
+			}
+		}
+		sc.st.Kind = "AltEquipCost"
+		return nil, false, nil
+	}
 	if sp.str("ValidSA") == "Spell" && sp.str("ValidCard") == "Card.Self" && sp.str("ValidPlayer") == "You" && sp.str("EffectZone") == "All" {
 		// (Land Grant) gorge alternativeCosts' face walk
 		// prices a card's own static; bare ValidSA$ Spell, its own

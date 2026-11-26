@@ -1995,6 +1995,39 @@ func (cb *cardBuilder) combatAmountFilter(st *kop.Static, kind kop.StaticKind, f
 	return err
 }
 
+// altEquipStatic lowers the AltEquipCost static (static_cost.go
+// modeAlternativeCost): the activated-ability alternative-cost grant (Kíli
+// the Resourceful's attach-cost alternative, gorge
+// activate_static_altcost.go). ka.Cost is the alternative (CR 118.9: it
+// replaces the printed one), Filter the activated ability's source matcher
+// (the no ValidCard$ one), and kop.StReduceAny a ValidPlayer$-less grant
+// (otherwise only the static controller's activations). The kernel's gates
+// are altEquipStaticApplies beside StatReduceAbility's
+// (cost_reduceability.go abReduceStaticApplies).
+func (cb *cardBuilder) altEquipStatic(ka *kop.Ability, s lStatic) error {
+	st := &ka.Static
+	st.Kind = kop.StatAltEquipCost
+	var err error
+	if ka.Cost, err = cb.cost(s.Cost); err != nil {
+		return err
+	}
+	if ka.Cost.Flags != 0 || ka.Cost.N != 0 || ka.Cost.Mana.X != 0 {
+		return fmt.Errorf("alternative cost with a non-mana part (the kernel offers mana-only alternatives)")
+	}
+	for _, fl := range s.Flags {
+		if fl != "AnyCaster" {
+			return fmt.Errorf("AltEquipCost flag %q", fl)
+		}
+		st.StFlags |= kop.StReduceAny
+	}
+	if s.F != nil {
+		if st.Filter, err = cb.filter(s.F, kop.ZoneBattlefield); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // static builds a static ability and its granted subtypes.
 func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 	ka := kop.Ability{Kind: kop.AbStatic}
@@ -2621,6 +2654,8 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 			// never be offered
 			return ka, nil, fmt.Errorf("alternative cost with a non-mana part (the kernel offers mana-only alternatives)")
 		}
+	case "AltEquipCost":
+		return ka, nil, cb.altEquipStatic(&ka, s)
 	case "NoMaxHandSize":
 		st.Kind = kop.StatNoMaxHandSize
 		if slices.Contains(s.Flags, "HandDelta") {

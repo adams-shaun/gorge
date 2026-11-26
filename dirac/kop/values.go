@@ -108,10 +108,14 @@ const (
 	// later condition can read the spend (gorge targetManaSpentLKI; EOE
 	// Unravel).
 	ExTgtSpent
-	// ExThisTurnActExhaust: 1 if the evaluating controller has activated an
+	// ExThisTurnActExhaust (N selects the arm: 0 Exhaust, 1 Equip; the name
+	// predates the Equip arm and is not renamed to keep the ordinal): 1 if the evaluating controller has activated an
 	// Exhaust ability this turn, else 0 (Count$ThisTurnActivated_
 	// Activated.Exhaust+YouCtrl; the kernel keeps one bit per player, so a
-	// second activation still reads 1). dirac/static_turnbits.go.
+	// second activation still reads 1). N 1 reads the Equip fact instead:
+	// 1 if the evaluating controller is the active player and activated an
+	// Equip ability this turn (Count$ThisTurnActivated_Activated.Equip+
+	// YouCtrl; Kili the Resourceful). dirac/static_turnbits.go.
 	ExThisTurnActExhaust
 	// ExActivations: the resolving activated ability's source's non-mana
 	// activations this turn, the resolving one included (gorge

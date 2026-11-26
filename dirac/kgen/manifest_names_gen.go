@@ -1441,17 +1441,20 @@ func init() { enum[kop.StaticKind]("kop.StatWitherDamage", kop.StatWitherDamage)
 // dirac/manifest/StaticKind/StatExtraBlock
 func init() { enum[kop.StaticKind]("kop.StatExtraBlock", kop.StatExtraBlock) }
 
+// dirac/manifest/StaticKind/StatAltEquipCost
+func init() { enum[kop.StaticKind]("kop.StatAltEquipCost", kop.StatAltEquipCost) }
+
 // dirac/manifest/StaticKind/StatAnyColorAll
 func init() { enum[kop.StaticKind]("kop.StatAnyColorAll", kop.StatAnyColorAll) }
-
-// dirac/manifest/StaticKind/StatAnyColorSpells
-func init() { enum[kop.StaticKind]("kop.StatAnyColorSpells", kop.StatAnyColorSpells) }
 
 // dirac/manifest/StaticKind/StatOffZoneGrant
 func init() { enum[kop.StaticKind]("kop.StatOffZoneGrant", kop.StatOffZoneGrant) }
 
 // dirac/manifest/StaticKind/StatRetraceGrant
 func init() { enum[kop.StaticKind]("kop.StatRetraceGrant", kop.StatRetraceGrant) }
+
+// dirac/manifest/StaticKind/StatAnyColorSpells
+func init() { enum[kop.StaticKind]("kop.StatAnyColorSpells", kop.StatAnyColorSpells) }
 
 // dirac/manifest/StaticKind/StatColorWords
 func init() { enum[kop.StaticKind]("kop.StatColorWords", kop.StatColorWords) }

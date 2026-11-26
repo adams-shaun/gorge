@@ -46,7 +46,7 @@ func anyGyStatic(k *prep) bool { return k.gyCont }
 // cls (0 = all) of a card in the graveyard of a seat still in the game, in
 // seat then graveyard order; f returns false to stop it (eachGyStatic then
 // reports false).
-func (s *State) eachGyStatic(k *prep, cls uint16, f func(st statSrc) bool) bool {
+func (s *State) eachGyStatic(k *prep, cls uint32, f func(st statSrc) bool) bool {
 	if !anyGyStatic(k) {
 		return true
 	}

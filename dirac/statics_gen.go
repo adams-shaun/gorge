@@ -420,7 +420,7 @@ func (s *State) mayPlayStaticsOf(k *prep, p uint8, o Obj, zeroAlt bool, f func(s
 	// the same condition and filter gates as a permanent's static, so a
 	// self-grant whose condition does not hold offers nothing (gorge
 	// mayPlayConditionGateHolds)
-	var selfCls uint16
+	var selfCls uint32
 	var selfFlag kop.StaticFlags
 	switch ob.zone {
 	case kop.ZoneGraveyard:

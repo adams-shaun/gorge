@@ -100,8 +100,9 @@ func buildForOutput(p *pool, prev []idEntry) (*poolBuild, error) {
 }
 
 // guardLists are the pool indexes the matchup guards read: the Room cards, the
-// cards that read a name, the ab-reduce statics and the mana-costed mana abilities.
-func guardLists(bs []built, filters []kop.Filter) (rooms, readers, abRed []int, abRedFloor []uint8, abRedTypes []uint16, abMana []int, abManaMV []uint8, abManaTypes []uint16) {
+// cards that read a name, the ab-reduce statics, the mana-costed mana abilities,
+// the alternative-cost grant statics (StatAltEquipCost) and the non-mana-cost equips.
+func guardLists(bs []built, filters []kop.Filter) (rooms, readers, abRed []int, abRedFloor []uint8, abRedTypes []uint16, abMana []int, abManaMV []uint8, abManaTypes []uint16, altEqGrants, altEqCosted []int) {
 	for i := range bs {
 		if bs[i].def.FaceMode == kop.FaceRoom {
 			rooms = append(rooms, i)
@@ -119,6 +120,18 @@ func guardLists(bs []built, filters []kop.Filter) (rooms, readers, abRed []int, 
 				abRedFloor = append(abRedFloor, uint8(a.Static.B>>kop.ReduceAbMinShift)&15)
 				abRedTypes = append(abRedTypes, reducerTypes(filters, a.Static.Filter))
 				break
+			}
+			// An activated-ability alternative-cost grant beside a non-mana
+			// equip cost diverges: gorge replaces the printed cost whole
+			// (CR 118.9), the kernel offers a mana-only alternative
+			// (static_altcost.go altEquipCostShape).
+			if a.Kind == kop.AbStatic && a.Static.Kind == kop.StatAltEquipCost {
+				altEqGrants = append(altEqGrants, i)
+			}
+			if a.Kind == kop.AbActivated && a.AFlags&kop.AfEquip != 0 &&
+				(a.Cost.Flags != kop.CostSorcery || a.Cost.Mana.X != 0 || a.Cost.XMin != 0 ||
+					a.Cost.Mana.Snow != 0 || a.Cost.Host != 0 || a.CostProg != 0 || a.Evidence != 0) {
+				altEqCosted = append(altEqCosted, i)
 			}
 		}
 		// The dearest mana cost among a card's mana abilities the kernel
@@ -139,7 +152,7 @@ func guardLists(bs []built, filters []kop.Filter) (rooms, readers, abRed []int, 
 			abManaTypes = append(abManaTypes, uint16(bs[i].def.Types))
 		}
 	}
-	return rooms, readers, abRed, abRedFloor, abRedTypes, abMana, abManaMV, abManaTypes
+	return rooms, readers, abRed, abRedFloor, abRedTypes, abMana, abManaMV, abManaTypes, altEqGrants, altEqCosted
 }
 
 // reducerTypes is the card types a StatReduceAbility static's filter can

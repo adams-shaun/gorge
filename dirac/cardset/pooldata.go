@@ -72,6 +72,8 @@ type PoolData struct {
 	AbManaCosted        []int
 	AbManaCostedMV      []uint8  // AbManaCosted's dearest mana-ability mana cost
 	AbManaCostedTypes   []uint16 // AbManaCosted's card types
+	AltEquipGrants      []int    // cards with a StatAltEquipCost static (an activated-ability alternative-cost grant, Kíli the Resourceful)
+	AltEquipCosted      []int    // cards with an Equip ability whose printed cost is not mana plus kop.CostSorcery (gorge replaces the whole cost, the kernel offers a mana-only alternative)
 	// CardPrinted is a changeling's printed subtypes (pool indexes), before
 	// kgen adds every pool creature type to its CardSubs; nil for any other
 	// card. A matchup renumbers them into CardDef.PrintedSubtypes.
@@ -323,6 +325,27 @@ func (s dataSet) abReduceGuard(pool []int) error {
 	return AbReduceRefusal(reducers, costed)
 }
 
+// abEquipAltGuard refuses a matchup pool holding an activated-ability
+// alternative-cost grant (StatAltEquipCost) and a non-mana-cost equip
+// (AbEquipAltRefusal).
+func (s dataSet) abEquipAltGuard(pool []int) error {
+	d := s.d
+	var grants, costed []string
+	for _, i := range pool {
+		for _, g := range d.AltEquipGrants {
+			if i == g {
+				grants = append(grants, d.Names[i])
+			}
+		}
+		for _, c := range d.AltEquipCosted {
+			if i == c {
+				costed = append(costed, d.Names[i])
+			}
+		}
+	}
+	return AbEquipAltRefusal(grants, costed)
+}
+
 // filtersShareCreatureType reports whether any filter of the pool shares a
 // creature type with a referent (the attacker, a commander, or a Dig's
 // ChangeValid sharesCreatureTypeWith Self), which reads every printed subtype.
@@ -448,6 +471,9 @@ func (s dataSet) matchup(decks [][]Entry, mode matchupMode) (*kop.Table, [][]kop
 			return nil, nil, err
 		}
 		if err := s.abReduceGuard(pool); err != nil {
+			return nil, nil, err
+		}
+		if err := s.abEquipAltGuard(pool); err != nil {
 			return nil, nil, err
 		}
 	}

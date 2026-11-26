@@ -145,3 +145,16 @@ func AbReduceRefusal(reducers, costed []string) error {
 	}
 	return fmt.Errorf("ReduceCost Type Ability beside a mana-costed mana ability: %s reduces abilities and %s has a mana ability with a mana cost", reducers[0], costed[0])
 }
+
+// AbEquipAltRefusal refuses a matchup holding both a StatAltEquipCost
+// static's alternative-cost grant (grants: Kíli the Resourceful) and an
+// Equip ability whose printed cost has a non-mana part (costed: Demonmail
+// Hauberk's Sac<1/Creature>): gorge replaces the printed cost WHOLE
+// (activate.go, CR 118.9), the kernel offers a mana-only alternative
+// (static_altcost.go altEquipCostShape), so the two engines' offers diverge.
+func AbEquipAltRefusal(grants, costed []string) error {
+	if len(grants) == 0 || len(costed) == 0 {
+		return nil
+	}
+	return fmt.Errorf("activated-ability alternative-cost grant beside a non-mana equip cost: %s grants the alternative and %s's equip cost has a non-mana part", grants[0], costed[0])
+}

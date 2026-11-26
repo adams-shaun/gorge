@@ -10,7 +10,7 @@ import (
 // abilities. The walk visits the same statics in the same order; only
 // permanents whose every ability the caller would ignore are skipped.
 const (
-	sclsPT      uint16 = 1 << iota // StatContinuous with a P/T delta (ptGen)
+	sclsPT      uint32 = 1 << iota // StatContinuous with a P/T delta (ptGen)
 	sclsKw                         // StatContinuous granting keywords (kwGen)
 	sclsSub                        // StatContinuous granting subtypes
 	sclsCont                       // any StatContinuous
@@ -26,6 +26,7 @@ const (
 	sclsOffKwG                     // StatOffZoneGrant, StatRetraceGrant, StatUnearthGrant, StatCyclingGrant or StatMiracleGrant, an off-zone grant (kw_offkwgrant.go)
 	sclsNonObj                     // a static that can change a characteristic and may read what is not an object's own fields (static_sbaskip.go)
 	sclsTapCmd                     // a command-zone StatTapExtra: a seated Vanguard's (Sisay) or a face-up plane's (Eloren Wilds; mana_tapextra.go eachTapExtra)
+	sclsAltEq                      // StatAltEquipCost, an activated-ability alternative-cost grant (static_altcost.go)
 )
 
 // prepOverrideLandwalk (called from prepStaticClasses, once per table; kw_evasion.go landwalkPumped reads it) sets genPrep.anyLandwalk when any override record of
@@ -43,10 +44,10 @@ func prepOverrideLandwalk(t *kop.Table, g *genPrep) {
 // mana_tapextra.go eachTapExtra).
 func prepStaticClasses(t *kop.Table, g *genPrep) (anyCmdTap bool) {
 	prepOverrideLandwalk(t, g)
-	g.sCls = make([]uint16, len(t.Cards))
+	g.sCls = make([]uint32, len(t.Cards))
 	for i := range t.Cards {
 		c := &t.Cards[i]
-		m := uint16(0)
+		m := uint32(0)
 		for j := range c.Abilities {
 			a := &c.Abilities[j]
 			if a.Kind != kop.AbStatic {
@@ -103,6 +104,8 @@ func prepStaticClasses(t *kop.Table, g *genPrep) (anyCmdTap bool) {
 				}
 			case kop.StatReduceAbility:
 				m |= sclsReduce // cost_reduceability.go
+			case kop.StatAltEquipCost:
+				m |= sclsAltEq // static_altcost.go
 			case kop.StatFbGrant:
 				m |= sclsFbGrant
 			case kop.StatWarpGrant:
@@ -124,7 +127,7 @@ func prepStaticClasses(t *kop.Table, g *genPrep) (anyCmdTap bool) {
 // the graveyard Continuous statics (static_gycont.go), as eachStatic does:
 // those are plain keyword and landwalk grants, read by the layer-6 walk
 // (prepL6 turns it on for them) and by the readers that call eachGyStatic.
-func (s *State) eachStaticC(k *prep, cls uint16, f func(st statSrc) bool) {
+func (s *State) eachStaticC(k *prep, cls uint32, f func(st statSrc) bool) {
 	for m := s.statM; m.any(); m = m.rest() {
 		sl := m.first()
 		if k.gen.sCls[s.cardAt(sl)]&cls == 0 {

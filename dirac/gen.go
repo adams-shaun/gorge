@@ -86,7 +86,7 @@ type genPrep struct {
 	anyMayCold      bool     // some OpMayPlay grants over a remembered set: the cold buffer holds maxMayCold more records (cast_maycold.go)
 	anyMayLimit     bool     // some OpMayPlay record carries a MayPlayLimit cap (cast_maypermission.go)
 	anyEmbName      bool     // some emblem static reads kop.PredNamedCard: the cold buffer holds each player's first maxEmb emblems' frozen chosen names (static_emblemcold.go)
-	sCls            []uint16 // per card: its static classes (static_classgates.go scls*)
+	sCls            []uint32 // per card: its static classes (static_classgates.go scls*)
 	anyGraveAct     bool
 	anyHandAct      bool // an activated ability works from the hand (cycling; repl_regenerate.go)
 	anyRemPersist   bool // a card's enters trigger remembers what its leaves trigger reads (CardDef.RemPersist; zone_rememberpersist.go)

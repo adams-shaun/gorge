@@ -59,6 +59,7 @@ const (
 	chooseOther         = canon.ChooseOther
 	manaSyms            = canon.ManaSyms
 	maxSpeedBase        = canon.MaxSpeedBase
+	altAbilityMode      = canon.AltAbilityMode
 	faceCodeSneak       = canon.FaceCodeSneak
 	faceCodeOmen        = canon.FaceCodeOmen
 	faceCodePrepared    = canon.FaceCodePrepared

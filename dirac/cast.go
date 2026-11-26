@@ -364,6 +364,9 @@ func (s *State) pushBuild(k *prep) {
 		if k.gen != nil && k.gen.actRingOn {
 			s.noteAct(e.obj, e.ctrl) // CR 602.2a: the push is the activation ledger entry
 		}
+		if k.gen != nil && k.gen.anyTurnF {
+			s.noteTurnEquip(k, e.ctrl, &k.t.Cards[e.card].Abilities[e.ab]) // the turn's Equip fact (static_turnbits.go)
+		}
 		if ob := &s.objs[e.obj]; ob.zone == kop.ZoneBattlefield {
 			if ob.activations() < objActsMask {
 				s.touch(e.obj)
@@ -739,6 +742,9 @@ func (s *State) buildCostPreRaw(k *prep, pre, charge bool) (kop.ManaCost, bool) 
 		return c, done
 	case seAbility:
 		a := &k.t.Cards[e.card].Abilities[e.ab]
+		if alt, ok := s.altEquipChargeEntry(k, e, a); ok {
+			return alt, false
+		}
 		c := s.embalmCostOr(k, e, a.Cost.Mana) // a granted embalm's own cost (kw_embalmgrant.go)
 		c = s.offKwCostOr(k, e, c)             // a CardManaCost off-kw grant charges the affected card's own mana cost (kw_unearthgrant.go)
 		if k.gen != nil && k.gen.anyOwnReduce {

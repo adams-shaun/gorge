@@ -1086,6 +1086,16 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 				add(prioEntry{a: grantedEmbalmAction(ref(o.Obj)), opt: o.Index})
 				continue
 			}
+			if o.AltCostIndex == 1 && o.SVar == "" && o.Keyword == "" && o.GrantSource == 0 && o.GainedSource == 0 && o.Ability < 0x40 {
+				// The activated ability's alternative-cost option (gorge
+				// legal_walk_battlefield.go's "(alternate cost)": the K:Equip
+				// rider's AlternateCost$, and the StatAltEquipCost static's
+				// beside it): its own canonical code, the face index with
+				// AltAbilityMode set, distinct from the printed cost's option
+				// -- gorge's two options would alias on the plain code
+				add(prioEntry{a: Pack(ActActivate, ref(o.Obj), RefNone, uint8(o.Ability)|altAbilityMode), opt: o.Index})
+				continue
+			}
 			if o.SVar != "" || o.Keyword != "" || o.GainedSource != 0 || o.AltCostIndex != 0 || o.Ability > 0x7F {
 				note("ability/anchored")
 				continue

@@ -225,7 +225,11 @@ func (p *sbtParityPol) prioCanon(c *PickCtx, gd *decision.Decision, k builtins.P
 			case "cast":
 				return []Canon{castOptCanon(ref(o.Obj), o.Mode, beamAlt(o.Mode, o.AltCostIndex, o.Cost))}
 			case "ability":
-				return []Canon{Pack(ActActivate, ref(o.Obj), RefNone, uint8(o.Ability))}
+				m := uint8(o.Ability)
+				if o.AltCostIndex == 1 {
+					m |= altAbilityMode // the alternative-cost option's own canonical code
+				}
+				return []Canon{Pack(ActActivate, ref(o.Obj), RefNone, m)}
 			}
 		case builtins.KeyPlan:
 			for _, pa := range gd.PaymentActions {
