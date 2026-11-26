@@ -178,6 +178,12 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 			// alternativeCosts loop), whether or not the plain price is payable
 			s.offerMayPlayHandAlt(k, d, p, o, c, sorc, &av) // cast_mayzeroalt.go
 		}
+		if k.anyEmbAltCost {
+			// the Effect-delivered alternative cost beside the plain hand
+			// cast (Marshland Bloodcaster's pay-life grant; gorge's hand
+			// walk lists it whether or not the plain price is payable)
+			s.offerEmbAltCostHand(k, d, p, o, c, sorc, &av) // cast_embaltcost.go
+		}
 		cost := &pc.cost
 		var credited kop.ManaCost
 		if k.gen != nil && k.gen.anyConvoke && s.tapPays(k, p, c, o, true) {
