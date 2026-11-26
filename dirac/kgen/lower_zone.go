@@ -1173,6 +1173,9 @@ func overrideString(o *lOverride) string {
 	if o.Horsemanship {
 		p = append(p, "horsemanship")
 	}
+	if o.Toxic != 0 {
+		p = append(p, "toxic="+strconv.Itoa(int(o.Toxic)))
+	}
 	if o.NoCost {
 		p = append(p, "nocost")
 	}
