@@ -864,7 +864,13 @@ func (s *State) walkAllOn(k *prep) bool {
 // (Ygra's Food ability): each static whose filter matches sl's derived
 // characteristics.
 func (s *State) globalGrants(k *prep, sl Slot, lost bool, lts uint16, f func(c CardID, ab uint8, n int, ts uint16)) {
-	for m := s.statM; m.any(); m = m.rest() {
+	s.globalGrantsIn(k, s.statM, sl, lost, lts, f)
+}
+
+// globalGrantsIn is globalGrants over the statM sources in from (a superset
+// of the gfGlobOvr ones: grantSrcScan's), in slot order as statM's walk.
+func (s *State) globalGrantsIn(k *prep, from slotMask, sl Slot, lost bool, lts uint16, f func(c CardID, ab uint8, n int, ts uint16)) {
+	for m := from; m.any(); m = m.rest() {
 		src := m.first()
 		cid := s.cardAt(src)
 		if !k.gen.has(cid, gfGlobOvr) {

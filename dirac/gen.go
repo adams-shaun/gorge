@@ -1520,6 +1520,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 				case kop.StatRetraceGrant, kop.StatOffZoneGrant:
 					g.offZoneGrantPrep(a, p) // kw_offkwgrant.go: the graveyard retrace offer
 					pc.hasStat = true        // scanned through statM (kw_offkwgrant.go, featview.go)
+				case kop.StatColorWords:
+					p.anyColorWords = true
+					pc.hasStat = true // scanned through statM (static_colorwords.go)
 				case kop.StatCantTgtGrave:
 					g.anyCantTgtGrave = true
 					pc.hasStat = true // scanned through statM (kw_canttgtgrave.go)
@@ -2175,6 +2178,8 @@ type genState struct {
 	// fbProbe fills the padding byte after ndmg. Transient: a filter script trial node keeps the root's
 	// both-instances flashback classification (legal.go fbProbeRoot).
 	fbProbe bool
+	// priAsk is Config.PriorityManaAsk (mana_priask.go); it fills the second padding byte after ndmg.
+	priAsk uint8
 
 	may  [maxMay]mayPlay
 	nmay uint8
