@@ -221,6 +221,31 @@ func (s *State) clonePermNote(sl Slot, src Obj, c CardID, idx uint8, ts uint16) 
 	s.cloneSelfHeldGC(sl)
 }
 
+// cloneEOTNote records that slot sl's until-end-of-turn as-enters copy
+// (OpBecomeCopy's BecomeCopyEOT bit, Cursed Mirror's "become a copy ... until
+// end of turn") became the copy of object src: c the card it showed, idx the
+// op's exception override (index+1, 0 none), ts the layer timestamp. One
+// record per permanent, the newest copy's card and timestamp in place, as
+// cloneLayerPrep updates an ExtCloneCopy's; the cleanup step (cloneCleanup)
+// ends it, dropping the copy's exceptions (fxCopyExc) and grants with it.
+//
+//go:noinline
+func (s *State) cloneEOTNote(sl Slot, src Obj, c CardID, idx uint8, ts uint16) {
+	for i := 0; i < int(s.g.nfx); i++ {
+		if r := &s.g.fx[i]; r.sl == sl && r.kind == fxCopyEOT {
+			r.r = ovRec{idx: idx, src: c, p: int16(src), ts: ts}
+			return
+		}
+	}
+	if int(s.g.nfx) >= maxFx {
+		s.stall(StallTables)
+		return
+	}
+	s.g.fx[s.g.nfx] = fxRec{sl: sl, kind: fxCopyEOT, r: ovRec{idx: idx, src: c, p: int16(src), ts: ts}}
+	s.g.nfx++
+	s.fxM.set(sl)
+}
+
 // cloneSelfHeldPush keeps a self-copy layer's inherited exception indices
 // beside the layer, stamped with its timestamp (fxCopySelf). While the layer
 // is on top its live fxCopyExc records hold the same indices; when a newer
