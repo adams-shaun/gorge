@@ -13,7 +13,10 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // (a card has either impending or evoke, never both), and beginCast marks the
 // build entry spcEvoked, bit 10 of stackEntry.spc (0 B: the bit
 // reserved). A stack copy clears spc, so a copy is not evoked. buildCost
-// prices EvokeCost; the cast is lowered like a warp cast (cast.go).
+// prices EvokeCost; the cast is lowered like a warp cast (cast.go). A
+// non-mana evoke part (CardDef.EvokePick: the MH2 Incarnations' "exile a
+// <colour> card from your hand") gates the offer on a candidate and is the
+// cast's pick cost (buildPickCost), the Force cycle's hand-exile stage.
 //
 // The "sacrifice it" trigger (gorge altcast.go altCostEnter): queued as the
 // evoked permanent enters, AFTER the card's own enters triggers (gorge's
@@ -95,6 +98,9 @@ func (s *State) offerEvokeHand(k *prep, d *Decision, p uint8, o Obj, c CardID, a
 	}
 	if !s.spellTargetsFeasible(k, c, p) || !s.spellCostsFeasible(k, c, p, o) || !s.altAddCastable(k, c, p, o, &ec, av) {
 		return
+	}
+	if cd.EvokePick.Flags != 0 && !s.pickCostPayable(k, p, &cd.EvokePick, o) {
+		return // the hand-exile evoke (Endurance): a matching other card must be in hand
 	}
 	if s.castHeldOut(o) {
 		return

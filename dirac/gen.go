@@ -257,6 +257,7 @@ type genPrep struct {
 	anyComboDyn     bool           // some card's mana ability adds an evaluated amount in any combination of colours (mana_combodyn.go)
 	anyComboOff     bool           // some card has a {T} Combo Any mana ability, which gorge's planner does not witness (mana_comboanyplan.go)
 	anyCantCast     bool           // some card has a StatCantBeCast (trig_delayedtiming.go castForbidden)
+	anyCantPlayLand bool           // some card has a StatCantPlayLand (cast_cantplayland.go cantPlayLandLock)
 	anyCantAct      bool           // some card has a StatCantActivate (cast_cantactivate.go actForbidden), or a StatCantSacrifice
 	anyCantSac      bool           // some card has a StatCantSacrifice (static_cantsacrifice.go sacBlocked)
 	anyCantTgt      bool           // some card has a StatCantTarget (tgt_canttarget.go cantTargetGen)
@@ -384,7 +385,7 @@ type genPrep struct {
 	anyHideaway     bool           // some program is ExtHideaway (kw_hideaway.go)
 	anyLoyaltyX     bool           // some ability costs a planeswalker's [-X] (CostLoyaltyX; cost_loyaltyx.go)
 	anyLifeX        bool           // some spell or ability costs an announced PayLife<X> (Cost.N 0; cost_paylifex.go)
-	anyExileX       bool           // some spell costs an announced ExileFromGrave<X/Spec> (CostExileGrave with Cost.N 0; cost_exilex.go)
+	anyExileX       bool           // some spell or activated ability costs an announced ExileFromGrave<X/Spec> (CostExileGrave with Cost.N 0; cost_exilex.go)
 	anySacX         bool           // some spell or ability costs an announced Sac<X/Spec> (CostSac with Cost.N 0; cost_sacx.go)
 	anyXMin         bool           // some spell or ability floors its announced X (Cost.XMin; cost_sacx.go)
 	anyCopyCast     bool           // some OpCastFree casts a copy (C bit 6; cast_copycast.go)
@@ -1053,6 +1054,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	g.anyBeamGrant = tableHasStatic(t, kop.StatBeamGrant)
 	// prepSpellCond first: it sets anySpellCond, which an || must not skip
 	g.anyCantCast = prepSpellCond(t, g) || tableHasStatic(t, kop.StatCantBeCast)
+	g.anyCantPlayLand = tableHasStatic(t, kop.StatCantPlayLand)
 	prepCastLimit(t, g)  // static_castlimit.go
 	prepCantSac(t, g)    // static_cantsacrifice.go, before prepCantAct reads it
 	prepCantAct(t, p, g) // cast_cantactivate.go
@@ -1101,6 +1103,14 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	g.anyLinkRet = tableLinkRet(t)
 	g.anyLinkCtr = tableLinkCtr(t)
 	p.anyCmdTap = prepStaticClasses(t, g)
+	p.tapExtraCard = make([]bool, len(t.Cards))
+	for i := range t.Cards {
+		for j := range t.Cards[i].Abilities {
+			if a := &t.Cards[i].Abilities[j]; a.Kind == kop.AbStatic && a.Static.Kind == kop.StatTapExtra {
+				p.tapExtraCard[i] = true
+			}
+		}
+	}
 	prepHexOwn(t, g)      // kw_hexproofcolor.go
 	prepEmblemCasts(t, p) // cast_selfflash.go
 	for i := range t.Cards {
@@ -1491,6 +1501,8 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 					}
 				case kop.StatPlayerHexproof, kop.StatNoMaxHandSize:
 					g.noteStaticPlayerStats(i, a)
+				case kop.StatDefenderAssigns:
+					pc.hasStat = true // scanned through statM (static_defenderassigns.go); no genPrep flag: TestNoNewFixedStateFields
 				case kop.StatCantBeBeamedUp:
 					g.anyBeamBar = true
 					pc.hasStat = true // scanned through statM (kw_beammeup.go)
@@ -1509,9 +1521,15 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 				case kop.StatEscapeGrant:
 					g.anyEscapeGrant = true
 					pc.hasStat = true // scanned through statM (kw_escape.go)
+				case kop.StatMiracleGrant:
+					g.anyMiracle = true // a granted miracle queues the draw trigger too (kw_miracle.go)
+					pc.hasStat = true   // scanned through statM
 				case kop.StatRetraceGrant, kop.StatOffZoneGrant:
 					g.offZoneGrantPrep(a, p) // kw_offkwgrant.go: the graveyard retrace offer
 					pc.hasStat = true        // scanned through statM (kw_offkwgrant.go, featview.go)
+				case kop.StatColorWords:
+					p.anyColorWords = true
+					pc.hasStat = true // scanned through statM (static_colorwords.go)
 				case kop.StatCantTgtGrave:
 					g.anyCantTgtGrave = true
 					pc.hasStat = true // scanned through statM (kw_canttgtgrave.go)
@@ -1941,6 +1959,10 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepEmbalmGrant(t, p)  // kw_embalmgrant.go; on prep, not genPrep
 	prepOffKwGrant(t, p)   // kw_unearthgrant.go; on prep, not genPrep
 	prepCyclingGrant(t, p) // kw_cyclinggrant.go; on prep, not genPrep
+	p.grantsMana = make([]bool, len(t.Cards))
+	for _, r := range g.grantOf {
+		p.grantsMana[r.card] = true
+	}
 	return g
 }
 
@@ -2167,6 +2189,8 @@ type genState struct {
 	// fbProbe fills the padding byte after ndmg. Transient: a filter script trial node keeps the root's
 	// both-instances flashback classification (legal.go fbProbeRoot).
 	fbProbe bool
+	// priAsk is Config.PriorityManaAsk (mana_priask.go); it fills the second padding byte after ndmg.
+	priAsk uint8
 
 	may  [maxMay]mayPlay
 	nmay uint8
@@ -2313,6 +2337,10 @@ type genState struct {
 	// ownEntryCounterExcluded); the entrant's other statics stay live. Set
 	// only across one placeEntryCounters call (turn_gen.go).
 	ctrSettle uint8
+	// story: bit p, seat p holds the enduring story (CR 702.195, the K:Storied
+	// scan's one-way latch, kw_storied.go). It fills the padding byte after
+	// ctrSettle, so State does not grow.
+	story uint8
 	// this turn's counter placements (ExCtrAdded; ctr_addedthisturn.go).
 	// pl: bit p set when player p put a counter on a creature; e: per object whose card
 	// reads a Self form (gfCtrAdd), fl bit p any kind by p, bit 2+p +1/+1

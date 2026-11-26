@@ -107,10 +107,13 @@ func (s *State) stackExileGrantOn(o Obj) bool {
 		if r.obj != o || r.ver != s.objs[o].ver || ownWalkerRecord(*r) {
 			continue
 		}
-		if r.kind&kop.MayPlayLimitMask != 0 || r.until&mayUntilStackExile != 0 {
-			s.capFull(StallExileOnMoved) // a capped grant shares the bit; a second mark is a second replacement
+		if r.kind&kop.MayPlayLimitMask != 0 {
+			s.capFull(StallExileOnMoved) // a capped grant shares the bit
 			return false
 		}
+		// A record already marked stays marked: a second Effect over the
+		// same card (two Mission Briefings choosing it) adds a second
+		// replacement only once the card is cast (stampMayExile).
 		r.until |= mayUntilStackExile
 	}
 	return true
@@ -121,6 +124,13 @@ func (s *State) stackExileGrantOn(o Obj) bool {
 func (s *State) stampMayExile(k *prep, i int) {
 	r := s.mayAt(i)
 	if r.until&mayUntilStackExile == 0 || k.t.Cards[s.objs[r.obj].card].Types&kop.TLand != 0 {
+		return
+	}
+	if s.otherMayMark(i) {
+		// two live Effects over this card each hold the stack-exit
+		// replacement: gorge's two competing Moved replacements pose the
+		// CR 616.1 order ask the kernel does not
+		s.capFull(StallExileOnMoved)
 		return
 	}
 	s.bld().e.remVer |= spellExileLeave
@@ -150,4 +160,18 @@ func (s *State) markedPlot(k *prep, e *stackEntry) {
 		return
 	}
 	s.plotOne(k, e.obj)
+}
+
+// otherMayMark reports whether a permission record other than i's names the
+// same card version and carries the stack-exit mark too: the card is under
+// two Effects' replacements.
+func (s *State) otherMayMark(i int) bool {
+	r := s.mayAt(i)
+	for j := 0; j < int(s.g.nmay); j++ {
+		q := s.mayAt(j)
+		if j != i && q.obj == r.obj && q.ver == r.ver && q.until&mayUntilStackExile != 0 && !ownWalkerRecord(*q) {
+			return true
+		}
+	}
+	return false
 }

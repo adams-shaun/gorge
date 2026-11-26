@@ -48,6 +48,13 @@ func (lc *lowerCtx) choosePlayer(ps *params, mid bool) error {
 		}
 	case "Player", "Player.!IsRemembered", "":
 		return lc.choosePlayerRes(ps) // lower_chooseplayerres.go
+	case "Player.OpponentOf Remembered":
+		// the repeated player's opponent choice (Bend or Break): only inside
+		// a RepeatEach player body whose chooser is the repeated player
+		if lc.repeatPl > 0 && ps.str("Defined") == "Remembered" {
+			return lc.choosePlayerEach(ps)
+		}
+		return refuse("ChoosePlayer Choices$ %q", ps.str("Choices"))
 	default:
 		return refuse("ChoosePlayer Choices$ %q", ps.str("Choices"))
 	}
@@ -73,6 +80,30 @@ func (lc *lowerCtx) choosePlayer(ps *params, mid bool) error {
 	}
 	lc.twoSeat("ChoosePlayer among the opponents answered as the one opponent")
 	lc.chosenOppAb = lc.ab
+	return nil
+}
+
+// choosePlayerEach lowers a RepeatEach player body's ChoosePlayer whose
+// chooser is the repeated player and pool their opponents (Bend or Break:
+// Defined$ Remembered, Choices$ Player.OpponentOf Remembered; gorge
+// effChoosePlayer pools over the remembered player's AliveFrom matching
+// Player.OpponentOf Remembered): that player chooses one of their opponents,
+// kept in the resolution (kop ExtChoosePlayerEach, res.chPl) for the chain's
+// TwoPiles Chooser$ ChosenPlayer (lower_twopiles.go twoPilesEach). With a
+// single opponent it is recorded unasked (the oracle's forcedPlayerChoice);
+// with none gorge records an empty choice, which the readers find nothing in.
+// RememberChosen$ and any other rider refuse.
+func (lc *lowerCtx) choosePlayerEach(ps *params) error {
+	if v := ps.str("Defined"); v != "Remembered" {
+		return refuse("ChoosePlayer Defined$ %q", v)
+	}
+	// the chain's rider, prompt and AI metadata only
+	ps.consume("Choices", "Defined", "SubAbility", "ChoiceTitle", "AILogic")
+	if left := ps.unread(); len(left) > 0 {
+		return refuse("ChoosePlayer unread params %v", left)
+	}
+	lc.chosenEachAb = lc.ab
+	lc.emit(lInstr{Op: "ChoosePlayerEach", Note: "the repeated player chooses one of their opponents for the chain's TwoPiles"})
 	return nil
 }
 
@@ -193,11 +224,13 @@ func (lc *lowerCtx) chosenPlayerDefined(v string) (lRef, bool) {
 // dies with the resolution). Elsewhere the param stays unread and refuses.
 func (lc *lowerCtx) clearChosenPlayer(ps *params) {
 	armed := (lc.chosenOppAb != nil && lc.chosenOppAb == lc.ab) ||
-		(lc.chosenPlAb != nil && lc.chosenPlAb == lc.ab)
+		(lc.chosenPlAb != nil && lc.chosenPlAb == lc.ab) ||
+		(lc.chosenEachAb != nil && lc.chosenEachAb == lc.ab)
 	if armed && ps.m["ClearChosenPlayer"] == "True" {
 		ps.consume("ClearChosenPlayer")
 		lc.chosenOppAb = nil
 		lc.chosenPlAb = nil
+		lc.chosenEachAb = nil
 	}
 	if lc.chosenMidAb != nil && lc.chosenMidAb == lc.ab && ps.m["ClearChosenPlayer"] == "True" {
 		ps.consume("ClearChosenPlayer")

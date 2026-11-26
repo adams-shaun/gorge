@@ -27,7 +27,7 @@ func (s *State) sacPartReserved(k *prep, p uint8, part *kop.Cost) slotMask {
 		}
 		free++
 	}
-	need := int(part.N) - free
+	need := s.sacOwed(k, p, part, NoSlot) - free
 	var held slotMask
 	for ; need > 0 && cons.any(); need-- {
 		held = held.or(slotBit(cons.first()))

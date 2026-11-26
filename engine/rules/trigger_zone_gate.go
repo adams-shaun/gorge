@@ -118,6 +118,19 @@ func (e *Engine) zoneGate(t cards.Trigger, source state.ObjID, ev events.Event) 
 		}
 		spec = "Battlefield"
 	}
+	// CR 901: a plane's printed abilities function from the command zone,
+	// but a gorge plane lives in its owner's private ZPlanarDeck zone, so the
+	// ordinary Command gate would reject the plane's own seat -- the reason
+	// the marker-keyed plane scans (checkChaosEnsuesTriggers,
+	// checkPlaneswalkTriggers) bypass zoneGate entirely. This admission is
+	// for the printed triggers the ordinary trigger walk NOW reaches on the
+	// plane (the mana-tap visit): only its controller's face-up CURRENT
+	// plane functions, so a face-down or non-top plane card still matches
+	// nothing.
+	if o.Zone == state.ZPlanarDeck && zoneSpecContains(spec, state.ZCommand) &&
+		e.currentPlane(o.Controller) != nil && e.currentPlane(o.Controller).ID == source {
+		return true
+	}
 	zones := [2]state.Zone{o.Zone, o.Zone}
 	n := 1
 	// CR 603.8: a state trigger checks the game as it is now, so it never looks

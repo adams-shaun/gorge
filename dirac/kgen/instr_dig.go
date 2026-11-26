@@ -157,6 +157,8 @@ func (ic *instrCtx) opChooseCard() error {
 		ki.C = 1 // up to one: the ask carries a Done
 	case "Remember":
 		ki.C = 2 // RememberChosen$: the chosen card joins the remembered set
+	case "OptionalRemember":
+		ki.C = 1 // up to one, a Done beside the cards; B = 1 remembers the pick
 	case "LibraryUpTo":
 		ki.C = 3 // up to B picks among the top A library cards
 	case "AttachPick":

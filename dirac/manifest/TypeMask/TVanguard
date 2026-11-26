@@ -1,5 +1,5 @@
 family: TypeMask
 name: TVanguard
 value: next
-status: active
-doc: TVanguard: the Vanguard card type (CR 205.2). A Vanguard is not a permanent: kgen builds it so a command-zone Vanguard face (Sisay's TapsForMana static) is identified, and the kernel seats it in the command zone without a cast.
+status: reserved
+doc: TVanguard: the Vanguard card type (CR 205.2). A Vanguard is not a permanent: kgen still builds the bit on a lowered command-zone static carrier (Sisay's TapsForMana static, lower_tapextra.go), but the kernel reads no Vanguard type mask -- it classifies a command-zone static by its zone alone (static_classgates.go prepStaticClasses, a Vanguard's or a face-up plane's).

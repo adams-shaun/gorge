@@ -138,6 +138,7 @@ func (s *State) enterFaceDown(k *prep, o Obj, ctrl uint8, fam uint8, from ...kop
 	if s.anyETB(k) {
 		s.fireObj(k, kop.TrigETB, sl, o, ctrl, 0)
 	}
+	s.storyGrant(k) // the emit-tail grant, after the entry's triggers (kw_storied.go)
 	return sl
 }
 

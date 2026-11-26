@@ -87,11 +87,12 @@ func TestInvestigate(t *testing.T) {
 
 // TestPayEnergy: PayEnergy<N> on an activated ability (CostPayEnergy) and
 // as a trigger's resolution cost (IfPaid PayEnergy); PutCounter ENERGY on a
-// player is OpGainEnergy; a mana ability's energy cost refuses.
+// player is OpGainEnergy; a {T}, Pay N {E} mana ability beside a plain {T}
+// one lowers as the energy counter-gap kind (Aether Hub, kop.CtrTapSecondManaAb).
 func TestPayEnergy(t *testing.T) {
 	checkCarrier(t,
-		[]string{"Aether Chaser", "Aethergeode Miner", "Aether Theorist"},
-		map[string]string{"Aether Hub": "mana ability with an energy cost"},
+		[]string{"Aether Chaser", "Aethergeode Miner", "Aether Theorist", "Aether Hub"},
+		nil,
 		[]string{
 			"GainEnergy obj=You A=2",
 			"IfPaid obj=You A=2 CS=PayEnergy",

@@ -11,7 +11,10 @@ package kgen
 // other creatures or a discard, is lowered; a Behold<N/Type> beside the mana is the
 // card's behold part (FbBeholdN/FbBeholdF), not an FbCost. A hybrid pip in
 // the mana part is announced like a printed cost's. A plain Discard<N/Card>
-// is the counted part too.
+// is the counted part too, and so is a fixed PayLife<N> beside the mana (Deep
+// Analysis's "{1}{U}, Pay 3 life"): gorge's cast planner admits no life part,
+// so the kernel prices that cast as one the oracle lowers (dirac
+// act_behold.go fbLifeUnplanned).
 func (lc *lowerCtx) flashbackCost(param string) error {
 	lc.beholdOK = true
 	c, err := lc.cost(param)
@@ -54,9 +57,13 @@ func (lc *lowerCtx) flashbackCost(param string) error {
 		counted++
 		rest.DiscardN = 0
 	}
-	rest.Sac, rest.SacN, rest.TapN, rest.TapF = nil, 0, 0, nil
+	life := rest.PayLife > 0
+	rest.Sac, rest.SacN, rest.TapN, rest.TapF, rest.PayLife = nil, 0, 0, nil, 0
+	if life {
+		counted++
+	}
 	if counted != 1 || !rest.pureMana() {
-		return refuse("flashback cost parts other than one sacrifice or tap-creatures part")
+		return refuse("flashback cost parts other than one sacrifice, tap-creatures, discard or life part")
 	}
 	c.Mana = manaCost{None: true}
 	lc.out.Flashback = &mana

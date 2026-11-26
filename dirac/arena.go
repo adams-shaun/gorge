@@ -128,6 +128,9 @@ func arenaUses(t *kop.Table) (u [numMech]bool) {
 			if a.Kind == kop.AbReplacement && a.Repl.Kind == kop.ReplExileOnLeave {
 				u[mechSBAChain] = true // a state-based batch can park its casualties (repl_exilemark.go)
 			}
+			if a.Static.A == kop.StackKwOffspring {
+				u[mechKicked] = true // a granted offspring's paid mark (enterGen, kw_offspring.go)
+			}
 			triggerEventUses(a, &u)
 			if a.Kind == kop.AbTriggered && a.Trig.Cond != 0 && t.Conds[a.Trig.Cond].Kind == kop.CondEchoOwed {
 				u[mechEchoOwed] = true // an echo trigger's gate (trig_echo.go)

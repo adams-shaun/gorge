@@ -551,7 +551,8 @@ func (s *State) tapXTwoLiveSource(k *prep, p uint8) bool {
 // activates them as steps, tapXEach), or a mix the filter search runs
 // (mixBoard).
 func (s *State) tapXBoard(k *prep, p uint8) bool {
-	if s.scriptRestr(k, p).or(s.scriptFilt(k, p)).any() {
+	filt := s.scriptFilt(k, p)
+	if s.scriptRestr(k, p).or(filt).any() {
 		// A live no-{T} tap-another source (Relic of Legends, Baylen) is the
 		// tapX search's alone beside these gaps: the filter/restricted
 		// searches are disabled for it (filtFundable, tapXTwoLive), so their
@@ -561,10 +562,14 @@ func (s *State) tapXBoard(k *prep, p uint8) bool {
 		if s.tapXTwoLiveSource(k, p) {
 			return true
 		}
-		return s.mixBoard(k, p)
+		known := filtNone
+		if filt.any() {
+			known = filtSome
+		}
+		return s.mixBoardFilt(k, p, known)
 	}
 	if s.scriptAnyR(k, p).any() {
-		return s.mixBoard(k, p) || s.tapXAnyRBoard(k, p)
+		return s.mixBoardFilt(k, p, filtNone) || s.tapXAnyRBoard(k, p) // filt is empty here
 	}
 	return !s.scriptGaps(k, p).any() || s.scriptTapX(k, p).any()
 }

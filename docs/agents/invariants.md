@@ -285,7 +285,7 @@ and BLB slices, the size bar, allocations and instructions per transition),
 ### Workflow
 
 1. **Work in a task worktree** with the main checkout's `.cards/` linked into it
-   (`ln -s <main>/.cards .cards`, then check the link resolves), so corpus tests
+   (`scripts/link-cards.sh`, which links the corpus of this tree's own `FORGE_REF`; then check the link resolves), so corpus tests
    really run. Leave `main`'s checkout clean. Open a pull request against `main`,
    then remove the worktree.
 2. **Prove the corpus ran.** A package that prints `ok` in about 2 ms with

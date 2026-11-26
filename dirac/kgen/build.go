@@ -218,14 +218,6 @@ func buildCard(pt *poolTables, c *lCard) built {
 		// mana ability whose cost it does not read; refuse it instead
 		if a := &cb.out.def.Abilities[j]; !kop.ManaAbilityHonoured(&cb.out.def, j) {
 			why := "mana ability cost " + kop.ManaCostShape(a) + ": the kernel's mana walk cannot activate it"
-			if kop.CtrDeadManaAb(a) {
-				// the dead counter-cost shape outside the modelled gap: the
-				// census reason names the measured cause (gorge records an
-				// unrelaxable census gap whose resolution adds no mana;
-				// potential_plan.go paymentPlanRelaxedAlternatives
-				// enumerates no colour for the production)
-				why = "mana ability cost " + kop.ManaCostShape(a) + ": a dead mana-ability census gap the kernel does not model here (the production names no colour; gorge's gap is unrelaxable and its activation adds no mana)"
-			}
 			if r := exileGraveManaRefusal(a); r != "" {
 				why = r // (an exile-from-graveyard source outside the modelled shape names its restriction, rider or zone)
 			}
@@ -545,6 +537,30 @@ func hexQualityBits(c *lCard) kop.ColorMask {
 		b |= kop.HexMulti
 	}
 	return b
+}
+
+// recordEvoke records an Evoke cost. CR 702.74a: no KwMask bit is free, so
+// the evoke marker is its own field; the cost is the hand's alternative cost,
+// and the permanent is sacrificed as it enters (dirac/kw_evoke.go). A
+// hand-exile pick (lower_evoke.go evokePickCost; kernel kw_evoke.go
+// offerEvokeHand and buildPickCost) rides beside it.
+func (cb *cardBuilder) recordEvoke() error {
+	c, d := cb.c, &cb.out.def
+	d.HasEvoke = true
+	var err error
+	if d.EvokeCost, err = manaCostOf(*c.Evoke); err != nil {
+		return err
+	}
+	if c.EvokePick == nil {
+		return nil
+	}
+	if d.EvokePick, err = cb.cost(*c.EvokePick); err != nil {
+		return err
+	}
+	if !altHandExileShape(&d.EvokePick) {
+		return fmt.Errorf("evoke pick cost outside the hand-exile shape")
+	}
+	return nil
 }
 
 func (cb *cardBuilder) record() error {
@@ -911,11 +927,7 @@ func (cb *cardBuilder) record() error {
 		}
 	}
 	if c.Evoke != nil {
-		// CR 702.74a: no KwMask bit is free, so the evoke marker is its own
-		// field; the cost is the hand's alternative cost, and the permanent
-		// is sacrificed as it enters (dirac/kw_evoke.go)
-		d.HasEvoke = true
-		if d.EvokeCost, err = manaCostOf(*c.Evoke); err != nil {
+		if err := cb.recordEvoke(); err != nil {
 			return err
 		}
 	}
@@ -1135,6 +1147,7 @@ func (cb *cardBuilder) record() error {
 	d.Engines = c.Engines
 	d.HasReconfigure = c.Reconfigure
 	d.Ascend, d.Unleash, d.Flanking, d.Phasing, d.Riot, d.Enlist, d.HasBlitz, d.BlitzCost = c.Ascend, c.Unleash, c.Flanking, c.Phasing, c.Riot, c.Enlist, c.Blitz, c.BlitzCost
+	d.Storied = c.Storied
 	d.AtkFace = c.AtkFace
 	d.SagaN = uint8(c.SagaN)
 	d.TapPowerCrew = int8(c.TapPowerCrew)
@@ -1256,6 +1269,7 @@ func (cb *cardBuilder) cost(c lCost) (kop.Cost, error) {
 		}
 	}
 	out.ExileBf = c.SacExile
+	out.SacHalf = c.SacHalf // sacrifice half the matching permanents at payment (kernel cost_sachalf.go)
 	if c.XMin > 0 {
 		out.XMin = uint8(c.XMin) // the announced X's floor (kernel cost_sacx.go)
 	}
@@ -1381,6 +1395,16 @@ func (cb *cardBuilder) cost(c lCost) (kop.Cost, error) {
 			return out, err
 		}
 	}
+	if c.TapXVar {
+		// an activated ability's tapXType<X/Spec>: CostTapX with N 0, the
+		// announced X the count tapped (kernel cost_tapxann.go); a trigger's
+		// own is its OpIfPaid instruction (payInstr clears the field)
+		set(kop.CostTapX, 0)
+		if out.Filter, err = cb.filter(c.TapF, kop.ZoneBattlefield); err != nil {
+			return out, err
+		}
+	}
+	out.EnergyX = c.EnergyX // PayEnergy<X>: the announced X energy (kernel cost_energyx.go)
 	if c.TapPowN > 0 {
 		set(kop.CostTapPower, c.TapPowN)
 		if c.TapPowCrew {
@@ -2635,7 +2659,8 @@ var cmpOps = map[uint8]kop.CmpOp{opGE: kop.CmpGE, opLE: kop.CmpLE, opEQ: kop.Cmp
 var condKinds = map[condKind]kop.CondKind{cPresent: kop.CondPresent, cValue: kop.CondValue, cKicked: kop.CondKicked,
 	cThreshold: kop.CondThreshold, cYourTurn: kop.CondYourTurn, cRefMatches: kop.CondRefMatches,
 	cPromisedGift: kop.CondPromised, cAnd: kop.CondAnd, cEchoOwed: kop.CondEchoOwed, cSourceZone: kop.CondSourceZone,
-	cBlessing: kop.CondBlessing, cRemMark: kop.CondRemMark, cMonarch: kop.CondMonarch}
+	cBlessing: kop.CondBlessing, cRemMark: kop.CondRemMark, cMonarch: kop.CondMonarch,
+	cEnduringStory: kop.CondEnduringStory}
 
 // cond interns a condition (0 for none).
 func (cb *cardBuilder) cond(c lCond) (kop.CondID, error) {
@@ -2738,6 +2763,13 @@ func (cb *cardBuilder) override(o *lOverride) (int, error) {
 	ko.WhileTapped = o.WhileTapped
 	ko.AsLongAsControl = o.AsLongAsControl
 	ko.UntilEndCombat = o.UntilEndCombat
+	ko.UntilCtrlUntap = o.UntilCtrlUntap
+	if o.UntilCast != nil {
+		if ko.UntilCast, err = cb.filter(o.UntilCast, kop.ZoneStack); err != nil {
+			return 0, err
+		}
+		cb.out.ovVals = append(cb.out.ovVals, kop.ValueRef{K: kop.VCountFilter, N: int16(ko.UntilCast)})
+	}
 	ko.Banding = o.Banding
 	ko.Horsemanship = o.Horsemanship
 	ko.NoCost = o.NoCost

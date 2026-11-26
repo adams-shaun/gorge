@@ -44,8 +44,16 @@ func (lc *lowerCtx) reduceSpellShape(sp *params, st *lStatic) error {
 	if !st.Amount.isConst() || st.Amount.N < 1 {
 		return refuse("ReduceCost Color$ with a non-literal Amount$")
 	}
-	if _, ig := sp.get("IgnoreGeneric"); ig {
-		return refuse("ReduceCost Color$ with IgnoreGeneric$")
+	// IgnoreGeneric$ True (Morophon, the Boundless): only matching coloured
+	// pips come off, no shortfall spills to generic (gorge pay
+	// CostMods.ApplyTo drops the reduction's whole leftover, its generic part
+	// included, so a Color$ with a generic token refuses).
+	noSpill := false
+	if ig, ok := sp.get("IgnoreGeneric"); ok {
+		if strings.TrimSpace(ig) != "True" {
+			return refuse("ReduceCost IgnoreGeneric$ %q", ig)
+		}
+		noSpill = true
 	}
 	if _, mm := sp.get("MinMana"); mm {
 		return refuse("ReduceCost Color$ with MinMana$")
@@ -71,6 +79,12 @@ func (lc *lowerCtx) reduceSpellShape(sp *params, st *lStatic) error {
 			return refuse("ReduceCost Color$ colour count %d", n)
 		}
 		st.RedCol |= uint16(n) << (kop.ReduceColorBits * i)
+	}
+	if noSpill {
+		if generic != 0 {
+			return refuse("ReduceCost Color$ with IgnoreGeneric$ and a generic part")
+		}
+		st.RedCol |= kop.ReduceColorNoSpill
 	}
 	st.Amount = cst(generic)
 	st.Flags = append(st.Flags, "ReduceColor")

@@ -725,6 +725,12 @@ func kvsStaturePolicy(seed uint64, o *kvsObs) Policy {
 				}
 			}
 		}
+		// gorge offers the power-up from untapped lands too (#4587: the plan
+		// witnesses the least X), so a lands-only offer is taken only on every
+		// fifth seed; the rest wait for the Mind Spring float these counters read.
+		if len(act) > 0 && len(springs) > 0 && o.hasStature(g, state.PlayerID(c.D.Player)) && seed%5 != 0 {
+			act = nil
+		}
 		buf = buf[:0]
 		switch {
 		case len(act) > 0 && seed%3 == 0 && stackLen > 0 && len(pass) > 0:

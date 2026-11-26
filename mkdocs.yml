@@ -18,6 +18,7 @@ strict: true
 # snippets; never pages of their own.
 exclude_docs: |
   support/_generated_sets.md
+  support/_generated_carddb.md
   architecture/_generated_packages.md
   architecture/packages.tiers.json
   requirements.txt
@@ -39,6 +40,9 @@ theme:
     - content.tabs.link
     - navigation.instant
     - navigation.top
+    - navigation.path
+    - navigation.footer
+    - toc.follow
     - content.code.copy
     - content.action.edit
     - search.highlight
@@ -66,6 +70,11 @@ theme:
 plugins:
   - search
 
+extra:
+  generator: false
+
+copyright: gorge is Apache-2.0. Forge's card scripts are GPL-3.0 and are fetched at build time, never committed.
+
 # Stub pages for compliance/engines/* when gorge-compliance's copy is absent.
 hooks:
   - scripts/docs_compliance_stub.py
@@ -88,6 +97,7 @@ markdown_extensions:
       alternate_style: true
   - pymdownx.highlight:
       anchor_linenums: true
+      pygments_lang_class: true
   - pymdownx.inlinehilite
   - pymdownx.emoji:
       emoji_index: !!python/name:material.extensions.emoji.twemoji
@@ -101,13 +111,43 @@ extra_css:
   - stylesheets/theme.css
   - stylesheets/wire.css
 
-# Top-level areas become the header tabs. The server tier, wire tests and
-# draft internals each sit in the area a reader comes to them from.
+# Top-level areas become the header tabs, ordered by what a visitor comes to
+# do: play, write a bot, read the engines, wire a client, check correctness,
+# contribute. The server tier, wire tests and draft internals each sit in the
+# area a reader comes to them from.
 nav:
   - Home:
       - index.md
       - Getting started: getting-started.md
       - Install and build: guide/install.md
+  - Play and host:
+      - web/index.md
+      - Run a server: guide/index.md
+      - Play in the browser: guide/play.md
+      - Play in ManaBrew's client: guide/manabrew.md
+      - Table layouts: web/layouts.md
+      - Gameplay options: web/gameplay.md
+      - How replays work: web/replays.md
+      - Replays in the browser: guide/replays.md
+      - Draft simulator: guide/draft.md
+      - Draft internals: architecture/draft.md
+      - Troubleshooting: guide/troubleshooting.md
+      - gorged flags: web/flags.md
+      - Run the demo in Docker: web/docker.md
+      - Play with a bot beside you: web/paired-play.md
+      - The server tier: architecture/gorge/server.md
+  - Bots:
+      - bots/index.md
+      - Using and plugging in bots: bots/using.md
+      - Each bot in detail: bots/catalogue.md
+      - Bot comparison: bots/compare.md
+      - Writing a native Go bot: bots/native-go.md
+      - Playing a seat over HTTP: bots/http.md
+      - Python and Java examples: bots/examples.md
+      - SpellBench v2 agents: bots/spellbench.md
+      - Training and adoption: bots/training-and-adoption.md
+      - Bot speed: performance/bots.md
+      - Bot-vs-bot games: guide/bot-games.md
   - Engines:
       - engines/index.md
       - Coverage: support/sets.md
@@ -142,18 +182,6 @@ nav:
           - performance/index.md
           - "gorge's speed": performance/engine.md
           - How it is measured: performance/methodology.md
-  - Bots:
-      - bots/index.md
-      - Using and plugging in bots: bots/using.md
-      - Each bot in detail: bots/catalogue.md
-      - Bot comparison: bots/compare.md
-      - Writing a native Go bot: bots/native-go.md
-      - Playing a seat over HTTP: bots/http.md
-      - Python and Java examples: bots/examples.md
-      - SpellBench v2 agents: bots/spellbench.md
-      - Training and adoption: bots/training-and-adoption.md
-      - Bot speed: performance/bots.md
-      - Bot-vs-bot games: guide/bot-games.md
   - Interfaces:
       - interfaces/index.md
       - Support matrix: interfaces/support.md
@@ -171,23 +199,7 @@ nav:
       - Go embedding: api/go.md
       - Versions and schema files: api/index.md
       - Wire tests: architecture/wires.md
-  - Web client and server:
-      - web/index.md
-      - Run a server: guide/index.md
-      - Play in the browser: guide/play.md
-      - Play in ManaBrew's client: guide/manabrew.md
-      - Table layouts: web/layouts.md
-      - Gameplay options: web/gameplay.md
-      - How replays work: web/replays.md
-      - Replays in the browser: guide/replays.md
-      - Draft simulator: guide/draft.md
-      - Draft internals: architecture/draft.md
-      - Troubleshooting: guide/troubleshooting.md
-      - gorged flags: web/flags.md
-      - Run the demo in Docker: web/docker.md
-      - Play with a bot beside you: web/paired-play.md
-      - The server tier: architecture/gorge/server.md
-  - Compliance and validation:
+  - Compliance:
       - compliance/index.md
       - Engine comparison: compliance/harness.md
       - gorge and dirac lockstep: compliance/lockstep.md

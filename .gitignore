@@ -80,6 +80,7 @@ __pycache__/
 # certification pages. Never committed.
 /site/
 docs/site/support/_generated_sets.md
+docs/site/support/_generated_carddb.md
 docs/site/support/certification.md
 docs/site/support/cert/
 docs/site/architecture/_generated_packages.md

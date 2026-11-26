@@ -59,7 +59,9 @@ func printedKeyword(cd *kop.CardDef, id kop.KwID) bool {
 	case kop.KwMadness:
 		return cd.HasMadness
 	case kop.KwMultikicker:
-		return cd.HasMultikicker
+		// HasMultikicker is also the shared mana half of a Squad or Replicate
+		// card (kgen repeated), which prints no Multikicker keyword.
+		return cd.HasMultikicker && cd.RepeatedKind == kop.RepeatMultikicker
 	// T13b-2's records: the keywords with no KwMask bit, each its own cold
 	// CardDef field set at the face keyword's lowering arm. Mutate and
 	// Phasing keep no field here: their K: line refuses the whole face,
@@ -85,6 +87,13 @@ func printedKeyword(cd *kop.CardDef, id kop.KwID) bool {
 	// face is gorge's derived keyword list.
 	case kop.KwFlanking:
 		return cd.Flanking
+	// Storied: the printed bare K:Storied (kgen lower.go's arm) records
+	// CardDef.Storied, the record the enduring-story scan reads
+	// (kw_storied.go). A granted Storied never lowers (no AddKeyword$ grant
+	// of it is lowered today), so the printed face is gorge's derived
+	// keyword list.
+	case kop.KwStoried:
+		return cd.Storied
 	// The back-face cast keywords and Living metal: the face's own record
 	// (kgen lower_flipcast.go). Disturb and More Than Meets the Eye are
 	// printed on the front only, so a back face up reads false, as gorge's

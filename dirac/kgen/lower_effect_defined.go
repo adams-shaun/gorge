@@ -283,6 +283,10 @@ func (lc *lowerCtx) defined(v string) (lRef, error) {
 		return lRef{Kind: rChosen}, nil
 	case triggeredDefenderOrPW:
 		return lc.triggeredDefenderOrPW(v)
+	case "TriggeredDefender":
+		return lc.triggeredDefenderDefined(v) // lower_definedcensus1125.go
+	case "TargetedCard":
+		return lc.targetedCardDefined(v) // lower_definedcensus1125.go
 	case "TriggeredDefendingPlayer":
 		if !lc.ownAttackTrigger() {
 			return lRef{}, refuse("Defined$ %q outside an attack trigger of the controller's own attack", v)

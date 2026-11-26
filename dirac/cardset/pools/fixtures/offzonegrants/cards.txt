@@ -8,7 +8,10 @@
 # the lockstep decks play (dirac/oracle/affectedzone_lockstep_test.go,
 # offzone_unearth_lockstep_test.go), and the hand cycling grants (Rhet-Tomb Mystic,
 # Jo Grant, Tectonic Reformation, Homing Sliver; kw_cyclinggrant.go,
-# offzone_cycling_lockstep_test.go).
+# offzone_cycling_lockstep_test.go), and the hand miracle grants (Lorehold, the
+# Historian; Molecule Man; Aminatou, Veil Piercer; kw_miracle.go,
+# offzone_miracle_lockstep_test.go) beside the instants, sorceries and
+# enchantments they reach.
 Six
 Leyline of Transformation
 Ashes of the Fallen
@@ -17,6 +20,13 @@ Rhet-Tomb Mystic
 Jo Grant
 Tectonic Reformation
 Homing Sliver
+Lorehold, the Historian
+Molecule Man
+Aminatou, Veil Piercer
+Lightning Bolt
+Giant Growth
+Pacifism
+Glorious Anthem
 Raging Goblin
 Ornithopter
 Hill Giant

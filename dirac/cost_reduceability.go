@@ -63,6 +63,9 @@ func (s *State) abReduceStaticApplies(k *prep, st statSrc, a *kop.Ability, sl Sl
 	if st.a.Kind != kop.AbStatic || sa.Kind != kop.StatReduceAbility || st.ctrl != ctrl && sa.StFlags&kop.StReduceAny == 0 {
 		return false
 	}
+	if sa.Zone == kop.ZoneGraveyard {
+		return false // a graveyard card's own activation (abReducedGrave), never a battlefield source's
+	}
 	if sa.B&kop.ReduceAbUnlock != 0 {
 		return false // an unlock-cost reduction never lowers an ability
 	}
@@ -113,31 +116,77 @@ func (s *State) abReducedFor(k *prep, a *kop.Ability, sl Slot, ctrl uint8, c kop
 				return true
 			}
 		}
-		n := int(sa.A)
-		if sa.StFlags&kop.StDynamic != 0 {
-			n = s.evalV(k, sa.VA, s.ctxStatic(st))
+		g, xr = s.abReduceOne(k, st, c, g, xr)
+		return true
+	})
+	c.Generic, c.XRed = uint8(g), uint8(xr)
+	return c
+}
+
+// abReduceOne is one StatReduceAbility static's subtraction from the generic
+// part g and {X} part xr of mana cost c: its amount, floored at zero, the
+// excess paying into {X} (CR 601.2f), under its MinMana$ floor (gorge
+// pay.ApplyTo: the cost never drops below min(floor, its mana value before
+// the reduction)).
+func (s *State) abReduceOne(k *prep, st statSrc, c kop.ManaCost, g, xr int) (int, int) {
+	sa := &st.a.Static
+	n := int(sa.A)
+	if sa.StFlags&kop.StDynamic != 0 {
+		n = s.evalV(k, sa.VA, s.ctxStatic(st))
+	}
+	if n <= 0 {
+		return g, xr
+	}
+	floor := int(sa.B>>kop.ReduceAbMinShift) & 15
+	if floor == 0 || DebugNoMinManaFloor {
+		if g < n && c.X != 0 {
+			xr = min(xr+n-g, 255) // CR 601.2f: the excess pays into {X}
 		}
-		if n <= 0 {
+		return max(g-n, 0), xr
+	}
+	// MinMana$ caps this reduction: the cost never drops below
+	// min(floor, its mana value before it) (gorge pay.ApplyTo).
+	c.Generic = uint8(g)
+	before := c.MV()
+	g = max(g-n, 0)
+	c.Generic = uint8(g)
+	if fl := min(floor, before); c.MV() < fl {
+		g += fl - c.MV()
+		AbFloorRaised.Add(1)
+	}
+	return g, xr
+}
+
+// abReducedGrave returns the mana cost c of activated ability a of the card o
+// in a graveyard, activated by ctrl, after the StatReduceAbility statics whose
+// Zone is the graveyard (Convergence of Dominion's "activated abilities of
+// cards in your graveyard cost {2} less ... to a minimum of one mana"; gorge
+// costStaticGateTail's AffectedZone$ Graveyard gate): every static of the
+// activator (of any activator when it has no Activator$) whose condition holds
+// and whose filter matches the card as a card in its zone, composed in
+// battlefield entry order like abReduced. The offer, the charge and the view
+// price this cost. The callers guard on anyAbReduce; this body is cold.
+//
+//go:noinline
+func (s *State) abReducedGrave(k *prep, a *kop.Ability, o Obj, ctrl uint8, c kop.ManaCost) kop.ManaCost {
+	if DebugNoAbReduce || a.Kind != kop.AbActivated || k.gen == nil || !k.gen.anyAbReduce || o == NoObj || s.objs[o].zone != kop.ZoneGraveyard {
+		return c
+	}
+	ob := &s.objs[o]
+	g, xr := int(c.Generic), int(c.XRed)
+	s.eachStaticTS(k, sclsReduce, func(st statSrc) bool {
+		sa := &st.a.Static
+		if st.a.Kind != kop.AbStatic || sa.Kind != kop.StatReduceAbility || sa.Zone != kop.ZoneGraveyard ||
+			st.ctrl != ctrl && sa.StFlags&kop.StReduceAny == 0 {
 			return true
 		}
-		floor := int(sa.B>>kop.ReduceAbMinShift) & 15
-		if floor == 0 || DebugNoMinManaFloor {
-			if g < n && c.X != 0 {
-				xr = min(xr+n-g, 255) // CR 601.2f: the excess pays into {X}
-			}
-			g = max(g-n, 0)
+		if sa.B&1 != 0 && !a.Exhaust { // seat-ok: an ability flag bit
 			return true
 		}
-		// MinMana$ caps this reduction: the cost never drops below
-		// min(floor, its mana value before it) (gorge pay.ApplyTo).
-		c.Generic = uint8(g)
-		before := c.MV()
-		g = max(g-n, 0)
-		c.Generic = uint8(g)
-		if fl := min(floor, before); c.MV() < fl {
-			g += fl - c.MV()
-			AbFloorRaised.Add(1)
+		if !s.statCond(k, st) || !s.matchCardGenAt(k, sa.Filter, ob.card, ob.owner(), st.ctrl, o, nil) {
+			return true
 		}
+		g, xr = s.abReduceOne(k, st, c, g, xr)
 		return true
 	})
 	c.Generic, c.XRed = uint8(g), uint8(xr)
@@ -213,6 +262,13 @@ func (s *State) eachStaticTS(k *prep, cls uint16, f func(st statSrc) bool) {
 //go:noinline
 func (s *State) abReducedCharge(k *prep, a *kop.Ability, o Obj, ctrl uint8, c kop.ManaCost) kop.ManaCost {
 	ob := &s.objs[o]
+	if ob.zone == kop.ZoneGraveyard {
+		r := s.abReducedGrave(k, a, o, ctrl, c)
+		if r != c {
+			AbReducedPriced.Add(1)
+		}
+		return r
+	}
 	if ob.zone != kop.ZoneBattlefield {
 		return c
 	}
