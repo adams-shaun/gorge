@@ -144,6 +144,15 @@ type TriggerContext struct {
 	// ChangeZone's Defined$ DelayTriggerRemembered[LKI] mover skips an object
 	// that has become a new object since (CR 400.7).
 	DelayedRememberedStamps []state.TargetStamp
+	// DelayedImprinted is the registration's ImprintCards$ capture
+	// (state.DelayedTrigger.Imprinted): the imprint set an api:Effect held at
+	// registration, which the delayed body's IsImprinted filter reads instead
+	// of the source object's live association -- the chain's own `DB$ Cleanup
+	// | ClearImprinted$ True` cleared that before the trigger ever fired
+	// (Flickerform's end-step return, CR 603.7a/610.3). nil is a registration
+	// that took no snapshot, which keeps the live association the only
+	// reader, exactly as before.
+	DelayedImprinted []state.ObjID
 	// DelayedManaSpent is the registration's carried cast-time spend of each
 	// remembered spell that had left the stack by the time the body fires
 	// (state.DelayedTrigger.RememberedManaSpent): targetManaSpentLKI answers
