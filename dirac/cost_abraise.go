@@ -159,3 +159,26 @@ func (s *State) payAbRaiseLife(k *prep) {
 		s.loseLife(k, s.bld().e.ctrl, n)
 	}
 }
+
+// abRaiseSacShort reports whether the activation being built owes a raise pick
+// the mana leaves no fodder for: gorge's target ask probes the composed cost
+// with the folded Sac part's candidates held back from the mana
+// (cast_pricing.go affordableTargetCandidates), so a target whose mana is short
+// without N such permanents has no candidate: a required one aborts the
+// activation ("cast aborted: no legal target", CR 733.1) after its offer
+// admitted it, an up-to one asks nothing (targetStageAborts' contract). A tapped
+// candidate is a free one, its mana is not in the census.
+func (s *State) abRaiseSacShort(k *prep) bool {
+	e := &s.bld().e
+	if k.gen == nil || !k.gen.anyAbRaise || e.kind != seAbility {
+		return false
+	}
+	pc := s.abRaisePick(k, e)
+	if pc == nil {
+		return false
+	}
+	cost := xFolded(s.buildCost(k), int(e.x))
+	var av avail
+	s.availFor(k, e.ctrl, &av)
+	return !s.costPartDisjointR(k, e.ctrl, s.srcSlot(), pc, &cost, &av, pipMaskOf(&cost), nil, true)
+}
