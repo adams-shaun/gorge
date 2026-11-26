@@ -117,7 +117,7 @@ func TestGrowthRuleFloor(t *testing.T) {
 
 // TestGrowthRuleSeeded pins the 11-26 batch failure that motivated the rule:
 // (*cardBuilder).static in dirac/kgen/build_ab.go stood at 812 lines over a
-// base row of 787 plus its slack of 23 and failed TestLongFunctionsOnlyShrink
+// base row of 787 plus its slack of 23 and failed the old rows-file ratchet
 // for the #5064 batch. Under the growth rule 812 is inside 787's allowance
 // (787 + max(5%, 10) = 826) and passes; 830 fails, and the message names the
 // function, its file, the base and head values and the limit.

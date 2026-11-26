@@ -14,7 +14,7 @@ func TestRatchetGuardExemptsTheQueue(t *testing.T) {
 		"mergify/merge-queue/abc123":   true,
 		"":                             false, // a fork's branch, or no ref
 		"regen/main":                   false,
-		"feature/lower-ceilings":       false,
+		"feature/lower-ratchet":        false,
 		"wt/tf-09-ratchets-post-merge": false,
 		"xmergify/merge-queue/abc123":  false,
 		"mergify/merge-queue":          false,

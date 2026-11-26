@@ -14,7 +14,7 @@ Part of the [repo map](repo-map.md) index. Bot runtime packages are in
 | `testkit/conformance` | Plays one game on two engines through a client wire and reports the first thing the wire says differently (`make wire-matrix`). |
 | `testkit/cardcov` | Per-card coverage inventory and use probe shared by `cardfuzz` and `mtgsim`. |
 | `testkit/bench` | Policy-agnostic game runner: `PlayGame`, `RunPairs`, watchdogs, livelock recovery. Shared with outside modules' bench tools. |
-| `internal/codeshape` | Code-shape metrics and ratchets: interface width and string dispatch for `engine/rules` and `engine/effects`, per-function length and cyclomatic complexity for those and `dirac/` (`testdata/func_ceilings.tsv`); `cmd/codeshape` prints them. |
+| `internal/codeshape` | Code-shape metrics and ratchets: interface width and string dispatch for `engine/rules` and `engine/effects`, and a base-relative growth rule (`cmd/funcgrowth`) over per-function length and cyclomatic complexity for those and `dirac/`; `cmd/codeshape` prints them. |
 | `internal/corpusheap` | Heap-footprint ratchet for the opened corpus (tests only). |
 | `testkit/recstream` | Condensed JSON Lines record streams (delta frames against the previous record, keyframes, gzip members) and the reader that opens plain, gzipped and condensed `.jsonl` alike; the format spec is its `doc.go`. Public so outside modules import it; `cmd/recstream` converts and verifies, `scripts/recstream.py` is the stdlib Python reader. |
 | `testkit/paymirror` | A/B check of planned vs manual cast payment; `cmd/paymirror` drives it. |
