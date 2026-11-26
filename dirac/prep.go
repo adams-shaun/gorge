@@ -236,6 +236,9 @@ type prep struct {
 	// keyword grant (kop.Emblem.Forget): the completed cast ends the emblem
 	// (cast_selfflash.go embFlashForget, after the cascade triggers)
 	anyEmbForget bool
+	// anyEmbAltCost: some Effect emblem carries the StatAlternativeCost static:
+	// the Effect-delivered alternative cost (cast_embaltcost.go)
+	anyEmbAltCost bool
 	// anyRedNC: some value reads ExRedNCDmg: replDamage tallies
 	// the noncombat damage red sources deal, beginTurn clears the tally
 	anyRedNC bool
