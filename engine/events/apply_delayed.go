@@ -13,6 +13,28 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
+// stripDelayedImprinted splits an api:Effect registration's ImprintCards$
+// capture ("|IM=<id>[,<id>...]", appended LAST by effEffect's phase arm, so
+// it strips FIRST) off the working text, returning the truncated text and
+// the imprint set the Effect held at registration: the delayed body's
+// IsImprinted reads it (state.DelayedTrigger.Imprinted) instead of the
+// source's live association, which the creating chain's Cleanup cleared
+// before the trigger fired (Flickerform's return, CR 603.7a/610.3). A
+// registration logged before this slot existed carries none of the spelling
+// and decodes with the capture unbound (nil), exactly as before.
+func stripDelayedImprinted(text string) (string, []state.ObjID) {
+	var imprinted []state.ObjID
+	if i := strings.LastIndex(text, "|IM="); i >= 0 {
+		for _, part := range strings.Split(text[i+4:], ",") {
+			if n, err := strconv.ParseUint(strings.TrimSpace(part), 10, 32); err == nil {
+				imprinted = append(imprinted, state.ObjID(n))
+			}
+		}
+		text = text[:i]
+	}
+	return text, imprinted
+}
+
 // foldDelayedRegister folds Kind DelayedRegister into state.
 func foldDelayedRegister(g *state.Game, e *Event) {
 	// The registration is game state folded here, so a
@@ -64,24 +86,7 @@ func foldDelayedRegister(g *state.Game, e *Event) {
 	// "End of Turn|VP=You") contain neither spelling inside the phase
 	// name, so every already-logged registration decodes exactly as
 	// before (VP ungated; MaxTurn zero).
-	text := e.Text
-	// An api:Effect registration's ImprintCards$ capture ("|IM=<id>[,<id>...]",
-	// appended LAST by effEffect's phase arm, so it strips FIRST) is the
-	// imprint set the Effect held at registration: the delayed body's
-	// IsImprinted reads it (state.DelayedTrigger.Imprinted) instead of the
-	// source's live association, which the creating chain's Cleanup cleared
-	// before the trigger fired (Flickerform's return, CR 603.7a/610.3). A
-	// registration logged before this slot existed carries none of the
-	// spelling and decodes with the capture unbound (nil), exactly as before.
-	var imprinted []state.ObjID
-	if i := strings.LastIndex(text, "|IM="); i >= 0 {
-		for _, part := range strings.Split(text[i+4:], ",") {
-			if n, err := strconv.ParseUint(strings.TrimSpace(part), 10, 32); err == nil {
-				imprinted = append(imprinted, state.ObjID(n))
-			}
-		}
-		text = text[:i]
-	}
+	text, imprinted := stripDelayedImprinted(e.Text)
 	// The registration's TriggerDescription$ ("|LB=<text>") is appended LAST
 	// by every registration arm, so it strips FIRST -- before |CR=, whose own
 	// LastIndex would otherwise swallow it. It is the prose a client labels

@@ -1284,6 +1284,7 @@ func (g *Game) CloneIntoDirty(objs []Object, dirty int) *Game {
 			dt.RememberedStamps = append([]TargetStamp(nil), dt.RememberedStamps...)
 			dt.RememberedManaSpent = append([]ManaSpentLKI(nil), dt.RememberedManaSpent...)
 			dt.ChosenCard = append([]ObjID(nil), dt.ChosenCard...)
+			dt.Imprinted = append([]ObjID(nil), dt.Imprinted...)
 			c.Delayed[i] = dt
 		}
 	}
