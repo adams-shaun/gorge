@@ -28,10 +28,10 @@ var DebugCounterAddedNoCross bool
 // crossings and pass.
 //
 //go:noinline
-func (s *State) crossingOK(sl Slot, a *kop.Ability, amt int) bool {
+func (s *State) crossingOK(k *prep, sl Slot, a *kop.Ability, amt int) bool {
 	switch a.Gate.Ctr {
 	case kop.CtrLore:
-		return s.chapterCrossed(sl, a, amt)
+		return s.chapterCrossed(k, sl, a, amt)
 	case kop.CtrLevel, kop.CtrMaxSpeed, kop.CtrMode:
 		return true
 	}

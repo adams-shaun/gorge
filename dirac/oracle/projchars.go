@@ -191,6 +191,7 @@ var gorgeKwElsewhere = map[string]string{
 	"Ascend":                  "CardDef.Ascend (CR 702.131; the city's blessing latch, compared through its readers: Count$Blessing and Condition$ Blessing; kw_ascend.go)",
 	"Storied":                 "CardDef.Storied (CR 702.195; the enduring-story latch, compared through its readers: the Condition$ EnduringStory statics; kw_storied.go)",
 	"Unleash":                 "CardDef.Unleash (CR 702.86; the as-enters counter ask, posed before a cast creature enters, and the can't-block gate while it holds a +1/+1 counter; compared through the choose options, the counter and the block options; kw_unleash.go)",
+	"Read ahead":              "the Saga's enters program opening with the as-enters number ask over 1..the final chapter, and its entry-turn chapter gate (CR 702.155; compared through the readahead choose options, the lore counters and the chapter triggers; kw_readahead.go)",
 	"Enlist":                  "CardDef.Enlist (CR 702.154; the declare-attackers election and its tap and end-of-turn pump; compared through the choose options, the tapped state and the power; kw_enlist.go)",
 	"Riot":                    "CardDef.Riot (CR 702.136; the as-enters counter-or-haste election, posed before a cast creature enters and on any other face-up entry, beside Unleash's; compared through the choose options and the entry counters; kw_riot.go)",
 	"Bargain":                 "CardDef.Bargain (an optional additional cost, no battlefield characteristic; compared through the cast options; kw_bargain.go)",
