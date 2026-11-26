@@ -66,20 +66,37 @@ func (s *State) windowFeeWideTap(k *prep, p uint8, sl Slot, cost, useful *kop.Ma
 	// unclamped, every colour of the wide production listed, so the spare
 	// unit takes the lowest (WUBRGC) and the owed pip its colour -- clamping
 	// here would mis-colour the spare (a {W} left as an {R}).
+	clampUndecided := false
 	if clamp && d.class == pdSpell {
-		if want, decided := s.windowUseful(k, p, useful); decided && want&mask != 0 {
+		want, decided := s.windowUseful(k, p, useful)
+		if decided && want&mask != 0 {
 			mask &= want
+		} else if !decided {
+			clampUndecided = true
 		}
 	}
-	var owed [len(cost.Pips)]uint8
-	if !noOwed {
-		owed = cost.Pips
-		for c := range owed {
-			owed[c] -= min(owed[c], s.pl[p].pool[c])
-		}
+	// The window's own pips the floating pool cannot cover are owed whatever
+	// the ask carries (gorge's tape answers the plan's production, whose
+	// colours serve the payment, not the ask's cost field): the owed pips
+	// take their colour first, then the ask's first listed colour -- an
+	// undecided cast clamp lists the owed colours first (askManaColor's
+	// owedColoursFirst), so the spare takes an owed colour there too.
+	var owed, owedSet [len(cost.Pips)]uint8
+	owed = cost.Pips
+	for c := range owed {
+		owedSet[c] = min(owed[c], 1) - min(owed[c], s.pl[p].pool[c])
+		owed[c] -= min(owed[c], s.pl[p].pool[c])
+	}
+	var owedMask uint8
+	for c := range owedSet {
+		owedMask |= uint8(owedSet[c]) << c
 	}
 	for i := 0; i < 2; i++ {
-		col := bits.TrailingZeros8(mask)
+		pick := mask
+		if clampUndecided && owedMask&mask != 0 {
+			pick = owedMask & mask
+		}
+		col := bits.TrailingZeros8(pick)
 		for c := 0; c < 5; c++ {
 			if mask&(1<<c) != 0 && owed[c] > 0 {
 				col = c
