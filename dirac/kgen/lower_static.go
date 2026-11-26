@@ -617,7 +617,7 @@ func nonGrantShape(sp *params, st *lStatic, zRaw, dg string) (nonGrantFree, nonG
 	switch {
 	case sp.is("MayPlayWithoutManaCost", "True"):
 		return true, false, nil
-	case v == "0" || v == "PayLife<ConvertedManaCost>" || energyAltN(v) > 0:
+	case v == "0" || v == "PayLife<ConvertedManaCost>" || energyAltN(v) > 0 || evidenceAltN(v) > 0:
 		sp.consume("MayPlayAltManaCost")
 		st.Flags = append(st.Flags, "MayZeroAlt", "WithoutManaCost")
 		if v == "PayLife<ConvertedManaCost>" {
@@ -625,10 +625,13 @@ func nonGrantShape(sp *params, st *lStatic, zRaw, dg string) (nonGrantFree, nonG
 		} else if n := energyAltN(v); n > 0 {
 			st.Flags = append(st.Flags, "MayPayEnergy")
 			st.Amount = cst(n) // the energy the alternative owes (Static.A)
+		} else if n := evidenceAltN(v); n > 0 {
+			st.Flags = append(st.Flags, "MayPayEvidence")
+			st.Amount = cst(n) // the evidence the alternative owes (Static.A)
 		}
 		return false, true, nil
 	}
-	// an unmodelled alternative (CollectEvidence<N>) or an inert non-granting
+	// an unmodelled alternative or an inert non-granting
 	// static with no cost rider: gorge lists neither
 	return false, false, refuse("MayPlayAltManaCost %q", v)
 }
@@ -706,6 +709,24 @@ func mayPlayAltManaCost(sp *params, st *lStatic) error {
 // other spelling is not read.
 func energyAltN(v string) int {
 	body, ok := strings.CutPrefix(v, "PayEnergy<")
+	if !ok {
+		return 0
+	}
+	body, ok = strings.CutSuffix(body, ">")
+	if !ok || body == "" || body[0] == '0' {
+		return 0
+	}
+	n, err := strconv.Atoi(body)
+	if err != nil || n < 1 || n > 255 {
+		return 0
+	}
+	return n
+}
+
+// evidenceAltN parses `CollectEvidence<N>` for N in 1..255 (no leading zero;
+// Conspiracy Unraveler's CollectEvidence<10>); any other spelling is not read.
+func evidenceAltN(v string) int {
+	body, ok := strings.CutPrefix(v, "CollectEvidence<")
 	if !ok {
 		return 0
 	}
