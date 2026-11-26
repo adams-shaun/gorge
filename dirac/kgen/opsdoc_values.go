@@ -5,6 +5,7 @@ package kgen
 var opsValues = []opsDoc{
 	{"v:Expr", "VExpr (N = Table.Exprs index)", "Evaluate the Expr: compute Kind over its operands, then `*Mul` (0 = 1), floor `/Div` (0 = 1), `+Add`, negate if Neg. Kinds below."},
 	{"ex:CountGraveyard", "ExCountGraveyard (F)", "Cards in graveyards matching F (F.Ctrl = owner)."},
+	{"ex:MostCardName", "ExMostCardName (F)", "The greatest number of battlefield objects matching F, every seat's battlefield with the spec's You read against the evaluating controller, that share one face name (CR 201.2; gorge Count$MostCardName): the oracle's \"N or more <things> with the same name as one another\" (Endless Atlas, Mechanized Production, Chrome Replicator, Sceptre of Eternal Glory)."},
 	{"ex:SumPower", "ExSumPower (F)", "Total power of battlefield creatures matching F (Ghalta's reduction)."},
 	{"ex:DistinctCMC", "ExDistinctCMC (F)", "Number of distinct mana values among battlefield objects matching F (Lunar Insight)."},
 	{"ex:TargetPlayers", "ExTargetPlayers (Ref: a target slot)", "1 when the target slot Ref holds a player at this point of the resolution, else 0 (an unfilled optional slot, or a player no longer a legal target, CR 608.2b); gorge TargetedPlayer$Amount, which counts the resolution's player targets, over an opponents-only slot two-player. Hollow Marauder."},
