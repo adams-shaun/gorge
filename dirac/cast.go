@@ -493,7 +493,7 @@ func (s *State) syncBuild() {
 // these rows. A triggered ability is pushed by takePending before its
 // program starts.
 var buildProgram = [3][]uint8{
-	seSpell:   {bsPush, bsModes, bsAltAdd, bsGift, bsCasualty, bsTapCost, bsReplicate, bsMulti, bsSquad, bsConspire, bsConvoke, bsX, bsDelve, bsPips, bsTargets, bsDivide, bsEvidence, bsMana, bsCosts, bsPay},
+	seSpell:   {bsPush, bsModes, bsAltAdd, bsGift, bsCasualty, bsTapCost, bsReplicate, bsMulti, bsDefiler, bsSquad, bsConspire, bsConvoke, bsX, bsDelve, bsPips, bsTargets, bsDivide, bsEvidence, bsMana, bsCosts, bsPay},
 	seAbility: {bsPush, bsModes, bsTapCost, bsX, bsPips, bsTargets, bsDivide, bsEvidence, bsMana, bsCosts, bsPay},
 	seTrigger: {bsModes, bsPips, bsTargets, bsDivide, bsPay},
 }
@@ -884,6 +884,12 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 		case bsReplicate, bsMulti, bsSquad:
 			if s.repeatCountOptions(k, d) {
 				return true
+			}
+			s.nextStage(k)
+			continue
+		case bsDefiler:
+			if e.kind == seSpell && defilerOn(k) && s.defilerOptions(k, d) {
+				return true // cost_defiler.go
 			}
 			s.nextStage(k)
 			continue
@@ -1584,6 +1590,10 @@ func (s *State) applyBuild(k *prep, a Action) {
 			s.answerConspire(k, a)
 			return
 		}
+		if s.bld().stage == bsDefiler {
+			s.answerDefiler(a)
+			return
+		}
 		if s.bld().stage == bsEvidence {
 			s.answerCostEvidence(k, a)
 			break
@@ -1897,6 +1907,9 @@ func (s *State) finishBuild(k *prep) {
 		}
 		if s.winPaused() {
 			return // a free or Spree cast's window waits on a tap-another pick (mana_window.go)
+		}
+		if defilerOn(k) {
+			s.payDefilerLife(k) // the answered Defilers' life, one loss, once the mana is paid: gorge pays it with the cast, and a cast its mana cannot finish is rewound unpaid (cost_defiler.go)
 		}
 		s.obsWinSettle(k, e.ctrl, obsPool, obsOK)
 		if k.gen != nil && k.gen.anyManaHaste {
