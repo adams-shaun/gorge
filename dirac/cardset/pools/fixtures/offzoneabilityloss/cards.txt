@@ -6,7 +6,9 @@
 # a graveyard mana ability (Jack-o'-Lantern), and the discard and self-mill that
 # fill graveyards (Cathartic Reunion, Stitcher's Supplier), and Anger (a
 # graveyard-functioning Continuous static, which the removal leaves alone in
-# gorge). No graveyard keyword GRANTOR: a grant beside the removal stalls by name (StallGraveLossGrant). The lockstep
+# gorge) and Storied Veteran (its own may-cast-from-the-graveyard static, which
+# gorge's self-grant read also leaves alone). No graveyard keyword GRANTOR:
+# a grant beside the removal stalls by name (StallGraveLossGrant). The lockstep
 # is dirac/oracle/offzone_abilityloss_lockstep_test.go.
 Yixlid Jailer
 Faithless Looting
@@ -18,6 +20,7 @@ Jack-o'-Lantern
 Cathartic Reunion
 Stitcher's Supplier
 Anger
+Storied Veteran
 Grizzly Bears
 Lightning Bolt
 Island

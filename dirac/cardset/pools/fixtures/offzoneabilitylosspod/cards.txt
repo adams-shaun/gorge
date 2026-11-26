@@ -11,6 +11,7 @@ Golgari Thug
 Cathartic Reunion
 Stitcher's Supplier
 Anger
+Undead Sprinter
 Grizzly Bears
 Lightning Bolt
 Island

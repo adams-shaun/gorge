@@ -33,7 +33,7 @@ func offZoneLossDeck() []cardset.Entry {
 		{Name: "Dregscape Zombie", Count: 3}, {Name: "Bloodghast", Count: 3}, {Name: "Golgari Thug", Count: 2},
 		{Name: "Jack-o'-Lantern", Count: 2}, {Name: "Cathartic Reunion", Count: 2}, {Name: "Stitcher's Supplier", Count: 3},
 		{Name: "Anger", Count: 2},
-		{Name: "Swamp", Count: 5}, {Name: "Mountain", Count: 4}, {Name: "Island", Count: 3}, {Name: "Forest", Count: 2},
+		{Name: "Swamp", Count: 5}, {Name: "Mountain", Count: 4}, {Name: "Island", Count: 3}, {Name: "Storied Veteran", Count: 2},
 	}
 }
 
@@ -66,8 +66,11 @@ func TestFourSeatOffZoneAbilityLossLockstep(t *testing.T) {
 	// Grizzly Bears in their place.
 	var d []string
 	for _, e := range offZoneLossDeck() {
-		if e.Name == "Bloodghast" || e.Name == "Jack-o'-Lantern" {
+		switch e.Name {
+		case "Bloodghast", "Jack-o'-Lantern":
 			e.Name = "Grizzly Bears"
+		case "Storied Veteran": // a finality counter stops a pod at its start (kernel finality)
+			e.Name = "Undead Sprinter"
 		}
 		d = append(d, deckOf(e.Count, e.Name)...)
 	}
