@@ -2852,6 +2852,9 @@ func (s *State) pickCostPayable(k *prep, p uint8, c *kop.Cost, exclude Obj) bool
 	if f&kop.CostTapX != 0 && s.countUntapped(k, p, c.Filter, NoSlot) < int(c.N) {
 		return false
 	}
+	if c.CloseEnc && s.chooseEncCands(k, p, nil) < 1 {
+		return false // the choose pick owes one candidate (cost_closeenc.go)
+	}
 	if f&kop.CostPayLife != 0 && int(s.pl[p].life) < lifeCostOwed(c) {
 		return false
 	}
