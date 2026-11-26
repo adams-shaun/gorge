@@ -105,7 +105,11 @@ jobs:
       matrix:
         # The boxes come from the repo variable CI_BOXES (a JSON list, e.g. ["metal2"]), so adding or
         # dropping a box is `gh variable set CI_BOXES`, never a PR. Every listed box must have a gorge-box runner.
-        box: ${{ fromJSON(vars.CI_BOXES || '["metal2"]') }}
+        # An empty list falls back to metal2 as well: 11-26 10:0x-11:11 CI_BOXES expanded to no box, prepare got
+        # zero matrix jobs, test/wire-matrix/dirac-slices all skipped and ci-ok reddened four batches in a row
+        # (runs 45802945687, 45803903089, 45807210008, 45807737930) while nothing merged for 2 h. The suite must
+        # run somewhere even then; CI_BOXES='[]' is not a way to pause batch CI (set CI_SELF_HOSTED instead).
+        box: ${{ fromJSON((vars.CI_BOXES != '' && vars.CI_BOXES != '[]' && vars.CI_BOXES) || '["metal2"]') }}
     runs-on: ${{ vars.CI_SELF_HOSTED == 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && fromJSON(format('["gorge-box","box-{0}"]', matrix.box)) || 'ubuntu-24.04' }}
     steps:
       - name: Heal the runner's workspace (self-hosted)
