@@ -25,10 +25,10 @@ const readAheadProbeSrc = `Name:Read Ahead Probe
 ManaCost:2
 Types:Enchantment Saga
 K:Read ahead
-K:Chapter:3:DBLose,DBGain,DBDraw
-SVar:DBLose:DB$ LoseLife | Defined$ Player.Opponent | LifeAmount$ 1 | SpellDescription$ Each opponent loses 1 life.
-SVar:DBGain:DB$ GainLife | Defined$ You | LifeAmount$ 2 | SpellDescription$ You gain 2 life.
-SVar:DBDraw:DB$ Draw | Defined$ You | NumCards$ 1 | SpellDescription$ Draw a card.
+K:Chapter:3:ChapOne,ChapTwo,ChapThree
+SVar:ChapOne:DB$ LoseLife | LifeAmount$ 1 | Defined$ Player.Opponent | SpellDescription$ Each opponent loses a life.
+SVar:ChapTwo:DB$ GainLife | LifeAmount$ 3 | Defined$ You | SpellDescription$ You gain three life.
+SVar:ChapThree:DB$ Draw | NumCards$ 1 | Defined$ You | SpellDescription$ You draw a card.
 `
 
 func readAheadDecks() [2][]cardset.Entry {

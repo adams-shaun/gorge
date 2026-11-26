@@ -12,13 +12,13 @@ const readAheadSaga = `Name:Read Ahead Dragon Saga
 ManaCost:2 R R
 Types:Enchantment Saga
 K:Read ahead
-K:Chapter:3:DBDealDamage,DBDiscard,DBToken
-SVar:DBDealDamage:DB$ DamageAll | ValidCards$ Creature | ValidPlayers$ Opponent | NumDmg$ 2 | ValidDescription$ each creature and each opponent. | SpellDescription$ Deals 2 damage to each creature and each opponent.
-SVar:DBDiscard:DB$ Discard | AnyNumber$ True | Optional$ True | Mode$ TgtChoose | RememberDiscarded$ True | SubAbility$ DBDraw | SpellDescription$ Discard any number of cards, then draw that many cards.
-SVar:DBDraw:DB$ Draw | Defined$ You | NumCards$ Y | SubAbility$ DBCleanup
-SVar:DBCleanup:DB$ Cleanup | ClearRemembered$ True
+K:Chapter:3:ChapOne,ChapTwo,ChapThree
+SVar:ChapOne:DB$ DamageAll | NumDmg$ 2 | ValidCards$ Creature | ValidPlayers$ Opponent | ValidDescription$ each creature and each opponent. | SpellDescription$ Two damage to each creature and each opponent.
+SVar:ChapTwo:DB$ Discard | Mode$ TgtChoose | AnyNumber$ True | Optional$ True | RememberDiscarded$ True | SubAbility$ ChapTwoDraw | SpellDescription$ Discard any number, then draw that many.
+SVar:ChapTwoDraw:DB$ Draw | NumCards$ Y | Defined$ You | SubAbility$ ChapTwoEnd
+SVar:ChapTwoEnd:DB$ Cleanup | ClearRemembered$ True
 SVar:Y:Count$RememberedSize
-SVar:DBToken:DB$ Token | TokenScript$ r_4_4_dragon_flying | SpellDescription$ Create a 4/4 red Dragon creature token with flying.
+SVar:ChapThree:DB$ Token | TokenScript$ r_4_4_dragon_flying | SpellDescription$ A 4/4 red Dragon with flying.
 `
 
 // TestElderDragonWarLowering: K:Read ahead lowers (no refusal) to one enters
@@ -64,7 +64,7 @@ func TestElderDragonWarLowering(t *testing.T) {
 // choice of the face's own, refuses by name rather than dropping the keyword.
 func TestReadAheadRefusals(t *testing.T) {
 	for _, tc := range []struct{ name, src, want string }{
-		{"no chapters", strings.Replace(readAheadSaga, "K:Chapter:3:DBDealDamage,DBDiscard,DBToken\n", "", 1), "without chapters"},
+		{"no chapters", strings.Replace(readAheadSaga, "K:Chapter:3:ChapOne,ChapTwo,ChapThree\n", "", 1), "without chapters"},
 		{"own number choice", readAheadSaga + `K:ETBReplacement:Other:ChooseN
 SVar:ChooseN:DB$ ChooseNumber | Defined$ You | Min$ 1 | Max$ 3 | SpellDescription$ choose a number
 `, "ChooseNumber"},
