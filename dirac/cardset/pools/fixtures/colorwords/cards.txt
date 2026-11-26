@@ -2,10 +2,16 @@
 # ChangeColorWordsTo$ ChosenColor over the spells and permanents), beside a
 # spell that reads a colour word (Doom Blade, nonblack), a permanent that does
 # (Northern Paladin, "target black permanent") and cards that read none, to be
-# cast and to be its targets (dirac/oracle/colorwords_lockstep_test.go).
+# cast and to be its targets (dirac/oracle/colorwords_lockstep_test.go). White
+# Knight carries a printed Protection from black, the keyword the model
+# rewrites; Herald of Kozilek a Colorless cost reducer, a colour mask no colour
+# word names, which a live Swirl must leave as printed
+# (dirac/oracle/colorwords_masks_lockstep_test.go).
 Swirl the Mists
 Doom Blade
 Northern Paladin
+White Knight
+Herald of Kozilek
 Grizzly Bears
 Hill Giant
 Island

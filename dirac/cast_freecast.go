@@ -143,7 +143,7 @@ func (s *State) castFreeFillGen(k *prep, in *kop.Instr, e *stackEntry) {
 		if in.C&freeSameName != 0 && !s.sharesNameSelf(NoSlot, e.obj, NoSlot, ob.card, o, false, false) {
 			return true
 		}
-		if in.F != 0 && !DebugFreeFilterIgnored && !s.matchCardGenAt(k, in.F, ob.card, ob.owner(), e.ctrl, o, spellCtx) {
+		if castFreeFilterOn(in, zone) && !s.matchCardGenAt(k, in.F, ob.card, ob.owner(), e.ctrl, o, spellCtx) {
 			return true
 		}
 		if land {

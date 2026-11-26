@@ -1,0 +1,15 @@
+# the MBC Effect RememberObjects$ Self pool (dirac/oracle/mbc_effect_selfrem_test.go
+# TestMBCEffectSelfRememberLowers): Mountain Titan's black-spell counter and
+# Dovin, Grand Arbiter's combat-damage loyalty, beside bodies, spells and basics
+Mountain Titan
+Dovin, Grand Arbiter
+Walking Corpse
+Mind Rot
+Doom Blade
+Savannah Lions
+Elite Vanguard
+Wind Drake
+Swamp
+Mountain
+Plains
+Island
