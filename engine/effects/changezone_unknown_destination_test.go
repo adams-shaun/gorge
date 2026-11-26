@@ -38,7 +38,7 @@ func TestChangeZoneUnknownDestinationFailsClosed(t *testing.T) {
 		wantZone state.Zone
 	}{
 		{"ante", "Ante", "unsupported ChangeZone Destination$ Ante", state.ZBattlefield},
-		{"planardeck", "PlanarDeck", "unsupported ChangeZone Destination$ PlanarDeck", state.ZBattlefield},
+		{"topoflibrary", "TopOfLibrary", "unsupported ChangeZone Destination$ TopOfLibrary", state.ZBattlefield},
 		{"recognized-exile-control", "Exile", "", state.ZExile},
 	}
 	for _, tc := range cases {

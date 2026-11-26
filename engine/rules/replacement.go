@@ -298,6 +298,12 @@ func (e *Engine) applyReplacementsDispatch(ev events.Event) (events.Event, bool)
 			}
 		}
 	})
+	// The planar decks: a plane's printed R: lines are collected by the
+	// synthetic per-event scan (planar.go), not the zone walk above, which
+	// never visits ZPlanarDeck. Appended after the ordinary walk so the
+	// candidates keep the deterministic scan order the CR 616.1 continuation
+	// reads.
+	matches = e.planarReplMatches(matches, event, ev)
 	// A surveil's graveyard pile has already left the library's order when it
 	// moves (arrangeAnswerRecord's LibraryOrder comes first, a logged contract),
 	// so the walk cannot meet the card, and "from anywhere" is its own line.

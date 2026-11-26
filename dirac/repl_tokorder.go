@@ -352,6 +352,14 @@ func (s *State) replTokensOp(k *prep, in *kop.Instr, p uint8, tok CardID, n int)
 		tc, cnt, ok = s.replTokensCard(k, p, tok, n)
 		return tc, cnt, ok, false
 	}
+	if s.planeReplN(k, rbDblTok) > 0 {
+		// a plane multiplier beside a rewriter is gorge's CR 616.1 order ask
+		// (replTokens' guard, repl_gen.go: the contest walk composes no plane
+		// count and the ask is posed by a CreateToken op only), so the walk
+		// below would silently omit the plane's doubling. Loud, never guessed.
+		s.capFull(StallTokRewrite)
+		return tok, 0, false, false
+	}
 	var t tokOrd
 	rew, ncopy, over := s.tokCands(k, p, tok, &t)
 	if over {

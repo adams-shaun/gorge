@@ -186,6 +186,43 @@ func (e *Engine) queuePlaneMode(plane state.ObjID, mode string) {
 	}
 }
 
+// planarReplMatches appends the printed replacements of every living seat's
+// face-up current plane that match the replaceable event under collection --
+// the per-event synthetic replacement scan, the checkChaosEnsuesTriggers
+// precedent. A plane lives in its seat's private ZPlanarDeck zone, which
+// forEachReplacementSource's ZLibrary..ZStack walk plus command zone never
+// visits, so the ordinary printed-replacement collection cannot reach it;
+// Selesnya Loft Gardens' two ActiveZones$ Command replacements (and any
+// other plane-carried R: line) are collected here instead, with the plane as
+// the source and the same matcher the printed walk runs (the ActiveZones$
+// Command gate reads the planar-deck membership as the plane's command
+// zone -- replacement_match.go's activeZonesGateOK). Only the face-up
+// current plane's abilities function (CR 901): a face-down plane, a plane
+// that left the deck, and a foreign or malformed id fail closed exactly as
+// the chaos scan's boundary does, and the scan is per-seat in seat order, so
+// the collected candidates keep the walk's deterministic order.
+func (e *Engine) planarReplMatches(matches []replMatch, event string, ev events.Event) []replMatch {
+	for _, p := range e.G.AliveFrom(0) {
+		plane := e.currentPlane(p)
+		if plane == nil {
+			continue
+		}
+		f := e.replacementFace(plane.ID, ev)
+		if f == nil {
+			continue
+		}
+		for i := range f.Repls {
+			if !replacementEventNameMatches(f.Repls[i].Event, event) {
+				continue
+			}
+			if e.replacementMatches(f.Repls[i], plane.ID, ev) {
+				matches = append(matches, replMatch{id: plane.ID, face: f, repl: &f.Repls[i]})
+			}
+		}
+	}
+	return matches
+}
+
 // checkChaosEnsuesTriggers queues the current plane's Mode$ ChaosEnsues
 // ability when the chaos-ensues marker is checked (CR 901.9). The plane
 // lives in the private ZPlanarDeck zone, which forEachObject's
@@ -207,17 +244,20 @@ func (e *Engine) checkChaosEnsuesTriggers(ev events.Event) {
 	if ev.Kind != events.ChaosEnsues || ev.Obj == 0 {
 		return
 	}
-	// The marker is only valid when it names the seat's own face-up current
-	// plane: an event boundary that named another seat's plane, a face-down
-	// plane, or a non-top plane must not queue anything (a hand-built or
-	// fuzzed marker must fail closed rather than erupt a plane that is not in
-	// play). Ordinary emitters construct exactly this shape.
-	cur := e.currentPlane(ev.Player)
-	if cur == nil || cur.ID != ev.Obj {
-		return
-	}
+	// The marker must name a plane of ev.Player's own planar deck, and the
+	// plane must still be face up ("chaos ensues on that plane" erupts the
+	// plane's printed ability; a face-down plane has none). The die roll and
+	// the DB$ ChaosEnsues verb's default both name the face-up current
+	// plane; The Fertile Lands of Saulvinia's arm (DB$ ChaosEnsues |
+	// Defined$ Remembered) names the plane its planar dig just revealed,
+	// which the found move has already put on the deck's bottom -- Forge's
+	// own chain order runs the DigUntil's found move before its SubAbility,
+	// and the same-zone MoveZone fold clears the moved plane's FaceDown, so
+	// the erupted plane reads from its bottom seat, face up. Only a foreign
+	// seat's plane, a plane that left the deck, a face-down plane, or a
+	// hand-built event naming a non-member fails closed.
 	o := e.G.Obj(ev.Obj)
-	if o == nil || o.Zone != state.ZPlanarDeck || o.FaceDown {
+	if o == nil || o.Zone != state.ZPlanarDeck || o.Face() == nil || o.FaceDown || !e.inPlanarDeck(ev.Player, ev.Obj) {
 		return
 	}
 	f := o.Face()

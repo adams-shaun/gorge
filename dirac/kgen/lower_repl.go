@@ -44,6 +44,22 @@ func (lc *lowerCtx) lowerRepl(r cards.Repl) error {
 		return err
 	}
 	var err error
+	// A plane face carries only the two Selesnya Loft Gardens bodies (this
+	// ticket's shape). Gorge's per-event planar replacement scan collects any
+	// printed R: line on the face-up current plane -- the gate is the
+	// ActiveZones$ value or, when the line spells none, an empty one, which
+	// every non-CreateToken/AddCounter arm tolerates (planar.go
+	// planarReplMatches, replacement_match.go activeZonesGateOK) -- while the
+	// kernel models only the two unscoped doublers (zone_planechase.go
+	// planeReplN): any other kind lowers to a record the kernel never
+	// applies, so it refuses.
+	if lc.face != nil && lc.face.IsPlane() {
+		switch r.Event {
+		case "CreateToken", "AddCounter":
+		default:
+			return refuse("repl-hard: %s replacement on a plane face", r.Event)
+		}
+	}
 	switch r.Event {
 	case "Moved":
 		if rp.str("Destination") == "Graveyard" {
@@ -684,15 +700,36 @@ func exileBody(w *cards.SA) (ctr string, n uint8, ok bool) {
 	return ctr, n, true
 }
 
+// The plane replacement's declared zone and recipient, compared by name the
+// same way youPlusObject is: package words, not literals at the use sites.
+const (
+	replPlaneCommand   = "Command"
+	replPlanePermanent = "Permanent.inZoneBattlefield"
+)
+
 // addCounterRepl lowers the counter replacements: Doubling Season's
 // unfiltered EffectOnly doubling, plus the filtered doublers and plus/minus
 // one shapes (ValidCounterType, DB$ ReplaceCounter).
+//
+// On a plane face only the unscoped ActiveZones$ Command EffectOnly shape
+// lowers (Selesnya Loft Gardens): the kernel counts the plane doublers
+// beside every permanent's placement (zone_planechase.go planeReplN), blind
+// to controller and counter kind, so a plane line with ValidPlayer$/
+// ValidSource$/ValidCounterType$ -- which gorge's matcher would honor --
+// refuses rather than widening the count.
 func (lc *lowerCtx) addCounterRepl(rp *params, w *cards.SA, rl *lRepl) error {
-	if rp.str("ActiveZones") != "Battlefield" {
+	plane := lc.face != nil && lc.face.IsPlane()
+	if rp.str("ActiveZones") != "Battlefield" && !(plane && rp.str("ActiveZones") == replPlaneCommand) {
 		return refuse("repl-hard: AddCounter ActiveZones")
 	}
 	if _, ok := rp.get("ValidPlayer"); ok {
+		if plane {
+			return refuse("repl-hard: AddCounter ValidPlayer on a plane face")
+		}
 		return lc.onePoisonRepl(rp, w, rl) // lower_delayed.go
+	}
+	if plane && rp.str("ValidSource") != "" {
+		return refuse("repl-hard: AddCounter ValidSource on a plane face")
 	}
 	if _, ok := rp.get("ValidSource"); ok {
 		if rp.str("ValidObject") == youPlusObject {
@@ -713,13 +750,26 @@ func (lc *lowerCtx) addCounterRepl(rp *params, w *cards.SA, rl *lRepl) error {
 	if rp.is("EffectOnly", "True") {
 		// Doubling Season: ValidCard$ Permanent.YouCtrl+inZoneBattlefield,
 		// DB$ ReplaceCounter | Amount$ Y, Y:ReplaceCount$CounterNum/Twice
-		if vc != "Permanent.YouCtrl+inZoneBattlefield" || w == nil ||
-			!withIs(w, "ReplaceCounter", map[string]string{"Amount": w.Params["Amount"]}) ||
-			lc.face.SVars[w.Params["Amount"]] != "ReplaceCount$CounterNum/Twice" {
-			return refuse("repl-hard: AddCounter replacement shape")
+		if vc == "Permanent.YouCtrl+inZoneBattlefield" && w != nil &&
+			withIs(w, "ReplaceCounter", map[string]string{"Amount": w.Params["Amount"]}) &&
+			lc.face.SVars[w.Params["Amount"]] == "ReplaceCount$CounterNum/Twice" {
+			rl.Kind = "DoubleCounters"
+			return nil
 		}
-		rl.Kind = "DoubleCounters"
-		return nil
+		// Selesnya Loft Gardens on a plane face: ValidCard$
+		// Permanent.inZoneBattlefield (no YouCtrl -- every permanent's
+		// placement, which the kernel's plane count reads), the same
+		// ReplaceCount$CounterNum/Twice body.
+		if plane && vc == replPlanePermanent && w != nil &&
+			withIs(w, "ReplaceCounter", map[string]string{"Amount": w.Params["Amount"]}) &&
+			lc.face.SVars[w.Params["Amount"]] == "ReplaceCount$CounterNum/Twice" {
+			rl.Kind = "DoubleCounters"
+			return nil
+		}
+		return refuse("repl-hard: AddCounter replacement shape")
+	}
+	if plane {
+		return refuse("repl-hard: AddCounter counter type on a plane face")
 	}
 	ck := rp.str("ValidCounterType")
 	if ck == "" {

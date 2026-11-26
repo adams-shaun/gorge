@@ -217,6 +217,13 @@ func (s *State) replCtrOnX(k *prep, sl Slot, kind, n int, noEO bool) int {
 	dbl := 0
 	if g.anyRepl&rbDblCtr != 0 && !noEO {
 		dbl = s.dblCtrN(k, sl, ctrl)
+		// the face-up current planes' unscoped ReplDoubleCounters (Selesnya
+		// Loft Gardens; zone_planechase.go planeReplN): any permanent's
+		// effect-created placement, beside the controller-scoped battlefield
+		// doublers above. noEO is already in the guard: the plane's line is
+		// EffectOnly$ True (gorge replacement_match.go reads it for the
+		// AddCounter class), so a cost's counters are no effect's either.
+		dbl += s.planeReplN(k, rbDblCtr)
 	}
 	if g.anyRepl&rbDblCtrYou != 0 {
 		dbl += s.dblCtrYou(k, s.counterAdder()) // trig_leavereturn.go

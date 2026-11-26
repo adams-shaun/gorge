@@ -61,7 +61,15 @@ func (s *State) replCostCtr(k *prep, sl Slot, kind, n int, payer uint8) int {
 	m := s.replCtrOnX(k, sl, kind, n, true)
 	s.g.ctrAdder = saved
 	if m != n && k.gen.anyRepl&rbDblCtr != 0 {
-		for c := s.replN(k, s.perms[sl].ctrl, rbDblCtr); c > 0 && m <= 0xffff; c-- {
+		// The CR 614.16 second pass reopens the EffectOnly$ class: gorge's
+		// deferred sweep dispatches through applyReplacementsDispatch too
+		// (replacement_counter.go), whose per-event collection ends in the
+		// planar scan (planar.go planarReplMatches), so the face-up planes'
+		// unscoped doublers double here beside the battlefield's
+		// controller-scoped ones (zone_planechase.go planeReplN, unscoped --
+		// any seat's cost placement).
+		c := s.replN(k, s.perms[sl].ctrl, rbDblCtr) + s.planeReplN(k, rbDblCtr)
+		for ; c > 0 && m <= 0xffff; c-- {
 			m *= 2
 		}
 	}

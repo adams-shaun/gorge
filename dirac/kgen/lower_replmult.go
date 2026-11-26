@@ -194,7 +194,18 @@ func (lc *lowerCtx) damageDoubler(rp *params, w *cards.SA, rl *lRepl) error {
 // token (Card.YouCtrl is every token: no filter). EffectOnly$ True is
 // vacuous for tokens (gorge replacement_match.go: every token creation is an
 // effect). Doubling Season, Exalted Sunborn, Ojer Taq.
+//
+// On a plane face only the unscoped ActiveZones$ Command shape lowers
+// (Selesnya Loft Gardens): the kernel's plane count (zone_planechase.go
+// planeReplN) is per seat's face-up current plane beside the creator's
+// battlefield multipliers, blind to token and controller, so a plane line
+// with ValidToken$/ValidPlayer$ -- which gorge's matcher would honor --
+// refuses rather than widening the count.
 func (lc *lowerCtx) tokenRepl(rp *params, w *cards.SA, rl *lRepl) error {
+	plane := lc.face != nil && lc.face.IsPlane()
+	if plane {
+		return lc.planeTokenRepl(rp, w, rl)
+	}
 	if rp.str("ActiveZones") != "Battlefield" {
 		return refuse("repl-hard: CreateToken ActiveZones")
 	}
@@ -264,6 +275,41 @@ func (lc *lowerCtx) tokenRepl(rp *params, w *cards.SA, rl *lRepl) error {
 	if n != 2 {
 		rl.N = cst(n)
 	}
+	return nil
+}
+
+// planeTokenRepl is tokenRepl's plane-face arm: ActiveZones$ Command, no
+// ValidToken$/ValidCard$/ValidPlayer$ (the count is unscoped -- every seat's
+// creation), and DB$ ReplaceToken | Type$ Amount with Amount$ absent (x2) or
+// Twice. The kernel's plane count is a flat x2 (the card's rbDblTok bit; it
+// never reads Repl.A), so Thrice and every scoped line refuse. Everything
+// else refuses.
+func (lc *lowerCtx) planeTokenRepl(rp *params, w *cards.SA, rl *lRepl) error {
+	if az := rp.str("ActiveZones"); strings.TrimSpace(az) != replPlaneCommand {
+		return refuse("repl-hard: CreateToken ActiveZones %q on a plane face", az)
+	}
+	for _, k := range []string{"Layer", "Optional", "IsPresent", "ValidToken", "ValidCard", "ValidPlayer"} {
+		if _, ok := rp.get(k); ok {
+			return refuse("repl-hard: CreateToken %s on a plane face", k)
+		}
+	}
+	if e, ok := rp.get("EffectOnly"); ok && strings.TrimSpace(e) != "True" {
+		return refuse("repl-hard: CreateToken EffectOnly %q", e)
+	}
+	want := map[string]string{"Type": "Amount"}
+	if w == nil || w.API != "ReplaceToken" {
+		return refuse("repl-hard: CreateToken replacement shape")
+	}
+	if a, ok := w.Params["Amount"]; ok {
+		want["Amount"] = a
+		if strings.TrimSpace(a) != "Twice" {
+			return refuse("repl-hard: CreateToken Amount %q on a plane face", a)
+		}
+	}
+	if !withIs(w, "ReplaceToken", want) {
+		return refuse("repl-hard: CreateToken replacement shape")
+	}
+	rl.Kind = "DoubleTokens"
 	return nil
 }
 

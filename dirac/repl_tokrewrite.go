@@ -33,6 +33,15 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // replTokensOp).
 func (s *State) replTokensCard(k *prep, p uint8, tok CardID, n int) (CardID, int, bool) {
 	if k.gen != nil && k.gen.anyTokRew && k.gen.anyRepl&rbDblTok != 0 && n > 0 && p < MaxSeats {
+		if s.planeReplN(k, rbDblTok) > 0 {
+			// a plane multiplier beside a rewriter is gorge's CR 616.1 order
+			// ask (replTokens' guard, repl_gen.go); this mint site composes
+			// without it, and replTokensRew's walk below reads the battlefield
+			// only, so the plane's doubling would be silently omitted. Loud,
+			// never guessed.
+			s.capFull(StallTokRewrite)
+			return tok, 0, false
+		}
 		return s.replTokensRew(k, p, tok, n)
 	}
 	return tok, s.replTokens(k, p, tok, n), true

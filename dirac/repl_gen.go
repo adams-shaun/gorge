@@ -192,11 +192,17 @@ func (s *State) replDamageRewrites(k *prep, srcCtrl uint8, srcSl Slot, srcCard C
 
 // replTokens is the number of tokens of card tok an effect creating n
 // tokens under p's control creates (doubled once per Doubling Season p
-// controls; the filtered and x3 multipliers: repl_multipliers.go).
+// controls; the filtered and x3 multipliers: repl_multipliers.go), then
+// doubled once more per face-up current plane carrying the unscoped
+// ReplDoubleTokens replacement (Selesnya Loft Gardens; zone_planechase.go
+// planeReplN). The multipliers all commute (gorge replacement_token.go
+// composes the pure Type$ Amount multipliers order-insensitively), so the
+// plane's count is applied to the rewritten count in every arm.
 func (s *State) replTokens(k *prep, p uint8, tok CardID, n int) int {
 	if k.gen == nil || k.gen.anyRepl&rbDblTok == 0 || n <= 0 || p >= MaxSeats {
 		return n
 	}
+	pc := s.planeReplN(k, rbDblTok)
 	if k.gen.anyTokRew {
 		// a mint site that makes the token it was given: a rewritten card
 		// is not read there (repl_tokrewrite.go)
@@ -205,12 +211,30 @@ func (s *State) replTokens(k *prep, p uint8, tok CardID, n int) int {
 			s.capFull(StallTokRewrite)
 			return 0
 		}
+		if pc > 0 {
+			// a plane multiplier beside a rewriter is gorge's CR 616.1 order
+			// ask (a rewriter composes after the multipliers it is picked
+			// before; replacement_token.go), posed by a CreateToken op only
+			// -- this site composes without it. Loud, never guessed.
+			s.capFull(StallTokRewrite)
+			return 0
+		}
 		return m
 	}
 	if k.gen.anyFiltRepl {
-		return s.replTokensMult(k, p, tok, n)
+		return s.replPlaneDouble(pc, s.replTokensMult(k, p, tok, n))
 	}
 	for c := s.replNIn(k, s.tokSrcM(p), rbDblTok); c > 0 && n < 1<<8; c-- {
+		n *= 2
+	}
+	return s.replPlaneDouble(pc, n)
+}
+
+// replPlaneDouble is n after c unscoped plane doublers (zone_planechase.go
+// planeReplN) applied to the already-rewritten count, under the same bound
+// the per-hit battlefield loop above keeps.
+func (s *State) replPlaneDouble(pc, n int) int {
+	for ; pc > 0 && n < 1<<8; pc-- {
 		n *= 2
 	}
 	return n

@@ -12,7 +12,7 @@ func TestDestinationUnknownAdmitsNoZone(t *testing.T) {
 		state.ZExile, state.ZStack, state.ZCommand, state.ZCeased,
 		state.ZSideboard, state.ZPlanarDeck,
 	}
-	for _, text := range []string{"Ante", "PlanarDeck", "TopOfLibrary", "BottomOfLibrary", "Ante,PlanarDeck"} {
+	for _, text := range []string{"Ante", "TopOfLibrary", "BottomOfLibrary", "Ante,Foo"} {
 		t.Run(text, func(t *testing.T) {
 			d := DestinationOf(text)
 			for _, z := range zones {
@@ -42,6 +42,14 @@ func TestDestinationKnownAndWildcardControls(t *testing.T) {
 	}
 	if got, want := graveyard.Zones(), uint32(1<<state.ZGraveyard); got != want {
 		t.Fatalf("Graveyard Zones() = %#x, want %#x", got, want)
+	}
+
+	planar := DestinationOf("PlanarDeck")
+	if !planar.Admits(state.ZPlanarDeck) || planar.Admits(state.ZLibrary) {
+		t.Fatal("precondition/control: PlanarDeck must admit the planar deck and reject the library")
+	}
+	if got, want := planar.Zones(), uint32(1<<state.ZPlanarDeck); got != want {
+		t.Fatalf("PlanarDeck Zones() = %#x, want %#x", got, want)
 	}
 
 	list := DestinationOf("Graveyard,Exile")

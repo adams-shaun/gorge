@@ -194,6 +194,8 @@ func parseZone(s string) (state.Zone, bool) {
 		return state.ZSideboard, true
 	case parseZoneCeased:
 		return state.ZCeased, true
+	case parseZonePlanarDeck:
+		return state.ZPlanarDeck, true
 	}
 	return 0, false
 }
@@ -251,6 +253,7 @@ const (
 	parseZoneCommand
 	parseZoneSideboard
 	parseZoneCeased
+	parseZonePlanarDeck
 )
 
 var parseZoneCodes = state.NewStrCodes(
@@ -263,4 +266,5 @@ var parseZoneCodes = state.NewStrCodes(
 	state.StrEntry[parseZoneCode]{Key: "Command", Val: parseZoneCommand},
 	state.StrEntry[parseZoneCode]{Key: "Sideboard", Val: parseZoneSideboard},
 	state.StrEntry[parseZoneCode]{Key: "Ceased", Val: parseZoneCeased},
+	state.StrEntry[parseZoneCode]{Key: "PlanarDeck", Val: parseZonePlanarDeck},
 )

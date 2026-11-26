@@ -88,7 +88,18 @@ func (e *Engine) activeZonesGateOK(r cards.Repl, source state.ObjID, ev events.E
 	}
 	if active, ok := r.Param(cards.PKActiveZones); ok {
 		o := e.G.Obj(source)
-		currentlyActive := o != nil && zoneSpecContains(active, o.Zone)
+		zone := o.Zone
+		if o != nil && o.Zone == state.ZPlanarDeck {
+			// CR 901: a plane's replacement effects are active from its
+			// command zone, and a gorge plane lives in its seat's private
+			// ZPlanarDeck, not ZoneCommand -- the same ZoneCommand-equivalence
+			// the trigger side reads (planar.go's synthetic plane scans
+			// bypass the ordinary Command gate for exactly this reason). The
+			// planar-deck membership IS the declared command zone; a plane
+			// outside a planar deck still reads its own zone.
+			zone = state.ZCommand
+		}
+		currentlyActive := o != nil && zoneSpecContains(active, zone)
 		enteringActive := ev.Kind == events.MoveZone && source == ev.Obj &&
 			zoneSpecContains(active, ev.To)
 		if !currentlyActive && !enteringActive && !e.batchMemberReplActive(active, o) {
