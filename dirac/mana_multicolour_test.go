@@ -17,7 +17,7 @@ func tapMana(col kop.ColorMask) kop.Ability {
 
 // kmana2Table is vanilla plus a dual (B, R), a triome (U, R, G), a gain
 // land shaped Combo source (one ability, B or R) and a Nightshade
-// Dryad-shaped land ({C} beside an any-colour ability: not folded).
+// Dryad-shaped land ({C} beside an any-colour ability: the union C|WUBRG).
 func kmana2Table() (tbl *kop.Table, dual, triome, gain, dryad CardID) {
 	t := *v.Table
 	t.Cards = append([]kop.CardDef(nil), v.Table.Cards...)
@@ -39,7 +39,7 @@ func TestMultiManaPrep(t *testing.T) {
 		id    CardID
 		col   kop.ColorMask
 		multi bool
-	}{{dual, kop.ColB | kop.ColR, true}, {triome, kop.ColU | kop.ColR | kop.ColG, true}, {gain, kop.ColB | kop.ColR, false}, {dryad, kop.ColC, false}} {
+	}{{dual, kop.ColB | kop.ColR, true}, {triome, kop.ColU | kop.ColR | kop.ColG, true}, {gain, kop.ColB | kop.ColR, false}, {dryad, kop.ColC | kop.ColAny, true}} {
 		pc := &k.cards[c.id]
 		if pc.manaCol != c.col || pc.manaMulti != c.multi || pc.manaAb != 0 {
 			t.Errorf("%s: manaCol %#x multi %v ab %d; want %#x %v 0", tbl.Cards[c.id].Name, pc.manaCol, pc.manaMulti, pc.manaAb, c.col, c.multi)

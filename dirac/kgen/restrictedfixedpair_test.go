@@ -67,3 +67,51 @@ func TestTabletOfDiscoveryLowers(t *testing.T) {
 		t.Fatalf("Tablet of Discovery entries = %d, want 1", n)
 	}
 }
+
+// TestBothHalvesColourlessPairShape: a {C}{C} restricted to spells and
+// activated abilities beside a plain {T}: Add {C} is the kernel's widened
+// colourless pair (Eldrazi Temple); the same restriction on a coloured pair, a
+// coloured first ability, an amount above four or a spell-only {C}{C} beside a
+// coloured first ability stays refused.
+func TestBothHalvesColourlessPairShape(t *testing.T) {
+	both := func(cols string, n int) *lAbility {
+		a := comboAb(cols, n, false, true)
+		a.Mana.RestrictAb = &lFilter{}
+		return a
+	}
+	first := comboAb("C", 1, false, false)
+	for _, n := range []int{2, 3, 4} {
+		if !manaGapModelled(first, both("C", n)) {
+			t.Errorf("both-halves {C} x%d beside {C}: refused", n)
+		}
+	}
+	cases := map[string]struct{ first, a *lAbility }{
+		"amount 5":         {first, both("C", 5)},
+		"coloured pair":    {comboAb("R", 1, false, false), both("R", 2)},
+		"coloured first":   {comboAb("G", 1, false, false), both("C", 2)},
+		"spell-only {C}":   {comboAb("G", 1, false, false), comboAb("C", 2, false, true)},
+		"restricted first": {comboAb("C", 1, false, true), both("C", 2)},
+	}
+	for name, c := range cases {
+		if manaGapModelled(c.first, c.a) {
+			t.Errorf("%s: accepted", name)
+		}
+	}
+}
+
+// TestEldraziTempleLowersInKgen: the card itself lowers (corpus; skips without it).
+func TestEldraziTempleLowersInKgen(t *testing.T) {
+	lw := lowerNamedPool(t, []string{"Eldrazi Temple"})
+	n := 0
+	for _, c := range lw.cards {
+		if c.Name == "Eldrazi Temple" {
+			n++
+			if len(c.Refusals) != 0 {
+				t.Errorf("Eldrazi Temple refused: %v", c.Refusals)
+			}
+		}
+	}
+	if n != 1 {
+		t.Fatalf("Eldrazi Temple entries = %d, want 1", n)
+	}
+}
