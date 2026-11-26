@@ -30,12 +30,12 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 | TRC | 337 | 307 | 0 | 32 | 275 | 275 | 0 |
 | TRK | 311 | 311 | 1 | 0 | 310 | 310 | 0 |
 | WOE | 281 | 267 | 0 | 3 | 264 | 264 | 0 |
-| MBC | 2212 | 2042 | 3 | 46 | 1993 | 1993 | 0 |
-| CMM | 737 | 622 | 2 | 33 | 587 | 587 | 0 |
-| MH3 | 308 | 237 | 1 | 12 | 224 | 224 | 0 |
+| MBC | 2212 | 2044 | 3 | 48 | 1993 | 1993 | 0 |
+| CMM | 737 | 622 | 3 | 32 | 587 | 587 | 0 |
+| MH3 | 308 | 237 | 1 | 11 | 225 | 225 | 0 |
 | MH2 | 309 | 263 | 0 | 9 | 254 | 254 | 0 |
-| CM2 | 279 | 240 | 0 | 6 | 234 | 234 | 0 |
-| ALL | 34480 | 26878 | 41 | 969 | 25868 | 25865 | 0 |
+| CM2 | 279 | 240 | 1 | 4 | 235 | 235 | 0 |
+| ALL | 34480 | 26894 | 43 | 981 | 25870 | 25867 | 0 |
 
 `ALL` is the whole corpus; `MBC` is the Mystery Booster Commander draft pool, every name its packs deal that gorge supports; `CMM`, `MH3`, `MH2` and `CM2` are Commander Masters, Modern Horizons 3 and 2 and Commander Anthology Volume II, from gorge-compliance's XMage manifests; the rest are the Standard sets. `4-seat` counts the supported cards whose lowering holds at any seat count: a card whose lowering reads the one opponent of a two-player game (`kop.CardDef.TwoSeat`) is refused in a game of three or more seats (`StallTwoSeat`). It is a ceiling, not evidence. `pod-evidenced` counts those cards whose evidence row carries a seats field — a clean game of three or more seats, which `kfuzz -evidence -seats 4` writes and `scripts/dirac-first-refusals.py evidence --pools pod-*` copies into `dirac/support/evidence` (`Name\t<seats>`; readers take the name and ignore trailing columns). A pod game does not evidence a card: the support rule below is unchanged.
 
@@ -167,6 +167,7 @@ Evidence comes from the `fdn` and `blb` deck pools and one synthetic pool per St
 | ev-std-trc-c942 | 24 |
 | ev-std-trc-c943 | 24 |
 | ev-std-trc-c967 | 20 |
+| ev-std-trc-c984 | 60 |
 | ev-std-trk | 200 |
 | ev-std-trk-a000 | 40 |
 | ev-std-trk-c000 | 8 |
@@ -292,6 +293,7 @@ Evidence comes from the `fdn` and `blb` deck pools and one synthetic pool per St
 | ev-tail-01-c099 | 8 |
 | ev-tail-01-c100 | 16 |
 | ev-tail-01-c909 | 154 |
+| ev-tail-01-c985 | 49 |
 | ev-tail-02-c000 | 6 |
 | ev-tail-02-c001 | 6 |
 | ev-tail-02-c002 | 31 |
@@ -719,6 +721,7 @@ Evidence comes from the `fdn` and `blb` deck pools and one synthetic pool per St
 | ev-tail-07-c946 | 24 |
 | ev-tail-07-c960 | 20 |
 | ev-tail-07-c961 | 20 |
+| ev-tail-07-c983 | 60 |
 | ev-tail-08 | 1120 |
 | ev-tail-08-c000 | 5 |
 | ev-tail-08-c001 | 18 |
@@ -1237,6 +1240,7 @@ Evidence comes from the `fdn` and `blb` deck pools and one synthetic pool per St
 | ev-tail-14-c070 | 16 |
 | ev-tail-14-c914 | 80 |
 | ev-tail-14-c948 | 12 |
+| ev-tail-14-c982 | 67 |
 | ev-tail-14-s000 | 47 |
 | ev-tail-15-c000 | 27 |
 | ev-tail-15-c001 | 7 |
@@ -2905,6 +2909,7 @@ Evidence comes from the `fdn` and `blb` deck pools and one synthetic pool per St
 | ev-tail-36-c059 | 8 |
 | ev-tail-36-c060 | 8 |
 | ev-tail-36-c920 | 173 |
+| ev-tail-36-c978 | 267 |
 | ev-tail-37-a000 | 31 |
 | ev-tail-37-c000 | 19 |
 | ev-tail-37-c001 | 79 |
@@ -5282,11 +5287,11 @@ Nothing else is covered. A card none of these runs reaches is unverified, whatev
 
 ## Refused by name
 
-41 cards, by what differed in the game that showed them. Each has a file in `dirac/support/refused` naming the card, the difference and the game.
+43 cards, by what differed in the game that showed them. Each has a file in `dirac/support/refused` naming the card, the difference and the game.
 
 | what differed | cards |
 |---|---:|
-| lockstep | 17 |
+| lockstep | 19 |
 | options | 6 |
 | options-options | 5 |
 | projection-Cards.Damage | 1 |

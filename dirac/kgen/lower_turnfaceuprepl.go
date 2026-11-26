@@ -15,7 +15,10 @@ import (
 //   - With a ReplaceWith$ body the body runs before the turn-up event folds
 //     (applyTurnFaceUpReplacements, replacement_phase.go): the counters land
 //     while the permanent is still face down. Only Card.Self with exactly one
-//     PutCounter on Self lowers (Bubble Smuggler, Crowd-Control Warden).
+//     PutCounter on Self lowers (Bubble Smuggler, Crowd-Control Warden), or
+//     Card.Self with one DB$ Attach of Optional$ True, Object$ Self and a
+//     Choices$ spec, the destination ask gorge's effAttach poses (Gift of
+//     Doom): kop.ReplTurnUpAttach, dirac/face_turnupattach.go.
 //   - Layer$ CantHappen without a body makes the special action illegal
 //     (turnFaceUpCantHappen): Karlov Watchdog, Unable to Scream.
 func (lc *lowerCtx) turnUpRepl(rp *params, with *cards.SA, rl *lRepl) error {
@@ -24,6 +27,26 @@ func (lc *lowerCtx) turnUpRepl(rp *params, with *cards.SA, rl *lRepl) error {
 		return refuse(shape)
 	}
 	vc := rp.str("ValidCard")
+	if with != nil && with.API == "Attach" {
+		if _, ok := rp.m["Layer"]; ok || vc != "Card.Self" || with.Sub != nil {
+			return refuse(shape)
+		}
+		ps := newParams(with.Params)
+		if ps.str("Object") != "Self" || ps.str("Optional") != "True" || ps.str("Choices") == "" {
+			return refuse(shape)
+		}
+		ps.consume("ChoiceTitle") // display-only (Gift of Doom's "Choose a creature")
+		ps.consume("AILogic")
+		if left := ps.unread(); len(left) > 0 {
+			return refuse("TurnFaceUp attach body unread params %v", left)
+		}
+		f, err := lc.filter(ps.str("Choices"))
+		if err != nil {
+			return err
+		}
+		rl.Kind, rl.F = "TurnUpAttach", f
+		return nil
+	}
 	if with != nil {
 		// body shape: no Layer$, no Optional$, one PutCounter on Self
 		if _, ok := rp.m["Layer"]; ok || vc != "Card.Self" || with.API != "PutCounter" || with.Sub != nil {

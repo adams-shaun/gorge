@@ -1053,7 +1053,10 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	g.anyTwobrid = tableTwobrid(t)
 	g.anyBeamGrant = tableHasStatic(t, kop.StatBeamGrant)
 	// prepSpellCond first: it sets anySpellCond, which an || must not skip
-	g.anyCantCast = prepSpellCond(t, g) || tableHasStatic(t, kop.StatCantBeCast)
+	// tableHasPlaneCurse joins: the plane-source curse's cast gate lowers to
+	// ExtPlaneCurse (dirac/zone_planecurse.go), whose record no StatCantBeCast
+	// static carries, so the flag must arm for its table too.
+	g.anyCantCast = prepSpellCond(t, g) || tableHasStatic(t, kop.StatCantBeCast) || tableHasPlaneCurse(t)
 	g.anyCantPlayLand = tableHasStatic(t, kop.StatCantPlayLand)
 	prepCastLimit(t, g)  // static_castlimit.go
 	prepCantSac(t, g)    // static_cantsacrifice.go, before prepCantAct reads it
@@ -1463,6 +1466,8 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 					pc.hasStat = true // scanned through statM (face_turnfaceup.go)
 				case kop.ReplTurnUpProgram:
 					g.anyTurnUpRepl = true
+				case kop.ReplTurnUpAttach:
+					g.anyTurnUpRepl = true // the attach ask the fold waits on (face_turnupattach.go)
 				}
 			case kop.AbStatic:
 				switch a.Static.Kind {

@@ -142,7 +142,6 @@ Aquus Steed
 Aragorn, King of Gondor
 Aragorn, the Uniter
 Arashin Sunshield
-Arashin War Beast
 Arbor Armament
 Arboreal Alliance
 Arboreal Grazer
@@ -204,7 +203,6 @@ Assert Authority
 Assert Perfection
 Astelli Reclaimer
 At Knifepoint
-Atarka Pummeler
 Atlantean Skirmisher
 Atmospheric Greenhouse
 Atogatog
@@ -230,7 +228,6 @@ Aven Tactician
 Aven Trooper
 Aven Wind Mage
 Awaken the Inferno
-Awaken the Woods
 Awakening
 Awakening Zone
 Axgard Artisan
@@ -270,7 +267,6 @@ Baru, Fist of Krosa
 Basilica Bell-Haunt
 Basking Rootwalla
 Batterskull
-Battle-Mad Ronin
 Battlefield Forge
 Baylen, the Haymaker
 Bazaar Trademage
@@ -293,7 +289,6 @@ Belladonna Took
 Beloved Princess
 Beluna Grandsquall
 Benalish Trapper
-Beneath the Sands
 Benthic Giant
 Beorn the Fierce
 Beorn's Hospitality
@@ -465,7 +460,6 @@ Camaraderie
 Campus Composer
 Campus Crier
 Cantankerous Keepers
-Canyon Slough
 Cao Ren, Wei Commander
 Captain America, Skybound
 Captain America, Team Leader
@@ -483,7 +477,6 @@ Caretaker's Talent
 Carnage Tyrant
 Carnivorous Cultivator
 Carrion Thrash
-Carven Caryatid
 Cast Away Doubt
 Castle Locthwain
 Catapult Fodder
@@ -789,7 +782,6 @@ Disciple of the Old Ways
 Disciplined Duelist
 Dismantling Wave
 Dismissive Pyromancer
-Dispatch
 Dispelling Exhale
 Disruptive Stormbrood
 Disruptor of Currents
@@ -1142,7 +1134,6 @@ Forerunner of Slaughter
 Forlorn Pseudamma
 Formation Breaker
 Formidable Commons
-Forsaken Monument
 Fortress Kin-Guard
 Fortuitous Find
 Forum Familiar
@@ -1292,7 +1283,6 @@ Goblin-town
 Goblin-town Flunkies
 God-Pharaoh's Faithful
 Godless Shrine
-Gods' Eye, Gate to the Reikai
 Gogo, Master of Mimicry
 Golden Bear
 Golden Demise
@@ -1331,7 +1321,6 @@ Greel's Caress
 Green Sun's Zenith
 Greenhouse Propagator
 Grenzo, Havoc Raiser
-Grilka, Widowed Warrior
 Grim Flayer
 Grismold, the Dreadsower
 Grixis Grimblade
@@ -1628,7 +1617,6 @@ Jungle Lion
 Jungle Wayfinder
 Junji, the Midnight Sky
 Junkblade Bruiser
-Jurati, Cordial Queen
 Justice Strike
 Kaervek's Hex
 Kai Winn, Faithless Leader
@@ -1693,7 +1681,6 @@ Kishla Village
 Kitchen
 Kitt Kanto, Mayhem Diva
 Kiyomaro, First to Stand
-Klingon Strike Force
 Knickknack Ouphe
 Knight Luminary
 Knight of Autumn
@@ -1788,7 +1775,6 @@ Leyline of Abundance
 Leyline of the Guildpact
 Liberty Prime, Recharged
 Lich's Relic
-Lich's Tomb
 Licia, Sanguine Tribune
 Lieutenant Kirtar
 Lifecrafter's Bestiary
@@ -2021,7 +2007,6 @@ Mirkwood Pathmaker
 Mirozel
 Mirran Mettle
 Mirrex
-Mirrodin's Core
 Mister Fantastic
 Mistfire Adept
 Mistrise Village
@@ -2163,7 +2148,6 @@ Noggle Robber
 Noggle the Mind
 Nogi, Draco-Zealot
 Nomad Decoy
-Nomad Outpost
 Nori, Teller of Tales
 Norn's Choirmaster
 Nova Hellkite
@@ -2353,7 +2337,6 @@ Prehistoric Pet
 Preston Garvey, Minuteman
 Pretending Poxbearers
 Prickly Boggart
-Pride of the Perfect
 Pride of the Road
 Pridemalkin
 Priest of the Blood Rite
@@ -2736,7 +2719,6 @@ Serah Farron
 Seraph of the Scales
 Serpent's Gift
 Serra Redeemer
-Serrated Arrows
 Servant of Volrath
 Servo Exhibition
 Setessan Petitioner
@@ -3130,8 +3112,6 @@ Take Up Arms
 Tal Shiar Analyst
 Talas Air Ship
 Talas Merchant
-Talisman of Hierarchy
-Talisman of Impulse
 Tam's Resistance
 Tam, Observant Sequencer
 Tam, the Possibility
@@ -3353,7 +3333,6 @@ Traxos, Academy Guardian
 Traxos, Scourge Eternal
 Treeshaker Chimera
 Treva's Charm
-Tribble Cluster
 Tribute to the World Tree
 Triceraton Commander
 Trickster's Talisman
@@ -3395,7 +3374,6 @@ U.S.S. Enterprise-A, Free Spirit
 U.S.S. Voyager, Lone Wanderer
 Ulna Alley Shopkeep
 Ultimate Nullification
-Ulvenwald Bear
 Ulvenwald Hydra
 Umbral Collar Zealot
 Unburden
@@ -3492,7 +3470,6 @@ Viashivan Dragon
 Vibrance
 Vibrant Outburst
 Vicious Rivalry
-Victor Mancha, Runaway
 Victor Timely, Wily Tycoon
 Victual Sliver
 Vigilant Baloth
@@ -3504,7 +3481,6 @@ Villainous Wealth
 Vindictive Triumph
 Vindictive Vampire
 Vindictive Warden
-Vineglimmer Snarl
 Vinereap Mentor
 Violent Echoes
 Violent Ultimatum
