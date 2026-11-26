@@ -1070,6 +1070,9 @@ type lTrigger struct {
 	// player has no contract counter (kop.Tf5DmgNoContract;
 	// lower_contract.go).
 	NoContract bool
+	// SpellCast: NoColoredMana$ True, the cast spent no coloured mana
+	// (kop.Tf5CastNoColoredMana; trig_spellcast.go).
+	NoColoredMana bool
 	// Discarded Card.Self: ValidCause$ SpellAbility.OppCtrl, the discard caused
 	// by a spell or ability an opponent controls (kop.Tf5OppCause).
 	OppCause bool
@@ -1089,6 +1092,7 @@ type lAbility struct {
 	TrigRem         string // a reflexive trigger's TriggerRemembered$ rest (lower_trigremembered.go)
 	RemTgt          bool   // a Pump RememberObjects$ ThisTargetedCard (lower_remembered.go)
 	ReflexObj       bool   // a reflexive latent whose ImmediateTrigger captured a target (lower_remembered.go)
+	ReflexOptional  bool   // a reflexive latent whose ImmediateTrigger carries OptionalDecider$ You: asked as it resolves (kop.TfOptional; lower_zone.go immediateTrigger)
 	DelayedObjOnly  bool   // a delayed latent whose RememberObjects$ set holds objects only (lower_delayedobjects.go)
 	DelayedPlayer   bool   // a delayed latent registered with a remembered PLAYER (the countered spell's controller): Defined$ DelayTriggerRemembered reads the trigger player (lower_delayremplayer.go)
 	DelayedSelf     bool   // the delayed program remembered the source's own card (Transformed$ return; lower_delayedobjects.go)
