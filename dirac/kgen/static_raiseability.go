@@ -9,17 +9,17 @@ import "strings"
 // an SVar of the face; a Cost$ of pure generic mana is the same raise), or pay
 // the Cost$ part the activation owes at its cost stage: Sac<1/<filter>> (Brutal
 // Suppression's "Sacrifice a land", kop.RaiseAbPick, the pick's permanents in
-// F2) or PayLife<N> (kop.StRaiseLife, the life rides the build's life
-// payment). gorge composes every matching static's raise onto the total before
-// the reductions (pay.ApplyTo); the kernel composes the generic and life into
-// the priced cost the same way and poses the pick as the entry's pick cost
+// F2). gorge composes every matching static's raise onto the total before
+// the reductions (pay.ApplyTo); the kernel composes the generic into the
+// priced cost the same way and poses the pick as the entry's pick cost
 // (buildPickCost). The static's AffectedZone$ must be Battlefield (the kernel
 // prices battlefield sources only, as abReduced does); EffectZone$ All beside
 // ValidCard$ Card.Self is the card's own raise (Thran Portal's shape, whose
 // ValidSpell$ refuses first). Refused: any ValidSpell$ (the mana window prices
 // no ability raise; Thran Portal's ValidSpell$ Activated.ManaAbility), a
-// Cost$ with any part beyond the three above (pips, hybrid, Discard, an
-// announced Sac<X> or PayLife<X>), Cost$ beside Amount$, Relative$,
+// PayLife<N> part (no kernel path pays it: both corpus cards with one carry
+// that ValidSpell$, and it is a mana-window price), a Cost$ with any part
+// beyond the two above (pips, hybrid, Discard, an announced Sac<X>), Cost$ beside Amount$, Relative$,
 // ValidTarget$, Activator$ (gorge prices a restricted activator; no corpus
 // card carries it), a Sac<N> count other than one, AffectedZone$ absent or any
 // other zone.
@@ -93,8 +93,7 @@ func (lc *lowerCtx) raiseAbilityParams(sp *params, st *lStatic) error {
 }
 
 // raiseAbilityCost lowers the Cost$ raise part (raiseAbility's doc): a pure
-// generic mana cost is the raise, a Sac<1/filter> is the pick (F2) and a
-// PayLife<N> is a life raise (RaiseLife).
+// generic mana cost is the raise and a Sac<1/filter> is the pick (F2).
 func (lc *lowerCtx) raiseAbilityCost(sp *params, text string, st *lStatic) error {
 	c, err := lc.cost(text)
 	if err != nil {
@@ -108,16 +107,8 @@ func (lc *lowerCtx) raiseAbilityCost(sp *params, text string, st *lStatic) error
 		}
 		st.F2 = c.Sac
 		st.Flags = append(st.Flags, "SacPick")
-	} else if c.PayLife != 0 {
-		if !raiseManaEmpty(&c.Mana) || c.Tap || c.DiscardN != 0 || c.SubCtr != 0 || c.AddCtr != 0 ||
-			c.Loyalty != 0 || c.Exert || c.Forage != nil || c.ExileG != nil || c.TapN != 0 || c.TapPowN != 0 {
-			return refuse("RaiseCost Type$ Ability Cost$ %q: a part kop.Cost cannot carry beside the life", text)
-		}
-		if c.LifeX {
-			return refuse("RaiseCost Type$ Ability Cost$ %q: an announced PayLife<X>", text)
-		}
-		st.Amount = cst(c.PayLife)
-		st.Flags = append(st.Flags, "RaiseLife")
+	} else if c.PayLife != 0 || c.LifeX {
+		return refuse("RaiseCost Type$ Ability Cost$ %q: a life raise is priced only in the mana window (t18c-thran-portal-mana-ability-raise)", text)
 	} else if c.pureMana() && !c.Mana.X && len(c.Mana.Pips) == 0 && c.Mana.C == 0 && c.Mana.Snow == 0 &&
 		len(c.Mana.Hybrid) == 0 && len(c.Mana.Twobrid) == 0 && len(c.Mana.Phyrexian) == 0 {
 		if c.Mana.Generic > 255 {

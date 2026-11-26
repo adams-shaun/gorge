@@ -1253,7 +1253,7 @@ type lStatic struct {
 	AbilityRed uint8
 	// AbilityRaise: a RaiseCost static of activated abilities (Type$ Ability)
 	// rather than spells (kop.StatRaiseAbility; the raise part in Amount /
-	// flag "RaiseLife" / flag "SacPick" with F2 the pick's permanents;
+	// flag "SacPick" with F2 the pick's permanents;
 	// static_raiseability.go)
 	AbilityRaise uint8
 	// MinMana: that static's MinMana$ floor, 1..15 (kop.ReduceAbMinShift)

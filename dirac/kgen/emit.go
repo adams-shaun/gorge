@@ -196,7 +196,7 @@ func raiseTapLists(bs []built) (gen []bool, tapActs []int, tapActsTypes []uint16
 			a := &bs[i].def.Abilities[j]
 			if !sawRaise && a.Kind == kop.AbStatic && a.Static.Kind == kop.StatRaiseAbility {
 				sawRaise = true
-				gen = append(gen, a.Static.StFlags&kop.StRaiseLife == 0 && (a.Static.A > 0 || a.Static.StFlags&kop.StDynamic != 0))
+				gen = append(gen, (a.Static.A > 0 || a.Static.StFlags&kop.StDynamic != 0))
 			}
 			if a.Kind == kop.AbActivated && a.Cost.Flags&kop.CostTap != 0 {
 				tapped = true

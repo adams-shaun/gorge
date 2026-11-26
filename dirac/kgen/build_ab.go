@@ -1988,7 +1988,7 @@ func (cb *cardBuilder) combatAmountFilter(st *kop.Static, kind kop.StaticKind, f
 // staticAbRaise emits a RaiseCost Type$ Ability static (kop.StatRaiseAbility;
 // kernel cost_abraise.go abRaised): the battlefield sources' filter, the
 // Sac<1/pick>'s permanents in Filter2, the raise amount (a literal, or a
-// dynamic value with StDynamic) and the SacPick/RaiseLife flags.
+// dynamic value with StDynamic) and the SacPick flag.
 func (cb *cardBuilder) staticAbRaise(s lStatic, st *kop.Static) error {
 	if s.F != nil {
 		f, err := cb.filter(s.F, kop.ZoneBattlefield)
@@ -2019,8 +2019,6 @@ func (cb *cardBuilder) staticAbRaise(s lStatic, st *kop.Static) error {
 		switch fl {
 		case "SacPick":
 			st.B |= kop.RaiseAbPick
-		case "RaiseLife":
-			st.StFlags |= kop.StRaiseLife
 		default:
 			return fmt.Errorf("raise ability flag %q", fl)
 		}

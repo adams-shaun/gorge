@@ -1002,15 +1002,6 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 					return false
 				}
 			}
-			if e.kind == seAbility && k.gen != nil && k.gen.anyAbRaise {
-				// the raise's life the offer's gate priced (abRaiseOK) can go
-				// unpayable between the offer and the build; reverse, as the
-				// spell's own life part above does (CR 119.4, 601.2h)
-				if n := s.abRaiseLifeBuilt(k); n > 0 && int(s.pl[SeatIx(e.ctrl)].life) < n {
-					s.reverseCast(k)
-					return false
-				}
-			}
 			// gorge's order: sacrifice, the counter removals, discard
 			// (the forage either-or first: gorge forageAsk; an exile
 			// part is the only counted one of its cost: act_forage.go)
