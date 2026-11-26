@@ -30,10 +30,8 @@ var fdcDecks = []string{
 var fdcRefused = []string{
 	"Cursed Mirror",
 	"Dragonhawk, Fate's Tempest",
-	"Emeria Shepherd",
 	"Ezuri's Predation",
 	"Goddric, Cloaked Reveler",
-	"Hit the Mother Lode",
 	"Leyline Tyrant",
 	"Spinerock Knoll",
 	"Thundermane Dragon",
