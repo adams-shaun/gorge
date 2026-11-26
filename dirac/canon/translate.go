@@ -346,6 +346,9 @@ func (r *Translator) Action(a dirac.Action) Canon {
 		if c, ok := r.grantedOrGained(src, tgt, mode); ok {
 			return c
 		}
+		if c, ok := r.altActivation(dirac.Obj(src), mode); ok {
+			return Pack(ActActivate, src, RefNone, c)
+		}
 		if of := r.cyclingAltOf(dirac.Obj(src), mode); of != 0 {
 			// the cycling alternative cost's twin (kop.StatCyclingAlt): gorge's
 			// ability option at AltCostIndex 1, over the printed cycling's index
@@ -826,6 +829,30 @@ func (r *Translator) StackAbility(srcCard, card dirac.CardID, ab uint8) uint8 {
 // grant is MaxSpeedBase+n. Gorge offers it as a "granted" option naming the
 // SVar (GorgeSide), the kernel as the card's Gate{CtrMaxSpeed} ability.
 const MaxSpeedBase = 0xE0
+
+// AltActivateBase is the first canonical ability code of an activation paid
+// at its alternative cost (gorge's "ability" option at AltCostIndex 1, CR
+// 118.9): AltActivateBase+n is face ability n's alternative, the kernel's
+// kop.Ability.AltOf twin of it (Heart of Kiran's crew alternative). Codes
+// 0xC0..0xDF, below MaxSpeedBase.
+const AltActivateBase = 0xC0
+
+// altActivation is the canonical code of ability mode of object o when it is
+// the alternative-cost twin of a face ability (kop.Ability.AltOf).
+func (r *Translator) altActivation(o dirac.Obj, mode uint8) (uint8, bool) {
+	if int(o) >= int(r.KP.NObj) || int(r.KP.Objs[o].Card) >= len(r.Tbl.Cards) {
+		return 0, false
+	}
+	abs := r.Tbl.Cards[r.KP.Objs[o].Card].Abilities
+	if int(mode) >= len(abs) || abs[mode].AltOf == 0 {
+		return 0, false
+	}
+	host := r.FaceAbility(o, abs[mode].AltOf-1, false)
+	if host >= MaxSpeedBase-AltActivateBase {
+		return 0, false
+	}
+	return AltActivateBase + host, true
+}
 
 // MaxSpeedCode is the canonical code of the max-speed activated ability abs[idx].
 func MaxSpeedCode(abs []kop.Ability, idx int) uint8 {
