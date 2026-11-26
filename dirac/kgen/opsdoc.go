@@ -636,6 +636,9 @@ func opsUsage(pt *poolTables, all []*lCard, bs []built) map[string]map[string]bo
 		if d.HasAltAdd {
 			add("card:AltAddCost", name)
 		}
+		if d.AltAddCost2 != (kop.Cost{}) {
+			add("card:AltAddCost2", name)
+		}
 		if d.RemPersist {
 			add("card:RemPersist", name)
 		}

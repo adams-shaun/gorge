@@ -875,7 +875,7 @@ type build struct {
 	dilLo     uint8 // bflDilemma: the pending triggers that dilemma queued, [dilLo, dilHi)
 	dilHi     uint8
 	bfl       uint16   // bflPushed: the entry is on the stack (top); bflLowered: the oracle lowered the cast
-	altAdd    uint8    // either-or additional cost: 0 the spell's own, 1 CardDef.AltAddCost
+	altAdd    uint8    // either-or additional cost: 0 the spell's own, 1 CardDef.AltAddCost, 4 buildAltAdd2 CardDef.AltAddCost2 (2 is buildAltCost's value: an either-or card keeps no alternative-cost cast, prepAltFree)
 	pipN      uint8    // hybrid pips announced so far
 	pipC      [2]uint8 // their colours (W U B R G = 0..4), in pip order
 	pushNP    uint8    // pending triggers when the spell was pushed: a reversed cast drops the ones its own move queued (CR 733.1)

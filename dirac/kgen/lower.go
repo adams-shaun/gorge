@@ -2046,14 +2046,17 @@ func (lc *lowerCtx) lowerKeywords() {
 			}
 			lc.out.Paradigm = true
 		case head == "AlternateAdditionalCost":
-			// "Sac<1/Creature>:3 B": pay either the first or the second.
-			a, b, ok := strings.Cut(param, ":")
-			if !ok && lc.out.SpellCost == nil {
+			// "Sac<1/Creature>:3 B": pay either the first or the second;
+			// a third part (Dusk Mangler's "Sac<1/Creature>:Discard<1/
+			// Card>:PayLife<4>") joins as CardDef.AltAddCost2, the either-or's
+			// third slot (kernel cast.go altAddOptions).
+			parts := strings.SplitN(param, ":", 3)
+			if len(parts) == 1 && lc.out.SpellCost == nil {
 				// one part (Dusk Rose Reliquary's "Sac<1/Creature;Artifact/
 				// creature or artifact>"): gorge altAddAsk folds a lone
 				// part into the cost unasked, an ordinary additional cost;
 				// its ";" alternation is ParseCost's "," (cost/parse.go)
-				c, err := lc.cost(strings.ReplaceAll(a, ";", ","))
+				c, err := lc.cost(strings.ReplaceAll(parts[0], ";", ","))
 				rest := c
 				rest.Sac, rest.SacN = nil, 0
 				if err != nil || c.Sac == nil || c.SacN != 1 || !rest.pureMana() || c.Mana.Generic != 0 || c.Mana.Pips != [5]int{} || c.Mana.X || len(c.Mana.Hybrid) != 0 {
@@ -2063,26 +2066,35 @@ func (lc *lowerCtx) lowerKeywords() {
 				lc.out.SpellCost, lc.out.AltAddOne = &c, true
 				continue
 			}
-			if !ok {
+			if len(parts) == 1 {
 				lc.refuseNode(node, "alternate additional cost %q", param)
 				continue
 			}
-			c1, err1 := lc.altAddFirstPart(a) // the spell's first part only (kernel act_behold.go, act_revealpick.go; lower_revealpick.go)
-			c2, err2 := lc.cost(b)
+			c1, err1 := lc.altAddFirstPart(parts[0]) // the spell's first part only (kernel act_behold.go, act_revealpick.go; lower_revealpick.go)
+			c2, err2 := lc.cost(parts[1])
+			var c3 lCost
+			var err3 error
+			if len(parts) == 3 {
+				c3, err3 = lc.cost(parts[2])
+			}
 			if c1.BeholdN != 0 {
 				// "Behold<1/Kithkin>:2": the behold is the whole of part one
 				rest := c1
 				rest.BeholdN, rest.BeholdF = 0, nil
 				if err1 == nil && (lc.out.BeholdExile || c1.BeholdN != 1 || !rest.pureMana() || !c1.Mana.None) {
-					err1 = refuse("behold cost %q", a)
+					err1 = refuse("behold cost %q", parts[0])
 				}
 			}
-			if err1 != nil || err2 != nil || c1.Energy != 0 || c2.Energy != 0 || c1.Return != nil || c2.Return != nil {
+			bad3 := len(parts) == 3 && (c3.Energy != 0 || c3.Return != nil || c3.BeholdN != 0 || c3.RevealN != 0)
+			if err1 != nil || err2 != nil || err3 != nil || c1.Energy != 0 || c2.Energy != 0 || c1.Return != nil || c2.Return != nil || bad3 {
 				lc.refuseNode(node, "alternate additional cost %q", param)
 				continue
 			}
 			lc.out.SpellCost = &c1
 			lc.out.AltAddCost = &c2
+			if len(parts) == 3 {
+				lc.out.AltAddCost2 = &c3
+			}
 		case head == "MayEffectFromOpeningHand" && param == "FromHand":
 			body := lc.face.SVars["FromHand"]
 			sa := cards.ResolveSVar(lc.face.SVars, "FromHand")

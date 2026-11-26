@@ -1704,7 +1704,7 @@ func (g *grantSrch) phasedScope(s *State) bool {
 	}
 	cd := &g.k.t.Cards[s.castFaceCard(g.k, g.d.play)]
 	const sacOrReturn = kop.CostSac | kop.CostSacSelf | kop.CostReturn | kop.CostReturnSelf
-	if cd.SpellCost.Flags&sacOrReturn != 0 || cd.AltAddCost.Flags&sacOrReturn != 0 {
+	if cd.SpellCost.Flags&sacOrReturn != 0 || cd.AltAddCost.Flags&sacOrReturn != 0 || cd.AltAddCost2.Flags&sacOrReturn != 0 {
 		return true
 	}
 	for ai := range cd.Abilities {

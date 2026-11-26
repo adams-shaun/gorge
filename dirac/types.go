@@ -144,7 +144,7 @@ const (
 	ChLegend                    // source = the legendary permanent to keep (legend rule)
 	ChDivide                    // source = a blocker, mode = combat damage assigned to it
 	ChCleanupDiscard            // source = a hand card discarded to hand size in cleanup
-	ChAltAdd                    // target = the either-or additional cost part (0 the spell's own, 1 the alternative), mode = option position (payable parts first)
+	ChAltAdd                    // target = the either-or additional cost part (0 the spell's own, 1 the alternative, 2 its third part), mode = option position (payable parts first)
 	ChCostSubCtr                // source = a creature to remove one counter from to pay a cost, mode = its counter kind (Quilled Greatwurm)
 	ChCostBlight                // source = a creature to blight to pay a cost (CR 701.68)
 	ChOptDiscMay                // mode 1 = yes / 0 = no: a discard election ("you may discard") (act_optionalask.go)
