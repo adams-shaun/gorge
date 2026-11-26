@@ -50,6 +50,8 @@ type Result struct {
 	Turns           int32
 	Div             *Divergence
 	Stats           Stats // the oracle side's
+	// Labels are the vocabulary picks' labels (ActionLabel), by index into Actions.
+	Labels []ActionLabel
 }
 
 // Clean reports whether the game counts as evidence: no divergence and no
@@ -349,7 +351,7 @@ func LockstepLed(m *Matchup, seed uint64, lead, follow Side, pol Policy, rc RunC
 		}
 	}()
 	if gorge != nil {
-		defer func() { res.Stats = gorge.Stats }()
+		defer func() { res.Stats, res.Labels = gorge.Stats, gorge.Labels }()
 		if rc.Finish != nil {
 			defer rc.Finish(gorge)
 		}

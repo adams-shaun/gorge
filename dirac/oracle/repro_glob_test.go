@@ -52,7 +52,7 @@ func globSet(t *testing.T, pool string, r *Repro) cardset.Set {
 // recorded actions, then FirstPolicy.
 func replayDecodedRes(t *testing.T, reg *cards.Registry, set cardset.Set, r *Repro) Result {
 	t.Helper()
-	return replayDecodedScript(t, reg, set, r, &ScriptPolicy{Actions: r.Actions})
+	return replayDecodedScript(t, reg, set, r, r.Script())
 }
 
 // replayDecodedScript is replayReproValue over an already-decoded repro, on
@@ -105,7 +105,7 @@ func reproSkipFailure(r *Repro, pol *ScriptPolicy) string {
 // a drifted recording does not pass as a different game.
 func replayReproValue(t *testing.T, reg *cards.Registry, set cardset.Set, r *Repro) Result {
 	t.Helper()
-	pol := &ScriptPolicy{Actions: r.Actions}
+	pol := r.Script()
 	res := replayDecodedScript(t, reg, set, r, pol)
 	if msg := reproSkipFailure(r, pol); msg != "" {
 		t.Fatal(msg)
@@ -143,7 +143,7 @@ func stdReproNamedServed(t *testing.T, name string) {
 // different game.
 func replayServedValue(t *testing.T, reg *cards.Registry, set cardset.Set, r *Repro) Result {
 	t.Helper()
-	pol := &ScriptPolicy{Actions: r.Actions}
+	pol := r.Script()
 	res := replayDecodedScript(t, reg, set, r, pol)
 	if pol.next != len(r.Actions) || pol.Skipped != 0 {
 		t.Fatalf("recording served %d of %d actions (%d skipped): its game path has drifted", pol.next, len(r.Actions), pol.Skipped)

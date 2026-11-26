@@ -28,7 +28,7 @@ func TestGlobReplayFailsOnSkippedActions(t *testing.T) {
 	// not offer it, so the script skips it even though the game path never
 	// moves.
 	shifted.Actions = append([]Canon{r.Actions[0]}, r.Actions...)
-	pol := &ScriptPolicy{Actions: shifted.Actions}
+	pol := &ScriptPolicy{Actions: shifted.Actions, AllowSkips: true}
 	res := replayDecodedScript(t, synthReg(t), globSet(t, shifted.Pool, &shifted), &shifted, pol)
 	if pol.Skipped == 0 {
 		t.Fatal("the shifted fixture skipped no action: no drift to catch")

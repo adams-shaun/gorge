@@ -130,6 +130,10 @@ type GorgeSide struct {
 	// with no kernel bit, projchars.go); "" when none.
 	CharErr string
 
+	// Labels are the vocabulary picks Apply answered, by apply index (noteLabel).
+	Labels []ActionLabel
+	applyN int
+
 	E     *rules.Engine
 	M     *Matchup
 	Cfg   Config
@@ -1767,6 +1771,7 @@ func optByIndex(d *decision.Decision, idx int) *decision.Option {
 
 // Apply implements Side: a must be one of the last Step's options.
 func (g *GorgeSide) Apply(a Canon) {
+	g.noteLabel(a)
 	g.committed = false
 	// Track the pip faces announced for the cast/activation in flight. A new
 	// cast, activation or priority action starts a fresh payment; a pip

@@ -797,7 +797,7 @@ func runRepro(c *oracle.Corpus, path, lead string, rc oracle.RunConfig, newSide 
 		fmt.Fprintln(os.Stderr, "kfuzz:", err)
 		return 1
 	}
-	res, k, err := lockstepDir(m, rep.Seed, lead, mk, &oracle.ScriptPolicy{Actions: rep.Actions}, rrc)
+	res, k, err := lockstepDir(m, rep.Seed, lead, mk, rep.Script(), rrc)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "kfuzz:", err)
 		return 1
