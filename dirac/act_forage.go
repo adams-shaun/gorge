@@ -134,6 +134,9 @@ func (s *State) costObjOptions(k *prep, d *Decision) bool {
 	if s.revealCastOptions(k, d) {
 		return true // a spell's reveal part (act_revealpick.go)
 	}
+	if s.chooseEncOptions(k, d) {
+		return true // a spell's CloseEncounter choose part (cost_closeenc.go)
+	}
 	pc := s.buildPickCost(k)
 	if pc == nil || pc.Flags&costObjFlags == 0 && !pc.PutLibSelf {
 		return false
@@ -259,6 +262,10 @@ func (s *State) answerCostObj(a Action) {
 	}
 	if s.bld().pickK == pkReveal {
 		s.answerCastReveal()
+		return
+	}
+	if s.bld().pickK == pkCloseEnc {
+		s.answerChosenEnc(a)
 		return
 	}
 	if s.bld().pickK == pickForage {

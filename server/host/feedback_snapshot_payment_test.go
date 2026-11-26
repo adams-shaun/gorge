@@ -18,6 +18,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 	"github.com/adams-shaun/gorge/engine/view"
 	"github.com/adams-shaun/gorge/server/protocol"
+	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
 // capturePlannedPending drives a two-seat table whose seat 0 is a human, until
@@ -44,7 +45,7 @@ func capturePlannedPending(t *testing.T, autoMana bool) (FeedbackSnapshot, *Regi
 		r.Close()
 		t.Fatal(err)
 	}
-	deadline := time.Now().Add(2 * time.Minute)
+	deadline := time.Now().Add(testutil.WaitBudget)
 	var last uint64 = ^uint64(0)
 	for {
 		if time.Now().After(deadline) {
