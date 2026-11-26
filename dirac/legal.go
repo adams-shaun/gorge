@@ -1837,7 +1837,7 @@ func (s *State) targetOK(k *prep, t *kop.TargetSpec, p uint8, src Slot, self Obj
 				return s.objTargetable(k, sl, p)
 			}
 		}
-		return s.matchPerm(k, t.Filter, sl, p, src) && s.objTargetable(k, sl, p)
+		return s.matchPermTgt(k, t.Filter, sl, p, src) && s.objTargetable(k, sl, p)
 	case kop.TgtSpell:
 		if ob.zone != kop.ZoneStack || o == self || o+1 == s.g.tgtSelf {
 			// CR 115.5: a spell on the stack is an illegal target for itself;
@@ -1846,7 +1846,7 @@ func (s *State) targetOK(k *prep, t *kop.TargetSpec, p uint8, src Slot, self Obj
 			// (xask_self_spell_target: the cmcEQX ask of Spell Blast's X)
 			return false
 		}
-		return s.matchCardAt(k, t.Filter, ob.card, s.stackCtrl(o), p, o) && (t.TFlags&kop.TgfSingleTgt == 0 || s.ksrSingleSpell(o))
+		return s.matchCardAtTgt(k, t.Filter, ob.card, s.stackCtrl(o), p, o, src) && (t.TFlags&kop.TgfSingleTgt == 0 || s.ksrSingleSpell(o))
 	case kop.TgtCard:
 		z := k.t.Filters[t.Filter].Zone
 		if z == kop.ZoneNone {
