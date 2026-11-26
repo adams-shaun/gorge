@@ -1,5 +1,7 @@
 package kgen
 
+import "github.com/adams-shaun/gorge/dirac/kop"
+
 // graveLossReadersDone gates Yixlid Jailer's lowering. The static lowers to
 // kop.StatGraveNoAbilities whatever its value, but while it is false the card
 // carries a named refusal, so no game plays it: the kernel's graveyard
@@ -49,4 +51,13 @@ func (lc *lowerCtx) offZoneAbilityLoss(sp *params, st *lStatic, aff, az string) 
 		lc.refuseNode(lc.guardNode, "%s", graveLossPending)
 	}
 	return true, nil
+}
+
+// graveNoAbilities builds a GraveNoAbilities static: Card in the graveyard
+// (dirac/static_graveabilityloss.go).
+func (cb *cardBuilder) graveNoAbilities(st *kop.Static, s lStatic) (err error) {
+	st.Kind = kop.StatGraveNoAbilities
+	st.Zone = kop.ZoneGraveyard
+	st.Filter, err = cb.filter(s.F, kop.ZoneGraveyard)
+	return err
 }
