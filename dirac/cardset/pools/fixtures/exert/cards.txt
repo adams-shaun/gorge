@@ -1,0 +1,28 @@
+# S:Mode$ OptionalAttackCost (CR 702.100a): the declare-attackers exert election
+# and its Trigger$ rider, for dirac/oracle/exert_lockstep_test.go. Every card
+# lowers whole; the printed Mode$ Exerted ("whenever you exert") and gated or
+# targeted carriers stay refused and are not in the pool. Grizzly Bears is
+# the opponent's blocker.
+Ahn-Crop Champion
+Anep, Vizier of Hazoret
+Bitterblade Warrior
+Champion of Rhonas
+Clockwork Droid
+Emberhorn Minotaur
+Glory-Bound Initiate
+Gust Walker
+Hooded Brawler
+Khenra Scrapper
+Nef-Crop Entangler
+Oketra's Avenger
+Rhet-Crop Spearmaster
+Rhonas's Stalwart
+Tah-Crop Elite
+Themberchaud
+Watchful Naga
+Grizzly Bears
+Mountain
+Plains
+Forest
+Swamp
+Island
