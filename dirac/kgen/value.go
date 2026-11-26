@@ -743,6 +743,17 @@ func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 			return lValue{}, ferr
 		}
 		v = lValue{Kind: vRefCount, Ref: lRef{Kind: rDiscarded}, F: f}
+	case "RevealedCards":
+		// gorge refTargetsCodeOf's <List>Cards spelling of the cast-cost PAID
+		// lists (Ctx.Paid.Revealed). Close Encounter's X is the chosen
+		// object's power, read where it now is: live on the battlefield, the
+		// printed face in exile (gorge count_ref_property.go's CardPower;
+		// kernel RefChosenEnc over the spell entry's trigObj, dirac
+		// cost_closeenc.go).
+		if rest != "CardPower" || !lc.chosenEncIsCost() {
+			return lValue{}, refuse("value head RevealedCards$%s", rest)
+		}
+		v = lValue{Kind: vPowerOf, Ref: lRef{Kind: rChosenEnc}}
 	case "ExiledWith":
 		// gorge count_ref.go ExiledWith$Amount: exiledWithSet's size, the
 		// cards in every seat's exile zone exiled with the reading source
@@ -1620,7 +1631,7 @@ func (lc *lowerCtx) countValue(rest string, depth int) (lValue, error) {
 		return lValue{Kind: vSneaked, Sub: []lValue{cst(1), cst(0)}}, nil
 	}
 	if spec, ok := strings.CutPrefix(rest, "MostCardName "); ok {
-		return lc.mostCardNameValue(spec) // value_aggregates.go
+		return lc.mostCardNameValue(spec) // value_mostcardname.go
 	}
 	if strings.HasPrefix(rest, "ValidStack ") {
 		return lValue{}, refuse("Count$%s: only ValidStack Card.Self+sneaked is read", rest)

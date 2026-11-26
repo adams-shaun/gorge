@@ -53,7 +53,7 @@ func TestEventsBotOnlyBo3PodCompletesOverHTTP(t *testing.T) {
 	// state's best_of and series shapes along the way.
 	evURL := base + "/api/events/e1"
 	var lastState protocol.EventState
-	deadline := time.Now().Add(50 * time.Second)
+	deadline := time.Now().Add(testutil.WaitBudget)
 	for {
 		resp, err := http.Get(evURL)
 		if err != nil {

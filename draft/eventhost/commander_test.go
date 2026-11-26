@@ -15,6 +15,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 	"github.com/adams-shaun/gorge/server/host"
 	"github.com/adams-shaun/gorge/server/protocol"
+	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
 // commanderReq is a one-human MBC Commander-draft request: seat 0 human,
@@ -172,7 +173,7 @@ func TestCommanderEventDraftBuildGame(t *testing.T) {
 	sawLife := false
 	// A generous budget: the loop ends with the event, so only a loaded CI
 	// runner ever waits this long.
-	deadline := time.Now().Add(120 * time.Second)
+	deadline := time.Now().Add(testutil.WaitBudget)
 	var last uint64
 	for {
 		if stateOf(t, p.h, id, "").Phase == "COMPLETE" {

@@ -39,7 +39,7 @@ func TestServesTablesOverHTTP(t *testing.T) {
 	go func() { done <- serve(ctx, cfg, ln) }()
 	url := "http://" + ln.Addr().String()
 	var tables []protocol.TableInfo
-	deadline := time.Now().Add(10 * time.Second)
+	deadline := time.Now().Add(testutil.WaitBudget)
 	for {
 		resp, err := http.Get(url + "/api/tables")
 		if err == nil {
@@ -362,7 +362,7 @@ func TestStartServeCleanupWaitsForShutdown(t *testing.T) {
 func waitTables(t *testing.T, url string, n int) {
 	t.Helper()
 	var tables []protocol.TableInfo
-	deadline := time.Now().Add(10 * time.Second)
+	deadline := time.Now().Add(testutil.WaitBudget)
 	for {
 		resp, err := http.Get(url + "/api/tables")
 		if err == nil {
@@ -402,7 +402,7 @@ func decisionOnce(t *testing.T, pendingURL, seat, tok string) (decision.Decision
 // waitDecision polls pending until a decision is actually offered.
 func waitDecision(t *testing.T, pendingURL, seat, tok string) decision.Decision {
 	t.Helper()
-	deadline := time.Now().Add(10 * time.Second)
+	deadline := time.Now().Add(testutil.WaitBudget)
 	for {
 		d, status := decisionOnce(t, pendingURL, seat, tok)
 		if status == http.StatusOK {
@@ -423,7 +423,7 @@ func waitDecision(t *testing.T, pendingURL, seat, tok string) decision.Decision 
 // nextDecision — a first-200 poll can still be inside the stale window.
 func fastPollDecision(t *testing.T, pendingURL, seat, tok string) decision.Decision {
 	t.Helper()
-	deadline := time.Now().Add(10 * time.Second)
+	deadline := time.Now().Add(testutil.WaitBudget)
 	for {
 		d, status := decisionOnce(t, pendingURL, seat, tok)
 		if status == http.StatusOK {
@@ -447,7 +447,7 @@ func fastPollDecision(t *testing.T, pendingURL, seat, tok string) decision.Decis
 // on.
 func nextDecision(t *testing.T, pendingURL, seat, tok string, after uint64) decision.Decision {
 	t.Helper()
-	deadline := time.Now().Add(10 * time.Second)
+	deadline := time.Now().Add(testutil.WaitBudget)
 	for {
 		d, status := decisionOnce(t, pendingURL, seat, tok)
 		if status == http.StatusOK && (after == 0 || d.Seq > after) {
@@ -483,7 +483,7 @@ func seatViewOver(t *testing.T, url string) bool {
 // server still booting.
 func expectStatus(t *testing.T, url, path string, want int) protocol.ErrorBody {
 	t.Helper()
-	deadline := time.Now().Add(10 * time.Second)
+	deadline := time.Now().Add(testutil.WaitBudget)
 	for {
 		resp, err := http.Get(url + path)
 		if err == nil {
@@ -549,7 +549,7 @@ func TestHumanSeatTakesADecisionEndToEnd(t *testing.T) {
 	// seat is never asked again — a view that is over is that same advance;
 	// only a game frozen at seq %d is a failure.
 	advanced := false
-	deadline := time.Now().Add(15 * time.Second)
+	deadline := time.Now().Add(testutil.WaitBudget)
 	for {
 		d, status := decisionOnce(t, pendingURL, "0", "tok")
 		if status == http.StatusOK && d.Seq > first.Seq {
@@ -617,7 +617,7 @@ func TestTheHumanSeatIsAskedToMulligan(t *testing.T) {
 	}
 
 	advanced := false
-	deadline := time.Now().Add(15 * time.Second)
+	deadline := time.Now().Add(testutil.WaitBudget)
 	for {
 		d, status := decisionOnce(t, pendingURL, "0", "tok")
 		if status == http.StatusOK && d.Seq > first.Seq {
@@ -989,7 +989,7 @@ func commanderView(t *testing.T, url, seqs string) view.View {
 	if seqs != "" {
 		query = "?seq=" + seqs
 	}
-	deadline := time.Now().Add(30 * time.Second)
+	deadline := time.Now().Add(testutil.WaitBudget)
 	for {
 		resp, err := http.Get(url + "/api/tables/t1/matches/1/view" + query)
 		if err == nil && resp.StatusCode == http.StatusOK {
@@ -1053,7 +1053,7 @@ func TestCommanderTableServesACommanderGameEndToEnd(t *testing.T) {
 	// assertion is the point, so it is checked on every poll and the
 	// match-end fallback is only the deadline's last resort.
 	couldCast := false
-	deadline := time.Now().Add(30 * time.Second)
+	deadline := time.Now().Add(testutil.WaitBudget)
 	for !couldCast {
 		if time.Now().After(deadline) {
 			t.Fatalf("no seat cast a commander from the command zone within 30s")
@@ -1258,7 +1258,7 @@ func TestVsBotGameHonoursRequestedMulliganAllowance(t *testing.T) {
 
 	// The pregame round is over: the seat is asked something else entirely.
 	// 5ms tick — this loop usually exits on its first or second poll.
-	deadline := time.Now().Add(15 * time.Second)
+	deadline := time.Now().Add(testutil.WaitBudget)
 	for {
 		d, status := decisionOnce(t, pendingURL, "0", tok)
 		if status == http.StatusOK && d.Kind != decision.KMulligan {

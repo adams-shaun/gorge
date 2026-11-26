@@ -12,6 +12,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/replay"
 	"github.com/adams-shaun/gorge/engine/view"
+	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
 func TestPaymentPlanUndoRepostsAndReacceptsAPlannedIntent(t *testing.T) {
@@ -30,7 +31,7 @@ func TestPaymentPlanUndoRepostsAndReacceptsAPlannedIntent(t *testing.T) {
 	if err := r.Start("t1"); err != nil {
 		t.Fatal(err)
 	}
-	deadline := time.Now().Add(60 * time.Second)
+	deadline := time.Now().Add(testutil.WaitBudget)
 	var planned *decision.Decision
 	var sel decision.Intent
 	last := ^uint64(0)

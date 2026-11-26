@@ -20,6 +20,8 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 
 // numTimesOpenMax is the open announce's repetition bound: gorge's
 // xFoldBoundCap (rules cumulative.go), the ceiling of "any number of times".
+//
+//lockstep:const engine/rules.xFoldBoundCap
 const numTimesOpenMax = 64
 
 // raNumTimes is the announcement's resolution ask.

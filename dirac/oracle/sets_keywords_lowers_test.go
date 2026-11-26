@@ -32,6 +32,11 @@ import (
 //     (scriptfacts.GrantedKeywordTrigger). The probe counts the granted
 //     triggers gorge pushes (GrantTriggerPush with the __kwBattleCryGranted /
 //     __kwAnnihilatorGranted: payload), and fails when too few are reached.
+//   - undying / persist: Mikaeus, the Unhallowed's AddKeyword$ Undying (CR 702.93a)
+//     and Rattleblaze Scarecrow's conditional AddKeyword$ Persist (CR 702.79a) are latent
+//     look-back dies triggers granted from the same synthesizer. The probe
+//     counts the granted triggers gorge pushes (__kwUndyingGranted /
+//     __kwPersistGranted), and fails when too few of either are reached.
 func TestSetsKeywordGrantsLower(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
@@ -42,11 +47,15 @@ func TestSetsKeywordGrantsLower(t *testing.T) {
 		deaths int // the least deaths of a creature an Indebted Spirit enchants
 		cry    int // the least granted battle cry triggers pushed
 		ann    int // the least granted annihilator triggers pushed
+		und    int // the least granted undying triggers pushed
+		per    int // the least granted persist triggers pushed
 	}{
-		{"horsemanship", setsKwHorseDecks, 120, 20, 0, 0, 0},
-		{"afterlife", setsKwAfterlifeDecks, 120, 0, 5, 0, 0},
-		{"battlecry", setsKwBattleCryDecks, 120, 0, 0, 10, 0},
-		{"annihilator", setsKwAnnihilatorDecks, 120, 0, 0, 0, 5},
+		{"horsemanship", setsKwHorseDecks, 120, 20, 0, 0, 0, 0, 0},
+		{"afterlife", setsKwAfterlifeDecks, 120, 0, 5, 0, 0, 0, 0},
+		{"battlecry", setsKwBattleCryDecks, 120, 0, 0, 10, 0, 0, 0},
+		{"annihilator", setsKwAnnihilatorDecks, 120, 0, 0, 0, 5, 0, 0},
+		{"undying", setsKwUndyingDecks, 120, 0, 0, 0, 0, 5, 0},
+		{"persist", setsKwPersistDecks, 120, 0, 0, 0, 0, 3, 3},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
@@ -58,16 +67,16 @@ func TestSetsKeywordGrantsLower(t *testing.T) {
 				return // each divergence is already a test error
 			}
 			t.Logf("%s: %+v", tc.name, st)
-			if st.horse < tc.horse || st.deaths < tc.deaths || st.cry < tc.cry || st.ann < tc.ann {
-				t.Fatalf("%s: %+v over %d seeds, want horse %d deaths %d cry %d ann %d: the pool does not exercise it",
-					tc.name, st, tc.seeds, tc.horse, tc.deaths, tc.cry, tc.ann)
+			if st.horse < tc.horse || st.deaths < tc.deaths || st.cry < tc.cry || st.ann < tc.ann || st.und < tc.und || st.per < tc.per {
+				t.Fatalf("%s: %+v over %d seeds, want horse %d deaths %d cry %d ann %d und %d per %d: the pool does not exercise it",
+					tc.name, st, tc.seeds, tc.horse, tc.deaths, tc.cry, tc.ann, tc.und, tc.per)
 			}
 		})
 	}
 }
 
 // setsKwStats is what setsKwProbe counts.
-type setsKwStats struct{ horse, deaths, cry, ann int }
+type setsKwStats struct{ horse, deaths, cry, ann, und, per int }
 
 // setsKwProbe wraps base and counts, when gorge leads, the attackers declared
 // under a horsemanship grant and the deaths of Indebted Spirit's bearers.
@@ -110,6 +119,10 @@ func setsKwProbe(base Policy, st *setsKwStats) Policy {
 				st.cry++
 			case e.Kind == events.GrantTriggerPush && strings.HasPrefix(e.Counter, "__kwAnnihilatorGranted:"):
 				st.ann++
+			case e.Kind == events.GrantTriggerPush && e.Counter == "__kwUndyingGranted":
+				st.und++
+			case e.Kind == events.GrantTriggerPush && e.Counter == "__kwPersistGranted":
+				st.per++
 			}
 		}
 		clear(bearers)
@@ -176,5 +189,33 @@ var setsKwAnnihilatorDecks = [2][]cardset.Entry{
 	{
 		{Name: "Eldrazi Conscription", Count: 8}, {Name: "Grizzly Bears", Count: 12},
 		{Name: "Swamp", Count: 10}, {Name: "Forest", Count: 10},
+	},
+}
+
+// setsKwUndyingDecks: Mikaeus, the Unhallowed grants the Bears undying;
+// Bolts kill them.
+var setsKwUndyingDecks = [2][]cardset.Entry{
+	{
+		{Name: "Mikaeus, the Unhallowed", Count: 10}, {Name: "Grizzly Bears", Count: 10},
+		{Name: "Swamp", Count: 14}, {Name: "Forest", Count: 6},
+	},
+	{
+		{Name: "Grizzly Bears", Count: 10}, {Name: "Lightning Bolt", Count: 10},
+		{Name: "Mountain", Count: 10}, {Name: "Forest", Count: 10},
+	},
+}
+
+// setsKwPersistDecks: Rattleblaze Scarecrow has persist while its controller
+// controls a black creature (Mikaeus, the Unhallowed, which also grants the
+// non-Human Scarecrow undying: a creature granted both by two statics);
+// Bolts kill them.
+var setsKwPersistDecks = [2][]cardset.Entry{
+	{
+		{Name: "Rattleblaze Scarecrow", Count: 10}, {Name: "Mikaeus, the Unhallowed", Count: 8},
+		{Name: "Swamp", Count: 22},
+	},
+	{
+		{Name: "Grizzly Bears", Count: 10}, {Name: "Lightning Bolt", Count: 10},
+		{Name: "Mountain", Count: 10}, {Name: "Forest", Count: 10},
 	},
 }
