@@ -12,7 +12,7 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 | BLB | 278 | 263 | 1 | 0 | 262 | 262 | 0 |
 | DFT | 276 | 259 | 0 | 1 | 258 | 258 | 0 |
 | DSK | 276 | 259 | 2 | 5 | 252 | 252 | 0 |
-| ECL | 273 | 249 | 0 | 1 | 248 | 248 | 0 |
+| ECL | 273 | 250 | 0 | 2 | 248 | 248 | 0 |
 | EOE | 266 | 252 | 0 | 1 | 251 | 251 | 0 |
 | FDN | 517 | 517 | 0 | 0 | 517 | 517 | 0 |
 | FIN | 312 | 283 | 0 | 1 | 282 | 282 | 0 |
@@ -30,12 +30,12 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 | TRC | 337 | 307 | 0 | 32 | 275 | 275 | 0 |
 | TRK | 311 | 311 | 1 | 0 | 310 | 310 | 0 |
 | WOE | 281 | 267 | 0 | 3 | 264 | 264 | 0 |
-| MBC | 2212 | 2044 | 3 | 48 | 1993 | 1993 | 0 |
-| CMM | 737 | 622 | 3 | 32 | 587 | 587 | 0 |
-| MH3 | 308 | 237 | 1 | 11 | 225 | 225 | 0 |
-| MH2 | 309 | 263 | 0 | 9 | 254 | 254 | 0 |
+| MBC | 2212 | 2045 | 3 | 49 | 1993 | 1993 | 0 |
+| CMM | 737 | 625 | 3 | 33 | 589 | 589 | 0 |
+| MH3 | 308 | 238 | 1 | 12 | 225 | 225 | 0 |
+| MH2 | 309 | 264 | 0 | 10 | 254 | 254 | 0 |
 | CM2 | 279 | 240 | 1 | 4 | 235 | 235 | 0 |
-| ALL | 34480 | 26897 | 43 | 984 | 25870 | 25867 | 0 |
+| ALL | 34480 | 26910 | 43 | 993 | 25874 | 25871 | 0 |
 
 `ALL` is the whole corpus; `MBC` is the Mystery Booster Commander draft pool, every name its packs deal that gorge supports; `CMM`, `MH3`, `MH2` and `CM2` are Commander Masters, Modern Horizons 3 and 2 and Commander Anthology Volume II, from gorge-compliance's XMage manifests; the rest are the Standard sets. `4-seat` counts the supported cards whose lowering holds at any seat count: a card whose lowering reads the one opponent of a two-player game (`kop.CardDef.TwoSeat`) is refused in a game of three or more seats (`StallTwoSeat`). It is a ceiling, not evidence. `pod-evidenced` counts those cards whose evidence row carries a seats field — a clean game of three or more seats, which `kfuzz -evidence -seats 4` writes and `scripts/dirac-first-refusals.py evidence --pools pod-*` copies into `dirac/support/evidence` (`Name\t<seats>`; readers take the name and ignore trailing columns). A pod game does not evidence a card: the support rule below is unchanged.
 
@@ -5258,6 +5258,7 @@ Evidence comes from the `fdn` and `blb` deck pools and one synthetic pool per St
 | ev-tail-76-c002 | 59 |
 | ev-tail-76-c003 | 113 |
 | ev-tail-76-c004 | 108 |
+| fdc-gaps | 1500 |
 | fdn | 1500 |
 | pauper | 1500 |
 | std-big | 1500 |
