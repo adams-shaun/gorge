@@ -16,18 +16,20 @@ func playSelfExileArm(paid bool, valid, vzone string, copyCard bool) bool {
 	return paid && (vzone != "Exile" || valid == "Card.Self" || copyCard)
 }
 
-// playExileFilterPop lowers an exile filter population keyed on
-// ExiledWithSource (Boiling Rock Rioter's Ally.YouOwn+ExiledWithSource): the
-// cards in every alive seat's exile, seat order then zone order, that match
-// Valid$ (gorge effPlay's public-zone walk, engine/effects/play.go), the
-// ownership clause carried in the filter itself. Read for the paid play only
-// (paidPlain: paid, no ForgetPlayed$ or ReplaceGraveyard$),
-// the shape the lockstep proves: a free one (Jeleva, Nephalia's Scourge) and
-// a Valid$ with neither IsRemembered nor ExiledWithSource (Goliath
-// Daydreamer's counters_GE1_DREAM) keep play's refusal.
-func (lc *lowerCtx) playExileFilterPop(valid, saExpr string, paidPlain bool, emit func(lRef, int, string) error) error {
-	if !paidPlain || !strings.Contains(valid, "ExiledWithSource") {
-		return refuse("Play ValidZone$ Exile without IsRemembered")
+// playExileFilterPop lowers an exile filter population whose Valid$ has no
+// IsRemembered (Boiling Rock Rioter's Ally.YouOwn+ExiledWithSource, Krang &
+// Shredder's Card.nonLand+ExiledWithSource, Goliath Daydreamer's
+// Card.YouOwn+counters_GE1_DREAM, Kylox's Card.IsImprinted+YouOwn): the cards
+// in every alive seat's exile, seat order then zone order, that match Valid$
+// (gorge effPlay's public-zone walk, engine/effects/play.go), the ownership
+// clause carried in the filter itself. The filter is read at the resolution
+// by the kernel's castFreeFillGen (dirac/cast_freecast.go), for a paid play
+// and a free one alike. ForgetPlayed$ and ReplaceGraveyard$ over such a
+// population stay refused by name: no carrier reaches them in a lockstep.
+// A Valid$ the filter compiler refuses keeps that refusal.
+func (lc *lowerCtx) playExileFilterPop(valid, saExpr string, plain bool, emit func(lRef, int, string) error) error {
+	if !plain {
+		return refuse("Play ValidZone$ Exile without IsRemembered with ForgetPlayed$ or ReplaceGraveyard$")
 	}
 	expr, err := andFilterExpr(valid, saExpr)
 	if err != nil {
