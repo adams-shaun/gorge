@@ -238,7 +238,7 @@ func (e *Engine) costStaticGateTail(sv staticView, mode string, p state.PlayerID
 		return false, false
 	}
 	if spec, ok := sv.Param(cards.PKValidTarget); ok {
-		if sv.ParamStr(cards.PKUnlessValidTarget) == "True" {
+		if staticFlagTrue(sv, cards.PKUnlessValidTarget) {
 			// UnlessValidTarget$ True inverts the test (Mavinda's "if that
 			// spell doesn't target a creature you control, it costs {8}
 			// more"): see costTargetsUnless for the offer-phase direction.
@@ -263,7 +263,7 @@ func (e *Engine) costStaticGateTail(sv staticView, mode string, p state.PlayerID
 	// discount under its first-strike Continuous, a Class level's granted
 	// reduction. No corpus cost static marked Secondary$ duplicates an
 	// identically gated sibling, so applying it never double-counts.
-	if sv.ParamStr(cards.PKRelative) == "True" && !(mode == "ReduceCost" && xBound) {
+	if staticFlagTrue(sv, cards.PKRelative) && !(mode == "ReduceCost" && xBound) {
 		// Relative$ Amount$ scales with something the composition point does
 		// not yet know (IncreaseCost per target beyond the first, or a game
 		// state the offer-time read cannot price) — a per-target shape no
