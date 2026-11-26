@@ -48,3 +48,43 @@ func TestMillThenDrawChainOpensDredgeFillGate(t *testing.T) {
 		t.Fatal("a Dredge card in a library must make Mental Note's resolution may-ask")
 	}
 }
+
+// TestDredgeFillChainCensus walks real cards of each shape: an allowlisted
+// graveyard-filling link before a Draw takes the dredge-fill reason; a
+// non-allowlisted filler (Surveil, Discard, Sacrifice, Dig) is already "may
+// ask" by its API, so the tape run is taken whatever the board holds; a Draw
+// before the fill is neither (Careful Study, Faithless Looting draw first).
+func TestDredgeFillChainCensus(t *testing.T) {
+	t.Parallel()
+	reg := testutil.CorpusRegistry(t)
+	rows := []struct {
+		name      string
+		fill, may bool
+	}{
+		{"Mental Note", true, false},
+		{"Exclude", true, false},
+		{"Aura Blast", true, false},
+		{"Discovery // Dispersal", false, true},
+		{"Dredge", false, true},
+		{"Rowan's Grim Search", false, true},
+		{"Brainbite", false, true},
+		{"Careful Study", false, true},
+		{"Faithless Looting", false, true},
+	}
+	for _, r := range rows {
+		c, ok := reg.Lookup(r.name)
+		if !ok {
+			t.Errorf("%s missing from corpus", r.name)
+			continue
+		}
+		f := c.Faces[0]
+		if len(f.Abilities) == 0 {
+			t.Errorf("%s has no spell ability", r.name)
+			continue
+		}
+		may, cond := cards.SAChainMayAskCond(f.Abilities[0], f.SVars, f, true)
+		if got := cond&cards.MayAskCondDredgeFill != 0; got != r.fill || may != r.may {
+			t.Errorf("%s: fill=%v may=%v, want fill=%v may=%v", r.name, got, may, r.fill, r.may)
+		}
+	}
+}
