@@ -256,6 +256,7 @@ const (
 	vSVarNum             // the evaluating source's StoreSVar number for the name S, else the printed body Sub[0] (kop.ExSVarNum; lower_storenum.go)
 	vMostProminentType   // the size of the largest group of battlefield objects matching F that share a creature type (Count$MostProminentCreatureType; kop.ExMostProminentCreatureType; value_mostprominent.go)
 	vReplLKIPow          // the replaced creature's derived power before a dies-to-exile rider moved it (ReplacedCardLKI$CardPower; value_repllki.go)
+	vMostCardName        // the greatest number of battlefield objects matching F that share one face name (Count$MostCardName; kop.ExMostCardName; value_mostcardname.go)
 	vPaidN               // the spell's Squad/Replicate payment count or Conspire's 1 (Count$SquadPaid / ReplicatePaid / Conspired; kop.ExKicked N 2; lower_squadreplicate.go)
 	vCount_
 )
@@ -384,6 +385,7 @@ var valNames = [...]string{
 	vReplLKIPow:          "ReplLKIPow",
 	vPaidN:               "PaidN",
 	vMostProminentType:   "MostProminentType",
+	vMostCardName:        "MostCardName",
 }
 
 // lValue is an amount: Kind with its operand, then Mul/Div/Add applied in
@@ -806,10 +808,12 @@ type lCost struct {
 	Forage         *lFilter // forage: exile three cards from your graveyard or sacrifice a Food matching (CR 701.61a)
 	ExileG         *lFilter // ExileFromGrave<N/Spec>: exile ExileGN cards matching from your graveyard (CARDNAME: Self)
 	ExileGN        int
-	ExileGX        bool     // ExileFromGrave<X/Spec>: exile the announced X cards matching ExileG (kop.CostExileGrave with N 0; a spell's own cost beside a printed {X}; lower_exilex.go)
-	ExileGSelf     bool     // ExileFromGrave<1/CARDNAME> first, then ExileFromGrave<N/Other spec> (kop.Cost.ExileGSelf; a graveyard activated ability's cost)
-	exileGCard     bool     // ExileG is the CARDNAME singleton part (a second ExileFromGrave part may follow)
-	ExileHandN     int      // ExileFromHand<N/Card>: exile N cards from your hand (a trigger's own cost only; cost_exilefromhand.go)
+	ExileGX        bool // ExileFromGrave<X/Spec>: exile the announced X cards matching ExileG (kop.CostExileGrave with N 0; a spell's own cost beside a printed {X}; lower_exilex.go)
+	ExileGSelf     bool // ExileFromGrave<1/CARDNAME> first, then ExileFromGrave<N/Other spec> (kop.Cost.ExileGSelf; a graveyard activated ability's cost)
+	exileGCard     bool // ExileG is the CARDNAME singleton part (a second ExileFromGrave part may follow)
+	ExileHandN     int  // ExileFromHand<N/Card>: exile N cards from your hand (a trigger's own cost only; cost_exilefromhand.go)
+	MoveGraveN     int  // ExiledMoveToGrave<N/Spec>: put N exiled cards matching MoveGraveF into their owners' graveyards (a trigger's own cost only; lower_exiledmovegrave.go)
+	MoveGraveF     *lFilter
 	ExileHand      bool     // ExileFromHand<1/Card>: the ExileG cards come from the payer's hand (kop.Cost.ExileHand; a granted exile ability's cost only)
 	ExileGBf       bool     // ExileCtrlOrGrave<N/Spec>: the battlefield (the payer's permanents) as well (kop.CostExileCtrlOrGrave, Craft)
 	ExileStackSelf bool     // ExileFromStack<1/Card.Self>: the resolving spell exiles itself from the stack (an unless cost beside ExileG)
@@ -849,7 +853,7 @@ func (c lCost) pureMana() bool {
 	return !c.Tap && !c.Untap && !c.SacSelf && c.Sac == nil && c.SacN == 0 &&
 		c.DiscardN == 0 && c.DiscardSpec == "" && !c.DiscardHand && !c.DiscardSelf && c.DiscardF == nil && !c.DiscardX && c.Discard2N == 0 && c.Loyalty == 0 && !c.LoyaltyX &&
 		c.SubCtr == 0 && !c.SubCtrX && c.SubAmongN == 0 && c.AddCtr == 0 && c.PayLife == 0 && !c.LifeX && c.LifeBy == nil && !c.LifeIdent && !c.SacX && !c.SacHalf && c.XMin == 0 && c.TapN == 0 && !c.TapHost && !c.SacHost && !c.HostExile && !c.SacExile && c.TapPowN == 0 && !c.Exert &&
-		c.Forage == nil && c.ExileG == nil && !c.ExileGSelf && c.ExileHandN == 0 && c.Energy == 0 && c.EnergyBy == nil && !c.EnergyX && !c.ReturnSelf &&
+		c.Forage == nil && c.ExileG == nil && !c.ExileGSelf && c.ExileHandN == 0 && c.MoveGraveN == 0 && c.Energy == 0 && c.EnergyBy == nil && !c.EnergyX && !c.ReturnSelf &&
 		!c.ExileSelf && !c.ExileStackSelf && c.Return == nil && c.DrawN == 0 && c.DrawBy == nil && c.DamageYouN == 0 && c.BlightN == 0 && c.EvidenceN == 0 && !c.EvidenceX && !c.TapXVar && !c.ExileTrigNew &&
 		c.pureManaTail()
 }
@@ -1401,6 +1405,7 @@ type lCard struct {
 	MorphReduce    lValue      // the turn-up cost's printed generic reduction (lower_morphreduce.go)
 	MorphLife      uint8       // the turn-up cost's PayLife<N> (lower_morphlife.go)
 	MorphReveal    *lFilter    // the turn-up cost's Reveal<1/Spec> hand candidates (lower_revealpick.go)
+	MorphPick      *lCost      // the turn-up cost's single Discard/Sac/Return pick part (lower_morphpick.go)
 	Flashback      *manaCost
 	RemPersist     bool          // the enters/leaves remembered pair, or a Saga's chapter pair (lower_rempersist.go)
 	RemSeed        uint32        // RemPersist: the abilities that start with the kept set (CardDef.RemSeed)
@@ -1466,6 +1471,7 @@ type lCard struct {
 	RetraceCost    *lCost    // the retrace cast's additional cost: Discard<1/Land> (CardDef.RetraceCost)
 	JumpStart      bool      // K:Jump-start (CR 702.84a): the retrace cast with Discard<1/Card> and the flashback exile (Retrace set beside it; dirac/kw_jumpstart.go)
 	AltAddCost     *lCost    // AlternateAdditionalCost: pay this instead of the printed additional cost
+	AltAddCost2    *lCost    // the either-or's third part (Dusk Mangler's PayLife<4>): CardDef.AltAddCost2
 	SpellCost      *lCost    // additional costs on the spell (Sac/Discard)
 	AltAddOne      bool      // SpellCost is a one-part AlternateAdditionalCost (gorge's planner: shape:optional_cost)
 	Leyline        bool

@@ -32,6 +32,13 @@ func init() {
 	// registers. Without this the coverage census reports every plane whose
 	// only remaining primitive is Mode$ ChaosEnsues as unplayable.
 	RegisterNonAPI("trig:ChaosEnsues")
+	// Mode$ PlaneswalkedTo rides the same scan (rules' checkPlaneswalkTriggers
+	// queues the arriving plane's ability; trigmatch.planeswalkedToMatches
+	// matches it), and Eloren Wilds' plane-source curse arms its Effect-carried
+	// PlaneswalkedTo self-exile trigger as the curse's end (effectPlaneCurseEnd).
+	// Without it the coverage census reports the card gorge plays as unplayable
+	// while dirac lowers it.
+	RegisterNonAPI("trig:PlaneswalkedTo")
 }
 
 // effBlankLine is "DB$ BlankLine": a display-only spacer in Forge's card

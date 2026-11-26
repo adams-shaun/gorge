@@ -2049,11 +2049,13 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		return err
 	}
 	var add []uint8
+	// a registered build arm lowers through staticBuilds (static_reg.go);
+	// the arms still in the switch below fall through to it
+	if f, ok := staticBuilds[s.Kind]; ok {
+		add, err = f(cb, s, st)
+		return ka, add, err
+	}
 	switch s.Kind {
-	case "FlipCoinMod":
-		st.Kind = kop.StatFlipCoinMod // static_turnbits.go
-	case "ActivationLimit":
-		st.Kind = kop.StatActivationLimit // static_turnbits.go
 	case "Continuous":
 		zone := continuousKind(st, s.Flags, s.Zone) // lower_offzone.go
 		if s.F != nil && s.F.Players != 0 {
@@ -2780,21 +2782,6 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		if err := cb.stackKwStatic(st, s); err != nil {
 			return ka, nil, err
 		}
-	case "Override":
-		st.Kind = kop.StatOverride
-		if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
-			return ka, nil, err
-		}
-		i, err := cb.override(s.Override)
-		if err != nil {
-			return ka, nil, err
-		}
-		st.Override = uint16(i + 1)
-		// the chosen land-type setter's read (Convincing Mirage's AddType$
-		// ChosenType): the static reads its source's perm.chosen
-		// (act_choosetype.go chosenGrant); any other static kind's AddChosen
-		// lowering is the Continuous case's
-		st.AddChosen = s.AddChosen
 	default:
 		return ka, nil, fmt.Errorf("static kind %s", s.Kind)
 	}
@@ -3024,6 +3011,11 @@ func (cb *cardBuilder) repl(r lRepl) (kop.Ability, error) {
 	case "TurnUpProgram":
 		rp.Kind = kop.ReplTurnUpProgram // lower_turnfaceuprepl.go
 		if ka.Prog, err = cb.prog(r.Prog); err != nil {
+			return ka, err
+		}
+	case "TurnUpAttach":
+		rp.Kind = kop.ReplTurnUpAttach // lower_turnfaceuprepl.go: the optional attach ask (Gift of Doom)
+		if rp.Filter, err = cb.filter(r.F, kop.ZoneBattlefield); err != nil {
 			return ka, err
 		}
 	case "SpellsCantBeCountered":
