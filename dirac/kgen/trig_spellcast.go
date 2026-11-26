@@ -68,15 +68,8 @@ func trigSpellCast(lc *lowerCtx, a *trigArm) error {
 	if tp.is("OpponentTurn", "True") {
 		tr.OnlyOppTurn = true
 	}
-	if v, ok := tp.get("NoColoredMana"); ok {
-		// "if no colored mana was spent to cast it" (Void Mirror): gorge
-		// SpellCastEval's fire-time read of the cast's per-colour spend
-		// (kop.Tf5CastNoColoredMana). Only a battlefield listener's plain
-		// SpellCast lowers.
-		if t.Mode != "SpellCast" || strings.TrimSpace(v) != "True" || tr.Zone != 0 && tr.Zone != zBattlefield {
-			return refuse("NoColoredMana %q on a %s line", v, t.Mode)
-		}
-		tr.NoColoredMana = true
+	if err := noColoredManaWatch(t, tp, tr); err != nil {
+		return err
 	}
 	if v, ok := tp.get("ValidSA"); ok {
 		// "whenever you cast a spell using mana produced by CARDNAME"
@@ -177,5 +170,22 @@ func trigSpellCast(lc *lowerCtx, a *trigArm) error {
 		}
 		tr.Increment = true
 	}
+	return nil
+}
+
+// noColoredManaWatch lowers NoColoredMana$ True on a SpellCast trigger arm:
+// "if no colored mana was spent to cast it" (Void Mirror) — gorge
+// SpellCastEval's fire-time read of the cast's per-colour spend
+// (kop.Tf5CastNoColoredMana). Only a battlefield listener's plain SpellCast
+// lowers.
+func noColoredManaWatch(t cards.Trigger, tp *params, tr *lTrigger) error {
+	v, ok := tp.get("NoColoredMana")
+	if !ok {
+		return nil
+	}
+	if t.Mode != "SpellCast" || strings.TrimSpace(v) != "True" || tr.Zone != 0 && tr.Zone != zBattlefield {
+		return refuse("NoColoredMana %q on a %s line", v, t.Mode)
+	}
+	tr.NoColoredMana = true
 	return nil
 }
