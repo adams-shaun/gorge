@@ -226,6 +226,7 @@ func opsUsage(pt *poolTables, all []*lCard, bs []built) map[string]map[string]bo
 				add("cost:ExileSelf", name)
 			}
 			usagePutLib(ab.Cost, name, add)
+			usageBlightX(ab.Cost, name, add)
 			if ab.Cost.ExileHand {
 				add("cost:ExileHand", name)
 			}
@@ -537,6 +538,7 @@ func opsUsage(pt *poolTables, all []*lCard, bs []built) map[string]map[string]bo
 		filt(d.Enchant.Filter)
 		filt(d.BestowTgt.Filter)
 		filt(d.BeholdF)
+		filt(d.OfferingF)
 		filt(d.WardSac)
 		if d.WardLife != 0 {
 			add("card:WardLife", name)
