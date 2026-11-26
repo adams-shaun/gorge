@@ -1,0 +1,12 @@
+# CardID index of the pool table, maintained by dirac/kgen: an id never moves.
+0	card	Chance Encounter
+1	card	Forest
+2	card	Goblin Archaeologist
+3	card	Grizzly Bears
+4	card	Mountain
+5	card	Ornithopter
+6	card	Setzer, Wandering Gambler
+7	card	Swamp
+8	card	Tavern Scoundrel
+9	token	c_a_treasure_sac
+10	token	the_blackjack

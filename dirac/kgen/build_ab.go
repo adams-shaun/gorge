@@ -1241,7 +1241,7 @@ var stepMap = map[string]kop.Step{"Upkeep": kop.StepUpkeep, "End": kop.StepEnd, 
 var eventMap = map[string]kop.TrigEvent{"ETB": kop.TrigETB, "Dies": kop.TrigDies, "Leaves": kop.TrigLeaves, "ToGraveyard": kop.TrigToGraveyard, "Blocks": kop.TrigBlocks, "Taps": kop.TrigTaps, "Attacks": kop.TrigAttacks,
 	"AttackersDeclared": kop.TrigAttackersDeclared, "Phase": kop.TrigPhase, "SpellCast": kop.TrigSpellCast,
 	"LifeGained": kop.TrigLifeGained, "LifeLost": kop.TrigLifeLost, "DamageDone": kop.TrigDamageDone,
-	"DamageDealtOnce": kop.TrigDamageDealtOnce, "Drawn": kop.TrigDrawn, "Discarded": kop.TrigDiscarded, "DiscardedAll": kop.TrigDiscardedAll, "AbilityCast": kop.TrigAbilityCast, "Scry": kop.TrigScry, "Surveil": kop.TrigSurveil, "Explores": kop.TrigExplores, "CollectEvidence": kop.TrigCollectEvidence, "Exploited": kop.TrigExploited,
+	"DamageDealtOnce": kop.TrigDamageDealtOnce, "Drawn": kop.TrigDrawn, "Discarded": kop.TrigDiscarded, "DiscardedAll": kop.TrigDiscardedAll, "AbilityCast": kop.TrigAbilityCast, "Scry": kop.TrigScry, "Surveil": kop.TrigSurveil, "FlippedCoin": kop.TrigFlippedCoin, "Explores": kop.TrigExplores, "CollectEvidence": kop.TrigCollectEvidence, "Exploited": kop.TrigExploited,
 	"LandPlayed": kop.TrigLandPlayed, "SearchedLibrary": kop.TrigSearchedLibrary, "Forage": kop.TrigForage, "Discover": kop.TrigDiscover, "ManifestDread": kop.TrigManifestDread,
 	"CounterAddedOnce": kop.TrigCounterAddedOnce, "CounterAdded": kop.TrigCounterAddedOnce, "CounterAddedAll": kop.TrigCounterAddedAll, "Untaps": kop.TrigUntaps,
 	"CounterRemoved": kop.TrigCounterRemoved, "CounterRemovedOnce": kop.TrigCounterRemovedOnce, // the card's own (lower_counterremoved.go; dirac/trig_counterremoved.go)
@@ -1464,7 +1464,7 @@ func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
 	if t.Event == "AbilityCast" {
 		kt.N = t.AbClass
 	}
-	if t.Event == "LandPlayed" || t.Event == "Leaves" || t.Event == "BecomeMonarch" || t.Event == "ToGraveyard" {
+	if t.Event == "LandPlayed" || t.Event == "Leaves" || t.Event == "BecomeMonarch" || t.Event == "ToGraveyard" || t.Event == "FlippedCoin" {
 		kt.N = t.N // Leaves: the destination mask; BecomeMonarch: kop.TrigNMonarchBeganTurn; ToGraveyard: the origin mask
 	}
 	switch t.Combat {
@@ -2006,6 +2006,7 @@ func (cb *cardBuilder) combatAmountFilter(st *kop.Static, kind kop.StaticKind, f
 }
 
 // static builds a static ability and its granted subtypes.
+
 func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 	ka := kop.Ability{Kind: kop.AbStatic}
 	st := &ka.Static
