@@ -80,7 +80,7 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 		c := s.objs[o].card
 		pc := &k.cards[c]
 		if pc.land {
-			if sorc && pl.landsPlayed < s.landLimit(k, p) {
+			if sorc && pl.landsPlayed < s.landLimit(k, p) && !s.cantPlayLandLock(k, p, c, o) {
 				d.add(MakeAction(AkPlayLand, TCode(o), 0, 0))
 				if faces && k.gen.anyFaces {
 					s.offerFaceLand(k, d, o) // face_multiface.go
