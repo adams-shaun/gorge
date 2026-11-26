@@ -31,6 +31,13 @@ if ! "${cap[@]}" go test -timeout 3m -run '^TestComplexFunctionsOnlyShrink$|^Tes
   # string compares and failed its batch's test (0), as no affected-package rule selects ./internal/codeshape (#662, 11-17).
   cat "$log"; fail "codeshape: $(grep -o -E '[^ ]+ \([^)]*\) grew to [a-z]+ [0-9]+, above its ceiling of [0-9]+|[A-Za-z]+: measured [0-9]+, above the frozen ceiling of [0-9]+' "$log" | head -1)"
 fi
+# go vet over the packages the diff touches (lint runs ./... ; a vet error in a changed package is the one a PR can
+# cause). --diff-filter=ACMR leaves out deleted files, so a removed package is not asked for.
+vetpkgs=$(git diff --name-only --diff-filter=ACMR "$base"...HEAD -- '*.go' | xargs -r -n1 dirname | sort -u | sed 's|^|./|')
+if [ -n "$vetpkgs" ]; then
+  # shellcheck disable=SC2086
+  "${cap[@]}" go vet $vetpkgs >"$log" 2>&1 || { cat "$log"; fail "go vet: $(grep -m1 -E '^[^ #].*\.go:[0-9]+' "$log" | cut -c1-200)"; }
+fi
 # The base-relative function growth rule (cmd/funcgrowth, #5106) runs in lint and in every merge batch; run it here so a
 # PR learns it grew a function past its allowance before the push, not in the queue (11-26: batch #5138's lint failed on
 # featPoolPays 45 -> 52 although each PR passed this script). A tree without the rule yet skips the step. Two PRs that each
@@ -138,4 +145,6 @@ if [ -n "$fresh" ]; then
   done
   rm -rf "$scratch"
 fi
+# The stamp the pre-push hook (.githooks/pre-push) reads: the exact head this script passed.
+git rev-parse HEAD >"$(git rev-parse --git-path pr-precheck-ok)" 2>/dev/null || true
 echo "pr-precheck: ok"

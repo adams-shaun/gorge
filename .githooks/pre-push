@@ -1,12 +1,34 @@
 #!/bin/sh
-# When main is pushed with RACE=1 set, run the race detector once:
-# nobody else runs -race.
+# 1. A push of a branch (not main, not a mergify/ or regen/ branch) runs scripts/pr-precheck.sh on the pushed head
+#    unless that exact head already passed it (the stamp pr-precheck.sh leaves in the git dir). 11-26: 9 of the 10 red
+#    PRs were agent branches that skipped it. PRECHECK=0 skips it: the operator's bypass, not an agent's.
+# 2. When main is pushed with RACE=1 set, run the race detector once: nobody else runs -race.
 zero=0000000000000000000000000000000000000000
 push_main=0
+check=""
 while read -r local_ref local_sha remote_ref remote_sha; do
 	[ "$local_sha" = "$zero" ] && continue
 	[ "$remote_ref" = "refs/heads/main" ] && push_main=1
+	case $remote_ref in
+	refs/heads/main | refs/heads/mergify/* | refs/heads/regen/*) ;;
+	refs/heads/*) check="$check $local_sha" ;;
+	esac
 done
+if [ -n "$check" ] && [ "${PRECHECK:-1}" != 0 ]; then
+	top=$(git rev-parse --show-toplevel)
+	head=$(git rev-parse HEAD)
+	stamp=$(git rev-parse --git-path pr-precheck-ok)
+	for sha in $check; do
+		# Only the checked-out head can be run here; a push of another ref is not checked.
+		[ "$sha" = "$head" ] || continue
+		if [ "$(cat "$stamp" 2>/dev/null)" = "$head" ]; then continue; fi
+		echo "pre-push: scripts/pr-precheck.sh origin/main on $head (a few minutes; PRECHECK=0 skips)" >&2
+		if ! (cd "$top" && bash scripts/pr-precheck.sh origin/main) >&2; then
+			echo "pre-push: pr-precheck failed; nothing was pushed. Fix it, merge origin/main, and push again." >&2
+			exit 1
+		fi
+	done
+fi
 # The race gate is OFF by default: it adds ~2 min to every push of main. Run it
 # deliberately before a milestone merge with RACE=1 git push origin main.
 if [ "$push_main" = 1 ] && [ -n "$RACE" ]; then
