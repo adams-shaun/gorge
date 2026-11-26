@@ -54,12 +54,12 @@ func (s *State) castGateAffordable(k *prep, p uint8, c CardID, o Obj, cost *kop.
 // castGateOrPoolPays is the plain cast's affordability read: the gate's own
 // read, or the conversion pool paying the pips (mana_convertcreature.go).
 func (s *State) castGateOrPoolPays(k *prep, p uint8, c CardID, o Obj, cost *kop.ManaCost, cav *avail) bool {
-	return s.castGateAffordable(k, p, c, o, cost, cav) || s.convPoolPays(k, p, o, cost)
+	return s.castGateAffordable(k, p, c, o, cost, cav) || s.convAnyPoolPays(k, p, o, cost)
 }
 
 // kickedAffordsOrPoolPays is the kicked cast's corresponding read over kc.
 func (s *State) kickedAffordsOrPoolPays(k *prep, p uint8, c CardID, o Obj, kc *kop.ManaCost, cav *avail) bool {
-	return s.kickedAffords(k, p, c, o, kc, cav) || s.convPoolPays(k, p, o, kc)
+	return s.kickedAffords(k, p, c, o, kc, cav) || s.convAnyPoolPays(k, p, o, kc)
 }
 
 func (s *State) priorityOptions(k *prep, d *Decision) {
@@ -468,7 +468,7 @@ func (s *State) activateOffers(k *prep, d *Decision, p uint8, sorc bool, av *ava
 				s.availFor(k, p, av)
 				haveAv = true
 			}
-			if (a.Cost.Mana.X > 0 || a.Cost.XMin != 0) && s.cfg&cfgGorgeUnpriced != 0 || a.Cost.Mana.Snow != 0 {
+			if (a.Cost.Mana.X == 0 && a.Cost.XMin != 0 || waterbendIsX(a) || hybridX(a)) && s.cfg&cfgGorgeUnpriced != 0 || a.Cost.Mana.Snow != 0 {
 				m := xFloorCost(a.Cost.Mana, costXMin(&a.Cost)) // (gorge's cost:x is X != 0 || XMin != 0 (pay.PlanCostDetail); an announced Sac<X> part without {X} or XMin is planned like any other cost (Krav, the Unredeemed's {B}); the pool pays the cheapest legal announcement; cost_sacx.go)
 				if k.gen != nil && k.gen.anyPowerUp && a.Cost.Flags&kop.CostPowerUp != 0 {
 					m = s.powerUpReduced(k, s.perms[sl].obj, m) // CR 702.193b: gorge prices the reduced cost (legal_walk_battlefield.go)
@@ -1153,6 +1153,9 @@ func (s *State) gorgeLowersRider(p uint8, o Obj, mayPlay, anyColor bool) bool {
 	}
 	if sacXCost(spellAddCost(k, c)) {
 		return false // an announced Sac<X/Spec>: the potential planner's composition declines it too, so only the floating pool offers it (cost_sacx.go)
+	}
+	if spellAddCost(k, c).SacHalf {
+		return s.sacHalfLowers(k, p, c, o, mayPlay, anyColor) // cost_sachalf.go
 	}
 	if cd.HasAltAdd {
 		return s.altAddLowers(k, p, c, o, mayPlay, anyColor)
@@ -3534,11 +3537,11 @@ func (s *State) potentialGapCost(k *prep, p uint8, sl Slot, j int, ab *kop.Abili
 	c := s.cardAt(sl)
 	switch {
 	case int(k.ctrAb[c]) == j && (kop.CtrManaAb(ab) || kop.CtrRemoveManaAb(ab) || kop.CtrTapSecondManaAb(ab)):
-		return ab.Cost.Flags&kop.CostRemoveCtr == 0 || s.perms[sl].ctrN(s, int(ab.Cost.Ctr)) >= int(ab.Cost.N)
+		return s.ctrCostPayable(sl, p, ab)
 	case anyDifferentTapAb(ab):
 		// Component Pouch's "{T}, Remove a counter: Add two mana of different
 		// colors": priced while the source holds the counters its cost removes
-		return ab.Cost.Flags&kop.CostRemoveCtr == 0 || s.perms[sl].ctrN(s, int(ab.Cost.Ctr)) >= int(ab.Cost.N)
+		return s.ctrCostPayable(sl, p, ab)
 	case ab.ManaRider == kop.ManaRiderDeplete && ab.Cost.Flags == kop.CostTap|kop.CostRemoveCtr:
 		// a depletion land (Sandstone Needle, Peat Bog): gorge's potentialManaFor counts its
 		// whole production while it still holds the counter its cost removes
