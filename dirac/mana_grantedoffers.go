@@ -296,6 +296,12 @@ func (s *State) grantIdxs(k *prep, sl Slot, out *[maxGrants]int16) (n int) {
 //go:noinline
 func (s *State) grantIdx(k *prep, sl Slot) int {
 	var gi [maxGrants]int16
+	if !s.manaGrantMay(k, sl) {
+		if DebugGrantGateShadow {
+			grantGateShadow(s, k, sl, &gi)
+		}
+		return -1
+	}
 	if s.grantIdxs(k, sl, &gi) == 0 {
 		return -1
 	}
@@ -4002,4 +4008,38 @@ func kickAdd(cd *kop.CardDef) kop.ManaCost {
 // Chromatic Lantern's grant).
 func kickMultiPriced(k *prep, c CardID) bool {
 	return k.t.Cards[c].HasMultikicker && !DebugGrantKickNoMulti
+}
+
+// manaGrantMay reports whether grantIdxs can find a mana ability granted to
+// sl: a table with a GainsAbilitiesOf$ static (gainedIdxs), an override
+// record on sl, or a battlefield static or attached source whose card holds
+// a grantOf ability (prep.grantsMana; a static's AddAbility$ mana ability is
+// a latent ability of the granting card). False skips the grant walk: about
+// 78% of grantIdx calls on BenchmarkTransitionEDH4, which find no grant.
+func (s *State) manaGrantMay(k *prep, sl Slot) bool {
+	if k.gen.uses.has(useGainedMana) || s.fxM.has(sl) {
+		return true
+	}
+	for m := s.statM.or(s.grantM); m.any(); m = m.rest() {
+		if k.grantsMana[s.cardAt(m.first())] {
+			return true
+		}
+	}
+	return false
+}
+
+// DebugGrantGateShadow makes grantIdx run the full grant walk behind every
+// manaGrantMay no and panic if it finds a grant or moves the stall state
+// (TestGrantGateShadow).
+var DebugGrantGateShadow = false
+
+// grantGateShadowN counts the walks grantGateShadow checked.
+var grantGateShadowN int
+
+func grantGateShadow(s *State, k *prep, sl Slot, gi *[maxGrants]int16) {
+	grantGateShadowN++
+	st, over := s.g.stalled, s.over
+	if n := s.grantIdxs(k, sl, gi); n != 0 || s.g.stalled != st || s.over != over {
+		panic("dirac: manaGrantMay skipped a grant walk that finds a mana grant or stalls")
+	}
 }
