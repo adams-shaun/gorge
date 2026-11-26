@@ -112,6 +112,10 @@ type lowerCtx struct {
 	effCount bool  // lowering the body of an Effect trigger that remembers a count: Remembered$Amount reads the frozen trigger amount (lower_effectremember.go)
 	pairCap  *lRef // the capture slot the pair lowering already resolved for the emblem (lower_effectcaptured.go)
 
+	// exertRider: lowering an OptionalAttackCost static's Trigger$ rider as
+	// the self-Exerted trigger (static_optattack.go)
+	exertRider bool
+
 	// condNodeAt: while a node's condition lowers, the index of the node's
 	// first instruction; earlier instructions belong to earlier nodes
 	// (markDestroyedTargetLKI, lower_remembered.go). 0 outside that window.

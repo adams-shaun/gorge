@@ -88,6 +88,20 @@ var effectContainerMayPlayMagusDecks = [2][]cardset.Entry{
 	},
 }
 
+// One Memory Vessel copy: two concurrent dig Effects would conflate the
+// remembered pool (each player may play the cards THEIR dig exiled), which
+// the per-owner records already keep apart; the pool decks carry one.
+var effectContainerMayPlayVesselDecks = [2][]cardset.Entry{
+	{
+		{Name: "Memory Vessel", Count: 1}, {Name: "Shock", Count: 8},
+		{Name: "Divination", Count: 8}, {Name: "Grizzly Bears", Count: 4},
+		{Name: "Mountain", Count: 10}, {Name: "Swamp", Count: 9},
+	},
+	{
+		{Name: "Grizzly Bears", Count: 20}, {Name: "Forest", Count: 20},
+	},
+}
+
 // effectContainerMayPlayStats counts the decisions the policy takes through
 // the carrier: an activation, a non-hand cast (graveyard or exile), the
 // carrier's own casts (a spell carrier's hand casts), and the casts of the
@@ -263,6 +277,19 @@ func TestEffectContainerMayPlayLockstep(t *testing.T) {
 		}
 		if st := effectContainerMayPlayRun(t, effectContainerMayPlayMagusDecks, "Magus of the Will"); st.zoneCasts == 0 {
 			t.Fatal("Magus of the Will's graveyard permission offered no cast")
+		}
+	})
+	t.Run("per-owner dig permission beside the hand locks", func(t *testing.T) {
+		// Memory Vessel's dig remembers each player's exiled cards; the
+		// until-your-next-turn Effect grants each player the casts of the
+		// cards THEY exiled (the per-owner records) and locks both players'
+		// hand lands and hand casts while it is live, ending at the
+		// activator's next turn. The policy activates the Vessel and takes
+		// the exile casts; a lock either side misses turns the hand walk's
+		// or cast gate's option lists apart, and a boundary either side gets
+		// wrong diverges at the cleanup it expires on.
+		if st := effectContainerMayPlayRun(t, effectContainerMayPlayVesselDecks, "Memory Vessel"); st.zoneCasts == 0 {
+			t.Fatal("Memory Vessel's per-owner permission offered no exile cast")
 		}
 	})
 	t.Run("until next turn ends before an extra turn", func(t *testing.T) {

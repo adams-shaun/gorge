@@ -816,6 +816,10 @@ const (
 	// player's unless ask (mana_priask.go; parked in genState.winSrc,
 	// winUnless*)
 	ctlManaAsk
+	// ctlExert: the CR 702.100a exert election, posed once the attackers are
+	// declared (after the band asks) for each attacker carrying an
+	// OptionalAttackCost offer (combat_exert.go; s.lastPick is the attacker asked)
+	ctlExert
 )
 
 // every seat's two command-zone ask states fit ctlCmdZone0..7

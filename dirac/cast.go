@@ -2112,6 +2112,9 @@ func (s *State) onCast(k *prep, e *stackEntry) {
 		// the cascade triggers (trig_delayedspell.go)
 		s.fireDelayedSpell(k, e)
 	}
+	if k.gen != nil && k.gen.uses.has(useUntilCastOv) {
+		s.dropUntilCastOv(k, e) // an Effect's SpellCast end (Soul Sculptor): gorge's fireStaticDelayed, same walk (static_ovendevent.go)
+	}
 	if k.gen != nil && k.gen.anyDeferred {
 		s.fireDeferredRider(k, e) // gorge fireManaSpentTriggers: after the cast triggers, before cascade
 	}

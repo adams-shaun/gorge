@@ -1208,7 +1208,7 @@ func (e *Engine) checkTriggersNow(ev *events.Event, lki *state.Object,
 	// scan reads state.Player.RingTempted and queues one entry per firing
 	// seat (one per blocking creature for level 3).
 	switch ev.Kind {
-	case events.DeclareAttackers, events.DeclareBlockers, events.Damage:
+	case events.DeclareAttackers, events.DeclareBlockers, events.TokenBlocks, events.Damage:
 		e.checkRingEmblemTriggers(*ev)
 	}
 	// A chaos-ensues marker (CR 901.9): the current
@@ -1245,7 +1245,9 @@ const (
 //	2  DeclareAttackers whose attacker list holds a seat's Ring-bearer
 //	3  DeclareBlockers: one entry per (Ring-bearer, blocker) pair -- "becomes
 //	   blocked BY A CREATURE" triggers once per blocking creature (Forge's
-//	   Mode$ AttackerBlockedByCreature), and the entry remembers that blocker
+//	   Mode$ AttackerBlockedByCreature), and the entry remembers that blocker;
+//	   a TokenBlocks event (a creature put onto the battlefield blocking,
+//	   CR 509.3d/509.4) is the same pair read off the folded state
 //	4  a COMBAT Damage event whose source is a seat's Ring-bearer and whose
 //	   recipient is a player (Obj 0 -- a hit redirected onto a permanent is
 //	   not "damage to a player")
@@ -1254,8 +1256,18 @@ const (
 // The entries carry no Source (there is no permanent): pushTrigger mints a
 // RingEmblemPush whose payload events.Apply rebuilds the ability from.
 func (e *Engine) checkRingEmblemTriggers(ev events.Event) {
+	// A creature put onto the battlefield blocking the attacker (TokenBlocks,
+	// CR 509.4) is a become-blocked transition too (CR 509.3d): read it as
+	// the one (attacker, token) pair, like checkAttackerBlockedTriggers does.
+	var tokenPair [][2]state.ObjID
 	switch ev.Kind {
 	case events.DeclareAttackers, events.DeclareBlockers, events.Damage:
+	case events.TokenBlocks:
+		a, b, ok := e.tokenBlocksPair(ev)
+		if !ok {
+			return
+		}
+		tokenPair = [][2]state.ObjID{{a, b}}
 	default:
 		return
 	}
@@ -1273,11 +1285,15 @@ func (e *Engine) checkRingEmblemTriggers(ev events.Event) {
 			if objIDIn(ev.IDs, bearer) {
 				e.queueRingEmblem(p, ringEmblemLevelLoot, bearer, 0)
 			}
-		case events.DeclareBlockers:
+		case events.DeclareBlockers, events.TokenBlocks:
 			if tempted < ringEmblemLevelBlockedBy {
 				continue
 			}
-			for _, pr := range ev.Pairs {
+			pairs := ev.Pairs
+			if ev.Kind == events.TokenBlocks {
+				pairs = tokenPair
+			}
+			for _, pr := range pairs {
 				if pr[0] == bearer && pr[1] != 0 {
 					e.queueRingEmblem(p, ringEmblemLevelBlockedBy, bearer, pr[1])
 				}
