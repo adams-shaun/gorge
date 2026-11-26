@@ -1372,6 +1372,19 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 			}
 			tr.First = true
 		}
+	case "Exerted":
+		// the OptionalAttackCost static's rider (gorge checkExertTriggers
+		// queues it off the carrier's own Exert event, CR 702.100a): the
+		// card's own self trigger, fired by the kernel's exert yes
+		// (dirac/combat_exert.go). A printed Mode$ Exerted line ("whenever
+		// you exert a creature") reads other creatures and stays refused.
+		if !lc.exertRider || tp.str("ValidCard") != "Card.Self" {
+			return refuse("Exerted trigger")
+		}
+		if tr.Zone != 0 && tr.Zone != zBattlefield {
+			return refuse("Exerted TriggerZones %d", tr.Zone)
+		}
+		tp.consume("ValidCard")
 	case "Evolved":
 		// gorge trigmatch evolvedMatches (CR 702.100b): the events.Evolved
 		// marker rules' resolveTop emits once the Evolve keyword's counter

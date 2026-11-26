@@ -125,8 +125,15 @@ func TestEffectCantBeCastEmblem(t *testing.T) {
 	if len(got) == 0 || !strings.Contains(strings.Join(got, "; "), "ValidCause") {
 		t.Errorf("unread ValidCause$ refusals = %q, want one naming ValidCause", got)
 	}
-	// A whitelisted param the lowering does not read refuses by name too.
+	// Origin$ Hand lowers since the hand lock (Memory Vessel's NoCast): the
+	// static's Zone carries the origin the kernel's cast gate reads from the
+	// candidate's current zone. An Origin$ naming any other zone still
+	// refuses by name.
 	got = effectSourceSynthetic(t, root, map[string]string{"ST": "Mode$ CantBeCast | ValidCard$ Card | Caster$ Player | Origin$ Hand"})
+	if len(got) != 0 {
+		t.Errorf("hand-origin CantBeCast emblem refused: %q", got)
+	}
+	got = effectSourceSynthetic(t, root, map[string]string{"ST": "Mode$ CantBeCast | ValidCard$ Card | Caster$ Player | Origin$ Battlefield"})
 	if len(got) == 0 || !strings.Contains(strings.Join(got, "; "), "Origin") {
 		t.Errorf("unread Origin$ refusals = %q, want one naming Origin", got)
 	}
