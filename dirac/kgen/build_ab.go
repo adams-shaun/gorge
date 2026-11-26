@@ -2777,28 +2777,40 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 			return ka, nil, err
 		}
 	case "Override":
-		st.Kind = kop.StatOverride
-		zone := kop.ZoneBattlefield
-		if slices.Contains(s.Flags, offZoneFlag) {
-			zone = continuousKind(st, s.Flags, s.Zone) // lower_offzone.go: StatOffZoneGrant over the grant's zone
-		}
-		if st.Filter, err = filter(s.F, zone); err != nil {
+		if err := cb.overrideStatic(st, s); err != nil {
 			return ka, nil, err
 		}
-		i, err := cb.override(s.Override)
-		if err != nil {
-			return ka, nil, err
-		}
-		st.Override = uint16(i + 1)
-		// the chosen land-type setter's read (Convincing Mirage's AddType$
-		// ChosenType): the static reads its source's perm.chosen
-		// (act_choosetype.go chosenGrant); any other static kind's AddChosen
-		// lowering is the Continuous case's
-		st.AddChosen = s.AddChosen
 	default:
 		return ka, nil, fmt.Errorf("static kind %s", s.Kind)
 	}
 	return ka, add, err
+}
+
+// overrideStatic lowers an Override static (kept apart from (*cardBuilder).static so that function stays under
+// its shrink-only ceiling).
+func (cb *cardBuilder) overrideStatic(st *kop.Static, s lStatic) error {
+	st.Kind = kop.StatOverride
+	zone := kop.ZoneBattlefield
+	if slices.Contains(s.Flags, offZoneFlag) {
+		zone = continuousKind(st, s.Flags, s.Zone) // lower_offzone.go: StatOffZoneGrant over the grant's zone
+	}
+	var err error
+	if s.F != nil {
+		if st.Filter, err = cb.filter(s.F, zone); err != nil {
+			return err
+		}
+	}
+	i, err := cb.override(s.Override)
+	if err != nil {
+		return err
+	}
+	st.Override = uint16(i + 1)
+	// the chosen land-type setter's read (Convincing Mirage's AddType$
+	// ChosenType): the static reads its source's perm.chosen
+	// (act_choosetype.go chosenGrant); any other static kind's AddChosen
+	// lowering is the Continuous case's
+	st.AddChosen = s.AddChosen
+	return nil
 }
 
 // staticGrant records the one ability a Continuous static grants (kept apart from (*cardBuilder).static so
