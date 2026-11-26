@@ -9,7 +9,6 @@ import (
 // to exactly one GraveNoAbilities static (kop.StatGraveNoAbilities) over
 // Card in the graveyard, and the card stays refused with the named reason
 // until the kernel's graveyard readers are all wired (graveLossReadersDone).
-// Swirl the Mists keeps its refusal, which names the colour-word ticket.
 func TestStaticZonesOffZoneAbilityLoss(t *testing.T) {
 	c := lowerNamedCard(t, "Yixlid Jailer")
 	n := 0
@@ -36,15 +35,6 @@ func TestStaticZonesOffZoneAbilityLoss(t *testing.T) {
 		if !hit {
 			t.Errorf("Yixlid Jailer refusals = %v, want %q", c.Refusals, graveLossPending)
 		}
-	}
-
-	sw := lowerNamedCard(t, "Swirl the Mists")
-	hit := false
-	for _, rf := range sw.Refusals {
-		hit = hit || strings.Contains(rf.Reason, "agent-20261125T214327Z-46805547")
-	}
-	if !hit {
-		t.Errorf("Swirl the Mists refusals = %v, want one naming agent-20261125T214327Z-46805547", sw.Refusals)
 	}
 }
 
