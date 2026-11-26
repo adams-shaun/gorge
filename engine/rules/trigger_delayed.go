@@ -367,6 +367,7 @@ func (e *Engine) checkDelayedTriggers(ev events.Event) {
 					DelayedRemembered:       append([]state.Target(nil), dt.Remembered...),
 					DelayedCaptureOnly:      dt.CaptureOnly,
 					DelayedRememberedStamps: dt.RememberedStamps,
+					DelayedImprinted:        dt.Imprinted,
 					DelayedManaSpent:        dt.RememberedManaSpent,
 					OptionalSpec:            dt.OptionalSpec,
 					// RememberNumber$ True's remembered Integer (Mana

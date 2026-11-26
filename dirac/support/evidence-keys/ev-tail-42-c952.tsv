@@ -1,0 +1,118 @@
+card	lir16	plays	keys	unused	branches	missing_branches
+A-Cori-Steel Cutter	06b94fc1920bad41	4	2/2		0/1	ix:resp
+A-Meria's Outrider	3c24549d26d657d6	8	1/1		0/1	ix:resp
+Accursed Horde	96c9f556193c4fba	3	1/1		0/1	ix:resp
+Aether Adept	71ab505b5f67e9b9	7	1/1		1/1	
+Aether Inspector	9b0ac4bebe64d30b	4	2/2		1/1	
+Akoum Refuge	6ec4e7b2176b5cc5	16	2/2		0/1	ix:resp
+Alluring Suitor	c503c57f1ac7d6b7	9	3/3		0/1	ix:resp
+Ashiok's Adept	e1d768e645e48bc1	6	1/1		0/1	ix:resp
+Baloth Prime	84c7e95bbfe33c16	10	2/2		0/1	ix:resp
+Barrowgoyf	832ad4ab055efb28	7	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Besmirch	0e826bb5a492a77c	3	0/0		1/2	ix:resp
+Big Score	eccfb3854b2a9db8	6	0/0		1/2	ix:resp
+Blistercoil Weird	5899084b1b0341f7	8	1/1		0/1	ix:resp
+Bloodrite Invoker	b09d1b08a96553b9	8	1/1		0/1	ix:resp
+Boil	fe03e68ade26db67	13	0/0		2/2	
+Bountiful Harvest	f0782ff67c529b91	3	0/0		1/2	ix:resp
+Brimstone Volley	937c766186ffe9d6	4	0/0		1/2	ix:resp
+Burning Oil	49edbc456af240d5	4	0/0		3/4	ix:resp
+Captain's Hook	9c7a58e7f5dfff38	6	2/2		1/1	
+Cascade Seer	0d8a741eeafbaaf5	4	1/1		0/1	ix:resp
+Chaos Terminator Lord	43daa3f6f8b2a7f5	3	1/1		0/1	ix:resp
+Cinder Elemental	8127b696be375344	4	1/1		0/1	ix:resp
+Claws of Valakut	858174c90fe645c5	9	0/0		2/2	
+Cleanse	e1d24efa3ddd1a89	4	0/0		1/2	ix:resp
+Clock of Omens	85fe8d2ab09070f1	3	1/1		0/1	ix:resp
+Confidence from Strength	d8ee0960aa604c31	4	0/0		1/2	ix:resp
+Corrupted Shapeshifter	01099572b1f43088	35	0/0		0/0	
+Crooked Custodian	cc958bf35bd9ca74	7	0/0		0/0	
+Dread Slaver	8247ea6ab03f37a0	4	1/1		1/1	
+Echoing Ruin	58465dfbbcc5bbea	3	0/0		1/2	ix:resp
+Embermaw Hellion	c38ab3b9ed83c40d	7	0/0		0/0	
+Endless Sands	7f8f894c9122e140	20	3/3		0/1	ix:resp
+Exemplar of Strength	64727200b8ae0374	8	2/2		1/1	
+Fell the Pheasant	6da1b2d5a033f863	4	0/0		2/2	
+Fervent Champion	75bd556d6f9a2992	6	1/1		1/1	
+Fling	9d20f0d52f8b4d82	5	0/0		1/2	ix:resp
+Forest	6d0466c30f825dba	52	1/1		0/1	ix:resp
+Forked Bolt	8aa0b253c6f03664	5	0/0		2/2	
+From Beyond	2bfd5313ba2392cf	8	2/2		0/1	ix:resp
+Fungus Elemental	18f32842aa4731e5	4	1/1		0/1	ix:resp
+Gala Greeters	9806b1e0167ffde1	4	1/1		0/1	ix:resp
+Galadhrim Bow	1231e588572f0eab	6	2/2		0/1	ix:resp
+Goblin Matron	044fa9d455b77eb9	4	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Goblin Mountaineer	63140892d22c643f	5	0/0		0/0	
+Goblin Ringleader	4a9e4b7c5ba48507	6	1/1		0/1	ix:resp
+Goblin Sledder	916ea42dd12803df	16	1/1		0/1	ix:resp
+God-Eternal Bontu	663e05126fc4bc63	4	2/2		0/3	f0/t1/opt:n,f0/t1/opt:y,ix:resp
+Harvest Wurm	46b2644ee6a34675	10	1/1		0/1	ix:resp
+Haunted Cadaver	7abab2e621f9fdc4	4	1/1		1/5	cast/alt:morphed,f0/t0/opt:n,f0/t0/opt:y,ix:resp
+High Seas	f1123eda4632ee30	8	0/0		0/0	
+Hindervines	2e4d8cc012bb3e19	4	0/0		1/2	ix:resp
+Holdout Settlement	32d454acbc3831c1	29	2/2		0/1	ix:resp
+Horizon Explorer	e9db3c549bda8685	3	1/1		0/1	ix:resp
+Hornet Sting	0e26f08ebe2203b8	6	0/0		1/2	ix:resp
+Ill-Gotten Inheritance	f2e8915bcd6a271f	5	2/2		1/1	
+Illusory Angel	ba5704acb630b05e	4	0/0		0/0	
+Immolating Souleater	2bf0accdb2a492de	6	1/1		0/1	ix:resp
+Island	763c67ef7a27eaf5	351	1/1		0/1	ix:resp
+Jousting Dummy	63ce63c50ec523fc	7	1/1		1/1	
+Kamahl's Desire	998098a298c196d3	8	0/0		1/2	ix:resp
+Karplusan Forest	4647017997969183	28	2/2		0/1	ix:resp
+Kill-Zone Acrobat	d15029d02af31438	6	1/1		0/1	ix:resp
+Leaping Lizard	625ed6b7692cc6c3	4	1/1		0/1	ix:resp
+Lurebound Scarecrow	7e3b70fe43469e81	4	1/1		0/1	ix:resp
+Lurking Nightstalker	641458ced6a07a84	4	1/1		0/1	ix:resp
+Mardu Runemark	4d6665828f2a70cc	5	0/0		1/2	ix:resp
+Mordant Dragon	d5ec805145f7ea96	4	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Mountain	9e71388353e907ed	92	1/1		0/1	ix:resp
+Mugging	fbaf1e5e035f24a8	11	0/0		2/2	
+Myr Adapter	2526b827b3918e17	4	0/0		0/0	
+Nature's Cloak	501092c7f4e5b002	3	0/0		1/2	ix:resp
+Needleverge Pathway	11b8671b35715217	29	2/2		0/1	ix:resp
+Nest Robber	8ae89be93e217c4e	4	0/0		0/0	
+Orcish Veteran	7a3db27d4a712303	3	1/1		1/1	
+Pack's Betrayal	646a2002d25cf1f2	4	0/0		1/2	ix:resp
+Painful Lesson	eaadf8234a451359	9	0/0		1/2	ix:resp
+Painwracker Oni	dc41283b6a413e33	4	1/1		0/1	ix:resp
+Pheres-Band Centaurs	79258945ce0db37b	4	0/0		0/0	
+Phyrexian Totem	f4b8e8372894a900	10	3/3		1/1	
+Plains	82d63a695487e567	38	1/1		0/1	ix:resp
+Psychic Impetus	fd66da9a4e59fafc	3	1/1		1/2	ix:resp
+Rakdos Carnarium	5dba9a367e40dae4	18	2/2		0/1	ix:resp
+Sabertooth Outrider	4feffe5f4dcf7689	4	1/1		1/1	
+Sacred Armory	7e388b2746ec4bae	6	1/1		1/1	
+Sandsteppe Scavenger	0117911e1bf008b2	5	1/1		0/1	ix:resp
+Saprazzan Outrigger	6a7ea80d2e2cb92e	4	2/2		1/1	
+Satyr Hoplite	cca1d722344ae310	11	1/1		0/1	ix:resp
+Satyr Nyx-Smith	70735b7e994f2239	4	1/1		1/1	
+Savai Sabertooth	dcc9b53cef65053d	4	0/0		0/0	
+School of the Unseen	4221ff0ac5efe1dd	32	2/2		0/1	ix:resp
+Scuttling Doom Engine	10518d2582184a79	4	1/1		0/1	ix:resp
+Scythecat Cub	d3d14b554070f7f2	7	1/1		0/1	ix:resp
+Shamble Back	164f15c1f3364a26	6	0/0		2/2	
+Shriek of Dread	1db5bb5603e3d3d4	6	0/0		1/2	ix:resp
+Silt Crawler	68d4bc3bf8ce0d04	4	1/1		0/1	ix:resp
+Silverquill Lecturer	c5e751fe13f5ba9c	5	0/0		0/0	
+Skullmane Baku	cf83b0dc009e2583	4	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
+Smother	889c7749a8eaf8ce	14	0/0		2/2	
+Spider Spawning	17f214091484bd53	3	0/0		4/4	
+Spike Weaver	1fddeff5e55fd148	4	2/2		1/1	
+Stolen Vitality	ee9156b3b77a0fd8	6	0/0		1/2	ix:resp
+Strength of Isolation	a6c64bffb27c18de	8	0/0		2/2	
+Subterranean Hangar	762f8a5b71ddc6ca	22	2/2		0/1	ix:resp
+Swamp	342b413902f441c3	65	1/1		0/1	ix:resp
+Sweatworks Brawler	17a9f6e0a9a18b5f	8	0/0		0/0	
+Thran Spider	ba3ddbdface16c4c	5	2/2		0/1	ix:resp
+Tidal Surge	30963cbf60802a83	8	0/0		1/2	ix:resp
+Tome Raider	0bf0428aa3ec6432	5	1/1		0/1	ix:resp
+Trench Stalker	0e1a3ef245f17f9d	8	0/0		0/0	
+Tribute to Horobi	5654ab20b88d71d9	3	2/2		0/1	ix:resp
+Trigon of Corruption	599a98f6ec879dab	7	2/2		0/1	ix:resp
+Unbreathing Horde	ae765747b9cfcb6f	4	0/0		0/0	
+Weight of the Underworld	e8801300b1385308	3	0/0		1/2	ix:resp
+Wings of Aesthir	3fd5ec62f4f3b37a	4	0/0		1/2	ix:resp
+Wrangle	71276fdc18649992	4	0/0		2/2	
+Wrenn's Resolve	343b6bbf717639db	3	0/0		1/2	ix:resp
+Zephyr Scribe	6ec93496eef5868c	10	2/2		1/1	

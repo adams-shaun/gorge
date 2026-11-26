@@ -1,11 +1,10 @@
 # Cards and primitives
 
-gorge implements no card by hand. It compiles Forge card scripts into an
-intermediate representation (IR) and implements the named **primitives** the IR
-refers to. This page covers the runtime side: the IR, keyword expansion, the IR
-cache, primitive registration and dispatch, unsupported-primitive detection, and
-cost parsing and payment. The contributor workflow is in
-[The card pipeline](../../contributing/card-pipeline.md) and
+gorge implements no card by hand: it compiles Forge card scripts into an intermediate
+representation (IR) and implements the named **primitives** the IR refers to. This page is the
+runtime side, from script to IR to a running effect and its cost.
+
+For the contributor workflow, read [The card pipeline](../../contributing/card-pipeline.md) and
 [Your first card fix](../../contributing/first-card-fix.md).
 
 ## From script to running effect
@@ -57,11 +56,10 @@ cost parsing and payment. The contributor workflow is in
 <figcaption>Compile once, cache by parser fingerprint, look cards up by name,
 measure coverage statically, dispatch at run time.</figcaption>
 </figure>
-## Fetching and compiling
 
-`cmd/forgec` has four subcommands, wrapped by the Makefile:
+## How is the corpus fetched and compiled? { #fetching-and-compiling }
 
-```sh
+```sh title="cmd/forgec's four subcommands, through the Makefile"
 make fetch-cards     # forgec fetch -dir .cards -repo $(FORGE_REPO) -ref $(FORGE_REF)
 make compile-cards   # forgec compile -dir .cards
 make report          # forgec report -dir .cards
@@ -72,18 +70,22 @@ make coverage        # forgec coverage -dir .cards -out .coverage
 pinned commit (`FORGE_REF` in the Makefile) and writes `.cards/cards.lock`. The
 corpus feeds every golden replay, so a bump is a deliberate change.
 
+!!! warning "The scripts are GPL-3.0"
+    They live in the gitignored `.cards/` and are never committed
+    ([why](../../repos/index.md#licensing-and-the-forge-card-scripts)).
+
 `make report` prints the corpus pin, card and token counts, playable cards, and
 the top missing primitives with the number of cards each would unlock. That list
-is how the project picks what to build next. The numbers move with every merge;
+is how the project picks what to build next. The numbers move with every merge:
 re-run the command rather than quoting them.
 
-## The IR
+## What does a compiled card look like? { #the-ir }
 
 A Forge script is a list of `Key:Value` lines; ability lines are `|`-separated
 `Key$ Value` parameters. An illustrative script (written for this page, not
 copied from the corpus):
 
-```text
+```text title="Ember Courier (illustrative, not from the corpus)"
 Name:Ember Courier
 ManaCost:1 R
 Types:Creature Goblin
@@ -97,11 +99,14 @@ SVar:TrigEmber:DB$ DealDamage | NumDmg$ 2 | ValidTgts$ Creature.OppCtrl,Planeswa
 produces the types in
 [`engine/cards/ir.go`](https://github.com/adams-shaun/gorge/blob/main/engine/cards/ir.go):
 
-`Card` holds `Faces []*Face`. A `Face` holds `Abilities []*SA`, `Triggers`,
-`Statics`, `Repls`, `Keywords`, `Types` and `SVars map[string]string`. An `SA`
-has `Kind` (`SP|AB|DB|ST`), `API`, `Params` and `Sub *SA`; `Trigger.Effect` and
-`Repl.With` are `*SA` as well.
+| Type | Holds |
+|---|---|
+| `Card` | `Faces []*Face` |
+| `Face` | `Abilities []*SA`, `Triggers`, `Statics`, `Repls`, `Keywords`, `Types`, `SVars map[string]string` |
+| `SA` | `Kind` (`SP\|AB\|DB\|ST`), `API`, `Params`, `Sub *SA` |
+| `Trigger.Effect`, `Repl.With` | `*SA` as well |
 
+Each script line maps to one place in that tree:
 
 | Script line | IR |
 |---|---|
@@ -135,7 +140,6 @@ Prowess, for example, is one `registerKeyword(kwProwess, "Prowess")` call whose
 expander adds a `Mode$ SpellCast` trigger with a `DB$ Pump` `+1/+1` effect
 ([`kw_prowess.go`](https://github.com/adams-shaun/gorge/blob/main/engine/cards/kw_prowess.go)).
 
-
 Expanders live in `engine/cards/kw_*.go` (`registerKeyword` panics on a duplicate
 head). Expansion is keyed per keyword *line instance*, so a card printing a
 keyword twice gets two triggers (CR 702.108b), while linking again adds nothing.
@@ -162,7 +166,7 @@ image beside it, `.cards/ir-<fingerprint>.seg`.
   memory when `.cards` is read-only); a `*cards.Card` is materialised on first
   lookup, so the garbage collector scans the cards in play, not the corpus.
 
-## Primitives
+## What is a primitive? { #primitives }
 
 A **primitive** is one named capability a card needs. `Face.Primitives()`
 ([`engine/cards/primitive.go`](https://github.com/adams-shaun/gorge/blob/main/engine/cards/primitive.go))
@@ -190,7 +194,7 @@ shapes whose body the engine deliberately declines at run time.
 An effect is a plain function registered by name from an `init`
 ([`engine/effects/life.go`](https://github.com/adams-shaun/gorge/blob/main/engine/effects/life.go)):
 
-```go
+```go title="engine/effects/life.go"
 type Effect func(h Host, c *Ctx, sa *cards.SA)
 
 func init() {
@@ -209,14 +213,13 @@ func effGainLife(h Host, c *Ctx, sa *cards.SA) {
 }
 ```
 
-The function never writes `Players[t].Life`. It reads the parameter and proposes
-a `LifeChange` event, so replacement effects, triggers and the log all see it
-through `Host.Emit`.
+!!! note "An effect proposes events; it never writes state"
+    `effGainLife` never writes `Players[t].Life`. It proposes a `LifeChange` event through
+    `Host.Emit`, so replacement effects, triggers and the log all see it.
 
 ### The Host interface
 
-`effects` never imports `rules`. It reaches the engine only through
-`effects.Host`, the union of small role interfaces in
+`effects` reaches the engine only through `effects.Host`, the union of small role interfaces in
 [`engine/effects/host_roles.go`](https://github.com/adams-shaun/gorge/blob/main/engine/effects/host_roles.go):
 
 | Role | Examples |
@@ -234,8 +237,11 @@ through `Host.Emit`.
 | `HostConditions` | revolt, delirium, metalcraft |
 | `HostAsk` | `Ask(*decision.Decision)`, `Suspended()` |
 
-`*rules.Engine` implements all of it. An effect that needs something `Host` does
-not offer is doing rules work; fix it in `engine/rules`.
+`*rules.Engine` implements all of it.
+
+!!! warning "`effects` never imports `rules`"
+    An effect that needs something `Host` does not offer is doing rules work: fix it in
+    `engine/rules`.
 
 ### Resolution: walking the chain
 
@@ -265,7 +271,7 @@ flowchart TD
 chosen targets, remembered and sacrificed objects, paid costs, X, chosen modes
 and last-known-information snapshots taken before the chain began.
 
-## Catching an unsupported primitive
+## How is an unsupported primitive caught? { #catching-an-unsupported-primitive }
 
 **Statically**, `cards.Registry.Unsupported(card, effects.Supported())` lists
 every label the card needs that the build lacks; a card is playable only if the
@@ -273,22 +279,22 @@ list is empty. The server's deck import uses it, and two ratchets in
 `engine/rules` hold the repository's own decks to it. Both fail in both
 directions (a new gap, and a stale baseline entry):
 
-- `TestEveryRepoDeckIsFullySupported` compares each repo-deck card's gap with
-  the per-card files in `engine/rules/testdata/known-unsupported/` (the directory
-  is absent while nothing is outstanding).
-- `TestEveryRepoDeckParamsAreRead` (the *param census*) catches a primitive that
-  is registered but ignores one of the card's parameters. It derives every
-  `Params["Key"]` read from the `engine/effects` and `engine/rules` sources,
-  attributes it to a primitive, and reports `param:<Primitive>.<Key>` for an
-  unread key and `cost:` for a cost token the parser does not model. Its
-  baseline is `engine/rules/testdata/paramcensus/`.
+| Ratchet | Catches | Baseline |
+|---|---|---|
+| `TestEveryRepoDeckIsFullySupported` | a repo-deck card whose needed primitives the build lacks | one file per card in `engine/rules/testdata/known-unsupported/` (absent while nothing is outstanding) |
+| `TestEveryRepoDeckParamsAreRead` (the *param census*) | a registered primitive that ignores one of the card's parameters: `param:<Primitive>.<Key>` for an unread key, `cost:` for a cost token the parser does not model | `engine/rules/testdata/paramcensus/` |
+
+The param census derives every `Params["Key"]` read from the `engine/effects` and
+`engine/rules` sources and attributes it to a primitive.
 
 **At run time**, an unregistered API is loud but harmless: `effects.Resolve`
 finds no function, emits a `Note` (`"unimplemented API " + sa.API`), skips that
-link and continues. The `Note` is replay-visible. Filters (an unknown predicate
-matches nothing) and conditions fail closed the same way.
+link and continues. The `Note` is replay-visible.
 
-## Filters and values
+!!! note "Unknowns fail closed"
+    An unknown filter predicate matches nothing, and an unmodelled condition is not met.
+
+## How do scripts name objects and numbers? { #filters-and-values }
 
 Scripts describe sets of objects and players in a small filter language
 (`ValidTgts$ Creature.OppCtrl+nonArtifact`, `Defined$ Self`,
@@ -324,13 +330,10 @@ flexibility, cards held in hand, ...). It is pure: no events, RNG or clock
 **Paying.** The cost is determined after targets are chosen and before anything
 is paid (CR 601.2f-h). There are two payment windows:
 
-- **Planned.** The priority decision's `PaymentActions` carry ready-made plans
-  and the seat picks one with the cast. Bots do this by default
-  (`seat.PaymentPlanConsumer`).
-- **Announced** (`Intent.Announce`). The seat announces the cast and the engine
-  poses a CR 601.2g "select mana" window with one option per (source, ability,
-  colour), Auto-fill, Undo last tap and Cancel. Undo is a `ManaUndo` event, so a
-  retracted tap is still in the log.
+| Window | How it works |
+|---|---|
+| **Planned** | The priority decision's `PaymentActions` carry ready-made plans and the seat picks one with the cast. Bots do this by default (`seat.PaymentPlanConsumer`). |
+| **Announced** (`Intent.Announce`) | The seat announces the cast and the engine poses a CR 601.2g "select mana" window with one option per (source, ability, colour), Auto-fill, Undo last tap and Cancel. Undo is a `ManaUndo` event, so a retracted tap is still in the log. |
 
 Either way mana comes from real mana-ability activations (`ManaAdd` events) and
 the commit happens only once the whole cost is covered. See

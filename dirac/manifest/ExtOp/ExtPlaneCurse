@@ -1,0 +1,5 @@
+family: ExtOp
+name: ExtPlaneCurse
+value: next
+status: active
+doc: Eloren Wilds' plane-source curse Effect (DB$ Effect | StaticAbilities$ STCantCast beside Triggers$ PlaneswalkedTo self-exile, Duration$ Permanent): the targeted player may not cast spells until any player planeswalks. gorge registers the CantBeCast static with the UntilPlaneswalk lifetime (effEffect's effectPlaneCurseEnd; rules' checkPlaneswalkTriggers ends it via withoutUntilPlaneswalk); the kernel keeps the narrow record instead -- planeSeat.curse's per-seat bitset, set by the instr's player target and cleared in planeswalk -- and castForbiddenCost reads it after the static scan (gorge consults registered effects after face statics). The Effect lives over the plane as its source; the record is the narrow equivalent the planebodies slice keeps on the cold planar record.

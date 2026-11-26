@@ -287,9 +287,9 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 		c := s.objs[o].card
 		pc := &k.cards[c]
 		marked := fbLo != nil && (fbLo.has(o) || fbHi.has(o))
-		granted := pc.kw&kop.KwFlashback == 0 && (marked || s.fbLive(k, o)) // a stamped grant or a live static's (kw_fbgrant.go)
-		if pc.kw&kop.KwFlashback == 0 && !granted || (!pc.instant && !sorc && !s.castFlash(k, p, c)) {
-			continue // (cast as though it had flash: High Fae Trickster)
+		skip, granted := s.flashbackSkips(k, p, c, o, pc, marked, sorc)
+		if skip {
+			continue
 		}
 		if !haveAv {
 			s.availFor(k, p, &av)
@@ -980,7 +980,7 @@ func (s *State) spellCostsFeasible(k *prep, c CardID, p uint8, o Obj) bool {
 	cd := &k.t.Cards[c]
 	// the either-or part's discard cannot take the card being cast either
 	// (Bitter Triumph as the last card in hand)
-	return cd.HasAltAdd && s.pickCostPayable(k, p, &cd.AltAddCost, o)
+	return cd.HasAltAdd && (s.pickCostPayable(k, p, &cd.AltAddCost, o) || cd.AltAddCost2 != (kop.Cost{}) && s.pickCostPayable(k, p, &cd.AltAddCost2, o))
 }
 
 // gorgeOffers: under Config.GorgeAutopaySurface, gorge's priority list
@@ -1470,7 +1470,8 @@ func (s *State) altAddFreePart(k *prep, p uint8, c CardID, o Obj) bool {
 	cd := &k.t.Cards[c]
 	ac := spellAddCost(k, c)
 	return manaEmpty(&ac.Mana) && s.pickCostPayable(k, p, ac, o) && (ac.Flags&kop.CostDiscard == 0 || int(s.pl[p].handN)-s.inHandN(o) >= discardCount(ac)) && s.beholdPayable(k, p, c, o) && s.altAddPartDisjoint(k, p, c, o, ac) ||
-		manaEmpty(&cd.AltAddCost.Mana) && s.pickCostPayable(k, p, &cd.AltAddCost, o) && s.altAddPartDisjoint(k, p, c, o, &cd.AltAddCost)
+		manaEmpty(&cd.AltAddCost.Mana) && s.pickCostPayable(k, p, &cd.AltAddCost, o) && s.altAddPartDisjoint(k, p, c, o, &cd.AltAddCost) ||
+		cd.AltAddCost2 != (kop.Cost{}) && manaEmpty(&cd.AltAddCost2.Mana) && s.pickCostPayable(k, p, &cd.AltAddCost2, o) && s.altAddPartDisjoint(k, p, c, o, &cd.AltAddCost2)
 }
 
 // altAddPartDisjoint: the permanents a part sacrifices or taps are not the
@@ -1491,6 +1492,9 @@ func (s *State) altAddPartDisjoint(k *prep, p uint8, c CardID, o Obj, part *kop.
 func (s *State) altAddManaPart(k *prep, c CardID) kop.ManaCost {
 	if ac := spellAddCost(k, c); !manaEmpty(&ac.Mana) {
 		return ac.Mana
+	}
+	if cd := &k.t.Cards[c]; manaEmpty(&cd.AltAddCost.Mana) && cd.AltAddCost2 != (kop.Cost{}) {
+		return cd.AltAddCost2.Mana
 	}
 	return k.t.Cards[c].AltAddCost.Mana
 }
@@ -1520,12 +1524,16 @@ func (s *State) altAddCastableFrom(k *prep, c CardID, p uint8, o Obj, cost, base
 	if s.pickCostPayable(k, p, ac, o) && (ac.Flags&kop.CostDiscard == 0 || int(s.pl[p].handN)-s.inHandN(o) >= discardCount(ac)) && s.beholdPayable(k, p, c, o) {
 		return true
 	}
-	if !s.pickCostPayable(k, p, &cd.AltAddCost, o) {
+	if !s.pickCostPayable(k, p, &cd.AltAddCost, o) && !(cd.AltAddCost2 != (kop.Cost{}) && s.pickCostPayable(k, p, &cd.AltAddCost2, o)) {
 		return false
 	}
-	t := addCost(*cost, cd.AltAddCost.Mana)
+	part := &cd.AltAddCost
+	if !s.pickCostPayable(k, p, part, o) {
+		part = &cd.AltAddCost2 // the either-or's third part (Dusk Mangler)
+	}
+	t := addCost(*cost, part.Mana)
 	if base != nil && (s.statM.any() || k.gen != nil) {
-		t = s.adjustFit(k, av, p, c, o, addCost(*base, cd.AltAddCost.Mana), gen)
+		t = s.adjustFit(k, av, p, c, o, addCost(*base, part.Mana), gen)
 	}
 	if anyMana {
 		t = anyType(t)

@@ -7,6 +7,16 @@ while read -r local_ref local_sha remote_ref remote_sha; do
 	[ "$local_sha" = "$zero" ] && continue
 	[ "$remote_ref" = "refs/heads/main" ] && push_main=1
 done
+# The per-function growth rule (cmd/funcgrowth) is not a CI step (11-26): it runs here, against origin/main, when the push
+# carries Go files that differ from it. SKIP_FUNCGROWTH=1 skips it for one push.
+if [ -z "$SKIP_FUNCGROWTH" ] && git rev-parse -q --verify origin/main >/dev/null 2>&1 \
+	&& ! git diff --quiet origin/main -- '*.go' 2>/dev/null; then
+	if ! go run ./cmd/funcgrowth -base origin/main >&2; then
+		echo "pre-push: a function grew past its allowance (cmd/funcgrowth); move the new logic into a handler or helper." >&2
+		echo "pre-push: SKIP_FUNCGROWTH=1 git push ... skips this check for one push." >&2
+		exit 1
+	fi
+fi
 # The race gate is OFF by default: it adds ~2 min to every push of main. Run it
 # deliberately before a milestone merge with RACE=1 git push origin main.
 if [ "$push_main" = 1 ] && [ -n "$RACE" ]; then
