@@ -125,11 +125,13 @@ const attachRememberNote = "remember attached"
 // attach an Equipment you control to it" is the object-side pool of gorge's
 // effAttach. The resolving controller picks one battlefield permanent the
 // filter admits (Optional$ True: up to one), and the pick attaches to the
-// Defined$ destination (Targeted or Self, one object). The ChooseCard
-// carries the chooseAttachPick codes so the kernel reads the destination
-// from the AttachObj after it: candidates are narrowed to those gorge's
-// destCandidatesFor admits, no ask for none or (mandatory) one. Optional$
-// is the pick's Min 0, not a yes/no, so mayGate is not used here.
+// Defined$ destination (Targeted or Self, one object; or Remembered inside a
+// RepeatEach body, the repeated card, read as RefEach: Reckless Crew's "for
+// each of those tokens, you may attach an Equipment you control to it"). The
+// ChooseCard carries the chooseAttachPick codes so the kernel reads the
+// destination from the AttachObj after it: candidates are narrowed to those
+// gorge's destCandidatesFor admits, no ask for none or (mandatory) one.
+// Optional$ is the pick's Min 0, not a yes/no, so mayGate is not used here.
 // RememberAttached$, ChoiceZone$, Chooser$ and PlayerChoices$ are refused.
 func (lc *lowerCtx) attachChoices(ps *params) error {
 	for _, k := range []string{"RememberAttached", "ChoiceZone", "Chooser", "PlayerChoices", "Move", "Unattach"} {
@@ -144,7 +146,8 @@ func (lc *lowerCtx) attachChoices(ps *params) error {
 		}
 		opt = true
 	}
-	if d := ps.str("Defined"); d != "Targeted" && d != "Self" {
+	d := ps.str("Defined")
+	if d != "Targeted" && d != "Self" && d != "Remembered" {
 		return refuse("Attach Choices$ with Defined$ %q", d)
 	}
 	f, err := lc.filter(ps.str("Choices"))
@@ -152,8 +155,13 @@ func (lc *lowerCtx) attachChoices(ps *params) error {
 		return err
 	}
 	ps.consume("Choices", "ChoiceTitle")
-	dest, err := lc.objOrTarget(ps, "", zBattlefield)
-	if err != nil {
+	var dest lRef
+	if d == "Remembered" {
+		if lc.repeatCard == 0 {
+			return refuse("Attach Choices$ with Defined$ Remembered outside a RepeatEach body")
+		}
+		dest = lRef{Kind: rEach}
+	} else if dest, err = lc.objOrTarget(ps, "", zBattlefield); err != nil {
 		return err
 	}
 	in := lInstr{Op: "ChooseCard", Obj: lRef{Kind: rYou}, F: f, C: zBattlefield, CS: "AttachPick"}

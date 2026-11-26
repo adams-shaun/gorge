@@ -223,6 +223,9 @@ func (g *GorgeSide) optionAction(d *decision.Decision, o *decision.Option) (Cano
 		if isCounterKindAsk(d.ResumeKind) {
 			return g.counterKindAction(d, o)
 		}
+		if a, ok := g.manaAskColourAction(d, o); ok {
+			return a, true // an unless source's colour ask (priority_manaask.go)
+		}
 		code, known := chooseCode(chooseKindAlias(d, o))
 		if !known {
 			return g.chooseOtherAction(o)

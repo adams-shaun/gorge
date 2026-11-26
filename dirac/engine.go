@@ -54,6 +54,12 @@ func (s *State) InitNStart(tbl *Table, decks [MaxSeats][]CardID, n uint8, seed u
 	if cfg.Commander {
 		lay = &s.k().coldCmd // a partner pair's bookkeeping (zone_cmdpartner.go)
 	}
+	if anyPlanar(&cfg) {
+		lay = &s.k().coldPlane // the planar-deck record (zone_planechase.go)
+		if cfg.Commander {
+			lay = &s.k().coldCmdPlane
+		}
+	}
 	s.resetCold(lay)
 	s.initPartners()
 	s.g.on = s.k().gen != nil
@@ -95,6 +101,9 @@ func (s *State) InitNStart(tbl *Table, decks [MaxSeats][]CardID, n uint8, seed u
 	if cfg.Commander {
 		s.cfg |= cfgCommander
 	}
+	if cfg.PriorityManaAsk {
+		s.g.priAsk = 1
+	}
 	s.divA = NoSlot
 	s.mullMax = cfg.Mulligans
 	s.win = -1
@@ -117,9 +126,15 @@ func (s *State) InitNStart(tbl *Table, decks [MaxSeats][]CardID, n uint8, seed u
 			o := s.nobj
 			s.nobj++
 			s.objs[o] = object{card: c, chosen: 255, zone: kop.ZoneLibrary, slot: NoSlot, acts: uint8(p) << objOwnerShift}
+			s.mintBirth(o)
 			s.touch(o)
 			s.pl[p].libBottom(o)
 		}
+		// The seat's planar deck follows its library in object order, as
+		// gorge's genesis deal numbers it (deck, sideboard, plane, then the
+		// next seat). The projection compares object ids, so the order is
+		// load-bearing.
+		s.initPlanarSeat(uint8(p), &cfg)
 	}
 	s.initSideboards(&cfg)
 	if s.g.on {
@@ -129,6 +144,9 @@ func (s *State) InitNStart(tbl *Table, decks [MaxSeats][]CardID, n uint8, seed u
 	}
 	toss := uint8(s.rng.IntN(ns))
 	for p := uint8(0); p < uint8(ns); p++ {
+		// gorge's genesis deal order: the planar deck's shuffle, then the
+		// commander leaves the library, then the library shuffle and hand.
+		s.shufflePlanar(p)
 		if s.cfg&cfgCommander != 0 || cfg.SeatCommanders {
 			s.cmdGenesis(p, cfg.Commanders[p])
 		}
@@ -279,6 +297,11 @@ func (s *State) stepRaw(d *Decision) {
 			if s.sba(k) {
 				continue
 			}
+			// a Swirl-class colour-word static reads a rewritten word: stall before any
+			// trigger's targets are asked or a player acts (static_colorwords.go)
+			if k.anyColorWords && s.colorWordsStall(k) {
+				return
+			}
 			// the pass queued a returning Aura's host ask (queueAskRet):
 			// gorge asks it inside the pass, before the triggers and this
 			// priority (stepGen poses it)
@@ -333,6 +356,9 @@ func (s *State) stepRaw(d *Decision) {
 		case ctlEnlist:
 			s.enlistOptions(k, d) // kw_enlist.go
 			return
+		case ctlExert:
+			s.exertOptions(d) // combat_exert.go
+			return
 		case ctlExileOrder:
 			s.exileOrderOptions(k, d)
 			return
@@ -341,6 +367,12 @@ func (s *State) stepRaw(d *Decision) {
 			return
 		case ctlTurnUpX:
 			s.turnUpXOptions(d) // face_turnfaceup.go
+			return
+		case ctlTurnUpReveal:
+			s.turnUpRevealOptions(k, d) // act_revealpick.go
+			return
+		case ctlManaAsk:
+			s.priManaAskOptions(k, d) // mana_priask.go
 			return
 		case ctlCmdZone0, ctlCmdZone1, ctlCmdZone2, ctlCmdZone3, ctlCmdZone4, ctlCmdZone5, ctlCmdZone6, ctlCmdZone7:
 			s.askCmdZone(k, d, s.ctl-ctlCmdZone0) // CR 903.9a (zone_cmdzone.go)
@@ -408,12 +440,18 @@ func (s *State) Apply(a Action) {
 		s.applyBand(k, a) // combat_band.go
 	case ctlEnlist:
 		s.applyEnlist(k, a) // kw_enlist.go
+	case ctlExert:
+		s.applyExert(k, a) // combat_exert.go
 	case ctlExileOrder:
 		s.applyExileOrder(k, a)
 	case ctlReflectPick:
 		s.applyReflectPick(k, a) // mana_reflectpickask.go
 	case ctlTurnUpX:
 		s.applyTurnUpX(k, a) // face_turnfaceup.go
+	case ctlTurnUpReveal:
+		s.applyTurnUpReveal(k) // act_revealpick.go
+	case ctlManaAsk:
+		s.applyPriManaAsk(k, a) // mana_priask.go
 	case ctlCmdZone0, ctlCmdZone1, ctlCmdZone2, ctlCmdZone3, ctlCmdZone4, ctlCmdZone5, ctlCmdZone6, ctlCmdZone7:
 		s.applyCmdZone(k, s.ctl-ctlCmdZone0, a.Mode()) // CR 903.9a (zone_cmdzone.go)
 	case ctlDivide:

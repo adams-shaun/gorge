@@ -131,6 +131,9 @@ func (s *State) costObjOptions(k *prep, d *Decision) bool {
 	if s.beholdOptions(k, d) {
 		return true // a spell's behold part (act_behold.go)
 	}
+	if s.revealCastOptions(k, d) {
+		return true // a spell's reveal part (act_revealpick.go)
+	}
 	pc := s.buildPickCost(k)
 	if pc == nil || pc.Flags&costObjFlags == 0 && !pc.PutLibSelf {
 		return false
@@ -252,6 +255,10 @@ func (s *State) costObjOptions(k *prep, d *Decision) bool {
 func (s *State) answerCostObj(a Action) {
 	if s.bld().pickK == pkBehold {
 		s.answerBeholdPick(a)
+		return
+	}
+	if s.bld().pickK == pkReveal {
+		s.answerCastReveal()
 		return
 	}
 	if s.bld().pickK == pickForage {

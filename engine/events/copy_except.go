@@ -115,6 +115,40 @@ const (
 	TextChangeExpire   int32 = -1
 )
 
+// foldColorWords folds Kind ColorWordsSync (CR 612.5's colour-word change,
+// Swirl the Mists): Text carries the JSON encoding of the []cards.TextSub
+// the object's STATIC-marked text substitutions become -- the empty payload
+// retracts them. The static-derived subs are replaced, never composed with
+// themselves (the derivation is a pure function of the live statics and the
+// board, re-emitted only when the live set moves), while a resolving
+// api:ChangeText's own substitution on the same object is kept in place; the
+// static set is rebuilt after it, in list order. A payload the fold cannot
+// parse applies nothing (the fail-closed direction CopyExceptions'
+// ParseCopyExceptions documents).
+func foldColorWords(g *state.Game, e *Event) {
+	o := g.Obj(e.Obj)
+	if o == nil {
+		return
+	}
+	var subs []cards.TextSub
+	if e.Text != "" {
+		if json.Unmarshal([]byte(e.Text), &subs) != nil {
+			return
+		}
+	}
+	merged := make([]cards.TextSub, 0, len(o.TextChanges)+len(subs))
+	for _, s := range o.TextChanges {
+		if !s.Static {
+			merged = append(merged, s)
+		}
+	}
+	merged = append(merged, subs...)
+	if len(merged) == 0 {
+		merged = nil
+	}
+	o.SetTextChanges(merged)
+}
+
 // foldCopyExcept folds Kind CopyExcept into state. The copy's current face
 // (its CopyFace basis, or a just-minted token copy's printed face) is
 // value-copied and edited -- never mutated in place, since it may be the

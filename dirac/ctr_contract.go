@@ -48,11 +48,11 @@ func (s *State) addContract(k *prep, p uint8, n int) {
 }
 
 // putContract is OpExt ExtPutContract: each player Obj names gets B contract
-// counters. A nonzero C marks the put as made by Miss Highwater's loss Effect
-// (kop.Instr.C of the ext op, 0 in every table kgen emits until its lowering
-// arms that Effect): the resolving controller then owes the player's loss copy
-// (ctr_losscopy.go). With C zero no record is made, as gorge arms
-// nothing for the Effect.
+// counters. A nonzero C marks the put as made in the chain that also carries
+// Miss Highwater's loss Effect (kop.Instr.C of the ext op, set by kgen's
+// contractLossEffect when that Effect proves the chain): the resolving
+// controller then owes the player's loss copy (ctr_losscopy.go). With C zero
+// no record is made, so a standalone Contract counter put never arms a copy.
 //
 //kmanifest:ext ExtPutContract
 func (s *State) putContract(k *prep, in *kop.Instr) (ok, done bool) {
@@ -60,8 +60,14 @@ func (s *State) putContract(k *prep, in *kop.Instr) (ok, done bool) {
 	n := s.value(k, in.B)
 	for i := uint8(0); i < q.n; i++ {
 		s.addContract(k, q.s[i], n)
-		if in.C != 0 && s.contracts(q.s[i]) != 0 {
-			s.setContractOwed(q.s[i], s.res.e.ctrl) // the Effect's loss copy (ctr_losscopy.go)
+		if in.C != 0 && s.contracts(q.s[i]) != 0 && !s.pl[SeatIx(q.s[i])].lost {
+			// the Effect's loss copy (ctr_losscopy.go): remember the trigger's
+			// source too, because the copy is a delayed trigger on the stack.
+			// A player who already lost before this Effect was created arms
+			// nothing: gorge's LosesGame registration starts after the
+			// PlayerLost event, so it cannot retroactively fire for it (seed
+			// 36: the damage trigger resolves after the loser is at 0).
+			s.setContractOwed(q.s[i], s.res.e.ctrl, s.res.e.obj)
 		}
 	}
 	return true, true

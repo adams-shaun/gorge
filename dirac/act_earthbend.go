@@ -124,7 +124,7 @@ func (s *State) execEarthbend(k *prep, in *kop.Instr) (ok, done bool) {
 func (s *State) splitLeaveDelayed(n uint8) (m, keep uint8) {
 	var timed, leave [MaxDelayed]delayed
 	for i := uint8(0); i < n; i++ {
-		if d := s.dly[i]; d.when == dlyLeave || d.when == dlyLeaveGrave {
+		if d := s.dly[i]; d.when == dlyLeave || d.when == dlyLeaveGrave || d.when == dlyBlitzDies || d.when == dlyLeaveExile {
 			leave[keep] = d
 			keep++
 		} else {

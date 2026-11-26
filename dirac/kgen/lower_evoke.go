@@ -31,6 +31,32 @@ func (lc *lowerCtx) refuseEvokeCombos() {
 	}
 }
 
+// evokePickCost lowers an evoke cost with a hand-exile part (Endurance's
+// "ExileFromHand<1/Card.Green+Other/green card>", CR 702.74a, 118.9): the
+// alternative cost's hand-exile shape (altPayLifeExileHand: ExileFromHand<1/
+// Spec>, PayLife<1> beside it or not), whose filter it keeps (altCostCost),
+// with any plain mana beside it as the evoke mana cost. The kernel's evoked
+// cast pays the pick through its pick stage (CardDef.EvokePick).
+func (lc *lowerCtx) evokePickCost(param string) error {
+	c, err := lc.altCostCost(param)
+	if err != nil {
+		return err
+	}
+	if !altPayLifeExileHand(&c) {
+		return refuse("evoke cost parts other than ExileFromHand<1/Spec>, alone or beside PayLife<1>")
+	}
+	mana := c.Mana
+	if mana.None {
+		mana = manaCost{}
+	}
+	if mana.X || len(mana.Twobrid) != 0 || len(mana.Phyrexian) != 0 {
+		return refuse("evoke mana part %s", mana)
+	}
+	c.Mana = manaCost{None: true}
+	lc.out.Evoke, lc.out.EvokePick = &mana, &c
+	return nil
+}
+
 // adamantValue lowers the CastSA>Count$ / Count$ body rest
 // ("Adamant_2.Red.2.0", or "Adamant.Red.2.0" for the keyword's standard
 // three) at the three sites where the kernel reads the cast's spend

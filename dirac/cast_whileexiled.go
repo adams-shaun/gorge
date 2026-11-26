@@ -1,5 +1,7 @@
 package dirac
 
+import "github.com/adams-shaun/gorge/dirac/kop"
+
 // A while-exiled owner's permission (Soul Partition, CR
 // 611.2a): "For as long as that card remains exiled, its owner may play it.
 // A spell cast by an opponent this way costs {2} more to cast." kgen lowers
@@ -21,13 +23,24 @@ const mayKindRaise uint8 = 2
 // the surcharge raise owed when the owner is not the effect's controller.
 // turn is only the raise when one is owed; otherwise it stays the record's
 // creation turn, which the DurYourNextTurn cleanup reads (Expedited
-// Inheritance's EffectOwner$ RememberedController grant).
+// Inheritance's EffectOwner$ RememberedController grant) -- unless the
+// record is an UntilYourNextTurn one, whose expiry seat the grant's
+// controller is: gorge's boundary is the effect controller's next turn for
+// every record of the grant (layers_effect.go nextTurnFor(ce.Controller)),
+// not each owner's, so the seat rides in turn (free for an owner record:
+// only a DurYourNextTurn record's creation turn is read from it) and the
+// sweep groups by it (cast_mayplaynt.go ntSeat). Never with a raise: the
+// surcharged owner permission lowers as a while-exiled record, never an
+// UntilYourNextTurn one (lower_zone.go's partitionMayPlay), so the two
+// riders never meet.
 func (s *State) partitionRecord(r *mayPlay, o Obj, ctrl uint8, raise int) {
 	owner := s.objs[o].owner()
 	r.ctrl = owner
 	if raise > 0 && owner != ctrl {
 		r.kind |= mayKindRaise
 		r.turn = mayWord(raise)
+	} else if raise == 0 && r.dur() == kop.DurUntilYourNextTurn {
+		r.turn = mayNTGrantCtrl | mayWord(ctrl)
 	}
 }
 

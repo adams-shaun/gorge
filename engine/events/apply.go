@@ -345,6 +345,8 @@ func applyKind(g *state.Game, e *Event) {
 		foldMyriadCleanup(g, e)
 	case TokenAttacks:
 		foldTokenAttacks(g, e)
+	case TokenBlocks:
+		foldTokenBlocks(g, e)
 	case Shuffle:
 		foldShuffle(g, e)
 	case PlanarDeckShuffle:
@@ -555,6 +557,8 @@ func applyKind(g *state.Game, e *Event) {
 		g.Restart(e.Amount, e.IDs)
 	case TextChange:
 		foldTextChange(g, e)
+	case ColorWordsSync:
+		foldColorWords(g, e)
 	case ActivationReversed:
 		foldActivationReversed(g, e)
 	case HadToAttack:

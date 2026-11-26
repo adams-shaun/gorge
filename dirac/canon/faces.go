@@ -40,13 +40,24 @@ const (
 	// with kop.FacePrototype). The route table's nibble is full, so it is the
 	// face nibble 2 over route code 0: no other route has either.
 	FaceCastPrototype = 2<<4 | 0
+
+	// FaceCastConverted and FaceCastDisturb are the ActCastFace modes of a
+	// transforming card's back face cast for its front's keyword cost
+	// (dirac/face_flipcast.go): More Than Meets the Eye's from the hand
+	// (CR 702.162a; gorge "converted", rules legal_walk_hand.go) and
+	// disturb's from the graveyard (CR 702.146a; gorge "disturb", rules
+	// legal_walk_alt.go). The route nibble is full, so each is a face
+	// nibble over route code 0, as FaceCastPrototype is; "disturb"'s old
+	// castModes code is never produced.
+	FaceCastConverted = 1<<4 | 0
+	FaceCastDisturb   = 3<<4 | 0
 )
 
 // FollowedFaceRoute reports whether the kernel follows the planner for a
 // face route's potential play (prices every face route the kernel
 // casts; the face-down routes are not face casts of this table).
 func FollowedFaceRoute(fc uint8) bool {
-	if fc == FaceCastPrototype {
+	if fc == FaceCastPrototype || fc == FaceCastConverted || fc == FaceCastDisturb {
 		return true
 	}
 	switch fc & 15 {
@@ -60,8 +71,13 @@ func FollowedFaceRoute(fc uint8) bool {
 // FaceCastCode is the ActCastFace mode of a face route's Option.Mode; ok
 // is false for every other mode.
 func FaceCastCode(mode string) (uint8, bool) {
-	if mode == "prototype" {
+	switch mode {
+	case "prototype":
 		return FaceCastPrototype, true
+	case "converted":
+		return FaceCastConverted, true
+	case "disturb":
+		return FaceCastDisturb, true
 	}
 	for i := 1; i < len(faceCastModes); i++ {
 		if faceCastModes[i] == mode {
@@ -127,6 +143,10 @@ func (r *Translator) faceCastCanon(src dirac.Obj, i uint8) uint8 {
 		code = FaceCodeOmen
 	case cd.FaceMode == kop.FacePrototype && i == 1:
 		return FaceCastPrototype
+	case cd.FaceMode == kop.FaceTransform && i == 1 && r.S.ObjZone(src) == kop.ZoneGraveyard:
+		return FaceCastDisturb // face_flipcast.go
+	case cd.FaceMode == kop.FaceTransform && i == 1:
+		return FaceCastConverted // face_flipcast.go
 	}
 	return faceCastFaces[code]<<4 | code
 }
@@ -135,8 +155,13 @@ func (r *Translator) faceCastCanon(src dirac.Obj, i uint8) uint8 {
 func CastModeOf(c Canon) string {
 	switch c.Kind() {
 	case ActCastFace:
-		if c.Mode() == FaceCastPrototype {
+		switch c.Mode() {
+		case FaceCastPrototype:
 			return "prototype"
+		case FaceCastConverted:
+			return "converted"
+		case FaceCastDisturb:
+			return "disturb"
 		}
 		return faceCastModes[c.Mode()&15]
 	case ActCastCasualty:

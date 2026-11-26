@@ -50,9 +50,12 @@ const relaxedPaidLimit = 3
 // one colour (Three Tree City's {2},{T}), or a literal amount above one in
 // any combination (Baxter Building's {4},{T}: four mana, a Combo Any
 // allocation; mana_filter.go's filtCombo), no other cost or restriction, on
-// a card whose first mana ability is a free {T} one. A filter that is the
-// card's first mana ability (Three Tree Mascot's untapped {1}, Prophetic
-// Prism) is kop.FilterManaAb's (mana_filterfirst.go).
+// a card whose first mana ability is a free {T} one. A paid filter set's
+// abilities are filters too: one fixed WUBRG colour (Koskun Keep's {1},{T}:
+// Add {R}) or a two-colour choice (its {2},{T}: Add {B} or {G}), one mana,
+// no restriction (setFilterMana). A filter that is the card's first mana
+// ability (Three Tree Mascot's untapped {1}, Prophetic Prism) is
+// kop.FilterManaAb's (mana_filterfirst.go).
 func filterTapMana(cd *kop.CardDef, a *kop.Ability) bool {
 	if a.ManaAskColour {
 		return false // the colour-asking route's (mana_askcolour.go), not a filter
@@ -60,11 +63,12 @@ func filterTapMana(cd *kop.CardDef, a *kop.Ability) bool {
 	m := &a.Cost.Mana
 	_, pip := fixedPipFilt(a)        // a gated one-pip fixed-colour filter (mana_filterpip.go)
 	hyb := kop.HybridFilterManaAb(a) // a one-hybrid-pip fee, two of one chosen colour (mana_filterhybrid.go)
+	set := setFilterMana(a)          // a paid filter set's fixed-colour or two-colour-choice fee
 	if a.Kind != kop.AbMana || a.AFlags&^(kop.AfManaDynamic|kop.AfManaChoice) != 0 || a.ManaRestrict != 0 || a.Cost.Flags != kop.CostTap ||
 		m.X != 0 || m.Hyb[0] != 0 && !hyb || a.ManaN == 0 {
 		return false
 	}
-	if !pip && !hyb && (m.Generic == 0 || m.Pips != ([kop.NumManaKinds]uint8{}) || a.ManaColors != kop.ColAny || a.ManaN > 1 && (a.AFlags&kop.AfManaChoice == 0 || !comboFiltAb(a))) {
+	if !pip && !hyb && !set && (m.Generic == 0 || m.Pips != ([kop.NumManaKinds]uint8{}) || a.ManaColors != kop.ColAny || a.ManaN > 1 && (a.AFlags&kop.AfManaChoice == 0 || !comboFiltAb(a))) {
 		return false
 	}
 	f := firstManaAb(cd)
@@ -73,6 +77,27 @@ func filterTapMana(cd *kop.CardDef, a *kop.Ability) bool {
 	}
 	fa := &cd.Abilities[f]
 	return fa.Cost.Flags == kop.CostTap && fa.Cost.Mana.MV() == 0 && fa.Cost.Mana.X == 0 && fa.AFlags == 0 && fa.ManaRestrict == 0
+}
+
+// setFilterMana reports whether a is a paid filter-set ability: a generic
+// fee of at least one, no other cost, making one mana of one fixed WUBRG
+// colour (no AfManaChoice) or one mana of a two-colour choice (AfManaChoice,
+// Koskun Keep's {2},{T}: Add {B} or {G}). The card's plain {T} first ability
+// is the planner's unit; these are its paid census gaps (mana_filter.go,
+// scriptFilt's multi-ability ask).
+func setFilterMana(a *kop.Ability) bool {
+	m := &a.Cost.Mana
+	if m.Generic < 1 || m.Pips != ([kop.NumManaKinds]uint8{}) || a.ManaN != 1 || a.ManaEach ||
+		a.ManaColors == 0 || a.ManaColors&^kop.ColAny != 0 {
+		return false
+	}
+	switch a.AFlags {
+	case 0:
+		return bits.OnesCount8(uint8(a.ManaColors)) == 1
+	case kop.AfManaChoice:
+		return bits.OnesCount8(uint8(a.ManaColors)) == 2
+	}
+	return false
 }
 
 // comboFiltAb reports whether a produces its literal amount of mana as a
@@ -87,7 +112,20 @@ func comboFiltAb(a *kop.Ability) bool {
 // which scriptFilt then drops (gorge's census, manaAbilityYieldsNothing);
 // a gated one-pip filter is mana_filterpip.go's.
 func (g *genPrep) prepTapFilt(c CardID, j int, a *kop.Ability) {
-	g.smallFor(c).filt = int8(j)
+	ord := g.filtNext(c)
+	if ord < 0 {
+		panic("kernel: more filter mana abilities than the table records")
+	}
+	switch ord {
+	case 0:
+		g.smallFor(c).filt = int8(j)
+	case 1:
+		g.smallFor(c).filt2 = int8(j)
+	case 2:
+		g.smallFor(c).filt3 = int8(j)
+	default:
+		g.smallFor(c).filt4 = int8(j)
+	}
 	g.setFlag(c, gfFilt)
 	g.anyFilt = true
 	if a.AFlags&kop.AfManaDynamic != 0 {
@@ -320,6 +358,20 @@ func (s *State) filtFee(k *prep, sl Slot) int {
 	return int(a.Cost.Mana.Generic)
 }
 
+// filtFeeAt is filtFee for the card's filter ability at ordinal ord: a paid
+// filter set's second ability has its own generic fee (Koskun Keep's {2}),
+// and an activated-ability reducer lowers it as filtFee's does (CR 601.2f).
+func (s *State) filtFeeAt(k *prep, sl Slot, ord int8) int {
+	if ord == 0 {
+		return s.filtFee(k, sl)
+	}
+	a := s.filtAbAt(k, sl, ord)
+	if k.gen.anyAbReduce {
+		return int(s.abReduced(k, a, sl, s.perms[sl].ctrl, a.Cost.Mana).Generic)
+	}
+	return int(a.Cost.Mana.Generic)
+}
+
 // filtUnits is the mana the filter at sl makes.
 func (s *State) filtUnits(k *prep, sl Slot) int {
 	a := s.filtAb(k, sl)
@@ -345,19 +397,58 @@ func (s *State) filtUnits(k *prep, sl Slot) int {
 	return 1
 }
 
+// filtUnitsAt is filtUnits for the card's filter ability at ordinal ord.
+func (s *State) filtUnitsAt(k *prep, sl Slot, ord int8) int {
+	if ord == 0 {
+		return s.filtUnits(k, sl)
+	}
+	a := s.filtAbAt(k, sl, ord)
+	if a.AFlags&kop.AfManaDynamic != 0 {
+		return s.dynManaN(k, a, sl)
+	}
+	if comboFiltAb(a) {
+		return int(a.ManaN)
+	}
+	if a.ManaEach {
+		n := 0
+		for _, v := range filtEachVec(a) {
+			n += int(v)
+		}
+		return n
+	}
+	if a.AFlags&kop.AfManaChoice == 0 {
+		return int(max(a.ManaN, 1))
+	}
+	return 1
+}
+
 // filtRelaxable: gorge's relaxed proof can enumerate the filters f: at most
 // relaxedPaidLimit, each dynamic amount at least one and at most six
 // (rules/potential_plan.go paymentPlanRelaxedAlternatives).
 func (s *State) filtRelaxable(k *prep, f slotMask) bool {
-	if f.count() > relaxedPaidLimit || s.filtRepeatIn(k, f) || s.filtHybIn(k, f) { // (a hybrid fee or a repeatable one has no relaxed alternative: mana_filterhybrid.go, gorge ok=false)
+	if s.filtAbCount(k, f) > relaxedPaidLimit || s.filtRepeatIn(k, f) || s.filtHybIn(k, f) { // (a hybrid fee or a repeatable one has no relaxed alternative: mana_filterhybrid.go, gorge ok=false)
 		return false
 	}
 	for ; f.any(); f = f.rest() {
-		if !s.filtUnitsEnumerable(k, f.first()) {
-			return false
+		sl := f.first()
+		for i, nc := 0, s.filtCount(k, sl); i < nc; i++ {
+			if !s.filtUnitsEnumerableAt(k, sl, int8(i)) {
+				return false
+			}
 		}
 	}
 	return true
+}
+
+// filtAbCount is how many filter abilities the gaps f record: gorge's paid
+// list counts abilities, not sources (a paid filter set's two fees are two
+// paid entries).
+func (s *State) filtAbCount(k *prep, f slotMask) int {
+	n := 0
+	for ; f.any(); f = f.rest() {
+		n += s.filtCount(k, f.first())
+	}
+	return n
 }
 
 // filtUnitsEnumerable: gorge's relaxed proof can enumerate the filter at sl's
@@ -366,11 +457,17 @@ func (s *State) filtRelaxable(k *prep, f slotMask) bool {
 // refuses one above six). A fixed-colour amount is one vector however large:
 // Magus of the Coffers' {B} for each of seven Swamps is still relaxable.
 func (s *State) filtUnitsEnumerable(k *prep, sl Slot) bool {
-	n := s.filtUnits(k, sl)
+	return s.filtUnitsEnumerableAt(k, sl, 0)
+}
+
+// filtUnitsEnumerableAt is filtUnitsEnumerable for the card's filter ability
+// at ordinal ord.
+func (s *State) filtUnitsEnumerableAt(k *prep, sl Slot, ord int8) bool {
+	n := s.filtUnitsAt(k, sl, ord)
 	if n < 1 {
 		return false
 	}
-	if a := s.filtAb(k, sl); a.AFlags&kop.AfManaChoice == 0 && bits.OnesCount8(uint8(a.ManaColors)) == 1 {
+	if a := s.filtAbAt(k, sl, ord); a.AFlags&kop.AfManaChoice == 0 && bits.OnesCount8(uint8(a.ManaColors)) == 1 {
 		return true
 	}
 	return n <= 6
@@ -385,21 +482,31 @@ func (s *State) filtUnitsEnumerable(k *prep, sl Slot) bool {
 func (s *State) availFilt(k *prep, p uint8, a *avail) {
 	neg := 0
 	for b := s.scriptFilt(k, p); b.any(); b = b.rest() {
-		units, fee := s.filtUnits(k, b.first()), s.filtFee(k, b.first())
-		if units < fee {
-			// a subset of the relaxed proof (mana_filtersubset.go): this filter is left out
-			if neg++; neg <= relaxedPaidLimit && s.g.availX&availGaps != 0 && s.filtSkip()&(uint8(1)<<(neg-1)) != 0 {
-				continue
+		sl := b.first()
+		// A paid filter set's every ability is a relaxed unit with its own fee
+		// (Koskun Keep's {1} -> {R} and {2} -> {B} or {G}). Gorge's relax
+		// proof enumerates the paid gaps' subsets (paymentPlanRelaxProof);
+		// plainGapsOptions runs this walk once per subset of the net-negative
+		// abilities (mana_filtersubset.go), so this run charges each fee the
+		// subset keeps.
+		for i, nc := 0, s.filtCount(k, sl); i < nc; i++ {
+			ord := int8(i)
+			units, fee := s.filtUnitsAt(k, sl, ord), s.filtFeeAt(k, sl, ord)
+			if units < fee {
+				// a subset of the relaxed proof (mana_filtersubset.go): this filter is left out
+				if neg++; neg <= relaxedPaidLimit && s.g.availX&availGaps != 0 && s.filtSkip()&(uint8(1)<<(neg-1)) != 0 {
+					continue
+				}
 			}
-		}
-		addFiltUnits(a, s.filtAb(k, b.first()), uint8(units))
-		xv := s.filtExtra(k, b.first()) // the TapsForMana extra its {T} brings (Wolfwillow Haven on a Desolate Mire)
-		for c, v := range xv {
-			if v != 0 {
-				a.addUnits(1<<c, v)
+			addFiltUnits(a, s.filtAbAt(k, sl, ord), uint8(units))
+			xv := s.filtExtraAt(k, sl, ord) // the TapsForMana extra its {T} brings (Wolfwillow Haven on a Desolate Mire)
+			for c, v := range xv {
+				if v != 0 {
+					a.addUnits(1<<c, v)
+				}
 			}
+			a.total -= fee
 		}
-		a.total -= fee
 	}
 }
 
@@ -1348,6 +1455,11 @@ type filtStep struct {
 	sl  Slot
 	ans uint8
 	gap bool
+	// ab is the card's filter ability ordinal this step activates (0 is its
+	// first filter, the default): a paid filter set activates one of its
+	// paid abilities per step (Koskun Keep's {1},{T}: Add {R} or {2},{T}:
+	// Add {B} or {G}), whose fee and choice the step's helpers read.
+	ab int8
 	// col: a free gap activation's answer is 1+col rather than the source's
 	// lowest colour (mana_gapfreecols.go); 0 is that lowest colour
 	col uint8
@@ -1609,17 +1721,22 @@ func (s *State) filtFundable(k *prep, p uint8, f slotMask) bool {
 	n := 0
 	for ; f.any(); f = f.rest() {
 		sl := f.first()
-		if _, _, hyb := s.filtHyb(k, sl); hyb {
-			// A hybrid fee has no relaxed alternative, so it adds no subset
-			// to the relaxed proof and does not count toward that bound;
-			// each one still funds its own fee (filtFunding).
-			continue
-		}
-		if n++; n > relaxedPaidLimit {
-			return false
-		}
-		if !s.filtUnitsEnumerable(k, sl) {
-			return false
+		for i, nc := 0, s.filtCount(k, sl); i < nc; i++ {
+			ord := int8(i)
+			if ord == 0 {
+				if _, _, hyb := s.filtHyb(k, sl); hyb {
+					// A hybrid fee has no relaxed alternative, so it adds no subset
+					// to the relaxed proof and does not count toward that bound;
+					// each one still funds its own fee (filtFunding).
+					continue
+				}
+			}
+			if n++; n > relaxedPaidLimit {
+				return false
+			}
+			if !s.filtUnitsEnumerableAt(k, sl, ord) {
+				return false
+			}
 		}
 	}
 	// A live reflected Amount$ source (Incubation Druid) has no relaxed
@@ -2194,6 +2311,9 @@ func (s *State) filtDo(k *prep, p uint8, st filtStep) {
 		// (mana_filterpip.go)
 		dc, dn := s.deferSnap(p) // a deferred source's unit the fee spends is gone (mana_deferred.go)
 		fee := s.filtFee(k, st.sl)
+		if st.ab != 0 {
+			fee = s.filtFeeAt(k, st.sl, st.ab) // a paid filter set's other ability's own fee
+		}
 		if col, ok := s.filtPip(k, st.sl); ok {
 			s.filtPayPip(k, p, st.sl, col)
 			fee = 0
@@ -2209,7 +2329,7 @@ func (s *State) filtDo(k *prep, p uint8, st filtStep) {
 			s.artSync(p) // a slot the fee emptied no longer holds an artifact's mana
 		}
 		s.deferSync(p, dc, dn)
-		if s.filtAb(k, st.sl).ManaEach {
+		if s.filtAbAt(k, st.sl, st.ab).ManaEach {
 			s.filtEachDo(k, p, st.sl) // every colour at once, whatever ans names (mana_filtereach.go)
 			break
 		}
@@ -2227,16 +2347,16 @@ func (s *State) filtDo(k *prep, p uint8, st filtStep) {
 			s.tapExtraStall(k, st.sl)
 			break
 		}
-		s.poolAdd(p, int(st.ans-1), int(s.filtUnits(k, st.sl)))
+		s.poolAdd(p, int(st.ans-1), s.filtUnitsAt(k, st.sl, st.ab))
 		// the filter taps the source for mana, so a TapsForMana static adds
 		// its extra beside the filter's unit (mana_tapextra.go filtExtra)
-		xv := s.filtExtra(k, st.sl)
+		xv := s.filtExtraAt(k, st.sl, st.ab)
 		s.addXv(p, &xv)
-		if r := s.filtReflectPick(k, st.sl); r > 0 {
+		if r := s.filtReflectPickAt(k, st.sl, st.ab); r > 0 {
 			s.poolAdd(p, int(st.ans-1), int(r)) // a reflected extra is one more of the pick (CR 106.12a)
 		}
 		s.artTag(k, p, st.sl, int(st.ans-1)) // an artifact's mana is typed (Three Tree Mascot, Prophetic Prism; mana_artifact.go)
-		if s.filtAb(k, st.sl).Cost.Flags&kop.CostSacSelf != 0 {
+		if s.filtAbAt(k, st.sl, st.ab).Cost.Flags&kop.CostSacSelf != 0 {
 			// {1}, {T}, sacrifice this (Omni-Cheese Pizza): the sacrifice is
 			// part of the activation cost (CR 602.2b, 605.1a), taken after the
 			// mana is added, as a Treasure's is (fundSac)
@@ -2286,7 +2406,11 @@ func (s *State) fireFiltAbilityCast(k *prep, p uint8, st filtStep) {
 	c := s.cardAt(st.sl)
 	switch {
 	case st.gap && st.ans > 0:
-		s.fireManaAbilityCast(k, c, k.gen.filt(c), p)
+		ai := k.gen.filt(c)
+		if st.ab != 0 {
+			ai = k.gen.filtAt(c, int(st.ab))
+		}
+		s.fireManaAbilityCast(k, c, ai, p)
 	case st.restr:
 		s.fireManaAbilityCast(k, c, k.gen.restrRecOf(c).ab, p)
 	case st.gap:
@@ -3307,7 +3431,9 @@ func (fs *filtSearch) gapFreeSpecial(k *prep, t *State, sl Slot, funded int, fre
 	if rm := t.mixSrcMask(k, sl); free && rm != 0 {
 		return true, fs.mixSrcGap(k, t, sl, funded, rm, filt)
 	}
-	if free && !fs.freeSubtreeExhausts(k, t, sl) && fs.freeBranchHopeless(k, t, sl) {
+	if free && t.filtCount(k, sl) <= 1 && !fs.freeSubtreeExhausts(k, t, sl) && fs.freeBranchHopeless(k, t, sl) {
+		// (a paid filter set's ask hoists the needed colours ahead of its
+		// free {C} answer itself: filtSetGap)
 		if filt && fs.filtColours(k, t, sl, funded, false) {
 			return true, true
 		}
@@ -3743,8 +3869,12 @@ func (fs *filtSearch) gapFeeSpendable(k *prep, t *State, sl Slot) bool {
 // twoAbilityGap is visit's answer order for a gap source with a free and a
 // filter ability: the {C} answer first, then the filter's colours; a granted
 // type's intrinsic {c} (filtIntrinsicFree) is listed after the printed filter,
-// so the filter's colours come first there.
+// so the filter's colours come first there. A paid filter set (Koskun Keep)
+// is one ask over every payable ability's colours (filtSetGap).
 func (fs *filtSearch) twoAbilityGap(k *prep, t *State, sl Slot, funded int) bool {
+	if t.filtCount(k, sl) > 1 {
+		return fs.filtSetGap(k, t, sl, funded)
+	}
 	if t.filtIntrinsicFree(k, sl) {
 		return fs.filtColours(k, t, sl, funded, false) || fs.gapFreeTry(k, t, sl, funded, true)
 	}

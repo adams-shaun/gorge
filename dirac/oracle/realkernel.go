@@ -126,12 +126,27 @@ func RealKernel(tbl *kop.Table, names map[string]string, cfg Config) SideFactory
 		r.kcfg.SeatCommanders = m.SeatCommandZone
 		r.kcfg.RecordChance = cfg.RecordChance
 		r.kcfg.ArrangeRestOrder = cfg.ArrangeRestOrder
+		r.kcfg.PriorityManaAsk = cfg.PriorityManaAsk
 		for s := 0; s < 2; s++ {
 			if len(sides[s]) > dirac.MaxSide {
 				return nil, fmt.Errorf("realkernel: sideboard of %d cards, the kernel holds %d", len(sides[s]), dirac.MaxSide)
 			}
 			r.kcfg.SideN[s] = uint8(copy(r.kcfg.Side[s][:], sides[s]))
 		}
+		for s := 0; s < 2; s++ {
+			if len(m.PlanarDecks[s]) > dirac.MaxPlane {
+				return nil, fmt.Errorf("realkernel: planar deck of %d cards, the kernel holds %d", len(m.PlanarDecks[s]), dirac.MaxPlane)
+			}
+			for j, c := range m.PlanarDecks[s] {
+				id, ok := rev[cardName(c)]
+				if !ok {
+					return nil, fmt.Errorf("realkernel: planar card %q is not in table %s", cardName(c), tbl.Name)
+				}
+				r.kcfg.PlanarDecks[s][j] = id
+			}
+			r.kcfg.PlanarN[s] = uint8(len(m.PlanarDecks[s]))
+		}
+		r.kcfg.Planechase = r.kcfg.PlanarN[0] > 0 || r.kcfg.PlanarN[1] > 0
 		st, err := kernelStart(m.Start)
 		if err != nil {
 			return nil, err
@@ -338,6 +353,8 @@ func (r *realSide) Project(p *Projection) {
 			c.Zone = uint8(kop.ZoneBattlefield) - 1 // a phased-out permanent is still on the battlefield (CR 702.26d)
 		case o.Zone == kop.ZoneSideboard:
 			c.Zone = uint8(state.ZSideboard)
+		case o.Zone == kop.ZonePlanarDeck:
+			c.Zone = uint8(state.ZPlanarDeck)
 		default:
 			c.Zone = uint8(o.Zone) - 1
 		}

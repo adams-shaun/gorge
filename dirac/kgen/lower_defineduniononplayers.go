@@ -111,12 +111,13 @@ func (lc *lowerCtx) playerRefDefined(v string) (r lRef, ok bool, err error) {
 		return lRef{}, false, nil
 	}
 	// gorge definedSpecEnchantedController: the controller of the permanent
-	// the source is attached to, read live at resolution (kop.RefAttachedCtrl).
+	// the source is attached to, read live at resolution; nobody once the
+	// source has left (kop.RefEnchantedCtrl).
 	// Only a printed battlefield trigger (the upkeep-of-the-enchanted-
 	// permanent's-controller family): build_ab gates the matching ValidPlayer$
 	// to that shape.
 	if lc.ab != nil && lc.ab.Kind == akTriggered && !lc.ab.Latent && lc.ab.Trigger != nil && lc.ab.Trigger.Zone == zBattlefield {
-		return lRef{Kind: rAttachedCtrl}, true, nil
+		return lRef{Kind: rEnchantedCtrl}, true, nil
 	}
 	return lRef{}, true, refuse("Defined$ %q outside a printed battlefield trigger", v)
 }

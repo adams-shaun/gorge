@@ -116,6 +116,19 @@ func (e *Engine) beginActivationPaid(p state.PlayerID, opt decision.Option, auto
 	if !ok {
 		return
 	}
+	// The ability's own RaiseCost$ (Loreseeker's Stone's "{1} more for each
+	// card in your hand"): a CR 601.2f ADDITIONAL cost, composed onto the
+	// total before the reductions below apply to it. The offer gate priced
+	// the same read (legal_walk_battlefield's ownAbilityRaiseCost call), so
+	// the charge and the gate agree; an unpriceable raise was withheld at
+	// the gate, so a stale option that slips through degrades to a no-op.
+	raise, hasRaise, raiseOK := e.ownAbilityRaiseCost(p, opt.Obj, ab, pa.Merged)
+	if !raiseOK {
+		return
+	}
+	if hasRaise {
+		cost = cost.Plus(raise)
+	}
 	// The ability's own ReduceCost$ (Otawara's Channel): the same fold the
 	// offer gate in engine/rules/legal.go applied, so the charge and the gate agree
 	// (CR 601.2f — a reduction applied to the stored cost exactly once).

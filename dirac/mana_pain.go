@@ -288,6 +288,9 @@ func (s *State) canLifeOnlyMana(k *prep, sl Slot, p uint8) bool {
 //
 //go:noinline
 func prepPainMana(c *kop.CardDef, pc *pcard) bool {
+	if prepPainFirst(c, pc) {
+		return true
+	}
 	n := 0
 	var col kop.ColorMask
 	var dmg uint8
@@ -327,8 +330,73 @@ func prepPainMana(c *kop.CardDef, pc *pcard) bool {
 	return true
 }
 
+// DebugPainFirstOff is the TestMurmuringBoskMutation switch: a pain-first
+// coloured pair (Murmuring Bosk) stays the pain-only source its first
+// ability reads as, the coloured normal alternative unpriced.
+var DebugPainFirstOff bool
+
+// prepPainFirst sets pc's pain pair for the reversed order: the card's two
+// mana abilities are a plain {T} two-colour choice with a "deals N damage to
+// you" rider, then a plain {T}: Add one WUBRG colour (Murmuring Bosk's {W}
+// or {B} rider ability, then the {G} CR 305.6 gives its Forest type, which
+// gorge appends after the printed abilities: cards.ApplyIntrinsics). gorge's
+// planner prices the coloured ability as the normal alternative and the
+// painful one as a last resort (pay.PaymentPlanDamageRider), the same pair as
+// a painland's; only the ability indices are swapped, so the source's unit
+// reads the second ability (pc.manaAb) and painLifeAb the first. The first
+// pass of prepare read the painful ability as a pain-only source
+// (pc.painOnly); it is undone here. It reports whether it did.
+func prepPainFirst(c *kop.CardDef, pc *pcard) bool {
+	if DebugPainFirstOff || !pc.painOnly || pc.manaAb < 0 {
+		return false
+	}
+	first, second, n := -1, -1, 0
+	for j := range c.Abilities {
+		a := &c.Abilities[j]
+		if a.Kind != kop.AbMana || a.AFlags&kop.AfLatent != 0 {
+			continue
+		}
+		switch n++; n {
+		case 1:
+			first = j
+		case 2:
+			second = j
+		}
+	}
+	if n != 2 || first != int(pc.manaAb) {
+		return false
+	}
+	p, b := &c.Abilities[first], &c.Abilities[second]
+	d, ok := manaPain(p)
+	pcol := uint8(p.ManaColors)
+	if !ok || p.AFlags&^kop.AfManaChoice != 0 || p.ManaRestrict != 0 || p.ManaRestrictAb != 0 || p.Cost.Flags != kop.CostTap || p.Cost.Mana.MV() != 0 ||
+		p.Cost.Mana.X != 0 || max(p.ManaN, 1) != 1 || pcol&^0x1f != 0 || bits.OnesCount8(pcol) != 2 {
+		return false
+	}
+	bcol := uint8(b.ManaColors)
+	if !primaryNormalAb(b) || b.AFlags != 0 || b.ManaRestrict != 0 || b.ManaRestrictAb != 0 || bcol&^0x1f != 0 ||
+		bits.OnesCount8(bcol) != 1 || bcol&pcol != 0 {
+		return false
+	}
+	pc.manaAb, pc.manaCol, pc.manaN, pc.manaOne, pc.manaTap = int8(second), b.ManaColors, 1, false, true
+	pc.painOnly, pc.painCol, pc.painN, pc.painLife, pc.restrLife = false, p.ManaColors, d, false, 0
+	return true
+}
+
+// painColNormal is the colours gorge's census counts a damage-pain pair
+// under (pay planalts.go Alt.Colours: the normal tier's colours, {C} aside,
+// on every alternative of the source): a coloured normal alternative's
+// (Murmuring Bosk's {G}, prepPainFirst), none for a painland's {C}. A life
+// pair keeps its measured reading (0).
+func painColNormal(pc *pcard) uint8 {
+	if pc.painOnly || pc.painLife || DebugPainFirstOff {
+		return 0
+	}
+	return uint8(pc.manaCol) & 0x1f
+}
+
 // painLifeAb is the ability index of pc's pain alternative (prepPainMana's
-// second mana ability).
+// second mana ability; a restricted life pair's only, never prepPainFirst's).
 func painLifeAb(c *kop.CardDef) int8 {
 	n := 0
 	for j := range c.Abilities {
@@ -398,7 +466,7 @@ func (s *State) painDamage(k *prep, sl Slot, p uint8, n int) {
 	// rider cap StallReplPlus loudly (replPlus): safe-side; the pool cannot
 	// reach two candidates for a land's self-damage today.
 	if k.gen != nil && (k.gen.anyRepl&(rbDblDmg|rbPrevNC|rbPrevDmgTo|rbProtAll|rbProtCol|rbPlusDmg|rbShield|rbPrevCol|rbPrevMill) != 0 ||
-		k.gen.anyRepl2&(rb2DmgMinus|rb2DmgSet) != 0) {
+		k.gen.anyRepl2&rb2DmgAny != 0) {
 		if n = s.replDamage(k, p, sl, s.cardAt(sl), code, false, n); n <= 0 {
 			return
 		}
@@ -648,6 +716,7 @@ func (s *State) painUnit(k *prep, sl Slot, pc *pcard, pass int, pk *planner, i i
 		}
 	}
 	fl := painFlexAll(pc, xc, xp) // FlexAll: the normal mana and the colours, and the extra's
+	colNormal := painColNormal(pc)
 	add := func(mask, pain uint8, alt bool) int {
 		if pk.nt == len(pk.types) {
 			return -1
@@ -665,6 +734,13 @@ func (s *State) painUnit(k *prep, sl Slot, pc *pcard, pass int, pk *planner, i i
 			n += r
 		}
 		pk.types[t] = utype{mask: mask, dmask: mask, n: n, creat: cr, flex: fl, pain: pain, alt: alt, irr: 3 * pain, nocol: pain != 0, sacOnly: lifeOnlyPain(pc)}
+		if pain != 0 && colNormal != 0 {
+			// gorge's Alt.Colours is the source's normal colours on every
+			// alternative, the painful one's too (pay planalts.go), so a
+			// coloured pair's painful pick still spends its {G} from keys 6
+			// and 7's remainder (painColNormal)
+			pk.types[t].dmask, pk.types[t].nocol = colNormal, false
+		}
 		if pain != 0 && restricted {
 			// a life unit's restriction rides its pair: the unit's mana
 			// floats restricted and the life is paid, not dealt as damage
@@ -692,7 +768,8 @@ func (s *State) painUnit(k *prep, sl Slot, pc *pcard, pass int, pk *planner, i i
 	// the same colours is ordinary mana).
 	findP := func() int {
 		for t := 0; t < pk.nt; t++ {
-			if painTypeMatches(&pk.types[t], pc.painN, pm, cr, !pc.painOnly, xp, lifeOnlyPain(pc), restricted) {
+			if painTypeMatches(&pk.types[t], pc.painN, pm, cr, !pc.painOnly, xp, lifeOnlyPain(pc), restricted) && (colNormal == 0) == pk.types[t].nocol &&
+				(colNormal == 0 || pk.types[t].dmask == colNormal) {
 				return t
 			}
 		}
@@ -723,17 +800,18 @@ func (s *State) painUnit(k *prep, sl Slot, pc *pcard, pass int, pk *planner, i i
 			}
 		}
 	}
+	for c := 0; c < 5; c++ {
+		if colNormal&(1<<c) != 0 {
+			pk.colSrc[c]++ // NewRankContext's ColourSources: alts[0].Colours, the normal colours
+		}
+	}
 	if normalOnly {
 		if tc < 0 {
 			return true
 		}
 		pk.types[tc].avail++
 		pk.units[pk.nu] = sl
-		if pk.bfl {
-			pk.uobj[pk.nu] = Obj(i)
-		} else {
-			pk.uobj[pk.nu] = s.perms[sl].obj
-		}
+		pk.rankUnit(s, i, sl)
 		pk.utyp[pk.nu] = uint8(tc)
 		pk.rAb[pk.nu] = -1
 		pk.nu++
@@ -752,11 +830,7 @@ func (s *State) painUnit(k *prep, sl Slot, pc *pcard, pass int, pk *planner, i i
 	}
 	pk.types[tp].avail++
 	pk.units[pk.nu] = sl
-	if pk.bfl {
-		pk.uobj[pk.nu] = Obj(i)
-	} else {
-		pk.uobj[pk.nu] = s.perms[sl].obj
-	}
+	pk.rankUnit(s, i, sl)
 	pk.utyp[pk.nu] = uint8(ti)
 	pk.rAb[pk.nu] = -1
 	if restricted {

@@ -257,6 +257,7 @@ type genPrep struct {
 	anyComboDyn     bool           // some card's mana ability adds an evaluated amount in any combination of colours (mana_combodyn.go)
 	anyComboOff     bool           // some card has a {T} Combo Any mana ability, which gorge's planner does not witness (mana_comboanyplan.go)
 	anyCantCast     bool           // some card has a StatCantBeCast (trig_delayedtiming.go castForbidden)
+	anyCantPlayLand bool           // some card has a StatCantPlayLand (cast_cantplayland.go cantPlayLandLock)
 	anyCantAct      bool           // some card has a StatCantActivate (cast_cantactivate.go actForbidden), or a StatCantSacrifice
 	anyCantSac      bool           // some card has a StatCantSacrifice (static_cantsacrifice.go sacBlocked)
 	anyCantTgt      bool           // some card has a StatCantTarget (tgt_canttarget.go cantTargetGen)
@@ -384,7 +385,7 @@ type genPrep struct {
 	anyHideaway     bool           // some program is ExtHideaway (kw_hideaway.go)
 	anyLoyaltyX     bool           // some ability costs a planeswalker's [-X] (CostLoyaltyX; cost_loyaltyx.go)
 	anyLifeX        bool           // some spell or ability costs an announced PayLife<X> (Cost.N 0; cost_paylifex.go)
-	anyExileX       bool           // some spell costs an announced ExileFromGrave<X/Spec> (CostExileGrave with Cost.N 0; cost_exilex.go)
+	anyExileX       bool           // some spell or activated ability costs an announced ExileFromGrave<X/Spec> (CostExileGrave with Cost.N 0; cost_exilex.go)
 	anySacX         bool           // some spell or ability costs an announced Sac<X/Spec> (CostSac with Cost.N 0; cost_sacx.go)
 	anyXMin         bool           // some spell or ability floors its announced X (Cost.XMin; cost_sacx.go)
 	anyCopyCast     bool           // some OpCastFree casts a copy (C bit 6; cast_copycast.go)
@@ -586,7 +587,11 @@ const (
 	rb2LifeFloor                     // ReplLifeReduced: damage's life loss is floored (repl_lifefloor.go)
 	rb2DmgMinus                      // ReplDamageMinus: the event's damage is that much minus Repl.A (repl_dmgminus.go)
 	rb2DmgSet                        // ReplDamageSet: damage of the gate and up is set to Repl.A (repl_dmgminus.go)
+	rb2DmgInst                       // ReplDamageInstead: the damage is replaced by counters, mill, exile or draw (repl_dmginstead.go)
 )
+
+// rb2DmgAny are the rb2 damage replacements the damage sites' gates open for.
+const rb2DmgAny = rb2DmgMinus | rb2DmgSet | rb2DmgInst
 
 // Replacement bits (genPrep.replBits).
 const (
@@ -835,6 +840,8 @@ func prepReplBit2(g *genPrep, a *kop.Ability, i int, pc *pcard) {
 		bit = rb2DmgMinus // replDamage's minus rewrite (repl_dmgminus.go)
 	case kop.ReplDamageSet:
 		bit = rb2DmgSet // replDamage's set rewrite (repl_dmgminus.go)
+	case kop.ReplDamageInstead:
+		bit = rb2DmgInst // replDamage's replace-the-damage step (repl_dmginstead.go)
 	}
 	g.replBits2[i] |= bit
 	pc.hasStat = true
@@ -1024,6 +1031,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepMcombat(t, g)
 	prepAltFree(t, g, p) // cast_altfree.go
 	prepUnearth(t, g)    // cast_altfree.go
+	prepLeaveExile(t, g) // zone_leaveexile.go
 	prepPlotTrig(t, p)   // kw_plot.go
 	prepPlotGrant(t, g)  // kw_plot.go
 	prepNetLock(t, g)    // act_lockpermanent.go
@@ -1046,6 +1054,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	g.anyBeamGrant = tableHasStatic(t, kop.StatBeamGrant)
 	// prepSpellCond first: it sets anySpellCond, which an || must not skip
 	g.anyCantCast = prepSpellCond(t, g) || tableHasStatic(t, kop.StatCantBeCast)
+	g.anyCantPlayLand = tableHasStatic(t, kop.StatCantPlayLand)
 	prepCastLimit(t, g)  // static_castlimit.go
 	prepCantSac(t, g)    // static_cantsacrifice.go, before prepCantAct reads it
 	prepCantAct(t, p, g) // cast_cantactivate.go
@@ -1094,6 +1103,14 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	g.anyLinkRet = tableLinkRet(t)
 	g.anyLinkCtr = tableLinkCtr(t)
 	p.anyCmdTap = prepStaticClasses(t, g)
+	p.tapExtraCard = make([]bool, len(t.Cards))
+	for i := range t.Cards {
+		for j := range t.Cards[i].Abilities {
+			if a := &t.Cards[i].Abilities[j]; a.Kind == kop.AbStatic && a.Static.Kind == kop.StatTapExtra {
+				p.tapExtraCard[i] = true
+			}
+		}
+	}
 	prepHexOwn(t, g)      // kw_hexproofcolor.go
 	prepEmblemCasts(t, p) // cast_selfflash.go
 	for i := range t.Cards {
@@ -1110,6 +1127,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 			g.anyAftermath = g.anyAftermath || c.Aftermath
 			g.anyFuse = g.anyFuse || c.FuseDef != 0
 			p.anyRoom = p.anyRoom || c.FaceMode == kop.FaceRoom
+			p.anyDisturb = p.anyDisturb || c.FlipCast == kop.FlipDisturb
 		}
 		if c.Daybound || c.Nightbound {
 			p.anyDayNight, g.anyHist = true, true // the spell count rides the history bank
@@ -1133,6 +1151,10 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		}
 		if c.HasDash {
 			g.anyDash = true
+			p.cards[i].altCost = true // the hand walk's one-byte gate (offerAltHand)
+		}
+		if c.HasBlitz {
+			g.anyLeaveRet = true      // the dies-draw record is leave-keyed (splitLeaveDelayed reads anyLeaveRet)
 			p.cards[i].altCost = true // the hand walk's one-byte gate (offerAltHand)
 		}
 		if c.HasSurge {
@@ -1407,7 +1429,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 				case kop.ReplLifeLossDouble:
 					g.replBits[i] |= rbDblLoss
 					pc.hasStat = true
-				case kop.ReplBeginPhase, kop.ReplLifeReduced, kop.ReplDamageMinus, kop.ReplDamageSet:
+				case kop.ReplBeginPhase, kop.ReplLifeReduced, kop.ReplDamageMinus, kop.ReplDamageSet, kop.ReplDamageInstead:
 					prepReplBit2(g, a, i, pc)
 				case kop.ReplDestroyHeal:
 					g.replBits[i] |= rbDestroyHeal
@@ -1479,6 +1501,8 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 					}
 				case kop.StatPlayerHexproof, kop.StatNoMaxHandSize:
 					g.noteStaticPlayerStats(i, a)
+				case kop.StatDefenderAssigns:
+					pc.hasStat = true // scanned through statM (static_defenderassigns.go); no genPrep flag: TestNoNewFixedStateFields
 				case kop.StatCantBeBeamedUp:
 					g.anyBeamBar = true
 					pc.hasStat = true // scanned through statM (kw_beammeup.go)
@@ -1497,9 +1521,15 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 				case kop.StatEscapeGrant:
 					g.anyEscapeGrant = true
 					pc.hasStat = true // scanned through statM (kw_escape.go)
+				case kop.StatMiracleGrant:
+					g.anyMiracle = true // a granted miracle queues the draw trigger too (kw_miracle.go)
+					pc.hasStat = true   // scanned through statM
 				case kop.StatRetraceGrant, kop.StatOffZoneGrant:
 					g.offZoneGrantPrep(a, p) // kw_offkwgrant.go: the graveyard retrace offer
 					pc.hasStat = true        // scanned through statM (kw_offkwgrant.go, featview.go)
+				case kop.StatColorWords:
+					p.anyColorWords = true
+					pc.hasStat = true // scanned through statM (static_colorwords.go)
 				case kop.StatCantTgtGrave:
 					g.anyCantTgtGrave = true
 					pc.hasStat = true // scanned through statM (kw_canttgtgrave.go)
@@ -1599,10 +1629,14 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 					g.setFlag(CardID(i), gfAnyR)
 					g.anyAnyR = true
 					g.anyMultiR = g.anyMultiR || restrWideAnyMana(a) // (Hermitic Herbalist: mana_restrictedcombo.go)
-				} else if filterTapMana(&t.Cards[i], a) && g.filt(CardID(i)) < 0 {
+				} else if filterTapMana(&t.Cards[i], a) && (g.filtCount(CardID(i)) == 0 || setFilterMana(a)) {
+					// A first filter of any modelled shape; a later one only
+					// the paid filter set's fixed-colour or choice shape
+					// (Koskun Keep's second ability), so a table's older
+					// multi-filter cards keep their first-filter-only walk.
 					g.prepTapFilt(CardID(i), j, a)
 				}
-				if int(g.filt(CardID(i))) != j && registersGapOther(&t.Cards[i], a, j) && g.gapOther(CardID(i)) < 0 {
+				if !g.isFiltAb(CardID(i), j) && registersGapOther(&t.Cards[i], a, j) && g.gapOther(CardID(i)) < 0 {
 					g.prepCensusGap(CardID(i), j, a)
 				}
 				if g.isGrantMana(&t.Cards[i], a) {
@@ -1919,10 +1953,16 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	// after prepLandGrant; on prep, not genPrep: the pinned fixed-State inventory is unchanged
 	p.landGrantPair = landGrantPairOn(t, p, g) // static_landgrantpair.go
 	prepCold(g, &p.cold)
+	prepMayPlayNT(t, p)    // cast_mayplaynt.go
 	prepGrantAct(t, p)     // act_grantledger.go
 	prepSkipPhaseOne(t, p) // act_skipphase.go
 	prepEmbalmGrant(t, p)  // kw_embalmgrant.go; on prep, not genPrep
 	prepOffKwGrant(t, p)   // kw_unearthgrant.go; on prep, not genPrep
+	prepCyclingGrant(t, p) // kw_cyclinggrant.go; on prep, not genPrep
+	p.grantsMana = make([]bool, len(t.Cards))
+	for _, r := range g.grantOf {
+		p.grantsMana[r.card] = true
+	}
 	return g
 }
 
@@ -2149,6 +2189,8 @@ type genState struct {
 	// fbProbe fills the padding byte after ndmg. Transient: a filter script trial node keeps the root's
 	// both-instances flashback classification (legal.go fbProbeRoot).
 	fbProbe bool
+	// priAsk is Config.PriorityManaAsk (mana_priask.go); it fills the second padding byte after ndmg.
+	priAsk uint8
 
 	may  [maxMay]mayPlay
 	nmay uint8
@@ -2295,6 +2337,10 @@ type genState struct {
 	// ownEntryCounterExcluded); the entrant's other statics stay live. Set
 	// only across one placeEntryCounters call (turn_gen.go).
 	ctrSettle uint8
+	// story: bit p, seat p holds the enduring story (CR 702.195, the K:Storied
+	// scan's one-way latch, kw_storied.go). It fills the padding byte after
+	// ctrSettle, so State does not grow.
+	story uint8
 	// this turn's counter placements (ExCtrAdded; ctr_addedthisturn.go).
 	// pl: bit p set when player p put a counter on a creature; e: per object whose card
 	// reads a Self form (gfCtrAdd), fl bit p any kind by p, bit 2+p +1/+1
@@ -2487,7 +2533,8 @@ type genState struct {
 
 	// xph: the pending extra phases (act_addphase.go): at bits
 	// 0-3 the splice point, 4-5 the kind (combat, upkeep, end), 6 a phase of the
-	// entry is running; n the grants still pending. phCnt: bits 0-3 the combats
+	// entry is running, 7 the kind's variant (CombatMain's main phase running,
+	// Upkeep's whole beginning phase); n the grants still pending. phCnt: bits 0-3 the combats
 	// begun this turn, 4-7 the end steps begun (saturating at 15).
 	xph   [4]struct{ at, n uint8 }
 	nxph  uint8
@@ -2561,7 +2608,16 @@ type genState struct {
 	trigMV   uint8
 	// fbp: filtBoundPays' one-entry memo (mana_filter.go). Taken from rsv.
 	fbp fbpMemo
-	rsv [rsvN]uint8
+	// winUnless: the colour window's unless walk, packed: the seats already
+	// asked in the low nibble (bit per seat), the payer + 1 in the high nibble
+	// (0: no payer, the walk is not live). winUnlessSrc is the asking source's
+	// slot (the payer's mana window may overwrite winSrc), and winUnlessPay
+	// the payer + 1 whose unless mana window paused on a tap-another pick (0:
+	// none) (mana_askcolour.go askColUnless, castWinUnless). Taken from rsv.
+	winUnless    uint8
+	winUnlessSrc Slot
+	winUnlessPay uint8
+	rsv          [rsvN]uint8
 	// embX: an emblem's remembered slots 2 and 3, object + 1 (static_emblemrem.go); embR is slot 1, embN slot 0. Taken from rsv.
 	embX [MaxSeats][maxEmb][embRemSlots - 2]objWord
 	// atkDef is the defending seat + 1 of the attack event whose triggers are
@@ -2607,7 +2663,10 @@ const (
 	// rsvExtra grows the block by the four bytes four seats' object-wide
 	// fields (sixteen-bit usedRec.host, turnF, the four-seat mana and emblem
 	// rows) need past that line.
-	rsvN = max(0, 80-int(unsafe.Sizeof([maxImp]Obj{}))-2-MaxSeats-int(unsafe.Sizeof([MaxSeats][maxEmb]Obj{}))-2-MaxSeats*kop.NumManaKinds-ulBytes-dmkBytes-int(unsafe.Sizeof([MaxSeats][maxEmb][embRemSlots - 2]objWord{}))-1-turnFBytes-dmgAmtBytes-(MaxSeats+1)/2) - tgtMVBytes + 64 + rsvExtra + rsvTgtMV - redirBytes - prevXBytes - usedHostBytes - fbpBytes
+	rsvN = max(0, 80-int(unsafe.Sizeof([maxImp]Obj{}))-2-MaxSeats-int(unsafe.Sizeof([MaxSeats][maxEmb]Obj{}))-2-MaxSeats*kop.NumManaKinds-ulBytes-dmkBytes-int(unsafe.Sizeof([MaxSeats][maxEmb][embRemSlots - 2]objWord{}))-1-turnFBytes-dmgAmtBytes-(MaxSeats+1)/2) - tgtMVBytes + 64 + rsvExtra + rsvTgtMV - redirBytes - prevXBytes - usedHostBytes - fbpBytes - winUnlessBytes
+	// winUnlessBytes: genState's colour-asking mana unless state (winUnless,
+	// winUnlessSrc, winUnlessPay), taken from rsv (mana_askcolour.go).
+	winUnlessBytes = 3
 )
 
 // dmgAmtRec is one genState.dmgAmt record: the reader card's object+1 (0

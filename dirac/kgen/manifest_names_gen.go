@@ -4,6 +4,9 @@ package kgen
 
 import "github.com/adams-shaun/gorge/dirac/kop"
 
+// dirac/manifest/CondKind/CondEnduringStory
+func init() { enum[kop.CondKind]("kop.CondEnduringStory", kop.CondEnduringStory) }
+
 // dirac/manifest/CondKind/CondMonarch
 func init() { enum[kop.CondKind]("kop.CondMonarch", kop.CondMonarch) }
 
@@ -1278,6 +1281,9 @@ func init() { enum[kop.ReplKind]("kop.ReplPreventDamageN", kop.ReplPreventDamage
 // dirac/manifest/ReplKind/ReplDamageRedirect
 func init() { enum[kop.ReplKind]("kop.ReplDamageRedirect", kop.ReplDamageRedirect) }
 
+// dirac/manifest/ReplKind/ReplDamageInstead
+func init() { enum[kop.ReplKind]("kop.ReplDamageInstead", kop.ReplDamageInstead) }
+
 // dirac/manifest/ReplKind/ReplDamageMinus
 func init() { enum[kop.ReplKind]("kop.ReplDamageMinus", kop.ReplDamageMinus) }
 
@@ -1446,6 +1452,18 @@ func init() { enum[kop.StaticKind]("kop.StatOffZoneGrant", kop.StatOffZoneGrant)
 
 // dirac/manifest/StaticKind/StatRetraceGrant
 func init() { enum[kop.StaticKind]("kop.StatRetraceGrant", kop.StatRetraceGrant) }
+
+// dirac/manifest/StaticKind/StatColorWords
+func init() { enum[kop.StaticKind]("kop.StatColorWords", kop.StatColorWords) }
+
+// dirac/manifest/StaticKind/StatCyclingGrant
+func init() { enum[kop.StaticKind]("kop.StatCyclingGrant", kop.StatCyclingGrant) }
+
+// dirac/manifest/StaticKind/StatDefenderAssigns
+func init() { enum[kop.StaticKind]("kop.StatDefenderAssigns", kop.StatDefenderAssigns) }
+
+// dirac/manifest/StaticKind/StatMiracleGrant
+func init() { enum[kop.StaticKind]("kop.StatMiracleGrant", kop.StatMiracleGrant) }
 
 // dirac/manifest/StaticKind/StatNoCombatDamage
 func init() { enum[kop.StaticKind]("kop.StatNoCombatDamage", kop.StatNoCombatDamage) }

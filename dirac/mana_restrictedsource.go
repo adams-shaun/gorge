@@ -80,6 +80,15 @@ type payDesc struct {
 	// potential gate price a pdOther payment with the battery unbounded, as
 	// gorge's potentialManaFor does without the flag (mana_storesource.go).
 	subBound bool
+	// reflBound marks the trigger X announcement's descriptor (execTrigX): a
+	// reflected or ColorIdentity any-colour source is one unit per tap in the
+	// count, not the whole-pool open the plain walk prices it. Gorget's
+	// potentialManaFor prices those sources exactly (addPotentialReflected,
+	// addPotentialIdentityColours), so the bound must not saturate at trigXCap
+	// before the census caps it (four-seat edh pod 68's Halo Forager beside
+	// Exotic Orchard and Arcane Signet). A plain Produced$ Any or a
+	// sacrifice-only source keeps gorge's producedOpen fold.
+	reflBound bool
 	// repeatBound marks the bound a play's offer is priced against
 	// (restrBoundDrops): gorge's potentialManaFor lifts a repeatable fee-only
 	// ability's colours to potentialUnbounded for every payment
@@ -1695,11 +1704,7 @@ func (s *State) restrPairUnit(k *prep, sl Slot, v *pcard, pk *planner, i int, re
 	pk.types[ta].avail++
 	pk.types[tb].avail++
 	pk.units[pk.nu] = sl
-	if pk.bfl {
-		pk.uobj[pk.nu] = Obj(i)
-	} else {
-		pk.uobj[pk.nu] = s.perms[sl].obj
-	}
+	pk.rankUnit(s, i, sl)
 	pk.utyp[pk.nu] = uint8(ta)
 	pk.rkind[pk.nu] = 0
 	pk.rAb[pk.nu] = v.manaAb

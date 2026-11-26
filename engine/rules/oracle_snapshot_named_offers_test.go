@@ -74,6 +74,11 @@ func TestOracleSnapshotOffersClosedVocabulary(t *testing.T) {
 	}
 	// This tests only the wire mapping, not the legality of these abilities:
 	// the input stands in for the priority walk's already-filtered options.
+	// The snapshot's offered set also carries the potential-action walk's
+	// plays and mana labels (oracle_snapshot_offers.go), so the assertion
+	// keys on the input option's own label: a non-wire kind contributes no
+	// row with it, a wire kind exactly one, with its kind mapped and its
+	// source and label retained.
 	for _, tc := range []struct{ kind, want string }{
 		{"cast", "cast"}, {"play_land", "play"}, {"play", "play"},
 		{"ability", "activate"}, {"granted", "activate"},
@@ -83,11 +88,17 @@ func TestOracleSnapshotOffersClosedVocabulary(t *testing.T) {
 		t.Run(tc.kind, func(t *testing.T) {
 			d := &decision.Decision{Player: 0, Kind: decision.KPriority, Options: []decision.Option{{Obj: id, Kind: tc.kind, Label: "named action"}}}
 			got := oracleSnapshotOffers(r, d)
-			if tc.want == "" {
-				if len(got) != 0 {
-					t.Fatalf("non-wire action exported: %+v", got)
+			var wire []OracleSnapOffered
+			for _, row := range got {
+				if row.Label == "named action" {
+					wire = append(wire, row)
 				}
-			} else if len(got) != 1 || got[0].Kind != tc.want || got[0].Source != "p0:Mountain" || got[0].Label != "named action" {
+			}
+			if tc.want == "" {
+				if len(wire) != 0 {
+					t.Fatalf("non-wire action exported: %+v", wire)
+				}
+			} else if len(wire) != 1 || wire[0].Kind != tc.want || wire[0].Source != "p0:Mountain" {
 				t.Fatalf("wire action=%+v, want kind %s with source/label retained", got, tc.want)
 			}
 		})

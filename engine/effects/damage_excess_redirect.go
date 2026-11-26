@@ -24,7 +24,7 @@ var excessDamageRecipientCodes = state.NewStrCodes(
 // honours ExcessDamage$ (CR 120.4a: "Excess damage is dealt to that creature's
 // controller instead"). When the script names a recipient spec, the amount
 // exceeds what is lethal to the permanent (excessLethal, read BEFORE the hit:
-// marked damage counts, deathtouch does not shrink it, CR 120.10) and the
+// marked damage counts, a deathtouch source makes it 1, CR 120.10) and the
 // ExcessDamageCondition$ filter matches the damage SOURCE (Ram Through's
 // Card.withTrample), the permanent is dealt exactly the lethal amount and the
 // remainder goes to the named player from the same source, inside the caller's
@@ -37,7 +37,7 @@ func emitObjectDamageExcess(h Host, c *Ctx, dp *DealDamageParams, r damageRider,
 	if dp.ExcessDamage == "" || o == nil {
 		return emitObjectDamage(r, target)
 	}
-	lethal, ok := excessLethal(h, o)
+	lethal, ok := excessLethal(h, o, r.hasDeathtouch)
 	if !ok || r.amount <= lethal {
 		return emitObjectDamage(r, target)
 	}

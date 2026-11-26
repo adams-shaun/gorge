@@ -27,10 +27,18 @@ func (lc *lowerCtx) rememberSearcher(ps *params, obj lRef, flags []string) error
 		return refuse("RememberSearcher %q", v)
 	}
 	if obj.Kind != rYou {
-		return refuse("RememberSearcher$ on another player's library")
+		// In a remembered-set card loop the searched library is the bound
+		// card's controller's (Wave of Vitriol's DefinedPlayer$
+		// ImprintedController): RefEach, resolved per pass.
+		if obj.Kind != rEach || !lc.repeatRem {
+			return refuse("RememberSearcher$ on another player's library")
+		}
 	}
 	for _, f := range flags {
-		if f == "Confirm" || strings.HasPrefix(f, "alt=") {
+		if strings.HasPrefix(f, "alt=") {
+			return refuse("RememberSearcher$ beside %s", f)
+		}
+		if f == "Confirm" && obj.Kind != rEach {
 			return refuse("RememberSearcher$ beside %s", f)
 		}
 	}
@@ -41,12 +49,31 @@ func (lc *lowerCtx) rememberSearcher(ps *params, obj lRef, flags []string) error
 	}
 	for _, k := range []string{"ChooseFromDefined", "DefinedPlayer", "Chooser", "ForgetOtherRemembered"} {
 		if _, ok := ps.m[k]; ok {
+			// the repeated card's controller is both the searched library's
+			// owner and the chooser (Wave of Vitriol); the search lowering
+			// read both.
+			if obj.Kind == rEach && (k == "DefinedPlayer" || k == "Chooser") && strings.TrimSpace(ps.m[k]) == "ImprintedController" {
+				continue
+			}
 			return refuse("RememberSearcher$ with %s$", k)
 		}
 	}
 	ps.consume("RememberSearcher")
-	lc.emit(lInstr{Op: "RememberSearcher", Note: noteRememberSearcher})
+	lc.emit(lInstr{Op: "RememberSearcher", Obj: obj, Note: noteRememberSearcher})
 	return nil
+}
+
+// hasRememberedSearcher reports whether the current ability already lowered a
+// RememberSearcher$ whose searcher is the repeated card's controller (the
+// remembered-set card loop). Only then does the seat mask exist for a following
+// Shuffle Defined$ Player.IsRemembered (Wave of Vitriol).
+func (lc *lowerCtx) hasRememberedSearcher() bool {
+	for _, in := range lc.ab.Prog {
+		if in.Op == "RememberSearcher" && in.Obj.Kind == rEach {
+			return true
+		}
+	}
+	return false
 }
 
 // refuseRememberSearcherObjects refuses a card with a RememberSearcher$ writer

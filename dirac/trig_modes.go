@@ -87,6 +87,7 @@ func (s *State) enterLandPlayed(k *prep, o Obj, p uint8, from kop.Zone) {
 	if etb && k.gen.embObjEv&(1<<kop.TrigETB) != 0 && sl != NoSlot {
 		s.fireEmblemsObj(k, kop.TrigETB, sl, o)
 	}
+	s.storyGrant(k) // the emit-tail grant, after the land's triggers (kw_storied.go)
 }
 
 // forageCastDone fires TrigForage once a cast or activation cost that

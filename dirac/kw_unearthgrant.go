@@ -180,6 +180,10 @@ func (s *State) priorityUnearthGrant(k *prep, d *Decision, p uint8, sorc bool, a
 			red = s.ownReduced(k, body, o, p)
 			mana = &red
 		}
+		if k.gen.anyAbReduce {
+			red = s.abReducedGrave(k, body, o, p, *mana) // a graveyard-zone reduction static (cost_reduceability.go)
+			mana = &red
+		}
 		gd := payDesc{class: pdAct, card: card, src: NoSlot}
 		if !av.affords(mana, pipMaskOf(mana), 0) &&
 			!(k.restrSrc && s.restrSrcAffords(k, p, gd, mana, av, NoSlot, 0)) &&

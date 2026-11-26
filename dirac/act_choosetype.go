@@ -169,6 +169,20 @@ func prepChooseType(t *kop.Table, g *genPrep) {
 			}
 		}
 	}
+	// A ref's card matched against a chosen-type filter (Herald's Horn's "if it's
+	// a creature card of the chosen type" over the remembered top card) reads the
+	// source's choice too (refCardMatch); a pool whose only chosen-type reader is
+	// such a condition must still take the source-reading matcher.
+	for i := range t.Conds {
+		if c := &t.Conds[i]; c.Kind == kop.CondRefMatches && filterChosenType(t, c.F) {
+			g.chosenCardTgt = true
+		}
+	}
+	for i := range t.Exprs {
+		if x := &t.Exprs[i]; x.Kind == kop.ExRefCount && filterChosenType(t, x.F) {
+			g.chosenCardTgt = true
+		}
+	}
 }
 
 // AddType$ ChosenType (Adaptive Automaton, Roaming Throne, Lifecraft

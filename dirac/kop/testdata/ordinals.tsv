@@ -6,6 +6,7 @@ AbSpell	AbilityKind	0
 AbStatic	AbilityKind	4
 AbTriggered	AbilityKind	3
 AdamantLiveRead	untyped int	32
+AddPhaseBeginning	untyped int	4
 AddPhaseCombat	untyped int	0
 AddPhaseCombatMain	untyped int	3
 AddPhaseEnd	untyped int	2
@@ -54,6 +55,7 @@ AttacksOpponent	untyped int	1
 B	untyped int	2
 BecomeCopyCtr	untyped int	1
 BecomeCopyEmbalm	untyped int	2
+BecomeCopyGrave	untyped int	4
 BncDelayedMany	untyped int	8192
 BncFromLibrary	untyped int	4096
 BncShuffleOwed	untyped int	16384
@@ -560,6 +562,7 @@ ExtGrantPanharm	ExtOp	248
 ExtHideaway	ExtOp	8
 ExtJoinForces	ExtOp	301
 ExtKwMark	ExtOp	10
+ExtLeaveExile	ExtOp	287
 ExtLibPlace	ExtOp	300
 ExtLibSweep	ExtOp	101
 ExtLockActs	ExtOp	140
@@ -656,6 +659,9 @@ FacePrototype	untyped int	8
 FaceRoom	untyped int	6
 FaceSplit	untyped int	3
 FaceTransform	untyped int	4
+FlipConverted	uint8	1
+FlipDisturb	uint8	2
+FlipNone	uint8	0
 G	untyped int	4
 GcHasteEOT	untyped int	2
 GcRemember	untyped int	4
@@ -739,6 +745,7 @@ MayGuardSuspect	untyped int	3
 MayPlayAdvKind	untyped int	1
 MayPlayAdventure	untyped int	256
 MayPlayAnyType	untyped int	8
+MayPlayConvC	untyped int	128
 MayPlayExileOnMoved	untyped int	1
 MayPlayFollows	untyped int	64
 MayPlayFree	untyped int	4
@@ -1163,6 +1170,7 @@ ReduceAbMinShift	untyped int	4
 ReduceAbPowerUp	untyped int	4
 ReduceAbUnlock	untyped int	2
 ReduceColorBits	untyped int	2
+ReduceColorNoSpill	untyped int	16384
 RefAttached	Ref	11
 RefAttachedCtrl	Ref	37
 RefChosen	Ref	13
@@ -1176,6 +1184,7 @@ RefDiscarded	Ref	29
 RefEach	Ref	16
 RefEachOpponent	Ref	8
 RefEachPlayer	Ref	7
+RefEnchantedCtrl	Ref	44
 RefExiledWithOwner	Ref	43
 RefHost	Ref	23
 RefImprinted	Ref	35
@@ -1218,6 +1227,7 @@ RefTriggerSource	Ref	21
 RefTriggerTgtCtrl	Ref	33
 RememberAllImprint	untyped int	2
 RememberAllObjOrder	untyped int	1
+RepeatDmgBatch	untyped int	4
 RepeatEachDmgBatch	untyped int	8
 RepeatEachSeatOrder	untyped int	2
 RepeatEachZoneBatch	untyped int	4
@@ -1245,6 +1255,18 @@ ReplDestroyRegenerate	ReplKind	40
 ReplDiscardOppToBattlefield	ReplKind	33
 ReplDmgCombat	untyped int	512
 ReplDmgCtrHost	untyped int	128
+ReplDmgHalfDown	untyped int	8192
+ReplDmgInsCtrEquipped	untyped int	32
+ReplDmgInsCtrHost	untyped int	16
+ReplDmgInsCtrTarget	untyped int	64
+ReplDmgInsDouble	untyped int	4
+ReplDmgInsDrawSrc	untyped int	128
+ReplDmgInsExileTop	untyped int	8
+ReplDmgInsKindShift	untyped int	8
+ReplDmgInsMill	untyped int	2
+ReplDmgInsPrevent	untyped int	1
+ReplDmgInsSac	untyped int	16384
+ReplDmgInsVind	untyped int	32768
 ReplDmgNonCombat	untyped int	16
 ReplDmgOppPerm	untyped int	2
 ReplDmgOppPlayer	untyped int	1
@@ -1405,8 +1427,11 @@ StFunctionsInGraveyard	StaticFlags	16
 StHandDelta	StaticFlags	128
 StHandOpp	StaticFlags	256
 StHasteOppDef	StaticFlags	1
+StMayPayEnergy	StaticFlags	256
+StMayPayEvidence	StaticFlags	2048
 StMayPayLife	StaticFlags	8192
 StMayRaise	StaticFlags	32768
+StMayZeroAlt	StaticFlags	64
 StNoPrevCombat	StaticFlags	2
 StNoPrevSpellSelf	StaticFlags	4
 StOncePerTurn	StaticFlags	2
@@ -1448,8 +1473,11 @@ StackKwDelve	int16	9
 StackKwDemonstrate	int16	10
 StackKwImprovise	int16	1
 StackKwLifelink	int16	4
+StackKwOffspring	int16	14
+StackKwRebound	int16	11
 StackKwSplitSecond	int16	6
 StackKwStorm	int16	5
+StackKwWebSling	int16	12
 StatActivationLimit	StaticKind	227
 StatAlternativeCost	StaticKind	5
 StatAnyTypeCreatures	StaticKind	239

@@ -15,11 +15,11 @@ func TestMBCTail40ReprosLockstep(t *testing.T) {
 	// counters on a creature you don't control") is the only counter-added
 	// listener. Patron hears only its own controller's puts, so the per-kind
 	// order reaches no stack; the kernel stalled on it (StallProlif, pair 68).
-	stdReproNamed(t, "prolif_order_foreign_putter_listener")
+	stdReproNamedServed(t, "prolif_order_foreign_putter_listener")
 	// CR 701.34a: seat 1's Cankerbloom sacrifices to proliferate in its
 	// additional main phase; gorge asks which recipients get a counter and the
 	// kernel stalled on the ask (StallProlif, pair 47).
-	stdReproNamed(t, "prolif_choice")
+	stdReproNamedServed(t, "prolif_choice")
 	// CR 707.9b: seat 0's Venser, Fervent Forger copies a permanent twice with
 	// "they gain haste" in a pool whose Snow Fortress puts the unmodeled Snow
 	// supertype into every override record's KeepSub; the kernel did not find

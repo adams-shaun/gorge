@@ -35,6 +35,7 @@ func TestGenBattleRefused(t *testing.T) {
 		"Invasion of Moag": true, "Invasion of Muraganda": true,
 		"Invasion of Tolvada": true, "Invasion of Xerex": true,
 		"Invasion of Zendikar": true,
+		"Invasion of Amonkhet": true, // its back face's Clone ChoiceZone$ Graveyard (kop.BecomeCopyGrave)
 		"Invasion of Vryn":     true, // its back face copies a spell
 		"Invasion of Theros":   true, // Demigod, a creature type outside the pool
 		// Pyre of the World Tree's Discard<1/Land> activated cost

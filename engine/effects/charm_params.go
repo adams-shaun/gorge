@@ -305,7 +305,7 @@ var charmKnownKeys = [...]string{
 	"PresentDefined",
 	"PresentZone",
 	"PrimaryPrompt",
-	"Random",
+	"RaiseCost", "Random",
 	"RandomCompare",
 	"RandomCompareSVar",
 	"RandomNumTargets",

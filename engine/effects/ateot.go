@@ -80,13 +80,6 @@ func scheduleAtEOTGroup(h Host, c *Ctx, rider atEOTRider, affected []state.ObjID
 	return true
 }
 
-// groupedSacrifice reports whether the rider is a plain sacrifice, the one
-// whose delayed trigger can name a group of objects (SacrificeCtrl has each
-// object's controller sacrifice it, so it stays per-object).
-func groupedSacrifice(value string, r atEOTRider) bool {
-	return r.body == "__kwEncoreSacrifice" && value != "SacrificeCtrl"
-}
-
 // groupedRider reports whether one resolution's rider over several objects is
 // one delayed trigger naming them all: every rider with a group body
 // (SacrificeCtrl has none: each object's controller sacrifices it).

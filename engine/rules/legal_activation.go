@@ -369,6 +369,69 @@ func (e *Engine) ownReduceCost(p state.PlayerID, id state.ObjID, ab *cards.SA, t
 	return 0
 }
 
+// ownAbilityRaiseCost reads an ACTIVATED ABILITY's own RaiseCost$ rider
+// (Loreseeker's Stone's `RaiseCost$ X | SVar X:Count$ValidHand Card.YouOwn`
+// -- "{1} more to activate for each card in your hand", the CR 601.2f
+// additional-cost the total cost composes beside the printed activation
+// cost). The walk, abilityOfferCostOf and beginActivation's charge all read
+// it through this one helper, so the gate, the displayed cost and the charge
+// cannot disagree (the same agreement ownReduceCost gives ReduceCost$).
+//
+// Two raise forms are priced: a plain mana literal ("1", "W", "2 W" --
+// raiseFromCost, life parts unmodelled) added once, and a numeric/SVar form
+// resolved exactly as ownReduceCost resolves ReduceCost$ (a plain literal
+// stands, an SVar name resolves through the source face's table, an inline
+// Count$ body evaluates as written) -- the resolved amount is generic, the
+// only shape the corpus carries. `has` says a rider is present at all;
+// `ok` is false when a raise is present but UNPRICEABLE (a life-shaped or
+// unreadable body): the offer gate withholds the ability and the charge
+// degrades to a no-op -- a raise is never silently dropped (an uncharged
+// surcharge is the undercharge direction, the fail-OPEN one).
+func (e *Engine) ownAbilityRaiseCost(p state.PlayerID, id state.ObjID, ab *cards.SA, merged int) (raise Cost, has, ok bool) {
+	if ab == nil {
+		return Cost{}, false, true
+	}
+	v := strings.TrimSpace(ab.Params["RaiseCost"])
+	if v == "" {
+		return Cost{}, false, true
+	}
+	has = true
+	// Plain mana literal: raiseFromCost's `ok` is "every token was a pip or
+	// a plain number"; a life part (PayLife<N>) rides ok too and is
+	// unmodelled here, so it fails closed beside the unreadable bodies.
+	if col, gen, life, plain := raiseFromCost(v); plain {
+		if life > 0 {
+			return Cost{}, has, false
+		}
+		return Cost{Generic: gen, Colored: col}, has, col.Total()+gen > 0
+	}
+	// Numeric/SVar form (ownReduceCost's chain): a plain literal stands as
+	// itself, an SVar name resolves through the source face's table, and an
+	// inline Count$ body evaluates as written. A name the table does not
+	// carry is not an inline Count$ body -- an unresolvable raise withholds
+	// the ability rather than charging nothing.
+	o := e.G.Obj(id)
+	if o == nil || o.PileFaceFor(merged) == nil {
+		return Cost{}, has, false
+	}
+	svars := e.pileSVars(id, merged)
+	body := v
+	if b, ok2 := svars[v]; ok2 {
+		body = b
+	} else if !strings.HasPrefix(v, "Count$") {
+		return Cost{}, has, false
+	}
+	ctx := effects.NewCtxPtr(id, p, effects.CtxInit{SVars: svars})
+	n, ok2 := effects.EvalCountOK(e, ctx, body)
+	if !ok2 {
+		return Cost{}, has, false
+	}
+	if n <= 0 {
+		return Cost{}, has, true
+	}
+	return Cost{Generic: int32(n)}, has, true
+}
+
 // ownReduceManaShape parses an ability's ReduceCost$ as a MANA COST (Kami of
 // Jealous Thirst's `ReduceCost$ 4 B`): the coloured pips and generic it
 // removes per unit. ok is false for the numeric/SVar-name form

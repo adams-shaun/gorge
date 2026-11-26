@@ -144,19 +144,21 @@ func (s *State) tapsWatchClassForeign(k *prep, p uint8, sl Slot) (painN int, def
 	return painN, deferSrc, foreignOnly && deferSrc
 }
 
-// tapsDeferDead is p's mana sources that the planner defers and whose every
-// deferring watcher is a foreign build ask (tapsWatchClassForeign): gorge's
-// census never lists such a source, and its search, which gap-activates it,
-// ends at the opponent's ask, so no payment or prefix uses it and the plain
-// availability leaves it out. A Treasure under an opponent's Relic Bind has
-// no {T}-only gap of its own for the script to model (scriptTapsDefer), so
-// without this it kept its census unit and the offer priced a cast gorge's
-// autopay surface withholds (census_incomplete). So does a source whose
-// production the gap does not model -- a Talisman's two abilities under the
-// same Relic Bind -- and the activation it alone funded, such as an Equip
-// {2} paid by that Talisman and a land.
+// tapsDeferDead is p's mana sources that the planner defers and whose census
+// unit no payment or prefix uses: a source whose every deferring watcher is a
+// foreign build ask (tapsWatchClassForeign), and a colour-asking unless source
+// (askColUnlessDead), whose first ability asks a colour and whose opponent's
+// unless ask dead-ends the search. Gorge's census never lists either, and its
+// search, which gap-activates them, ends at the opponent's ask -- a target or
+// mode ask for the watcher, the unless payment for Rhystic Cave. A Treasure
+// under an opponent's Relic Bind has no {T}-only gap of its own for the script
+// to model (scriptTapsDefer), so without this it kept its census unit and the
+// offer priced a cast gorge's autopay surface withholds (census_incomplete).
+// So does a source whose production the gap does not model -- a Talisman's
+// two abilities under the same Relic Bind -- and the activation it alone
+// funded, such as an Equip {2} paid by that Talisman and a land.
 func (s *State) tapsDeferDead(k *prep, p uint8) slotMask {
-	var m slotMask
+	m := s.askColUnlessDead(k, p)
 	if k.gen == nil || !k.gen.anyTapsDefer || !s.subs[kop.TrigTaps].any() {
 		return m
 	}
@@ -1376,7 +1378,7 @@ func deferGapWalk(s *State, k *prep, a Action, p uint8, order []Slot, tapsDef sl
 					found = t.castRestPriced(k, p, cp.o, &cp.cost) && !foreign
 				} else {
 					var d Decision
-					t.restrOptions(k, &d, p)
+					t.restrOptionsProbe(k, &d, p) // a node reads no script listing of its own (prefixAnyProbe)
 					complete := w.nu == n
 					found = hasOption(&d, a) && (t.npend == 0 || complete || !resolvePlay || post) && !foreign
 					if found && t.npend != 0 {
@@ -1472,36 +1474,23 @@ func deferAnswerBranches(s *State, k *prep, a Action, p uint8, order []Slot, i i
 	}
 	// the tap's any-colour triggers ask a colour each, which the search
 	// branches on too (tapAnyColAsks), the play's needed colours first
-	// (scriptOrderAnswers)
-	nx := s.tapAnyColAsks(k, order[i])
-	xo := [kop.NumManaKinds - 1]uint8{0, 1, 2, 3, 4}
-	nxc := 1 // the answer combinations: five per ask
-	if nx > 0 {
-		needFirst(xo[:], s.playNeed(k, a))
-		for u := 0; u < nx; u++ {
-			nxc *= len(xo)
-		}
-	}
+	// (scriptOrderAnswers); a Combo Any's ask is one ask of its units' colours
+	var asks anyColAsks
+	s.anyColAsksOf(k, a, order[i], &asks)
+	nx, nxc, visits := asks.n, asks.total, asks.visits()
 	for ai := 0; ai < na; ai++ {
 		if w.subsume && na > 1 && !s.deferSubsumeKeeps(k, order[i], ai, &w.costCol, nodePool) {
 			continue // the subsume run's ask keeps only the colours the pool lacks
 		}
 		if nx > 0 {
 			// the ask visits: the first ask, then one under each answer of the earlier
-			if w.nodes += (nxc - 1) / (len(xo) - 1); w.nodes > potentialScriptNodes {
+			if w.nodes += visits; w.nodes > potentialScriptNodes {
 				w.budgetExit(s)
 				return false, true
 			}
 		}
 		for xi := 0; xi < nxc; xi++ {
-			enc := uint16(ai)
-			if nx > 0 {
-				var cols [anyColAskCap]uint8
-				for u, r := nx-1, xi; u >= 0; u, r = u-1, r/len(xo) {
-					cols[u] = xo[r%len(xo)]
-				}
-				enc = tapAnyColAnswerBits(ai, cols[:nx])
-			}
+			enc := asks.encode(ai, xi)
 			w.used[w.nu], w.answers[w.nu] = int8(i), enc
 			w.nu++
 			ok := deferGapWalk(s, k, a, p, order, tapsDef, cp, ans, pick, dead, noGrant, resolvePlay, twinCut, w, false)

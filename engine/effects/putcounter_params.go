@@ -181,7 +181,7 @@ var putCounterKnownKeys = [...]string{
 	"MinChoiceAmount", "ModeCost", "Monstrosity", "NewController",
 	"NoPutDesc", "NonBasicSpell", "OnlyNewKind", "OpponentTurn", "Optional", "Pawprint", "PerDefined",
 	"Placer", "Planeswalker", "PlayCost", "PlayerTurn", "PowerUp", "PrecostDesc",
-	"PresentCompare", "PresentDefined", "PresentZone", "PrimaryPrompt", "PutOnDefined", "PutOnEachOther", "RandomNumTargets", "RandomType", "ReduceAmount",
+	"PresentCompare", "PresentDefined", "PresentZone", "PrimaryPrompt", "PutOnDefined", "PutOnEachOther", "RaiseCost", "RandomNumTargets", "RandomType", "ReduceAmount",
 	"ReduceCost", "RememberAmount", "RememberAnimated", "RememberCards", "RememberCostMana", "RememberObjects",
 	"RememberPut", "RememberTargets", "Renown", "ReplaceColor", "ReplaceGraveyard",
 	"ReplaceGraveyardValid", "ReplaceMana", "ReplaceOnly", "ReplaceType",

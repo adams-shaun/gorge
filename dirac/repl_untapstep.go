@@ -25,7 +25,7 @@ func (s *State) untapStepGen(k *prep) {
 		// resumed after a keep-tapped ask (repl_untapchoice.go): the scan
 		// goes on from the asked permanent
 		from, up = int(s.g.untapNext), s.g.untapUp
-	} else {
+	} else if s.g.nxph == 0 || !s.addPhaseExtraUntap() { // an extra beginning phase's untap keeps the sickness (act_addphase.go)
 		// CR 502.3: gorge folds the sickness clearing into the StepChange event
 		// (apply_turn.go), before finishUntapStep scans.
 		for _, sl := range ord[:n] {

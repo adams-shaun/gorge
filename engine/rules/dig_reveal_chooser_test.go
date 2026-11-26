@@ -203,3 +203,46 @@ func TestGontiForceRevealLookRecordedForSourceController(t *testing.T) {
 	}
 	replayCheck(t, e, cfg)
 }
+
+// TestAnimalMagnetismControllerPicksTheChoosingOpponent: in a four-player
+// game "an opponent chooses" (Dig Choser$ Player.Opponent) is narrowed to one
+// opponent by the caster -- Forge's DigEffect asks the activator to choose
+// among the Choser$ players (chooseSingleEntityForEffect), XMage's Animal
+// Magnetism has its controller choose the opponent -- and the creature pick
+// is then posed to that opponent, not to the first in seat order.
+func TestAnimalMagnetismControllerPicksTheChoosingOpponent(t *testing.T) {
+	t.Parallel()
+	reg := searchTestRegistry(t)
+	seat0 := []*cards.Card{searchCorpusCard(t, reg, "Animal Magnetism")}
+	for range 39 {
+		seat0 = append(seat0, searchCorpusCard(t, reg, "Grizzly Bears"))
+	}
+	e, cfg := demonstrateEngine(t, reg, seat0, nil, nil, nil)
+	moveByName(t, e, 0, "Animal Magnetism", state.ZHand)
+	addMana(t, e, 0, "GGGGG")
+	castNamed(t, e, "Animal Magnetism")
+	d := digRiderDriveTo(t, e, "dig_chooser")
+	if d.Player != 0 || d.Kind != decision.KChoose || d.Min != 1 || d.Max != 1 || len(d.Options) != 3 {
+		t.Fatalf("chooser ask = %+v, want seat 0 choosing one of the three opponents", d)
+	}
+	pick := -1
+	for _, o := range d.Options {
+		if o.Kind != "player" || o.Player == 0 {
+			t.Fatalf("chooser option %+v: want an opponent", o)
+		}
+		if o.Player == 2 {
+			pick = o.Index
+		}
+	}
+	if pick < 0 {
+		t.Fatalf("seat 2 is not offered: %+v", d.Options)
+	}
+	submitChoices(t, e, pick)
+	d = digRiderDriveTo(t, e, "dig")
+	if d.Player != 2 {
+		t.Fatalf("creature pick posed to seat %d, want the chosen opponent, seat 2", d.Player)
+	}
+	submitChoices(t, e, d.Options[0].Index)
+	answerQuiet(t, e, 80)
+	replayCheck(t, e, cfg)
+}

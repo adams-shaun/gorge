@@ -60,7 +60,25 @@ func effDestroy(h Host, c *Ctx, sa *cards.SA) {
 	// bearer's LKI depend on battlefield order), so the snapshot covers all
 	// of them before the first move.
 	var victims []state.ObjID
-	for _, t := range definedDelayRememberedTargets(h, c, sa) {
+	targets := definedDelayRememberedTargets(h, c, sa)
+	// Defined$ Imprinted whose CR 607.2a-gated read came back empty re-reads
+	// the source's imprint associations RAW (rawImprintTargets), the same
+	// scoped fallback damage.go's damageSourceSpecTargets keeps for Enchanter's
+	// Bane: Forge's getImprintedCards has no zone gate, and the corpus's
+	// scratch-pile destroys -- Crooked Scales' and Mogg Assassin's
+	// ImprintCards$ ThisTargetedCard battlefield creatures, Krenko's
+	// Buzzcrusher's ImprintChosen$ lands -- imprint permanents that never
+	// touch exile, so the gated read would drop the one creature the script
+	// names. An exiled link the ordinary read does resolve stays authoritative
+	// (the gate keeps its meaning for the real Imprint keyword); only the empty
+	// gated set falls back, and effDestroy's own battlefield recheck still
+	// filters whatever the raw read names outside the battlefield.
+	if DefinedRefOf(sa).Text == "Imprinted" && len(targets) == 0 {
+		if raw := rawImprintTargets(h.Game(), c); len(raw) > 0 {
+			targets = raw
+		}
+	}
+	for _, t := range targets {
 		o := h.Game().Obj(t.Obj)
 		if t.IsPlayer || o == nil || o.Zone != state.ZBattlefield || o.PhasedOut {
 			// CR 702.26b: a phased-out permanent can't be affected by anything.

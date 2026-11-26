@@ -31,7 +31,8 @@ import (
 // kernel is not bent to the gorge quirk.
 var kfightexDecks = [4][]cardset.Entry{
 	{ // Rhino's Rampage
-		{Name: "Rhino's Rampage", Count: 4}, {Name: "Colossal Dreadmaw", Count: 9}, {Name: "Hill Giant", Count: 9},
+		{Name: "Rhino's Rampage", Count: 4}, {Name: "Colossal Dreadmaw", Count: 9}, {Name: "Hill Giant", Count: 5},
+		{Name: "Deadly Recluse", Count: 4}, // a deathtouch fighter: 1 damage is lethal, so the rest is excess (CR 120.4a)
 		{Name: "Mountain", Count: 9}, {Name: "Forest", Count: 9},
 	},
 	{ // The Last Agni Kai

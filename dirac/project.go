@@ -193,6 +193,14 @@ func (s *State) projObj(k *prep, i Obj, po *ProjObj) {
 	*po = ProjObj{ZoneIdx: 255}
 	po.Card, po.Owner, po.Ctrl, po.Zone, po.Token = ob.card, ob.owner(), ob.owner(), ob.zone, ob.of&ofToken != 0
 	po.Attached, po.Blocks, po.Attacks = NoObj, NoObj, TCode(NoTarget)
+	if ob.zone == kop.ZonePlanarDeck {
+		// CR 901: the top plane is face up, every other planar-deck card is
+		// face down (gorge's ZPlanarDeck projection hides all but the top).
+		po.ZoneIdx = uint8(s.planePos(ob.owner(), i))
+		if s.planeFaceDown(i) {
+			po.Flags |= ProjFaceDown
+		}
+	}
 	if po.Token && k.anyInit && len(k.t.Cards[ob.card].DungeonNext) != 0 {
 		po.Token = false // a dungeon is no token (act_initiative.go)
 	}
@@ -292,9 +300,6 @@ func (s *State) projObj(k *prep, i Obj, po *ProjObj) {
 			for _, e := range s.ctrOverOf(pm.obj, 0) {
 				projCtr(po, e.kind, e.n)
 			}
-		}
-		if s.g.on && s.mObj(k, mechStash, i) {
-			po.Counters[kop.CtrStash]++ // gorge keeps the stash counter on a card played from exile
 		}
 		// a phased-out permanent's own type switches stand (kw_phasing.go
 		// phasedPTShown, CR 702.26b): a refreshTy left the stale gty it held

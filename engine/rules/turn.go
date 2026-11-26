@@ -499,6 +499,29 @@ func skipFirstDrawStep(g *state.Game, next state.Step) state.Step {
 	return next
 }
 
+// skipFirstDrawLanding is skipFirstDrawStep for a walk that may stand inside an
+// extra beginning phase (an ExtraPhase$ Beginning or Upkeep,Draw grant whose
+// range ends at the draw step). CR 103.8a skips only the draw step, so there
+// the walk leaves the skipped draw as it would leave any range end: the
+// grant completes and the walk resumes where the extra phase says (the splice
+// point's successor, or FollowedBy$), not at the precombat main phase.
+// boundary is the engine's extraPhaseBoundary.
+func skipFirstDrawLanding(g *state.Game, next state.Step, boundary func(state.Step) (state.Step, bool)) state.Step {
+	landed := skipFirstDrawStep(g, next)
+	if landed == next {
+		return next
+	}
+	for _, ep := range g.ExtraPhases {
+		if ep.Consumed && ep.RangeEnd == state.StepDraw {
+			if s, ok := boundary(state.StepDraw); ok {
+				return s
+			}
+			break
+		}
+	}
+	return landed
+}
+
 func (e *Engine) drawStepTurnAction() bool {
 	if e.G.Step != state.StepDraw || e.G.Players[e.G.Active].Lost {
 		return false
@@ -1328,7 +1351,7 @@ func (e *Engine) advanceStep() {
 	if spliced {
 		next = s
 	} else {
-		next = skipFirstDrawStep(e.G, next)
+		next = skipFirstDrawLanding(e.G, next, e.extraPhaseBoundary)
 	}
 	next = skipCombatPhase(e.G, next)
 	if !spliced {

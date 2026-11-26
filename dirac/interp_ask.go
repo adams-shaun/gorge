@@ -255,9 +255,18 @@ func (s *State) execPay(k *prep, in *kop.Instr) bool {
 // failed window probe's fork latched once that drop is final.
 func (s *State) payAnswerGate(k *prep, in *kop.Instr, p uint8, kind int, skip uint16, amt int, pips int16) uint16 {
 	stackSelfGone := kind == kop.PayExileGrave && in.B.N == kop.PayBSubStackSelf && s.objs[s.res.e.obj].zone != kop.ZoneStack
-	noPay := stackSelfGone
+	// gorge's unresolvable DefinedCost_ChosenCard (Tariff): with no chosen
+	// card the DefinedCost token passes through raw and the strict cost
+	// parser rejects it, so the ask is still posed and the payer declines
+	// (effects/unless.go unlessDefinedCost). The kernel's UnlessPaid A
+	// ExMVOf(RefChosen) reads 0 over an empty chosen set, which would price
+	// a free pay.
+	unpricedChosen := in.Op == kop.OpUnlessPaid && kind == kop.PayMana && s.g.nchosen == 0 &&
+		in.A.K == kop.VExpr && int(in.A.N) < len(k.t.Exprs) &&
+		k.t.Exprs[in.A.N].Kind == kop.ExMVOf && k.t.Exprs[in.A.N].Ref == kop.RefChosen
+	noPay := stackSelfGone || unpricedChosen
 	var stall uint8
-	if !stackSelfGone {
+	if !noPay {
 		ok := s.canPayGenFor(k, p, kind, skip, amt, pips, in.F)
 		if !ok && kind == kop.PayDraw && skip&pfModes == 0 {
 			// A trigger's own Draw cost is the window's pay/decline ask
@@ -456,6 +465,9 @@ func (s *State) openManaRefused(k *prep, p uint8, sl Slot, d *payDesc) bool {
 
 func (s *State) payerOf(k *prep, r kop.Ref) uint8 {
 	if r == kop.RefEach {
+		if o := s.res.eachObj; o != NoObj {
+			return s.eachCtrl(o) // an OpRepeatEach card loop: the bound card's controller (act_repeatremembered.go)
+		}
 		return s.g.eachPl
 	}
 	return s.playerRef(k, r)
@@ -1818,17 +1830,20 @@ func (s *State) addSac(sl Slot) {
 
 func (s *State) startSearch(k *prep, in *kop.Instr) bool {
 	if in.Op == kop.OpChooseMove && (in.B.N == 1 || battleLinkPick(k.t, in)) && s.handExileHostGone() {
-		return true // UntilHostLeavesPlay with the host gone: nothing (act_mayask.go, zone_hiddenpick.go pickLink)
+		s.rememberSearcherDrop() // an armed RememberSearcher$ behind a search that cannot run
+		return true              // UntilHostLeavesPlay with the host gone: nothing (act_mayask.go, zone_hiddenpick.go pickLink)
 	}
 	p := s.playerRef(k, handMoveOwnerRef(in.Obj))
 	if p == 255 {
 		if in.Op == kop.OpChooseMove && in.Obj != kop.RefController {
+			s.rememberSearcherDrop()
 			return true // the target player whose hand it is is gone: nothing moves
 		}
 		if r := handMoveOwnerRef(in.Obj); r == kop.RefTargetController || r == kop.RefTgtCtrl1 || r == kop.RefTgtCtrl2 {
 			// DefinedPlayer$ TargetedController over an "up to one" slot left
 			// empty (White Orchid Phantom's destroy chose no land): gorge's
 			// definedPlayers names no one, so no one searches
+			s.rememberSearcherDrop()
 			return true
 		}
 		p = s.res.e.ctrl
@@ -1858,15 +1873,19 @@ func (s *State) startSearch(k *prep, in *kop.Instr) bool {
 		s.res.ask, s.res.askP = raGenConfirm, ask // gorge's Optional$ confirmation first
 		return false
 	}
+	s.rememberSearcherCommit() // the search runs: RememberSearcher$ remembers the searcher
 	return s.searchPick(k) && !s.moveAsked()
 }
 
 // moveAsked reports a found card's move waiting on an answer: a hand move's Aura for
-// its host (handAuraEnter), a card entering for its as-enters choice (rerunMove), or
-// an Attacking$ entry's CR 508.4 defender (zone_changezoneparams.go).
+// its host (handAuraEnter), a card entering for its as-enters choice (rerunMove), an
+// Attacking$ entry's CR 508.4 defender (zone_changezoneparams.go), or a required
+// take-all hand move's CR 401.4 arrangement (raGenLibPlace, handTakeAll via
+// act_libplace.go: gorge's handLibraryTail asks it mid-resolution, the spell still
+// on the stack, so the resolution parks here like at any other move ask).
 func (s *State) moveAsked() bool {
 	return s.res.ask == raGenTopBottom || s.res.ask == raGenEnchant || s.res.ask == raGenRetChoice || s.res.ask == raGenEntryOrder ||
-		s.res.ask == raGenEnterDefender || s.res.ask == raGenCmdZone || s.res.ask == raGenPayETB
+		s.res.ask == raGenEnterDefender || s.res.ask == raGenCmdZone || s.res.ask == raGenPayETB || s.res.ask == raGenLibPlace
 }
 
 // searchPick poses a search's (or a choose-move's) first pick, or finishes
@@ -2367,7 +2386,7 @@ func (s *State) startDig(k *prep, in *kop.Instr) bool {
 			// allOrNothing election): one yes/no, never a subset. Yes takes
 			// every matching card; no leaves the looked-at window in place
 			// and moves nothing (no rest placement, reveal or capture).
-			s.res.ask, s.res.askP = raGenDigAllOpt, s.res.e.ctrl
+			s.res.ask, s.res.askP = raGenDigAllOpt, s.digChooser(k)
 			return false
 		}
 		if take == -1 {
@@ -2400,8 +2419,9 @@ func (s *State) startDig(k *prep, in *kop.Instr) bool {
 		s.digBoundMax(k) // zone_each.go
 		// the controller picks, whoever's library it is (gorge
 		// digChooser: the resolving controller, CR 701.29a; Coral
-		// Fighters looks at the defending player's library)
-		s.res.ask, s.res.askP = raGenDig, s.res.e.ctrl
+		// Fighters looks at the defending player's library), or the
+		// Choser$ the dig's W names (zone_digtoporder.go digChooser)
+		s.res.ask, s.res.askP = raGenDig, s.digChooser(k)
 		return false
 	}
 	return true

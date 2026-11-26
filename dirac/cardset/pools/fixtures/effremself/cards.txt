@@ -1,0 +1,12 @@
+# An until-end-of-turn Effect's RememberObjects$ Self read as Defined$
+# Remembered, the emblem's source object
+# (dirac/oracle/effremself_lockstep_test.go TestEffectRememberSelfLockstep;
+# kgen lower_effectremself.go effectRememberSelf)
+Mountain Titan
+Walking Corpse
+Savannah Lions
+Coral Merfolk
+Mountain
+Swamp
+Plains
+Island

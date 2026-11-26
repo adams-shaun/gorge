@@ -1,0 +1,11 @@
+# Defined$ values the 11-25 census lowered (dirac/oracle/
+# definedcensus1125_lockstep_test.go TestDefinedCensus1125Lockstep; kgen
+# lower_definedcensus1125.go): Unquenchable Fury's granted attack trigger
+# damages TriggeredDefender, Will of the Sultai's PutCounter mode gives
+# TargetedCard trample.
+Unquenchable Fury
+Will of the Sultai
+Grizzly Bears
+Raging Goblin
+Forest
+Mountain

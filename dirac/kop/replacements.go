@@ -17,7 +17,44 @@ const (
 	ReplDmgSrcSpell              // ReplDamageMinus: the source is the resolving spell (ValidSource$ Spell; Benevolent Unicorn), no battlefield source
 	ReplDmgYou                   // ReplDoubleDamageToOpps: the recipient is the replacement's controller (ValidTarget$ You; Goldnight Castigator)
 	ReplDmgSelf                  // ReplDoubleDamageToOpps: the recipient is the replacement's host itself (ValidTarget$ Card.Self; Goldnight Castigator)
+	ReplDmgHalfDown              // ReplDamageMinus: the event's damage is halved, rounded down, instead of lowered by Repl.A (ReplaceCount$DamageAmount/HalfDown; Ghosts of the Innocent; Repl.A unused)
 )
+
+// ReplDamageInstead (the printed DamageDone replacements that put the damage
+// to another use: Angel of Suffering, Gloom Surgeon, Force Bubble, Panther
+// Habit, Soul-Scar Mage, Swans of Bryn Argoll, Szadek, Undead Alchemist).
+// Repl.C is the recipient (the ReplDmg* words, ReplDmgCombat / ReplDmgNonCombat
+// for IsCombat$; a permanent recipient may instead be Repl.Filter, read with the
+// replacement's host as its source), Repl.Filter2 the damage source (0: any),
+// and Repl.A the body: the ReplDmgIns* effects in the low byte, applied in the
+// order counters, mill, exile, draw, and the counter kind of the ReplDmgInsCtr*
+// effects above ReplDmgInsKindShift. The event's damage is replaced: nothing
+// is dealt, so no lifelink and no damage trigger (gorge's body runs at the
+// proposal and hands back a stopped event); under a can't-prevent effect only
+// a ReplDmgInsPrevent line still runs its body and lets the damage stand
+// (CR 615.12).
+const (
+	ReplDmgInsPrevent     = 1 << iota // PreventionEffect$ True: the damage stands under a can't-prevent effect (the body still runs)
+	ReplDmgInsMill                    // the damaged player mills that many cards (Mill | Defined$ ReplacedTarget)
+	ReplDmgInsDouble                  // ... twice that many (ReplaceCount$DamageAmount/Twice: Angel of Suffering)
+	ReplDmgInsExileTop                // the replacement's controller exiles that many cards from the top of their library (Dig | ChangeNum$ All | DestinationZone$ Exile)
+	ReplDmgInsCtrHost                 // that many counters of the kind are put on the replacement's host (PutCounter | Defined$ Self)
+	ReplDmgInsCtrEquipped             // ... on the permanent the host is attached to (Defined$ Equipped)
+	ReplDmgInsCtrTarget               // ... on the damaged permanent (Defined$ ReplacedTarget)
+	ReplDmgInsDrawSrc                 // the damage source's controller draws that many cards (Draw | Defined$ ReplacedSourceController)
+)
+
+// ReplDamageInstead's ask bodies sit in Repl.C's free top bits (the low byte
+// of Repl.A is full and ReplDmgInsKindShift's counter kind takes the rest; the
+// recipient words of the ReplDmg* block stop at ReplDmgHalfDown). The kernel
+// reads them back beside Repl.A's low byte as the body (repl_dminstead.go).
+const (
+	ReplDmgInsSac  = 1 << 14 // Dralnu, Lich Lord: its controller sacrifices that many permanents of their choice, all when fewer remain (Sacrifice | Defined$ You | SacValid$ Permanent | Amount$ X)
+	ReplDmgInsVind = 1 << 15 // Phyrexian Vindicator: with ReplDmgInsPrevent the damage is prevented and the host deals that much damage to a target its controller picks among Creature.Other,Player,Planeswalker.Other,Battle.Other (ImmediateTrigger with a DealDamage Execute)
+)
+
+// ReplDmgInsKindShift is where ReplDamageInstead's counter kind starts in Repl.A.
+const ReplDmgInsKindShift = 8
 
 // Repl.C of ReplBeginPhase (the printed phase-skip, R:Event$ BeginPhase |
 // Phase$ <p> | Skip$ True; gorge replacement_phase.go): 0 applies every turn
@@ -146,6 +183,13 @@ type Repl struct {
 	// ReplPreventDamageFilt and ReplPreventDamageN (replacements_staticprevent.go).
 	Filter2 FilterID // the damage source it applies to (0: any)
 	V       ValueRef // the damage a prevent-N shield prevents, read when the damage would be dealt (ReplSPAmtV)
+
+	// Trig of a ReplDamageInstead ask body (ReplDmgInsVind): the card's
+	// reflexive-trigger ability (a lowering latent) the body queues
+	// (Phyrexian Vindicator's ImmediateTrigger Execute: a DealDamage of the
+	// trigger amount at its own target, CR 603.12). The runtime's enqueue
+	// reaches it by this index.
+	Trig uint8
 }
 
 // Repl.C of a ReplCantLoseGame: 0 stops every loss of the game; CantLoseLife

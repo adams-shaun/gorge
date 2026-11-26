@@ -223,9 +223,13 @@ func (s *State) lifeGainN(k *prep, p uint8, n int) int {
 // lifeParked reports that the order ask in progress is a parked GainLife op's.
 func (s *State) lifeParked() bool { return s.g.nc.n == ncPend && s.g.nc.ctrl&ncLife != 0 }
 
-// orderOptions is the replacement-order ask's options: a parked life gain's,
-// else the damage walk's.
+// orderOptions is the replacement-order ask's options: a parked ask body's
+// (repl_dmbody.go), a parked life gain's, else the damage walk's.
 func (s *State) orderOptions(d *Decision) {
+	if s.g.nc.body != 0 {
+		s.replBodyOptions(d)
+		return
+	}
 	if s.lifeParked() {
 		s.lifeOrderOptions(d)
 		return
@@ -233,10 +237,13 @@ func (s *State) orderOptions(d *Decision) {
 	s.replOrderOptions(d)
 }
 
-// orderAnswered answers the ask of a contested token creation or a parked
-// life gain, true when it was one of them; the damage walk's is the caller's.
+// orderAnswered answers the ask of a parked ask body (repl_dmbody.go), a
+// contested token creation or a parked life gain, true when it was one of
+// them; the damage walk's is the caller's.
 func (s *State) orderAnswered(k *prep, a Action) bool {
 	switch {
+	case s.g.nc.body != 0:
+		return s.replBodyNCAnswer(k, a) // an ask body's park (repl_dmbody.go)
 	case s.g.tok.on:
 		s.tokAnswer(k, a) // a contested token creation (repl_tokorder.go)
 	case s.lifeParked():

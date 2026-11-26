@@ -174,13 +174,16 @@ func effDelayedTrigger(h Host, c *Ctx, sa *cards.SA) {
 				Text: "registers a delayed " + mode + " trigger with no Execute"})
 			return
 		}
+		if dp.EntersRemembered && queueEnteredRememberedTrigger(h, c, exec, remembered) {
+			return
+		}
 		eventText := dp.EventText
 		if dp.ThisTurn {
 			eventText += "|TT=" + strconv.Itoa(int(h.Game().Turn))
 		}
 		h.Emit(events.Event{Kind: events.DelayedRegister, Obj: c.Source,
 			Player: c.Controller, Step: h.Game().Step, Counter: exec,
-			IDs: encodeRemembered(remembered), Text: eventText})
+			IDs: encodeRemembered(remembered), Text: eventText + delayedLabelSuffix(dp)})
 		return
 	}
 	if exec == "" {
@@ -267,7 +270,57 @@ func effDelayedTrigger(h Host, c *Ctx, sa *cards.SA) {
 	}
 	h.Emit(events.Event{Kind: events.DelayedRegister, Obj: c.Source,
 		Player: c.Controller, Step: step, Counter: exec, Amount: amount,
-		IDs: encodeRemembered(remembered), Text: text})
+		IDs: encodeRemembered(remembered), Text: text + delayedLabelSuffix(dp)})
+}
+
+// queueEnteredRememberedTrigger is the registration-after-the-move case of a
+// "when that permanent enters" delayed trigger (Jailbreak: the ChangeZone
+// returns the target, then the sub-ability registers the trigger inside the
+// same resolution). Forge runs the resolution's waiting zone-change triggers
+// once the spell is done, so the just-registered trigger sees the entry, and
+// XMage fires it as a reflexive ability (CR 603.12). A remembered object that
+// is on the battlefield now though the resolving spell or ability targeted it
+// elsewhere (its ZoneGen moved since the target stamp) entered during this
+// resolution: queue the Execute$ body for that entry instead of registering a
+// trigger that no later event can satisfy. It reports false -- the caller
+// registers as before -- when no remembered object qualifies or the host
+// cannot mint the body.
+func queueEnteredRememberedTrigger(h Host, c *Ctx, exec string, remembered []state.Target) bool {
+	body := cards.ResolveSVar(c.SVars, exec)
+	so := h.Game().Obj(c.ResolvingObj)
+	if body == nil || so == nil {
+		return false
+	}
+	for _, t := range remembered {
+		o := h.Game().Obj(t.Obj)
+		if t.IsPlayer || o == nil || o.Zone != state.ZBattlefield || !targetStampMoved(h.Game(), so, t.Obj) {
+			continue
+		}
+		cc := *c
+		cc.TriggerCard, cc.TriggerSource, cc.DelayedObject = t.Obj, t.Obj, t.Obj
+		return h.QueueReflexiveTrigger(&cc, exec, body, []state.Target{{Obj: t.Obj}})
+	}
+	return false
+}
+
+// delayedLabelSuffix encodes a DelayedTrigger registration's TriggerDescription$
+// as the LAST Text trailer, "|LB=<text>", so events' foldDelayedRegister
+// strips it first into state.DelayedTrigger.Description. The description is
+// what a client labels the delayed trigger with ("Arcane Denial: Draw a
+// card."): a face trigger's own TriggerDescription$ is readable from its
+// T: line forever, but a DB$ DelayedTrigger has no such line, so two delayed
+// triggers from one source (Arcane Denial's slowtrip pair) are
+// indistinguishable in a CR 603.3b order ask without it. An empty
+// description -- a keyword-minted or generated registration, or one the
+// script gives no TriggerDescription$ -- encodes nothing, so every already-
+// logged registration is byte-identical. The fold's trailer delimiter "|"
+// ends a TriggerDescription$ value by construction (no corpus value carries
+// one), so a description that somehow does is dropped, never mangled.
+func delayedLabelSuffix(dp *DelayedTriggerParams) string {
+	if dp.Description == "" || strings.Contains(dp.Description, "|") {
+		return ""
+	}
+	return "|LB=" + dp.Description
 }
 
 // delayedManaSpentSuffix encodes the resolution-start spend snapshot
@@ -386,5 +439,6 @@ func effDelayedTriggerSpellCast(h Host, c *Ctx, dp *DelayedTriggerParams) {
 		text += "|GB=" + strconv.FormatUint(uint64(c.Grantor), 10)
 	}
 	h.Emit(events.Event{Kind: events.DelayedRegister, Obj: c.Source,
-		Player: c.Controller, Step: h.Game().Step, Counter: exec, Text: text})
+		Player: c.Controller, Step: h.Game().Step, Counter: exec,
+		Text: text + delayedLabelSuffix(dp)})
 }

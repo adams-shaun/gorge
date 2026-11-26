@@ -108,8 +108,13 @@ func TestChooseCardOptionalPools(t *testing.T) {
 			t.Errorf("optional ChooseCard from %s lost its Done:\n%s", z, lir)
 		}
 	}
+	// an optional counted pick (Min 0, Amount$ 2) is an up-to-N Done pick
+	lir, rs := ccpLower(t, ccpHead+"A:SP$ ChooseCard | Choices$ Creature | Amount$ 2\n")
+	if len(rs) != 0 || !strings.Contains(lir, "AmountOpt") {
+		t.Errorf("optional ChooseCard Amount$ 2: refusals %v, want an AmountOpt lowering:\n%s", rs, lir)
+	}
 	// near misses stay refused
-	for _, extra := range []string{" | Amount$ 2", " | ChoiceZone$ Hand,Battlefield", " | ForgetOtherRemembered$ True"} {
+	for _, extra := range []string{" | ChoiceZone$ Hand,Battlefield", " | ForgetOtherRemembered$ True"} {
 		_, rs := ccpLower(t, ccpHead+"A:SP$ ChooseCard | Choices$ Creature"+extra+"\n")
 		if len(rs) == 0 {
 			t.Errorf("optional ChooseCard%s lowered, want a refusal", extra)

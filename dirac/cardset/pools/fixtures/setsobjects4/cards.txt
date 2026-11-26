@@ -1,0 +1,12 @@
+# Dig Choser$ shapes kgen now lowers
+# (dirac/oracle/setsobjects4_lockstep_test.go TestSetsObjects4DigChoserLockstep):
+# an opponent picks from the controller's dig (Animal Magnetism, Murmurs from
+# Beyond), the targeted or triggering library's player picks (Ashnod's Cylix,
+# Gate to the Aether)
+Animal Magnetism
+Murmurs from Beyond
+Ashnod's Cylix
+Gate to the Aether
+Grizzly Bears
+Forest
+Island

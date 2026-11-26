@@ -212,6 +212,12 @@ func (r *Translator) Action(a dirac.Action) Canon {
 			cm, _ := CastModeCode("dashed")
 			return Pack(ActCast, src, RefNone, cm)
 		}
+		if mode == 0 && tgt == dirac.FeatCastBlitzTgt && r.S.ObjZone(dirac.Obj(src)) == kop.ZoneHand {
+			// the blitz cast (CR 702.152a; kernel kw_blitz.go castBlitzTgt):
+			// gorge's "blitzed" cast option, AltCostIndex 0
+			cm, _ := CastModeCode("blitzed")
+			return Pack(ActCast, src, RefNone, cm)
+		}
 		if mode == 0 && tgt == dirac.FeatCastForetellTgt && r.S.ObjZone(dirac.Obj(src)) == kop.ZoneExile {
 			// a foretold card cast from exile (CR 702.143a; kw_foretell.go):
 			// gorge's "foretell_cast" option, which the full cast-mode table
@@ -591,6 +597,9 @@ func (r *Translator) CardAbility(card dirac.CardID, idx uint8) uint8 {
 	if int(card) < len(r.Tbl.Cards) && ImpendTickAb(&r.Tbl.Cards[card], idx) {
 		return 255 // Impending's end-step removal: gorge grants it at entry, no face index (kgen lowerImpending)
 	}
+	if int(card) < len(r.Tbl.Cards) && int(idx) < len(r.Tbl.Cards[card].Abilities) && r.Tbl.Cards[card].Abilities[idx].Kind == kop.AbTriggered && r.Tbl.Cards[card].Abilities[idx].Trig.Event == kop.TrigExerted {
+		return 255 // the OptionalAttackCost rider: gorge's checkExertTriggers queues a granted trigger (Idx -1), in no face list (kgen static_optattack.go)
+	}
 	if r.Origin != nil && int(card) < len(r.Tbl.Cards) {
 		if o, ok := r.Origin(card, idx); ok {
 			return o
@@ -825,8 +834,9 @@ func (r *Translator) generatedChoose(a dirac.Action) (Canon, bool) {
 		return Pack(ActMode, RefNone, RefNone, 1), true
 	case dirac.ChGenPair:
 		// gorge effPair's "soulbond" KChoose over the unpaired creatures
-		// (CR 702.95a): an ordinary object pick, kind "other"
-		return Pack(kind("other"), Ref(src), RefNone, 0), true
+		// (CR 702.95a): an ordinary object pick, choose:other as gorge's
+		// chooseOtherAction encodes it ("soulbond" is not in ChooseKinds)
+		return Pack(ActChoose+ChooseOther, Ref(src), RefNone, 0), true
 	case dirac.ChGenRingBearer:
 		// gorge effRingTemptsYou's "ring_bearer" KChoose over the creatures
 		// (CR 701.54a): choose:other, as gorge's chooseOtherAction encodes it
@@ -1264,16 +1274,19 @@ func (r *Translator) grantedOrGained(src, tgt Ref, mode uint8) (Canon, bool) {
 	return 0, false
 }
 
-// chooseGen is generatedChoose plus the band declaration (CR 702.22c) and the
-// enlist election (CR 702.154a): gorge askNextBand's KChoose of kind "band"
-// and askNextEnlist's of kind "enlist", whose decline (mode 0) names no
-// object and whose candidate names itself.
+// chooseGen is generatedChoose plus the band declaration (CR 702.22c), the
+// enlist election (CR 702.154a) and the exert election (CR 702.100a): gorge
+// askNextBand's KChoose of kind "band", askNextEnlist's of kind "enlist" and
+// askNextExert's of kind "exert", whose decline (mode 0) names no object and
+// whose candidate names itself.
 func (r *Translator) chooseGen(a dirac.Action) (Canon, bool) {
 	kind := "band"
 	switch r.D.Sub {
 	case dirac.ChBand:
 	case dirac.ChEnlist:
 		kind = "enlist"
+	case dirac.ChExert:
+		kind = "exert"
 	default:
 		return r.generatedChoose(a)
 	}

@@ -7,6 +7,13 @@ import (
 // tableUnblocked reports whether some trigger of t fires for unblocked
 // attackers (kop.Tf2Unblocked; genPrep.anyUnblocked).
 func tableUnblocked(t *kop.Table) bool {
+	for i := range t.Emblems {
+		for j := range t.Emblems[i].Abilities {
+			if a := &t.Emblems[i].Abilities[j]; a.Kind == kop.AbTriggered && a.Trig.Flags2&kop.Tf2Unblocked != 0 {
+				return true // an Effect's end-of-turn unblocked-attacker line (fireEmblemsUnblocked)
+			}
+		}
+	}
 	for i := range t.Cards {
 		for j := range t.Cards[i].Abilities {
 			if a := &t.Cards[i].Abilities[j]; a.Kind == kop.AbTriggered && a.Trig.Flags2&kop.Tf2Unblocked != 0 {
@@ -54,4 +61,5 @@ func (s *State) fireUnblocked(k *prep) {
 			}
 		})
 	}
+	s.fireEmblemsUnblocked(k, atk[:n]) // after the listeners: gorge checkEffectCombatTriggers
 }

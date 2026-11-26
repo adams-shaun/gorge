@@ -1,0 +1,16 @@
+# A printed activated ability's announced ExileFromGrave<X/Spec> (CR 601.2b,
+# 107.3a): alone (Taigam, Sidisi's Hand; Painbringer; Winter, Cursed Rider) or
+# beside a printed {X} (Necropolis Fiend), kgen lower_exilex.go, kernel
+# cost_exilex.go, with creatures and lands, for the oracle's constructed
+# lockstep (dirac/oracle/exilexact_lowers_test.go)
+Taigam, Sidisi's Hand
+Painbringer
+Winter, Cursed Rider
+Necropolis Fiend
+Ornithopter
+Scathe Zombies
+Grizzly Bears
+Hill Giant
+Island
+Swamp
+Forest

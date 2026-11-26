@@ -65,10 +65,26 @@ func (g *genPrep) prepFiltFirst(c CardID, j int, a *kop.Ability) {
 	}
 }
 
-// filtAb is the filter ability of the card at sl.
+// filtAb is the filter ability of the card at sl (its first filter, ordinal 0).
 func (s *State) filtAb(k *prep, sl Slot) *kop.Ability {
 	c := s.cardAt(sl)
 	return &k.t.Cards[c].Abilities[k.gen.filt(c)]
+}
+
+// filtAbAt is the card's filter ability at ordinal ord (0 is its first).
+func (s *State) filtAbAt(k *prep, sl Slot, ord int8) *kop.Ability {
+	if ord == 0 {
+		return s.filtAb(k, sl)
+	}
+	c := s.cardAt(sl)
+	return &k.t.Cards[c].Abilities[k.gen.filtAt(c, int(ord))]
+}
+
+// filtCount is how many filter abilities the card at sl records: one for a
+// plain {T} ability beside a single paid filter (Hidden Grotto), two or more
+// for a paid filter set (Koskun Keep).
+func (s *State) filtCount(k *prep, sl Slot) int {
+	return k.gen.filtCount(s.cardAt(sl))
 }
 
 // filtNoTap: the filter at sl costs no {T} (a once-each-turn one).
@@ -193,22 +209,19 @@ func (s *State) filtOtherMana(k *prep, p uint8) int {
 			// a sacrifice-only source (an Eldrazi Spawn) is a last-resort
 			// unit of gorge's census, tapped or not (mana_sacsource.go)
 			n += int(max(pc.manaN, 1))
-		} else if s.grantSacOK(k, sl) || s.grantTapOK(k, sl) {
+		} else if s.grantSacOK(k, sl) || (s.canTapForMana(k, sl) || s.grantTapByGrant(k, sl, pc)) {
 			// a granted mana ability is potential mana gorge's planner counts
 			// (Rain of Filth's "Sacrifice this land: Add {B}{B}" on a tapped
 			// land): the plain walk above counts only a printed tap, so its
 			// production funds a first-only filter's fee here too (CR 605.1a,
 			// 601.2g). The script search still prices the actual payment.
 			var ga avail
-			s.availGrant(k, sl, s.manaPCGen(k, sl), &ga)
+			s.availGrant(k, sl, pc, &ga) // the else-if's manaPCGen: nothing between changes it
 			n += ga.total
 		}
 	}
 	if k.ctrMana {
-		// a dead counter-cost gap (Component Pouch) is admitted to gorge's
-		// PotentialMana with a production that resolves to no mana, so it
-		// funds no fee (mana_countercost.go)
-		n += s.scriptCtr(k, p).count() - s.deadCtrMask(k, p).count()
+		n += s.scriptCtr(k, p).count()
 	}
 	if k.tapMana {
 		// a tap-another-permanent source (Relic of Legends' "Tap an untapped
