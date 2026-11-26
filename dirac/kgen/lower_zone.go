@@ -3357,12 +3357,7 @@ func (lc *lowerCtx) emblem(ps *params, tr string) error {
 	var capture lRef
 	var hasCap, player, selfRem bool
 	if mem.kind == memNone {
-		if selfRem, err = emblemSelfRemember(ps, t, eot); err != nil { // lower_effeottrig.go
-			return err
-		}
-	}
-	if mem.kind == memNone && !selfRem {
-		if capture, hasCap, player, t, err = lc.emblemCapture(ps, t, eot); err != nil {
+		if capture, hasCap, player, selfRem, t, err = lc.emblemSelfCapture(ps, t, eot); err != nil { // lower_effeottrig.go
 			return err
 		}
 	}
@@ -3404,15 +3399,8 @@ func (lc *lowerCtx) emblem(ps *params, tr string) error {
 		return err
 	}
 	ab := lc.out.Abilities[saved]
-	if mem.kind != memNone {
-		if err := effectRememberBody(ab, mem); err != nil { // lower_effectremember.go
-			return err
-		}
-	}
-	if selfRem {
-		if err := emblemSelfRememberBody(ab); err != nil { // lower_effeottrig.go
-			return err
-		}
+	if err := emblemBodyMemory(ab, mem, selfRem); err != nil { // lower_effeottrig.go
+		return err
 	}
 	recipientCap := false
 	if hasCap && !player {

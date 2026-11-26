@@ -336,6 +336,38 @@ func (lc *lowerCtx) capturedTriggerRef(v string) (lRef, bool) {
 	return lRef{}, false
 }
 
+// emblemSelfCapture resolves an emblem trigger's capture when the Effect
+// remembers nothing (the caller holds mem.kind == memNone): an Effect whose
+// RememberObjects$ names the trigger (emblemSelfRemember) captures nothing --
+// the body reads the Effect's source back (emblemSelfRememberBody) -- and any
+// other shape takes the trigger's own capture (emblemCapture). The trigger
+// comes back possibly narrowed by the capture.
+func (lc *lowerCtx) emblemSelfCapture(ps *params, t cards.Trigger, eot bool) (capture lRef, hasCap, player, selfRem bool, trig cards.Trigger, err error) {
+	trig = t
+	if selfRem, err = emblemSelfRemember(ps, trig, eot); err != nil {
+		return
+	}
+	if !selfRem {
+		capture, hasCap, player, trig, err = lc.emblemCapture(ps, trig, eot)
+	}
+	return
+}
+
+// emblemBodyMemory writes a resolving emblem trigger body's memory read: an
+// Effect that remembers what its trigger captured (lower_effectremember.go)
+// reads its own list, and a RememberObjects$ Self Effect (emblemSelfRemember)
+// reads its source back as kop.RefEmblemSource (emblemSelfRememberBody). A
+// plain capture body holds neither.
+func emblemBodyMemory(ab *lAbility, mem effMem, selfRem bool) error {
+	if mem.kind != memNone {
+		return effectRememberBody(ab, mem) // lower_effectremember.go
+	}
+	if selfRem {
+		return emblemSelfRememberBody(ab)
+	}
+	return nil
+}
+
 // emblemSelfRemember reads an until-end-of-turn Effect's RememberObjects$ Self
 // beside its SpellCast or DamageDone trigger (Mountain Titan: "until end of
 // turn, whenever you cast a black spell, put a +1/+1 counter on Mountain
