@@ -977,9 +977,14 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 	if err != nil {
 		return err
 	}
-	if bracket {
+	switch {
+	case lc.retImprint:
+		if err := lc.returnImprint(in, optional, bracket, fd); err != nil { // lower_imprintzone.go
+			return err
+		}
+	case bracket:
 		lc.emitLibPlace(arm, in)
-	} else {
+	default:
 		lc.emit(in)
 	}
 	lc.faceDownAfter(fd) // lower_exilefacedownmove.go
@@ -2814,6 +2819,9 @@ func (lc *lowerCtx) effectStaticBodies(list string) ([]cards.Static, error) {
 
 func (lc *lowerCtx) effectAPI(ps *params) error {
 	if tr, ok := ps.get("Triggers"); ok {
+		if done, err := lc.effectImprintShieldFrom(ps); done || err != nil { // lower_effectimprintshield.go
+			return err
+		}
 		if _, st := ps.m["StaticAbilities"]; st {
 			if done, err := lc.effectUntapDenial(ps, tr); done || err != nil { // lower_untapdenial.go
 				return err
