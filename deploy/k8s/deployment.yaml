@@ -1,0 +1,74 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gorged
+  namespace: gorge
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate # the RWO volumes allow one pod at a time
+  selector:
+    matchLabels:
+      app: gorged
+  template:
+    metadata:
+      labels:
+        app: gorged
+    spec:
+      securityContext:
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+      containers:
+        - name: gorged
+          # The name is rewritten by kustomization.yaml (images:); gorge-pod.sh up sets the tag.
+          image: ghcr.io/adams-shaun/gorge:latest
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            # Below the 2Gi limit so the Go GC works before the kernel OOM-kills the pod.
+            - name: GOMEMLIMIT
+              value: 1536MiB
+            # Where the carddb copy is mounted. Nothing in gorged reads it today (see README.md).
+            - name: CARDDB_DIR
+              value: /carddb
+          resources:
+            requests:
+              cpu: "2"
+              memory: 2Gi
+            limits:
+              cpu: "2"
+              memory: 2Gi
+          # gorged has no dedicated health route; GET /api/capabilities is a cheap, unauthenticated JSON read.
+          # First start fetches the card scripts and compiles the IR cache, so the startup probe waits up to 15 min.
+          startupProbe:
+            httpGet: {path: /api/capabilities, port: http}
+            periodSeconds: 10
+            failureThreshold: 90
+          readinessProbe:
+            httpGet: {path: /api/capabilities, port: http}
+            periodSeconds: 10
+            timeoutSeconds: 3
+          livenessProbe:
+            httpGet: {path: /api/capabilities, port: http}
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 3
+          volumeMounts:
+            - {name: cards, mountPath: /cards}
+            - {name: data, mountPath: /data}
+            - {name: art, mountPath: /art}
+            - {name: feedback, mountPath: /feedback}
+            - {name: carddb, mountPath: /carddb, readOnly: true}
+      volumes:
+        - name: cards
+          persistentVolumeClaim: {claimName: cards}
+        - name: data
+          persistentVolumeClaim: {claimName: data}
+        - name: carddb
+          persistentVolumeClaim: {claimName: carddb, readOnly: true}
+        - name: art
+          emptyDir: {sizeLimit: 1Gi}
+        - name: feedback
+          emptyDir: {sizeLimit: 128Mi}
