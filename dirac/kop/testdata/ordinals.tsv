@@ -58,7 +58,7 @@ BecomeCopyCtr	untyped int	1
 BecomeCopyEOT	untyped int	8
 BecomeCopyEmbalm	untyped int	2
 BecomeCopyGrave	untyped int	4
-BiteExcessCtrl	untyped int	2
+BiteExcessTrample	untyped int	2
 BncDelayedMany	untyped int	8192
 BncFromLibrary	untyped int	4096
 BncShuffleOwed	untyped int	16384
@@ -115,6 +115,7 @@ CloneGrant	untyped int	128
 ClonePick	untyped int	8
 CloneTmplPick	untyped int	4
 CloneTmplShift	untyped int	4
+CmdMVAllZones	untyped int	1
 CmpEQ	CmpOp	3
 CmpGE	CmpOp	1
 CmpGT	CmpOp	4
@@ -973,6 +974,7 @@ OppExtLifeLost	untyped int	8
 OppExtLowest	untyped int	256
 OppExtMemberExpr	untyped int	9
 OppExtNonTrigPl	untyped int	512
+OppExtRemCtrl	untyped int	10
 OppExtSpellsCast	untyped int	7
 OppExtValid	untyped int	5
 OppsHitLegendary	untyped int	1
@@ -1296,8 +1298,12 @@ ReplDoubleCountersOn	ReplKind	20
 ReplDoubleCountersYou	ReplKind	23
 ReplDoubleDamageToOpps	ReplKind	10
 ReplDoubleTokens	ReplKind	12
+ReplDrawAnyPlayer	untyped int	8
 ReplDrawMore	ReplKind	29
 ReplDrawNotFirst	untyped int	1
+ReplDrawOpponent	untyped int	4
+ReplDrawOptional	untyped int	2
+ReplDrawSkip	untyped int	16
 ReplEntersAsChoice	ReplKind	5
 ReplEntersProgram	ReplKind	6
 ReplEntersTapped	ReplKind	1
@@ -1831,6 +1837,7 @@ W7EnteredFromBF	int16	24
 W7EnteredFromLib	int16	35
 W7FaceUp	int16	5
 W7FaceUpDisguise	int16	23
+W7GreatestMVArtifact	int16	47
 W7GreatestPower	int16	2
 W7GreatestPowerTgt	int16	12
 W7HasLandwalk	int16	42

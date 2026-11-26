@@ -403,16 +403,6 @@ const (
 // Forge FlipCoinEffect.flipCoin).
 const RollDieCoinNoCall int16 = 8
 
-// BiteExcessCtrl is OpBite's A.N bit for DealDamage ExcessDamage$
-// TargetedController / ThisTargetedController (CR 120.4a, 120.10; gorge
-// effects emitObjectDamageExcess): when the source's power exceeds what is
-// lethal to the bitten creature (1 from a deathtouch source), the creature
-// is dealt exactly the lethal amount and its controller the rest, in the
-// one damage batch. A nonzero F is ExcessDamageCondition$, matched against
-// the source (Ram Through's Card.withTrample); a failed match is the plain
-// bite.
-const BiteExcessCtrl = 2
-
 // TrigNFlipWin / TrigNFlipLose are a TrigFlippedCoin line's Trigger.N
 // (ValidResult$ Win / Lose; 0 fires on either side).
 const (

@@ -128,7 +128,7 @@ func (s *State) exprCold(k *prep, x *kop.Expr, ctx evalCtx) int {
 	case kop.ExTotalCommanderCastFromCommandZone:
 		return s.cmdCastTotal(ctx.ctrl) // value_cmdcast.go
 	case kop.ExCmdGreatestMV:
-		return s.cmdGreatestMV(k, ctx.ctrl) // value_cmdmv.go
+		return s.cmdGreatestMV(k, ctx.ctrl, x.N == kop.CmdMVAllZones) // value_cmdmv.go
 	case kop.ExRevolt:
 		if s.revoltHolds(ctx.ctrl) { // zone_leftzonering.go
 			return 1
@@ -268,14 +268,6 @@ func (s *State) exprCold(k *prep, x *kop.Expr, ctx evalCtx) int {
 		return s.devotion(k, kop.ColorMask(x.N), ctx.ctrl)
 	case kop.ExDevotionChosen:
 		return s.exDevotionChosen(k, ctx) // act_chosencolor.go
-	case kop.ExValidAgg:
-		return s.validAgg(k, x, ctx)
-	case kop.ExGraveAgg:
-		return s.graveAgg(k, x, ctx)
-	case kop.ExOppExtreme:
-		return s.oppExtreme(k, x, ctx)
-	case kop.ExPlExtreme:
-		return s.plExtreme(k, x, ctx) // value_plrextreme.go
 	case kop.ExHighestOppPoison:
 		if k.gen != nil && k.gen.anyPoisonHigh {
 			return s.highestOppPoison(ctx.ctrl)
@@ -316,7 +308,28 @@ func (s *State) exprCold(k *prep, x *kop.Expr, ctx evalCtx) int {
 	case kop.ExPoisonOf, kop.ExEnergyOf, kop.ExProduct, kop.ExAttackersAll, kop.ExSrcRemCounters, kop.ExStaticExileKw:
 		return s.exprKvf(k, x, ctx) // filter_valueheads.go
 	}
+	if v, ok := s.exprColdAgg(k, x, ctx); ok {
+		return v
+	}
 	panic("kernel: expr kind not implemented")
+}
+
+// exprColdAgg is the aggregate and extreme heads of the cold-value switch,
+// kept out of exprCold to hold the switch within its line allowance
+// (funcgrowth): valid-agg folds a filter's object counts, the extremes read
+// the players' life-lost ledgers.
+func (s *State) exprColdAgg(k *prep, x *kop.Expr, ctx evalCtx) (int, bool) {
+	switch x.Kind {
+	case kop.ExValidAgg:
+		return s.validAgg(k, x, ctx), true
+	case kop.ExGraveAgg:
+		return s.graveAgg(k, x, ctx), true
+	case kop.ExOppExtreme:
+		return s.oppExtreme(k, x, ctx), true
+	case kop.ExPlExtreme:
+		return s.plExtreme(k, x, ctx), true // value_plrextreme.go
+	}
+	return 0, false
 }
 
 // tgtPlayerCount counts the player targets of target slot i on entry e: the

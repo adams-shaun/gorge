@@ -688,6 +688,14 @@ const W7HasProtEachColor int16 = 45
 // Creature.withoutFlanking blocker filter (Benalish Cavalry, Knight of Valor).
 const W7WithoutFlanking int16 = 46
 
+// W7GreatestMVArtifact (PredWord7 sub-kind 47) is reserved: gorge's
+// greatestCMC_<prop> lowers through the ExValidAgg AggGreatestMV bound
+// (kgen/filter.go's greatestCMC) instead of a word — a battlefield artifact
+// whose mana value no other battlefield artifact exceeds, ties matching
+// (CR 202.3). The ordinal stays consumed (ordinals.tsv); no filter lowers
+// to it.
+const W7GreatestMVArtifact int16 = 47
+
 // PredPowerLTToughness's PredN: the power/toughness relation it reads. 0 is
 // power < toughness (gorge powerLTtoughness); PTRelEQ is gorge's equalPT
 // (net power equal to net toughness) and PTRelNE its negation !equalPT, each

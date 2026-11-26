@@ -2322,6 +2322,12 @@ func (cb *cardBuilder) repl(r lRepl) (kop.Ability, error) {
 			return ka, fmt.Errorf("draw more %v", r.N)
 		}
 		rp.A, rp.C = int16(r.N.N), int16(r.Bits)
+	case "DrawProgram":
+		rp.Kind = kop.ReplDrawProgram // lower_drawrepl.go
+		rp.C = int16(r.Bits)
+		if ka.Prog, err = cb.prog(r.Prog); err != nil {
+			return ka, err
+		}
 	case "LifeDouble":
 		rp.Kind = kop.ReplLifeDouble
 	case "LifeLossDouble":

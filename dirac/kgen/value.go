@@ -382,8 +382,12 @@ func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 			v, err = lc.oppCastCondValue(rest) // value_oppcondition.go
 		case rest == oppsDealtDamageBody:
 			v = lValue{Kind: vOppsLostLife, N: 3} // value_turntallies.go
-		case rest == remDrawRecipientsBody:
-			v, err = lc.remDrawRecipientsValue() // value_remdrawrecipients.go
+		case rest == "HasPropertyIsRememberedOrController":
+			// the opponents controlling a remembered object (Cut a Deal's
+			// drawn cards; dirac value_remctrl.go). The general seat-count
+			// read, seat-exact at every count; main's two-seat reduction
+			// (value_remdrawrecipients.go) is superseded by it.
+			v = lValue{Kind: vOppExtreme, N: kop.OppExtRemCtrl}
 		default:
 			err = fmt.Errorf("PlayerCountOpponents$%s", rest)
 		}
@@ -1651,6 +1655,9 @@ func (lc *lowerCtx) countValue(rest string, depth int) (lValue, error) {
 	}
 	if spec, ok := strings.CutPrefix(rest, "ValidBattlefield,Command "); ok {
 		return cmdGreatestMVValue(spec) // value_cmdmv.go
+	}
+	if spec, ok := strings.CutPrefix(rest, "ValidAll "); ok && spec == cmdGreatestMVSpec {
+		return cmdGreatestMVAll(spec) // value_cmdmv.go
 	}
 	for _, zc := range []struct {
 		pre  string
