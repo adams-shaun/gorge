@@ -921,10 +921,14 @@ jobs:
     if: ${{ !cancelled() && needs.prior.outputs.passed != 'true' && needs.prepare.result == 'success' && (github.event_name != 'pull_request' || startsWith(github.head_ref, 'mergify/merge-queue/')) }}
     # 11-24: one job ran every sentinel in 8-12 min against its 15 min cap; on a box at load 50 it timed out with every
     # test passing (batch #4244 dequeued #4205). Three shards (every third name) keep each far inside the cap.
+    # 11-26 (speed-S3): #5165's four cost-dealt processes per shard left each job 107-209 s of work, but as three
+    # matrix jobs they queue for runners: batch 45812749457 dispatched them 11:51:21/11:58:35/12:00:58 and the last
+    # one gated ci-ok (12:02:45, ci-ok 12:02:47). One job (12 processes; 150-157 s when all three shards ran
+    # together in batch 45826576495) is dispatched in the first wave and cannot be split across the queue.
     strategy:
       fail-fast: false
       matrix:
-        shard: [0, 1, 2]
+        shard: [0]
     runs-on: ${{ vars.CI_SELF_HOSTED == 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && 'gorge-box' || 'ubuntu-24.04' }}
     steps:
       - name: Heal the runner's workspace (self-hosted)
@@ -1003,10 +1007,10 @@ jobs:
       # that has reddened main's oracle); TestSentinelsExist keeps the list honest.
       - name: Run the oracle sentinels
         # 11-26: one go test per shard ran its third of the sentinels one after another (225-265 s of test time; most
-        # flip package-level mutation switches and cannot call t.Parallel). ci-sentinels.sh runs 4 go test processes
-        # per shard, dealt by measured cost (dirac/oracle/testdata/sentinel-seconds.txt), and fails unless every
-        # sentinel of the shard prints its own --- PASS line.
-        run: bash scripts/ci-sentinels.sh ${{ matrix.shard }} 3 4
+        # flip package-level mutation switches and cannot call t.Parallel). ci-sentinels.sh runs go test processes
+        # dealt by measured cost (dirac/oracle/testdata/sentinel-seconds.txt) and fails unless every sentinel prints
+        # its own --- PASS line. 11-26 (speed-S3): one job of 12 processes, not three jobs of 4 — see the job comment.
+        run: bash scripts/ci-sentinels.sh ${{ matrix.shard }} 1 12
 
   oracle:
     # On demand only here: the whole oracle runs about every 2 hours in oracle.yml (operator 11-17), never on a pull
