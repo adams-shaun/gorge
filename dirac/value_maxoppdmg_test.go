@@ -1,24 +1,30 @@
 package dirac
 
-import "testing"
+import (
+	"testing"
 
-// TestMaxOppDmgTaken: the per-seat damage-taken tally feeds
-// Count$MaxOppDamageThisTurn (gorge evalCov3HeadMaxOppDamageThisTurn): the
-// most damage any one living opponent was dealt this turn, over the same
-// coldDmgT records as ExDmgOppsTaken, and cleared at the turn change.
+	"github.com/adams-shaun/gorge/dirac/kop"
+	"github.com/adams-shaun/gorge/dirac/vanilla"
+)
+
+// TestMaxOppDmgTaken: a table reading Count$MaxOppDamageThisTurn allocates
+// the pointer-free per-seat damage-taken tally (genPrep.anyDmgTaken) and
+// kop.ExMaxOppDamageThisTurn reads the most damage any one living opponent
+// was dealt this turn, over the same coldDmgT records as ExDmgOppsTaken, and
+// clears it at the turn change (gorge count_cov3.go
+// evalCov3HeadMaxOppDamageThisTurn).
 func TestMaxOppDmgTaken(t *testing.T) {
-	var s State
-	var l coldLayout
-	coldDmgT.set(&l, MaxSeats)
-	l.size()
-	s.layOut(&l)
+	tbl := *vanilla.Table
+	tbl.Exprs = []kop.Expr{{Kind: kop.ExVoid}, {Kind: kop.ExMaxOppDamageThisTurn}}
+	sc := newScenTable(t, &tbl, Config{NoElide: true})
+	s := sc.s
 	if s.dmgTakenCold() == nil {
-		t.Fatal("precondition: the cold per-seat tally was not laid out")
+		t.Fatal("precondition: a table reading MaxOppDamageThisTurn did not allocate the cold per-seat tally")
 	}
 	s.noteDmgTaken(0, 3)
 	s.noteDmgTaken(1, 9)
-	if got := s.maxOppDmgTaken(0); got != 9 {
-		t.Errorf("maxOppDmgTaken(0) = %d, want the opponent's 9", got)
+	if got := s.expr(sc.k, 1, evalCtx{ctrl: 0}); got != 9 {
+		t.Errorf("ExMaxOppDamageThisTurn = %d, want the opponent's 9", got)
 	}
 	if got := s.maxOppDmgTaken(1); got != 3 {
 		t.Errorf("maxOppDmgTaken(1) = %d, want the opponent's 3", got)
@@ -36,7 +42,7 @@ func TestMaxOppDmgTaken(t *testing.T) {
 	}
 
 	s.dmgTakenNewTurn()
-	if got := s.maxOppDmgTaken(0); got != 0 {
-		t.Errorf("maxOppDmgTaken after the turn change = %d, want 0", got)
+	if got := s.expr(sc.k, 1, evalCtx{ctrl: 0}); got != 0 {
+		t.Errorf("ExMaxOppDamageThisTurn after the turn change = %d, want 0", got)
 	}
 }
