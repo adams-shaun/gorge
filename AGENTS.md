@@ -144,7 +144,9 @@ None are written here; they change with every merge. Re-measure before quoting.
 
 Put persistence under `/tmp/gorge-<something-unique>`, never the repo-root default
 `gorged-data`: servers sharing one directory silently corrupt each other. Pick a
-free port with `-addr` (`:8080` is the default; `scripts/smoke.sh` takes 8090-8099).
+free port with `-addr` (`:8080` is the default; `scripts/smoke.sh` launches each
+server on `-addr 127.0.0.1:0` and reads the kernel-assigned port back from the
+server's startup line).
 
 **Stopping a server: never `pkill -f` or a bare `pgrep -f`.** The pattern matches
 every process's `/proc/<pid>/cmdline`, your own shell's included, and has killed a
