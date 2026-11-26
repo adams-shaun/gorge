@@ -92,8 +92,11 @@ func TestTableKeyCoversEveryKgenDependency(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(corpus), "dk=$(bash scripts/table-key-files.sh") {
+	if !strings.Contains(string(corpus), "kl=$(bash scripts/table-key-files.sh") {
 		t.Error("ci-corpus.sh's table directory key (dk) is not computed from scripts/table-key-files.sh")
+	}
+	if !strings.Contains(string(corpus), `dk=$( { printf '%s\n' "$kl"`) {
+		t.Error("ci-corpus.sh's table directory key (dk) does not hash the file list (the published key covers each embed's path, so a bare content stream underkeys it)")
 	}
 }
 
@@ -116,5 +119,50 @@ func TestCorpusTablesBuildUnderTheTreeLock(t *testing.T) {
 			t.Fatalf("ci-corpus.sh: no %q after byte %d; want cp -a, touch, release the box lock, take the tree lock, make dirac-tables, release it, in that order", sub, pos)
 		}
 		pos += i + len(sub)
+	}
+}
+
+// TestTablesReuseOnlySoundTrees: a tree is marked .tables-ok — reusable by later checkouts — only by a tables build
+// that left the checkout's committed bytes intact. kgen's exit 3 rewrites ids.tsv in the checkout's source tree and
+// make rebuilds kgen around the rewritten bytes, so the published tables then carry a key (gorge.TableSourceHash)
+// that exists only in that mutated workspace: a later fresh checkout of the same stack compiles its tests from the
+// committed bytes and asks for tables under another key. 11-26: reusing across such a rewrite served every dirac
+// check tables no committed tree could match (703 reds, 10 merge-queue batches bisected ~2 h, #5256 and #4754
+// dequeued; the run that built the tree passed green — its tests compiled after the rewrite). The marker is the
+// Makefile target's $(BIN_DIR)/.ids-rewritten, ci-corpus.sh consumes it and the tree key carries a rule epoch so
+// trees marked under the earlier rule are orphaned, not served.
+func TestTablesReuseOnlySoundTrees(t *testing.T) {
+	b, err := os.ReadFile("ci-corpus.sh")
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(b)
+	// each step is found after the one before it: build, then the marker check, then .tables-ok only in the
+	// no-rewrite else branch, then the tree lock released
+	pos := 0
+	for _, sub := range []string{"make dirac-tables", `if [ -e bin/.ids-rewritten ]`, "else", `touch "$tree/.tables-ok"`,
+		"exec 7>&-"} {
+		i := strings.Index(s[pos:], sub)
+		if i < 0 {
+			t.Fatalf("ci-corpus.sh: no %q after byte %d; want make dirac-tables, the ids.tsv-rewrite marker check, then touch .tables-ok in the else branch, then release the tree lock, in that order", sub, pos)
+		}
+		pos += i + len(sub)
+	}
+	mk, err := os.ReadFile("../Makefile")
+	if err != nil {
+		t.Fatal(err)
+	}
+	m := string(mk)
+	if !strings.Contains(m, "BIN_DIR    := bin") {
+		t.Error("Makefile: BIN_DIR is not bin; ci-corpus.sh consumes the marker at bin/.ids-rewritten")
+	}
+	if !strings.Contains(m, "rm -f $(BIN_DIR)/.ids-rewritten") {
+		t.Error("Makefile: dirac-tables does not clear $(BIN_DIR)/.ids-rewritten at entry; a stale marker from an earlier run would mark every tree unsound")
+	}
+	if !strings.Contains(m, "if [ $$rc -eq 3 ]; then touch $(BIN_DIR)/.ids-rewritten") {
+		t.Error("Makefile: dirac-tables does not leave the marker when kgen rewrote ids.tsv (exit 3)")
+	}
+	if !strings.Contains(s, `tree=$root/tree/$ck-$dk-$RULE`) || !strings.Contains(s, "RULE=2") {
+		t.Error("ci-corpus.sh: the tree key carries no reuse-rule epoch; trees marked before the rewrite guard would still be served")
 	}
 }
