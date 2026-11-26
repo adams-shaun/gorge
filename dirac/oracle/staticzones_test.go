@@ -39,7 +39,11 @@ import (
 // Whelp to feed both. Per controller exactly one alternative/free static
 // family: the kernel's canon cannot name a second alternative index beside
 // one (StallZeroAltShared); a second copy of As Foretold or Dracogenesis on
-// the battlefield is a second such static, so each runs once.
+// the battlefield is a second such static, so each runs once. Conspiracy
+// Unraveler's collect-evidence alternative rides its own mirror
+// (staticzones_mayplay_test.go): a free plain cast beside it would share the
+// cast's mode (StallZeroAltShared), so the free family and the evidence one
+// do not share a deck.
 var kstaticzonesDecks = [2][]cardset.Entry{
 	{
 		{Name: "As Foretold", Count: 1},
