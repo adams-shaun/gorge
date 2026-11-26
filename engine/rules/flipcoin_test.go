@@ -51,6 +51,23 @@ func flipNotes(e *Engine) []bool {
 	return out
 }
 
+// forceCoinHeads makes every coin flip in e land heads. These NoCall$ tests
+// assert the outcome semantics — a branch granted ONCE with X = the total
+// heads, or a non-X branch once per head — against a known tally, so the
+// precondition "at least one head" must not ride on whatever the seeded stream
+// yields at this fixture's draw position. Before this, a benign change to how
+// many RNG values setup consumes shifted seed 42's flips to all tails and
+// turned an unrelated PR red in the merge-queue batch: the engine behaviour
+// under test was never exercised, only the test's assumption about the draw
+// position. The hook is the harness seam the oracle replay already uses
+// (Engine.CoinFlipHook -> effects.TapeRun.ForcedCoinFlip): it emits nothing, is
+// not copied by Clone, is nil in every live game, and a replay folds the
+// recorded flip Notes without consulting it, so the event stream is exactly an
+// unforced all-heads run's.
+func forceCoinHeads(e *Engine) {
+	e.CoinFlipHook = func(state.PlayerID) (win, forced bool) { return true, true }
+}
+
 // flipAbilityOption submits the pending priority option that activates obj's
 // FlipCoin ability (rules' ability offer walk), leaving whatever ask the
 // activation's cost/target step poses pending.
