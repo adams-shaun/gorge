@@ -1094,6 +1094,11 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 				add(prioEntry{a: Pack(ActActivate, ref(o.Obj), RefNone, cyclingAltBit|uint8(o.Ability)), opt: o.Index})
 				continue
 			}
+			if o.AltCostIndex == 1 && o.SVar == "" && o.Keyword == "" && o.GrantSource == 0 && o.GainedSource == 0 && o.Ability >= 0 && o.Ability < maxSpeedBase-altActivateBase {
+				// a Vehicle's own crew alternative cost (Heart of Kiran; kop.Ability.AltOf)
+				add(prioEntry{a: Pack(ActActivate, ref(o.Obj), RefNone, altActivateBase+uint8(o.Ability)), opt: o.Index})
+				continue
+			}
 			if o.SVar != "" || o.Keyword != "" || o.GainedSource != 0 || o.AltCostIndex != 0 || o.Ability > 0x7F {
 				note("ability/anchored")
 				continue
