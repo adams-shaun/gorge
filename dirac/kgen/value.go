@@ -511,6 +511,14 @@ func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 			// the triggering spell's colours on the
 			// stack (gorge count_ref_property.go CardNumColors,
 			// len(h.ObjectColors(o)))
+			// Targeted$: the chosen target's colours wherever it now is
+			// (Breathe Your Last's "1 life for each of its colors" after
+			// the Destroy): live layer-5 colours on the battlefield, the
+			// printed card elsewhere (kernel refNumColors' target arm)
+			if head == "Targeted" {
+				v = lValue{Kind: vNumColorsOf, Ref: ref}
+				break
+			}
 			tr := lc.ab.Trigger
 			if head != "TriggeredCard" || tr == nil || !lc.trigBody || lc.ab.Latent || tr.Event != "SpellCast" {
 				err = refuse("TriggeredCard$CardNumColors outside a SpellCast trigger")
@@ -597,6 +605,10 @@ func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 			return lValue{}, fmt.Errorf("TargetedPlayer$ with no target slot")
 		}
 		ref := lRef{Kind: rTarget, N: t}
+		if spec, ok := strings.CutPrefix(rest, "ValidGraveyard "); ok {
+			v, err = lc.targetedPlayerGraveyard(spec) // value_tgtplayeryard.go
+			break
+		}
 		switch rest {
 		case "LifeTotal":
 			v = lValue{Kind: vLifeOf, Ref: ref}
@@ -1506,6 +1518,9 @@ func (lc *lowerCtx) countValue(rest string, depth int) (lValue, error) {
 	if arms, ok := strings.CutPrefix(rest, "Revolt."); ok {
 		return lc.revoltValue(arms, depth) // value_revolt.go
 	}
+	if arms, ok := strings.CutPrefix(rest, "UrzaLands."); ok {
+		return lc.urzaLandsValue(arms, depth) // value_urzalands.go
+	}
 	if arms, ok := strings.CutPrefix(rest, "Hellbent."); ok {
 		// gorge cov3BranchHolds: <yes> with no cards in your hand, else <no>
 		parts := strings.Split(arms, ".")
@@ -1623,6 +1638,9 @@ func (lc *lowerCtx) countValue(rest string, depth int) (lValue, error) {
 		// mark is the stack-side read; a permanent's is the arena's mechSneaked.
 		return lValue{Kind: vSneaked, Sub: []lValue{cst(1), cst(0)}}, nil
 	}
+	if spec, ok := strings.CutPrefix(rest, "MostCardName "); ok {
+		return lc.mostCardNameValue(spec) // value_mostcardname.go
+	}
 	if strings.HasPrefix(rest, "ValidStack ") {
 		return lValue{}, refuse("Count$%s: only ValidStack Card.Self+sneaked is read", rest)
 	}
@@ -1662,6 +1680,13 @@ func (lc *lowerCtx) countValue(rest string, depth int) (lValue, error) {
 			return lValue{Kind: zc.kind[0], F: f, N: own.N, Ref: own.Ref}, nil
 		}
 		return lValue{Kind: vSum, Sub: []lValue{{Kind: zc.kind[0], F: f}, {Kind: zc.kind[1], F: f}}}, nil
+	}
+	if spec, ok := strings.CutPrefix(rest, "ValidAll "); ok && validAllBattlefieldOnly(spec) {
+		// gorge's ValidAll scans every zone, but a spec every alternative of
+		// which carries an attacking word matches only battlefield objects
+		// (IsAttacking clears on any zone move), so it is the battlefield
+		// Count$Valid fold (Mangara, the Diplomat; Tomik, Wielder of Law)
+		rest = "Valid " + spec
 	}
 	if strings.HasPrefix(rest, "Valid ") || strings.HasPrefix(rest, "ValidGraveyard ") {
 		kind := vCount
@@ -1898,4 +1923,28 @@ func (lc *lowerCtx) activeHandCount() (lValue, error) {
 		return lValue{}, err
 	}
 	return lValue{Kind: vCountHand, F: f}, nil
+}
+
+// validAllBattlefieldOnly reports whether a Count$ValidAll spec can match only
+// battlefield objects: no aggregate, and every comma alternative carries an
+// attacking word (attacking, attackingYou, attackingYouOrYourPW[LKI]), which
+// gorge reads from Object.IsAttacking, false off the battlefield.
+func validAllBattlefieldOnly(spec string) bool {
+	if spec == "" || strings.Contains(spec, "$") {
+		return false
+	}
+	for _, alt := range strings.Split(spec, ",") {
+		_, props, _ := strings.Cut(strings.TrimSpace(alt), ".")
+		found := false
+		for _, w := range strings.Split(props, "+") {
+			switch w {
+			case "attacking", "attackingYou", "attackingYouOrYourPW", "attackingYouOrYourPWLKI":
+				found = true
+			}
+		}
+		if !found {
+			return false
+		}
+	}
+	return true
 }
