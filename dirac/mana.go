@@ -1795,7 +1795,7 @@ func (s *State) planOrder(k *prep, p uint8, pk *planner, exclude Obj) (order [Ma
 	return order, no, rd
 }
 
-// plan prices the payment pk describes. A cast's payment is gorge's
+// planHoldFeeUnit prices the payment pk describes. A cast's payment is gorge's
 // composed-cost plan, whose census prices no restricted fee ability
 // (paid_mana_census.go: a generic or coloured mana fee is the cast window's
 // own price): when the census alone affords the cast, a fee unit whose fee
@@ -1809,23 +1809,27 @@ func (s *State) planOrder(k *prep, p uint8, pk *planner, exclude Obj) (order [Ma
 // pool, full surface: the kernel's plan activated a Treasure to fill the
 // pool, drew the Orb's {1} fee from it and paid one fewer sacrifice than
 // gorge's census plan -- a composition the search never composed.)
-func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
-	if k.gen != nil && k.gen.rs != nil && k.gen.rs.fee && s.g.availX&availNoFeeUnit == 0 &&
-		(pk.castPay || s.castPaySpellBuild(k)) {
-		ax := s.g.availX
-		s.g.availX = ax | availNoFeeUnit
-		probe := *pk
-		probe.dry, probe.try = true, true
-		s.planPass(k, p, &probe, exclude)
-		if !probe.found {
-			s.g.availX = ax
-		}
-		defer func() { s.g.availX = ax }()
+func (s *State) planHoldFeeUnit(k *prep, p uint8, pk *planner, exclude Obj) (ax uint16, held bool) {
+	if k.gen == nil || k.gen.rs == nil || !k.gen.rs.fee || s.g.availX&availNoFeeUnit != 0 ||
+		!(pk.castPay || s.castPaySpellBuild(k)) {
+		return 0, false
 	}
-	s.planPass(k, p, pk, exclude)
+	ax = s.g.availX
+	s.g.availX = ax | availNoFeeUnit
+	probe := *pk
+	probe.dry, probe.try = true, true
+	s.plan(k, p, &probe, exclude)
+	if !probe.found {
+		s.g.availX = ax
+		return 0, false
+	}
+	return ax, true
 }
 
-func (s *State) planPass(k *prep, p uint8, pk *planner, exclude Obj) {
+func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
+	if ax, held := s.planHoldFeeUnit(k, p, pk, exclude); held {
+		defer func() { s.g.availX = ax }()
+	}
 	order, no, rd := s.planOrder(k, p, pk, exclude)
 	s.planHandDemand(k, p, pk, exclude)
 	if pk.maxN == 0 {
