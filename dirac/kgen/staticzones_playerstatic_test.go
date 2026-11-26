@@ -7,16 +7,17 @@ import (
 
 // playerStaticCarriers are the `Affected$ You` player statics the kernel
 // models: Defensive Formation's "You assign combat damage of each creature
-// attacking you." (engine/rules/playerkeywords.go). It lowers to one
-// StatDefenderAssigns static.
-var playerStaticCarriers = []string{"Defensive Formation"}
+// attacking you." (engine/rules/playerkeywords.go) and K'rrik, Son of
+// Yawgmoth's PayLifeInsteadOf:B grant (engine/rules/mana.go
+// PayLifeInsteadOfB). Each lowers to one static of its kind.
+var playerStaticCarriers = []struct{ card, kind string }{
+	{"Defensive Formation", "DefenderAssigns"},
+	{"K'rrik, Son of Yawgmoth", "PayLifeInsteadOfB"},
+}
 
 // playerStaticRefusals are the player-keyword carriers that stay refused:
-// the four gorge has no reader for (lowering them would copy a gorge gap)
-// and K'rrik's PayLifeInsteadOf:B, which gorge reads
-// (engine/rules/mana.go PayLifeInsteadOfB) but the kernel does not model yet.
+// the four gorge has no reader for (lowering them would copy a gorge gap).
 var playerStaticRefusals = []struct{ card, want string }{
-	{"K'rrik, Son of Yawgmoth", "player static"},
 	{"Ballot Broker", "player static"},
 	{"Brago's Representative", "player static"},
 	{"Winter Orb", `keyword "UntapAdjust:Land:1"`},
@@ -24,19 +25,19 @@ var playerStaticRefusals = []struct{ card, want string }{
 }
 
 func TestStaticZonesPlayerStaticForms(t *testing.T) {
-	for _, name := range playerStaticCarriers {
-		c := lowerNamedCard(t, name)
+	for _, cr := range playerStaticCarriers {
+		c := lowerNamedCard(t, cr.card)
 		if len(c.Refusals) != 0 {
-			t.Errorf("%s refusals = %v, want none", name, c.Refusals)
+			t.Errorf("%s refusals = %v, want none", cr.card, c.Refusals)
 		}
 		n := 0
 		for _, st := range c.Statics {
-			if st.Kind == "DefenderAssigns" {
+			if st.Kind == cr.kind {
 				n++
 			}
 		}
 		if n != 1 {
-			t.Errorf("%s lowers %d DefenderAssigns statics, want 1", name, n)
+			t.Errorf("%s lowers %d %s statics, want 1", cr.card, n, cr.kind)
 		}
 	}
 	for _, r := range playerStaticRefusals {

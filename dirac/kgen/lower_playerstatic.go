@@ -113,19 +113,22 @@ func (lc *lowerCtx) youPlayerStatic(sp *params, st *lStatic) (bool, error) {
 		// Defensive Formation: gorge defenderAssignsAttackerDamage; the
 		// kernel's bandDivider reads it (combat_band.go)
 		st.Kind = "DefenderAssigns"
+	case sp.is("AddKeyword", "PayLifeInsteadOf:B"):
+		// K'rrik, Son of Yawgmoth: gorge PayLifeInsteadOfB reads it on every
+		// mana payment; the kernel's mana payment reads it (mana.go
+		// payLifeInsteadOfB, the cost read sites' Phyrexian conversion)
+		st.Kind = "PayLifeInsteadOfB"
 	default:
 		return lc.playerStatic(sp, st)
 	}
 	return true, nil
 }
 
-// The one player keyword the kernel reads (kop.StatDefenderAssigns). The
-// others a Continuous `Affected$ You` static carries (AdditionalVote,
-// AdditionalOptionalVote, UntapAdjust, the echo-waiver sentence) have no
-// gorge reader, so lowering them would copy a gorge gap. K'rrik's
-// PayLifeInsteadOf:B has one but the kernel does not model its payment yet
-// (its granted {B} pips: offer faces, the shortfall payment, the mana
-// window's done): both stay refused ("player static").
+// The player keywords the kernel reads (kop.StatDefenderAssigns and
+// kop.StatPayLifeInsteadOfB). The others a Continuous `Affected$ You` static
+// carries (AdditionalVote, AdditionalOptionalVote, UntapAdjust, the
+// echo-waiver sentence) have no gorge reader, so lowering them would copy a
+// gorge gap.
 const plKwDefenderAssigns = "You assign combat damage of each creature attacking you."
 
 // playerStatic lowers the numeric hand size and the opponent protection.

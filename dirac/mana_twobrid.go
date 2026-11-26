@@ -81,7 +81,13 @@ func (s *State) adjustFit(k *prep, av *avail, p uint8, c CardID, o Obj, base kop
 		if cr := min(int(r.Generic), av.delve); cr > 0 {
 			r.Generic -= uint8(cr)
 		}
-		if av.affordsPlain(&r, pipMaskOf(&r), 0) {
+		// the life the face's two-life faces spend is off the leaf's budget
+		// (the grant's {B} faces read the rest: hallUnits)
+		leaf := *av
+		if leaf.payLife {
+			leaf.life -= int16(2 * bits.OnesCount(uint(m)))
+		}
+		if leaf.affordsPlain(&r, pipMaskOf(&r), 0) {
 			return r
 		}
 	}
@@ -116,11 +122,17 @@ func (a *avail) hybWitnessTb(cost kop.ManaCost, x int, anyColor bool) kop.ManaCo
 			rx.Generic -= uint8(g)
 			ex -= cr - g
 		}
+		// the life the face's two-life faces spend is off the leaf's budget
+		// (the grant's {B} colour faces read the rest: hallUnits)
+		leaf := *a
+		if leaf.payLife {
+			leaf.life -= int16(2 * bits.OnesCount(uint(m)))
+		}
 		var ok bool
 		if anyColor {
-			ok = a.affordsAnyColor(&rx, ex)
+			ok = leaf.affordsAnyColor(&rx, ex)
 		} else {
-			ok = a.affords(&rx, pipMaskOf(&rx), ex)
+			ok = leaf.affords(&rx, pipMaskOf(&rx), ex)
 		}
 		if ok {
 			return r
@@ -152,11 +164,17 @@ func (a *avail) affordsTb(cost *kop.ManaCost, extra int, anyColor bool) bool {
 			r.Generic -= uint8(g)
 			ex -= cr - g
 		}
+		// the life the face's two-life faces spend is off the leaf's budget
+		// (the grant's {B} colour faces read the rest: hallUnits)
+		leaf := *a
+		if leaf.payLife {
+			leaf.life -= int16(2 * bits.OnesCount(uint(m)))
+		}
 		if anyColor {
-			if a.affordsAnyColorPlain(&r, ex) { // every pip resolved: no hybrid left
+			if leaf.affordsAnyColorPlain(&r, ex) { // every pip resolved: no hybrid left
 				return true
 			}
-		} else if a.affordsPlain(&r, pipMaskOf(&r), ex) {
+		} else if leaf.affordsPlain(&r, pipMaskOf(&r), ex) {
 			return true
 		}
 	}
@@ -183,11 +201,14 @@ func (s *State) pipOptionsTb(k *prep, d *Decision, cost kop.ManaCost, av *avail)
 	second := uint8(twobridGeneric)
 	phy := cost.Phyrexian()
 	life := int(av.life)
+	fav := *av
 	if phy {
 		// a Phyrexian pip's second face: two life (gorge pay_life), from
-		// the life the announced life faces leave
+		// the life the announced life faces leave; a colour face's cost the
+		// grant prices (hallUnits) reads the same remainder
 		second = phyrexianLife
 		life -= 2 * s.phyLifeAnnounced()
+		fav.life = int16(life)
 	}
 	rem := cost.TbN() - 1
 	for face := 0; face < 2; face++ {
@@ -206,7 +227,7 @@ func (s *State) pipOptionsTb(k *prep, d *Decision, cost kop.ManaCost, av *avail)
 				r.Generic -= uint8(g)
 				x -= cr - g
 			}
-			if !s.faceReachable(k, e.ctrl, av, &r, x) {
+			if !s.faceReachable(k, e.ctrl, &fav, &r, x) {
 				continue
 			}
 			if face == 1 {
@@ -243,6 +264,12 @@ func (s *State) buildIsTb(k *prep) bool {
 	}
 	if k.phyMana && s.bld().e.kind == seAbility {
 		return s.buildCost0(k).Phyrexian() // an activation's Phyrexian pips
+	}
+	if s.bld().e.kind == seSpell && k.gen.anyPayLife && !k.gen.anyTwobrid && s.buildCost0(k).Hyb[0] == kop.HybTwobrid {
+		// a spell cost the PayLifeInsteadOf:B grant converted
+		// (static_paylife.go payLifeGrantCost): no printed twobrid pip is in
+		// the table, so the marker is the grant's
+		return true
 	}
 	return k.gen.anyTwobrid && s.bld().e.kind == seSpell && s.buildCost0(k).Hyb[0] == kop.HybTwobrid
 }

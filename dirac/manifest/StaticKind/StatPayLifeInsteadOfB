@@ -1,0 +1,5 @@
+family: StaticKind
+name: StatPayLifeInsteadOfB
+value: next
+status: active
+doc: StatPayLifeInsteadOfB is a Continuous static's `Affected$ You | AddKeyword$ PayLifeInsteadOf:B` grant (K'rrik, Son of Yawgmoth; gorge engine/rules/mana.go PayLifeInsteadOfB): "For each {B} in a cost, you may pay 2 life rather than pay that mana" (CR 601.2h), the controller's mana payment reads it. The printed {B} pips of every cost the payer pays read as the kernel's Phyrexian form at the payment read sites (buildCostPreRaw, the hand cast's cost, plannedCastCostOf), so each pip's two faces price through the twobrid machinery, and a pip's colour face the units leave unfunded costs 2 life from the life the life faces left. Read live from the battlefield (dirac/static_paylife.go payLifeInsteadOfB); no State bytes.

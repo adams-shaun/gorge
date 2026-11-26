@@ -1178,17 +1178,22 @@ func (s *State) loweredWindowOK(k *prep, p uint8, cost *kop.ManaCost, anyType, a
 		}
 		return true // the pick is posed; the cast pays when the window ends (mana_window.go)
 	}
-	if !ok {
+	// the PayLifeInsteadOf:B grant's life settles the {B} pips the window's
+	// sources left (gorge's window closes while a source could still pay;
+	// static_paylife.go payLifeGrantPay)
+	if !ok && !s.payLifeGrantCovers(k, p, cost) {
 		for c := range held {
 			s.pl[p].pool[c] += held[c]
 		}
 		s.reverseCast(k)
 		return false
 	}
+	var rc kop.ManaCost
+	pay := s.payLifeGrantReduce(k, p, cost, 0, &rc)
 	if s.rbAny(p) {
-		s.payRestrRider(k, p, cost, 0, s.bld().e.obj, anyColor)
+		s.payRestrRider(k, p, pay, 0, s.bld().e.obj, anyColor)
 	} else {
-		s.payFromPoolRider(k, p, cost, 0, anyColor)
+		s.payFromPoolRider(k, p, pay, 0, anyColor)
 	}
 	for c := range held {
 		s.pl[p].pool[c] += held[c]
@@ -1202,6 +1207,9 @@ func (s *State) loweredWindowOK(k *prep, p uint8, cost *kop.ManaCost, anyType, a
 //go:noinline
 func (s *State) availExt(k *prep, p uint8, a *avail) {
 	a.life = s.pl[p].life
+	if k.gen != nil && k.gen.anyPayLife {
+		a.payLife = s.payLifeInsteadOfB(k, p)
+	}
 	if k.painMana {
 		s.painTight(k, p, a)
 	}

@@ -323,6 +323,8 @@ func (s *State) payRestrX(k *prep, p, m uint8, cost *kop.ManaCost, x int, o Obj,
 		// first (restrPairUnit)
 		s.rbTakeNew(p, &sv, &tk)
 	}
+	var rc kop.ManaCost
+	cost = s.payLifeGrantReduce(k, p, cost, x, &rc) // the grant's life settles what the plan's discount left (static_paylife.go)
 	pre := pl.pool
 	s.payFromPoolRider(k, p, cost, x, anyColor)
 	s.rbSettle(p, &tk, &ord, &pre, s.rbTyped(p))
