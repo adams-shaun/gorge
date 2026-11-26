@@ -715,6 +715,7 @@ default	field	genPrep.anyHideaway	1
 default	field	genPrep.anyLoyaltyX	1
 default	field	genPrep.anyLifeX	1
 default	field	genPrep.anyExileX	1
+default	field	genPrep.anyBlightX	1
 default	field	genPrep.anySacX	1
 default	field	genPrep.anyXMin	1
 default	field	genPrep.anyCopyCast	1

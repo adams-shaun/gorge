@@ -93,6 +93,9 @@ func (lc *lowerCtx) raiseSelfAdditional(sp *params) (bool, error) {
 	} else {
 		var err error
 		c, err = lc.cost(strings.TrimSpace(cost))
+		if bc, ok := lc.blightXRaise(strings.TrimSpace(cost)); ok && err != nil {
+			c, err = bc, nil // Soul Immolation's announced Blight<X> (lower_blightx.go)
+		}
 		if err != nil {
 			// an announced-X part (Discard<X/..>, Sac<X/..>) parses only as a
 			// spell's own cost (lifeXSpell); it is the announced amount only when

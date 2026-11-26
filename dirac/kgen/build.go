@@ -1454,9 +1454,11 @@ func (cb *cardBuilder) cost(c lCost) (kop.Cost, error) {
 			return out, err
 		}
 	}
-	if c.BlightN > 0 {
+	if c.BlightN > 0 || c.BlightX {
 		// Blight<N> (CR 701.68): one creature you control, the source
-		// included (gorge cost.parse: Spec Creature.YouCtrl)
+		// included (gorge cost.parse: Spec Creature.YouCtrl). Blight<X> is
+		// the same part with Cost.N 0: the announced X is the count
+		// (kernel cost_blightx.go)
 		set(kop.CostBlight, c.BlightN)
 		f := &lFilter{Clauses: []lClause{{Types: tCreature, Ctrl: whoYou}}}
 		if out.Filter, err = cb.filter(f, kop.ZoneBattlefield); err != nil {
