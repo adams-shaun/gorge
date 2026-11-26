@@ -2725,7 +2725,7 @@ func (lc *lowerCtx) play(ps *params) error {
 	case "Exile":
 		// P1: Valid$ Card.IsRemembered... + ValidZone$ Exile.
 		if !strings.Contains(valid, "IsRemembered") {
-			return lc.playExileFilterPop(valid, saExpr, paid && !forget && !replace, emit) // lower_playexilepop.go
+			return lc.playExileFilterPop(valid, saExpr, !forget && !replace, emit) // lower_playexilepop.go
 		}
 		clause, err := lc.playRememberedClause(valid)
 		if err != nil {
