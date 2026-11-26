@@ -1,0 +1,16 @@
+# Dragonhawk, Fate's Tempest's delayed trigger over the whole dug set
+# (dirac/value_delayedexile.go): the dig on entering and attacking, the
+# cards to play from exile (lands, burn, creatures, red Adventures cast as
+# their Adventure halves, which leave exile and return to it) and the
+# ramp that makes Dragonhawk castable (dirac/oracle/dragonhawk_lockstep_test.go)
+Dragonhawk, Fate's Tempest
+Hearth Elemental
+Bellowing Bruiser
+Craw Wurm
+Grizzly Bears
+Llanowar Elves
+Elvish Mystic
+Shock
+Lightning Bolt
+Mountain
+Forest
