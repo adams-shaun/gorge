@@ -1,0 +1,15 @@
+# the activated-ability cost-raise pool:
+# Brutal Suppression's "Sacrifice a land" and Oppressive Rays' {3} beside
+# Rebels with plain activated abilities and basic lands
+# (dirac/oracle/abraise_test.go)
+Brutal Suppression
+Oppressive Rays
+Rebel Informer
+Errant Doomsayers
+Mercenary Informer
+Blightspeaker
+Plains
+Swamp
+Mountain
+# Thran Portal: the mana-abilities life raise the window prices
+Thran Portal

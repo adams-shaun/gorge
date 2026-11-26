@@ -580,6 +580,7 @@ default	field	genPrep.anyDelayUp	1
 default	field	genPrep.anyDelayDies	1
 default	field	genPrep.anyDelaySpell	1
 default	field	genPrep.anyRaise	1
+default	field	genPrep.anyAbRaise	1
 default	field	genPrep.anyRaiseLife	1
 default	field	genPrep.anyRaiseTgt	1
 default	field	genPrep.anyComboDyn	1
