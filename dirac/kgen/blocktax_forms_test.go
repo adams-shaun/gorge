@@ -14,8 +14,8 @@ var blockTaxForms = []formCase{
 	{card: "Hipparion", form: "ValidCard$ Card.Self | Attacker$ Creature.powerGE3 | Cost$ 1"},
 	{card: "Awesome Presence", form: "no ValidCard$ (every creature) | Attacker$ Creature.AttachedBy | Cost$ 3"},
 	{card: "Cowed by Wisdom", form: "ValidCard$ Creature.AttachedBy | Cost$ Y, Y = Count$ValidHand Card.YouOwn"},
-	{card: "Oppressive Rays", form: "ValidCard$ Creature.AttachedBy | Cost$ 3, beside a RaiseCost Type$ Ability",
-		refused: `RaiseCost Type "Ability"`, lir: "static CantBlockUnless F={types=0x2 EquippedBy}"},
+	{card: "Oppressive Rays", form: "ValidCard$ Creature.AttachedBy | Cost$ 3, beside a RaiseCost Type$ Ability (lowered: StatRaiseAbility)",
+		lir: "static CantBlockUnless F={types=0x2 EquippedBy}"},
 	{card: "Heat Wave", form: "Cost$ PayLife<1>", refused: `CantBlockUnless Cost$ "PayLife<1>"`},
 	{card: "Hollow Warrior", form: "Cost$ tapXType<1/Creature.!blocking>", refused: `CantBlockUnless Cost$ "tapXType<1/Creature.!blocking>"`},
 }
