@@ -4,4 +4,4 @@ value: 24
 forge: CantPlayLand
 census: stat CantPlayLand all=11 std=0 mbc=0 sole=2
 state: code 0
-status: reserved
+status: active
