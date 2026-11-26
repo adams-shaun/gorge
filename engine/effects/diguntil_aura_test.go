@@ -9,12 +9,12 @@ import (
 
 // TestDigUntilWithholdsUnsupportedParamsAndStillMoves pins the two riders
 // that remain withheld after the withheld-rider work: a non-literal Amount$
-// with no SVar in the resolving context, and DigZone$ (every corpus value is
-// PlanarDeck, and this build has no planar tier). Each still emits its one
+// with no SVar in the resolving context, and a DigZone$ other than PlanarDeck (the
+// only value the build models; no corpus carrier names another). Each still emits its one
 // loud Note, and the core reveal-until move still runs.
 func TestDigUntilWithholdsUnsupportedParamsAndStillMoves(t *testing.T) {
 	h, ids := digUntilFixture(t)
-	ability := sa(t, "SP$ DigUntil | Valid$ Aura | Amount$ X | DigZone$ PlanarDeck | FoundDestination$ Hand | RevealedDestination$ Graveyard")
+	ability := sa(t, "SP$ DigUntil | Valid$ Aura | Amount$ X | DigZone$ Graveyard | FoundDestination$ Hand | RevealedDestination$ Graveyard")
 
 	// PRECONDITION: the matching Aura is in the scanned library, and its
 	// destination differs from the library so a no-op implementation fails.
@@ -25,7 +25,7 @@ func TestDigUntilWithholdsUnsupportedParamsAndStillMoves(t *testing.T) {
 	if h.g.Obj(ids[1]).Zone != state.ZHand {
 		t.Fatalf("unsupported params prevented the core move: Aura zone = %s, want hand", h.g.Obj(ids[1]).Zone)
 	}
-	want := []string{"Amount$ X", "DigZone$ PlanarDeck"}
+	want := []string{"Amount$ X", "DigZone$ Graveyard"}
 	var notes []string
 	for _, ev := range h.log {
 		if strings.HasPrefix(ev.Text, "DigUntil withholds ") {
