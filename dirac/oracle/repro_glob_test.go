@@ -107,15 +107,33 @@ func reproSkipFailure(r *Repro, pol *ScriptPolicy) string {
 // a drifted recording does not pass as a different game.
 func replayReproValue(t *testing.T, reg *cards.Registry, set cardset.Set, r *Repro) Result {
 	t.Helper()
+	res, msg := replayReproFailure(t, reg, set, r)
+	if msg != "" {
+		t.Fatal(msg)
+	}
+	return res
+}
+
+// replayReproFailure is replayReproValue's replay and verdict: the failure text
+// replayReproValue fails with ("" when the replay is clean).
+func replayReproFailure(t *testing.T, reg *cards.Registry, set cardset.Set, r *Repro) (Result, string) {
+	t.Helper()
 	pol := r.Script()
 	res := replayDecodedScript(t, reg, set, r, pol)
 	if msg := reproSkipFailure(r, pol); msg != "" {
-		t.Fatal(msg)
+		return res, msg
 	}
-	if res.Div != nil {
-		t.Fatalf("divergence at %d of %d: %s %s %v", res.Div.At, len(r.Actions), res.Div.What, res.Div.Field, res.Div.Diff)
+	return res, divergenceFailure(r, res)
+}
+
+// divergenceFailure is the failure text of a replay's divergence ("" for none).
+// A policy panic (a scripted action the decision does not offer, a stale label)
+// carries its text in Diff, which this prints.
+func divergenceFailure(r *Repro, res Result) string {
+	if res.Div == nil {
+		return ""
 	}
-	return res
+	return fmt.Sprintf("divergence at %d of %d: %s %s %v", res.Div.At, len(r.Actions), res.Div.What, res.Div.Field, res.Div.Diff)
 }
 
 // stdReproNamed replays one named recording on its own recorded pool and
@@ -150,8 +168,8 @@ func replayServedValue(t *testing.T, reg *cards.Registry, set cardset.Set, r *Re
 	if pol.next != len(r.Actions) || pol.Skipped != 0 {
 		t.Fatalf("recording served %d of %d actions (%d skipped): its game path has drifted", pol.next, len(r.Actions), pol.Skipped)
 	}
-	if res.Div != nil {
-		t.Fatalf("divergence at %d of %d: %s %s %v", res.Div.At, len(r.Actions), res.Div.What, res.Div.Field, res.Div.Diff)
+	if msg := divergenceFailure(r, res); msg != "" {
+		t.Fatal(msg)
 	}
 	return res
 }
