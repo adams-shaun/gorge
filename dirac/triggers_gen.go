@@ -951,6 +951,9 @@ func (s *State) castTrigGen(k *prep, l trigListener, a *kop.Ability, e *stackEnt
 	if t.Flags3&kop.Tf3ManaFromTreasure != 0 && !s.castTreasureOK(e) {
 		return // trig_validsa.go
 	}
+	if t.Flags5&kop.Tf5CastNoColoredMana != 0 && !s.castNoColoredOK(e) {
+		return // trig_nocoloredmana.go
+	}
 	if t.Flags2&kop.Tf2Increment != 0 && !s.incrementAdmits(k, l, e) {
 		return // kw_increment.go: the cast's spend against the source's P/T (gorge incrementAdmits)
 	}
@@ -1144,6 +1147,9 @@ func (s *State) combatEventsGen(k *prep, r *dmgRec, dealt bool) {
 			}
 		}
 		if !life || dealt {
+			if k.gen.anyCipher && r.dealtPl[sl] > 0 {
+				s.cipherHit(sl) // after the source's face triggers (kw_cipher.go)
+			}
 			continue // dealt: the life changes were made per event (dealCombatEvent)
 		}
 		if r.dealtPl[sl] > 0 && isPlayerOrNone(s.perms[sl].atk) && !r.infM.has(sl) {
@@ -1152,6 +1158,9 @@ func (s *State) combatEventsGen(k *prep, r *dmgRec, dealt bool) {
 			if int(s.npend)-loPl >= 2 {
 				s.pendListenerOrder(loPl)
 			}
+		}
+		if k.gen.anyCipher && r.dealtPl[sl] > 0 {
+			s.cipherHit(sl) // after the source's face and life-loss triggers (kw_cipher.go)
 		}
 		if !s.occ.has(sl) || s.kw(k, sl)&kop.KwLifelink == 0 {
 			continue

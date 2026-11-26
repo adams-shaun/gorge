@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/adams-shaun/gorge/dirac/cardset"
+	"github.com/adams-shaun/gorge/dirac/kop"
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
 )
@@ -37,6 +38,10 @@ import (
 //     look-back dies triggers granted from the same synthesizer. The probe
 //     counts the granted triggers gorge pushes (__kwUndyingGranted /
 //     __kwPersistGranted), and fails when too few of either are reached.
+//
+// The Pump-granted persist and undying (Cauldron of Souls, Cauldron Haze,
+// Undying Evil) beside Mikaeus's static undying are
+// TestSetsKeywordPumpReturnLowers'.
 func TestSetsKeywordGrantsLower(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
@@ -75,8 +80,9 @@ func TestSetsKeywordGrantsLower(t *testing.T) {
 	}
 }
 
-// setsKwStats is what setsKwProbe counts.
-type setsKwStats struct{ horse, deaths, cry, ann, und, per int }
+// setsKwStats is what setsKwProbe counts; both is the deaths that pushed a
+// granted undying and a granted persist trigger for one creature together.
+type setsKwStats struct{ horse, deaths, cry, ann, und, per, both int }
 
 // setsKwProbe wraps base and counts, when gorge leads, the attackers declared
 // under a horsemanship grant and the deaths of Indebted Spirit's bearers.
@@ -102,6 +108,11 @@ func setsKwProbe(base Policy, st *setsKwStats) Policy {
 		}
 		evs := c.G.E.L.Events
 		for ; seen < len(evs); seen++ {
+			if e := evs[seen]; seen > 0 && e.Kind == events.GrantTriggerPush {
+				if p := evs[seen-1]; p.Kind == events.GrantTriggerPush && p.Obj == e.Obj && returnPair(p.Counter, e.Counter) {
+					st.both++
+				}
+			}
 			switch e := evs[seen]; {
 			case e.Kind == events.DeclareAttackers:
 				for _, id := range e.IDs {
@@ -134,6 +145,99 @@ func setsKwProbe(base Policy, st *setsKwStats) Policy {
 		}
 		return a
 	})
+}
+
+// returnPair reports whether a and b are a granted undying and a granted
+// persist trigger, in either order.
+func returnPair(a, b string) bool {
+	const u, p = "__kwUndyingGranted", "__kwPersistGranted"
+	return a == u && b == p || a == p && b == u
+}
+
+// TestSetsKeywordPumpReturnLowers: a Pump's KW$ Persist / KW$ Undying grant
+// (Cauldron of Souls' tap, Cauldron Haze, Undying Evil; Endling's and Antler
+// Skulkin's activations, Dusk Legion Sergeant's PumpAll; CR 702.79a, 702.93a)
+// is a layer-6 effect gorge lists among a dying creature's granted keyword
+// triggers by timestamp beside a static's AddKeyword$ grant (Mikaeus, the
+// Unhallowed's undying): the controller's trigger-order ask (CR 603.3b)
+// offers them in that order. Cauldron of Souls taps at the first priority of
+// each turn, before Mikaeus is cast in a main phase, so the Pump grant is
+// often the older. The probe counts deaths that push a granted undying and a
+// granted persist for one creature together, and fails when too few do (the
+// activated pool's grants rarely meet Mikaeus's on one death: it proves the
+// three activated grants alone).
+func TestSetsKeywordPumpReturnLowers(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		name      string
+		decks     [2][]cardset.Entry
+		both, per int
+	}{
+		{"cauldron", setsKwPumpReturnDecks, 5, 10},
+		{"activated", setsKwPumpReturnActDecks, 0, 5},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			var st setsKwStats
+			pol := func(seed uint64) Policy { return setsKwProbe(castFirstPolicy(seed), &st) }
+			if div := lockstepRunPolicy(t, "setskeywords", tc.decks, 100, true, nil, nil, pol); div != 0 {
+				return // each divergence is already a test error
+			}
+			t.Logf("%s: %+v", tc.name, st)
+			if st.both < tc.both || st.per < tc.per || st.und < 10 {
+				t.Fatalf("%s: %+v over 100 seeds, want both %d per %d und 10: the pool does not exercise it", tc.name, st, tc.both, tc.per)
+			}
+		})
+	}
+}
+
+// TestSetsKeywordPumpReturnMutation: with the Pump-granted triggers listed
+// after the static grants (GrantedKw cleared on the three Pump cards' latent
+// abilities, the kernel's order before the fix), some seed diverges from
+// gorge on the trigger-order ask.
+func TestSetsKeywordPumpReturnMutation(t *testing.T) {
+	t.Parallel()
+	div := lockstepRunPolicy(t, "setskeywords", setsKwPumpReturnDecks, 100, false, func(tb *kop.Table) {
+		for i := range tb.Cards {
+			switch tb.Cards[i].Name {
+			case "Cauldron of Souls", "Cauldron Haze", "Undying Evil":
+				for j := range tb.Cards[i].Abilities {
+					tb.Cards[i].Abilities[j].GrantedKw = false
+				}
+			}
+		}
+	}, nil, castFirstPolicy)
+	if div == 0 {
+		t.Fatal("no game diverged with the Pump grants listed after the static's: the pool does not reach the order")
+	}
+}
+
+// setsKwPumpReturnDecks: Cauldron of Souls, Cauldron Haze and Undying Evil
+// grant the Bears persist and undying beside Mikaeus, the Unhallowed's
+// undying; Bolts kill them.
+var setsKwPumpReturnDecks = [2][]cardset.Entry{
+	{
+		{Name: "Cauldron of Souls", Count: 5}, {Name: "Cauldron Haze", Count: 3}, {Name: "Undying Evil", Count: 3},
+		{Name: "Mikaeus, the Unhallowed", Count: 6}, {Name: "Grizzly Bears", Count: 7},
+		{Name: "Swamp", Count: 12}, {Name: "Forest", Count: 4},
+	},
+	{
+		{Name: "Grizzly Bears", Count: 10}, {Name: "Lightning Bolt", Count: 10},
+		{Name: "Mountain", Count: 10}, {Name: "Forest", Count: 10},
+	},
+}
+
+// setsKwPumpReturnActDecks: Endling grants itself undying, Antler Skulkin
+// grants Savannah Lions persist and Dusk Legion Sergeant grants the
+// Vampires persist, beside Mikaeus, the Unhallowed's undying; Bolts kill
+// them.
+var setsKwPumpReturnActDecks = [2][]cardset.Entry{
+	{
+		{Name: "Endling", Count: 3}, {Name: "Antler Skulkin", Count: 5}, {Name: "Dusk Legion Sergeant", Count: 4},
+		{Name: "Child of Night", Count: 3}, {Name: "Savannah Lions", Count: 5}, {Name: "Mikaeus, the Unhallowed", Count: 4},
+		{Name: "Swamp", Count: 12}, {Name: "Plains", Count: 4},
+	},
+	setsKwPumpReturnDecks[1],
 }
 
 // setsKwHorseDecks: the two horsemanship granters, Knights and Bears to

@@ -1,0 +1,11 @@
+# Emeria Shepherd's landfall trigger (DestAltSVar$ without MANDATORY: the
+# controller's primary or alternate destination, kernel OpAskDestAlt) with
+# creatures to fill graveyards and removal to empty boards, for the oracle's
+# constructed lockstep (dirac/oracle/destaltask_lockstep_test.go)
+Emeria Shepherd
+Murder
+Grizzly Bears
+Llanowar Elves
+Swamp
+Forest
+Plains

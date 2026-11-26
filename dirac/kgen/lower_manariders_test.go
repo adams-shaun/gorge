@@ -26,7 +26,7 @@ var manaRiderCards = []struct {
 	// Druid's Amount$ is the reflected Amount$ gap class (mana_reflamt.go)
 	{"Horizon of Progress", ""},
 	{"Incubation Druid", ""},
-	{"Cactus Preserve", "AB$ Animate"},
+	{"Cactus Preserve", ""},
 	{"The Grey Havens", ""},
 	// AddsNoCounter$ True beside a spell restriction: the restricted batch is
 	// its own kind and the payment stamps the spell (dirac mana_nocounter.go)

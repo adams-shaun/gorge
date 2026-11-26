@@ -248,6 +248,9 @@ func (ic *instrCtx) opBite() error {
 	cb := ic.cb
 	fl := ic.fl
 	ki.Op = kop.OpBite
+	if _, ok := fl["ExcessTrample"]; ok && in.Op == "Bite" {
+		ki.A = kop.Const(kop.BiteExcessTrample) // lower_effect_damage.go biteExcess
+	}
 	if in.Op == "Fight" {
 		ki.Op = kop.OpFight
 		if _, ok := fl["TrackExcess"]; ok {

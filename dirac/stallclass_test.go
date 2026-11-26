@@ -23,12 +23,12 @@ var (
 		"regen", "look", "grants", "acts", "linger", "sac", "entered", "convoke", "castring", "pt", "actring", "charmopts",
 		"reflatch", "zone", "options", "srcmark", "dmglatch", "dmgbatch", "replcands", "replplusbatch", "prevcol", "prevrider", "colgrant", "restrx", "obssrc", "dynmana", "tapextra", "planalts",
 		"exiledwith", "breach", "netlock", "panharmgrant", "exilegrant", "charmpick", "combathit", "finality", "persistmana", "optmoves", "mustblock",
-		"extrablockcap", "restrsrc", "firebend", "exhaste", "effetbctr", "atkGrp", "paradigm", "filtx", "delve", "embrem", "dmgamt", "choosenumber", "dmgredirectcap", "dmgredirectorder", "cumulativecost", "objsets", "extraturn", "meld", "convoked", "paylife"}
+		"extrablockcap", "restrsrc", "firebend", "exhaste", "effetbctr", "atkGrp", "paradigm", "filtx", "delve", "embrem", "dmgamt", "choosenumber", "dmgredirectcap", "dmgredirectorder", "cumulativecost", "objsets", "extraturn", "meld", "convoked", "paylife", "toxicgrant"}
 	unmodelledStalls = []string{"infect", "replplus", "liferepl", "drawrepl", "prolif", "ctrorder",
 		"shield", "replctr", "replleave", "copyface", "rolemulti", "defenderpw", "tokatkask", "enterdefender",
 		"endure", "linkctr", "aegis", "sacother", "copycast", "netmana", "tokenpt", "staticask", "handsize",
 		"mayraise", "uncounterorder", "entryorder", "copyallask", "clonelayer", "gravepower", "landgrant",
-		"outsidetype", "exileonmoved", "multiretarget", "l6walk", "lowering", "tokrewrite", "stackkwgrant", "paylifeshared", "noprevent", "dmgmarkorder", "fbgrantstamp", "restrdefer", "diamondmix", "comboanymix", "extrablockreq", "paybeforeetb", "atktax", "blktax", "myriadpw", "prevnext", "chooseplayerorder", "offzonept", "zeroaltshared", "radmill", "textchange", "dredge", "prevscopecopy", "gainsof", "retracegrant", "exilerider", "band", "gravelossgrant"}
+		"outsidetype", "exileonmoved", "multiretarget", "l6walk", "lowering", "tokrewrite", "stackkwgrant", "paylifeshared", "noprevent", "dmgmarkorder", "fbgrantstamp", "restrdefer", "diamondmix", "comboanymix", "extrablockreq", "paybeforeetb", "atktax", "blktax", "myriadpw", "prevnext", "chooseplayerorder", "offzonept", "zeroaltshared", "radmill", "textchange", "dredge", "prevscopecopy", "gainsof", "retracegrant", "exilerider", "band", "gravelossgrant", "embaltshared"}
 )
 
 // Every registered reason has a class, and it is the one the lists above name.

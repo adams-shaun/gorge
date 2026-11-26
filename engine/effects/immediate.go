@@ -202,9 +202,22 @@ func effImmediateTrigger(h Host, c *Ctx, sa *cards.SA) {
 		// ability's context.
 		cc.TriggerContext.TriggerRememberedAmount = rememberedAmount
 		if queue {
+			// OptionalDecider$ (Etched Slith, Dream Eater: "When you do, you
+			// may ..."): Forge's ImmediateTriggerEffect copies the line's
+			// params onto the trigger it mints, so the reflexive ability is
+			// an optional trigger exactly like a printed one carrying the
+			// param (TriggerHandler: setOptionalTrigger, decider from the
+			// spec), asked as it resolves (CR 603.5). The spec rides the
+			// minted ability's TriggerContext.OptionalSpec, the channel an
+			// Effect-registered delayed trigger's spec already uses; an
+			// absent param clears any spec the spawning ability carried. The
+			// inline path below (Static$ True, a foreign-face body) still
+			// resolves the body unasked; no corpus carrier takes it.
+			cc.TriggerContext.OptionalSpec = strings.TrimSpace(sa.ParamStr(cards.PKOptionalDecider))
 			if h.QueueReflexiveTrigger(&cc, execName, sub, cc.Remembered) {
 				continue
 			}
+			cc.TriggerContext.OptionalSpec = c.TriggerContext.OptionalSpec
 			queue = false
 		}
 		Resolve(h, &cc, sub)

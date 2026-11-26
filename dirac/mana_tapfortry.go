@@ -50,7 +50,22 @@ func (s *State) tapForSpellPlain(k *prep, e *stackEntry, cost *kop.ManaCost, any
 		}
 		return false
 	}
-	if s.tapForTry(k, e.ctrl, &short, int(e.x), e.obj, anyColor) {
+	// The executed payment prefers the census's plan: gorge's composed plan
+	// prices the census alone, so when it affords, a fee gap beside it -- an
+	// Orb of Dragonkind's {1},{T} whose {1} the plan's own units fund -- is a
+	// rank the search never composes (the phased script prices the fee only
+	// for a play the census cannot pay). A cast the census cannot pay keeps
+	// the fee-inclusive witness, the phased script's plan, and the window
+	// after it.
+	if s.tapForTryCensus(k, e.ctrl, &short, int(e.x), e.obj, anyColor) {
+		return false
+	}
+	if s.cfg&cfgGorgeAutopay == 0 && s.tapForTry(k, e.ctrl, &short, int(e.x), e.obj, anyColor) {
+		// the phased script's plan: the full surface's payment prices it
+		// (CR 605.3b). Gorge's autopay payment planner prices the census
+		// alone and the play only a funded fee gap pays stays for the
+		// payment window (legal_walk_autopay.go: the offer is the script's
+		// existence proof, the payment the ordinary window's).
 		return false
 	}
 	// the planner has no witness for the cost: the CR 601.2g window pays it when its sources do

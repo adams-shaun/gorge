@@ -62,6 +62,7 @@ const (
 	rResChosenPlayer              // the resolution's chosen player: OpChoosePlayer's random pick (gorge Ctx.Chosen's player entry, Maddening Hex's Attach destination)
 	rExiledWithOwner              // the seat whose exile holds a card exiled with the source (kop.RefExiledWithOwner; DefinedPlayer$ Player.HasCardsInExile_Card.ExiledWithSource_GE1, Unidentified Hovership's leave trigger)
 	rEnchantedCtrl                // the controller of the permanent the source is attached to, read live, nobody once the source left (kop.RefEnchantedCtrl; Defined$ EnchantedController, Paralyze)
+	rEmblemSource                 // inside an emblem trigger's body: the object whose Effect made the emblem, as it was when the trigger was queued (kop.RefEmblemSource; an Effect's RememberObjects$ Self read as Defined$ Remembered, lower_effeottrig.go)
 	rCount
 )
 
@@ -109,6 +110,7 @@ var refNames = [...]string{
 	rResChosenPlayer:      "ResChosenPlayer",
 	rExiledWithOwner:      "ExiledWithOwner",
 	rEnchantedCtrl:        "EnchantedCtrl",
+	rEmblemSource:         "EmblemSource",
 }
 
 type lRef struct {
@@ -189,6 +191,7 @@ const (
 	vThisTurnActGrave    // activations this turn by the controller whose source now sits in a graveyard
 	vSelfPrepared        // 1 if the source is prepared, else 0; N=1 negates (Count$ValidSelf Card.[!]IsPrepared)
 	vSneaked             // Sub[0] if the resolving spell was cast for its sneak cost, else Sub[1]
+	vAltCost             // Sub[0] if the resolving spell was cast for its own AlternativeCost static's alternative, else Sub[1] (Count$AltCost.<paid>.<unpaid>; kop.ExAltCost)
 	vTriggerSpellMVLKI   // the mana value of the spell that triggered a SpellCast ability, as gorge's LKI
 	vPoisonOf            // poison counters of player Ref
 	vProduct             // Sub[0] * Sub[1]
@@ -260,6 +263,7 @@ const (
 	vReplLKIPow          // the replaced creature's derived power before a dies-to-exile rider moved it (ReplacedCardLKI$CardPower; value_repllki.go)
 	vMostCardName        // the greatest number of battlefield objects matching F that share one face name (Count$MostCardName; kop.ExMostCardName; value_mostcardname.go)
 	vPaidN               // the spell's Squad/Replicate payment count or Conspire's 1 (Count$SquadPaid / ReplicatePaid / Conspired; kop.ExKicked N 2; lower_squadreplicate.go)
+	vDelayedExileCount   // the fired delayed program's remembered objects (at most four, kop.DpMany's carriers) that are still the same object in exile (Count$ValidExile Card.IsTriggerRemembered in a delayed-many body; value_delayedexile.go)
 	vCount_
 )
 
@@ -293,6 +297,7 @@ var valNames = [...]string{
 	vSum:                 "Sum",
 	vHandSizeOf:          "HandSizeOf",
 	vCountExile:          "CountExile",
+	vDelayedExileCount:   "DelayedExileCount",
 	vOppsLostLife:        "OppsLostLife",
 	vMVOf:                "MVOf",
 	vCountAtLeast:        "CountAtLeast",
@@ -317,6 +322,7 @@ var valNames = [...]string{
 	vThisTurnActGrave:    "ThisTurnActGrave",
 	vSelfPrepared:        "SelfPrepared",
 	vSneaked:             "Sneaked",
+	vAltCost:             "AltCost",
 	vTriggerSpellMVLKI:   "TriggerSpellMVLKI",
 	vPoisonOf:            "PoisonOf",
 	vProduct:             "Product",
@@ -1066,6 +1072,9 @@ type lTrigger struct {
 	// player has no contract counter (kop.Tf5DmgNoContract;
 	// lower_contract.go).
 	NoContract bool
+	// SpellCast: NoColoredMana$ True, the cast spent no coloured mana
+	// (kop.Tf5CastNoColoredMana; trig_spellcast.go).
+	NoColoredMana bool
 	// Discarded Card.Self: ValidCause$ SpellAbility.OppCtrl, the discard caused
 	// by a spell or ability an opponent controls (kop.Tf5OppCause).
 	OppCause bool
@@ -1085,8 +1094,10 @@ type lAbility struct {
 	TrigRem         string // a reflexive trigger's TriggerRemembered$ rest (lower_trigremembered.go)
 	RemTgt          bool   // a Pump RememberObjects$ ThisTargetedCard (lower_remembered.go)
 	ReflexObj       bool   // a reflexive latent whose ImmediateTrigger captured a target (lower_remembered.go)
+	ReflexOptional  bool   // a reflexive latent whose ImmediateTrigger carries OptionalDecider$ You: asked as it resolves (kop.TfOptional; lower_zone.go immediateTrigger)
 	DelayedObjOnly  bool   // a delayed latent whose RememberObjects$ set holds objects only (lower_delayedobjects.go)
 	DelayedPlayer   bool   // a delayed latent registered with a remembered PLAYER (the countered spell's controller): Defined$ DelayTriggerRemembered reads the trigger player (lower_delayremplayer.go)
+	DelayedSetDmg   bool   // a delayed latent registered over a dig's whole remembered set whose body counts the still-exiled ones (Dragonhawk's Count$ValidExile Card.IsTriggerRemembered; lower_zone.go)
 	DelayedSelf     bool   // the delayed program remembered the source's own card (Transformed$ return; lower_delayedobjects.go)
 	Origin          int    // gorge's Face.Abilities index, or 0x80|Face.Triggers index; 0 is ambiguous with A[0], so Origin is valid only when OriginOK
 	OriginOK        bool
@@ -1263,6 +1274,7 @@ type lStatic struct {
 	// and infect (kop.Static.Evasion / Infect; lower_kwmark.go)
 	Evasion uint8
 	Infect  bool
+	Toxic   uint8 // granted toxic N, summed (kop.Static.Toxic; lower_toxicgrant.go)
 
 	// AbilityRed: a ReduceCost static of activated abilities (Type$ Ability)
 	// rather than spells: 1 any, 2 Exhaust abilities only, 3 a Room unlock,
@@ -1314,32 +1326,39 @@ type lOverride struct {
 	RemoveCreatureSub bool
 	SetColors         string
 	HasSetColors      bool
-	LoseAbilities     bool
-	AddKw             []string
-	GrantAbility      []int    // latent ability indexes granted
-	Name              string   // SetName: the layer-3 name (a name card, lowerPool)
-	KeepP, KeepT      bool     // a set of base toughness / power only (Maha)
-	RemoveKw          []string // RemoveKeyword$: keywords removed (layer 6)
-	CantHaveKw        []string // CantHaveKeyword$: keywords the affected can't have or gain (a final layer-6 filter)
-	Dedup             bool     // share a byte-identical pool record across cards (Earthbend)
-	UntilUpkeep       bool     // Duration$ UntilYourNextUpkeep: the Override row carries the class (kop.Override.UntilUpkeep)
-	WhileHost         bool     // Duration$ UntilHostLeavesPlay / AsLongAsInPlay
-	WhileTapped       bool     // Duration$ UntilUntaps: WhileHost, and the host's untap ends it too
-	AsLongAsControl   bool     // Pump Duration$ AsLongAsControl: WhileHost, gated on and ended by the host's control (kop.Override.AsLongAsControl)
-	CantAttack        bool     // HiddenKeywords$ CARDNAME can't attack or block. (with AddKw CantBlock)
-	UntilEndCombat    bool     // Pump Duration$ UntilEndOfCombat: the kernel drops the record leaving the end-of-combat step
-	UntilCtrlUntap    bool     // an Effect's Phase$ Untap end (Orcish Farmer): the record ends as its controller's untap step does (kop.Override.UntilCtrlUntap)
-	UntilCast         *lFilter // an Effect's SpellCast end (Soul Sculptor): the record ends when its resolver casts a spell matching this filter (kop.Override.UntilCast)
-	Banding           bool     // a granted Banding (KW$ Banding): no KwMask bit is free, so the record carries it (kop.Override.Banding)
-	Horsemanship      bool     // a Duration$ Permanent KW$ Horsemanship grant: no KwMask bit, so the record carries it (kop.Override.Horsemanship)
-	MustBeBlocked     bool     // HiddenKeywords$ CARDNAME must be blocked if able.: emitOverride follows the record with ExtMustBeBlocked on the same ref (not a record field)
-	NoCost            bool     // a copy exception's "with no mana cost" (RemoveCost$)
-	AddColors         string   // a copy exception's AddColors$: colour letters added after any set
-	RemoveLegendary   bool     // a copy exception's NonLegendary$ (CR 707.9b)
-	PTDelta           bool     // PVal/TVal are a +N/+M pump (layer 7c), not a base P/T: PumpAll Duration$ UntilYourNextTurn NumAtt$/NumDef$ (kop.Override.PTDelta)
-	GrantStatics      uint8    // an Animate staticAbilities$ grant of card statics gated by lStatic.OvGate (kop.Override.GrantStatics)
-	Landwalk          *lFilter // a Pump KW$ Landwalk:<spec> grant's land filter (kop.Override.Landwalk)
-	SetLandSub        bool     // RemoveLandTypes$ True with basic land types added: a CR 305.7 land-type setter (kop.Override.SetLandSub)
+	// CwWord: SetColors/AddColors came from a word-list Colors$ (An Animate
+	// Colors$ Red,Green), so the colour-word statics' colour frozen as the
+	// ability was put on the stack rewrites the applied record (kop.Override
+	// .CwWord, static_colorwords.go ovCw). The ChosenColor token leaves it
+	// clear: its colour is resolved at application, no word names it.
+	CwWord          bool
+	LoseAbilities   bool
+	AddKw           []string
+	GrantAbility    []int    // latent ability indexes granted
+	Name            string   // SetName: the layer-3 name (a name card, lowerPool)
+	KeepP, KeepT    bool     // a set of base toughness / power only (Maha)
+	RemoveKw        []string // RemoveKeyword$: keywords removed (layer 6)
+	CantHaveKw      []string // CantHaveKeyword$: keywords the affected can't have or gain (a final layer-6 filter)
+	Dedup           bool     // share a byte-identical pool record across cards (Earthbend)
+	UntilUpkeep     bool     // Duration$ UntilYourNextUpkeep: the Override row carries the class (kop.Override.UntilUpkeep)
+	WhileHost       bool     // Duration$ UntilHostLeavesPlay / AsLongAsInPlay
+	WhileTapped     bool     // Duration$ UntilUntaps: WhileHost, and the host's untap ends it too
+	AsLongAsControl bool     // Pump Duration$ AsLongAsControl: WhileHost, gated on and ended by the host's control (kop.Override.AsLongAsControl)
+	CantAttack      bool     // HiddenKeywords$ CARDNAME can't attack or block. (with AddKw CantBlock)
+	UntilEndCombat  bool     // Pump Duration$ UntilEndOfCombat: the kernel drops the record leaving the end-of-combat step
+	UntilCtrlUntap  bool     // an Effect's Phase$ Untap end (Orcish Farmer): the record ends as its controller's untap step does (kop.Override.UntilCtrlUntap)
+	UntilCast       *lFilter // an Effect's SpellCast end (Soul Sculptor): the record ends when its resolver casts a spell matching this filter (kop.Override.UntilCast)
+	Banding         bool     // a granted Banding (KW$ Banding): no KwMask bit is free, so the record carries it (kop.Override.Banding)
+	Horsemanship    bool     // a Duration$ Permanent KW$ Horsemanship grant: no KwMask bit, so the record carries it (kop.Override.Horsemanship)
+	Toxic           uint8    // an Animate's Keywords$ Toxic:N, summed (kop.Override.Toxic; lower_toxicgrant.go)
+	MustBeBlocked   bool     // HiddenKeywords$ CARDNAME must be blocked if able.: emitOverride follows the record with ExtMustBeBlocked on the same ref (not a record field)
+	NoCost          bool     // a copy exception's "with no mana cost" (RemoveCost$)
+	AddColors       string   // a copy exception's AddColors$: colour letters added after any set
+	RemoveLegendary bool     // a copy exception's NonLegendary$ (CR 707.9b)
+	PTDelta         bool     // PVal/TVal are a +N/+M pump (layer 7c), not a base P/T: PumpAll Duration$ UntilYourNextTurn NumAtt$/NumDef$ (kop.Override.PTDelta)
+	GrantStatics    uint8    // an Animate staticAbilities$ grant of card statics gated by lStatic.OvGate (kop.Override.GrantStatics)
+	Landwalk        *lFilter // a Pump KW$ Landwalk:<spec> grant's land filter (kop.Override.Landwalk)
+	SetLandSub      bool     // RemoveLandTypes$ True with basic land types added: a CR 305.7 land-type setter (kop.Override.SetLandSub)
 	// Chosen: the setter's added type is the source's own as-enters ChooseType
 	// answer (Convincing Mirage's AddType$ ChosenType): the record adds no
 	// subtype of its own and the static carries AddChosen; the walk grants
@@ -1393,12 +1412,14 @@ type lCard struct {
 	TwoSeat        bool     // the lowering holds only for 2 players (CardDef.TwoSeat, set by lowerCtx.twoSeat)
 	HasChangeText  bool     // a ChangeText body or a ColorWords static lowered (textreach.go, lower_colorwords.go): the pool's cards carry CardDef.TextWords
 	TextWords      uint16   // the colour and basic land type words the face reads (textreach.go); copied to CardDef.TextWords in such a pool
+	CWUnmodelled   uint16   // the colour words the face reads on a surface the colour-word model does not rewrite (textreach.go); copied to CardDef.CWUnmodelled
 	TwoSeatWhy     []string // the reasons that set TwoSeat, in first-seen order (TestTwoSeatReasons)
 	Loyalty        int
 	Defense        int // a Battle's printed Defense (lower_battle.go)
 	Kw             []string
 	Flash          bool
 	Kicker         *manaCost
+	Kicker2        *manaCost   // K:Kicker:<a>:<b>, the two-alternative "and/or" Kicker's part two (CR 702.33b; lower_kickercost.go): part one stays in Kicker
 	Multikicker    *manaCost   // K:Multikicker:<cost> (CR 702.43): the per-payment additional cost, paid any number of times
 	Repeated       *lCost      // K:Squad / K:Replicate: the full per-payment cost (lower_squadreplicate.go)
 	RepeatedKind   uint8       // kop.Repeat*: which keyword owns the multikicker slot
@@ -1445,6 +1466,7 @@ type lCard struct {
 	LivingMetal    bool      // K:Living metal (CR 702.161a): its static is the face's own lowered Override
 	MayFlash       *manaCost // K:MayFlashCost:<cost> (CR 702.8): the extra mana that buys an instant-timing cast from the hand
 	MayFlashBehold *lFilter  // K:MayFlashCost:Behold<1/Type>: the extra is beholding one of these, no mana (MayFlash is empty)
+	Offering       *lFilter  // K:Offering:<Type> (CR 702.48): the instant-speed cast that sacrifices one of these and is reduced by its mana cost
 	FbBeholdN      int       // K:Flashback:<mana> Behold<N/Type>: the flashback cast also beholds N of FbBeholdF (lower_fbcost.go, CardDef.FbBehold)
 	FbBeholdF      *lFilter
 	Dash           *manaCost // K:Dash:<cost> (CR 702.109a): the hand's alternative cost; the permanent gains haste and returns to its owner's hand at the next end step

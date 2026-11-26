@@ -7,7 +7,8 @@ import "strings"
 // Count$wasCastFromGraveyard) whose value is compared under
 // DestAltSVarCompare$ (default GE1). A "MANDATORY " prefix takes
 // DestinationAlternative$ directly when it holds; without the prefix the
-// controller chooses, and that shape stays refused.
+// controller chooses (Emeria Shepherd), and that shape lowers through
+// OpAskDestAlt (czAltDestAsk below).
 //
 // gorge evaluates it once, at the start of the resolution:
 // changeZoneAltDestination (engine/effects/zone_change.go:60-117) is called
@@ -24,9 +25,7 @@ import "strings"
 // Defined$ Targeted, so the ability has one target slot, as in gorge.
 func (lc *lowerCtx) czAltDest(ps *params) error {
 	raw, _ := ps.get("DestAltSVar")
-	if !strings.HasPrefix(raw, "MANDATORY ") {
-		return refuse("DestAltSVar$ %q without MANDATORY (a destination choice)", raw)
-	}
+	ask := !strings.HasPrefix(raw, "MANDATORY ")
 	sv := strings.TrimSpace(strings.TrimPrefix(raw, "MANDATORY "))
 	if sv == "" {
 		return refuse("DestAltSVar$ without a condition")
@@ -47,6 +46,11 @@ func (lc *lowerCtx) czAltDest(ps *params) error {
 	}
 	if v, ok := ps.get("AlternativeDecider"); ok {
 		return refuse("DestAltSVar$ with AlternativeDecider$ %q", v)
+	}
+	if ask {
+		if err := czAskShape(ps, raw, alt); err != nil {
+			return err
+		}
 	}
 	v, err := lc.value(sv)
 	if err != nil {
@@ -87,23 +91,36 @@ func (lc *lowerCtx) czAltDest(ps *params) error {
 		// destination ignores it in gorge.
 		delete(altM, "Tapped")
 	}
-	nt := len(lc.ab.Targets)
-	at := len(lc.ab.Prog)
-	lc.emit(lInstr{Op: "SkipIf", Cond: lCond{Kind: cValue, A: v, Op: op, B: b}})
-	if err := lc.changeZone(&params{m: altM, used: ps.used}); err != nil {
-		return err
-	}
-	lc.ab.Prog[at].Skip = len(lc.ab.Prog) - at // over ALT and the jump
-
 	primM := armMap()
 	if primary != zBattlefield {
 		delete(primM, "Tapped")
 	}
-	// The first arm declared the node's target slot. The primary arm must
+	// The first arm declared the node's target slot. The second arm must
 	// read that slot instead of declaring a second one: drop the target
 	// declaration keys and name the slot with Defined$ Targeted. A defined
 	// selector other than Targeted already names the subject in the first
 	// arm, so keep it (objOrTarget's Defined$ wins over its own targets).
+	secondM := primM
+	firstM := altM
+	if ask {
+		firstM, secondM = primM, altM
+	}
+	nt := len(lc.ab.Targets)
+	at := len(lc.ab.Prog)
+	lc.emit(lInstr{Op: "SkipIf", Cond: lCond{Kind: cValue, A: v, Op: op, B: b}})
+	askAt := -1
+	if ask {
+		// the condition false: over the ask, the primary destination alone
+		lc.ab.Prog[at].Skip = 1
+		askAt = len(lc.ab.Prog)
+		lc.emit(lInstr{Op: "AskDestAlt", Note: "the controller chooses the primary or the alternate destination"})
+	}
+	if err := lc.changeZone(&params{m: firstM, used: ps.used}); err != nil {
+		return err
+	}
+	if !ask {
+		lc.ab.Prog[at].Skip = len(lc.ab.Prog) - at // over ALT and the jump
+	}
 	if _, ok := ps.m["ValidTgts"]; ok {
 		declared := len(lc.ab.Targets) > nt
 		if !declared {
@@ -114,17 +131,39 @@ func (lc *lowerCtx) czAltDest(ps *params) error {
 		}
 		for _, k := range []string{"ValidTgts", "TgtPrompt", "TargetMin", "TargetMax",
 			"TgtZone", "TargetUnique", "TargetsWithSameController", "TargetsWithDifferentControllers"} {
-			delete(primM, k)
+			delete(secondM, k)
 		}
-		if d, ok := primM["Defined"]; !ok || strings.TrimSpace(d) == "" || strings.TrimSpace(d) == "Targeted" {
-			primM["Defined"] = "Targeted"
+		if d, ok := secondM["Defined"]; !ok || strings.TrimSpace(d) == "" || strings.TrimSpace(d) == "Targeted" {
+			secondM["Defined"] = "Targeted"
 		}
 	}
 	jt := len(lc.ab.Prog)
 	lc.emit(lInstr{Op: "SkipIf", Cond: lCond{Kind: cValue, A: cst(0), Op: opGE, B: cst(1)}, Note: "jump over the primary destination"})
-	if err := lc.changeZone(&params{m: primM, used: ps.used}); err != nil {
+	if err := lc.changeZone(&params{m: secondM, used: ps.used}); err != nil {
 		return err
 	}
 	lc.ab.Prog[jt].Skip = len(lc.ab.Prog) - jt - 1
+	if ask {
+		lc.ab.Prog[askAt].Skip = jt - askAt // the alternate: over PRIMARY and the jump
+		if lc.ab.Prog[askAt].Skip > 255 {
+			return refuse("DestAltSVar$ choice over %d instructions", lc.ab.Prog[askAt].Skip)
+		}
+	}
+	return nil
+}
+
+// czAskShape holds the destination choice to the shape gorge poses it for:
+// changeZoneAltDestination asks in effChangeZone's prelude, except for a
+// library search, whose ask comes after the pick (searchDefersDestination).
+// The two zones must differ, and the other alternative-destination keys
+// stay refused.
+func czAskShape(ps *params, raw string, alt int) error {
+	origin := ps.peek("Origin")
+	if origin == "" || strings.Contains(origin, "Library") {
+		return refuse("DestAltSVar$ %q without MANDATORY from Origin$ %q (a destination choice)", raw, origin)
+	}
+	if d, _ := zoneOf(ps, "Destination", zNone); d == alt {
+		return refuse("DestAltSVar$ %q choice between the same zone", raw)
+	}
 	return nil
 }

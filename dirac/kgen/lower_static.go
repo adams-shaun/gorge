@@ -385,6 +385,9 @@ func (lc *lowerCtx) mayPlayStatic(sp *params, st *lStatic, aff string) ([]lStati
 		if aff, err = libTopAffected(aff); err != nil {
 			return nil, err
 		}
+		if aff, err = libTopAfterStack(sp, aff); err != nil {
+			return nil, err
+		}
 	}
 	if err := laterPermanentAlternative(aff); err != nil {
 		return nil, err

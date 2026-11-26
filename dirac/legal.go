@@ -111,10 +111,7 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 			// instant (CR 702.170a); before the plain affordability gate,
 			// like the warp cast, and before the non-instant timing gate
 			// (a plot card is usually a sorcery or creature)
-			if !haveAv {
-				s.availFor(k, p, &av)
-				haveAv = true
-			}
+			s.availOnce(k, p, &av, &haveAv)
 			s.offerPlotHand(k, d, p, o, c, &av) // kw_plot.go
 		}
 		if k.gen != nil && k.gen.anyForetell && k.t.Cards[c].HasForetell && p == s.active && (sorc || !DebugForetellSorcery) {
@@ -127,20 +124,20 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 			// the sneak window is instant speed in the caster's own
 			// declare-blockers step (CR 702.190a): before the non-instant
 			// timing gate, which also tests castForbidden after it
-			if !haveAv {
-				s.availFor(k, p, &av)
-				haveAv = true
-			}
+			s.availOnce(k, p, &av, &haveAv)
 			s.offerSneakHand(k, d, p, o, c, &av) // kw_sneak.go
+		}
+		if k.gen != nil && k.gen.uses.has(useOffering) && k.t.Cards[c].HasOffering {
+			// the offering cast is instant speed, above the sorcery-speed
+			// timing gate and beside the plain cast (kw_offering.go)
+			s.availOnce(k, p, &av, &haveAv)
+			s.offerOffering(k, d, p, o, c, &av)
 		}
 		if !pc.instant && !sorc && !s.castFlash(k, p, c) {
 			if k.gen != nil && k.gen.anyMayFlash && k.t.Cards[c].HasMayFlash {
 				// the timing gate refused the plain cast: the may-flash
 				// cast is the one option it adds (kw_mayflash.go)
-				if !haveAv {
-					s.availFor(k, p, &av)
-					haveAv = true
-				}
+				s.availOnce(k, p, &av, &haveAv)
 				s.offerMayFlashHand(k, d, p, o, c, &av)
 			}
 			continue
@@ -148,10 +145,7 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 		if k.gen != nil && k.gen.anyCantCast && s.castForbiddenCost(k, p, c, o, &pc.cost, nil) {
 			continue
 		}
-		if !haveAv {
-			s.availFor(k, p, &av)
-			haveAv = true
-		}
+		s.availOnce(k, p, &av, &haveAv)
 		if k.gen != nil && k.gen.anyWarp && (k.t.Cards[c].HasWarp || k.gen.anyWarpGrant) {
 			// before the plain affordability gate: a warp cast is offered
 			// even when the mana cost is not payable (CR 702.185a)
@@ -177,6 +171,12 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 			// entry as its own "cast" option (legal_walk_hand.go's
 			// alternativeCosts loop), whether or not the plain price is payable
 			s.offerMayPlayHandAlt(k, d, p, o, c, sorc, &av) // cast_mayzeroalt.go
+		}
+		if k.anyEmbAltCost {
+			// the Effect-delivered alternative cost beside the plain hand
+			// cast (Marshland Bloodcaster's pay-life grant; gorge's hand
+			// walk lists it whether or not the plain price is payable)
+			s.offerEmbAltCostHand(k, d, p, o, c, sorc, &av) // cast_embaltcost.go
 		}
 		cost := &pc.cost
 		var credited kop.ManaCost
@@ -283,10 +283,7 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 		}
 	}
 	if s.cfg&cfgCommander != 0 {
-		if !haveAv {
-			s.availFor(k, p, &av)
-			haveAv = true
-		}
+		s.availOnce(k, p, &av, &haveAv)
 		s.offerCommanderCast(k, d, p, &av)
 	}
 	// flashback
@@ -303,10 +300,7 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 		if skip {
 			continue
 		}
-		if !haveAv {
-			s.availFor(k, p, &av)
-			haveAv = true
-		}
+		s.availOnce(k, p, &av, &haveAv)
 		fc := k.t.Cards[c].AltCost
 		if granted {
 			fc = s.fbGrantCost(k, p, o, marked) // the granted flashback costs the card's mana cost, or the grant's own
@@ -374,6 +368,9 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 			continue
 		}
 		d.add(MakeAction(AkCast, TCode(o), 0, 2))
+	}
+	if k.graveAlt {
+		s.offerGraveyardAltCasts(k, d, p, sorc, &av) // cast_gravealt.go: the graveyard casts a card's own EffectZone$ Graveyard AlternativeCost static grants
 	}
 	if k.gen != nil && k.gen.anyHarmonize {
 		s.offerHarmonizeCasts(k, d, p, sorc, &av) // kw_harmonize.go
@@ -1849,7 +1846,7 @@ func (s *State) targetOK(k *prep, t *kop.TargetSpec, p uint8, src Slot, self Obj
 				return s.objTargetable(k, sl, p)
 			}
 		}
-		return s.matchPerm(k, t.Filter, sl, p, src) && s.objTargetable(k, sl, p)
+		return s.matchPermTgt(k, t.Filter, sl, p, src) && s.objTargetable(k, sl, p)
 	case kop.TgtSpell:
 		if ob.zone != kop.ZoneStack || o == self || o+1 == s.g.tgtSelf {
 			// CR 115.5: a spell on the stack is an illegal target for itself;
@@ -1858,7 +1855,7 @@ func (s *State) targetOK(k *prep, t *kop.TargetSpec, p uint8, src Slot, self Obj
 			// (xask_self_spell_target: the cmcEQX ask of Spell Blast's X)
 			return false
 		}
-		return s.matchCardAt(k, t.Filter, ob.card, s.stackCtrl(o), p, o) && (t.TFlags&kop.TgfSingleTgt == 0 || s.ksrSingleSpell(o))
+		return s.matchCardAtTgt(k, t.Filter, ob.card, s.stackCtrl(o), p, o, src) && (t.TFlags&kop.TgfSingleTgt == 0 || s.ksrSingleSpell(o))
 	case kop.TgtCard:
 		z := k.t.Filters[t.Filter].Zone
 		if z == kop.ZoneNone {
@@ -3772,7 +3769,7 @@ func (s *State) applyPriority(k *prep, a Action) {
 	case AkWebSling:
 		s.beginWebSling(k, Obj(a.Source())) // CR 702.188a; kw_websling.go
 	case AkMayFlash:
-		s.beginMayFlash(k, Obj(a.Source())) // CR 702.8; kw_mayflash.go
+		s.beginMayFlashCast(k, Obj(a.Source()))
 	default:
 		panic("kernel: bad priority action")
 	}
@@ -3920,4 +3917,24 @@ func announcedCountX(k *prep, c *kop.Cost) bool {
 		return false
 	}
 	return (k.gen.anySacX && sacXCost(c)) || (k.gen.anyExileX && exileXCost(c))
+}
+
+// availOnce builds p's mana census into av the first time an offer in
+// priorityOptions needs it.
+func (s *State) availOnce(k *prep, p uint8, av *avail, have *bool) {
+	if !*have {
+		s.availFor(k, p, av)
+		*have = true
+	}
+}
+
+// beginMayFlashCast begins an AkMayFlash cast: an offering card's
+// sacrifice-election cast (CR 702.48; kw_offering.go) or the plain
+// may-flash cast (CR 702.8; kw_mayflash.go).
+func (s *State) beginMayFlashCast(k *prep, o Obj) {
+	if c := s.objs[o].card; k.gen != nil && k.gen.uses.has(useOffering) && k.t.Cards[c].HasOffering {
+		s.beginOffering(k, o)
+		return
+	}
+	s.beginMayFlash(k, o)
 }

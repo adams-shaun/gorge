@@ -108,6 +108,7 @@ func refuse(format string, a ...any) error { return errRefuse{fmt.Sprintf(format
 type lowerCtx struct {
 	proto    bool  // lowering a FacePrototype card's face 1: lowerRecord applies the inset (lower_prototype.go)
 	ddoEvent bool  // lowering an end-of-turn Effect's DamageDoneOnce line as the per-event DamageDone line gorge's delayed path queues (lower_damagedoneonce.go)
+	selfRem  bool  // lowering the body of an Effect trigger whose Effect remembers its source (RememberObjects$ Self): Defined$ Remembered is the emblem's source object (lower_effeottrig.go emblemSelfRemember)
 	capRem   bool  // lowering the body of a capturing emblem's DamageDealtOnce/DamageDoneOnce trigger: a Remembered read before the body writes its own set is the captured object, the damage source or the damaged object (lower_effectcaptured.go, lower_zone.go emblem)
 	effCount bool  // lowering the body of an Effect trigger that remembers a count: Remembered$Amount reads the frozen trigger amount (lower_effectremember.go)
 	pairCap  *lRef // the capture slot the pair lowering already resolved for the emblem (lower_effectcaptured.go)
@@ -135,6 +136,10 @@ type lowerCtx struct {
 	emblemBlocked bool
 	// emblemUnblocked: the same body of an AttackerUnblocked emblem with a capture: Remembered is the trigger object too (Delif's Cone: the captured attacker; lower_effeottrig.go capturedTriggerRef, value.go)
 	emblemUnblocked bool
+	// drawReplBody: lowering a Draw replacement's ReplaceWith$ body, where
+	// Defined$ ReplacedPlayer is the player drawing (the kernel binds it as the
+	// program's trigger player; dirac/repl_drawprogram.go).
+	drawReplBody bool
 
 	// emblemBlocks: lowering the body of an end-of-turn Effect's Mode$ Blocks
 	// trigger. The kernel emblem hook (dirac/trig_emblemblocks.go) queues the
@@ -171,6 +176,7 @@ type lowerCtx struct {
 	imprintMox     bool      // the face is the imprint-mox shape: its two static bookkeeping triggers lower to nothing (lower_imprintmox.go)
 	impPersist     bool      // the face keeps its Imprinted on the source (lower_imppersist.go)
 	impFoldExiled  bool      // every ImpPersist writer is a ChangeZone exile: IsImprinted+ExiledWithSource may fold (lower_imppersist.go)
+	cipher         bool      // the face prints K:Cipher: lowerTail appends the encode (lower_cipher.go)
 	bluffPlay      bool      // lowering the Play behind a nothing-remembered gate: ValidSA$ Spell.nonCreature+YouOwn may lower (lower_zone.go, Brazen Bluff; Yue's hand population, playOwnHand)
 	replEnter      bool      // inside an ETB replacement's ReplaceWith chain
 	exileRider     bool      // inside a dies-to-exile rider's prog: ReplacedCardLKI$CardPower may read the pre-move capture (value_repllki.go)
@@ -229,6 +235,7 @@ type lowerCtx struct {
 	head           bool      // the node being lowered heads its chain
 	inGroup        bool      // lowering a Mobilize group program's body (SacrificeDelayed is legal)
 	groupMany      bool      // ... of Mobilize 3-4: the DpMany program, SacrificeDelayed reads up to four objects
+	delayedSetDmg  bool      // delayedRemember accepted a dig's whole remembered set for a count-of-the-still-exiled body (lower_delayedsetdmg.go)
 	czForgetSet    bool      // a ChangeZoneAll ForgetOtherRemembered$ ran in this ability: Remembered is a many-object set (lower_changezoneall.go)
 	chains         int       // chain entries so far (every-blocker census: did a node's body get read?)
 	guardNode      string    // the top-level node guard is lowering (every-blocker census names extra refusals by it)
@@ -272,7 +279,14 @@ type lowerCtx struct {
 	// Rotisserie Elemental; lower_digimprintset.go): only that chain's
 	// Effect, Defined$ Imprinted and Cleanup read it
 	digImprintRoot *cards.SA
-	known          func(string) bool
+	// retImprint: the ChangeZone being lowered is a Return with Imprint$
+	// True whose writer brackets its move (lower_imprintzone.go
+	// returnImprint).
+	retImprint bool
+	// impSweep: the filter a following DestroyAll ValidCards$
+	// Card.IsImprinted reads instead (lower_imprintzone.go imprintNameSweep).
+	impSweep string
+	known    func(string) bool
 	// granted > 0 while an ability or trigger another object is granted
 	// (an AddAbility$/AddTrigger$ SVar, an emblem's trigger) is lowered
 	granted int
@@ -283,6 +297,10 @@ type lowerCtx struct {
 	// altCostHand while a spell's own AlternativeCost static's Cost$ is
 	// lowered: an ExileFromHand<1/Spec> part keeps its filter (lower_trigger.go)
 	altCostHand bool
+	// crewAltCost while a Vehicle's own crew AlternativeCost static's Cost$ is
+	// lowered: its SubCounter<N/LOYALTY/Filter> removal reads the filter
+	// (static_crewalt.go), which no other cost spelling does
+	crewAltCost bool
 	// grantAttached while the trigger an Equipment's or Aura's static grants
 	// its attached permanent is lowered (AffectedDefined$ Equipped/Enchanted)
 	grantAttached bool
@@ -634,6 +652,7 @@ func (lc *lowerCtx) lowerTail() {
 	lc.refusePlotCombos()
 	lc.refuseHarmonizeCombos()
 	lc.refuseReboundCombos() // lower_rebound.go
+	lc.lowerCipher()         // lower_cipher.go
 	lc.refuseMayhemCombos()
 	lc.refuseEscapeCombos()
 	lc.lowerRetrace()
@@ -643,6 +662,7 @@ func (lc *lowerCtx) lowerTail() {
 	lc.refuseEntwineCombos() // lower_entwine.go
 	lc.refuseWebSlingCombos()
 	lc.refuseMayFlashCombos()
+	lc.refuseOfferingCombos() // lower_offering.go
 	lc.refuseEvokeCombos()
 	lc.refuseDashCombos()          // lower_dash.go
 	lc.refuseBlitzCombos()         // lower_blitz.go
@@ -911,7 +931,9 @@ func (lc *lowerCtx) lowerRecord() {
 		out.Snow = out.Snow || t == "Snow"
 		out.Subtypes = append(out.Subtypes, t)
 	}
-	out.TextWords = textWordsOf(lc.card)
+	tw := textWordsMasks(lc.card)
+	out.TextWords = tw.words
+	out.CWUnmodelled = tw.unmodelled
 	out.NoAbilities = effects.FaceHasNoAbilities(f, out.Types&tLand != 0)
 	out.HasManaAbility = effects.FaceHasManaAbility(f)
 	out.Colors = colorsOf(f)
@@ -1577,6 +1599,14 @@ func (lc *lowerCtx) lowerKeywords() {
 		case expandedKeywords[head]:
 			// Lowered from the expansion's own lines.
 		case head == "Kicker":
+			if ma, mb, ok := lc.kickerTwoCosts(param); ok {
+				// the two-alternative "and/or" Kicker (CR 702.33b; gorge
+				// twoPartKickerCosts): part one rides Kicker, part two
+				// Kicker2; the kernel offers the per-part kicked casts
+				// (kw_kickalt.go)
+				lc.out.Kicker, lc.out.Kicker2 = &ma, &mb
+				continue
+			}
 			if mc, rest, ok := lc.kickerNonMana(param); ok {
 				// one non-mana part kop.Cost carries alone (gorge kickerCost
 				// is a full Cost, folded into the kicked cast's cost); the
@@ -1667,6 +1697,8 @@ func (lc *lowerCtx) lowerKeywords() {
 			}
 		case head == "Escalate":
 			lc.lowerEscalate(node, param) // lower_escalate.go
+		case head == "Offering":
+			lc.lowerOffering(node, param) // lower_offering.go
 		case head == "Casualty":
 			// CR 702.153a: the optional creature sacrifice and the copy
 			// trigger are the kernel's casualty cast (kw_casualty.go). The
@@ -2896,7 +2928,10 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 				return c, refuse("counter cost %q", t)
 			}
 			kind := parts[1]
-			if kind == "LOYALTY" && head != "RemoveAnyCounter" {
+			if filteredLoyalty := kind == "LOYALTY" && len(parts) != 2 && lc.crewAltCost && head == "SubCounter"; kind == "LOYALTY" && head != "RemoveAnyCounter" && !filteredLoyalty {
+				// (a filtered loyalty removal -- "remove a loyalty counter from a
+				// planeswalker you control" -- is the among cost below, only for
+				// the crew alternative: static_crewalt.go)
 				if len(parts) != 2 {
 					return c, refuse("counter cost %q", t)
 				}
@@ -3787,9 +3822,8 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 			if ab.ActCond.Kind != cNone {
 				return refuse("two activation conditions")
 			}
-			if sa.API == "Mana" {
-				return refuse("CheckSVar$ on a mana ability")
-			}
+			// on a mana ability the gate rides the kernel's planner/window
+			// variant (mana_gate.go), read per call by condEval
 			v, err := lc.value(cs)
 			if err != nil {
 				return err

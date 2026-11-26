@@ -17,10 +17,9 @@ func TestAnimateSetsOnlyThePresentPT(t *testing.T) {
 		"Chariot of the Sun": "override{pt=0/1 keepP kw=Flying}",
 		"Karn, Silver Golem": "override{pt=MVOf(Target0)/MVOf(Target0) addtypes=6}",
 		"Toymaker":           "override{pt=MVOf(Target0)/MVOf(Target0) addtypes=6}",
+		"Cactus Preserve":    "override{pt=CmdGreatestMV/CmdGreatestMV addtypes=2 addsub=Plant colors=G kw=Reach}", // X reads the commanders' greatest mana value
 	}
-	refused := map[string]string{
-		"Cactus Preserve": `Animate Power$ "X"`,
-	}
+	refused := map[string]string{}
 	var names []string
 	for n := range accepted {
 		names = append(names, n)

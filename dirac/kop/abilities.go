@@ -258,6 +258,15 @@ type Ability struct {
 	// none, the cost is Cost alone. kop.Cost has no spare field. A table byte
 	// pair, not State.
 	CostProg uint16
+	// AltOf: this activated ability is the alternative cost of the ability
+	// at index AltOf-1 of the same card (CR 118.9; Heart of Kiran's "remove a
+	// loyalty counter from a planeswalker you control rather than pay this
+	// Vehicle's crew cost", kgen static_crewalt.go). Its body is the host
+	// ability's and its Cost the alternative; gorge offers the pair as one
+	// "ability" option at AltCostIndex 0 and one at AltCostIndex 1, which the
+	// canon maps to the host ability's code and its AltActivateBase twin
+	// (canon.AltCode). 0 = an ordinary ability. A table byte, not State.
+	AltOf uint8
 	// CycAltOf: 1 + the index of the printed cycling ability this one is the
 	// StatCyclingAlt twin of (New Perspectives, CR 118.9): the same body with
 	// the discard alone as its cost. 0 = an ordinary ability. A twin is
