@@ -18,14 +18,22 @@ import (
 // (AltCostIndex 1), offered and charged through the same option the rider
 // uses (CR 118.9: an alternative cost replaces the printed one). p is the
 // activator.
+//
+// The same grant covers a cycling activation (New Perspectives' "As long as you
+// have seven or more cards in hand, you may pay {0} rather than pay cycling
+// costs", ValidSA$ Activated.Cycling): the static's Cost$ replaces the whole
+// printed cost, its own Discard<1/CARDNAME> being the discard cycling's
+// printed cost already carried, so the alternative drops the mana and any
+// Pay-life part and keeps the discard. TypeCycling is a variant of cycling
+// (cyclingKeyword), so it takes the same alternative.
 func (e *Engine) abilityAlternateCostFor(p state.PlayerID, ab *cards.SA) (Cost, bool) {
 	if c, ok := e.abilityAlternateCost(ab); ok {
 		return c, true
 	}
-	if !isAttachCostSA(ab) {
+	kw, ok := staticAltCostKind(ab)
+	if !ok {
 		return Cost{}, false
 	}
-	kw := strings.TrimSpace(ab.ParamStr(cards.PKKeyword))
 	for _, sv := range e.activeStatics("AlternativeCost") {
 		if !staticAltCostScopesAbility(sv, kw, p) {
 			continue
@@ -40,6 +48,24 @@ func (e *Engine) abilityAlternateCostFor(p state.PlayerID, ab *cards.SA) (Cost, 
 		return c, true
 	}
 	return Cost{}, false
+}
+
+// staticAltCostKind is the ValidSA$ Activated.<kind> an AlternativeCost static
+// names for ab: the attach-cost SA's own keyword (Equip, Fortify), or Cycling
+// for a cycling / typecycling body (cyclingKeywordCodes). ok is false for every
+// other activation.
+func staticAltCostKind(ab *cards.SA) (string, bool) {
+	if ab == nil {
+		return "", false
+	}
+	kw := strings.TrimSpace(ab.ParamStr(cards.PKKeyword))
+	if isAttachCostSA(ab) {
+		return kw, true
+	}
+	if cyclingKeywordCodes.Code(kw) == cyclingKeywordCycling {
+		return "Cycling", true
+	}
+	return "", false
 }
 
 // staticAltCostScopesAbility reports whether an AlternativeCost static grants

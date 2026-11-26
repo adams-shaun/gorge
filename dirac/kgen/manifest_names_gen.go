@@ -1462,6 +1462,9 @@ func init() { enum[kop.StaticKind]("kop.StatRetraceGrant", kop.StatRetraceGrant)
 // dirac/manifest/StaticKind/StatColorWords
 func init() { enum[kop.StaticKind]("kop.StatColorWords", kop.StatColorWords) }
 
+// dirac/manifest/StaticKind/StatCyclingAlt
+func init() { enum[kop.StaticKind]("kop.StatCyclingAlt", kop.StatCyclingAlt) }
+
 // dirac/manifest/StaticKind/StatCyclingGrant
 func init() { enum[kop.StaticKind]("kop.StatCyclingGrant", kop.StatCyclingGrant) }
 
