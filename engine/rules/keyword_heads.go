@@ -58,6 +58,7 @@ var (
 	kwhIntimidate       = newKWHead("Intimidate")
 	kwhJumpStart        = newKWHead("Jump-start")
 	kwhLifelink         = newKWHead("Lifelink")
+	kwhMadness          = newKWHead("Madness")
 	kwhMayhem           = newKWHead("Mayhem")
 	kwhMiracle          = newKWHead("Miracle")
 	kwhMenace           = newKWHead("Menace")
