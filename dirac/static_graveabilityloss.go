@@ -174,12 +174,28 @@ func (s *State) graveStaticTs(k *prep, cls uint16, kind kop.StaticKind, p, owner
 // card's own flashback, marked an Effect's or a Pump's grant (no stamp), and
 // a StatFbGrant static is the live grant.
 func (s *State) graveFbHidden(k *prep, o Obj, printed, marked bool) bool {
+	if !graveLossOn(k) {
+		return false
+	}
 	ob := &s.objs[o]
 	g := graveGrant{have: marked, stamped: marked}
 	if !marked && k.gen.anyFbGrant {
 		g.ts, g.have = s.graveStaticTs(k, sclsFbGrant, kop.StatFbGrant, ob.owner(), ob.owner(), ob.card, NoObj)
 	}
 	return s.graveOfferHidden(k, o, printed, g)
+}
+
+// flashbackSkips is the flashback walk's per-card skip (legal.go, kept apart so priorityOptions stays under its
+// shrink-only ceilings), with whether the flashback is granted (a stamped grant or a live static's, kw_fbgrant.go):
+// the card lost all its abilities, it has no flashback printed or granted, or it is not an instant, it is not
+// sorcery timing and it cannot be cast as though it had flash (High Fae Trickster).
+func (s *State) flashbackSkips(k *prep, p uint8, c CardID, o Obj, pc *pcard, marked, sorc bool) (skip, granted bool) {
+	printed := pc.kw&kop.KwFlashback != 0
+	if graveLossOn(k) && s.graveFbHidden(k, o, printed, marked) {
+		return true, false
+	}
+	granted = !printed && (marked || s.fbLive(k, o))
+	return !printed && !granted || (!pc.instant && !sorc && !s.castFlash(k, p, c)), granted
 }
 
 // graveEscapeHidden is the escape walk's gate (kw_escape.go): printed is the
