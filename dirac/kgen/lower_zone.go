@@ -1164,6 +1164,12 @@ func overrideString(o *lOverride) string {
 	if o.UntilEndCombat {
 		p = append(p, "eoc")
 	}
+	if o.UntilCtrlUntap {
+		p = append(p, "untilctrluntap")
+	}
+	if o.UntilCast != nil {
+		p = append(p, "untilcast")
+	}
 	if o.Horsemanship {
 		p = append(p, "horsemanship")
 	}
@@ -2845,6 +2851,9 @@ func (lc *lowerCtx) effectAPI(ps *params) error {
 		return err
 	}
 	if len(ss) != 1 && !attackBlockPair(ss) { // lower_effectattacksifable.go
+		if ok, err := lc.effectPlayLocks(ps, st, ss); ok || err != nil { // lower_effectplaylocks.go
+			return err
+		}
 		return refuse("Effect static %q", st)
 	}
 	s := ss[0]
@@ -3101,6 +3110,16 @@ func (lc *lowerCtx) effectTargetStatic(ps *params, s cards.Static, obj lRef) err
 			obj.Kind == rRemembered && (zone == zExile || len(zones) == 2) {
 			fl |= kop.MayPlayOwner
 			ps.consume("EffectOwner")
+		}
+		if mv := sp.str("MayPlayPlayer"); mv != "" {
+			// gorge MayPlayCardOwner (engine/effects/staticline.go): the
+			// permission's subject is the remembered card's owner (Memory
+			// Vessel: each player may play the cards THEY exiled), not the
+			// effect's controller -- the kernel's MayPlayOwner record
+			if mv != "CardOwner" {
+				return refuse("Effect MayPlayPlayer %q", mv)
+			}
+			fl |= kop.MayPlayOwner
 		}
 		if _, ok := ps.get("ExileOnMoved"); ok && obj.Kind == rRemembered {
 			// gorge effectMoveSweep: a remembered card leaving the zone ENDS
