@@ -8,9 +8,9 @@ import (
 // TestLowerDefinedMiscSolo covers the two Defined$ shapes this change reads:
 // CopyPermanent's `Defined$ ExiledWith` (The Cloning of Shredder's chapters
 // II and III) and Animate's `Defined$ Self.<qualifier>` (Iron Man Armor's
-// "if this Equipment isn't a creature"). Shredder lowers whole; Iron Man's
-// refusal moves past Defined$ to the staticAbilities$ grant lt-low-animate-
-// grant-static owns. Each out-of-shape variant still refuses by name.
+// "if this Equipment isn't a creature"). Shredder and Iron Man (whose
+// staticAbilities$ body is now the gated self P/T grant) lower whole. Each
+// out-of-shape variant still refuses by name.
 func TestLowerDefinedMiscSolo(t *testing.T) {
 	all := lowerNamed(t, []string{"The Cloning of Shredder", "Iron Man Armor"})
 	byName := map[string]*lCard{}
@@ -51,16 +51,8 @@ func TestLowerDefinedMiscSolo(t *testing.T) {
 		if c == nil {
 			t.Fatal("card was not lowered")
 		}
-		var static, defined bool
-		for _, r := range c.Refusals {
-			static = static || strings.Contains(r.Reason, "Animate staticAbilities$") && strings.Contains(r.Reason, "sets no P/T")
-			defined = defined || strings.Contains(r.Reason, "Defined$")
-		}
-		if !static {
-			t.Errorf("refusal did not move to Animate staticAbilities$ (refusals %v)", c.Refusals)
-		}
-		if defined {
-			t.Errorf("still refuses on Defined$ (refusals %v)", c.Refusals)
+		if r := lowerRefusals(c); len(r) != 0 {
+			t.Fatalf("refused: %v", r)
 		}
 	})
 	t.Run("out of shape variants", func(t *testing.T) {
