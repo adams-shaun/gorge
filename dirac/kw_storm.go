@@ -32,6 +32,9 @@ func (s *State) castFromStack(k *prep, e *stackEntry) {
 	if k.gen != nil && k.gen.anyStorm && !DebugIgnoreStorm {
 		s.queueStorm(k, e)
 	}
+	if k.gen != nil && k.gen.anyRippleGrant {
+		s.queueRipple(k, e) // gorge's granted walk order: Demonstrate, Storm, then Ripple (trigger_match.go)
+	}
 }
 
 // queueStormPrinted queues the printed K:Storm trigger (CR 702.40a) of the
