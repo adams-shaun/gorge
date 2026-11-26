@@ -45,7 +45,7 @@ func TestKeywordCipher(t *testing.T) {
 		t.Errorf("Arcane Heist: want the cast-a-card refusal, got %v", lc.Refusals)
 	}
 
-	const base = "Name:Cipher Probe\nManaCost:1 U\nTypes:Sorcery\nK:Cipher\nA:SP$ Draw | Defined$ You | NumCards$ 1 | SpellDescription$ Draw a card.\n"
+	const base = "Name:Cipher Probe\nManaCost:1 U\nTypes:Sorcery\nK:Cipher\nA:SP$ Draw | NumCards$ 2 | Defined$ You\n"
 	for _, c := range []struct{ name, src, want string }{
 		{"plain sorcery", base, ""},
 		{"a permanent", strings.Replace(base, "Types:Sorcery", "Types:Enchantment", 1), "permanent card"},
