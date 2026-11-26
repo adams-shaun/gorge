@@ -908,10 +908,14 @@ func (s *State) returnLinked(k *prep, srcCtrl uint8, o Obj) {
 			if k.gen.anyLinkCtr {
 				ctrN = s.linkRetCtrs(k, srcCtrl, o, l.obj) // before the card takes the source's slot
 			}
+			nq := s.g.nask
 			from := s.detach(l.obj)
 			nsl := s.enterLinkRetRun(k, l.obj, x.owner(), from)
 			if ctrN > 0 {
 				s.linkRetPut(k, ctrN, nsl)
+			}
+			if s.g.nask > nq && s.res.active && !DebugReturnQueuedAskNoHold {
+				return // the entry queued an as-enters ask: gorge poses it now and the rest of the batch waits (zone_untilleavesqask.go)
 			}
 		}
 	}

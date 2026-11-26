@@ -1392,6 +1392,9 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 		s.res.active = false // the enters program runs with its own source as the context
 		s.answerQueuedAsk(k, a)
 		s.res = saved
+		if s.answerQueuedHold(k) {
+			return // zone_untilleavesqask.go: the next held return parked its own ask
+		}
 		if s.g.nask != 0 && s.midResAsk(k) {
 			return // gorge defers the next election behind this one; a parked tail waits for them all
 		}

@@ -297,6 +297,9 @@ func (s *State) stepRaw(d *Decision) {
 			if s.sba(k) {
 				continue
 			}
+			if s.g.pre.state == preReturnCost {
+				continue // a swept seat's returning card parked its as-enters ask (zone_untilleavescost.go): stepGen poses it before this priority
+			}
 			// a Swirl-class colour-word static reads a rewritten word: stall before any
 			// trigger's targets are asked or a player acts (static_colorwords.go)
 			if k.anyColorWords && s.colorWordsStall(k) {
