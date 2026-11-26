@@ -615,6 +615,9 @@ func (s *State) buildCostGenPre(k *prep, pre bool) (kop.ManaCost, bool, bool) {
 		if cd.HasAltAdd && s.bld().altAdd == 1 {
 			c = cd.AltAddCost.Mana
 		}
+		if cd.HasAltAdd && s.bld().altAdd == buildAltAdd2 {
+			c = cd.AltAddCost2.Mana // the either-or's third part, Dusk Mangler's (CR 118.9d)
+		}
 		if cd.HasModeCost {
 			c = spreeCost(cd, e.mode, c) // Spree's mode costs are additional costs (CR 702.172a)
 		}
@@ -647,6 +650,9 @@ func (s *State) buildCostGenPre(k *prep, pre bool) (kop.ManaCost, bool, bool) {
 		}
 		if cd.HasAltAdd && s.bld().altAdd == 1 {
 			c = addCost(c, cd.AltAddCost.Mana) // Eaten Alive's {3}{B} part (CR 601.2f)
+		}
+		if cd.HasAltAdd && s.bld().altAdd == buildAltAdd2 {
+			c = addCost(c, cd.AltAddCost2.Mana) // the either-or's third part, Dusk Mangler's (CR 601.2f)
 		}
 		if cd.HasModeCost {
 			c = spreeCost(cd, e.mode, c)
@@ -819,8 +825,11 @@ func (s *State) targetableGen(k *prep, sl Slot, p uint8) bool {
 	if kw&kop.KwProtBlack != 0 && c&kop.ColB != 0 || kw&kop.KwProtRed != 0 && c&kop.ColR != 0 {
 		return false
 	}
-	if hexC&c != 0 {
+	if hexC&c&kop.ColAny != 0 {
 		return false // CR 702.11d: a source of that colour an opponent controls
+	}
+	if hexC&(kop.HexMono|kop.HexMulti) != 0 && hexCountBlocks(hexC, c) {
+		return false // CR 702.11d: from monocolored / multicolored (kw_hexproofcolor.go)
 	}
 	if k.gen.anyProtCol && s.protPrinted(k, sl)&c != 0 {
 		return false

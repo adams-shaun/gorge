@@ -21,6 +21,10 @@ import "strings"
 //     names exactly the captured object (the sweep would hit only its own
 //     source) and refuses; a body that wrote its own set first keeps the
 //     plain Remembered read the definedSpec census owns, so it refuses too.
+//   - ParentTarget/Targeted beside ValidPlayers$ Player.Opponent (Chandra's
+//     Ignition): the targeted creature deals its power to every other
+//     creature and, C&4, to each living opponent of the resolving controller,
+//     after the creatures in the same batch.
 //
 // Anything beyond those shapes refuses by name.
 func (lc *lowerCtx) sweepFrom(ps *params, ds string, n lValue) error {
@@ -30,7 +34,7 @@ func (lc *lowerCtx) sweepFrom(ps *params, ds string, n lValue) error {
 		}
 	}
 	cap := lc.capRem && strings.TrimSpace(ds) == "Remembered" && !lc.hasRememberWriter()
-	players := false
+	players, opps := false, false
 	vp, hasVP := ps.get("ValidPlayers")
 	if hasVP && cap {
 		if strings.TrimSpace(vp) != "Player" {
@@ -57,7 +61,20 @@ func (lc *lowerCtx) sweepFrom(ps *params, ds string, n lValue) error {
 		}
 		src = lRef{Kind: rTarget, N: slot}
 		if hasVP {
-			return refuse("DamageAll DamageSource$ beside ValidPlayers")
+			// the player arm beside a targeted source (Chandra's Ignition:
+			// DamageSource$ ParentTarget, ValidPlayers$ Player.Opponent): the
+			// sweep's player hits name each opponent of the resolving
+			// controller, after the creatures in the same batch (C bit 4).
+			// Only that one spelling lowers; gorge's ValidPlayers read is the
+			// same filter spec the plain DamageAll arm lowers, and no other
+			// corpus carrier pairs a targeted source with a player scope.
+			// The check sits after the source's resolution, so a source the
+			// sweep cannot lower refuses by its DamageSource$ value, not by
+			// the player scope beside it.
+			if strings.TrimSpace(vp) != "Player.Opponent" {
+				return refuse("DamageAll DamageSource$ beside ValidPlayers")
+			}
+			opps = true
 		}
 	}
 	vc, ok := ps.get("ValidCards")
@@ -119,6 +136,9 @@ func (lc *lowerCtx) sweepFrom(ps *params, ds string, n lValue) error {
 	c := excl
 	if players {
 		c |= 2
+	}
+	if opps {
+		c |= 4
 	}
 	lc.emit(lInstr{Op: "SweepFrom", Obj: src, B: n, F: f, C: c})
 	return nil

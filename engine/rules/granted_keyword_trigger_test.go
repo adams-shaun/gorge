@@ -91,6 +91,9 @@ var grantedTriggerKeywordWalk = map[string]string{
 	// Annihilator and Battle cry: the same synthesis (CR 702.86a, 702.91a).
 	"Annihilator": "checkGrantedStaticTriggersUsing",
 	"Battle cry":  "checkGrantedStaticTriggersUsing",
+	// Undying and Persist: the same synthesis (CR 702.93a, 702.79a).
+	"Undying": "checkGrantedStaticTriggersUsing",
+	"Persist": "checkGrantedStaticTriggersUsing",
 	// Dedicated per-keyword walks.
 	"Afflict":           "checkGrantedAfflictTriggers",
 	"Cumulative upkeep": "checkGrantedCumulativeUpkeepTriggers",

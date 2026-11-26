@@ -1,0 +1,28 @@
+# the morph pick pool: the six carriers of a Morph-family turn-up cost that
+# is one Discard, Sac or Return part (CardDef.MorphPick, dirac/face_morphpick.go;
+# gorge rules/morph_turnup.go's turnUpSacAsk / turnUpDiscardAsk /
+# turnUpReturnAsk), beside vanilla creatures, the Moxen that float the {3} a
+# face-down cast prices from, and basics (dirac/oracle/morphpick_lowers_test.go;
+# the kfuzz focus runs name the cards).
+Gathan Raiders
+Fathom Seer
+Gift of Doom
+Putrid Raptor
+Raven Guild Initiate
+Skirk Volcanist
+Zombie Cutthroat
+Priest of Gix
+Vexing Gull
+Grizzly Bears
+Llanowar Elves
+Ornithopter
+Mox Pearl
+Mox Jet
+Mox Emerald
+Mox Ruby
+Mox Sapphire
+Plains
+Island
+Swamp
+Mountain
+Forest
