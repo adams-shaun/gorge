@@ -988,6 +988,9 @@ const (
 	PKWithoutManaCost
 	PKWon
 	PKWontPhaseInNormal
+	// XAnnounceTitle$ names what an announced X counts in a triggered ability's
+	// cost (Leyline Tyrant). Read by rules' triggered-cost X window as the prompt.
+	PKXAnnounceTitle
 	PKXChoice
 	// XColor$ names the colour(s) the {X} part of a cost must be paid with (Forge's
 	// SpellAbility.getXColor; Consume Spirit, Crimson Hellkite). Read by
@@ -1847,6 +1850,7 @@ var paramKeyNames = [paramKeyCount]string{
 	PKWithoutManaCost:                  "WithoutManaCost",
 	PKWon:                              "Won",
 	PKWontPhaseInNormal:                "WontPhaseInNormal",
+	PKXAnnounceTitle:                   "XAnnounceTitle",
 	PKXChoice:                          "XChoice",
 	PKXColor:                           "XColor",
 	PKXMax:                             "XMax",

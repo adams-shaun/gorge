@@ -103,6 +103,11 @@ var DebugAtkTaxNoGrant bool
 // Priest of Forgotten Gods, Red Death, Shipwrecker) as a fixed {C} source.
 var DebugAtkTaxCountActivated bool
 
+// DebugAtkTaxHasteUnlisted (test only, TestFourSeatAtkTaxHasteRiderLockstep):
+// the walk skips a source whose mana carries a haste spend rider (Carnelian
+// Orb of Dragonkind), as if the window never listed it.
+var DebugAtkTaxHasteUnlisted bool
+
 // DebugAtkTaxNoExtra (test only, TestFourSeatAtkTaxTapExtraLockstep): the
 // window's tap floats no StatTapExtra mana beside the source's own.
 var DebugAtkTaxNoExtra bool
@@ -286,6 +291,9 @@ func atkTaxFirstMana(c *kop.CardDef) int {
 // tapped, so the walk ignores it (CR 605.3a: the payer may still activate it
 // outside the window).
 func atkTaxUnlisted(a *kop.Ability) bool {
+	if DebugAtkTaxHasteUnlisted && a.Kind == kop.AbMana && a.ManaHasteValid != 0 {
+		return true
+	}
 	const other = kop.CostSac | kop.CostRemoveCtr | kop.CostAddCtr | kop.CostDiscard | kop.CostTapX | kop.CostExileGrave
 	f := a.Cost.Flags
 	fee := a.Cost.Mana.MV() != 0 || a.Cost.Mana.X != 0

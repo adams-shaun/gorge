@@ -277,6 +277,8 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 			hb.add(s, a, b, pa)
 			if in.Op == kop.OpFight {
 				hb.add(s, b, a, s.power(k, b))
+			} else if in.A.K == kop.VConst && in.A.N == kop.BiteExcessTrample {
+				s.biteExcess(k, &hb, a, b, pa) // act_bitelki.go
 			}
 		}
 		lethal := 0
