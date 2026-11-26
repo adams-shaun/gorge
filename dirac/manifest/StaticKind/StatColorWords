@@ -1,0 +1,5 @@
+family: StaticKind
+name: StatColorWords
+value: next
+status: active
+doc: StatColorWords is a Continuous static's ChangeColorWordsTo$ ChosenColor over Affected$ Spell,Permanent in AffectedZone$ Stack,Battlefield (Swirl the Mists; CR 612.5): every colour word in the text of the spells on the stack and the permanents on the battlefield becomes the source's recorded colour word. The kernel holds no per-object text (kop.ExtChangeText), so it models the change where it is a no-op and stalls where it is not: a spell about to be cast, a spell on the stack or a permanent whose card face reads (CardDef.TextWords) a colour word other than the source's chosen one stalls the game (StallTextChange, unmodelled) instead of answering from the unchanged face; a source with no recorded colour changes nothing, as gorge's colourWordEffects fails closed. Read at pushBuild and before each priority grant behind prep.anyColorWords (static_colorwords.go).

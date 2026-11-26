@@ -209,14 +209,14 @@ func (s *State) filtOtherMana(k *prep, p uint8) int {
 			// a sacrifice-only source (an Eldrazi Spawn) is a last-resort
 			// unit of gorge's census, tapped or not (mana_sacsource.go)
 			n += int(max(pc.manaN, 1))
-		} else if s.grantSacOK(k, sl) || s.grantTapOK(k, sl) {
+		} else if s.grantSacOK(k, sl) || (s.canTapForMana(k, sl) || s.grantTapByGrant(k, sl, pc)) {
 			// a granted mana ability is potential mana gorge's planner counts
 			// (Rain of Filth's "Sacrifice this land: Add {B}{B}" on a tapped
 			// land): the plain walk above counts only a printed tap, so its
 			// production funds a first-only filter's fee here too (CR 605.1a,
 			// 601.2g). The script search still prices the actual payment.
 			var ga avail
-			s.availGrant(k, sl, s.manaPCGen(k, sl), &ga)
+			s.availGrant(k, sl, pc, &ga) // the else-if's manaPCGen: nothing between changes it
 			n += ga.total
 		}
 	}

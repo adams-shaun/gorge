@@ -140,6 +140,7 @@ type prep struct {
 	anyDisturb    bool   // some front carries K:Disturb (CardDef.FlipCast; face_flipcast.go): the graveyard walk's gate; on prep, not genPrep, so the pinned fixed-State inventory is unchanged
 	handStat      []bool // card i has a static whose condition reads a hand size (Hellbent; prepHandStat, cast_handleaves.go); on prep, not genPrep, so the pinned fixed-State inventory is unchanged
 	gainsOfAttach bool   // a GainsAbilitiesOf$ static and an Equip ability: a non-attachment can gain Equip and attach itself (CR 704.5p sba arm; static_unattachcreature.go); on prep, not genPrep, so the pinned fixed-State inventory is unchanged
+	anyColorWords bool   // a card has a StatColorWords static (static_colorwords.go): gates the colour-word stall checkpoints; on prep, not genPrep, so the pinned fixed-State inventory is unchanged
 	anyNoDmg      bool   // a card or emblem has a StatNoCombatDamage static (combat.go's combatAmount); on prep, not genPrep, so the pinned fixed-State inventory is unchanged
 	anyAsUnblk    bool   // a card or emblem has a StatAssignCombatDamageAsUnblocked static (the as-unblocked election, combat_asgngrant.go); on prep, not genPrep, so the pinned fixed-State inventory is unchanged
 	anyCmdTap     bool   // a card has a command-zone StatTapExtra static (a Vanguard's; static_classgates.go sclsTapCmd); on prep, not genPrep, so the pinned fixed-State inventory is unchanged
@@ -280,6 +281,10 @@ type prep struct {
 	// anyCyclingGrant: the table has a StatCyclingGrant static (prepCyclingGrant;
 	// kw_cyclinggrant.go), the granted hand cycling offer it arms.
 	anyCyclingGrant bool
+	// anyOffGrant: some StatStackKw Offspring grant (Zinnia): the kicked-cost
+	// reads and the ETB copy queue (kw_offspring.go; prepStackKw). Prep data,
+	// never a pinned genPrep field: TestNoNewFixedStateFields.
+	anyOffGrant bool
 	// anyOffKwCC: some recorded off-kw grant body is CardManaCost-priced
 	anyOffKwCC bool
 	offKwCC    [4]offKwBody
