@@ -1,0 +1,17 @@
+# the pain-first coloured pair: {T}: Add {W} or {B} with a 1-damage rider,
+# then the {G} its Forest type gives it (Murmuring Bosk; kernel mana_pain.go
+# prepPainFirst), over white, black and green spells, Treefolk to reveal as
+# it enters, and a ward creature whose payment runs the mana window, for the
+# oracle's constructed lockstep (dirac/oracle/murmuringbosk_lowers_test.go)
+Murmuring Bosk
+Forest
+Plains
+Swamp
+Ironroot Treefolk
+Savannah Lions
+Walking Corpse
+Typhoid Rats
+Grizzly Bears
+Llanowar Elves
+Cackling Prowler
+Memnite
