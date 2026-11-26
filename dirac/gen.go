@@ -1315,6 +1315,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 				if a.Trig.Event == kop.TrigScry || a.Trig.Event == kop.TrigSurveil {
 					g.anyScryTrig = true
 				}
+				if a.Trig.Event == kop.TrigFlippedCoin {
+					g.anyKwAct = true // trig_flippedcoin.go: no fixed State field of its own
+				}
 				if a.Trig.Event == kop.TrigLandPlayed {
 					g.anyLandPlayed = true
 				}
