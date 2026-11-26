@@ -1547,6 +1547,12 @@ func (lc *lowerCtx) countValue(rest string, depth int) (lValue, error) {
 		{"CommittedCrimeThisTurn.", vCommittedCrime, false}, {"Void.", vVoid, false}, {"IfCastInOwnMainPhase.", vIfCastOwnMain, false},
 		{"Monarch.", vMonarch, false}, {"Blessing.", vBlessing, false},
 		{"wasCastFromGraveyard.", vCastFromGrave, false},
+		// AltCost.<paid>.<unpaid> (Worldheart Phoenix's trigger CheckSVar,
+		// the mastery cards' BranchConditionSVar): the cast's alternative
+		// cost, its own StatAlternativeCost static's (kop.ExAltCost; gorge
+		// count_body_heads.go reads FlagAltCostPaid / the pending cast's
+		// PendingAltCost)
+		{"AltCost.", vAltCost, false},
 		{"Bargained.", vKicked, true}, {"Bargain.", vKicked, true}, {"OptionalGenericCostPaid.", vKicked, false}} {
 		if !strings.HasPrefix(rest, cv.pre) {
 			continue
