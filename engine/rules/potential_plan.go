@@ -1945,9 +1945,9 @@ func (e *Engine) planAbilityPaymentLifePips(p state.PlayerID, id state.ObjID, ab
 	// as does a hybrid {X} one (Fiend Artisan's {X}{B/G}): the walk's autopay
 	// arm skips a cost with no generic or coloured pip (abilityCostNeedsMana),
 	// so its witness would be a lowered play the payment does not follow.
-	if cost.X != 0 && !cost.WaterbendX && len(cost.Hybrid) == 0 {
-		cost = cost.WithX(cost.XMin)
-	}
+	// Disabled by hotfix/fl-oracle-5 (reverts #4587/#4737's least-X witness:
+	// dirac's lockstep diverged on which sources the plan taps); an {X}
+	// activation declines again (PlanCostDetail cost:x).
 	if n := e.ownReduceCostOffer(p, id, ab, pa.Merged); n > 0 && cost.Generic >= n {
 		cost.Generic -= n
 	} else if n > 0 {
@@ -1976,7 +1976,7 @@ func (e *Engine) planAbilityPaymentLifePips(p state.PlayerID, id state.ObjID, ab
 	// own pips are no reserve (Webstrike Elite's {X} cycling, Valor's
 	// Flagship's {X}{2}{W}; planComposedCostFor's Object).
 	plan := func(c Cost) PaymentPlanOutcome {
-		return e.planComposedCostFor(p, id, decision.PlannedCast{Object: id}, c, true, true)
+		return e.planComposedCost(p, id, c, true, true) // hotfix/fl-oracle-5: no hand-demand exclusion (backs out #4737; dirac abilityHandExclude matches)
 	}
 	out := plan(composed)
 	if (out.Plan == nil || out.Reason != "") && statics.validTarget {
