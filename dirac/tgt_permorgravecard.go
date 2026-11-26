@@ -16,7 +16,7 @@ func (s *State) targetOKPermOrGraveCard(k *prep, t *kop.TargetSpec, p uint8, src
 	ob := &s.objs[o]
 	switch ob.zone {
 	case kop.ZoneBattlefield:
-		return s.matchPerm(k, t.Filter, ob.slot, p, src) && s.objTargetable(k, ob.slot, p)
+		return s.matchPermTgt(k, t.Filter, ob.slot, p, src) && s.objTargetable(k, ob.slot, p)
 	case kop.ZoneGraveyard:
 		if s.graveCantTargetGen(k) {
 			return false // Ground Seal's class (kw_canttgtgrave.go)
