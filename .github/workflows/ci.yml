@@ -261,8 +261,9 @@ jobs:
         # not built, 2-5 s warm), and the affected-package run is the wall (measured 11-26 on 11 PR runs: 398 s of
         # a 512 s job). The compile reads only the checkout and the box's Go build cache — never .cards, which
         # ci-corpus.sh is about to link — so the two run together: the step costs max(corpus, compile) instead of
-        # their sum, and the test run below reuses every compiled binary. Same selection, same skip rules, no test
-        # runs here (-exec /bin/true; go keys a cached test result on the -exec command, so nothing is faked).
+        # their sum, and the test run below reuses every compiled binary. Same selection, same skip rules, no
+        # selected test runs here (-exec /bin/true; go keys a cached test result on the -exec command, so nothing is
+        # faked); the .ds4 always-gate keeps its literal line and runs in both steps — it reads git ls-files only.
         if: runner.environment == 'self-hosted'
         env:
           CI_FAST_SKIP_KGEN: "1"

@@ -13,7 +13,7 @@
 # their output interleaves in the step log, and every [kind] line names its call.
 #
 # S4 (11-26): on a self-hosted runner ci.yml also runs this script in --precompile mode as the fast job's corpus
-# step, before the tests. It applies the same selection and skip rules, but every test call is built with
+# step, before the tests. It applies the same selection and skip rules, but every selected test call is built with
 # -exec /bin/true (compiles, runs nothing) while ci-corpus.sh — otherwise the fast job's last serial prefix (14-83 s
 # on a tree the box has not built, 2-5 s warm) — runs beside it, so that step costs max(corpus, compile) instead of
 # their sum. The compile reads only the checkout and the box's Go build cache, never .cards, which ci-corpus.sh is
@@ -46,10 +46,12 @@ bg() {
   "$@" &
   pids+=("$!"); kinds+=("$kind")
 }
-# gotest: the one place a test call is made. In --precompile mode it builds the same test binaries with
+# gotest: the one place a selected test call is made. In --precompile mode it builds the same test binaries with
 # -exec /bin/true and runs none of them — only the checkout and the box's Go build cache are read, never .cards, so
 # it is safe beside ci-corpus.sh. Go's test result cache is keyed on the -exec command, so this records no result the
-# real run below could mistake for a pass; it shares only the compiled binaries, which is the point.
+# real run below could mistake for a pass; it shares only the compiled binaries, which is the point. (The .ds4
+# always-gate below keeps its literal `go test` line, pinned by scripts/ci_fast_ds4_guard_test.go; it reads only git
+# ls-files, never .cards, so running it in --precompile mode too is safe and it also warms ./testkit/testutil.)
 gotest() {
   if [ "$precompile" = 1 ]; then command go test -exec /bin/true "$@" >/dev/null; else command go test "$@"; fi
 }
@@ -131,7 +133,7 @@ fi
 # report passes its own targeted tests and only a batch shard catches it (11-23: #3835 reddened batches 4024 and
 # 4074 with .ds4/report-cs1.md). The test reads git ls-files only, in milliseconds. It and the named rows above run
 # in the foreground while the big calls run; the waits below reap them all.
-gotest -timeout 2m -short -run '^TestNothingUnderDS4IsTracked$' ./testkit/testutil || rc=1
+go test -timeout 2m -short -run '^TestNothingUnderDS4IsTracked$' ./testkit/testutil || rc=1
 for i in "${!pids[@]}"; do
   if wait "${pids[$i]}"; then echo "ci-fast: [${kinds[$i]}] passed"; else echo "ci-fast: [${kinds[$i]}] FAILED"; rc=1; fi
 done
