@@ -172,6 +172,9 @@ func (s *State) offerEscapeCasts(k *prep, d *Decision, p uint8, sorc bool, av *a
 		o := pl.grave[i]
 		c := s.objs[o].card
 		cd := &k.t.Cards[c]
+		if graveLossOn(k) && s.graveEscapeHidden(k, o, cd.Escape) {
+			continue // the card lost all abilities (static_graveabilityloss.go)
+		}
 		// a printed Escape card takes its own cost and fodder; otherwise a
 		// battlefield static can give the card escape at its mana cost
 		printed := cd.Escape
