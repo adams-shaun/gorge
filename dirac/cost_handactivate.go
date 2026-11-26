@@ -12,12 +12,13 @@ import (
 //go:noinline
 func (s *State) priorityHandAct(k *prep, d *Decision, p uint8, sorc bool, av *avail) {
 	pl := &s.pl[p]
+	var altMemo uint8 // the cycling alternative cost's live read (kw_cyclingalt.go)
 	for i := 0; i < int(pl.handN); i++ {
 		o := pl.hand[i]
 		cd := &k.t.Cards[s.objs[o].card]
 		for ai := range cd.Abilities {
 			a := &cd.Abilities[ai]
-			if a.Kind != kop.AbActivated || a.ActZone != kop.ZoneHand {
+			if a.Kind != kop.AbActivated || a.ActZone != kop.ZoneHand || !s.cyclingTwinOffered(k, p, a, &altMemo) {
 				continue
 			}
 			if k.anyCyclingGrant && a.AFlags&kop.AfLatent != 0 && isCyclingGrantBody(cd, ai) {
@@ -79,6 +80,9 @@ func (s *State) handActOffer(k *prep, d *Decision, p uint8, sorc bool, av *avail
 	}
 	if !s.handActCensusPays(k, p, mana, pd, av) {
 		return
+	}
+	if mana.X > 0 && s.cfg&cfgGorgeUnpriced != 0 && !s.poolPaysAct(k, p, mana, pd) {
+		return // gorge's planner declines an {X} activation (PlanCostDetail cost:x): a hand one is offered only when the floating pool pays it
 	}
 	if a.AFlags&kop.AfNinjutsu != 0 && !s.ninjutsuOfferOK(k, a, p, o) {
 		return // its window and its Return candidate (kw_ninjutsu.go)

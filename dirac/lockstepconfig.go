@@ -47,18 +47,7 @@ func (s *State) xWindowPays(k *prep, e *stackEntry, a *kop.Ability, sl Slot, cos
 	if cost.X == 0 || s.cfg&cfgGorgeSurface == 0 {
 		return false
 	}
-	if k.gen != nil && k.gen.anyWaterbend && waterbendIsX(a) || hybridX(a) {
-		return true // gorge's planner keeps declining a Waterbend<X> or hybrid {X} cost (planAbilityPayment)
-	}
-	floor := xFolded(s.abPlannedCost(k, a, sl, e.ctrl), costXMin(&a.Cost))
-	settled := *cost
-	if m := s.restrActNow(k, e.ctrl); m != 0 {
-		// gorge's witness plans what the admitted restricted mana leaves
-		// (pay.PlanPool; Boommobile's {A}), at the least X and at the announced one
-		floor = s.restrShortAdm(e.ctrl, m, floor)
-		settled = s.restrShortAdm(e.ctrl, m, xFolded(s.buildCost(k), int(e.x)))
-	}
-	return !s.abilityPlanSettles(k, e, floor, floor, settled, saved)
+	return true // gorge's planner declines every {X} activation (planAbilityPayment; hotfix/fl-oracle-5)
 }
 
 // xWindowPay pays an announced X through gorge's manual CR 601.2g window, which its
@@ -73,7 +62,7 @@ func (s *State) xWindowPays(k *prep, e *stackEntry, a *kop.Ability, sl Slot, cos
 func (s *State) xWindowPay(k *prep, e *stackEntry, cost *kop.ManaCost) bool {
 	c := xFolded(*cost, int(e.x))
 	anyColor := s.bld().bfl&bflAnyColor != 0
-	ok, held := s.windowTapWalk(k, e.ctrl, &c, &c, !anyColor, anyColor, false, false, true, false, true)
+	ok, held := s.windowTapWalk(k, e.ctrl, &c, &c, !anyColor, anyColor, false, false, true, false, true, false)
 	for col := range held {
 		s.pl[e.ctrl].pool[col] += held[col]
 	}

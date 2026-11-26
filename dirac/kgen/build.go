@@ -37,6 +37,8 @@ type poolTables struct {
 	missing   map[string]bool  // subtypes a build looked up that the table lacks
 	paradigm  map[string]int   // Paradigm card name -> the table's Paradigm-name index
 	svarNames []string         // the SVar names ExtStoreNum writes, first-use order (index = kop.Table.SVarNames; lower_storenum.go)
+
+	cyclingAlt bool // some lowered card carries a StatCyclingAlt static: every cycling ability gets its twin (build_cyclingalt.go)
 }
 
 // ovSub carries an override's subtype sets as pool subtype indexes (the
@@ -95,6 +97,7 @@ func newPoolTables(lw *lowered, extra map[string]bool) *poolTables {
 	}
 	pt.cardIdx = map[string]int{}
 	pt.named = map[string][]int{}
+	pt.cyclingAlt = poolHasCyclingAlt(lw.cards) // build_cyclingalt.go
 	for i, c := range lw.cards {
 		pt.cardIdx[c.Name] = i
 		pt.named[c.Name] = append(pt.named[c.Name], i)
@@ -512,6 +515,19 @@ func copyKeptSets(d *kop.CardDef, c *lCard) {
 	d.HasUnearth, d.HasDecayed, d.HasPersist, d.HasDoctorsCompanion = c.HasUnearth, c.HasDecayed, c.HasPersist, c.HasDoctorsCompanion
 }
 
+// hexQualityBits is the hexproof-from-quality bits (monocolored,
+// multicolored) a card's lowering read.
+func hexQualityBits(c *lCard) kop.ColorMask {
+	var b kop.ColorMask
+	if c.HexMono {
+		b |= kop.HexMono
+	}
+	if c.HexMulti {
+		b |= kop.HexMulti
+	}
+	return b
+}
+
 // recordEvoke records an Evoke cost. CR 702.74a: no KwMask bit is free, so
 // the evoke marker is its own field; the cost is the hand's alternative cost,
 // and the permanent is sacrificed as it enters (dirac/kw_evoke.go). A
@@ -610,7 +626,7 @@ func (cb *cardBuilder) record() error {
 	if c.OptCost != nil {
 		// an OptionalCost part rides sfKicked and the kicked cast action
 		// (dirac/cost_optional.go): no other optional cost may share it
-		if c.Kicker != nil || c.Offspring != nil || c.Casualty != 0 || c.Bargain || c.Teamwork != 0 || c.SpellCost != nil || c.AltAddCost != nil {
+		if c.Kicker != nil || c.Offspring != nil || c.Casualty != 0 || c.Bargain || c.Teamwork != 0 || c.SpellCost != nil || c.AltAddCost != nil || c.AltAddCost2 != nil {
 			return fmt.Errorf("optional cost with another optional cost")
 		}
 		oc := *c.OptCost
@@ -644,7 +660,7 @@ func (cb *cardBuilder) record() error {
 		if c.Kicker != nil || c.Offspring != nil || c.Casualty != 0 || c.Bargain {
 			return fmt.Errorf("teamwork with a kicker/offspring/casualty/bargain")
 		}
-		for _, sc := range []*lCost{c.SpellCost, c.AltAddCost} {
+		for _, sc := range []*lCost{c.SpellCost, c.AltAddCost, c.AltAddCost2} {
 			if sc != nil && (sc.TapN != 0 || sc.TapPowN != 0) {
 				// the Taps teamwork gate reads every pkTapX pick of the build as a teamwork tap
 				return fmt.Errorf("Teamwork beside a tap-creatures cost")
@@ -745,6 +761,11 @@ func (cb *cardBuilder) record() error {
 	}
 	if c.MorphCost != nil {
 		d.MorphFamily, d.MorphLife = c.MorphFamily, c.MorphLife
+		if c.MorphPick != nil {
+			if d.MorphPick, err = cb.cost(*c.MorphPick); err != nil {
+				return err
+			}
+		}
 		if d.MorphCost, err = cb.morphCostOf(d, c); err != nil { // lower_revealpick.go
 			return err
 		}
@@ -1084,6 +1105,12 @@ func (cb *cardBuilder) record() error {
 		}
 		d.HasAltAdd = true
 	}
+	if c.AltAddCost2 != nil {
+		if d.AltAddCost2, err = cb.cost(*c.AltAddCost2); err != nil {
+			return err
+		}
+		d.HasAltAdd = true
+	}
 	if cb.pt.textWords {
 		d.TextWords = c.TextWords
 	}
@@ -1139,6 +1166,7 @@ func (cb *cardBuilder) record() error {
 	for _, r := range c.HexColors {
 		d.HexColors |= kop.ColW << strings.IndexRune("WUBRG", r)
 	}
+	d.HexColors |= hexQualityBits(c)
 	if c.Landwalk != nil {
 		if d.Landwalk, err = cb.filter(c.Landwalk, kop.ZoneBattlefield); err != nil {
 			return err
@@ -1238,7 +1266,8 @@ func (cb *cardBuilder) cost(c lCost) (kop.Cost, error) {
 		}
 	}
 	out.ExileBf = c.SacExile
-	out.SacHalf = c.SacHalf // sacrifice half the matching permanents at payment (kernel cost_sachalf.go)
+	out.SacHalf = c.SacHalf   // sacrifice half the matching permanents at payment (kernel cost_sachalf.go)
+	out.CloseEnc = c.CloseEnc // the CloseEncounter ChooseCard additional cost (kernel cost_closeenc.go)
 	if c.XMin > 0 {
 		out.XMin = uint8(c.XMin) // the announced X's floor (kernel cost_sacx.go)
 	}
@@ -1428,9 +1457,11 @@ func (cb *cardBuilder) cost(c lCost) (kop.Cost, error) {
 			return out, err
 		}
 	}
-	if c.BlightN > 0 {
+	if c.BlightN > 0 || c.BlightX {
 		// Blight<N> (CR 701.68): one creature you control, the source
-		// included (gorge cost.parse: Spec Creature.YouCtrl)
+		// included (gorge cost.parse: Spec Creature.YouCtrl). Blight<X> is
+		// the same part with Cost.N 0: the announced X is the count
+		// (kernel cost_blightx.go)
 		set(kop.CostBlight, c.BlightN)
 		f := &lFilter{Clauses: []lClause{{Types: tCreature, Ctrl: whoYou}}}
 		if out.Filter, err = cb.filter(f, kop.ZoneBattlefield); err != nil {
@@ -1961,6 +1992,13 @@ func (cb *cardBuilder) clause(c lClause, zone kop.Zone) (kop.Filter, error) {
 			return kf, fmt.Errorf("the monarch controller word off the battlefield")
 		}
 		kf.Pred, kf.PredN = kop.PredMonarchCtrl, int16(c.CmpN)
+	case cmpKickedAlt:
+		// the object's kicker-alternative byte (kernel kickedAltPredicate);
+		// no off-battlefield reading
+		if zone != kop.ZoneBattlefield {
+			return kf, fmt.Errorf("the kicked alternative word off the battlefield")
+		}
+		kf.Pred, kf.PredN = kop.PredKickedAlt, int16(c.CmpN)
 	case cmpRenowned, cmpAttackingYou, cmpGoaded:
 		// battlefield-only reads (act_renown.go, attackingYou, filter_goaded.go)
 		kf.Pred, kf.PredN = battlefieldPreds[c.CmpStat], int16(c.CmpN)
@@ -2062,6 +2100,9 @@ func (cb *cardBuilder) clause(c lClause, zone kop.Zone) (kop.Filter, error) {
 		}
 		kf.Pred, kf.PredN = kop.PredHasKeyword, int16(c.CmpN)
 	case cmpCMC:
+		if err := greatestCMCZoneRefusal(c, zone); err != nil {
+			return kf, err
+		}
 		if c.CmpV != nil {
 			bound := *c.CmpV
 			switch c.CmpOp {
@@ -2323,6 +2364,8 @@ func (cb *cardBuilder) ref(r lRef) (kop.Ref, error) {
 		return kop.RefRememberedController, nil
 	case rDiscarded:
 		return kop.RefDiscarded, nil
+	case rChosenEnc:
+		return kop.RefChosenEnc, nil
 	case rLibTop:
 		return kop.RefLibTop, nil
 	case rOppNonRemCtrl:

@@ -30,6 +30,7 @@ import (
 // Only boards whose census gaps are all filters take it; a filter beside a
 // Bloom Tender or a restricted gap keeps the older scripts' logic.
 
+//lockstep:const engine/rules.potentialScriptNodes
 const potentialScriptNodes = 164 // gorge rules/potential_script.go: the pair's stated limit; a board whose every land tap a Taps watcher defers (Manabarbs) reaches a fee gap's funding line at 163 clones, three past the old 160, and the kernel prices such a play
 
 // paySearchNodes bounds a payment plan's search. A payment taps the cost's own
@@ -1537,6 +1538,8 @@ type filtKey struct {
 // activation from the pool, so the search walks chains longer than sixteen
 // steps (Simic Cluestone's {G}{U} through repeated Signpost Scarecrow
 // activations) and the cap dropped the branch gorge takes.
+//
+//lockstep:const engine/rules.potentialScriptNodes
 const maxFiltPath = potentialScriptNodes
 
 // maxFaceFilters bounds the filters faceReachable tries in combination.

@@ -3,6 +3,7 @@ package httpapi
 import (
 	"bytes"
 	"encoding/json"
+	"github.com/adams-shaun/gorge/testkit/testutil"
 	"net/http"
 	"strconv"
 	"sync"
@@ -62,7 +63,7 @@ func TestConcurrentIdenticalIntentPostsOne204Rest409(t *testing.T) {
 	go func() { wg.Wait(); close(done) }()
 	select {
 	case <-done:
-	case <-time.After(15 * time.Second):
+	case <-time.After(testutil.WaitBudget):
 		t.Fatal("duplicate intent POSTs hung: a handler waited for a verdict it could never receive")
 	}
 

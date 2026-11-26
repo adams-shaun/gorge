@@ -37,8 +37,13 @@ func TestOracleSentinelsJobIsWired(t *testing.T) {
 	if !strings.Contains(job, "startsWith(github.head_ref, 'mergify/merge-queue/')") || !strings.Contains(job, "github.event_name != 'pull_request'") {
 		t.Error("oracle-sentinels must run only on queue batches (the dirac-repros condition)")
 	}
-	if !strings.Contains(job, "dirac/oracle/testdata/sentinels.txt") || !strings.Contains(job, "./dirac/oracle") {
-		t.Error("oracle-sentinels must read sentinels.txt and run ./dirac/oracle")
+	// The run itself lives in ci-sentinels.sh (11-26: processes per shard, dealt by cost).
+	if !strings.Contains(job, "bash scripts/ci-sentinels.sh ${{ matrix.shard }} ") {
+		t.Error("oracle-sentinels must run scripts/ci-sentinels.sh for its matrix shard")
+	}
+	run := readText(t, "ci-sentinels.sh")
+	if !strings.Contains(run, "dirac/oracle/testdata/sentinels.txt") || !strings.Contains(run, "./dirac/oracle") {
+		t.Error("ci-sentinels.sh must read sentinels.txt and run ./dirac/oracle")
 	}
 	for _, want := range []string{"make dirac-tables", "ci-corpus.sh", "Refuse to run without the corpus"} {
 		if !strings.Contains(job, want) {
@@ -46,8 +51,8 @@ func TestOracleSentinelsJobIsWired(t *testing.T) {
 		}
 	}
 	// It must fail rather than pass with zero or skipped tests.
-	if !strings.Contains(job, "go test -v") || !strings.Contains(job, "--- PASS") || !strings.Contains(job, "exit 1") {
-		t.Error("oracle-sentinels must count --- PASS lines and fail when fewer than the named sentinels passed")
+	if !strings.Contains(run, "go test -v") || !strings.Contains(run, "^--- PASS: $n (") || !strings.Contains(run, "rc=1") {
+		t.Error("ci-sentinels.sh must fail unless every named sentinel prints its own --- PASS line")
 	}
 	// Mergify merges on ci-ok alone, so ci-ok is where the job is required.
 	if !strings.Contains(readText(t, "../.mergify.yml"), "check-success=ci-ok") {

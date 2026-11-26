@@ -48,9 +48,12 @@ func (s *State) freeCastParkable() bool {
 }
 
 // resumeFreeCast runs the rest of a parked program once its casts are
-// announced: the resolving entry goes back on top of the stack (the held
-// copy, if any, is taken off first) and the program continues after the
-// OpCastFree.
+// announced: the resolving entry goes back where the hold push put it --
+// under the casts (gorge's suspended resolution object never left the
+// stack, and resumes from there while the spells cast from it sit above,
+// CR 608.2g; the tail's asks read it there, and finishResolve removes it
+// there through the still-set hold marker) -- or, when no hold was taken,
+// on top of the stack; then the program continues after the OpCastFree.
 func (s *State) resumeFreeCast(k *prep) {
 	s.res.ask = raNone
 	// the drained queue's register has served its casts (a committed card
@@ -60,21 +63,21 @@ func (s *State) resumeFreeCast(k *prep) {
 	// later unrelated free cast's spell on leave (CR 701.5a). This runs
 	// before turn_gen.go's drain tail on the parked path.
 	s.g.freeP = 0
-	if i := s.holdIndex(); i >= 0 {
-		copy(s.stack[i:s.sp], s.stack[i+1:s.sp])
-		s.sp--
+	if s.holdIndex() < 0 {
+		// the hold ends here, as dropHold ends it: nothing is left to
+		// restore on a later stepGen (a pass taken before it would be
+		// restored over). With a held copy in place the hold stays set until
+		// finishResolve takes the entry off at its position.
+		s.g.hold = false
+		if int(s.sp) >= MaxStack {
+			s.capFull(StallFree)
+			return
+		}
+		s.push(s.res.e)
 	}
-	// the hold ends here, as dropHold ends it: nothing is left to restore on
-	// a later stepGen (a pass taken before it would be restored over)
-	s.g.hold = false
 	if s.g.priSave != 0 {
 		s.prio, s.g.priSave = SeatIx(s.g.priSave), 0
 	}
-	if int(s.sp) >= MaxStack {
-		s.capFull(StallFree)
-		return
-	}
-	s.push(s.res.e)
 	s.res.active = true
 	s.continueRes(k, 0)
 }
