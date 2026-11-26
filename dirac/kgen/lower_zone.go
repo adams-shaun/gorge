@@ -4392,12 +4392,12 @@ func (lc *lowerCtx) delayedTrigger(ps *params) error {
 		lc.inGroup = true
 		lc.groupMany = groupMany
 	}
-	err := lc.withAbility(lat, func() error { return lc.chain(exec, nil) })
+	in := lInstr{Op: "DelayedTrigger", Obj: obj, C: lat.Index, CS: when}
+	err := lc.delayedBody(lat, exec, &in) // lower_delayedsetdmg.go
 	lc.inGroup, lc.groupMany = false, false
 	if err != nil {
 		return err
 	}
-	in := lInstr{Op: "DelayedTrigger", Obj: obj, C: lat.Index, CS: when}
 	if group || sacGroup {
 		in.B = cst(1)
 		if groupMany {
