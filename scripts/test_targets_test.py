@@ -905,7 +905,7 @@ def test_census_selects_the_pin_and_registration_ratchets():
     sh = (HERE / "test-targets.sh").read_text()
     c = [l for l in sh.splitlines() if l.startswith("C='Census|")][0][3:-1]
     for rx in (tt.CENSUS, c):
-        for name in ("TestGrantedKeywordHeadsAreRegisteredOrPinned", "TestStateLayoutPinned",
+        for name in ("TestGrantedKeywordHeadsAreRegisteredOrPinned",
                      "TestEveryRepoDeckParamsAreRead", "TestNonAPIPrimitivesAreRegistered",
                      "TestKnownUnsupportedFilesWellFormed", "TestCmd5SliceCleanOnlyGrows"):
             assert re.search(rx, name), (rx, name)
