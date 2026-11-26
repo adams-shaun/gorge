@@ -901,7 +901,7 @@ func (s *State) returnLinked(k *prep, srcCtrl uint8, o Obj) {
 			if s.queueRiotRet(k, srcCtrl, o, l.obj) {
 				continue // behind a queued Aura host ask (kw_riotret.go)
 			}
-			if kind := s.enterChoiceKind(k, x.card); kind != 0 && s.parkReturnCost(k, srcCtrl, o, l.obj, kind) {
+			if kind := s.returnAskKind(k, x.card); kind != 0 && s.parkReturnCost(k, srcCtrl, o, l.obj, kind) {
 				continue // a cost's sacrifice outside a resolution: asked before priority (zone_untilleavescost.go)
 			}
 			ctrN := 0

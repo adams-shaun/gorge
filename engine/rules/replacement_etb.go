@@ -187,6 +187,9 @@ func (e *Engine) applyETBChoiceReplacement(ev events.Event) bool {
 	d := &decision.Decision{Player: e.G.Obj(ev.Obj).Controller, Kind: decision.KChoose,
 		Min: 1, Max: 1, ResumeKind: "etb", ResumeSA: choice.sa, Source: ev.Obj,
 		Prompt: "Choose" + choice.promptText(), Options: choice.options}
+	if choice.kind == "mode" {
+		d.Kind = decision.KModes // the cast path poses the same choice as a KModes (etb_modechoice.go)
+	}
 	if e.pending != nil {
 		e.etbQueue[len(e.etbQueue)-1].ask = d
 		return true

@@ -1192,6 +1192,9 @@ func (e *Engine) replCtx(m replMatch, ev events.Event) *effects.Ctx {
 	if o != nil && m.repl != nil && m.repl.ParamStr(cards.PKKeyword) == "ETBReplacement" && m.repl.With != nil && m.repl.With.API == "ChooseEvenOdd" {
 		ctx.ETB.EvenOddRecorded = true
 	}
+	if o != nil && m.repl != nil && m.repl.ParamStr(cards.PKKeyword) == "ETBReplacement" && m.repl.With != nil && m.repl.With.API == "GenericChoice" {
+		_, ctx.ETB.ModeRecorded = e.etbModeOptions(o, m.repl.With, o.Face().SVars) // etb_modechoice.go: the entry asked it
+	}
 	e.seedEffectReplCtx(ctx, m)
 	return ctx
 }

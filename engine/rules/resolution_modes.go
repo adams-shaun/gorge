@@ -22,6 +22,10 @@ import (
 // first two also cache the chosen SVar names on the stack object so resolution
 // executes the announcement without asking again.
 func (e *Engine) handleModes(d *decision.Decision, in decision.Intent) {
+	if d.ResumeKind == "etb" && e.choosing == chooseETBEntry {
+		e.resumeETBEntry(d.Chosen(in)) // an as-enters mode ask (etb_modechoice.go): a KModes, as the cast path poses it
+		return
+	}
 	if d.ResumeKind == "mana_unless" {
 		chosen := d.Chosen(in)
 		labels := chosenModeLabels(chosen)
@@ -241,6 +245,8 @@ func (e *Engine) resumeETBEntry(chosen []decision.Option) state.ObjID {
 		e.emit(events.Event{Kind: events.Choose, Obj: move.Obj, Counter: "name", Text: opt.Label})
 	case resumeETBEntryType:
 		e.emit(events.Event{Kind: events.Choose, Obj: move.Obj, Counter: "type", Text: opt.Label})
+	case resumeETBEntryMode:
+		e.emitETBMode(move.Obj, opt)
 	case resumeETBEntryNumber:
 		e.emit(events.Event{Kind: events.Choose, Obj: move.Obj, Counter: "number", Amount: int32(opt.Amount)})
 	case resumeETBEntryColor:
@@ -333,6 +339,7 @@ const (
 	resumeETBEntryReadAhead
 	resumeETBEntryClone
 	resumeETBEntryPayLife
+	resumeETBEntryMode
 )
 
 var resumeETBEntryCodes = state.NewStrCodes(
@@ -346,4 +353,5 @@ var resumeETBEntryCodes = state.NewStrCodes(
 	state.StrEntry[resumeETBEntryCode]{Key: "readahead", Val: resumeETBEntryReadAhead},
 	state.StrEntry[resumeETBEntryCode]{Key: "clone", Val: resumeETBEntryClone},
 	state.StrEntry[resumeETBEntryCode]{Key: "paylife", Val: resumeETBEntryPayLife},
+	state.StrEntry[resumeETBEntryCode]{Key: "mode", Val: resumeETBEntryMode},
 )

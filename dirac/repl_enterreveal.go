@@ -189,6 +189,10 @@ func (s *State) replAskOp(k *prep, sl Slot, c CardID, ab uint8, i int, in *kop.I
 			s.execGen(k, in)
 			return false
 		}
+		if s.g.pre.state == 2 && s.g.pre.kind == akMode && s.g.pre.obj == s.perms[sl].obj {
+			s.siegeModeStore(sl, uint8(s.g.pre.val)) // asked in exile as the card returned (face_siegemode.go returnAskKind)
+			return false
+		}
 		s.siegeModeRepl(sl, c, ab, i)
 		return true
 	}

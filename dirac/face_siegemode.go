@@ -61,6 +61,9 @@ func siegeModeOptions(d *Decision, n int) {
 // OpChooseBranch that posed it (the op before the ask's resume point; two for
 // a Siege). Rick's three flag branches are the same ask with A 3.
 func (s *State) siegeModeCount(k *prep) int {
+	if s.preAskPosed() && s.g.pre.kind == akMode {
+		return siegeModeProgCount(k, s.objs[s.g.pre.obj].card) // the return's pre-entry ask: no queued ask yet
+	}
 	a := &s.g.ask[0]
 	if a.card == NoCard || a.pc == 0 {
 		return 2
@@ -106,3 +109,43 @@ func isModeGrant(k *prep, c CardID, ab uint8) bool {
 	a := &k.t.Cards[c].Abilities[ab]
 	return a.Kind == kop.AbTriggered && a.Gate.Ctr == kop.CtrMode
 }
+
+// siegeModeProgCount is the mode count of card c's as-enters OpChooseBranch
+// C 2 (0 when it has none): the A of that op.
+func siegeModeProgCount(k *prep, c CardID) int {
+	if int(c) >= len(k.t.Cards) {
+		return 2
+	}
+	for i := range k.t.Cards[c].Abilities {
+		a := &k.t.Cards[c].Abilities[i]
+		if a.Kind != kop.AbReplacement || a.Repl.Kind != kop.ReplEntersProgram {
+			continue
+		}
+		for j := range a.Prog {
+			if in := &a.Prog[j]; in.Op == kop.OpChooseBranch && in.C == 2 {
+				return int(in.A.N)
+			}
+		}
+	}
+	return 0
+}
+
+// returnAskKind is the as-enters choice kind of a card an until-leaves exile
+// returns outside a resolution that gorge asks with the card still in exile:
+// enterChoiceKind's kinds, and a Siege's mode (gorge's etb_modechoice.go poses
+// the owner's choice at the entry boundary when no tape run serves the entry;
+// during a resolution the body's own ask is served by the run and the kernel
+// queues it after the entry).
+func (s *State) returnAskKind(k *prep, c CardID) uint8 {
+	if kind := s.enterChoiceKind(k, c); kind != 0 {
+		return kind
+	}
+	if !DebugReturnModeNoPark && k.gen != nil && k.gen.has(c, gfEnterRepl) && siegeModeProgCount(k, c) != 0 {
+		return akMode
+	}
+	return 0
+}
+
+// DebugReturnModeNoPark is the lockstep mutation: a returning Siege enters
+// before its mode is asked (the queued ask after the entry, the old order).
+var DebugReturnModeNoPark bool
