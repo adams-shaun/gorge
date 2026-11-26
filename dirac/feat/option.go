@@ -114,6 +114,7 @@ const (
 	okOpeningExile // gorge's Gemstone Caverns "opening_exile" pick (kernel ChGenOpeningExile)
 	okBand         // gorge's CR 702.22c band declaration "band" (kernel ChBand)
 	okEnlist       // gorge's CR 702.154a enlist election "enlist" (kernel ChEnlist)
+	okExert        // gorge's CR 702.100a exert election "exert" (kernel ChExert)
 	numOK
 )
 
@@ -123,7 +124,7 @@ var kindNames = [numOK]string{"pass", "play_land", "cast", "ability", "attacker"
 	"search", "hidden_pick", "hand_move", "dig", "twopiles", "pile-a", "pile-b", "primary",
 	"trigger_cost_pay", "trigger_cost_decline", "color", "type", "opening_yes", "opening_no", "number", "dig_bottom", "altaddcost", "replacement",
 	"pay_W", "pay_U", "pay_B", "pay_R", "pay_G", "enchant", "subcounter", "divide", "reveal", "tap", "untap", "top", "counter_pick", "proliferate", "pay_generic",
-	"command_zone", "leave", "gift_decline", "gift_promise", "unless", "ordinary", "opening_exile", "band", "enlist"}
+	"command_zone", "leave", "gift_decline", "gift_promise", "unless", "ordinary", "opening_exile", "band", "enlist", "exert"}
 
 // decision kinds (indices into decisionKinds), -1 = other.
 const (
