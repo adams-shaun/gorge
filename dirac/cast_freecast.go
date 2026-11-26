@@ -40,6 +40,9 @@ func (s *State) freeQueued(o Obj) bool {
 //     played in pick order by the freeQ drain (cast_freeland.go).
 //   - C bit 10 (freeSpellMV): the filter's mana-value bound is the ValidSA$ one, read on the spell
 //     cast: a split card counts its front half, not the sum of its halves.
+//   - C bit 13 (freeRemember): RememberPlayed$ True (add the begun card, the
+//     minted copy for a CopyCard$ play, to s.g.rem once its cast commits; the
+//     first begun card only; cast_playremember.go).
 //   - Obj: RefRemembered (P1), a target slot (P2: the targeted card; a
 //     player target: that player's hand), or RefNone with F (P3/P4 filter
 //     population over the zone; over exile, every alive seat's).
@@ -47,7 +50,7 @@ func (s *State) freeQueued(o Obj) bool {
 // The zone, ReplaceGraveyard and ForgetPlayed bits ride to the freeQ drain
 // in s.g.freeP: the caster in the low freeSeatBits, the zone in the three
 // bits above, then freeGY (ReplaceGraveyard), freeCopy (CopyCard), freePaid
-// freeForget (ForgetPlayed) and freeLandsOn (the queue's lands are played). At
+// freeForget (ForgetPlayed), freeLandsOn (the queue's lands are played). At
 // two seats that is bit 0, bits 1-3 and bits 4-8 of a word.
 const (
 	// freeSpellMV is OpCastFree's C bit 10 (see the operands above).
@@ -67,6 +70,7 @@ const (
 	freePaid      = freeGY << 2
 	freeForget    = freeGY << 3
 	freeLandsOn   = freeGY << 4 // the queue holds a land-capable Play's picks (freeLands): its lands are played
+	freeRemember  = freeGY << 5 // RememberPlayed$ True: the first begun cast is remembered (cast_playremember.go)
 )
 
 // freeSeatBits holds every seat.
