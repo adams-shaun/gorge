@@ -162,9 +162,13 @@ func (lc *lowerCtx) delayedRemember(ro string, exec *cards.SA) (lRef, error) {
 			// name, any other writer keeps the capture refusal.
 			if lc.ab.Kind != akTriggered || !lc.hasRememberWriter() || !lc.rememberedHoldsOne() {
 				if lc.ab.Kind == akTriggered && lc.rememberedFromDig() {
-					return lRef{}, refuse("delayed trigger RememberObjects %q in a triggered ability: a set of several objects (the record holds one)", ro)
+					if !lc.digSetDelayedDamage(exec) {
+						return lRef{}, refuse("delayed trigger RememberObjects %q in a triggered ability: a set of several objects (the record holds one)", ro)
+					}
+					lc.delayedSetDmg = true // the DpMany program carries it (lower_delayedsetdmg.go)
+				} else {
+					return lRef{}, refuse("delayed trigger RememberObjects %q in a triggered ability (the trigger capture)", ro)
 				}
-				return lRef{}, refuse("delayed trigger RememberObjects %q in a triggered ability (the trigger capture)", ro)
 			}
 		}
 		if lc.czForgetSet {

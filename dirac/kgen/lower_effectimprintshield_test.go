@@ -35,3 +35,57 @@ func TestImprintShieldOtherTriggerRefuses(t *testing.T) {
 		t.Errorf("Fire Giant's Fury lowers; want its imprint-trigger refusal kept")
 	}
 }
+
+// TestImprintHandPickRepeat: Eureka and Hypergenesis lower whole. Each pass
+// of the Repeat clears the imprinted set, the hand pick onto the battlefield
+// imprints (ChooseMove CS Imprint, kop.SrImprint), and the gate counts it.
+func TestImprintHandPickRepeat(t *testing.T) {
+	for _, name := range []string{"Eureka", "Hypergenesis"} {
+		c := lowerNamedCard(t, name)
+		if len(c.Refusals) != 0 {
+			t.Errorf("%s refusals = %v, want none", name, c.Refusals)
+			continue
+		}
+		clears, pick := 0, false
+		for _, a := range c.Abilities {
+			for _, in := range a.Prog {
+				if in.Op == "ClearImprinted" {
+					clears++
+				}
+				pick = pick || in.Op == "ChooseMove" && strings.Contains(in.CS, "from=Hand") && strings.Contains(in.CS, "|Imprint")
+			}
+		}
+		if clears != 2 || !pick {
+			t.Errorf("%s: %d ClearImprinted (want 2), imprinting hand pick %v", name, clears, pick)
+		}
+	}
+}
+
+// TestImprintMemoryShapes: the other gap-imprint-memory shapes lower whole.
+// Parallax Nexus's hand pick into exile records on the persist store, Phelia
+// brackets her Return with ImprintRef/ForgetImprinted (OpReturnEx has no
+// flag left), and Eye of Singularity's imprint loop folds into one
+// sharesNameWith Valid sweep.
+func TestImprintMemoryShapes(t *testing.T) {
+	want := map[string]string{
+		"Parallax Nexus":             "ChooseMove",
+		"Phelia, Exuberant Shepherd": "ImprintRef",
+		"Eye of Singularity":         "DestroyAll",
+	}
+	for name, op := range want {
+		c := lowerNamedCard(t, name)
+		if len(c.Refusals) != 0 {
+			t.Errorf("%s refusals = %v, want none", name, c.Refusals)
+			continue
+		}
+		found := false
+		for _, a := range c.Abilities {
+			for _, in := range a.Prog {
+				found = found || in.Op == op
+			}
+		}
+		if !found {
+			t.Errorf("%s: no %s", name, op)
+		}
+	}
+}

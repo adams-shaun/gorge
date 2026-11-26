@@ -184,6 +184,13 @@ func (r *Translator) Action(a dirac.Action) Canon {
 			cm, _ := CastModeCode("mayplay")
 			return Pack(ActCast, src, RefNone, cm)
 		}
+		if mode&1 != 0 && dirac.FeatKickAltSel(uint8(tgt)) != 0 &&
+			dirac.FeatKicker2(&r.Tbl.Cards[r.S.ObjCard(dirac.Obj(src))]) {
+			// the two-alternative Kicker's per-alternative cast the target
+			// byte names (CR 702.33b; kw_kickalt.go): gorge's
+			// "kicked1"/"kicked2"/"kickedboth" cast option
+			return Pack(ActCastKickedAlt, src, RefNone, dirac.FeatKickAltSel(uint8(tgt)))
+		}
 		if mode&(dirac.FeatCastPlotted|dirac.FeatCastMayPlay) == dirac.FeatCastPlotted {
 			// a plotted card cast from exile (CR 702.170b): gorge's
 			// "plot_cast" face route (kw_plot.go)
@@ -1024,6 +1031,10 @@ func (r *Translator) generatedChoose(a dirac.Action) (Canon, bool) {
 		// gorge's modes over the castable cards, in object order, an index
 		// kept after a cast
 		return Pack(ActMode, RefNone, RefNone, r.S.CastFreeIndex(dirac.Obj(src))), true
+	case dirac.ChGenCipher:
+		// gorge effCipher's KModes over the creatures, in battlefield order
+		// (kw_cipher.go): the option index
+		return Pack(ActMode, RefNone, RefNone, mode), true
 	case dirac.ChGenLookAck:
 		return Pack(kind("yes"), RefNone, RefNone, 0), true
 	case dirac.ChGenDestAlt:
@@ -1282,7 +1293,7 @@ func confirmChoice(mode uint8) (Canon, bool) {
 
 func GeneratedKind(sub dirac.ChoiceKind) (DKind, bool) {
 	switch sub {
-	case dirac.ChGenBranch, dirac.ChGenCastFree, dirac.ChGenPayMode, dirac.ChWardPay:
+	case dirac.ChGenBranch, dirac.ChGenCastFree, dirac.ChGenPayMode, dirac.ChWardPay, dirac.ChGenCipher:
 		return DModes, true
 	case dirac.ChGenReplOrder:
 		return DReplacement, true

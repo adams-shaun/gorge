@@ -25,6 +25,16 @@ die() {
 }
 pin() { awk -v n="$1" '$1 == n && ($2 == "?=" || $2 == "=") { v = $3; sub(/#.*/, "", v); print v; exit }'; }
 
+# The checkout may not carry <base>: a broken or shallow workspace store makes git show fail, so a FORGE_REF that has
+# not moved reads as moved and the step dies on the gh line before the compare API can answer (2026-11-26 16:27Z,
+# metal2-gorge-box-2, PR #4816: 4f8d2c6491 is the merge ref's own parent and its Makefile still failed to read).
+# Fetch the base when the checkout cannot read it; the verdicts below are unchanged and a real move still goes to the
+# compare API.
+if ! git show "$base:Makefile" >/dev/null 2>&1; then
+	echo "check-forge-ref-driver: base ${base:0:10} is not readable in the checkout; fetching it from origin" >&2
+	git fetch -q origin "$base" 2>/dev/null || true
+fi
+
 new=$(pin FORGE_REF <Makefile)
 old=$(git show "$base:Makefile" 2>/dev/null | pin FORGE_REF) || old=
 [[ $new =~ ^[0-9a-f]{40}$ ]] || die "FORGE_REF is not a full commit sha: '$new'"
