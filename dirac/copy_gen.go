@@ -53,6 +53,9 @@ func (s *State) execCopySpell(k *prep, in *kop.Instr) bool {
 	if s.res.e.ab == abStorm {
 		return s.copySpells(k, in, int(s.res.e.trigAmt)) // the count fixed when the cast trigger fired (kw_storm.go)
 	}
+	if in.C&4 != 0 && in.Obj != kop.RefSelf {
+		return s.copyEachOther(k, in, copyEachStart) // Hive Mind (copy_eachother.go)
+	}
 	return s.copySpells(k, in, s.value(k, in.A))
 }
 
@@ -64,9 +67,15 @@ func (s *State) copySpells(k *prep, in *kop.Instr, n int) bool {
 	if in.Obj == kop.RefSelf {
 		return s.copyParentSpell(k, in, n) // kw_madness.go
 	}
+	if in.C&4 != 0 {
+		return s.copyEachOther(k, in, n) // a resumed Hive Mind copy (copy_eachother.go)
+	}
 	ctrl := s.res.e.ctrl
-	if in.C&4 != 0 { // seat-ok: an instruction flag bit
-		if p := s.playerRef(k, kop.RefTargetController); p != 255 {
+	if in.W != kop.RefNone {
+		// Controller$ (gorge copyControllersFor): the copy's controller is the
+		// player W names (Meletis Charlatan's TargetedController, Bonus
+		// Round's TriggeredCardController); none keeps the resolving one
+		if p := s.playerRef(k, in.W); p != 255 {
 			ctrl = p
 		}
 	}
