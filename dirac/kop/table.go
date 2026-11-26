@@ -196,6 +196,14 @@ type CardDef struct {
 	// zero mana; a kicked cast pays this through the cost stages (kernel
 	// kw_kicker.go).
 	KickerCost Cost
+	// Kicker2: part two of the two-alternative "and/or" Kicker (Forge's
+	// K:Kicker:<a>:<b>, printed "Kicker {a} and/or {b}", CR 702.33b;
+	// Stormscape/Wastescape/Thornscape Battlemage, Stronghold Arena,
+	// Archangel of Wrath, Urborg Lhurgoyf). Part one stays in Kicker; each
+	// part may be paid alone or both together (CR 601.2b), the kernel's
+	// per-alternative kicked casts (kw_kickalt.go). Kicker2 is never set
+	// without Kicker, and never beside Multikicker (kgen refuses it).
+	Kicker2 ManaCost
 	// Multikicker, HasMultikicker: K:Multikicker:<cost> (CR 702.43). The
 	// per-payment cost is paid any number of times as the spell is cast; a
 	// Multikicker card's kicked cast asks the count before X and targets

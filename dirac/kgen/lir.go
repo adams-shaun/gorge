@@ -1397,6 +1397,7 @@ type lCard struct {
 	Kw             []string
 	Flash          bool
 	Kicker         *manaCost
+	Kicker2        *manaCost   // K:Kicker:<a>:<b>, the two-alternative "and/or" Kicker's part two (CR 702.33b; lower_kickercost.go): part one stays in Kicker
 	Multikicker    *manaCost   // K:Multikicker:<cost> (CR 702.43): the per-payment additional cost, paid any number of times
 	Repeated       *lCost      // K:Squad / K:Replicate: the full per-payment cost (lower_squadreplicate.go)
 	RepeatedKind   uint8       // kop.Repeat*: which keyword owns the multikicker slot

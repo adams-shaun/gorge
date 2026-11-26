@@ -37,6 +37,7 @@ const (
 	ActCastCasualty     = canon.ActCastCasualty
 	ActCastImpended     = canon.ActCastImpended
 	ActCastAirbend      = canon.ActCastAirbend
+	ActCastKickedAlt    = canon.ActCastKickedAlt
 	ActChoose           = canon.ActChoose
 	DPriority           = canon.DPriority
 	DAttackers          = canon.DAttackers
@@ -77,6 +78,8 @@ const (
 
 var (
 	castModeCode      = canon.CastModeCode
+	kickedAltSelector = canon.KickedAltSelector
+	kickedAltMode     = canon.KickedAltMode
 	chooseCode        = canon.ChooseCode
 	specialCode       = canon.SpecialCode
 	turnUpModeCode    = canon.TurnUpModeCode

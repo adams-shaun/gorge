@@ -81,6 +81,12 @@ func (s *State) ctxEntry(e *stackEntry) evalCtx {
 // by slot, written as it entered). A permanent that changed zones reads 0, as
 // gorge's Object.TimesKicked resets.
 func (s *State) timesKicked(ctx evalCtx) int {
+	// the two-alternative "and/or" Kicker's count (CR 702.33b; kw_kickalt.go):
+	// the paid alternatives, the popcount of the kickAlt byte the cast stored,
+	// 0/1/2; a copy keeps the spell's bits (CR 707.10)
+	if n, ok := s.kickAltCount(ctx); ok {
+		return n
+	}
 	if ctx.srcSl != NoSlot && int(ctx.srcSl) < len(s.cold.mk) {
 		return int(s.cold.mk[ctx.srcSl])
 	}

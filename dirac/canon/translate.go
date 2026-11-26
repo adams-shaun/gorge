@@ -184,6 +184,13 @@ func (r *Translator) Action(a dirac.Action) Canon {
 			cm, _ := CastModeCode("mayplay")
 			return Pack(ActCast, src, RefNone, cm)
 		}
+		if mode&1 != 0 && dirac.FeatKickAltSel(uint8(tgt)) != 0 &&
+			dirac.FeatKicker2(&r.Tbl.Cards[r.S.ObjCard(dirac.Obj(src))]) {
+			// the two-alternative Kicker's per-alternative cast the target
+			// byte names (CR 702.33b; kw_kickalt.go): gorge's
+			// "kicked1"/"kicked2"/"kickedboth" cast option
+			return Pack(ActCastKickedAlt, src, RefNone, dirac.FeatKickAltSel(uint8(tgt)))
+		}
 		if mode&(dirac.FeatCastPlotted|dirac.FeatCastMayPlay) == dirac.FeatCastPlotted {
 			// a plotted card cast from exile (CR 702.170b): gorge's
 			// "plot_cast" face route (kw_plot.go)

@@ -128,6 +128,13 @@ func (s *State) mintSpellCopyExc(k *prep, si int, ctrl, exc uint8) bool {
 		return false
 	}
 	ce := s.stack[si]
+	ka := uint8(0)
+	if hasKicker2(&k.t.Cards[ce.card]) {
+		// the two-alternative Kicker's alternatives (kw_kickalt.go): one
+		// kicked family per card (kgen refuses the Multikicker pair), so the
+		// shared byte below is the copy's whole kicked record
+		ka = s.kickAltBits(ce.obj)
+	}
 	mk := s.multikickCount(&ce) // CR 707.10: the copy keeps the spell's kicked status, the count included
 	if k.gen.anyPermCopy && s.permCopyBlocked(k, &ce) {
 		return false
@@ -144,7 +151,11 @@ func (s *State) mintSpellCopyExc(k *prep, si int, ctrl, exc uint8) bool {
 		s.noteEnter(o, kop.ZoneStack, kop.ZoneLibrary, false, false)
 	}
 	ce.obj, ce.ctrl, ce.srcVer = o, ctrl, s.objs[o].ver
-	s.setMultikick(&ce, mk)
+	if ka != 0 {
+		s.setKickAlt(o, ka) // the copy keeps the spell's kicked alternatives (kw_kickalt.go)
+	} else {
+		s.setMultikick(&ce, mk)
+	}
 	ce.flags &= sfKicked | sfPromised // the copy keeps the gift election (CR 707.10)
 	if cd := &k.t.Cards[ce.card]; cd.Bargain || cd.Teamwork != 0 {
 		// a copy is never cast, so it carries no FlagBargained or
