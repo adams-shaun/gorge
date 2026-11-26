@@ -56,8 +56,8 @@ branched from `origin/main`, so your main checkout stays clean:
 ```sh
 git fetch origin
 git worktree add ../gorge-myfix -b myfix origin/main
-ln -s "$PWD/.cards" ../gorge-myfix/.cards      # the corpus is untracked: link it in
 cd ../gorge-myfix
+scripts/link-cards.sh                           # the corpus is untracked: link the one for this tree's FORGE_REF
 ```
 
 !!! warning "A worktree without `.cards/` reads green and tests nothing"
