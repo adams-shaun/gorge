@@ -1,11 +1,16 @@
 # Game loop and decisions
 
-How a game runs from the opening shuffle to the last pass: how the engine walks
-turns, steps and priority, how it stops to ask a player something, and how the
-answer comes back. For anyone writing a seat (a bot or client), a driver (a
-host, test harness or simulator), or engine code that asks a player a question.
+How a game runs from the opening shuffle to the last pass: the engine walks turns and priority,
+stops to ask a player a question, and checks the answer. Read it to write a seat (a bot or
+client), a driver (a host, harness or simulator), or engine code that asks a player something.
 
-## The driving contract: Advance, Pending, Submit
+| You are writing | Start at |
+|---|---|
+| a driver | [Advance, Pending, Submit](#the-driving-contract-advance-pending-submit) |
+| a seat or client | [the 13 decision kinds](#the-13-decision-kinds) and [the Seat contract](#the-seat-contract) |
+| engine code that asks mid-effect | [questions asked in the middle of a resolution](#questions-asked-in-the-middle-of-a-resolution) |
+
+## How does a driver run a game? { #the-driving-contract-advance-pending-submit }
 
 A host drives a game through the [`engine/game`](../index.md#the-engine-seam)
 interfaces; a test or simulator can drive the rules engine directly. A
@@ -13,7 +18,7 @@ interfaces; a test or simulator can drive the rules engine directly. A
 ([`engine/rules/engine.go`](https://github.com/adams-shaun/gorge/blob/main/engine/rules/engine.go),
 [`engine_host.go`](https://github.com/adams-shaun/gorge/blob/main/engine/rules/engine_host.go)):
 
-```go
+```go title="engine/rules/engine.go, engine_host.go"
 // Advance runs engine work until a decision is required or the game ends.
 func (e *Engine) Advance() {
 	if e.tossChoice.active && e.pending == nil {
@@ -33,9 +38,10 @@ func (e *Engine) Submit(in decision.Intent) error
 
 A driver calls `Advance` once after building the engine. After that `Submit`
 advances the game itself (`submitCommit` ends in `e.Advance()`), so the driver
-loop is *read `Pending`, ask a seat, `Submit`*. `Pending`'s pointer is valid
-only until the next `Submit` or `Advance`; keep a decision by cloning it
-(`d.Clone()`).
+loop is *read `Pending`, ask a seat, `Submit`*.
+
+!!! warning "`Pending` is a borrowed pointer"
+    It is valid only until the next `Submit` or `Advance`. Keep a decision with `d.Clone()`.
 
 ```mermaid
 sequenceDiagram
@@ -62,7 +68,7 @@ sequenceDiagram
   end
 ```
 
-## Turns, steps and priority
+## How does a turn advance? { #turns-steps-and-priority }
 
 A turn walks twelve steps, declared in
 [`engine/state/ids.go`](https://github.com/adams-shaun/gorge/blob/main/engine/state/ids.go).
@@ -96,7 +102,7 @@ colour round, mulligans), then dispatches on the current step: declare-attackers
 and declare-blockers ask for declarations, combat damage runs `combatStep`, and
 every other step runs a priority round.
 
-**A priority round** (`priorityRound`) gives no priority during untap or
+**Priority rounds.** `priorityRound` gives no priority during untap or
 (normally) cleanup. Otherwise it puts waiting triggered abilities on the stack
 (which may ask the trigger order), then `grantPriority` emits a `Priority` event
 and poses a `priority` decision.
@@ -122,14 +128,14 @@ to end of combat, cleanup starts the next turn (queued extra turns
 most-recent-first), and extra phases from `AddPhase` effects are spliced in at
 their boundary.
 
-## Decisions
+## How does the engine ask a player? { #decisions }
 
 When the engine needs a player's input it poses a `decision.Decision` listing
 **every** legal option; the player answers with a `decision.Intent` naming option
 indices
 ([`engine/decision/decision.go`](https://github.com/adams-shaun/gorge/blob/main/engine/decision/decision.go)):
 
-```go
+```go title="engine/decision/decision.go"
 type Decision struct {
 	Seq     uint64         `json:"seq"`
 	Player  state.PlayerID `json:"player"`
@@ -151,10 +157,9 @@ type Intent struct {
 }
 ```
 
-The package summary is the design: the engine asks a `Decision` listing every
-legal `Option`, and the client answers with an `Intent` naming option indices; no
-rules knowledge crosses the wire. A client never has to know what a legal attack
-is, and the engine rejects anything that was not on the list.
+!!! note "No rules knowledge crosses the wire"
+    A client never has to know what a legal attack is: it picks from the list, and the engine
+    rejects anything that was not on it.
 
 **Options are selected by position.** `Option.Index` must equal the option's slot;
 `decision.New` and `ask` panic otherwise. `Option.Obj` and `Option.Player` are
@@ -189,9 +194,9 @@ every kind; adding one is deliberate and guarded by `TestKindsListsEveryKindOnce
 | `arrange` | Scry, Surveil, rearranging the top of a library | an ordered subset (pile A, top first); the rest is pile B |
 | `starting_player` | the pre-game toss winner chooses who goes first (CR 103.1) | one option per living player |
 
-Two direction rules fail silently if a client reverses them: for `trigger_order`,
-`Choices[0]` goes on the stack first and resolves last; for `arrange`, pile A's
-index 0 ends up closest to the top of the library, the next card drawn.
+!!! warning "Two orderings fail silently if a client reverses them"
+    - `trigger_order`: `Choices[0]` goes on the stack first and resolves last.
+    - `arrange`: pile A's index 0 ends up closest to the top of the library, the next card drawn.
 
 ### How a decision is posed
 
@@ -219,7 +224,7 @@ decision posed and the engine untouched, so a client can retry.
 Package [`engine/seat`](https://github.com/adams-shaun/gorge/blob/main/engine/seat/seat.go)
 holds only the interface, so anything can be a seat without importing the engine:
 
-```go
+```go title="engine/seat/seat.go"
 // ctx lets a human seat time out; a bot ignores it and never returns an error.
 type Seat interface {
 	Decide(ctx context.Context, v view.View, d decision.Decision) (decision.Intent, error)
@@ -236,7 +241,7 @@ Implementations include the default heuristic bot (`bots/heuristic`), the search
 seats under `bots/`, and `server/host.HumanSeat`, which parks a decision until a
 remote client answers over HTTP.
 
-## Before turn 1: the starting player and mulligans
+## What happens before turn 1? { #before-turn-1-the-starting-player-and-mulligans }
 
 ```mermaid
 sequenceDiagram
@@ -271,11 +276,14 @@ sequenceDiagram
   player who mulliganed picks cards to bottom. With three or more players the
   first mulligan is free (CR 103.5b).
 
-## Concede
+## How does a player concede? { #concede }
 
-Concession is not a decision kind. Every priority decision ends with a `concede`
-option, placed **last**, after `pass`: a client that defaults to the last option
-would otherwise concede on every decision. Choosing it emits the ordinary
+Concession is not a decision kind: every priority decision ends with a `concede` option.
+
+!!! warning "`concede` is always the last option"
+    It comes after `pass`. A client that defaults to the last option concedes on every decision.
+
+Choosing it emits the ordinary
 `PlayerLost` event with text `conceded` (CR 104.3a). With three or more players
 the match continues and the conceded seat is skipped.
 
@@ -321,7 +329,7 @@ needs no checkpoint. The kernel is the only resolution path.
 [Events and replay](events.md#the-resolution-kernels-verify-window) covers the
 log side.
 
-## A host that cannot answer
+## What if nobody answers? { #a-host-that-cannot-answer }
 
 A fuzzer, a test harness or a departed seat must never wedge the engine. Every
 asking primitive therefore has a deterministic fallback that completes the
@@ -329,8 +337,10 @@ resolution (one of the
 [engine contracts](https://github.com/adams-shaun/gorge/blob/main/docs/design/2026-09-22-engine-contracts.md)):
 a charm takes its first mode, Scry keeps every card on top, a quantity-only
 library search takes the first cards, and so on. The fallback is recorded as a
-`Note` event, so it is visible in the log and replays identically. It does not
-stand in for a missing ask: a host that can answer always gets the real question.
+`Note` event, so it is visible in the log and replays identically.
+
+!!! note "A fallback never replaces a real ask"
+    A host that can answer always gets the real question.
 
 Time limits belong to the host; the engine never reads a clock. `server/host`
 can give a human seat a think timeout, and on expiry a deterministic caretaker
