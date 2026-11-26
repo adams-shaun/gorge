@@ -1,0 +1,162 @@
+package dirac
+
+import (
+	"sync/atomic"
+
+	"github.com/adams-shaun/gorge/dirac/kop"
+)
+
+// A StatRaiseAbility static (RaiseCost Type$ Ability; CR 601.2f, 602.2b):
+// activated abilities of battlefield permanents matching its filter cost
+// Static.A (VA under StDynamic) generic more or owe a Sac<1/<filter>> pick
+// (kop.RaiseAbPick, the pick's permanents in Static.Filter2) at the
+// activation's cost stage. gorge composes every
+// matching static's raise onto the total before the reductions (pay.ApplyTo:
+// activate.go's mods applied at the payment); the kernel composes the generic
+// into the priced cost the same way (abPlannedCost for the offer's planner
+// price, abRaisedCharge at the build charge, abRaised at the offer gate),
+// poses the pick as the entry's pick cost (buildPickCost, gorge's sac ask
+// covering the raise's part). Every matching static composes; the pick part
+// poses the first one's pick filter once per matching static (a second pick card is a different Cost
+// than the one a build poses, unmodelled: cardset's raise guard refuses a pool
+// holding two cards with a pick; copies of one card compose as one Sac<N/f>).
+// gorge's target ask aborts
+// an activation whose controller holds fewer than 2N sacrifice candidates
+// (abRaiseSacShort), so the kernel reverses there too.
+// Mana abilities the mana window prices pay no raise; the guard keeps a pool
+// whose raiser can match a mana-ability card out (cardset.AbRaiseRefusal). A
+// life raise (PayLife<N>, Thran Portal's mana abilities) has no path here: it
+// is a mana-window price, so kgen refuses it until the mana window prices it
+// (ticket t18c-thran-portal-mana-ability-raise).
+// Cold code: every site is behind genPrep.anyAbRaise.
+
+// DebugNoAbRaise drops the raise (TestAbraiseMutation proves the pool
+// activates a raised ability at its raised price).
+var DebugNoAbRaise bool
+
+// AbRaisedPriced counts the ability pricings a StatRaiseAbility lowered
+// (read by TestAbraiseLockstep; nothing in the engine reads it).
+var AbRaisedPriced atomic.Int64
+
+// abRaiseStaticApplies is the per-static gate of a StatRaiseAbility static st
+// on ability a of the battlefield source sl activated by ctrl: the condition
+// and the ValidCard$ filter over the source.
+func (s *State) abRaiseStaticApplies(k *prep, st statSrc, a *kop.Ability, sl Slot, ctrl uint8) bool {
+	sa := &st.a.Static
+	if st.a.Kind != kop.AbStatic || sa.Kind != kop.StatRaiseAbility {
+		return false
+	}
+	if sa.B&kop.RaiseAbMana != 0 && a.Kind != kop.AbMana {
+		return false // a mana-abilities-only raise never raises another ability
+	}
+	return s.statCond(k, st) && s.matchPermGen(k, sa.Filter, sl, st.ctrl, st.sl, layerFull)
+}
+
+// abRaiseParts walks the raise statics of ability a of the battlefield source
+// sl activated by ctrl: the generic raise, the pick filter of the
+// first matching pick part and how many matching statics carry one (each owes
+// its own Sac<1/f>; the matchup guard keeps every pick raiser one card, so the
+// filter is shared: three Brutal Suppressions owe three sacrifices).
+func (s *State) abRaiseParts(k *prep, a *kop.Ability, sl Slot, ctrl uint8) (g int, pick kop.FilterID, picks int) {
+	if DebugNoAbRaise || a.Kind != kop.AbActivated && a.Kind != kop.AbMana || sl == NoSlot {
+		return 0, 0, 0
+	}
+	s.eachStaticG(k, func(st statSrc) bool {
+		if !s.abRaiseStaticApplies(k, st, a, sl, ctrl) {
+			return true
+		}
+		sa := &st.a.Static
+		n := int(sa.A)
+		if sa.StFlags&kop.StDynamic != 0 {
+			n = s.evalV(k, sa.VA, s.ctxStatic(st))
+		}
+		if n > 0 {
+			g += n
+		}
+		if sa.B&kop.RaiseAbPick != 0 {
+			if picks == 0 {
+				pick = sa.Filter2
+			}
+			picks++
+		}
+		return true
+	})
+	return g, pick, picks
+}
+
+// abRaised is the composition the offer gate and the planner price: c with
+// every matching static's generic raise on top (raises before reductions, CR
+// 601.2f; the pick part rides the build's own payments, the offer gate
+// abRaiseOK prices it).
+func (s *State) abRaised(k *prep, a *kop.Ability, sl Slot, ctrl uint8, c kop.ManaCost) kop.ManaCost {
+	g, _, picks := s.abRaiseParts(k, a, sl, ctrl)
+	if picks == 0 && g == 0 {
+		return c
+	}
+	if g > 0 {
+		c.Generic = uint8(min(int(c.Generic)+g, 255))
+		AbRaisedPriced.Add(1)
+	}
+	return c
+}
+
+// abRaisedCharge is abRaised for an ability stack entry being charged
+// (buildCostPreRaw's seAbility arm): the source is the entry's object.
+func (s *State) abRaisedCharge(k *prep, a *kop.Ability, o Obj, ctrl uint8, c kop.ManaCost) kop.ManaCost {
+	ob := &s.objs[o]
+	if ob.zone != kop.ZoneBattlefield {
+		return c
+	}
+	return s.abRaised(k, a, ob.slot, ctrl, c)
+}
+
+// abRaiseOK is the offer gate: p's activation of a owes every matching
+// static's pick part, and can pay it (gorge's offer gate prices the
+// composed cost: pay.NonManaCastable over the raise's pick).
+func (s *State) abRaiseOK(k *prep, sl Slot, a *kop.Ability, p uint8) bool {
+	if k.gen == nil || !k.gen.anyAbRaise {
+		return true
+	}
+	_, pick, picks := s.abRaiseParts(k, a, sl, p)
+	if picks > 0 && s.countCostSac(k, p, &kop.Cost{Flags: kop.CostSac, N: uint8(picks), Filter: pick}, NoSlot) < picks {
+		return false
+	}
+	return true
+}
+
+// abRaisePick is the pick part the entry being built owes, or nil.
+func (s *State) abRaisePick(k *prep, e *stackEntry) *kop.Cost {
+	a := s.buildAbility(k)
+	if a == nil {
+		return nil
+	}
+	_, pick, picks := s.abRaiseParts(k, a, s.srcSlot(), e.ctrl)
+	if picks == 0 {
+		return nil
+	}
+	return &kop.Cost{Flags: kop.CostSac, N: uint8(picks), Filter: pick}
+}
+
+// abRaiseSacShort reports whether the activation being built owes a raise pick
+// gorge's target ask cannot place: its target probe (cast_pricing.go
+// targetCostProbe, folding the raise's Sac part into the composed cost) finds
+// no assignment unless the controller holds twice the sacrifices owed in
+// candidates, so a required target aborts the activation ("cast aborted: no
+// legal target", CR 733.1) after its offer admitted it, and an up-to target
+// asks nothing (targetStageAborts' contract). Measured in gorge on basic lands
+// (one to four Brutal Suppressions, a {3} Rebel Informer, a {T}-only Blightspeaker
+// and Errant Doomsayers): the activation proceeds iff the mana is payable and
+// the land count is at least 2N (N = 1: 2 lands with no mana, 3 with {3}; N = 2: 4;
+// N = 3: 6; N = 4: 8). Unmeasured: a raised ability with no target at all (a
+// Ramosian searcher) never reaches targetStageAborts, so the kernel builds it
+// below 2N; whether gorge aborts there too is open (ticket
+// raiseability-gorge-probe-quirks). Ticket raiseability-sac-offer-vs-mana owns
+// the engine's offer gate; until it lands the kernel reverses where gorge does.
+func (s *State) abRaiseSacShort(k *prep) bool {
+	e := &s.bld().e
+	if k.gen == nil || !k.gen.anyAbRaise || e.kind != seAbility {
+		return false
+	}
+	pc := s.abRaisePick(k, e)
+	return pc != nil && s.countCostSac(k, e.ctrl, pc, NoSlot) < 2*int(pc.N)
+}
