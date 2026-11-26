@@ -1,14 +1,18 @@
 # Play gorge in ManaBrew's client
 
-Play gorge from [ManaBrew](https://docs.manabrew.app/)'s own client (its lobby, deck library, table and bots) with gorge as the rules engine. This page covers the processes involved, a four-seat Commander pod, what changes while you play, dirac, and troubleshooting.
+Play a four-seat Commander pod in [ManaBrew](https://docs.manabrew.app/)'s own client (its lobby, deck library, table and bots) while gorge runs the rules.
 
-Commands, logs and screenshots are from 2026-11-19: ManaBrew v3.42.7 (commit `0193f13`), its web client in headless Chrome, and gorge with the ManaBrew wire changes of [#1960](https://github.com/adams-shaun/gorge/pull/1960). A gorge from before #1960 refuses every deck the client sends and sends prompts the client cannot read.
+!!! info "Tested on 2026-11-19"
+    Commands, logs and screenshots are from ManaBrew v3.42.7 (commit `0193f13`), its web client in
+    headless Chrome, and gorge with the ManaBrew wire changes of
+    [#1960](https://github.com/adams-shaun/gorge/pull/1960). A gorge from before #1960 refuses every
+    deck the client sends and sends prompts the client cannot read.
 
 ## How the pieces fit
 
-ManaBrew has no setting for a remote engine. Its engine runs either in the browser or on a room's
-host, and every seat in a multiplayer room talks to that host through ManaBrew's relay. So a gorge
-game needs four processes, and a fifth for card art:
+ManaBrew has no setting for a remote engine: its engine runs in the browser or on a room's host,
+and every seat talks to that host through ManaBrew's relay. So a gorge game needs four processes,
+and a fifth for card art:
 
 | Process | What it does | Where it comes from |
 |---|---|---|
@@ -18,39 +22,50 @@ game needs four processes, and a fifth for card art:
 | The ManaBrew web client | What you play in | ManaBrew |
 | `manabrew-hub` | ManaBrew's account and deck service; the web client looks up every card's art through it | ManaBrew |
 
-The bridge is original code under gorge's licence. It speaks ManaBrew's published relay and seat protocols, contains no ManaBrew source, and rewrites nothing inside a message.
-[Its README](https://github.com/adams-shaun/gorge/tree/main/tools/manabrew-bridge) lists every setting.
-ManaBrew itself is AGPL-3.0 and is not part of gorge: you build it from its own repository.
+!!! note "Licences"
+    The bridge is original code under gorge's licence. It speaks ManaBrew's published relay and seat
+    protocols, contains no ManaBrew source, and rewrites nothing inside a message
+    ([its README](https://github.com/adams-shaun/gorge/tree/main/tools/manabrew-bridge) lists every
+    setting). ManaBrew itself is AGPL-3.0 and not part of gorge: build it from its own repository.
 
-The ports on this page are `gorged` on 8081, the relay on its default 9443, the hub on 8090 and the
-web client on its default 1420. Any free ports work; keep the settings that name them in step.
+| Process | Port on this page |
+|---|---|
+| `gorged` | 8081 |
+| relay | 9443 (its default) |
+| hub | 8090 |
+| web client | 1420 (its default) |
 
-## 1. Prerequisites
+Any free ports work; keep the settings that name them in step.
 
-- Go (the version in `go.mod`), and gorge's card corpus: `make fetch-cards` once in a gorge checkout
-  ([Install and build](install.md)).
-- Node 22 or later, and Yarn 1 (`corepack yarn@1.22.22` works without installing it).
-- Rust with `cargo`, for ManaBrew's relay and its in-browser bots, plus the `wasm32-unknown-unknown`
-  target and `wasm-pack`:
+<div class="gg-steps" markdown>
 
-```sh
+## Install the prerequisites { #1-prerequisites }
+
+<div class="gg-needs" markdown>
+
+| You need | For |
+|---|---|
+| Go (the version in `go.mod`) and gorge's card corpus | `gorged`; `make fetch-cards` once in a gorge checkout ([Install and build](install.md)) |
+| Node 22 or later, and Yarn 1 | the bridge and the client (`corepack yarn@1.22.22` works without installing Yarn) |
+| Rust with `cargo`, the `wasm32-unknown-unknown` target and `wasm-pack` | ManaBrew's relay and its in-browser bots |
+| A ManaBrew checkout with its JavaScript dependencies | the relay, hub and client |
+
+</div>
+
+```sh title="Rust targets and tools"
 rustup target add wasm32-unknown-unknown
 cargo install wasm-pack        # or: cargo binstall wasm-pack
 ```
 
-- A ManaBrew checkout (`git clone https://github.com/witchesofthehill/manabrew`), with its
-  JavaScript dependencies:
-
-```sh
+```sh title="ManaBrew checkout"
+git clone https://github.com/witchesofthehill/manabrew
 cd manabrew
 yarn install --frozen-lockfile
 ```
 
-## 2. Start gorged
+## Start gorged { #2-start-gorged }
 
-From the gorge checkout:
-
-```sh
+```sh title="From the gorge checkout"
 go run ./cmd/gorged -addr 127.0.0.1:8081 -dir /tmp/gorge-manabrew \
   -manabrew -vsbot -format commander -tables 0 -pace 0 \
   -manabrew-think 10m -prewarm=false
@@ -61,21 +76,21 @@ gorged: manabrew routes mounted at /api/manabrew/v0/tables/
 gorged: 0 tables of 4 on 127.0.0.1:8081 (dir /tmp/gorge-manabrew)
 ```
 
-- `-manabrew` mounts the ManaBrew routes, and `-vsbot` lets `POST /api/games` create games on demand,
-  which is how the bridge starts each one.
-- `-format commander` makes the tables Commander pods; `-tables 0` runs no bot-only tables beside them.
-- `-pace 0` drops the 50 ms pause after every decision, which only exists to make bot tables watchable.
-- `-manabrew-think 10m` gives each seat ten minutes per decision before its caretaker bot answers for
-  it. Without it a seat waits forever.
-- `-prewarm=false` skips fetching card art for gorge's own browser client, which this setup doesn't use.
+| Flag | Why |
+|---|---|
+| `-manabrew` | mounts the ManaBrew routes |
+| `-vsbot` | lets `POST /api/games` create games on demand, which is how the bridge starts each one |
+| `-format commander`, `-tables 0` | Commander pods, and no bot-only tables beside them |
+| `-pace 0` | drops the 50 ms pause after every decision, which only exists to make bot tables watchable |
+| `-manabrew-think 10m` | ten minutes per decision before a seat's caretaker bot answers for it; without it a seat waits forever |
+| `-prewarm=false` | skips fetching art for gorge's own browser client, which this setup doesn't use |
 
-Use a `-dir` of your own: two servers sharing one persistence directory corrupt each other.
+!!! warning "Use a `-dir` of your own"
+    Two servers sharing one persistence directory corrupt each other.
 
-## 3. Start ManaBrew's relay
+## Start ManaBrew's relay { #3-start-manabrews-relay }
 
-From the ManaBrew checkout:
-
-```sh
+```sh title="From the ManaBrew checkout"
 MANABREW_SERVER_KEY=forge FORGE_HOST=127.0.0.1 yarn dev:relay
 ```
 
@@ -84,11 +99,9 @@ The relay listens on `FORGE_PORT` (default 9443) and answers health checks on `F
 (9444). `MANABREW_SERVER_KEY` is the password every client gives it. These runs used a release binary
 built with `cargo build --release -p manabrew-server` and the same variables.
 
-## 4. Start the bridge
+## Start the bridge { #4-start-the-bridge }
 
-From the gorge checkout:
-
-```sh
+```sh title="From the gorge checkout"
 RELAY=ws://127.0.0.1:9443 RELAY_PASSWORD=forge GORGE=http://127.0.0.1:8081 \
   ROOM_NAME=gorge-pod node tools/manabrew-bridge/bridge.mjs
 ```
@@ -101,16 +114,18 @@ RELAY=ws://127.0.0.1:9443 RELAY_PASSWORD=forge GORGE=http://127.0.0.1:8081 \
 The room stays open; after each game it goes back to the lobby for the next one. One bridge hosts one
 room; start another with a different `ROOM_NAME` for a second table.
 
-## 5. Start ManaBrew's hub, for card art
+## Start ManaBrew's hub, for card art { #5-start-manabrews-hub-for-card-art }
 
-The web client has no card images of its own. For each card gorge sends it asks Scryfall for the
-card by name, or by set and collector number when gorge knows the printing, and a client started with `yarn web` sends that request through ManaBrew's hub (its
-`/api/scryfall/` route), which is `https://api.manabrew.app` unless you say otherwise. On
-2026-11-19 the public hub answered that route with 404, so a client pointed at it shows a blank
-frame with the card's name for every card on the table. Run the hub yourself, from the ManaBrew
-checkout:
+The web client has no card images of its own. It asks Scryfall for each card gorge sends (by name,
+or by set and collector number when gorge knows the printing), and a client started with `yarn web`
+sends that request through ManaBrew's hub (its `/api/scryfall/` route), `https://api.manabrew.app`
+unless you say otherwise.
 
-```sh
+!!! warning "The public hub returned 404"
+    On 2026-11-19 the public hub answered that route with 404, so a client pointed at it shows a blank
+    frame with the card's name for every card. Run the hub yourself.
+
+```sh title="From the ManaBrew checkout"
 cargo build --release -p manabrew-hub
 mkdir -p /tmp/manabrew-hub
 HUB_HOST=127.0.0.1 HUB_PORT=8090 HUB_DB_PATH=/tmp/manabrew-hub/hub.db \
@@ -127,11 +142,9 @@ lookups on to `api.scryfall.com`. The images themselves come straight from `card
 browser needs to reach that too. Skip this step and the game still plays; you just play it without
 art.
 
-## 6. Start the web client
+## Start the web client { #6-start-the-web-client }
 
-From the ManaBrew checkout:
-
-```sh
+```sh title="From the ManaBrew checkout"
 VITE_RELAY_HOST=127.0.0.1 VITE_RELAY_PORT=9443 VITE_RELAY_PASSWORD=forge \
   VITE_HUB_API_URL=http://127.0.0.1:8090 yarn web
 ```
@@ -151,7 +164,7 @@ requests, card lookups among them, to your hub.
 
 Open <http://localhost:1420/>, accept the terms, and pick a nickname. The other players see it.
 
-## 7. Sit down, choose decks, start
+## Sit down, choose decks, start { #7-sit-down-choose-decks-start }
 
 Open **Multiplayer**. The bridge's room is listed under *Tables from other players*:
 
@@ -194,7 +207,7 @@ card gorge doesn't support yet, as Kaalia's did here, `gorged` refuses the decks
 gorge's own pool Commander decks to every seat instead, so the game still starts. Set `POOL_FALLBACK=0`
 on the bridge to refuse the game instead. [Coverage](../support/sets.md) says what gorge supports.
 
-## 8. Play
+## Play { #8-play }
 
 The game opens on the mulligan decision. The board is ManaBrew's own: your side at the bottom, one
 opponent's board at the top, and the other players as portraits you can switch to.
@@ -227,26 +240,15 @@ Mid-game, with an opponent's bot attacking; the panel asks for blockers:
 <figcaption>Player 2 attacks.</figcaption>
 </figure>
 
-What is different from a ManaBrew-hosted game:
+### What is different from a ManaBrew-hosted game
 
-- **More priority stops.** gorge gives every player priority in every step and after every change
-  to the stack, on every turn, so you are asked to pass far more often than with ManaBrew's engine
-  ([why, and how a client skips them](../api/manabrew.md#skipping-to-your-next-turn)). Leave
-  **AUTOPASS** on: on other players' turns the client then passes for you. On your own turn,
-  **END TURN** passes to the end of the turn, and **NEXT TURN** or **PASS** moves on from a stop the
-  client didn't skip. Clicking **AUTOPASS** switches it to **FULL CTRL**, which stops everywhere.
-- **The rules are gorge's.** Every legal action, target and payment comes from gorge, and gorge
-  refuses an answer it doesn't accept. The bridge logs a refusal as `gorged refused a response`.
-- **The bots are ManaBrew's.** A bot added with **Add a bot** is ManaBrew's own AI, running in the
-  host's browser. It sees gorge's prompts exactly as you do. gorge's own bots don't sit at these
-  tables, except as a seat's caretaker after `-manabrew-think` runs out.
-- **Conceding and losing.** **Concede** is in the menu under the gear beside your portrait. A seat
-  that concedes or dies can keep observing the table; the bots play on without it, much faster than
-  with a human seat stopping at every priority window.
-- **Game over.** When one player is left, every seat sees ManaBrew's game-over screen, and the bridge
-  logs `game over on turn N; winner player-K` and reports the result to the relay. The bridge then ends
-  the relay game, so the screen shows for a moment and the client returns to the lobby, where the
-  room is ready for the next game.
+| | With gorge hosting |
+|---|---|
+| Priority stops | gorge gives every player priority in every step and after every change to the stack, so you pass far more often ([why, and how a client skips them](../api/manabrew.md#skipping-to-your-next-turn)). Leave **AUTOPASS** on and the client passes for you on other players' turns. On your turn, **END TURN** passes to the end of the turn; **NEXT TURN** or **PASS** moves on from a stop the client didn't skip. Clicking **AUTOPASS** switches it to **FULL CTRL**, which stops everywhere |
+| Rules | every legal action, target and payment comes from gorge, and gorge refuses an answer it doesn't accept. The bridge logs a refusal as `gorged refused a response` |
+| Bots | **Add a bot** seats ManaBrew's own AI, running in the host's browser and seeing gorge's prompts as you do. gorge's bots sit only as a seat's caretaker after `-manabrew-think` runs out |
+| Conceding | **Concede** is under the gear beside your portrait. A seat that concedes or dies can keep observing; the bots play on, much faster without a human stopping at every priority window |
+| Game over | every seat sees ManaBrew's game-over screen; the bridge logs `game over on turn N; winner player-K`, reports the result to the relay and ends the relay game, so the client returns to the lobby and the room is ready for the next game |
 
 <figure markdown>
 ![ManaBrew's game-over screen: You Lose!, Final life: You 13, Player 2 -4, Player 3 -15, Player 4 34, Turn 43, Returning to menu, and a Return to Menu button](img/manabrew/gameover.png)
@@ -260,13 +262,15 @@ The screenshots come from one game, lobby to game-over, a frame about every ten 
 <figcaption>Turns 1 to 43 in about 40 seconds.</figcaption>
 </figure>
 
-## 9. Optional: dirac
+</div>
+
+## Optional: dirac { #9-optional-dirac }
 
 `gorged -engine dirac` runs the [dirac engine](dirac.md) behind the same wire. Through the server,
 dirac seats two players only today, and it plays only the decks it checked at startup, so every
 game uses gorge's pool decks:
 
-```sh
+```sh title="A dirac duel through the bridge"
 make dirac-tables     # once
 go run ./cmd/gorged -addr 127.0.0.1:8082 -dir /tmp/gorge-manabrew-dirac \
   -manabrew -vsbot -engine dirac -seats 2 -tables 0 -pace 0 -manabrew-think 10m -prewarm=false
@@ -291,7 +295,7 @@ game with no browser, which is a quick check that a gorge change still speaks th
 (`{label, format, cards:[{name, count, set, cardNumber}]}`), sends no commander name, and starts the game
 as soon as two seats are ready, so give the bridge `GATE=1` and a `COMMANDERS` file:
 
-```sh
+```sh title="A headless four-seat pod"
 GATE=1 ONCE=1 COMMANDERS=commanders.json RELAY=ws://127.0.0.1:9443 GORGE=http://127.0.0.1:8081 \
   ROOM_NAME=smoke TRANSCRIPT=smoke.jsonl node tools/manabrew-bridge/bridge.mjs &
 # then, four times, one second apart, each with its own PREFIX and DECK:
@@ -312,45 +316,63 @@ printing one line per kind of frame that fails and the path to the failing field
 AGPL crate, so it is not in this repository; any program that deserialises `state` frames as
 `manabrew_protocol::transport::StateUpdate` and `prompt` frames as `AgentPrompt` does the same check.
 
-## 10. Troubleshooting
+## Troubleshooting { #10-troubleshooting }
 
-**Cards show only their names, on blank frames.** The client could not look the cards up. Check that
+### Cards show only their names, on blank frames
+
+The client could not look the cards up. Check that
 the hub of step 5 is running and that the client was started with `VITE_HUB_API_URL` pointing at it;
 the browser's console shows the failing `/hub-api/api/scryfall/` requests. ManaBrew's public hub
 answers them with 404.
 
-**The room isn't in the lobby.** Check the client's relay: the Players list shows who is connected, so
+### The room isn't in the lobby
+
+Check the client's relay: the Players list shows who is connected, so
 if you are alone and the bridge's room is missing, the client is probably on ManaBrew's public relay.
 Restart `yarn web` with the `VITE_RELAY_*` variables. The bridge prints `relay refused the sign-in`
 when `RELAY_PASSWORD` doesn't match the relay's `MANABREW_SERVER_KEY`.
 
-**A port is taken.** `ss -lptn` lists the listeners. The web client's 1420 is fixed by ManaBrew's
+### A port is taken
+
+`ss -lptn` lists the listeners. The web client's 1420 is fixed by ManaBrew's
 `vite.config.ts` (`strictPort`), so free it rather than moving it; move `gorged` with `-addr` and the
 relay with `FORGE_PORT`, and update `GORGE` and `RELAY` on the bridge to match.
 
-**The game starts with decks you didn't choose.** That is the pool fallback: the bridge's log has the
+### The game starts with decks you didn't choose
+
+That is the pool fallback: the bridge's log has the
 reason, usually a card gorge can't play yet (`cards the engine cannot play yet: …`). A message such
 as `seat 0 deck is not a ManaBrew deck: json: cannot unmarshal string into … color` means a `gorged`
 from before #1960; rebuild it.
 
-**Start game does nothing.** The bridge's log shows `could not start the game on gorged` with the
+### Start game does nothing
+
+The bridge's log shows `could not start the game on gorged` with the
 reason when `POST /api/games` fails; check that `gorged` runs with `-manabrew -vsbot` at the bridge's
 `GORGE` address. In a Commander room the client needs two seats before it offers **Start game**.
 
-**A prompt doesn't show.** The bridge logs each refused answer and every `gorge error`. Pass the
+### A prompt doesn't show
+
+The bridge logs each refused answer and every `gorge error`. Pass the
 seat's stops with **PASS** or **END TURN**, check that **AUTOPASS** isn't **FULL CTRL**, and look at
 the frames with `TRANSCRIPT`: the prompt gorge sent is a `gorge->bridge[player-N]` line with
 `"kind":"prompt"`. If gorge sent it and the client shows nothing, the client could not read it; that is
 a wire bug to file against gorge with the frame attached.
 
-**A resolved ability stays in the stack panel.** In an earlier run for this page the client kept showing
+### A resolved ability stays in the stack panel
+
+In an earlier run for this page the client kept showing
 Orb of Dragonkind's ability after it had resolved, while gorge's `gameView.stack` was empty. Its cause
 was not tracked down; it doesn't affect play.
 
-**A seat that conceded reads "You Lose!".** In the run behind the last screenshot the conceding seat
+### A seat that conceded reads "You Lose!"
+
+In the run behind the last screenshot the conceding seat
 got ManaBrew's "You Lose!" heading rather than its "You conceded" one; the client picks the heading
 from the seat's status in the final state.
 
-**The game ends but a seat stays on the board.** The bridge ends the relay game once every seat's
+### The game ends but a seat stays on the board
+
+The bridge ends the relay game once every seat's
 stream has reported game over. If a seat's stream dropped, stop the bridge with Ctrl-C and start it
 again; the room is recreated.
