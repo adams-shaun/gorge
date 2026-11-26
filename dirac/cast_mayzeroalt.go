@@ -39,7 +39,8 @@ func FeatIsZeroAltTgt(t uint8) bool { return t == zeroAltTgt || t == zeroAltFree
 
 // zeroAltStatic reports whether MayPlayFrom static st is a non-granting
 // alternative-cost permission (kop.StMayZeroAlt; Dragon's Smile's {0}, As
-// Foretold, Demon of Fate's Design's pay-life, Nissa's pay-energy). The Zone
+// Foretold, Demon of Fate's Design's pay-life, Nissa's pay-energy, Conspiracy
+// Unraveler's collect-evidence). The Zone
 // byte is the reach (mayPlayFromZone), Weftwalking's plain free shape keeps
 // StFreeOnly alone.
 func zeroAltStatic(st *kop.Static) bool {
@@ -96,13 +97,20 @@ func (s *State) offerZeroAlt(k *prep, d *Decision, p uint8, o Obj, mode uint8, p
 		s.capFull(StallZeroAltShared)
 		return
 	}
-	if mode&castFree != 0 && st.a.Static.StFlags&(kop.StMayPayLife|kop.StMayPayEnergy) != 0 {
-		// a priced alternative (Demon's pay-life, Nissa's pay-energy) beside
-		// a free plain cast would share its mode: the build cannot tell the
-		// two apart and the cost would go unpaid (zeroAltFreeTgt waives no
-		// cost). gorge lists the alternative at its own AltCostIndex either
-		// way, so the game stalls loudly instead.
+	if mode&castFree != 0 && st.a.Static.StFlags&(kop.StMayPayLife|kop.StMayPayEnergy|kop.StMayPayEvidence) != 0 {
+		// a priced alternative (Demon's pay-life, Nissa's pay-energy,
+		// Conspiracy Unraveler's evidence) beside a free plain cast would
+		// share its mode: the build cannot tell the two apart and the cost
+		// would go unpaid (zeroAltFreeTgt waives no cost). gorge lists the
+		// alternative at its own AltCostIndex either way, so the game stalls
+		// loudly instead.
 		s.capFull(StallZeroAltShared)
+		return
+	}
+	if st.a.Static.StFlags&kop.StMayPayEvidence != 0 && s.graveTotalMV(k, p) < int(st.a.Static.A) {
+		// the graveyard's total mana value does not reach the evidence
+		// (gorge's walk prices the alternative's cost and withholds it, CR
+		// 701.59a); an unpayable alternative is never offered
 		return
 	}
 	tgt := TCode(zeroAltTgt)
@@ -159,6 +167,9 @@ func (s *State) offerMayPlayHandAlt(k *prep, d *Decision, p uint8, o Obj, c Card
 	}
 	if fl&kop.StMayPayEnergy != 0 && int(s.g.energy[SeatIx(p)]) < int(st.a.Static.A) {
 		return // the energy the alternative owes (act_energy.go energyPayable)
+	}
+	if fl&kop.StMayPayEvidence != 0 && s.graveTotalMV(k, p) < int(st.a.Static.A) {
+		return // the evidence the alternative owes (pay.EvidencePayable)
 	}
 	if rest, _ := s.mayPlayParts(k, p, o); rest.free {
 		// a free non-granting or granting static also admits the card: gorge

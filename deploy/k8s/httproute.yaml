@@ -1,0 +1,45 @@
+# gorged behind Envoy Gateway (gateway eg, listener http, port 80), reachable on the domain below. The hostnames are
+# the one place the public name lives: change them here if the product (and domain) is renamed.
+# The Service stays ClusterIP; the tunnel that reaches the gateway's LoadBalancer is outside the cluster (README.md).
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: gorged
+  namespace: gorge
+spec:
+  parentRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: eg
+      namespace: envoy-gateway-system
+      sectionName: http
+  hostnames:
+    - master-edh.net
+    - www.master-edh.net
+  rules:
+    - matches:
+        - path: {type: PathPrefix, value: /}
+      backendRefs:
+        - group: ""
+          kind: Service
+          name: gorged
+          port: 8080
+---
+# gorged streams live updates as server-sent events (/api/stream and the per-match streams), held open for the length
+# of a game; Envoy's default request timeout would cut them. The pattern is mtgbld-prod's mtgbld-mtgplay-ws-timeout
+# (3600s connection idle and request timeouts), as deploy/docker/nginx.conf's 1h read timeout does for nginx.
+# (Envoy Gateway passes a WebSocket upgrade without extra config; gorged does not use one.)
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: BackendTrafficPolicy
+metadata:
+  name: gorged-stream-timeout
+  namespace: gorge
+spec:
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: gorged
+  timeout:
+    http:
+      connectionIdleTimeout: 3600s
+      requestTimeout: 3600s
