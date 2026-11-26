@@ -140,6 +140,9 @@ func (s *State) detach(o Obj) kop.Zone {
 		if s.osAnyOf(osMExw) {
 			s.exwLeaveExile(o) // its reverse exiled-with link ends (zone_exiledwith.go)
 		}
+		if s.osAnyOf(1 << osEncoded) {
+			s.cipherUnlink(o) // its encode link ends (kw_cipher.go)
+		}
 	case kop.ZoneBattlefield:
 		panic("kernel: detach of a permanent (use leave)")
 	case kop.ZoneSideboard:

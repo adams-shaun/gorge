@@ -720,6 +720,7 @@ default	field	genPrep.anyBlightX	1
 default	field	genPrep.anySacX	1
 default	field	genPrep.anyXMin	1
 default	field	genPrep.anyCopyCast	1
+default	field	genPrep.anyCipher	1
 default	field	genPrep.anyExileGrant	1
 default	field	genPrep.anyNumTimes	1
 default	field	genPrep.anyExHaste	1
