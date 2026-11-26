@@ -412,6 +412,10 @@ func (s *State) matchCardTgt(k *prep, f kop.FilterID, c CardID, owner, ctrl uint
 		// card target must still read the link against this ability's source.
 		return s.matchCardExwTgt(k, f, c, owner, ctrl, o, src, self) // zone_exiledwithtgt.go
 	}
+	// the colour-word statics rewrite the source face's colour words
+	// (static_colorwords.go): a target spec of the ability at src reads the
+	// rewritten face, so the clause's colour masks read as gorge's face has them
+	tsObj := s.cwSpecObj(k, src)
 	if !k.gen.chosenCardTgt {
 		if k.gen.anySrcMem && chainWord7(k.t, f, kop.W7Imprinted) {
 			// A target filter that reads a source-persistent Imprinted list:
@@ -421,12 +425,17 @@ func (s *State) matchCardTgt(k *prep, f kop.FilterID, c CardID, owner, ctrl uint
 			if srcObj == NoObj && src != NoSlot {
 				srcObj = s.perms[src].obj
 			}
-			ctx := evalCtx{src: srcObj, srcSl: src, ctrl: ctrl}
+			ctx := evalCtx{src: srcObj, srcSl: src, ctrl: ctrl, cwObj: tsObj}
+			return s.matchCardGenAt(k, f, c, owner, ctrl, o, &ctx)
+		}
+		if tsObj != NoObj {
+			ctx := s.ctxCur()
+			ctx.cwObj = tsObj
 			return s.matchCardGenAt(k, f, c, owner, ctrl, o, &ctx)
 		}
 		return s.matchCardGen(k, f, c, owner, ctrl, o)
 	}
-	return s.matchCardSrc(k, f, c, owner, ctrl, o, src, self)
+	return s.matchCardSrc(k, f, c, owner, ctrl, o, src, self, tsObj)
 }
 
 // srcChosen is the chosen type of the ability source: the permanent's, or
@@ -449,13 +458,22 @@ func (s *State) srcChosen(src Slot, self Obj) uint8 {
 // matchCardOne. A resolution's own ChooseType answer keeps matchCardGen.
 //
 //go:noinline
-func (s *State) matchCardSrc(k *prep, f kop.FilterID, c CardID, owner, ctrl uint8, o Obj, src Slot, self Obj) bool {
+func (s *State) matchCardSrc(k *prep, f kop.FilterID, c CardID, owner, ctrl uint8, o Obj, src Slot, self Obj, cwObj Obj) bool {
 	if f == 0 {
 		return true
 	}
+	oneAt := func(fl *kop.Filter, cw Obj) bool {
+		if cwObj == NoObj {
+			return s.matchCardOne(k, fl, c, owner, ctrl, o)
+		}
+		ctx := s.ctxCur()
+		ctx.cwObj = cw
+		return s.matchCardOneAt(k, fl, c, owner, ctrl, o, &ctx, false)
+	}
+	one := func(fl *kop.Filter) bool { return oneAt(fl, cwObj) }
 	ch := s.srcChosen(src, self)
 	if ch == 255 && src == NoSlot || s.res.active && s.res.bad&(resChosenType|resChosenCard) != 0 {
-		return s.matchCardGen(k, f, c, owner, ctrl, o)
+		return one(&k.t.Filters[f])
 	}
 	for f != 0 {
 		fl := &k.t.Filters[f]
@@ -467,7 +485,7 @@ func (s *State) matchCardSrc(k *prep, f kop.FilterID, c CardID, owner, ctrl uint
 			}
 			cp := *fl
 			cp.Flags2 &^= kop.F2ChosenType
-			if has && s.matchCardOne(k, &cp, c, owner, ctrl, o) {
+			if has && one(&cp) {
 				return true
 			}
 		} else if fl.Flags2&kop.F2ChosenColor != 0 {
@@ -482,11 +500,13 @@ func (s *State) matchCardSrc(k *prep, f kop.FilterID, c CardID, owner, ctrl uint
 				} else {
 					cp.Colors = bit
 				}
-				if cp.Colors != 0 && s.matchCardOne(k, &cp, c, owner, ctrl, o) {
+				// the chosen colour is no colour word of any face: its bit is read
+				// unrewritten
+				if cp.Colors != 0 && oneAt(&cp, NoObj) {
 					return true
 				}
 			}
-		} else if s.matchCardOne(k, fl, c, owner, ctrl, o) {
+		} else if one(fl) {
 			return true
 		}
 		f = fl.Or
