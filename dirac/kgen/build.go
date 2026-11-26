@@ -37,6 +37,8 @@ type poolTables struct {
 	missing   map[string]bool  // subtypes a build looked up that the table lacks
 	paradigm  map[string]int   // Paradigm card name -> the table's Paradigm-name index
 	svarNames []string         // the SVar names ExtStoreNum writes, first-use order (index = kop.Table.SVarNames; lower_storenum.go)
+
+	cyclingAlt bool // some lowered card carries a StatCyclingAlt static: every cycling ability gets its twin (build_cyclingalt.go)
 	// costProgs are the pool's cost programs (kop.Table.CostProgs, lower_costprog.go): nil until one is interned, [0] unused
 	costProgs   [][]kop.CostAtom
 	costProgKey map[string]uint16
@@ -98,6 +100,7 @@ func newPoolTables(lw *lowered, extra map[string]bool) *poolTables {
 	}
 	pt.cardIdx = map[string]int{}
 	pt.named = map[string][]int{}
+	pt.cyclingAlt = poolHasCyclingAlt(lw.cards) // build_cyclingalt.go
 	for i, c := range lw.cards {
 		pt.cardIdx[c.Name] = i
 		pt.named[c.Name] = append(pt.named[c.Name], i)

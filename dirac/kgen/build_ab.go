@@ -150,6 +150,7 @@ func (cb *cardBuilder) abilities() error {
 			}
 		}
 	}
+	cb.cyclingTwins() // build_cyclingalt.go: a pool with a cycling alternative cost
 	return nil
 }
 
@@ -2389,6 +2390,8 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		if st.Filter2, err = filter(s.F2, kop.ZoneStack); err != nil { // an emblem's ForgetOnCast$ (lower_effectemblem.go)
 			return ka, nil, err
 		}
+	case "CyclingAlt":
+		st.Kind = kop.StatCyclingAlt // static_cyclingalt.go: the gate is Cond2, the cost the twin's (build_cyclingalt.go)
 	case "AlternativeCost":
 		st.Kind = kop.StatAlternativeCost
 		if ka.Cost, err = cb.cost(s.Cost); err != nil {
