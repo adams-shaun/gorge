@@ -4089,6 +4089,13 @@ func (s *State) gapWindowReverse(k *prep, e *stackEntry, cost *kop.ManaCost, sav
 // path that keeps the activation, and reports true when the activation was
 // reversed because neither reaches the cost (CR 733.1).
 func (s *State) abilityPlainMana(k *prep, e *stackEntry, cost kop.ManaCost, saved *[len(build{}.picks)]uint8, hostSl, sl Slot, selfUntapped bool) bool {
+	if cost.X != 0 {
+		if m := s.restrActNow(k, e.ctrl); m != 0 {
+			// the admitted restricted mana pays the announced {X} too (pay.PlanPool), which
+			// the unfolded cost's shortening could not fold in (Boommobile's {A})
+			cost = s.restrShortAdm(e.ctrl, m, xFolded(s.buildCost(k), int(e.x)))
+		}
+	}
 	if !s.tapForTry(k, e.ctrl, &cost, int(e.x), s.abilityHandExclude(k, e), false) {
 		c := xFolded(cost, int(e.x))
 		if s.gapWindowReverse(k, e, &c, saved, hostSl, sl, selfUntapped) {
@@ -4277,13 +4284,7 @@ func (s *State) committedPicks() bool {
 //
 //go:noinline
 func (s *State) abilityPlanSettles(k *prep, e *stackEntry, offer, fallback, settled kop.ManaCost, saved *[len(build{}.picks)]uint8) bool {
-	if dkPlanTrace != nil {
-		dkPlanTrace("settles offer=%v fb=%v settled=%v x=%d", offer, fallback, settled, int(e.x))
-	}
 	if offer.X != 0 {
-		if dkPlanTrace != nil {
-			dkPlanTrace("settles=false: offer has X")
-		}
 		return false
 	}
 	s.releaseCostTaps(k, saved)
@@ -4298,16 +4299,10 @@ func (s *State) abilityPlanSettles(k *prep, e *stackEntry, offer, fallback, sett
 	}
 	s.retakeCostTaps(saved)
 	if !armed {
-		if dkPlanTrace != nil {
-			dkPlanTrace("settles=false: not armed (offer found=%v needT=%d)", chk.found, int(chk.needT))
-		}
 		return false
 	}
 	chk = planner{dry: true, noGrant: true}
 	s.tapForPK(k, e.ctrl, &settled, int(e.x), exclude, false, false, &chk)
-	if dkPlanTrace != nil {
-		dkPlanTrace("settles=%v (settled found=%v needT=%d)", chk.found || chk.needT == 0, chk.found, int(chk.needT))
-	}
 	return chk.found || chk.needT == 0
 }
 

@@ -1405,7 +1405,3 @@ func (s *State) DebugCtrs(o Obj) (int, []int, []int) {
 	}
 	return int(p.p1), ks, ns
 }
-
-// DKPlanTrace sets or clears the temporary scratch census trace (scratch
-// debug only; not for commit).
-func DKPlanTrace(f func(string, ...any)) { dkPlanTrace = f }

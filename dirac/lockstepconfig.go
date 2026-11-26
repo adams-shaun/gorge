@@ -51,7 +51,14 @@ func (s *State) xWindowPays(k *prep, e *stackEntry, a *kop.Ability, sl Slot, cos
 		return true // gorge's planner keeps declining a Waterbend<X> or hybrid {X} cost (planAbilityPayment)
 	}
 	floor := xFolded(s.abPlannedCost(k, a, sl, e.ctrl), costXMin(&a.Cost))
-	return !s.abilityPlanSettles(k, e, floor, floor, *cost, saved)
+	settled := *cost
+	if m := s.restrActNow(k, e.ctrl); m != 0 {
+		// gorge's witness plans what the admitted restricted mana leaves
+		// (pay.PlanPool; Boommobile's {A}), at the least X and at the announced one
+		floor = s.restrShortAdm(e.ctrl, m, floor)
+		settled = s.restrShortAdm(e.ctrl, m, xFolded(s.buildCost(k), int(e.x)))
+	}
+	return !s.abilityPlanSettles(k, e, floor, floor, settled, saved)
 }
 
 // xWindowPay pays an announced X through gorge's manual CR 601.2g window, which its
