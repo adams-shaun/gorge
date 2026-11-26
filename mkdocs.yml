@@ -18,6 +18,7 @@ strict: true
 # snippets; never pages of their own.
 exclude_docs: |
   support/_generated_sets.md
+  support/_generated_carddb.md
   architecture/_generated_packages.md
   architecture/packages.tiers.json
   requirements.txt
