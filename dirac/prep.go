@@ -280,6 +280,10 @@ type prep struct {
 	// anyCyclingGrant: the table has a StatCyclingGrant static (prepCyclingGrant;
 	// kw_cyclinggrant.go), the granted hand cycling offer it arms.
 	anyCyclingGrant bool
+	// anyOffGrant: some StatStackKw Offspring grant (Zinnia): the kicked-cost
+	// reads and the ETB copy queue (kw_offspring.go; prepStackKw). Prep data,
+	// never a pinned genPrep field: TestNoNewFixedStateFields.
+	anyOffGrant bool
 	// anyOffKwCC: some recorded off-kw grant body is CardManaCost-priced
 	anyOffKwCC bool
 	offKwCC    [4]offKwBody
