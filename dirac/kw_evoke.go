@@ -208,7 +208,10 @@ func (s *State) exAdamant(k *prep, x *kop.Expr, ctx evalCtx) int {
 		}
 		return s.evalV(k, x.Sub[b2i(!holds)], ctx)
 	} else if ctx.src != NoObj {
-		n = spcCount(s.spellSpc(ctx.src), uint(x.N&7))
+		// the printed colour index reads as the colour-word statics rewrite
+		// the source's face (static_colorwords.go cwAdamantCol): the Adamant$
+		// colour the spell's or the source's rewritten text names
+		n = spcCount(s.spellSpc(ctx.src), uint(s.cwAdamantCol(k, ctx.src, uint8(x.N&7))))
 	}
 	holds := n >= int(x.N>>3&3)
 	if st := DebugEvokeStats; st != nil {

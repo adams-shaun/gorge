@@ -465,6 +465,10 @@ func (s *State) windowGapArm(k *prep, p uint8, sl Slot, cost, useful *kop.ManaCo
 		s.windowWideTap(k, p, sl, cost, useful, clamp, noOwed, held)
 		return false, false
 	}
+	if k.gen.anyRestrSrc && s.windowFeeWide(k, p, sl) {
+		s.windowFeeWideTap(k, p, sl, cost, useful, clamp, noOwed, held)
+		return false, false
+	}
 	if s.anyDifferentAt(k, sl) {
 		s.windowAnyDifferentTap(k, p, sl, cost, useful, clamp, noOwed)
 		return false, false
@@ -644,6 +648,12 @@ func (s *State) windowPick(k *prep, p uint8, order []Slot, useful *kop.ManaCost,
 		if k.gen != nil && k.gen.anyMultiR && (!decided || want != 0) && s.windowWide(k, p, o) {
 			return o, true // a wide any-colour restricted source (windowWideTap)
 		}
+		if k.gen != nil && k.gen.anyRestrSrc && s.windowFeeWide(k, p, o) {
+			return o, true // a restricted fee gap the pool's mana funds (windowFeeWideTap)
+		}
+	}
+	if o := s.windowFeeFund(k, p, order, decided, census, potential); o != NoSlot {
+		return o, false // the fee gap's funding: a source the clamp skipped (mana_restrictedfeewide.go)
 	}
 	return NoSlot, false
 }
@@ -3285,7 +3295,17 @@ func (s *State) lowerWitnessEx(k *prep, p uint8, excl Obj) {
 		// same restricted-inclusive total
 		if k.restrSrc {
 			d := s.payDescNow(excl)
+			// a fee ability is never census mana (paid_mana_census.go: a
+			// generic/coloured fee is the cast window's own price), and the
+			// lowering's X witness is gorge's composed-cost plan
+			// (potential_plan.go planComposedCost): its census counts no Orb
+			// of Dragonkind's {1}, {T}, so the witness prices no tap of it
+			// either -- its mana funds the announced X in the payment's
+			// window, after the ask (CR 106.6, 605.3b)
+			ax := s.g.availX
+			s.g.availX |= availNoFeeUnit
 			t, multi, nm := s.restrSrcAvail(k, p, d, &av, NoSlot, nil, 0)
+			s.g.availX = ax
 			// L is pool mana gorge's census total counts, as the
 			// (censusTotal+L) bound above; withheld is the sources' own
 			t.total = t.censusTotal()
@@ -4128,7 +4148,12 @@ func (s *State) gapWindowReverse(k *prep, e *stackEntry, cost *kop.ManaCost, sav
 // path that keeps the activation, and reports true when the activation was
 // reversed because neither reaches the cost (CR 733.1).
 func (s *State) abilityPlainMana(k *prep, e *stackEntry, cost kop.ManaCost, saved *[len(build{}.picks)]uint8, hostSl, sl Slot, selfUntapped bool) bool {
-	if !s.tapForTry(k, e.ctrl, &cost, int(e.x), s.abilityHandExclude(k, e), false) {
+	// The executed payment prefers the census's plan, as the cast's does
+	// (tapForSpellPlain): gorge's composed plan prices the census alone, and
+	// a fee gap beside it is the phased script's plan for a play the census
+	// cannot pay.
+	if !s.tapForTryCensus(k, e.ctrl, &cost, int(e.x), s.abilityHandExclude(k, e), false) &&
+		!(s.cfg&cfgGorgeAutopay == 0 && s.tapForTry(k, e.ctrl, &cost, int(e.x), s.abilityHandExclude(k, e), false)) {
 		c := xFolded(cost, int(e.x))
 		if s.gapWindowReverse(k, e, &c, saved, hostSl, sl, selfUntapped) {
 			return true

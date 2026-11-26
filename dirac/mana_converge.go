@@ -47,6 +47,9 @@ func prepConverge(t *kop.Table, g *genPrep) {
 	}
 	for i := range t.Cards {
 		for j := range t.Cards[i].Abilities {
+			if a := &t.Cards[i].Abilities[j]; a.Kind == kop.AbTriggered && a.Trig.Event == kop.TrigSpellCast && a.Trig.Flags5&kop.Tf5CastNoColoredMana != 0 {
+				g.anyColSpent = true // trig_nocoloredmana.go: payment tallies spc; no planner decline (gorge's planner has none for it)
+			}
 			if a := &t.Cards[i].Abilities[j]; a.Kind == kop.AbTriggered && a.Trig.Event == kop.TrigSpellCast && a.Trig.Flags3&kop.Tf3CastConverge != 0 {
 				g.setFlag(CardID(i), gfSpendRd) // gorge triggeredConvergeReaderOut: the planner declines
 				g.anyCastSpent, g.anyColSpent = true, true

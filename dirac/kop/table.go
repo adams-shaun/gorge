@@ -196,6 +196,14 @@ type CardDef struct {
 	// zero mana; a kicked cast pays this through the cost stages (kernel
 	// kw_kicker.go).
 	KickerCost Cost
+	// Kicker2: part two of the two-alternative "and/or" Kicker (Forge's
+	// K:Kicker:<a>:<b>, printed "Kicker {a} and/or {b}", CR 702.33b;
+	// Stormscape/Wastescape/Thornscape Battlemage, Stronghold Arena,
+	// Archangel of Wrath, Urborg Lhurgoyf). Part one stays in Kicker; each
+	// part may be paid alone or both together (CR 601.2b), the kernel's
+	// per-alternative kicked casts (kw_kickalt.go). Kicker2 is never set
+	// without Kicker, and never beside Multikicker (kgen refuses it).
+	Kicker2 ManaCost
 	// Multikicker, HasMultikicker: K:Multikicker:<cost> (CR 702.43). The
 	// per-payment cost is paid any number of times as the spell is cast; a
 	// Multikicker card's kicked cast asks the count before X and targets
@@ -698,6 +706,15 @@ type CardDef struct {
 	// Exhale), no mana: the cast is offered only with a candidate and owes
 	// the behold (BeholdN/BeholdF) in its cost-pick stage (kw_mayflash.go).
 	MayFlashBehold bool
+	// HasOffering is printed K:Offering:<Type> (CR 702.48; no KwMask bit is
+	// free): the hand offers the offering cast (AkMayFlash on this card) at
+	// instant speed, beside the plain cast; it sacrifices a permanent of
+	// OfferingF and its cost is reduced by that permanent's mana cost,
+	// symbol by symbol (dirac/kw_offering.go).
+	HasOffering bool
+	// OfferingF is the offering's sacrifice filter (a battlefield permanent
+	// of the printed type its caster controls; HasOffering).
+	OfferingF FilterID
 	// FbBehold: the printed flashback cost carries Behold<N/Type> beside
 	// its mana (Kindle the Inner Flame): the printed flashback cast is
 	// offered only with BeholdN candidates and owes the behold (BeholdN/
@@ -937,6 +954,15 @@ type CardDef struct {
 	// replacement parameter; dirac/kgen textreach.go). Set only in a table
 	// that holds an ExtChangeText, so every other table is unchanged.
 	TextWords uint16
+	// CWUnmodelled is the colour words of TextWords (bits 0..4) the face reads
+	// on a surface the StatColorWords model does not rewrite: a target spec's
+	// filter and the printed Protection keywords are rewritten in place
+	// (dirac/static_colorwords.go); every other surface - the type line, the
+	// SVars, any other ability, trigger, static or replacement parameter -
+	// keeps the stall (display text is inert), so a face with a rewritten word there still stalls
+	// StallTextChange. Set only in a table that holds an ExtChangeText, so
+	// every other table is unchanged.
+	CWUnmodelled uint16
 	// FaceName is a token's or face entry's printed name (its script's
 	// Name: line, "Soldier Token"; lCard.printed): the table Name is the
 	// pool key (the script stem, "w_1_1_soldier"), and the legend rule

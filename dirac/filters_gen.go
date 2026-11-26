@@ -41,8 +41,16 @@ func (s *State) inSet(set *[maxRem]Obj, n uint8, o Obj) bool {
 // alternative of its chain) relative to a source controlled by ctrl at
 // slot src.
 func (s *State) matchPermGen(k *prep, f kop.FilterID, sl Slot, ctrl uint8, src Slot, layer uint8) bool {
+	return s.matchPermGenCw(k, f, sl, ctrl, src, layer, NoObj)
+}
+
+// matchPermGenCw is matchPermGen reading the filter chain as the face of the
+// object cwObj (protMatch's printed protection quality: the colour-word
+// statics rewrite the protected card's printed colour words, CR 612.5).
+// NoObj derives the face from src (cwTextObj).
+func (s *State) matchPermGenCw(k *prep, f kop.FilterID, sl Slot, ctrl uint8, src Slot, layer uint8, cwObj Obj) bool {
 	for f != 0 {
-		if s.matchPermOne(k, &k.t.Filters[f], sl, ctrl, src, layer) {
+		if s.matchPermOne(k, &k.t.Filters[f], sl, ctrl, src, layer, cwObj) {
 			return true
 		}
 		f = k.t.Filters[f].Or
@@ -50,7 +58,7 @@ func (s *State) matchPermGen(k *prep, f kop.FilterID, sl Slot, ctrl uint8, src S
 	return false
 }
 
-func (s *State) matchPermOne(k *prep, fl *kop.Filter, sl Slot, ctrl uint8, src Slot, layer uint8) bool {
+func (s *State) matchPermOne(k *prep, fl *kop.Filter, sl Slot, ctrl uint8, src Slot, layer uint8, cwObj Obj) bool {
 	p := &s.perms[sl]
 	switch fl.Ctrl {
 	case kop.CtrlYou:
@@ -121,7 +129,24 @@ func (s *State) matchPermOne(k *prep, fl *kop.Filter, sl Slot, ctrl uint8, src S
 	}
 	if fl.Colors != 0 || fl.NotColors != 0 {
 		c := s.colorsGen(k, sl)
-		if fl.Colors != 0 && c&fl.Colors == 0 || c&fl.NotColors != 0 {
+		cols, notCols := fl.Colors, fl.NotColors
+		if k.anyColorWords {
+			// the colour-word statics rewrite the source face's colour words
+			// (static_colorwords.go), so the clause's colour masks read as
+			// gorge's rewritten face has them; a read with no source slot
+			// and no explicit face is no face's own spec and reads unchanged
+			textObj := cwObj
+			if textObj == NoObj {
+				textObj = s.cwTextObj(k, src)
+				if textObj != NoObj {
+					// the read is the face of the object at src's own (a
+					// Continuous static's Affected$, an ability's spec)
+					ColorWordsStats.Filters.Add(1)
+				}
+			}
+			cols, notCols = s.cwMasks(k, textObj, cols, notCols)
+		}
+		if cols != 0 && c&cols == 0 || c&notCols != 0 {
 			return false
 		}
 	}
@@ -147,7 +172,7 @@ func (s *State) matchPermOne(k *prep, fl *kop.Filter, sl Slot, ctrl uint8, src S
 			return s.predAttached(sl, src)
 		}
 		if isAttackingYou(fl) {
-			return s.attackingYou(k, sl, ctrl) // filter_attackingyou.go
+			return s.attackingYou(k, sl, ctrl, fl.PredN) // filter_attackingyou.go
 		}
 		if fl.Pred == kop.PredProg {
 			c := s.permFctx(k, sl, ctrl, src, layer)
@@ -763,7 +788,8 @@ func (s *State) matchCardOneAt(k *prep, fl *kop.Filter, c CardID, owner, ctrl ui
 	if fl.Types != 0 && ty&fl.Types == 0 || ty&fl.NotTypes != 0 {
 		return false
 	}
-	if fl.Colors != 0 && cols&fl.Colors == 0 || cols&fl.NotColors != 0 {
+	acols, anotCols := s.cwFilterMasks(k, ctx, fl.Colors, fl.NotColors)
+	if acols != 0 && cols&acols == 0 || cols&anotCols != 0 {
 		return false
 	}
 	if fl.Sub != 0 && (fd || int(fl.Sub-1) >= len(k.t.Subtypes) || !cd.Subtypes.Has(int(fl.Sub-1))) {

@@ -8,6 +8,11 @@ import (
 
 // Cold code, out of line.
 
+// DebugAggGreatestMVPlusOne (test only, TestFourSeatPadeemGreatestMVLockstep):
+// the AggGreatestMV fold reads one past the true maximum (gorge zoneFold's
+// $GreatestCardManaCost), so a CMC == AggGreatestMV bound matches nothing.
+var DebugAggGreatestMVPlusOne bool
+
 // cardTypeBits are the CR 205.2a card types gorge's cardTypeWords counts on
 // a battlefield face (instant and sorcery cannot be there). It includes
 // Kindred (CR 308.3): gorge's cardTypeWords holds it, so the
@@ -29,8 +34,9 @@ func (s *State) validAgg(k *prep, x *kop.Expr, ctx evalCtx) int {
 	var col kop.ColorMask
 	var pows [MaxPerm]int // distinct powers seen (at most one per slot)
 	np := 0
-	var names [MaxPerm]CardID // distinct names seen (AggDistinctNames)
-	nn := 0
+	var names [MaxPerm]CardID // distinct names seen (AggDistinctNames, AggMostName)
+	var nameN [MaxPerm]int    // matches per seen name (AggMostName)
+	nn, most := 0, 0
 	var types kop.TypeMask // the matches' face card types (AggCardTypes)
 	var crSubs kop.SubMask // the matches' current creature types (AggCreatureTypes)
 	for m := s.occ; m.any(); m = m.rest() {
@@ -47,25 +53,34 @@ func (s *State) validAgg(k *prep, x *kop.Expr, ctx evalCtx) int {
 		case kop.AggGreatestMV, kop.AggSumMV:
 			if !s.faceDown(k, sl) && !s.cpxNoCost(k, sl) {
 				v = int(k.cards[s.cardAt(sl)].total)
+				if x.N == kop.AggGreatestMV && DebugAggGreatestMVPlusOne {
+					v++ // test-only mutation (Padeem's greatestCMC_Artifact bound)
+				}
 			} // else CR 708.2: a face-down permanent has no mana cost
 		case kop.AggColors:
 			if !s.faceDown(k, sl) { // CR 708.2: a face-down permanent is colourless
 				col |= s.colorsAt(k, sl) // CR 613.1e: the live colours (an Animate's SetColor), as gorge's ObjectColors reads
 			}
 			continue
-		case kop.AggDistinctNames:
-			// CR 201.2: gorge zoneFold seenDiffNames[o.Face().Name]
+		case kop.AggDistinctNames, kop.AggMostName:
+			// CR 201.2: gorge zoneFold seenDiffNames[o.Face().Name];
+			// AggMostName is gorge countMostCardName's per-name tally
 			nc := s.nameCardAt(sl)
-			dup := false
+			at := -1
 			for i := 0; i < nn; i++ {
 				if names[i] == nc {
-					dup = true
+					at = i
 					break
 				}
 			}
-			if !dup {
-				names[nn] = nc
+			if at < 0 {
+				at = nn
+				names[nn], nameN[nn] = nc, 0
 				nn++
+			}
+			nameN[at]++
+			if nameN[at] > most {
+				most = nameN[at]
 			}
 			continue
 		case kop.AggCardTypes:
@@ -93,6 +108,10 @@ func (s *State) validAgg(k *prep, x *kop.Expr, ctx evalCtx) int {
 			}
 			continue
 		case kop.AggSumCounters:
+			if x.Ctr == kop.CtrAll {
+				n += s.permCountersAll(sl) // gorge CardCounters.ALL (Object.Counter("ALL"))
+				continue
+			}
 			n += s.perms[sl].ctrN(s, int(x.Ctr)) // CR 122.1
 			continue
 		}
@@ -124,6 +143,8 @@ func (s *State) validAgg(k *prep, x *kop.Expr, ctx evalCtx) int {
 		return np
 	case kop.AggDistinctNames:
 		return nn
+	case kop.AggMostName:
+		return most
 	case kop.AggCardTypes:
 		return bits.OnesCount16(uint16(types & cardTypeBits))
 	case kop.AggCreatureTypes:

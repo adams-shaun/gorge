@@ -152,6 +152,7 @@ const (
 	AggSumCounters       = 11 // total of counter kind Expr.Ctr over the matches (CR 122.1)
 	AggPermTypes         = 12 // distinct permanent card types (artifact, battle, creature, enchantment, land, planeswalker) on the matches' faces (CR 110.4; ExGraveAgg only)
 	AggCreatureTypes     = 13 // distinct current creature types among the matches (CR 205.3m), every one for a Changeling
+	AggMostName          = 14 // the greatest number of matches sharing one card name (CR 201.2; gorge Count$MostCardName)
 )
 
 // Expr is a computed amount: Kind over its operands, then *Mul (0 = 1),
@@ -305,6 +306,12 @@ const (
 	// Trap's "an opponent had two or more creatures enter under their
 	// control"). Sub[0] is the bound, read once from the controller's side.
 	OppExtMemberExpr = 9
+	// OppExtRemCtrl: the members that control some object of the
+	// resolution's remembered set (a battlefield permanent's controller,
+	// else its owner), counted once each (gorge
+	// PlayerCountOpponents$HasPropertyIsRememberedOrController: Cut a Deal's
+	// "each opponent who drew a card this way", the drawn cards remembered)
+	OppExtRemCtrl = 10
 )
 
 // ExStepIn is 1 while the game's current step is one of the kop.Step bits

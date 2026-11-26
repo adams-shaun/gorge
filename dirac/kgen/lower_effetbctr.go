@@ -118,8 +118,13 @@ func (lc *lowerCtx) effectEtbCounters(ps *params) (bool, error) {
 			return false, refuse("Effect ETB-counters replacement body")
 		}
 	default:
-		// the widened shapes: a constant one counter and a self-exiling sub
-		if body["CounterNum"] != "1" || body["Sub"] != "" || body["SubAbility"] == "" || len(body) != 6 {
+		// the widened shapes: a constant counter count and a self-exiling
+		// sub (Worldheart Phoenix's CounterNum$ 2: "enters with two
+		// additional +1/+1 counters")
+		n := widenCounterNum(body["CounterNum"])
+		if n == 0 || (ct != "P1P1" && n != 1) || body["Sub"] != "" || body["SubAbility"] == "" || len(body) != 6 {
+			// a count above one is the +1/+1 counter shape only; the
+			// FINALITY counter is always one
 			return false, refuse("Effect ETB-counters replacement body")
 		}
 		if err := lc.etbCtrSelfExile(body["SubAbility"]); err != nil {
@@ -138,11 +143,30 @@ func (lc *lowerCtx) effectEtbCounters(ps *params) (bool, error) {
 		}
 		lc.emit(lInstr{Op: "EffEtbCounters", Obj: obj, A: x})
 	case ct == "P1P1":
-		lc.emit(lInstr{Op: "EffEtbCounters", Obj: obj, A: cst(1)})
+		lc.emit(lInstr{Op: "EffEtbCounters", Obj: obj, A: cst(widenCounterNum(body["CounterNum"]))})
 	default:
 		lc.emit(lInstr{Op: "EffFinalityCtr", Obj: obj})
 	}
 	return true, nil
+}
+
+// widenCounterNum reads a widened Effect body's constant CounterNum$ ("1",
+// Worldheart Phoenix's "2"): 0 when it is not a decimal count in 1..255.
+func widenCounterNum(s string) int {
+	if !isIntLit(s) {
+		return 0
+	}
+	n := 0
+	for i := 0; i < len(s); i++ {
+		n = n*10 + int(s[i]-'0')
+		if n > 255 {
+			return 0
+		}
+	}
+	if n == 0 {
+		return 0
+	}
+	return n
 }
 
 // etbCtrSelfExile verifies a widened body's SubAbility is the exact

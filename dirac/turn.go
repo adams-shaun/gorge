@@ -441,7 +441,7 @@ func (s *State) finishCleanup(k *prep) {
 		}
 		p.flags &^= pfDeathtouched | pfDtMore | pfRegen
 		p.eotP, p.eotT, p.eotKw, p.eotKwRep = 0, 0, 0, [2]kop.KwMask{}
-		p.spare &^= spareSwitchPT | spareRegenX // spare: the P/T switch (kw_kwmark.go); the copied-face-down mark stays (copy_facedown.go)
+		p.spare &^= spareSwitchPT | spareRegenX | spareToxic // spare: the P/T switch (kw_kwmark.go), granted toxic (kw_toxicgrant.go); the copied-face-down mark stays (copy_facedown.go)
 		if p.ovr.flags&ovSetPTEOT != 0 {
 			p.ovr.flags &^= ovSetPTEOT
 		}

@@ -10,7 +10,7 @@ import (
 // with no refusal. NonLegendary$ True names the shared RemoveLegendary
 // override in B (The Sixth Doctor, Jackal, Double Major, Storm of Saruman,
 // The Clone Saga's delayed trigger); Meletis Charlatan's Controller$
-// TargetedController sets C&4 on a target copy; Wild Ricochet's Defined$
+// TargetedController names the target controller in W on a target copy; Wild Ricochet's Defined$
 // Targeted copies its ChangeTargets slot; Chain of Acid's and Chain of Smog's
 // Optional$ Parent copy asks target 0's controller.
 func TestCopySpellSlice(t *testing.T) {
@@ -52,8 +52,8 @@ func TestCopySpellSlice(t *testing.T) {
 			t.Errorf("%s: C=%d, want a permanent-capable copy (C&2)", n, in.C)
 		}
 	}
-	if _, prog := copyOf("Meletis Charlatan"); prog[len(prog)-1].C&4 == 0 || prog[len(prog)-1].Obj.Kind != rTarget {
-		t.Errorf("Meletis Charlatan: %+v, want a target copy with C&4", prog[len(prog)-1])
+	if _, prog := copyOf("Meletis Charlatan"); prog[len(prog)-1].W.Kind != rTargetController || prog[len(prog)-1].Obj.Kind != rTarget {
+		t.Errorf("Meletis Charlatan: %+v, want a target copy with W the target controller", prog[len(prog)-1])
 	}
 	if ab, prog := copyOf("Wild Ricochet"); prog[len(prog)-1].Obj.Kind != rTarget || !ab.Targets[prog[len(prog)-1].Obj.N].Spell {
 		t.Errorf("Wild Ricochet: %+v, want a copy of the spell target", prog[len(prog)-1])

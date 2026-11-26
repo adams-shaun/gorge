@@ -1,0 +1,31 @@
+Abrade	4
+Arcane Signet	4
+Basilisk Collar	4
+Blasphemous Act	4
+Bonders' Enclave	4
+Breath Weapon	4
+Chain Reaction	4
+Chaos Warp	4
+Count on Luck	4
+Dragon Tempest	4
+Dragonlord's Servant	4
+Dragonspeaker Shaman	4
+Drakuseth, Maw of Flames	4
+Fire Diamond	4
+Forgotten Cave	4
+Hellkite Charger	4
+Lathliss, Dragon Queen	4
+Lightning Bolt	4
+Mana Geyser	4
+Mountain	4
+Orb of Dragonkind	4
+Outpost Siege	4
+Sarkhan, Dragon Ascendant	4
+Scourge of Valkas	4
+Sol Ring	4
+Swiftfoot Boots	4
+Taurean Mauler	4
+Terror of Mount Velus	4
+Thunderbreak Regent	4
+Tyrant's Familiar	4
+Utvara Hellkite	4

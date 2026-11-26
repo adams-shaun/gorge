@@ -350,6 +350,7 @@ func dumpLIR(w io.Writer, c *lCard) {
 			fmt.Fprintf(w, "+behold1%s", c.MayFlashBehold)
 		}
 	}
+	dumpOffering(w, c)
 	if c.FbBeholdN != 0 {
 		fmt.Fprintf(w, " fbbehold=%d%s", c.FbBeholdN, c.FbBeholdF)
 	}
@@ -622,6 +623,9 @@ func dumpStatics(w io.Writer, c *lCard) {
 		if s.Infect {
 			fmt.Fprintf(w, " infect")
 		}
+		if s.Toxic != 0 {
+			fmt.Fprintf(w, " toxic=%d", s.Toxic)
+		}
 		if s.OutlivesLoss {
 			fmt.Fprintf(w, " outlivesloss")
 		}
@@ -645,6 +649,9 @@ func dumpStatics(w io.Writer, c *lCard) {
 		}
 		if s.Kind == "MiracleGrant" {
 			fmt.Fprintf(w, " miraclecost=%s less=%d", s.Cost.Mana, s.CardCostLess)
+		}
+		if s.Kind == "MadnessGrant" {
+			fmt.Fprintf(w, " less=%d", s.CardCostLess)
 		}
 		if s.Kind == "WarpGrant" {
 			fmt.Fprintf(w, " warpcost=%s", s.Cost.Mana)
@@ -813,6 +820,13 @@ func nameCard(cards []*lCard, key string) *lCard {
 		}
 	}
 	return c
+}
+
+// dumpOffering prints a card's K:Offering filter in dumpLIR's CARD line.
+func dumpOffering(w io.Writer, c *lCard) {
+	if c.Offering != nil {
+		fmt.Fprintf(w, " offering%s", c.Offering)
+	}
 }
 
 // dumpHexQuality prints a card's hexproof-from-quality words in dumpLIR's CARD line.

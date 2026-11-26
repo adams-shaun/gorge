@@ -103,3 +103,24 @@ func TestHeadsGateSelectsWhenMixedWithUnrelatedPaths(t *testing.T) {
 		t.Error("heads_gate selected engine/events.go (a file outside engine/events/), want skip")
 	}
 }
+
+// already_passed reads a diff hash on stdin and selects (exit 0) iff a stamp of that name exists in
+// PRECHECK_STAMP_DIR: a clean merge of main leaves the branch's own diff, so its hash, unchanged and the checks are not
+// run again (11-26).
+func TestAlreadyPassedMatchesOnlyAStampedDiffHash(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("PRECHECK_STAMP_DIR", dir)
+	if err := os.WriteFile(filepath.Join(dir, "abc123"), nil, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	gate := scriptGate(t, "already_passed")
+	if !gate("abc123\n") {
+		t.Error("a stamped diff hash must select the skip")
+	}
+	if gate("def456\n") {
+		t.Error("an unstamped diff hash must run the checks")
+	}
+	if gate("\n") {
+		t.Error("an empty key must run the checks")
+	}
+}

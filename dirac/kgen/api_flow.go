@@ -86,6 +86,13 @@ func (lc *lowerCtx) apiCleanup(sa *cards.SA, ps *params) error {
 		ps.consume("ClearImprinted") // Ensign Pavel Chekov: the chosen set is the imprint (lower_repeatexilechoice.go)
 		lc.exileLandStage = 0
 	}
+	if !impCleared && !lc.digImprintSetLive() && lc.repeatGateImprinted() && ps.is("ClearImprinted", "True") {
+		// Eureka's per-pass clear, before the pass's imprint writer: the
+		// Repeat's check gate counts the set (lower_imprintzone.go)
+		if err := lc.openImprint("Cleanup ClearImprinted$"); err != nil {
+			return err
+		}
+	}
 	if !impCleared && (lc.digImprintSetLive() || lc.repeatImprintBody) && ps.is("ClearImprinted", "True") {
 		ps.consume("ClearImprinted") // the Dig's imprinted set (lower_digimprintset.go); or a RepeatDefined$ Imprinted body's per-pass clear before its Dig
 		lc.emit(lInstr{Op: "ClearImprinted"})
