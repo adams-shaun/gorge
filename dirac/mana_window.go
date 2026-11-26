@@ -4115,13 +4115,8 @@ func (s *State) abilityPlainMana(k *prep, e *stackEntry, cost kop.ManaCost, save
 // A granted cycling (kw_cyclinggrant.go) excludes nothing: gorge plans a
 // keyword-granted activation with no cast object (planKeywordAbility), so its
 // hand-demand key still counts the cycled card's pips.
-// handExcludeOn is off while gorge's ability witness plans without the hand
-// exclusion (hotfix/fl-oracle-5 backs out #4737's hand-demand key: the
-// lockstep diverged on TestTapExtraGrantedPrefixLockstep).
-const handExcludeOn = false
-
 func (s *State) abilityHandExclude(k *prep, e *stackEntry) Obj {
-	if handExcludeOn && e != nil && e.obj != NoObj && s.objs[e.obj].zone == kop.ZoneHand {
+	if e != nil && e.obj != NoObj && s.objs[e.obj].zone == kop.ZoneHand {
 		if k.anyCyclingGrant && isCyclingGrantBody(&k.t.Cards[e.card], int(e.ab)) {
 			return NoObj
 		}
@@ -4282,7 +4277,13 @@ func (s *State) committedPicks() bool {
 //
 //go:noinline
 func (s *State) abilityPlanSettles(k *prep, e *stackEntry, offer, fallback, settled kop.ManaCost, saved *[len(build{}.picks)]uint8) bool {
+	if dkPlanTrace != nil {
+		dkPlanTrace("settles offer=%v fb=%v settled=%v x=%d", offer, fallback, settled, int(e.x))
+	}
 	if offer.X != 0 {
+		if dkPlanTrace != nil {
+			dkPlanTrace("settles=false: offer has X")
+		}
 		return false
 	}
 	s.releaseCostTaps(k, saved)
@@ -4297,10 +4298,16 @@ func (s *State) abilityPlanSettles(k *prep, e *stackEntry, offer, fallback, sett
 	}
 	s.retakeCostTaps(saved)
 	if !armed {
+		if dkPlanTrace != nil {
+			dkPlanTrace("settles=false: not armed (offer found=%v needT=%d)", chk.found, int(chk.needT))
+		}
 		return false
 	}
 	chk = planner{dry: true, noGrant: true}
 	s.tapForPK(k, e.ctrl, &settled, int(e.x), exclude, false, false, &chk)
+	if dkPlanTrace != nil {
+		dkPlanTrace("settles=%v (settled found=%v needT=%d)", chk.found || chk.needT == 0, chk.found, int(chk.needT))
+	}
 	return chk.found || chk.needT == 0
 }
 

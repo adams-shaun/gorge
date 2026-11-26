@@ -1793,6 +1793,9 @@ func (s *State) planOrder(k *prep, p uint8, pk *planner, exclude Obj) (order [Ma
 
 func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 	order, no, rd := s.planOrder(k, p, pk, exclude)
+	if dkPlanTrace != nil {
+		dkPlanTrace("plan p=%d excl=%d no=%d order=%v ranks=%v", p, int(exclude), no, order[:no], s.orderRanks(k, order, no))
+	}
 	s.planHandDemand(k, p, pk, exclude)
 	if pk.maxN == 0 {
 		pk.maxN = 1
@@ -3140,4 +3143,16 @@ func (s *State) availPlainUnit(k *prep, sl Slot, pc *pcard, a *avail) {
 			}
 		}
 	}
+}
+
+// dkPlanTrace is the temporary scratch census trace; nil unless the test sets
+// it (scratch debug only; not for commit).
+var dkPlanTrace func(string, ...any)
+
+func (s *State) orderRanks(k *prep, order [MaxPerm]Slot, no int) []uint16 {
+	out := make([]uint16, 0, no)
+	for i := 0; i < no; i++ {
+		out = append(out, s.unitRank(order[i]))
+	}
+	return out
 }
