@@ -334,6 +334,12 @@ jobs:
           else
             git merge --abort; echo "::warning::conflicts with the current base; Mergify will report it"
           fi
+      - name: Functions grow only by their allowance
+        # The base-relative growth rule (cmd/funcgrowth): there are no per-function rows shared
+        # between pull requests. A pull request is measured against its base, a merge-queue batch
+        # against the batch's base, a main push against origin/main (an empty pull_request event
+        # falls through to it).
+        run: go run ./cmd/funcgrowth -base "${{ github.event.pull_request.base.sha || 'origin/main' }}"
       - name: FORGE_REF is in the Forge oracle driver
         # A FORGE_REF the driver (gorge-compliance develop's FORGE_ORACLE_REF) lacks fails forge-oracle-setup's pin
         # invariant on every xproof cycle (2026-11-25, 5bc5851a54). Only a diff that moves FORGE_REF calls the API.
