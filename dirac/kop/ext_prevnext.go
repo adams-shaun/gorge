@@ -58,6 +58,14 @@ const (
 	// PrevNextChosenTurn: every event from the source this turn, never spent
 	// (Prevent$ True with no body: Pay No Heed).
 	PrevNextChosenTurn = PrevNextRadiance
+	// PrevNextChosenSpell: the source is the spell on the stack the
+	// instruction's Obj names (a target slot), not the chosen set: "prevent all
+	// damage target instant or sorcery spell would deal this turn" (Dromoka's
+	// Command, an Effect that grants the spell "prevent all damage that would
+	// be dealt by CARDNAME" while it is on the stack). It rides with
+	// PrevNextChosenAny and PrevNextChosenTurn and matches the spell at its
+	// cast version only.
+	PrevNextChosenSpell = PrevNextDivided
 
 	// The remaining instruction bits are the multi-recipient and rider kinds
 	// (the record keeps a rider kind in genState.prevX, repl_prevx.go):

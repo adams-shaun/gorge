@@ -1533,6 +1533,7 @@ type lCard struct {
 	Teamwork       int      // printed K:Teamwork:<N> (CR 702.194, N 1..15), CardDef.Teamwork
 	ModesPickTW    int      // a Teamwork charm's CharmNum$ X over Count$Teamwork.<a>.<b>: <a> picks teamworked, <b> otherwise (CardDef.ModesPickTW)
 	ModesPickV     lValue   // a spell or triggered charm's CharmNum$ over Count$Compare or a branch head (constant arms): the pick count, evaluated as the modes are chosen, or a general count beside MinCharmNum$ 0 (CardDef.ModesPickV; lower_charmcmp.go)
+	ModesMinKicked bool     // MinCharmNum$ Count$Kicked.0.<ModesMinCount> beside the kicked CharmNum$ (CardDef.ModesMinKicked; lower_charmminkicked.go)
 	ModesMinCount  int      // a charm with no MinCharmNum$ over a two-arm count: its smaller arm, the offer gate's minimum (CardDef.ModesMinCount; lower_charmcmp.go)
 	TrigCharmFixed bool     // a triggered charm with a fixed pick count, which a ModesPickV would also reach in the kernel
 	DungeonNext    []uint8  // a dungeon entry's room arrows (CardDef.DungeonNext; lower_initiative.go)

@@ -1128,6 +1128,7 @@ PredWord7	Pred	241
 PrevNextAll	untyped int	2
 PrevNextChosen	untyped int	128
 PrevNextChosenAny	untyped int	512
+PrevNextChosenSpell	untyped int	2048
 PrevNextChosenTo	untyped int	256
 PrevNextChosenTurn	untyped int	1024
 PrevNextCombat	untyped int	1

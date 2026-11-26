@@ -327,6 +327,12 @@ type CardDef struct {
 	// offer gate's minimum, the unpaid arm (the gate reads an unseeded
 	// hand card), and the mode step's minimum is the evaluated cap.
 	ModesMinCount bool
+	// ModesMinKicked: the charm's MinCharmNum$ is Count$Kicked.0.<n> beside
+	// a Count$Kicked.<hi>.<n> CharmNum$ (Inscription of Abundance: "choose
+	// one; if kicked, choose any number instead"). The kicked cast's mode
+	// step needs no mode; the unkicked cast's minimum is ModesMinCount's, and
+	// Ability.ModesFew holds the offer gate's (unkicked) minimum.
+	ModesMinKicked bool
 	// DungeonNext: a dungeon card (CR 309; the Undercity
 	// token script), one entry per room in printed order, the room's
 	// ability Abilities[i] (latent); the entry packs its NextRoom$ arrows
