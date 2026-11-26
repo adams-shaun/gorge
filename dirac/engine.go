@@ -294,6 +294,11 @@ func (s *State) stepRaw(d *Decision) {
 			if s.sba(k) {
 				continue
 			}
+			// a Swirl-class colour-word static reads a rewritten word: stall before any
+			// trigger's targets are asked or a player acts (static_colorwords.go)
+			if k.anyColorWords && s.colorWordsStall(k) {
+				return
+			}
 			// the pass queued a returning Aura's host ask (queueAskRet):
 			// gorge asks it inside the pass, before the triggers and this
 			// priority (stepGen poses it)
