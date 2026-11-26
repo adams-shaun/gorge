@@ -11,6 +11,7 @@ import (
 	"github.com/adams-shaun/gorge/draft/event"
 	"github.com/adams-shaun/gorge/server/host"
 	"github.com/adams-shaun/gorge/server/protocol"
+	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
 // TestBo3CorruptLockedDeckBlocksEvent drives a bot-only Bo3 event whose
@@ -50,14 +51,14 @@ func TestBo3CorruptLockedDeckBlocksEvent(t *testing.T) {
 	// Precondition: the intercept fired — game 1 of (0,3) really ended.
 	select {
 	case <-corrupted:
-	case <-time.After(50 * time.Second):
+	case <-time.After(testutil.WaitBudget):
 		t.Fatal("round-1 (0,3) game 1 never ended; the corrupting intercept never fired")
 	}
 
 	// The event blocks loudly: the state carries the unreadable-deck
 	// error.
 	var stErr string
-	deadline := time.Now().Add(50 * time.Second)
+	deadline := time.Now().Add(testutil.WaitBudget)
 	for {
 		st, err := p.h.EventState(id, "")
 		if err != nil {

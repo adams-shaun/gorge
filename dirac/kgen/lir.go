@@ -44,6 +44,7 @@ const (
 	rTargetUnion                  // every target of the slots in bit mask N, in slot order (gorge's chain target union)
 	rRememberedController         // the remembered object's controller (its RememberLKI$ capture off the battlefield)
 	rDiscarded                    // the card a spell's Discard<1/...> cost discarded (Grab the Prize)
+	rChosenEnc                    // the object the spell's own CloseEncounter ChooseCard additional cost chose (RevealedCards$CardPower)
 	rLibTop                       // the top card of the controller's library (Defined$ TopOfLibrary)
 	rOppNonRemCtrl                // the opponent unless a remembered object's controller is that opponent (OppNonRememberedController)
 	rSrcOwner                     // the source object's owner (Defined$ CardOwner)
@@ -90,6 +91,7 @@ var refNames = [...]string{
 	rTargetUnion:          "Targets",
 	rRememberedController: "RememberedController",
 	rDiscarded:            "Discarded",
+	rChosenEnc:            "ChosenEnc",
 	rLibTop:               "LibTop",
 	rOppNonRemCtrl:        "OppNonRemCtrl",
 	rSrcOwner:             "SrcOwner",
@@ -800,6 +802,7 @@ type lCost struct {
 	SacHost        bool // sacrifice the granting host (Sac<1/OriginalHost>), or exile it when HostExile (Exile<1/OriginalHost>)
 	HostExile      bool // SacHost's part exiles the granting host (kop.CostHostExile; an activated ability's cost only)
 	SacHalf        bool // Sac<X/Spec> whose SVar X is Count$Valid Spec.YouCtrl/HalfUp: sacrifice half of those permanents, rounded up, counted at payment (kop.Cost.SacHalf; a spell's own additional cost; lower_raisecost.go)
+	CloseEnc       bool // the spell's own additional cost is Close Encounter's ChooseCard pick over two zones (kop.Cost.CloseEnc; a spell's own additional cost; lower_raisecost.go)
 	SacExile       bool // Sac/SacN's part is Exile<N/Spec> from the battlefield (kop.Cost.ExileBf; an activated ability's or a spell's additional cost only)
 	TapPowN        int  // tap any number of untapped creatures you control matching TapPowF with total power >= TapPowN (Crew, Saddle; lower_tappower.go)
 	TapPowF        *lFilter
@@ -861,7 +864,7 @@ func (c lCost) pureMana() bool {
 // pureManaTail is the rest of pureMana's conjunction: the token and library
 // parts a power-up cost (CR 702.193b) cannot carry beside its mana cost.
 func (c lCost) pureManaTail() bool {
-	return !c.PutLibSelf && c.BeholdN == 0 && c.BeholdF == nil && c.RevealN == 0 && c.RevealF == nil && c.MillN == 0
+	return !c.PutLibSelf && c.BeholdN == 0 && c.BeholdF == nil && c.RevealN == 0 && c.RevealF == nil && c.MillN == 0 && !c.CloseEnc
 }
 
 // manaCost is a printed mana cost.

@@ -28,6 +28,7 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8, tgt uint8) {
 		s.cold.mkObj[o] = 0 // a card cast again starts with no payments (CR 702.43; kw_multikicker.go)
 	}
 	s.clearPaidN(o)
+	s.clearKickAlt(o)
 	var fl uint8
 	if mode&1 != 0 { // seat-ok: a cast-mode bit
 		fl |= sfKicked
@@ -2854,6 +2855,9 @@ func (s *State) pickCostPayable(k *prep, p uint8, c *kop.Cost, exclude Obj) bool
 	}
 	if f&kop.CostTapX != 0 && s.countUntapped(k, p, c.Filter, NoSlot) < int(c.N) {
 		return false
+	}
+	if c.CloseEnc && s.chooseEncCands(k, p, nil) < 1 {
+		return false // the choose pick owes one candidate (cost_closeenc.go)
 	}
 	if f&kop.CostPayLife != 0 && int(s.pl[p].life) < lifeCostOwed(c) {
 		return false

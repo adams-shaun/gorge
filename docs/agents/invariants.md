@@ -178,9 +178,17 @@ commit. Adding an entry is a regression, and a branch cannot land one.
 **Code-shape ratchets fail on growth only.** `internal/codeshape` holds two kinds,
 run by every precheck (`scripts/test_targets.py` always selects the package):
 
-- `TestCodeShapeOnlyShrinks`: the constants in `ratchet_test.go` (interface
-  widths, `*Engine` surface, string-keyed dispatch and parameter leaks in
-  `engine/rules` and `engine/effects`).
+- `cmd/countgrowth`: a base-relative growth rule over the tree-wide count
+  metrics (interface widths, `*Engine` surface, string-keyed dispatch and
+  parameter leaks in `engine/rules` and `engine/effects`; the no-strings
+  counts of `engine/rules`, `engine/cards` and the bots). A metric at the
+  head may have grown by at most 2% of its value at the merge base
+  (`CountGrowthPercent`), with a floor of 3 units (`CountGrowthFloor`); a
+  metric absent at the merge base (a new scope, or a census that reached
+  zero) is held to the floor alone. The merge-base value is recomputed
+  there, never stored. `make lint` runs it against `origin/main` (local only, no CI step, as
+  for `cmd/funcgrowth`); there are no stored ceilings to share between
+  pull requests, so nothing races.
 - `cmd/funcgrowth` (local only since 11-26: `.githooks/pre-push` and `make lint`, no CI step): a base-relative growth rule over every non-test,
   non-generated function in `engine/rules`, `engine/effects` and `dirac/` (kgen
   included). A function over 300 lines (`LongFuncLines`) or cyclomatic
@@ -191,28 +199,24 @@ run by every precheck (`scripts/test_targets.py` always selects the package):
   allowance does not carry a function past it); a function at or below
   both thresholds is never checked, and shrinking always passes. Functions
   match by package directory, name and receiver, so a move keeps its history
-  and a rename starts fresh. `make lint` and ci.yml's lint job run it against
-  the pull request's base (`origin/main` otherwise), so a stacked Mergify
-  batch measures the merged tree against the batch's base; there are no
+  and a rename starts fresh. `make lint` and `.githooks/pre-push` run it against
+  `origin/main`; there are no
   per-function rows to share between pull requests, so nothing races.
 
-Each count ratchet has a slack (`internal/codeshape/slack.go`): a count may
-exceed its ceiling by max(2, 1%) (`Slack`; a zero ceiling stays exact). Growth
-within the slack passes with a logged WARNING; never raise a ceiling to
-absorb it.
-
-Shrinks only log, so concurrent refactors never fail on each other.
+Shrinking always passes, so concurrent refactors never fail on each other.
 
 A pull request that lowers a `ratchet_test.go` constant fails the
 lint job with "lowering is post-merge only": `cmd/checkratchet` compares the
 branch with its merge base. Lowering is post-merge only, so a lowering cannot
 race a branch that grows the same measurement into one queue batch.
+(`internal/codeshape`'s own ratchet tests and constants are gone — their
+metrics run under `cmd/countgrowth` — so `cmd/checkratchet` skips that
+directory; the other packages' ratchet tables stay guarded.)
 
 **A ratchet is never raised by a branch.** That covers the coverage tables above,
-the constants in `internal/codeshape`, the constants and
+the constants and
 allow-lists of `internal/archtest`, and `testkit/testutil/agentsdoc_test.go`.
-Review refuses a raised or deleted constant, an added allow-list entry, a removed
-or rewired `TestCodeShapeOnlyShrinks` row, or a new known-unsupported file. A raise is a maintainer's decision.
+Review refuses a raised or deleted constant, an added allow-list entry, or a new known-unsupported file. A raise is a maintainer's decision.
 
 ### 9. Golden chain heads move only with a named cause
 
