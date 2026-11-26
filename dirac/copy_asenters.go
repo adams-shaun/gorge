@@ -221,7 +221,13 @@ func (s *State) becomeCopyEnter(k *prep, sl Slot, in *kop.Instr) {
 		// stays (kgen lower_cloneentergrant.go; grantCardAt)
 		s.copyGrantPut(k, sl, cgrantRef{uint8(in.A.N), p.card}) // not twice: the template may carry it (a Pretender copying a Pretender copy)
 	}
-	if k.gen.anyCloneCopy {
+	if in.B.K == kop.VConst && in.B.N&kop.BecomeCopyEOT != 0 {
+		// Duration$ UntilEndOfTurn (Cursed Mirror): the copy is
+		// duration-bounded — the cleanup step (cloneCleanup) ends it, and no
+		// permanent marker is recorded beneath (nothing to re-base on: the
+		// permanent goes back to its printed card).
+		s.cloneEOTNote(sl, t, c, exc, s.tick())
+	} else if k.gen.anyCloneCopy {
 		s.clonePermNote(sl, t, c, exc, s.tick()) // the marker a later cleanup settle re-bases from
 		if in.A.K == kop.VConst {
 			s.clonePermGrant(sl, uint8(in.A.N))

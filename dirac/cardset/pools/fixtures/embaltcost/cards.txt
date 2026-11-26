@@ -1,0 +1,6 @@
+# the Effect-delivered alternative-cost pool: Marshland Bloodcaster's
+# pay-life grant among two creature decks (dirac/oracle/altcost_effect_test.go)
+Marshland Bloodcaster
+Grizzly Bears
+Swamp
+Forest

@@ -79,7 +79,7 @@ func (s *State) landwalkHitLinks(k *prep, f kop.FilterID, b, a, src Slot) bool {
 func (s *State) landwalkLinkHit(k *prep, link kop.FilterID, b, a, src Slot) bool {
 	for m := s.ctrlM[s.perms[b].ctrl]; m.any(); m = m.rest() {
 		sl := m.first()
-		if s.typesAt(k, sl)&kop.TLand != 0 && s.matchPermOne(k, &k.t.Filters[link], sl, s.perms[a].ctrl, src, layerFull) {
+		if s.typesAt(k, sl)&kop.TLand != 0 && s.matchPermOne(k, &k.t.Filters[link], sl, s.perms[a].ctrl, src, layerFull, NoObj) {
 			return true
 		}
 	}

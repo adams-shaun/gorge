@@ -139,6 +139,12 @@ func (lc *lowerCtx) effectStaticEOT(ps *params, ss []cards.Static) error {
 				sts[0].F2 = f
 			case "StackKw":
 				forget = f
+			case "AlternativeCost":
+				// the Effect-delivered alternative cost ends on the
+				// controller's next completed cast, whether or not it used
+				// the alternative (Marshland Bloodcaster; gorge
+				// effectCastSweep, kernel embFlashForget's em.Forget arm)
+				forget = f
 			case "ReduceCost":
 				// only an Affinity keyword grant (it carries the keyword): a plain
 				// Mode$ ReduceCost beside ForgetOnCast$ (Invasion of the Giants) is
@@ -375,6 +381,11 @@ func (lc *lowerCtx) effectEmblemStaticHost(s cards.Static, host bool) (lStatic, 
 		// damage step. ValidCard$ names the effect's source (rewritten to
 		// Self by effectSourceSelf, the host the emblem reads as its source).
 		keys = map[string]bool{"Mode": true, "ValidCard": true, "Description": true}
+	case "AlternativeCost":
+		// the Effect-delivered alternative cost (Marshland Bloodcaster's
+		// pay-life grant; lower_effectaltcost.go), returned here because its
+		// shape is not the card route's Spell.Self one staticBody lowers
+		return lc.effectAltCostStatic(s)
 	case "ReduceCost":
 		// gorge costStaticParamsReadableKeys
 		keys = map[string]bool{"Mode": true, "Type": true, "ValidCard": true, "ValidSA": true, "ValidPlayer": true, "ValidSpell": true, "ValidTarget": true, "Activator": true, "Caster": true, "Amount": true, "Cost": true, "Announce": true, "Color": true, "MinMana": true, "IgnoreGeneric": true, "RaiseTo": true, "OnlyFirstSpell": true, "IsPresent": true, "PresentZone": true, "PresentCompare": true, "CheckSVar": true, "SVarCompare": true, "CheckSecondSVar": true, "SecondSVarCompare": true, "Condition": true, "EffectZone": true, "AffectedZone": true, "Secondary": true, "Relative": true, "ClassBand": true, "UnlessValidTarget": true, "PlayerTurn": true, "Phases": true, "Description": true, "SpellDescription": true}
