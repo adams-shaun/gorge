@@ -399,6 +399,24 @@ func (s *State) FeatPoolPaysPlus(p uint8, o Obj, mode uint8, extra *[6]int32) bo
 // pool, {C} stays strict (gorge's offer gate mayPlayAffordable prices the
 // cast under the rider, CR 609.4b).
 func (s *State) featPoolPays(p uint8, o Obj, mode uint8, extra *[6]int32, anyColor bool) bool {
+	return s.featPoolPaysSel(p, o, mode, extra, anyColor, 0)
+}
+
+// FeatPoolPaysKickAlt is the two-alternative Kicker's selection sel
+// (kw_kickalt.go) under the pool-only offer gate: gorge poses the
+// per-alternative casts from its floating-pool walk gate alone
+// (legal_walk_hand.go's and/or branch, the hyp-nil offerCastable), and its
+// potential planner has no kicked1/kicked2/kickedboth row
+// (potential_plan.go's potentialModeBaseCostCodes), so no witness lowers
+// them either -- the offers are exactly the pool's.
+func (s *State) FeatPoolPaysKickAlt(p uint8, o Obj, sel uint8) bool {
+	return s.featPoolPaysSel(p, o, 1, nil, false, sel) // seat-ok: a cast-mode bit
+}
+
+// featPoolPaysSel is featPoolPays with a two-alternative Kicker selection
+// riding mode&1 (kw_kickalt.go): the selection's parts compose the additional
+// cost instead of kickPayment.
+func (s *State) featPoolPaysSel(p uint8, o Obj, mode uint8, extra *[6]int32, anyColor bool, kickSel uint8) bool {
 	k := s.k()
 	a := s.poolAvailPlus(p, extra)
 	c := s.objs[o].card
@@ -411,7 +429,13 @@ func (s *State) featPoolPays(p uint8, o Obj, mode uint8, extra *[6]int32, anyCol
 	} else if mode&2 != 0 {
 		cost = s.flashbackCostOf(k, o)
 	} else if mode&1 != 0 { // seat-ok: a cast-mode bit
-		cost = addCost(cost, s.kickPayment(k, SeatIx(p), c, o, s.objs[o].zone == kop.ZoneHand))
+		if kickSel != 0 {
+			// the two-alternative Kicker's selection: its parts are the
+			// additional cost (kickSelPayment's home)
+			cost = addCost(cost, kickSelPayment(&k.t.Cards[c], kickSel))
+		} else {
+			cost = addCost(cost, s.kickPayment(k, SeatIx(p), c, o, s.objs[o].zone == kop.ZoneHand))
+		}
 	}
 	if (mode == 0 || mode&8 != 0) && k.gen != nil && k.gen.anyConvoke {
 		cost = s.convokeCredit(k, SeatIx(p), c, o, cost) // a granted retrace cast convokes too (kw_retrace.go)
