@@ -331,13 +331,20 @@ func (s *State) fireEmblemsAttack(k *prep) {
 	}
 }
 
-// emblemAtkListeners calls f for each emblem trigger on the declaration's
+// emblemAtkListeners fires (fireAtkListener) each emblem trigger on the declaration's
 // combat events, as a listener of the emblem's owner (no source permanent):
 // the creating card's latent command-zone copy, queued with the emblem's own
 // object version after the card left (as fireEmblems does). It reaches the
 // per-attacker Attacks lines and the per-defender AttackersDeclared lines
 // (AttackedTarget$); a line with no defender is fireEmblemsAttack's.
-func (s *State) emblemAtkListeners(k *prep, f func(l trigListener, a *kop.Ability)) {
+//
+// An Attacks line of an emblem that remembers a target (kop.Emblem.Capture;
+// State.g.embN holds the object + 1: Maeve, Insidious Singer's "whenever that
+// creature attacks") is handed only the captured attacker of the event's
+// group, gorge's ValidCard$ Creature.IsRemembered over the registration's
+// Remembered set (kgen's emblemCaptureFilter strips the flag); a group
+// without it, or a lapsed capture, fires nothing.
+func (s *State) emblemAtkListeners(k *prep, grp, atk []Slot, first bool) {
 	if DebugIgnoreAtkEmblem {
 		return
 	}
@@ -349,13 +356,19 @@ func (s *State) emblemAtkListeners(k *prep, f func(l trigListener, a *kop.Abilit
 				if ea.Kind != kop.AbTriggered || ea.Trig.Event != kop.TrigAttacks && !(ea.Trig.Event == kop.TrigAttackersDeclared && ea.Trig.Flags2&kop.Tf2DefPlayer != 0) {
 					continue
 				}
+				g := grp
+				if e.Capture != kop.RefNone && ea.Trig.Event == kop.TrigAttacks {
+					if g = s.embCapturedAttacker(pp, i, grp); g == nil {
+						continue
+					}
+				}
 				c := s.embCard(pp, i)
 				cd := &k.t.Cards[c]
 				for ab := range cd.Abilities {
 					la := &cd.Abilities[ab]
 					if la.Kind == kop.AbTriggered && la.AFlags&kop.AfLatent != 0 && la.Trig.Event == ea.Trig.Event && la.Trig.Zone == kop.ZoneCommand {
 						n0 := s.npend
-						f(trigListener{obj: s.embObj(pp, i), sl: NoSlot, ctrl: pp, card: c, ab: uint8(ab)}, la)
+						s.fireAtkListener(k, trigListener{obj: s.embObj(pp, i), sl: NoSlot, ctrl: pp, card: c, ab: uint8(ab)}, la, g, atk, first)
 						for x := n0; x < s.npend; x++ {
 							s.pend[x].srcVer++ // the emblem's creator left its zone: the entry carries the version after it
 						}
@@ -365,6 +378,19 @@ func (s *State) emblemAtkListeners(k *prep, f func(l trigListener, a *kop.Abilit
 			}
 		}
 	}
+}
+
+// embCapturedAttacker is the one-attacker slice of grp holding player p's
+// emblem i's captured object, nil when the group does not hold it (or the
+// capture lapsed: embNum 0 names no object).
+func (s *State) embCapturedAttacker(p uint8, i int, grp []Slot) []Slot {
+	n := s.embNum(p, i)
+	for x, as := range grp {
+		if n != 0 && n == objWord(s.perms[as].obj)+1 {
+			return grp[x : x+1]
+		}
+	}
+	return nil
 }
 
 // DebugIgnoreAtkEmblem makes the per-attacker and per-defender emblem hooks
