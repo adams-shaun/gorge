@@ -560,8 +560,7 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 	case kop.OpDigEx:
 		return s.startDig(k, in), true
 	case kop.OpDigUntil:
-		s.res.left = 0 // the parked-tail marker (zone_parkedtail.go)
-		return s.execDigUntil(k, in, false), true
+		return s.startDigUntil(k, in), true
 	case kop.OpPeek:
 		return s.execPeek(k, in) // act_peekreveal.go
 	case kop.OpGrantKeyword:
