@@ -162,7 +162,36 @@ type refusedSearch struct {
 	card, pool string
 	played     int
 	found      int
-	clean      *cleanGame
+	cleans     []cleanGame // the last clean games played, candidates for the proof
+	clean      *cleanGame  // the candidate that replays clean on its own cards' table (nil: none did)
+}
+
+// cleanCandidates bounds refusedSearch.cleans: the games kept to try as the unrefusal's proof.
+const cleanCandidates = 6
+
+// proofRepro is the game recorded as an unrefusal's proof: NewRepro's recording, pooled
+// "one-off" as the unrefusal proofs are (TestReproGlobMatchesTable wants a pool), and marked
+// Stall when the game ended at a declared kernel stall.
+func (c *cleanGame) proofRepro(card string) *Repro {
+	r := NewRepro(c.m, c.seed, c.rc, c.res)
+	r.Pool = "one-off"
+	r.Stall = strings.HasPrefix(c.res.Stall, KernelStallPrefix)
+	r.Why = card + " plays clean: recorded by regen-main as its unrefusal's proof"
+	return r
+}
+
+// provenClean is the first candidate (latest first) whose recording replays clean on a raw
+// table of its own cards, the replay TestUnrefusalNeedsProof runs: a game that was clean on
+// the search's pool table can diverge there. nil when none does.
+func provenClean(t *testing.T, card string, cands []cleanGame) *cleanGame {
+	t.Helper()
+	for i := len(cands) - 1; i >= 0; i-- {
+		res, _, err := replayOnOwnCards(t, cands[i].proofRepro(card))
+		if err == nil && res.Clean() {
+			return &cands[i]
+		}
+	}
+	return nil
 }
 
 // runConfig is the config every search game runs under.
@@ -325,8 +354,14 @@ func checkRefusedEntry(t *testing.T, e *cardset.RefusedEntry) {
 			break
 		}
 		if sp.res.Clean() {
-			s.clean = &cleanGame{res: sp.res, m: sp.m, seed: p.Seed, rc: r.runConfig()}
+			s.cleans = append(s.cleans, cleanGame{res: sp.res, m: sp.m, seed: p.Seed, rc: r.runConfig()})
+			if len(s.cleans) > cleanCandidates {
+				s.cleans = s.cleans[1:]
+			}
 		}
+	}
+	if s.found < 0 && os.Getenv("DIRAC_PIN_STRICT") != "1" && os.Getenv("DIRAC_UNREFUSE_STALE") != "" {
+		s.clean = provenClean(t, s.card, s.cleans)
 	}
 	staleMsg := fmt.Sprintf("stale: %d pairs of %s with %s dealt in and none implicates it. %s", s.played, s.pool, s.card, staleRemedy)
 	warnBase := fmt.Sprintf("WARNING: %s no longer diverges (%d pairs of %s)", s.card, s.played, s.pool)
@@ -366,36 +401,18 @@ func checkRefusedRepro(t *testing.T, e *cardset.RefusedEntry) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	m, err := r.Matchup(synthReg(t))
+	res, m, err := replayOnOwnCards(t, r)
 	if err != nil {
 		t.Fatal(err)
 	}
-	set := cardset.Raw(printedDelveSet(t, r.Cards))
-	entries := func(names []string) []cardset.Entry {
-		es := make([]cardset.Entry, len(names))
-		for i, n := range names {
-			es[i] = cardset.Entry{Name: n, Count: 1}
-		}
-		return es
-	}
-	tbl, _, _, err := set.Matchup(entries(r.Cards[0]), entries(r.Cards[1]))
-	if err != nil {
-		t.Fatal(err)
-	}
-	rc := r.RunConfig()
-	rc.MaxDecisions = len(r.Actions) + 200
-	k, err := SetSide(set, tbl, rc.Config)(m, r.Seed)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer CloseSide(k)
-	res := Lockstep(m, r.Seed, k, &ScriptPolicy{Actions: r.Actions}, rc)
 	if gameImplicates(&res, m, e.Card) {
 		return
 	}
-	// A stale recorded game has no pool to search, so it records nothing: the repro it
-	// sits beside is already the proof an unrefusal names.
+	// A stale recorded game has no pool to search: its own replay, clean, is the candidate.
 	s := refusedSearch{card: e.Card, pool: "custom", played: 1, found: -1}
+	if res.Clean() && os.Getenv("DIRAC_PIN_STRICT") != "1" && os.Getenv("DIRAC_UNREFUSE_STALE") != "" {
+		s.clean = provenClean(t, e.Card, []cleanGame{{res: &res, m: m, seed: r.Seed, rc: r.RunConfig()}})
+	}
 	staleMsg := fmt.Sprintf("stale: %s's recorded game %s no longer diverges with it implicated. %s", e.Card, e.Repro.File, staleRemedy)
 	warnBase := fmt.Sprintf("WARNING: %s no longer diverges (its recorded game %s)", e.Card, e.Repro.File)
 	failed, warn := staleVerdict(s, staleMsg, warnBase, os.Getenv("DIRAC_PIN_STRICT") == "1", os.Getenv("DIRAC_UNREFUSE_STALE"))
@@ -426,8 +443,11 @@ func staleVerdict(s refusedSearch, staleMsg, warnBase string, strict bool, stale
 		return staleMsg, ""
 	}
 	warn = warnBase + ": scripts/regen-main.sh unrefuses it"
-	if staleDir == "" || s.clean == nil {
+	if staleDir == "" {
 		return "", warn
+	}
+	if s.clean == nil {
+		return "", warnBase + ": no game that replays clean on its own cards' table was found to record as its proof, so scripts/regen-main.sh cannot unrefuse it; the nightly (DIRAC_PIN_STRICT=1) stays red until it is unrefused by hand"
 	}
 	if err := writeStaleUnrefuse(staleDir, s); err != nil {
 		warn += " (recording the stale game failed: " + err.Error() + ")"
@@ -440,7 +460,7 @@ func staleVerdict(s refusedSearch, staleMsg, warnBase string, strict bool, stale
 // the pairs played, the pool searched).
 func writeStaleUnrefuse(dir string, s refusedSearch) error {
 	slug := cardset.SupportSlug(s.card)
-	r := NewRepro(s.clean.m, s.clean.seed, s.clean.rc, s.clean.res)
+	r := s.clean.proofRepro(s.card)
 	if err := r.Write(filepath.Join(dir, slug+".repro.json")); err != nil {
 		return err
 	}

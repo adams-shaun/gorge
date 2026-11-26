@@ -33,9 +33,13 @@ source scripts/pr-cards.sh
 # the unrefusals (kgen -unrefuse, the proof row, the recorded repro). It runs before the pins'
 # regen, so the support page and the strict check see the post-unrefuse records.
 stale=$(mktemp -d)
-"${cap[@]}" env DIRAC_UNREFUSE_STALE="$stale" go test -timeout 20m -run '^TestRefusedEntriesStillDiverge$' ./dirac/oracle ||
-  { rm -rf "$stale"; echo "regen-main: TestRefusedEntriesStillDiverge failed"; exit 1; }
-scripts/unrefuse-stale.sh "$stale" || { rm -rf "$stale"; echo "regen-main: unrefuse-stale failed"; exit 1; }
+# A failed or timed-out refused test must not halt the pins' regen (the bot's other job): it
+# unrefuses nothing, and the pins go on.
+if "${cap[@]}" env DIRAC_UNREFUSE_STALE="$stale" go test -timeout 20m -run '^TestRefusedEntriesStillDiverge$' ./dirac/oracle; then
+  scripts/unrefuse-stale.sh "$stale" || { rm -rf "$stale"; echo "regen-main: unrefuse-stale failed"; exit 1; }
+else
+  echo "regen-main: TestRefusedEntriesStillDiverge failed; unrefusing nothing this run"
+fi
 rm -rf "$stale"
 "${cap[@]}" env KGEN_REPIN=1 go test -timeout 5m -run "$pins" ./dirac/kgen >/dev/null 2>&1
 "${cap[@]}" env DIRAC_UPDATE_SUPPORT=1 go test -timeout 5m -run '^TestSupportDocIsCurrent$' ./dirac/kgen >/dev/null 2>&1

@@ -83,6 +83,14 @@ func TestStaleRefusalWarnsOutsideStrict(t *testing.T) {
 		if r.Format != reproFormat {
 			t.Fatalf("repro format %q, want %q", r.Format, reproFormat)
 		}
+		// The file lands in testdata/repro, where TestReproGlobMatchesTable wants a pool and a
+		// surface of every recording and the stall flag to say what the replay ends in.
+		if r.Pool != "one-off" || r.Surface != "full" || r.Stall {
+			t.Fatalf("repro pool %q surface %q stall %v, want one-off, full, false", r.Pool, r.Surface, r.Stall)
+		}
+		if _, err := ReadRepro(filepath.Join(dir, cardset.SupportSlug(card)+".repro.json")); err != nil {
+			t.Fatal(err)
+		}
 		rows, err := os.ReadFile(filepath.Join(dir, "stale.tsv"))
 		if err != nil {
 			t.Fatal(err)
@@ -91,4 +99,52 @@ func TestStaleRefusalWarnsOutsideStrict(t *testing.T) {
 			t.Fatalf("stale.tsv = %q, want %q", rows, want)
 		}
 	})
+
+	t.Run("a declared kernel stall marks the recorded game", func(t *testing.T) {
+		c := cleanGame{res: &Result{Stall: KernelStallPrefix + "capacity"}, m: &Matchup{}, rc: RunConfig{}}
+		if r := c.proofRepro(card); !r.Stall || r.Pool != "one-off" {
+			t.Fatalf("proofRepro: stall %v pool %q, want true, one-off", r.Stall, r.Pool)
+		}
+	})
+
+	t.Run("stale with no proven game warns that nothing was recorded", func(t *testing.T) {
+		dir := t.TempDir()
+		failed, warn := staleVerdict(s, staleMsg, warnBase, false, dir)
+		if failed != "" {
+			t.Fatalf("failed %q", failed)
+		}
+		if !strings.Contains(warn, "cannot unrefuse it") || strings.Contains(warn, "regen-main.sh unrefuses it") {
+			t.Fatalf("warn = %q, want the no-proof warning", warn)
+		}
+		if es, err := os.ReadDir(dir); err != nil || len(es) != 0 {
+			t.Fatalf("recorded %v (%v) with no proven game", es, err)
+		}
+	})
+}
+
+// TestProvenCleanReplaysTheRecordingOnItsOwnCards: provenClean keeps a game only when its
+// recording (as the bot would write it) replays clean on its own cards' table, the replay
+// TestUnrefusalNeedsProof runs. The game is a recorded unrefusal proof replayed from its
+// script, so its result, matchup and seed are a real clean game's.
+func TestProvenCleanReplaysTheRecordingOnItsOwnCards(t *testing.T) {
+	const proof = "ancient_cornucopia_card_flags_after_its_cast"
+	r, err := ReadRepro(filepath.Join("testdata", "repro", proof+".repro.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	res, m, err := replayOnOwnCards(t, r)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !res.Clean() || len(res.Actions) == 0 {
+		t.Fatalf("precondition: the recorded proof replays clean with actions, got clean %v, %d actions", res.Clean(), len(res.Actions))
+	}
+	c := cleanGame{res: &res, m: m, seed: r.Seed, rc: r.RunConfig()}
+	got := provenClean(t, "Ancient Cornucopia", []cleanGame{c})
+	if got == nil {
+		t.Fatal("provenClean dropped a game whose recording replays clean")
+	}
+	if got.seed != r.Seed {
+		t.Fatalf("provenClean returned seed %d, want %d", got.seed, r.Seed)
+	}
 }
