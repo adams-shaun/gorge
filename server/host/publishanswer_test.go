@@ -32,6 +32,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/view"
 	"github.com/adams-shaun/gorge/server/protocol"
+	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
 func TestPublishedDecisionIsAnswerableTheMomentItPublishes(t *testing.T) {
@@ -127,7 +128,7 @@ func TestPublishedDecisionIsAnswerableTheMomentItPublishes(t *testing.T) {
 	// defect: a rejected human answer wedges the match. Detect the bug as soon
 	// as a submission is refused; otherwise wait for the match to finish, then
 	// assert it finished cleanly and was not vacuous.
-	deadline := time.Now().Add(90 * time.Second)
+	deadline := time.Now().Add(testutil.WaitBudget)
 	var ms []protocol.MatchInfo
 	for {
 		mu.Lock()

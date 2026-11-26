@@ -53,7 +53,7 @@ func TestDefaultSpectatorPrivacyOnHumanTable(t *testing.T) {
 // seats, so the request never races the table starting.
 func spectatorView(t *testing.T, url string) view.View {
 	t.Helper()
-	deadline := time.Now().Add(30 * time.Second)
+	deadline := time.Now().Add(testutil.WaitBudget)
 	for {
 		resp, err := http.Get(url + "/api/tables/t1/matches/1/view")
 		if err == nil {
