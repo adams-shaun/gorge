@@ -25,12 +25,14 @@ import (
 const supportNode = "support"
 
 // A pod evidence row's seats field (Name\t<seats>) tells a pod game from a
-// two-seat one. A three-seat row is report only: it feeds podEvidenced, the
-// support page's column. A four-seat row evidences the card (OD-4 stage 2): a
-// Commander-legal card's own key that a two-seat game never reaches, such as
-// Command Tower's colour-identity mana, is credited from a clean four-seat game
-// exactly as a two-seat game's key is. The evidence writer applies the protected
-// oracle.EvidencePodMinPlays clean-game floor before it writes a row.
+// two-seat one. The reading is seat-exact: it takes the seats field as written,
+// so it holds at any seat count. A three-seat row is report only: it feeds
+// podEvidenced, the support page's column. A four-seat row evidences the card
+// (OD-4 stage 2): a Commander-legal card's own key that a two-seat game never
+// reaches, such as Command Tower's colour-identity mana, is credited from a
+// clean four-seat game exactly as a two-seat game's key is. The evidence writer
+// applies the protected oracle.EvidencePodMinPlays clean-game floor before it
+// writes a row.
 const (
 	podReportSeats = 3 // a clean pod game the support page reports
 	podCreditSeats = 4 // a clean pod game that evidences the card
