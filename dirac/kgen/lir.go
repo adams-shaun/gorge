@@ -1094,7 +1094,8 @@ type lAbility struct {
 	Reduce          *lValue // ReduceCost$: the generic reduction of an activated ability's own cost (lower_ownreduce.go)
 	ActCond         lCond   // CheckSVar$/SVarCompare$: activate only if (CR 602.5b)
 	Targets         []lTarget
-	Modes           int // charm: number of modes to choose from
+	Modes           int  // charm: number of modes to choose from
+	GenericChoice   bool // a triggered api:GenericChoice charm: each mode opens with its UnlessCost$ (kop.AfCharmTrigger)
 	// charm: CharmNum$ (the most picks) and MinCharmNum$ (default: the most)
 	ModesPick, ModesMin int
 	RepMax, RepCost     [4]uint8 // charm CanRepeatModes$ (lower_charmrepeat.go): the most each mode is chosen, its pawprint price

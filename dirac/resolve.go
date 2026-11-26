@@ -305,8 +305,8 @@ func (s *State) resolveTop(k *prep) {
 			s.ctl = ctlResolve
 			return
 		}
-		if e.kind == seAbility && a.NModes != 0 && s.modalActAsk(k, a) {
-			return // the modes are chosen as it resolves (modal_activated.go)
+		if (e.kind == seAbility || e.kind == seTrigger && a.AFlags&kop.AfCharmTrigger != 0) && a.NModes != 0 && s.modalActAsk(k, a) {
+			return // the modes are chosen as it resolves (modal_activated.go; a marked trigger kept unasked at placement: modal_unless.go)
 		}
 	}
 	s.runProg(k)
