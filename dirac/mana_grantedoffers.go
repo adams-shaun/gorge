@@ -3536,6 +3536,12 @@ func (s *State) grantPlayCostRaise(k *prep, p uint8, a Action, kicked bool) (cos
 			// the composed cost (pair 8638)
 			c := s.objs[a.Source()].card
 			kp := s.kickPayment(k, SeatIx(p), c, Obj(a.Source()), true)
+			if sel := s.kickAltActionSel(a); sel != 0 {
+				// the two-alternative Kicker's selection is the additional
+				// cost alone: part one only for sel 1, part two only for
+				// sel 2 (kickSelPayment's home; kw_kickalt.go)
+				kp = kickSelPayment(&k.t.Cards[c], sel)
+			}
 			if DebugGrantKickNoMulti && k.t.Cards[c].HasMultikicker {
 				kp = k.t.Cards[c].Kicker // the mutation switch: a Multikicker play priced at its base alone
 			}

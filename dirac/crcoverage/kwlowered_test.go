@@ -131,7 +131,7 @@ var loweredKeywordRule = map[string]string{
 	// the expandedKeywords and kwHandlers heads
 	"Affinity": "702.41", "Afterlife": "702.135", "Annihilator": "702.86",
 	"Afflict": "702.130", "Backup": "702.165", "Battle cry": "702.91",
-	"Bushido": "702.45", "Blitz": "702.152", "Champion": "702.72", "Conspire": "702.78",
+	"Bushido": "702.45", "Blitz": "702.152", "Champion": "702.72", "Cipher": "702.99", "Conspire": "702.78",
 	"Cumulative upkeep": "702.24", "Demonstrate": "702.144", "Disturb": "702.146",
 	"Echo": "702.30", "Embalm": "702.128", "Enlist": "702.154",
 	"Eternalize": "702.129", "Exalted": "702.83", "Fabricate": "702.123",

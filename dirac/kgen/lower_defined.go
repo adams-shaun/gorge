@@ -293,8 +293,17 @@ func (lc *lowerCtx) definedValid(sa *cards.SA, ps *params) (done bool, err error
 			return true, refuse("Animate over Defined$ %q: Colors$ ChosenColor", d)
 		}
 		in := lInstr{Op: "OverrideAll", F: f, CS: dur, Note: overrideString(o)}
-		lc.out.overrides = append(lc.out.overrides, o)
-		in.C = len(lc.out.overrides) - 1
+		if o.CwWord {
+			// a word-list Colors$ reads the frozen colour-word colour at
+			// resolution (kop.OvCwWord): the printed row plus one per colour
+			in.CS = dur + "|cwWord"
+			in.C = lc.cwWordRows(o)
+			first := *lc.out.overrides[in.C]
+			in.Note = overrideString(&first)
+		} else {
+			lc.out.overrides = append(lc.out.overrides, o)
+			in.C = len(lc.out.overrides) - 1
+		}
 		lc.emit(in)
 	case "CopyPermanent":
 		// (Multiversal Incursion) gorge's Defined arm

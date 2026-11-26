@@ -1,0 +1,6 @@
+family: ExtOp
+name: ExtCipherEncode
+value: next
+status: active
+ticket: cli-20261125T204845Z-6d6533fe
+doc: The resolving Cipher spell's tail (CR 702.99a; gorge cipherTailFor appends DB$ Cipher as the chain's last instruction, effCipher): no operands. A spell card (not a copy) still on the stack asks its controller to encode it on a creature they control (raGenCipher, ChGenCipher: the creatures in battlefield order, then Done; gorge's KModes Min 0 Max 1, posed with one creature too, none asking nothing). A pick exiles the card from the stack and records the link (osEncoded, the creature at its ver). dirac/kw_cipher.go.

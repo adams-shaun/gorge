@@ -767,6 +767,13 @@ func (cb *cardBuilder) record() error {
 				return err
 			}
 		}
+		if c.Kicker2 != nil {
+			// the two-alternative "and/or" Kicker's part two (CR 702.33b;
+			// lower_kickercost.go): always beside a set Kicker
+			if d.Kicker2, err = manaCostOf(*c.Kicker2); err != nil {
+				return err
+			}
+		}
 	}
 	if c.Multikicker != nil {
 		if err := cb.repeated(d, c); err != nil { // lower_squadreplicate.go
@@ -2499,8 +2506,9 @@ var exprKinds = map[valKind]kop.ExprKind{
 	vRememberedCount: kop.ExRememberedCount, vExcessDamage: kop.ExExcessDamage, vLastLifeLost: kop.ExLastLifeLost,
 	vTokensCreated: kop.ExTokensCreated, vLifeLostThisTurn: kop.ExLifeLostThisTurn, vSum: kop.ExSum,
 	vHandSizeOf: kop.ExHandSizeOf, vCountExile: kop.ExCountExile, vExileTypes: kop.ExCountExile, vOppsLostLife: kop.ExOppsLostLife, vMVOf: kop.ExMVOf, vNotOwnLibMV: kop.ExNotOwnLibMV, vRemEachOwnNonLand: kop.ExRemEachOwnNonLand,
-	vCountAtLeast: kop.ExCountAtLeast,
-	vPromisedGift: kop.ExPromisedGift, vResolvedThisTurn: kop.ExResolvedThisTurn,
+	vCountAtLeast:      kop.ExCountAtLeast,
+	vDelayedExileCount: kop.ExDelayedExileCount,
+	vPromisedGift:      kop.ExPromisedGift, vResolvedThisTurn: kop.ExResolvedThisTurn,
 	vThisTurnCast: kop.ExThisTurnCast,
 	vRollResult:   kop.ExRollResult, vCastManaSpent: kop.ExCastManaSpent, vConverge: kop.ExConverge,
 	vCompare: kop.ExCompare, vBranches: kop.ExBranches,
@@ -2908,6 +2916,46 @@ func (cb *cardBuilder) chosenColorOverridesOK(first int) error {
 		}
 		if o.SetColors != col {
 			return fmt.Errorf("chosen-colour override %d has SetColors %#x, want %#x", first+i, o.SetColors, col)
+		}
+	}
+	return nil
+}
+
+// cwWordOverridesOK asserts the word-list contract: the six records from
+// first are consecutive; the first is the printed colours and records 1..5
+// are identical to it apart from the one colour field, one colour each W, U,
+// B, R, G in that order, so the kernel's frozen-colour pick first + 1 +
+// colour names the colour's record (static_colorwords.go ovCwRow).
+func (cb *cardBuilder) cwWordOverridesOK(first int) error {
+	if first+6 > len(cb.pt.overrides) {
+		return fmt.Errorf("cw-word override: %d records from %d", len(cb.pt.overrides)-first, first)
+	}
+	base := cb.pt.overrides[first]
+	isSet := base.HasColors
+	if isSet {
+		if base.SetColors == 0 {
+			return fmt.Errorf("cw-word override %d: the printed row sets no colour", first)
+		}
+	} else if base.AddColors == 0 {
+		return fmt.Errorf("cw-word override %d: the printed row adds no colour", first)
+	}
+	want := [5]kop.ColorMask{kop.ColW, kop.ColU, kop.ColB, kop.ColR, kop.ColG}
+	for i, col := range want {
+		o := cb.pt.overrides[first+1+i]
+		cmp, bcmp := o, base
+		if isSet {
+			cmp.SetColors, bcmp.SetColors = 0, 0
+			if o.SetColors != col {
+				return fmt.Errorf("cw-word override %d has SetColors %#x, want %#x", first+1+i, o.SetColors, col)
+			}
+		} else {
+			cmp.AddColors, bcmp.AddColors = 0, 0
+			if o.AddColors != col {
+				return fmt.Errorf("cw-word override %d has AddColors %#x, want %#x", first+1+i, o.AddColors, col)
+			}
+		}
+		if cmp != bcmp {
+			return fmt.Errorf("cw-word override %d differs beyond its colour", first+1+i)
 		}
 	}
 	return nil
