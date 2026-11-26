@@ -533,6 +533,18 @@ const StMayZeroAlt = StTargetsFilter2
 // (StReduceAny, StBanOpp, StHandOpp) are gated on their own kinds.
 const StMayPayEnergy = StRaiseOpp
 
+// StMayPayEvidence: on a StatMayPlayFrom only, the non-granting alternative's
+// cost is Static.A evidence (MayPlayAltManaCost$ CollectEvidence<N>; Conspiracy
+// Unraveler's "You may collect evidence 10 rather than pay the mana cost for
+// spells that you cast", CR 701.59a/118.9), the flag cast_mayzeroalt.go's hand
+// and may-play alternative offers gate and the build's bsEvidence stage asks.
+// It aliases StPanhETB, a Panharmonicon-only bit: StPanhETB's one runtime
+// reader is gated on Kind == StatPanharmonicon (trig_doubling.go), StRaiseLife
+// (its other MayPlayFrom-era alias) on Kind == StatIncreaseCost
+// (cost_raise.go, cost_raiselife.go, cost_raisetgt.go, cost_reducespell.go),
+// so no reader ever sees the bit on a StatMayPlayFrom static.
+const StMayPayEvidence = StPanhETB
+
 // StatDisableETB: S:Mode$ DisableTriggers | ValidMode$
 // ChangesZone[,ChangesZoneAll] | Destination$ Battlefield (CR 603.2g; gorge
 // disableTriggersExcludes). Filter = ValidCause$, matched against the

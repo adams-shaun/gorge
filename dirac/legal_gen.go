@@ -503,6 +503,9 @@ func (s *State) castFlagsGenTgt(k *prep, o Obj, mode, tgt uint8) {
 			if zst.a.Static.StFlags&kop.StMayPayEnergy != 0 {
 				s.bld().payEnergy = uint8(zst.a.Static.A) // the alternative's cost is the static's energy (Nissa, Worldsoul Speaker)
 			}
+			if zst.a.Static.StFlags&kop.StMayPayEvidence != 0 {
+				s.bld().payEvidence = uint8(zst.a.Static.A) // the alternative's cost is the static's evidence (Conspiracy Unraveler)
+			}
 		}
 	}
 	// a permission record is spent; a once-per-turn static is marked
