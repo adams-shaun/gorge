@@ -6,9 +6,11 @@ package events
 import (
 	"encoding/base64"
 	"encoding/binary"
+	"encoding/json"
 	"strconv"
 	"strings"
 
+	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
@@ -1413,11 +1415,30 @@ const (
 	// ReverseTurnOrder, above NumKinds, so every earlier ordinal, hash chain
 	// and golden replay is unchanged.
 	TokenBlocks
+	// ColorWordsSync keeps a CR 612.5 colour-word change in step with the
+	// live Continuous statics that derive it (Swirl the Mists' "All
+	// instances of color words in the text of spells and permanents become
+	// the chosen color word"): Text carries the JSON encoding of the
+	// []cards.TextSub the object's STATIC-marked text substitutions become
+	// -- the empty payload retracts them. It replaces only the
+	// Static-marked subs, so a resolving api:ChangeText's own substitution
+	// on the same object is never lost; the fold appends after them, in
+	// list order. TextChange's own fold is unchanged, so every earlier
+	// ordinal, hash chain and golden replay is unchanged.
+	ColorWordsSync
 	// NumKinds is the explicit upper bound for the append-only event kind
 	// registry below. New kinds must be appended above this line: inserting or
 	// reordering a kind renumbers the hash-chained event stream and breaks replay.
-	NumKinds = int(TokenBlocks) + 1
+	NumKinds = int(ColorWordsSync) + 1
 )
+
+// ColorWordsSyncText is ColorWordsSync's payload encoding: the JSON of the
+// []cards.TextSub the object's static-derived text substitutions become
+// (events.ColorWordsSync).
+func ColorWordsSyncText(subs []cards.TextSub) string {
+	b, _ := json.Marshal(subs) // a plain slice of small structs: never fails
+	return string(b)
+}
 
 // AbilityResolved's Amount bits: the resolved ability is a triggered one, a
 // Saga chapter ability, the final chapter's, and a crew ability.
