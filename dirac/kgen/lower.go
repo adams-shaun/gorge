@@ -179,6 +179,7 @@ type lowerCtx struct {
 	blind          *blindDig // a blind face-down Dig whose Effect lowers next (lower_blinddig.go)
 	grantInner     []lStatic // a station self grant's inner statics, emitted after the outer static (lower_stationgrant.go)
 	station        bool      // the face prints K:Station (lower_station.go)
+	readAhead      bool      // the face prints K:Read ahead (lower_readahead.go)
 	revealOK       bool      // the cost being read is a spell's AlternateAdditionalCost first part: Reveal<1/Spec> may lower (kernel act_revealpick.go)
 	beholdOK       bool      // the cost being read is a spell's AlternateAdditionalCost first part or a MayFlashCost extra: Behold<N/Type> may lower (kernel act_behold.go)
 	unblockedOK    bool      // the filter being read is K:Ninjutsu's Return cost: "unblocked" may lower (lower_ninjutsu.go)
@@ -378,6 +379,10 @@ type lowerCtx struct {
 	// announced life part) may lower on a spell or an
 	// activated ability (actCost) and nowhere else
 	lifeXSpell bool
+	// blightXOK while a spell's own RaiseCost Cost$ is retried for an announced
+	// Blight<X> (raiseSelfAdditional, lower_blightx.go); every other cost
+	// refuses a variable Blight
+	blightXOK bool
 	// prevColor while a mid-resolution ChooseColor waits for its
 	// prevent-the-chosen-colour Effect (Prismatic Strands)
 	prevColor bool
@@ -611,6 +616,9 @@ func (lc *lowerCtx) lowerLines(origin, perm bool) {
 func (lc *lowerCtx) lowerTail() {
 	if lc.station {
 		lc.guard("K:Station", lc.lowerStation)
+	}
+	if lc.readAhead {
+		lc.guard("K:Read ahead", lc.lowerReadAhead)
 	}
 	lc.lowerGift()
 	lc.refuseCrossAbilityRemembered()
@@ -1480,11 +1488,9 @@ func (lc *lowerCtx) lowerKeywords() {
 			// lore counter, gated at its chapter number (kw_saga.go)
 			lc.lowerChapters(param)
 		case head == "Read ahead":
-			// CR 714.3b: gorge implements it since (the lore-count
-			// choice on entry; chapters below it do not trigger that turn),
-			// but the kernel has no entry choice for it yet; refuse rather
-			// than silently drop a keyword with rules meaning
-			lc.refuseNode(node, "read ahead (CR 714.3b): the kernel has no lore-count entry choice")
+			// CR 702.155 / 714.3b: the as-enters chapter choice, lowered once
+			// the Chapter count is known (lowerTail, lower_readahead.go)
+			lc.readAhead = true
 		case head == "Station":
 			// rules-side in gorge (rules/station.go); appended after the
 			// face's own abilities (lowerFace, lower_station.go). The older
@@ -2585,6 +2591,10 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 			if len(parts) != 1 {
 				return c, refuse("blight cost %q", t)
 			}
+			if parts[0] == "X" && lc.blightXOK && c.BlightN == 0 && !c.BlightX {
+				c.BlightX = true // the announced count (lower_blightx.go)
+				continue
+			}
 			n, err := strconv.Atoi(parts[0])
 			if err != nil {
 				return c, refuse("blight cost %q: a variable amount", t)
@@ -3388,6 +3398,7 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 		if err := lc.spellWindow(ps, ab); err != nil { // lower_actwindow.go
 			return err
 		}
+		lc.blightXBody(sa, ps) // XMax$ of a Blight<X> raise (lower_blightx.go)
 		if lc.out.Types&tLegendary != 0 && lc.out.Types&(tInstant|tSorcery) != 0 {
 			// CR 205.4e: a legendary instant or sorcery is cast only while
 			// its caster controls a legendary creature or planeswalker

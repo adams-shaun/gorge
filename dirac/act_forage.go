@@ -314,7 +314,7 @@ func (s *State) payBlightPicks(k *prep) {
 			DebugCostBlightStats.Abilities.Add(1)
 		}
 	}
-	n := int(pc.N)
+	n := blightXOwed(pc, int(s.bld().e.x)) // Blight<X>: the announced X (cost_blightx.go)
 	for i := 0; i < int(s.bld().pickN); i++ {
 		if s.bld().pickKs[i] != pkBlight {
 			continue
