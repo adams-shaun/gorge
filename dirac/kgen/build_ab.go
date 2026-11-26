@@ -2401,7 +2401,14 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		if ka.Cost, err = cb.cost(s.Cost); err != nil {
 			return ka, nil, err
 		}
-		if ka.Cost.Flags&(kop.CostForage|kop.CostExileGrave) != 0 && !cb.altHandExileOK(&ka.Cost) {
+		// the zone the static is offered from (kernel prepAltFree's one
+		// home of the hand walk's exclusion, offerAltFreeHand, and the
+		// graveyard walk's arm, offerGraveyardAltCasts): 0 (battlefield)
+		// for the EffectZone$ All and EffectZone$-less statics, which
+		// read no zone today; ZoneGraveyard for the explicit-Graveyard
+		// one
+		st.Zone = zoneMap[s.Zone]
+		if ka.Cost.Flags&(kop.CostForage|kop.CostExileGrave) != 0 && !cb.altHandExileOK(&ka.Cost) && !altGraveExileShape(&ka.Cost) {
 			if altHandExileShape(&ka.Cost) {
 				// the hand-exile shape lowers (the Force cycle); the card
 				// carries no alternative-cost cast (altSacOK: a spell
@@ -2412,9 +2419,10 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 			return ka, nil, fmt.Errorf("alternative cost with a forage / exile-from-graveyard part")
 		}
 		// a sacrifice (alone or with life), a return, a hand exile, a
-		// discard, life alone or taps: the kernel's altPickCost picks, now
-		// with the mana part beside them too (a Borderpost's {1} plus a
-		// Return, Sephara's {W} plus taps; prepAltFree)
+		// graveyard exile, a discard, life alone or taps: the kernel's
+		// altPickCost picks, now with the mana part beside them too (a
+		// Borderpost's {1} plus a Return, Sephara's {W} plus taps, Squee's
+		// {3}{R}; prepAltFree)
 		sacAlt := altPickShape(&ka.Cost) && cb.altSacOK(&ka.Cost)
 		if !sacAlt && (ka.Cost.Flags != 0 || ka.Cost.N != 0 || ka.Cost.Mana.X != 0) {
 			// the kernel offers a mana-only alternative cost
