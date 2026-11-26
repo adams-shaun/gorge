@@ -38,7 +38,7 @@ go run ./cmd/pkgmap > docs/site/architecture/_generated_packages.md
 | `scripts/` | contributor and CI helpers: CI sharding, smokes, the wire matrix, enginebench, the docs renderers | TOOL |
 | `docs/` | design docs, decisions, this site, and a guide for AI coding agents | SUPP |
 | `.githooks/` | opt-in git hooks: the package-classification check, the `RACE=1` race gate on a push to main | TOOL |
-| `.github/` | the workflows (`ci`, `oracle`, `coverage`, `docs`, `demo-image`, `queue-cancel`) and the PR template | TOOL |
+| `.github/` | the workflows (`ci`, `oracle`, `coverage`, `docs`, `demo-image`, `daily-image`, `queue-cancel`) and the PR template | TOOL |
 
 Machine learning, private experiments and the compliance oracles are not in this repository:
 [the three repositories](../repos/index.md).
