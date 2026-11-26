@@ -343,6 +343,7 @@ func refSubs(pt *poolTables, d *kop.CardDef, ovVals []kop.ValueRef) []uint8 {
 	filt(d.AltAddCost.Filter)
 	filt(d.KickerCost.Filter)
 	filt(d.BeholdF)
+	filt(d.OfferingF) // the offering's sacrifice filter (kw_offering.go)
 	filt(d.RevealF)
 	filt(d.MorphPick.Filter) // the turn-up pick's candidates (CardDef.MorphPick)
 	filt(d.WardSac)
