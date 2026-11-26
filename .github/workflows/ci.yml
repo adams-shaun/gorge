@@ -348,8 +348,26 @@ jobs:
         run: |
           out=$(gofmt -l $(find . \( -name node_modules -o -name .worktrees \) -prune -o -type f -name '*.go' -print))
           if [ -n "$out" ]; then echo "gofmt: files need formatting:"; echo "$out"; exit 1; fi
-      - name: go vet
+      - name: go vet ./... (batches, main and the nightly)
+        if: github.event_name != 'pull_request' || startsWith(github.head_ref, 'mergify/merge-queue/')
         run: go vet ./...
+      - name: go vet the diff's affected packages
+        # A pull request vets the selection scripts/ci-fast.sh tests (test-targets.sh list: the changed packages and
+        # every package whose tests import them; 3-8 s, and it needs no corpus — `list` execs the selector before the
+        # preflight) instead of the whole tree. A vet finding needs a source change in the package it fires in, so
+        # anything this diff can turn red is in that set, and the queue batch's lint — this same job on
+        # mergify/merge-queue/* — still runs `go vet ./...` on the merged tree before anything lands. Measured 11-26:
+        # vet ./... spent 58 s of a 94 s lint PR job recompiling the whole tree beside the concurrent fast job's
+        # compile of the same packages. A diff that selects no package (docs, workflows) vets nothing here; the batch
+        # covers the tree.
+        if: github.event_name == 'pull_request' && !startsWith(github.head_ref, 'mergify/merge-queue/')
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+        run: |
+          pkgs=$(awk -F'\t' '{print $2}' <<<"$(bash scripts/test-targets.sh list)" | sort -u)
+          if [ -z "$pkgs" ]; then echo "vet: the diff selects no package; the batch's go vet ./... covers the tree"; exit 0; fi
+          # shellcheck disable=SC2086
+          go vet $pkgs
       - name: generated types are current
         run: go run ./cmd/gentypes -check
       - name: A fresh clone builds, and dirac's tests skip without a corpus
