@@ -135,10 +135,11 @@ func offeredList(opts []Canon) string {
 	return "[" + b.String() + "]"
 }
 
-// skipAction counts action i (a) as skipped, or fails the replay when the
-// script does not allow skips.
+// skipAction counts action i (a) as skipped, or fails the replay under
+// FailOnSkip. The failure text names the action's index, its canonical value
+// and label, the decision's Seq and the offered options.
 func (s *ScriptPolicy) skipAction(c *PickCtx, i int, a Canon, label string, labelled bool) {
-	if !s.AllowSkips {
+	if s.FailOnSkip {
 		l := ""
 		if labelled {
 			l = fmt.Sprintf(" (label %q)", label)

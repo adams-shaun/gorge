@@ -52,7 +52,9 @@ func globSet(t *testing.T, pool string, r *Repro) cardset.Set {
 // recorded actions, then FirstPolicy.
 func replayDecodedRes(t *testing.T, reg *cards.Registry, set cardset.Set, r *Repro) Result {
 	t.Helper()
-	return replayDecodedScript(t, reg, set, r, r.Script())
+	pol := r.Script()
+	pol.FailOnSkip = false // its callers read the divergence, not the skips
+	return replayDecodedScript(t, reg, set, r, pol)
 }
 
 // replayDecodedScript is replayReproValue over an already-decoded repro, on
@@ -347,8 +349,8 @@ func stdReproOtherSurface(t *testing.T, name, recorded, other string) {
 	}
 	r.Surface = other
 	// The other surface offers a different payment set, so a scripted action it
-	// does not offer is expected here, not drift.
-	res := replayDecodedScript(t, synthReg(t), globSet(t, r.Pool, r), r, &ScriptPolicy{Actions: r.Actions, AllowSkips: true})
+	// does not offer is expected here, not drift: the zero-value policy skips.
+	res := replayDecodedScript(t, synthReg(t), globSet(t, r.Pool, r), r, &ScriptPolicy{Actions: r.Actions})
 	if res.Div != nil {
 		t.Fatalf("divergence at %d of %d: %s %s %v", res.Div.At, len(r.Actions), res.Div.What, res.Div.Field, res.Div.Diff)
 	}

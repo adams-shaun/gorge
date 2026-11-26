@@ -56,8 +56,9 @@ func TestScriptPolicyLabelMismatchFails(t *testing.T) {
 			t.Errorf("failure %q does not name %q", fail, want)
 		}
 	}
-	// The int names no offered option, as the Horn repro's flipped pick.
-	s = &ScriptPolicy{Actions: []Canon{Canon(0x9ffe013b)}, Labels: []ActionLabel{{At: 0, Label: "Soldier"}}}
+	// The int names no offered option, as the Horn repro's flipped pick: a skip,
+	// which fails under FailOnSkip (Repro.Script).
+	s = &ScriptPolicy{Actions: []Canon{Canon(0x9ffe013b)}, Labels: []ActionLabel{{At: 0, Label: "Soldier"}}, FailOnSkip: true}
 	if _, fail = labelPick(s, elf, soldier, goblin); !strings.Contains(fail, `"Soldier"`) || !strings.Contains(fail, elf.String()) {
 		t.Errorf("failure %q does not name the label and the offered options", fail)
 	}
@@ -75,22 +76,48 @@ func TestScriptPolicyLabelMismatchFails(t *testing.T) {
 
 func TestScriptPolicyLabelSkippedFails(t *testing.T) {
 	soldier, elf := labelChoose(t, "Soldier"), labelChoose(t, "Elf")
-	s := &ScriptPolicy{Actions: []Canon{soldier}}
-	_, fail := labelPick(s, elf)
-	if !strings.Contains(fail, "allow_skips") || !strings.Contains(fail, elf.String()) {
-		t.Fatalf("failure %q, want the skip refused naming the offered options", fail)
-	}
-	s = &ScriptPolicy{Actions: []Canon{soldier}, AllowSkips: true}
-	if pick, fail := labelPick(s, elf); fail != "" || s.Skipped != 1 || pick != elf {
-		t.Fatalf("opted in: pick %v fail %q skipped %d, want the skip counted and the tail's pick", pick, fail, s.Skipped)
-	}
-	// The repro's field is the opt-in.
+	// A repro's own script fails on a skipped action, naming the action, the
+	// decision's Seq, the scripted canon and the offered options.
 	var r Repro
-	if err := json.Unmarshal([]byte(`{"actions":[`+fmt.Sprint(uint64(soldier))+`],"allow_skips":true}`), &r); err != nil {
+	if err := json.Unmarshal([]byte(`{"actions":[`+fmt.Sprint(uint64(soldier))+`]}`), &r); err != nil {
 		t.Fatal(err)
 	}
-	if !r.Script().AllowSkips {
-		t.Fatal("Repro.AllowSkips did not reach its ScriptPolicy")
+	_, fail := labelPick(r.Script(), elf)
+	for _, want := range []string{"action 0", "decision 7", soldier.String(), "allow_skips", "offered: [" + elf.String() + "]"} {
+		if !strings.Contains(fail, want) {
+			t.Errorf("failure %q does not name %q", fail, want)
+		}
+	}
+	// The repro's field is the opt-in: the skip is counted and the tail plays.
+	var ok Repro
+	if err := json.Unmarshal([]byte(`{"actions":[`+fmt.Sprint(uint64(soldier))+`],"allow_skips":true}`), &ok); err != nil {
+		t.Fatal(err)
+	}
+	s := ok.Script()
+	if pick, fail := labelPick(s, elf); fail != "" || s.Skipped != 1 || pick != elf || s.firstSkipAt != 7 {
+		t.Fatalf("opted in: pick %v fail %q skipped %d, want the skip counted and the tail's pick", pick, fail, s.Skipped)
+	}
+}
+
+// TestScriptPolicyLabelZeroValueSkips pins what the hand-built
+// &ScriptPolicy{Actions: ...} literals across the oracle tests rely on: the
+// zero value skips an action the decision does not offer and counts it.
+func TestScriptPolicyLabelZeroValueSkips(t *testing.T) {
+	soldier, elf := labelChoose(t, "Soldier"), labelChoose(t, "Elf")
+	s := &ScriptPolicy{Actions: []Canon{soldier}}
+	if pick, fail := labelPick(s, elf); fail != "" || s.Skipped != 1 || s.firstSkipAt != 7 || pick != elf {
+		t.Fatalf("zero value: pick %v fail %q skipped %d first at %d, want the skip counted and the tail's pick", pick, fail, s.Skipped, s.firstSkipAt)
+	}
+	// FailOnSkip is the opt-in to failing; a label that names no offered option
+	// is a skip like any other.
+	s = &ScriptPolicy{Actions: []Canon{soldier}, Labels: []ActionLabel{{At: 0, Label: "Soldier"}}, FailOnSkip: true}
+	if _, fail := labelPick(s, elf); !strings.Contains(fail, `"Soldier"`) || !strings.Contains(fail, "decision 7") {
+		t.Errorf("FailOnSkip: failure %q does not name the label and the decision", fail)
+	}
+	// A label mismatch fails whatever FailOnSkip says.
+	s = &ScriptPolicy{Actions: []Canon{elf}, Labels: []ActionLabel{{At: 0, Label: "Soldier"}}}
+	if _, fail := labelPick(s, elf, soldier); !strings.Contains(fail, "stale") {
+		t.Errorf("zero value with a mismatched label: failure %q, want the stale pick refused", fail)
 	}
 }
 

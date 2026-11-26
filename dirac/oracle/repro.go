@@ -297,18 +297,22 @@ func ReadRepro(path string) (*Repro, error) {
 }
 
 // ScriptPolicy serves actions in order, then plays tail (nil: FirstPolicy). An
-// action the decision does not offer is a skip: it fails the replay (Pick
-// panics, which Lockstep reports as a policy divergence) unless AllowSkips, and
-// otherwise counts in Skipped, with firstSkipAt the canonical Seq of the first
-// one (readable when Skipped>0). A labelled action (Labels, Repro.Labels) must
-// also name the word its label does; Remap serves the label's option instead.
+// action the decision does not offer is a skip: it counts in Skipped, with
+// firstSkipAt the canonical Seq of the first one (readable when Skipped>0), and
+// the replay goes on; with FailOnSkip it fails instead (Pick panics, which
+// Lockstep reports as a policy divergence). The zero value skips, as every
+// hand-built literal expects; Repro.Script sets FailOnSkip unless the repro
+// opts in (allow_skips). A labelled action (Labels, Repro.Labels) must also
+// name the word its label does, whatever FailOnSkip says; Remap serves the
+// label's option instead.
 type ScriptPolicy struct {
 	Actions []Canon
 	Labels  []ActionLabel
 	Tail    Policy
-	// AllowSkips lets a scripted action the decision does not offer be skipped
-	// (Repro.AllowSkips); a shrink probe sets it.
-	AllowSkips bool
+	// FailOnSkip fails the replay on a scripted action the decision does not
+	// offer, instead of skipping it (Repro.Script sets it unless the repro sets
+	// AllowSkips; a shrink probe opts in).
+	FailOnSkip bool
 	// Remap serves the option a label names where the recorded int differs
 	// (kfuzz -remap), so Result.Actions is the repro with its ints rewritten.
 	Remap       bool
@@ -343,9 +347,10 @@ func (s *ScriptPolicy) Pick(c *PickCtx) Canon {
 	return s.Tail.Pick(c)
 }
 
-// Script is the repro's scripted policy: its actions, labels and skip opt-in.
+// Script is the repro's scripted policy: its actions and labels, failing on a
+// skipped action unless the repro opts in (AllowSkips).
 func (r *Repro) Script() *ScriptPolicy {
-	return &ScriptPolicy{Actions: r.Actions, Labels: r.Labels, AllowSkips: r.AllowSkips}
+	return &ScriptPolicy{Actions: r.Actions, Labels: r.Labels, FailOnSkip: !r.AllowSkips}
 }
 
 // Exhausted reports whether every scripted action has been served or skipped.
