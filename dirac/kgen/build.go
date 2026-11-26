@@ -767,6 +767,13 @@ func (cb *cardBuilder) record() error {
 				return err
 			}
 		}
+		if c.Kicker2 != nil {
+			// the two-alternative "and/or" Kicker's part two (CR 702.33b;
+			// lower_kickercost.go): always beside a set Kicker
+			if d.Kicker2, err = manaCostOf(*c.Kicker2); err != nil {
+				return err
+			}
+		}
 	}
 	if c.Multikicker != nil {
 		if err := cb.repeated(d, c); err != nil { // lower_squadreplicate.go

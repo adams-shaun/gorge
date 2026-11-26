@@ -55,6 +55,7 @@ const (
 	ActCastCasualty                   // src = card, mode = alt<<4: the casualty cast (CR 702.153a; gorge's cast Mode "casualty")
 	ActCastImpended                   // src = card, mode = alt<<4: the impending cast (CR 702.176a; gorge's cast Mode "impended"; castModes is full)
 	ActCastAirbend                    // src = card: an airbent card cast from exile for {2} (CR 701.65a; gorge's cast Mode "airbend_cast"; castModes and the face routes are full)
+	ActCastKickedAlt                  // src = card, mode = sel | alt<<4: the two-alternative Kicker's per-alternative cast, sel 1/2/3 (CR 702.33b; gorge's cast Mode "kicked1"/"kicked2"/"kickedboth"; castModes is full)
 	ActChoose        CanonKind = 32   // + choose kind: a KChoose option
 )
 
@@ -100,6 +101,30 @@ var castModes = []string{"", "kicked", "flashback", "mayplay", "surged", "miracl
 // table fills the nibble, so it shares "offspring"'s code: CastModeCode
 // reports false for an unlisted mode and its callers drop it.
 const CastModeOther = 15
+
+// kickedAltModes is the two-alternative Kicker's per-alternative cast modes
+// (CR 702.33b; gorge legal_walk_hand.go's offers; kernel kw_kickalt.go),
+// indexed by the selector the ActCastKickedAlt mode's low nibble carries.
+var kickedAltModes = []string{"", "kicked1", "kicked2", "kickedboth"}
+
+// KickedAltSelector is the ActCastKickedAlt selector of one of
+// kickedAltModes' words, 0 for any other mode.
+func KickedAltSelector(mode string) uint8 {
+	for i, m := range kickedAltModes {
+		if m == mode {
+			return uint8(i)
+		}
+	}
+	return 0
+}
+
+// KickedAltMode is the Option.Mode the selector stands for.
+func KickedAltMode(sel uint8) string {
+	if int(sel) < len(kickedAltModes) {
+		return kickedAltModes[sel]
+	}
+	return ""
+}
 
 func CastModeCode(mode string) (uint8, bool) {
 	for i, m := range castModes {
