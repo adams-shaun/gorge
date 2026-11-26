@@ -32,10 +32,10 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 | WOE | 281 | 267 | 0 | 3 | 264 | 264 | 0 |
 | MBC | 2212 | 2040 | 3 | 44 | 1993 | 1993 | 0 |
 | CMM | 737 | 621 | 2 | 31 | 588 | 588 | 0 |
-| MH3 | 308 | 234 | 1 | 8 | 225 | 225 | 0 |
+| MH3 | 308 | 235 | 1 | 9 | 225 | 225 | 0 |
 | MH2 | 309 | 263 | 0 | 9 | 254 | 254 | 0 |
-| CM2 | 279 | 239 | 0 | 4 | 235 | 235 | 0 |
-| ALL | 34480 | 26844 | 42 | 931 | 25871 | 25868 | 0 |
+| CM2 | 279 | 240 | 0 | 5 | 235 | 235 | 0 |
+| ALL | 34480 | 26847 | 42 | 934 | 25871 | 25868 | 0 |
 
 `ALL` is the whole corpus; `MBC` is the Mystery Booster Commander draft pool, every name its packs deal that gorge supports; `CMM`, `MH3`, `MH2` and `CM2` are Commander Masters, Modern Horizons 3 and 2 and Commander Anthology Volume II, from gorge-compliance's XMage manifests; the rest are the Standard sets. `4-seat` counts the supported cards whose lowering holds at any seat count: a card whose lowering reads the one opponent of a two-player game (`kop.CardDef.TwoSeat`) is refused in a game of three or more seats (`StallTwoSeat`). It is a ceiling, not evidence. `pod-evidenced` counts those cards whose evidence row carries a seats field — a clean game of three or more seats, which `kfuzz -evidence -seats 4` writes and `scripts/dirac-first-refusals.py evidence --pools pod-*` copies into `dirac/support/evidence` (`Name\t<seats>`; readers take the name and ignore trailing columns). A pod game does not evidence a card: the support rule below is unchanged.
 
