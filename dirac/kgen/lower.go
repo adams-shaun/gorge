@@ -146,6 +146,10 @@ type lowerCtx struct {
 	// (dirac/trig_effectuntileot.go emblemTriggerObj over embRecipientCapture),
 	// so a body read of the damage source refuses (lower_effect.go).
 	emblemDmg bool
+	// remSelf: lowering the body of an end-of-turn Effect remembering its own
+	// source (RememberObjects$ Self): Defined$ Remembered is the emblem's
+	// source object (lower_effectremself.go effectRememberSelf)
+	remSelf bool
 
 	// permOrGraveCard: lowering a ValidTgts$ ChangeZone over Origin$ Battlefield,Graveyard (lower_originmulti.go)
 	permOrGraveCard bool
