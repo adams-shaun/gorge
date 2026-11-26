@@ -1,7 +1,10 @@
 # paid Play populations over exile: Boiling Rock Rioter's ExiledWithSource
 # Ally filter and Sanwell, Avenger Ace's remembered Vehicle/artifact-creature
 # dig, with Allies, artifact creatures, a Vehicle and basics
-# (dirac/oracle/playexilepop_lockstep_test.go)
+# (dirac/oracle/playexilepop_lockstep_test.go), plus the free filter populations
+# of Krang & Shredder (ExiledWithSource) and Kylox, Visionary Inventor (imprinted
+# instants and sorceries) with spells and creatures to exile and fodder to sacrifice
+# (dirac/oracle/playexilefilterpop_lockstep_test.go)
 Boiling Rock Rioter
 Sanwell, Avenger Ace
 Hada Freeblade
@@ -13,3 +16,14 @@ Bronze Sable
 Smuggler's Copter
 Plains
 Swamp
+Krang & Shredder
+Kylox, Visionary Inventor
+Shock
+Opt
+Divination
+Grizzly Bears
+Runeclaw Bear
+Hill Giant
+Island
+Mountain
+Forest
