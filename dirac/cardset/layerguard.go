@@ -152,15 +152,20 @@ func AbReduceRefusal(reducers, costed []string) error {
 // raise (manaable). A pick cost of the raised ability's own beside the
 // raise's pick part is another: the one pick Cost a build poses cannot carry
 // both, and gorge asks the ability's own tap-creatures cost before the CR
-// 601.2h sacrifice ask the raise's part rides (picked). A raiser whose filter
+// 601.2h sacrifice ask the raise's part rides (picked). Two raisers with a
+// pick part are a third (pickers): the Cost carries one filter, where copies of
+// one card share it and compose as one Sac<N/f>. A raiser whose filter
 // names no type the card has (the types masks disjoint) lowers nothing and
 // does not refuse.
-func AbRaiseRefusal(raisers, manaable, picked []string) error {
+func AbRaiseRefusal(raisers, manaable, picked, pickers []string) error {
 	if len(raisers) == 0 {
 		return nil
 	}
 	if len(manaable) != 0 {
 		return fmt.Errorf("RaiseCost Type Ability beside a mana ability: %s raises abilities and %s has a mana ability the mana window prices no raise on", raisers[0], manaable[0])
+	}
+	if len(pickers) > 1 {
+		return fmt.Errorf("RaiseCost Type Ability with two pick parts: %s and %s each raise abilities with a sacrifice pick, and the one pick Cost a build poses carries one filter", pickers[0], pickers[1])
 	}
 	if len(picked) != 0 {
 		return fmt.Errorf("RaiseCost Type Ability beside a pick cost: %s raises abilities with a pick part and %s has an activated ability with a pick cost of its own", raisers[0], picked[0])

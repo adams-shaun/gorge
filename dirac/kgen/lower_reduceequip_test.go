@@ -117,11 +117,11 @@ func TestReduceCostEquipNotInAbReduceGuard(t *testing.T) {
 		{Kind: kop.AbMana, Cost: kop.Cost{Mana: kop.ManaCost{Generic: 1}}}}}}
 	bs := []built{red, mana}
 	filters := []kop.Filter{{}}
-	if _, _, abRed, _, _, _, _, _, _, _, _, _, _, _, _ := guardLists(bs, filters); len(abRed) != 0 {
+	if _, _, abRed, _, _, _, _, _, _, _, _, _, _, _, _ := guardLists(bs, filters, nil); len(abRed) != 0 {
 		t.Errorf("equip-only reducer listed as an ability reducer: %v", abRed)
 	}
 	bs[0].def.Abilities[0].Static.B = 0
-	if _, _, abRed, _, _, _, _, _, _, _, _, _, _, _, _ := guardLists(bs, filters); len(abRed) != 1 || abRed[0] != 0 {
+	if _, _, abRed, _, _, _, _, _, _, _, _, _, _, _, _ := guardLists(bs, filters, nil); len(abRed) != 1 || abRed[0] != 0 {
 		t.Errorf("general reducer: abRed %v, want [0]", abRed)
 	}
 }

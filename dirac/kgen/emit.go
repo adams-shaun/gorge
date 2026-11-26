@@ -104,7 +104,7 @@ func buildForOutput(p *pool, prev []idEntry) (*poolBuild, error) {
 // abilities, the ab-raise statics (stat:RaiseAbility), the cards carrying any
 // mana ability and the cards carrying an activated ability whose cost has a
 // pick part the build poses beside a raise pick.
-func guardLists(bs []built, filters []kop.Filter) (rooms, readers, abRed []int, abRedFloor []uint8, abRedTypes []uint16, abMana []int, abManaMV []uint8, abManaTypes []uint16, abRaise []int, abRaiseTypes []uint16, abRaisePick []bool, manaAny []int, manaAnyTypes []uint16, pickActs []int, pickActsTypes []uint16) {
+func guardLists(bs []built, filters []kop.Filter, subs []string) (rooms, readers, abRed []int, abRedFloor []uint8, abRedTypes []uint16, abMana []int, abManaMV []uint8, abManaTypes []uint16, abRaise []int, abRaiseTypes []uint16, abRaisePick []bool, manaAny []int, manaAnyTypes []uint16, pickActs []int, pickActsTypes []uint16) {
 	for i := range bs {
 		if bs[i].def.FaceMode == kop.FaceRoom {
 			rooms = append(rooms, i)
@@ -124,7 +124,7 @@ func guardLists(bs []built, filters []kop.Filter) (rooms, readers, abRed []int, 
 			if !sawRaise && a.Static.Kind == kop.StatRaiseAbility {
 				sawRaise = true
 				abRaise = append(abRaise, i)
-				abRaiseTypes = append(abRaiseTypes, reducerTypes(filters, a.Static.Filter))
+				abRaiseTypes = append(abRaiseTypes, raiserTypes(filters, subs, a.Static.Filter))
 				abRaisePick = append(abRaisePick, a.Static.B&kop.RaiseAbPick != 0)
 			}
 			if !sawRed && a.Static.Kind == kop.StatReduceAbility && a.Static.Zone != kop.ZoneGraveyard && a.Static.B&(1|kop.ReduceAbUnlock|kop.ReduceAbPowerUp|kop.ReduceAbEquip) == 0 {
@@ -182,6 +182,23 @@ func guardLists(bs []built, filters []kop.Filter) (rooms, readers, abRed []int, 
 		}
 	}
 	return rooms, readers, abRed, abRedFloor, abRedTypes, abMana, abManaMV, abManaTypes, abRaise, abRaiseTypes, abRaisePick, manaAny, manaAnyTypes, pickActs, pickActsTypes
+}
+
+// raiserTypes is reducerTypes for a StatRaiseAbility static, which also reads a
+// creature subtype as the creature type (Brutal Suppression's Rebel.!token, so
+// its raise guard does not reach a land's mana ability): a filter that names no
+// type, no alternative and a subtype outside the non-creature vocabulary
+// matches creatures. subs is the pool's subtype names (Filter.Sub-1).
+func raiserTypes(filters []kop.Filter, subs []string, id kop.FilterID) uint16 {
+	t := reducerTypes(filters, id)
+	if t != 0 || int(id) >= len(filters) {
+		return t
+	}
+	f := &filters[id]
+	if f.Or == 0 && f.Sub != 0 && int(f.Sub) <= len(subs) && !dirac.NonCreatureSubtype(subs[f.Sub-1]) {
+		return uint16(kop.TCreature)
+	}
+	return 0
 }
 
 // reducerTypes is the card types a StatReduceAbility static's filter can

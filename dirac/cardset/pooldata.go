@@ -335,12 +335,15 @@ func (s dataSet) abReduceGuard(pool []int) error {
 // prices none), or a pick part beside an own pick cost (AbRaiseRefusal).
 func (s dataSet) abRaiseGuard(pool []int) error {
 	d := s.d
-	var raisers, manaable, picked []string
+	var raisers, manaable, picked, pickers []string
 	for k, r := range d.AbRaisers {
 		if !slices.Contains(pool, r) {
 			continue
 		}
 		raisers = append(raisers, d.Names[r])
+		if d.AbRaisePick[k] {
+			pickers = append(pickers, d.Names[r])
+		}
 		rt := d.AbRaiseTypes[k]
 		for _, i := range pool {
 			if ma := slices.Index(d.AbManaAny, i); ma >= 0 && (rt == 0 || rt&d.AbManaAnyTypes[ma] != 0) {
@@ -353,7 +356,7 @@ func (s dataSet) abRaiseGuard(pool []int) error {
 			}
 		}
 	}
-	return AbRaiseRefusal(raisers, manaable, picked)
+	return AbRaiseRefusal(raisers, manaable, picked, pickers)
 }
 
 // filtersShareCreatureType reports whether any filter of the pool shares a

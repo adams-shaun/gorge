@@ -17,9 +17,10 @@ import (
 // price, abRaisedCharge at the build charge, abRaised at the offer gate),
 // pays the life beside the cost's own (payAbRaiseLife) and poses the pick as
 // the entry's pick cost (buildPickCost, gorge's sac ask covering the raise's
-// part). Every matching static composes; the pick part poses only the first
-// one's pick (a second pick cost is a different Cost than the one a build
-// poses, unmodelled: cardset's raise guard refuses a pool holding two).
+// part). Every matching static composes; the pick part poses the first one's
+// pick filter once per matching static (a second pick card is a different Cost
+// than the one a build poses, unmodelled: cardset's raise guard refuses a pool
+// holding two cards with a pick; copies of one card compose as one Sac<N/f>).
 // Mana abilities the mana window prices pay no raise; the guard keeps a pool
 // whose raiser can match a mana-ability card out (cardset.AbRaiseRefusal).
 // Cold code: every site is behind genPrep.anyAbRaise.
@@ -47,11 +48,13 @@ func (s *State) abRaiseStaticApplies(k *prep, st statSrc, a *kop.Ability, sl Slo
 }
 
 // abRaiseParts walks the raise statics of ability a of the battlefield source
-// sl activated by ctrl: the generic raise, the life and the pick filter of the
-// first matching pick part (none: ok false).
-func (s *State) abRaiseParts(k *prep, a *kop.Ability, sl Slot, ctrl uint8) (g, life int, pick kop.FilterID, ok bool) {
+// sl activated by ctrl: the generic raise, the life, the pick filter of the
+// first matching pick part and how many matching statics carry one (each owes
+// its own Sac<1/f>; the matchup guard keeps every pick raiser one card, so the
+// filter is shared: three Brutal Suppressions owe three sacrifices).
+func (s *State) abRaiseParts(k *prep, a *kop.Ability, sl Slot, ctrl uint8) (g, life int, pick kop.FilterID, picks int) {
 	if DebugNoAbRaise || a.Kind != kop.AbActivated && a.Kind != kop.AbMana || sl == NoSlot {
-		return 0, 0, 0, false
+		return 0, 0, 0, 0
 	}
 	s.eachStaticG(k, func(st statSrc) bool {
 		if !s.abRaiseStaticApplies(k, st, a, sl, ctrl) {
@@ -69,12 +72,15 @@ func (s *State) abRaiseParts(k *prep, a *kop.Ability, sl Slot, ctrl uint8) (g, l
 				g += n
 			}
 		}
-		if sa.B&kop.RaiseAbPick != 0 && !ok {
-			pick, ok = sa.Filter2, true
+		if sa.B&kop.RaiseAbPick != 0 {
+			if picks == 0 {
+				pick = sa.Filter2
+			}
+			picks++
 		}
 		return true
 	})
-	return g, life, pick, ok
+	return g, life, pick, picks
 }
 
 // abRaised is the composition the offer gate and the planner price: c with
@@ -82,8 +88,8 @@ func (s *State) abRaiseParts(k *prep, a *kop.Ability, sl Slot, ctrl uint8) (g, l
 // 601.2f; the life and the pick part ride the build's own payments, the offer
 // gate abRaiseOK prices them).
 func (s *State) abRaised(k *prep, a *kop.Ability, sl Slot, ctrl uint8, c kop.ManaCost) kop.ManaCost {
-	g, _, _, ok := s.abRaiseParts(k, a, sl, ctrl)
-	if !ok && g == 0 {
+	g, _, _, picks := s.abRaiseParts(k, a, sl, ctrl)
+	if picks == 0 && g == 0 {
 		return c
 	}
 	if g > 0 {
@@ -110,11 +116,11 @@ func (s *State) abRaiseOK(k *prep, sl Slot, a *kop.Ability, p uint8) bool {
 	if k.gen == nil || !k.gen.anyAbRaise {
 		return true
 	}
-	_, life, pick, ok := s.abRaiseParts(k, a, sl, p)
+	_, life, pick, picks := s.abRaiseParts(k, a, sl, p)
 	if life > 0 && int(s.pl[p].life) < life {
 		return false
 	}
-	if ok && s.countCostSac(k, p, &kop.Cost{Flags: kop.CostSac, N: 1, Filter: pick}, NoSlot) < 1 {
+	if picks > 0 && s.countCostSac(k, p, &kop.Cost{Flags: kop.CostSac, N: uint8(picks), Filter: pick}, NoSlot) < picks {
 		return false
 	}
 	return true
@@ -126,11 +132,11 @@ func (s *State) abRaisePick(k *prep, e *stackEntry) *kop.Cost {
 	if a == nil {
 		return nil
 	}
-	_, _, pick, ok := s.abRaiseParts(k, a, s.srcSlot(), e.ctrl)
-	if !ok {
+	_, _, pick, picks := s.abRaiseParts(k, a, s.srcSlot(), e.ctrl)
+	if picks == 0 {
 		return nil
 	}
-	return &kop.Cost{Flags: kop.CostSac, N: 1, Filter: pick}
+	return &kop.Cost{Flags: kop.CostSac, N: uint8(picks), Filter: pick}
 }
 
 // abRaiseLifeBuilt is the life the entry being built owes the raises.
