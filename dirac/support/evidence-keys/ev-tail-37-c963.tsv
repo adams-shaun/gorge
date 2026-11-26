@@ -1,0 +1,123 @@
+card	lir16	plays	keys	unused	branches	missing_branches
+Aeronaut Cavalry	ec229f71c5ac196a	4	1/1		0/1	ix:resp
+Aggressive Urge	1ddf15f9d43939e4	9	0/0		1/2	ix:resp
+Ancient Tomb	42f5c795ecacc422	6	1/1		0/1	ix:resp
+Angel of the Dawn	5d4699a0512e21d5	3	1/1		0/1	ix:resp
+Arcbond	fb92e17c15302870	18	0/0		2/2	
+Aspect of Wolf	b15670f553361196	6	0/0		2/2	
+Avatar of the Resolute	1a32e475d29eda93	4	0/0		0/0	
+Back to Nature	3a821f1b09b66712	10	0/0		2/2	
+Barricade Breaker	00da6f79d90f0de9	3	0/0		0/0	
+Big Wheel	c0f074235ec161b9	8	2/2		1/1	
+Blackcleave Goblin	be4fdc0a5c997121	4	0/0		0/0	
+Blind Zealot	66ef7431bfb9225e	4	1/1		0/1	ix:resp
+Brightstone Ritual	54ed19e8ca969c49	11	0/0		1/2	ix:resp
+Cave-In	eaca251af87f5862	5	0/0		2/2	
+Cho-Arrim Legate	a4231da49b1d0165	6	0/0		0/0	
+Citizen V, Helmut Zemo	ab25d2092ee8dfc2	4	1/1		0/1	ix:resp
+Cloudreach Cavalry	97fd6e0cc3b35b44	5	0/0		0/0	
+Concordia Pegasus	4efb7c9e348cd98f	14	0/0		0/0	
+Contested War Zone	479c681ffd379b5f	15	3/3		1/1	
+Crimson Kobolds	0f2d01aca3491bb1	11	0/0		0/0	
+Curse of Chaos	54a67c97267c9e84	6	1/1		1/4	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Damn	d5b31a85005c7dfd	4	0/0		2/4	cast/alt:overloaded,ix:resp
+Dance with Devils	ac67c5fc674e33be	14	0/0		2/2	
+Delightful Discovery	9035d3390578123a	4	0/0		1/2	ix:resp
+Dragon Roost	395ef62d928d57ea	3	1/1		0/1	ix:resp
+Dusk's Landing	69d26fe107aad4d9	3	0/0		1/2	ix:resp
+Duskrider Falcon	593cb637396e5de0	6	0/0		0/0	
+Dynavolt Tower	dd0bf582121b7eea	11	2/2		0/1	ix:resp
+Ebony Rhino	fb1658b4b26157bd	16	0/0		0/0	
+Elderleaf Mentor	79f5f120f89e875e	4	1/1		0/1	ix:resp
+Exultant Cultist	721dcdb1758799ee	12	1/1		0/1	ix:resp
+Faerie Impostor	7074de8b2720e73b	3	1/1		0/1	ix:resp
+Faithless Salvaging	aa8da7bbfbf8c2b5	12	0/0		2/2	
+Flame Slash	795949e4ed008946	11	0/0		1/2	ix:resp
+Flameshot	bd334f4e15619909	8	0/0		1/2	ix:resp
+Fledgling Dragon	7877ceb76496ad0a	10	0/0		0/0	
+Flowstone Slide	bc35de49bf0df8e9	5	0/0		2/4	f0/s/x0,ix:resp
+Forest	6d0466c30f825dba	63	1/1		0/1	ix:resp
+Gaea's Touch	25a2919f478f79ce	8	2/2		1/1	
+Ghostfire Blade	74f8469ad844ecc3	10	1/1		0/1	ix:resp
+Goblin Patrol	a2ea5ba9b285d84d	6	1/1		0/1	ix:resp
+Gore Swine	e483e3fadf25c1bb	6	0/0		0/0	
+Gornog, the Red Reaper	a62cafcd9699d9d9	13	1/1		1/1	
+Gruul Turf	3d69798068c2201f	32	2/2		0/1	ix:resp
+Guard Gomazoa	f946356c38b6c930	8	0/0		0/0	
+Guild Artisan	95e962bb8f620497	6	0/0		0/0	
+Halo Hopper	0168e719f4cf3a98	10	0/0		0/0	
+Herald of Slaanesh	e6b3c5629ea2c065	13	0/0		0/0	
+Invading Manticore	7f3bbdad128429f6	4	1/1		0/1	ix:resp
+Island	763c67ef7a27eaf5	329	1/1		0/1	ix:resp
+Isolation Cell	4d350207bfa2e242	4	1/1		1/1	
+Jhessian Lookout	065ab3b653e870ba	4	0/0		0/0	
+Kasimir the Lone Wolf	78c785de3fe378d7	4	0/0		0/0	
+Kavu Glider	d04733c3b2b0ce2a	11	2/2		1/1	
+Kolaghan Monument	bc7e675dc68c6a91	8	2/2		1/1	
+Lazotep Reaver	33188a53d2b40042	6	1/1		0/1	ix:resp
+Lux Cannon	48ace2ba06f11b1d	6	2/2		0/1	ix:resp
+Maestros Theater	61152b396d3271b3	16	1/1		0/1	ix:resp
+Markov Blademaster	822cd770a4203da3	10	1/1		1/1	
+Maulfist Doorbuster	be02558213000e2e	13	2/2		1/1	
+Millennial Gargoyle	ce78493f6ee6fe13	8	0/0		0/0	
+Millstone	d863a61d2ffa1f8f	6	1/1		0/1	ix:resp
+Mountain	9e71388353e907ed	117	1/1		0/1	ix:resp
+Off Balance	96654645d252db3e	6	0/0		1/2	ix:resp
+Orochi Merge-Keeper	b439ea757aa771f3	13	1/1		0/1	ix:resp
+Pestilent Souleater	bddde1ac915d80ff	4	1/1		0/1	ix:resp
+Pierce the Sky	8457f8cba2d124e0	8	0/0		2/2	
+Pillar Tombs of Aku	f7b36d9cc12bc971	4	1/1		1/1	
+Plains	82d63a695487e567	34	1/1		0/1	ix:resp
+Polluted Delta	2632d70257c6929a	16	1/1		0/1	ix:resp
+Prakhata Club Security	0f9648731fceef0b	3	0/0		0/0	
+Prismari Campus	2e095a319fbba3f9	22	2/2		1/1	
+Professor Hulk	64586d5418d88954	4	1/1		0/1	ix:resp
+Psionic Sliver	55d0c16736dca096	4	0/0		0/0	
+Pulse of the Tangle	30e49bdb6fef2594	7	0/0		2/2	
+Pumpkin Bombs	f4a708ff7acd78f0	6	1/1		0/1	ix:resp
+Ral's Outburst	4a0fea81a40e3123	6	0/0		1/2	ix:resp
+Rapid Augmenter	777305d95b0a608d	6	2/2		1/1	
+Raving Visionary	5579370bcd8eb90b	13	2/2		1/1	
+Robot Chicken	774526b65a7ad436	10	2/2		0/1	ix:resp
+Rohirrim Lancer	2fba628f2bcc88a1	4	1/1		0/1	ix:resp
+Rumbling Baloth	5634ba9772356f94	4	0/0		0/0	
+Said	bd155cfaf5b51568	101	0/0		2/3	f1/s
+Scalding Tongs	42911a35fe19de26	6	1/1		1/1	
+Scorch Spitter	4665654d638d2244	6	1/1		0/1	ix:resp
+Selesnya Signet	4c6244e3932adfbc	4	1/1		0/1	ix:resp
+Selkie Hedge-Mage	6f68946d2da7d59f	3	2/2		0/5	f0/t0/opt:n,f0/t0/opt:y,f0/t1/opt:n,f0/t1/opt:y,ix:resp
+Shadowfeed	906fb886d5971f13	12	0/0		1/2	ix:resp
+Shivan Oasis	9000af410e02b07e	19	1/1		0/1	ix:resp
+Siege Smash	6371abd9e36f54d9	12	0/0		1/2	ix:resp
+Skin Invasion	e5118d9686d08f9e	15	1/1		1/2	ix:resp
+Skred	cd2215a4865b1dca	3	0/0		1/2	ix:resp
+Snap	7b3f2663850bbe4b	14	0/0		1/2	ix:resp
+Soratami Rainshaper	306366b2855ec26c	6	1/1		0/1	ix:resp
+Sosuke's Summons	5b22bcb97362cd4f	6	1/1		1/4	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Soul Reap	ac983bb61c79b143	8	0/0		1/2	ix:resp
+Spawning Breath	6ad259446ceb1de7	4	0/0		1/2	ix:resp
+Spellheart Chimera	7e89425e214a30ee	8	0/0		0/0	
+Star Compass	722a512358315c63	4	1/1		0/1	ix:resp
+Steelburr Champion	ab9acb2c8115353d	6	2/2		2/3	ix:resp
+Sun-Collared Raptor	5ecfd8466743fb1f	5	1/1		0/1	ix:resp
+Sunstrike Legionnaire	43cc59519238a8bc	4	2/2		0/1	ix:resp
+Swamp	342b413902f441c3	42	1/1		0/1	ix:resp
+Swampbenders	5d72ae015b664736	4	0/0		0/0	
+Tangled Islet	1a416ce4b38875bb	18	2/2		0/1	ix:resp
+Temur Runemark	d8d8621340b8bb84	5	0/0		1/2	ix:resp
+Tergrid's Shadow	2844bde8da901579	4	0/0		3/4	cast/alt:foretold
+Thornglint Bridge	7981b1a8edcf74ca	28	1/1		0/1	ix:resp
+Thraben Inspector	26a8dec307e4d231	4	1/1		0/1	ix:resp
+Tidal Barracuda	074b365fd45223d7	13	0/0		0/0	
+Tradewind Rider	b73de656a1b382eb	6	1/1		0/1	ix:resp
+Trollbred Guardian	35e4b0e58c89e9b8	12	1/1		1/1	
+Twilight Prophet	fb941778d6fbcb5c	4	1/1		1/1	
+Undo	8924a13c0a3b91dc	4	0/0		1/2	ix:resp
+Urza's Blueprints	a7973cc8bfce2df9	3	2/2		0/1	ix:resp
+Warped Physique	db3735d652034c6c	6	0/0		1/2	ix:resp
+Wayfaring Giant	65e5d630f6993a86	4	0/0		0/0	
+Wicker Witch	08b78e2e6be3d932	6	0/0		0/0	
+Wring Flesh	442455b492052584	4	0/0		2/2	
+Yorvo, Lord of Garenbrig	54025e5a863ba9c1	6	1/1		0/1	ix:resp
+You See a Pair of Goblins	62e8c35d19b17b5c	30	0/0		2/2	
+Zealot of the God-Pharaoh	af009b4dbae36a94	10	1/1		0/1	ix:resp
