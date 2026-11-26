@@ -1,13 +1,15 @@
 # Draft events
 
-gorge runs a complete limited event: four seats open three packs, draft, build 40-card decks and play a round robin. Any seat can be a person or a bot. This page covers hosting events with `gorged`, running them headless with `draftsim`, and composing workflows with `labdemo` and the `draftlab` library. Commands and output are from 2026-11-08.
+Run a complete limited event, where four seats open three packs, draft, build 40-card decks and play a round robin, with any seat a person or a bot.
+
+Host one with `gorged`, run it headless with `draftsim`, or compose a workflow with `labdemo` and the
+`draftlab` library. Commands and output are from 2026-11-08.
 
 ## Host events with `gorged -events`
 
 Draft events are part of the public `gorged` binary and are off by default.
-Turn them on with `-events`:
 
-```sh
+```sh title="A server that hosts draft events"
 make fetch-cards   # once: the pinned card corpus, into .cards/
 make web           # once, before gorged is built: the browser client
 go run ./cmd/gorged -addr 127.0.0.1:8080 -dir /tmp/gorge-draft -events
@@ -18,11 +20,18 @@ gorged: 4 tables of 4 on 127.0.0.1:8080 (dir /tmp/gorge-draft)
 gorged: draft events on (/api/events, dir /tmp/gorge-draft/events)
 ```
 
-Open `http://127.0.0.1:8080/` and use *Draft a 4-player pod* in the lobby (shown only on a server that serves events; it goes to `/events/new`). A `gorged` built before `make web` answers pages with `503 web build missing`.
+Open `http://127.0.0.1:8080/` and use *Draft a 4-player pod* in the lobby (it goes to
+`/events/new`). A `gorged` built before `make web` answers pages with `503 web build missing`.
 
-With `-events`, the startup art fill also covers every card in every draftable set, so a first start spends a while fetching from Scryfall at a limited rate; play is unaffected. `-prewarm=false` skips it, and `-art-dir` keeps the cache across a wiped `-dir`.
+With `-events`, the startup art fill also covers every card in every draftable set, so a first
+start spends a while fetching from Scryfall at a limited rate; play is unaffected. `-prewarm=false`
+skips it, and `-art-dir` keeps the cache across a wiped `-dir`.
 
-A server without `-events` behaves as if events did not exist: `GET /api/capabilities` says `{"events":false}`, every `/api/events` path is a 404, and `<dir>/events` is never created. Use a fresh `-dir` per server ([why](play.md#persistence-and-restarts)).
+A server without `-events` behaves as if events did not exist: `GET /api/capabilities` says
+`{"events":false}`, every `/api/events` path is a 404, and `<dir>/events` is never created.
+
+!!! warning "A fresh `-dir` per server"
+    Two servers sharing one directory corrupt each other ([why](play.md#persistence-and-restarts)).
 
 ## How an event runs
 
@@ -34,28 +43,23 @@ flowchart LR
   L -. nobody joined in time .-> X[CANCELLED]
 ```
 
-- **Lobby.** The creator chooses a set, a series format and each seat. Each human
-  seat gets a private invite link, shown once. With one human, the client sends
-  you straight to your own link. The event starts when every human has joined.
-- **Draft.** You pick one card and pass the rest: left in packs 1 and 3, right in
-  pack 2. A seat picks whenever a pack is waiting for it, and bots pick
-  immediately. An FDN or TRK pod is 42 picks per seat; a BLB pod is 39.
-- **Build.** A deck is at least 40 cards: any cards from your own pool, plus free
-  basic lands in any number. The client offers the bot builder's suggestion and an
-  automatic land split. You save a deck, then ready it.
-- **Rounds.** Three rounds of 1v1 series, seat 0 against 3 and 1 against 2, then 0
-  against 2 and 1 against 3, then 0 against 1 and 2 against 3. Each game is an
-  ordinary table that you can watch or replay.
-- **Complete.** Standings follow the Magic Tournament Rules: match points (win 3,
-  draw 1), then opponents' match-win percentage, game-win percentage and opponents'
-  game-win percentage, then seat index.
+| Phase | What happens |
+|---|---|
+| Lobby | The creator chooses a set, a series format and each seat. Each human seat gets a private invite link, shown once; with one human, the client sends you straight to your own. The event starts when every human has joined |
+| Draft | Pick one card and pass the rest: left in packs 1 and 3, right in pack 2. A seat picks whenever a pack is waiting for it; bots pick immediately. An FDN or TRK pod is 42 picks per seat, a BLB pod 39 |
+| Build | A deck is at least 40 cards from your own pool, plus free basic lands in any number. The client offers the bot builder's suggestion and an automatic land split. Save a deck, then ready it |
+| Rounds | Three rounds of 1v1 series: seat 0 against 3 and 1 against 2, then 0 against 2 and 1 against 3, then 0 against 1 and 2 against 3. Each game is an ordinary table you can watch or replay |
+| Complete | Standings follow the Magic Tournament Rules: match points (win 3, draw 1), then opponents' match-win percentage, game-win percentage and opponents' game-win percentage, then seat index |
 
-Other seats' picks and decks stay hidden until the event is COMPLETE. Until then a
-seat sees counts only, and `GET /api/events/{id}/log` is redacted for it.
+!!! note "Hidden until COMPLETE"
+    Other seats' picks and decks stay hidden until the event is COMPLETE. Until then a seat sees
+    counts only, and `GET /api/events/{id}/log` is redacted for it.
 
 ## What you can choose
 
-**Format.** A hosted event takes a `format`: `draft` (the default, three booster
+### Format
+
+A hosted event takes a `format`: `draft` (the default, three booster
 packs per seat drafted in turn), `sealed` (six Play Boosters per seat, opened at
 once) or `prerelease` (the same six Play Boosters plus one rare or mythic promo
 card per seat). A sealed or prerelease event has no picks and no pick timer: it
@@ -63,15 +67,20 @@ goes from the lobby straight to deck building once every human has joined. Decks
 are 40 cards with any number of basic lands (MTR 7.1-7.2). A prerelease defaults
 to best of 3; an explicit `best_of` of 1 is honoured.
 
-**Deck changes between rounds.** A sealed or prerelease event rebuilds between rounds (MTR 7.3): before game 1 of every series from round 2, a rebuild window opens and no game starts until both sides have locked a deck. A human keeps or replaces its deck with the sideboard panel (`POST /api/events/{id}/sideboard` with `game: 1`: `keep: true` locks the last-played deck, a `deck` saves and locks a new revision). An idle seat keeps its deck automatically, and bots keep theirs. A draft event has no window. The create body's `rebuild` overrides the format's default (true for sealed and prerelease, false for draft); the event state reports the resolved value. In the window a series shows `state: "between"` with `game: 1`.
+### Deck changes between rounds
 
-**Commander draft.** `format: "commander"` drafts a set that `GET /api/events/sets` marks `commander: true` (today `MBC`, `commanderSets` in `draft/eventhost/commander.go`). Each seat takes two cards per pack pass, builds a Commander deck around one or two drafted commanders, and the pod plays one four-seat free-for-all game per round at a single table. Bot seats use the Commander drafter and builder; their game policy must seat four (`-pod-bot-decks` adds `az-closed-maxn`, [A paired bot](play.md#a-paired-bot)).
+A sealed or prerelease event rebuilds between rounds (MTR 7.3): before game 1 of every series from round 2, a rebuild window opens and no game starts until both sides have locked a deck. A human keeps or replaces its deck with the sideboard panel (`POST /api/events/{id}/sideboard` with `game: 1`: `keep: true` locks the last-played deck, a `deck` saves and locks a new revision). An idle seat keeps its deck automatically, and bots keep theirs. A draft event has no window. The create body's `rebuild` overrides the format's default (true for sealed and prerelease, false for draft); the event state reports the resolved value. In the window a series shows `state: "between"` with `game: 1`.
 
-**Sets.** Packs follow the MTGJSON booster configurations. A hosted event uses the
-Arena collation (`play-arena`); `draftsim` and `labdemo` can also cut paper Play
-Boosters (`play`).
+### Commander draft
 
-`GET /api/events/sets` lists the draftable sets with pack size and rating source. Packs follow the MTGJSON booster configurations (`draft/limited/setdata`). Pack sizes below are the Arena collation, pinned in `draft/limited/setdata/spec_test.go`.
+`format: "commander"` drafts a set that `GET /api/events/sets` marks `commander: true` (today `MBC`, `commanderSets` in `draft/eventhost/commander.go`). Each seat takes two cards per pack pass, builds a Commander deck around one or two drafted commanders, and the pod plays one four-seat free-for-all game per round at a single table. Bot seats use the Commander drafter and builder; their game policy must seat four (`-pod-bot-decks` adds `az-closed-maxn`, [A paired bot](play.md#a-paired-bot)).
+
+### Sets
+
+Packs follow the MTGJSON booster configurations (`draft/limited/setdata`). A hosted event uses the
+Arena collation (`play-arena`); `draftsim` and `labdemo` can also cut paper Play Boosters (`play`).
+`GET /api/events/sets` lists the draftable sets with pack size and rating source. Pack sizes below
+are the Arena collation, pinned in `draft/limited/setdata/spec_test.go`.
 
 | Code | Set | Pack size | Bot pick ratings |
 |---|---|---|---|
@@ -86,11 +95,16 @@ replaced by the published one when there is one. A card the corpus has no script
 yet is never offered as a bot pick and a bot's deck leaves it out, so a bot drafts
 and builds a deck that plays; the list of such cards only shrinks as scripts land.
 
-**Bot seats** have a game policy, a drafter and a builder. `GET /api/events/personas` lists the drafter and builder names:
+### Bot seats
 
-- `rating-colour` (default) and `best23`: the drafter scores a card by its rating plus fit to the colours picked so far; the builder plays the colour pair with the best 23 cards and 17 basics.
-- `balanced`: commits to two colours by pick 10 and drafts toward missing card types and mana values; builds a curve with 14 to 18 creatures, splashes up to three one-pip cards, and plays 18 lands rather than an uncastable card.
-- `champion`: tuned for FDN only, not the default ([the champion draft persona](../research/draft-champion.md)).
+A bot seat has a game policy, a drafter and a builder. `GET /api/events/personas` lists the drafter
+and builder names:
+
+| Persona | Drafts | Builds |
+|---|---|---|
+| `rating-colour` and `best23` (default) | scores a card by its rating plus fit to the colours picked so far | the colour pair with the best 23 cards and 17 basics |
+| `balanced` | commits to two colours by pick 10 and drafts toward missing card types and mana values | a curve with 14 to 18 creatures, splashing up to three one-pip cards, and 18 lands rather than an uncastable card |
+| `champion` | tuned for FDN only, not the default ([the champion draft persona](../research/draft-champion.md)) | |
 
 The game policy is any hosted policy that does not read opponents' decklists:
 `bot`, `lethal-pressure`, `forge-heuristic` and `forge-heuristic-hold` in a plain
@@ -100,11 +114,15 @@ build. Asking for one that does is refused:
 {"code":"bad_request","message":"eventhost: policy \"sb-tactical\" reads every seat's real decklist (Env); draft events refuse Env policies"}
 ```
 
-**Series format.** Best of 1 (the default) or best of 3. In best of 3 the loser of
+### Series format
+
+Best of 1 (the default) or best of 3. In best of 3 the loser of
 a game chooses who plays first in the next one (MTR 2.2), and a human can sideboard
 between games. A bot keeps its deck.
 
-**Pick timer.** Only a pod with two or more humans has one. A single human drafts
+### Pick timer
+
+Only a pod with two or more humans has one. A single human drafts
 at their own pace. An expired pick is taken by the seat's own drafter and logged as
 automatic. Nothing about a deadline is saved, so a restart re-arms each timer at its
 full length.
@@ -115,7 +133,7 @@ full length.
 | `relaxed` | the standard limit × 1.5 |
 | `off` | none |
 
-**Limits.**
+### Limits
 
 | Limit | Value | What happens |
 |---|---|---|
@@ -144,7 +162,7 @@ The browser client uses the same API as any other program. The full route table 
 in [HTTP API: Draft events](../api/http.md#draft-events). Four bots need no one to
 join, so the event runs straight through the draft and the build:
 
-```sh
+```sh title="Four bots, no one to wait for"
 curl -s -X POST http://127.0.0.1:8080/api/events -H 'content-type: application/json' -d '{
   "set": "FDN",
   "seats": [{"kind":"bot"}, {"kind":"bot","policy":"lethal-pressure"},
@@ -185,7 +203,7 @@ after `POST /api/events/{id}/subscribe`
 `draftsim` needs no server and no browser. `make draftsim` builds it and plays two
 FDN events, replaying each one from its own log and each game from its chain:
 
-```text
+```text title="make draftsim"
 $ make draftsim
 go build -trimpath -o bin/draftsim ./cmd/draftsim
 bin/draftsim -set FDN -seed 1 -events 2 -verify
@@ -226,9 +244,9 @@ The event seed drives the packs, the picks and the game seeds, so the same flags
 
 `go run ./cmd/draftsim -h` lists the rest (`-format commander`, `-deck-size`, `-decks-out`, `-gauntlet`, `-ratings-file`, and others).
 
-`draftsim` plays best of 1 only. Two more shapes it can run:
+`draftsim` plays best of 1 only. More shapes it can run:
 
-```sh
+```sh title="Eight seats, sealed, prerelease"
 go run ./cmd/draftsim -seats 8 -players bot -seed 3 -verify
 go run ./cmd/draftsim -mode sealed -structure none -seed 3 -v
 go run ./cmd/draftsim -mode prerelease -seats 8 -seed 3 -v
@@ -244,7 +262,7 @@ go run ./cmd/draftsim -mode prerelease -seats 8 -seed 3 -v
 random-deck games, fixes a player policy, builds decks from sealed pools, drafts an
 8-seat Swiss pod and plays the built decks against a benchmark catalog of opponents:
 
-```text
+```text title="labdemo, seed 1"
 $ go run ./cmd/labdemo -seed 1 -out /tmp/labdemo
 frozen player bot@1
 labdemo seed 1: set FDN, collation "", player bot@1
@@ -258,7 +276,12 @@ hero p7 FDN draft / bot@1: 8-12-0 0.400 ci95 [0.219, 0.613]
 artifacts: /tmp/labdemo
 ```
 
-That run took about 3 seconds on 2026-11-08. Its figures come from one small seeded run and say nothing about bot strength. `-out` writes:
+That run took about 3 seconds on 2026-11-08.
+
+!!! warning "Not a strength measurement"
+    These figures come from one small seeded run and say nothing about bot strength.
+
+`-out` writes:
 
 | File | What |
 |---|---|
@@ -292,7 +315,18 @@ with 17Lands ratings, so it carries the same CC BY 4.0 credit; see
 
 ## Where next
 
-- [Architecture of draft events](../architecture/draft.md): the packages, and how an
-  event replays from its log.
-- [HTTP API: Draft events](../api/http.md#draft-events): every route.
-- [gorge-agent/1](../api/gorge-agent.md): drive a seat from another language.
+<div class="grid cards" markdown>
+
+-   **[Architecture of draft events](../architecture/draft.md)**
+
+    The packages, and how an event replays from its log.
+
+-   **[HTTP API: Draft events](../api/http.md#draft-events)**
+
+    Every route.
+
+-   **[gorge-agent/1](../api/gorge-agent.md)**
+
+    Drive a seat from another language.
+
+</div>
