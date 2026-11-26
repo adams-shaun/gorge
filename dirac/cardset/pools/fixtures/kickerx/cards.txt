@@ -1,0 +1,12 @@
+# the kicker {X} pool: Thieving Skydiver (K:Kicker:XMin1 X, its ETB gains
+# control of an artifact with mana value X or less) beside artifacts of mana
+# value 0, 1 and 2 to take and basics (dirac/kickerx_floor_test.go)
+Thieving Skydiver
+Ornithopter
+Sol Ring
+Arcane Signet
+Plains
+Island
+Swamp
+Forest
+Mountain
