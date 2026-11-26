@@ -110,7 +110,7 @@ func noteExcessHit(t *excessTally, h excessHost, lki map[state.ObjID]map[state.O
 		// whose loyalty/defense exchange the fold performs.
 		if h.IsCreature(ev.Obj) {
 			fresh.types |= excessTypeCreature
-			fresh.creatureLethal = h.Toughness(ev.Obj) - o.Damage
+			fresh.creatureLethal = effects.LethalThreshold(h, ev.Obj) - o.Damage
 		}
 		if f := o.Face(); f != nil && f.IsPlaneswalker() && ev.Text != events.DamageNotPlaneswalker {
 			fresh.types |= excessTypePlaneswalker
