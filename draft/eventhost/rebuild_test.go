@@ -9,6 +9,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 	"github.com/adams-shaun/gorge/server/host"
 	"github.com/adams-shaun/gorge/server/protocol"
+	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
 // rebuildPtr is a create body's rebuild field naming a non-default value.
@@ -21,7 +22,7 @@ func rebuildPtr(v bool) *bool { return &v }
 // on deadline.
 func driveHumanBo1(t *testing.T, reg *host.Registry, r *run, a, b int) {
 	t.Helper()
-	deadline := time.Now().Add(50 * time.Second)
+	deadline := time.Now().Add(testutil.WaitBudget)
 	var last uint64
 	for {
 		r.mu.Lock()
@@ -106,7 +107,7 @@ func waitRebuildBotLocked(t *testing.T, r *run, a, b, human int) event.SeriesVie
 	if bot == b {
 		botSide = 1
 	}
-	deadline := time.Now().Add(50 * time.Second)
+	deadline := time.Now().Add(testutil.WaitBudget)
 	for {
 		r.mu.Lock()
 		v, ok := r.ev.SeriesState(a, b)

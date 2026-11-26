@@ -1,0 +1,6 @@
+family: Pred
+name: PredKickedAlt
+value: next
+forge: Card.Self+kicked 1 / Card.Self+kicked 2
+status: active
+doc: PredKickedAlt: the battlefield permanent was cast with kicker alternative PredN (1 or 2) paid (CR 702.33b; gorge FlagKicked1 / FlagKicked2, filter_word.go wordKickedIndex). The kernel reads bit PredN-1 of the object's coldKickAlt byte, set only by setKickAlt; a single-cost kicked cast sets no bit, so both indexes read false for it (gorge parity). Off the battlefield it never matches (kgen refuses it there).
