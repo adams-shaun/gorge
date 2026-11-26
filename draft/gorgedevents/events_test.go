@@ -46,7 +46,7 @@ func startEventsServer(t *testing.T, args []string) string {
 		}
 	})
 	base := "http://" + ln.Addr().String()
-	deadline := time.Now().Add(10 * time.Second)
+	deadline := time.Now().Add(testutil.WaitBudget)
 	for {
 		resp, err := http.Get(base + "/api/tables")
 		if err == nil {
@@ -92,7 +92,7 @@ func TestEventsBotOnlyPodCompletesOverHTTP(t *testing.T) {
 
 	// The rounds: poll the state until the event is COMPLETE.
 	evURL := base + "/api/events/e1"
-	deadline := time.Now().Add(50 * time.Second)
+	deadline := time.Now().Add(testutil.WaitBudget)
 	for {
 		resp, err := http.Get(evURL)
 		if err != nil {

@@ -110,7 +110,7 @@ func gatedFixtureRegistry(t *testing.T) (func(int), *host.Registry) {
 		for i := 0; i < times; i++ {
 			select {
 			case <-gate.reached:
-			case <-time.After(30 * time.Second):
+			case <-time.After(testutil.WaitBudget):
 				t.Fatalf("seat 0 never reached decision %d", i+1)
 			}
 			gate.release <- struct{}{}
@@ -129,7 +129,7 @@ func gatedFixtureRegistry(t *testing.T) (func(int), *host.Registry) {
 		// that ever stops holding, the timeout fires rather than hanging.
 		select {
 		case <-gate.reached:
-		case <-time.After(30 * time.Second):
+		case <-time.After(testutil.WaitBudget):
 			t.Fatalf("seat 0 never reached its post-advance decision; capture point not quiescent")
 		}
 	}, r

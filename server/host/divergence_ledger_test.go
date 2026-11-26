@@ -18,6 +18,7 @@ import (
 
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/server/protocol"
+	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
 // driveLedgerMatch answers every seat-0 decision of the live match with
@@ -28,7 +29,7 @@ import (
 // pending Seq is submitted exactly once.
 func driveLedgerMatch(t *testing.T, r *Registry, id TableID, autoEvery int) (submits, autos int) {
 	t.Helper()
-	deadline := time.Now().Add(60 * time.Second)
+	deadline := time.Now().Add(testutil.WaitBudget)
 	var last uint64
 	var answered bool
 	for i := 0; ; i++ {
@@ -115,7 +116,7 @@ func ledgerMatch(t *testing.T, r *Registry, id TableID) *match {
 // ledgerHumanSeat waits for the match's seat-0 HumanSeat to be installed.
 func ledgerHumanSeat(t *testing.T, r *Registry, id TableID) *HumanSeat {
 	t.Helper()
-	deadline := time.Now().Add(20 * time.Second)
+	deadline := time.Now().Add(testutil.WaitBudget)
 	for {
 		m := ledgerMatch(t, r, id)
 		m.mu.RLock()
@@ -187,7 +188,7 @@ func TestLedgerMarksCaretaker(t *testing.T) {
 	// only the two withheld decisions wait it out, so the test pays ~4s.
 	o.ThinkTimeout = 2 * time.Second
 	r := undoTable(t, o, "t1")
-	deadline := time.Now().Add(60 * time.Second)
+	deadline := time.Now().Add(testutil.WaitBudget)
 	skipped := map[uint64]bool{}
 	var last uint64
 	var answered bool
@@ -369,7 +370,7 @@ func TestLedgerTruncatesOnUndo(t *testing.T) {
 // answerOnce's post-submit wait, without answerOnce's own submit.
 func waitPastSeq(t *testing.T, r *Registry, id TableID, seq uint64) {
 	t.Helper()
-	deadline := time.Now().Add(20 * time.Second)
+	deadline := time.Now().Add(testutil.WaitBudget)
 	for {
 		if d, err := r.Pending(id, 1, 0); err == nil && d.Seq != seq {
 			return

@@ -242,7 +242,7 @@ func TestServesADiracGame(t *testing.T) {
 	answers, undone, rewinding := 0, false, false
 	// A generous budget: the loop ends with the game and fails at once if
 	// serve exits, so only a loaded CI runner ever waits this long.
-	deadline := time.Now().Add(120 * time.Second)
+	deadline := time.Now().Add(testutil.WaitBudget)
 	for {
 		select {
 		case err := <-served:

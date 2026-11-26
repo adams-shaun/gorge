@@ -11,16 +11,36 @@ import (
 
 	"github.com/adams-shaun/gorge/server/host/httpapi"
 	mb "github.com/adams-shaun/gorge/server/protocol/manabrew"
+	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
 func TestDiracManaBrewLandUndoKeepsLandPlays(t *testing.T) {
 	t.Parallel()
-	for game := 0; game < 3; game++ {
-		landUndoGame(t, game, false)
+	playLandUndoGames(t, 3, 12, func(game int) bool { return landUndoGame(t, game, false) })
+}
+
+// playLandUndoGames runs play until want games have reached their first land.
+// The web create path seeds each game from crypto/rand and the seat-0 proxy only
+// passes, so a shuffle that offers it no early land can legitimately lose to the
+// bot before any land play exists; that game says nothing about land undo, so
+// play reports false and it is replayed on a fresh seed, up to maxTries games.
+func playLandUndoGames(t *testing.T, want, maxTries int, play func(game int) bool) {
+	t.Helper()
+	played := 0
+	for game := 0; game < maxTries && played < want; game++ {
+		if play(game) {
+			played++
+		} else {
+			t.Logf("game %d: over before a land (legitimate loss on this shuffle); replaying", game)
+		}
+	}
+	if played < want {
+		t.Fatalf("only %d of %d games reached a land in %d tries", played, want, maxTries)
 	}
 }
 
-func landUndoGame(t *testing.T, game int, undo bool) {
+// landUndoGame reports false when the game ended before seat 0 was offered a land.
+func landUndoGame(t *testing.T, game int, undo bool) bool {
 	c := diracConfig()
 	c.vsbot, c.botPolicy, c.manabrew = true, "bot", true
 	base, cancel, _ := startServe(t, c)
@@ -135,7 +155,7 @@ func landUndoGame(t *testing.T, game int, undo bool) {
 	// next is seat 0's next open chooseAction prompt.
 	next := func(what string) (mb.GameViewDto, *mb.PromptMessage) {
 		t.Helper()
-		for at := time.Now(); time.Since(at) < 15*time.Second; time.Sleep(time.Millisecond) {
+		for at := time.Now(); time.Since(at) < testutil.WaitBudget; time.Sleep(time.Millisecond) {
 			if answerNative() {
 				continue
 			}
@@ -171,7 +191,7 @@ func landUndoGame(t *testing.T, game int, undo bool) {
 	for {
 		gv, pm := next("the first land")
 		if pm == nil {
-			t.Fatalf("game %d over before a land", game)
+			return false
 		}
 		if land := landOf(gv, pm); land != "" {
 			if respond(pm, mb.ActOutput{ActionID: land}) != http.StatusNoContent {
@@ -216,7 +236,7 @@ func landUndoGame(t *testing.T, game int, undo bool) {
 	for turns := 0; plays < 3 && turns < 400; turns++ {
 		gv, pm := next("later turns")
 		if pm == nil {
-			return
+			return true
 		}
 		if land := landOf(gv, pm); land != "" {
 			if respond(pm, mb.ActOutput{ActionID: land}) == http.StatusNoContent {
@@ -233,4 +253,5 @@ func landUndoGame(t *testing.T, game int, undo bool) {
 		respond(pm, mb.PassOutput{})
 	}
 	t.Logf("game %d: %d later land plays", game, plays)
+	return true
 }

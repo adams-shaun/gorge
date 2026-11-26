@@ -10,6 +10,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 	"github.com/adams-shaun/gorge/engine/view"
 	"github.com/adams-shaun/gorge/server/protocol"
+	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
 // liveEngineCardZone reads one object's zone from the live match under its
@@ -57,7 +58,7 @@ func TestAnnouncePayHumanSeatThroughHost(t *testing.T) {
 	if err := r.Start("t1"); err != nil {
 		t.Fatal(err)
 	}
-	deadline := time.Now().Add(2 * time.Minute)
+	deadline := time.Now().Add(testutil.WaitBudget)
 	last := ^uint64(0)
 	announced, windows, taps, undone, cancelled, completed := 0, 0, 0, 0, 0, 0
 	var cancelledCard, pendingCard state.ObjID

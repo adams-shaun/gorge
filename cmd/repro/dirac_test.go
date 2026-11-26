@@ -75,7 +75,7 @@ func diracCapture(t *testing.T) string {
 	if err := r.Start("t1"); err != nil {
 		t.Fatal(err)
 	}
-	deadline := time.Now().Add(40 * time.Second)
+	deadline := time.Now().Add(testutil.WaitBudget)
 	for {
 		ms, err := r.Matches("t1")
 		if err != nil {
