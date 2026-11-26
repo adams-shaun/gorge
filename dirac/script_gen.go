@@ -317,6 +317,21 @@ func (s *State) pricedByPrintedSources(k *prep, real *Decision, a Action) bool {
 	return plainCastMode(a) && a.Target() == 0 && hasOption(real, a) && !k.cards[s.objs[Obj(a.Source())].card].cost.Phyrexian()
 }
 
+// unionGapsWalk adds to the any-mana walk the plays only the gaps walk lists,
+// on a closed sacrifice-any bound (sacDrops keeps the gaps walk's plays there,
+// and gorge's potential walk lists them): the any walk's plain-cast pain guard
+// (plainCastPainOK) withholds a cast at 1 life under a TapsForMana watcher the
+// gaps walk exempts, and gorge still searches it (Ashnod's Altar's second
+// sacrifice pays Drana, Kalastria Bloodchief beside a Burning-Earth-deferred
+// land). A search budget that reaches the play makes the omission a divergence.
+func (s *State) unionGapsWalk(any, gaps *Decision) {
+	for i := 0; i < int(gaps.N) && int(any.N) < MaxOptions; i++ {
+		if a := gaps.Options[i]; !hasOption(any, a) {
+			any.add(a)
+		}
+	}
+}
+
 // scriptOffers adds to d the plays a scripted prefix pays.
 // plainCastMode reports a cast of the card's printed spell: no mode number,
 // and no may-play, face or warp mode (autopayDropsPlainCast's and
@@ -454,6 +469,9 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 	if s.scriptAnyWalk(k, p, filt, relax, caAny || twoLive) {
 		s.plainOptions(k, &any, availAny)
 		src = &any
+		if sacAny {
+			s.unionGapsWalk(&any, &gaps)
+		}
 	}
 	// the insufficient plays in gorge's walk order (potentialWalkOf: the
 	// hand walk, the permission and graveyard casts, then the battlefield's
