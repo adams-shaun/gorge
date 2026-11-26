@@ -3143,6 +3143,7 @@ func (s *State) announcedXBuilding(k *prep) bool {
 	return (g.anyLifeX && s.lifeXBuilding(k)) ||
 		(g.anySacX && s.sacXBuilding(k)) ||
 		(g.anyExileX && s.exileXBuilding(k)) ||
+		(g.anyBlightX && s.blightXBuilding(k)) ||
 		(g.uses.has(useEnergyX) && s.energyXBuilding(k)) ||
 		(g.uses.has(useDiscardX) && s.discardXBuilding(k))
 }

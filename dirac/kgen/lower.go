@@ -378,6 +378,10 @@ type lowerCtx struct {
 	// announced life part) may lower on a spell or an
 	// activated ability (actCost) and nowhere else
 	lifeXSpell bool
+	// blightXOK while a spell's own RaiseCost Cost$ is retried for an announced
+	// Blight<X> (raiseSelfAdditional, lower_blightx.go); every other cost
+	// refuses a variable Blight
+	blightXOK bool
 	// prevColor while a mid-resolution ChooseColor waits for its
 	// prevent-the-chosen-colour Effect (Prismatic Strands)
 	prevColor bool
@@ -2579,6 +2583,10 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 			if len(parts) != 1 {
 				return c, refuse("blight cost %q", t)
 			}
+			if parts[0] == "X" && lc.blightXOK && c.BlightN == 0 && !c.BlightX {
+				c.BlightX = true // the announced count (lower_blightx.go)
+				continue
+			}
 			n, err := strconv.Atoi(parts[0])
 			if err != nil {
 				return c, refuse("blight cost %q: a variable amount", t)
@@ -3382,6 +3390,7 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 		if err := lc.spellWindow(ps, ab); err != nil { // lower_actwindow.go
 			return err
 		}
+		lc.blightXBody(sa, ps) // XMax$ of a Blight<X> raise (lower_blightx.go)
 		if lc.out.Types&tLegendary != 0 && lc.out.Types&(tInstant|tSorcery) != 0 {
 			// CR 205.4e: a legendary instant or sorcery is cast only while
 			// its caster controls a legendary creature or planeswalker
