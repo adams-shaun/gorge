@@ -136,6 +136,10 @@ type lowerCtx struct {
 	emblemBlocked bool
 	// emblemUnblocked: the same body of an AttackerUnblocked emblem with a capture: Remembered is the trigger object too (Delif's Cone: the captured attacker; lower_effeottrig.go capturedTriggerRef, value.go)
 	emblemUnblocked bool
+	// drawReplBody: lowering a Draw replacement's ReplaceWith$ body, where
+	// Defined$ ReplacedPlayer is the player drawing (the kernel binds it as the
+	// program's trigger player; dirac/repl_drawprogram.go).
+	drawReplBody bool
 
 	// emblemBlocks: lowering the body of an end-of-turn Effect's Mode$ Blocks
 	// trigger. The kernel emblem hook (dirac/trig_emblemblocks.go) queues the
