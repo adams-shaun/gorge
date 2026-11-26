@@ -969,17 +969,19 @@ func conditionDefinedGroup(h Host, c *Ctx, sa *cards.SA, defined string) ([]stat
 	if defined == "TriggeredCard" || defined == "TriggeredCardLKICopy" {
 		// The card the triggering event moved — the TriggerContext.TriggerCard
 		// role rules' triggerReferents captures for every mode that names one
-		// (ChangesZone, SpellCast, Drawn, ...). BOTH spellings enumerate the
-		// SAME group: this engine does not model LKI copies, so the LKI-copy spelling
-		// reads the live object exactly as the Defined$ TriggeredCardLKICopy
-		// resolver does (engine/effects/context.go), and gate and resolver cannot
-		// disagree. An ABSENT binding (a synthetic
-		// fixture, a hand-built context, a mode with no card role) leaves the
-		// gate UNSUPPORTED — the sub runs unconditionally, this file's
-		// documented convention — never a resolved-false, which would silently
-		// stop subs that ran before the group was enumerable. Measured corpus
-		// population of `ConditionDefined$ TriggeredCard` gates: 33 raw lines
-		// over 36 files, every one of which ran its sub unconditionally before.
+		// (ChangesZone, SpellCast, Drawn, Sacrificed, ...). BOTH spellings
+		// enumerate the SAME group and the member matcher reads it LIVE: the
+		// zone change that fired the trigger (and any sub the ability ran
+		// before this gate) does not change the characteristics the group's
+		// predicates read — the moved card keeps its printed types and
+		// IsToken (CR 400.7), so Geistcatcher's exiled sacrifice answers
+		// token-ness exactly as the snapshot would; the Defined$
+		// TriggeredCardLKICopy resolver still resolves the object set the
+		// effect acts on. An ABSENT binding (a synthetic fixture, a
+		// hand-built context, a mode with no card role) leaves the gate
+		// UNSUPPORTED — the sub runs unconditionally, this file's documented
+		// convention — never a resolved-false, which would silently stop subs
+		// that ran before the group was enumerable.
 		if c.TriggerCard == 0 {
 			return nil, false
 		}
