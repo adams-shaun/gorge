@@ -32,6 +32,18 @@ func (lc *lowerCtx) effect(sa *cards.SA, ps *params) error {
 			if lc.trigOwnCost && cost.Mana.X && !cost.Mana.None {
 				// a printed trigger's own "you may pay {X}": gorge announces X
 				// first, capped by the body's XMax$ (lower_triggerxcost.go)
+				if xc, ok := ps.get("XColor"); ok {
+					// Forge's XColor$ beside the trigger's Cost$ X (Leyline
+					// Tyrant's "pay any amount of {R}"): each announced X is
+					// that colour's pip, not generic mana (CR 107.3, 601.2b)
+					if err := lc.xColor(&cost.Mana, xc); err != nil {
+						return err
+					}
+				}
+				// XAnnounceTitle$ is the announcement's display title (gorge's
+				// triggeredCostXAsk names it in the prompt); the kernel's X ask
+				// carries no prompt text, so it is read and dropped.
+				ps.consume("XAnnounceTitle")
 				if err := lc.trigXCost(ps); err != nil {
 					return err
 				}

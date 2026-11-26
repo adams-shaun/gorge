@@ -3,6 +3,8 @@ package kgen
 import (
 	"fmt"
 	"strings"
+
+	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
 // (Shanna, Purifying Blade) a printed trigger's own "you may pay
@@ -13,7 +15,9 @@ import (
 // trig_maypayx.go) does the same, its A the XMax$ cap,
 // or 64 when the body names none (Tester of the Tangential,
 // Wildborn Preserver; gorge then bounds X by the payer's mana alone). Only
-// exactly {X} as the whole cost, with the SVar:X Count$xPaid, lowers.
+// exactly {X} as the whole cost, with the SVar:X Count$xPaid, lowers; an
+// XColor$ on the cost makes each announced X a pip of that colour instead
+// (Leyline Tyrant's "any amount of {R}").
 
 // trigXFoldCap is gorge's xFoldBoundCap (rules cumulative.go L979): the
 // mana bound's cap, the whole cap when the body has no XMax$.
@@ -42,6 +46,9 @@ func (lc *lowerCtx) trigXCost(ps *params) error {
 }
 
 // payManaX lowers exactly {X} (no other mana, life or cost part) to PayManaX.
+// An XColor$ on the cost (Leyline Tyrant's "pay any amount of {R}") rides the
+// instruction's B as kop.PayXColorB, so the kernel announces and charges a pip
+// of that colour per X instead of generic mana.
 func (lc *lowerCtx) payManaX(c lCost, in lInstr) (lInstr, error) {
 	m := c.Mana
 	if !lc.trigOwnCost || m.XX || m.Generic != 0 || m.Pips != [5]int{} || len(m.Hybrid) > 0 || len(m.Twobrid) > 0 ||
@@ -50,6 +57,13 @@ func (lc *lowerCtx) payManaX(c lCost, in lInstr) (lInstr, error) {
 		return in, refuse("trigger {X} cost beside other cost parts")
 	}
 	in.CS, in.A = "ManaX", *lc.trigXMax
+	if m.XColor != 0 {
+		i := strings.IndexByte("WUBRG", m.XColor)
+		if i < 0 {
+			return in, refuse("trigger {X} cost XColor$ %q", m.XColor)
+		}
+		in.B = cst(int(kop.PayXColorB(i)))
+	}
 	lc.trigXPaid = true
 	return in, nil
 }

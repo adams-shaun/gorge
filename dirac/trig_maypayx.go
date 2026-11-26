@@ -59,11 +59,11 @@ func (s *State) execTrigX(k *prep, p uint8, skip uint16, cap int) bool {
 	cap = min(cap, trigXCap)
 	mx := 0
 	for x := 1; x <= cap; x++ {
-		c := manaOf(x, 0)
+		c := s.trigXCostAt(k, x)
 		// a restricted source whose restriction admits a non-spell payment (the
 		// Powerstone's {C}, CR 106.6) funds the trigger's cost too: gorge's
 		// potentialManaFor prices it in the bound
-		if !av.affords(&c, 0, 0) && !(k.restrSrc && s.restrSrcAffords(k, p, other, &c, &av, NoSlot, 0)) {
+		if !av.affords(&c, pipMaskOf(&c), 0) && !(k.restrSrc && s.restrSrcAffords(k, p, other, &c, &av, NoSlot, 0)) {
 			break
 		}
 		mx = x
@@ -102,7 +102,13 @@ func (s *State) execTrigX(k *prep, p uint8, skip uint16, cap int) bool {
 				one = t // the restricted sources a non-spell payment may spend count once each too
 			}
 		}
-		mx = min(mx, one.total+s.trigXLethalPain(k, p)-s.trigXFiltExcess(k, p))
+		supply := one.total
+		if col, ok := s.trigXColor(k); ok {
+			// a coloured X's pips are one colour's supply, not the board's
+			// total mana: a red X beside green sources stops at the red units
+			supply = trigXColourSupply(&one, col)
+		}
+		mx = min(mx, supply+s.trigXLethalPain(k, p)-s.trigXFiltExcess(k, p))
 	}
 	s.g.pickF = skip
 	s.g.pickZ = kop.PayManaX
@@ -110,6 +116,57 @@ func (s *State) execTrigX(k *prep, p uint8, skip uint16, cap int) bool {
 	s.g.pickP = p
 	s.res.ask, s.res.askP = raTrigX, p
 	return false
+}
+
+// trigXColorOf reports a PayManaX instruction's XColor$ colour (W = 0 .. G = 4)
+// and whether it carries one. A generic trigger-own {X} has none.
+func trigXColorOf(in *kop.Instr) (uint8, bool) {
+	if in == nil || in.C&0xF != kop.PayManaX {
+		return 0, false
+	}
+	return kop.PayXColor(in.B.N)
+}
+
+// trigXColor is trigXColorOf over the resolved program's current instruction,
+// false when the program has none (a unit probe that calls execTrigX directly).
+func (s *State) trigXColor(k *prep) (uint8, bool) {
+	pr := s.prog(k)
+	if int(s.res.pc) >= len(pr) {
+		return 0, false
+	}
+	return trigXColorOf(&pr[s.res.pc])
+}
+
+// trigXCostAt is the cost of announcing x on the PayManaX instruction in the
+// resolved program: x generic mana, or x pips of its XColor$ colour (CR 107.3,
+// 601.2b; Leyline Tyrant's "pay any amount of {R}"). The instruction carries
+// the colour, so every read of the announced X (the bound, the pay election,
+// resPayCost) prices the same cost.
+func (s *State) trigXCostAt(k *prep, x int) kop.ManaCost {
+	var c kop.ManaCost
+	if col, ok := s.trigXColor(k); ok {
+		c.Pips[col] = uint8(x)
+	} else {
+		c.Generic = uint8(x)
+	}
+	return c
+}
+
+// trigXColourSupply is the coloured arm of the one-tap census bound: how many
+// units of a can make colour col (W = 0 .. G = 4). A unit's mask names the
+// colours it produces, so a source that makes only {G} funds no red X; a
+// unit that makes any colour (mask 0x1f) may choose col. Gorge's
+// triggeredCostXSupply caps a coloured X at what the payment can spend, one
+// source at its largest production, not at the board's total mana.
+func trigXColourSupply(a *avail, col uint8) int {
+	bit := uint8(1) << col
+	n := 0
+	for i := 0; i < a.n; i++ {
+		if a.mask[i]&bit != 0 {
+			n += int(a.cnt[i])
+		}
+	}
+	return n
 }
 
 // trigXReflBound reports whether d, the trigger X announcement's descriptor,
@@ -214,7 +271,12 @@ func (s *State) applyAskTrigX(k *prep, a Action) bool {
 		ok, stall = s.windowPays(k, p, kop.PayMana, s.g.pickF, int(a.Mode()), 0)
 	}
 	if !ok {
-		ok = s.trigCostPotentialPays(k, p, kop.PayMana, s.g.pickF, int(a.Mode()), 0, 0)
+		if _, coloured := s.trigXColor(k); coloured {
+			c := s.trigXCostAt(k, int(a.Mode()))
+			ok = s.trigCostPotentialPaysX(k, p, s.g.pickF, &c)
+		} else {
+			ok = s.trigCostPotentialPays(k, p, kop.PayMana, s.g.pickF, int(a.Mode()), 0, 0)
+		}
 	}
 	if !ok {
 		s.g.pickF |= pfNoPay // the X bound read no restriction; a pay reads the payment's (decline only)
@@ -238,7 +300,10 @@ func (s *State) applyAskTrigX(k *prep, a Action) bool {
 // the payment's window both count): a Condition-split source beside Mana
 // Flare was offered X = 13 and answered decline only.
 func (s *State) trigXCensusPays(k *prep, p uint8, amt int, pips int16) bool {
-	c := s.numTimesCost(k, amt, pips)
+	c := s.trigXCostAt(k, amt) // a coloured X becomes pips of its XColor$ colour
+	if pips != 0 {
+		c = s.numTimesCost(k, amt, pips)
+	}
 	s.payManaHyb(k, 0, &c) // a trigger's own hybrid cost (cost_trighybrid.go)
 	s.announcedHyb(&c)
 	var av avail

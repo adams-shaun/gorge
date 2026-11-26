@@ -1285,6 +1285,8 @@ func (lc *lowerCtx) countValue(rest string, depth int) (lValue, error) {
 		return lValue{Kind: vPowerOf, Ref: lRef{Kind: rSelf}}, nil
 	case "CardToughness":
 		return lValue{Kind: vToughnessOf, Ref: lRef{Kind: rSelf}}, nil
+	case "CardBasePower":
+		return lValue{Kind: vCardBasePower}, nil // the source's base power (value_basepower.go)
 	case "TotalDamageDoneByThisTurn":
 		return lc.totalDamageValue()
 	case "LifeYouGainedThisTurn":

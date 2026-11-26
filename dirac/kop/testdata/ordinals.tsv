@@ -113,7 +113,9 @@ CloneEOT	untyped int	1
 CloneExclTmpl	untyped int	2
 CloneGrant	untyped int	128
 ClonePick	untyped int	8
+CloneTmplCard	untyped int	256
 CloneTmplPick	untyped int	4
+CloneTmplSac	untyped int	512
 CloneTmplShift	untyped int	4
 CmdMVAllZones	untyped int	1
 CmpEQ	CmpOp	3
@@ -1017,6 +1019,7 @@ PayBSubTapXVar	untyped int	16
 PayBSubTrigNew	untyped int	3
 PayBSubTrigNewEvidence	untyped int	10
 PayBSubWaterbend	untyped int	12
+PayBSubXColor	untyped int	256
 PayDiscard	untyped int	2
 PayDiscardHand	untyped int	11
 PayDiscardRandom	untyped int	10
@@ -1364,6 +1367,7 @@ RetUnderOpponent	untyped int	4096
 RollDieCoin	int16	1
 RollDieCoinBatch	int16	2
 RollDieCoinMark	int16	4
+RollDieCoinNoCall	int16	8
 SacSumMV	untyped int	8
 SacSumPower	untyped int	2
 SacSumToughness	untyped int	4
@@ -1771,6 +1775,8 @@ TrigManifestDread	TrigEvent	45
 TrigNAnyCounter	int16	-1
 TrigNCauseSpellOppCtrl	int16	2
 TrigNCauseSpellYouCtrl	int16	1
+TrigNFlipLose	int16	2
+TrigNFlipWin	int16	1
 TrigNMonarchBeganTurn	int16	1
 TrigNSrcAbility	int16	5
 TrigNSrcCtrl	int16	6
