@@ -753,6 +753,52 @@ var DebugDropDefSeat bool
 // stalls when the attacker has left before the trigger resolves).
 var DebugAtkTriggerNoDefenderBind bool
 
+// fireAtkListener queues one Attacks or AttackersDeclared listener's triggers
+// for one DeclareAttackers event of fireAtkGroup (grp its attackers, atk the
+// declaration's, first the declaration's first event). A method, not a
+// closure: a func value taking grp makes the caller's grp array escape.
+func (s *State) fireAtkListener(k *prep, l trigListener, a *kop.Ability, grp, atk []Slot, first bool) {
+	if a.Trig.Event == kop.TrigAttackersDeclared {
+		if a.Trig.Flags2&kop.Tf2DefPlayer != 0 {
+			s.fireDefPlayer(k, l, a, grp) // act_discover.go
+			return
+		}
+		if first {
+			n := int16(s.nAttackers)
+			if a.Trig.Filter != 0 {
+				n = s.attackersMatching(k, l, a, atk) // filter_predicates.go
+			}
+			if n > 0 {
+				s.fireAtkDecl(k, l, a, n, atk) // trig_attackers.go
+			}
+		}
+		return
+	}
+	if a.Trig.Flags2&(kop.Tf2Alone|kop.Tf2Attacked) != 0 && !s.attacksGate(k, a.Trig.Flags2, l.ctrl, s.perms[grp[0]].atk) {
+		return // gorge Alone$ / Attacked$ (filter_predicates.go)
+	}
+	if a.Trig.Flags4&kop.Tf4DefEnch != 0 && !s.attacksDefEnch(k, l, grp) {
+		return // Attacked$ Player.EnchantedBy (trig_attacksenchanted.go)
+	}
+	if a.Trig.N == kop.TrigNTraining && !s.trainingGate(k, l.sl, atk) {
+		return // Training (kw_training.go)
+	}
+	for _, as := range grp {
+		if k.gen.anyAddPhase && a.Trig.Flags3&kop.Tf3FirstAttack != 0 && s.attackedBefore(k, s.perms[as].obj) {
+			continue // FirstAttack$ True: AttacksThisTurn == 1 (act_addphase.go)
+		}
+		n0 := s.npend
+		s.objTrigGen(k, kop.TrigAttacks, l, a, as, s.perms[as].obj, s.perms[as].ctrl, 0)
+		if s.duel() && !DebugAtkTriggerNoDefenderBind && progHasOp(a, kop.OpAtkPWGuard) {
+			// past two seats stampDefSeat binds every attack trigger of
+			// the event; at two seats only a TriggeredDefender damage
+			// reads the seat, and binding every trigger would change
+			// the others' reads.
+			s.stampDefSeat(n0, s.atkSeat(k, as), s.perms[as].atk)
+		}
+	}
+}
+
 // fireAtkGroup runs the listeners in ord[:n] over one DeclareAttackers event
 // of fireAttacksGen: grp is the event's attackers, atk the declaration's;
 // first marks the declaration's first event.
@@ -760,47 +806,7 @@ func (s *State) fireAtkGroup(k *prep, ord *[MaxPerm]Slot, n int, atk, grp []Slot
 	isAtk := func(a *kop.Ability) bool {
 		return a.Trig.Event == kop.TrigAttacks || a.Trig.Event == kop.TrigAttackersDeclared
 	}
-	fire := func(l trigListener, a *kop.Ability) {
-		if a.Trig.Event == kop.TrigAttackersDeclared {
-			if a.Trig.Flags2&kop.Tf2DefPlayer != 0 {
-				s.fireDefPlayer(k, l, a, grp) // act_discover.go
-				return
-			}
-			if first {
-				n := int16(s.nAttackers)
-				if a.Trig.Filter != 0 {
-					n = s.attackersMatching(k, l, a, atk) // filter_predicates.go
-				}
-				if n > 0 {
-					s.fireAtkDecl(k, l, a, n, atk) // trig_attackers.go
-				}
-			}
-			return
-		}
-		if a.Trig.Flags2&(kop.Tf2Alone|kop.Tf2Attacked) != 0 && !s.attacksGate(k, a.Trig.Flags2, l.ctrl, s.perms[grp[0]].atk) {
-			return // gorge Alone$ / Attacked$ (filter_predicates.go)
-		}
-		if a.Trig.Flags4&kop.Tf4DefEnch != 0 && !s.attacksDefEnch(k, l, grp) {
-			return // Attacked$ Player.EnchantedBy (trig_attacksenchanted.go)
-		}
-		if a.Trig.N == kop.TrigNTraining && !s.trainingGate(k, l.sl, atk) {
-			return // Training (kw_training.go)
-		}
-		for _, as := range grp {
-			if k.gen.anyAddPhase && a.Trig.Flags3&kop.Tf3FirstAttack != 0 && s.attackedBefore(k, s.perms[as].obj) {
-				continue // FirstAttack$ True: AttacksThisTurn == 1 (act_addphase.go)
-			}
-			n0 := s.npend
-			s.objTrigGen(k, kop.TrigAttacks, l, a, as, s.perms[as].obj, s.perms[as].ctrl, 0)
-			if s.duel() && !DebugAtkTriggerNoDefenderBind && progHasOp(a, kop.OpAtkPWGuard) {
-				// past two seats stampDefSeat binds every attack trigger of
-				// the event; at two seats only a TriggeredDefender damage
-				// reads the seat, and binding every trigger would change
-				// the others' reads.
-				s.stampDefSeat(n0, s.atkSeat(k, as), s.perms[as].atk)
-			}
-		}
-	}
+	fire := func(l trigListener, a *kop.Ability) { s.fireAtkListener(k, l, a, grp, atk, first) }
 	for _, sl := range ord[:n] {
 		s.slotTriggers(k, sl, isAtk, fire)
 	}
@@ -809,7 +815,7 @@ func (s *State) fireAtkGroup(k *prep, ord *[MaxPerm]Slot, n int, atk, grp []Slot
 	}
 	s.eachCommandTrigger(k, kop.TrigAttackersDeclared, fire)
 	if emb {
-		s.emblemAtkListeners(k, fire) // gorge: the delayed registrations are checked after the event's face triggers
+		s.emblemAtkListeners(k, grp, atk, first) // gorge: the delayed registrations are checked after the event's face triggers
 	}
 	if k.gen.ringOn() {
 		s.ringAtkTrigs(k, grp) // the Ring emblem's level 2 (act_ring.go), after the event's triggers

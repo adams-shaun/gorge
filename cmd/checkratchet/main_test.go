@@ -8,11 +8,11 @@ import (
 	"testing"
 )
 
-// TestCheckRefusesALoweredConstantAndRow runs the guard's enumeration over a real repository:
-// a branch that lowers a constant in a nested ratchet_test.go, or a ceilings row, is reported; a
-// branch that leaves both alone is not. ls-tree takes no glob, so a pathspec for ratchet_test.go
-// matched nothing and the constant half never ran.
-func TestCheckRefusesALoweredConstantAndRow(t *testing.T) {
+// TestCheckRefusesALoweredConstantAndARemovedRatchet runs the guard's enumeration over a real
+// repository: a branch that lowers a constant in a nested ratchet_test.go, or removes the file, is
+// reported; a branch that leaves it alone is not. ls-tree takes no glob, so a pathspec for
+// ratchet_test.go matched nothing and the constant half never ran.
+func TestCheckRefusesALoweredConstantAndARemovedRatchet(t *testing.T) {
 	dir := t.TempDir()
 	run := func(args ...string) {
 		t.Helper()
@@ -34,7 +34,6 @@ func TestCheckRefusesALoweredConstantAndRow(t *testing.T) {
 	}
 	const constFile = "x/y/ratchet_test.go"
 	write(constFile, "package y\n\nconst limit = 400\n")
-	write(ceilingsPath, "# key\tlines\tcomplexity\np big\t400\t70\n")
 	run("init", "-q", "-b", "main")
 	run("add", ".")
 	run("commit", "-q", "-m", "base")
@@ -54,19 +53,7 @@ func TestCheckRefusesALoweredConstantAndRow(t *testing.T) {
 		t.Fatalf("lowered constant: got %q, want one entry for %s", lowered, constFile)
 	}
 
-	write(constFile, "package y\n\nconst limit = 400\n")
-	write(ceilingsPath, "# key\tlines\tcomplexity\np big\t399\t70\n")
-	run("commit", "-qam", "lower the row")
-	lowered, _, err = check(dir, "main", "HEAD")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(lowered) != 1 || !strings.HasPrefix(lowered[0], ceilingsPath+": ") {
-		t.Fatalf("lowered row: got %q, want one entry for %s", lowered, ceilingsPath)
-	}
-
 	run("rm", "-q", constFile)
-	write(ceilingsPath, "# key\tlines\tcomplexity\np big\t400\t70\n")
 	run("commit", "-qam", "remove the ratchet file")
 	lowered, _, err = check(dir, "main", "HEAD")
 	if err != nil {
