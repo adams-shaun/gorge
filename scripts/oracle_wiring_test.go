@@ -87,6 +87,14 @@ func TestOracleWorkflowCadenceAndAutoRevert(t *testing.T) {
 	if !strings.Contains(job, `hotfix/auto-revert-$PR`) {
 		t.Error("the auto-revert branch must be hotfix/auto-revert-<pr>")
 	}
+	// A second bisect blaming the same PR must never fail the job (oracle run 45740776172): comment on the open
+	// revert PR, or force-push the bot-owned leftover branch, never a plain push that a stale branch rejects.
+	if !strings.Contains(job, `gh pr list --head "$br" --state open --json number`) || !strings.Contains(job, "gh pr comment") {
+		t.Error("the auto-revert must comment on an open revert PR instead of failing or opening a second one")
+	}
+	if !strings.Contains(job, `git push --force origin "$br"`) {
+		t.Error("the auto-revert must force-push the bot branch (an earlier bisect may have left it behind)")
+	}
 	if !strings.Contains(job, "contents: write") || !strings.Contains(job, "pull-requests: write") {
 		t.Error("bisect needs contents: write and pull-requests: write")
 	}
