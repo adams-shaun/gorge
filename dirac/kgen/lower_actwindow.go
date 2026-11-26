@@ -63,3 +63,40 @@ func (lc *lowerCtx) activationWindow(ps *params, sa *cards.SA, ab *lAbility) err
 	}
 	return nil
 }
+
+// spellWindow lowers a spell's own timing restriction, the keys gorge's
+// activationPhasesOK reads on the spell's SA at the cast offer
+// (spellTimingPre, CR 601.3): ActivationPhases$ ("Cast this spell only during
+// combat", Savage Beating, Panic), ActivationFirstCombat$ True, PlayerTurn$
+// True and OpponentTurn$ True ("only during your turn" / "an opponent's
+// turn", Take the Bait). Each rides the spell ability's cast restriction
+// (kernel castForbidden, cast_spellcondition.go) beside IsPresent$'s.
+// ActivationAfterBlockers$ stays unread, so it refuses with its name.
+func (lc *lowerCtx) spellWindow(ps *params, ab *lAbility) error {
+	if spec, ok := ps.get("ActivationPhases"); ok {
+		c, err := phasesCond("ActivationPhases", spec)
+		if err != nil {
+			return err
+		}
+		ab.ActCond = andCond(ab.ActCond, c)
+	}
+	if v, ok := ps.get("ActivationFirstCombat"); ok {
+		if !strings.EqualFold(strings.TrimSpace(v), "True") {
+			return refuse("ActivationFirstCombat$ %q", v)
+		}
+		ab.ActCond = andCond(ab.ActCond, lCond{Kind: cValue, A: lValue{Kind: vPhaseCount, N: kop.PhaseCountCombats}, Op: opLE, B: cst(1)})
+	}
+	if v, ok := ps.get("PlayerTurn"); ok {
+		if !strings.EqualFold(strings.TrimSpace(v), "True") {
+			return refuse("spell PlayerTurn$ %q", v)
+		}
+		ab.ActCond = andCond(ab.ActCond, lCond{Kind: cYourTurn})
+	}
+	if v, ok := ps.get("OpponentTurn"); ok {
+		if !strings.EqualFold(strings.TrimSpace(v), "True") {
+			return refuse("spell OpponentTurn$ %q", v)
+		}
+		ab.ActCond = andCond(ab.ActCond, lCond{Kind: cYourTurn, Neg: true}) // not the caster's turn: an opponent's (no teammates)
+	}
+	return nil
+}
