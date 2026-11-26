@@ -1238,6 +1238,7 @@ func (cb *cardBuilder) cost(c lCost) (kop.Cost, error) {
 		}
 	}
 	out.ExileBf = c.SacExile
+	out.SacHalf = c.SacHalf // sacrifice half the matching permanents at payment (kernel cost_sachalf.go)
 	if c.XMin > 0 {
 		out.XMin = uint8(c.XMin) // the announced X's floor (kernel cost_sacx.go)
 	}
