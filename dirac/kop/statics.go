@@ -63,7 +63,7 @@ type Static struct {
 	// is never granted to the affected objects, so no grant ledger or grant
 	// prep reads it.
 	GrantBody uint8
-	Zone      Zone   // StatMayPlayFrom: the zone played from; StatReduceCost: ZoneNone = battlefield only, ZoneCommand = any zone (the card itself)
+	Zone      Zone   // StatMayPlayFrom: the zone played from; StatReduceCost: ZoneNone = battlefield only, ZoneCommand = any zone (the card itself); StatCantBeCast: ZoneNone = every origin, ZoneCommand = the card itself (EffectZone$ All), a real zone = the Origin$ origin the cast must begin from; StatCantPlayLand: the Origin$ zone the play may not come from
 	Override  uint16 // StatOverride: Table.Overrides[Override-1]
 	// Ward: a StatContinuous grant's ward {Ward} (Kw holds KwWard; CR
 	// 702.21a): each such static is its own ward instance
