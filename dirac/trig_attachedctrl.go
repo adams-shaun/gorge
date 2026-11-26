@@ -10,20 +10,32 @@ func (s *State) attachedCtrl(o Obj) uint8 {
 	if o == NoObj {
 		return 255
 	}
+	if z := s.objs[o].zone; z == kop.ZonePhased || z == kop.ZonePhasedInd {
+		// a phased-out host keeps its controller (gorge's Object.Controller
+		// stands while it is phased out), not its owner
+		return s.perms[s.objs[o].slot].ctrl
+	}
 	return s.ctrlOfObj(o)
 }
 
 // enchantedCtrl is kop.RefEnchantedCtrl for the entry whose source object is
 // src: the controller of the permanent the source is attached to while the
-// source is on the battlefield, 255 (no player) once it has left or is attached
-// to nothing (gorge playerEnchantedController reads the source's live
-// AttachedTo, which leaving the battlefield clears).
+// source is on the battlefield or phased out (both keep the attachment, CR
+// 702.26g), 255 (no player) once it has left or is attached to nothing (gorge
+// playerEnchantedController reads the source's live AttachedTo, which leaving
+// the battlefield clears: a left Aura names nobody, CR 704.5m).
 func (s *State) enchantedCtrl(src Obj) uint8 {
-	if src == NoObj || s.objs[src].zone != kop.ZoneBattlefield {
+	if src == NoObj {
+		return 255
+	}
+	// a phased-out source keeps its attachment (CR 702.26g), the AttachedTo
+	// gorge's payer reads; only a source in another zone has left
+	if z := s.objs[src].zone; z != kop.ZoneBattlefield && z != kop.ZonePhased && z != kop.ZonePhasedInd {
 		return 255
 	}
 	a := s.perms[s.objs[src].slot].attached
-	if a == NoSlot || !s.occ.has(a) {
+	if a == NoSlot || !(s.occ.has(a) || s.hiddenAt(a)) {
+		// a phased-out host is off occ but still attached (CR 702.26g)
 		return 255
 	}
 	return s.perms[a].ctrl
