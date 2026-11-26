@@ -948,6 +948,8 @@ const ExDevotionDual ExprKind = 70
 const ExStartingPlayer ExprKind = 71
 
 // count AltCost (dirac/manifest/ExprKind/ExAltCost)
+//
+// Sub[0] if the resolving spell was cast for its own S:Mode$ AlternativeCost static's alternative (kernel build.altAdd buildAltCost, stamped as the spell entry's trigPlAltCost mark), else Sub[1] (Count$AltCost.<paid>.<unpaid>; Worldheart Phoenix's SpellCast CheckSVar; gorge count_body_heads.go reads FlagAltCostPaid or the pending cast's PendingAltCost). Read through the stack for a trigger above its spell, as ExSneaked is.
 const ExAltCost ExprKind = 72
 
 // count Result (dirac/manifest/ExprKind/ExResult)
