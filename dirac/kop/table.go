@@ -619,6 +619,17 @@ type CardDef struct {
 	// then {0}, and the action is offered only while the controller's life
 	// covers N (dirac/face_morphlife.go).
 	MorphLife uint8
+	// MorphPick (zero = none) is the pick part of a keyword turn-up whose
+	// cost is one Discard, Sac or Return part (CR 702.37e; Gathan Raiders'
+	// Morph—Discard a card, Fathom Seer's return two Islands, Gift of Doom's
+	// sacrifice another creature): exactly one of CostDiscard (N cards from
+	// the payer's hand), CostSac or CostReturn (N permanents the payer
+	// controls; the face-down permanent itself never a candidate — the
+	// printed spec is "another ..."), with MorphCost {0}. The kernel's
+	// turn-up window poses gorge's pick ask for it before the permanent
+	// turns up (dirac/face_morphpick.go; gorge morph_turnup.go's
+	// turnUpSacAsk / turnUpDiscardAsk / turnUpReturnAsk).
+	MorphPick Cost
 	// CostEmpty is an EMPTY printed mana-cost text, the one case gorge's
 	// manifestFaceUpCost rejects outright (strings.TrimSpace(f.ManaCost)=="");
 	// Cost is also the zero ManaCost for {0} and for a printed "no cost", so

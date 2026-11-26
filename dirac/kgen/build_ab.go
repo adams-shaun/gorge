@@ -3038,6 +3038,11 @@ func (cb *cardBuilder) repl(r lRepl) (kop.Ability, error) {
 		if ka.Prog, err = cb.prog(r.Prog); err != nil {
 			return ka, err
 		}
+	case "TurnUpAttach":
+		rp.Kind = kop.ReplTurnUpAttach // lower_turnfaceuprepl.go: the optional attach ask (Gift of Doom)
+		if rp.Filter, err = cb.filter(r.F, kop.ZoneBattlefield); err != nil {
+			return ka, err
+		}
 	case "SpellsCantBeCountered":
 		return cantCounterRepl(ka, r, cb) // lower_uncounterable.go
 	case "CantTurnUp":
