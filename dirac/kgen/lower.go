@@ -283,6 +283,10 @@ type lowerCtx struct {
 	// altCostHand while a spell's own AlternativeCost static's Cost$ is
 	// lowered: an ExileFromHand<1/Spec> part keeps its filter (lower_trigger.go)
 	altCostHand bool
+	// crewAltCost while a Vehicle's own crew AlternativeCost static's Cost$ is
+	// lowered: its SubCounter<N/LOYALTY/Filter> removal reads the filter
+	// (static_crewalt.go), which no other cost spelling does
+	crewAltCost bool
 	// grantAttached while the trigger an Equipment's or Aura's static grants
 	// its attached permanent is lowered (AffectedDefined$ Equipped/Enchanted)
 	grantAttached bool
@@ -2901,7 +2905,10 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 				return c, refuse("counter cost %q", t)
 			}
 			kind := parts[1]
-			if kind == "LOYALTY" && head != "RemoveAnyCounter" {
+			if filteredLoyalty := kind == "LOYALTY" && len(parts) != 2 && lc.crewAltCost && head == "SubCounter"; kind == "LOYALTY" && head != "RemoveAnyCounter" && !filteredLoyalty {
+				// (a filtered loyalty removal -- "remove a loyalty counter from a
+				// planeswalker you control" -- is the among cost below, only for
+				// the crew alternative: static_crewalt.go)
 				if len(parts) != 2 {
 					return c, refuse("counter cost %q", t)
 				}
