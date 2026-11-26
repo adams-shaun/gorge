@@ -2510,6 +2510,7 @@ var exprKinds = map[valKind]kop.ExprKind{
 	vSelfPrepared:       kop.ExSelfPrepared,
 	vThisTurnActGrave:   kop.ExThisTurnActGrave,
 	vSneaked:            kop.ExSneaked,
+	vAltCost:            kop.ExAltCost,
 	vTriggerSpellMVLKI:  kop.ExTriggerSpellMVLKI,
 	vPoisonOf:           kop.ExPoisonOf,
 	vProduct:            kop.ExProduct,
