@@ -77,6 +77,12 @@ func asResolve(e *Engine) *resolveBoard { return (*resolveBoard)(e) }
 // in line, unlessAnswerSettle). ok false: no run serves it, and the asking
 // site takes its deterministic default.
 func (e *Engine) TapeAnswer(d *decision.Decision) (decision.Intent, bool) {
+	if e.gameDecided() {
+		// A decided game poses nothing (the kernel asks no one after a loss):
+		// an as-enters choice of a card the loss's SBA sweep returns (CR
+		// 610.3d) takes its deterministic default instead.
+		return decision.Intent{}, false
+	}
 	return e.tape.Answer(asResolve(e), d)
 }
 
@@ -565,4 +571,12 @@ func saChainShape(sa *cards.SA) string {
 		out += s.API
 	}
 	return out
+}
+
+// gameDecided reports a game that is over or that the state-based pass in
+// flight is about to end: at most one of several seats is left (CR 104.2a).
+// checkGameOver emits the GameOver only after the departed seat's objects
+// have been swept, so G.Over alone is still false while that sweep runs.
+func (e *Engine) gameDecided() bool {
+	return e.G.Over || (len(e.G.Players) > 1 && !e.deferGameOver && e.G.AliveCount() <= 1)
 }
