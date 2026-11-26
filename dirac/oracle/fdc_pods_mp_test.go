@@ -28,7 +28,6 @@ var fdcDecks = []string{
 // A card here plays as Wastes in TestFDCFourSeatPodsLockstep; a card refused
 // and not listed, or listed and lowered, fails it.
 var fdcRefused = []string{
-	"Chandra's Ignition",
 	"Cursed Mirror",
 	"Dragonhawk, Fate's Tempest",
 	"Emeria Shepherd",
@@ -37,7 +36,6 @@ var fdcRefused = []string{
 	"Hit the Mother Lode",
 	"Leyline Tyrant",
 	"Spinerock Knoll",
-	"The Elder Dragon War",
 	"Thundermane Dragon",
 }
 
