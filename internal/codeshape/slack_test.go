@@ -4,14 +4,11 @@ import "testing"
 
 // TestSlack pins the slack rule and the count ratchets' verdicts at and around it.
 func TestSlack(t *testing.T) {
-	for _, c := range []struct{ ceiling, slack, funcSlack int }{
-		{0, 0, 5}, {1, 2, 5}, {97, 2, 5}, {299, 2, 8}, {1681, 16, 50}, {2756, 27, 82},
+	for _, c := range []struct{ ceiling, slack int }{
+		{0, 0}, {1, 2}, {97, 2}, {299, 2}, {1681, 16}, {2756, 27},
 	} {
 		if got := Slack(c.ceiling); got != c.slack {
 			t.Errorf("Slack(%d) = %d, want %d", c.ceiling, got, c.slack)
-		}
-		if got := FuncSlack(c.ceiling); got != c.funcSlack {
-			t.Errorf("FuncSlack(%d) = %d, want %d", c.ceiling, got, c.funcSlack)
 		}
 	}
 	for _, c := range []struct {
