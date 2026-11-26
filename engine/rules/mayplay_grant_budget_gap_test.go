@@ -22,7 +22,7 @@ import (
 // counter, makes none, so Age of Ultron's {4}{B} may-play cast is payable only
 // by tapping it for the granted any-colour ability (CR 601.2g, 605.3a).
 // The plain search (five gaps: every land has the granted ability) spends all
-// potentialScriptNodes (512) clones and finds no script (measured: the script
+// potentialScriptNodes (600) clones and finds no script (measured: the script
 // is the 657th node), and the phased and subsume fallbacks find none; the
 // may-play fallback's plain run, potentialMayPlayNodes (1024) clones, finds
 // it, so the cast is priced by that script and offered.
@@ -77,7 +77,7 @@ func TestMayPlayGrantBudgetGapPricesTheCast(t *testing.T) {
 	if plan.Reason != "" || len(plan.Script) == 0 {
 		t.Fatalf("the walk leaves the payable cast unpriced (%s, script %d)", planString(*plan), len(plan.Script))
 	}
-	// the plain run alone could not: its 512 clones expire first
+	// the plain run alone could not: its 600 clones expire first
 	if _, why := e.PotentialPlayScript(0, decision.PotentialAction{Kind: "cast", Obj: age, Mode: "mayplay"}, potentialScriptNodes); why == "" {
 		t.Fatalf("precondition: the plain search's budget now reaches the script; the fallback this test pins is dead code")
 	}

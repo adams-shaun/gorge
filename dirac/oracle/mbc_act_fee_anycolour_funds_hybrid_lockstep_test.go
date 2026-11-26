@@ -22,7 +22,7 @@ const actFeeAnyColourRepro = "act_fee_anycolour_funds_hybrid"
 //
 // The recording also plays the offer: it picks the activation at decision 482,
 // answers the two {G/U} pip announcements (decisions 483 and 484: blue, then
-// blue again: the plain search's script, found within the 512-clone budget,
+// blue again: the plain search's script, found within the 600-clone budget,
 // funds both pips from blue) and passes until the ability resolves (485 and 486). The autopay
 // surface pays with no manual window ask, and the lockstep compares both
 // engines' taps, fee activations and produced colours through it. stdReproNamed
