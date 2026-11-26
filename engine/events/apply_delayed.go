@@ -13,6 +13,28 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
+// stripDelayedImprinted splits an api:Effect registration's ImprintCards$
+// capture ("|IM=<id>[,<id>...]", appended LAST by effEffect's phase arm, so
+// it strips FIRST) off the working text, returning the truncated text and
+// the imprint set the Effect held at registration: the delayed body's
+// IsImprinted reads it (state.DelayedTrigger.Imprinted) instead of the
+// source's live association, which the creating chain's Cleanup cleared
+// before the trigger fired (Flickerform's return, CR 603.7a/610.3). A
+// registration logged before this slot existed carries none of the spelling
+// and decodes with the capture unbound (nil), exactly as before.
+func stripDelayedImprinted(text string) (string, []state.ObjID) {
+	var imprinted []state.ObjID
+	if i := strings.LastIndex(text, "|IM="); i >= 0 {
+		for _, part := range strings.Split(text[i+4:], ",") {
+			if n, err := strconv.ParseUint(strings.TrimSpace(part), 10, 32); err == nil {
+				imprinted = append(imprinted, state.ObjID(n))
+			}
+		}
+		text = text[:i]
+	}
+	return text, imprinted
+}
+
 // foldDelayedRegister folds Kind DelayedRegister into state.
 func foldDelayedRegister(g *state.Game, e *Event) {
 	// The registration is game state folded here, so a
@@ -64,7 +86,7 @@ func foldDelayedRegister(g *state.Game, e *Event) {
 	// "End of Turn|VP=You") contain neither spelling inside the phase
 	// name, so every already-logged registration decodes exactly as
 	// before (VP ungated; MaxTurn zero).
-	text := e.Text
+	text, imprinted := stripDelayedImprinted(e.Text)
 	// The registration's TriggerDescription$ ("|LB=<text>") is appended LAST
 	// by every registration arm, so it strips FIRST -- before |CR=, whose own
 	// LastIndex would otherwise swallow it. It is the prose a client labels
@@ -369,6 +391,7 @@ func foldDelayedRegister(g *state.Game, e *Event) {
 		ChosenNameFrozen:    frozenChosenNameBound,
 		ChosenCard:          frozenChosenCards,
 		ChosenCardFrozen:    frozenChosenCardsBound,
+		Imprinted:           imprinted,
 		EffectDuration:      duration,
 		BirthTurn:           g.Turn,
 		ForgetOnMoved:       forget,
@@ -661,8 +684,32 @@ func foldGrantTriggerPush(g *state.Game, e *Event) {
 			Sub: &cards.SA{Kind: "DB", API: "Attach", Params: map[string]string{
 				"Defined": "Remembered", "Object": "Self"}}}
 	}
+	if sa == nil && e.Counter == "__kwBattleCryGranted" {
+		// A granted battle cry (CR 702.91a via a layer-6 grant, e.g. Reckless
+		// Pyrosurfer's Pump KW$ Battle cry): rebuilt into the printed
+		// K:Battle cry expansion's PumpAll body (engine/cards/kw_battle_cry.go).
+		// Source is the granted creature, so StrictlyOther excludes it.
+		sa = &cards.SA{Kind: "DB", API: "PumpAll", Params: map[string]string{
+			"ValidCards": "Creature.attacking+StrictlyOther", "NumAtt": "+1", "NumDef": "0"}}
+	}
 	if sa == nil {
 		sa = grantedAfterlifeBody(e.Counter)
+	}
+	if sa == nil {
+		sa = grantedAnnihilatorBody(e.Counter)
+	}
+	if sa == nil && (e.Counter == "__kwUndyingGranted" || e.Counter == "__kwPersistGranted") {
+		// A granted undying or persist (CR 702.93a / 702.79a via a layer-6
+		// grant, e.g. Mikaeus, the Unhallowed or Cauldron of Souls): rebuilt
+		// into the printed expansion's return body (engine/cards/kw_undying.go,
+		// kw_persist.go), the dead card read from the recorded trigger context.
+		counter := "P1P1"
+		if e.Counter == "__kwPersistGranted" {
+			counter = "M1M1"
+		}
+		sa = &cards.SA{Kind: "DB", API: "ChangeZone", Params: map[string]string{
+			"Defined": "TriggeredNewCardLKICopy", "Origin": "Graveyard", "Destination": "Battlefield",
+			"WithCountersType": counter, "WithCountersAmount": "1"}}
 	}
 	if sa == nil {
 		return
@@ -693,6 +740,25 @@ func grantedAfterlifeBody(name string) *cards.SA {
 		return nil
 	}
 	return cards.ResolveSVar(map[string]string{"__kwAfterlifeGranted": "DB$ Token | TokenScript$ wb_1_1_spirit_flying | TokenAmount$ " + n}, "__kwAfterlifeGranted")
+}
+
+// grantedAnnihilatorBody rebuilds the body of a granted Annihilator (CR
+// 702.86a via a layer-6 grant, e.g. Idol of False Gods' AddKeyword$
+// Annihilator:2) from its "__kwAnnihilatorGranted:N" payload name: the printed
+// K:Annihilator expansion's Sacrifice body (engine/cards/kw_annihilator.go),
+// the count on its Annihilator$ marker. The defending player is read from the
+// trigger context rules records beside the push. nil for any other name or a
+// count that is not a positive decimal literal.
+func grantedAnnihilatorBody(name string) *cards.SA {
+	n, ok := strings.CutPrefix(name, "__kwAnnihilatorGranted:")
+	if !ok {
+		return nil
+	}
+	if v, err := strconv.Atoi(n); err != nil || v < 1 || strconv.Itoa(v) != n {
+		return nil
+	}
+	return &cards.SA{Kind: "DB", API: "Sacrifice", Params: map[string]string{
+		"Defined": "TriggeredDefendingPlayer", "SacValid": "Permanent", "Annihilator": n}}
 }
 
 // foldGrantAbilityPush folds Kind GrantAbilityPush into state.

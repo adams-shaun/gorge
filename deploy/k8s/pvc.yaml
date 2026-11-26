@@ -33,3 +33,15 @@ spec:
   resources:
     requests:
       storage: 1Gi
+---
+# Card art fetched from the upstream catalog (rate-limited, so the prewarm takes a while); kept across restarts.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: art
+  namespace: gorge
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 2Gi

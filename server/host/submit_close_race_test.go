@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/adams-shaun/gorge/engine/view"
+	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
 // TestSubmitRacingCloseWithUnawaitedParkingReturns pins the play-level cleanup
@@ -51,7 +52,7 @@ func TestSubmitRacingCloseWithUnawaitedParkingReturns(t *testing.T) {
 
 	select {
 	case <-parked:
-	case <-time.After(20 * time.Second):
+	case <-time.After(testutil.WaitBudget):
 		t.Fatal("match never parked a human decision in the pace window")
 	}
 	d := waitPending(t, r, "t1", 1, 0)
@@ -63,7 +64,7 @@ func TestSubmitRacingCloseWithUnawaitedParkingReturns(t *testing.T) {
 	// verdict, so Pending starts failing exactly when the claim lands. Wait
 	// for that claim before closing: it makes the in-flight submit
 	// deterministic rather than a race with the abort.
-	deadline := time.Now().Add(10 * time.Second)
+	deadline := time.Now().Add(testutil.WaitBudget)
 	for {
 		if _, perr := r.Pending("t1", 1, 0); perr != nil {
 			break
@@ -81,7 +82,7 @@ func TestSubmitRacingCloseWithUnawaitedParkingReturns(t *testing.T) {
 		if err == nil {
 			t.Fatal("in-flight submit was accepted after the table closed")
 		}
-	case <-time.After(10 * time.Second):
+	case <-time.After(testutil.WaitBudget):
 		t.Fatal("in-flight submit never returned after Close abandoned the unawaited parking")
 	}
 }

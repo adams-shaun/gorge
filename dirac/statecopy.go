@@ -157,7 +157,7 @@ func (s *State) unfork() { s.pool.depth-- }
 
 // coldArrays is a State's cold buffer and the views of it that hot paths read
 // without going through the layout: a region bound with view keeps one here
-// (a slice header, so a new one grows State; TestStateLayoutPinned). An
+// (a slice header, so a new one grows State; TestNoNewFixedStateFields). An
 // element type must hold no pointers: buf is a []uint64, which the garbage
 // collector does not scan (TestColdArraysHoldNoPointers).
 type coldArrays struct {

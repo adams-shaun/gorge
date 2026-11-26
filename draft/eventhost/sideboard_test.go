@@ -12,6 +12,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 	"github.com/adams-shaun/gorge/server/host"
 	"github.com/adams-shaun/gorge/server/protocol"
+	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
 // humanSeatsReq builds a four-seat request with the given event seats
@@ -70,7 +71,7 @@ func legalIntent(d *decision.Decision) decision.Intent {
 // slot 0, b at slot 1, match 1).
 func humanDriveUntilBetween(t *testing.T, reg *host.Registry, r *run, a, b int) {
 	t.Helper()
-	deadline := time.Now().Add(50 * time.Second)
+	deadline := time.Now().Add(testutil.WaitBudget)
 	var last [2]uint64
 	for {
 		r.mu.Lock()
@@ -141,7 +142,7 @@ func waitSeriesInFlight(t *testing.T, r *run, a, b, game int, d time.Duration) (
 // answer theirs. A token of "" marks a bot side.
 func driveSeriesToEnd(t *testing.T, h *Host, reg *host.Registry, r *run, id, tokA, tokB string, a, b int) {
 	t.Helper()
-	deadline := time.Now().Add(50 * time.Second)
+	deadline := time.Now().Add(testutil.WaitBudget)
 	var last [2]uint64
 	for {
 		r.mu.Lock()
@@ -448,7 +449,7 @@ func TestTwoHumanBo3SeriesSideboardAndKeep(t *testing.T) {
 		t.Fatalf("seat 0 playing deck = %+v, want main[0] %q", got, swap)
 	}
 	var m2 *protocol.MatchInfo
-	deadline := time.Now().Add(50 * time.Second)
+	deadline := time.Now().Add(testutil.WaitBudget)
 	for {
 		mi, merr := p.reg.Matches(table)
 		if merr == nil && len(mi) >= 2 {

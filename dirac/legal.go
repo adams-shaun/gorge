@@ -111,10 +111,7 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 			// instant (CR 702.170a); before the plain affordability gate,
 			// like the warp cast, and before the non-instant timing gate
 			// (a plot card is usually a sorcery or creature)
-			if !haveAv {
-				s.availFor(k, p, &av)
-				haveAv = true
-			}
+			s.availOnce(k, p, &av, &haveAv)
 			s.offerPlotHand(k, d, p, o, c, &av) // kw_plot.go
 		}
 		if k.gen != nil && k.gen.anyForetell && k.t.Cards[c].HasForetell && p == s.active && (sorc || !DebugForetellSorcery) {
@@ -127,20 +124,20 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 			// the sneak window is instant speed in the caster's own
 			// declare-blockers step (CR 702.190a): before the non-instant
 			// timing gate, which also tests castForbidden after it
-			if !haveAv {
-				s.availFor(k, p, &av)
-				haveAv = true
-			}
+			s.availOnce(k, p, &av, &haveAv)
 			s.offerSneakHand(k, d, p, o, c, &av) // kw_sneak.go
+		}
+		if k.gen != nil && k.gen.uses.has(useOffering) && k.t.Cards[c].HasOffering {
+			// the offering cast is instant speed, above the sorcery-speed
+			// timing gate and beside the plain cast (kw_offering.go)
+			s.availOnce(k, p, &av, &haveAv)
+			s.offerOffering(k, d, p, o, c, &av)
 		}
 		if !pc.instant && !sorc && !s.castFlash(k, p, c) {
 			if k.gen != nil && k.gen.anyMayFlash && k.t.Cards[c].HasMayFlash {
 				// the timing gate refused the plain cast: the may-flash
 				// cast is the one option it adds (kw_mayflash.go)
-				if !haveAv {
-					s.availFor(k, p, &av)
-					haveAv = true
-				}
+				s.availOnce(k, p, &av, &haveAv)
 				s.offerMayFlashHand(k, d, p, o, c, &av)
 			}
 			continue
@@ -148,10 +145,7 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 		if k.gen != nil && k.gen.anyCantCast && s.castForbiddenCost(k, p, c, o, &pc.cost, nil) {
 			continue
 		}
-		if !haveAv {
-			s.availFor(k, p, &av)
-			haveAv = true
-		}
+		s.availOnce(k, p, &av, &haveAv)
 		if k.gen != nil && k.gen.anyWarp && (k.t.Cards[c].HasWarp || k.gen.anyWarpGrant) {
 			// before the plain affordability gate: a warp cast is offered
 			// even when the mana cost is not payable (CR 702.185a)
@@ -177,6 +171,12 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 			// entry as its own "cast" option (legal_walk_hand.go's
 			// alternativeCosts loop), whether or not the plain price is payable
 			s.offerMayPlayHandAlt(k, d, p, o, c, sorc, &av) // cast_mayzeroalt.go
+		}
+		if k.anyEmbAltCost {
+			// the Effect-delivered alternative cost beside the plain hand
+			// cast (Marshland Bloodcaster's pay-life grant; gorge's hand
+			// walk lists it whether or not the plain price is payable)
+			s.offerEmbAltCostHand(k, d, p, o, c, sorc, &av) // cast_embaltcost.go
 		}
 		cost := &pc.cost
 		var credited kop.ManaCost
@@ -271,10 +271,7 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 		}
 	}
 	if s.cfg&cfgCommander != 0 {
-		if !haveAv {
-			s.availFor(k, p, &av)
-			haveAv = true
-		}
+		s.availOnce(k, p, &av, &haveAv)
 		s.offerCommanderCast(k, d, p, &av)
 	}
 	// flashback
@@ -287,14 +284,11 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 		c := s.objs[o].card
 		pc := &k.cards[c]
 		marked := fbLo != nil && (fbLo.has(o) || fbHi.has(o))
-		granted := pc.kw&kop.KwFlashback == 0 && (marked || s.fbLive(k, o)) // a stamped grant or a live static's (kw_fbgrant.go)
-		if pc.kw&kop.KwFlashback == 0 && !granted || (!pc.instant && !sorc && !s.castFlash(k, p, c)) {
-			continue // (cast as though it had flash: High Fae Trickster)
+		skip, granted := s.flashbackSkips(k, p, c, o, pc, marked, sorc)
+		if skip {
+			continue
 		}
-		if !haveAv {
-			s.availFor(k, p, &av)
-			haveAv = true
-		}
+		s.availOnce(k, p, &av, &haveAv)
 		fc := k.t.Cards[c].AltCost
 		if granted {
 			fc = s.fbGrantCost(k, p, o, marked) // the granted flashback costs the card's mana cost, or the grant's own
@@ -468,7 +462,7 @@ func (s *State) activateOffers(k *prep, d *Decision, p uint8, sorc bool, av *ava
 				s.availFor(k, p, av)
 				haveAv = true
 			}
-			if (a.Cost.Mana.X == 0 && a.Cost.XMin != 0 || waterbendIsX(a) || hybridX(a)) && s.cfg&cfgGorgeUnpriced != 0 || a.Cost.Mana.Snow != 0 {
+			if (a.Cost.Mana.X > 0 || a.Cost.XMin != 0) && s.cfg&cfgGorgeUnpriced != 0 || a.Cost.Mana.Snow != 0 {
 				m := xFloorCost(a.Cost.Mana, costXMin(&a.Cost)) // (gorge's cost:x is X != 0 || XMin != 0 (pay.PlanCostDetail); an announced Sac<X> part without {X} or XMin is planned like any other cost (Krav, the Unredeemed's {B}); the pool pays the cheapest legal announcement; cost_sacx.go)
 				if k.gen != nil && k.gen.anyPowerUp && a.Cost.Flags&kop.CostPowerUp != 0 {
 					m = s.powerUpReduced(k, s.perms[sl].obj, m) // CR 702.193b: gorge prices the reduced cost (legal_walk_battlefield.go)
@@ -957,7 +951,7 @@ func (s *State) countUntapped(k *prep, p uint8, f kop.FilterID, src Slot) int {
 // object o (from hand, o itself is not a discard candidate).
 func (s *State) spellCostsFeasible(k *prep, c CardID, p uint8, o Obj) bool {
 	ac := spellAddCost(k, c)
-	if ac.Flags == 0 && !k.t.Cards[c].HasAltAdd && !k.t.Cards[c].BeholdExile {
+	if ac.Flags == 0 && !ac.CloseEnc && !k.t.Cards[c].HasAltAdd && !k.t.Cards[c].BeholdExile {
 		return true
 	}
 	// the cards a discard cost can take: the hand, less the card cast from
@@ -980,7 +974,7 @@ func (s *State) spellCostsFeasible(k *prep, c CardID, p uint8, o Obj) bool {
 	cd := &k.t.Cards[c]
 	// the either-or part's discard cannot take the card being cast either
 	// (Bitter Triumph as the last card in hand)
-	return cd.HasAltAdd && s.pickCostPayable(k, p, &cd.AltAddCost, o)
+	return cd.HasAltAdd && (s.pickCostPayable(k, p, &cd.AltAddCost, o) || cd.AltAddCost2 != (kop.Cost{}) && s.pickCostPayable(k, p, &cd.AltAddCost2, o))
 }
 
 // gorgeOffers: under Config.GorgeAutopaySurface, gorge's priority list
@@ -1156,6 +1150,9 @@ func (s *State) gorgeLowersRider(p uint8, o Obj, mayPlay, anyColor bool) bool {
 	}
 	if spellAddCost(k, c).SacHalf {
 		return s.sacHalfLowers(k, p, c, o, mayPlay, anyColor) // cost_sachalf.go
+	}
+	if spellAddCost(k, c).CloseEnc {
+		return s.chooseEncLowers(k, p, c, o, mayPlay, anyColor) // cost_closeenc.go
 	}
 	if cd.HasAltAdd {
 		return s.altAddLowers(k, p, c, o, mayPlay, anyColor)
@@ -1470,7 +1467,8 @@ func (s *State) altAddFreePart(k *prep, p uint8, c CardID, o Obj) bool {
 	cd := &k.t.Cards[c]
 	ac := spellAddCost(k, c)
 	return manaEmpty(&ac.Mana) && s.pickCostPayable(k, p, ac, o) && (ac.Flags&kop.CostDiscard == 0 || int(s.pl[p].handN)-s.inHandN(o) >= discardCount(ac)) && s.beholdPayable(k, p, c, o) && s.altAddPartDisjoint(k, p, c, o, ac) ||
-		manaEmpty(&cd.AltAddCost.Mana) && s.pickCostPayable(k, p, &cd.AltAddCost, o) && s.altAddPartDisjoint(k, p, c, o, &cd.AltAddCost)
+		manaEmpty(&cd.AltAddCost.Mana) && s.pickCostPayable(k, p, &cd.AltAddCost, o) && s.altAddPartDisjoint(k, p, c, o, &cd.AltAddCost) ||
+		cd.AltAddCost2 != (kop.Cost{}) && manaEmpty(&cd.AltAddCost2.Mana) && s.pickCostPayable(k, p, &cd.AltAddCost2, o) && s.altAddPartDisjoint(k, p, c, o, &cd.AltAddCost2)
 }
 
 // altAddPartDisjoint: the permanents a part sacrifices or taps are not the
@@ -1491,6 +1489,9 @@ func (s *State) altAddPartDisjoint(k *prep, p uint8, c CardID, o Obj, part *kop.
 func (s *State) altAddManaPart(k *prep, c CardID) kop.ManaCost {
 	if ac := spellAddCost(k, c); !manaEmpty(&ac.Mana) {
 		return ac.Mana
+	}
+	if cd := &k.t.Cards[c]; manaEmpty(&cd.AltAddCost.Mana) && cd.AltAddCost2 != (kop.Cost{}) {
+		return cd.AltAddCost2.Mana
 	}
 	return k.t.Cards[c].AltAddCost.Mana
 }
@@ -1520,12 +1521,16 @@ func (s *State) altAddCastableFrom(k *prep, c CardID, p uint8, o Obj, cost, base
 	if s.pickCostPayable(k, p, ac, o) && (ac.Flags&kop.CostDiscard == 0 || int(s.pl[p].handN)-s.inHandN(o) >= discardCount(ac)) && s.beholdPayable(k, p, c, o) {
 		return true
 	}
-	if !s.pickCostPayable(k, p, &cd.AltAddCost, o) {
+	if !s.pickCostPayable(k, p, &cd.AltAddCost, o) && !(cd.AltAddCost2 != (kop.Cost{}) && s.pickCostPayable(k, p, &cd.AltAddCost2, o)) {
 		return false
 	}
-	t := addCost(*cost, cd.AltAddCost.Mana)
+	part := &cd.AltAddCost
+	if !s.pickCostPayable(k, p, part, o) {
+		part = &cd.AltAddCost2 // the either-or's third part (Dusk Mangler)
+	}
+	t := addCost(*cost, part.Mana)
 	if base != nil && (s.statM.any() || k.gen != nil) {
-		t = s.adjustFit(k, av, p, c, o, addCost(*base, cd.AltAddCost.Mana), gen)
+		t = s.adjustFit(k, av, p, c, o, addCost(*base, part.Mana), gen)
 	}
 	if anyMana {
 		t = anyType(t)
@@ -3749,7 +3754,7 @@ func (s *State) applyPriority(k *prep, a Action) {
 	case AkWebSling:
 		s.beginWebSling(k, Obj(a.Source())) // CR 702.188a; kw_websling.go
 	case AkMayFlash:
-		s.beginMayFlash(k, Obj(a.Source())) // CR 702.8; kw_mayflash.go
+		s.beginMayFlashCast(k, Obj(a.Source()))
 	default:
 		panic("kernel: bad priority action")
 	}
@@ -3897,4 +3902,24 @@ func announcedCountX(k *prep, c *kop.Cost) bool {
 		return false
 	}
 	return (k.gen.anySacX && sacXCost(c)) || (k.gen.anyExileX && exileXCost(c))
+}
+
+// availOnce builds p's mana census into av the first time an offer in
+// priorityOptions needs it.
+func (s *State) availOnce(k *prep, p uint8, av *avail, have *bool) {
+	if !*have {
+		s.availFor(k, p, av)
+		*have = true
+	}
+}
+
+// beginMayFlashCast begins an AkMayFlash cast: an offering card's
+// sacrifice-election cast (CR 702.48; kw_offering.go) or the plain
+// may-flash cast (CR 702.8; kw_mayflash.go).
+func (s *State) beginMayFlashCast(k *prep, o Obj) {
+	if c := s.objs[o].card; k.gen != nil && k.gen.uses.has(useOffering) && k.t.Cards[c].HasOffering {
+		s.beginOffering(k, o)
+		return
+	}
+	s.beginMayFlash(k, o)
 }

@@ -71,7 +71,7 @@ func landFirstAnswer(d *decision.Decision) decision.Intent {
 // parkedAfter returns the human seat's decision once it is parked past seq.
 func parkedAfter(t *testing.T, r *Registry, player state.PlayerID, after uint64) *decision.Decision {
 	t.Helper()
-	deadline := time.Now().Add(30 * time.Second)
+	deadline := time.Now().Add(testutil.WaitBudget)
 	for time.Now().Before(deadline) {
 		if d, err := r.Pending("t1", 1, player); err == nil && (d.Seq > after || after == 0) {
 			return d
@@ -449,7 +449,7 @@ func TestPairedBotProcessLimit(t *testing.T) {
 	f := newStubFixture(t, 1, "t1", "t2")
 	var wg sync.WaitGroup
 	for _, id := range []TableID{"t1", "t2"} {
-		deadline := time.Now().Add(30 * time.Second)
+		deadline := time.Now().Add(testutil.WaitBudget)
 		var d *decision.Decision
 		for d == nil && time.Now().Before(deadline) {
 			d, _ = f.r.Pending(id, 1, 0)
@@ -756,7 +756,7 @@ func TestPairedBotNeverJoinsAnAbandonedSearch(t *testing.T) {
 		if ans.err != nil || ans.a.State != protocol.AdviceReady {
 			t.Fatalf("answer %+v", ans)
 		}
-	case <-time.After(30 * time.Second):
+	case <-time.After(testutil.WaitBudget):
 		t.Fatal("no answer")
 	}
 }

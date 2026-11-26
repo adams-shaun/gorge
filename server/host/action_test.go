@@ -12,6 +12,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 	"github.com/adams-shaun/gorge/engine/view"
 	"github.com/adams-shaun/gorge/server/protocol"
+	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
 // oneSeatHuman is an Options.Seats hook: a single HumanSeat. A one-seat
@@ -72,7 +73,7 @@ func legalIntent(d *decision.Decision) decision.Intent {
 // answer, wait for a different Seq.
 func waitPending(t *testing.T, r *Registry, id TableID, k int, p state.PlayerID) *decision.Decision {
 	t.Helper()
-	deadline := time.Now().Add(20 * time.Second)
+	deadline := time.Now().Add(testutil.WaitBudget)
 	for {
 		d, err := r.Pending(id, k, p)
 		if err == nil {
@@ -94,7 +95,7 @@ func TestPendingThenSubmitIntentAdvancesTheGame(t *testing.T) {
 	}
 	// The game must move off d1: poll until a pending decision with a new
 	// Seq appears (the seat is re-asked, possibly after the bot acts).
-	deadline := time.Now().Add(20 * time.Second)
+	deadline := time.Now().Add(testutil.WaitBudget)
 	for {
 		d2, err := r.Pending(id, 1, 0)
 		if err == nil && d2.Seq != d1.Seq {
@@ -182,7 +183,7 @@ func TestPendingTakesNonLiveBranchWhileMatchGoroutineAlive(t *testing.T) {
 	// until it returns the non-live "nothing pending" error. Anything else
 	// is a transient of the match coming to life (not-found / not parked yet)
 	// or an early slots read, so retry it.
-	deadline := time.Now().Add(10 * time.Second)
+	deadline := time.Now().Add(testutil.WaitBudget)
 	for {
 		if time.Now().After(deadline) {
 			t.Fatal("match 1 never reached a non-live state within deadline")
@@ -209,7 +210,7 @@ func TestPendingTakesNonLiveBranchWhileMatchGoroutineAlive(t *testing.T) {
 	// on to play match 2, which also finishes instantly. If the goroutine had
 	// exited, match 2 would never exist. This proves we observed match 1's
 	// non-live state while the match goroutine was alive.
-	reached := time.Now().Add(10 * time.Second)
+	reached := time.Now().Add(testutil.WaitBudget)
 	for {
 		if time.Now().After(reached) {
 			t.Fatal("match goroutine did not advance to match 2; it was not alive")

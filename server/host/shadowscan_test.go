@@ -18,6 +18,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/view"
 	"github.com/adams-shaun/gorge/server/divergence"
 	"github.com/adams-shaun/gorge/server/protocol"
+	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
 // TestShadowParityZeroDivergences is the key test: a seat that answers every
@@ -188,7 +189,7 @@ func TestSnapshotMatchNamesMatchK(t *testing.T) {
 		t.Fatal(err)
 	}
 	var first protocol.MatchInfo
-	deadline := time.Now().Add(60 * time.Second)
+	deadline := time.Now().Add(testutil.WaitBudget)
 	for {
 		ms, err := r.Matches("t1")
 		if err != nil {

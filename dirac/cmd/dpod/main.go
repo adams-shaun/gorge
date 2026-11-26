@@ -233,7 +233,23 @@ func buildPod(reg *cards.Registry, deckDir string) (*pod, error) {
 				return nil, fmt.Errorf("pod without %s: %v", fdcDecks[skip], err)
 			}
 			if dirac.TwoSeatOnly(tbl) {
-				return nil, fmt.Errorf("pod without %s: the table is two-seat only: %v", fdcDecks[skip], dirac.TwoSeatCauses(tbl))
+				// A lowered card that reads a two-player identity cannot sit in a
+				// pod: replace it like a refused card.
+				causes := dirac.TwoSeatCauses(tbl)
+				n := 0
+				for id, cs := range causes {
+					name := tbl.Cards[id].Name
+					if len(cs) == 0 || commanders[cards.NormalizeName(name)] || isBasic(name) {
+						continue
+					}
+					why[name] = "two-seat only: " + strings.Join(cs, ", ")
+					n++
+				}
+				if n == 0 {
+					return nil, fmt.Errorf("pod without %s: the table is two-seat only: %v", fdcDecks[skip], causes)
+				}
+				grew = true
+				continue
 			}
 			p.tbls[skip] = tbl
 			for k, i := range which {

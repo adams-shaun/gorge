@@ -23,6 +23,7 @@ import (
 // counter ability branched on its colour ask (mana_countercost.go ctrScript),
 // until the plain walk lists it.
 
+//lockstep:const engine/rules.potentialScriptPlays
 const potentialScriptPlays = 16 // gorge rules/potential_script.go
 
 // availFor modes (genState.availX): the gaps' mana added, any mana, or the

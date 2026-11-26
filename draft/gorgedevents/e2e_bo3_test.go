@@ -170,7 +170,7 @@ func TestDraftEventBo3TwoHumansOverHTTP(t *testing.T) {
 	firstPack := map[int]bool{}
 	var packs0 []capturedPack
 	var stalePick *protocol.PickRequest
-	deadline := time.Now().Add(50 * time.Second)
+	deadline := time.Now().Add(testutil.WaitBudget)
 	for {
 		st := evStateHTTP(t, evURL, tok0)
 		if st.Phase == "BUILD" {
@@ -272,7 +272,7 @@ func TestDraftEventBo3TwoHumansOverHTTP(t *testing.T) {
 	lastSeq := map[dsKey]uint64{}
 	var table03 string
 	turn1Seen := false
-	deadline = time.Now().Add(50 * time.Second)
+	deadline = time.Now().Add(testutil.WaitBudget)
 	for {
 		if st := evStateHTTP(t, evURL, tok0); st.Phase == "COMPLETE" {
 			break
