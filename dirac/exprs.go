@@ -15,6 +15,11 @@ type evalCtx struct {
 	src   Obj
 	srcSl Slot
 	ctrl  uint8
+	// cwObj is the object whose face a filter's colour masks read under the
+	// colour-word statics (static_colorwords.go); NoObj reads them as printed.
+	// Only the target-spec funnels (matchCardTgt, matchCardAtTgt) and protMatch
+	// set it: the filter is that face's own.
+	cwObj Obj
 	// uncounted is one more than the spell a cost static is pricing, which its
 	// zone counts skip: CR 601.2a has it on the stack by the time CR 601.2f
 	// determines the total cost. 0 skips nothing, and NoObj+1 wraps to 0.
@@ -1056,7 +1061,7 @@ func (s *State) objRefGen(r kop.Ref) (Obj, bool) {
 // sourceChosen does; matchCardGen sees only a resolution's own ChooseType answer.
 func (s *State) refCardMatch(k *prep, f kop.FilterID, ob *object, o Obj, ctx evalCtx) bool {
 	if k.gen.chosenCardTgt && !DebugRefChosenResOnly {
-		return s.matchCardSrc(k, f, ob.card, ob.owner(), ctx.ctrl, o, ctx.srcSl, ctx.src)
+		return s.matchCardSrc(k, f, ob.card, ob.owner(), ctx.ctrl, o, ctx.srcSl, ctx.src, NoObj)
 	}
 	return s.matchCardGen(k, f, ob.card, ob.owner(), ctx.ctrl, o)
 }
