@@ -144,6 +144,14 @@ func (s *State) mintSpellCopyExc(k *prep, si int, ctrl, exc uint8) bool {
 	o := s.newToken(ce.card, ctrl)
 	s.objs[o].of = ofCopy
 	s.objs[o].zone = kop.ZoneStack
+	if s.g.enteredOn {
+		// gorge mints the copy in its holding zone and moves it to the stack
+		// (foldStackCopy: Move library -> stack), so the copy is a stack add
+		// from the library this turn: ThisTurnEnteredFrom_Library reads true
+		// on it while it waits (Outlaw Stitcher's copy, the fw: atom).
+		s.g.zoneTurn.set(o)
+		s.noteEnter(o, kop.ZoneStack, kop.ZoneLibrary, false, false)
+	}
 	ce.obj, ce.ctrl, ce.srcVer = o, ctrl, s.objs[o].ver
 	s.setMultikick(&ce, mk)
 	ce.flags &= sfKicked | sfPromised // the copy keeps the gift election (CR 707.10)
