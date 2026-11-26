@@ -215,6 +215,16 @@ func (e *Engine) triggerReferents(t cards.Trigger, source state.ObjID, ev events
 	case cards.TriggerChangesZone, cards.TriggerLandPlayed:
 		c.TriggerCard = ev.Obj
 		e.captureEvolveSnapshot(t, ev, &c)
+	case cards.TriggerSacrificed:
+		// The sacrificed creature (what ValidCard$ matched, through its LKI at
+		// CR 603.10a): TriggeredCard/TriggeredCardLKICopy resolve against it.
+		// The move has already applied at this fire-time capture -- ev.Obj is
+		// the card in its destination zone -- so a ConditionDefined$
+		// TriggeredCardLKICopy gate must judge the pre-move snapshot Ctx.LKI
+		// carries (the queue capture's objLKI), not this object (CR 608.2h):
+		// Prowling Geistcatcher's "if that creature was a token" is answered
+		// from the creature as it was sacrificed.
+		c.TriggerCard = ev.Obj
 	case cards.TriggerChangesZoneAll, cards.TriggerPhaseOutAll:
 		// An unbatched event is a batch of one; closeZoneBatch overrides the
 		// amount with the batch's moved count (TriggerCount$Amount).

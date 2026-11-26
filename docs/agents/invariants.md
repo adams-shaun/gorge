@@ -181,36 +181,38 @@ run by every precheck (`scripts/test_targets.py` always selects the package):
 - `TestCodeShapeOnlyShrinks`: the constants in `ratchet_test.go` (interface
   widths, `*Engine` surface, string-keyed dispatch and parameter leaks in
   `engine/rules` and `engine/effects`).
-- `TestLongFunctionsOnlyShrink`, `TestComplexFunctionsOnlyShrink`: every non-test,
+- `cmd/funcgrowth` (local only since 11-26: `.githooks/pre-push` and `make lint`, no CI step): a base-relative growth rule over every non-test,
   non-generated function in `engine/rules`, `engine/effects` and `dirac/` (kgen
-  included) over 300 lines or cyclomatic complexity 50 has a row in
-  `internal/codeshape/testdata/func_ceilings.tsv`. A listed function fails when
-  it grows past its row; an unlisted one fails when it crosses a threshold.
+  included). A function over 300 lines (`LongFuncLines`) or cyclomatic
+  complexity 50 (`ComplexFuncThreshold`) at the head may have grown by at most
+  5% of its size at the merge base (`GrowthPercent`; floors of 10 lines and 2
+  complexity, `GrowthFloorLines` and `ComplexGrowthFloor`). A function newly
+  over a threshold, or one that crosses it, is refused at the threshold (the
+  allowance does not carry a function past it); a function at or below
+  both thresholds is never checked, and shrinking always passes. Functions
+  match by package directory, name and receiver, so a move keeps its history
+  and a rename starts fresh. `make lint` and ci.yml's lint job run it against
+  the pull request's base (`origin/main` otherwise), so a stacked Mergify
+  batch measures the merged tree against the batch's base; there are no
+  per-function rows to share between pull requests, so nothing races.
 
-Each check has a slack (`internal/codeshape/slack.go`): a count may exceed its
-ceiling by max(2, 1%) (`Slack`; a zero ceiling stays exact), a function its row
-or threshold by max(5, 3%) (`FuncSlack`). Growth within the slack passes with a
-logged WARNING; never raise a ceiling to absorb it.
+Each count ratchet has a slack (`internal/codeshape/slack.go`): a count may
+exceed its ceiling by max(2, 1%) (`Slack`; a zero ceiling stays exact). Growth
+within the slack passes with a logged WARNING; never raise a ceiling to
+absorb it.
 
-Shrinks and deletions only log, so concurrent refactors never fail on each other.
-`CODESHAPE_LOWER=1 go test -run '^TestFuncCeilingsLowerOnly$' ./internal/codeshape`
-lowers the rows to the measurement and drops stale ones; it never raises or adds
-one. A renamed or moved function takes its row under the new key in the same
-commit at no higher value.
+Shrinks only log, so concurrent refactors never fail on each other.
 
-A pull request that lowers a row or a `ratchet_test.go` constant fails the
+A pull request that lowers a `ratchet_test.go` constant fails the
 lint job with "lowering is post-merge only": `cmd/checkratchet` compares the
 branch with its merge base. Lowering is post-merge only, so a lowering cannot
-race a branch that grows the same function into one queue batch. The daily
-`ratchet-lower` workflow runs the generator on main and opens a bot PR (rebuilt
-over main when it goes red or conflicting).
+race a branch that grows the same measurement into one queue batch.
 
 **A ratchet is never raised by a branch.** That covers the coverage tables above,
-the constants and `func_ceilings.tsv` in `internal/codeshape`, the constants and
+the constants in `internal/codeshape`, the constants and
 allow-lists of `internal/archtest`, and `testkit/testutil/agentsdoc_test.go`.
 Review refuses a raised or deleted constant, an added allow-list entry, a removed
-or rewired `TestCodeShapeOnlyShrinks` row, a new or raised `func_ceilings.tsv`
-row, or a new known-unsupported file. A raise is a maintainer's decision.
+or rewired `TestCodeShapeOnlyShrinks` row, or a new known-unsupported file. A raise is a maintainer's decision.
 
 ### 9. Golden chain heads move only with a named cause
 
@@ -304,7 +306,9 @@ and BLB slices, the size bar, allocations and instructions per transition),
    - `make sim`: 20/20 `replay OK`.
    - If you touched `web/` or changed when a decision is posed, also run the
      `./engine/view` package and `make test-web`.
-4. **How a PR lands.** Every non-draft PR to `main` is queued by Mergify once its
+4. **How a PR lands.** Open or refresh it only with `scripts/pr-submit.sh`, run
+   in the branch's worktree (merge `origin/main`, `pr-derived.sh`, `pr-precheck.sh`
+   ok on the exact head, push, open; `--draft` for review-first). Every non-draft PR to `main` is queued by Mergify once its
    own checks, `fast` (`scripts/ci-fast.sh`: the diff's packages and their test
    importers) and `lint`, pass. Mergify batches up to 10 queued PRs on a
    `mergify/merge-queue/*` branch, where `ci.yml` runs the full suite once per

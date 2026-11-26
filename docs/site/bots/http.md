@@ -1,15 +1,22 @@
 # Playing a seat over HTTP
 
-For bot authors in any language: the decision round trip with real requests and responses from a live `gorged` (2026-10-31 unless a
-line says otherwise), how to answer each decision kind, errors and pitfalls. Field reference: [HTTP API](../api/http.md); working
-agents: [Python and Java examples](examples.md).
+A bot in any language can play a seat over HTTP: it holds the seat's token, reads each decision and posts an answer, exactly
+as the browser does. This page walks the round trip with real requests from a live `gorged`, then lists how to answer each
+decision kind.
 
-The HTTP seat is what the browser plays through: a "human" seat parks each decision until someone posts an answer. A bot is a program
-holding that seat's token.
+| Looking for | Go to |
+|---|---|
+| Every field and status | [HTTP API reference](../api/http.md) |
+| Working agents to copy | [Python and Java examples](examples.md) |
+
+Captures are from 2026-10-31 unless a line says otherwise.
 
 ## Start a server that has a seat for you
 
-Build with `go build ./cmd/gorged` after `make fetch-cards`. Use a persistence directory of your own (`-dir`); two servers sharing one corrupt each other.
+Build with `go build ./cmd/gorged` after `make fetch-cards`, then start it one of two ways.
+
+!!! warning "Use a `-dir` of your own"
+    Two servers sharing one persistence directory corrupt each other.
 
 === "On demand: POST /api/games"
 
@@ -33,7 +40,9 @@ Build with `go build ./cmd/gorged` after `make fetch-cards`. Use a persistence d
 
 Commands below use `GORGE=http://127.0.0.1:8080` and `TOKEN=<the seat's token>` (`docs-token` on the fixed seat).
 
-## The round trip
+## What happens at each decision? { #the-round-trip }
+
+A "human" seat parks each decision until someone posts an answer. Your bot reads it, optionally reads the board, and answers:
 
 ```mermaid
 sequenceDiagram
@@ -66,29 +75,33 @@ sequenceDiagram
   H-->>B: 200 [{"state":"finished","winner":1,…}]
 ```
 
-`POST .../intent` waits for the engine's verdict. `204` means accepted and the game has moved on. `409` means refused (wire checks or the
-rules engine); the decision stays pending, unchanged, and you can answer again. The first `POST` for a decision claims it, so a duplicate is a
-`409`. After a `204`, `GET .../pending` answers `409` until the game asks your seat something new. Instead of polling, wait for a `decision`
-frame on [SSE](#push-instead-of-poll-sse).
+`POST .../intent` waits for the engine's verdict:
 
-## Authentication
+| Status | Meaning | Next |
+|---|---|---|
+| `204` | Accepted; the game has moved on. | `GET .../pending` answers `409` until the game asks your seat something new. |
+| `409` | Refused (wire checks or the rules engine). The decision stays pending, unchanged. A duplicate `POST` is also a `409`: the first claims the decision. | Answer again. |
 
-Every seat-scoped request carries the seat's token, as
-`Authorization: Bearer <token>` (preferred) or `?token=<token>`. The token
-is the credential: the server derives the table and seat from it and refuses
-any request whose table or `?seat=` disagrees.
+Instead of polling, wait for a `decision` frame on [SSE](#push-instead-of-poll-sse).
 
-```console
+## How does the server know it is my seat? { #authentication }
+
+Every seat-scoped request carries the seat's token, as `Authorization: Bearer <token>` (preferred) or `?token=<token>`.
+The token is the credential: the server derives the table and seat from it and refuses any request whose table or
+`?seat=` disagrees.
+
+```console title="No token, then the wrong seat"
 $ curl -s -w ' [%{http_code}]\n' "$GORGE/api/tables/t1/matches/1/pending?seat=0"
 {"code":"unauthorized","message":"request does not hold a seat claim"} [401]
 $ curl -s -w ' [%{http_code}]\n' -H 'Authorization: Bearer docs-token' "$GORGE/api/tables/t1/matches/1/pending?seat=1"
 {"code":"forbidden","message":"claim holds seat 0, not the requested seat 1"} [403]
 ```
 
-Tokens are opaque, 16 random bytes in hex, held in server memory only (lost on restart), and are not general authentication. Run the
-server on a network you trust, or behind TLS.
+!!! warning "A token is not general authentication"
+    Tokens are opaque, 16 random bytes in hex, held in server memory only (lost on restart). Run the server on a network
+    you trust, or behind TLS.
 
-## The endpoints a bot uses
+## Which endpoints does a bot use? { #the-endpoints-a-bot-uses }
 
 | Endpoint | Auth | Purpose |
 |---|---|---|
@@ -103,39 +116,50 @@ server on a network you trust, or behind TLS.
 
 ### Create a game
 
-```console
+```console title="POST /api/games"
 $ curl -s -X POST -d '{"format":"constructed","bot_policy":"bot","human_deck":"mono-green-stompy","bot_deck":"mono-red-goblins"}' $GORGE/api/games
 {"table":"g7","match":1,"seed":6673408969535470007,"seat":0,"token":"b63edb2dcd4ea366426123ebd99fe424","bot_policy":"bot","join":"/t/g7?seat=0&token=b63edb2dcd4ea366426123ebd99fe424"}
 ```
 
-Every field is optional: `format` defaults to `constructed`, a missing deck is dealt at random, a missing `bot_policy` takes
-the server's `-bot-policy`. `mulligans` (0 to 6) overrides the server's London mulligan allowance. Deck ids come from
-`GET /api/decks`; an unknown one is a `400`. The seed is drawn by the server and returned; a client can't choose it. Your seat
-is always seat 0, and the `join` path is the same game in a browser, which is a good way to watch your bot play. The table
-appears a moment after the response, so retry a `404` on its first poll briefly.
+Every field is optional:
+
+| Field | Default |
+|---|---|
+| `format` | `constructed` |
+| `human_deck`, `bot_deck` | dealt at random; ids come from `GET /api/decks`, and an unknown one is a `400` |
+| `bot_policy` | the server's `-bot-policy` |
+| `mulligans` (0 to 6) | the server's London mulligan allowance |
+
+The seed is drawn by the server and returned; a client can't choose it. Your seat is always seat 0, and the `join` path is
+the same game in a browser, a good way to watch your bot play. The table appears a moment after the response, so retry a
+`404` on its first poll briefly.
 
 ### Read the pending decision
 
-```console
+```console title="GET …/pending"
 $ curl -s -H "Authorization: Bearer $TOKEN" "$GORGE/api/tables/g2/matches/1/pending?seat=0"
 {"seq":18,"player":0,"kind":"starting_player","prompt":"You won the toss. Choose who takes the first turn.","min":1,"max":1,"options":[{"index":0,"kind":"player","label":"You","player":0},{"index":1,"kind":"player","label":"Bot","player":1}]}
 ```
 
-Every decision has the same shape: `seq` (which decision this is), `player`
-(your seat), `kind`, a human-readable `prompt`, `min`/`max` (how many options
-to pick) and `options`, each with an `index` and an option `kind`. `obj` names
-the card or permanent the option is about (look it up in the view by `id`),
-`player` a seat. Some decisions carry constraints a valid answer must meet
-(`group`, `required`, `maxSum`, `minSum`, `groupLimit`, `payer_life`…); the
-[reference](../api/http.md) lists them all.
+Every decision has the same shape:
 
-When nothing is pending the answer is `409` with the server's reason:
-`"host: no decision pending for player 0"` while the opponent thinks,
-`"host: match 1 is finished, nothing pending"` once it is over.
+| Field | Meaning |
+|---|---|
+| `seq` | which decision this is; echo it in the answer |
+| `player` | your seat |
+| `kind`, `prompt` | the decision kind and a human-readable question |
+| `min`, `max` | how many options to pick |
+| `options[]` | each with an `index` and an option `kind`; `obj` names the card or permanent (look it up in the view by `id`), `player` a seat |
+
+Some decisions carry constraints a valid answer must meet (`group`, `required`, `maxSum`, `minSum`, `groupLimit`,
+`payer_life`…); the [reference](../api/http.md) lists them all.
+
+When nothing is pending the answer is `409` with the server's reason: `"host: no decision pending for player 0"` while
+the opponent thinks, `"host: match 1 is finished, nothing pending"` once it is over.
 
 ### Read the view
 
-```console
+```console title="GET …/view, summarised with jq"
 $ curl -s -H "Authorization: Bearer $TOKEN" "$GORGE/api/tables/g208/matches/1/view?seat=0" | jq '{viewer, visibility, turn, step, over, winner, them: .players[1] | {hand_size, hand}}'
 {"viewer": 0, "visibility": "seat", "turn": 0, "step": "untap", "over": false, "winner": null, "them": {"hand_size": 7, "hand": null}}
 ```
@@ -146,29 +170,28 @@ the board can read both from one `GET /view`, at about four times the cost ([Lat
 
 ### Answer
 
-```console
+```console title="POST …/intent"
 $ curl -s -i -X POST -H 'Authorization: Bearer docs-token' -d '{"seq":22,"player":0,"choices":[0]}' "$GORGE/api/tables/t1/matches/1/intent"
 HTTP/1.1 204 No Content
 ```
 
-An intent is `{"seq", "player", "choices"}`: echo the decision's `seq` and
-`player`, and list the option indices you pick. Unknown fields are refused,
-so a typo is a `400`, not a silent default. Two other answer shapes exist for
-casting spells, covered next: `payment` and `announce`.
+An intent is `{"seq", "player", "choices"}`: echo the decision's `seq` and `player`, and list the option indices you
+pick. Unknown fields are refused, so a typo is a `400`, not a silent default. Casting spells has two more answer shapes,
+`payment` and `announce`.
 
 ### Casting a spell: payment actions
 
 On a table with automatic mana payment (the default for `-vsbot` games), a spell you cannot pay from floating mana is not a `cast` option.
 It arrives as a **payment action** on the priority decision, with complete plans saying which permanents the engine will tap:
 
-```json
+```json title="On the priority decision"
 "payment_actions":[{"id":"a1ef0fac…","cast":{"object":28,"face":0,"origin":"hand"},"label":"Cast Elvish Mystic",
   "plans":[{"version":1,"id":"79b02ab3…","cost":{"generic":0,"mana":[0,0,0,0,1,0]},"activations":[…],"pool_spend":[…],"pool_after":[…]}]}]
 ```
 
 Answer with the action's id and one plan **echoed verbatim** instead of `choices`:
 
-```json
+```json title="The answer"
 {"seq":44,"player":0,"payment":{"action_id":"a1ef0fac…","plan":{"version":1,"id":"79b02ab3…", "…": "exactly as received"}}}
 ```
 
@@ -197,12 +220,11 @@ examples, not a closed list.
 | `replacement` | Several replacement effects apply: which first? | one option | `replacement`, `apply`, `decline` |
 | `commander_zone` | Your commander died or was exiled (or would go to hand/library): to the command zone? | one option; on an exile ask, a `leave` whose `mode` is `adventure_recast` / `foretell_cast` / `plot_cast` keeps that cast-from-exile permission | `command_zone`, `leave` |
 
-A rules-ignorant fallback that is accepted almost always: at `priority` the
-`pass` option; anywhere else the first `min` options. The example agents
-try their policy's answer, then a few random answers that respect `min`,
-`max`, `required` and the exclusivity rules, then that fallback.
+!!! tip "A fallback that is almost always accepted"
+    At `priority`, the `pass` option; anywhere else, the first `min` options. The example agents try their policy's
+    answer, then a few random answers that respect `min`, `max`, `required` and the exclusivity rules, then that fallback.
 
-## Errors
+## What do errors look like? { #errors }
 
 Every error body is `{"code": …, "message": …}`. Captured:
 
@@ -214,14 +236,18 @@ Every error body is `{"code": …, "message": …}`. Captured:
 | 404 | `not_found` | no such match (yet) | `host: not found` |
 | 409 | `conflict` | nothing pending; a stale `seq`; an answer the decision does not allow; an answer the rules engine refuses | `intent seq 1, pending decision seq 22` · `choice 7 out of range (2 options)` · `attacker 38 declared against more than one defender` |
 
-A refused intent leaves the decision pending and the game exactly where it was: read `/pending` again and send a different
-answer. That holds for a refusal from the rules engine too.
+!!! note "A refusal changes nothing"
+    A refused intent, from the wire checks or the rules engine, leaves the decision pending and the game exactly where it
+    was: read `/pending` again and send a different answer.
 
-## Timeouts and disconnects
+## What if my bot stops answering? { #timeouts-and-disconnects }
 
-`gorged` gives an HTTP seat **no deadline**: a parked decision waits until answered. If your bot dies, its game waits, and the seat's
-*caretaker* answers only when the table shuts down. An abandoned table still counts against `-max-on-demand-tables` (`host: on-demand table
-limit 32 reached`); `0` lifts the cap. `-manabrew-think` is the one think-time knob, and applies only with the ManaBrew wire on.
+!!! warning "An HTTP seat has no deadline"
+    A parked decision waits until answered. If your bot dies, its game waits, and the seat's *caretaker* answers only
+    when the table shuts down.
+
+An abandoned table still counts against `-max-on-demand-tables` (`host: on-demand table limit 32 reached`); `0` lifts
+the cap. `-manabrew-think` is the one think-time knob, and applies only with the ManaBrew wire on.
 
 ## Push instead of poll (SSE)
 
@@ -230,14 +256,19 @@ and `"mode":"focus"`, and the stream carries a `snapshot`, every public `event`,
 posed. A play-vs-bot table is private: open the stream with your seat's token (`Authorization: Bearer` or `?token=`) or the subscribe is a
 `404` (`host: not found`). A `-humans` table is public and needs no token.
 
-```console
+```console title="Open the stream, then subscribe with its session id"
 $ curl -sN -H "Authorization: Bearer $TOKEN" $GORGE/api/stream      # keep this open
 $ curl -s -X POST -d '{"session":"sc4947…","table":"g2","mode":"focus"}' $GORGE/api/subscribe
 ```
 
-It is a *spectator* stream: it never shows your seat's options. Use it as a wake-up: on a `decision` frame for your seat, `GET /pending`;
-on `match_end`, stop. It sends a `: ping` comment every 15 s, resumes from `Last-Event-ID` within 30 s of a disconnect, and closes with an
-`overflow` frame if your reader falls 256 frames behind.
+It is a *spectator* stream: it never shows your seat's options. Use it as a wake-up: on a `decision` frame for your
+seat, `GET /pending`; on `match_end`, stop.
+
+| Behaviour | Value |
+|---|---|
+| Keep-alive | a `: ping` comment every 15 s |
+| Resume | from `Last-Event-ID`, within 30 s of a disconnect |
+| Slow reader | closed with an `overflow` frame 256 frames behind |
 
 ## Latency
 
@@ -251,11 +282,14 @@ Ryzen 9 9950X, `gorged -pace 0`):
 | `POST intent` | 0.11 / 0.16 ms | 0.12 / 0.18 ms |
 | answer to next own decision visible | 0.13 / 0.49 ms | 0.24 / 0.67 ms |
 
-One decision costs about 0.25 ms of HTTP, or 0.75 ms if the bot also reads the view. Polling flat out is fastest but burns a core (the
-examples back off from 2 ms to 50 ms); SSE costs one wake-up hop and nothing while idle. There is no long-poll or batching, so training
-that needs engine-speed rollouts should run in Go.
+One decision costs about 0.25 ms of HTTP, or 0.75 ms if the bot also reads the view. Polling flat out is fastest but
+burns a core (the examples back off from 2 ms to 50 ms); SSE costs one wake-up hop and nothing while idle.
 
-## Pitfalls
+!!! note "Engine-speed rollouts belong in Go"
+    There is no long-poll or batching. Training that needs engine-speed rollouts should run as a
+    [native Go bot](native-go.md).
+
+## Common mistakes { #pitfalls }
 
 - **One creature, one defender.** An `attackers` decision has one option per (creature, defender) pair. Pick at most one per `obj`, or get a
   `409` (`attacker 38 declared against more than one defender`).
