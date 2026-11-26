@@ -129,8 +129,12 @@ func tapeStepMayAsk(e *Engine) bool {
 		return tapeDredgeMayAsk(e)
 	case state.StepDeclareBlockers, state.StepCombatDamage:
 		// The pass into the combat damage step: a DamageDone replacement
-		// that elects asks as the damage is dealt.
-		return tapeReplMayAsk(e, "DamageDone", replWalkScope{}) || tapeAnyReplBodyMayAsk(e)
+		// that elects asks as the damage is dealt. The pass's SBA tail may
+		// also return an "exile until this leaves the battlefield" host's
+		// cards (a lethal-damage death, or a departure the sweep applies,
+		// CR 800.4a), and a returned card's as-enters choice asks there.
+		return tapeReplMayAsk(e, "DamageDone", replWalkScope{}) || tapeAnyReplBodyMayAsk(e) ||
+			tapeExileReturnMayAsk(e)
 	}
 	return false
 }
