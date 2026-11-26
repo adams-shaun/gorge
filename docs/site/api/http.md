@@ -1,9 +1,10 @@
 # HTTP API reference
 
-Reference for `gorged`'s HTTP surface (plain HTTP plus one Server-Sent-Events stream), endpoint by
-endpoint: who may call what, which flag arms it, bodies, statuses, errors. For clients: a bot
-playing a seat, a dashboard, a replay viewer. For a walkthrough, start with
-[Playing a seat over HTTP](../bots/http.md).
+Every route `gorged` serves over plain HTTP and its one Server-Sent-Events stream: who may call it, which flag
+arms it, and what it answers. For a bot, a dashboard or a replay viewer; a bot author new to the API should start with
+the walkthrough, [Playing a seat over HTTP](../bots/http.md).
+
+## Where is the spec? { #the-spec }
 
 The machine-readable spec is the authority, and this page is a reading of it:
 
@@ -25,13 +26,13 @@ The machine-readable spec is the authority, and this page is a reading of it:
     After you change a route or a wire type, regenerate the derived parts and then document
     any new route by hand in `openapi.json`:
 
-    ```sh
+    ```sh title="Regenerate the derived parts of the spec"
     go test ./server/host/httpapi -run TestOpenAPI -update
     ```
 
 ## Try it
 
-```sh
+```sh title="A two-table server and its first reads"
 go run ./cmd/gorged -addr 127.0.0.1:8080 -dir /tmp/gorge-api -tables 2 -seats 2 -humans 0
 GORGE=http://127.0.0.1:8080
 curl -s $GORGE/api/tables | python3 -m json.tool | head -20
@@ -44,10 +45,12 @@ curl -sN --max-time 2 $GORGE/api/stream | head -c 300   # first frame: event: he
 
 gorged has no login. A request is a **spectator** or holds a **seat claim**.
 
-- **Spectator:** every read endpoint works without credentials and returns what the table's visibility allows (`public` hides
-  every hand, `omniscient` shows them; `-spectator` for startup tables, `-vsbot-spectator` for play-vs-bot tables).
-- **Seat claim:** a seat token resolves to one (table, seat) pair. Send `Authorization: Bearer <token>` or `?token=<token>`
-  (the header wins). The server compares any seat number the client sends with the claim and never trusts it.
+| Caller | What it gets |
+|---|---|
+| Spectator | Every read endpoint, without credentials, showing what the table's visibility allows: `public` hides every hand, `omniscient` shows them (`-spectator` for startup tables, `-vsbot-spectator` for play-vs-bot tables). |
+| Seat claim | A seat token resolves to one (table, seat) pair. Send `Authorization: Bearer <token>` or `?token=<token>` (the header wins). The server compares any seat number the client sends with the claim and never trusts it. |
+
+How a request is classified:
 
 | The request | Result |
 |---|---|
@@ -59,12 +62,13 @@ gorged has no login. A request is a **spectator** or holds a **seat claim**.
 
 Where tokens come from:
 
-- `POST /api/games` returns one for the seat it creates (the only place a token leaves the server).
-- `-humans 0,2` mints one per human slot of `t1` and prints each join URL at startup
-  (`table t1 seat 0 joins at http://127.0.0.1:8080/t/t1?seat=0&token=…`).
-- `-seat-token TOKEN` fixes the first human slot's token, for tests and local use.
+| Source | Token |
+|---|---|
+| `POST /api/games` | One for the seat it creates: the only place a token leaves the server. |
+| `-humans 0,2` | One per human slot of `t1`, with each join URL printed at startup (`table t1 seat 0 joins at http://127.0.0.1:8080/t/t1?seat=0&token=…`). |
+| `-seat-token TOKEN` | Fixes the first human slot's token, for tests and local use. |
 
-## Which routes exist
+## Which routes exist? { #which-routes-exist }
 
 Without its flag, an optional `/api/` route answers the JSON 404 `no such endpoint`; a non-API path falls through to the web client.
 
@@ -80,8 +84,11 @@ Without its flag, an optional `/api/` route answers the JSON 404 `no such endpoi
 | `-manabrew` | The [ManaBrew wire](manabrew.md) under `/api/manabrew/v0/tables/`. Needs `-humans` or `-vsbot`. |
 | `-sbv2` | [SpellBench v2 seats over HTTP](spellbench-v2.md#extensions-on-the-http-human-seat) under `/api/sbv2/v1/tables/`. Needs `-humans` or `-vsbot`. |
 
-Every other path serves the embedded web client (SPA fallback to `index.html`). A binary built without the bundle answers
-them `503 web build missing — run make web`; the bundle is embedded at build time, so `make web` comes before `go build`.
+Every other path serves the embedded web client (SPA fallback to `index.html`).
+
+!!! warning "Run `make web` before `go build`"
+    The bundle is embedded at build time. A binary built without it answers every web path with
+    `503 web build missing — run make web`.
 
 ## Endpoints
 
@@ -114,7 +121,7 @@ each, are in [`openapi.json`](openapi.json) and the [interactive reference](redo
 the head is a 409 `beyond_head`, and the body's `head` names the last valid seq so you can
 clamp and retry:
 
-```json
+```json title="409 beyond_head"
 {"code": "beyond_head", "message": "host: seq beyond head 3994", "head": 3994}
 ```
 
@@ -130,27 +137,21 @@ clamp and retry:
 
 #### The paired bot
 
-A server run with `-paired-bot` lets a human ask a bot to evaluate the decision in front of them. It is off by default
-and only advises: nothing it says reaches the game, a replay or the hash chain; the seat still answers through `intent`.
+A server run with `-paired-bot` lets a human ask a bot to evaluate the decision in front of them.
 
-- **What it sees:** the seat's own deck list and everything the seat has observed. Opponent hands, library order and
-  the opponent's list are guessed from a set of decks (`-paired-bot-decks`, default the server's constructed decks).
-  The seat comes from the token alone.
-- **`advice` blocks** until the search ends; hanging up cancels it. `state` is `ready` (a note in `explain`, the shape
-  of a review decision's), `none` (no answer possible) or `refused`.
-- **Every decision kind gets an answer.** Where search can rank options (priority, attackers, blockers, targets, modes,
-  optional triggers, small choices) the note carries the `search`. Elsewhere (mulligan, ordering, who plays first, manual
-  taps, large choices, decisions inside a resolving effect) the state is still `ready`, the note has no `search`, `bot`
-  names what the bot's own rules would pick, and `reason` says why. `reason` is plain words for any state.
-- **`advice_stale` (409)** means the game moved on; ask about the decision you hold now.
-- **Rows:** `choices` index the decision's `options` (a row with `payment` names one of its `payment_actions`). `q` and
-  `root_value` run -1 to +1 for the seat (the client shows `(q + 1) * 50` percent); no `visits` means no estimate.
-  `line` is the expected continuation, up to four plies `{actor, label, visits, share, q}`; `line_end` (`hidden` or
-  `unexplored`) says why it stopped short.
-- **Limits:** a table with several humans needs `-paired-bot-shared` (then `paired-bot` tells every seat it is on). One
-  search runs per table and `-paired-bot-searches` across the server, at a fixed `-paired-bot-sims`; extra requests wait.
-  A server without `-paired-bot` lets no game choose one.
-- **Browser client:** asks once per decision, only while the player's switch is on, and hangs up when it moves on.
+!!! note "Advice only"
+    The paired bot is off by default. Nothing it says reaches the game, a replay or the hash chain; the seat still
+    answers through `intent`.
+
+| Topic | Behaviour |
+|---|---|
+| What it sees | The seat's own deck list and everything the seat has observed. Opponent hands, library order and the opponent's list are guessed from a set of decks (`-paired-bot-decks`, default the server's constructed decks). The seat comes from the token alone. |
+| Blocking | `advice` blocks until the search ends; hanging up cancels it. `state` is `ready` (a note in `explain`, the shape of a review decision's), `none` (no answer possible) or `refused`. |
+| Coverage | Every decision kind gets an answer. Where search can rank options (priority, attackers, blockers, targets, modes, optional triggers, small choices) the note carries the `search`. Elsewhere (mulligan, ordering, who plays first, manual taps, large choices, decisions inside a resolving effect) the state is still `ready`, the note has no `search`, `bot` names what the bot's own rules would pick, and `reason` says why. `reason` is plain words for any state. |
+| `advice_stale` (409) | The game moved on; ask about the decision you hold now. |
+| Rows | `choices` index the decision's `options` (a row with `payment` names one of its `payment_actions`). `q` and `root_value` run -1 to +1 for the seat (the client shows `(q + 1) * 50` percent); no `visits` means no estimate. `line` is the expected continuation, up to four plies `{actor, label, visits, share, q}`; `line_end` (`hidden` or `unexplored`) says why it stopped short. |
+| Limits | A table with several humans needs `-paired-bot-shared` (then `paired-bot` tells every seat it is on). One search runs per table and `-paired-bot-searches` across the server, at a fixed `-paired-bot-sims`; extra requests wait. A server without `-paired-bot` lets no game choose one. |
+| Browser client | Asks once per decision, only while the player's switch is on, and hangs up when it moves on. |
 
 ### The stream
 
@@ -228,20 +229,20 @@ sequenceDiagram
 
 A real `attackers` decision and its answer (the answer echoes `seq` and `player`):
 
-```json
+```json title="An attackers decision, then the answer"
 {"seq": 550, "player": 0, "kind": "attackers", "prompt": "turn 4 — declare attackers", "min": 0, "max": 1,
  "options": [{"index": 0, "kind": "attacker", "label": "Attack with Experiment One at Bot", "obj": 33, "player": 1}]}
 {"seq": 550, "player": 0, "choices": [0]}
 ```
 
-Rules for intents:
+!!! info "What a valid intent must satisfy"
+    - `choices` are distinct, in range, and between `min` and `max` in number, plus the kind's own constraints (one
+      option per `group`; a `required` option must be included when it can be).
+    - A stale `seq` is refused (`intent seq 153, pending decision seq 53`). Wait for a new `seq` before answering again.
+    - The body is strict: an unknown field, trailing data or more than 64 KiB is a 400.
 
-- `choices` are distinct, in range, and between `min` and `max` in number, plus the kind's own constraints (one option per
-  `group`; a `required` option must be included when it can be).
-- A stale `seq` is refused (`intent seq 153, pending decision seq 53`). Wait for a new `seq` before answering again.
-- A `cast` option on an auto-mana table may carry `payment_actions`: answer with the intent's `payment` (a full plan) or
-  `announce` (pay in the payment window). A plain `choices: [i]` still works.
-- The body is strict: an unknown field, trailing data or more than 64 KiB is a 400.
+A `cast` option on an auto-mana table may carry `payment_actions`: answer with the intent's `payment` (a full plan) or
+`announce` (pay in the payment window). A plain `choices: [i]` still works.
 
 ### Decision kinds
 
@@ -271,7 +272,7 @@ The live captures in the spec include real `priority`, `target`, `attackers`, `b
 
 Every `/api/` error has the same body, `protocol.ErrorBody`:
 
-```json
+```json title="protocol.ErrorBody"
 {"code": "unauthorized", "message": "request does not hold a seat claim"}
 ```
 
@@ -288,16 +289,16 @@ Every `/api/` error has the same body, `protocol.ErrorBody`:
 
 ## Conventions
 
-- **Unknown fields:** responses gain fields without notice ([additive rule](protocol.md#versioning)), so ignore unknown
-  ones. Requests are the opposite: unknown fields are refused.
-- **Omitted vs null:** a `required` field is always present. An `omitempty` field is omitted when zero (a missing `obj`,
-  `amount` or `required` means 0 or false). A required array or object can be `null` when nil (`"type": ["array", "null"]`).
-- **Integers:** seeds are unsigned 64-bit and exceed 2^53: parse as 64-bit integers or strings. `viewer` is 255 for a spectator view.
-- **Indexing:** seats are 0-indexed (`player`, `seat`); match indices start at 1.
+| Topic | Rule |
+|---|---|
+| Unknown fields | Responses gain fields without notice ([additive rule](protocol.md#versioning)), so ignore unknown ones. Requests are the opposite: unknown fields are refused. |
+| Omitted vs null | A `required` field is always present. An `omitempty` field is omitted when zero (a missing `obj`, `amount` or `required` means 0 or false). A required array or object can be `null` when nil (`"type": ["array", "null"]`). |
+| Integers | Seeds are unsigned 64-bit and exceed 2^53: parse as 64-bit integers or strings. `viewer` is 255 for a spectator view. |
+| Indexing | Seats are 0-indexed (`player`, `seat`); match indices start at 1. |
 
 ## Other wires
 
-- **ManaBrew** (`-manabrew`) and **SpellBench v2 over HTTP** (`-sbv2`) mount under computed prefixes, so the OpenAPI drift guard doesn't
-  cover them; [Wires](../architecture/wires.md) lists the tests that do. See [ManaBrew](manabrew.md) and
-  [SpellBench v2](spellbench-v2.md#extensions-on-the-http-human-seat).
-- **The SpellBench seat** (`-sb-agent`) isn't HTTP. It speaks [SpellBench v2](spellbench-v2.md) to an agent subprocess.
+| Wire | How it is served |
+|---|---|
+| [ManaBrew](manabrew.md) (`-manabrew`) and [SpellBench v2 over HTTP](spellbench-v2.md#extensions-on-the-http-human-seat) (`-sbv2`) | Under computed prefixes, so the OpenAPI drift guard doesn't cover them; [Wires](../architecture/wires.md) lists the tests that do. |
+| The SpellBench seat (`-sb-agent`) | Not HTTP: it speaks [SpellBench v2](spellbench-v2.md) to an agent subprocess. |
