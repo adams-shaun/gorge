@@ -14,6 +14,7 @@ Drakuseth, Maw of Flames	4
 Fire Diamond	4
 Forgotten Cave	4
 Hellkite Charger	4
+Herald's Horn	4
 Lathliss, Dragon Queen	4
 Lightning Bolt	4
 Mana Geyser	4
@@ -29,3 +30,4 @@ Terror of Mount Velus	4
 Thunderbreak Regent	4
 Tyrant's Familiar	4
 Utvara Hellkite	4
+Warstorm Surge	4
