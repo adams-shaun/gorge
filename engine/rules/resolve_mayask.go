@@ -274,6 +274,9 @@ func mayAskObjOnBoard(e *Engine, st uint64, id state.ObjID, o *state.Object, sa 
 			}
 		}
 	}
+	if cond&cards.MayAskCondDredgeFill != 0 && tapeDredgeFillMayAsk(e) {
+		return true
+	}
 	return cond&cards.MayAskCondParentSub != 0 && tapeParentSubMayAsk(e, id, o, sa)
 }
 
