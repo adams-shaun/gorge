@@ -31,11 +31,11 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 | TRK | 311 | 311 | 1 | 0 | 310 | 310 | 1 |
 | WOE | 281 | 268 | 0 | 4 | 264 | 264 | 1 |
 | MBC | 2212 | 2054 | 3 | 58 | 1993 | 1993 | 8 |
-| CMM | 737 | 635 | 3 | 43 | 589 | 589 | 8 |
+| CMM | 737 | 635 | 2 | 43 | 590 | 590 | 8 |
 | MH3 | 308 | 241 | 1 | 15 | 225 | 225 | 1 |
 | MH2 | 309 | 269 | 0 | 15 | 254 | 254 | 1 |
-| CM2 | 279 | 245 | 1 | 9 | 235 | 235 | 9 |
-| ALL | 34480 | 27065 | 43 | 1148 | 25874 | 25871 | 30 |
+| CM2 | 279 | 245 | 1 | 9 | 235 | 235 | 10 |
+| ALL | 34480 | 27079 | 42 | 1162 | 25875 | 25872 | 31 |
 
 `ALL` is the whole corpus; `MBC` is the Mystery Booster Commander draft pool, every name its packs deal that gorge supports; `CMM`, `MH3`, `MH2` and `CM2` are Commander Masters, Modern Horizons 3 and 2 and Commander Anthology Volume II, from gorge-compliance's XMage manifests; the rest are the Standard sets. `4-seat` counts the supported cards whose lowering holds at any seat count: a card whose lowering reads the one opponent of a two-player game (`kop.CardDef.TwoSeat`) is refused in a game of three or more seats (`StallTwoSeat`). It is a ceiling, not evidence. `pod-evidenced` counts those cards whose evidence row carries a seats field — a clean game of three or more seats, which `kfuzz -evidence -seats 4` writes and `scripts/dirac-first-refusals.py evidence --pools pod-*` copies into `dirac/support/evidence` (`Name\t<seats>`; readers take the name and ignore trailing columns). A pod game does not evidence a card: the support rule below is unchanged.
 
@@ -5289,11 +5289,11 @@ Nothing else is covered. A card none of these runs reaches is unverified, whatev
 
 ## Refused by name
 
-43 cards, by what differed in the game that showed them. Each has a file in `dirac/support/refused` naming the card, the difference and the game.
+42 cards, by what differed in the game that showed them. Each has a file in `dirac/support/refused` naming the card, the difference and the game.
 
 | what differed | cards |
 |---|---:|
-| lockstep | 19 |
+| lockstep | 18 |
 | options | 6 |
 | options-options | 5 |
 | projection-Cards.Damage | 1 |
