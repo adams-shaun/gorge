@@ -4,9 +4,12 @@
 # and almost every open dirac PR then sat CONFLICTING on them alone until a human or an agent merged main and rebuilt
 # them by hand (11-25). The generated set is scripts/autoresolve-paths.tsv; a conflict in any other path is left alone.
 #
-# Token: a push made with the workflow's GITHUB_TOKEN starts no workflow, so the merged PR would get no fast/lint checks
-# and Mergify would never queue it. Like ratchet-lower.yml, the push and the API calls use the REGEN_TOKEN secret (a user
-# token, contents:write on this repo) and fall back to GITHUB_TOKEN when it is unset.
+# Token: the push must be made with the REGEN_TOKEN secret (a user token, contents:write on this repo). A push made with
+# the workflow's GITHUB_TOKEN is attributed to github-actions[bot], and its ci/docs runs on the PR stop at
+# action_required (a run needing a maintainer's approval), so the PR gets no fast/lint checks and Mergify never queues it.
+# 11-25: the resolve step fell back to GITHUB_TOKEN (`secrets.REGEN_TOKEN || github.token`) and every autoresolve push
+# since 12:00Z left ~600 runs at action_required. There is no fallback now: the list job checks REGEN_TOKEN is a user
+# token (GET /user) before any PR is touched and fails red, naming the cause, when it is not.
 #
 # Mergify cannot do this: its update action (queue_rules update_method merge|rebase, update_bot_account) only updates a
 # branch that merges cleanly, and it never rebuilds generated files.
@@ -40,6 +43,23 @@ jobs:
           ref: main
           sparse-checkout: scripts
           persist-credentials: false
+      # Fail here, once and loudly, rather than push with a token whose pushes start no CI (see the header).
+      - name: Require a user token for the pushes
+        env:
+          REGEN_TOKEN: ${{ secrets.REGEN_TOKEN }}
+        run: |
+          if [ -z "$REGEN_TOKEN" ]; then
+            echo "::error::secrets.REGEN_TOKEN is empty in this run (event ${{ github.event_name }}, actor ${{ github.actor }}). A GITHUB_TOKEN push leaves the PR's ci/docs runs at action_required; nothing is pushed. Set REGEN_TOKEN to a user token with contents:write."
+            exit 1
+          fi
+          echo "::add-mask::$REGEN_TOKEN"
+          login=$(curl -fsS -H "Authorization: Bearer $REGEN_TOKEN" -H "Accept: application/vnd.github+json" \
+            https://api.github.com/user | python3 -c 'import json, sys; print(json.load(sys.stdin)["login"])') || {
+            echo "::error::REGEN_TOKEN is not a working user token (GET /user refused it: expired, revoked, or an app token). Nothing is pushed."
+            exit 1
+          }
+          case $login in *'[bot]') echo "::error::REGEN_TOKEN belongs to $login, a bot: its pushes need approval to run CI. Nothing is pushed."; exit 1 ;; esac
+          echo "pushes go as $login"
       - name: Open non-draft PRs to main that conflict
         id: list
         env:
@@ -89,7 +109,8 @@ jobs:
           cache: false
       - name: Merge main and rebuild the generated files
         env:
-          GH_TOKEN: ${{ secrets.REGEN_TOKEN || github.token }}
+          # REGEN_TOKEN only, never github.token: the list job checked it is a user token.
+          GH_TOKEN: ${{ secrets.REGEN_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
           PR: ${{ matrix.pr }}
         # Exit 4: a conflict outside the generated set, which this workflow leaves alone (a notice, not a red job).
@@ -98,6 +119,7 @@ jobs:
         # picked among them (11-25: "Invalid username or token" on half the pushes). An empty per-job global config
         # shuts those out. The value is masked in logs and never echoed.
         run: |
+          [ -n "$GH_TOKEN" ] || { echo "::error::secrets.REGEN_TOKEN is empty; not pushing with GITHUB_TOKEN"; exit 1; }
           echo "::add-mask::$GH_TOKEN"
           export GIT_CONFIG_GLOBAL="$RUNNER_TEMP/autoresolve.gitconfig"; : >"$GIT_CONFIG_GLOBAL"
           export GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0="url.https://x-access-token:${GH_TOKEN}@github.com/.insteadOf" GIT_CONFIG_VALUE_0="https://github.com/"

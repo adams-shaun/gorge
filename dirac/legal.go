@@ -162,7 +162,7 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 			// affordability gate and without a target check (CR 702.62a)
 			s.offerSuspendHand(k, d, p, o, c, &av) // kw_suspend.go
 		}
-		if k.gen != nil && k.gen.anyWebSling && k.t.Cards[c].HasWebSling {
+		if k.gen != nil && k.gen.anyWebSling && s.webSlingable(k, p, c, o) {
 			// under the plain cast's timing and prohibition gates, before
 			// its affordability gate (CR 702.188a)
 			s.offerWebSlingHand(k, d, p, o, c, &av) // kw_websling.go
@@ -218,7 +218,7 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 			if k.gen == nil || !k.gen.anySacX || !s.sacXPoolOffer(k, p, o) {
 				// the bestow cost needs no affordable mana cost (CR 702.103a)
 				s.offerBestowIfPrinted(k, d, p, o, c, &av)
-				if pc.kw&kop.KwKicker != 0 || k.t.Cards[c].HasMultikicker {
+				if pc.kw&kop.KwKicker != 0 || k.t.Cards[c].HasMultikicker || s.offGrantOffer(k, p, c, o) {
 					s.offerKickedPotentialOnly(k, d, p, c, o, pc.cost, preDelve, &base, cav, &av) // kw_multikicker.go
 				}
 				continue // (an announced Sac<X> the floating pool pays at some X is offered, cost_sacx.go)
@@ -266,7 +266,7 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 			d.add(MakeAction(AkCast, TCode(o), 0, 1))
 		}
 		s.offerBestowIfPrinted(k, d, p, o, c, &av) // kw_bestow.go
-		if pc.kw&kop.KwKicker != 0 || k.t.Cards[c].HasMultikicker || k.offspring && offspringOffer(k, c) {
+		if pc.kw&kop.KwKicker != 0 || k.t.Cards[c].HasMultikicker || k.offspring && offspringOffer(k, c) || s.offGrantOffer(k, p, c, o) {
 			s.offerKickedHand(k, d, p, c, o, pc.cost, cav)
 		}
 	}
@@ -510,6 +510,7 @@ func (s *State) activateOffers(k *prep, d *Decision, p uint8, sorc bool, av *ava
 			}
 		}
 	}
+	s.priManaAskOffers(k, d, p) // an unless source's activation (Config.PriorityManaAsk; mana_priask.go)
 	return haveAv
 }
 
@@ -3613,6 +3614,9 @@ func hybridCovered(left *[kop.NumManaKinds]int, hyb []kop.ColorMask) bool {
 
 func (s *State) applyPriority(k *prep, a Action) {
 	p := s.prio
+	if s.priManaAskBegin(k, a) {
+		return // an unless source's activation: its asks follow (mana_priask.go)
+	}
 	sp0 := s.sp
 	// A filter beside a grant is one search in gorge (scriptSearch.visit:
 	// every census gap in battlefield order), and the grant search is that
