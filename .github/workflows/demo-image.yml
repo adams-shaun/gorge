@@ -4,6 +4,8 @@
 # Dockerfile fails here. The image name comes from the DEMO_IMAGE repository
 # variable (default gorge/gorged-demo); the namespace must be one the account
 # can push to.
+#
+# The daily GHCR image of the latest green main is daily-image.yml.
 name: demo-image
 
 on:
