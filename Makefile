@@ -88,6 +88,9 @@ FORGE_REPO ?= https://github.com/adams-shaun/forge.git
 # the stack). Only the three card scripts move. Deliberately NOT the fork's gorge branch tip d767bd52e5cd: it carries
 # Card-Forge master acaef15177's Spacecraft re-spelling (Affected$ Card.counters_GE<N>_CHARGE -> Station$ N), which
 # dirac's kgen refuses ("static unread params [Station]"), so the MBC/EDH pools and pinned repros would lose cards.
+# Bump order: merge the new commit into the Forge oracle driver on the fork, land gorge-compliance develop's
+# FORGE_ORACLE_REF bump to that merge, then move FORGE_REF here. CI refuses a FORGE_REF the driver lacks
+# (scripts/check-forge-ref-driver.sh); gorge-compliance's forge-oracle-setup.sh would otherwise fail every xproof cycle.
 FORGE_REF  ?= 5bc5851a54a0fbbbf7f1a38b48d8ff9b7714ddb2
 
 .PHONY: help
