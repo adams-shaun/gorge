@@ -134,6 +134,15 @@ const (
 	// inheritCopyRecord). 0 when the cast chose nothing (a copy's own cast,
 	// or a resolution that began before the answer landed).
 	RefChosenEnc Ref = 46
+	// RefEmblemSource is the object whose until-end-of-turn Effect made the
+	// emblem a resolving emblem trigger runs for (the entry's source object,
+	// State.g.embO), on the battlefield as the object it was when the trigger
+	// was queued; none once it left (CR 400.7). It is an Effect's
+	// RememberObjects$ Self read back as the trigger body's Defined$
+	// Remembered (gorge effectRemembered's Self, the source by id; Mountain
+	// Titan's "put a +1/+1 counter on Mountain Titan"). RefSelf names nothing
+	// there: the emblem entry's source version is the command-zone copy's.
+	RefEmblemSource Ref = 47
 )
 
 // RefTgtCtrl1 / RefTgtCtrl2 are RefTargetController for target slot 1 / 2

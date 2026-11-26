@@ -205,6 +205,9 @@ func (s *State) mintSpellCopyExc(k *prep, si int, ctrl, exc uint8) bool {
 	if ce.trigPl == trigPlWebSling {
 		ce.trigPl = 0 // nor web-slinged (CR 707.10: gorge's FlagWebSlinged; kw_websling.go)
 	}
+	if ce.trigPl == trigPlAltCost {
+		ce.trigPl = 0 // nor cast for an alternative cost (CR 707.10: gorge's copy keeps only FlagPrototype; cast_altfree.go takeAltCast)
+	}
 	if ce.trigPl == trigPlEscape {
 		ce.trigPl = 0 // nor escape-cast (CR 707.10: gorge's FlagEscaped is cast provenance; kw_escape.go)
 	}

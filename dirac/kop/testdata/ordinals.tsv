@@ -36,6 +36,7 @@ AggDistinctPower	untyped int	6
 AggGreatestMV	untyped int	3
 AggGreatestPower	untyped int	1
 AggGreatestToughness	untyped int	2
+AggMostName	untyped int	14
 AggPermTypes	untyped int	12
 AggSumCounters	untyped int	11
 AggSumMV	untyped int	5
@@ -54,6 +55,7 @@ AttachUnattach	untyped int	2
 AttacksOpponent	untyped int	1
 B	untyped int	2
 BecomeCopyCtr	untyped int	1
+BecomeCopyEOT	untyped int	8
 BecomeCopyEmbalm	untyped int	2
 BecomeCopyGrave	untyped int	4
 BncDelayedMany	untyped int	8192
@@ -1188,6 +1190,7 @@ RefDiscarded	Ref	29
 RefEach	Ref	16
 RefEachOpponent	Ref	8
 RefEachPlayer	Ref	7
+RefEmblemSource	Ref	47
 RefEnchantedCtrl	Ref	44
 RefExiledWithOwner	Ref	43
 RefHost	Ref	23

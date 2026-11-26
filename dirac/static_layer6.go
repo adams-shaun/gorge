@@ -154,7 +154,7 @@ func (s *State) matchKwAssume(k *prep, f kop.FilterID, sl Slot, ctrl uint8, src 
 			continue
 		}
 		fl.Flags2 &^= kop.F2WithFlying | kop.F2WithoutFlying
-		if s.matchPermOne(k, &fl, sl, ctrl, src, layerKw) {
+		if s.matchPermOne(k, &fl, sl, ctrl, src, layerKw, NoObj) {
 			return true
 		}
 	}
