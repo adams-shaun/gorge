@@ -1,14 +1,25 @@
 # Go embedding API
 
-For Go developers who import gorge as a library: to play games in their own program, to write a bot policy, or
-to build a server around gorge's host. It walks the entry points package by package, with a
-program that was compiled and run, and says which parts of the surface tests pin. Terms such as *seat*,
-*decision*, *intent*, *view* and *chain head* are in the [glossary](../contributing/glossary.md). gorge has no tagged releases, so pin a
-commit ([Stability](#stability)).
+The packages a Go program imports to play games, write a bot policy or build a server around gorge's host, with
+one complete program that was compiled and run. Terms such as *seat*, *decision*, *intent*, *view* and *chain head* are
+in the [glossary](../contributing/glossary.md).
 
-## The layers you touch
+!!! warning "Pin a commit"
+    gorge has no tagged releases and any commit may change a signature ([Stability](#stability)).
 
-An embedder only ever touches a few packages. The arrows mean "imports".
+## Which packages do I need? { #the-layers-you-touch }
+
+Stop at the layer your program needs:
+
+| You are building | You import | Section |
+|---|---|---|
+| A batch simulator | `engine/` plus a bot from `bots/` | [Playing a game](#1-playing-a-game-the-engine) |
+| A bot policy | `bots`, `engine/seat`, `engine/decision` | [Bots](#2-bots) |
+| gorged plus one extra bot | `server/gorged` and a `bots.Register` call | [The server](#3-the-server-servergorged) |
+| A custom server | `server/host` | [The host](#4-the-host-serverhost) |
+| Tests over real games | `testkit/` | [Test support](#5-test-support-testkit) |
+
+The arrows mean "imports":
 
 ```mermaid
 flowchart BT
@@ -34,9 +45,7 @@ flowchart BT
   main -->|blank-imports bots/all| bots
 ```
 
-Stop at any layer: a batch simulator needs `engine/` plus a bot from `bots/`; a custom server builds on `server/host`; a
-binary that is gorged plus one extra bot needs only `server/gorged` and a `bots.Register` call. See
-[Architecture](../architecture/index.md), [The game loop](../architecture/gorge/game-loop.md) and
+Background: [Architecture](../architecture/index.md), [The game loop](../architecture/gorge/game-loop.md) and
 [Packages](../architecture/packages.md).
 
 ## 1. Playing a game: the engine
@@ -59,10 +68,11 @@ directory (`make fetch-cards` in a gorge checkout writes `.cards/`; see
 | `func (r *Registry) Universe() *Universe` | Every card, in registry order: the list a "name a card" decision ranges over. |
 | `Registry.Tokens map[string]*Card` | Compiled token scripts, keyed by file stem. |
 
-Why `SharedCorpus`: the registry is large (about 400 MB, per the comment in `engine/cards/open.go`), and the rules layer keys
-memo tables on its pointers, so a process that reopens it per game keeps every
-copy alive. The cache file name carries the compiler's fingerprint, so a
-binary never reads a cache another parser version wrote.
+!!! tip "Open the corpus once: `SharedCorpus`"
+    The registry is large (about 400 MB, per the comment in `engine/cards/open.go`), and the rules layer keys memo
+    tables on its pointers, so a process that reopens it per game keeps every copy alive.
+
+The cache file name carries the compiler's fingerprint, so a binary never reads a cache another parser version wrote.
 
 ### Load a deck: `engine/deck`
 
@@ -108,8 +118,8 @@ Repository decks: [`testkit/testutil/decks/`](https://github.com/adams-shaun/gor
 | `PlayerNames []string` | Display names, separate from the hashed `Names`. |
 | `LoopGuard *LoopGuard` | Livelock-watcher thresholds; nil is the defaults. |
 
-A replay needs the same `Config` again (the log alone cannot rebuild the
-decks), so keep it.
+!!! note "Keep the `Config`"
+    A replay needs the same `Config` again: the log alone cannot rebuild the decks.
 
 Also exported: `AcceptanceConfig` and `PlayAcceptance` (the golden acceptance game `TestHeads` pins, replayed by
 `cmd/headdiff`) and `RunOracleScenarioJSON` (how [gorge-compliance](https://github.com/adams-shaun/gorge-compliance)
@@ -199,6 +209,8 @@ interfaces let a seat ask the driver for extra, engine-computed help:
 | `func ReplayTo(l *events.Log, cfg rules.Config, n int) (*rules.Engine, error)` | The same, stopping after `n` intents. |
 
 ### The drive loop
+
+Every driver repeats the same four calls until the game is over:
 
 ```mermaid
 sequenceDiagram
@@ -350,9 +362,9 @@ func main() {
 ```
 
 Build it as its own module whose `go.mod` requires `github.com/adams-shaun/gorge` (with a `replace` to a local checkout, or
-`go get github.com/adams-shaun/gorge@<commit>`). Run on 2026-11-02 from a gorge checkout, `$P` the program's directory:
+`go get github.com/adams-shaun/gorge@<commit>`). From a gorge checkout, with `$P` the program's directory:
 
-```console
+```console title="Run on 2026-11-02"
 $ go -C "$P" run . -cards "$PWD/.cards" \
     "$PWD/testkit/testutil/decks/mono-red-goblins.json" \
     "$PWD/testkit/testutil/decks/mono-green-stompy.json"
@@ -431,28 +443,18 @@ a type assertion:
 
 Two building blocks most Go bots use:
 
-- [`bots/botpolicy`](https://pkg.go.dev/github.com/adams-shaun/gorge/bots/botpolicy):
-  the shared heuristic policy over a `Board` (a compact, bot-oriented reading
-  of the game), plus `Clamp`, which makes any answer legal in count.
-- [`bots/heuristic`](https://pkg.go.dev/github.com/adams-shaun/gorge/bots/heuristic):
-  the default bot as a `seat.Seat` (`func NewBot(seed uint64) *Bot`, and
-  variants). A seat that also implements `heuristic.BoardSeat`
-  (`DecideBoard(ctx, b botpolicy.Board, d decision.Decision)`) is handed a
-  `Board` instead of a `View`, which saves the host the projection.
+| Package | What it gives you |
+|---|---|
+| [`bots/botpolicy`](https://pkg.go.dev/github.com/adams-shaun/gorge/bots/botpolicy) | The shared heuristic policy over a `Board` (a compact, bot-oriented reading of the game), plus `Clamp`, which makes any answer legal in count. |
+| [`bots/heuristic`](https://pkg.go.dev/github.com/adams-shaun/gorge/bots/heuristic) | The default bot as a `seat.Seat` (`func NewBot(seed uint64) *Bot`, and variants). A seat that also implements `heuristic.BoardSeat` (`DecideBoard(ctx, b botpolicy.Board, d decision.Decision)`) is handed a `Board` instead of a `View`, which saves the host the projection. |
 
 ### What a server offers
 
-How gorged decides what to offer:
-
-- `-bot-policies` is the offered set. Empty (the default) offers every
-  registered policy that does not read opponents' decklists, so a newly
-  linked bot is offered with no flag at all. A list narrows it; an unknown or
-  duplicated name, or a decklist reader, is a startup error.
-- `-bot-policy` is the default for a request that names none
-  (`lethal-pressure` unless set). It must be in the offered set and support
-  both `constructed` and `commander`.
-- Option values resolve, highest first, from `-bot-opt`, the environment, `-bot-config`, then the declared default
-  ([Options](../bots/native-go.md#options)).
+| Flag | Decides |
+|---|---|
+| `-bot-policies` | The offered set. Empty (the default) offers every registered policy that does not read opponents' decklists, so a newly linked bot is offered with no flag at all. A list narrows it; an unknown or duplicated name, or a decklist reader, is a startup error. |
+| `-bot-policy` | The default for a request that names none (`lethal-pressure` unless set). It must be in the offered set and support both `constructed` and `commander`. |
+| `-bot-opt`, `-bot-config` | Option values, resolved highest first from `-bot-opt`, the environment, `-bot-config`, then the declared default ([Options](../bots/native-go.md#options)). |
 
 ## 3. The server: `server/gorged`
 
@@ -474,10 +476,14 @@ A binary that wants more (a bot, a plugin) is the same one line with something e
 | `func ServeFlagSetFor(ext Extensions) *flag.FlagSet` | The same, including the extensions' own flags. |
 | `func RegisterNetBot(policy string, nb NetBot)` | Links a network-backed policy into this binary; gorged gives it `-<policy>-net`, `-<policy>-decks`, `-<policy>-belief`, `-<policy>-belief-pool` and `-<policy>-demo-table`. Call before `Main`. |
 
-`Extensions` fields: `Events EventsPlugin` (serves draft events with `-events`; without it the flag is refused at startup),
-`Flags func(*flag.FlagSet)` (registers your own flags; a name gorged already defines panics), `Review ReviewLoader` (the
-loader `gorged review` turns each input path into a recorded match with; without it review mode refuses to start) and
-`Engines map[string]game.Engine` (adds engines `-engine` can select).
+`Extensions` fields:
+
+| Field | Effect |
+|---|---|
+| `Events EventsPlugin` | Serves draft events with `-events`; without it the flag is refused at startup. |
+| `Flags func(*flag.FlagSet)` | Registers your own flags; a name gorged already defines panics. |
+| `Review ReviewLoader` | The loader `gorged review` turns each input path into a recorded match with; without it review mode refuses to start. |
+| `Engines map[string]game.Engine` | Adds engines `-engine` can select. |
 
 The zero `Extensions` is the live server with no draft events and no review mode. `cmd/gorged` sets `Review` and
 `Events: gorgedevents.Plugin{}` ([`draft/gorgedevents`](https://pkg.go.dev/github.com/adams-shaun/gorge/draft/gorgedevents));
@@ -513,18 +519,26 @@ everything that leaves it is a `view.View`, a `decision.*` value or a
 
 `k` is the match number within the table, counting from **1**.
 
-`Options` fields an embedder sets: `LoadDeck func(name string) (Deck, error)` (the host never reads deck files), `Tokens`,
-`NameUniverse`, `Dir` (persistence), `Sleep` (the table's only clock; tests pass a no-op), `ThinkTimeout` (after which a
-human seat's caretaker bot answers), `MaxDecisionsPerTurn` (`DefaultMaxDecisionsPerTurn` is 25000; 0 turns the stall guard
-off), `BotDeps`, and `Seats func(names []string, seed uint64) []seat.Seat` (replaces the named-policy seats).
+`Options` fields an embedder sets:
+
+| Field | Meaning |
+|---|---|
+| `LoadDeck func(name string) (Deck, error)` | The host never reads deck files itself. |
+| `Tokens`, `NameUniverse` | As in `rules.Config`. |
+| `Dir` | Persistence. |
+| `Sleep` | The table's only clock; tests pass a no-op. |
+| `ThinkTimeout` | After it, a human seat's caretaker bot answers. |
+| `MaxDecisionsPerTurn` | `DefaultMaxDecisionsPerTurn` is 25000; 0 turns the stall guard off. |
+| `BotDeps` | The `bots.Deps` (the card registry) handed to the policies it seats. |
+| `Seats func(names []string, seed uint64) []seat.Seat` | Replaces the named-policy seats. |
+
 `TableConfig` holds `ID`, `Name`, `Seats`, `Decks` (names for `LoadDeck`; seat `i` of match `k` plays `Decks[(i+k)%len]`),
 `Seed`, `BotPolicy` or `SeatBotPolicies`, `Humans []int` (slots driven through `Pending`/`SubmitIntent`), `Spectator`,
 `Mulligans`, `Format` and more.
 
-A sketch of a human seat answered from outside, the way an HTTP
-handler would :
+A human seat answered from outside, the way an HTTP handler would:
 
-```go
+```go title="Answering a parked human seat (sketch)"
 d, err := r.Pending(id, 1, 1) // match 1, seat 1
 if err != nil {
 	// not parked yet: the bot seat is still thinking; poll again
