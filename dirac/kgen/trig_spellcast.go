@@ -68,7 +68,7 @@ func trigSpellCast(lc *lowerCtx, a *trigArm) error {
 	if tp.is("OpponentTurn", "True") {
 		tr.OnlyOppTurn = true
 	}
-	if err := noColoredManaWatch(t, tp, tr); err != nil {
+	if err := noColoredMana(tp, t, tr); err != nil {
 		return err
 	}
 	if v, ok := tp.get("ValidSA"); ok {
@@ -173,12 +173,12 @@ func trigSpellCast(lc *lowerCtx, a *trigArm) error {
 	return nil
 }
 
-// noColoredManaWatch lowers NoColoredMana$ True on a SpellCast trigger arm:
-// "if no colored mana was spent to cast it" (Void Mirror) — gorge
-// SpellCastEval's fire-time read of the cast's per-colour spend
-// (kop.Tf5CastNoColoredMana). Only a battlefield listener's plain SpellCast
-// lowers.
-func noColoredManaWatch(t cards.Trigger, tp *params, tr *lTrigger) error {
+// noColoredMana lowers Trigger$ NoColoredMana$ True: "if no colored mana was
+// spent to cast it" (Void Mirror) — gorge SpellCastEval's fire-time read of
+// the cast's per-colour spend (kop.Tf5CastNoColoredMana). Only a battlefield
+// listener's plain SpellCast lowers. Its own function (funcgrowth): the ValidSA
+// neighbourhood it sits between has no slack for another condition.
+func noColoredMana(tp *params, t cards.Trigger, tr *lTrigger) error {
 	v, ok := tp.get("NoColoredMana")
 	if !ok {
 		return nil

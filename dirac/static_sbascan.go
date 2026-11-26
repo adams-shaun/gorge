@@ -47,17 +47,14 @@ func (s *State) sbaScan(k *prep, r *sbaMasks) (busy bool) {
 				gy = gy.with(sl)
 				continue
 			}
-			lethal, overrode := s.lethalScan(k, sl, p, pw, tough)
-			if overrode {
-				// LethalDamageByPower$ (static_lethalbypower.go): the
-				// threshold reads power, which the clean-scan key was not
-				// built around: never a cached clean scan
-				busy = true
-			}
+			lethal, live := s.lethalThresholdFor(k, sl, pw, tough, p.damage)
+			busy = busy || live
 			// The deathtouch mark alone is lethal (CR 704.5h): a wither or
 			// infect hit marks no damage (gorge destroyLethalDamage). No
-			// marked damage is never lethal, whatever the threshold.
-			if markedHit(p, lethal) && s.kw(k, sl)&kop.KwIndestructible == 0 {
+			// marked damage is never lethal, whatever the threshold —
+			// lethalThresholdFor leaves such a creature at its toughness.
+			if (int(p.damage) >= lethal || p.flags&pfDeathtouched != 0) &&
+				s.kw(k, sl)&kop.KwIndestructible == 0 {
 				busy = true // destroyLine and the regeneration read the replacements: never a cached clean scan
 				if r := s.destroyLine(k, sl, true); r != drNone {
 					if r == drHeal {
@@ -135,23 +132,4 @@ func (s *State) sbaScan(k *prep, r *sbaMasks) (busy bool) {
 	}
 	r.die, r.gy, r.pwz, r.aur, r.anni = die, gy, pwz, aur, anni
 	return busy
-}
-
-// lethalScan is sbaScan's lethal threshold for the permanent at sl:
-// LethalDamageByPower$ (static_lethalbypower.go) reads power, which the
-// clean-scan key was not built around, so an overridden threshold also makes
-// the scan dirty. It reports the threshold and whether it overrode.
-func (s *State) lethalScan(k *prep, sl Slot, p *perm, pw, tough int) (int, bool) {
-	if k.gen == nil || !k.gen.uses.has(useLethalPow) || p.damage == 0 {
-		return tough, false
-	}
-	return s.lethalThreshold(k, sl, pw, tough), true
-}
-
-// markedHit reports whether p's marked damage is lethal at the threshold
-// (CR 704.5h): a wither or infect hit marks no damage (gorge
-// destroyLethalDamage), and no marked damage is never lethal, whatever the
-// threshold.
-func markedHit(p *perm, lethal int) bool {
-	return p.damage > 0 && int(p.damage) >= lethal || p.flags&pfDeathtouched != 0
 }

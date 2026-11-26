@@ -25,6 +25,7 @@ func init() {
 		return nil, err
 	})
 	registerStaticBuild("CanAttackDefender", staticFilterArm(kop.StatCanAttackDefender))
+	registerStaticBuild("LethalByPower", staticFilterArm(kop.StatLethalByPower)) // static_lethalbypower.go isLethalByPower (Zilortha)
 }
 
 func cbCantBlockByStatic(cb *cardBuilder, s lStatic, st *kop.Static) ([]uint8, error) {

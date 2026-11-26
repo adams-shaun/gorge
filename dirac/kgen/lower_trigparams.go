@@ -250,7 +250,7 @@ func drawStepFlags(t *lTrigger) kop.TrigFlags5 {
 		f |= kop.Tf5DmgNoContract // lower_contract.go
 	}
 	if t.NoColoredMana {
-		f |= kop.Tf5CastNoColoredMana // lower_trigger.go: a SpellCast line only
+		f |= kop.Tf5CastNoColoredMana // trig_spellcast.go: a SpellCast line only
 	}
 	return f
 }

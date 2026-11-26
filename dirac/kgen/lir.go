@@ -1073,7 +1073,7 @@ type lTrigger struct {
 	// lower_contract.go).
 	NoContract bool
 	// SpellCast: NoColoredMana$ True, the cast spent no coloured mana
-	// (kop.Tf5CastNoColoredMana; lower_trigger.go).
+	// (kop.Tf5CastNoColoredMana; trig_spellcast.go).
 	NoColoredMana bool
 	// Discarded Card.Self: ValidCause$ SpellAbility.OppCtrl, the discard caused
 	// by a spell or ability an opponent controls (kop.Tf5OppCause).
@@ -1274,6 +1274,7 @@ type lStatic struct {
 	// and infect (kop.Static.Evasion / Infect; lower_kwmark.go)
 	Evasion uint8
 	Infect  bool
+	Toxic   uint8 // granted toxic N, summed (kop.Static.Toxic; lower_toxicgrant.go)
 
 	// AbilityRed: a ReduceCost static of activated abilities (Type$ Ability)
 	// rather than spells: 1 any, 2 Exhaust abilities only, 3 a Room unlock,
@@ -1347,6 +1348,7 @@ type lOverride struct {
 	UntilCast       *lFilter // an Effect's SpellCast end (Soul Sculptor): the record ends when its resolver casts a spell matching this filter (kop.Override.UntilCast)
 	Banding         bool     // a granted Banding (KW$ Banding): no KwMask bit is free, so the record carries it (kop.Override.Banding)
 	Horsemanship    bool     // a Duration$ Permanent KW$ Horsemanship grant: no KwMask bit, so the record carries it (kop.Override.Horsemanship)
+	Toxic           uint8    // an Animate's Keywords$ Toxic:N, summed (kop.Override.Toxic; lower_toxicgrant.go)
 	MustBeBlocked   bool     // HiddenKeywords$ CARDNAME must be blocked if able.: emitOverride follows the record with ExtMustBeBlocked on the same ref (not a record field)
 	NoCost          bool     // a copy exception's "with no mana cost" (RemoveCost$)
 	AddColors       string   // a copy exception's AddColors$: colour letters added after any set
