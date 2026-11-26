@@ -4737,7 +4737,12 @@ func (lc *lowerCtx) lowerMana(sa *cards.SA, ps *params, ab *lAbility) error {
 		m.Each = len(cols) > 1
 		return lc.finishMana(sa, ps, ab, m)
 	}
+	// the amount may read the cards exiled with the resolving source (Ugin's
+	// Labyrinth's Count$ValidExile): the kernel's exwFlag reads ctx.src, the
+	// mana source itself
+	lc.exwRes = true
 	amt, err := lc.amount(ps, "Amount", 1)
+	lc.exwRes = false
 	if err != nil {
 		return err
 	}

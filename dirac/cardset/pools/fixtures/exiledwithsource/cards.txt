@@ -1,0 +1,17 @@
+# The ExiledWithSource readers outside a resolution-time mover
+# (dirac/oracle/exiledwithsource_lockstep_test.go): Ugin's Labyrinth's mana
+# amount, Valakut Exploration's end-step Phase condition, and Vault 13's Saga
+# chapters. Ulamog's Crusher is the colorless card with mana value 7 or
+# greater Ugin's Labyrinth imprints; the vanilla creatures are Vault 13's
+# chapter I targets and the decks' bodies; the basics cast every card.
+Forest
+Grizzly Bears
+Hill Giant
+Mountain
+Plains
+Savannah Lions
+Suntail Hawk
+Ulamog's Crusher
+Ugin's Labyrinth
+Valakut Exploration
+Vault 13: Dweller's Journey

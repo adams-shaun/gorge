@@ -198,6 +198,7 @@ type lowerCtx struct {
 	chosenNumOK    bool      // the filter being read is a battlefield SpellCast ValidCard$ of a card that chooses a number as it enters: a "Chosen" bound may lower (lower_choosenumber.go)
 	exwOK          bool      // the filter being read is a resolution-time mover's ChangeType$: ExiledWithSource may lower
 	exwTgtOK       bool      // lowering a ChangeZone Origin$ Exile ValidTgts$: ExiledWithSource reads the ability's own source at target time
+	exwRes         bool      // lowering a resolution-time value of the source: a mana ability's Amount$ or a trigger's CheckSVar$ (the kernel's exwFlag reads ctx.src)
 	exwStatic      bool      // lowering a Mode$ Continuous static: ExiledWithSource reads the static's own source
 	srcRemStatic   bool      // lowering a token's CDA static: Remembered$CardCounters reads the creator the token remembers (lower_tokenrem.go)
 	spellBaseOK    bool      // the filter being read is a ReduceCost ValidTarget$: a Spell head may lower (lower_trigger.go)
@@ -3318,9 +3319,10 @@ func (lc *lowerCtx) filter(expr string) (*lFilter, error) {
 		}
 		if c.CmpStat == cmpExiledWith || c.Flags&fExiledWith != 0 {
 			// the kernel reads the link against the matcher's source: the
-			// resolving entry's, or a Continuous static's own object. A
+			// resolving entry's, a resolution-time value's (a mana amount or
+			// a trigger condition), or a Continuous static's own object. A
 			// target, a cost or a granted ability has none
-			if lc.granted > 0 || !((lc.exwOK || lc.exwTgtOK) && lc.ab != nil || lc.exwStatic) {
+			if lc.granted > 0 || !((lc.exwOK || lc.exwTgtOK || lc.exwRes) && lc.ab != nil || lc.exwStatic) {
 				return nil, refuse("filter %q: ExiledWithSource outside a resolution-time mover or a continuous static", expr)
 			}
 			lc.out.ExiledWith = true
