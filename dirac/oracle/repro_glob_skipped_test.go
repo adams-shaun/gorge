@@ -28,6 +28,9 @@ func TestGlobReplayFailsOnSkippedActions(t *testing.T) {
 	// not offer it, so the script skips it even though the game path never
 	// moves.
 	shifted.Actions = append([]Canon{r.Actions[0]}, r.Actions...)
+	// The precondition, under the zero-value policy (which skips and counts):
+	// the shift skips an action while the game still replays clean, the exact
+	// shape that hid the drift.
 	pol := &ScriptPolicy{Actions: shifted.Actions}
 	res := replayDecodedScript(t, synthReg(t), globSet(t, shifted.Pool, &shifted), &shifted, pol)
 	if pol.Skipped == 0 {
@@ -36,14 +39,22 @@ func TestGlobReplayFailsOnSkippedActions(t *testing.T) {
 	if res.Div != nil {
 		t.Fatalf("the shifted fixture diverged (%s at %d): the skip guard would not be the only thing that fails it", res.Div.What, res.Div.At)
 	}
-	// The guard replayReproValue runs before its divergence check must fail
-	// the shifted replay: it names the skip count and the first skipped
-	// decision, so a drifted recording is loud about what moved.
-	msg := reproSkipFailure(&shifted, pol)
-	switch {
-	case msg == "":
-		t.Fatalf("the glob runner's skip guard passed a replay that skipped %d of %d recorded actions", pol.Skipped, len(shifted.Actions))
-	case !strings.Contains(msg, fmt.Sprintf("replay skipped %d of %d recorded actions (first at decision", pol.Skipped, len(shifted.Actions))):
-		t.Fatalf("the skip guard's failure does not name the count and the first skipped decision: %q", msg)
+	// The runner's own verdict (replayReproValue's) must fail the shifted
+	// replay and name what moved: the action's index, the decision's seq and the
+	// offered options, not a bare "policy panic []".
+	_, msg := replayReproFailure(t, synthReg(t), globSet(t, shifted.Pool, &shifted), &shifted)
+	if msg == "" {
+		t.Fatalf("the glob runner passed a replay that skipped %d of %d recorded actions", pol.Skipped, len(shifted.Actions))
+	}
+	for _, want := range []string{"replay action ", " at decision ", "offered: ["} {
+		if !strings.Contains(msg, want) {
+			t.Fatalf("the runner's skip failure does not contain %q: %q", want, msg)
+		}
+	}
+	// An opted-in repro keeps the old guard: the skip count and first decision.
+	opted := shifted
+	opted.AllowSkips = true
+	if _, msg := replayReproFailure(t, synthReg(t), globSet(t, opted.Pool, &opted), &opted); !strings.Contains(msg, fmt.Sprintf("replay skipped %d of %d recorded actions (first at decision", pol.Skipped, len(opted.Actions))) {
+		t.Fatalf("an allow_skips replay's failure does not name the skip count and the first skipped decision: %q", msg)
 	}
 }
