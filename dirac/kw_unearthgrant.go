@@ -162,11 +162,17 @@ func (s *State) priorityUnearthGrant(k *prep, d *Decision, p uint8, sorc bool, a
 		card := s.objs[o].card
 		cd := &k.t.Cards[card]
 		if cd.HasUnearth {
+			if graveLossOn(k) {
+				s.graveUnearthPrinted(k, p, o, card) // static_graveabilityloss.go
+			}
 			continue // the printed offer exists (gorge printedKeywordCovered): the derived line offers nothing
 		}
 		a, sl := s.offKwUnearthStatic(k, p, s.objs[o].owner(), card, o)
 		if a == nil || s.castHeldOut(o) {
 			continue
+		}
+		if graveLossOn(k) && s.graveUnearthHidden(k, o, sl) {
+			continue // the card lost all abilities and the removal is newer than the grant (static_graveabilityloss.go)
 		}
 		body := &k.t.Cards[s.cardAt(sl)].Abilities[a.Static.GrantBody-1]
 		mana := &body.Cost.Mana
