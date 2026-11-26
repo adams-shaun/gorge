@@ -61,6 +61,9 @@ func (s *State) castRestrictionForbids(k *prep, p uint8, c CardID, o Obj, cost *
 		if st.StFlags&kop.StRaiseYou != 0 && stc.ctrl != p || st.StFlags&kop.StRaiseOpp != 0 && stc.ctrl == p {
 			return true
 		}
+		if st.Zone != kop.ZoneNone && st.Zone != kop.ZoneCommand && o != NoObj && s.objs[o].zone != st.Zone {
+			return true // Origin$: the cast's origin zone is not the restricted one (gorge castOriginGateHolds)
+		}
 		if mvOnly && !filterReadsMV(k, st.Filter) {
 			return true
 		}
