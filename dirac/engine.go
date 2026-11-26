@@ -4,6 +4,7 @@ import (
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
+//lockstep:const engine/rules.openingHand
 const openingHand = 7
 
 // New starts a game with the default Config (pass-elision on, no mulligan
