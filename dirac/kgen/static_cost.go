@@ -1,6 +1,8 @@
 package kgen
 
 import (
+	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/adams-shaun/gorge/dirac/kop"
@@ -149,6 +151,9 @@ func (sc *staticCtx) modeAlternativeCost() ([]lStatic, bool, error) {
 		sp.consume("ValidCard", "ValidPlayer")
 		sp.m["ValidSA"] = "Spell.Self"
 	}
+	if done, err := sc.altGrantShape(); done || err != nil {
+		return nil, err != nil, err
+	}
 	if sp.str("ValidSA") != "Spell.Self" || sp.str("EffectZone") != "All" {
 		return nil, true, refuse("AlternativeCost shape")
 	}
@@ -192,4 +197,53 @@ func (s lStatic) flashCasterFlag() kop.StaticFlags {
 		return kop.StFlashAnyCaster
 	}
 	return 0
+}
+
+// altGrantShape lowers a battlefield GRANT of a mana alternative cost to the
+// controller's own spells (Fist of Suns, Jodah, Leyline of Mutation: bare
+// "ValidSA$ Spell | ValidPlayer$ You"; Rooftop Storm's and Runeforge
+// Champion's ValidCard$ riders; gorge alternativeCosts' printed battlefield
+// walk, read relative to the granter's controller). It reports done with the
+// static filled in (kop.StAltGrant, Filter = the ValidCard$); a static of
+// another shape is not done and falls through to the own-static arms. Only a
+// mana price lowers: the kernel prices the grant as the hand cast's mana
+// alternative (dirac/cast_altgrant.go).
+func (sc *staticCtx) altGrantShape() (bool, error) {
+	sp := sc.sp
+	if sp.str("ValidSA") != "Spell" || sp.str("ValidPlayer") != "You" || sp.str("EffectZone") != "" || sp.str("ValidCard") == "Card.Self" {
+		return false, nil
+	}
+	var err error
+	if sc.st.F, err = sc.readF("ValidCard"); err != nil {
+		return true, err
+	}
+	if sc.st.Cost, err = sc.lc.altCostCost(sp.str("Cost")); err != nil {
+		return true, err
+	}
+	sc.st.Flags = append(sc.st.Flags, "AltGrant")
+	return true, nil
+}
+
+// altCostStatic lowers an AlternativeCost static's cost and, for a battlefield
+// grant (altGrantShape's "AltGrant" flag), fills in the rest of its static:
+// kop.StAltGrant, and Filter = the ValidCard$ the cast card matches. A grant
+// carries no non-mana cost part (the kernel prices a grant as the hand cast's
+// mana alternative, cast_altgrant.go). A grant's Condition$ lowers through the
+// shared static gate into Cond2, which the kernel's altGrantApplies reads with
+// the granter as source; none of the five granting cards carries one.
+func (cb *cardBuilder) altCostStatic(s lStatic, st *kop.Static) (kop.Cost, error) {
+	cost, err := cb.cost(s.Cost)
+	if err != nil || !slices.Contains(s.Flags, "AltGrant") {
+		return cost, err
+	}
+	st.StFlags |= kop.StAltGrant
+	if s.F != nil {
+		if st.Filter, err = cb.filter(s.F, kop.ZoneHand); err != nil {
+			return cost, err
+		}
+	}
+	if cost.Flags != 0 || cost.N != 0 || cost.Mana.X != 0 {
+		return cost, fmt.Errorf("alternative cost grant with a non-mana part (the kernel offers mana-only grants)")
+	}
+	return cost, nil
 }

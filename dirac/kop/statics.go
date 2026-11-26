@@ -884,6 +884,16 @@ const StFbOwnCost StaticFlags = 1 << 0
 // actorMatches "Caster").
 const StFlashAnyCaster StaticFlags = 1 << 0
 
+// StAltGrant on a StatAlternativeCost static: a battlefield GRANT of a mana
+// alternative cost to the spells its controller casts (Fist of Suns: "you may
+// pay {W}{U}{B}{R}{G} rather than pay the mana cost for spells that you cast";
+// Rooftop Storm's {0} for Zombie creature spells, Runeforge Champion's {1} for
+// Rune spells), not the card's own alternative cost. Filter is the ValidCard$
+// the cast card must match (0: any spell), Cond2 the static's condition, and
+// the cost is Ability.Cost.Mana. It aliases bit 0 like StFlashAnyCaster, whose
+// readers are gated on StatCastWithFlash (dirac/cast_altgrant.go).
+const StAltGrant StaticFlags = 1 << 0
+
 // StatAsIfHaste (an explicit ordinal clear of the iota tail): the static's
 // controller may activate abilities of battlefield creatures matching Filter
 // (read with the static's controller as "you") as though they had haste
