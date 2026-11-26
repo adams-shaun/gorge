@@ -590,6 +590,7 @@ default	field	genPrep.anyCantAct	1
 default	field	genPrep.anyCantSac	1
 default	field	genPrep.anyCantTgt	1
 default	field	genPrep.anyCantTgtGrave	1
+default	field	genPrep.anyOffZoneChar	1
 default	field	genPrep.anyFaces	1
 default	field	genPrep.anyWarp	1
 default	field	genPrep.anyDash	1
