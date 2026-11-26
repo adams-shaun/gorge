@@ -329,8 +329,10 @@ var predicates = map[string]predFn{
 		if b == nil || b.Controller != you || b.Face() == nil {
 			return false
 		}
-		f := b.Face()
-		return f.IsPlaneswalker() && !f.IsCreature()
+		// Forge's CardProperty branch checks only isPlaneswalker (XMage's
+		// AttacksAllTriggeredAbility likewise), so an animated planeswalker
+		// (Gideon as a creature) still counts.
+		return b.Face().IsPlaneswalker()
 	},
 	"blocking": func(g *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool { return isBlocking(g, o.ID) },
 	"token":    func(g *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool { return o.IsToken },
@@ -1054,6 +1056,26 @@ func init() {
 			return strings.Contains(ColorsOf(o), letter)
 		}
 	}
+	// canProduceManaColor <Colour> is Forge's CardProperty of that name: one
+	// of the candidate's mana abilities can produce that colour
+	// (AbilityManaPart.canProduce over MagicColor.toShortString). An "Any"
+	// production yields every colour but never colourless, exactly Forge's
+	// `isAnyMana() && !s.equals("C")`; producibleSymbols already reads the
+	// face's mana abilities that way. Break the Ice's and Obsidian Charmaw's
+	// `Land.canProduceManaColor Colorless`.
+	for _, cl := range [...]struct {
+		name   string
+		letter byte
+	}{{"White", 'W'}, {"Blue", 'U'}, {"Black", 'B'}, {"Red", 'R'}, {"Green", 'G'}, {"Colorless", 'C'}} {
+		letter := cl.letter
+		predicates["canProduceManaColor "+cl.name] = func(_ *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
+			return strings.IndexByte(producibleSymbols(o), letter) >= 0
+		}
+	}
+	// attackingYouOrYourPW is Forge's prefix match of the same CardProperty
+	// branch attackingYouOrYourPWLKI takes (`property.startsWith(
+	// "attackingYouOrYourPW")`): Soul Snare's target spec.
+	predicates["attackingYouOrYourPW"] = predicates["attackingYouOrYourPWLKI"]
 	// StrictlyOther is Forge's other spelling of the same "not the source"
 	// test Other already implements.
 	predicates["StrictlyOther"] = predicates["Other"]
