@@ -515,6 +515,20 @@ func copyKeptSets(d *kop.CardDef, c *lCard) {
 	d.HasUnearth, d.HasDecayed, d.HasPersist, d.HasDoctorsCompanion = c.HasUnearth, c.HasDecayed, c.HasPersist, c.HasDoctorsCompanion
 }
 
+// recordOffering records K:Offering. CR 702.48: no KwMask bit is free, so the
+// offering marker is its own field; the filter is the sacrifice's
+// (dirac/kw_offering.go).
+func (cb *cardBuilder) recordOffering() error {
+	c, d := cb.c, &cb.out.def
+	if c.Offering == nil {
+		return nil
+	}
+	d.HasOffering = true
+	var err error
+	d.OfferingF, err = cb.filter(c.Offering, kop.ZoneBattlefield)
+	return err
+}
+
 // hexQualityBits is the hexproof-from-quality bits (monocolored,
 // multicolored) a card's lowering read.
 func hexQualityBits(c *lCard) kop.ColorMask {
@@ -905,6 +919,9 @@ func (cb *cardBuilder) record() error {
 				return err
 			}
 		}
+	}
+	if err := cb.recordOffering(); err != nil {
+		return err
 	}
 	if c.FbBeholdN != 0 {
 		// the flashback cost's behold part (kernel act_behold.go): the
