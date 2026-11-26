@@ -387,9 +387,14 @@ func (s *State) dealHitsLatched(k *prep, hs []dmgHit, rl *refLatch) bool {
 			if rl != nil {
 				rl.at = at
 			}
-			rcp, toPl := TCode(s.perms[h.dst].obj), false
+			// a player hit (biteExcess's trample arm, a sweep's player arm)
+			// carries its dst as NoSlot (the dmgEv record's dst arm below): its
+			// recipient is the pl seat, never a perms slot (hitCode above)
+			rcp, toPl := TCode(0), false
 			if h.pl != 0 {
 				rcp, toPl = PlayerCode(h.pl-1), true
+			} else {
+				rcp = TCode(s.perms[h.dst].obj)
 			}
 			s.fireDamageEvGen(k, h.src, h.n, toPl, false, latch, rcp, rl)
 		}

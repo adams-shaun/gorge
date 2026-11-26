@@ -1,0 +1,37 @@
+# the CMM/MH3/MH2/CM2 keyword grants (dirac/oracle/sets_keywords_lowers_test.go
+# TestSetsKeywordGrantsLower): Sun Quan, Lord of Wu's and Herald of Hoofbeats'
+# granted horsemanship beside the Knights and Bears that attack under it (The
+# Dilu Horse a printed horsemanship body); Indebted Spirit's bestowed afterlife
+# 1 beside the Bears that wear it and the Bolts that kill them; Reckless
+# Pyrosurfer's landfall-granted battle cry and Eldrazi Conscription's
+# enchanted annihilator beside the Bears that carry them; Mikaeus, the
+# Unhallowed's granted undying and Rattleblaze Scarecrow's granted persist
+# beside the Bears and Bolts that die under them; Cauldron of Souls', Undying
+# Evil's, Cauldron Haze's, Endling's, Antler Skulkin's and Dusk Legion
+# Sergeant's Pump-granted persist and undying beside Mikaeus's (Child of Night
+# and Savannah Lions the Vampire and white bodies)
+Sun Quan, Lord of Wu
+Herald of Hoofbeats
+The Dilu Horse
+Silver Knight
+White Knight
+Grizzly Bears
+Indebted Spirit
+Lightning Bolt
+Island
+Plains
+Mountain
+Forest
+Reckless Pyrosurfer
+Eldrazi Conscription
+Swamp
+Mikaeus, the Unhallowed
+Rattleblaze Scarecrow
+Cauldron of Souls
+Undying Evil
+Cauldron Haze
+Endling
+Antler Skulkin
+Dusk Legion Sergeant
+Child of Night
+Savannah Lions

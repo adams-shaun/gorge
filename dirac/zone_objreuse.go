@@ -55,7 +55,10 @@ func (s *State) reuseObj(o Obj) {
 		s.cold.mo[i].clr(o)
 	}
 	if int(o) < len(s.cold.mkObj) {
-		s.cold.mkObj[o] = 0 // the old object's multikicker count ends with it (CR 702.43)
+		// the old object's multikicker count -- and the two-alternative
+		// Kicker's selection byte that shares the region
+		// (filter_kickedalt.go) -- ends with it (CR 702.43, 400.7)
+		s.cold.mkObj[o] = 0
 	}
 	s.clearPaidN(o)
 	s.gyStampClr(o)

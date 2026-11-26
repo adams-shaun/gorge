@@ -73,8 +73,38 @@ func (s *State) altAddWindowTap(k *prep) {
 	if behold {
 		b.stage = bsAltAdd
 	}
+	// The chosen part pays life the caster no longer has: gorge's CR 601.2g
+	// gate (pay ResolveManaWith's life check) fails for the whole composed
+	// cost whatever the pool holds, so the ordinary window opens beside mana
+	// it already pays and stays open to the last listed source (Dusk
+	// Mangler's third part: a pool that pays its own {5}{B}{B}); the
+	// reversal then keeps the taps and floats (CR 733.1). The window's ask
+	// carries no ManaPayment, so a colour ask answers the source's lowest
+	// colour (noOwed), and its listing keeps only the sources that can still
+	// add a colour the composition absorbs (gorge paymentSourceUseful: with
+	// the mana paid, an any-colour source, not a covered fixed one).
+	if s.altAddLifeOpen(k) {
+		s.windowTapWalk(k, e.ctrl, &c, &c, true, false, true, false, false, false, false, true)
+		b.stage = saved
+		return
+	}
 	s.windowTapUseful(k, e.ctrl, &c, &c, true, false, noOwed, false)
 	b.stage = saved
+}
+
+// altAddLifeOpen: the chosen either-or part pays more life than the caster
+// has, so gorge's CR 601.2g window gate fails for the whole composed cost
+// (pay ResolveManaWith checks the cost's life beside the pool) and the
+// ordinary window opens: the seat may activate every untapped source, and
+// its first-option answer does, though no activation can pay a life the
+// caster lacks (Dusk Mangler's PayLife<4> third part at 1 life).
+func (s *State) altAddLifeOpen(k *prep) bool {
+	e := &s.bld().e
+	if e.kind != seSpell {
+		return false
+	}
+	pc := s.buildPickCost(k)
+	return pc != nil && pc.Flags&kop.CostPayLife != 0 && int(pc.N) > int(s.pl[e.ctrl].life)
 }
 
 // DebugAltAddNoPipsFirst reverses an unpayable either-or part at the choice,
@@ -179,8 +209,11 @@ var DebugNoRestrManaOpen bool
 // (affordableTargetCandidates) and a required target reverses the cast.
 func (s *State) altAddTargetAbort(k *prep) bool {
 	b := s.bld()
-	return b.altAdd == 1 && b.pipN != 0 && b.e.kind == seSpell && k.gen != nil && k.t.Cards[b.e.card].HasAltAdd &&
-		!s.altAddPayable(k, 1) && (!s.altAddPickPayable(k, 1) || !s.windowUnpricedOpen(k, &b.e))
+	if b.altAdd != 1 && b.altAdd != buildAltAdd2 {
+		return false // the chosen part is the either-or's second (1) or third (buildAltAdd2)
+	}
+	return b.pipN != 0 && b.e.kind == seSpell && k.gen != nil && k.t.Cards[b.e.card].HasAltAdd &&
+		!s.altAddPayable(k, b.altAdd) && (!s.altAddPickPayable(k, b.altAdd) || !s.windowUnpricedOpen(k, &b.e))
 }
 
 // loweredPipWindow pays a lowered hybrid cast's pips through the window before its
@@ -248,11 +281,15 @@ func (s *State) windowTapRiderUseful(k *prep, p uint8, cost, useful *kop.ManaCos
 // noOwed is gorge's trigger-cost manual window, whose decision has no
 // ManaPayment, so a source answers its lowest colour (windowCol).
 func (s *State) windowTapUseful(k *prep, p uint8, cost, useful *kop.ManaCost, clamp, anyColor, noOwed, potential bool) (ok bool, held [kop.NumManaKinds]uint8) {
-	return s.windowTapWalk(k, p, cost, useful, clamp, anyColor, noOwed, potential, false, false, false)
+	return s.windowTapWalk(k, p, cost, useful, clamp, anyColor, noOwed, potential, false, false, false, false)
 }
 
 // windowTapWalk is windowTapUseful (takeDeferred is kept for the callers' signature:
-// the walk takes a deferred source in its place either way). census is the
+// the walk takes a deferred source in its place either way). noSettle walks
+// past windowWalkSettled: the window it models stays open whatever the pool
+// pays (an either-or part's life the caster no longer has, altAddWindowTap),
+// so the seat's first-option answer taps every untapped source in battlefield
+// order. census is the
 // affordability probe of gorge's unless / ward window (windowAffordsTake), whose
 // offer gate lists only the sources rules unlessWindowUnits prices (windowPick);
 // the window itself (payWindow) lists every usable ability. The oracle lowers every cast as a plain cast
@@ -266,13 +303,13 @@ func (s *State) windowTapUseful(k *prep, p uint8, cost, useful *kop.ManaCost, cl
 // payAsk is the one walk whose ask carries the ManaPayment (the announced X,
 // xWindowPay): gorge's owedAbilitiesFirst reorders its listing by what the
 // cost still owes, so windowFiltOwedPick takes a filter the clamp kept.
-func (s *State) windowTapWalk(k *prep, p uint8, cost, useful *kop.ManaCost, clamp, anyColor, noOwed, potential, takeDeferred, census, payAsk bool) (ok bool, held [kop.NumManaKinds]uint8) {
+func (s *State) windowTapWalk(k *prep, p uint8, cost, useful *kop.ManaCost, clamp, anyColor, noOwed, potential, takeDeferred, census, payAsk, noSettle bool) (ok bool, held [kop.NumManaKinds]uint8) {
 	if s.buildLive() && s.bld().manaNP == 0 && s.bld().bfl&bflPushed != 0 && s.bld().e.kind == seSpell {
 		// the payment's mana abilities queue from here: a reversal (unpushSpell) keeps what they
 		// queued (CR 733.1), whichever window path reverses the cast (Spree's, a hybrid pip's)
 		s.bld().manaNP = 1 + uint8(s.npend)
 	}
-	for !s.windowWalkSettled(k, p, cost, anyColor) {
+	for noSettle || !s.windowWalkSettled(k, p, cost, anyColor) {
 		if potential {
 			var pot avail
 			other := payDesc{class: pdOther, subBound: s.g.winMode == winTrig} // a trigger's own cost reads the trigger pay gate's bound (mana_repeatpotential.go)
@@ -426,6 +463,10 @@ func (s *State) windowGapArm(k *prep, p uint8, sl Slot, cost, useful *kop.ManaCo
 	}
 	if k.gen.anyMultiR && s.scriptWide(k, p).has(sl) {
 		s.windowWideTap(k, p, sl, cost, useful, clamp, noOwed, held)
+		return false, false
+	}
+	if k.gen.anyRestrSrc && s.windowFeeWide(k, p, sl) {
+		s.windowFeeWideTap(k, p, sl, cost, useful, clamp, noOwed, held)
 		return false, false
 	}
 	if s.anyDifferentAt(k, sl) {
@@ -607,6 +648,12 @@ func (s *State) windowPick(k *prep, p uint8, order []Slot, useful *kop.ManaCost,
 		if k.gen != nil && k.gen.anyMultiR && (!decided || want != 0) && s.windowWide(k, p, o) {
 			return o, true // a wide any-colour restricted source (windowWideTap)
 		}
+		if k.gen != nil && k.gen.anyRestrSrc && s.windowFeeWide(k, p, o) {
+			return o, true // a restricted fee gap the pool's mana funds (windowFeeWideTap)
+		}
+	}
+	if o := s.windowFeeFund(k, p, order, decided, census, potential); o != NoSlot {
+		return o, false // the fee gap's funding: a source the clamp skipped (mana_restrictedfeewide.go)
 	}
 	return NoSlot, false
 }
@@ -1413,7 +1460,7 @@ func (s *State) windowAffordsTake(k *prep, p uint8, cost *kop.ManaCost, takeDefe
 	defer s.unfork()
 	was := t.pool.census
 	t.pool.census = takeDeferred
-	ok, _ := t.windowTapWalk(k, p, cost, cost, false, false, false, false, takeDeferred, takeDeferred, false)
+	ok, _ := t.windowTapWalk(k, p, cost, cost, false, false, false, false, takeDeferred, takeDeferred, false, false)
 	t.pool.census = was
 	stall := uint8(0)
 	if !ok {
@@ -3248,7 +3295,17 @@ func (s *State) lowerWitnessEx(k *prep, p uint8, excl Obj) {
 		// same restricted-inclusive total
 		if k.restrSrc {
 			d := s.payDescNow(excl)
+			// a fee ability is never census mana (paid_mana_census.go: a
+			// generic/coloured fee is the cast window's own price), and the
+			// lowering's X witness is gorge's composed-cost plan
+			// (potential_plan.go planComposedCost): its census counts no Orb
+			// of Dragonkind's {1}, {T}, so the witness prices no tap of it
+			// either -- its mana funds the announced X in the payment's
+			// window, after the ask (CR 106.6, 605.3b)
+			ax := s.g.availX
+			s.g.availX |= availNoFeeUnit
 			t, multi, nm := s.restrSrcAvail(k, p, d, &av, NoSlot, nil, 0)
+			s.g.availX = ax
 			// L is pool mana gorge's census total counts, as the
 			// (censusTotal+L) bound above; withheld is the sources' own
 			t.total = t.censusTotal()
@@ -4091,14 +4148,12 @@ func (s *State) gapWindowReverse(k *prep, e *stackEntry, cost *kop.ManaCost, sav
 // path that keeps the activation, and reports true when the activation was
 // reversed because neither reaches the cost (CR 733.1).
 func (s *State) abilityPlainMana(k *prep, e *stackEntry, cost kop.ManaCost, saved *[len(build{}.picks)]uint8, hostSl, sl Slot, selfUntapped bool) bool {
-	if cost.X != 0 {
-		if m := s.restrActNow(k, e.ctrl); m != 0 {
-			// the admitted restricted mana pays the announced {X} too (pay.PlanPool), which
-			// the unfolded cost's shortening could not fold in (Boommobile's {A})
-			cost = s.restrShortAdm(e.ctrl, m, xFolded(s.buildCost(k), int(e.x)))
-		}
-	}
-	if !s.tapForTry(k, e.ctrl, &cost, int(e.x), s.abilityHandExclude(k, e), false) {
+	// The executed payment prefers the census's plan, as the cast's does
+	// (tapForSpellPlain): gorge's composed plan prices the census alone, and
+	// a fee gap beside it is the phased script's plan for a play the census
+	// cannot pay.
+	if !s.tapForTryCensus(k, e.ctrl, &cost, int(e.x), s.abilityHandExclude(k, e), false) &&
+		!(s.cfg&cfgGorgeAutopay == 0 && s.tapForTry(k, e.ctrl, &cost, int(e.x), s.abilityHandExclude(k, e), false)) {
 		c := xFolded(cost, int(e.x))
 		if s.gapWindowReverse(k, e, &c, saved, hostSl, sl, selfUntapped) {
 			return true
@@ -4124,8 +4179,13 @@ func (s *State) abilityPlainMana(k *prep, e *stackEntry, cost kop.ManaCost, save
 // A granted cycling (kw_cyclinggrant.go) excludes nothing: gorge plans a
 // keyword-granted activation with no cast object (planKeywordAbility), so its
 // hand-demand key still counts the cycled card's pips.
+// handExcludeOn is off while gorge's ability witness plans without the hand
+// exclusion (hotfix/fl-oracle-5 backs out #4737's hand-demand key: the
+// lockstep diverged on TestTapExtraGrantedPrefixLockstep).
+const handExcludeOn = false
+
 func (s *State) abilityHandExclude(k *prep, e *stackEntry) Obj {
-	if e != nil && e.obj != NoObj && s.objs[e.obj].zone == kop.ZoneHand {
+	if handExcludeOn && e != nil && e.obj != NoObj && s.objs[e.obj].zone == kop.ZoneHand {
 		if k.anyCyclingGrant && isCyclingGrantBody(&k.t.Cards[e.card], int(e.ab)) {
 			return NoObj
 		}

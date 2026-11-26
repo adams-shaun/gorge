@@ -406,7 +406,7 @@ func (s *State) objTrigGen(k *prep, ev kop.TrigEvent, l trigListener, a *kop.Abi
 				if s.stateTrigOutstanding(l.obj, l.ab) {
 					return
 				}
-			} else if (a.Gate.Ctr != 0 || a.Gate.N != 0) && !s.crossingOK(l.sl, a, int(amt)) {
+			} else if (a.Gate.Ctr != 0 || a.Gate.N != 0) && !s.crossingOK(k, l.sl, a, int(amt)) {
 				return // a Saga chapter / "Nth counter" line triggers only when its number is reached
 			}
 		}
@@ -619,6 +619,9 @@ func (s *State) firePhaseGen(k *prep, st kop.Step) {
 					a := &cd.Abilities[j]
 					if a.Kind != kop.AbTriggered || a.Trig.Zone != kop.ZoneGraveyard || a.Trig.Event != kop.TrigPhase || a.Trig.Step != st {
 						continue
+					}
+					if s.gravePrintedHidden(k, o) {
+						continue // the card lost all abilities in the graveyard (static_graveabilityloss.go)
 					}
 					l := trigListener{obj: o, sl: NoSlot, ctrl: pp, card: c, ab: uint8(j)}
 					if !whoseOK(a.Trig.Whose, pp, s.active) || !s.trigOK(k, l, a) {
@@ -948,6 +951,9 @@ func (s *State) castTrigGen(k *prep, l trigListener, a *kop.Ability, e *stackEnt
 	if t.Flags3&kop.Tf3ManaFromTreasure != 0 && !s.castTreasureOK(e) {
 		return // trig_validsa.go
 	}
+	if t.Flags5&kop.Tf5CastNoColoredMana != 0 && !s.castNoColoredOK(e) {
+		return // trig_nocoloredmana.go
+	}
 	if t.Flags2&kop.Tf2Increment != 0 && !s.incrementAdmits(k, l, e) {
 		return // kw_increment.go: the cast's spend against the source's P/T (gorge incrementAdmits)
 	}
@@ -1141,6 +1147,9 @@ func (s *State) combatEventsGen(k *prep, r *dmgRec, dealt bool) {
 			}
 		}
 		if !life || dealt {
+			if k.gen.anyCipher && r.dealtPl[sl] > 0 {
+				s.cipherHit(sl) // after the source's face triggers (kw_cipher.go)
+			}
 			continue // dealt: the life changes were made per event (dealCombatEvent)
 		}
 		if r.dealtPl[sl] > 0 && isPlayerOrNone(s.perms[sl].atk) && !r.infM.has(sl) {
@@ -1149,6 +1158,9 @@ func (s *State) combatEventsGen(k *prep, r *dmgRec, dealt bool) {
 			if int(s.npend)-loPl >= 2 {
 				s.pendListenerOrder(loPl)
 			}
+		}
+		if k.gen.anyCipher && r.dealtPl[sl] > 0 {
+			s.cipherHit(sl) // after the source's face and life-loss triggers (kw_cipher.go)
 		}
 		if !s.occ.has(sl) || s.kw(k, sl)&kop.KwLifelink == 0 {
 			continue

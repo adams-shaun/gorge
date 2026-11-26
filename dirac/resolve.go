@@ -252,6 +252,15 @@ func (s *State) resolveTop(k *prep) {
 			s.runProg(k)
 			return
 		}
+		if e.ab == abRipple {
+			// CR 603.5: the ripple trigger's OptionalDecider$ You may, asked
+			// as it resolves (gorge askOptionalAtResolution); a decline
+			// resolves nothing (applyAsk's raOptional finishResolve). The
+			// decider is the trigger's controller.
+			s.res.ask, s.res.askP = raOptional, e.ctrl
+			s.ctl = ctlResolve
+			return
+		}
 		if e.ab == abWard {
 			s.resolveWard(k)
 			return
@@ -264,6 +273,10 @@ func (s *State) resolveTop(k *prep) {
 				if s.resolveVentureTrig(k) { // act_initiative.go
 					s.finishResolve(k, false)
 				}
+				return
+			}
+			if isCipherTrig(&e) {
+				s.cipherResolve(k) // kw_cipher.go: the copy cast, a program
 				return
 			}
 			s.resolveDelayed(k, &e)
@@ -340,7 +353,18 @@ func (s *State) finishResolve(k *prep, fizzled bool) {
 		s.ctl = ctlResolve // another held return parks its own ask (zone_untilleavesbatch.go)
 		return
 	}
-	s.sp-- // the resolving entry leaves the stack
+	if s.g.hold && s.res.active {
+		// resumeFreeCast kept the held copy in place under the casts (gorge's
+		// suspended resolution object leaves from where it sits, CR 608.2g):
+		// take it off there, not from the top.
+		if i := s.holdIndex(); i >= 0 {
+			copy(s.stack[i:s.sp], s.stack[i+1:s.sp])
+			s.sp--
+		}
+		s.g.hold = false
+	} else {
+		s.sp-- // the resolving entry leaves the stack
+	}
 	e := &s.res.e
 	if k.gen != nil && k.gen.anyRemPersist && remPersistKeeps(k, e) {
 		s.remPersistKeep(e) // zone_rememberpersist.go
@@ -561,6 +585,12 @@ func (s *State) prog(k *prep) []kop.Instr {
 			}
 			return stormProg[:]
 		}
+		if e.ab == abRipple {
+			return rippleProg[:] // the reveal + may-cast + bottom body (kw_ripple.go)
+		}
+		if isCipherTrig(e) {
+			return cipherProg[:] // kw_cipher.go
+		}
 		return nil
 	}
 	if p := s.overloadProg(k); p != nil {
@@ -686,6 +716,9 @@ func (s *State) objRef(k *prep, r kop.Ref) Slot {
 	if r == kop.RefTriggerObj && s.res.flags&rfTrigGone != 0 {
 		return NoSlot // the triggering permanent left and came back meanwhile: a new object (CR 400.7)
 	}
+	if r == kop.RefEmblemSource && ob.ver+1 != s.res.e.srcVer {
+		return NoSlot // the emblem trigger was queued at srcVer = ver+1: the source moved since (CR 400.7)
+	}
 	return ob.slot
 }
 
@@ -704,8 +737,8 @@ func (s *State) objRefObj(r kop.Ref) Obj {
 			return NoObj
 		}
 		return Obj(t)
-	case kop.RefSelf:
-		return e.obj
+	case kop.RefSelf, kop.RefEmblemSource:
+		return e.obj // RefEmblemSource: the emblem's source object; objRef holds it to its queued version
 	case kop.RefTriggerObj:
 		return e.trigObj
 	case kop.RefLastCreated:
@@ -716,7 +749,12 @@ func (s *State) objRefObj(r kop.Ref) Obj {
 		return s.res.eachObj
 	case kop.RefAttached:
 		ob := &s.objs[e.obj]
-		if ob.zone == kop.ZoneBattlefield {
+		if ob.zone == kop.ZoneBattlefield || ob.zone == kop.ZonePhased || ob.zone == kop.ZonePhasedInd {
+			// a phased-out source keeps its attachment (CR 702.26g: it
+			// phased out with its host, or alone and stays attached), the
+			// AttachedTo gorge's EnchantedController payer reads (Slow
+			// Motion's upkeep trigger resolving after Vanishing phased the
+			// creature out with it)
 			if a := s.perms[ob.slot].attached; a != NoSlot {
 				return s.perms[a].obj
 			}
@@ -855,6 +893,23 @@ func (s *State) enterCountValue(k *prep, v kop.ValueRef, sl Slot, ctrl uint8) in
 			c.src, c.srcSl = s.perms[src].obj, src
 		}
 		return s.expr(k, v.N, c)
+	}
+	if r := s.replSrcOf(); r != 0 && Slot(r-1) != sl && !DebugOthersEnterEntrantValue {
+		// the direct self reads of another permanent's others-enter program
+		// read that source too (Master Biomancer's "equal to Master
+		// Biomancer's power": kgen writes Count$CardPower as VSelfPower,
+		// where Arwen's toughness rides VExpr above)
+		src := Slot(r - 1)
+		switch v.K {
+		case kop.VSelfPower, kop.VSelfToughness:
+			p, t := s.pt(k, src)
+			if v.K == kop.VSelfPower {
+				return p
+			}
+			return t
+		case kop.VCountersSelf:
+			return s.perms[src].ctrN(s, int(v.N))
+		}
 	}
 	if v.K != kop.VCountFilter {
 		return s.value(k, v)

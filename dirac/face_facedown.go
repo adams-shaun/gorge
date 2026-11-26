@@ -417,6 +417,9 @@ func (s *State) turnFaceUp(k *prep, o Obj, p uint8, proc ...uint8) {
 	if s.turnUpRevealStage(k, o, p, mode, kw) {
 		return // act_revealpick.go: the reveal pick among several candidates
 	}
+	if s.turnUpPickStage(k, o, p, mode, kw) {
+		return // face_morphpick.go: the pick part's ask parks the turn-up
+	}
 	s.settleTurnUp(k, o, p, mode, 0)
 }
 
@@ -452,24 +455,27 @@ func (s *State) turnUpCost(k *prep, sl Slot, mode uint8) (cost kop.ManaCost, meg
 }
 
 // settleTurnUp pays the priced turn-up at X = x and turns the permanent up;
-// a stale request (the permanent changed, the pool no longer pays) is a no-op.
-func (s *State) settleTurnUp(k *prep, o Obj, p uint8, mode uint8, x int) {
+// a stale request (the permanent changed, the pool no longer pays) is a
+// no-op. It reports whether the turn-up is parked still face down (an
+// attach-election ask, face_turnupattach.go): the caller keeps the window's
+// ctl until that ask is answered.
+func (s *State) settleTurnUp(k *prep, o Obj, p uint8, mode uint8, x int) bool {
 	ob := &s.objs[o]
 	if ob.zone != kop.ZoneBattlefield {
-		return
+		return false
 	}
 	sl := ob.slot
 	pm := &s.perms[sl]
 	if pm.ctrl != p || !s.faceDown(k, sl) {
-		return
+		return false
 	}
 	cost, megamorph, kw, ok := s.turnUpCost(k, sl, mode)
 	if !ok || !turnUpHybOK(&cost) {
-		return
+		return false
 	}
 	sp := turnUpSpecial(mode, k.t.Cards[s.cardAt(sl)].MorphFamily)
 	if !s.specialAffords(k, p, &cost, sp, sl, x) || kw && !s.turnUpKwPayable(k, p, sl) {
-		return
+		return false
 	}
 	cost = cost.AtX(x)
 	if cost.Hyb[0] != 0 {
@@ -479,18 +485,30 @@ func (s *State) settleTurnUp(k *prep, o Obj, p uint8, mode uint8, x int) {
 	if kw {
 		s.payTurnUpLife(k, p, sl) // face_morphlife.go
 	}
+	if k.gen.anyTurnUpRepl && s.turnUpAttachStage(k, o, p, mode, x) {
+		return true // face_turnupattach.go: the attach ask parks the turn-up still face down
+	}
+	s.turnUpDone(k, o, p, mode, x, megamorph)
+	s.passes = 0
+	return false
+}
+
+// turnUpDone folds a paid turn-up: the flip (its replacements, the face-up
+// characteristics and the TurnFaceUp triggers) and a Megamorph's +1/+1
+// counter. settleTurnUp's tail and the parked attach answer's fold.
+func (s *State) turnUpDone(k *prep, o Obj, p uint8, mode uint8, x int, megamorph bool) {
+	sl := s.objs[o].slot
 	s.turnUpFlip(k, sl, o, p, uint8(x))
 	if megamorph {
 		s.g.lastCK = kop.CtrP1P1
-		n := s.placeCounters(k, sl, int(kop.CtrP1P1), 1, pm.ctrl, ctrPutEffect)
+		n := s.placeCounters(k, sl, int(kop.CtrP1P1), 1, s.perms[sl].ctrl, ctrPutEffect)
 		if n > 0 && k.anyCtrAdded {
 			s.ctrNote(k, sl, int(kop.CtrP1P1))
 		}
 		if n > 0 && s.subs[kop.TrigCounterAddedOnce].any() {
-			s.fireObj(k, kop.TrigCounterAddedOnce, sl, pm.obj, pm.ctrl, int16(n))
+			s.fireObj(k, kop.TrigCounterAddedOnce, sl, s.perms[sl].obj, s.perms[sl].ctrl, int16(n))
 		}
 	}
-	s.passes = 0
 }
 
 // turnUpFlip turns the face-down permanent at sl face up once any cost is

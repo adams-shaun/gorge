@@ -16,6 +16,9 @@ func (lc *lowerCtx) changeZone(ps *params) error {
 	// the printed mana cost, which every cleave ability states), so the
 	// card stays refused there until the cost family lowers.
 	ps.consume("NonBasicSpell")
+	if done, err := lc.imprintedReturnAll(ps); done || err != nil {
+		return err // lower_imprintzone.go
+	}
 	if r := lc.retCtr; r != nil && r.node == lc.curNode {
 		lc.retCtr = nil
 		return lc.retCtrMove(ps, r) // lower_effectreturnctr.go

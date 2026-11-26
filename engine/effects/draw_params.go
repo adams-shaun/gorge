@@ -150,7 +150,7 @@ var drawKnownKeys = [...]string{
 	"DefinedDesc",
 	"DefinedTarget",
 	"Description",
-	"EffectZone", "Exclude",
+	"Duration", "EffectZone", "Exclude",
 	"ExcludeZone", "Exhaust",
 	"ForgetOtherTargets",
 	"FromDesc", "GameActivationLimit",
@@ -236,7 +236,7 @@ var drawKnownKeys = [...]string{
 	"TokenScript",
 	"TriggerController", "TriggerDescription",
 	"Type",
-	"Ultimate",
+	"Types", "Ultimate",
 	"UnlessAI",
 	"UnlessCost",
 	"UnlessPayer",
@@ -253,7 +253,7 @@ var drawKnownKeys = [...]string{
 	"ValidTgtsDesc",
 	"VoteMessage",
 	"WithoutManaCost",
-	"XColor", "XMax",
+	"XAnnounceTitle", "XColor", "XMax",
 	"XMin",
 }
 

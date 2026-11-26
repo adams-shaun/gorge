@@ -161,7 +161,7 @@ var delayedTriggerKnownKeys = [...]string{
 	"DelayedTriggerDefinedPlayer",
 	"Description",
 	"Destination",
-	"EffectZone", "Exclude",
+	"Duration", "EffectZone", "Exclude",
 	"ExcludeZone", "ExcludedOrigins",
 	"Execute",
 	"Exhaust",
@@ -256,7 +256,7 @@ var delayedTriggerKnownKeys = [...]string{
 	"TriggerController", "TriggerDescription",
 	"TriggerZones",
 	"Type",
-	"Ultimate",
+	"Types", "Ultimate",
 	"UnlessAI",
 	"UnlessCost",
 	"UnlessPayer",
@@ -281,7 +281,7 @@ var delayedTriggerKnownKeys = [...]string{
 	"ValidTgtsDesc",
 	"VoteMessage",
 	"WithoutManaCost",
-	"XColor", "XMax",
+	"XAnnounceTitle", "XColor", "XMax",
 	"XMin",
 }
 

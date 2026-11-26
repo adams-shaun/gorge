@@ -17,3 +17,16 @@ func cmdGreatestMVValue(spec string) (lValue, error) {
 	}
 	return lValue{Kind: vCmdGreatestMV}, nil
 }
+
+// cmdGreatestMVAll lowers Count$ValidAll <spec> (gorge count_body_zone.go's
+// every-zone fold, each candidate matched in its own zone) for the one
+// commander spelling (Tangleweave Armor: "the greatest mana value among your
+// commanders"): kop.ExCmdGreatestMV over every zone (kop.CmdMVAllZones). A
+// seat's commanders are the only cards IsCommander matches (CR 903.3), so
+// the kernel reads them wherever they are. Any other spec refuses.
+func cmdGreatestMVAll(spec string) (lValue, error) {
+	if spec != cmdGreatestMVSpec {
+		return lValue{}, refuse("Count$ValidAll %q: only %s is read", spec, cmdGreatestMVSpec)
+	}
+	return lValue{Kind: vCmdGreatestMV, N: 1}, nil
+}

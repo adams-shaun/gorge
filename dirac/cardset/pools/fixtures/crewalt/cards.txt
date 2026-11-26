@@ -1,0 +1,12 @@
+# the crew alternative cost pool: Heart of Kiran's "remove a loyalty counter
+# from a planeswalker you control rather than pay this Vehicle's crew cost"
+# (CR 118.9, 702.122) beside two Ajani planeswalkers and small creatures
+# (dirac/oracle/altcost_crew_test.go)
+Heart of Kiran
+Ajani Goldmane
+Ajani, Caller of the Pride
+Savannah Lions
+Grizzly Bears
+Llanowar Elves
+Plains
+Forest

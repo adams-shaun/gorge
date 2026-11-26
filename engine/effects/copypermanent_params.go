@@ -207,7 +207,7 @@ var copyPermanentKnownKeys = [...]string{
 	"DefinedName",
 	"DefinedTarget",
 	"Description",
-	"EffectZone", "Exclude",
+	"Duration", "EffectZone", "Exclude",
 	"ExcludeZone", "Execute",
 	"Exhaust",
 	"ForgetOtherTargets",
@@ -313,7 +313,7 @@ var copyPermanentKnownKeys = [...]string{
 	"TokenTapped",
 	"TriggerController", "TriggerDescription",
 	"Type",
-	"Ultimate",
+	"Types", "Ultimate",
 	"UnlessAI",
 	"UnlessCost",
 	"UnlessPayer",
@@ -333,7 +333,7 @@ var copyPermanentKnownKeys = [...]string{
 	"WithCountersType",
 	"WithDifferentNames",
 	"WithoutManaCost",
-	"XColor", "XMax",
+	"XAnnounceTitle", "XColor", "XMax",
 	"XMin",
 }
 

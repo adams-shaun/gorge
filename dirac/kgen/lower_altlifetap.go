@@ -22,12 +22,21 @@ func altSacGatedShape(c *kop.Cost) bool {
 	return altDiscardShape(c) || altLifeOrTapShape(c)
 }
 
+// altGraveExileShape: the built alternative cost is exiling N graveyard cards
+// matching its filter beside its mana (Squee, Dubious Monarch's
+// ExileFromGrave<4/Card.Other>; CR 118.9): the count rides kop.Cost.N, the
+// mana beside it, the ExileHand bit clear.
+func altGraveExileShape(c *kop.Cost) bool {
+	return c.Flags == kop.CostExileGrave && !c.ExileHand && c.N > 0
+}
+
 // altPickShape is the built alternative cost shapes the kernel's altPickCost
 // offers: a sacrifice (CostSac, alone or with life), a return, a hand exile,
-// a discard, life alone, or taps. The mana part may be nonzero (a
-// Borderpost's {1} plus a Return, Sephara's {W} plus taps).
+// a graveyard exile (Squee), a discard, life alone, or taps. The mana part
+// may be nonzero (a Borderpost's {1} plus a Return, Sephara's {W} plus taps,
+// Squee's {3}{R}).
 func altPickShape(c *kop.Cost) bool {
 	sac := c.Flags&^(kop.CostSac|kop.CostPayLife) == 0 && c.Flags&kop.CostSac != 0 && c.N > 0
 	ret := c.Flags == kop.CostReturn && c.N > 0
-	return sac || ret || altHandExileShape(c) || altSacGatedShape(c)
+	return sac || ret || altHandExileShape(c) || altGraveExileShape(c) || altSacGatedShape(c)
 }

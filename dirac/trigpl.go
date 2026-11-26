@@ -19,4 +19,5 @@ const (
 	trigPlRetrace                      // kw_retrace.go: the retrace graveyard cast (CR 702.81a)
 	trigPlForetold                     // kw_foretell.go: a cast from exile for the foretell cost
 	trigPlSuspend                      // kw_suspend.go: a spell cast free by suspend's last counter (CR 702.62a)
+	trigPlAltCost                      // cast_altfree.go: a spell cast for its own StatAlternativeCost static's alternative (build.altAdd buildAltCost); the Count$AltCost read (exprs.go ExAltCost) resolves through altCostCast
 )

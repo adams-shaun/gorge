@@ -1,5 +1,7 @@
 package kgen
 
+import "strings"
+
 // K:Kicker with a non-mana part (Vayne's Treachery's
 // Sac<1/Creature;Artifact>, Chocobo Kick's Return<1/Land>, Phyrexian
 // Scuta's PayLife<3>, Dralnu's Pet's {2}{B} and Discard<1/Creature>). gorge's
@@ -10,6 +12,29 @@ package kgen
 // in CardDef.Kicker and the one non-mana part in CardDef.KickerCost; pays
 // that on a kicked cast (kw_kicker.go). A part kop.Cost cannot carry (a
 // reveal, or two parts) is a cost program instead (lower_costprog.go).
+
+// kickerTwoCosts splits a two-alternative kicker parameter into its two mana
+// halves (CR 702.33b; gorge twoPartKickerCosts in rules cast_altcost.go, the
+// Stormscape/Wastescape/Thornscape Battlemage / Stronghold Arena / Archangel
+// of Wrath / Urborg Lhurgoyf cycle): both halves non-empty and
+// parseManaCost-clean. false when the parameter is not that form, so the
+// non-mana, XMin and plain paths keep their own handling -- a half that does
+// not parse stays a refusal, never a silently degraded pip.
+func (lc *lowerCtx) kickerTwoCosts(param string) (manaCost, manaCost, bool) {
+	a, b, is := strings.Cut(param, ":")
+	if !is || strings.TrimSpace(a) == "" || strings.TrimSpace(b) == "" {
+		return manaCost{}, manaCost{}, false
+	}
+	ma, err := parseManaCost(a)
+	if err != nil || ma.X {
+		return manaCost{}, manaCost{}, false
+	}
+	mb, err := parseManaCost(b)
+	if err != nil || mb.X {
+		return manaCost{}, manaCost{}, false
+	}
+	return ma, mb, true
+}
 
 // kickerNonMana splits a kicker parameter into the mana part and the one
 // non-mana part kop.Cost can carry alone; false when the parameter is not a

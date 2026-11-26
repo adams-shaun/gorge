@@ -471,6 +471,11 @@ func (pr *targetCostProbe) verdict(targets, rootTargets, allTargets []state.Targ
 		// the spell's mana value prices this target at it
 		mods = pc.withDefiler(e.costModifiersForTargetsX(pc.player, pc.card, scope, targets, pc.x))
 	}
+	// A RaiseCost static's additional parts (Brutal Suppression's "Sacrifice
+	// a land") were folded into pc.cost once at proposal start
+	// (foldRaiseExtra) and are priced by NonManaCastable below; the freshly
+	// composed mods carry them again, which would charge every copy twice.
+	mods.Extra, mods.HasExtra = Cost{}, false
 	cost := mods.ApplyTaxed(pc.resolvedMana(), pc.taxGeneric)
 	if pc.ownReduce > 0 {
 		if n := e.ownReduceCost(pc.player, pc.card, e.pcAbility(pc), rootTargets, allTargets, pc.abilityMerged); n < pc.ownReduce {
@@ -1506,4 +1511,22 @@ func manaCountsTotal(counts [6]int32) (total int32) {
 		total += n
 	}
 	return total
+}
+
+// noColoredManaReaderOut reports whether a battlefield permanent (not phased
+// out, CR 702.26b) carries a NoColoredMana$ trigger (Void Mirror), whose
+// SpellCast match reads the cast spell's per-colour spend
+// (trigmatch.SpellCastEval). Pure read over the deterministic seat/zone walk.
+func (e *Engine) noColoredManaReaderOut() bool {
+	g := e.G
+	for _, p := range g.AliveFrom(0) {
+		for _, id := range g.Zone(state.ZBattlefield, p) {
+			if o := g.Obj(id); o != nil && !o.PhasedOut {
+				if f := o.Face(); f != nil && e.faceScanHas(f, faceScanNoColoredMana) {
+					return true
+				}
+			}
+		}
+	}
+	return false
 }

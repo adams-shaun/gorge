@@ -36,6 +36,7 @@ import (
 	"github.com/adams-shaun/gorge/server/host/httpapi"
 	"github.com/adams-shaun/gorge/server/host/manabrewhttp"
 	mb "github.com/adams-shaun/gorge/server/protocol/manabrew"
+	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
 // The fixture's card names. The commander is deliberately separate from the
@@ -384,7 +385,7 @@ func crossHead(t *testing.T, r *host.Registry) uint64 {
 
 func waitPendingAny(t *testing.T, r *host.Registry) {
 	t.Helper()
-	deadline := time.Now().Add(30 * time.Second)
+	deadline := time.Now().Add(testutil.WaitBudget)
 	for {
 		if time.Now().After(deadline) {
 			t.Fatal("no human seat parked")

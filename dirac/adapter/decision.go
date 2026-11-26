@@ -533,6 +533,10 @@ func (g *Game) askOption(x dirac.Action, c canon.Canon, i uint32) (o decision.Op
 		if src := g.s.FeatSource(); src != dirac.NoObj && g.d.Sub != dirac.ChWardPay {
 			o.Obj = g.ids.obj(canon.Ref(src))
 		}
+		if g.d.Sub == dirac.ChGenCipher {
+			o.Obj = g.ids.obj(canon.Ref(x.Source())) // gorge effCipher's "mode" option names the creature
+			o.Label = "Encode on " + g.cardName(canon.Ref(x.Source()))
+		}
 		if g.d.Sub == dirac.ChGenCastFree {
 			o.Obj = g.ids.obj(canon.Ref(x.Source()))
 			o.Label = "Play " + g.cardName(canon.Ref(x.Source()))
@@ -604,6 +608,9 @@ func (g *Game) chooseOption(x dirac.Action, c canon.Canon) (decision.Option, uin
 	case "paylife":
 		o.Amount = int(c.Mode()) // gorge etbPayLifeOptions: "N life", the amount on Amount
 		o.Label = strconv.Itoa(o.Amount) + " life"
+	case "readahead":
+		o.Amount = int(c.Mode()) // gorge readAheadOptions: "Chapter <numeral>", the chapter on Amount
+		o.Label = "Chapter " + romanChapter(o.Amount)
 	case "altaddcost":
 		o.Amount = int(x.Target()) // the part; the canonical mode is its position, payable parts first
 		o.Label = g.altAddLabel(o.Amount)
@@ -785,7 +792,7 @@ func (g *Game) chooseKey(x dirac.Action) uint32 {
 	case dirac.ChGenDivide, dirac.ChCastDivide:
 		return uint32(g.s.FeatDivideIndex(dirac.TCode(src)))
 	case dirac.ChX, dirac.ChTrigX, dirac.ChMultikick, dirac.ChDivide, dirac.ChAsUnblocked, dirac.ChGenBranch, dirac.ChGenPileChoose, dirac.ChGenColor, dirac.ChGenManaChoice,
-		dirac.ChAltAdd, dirac.ChGenPip, dirac.ChGenReplOrder, dirac.ChGenGift, dirac.ChCostForage, dirac.ChGenKeepTapped, dirac.ChGenDestAlt, dirac.ChBand, dirac.ChEnlist, dirac.ChExert:
+		dirac.ChAltAdd, dirac.ChGenPip, dirac.ChGenReplOrder, dirac.ChGenGift, dirac.ChCostForage, dirac.ChGenKeepTapped, dirac.ChGenDestAlt, dirac.ChBand, dirac.ChEnlist, dirac.ChGenCipher, dirac.ChExert:
 		return uint32(mode)
 	case dirac.ChLearn:
 		return dirac.LearnKey(src, mode)
@@ -1103,4 +1110,13 @@ func removalKind(dest string) string {
 		return "bounce"
 	}
 	return ""
+}
+
+// romanChapter is the numeral gorge's read-ahead option label ends with
+// (engine/rules readAheadLabels: Chapter I .. VIII).
+func romanChapter(n int) string {
+	if n >= 1 && n <= 8 {
+		return [...]string{"I", "II", "III", "IV", "V", "VI", "VII", "VIII"}[n-1]
+	}
+	return strconv.Itoa(n)
 }

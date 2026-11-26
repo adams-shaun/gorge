@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/adams-shaun/gorge/testkit/testutil"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -425,7 +426,7 @@ func TestPaceLockExcludesOtherDescriptorsAndCancelsCleanly(t *testing.T) {
 		if err != nil {
 			t.Fatalf("lock after release: %v", err)
 		}
-	case <-time.After(10 * time.Second):
+	case <-time.After(testutil.WaitBudget):
 		t.Fatal("the pace lock stayed held after its holder closed: the cancelled waiter leaked it")
 	}
 }

@@ -179,6 +179,7 @@ var gorgeKwElsewhere = map[string]string{
 	"Bestow":                  "CardDef.HasBestow (a hand alt cost, the Aura spell and the attached type switch; compared through the cast options, the types and the attachments)",
 	"Sneak":                   "CardDef.HasSneak (a declare-blockers hand alt cost; compared through the cast options and the entry's tapped and attacking flags)",
 	"MayFlashCost":            "CardDef.HasMayFlash (an instant-timing hand cast for the mana cost plus the extra; compared through the cast options; kw_mayflash.go)",
+	"Offering":                "CardDef.HasOffering (an instant-timing hand cast that sacrifices a permanent of the quality and is reduced by its mana cost; compared through the cast options, the sacrifice ask and the payment; kw_offering.go)",
 	"Web-slinging":            "CardDef.HasWebSling (a hand alt cost plus returning a tapped creature; compared through the cast options and the return; kw_websling.go)",
 	"More Than Meets the Eye": "CardDef.FlipCast/FlipCost (the hand's converted cast of the back face; compared through the cast options; face_flipcast.go)",
 	"Disturb":                 "CardDef.FlipCast/FlipCost (the graveyard's transformed cast of the back face; compared through the cast options; face_flipcast.go)",
@@ -191,6 +192,7 @@ var gorgeKwElsewhere = map[string]string{
 	"Ascend":                  "CardDef.Ascend (CR 702.131; the city's blessing latch, compared through its readers: Count$Blessing and Condition$ Blessing; kw_ascend.go)",
 	"Storied":                 "CardDef.Storied (CR 702.195; the enduring-story latch, compared through its readers: the Condition$ EnduringStory statics; kw_storied.go)",
 	"Unleash":                 "CardDef.Unleash (CR 702.86; the as-enters counter ask, posed before a cast creature enters, and the can't-block gate while it holds a +1/+1 counter; compared through the choose options, the counter and the block options; kw_unleash.go)",
+	"Read ahead":              "the Saga's enters program opening with the as-enters number ask over 1..the final chapter, and its entry-turn chapter gate (CR 702.155; compared through the readahead choose options, the lore counters and the chapter triggers; kw_readahead.go)",
 	"Enlist":                  "CardDef.Enlist (CR 702.154; the declare-attackers election and its tap and end-of-turn pump; compared through the choose options, the tapped state and the power; kw_enlist.go)",
 	"Riot":                    "CardDef.Riot (CR 702.136; the as-enters counter-or-haste election, posed before a cast creature enters and on any other face-up entry, beside Unleash's; compared through the choose options and the entry counters; kw_riot.go)",
 	"Bargain":                 "CardDef.Bargain (an optional additional cost, no battlefield characteristic; compared through the cast options; kw_bargain.go)",
@@ -288,6 +290,13 @@ func gorgeKw(s string) (kop.KwMask, bool) {
 			// hexproof from a chosen colour (Skrelv; genState.colG,
 			// compared through the target options), or a printed
 			// K:Hexproof:<Colour> (CardDef.HexColors)
+			return 0, true
+		}
+		switch spec, _, _ := strings.Cut(q, ":"); spec {
+		case "Card.MonoColor", "Card.MultiColor", "Card.nonColorless":
+			// a printed hexproof from monocolored / multicolored / each
+			// colour (CardDef.HexColors' kop.HexMono, kop.HexMulti, WUBRG),
+			// compared through the target options
 			return 0, true
 		}
 	}

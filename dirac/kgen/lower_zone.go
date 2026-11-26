@@ -977,9 +977,14 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 	if err != nil {
 		return err
 	}
-	if bracket {
+	switch {
+	case lc.retImprint:
+		if err := lc.returnImprint(in, optional, bracket, fd); err != nil { // lower_imprintzone.go
+			return err
+		}
+	case bracket:
 		lc.emitLibPlace(arm, in)
-	} else {
+	default:
 		lc.emit(in)
 	}
 	lc.faceDownAfter(fd) // lower_exilefacedownmove.go
@@ -1172,6 +1177,9 @@ func overrideString(o *lOverride) string {
 	}
 	if o.Horsemanship {
 		p = append(p, "horsemanship")
+	}
+	if o.Toxic != 0 {
+		p = append(p, "toxic="+strconv.Itoa(int(o.Toxic)))
 	}
 	if o.NoCost {
 		p = append(p, "nocost")
@@ -1583,15 +1591,65 @@ func (lc *lowerCtx) digUntil(ps *params) error {
 	if err != nil {
 		return err
 	}
-	found, err := zoneOf(ps, "FoundDestination", zNone)
-	if err != nil {
-		return err
-	}
-	rev, err := zoneOf(ps, "RevealedDestination", zNone)
-	if err != nil {
-		return err
+	// The planar dig (DigZone$ PlanarDeck, The Fertile Lands of Saulvinia):
+	// the scan and both placements are the seat's planar deck's non-current
+	// remainder (gorge diguntil.go's planar arm: the face-up current plane at
+	// the zone's head is not part of the reveal, and a planar placement's
+	// same-zone MoveZone fold appends the card at the deck's bottom). The
+	// kernel's DuPlanar bit redirects its OpDigUntil to the planar record;
+	// the C/CS zone slots keep the library encoding, which the planar arm
+	// ignores (the planar zone id does not fit the op's three-bit zone
+	// fields). No other DigZone$ value lowers.
+	planar := strings.TrimSpace(ps.str("DigZone")) == "PlanarDeck"
+	found, rev := zLibrary, zLibrary
+	if planar {
+		ps.consume("DigZone")
+		for _, k := range []string{"FoundDestination", "RevealedDestination"} {
+			v, ok := ps.get(k)
+			if ok && strings.TrimSpace(v) != "PlanarDeck" {
+				return refuse("DigUntil planar %s$ %q", k, v)
+			}
+			if !ok {
+				// An absent FoundDestination$ makes gorge return the found card with
+				// the revealed pile in scan order, which the kernel's found-then-rest
+				// move does not reproduce.
+				return refuse("DigUntil planar scan without %s$ PlanarDeck", k)
+			}
+			ps.consume(k)
+		}
+		for _, k := range []string{"FoundLibraryPosition", "RevealedLibraryPosition"} {
+			v, ok := ps.get(k)
+			if !ok {
+				// gorge leaves an unpositioned dug card in place (diguntil.go's
+				// stay-in-place arms) where the kernel moves it to the bottom.
+				return refuse("DigUntil planar scan without %s$ -1", k)
+			}
+			if strings.TrimSpace(v) != "-1" {
+				return refuse("DigUntil planar %s$ %q", k, v)
+			}
+			ps.consume(k)
+		}
+		for _, k := range []string{"Tapped", "Attacking", "NoMoveFound", "NoMoveRevealed", "Optional", "OptionalFoundMove",
+			"RevealRandomOrder", "Shuffle", "ShuffleCondition", "RememberRevealed", "ImprintFound", "ImprintRevealed",
+			"DugMark", "MinTotalCMC", "NoneFoundDestination", "NoneFoundLibraryPosition"} {
+			if _, ok := ps.get(k); ok {
+				return refuse("DigUntil planar with %s$", k)
+			}
+		}
+	} else {
+		found, err = zoneOf(ps, "FoundDestination", zNone)
+		if err != nil {
+			return err
+		}
+		rev, err = zoneOf(ps, "RevealedDestination", zNone)
+		if err != nil {
+			return err
+		}
 	}
 	in := lInstr{Op: "DigUntil", Obj: who, A: n, F: f, C: found, CS: "revealed=" + zoneLabel[rev]}
+	if planar {
+		in.CS += "|Planar"
+	}
 	if found == zBattlefield {
 		// The kernel's battlefield arm enters the found card plainly: only
 		// a Valid$ that cannot admit an Aura (no bearer choice, CR 303.4f;
@@ -2447,7 +2505,7 @@ func (lc *lowerCtx) playRememberedAlt(alt, valid string) (string, error) {
 // play lowers api:Play's four resolution-time free-cast spellings.
 func (lc *lowerCtx) play(ps *params) error {
 	// Named parameters this reader does not model: refuse rather than drop.
-	for _, k := range []string{"PlayCost", "WithTotalCMC", "RememberPlayed", "ManaConversion",
+	for _, k := range []string{"PlayCost", "WithTotalCMC", "ManaConversion",
 		"SorcerySpeed", "ShowCardToActivator", "ImprintPlayed", "ReplaceGraveyardValid", "TargetMin", "TargetMax"} {
 		if _, ok := ps.get(k); ok {
 			return refuse("Play %s", k)
@@ -2465,9 +2523,8 @@ func (lc *lowerCtx) play(ps *params) error {
 		if v != "True" {
 			return refuse("Play CopyCard %q", v)
 		}
-		if ps.m["ValidSA"] != "Spell" || ps.m["ValidZone"] != "Exile" || !(strings.Contains(ps.m["Valid"], "IsRemembered") || lc.grantExile && ps.m["Valid"] == "Card.Self") ||
-			ps.m["Defined"] != "" || ps.m["ValidTgts"] != "" || ps.m["ForgetPlayed"] != "" || ps.m["ReplaceGraveyard"] != "" {
-			return refuse("Play CopyCard outside Valid$ IsRemembered, ValidZone$ Exile, ValidSA$ Spell")
+		if err := lc.playCopyPopOK(ps); err != nil { // lower_playcopypop.go
+			return err
 		}
 		copyCard = true
 	}
@@ -2523,12 +2580,9 @@ func (lc *lowerCtx) play(ps *params) error {
 	if err := playMandatoryOK(mandatory, hideDef, copyCard, repeat, upTo); err != nil {
 		return err
 	}
-	forget := false
-	if v, ok := ps.get("ForgetPlayed"); ok {
-		if v != "True" {
-			return refuse("Play ForgetPlayed %q", v)
-		}
-		forget = true
+	forget, remember, err := playForgetRemember(ps) // lower_playremember.go
+	if err != nil {
+		return err
 	}
 	replace := false
 	if v, ok := ps.get("ReplaceGraveyard"); ok {
@@ -2544,8 +2598,8 @@ func (lc *lowerCtx) play(ps *params) error {
 				return refuse("Play Defined$ ExiledWith with %s$", k)
 			}
 		}
-		if forget || replace {
-			return refuse("Play Defined$ ExiledWith with ForgetPlayed$/ReplaceGraveyard$")
+		if forget || replace || remember {
+			return refuse("Play Defined$ ExiledWith with ForgetPlayed$/ReplaceGraveyard$/RememberPlayed$")
 		}
 		ps.consume("Defined")
 		return lc.hidePlay(ps, amount)
@@ -2556,7 +2610,6 @@ func (lc *lowerCtx) play(ps *params) error {
 	// cards that player owns, so YouOwn filters nothing there
 	lc.bluffPlay = playRememberedEmptyKey(ps, "ConditionDefined") || playOwnHand(ps)
 	var saExpr string
-	var err error
 	landPlay := playLandShape(ps, paid, mandatory, copyCard, repeat, upTo, forget, replace, amount)
 	if !playCommandZone(ps) && !landPlay {
 		// (the command-zone Play reads its absent ValidSA$: lower_playcommand.go)
@@ -2602,9 +2655,7 @@ func (lc *lowerCtx) play(ps *params) error {
 		}
 		cs += "|UpTo"
 	}
-	if forget {
-		cs += "|Forget"
-	}
+	cs += playRememberFlags(forget, remember)
 	if replace {
 		cs += "|ReplaceGY"
 	}
@@ -2681,7 +2732,7 @@ func (lc *lowerCtx) play(ps *params) error {
 	case "Exile":
 		// P1: Valid$ Card.IsRemembered... + ValidZone$ Exile.
 		if !strings.Contains(valid, "IsRemembered") {
-			return lc.playExileFilterPop(valid, saExpr, paid && !forget && !replace, emit) // lower_playexilepop.go
+			return lc.playExileFilterPop(valid, saExpr, !forget && !replace, emit) // lower_playexilepop.go
 		}
 		clause, err := lc.playRememberedClause(valid)
 		if err != nil {
@@ -2768,12 +2819,18 @@ func (lc *lowerCtx) effectStaticBodies(list string) ([]cards.Static, error) {
 
 func (lc *lowerCtx) effectAPI(ps *params) error {
 	if tr, ok := ps.get("Triggers"); ok {
+		if done, err := lc.effectImprintShieldFrom(ps); done || err != nil { // lower_effectimprintshield.go
+			return err
+		}
 		if _, st := ps.m["StaticAbilities"]; st {
 			if done, err := lc.effectUntapDenial(ps, tr); done || err != nil { // lower_untapdenial.go
 				return err
 			}
 		}
 		if _, st := ps.m["StaticAbilities"]; st && ps.m["RememberObjects"] != "" {
+			if done, err := lc.effectPlaneCurse(ps, tr); done || err != nil { // lower_planecurse.go
+				return err
+			}
 			return lc.effectStaticTriggerPair(ps, tr) // lower_effectcaptured.go
 		}
 		if done, err := lc.contractLossEffect(ps, tr); done || err != nil { // lower_contract.go
@@ -3308,9 +3365,9 @@ func (lc *lowerCtx) emblem(ps *params, tr string) error {
 		return err
 	}
 	var capture lRef
-	var hasCap, player bool
+	var hasCap, player, selfRem bool
 	if mem.kind == memNone {
-		if capture, hasCap, player, t, err = lc.emblemCapture(ps, t, eot); err != nil {
+		if capture, hasCap, player, selfRem, t, err = lc.emblemSelfCapture(ps, t, eot); err != nil { // lower_effeottrig.go
 			return err
 		}
 	}
@@ -3338,7 +3395,9 @@ func (lc *lowerCtx) emblem(ps *params, tr string) error {
 	lc.emblemBlocks = eot && t.Mode == "Blocks"
 	lc.emblemUnblocked = hasCap && t.Mode == "AttackerUnblocked"
 	lc.emblemDmg = hasCap && !player && t.Mode == "DamageDone"
+	lc.selfRem = selfRem
 	err = lc.withAbility(lc.ab, func() error { return lc.lowerTriggered(t, "Command") })
+	lc.selfRem = false
 	lc.capRem, lc.effCount, lc.ddoEvent, lc.emblemBlocked, lc.emblemBlocks, lc.emblemDmg, lc.emblemUnblocked, lc.remSelf = false, false, false, false, false, false, false, false
 	if err != nil {
 		return err
@@ -3350,10 +3409,8 @@ func (lc *lowerCtx) emblem(ps *params, tr string) error {
 		return err
 	}
 	ab := lc.out.Abilities[saved]
-	if mem.kind != memNone {
-		if err := effectRememberBody(ab, mem); err != nil { // lower_effectremember.go
-			return err
-		}
+	if err := emblemBodyMemory(ab, mem, selfRem); err != nil { // lower_effeottrig.go
+		return err
 	}
 	recipientCap := false
 	if hasCap && !player {
@@ -3491,7 +3548,11 @@ func (lc *lowerCtx) animate(ps *params) error {
 			})
 		}
 		return lc.guardBlock(guard, func() error {
-			lc.emitOverride(ref, o, dur)
+			if o.CwWord {
+				lc.emitCwWordAnimate(ref, o, dur)
+			} else {
+				lc.emitOverride(ref, o, dur)
+			}
 			return nil
 		})
 	}
@@ -3569,6 +3630,8 @@ func (lc *lowerCtx) animate(ps *params) error {
 				return refuse("Animate HiddenKeywords$ must be blocked with a chosen colour")
 			}
 			lc.emitChosenColorAnimate(obj, o, dur)
+		} else if o.CwWord {
+			lc.emitCwWordAnimate(obj, o, dur)
 		} else {
 			lc.emitOverride(obj, o, dur)
 		}
@@ -3621,6 +3684,7 @@ func (lc *lowerCtx) animateColors(ps *params, o *lOverride) (ret bool, err error
 	} else {
 		o.AddColors = cols // ORed in at layer 5
 	}
+	o.CwWord = colorMask(cols) != 0 // a colour-word list: the frozen colour-word colour picks the row (static_colorwords.go ovCwRow); a Colors$ Colorless names no word a colour-word static rewrites
 	return false, nil
 }
 
@@ -3850,6 +3914,45 @@ func (lc *lowerCtx) emitChosenColorAnimate(obj lRef, o *lOverride, dur string) {
 	in.Note = overrideString(&first)
 	in.C = start
 	lc.emit(in)
+}
+
+// cwWordRows appends o (the printed colours) and one row per colour after it,
+// for an op whose B = kop.OvCwWord picks the frozen colour-word colour's row
+// at resolution (dirac/static_colorwords.go cwFreeze, ovCwRow); it returns
+// the base row's index. The rows are identical to the printed one apart from
+// the one colour field.
+func (lc *lowerCtx) cwWordRows(o *lOverride) int {
+	start := len(lc.out.overrides)
+	lc.out.overrides = append(lc.out.overrides, o) // the printed colours
+	for _, col := range "WUBRG" {
+		r := *o
+		if o.HasSetColors {
+			r.SetColors = string(col)
+		} else {
+			r.AddColors = string(col)
+		}
+		lc.out.overrides = append(lc.out.overrides, &r)
+	}
+	return start
+}
+
+// emitCwWordAnimate emits a word-list Animate Colors$ (o.CwWord, Raging
+// Ravine's "becomes a 2/2 red and green Elemental creature") as the printed
+// row plus one row per colour, and the op whose B = kop.OvCwWord picks the
+// frozen colour-word colour's row at resolution (dirac/static_colorwords.go
+// cwFreeze, ovCwRow): gorge reads the ability's Colors$ from its face as it
+// was put on the stack (CR 112.7a, 608.2h), so the printed row applies with
+// no frozen colour and a later static change moves nothing installed.
+func (lc *lowerCtx) emitCwWordAnimate(obj lRef, o *lOverride, dur string) {
+	start := lc.cwWordRows(o)
+	in := lInstr{Op: "Override", Obj: obj, CS: dur + "|cwWord"}
+	first := *lc.out.overrides[start]
+	in.Note = overrideString(&first)
+	in.C = start
+	lc.emit(in)
+	if o.MustBeBlocked {
+		lc.emit(lInstr{Op: "MustBeBlocked", Obj: obj}) // animateHiddenKeywords
+	}
 }
 
 // latentTrigger lowers a granted trigger (an SVar trigger line) as a latent
@@ -4345,12 +4448,12 @@ func (lc *lowerCtx) delayedTrigger(ps *params) error {
 		lc.inGroup = true
 		lc.groupMany = groupMany
 	}
-	err := lc.withAbility(lat, func() error { return lc.chain(exec, nil) })
+	in := lInstr{Op: "DelayedTrigger", Obj: obj, C: lat.Index, CS: when}
+	err := lc.delayedBody(lat, exec, &in) // lower_delayedsetdmg.go
 	lc.inGroup, lc.groupMany = false, false
 	if err != nil {
 		return err
 	}
-	in := lInstr{Op: "DelayedTrigger", Obj: obj, C: lat.Index, CS: when}
 	if group || sacGroup {
 		in.B = cst(1)
 		if groupMany {
@@ -4433,6 +4536,17 @@ func (lc *lowerCtx) immediateTrigger(ps *params) error {
 		return err
 	}
 	lat := lc.newLatent("ReflexiveTrigger")
+	if od, ok := ps.get("OptionalDecider"); ok {
+		// "When you do, you may ..." (Etched Slith, Dream Eater): gorge's
+		// effImmediateTrigger copies the line's OptionalDecider$ onto the
+		// minted trigger (TriggerContext.OptionalSpec), so the reflexive
+		// ability is an optional trigger its controller is asked about as
+		// it resolves (CR 603.5): the latent carries kop.TfOptional.
+		if strings.TrimSpace(od) != "You" {
+			return refuse("ImmediateTrigger OptionalDecider %q", od)
+		}
+		lat.ReflexOptional = true
+	}
 	lat.TrigRem = lc.trigRemInit(ps) // lower_trigremembered.go
 	savedRemX := lc.trigRemX
 	lc.trigRemX = false
@@ -5344,16 +5458,27 @@ func (lc *lowerCtx) animateGrantStatics(ps *params, names string, o *lOverride, 
 		// keyword/P/T walks honour OvGate (statCond); a player-hexproof or
 		// stack-keyword static reads no gate and would be live unanimated.
 		// Two walks read no OvGate: the attached-grant walk (grantsBetween)
-		// now reads statCond, but its StatOverride arm still does not, so a
-		// granted ability or trigger (AddAbility$/AddTrigger$) is refused
-		// here until that is checked; and the layer walk's lfxApplies gates a
+		// now reads statCond, but its StatOverride arm still does not, so an
+		// attached grant or a granted trigger is refused below (a granted
+		// ability over other permanents is not); and the layer walk's lfxApplies gates a
 		// collected subtype grant (AddType$ subtype or ChosenType) on Cond2
 		// only, so it would apply unanimated whenever the walk is on: refuse
 		// both.
 		if st := &lc.out.Statics[before]; single && !may && !land {
 			switch st.Kind {
 			case "Continuous":
-				if len(st.Grant) != 0 {
+				// A granted activated or mana ability (AddAbility$, Roar of
+				// the Fifth People's "Creatures you control have '{T}: Add
+				// {R}, {G}, or {W}.'") is read by the grant walks
+				// (act_empower.go, mana_grantedoffers.go, chars_gen.go
+				// grantedAbilities), each gated through statCond, which
+				// honours OvGate. A granted trigger (AddTrigger$) is set up
+				// by the trigger walks, which are not checked against the
+				// gate, and an attached grant (AffectedDefined$ Equipped,
+				// an EquippedBy/EnchantedBy clause) is the attached-grant
+				// walk's, whose StatOverride arm reads no gate: refuse both.
+				_, trig := ss[0].Params["AddTrigger"]
+				if len(st.Grant) != 0 && (trig || touchesHost(st.F)) {
 					return refuse("Animate staticAbilities$ %q grants an ability the kernel does not gate", name)
 				}
 				if len(st.AddSub) != 0 || st.AddChosen {
@@ -5384,15 +5509,29 @@ func animatePumpOrKeywordStatic(st cards.Static) bool {
 	return strings.TrimSpace(st.Params["AddPower"]) != "" || strings.TrimSpace(st.Params["AddToughness"]) != ""
 }
 
+// touchesHost reports whether some clause of f is limited to the source's
+// host (EquippedBy / EnchantedBy).
+func touchesHost(f *lFilter) bool {
+	if f == nil {
+		return false
+	}
+	for _, c := range f.Clauses {
+		if c.Flags&(fEquippedBy|fEnchantedBy) != 0 {
+			return true
+		}
+	}
+	return false
+}
+
 // animateGateableBody reports whether a single Animate staticAbilities$ body
 // is lowered as a static whose walk reads kop.Static.OvGate: a Continuous
-// anthem/keyword/P-T grant, or one of the rule statics whose generic walk
+// anthem/keyword/P-T grant or an AddAbility$ grant, or one of the rule statics whose generic walk
 // (dirac staticFlagGen / the gated CantBlockBy arm) checks the record's
 // GrantStatics bit.
 func animateGateableBody(st cards.Static) bool {
 	switch st.Mode {
 	case "Continuous":
-		return animatePumpOrKeywordStatic(st)
+		return animatePumpOrKeywordStatic(st) || strings.TrimSpace(st.Params["AddAbility"]) != ""
 	case "MustAttack", "MinMaxBlocker", "CantBlockBy":
 		return true
 	}

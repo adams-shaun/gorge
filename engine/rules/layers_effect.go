@@ -222,6 +222,27 @@ func (e *Engine) EndEffectSource(source state.ObjID, spareAfter uint32) {
 	e.continuousChanged()
 }
 
+// withoutUntilPlaneswalk drops every Effect-created registration whose
+// Duration names the plane-source curse lifetime -- Eloren Wilds' DB$ Effect
+// ("target player can't cast spells until a player planeswalks"): the Effect's
+// own unscoped PlaneswalkedTo self-exile trigger is the Duration$ Permanent
+// reading's end, and its firing point is any player's PlanarWalk. The
+// UntilPlaneswalk spelling is written only by effects'
+// effectPlaneCurseEnd; a printed static can never spell it, and the
+// FromEffect marker keeps the sweep to Effect-created grants regardless. It
+// reports whether anything was dropped. Engine-runtime only, rebuilt by
+// re-execution on replay exactly like EndEffect; it emits no event.
+func withoutUntilPlaneswalk(ces []state.ContinuousEffect) ([]state.ContinuousEffect, bool) {
+	kept := ces[:0]
+	for _, ce := range ces {
+		if ce.FromEffect && ce.Duration == effects.DurationUntilPlaneswalk {
+			continue
+		}
+		kept = append(kept, ce)
+	}
+	return kept, len(kept) != len(ces)
+}
+
 // EndImprintedEffects ends every live DB$ Effect registration that an
 // ImprintOnHost$ True Effect imprinted on the named host card (the entries
 // carrying state.ContinuousEffect.ImprintOnHost with that Source) -- the
@@ -776,6 +797,35 @@ func (e *Engine) effectMoveSweep(ev events.Event) {
 		}
 		if (exile != "" && effects.ParseZone(exile) == ev.From ||
 			exileAlso != "" && effects.ParseZone(exileAlso) == ev.From) && objIDIn(ce.Remembered, ev.Obj) {
+			// CR 400.7a: a grant made ON a permanent SPELL stays with the
+			// spell on the stack and carries onto the permanent the spell
+			// becomes. combatfx anchored the sweep to the zone the grant was
+			// made in -- Stack for a spell-grant -- so the spell's
+			// stack-to-battlefield move (it resolving) must CARRY the grant,
+			// not end it: the anchor re-points at the battlefield, so the
+			// carried grant still ends when that permanent later leaves it
+			// (CR 400.7). The carry is for the Animate/Pump grants combatfx
+			// makes on the spell itself (spellGrantCarries); a script Effect
+			// card whose ExileOnMoved$ Stack lifetime is "ends when the
+			// spell leaves the stack" (Wildgrowth's ETBCreat replacement)
+			// still ends here. Any other departure from the anchor zone
+			// still ends it: a countered spell's card in the graveyard
+			// carries nothing, so casting it again the same turn never
+			// inherits the old grant.
+			if ev.From == state.ZStack && ev.To == state.ZBattlefield && spellGrantCarries(&ce, ev.Obj) {
+				// The anchors re-point at the battlefield through the ONE
+				// zone vocabulary, so a differently spelled script word is
+				// treated exactly as the sweep's own match above treats it.
+				if effects.ParseZone(ce.ExileOnMoved) == state.ZStack {
+					ce.ExileOnMoved = effects.ZoneWord(state.ZBattlefield)
+				}
+				if effects.ParseZone(ce.ExileOnMovedAlso) == state.ZStack {
+					ce.ExileOnMovedAlso = effects.ZoneWord(state.ZBattlefield)
+				}
+				changed = true
+				kept = append(kept, ce)
+				continue
+			}
 			changed = true
 			continue // the effect ends: not kept
 		}
@@ -798,6 +848,22 @@ func (e *Engine) effectMoveSweep(ev events.Event) {
 	}
 	e.continuous = kept
 	e.continuousChanged()
+}
+
+// spellGrantCarries reports whether the continuous effect is a grant made ON
+// the spell spell that just resolved -- the CR 400.7a shape effectMoveSweep
+// carries onto the permanent the spell becomes. combatfx's Animate/Pump
+// registrations anchor the grant's move sweep to the zone it was made in with
+// Source = the granted object itself and no replacement body, so the spell's
+// stack-to-battlefield move is the grant's lifetime boundary being CARRIED,
+// not ended. A script Effect card (DB$ Effect, engine/effects/effect.go) also
+// carries ExileOnMoved$ Stack, but its Source is the Effect token it created,
+// the remembered spell is only the lifetime anchor, and its ETBCreat
+// replacement is spent on the spell's entry -- for those the "ends when the
+// spell leaves the stack" lifetime is the point (Wildgrowth Alliance,
+// Torgal), so the carry must not keep the effect alive past the resolution.
+func spellGrantCarries(ce *state.ContinuousEffect, spell state.ObjID) bool {
+	return ce.Source == spell && ce.ReplacementEvent == "" && len(ce.ReplacementParams) == 0
 }
 
 // expireUntilUntaps drops every Duration$ UntilUntaps registration whose host

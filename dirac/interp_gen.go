@@ -140,6 +140,9 @@ const (
 	ChGenRiot                                 // source = the entering permanent; mode 0 = enter with the +1/+1 counter, 1 = gain haste (gorge's "riot" KChoose, option 0 = the counter, CR 702.136; kw_riot.go)
 	ChGenPayLife                              // source = the entering permanent; mode = the life paid as it enters, 0..min(life, XMax$) (gorge's R:Event$ Moved pay-any-amount-of-life "paylife" KChoose, the amount on Amount; ExtPayLifeX, repl_paylife.go)
 	ChGenOptInSeat                            // mode 1 = yes / 0 = no, asked of the repeated player (the loop's seat, not the controller): RepeatOptionalForEachPlayer$ True's offer (gorge's repeat_each_optional "yes" / "no"; canonical kinds yes_seat / no_seat; act_optinseat.go)
+	ChGenPayMoveGrave                         // source = an exiled card put into its owner's graveyard to pay a trigger's own ExiledMoveToGrave cost (gorge's "graveyard_cost"; cost_exiledmovegrave.go)
+	ChGenReadAhead                            // source = the entering read-ahead Saga; mode = the chapter chosen, its lore count (gorge's "readahead" KChoose, the chapter on Amount, CR 702.155b; kw_readahead.go)
+	ChGenCipher                               // source = the creature a resolving Cipher spell is encoded on, mode its battlefield-order index; Done declines (gorge effCipher's KModes Min 0 Max 1; kw_cipher.go)
 )
 
 // sfFree marks a spell cast without paying its mana cost (OpCastFree);
@@ -559,8 +562,7 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 	case kop.OpDigEx:
 		return s.startDig(k, in), true
 	case kop.OpDigUntil:
-		s.res.left = 0 // the parked-tail marker (zone_parkedtail.go)
-		return s.execDigUntil(k, in, false), true
+		return s.startDigUntil(k, in), true
 	case kop.OpPeek:
 		return s.execPeek(k, in) // act_peekreveal.go
 	case kop.OpGrantKeyword:
@@ -627,7 +629,7 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		}
 	case kop.OpCastFree:
 		s.g.nfree, s.g.nfreeAll = 0, 0
-		if in.Obj != kop.RefRemembered || in.C&(0xF8|freeLands) != 0 || in.F != 0 {
+		if in.Obj != kop.RefRemembered || in.C&(0xF8|freeLands|freeSameName) != 0 || in.F != 0 {
 			s.castFreeFillGen(k, in, e) // P2/P3/P4 and P1's new bits
 		} else {
 			for i := 0; i < int(s.g.nrem); i++ {
@@ -676,6 +678,9 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 			// marker rides freeP to the drain; a refused or reversed cast
 			// never commits, so the card stays remembered (CR 733.1-2).
 			s.g.freeP |= freeForget
+		}
+		if in.C&(1<<13) != 0 {
+			s.g.freeP |= freeRemember // RememberPlayed$ True (cast_playremember.go)
 		}
 		s.res.ask, s.res.askP = raGenCastFree, e.ctrl
 		return false, true
@@ -771,6 +776,14 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		if in.B.N == kop.OvEnterWith && s.g.ewDone != 0 {
 			s.g.ewDone--
 			break // applied as the return entered (enterAssimilated)
+		}
+		if in.B.N == kop.OvCwWord {
+			// a word-list Animate Colors$: the frozen colour-word colour picks
+			// the row (static_colorwords.go ovCwRow); everything below, the
+			// remembered walk and the WhileHost arm included, runs on the
+			// picked row
+			var ci kop.Instr
+			in = s.ovCwRow(k, in, &ci)
 		}
 		if in.Obj == kop.RefRemembered && s.g.nrem > 1 {
 			s.overrideRemembered(k, in) // zone_changezoneall.go: every remembered object

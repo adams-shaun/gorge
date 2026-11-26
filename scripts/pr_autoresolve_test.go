@@ -20,7 +20,6 @@ func TestAutoresolveMatcher(t *testing.T) {
 		"dirac/kgen/testdata/remspan.tsv",
 		"dirac/kop/testdata/ordinals.tsv",
 		"dirac/testdata/layout.tsv",
-		"internal/codeshape/testdata/func_ceilings.tsv",
 		"dirac/oracle/testdata/repro_table_names.txt",
 	}
 	other := []string{

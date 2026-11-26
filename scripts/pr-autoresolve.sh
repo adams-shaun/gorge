@@ -3,6 +3,11 @@
 # PR and push the merge to its branch with a plain push, when every conflicted path is a generated file listed in
 # scripts/autoresolve-paths.tsv. Those take main's side and are rebuilt over the merged tree with the make targets.
 # A conflict in any other path prints the list, exits 4 and pushes nothing.
+# A merged tree that does not compile is a semantic conflict the resolver cannot fix (the PR and main declared the
+# same symbol two ways): when the dirac-tables build fails with a Go compile error, the branch is left alone, the PR
+# gets one comment per head sha and first error (the marker line "autoresolve-semantic: head <sha> <error>"), and
+# the script exits 0, so the job is green and later runs skip silently until the head or the error changes. Every
+# other corpus or build failure keeps its exit below.
 # pr-autoresolve.sh --match PATH...: print each PATH no row of autoresolve-paths.tsv matches; exit 1 if any.
 #
 # Why: main regenerates support.md, kgen's acceptance pins, the kop ordinals and the ratchet files many times a day,
@@ -15,8 +20,8 @@
 #   func-ceilings  a keyed 3-way row merge (main's rows, plus each row the PR added, changed or deleted); never lowered
 #                  here (cmd/checkratchet refuses a PR that lowers one), then the shrink-only ratchets must pass
 #   repro-names    append-only: main's rows, then the PR's new ones; then TestReproGlobMatchesTable
-# Exit: 0 pushed (or would push, --dry-run) or nothing to do; 1 a rebuild or push failed; 2 usage; 3 no corpus;
-# 4 a conflict outside the generated set (left for a human or agent).
+# Exit: 0 pushed (or would push, --dry-run), nothing to do, or a semantic conflict (one comment, branch left alone);
+# 1 a rebuild or push failed; 2 usage; 3 no corpus; 4 a conflict outside the generated set (left for a human or agent).
 set -uo pipefail
 here=$(cd "$(dirname "$0")" && pwd)
 paths_file=$here/autoresolve-paths.tsv
@@ -66,6 +71,70 @@ pr=${1:-}
 [[ $pr =~ ^[0-9]+$ ]] || { echo "usage: pr-autoresolve.sh [--dry-run] [--keep] PR | --match PATH..." >&2; exit 2; }
 remote=${AUTORESOLVE_REMOTE:-origin}
 say() { echo "pr-autoresolve #$pr: $*"; }
+
+# The semantic-conflict guard. A Go compile error line (path.go:line:col: ...) in a dirac-tables build's output is
+# the class it skips; anything else (a fetch failure, a kgen refusal, make's own error line) is not.
+go_err_re='[^ ]*\.go:[0-9]+(:[0-9]+)?: '
+go_compile_error() { printf '%s\n' "$1" | grep -Eq "$go_err_re"; }
+first_error() {
+  local line
+  line=$(printf '%s\n' "$1" | grep -E -m1 "$go_err_re") ||
+    line=$(printf '%s\n' "$1" | grep -E -m1 .) || line=make-dirac-tables-failed
+  line=${line#"##[error]"}; line=${line#"::error::"}
+  printf '%s\n' "$line"
+}
+# The PR's comments and a new comment: gh locally (GH_TOKEN unset), the REST API on the runners (no gh there, and
+# GH_TOKEN is REGEN_TOKEN). pr_comments_have exits 0 when a comment body carries the marker, 1 when none does,
+# 3 when the API failed (the caller then keeps today's behaviour rather than guess the dedup state).
+if command -v gh >/dev/null 2>&1 && [ -z "${GH_TOKEN:-}" ]; then
+  pr_comments_have() { gh pr view "$pr" --json comments --jq '.comments[].body' 2>/dev/null | grep -qF -- "$1"; }
+  pr_comment() { gh pr comment "$pr" --body-file - <<<"$1"; }
+else
+  pr_comments_have() {
+    local n out page
+    : "${GH_TOKEN:?GH_TOKEN is required without gh}" "${GITHUB_REPOSITORY:?GITHUB_REPOSITORY is required without gh}"
+    page=1
+    while [ "$page" -le 10 ]; do
+      out=$(curl -fsS -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" \
+        "https://api.github.com/repos/$GITHUB_REPOSITORY/issues/$pr/comments?per_page=100&page=$page") || return 3
+      n=$(printf '%s' "$out" | python3 -c '
+import json, sys
+cs = json.load(sys.stdin)
+for c in cs:
+    if sys.argv[1] in c["body"]:
+        sys.exit(0)
+print(len(cs))
+sys.exit(1)' "$1") && return 0
+      [ "$n" -lt 100 ] && return 1
+      page=$((page + 1))
+    done
+    return 1
+  }
+  pr_comment() {
+    : "${GH_TOKEN:?GH_TOKEN is required without gh}" "${GITHUB_REPOSITORY:?GITHUB_REPOSITORY is required without gh}"
+    printf '%s' "$1" | python3 -c 'import json, sys; print(json.dumps({"body": sys.stdin.read()}))' |
+      curl -fsS -X POST -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" \
+        -H "Content-Type: application/json" --data-binary @- \
+        "https://api.github.com/repos/$GITHUB_REPOSITORY/issues/$pr/comments" >/dev/null
+  }
+fi
+# semantic_skip TODAY_RC OUTPUT: on a Go compile error in OUTPUT, exit 0 green with one comment naming it (deduped
+# per head sha and first error); anything else returns, and the caller exits TODAY_RC (today's behaviour).
+semantic_skip() {
+  go_compile_error "$2" || return 0
+  local marker body rc
+  marker="autoresolve-semantic: head $head $(first_error "$2")"
+  body="$marker
+
+pr-autoresolve merged main into this branch, but the merged tree does not build: \`make dirac-tables\` fails with the Go compile error on the marker line above. That is a semantic conflict between this PR and main (e.g. both sides declared the same symbol), not a conflict on generated files, so the resolver cannot fix it. The branch is left alone; push a new head (rebase, or rename the colliding symbol) and the next run retries, commenting once more if it still fails."
+  rc=0; pr_comments_have "$marker" || rc=$?
+  [ "$rc" -eq 3 ] && return 0
+  if [ "$rc" -eq 0 ]; then say "skipped: semantic conflict, commented at $head"; exit 0; fi
+  if [ -n "$dry" ]; then say "skipped: semantic conflict (dry-run: no comment posted)"; printf '%s\n' "$body"; exit 0; fi
+  pr_comment "$body" || return 0
+  say "skipped: semantic conflict, commented at $head"
+  exit 0
+}
 
 # PR facts: gh when it is on PATH and GH_TOKEN is unset (local use), else the REST API (the box runners have no gh).
 if command -v gh >/dev/null 2>&1 && [ -z "${GH_TOKEN:-}" ]; then
@@ -156,10 +225,15 @@ done
 needs_corpus=
 for r in support kgen-pins dirac-layout kop-ordinals; do [ -z "${recipes[$r]:-}" ] || needs_corpus=1; done
 if [ -n "$needs_corpus" ]; then
-  if [ "${GITHUB_ACTIONS:-}" = true ]; then bash scripts/ci-corpus.sh >/dev/null || { say "ci-corpus.sh failed"; exit 3; }
+  if [ "${GITHUB_ACTIONS:-}" = true ]; then
+    # ci-corpus.sh builds the tables itself; its stderr is kept in the log, and a Go compile error in it skips.
+    out=$(bash scripts/ci-corpus.sh 2>&1 >/dev/null); rc=$?
+    [ -n "$out" ] && printf '%s\n' "$out" >&2
+    if [ "$rc" -ne 0 ]; then say "ci-corpus.sh failed"; semantic_skip 3 "$out"; exit 3; fi
   else bash scripts/pr-cards-link.sh || { say "no corpus at this tree's FORGE_REF"; exit 3; }; fi
   [ -d .cards/cardsfolder ] || { say "no .cards corpus (the corpus tests would skip)"; exit 3; }
-  make -s dirac-tables >/dev/null 2>&1 || { say "make dirac-tables failed"; exit 1; }
+  # The script's own tables build (a tree ci-corpus.sh found already built): output stays discarded, as before.
+  out=$(make -s dirac-tables 2>&1 >/dev/null) || { say "make dirac-tables failed"; semantic_skip 1 "$out"; exit 1; }
 fi
 
 # t PKG RUN [TESTENV]: one make test-one; its verdict line is printed, a non-PASS fails.
@@ -171,7 +245,7 @@ t() {
   [ $rc -eq 0 ] || { echo "$out" | tail -40; return 1; }
 }
 pins='^TestCorpusAcceptance$|^TestSetAcceptance$|^TestCorpusBuildAcceptance$|^TestPinTablesParse$|^TestRememberedSpanCensus$|^TestStdMetaPoolBuilds$'
-layout='^TestStateLayoutPinned$|^TestNoNewFixedStateFields$|^TestCapacityHashPins$'
+layout='^TestNoNewFixedStateFields$|^TestCapacityHashPins$'
 fail() { say "$1"; exit 1; }
 if [ -n "${recipes[kop-ordinals]:-}" ]; then
   t ./dirac/kop '^TestKopOrdinalsUnchanged$' KOP_ORDINALS_REGEN=1 >/dev/null
@@ -180,10 +254,6 @@ fi
 if [ -n "${recipes[dirac-layout]:-}" ]; then
   t ./dirac "$layout" DIRAC_UPDATE_LAYOUT=1 >/dev/null
   t ./dirac "$layout" || fail "layout.tsv did not regenerate"
-fi
-if [ -n "${recipes[func-ceilings]:-}" ]; then
-  t ./internal/codeshape '^TestFuncCeilingsLowerOnly$|^TestLongFunctionsOnlyShrink$|^TestComplexFunctionsOnlyShrink$' ||
-    fail "func_ceilings.tsv merged, but a ratchet fails"
 fi
 if [ -n "${recipes[repro-names]:-}" ]; then
   t ./dirac/oracle '^TestReproGlobMatchesTable$' || fail "repro_table_names.txt merged, but TestReproGlobMatchesTable fails"

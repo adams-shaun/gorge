@@ -140,6 +140,9 @@ func (s *State) detach(o Obj) kop.Zone {
 		if s.osAnyOf(osMExw) {
 			s.exwLeaveExile(o) // its reverse exiled-with link ends (zone_exiledwith.go)
 		}
+		if s.osAnyOf(1 << osEncoded) {
+			s.cipherUnlink(o) // its encode link ends (kw_cipher.go)
+		}
 	case kop.ZoneBattlefield:
 		panic("kernel: detach of a permanent (use leave)")
 	case kop.ZoneSideboard:
@@ -336,6 +339,14 @@ func (s *State) draw(p uint8) {
 // drawExcl is draw with the draw replacements already applied to this
 // draw's lineage (repl_draw.go); the zero chain is an ordinary draw.
 func (s *State) drawExcl(p uint8, ch drawChain) {
+	if s.g.on && s.k().gen.hasDrawProgram() && ch.n == 0 {
+		// a ReplDrawProgram body's own draw: the replacement being run is
+		// already applied to this lineage (CR 614.5). Cleared when the
+		// program finishes (repl_drawprogram.go).
+		if ds := s.drawState(); len(ds) > 0 && ds[0].active {
+			ch = ds[0].chain
+		}
+	}
 	if s.g.on && s.dredgeHeld(p) {
 		return // kw_dredge.go: a dredge candidate on a draw no ask was posed for
 	}
@@ -349,8 +360,8 @@ func (s *State) drawExcl(p uint8, ch drawChain) {
 		pl.mark |= pmDrewEmpty
 		return
 	}
-	if s.cfgx&cfgxDrawMore != 0 && s.drawMore(p, ch) {
-		return // repl_draw.go: the replacement drew in this draw's place
+	if (s.cfgx&cfgxDrawMore != 0 || s.g.on && s.k().gen.hasDrawProgram()) && s.drawReplace(p, ch) {
+		return // repl_draw.go, repl_drawprogram.go: the replacement drew in this draw's place
 	}
 	if int(pl.handN) >= len(pl.hand) {
 		s.capFull(StallZone) // the hand is full of bounced tokens (placeFrom)
@@ -567,7 +578,7 @@ func (s *State) enterNF(k *prep, o Obj, ctrl uint8, tapped bool, from kop.Zone, 
 		if pc.enterCtr != 0 && !(k.gen != nil && k.gen.anyEntryMerge) { // anyEntryMerge: enterGen's window places it (ctr_entryperkind.go)
 			s.placeEntryCounters(k, sl, int(pc.enterCK), int(pc.enterCtr), p.ctrl)
 		}
-		if pc.sagaN != 0 {
+		if pc.sagaN != 0 && !readAheadCard(&k.t.Cards[ob.card]) { // kw_readahead.go: its ask's answer is the entry's lore count
 			// CR 702.151a: a Saga enters with a lore counter (gorge
 			// events.EntryCounterGrants), placed through the counter
 			// replacements; the CounterAddedOnce loop below fires the chapters

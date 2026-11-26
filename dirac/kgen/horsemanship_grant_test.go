@@ -1,7 +1,6 @@
 package kgen
 
 import (
-	"strings"
 	"testing"
 
 	"github.com/adams-shaun/gorge/dirac/kop"
@@ -25,8 +24,8 @@ func horsemanshipGrantLower(t *testing.T, src string) *lCard {
 // TestGrantedHorsemanshipLowers: a Pump / PumpAll KW$ Horsemanship until end
 // of turn (Riding Red Hare, Merry-Go-Round's PumpAll) lowers as an ExtKwMark
 // carrying kop.KwMarkHorsemanship, beside the pump it grants with. A
-// Continuous static's AddKeyword$ Horsemanship (Sun Quan, Lord of Wu) stays
-// refused: the kernel's static grant reads only intimidate and skulk.
+// Continuous static's AddKeyword$ Horsemanship (Sun Quan, Lord of Wu) lowers
+// to Static.Evasion EvHorsemanship (evasionGranted reads it).
 func TestGrantedHorsemanshipLowers(t *testing.T) {
 	const head = "Name:Probe\nManaCost:1 W\nTypes:Instant\n"
 	for _, c := range []struct{ name, src string }{
@@ -50,12 +49,11 @@ func TestGrantedHorsemanshipLowers(t *testing.T) {
 	}
 	static := horsemanshipGrantLower(t, "Name:Probe\nManaCost:1 W\nTypes:Creature Human\nPT:1/1\n"+
 		"S:Mode$ Continuous | Affected$ Creature.YouCtrl | AddKeyword$ Horsemanship\n")
-	var got []string
-	for _, r := range static.Refusals {
-		got = append(got, r.Reason)
+	if len(static.Refusals) != 0 {
+		t.Fatalf("a Horsemanship static refused: %v", static.Refusals)
 	}
-	if !strings.Contains(strings.Join(got, "; "), `keyword "Horsemanship"`) {
-		t.Errorf("a Horsemanship static: refusals %q, want one naming the keyword", got)
+	if len(static.Statics) != 1 || static.Statics[0].Evasion != kop.EvHorsemanship {
+		t.Errorf("a Horsemanship static: statics %+v, want one with Evasion EvHorsemanship", static.Statics)
 	}
 }
 

@@ -1181,8 +1181,15 @@ func (e *Engine) triggeredCostXAsk(tc *triggeredEffectCost) bool {
 	if o := e.G.Obj(tc.source); o != nil && o.Face() != nil {
 		name = o.Face().Name
 	}
+	// XAnnounceTitle$ (Leyline Tyrant: "any amount of red mana to pay") is
+	// what the announced X counts: Forge's announce prompt names it.
+	prompt := name + " — choose a value for X"
+	if sa := tc.resume.sa; strings.TrimSpace(sa.ParamStr(cards.PKXAnnounceTitle)) != "" {
+		t := strings.TrimSpace(sa.ParamStr(cards.PKXAnnounceTitle))
+		prompt = name + " — choose " + t
+	}
 	windowAsk(e, &decision.Decision{Player: tc.player, Kind: decision.KChoose, Min: 1, Max: 1,
-		Prompt: name + " — choose a value for X", Source: tc.source, Options: opts}, chooseTriggeredCost)
+		Prompt: prompt, Source: tc.source, Options: opts}, chooseTriggeredCost)
 	return true
 }
 

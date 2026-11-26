@@ -209,6 +209,11 @@ func (lc *lowerCtx) handMove(ps *params, f *lFilter, n lValue, flags []string, c
 		}
 		cs = append(cs, "ForgetOther")
 	}
+	if imp, err := lc.handMoveImprint(ps, dest); err != nil { // lower_imprintzone.go
+		return err
+	} else if imp {
+		cs = append(cs, "Imprint")
+	}
 	in := lInstr{Op: "ChooseMove", Obj: owner, A: n, F: f, C: dest, CS: strings.Join(cs, "|")}
 	if eachOpp && (owner.Kind == rEachOpp || owner.Kind == rEachPlayer) {
 		return lc.handMoveEachOpp(in, counted) // lower_handmoveeach.go
@@ -453,7 +458,23 @@ func (lc *lowerCtx) handMoveDefinedOwner(ps *params) (lRef, bool, error) {
 		ps.consume("DefinedPlayer")
 		return lRef{Kind: rEachPlayer}, true, nil
 	}
-	if strings.TrimSpace(dp) != "Targeted" {
+	switch v := strings.TrimSpace(dp); v {
+	case "Targeted":
+	case "TargetedController", "ParentTarget", "ParentTargeted", "TriggeredPlayer", "TriggeredCardController", "TriggeredActivator":
+		// gorge handMoveOwners reads DefinedPlayer$ through searchPlayersFor
+		// (definedPlayerIDs), the same grammar a library search's owner
+		// reads, so the search's reader is the one mirror (lower_dpsearch.go):
+		// an object target names its controller (the last-known one once it
+		// has left: kernel tgtCtrlSlot), a player target itself, the trigger
+		// spellings the event's player. That player owns the hand and
+		// answers the pick (handMoveChooserFor's default).
+		r, err := lc.definedPlayer(v)
+		if err != nil {
+			return lRef{}, false, refuse("hand move DefinedPlayer$ %q", dp)
+		}
+		ps.consume("DefinedPlayer")
+		return r, true, nil
+	default:
 		return lRef{}, false, refuse("hand move DefinedPlayer$ %q", dp)
 	}
 	// a charm's ability holds every mode's targets: only the chosen mode's

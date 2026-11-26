@@ -72,6 +72,16 @@ const BecomeCopyEmbalm = 1 << 1
 // ChoiceZoneKind, effects/clone.go cloneETBTemplateLegal.
 const BecomeCopyGrave = 1 << 2
 
+// BecomeCopyEOT is OpBecomeCopy's Duration$ UntilEndOfTurn bit (Cursed
+// Mirror: "you may have it become a copy of any creature on the battlefield
+// until end of turn, except it has haste"): the entering copy is
+// duration-bounded, so becomeCopyEnter records it as an fxCopyEOT record and
+// the cleanup step (cloneCleanup, CR 514.2) ends it — the permanent goes back
+// to its printed card and drops the copy's exceptions and grants, as an
+// ExtCloneCopy until-end-of-turn copy's. Gorge: effects/clone.go cloneDuration
+// untilEOT, EndOfTurnCleanup's clone sweep.
+const BecomeCopyEOT = 1 << 3
+
 // MayGuardCloneCopy: the OpMayAsk guard of an Optional$ Clone: the next op is
 // an ExtCloneCopy that has a live template and at least one becomer (gorge
 // effClone's pairs, computed before the may-copy election).
@@ -530,6 +540,8 @@ const (
 	// the chosen set (gorge ImprintFound$ True emits one seek-found Imprint
 	// on the source after the player walk; the kernel accumulates per
 	// player, which only the later Effect reads).
+	// The dig's planar arm (DigZone$ PlanarDeck) rides W, not a flag bit:
+	// the flag field is int16, so a bit 13 shifted by 3 falls off the top.
 	DuImprintFound = 1 << 12
 )
 
@@ -899,6 +911,15 @@ const DmgFromEachCtrl = 2
 // (B.N DmgAtkedObj) hits that object (gorge's Valid Planeswalker.TriggeredDefender
 // arm, Raid Bombardment, Fathom Fleet Swordjack).
 const AtkPWHit = 1
+
+// BiteExcessTrample is OpBite's A.N: when the biting creature has trample
+// and its power exceeds what is lethal to the bitten creature or planeswalker
+// (toughness less marked damage, or loyalty, read before the hit), it deals
+// exactly the lethal amount to it and the rest to its controller, in the one
+// damage batch (gorge emitObjectDamageExcess: DealDamage ExcessDamage$
+// ThisTargetedController | ExcessDamageCondition$ Card.withTrample, Ram
+// Through; CR 120.4a, 120.10).
+const BiteExcessTrample = 2
 
 // DmgAtkedObj is OpDealDamage's B.N (Obj RefDefendingPlayer, in an Attacks
 // trigger behind OpAtkPWGuard C AtkPWHit): the damage goes to the planeswalker

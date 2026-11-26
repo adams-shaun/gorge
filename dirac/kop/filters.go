@@ -40,6 +40,14 @@ const (
 	ColAny ColorMask = 0x1f
 )
 
+// HexMono and HexMulti ride CardDef.HexColors beside the colour bits, in two
+// bits no colour uses: printed "hexproof from monocolored" (K:Hexproof:
+// Card.MonoColor) and "from multicolored" (Card.MultiColor), CR 702.11d.
+const (
+	HexMono  ColorMask = 1 << 6
+	HexMulti ColorMask = 1 << 7
+)
+
 // CtrlSel selects by controller relative to the source's controller.
 type CtrlSel uint8
 
@@ -309,6 +317,17 @@ const OvEnterWith = 2
 // ChooseTypeBasicLand, res.chosen); gorge combatfx.go animateGrant reads the
 // source's ChosenType AT RESOLUTION.
 const OvChosenType = 3
+
+// OvCwWord, in an OpOverride's B field: a word-list Animate Colors$ (Raging
+// Ravine's "becomes a 2/2 red and green Elemental creature"). C names the
+// FIRST of SIX consecutive Overrides records, the printed colours then one
+// colour each (W, U, B, R, G in that order; kgen emitCwWordAnimate). At
+// resolution the kernel applies the record whose colour is the colour-word
+// statics' colour frozen as the ability was put on the stack
+// (static_colorwords.go cwFreeze, ovCwRow), the printed one with none: gorge
+// reads the ability's Colors$ from its face as it was put on the stack (CR
+// 112.7a, 608.2h), so a later static change moves nothing installed.
+const OvCwWord = 4
 
 // ChooseTypeBasicLand, in a mid-resolution OpChooseType's B field: the ask
 // offers the five basic land types (gorge effChooseType Type$ Basic Land,
@@ -669,6 +688,14 @@ const W7HasProtEachColor int16 = 45
 // Creature.withoutFlanking blocker filter (Benalish Cavalry, Knight of Valor).
 const W7WithoutFlanking int16 = 46
 
+// W7GreatestMVArtifact (PredWord7 sub-kind 47) is reserved: gorge's
+// greatestCMC_<prop> lowers through the ExValidAgg AggGreatestMV bound
+// (kgen/filter.go's greatestCMC) instead of a word — a battlefield artifact
+// whose mana value no other battlefield artifact exceeds, ties matching
+// (CR 202.3). The ordinal stays consumed (ordinals.tsv); no filter lowers
+// to it.
+const W7GreatestMVArtifact int16 = 47
+
 // PredPowerLTToughness's PredN: the power/toughness relation it reads. 0 is
 // power < toughness (gorge powerLTtoughness); PTRelEQ is gorge's equalPT
 // (net power equal to net toughness) and PTRelNE its negation !equalPT, each
@@ -788,7 +815,9 @@ const PredTrigPlayerCtrl Pred = 239
 // is the evaluating controller: the attacked player, the controller of the
 // attacked planeswalker or the protector of the attacked battle (gorge
 // attackingYou: o.Attacking == you; CR 506.2, 508.1b). At any seat count;
-// false off the battlefield. Explicit ordinal.
+// false off the battlefield. PredN 1 is gorge attackingYouOrYourPW(LKI):
+// attacking the evaluating controller itself or a planeswalker it controls
+// (animated or not), never a battle. Explicit ordinal.
 const PredAttackingYou Pred = 235
 
 // PredSuspected: PredN 1, a suspected battlefield permanent; PredN 0, anything

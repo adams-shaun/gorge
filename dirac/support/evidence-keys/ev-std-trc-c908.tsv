@@ -1,0 +1,136 @@
+card	lir16	plays	keys	unused	branches	missing_branches
+Amanda Grayson, Logic's Link	ecb6d6b5c226754c	66	1/1		1/1	
+Ambassador K'Ehleyr	e438ce65934f5c46	100	1/1		1/1	
+Ancient Greenwarden	496b1a190c070962	66	0/0		0/0	
+Arcane Sanctum	044475393739aeb9	22	1/1		0/1	ix:resp
+Austere Command	5955735999ee4878	91	0/0		1/2	ix:resp
+Badgey, Malicious Glitch	6984a21db7d800af	82	1/1		1/1	
+Balance of Terror	8defcacb59dbddbc	68	0/0		0/0	
+Benjamin Sisko, Besieged	ce93e186e602656d	49	0/0		0/0	
+Beverly Crusher, Ship's Doctor	595581f308ca463c	85	1/1		1/1	
+Borg Queen, One Who Is Many	7b83e8dec4fda04b	90	0/0		0/0	
+Borg Scout Sphere	44c423c346abea4b	79	1/1		1/1	
+Brainstorm	b8ac53daaf4c0d29	96	0/0		2/2	
+Canopy Vista	cb12a8e3237613b7	65	2/2		0/1	ix:resp
+Chain Reaction	bd79219f5fe033a3	101	0/0		2/2	
+Chancellor Gorkon	09ba34010247ed23	44	1/1		1/1	
+Chekov and McCoy	644e92f0d8f410cc	27	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Class-4 Tactical Cube	be63a69460accb9a	118	1/1		1/1	
+Clifftop Retreat	f81cd982aaa8cb5d	45	1/1		0/1	ix:resp
+Co-Option Adjutant	6b25dbee0b9d1565	104	0/0		0/0	
+Collective Override	922ba0821f1c6f52	68	0/0		2/2	
+Command Beacon	d66b7d337bb7ccc1	22	2/2		0/1	ix:resp
+Commander William Riker	44ea32f7d5be15ef	36	1/1		1/1	
+Cryogenic Stasis	f7a6f255e05f8507	130	0/0		2/2	
+Curzon Dax, Bound by Blood	05d25a5baba4867d	43	2/2		1/3	f0/t1/opt:n,f0/t1/opt:y
+Deliver from Chaos	059a9025869afd5c	28	0/0		1/2	ix:resp
+Desolate Lighthouse	3ceb3a7e04608caa	32	2/2		0/1	ix:resp
+Disallow	ddc6450663bc2128	75	0/0		2/2	
+Dr. Pulaski, Cynical Clinician	aa6921c5c70dd57a	84	1/1		1/1	
+Dragonskull Summit	d3a789ce567b2681	53	1/1		0/1	ix:resp
+Eclipsed Steppe	40a043b64cec008d	21	2/2		0/1	ix:resp
+Emergency Regeneration	70554915bfec3f66	117	0/0		2/2	
+Evasive Maneuvers	a6486c6fc4d7495c	39	0/0		1/2	ix:resp
+Exocomp	527f97fabc7c3d89	109	0/0		0/0	
+Exotic Orchard	32f9ab58bb8adfe6	29	1/1		0/1	ix:resp
+Exploration	0794799802f4b16e	103	0/0		0/0	
+Faithful Mending	3281cd79eac6971f	87	0/0		4/4	
+Farseek	45f51ba11fadad79	82	0/0		2/2	
+Fetid Pools	dc54177d1f3f35e4	21	3/3		0/1	ix:resp
+Fleet Captain Christopher Pike	d5108b9fafda50c5	101	2/2		1/1	
+Forest	6d0466c30f825dba	1643	1/1		0/1	ix:resp
+Frantic Search	8897b9fd594f57b4	113	0/0		2/2	
+Frostboil Snarl	58c5397a145cd5a4	33	1/1		0/1	ix:resp
+Furycalm Snarl	60264f744d5c1b2b	46	1/1		0/1	ix:resp
+Galvanizing Tenor	90571b24336833ac	92	1/1		1/1	
+Geordi La Forge, Innovator	604ba2844faad32f	89	1/1		1/1	
+Glacial Fortress	82848184ee628794	63	1/1		0/1	ix:resp
+Glittering Massif	cc6c5973bfb9c1e8	13	3/3		0/1	ix:resp
+Gnarling Targ	d710a6ed36852c82	84	1/1		1/1	
+Growth Spiral	762d1767ddd3bd55	31	0/0		2/2	
+Gumato	ac71dea8736259c5	78	1/1		1/1	
+Harmonize	b83f040bcd1ea814	92	0/0		1/2	ix:resp
+Hedron Archive	53409767c16ad23f	68	2/2		1/1	
+Heroic Intervention	dfd3e49b63298405	58	0/0		2/2	
+Hinterland Harbor	580375e559f0d5a7	48	1/1		0/1	ix:resp
+Irrigated Farmland	5fec831d81f42d26	15	3/3		0/1	ix:resp
+Island	763c67ef7a27eaf5	2249	1/1		0/1	ix:resp
+Isolated Chapel	082940936ff9af38	80	1/1		0/1	ix:resp
+Julian Bashir, Frontier Doctor	606e297df6086d91	82	2/2		1/1	
+K'Vort-Class Raider	2ad5ec32872b4449	102	0/0		0/0	
+Kes, Evolving Telepath	56062cd463992ecb	69	1/1		1/1	
+Kolinahr Priest	a276279fd925553b	96	0/0		0/0	
+Kruge, Genesis Seeker	5c5635870ca2f3da	119	1/1		1/1	
+La Forge, Perceptive Engineer	f40e965d0ecb7102	98	1/1		1/1	
+Lotus Cobra	91d85cbd82d823ea	86	1/1		1/1	
+Lt. Arex, Ever-Adapting	5cfce76340e75c3b	11	1/1		0/1	ix:resp
+Martok, Hero of the Empire	4be43d65f11b0a13	76	1/1		1/1	
+Maturation Chamber	a467ae4cd62abb35	125	2/2		1/1	
+McCoy, Not a Bricklayer	ea51a6c5c28bfae0	29	1/1		0/1	ix:resp
+Mek'leth Berserker	d38bfbc1e3e0ec86	72	0/0		0/0	
+Mosswort Bridge	287434b63a50d9ba	26	3/3		0/1	ix:resp
+Mountain	9e71388353e907ed	2242	1/1		0/1	ix:resp
+Nature's Lore	2f6a5a1aa1ea67f2	47	0/0		2/2	
+On the Shoulders of Giants	cbcfabe899148b77	135	0/0		0/0	
+Pelia, Immortal Innovator	dc2efa3c5c3fecab	72	1/1		1/1	
+Perilous Landscape	fc01be9376cc1a59	28	3/3		0/1	ix:resp
+Plains	82d63a695487e567	2483	1/1		0/1	ix:resp
+Pongify	012fe218295ea7c3	101	0/0		2/2	
+Port Town	29d2d39de424ad15	46	1/1		0/1	ix:resp
+Prairie Stream	b1241c79c0b9020a	33	2/2		0/1	ix:resp
+Professional Face-Breaker	8043416aadc572c7	115	2/2		1/1	
+Radiant Summit	59546173dcc04a2a	56	2/2		0/1	ix:resp
+Rain-Slicked Copse	093474deeedfcabc	36	3/3		0/1	ix:resp
+Rampant Growth	7e60ba8c4c03c886	110	0/0		2/2	
+Reality Shift	84fc1f7ca3bb0d0c	80	0/0		2/2	
+Reconnaissance Partition	ad4cfc731b050509	109	1/1		1/1	
+Reg Barclay, Fidgety Fantasist	1e1a79d822d74e63	52	1/1		1/1	
+Reliquary Tower	eb01696d45e0761b	35	1/1		0/1	ix:resp
+Rite of Ascension	c0e1dd3b2a9bd69c	36	1/1		1/1	
+Rite of Oblivion	98e2e47a81683b17	53	0/0		4/4	
+Rom and Leeta, Unlikely Pair	a747a295795d1268	62	1/1		0/1	ix:resp
+Run Amok	83140576f41073f5	83	0/0		1/2	ix:resp
+Scattered Groves	048c04ba6c3928e5	11	3/3		0/1	ix:resp
+Scorched Geyser	2144852a68b04ddd	35	2/2		0/1	ix:resp
+Scotty, Chief Engineer	3081a6a828c497be	95	1/1		1/1	
+Sea of Clouds	3c975047d92149b6	26	1/1		0/1	ix:resp
+Seaside Citadel	99467a59cc706e61	36	1/1		0/1	ix:resp
+Seven of Nine, Tertiary Adjunct	99dc40045c860039	128	1/1		1/1	
+Shattered Landscape	2ea096c14654a15c	91	3/3		0/1	ix:resp
+Shuttle Crew	edd6d78d90a92931	86	1/1		0/1	ix:resp
+Smoldering Marsh	9480cf65c0bd6737	18	2/2		0/1	ix:resp
+Sodden Verdure	f6df3956cd7153fd	30	2/2		0/1	ix:resp
+Spock, Voice of Reason	44c0e4ce757261bd	69	1/1		1/1	
+Spot, Felis catus	f17378bf05c58117	85	2/2		1/1	
+Starfleet Crew	d21144a00095ca66	100	0/0		0/0	
+Supplementation Node	966c25091afc0e6f	86	0/0		0/0	
+Supreme Verdict	e2025f396ea87de2	41	0/0		2/2	
+Swamp	342b413902f441c3	2126	1/1		0/1	ix:resp
+T'Pol, Vulcan Representative	1a8fd4b5509bfe88	50	1/1		1/1	
+Talarian Hook Spider	687aea7a80356463	106	0/0		0/0	
+Talisman of Creativity	758db53652b288c6	90	2/2		1/1	
+Talisman of Dominance	f7a094577ee7bd92	115	2/2		1/1	
+Temple of Malice	34cbdba5a8e236c2	41	2/2		0/1	ix:resp
+Temple of Mystery	1c9fba2f6f5e9a49	36	2/2		0/1	ix:resp
+Temple of Plenty	3bf873fe8be08b0b	15	2/2		0/1	ix:resp
+Temple of the False God	7dbfc48d6ae67c4d	43	1/1		0/1	ix:resp
+Tenacious Tosk	67814672eed1e2cb	72	1/1		1/1	
+Terramorphic Expanse	dd0b8530724700e9	42	1/1		0/1	ix:resp
+The Promise of Kahless	99177b4646e6a2b2	80	0/0		2/2	
+Thirst for Knowledge	2a2aa53a1cc00ffb	134	0/0		2/2	
+Tireless Tracker	e9ce1d1ca319b810	64	2/2		1/1	
+Tom Paris, Risk-Taker	89ee985a25e5599c	30	1/1		1/1	
+Training Center	ae6096415c2c5038	52	1/1		0/1	ix:resp
+Tranquil Landscape	a2eeb26075da6fe0	51	3/3		0/1	ix:resp
+Trelane, Squire of Gothos	c06421c9dd18576d	52	1/1		1/1	
+Troi, Winging It	6319e973e3840e4f	74	1/1		0/1	ix:resp
+U.S.S. Enterprise-E, Sovereign	f300d31473b5abd8	77	1/1		1/1	
+Umbral Expanse	119d8d7bde47b8d5	6	3/3		0/1	ix:resp
+Underground River	5334889396c1d052	43	2/2		0/1	ix:resp
+Valorous Stance	c3d72814e5d7ed6c	99	0/0		2/2	
+Vanquish the Horde	a4c838902928b8b0	100	0/0		2/2	
+Vault of Champions	619eed40cb45601d	56	1/1		0/1	ix:resp
+Vic Fontaine, One Night Only	f6d8bd0669f03e61	22	1/1		1/1	
+Warleader's Call	13793cab15ebbd8c	51	1/1		1/1	
+Worf, Son of Mogh	edd22f4cf7c405bd	28	1/1		1/1	
+Worf, Still Not Merry	a6c9684c6ef31293	39	1/1		1/1	

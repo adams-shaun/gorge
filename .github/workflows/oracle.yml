@@ -188,19 +188,45 @@ jobs:
         id: bisect
         if: steps.pin.outcome == 'success'
         run: bash scripts/oracle-bisect.sh "${{ steps.good.outputs.good }}" "$GITHUB_SHA" failing.txt
+      # REGEN_TOKEN, never github.token: a PR opened or pushed with GITHUB_TOKEN starts no CI (its ci/docs runs sit at
+      # action_required), so the revert could never pass the queue (11-26: #5150 waited with no checks). The checkout's
+      # GITHUB_TOKEN header is dropped so the push goes out as the user token.
       - name: Open a draft revert PR
         if: steps.bisect.outcome == 'success' && steps.bisect.outputs.pr != ''
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.REGEN_TOKEN }}
           PR: ${{ steps.bisect.outputs.pr }}
           CULPRIT: ${{ steps.bisect.outputs.culprit }}
         run: |
+          [ -n "$GH_TOKEN" ] || { echo "::error::secrets.REGEN_TOKEN is empty: a GITHUB_TOKEN revert PR starts no CI, so none is opened. Culprit #$PR ($CULPRIT)."; exit 1; }
+          echo "::add-mask::$GH_TOKEN"
+          git config --unset-all http.https://github.com/.extraheader || true
+          export GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0="url.https://x-access-token:${GH_TOKEN}@github.com/.insteadOf" GIT_CONFIG_VALUE_0="https://github.com/"
           git config user.name "gorge oracle bisect"
           git config user.email "noreply@github.com"
           br="hotfix/auto-revert-$PR"
+          # A second bisect blaming the same PR must not fail the job (oracle run 45740776172): when the bot branch
+          # still has an open revert PR, comment there and stop; otherwise force-push the leftover branch (it is
+          # bot-owned) and open the draft PR.
+          if n=$(gh pr list --head "$br" --state open --json number | sed -nE 's/.*"number": ?([0-9]+).*/\1/p' | head -n 1) && [ -n "$n" ]; then
+            {
+              echo "The oracle failed again on main at $GITHUB_SHA; bisecting the first-parent merges from the last green oracle run blames #$PR ($CULPRIT) again."
+              echo
+              echo "Failing tests:"
+              sed 's/^/- /' failing.txt
+              echo
+              echo "Run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+              echo
+              echo "---"
+              echo "This Robot (gorge agentctl swarm) Shan't Be Blamed For Stupid Humans"
+            } > comment.md
+            gh pr comment "$n" --body-file comment.md
+            echo "an open revert PR for #$PR already exists: commented on #$n instead of opening a second one"
+            exit 0
+          fi
           git switch -c "$br" "$GITHUB_SHA"
           git revert --no-edit -m 1 "$CULPRIT"
-          git push origin "$br"
+          git push --force origin "$br"
           {
             echo "The oracle failed on main at $GITHUB_SHA. Bisecting first-parent merges from the last green oracle run blames #$PR ($CULPRIT)."
             echo

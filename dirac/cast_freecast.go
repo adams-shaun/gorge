@@ -40,6 +40,11 @@ func (s *State) freeQueued(o Obj) bool {
 //     played in pick order by the freeQ drain (cast_freeland.go).
 //   - C bit 10 (freeSpellMV): the filter's mana-value bound is the ValidSA$ one, read on the spell
 //     cast: a split card counts its front half, not the sum of its halves.
+//   - C bit 13 (freeRemember): RememberPlayed$ True (add the begun card, the
+//     minted copy for a CopyCard$ play, to s.g.rem once its cast commits; the
+//     first begun card only; cast_playremember.go).
+//   - C bit 14 (freeSameName): a remembered candidate is offered only when it shares the resolving
+//     trigger's source object's printed name (gorge effRipple's CR 201.2 read; kw_ripple.go).
 //   - Obj: RefRemembered (P1), a target slot (P2: the targeted card; a
 //     player target: that player's hand), or RefNone with F (P3/P4 filter
 //     population over the zone; over exile, every alive seat's).
@@ -47,7 +52,7 @@ func (s *State) freeQueued(o Obj) bool {
 // The zone, ReplaceGraveyard and ForgetPlayed bits ride to the freeQ drain
 // in s.g.freeP: the caster in the low freeSeatBits, the zone in the three
 // bits above, then freeGY (ReplaceGraveyard), freeCopy (CopyCard), freePaid
-// freeForget (ForgetPlayed) and freeLandsOn (the queue's lands are played). At
+// freeForget (ForgetPlayed), freeLandsOn (the queue's lands are played). At
 // two seats that is bit 0, bits 1-3 and bits 4-8 of a word.
 const (
 	// freeSpellMV is OpCastFree's C bit 10 (see the operands above).
@@ -58,6 +63,12 @@ const (
 	freeMandatory = 1 << 11
 	// freeLands is OpCastFree's C bit 12 (see the operands above).
 	freeLands = 1 << 12
+	// freeSameName is OpCastFree's C bit 14: a remembered candidate is
+	// offered only when it shares the resolving entry's source object's
+	// printed name (gorge effRipple's CR 201.2 face-name read over the
+	// revealed same-name set; kw_ripple.go's rippleProg; the ripple spell is
+	// a spell, never a land, so its same-name cards are never lands).
+	freeSameName = 1 << 14
 
 	freeSeatBits  = MaxSeats / 2 // one bit at two seats, two at four
 	freeSeatMask  = 1<<freeSeatBits - 1
@@ -67,6 +78,7 @@ const (
 	freePaid      = freeGY << 2
 	freeForget    = freeGY << 3
 	freeLandsOn   = freeGY << 4 // the queue holds a land-capable Play's picks (freeLands): its lands are played
+	freeRemember  = freeGY << 5 // RememberPlayed$ True: the first begun cast is remembered (cast_playremember.go)
 )
 
 // freeSeatBits holds every seat.
@@ -126,7 +138,12 @@ func (s *State) castFreeFillGen(k *prep, in *kop.Instr, e *stackEntry) {
 		if ob.zone != zone || land && in.C&freeLands == 0 {
 			return true
 		}
-		if in.F != 0 && !DebugFreeFilterIgnored && !s.matchCardGenAt(k, in.F, ob.card, ob.owner(), e.ctrl, o, spellCtx) {
+		// freeSameName: the candidate must share the resolving trigger's
+		// source object's printed name (the ripple spell; CR 201.2).
+		if in.C&freeSameName != 0 && !s.sharesNameSelf(NoSlot, e.obj, NoSlot, ob.card, o, false, false) {
+			return true
+		}
+		if castFreeFilterOn(in, zone) && !s.matchCardGenAt(k, in.F, ob.card, ob.owner(), e.ctrl, o, spellCtx) {
 			return true
 		}
 		if land {
