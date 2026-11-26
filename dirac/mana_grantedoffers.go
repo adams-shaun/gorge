@@ -1112,11 +1112,15 @@ func (s *State) availUngranted(k *prep, p uint8, a *avail) {
 // proof; the ask branches between states are not charged, matching gorge's
 // clone count (scriptSearch.try clones per answer, scriptSearch.visit charges
 // the clone).
+//
+//lockstep:const engine/rules.potentialScriptNodes * 5 / 4
 const phasedScriptNodes = potentialScriptNodes + potentialScriptNodes/4
 
 // mayPlayScriptNodes is gorge's potentialMayPlayNodes: the node bound of the
 // may-play fallback run (grantSearch's last), a plain run after the others
 // found none and the first spent its budget (CR 601.2g, 605.3a).
+//
+//lockstep:const engine/rules.potentialMayPlayNodes
 const mayPlayScriptNodes = 1024
 
 // grantSrch is one prefix search (gorge scriptSearch under gapsOnly): the
