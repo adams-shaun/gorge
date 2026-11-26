@@ -906,6 +906,12 @@ func (cb *cardBuilder) ability(a *lAbility) (kop.Ability, error) {
 	if a.Unless != nil {
 		return ka, fmt.Errorf("ability-level unless cost")
 	}
+	if a.GenericChoice {
+		if a.Kind != akTriggered || a.Modes == 0 {
+			return ka, fmt.Errorf("GenericChoice mark on a non-trigger charm")
+		}
+		ka.AFlags |= kop.AfCharmTrigger
+	}
 	if a.Name == "Equip" {
 		ka.AFlags |= kop.AfEquip
 	}

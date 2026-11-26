@@ -1087,10 +1087,24 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 			}
 			if d.N == 0 {
 				if e.kind == seTrigger {
-					// CR 603.3c: with no mode to choose, it is removed
-					s.sp--
-					s.ctl = ctlPlaceTriggers
-					return false
+					if a.AFlags&kop.AfCharmTrigger == 0 || !s.charmModesHaveTargets(k, a) {
+						// CR 603.3c: with no mode to choose, it is removed. A
+						// marked GenericChoice trigger goes the same way when
+						// even its eligible list (targets, no UnlessCost$ gate)
+						// is empty: gorge's askTriggerModes removes it there.
+						s.sp--
+						s.ctl = ctlPlaceTriggers
+						return false
+					}
+					// a triggered api:GenericChoice whose every mode's
+					// UnlessCost$ the controller cannot pay: gorge's placement
+					// ask lets the trigger go on the stack unasked
+					// (trigger_queue.go askTriggerModes) and effCharm resolves
+					// FallbackAbility$ or nothing instead of posing a mode ask,
+					// so the trigger stays with no mode chosen (the Charm
+					// guards skip every body; modal_unless.go)
+					s.bld().modesN = 255
+					continue
 				}
 				if e.kind == seSpell && s.noModeAbort(k, a) {
 					return false
@@ -1447,10 +1461,43 @@ func (s *State) modeTargetFeasible(k *prep, t *kop.TargetSpec) bool {
 	return s.hasTarget(k, t, e.ctrl, s.srcSlot(), e.obj)
 }
 
-// modeFeasible: mode m's mandatory targets have candidates.
+// modeFeasible: mode m's mandatory targets have candidates (and, for a marked
+// GenericChoice charm, its UnlessCost$ is payable).
 func (s *State) modeFeasible(k *prep, a *kop.Ability, m int) bool {
+	return s.modeFeasibleGate(k, a, m, true)
+}
+
+// modeFeasibleTargets is modeFeasible without the AfCharmTrigger UnlessCost$
+// gate: the eligible list gorge's placement ask removes a trigger on
+// (trigger_queue.go askTriggerModes removes on an empty eligible list, and
+// keeps the trigger on the stack unasked when only the UnlessCost$ gate
+// empties the non-empty list).
+func (s *State) modeFeasibleTargets(k *prep, a *kop.Ability, m int) bool {
+	return s.modeFeasibleGate(k, a, m, false)
+}
+
+// charmModesHaveTargets reports whether some not-yet-chosen mode of the
+// ability being built passes the target (and ChoiceRestriction) half of
+// modeFeasible: the eligible list gorge's placement ask removes a marked
+// trigger on (trigger_queue.go askTriggerModes).
+func (s *State) charmModesHaveTargets(k *prep, a *kop.Ability) bool {
+	for m := 0; m < int(a.NModes); m++ {
+		if s.bld().e.mode&(1<<m) != 0 {
+			continue
+		}
+		if s.modeFeasibleTargets(k, a, m) {
+			return true
+		}
+	}
+	return false
+}
+
+func (s *State) modeFeasibleGate(k *prep, a *kop.Ability, m int, unless bool) bool {
 	if k.gen != nil && k.gen.anyCharmPick && s.charmPickBarred(a, s.bld().e.obj, m) {
 		return false // ChoiceRestriction$: chosen before (modal_charmpick.go)
+	}
+	if unless && a.AFlags&kop.AfCharmTrigger != 0 && !s.modeUnlessPayable(k, a, m, s.bld().e.ctrl) {
+		return false // a GenericChoice mode whose UnlessCost$ the controller cannot pay (modal_unless.go)
 	}
 	for i := 0; i < int(a.NTargets); i++ {
 		t := &a.Targets[i]
