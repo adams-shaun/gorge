@@ -366,11 +366,8 @@ func (s *State) stepRaw(d *Decision) {
 		case ctlReflectPick:
 			s.reflectPickOptions(d) // mana_reflectpickask.go
 			return
-		case ctlTurnUpX:
-			s.turnUpXOptions(d) // face_turnfaceup.go
-			return
-		case ctlTurnUpReveal:
-			s.turnUpRevealOptions(k, d) // act_revealpick.go
+		case ctlTurnUpX, ctlTurnUpReveal, ctlTurnUpPick, ctlTurnUpAttach:
+			s.turnUpAskOptions(k, d) // face_morphpick.go
 			return
 		case ctlManaAsk:
 			s.priManaAskOptions(k, d) // mana_priask.go
@@ -451,6 +448,10 @@ func (s *State) Apply(a Action) {
 		s.applyTurnUpX(k, a) // face_turnfaceup.go
 	case ctlTurnUpReveal:
 		s.applyTurnUpReveal(k) // act_revealpick.go
+	case ctlTurnUpPick:
+		s.applyTurnUpPick(k, a) // face_morphpick.go
+	case ctlTurnUpAttach:
+		s.applyTurnUpAttach(k, a) // face_turnupattach.go
 	case ctlManaAsk:
 		s.applyPriManaAsk(k, a) // mana_priask.go
 	case ctlCmdZone0, ctlCmdZone1, ctlCmdZone2, ctlCmdZone3, ctlCmdZone4, ctlCmdZone5, ctlCmdZone6, ctlCmdZone7:

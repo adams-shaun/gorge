@@ -811,6 +811,15 @@ const (
 	// awaiting the pick among several candidates (act_revealpick.go; parked in
 	// genState.pick*)
 	ctlTurnUpReveal
+	// ctlTurnUpPick: a keyword turn-up whose cost is a pick part
+	// (CardDef.MorphPick), awaiting the picks it owes, one per object
+	// (face_morphpick.go; parked in genState.pick*)
+	ctlTurnUpPick
+	// ctlTurnUpAttach: a keyword turn-up whose card has a ReplTurnUpAttach
+	// replacement, awaiting the optional attach election its body poses
+	// before the turn-up event folds (face_turnupattach.go; parked in
+	// genState.pickP / pickZ / pickF, the announced X in pickLeft)
+	ctlTurnUpAttach
 	// ctlManaAsk: a priority-time activation of a colour-asking unless source
 	// (Rhystic Cave) under Config.PriorityManaAsk: the colour ask, then each
 	// player's unless ask (mana_priask.go; parked in genState.winSrc,

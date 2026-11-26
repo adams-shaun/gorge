@@ -1570,6 +1570,16 @@ func (lc *lowerCtx) lowerKeywords() {
 			// (lower_morphreduce.go).
 			cs, red, rok := lc.morphReduceParam(param)
 			mc, life, rev, err := lc.morphCostParse(cs) // lower_morphlife.go, lower_revealpick.go
+			var pick lCost
+			if err != nil && life == 0 && rev == nil {
+				// not a mana, life or reveal cost: one Discard/Sac/Return
+				// pick part lowers too (lower_morphpick.go)
+				mp, pok, perr := lc.morphPickParse(cs)
+				if pok {
+					err = perr
+					pick = mp
+				}
+			}
 			if !rok || err != nil || cs == "" || strings.Contains(cs, ":") || mc.None || red.Kind != vNone && (life != 0 || mc.X || mc.Generic == 0) {
 				lc.refuseNode(node, "%s cost %q", strings.ToLower(head), param)
 				continue
@@ -1579,6 +1589,9 @@ func (lc *lowerCtx) lowerKeywords() {
 				continue
 			}
 			lc.out.MorphCost, lc.out.MorphReduce, lc.out.MorphLife, lc.out.MorphReveal = &mc, red, life, rev
+			if pick.Sac != nil || pick.DiscardN > 0 || pick.Return != nil {
+				lc.out.MorphPick = &pick
+			}
 			switch head {
 			case "Morph":
 				lc.out.MorphFamily = kop.MorphMorph
