@@ -302,7 +302,7 @@ fails too. A branch deletes entries; it never adds one or raises a ceiling.
 | `knownUnmodelledCountHeads` | `TestEveryRepoDeckCountHeadResolves` (`engine/rules/count_head_ratchet_test.go`) |
 | `effects.modelledValueHeads` vs the evaluator | `TestValueHeadRegistryMatchesEvaluator` |
 | the known approximations (`docs/agents/known-approximations/`, each file capped in `ALLOWED.txt`) | `TestKnownApproximationsOnlyShrinks` (`testkit/testutil/agentsdoc_test.go`) |
-| interface-width and dispatch ceilings; per-function length and complexity ceilings over `engine/rules`, `engine/effects` and `dirac/` | `TestCodeShapeOnlyShrinks`, `TestLongFunctionsOnlyShrink`, `TestComplexFunctionsOnlyShrink` (`internal/codeshape`); growth only |
+| interface-width and dispatch ceilings; the per-function growth rule (`cmd/funcgrowth`) over `engine/rules`, `engine/effects` and `dirac/` | `TestCodeShapeOnlyShrinks` (`internal/codeshape`), `cmd/funcgrowth`; growth only |
 | test-budget exception lists | `cmd/testbudget`; see [its invariant](#every-test-fits-the-budget) |
 
 **Why.** "Supported" should only ever mean more. A two-way ratchet makes the

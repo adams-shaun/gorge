@@ -5,9 +5,10 @@ import (
 	"sort"
 )
 
-// The per-function growth rule (operator 2026-11-26): instead of a rows file
-// shared between pull requests (the old func_ceilings.tsv ratchets, deleted),
-// each function is held against its own size at the merge base. A function
+// The per-function growth rule (operator 2026-11-26): instead of per-function
+// ceiling rows shared between pull requests (the old rows-file ratchets,
+// deleted), each function is held against its own size at the merge base. A
+// function
 // over a threshold at head may have grown by a percentage of its size at
 // base, with a floor so a small function is not jumpy; a function newly over
 // a threshold, or one that crosses it, is refused. The operator tunes the
