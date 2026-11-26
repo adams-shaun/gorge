@@ -11,6 +11,10 @@ import (
 )
 
 func (lc *lowerCtx) lowerStatic(s cards.Static) error {
+	s, err := stationParamStatic(s) // lower_stationgrant.go
+	if err != nil {
+		return err
+	}
 	if s.Mode == "FlipCoinMod" {
 		return lc.flipCoinModStatic(s) // lower_turnfacts.go
 	}

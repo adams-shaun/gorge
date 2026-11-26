@@ -23,6 +23,36 @@ import (
 // template: maxSpeedGrantedStatic). Everything else on the outer static
 // (AddType, AddKeyword) lowers as it does today.
 
+// stationParamStatic rewrites the Station$ <N> spelling of the threshold
+// static (Card-Forge acaef15177) into the Affected$ Card.counters_GE<N>_CHARGE
+// spelling above, so the two lower through one path (the same statics, the
+// same grants). The param is read only on a Continuous static on its own
+// source (AffectedDefined$ Self, which the card parser has already folded
+// into Affected$ Card.Self) with a literal threshold 1..255; any other shape
+// refuses rather than dropping the gate.
+func stationParamStatic(s cards.Static) (cards.Static, error) {
+	v, ok := s.Params["Station"]
+	if !ok {
+		return s, nil
+	}
+	n, err := strconv.Atoi(strings.TrimSpace(v))
+	if err != nil || n < 1 || n > 255 {
+		return s, refuse("Station$ %q threshold", v)
+	}
+	if s.Mode != "Continuous" || strings.TrimSpace(s.Params["Affected"]) != "Card.Self" {
+		return s, refuse("Station$ %d on a %s static affecting %q", n, s.Mode, s.Params["Affected"])
+	}
+	ps := make(map[string]string, len(s.Params))
+	for k, pv := range s.Params {
+		if k != "Station" {
+			ps[k] = pv
+		}
+	}
+	ps["Affected"] = "Card.Self+counters_GE" + strconv.Itoa(n) + "_CHARGE"
+	s.Params = ps
+	return s, nil
+}
+
 // stationThreshold reports the N of a filter that is exactly Card.Self plus
 // one counters_GE<N>_CHARGE compare (what selfOnlyCond reads), or ok false
 // when the filter has another shape.
