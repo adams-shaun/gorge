@@ -2,13 +2,14 @@ package dirac
 
 import "github.com/adams-shaun/gorge/dirac/kop"
 
-// AtEOT$ Exile over several tokens of one resolution (Feral Lightning's
-// "exile them at the beginning of the next end step") is one delayed
-// triggered ability naming them all (gorge scheduleAtEOTGroup, CR 603.7a/b):
-// the first token's tracked exile record is the head, put on the stack at the
-// end step; every later token joins it as a dlyGrpFollow record (act OpExile)
-// that is never put on the stack itself. The head's resolution exiles every
-// member still on the battlefield as the incarnation registered, at once.
+// AtEOT$ Exile over several objects of one resolution (Feral Lightning's
+// "exile them at the beginning of the next end step", a CopyPermanent token
+// rider over several copies) is one delayed triggered ability naming them all
+// (gorge scheduleAtEOTGroup, CR 603.7a/b): the first object's tracked exile
+// record is the head, put on the stack at the end step; every later object
+// joins it as a dlyGrpFollow record (act OpExile) that is never put on the
+// stack itself. The head's resolution exiles every member still on the
+// battlefield as the incarnation registered, at once.
 
 // DebugExileGroupOff makes every exile-rider token register its own trigger
 // (the pre-group shape); the lockstep mutation test flips it and requires a

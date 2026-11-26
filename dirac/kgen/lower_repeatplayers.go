@@ -95,10 +95,30 @@ func (lc *lowerCtx) repeatEachPlayers(ps *params) error {
 	defer func(o bool) { lc.repeatAllPl = o }(lc.repeatAllPl)
 	lc.repeatAllPl = who.Kind == rEachPlayer
 	for n := body; n != nil; n = n.Sub {
+		if n.API == "ChooseCard" {
+			// A per-player ChooseCard's Choices$ filter names the repeated
+			// player's cards (RememberedPlayerCtrl, greatest*ControlledBy-
+			// Remembered); chooseCard reads every parameter and builds the
+			// filter inside the loop, so the blanket remembered-read check
+			// below would refuse the shape it is meant to lower. The
+			// chooseCard lowering itself still refuses any parameter or
+			// filter word it does not read.
+			continue
+		}
+		if n.API == "ChoosePlayer" || n.API == "TwoPiles" {
+			// The per-player opponent choice (choosePlayerEach) and the
+			// battlefield pile split (twoPilesEach) name the remembered sets
+			// they read themselves (ChosenPlayer, Land.IsRemembered's pile);
+			// both read every parameter and refuse what they do not lower,
+			// so the blanket remembered-read check below would refuse the
+			// shapes they are meant to lower. Any other ChoosePlayer or
+			// TwoPiles shape keeps refusing in its own lowering.
+			continue
+		}
 		var bad []string
 		for k, v := range n.Params {
 			v = strings.TrimSpace(v)
-			if (k == "Defined" || k == "TokenOwner" || k == "UnlessPayer" || k == "DefinedPlayer") && (v == "Remembered" || v == "Player.IsRemembered") || k == "SubAbility" {
+			if (k == "Defined" || k == "TokenOwner" || k == "UnlessPayer" || k == "DefinedPlayer" || k == "GainControl") && (v == "Remembered" || v == "Player.IsRemembered") || k == "SubAbility" {
 				continue
 			}
 			if k == "TokenAttacking" && (v == tokenAttackingRemembered || v == "Remembered" || v == "RememberedPlayer") && who.Kind == rEachOpp {
@@ -173,20 +193,32 @@ var repeatPlayerOps = map[string]bool{
 }
 
 // repeatChooseGreatest lowers Gix's Command's fourth mode body: RepeatEach
-// Player.Opponent whose body is one ChooseCard by the repeated player of
-// "a creature with the greatest power among creatures they control"
-// (Choices$ Creature.greatestPowerControlledByRemembered, Mandatory$,
-// RememberChosen$; gorge choose_control.go), the SacrificeAll IsRemembered
-// after the loop reading it. The greatest power is the repeated player's
-// (Count$Valid Creature.RememberedPlayerCtrl, kop.CtrlEachPl), read inside
-// the body at any seat count; the chooser's filter is a creature it
-// controls with power >= that (kop.PredPowerGEV). ok false: not this shape.
+// Player.Opponent whose body is one ChooseCard of "a creature with the
+// greatest power among creatures they control" (Choices$
+// Creature.greatestPowerControlledByRemembered, Mandatory$, RememberChosen$;
+// gorge choose_control.go), the SacrificeAll IsRemembered after the loop
+// reading it. Defined$ Player.IsRemembered is the repeated player choosing for
+// herself (Gix's Command); Defined$ You is the resolving controller choosing
+// among the repeated opponent's creatures (Highcliff Felidar). Both read the
+// same repeated-player aggregate; only the chooser differs. The greatest power
+// is the repeated player's (Count$Valid Creature.RememberedPlayerCtrl,
+// kop.CtrlEachPl), read inside the body at any seat count; the chooser's
+// filter is a creature of the repeated player's with power >= that
+// (kop.PredPowerGEV). ok false: not this shape.
 func (lc *lowerCtx) repeatChooseGreatest(who lRef, body *cards.SA) (bool, error) {
 	if body.API != "ChooseCard" || body.Sub != nil || who.Kind != rEachOpp {
 		return false, nil
 	}
 	ps := newParams(body.Params)
-	if ps.str("Choices") != "Creature.greatestPowerControlledByRemembered" || ps.str("Defined") != "Player.IsRemembered" {
+	if ps.str("Choices") != "Creature.greatestPowerControlledByRemembered" {
+		return false, nil
+	}
+	chooser := lRef{Kind: rEach}
+	switch ps.str("Defined") {
+	case "Player.IsRemembered":
+	case "You":
+		chooser = lRef{Kind: rYou}
+	default:
 		return false, nil
 	}
 	if !ps.is("Mandatory", "True") || !ps.is("RememberChosen", "True") {
@@ -205,12 +237,66 @@ func (lc *lowerCtx) repeatChooseGreatest(who lRef, body *cards.SA) (bool, error)
 	if err != nil {
 		return true, err
 	}
-	f := &lFilter{Clauses: []lClause{{Types: tCreature, Ctrl: whoYou, CmpStat: cmpPower, CmpOp: opGE, CmpV: &maxV}}}
+	f := &lFilter{Clauses: []lClause{{Types: tCreature, Ctrl: whoEachPl, CmpStat: cmpPower, CmpOp: opGE, CmpV: &maxV}}}
 	at := len(lc.ab.Prog)
 	lc.emit(lInstr{Op: "RepeatEach", Obj: who, C: 1})
-	lc.emit(lInstr{Op: "ChooseCard", Obj: lRef{Kind: rEach}, F: f, C: zBattlefield, CS: "Remember"})
+	lc.emit(lInstr{Op: "ChooseCard", Obj: chooser, F: f, C: zBattlefield, CS: "Remember"})
 	lc.ab.Prog[at].Skip = len(lc.ab.Prog) - at - 1
 	return true, nil
+}
+
+// chooseCardFilter builds a ChooseCard's Choices$ filter through the ordinary
+// parser. Inside a RepeatEach player body whose chooser is the repeated player,
+// "not controlled by the remembered player" is the kernel's CtrlOpp read from
+// the chooser's perspective (Fortunate Few's !RememberedPlayerCtrl). A pick
+// whose chooser is not the repeated player keeps refusing the word: the two
+// are not the same set then.
+//
+// The greatest-mana-value spellings (Tariff, Dispersal) lower as the repeated
+// player's own extreme read: the aggregate is the greatest mana value among
+// the repeated player's creatures or nonland permanents (kop ExValidAgg
+// AggGreatestMV, gorge count_body_zone's $GreatestCardManaCost fold), read
+// inside the loop so it sees the iteration's player; each candidate clause
+// compares its own mana value against it with == (ties match, gorge
+// filter.go's greatestCMC branch). The greatest-power spelling stays with
+// repeatChooseGreatest (Gix's Command, Highcliff Felidar).
+func (lc *lowerCtx) chooseCardFilter(choices string, chooserEach bool) (*lFilter, error) {
+	if lc.repeatPl > 0 && chooserEach {
+		switch choices {
+		case "Creature.greatestCMC_CreatureControlledByRemembered":
+			return lc.greatestCMCFilter("Creature.RememberedPlayerCtrl", "Count$Valid Creature.RememberedPlayerCtrl$GreatestCardManaCost")
+		case "Permanent.greatestCMC_NonLandPermanentControlledByRemembered":
+			return lc.greatestCMCFilter("Permanent.nonLand+RememberedPlayerCtrl", "Count$Valid Permanent.nonLand+RememberedPlayerCtrl$GreatestCardManaCost")
+		}
+		choices = strings.ReplaceAll(choices, "!RememberedPlayerCtrl", "OppCtrl")
+	}
+	return lc.filter(choices)
+}
+
+// greatestCMCFilter is chooseCardFilter's greatest-mana-value arm: base is the
+// candidate's ordinary filter (the repeated player's creatures or nonland
+// permanents) and count its greatest-mana-value aggregate. The aggregate is
+// read inside the loop, so it sees the iteration's player; every clause of
+// the candidate filter compares its mana value against it (ties match).
+func (lc *lowerCtx) greatestCMCFilter(base, count string) (*lFilter, error) {
+	maxV, err := lc.svarValue(count, 0)
+	if err != nil {
+		return nil, err
+	}
+	f, err := lc.filter(base)
+	if err != nil {
+		return nil, err
+	}
+	for i := range f.Clauses {
+		f.Clauses[i].CmpStat = cmpCMC
+		// The aggregate is the maximum, so equality selects the
+		// greatest-mana-value candidates; the kernel's value-bounded CMC
+		// compare lowers it (PredCMCLEV with the == PredN).
+		f.Clauses[i].CmpOp = opEQ
+		f.Clauses[i].CmpV = &maxV
+		f.Clauses[i].CmpX = ""
+	}
+	return f, nil
 }
 
 // a RepeatEach player body reading the repeated

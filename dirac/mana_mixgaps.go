@@ -70,14 +70,30 @@ type otherStep struct {
 // nothing else. gorge's one prefix search activates every census gap in
 // battlefield order, and the filter search takes the non-filter gaps as
 // otherGap steps: otherGap's sacrifice-another, deferred and counter arms.
-func (s *State) mixBoard(k *prep, p uint8) bool {
+func (s *State) mixBoard(k *prep, p uint8) bool { return s.mixBoardFilt(k, p, filtUnread) }
+
+// The scriptFilt(k, p).any() a mixBoardFilt caller has read in this state, or
+// filtUnread for mixBoardFilt to read it: scriptFilt is a walk of every
+// filter source's fee, so a caller that read it does not repeat it.
+const (
+	filtNone int8 = iota
+	filtSome
+	filtUnread int8 = -1
+)
+
+// mixBoardFilt is mixBoard with filt, p's scriptFilt(k, p).any(), when the
+// caller has read it (filtNone or filtSome).
+func (s *State) mixBoardFilt(k *prep, p uint8, known int8) bool {
 	if k.gen != nil && k.gen.anyMultiR && s.wide2Board(k, p) {
 		return true // any-colour restricted gaps, a second-ability wide one among them (mana_restrictedcombo.go)
 	}
 	if k.gen == nil || !k.gen.anyFilt && !k.tapMana || !k.gen.anyAnyR && !k.gen.anyComboAny && !k.tapMana && !k.gen.anyEachCol && !k.gen.anyDeferred && !k.ctrMana && !k.gen.anyManaRider && !k.gen.uses.has(useLifeGap) {
 		return false
 	}
-	filt := s.scriptFilt(k, p).any()
+	filt := known == filtSome
+	if known == filtUnread {
+		filt = s.scriptFilt(k, p).any()
+	}
 	if k.tapMana && s.sacXLive(k, p) && !filt {
 		return false // no filter gap beside: a sacrifice-another source is the tap-another search's alone (mana_tapanother.go)
 	}
@@ -220,7 +236,7 @@ var DebugEachNoFilterChain bool
 // caFiltBoard reports whether p's live Combo Any source is a gap of the filter
 // search (mixComboAny beside a live filter on a mixBoard).
 func (s *State) caFiltBoard(k *prep, p uint8) bool {
-	return k.gen != nil && k.gen.anyComboAny && k.gen.anyFilt && s.scriptFilt(k, p).any() && s.mixComboAny(k, p, true).any() && s.mixBoard(k, p)
+	return k.gen != nil && k.gen.anyComboAny && k.gen.anyFilt && s.scriptFilt(k, p).any() && s.mixComboAny(k, p, true).any() && s.mixBoardFilt(k, p, filtSome)
 }
 
 // comboAnyOther branches Combo Any gap sl's colour ask at a priority node (the

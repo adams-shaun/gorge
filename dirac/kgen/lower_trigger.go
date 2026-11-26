@@ -367,7 +367,7 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 		// ValidCard$ (Tf2Unblocked on the become-blocked subscription);
 		// ValidDefender$ stays unread, a zone other than the battlefield
 		// refuses
-		if tr.Zone != 0 && tr.Zone != zBattlefield {
+		if tr.Zone != 0 && tr.Zone != zBattlefield && !(tr.Zone == zCommand && lc.granted > 0) { // an Effect's emblem trigger sits in the command zone
 			return refuse("AttackerUnblocked TriggerZones %d", tr.Zone)
 		}
 		if tr.F, err = readF("ValidCard"); err != nil {
@@ -1372,6 +1372,19 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 			}
 			tr.First = true
 		}
+	case "Exerted":
+		// the OptionalAttackCost static's rider (gorge checkExertTriggers
+		// queues it off the carrier's own Exert event, CR 702.100a): the
+		// card's own self trigger, fired by the kernel's exert yes
+		// (dirac/combat_exert.go). A printed Mode$ Exerted line ("whenever
+		// you exert a creature") reads other creatures and stays refused.
+		if !lc.exertRider || tp.str("ValidCard") != "Card.Self" {
+			return refuse("Exerted trigger")
+		}
+		if tr.Zone != 0 && tr.Zone != zBattlefield {
+			return refuse("Exerted TriggerZones %d", tr.Zone)
+		}
+		tp.consume("ValidCard")
 	case "Evolved":
 		// gorge trigmatch evolvedMatches (CR 702.100b): the events.Evolved
 		// marker rules' resolveTop emits once the Evolve keyword's counter
@@ -1547,6 +1560,17 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 		}
 		tr.Outstanding = true
 		ab.Name = "CheckOnTriggerOnly"
+	case "ChaosEnsues":
+		// The face-up plane's chaos ability (CR 901.9): every corpus carrier
+		// declares TriggerZones$ Command, and the plane lives in the planar
+		// deck, so the kernel's synthetic plane scan (eachPlaneTrigger,
+		// zone_planechase.go) reads this zone rather than the ordinary walk.
+		if tr.Zone != zCommand {
+			return refuse("ChaosEnsues outside TriggerZones$ Command")
+		}
+		if _, ok := tp.get("ValidCard"); ok {
+			return refuse("ChaosEnsues ValidCard$")
+		}
 	case "LandPlayed", "SearchedLibrary", "Forage", "Discover", "ManifestDread":
 		if err := lc.trigModes2(tp, tr, t.Mode, zone, readF); err != nil {
 			return err

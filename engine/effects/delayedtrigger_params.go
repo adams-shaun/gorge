@@ -66,10 +66,27 @@ type DelayedTriggerParams struct {
 	RememberNumber bool
 	// Execute is Execute$, trimmed.
 	Execute string
+	// Description is the registration's TriggerDescription$ -- the prose a
+	// client shows for the delayed trigger ("Draw a card.", Arcane Denial's
+	// slowtrip pair). A face trigger's own TriggerDescription$ is readable
+	// from its T: line forever; a DB$ DelayedTrigger has no such line, so the
+	// registration must carry the text or two delayed triggers from one
+	// source are indistinguishable in a CR 603.3b order ask. It rides the
+	// DelayedRegister event's Text ("|LB=", appended last / stripped first)
+	// into state.DelayedTrigger.Description, from which rules'
+	// checkDelayedTriggers queues the pending trigger's own line.
+	Description string
 	// ThisTurn is ThisTurn$ True.
 	ThisTurn bool
 	// Static is Static$, trimmed.
 	Static string
+	// EntersRemembered marks the "when that permanent enters" shape: Mode$
+	// ChangesZone, Destination$ Battlefield from any origin, ValidCard$
+	// Card.IsTriggerRemembered, nothing else gating it (Jailbreak). Such a
+	// registration made after its remembered object already entered during
+	// the same resolution still triggers for that entry (CR 603.12), so the
+	// resolution queues the reflexive ability instead of registering.
+	EntersRemembered bool
 
 	// Unread are the parameters present on the ability that no
 	// DelayedTrigger reader consumes: the resolution Notes them once.
@@ -184,7 +201,7 @@ var delayedTriggerKnownKeys = [...]string{
 	"PresentDefined",
 	"PresentZone",
 	"PrimaryPrompt",
-	"RandomNumTargets",
+	"RaiseCost", "RandomNumTargets",
 	"ReduceAmount",
 	"ReduceCost",
 	"RememberAnimated",
@@ -314,8 +331,18 @@ func compileDelayedTrigger(sa *cards.SA, ap *ActivationParams) *DelayedTriggerPa
 	p.OncePerSource = isTrue(sa.ParamStr(cards.PKOncePerSource))
 	p.RememberNumber = isTrue(sa.ParamStr(cards.PKRememberNumber))
 	p.Execute = strings.TrimSpace(sa.ParamStr(cards.PKExecute))
+	p.Description = sa.ParamStr(cards.PKTriggerDescription)
 	p.ThisTurn = isTrue(sa.ParamStr(cards.PKThisTurn))
 	p.Static = strings.TrimSpace(sa.ParamStr(cards.PKStatic))
+	if origin := strings.TrimSpace(sa.ParamStr(cards.PKOrigin)); p.Mode == "ChangesZone" &&
+		(origin == "" || origin == "Any") &&
+		strings.TrimSpace(sa.ParamStr(cards.PKDestination)) == "Battlefield" &&
+		strings.TrimSpace(sa.ParamStr(cards.PKValidCard)) == "Card.IsTriggerRemembered" &&
+		strings.TrimSpace(sa.ParamStr(cards.PKValidCards)) == "" &&
+		strings.TrimSpace(sa.ParamStr(cards.PKValidPlayer)) == "" &&
+		ap.IsPresent.Text == "" && !p.ThisTurn {
+		p.EntersRemembered = true
+	}
 
 	// The Phase registration's Text (see effDelayedTrigger).
 	text := p.Phase

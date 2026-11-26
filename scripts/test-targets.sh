@@ -168,7 +168,7 @@ if [ "$mode" = list ]; then exec "${py[@]}" select --base "$BASE"; fi
 # ---- preflight ---------------------------------------------------------------------------------------
 cards=${GORGE_CARDS:-.cards}
 [ -n "$(ls -A "$cards/cardsfolder" 2>/dev/null | head -1)" ] ||
-	verdict ENV "no corpus: $cards/cardsfolder is missing or empty, so every corpus test would skip. ln -s <main checkout>/.cards .cards (or make link-cards)"
+	verdict ENV "no corpus: $cards/cardsfolder is missing or empty, so every corpus test would skip. run scripts/link-cards.sh: it links the corpus of this tree's own FORGE_REF"
 git rev-parse --verify -q "$BASE^{commit}" >/dev/null || verdict ENV "base $BASE does not resolve in this worktree"
 git merge-base --is-ancestor "$BASE" HEAD || echo "test-targets: note: HEAD is not on top of $BASE; the landing rebases, so a conflict with it is not covered" >&2
 mod=$(go list -m) || verdict ENV "go list -m failed"
@@ -222,8 +222,9 @@ if [ "$mode" = one ]; then
 	[ -n "${RUN:-}" ] || usage "RUN=<test regexp> is required"
 	case ${SHORT:-} in '' | 1) ;; *) usage "SHORT is 1 or empty (got '$SHORT')" ;; esac
 	case $pkg in ./engine/rules | ./dirac/oracle)
-		# An exact name (or a |-alternation of them), so a broad pattern cannot run the whole package.
-		[[ $RUN =~ ^\^[A-Za-z0-9_|^$]*[A-Za-z0-9_]\$$ ]] ||
+		# An exact name (or a |-alternation of them), so a broad pattern cannot run the whole package; it may end in
+		# one /subtest pattern ('^TestPinManifest$/^TestX\.0$': re-record one pin without the whole manifest's budget).
+		[[ $RUN =~ ^\^[A-Za-z0-9_|^$]*[A-Za-z0-9_]\$(/[][A-Za-z0-9_.|^$\\()-]+)?$ ]] ||
 			usage "$pkg is too big to run whole: name the exact tests in RUN (e.g. '^TestX\$'); got '$RUN'"
 		;;
 	esac

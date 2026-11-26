@@ -177,8 +177,8 @@ func (s *State) turnUpMaxX(k *prep, p uint8, cost *kop.ManaCost, sp kop.SpecialM
 // turnUpOffered: the special action's mana pays the turn-up (a keyword cost
 // with {X} at some announced X).
 func (s *State) turnUpOffered(k *prep, p uint8, cost *kop.ManaCost, sp kop.SpecialMask, sl Slot, kw bool) bool {
-	if kw && !s.turnUpLifeOK(k, p, sl) {
-		return false // face_morphlife.go: the keyword's PayLife<N>
+	if kw && !s.turnUpKwPayable(k, p, sl) {
+		return false // face_morphlife.go, act_revealpick.go: the keyword's PayLife<N> or Reveal<1/Spec>
 	}
 	if kw && cost.X > 0 {
 		return s.turnUpMaxX(k, p, cost, sp, sl) >= 0
@@ -203,7 +203,7 @@ func (s *State) turnUpListed(k *prep, p uint8, cost *kop.ManaCost, sp kop.Specia
 		// the pool-only offer is the one gorge's ordinary walk has.
 		return false
 	}
-	if !s.turnUpLifeOK(k, p, sl) {
+	if !s.turnUpKwPayable(k, p, sl) {
 		// face_morphlife.go: the keyword's PayLife<N> is not payable, so no
 		// tap of the sources can make the action legal (turnUpOffered's gate)
 		return false
@@ -215,7 +215,7 @@ func (s *State) turnUpListed(k *prep, p uint8, cost *kop.ManaCost, sp kop.Specia
 // turnUpTapPays: the untapped sources (or a restricted, rider, planner or
 // filter route) pay the keyword turn-up's cost at the smallest {X}.
 func (s *State) turnUpTapPays(k *prep, p uint8, c0 *kop.ManaCost, sp kop.SpecialMask, sl Slot, mode uint8) bool {
-	return s.sourcesPay(k, p, c0) || s.turnUpRestrPays(k, p, c0, sp, sl) || s.turnUpRiderPays(k, p, c0) || s.turnUpPlannerPays(k, p, c0) || s.turnUpFilterPays(k, p, sl, mode) || s.turnUpTapXPays(k, p, sl, mode)
+	return s.sourcesPay(k, p, c0) || s.turnUpRestrPays(k, p, c0, sp, sl) || s.turnUpRiderPays(k, p, c0) || s.turnUpPlannerPays(k, p, c0) || s.turnUpFilterPays(k, p, sl, mode) || s.turnUpTapXPays(k, p, sl, mode) || s.turnUpDeferPays(k, p, sl, mode)
 }
 
 // turnUpStoreOnly: only an idle storage battery's open production prices the

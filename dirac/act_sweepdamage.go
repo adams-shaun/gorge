@@ -64,6 +64,12 @@ func (s *State) sweepFrom(k *prep, in *kop.Instr) {
 		for i := 0; i < cnt; i++ {
 			if sl := ord[i]; s.isCreature(k, sl) {
 				s.damageTo(k, TCode(s.perms[sl].obj), n)
+				if s.g.nc.n != 0 {
+					// an event parked on its ask (Dralnu's sacrifice): gorge asks it
+					// between the sweep's events, and this loop has no resume
+					s.capFull(StallReplPlus)
+					return
+				}
 			}
 		}
 		if in.C&sweepPlHits != 0 && !DebugSweepNoPlHits { // seat-ok: a test-only mutation (DebugSweepNoPlHits)

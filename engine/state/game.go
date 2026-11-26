@@ -772,7 +772,18 @@ type DelayedTrigger struct {
 	Grantor    ObjID
 	Controller PlayerID
 	Execute    string // the SVar name of the ability to run when it fires
-	Remembered []Target
+	// Description is the registering DelayedTrigger SA's TriggerDescription$
+	// -- the prose a client labels the delayed trigger with ("Draw a card.",
+	// Arcane Denial's slowtrip). A face trigger's own TriggerDescription$
+	// stays readable from its T: line, but a DB$ DelayedTrigger has no such
+	// line, so without it two delayed triggers from one source are
+	// indistinguishable in a CR 603.3b order ask. Empty for a registration
+	// with no TriggerDescription$ (a keyword-minted or generated one), which
+	// labels from the source name as before. Folded from the DelayedRegister
+	// event's Text ("|LB=<text>", appended last so the decode strips it
+	// first); replay rebuilds it.
+	Description string
+	Remembered  []Target
 	// CaptureOnly marks a registration whose memory is nothing but its
 	// creating trigger's event capture (no RememberObjects$, and the chain
 	// remembered nothing of its own): the body's Defined$ Remembered reads
@@ -896,6 +907,13 @@ type DelayedTrigger struct {
 	ForgetCounter  string
 	ForgetOnCast   string
 	ImprintOnHost  bool
+	// ForgetOnPhasedIn is Forge's Effect ForgetOnPhasedIn$ True (CR 702.25's
+	// "phased out until ..." comeback family, The Pandorica): a remembered
+	// permanent that phases in leaves this registration's capture, and an
+	// emptied capture retires the registration, so the comeback body (a
+	// toggling `DB$ Phases | PhaseInOrOut$ True`) never phases the returned
+	// permanent out again. Rides the DelayedRegister Text as a "|FP" tail.
+	ForgetOnPhasedIn bool
 	// SourceIncarnation is captured for keyword promises whose effect applies
 	// to that exact permanent (dash/warp). Ordinary CR 603.7 delayed triggers,
 	// including Encore's group cleanup, intentionally leave TrackSource false:

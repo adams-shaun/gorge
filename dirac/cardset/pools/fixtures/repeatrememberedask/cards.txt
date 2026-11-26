@@ -1,0 +1,12 @@
+# The asking remembered-set RepeatEach pool (dirac/oracle/repeateach_remembered_ask_test.go):
+# Stench of Evil (DestroyAll Plains RememberDestroyed$, then per destroyed Plains
+# one damage to its controller unless they pay {2}, all in one damage batch)
+# beside Plains on both sides, Swamps and Mountains to pay with, and creatures.
+Stench of Evil
+Grizzly Bears
+Hill Giant
+Llanowar Elves
+Forest
+Plains
+Swamp
+Mountain

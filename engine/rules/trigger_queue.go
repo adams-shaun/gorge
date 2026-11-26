@@ -441,8 +441,24 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 				e.drainAwaitsModes = true
 			}
 		}
-		if !handled && effects.TargetsOf(pt.SA).Targeted() {
-			e.askTargetChained(pt.Controller, id, pt.SA, e.triggerChainPreAsks(pt.SA))
+		// An activated Support carrier riding a trigger (Jubilant Mascot's
+		// "you may pay {3}{W}. If you do, support 2"): supportTargetSA's
+		// declaration announces its targets as the ability goes on the stack
+		// (CR 603.3d, with CR 701.41a and 602.2b), not as a resolution
+		// counter_pick. The IsPutCounter gate is offer-time-free and keeps
+		// the read typed: supportTargetSA reads Support$ through
+		// PutCounterOf, so no other trigger API's known-key census learns
+		// Support from this path.
+		tsa := pt.SA
+		if effects.IsPutCounter(pt.SA) {
+			var tf *cards.Face
+			if src := e.G.Obj(pt.Source); src != nil {
+				tf = src.Face()
+			}
+			tsa = supportTargetSA(pt.SA, tf)
+		}
+		if !handled && effects.TargetsOf(tsa).Targeted() {
+			e.askTargetChained(pt.Controller, id, tsa, e.triggerChainPreAsks(pt.SA))
 		}
 		if !handled {
 			e.startTriggerSubTargets(id, pt.Controller, pt.SA)
@@ -1246,7 +1262,18 @@ func (e *Engine) triggerOf(pt pendingTrigger) (cards.Trigger, bool) {
 	// index Face().Triggers for it: that would hand back whatever printed
 	// line shares the index -- a granted Prowess reading Momo's
 	// leaves-the-battlefield TriggerDescription$ and OptionalDecider$.
-	if pt.Granted || pt.Trigger.Mode != "" {
+	//
+	// The ctx-keyword shapes (the Afflict: amount and Poisonous literals
+	// grantedPoisonousTriggers and checkGrantedAfflictTriggers queue) ride
+	// the same rule with nothing to read: Idx stays 0 and the push's
+	// KeywordTriggerPush payload carries the body, so a source whose face
+	// DOES print a trigger would have line 0 handed back for its poisonous
+	// instance -- on Brood Sliver (the first T: line is the optional token
+	// trigger, OptionalDecider$ TriggeredSourceController) the mandatory
+	// poisonous trigger (CR 702.70a, 603.5) was mislabelled with the printed
+	// description and posed as Brood's optional. Return false; the label arm
+	// in triggerLabel names these entries from the keyword instead.
+	if pt.Granted || pt.Trigger.Mode != "" || pt.Poisonous != "" || pt.Afflict != "" {
 		if pt.Trigger.Mode == "" {
 			return cards.Trigger{}, false
 		}
@@ -1777,6 +1804,27 @@ func (e *Engine) triggerLabel(pt pendingTrigger) string {
 		}
 		return name + ": ward (" + pt.Ward + ")"
 	}
+	// The ctx-keyword triggers (the Afflict/Poisonous arms of
+	// trigger_granted.go): no face trigger line exists for them, so -- as for
+	// Ward and Cascade -- the label names the keyword and its amount off the
+	// queue entry, not a printed TriggerDescription$ the source may not carry
+	// (a bare `Virulent Sliver`) or may carry for an unrelated line (Brood
+	// Sliver's token trigger).
+	if pt.Poisonous != "" || pt.Afflict != "" {
+		name := "a creature"
+		if o := e.G.Obj(pt.Source); o != nil {
+			if f := o.Face(); f != nil && f.Name != "" {
+				name = f.Name
+			}
+		}
+		if pt.Poisonous != "" {
+			return name + ": poisonous " + pt.Poisonous
+		}
+		return name + ": afflict " + pt.Afflict
+	}
+	if l, ok := grantedAttackKeywordLabel(e.G, pt); ok {
+		return l
+	}
 	if pt.Cascade {
 		name := "a spell"
 		if o := e.G.Obj(pt.Source); o != nil {
@@ -1858,6 +1906,26 @@ func (e *Engine) triggerLabel(pt pendingTrigger) string {
 		}
 	}
 	return name
+}
+
+// grantedAttackKeywordLabel names a layer-6 granted Exalted or Melee instance
+// (melee.go) by keyword, as Ward and Cascade are: it has no face trigger
+// line, and a bare source name (two Clue Tokens under Merchant of Truth)
+// cannot be bound to one trigger by a client.
+func grantedAttackKeywordLabel(g *state.Game, pt pendingTrigger) (string, bool) {
+	if !pt.Exalted && !pt.Melee {
+		return "", false
+	}
+	name := "a creature"
+	if o := g.Obj(pt.Source); o != nil {
+		if f := o.Face(); f != nil && f.Name != "" {
+			name = f.Name
+		}
+	}
+	if pt.Exalted {
+		return name + ": exalted", true
+	}
+	return name + ": melee", true
 }
 
 // abilityLabel is the resolution-side sibling of triggerLabel: the label a

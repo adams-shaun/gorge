@@ -190,6 +190,9 @@ func (s *State) offerAltHand(k *prep, d *Decision, p uint8, o Obj, c CardID, av 
 	if k.t.Cards[c].HasDash {
 		s.offerDashHand(k, d, p, o, c, av) // kw_dash.go
 	}
+	if k.t.Cards[c].HasBlitz {
+		s.offerBlitzHand(k, d, p, o, c, av) // kw_blitz.go
+	}
 	if k.t.Cards[c].HasOverload {
 		s.offerOverloadHand(k, d, p, o, c, av) // kw_overload.go
 	}

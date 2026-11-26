@@ -146,8 +146,14 @@ func grantWalkKey(s *State, sl Slot) uint32 {
 // relative order listenerOrder's list does. Equal keys keep slot order, as
 // the walk's stable sort does.
 func (s *State) grantOrder(k *prep, ord *[MaxPerm]Slot) int {
+	return s.grantOrderIn(k, s.statM, ord)
+}
+
+// grantOrderIn is grantOrder restricted to the statM slots in from: the
+// same relative order, as the insertion is stable.
+func (s *State) grantOrderIn(k *prep, from slotMask, ord *[MaxPerm]Slot) int {
 	n := 0
-	for m := s.statM; m.any(); m = m.rest() {
+	for m := from; m.any(); m = m.rest() {
 		sl := m.first()
 		if !k.cards[s.cardAt(sl)].grantStat {
 			continue
@@ -172,6 +178,13 @@ func (s *State) grantOrder(k *prep, ord *[MaxPerm]Slot) int {
 //
 //go:noinline
 func (s *State) contGrants(k *prep, sl Slot, lost bool, lts uint16, f func(c CardID, ab uint8, n int)) {
+	s.contGrantsIn(k, s.statM, sl, lost, lts, f)
+}
+
+// contGrantsIn is contGrants over the statM sources in from (a superset of
+// the gfContGrant ones: grantSrcScan's); the walk skips every other source,
+// so the order it reads is grantOrder's restricted to from.
+func (s *State) contGrantsIn(k *prep, from slotMask, sl Slot, lost bool, lts uint16, f func(c CardID, ab uint8, n int)) {
 	// gorge lists the grants in its static walk's order (collectActionStatics:
 	// each seat's battlefield in entry order), which the activation ask
 	// and the prefix search follow (the first grant's colours are tried
@@ -181,7 +194,7 @@ func (s *State) contGrants(k *prep, sl Slot, lost bool, lts uint16, f func(c Car
 	// gfContGrant check keeps the ones f can be called for, in the same
 	// relative order.
 	var order [MaxPerm]Slot
-	n := s.grantOrder(k, &order)
+	n := s.grantOrderIn(k, from, &order)
 	for oi := 0; oi < n; oi++ {
 		src := order[oi]
 		cid := s.cardAt(src)
@@ -230,17 +243,20 @@ func (s *State) grantIdxs(k *prep, sl Slot, out *[maxGrants]int16) (n int) {
 	// by the granting source's place in that walk. A grant without a
 	// source in it (an Animate record) keeps its place after them.
 	var order [MaxPerm]Slot
-	no := 0
-	if g.anyContGrant {
-		// the grant walk's order restricted to the slots whose card at
-		// cardAt can grant a static ability (pc.grantStat): grantsBetween's
-		// attached statics and contGrants' unattached ones, every source
-		// grantSrc names. The place scan below reads the same relative
-		// order off it as off listenerOrder's full walk.
-		no = s.grantOrder(k, &order)
-	}
+	no := -1 // the order is read on the first grant: most slots have none
 	var key [maxGrants]uint8
 	s.grantedAbilities(k, sl, func(c CardID, ab uint8) {
+		if no < 0 {
+			no = 0
+			if g.anyContGrant {
+				// the grant walk's order restricted to the slots whose card at
+				// cardAt can grant a static ability (pc.grantStat): grantsBetween's
+				// attached statics and contGrants' unattached ones, every source
+				// grantSrc names. The place scan below reads the same relative
+				// order off it as off listenerOrder's full walk.
+				no = s.grantOrder(k, &order)
+			}
+		}
 		pos := uint8(255)
 		for oi := 0; oi < no; oi++ {
 			if s.g.grantSrc != 0 && s.perms[order[oi]].obj+1 == s.g.grantSrc {
@@ -280,6 +296,12 @@ func (s *State) grantIdxs(k *prep, sl Slot, out *[maxGrants]int16) (n int) {
 //go:noinline
 func (s *State) grantIdx(k *prep, sl Slot) int {
 	var gi [maxGrants]int16
+	if !s.manaGrantMay(k, sl) {
+		if DebugGrantGateShadow {
+			grantGateShadow(s, k, sl, &gi)
+		}
+		return -1
+	}
 	if s.grantIdxs(k, sl, &gi) == 0 {
 		return -1
 	}
@@ -336,7 +358,7 @@ func (s *State) planGrantsOf(k *prep, pc *pcard, sl Slot, g *planGrants) bool {
 // ability, so a plan with one is reached only when the printed units have no
 // plan), its sacrifice planGrantSacUnit's. It reports whether the source is
 // done for this pass; before phase 2 it only marks the shape as having a grant.
-func (s *State) planGrantSacOnly(k *prep, p uint8, pk *planner, sl Slot, pc *pcard, phase int, g *planGrants, hasGrant *bool) bool {
+func (s *State) planGrantSacOnly(k *prep, p uint8, pk *planner, i int, sl Slot, pc *pcard, phase int, g *planGrants, hasGrant *bool) bool {
 	if g.sacN == 0 || s.canTapForManaPC(k, sl, pc) {
 		return false
 	}
@@ -344,22 +366,22 @@ func (s *State) planGrantSacOnly(k *prep, p uint8, pk *planner, sl Slot, pc *pca
 		*hasGrant = true
 		return true
 	}
-	s.planGrantSacUnit(k, p, pk, sl, g.sacM, g.sacN, s.isCreature(k, sl))
+	s.planGrantSacUnit(k, p, pk, i, sl, g.sacM, g.sacN, s.isCreature(k, sl))
 	return true
 }
 
 // planGrantsPhase2 adds sl's granted units in phase 2, after its printed unit:
 // the granted {T} of a sacrifice-only source, and the granted sacrifice of an
 // untapped tap source (its printed unit is phase 0's; planTapGrantSac).
-func (s *State) planGrantsPhase2(k *prep, p uint8, pk *planner, sl Slot, pc *pcard, phase int, g *planGrants, cr bool) {
+func (s *State) planGrantsPhase2(k *prep, p uint8, pk *planner, i int, sl Slot, pc *pcard, phase int, g *planGrants, cr bool) {
 	if phase != 2 {
 		return
 	}
 	if g.tap != nil {
-		s.planGrantUnit(k, p, pk, sl, g.tap, cr)
+		s.planGrantUnit(k, p, pk, i, sl, g.tap, cr)
 	}
 	if g.sacN != 0 && s.canTapForManaPC(k, sl, pc) {
-		s.planGrantSacUnit(k, p, pk, sl, g.sacM, g.sacN, cr)
+		s.planGrantSacUnit(k, p, pk, i, sl, g.sacM, g.sacN, cr)
 	}
 }
 
@@ -383,7 +405,7 @@ func (s *State) planOwnSacGrant(k *prep, pc *pcard, sl Slot) *pcard {
 // planner beside the printed unit the loop emitted: the tap unit of
 // ownSacGrantTap, shaped like a grant-only source's unit (manaPCGen returns
 // its granted view there).
-func (s *State) planGrantUnit(k *prep, p uint8, pk *planner, sl Slot, gt *pcard, cr bool) {
+func (s *State) planGrantUnit(k *prep, p uint8, pk *planner, i int, sl Slot, gt *pcard, cr bool) {
 	if pk.nu >= maxUnits || pk.nt >= maxTypes {
 		return // the caller's loop holds the same guards
 	}
@@ -410,7 +432,7 @@ func (s *State) planGrantUnit(k *prep, p uint8, pk *planner, sl Slot, gt *pcard,
 	}
 	pk.types[ti].avail++
 	pk.units[pk.nu] = sl
-	pk.uobj[pk.nu] = s.perms[sl].obj
+	pk.rankUnit(s, i, sl)
 	pk.utyp[pk.nu] = uint8(ti)
 	pk.rkind[pk.nu] = 0
 	// the grant's ability number names nothing on sl's own card, and
@@ -463,11 +485,7 @@ func (s *State) planInertGrant(k *prep, pk *planner, i int, sl Slot, pc *pcard, 
 	}
 	pk.types[ti].avail++
 	pk.units[pk.nu] = sl
-	if pk.bfl {
-		pk.uobj[pk.nu] = Obj(i) // battlefield order (plan's hybrid census)
-	} else {
-		pk.uobj[pk.nu] = s.perms[sl].obj
-	}
+	pk.rankUnit(s, i, sl)
 	pk.utyp[pk.nu] = uint8(ti)
 	pk.rkind[pk.nu] = 0
 	pk.rAb[pk.nu] = -1 // planGrantUnit's: the grant's ability number names nothing on sl's own card
@@ -482,7 +500,7 @@ func (s *State) planInertGrant(k *prep, pk *planner, i int, sl Slot, pc *pcard, 
 // 605.1a), the colours joined, the amount the largest. It is the printed
 // last-resort unit's sacrifice (utype.sac) with no tap (sacOnly):
 // grantSacLive costs no {T}, tapped or summoning sick alike (CR 302.6).
-func (s *State) planGrantSacUnit(k *prep, p uint8, pk *planner, sl Slot, mask, n uint8, cr bool) {
+func (s *State) planGrantSacUnit(k *prep, p uint8, pk *planner, i int, sl Slot, mask, n uint8, cr bool) {
 	if pk.nu >= maxUnits || pk.nt >= maxTypes {
 		return // the caller's loop holds the same guards
 	}
@@ -508,7 +526,7 @@ func (s *State) planGrantSacUnit(k *prep, p uint8, pk *planner, sl Slot, mask, n
 	}
 	pk.types[ti].avail++
 	pk.units[pk.nu] = sl
-	pk.uobj[pk.nu] = s.perms[sl].obj
+	pk.rankUnit(s, i, sl)
 	pk.utyp[pk.nu] = uint8(ti)
 	pk.rkind[pk.nu] = 0
 	pk.rAb[pk.nu] = -1 // planGrantUnit's: the grant's ability number names nothing on sl's own card
@@ -1030,7 +1048,7 @@ func (s *State) availUngranted(k *prep, p uint8, a *avail) {
 	}
 	var deferGap slotMask
 	if s.deferLive(k) && s.g.availX&(availWalk|availHyp) == 0 {
-		deferGap = s.scriptTapsDefer(k, SeatIx(p)) // as availFor: gorge's census never lists a planner-deferred source (a counter rider, a Taps watcher), so the witness never pays with it
+		deferGap = s.scriptTapsDefer(k, SeatIx(p)).or(s.tapsDeferDead(k, SeatIx(p))) // as availFor: gorge's census never lists a planner-deferred source (a counter rider, a Taps watcher, an unless chooser), so the witness never pays with it
 	}
 	for m := s.ctrlM[SeatIx(p)]; m.any(); m = m.rest() {
 		sl := m.first()
@@ -1533,11 +1551,10 @@ func (g *grantSrch) gapFlags(s *State, n int, sl Slot, ng int, fm, tm, dm, em, w
 	case xm.has(sl) && !fm.has(sl) && !tm.has(sl) && !em.has(sl) && !wm.has(sl):
 		g.tdef[n] = true // (mana_granttapsdefer.go)
 	case cm.has(sl) && !fm.has(sl) && !tm.has(sl) && !em.has(sl) && !wm.has(sl) && !xm.has(sl):
-		// the dead and storage shapes stay on the script route (a counter-scaled sacrifice source is a step: mana_sacctr.go): a dead gap
-		// makes no mana and a storage battery's X is announced, neither a
-		// branch of this search
+		// the storage shape stays on the script route (a counter-scaled sacrifice source is a step: mana_sacctr.go): a storage battery's X is
+		// announced, not a branch of this search
 		a := g.k.ctrAbOf(s.cardAt(sl))
-		g.ctr[n] = !deadCtrAb(a) && (!kop.StoreManaAb(a) || g.k.ctrSecond(s.cardAt(sl))) // (mana_countercost.go, mana_sacctr.go; a later storage battery beside its plain {T} is a chain, ctrBranch)
+		g.ctr[n] = (!kop.StoreManaAb(a) || g.k.ctrSecond(s.cardAt(sl))) // (mana_countercost.go, mana_sacctr.go; a later storage battery beside its plain {T} is a chain, ctrBranch)
 	}
 }
 
@@ -3496,6 +3513,8 @@ func (s *State) grantPlayCostRaise(k *prep, p uint8, a Action, kicked bool) (cos
 				return s.adjustCost(k, p, c, Obj(a.Source()), dc), ex, need, true
 			case a.Target() == castOverloadTgt && cd.HasOverload:
 				return s.adjustCost(k, p, c, Obj(a.Source()), cd.OverloadCost), ex, need, true
+			case a.Target() == castBlitzTgt && cd.HasBlitz:
+				return s.adjustCost(k, p, c, Obj(a.Source()), cd.BlitzCost), ex, need, true
 			case a.Target() == castCleaveTgt && cd.CleaveAb != 0:
 				return s.adjustCost(k, p, c, Obj(a.Source()), cd.CleaveCost), ex, need, true
 			case a.Target() == castSurgeTgt && cd.HasSurge:
@@ -3511,7 +3530,11 @@ func (s *State) grantPlayCostRaise(k *prep, p uint8, a Action, kicked bool) (cos
 			}
 			// the composed cost (pair 8638)
 			c := s.objs[a.Source()].card
-			cost = s.featCost(k, SeatIx(p), c, Obj(a.Source()), addCost(k.cards[c].cost, kickAdd(&k.t.Cards[c])))
+			kp := s.kickPayment(k, SeatIx(p), c, Obj(a.Source()), true)
+			if DebugGrantKickNoMulti && k.t.Cards[c].HasMultikicker {
+				kp = k.t.Cards[c].Kicker // the mutation switch: a Multikicker play priced at its base alone
+			}
+			cost = s.featCost(k, SeatIx(p), c, Obj(a.Source()), addCost(k.cards[c].cost, kp))
 			if s.convAnyType(k, SeatIx(p), Obj(a.Source())) {
 				cost = anyTypePips(cost) // a creature's kicked total under Vizier's conversion, as plannedCastCostOf prices the plain one (featview.go)
 			}
@@ -3724,7 +3747,7 @@ func (s *State) playBaseCost(k *prep, a Action) (m kop.ManaCost, f kop.CostFlags
 		// (usefulOK false) while gorge pruned the filter's colours, and the
 		// two walks paid different mana. A mode that is not exactly the
 		// may-play one (a kicked, bargained, flashback cast) stays unread.
-		if (a.Mode() == 0 || a.Mode() == castMayPlay) && a.Target() != castImpTgt && a.Target() != castEvokeTgt && a.Target() != castDashTgt && a.Target() != castOverloadTgt && a.Target() != castSurgeTgt && a.Target() != castCleaveTgt {
+		if (a.Mode() == 0 || a.Mode() == castMayPlay) && a.Target() != castImpTgt && a.Target() != castEvokeTgt && a.Target() != castDashTgt && a.Target() != castOverloadTgt && a.Target() != castSurgeTgt && a.Target() != castCleaveTgt && a.Target() != castBlitzTgt {
 			return k.cards[s.objs[a.Source()].card].cost, 0, true
 		}
 	}
@@ -3985,4 +4008,38 @@ func kickAdd(cd *kop.CardDef) kop.ManaCost {
 // Chromatic Lantern's grant).
 func kickMultiPriced(k *prep, c CardID) bool {
 	return k.t.Cards[c].HasMultikicker && !DebugGrantKickNoMulti
+}
+
+// manaGrantMay reports whether grantIdxs can find a mana ability granted to
+// sl: a table with a GainsAbilitiesOf$ static (gainedIdxs), an override
+// record on sl, or a battlefield static or attached source whose card holds
+// a grantOf ability (prep.grantsMana; a static's AddAbility$ mana ability is
+// a latent ability of the granting card). False skips the grant walk: about
+// 78% of grantIdx calls on BenchmarkTransitionEDH4, which find no grant.
+func (s *State) manaGrantMay(k *prep, sl Slot) bool {
+	if k.gen.uses.has(useGainedMana) || s.fxM.has(sl) {
+		return true
+	}
+	for m := s.statM.or(s.grantM); m.any(); m = m.rest() {
+		if k.grantsMana[s.cardAt(m.first())] {
+			return true
+		}
+	}
+	return false
+}
+
+// DebugGrantGateShadow makes grantIdx run the full grant walk behind every
+// manaGrantMay no and panic if it finds a grant or moves the stall state
+// (TestGrantGateShadow).
+var DebugGrantGateShadow = false
+
+// grantGateShadowN counts the walks grantGateShadow checked.
+var grantGateShadowN int
+
+func grantGateShadow(s *State, k *prep, sl Slot, gi *[maxGrants]int16) {
+	grantGateShadowN++
+	st, over := s.g.stalled, s.over
+	if n := s.grantIdxs(k, sl, gi); n != 0 || s.g.stalled != st || s.over != over {
+		panic("dirac: manaGrantMay skipped a grant walk that finds a mana grant or stalls")
+	}
 }

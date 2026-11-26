@@ -308,6 +308,17 @@ func (e *Engine) emit(ev events.Event) events.Event {
 			defer e.closeTriggerWindow(own, saved)
 		}
 	}
+	if ev.Kind == events.MoveZone && ev.From == state.ZBattlefield && ev.To != state.ZBattlefield {
+		if o := e.G.Obj(ev.Obj); o != nil && o.Zone == state.ZBattlefield && e.triggerBefore != nil {
+			// The departure folds under an open trigger window (this emit's
+			// own, just opened, or an outer one): record it so the window's
+			// look-back board reads the intervening-if of a NON-departing
+			// source's trigger on the post-event state (see
+			// engine_scratch.go's windowDepartures). A source inside the
+			// list keeps the pre-departure read, CR 603.10a.
+			e.noteWindowDeparture(ev.Obj)
+		}
+	}
 	// Open a singleton batch before the pre-fold snapshot, not after Apply.
 	onlyEventBatch := ev.Kind == events.Damage && !e.damageBatchOpen
 	if onlyEventBatch {
@@ -713,9 +724,7 @@ func (e *Engine) emit(ev events.Event) events.Event {
 	if ev.Kind == events.Untap || ev.Kind == events.MoveZone && ev.From == state.ZBattlefield {
 		e.expireUntilUntaps(ev.Obj)
 	}
-	if ev.Kind == events.ControlChange || ev.Kind == events.PhaseOut && ev.Amount >= 1 {
-		e.expireAsLongAsControl(ev.Obj)
-	}
+	e.sweepControlAndPhase(ev)
 	if ev.Kind == events.PutOnStack {
 		e.effectMoveSweep(ev)
 		e.sweepEffectDelayed(ev)

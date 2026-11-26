@@ -45,7 +45,7 @@ func spiritSistersCallEngine(t *testing.T, reg *cards.Registry) (*Engine, Config
 	fodder := moveByName(t, e, 0, "Grizzly Bears", state.ZBattlefield)
 
 	// Drive to seat 0's end step, then answer the ability's asks: the
-	// ChooseCard (target the graveyard Traveler), the optional sacrifice
+	// target (the graveyard Traveler; no ChooseCard ask follows), the optional sacrifice
 	// (accept it) and the ordinary trigger-order/priority rounds.
 	ateotDriveToStep(t, e, e.G.Turn, 0, state.StepEnd)
 	answeredTarget, answeredSac := false, false
@@ -90,19 +90,17 @@ func spiritSistersCallEngine(t *testing.T, reg *cards.Registry) (*Engine, Config
 			}
 			submitChoices(t, e, idx)
 		case decision.KChoose:
-			if !answeredTarget {
-				idx := -1
-				for _, o := range d.Options {
-					if o.Obj == target {
-						idx = o.Index
-					}
+			// Any choose decision offering the graveyard Traveler is a stray
+			// ChooseCard ask: the ability has no Defined$, so Forge's
+			// getDefinedPlayersOrTargeted yields only targeted PLAYERS (none
+			// here) and nobody is asked to choose; the KTarget decision
+			// already picked the card.
+			for _, o := range d.Options {
+				if o.Obj == target {
+					t.Fatalf("stray choose decision offers the graveyard Traveler %d: a ChooseCard with card targets and no Defined$ has no chooser in Forge (getDefinedPlayersOrTargeted): %+v", target, d.Options)
 				}
-				if idx < 0 {
-					t.Fatalf("graveyard Traveler %d not offered as the chosen card: %+v", target, d.Options)
-				}
-				submitChoices(t, e, idx)
-				answeredTarget = true
-			} else if !answeredSac {
+			}
+			if !answeredSac {
 				// The optional sacrifice: choose the battlefield Bear.
 				idx := -1
 				for _, o := range d.Options {
@@ -129,6 +127,7 @@ func spiritSistersCallEngine(t *testing.T, reg *cards.Registry) (*Engine, Config
 				t.Fatalf("graveyard Traveler %d not offered as a target: %+v", target, d.Options)
 			}
 			submitChoices(t, e, idx)
+			answeredTarget = true
 		default:
 			t.Fatalf("unexpected decision %q while resolving Spirit-Sister's Call: %+v", d.Kind, d)
 		}

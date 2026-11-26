@@ -670,6 +670,7 @@ func effToken(h Host, c *Ctx, sa *cards.SA) {
 		Tapped: tapped, TokenMemory: tokenMemory,
 	}
 	job.resolveAttack(h, c, tp.Attacking, owners)
+	job.BlockAttacker = tokenBlockingAttacker(h, c, tp.Blocking)
 	runTokenMints(h, c, sa, tp, &job)
 }
 
@@ -701,6 +702,11 @@ type TokenJob struct {
 	TokenMemory    []state.Target
 	AttackCtx      bool
 	AttackDefender state.PlayerID
+	// BlockAttacker is TokenBlocking$'s named attacker (0 when the tokens do
+	// not enter blocking): frozen before the mint loop, and used only while
+	// it is still attacking and the mint's controller is its defender
+	// (CR 509.4a/506.3e).
+	BlockAttacker state.ObjID
 	// AttackBattle is the planeswalker or battle the mint attacks, zero for
 	// a player defender.
 	AttackBattle state.ObjID
@@ -784,6 +790,34 @@ func copyAttackIDs(attacking bool, selectorDefender state.PlayerID, owners []tok
 		return true, ids
 	}
 	return false, nil
+}
+
+// tokenBlockingAttacker resolves TokenBlocking$'s Defined$ selector once,
+// before the mint loop (CR 608.2h): the first named object that is still on
+// the battlefield and attacking. A selector that names nobody (the attacker
+// died or left combat) yields no block -- CR 509.4a's "the creature is put
+// onto the battlefield but is never considered a blocking creature" -- never
+// a guessed attacker, and an unrecognised selector is one loud Note.
+func tokenBlockingAttacker(h Host, c *Ctx, spec string) state.ObjID {
+	if spec == "" {
+		return 0
+	}
+	ts, ok := definedSpec(h, c, spec)
+	if !ok {
+		h.Emit(events.Event{Kind: events.Note, Obj: c.Source, Player: c.Controller,
+			Text: "TokenBlocking$ " + spec + " is not implemented; the token enters but does not block"})
+		return 0
+	}
+	g := h.Game()
+	for _, t := range ts {
+		if t.IsPlayer || t.Obj == 0 {
+			continue
+		}
+		if o := g.Obj(t.Obj); o != nil && o.Zone == state.ZBattlefield && o.IsAttacking {
+			return t.Obj
+		}
+	}
+	return 0
 }
 
 // resolveAttack freezes the TokenAttacking$ rider into the job: True becomes
@@ -995,6 +1029,15 @@ func applyTokenMintRiders(h Host, c *Ctx, job *TokenJob, owner state.PlayerID, w
 		}
 		h.Emit(events.Event{Kind: events.TokenAttacks, Obj: want, Player: mintOwner,
 			IDs: ids, Text: "entered attacking"})
+	}
+	if a := g.Obj(job.BlockAttacker); a != nil && a.Zone == state.ZBattlefield &&
+		a.IsAttacking && a.Attacking == mintOwner {
+		// CR 509.4a: the named attacker is still attacking (and this mint's
+		// controller is its defender), so the token enters blocking it. The
+		// separate TokenBlocks kind records block state without a
+		// DeclareBlockers declaration's triggers (509.4).
+		h.Emit(events.Event{Kind: events.TokenBlocks, Obj: want, Player: mintOwner,
+			IDs: []state.ObjID{job.BlockAttacker}, Text: "entered blocking"})
 	}
 	if (job.HasPow || job.HasTgh) && g.Obj(want).Face() != nil {
 		// The absent side keeps the token script's printed value. Every

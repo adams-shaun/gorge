@@ -2,9 +2,9 @@
 # lower one: cmd/checkratchet refuses a diff that lowers a func_ceilings.tsv row or a ratchet_test.go
 # constant, so lowering happens here, on main, after any branch that grew the same function merged.
 #
-# The PR is opened by a token whose pushes start CI. Set the REGEN_TOKEN secret to a user token;
-# the fallback GITHUB_TOKEN opens the PR but GitHub starts no workflow for its push, so the queue
-# would have no fast/lint checks to read.
+# The PR is opened by a token whose pushes start CI: the REGEN_TOKEN secret, a user token. There is no
+# GITHUB_TOKEN fallback: its push leaves the PR's ci/docs runs at action_required, so the queue would have
+# no fast/lint checks to read (11-25, pr-autoresolve.yml). An empty REGEN_TOKEN fails the job.
 name: ratchet-lower
 
 on:
@@ -34,9 +34,11 @@ jobs:
           cache: false
       - name: Authenticate git with the bot token
         env:
-          GH_TOKEN: ${{ secrets.REGEN_TOKEN || github.token }}
-        run: gh auth setup-git
+          GH_TOKEN: ${{ secrets.REGEN_TOKEN }}
+        run: |
+          [ -n "$GH_TOKEN" ] || { echo "::error::secrets.REGEN_TOKEN is empty; not pushing with GITHUB_TOKEN"; exit 1; }
+          gh auth setup-git
       - name: Lower the ceilings and open the bot PR
         env:
-          GH_TOKEN: ${{ secrets.REGEN_TOKEN || github.token }}
+          GH_TOKEN: ${{ secrets.REGEN_TOKEN }}
         run: bash scripts/lower-ceilings.sh

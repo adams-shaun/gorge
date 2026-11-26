@@ -1,0 +1,13 @@
+{
+  "card": "Star Athlete",
+  "class": "lockstep",
+  "why": "gorge puts the card's attack trigger on the stack when its up-to-one target sub-ability (minimum zero targets) chose no target; the kernel poses no ask and its stack stays empty (tail-18 pair 1, projection NStack)",
+  "repro": {
+    "pool": "tail-18",
+    "surface": "autopay",
+    "seed": 1,
+    "pair": 1,
+    "policy": "random",
+    "mulligans": 1
+  }
+}

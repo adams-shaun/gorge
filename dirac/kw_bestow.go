@@ -336,6 +336,7 @@ func (s *State) enterAttached(k *prep, e *stackEntry) Slot {
 	if s.anyETB(k) {
 		s.fireObj(k, kop.TrigETB, sl, e.obj, e.ctrl, 0)
 	}
+	s.storyGrant(k) // the emit-tail grant, after the entry's triggers (kw_storied.go)
 	return sl
 }
 

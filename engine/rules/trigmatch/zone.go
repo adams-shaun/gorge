@@ -211,14 +211,26 @@ func ZoneChangeMatchesWithCapture(e Board, t cards.Trigger, source state.ObjID, 
 	// ChangesZoneAll ValidCause$ (The Madcap Jester's "a spell or ability you
 	// control causes ..."): the resolving stack object that moved the cards
 	// must satisfy the stack spec (CR 603.2). A move with no stack cause
-	// (a cost, a turn-based action) fails closed. InvertValidCause$ (Deep Gnome
-	// Terramancer's LandAbility, a land play with no stack object) names a cause
-	// no stack kind can say, so that line is left as it was.
+	// (a cost, a turn-based action) fails closed. ValidCause$ LandAbility
+	// (Deep Gnome Terramancer) names the land-play special action, which has no
+	// stack object (CR 305.1): the move is that action exactly when it is the
+	// land whose play is in flight (Facts().PlayingLand, the same marker Mode$
+	// LandPlayed reads), and InvertValidCause$ negates the answer (CR 305.2: a
+	// land put onto the battlefield by an effect is not played).
 	if spec := t.ParamStr(cards.PKValidCause); spec != "" && t.Mode == "ChangesZoneAll" {
-		if _, inverted := t.Params["InvertValidCause"]; !inverted {
-			if !stackCauseAdmits(e.Game(), spec, e.Game().Obj(e.ActionCause()), e.ControllerOf(source)) {
-				return false
-			}
+		_, inverted := t.Params["InvertValidCause"]
+		var admits bool
+		if spec == "LandAbility" {
+			admits = ev.Obj != 0 && e.Facts().PlayingLand == ev.Obj
+		} else if !inverted {
+			admits = stackCauseAdmits(e.Game(), spec, e.Game().Obj(e.ActionCause()), e.ControllerOf(source))
+		} else {
+			// An inverted stack spec stays as it was: no carrier names one.
+			admits = true
+			inverted = false
+		}
+		if admits == inverted {
+			return false
 		}
 	}
 	// Evolve$ True (CR 702.99a): the trigger fires only when the entering

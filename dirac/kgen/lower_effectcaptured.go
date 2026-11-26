@@ -24,6 +24,9 @@ import (
 //
 // Anything else refuses by name.
 func (lc *lowerCtx) effectStaticTriggerPair(ps *params, tr string) error {
+	if done, err := lc.effectEndingTrigger(ps, tr); done || err != nil { // lower_effectendtrig.go
+		return err
+	}
 	list, _ := ps.get("StaticAbilities")
 	why := func(more string) error {
 		return refuse("Effect StaticAbilities$ %q beside Triggers$ (%s)", list, more)

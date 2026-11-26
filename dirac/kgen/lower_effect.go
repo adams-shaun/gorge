@@ -65,9 +65,14 @@ func (lc *lowerCtx) effect(sa *cards.SA, ps *params) error {
 			if chain != nil {
 				lc.emit(*chain)
 			}
+			// The "if you do" body lowers under the gate; support reads the
+			// marker to announce its targets at the push instead of asking
+			// mid-resolution under the gate (Jubilant Mascot).
+			lc.trigPayBody = ownCost
 			if err := lc.unless(ps, func() error { return lc.api(sa, ps) }); err != nil {
 				return err
 			}
+			lc.trigPayBody = false
 			// "If you do" covers the rest of the chain too.
 			if !strings.HasPrefix(lc.ab.Prog[at].Note, noteRememberSacrificed) {
 				// a sacrifice a value head reads keeps its remember note

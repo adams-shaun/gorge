@@ -204,11 +204,10 @@ func TestStashCastAnyTypeWitness(t *testing.T) {
 	}
 }
 
-// TestStashCounterLeavesWithLand: a land played from Tinybones' stash keeps
-// its stash counter on the battlefield (gorge), but leaving the
-// battlefield makes a new object without it (CR 400.7): a Forest bounced
-// to the hand and played again has no counter (pair 10760). Before, the
-// kernel's stash mark survived the move.
+// TestStashCounterLeavesWithLand: a stash mark never outlives the exile
+// zone (CR 400.7): a Forest carrying one that leaves the battlefield for the
+// hand has no counter (pair 10760). Before, the kernel's stash mark survived
+// the move.
 func TestStashCounterLeavesWithLand(t *testing.T) {
 	sc, id := newObjScen(t, []cardset.Entry{{Name: "Forest", Count: 8}})
 	f := sc.perm(id["Forest"], 0)

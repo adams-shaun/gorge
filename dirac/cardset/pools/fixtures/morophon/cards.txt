@@ -1,0 +1,21 @@
+# A ReduceCost Color$ W U B R G with IgnoreGeneric$ True (Morophon, the
+# Boundless; Edgewalker, Ragemonger): only matching coloured pips come off a spell of the chosen type,
+# no shortfall spills to generic (kgen lower_reducespell.go, kernel
+# cost_reducespell.go kop.ReduceColorNoSpill). Changelings are every type, so
+# any chosen type prices them; with mana creatures, rocks and lands, for the
+# oracle's constructed lockstep (dirac/oracle/morophon_lowers_test.go)
+Morophon, the Boundless
+Edgewalker
+Ragemonger
+Woodland Changeling
+Fire-Belly Changeling
+Avian Changeling
+Changeling Outcast
+Taurean Mauler
+Llanowar Elves
+Elvish Mystic
+Mind Stone
+Forest
+Mountain
+Plains
+Swamp

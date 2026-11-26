@@ -37,8 +37,8 @@ Oracle:{T}, Exile cards from your graveyard equal to the number of opponents you
 // of the Dead Tide) is a fixed count in gorge (pay.FixLifeXCost drops the
 // announcement), so it lowers as CostExileGrave with the live opponent count
 // (kop.ExileGraveLiveCount), not the announced N 0 form and not a two-seat
-// constant. Any other non-xPaid SVar and the xPaid announcement on an
-// activated ability stay refused.
+// constant. Any other non-xPaid SVar stays refused; the xPaid announcement
+// on an activated ability lowers as the announced count (lower_exilex.go).
 func TestExileXFixedCountLowersAsOneOpponent(t *testing.T) {
 	lc := exileXFixedLower(t, strings.Replace(exileXFixedCard, "%s", "PlayerCountOpponents$Amount", 1))
 	if len(lc.Refusals) != 0 {
@@ -60,10 +60,24 @@ func TestExileXFixedCountLowersAsOneOpponent(t *testing.T) {
 		t.Errorf("cost = ExileG %v N %d X %v, want the live opponent-count exile", c.ExileG != nil, c.ExileGN, c.ExileGX)
 	}
 
-	for _, body := range []string{"Count$ValidGraveyard Card.YouOwn", "Count$xPaid", "PlayerCountPlayers$Amount"} {
+	for _, body := range []string{"Count$ValidGraveyard Card.YouOwn", "PlayerCountPlayers$Amount"} {
 		lc := exileXFixedLower(t, strings.Replace(exileXFixedCard, "%s", body, 1))
 		if keclReason(lc.Refusals) == "" {
 			t.Errorf("SVar X %q on an activated ability lowered, want refused", body)
+		}
+	}
+}
+
+// TestExileXAnnouncedOnActivatedAbility: the xPaid announcement on an
+// activated ability lowers as the announced exile (ExileGX, no fixed count).
+func TestExileXAnnouncedOnActivatedAbility(t *testing.T) {
+	lc := exileXFixedLower(t, strings.Replace(exileXFixedCard, "%s", "Count$xPaid", 1))
+	if len(lc.Refusals) != 0 {
+		t.Fatalf("refused: %v", lc.Refusals)
+	}
+	for i := range lc.Abilities {
+		if c := &lc.Abilities[i].Cost; lc.Abilities[i].Kind == akActivated && (c.ExileG == nil || !c.ExileGX || c.ExileGN != 0) {
+			t.Errorf("cost = ExileG %v N %d X %v, want the announced exile", c.ExileG != nil, c.ExileGN, c.ExileGX)
 		}
 	}
 }

@@ -1,28 +1,37 @@
 # Architecture
 
-Part of [Engines](../engines/index.md).
-
 How gorge works inside, for Go developers who want to read or change the engine: how a match
 is represented, how card text becomes behaviour, how the rules core applies the Comprehensive
-Rules (CR), and how the server drives it for players and bots. To run a game, start at
-[Getting started](../getting-started.md); to fix a card, see [Your first card fix](../contributing/first-card-fix.md).
+Rules (CR), and how the server drives it for players and bots.
 
-## The idea in one paragraph
+To run a game, start at [Getting started](../getting-started.md); to fix a card, at
+[Your first card fix](../contributing/first-card-fix.md).
 
-gorge does not hand-write cards. It compiles Forge's card scripts (fetched at build time, never
-committed: they are GPL-3.0) into an intermediate representation (IR), and implements the named
-**primitives** the IR refers to: effects such as `api:DealDamage`, trigger modes such as
-`trig:ChangesZone`, keywords such as `kw:Flying`. A card is *playable* when every primitive it uses
-is implemented.
+## The idea
 
-Every change to the game is an **event**, folded into state by one function, `events.Apply`, and
-appended to a SHA-256 hash-chained log. With a seeded RNG and no clock reads, a match is a pure
-function of its starting configuration and its players' answers, so replay, undo, bug reproduction
-and search share one mechanism. Players never touch the engine: each seat gets a redacted **view**
-and answers **decisions** drawn from a closed set of kinds.
+<div class="grid cards" markdown>
 
-Limited play sits above this: [draft events](draft.md) run through the same tables and engine, and
-no draft concept reaches the rules core.
+-   **Cards are compiled, not written**
+
+    gorge compiles Forge's card scripts (fetched at build time, never committed: they are
+    GPL-3.0) into an intermediate representation (IR), and implements the named **primitives**
+    the IR refers to: effects such as `api:DealDamage`, trigger modes such as `trig:ChangesZone`,
+    keywords such as `kw:Flying`. A card is *playable* when every primitive it uses is implemented.
+
+-   **Every change is an event**
+
+    Each change is folded into state by one function, `events.Apply`, and appended to a SHA-256
+    hash-chained log. With a seeded RNG and no clock reads, a match is a pure function of its
+    starting configuration and its players' answers, so replay, undo, bug reproduction and search
+    share one mechanism.
+
+-   **Players see views, answer decisions**
+
+    Players never touch the engine: each seat gets a redacted **view** and answers **decisions**
+    drawn from a closed set of kinds. Limited play sits above this: [draft events](draft.md) run
+    through the same tables and engine, and no draft concept reaches the rules core.
+
+</div>
 
 ## Two engines
 
@@ -223,9 +232,9 @@ sequenceDiagram
   E->>L: record Intent
 ```
 
-Each step has its own page:
-
 ## The gorge engine, page by page
+
+Each part of that loop has its own page.
 
 | Page | What it covers |
 |---|---|

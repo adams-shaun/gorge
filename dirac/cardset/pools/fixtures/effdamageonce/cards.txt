@@ -1,0 +1,8 @@
+# End-of-turn Effects on Mode$ DamageDoneOnce (Jace, Cunning Castaway) and the captured combat Mode$ DamageDealtOnce
+# (Vigorous Charge) with vanilla attackers (dirac/oracle/effdamageonce_lockstep_test.go)
+Forest
+Grizzly Bears
+Island
+Jace, Cunning Castaway
+Plains
+Vigorous Charge

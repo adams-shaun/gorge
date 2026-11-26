@@ -1,0 +1,21 @@
+# the back-face cast pool (CR 702.162a More Than Meets the Eye, CR 702.161a
+# Living metal, CR 702.146a disturb): the transforming cards whose back face
+# is cast for the front's keyword cost (dirac/face_flipcast.go), beside
+# plain creatures, burn and a counterspell that sends a back-face spell to
+# the graveyard, for the constructed lockstep in dirac/oracle/flipcast_test.go
+Goldbug, Humanity's Ally
+Starscream, Power Hungry
+Ultra Magnus, Tactician
+Beloved Beggar
+Kindly Ancestor
+Cancel
+Shock
+Savannah Lions
+Wind Drake
+Grizzly Bears
+Hill Giant
+Plains
+Island
+Swamp
+Mountain
+Forest

@@ -421,6 +421,18 @@ func (lc *lowerCtx) handMoveDefinedOwner(ps *params) (lRef, bool, error) {
 		ps.consume("DefinedPlayer")
 		return r, true, nil
 	}
+	if strings.TrimSpace(dp) == "TriggeredPlayer" && lc.repeatPl == 0 {
+		// "at the beginning of each player's upkeep, that player may put
+		// ... from their hand" (Braids, Conjurer Adept): the Phase
+		// trigger's active player (lc.defined's TriggeredPlayer arm), the
+		// owner and, with no Chooser$, the decider (gorge's fetcher)
+		r, err := lc.defined("TriggeredPlayer")
+		if err != nil {
+			return lRef{}, false, err
+		}
+		ps.consume("DefinedPlayer")
+		return r, true, nil
+	}
 	if v := strings.TrimSpace(dp); lc.repeatPl > 0 && (v == "Remembered" || v == "Player.IsRemembered") {
 		// the repeated player's hand (Worlds Within Worlds; gorge
 		// effChangeZoneHandOwners over cc.Remembered, the iteration's

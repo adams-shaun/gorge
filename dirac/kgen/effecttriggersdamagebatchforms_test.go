@@ -17,7 +17,7 @@ func TestEffectTriggersDamageBatchForms(t *testing.T) {
 	checkForms(t, []formCase{
 		{card: "Aphelia, Viper Whisperer", form: "EOT Effect DamageDoneOnce, per-referent batch emblem line", lir: "CreateEmblem"},
 		{card: "Green Dragon", form: "EOT Effect DamageDoneOnce to creatures stays refused (body reads the damaged object the emblem line does not carry)", refused: "Effect DamageDoneOnce body reads TriggeredTargetLKICopy"},
-		{card: "Jace, Cunning Castaway", form: "Duration$ EndOfTurn Effect stays refused", refused: "Effect triggers without a permanent duration"},
+		{card: "Jace, Cunning Castaway", form: "Duration$ EndOfTurn is the end-of-turn default (gorge effectTriggerThisTurnDurationSet)", lir: "CreateEmblem"},
 	})
 	const base = "Name:Probe\nManaCost:2 B\nTypes:Creature Gorgon\nPT:1/1\n"
 	for _, tc := range []struct{ name, body, want string }{

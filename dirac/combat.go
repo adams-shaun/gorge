@@ -544,6 +544,9 @@ func (s *State) declareAttacksDone(k *prep) {
 	if s.bandAsk(k) {
 		return // CR 702.22c: gorge asks the band declaration before the triggers are placed (combat_band.go)
 	}
+	if s.exertAsk(k) {
+		return // CR 702.100a: then the exert elections (combat_exert.go)
+	}
 	s.openPriority()
 }
 
@@ -1371,9 +1374,12 @@ func (s *State) combatAmount(k *prep, sl Slot) int {
 
 // replOrderPossible: some damage replacement of the table can pose gorge's
 // CR 616.1 order ask on a combat pass (a doubler, a shield, a scoped
-// prevention, plus-N additions, a static prevention, a Phantom's line).
+// prevention, plus-N additions, a static prevention, a Phantom's line), or
+// an ask body's event its own choice (repl_dmbody.go; the freeze's scan
+// finds whether any event matches).
 func replOrderPossible(g *genPrep) bool {
-	return g.anyRepl&(rbDblDmg|rbShield|rbPrevCol) != 0 || replPlusOnly(g) || g.uses.has(useStaticPrev) || selfPh(g)
+	return g.anyRepl&(rbDblDmg|rbShield|rbPrevCol) != 0 || replPlusOnly(g) || g.uses.has(useStaticPrev) || selfPh(g) ||
+		g.anyRepl2&rb2DmgInst != 0
 }
 
 // combatAmountLive is combatAmount read from the permanent as it stands.
@@ -1549,7 +1555,7 @@ func (s *State) combatDamage(k *prep, first bool) bool {
 			s.shieldCombat(k, &r) // CR 122.1c, event by event (ctr_shield.go)
 		}
 		if k.gen.anyRepl&(rbDblDmg|rbProtAll|rbProtCol|rbPlusDmg|rbPrevCol|rbPrevMill|rbSelfDmg) != 0 ||
-			k.gen.anyRepl2&(rb2DmgMinus|rb2DmgSet) != 0 {
+			k.gen.anyRepl2&rb2DmgAny != 0 {
 			s.replCombatGen(k, &r) // amounts first, then prevention
 		}
 		s.preventCombatGen(k, &r)

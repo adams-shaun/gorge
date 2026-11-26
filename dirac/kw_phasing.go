@@ -246,6 +246,7 @@ func (s *State) phasingCarrier(k *prep, sl Slot) bool {
 func (s *State) phaseUntap(k *prep) {
 	var order [MaxPerm]Slot
 	n := 0
+	keepSick := s.g.nxph != 0 && s.addPhaseExtraUntap() // an extra beginning phase's untap (act_addphase.go)
 	for sl := 0; sl < MaxPerm; sl++ {
 		q := Slot(sl)
 		hid := s.hiddenAt(q)
@@ -256,7 +257,9 @@ func (s *State) phaseUntap(k *prep) {
 		// player controls (gorge TurnChange): one about to phase out (a
 		// carrier, or an Aura that goes with its host) is never visited by
 		// the untap loop
-		s.perms[q].flags &^= pfSick
+		if !keepSick {
+			s.perms[q].flags &^= pfSick
+		}
 		if !hid && !s.phasingCarrier(k, q) {
 			continue
 		}

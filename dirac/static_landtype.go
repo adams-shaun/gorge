@@ -81,8 +81,13 @@ func prepLandGrant(t *kop.Table, p *prep, g *genPrep) {
 			on = on || a.Kind == kop.AbStatic && a.Static.Kind == kop.StatContinuous && (meets(a.Static.AddSub) || a.Static.AddChosen && basic.Any())
 		}
 	}
-	for i := range t.Overrides {
-		on = on || meets(t.Overrides[i].AddSub)
+	if !on {
+		// Table.Overrides is the pool's list, not the table's (tableReach): an
+		// override no card of this table can apply grants nothing here.
+		reach := tableReach(t)
+		for i, live := range reach.override {
+			on = on || live && meets(t.Overrides[i].AddSub)
+		}
 	}
 	if !on {
 		return

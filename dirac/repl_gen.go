@@ -58,6 +58,14 @@ func (s *State) selfDmgStep(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, 
 // opponent controls, then prevented (0) when it is noncombat damage to a
 // creature whose controller controls another Crystal Barricade.
 func (s *State) replDamage(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, code TCode, combat bool, n int) int {
+	return s.replDamageAsk(k, srcCtrl, srcSl, srcCard, code, combat, n, nil)
+}
+
+// replDamageAsk is replDamage with an ask body's park handed to the caller
+// (repl_dmbody.go): only damageTo passes an ask, the one site that can
+// suspend the body's decision; every other replDamage site's body match
+// stalls loudly inside dmgBody.
+func (s *State) replDamageAsk(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, code TCode, combat bool, n int, ask *ncAsk) int {
 	g := k.gen
 	if n <= 0 || srcCtrl >= MaxSeats {
 		return n // no seat controls the source
@@ -121,6 +129,18 @@ func (s *State) replDamage(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, c
 	if g.anyRepl&rbPrevMill != 0 && sl == NoSlot && rcp != srcCtrl && s.preventMill(k, srcCtrl, rcp, combat, n) {
 		return 0 // The Mindskinner: prevented, the opponent mills that many (repl_preventmill.go)
 	}
+	if g.anyRepl2&rb2DmgInst != 0 && s.dmgInstead(k, srcCtrl, srcSl, srcCard, rcp, sl, combat, n, ask) {
+		return 0 // Angel of Suffering, Soul-Scar Mage...: the damage is replaced by counters, mill, exile or draw; an ask body parked by the caller (repl_dmginstead.go, repl_dmbody.go)
+	}
+	return s.replDamageRewrites(k, srcCtrl, srcSl, srcCard, rcp, sl, combat, n)
+}
+
+// replDamageRewrites is replDamageAsk's tail, the replacements that rewrite
+// an event's amount once no prevention or instead-line has taken it: the
+// self-damage steps, the SHIELD counter, plus-N, minus, set and doubling
+// lines, the Crystal Barricade prevention, and the noncombat tally.
+func (s *State) replDamageRewrites(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, rcp uint8, sl Slot, combat bool, n int) int {
+	g := k.gen
 	var stopped bool
 	if n, stopped = s.selfDmgStep(k, srcCtrl, srcSl, srcCard, sl, combat, n); stopped {
 		return 0 // Anti-Venom: prevented, that many +1/+1 counters; a Phantom: one removed; Istvan, Guardian Naga: prevented (repl_preventtoself.go)
@@ -304,7 +324,9 @@ func (s *State) replCombatGen(k *prep, r *dmgRec) {
 	// The host must be live: a card of the table that is not on the battlefield
 	// arms rbPrevCtrSelf but needs no ordering, and the walk covers only the
 	// events that existed before the loop (an appended event keeps its index).
-	byOrd := ordered || !s.g.ro.on && s.prevCtrSelfRecv(k, r) && s.replOrderOrder(r, &ord) == nord
+	// ReplDamageInstead bodies move cards of shared libraries (a draw, an exile, a
+	// mill), so their events run in that order too (repl_dminstead.go).
+	byOrd := ordered || !s.g.ro.on && (s.prevCtrSelfRecv(k, r) || k.gen.anyRepl2&rb2DmgInst != 0) && s.replOrderOrder(r, &ord) == nord
 	for j := 0; j < r.nev; j++ {
 		i := j
 		if byOrd && j < nord {
@@ -442,6 +464,9 @@ type replHdr struct {
 	p             uint8  // the affected player, who answers
 	cand          [4]Obj // the replacements' sources
 	nca           bool   // a parked noncombat event's ask is posed (ncDmg)
+	bdy           uint8  // an ask body's ask in progress (repl_dmbody.go): bodySac / bodyVind
+	left          int16  // the ask body's sacrifice picks still owed (repl_dmbody.go)
+	dvAns         bool   // a damage division was answered this step: gorge's re-entered pass serves no ask tape, the sacrifice body takes the first picks in battlefield order (repl_dmbody.go)
 	shld          uint8  // candidates that are the SHIELD counter's prevention (bit per cand; ctr_shield.go)
 	pcol          uint8  // candidates that are an Ext PreventColor record's prevention (bit per cand; cast_altfree.go)
 	pnx           uint8  // candidates that are an Ext PreventNext shield, cand its prevCol index (bit per cand; repl_prevnext.go)
@@ -763,7 +788,8 @@ func (s *State) replShieldCand(k *prep, fe *fzEv, n int) int {
 func (s *State) replOrderFreeze(k *prep, r *dmgRec, first bool) {
 	ro := &s.g.ro
 	bd := s.roBody()
-	*bd = replBody{} // the body is all-zero outside a pass; this is the only clear before it fills
+	dv := s.combatArm().divDone.any() // a division was answered this step (before the freeze marks the blocked attackers' own)
+	*bd = replBody{}                  // the body is all-zero outside a pass; this is the only clear before it fills
 	nfz := uint8(s.replOrderOrder(r, &bd.ord))
 	for i := 0; i < r.nev; i++ {
 		ev := r.ev[i]
@@ -779,8 +805,13 @@ func (s *State) replOrderFreeze(k *prep, r *dmgRec, first bool) {
 	}
 	ask := false
 	for i := 0; i < int(nfz) && !ask; i++ {
-		c := s.replOrderCandsFz(k, &bd.fz[bd.ord[i]])
+		fe := &bd.fz[bd.ord[i]]
+		c := s.replOrderCandsFz(k, fe)
 		ask = c >= 2 || c == 1 && ro.spv&1 != 0 // seat-ok: ro.spv is the walk's candidate bitmask; the lone Optional$ line's "may" (repl_staticprevent.go)
+		if !ask {
+			_, _, _, ok := s.dmgBodyWalk(k, r, fe) // an ask body's event (repl_dmbody.go)
+			ask = ok
+		}
 	}
 	if !ask {
 		*bd = replBody{}
@@ -805,7 +836,7 @@ func (s *State) replOrderFreeze(k *prep, r *dmgRec, first bool) {
 			*s.divAmtFor(ev.dst, ev.src) += uint8(ev.n)
 		}
 	}
-	ro.replHdr = replHdr{on: true, nfz: nfz, cur: objWord(NoSlot)}
+	ro.replHdr = replHdr{on: true, nfz: nfz, cur: objWord(NoSlot), dvAns: dv}
 }
 
 // replOrderCombat deals the paused pass's frozen events not yet dealt in
@@ -835,6 +866,31 @@ func (s *State) replOrderCombat(k *prep, r *dmgRec) bool {
 			// do not carry it, so gorge's ask is unanswerable here — loud (repl_staticredirect.go)
 			s.capFull(StallRedirOrder)
 			return false
+		}
+		if s.vindWalk(k, r, fe) || s.sacWalk(k, r, fe) {
+			continue // the body applied at the walk's reach (repl_dmbody.go)
+		}
+		if ro.bdy == 0 {
+			// an ask body's event (repl_dmbody.go): its choice is posed and the
+			// walk pauses; the resume takes the event off the recomputed pass
+			// (replOrderCombat's ro.fin head, dealAsked) and deals the rest
+			if b, host, hc, ok := s.dmgBodyWalk(k, r, fe); ok {
+				ro.bdy, ro.left, ro.an, ro.p = b, fe.n, fe.n, hc
+				ro.ac, ro.used, ro.pcol = 0, 0, 0 // no order candidates: the ask's own record (dealAsked reads them)
+				ro.askS, ro.askD = fe.src, fe.dst
+				ro.cand[0] = s.perms[host].obj
+				ro.actl, ro.apl = fe.ctrl, fe.apl
+				ro.akw = 0
+				if fe.ll {
+					ro.akw |= akwLifelink
+				}
+				if fe.dt {
+					ro.akw |= akwDeathtouch
+				}
+				s.g.ctlRet = ctlDivide
+				s.ctl = ctlGenAsk
+				return true
+			}
 		}
 		if c := s.replOrderCandsFz(k, fe); c >= 2 || c == 1 && ro.spv&1 != 0 { // seat-ok: ro.spv is the walk's candidate bitmask
 			ro.askS, ro.askD, ro.n, ro.used = fe.src, fe.dst, uint8(c), 0
@@ -872,11 +928,16 @@ func (s *State) replOrderCombat(k *prep, r *dmgRec) bool {
 			return true
 		}
 		s.replOrderMark(fe.src, fe.dst)
+		found := false
 		for i := 0; i < r.nev; i++ {
 			if r.ev[i].src == fe.src && r.ev[i].dst == fe.dst {
 				s.dealCombatEvent(k, r, i, fe)
+				found = true
 				break
 			}
+		}
+		if !found {
+			s.dealGoneEvent(k, fe) // a source an ask body's sacrifice removed (repl_dmbody.go)
 		}
 	}
 	for i := 0; i < r.nev; i++ {
@@ -1336,6 +1397,11 @@ type ncDmg struct {
 	dt    bool
 	spell bool
 	n     int16 // the damage after the replacements (every order gives it)
+	// An ask body's park (repl_dmbody.go): the event's DamageInstead body
+	// asks its controller a choice; n is -1 (the damage is replaced).
+	body uint8
+	hc   uint8 // the answerer: the replacement host's controller
+	left int16 // the sacrifice picks still owed
 }
 
 // damageSeqStart freezes a multi-event damage op's recipients in gorge's

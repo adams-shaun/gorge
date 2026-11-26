@@ -248,8 +248,8 @@ func TestBattleDefeatCastSorcery(t *testing.T) {
 		t.Fatal("the sorcery back face is not on the stack")
 	}
 	sc.resolveAll(t)
-	if ob := &sc.s.objs[b]; ob.zone != kop.ZoneGraveyard || ob.card != back {
-		t.Fatalf("sorcery back: zone %d card back %v, want the graveyard at face 1", ob.zone, ob.card == back)
+	if ob := &sc.s.objs[b]; ob.zone != kop.ZoneGraveyard || ob.card != front {
+		t.Fatalf("sorcery back: zone %d card front %v, want the graveyard at face 0", ob.zone, ob.card == front)
 	}
 }
 

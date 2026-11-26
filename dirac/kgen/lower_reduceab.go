@@ -59,7 +59,13 @@ func (lc *lowerCtx) reduceAbility(sp *params, st *lStatic, readF func(string) (*
 		// only where every activation the ValidCard$ can match is a
 		// battlefield one (reduceAbBattlefieldOnly). The equip arm's source
 		// is always a battlefield permanent, so it needs no proof.
-		if az := sp.str("AffectedZone"); az != "Battlefield" && (arm != 5 || az != "") {
+		if az := sp.str("AffectedZone"); az == "Graveyard" && arm == 1 {
+			// "activated abilities of cards in your graveyard cost {2}
+			// less" (Convergence of Dominion): the static prices the card's
+			// own activation from the graveyard (cost_reduceability.go
+			// abReducedGrave)
+			st.Zone = zGraveyard
+		} else if az != "Battlefield" && (arm != 5 || az != "") {
 			if az != "" {
 				return refuse("ReduceCost AffectedZone %q", az)
 			}

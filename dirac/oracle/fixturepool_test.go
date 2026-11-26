@@ -36,9 +36,20 @@ func fixtureWatchPolicy(seed uint64, watch map[string]bool, casts map[string]int
 				if a.Kind() != ActCast {
 					continue
 				}
-				if n := refCardName(c.G, a.Src()); watch[n] && prng.IntN(4) != 0 {
-					casts[n]++
-					return a
+				// A split card's castface offer is named by either of its
+				// faces or by the full "Discovery // Dispersal" spelling the
+				// watch map and the deck list carry.
+				n := refCardName(c.G, a.Src())
+				full := refCardFullName(c.G, a.Src())
+				if watch[n] || (full != "" && watch[full]) {
+					if prng.IntN(4) != 0 {
+						casts[n]++
+						if full != n && watch[full] {
+							casts[full]++
+						}
+						return a
+					}
+					continue
 				}
 			}
 		}

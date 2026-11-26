@@ -154,6 +154,14 @@ func (lc *lowerCtx) effectStaticEOT(ps *params, ss []cards.Static) error {
 		ps.consume("ForgetOnCast")
 	}
 	ps.consume("Name", "Image", "Stackable")
+	// the graveyard-to-exile replacement an Effect resolves beside its
+	// statics (Yawgmoth's Will, Gaea's Will, Magus of the Will;
+	// lower_effectgravetoexile.go): the same emblem carries it, so the
+	// replacement lives exactly as long as the permission.
+	repl, err := lc.effectGraveRepl(ps)
+	if err != nil {
+		return err
+	}
 	left := ps.unread()
 	// The Effect's own Condition*$ keys (ConditionPresent$, the monarch's
 	// ConditionCheckSVar$) guard the whole node: the node's condition read
@@ -165,12 +173,16 @@ func (lc *lowerCtx) effectStaticEOT(ps *params, ss []cards.Static) error {
 	if len(left) > 0 {
 		return refuse("Effect static unread %v", left)
 	}
-	if len(sts) == 0 {
+	if len(sts) == 0 && repl == nil {
 		// gorge registers no continuous effect for the
 		// view-only look, so the Effect resolves without creating anything.
 		return nil
 	}
-	lc.out.Emblems = append(lc.out.Emblems, lEmblem{Statics: sts, UntilEOT: eot, UntilNextTurn: next, WhileHost: host, Forget: forget})
+	emb := lEmblem{Statics: sts, UntilEOT: eot, UntilNextTurn: next, WhileHost: host, Forget: forget}
+	if repl != nil {
+		emb.Repls = []lRepl{*repl}
+	}
+	lc.out.Emblems = append(lc.out.Emblems, emb)
 	lc.emit(lInstr{Op: "CreateEmblem", Obj: lRef{Kind: rYou}, C: len(lc.out.Emblems) - 1, A: chosen})
 	return nil
 }
@@ -309,6 +321,12 @@ func (lc *lowerCtx) effectEmblemStaticHost(s cards.Static, host bool) (lStatic, 
 		if faceDownLookOnly(s.Params) {
 			return lStatic{Kind: ""}, nil
 		}
+		if sp := newParams(s.Params); sp.is("MayPlay", "True") && sp.str("AffectedZone") != "Library" {
+			// a library permission is the top-card look shape, which
+			// effectLibTopPlay reads above; any other library spelling stays
+			// refused rather than lowering a look the kernel does not hold
+			return lc.effectEmblemMayPlay(s) // lower_effectmayplay.go
+		}
 		if err := effectContinuousKeys(s.Params); err != nil {
 			return lStatic{}, err
 		}
@@ -323,6 +341,10 @@ func (lc *lowerCtx) effectEmblemStaticHost(s cards.Static, host bool) (lStatic, 
 		// gorge cantBeCastParamsReadableKeys; the lowering consumes the
 		// subset the kernel's cast gate reads, the rest refuses as unread
 		keys = map[string]bool{"Mode": true, "ValidCard": true, "Caster": true, "Origin": true, "NumLimitEachTurn": true, "AffectedZone": true, "Phases": true, "Condition": true, "ClassBand": true, "IsPresent": true, "PresentCompare": true, "PresentZone": true, "CheckSVar": true, "SVarCompare": true, "Description": true}
+	case "CantPlayLand":
+		// gorge CantPlayLandParamsReadable's keys; the hand lock is the one
+		// shape the kernel's land gate reads (cast_cantplayland.go)
+		keys = map[string]bool{"Mode": true, "Player": true, "ValidPlayer": true, "Origin": true, "Description": true, "Secondary": true}
 	case "CastWithFlash":
 		if lc.face != nil && lc.face.Name == "Complete the Circuit" {
 			// the grant beside a delayed SpellCast copy trigger: the lockstep
@@ -393,6 +415,10 @@ func (lc *lowerCtx) effectEmblemStaticHost(s cards.Static, host bool) (lStatic, 
 			// Card.Self binds the card's own object; an emblem has none
 			return lStatic{}, refuse("Effect static CantBeCast lowered to %s over its own card", st.Kind)
 		}
+	} else if s.Mode == "CantPlayLand" {
+		if st.Kind != "CantPlayLand" {
+			return lStatic{}, refuse("Effect static CantPlayLand lowered to %s", st.Kind)
+		}
 	} else if s.Mode == "Continuous" {
 		switch st.Kind {
 		case "CantBlock", "ExtraLandPlay", "NoMaxHandSize", "Continuous", "Override",
@@ -410,6 +436,11 @@ func (lc *lowerCtx) effectEmblemStaticHost(s cards.Static, host bool) (lStatic, 
 			if fl == "SelfStack" {
 				return lStatic{}, refuse("Effect static stack grant with EffectZone Stack")
 			}
+		}
+		if st.Kind == "StackKw" && len(st.Kw) == 1 && st.Kw[0] == "Rebound" {
+			// a granted Rebound runs the carrier card's recast body
+			// (kw_rebound.go reboundPlan); an emblem has no card
+			return lStatic{}, refuse("Effect static stack grant of Rebound")
 		}
 	}
 	if host {

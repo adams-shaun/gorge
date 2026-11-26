@@ -29,8 +29,9 @@ import (
 // The count is LOWER + BUILD (checkAcceptance runs buildPool): a card the LIR
 // pass accepts but `generate` refuses (counter kinds, cost shapes, filter
 // compares) is not accepted here, so the pins equal what can be emitted.
-// MBC is the Mystery Booster Commander draft pool's dealt names, not a Standard
-// set.
+// MBC is the Mystery Booster Commander draft pool's dealt names, and CMM, MH3,
+// MH2 and CM2 are Commander and Modern Horizons sets, not Standard sets; the
+// operator tracks them.
 const (
 	acceptanceTSV      = "testdata/acceptance.tsv"
 	buildAcceptanceTSV = "testdata/build_acceptance.tsv"

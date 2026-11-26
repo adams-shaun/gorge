@@ -1674,10 +1674,26 @@ func protectionColorWord(letter byte) string {
 	return ""
 }
 
+// protectionCardTypeOffer resolves one Choices$ token to a card-type quality
+// when it names one of the CR 205.1 card types (chooseCardTypes, the same
+// vocabulary a Type$ Card choose ranges over): the token's canonical
+// spelling, or "" when it is not a card type.
+func protectionCardTypeOffer(tok string) string {
+	for _, ty := range chooseCardTypes {
+		if strings.EqualFold(ty, tok) {
+			return ty
+		}
+	}
+	return ""
+}
+
 // protectionChoiceOffers is the qualities Choices$ lets the controller pick
 // from: AnyColor is the five colours; colorless and a named colour stand for
-// themselves. nil means the list names something this engine cannot ask (a
-// card type), and the caller keeps its deterministic stand-in.
+// themselves; CardType expands to the CR 205.1 card types (Pippin, Guard of
+// the Citadel), each of which is also accepted as its own token in a mixed
+// list (Apostle's Blessing's AnyColor,Artifact). nil means the list names
+// something this engine cannot ask, and the caller keeps its deterministic
+// stand-in.
 func protectionChoiceOffers(choices string) []string {
 	var out []string
 	for tok := range strings.SplitSeq(choices, ",") {
@@ -1691,7 +1707,13 @@ func protectionChoiceOffers(choices string) []string {
 			out = append(out, "colorless")
 		case colourLetter(tok) != 0:
 			out = append(out, protectionColorWord(colourLetter(tok)))
+		case strings.EqualFold(tok, "CardType"):
+			out = append(out, chooseCardTypes...)
 		default:
+			if ty := protectionCardTypeOffer(tok); ty != "" {
+				out = append(out, ty)
+				continue
+			}
 			return nil
 		}
 	}

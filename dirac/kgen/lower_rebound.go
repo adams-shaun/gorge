@@ -25,13 +25,23 @@ func (lc *lowerCtx) lowerRebound(node string) {
 		lc.refuseNode(node, "Rebound on a permanent card")
 		return
 	}
+	lc.out.Rebound = lc.reboundBody()
+}
+
+// reboundBody lowers the latent recast body: an optional, one-pick free cast
+// of the source card in exile. The printed K:Rebound line keeps it as
+// lCard.Rebound; a stack grant (Cast Through Time) keeps it on the carrier
+// and points its StackKw static's GrantBody at it, so the upkeep program the
+// kernel registers runs the carrier's body over the rebounding spell's exiled
+// object (dirac/kw_rebound.go reboundPlan).
+func (lc *lowerCtx) reboundBody() *lAbility {
 	lat := lc.newLatent("ReboundCast")
-	lc.out.Rebound = lat
 	lc.withAbility(lat, func() error {
 		lc.emit(lInstr{Op: "CastFree", Obj: lRef{Kind: rSelf}, C: zExile, CS: "Optional|One",
 			Note: "CR 702.88a: the exiled card, free, optional (gorge __kwReboundCast)"})
 		return nil
 	})
+	return lat
 }
 
 // refuseReboundCombos refuses Rebound beside anything else that moves the

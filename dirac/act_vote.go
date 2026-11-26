@@ -31,6 +31,7 @@ const raVote = raGenManifestDread + 78
 // The ExtVote operand's mode bits (the op's C).
 const (
 	voteCExile = 1 << 0        // the card ballot's exile of the most-voted
+	voteCGrave = 1 << 2        // the card ballot is graveyard cards, the most-voted return to hand (card mode only)
 	voteCFixed = 1 << 1        // the fixed-list shape, not the card ballot
 	voteCTie   = 1 << 5        // a VoteTiedAbility$ branch exists
 	voteCStore = kop.VoteStore // StoreVoteNum$: every option branch runs with its tally
@@ -73,6 +74,28 @@ func (r *armRes) voteStoreAll(counts [voteCMask + 1]uint8, n int) {
 // first tied option instead of the VoteTiedAbility$ branch.
 var DebugVoteTieTakesFirst bool
 
+// DebugVoteGraveNoReturn (TestSetsObjects5VoteGraveLockstep's mutation): a
+// graveyard ballot's most-voted stay in the graveyard.
+var DebugVoteGraveNoReturn bool
+
+// voteGraveBallot is a graveyard card ballot's candidates (C bit 2; gorge
+// effCardVote over Zone$ Graveyard): every graveyard card matching in.F for
+// the resolving controller, seat 0's graveyard first, each in graveyard
+// order (gorge's g.Zone walk). n is the count written to out.
+func (s *State) voteGraveBallot(k *prep, in *kop.Instr, out *[MaxSeats * MaxDeck]Obj) int {
+	n := 0
+	for p := uint8(0); p < s.nSeats(); p++ {
+		pl := &s.pl[p]
+		for _, o := range pl.grave[:pl.graveN] {
+			if s.matchCardGen(k, in.F, s.objs[o].card, p, s.res.e.ctrl, o) {
+				out[n] = o
+				n++
+			}
+		}
+	}
+	return n
+}
+
 // voteChoiceCount is the fixed-list ballot's option count (C bits 2..4).
 func voteChoiceCount(in *kop.Instr) int { return int(in.C>>voteCShift) & voteCMask }
 
@@ -110,7 +133,12 @@ func (s *State) voteNext() bool {
 // voteStart is OpExt ExtVote: the first voter's ask, or nothing at all with
 // an empty card ballot (gorge asks nobody and remembers nothing).
 func (s *State) voteStart(k *prep, in *kop.Instr) bool {
-	if in.C&voteCFixed == 0 && !s.voteBallot(k, in).any() {
+	if in.C&voteCFixed == 0 && in.C&voteCGrave != 0 {
+		var gb [MaxSeats * MaxDeck]Obj
+		if s.voteGraveBallot(k, in, &gb) == 0 {
+			return true
+		}
+	} else if in.C&voteCFixed == 0 && !s.voteBallot(k, in).any() {
 		return true
 	}
 	if in.C&voteCFixed != 0 && voteChoiceCount(in) == 0 {
@@ -136,6 +164,14 @@ func (s *State) voteOptions(k *prep, d *Decision) {
 		return
 	}
 	d.Sub = ChVoteCard
+	if in.C&voteCGrave != 0 {
+		var gb [MaxSeats * MaxDeck]Obj
+		n := s.voteGraveBallot(k, in, &gb)
+		for _, o := range gb[:n] {
+			d.add(MakeAction(AkChoose, TCode(o), 0, 0))
+		}
+		return
+	}
 	for m := s.voteBallot(k, in); m.any(); m = m.rest() {
 		d.add(MakeAction(AkChoose, TCode(s.perms[m.first()].obj), 0, 0))
 	}
@@ -156,6 +192,10 @@ func (s *State) voteAnswer(k *prep, a Action) {
 	}
 	if in.C&voteCFixed != 0 {
 		s.voteFixedTally(k, in)
+		return
+	}
+	if in.C&voteCGrave != 0 {
+		s.voteGraveTally(k, in)
 		return
 	}
 	var ord [MaxPerm]Slot
@@ -180,6 +220,42 @@ func (s *State) voteAnswer(k *prep, a Action) {
 	}
 	if in.C&voteCExile != 0 && won.any() { // seat-ok: an instruction flag bit
 		s.leaveAll(k, won, kop.ZoneExile) // one simultaneous departure (gorge's departure batch)
+	}
+	s.continueRes(k, 0)
+}
+
+// voteGraveTally counts a graveyard card ballot (Custodi Squire): every card
+// with the most votes or tied for most is remembered in ballot order, then
+// the VoteSubAbility$ (the remembered set from the graveyard to its owner's
+// hand, gorge's ChangeZone Defined$ Remembered) moves each in that order.
+func (s *State) voteGraveTally(k *prep, in *kop.Instr) {
+	var gb [MaxSeats * MaxDeck]Obj
+	n := s.voteGraveBallot(k, in, &gb)
+	var votes [MaxSeats * MaxDeck]uint8
+	best := uint8(0)
+	for i, o := range gb[:n] {
+		for _, v := range s.res.arr[:s.res.left] {
+			if v == o {
+				votes[i]++
+			}
+		}
+		best = max(best, votes[i])
+	}
+	var won [MaxSeats * MaxDeck]Obj
+	nw := 0
+	for i := 0; i < n && best > 0; i++ {
+		if votes[i] == best {
+			s.remember(gb[i])
+			won[nw] = gb[i]
+			nw++
+		}
+	}
+	if !DebugVoteGraveNoReturn {
+		for _, o := range won[:nw] {
+			if s.objs[o].zone == kop.ZoneGraveyard {
+				s.moveObj(k, kop.RefRemembered, o, kop.ZoneHand)
+			}
+		}
 	}
 	s.continueRes(k, 0)
 }

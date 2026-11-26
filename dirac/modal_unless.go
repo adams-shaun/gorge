@@ -9,6 +9,11 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // the same (effects.GenericChoiceAvailable); the mode offer must not present
 // one. A resolution-time OpChooseBranch gets the same gate from branchPayable.
 
+// A marked trigger gorge placed unasked (every choice unpayable at placement:
+// trigger_queue.go askTriggerModes) re-runs the gate at resolution, as effCharm
+// does: once a choice has become payable gorge poses the mode ask then, and the
+// kernel's resolveTop raises modalActAsk's offer, filtered the same way.
+
 // unlessInstrPayable reports whether p can pay the unless / if-you-do cost an
 // OpUnlessPaid / OpIfPaid / OpUnlessSwitched instruction names.
 func (s *State) unlessInstrPayable(k *prep, in *kop.Instr, p uint8) bool {
@@ -36,4 +41,15 @@ func (s *State) modeUnlessPayable(k *prep, a *kop.Ability, m int, p uint8) bool 
 		return s.unlessInstrPayable(k, n, p)
 	}
 	return true
+}
+
+// anyModeUnlessPayable reports whether some mode of the marked charm a
+// passes modeUnlessPayable for p (gorge's GenericChoiceAvailable non-empty).
+func (s *State) anyModeUnlessPayable(k *prep, a *kop.Ability, p uint8) bool {
+	for m := 0; m < int(a.NModes); m++ {
+		if s.modeUnlessPayable(k, a, m, p) {
+			return true
+		}
+	}
+	return false
 }

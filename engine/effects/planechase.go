@@ -26,6 +26,12 @@ func init() {
 	Register("BlankLine", effBlankLine)
 	Register("Planeswalk", effPlaneswalk)
 	Register("ChaosEnsues", effChaosEnsues)
+	// rules matches the marker through its synthetic plane scan
+	// (checkChaosEnsuesTriggers), so the trigger mode is implemented even
+	// though it is not one of the matcher-backed modes the ordinary walk
+	// registers. Without this the coverage census reports every plane whose
+	// only remaining primitive is Mode$ ChaosEnsues as unplayable.
+	RegisterNonAPI("trig:ChaosEnsues")
 }
 
 // effBlankLine is "DB$ BlankLine": a display-only spacer in Forge's card

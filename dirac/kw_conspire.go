@@ -5,8 +5,10 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // Conspire as a granted keyword (CR 702.78a): Raiding Schemes' AffectedZone$
 // Stack grant (StatStackKw, StackKwConspire), copied from gorge (rules
 // legal_walk_hand.go's "conspired" offer, cast_asks.go conspireAsk,
-// trigger_granted.go checkGrantedConspireTriggers). The printed keyword has
-// no form in the kernel (kgen refuses K:Conspire).
+// trigger_granted.go checkGrantedConspireTriggers). The printed keyword
+// (CardDef.Conspire) offers the same conspired cast (grantConspire) and its
+// copy is the keyword's own SpellCast trigger, lowered from gorge's expansion;
+// the paid count that trigger's Count$Conspired reads is cost_paidcount.go's.
 //
 //   - the conspired cast is its own AkCastConspire option beside the plain
 //     cast (a granted conspire pairs with a printed casualty, so AkCastCasualty

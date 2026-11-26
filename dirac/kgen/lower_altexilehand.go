@@ -73,5 +73,5 @@ func altHandExileShape(c *kop.Cost) bool {
 // carry it (altSacOK: an instant, sorcery, or a creature with no spell
 // ability of its own).
 func (cb *cardBuilder) altHandExileOK(c *kop.Cost) bool {
-	return altHandExileShape(c) && cb.altSacOK()
+	return altHandExileShape(c) && cb.altSacOK(c)
 }

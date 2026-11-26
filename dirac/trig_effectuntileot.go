@@ -31,6 +31,7 @@ type EffEOTTrigStats struct {
 	BlockedLapsed   int // become-blocked emblem hook runs (a block with attackers) with the emblem's capture lapsed (the object left the battlefield)
 	DmgCapSkips     int // damage events a remembering emblem's trigger passed over because the source was not its remembered object, the recipient was not its remembered player, or the damaged permanent was not its remembered object (the recipient capture)
 	BlocksFires     int // blocks emblem triggers queued (fireEmblemsBlocks)
+	UnblockedFires  int // unblocked-attacker emblem triggers queued (fireEmblemsUnblocked)
 }
 
 // DebugInnerLightNoAmount is a mutation switch (TestTheInnerLightMutation):
@@ -399,14 +400,14 @@ func (s *State) fireEmblemsBlocked(k *prep, atk []Slot) {
 			}
 			for j := range e.Abilities {
 				ea := &e.Abilities[j]
-				if ea.Kind != kop.AbTriggered || ea.Trig.Event != kop.TrigBecomesBlocked {
+				if ea.Kind != kop.AbTriggered || ea.Trig.Event != kop.TrigBecomesBlocked || ea.Trig.Flags2&kop.Tf2Unblocked != 0 {
 					continue
 				}
 				c := s.embCard(pp, i)
 				cd := &k.t.Cards[c]
 				for ab := range cd.Abilities {
 					la := &cd.Abilities[ab]
-					if la.Kind != kop.AbTriggered || la.AFlags&kop.AfLatent == 0 || la.Trig.Event != kop.TrigBecomesBlocked || la.Trig.Zone != kop.ZoneCommand {
+					if la.Kind != kop.AbTriggered || la.AFlags&kop.AfLatent == 0 || la.Trig.Event != kop.TrigBecomesBlocked || la.Trig.Flags2&kop.Tf2Unblocked != 0 || la.Trig.Zone != kop.ZoneCommand {
 						continue
 					}
 					o := s.embObj(pp, i)

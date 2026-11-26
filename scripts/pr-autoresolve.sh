@@ -44,9 +44,16 @@ fi
 # base, optional) did not have: a row the PR added, e.g. the acceptance row of a new set list. Main's deletions stay.
 if [ "${1:-}" = --union ]; then
   [ $# -ge 3 ] || { echo "usage: pr-autoresolve.sh --union MAIN PR [BASE]" >&2; exit 2; }
-  cat "$2"
-  awk -F'\t' 'FILENAME == ARGV[3] { if (!/^#/ && NF && !($1 in seen)) print; next }
-    !/^#/ && NF { seen[$1] = 1 }' "$2" "${4:-/dev/null}" "$3"
+  # The added rows go in key order (bytewise) before the first of main's data rows with a greater key, so a table
+  # kept sorted (kgen's pin tables: parsePinTSV refuses a list that is not byte-after the one before it) stays
+  # sorted. A header (main's first non-comment line whose second field is not a count) is never preceded.
+  added=$(awk -F'\t' 'FILENAME == ARGV[3] { if (!/^#/ && NF && !($1 in seen)) print; next }
+    !/^#/ && NF { seen[$1] = 1 }' "$2" "${4:-/dev/null}" "$3" | LC_ALL=C sort -t "$(printf '\t')" -k1,1)
+  ADDED=$added LC_ALL=C awk -F'\t' 'BEGIN { n = split(ENVIRON["ADDED"], a, "\n"); i = 1; while (i <= n && a[i] == "") i++ }
+    /^#/ || !NF { print; next }
+    !hdr { hdr = 1; if ($2 !~ /^[0-9]+$/) { print; next } }
+    { while (i <= n && (a[i] == "" || substr(a[i], 1, index(a[i] "\t", "\t") - 1) < $1)) { if (a[i] != "") print a[i]; i++ } print }
+    END { for (; i <= n; i++) if (a[i] != "") print a[i] }' "$2"
   exit 0
 fi
 

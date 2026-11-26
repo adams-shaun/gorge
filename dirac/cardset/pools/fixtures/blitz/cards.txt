@@ -1,0 +1,25 @@
+# K:Blitz:<mana cost> (CR 702.152a): the hand's alternative cost, haste, "when
+# this creature dies, draw a card" and the end-step sacrifice, lowered from the
+# printed keyword (CardDef.HasBlitz), for dirac/oracle/blitz_test.go. Caldaia
+# Guardian, Girder Goons, Riveteers Requisitioner and Workshop Warchief carry
+# their own dies triggers, so the granted draw queues beside them. The three
+# rituals float the mana a blitzed cast is offered from (gorge prices no
+# blitzed cast in its planner). No card here
+# grants blitz (a granted Blitz stays refused), flickers or reanimates.
+Caldaia Guardian
+Caldaia Strongarm
+Girder Goons
+Mayhem Patrol
+Mezzio Mugger
+Night Clubber
+Plasma Jockey
+Pugnacious Pugilist
+Riveteers Decoy
+Riveteers Requisitioner
+Workshop Warchief
+Dark Ritual
+Seething Song
+Channel the Suns
+Forest
+Mountain
+Swamp

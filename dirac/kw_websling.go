@@ -3,7 +3,8 @@ package dirac
 import "github.com/adams-shaun/gorge/dirac/kop"
 
 // Web-slinging (CR 702.188), cold: reached only when the
-// table has a card with printed web-slinging (genPrep.anyWebSling).
+// table has a card with printed web-slinging or a StatStackKw WebSling grant
+// (genPrep.anyWebSling).
 //
 // A hand card with web-slinging may be cast for its web-slinging cost plus
 // returning a tapped creature its caster controls to its owner's hand
@@ -40,6 +41,50 @@ var DebugWebSlingUntapped bool
 // cost.
 func webSlingEntry(e *stackEntry) bool {
 	return e.kind == seSpell && e.trigPl == trigPlWebSling
+}
+
+// webSlingGrant is the web-slinging cost of hand card o of p when a live
+// StatStackKw WebSling grant reaches it (Peter Parker's Amazing Spider-Man
+// face; gorge webSlingingCosts reads the derived keyword with the stack-zone
+// override, so the grant's Affected$ and its trailing spell spec both match
+// the proposed spell). ok is false with no grant. gorge offers one mode per
+// derived instance, the printed one and each grant, which the kernel's single
+// AkWebSling cannot tell apart: a card that prints web-slinging, or a second
+// reaching grant, stalls unmodelled (StallStackKwGrant).
+func (s *State) webSlingGrant(k *prep, p uint8, c CardID, o Obj) (cost kop.ManaCost, ok bool) {
+	if k.gen == nil || !k.gen.anyStackKw {
+		return cost, false
+	}
+	n, _, src := s.stackKwScan(k, kop.StackKwWebSling, c, o, p, true)
+	if n == 0 {
+		return cost, false
+	}
+	if n > 1 || k.t.Cards[c].HasWebSling {
+		s.capFull(StallStackKwGrant)
+		return cost, false
+	}
+	return src.a.Static.GrantCost, true
+}
+
+// webSlingable reports whether hand card o of p has a web-slinging cast to
+// offer: its printed keyword or a live grant.
+func (s *State) webSlingable(k *prep, p uint8, c CardID, o Obj) bool {
+	if k.t.Cards[c].HasWebSling {
+		_, granted := s.webSlingGrant(k, p, c, o) // stalls a printed card a grant also reaches
+		return !granted
+	}
+	_, granted := s.webSlingGrant(k, p, c, o)
+	return granted
+}
+
+// webSlingCost is the web-slinging cost of hand card o of p: the printed
+// WebSlingCost, else the live grant's.
+func (s *State) webSlingCost(k *prep, p uint8, c CardID, o Obj) kop.ManaCost {
+	if k.t.Cards[c].HasWebSling {
+		return k.t.Cards[c].WebSlingCost
+	}
+	gc, _ := s.webSlingGrant(k, p, c, o)
+	return gc
 }
 
 // webSlingReturnable reports whether slot sl (controlled by the payer) can
@@ -85,7 +130,7 @@ func (s *State) offerWebSlingHand(k *prep, d *Decision, p uint8, o Obj, c CardID
 	saved := av.delve
 	defer func() { av.delve = saved }()
 	av.delve = s.tbDelveCredit(k, p, c, o, true) // the faces' credit (CR 702.66a)
-	cost := s.adjustCost(k, p, c, o, k.t.Cards[c].WebSlingCost)
+	cost := s.adjustCost(k, p, c, o, s.webSlingCost(k, p, c, o))
 	if !av.tbLeafCredited(&cost) {
 		cost = s.delveOfferCredit(k, p, c, o, true, cost) // gorge's choke point credits the generic at this walk too
 	}

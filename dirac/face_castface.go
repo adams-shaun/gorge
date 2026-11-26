@@ -181,6 +181,10 @@ func (s *State) offerFaceCasts(k *prep, d *Decision, p uint8, o Obj, sorc bool) 
 		if k.cards[cd.Faces[1]].land {
 			return
 		}
+	case kop.FaceTransform:
+		if cd.FlipCast != kop.FlipConverted {
+			return // More Than Meets the Eye's converted cast (face_flipcast.go)
+		}
 	default:
 		return
 	}
@@ -241,7 +245,9 @@ func (s *State) unturnFace(k *prep, o Obj, mode uint8) {
 // the battlefield): an Adventure, split or modal DFC card is its front
 // again (gorge events apply_zone.go: CR 715.4, CR 709.4, CR 712.8a; a
 // modal back that resolves into a permanent keeps its back), and
-// an Adventure that leaves the stack for exile is on an adventure. It
+// an Adventure that leaves the stack for exile is on an adventure. A
+// transforming card's back-face cast is front face up again too, but only
+// after its destination replacements ran (stackExitFrontFace). It
 // returns z, or exile for a resolved Adventure (gorge rules stack.go
 // spellRestZone; a countered or fizzled one goes to the graveyard,
 // spellFizzleZone).
@@ -257,6 +263,10 @@ func (s *State) stackExitFace(k *prep, o Obj, z kop.Zone, resolved bool) kop.Zon
 		ob.card = front // a fused spell is its card again (face_fuse.go)
 		return z
 	}
+	// A converted or disturbed back face (face_flipcast.go) is turned front
+	// face up by stackExitFrontFace as the move finishes, not here: its own
+	// "exile it instead" (CR 702.146b) must still read the back face in
+	// placeFromK's destination replacements.
 	if cd.Face == 0 || len(cd.Faces) == 0 || cd.FaceMode != kop.FaceAdventure && cd.FaceMode != kop.FaceSplit && cd.FaceMode != kop.FaceModal && cd.FaceMode != kop.FaceOmen && cd.FaceMode != kop.FacePrototype {
 		return z
 	}
@@ -278,6 +288,24 @@ func (s *State) stackExitFace(k *prep, o Obj, z kop.Zone, resolved bool) kop.Zon
 		}
 	}
 	return z
+}
+
+// stackExitFrontFace turns a transforming card's back face front face up as
+// the card finishes leaving the stack for a non-battlefield zone (CR 712.8a;
+// gorge events apply_zone.go resets on the same fold). It runs after the
+// move's destination replacements have read the face the card left with: a
+// disturbed back face's own "exile it instead" (CR 702.146b) still sees the
+// back face there. The other face layouts reset earlier, in stackExitFace.
+func (s *State) stackExitFrontFace(k *prep, o Obj, from, z kop.Zone) {
+	if k == nil || from != kop.ZoneStack || z == kop.ZoneBattlefield {
+		return
+	}
+	ob := &s.objs[o]
+	cd := &k.t.Cards[ob.card]
+	if cd.FaceMode == kop.FaceTransform && cd.Face != 0 && len(cd.Faces) > 0 {
+		s.touch(o)
+		ob.card = cd.Faces[0]
+	}
 }
 
 // splitMV is the mana value of object o showing card c when c is a split
@@ -325,11 +353,19 @@ const FeatCastFace = castFace
 func (s *State) faceWitnessReaches(k *prep, p uint8, o Obj, c CardID, cost *kop.ManaCost) bool {
 	tmp := s.fork()
 	defer s.unfork()
+	n0 := tmp.npend
 	var pk planner
 	pk.try = true
 	tmp.tapForPK(k, p, cost, 0, NoObj, false, false, &pk)
 	if !pk.found || !plannerConsumesSac(&pk) {
 		return true
+	}
+	// A sorcery-speed face (an Adventure creature cast from exile) is offered
+	// only once the witness's triggers have resolved, and gorge's replay lets
+	// at most witnessWaits of them: the sacrificed Eldrazi Scion and Spawn
+	// beside two Quests for the Gravelord and a Falkenrath Noble stack six.
+	if s.witnessOverWaits(k, p, c, o, int(tmp.npend)-int(n0)) {
+		return false
 	}
 	return tmp.spellTargetsFeasible(k, c, p) && tmp.FeatPoolPays(p, o, 0)
 }

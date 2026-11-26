@@ -54,12 +54,12 @@ func (s *State) castGateAffordable(k *prep, p uint8, c CardID, o Obj, cost *kop.
 // castGateOrPoolPays is the plain cast's affordability read: the gate's own
 // read, or the conversion pool paying the pips (mana_convertcreature.go).
 func (s *State) castGateOrPoolPays(k *prep, p uint8, c CardID, o Obj, cost *kop.ManaCost, cav *avail) bool {
-	return s.castGateAffordable(k, p, c, o, cost, cav) || s.convPoolPays(k, p, o, cost)
+	return s.castGateAffordable(k, p, c, o, cost, cav) || s.convAnyPoolPays(k, p, o, cost)
 }
 
 // kickedAffordsOrPoolPays is the kicked cast's corresponding read over kc.
 func (s *State) kickedAffordsOrPoolPays(k *prep, p uint8, c CardID, o Obj, kc *kop.ManaCost, cav *avail) bool {
-	return s.kickedAffords(k, p, c, o, kc, cav) || s.convPoolPays(k, p, o, kc)
+	return s.kickedAffords(k, p, c, o, kc, cav) || s.convAnyPoolPays(k, p, o, kc)
 }
 
 func (s *State) priorityOptions(k *prep, d *Decision) {
@@ -80,7 +80,7 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 		c := s.objs[o].card
 		pc := &k.cards[c]
 		if pc.land {
-			if sorc && pl.landsPlayed < s.landLimit(k, p) {
+			if sorc && pl.landsPlayed < s.landLimit(k, p) && !s.cantPlayLandLock(k, p, c, o) {
 				d.add(MakeAction(AkPlayLand, TCode(o), 0, 0))
 				if faces && k.gen.anyFaces {
 					s.offerFaceLand(k, d, o) // face_multiface.go
@@ -162,13 +162,21 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 			// affordability gate and without a target check (CR 702.62a)
 			s.offerSuspendHand(k, d, p, o, c, &av) // kw_suspend.go
 		}
-		if k.gen != nil && k.gen.anyWebSling && k.t.Cards[c].HasWebSling {
+		if k.gen != nil && k.gen.anyWebSling && s.webSlingable(k, p, c, o) {
 			// under the plain cast's timing and prohibition gates, before
 			// its affordability gate (CR 702.188a)
 			s.offerWebSlingHand(k, d, p, o, c, &av) // kw_websling.go
 		}
 		if pc.altCost {
 			s.offerAltHand(k, d, p, o, c, &av) // kw_impending.go
+		}
+		if k.gen != nil {
+			// a non-granting may-play alternative cost beside the plain hand
+			// cast (As Foretold's {0}, Demon of Fate's Design's pay-life,
+			// Nissa's pay-energy): gorge's hand walk lists each mayPlayAltCosts
+			// entry as its own "cast" option (legal_walk_hand.go's
+			// alternativeCosts loop), whether or not the plain price is payable
+			s.offerMayPlayHandAlt(k, d, p, o, c, sorc, &av) // cast_mayzeroalt.go
 		}
 		cost := &pc.cost
 		var credited kop.ManaCost
@@ -210,7 +218,7 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 			if k.gen == nil || !k.gen.anySacX || !s.sacXPoolOffer(k, p, o) {
 				// the bestow cost needs no affordable mana cost (CR 702.103a)
 				s.offerBestowIfPrinted(k, d, p, o, c, &av)
-				if pc.kw&kop.KwKicker != 0 || k.t.Cards[c].HasMultikicker {
+				if pc.kw&kop.KwKicker != 0 || k.t.Cards[c].HasMultikicker || s.offGrantOffer(k, p, c, o) {
 					s.offerKickedPotentialOnly(k, d, p, c, o, pc.cost, preDelve, &base, cav, &av) // kw_multikicker.go
 				}
 				continue // (an announced Sac<X> the floating pool pays at some X is offered, cost_sacx.go)
@@ -258,7 +266,7 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 			d.add(MakeAction(AkCast, TCode(o), 0, 1))
 		}
 		s.offerBestowIfPrinted(k, d, p, o, c, &av) // kw_bestow.go
-		if pc.kw&kop.KwKicker != 0 || k.t.Cards[c].HasMultikicker || k.offspring && offspringOffer(k, c) {
+		if pc.kw&kop.KwKicker != 0 || k.t.Cards[c].HasMultikicker || k.offspring && offspringOffer(k, c) || s.offGrantOffer(k, p, c, o) {
 			s.offerKickedHand(k, d, p, c, o, pc.cost, cav)
 		}
 	}
@@ -374,6 +382,9 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 		s.offerAdventureRecasts(k, d, p, sorc) // face_castface.go
 		if k.gen.anyAftermath {
 			s.offerAftermathCasts(k, d, p, sorc) // face_aftermath.go
+		}
+		if k.anyDisturb {
+			s.offerDisturbCasts(k, d, p, sorc) // face_flipcast.go
 		}
 	}
 	if k.gen != nil && k.gen.anyAirbend {
@@ -499,6 +510,7 @@ func (s *State) activateOffers(k *prep, d *Decision, p uint8, sorc bool, av *ava
 			}
 		}
 	}
+	s.priManaAskOffers(k, d, p) // an unless source's activation (Config.PriorityManaAsk; mana_priask.go)
 	return haveAv
 }
 
@@ -740,8 +752,8 @@ func (s *State) canActivate(k *prep, sl Slot, ab int, a *kop.Ability, sorc bool,
 	if sourcesPay(&mana) && !poolOK && !s.actSourcesAfford(k, sl, ab, a, mana, av) {
 		return false
 	}
-	if mana.X == 0 && sacXCost(&a.Cost) && k.gen != nil && k.gen.anySacX {
-		return s.sacXTargetsFeasible(k, a, p.ctrl, sl) // cost_sacx.go
+	if mana.X == 0 && announcedCountX(k, &a.Cost) {
+		return s.sacXTargetsFeasible(k, a, p.ctrl, sl) // targets judged at X = 0 (cost_sacx.go, cost_exilex.go)
 	}
 	return s.abilityTargetsFeasible(k, a, p.ctrl, sl, 0xff) && s.xBoundPayable(k, a, 0, p.ctrl, sl, &mana)
 }
@@ -1141,6 +1153,9 @@ func (s *State) gorgeLowersRider(p uint8, o Obj, mayPlay, anyColor bool) bool {
 	}
 	if sacXCost(spellAddCost(k, c)) {
 		return false // an announced Sac<X/Spec>: the potential planner's composition declines it too, so only the floating pool offers it (cost_sacx.go)
+	}
+	if spellAddCost(k, c).SacHalf {
+		return s.sacHalfLowers(k, p, c, o, mayPlay, anyColor) // cost_sachalf.go
 	}
 	if cd.HasAltAdd {
 		return s.altAddLowers(k, p, c, o, mayPlay, anyColor)
@@ -3522,7 +3537,11 @@ func (s *State) potentialGapCost(k *prep, p uint8, sl Slot, j int, ab *kop.Abili
 	c := s.cardAt(sl)
 	switch {
 	case int(k.ctrAb[c]) == j && (kop.CtrManaAb(ab) || kop.CtrRemoveManaAb(ab) || kop.CtrTapSecondManaAb(ab)):
-		return ab.Cost.Flags&kop.CostRemoveCtr == 0 || s.perms[sl].ctrN(s, int(ab.Cost.Ctr)) >= int(ab.Cost.N)
+		return s.ctrCostPayable(sl, p, ab)
+	case anyDifferentTapAb(ab):
+		// Component Pouch's "{T}, Remove a counter: Add two mana of different
+		// colors": priced while the source holds the counters its cost removes
+		return s.ctrCostPayable(sl, p, ab)
 	case ab.ManaRider == kop.ManaRiderDeplete && ab.Cost.Flags == kop.CostTap|kop.CostRemoveCtr:
 		// a depletion land (Sandstone Needle, Peat Bog): gorge's potentialManaFor counts its
 		// whole production while it still holds the counter its cost removes
@@ -3598,6 +3617,9 @@ func hybridCovered(left *[kop.NumManaKinds]int, hyb []kop.ColorMask) bool {
 
 func (s *State) applyPriority(k *prep, a Action) {
 	p := s.prio
+	if s.priManaAskBegin(k, a) {
+		return // an unless source's activation: its asks follow (mana_priask.go)
+	}
 	sp0 := s.sp
 	// A filter beside a grant is one search in gorge (scriptSearch.visit:
 	// every census gap in battlefield order), and the grant search is that
@@ -3667,6 +3689,9 @@ func (s *State) applyPriority(k *prep, a Action) {
 		}
 		if a.Target() == castCleaveTgt && a.Mode() == 0 && k.gen != nil && k.gen.anyCleave {
 			s.g.impCast = true // the cleave cost (kw_cleave.go): beginCast puts the cleave ability on the entry
+		}
+		if a.Target() == castBlitzTgt && a.Mode() == 0 && k.gen != nil && k.gen.anyBlitz() {
+			s.g.impCast = true // the blitz cost (kw_blitz.go): beginCast marks the entry blitzed
 		}
 		if a.Target() == castSurgeTgt && a.Mode() == 0 && k.gen != nil && k.gen.anySurge {
 			s.g.impCast = true // the surge cost (kw_surge.go): beginCast marks the entry surged
@@ -3862,4 +3887,14 @@ func scriptPricedCost(ab *kop.Ability) bool {
 func censusRestrDynAny(ab *kop.Ability) bool {
 	return ab.ManaRestrict != 0 && ab.AFlags&kop.AfManaDynamic != 0 && ab.ManaColors == kop.ColAny &&
 		ab.AFlags&kop.AfManaEachColor == 0 && !anyDifferentTapAb(ab)
+}
+
+// announcedCountX reports whether an ability's cost announces X as a count of
+// sacrificed (Sac<X/Spec>) or exiled (ExileFromGrave<X/Spec>) objects with no
+// {X} mana, so its targets are judged at X = 0 (cost_sacx.go, cost_exilex.go).
+func announcedCountX(k *prep, c *kop.Cost) bool {
+	if k.gen == nil {
+		return false
+	}
+	return (k.gen.anySacX && sacXCost(c)) || (k.gen.anyExileX && exileXCost(c))
 }

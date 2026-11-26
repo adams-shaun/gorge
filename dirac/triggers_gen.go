@@ -32,6 +32,7 @@ type trigListener struct {
 func (s *State) eachTrigger(k *prep, ev kop.TrigEvent, f func(l trigListener, a *kop.Ability)) {
 	s.eachBattlefieldTrigger(k, ev, f)
 	s.eachCommandTrigger(k, ev, f)
+	s.eachPlaneTrigger(k, ev, f)
 }
 
 // eachBattlefieldTrigger calls f for every triggered ability of event ev on
@@ -321,12 +322,22 @@ func (s *State) fireObjGen(k *prep, ev kop.TrigEvent, evSl Slot, evObj Obj, evCt
 		return // DisableTriggers (trig_disable.go)
 	}
 	dies := ev == kop.TrigDies
+	grOff := ev == kop.TrigETB && k.anyOffGrant
 	s.eachBattlefieldTrigger(k, ev, func(l trigListener, a *kop.Ability) {
 		if dies && a.Trig.Flags2&kop.Tf2ToGraveHalf != 0 {
 			return // fires from the removal point (fireToGraveDies, CR 603.6c)
 		}
 		s.objTrigGen(k, ev, l, a, evSl, evObj, evCtrl, amt)
 	})
+	if grOff && evSl != NoSlot {
+		// the granted-offspring copy trigger queues after the battlefield
+		// walk's printed triggers: gorge's object walk visits the entering
+		// permanent last among the battlefield (it is the newest), its
+		// granted walks running at its visit (trigger_granted.go
+		// checkGrantedOffspringTriggers), before the graveyard and
+		// command-zone listeners below
+		s.queueOffspringGrant(k, evSl, evObj, evCtrl) // kw_offspring.go
+	}
 	if ev == kop.TrigETB && k.gen.graveETB {
 		s.fireGraveETB(k, evSl, evObj, evCtrl)
 	}
