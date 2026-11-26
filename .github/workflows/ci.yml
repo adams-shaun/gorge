@@ -250,9 +250,24 @@ jobs:
       - name: Read the corpus pin
         id: pin
         run: echo "forge_ref=$(awk '/^FORGE_REF/ {print $3}' Makefile)" >> "$GITHUB_OUTPUT"
-      - name: Keep the corpus on the box (self-hosted)
+      - name: Select the diff's tests
+        # S4 (11-26): the selection runs once (3-8 s) and is handed to the corpus step's background compile and to
+        # the test run below, so the two cannot select different packages.
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+        run: bash scripts/test-targets.sh list > "$RUNNER_TEMP/ci-fast.list"
+      - name: Keep the corpus on the box and compile the diff's tests beside it (self-hosted)
+        # S4 (11-26): the corpus/tables build was the fast job's last serial prefix (14-83 s on a tree this box has
+        # not built, 2-5 s warm), and the affected-package run is the wall (measured 11-26 on 11 PR runs: 398 s of
+        # a 512 s job). The compile reads only the checkout and the box's Go build cache — never .cards, which
+        # ci-corpus.sh is about to link — so the two run together: the step costs max(corpus, compile) instead of
+        # their sum, and the test run below reuses every compiled binary. Same selection, same skip rules, no test
+        # runs here (-exec /bin/true; go keys a cached test result on the -exec command, so nothing is faked).
         if: runner.environment == 'self-hosted'
-        run: bash scripts/ci-corpus.sh
+        env:
+          CI_FAST_SKIP_KGEN: "1"
+          CI_FAST_SKIP_ORACLE_REPLAY: "1"
+        run: bash scripts/ci-fast.sh --precompile "${{ github.event.pull_request.base.sha }}" "$RUNNER_TEMP/ci-fast.list"
       - name: Restore the corpus
         id: corpus
         if: runner.environment == 'github-hosted'
@@ -284,6 +299,7 @@ jobs:
         env:
           CI_FAST_SKIP_KGEN: "1"
           CI_FAST_SKIP_ORACLE_REPLAY: "1"
+          CI_FAST_LIST: ${{ runner.temp }}/ci-fast.list
         run: bash scripts/ci-fast.sh ${{ github.event.pull_request.base.sha }}
 
   lint:

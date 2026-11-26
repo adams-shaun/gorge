@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# ci-fast.sh <base>: the fast stage of a pull request's CI (Mergify two-step CI, operator 11-16). It runs what
+# ci-fast.sh [--precompile] <base> [listfile]: the fast stage of a pull request's CI (Mergify two-step CI, operator
+# 11-16). It runs what
 # `test-targets.sh list` selects for the diff against <base>: the packages the change touches, every package whose
 # tests import them, and the named test groups. The full suite runs once per Mergify batch, on mergify/merge-queue/*
 # (ci.yml), not on every pull request. Every run here passes -short, so the slow whole-game self-play/search tests
@@ -10,8 +11,29 @@
 # oracle run (154.5 s) and kgen (41.0 s) ran alone before a 331 s batch, 227 s of the job's 564 s with the box's
 # spare cores idle (the batch itself finished 1-2 packages at a time). Each call keeps its own flags and -timeout;
 # their output interleaves in the step log, and every [kind] line names its call.
+#
+# S4 (11-26): on a self-hosted runner ci.yml also runs this script in --precompile mode as the fast job's corpus
+# step, before the tests. It applies the same selection and skip rules, but every test call is built with
+# -exec /bin/true (compiles, runs nothing) while ci-corpus.sh — otherwise the fast job's last serial prefix (14-83 s
+# on a tree the box has not built, 2-5 s warm) — runs beside it, so that step costs max(corpus, compile) instead of
+# their sum. The compile reads only the checkout and the box's Go build cache, never .cards, which ci-corpus.sh is
+# about to link. Go keys a cached test *result* on the -exec command (cmd/go/internal/test: "execcmd"), so the
+# precompile cannot record a pass the real run would then skip; only the compiled binaries are reused. ci.yml runs
+# the selection once and hands it through to both, so the compile and the run cannot select different packages.
 set -uo pipefail
-list=$(BASE=$1 bash scripts/test-targets.sh list) || { echo "ci-fast: test-targets.sh list failed"; exit 1; }
+precompile=0
+if [ "${1:-}" = --precompile ]; then
+  precompile=1
+  shift
+fi
+listfile=${2:-${CI_FAST_LIST:-}}
+if [ -n "$listfile" ] && [ -e "$listfile" ]; then
+  list=$(cat "$listfile") || { echo "ci-fast: cannot read the selection file $listfile"; exit 1; }
+elif [ "$precompile" = 1 ]; then
+  echo "ci-fast: --precompile needs a readable selection file"; exit 2
+else
+  list=$(BASE=$1 bash scripts/test-targets.sh list) || { echo "ci-fast: test-targets.sh list failed"; exit 1; }
+fi
 printf '%s\n' "$list"
 whole=$(awk -F'\t' '$1 == "whole" {print $2}' <<<"$list")
 rc=0
@@ -23,6 +45,13 @@ bg() {
   echo "ci-fast: [$kind] $*"
   "$@" &
   pids+=("$!"); kinds+=("$kind")
+}
+# gotest: the one place a test call is made. In --precompile mode it builds the same test binaries with
+# -exec /bin/true and runs none of them — only the checkout and the box's Go build cache are read, never .cards, so
+# it is safe beside ci-corpus.sh. Go's test result cache is keyed on the -exec command, so this records no result the
+# real run below could mistake for a pass; it shares only the compiled binaries, which is the point.
+gotest() {
+  if [ "$precompile" = 1 ]; then command go test -exec /bin/true "$@" >/dev/null; else command go test "$@"; fi
 }
 # ./dirac/oracle whole is the full lockstep suite (over 20 min: 11-17 #443 timed out); the oracle job runs it nightly
 # and the batch's dirac jobs cover it. Here it runs only the tests in its changed test files and, when the diff adds
@@ -38,7 +67,7 @@ if grep -qx './dirac/oracle' <<<"$whole"; then
   if [ "${CI_FAST_SKIP_ORACLE_REPLAY:-0}" != 1 ] && git diff --name-only "$1"...HEAD -- dirac/oracle/testdata | grep -q .; then rx=${rx:+$rx|}'Test[A-Za-z0-9]*Repros?[A-Za-z0-9]*Lockstep'; fi
   if [ -n "$rx" ]; then
     echo "ci-fast: ./dirac/oracle runs -run '^($rx)\$' only"
-    bg oracle go test -timeout 15m -short -run "^($rx)\$" ./dirac/oracle
+    bg oracle gotest -timeout 15m -short -run "^($rx)\$" ./dirac/oracle
   fi
 fi
 # ./dirac/kgen runs uncached (-count=1): its tests open the corpus ~88 times, and go spent 190-300 s hashing those
@@ -54,12 +83,18 @@ if grep -qx './dirac/kgen' <<<"$whole"; then
   if [ "${CI_FAST_SKIP_KGEN:-0}" = 1 ] && ! git diff --name-only "$1"...HEAD -- 'dirac/kgen/*' 2>/dev/null | grep -q .; then
     echo "ci-fast: ./dirac/kgen skipped here; the queue batch runs it in full"
   else
-    bg kgen go test -timeout 20m -short -count=1 ./dirac/kgen
+    bg kgen gotest -timeout 20m -short -count=1 ./dirac/kgen
   fi
 fi
 if [ -n "$whole" ]; then
   # shellcheck disable=SC2086
-  bg batch go test -timeout 20m -short $whole
+  bg batch gotest -timeout 20m -short $whole
+fi
+# --precompile (ci.yml's corpus step): the corpus and dirac's tables for this tree run beside the builds above.
+# Neither reads what the other writes — the builds never read .cards, ci-corpus.sh never reads a test binary — so
+# they overlap exactly.
+if [ "$precompile" = 1 ]; then
+  bg corpus bash scripts/ci-corpus.sh
 fi
 while IFS=$'\t' read -r m p r; do
   [ "$m" = named ] || continue
@@ -71,7 +106,7 @@ while IFS=$'\t' read -r m p r; do
   # one existing replay (The World Tree) took 7m43 under box load.
   to=10m
   [ "$p" = ./dirac/oracle ] && to=15m
-  go test -timeout "$to" -short -run "$r" "$p" || rc=1
+  gotest -timeout "$to" -short -run "$r" "$p" || rc=1
 done <<<"$list"
 # Derived records: freshness tests for generated files, which `test-targets.sh list` does not select — the diff
 # changes an input (a manifest entry, a wire type, a decision kind), never the generated file itself. Three cases
@@ -86,17 +121,17 @@ done <<<"$list"
 # match gets SIGPIPE and the if reads false, silently skipping exactly on the large PRs (pr-precheck.sh 11-26).
 if [ -n "$(git diff --name-only "$1"...HEAD -- 'dirac/manifest/*' 'dirac/kop/*' 'dirac/cmd/kmanifest/*' 'dirac/kgen/*' 2>/dev/null)" ]; then
   echo "ci-fast: the diff touches a manifest or kmanifest input; running TestManifestGenIsCurrent"
-  bg derived-manifest go test -timeout 5m -short -run '^TestManifestGenIsCurrent$' ./dirac
+  bg derived-manifest gotest -timeout 5m -short -run '^TestManifestGenIsCurrent$' ./dirac
 fi
 if [ -n "$(git diff --name-only "$1"...HEAD -- 'server/*' 'engine/decision/*' 'docs/site/api/*' 2>/dev/null)" ]; then
   echo "ci-fast: the diff touches a wire type or decision kind; running the four OpenAPI freshness checks"
-  bg derived-openapi go test -timeout 5m -short -run '^TestOpenAPI(RoutesMatchSpec|SchemasMatchGo|YAMLIsRendered|ProtocolSchemaIsRendered)$' ./server/host/httpapi
+  bg derived-openapi gotest -timeout 5m -short -run '^TestOpenAPI(RoutesMatchSpec|SchemasMatchGo|YAMLIsRendered|ProtocolSchemaIsRendered)$' ./server/host/httpapi
 fi
 # Always, whatever the diff selects: nothing under .ds4/ (seat scratch) is tracked. A seat that force-adds a .ds4
 # report passes its own targeted tests and only a batch shard catches it (11-23: #3835 reddened batches 4024 and
 # 4074 with .ds4/report-cs1.md). The test reads git ls-files only, in milliseconds. It and the named rows above run
 # in the foreground while the big calls run; the waits below reap them all.
-go test -timeout 2m -short -run '^TestNothingUnderDS4IsTracked$' ./testkit/testutil || rc=1
+gotest -timeout 2m -short -run '^TestNothingUnderDS4IsTracked$' ./testkit/testutil || rc=1
 for i in "${!pids[@]}"; do
   if wait "${pids[$i]}"; then echo "ci-fast: [${kinds[$i]}] passed"; else echo "ci-fast: [${kinds[$i]}] FAILED"; rc=1; fi
 done
