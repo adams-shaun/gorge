@@ -1103,6 +1103,14 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	g.anyLinkRet = tableLinkRet(t)
 	g.anyLinkCtr = tableLinkCtr(t)
 	p.anyCmdTap = prepStaticClasses(t, g)
+	p.tapExtraCard = make([]bool, len(t.Cards))
+	for i := range t.Cards {
+		for j := range t.Cards[i].Abilities {
+			if a := &t.Cards[i].Abilities[j]; a.Kind == kop.AbStatic && a.Static.Kind == kop.StatTapExtra {
+				p.tapExtraCard[i] = true
+			}
+		}
+	}
 	prepHexOwn(t, g)      // kw_hexproofcolor.go
 	prepEmblemCasts(t, p) // cast_selfflash.go
 	for i := range t.Cards {
@@ -1951,6 +1959,10 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepEmbalmGrant(t, p)  // kw_embalmgrant.go; on prep, not genPrep
 	prepOffKwGrant(t, p)   // kw_unearthgrant.go; on prep, not genPrep
 	prepCyclingGrant(t, p) // kw_cyclinggrant.go; on prep, not genPrep
+	p.grantsMana = make([]bool, len(t.Cards))
+	for _, r := range g.grantOf {
+		p.grantsMana[r.card] = true
+	}
 	return g
 }
 

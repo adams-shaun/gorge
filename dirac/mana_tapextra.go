@@ -26,15 +26,17 @@ const StallTapExtra = 143
 func init() { stallNames[StallTapExtra] = "tapextra" }
 
 // eachTapExtra visits every StatTapExtra static in force: the battlefield and
-// emblem statics eachStatic walks, then a command-zone Vanguard's printed
-// static (Sisay) and a face-up plane's (Eloren Wilds), whose sources have no
+// emblem statics eachStatic walks (the battlefield half only over the cards
+// printing a StatTapExtra, prep.tapExtraCard: every caller drops any other
+// static before reading it, tapExtraReaches), then a command-zone
+// Vanguard's printed static (Sisay) and a face-up plane's (Eloren Wilds), whose sources have no
 // perm slot (st.sl is NoSlot, st.cmd true).
 // The command-zone half is gated on prep.anyCmdTap, so a table with no
 // such static pays nothing, and only the tap-extra readers call this: a
 // command-zone static must never reach a reader that indexes st.sl as a perm.
 func (s *State) eachTapExtra(k *prep, f func(st statSrc) bool) {
 	stop := false
-	s.eachStatic(k, func(st statSrc) bool {
+	s.eachStaticOf(k, k.tapExtraCard, func(st statSrc) bool {
 		if !f(st) {
 			stop = true
 			return false
