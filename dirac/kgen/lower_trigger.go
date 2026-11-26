@@ -1312,7 +1312,13 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 			// checkSVarGateHolds evaluates it with the trigger's
 			// TriggerContext, whose DefendingPlayer the event bound
 			lc.atkPresent = tr.Event == "Attacks"
+			// the condition may count the cards exiled with the triggering
+			// source (Valakut Exploration's Count$ValidExile): the kernel's
+			// exwFlag reads ctx.src, the trigger's source, both as it fires
+			// and at the resolution recheck
+			lc.exwRes = true
 			v, err := lc.value(cs)
+			lc.exwRes = false
 			lc.atkPresent = false
 			if err != nil {
 				return err
