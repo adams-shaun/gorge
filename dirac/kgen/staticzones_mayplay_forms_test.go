@@ -18,9 +18,10 @@ import (
 //     from every zone). A partial list (One with the Multiverse's
 //     Library,Hand) refuses: the kernel's free ride would reach a graveyard
 //     or exile cast the list withholds, and Static.Zone holds one zone.
-//   - a non-granting alternative cost (the {0}, the pay-life and the
-//     pay-energy MayPlayAltManaCost$ beside MayPlayDontGrantZonePermissions$
-//     True): As Foretold, Demon of Fate's Design, Nissa, Worldsoul Speaker.
+//   - a non-granting alternative cost (the {0}, the pay-life, the pay-energy
+//     and the collect-evidence MayPlayAltManaCost$ beside
+//     MayPlayDontGrantZonePermissions$ True): As Foretold, Demon of Fate's
+//     Design, Nissa, Worldsoul Speaker, Conspiracy Unraveler.
 //     The kernel's StMayZeroAlt marks the static a non-granting alternative
 //     (cast_mayzeroalt.go), which the hand walk lists beside the plain cast
 //     (gorge legal_walk_hand.go alternativeCosts) and the may-play walk
@@ -29,18 +30,17 @@ import (
 //     EffectZone$ Exile,Graveyard: one static with both function flags, so
 //     the self walk reaches it from either zone (both class gates set).
 //
-// Aluren (any player), Primal Prayers (cast as though it had flash),
-// Conspiracy Unraveler (an evidence alternative the kernel has no cost for)
-// and Durnan (an Effect-delivered permission with an Undaunted rider) keep
-// their refusals -- every one off the "MayPlay zone" class, at the named
-// shape that now withholds them.
+// Aluren (any player), Primal Prayers (cast as though it had flash) and
+// Durnan (an Effect-delivered permission with an Undaunted rider) keep their
+// refusals -- every one off the "MayPlay zone" class, at the named shape that
+// now withholds them.
 var mayPlayFormsCarriers = []struct {
 	name string
 	want string // non-empty: the card keeps this named refusal
 }{
 	{name: "Aluren", want: `MayPlayPlayer$ "Player"`},
 	{name: "As Foretold"},
-	{name: "Conspiracy Unraveler", want: `MayPlayAltManaCost "CollectEvidence<10>"`},
+	{name: "Conspiracy Unraveler"},
 	{name: "Demon of Fate's Design"},
 	{name: "Dracogenesis"},
 	{name: "Durnan of the Yawning Portal", want: `MayPlay zones "Exile,Stack"`},
@@ -78,9 +78,9 @@ func TestStaticZonesMayPlayForms(t *testing.T) {
 
 // TestStaticZonesMayPlayShapes lowers the slice's shapes with no paper
 // carrier in the corpus: the non-granting free cast over the full zone list,
-// the {0} alternative over the full list, the non-granting pay-life and
-// pay-energy alternatives, and the two-zone self grant. Each must lower to
-// the kernel flags its walk reads.
+// the {0} alternative over the full list, the non-granting pay-life,
+// pay-energy and collect-evidence alternatives, and the two-zone self grant.
+// Each must lower to the kernel flags its walk reads.
 func TestStaticZonesMayPlayShapes(t *testing.T) {
 	free := lowerScriptCard(t, "Free List Probe", `Name:Free List Probe
 ManaCost:2 G
@@ -185,6 +185,26 @@ Oracle:probe
 	}
 	if !selfGy || !selfEx {
 		t.Errorf("the two-zone self probe lowers to no per-zone statics (graveyard %v, exile %v)", selfGy, selfEx)
+	}
+
+	evidence := lowerScriptCard(t, "Evidence Alt List Probe", `Name:Evidence Alt List Probe
+ManaCost:5 U U
+Types:Creature Sphinx Detective
+PT:6/6
+S:Mode$ Continuous | Affected$ Card.YouCtrl+nonLand | MayPlay$ True | MayPlayAltManaCost$ CollectEvidence<10> | MayPlayDontGrantZonePermissions$ True | AffectedZone$ Hand,Graveyard,Exile,Library,Command | Description$ You may collect evidence 10 rather than pay the mana cost for spells that you cast.
+Oracle:probe
+`)
+	if rf := evidence.Refusals; len(rf) != 0 {
+		t.Fatalf("the evidence-alt probe refused: %v", rf)
+	}
+	found = false
+	for _, st := range evidence.Statics {
+		if st.Kind == "MayPlayFrom" && slices.Contains(st.Flags, "MayZeroAlt") && slices.Contains(st.Flags, "MayPayEvidence") && st.Amount.Kind == vConst && st.Amount.N == 10 {
+			found = true
+		}
+	}
+	if !found {
+		t.Error("the evidence-alt probe lowers to no non-granting collect-evidence static")
 	}
 
 	// the non-granting free shape's Affected$ may carry the TopLibrary word
