@@ -199,7 +199,7 @@ func (s *State) offerKickedHand(k *prep, d *Decision, p uint8, c CardID, o Obj, 
 		// Skin-Witch paid through Rain of Filth's grants)
 		spell := payDesc{class: pdSpell, card: c, src: NoSlot, og: s.restrOriginOfObj(o)}
 		aff = s.kickedPotentialPays(k, p, c, o, &kc, &spell)
-		if aff && k.gen != nil && k.gen.anyFilt && s.scriptFilt(k, p).any() && s.mixBoard(k, p) {
+		if aff && k.gen != nil && k.gen.anyFilt && s.scriptFilt(k, p).any() && s.mixBoardFilt(k, p, filtSome) {
 			// a census gap that is a filter beside another gap kind (School of
 			// the Unseen's {2},{T} beside Holdout Settlement's tapped creature):
 			// gorge's census for the kicked total is incomplete and only its
