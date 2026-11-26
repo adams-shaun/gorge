@@ -128,16 +128,15 @@ func (lc *lowerCtx) exwCheck() {
 			case "ExileUntilLeaves":
 				// a duration exile records the link in gorge
 				// (exiledWithAssociation and recordExileReturnFor,
-				// effects/zone_change.go). The lockstep
-				// (TestExwTargetGraveLockstep) pins the write side only: it
-				// never activates the reader, because an {X} activation needs
-				// floating mana and the kernel diverges at the X ask (see the
-				// activated-X ticket). So only the shape that has a kernel
-				// test of its read stays lifted: an activated ability's
-				// target-time ExiledWithSource filter, with no other reader
-				// of the link. A resolution-time reader (Mysterious
-				// Limousine's ChangeZoneAll) stays refused.
-				if lc.exwTargetTimeOnly() {
+				// effects/zone_change.go). A Saga's chapters are the proven
+				// resolution-time reader (Vault 13: chapter I exiles until the
+				// Saga leaves, chapter III picks two of them back and sweeps
+				// the rest to the library; TestDemoExiledwithsourceLockstep
+				// counts the read). An activated ability's target-time filter
+				// stays lifted on its own evidence; every other
+				// resolution-time reader (Mysterious Limousine's ChangeZoneAll)
+				// has no test of its read and stays refused.
+				if lc.exwTargetTimeOnly() || lc.out.SagaN > 0 {
 					continue
 				}
 			default:
@@ -211,13 +210,28 @@ func (lc *lowerCtx) exilePick(ps *params, f *lFilter, n lValue, flags []string, 
 	if dest != zBattlefield {
 		return refuse("exile pick to %s", zoneLabel[dest])
 	}
-	for _, k := range []string{"ValidTgts", "DefinedPlayer", "Chooser", "Optional", "RememberLKI", "RememberChanged", "LibraryPosition", "Duration", "Reveal", "Shuffle", "Transformed", "Attacking", "ForgetOtherRemembered", "StaticEffect", "Defined"} {
+	if v, ok := ps.get("RememberChanged"); ok {
+		// a Saga chapter remembers the cards it returns (Vault 13's chapter
+		// III excludes them from the following sweep); every other pick's
+		// remember rider stays unproven
+		if v != "True" {
+			return refuse("exile pick RememberChanged$ %q", v)
+		}
+		if lc.out.SagaN == 0 {
+			return refuse("exile pick with RememberChanged$")
+		}
+	}
+	for _, k := range []string{"ValidTgts", "DefinedPlayer", "Chooser", "Optional", "RememberLKI", "LibraryPosition", "Duration", "Reveal", "Shuffle", "Transformed", "Attacking", "ForgetOtherRemembered", "StaticEffect", "Defined"} {
 		if _, ok := ps.m[k]; ok {
 			return refuse("exile pick with %s$", k)
 		}
 	}
 	if !n.isConst() || n.N != 1 {
-		return refuse("exile pick ChangeNum$ %v", n)
+		// a Saga's chapter may return two (Vault 13's chapter III); every
+		// other count stays unproven
+		if !(lc.out.SagaN > 0 && n.isConst() && n.N == 2) {
+			return refuse("exile pick ChangeNum$ %v", n)
+		}
 	}
 	if f.Players != 0 || len(f.Clauses) == 0 {
 		return refuse("exile pick filter %s", f)
@@ -225,7 +239,7 @@ func (lc *lowerCtx) exilePick(ps *params, f *lFilter, n lValue, flags []string, 
 	cs := []string{"from=Exile"}
 	for _, fl := range flags {
 		switch fl {
-		case "Tapped", "Mandatory", "UnderYourControl":
+		case "Tapped", "Mandatory", "UnderYourControl", "Remember":
 			cs = append(cs, fl)
 		default:
 			return refuse("exile pick flag %s", fl)

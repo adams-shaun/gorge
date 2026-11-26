@@ -15,7 +15,9 @@ import "testing"
 // hand alternatives run in TestAltCostGraveyardSelfLockstep); then the two
 // kicker-{X} Count$xPaid cards (Verdeloth the Ancient and Kangee, Aerie
 // Keeper), whose announced X the kernel now asks, prices and stamps
-// (kickerx_lower_test.go).
+// (kickerx_lower_test.go); then Ugin's Labyrinth's ExiledWithSource count in
+// a mana ability's Amount$ (TestDemoExiledwithsourceLockstep, which matches
+// the read).
 var countConditionsLowered = []string{
 	"Athreos, God of Passage", "Iroas, God of Victory", "Karametra, God of Harvests",
 	"Klothys, God of Destiny", "Mogis, God of Slaughter", "Phenax, God of Deception",
@@ -25,6 +27,7 @@ var countConditionsLowered = []string{
 	"Gonti's Machinations", "Kindred Summons",
 	"Baleful Mastery", "Fervent Mastery", "Ingenious Mastery",
 	"Verdeloth the Ancient", "Kangee, Aerie Keeper",
+	"Ugin's Labyrinth",
 }
 
 // countConditionsRefused are the cards the slice still refuses, each a class of
@@ -33,18 +36,18 @@ var countConditionsLowered = []string{
 // loyalty/equip/power-up activation kinds (the activation ledger records no
 // kind), Graxiplon's DefenderCtrl read in a CantBlockBy static, Devastating
 // Mastery's ChangeZone DefinedPlayer$ ChosenPlayer and Verdant Mastery's
-// GainControl$ ChosenPlayer (the Count$AltCost branch itself lowers), Ugin's
-// Labyrinth's ExiledWithSource count, the TargetedByTarget$ and
-// TargetedController$CardsInGraveyard heads, Galloping Lizrog's "any number"
-// RemoveCounter and Sanctum Prelate's CantBeCast bound "Chosen". A card that
-// lowers must move to countConditionsLowered with its lockstep evidence.
+// GainControl$ ChosenPlayer (the Count$AltCost branch itself lowers), the
+// TargetedByTarget$ and TargetedController$CardsInGraveyard heads, Galloping
+// Lizrog's "any number" RemoveCounter and Sanctum Prelate's CantBeCast bound
+// "Chosen". A card that lowers must move to countConditionsLowered with its
+// lockstep evidence.
 var countConditionsRefused = []string{
 	"Twinstrike", "Crush of Tentacles",
 	"Kiora of Salt and Sand", "Bruenor Battlehammer", "Advancing the Spirit",
 	"Graxiplon",
 	"Devastating Mastery", "Verdant Mastery",
 	"Plumb the Forbidden", "Relentless Dead",
-	"Ugin's Labyrinth", "Not of This World", "Bane's Contingency", "Lullmage's Domination",
+	"Not of This World", "Bane's Contingency", "Lullmage's Domination",
 	"Galloping Lizrog", "Sanctum Prelate",
 }
 
