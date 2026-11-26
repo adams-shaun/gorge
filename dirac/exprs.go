@@ -486,6 +486,17 @@ func (s *State) expr(k *prep, i int16, ctx evalCtx) int {
 		} else {
 			v = s.evalV(k, x.Sub[1], ctx)
 		}
+	case kop.ExAltCost:
+		// Count$AltCost.<paid>.<unpaid> (Worldheart Phoenix's SpellCast
+		// CheckSVar): the spell was cast for its own StatAlternativeCost
+		// static's alternative (the spell entry's trigPlAltCost mark,
+		// cast_altfree.go takeAltCast; gorge reads FlagAltCostPaid or the
+		// pending cast's PendingAltCost)
+		if s.altCostCast(ctx) {
+			v = s.evalV(k, x.Sub[0], ctx)
+		} else {
+			v = s.evalV(k, x.Sub[1], ctx)
+		}
 	case kop.ExCastFromGrave:
 		if s.castFromGrave(e) {
 			v = s.evalV(k, x.Sub[0], ctx)

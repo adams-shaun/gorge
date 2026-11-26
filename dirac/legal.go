@@ -363,6 +363,9 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 		}
 		d.add(MakeAction(AkCast, TCode(o), 0, 2))
 	}
+	if k.graveAlt {
+		s.offerGraveyardAltCasts(k, d, p, sorc, &av) // cast_gravealt.go: the graveyard casts a card's own EffectZone$ Graveyard AlternativeCost static grants
+	}
 	if k.gen != nil && k.gen.anyHarmonize {
 		s.offerHarmonizeCasts(k, d, p, sorc, &av) // kw_harmonize.go
 	}

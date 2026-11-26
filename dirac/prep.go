@@ -296,6 +296,10 @@ type prep struct {
 	// Encounter choose pick (a.Cost.CloseEnc; cost_closeenc.go, asked by the
 	// same costObjOptions): guards their payability and pick paths
 	costObj bool
+	// graveAlt: some card's own StatAlternativeCost static names the
+	// graveyard (kop.Static.Zone ZoneGraveyard; cast_altfree.go prepAltFree):
+	// the graveyard cast walk runs (cast_gravealt.go offerGraveyardAltCasts)
+	graveAlt bool
 	// subAmong: some ability's cost removes counters from among permanents
 	// (kop.CostSubAmong; kw_training.go): guards its pick
 	subAmong bool

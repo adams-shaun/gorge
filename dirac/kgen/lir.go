@@ -189,6 +189,7 @@ const (
 	vThisTurnActGrave    // activations this turn by the controller whose source now sits in a graveyard
 	vSelfPrepared        // 1 if the source is prepared, else 0; N=1 negates (Count$ValidSelf Card.[!]IsPrepared)
 	vSneaked             // Sub[0] if the resolving spell was cast for its sneak cost, else Sub[1]
+	vAltCost             // Sub[0] if the resolving spell was cast for its own AlternativeCost static's alternative, else Sub[1] (Count$AltCost.<paid>.<unpaid>; kop.ExAltCost)
 	vTriggerSpellMVLKI   // the mana value of the spell that triggered a SpellCast ability, as gorge's LKI
 	vPoisonOf            // poison counters of player Ref
 	vProduct             // Sub[0] * Sub[1]
@@ -317,6 +318,7 @@ var valNames = [...]string{
 	vThisTurnActGrave:    "ThisTurnActGrave",
 	vSelfPrepared:        "SelfPrepared",
 	vSneaked:             "Sneaked",
+	vAltCost:             "AltCost",
 	vTriggerSpellMVLKI:   "TriggerSpellMVLKI",
 	vPoisonOf:            "PoisonOf",
 	vProduct:             "Product",
