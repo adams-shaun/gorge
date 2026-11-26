@@ -65,6 +65,9 @@ func (s *State) blockForbiddenGen(k *prep, b, a Slot) bool {
 		}
 		return !hit
 	})
+	if !hit && k.gen.anyOvGateStat && s.fxM.has(a) {
+		hit = s.grantedCantBlockBy(k, a, b)
+	}
 	return hit
 }
 

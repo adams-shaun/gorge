@@ -249,12 +249,33 @@ func (g *genPrep) prepEmbGrant(t *kop.Table, c CardID, e *kop.Emblem) {
 	}
 }
 
+// globGrantSrcs is the statM sources globalGrantsGen reads: a card with a
+// gfGlobGrant static, not older than a "loses all abilities" effect on the
+// grantee. Filtering before the timestamp sort keeps the sort to the few
+// granting sources and leaves their order unchanged.
+func (s *State) globGrantSrcs(k *prep, from slotMask, lost bool, lts uint16) slotMask {
+	m := from
+	for r := from; r.any(); r = r.rest() {
+		src := r.first()
+		if !k.gen.has(s.cardAt(src), gfGlobGrant) || lost && s.layerTs(src) < lts {
+			m = m.without(src)
+		}
+	}
+	return m
+}
+
 // globalGrantsGen is globalGrants for a Continuous static whose Grant is a
 // non-mana ability (the FRA Ways' and Avatar of Burgeoning Echoes' "planes-
 // walkers you control have ..."): the override path is globalGrants, this
 // one is the continuous path. Attached-only filters are left to the attached
 // walk in grantedAbilitiesN.
 func (s *State) globalGrantsGen(k *prep, sl Slot, lost bool, lts uint16, f func(c CardID, ab uint8, n int, ts uint16)) {
+	s.globalGrantsGenIn(k, s.statM, sl, lost, lts, f)
+}
+
+// globalGrantsGenIn is globalGrantsGen over the statM sources in from (a
+// superset of the gfGlobGrant ones: grantSrcScan's).
+func (s *State) globalGrantsGenIn(k *prep, from slotMask, sl Slot, lost bool, lts uint16, f func(c CardID, ab uint8, n int, ts uint16)) {
 	var seen [16]struct {
 		src Slot
 		ab  uint8
@@ -262,7 +283,7 @@ func (s *State) globalGrantsGen(k *prep, sl Slot, lost bool, lts uint16, f func(
 	nseen := 0
 	// the sources in layer timestamp order (gorge lists active statics by
 	// timestamp; grantedAbilitiesN interleaves the attached grants by it)
-	for m := s.statM; m.any(); {
+	for m := s.globGrantSrcs(k, from, lost, lts); m.any(); {
 		src := m.first()
 		for r := m.rest(); r.any(); r = r.rest() {
 			if c := r.first(); s.layerTs(c) < s.layerTs(src) {
@@ -271,9 +292,6 @@ func (s *State) globalGrantsGen(k *prep, sl Slot, lost bool, lts uint16, f func(
 		}
 		m = m.without(src)
 		cid := s.cardAt(src)
-		if !k.gen.has(cid, gfGlobGrant) || lost && s.layerTs(src) < lts {
-			continue
-		}
 		srcLost := s.genLost(k, src)
 		cd := &k.t.Cards[cid]
 		for i := range cd.Abilities {

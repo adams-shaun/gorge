@@ -40,9 +40,16 @@ type statSrc struct {
 // permanents that haven't lost their abilities -- a lost one keeps only a
 // static its own live override grant switches on -- then emblems); f returns
 // false to stop.
-func (s *State) eachStatic(k *prep, f func(st statSrc) bool) {
+func (s *State) eachStatic(k *prep, f func(st statSrc) bool) { s.eachStaticOf(k, nil, f) }
+
+// eachStaticOf is eachStatic over the permanents whose card has keep set
+// (nil: every one); emblems are all walked.
+func (s *State) eachStaticOf(k *prep, keep []bool, f func(st statSrc) bool) {
 	for m := s.statM; m.any(); m = m.rest() {
 		sl := m.first()
+		if keep != nil && !keep[s.cardAt(sl)] {
+			continue
+		}
 		lost := s.genLost(k, sl)
 		p := &s.perms[sl]
 		cd := &k.t.Cards[s.cardAt(sl)]
@@ -492,6 +499,9 @@ func (s *State) hasSubGen(k *prep, sl Slot, i uint8) bool {
 		if ovrCreatSub(o) && !DebugRmCreatSubKeep {
 			m, all = m.AndNot(k.gen.creatSub), false
 		}
+		if ovrArtifactSub(o) {
+			m = stripArtifactSubs(m, k.t.Subtypes) // CR 205.1a: the Equipment/Vehicle word goes with Artifact
+		}
 		if o.SetLandSub {
 			m = m.AndNot(k.gen.landSub) // CR 305.7 (static_landtypesetter.go)
 		}
@@ -870,6 +880,31 @@ func (s *State) grantedAbilitiesN(k *prep, sl Slot, f func(c CardID, ab uint8, n
 	s.grantedAbilitiesOwn(k, sl, nil, f)
 }
 
+// grantSrcs is the statM sources of each global grant walk: the cards with a
+// gfGlobOvr (globalGrants), gfGlobGrant (globalGrantsGen) or gfContGrant
+// (contGrants) static.
+type grantSrcs struct{ ovr, glob, cont slotMask }
+
+// grantSrcScan reads every statM slot's card once for the three walks of
+// grantedAbilitiesOwn, which each filter their own sources again in the
+// same slot order; a subset of statM walked in order gives the same calls.
+func (s *State) grantSrcScan(k *prep) (g grantSrcs) {
+	for m := s.statM; m.any(); m = m.rest() {
+		sl := m.first()
+		f := k.gen.flags[s.cardAt(sl)]
+		if f&gfGlobOvr != 0 {
+			g.ovr = g.ovr.with(sl)
+		}
+		if f&gfGlobGrant != 0 {
+			g.glob = g.glob.with(sl)
+		}
+		if f&gfContGrant != 0 {
+			g.cont = g.cont.with(sl)
+		}
+	}
+	return g
+}
+
 // grantedAbilitiesOwn is grantedAbilitiesN with own, when not nil, called
 // once at sl's own timestamp among the statics' grants: the triggers sl's
 // own static grants it (a Station threshold's), listed as gorge lists a
@@ -896,6 +931,10 @@ func (s *State) grantedAbilitiesOwn(k *prep, sl Slot, own func(), f func(c CardI
 	// global grant are listed first (grantsBetween), then that grant, so
 	// the statics come out in one timestamp order, then the plain records.
 	wm := uint32(0)
+	var src grantSrcs
+	if k.gen.globGrant || k.gen.anyContGrant {
+		src = s.grantSrcScan(k)
+	}
 	kinds := uint8(grantAny)
 	if k.gen.globGrant || s.grantM.any() {
 		kinds = grantKw
@@ -914,8 +953,8 @@ func (s *State) grantedAbilitiesOwn(k *prep, sl Slot, own func(), f func(c CardI
 			wm = uint32(ts)
 			f(c, ab, n)
 		}
-		s.globalGrants(k, sl, lost, lts, g)
-		s.globalGrantsGen(k, sl, lost, lts, g)
+		s.globalGrantsIn(k, src.ovr, sl, lost, lts, g)
+		s.globalGrantsGenIn(k, src.glob, sl, lost, lts, g)
 	}
 	if own != nil {
 		if ots >= wm {
@@ -935,7 +974,7 @@ func (s *State) grantedAbilitiesOwn(k *prep, sl Slot, own func(), f func(c CardI
 		if !read {
 			lts, lost = s.lossAt(k, sl)
 		}
-		s.contGrants(k, sl, lost, lts, f)
+		s.contGrantsIn(k, src.cont, sl, lost, lts, f)
 	}
 }
 
@@ -1321,6 +1360,7 @@ func (s *State) applyOverridePT(k *prep, sl Slot, idx int, src CardID, fl uint8,
 		// (kop.Override.UntilUpkeep; static_untilnextupkeep.go).
 		r.p, r.t = int16(s.res.e.ctrl), 0
 	}
+	s.ovEndStamp(&r, &k.t.Overrides[idx]) // an event-ended Effect record's source binding (static_ovendevent.go)
 	if o := &k.t.Overrides[idx]; o.GrantStatics != 0 && !o.HasPT && !o.UntilUpkeep && k.gen != nil && k.gen.anyStatGoad {
 		r.t = grantGoader(k, src, o, s.res.e.ctrl) // act_goad.go
 	}

@@ -409,7 +409,7 @@ func (s *State) featPoolPays(p uint8, o Obj, mode uint8, extra *[6]int32, anyCol
 	} else if mode&2 != 0 {
 		cost = s.flashbackCostOf(k, o)
 	} else if mode&1 != 0 { // seat-ok: a cast-mode bit
-		cost = addCost(cost, kickerPayment(&k.t.Cards[c]))
+		cost = addCost(cost, s.kickPayment(k, SeatIx(p), c, o, s.objs[o].zone == kop.ZoneHand))
 	}
 	if (mode == 0 || mode&8 != 0) && k.gen != nil && k.gen.anyConvoke {
 		cost = s.convokeCredit(k, SeatIx(p), c, o, cost) // a granted retrace cast convokes too (kw_retrace.go)
@@ -721,7 +721,7 @@ func (s *State) FeatPlannedCast(p uint8, o Obj, mode uint8) bool {
 // admissible (PlanNonManaAdmissible's Announced and N<=0 arms).
 func planDeclinesAddCost(k *prep, c CardID) bool {
 	ac := spellAddCost(k, c)
-	return ac.Flags&^(kop.CostSac|kop.CostDiscard|kop.CostDiscardFiltered) != 0 || ac.ExileBf || sacXCost(ac) || discardXCost(ac) // an Exile<N/Spec> part is "cost:exile" (cost_exilebf.go); an announced Sac<X/Spec> is not "cost:sacrifice" admissible, nor an announced Discard<X/Spec> "cost:discard" (PlanNonManaAdmissible; cost_sacx.go, cost_discardfiltered.go)
+	return ac.Flags&^(kop.CostSac|kop.CostDiscard|kop.CostDiscardFiltered) != 0 || ac.ExileBf || sacXCost(ac) || ac.SacHalf || discardXCost(ac) // an Exile<N/Spec> part is "cost:exile" (cost_exilebf.go); an announced Sac<X/Spec> is not "cost:sacrifice" admissible, nor an announced Discard<X/Spec> "cost:discard" (PlanNonManaAdmissible; cost_sacx.go, cost_discardfiltered.go)
 }
 
 // plannedCastCost is the cost gorge's cast planner prices for p's cast of
@@ -1299,6 +1299,9 @@ func (s *State) FeatViewTypes(o Obj) (types kop.TypeMask, subs kop.SubMask, all,
 			}
 			if ovrCreatSub(ov) && !DebugRmCreatSubKeep {
 				subs, all, setSub = subs.AndNot(k.gen.creatSub), false, true
+			}
+			if ovrArtifactSub(ov) {
+				subs, setSub = stripArtifactSubs(subs, k.t.Subtypes), true // CR 205.1a
 			}
 			if ov.SetLandSub {
 				subs, setSub = subs.AndNot(k.gen.landSub), true // CR 305.7 (static_landtypesetter.go)

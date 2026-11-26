@@ -112,6 +112,10 @@ type lowerCtx struct {
 	effCount bool  // lowering the body of an Effect trigger that remembers a count: Remembered$Amount reads the frozen trigger amount (lower_effectremember.go)
 	pairCap  *lRef // the capture slot the pair lowering already resolved for the emblem (lower_effectcaptured.go)
 
+	// exertRider: lowering an OptionalAttackCost static's Trigger$ rider as
+	// the self-Exerted trigger (static_optattack.go)
+	exertRider bool
+
 	// condNodeAt: while a node's condition lowers, the index of the node's
 	// first instruction; earlier instructions belong to earlier nodes
 	// (markDestroyedTargetLKI, lower_remembered.go). 0 outside that window.
@@ -120,6 +124,12 @@ type lowerCtx struct {
 	// voteTally: lowering a StoreVoteNum$ fixed-list Vote's option branch, so
 	// VoteNum is that branch's tally (lower_vote.go).
 	voteTally bool
+
+	// offGrant: lowering a stack grant of Offspring's latent copy trigger on
+	// the carrier (lower_stackkw.go offspringGrantBody), whose
+	// Count$OffspringPaid reads the permanent's kicked mark without the
+	// printed K:Offspring the value lowerer otherwise requires (value.go).
+	offGrant bool
 
 	// emblemBlocked: lowering the body of a capturing EOT emblem's AttackerBlocked trigger: RememberedLKI is the trigger object (the captured attacker) and blockingTriggeredAttacker reads it (lower_effeottrig.go)
 	emblemBlocked bool
@@ -140,6 +150,10 @@ type lowerCtx struct {
 	// (dirac/trig_effectuntileot.go emblemTriggerObj over embRecipientCapture),
 	// so a body read of the damage source refuses (lower_effect.go).
 	emblemDmg bool
+	// remSelf: lowering the body of an end-of-turn Effect remembering its own
+	// source (RememberObjects$ Self): Defined$ Remembered is the emblem's
+	// source object (lower_effectremself.go effectRememberSelf)
+	remSelf bool
 
 	// permOrGraveCard: lowering a ValidTgts$ ChangeZone over Origin$ Battlefield,Graveyard (lower_originmulti.go)
 	permOrGraveCard bool
@@ -3303,6 +3317,9 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 			}
 			ab.ActCond = c
 		}
+		if err := lc.spellWindow(ps, ab); err != nil { // lower_actwindow.go
+			return err
+		}
 		if lc.out.Types&tLegendary != 0 && lc.out.Types&(tInstant|tSorcery) != 0 {
 			// CR 205.4e: a legendary instant or sorcery is cast only while
 			// its caster controls a legendary creature or planeswalker
@@ -3499,9 +3516,11 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 				return refuse("waterbend cost beside another non-mana part")
 			}
 		}
-		if ab.Kind == akMana && cost.Energy != 0 {
+		if ab.Kind == akMana && cost.Energy != 0 && !energyTapCost(ab) {
 			// gorge pays it in the mana-activation walk; kernel mana
-			// abilities pay only {T} / sacrifice-self
+			// abilities pay only {T} / sacrifice-self, and the "{T}, Pay N
+			// {E}" gap beside a plain {T} first ability (Aether Hub:
+			// refuseMultiMana's energyTapGapMana, kernel mana_countercost.go)
 			return refuse("mana ability with an energy cost")
 		}
 		if ab.Kind == akMana && exileGraveManaRefused(cost) {

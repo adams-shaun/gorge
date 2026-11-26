@@ -29,6 +29,9 @@ func (s *State) selfGrantKept(k *prep, sl, src Slot) (keep kop.SubMask, outside 
 		if ovrCreatSub(o) && !DebugRmCreatSubKeep {
 			keep, outside = keep.AndNot(k.gen.creatSub), false
 		}
+		if ovrArtifactSub(o) {
+			keep = stripArtifactSubs(keep, k.t.Subtypes) // CR 205.1a
+		}
 		if o.SetLandSub {
 			keep = keep.AndNot(k.gen.landSub) // CR 305.7 (static_landtypesetter.go)
 		}

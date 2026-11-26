@@ -1164,6 +1164,12 @@ func overrideString(o *lOverride) string {
 	if o.UntilEndCombat {
 		p = append(p, "eoc")
 	}
+	if o.UntilCtrlUntap {
+		p = append(p, "untilctrluntap")
+	}
+	if o.UntilCast != nil {
+		p = append(p, "untilcast")
+	}
 	if o.Horsemanship {
 		p = append(p, "horsemanship")
 	}
@@ -2845,6 +2851,9 @@ func (lc *lowerCtx) effectAPI(ps *params) error {
 		return err
 	}
 	if len(ss) != 1 && !attackBlockPair(ss) { // lower_effectattacksifable.go
+		if ok, err := lc.effectPlayLocks(ps, st, ss); ok || err != nil { // lower_effectplaylocks.go
+			return err
+		}
 		return refuse("Effect static %q", st)
 	}
 	s := ss[0]
@@ -3102,6 +3111,16 @@ func (lc *lowerCtx) effectTargetStatic(ps *params, s cards.Static, obj lRef) err
 			fl |= kop.MayPlayOwner
 			ps.consume("EffectOwner")
 		}
+		if mv := sp.str("MayPlayPlayer"); mv != "" {
+			// gorge MayPlayCardOwner (engine/effects/staticline.go): the
+			// permission's subject is the remembered card's owner (Memory
+			// Vessel: each player may play the cards THEY exiled), not the
+			// effect's controller -- the kernel's MayPlayOwner record
+			if mv != "CardOwner" {
+				return refuse("Effect MayPlayPlayer %q", mv)
+			}
+			fl |= kop.MayPlayOwner
+		}
 		if _, ok := ps.get("ExileOnMoved"); ok && obj.Kind == rRemembered {
 			// gorge effectMoveSweep: a remembered card leaving the zone ENDS
 			// the whole effect; the kernel's per-card permissions match it
@@ -3241,7 +3260,7 @@ func emblemExileLapse(ps *params, hasCap bool) (bool, error) {
 // emblem lowers a planeswalker emblem with one trigger (Kaito).
 func (lc *lowerCtx) emblem(ps *params, tr string) error {
 	lc.granted++
-	defer func() { lc.granted-- }()
+	defer func() { lc.granted--; lc.remSelf = false }()
 	_, hasDur := ps.get("Duration")
 	eot := !hasDur || ps.is("Duration", "EndOfTurn") // the spelled-out default (Jace, Cunning Castaway)
 	next := hasDur && ps.is("Duration", "UntilYourNextTurn")
@@ -3320,7 +3339,7 @@ func (lc *lowerCtx) emblem(ps *params, tr string) error {
 	lc.emblemUnblocked = hasCap && t.Mode == "AttackerUnblocked"
 	lc.emblemDmg = hasCap && !player && t.Mode == "DamageDone"
 	err = lc.withAbility(lc.ab, func() error { return lc.lowerTriggered(t, "Command") })
-	lc.capRem, lc.effCount, lc.ddoEvent, lc.emblemBlocked, lc.emblemBlocks, lc.emblemDmg, lc.emblemUnblocked = false, false, false, false, false, false, false
+	lc.capRem, lc.effCount, lc.ddoEvent, lc.emblemBlocked, lc.emblemBlocks, lc.emblemDmg, lc.emblemUnblocked, lc.remSelf = false, false, false, false, false, false, false, false
 	if err != nil {
 		return err
 	}
@@ -3634,6 +3653,23 @@ func (lc *lowerCtx) animateOverride(ps *params, obj lRef) (*lOverride, string, b
 	if err := lc.animateRemoveKeywords(ps, o, obj); err != nil {
 		return nil, "", false, err
 	}
+	if v, ok := ps.get("RemoveTypes"); ok {
+		// RemoveTypes$ names card types to strip before Types$ apply (gorge
+		// chars/types.go: "target artifact creature becomes blue and isn't an
+		// artifact", Neurok Transmuter). The kernel's kop.Override.RemoveTypes
+		// mask carries card types and follows the Creature and Artifact words
+		// with their correlated subtypes (static_removecreaturetypes.go); a
+		// subtype or supertype word (Haunted Plate Mail's "no longer an
+		// Equipment") has no field, and another card type has no correlated
+		// strip, so both stay refused.
+		for _, w := range strings.Fields(strings.ReplaceAll(v, ",", " ")) {
+			b, ok := cardTypeBit(w)
+			if !ok {
+				return nil, "", false, refuse("Animate RemoveTypes$ %q: no kernel card-type strip", w)
+			}
+			o.RemoveTypes |= b
+		}
+	}
 	if t, ok := ps.get("Types"); ok {
 		// gorge animateGrant types (combatfx.go): commas separate like
 		// whitespace, so "Types$ Human Cleric" is Human and Cleric, two
@@ -3773,6 +3809,26 @@ func (lc *lowerCtx) animateOverride(ps *params, obj lRef) (*lOverride, string, b
 		o.GrantAbility = append(o.GrantAbility, idx)
 	}
 	return o, dur, false, nil
+}
+
+// cardTypeStripWords is the RemoveTypes$ card-type subset the kernel follows
+// with its correlated subtypes (CR 205.1a): Creature and Artifact, the two
+// vocabularies static_removecreaturetypes.go strips. Land, Enchantment and
+// Planeswalker have correlated sets in gorge's effects.SubtypesCorrelatedWith
+// that the kernel does not strip, so their words stay refused rather than
+// leaving the subtype behind.
+const cardTypeStripWords = tCreature | tArtifact
+
+// cardTypeBit is the card-type mask bit for a RemoveTypes$ word: a card type
+// whose correlated subtypes the kernel strips with it. A supertype, a
+// pseudo-type like Permanent, a subtype word (Equipment), and a card type
+// without a kernel strip all refuse.
+func cardTypeBit(w string) (uint16, bool) {
+	b, ok := typeBits[w]
+	if !ok || b&^uint16(cardTypeStripWords) != 0 {
+		return 0, false
+	}
+	return b, true
 }
 
 // emitChosenColorAnimate emits the five chosen-colour override records
@@ -5099,24 +5155,42 @@ func (lc *lowerCtx) animateRemoveKeywords(ps *params, o *lOverride, obj lRef) er
 	}
 	name := strings.TrimSpace(v)
 	if strings.Contains(name, ",") {
-		return lc.animateGrantStatics(ps, name, o, false)
+		return lc.animateGrantStatics(ps, name, o, false, obj)
 	}
 	ss, ok := cards.ParseStaticLines(lc.face.SVars[name])
-	if ok && len(ss) == 1 && ss[0].Mode == "Continuous" {
-		if aff, has := ss[0].Params["Affected"]; has && strings.TrimSpace(aff) != "Card.Self" {
-			// The static reaches other permanents (an anthem, keyword grant
-			// or equipped pump): the animated object HAS it, so lower it as
-			// an ordinary static of the source switched on by the override
-			// record (animateGrantStatics). A self P/T setter stays the live
-			// P/T grant.
-			return lc.animateGrantStatics(ps, name, o, true)
+	if ok && len(ss) == 1 {
+		if ss[0].Mode == "Continuous" {
+			if aff, has := ss[0].Params["Affected"]; has && strings.TrimSpace(aff) != "Card.Self" {
+				// The static reaches other permanents (an anthem, keyword
+				// grant or equipped pump): the animated object HAS it, so
+				// lower it as an ordinary static of the source switched on by
+				// the override record (animateGrantStatics).
+				return lc.animateGrantStatics(ps, name, o, true, obj)
+			}
+			if _, has := ss[0].Params["SetPower"]; has {
+				return lc.animateLivePT(name, ss[0], o, obj)
+			}
+			if _, has := ss[0].Params["SetToughness"]; has {
+				return lc.animateLivePT(name, ss[0], o, obj)
+			}
+			// Any other self body (AddPower$/AddKeyword$/Condition$: Iron Man
+			// Armor, Restless Spire) is a granted static, not the live P/T
+			// setter.
+			return lc.animateGrantStatics(ps, name, o, true, obj)
 		}
-		return lc.animateLivePT(name, ss[0], o, obj)
-	}
-	if ok && len(ss) == 1 && ss[0].Mode == "CombatDamageToughness" {
-		return lc.animateGrantedStatic(ps, name, ss[0], o, obj)
-	}
-	if !ok || len(ss) != 1 || ss[0].Mode != "CantBlockBy" {
+		if ss[0].Mode == "CombatDamageToughness" {
+			return lc.animateGrantedStatic(ps, name, ss[0], o, obj)
+		}
+		if ss[0].Mode == "MustAttack" || ss[0].Mode == "MinMaxBlocker" {
+			// a single rule static whose walk reads kop.Static.OvGate
+			// (staticFlagGen): Carnage's MustAttack, Full Steam Ahead's
+			// MinMaxBlocker
+			return lc.animateGrantStatics(ps, name, o, true, obj)
+		}
+		if ss[0].Mode != "CantBlockBy" {
+			return refuse("Animate staticAbilities$ %q", name)
+		}
+	} else {
 		return refuse("Animate staticAbilities$ %q", name)
 	}
 	sp := newParams(ss[0].Params)
@@ -5128,7 +5202,10 @@ func (lc *lowerCtx) animateRemoveKeywords(ps *params, o *lOverride, obj lRef) er
 	// (a non-creature holder cannot attack, so the grant is inert on it, as
 	// gorge's unmatched Creature.Self is).
 	if va := sp.str("ValidAttacker"); va != "Creature.Self" && va != "Card.Self" || sp.str("ValidBlocker") != "" {
-		return refuse("Animate staticAbilities$ %q shape", name)
+		// A blocker filter ("can't be blocked by creatures with power 2 or
+		// less", Chomping Kavu) is not the unconditional KwUnblockable: lower
+		// the whole static as a gated static.
+		return lc.animateGrantStatics(ps, name, o, true, obj)
 	}
 	if u := sp.unread(); len(u) > 0 {
 		return refuse("Animate staticAbilities$ %q unread params %v", name, u)
@@ -5197,21 +5274,54 @@ func (lc *lowerCtx) animateGrantedStatic(ps *params, name string, st cards.Stati
 // the printed static it reads as on the source card, switched on by a bit of
 // the override record the Animate applies (kop.Static.OvGate,
 // kop.Override.GrantStatics), so the grant is source-scoped and lasts as long
-// as the record. Only a permanent grant on Self reaches the source.
-func (lc *lowerCtx) animateGrantStatics(ps *params, names string, o *lOverride, single bool) error {
-	d := ps.str("Defined")
-	if ps.str("Duration") != "Permanent" || d != "Self" && !(single && d == "") {
+// as the record. A Continuous body is read only on the source itself (the
+// P/T/keyword walks gate it on the source slot's own record), so it is refused
+// on any other holder; a rule static and a CombatDamageToughness body are read
+// on the record's holder instead.
+func (lc *lowerCtx) animateGrantStatics(ps *params, names string, o *lOverride, single bool, obj lRef) error {
+	d := strings.TrimSpace(ps.str("Defined"))
+	// A comma list is the permission/land-play family: one permanent grant on
+	// Self. A single rule static (or a CombatDamageToughness body) is the one
+	// the Animate reaches (Self, a target, the remembered card, or every
+	// AnimateAll sweep): the record scopes it on each holder, so its own
+	// duration (anything the Animate accepts) rides the record and no extra
+	// lifetime restriction applies. A Continuous body is read only on the
+	// source itself, so it is refused on any other holder below.
+	if !single && (ps.str("Duration") != "Permanent" || d != "Self") {
 		return refuse("Animate staticAbilities$ %q beside a duration other than Permanent on Self", names)
+	}
+	if single && d != "" && d != "Self" && !lc.oneObjectSubject(obj) {
+		return refuse("Animate staticAbilities$ %q on a set", names)
 	}
 	for _, name := range strings.Split(names, ",") {
 		name = strings.TrimSpace(name)
 		ss, ok := cards.ParseStaticLines(lc.face.SVars[name])
-		if !ok || len(ss) != 1 || ss[0].Mode != "Continuous" {
+		if !ok || len(ss) != 1 {
 			return refuse("Animate staticAbilities$ %q", name)
+		}
+		if !single && ss[0].Mode != "Continuous" {
+			return refuse("Animate staticAbilities$ %q", name)
+		}
+		if single && ss[0].Mode == "Continuous" {
+			if obj.Kind != rSelf {
+				// The P/T/keyword walks gate an OvGate Continuous static on
+				// the source slot's own record (statCond -> ovGranted(st.sl)),
+				// so a record on another holder never switches it on. Refuse
+				// until a chars arm reads the record's source on the holder.
+				return refuse("Animate staticAbilities$ %q: a Continuous grant on a non-Self holder", name)
+			}
+			// A body over OTHER permanents (an anthem, keyword grant or
+			// equipped pump) is still the permanent grant on Self the earlier
+			// pass lowered: only a self body or a rule static rides a
+			// non-permanent record.
+			if aff, has := ss[0].Params["Affected"]; has && strings.TrimSpace(aff) != "Card.Self" &&
+				ps.str("Duration") != "Permanent" {
+				return refuse("Animate staticAbilities$ %q beside a duration other than Permanent on Self", names)
+			}
 		}
 		_, may := ss[0].Params["MayPlay"]
 		_, land := ss[0].Params["AdjustLandPlays"]
-		if may == land && (!single || !animatePumpOrKeywordStatic(ss[0])) {
+		if may == land && (!single || !animateGateableBody(ss[0])) {
 			return refuse("Animate staticAbilities$ %q shape", name)
 		}
 		gated := 0
@@ -5240,14 +5350,21 @@ func (lc *lowerCtx) animateGrantStatics(ps *params, names string, o *lOverride, 
 		// collected subtype grant (AddType$ subtype or ChosenType) on Cond2
 		// only, so it would apply unanimated whenever the walk is on: refuse
 		// both.
-		if k := lc.out.Statics[before].Kind; single && !may && !land && k != "Continuous" {
-			return refuse("Animate staticAbilities$ %q lowers to ungated static kind %s", name, k)
-		}
-		if single && !may && !land && len(lc.out.Statics[before].Grant) != 0 {
-			return refuse("Animate staticAbilities$ %q grants an ability the kernel does not gate", name)
-		}
-		if st := &lc.out.Statics[before]; single && !may && !land && (len(st.AddSub) != 0 || st.AddChosen) {
-			return refuse("Animate staticAbilities$ %q grants a subtype the kernel does not gate", name)
+		if st := &lc.out.Statics[before]; single && !may && !land {
+			switch st.Kind {
+			case "Continuous":
+				if len(st.Grant) != 0 {
+					return refuse("Animate staticAbilities$ %q grants an ability the kernel does not gate", name)
+				}
+				if len(st.AddSub) != 0 || st.AddChosen {
+					return refuse("Animate staticAbilities$ %q grants a subtype the kernel does not gate", name)
+				}
+			case "MustAttack", "MinMaxBlocker", "CantBlockBy":
+				// a rule static whose walk reads OvGate (staticFlagGen, the
+				// gated CantBlockBy arm)
+			default:
+				return refuse("Animate staticAbilities$ %q lowers to ungated static kind %s", name, st.Kind)
+			}
 		}
 		bit := uint8(1) << gated
 		lc.out.Statics[before].OvGate = bit
@@ -5265,6 +5382,21 @@ func animatePumpOrKeywordStatic(st cards.Static) bool {
 		return true
 	}
 	return strings.TrimSpace(st.Params["AddPower"]) != "" || strings.TrimSpace(st.Params["AddToughness"]) != ""
+}
+
+// animateGateableBody reports whether a single Animate staticAbilities$ body
+// is lowered as a static whose walk reads kop.Static.OvGate: a Continuous
+// anthem/keyword/P-T grant, or one of the rule statics whose generic walk
+// (dirac staticFlagGen / the gated CantBlockBy arm) checks the record's
+// GrantStatics bit.
+func animateGateableBody(st cards.Static) bool {
+	switch st.Mode {
+	case "Continuous":
+		return animatePumpOrKeywordStatic(st)
+	case "MustAttack", "MinMaxBlocker", "CantBlockBy":
+		return true
+	}
+	return false
 }
 
 // animateGraveMayPlay lowers an Animate over Defined$ ValidGraveyard <spec>
@@ -5377,7 +5509,7 @@ func (lc *lowerCtx) partitionMayPlay(ps *params, ss []cards.Static) (bool, error
 	plain := !owner && !checked && ps.str("Duration") == "Permanent"
 	flags, gate, affOK := lc.rememberedAffected(may.str("Affected"), plain)
 	if ss[0].Mode != "Continuous" || !may.is("MayPlay", "True") || !affOK ||
-		may.str("AffectedZone") != "Exile" || (!owner && (may.str("MayPlayPlayer") != "" || len(ss) != 1)) {
+		may.str("AffectedZone") != "Exile" || (!owner && (may.str("MayPlayPlayer") != "" || len(ss) != 1 && !abstruseConvertStatic(ss))) {
 		return false, nil
 	}
 	may.consume("Mode", "Description", "MayPlay", "Affected", "AffectedZone", "MayPlayPlayer")
@@ -5416,8 +5548,10 @@ func (lc *lowerCtx) partitionMayPlay(ps *params, ss []cards.Static) (bool, error
 		}
 		return true, refuse("Effect MayPlay unread %v", left)
 	}
-	raise := 0
-	if len(ss) == 2 {
+	raise, convC := 0, false
+	if len(ss) == 2 && !owner {
+		convC = true // abstruseConvertStatic checked ss[1] above
+	} else if len(ss) == 2 {
 		rc := newParams(ss[1].Params)
 		if ss[1].Mode != "RaiseCost" || rc.str("ValidCard") != "Card.IsRemembered+CastSa Spell.MayPlaySource" ||
 			rc.str("AffectedZone") != "Exile" || rc.str("Type") != "Spell" {
@@ -5445,7 +5579,7 @@ func (lc *lowerCtx) partitionMayPlay(ps *params, ss []cards.Static) (bool, error
 		raise = n
 	}
 	ps.consume("Duration", "RememberObjects", "ForgetOnMoved", "StaticAbilities")
-	in := lInstr{Op: "MayPlay", Obj: obj, C: zExile, CS: "WhileExiled"}
+	in := lInstr{Op: "MayPlay", Obj: obj, C: zExile, CS: "WhileExiled", ConvC: convC}
 	if valid != nil {
 		in.CS, in.F = "WhileValid", valid
 	} else if gate != nil {
@@ -5454,6 +5588,31 @@ func (lc *lowerCtx) partitionMayPlay(ps *params, ss []cards.Static) (bool, error
 	in.B = cst(flags | raise<<kop.MayPlayRaiseShift)
 	lc.emit(in)
 	return true, nil
+}
+
+// abstruseConvertStatic reports whether a controller permission's two-static
+// list is the MayPlay static plus Abstruse Appropriation's colourless-mana
+// conversion: Mode$ ManaConvert over the effect controller's cast of the
+// remembered exiled card through its permission, ManaConversion$ C->AnyColor
+// (gorge pay.ApplyConversionTo: only the pool's {C} becomes any colour, as
+// the cast is paid). Every parameter is the exact printed spelling and no
+// other key is present (Description$ aside), so another ManaConvert shape
+// keeps the emblem lowering's refusal. The record carries the whole static:
+// ValidPlayer$ You is its controller, ValidCard$ Card.IsRemembered with
+// AffectedZone$ Exile its object and zone, ValidSA$ Spell.MayPlaySource the
+// cast through it (kop.MayPlayConvC).
+func abstruseConvertStatic(ss []cards.Static) bool {
+	if len(ss) != 2 || ss[1].Mode != "ManaConvert" {
+		return false
+	}
+	cv := newParams(ss[1].Params)
+	if cv.str("ValidPlayer") != "You" || cv.str("ValidCard") != "Card.IsRemembered" ||
+		cv.str("ValidSA") != "Spell.MayPlaySource" || cv.str("ManaConversion") != "C->AnyColor" ||
+		cv.str("AffectedZone") != "Exile" {
+		return false
+	}
+	cv.consume("Mode", "Description", "ValidPlayer", "ValidCard", "ValidSA", "ManaConversion", "AffectedZone")
+	return len(cv.unread()) == 0
 }
 
 // partitionRiders reads the controller permission's record riders

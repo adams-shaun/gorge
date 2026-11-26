@@ -21,6 +21,9 @@ func (s *State) modalActAsk(k *prep, a *kop.Ability) bool {
 	if a.NModes == 0 || s.res.e.mode != 0 {
 		return false
 	}
+	if a.AFlags&kop.AfCharmTrigger != 0 && !s.anyModeUnlessPayable(k, a, s.res.e.ctrl) {
+		return false // a marked GenericChoice with no payable choice: no ask, the fallback / nothing (modal_unless.go)
+	}
 	if k.gen != nil && k.gen.anyCharmPick && s.charmPickAllBarred(a, s.objRefObj(kop.RefSelf)) {
 		return false // every mode was chosen before: nothing happens (gorge CharmEligibleModes; modal_charmpick.go)
 	}
@@ -109,7 +112,8 @@ func (s *State) askOptionsModalAct(k *prep, d *Decision) bool {
 		a := s.modalAb(k)
 		d.Kind = DkModes
 		for m := 0; m < int(a.NModes); m++ {
-			if r.e.mode&(1<<m) == 0 && !(k.gen != nil && k.gen.anyCharmPick && s.charmPickBarred(a, s.objRefObj(kop.RefSelf), m)) {
+			if r.e.mode&(1<<m) == 0 && !(k.gen != nil && k.gen.anyCharmPick && s.charmPickBarred(a, s.objRefObj(kop.RefSelf), m)) &&
+				(a.AFlags&kop.AfCharmTrigger == 0 || s.modeUnlessPayable(k, a, m, r.e.ctrl)) {
 				d.add(MakeAction(AkMode, 0, 0, uint8(m)))
 			}
 		}

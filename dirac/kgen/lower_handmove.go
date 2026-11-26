@@ -223,7 +223,8 @@ func (lc *lowerCtx) handMove(ps *params, f *lFilter, n lValue, flags []string, c
 func handTextOptional(text, action string) (optional, known bool) {
 	text = strings.ToLower(text)
 	if handPhraseMentionsHand(text, "may "+action) || handPhraseFollowsHandReveal(text, "may "+action) ||
-		(handPhraseMentionsHand(text, "any number") && handPhraseMentionsHand(text, action)) {
+		(handPhraseMentionsHand(text, "any number") && handPhraseMentionsHand(text, action)) ||
+		handPhraseUpToWithHandAndAction(text, action) {
 		return true, true
 	}
 	if handPhraseSupportsRequiredMove(text, action) || handPhraseFollowsHandChoice(text, action) {
@@ -232,7 +233,30 @@ func handTextOptional(text, action string) (optional, known bool) {
 	return false, false
 }
 
-// The four helpers are gorge's handMovePhrase* (effects/zone_hand.go).
+// The five helpers are gorge's handMovePhrase* (effects/zone_hand.go).
+
+func handPhraseUpToWithHandAndAction(text, action string) bool {
+	for start := 0; ; {
+		i := strings.Index(text[start:], "up to")
+		if i < 0 {
+			return false
+		}
+		i += start
+		begin := 0
+		if j := strings.LastIndexAny(text[:i], ".;"); j >= 0 {
+			begin = j + 1
+		}
+		end := len(text)
+		if j := strings.IndexAny(text[i:], ".;"); j >= 0 {
+			end = i + j
+		}
+		sentence := text[begin:end]
+		if strings.Contains(sentence, "hand") && strings.Contains(sentence, action) {
+			return true
+		}
+		start = i + len("up to")
+	}
+}
 
 func handPhraseSupportsRequiredMove(text, phrase string) bool {
 	for start := 0; ; {
@@ -429,7 +453,23 @@ func (lc *lowerCtx) handMoveDefinedOwner(ps *params) (lRef, bool, error) {
 		ps.consume("DefinedPlayer")
 		return lRef{Kind: rEachPlayer}, true, nil
 	}
-	if strings.TrimSpace(dp) != "Targeted" {
+	switch v := strings.TrimSpace(dp); v {
+	case "Targeted":
+	case "TargetedController", "ParentTarget", "ParentTargeted", "TriggeredPlayer", "TriggeredCardController", "TriggeredActivator":
+		// gorge handMoveOwners reads DefinedPlayer$ through searchPlayersFor
+		// (definedPlayerIDs), the same grammar a library search's owner
+		// reads, so the search's reader is the one mirror (lower_dpsearch.go):
+		// an object target names its controller (the last-known one once it
+		// has left: kernel tgtCtrlSlot), a player target itself, the trigger
+		// spellings the event's player. That player owns the hand and
+		// answers the pick (handMoveChooserFor's default).
+		r, err := lc.definedPlayer(v)
+		if err != nil {
+			return lRef{}, false, refuse("hand move DefinedPlayer$ %q", dp)
+		}
+		ps.consume("DefinedPlayer")
+		return r, true, nil
+	default:
 		return lRef{}, false, refuse("hand move DefinedPlayer$ %q", dp)
 	}
 	// a charm's ability holds every mode's targets: only the chosen mode's

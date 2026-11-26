@@ -703,7 +703,7 @@ func (a *SBT) chooseKey(s *dirac.State, d *dirac.Decision, x dirac.Action, zkey 
 		return 1 - uint32(mode&1) // yes / pay / top / unless first
 	case dirac.ChGenDivide, dirac.ChCastDivide:
 		return uint32(s.FeatDivideIndex(dirac.TCode(src)))
-	case dirac.ChX, dirac.ChTrigX, dirac.ChMultikick, dirac.ChDivide, dirac.ChAsUnblocked, dirac.ChGenBranch, dirac.ChGenPileChoose, dirac.ChGenColor, dirac.ChGenManaChoice, dirac.ChAltAdd, dirac.ChGenPip, dirac.ChGenReplOrder, dirac.ChGenGift, dirac.ChCostForage, dirac.ChGenKeepTapped, dirac.ChGenDestAlt, dirac.ChBand, dirac.ChEnlist:
+	case dirac.ChX, dirac.ChTrigX, dirac.ChMultikick, dirac.ChDivide, dirac.ChAsUnblocked, dirac.ChGenBranch, dirac.ChGenPileChoose, dirac.ChGenColor, dirac.ChGenManaChoice, dirac.ChAltAdd, dirac.ChGenPip, dirac.ChGenReplOrder, dirac.ChGenGift, dirac.ChCostForage, dirac.ChGenKeepTapped, dirac.ChGenDestAlt, dirac.ChBand, dirac.ChEnlist, dirac.ChExert:
 		return uint32(mode)
 	case dirac.ChLearn:
 		return dirac.LearnKey(src, mode)

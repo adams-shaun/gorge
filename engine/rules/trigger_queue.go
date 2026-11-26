@@ -2046,6 +2046,20 @@ func (e *Engine) askTriggerModes(p state.PlayerID, obj state.ObjID, sa *cards.SA
 	// posted.
 	eligible := effects.CharmEligibleModes(e, source, sa, choices)
 	eligible = triggerModesWithTargets(e, p, obj, svars, eligible)
+	if sa.API == "GenericChoice" {
+		// Forge ChooseGenericEffect drops every choice whose UnlessCost$ the
+		// chooser cannot pay. The placement ask is the trigger controller's,
+		// so p is the payer. When that empties a NON-empty list, Forge asks
+		// nothing and resolves FallbackAbility$ (or nothing) at resolution:
+		// let the trigger go on the stack and leave the ask to effCharm
+		// instead of removing it. (An empty list from the target/restriction
+		// filters above keeps the existing removeModelessTrigger path.)
+		if payable := effects.GenericChoiceAvailable(e, ctx, p, eligible); len(payable) == 0 && len(eligible) > 0 {
+			return false
+		} else if len(payable) > 0 {
+			eligible = payable
+		}
+	}
 	min, max, repeat := effects.CharmModeBounds(e, ctx, sa, len(eligible))
 	if max < 1 && effects.CharmCountReadsTriggeringSpell(ctx, sa) {
 		// the placement ctx carries no triggering spell, so a count that

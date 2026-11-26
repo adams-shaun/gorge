@@ -46,6 +46,28 @@ func tableMayPlayNT(t *kop.Table) bool {
 // mayNTArm sets controller c's expiry counter for a record registered now:
 // the boundary is the turn before c's next turn, that many cleanups from
 // this turn's, this turn's the first (ovNTArm's treatment).
+// mayNTGrantCtrl marks an owner-held UntilYourNextTurn record whose turn
+// word holds the grant's controller seat in its low bits (partitionRecord):
+// the record's permission subject is the card's owner (r.ctrl,
+// cast_whileexiled.go), but gorge's expiry boundary is the effect
+// controller's next turn for every record of the grant
+// (layers_effect.go nextTurnFor(ce.Controller)). The bit is clear on every
+// other record's turn word: a creation turn number, a raise amount, or
+// mayHeld's object|ver packing never reach it.
+const mayNTGrantCtrl uint32 = 1 << 31
+
+// ntSeat is the seat whose next turn ends record r's UntilYourNextTurn
+// grant.
+func (r mayPlay) ntSeat() uint8 {
+	if r.turn&mayNTGrantCtrl != 0 {
+		return uint8(r.turn)
+	}
+	return r.ctrl
+}
+
+// mayNTArm sets controller c's expiry counter for a record registered now:
+// the boundary is the turn before c's next turn, that many cleanups from
+// this turn's, this turn's the first (ovNTArm's treatment).
 func (s *State) mayNTArm(c uint8) {
 	q := coldMayNTQ.of(s)
 	if q == nil || c >= MaxSeats {
@@ -96,7 +118,7 @@ func (s *State) mayNTSweep() uint8 {
 	var have uint8
 	for i := 0; i < int(s.g.nmay); i++ {
 		if r := *s.mayAt(i); r.dur() == kop.DurUntilYourNextTurn {
-			have |= 1 << r.ctrl
+			have |= 1 << r.ntSeat()
 		}
 	}
 	if have == 0 {

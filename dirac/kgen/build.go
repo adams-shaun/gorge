@@ -1238,6 +1238,7 @@ func (cb *cardBuilder) cost(c lCost) (kop.Cost, error) {
 		}
 	}
 	out.ExileBf = c.SacExile
+	out.SacHalf = c.SacHalf // sacrifice half the matching permanents at payment (kernel cost_sachalf.go)
 	if c.XMin > 0 {
 		out.XMin = uint8(c.XMin) // the announced X's floor (kernel cost_sacx.go)
 	}
@@ -2731,6 +2732,13 @@ func (cb *cardBuilder) override(o *lOverride) (int, error) {
 	ko.WhileTapped = o.WhileTapped
 	ko.AsLongAsControl = o.AsLongAsControl
 	ko.UntilEndCombat = o.UntilEndCombat
+	ko.UntilCtrlUntap = o.UntilCtrlUntap
+	if o.UntilCast != nil {
+		if ko.UntilCast, err = cb.filter(o.UntilCast, kop.ZoneStack); err != nil {
+			return 0, err
+		}
+		cb.out.ovVals = append(cb.out.ovVals, kop.ValueRef{K: kop.VCountFilter, N: int16(ko.UntilCast)})
+	}
 	ko.Banding = o.Banding
 	ko.Horsemanship = o.Horsemanship
 	ko.NoCost = o.NoCost

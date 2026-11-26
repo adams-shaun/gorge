@@ -479,7 +479,7 @@ func handMoveOwnersWalk(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, to s
 			settleHandMove(id, owner)
 			moved = append(moved, id)
 		}
-		handLibraryTail(h, c, sa, cz, owner, moved, to)
+		handLibraryTail(h, c, sa, cz, owner, moved, to, true)
 		// AtEOT$ on the hand walk: the owner's answered batch is the
 		// affected set, scheduled per owner.
 		scheduleAtEOT(h, c, sa, moved)
@@ -516,7 +516,7 @@ func handMoveOwnersWalk(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, to s
 				moved = append(moved, pool[j])
 				pool = append(pool[:j], pool[j+1:]...)
 			}
-			handLibraryTail(h, c, sa, cz, owner, moved, to)
+			handLibraryTail(h, c, sa, cz, owner, moved, to, false)
 			scheduleAtEOT(h, c, sa, moved)
 			continue
 		}
@@ -612,7 +612,7 @@ func handMoveOwnersWalk(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, to s
 					settleHandMove(id, owner)
 					moved = append(moved, id)
 				}
-				handLibraryTail(h, c, sa, cz, owner, moved, to)
+				handLibraryTail(h, c, sa, cz, owner, moved, to, false)
 				scheduleAtEOT(h, c, sa, moved)
 				continue
 			}
@@ -626,7 +626,7 @@ func handMoveOwnersWalk(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, to s
 				settleHandMove(id, owner)
 				moved = append(moved, id)
 			}
-			handLibraryTail(h, c, sa, cz, owner, moved, to)
+			handLibraryTail(h, c, sa, cz, owner, moved, to, false)
 			scheduleAtEOT(h, c, sa, moved)
 			continue
 		}
@@ -708,7 +708,7 @@ func handMoveOwnersWalk(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, to s
 				moved = append(moved, eligible[k])
 			}
 		}
-		handLibraryTail(h, c, sa, cz, owner, moved, to)
+		handLibraryTail(h, c, sa, cz, owner, moved, to, true)
 		scheduleAtEOT(h, c, sa, moved)
 	}
 	// The walk completed: release the ride. A later ability in the same
@@ -817,7 +817,8 @@ func handMoveTextOptional(text string, to state.Zone) (optional, known bool) {
 	if handMovePhraseMentionsHand(text, "may "+action) ||
 		handMovePhraseFollowsHandReveal(text, "may "+action) ||
 		(to == state.ZLibrary && handMovePhraseMentionsHand(text, "may shuffle")) ||
-		(handMovePhraseMentionsHand(text, "any number") && handMovePhraseMentionsHand(text, action)) {
+		(handMovePhraseMentionsHand(text, "any number") && handMovePhraseMentionsHand(text, action)) ||
+		handMovePhraseUpToWithHandAndAction(text, action) {
 		return true, true
 	}
 	if handMovePhraseSupportsRequiredMove(text, action) ||
@@ -944,6 +945,35 @@ func handMovePhraseMentionsHand(text, phrase string) bool {
 	}
 }
 
+// handMovePhraseUpToWithHandAndAction reports whether ONE instruction sentence
+// is the "put up to X cards from your hand" may-form: it carries "up to", the
+// destination's action verb and a hand reference together. "Up to" bounds the
+// pick, so zero is a legal answer (Gitrog, Ravenous Ride); requiring all three
+// in the same sentence keeps an unrelated "up to" elsewhere on a multi-ability
+// card from making this move optional.
+func handMovePhraseUpToWithHandAndAction(text, action string) bool {
+	for start := 0; ; {
+		i := strings.Index(text[start:], "up to")
+		if i < 0 {
+			return false
+		}
+		i += start
+		begin := 0
+		if j := strings.LastIndexAny(text[:i], ".;"); j >= 0 {
+			begin = j + 1
+		}
+		end := len(text)
+		if j := strings.IndexAny(text[i:], ".;"); j >= 0 {
+			end = i + j
+		}
+		sentence := text[begin:end]
+		if strings.Contains(sentence, "hand") && strings.Contains(sentence, action) {
+			return true
+		}
+		start = i + len("up to")
+	}
+}
+
 // handMovePrompt builds the human-readable ask text, naming the top/bottom
 // placement when the destination is the library (the one destination where
 // WHERE matters to the chooser), and whose hand it is when the chooser is
@@ -979,7 +1009,17 @@ func handMovePromptFor(cz *ChangeZoneParams, to state.Zone, n int, own bool) str
 // with Forge's absent-LibraryPosition$ default (TOP) applied for the hand
 // path -- Brainstorm and Jace's [0] name no LibraryPosition$ and their
 // oracle puts the cards on top.
-func handLibraryTail(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, owner state.PlayerID, moved []state.ObjID, to state.Zone) {
+//
+// orderKnown says the moved slice already carries the placement order: an
+// answered hand pick's answer order, or the deterministic first-n order of a
+// host with no decision channel. Those pose no CR 401.4 arrangement. Every
+// other branch that reaches the plain LibraryPosition$ placement (a required
+// take-all, AtRandom$) has no answer order to reuse: when two or more cards
+// go to one library position, the owner arranges them through
+// libraryPlacementOrder, exactly like the targeted and ChangeZoneAll paths.
+// The controller's top-or-bottom choice and a shuffle tail return earlier:
+// they own their own ask or randomisation.
+func handLibraryTail(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, owner state.PlayerID, moved []state.ObjID, to state.Zone, orderKnown bool) {
 	if to != state.ZLibrary || len(moved) == 0 {
 		return
 	}
@@ -1012,7 +1052,11 @@ func handLibraryTail(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, owner s
 		h.Emit(events.Event{Kind: events.Note, Obj: source, Player: owner,
 			Text: "LibraryPosition$ " + position + " is not implemented; the cards go on top"})
 	}
-	libraryOrderPlacement(h, owner, moved, position == "-1")
+	bottom := position == "-1"
+	if !orderKnown && len(moved) > 1 {
+		moved = libraryPlacementOrder(h, c, sa, owner, moved, bottom)
+	}
+	libraryOrderPlacement(h, owner, moved, bottom)
 }
 
 // handDestPhrase names the hand-move destination in the human-readable

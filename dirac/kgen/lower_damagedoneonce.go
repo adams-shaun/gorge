@@ -119,10 +119,16 @@ func (lc *lowerCtx) damageDoneOnce(tp *params, tr *lTrigger, t cards.Trigger) er
 // read that queue does not carry refuses by name. A line without the read
 // keeps the plain trigger.
 func (lc *lowerCtx) damageDoneSelfObjRef(tp *params, tr *lTrigger, t cards.Trigger) error {
-	if t.Mode != "DamageDone" || tr.F2 == nil || !lc.ddoReadsTriggeredTarget(t.Effect) {
+	if t.Mode != "DamageDone" || tr.F2 == nil {
 		return nil
 	}
 	objF2 := tr.F2.Players == 0 && len(tr.F2.Clauses) != 0
+	// TriggeredTargetController (Bellowing Fiend, Soul Charmer: "that
+	// creature's controller") is the damaged object's controller, which the
+	// per-referent queue reads off the same trigger object (ddoReadOK)
+	if !lc.ddoReadsTriggeredTarget(t.Effect) && !(objF2 && lc.ddoReads1(t.Effect, "TriggeredTargetController")) {
+		return nil
+	}
 	// a host's attachment (Charisma, Sword of Kaldra) names one source object,
 	// which deals at most one damage event to a referent per batch, as Self
 	hostSrc := tp.is("ValidSource", "Card.AttachedBy") || tp.is("ValidSource", "Card.EquippedBy")
@@ -280,6 +286,16 @@ func (lc *lowerCtx) ddoEmblemReads(sa *cards.SA) string {
 func (lc *lowerCtx) ddoReadsTriggeredTarget(sa *cards.SA) bool {
 	for _, r := range lc.ddoBodyReads(sa) {
 		if r == "TriggeredTarget" || r == "TriggeredTargetLKICopy" {
+			return true
+		}
+	}
+	return false
+}
+
+// ddoReads1 reports whether the body reads spelling v.
+func (lc *lowerCtx) ddoReads1(sa *cards.SA, v string) bool {
+	for _, r := range lc.ddoBodyReads(sa) {
+		if r == v {
 			return true
 		}
 	}

@@ -557,6 +557,8 @@ func applyKind(g *state.Game, e *Event) {
 		g.Restart(e.Amount, e.IDs)
 	case TextChange:
 		foldTextChange(g, e)
+	case ColorWordsSync:
+		foldColorWords(g, e)
 	case ActivationReversed:
 		foldActivationReversed(g, e)
 	case HadToAttack:
