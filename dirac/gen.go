@@ -1953,7 +1953,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepExileFD(t, g)     // zone_exilefacedown.go
 	prepEmpower(t, g)
 	prepCardKinds(t, p, g) // act_choosecardenter.go
-	g.tyCombat = overridesUncreature(t)
+	g.tyCombat = overridesUncreature(t) || tableClonesBattlefield(t)
 	g.lossSlow = g.anyLoseStat  // fxNeedL6 alone: loss6 reads only the records (loss6Rec, kperf2), which genLost gates itself
 	prepFaceDown(g)             // face_facedown.go
 	prepLandGrant(t, p, g)      // static_landtype.go

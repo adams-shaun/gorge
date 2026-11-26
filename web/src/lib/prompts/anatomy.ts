@@ -135,6 +135,11 @@ export function promptAnatomy(d: Decision, view: View): Anatomy {
       plain = [effect, 'Click a highlighted card or player, or pick below.'].filter(Boolean).join(' ');
       break;
     }
+    case 'divide': {
+      title = `Divide ${d.divide_total} among targets`;
+      plain = [effectSentence(d) ?? sentence(stackText), 'Use + and - to give each target its share; a target at 0 is not targeted.'].filter(Boolean).join(' ');
+      break;
+    }
     case 'attackers':
       title = 'Declare attackers';
       plain = 'Click your creatures on the board to attack, or pick below.';

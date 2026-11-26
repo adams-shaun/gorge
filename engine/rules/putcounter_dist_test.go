@@ -187,6 +187,9 @@ func TestPutCounterDividedAmongTargetsSplitsTheTotal(t *testing.T) {
 	if d.Max != 2 {
 		t.Fatalf("target ask max = %d, want 2 (TargetMax$ 2)", d.Max)
 	}
+	if d.DivideTotal != 4 {
+		t.Fatalf("cast target ask DivideTotal = %d, want the divided total 4", d.DivideTotal)
+	}
 	tgt := map[state.ObjID]int{}
 	for _, o := range d.Options {
 		tgt[o.Obj] = o.Index

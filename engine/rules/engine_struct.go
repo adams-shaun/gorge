@@ -86,7 +86,9 @@ type Engine struct {
 	// runner sets it, while replaying a scenario that carries the taped
 	// game's die_rolls (CR 706.2); every live game, replay and clone leaves
 	// it nil, so no ordinary roll changes. A clone drops it (a harness
-	// observer), and a nil override leaves Rand byte-identical.
+	// observer), but the kernel's Restore re-attaches it around the
+	// re-executed prefix, whose recorded rolls must replay unchanged; a nil
+	// override leaves Rand byte-identical.
 	dieRollOverride func(sides int) (int, bool) `clone:"hook"`
 
 	// deferGameOver is true only while New processes the opening deal. A

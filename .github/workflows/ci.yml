@@ -250,9 +250,25 @@ jobs:
       - name: Read the corpus pin
         id: pin
         run: echo "forge_ref=$(awk '/^FORGE_REF/ {print $3}' Makefile)" >> "$GITHUB_OUTPUT"
-      - name: Keep the corpus on the box (self-hosted)
+      - name: Select the diff's tests
+        # S4 (11-26): the selection runs once (3-8 s) and is handed to the corpus step's background compile and to
+        # the test run below, so the two cannot select different packages.
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+        run: bash scripts/test-targets.sh list > "$RUNNER_TEMP/ci-fast.list"
+      - name: Keep the corpus on the box and compile the diff's tests beside it (self-hosted)
+        # S4 (11-26): the corpus/tables build was the fast job's last serial prefix (14-83 s on a tree this box has
+        # not built, 2-5 s warm), and the affected-package run is the wall (measured 11-26 on 11 PR runs: 398 s of
+        # a 512 s job). The compile reads only the checkout and the box's Go build cache — never .cards, which
+        # ci-corpus.sh is about to link — so the two run together: the step costs max(corpus, compile) instead of
+        # their sum, and the test run below reuses every compiled binary. Same selection, same skip rules, no
+        # selected test runs here (-exec /bin/true; go keys a cached test result on the -exec command, so nothing is
+        # faked); the .ds4 always-gate keeps its literal line and runs in both steps — it reads git ls-files only.
         if: runner.environment == 'self-hosted'
-        run: bash scripts/ci-corpus.sh
+        env:
+          CI_FAST_SKIP_KGEN: "1"
+          CI_FAST_SKIP_ORACLE_REPLAY: "1"
+        run: bash scripts/ci-fast.sh --precompile "${{ github.event.pull_request.base.sha }}" "$RUNNER_TEMP/ci-fast.list"
       - name: Restore the corpus
         id: corpus
         if: runner.environment == 'github-hosted'
@@ -284,6 +300,7 @@ jobs:
         env:
           CI_FAST_SKIP_KGEN: "1"
           CI_FAST_SKIP_ORACLE_REPLAY: "1"
+          CI_FAST_LIST: ${{ runner.temp }}/ci-fast.list
         run: bash scripts/ci-fast.sh ${{ github.event.pull_request.base.sha }}
 
   lint:
@@ -1142,6 +1159,7 @@ jobs:
           go-version-file: go.mod
           cache: false
       - uses: actions/setup-node@v4
+        id: node
         with:
           node-version: "24"
       - name: Read the corpus pin
@@ -1168,15 +1186,26 @@ jobs:
           path: ~/.cache/go-build
           key: gocache-browser-${{ github.sha }}
           restore-keys: gocache-browser-
-      - name: Restore npm's cache and the browser
+      - name: Restore npm's cache, the installed client and the browser
         id: webcache
         uses: actions/cache/restore@v4
         with:
+          # web/node_modules is the product of `npm ci` for exactly this lockfile
+          # and Node version. Cache it so a hit skips the install (measured
+          # 38-52 s of npm ci here, 11-26) instead of re-extracting the tree;
+          # a miss saves it on main, after npm ci produced it. The key is the
+          # lockfile hash plus the version setup-node resolved, so a dependency
+          # or toolchain change is always a miss: a hit cannot serve stale,
+          # mismatched content.
           path: |
             ~/.npm
             ~/.cache/ms-playwright
-          key: web-${{ runner.os }}-${{ hashFiles('web/package-lock.json') }}
+            web/node_modules
+          key: web-${{ runner.os }}-node${{ steps.node.outputs.node-version }}-${{ hashFiles('web/package-lock.json') }}
       - name: Install the client's dependencies
+        # A cache hit restored web/node_modules exactly as `npm ci` leaves it for
+        # this lockfile and Node version; there is nothing to install.
+        if: steps.webcache.outputs.cache-hit != 'true'
         run: npm ci
         working-directory: web
       - name: Install Chromium's system libraries
@@ -1195,14 +1224,17 @@ jobs:
           name: browser-test-results
           path: web/test-results
           if-no-files-found: ignore
-      - name: Save npm's cache and the browser
+      - name: Save npm's cache, the installed client and the browser
+        # Save must use the restore step's exact key and paths, or the next
+        # batch's restore misses forever.
         if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && steps.webcache.outputs.cache-hit != 'true'
         uses: actions/cache/save@v4
         with:
           path: |
             ~/.npm
             ~/.cache/ms-playwright
-          key: web-${{ runner.os }}-${{ hashFiles('web/package-lock.json') }}
+            web/node_modules
+          key: web-${{ runner.os }}-node${{ steps.node.outputs.node-version }}-${{ hashFiles('web/package-lock.json') }}
       - name: Save the Go cache
         if: runner.environment == 'github-hosted' && github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         uses: actions/cache/save@v4

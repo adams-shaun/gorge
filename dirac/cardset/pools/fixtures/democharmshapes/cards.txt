@@ -1,0 +1,24 @@
+# The demo Charm-shapes pool (dirac/oracle/democharmshapes_lockstep_test.go):
+# Inscription of Abundance (MinCharmNum$/CharmNum$ both read off the kicker),
+# Kozilek's Command (a multi-pick charm whose fourth mode is "up to X target
+# cards from graveyards", 0..X), Masterful Replication (a mode Clone whose
+# template is its own target beside CloneTarget$ Valid ...+NotDefinedTargeted)
+# and Dromoka's Command (a mode that is a remembered-source prevention Effect),
+# with the artifacts the clone mode copies, creatures, burn and basics.
+Dromoka's Command
+Inscription of Abundance
+Kozilek's Command
+Masterful Replication
+Sol Ring
+Mind Stone
+Ornithopter
+Grizzly Bears
+Glory Seeker
+Lightning Bolt
+Merfolk of the Pearl Trident
+Pacifism
+Wastes
+Forest
+Island
+Plains
+Mountain

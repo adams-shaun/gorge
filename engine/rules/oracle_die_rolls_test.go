@@ -24,6 +24,24 @@ const oracleDieRollScenario = `{
   ]
 }`
 
+// oracleCometDieRollScenario places Comet, Stellar Pup on the battlefield
+// through the setup, then resolves its [0] loyalty ability. The natural 4
+// takes the 4-5 band, which asks for a damage recipient AFTER the roll, so
+// the resolution kernel rewinds and re-executes the roll from its checkpoint.
+// The taped d6 must be served again there instead of the seeded generator.
+const oracleCometDieRollScenario = `{
+  "name": "die-rolls-comet-start",
+  "setup": {
+    "p0": {"battlefield": ["Comet, Stellar Pup"]},
+    "p1": {"battlefield": ["Grizzly Bears"]}
+  },
+  "die_rolls": [{"step": 1, "seat": 0, "sides": 6, "natural": 4, "result": 4}],
+  "steps": [
+    {"op": "activate", "seat": 0, "card": "p0:Comet, Stellar Pup", "ability_index": 0},
+    {"op": "resolve", "seat": 0}
+  ]
+}`
+
 func TestOracleScenarioForcesDieRolls(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
 
@@ -51,6 +69,36 @@ func TestOracleScenarioForcesDieRolls(t *testing.T) {
 	}
 	if got := oracleDieRollTokenCount(res, 0, "battlefield", "Goblin Token"); got != 2 {
 		t.Fatalf("forced scenario made %d Goblin tokens, want 2 (natural 17)", got)
+	}
+
+	// The d20 case resolves without asking anything after the roll, so it
+	// never re-executes. Comet's natural 4 asks for a damage recipient, which
+	// makes the kernel rewind and replay the roll: the taped value must be
+	// served again on the re-execution. Without the tape the seeded d6 takes
+	// its 3 band, so the Bears surviving is the precondition that the taped
+	// 4 is what kills them.
+	plainComet := strings.Replace(oracleCometDieRollScenario,
+		`"die_rolls": [{"step": 1, "seat": 0, "sides": 6, "natural": 4, "result": 4}],`, "", 1)
+	res, err = RunOracleScenarioJSON(reg, []byte(plainComet))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(res.Fails) != 0 {
+		t.Fatalf("unforced Comet scenario failed: %v\n%s", res.Fails, joinLines(res.Transcript))
+	}
+	if got := oracleDieRollTokenCount(res, 1, "battlefield", "Grizzly Bears"); got != 1 {
+		t.Fatalf("unforced Comet scenario left %d Grizzly Bears, want 1 (the seeded d6's 3 band)", got)
+	}
+
+	res, err = RunOracleScenarioJSON(reg, []byte(oracleCometDieRollScenario))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(res.Fails) != 0 {
+		t.Fatalf("forced Comet scenario failed: %v\n%s", res.Fails, joinLines(res.Transcript))
+	}
+	if got := oracleDieRollTokenCount(res, 1, "battlefield", "Grizzly Bears"); got != 0 {
+		t.Fatalf("forced Comet scenario left %d Grizzly Bears, want 0 (natural 4's damage band)", got)
 	}
 }
 

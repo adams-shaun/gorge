@@ -688,6 +688,7 @@ func (cb *cardBuilder) record() error {
 		cb.bargain = true // the kicked-range target slots (Tear Asunder's), read by the same provenance
 	}
 	d.ModesMinCount = c.ModesMinCount != 0
+	d.ModesMinKicked = c.ModesMinKicked
 	if c.ModesPickV.Kind != vNone {
 		if d.ModesPickV, err = cb.value(c.ModesPickV); err != nil {
 			return err

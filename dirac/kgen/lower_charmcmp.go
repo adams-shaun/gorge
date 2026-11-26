@@ -85,8 +85,14 @@ func (lc *lowerCtx) charmDynNum(ps *params, nModes int) (pick int, ok bool, err 
 		}
 		if twoArm {
 			lo, hi := min(n[0], n[1]), max(n[0], n[1])
-			if hasMin && (len(mv) != 1 || int(mv[0]-'0') != lo) {
+			kickedMin := hasMin && (len(mv) != 1 || int(mv[0]-'0') != lo) && lc.charmMinKicked(ps, mv, val, lo) // lower_charmminkicked.go
+			if hasMin && !kickedMin && (len(mv) != 1 || int(mv[0]-'0') != lo) {
 				return 0, false, refuse("charm count CharmNum$ %q with MinCharmNum$ %q", v, mv)
+			}
+			if kickedMin {
+				// the unkicked arm is the offer gate's minimum and the
+				// mode step's evaluated count
+				lc.out.ModesMinCount = lo
 			}
 			if !hasMin {
 				// gorge's minimum is the evaluated count; the plain cast of
