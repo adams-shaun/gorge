@@ -577,6 +577,10 @@ func saChainShape(sa *cards.SA) string {
 // flight is about to end: at most one of several seats is left (CR 104.2a).
 // checkGameOver emits the GameOver only after the departed seat's objects
 // have been swept, so G.Over alone is still false while that sweep runs.
+// AliveCount() <= 1 is also already true inside a resolution whose own
+// effect set Lost (a "target player loses the game"), before any SBA pass
+// runs; that resolution's later asks then take their defaults — the
+// decided-game rule — where they used to be served.
 func (e *Engine) gameDecided() bool {
 	return e.G.Over || (len(e.G.Players) > 1 && !e.deferGameOver && e.G.AliveCount() <= 1)
 }

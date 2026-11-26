@@ -5,6 +5,7 @@ import (
 
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
+	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
@@ -24,26 +25,39 @@ import (
 // after a loss), so the same return there takes its deterministic default —
 // TestExileReturnPosesNothingOnceGameIsDecided pins that half.
 //
-// The fixture is inline (the licensing rule); the exiled card's script is the
+// The fixtures are inline (the licensing rule). The Siege's script is the
 // corpus Outpost Siege's own SVar shape (K:ETBReplacement:Other +
-// DB$ GenericChoice), minimised to a two-mode choice whose bodies are stand-ins.
+// DB$ GenericChoice), minimised to a two-mode choice whose bodies are
+// stand-ins; its as-enters ask is served through the tape (TapeAnswer). The
+// Aura's script is the CR 303.4f shape: a printed Enchantment Aura whose
+// non-cast battlefield entry asks what it enchants (entryETBChoice's
+// auraEntryChoice arm, posed through e.ask directly, never the tape). The
+// two extra kin give the surviving seat a second legal enchant candidate at
+// the return, so the choice is real; they are placed after the Aura, whose
+// own setup entry then has a single legal answer and attaches unasked.
 // lethalExileReturnScenario seats n players, puts seat 0's host (which
-// exiled seat 1's Siege until it leaves) on the battlefield with seat 0 at 4
-// life, and has seat 1's unblocked 5/5 attack seat 0. It returns the engine
-// at the lethal pass with the priority windows before it drained, plus the
-// Siege's id.
-func lethalExileReturnScenario(t *testing.T, seats int) (*Engine, state.ObjID) {
+// exiled seat 1's exiled card until it leaves) on the battlefield with seat
+// 0 at 4 life, and has seat 1's unblocked 5/5 attack seat 0. It returns the
+// engine at the lethal pass with the priority windows before it drained,
+// plus the exiled card's id.
+const siegeExiledCard = "Name:Test Siege\nManaCost:3 R\nTypes:Enchantment\n" +
+	"K:ETBReplacement:Other:PickSide\n" +
+	"SVar:PickSide:DB$ GenericChoice | Defined$ You | SetChosenMode$ True | Choices$ Dawn,Wards\n" +
+	"SVar:Dawn:DB$ Nothing\n" +
+	"SVar:Wards:DB$ Nothing\n" +
+	"Oracle:x\n"
+
+const auraExiledCard = "Name:Test Mantle\nManaCost:1 G\nTypes:Enchantment Aura\n" +
+	"K:Enchant:Creature\nOracle:x\n"
+
+const kinExtraCard = "Name:Test Kin\nManaCost:1 G\nTypes:Creature Elf\nPT:2/2\nOracle:x\n"
+
+func lethalExileReturnScenario(t *testing.T, seats int, exiled string, extra ...string) (*Engine, state.ObjID) {
 	t.Helper()
 	host := card(t, "Name:Test Grasp\nManaCost:2 W\nTypes:Enchantment\n"+
 		"T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ TrigExile\n"+
 		"SVar:TrigExile:DB$ ChangeZone | Origin$ Battlefield | Destination$ Exile | ValidTgts$ Permanent.nonLand+OppCtrl | TgtPrompt$ Select target | Duration$ UntilHostLeavesPlay\n"+
 		"Oracle:x\n")
-	siege := "Name:Test Siege\nManaCost:3 R\nTypes:Enchantment\n" +
-		"K:ETBReplacement:Other:PickSide\n" +
-		"SVar:PickSide:DB$ GenericChoice | Defined$ You | SetChosenMode$ True | Choices$ Dawn,Wards\n" +
-		"SVar:Dawn:DB$ Nothing\n" +
-		"SVar:Wards:DB$ Nothing\n" +
-		"Oracle:x\n"
 	attacker := "Name:Test Bearer\nManaCost:3 R\nTypes:Creature Beast\nPT:5/5\nOracle:x\n"
 
 	decks := make([][]*cards.Card, seats)
@@ -65,8 +79,21 @@ func lethalExileReturnScenario(t *testing.T, seats int) (*Engine, state.ObjID) {
 	if len(e.G.Players) != seats {
 		t.Fatalf("precondition: %d seats, want %d", len(e.G.Players), seats)
 	}
-	siegeID := onBoard(t, e, 1, siege)
+	// The exiled card is placed after the bearer (an Aura's own setup entry
+	// needs a single legal answer so it attaches unasked) and before the
+	// extras (which make the return-time choice real). The placement is
+	// eventless (onBoard), so an Aura is attached to the bearer by hand —
+	// the attachment its single-candidate entry would have settled — because
+	// an Aura attached to nothing is swept by the CR 704.5m state-based
+	// action before the host can exile it.
 	bearer := onBoardReady(t, e, 1, attacker)
+	exiledID := onBoard(t, e, 1, exiled)
+	if faceIsAura(e.G.Obj(exiledID).Face()) {
+		e.emit(events.Event{Kind: events.Attach, Obj: exiledID, IDs: []state.ObjID{bearer}})
+	}
+	for _, src := range extra {
+		onBoard(t, e, 1, src)
+	}
 	e.G.Players[0].Life = 4
 
 	// Precondition: seat 1 is alive and its bearer is on the battlefield,
@@ -78,7 +105,7 @@ func lethalExileReturnScenario(t *testing.T, seats int) (*Engine, state.ObjID) {
 		t.Fatalf("precondition: seat 1's bearer = %+v", o)
 	}
 
-	// The host exiles the Siege (its ETB trigger poses the exile target ask).
+	// The host exiles the exiled card (its ETB trigger poses the exile target ask).
 	e.G.Players[0].Pool[state.MW] = 1
 	e.G.Players[0].Pool[state.MC] = 2
 	e.askPriority(0)
@@ -86,25 +113,25 @@ func lethalExileReturnScenario(t *testing.T, seats int) (*Engine, state.ObjID) {
 	d := passToTargetAsk(t, e)
 	idx := -1
 	for _, o := range d.Options {
-		if o.Obj == siegeID {
+		if o.Obj == exiledID {
 			idx = o.Index
 		}
 	}
 	if idx < 0 {
-		t.Fatalf("seat 1's Siege not offered as the exile target: %+v", d.Options)
+		t.Fatalf("seat 1's exiled card not offered as the exile target: %+v", d.Options)
 	}
 	submitChoices(t, e, idx)
 	passUntilStackEmpty(t, e, 8)
 	// Precondition the return rule reads: the Siege sits in exile under the
 	// host's UntilHostLeavesPlay entry (compare the zones, not the pointer).
-	if got := e.G.Obj(siegeID).Zone; got != state.ZExile {
+	if got := e.G.Obj(exiledID).Zone; got != state.ZExile {
 		t.Fatalf("precondition: Siege zone = %v, want exile", got)
 	}
 	light := state.ObjID(0)
 	for _, o := range e.G.Zone(state.ZBattlefield, 0) {
 		light = o
 	}
-	if len(e.G.Obj(light).ExileReturn) != 1 || e.G.Obj(light).ExileReturn[0].Obj != siegeID ||
+	if len(e.G.Obj(light).ExileReturn) != 1 || e.G.Obj(light).ExileReturn[0].Obj != exiledID ||
 		e.G.Obj(light).ExileReturn[0].From != state.ZBattlefield {
 		t.Fatalf("precondition: host ExileReturn = %+v, want one battlefield entry naming the Siege",
 			e.G.Obj(light).ExileReturn)
@@ -135,12 +162,12 @@ func lethalExileReturnScenario(t *testing.T, seats int) (*Engine, state.ObjID) {
 		t.Fatalf("submit attackers: %v", err)
 	}
 	drainCombatPriority(t, e)
-	return e, siegeID
+	return e, exiledID
 }
 
 func TestExileReturnAsksAfterLethalCombatDamage(t *testing.T) {
 	t.Parallel()
-	e, siegeID := lethalExileReturnScenario(t, 4)
+	e, exiledID := lethalExileReturnScenario(t, 4, siegeExiledCard)
 	var d *decision.Decision
 	for i := 0; i < 32; i++ {
 		d = e.Pending()
@@ -185,12 +212,12 @@ func TestExileReturnAsksAfterLethalCombatDamage(t *testing.T) {
 	// The answer is a real one: choose mode 0, then the game must carry the
 	// chosen mode on the returned Siege.
 	submitChoices(t, e, 0)
-	if got := e.G.Obj(siegeID).Zone; got != state.ZBattlefield {
+	if got := e.G.Obj(exiledID).Zone; got != state.ZBattlefield {
 		t.Fatalf("returned Siege zone = %v, want battlefield", got)
 	}
 	passUntilStackEmpty(t, e, 8)
-	if len(e.G.Obj(siegeID).ChosenModes) == 0 {
-		t.Fatalf("the answered choice left no chosen mode on the Siege: %+v", e.G.Obj(siegeID).ChosenModes)
+	if len(e.G.Obj(exiledID).ChosenModes) == 0 {
+		t.Fatalf("the answered choice left no chosen mode on the Siege: %+v", e.G.Obj(exiledID).ChosenModes)
 	}
 }
 
@@ -201,7 +228,7 @@ func TestExileReturnAsksAfterLethalCombatDamage(t *testing.T) {
 // was decided.
 func TestExileReturnPosesNothingOnceGameIsDecided(t *testing.T) {
 	t.Parallel()
-	e, _ := lethalExileReturnScenario(t, 2)
+	e, _ := lethalExileReturnScenario(t, 2, siegeExiledCard)
 	for i := 0; i < 32 && !e.G.Over; i++ {
 		d := e.Pending()
 		if d == nil {
@@ -231,5 +258,115 @@ func TestExileReturnPosesNothingOnceGameIsDecided(t *testing.T) {
 	}
 	if d := e.Pending(); d != nil {
 		t.Fatalf("a %s decision is pending after the game was decided: %+v", d.Kind, d)
+	}
+}
+
+// TestExileReturnAuraChoicePosesNothingOnceGameIsDecided is the same
+// decided-game pin for the OTHER ask channel: an exiled Aura's CR 303.4f
+// enchant choice is entryETBChoice's auraEntryChoice arm, applied by
+// applyETBChoiceReplacement and posed through e.ask directly, which no
+// TapeAnswer guard covers. At two seats the lethal hit decides the game, and
+// the returned Aura enters unasked (attached to its first legal bearer, CR
+// 303.4f/g) instead of parking a choose decision after the loss. Without the
+// gameDecided guard in applyETBChoiceReplacement this exact shape poses the
+// choice to the surviving owner once the game is already over.
+func TestExileReturnAuraChoicePosesNothingOnceGameIsDecided(t *testing.T) {
+	t.Parallel()
+	e, auraID := lethalExileReturnScenario(t, 2, auraExiledCard, kinExtraCard, kinExtraCard)
+	for i := 0; i < 32 && !e.G.Over; i++ {
+		d := e.Pending()
+		if d == nil {
+			break
+		}
+		if d.Kind != decision.KPriority {
+			t.Fatalf("a %s decision was posed before the game was decided: %+v", d.Kind, d)
+		}
+		idx := -1
+		for _, o := range d.Options {
+			if o.Kind == "pass" {
+				idx = o.Index
+			}
+		}
+		if idx < 0 {
+			t.Fatalf("priority decision with no pass option: %+v", d)
+		}
+		if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{idx}}); err != nil {
+			t.Fatalf("submit pass: %v", err)
+		}
+	}
+	if !e.G.Players[0].Lost {
+		t.Fatal("precondition: seat 0 should have lost to the lethal combat damage")
+	}
+	if !e.G.Over {
+		t.Fatal("the lethal hit did not decide the two-seat game")
+	}
+	// The return itself happened: the Aura is on the battlefield, entering
+	// unasked rather than staying in exile.
+	if got := e.G.Obj(auraID); got == nil || got.Zone != state.ZBattlefield {
+		t.Fatalf("precondition: the returned Aura = %+v, want it on the battlefield", got)
+	}
+	if d := e.Pending(); d != nil {
+		t.Fatalf("a %s decision is pending after the game was decided: %+v", d.Kind, d)
+	}
+}
+
+// TestExileReturnAuraChoiceAskedWhileGameGoesOn is the same shape at four
+// seats: seat 0's loss there does not decide the game, so the returned
+// Aura's CR 303.4f enchant choice IS posed to its owner (the queuesBehindAsk
+// arm of applyETBChoiceReplacement) — which is also the proof that the
+// two-seat test's silence is the guard's doing and not the shape asking
+// nothing at all. The answer attaches the Aura to the chosen bearer.
+func TestExileReturnAuraChoiceAskedWhileGameGoesOn(t *testing.T) {
+	t.Parallel()
+	e, auraID := lethalExileReturnScenario(t, 4, auraExiledCard, kinExtraCard, kinExtraCard)
+	var d *decision.Decision
+	for i := 0; i < 32; i++ {
+		d = e.Pending()
+		if d == nil {
+			t.Fatal("no pending decision after the lethal pass")
+		}
+		if d.Kind == decision.KChoose {
+			break
+		}
+		if d.Kind != decision.KPriority {
+			t.Fatalf("expected priority or the returned Aura's enchant ask, got %+v", d)
+		}
+		idx := -1
+		for _, o := range d.Options {
+			if o.Kind == "pass" {
+				idx = o.Index
+			}
+		}
+		if idx < 0 {
+			t.Fatalf("priority decision with no pass option: %+v", d)
+		}
+		if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{idx}}); err != nil {
+			t.Fatalf("submit pass: %v", err)
+		}
+	}
+	if d == nil || d.Kind != decision.KChoose {
+		t.Fatalf("the returned Aura's enchant choice was never posed; last pending = %+v", d)
+	}
+	if !e.G.Players[0].Lost || e.G.Over {
+		t.Fatalf("precondition: seat 0 lost = %v, game over = %v; want seat 0 out of a game that goes on",
+			e.G.Players[0].Lost, e.G.Over)
+	}
+	if d.Player != 1 {
+		t.Fatalf("enchant choice posed to seat %d, want the returned Aura's owner (seat 1)", d.Player)
+	}
+	if len(d.Options) != 3 {
+		t.Fatalf("enchant options = %d, want the bearer and both kin", len(d.Options))
+	}
+	// The answer is a real one: choose the first candidate, and the Aura must
+	// enter attached to it.
+	bearer := d.Options[0].Obj
+	submitChoices(t, e, 0)
+	got := e.G.Obj(auraID)
+	if got == nil || got.Zone != state.ZBattlefield || got.AttachedTo != bearer {
+		t.Fatalf("the answered Aura = %+v, want the battlefield attached to bearer %d", got, bearer)
+	}
+	passUntilStackEmpty(t, e, 8)
+	if e.G.Over {
+		t.Fatal("the four-seat game should still be going on")
 	}
 }
