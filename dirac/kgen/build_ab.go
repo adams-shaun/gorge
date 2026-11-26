@@ -2087,15 +2087,8 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		}
 		st.AddChosen = s.AddChosen
 		st.OutlivesLoss = s.OutlivesLoss
-		if len(s.Grant) > 1 {
-			return ka, nil, fmt.Errorf("static grants %d abilities", len(s.Grant))
-		}
-		if len(s.Grant) == 1 {
-			j, ok := cb.abMap[s.Grant[0]]
-			if !ok {
-				return ka, nil, fmt.Errorf("granted ability %d not emitted", s.Grant[0])
-			}
-			st.Grant = uint8(j + 1)
+		if err := cb.staticGrant(st, s); err != nil {
+			return ka, nil, err
 		}
 		if st.ProtFrom, err = filter(s.ProtFrom, kop.ZoneBattlefield); err != nil {
 			return ka, nil, err
@@ -2108,13 +2101,8 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 			return ka, nil, err
 		}
 		st.Evasion, st.Infect = s.Evasion, s.Infect // lower_kwmark.go
-		if s.Override != nil {
-			// RemoveKeyword$ beside the Continuous parts (layer 6)
-			i, err := cb.override(s.Override)
-			if err != nil {
-				return ka, nil, err
-			}
-			st.Override = uint16(i + 1)
+		if err := cb.staticOverride(st, s); err != nil {
+			return ka, nil, err
 		}
 	case "CDAPT":
 		st.Kind = kop.StatCDAPT
@@ -2812,6 +2800,34 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		return ka, nil, fmt.Errorf("static kind %s", s.Kind)
 	}
 	return ka, add, err
+}
+
+// staticGrant records the one ability a Continuous static grants (kept apart from (*cardBuilder).static so
+// that function stays under its shrink-only ceiling).
+func (cb *cardBuilder) staticGrant(st *kop.Static, s lStatic) error {
+	if len(s.Grant) > 1 {
+		return fmt.Errorf("static grants %d abilities", len(s.Grant))
+	}
+	if len(s.Grant) == 1 {
+		j, ok := cb.abMap[s.Grant[0]]
+		if !ok {
+			return fmt.Errorf("granted ability %d not emitted", s.Grant[0])
+		}
+		st.Grant = uint8(j + 1)
+	}
+	return nil
+}
+
+// staticOverride records a Continuous static's RemoveKeyword$ override (layer 6).
+func (cb *cardBuilder) staticOverride(st *kop.Static, s lStatic) error {
+	if s.Override != nil {
+		i, err := cb.override(s.Override)
+		if err != nil {
+			return err
+		}
+		st.Override = uint16(i + 1)
+	}
+	return nil
 }
 
 // graveLibFlags is the Repl.C placement bits of a GraveToLibrary replacement:
