@@ -59,7 +59,9 @@ func printedKeyword(cd *kop.CardDef, id kop.KwID) bool {
 	case kop.KwMadness:
 		return cd.HasMadness
 	case kop.KwMultikicker:
-		return cd.HasMultikicker
+		// HasMultikicker is also the shared mana half of a Squad or Replicate
+		// card (kgen repeated), which prints no Multikicker keyword.
+		return cd.HasMultikicker && cd.RepeatedKind == kop.RepeatMultikicker
 	// T13b-2's records: the keywords with no KwMask bit, each its own cold
 	// CardDef field set at the face keyword's lowering arm. Mutate and
 	// Phasing keep no field here: their K: line refuses the whole face,
