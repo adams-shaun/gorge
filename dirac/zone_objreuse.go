@@ -58,6 +58,7 @@ func (s *State) reuseObj(o Obj) {
 		s.cold.mkObj[o] = 0 // the old object's multikicker count ends with it (CR 702.43)
 	}
 	s.clearPaidN(o)
+	s.clearKickAlt(o)
 	s.gyStampClr(o)
 	s.clearExileCounter(o) // the reused id is a new object; its ver can wrap onto a stamped record (repl_exilectr.go)
 	// a departed attachment's record names the old object; its host is

@@ -1722,17 +1722,24 @@ const ExtRepeatOptional ExtOp = 112
 
 func init() { extOpNames[ExtRepeatOptional] = "RepeatOptional" }
 
+// ExtOp (dirac/manifest/ExtOp/ExtRippleBottom)
+//
+// ExtRippleBottom: the tail of a granted ripple's trigger body (gorge effRippleBottom): every card of the resolution's remembered set still in its owner's library goes to the bottom of that library, in remembered order. Two or more pose the owner the CR 401.4 arrangement ask (ChArrange, gorge libraryPlacementOrder over the cards still at the top — the ask precedes the move), and the answer's order is the bottom order (libraryOrderPlacement bottom=true); one or none bottoms unasked. A cast card is on the stack and skipped; a card a response moved is skipped by the same zone recheck (gorge's placed). The kernel-native ripple body arms it (kw_ripple.go rippleProg); no ExtLibPlace bracket, the op asks itself. dirac/kw_ripple.go rippleBottomExt.
+const ExtRippleBottom ExtOp = 113
+
+func init() { extOpNames[ExtRippleBottom] = "RippleBottom" }
+
 // ExtOp (dirac/manifest/ExtOp/ExtStoreNum)
 //
 // StoreSVar's per-object number write (gorge effStoreSVar, events.StoreSVar -> Object.RuntimeSVars; CR 400.7): B the value (any ValueRef, evaluated at the write), C the SVar name (Table.SVarNames index, low 4 bits) with the delete-on-default flag (kop.StoreNumDel) and the printed default beside it (kop.StoreNumDefault); the target is the resolving source. The number is a record of the object-set store (kind osNum) keyed by the object, whatever zone it is in: only a departure from the battlefield clears it (gorge's wasBattlefield reset), so a write after the source left persists on the departed object. dirac/act_storenum.go.
-const ExtStoreNum ExtOp = 113
+const ExtStoreNum ExtOp = 114
 
 func init() { extOpNames[ExtStoreNum] = "StoreNum" }
 
 // ExtOp (dirac/manifest/ExtOp/ExtTwoPilesEach)
 //
 // A RepeatEach player body's battlefield TwoPiles (Bend or Break: Defined$ Remembered, Separator$ Remembered, Chooser$ ChosenPlayer, ValidCards$ Land.!token+RememberedPlayerCtrl; gorge effTwoPiles' battlefield arm over the repeated player): F names the repeated player's permanents (CtrlEachPl). They separate them into two piles (ChGenPileSplit, a permanent per pick, AkDone-closed, picking them all ends it; a one-permanent pool poses no split), the opponent their chain's ExtChoosePlayerEach chose picks one (ChGenPileChoose mode 0 the picks, 1 the rest; resChosenPlayer), and the chosen pile is destroyed while the other is tapped (ChosenPile$ DestroyAll Land.IsRemembered then UnchosenPile$ TapAll Land.IsRemembered: each pile's members still matching F run the ordinary destroy / tap-all passes, gorge twoPilesRunPile's fresh Remembered = pile). Pile A rides genState.sacM, the pool player genState.pickP; both are cleared at the end. B.N&1: the pick's mode-1 answer names pile A (the chosen/unchosen piles swap; the lockstep mutation). dirac/act_pileseach.go.
-const ExtTwoPilesEach ExtOp = 114
+const ExtTwoPilesEach ExtOp = 115
 
 func init() { extOpNames[ExtTwoPilesEach] = "TwoPilesEach" }
 
@@ -2217,33 +2224,38 @@ const PredNamedCard Pred = 35
 // PredGoaded: the battlefield permanent is goaded by any player (gorge IsGoaded, engine/effects/filter.go matchPositive). PredN 1 is the positive word, 0 the ! negation; off the battlefield nothing is goaded.
 const PredGoaded Pred = 36
 
+// Card.Self+kicked 1 / Card.Self+kicked 2 (dirac/manifest/Pred/PredKickedAlt)
+//
+// PredKickedAlt: the battlefield permanent was cast with kicker alternative PredN (1 or 2) paid (CR 702.33b; gorge FlagKicked1 / FlagKicked2, filter_word.go wordKickedIndex). The kernel reads bit PredN-1 of the object's coldKickAlt byte, set only by setKickAlt; a single-cost kicked cast sets no bit, so both indexes read false for it (gorge parity). Off the battlefield it never matches (kgen refuses it there).
+const PredKickedAlt Pred = 37
+
 // ControlledBy Player.isMonarch (dirac/manifest/Pred/PredMonarchCtrl)
 //
 // PredMonarchCtrl: the battlefield permanent's controller is the monarch (PredN 0; gorge ControlledBy Player.isMonarch) or is not the monarch (PredN 1; gorge ControlledBy EnchantedController.!isMonarch read beside EnchantedBy, where the enchanted controller is the candidate's own). With no monarch the positive word fails and the negated word holds; off the battlefield it never matches either way.
-const PredMonarchCtrl Pred = 37
+const PredMonarchCtrl Pred = 38
 
 // Pred (dirac/manifest/Pred/PredProg)
 //
 // PredProg: the filter's predicate is a program of literals (PredN: kop.FilterProgID, an index into Table.FilterProgs). The matcher applies the struct's own fields first (types, colours, controller, zone, flags, the Or chain), which are the program's first conjuncts, then evaluates each kop.FLit in order and stops at the first that fails; a literal's Neg inverts its word. Each word is a kop.FilterWord with one kernel handler (dirac/filter_<name>.go). A word reading a field its matcher does not have fails closed, as gorge's unbound context does. kgen lowers it for a clause whose comparisons the filter struct cannot hold (dirac/kgen/filter_spill.go); the words so far are the struct's own Pred codes re-expressed (power, toughness, mana value, counters, keyword, subtype).
-const PredProg Pred = 38
+const PredProg Pred = 39
 
 // pred IsRingbearer (dirac/manifest/Pred/PredRingBearer)
-const PredRingBearer Pred = 39
+const PredRingBearer Pred = 40
 
 // Pred (dirac/manifest/Pred/PredSameNameSelf)
 //
 // PredSameNameSelf: the candidate's current name equals the reading source's current name (gorge sharesNameWith Self, filter_attachment.go; Marvin, Murderous Mimic's GainsAbilitiesOf$ Creature.YouCtrl+!sharesNameWith Self). The source is the static's own source slot, or the resolving entry's object; the name identity is sharesNameRem's (a battlefield permanent reads its layer-3 name, a face-down object has no name, CR 708.2). PredN 1 is the ordinary ! negation.
-const PredSameNameSelf Pred = 40
+const PredSameNameSelf Pred = 41
 
 // Pred (dirac/manifest/Pred/PredSharesCrCmdr)
 //
 // PredSharesCrCmdr: the object shares a creature type with a commander of the evaluating controller (gorge sharesCreatureTypeWith Commander, effects sharesTypeReferentsCommander: the resolving source's controller's commanders, Path of Ancestry's SpellCast ValidCard$ Creature.sharesCreatureTypeWith Commander). Each side reads its current creature types where it now is (a commander in the command zone its printed ones); an object with every creature type shares with any commander that has a creature type, and a commander with every type with any object that has one (CR 702.73a). A controller with no commander matches nothing.
-const PredSharesCrCmdr Pred = 41
+const PredSharesCrCmdr Pred = 42
 
 // Pred (dirac/manifest/Pred/PredStatBox)
 //
 // PredStatBox: the object's power and toughness each lie in a constant inclusive range (PredN: kop.PTBoxPack bounds, PTBoxOpen for no bound). kgen folds two constant power/toughness compares of one clause into it (gorge powerEQ1+toughnessEQ1, powerGE4+powerLE6: each conjunct reads the same current power and toughness, the layered values on the battlefield and the printed or CDA ones elsewhere, a face-down object 2/2).
-const PredStatBox Pred = 42
+const PredStatBox Pred = 43
 
 // repl BeginPhase (dirac/manifest/ReplKind/ReplBeginPhase)
 const ReplBeginPhase ReplKind = 42

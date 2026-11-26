@@ -156,7 +156,7 @@ func TestPairedBotCensus(t *testing.T) {
 
 // censusParked is the human seat's next decision after seq, nil when the match is over.
 func censusParked(r *Registry, after uint64) *decision.Decision {
-	deadline := time.Now().Add(60 * time.Second)
+	deadline := time.Now().Add(testutil.WaitBudget)
 	for time.Now().Before(deadline) {
 		if d, err := r.Pending("t1", 1, 0); err == nil && (d.Seq > after || after == 0) {
 			return d
