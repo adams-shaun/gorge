@@ -1,0 +1,5 @@
+family: StaticKind
+name: StatCyclingAlt
+value: next
+status: active
+doc: StatCyclingAlt is an AlternativeCost static over the controller's cycling activations (New Perspectives' "As long as you have seven or more cards in hand, you may pay {0} rather than pay cycling costs", ValidSA$ Activated.Cycling, ValidPlayer$ You, Cost$ Discard<1/CARDNAME>; CR 118.9): while Cond2 holds (the hand-count gate) and the controller's hand card has a cycling ability, the kernel also offers that ability's twin (Ability.CycAltOf, built by kgen beside the printed one with the discard alone as its cost). gorge's abilityAlternateCostFor offers the same option (AltCostIndex 1) beside the printed one (kw_cyclingalt.go).
