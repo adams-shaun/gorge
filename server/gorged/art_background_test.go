@@ -2,6 +2,7 @@ package gorged
 
 import (
 	"context"
+	"github.com/adams-shaun/gorge/testkit/testutil"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -33,7 +34,7 @@ func TestArtBackgroundFillStopsWithTheCache(t *testing.T) {
 	ac.queueTextFill("Grizzly Bears")
 	select {
 	case <-entered:
-	case <-time.After(10 * time.Second):
+	case <-time.After(testutil.WaitBudget):
 		t.Fatal("the queued fill never reached the upstream")
 	}
 	closed := make(chan struct{})
@@ -43,7 +44,7 @@ func TestArtBackgroundFillStopsWithTheCache(t *testing.T) {
 	}()
 	select {
 	case <-closed:
-	case <-time.After(10 * time.Second):
+	case <-time.After(testutil.WaitBudget):
 		t.Fatal("closeBackground did not cancel the fill waiting on the upstream")
 	}
 	if ac.background(func(_ context.Context) { t.Error("a fill ran after closeBackground") }) {

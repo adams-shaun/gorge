@@ -1177,6 +1177,7 @@ ReduceColorNoSpill	untyped int	16384
 RefAttached	Ref	11
 RefAttachedCtrl	Ref	37
 RefChosen	Ref	13
+RefChosenEnc	Ref	46
 RefChosenPlayer	Ref	39
 RefChosenPlayerRes	Ref	41
 RefController	Ref	5
@@ -1479,6 +1480,7 @@ StackKwImprovise	int16	1
 StackKwLifelink	int16	4
 StackKwOffspring	int16	14
 StackKwRebound	int16	11
+StackKwRipple	int16	13
 StackKwSplitSecond	int16	6
 StackKwStorm	int16	5
 StackKwWebSling	int16	12

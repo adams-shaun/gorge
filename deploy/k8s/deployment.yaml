@@ -69,6 +69,6 @@ spec:
         - name: carddb
           persistentVolumeClaim: {claimName: carddb, readOnly: true}
         - name: art
-          emptyDir: {sizeLimit: 1Gi}
+          persistentVolumeClaim: {claimName: art}
         - name: feedback
           emptyDir: {sizeLimit: 128Mi}

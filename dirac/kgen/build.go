@@ -1263,7 +1263,8 @@ func (cb *cardBuilder) cost(c lCost) (kop.Cost, error) {
 		}
 	}
 	out.ExileBf = c.SacExile
-	out.SacHalf = c.SacHalf // sacrifice half the matching permanents at payment (kernel cost_sachalf.go)
+	out.SacHalf = c.SacHalf   // sacrifice half the matching permanents at payment (kernel cost_sachalf.go)
+	out.CloseEnc = c.CloseEnc // the CloseEncounter ChooseCard additional cost (kernel cost_closeenc.go)
 	if c.XMin > 0 {
 		out.XMin = uint8(c.XMin) // the announced X's floor (kernel cost_sacx.go)
 	}
@@ -1986,6 +1987,13 @@ func (cb *cardBuilder) clause(c lClause, zone kop.Zone) (kop.Filter, error) {
 			return kf, fmt.Errorf("the monarch controller word off the battlefield")
 		}
 		kf.Pred, kf.PredN = kop.PredMonarchCtrl, int16(c.CmpN)
+	case cmpKickedAlt:
+		// the object's kicker-alternative byte (kernel kickedAltPredicate);
+		// no off-battlefield reading
+		if zone != kop.ZoneBattlefield {
+			return kf, fmt.Errorf("the kicked alternative word off the battlefield")
+		}
+		kf.Pred, kf.PredN = kop.PredKickedAlt, int16(c.CmpN)
 	case cmpRenowned, cmpAttackingYou, cmpGoaded:
 		// battlefield-only reads (act_renown.go, attackingYou, filter_goaded.go)
 		kf.Pred, kf.PredN = battlefieldPreds[c.CmpStat], int16(c.CmpN)
@@ -2351,6 +2359,8 @@ func (cb *cardBuilder) ref(r lRef) (kop.Ref, error) {
 		return kop.RefRememberedController, nil
 	case rDiscarded:
 		return kop.RefDiscarded, nil
+	case rChosenEnc:
+		return kop.RefChosenEnc, nil
 	case rLibTop:
 		return kop.RefLibTop, nil
 	case rOppNonRemCtrl:

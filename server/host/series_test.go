@@ -12,6 +12,7 @@ import (
 
 	"github.com/adams-shaun/gorge/engine/view"
 	"github.com/adams-shaun/gorge/server/protocol"
+	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
 // seriesTable is the series table every series test plays: two seats, the
@@ -175,7 +176,7 @@ func TestSeriesHookCalledWithNoLocksAndCloseUnblocks(t *testing.T) {
 	go func() { closed <- r.Close() }()
 	select {
 	case <-closed:
-	case <-time.After(10 * time.Second):
+	case <-time.After(testutil.WaitBudget):
 		t.Fatal("Close did not return while the hook blocked on ctx")
 	}
 }

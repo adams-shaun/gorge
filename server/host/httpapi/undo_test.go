@@ -11,6 +11,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/view"
 	"github.com/adams-shaun/gorge/server/host"
 	"github.com/adams-shaun/gorge/server/protocol"
+	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
 // TestUndoEndpoint uses the same seat-claim fence as intent submission and
@@ -106,7 +107,7 @@ func TestUndoEndpointRejectsAfterMatchEnd(t *testing.T) {
 	}
 	select {
 	case <-matchEnd:
-	case <-time.After(20 * time.Second):
+	case <-time.After(testutil.WaitBudget):
 		t.Fatal("stream did not emit match_end")
 	}
 
@@ -120,7 +121,7 @@ func TestUndoEndpointRejectsAfterMatchEnd(t *testing.T) {
 
 func waitHTTPPending(t *testing.T, r *host.Registry, p state.PlayerID, notSeq uint64) *decision.Decision {
 	t.Helper()
-	deadline := time.Now().Add(20 * time.Second)
+	deadline := time.Now().Add(testutil.WaitBudget)
 	for time.Now().Before(deadline) {
 		if d, err := r.Pending("t1", 1, p); err == nil && d.Seq != notSeq {
 			return d
@@ -133,7 +134,7 @@ func waitHTTPPending(t *testing.T, r *host.Registry, p state.PlayerID, notSeq ui
 
 func waitHTTPPendingSeq(t *testing.T, r *host.Registry, p state.PlayerID, want uint64) *decision.Decision {
 	t.Helper()
-	deadline := time.Now().Add(20 * time.Second)
+	deadline := time.Now().Add(testutil.WaitBudget)
 	for time.Now().Before(deadline) {
 		if d, err := r.Pending("t1", 1, p); err == nil && d.Seq == want {
 			return d
