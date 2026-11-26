@@ -1477,6 +1477,7 @@ StackKwImprovise	int16	1
 StackKwLifelink	int16	4
 StackKwOffspring	int16	14
 StackKwRebound	int16	11
+StackKwRipple	int16	13
 StackKwSplitSecond	int16	6
 StackKwStorm	int16	5
 StackKwWebSling	int16	12
