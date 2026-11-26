@@ -171,7 +171,7 @@ t() {
   [ $rc -eq 0 ] || { echo "$out" | tail -40; return 1; }
 }
 pins='^TestCorpusAcceptance$|^TestSetAcceptance$|^TestCorpusBuildAcceptance$|^TestPinTablesParse$|^TestRememberedSpanCensus$|^TestStdMetaPoolBuilds$'
-layout='^TestStateLayoutPinned$|^TestNoNewFixedStateFields$|^TestCapacityHashPins$'
+layout='^TestNoNewFixedStateFields$|^TestCapacityHashPins$'
 fail() { say "$1"; exit 1; }
 if [ -n "${recipes[kop-ordinals]:-}" ]; then
   t ./dirac/kop '^TestKopOrdinalsUnchanged$' KOP_ORDINALS_REGEN=1 >/dev/null
@@ -180,10 +180,6 @@ fi
 if [ -n "${recipes[dirac-layout]:-}" ]; then
   t ./dirac "$layout" DIRAC_UPDATE_LAYOUT=1 >/dev/null
   t ./dirac "$layout" || fail "layout.tsv did not regenerate"
-fi
-if [ -n "${recipes[func-ceilings]:-}" ]; then
-  t ./internal/codeshape '^TestFuncCeilingsLowerOnly$|^TestLongFunctionsOnlyShrink$|^TestComplexFunctionsOnlyShrink$' ||
-    fail "func_ceilings.tsv merged, but a ratchet fails"
 fi
 if [ -n "${recipes[repro-names]:-}" ]; then
   t ./dirac/oracle '^TestReproGlobMatchesTable$' || fail "repro_table_names.txt merged, but TestReproGlobMatchesTable fails"

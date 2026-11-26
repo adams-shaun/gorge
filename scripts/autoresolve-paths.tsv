@@ -8,5 +8,4 @@ dirac/kgen/testdata/*acceptance*.tsv	kgen-pins
 dirac/kgen/testdata/remspan.tsv	kgen-pins
 dirac/kop/testdata/ordinals.tsv	kop-ordinals
 dirac/testdata/layout.tsv	dirac-layout
-internal/codeshape/testdata/func_ceilings.tsv	func-ceilings
 dirac/oracle/testdata/repro_table_names.txt	repro-names
