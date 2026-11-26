@@ -677,6 +677,9 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 			// never commits, so the card stays remembered (CR 733.1-2).
 			s.g.freeP |= freeForget
 		}
+		if in.C&(1<<13) != 0 {
+			s.g.freeP |= freeRemember // RememberPlayed$ True (cast_playremember.go)
+		}
 		s.res.ask, s.res.askP = raGenCastFree, e.ctrl
 		return false, true
 	case kop.OpMayPlay:

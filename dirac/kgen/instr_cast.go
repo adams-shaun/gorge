@@ -117,6 +117,7 @@ func (ic *instrCtx) opCastFree() error {
 	if _, ok := fl["Lands"]; ok {
 		ki.C |= 1 << 12 // the population may hold lands, offered as land plays (dirac/cast_freeland.go)
 	}
+	ic.castFreeRemember() // lower_playremember.go: C bit 13
 	if err := ic.objFilter(zoneMap[in.C]); err != nil {
 		return err
 	}

@@ -1915,6 +1915,7 @@ func (s *State) finishBuild(k *prep) {
 		if s.freePlayCast() && s.g.freeP&freeForget != 0 && s.bld().bfl&bflPushed != 0 {
 			s.forgetRemGen(e.obj)
 		}
+		s.rememberPlayedCommit(e.obj) // RememberPlayed$ True (cast_playremember.go)
 		if k.gen != nil && k.gen.anyHist {
 			s.histCast(k, &e, &cost)
 		}

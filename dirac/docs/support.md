@@ -21,7 +21,7 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 | LCI | 290 | 262 | 1 | 1 | 260 | 260 | 0 |
 | MKM | 279 | 257 | 1 | 7 | 249 | 249 | 0 |
 | MSH | 276 | 252 | 1 | 2 | 249 | 249 | 0 |
-| OTJ | 276 | 257 | 0 | 4 | 253 | 253 | 0 |
+| OTJ | 276 | 258 | 0 | 5 | 253 | 253 | 0 |
 | SOS | 270 | 261 | 0 | 2 | 259 | 259 | 0 |
 | SPM | 192 | 178 | 2 | 9 | 167 | 167 | 0 |
 | TDM | 276 | 261 | 1 | 1 | 259 | 259 | 0 |
@@ -35,7 +35,7 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 | MH3 | 308 | 232 | 1 | 9 | 222 | 222 | 0 |
 | MH2 | 309 | 263 | 0 | 11 | 252 | 252 | 0 |
 | CM2 | 279 | 239 | 0 | 5 | 234 | 234 | 0 |
-| ALL | 34480 | 26828 | 42 | 930 | 25856 | 25853 | 0 |
+| ALL | 34480 | 26830 | 42 | 932 | 25856 | 25853 | 0 |
 
 `ALL` is the whole corpus; `MBC` is the Mystery Booster Commander draft pool, every name its packs deal that gorge supports; `CMM`, `MH3`, `MH2` and `CM2` are Commander Masters, Modern Horizons 3 and 2 and Commander Anthology Volume II, from gorge-compliance's XMage manifests; the rest are the Standard sets. `4-seat` counts the supported cards whose lowering holds at any seat count: a card whose lowering reads the one opponent of a two-player game (`kop.CardDef.TwoSeat`) is refused in a game of three or more seats (`StallTwoSeat`). It is a ceiling, not evidence. `pod-evidenced` counts those cards whose evidence row carries a seats field — a clean game of three or more seats, which `kfuzz -evidence -seats 4` writes and `scripts/dirac-first-refusals.py evidence --pools pod-*` copies into `dirac/support/evidence` (`Name\t<seats>`; readers take the name and ignore trailing columns). A pod game does not evidence a card: the support rule below is unchanged.
 
