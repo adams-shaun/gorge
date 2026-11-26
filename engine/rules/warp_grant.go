@@ -73,7 +73,7 @@ func grantedMadnessCosts(e altRowReader, id state.ObjID, f *cards.Face) []Cost {
 
 // madnessCostLabel is the raw cost string a madness ask's option label
 // prints for a card whose Madness is granted rather than printed: the first
-// derived Madness line's parameter, with its ManaCost/CardManaCost
+// derived Madness line's parameter that prices, with its ManaCost/CardManaCost
 // placeholders expanded to the face's mana cost -- the same expansion
 // madnessLineCost prices, so the label and the charged cost cannot drift.
 func madnessCostLabel(e altRowReader, id state.ObjID, f *cards.Face) string {
@@ -84,10 +84,15 @@ func madnessCostLabel(e altRowReader, id state.ObjID, f *cards.Face) string {
 		if !strings.EqualFold(cardsKeywordHead(k), kwhMadness.S) {
 			continue
 		}
-		if i := strings.IndexByte(k, ':'); i >= 0 {
-			return madnessCostParam(k[i+1:], f)
+		i := strings.IndexByte(k, ':')
+		if i < 0 {
+			continue
 		}
-		return ""
+		// The first line that PRICES, the one grantedMadnessCosts charges as
+		// instance 0: a line it withholds is not the label's either.
+		if _, ok := madnessLineCost(strings.TrimSpace(k[i+1:]), f); ok {
+			return madnessCostParam(strings.TrimSpace(k[i+1:]), f)
+		}
 	}
 	return ""
 }

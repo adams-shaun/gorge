@@ -298,10 +298,12 @@ func (e *Engine) askMadnessCast(ability *state.Object) bool {
 	// The ONE cost read the offer, the potential plan and the cast's charge
 	// share (altRowCosts): the printed parameter for a printed carrier, the
 	// derived grant (Falkenrath Gorger) for a face that prints no Madness.
-	cost, ok := altRowCost(e, m, card.ID, card.Face(), 0)
-	if !ok {
-		return false
-	}
+	// A cost that cannot be read (Falkenrath Gorger left the battlefield while
+	// the trigger waited, so the exiled card no longer carries the grant) does
+	// not strand the card: the trigger resolves independently of its source
+	// (CR 113.7a), so the ask is still posed with only the no option, whose
+	// answer puts the card into its owner's graveyard (CR 702.35b).
+	cost, priced := altRowCost(e, m, card.ID, card.Face(), 0)
 	name := card.Face().Name
 	d := &decision.Decision{Player: card.Owner, Kind: decision.KTriggerOptional,
 		Min: 1, Max: 1, Source: card.ID, ResumeKind: "madness",
@@ -344,25 +346,27 @@ func (e *Engine) askMadnessCast(ability *state.Object) bool {
 		return !census.gapGains && costOutrunsSupply(asPayer(e), card.Owner, int32(e.G.Players[card.Owner].Pool.Total()), census.gapSupply,
 			e.offerCostFor(card.Owner, card.ID, cost, spellScope(m.mode)), credit)
 	}
-	// CR 702.51a / 702.66a: Convoke and Improvise apply to the spell whichever
-	// cost it is cast for, so the madness offer is priced net of the same
-	// greedy credit castOfferBase gives a printed-cost cast (the commitment
-	// stays with convokeAsk). Both are the identity on a card without them.
-	offerCost, taps := e.convokeCost(card.Owner, card.ID, cost)
-	offerCost, itaps := e.improviseCost(card.Owner, card.ID, offerCost, taps)
-	creditless = len(taps) == 0 && len(itaps) == 0 && !e.hasCastDelve(card.ID, false)
-	if e.offerCastablePotential(card.Owner, card.ID, offerCost, spellScope(m.mode), false) &&
-		!provenUnpayable() &&
-		e.castTargetsAvailable(card.Owner, card.ID, card.Face().SpellAbility()) {
-		raw, printed := card.Face().KeywordParam(m.head)
-		if !printed {
-			// A granted madness: the label prints the cost the cast charges,
-			// the derived parameter with its ManaCost placeholder expanded
-			// to the face's mana cost.
-			raw = madnessCostLabel(e, card.ID, card.Face())
+	if priced {
+		// CR 702.51a / 702.66a: Convoke and Improvise apply to the spell whichever
+		// cost it is cast for, so the madness offer is priced net of the same
+		// greedy credit castOfferBase gives a printed-cost cast (the commitment
+		// stays with convokeAsk). Both are the identity on a card without them.
+		offerCost, taps := e.convokeCost(card.Owner, card.ID, cost)
+		offerCost, itaps := e.improviseCost(card.Owner, card.ID, offerCost, taps)
+		creditless = len(taps) == 0 && len(itaps) == 0 && !e.hasCastDelve(card.ID, false)
+		if e.offerCastablePotential(card.Owner, card.ID, offerCost, spellScope(m.mode), false) &&
+			!provenUnpayable() &&
+			e.castTargetsAvailable(card.Owner, card.ID, card.Face().SpellAbility()) {
+			raw, printed := card.Face().KeywordParam(m.head)
+			if !printed {
+				// A granted madness: the label prints the cost the cast charges,
+				// the derived parameter with its ManaCost placeholder expanded
+				// to the face's mana cost.
+				raw = madnessCostLabel(e, card.ID, card.Face())
+			}
+			d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "yes",
+				Label: "Cast " + name + " for " + raw, Obj: card.ID})
 		}
-		d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "yes",
-			Label: "Cast " + name + " for " + raw, Obj: card.ID})
 	}
 	d.Options = append(d.Options, decision.Option{Index: len(d.Options), Kind: "no",
 		Label: "Put " + name + " into its owner's graveyard", Obj: card.ID})

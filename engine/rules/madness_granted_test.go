@@ -104,4 +104,42 @@ func TestMadnessGrantedByStatic(t *testing.T) {
 		}
 		replayCheck(t, e, cfg)
 	})
+	// The grant's source leaves while the madness trigger waits on the stack:
+	// the card no longer carries a readable madness cost, but the trigger
+	// still resolves (CR 113.7a) and the card must not be stranded in exile.
+	// CR 702.35b: a card the owner does not cast goes to the graveyard.
+	t.Run("grant lost with the trigger on the stack", func(t *testing.T) {
+		e, cfg, _ := altCostEngine(t, 941, []string{"Vampire Interloper", "Falkenrath Gorger"},
+			[]string{swampSrc, swampSrc}, nil)
+		gorger := moveToBattlefieldByName(t, e, 0, "Falkenrath Gorger")
+		moveToBattlefieldByName(t, e, 0, "Swamp")
+		moveToBattlefieldByName(t, e, 0, "Swamp")
+		id := findCardObj(t, e, 0, "Vampire Interloper", state.ZHand)
+		e.pending = nil
+		e.emit(events.Discard(id, 0))
+		e.priorityRound()
+		// Precondition: the card is exiled with its madness trigger queued
+		// or on the stack, and the grant's source is still in play.
+		if z := e.G.Obj(id).Zone; z != state.ZExile {
+			t.Fatalf("Vampire Interloper in %s after the discard, want exile", z)
+		}
+		e.emit(events.Event{Kind: events.MoveZone, Obj: gorger, From: state.ZBattlefield, To: state.ZGraveyard})
+		if _, ok := e.derivedKeywordParam(id, "Madness"); ok {
+			t.Fatalf("precondition: the exiled card still derives Madness after Gorger left")
+		}
+		passOnceP(t, e)
+		passOnceP(t, e)
+		d := e.Pending()
+		if d == nil || d.ResumeKind != "madness" {
+			t.Fatalf("madness resolution choice: pending=%v (card in %s)", d != nil, e.G.Obj(id).Zone)
+		}
+		if len(d.Options) != 1 || d.Options[0].Kind != "no" {
+			t.Fatalf("madness ask options = %+v, want only no", d.Options)
+		}
+		submitChoices(t, e, 0)
+		if z := e.G.Obj(id).Zone; z != state.ZGraveyard {
+			t.Fatalf("Vampire Interloper in %s after the ask, want graveyard (CR 702.35b)", z)
+		}
+		replayCheck(t, e, cfg)
+	})
 }
