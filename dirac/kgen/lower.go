@@ -121,6 +121,12 @@ type lowerCtx struct {
 	// VoteNum is that branch's tally (lower_vote.go).
 	voteTally bool
 
+	// offGrant: lowering a stack grant of Offspring's latent copy trigger on
+	// the carrier (lower_stackkw.go offspringGrantBody), whose
+	// Count$OffspringPaid reads the permanent's kicked mark without the
+	// printed K:Offspring the value lowerer otherwise requires (value.go).
+	offGrant bool
+
 	// emblemBlocked: lowering the body of a capturing EOT emblem's AttackerBlocked trigger: RememberedLKI is the trigger object (the captured attacker) and blockingTriggeredAttacker reads it (lower_effeottrig.go)
 	emblemBlocked bool
 	// emblemUnblocked: the same body of an AttackerUnblocked emblem with a capture: Remembered is the trigger object too (Delif's Cone: the captured attacker; lower_effeottrig.go capturedTriggerRef, value.go)
@@ -140,6 +146,10 @@ type lowerCtx struct {
 	// (dirac/trig_effectuntileot.go emblemTriggerObj over embRecipientCapture),
 	// so a body read of the damage source refuses (lower_effect.go).
 	emblemDmg bool
+	// remSelf: lowering the body of an end-of-turn Effect remembering its own
+	// source (RememberObjects$ Self): Defined$ Remembered is the emblem's
+	// source object (lower_effectremself.go effectRememberSelf)
+	remSelf bool
 
 	// permOrGraveCard: lowering a ValidTgts$ ChangeZone over Origin$ Battlefield,Graveyard (lower_originmulti.go)
 	permOrGraveCard bool

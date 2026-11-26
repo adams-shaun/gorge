@@ -461,6 +461,9 @@ func (s *State) lfxApply4(k *prep, sl Slot, e *lfx, c *dchars) {
 	if ovrCreatSub(o) && !DebugRmCreatSubKeep {
 		c.subs, c.all = c.subs.AndNot(k.gen.creatSub), false
 	}
+	if ovrArtifactSub(o) {
+		c.subs = stripArtifactSubs(c.subs, k.t.Subtypes) // CR 205.1a
+	}
 	if o.SetLandSub {
 		c.subs = c.subs.AndNot(k.gen.landSub) // CR 305.7 (static_landtypesetter.go)
 		// the chosen land-type setter (Convincing Mirage, Multiversal
@@ -864,7 +867,13 @@ func (s *State) walkAllOn(k *prep) bool {
 // (Ygra's Food ability): each static whose filter matches sl's derived
 // characteristics.
 func (s *State) globalGrants(k *prep, sl Slot, lost bool, lts uint16, f func(c CardID, ab uint8, n int, ts uint16)) {
-	for m := s.statM; m.any(); m = m.rest() {
+	s.globalGrantsIn(k, s.statM, sl, lost, lts, f)
+}
+
+// globalGrantsIn is globalGrants over the statM sources in from (a superset
+// of the gfGlobOvr ones: grantSrcScan's), in slot order as statM's walk.
+func (s *State) globalGrantsIn(k *prep, from slotMask, sl Slot, lost bool, lts uint16, f func(c CardID, ab uint8, n int, ts uint16)) {
+	for m := from; m.any(); m = m.rest() {
 		src := m.first()
 		cid := s.cardAt(src)
 		if !k.gen.has(cid, gfGlobOvr) {

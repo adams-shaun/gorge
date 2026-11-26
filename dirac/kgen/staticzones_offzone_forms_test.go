@@ -25,13 +25,14 @@ func TestStaticZonesOffZoneForms(t *testing.T) {
 }
 
 // staticZonesOffZoneDeferred are the rest of the umbrella's fifteen carriers:
-// a granted Madness over six zones and the off-zone ability-loss and
-// colour-word changes (Conspiracy, Painter's Servant and Secret Arcade keep the
+// a granted Madness over six zones and the off-zone ability-loss change
+// (Swirl the Mists' colour-word change lowers as kop.StatColorWords,
+// lower_colorwords.go; Conspiracy, Painter's Servant and Secret Arcade keep the
 // named refusals of TestStaticZonesOffZoneOverride). Each keeps its generic AffectedZone refusal until
 // its own projection and kernel reader land (the tickets filed with this
 // slice); a lowering that lands moves its row into staticZonesOffZoneForms.
 var staticZonesOffZoneDeferred = []string{
-	"Falkenrath Gorger", "Swirl the Mists", "Yixlid Jailer",
+	"Falkenrath Gorger", "Yixlid Jailer",
 }
 
 func TestStaticZonesOffZoneDeferred(t *testing.T) {

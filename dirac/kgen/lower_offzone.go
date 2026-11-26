@@ -452,6 +452,8 @@ func (lc *lowerCtx) affectedZone(sp *params, st *lStatic, aff, az string) (extra
 		return nil, true, lc.handMiracleGrant(sp, st, aff) // lower_miraclegrant.go
 	case az == "Graveyard" && !sp.is("MayPlay", "True") && inertCountAs(sp.str("AddHiddenKeyword"), aff):
 		return nil, true, graveCountAsStatic(sp, st) // lower_escapegrant.go
+	case az == "Stack,Battlefield" && !sp.is("MayPlay", "True") && sp.m["ChangeColorWordsTo"] != "":
+		return nil, true, lc.colorWordsStatic(sp, st, aff, az) // lower_colorwords.go
 	case az == "All" && offZonePTShape(sp, aff):
 		return nil, true, offZonePTStatic(sp, st) // lower_offzonept.go
 	case offZoneEligible(sp, az):
