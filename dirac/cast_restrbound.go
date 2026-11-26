@@ -73,6 +73,9 @@ func (s *State) actBoundDrops(k *prep, p uint8, a Action) bool {
 		return false
 	}
 	mana := ab.Cost.Mana
+	if k.gen != nil && k.gen.anyAbRaise {
+		mana = s.abRaised(k, ab, sl, s.perms[sl].ctrl, mana) // the offer priced the raised cost (canActivate)
+	}
 	if k.gen != nil && k.gen.anyAbReduce {
 		mana = s.abReduced(k, ab, sl, s.perms[sl].ctrl, mana) // the offer priced the reduced cost (canActivate)
 	}

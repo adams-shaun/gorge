@@ -310,6 +310,9 @@ func (s *State) abPlannedCost(k *prep, a *kop.Ability, sl Slot, ctrl uint8) kop.
 	if k.gen != nil && k.gen.anyOwnReduce && a.OwnReduce != (kop.ValueRef{}) && sl != NoSlot {
 		c = s.ownReducedBF(k, a, sl, ctrl) // the ability's own ReduceCost$ comes first (offerCostFor)
 	}
+	if k.gen != nil && k.gen.anyAbRaise {
+		c = s.abRaised(k, a, sl, ctrl, c) // the static raises compose before the reductions (CR 601.2f; cost_abraise.go)
+	}
 	if k.gen == nil || !k.gen.anyAbReduce {
 		return c
 	}

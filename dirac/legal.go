@@ -473,6 +473,12 @@ func (s *State) activateOffers(k *prep, d *Decision, p uint8, sorc bool, av *ava
 				if k.gen != nil && k.gen.anyPowerUp && a.Cost.Flags&kop.CostPowerUp != 0 {
 					m = s.powerUpReduced(k, s.perms[sl].obj, m) // CR 702.193b: gorge prices the reduced cost (legal_walk_battlefield.go)
 				}
+				if k.gen != nil && k.gen.anyAbRaise {
+					if !s.abRaiseOK(k, sl, a, p) {
+						continue // an unpayable raise withholds the offer (cost_abraise.go)
+					}
+					m = s.abRaised(k, a, sl, p, m) // the static raises compose before the reductions (CR 601.2f)
+				}
 				if k.gen != nil && k.gen.anyAbReduce {
 					m = s.abReduced(k, a, sl, p, m) // the cost statics compose after it
 				}
@@ -700,6 +706,12 @@ func (s *State) canActivate(k *prep, sl Slot, ab int, a *kop.Ability, sorc bool,
 		// reduced cost (gorge legal_walk_battlefield.go:414/553), and the
 		// cost statics compose after it.
 		mana = s.powerUpReduced(k, p.obj, mana)
+	}
+	if k.gen != nil && k.gen.anyAbRaise {
+		if !s.abRaiseOK(k, sl, a, p.ctrl) {
+			return false // an unpayable raise withholds the offer (gorge's composed-cost gate; cost_abraise.go)
+		}
+		mana = s.abRaised(k, a, sl, p.ctrl, mana) // the static raises compose before the reductions (CR 601.2f)
 	}
 	if k.gen != nil && k.gen.anyAbReduce {
 		mana = s.abReduced(k, a, sl, p.ctrl, mana) // after the ability's own and Power-up reductions

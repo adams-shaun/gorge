@@ -84,6 +84,12 @@ func (s *State) canActivateAny(k *prep, sl Slot, a *kop.Ability, who uint8, sorc
 		return false
 	}
 	mana := a.Cost.Mana
+	if k.gen.anyAbRaise {
+		if !s.abRaiseOK(k, sl, a, who) {
+			return false // an unpayable raise withholds the offer (cost_abraise.go)
+		}
+		mana = s.abRaised(k, a, sl, who, mana) // the static raises compose before the reductions (CR 601.2f)
+	}
 	if k.gen.anyAbReduce {
 		mana = s.abReduced(k, a, sl, who, mana)
 	}

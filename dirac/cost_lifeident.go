@@ -87,6 +87,11 @@ func (s *State) buildLifeShort(k *prep, p uint8) bool {
 	if pc.Flags&kop.CostPayLife != 0 && int(s.pl[SeatIx(p)].life) < lifeCostOwed(pc) {
 		return true
 	}
+	if k.gen != nil && k.gen.anyAbRaise {
+		if n := s.abRaiseLifeBuilt(k); n > 0 && int(s.pl[SeatIx(p)].life) < n {
+			return true // the raise's life the offer priced (cost_abraise.go)
+		}
+	}
 	return !s.lifeIdentPayable(k, p, pc)
 }
 

@@ -4353,6 +4353,9 @@ func (s *State) payAbilityCosts(k *prep, e *stackEntry) {
 	if f&kop.CostPayLife != 0 {
 		s.payLifeCost(k, e.ctrl, &a.Cost, uint8(e.x))
 	}
+	if k.gen != nil && k.gen.anyAbRaise {
+		s.payAbRaiseLife(k) // a StatRaiseAbility's life part, beside the cost's own (cost_abraise.go)
+	}
 	if a.Cost.LifeIdent {
 		s.payLifeIdent(k, e.ctrl) // cost_lifeident.go
 	}

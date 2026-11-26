@@ -748,6 +748,9 @@ func (s *State) buildCostPreRaw(k *prep, pre, charge bool) (kop.ManaCost, bool) 
 		if charge && k.gen != nil && k.gen.anyPowerUp && a.Cost.Flags&kop.CostPowerUp != 0 {
 			c = s.powerUpReduced(k, e.obj, c) // CR 702.193b, before the cost statics
 		}
+		if k.gen != nil && k.gen.anyAbRaise {
+			c = s.abRaisedCharge(k, a, e.obj, e.ctrl, c) // the static raises compose before the reductions (cost_abraise.go)
+		}
 		if k.gen != nil && k.gen.anyAbReduce {
 			c = s.abReducedCharge(k, a, e.obj, e.ctrl, c)
 		}
@@ -995,6 +998,15 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 				// buildPickCost is the chosen either-or part: an alt-add cast
 				// paying its mana part owes no life (Redirect Lightning).
 				if pc := s.buildPickCost(k); pc != nil && pc.Flags&kop.CostPayLife != 0 && int(s.pl[SeatIx(e.ctrl)].life) < lifeCostOwed(pc) {
+					s.reverseCast(k)
+					return false
+				}
+			}
+			if e.kind == seAbility && k.gen != nil && k.gen.anyAbRaise {
+				// the raise's life the offer's gate priced (abRaiseOK) can go
+				// unpayable between the offer and the build; reverse, as the
+				// spell's own life part above does (CR 119.4, 601.2h)
+				if n := s.abRaiseLifeBuilt(k); n > 0 && int(s.pl[SeatIx(e.ctrl)].life) < n {
 					s.reverseCast(k)
 					return false
 				}
@@ -2770,6 +2782,18 @@ func (s *State) buildPickCost(k *prep) *kop.Cost {
 		return spellAddCost(k, e.card)
 	case seAbility:
 		if a := s.buildAbility(k); a != nil {
+			// a StatRaiseAbility pick part is the entry's pick cost while it is
+			// owed: gorge's CR 601.2h sac ask covers the raise's part beside
+			// the ability's own (cost_abraise.go); the own cost's picks (a
+			// discard, the counter removals) follow it. A raised ability with
+			// a pick cost of its own is unmodelled on the one pick Cost a
+			// build poses (cardset.AbRaiseRefusal).
+			if k.gen != nil && k.gen.anyAbRaise &&
+				(s.bld().pickK == pkSac || s.bld().pickK == 0 && s.bld().donePicks&pkSac == 0) {
+				if pc := s.abRaisePick(k, e); pc != nil {
+					return pc
+				}
+			}
 			return &a.Cost
 		}
 	}

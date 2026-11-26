@@ -72,6 +72,13 @@ type PoolData struct {
 	AbManaCosted        []int
 	AbManaCostedMV      []uint8  // AbManaCosted's dearest mana-ability mana cost
 	AbManaCostedTypes   []uint16 // AbManaCosted's card types
+	AbRaisers           []int    // cards with a StatRaiseAbility static (stat:RaiseAbility)
+	AbRaiseTypes        []uint16 // AbRaisers' filter card types, 0 any
+	AbRaisePick         []bool   // AbRaisers' RaiseAbPick bit: the raise carries a Sac<1/f> pick
+	AbManaAny           []int    // cards with any mana ability (a printed one, a filter's fee, or a land's own, CR 305.7)
+	AbManaAnyTypes      []uint16 // AbManaAny's card types
+	AbPickActs          []int    // cards with an activated ability whose cost has a pick part beside a raise pick
+	AbPickActsTypes     []uint16 // AbPickActs' card types
 	// CardPrinted is a changeling's printed subtypes (pool indexes), before
 	// kgen adds every pool creature type to its CardSubs; nil for any other
 	// card. A matchup renumbers them into CardDef.PrintedSubtypes.
@@ -323,6 +330,32 @@ func (s dataSet) abReduceGuard(pool []int) error {
 	return AbReduceRefusal(reducers, costed)
 }
 
+// abRaiseGuard refuses a matchup pool holding a StatRaiseAbility static whose
+// raise the kernel does not price: a mana ability's raise (the mana window
+// prices none), or a pick part beside an own pick cost (AbRaiseRefusal).
+func (s dataSet) abRaiseGuard(pool []int) error {
+	d := s.d
+	var raisers, manaable, picked []string
+	for k, r := range d.AbRaisers {
+		if !slices.Contains(pool, r) {
+			continue
+		}
+		raisers = append(raisers, d.Names[r])
+		rt := d.AbRaiseTypes[k]
+		for _, i := range pool {
+			if ma := slices.Index(d.AbManaAny, i); ma >= 0 && (rt == 0 || rt&d.AbManaAnyTypes[ma] != 0) {
+				manaable = append(manaable, d.Names[i])
+			}
+			if d.AbRaisePick[k] {
+				if pa := slices.Index(d.AbPickActs, i); pa >= 0 && (rt == 0 || rt&d.AbPickActsTypes[pa] != 0) {
+					picked = append(picked, d.Names[i])
+				}
+			}
+		}
+	}
+	return AbRaiseRefusal(raisers, manaable, picked)
+}
+
 // filtersShareCreatureType reports whether any filter of the pool shares a
 // creature type with a referent (the attacker, a commander, or a Dig's
 // ChangeValid sharesCreatureTypeWith Self), which reads every printed subtype.
@@ -448,6 +481,9 @@ func (s dataSet) matchup(decks [][]Entry, mode matchupMode) (*kop.Table, [][]kop
 			return nil, nil, err
 		}
 		if err := s.abReduceGuard(pool); err != nil {
+			return nil, nil, err
+		}
+		if err := s.abRaiseGuard(pool); err != nil {
 			return nil, nil, err
 		}
 	}

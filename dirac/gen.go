@@ -252,6 +252,7 @@ type genPrep struct {
 	anyDelayDies    bool           // some program registers a delayed dies program (kop.DelayDiesThisTurn; trig_delayeddies.go)
 	anyDelaySpell   bool           // some program registers a delayed SpellCast program (kop.DelaySpellCast; trig_delayedspell.go)
 	anyRaise        bool           // some card has a generated StatIncreaseCost (RaiseCost; trig_delayedtiming.go)
+	anyAbRaise      bool           // some card has a StatRaiseAbility (RaiseCost Type$ Ability; cost_abraise.go)
 	anyRaiseLife    bool           // some card has a StatIncreaseCost with StRaiseLife (RaiseCost Cost$ PayLife<N>; cost_raiselife.go)
 	anyRaiseTgt     bool           // some card has a battlefield generic StatIncreaseCost gated by a ValidTarget$ (cost_raisetgt.go)
 	anyComboDyn     bool           // some card's mana ability adds an evaluated amount in any combination of colours (mana_combodyn.go)
@@ -1482,6 +1483,8 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 					g.anyPanharm = true
 				case kop.StatReduceAbility:
 					g.anyAbReduce = true
+				case kop.StatRaiseAbility:
+					g.anyAbRaise = true
 				case kop.StatContinuous:
 					if a.Static.Ward != 0 || a.Static.WardLife != 0 {
 						g.anyWardGrant = true

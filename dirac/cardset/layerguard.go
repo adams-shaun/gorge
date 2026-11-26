@@ -145,3 +145,25 @@ func AbReduceRefusal(reducers, costed []string) error {
 	}
 	return fmt.Errorf("ReduceCost Type Ability beside a mana-costed mana ability: %s reduces abilities and %s has a mana ability with a mana cost", reducers[0], costed[0])
 }
+
+// AbRaiseRefusal refuses a matchup holding a StatRaiseAbility static
+// (raisers: kop.StatRaiseAbility) and a card whose raise the kernel does not
+// price. A mana ability is one: the kernel's mana window prices no ability
+// raise (manaable). A pick cost of the raised ability's own beside the
+// raise's pick part is another: the one pick Cost a build poses cannot carry
+// both, and gorge asks the ability's own tap-creatures cost before the CR
+// 601.2h sacrifice ask the raise's part rides (picked). A raiser whose filter
+// names no type the card has (the types masks disjoint) lowers nothing and
+// does not refuse.
+func AbRaiseRefusal(raisers, manaable, picked []string) error {
+	if len(raisers) == 0 {
+		return nil
+	}
+	if len(manaable) != 0 {
+		return fmt.Errorf("RaiseCost Type Ability beside a mana ability: %s raises abilities and %s has a mana ability the mana window prices no raise on", raisers[0], manaable[0])
+	}
+	if len(picked) != 0 {
+		return fmt.Errorf("RaiseCost Type Ability beside a pick cost: %s raises abilities with a pick part and %s has an activated ability with a pick cost of its own", raisers[0], picked[0])
+	}
+	return nil
+}
