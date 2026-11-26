@@ -1,18 +1,18 @@
 # SpellBench v2 protocol
 
-[SpellBench](https://github.com/jackmaiorino/spellbench) is a public, MIT-licensed benchmark for
-Magic: The Gathering agents. Its v2 protocol is newline-delimited JSON between a **host** that runs
-games, an **engine** that plays them, and two **agents** that decide. This page is the wire reference
-for writing a client, an agent or a harness against gorge: how a session starts, what each role does,
-every message, how a candidate maps to a choice, what gorge adds to the protocol, what a v2 client can't
-see or do, and how each part fails. For the overview and the commands, see
-[SpellBench v2 agents](../bots/spellbench.md).
+The wire reference for writing an agent, a client or a harness against gorge in
+[SpellBench](https://github.com/jackmaiorino/spellbench)'s v2 protocol: newline-delimited JSON between a
+**host** that runs games, an **engine** that plays them, and two **agents** that decide.
 
-The examples were exchanged with binaries built from this repository on 2026-10-31. Build identities and
-object ids differ on your build. gorge's packages are ported from the SpellBench repository's gorge adapter
-(`engines/gorge`, revision `1beea4c104911bba77a5672c644e570ed9afe28a`, MIT). Where the upstream
-specification and this page disagree, the specification governs SpellBench and this page says what gorge
-does.
+For the overview and the commands, see [SpellBench v2 agents](../bots/spellbench.md). SpellBench is a
+public, MIT-licensed benchmark for Magic: The Gathering agents.
+
+!!! info "Where these examples come from"
+    The examples were exchanged with binaries built from this repository on 2026-10-31; build identities and
+    object ids differ on your build. gorge's packages are ported from the SpellBench repository's gorge adapter
+    (`engines/gorge`, revision `1beea4c104911bba77a5672c644e570ed9afe28a`, MIT). Where the upstream
+    specification and this page disagree, the specification governs SpellBench and this page says what gorge
+    does.
 
 ## Roles and how a session starts
 
@@ -64,8 +64,9 @@ games in sequence: a `reset` after a `terminal` starts the next.
 
 Both need the compiled card corpus (`make fetch-cards`; see [Getting started](../getting-started.md)):
 
-```text
-go build -trimpath -o bin/ ./cmd/spellbench-gorge-env ./cmd/spellbench-gorge-agent
+```sh title="Build both binaries"
+go build -trimpath -o bin/ \
+  ./cmd/spellbench-gorge-env ./cmd/spellbench-gorge-agent
 ```
 
 | Flag | Binary | Meaning |
@@ -83,16 +84,15 @@ and exits 2 without them, or when a catalog deck doesn't resolve.
 
 The agent's world decides what it can pair with:
 
-- `-world gorge` (the default) reads the [`x_gorge_view_v1`](#x_gorge_view_v1) extension, so it plays only against
-  `spellbench-gorge-env` with `reset.rules.extensions` naming it. Its `hello_ok` requires the extension, and
-  `gorged -sb-agent` refuses it for that reason.
-- `-world neutral` rebuilds gorge's view from the plain observation and candidates, so it plays against
-  any engine. It needs the corpus or registry, and it requires the `keywords` observation flag. It also reads
-  the kinds gorge's engine never asks: `choose_cast_method` and `choose_cost_option` reuse gorge's cast and
-  mode asks, `distribute` follows the [engine-order split](#what-a-v2-client-cant-see-or-do) and
-  spreads counters, mana and life evenly, and `choose_pile` takes the first pile. A decision it can't
-  translate is answered with its first candidate.
-  Policies that need an engine root (`Env` or `Search` in their registry entry) are refused in this world.
+| `-world` | Reads | Plays against |
+|---|---|---|
+| `gorge` (default) | the [`x_gorge_view_v1`](#x_gorge_view_v1) extension | only `spellbench-gorge-env` with `reset.rules.extensions` naming it. Its `hello_ok` requires the extension, and `gorged -sb-agent` refuses it for that reason |
+| `neutral` | the plain observation and candidates, rebuilt into gorge's view; needs the corpus or registry and requires the `keywords` observation flag | any engine. Policies that need an engine root (`Env` or `Search` in their registry entry) are refused |
+
+In the neutral world the agent also reads the kinds gorge's engine never asks: `choose_cast_method` and
+`choose_cost_option` reuse gorge's cast and mode asks, `distribute` follows the
+[engine-order split](#what-a-v2-client-cant-see-or-do) and spreads counters, mana and life evenly, and
+`choose_pile` takes the first pile. A decision it can't translate is answered with its first candidate.
 
 ### A host in 60 lines
 
@@ -160,8 +160,11 @@ print(reply["outcome"], reply["classification"], reply["reason"], reply["step_co
 print("sha256:" + chain.d.hex())
 ```
 
+```sh
+python3 minimal_host.py bin/spellbench-gorge-env -corpus .cards
+```
+
 ```text
-$ python3 minimal_host.py bin/spellbench-gorge-env -corpus .cards
 p0_win natural p1_decked 1860 1860
 sha256:b5a8040b7008a7594de53345a67e02be2777638b39e9da7a5c9ae7a4bceebb9c
 ```
@@ -170,32 +173,31 @@ Candidate 0 is `pass` whenever a pass is offered, so nobody plays a card and p1 
 
 ### Seating an agent at a gorge table
 
-```text
+```sh title="Register an agent as the policy mybot"
 gorged -vsbot -sb-agent mybot=/path/to/mybot
 ```
 
-The name must match `^[a-z0-9-]+$` and must not collide with a registered policy. The path must be
-executable. gorged runs it directly, with no shell and no arguments (put arguments in a wrapper
-script), discards its stderr, starts one process per seat per match and stops it at match end, after
-[`game_over`](#game_over-ack). The agent
-becomes a bot policy, so `POST /api/games` with `"bot_policy":"mybot"` plays against it; see
-[Bot-vs-bot games](../guide/bot-games.md) for matches between policies. The policy is two-seat,
-constructed-only and needs automatic mana. The adapter reads gorge's own engine: on a table whose engine
-has no v2 reader, the seat refuses the match.
+The agent becomes a bot policy, so `POST /api/games` with `"bot_policy":"mybot"` plays against it; see
+[Bot-vs-bot games](../guide/bot-games.md) for matches between policies.
+
+| | Rule |
+|---|---|
+| Name | matches `^[a-z0-9-]+$` and doesn't collide with a registered policy |
+| Path | executable; run directly, with no shell and no arguments (put arguments in a wrapper script); stderr is discarded |
+| Lifetime | one process per seat per match, stopped at match end, after [`game_over`](#game_over-ack) |
+| Tables | two-seat, constructed-only, automatic mana. The adapter reads gorge's own engine: on a table whose engine has no v2 reader, the seat refuses the match |
 
 ## Framing and strict JSON
 
 [`wire/frame.go`](https://github.com/adams-shaun/gorge/blob/main/server/spellbench/wire/frame.go),
 [`wire/strict.go`](https://github.com/adams-shaun/gorge/blob/main/server/spellbench/wire/strict.go).
 
-- One JSON object per line, UTF-8, requests on the child's stdin and responses on its stdout. A line ends
-  with `\n` or `\r\n`.
-- A line holds at most **8 MiB** (8,388,608 bytes) without its terminator. A longer line is read through
-  to its newline and answered `malformed_json` with `request_id` `""`, and reading resumes on the next line.
-- Every request line gets one response line, in order. The engine writes canonical JSON and flushes each
-  line.
-- Diagnostics go to stderr. Clean end of input exits 0. Input that ends in the middle of a line, with no
-  terminator, gets no answer and exits 1.
+| | Rule |
+|---|---|
+| Lines | one JSON object per line, UTF-8, requests on the child's stdin and responses on its stdout; a line ends with `\n` or `\r\n` |
+| Size | at most **8 MiB** (8,388,608 bytes) without its terminator. A longer line is read through to its newline and answered `malformed_json` with `request_id` `""`, and reading resumes on the next line |
+| Order | every request line gets one response line, in order. The engine writes canonical JSON and flushes each line |
+| End | diagnostics go to stderr. Clean end of input exits 0. Input that ends in the middle of a line, with no terminator, gets no answer and exits 1 |
 
 The engine role checks each line before decoding it. A line breaking one of these rules is `malformed_json`
 with `request_id` `""`:
@@ -215,7 +217,7 @@ to an **exact field set**: a missing or extra field, a wrong type (including `nu
 array is expected), an out-of-range integer, an empty `request_id` or `game_id`, an unknown `request_type`,
 or a card name not in Unicode NFC is `malformed_request`, with the `request_id` if it could be read.
 
-```text
+```text title="Two refused requests and their answers"
 {"request_type":"hello","protocol":"spellbench/v2","request_id":"m-1","protocol_minor":1.0}
 {"error":{"code":"malformed_json","message":"malformed_json: number with a fraction or an exponent at 87"},"protocol":"spellbench/v2","request_id":"","response_type":"error"}
 {"request_type":"hello","protocol":"spellbench/v2","request_id":"m-4","protocol_minor":4294967296}
@@ -225,17 +227,23 @@ or a card name not in Unicode NFC is `malformed_request`, with the `request_id` 
 A `u32` is `0..4294967295`, an `i32` is `-2147483648..2147483647`, and a `u64` (`expected_step`, `max_steps`)
 stops at the strict-JSON limit 2^53-1. `-0` reads as `0`.
 
-Only the engine role is strict. `spellbench-gorge-agent` and gorged's seat adapter read lines with Go's
-`encoding/json`, which takes duplicate keys and fractional numbers. Send strict JSON anyway: upstream hosts
-and engines are strict.
+!!! tip "Send strict JSON everywhere"
+    Only the engine role is strict. `spellbench-gorge-agent` and gorged's seat adapter read lines with Go's
+    `encoding/json`, which takes duplicate keys and fractional numbers. Send strict JSON anyway: upstream hosts
+    and engines are strict.
 
 ### Request ids and retransmission
 
 `request_id` is any nonempty string. The engine caches every answered request since the last accepted `reset`
-by `request_id`. Sending the **same bytes** again returns the cached answer without re-running anything.
-Sending a **different** line with a used id is `request_id_reuse_mismatch`, so correct a refused request
-under a new id. An accepted `reset` clears the cache, and a request the decoder refused
-(`malformed_*`, `protocol_mismatch`) is never cached.
+by `request_id`:
+
+| You send | You get |
+|---|---|
+| the **same bytes** again | the cached answer, without re-running anything |
+| a **different** line with a used id | `request_id_reuse_mismatch`, so correct a refused request under a new id |
+
+An accepted `reset` clears the cache, and a request the decoder refused (`malformed_*`, `protocol_mismatch`) is
+never cached.
 
 ## Engine role
 
@@ -458,8 +466,11 @@ probe, declares `noninterference_probe: false`, and refuses `rules.probe: true` 
 
 `{"response_type":"error","protocol":"spellbench/v2","request_id":R,"error":{"code":C,"message":M}}`, schema
 [`$defs/engine_error`](schemas/spellbench-v2/responses.schema.json). `request_id` is the request's id when it
-could be read, else `""`. Compare `code`, never `message`. An error leaves the game as it was. The
-[Error codes](#error-codes) table lists every code.
+could be read, else `""`. An error leaves the game as it was. The [Error codes](#error-codes) table lists every
+code.
+
+!!! warning "Compare `code`, never `message`"
+    An error's `message` is free text; match on `code`.
 
 ## Agent role
 
@@ -470,7 +481,7 @@ the agent answers each line with one line. An agent's answer must carry the requ
 [`minimal_bot.py`](https://github.com/adams-shaun/gorge/blob/main/server/spellbench/seat/testdata/minimal_bot.py),
 which always picks candidate 0:
 
-```python
+```python title="minimal_bot.py"
 import json, sys
 
 for line in sys.stdin.buffer:
@@ -558,17 +569,15 @@ What gorged's seat sent an agent, with decklists, names, `decision_kinds` and th
 
 gorged's values differ from `spellbench-gorge-env`'s in ways an agent can see:
 
-- `format` is the table's format, `constructed`.
-- `decision_kinds` is sorted and adds `choose_starting_player`; `rules.starting_player` is
-  `toss_winner_chooses` when the toss winner chooses, and then `starting_seat` is null.
-- `engine_profile.extensions` and `rules.extensions` are empty.
-- `card_name_domain` holds every name the table can name, 34,929 in this game, so `game_start` is a large line.
-- `opponent_decklist` is `hidden` unless the table shows decklists.
-- `agent_seed` is a SHA-256 of the match secret, game id and seat, not the
-  [HMAC construction](#secrets-game-ids-and-object-ids) an upstream host uses.
-- Only `max_decision_ms` is enforced: 2,000 ms on a gorged table and 0 (unbounded) in `mtgsim`. The bank,
-  increment, limits and resources are fixed advisory values, and `hello` plus `game_start` must finish within
-  `startup_ms`.
+| Field | From gorged's seat |
+|---|---|
+| `format` | the table's format, `constructed` |
+| `decision_kinds` | sorted, and adds `choose_starting_player`; `rules.starting_player` is `toss_winner_chooses` when the toss winner chooses, and then `starting_seat` is null |
+| `engine_profile.extensions`, `rules.extensions` | empty |
+| `card_name_domain` | every name the table can name, 34,929 in this game, so `game_start` is a large line |
+| `opponent_decklist` | `hidden` unless the table shows decklists |
+| `agent_seed` | a SHA-256 of the match secret, game id and seat, not the [HMAC construction](#secrets-game-ids-and-object-ids) an upstream host uses |
+| `time_control`, `limits`, `resources` | only `max_decision_ms` is enforced: 2,000 ms on a gorged table and 0 (unbounded) in `mtgsim`. The bank, increment, limits and resources are fixed advisory values, and `hello` plus `game_start` must finish within `startup_ms` |
 
 ### choose → choice
 
@@ -590,11 +599,15 @@ The agent doesn't echo the semantic; the host does.
 ### game_over → ack
 
 Tells the agent the game ended. Schema: [`$defs/game_over`](schemas/spellbench-v2/requests.schema.json).
-`terminal` is `{classification, outcome, reason, seat_step_count, winner}`. gorged's seat writes it, gives the agent
-up to 1,000 ms to read it and answer, then kills the process. The kill comes as soon as the answer arrives, so finish
-any work before answering. The answer's content isn't checked and can't change the result. A host shutting down, which
-cancels the match, doesn't wait, and an agent that has already died or timed out doesn't get the line. What an agent
-saw after forfeiting:
+`terminal` is `{classification, outcome, reason, seat_step_count, winner}`. The answer's content isn't checked and
+can't change the result.
+
+!!! warning "Finish your work before you answer"
+    gorged's seat writes `game_over`, gives the agent up to 1,000 ms to read it and answer, then kills the process.
+    The kill comes as soon as the answer arrives. A host shutting down, which cancels the match, doesn't wait, and an
+    agent that has already died or timed out doesn't get the line.
+
+What an agent saw after forfeiting:
 
 ```json
 {"request_type":"game_over","protocol":"spellbench/v2","request_id":"r-6","game_id":"g-4eb9ed22ea3d3dad","terminal":{"classification":"forfeit","outcome":"p0_win","reason":"forfeit:agent_error","seat_step_count":2,"winner":"p0"}}
@@ -606,24 +619,28 @@ doesn't send.
 ### Agent errors
 
 An agent may answer any request with an `error`
-([`$defs/agent_error`](schemas/spellbench-v2/responses.schema.json)). `spellbench-gorge-agent` sends three:
-`malformed_json` (an undecodable line, `request_id` `""`), `malformed_request` (a `choose` before `game_start`, or
-a `game_start` its policy can't play) and `internal_error` (the policy failed). It answers any request type it
-doesn't know with `ack`. Under gorged, any `error` to a `choose` forfeits the seat; see
-[Failure modes](#failure-modes).
+([`$defs/agent_error`](schemas/spellbench-v2/responses.schema.json)). `spellbench-gorge-agent` sends three, and
+answers any request type it doesn't know with `ack`:
+
+| Code | When |
+|---|---|
+| `malformed_json` | an undecodable line; `request_id` is `""` |
+| `malformed_request` | a `choose` before `game_start`, or a `game_start` its policy can't play |
+| `internal_error` | the policy failed |
+
+Under gorged, any `error` to a `choose` forfeits the seat; see [Failure modes](#failure-modes).
 
 ## Candidates
 
 A candidate's `semantic` is `{"kind": K, ...}` with exactly the fields listed for `K`, all required, no others.
-Answering means naming the candidate's `candidate_id`. Candidates follow these rules:
+Answering means naming the candidate's `candidate_id`.
 
-- `pass`, when offered, is candidate 0.
-- Candidates that reference hidden-zone cards come, among themselves, in `(card_name, object_id)` order, so their
-  order says nothing about the library.
-- No two candidates in a decision have the same `semantic`, and a decision has at most 4,096 candidates. A
-  decision that would break either halts the game.
-- A `choice` context's `source` is the object asking. While casting, it's the card itself until the
-  spell is on the stack.
+| Rule | Detail |
+|---|---|
+| `pass` comes first | when offered, it is candidate 0 |
+| Hidden cards are sorted | candidates that reference hidden-zone cards come, among themselves, in `(card_name, object_id)` order, so their order says nothing about the library |
+| Distinct and bounded | no two candidates in a decision have the same `semantic`, and a decision has at most 4,096 candidates. A decision that would break either halts the game |
+| `source` is the asker | a `choice` context's `source` is the object asking. While casting, it's the card itself until the spell is on the stack |
 
 ### Groups: one decision, many picks
 
@@ -808,7 +825,7 @@ covered when it's two-seat, constructed and has automatic mana; `-auto-mana` is 
 `R` is a `choose` without its `clock`, since the seat's think timeout is the native one. `request_id` is a decimal
 string counting up per seat, and `decision` is the `seat_decision`:
 
-```text
+```text title="Start a game and read the seat's open request"
 $ gorged -addr 127.0.0.1:8080 -dir /tmp/gorge-v2 -vsbot -sbv2
 $ curl -s -X POST http://127.0.0.1:8080/api/games -d '{"format":"constructed","human_deck":"mono-red-goblins","bot_deck":"mono-green-stompy","bot_policy":"bot"}'
 {"table":"g1","match":1,"seed":18138067177183697358,"seat":0,"token":"<token>","bot_policy":"bot","join":"/t/g1?seat=0\u0026token=<token>"}
@@ -839,21 +856,19 @@ Every request carries `x_gorge_view_v1` and `x_gorge_human_v1` in `decision.exte
 
 `POST .../send` takes one of:
 
-```json
+```json title="The four answers"
 {"request_id":"7","candidate_id":1}
 {"request_id":"7","x_gorge_human_v1":{"concede":true}}
 {"request_id":"7","x_gorge_human_v1":{"undo":true}}
 {"request_id":"7","x_gorge_human_v1":{"choose_name":"Cabal Therapy"}}
 ```
 
-- `candidate_id`: the first answer wins and closes the request. A choice that takes several substeps gets a new
-  request, with a new `request_id`, per substep. When a request goes unanswered until the think timeout, it closes and
-  the caretaker answers the whole native decision, as for a native human seat. Partial picks are dropped.
-- `concede` submits the native concede and works only at a priority decision.
-- `undo` rewinds to the seat's previous intent. The next request shows the rewound board under fresh ids.
-- `choose_name` answers a card-name ask with any name the engine offered, past the candidate window too: the exact,
-  case-sensitive `label` of a name option in `x_gorge_view_v1.decision.options`. A name ask folded into a priority
-  decision's follow-ups is `409 stale`: answer it with `candidate_id`.
+| Answer | Effect |
+|---|---|
+| `candidate_id` | the first answer wins and closes the request. A choice that takes several substeps gets a new request, with a new `request_id`, per substep. When a request goes unanswered until the think timeout, it closes and the caretaker answers the whole native decision, as for a native human seat. Partial picks are dropped |
+| `concede` | submits the native concede; works only at a priority decision |
+| `undo` | rewinds to the seat's previous intent. The next request shows the rewound board under fresh ids |
+| `choose_name` | answers a card-name ask with any name the engine offered, past the candidate window too: the exact, case-sensitive `label` of a name option in `x_gorge_view_v1.decision.options`. A name ask folded into a priority decision's follow-ups is `409 stale`: answer it with `candidate_id` |
 
 A candidate-less request with `native_only: true` means v2 can't pose this decision. Only `decision.extensions` is
 filled: `x_gorge_view_v1` then holds the native view and decision with native ids, and the client answers over
@@ -872,26 +887,17 @@ The routes have no `terminal` or `game_over`. When a match ends, `request` stays
 `-sbv2` changes nothing for a seat until a client attaches to it. Until then its decisions go to the native routes
 exactly as they do without the flag, every ask included, and no v2 request opens.
 
-- **A `state` read or a `stream` connection attaches the seat**, given the seat's token. v2 then answers the seat,
-  starting with the decision already parked: the read that attaches can return `null`, and the request follows on the
-  stream or the next read. The host answers a mana ability's colour ask, a triggered cost's pay-or-decline and the
-  division of combat damage on an attached seat, even when a native client started that action.
-- **An answer or undo on another wire hands the seat back, unless a `stream` connection of that seat is open.** The native
-  routes and ManaBrew count as another wire. The open request closes and every later decision goes natively, until the
-  next read attaches the seat again. With a stream open the seat stays attached: the request closes and the next
-  decision opens one. A client posts a tap natively that way.
-- **`asks=native` on a `state` read or `stream` connection leaves the host's own answers to the client.** A mana ability's
-  colour ask, a triggered cost's pay-or-decline, a mana window, the division of damage and a flexible pip's payment each come
-  as a `native_only` request, for a client that puts them to a person. The last read to attach decides, so a read without it
-  turns them back over to the host.
-- **Closing a stream changes nothing by itself.** The seat keeps its open request and partial picks, so a reconnect
-  carries on, and the next native answer hands it back. A connection the server hasn't yet seen close still counts as
-  open.
+| When | What happens |
+|---|---|
+| **A `state` read or a `stream` connection**, with the seat's token | attaches the seat. v2 then answers it, starting with the decision already parked: the read that attaches can return `null`, and the request follows on the stream or the next read. The host answers a mana ability's colour ask, a triggered cost's pay-or-decline and the division of combat damage on an attached seat, even when a native client started that action |
+| **An answer or undo on another wire** (the native routes or ManaBrew) | hands the seat back, unless a `stream` connection of that seat is open. The open request closes and every later decision goes natively, until the next read attaches the seat again. With a stream open the seat stays attached: the request closes and the next decision opens one. A client posts a tap natively that way |
+| **`asks=native`** on a `state` read or `stream` connection | leaves the host's own answers to the client. A mana ability's colour ask, a triggered cost's pay-or-decline, a mana window, the division of damage and a flexible pip's payment each come as a `native_only` request, for a client that puts them to a person. The last read to attach decides, so a read without it turns them back over to the host |
+| **A stream closes** | nothing, by itself. The seat keeps its open request and partial picks, so a reconnect carries on, and the next native answer hands it back. A connection the server hasn't yet seen close still counts as open |
 
-A native client never sees half an answer. A v2 walk stays on the server until it commits a whole native decision, so
-a native client sees that decision as it was asked and answering it drops the partial picks. The think timeout and the
-caretaker run the same on an attached seat and a passive one. The log holds only answers, so a game reads the same
-whichever wire answered it.
+!!! note "A native client never sees half an answer"
+    A v2 walk stays on the server until it commits a whole native decision, so a native client sees that decision as
+    it was asked and answering it drops the partial picks. The think timeout and the caretaker run the same on an
+    attached seat and a passive one. The log holds only answers, so a game reads the same whichever wire answered it.
 
 ### The browser client
 
@@ -961,21 +967,16 @@ a field outside that set fails, and its counts are information only.
 
 ## Failure modes
 
-**An engine request is refused.** The answer is an `error` and the game is unchanged. Fix the request and resend
-under a new `request_id`.
+| What failed | What you see | What to do |
+|---|---|---|
+| **An engine request is refused** | an `error`; the game is unchanged | fix the request and resend under a new `request_id` |
+| **The engine can't continue** | a `terminal` with `classification: "halted"` and reason `engine_contract_failure:<cause>` (causes below); details go to stderr, never into `reason` | read the env's stderr |
+| **The env process exits** | 0 on clean end of input; 1 on input ending mid-line or a write failure; 2 at startup on a bad corpus, registry or digest. `spellbench-gorge-agent` exits the same way, with 2 on an unknown policy or world too | |
+| **An agent seated by gorged forfeits** | from then on the seat concedes at its next priority decision and the heuristic bot answers anything earlier. `game_over` reports classification `forfeit` and reason `forfeit:<cause>`, and the opponent wins | see the forfeit causes below |
 
-**The engine can't continue.** The answer is a `terminal` with `classification: "halted"` and reason
-`engine_contract_failure:<cause>`, where `<cause>` is `unmapped_decision`, `dead_end`, `candidate_limit`,
-`duplicate_candidates`, `unresolvable_source`, `unplanned_randomness`, `id_collision`, `identity_shadow_diverged`,
-`followup_mismatch`, `submit_rejected`, `no_pending_decision`, `projection`, `livelock` or `panic`. Details go to
-stderr, never into `reason`.
-
-**The env process.** Exit 0 on clean end of input; 1 on input ending mid-line or a write failure; 2 at startup on a
-bad corpus, registry or digest. `spellbench-gorge-agent` exits the same way, with 2 on an unknown policy or world
-too.
-
-**An agent seated by gorged forfeits.** From then on the seat concedes at its next priority decision and the heuristic bot
-answers anything earlier. `game_over` reports classification `forfeit` and reason `forfeit:<cause>`, and the opponent wins.
+A halt's `<cause>` is `unmapped_decision`, `dead_end`, `candidate_limit`, `duplicate_candidates`,
+`unresolvable_source`, `unplanned_randomness`, `id_collision`, `identity_shadow_diverged`, `followup_mismatch`,
+`submit_rejected`, `no_pending_decision`, `projection`, `livelock` or `panic`. A forfeit's `<cause>` is one of:
 
 | Cause | When |
 |---|---|
@@ -986,7 +987,7 @@ answers anything earlier. `game_over` reports classification `forfeit` and reaso
 
 Recorded on `gorged -sb-agent` with an agent that broke at its third `choose`:
 
-```text
+```text title="gorged's log"
 spellbench seat 1 (logbot): choose: invalid selection: candidate 999 out of range (forfeit invalid_selection)
 spellbench seat 1 (logbot): choose: context deadline exceeded (forfeit timeout)
 spellbench seat 1 (logbot): choose: agent error internal_error: boom (forfeit agent_error)
@@ -1039,10 +1040,11 @@ it, because its rows surround a fake engine with a different catalog. It uses th
 Every hash in the protocol is over **canonical JSON**, RFC 8785 restricted to integer-only data; `canon` in
 `minimal_host.py` implements it.
 
-- No whitespace. Object keys sorted by their **UTF-16 code units** (so U+1F600 sorts before U+FFFD), arrays in order.
-- Integers in plain decimal. A number with a fraction is an error.
-- Strings: `\"` and `\\`, the short escapes `\b \f \n \r \t`, every other control character below U+0020 as lowercase
-  `\u00xx`, and everything else as raw UTF-8, including DEL and U+2028.
+| | Rule |
+|---|---|
+| Layout | no whitespace; object keys sorted by their **UTF-16 code units** (so U+1F600 sorts before U+FFFD); arrays in order |
+| Numbers | integers in plain decimal; a number with a fraction is an error |
+| Strings | `\"` and `\\`, the short escapes `\b \f \n \r \t`, every other control character below U+0020 as lowercase `\u00xx`, and everything else as raw UTF-8, including DEL and U+2028 |
 
 Test vector: `{"b":"Chainer's Edict","a":"Lim-Dûl's Vault","c":"tab\there"}` canonicalizes to
 `{"a":"Lim-Dûl's Vault","b":"Chainer's Edict","c":"tab\there"}`, whose SHA-256 is
@@ -1050,11 +1052,10 @@ Test vector: `{"b":"Chainer's Edict","a":"Lim-Dûl's Vault","c":"tab\there"}` ca
 
 ### deck_id and domain_id
 
-- **`deck_id`**: sort the decklist rows by `name` in Unicode code point order (UTF-8 byte order), write them as the
-  canonical array `[{"count":N,"name":"..."},...]`, and take `"sha256:" + hex(SHA-256(bytes))`. Rows sort by code point,
-  and keys inside each row by UTF-16, which is why `count` comes before `name`.
-- **`domain_id`** (`rules.card_name_domain.domain_id`): sort the names in code point order, write the canonical array of
-  strings, and hash the same way.
+| Id | Construction |
+|---|---|
+| `deck_id` | sort the decklist rows by `name` in Unicode code point order (UTF-8 byte order), write them as the canonical array `[{"count":N,"name":"..."},...]`, and take `"sha256:" + hex(SHA-256(bytes))`. Rows sort by code point, and keys inside each row by UTF-16, which is why `count` comes before `name` |
+| `domain_id` (`rules.card_name_domain.domain_id`) | sort the names in code point order, write the canonical array of strings, and hash the same way |
 
 | Input | Result |
 |---|---|
@@ -1087,7 +1088,7 @@ The engine keeps a shadow copy of the game to count zone changes and halts with
 engine channel of one game, so two parties can confirm they saw the same game without exchanging it. No message
 carries it; a host computes it. With `C(m)` the canonical JSON of message `m` without its top-level `request_id`:
 
-```text
+```text title="The digest chain"
 d0     = SHA-256( "spellbench/v2/game-digest" || C(reset) )
 d(k+1) = SHA-256( d(k) || C(next message) )        # d(k) is the 32 raw bytes
 digest = "sha256:" + hex(d_last)
@@ -1120,7 +1121,7 @@ matching its input. [`protocol/schema_doc_test.go`](https://github.com/adams-sha
 fails the build when `semantic.schema.json` and `kindTable` or `Vocab` disagree in either direction, and when
 `responses.schema.json`'s error codes differ from `errors.go`:
 
-```text
+```sh title="The schema-to-code checks"
 make test-one PKG=./server/spellbench/protocol RUN='^(TestSemanticSchemaMatchesKindTable|TestSchemaErrorCodesMatchErrorsGo)$'
 ```
 
@@ -1134,7 +1135,7 @@ evaluates the keywords these files use and refuses a schema with any other:
 | `TestRequestsMatchTheSchemas` | every line gorged's seat sends an agent over one game |
 | `TestUpstreamCorpusMatchesTheSchemas` | the vendored upstream corpus, without the requests it breaks on purpose to draw `malformed_json`, `malformed_request` or `protocol_mismatch` |
 
-```text
+```sh title="The schema-to-message checks"
 make test-one PKG=./cmd/spellbench-gorge-env RUN='^(TestEngineLinesMatchTheSchemas|TestUpstreamCorpusMatchesTheSchemas)$'
 make test-one PKG=./server/spellbench/seat RUN='^TestRequestsMatchTheSchemas$'
 ```

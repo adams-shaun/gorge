@@ -296,6 +296,10 @@ func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
 		if err != nil {
 			return nil, err
 		}
+		rest, attackKws, err := splitAttackKwGrant(rest) // lower_attackkwgrant.go
+		if err != nil {
+			return nil, err
+		}
 		rest, err = lc.splitProtGrant(rest, st) // lower_protgrant.go
 		if err != nil {
 			return nil, err
@@ -375,6 +379,16 @@ func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
 			// (lower_afterlifegrant.go; gorge
 			// scriptfacts.GrantedKeywordTrigger)
 			idx, err := lc.afterlifeGrantTrigger(n)
+			if err != nil {
+				return nil, err
+			}
+			st.Grant = append(st.Grant, idx)
+		}
+		for _, line := range attackKws {
+			// CR 702.86a / 702.91a granted: one latent Attacks Self trigger
+			// per grant (lower_attackkwgrant.go; gorge
+			// scriptfacts.GrantedKeywordTrigger)
+			idx, err := lc.attackKwGrantTrigger(line)
 			if err != nil {
 				return nil, err
 			}

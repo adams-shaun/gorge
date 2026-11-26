@@ -1,6 +1,7 @@
 package oracle
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/adams-shaun/gorge/dirac/cardset"
@@ -24,6 +25,13 @@ import (
 //     (scriptfacts.GrantedKeywordTrigger's body). The probe counts creatures
 //     that die while an Indebted Spirit is attached to them, and fails when
 //     none does.
+//   - battlecry: Reckless Pyrosurfer's landfall Pump KW$ Battle cry (CR
+//     702.91a) and annihilator: Eldrazi Conscription's enchanted AddKeyword$
+//     Annihilator:2 (CR 702.86a) are
+//     latent Attacks Self triggers granted from gorge's synthesizer
+//     (scriptfacts.GrantedKeywordTrigger). The probe counts the granted
+//     triggers gorge pushes (GrantTriggerPush with the __kwBattleCryGranted /
+//     __kwAnnihilatorGranted: payload), and fails when too few are reached.
 func TestSetsKeywordGrantsLower(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
@@ -32,9 +40,13 @@ func TestSetsKeywordGrantsLower(t *testing.T) {
 		seeds  uint64
 		horse  int // the least granted-horsemanship attackers the games must declare
 		deaths int // the least deaths of a creature an Indebted Spirit enchants
+		cry    int // the least granted battle cry triggers pushed
+		ann    int // the least granted annihilator triggers pushed
 	}{
-		{"horsemanship", setsKwHorseDecks, 120, 20, 0},
-		{"afterlife", setsKwAfterlifeDecks, 120, 0, 5},
+		{"horsemanship", setsKwHorseDecks, 120, 20, 0, 0, 0},
+		{"afterlife", setsKwAfterlifeDecks, 120, 0, 5, 0, 0},
+		{"battlecry", setsKwBattleCryDecks, 120, 0, 0, 10, 0},
+		{"annihilator", setsKwAnnihilatorDecks, 120, 0, 0, 0, 5},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
@@ -46,16 +58,16 @@ func TestSetsKeywordGrantsLower(t *testing.T) {
 				return // each divergence is already a test error
 			}
 			t.Logf("%s: %+v", tc.name, st)
-			if st.horse < tc.horse || st.deaths < tc.deaths {
-				t.Fatalf("%s: %+v over %d seeds, want horse %d deaths %d: the pool does not exercise it",
-					tc.name, st, tc.seeds, tc.horse, tc.deaths)
+			if st.horse < tc.horse || st.deaths < tc.deaths || st.cry < tc.cry || st.ann < tc.ann {
+				t.Fatalf("%s: %+v over %d seeds, want horse %d deaths %d cry %d ann %d: the pool does not exercise it",
+					tc.name, st, tc.seeds, tc.horse, tc.deaths, tc.cry, tc.ann)
 			}
 		})
 	}
 }
 
 // setsKwStats is what setsKwProbe counts.
-type setsKwStats struct{ horse, deaths int }
+type setsKwStats struct{ horse, deaths, cry, ann int }
 
 // setsKwProbe wraps base and counts, when gorge leads, the attackers declared
 // under a horsemanship grant and the deaths of Indebted Spirit's bearers.
@@ -94,6 +106,10 @@ func setsKwProbe(base Policy, st *setsKwStats) Policy {
 				}
 			case e.Kind == events.MoveZone && e.From == state.ZBattlefield && e.To == state.ZGraveyard && bearers[e.Obj]:
 				st.deaths++
+			case e.Kind == events.GrantTriggerPush && e.Counter == "__kwBattleCryGranted":
+				st.cry++
+			case e.Kind == events.GrantTriggerPush && strings.HasPrefix(e.Counter, "__kwAnnihilatorGranted:"):
+				st.ann++
 			}
 		}
 		clear(bearers)
@@ -132,5 +148,33 @@ var setsKwAfterlifeDecks = [2][]cardset.Entry{
 	{
 		{Name: "Indebted Spirit", Count: 6}, {Name: "Grizzly Bears", Count: 8}, {Name: "Lightning Bolt", Count: 8},
 		{Name: "Plains", Count: 6}, {Name: "Mountain", Count: 6}, {Name: "Forest", Count: 6},
+	},
+}
+
+// setsKwBattleCryDecks: Reckless Pyrosurfer gains battle cry on each land
+// drop; Bears attack beside it.
+var setsKwBattleCryDecks = [2][]cardset.Entry{
+	{
+		{Name: "Reckless Pyrosurfer", Count: 12}, {Name: "Grizzly Bears", Count: 8},
+		{Name: "Mountain", Count: 12}, {Name: "Forest", Count: 8},
+	},
+	{
+		{Name: "Reckless Pyrosurfer", Count: 8}, {Name: "Grizzly Bears", Count: 10}, {Name: "Lightning Bolt", Count: 4},
+		{Name: "Mountain", Count: 10}, {Name: "Forest", Count: 8},
+	},
+}
+
+// setsKwAnnihilatorDecks: Eldrazi Conscription to enchant the Bears that
+// then attack with annihilator 2. (Nazgûl Battle-Mace's grant is not lowered:
+// its static grants two abilities, a trigger beside the annihilator, and a
+// kop.Static carries one.)
+var setsKwAnnihilatorDecks = [2][]cardset.Entry{
+	{
+		{Name: "Eldrazi Conscription", Count: 10}, {Name: "Grizzly Bears", Count: 10},
+		{Name: "Swamp", Count: 10}, {Name: "Forest", Count: 10},
+	},
+	{
+		{Name: "Eldrazi Conscription", Count: 8}, {Name: "Grizzly Bears", Count: 12},
+		{Name: "Swamp", Count: 10}, {Name: "Forest", Count: 10},
 	},
 }
