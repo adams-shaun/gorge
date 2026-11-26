@@ -62,7 +62,6 @@ var staticZonesRefusals = []struct{ card, want string }{
 	{"Teferi, Mage of Zhalfir", `AffectedZone "Hand,Graveyard,Exile,Library,Command,Stack" without MayPlay`},
 	{"Thraben Doomsayer", `static Condition "FatefulHour" (gorge fails closed`},
 	{"Village Survivors", `static Condition "FatefulHour" (gorge fails closed`},
-	{"Yixlid Jailer", graveLossPending},
 }
 
 func TestStaticZonesRefusals(t *testing.T) {

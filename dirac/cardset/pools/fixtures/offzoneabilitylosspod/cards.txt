@@ -1,0 +1,20 @@
+# The four-seat twin of offzoneabilityloss (dirac/oracle
+# offzone_abilityloss_lockstep_test.go): the same cards without Bloodghast
+# ("an opponent has 10 or less life" reads the one opponent) and Jack-o'-Lantern
+# (the graveyard mana window is two-seat), which a pod could not hold
+# (kop.CardPodLimited).
+Yixlid Jailer
+Faithless Looting
+Think Twice
+Dregscape Zombie
+Golgari Thug
+Cathartic Reunion
+Stitcher's Supplier
+Anger
+Grizzly Bears
+Lightning Bolt
+Island
+Swamp
+Mountain
+Forest
+Plains

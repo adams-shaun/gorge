@@ -7,8 +7,8 @@ import (
 
 // TestStaticZonesOffZoneAbilityLoss: Yixlid Jailer's graveyard removal lowers
 // to exactly one GraveNoAbilities static (kop.StatGraveNoAbilities) over
-// Card in the graveyard, and the card stays refused with the named reason
-// until the kernel's graveyard readers are all wired (graveLossReadersDone).
+// Card in the graveyard, and the card carries no refusal (the kernel's
+// graveyard readers are all wired, dsub-jailer).
 func TestStaticZonesOffZoneAbilityLoss(t *testing.T) {
 	c := lowerNamedCard(t, "Yixlid Jailer")
 	n := 0
@@ -23,18 +23,8 @@ func TestStaticZonesOffZoneAbilityLoss(t *testing.T) {
 	if n != 1 || len(c.Statics) != 1 {
 		t.Errorf("Yixlid Jailer lowers to %d GraveNoAbilities statics of %d, want exactly one", n, len(c.Statics))
 	}
-	if graveLossReadersDone {
-		if len(c.Refusals) != 0 {
-			t.Errorf("Yixlid Jailer refusals = %v, want none once the readers are done", c.Refusals)
-		}
-	} else {
-		hit := false
-		for _, rf := range c.Refusals {
-			hit = hit || strings.Contains(rf.Reason, graveLossPending)
-		}
-		if !hit {
-			t.Errorf("Yixlid Jailer refusals = %v, want %q", c.Refusals, graveLossPending)
-		}
+	if len(c.Refusals) != 0 {
+		t.Errorf("Yixlid Jailer refusals = %v, want none", c.Refusals)
 	}
 }
 

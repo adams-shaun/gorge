@@ -2,20 +2,22 @@
 # Affected$ Card | AffectedZone$ Graveyard | RemoveAllAbilities$ True;
 # dirac/static_graveabilityloss.go) beside the graveyard abilities it silences:
 # flashback spells (Faithless Looting, Think Twice), an unearth creature
-# (Hellspark Elemental), a graveyard trigger (Bloodghast), dredge (Golgari Thug),
+# (Dregscape Zombie), a graveyard trigger (Bloodghast), dredge (Golgari Thug),
 # a graveyard mana ability (Jack-o'-Lantern), and the discard and self-mill that
-# fill graveyards (Cathartic Reunion, Stitcher's Supplier). No graveyard keyword GRANTOR:
-# a grant beside the removal stalls by name (StallGraveLossGrant). The lockstep
+# fill graveyards (Cathartic Reunion, Stitcher's Supplier), and Anger (a
+# graveyard-functioning Continuous static, which the removal leaves alone in
+# gorge). No graveyard keyword GRANTOR: a grant beside the removal stalls by name (StallGraveLossGrant). The lockstep
 # is dirac/oracle/offzone_abilityloss_lockstep_test.go.
 Yixlid Jailer
 Faithless Looting
 Think Twice
-Hellspark Elemental
+Dregscape Zombie
 Bloodghast
 Golgari Thug
 Jack-o'-Lantern
 Cathartic Reunion
 Stitcher's Supplier
+Anger
 Grizzly Bears
 Lightning Bolt
 Island

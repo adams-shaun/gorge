@@ -24,10 +24,13 @@ import (
 // by name (StallGraveLossGrant) when the card has lost its abilities: gorge
 // decides by the grant's timestamp, which the mark does not carry.
 //
-// The readers wired here are the keyword and offer readers (split 1 of 3;
-// dsub-jailer). The trigger scans and the leave-graveyard look-back (split 2)
-// and the graveyard statics, mana abilities and printed-AB gate (split 3) are
-// not, and the card stays refused until they are (kgen graveLossReadersDone).
+// The readers wired: the keyword and offer readers (split 1), the trigger
+// scans and the leave-graveyard look-back (split 2), and the graveyard mana
+// ability (mana_gravemana.go), the printed activated-ability offer
+// (legal_gen.go priorityGraveAct) and the flash of a may-play cast
+// (static_graveflash.go) (split 3). A graveyard card's Continuous static
+// (static_gycont.go) keeps working under the removal, as gorge's layer walk
+// leaves it (pruneLostSourceAbilities is battlefield-only; gorge suspect).
 //
 // Where gorge applies no loss the kernel applies none either: the aftermath
 // and disturb casts (legal.go aftermathAlternateFace, cast_altcost.go

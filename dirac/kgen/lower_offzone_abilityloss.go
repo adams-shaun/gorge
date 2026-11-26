@@ -2,18 +2,6 @@ package kgen
 
 import "github.com/adams-shaun/gorge/dirac/kop"
 
-// graveLossReadersDone gates Yixlid Jailer's lowering. The static lowers to
-// kop.StatGraveNoAbilities whatever its value, but while it is false the card
-// carries a named refusal, so no game plays it: the kernel's graveyard
-// readers (dsub-jailer, split 1: the keyword and offer readers, split 2: the
-// trigger scans and the leave-graveyard look-back, split 3: the graveyard
-// statics and mana abilities) are not all wired. Split 3 flips it on.
-var graveLossReadersDone = true
-
-// graveLossPending is the refusal a Jailer-shaped card carries until the
-// readers are done.
-const graveLossPending = "graveyard ability loss: readers pending (dsub-jailer split 2/3)"
-
 // offZoneAbilityLoss lowers a Continuous static whose AffectedZone$ is
 // Graveyard and which removes every ability of the cards it affects (Yixlid
 // Jailer: "Cards in graveyards lose all abilities", CR 613.1f). gorge
@@ -47,9 +35,6 @@ func (lc *lowerCtx) offZoneAbilityLoss(sp *params, st *lStatic, aff, az string) 
 	st.Kind = "GraveNoAbilities"
 	st.Zone = int(zGraveyard)
 	sp.consume("AffectedZone", "RemoveAllAbilities")
-	if !graveLossReadersDone {
-		lc.refuseNode(lc.guardNode, "%s", graveLossPending)
-	}
 	return true, nil
 }
 
