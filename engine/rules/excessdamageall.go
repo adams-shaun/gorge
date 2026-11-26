@@ -100,7 +100,7 @@ func captureExcessBaseline(baselines map[state.ObjID]excessBase, ev events.Event
 	var b excessBase
 	if board.IsCreature(id) {
 		b.creature = true
-		b.lethal = board.Toughness(id) - o.Damage
+		b.lethal = effects.LethalThreshold(board, id) - o.Damage
 	}
 	// Types mirror the Damage fold (engine/events/apply_combat.go) and
 	// excessdamage_emit.go's noteExcessHit: the layer-derived creature type,

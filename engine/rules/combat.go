@@ -2496,7 +2496,7 @@ func (e *Engine) fogUnpreventable(as []assignment) []assignment {
 // already carries a Deathtouched mark (CR 704.5g).
 func (e *Engine) lethalDamageNeed(bid state.ObjID, deathtouch bool) int32 {
 	o := e.G.Obj(bid)
-	need := e.Toughness(bid)
+	need := e.LethalDamageThreshold(bid)
 	if o != nil {
 		if deathtouch && o.Counter("Deathtouched") > 0 {
 			return 0
