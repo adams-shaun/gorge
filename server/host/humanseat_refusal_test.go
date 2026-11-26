@@ -11,6 +11,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 	"github.com/adams-shaun/gorge/engine/view"
 	"github.com/adams-shaun/gorge/server/protocol"
+	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
 // mustAttackDeck is 40 copies of a free 2/2 with an unconditional
@@ -75,7 +76,7 @@ func TestRefusedHumanIntentReparksAndReturns409(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	deadline := time.Now().Add(60 * time.Second)
+	deadline := time.Now().Add(testutil.WaitBudget)
 	refused := false
 	for {
 		if time.Now().After(deadline) {
@@ -110,7 +111,7 @@ func TestRefusedHumanIntentReparksAndReturns409(t *testing.T) {
 			var err error
 			select {
 			case err = <-errc:
-			case <-time.After(10 * time.Second):
+			case <-time.After(testutil.WaitBudget):
 				t.Fatal("refused human intent hung: the submit never received the engine's verdict")
 			}
 			if err == nil {
@@ -175,7 +176,7 @@ func TestTwoDefenderAttackFromHumanSeatIsRefusedAndStaysPending(t *testing.T) {
 	var err error
 	select {
 	case err = <-errc:
-	case <-time.After(10 * time.Second):
+	case <-time.After(testutil.WaitBudget):
 		t.Fatal("two-defender submit hung: the seat did not reject it at the wire fence")
 	}
 	if err == nil {

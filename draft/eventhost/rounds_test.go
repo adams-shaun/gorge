@@ -401,7 +401,7 @@ func TestRestartReplaysInFlightGames(t *testing.T) {
 	t12 := host.TableID(start1[[2]int{1, 2}].table)
 	// wait until the bot series' match finished (its result is buffered but
 	// unlogged while the human game is in flight)
-	deadline := time.Now().Add(50 * time.Second)
+	deadline := time.Now().Add(testutil.WaitBudget)
 	for {
 		mi, err := p.reg.Matches(t12)
 		if err != nil {

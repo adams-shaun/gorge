@@ -152,7 +152,7 @@ func mustGet(t *testing.T, url string) getResult {
 // TestServesTablesOverHTTP uses.
 func waitForServer(t *testing.T, url string) {
 	t.Helper()
-	deadline := time.Now().Add(10 * time.Second)
+	deadline := time.Now().Add(testutil.WaitBudget)
 	for {
 		resp, err := http.Get(url + "/api/tables")
 		if err == nil {

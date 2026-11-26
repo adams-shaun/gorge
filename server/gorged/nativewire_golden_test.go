@@ -370,7 +370,7 @@ func nativeWireSSE(t *testing.T, raw string) (event string, data []byte) {
 // decision frame is the deterministic end of the step.
 func collectNativeWireFrames(t *testing.T, frames <-chan string, d *decision.Decision, session string) ([]string, error) {
 	t.Helper()
-	deadline := time.After(30 * time.Second)
+	deadline := time.After(testutil.WaitBudget)
 	out := []string{}
 	// Decision.Seq is the index of the DecisionAsk event ask() emits after
 	// assigning it, so the decision frame carries the same seq.
@@ -407,7 +407,7 @@ func collectNativeWireFrames(t *testing.T, frames <-chan string, d *decision.Dec
 // has a decision, or reports that the match finished first.
 func waitNativeWireDecision(t *testing.T, baseURL string, r *host.Registry) (*decision.Decision, bool) {
 	t.Helper()
-	deadline := time.Now().Add(30 * time.Second)
+	deadline := time.Now().Add(testutil.WaitBudget)
 	pendingURL := fmt.Sprintf("%s/api/tables/%s/matches/%d/pending?seat=%d&token=%s",
 		baseURL, url.PathEscape(nativeWireTable), nativeWireMatch, nativeWireSeat, url.QueryEscape(nativeWireToken))
 	for {
