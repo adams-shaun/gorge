@@ -25,6 +25,9 @@ func prepInfect(t *kop.Table, g *genPrep) {
 	if g.anyInfectGrant {
 		g.anyInfect = true // a granted infect (kw_kwmark.go)
 	}
+	if g.anyToxicGrant = tableGrantsToxic(t); g.anyToxicGrant {
+		g.anyInfect = true // a granted toxic (kw_toxicgrant.go)
+	}
 	if !g.anyInfect {
 		return
 	}
@@ -115,6 +118,13 @@ func (s *State) toxicAt(k *prep, sl Slot) int {
 	if k.gen.anyColGrant {
 		_, _, t := s.cgOf(sl) // a chosen-colour toxic grant (static_colourgrant.go)
 		n += t
+	}
+	if k.gen.anyToxicGrant && !DebugNoGrantedToxic {
+		g := s.toxicGranted(k, sl)
+		n += g
+		if g > 0 && DebugToxicStats != nil {
+			DebugToxicStats.GrantedPoison += int64(g)
+		}
 	}
 	return n
 }

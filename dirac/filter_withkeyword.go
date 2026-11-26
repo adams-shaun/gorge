@@ -29,6 +29,9 @@ func (s *State) fwWithKeyword(c *fctx, l *kop.FLit) bool {
 			s.evasionGranted(c.k, c.sl)&kop.EvHorsemanship != 0 {
 			return true // a granted horsemanship (kw_kwmark.go), as hasSkulkPerm reads skulk
 		}
+		if id == kop.KwToxic && c.k.gen != nil && c.k.gen.anyToxicGrant && !DebugNoGrantedToxic && s.toxicGranted(c.k, c.sl) > 0 {
+			return true // a granted toxic (kw_toxicgrant.go), gorge's derived keyword list
+		}
 		return printedKeyword(&c.k.t.Cards[cid], id)
 	case c.card():
 		return printedKeyword(&c.k.t.Cards[c.c], kop.KwID(l.Arg))

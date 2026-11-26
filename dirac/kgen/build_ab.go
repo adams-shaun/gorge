@@ -2100,7 +2100,7 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		if st.Landwalk, st.GainsOf, err = continuousFilterPair(filter, &s, st); err != nil {
 			return ka, nil, err
 		}
-		st.Evasion, st.Infect = s.Evasion, s.Infect // lower_kwmark.go
+		st.Evasion, st.Infect, st.Toxic = s.Evasion, s.Infect, s.Toxic // lower_kwmark.go
 		if err := cb.staticOverride(st, s); err != nil {
 			return ka, nil, err
 		}

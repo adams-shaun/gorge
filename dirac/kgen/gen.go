@@ -611,6 +611,9 @@ func dumpStatics(w io.Writer, c *lCard) {
 		if s.Infect {
 			fmt.Fprintf(w, " infect")
 		}
+		if s.Toxic != 0 {
+			fmt.Fprintf(w, " toxic=%d", s.Toxic)
+		}
 		if s.OutlivesLoss {
 			fmt.Fprintf(w, " outlivesloss")
 		}

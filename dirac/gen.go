@@ -184,6 +184,7 @@ type genPrep struct {
 	tokListAdd      bool           // a comma-listed TokenScript$ mint beside a ReplAddToken (repl_toklistadd.go prepTokListAdd): StallTokRewrite
 	anyWitherGrant  bool           // some table part grants kop.KwWither (kw_wither.go); sets anyInfect
 	anyInfectGrant  bool           // some static or ExtKwMark grants infect (kw_kwmark.go); sets anyInfect
+	anyToxicGrant   bool           // some static, override record or ExtKwMark grants toxic (kw_toxicgrant.go); sets anyInfect
 	anyEvasionGrant bool           // some static or ExtKwMark grants intimidate (kw_kwmark.go); sets anyEvasion
 	anyKwMark       bool           // some program has an ExtKwMark (kw_kwmark.go: the cleanup clear)
 	anyEOTEmb       bool           // some emblem ends at cleanup (kop.Emblem.UntilEOT; kw_protection.go)
