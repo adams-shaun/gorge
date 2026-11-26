@@ -842,7 +842,14 @@ const (
 	// friends, CR 611.2b: a "for as long as" duration does not restart).
 	// The kernel's record marks it in the ver byte (dirac mayVerFollows:
 	// 0x80|zone), and the offers and spends match by zone.
-	MayPlayFollows  = 0x40
+	MayPlayFollows = 0x40
+	// MayPlayConvC is an OpMayPlay C bit beside the zone and MayPlayFollows:
+	// the record carries Abstruse Appropriation's ManaConversion$ C->AnyColor
+	// static, so the cast it offers may spend colourless mana as though it
+	// were mana of any colour (only the pool's {C}: coloured mana stays exact
+	// and a {C} pip is not widened, gorge pay.ApplyConversionTo sets Wild[MC]
+	// alone). The kernel keeps it on the record (mayTurnConvC).
+	MayPlayConvC    = 0x80
 	MayPlayZoneMask = 0x3f
 )
 

@@ -164,13 +164,27 @@ func (s *State) payConvColorPips(k *prep, p uint8, cost kop.ManaCost) kop.ManaCo
 // the generic cost as they are. gorge's planner funds the pips as printed (its
 // ConvRider relaxes the AnyType->AnyType set alone), so the conversion widens
 // an offer only through the pool, which the cast then spends under it
-// (payConvColorPips): the offer gate passes on it beside the plain price.
+// (payConvColorPips): the offer gate passes on it beside the plain price
+// (convAnyPoolPays). This is the any-colour arm alone: the route readers
+// (convRouteFlag) must not fold a convC cast into it, so the colourless-mana
+// conversion's disjunction lives in convAnyPoolPays, which only the offer
+// gates read.
 func (s *State) convPoolPays(k *prep, p uint8, o Obj, cost *kop.ManaCost) bool {
 	if k.gen == nil || !k.gen.uses.has(useAnyColorSpell) || s.convAnyType(k, p, o) || !s.convAnyColor(k, p, o) {
 		return false
 	}
 	c := planUnderRider(*cost, false, true)
 	return s.poolPays(p, &c)
+}
+
+// convAnyPoolPays is the offer gates' read over both pool-route conversions:
+// the may-play record's colourless-mana conversion (convCPoolPays,
+// cast_mayconvc.go) beside the any-colour conversion's (convPoolPays). The
+// route readers keep to the any-colour arm alone (convRouteFlag), so a table
+// holding an Abstruse Appropriation beside an any-colour static card does not
+// ride bflAnyColor's any-colour route on a convC cast.
+func (s *State) convAnyPoolPays(k *prep, p uint8, o Obj, cost *kop.ManaCost) bool {
+	return s.convCPoolPays(k, p, o, cost) || s.convPoolPays(k, p, o, cost)
 }
 
 // convRouteFlag sets bflAnyColor on the cast being built (before its payment

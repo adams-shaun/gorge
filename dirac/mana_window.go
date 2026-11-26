@@ -3942,6 +3942,8 @@ func (s *State) manaStep(k *prep) bool {
 				cost = s.restrAdmShortCost(k, e, cost)
 				s.tapForRider(k, e.ctrl, &cost, int(e.x), e.obj, anyColor)
 			}
+		} else if s.convCRoute(k, cost, int(e.x)) {
+			// the colourless-mana conversion's pool route: the pool pays, nothing to tap (cast_mayconvc.go)
 		} else if s.convAllPoolRoute(k, e.ctrl, anyColor) {
 			// the any-colour conversion's pool route: the pool pays, nothing to tap (mana_convertcreature.go)
 		} else {
