@@ -70,6 +70,21 @@ if ! "${cap[@]}" go test -timeout 3m -run '^TestCodeShapeOnlyShrinks$' ./interna
   # string compares and failed its batch's test (0), as no affected-package rule selects ./internal/codeshape (#662, 11-17).
   cat "$log"; fail "codeshape: $(grep -o -E '[A-Za-z]+: measured [0-9]+, above the frozen ceiling of [0-9]+' "$log" | head -1)"
 fi
+# go vet over the packages the diff touches (lint runs ./... ; a vet error in a changed package is the one a PR can
+# cause). --diff-filter=ACMR leaves out deleted files, so a removed package is not asked for.
+vetpkgs=$(git diff --name-only --diff-filter=ACMR "$base"...HEAD -- '*.go' | xargs -r -n1 dirname | sort -u | sed 's|^|./|')
+if [ -n "$vetpkgs" ]; then
+  # shellcheck disable=SC2086
+  "${cap[@]}" go vet $vetpkgs >"$log" 2>&1 || { cat "$log"; fail "go vet: $(grep -m1 -E '^[^ #].*\.go:[0-9]+' "$log" | cut -c1-200)"; }
+fi
+# The base-relative function growth rule (cmd/funcgrowth, #5106) runs in lint and in every merge batch; run it here so a
+# PR learns it grew a function past its allowance before the push, not in the queue (11-26: batch #5138's lint failed on
+# featPoolPays 45 -> 52 although each PR passed this script). A tree without the rule yet skips the step. Two PRs that each
+# grow one function inside its allowance can still cross the threshold together: only the batch sees that sum, so keep a
+# function's headroom for the other PRs (extract a helper) instead of using all of it.
+if [ -d cmd/funcgrowth ]; then
+  "${cap[@]}" go run ./cmd/funcgrowth -base "$base" >"$log" 2>&1 || { cat "$log"; fail "funcgrowth: $(grep -m1 -E 'grew to|grew past' "$log" | sed 's/^[[:space:]]*//' | cut -c1-200)"; }
+fi
 # The public boundary scans every tracked file, so no affected-package rule selects it: a test fixture holding a
 # Forge script line verbatim passed the seat's checks and failed fast's TestNoVerbatimForgeLines (#613, 11-17).
 if ! "${cap[@]}" go test -timeout 3m -run '^TestPublicBoundary$|^TestNoVerbatimForgeLines$' ./internal/archtest >"$log" 2>&1; then
@@ -169,6 +184,9 @@ if [ -n "$fresh" ]; then
   done
   rm -rf "$scratch"
 fi
+# Two stamps: the git-dir one records the exact head this script passed and the pre-push hook (.githooks/pre-push)
+# reads it; the diff-keyed one is how main moving does not re-run the checks (already_passed above).
+git rev-parse HEAD >"$(git rev-parse --git-path pr-precheck-ok)" 2>/dev/null || true
 sd=${PRECHECK_STAMP_DIR:-$HOME/.cache/gorge-precheck}
 mkdir -p "$sd" && : >"$sd/$own_key" && find "$sd" -type f -mtime +7 -delete 2>/dev/null
 echo "pr-precheck: ok"
