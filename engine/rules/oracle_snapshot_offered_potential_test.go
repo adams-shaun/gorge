@@ -95,7 +95,10 @@ func TestOracleSnapshotOfferedStationManaPricesTheUntappedSourceBound(t *testing
 	}
 	// The bare {T}: Add {G} ability is one of the source's mana labels; the
 	// Station 12+ grant ({G},{T}: Add {G} for each creature) is a second,
-	// differently-labelled activation of the same source.
+	// differently-labelled activation of the same source. Both labels spell
+	// the ability's own text (the xproof compare:[offered] surface, the
+	// same labels TestOracleSnapshotOfferedUthrosGrantLabelsTheAbilityText
+	// pins).
 	labels := map[string]bool{}
 	for _, o := range snap.Offered {
 		if o.Source == "p0:Evendo, Waking Haven" && o.Kind == "activate" {
@@ -105,8 +108,11 @@ func TestOracleSnapshotOfferedStationManaPricesTheUntappedSourceBound(t *testing
 	if len(labels) < 2 {
 		t.Fatalf("setup offered = %+v, want the Station 12+ {G},{T} activation beside the bare {T}: Add {G} (CR 602.2b: the untapped Forest funds the {G} fee)", snap.Offered)
 	}
-	if !labels["Add G"] {
+	if !labels["Add {G}."] {
 		t.Fatalf("precondition: the bare {T}: Add {G} label expected, labels = %v", labels)
+	}
+	if !labels["Add {G} for each creature you control."] {
+		t.Fatalf("precondition: the Station 12+ grant's ability-text label expected, labels = %v", labels)
 	}
 }
 
@@ -167,16 +173,17 @@ func TestOracleSnapshotOfferedConfirmExcludesSelfFundedAndOverCountedPlays(t *te
 	reg := testutil.CorpusRegistry(t)
 
 	// Evendo alone: the bare {T}: Add {G} is offered, the granted {G},{T}
-	// ability's "Pay G" label is not.
+	// ability is not. Both labels spell the ability's own text (the
+	// xproof compare:[offered] surface).
 	snap := setupOfferedSnap(t, reg, `{"name":"offered-confirm-evendo-alone","cr":["602.2b"],"why":"a cost's own tap funds nothing","setup":{"p0":{"battlefield":["Evendo, Waking Haven"],"counters":{"Evendo, Waking Haven":{"CHARGE":12}}}},"steps":[]}`)
 	bare, granted := false, false
 	for _, o := range snap.Offered {
 		if o.Source != "p0:Evendo, Waking Haven" || o.Kind != "activate" {
 			continue
 		}
-		if strings.Contains(o.Label, "Pay G") {
+		if strings.Contains(o.Label, "for each creature you control") {
 			granted = true
-		} else if strings.Contains(o.Label, "Add G") {
+		} else if strings.Contains(o.Label, "Add {G}") {
 			bare = true
 		}
 	}

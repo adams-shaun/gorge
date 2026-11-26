@@ -107,7 +107,7 @@ func gatedRegistry(t *testing.T, n int) (*gateSeat, func(int), *host.Registry) {
 		for i := 0; i < times; i++ {
 			select {
 			case <-gate.reached:
-			case <-time.After(30 * time.Second):
+			case <-time.After(testutil.WaitBudget):
 				t.Fatalf("seat 0 never reached decision %d", i+1)
 			}
 			gate.release <- struct{}{}
@@ -452,7 +452,7 @@ func TestFeedbackSnapshotDuringAnInFlightMatch(t *testing.T) {
 	// is a different (error) path, tested elsewhere.
 	select {
 	case <-gate.reached:
-	case <-time.After(30 * time.Second):
+	case <-time.After(testutil.WaitBudget):
 		t.Fatal("seat 0 never reached its first decision")
 	}
 	gate.release <- struct{}{}
@@ -500,7 +500,7 @@ func TestFeedbackSnapshotDuringAnInFlightMatch(t *testing.T) {
 	}()
 	select {
 	case <-started:
-	case <-time.After(30 * time.Second):
+	case <-time.After(testutil.WaitBudget):
 		t.Fatal("the reader never completed a first capture")
 	}
 	advance(25)
@@ -664,7 +664,7 @@ func TestFeedbackReplaysAMatchThatCreatesTokens(t *testing.T) {
 	for i := 0; i < 60; i++ {
 		select {
 		case <-gate.reached:
-		case <-time.After(30 * time.Second):
+		case <-time.After(testutil.WaitBudget):
 			t.Fatal("seat 0 never reached a decision")
 		}
 		gate.release <- struct{}{}

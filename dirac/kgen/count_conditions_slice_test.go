@@ -11,7 +11,10 @@ import "testing"
 // Count$MostProminentCreatureType cards with a Creature.YouCtrl spec (Kindred
 // Summons reads it only in an AI SVar), and Gonti's Machinations (the bare
 // AFLifeLost amount after a LoseLife); then three Masteries
-// (Count$AltCost.1.0: the stack entry's trigPlAltCost mark, ExAltCost).
+// (Count$AltCost.1.0: the stack entry's trigPlAltCost mark, ExAltCost); then
+// the two kicker-{X} Count$xPaid cards (Verdeloth the Ancient and Kangee,
+// Aerie Keeper), whose announced X the kernel now asks, prices and stamps
+// (kickerx_lower_test.go).
 var countConditionsLowered = []string{
 	"Athreos, God of Passage", "Iroas, God of Victory", "Karametra, God of Harvests",
 	"Klothys, God of Destiny", "Mogis, God of Slaughter", "Phenax, God of Deception",
@@ -20,15 +23,16 @@ var countConditionsLowered = []string{
 	"White Lotus Tile", "Basalt Ravager", "Littjara Kinseekers", "Skemfar Shadowsage",
 	"Gonti's Machinations", "Kindred Summons",
 	"Baleful Mastery", "Fervent Mastery", "Ingenious Mastery",
+	"Verdeloth the Ancient", "Kangee, Aerie Keeper",
 }
 
 // countConditionsRefused are the cards the slice still refuses, each a class of
 // its own with a kernel read (or a gorge model) the slice does not carry:
 // Hellbent and Surge (gorge fails both closed: conditionUnmodelledBare), the
 // loyalty/equip/power-up activation kinds (the activation ledger records no
-// kind), Graxiplon's DefenderCtrl read in a CantBlockBy static, the kicker-{X}
-// Count$xPaid forms, Devastating and Verdant Mastery (their Count$AltCost
-// lowers; a ChangeZone to or under the ChosenPlayer does not), Ugin's
+// kind), Graxiplon's DefenderCtrl read in a CantBlockBy static, Devastating
+// and Verdant Mastery (their Count$AltCost lowers; a ChangeZone to or under
+// the ChosenPlayer does not), Ugin's
 // Labyrinth's ExiledWithSource count, the TargetedByTarget$ and
 // TargetedController$CardsInGraveyard heads, Galloping Lizrog's "any number"
 // RemoveCounter and Sanctum Prelate's CantBeCast bound "Chosen". A card that
@@ -38,7 +42,7 @@ var countConditionsRefused = []string{
 	"Kiora of Salt and Sand", "Bruenor Battlehammer", "Advancing the Spirit",
 	"Graxiplon",
 	"Devastating Mastery", "Verdant Mastery",
-	"Verdeloth the Ancient", "Kangee, Aerie Keeper", "Plumb the Forbidden", "Relentless Dead",
+	"Plumb the Forbidden", "Relentless Dead",
 	"Ugin's Labyrinth", "Not of This World", "Bane's Contingency", "Lullmage's Domination",
 	"Galloping Lizrog", "Sanctum Prelate",
 }

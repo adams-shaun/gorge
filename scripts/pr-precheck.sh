@@ -9,6 +9,19 @@ source scripts/pr-cards.sh
 cap=(systemd-run --user --scope -q -p MemoryMax=4G -p CPUQuota=400% env GOMAXPROCS=4 GOMEMLIMIT=3GiB)
 log=$(mktemp); trap 'rm -f "$log"' EXIT
 fail() { echo "pr-precheck: $*"; exit 1; }
+# A pass is stamped by the hash of the branch's own diff against $base (the merge-base diff). When main moves and a
+# CLEAN merge or rebase leaves that diff unchanged, the stamp matches and the checks below are not run again: the
+# merge queue's batch is the gate for the merge itself (11-26: a GLM subagent merged main and re-ran the whole
+# battery in a loop, each time main had moved again). PR_PRECHECK_FORCE=1 re-runs. The key is read on stdin.
+already_passed() {
+  read -r key
+  [ -n "$key" ] && [ -e "${PRECHECK_STAMP_DIR:-$HOME/.cache/gorge-precheck}/$key" ]
+}
+own_key=$(git diff --binary "$base"...HEAD | sha256sum | cut -d' ' -f1)
+if [ -z "${PR_PRECHECK_FORCE:-}" ] && already_passed <<<"$own_key"; then
+  echo "pr-precheck: ok (this diff already passed; main moving does not re-run it, the merge queue gates the merge)"
+  exit 0
+fi
 # gofmt, the lint job's first step (.github/workflows/ci.yml): #1964 printed "pr-precheck: ok" here and then failed
 # lint on ./dirac/turn_gen.go and ./dirac/combat_mustbeblocked.go, needing a hand gofmt commit and a requeue. First,
 # before any heavy step. --diff-filter=ACMR is the "still exist" half: a file the branch deletes is not there for
@@ -25,7 +38,33 @@ fi
 heads_gate() {
   grep -q -E '^(engine/(events|effects|state|rules|cards)/|cmd/forgec/)'
 }
+# The branch name on stdin: regen/* owns the derived records (scripts/regen-main.sh
+# regenerates them wholesale) and mergify/merge-queue/* replays regen branches, so the derived step below skips
+# them. Detached HEAD resolves to "HEAD": not exempt.
+derived_exempt() {
+  case $(cat) in
+  regen/* | mergify/merge-queue/*) return 0 ;;
+  *) return 1 ;;
+  esac
+}
 changed=$(git diff --name-only "$base"...HEAD)
+# A branch still carrying a rise in the derived records conflicts with regen/main the moment it merges (11-26: 25
+# open wt/* PRs CONFLICTING after each regen merge, every one rewriting support.md or a pin table). pr-derived.sh
+# --check flags one: a record the diff touches is stale iff the tolerant test passes on $base's copy — a rise
+# regen/main owns; a fall is kept by design. The corpus lives only here (pr-cards.sh), so the CI lint job and
+# queue-precheck cannot run this step (a path-only rule would block every legitimate fall).
+if grep -qxF -f <(bash scripts/pr-derived.sh --list) <<<"$changed"; then
+  if ! derived_exempt <<<"${PR_PRECHECK_BRANCH:-$(git rev-parse --abbrev-ref HEAD)}"; then
+    rc=0; out=$(bash scripts/pr-derived.sh --check "$base") || rc=$?
+    if [ "$rc" = 1 ]; then
+      files=${out##*pr-derived: stale }
+      files=${files%%$'\n'*}
+      fail "derived records $files carry a rise that regen/main owns: run scripts/pr-derived.sh $base and commit what it changes (a fall is kept by design)"
+    elif [ "$rc" != 0 ]; then
+      fail "derived records check: $out"
+    fi
+  fi
+fi
 if ! "${cap[@]}" go test -timeout 3m -run '^TestCodeShapeOnlyShrinks$' ./internal/codeshape >"$log" 2>&1; then
   # TestCodeShapeOnlyShrinks holds the tree-wide counts (stringLiteralCompares and the rest): a dirac ticket added two
   # string compares and failed its batch's test (0), as no affected-package rule selects ./internal/codeshape (#662, 11-17).
@@ -130,4 +169,6 @@ if [ -n "$fresh" ]; then
   done
   rm -rf "$scratch"
 fi
+sd=${PRECHECK_STAMP_DIR:-$HOME/.cache/gorge-precheck}
+mkdir -p "$sd" && : >"$sd/$own_key" && find "$sd" -type f -mtime +7 -delete 2>/dev/null
 echo "pr-precheck: ok"

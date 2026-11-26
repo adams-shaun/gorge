@@ -33,6 +33,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 	"github.com/adams-shaun/gorge/engine/view"
 	"github.com/adams-shaun/gorge/server/protocol"
+	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
 // inHandAt is the set of object ids in seat p's hand at the state the
@@ -166,7 +167,7 @@ func TestViewAtSeatAndEventsSeatDuringALiveMatch(t *testing.T) {
 	}
 	select {
 	case <-entered:
-	case <-time.After(10 * time.Second):
+	case <-time.After(testutil.WaitBudget):
 		t.Fatal("the match never parked on a decision")
 	}
 	_, m, err := r.lookup("t1", 1)
