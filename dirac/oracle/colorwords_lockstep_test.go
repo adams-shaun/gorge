@@ -11,19 +11,21 @@ import (
 // Swirl the Mists (a Continuous ChangeColorWordsTo$ static over the spells
 // and permanents, CR 612.5; kop.StatColorWords) in lockstep against gorge on
 // the fixture pool dirac/cardset/pools/fixtures/colorwords. The kernel holds
-// no per-object text, so it models the change where it is a no-op (no spell
-// or permanent in play reads a colour word the chosen one replaces) and
-// stalls where it is not (dirac.StallTextChange). Both halves are asserted:
+// no per-object text, so it rewrites the colour words where the faces are
+// read (dirac/static_colorwords.go: a target spec's filter masks and a
+// printed Protection keyword of an affected spell or permanent) and stalls
+// (dirac.StallTextChange) only where a rewritten word also sits on a surface
+// the model does not read. Both halves are asserted:
 //
 //   - TestColorWordsLockstepNoOp: no card of the decks names a colour word,
 //     so Swirl resolves, records a colour and stays live while the games run
 //     clean and unstalled and the kernel agrees with gorge decision for
 //     decision; the live counter proves the static was read.
-//   - TestColorWordsLockstepReadsStall: Doom Blade (target nonblack creature)
-//     and Northern Paladin (target black permanent) name black, so a game that
-//     chose any other colour stalls the kernel (unmodelled) the moment the
-//     card is cast or in play instead of leaving the unchanged text standing,
-//     and no seed diverges before it.
+//   - TestColorWordsLockstepReadsAgree: Doom Blade (target nonblack creature)
+//     and Northern Paladin (target black permanent) name black, so a game that chose another colour reads their rewritten
+//     faces (nonred, target red permanent) and still agrees with gorge
+//     decision for decision, unstalled, with the rewrite counter proving the
+//     masks moved.
 
 const colorWordsPool = "colorwords"
 
@@ -110,35 +112,37 @@ func TestColorWordsLockstepNoOp(t *testing.T) {
 	}
 }
 
-func TestColorWordsLockstepReadsStall(t *testing.T) {
+func TestColorWordsLockstepReadsAgree(t *testing.T) {
 	t.Parallel()
 	before := dirac.ColorWordsStats.Stalls.Load() + dirac.ColorWordsStats.Casts.Load()
 	var mu sync.Mutex
-	stalls := 0
+	played := 0
 	seedChunks(t, 1, 160, lockstepChunk, func(t *testing.T, lo, hi uint64, _ *sync.Mutex) {
 		n := 0
 		colorWordsPlay(t, colorWordsReadDecks, lo, hi, func(seed uint64, res *Result) {
+			if err := unmodelledStallError(t.Name(), res); err != nil {
+				t.Errorf("seed %d: %v", seed, err)
+			}
 			if d := res.Div; d != nil {
-				t.Errorf("seed %d: diverged at decision %d: %s %s %v", seed, d.At, d.What, d.Field, d.Diff)
+				t.Errorf("seed %d: diverged at decision %d: %s %s %v %s\nref %v\nker %v", seed, d.At, d.What, d.Field, d.Diff, d.Detail, d.RefOptions, d.KerOptions)
 				return
 			}
-			if res.Stall == KernelStallPrefix+dirac.StallName(dirac.StallTextChange) {
-				if !res.StallUnmodelled {
-					t.Errorf("seed %d: the text-change stall is not classed unmodelled", seed)
-				}
-				n++
-			}
+			n++
 		})
 		mu.Lock()
-		stalls += n
+		played += n
 		mu.Unlock()
 	})
 	if t.Failed() {
 		return
 	}
-	reads := dirac.ColorWordsStats.Stalls.Load() + dirac.ColorWordsStats.Casts.Load() - before
-	t.Logf("%d games stalled on a colour word a Swirl rewrites; %d stalls", stalls, reads)
-	if stalls == 0 || reads < int64(stalls) {
-		t.Fatalf("%d stalled games, %d reads: no Swirl reached a card that reads a colour word it rewrites", stalls, reads)
+	stalls := dirac.ColorWordsStats.Stalls.Load() + dirac.ColorWordsStats.Casts.Load() - before
+	reads := dirac.ColorWordsStats.Reads.Load()
+	t.Logf("%d seeds agree unstalled over the rewritten faces; %d rewritten mask reads, %d stalls", played, reads, stalls)
+	if stalls != 0 {
+		t.Errorf("%d unmodelled stalls: a deck card reads a rewritten colour word on a surface the model does not rewrite", stalls)
+	}
+	if reads == 0 {
+		t.Fatal("no colour mask read a rewritten face: the decks never reach the model")
 	}
 }
