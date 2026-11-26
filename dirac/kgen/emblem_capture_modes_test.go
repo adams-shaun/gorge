@@ -4,14 +4,16 @@ import "testing"
 
 // emblemCaptureModes: the single-blocked carriers of the Effect-triggers
 // RememberObjects$ class (census 11-25), one row each. RememberObjects$ Self
-// read only as the body's Defined$ Remembered over SpellCast lowers (lower_effectremself.go:
-// the emblem's source object), and Targeted over an end-of-turn Attacks line
-// lowers as the emblem's capture (lower_effeottrig.go emblemCapture); every
-// other sub-shape stays refused by name.
+// read only as the body's Defined$ Remembered over SpellCast or DamageDone
+// lowers to the emblem's source object, kop.RefEmblemSource (lower_effeottrig.go
+// emblemSelfRemember; the kernel queues the emblem trigger at srcVer = ver+1,
+// so plain RefSelf names nothing there); Targeted over an end-of-turn Attacks
+// line lowers as the emblem's capture (lower_effeottrig.go emblemCapture);
+// every other sub-shape stays refused by name.
 var emblemCaptureModes = []formCase{
 	// Self: lowered when the set is read only as Defined$ Remembered
-	{card: "Mountain Titan", form: "Self, SpellCast, PutCounter on Defined$ Remembered", lir: "PutCounter obj=Self"},
-	{card: "Dovin, Grand Arbiter", form: "Self, DamageDone (diverges on simultaneous combat damage)", refused: `RememberObjects$ "Self" over Mode$ DamageDone`},
+	{card: "Mountain Titan", form: "Self, SpellCast, PutCounter on Defined$ Remembered", lir: "PutCounter obj=EmblemSource A=1 CS=P1P1"},
+	{card: "Dovin, Grand Arbiter", form: "Self, DamageDone (mbcselfrem pool plays it in lockstep)", lir: "PutCounter obj=EmblemSource"},
 	// Self: refused where the set is a filter
 	{card: "Electric Seaweed", form: "Self, ChangesZone ValidCard$ Creature.!IsRemembered", refused: `RememberObjects$ "Self" and trigger ValidCard$`},
 	{card: "Massacre Girl", form: "Self, PumpAll ValidCards$ Creature.!IsRemembered", refused: `RememberObjects$ "Self" and body ValidCards$`},

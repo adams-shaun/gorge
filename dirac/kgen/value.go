@@ -382,6 +382,8 @@ func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 			v, err = lc.oppCastCondValue(rest) // value_oppcondition.go
 		case rest == oppsDealtDamageBody:
 			v = lValue{Kind: vOppsLostLife, N: 3} // value_turntallies.go
+		case rest == remDrawRecipientsBody:
+			v, err = lc.remDrawRecipientsValue() // value_remdrawrecipients.go
 		default:
 			err = fmt.Errorf("PlayerCountOpponents$%s", rest)
 		}
@@ -603,6 +605,10 @@ func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 			return lValue{}, fmt.Errorf("TargetedPlayer$ with no target slot")
 		}
 		ref := lRef{Kind: rTarget, N: t}
+		if spec, ok := strings.CutPrefix(rest, "ValidGraveyard "); ok {
+			v, err = lc.targetedPlayerGraveyard(spec) // value_tgtplayeryard.go
+			break
+		}
 		switch rest {
 		case "LifeTotal":
 			v = lValue{Kind: vLifeOf, Ref: ref}
@@ -1556,6 +1562,12 @@ func (lc *lowerCtx) countValue(rest string, depth int) (lValue, error) {
 		{"CommittedCrimeThisTurn.", vCommittedCrime, false}, {"Void.", vVoid, false}, {"IfCastInOwnMainPhase.", vIfCastOwnMain, false},
 		{"Monarch.", vMonarch, false}, {"Blessing.", vBlessing, false},
 		{"wasCastFromGraveyard.", vCastFromGrave, false},
+		// AltCost.<paid>.<unpaid> (Worldheart Phoenix's trigger CheckSVar,
+		// the mastery cards' BranchConditionSVar): the cast's alternative
+		// cost, its own StatAlternativeCost static's (kop.ExAltCost; gorge
+		// count_body_heads.go reads FlagAltCostPaid / the pending cast's
+		// PendingAltCost)
+		{"AltCost.", vAltCost, false},
 		{"Bargained.", vKicked, true}, {"Bargain.", vKicked, true}, {"OptionalGenericCostPaid.", vKicked, false}} {
 		if !strings.HasPrefix(rest, cv.pre) {
 			continue
@@ -1626,6 +1638,9 @@ func (lc *lowerCtx) countValue(rest string, depth int) (lValue, error) {
 		// mark is the stack-side read; a permanent's is the arena's mechSneaked.
 		return lValue{Kind: vSneaked, Sub: []lValue{cst(1), cst(0)}}, nil
 	}
+	if spec, ok := strings.CutPrefix(rest, "MostCardName "); ok {
+		return lc.mostCardNameValue(spec) // value_mostcardname.go
+	}
 	if strings.HasPrefix(rest, "ValidStack ") {
 		return lValue{}, refuse("Count$%s: only ValidStack Card.Self+sneaked is read", rest)
 	}
@@ -1665,6 +1680,13 @@ func (lc *lowerCtx) countValue(rest string, depth int) (lValue, error) {
 			return lValue{Kind: zc.kind[0], F: f, N: own.N, Ref: own.Ref}, nil
 		}
 		return lValue{Kind: vSum, Sub: []lValue{{Kind: zc.kind[0], F: f}, {Kind: zc.kind[1], F: f}}}, nil
+	}
+	if spec, ok := strings.CutPrefix(rest, "ValidAll "); ok && validAllBattlefieldOnly(spec) {
+		// gorge's ValidAll scans every zone, but a spec every alternative of
+		// which carries an attacking word matches only battlefield objects
+		// (IsAttacking clears on any zone move), so it is the battlefield
+		// Count$Valid fold (Mangara, the Diplomat; Tomik, Wielder of Law)
+		rest = "Valid " + spec
 	}
 	if strings.HasPrefix(rest, "Valid ") || strings.HasPrefix(rest, "ValidGraveyard ") {
 		kind := vCount
@@ -1901,4 +1923,28 @@ func (lc *lowerCtx) activeHandCount() (lValue, error) {
 		return lValue{}, err
 	}
 	return lValue{Kind: vCountHand, F: f}, nil
+}
+
+// validAllBattlefieldOnly reports whether a Count$ValidAll spec can match only
+// battlefield objects: no aggregate, and every comma alternative carries an
+// attacking word (attacking, attackingYou, attackingYouOrYourPW[LKI]), which
+// gorge reads from Object.IsAttacking, false off the battlefield.
+func validAllBattlefieldOnly(spec string) bool {
+	if spec == "" || strings.Contains(spec, "$") {
+		return false
+	}
+	for _, alt := range strings.Split(spec, ",") {
+		_, props, _ := strings.Cut(strings.TrimSpace(alt), ".")
+		found := false
+		for _, w := range strings.Split(props, "+") {
+			switch w {
+			case "attacking", "attackingYou", "attackingYouOrYourPW", "attackingYouOrYourPWLKI":
+				found = true
+			}
+		}
+		if !found {
+			return false
+		}
+	}
+	return true
 }
