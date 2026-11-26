@@ -1182,7 +1182,7 @@ func (lc *lowerCtx) countValue(rest string, depth int) (lValue, error) {
 		// the spell became (the kernel's kicked mark), 0 for a token copy. The
 		// trigger reads it as it fires and is not checked again, so its body knows
 		// it was paid, and a source that has left still mints.
-		if lc.out.Offspring == nil {
+		if lc.out.Offspring == nil && !lc.offGrant {
 			return lValue{}, fmt.Errorf("Count$OffspringPaid without K:Offspring")
 		}
 		if lc.trigBody {
