@@ -65,32 +65,3 @@ func kvModMultiply(v lValue, k int) lValue {
 	v.Mul = k
 	return v
 }
-
-// kvDiscoverTailRefused reports whether a program is the Discover shape whose
-// free cast is followed by a board-affecting tail: OpDiscover (the exile/pick),
-// OpCastFree over the remembered card, OpDiscover C=1 (the uncast card to hand),
-// then anything except ClearRemembered.
-//
-// The kernel's OpCastFree only queues the cast; the rest of the resolution's
-// program runs before the queue drains (turn_gen). gorge announces the cast
-// (asking its targets/modes) and runs the tail only after that ask, so a tail
-// that reads or changes the board diverges at the cast's ask. Hit the Mother
-// Lode's DB$ Token tail (the Treasure count) is the corpus carrier; the
-// standard Discover tail (hand + clear) is order-independent and stays
-// accepted. Refuse rather than lower a card the kernel cannot copy exactly;
-// remove this guard when kernel-discover-freecast-order lands.
-func kvDiscoverTailRefused(p []lInstr) bool {
-	for i := 0; i+2 < len(p); i++ {
-		if p[i].Op != "Discover" || p[i].C != 0 ||
-			p[i+1].Op != "CastFree" || p[i+1].Obj.Kind != rRemembered || p[i+1].C != zExile ||
-			p[i+2].Op != "Discover" || p[i+2].C != 1 {
-			continue
-		}
-		for j := i + 3; j < len(p); j++ {
-			if p[j].Op != "ClearRemembered" {
-				return true
-			}
-		}
-	}
-	return false
-}
