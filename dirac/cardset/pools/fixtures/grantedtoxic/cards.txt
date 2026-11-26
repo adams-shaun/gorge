@@ -1,0 +1,23 @@
+# The granted-toxic pool (dirac/oracle/grantedtoxic_lockstep_test.go): Toxic N
+# granted rather than printed (CR 702.164c: instances add). Aspirant's Ascent
+# (Pump) and Plague Nurse (PumpAll, withToxic) grant until end of turn;
+# Karumonix's static grants Other Rats, Necrogen Communion (Aura) and
+# Prosthetic Injector (Equipment) grant to their host; Monument to Perfection's
+# Animate grants permanently. Printed-toxic creatures (Branchblight Stalker,
+# Karumonix, Plague Nurse) take the grants on top of their own N; Rats and
+# vanilla creatures take them alone. Monument's Animate needs nine land names, which no
+# random game reaches: its Override.Toxic read is TestGrantedToxicReads.
+Aspirant's Ascent
+Branchblight Stalker
+Forest
+Glory Seeker
+Grizzly Bears
+Gutter Skulk
+Island
+Karumonix, the Rat King
+Monument to Perfection
+Muck Rats
+Necrogen Communion
+Plague Nurse
+Prosthetic Injector
+Swamp

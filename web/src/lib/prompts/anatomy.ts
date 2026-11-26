@@ -3,6 +3,7 @@ import { findCardAnywhere } from '../board';
 import { sourceStackOf } from '../prompt';
 import { arrangeDestination } from '../arrange';
 import { mulliganPhase } from './decision';
+import { isManaSacrificeAsk } from './castmana';
 import { rendererFor, type RendererKind } from './renderer';
 import { promptWords } from './words';
 
@@ -121,7 +122,7 @@ function afterDash(text: string): string | null {
 
 /** promptAnatomy is the dock's words for one decision. */
 export function promptAnatomy(d: Decision, view: View): Anatomy {
-  const renderer = rendererFor(d);
+  const renderer = rendererFor(d, view);
   const source = promptSource(d, view);
   const srcName = source?.card?.name ?? null;
   const stackText = sourceStackOf(d, view)?.text?.trim() || null;
@@ -182,6 +183,15 @@ export function promptAnatomy(d: Decision, view: View): Anatomy {
     case 'payment':
       title = srcName ? `Pay for ${srcName}` : 'Pay the mana cost';
       plain = 'Tap sources on the board or below, or let Auto-fill pick them.';
+      break;
+    case 'castmana':
+      if (isManaSacrificeAsk(d, view)) {
+        title = promptWords(d.prompt);
+        plain = 'The candidate permanents are highlighted on the board.';
+      } else {
+        title = srcName ? `Pay mana for ${srcName}` : 'Activate mana abilities';
+        plain = 'Tap a source below or on the board to float its mana, then Done.';
+      }
       break;
     case 'priority':
       plain = null;

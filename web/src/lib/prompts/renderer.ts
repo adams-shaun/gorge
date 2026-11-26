@@ -1,10 +1,11 @@
-import type { Decision } from '../../protocol';
+import type { Decision, View } from '../../protocol';
 import { isSearchPick } from '../search';
 import { isNamePick } from '../name-pick';
 import { isDiscardPick } from '../discard';
 import { manaWindow } from '../announcepay';
 import { mulliganPhase } from './decision';
 import { isDivideTarget } from './divide';
+import { isCastManaWindow, isManaSacrificeAsk } from './castmana';
 
 /**
  * RendererKind names the one renderer a decision is drawn by: one renderer
@@ -23,22 +24,30 @@ import { isDivideTarget } from './divide';
  *  - divide: a target ask that carries a total to divide among its targets
  *    (divide_total): one stepper per target, both asks answered in one prompt.
  *  - attackers / blockers: assigned on the board, summarised in the dock.
+ *  - castmana: the MANUAL cast-payment asks — the mid-cast CR 601.2g window
+ *    (activate+done options whose source sits on the stack) and the
+ *    sacrifice election one of its activations can hand back (every option
+ *    a sacrifice candidate). Detected by decision shape in prompts/
+ *    castmana.ts, never by prompt text; the view is what separates the cast
+ *    window from its same-shaped sibling payment windows, so a caller with
+ *    no view (dock.ts, order.ts) sees `list` for it and is unaffected.
  *  - list: every other kind — modes, choose, replacement, trigger_order,
  *    trigger_optional, commander_zone, starting_player — as numbered rows;
  *    single- vs multi-select comes from the decision's own min/max.
  */
 export type RendererKind =
-  | 'mulligan' | 'arrange' | 'discard' | 'search' | 'name' | 'payment'
+  | 'mulligan' | 'arrange' | 'discard' | 'search' | 'name' | 'payment' | 'castmana'
   | 'priority' | 'target' | 'divide' | 'attackers' | 'blockers' | 'list';
 
-/** rendererFor resolves a decision's renderer, in the precedence SeatPanel's old branch chain used. */
-export function rendererFor(d: Decision): RendererKind {
+/** rendererFor resolves a decision's renderer, in the precedence SeatPanel's old branch chain used. The optional view sharpens the cast-mana shape (see isCastManaWindow); every existing one-argument call keeps its answer. */
+export function rendererFor(d: Decision, view?: View | null): RendererKind {
   if (mulliganPhase(d) !== null) return 'mulligan';
   if (d.kind === 'arrange') return 'arrange';
   if (isDiscardPick(d)) return 'discard';
   if (isSearchPick(d)) return 'search';
   if (isNamePick(d)) return 'name';
   if (manaWindow(d) !== null) return 'payment';
+  if (isCastManaWindow(d, view ?? null) || isManaSacrificeAsk(d, view ?? null)) return 'castmana';
   switch (d.kind) {
     case 'priority': return 'priority';
     case 'target': return isDivideTarget(d) ? 'divide' : 'target';
