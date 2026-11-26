@@ -101,6 +101,9 @@ func (s *State) InitNStart(tbl *Table, decks [MaxSeats][]CardID, n uint8, seed u
 	if cfg.Commander {
 		s.cfg |= cfgCommander
 	}
+	if cfg.PriorityManaAsk {
+		s.g.priAsk = 1
+	}
 	s.divA = NoSlot
 	s.mullMax = cfg.Mulligans
 	s.win = -1
@@ -365,6 +368,9 @@ func (s *State) stepRaw(d *Decision) {
 		case ctlTurnUpReveal:
 			s.turnUpRevealOptions(k, d) // act_revealpick.go
 			return
+		case ctlManaAsk:
+			s.priManaAskOptions(k, d) // mana_priask.go
+			return
 		case ctlCmdZone0, ctlCmdZone1, ctlCmdZone2, ctlCmdZone3, ctlCmdZone4, ctlCmdZone5, ctlCmdZone6, ctlCmdZone7:
 			s.askCmdZone(k, d, s.ctl-ctlCmdZone0) // CR 903.9a (zone_cmdzone.go)
 			return
@@ -439,6 +445,8 @@ func (s *State) Apply(a Action) {
 		s.applyTurnUpX(k, a) // face_turnfaceup.go
 	case ctlTurnUpReveal:
 		s.applyTurnUpReveal(k) // act_revealpick.go
+	case ctlManaAsk:
+		s.applyPriManaAsk(k, a) // mana_priask.go
 	case ctlCmdZone0, ctlCmdZone1, ctlCmdZone2, ctlCmdZone3, ctlCmdZone4, ctlCmdZone5, ctlCmdZone6, ctlCmdZone7:
 		s.applyCmdZone(k, s.ctl-ctlCmdZone0, a.Mode()) // CR 903.9a (zone_cmdzone.go)
 	case ctlDivide:
