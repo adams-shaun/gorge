@@ -29,6 +29,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 	"github.com/adams-shaun/gorge/engine/view"
 	"github.com/adams-shaun/gorge/server/protocol"
+	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
 // mulliganFixturePath is the committed fixture the web test imports, relative
@@ -55,7 +56,7 @@ type mulliganStarterFixture struct {
 // any other error is fatal.
 func waitNextPending(t *testing.T, r *Registry, id TableID, k int, p state.PlayerID, prev uint64) *decision.Decision {
 	t.Helper()
-	deadline := time.Now().Add(20 * time.Second)
+	deadline := time.Now().Add(testutil.WaitBudget)
 	for {
 		d, err := r.Pending(id, k, p)
 		if err == nil && d.Seq != prev {
