@@ -743,6 +743,13 @@ func (c *lClause) prop(p string, knownSub func(string) bool) error {
 		// K. Ross). fAttacking stays for the readers that gate on it.
 		c.Flags |= fAttacking
 		return c.setCmp(cmpAttackingYou, 0, 0, "", "")
+	case "attackingYouOrYourPW", "attackingYouOrYourPWLKI":
+		// gorge attackingYouOrYourPW(LKI): attacking "you" itself, or a
+		// planeswalker (animated or not) the evaluating player controls;
+		// a battle's attacker never counts. PredN 1 on the same predicate
+		// (kernel attackingYou's pw arm; Soul Snare, Mangara, Tomik).
+		c.Flags |= fAttacking
+		return c.setCmp(cmpAttackingYou, 0, 1, "", "")
 	case "YouCtrl", "YourTeamCtrl":
 		// gorge predicates["YourTeamCtrl"] reads YouCtrl: gorge models no
 		// teams, so a player's team is that player alone (Combo Attack)
@@ -1120,6 +1127,13 @@ func (c *lClause) prop(p string, knownSub func(string) bool) error {
 		// Animate Defined$ Targeted.!Creature qualifier); any other
 		// negated word falls through to "unknown property"
 		if bits, ok := typeBits[w]; ok && bits&tAnyCard != 0 && w != "Card" && w != "Permanent" {
+			c.NotTypes |= bits
+			return nil
+		}
+		if bits, ok := typeBits[w]; ok && bits&tSupertype != 0 {
+			// gorge's '!' of a supertype word (Unmarked Grave's
+			// Card.!Legendary): !hasType <w>, the nonLegendary / nonBasic
+			// clause
 			c.NotTypes |= bits
 			return nil
 		}

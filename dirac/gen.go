@@ -1119,8 +1119,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 			}
 		}
 	}
-	prepHexOwn(t, g)      // kw_hexproofcolor.go
-	prepEmblemCasts(t, p) // cast_selfflash.go
+	prepHexOwn(t, g)                     // kw_hexproofcolor.go
+	prepEmblemCasts(t, p)                // cast_selfflash.go
+	p.anyEmbAltCost = tableEmbAltCost(t) // cast_embaltcost.go
 	for i := range t.Cards {
 		c := &t.Cards[i]
 		pc := &p.cards[i]

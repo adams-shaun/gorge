@@ -1,0 +1,11 @@
+# Sephara, Sky's Blade: the alternative cost whose mana ({W}) sits beside a
+# tapXType part (four untapped creatures with flying), CR 118.9, 601.2h.
+# Decks play it in dirac/oracle/sephara_altcost_lockstep_test.go.
+Sephara, Sky's Blade
+Suntail Hawk
+Iridescent Tiger
+Grizzly Bears
+Hill Giant
+Plains
+Forest
+Mountain
