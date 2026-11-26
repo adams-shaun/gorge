@@ -6,6 +6,10 @@ import (
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
+// DebugNoGrantCovered makes every grant a census gap again (the mutation twin
+// of cmd5_rhonas_grant_prefix_float_test.go).
+var DebugNoGrantCovered bool
+
 // grantCovered reports whether the mana ability grant gi gives sl is a census
 // gap gorge does not have: a lone "{T}: Add one mana of [one colour]" that one
 // of sl's own usable printed lone-{T} abilities already makes (an equal
@@ -20,6 +24,9 @@ import (
 // Only the plain case is read: a gate, a reflected or variable ability, a
 // restriction, a rider or a self-colour grant keeps the grant a gap.
 func (s *State) grantCovered(k *prep, sl Slot, gi int16) bool {
+	if DebugNoGrantCovered {
+		return false
+	}
 	g := k.gen
 	c := s.cardAt(sl)
 	if g.grantSelf[gi] || g.flags[c]&(gfManaGate|gfManaRefl|gfManaVar) != 0 || !s.ownManaUsable(k, sl) {
