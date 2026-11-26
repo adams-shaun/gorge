@@ -948,6 +948,8 @@ const ExDevotionDual ExprKind = 70
 const ExStartingPlayer ExprKind = 71
 
 // count AltCost (dirac/manifest/ExprKind/ExAltCost)
+//
+// Sub[0] if the resolving spell was cast for its own S:Mode$ AlternativeCost static's alternative (kernel build.altAdd buildAltCost, stamped as the spell entry's trigPlAltCost mark), else Sub[1] (Count$AltCost.<paid>.<unpaid>; Worldheart Phoenix's SpellCast CheckSVar; gorge count_body_heads.go reads FlagAltCostPaid or the pending cast's PendingAltCost). Read through the stack for a trigger above its spell, as ExSneaked is.
 const ExAltCost ExprKind = 72
 
 // count Result (dirac/manifest/ExprKind/ExResult)
@@ -1838,35 +1840,40 @@ const FwToughnessCmp FilterWord = 18
 // FwWithKeyword: the object prints keyword Arg (a KwID), gorge's with<Keyword> over the printed face (effects/filter.go objectHasKeyword); a permanent reads none while face down or after a lose-all-abilities effect.
 const FwWithKeyword FilterWord = 19
 
+// FilterWord (dirac/manifest/FilterWord/FwCanProduceManaColor)
+//
+// FwCanProduceManaColor: the battlefield permanent's printed mana abilities can produce a mana type in the colour mask Arg (gorge's canProduceManaColor <Colour> predicate, Forge CardProperty canProduceManaColor over AbilityManaPart.canProduce; Break the Ice's and Obsidian Charmaw's Land.canProduceManaColor Colorless). The producible set is the kernel's cardProducible: kop.CardDef.ProduceCol for WUBRG (an "Any" production counts as every colour but never colourless) plus {C} when a printed mana ability makes it.
+const FwCanProduceManaColor FilterWord = 20
+
 // FilterWord (dirac/manifest/FilterWord/FwCanProduceSameManaTypeWith)
 //
 // FwCanProduceSameManaTypeWith: the battlefield permanent can produce at least one type of mana the object the referent R names can also produce (gorge's canProduceSameManaTypeWith predicate over SpecContext.TriggerCard, engine/effects/filter_word_manatype.go; Mana Web's TapAll body). The producible set is the printed mana abilities' types: kop.CardDef.ProduceCol for WUBRG plus {C} when a printed mana ability makes it, the same census kernel mana_reflected.go producesColourless reads. R is RefTriggerObj for the kgen shape TriggeredCard.canProduceSameManaTypeWith+<type>. An unbound referent or an object that produces nothing matches nothing, fail closed.
-const FwCanProduceSameManaTypeWith FilterWord = 20
+const FwCanProduceSameManaTypeWith FilterWord = 21
 
 // FilterWord (dirac/manifest/FilterWord/FwModal)
 //
 // FwModal: the cast spell chose at least one mode of its charm (gorge's `Modal` predicate, engine/effects/filter.go: len(ChosenModes) > 0; SpellCast ValidSA$ Spell.Modal, Riku of Many Paths). A spell that is no charm, a face-down spell and a card off the stack read false; an MDFC is not modal.
-const FwModal FilterWord = 21
+const FwModal FilterWord = 22
 
 // FilterWord (dirac/manifest/FilterWord/FwPaired)
 //
 // FwPaired: the battlefield permanent is paired with another creature by Soulbond (gorge predicates["Paired"], engine/effects/filter.go, o.Paired != 0; the kernel's kw_soulbond.go pair record). Negated, it is unpaired.
-const FwPaired FilterWord = 22
+const FwPaired FilterWord = 23
 
 // FilterWord (dirac/manifest/FilterWord/FwPairedWith)
 //
 // FwPairedWith: the battlefield permanent is the creature the reading source is paired with by Soulbond (gorge predicates["PairedWith"], engine/effects/filter.go, source.Paired == candidate; the kernel's kw_soulbond.go pair record). A source with no pair fails closed.
-const FwPairedWith FilterWord = 23
+const FwPairedWith FilterWord = 24
 
 // FilterWord (dirac/manifest/FilterWord/FwSingleTarget)
 //
 // FwSingleTarget: the cast spell has exactly one target, counting every chained sub-ability's targets with the root's (gorge's `singleTarget` predicate, engine/effects/filter.go: len(Targets)+len(SubTargets) == 1; SpellCast ValidSA$ Spell.singleTarget and Instant.singleTarget,Sorcery.singleTarget). No target and two targets both read false, and two slots naming one object count twice, as gorge counts them.
-const FwSingleTarget FilterWord = 24
+const FwSingleTarget FilterWord = 25
 
 // FilterWord (dirac/manifest/FilterWord/FwTeamwork)
 //
 // FwTeamwork: the cast spell paid its Teamwork cost (gorge's `Teamwork` predicate, Object.TeamworkPaid; SpellCast ValidSA$ Spell.Teamwork, Virtual Assistant). The kernel keeps the paid flag as sfKicked on the entry (kw_teamwork.go), which a kicker cast sets too, so the word also requires the spell's card to have Teamwork: a kicked non-teamwork spell reads false.
-const FwTeamwork FilterWord = 25
+const FwTeamwork FilterWord = 26
 
 // kw StickerSheet (dirac/manifest/KwID/KwStickerSheet)
 const KwStickerSheet KwID = 32
@@ -2519,7 +2526,7 @@ const StatRetraceGrant StaticKind = 73
 
 // StaticKind (dirac/manifest/StaticKind/StatColorWords)
 //
-// StatColorWords is a Continuous static's ChangeColorWordsTo$ ChosenColor over Affected$ Spell,Permanent in AffectedZone$ Stack,Battlefield (Swirl the Mists; CR 612.5): every colour word in the text of the spells on the stack and the permanents on the battlefield becomes the source's recorded colour word. The kernel holds no per-object text (kop.ExtChangeText), so it models the change where it is a no-op and stalls where it is not: a spell about to be cast, a spell on the stack or a permanent whose card face reads (CardDef.TextWords) a colour word other than the source's chosen one stalls the game (StallTextChange, unmodelled) instead of answering from the unchanged face; a source with no recorded colour changes nothing, as gorge's colourWordEffects fails closed. Read at pushBuild and before each priority grant behind prep.anyColorWords (static_colorwords.go).
+// StatColorWords is a Continuous static's ChangeColorWordsTo$ ChosenColor over Affected$ Spell,Permanent in AffectedZone$ Stack,Battlefield (Swirl the Mists; CR 612.5): every colour word in the text of the spells on the stack and the permanents on the battlefield becomes the source's recorded colour word. The kernel holds no per-object text (kop.ExtChangeText), so it rewrites the colour words where the faces are read (static_colorwords.go): a target spec's filter colour masks and a printed Protection keyword's colours of an affected spell or permanent read as gorge's rewritten face reads them (every colour word of the face replaced by the last-live source's colour; a source with no recorded colour changes nothing, as gorge's colourWordEffects fails closed), and an ability on the stack keeps the colour it was put on the stack under (its text is frozen then). A face whose rewritten word also sits on a surface the model does not read (CardDef.CWUnmodelled: the type line, the SVars, any other ability, trigger, static or replacement parameter) stalls the game (StallTextChange, unmodelled) at pushBuild and before each priority grant, behind prep.anyColorWords.
 const StatColorWords StaticKind = 74
 
 // StaticKind (dirac/manifest/StaticKind/StatCyclingAlt)

@@ -236,6 +236,9 @@ type prep struct {
 	// keyword grant (kop.Emblem.Forget): the completed cast ends the emblem
 	// (cast_selfflash.go embFlashForget, after the cascade triggers)
 	anyEmbForget bool
+	// anyEmbAltCost: some Effect emblem carries the StatAlternativeCost static:
+	// the Effect-delivered alternative cost (cast_embaltcost.go)
+	anyEmbAltCost bool
 	// anyRedNC: some value reads ExRedNCDmg: replDamage tallies
 	// the noncombat damage red sources deal, beginTurn clears the tally
 	anyRedNC bool
@@ -296,6 +299,10 @@ type prep struct {
 	// Encounter choose pick (a.Cost.CloseEnc; cost_closeenc.go, asked by the
 	// same costObjOptions): guards their payability and pick paths
 	costObj bool
+	// graveAlt: some card's own StatAlternativeCost static names the
+	// graveyard (kop.Static.Zone ZoneGraveyard; cast_altfree.go prepAltFree):
+	// the graveyard cast walk runs (cast_gravealt.go offerGraveyardAltCasts)
+	graveAlt bool
 	// subAmong: some ability's cost removes counters from among permanents
 	// (kop.CostSubAmong; kw_training.go): guards its pick
 	subAmong bool

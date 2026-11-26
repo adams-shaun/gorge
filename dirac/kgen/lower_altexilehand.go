@@ -21,9 +21,12 @@ func altPayLifeExileHand(c *lCost) bool {
 
 // altCostCost lowers a spell's own AlternativeCost static's Cost$ with
 // lc.altCostHand set, so an ExileFromHand<1/Spec> part keeps its filter
-// (altExileHandCost). Only ExileFromHand<N/Spec>, with PayLife<N> beside it
+// (altExileHandCost). ExileFromHand<N/Spec>, with PayLife<N> beside it
 // or not (Force of Will, Misdirection and the Force cycle), is the kernel's
-// hand-exile alternative cast; any other exile shape is refused.
+// hand-exile alternative cast; ExileFromGrave<N/Spec> beside its mana (Squee,
+// Dubious Monarch's {3}{R} and four other graveyard cards, CR 118.9) is the
+// kernel's grave-exile one (dirac altGraveExileCost); any other exile shape
+// is refused.
 func (lc *lowerCtx) altCostCost(s string) (lCost, error) {
 	lc.altCostHand = true
 	c, err := lc.cost(s)
@@ -31,10 +34,23 @@ func (lc *lowerCtx) altCostCost(s string) (lCost, error) {
 	if err != nil {
 		return c, err
 	}
-	if c.ExileG != nil && !altPayLifeExileHand(&c) {
-		return c, refuse("alternative cost with an exile part other than ExileFromHand<1/Spec>, alone or beside PayLife<N>")
+	if c.ExileG != nil && !altPayLifeExileHand(&c) && !altGraveExileCost(&c) {
+		return c, refuse("alternative cost with an exile part other than ExileFromHand<1/Spec>, alone or beside PayLife<N>, or ExileFromGrave<N/Spec> beside its mana")
 	}
 	return c, nil
+}
+
+// altGraveExileCost: the lowered alternative cost is exiling N graveyard
+// cards matching its filter beside its mana and nothing else (Squee's
+// ExileFromGrave<4/Card.Other/other cards>; kernel dirac altGraveExileCost):
+// the exile count rides c.ExileGN (kop.Cost.N), the mana the rest carries.
+func altGraveExileCost(c *lCost) bool {
+	if c.ExileG == nil || c.ExileHand || c.ExileGBf || c.exileGCard || c.ExileGN == 0 {
+		return false
+	}
+	rest := *c
+	rest.ExileG, rest.ExileGN = nil, 0
+	return rest.pureMana()
 }
 
 // altExileHandCost lowers an alternative cost's ExileFromHand<n/Spec[/desc]>
