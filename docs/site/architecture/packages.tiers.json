@@ -189,6 +189,10 @@
       "tier": "cmd",
       "status": "CORE"
     },
+    "cmd/funcgrowth": {
+      "tier": "cmd",
+      "status": "TOOL"
+    },
     "cmd/gcgate": {
       "tier": "cmd",
       "status": "TOOL"
