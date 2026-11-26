@@ -34,13 +34,6 @@ func (lc *lowerCtx) xBound() error {
 	if tr == nil || !lc.trigBody || lc.ab.Latent {
 		return fmt.Errorf("Count$xPaid in a trigger without an {X} cost")
 	}
-	if lc.out.Kicker != nil && lc.out.Kicker.X {
-		// a kicked {X} cast (Verdeloth the Ancient, Kangee): its X is paid
-		// through the kicker, which the lockstep showed gorge's
-		// lowering surface pays otherwise (it taps for the kicker before
-		// the X ask): not lifted here
-		return fmt.Errorf("Count$xPaid in a trigger without an {X} cost (kicker {X})")
-	}
 	self := tr.F != nil && tr.F.Players == 0 && len(tr.F.Clauses) == 1 && tr.F.Clauses[0].Flags&fSelf != 0
 	switch {
 	case tr.Event == "ETB" && !tr.Batch && self:
