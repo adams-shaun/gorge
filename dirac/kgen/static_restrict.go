@@ -17,6 +17,44 @@ func init() {
 	staticMode("CantPutCounter", (*staticCtx).modeCantPutCounter)
 	staticMode("CantPhaseIn", (*staticCtx).modeCantPhaseIn)
 	staticMode("CantSacrifice", (*staticCtx).modeCantSacrifice)
+	staticMode("CantPlayLand", (*staticCtx).modeCantPlayLand)
+}
+
+func (sc *staticCtx) modeCantPlayLand() ([]lStatic, bool, error) {
+	sp := sc.sp
+	st := &sc.st
+	// gorge playLandForbidden: Player$/ValidPlayer$ names the players the
+	// lock binds (matched from the static's controller; absent or Player:
+	// everyone), Origin$ the zone the play may not come from, ValidCard$
+	// the lands (absent: every land). The kernel reads the static at the
+	// hand walk's offer with the Origin$ zone in st.Zone; the other land
+	// plays' gates (cast_freeland.go's queue, the permitted exile plays)
+	// run no static read, so only the hand spelling lowers.
+	switch v := sp.str("Player"); v {
+	case "", "Player":
+	case "You":
+		st.Flags = append(st.Flags, "ActivatorYou")
+	case "Opponent", "Player.Opponent":
+		st.Flags = append(st.Flags, "ActivatorOpp")
+	default:
+		return nil, true, refuse("CantPlayLand Player %q", v)
+	}
+	if v := sp.str("ValidPlayer"); v != "" {
+		return nil, true, refuse("CantPlayLand ValidPlayer %q", v)
+	}
+	if v := sp.str("ValidCard"); v != "" {
+		return nil, true, refuse("CantPlayLand ValidCard %q (the blanket form is the only lowered shape)", v)
+	}
+	if v := sp.str("Origin"); v != "" {
+		if v != "Hand" {
+			return nil, true, refuse("CantPlayLand Origin$ %q", v)
+		}
+		st.Zone = zHand
+	} else {
+		return nil, true, refuse("CantPlayLand without Origin$ (only the hand lock lowers)")
+	}
+	sp.consume("Secondary")
+	return nil, false, nil
 }
 
 func (sc *staticCtx) modeCantBeCast() ([]lStatic, bool, error) {

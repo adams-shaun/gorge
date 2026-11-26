@@ -1313,6 +1313,8 @@ type lOverride struct {
 	AsLongAsControl   bool     // Pump Duration$ AsLongAsControl: WhileHost, gated on and ended by the host's control (kop.Override.AsLongAsControl)
 	CantAttack        bool     // HiddenKeywords$ CARDNAME can't attack or block. (with AddKw CantBlock)
 	UntilEndCombat    bool     // Pump Duration$ UntilEndOfCombat: the kernel drops the record leaving the end-of-combat step
+	UntilCtrlUntap    bool     // an Effect's Phase$ Untap end (Orcish Farmer): the record ends as its controller's untap step does (kop.Override.UntilCtrlUntap)
+	UntilCast         *lFilter // an Effect's SpellCast end (Soul Sculptor): the record ends when its resolver casts a spell matching this filter (kop.Override.UntilCast)
 	Banding           bool     // a granted Banding (KW$ Banding): no KwMask bit is free, so the record carries it (kop.Override.Banding)
 	Horsemanship      bool     // a Duration$ Permanent KW$ Horsemanship grant: no KwMask bit, so the record carries it (kop.Override.Horsemanship)
 	MustBeBlocked     bool     // HiddenKeywords$ CARDNAME must be blocked if able.: emitOverride follows the record with ExtMustBeBlocked on the same ref (not a record field)
