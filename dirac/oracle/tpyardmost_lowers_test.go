@@ -15,8 +15,8 @@ import (
 //     the YouOwn clauses become the OwnedBy Targeted role, kernel
 //     cardRoleF2; gorge evalPlayerRefProperty with the targeted player as
 //     You): Corpse Augur's dies trigger, The Mouth of Sauron's amass.
-//   - Count$MostCardName <spec> (kgen mostCardNameValue, kernel ExValidAgg
-//     kop.AggMostName; gorge countMostCardName): Endless Atlas's activation
+//   - Count$MostCardName <spec> (kgen mostCardNameValue, kernel
+//     ExMostCardName; gorge countMostCardName): Endless Atlas's activation
 //     gate, Chrome Replicator's intervening-if.
 
 var tpYardMostWatch = map[string]bool{
@@ -47,18 +47,19 @@ func TestTargetedYardMostNameLowers(t *testing.T) {
 			t.Errorf("%s cast %d times", n, run.casts[n])
 		}
 	}
-	// the most-name fold read as the distinct-name count
+	// the MostCardName op rewritten as the distinct-name fold
 	mut := runFixtureLockstep(t, "tpyardmost", tpYardMostDecks, tpYardMostWatch, 160, false, func(tbl *kop.Table) {
 		tbl.Exprs = append([]kop.Expr(nil), tbl.Exprs...)
 		n := 0
 		for i := range tbl.Exprs {
-			if x := &tbl.Exprs[i]; x.Kind == kop.ExValidAgg && x.N == kop.AggMostName {
+			if x := &tbl.Exprs[i]; x.Kind == kop.ExMostCardName {
+				x.Kind = kop.ExValidAgg
 				x.N = kop.AggDistinctNames
 				n++
 			}
 		}
 		if n == 0 {
-			t.Fatal("precondition: no table expression is AggMostName")
+			t.Fatal("precondition: no table expression is ExMostCardName")
 		}
 	})
 	mut.requireDivergence(t, "MostCardName read as DifferentCardNames")
