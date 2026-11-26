@@ -119,6 +119,19 @@ func (lc *lowerCtx) cloneEnter(ps *params, node, sa *cards.SA) error {
 	if _, ok := ps.get("NewName"); ok {
 		return refuse("ETB copy NewName$")
 	}
+	// the copy's lifetime (gorge effects/clone.go cloneDuration): absent or
+	// Permanent lasts until the becomer leaves; UntilEndOfTurn (Cursed
+	// Mirror) ends at the cleanup step, kop.BecomeCopyEOT
+	eot := false
+	if d, ok := ps.get("Duration"); ok {
+		switch strings.TrimSpace(d) {
+		case "UntilEndOfTurn":
+			eot = true
+		case "", "Permanent":
+		default:
+			return refuse("ETB copy Duration$ %q", d)
+		}
+	}
 	if k, ok := ps.get("AddKeywords"); ok {
 		for _, w := range strings.Split(k, "&") {
 			if strings.TrimSpace(w) == "Changeling" {
@@ -179,6 +192,9 @@ func (lc *lowerCtx) cloneEnter(ps *params, node, sa *cards.SA) error {
 			return refuse("ETB copy ChoiceZone$ Graveyard beside Embalm$")
 		}
 		flags |= kop.BecomeCopyGrave
+	}
+	if eot {
+		flags |= kop.BecomeCopyEOT
 	}
 	if flags != 0 {
 		in.B = cst(flags)
