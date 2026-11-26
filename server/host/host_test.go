@@ -360,7 +360,7 @@ func TestCloseInterruptsALongCooldown(t *testing.T) {
 	// has been triggered from inside it.
 	select {
 	case <-stopped:
-	case <-time.After(2 * time.Minute):
+	case <-time.After(testutil.WaitBudget):
 		t.Fatal("the match never reached its cooldown sleep")
 	}
 	select {

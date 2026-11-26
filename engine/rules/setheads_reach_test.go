@@ -598,7 +598,7 @@ func TestSetHeadsGenerate(t *testing.T) {
 					defer wg.Done()
 					select {
 					case <-done:
-					case <-time.After(30 * time.Second):
+					case <-time.After(30 * time.Second): // wait:ok engine tests cannot import testkit; hang-abandonment ceiling for a candidate stuck in the engine
 						cands[k].err = fmt.Errorf("hung for 30 seconds")
 						aside(cands[k].g, "hung for 30 seconds")
 					}

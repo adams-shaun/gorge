@@ -11,6 +11,7 @@ import (
 
 	"github.com/adams-shaun/gorge/server/host/httpapi"
 	mb "github.com/adams-shaun/gorge/server/protocol/manabrew"
+	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
 func TestDiracManaBrewLandUndoKeepsLandPlays(t *testing.T) {
@@ -135,7 +136,7 @@ func landUndoGame(t *testing.T, game int, undo bool) {
 	// next is seat 0's next open chooseAction prompt.
 	next := func(what string) (mb.GameViewDto, *mb.PromptMessage) {
 		t.Helper()
-		for at := time.Now(); time.Since(at) < 15*time.Second; time.Sleep(time.Millisecond) {
+		for at := time.Now(); time.Since(at) < testutil.WaitBudget; time.Sleep(time.Millisecond) {
 			if answerNative() {
 				continue
 			}
