@@ -2690,6 +2690,13 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 			return ka, nil, fmt.Errorf("DefenderAssigns beside %s", s.Cond)
 		}
 		st.Kind = kop.StatDefenderAssigns
+	case "PayLifeInsteadOfB":
+		// K'rrik, Son of Yawgmoth (lower_playerstatic.go): unconditional, as
+		// the kernel read (static_paylife.go) consults no Cond2
+		if s.Cond.Kind != cNone || s.Amount.Kind != vNone {
+			return ka, nil, fmt.Errorf("PayLifeInsteadOfB beside %s", s.Cond)
+		}
+		st.Kind = kop.StatPayLifeInsteadOfB
 	case "PlayerProtAll":
 		st.Kind = kop.StatPlayerProtAll // the controller has protection from everything (static_plprot.go)
 	case "MayPlayFrom":

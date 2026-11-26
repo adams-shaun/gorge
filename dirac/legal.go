@@ -178,13 +178,13 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 			// alternativeCosts loop), whether or not the plain price is payable
 			s.offerMayPlayHandAlt(k, d, p, o, c, sorc, &av) // cast_mayzeroalt.go
 		}
-		cost := &pc.cost
+		var adj kop.ManaCost
+		cost := s.payLifeCastCost(k, p, &pc.cost, &adj) // the grant's {B/P} pips (static_paylife.go)
 		var credited kop.ManaCost
 		if k.gen != nil && k.gen.anyConvoke && s.tapPays(k, p, c, o, true) {
 			credited = s.convokeCredit(k, p, c, o, pc.cost)
 			cost = &credited
 		}
-		var adj kop.ManaCost
 		base := *cost
 		if s.statM.any() || k.gen != nil {
 			av.delve = s.tbDelveCredit(k, p, c, o, true) // the faces' credit (gorge FeasibleAny's delve, CR 702.66a)
@@ -210,7 +210,7 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 		}
 		var fav avail
 		cav := s.castGrantAvail(k, p, o, &av, &fav) // a restricted grant the cast cannot spend is no unit of its census
-		if !s.castPaysUnderPain(k, p, c, o, cost, cav) && !s.instantTapsLethalPays(k, p, c, o, cost) {
+		if s.castUnpayable(k, p, c, o, pc.cost, cost, &av, cav) {
 			if k.bargainRed {
 				s.offerBargainOnly(k, d, p, o, c, &av) // the discount alone pays it (cost_reducespell.go)
 				s.offerOptCostOnly(k, d, p, o, c, &av)
@@ -766,6 +766,9 @@ func (s *State) actSourcesAfford(k *prep, sl Slot, ab int, a *kop.Ability, mana 
 	manaCost := xFloorCost(mana, costXMin(&a.Cost)) // the cheapest legal announcement (cost_sacx.go)
 	if a.Cost.Flags&kop.CostWaterbend != 0 && k.gen != nil && k.gen.anyWaterbend {
 		manaCost = s.waterbendCredit(k, s.perms[sl].ctrl, sl, a, manaCost)
+	}
+	if k.gen != nil && k.gen.anyPayLife && s.payLifeInsteadOfB(k, s.perms[sl].ctrl) {
+		manaCost = payLifeGrantCost(manaCost) // the activation announces each {B} pip's face (static_paylife.go)
 	}
 	if k.phyMana && manaCost.Phyrexian() {
 		// offered while some colour / life mix of its pips is payable

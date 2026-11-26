@@ -199,7 +199,10 @@ func (s *State) loweredPipWindow(k *prep, e *stackEntry, cost *kop.ManaCost) {
 	for c := range held {
 		s.pl[e.ctrl].pool[c] += held[c]
 	}
-	s.bld().pipShort = !ok
+	// the PayLifeInsteadOf:B grant's life settles the {B} pips the window's
+	// sources left (gorge's window closes while a source could still pay; the
+	// payment then spends the life, static_paylife.go payLifeGrantPay)
+	s.bld().pipShort = !ok && !s.payLifeGrantCovers(k, e.ctrl, cost)
 }
 
 // requiredTarget: the entry being built has a target slot it must fill at
@@ -1996,6 +1999,8 @@ func (s *State) payRestrSpend(k *prep, p, m uint8, cost *kop.ManaCost, x int, o 
 	for c := range ord {
 		ord[c] = before[c] + (pl.pool[c] - before[c] - rn[c]) // what the taps added joins the plain units
 	}
+	var rc kop.ManaCost
+	cost = s.payLifeGrantReduce(k, p, cost, x, &rc) // the grant's life settles what the plan's discount left (static_paylife.go)
 	pre := pl.pool
 	s.payFromPoolRider(k, p, cost, x, anyColor)
 	s.rbSettle(p, &tk, &ord, &pre, s.rbTyped(p))
@@ -3268,6 +3273,7 @@ func (s *State) lowerWitnessEx(k *prep, p uint8, excl Obj) {
 	untapped := s.untappedRestrSrcs(k, p)
 	tapColor := anyColor && !printedPays // the printed symbols the census pays are planned as printed (CR 609.4b lets either tap pay)
 	cost = s.lowerWitnessKeepsTarget(k, p, excl, cost)
+	cost = s.payLifeWitnessCost(k, p, cost)
 	if !k.restrSrc || !k.t.Cards[s.bld().e.card].HasAltAdd && cost.Hyb[0] == 0 && !s.anyRestrEach(k, untapped) {
 		if !s.tapForSpellTaps(k, p, &cost, x, excl, tapColor) {
 			s.tapForRider(k, p, &cost, x, excl, tapColor)

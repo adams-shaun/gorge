@@ -639,6 +639,11 @@ func prepare(t *kop.Table) *prep {
 	p.anyAsUnblk = tableHasStatic(t, kop.StatAssignCombatDamageAsUnblocked)
 	p.painMana = p.painMana || p.gen != nil && p.gen.anyTapsPain  // a Pain-class Taps watcher prices its tapped source (mana_tapsdefer.go)
 	p.costObj = p.costObj || p.gen != nil && p.gen.anyEscapeGrant // an escape cast's exile-fodder picks (kw_escape.go)
+	// a PayLifeInsteadOf:B grant turns the {B} pips it prices into Phyrexian
+	// pips (static_paylife.go payLifeGrantCost), so the Phyrexian gates open
+	// for its tables (mana_twobrid.go, mana_phyrexian.go); a player without
+	// the grant in play reads no converted cost (payLifeInsteadOfB).
+	p.phyMana = p.phyMana || p.gen != nil && p.gen.anyPayLife
 	p.availExt = p.painMana || p.phyMana
 	p.restrSrc = p.gen != nil && p.gen.anyRestrSrc
 	p.embComb = prepEmbComb(t, p)

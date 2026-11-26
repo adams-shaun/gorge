@@ -302,7 +302,7 @@ func (s *State) offerPlay(k *prep, d *Decision, p uint8, o Obj, mode uint8, sorc
 		if cost.X != 0 && !s.spellXBoundPayable(k, c, p, &cost) {
 			return // some payable X must leave a legal target, as a hand cast's (CR 601.2b, 601.2c; gorge xBoundTargetPayable)
 		}
-		if unpriced && !s.windowPoolPays(p, &cost, anyColor) && (s.g.availX&(availAny|availGaps) == 0 || (!anyMana && !anyColor)) {
+		if unpriced && !s.windowPoolOrGrantPays(k, p, &cost, anyColor) && (s.g.availX&(availAny|availGaps) == 0 || (!anyMana && !anyColor)) {
 			// (the potential walks list an any-type one: gorge's planner
 			// proves it insufficient, and a scripted prefix may make the
 			// pool pay it; an "ambiguous" one is never searched)
@@ -377,7 +377,7 @@ func (s *State) freeCastRaisePayable(k *prep, p uint8, c CardID, o Obj, unpriced
 // delve covers a generic face an empty pool never would -- so base is
 // re-composed on the pool the way offerPlay composes it on the census.
 func (s *State) poolOfferPays(k *prep, p uint8, c CardID, o Obj, base, cost *kop.ManaCost, anyMana, anyColor bool) bool {
-	if s.windowPoolPays(p, cost, anyColor) {
+	if s.windowPoolOrGrantPays(k, p, cost, anyColor) {
 		return true
 	}
 	if base.Hyb[0] != kop.HybTwobrid {
@@ -387,6 +387,7 @@ func (s *State) poolOfferPays(k *prep, p uint8, c CardID, o Obj, base, cost *kop
 	var pav avail
 	s.availPool(p, &pav)
 	pav.life = s.pl[SeatIx(p)].life
+	pav.payLife = s.payLifeInsteadOfB(k, SeatIx(p)) // the grant's {B} pips (hallUnits)
 	pav.delve = s.tbDelveCredit(k, p, c, o, fromHand)
 	pcost := s.adjustFit(k, &pav, p, c, o, *base, true)
 	if !pav.tbLeafCredited(base) {
@@ -650,6 +651,9 @@ func (s *State) buildCostGenPre(k *prep, pre bool) (kop.ManaCost, bool, bool) {
 		}
 		if cd.HasModeCost {
 			c = spreeCost(cd, e.mode, c)
+		}
+		if k.gen.anyPayLife && s.payLifeInsteadOfB(k, e.ctrl) {
+			c = payLifeGrantCost(c) // a permission cast announces each {B} pip's face too (static_paylife.go)
 		}
 		done := false
 		if pre {

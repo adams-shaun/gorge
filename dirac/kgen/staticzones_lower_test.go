@@ -41,7 +41,7 @@ func TestStaticZonesSlice(t *testing.T) {
 // spell -- Aluren's any-player rider, Durnan's Exile,Stack Effect list -- a
 // stack grant of Replicate, Prowl, Freerunning or
 // Deathtouch, the vote
-// counters, K'rrik's pay-life-instead-of-mana) or that gorge itself fails
+// counters) or that gorge itself fails
 // closed on -- FatefulHour, ExtraTurn and Night, whose gate has no arm, so
 // the whole static is inert there (Gavony Ironwright, Medomai the Ageless,
 // Moonrager's Slash: reported, not copied). Each must keep its named
@@ -54,7 +54,6 @@ var staticZonesRefusals = []struct{ card, want string }{
 	{"Djinn Illuminatus", `AffectedZone Stack grant of "Replicate:CardManaCost"`},
 	{"Embalmer's Tools", `ReduceCost AffectedZone "": "Creature.YouOwn+inZoneGraveyard" can match a non-battlefield activation`},
 	{"Gavony Ironwright", `static Condition "FatefulHour" (gorge fails closed`},
-	{"K'rrik, Son of Yawgmoth", "player static"},
 	{"Lens of Clarity", "MayLookAt shape"},
 	{"Medomai the Ageless", `static Condition "ExtraTurn" (gorge fails closed`},
 	{"Moonrager's Slash", `static Condition "Night" (gorge fails closed`},

@@ -76,5 +76,6 @@ func (s *State) chainCharge(k *prep) {
 	}
 	m := &pr[pc-1]
 	c := manaOf(s.value(k, m.A), m.B.N)
-	s.payFromPool(s.g.pickP, &c, 0)
+	var rc kop.ManaCost
+	s.payFromPool(s.g.pickP, s.payLifeGrantReduce(k, s.g.pickP, &c, 0, &rc), 0) // the grant's life settles what the plan's discount left (static_paylife.go)
 }

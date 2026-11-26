@@ -400,6 +400,9 @@ func (s *State) featPoolPays(p uint8, o Obj, mode uint8, extra *[6]int32, anyCol
 	pl := &s.pl[SeatIx(p)]
 	a := s.poolAvailPlus(p, extra)
 	c := s.objs[o].card
+	if k.gen != nil && k.gen.anyPayLife && s.payLifeInsteadOfB(k, SeatIx(p)) {
+		a.life, a.payLife = pl.life, true // the pool pays a {B} pip with the grant's 2 life (static_paylife.go)
+	}
 	if s.rbAny(p) {
 		s.restrAvail(k, SeatIx(p), c, s.restrOriginOfObj(o), &a) // a spell its restriction allows sees it (gorge AvailableFor)
 	}
@@ -631,8 +634,8 @@ func (s *State) FeatManaGates(o Obj) (n, off int) {
 // casts only by lowering a potential play.
 func (s *State) FeatPlannedCast(p uint8, o Obj, mode uint8) bool {
 	k := s.k()
-	if s.objs[o].zone == kop.ZoneLibrary {
-		return false // gorge plans the hand, command, exile and graveyard origins only (payment_plan.go): a top-of-library cast is always lowered
+	if s.objs[o].zone == kop.ZoneLibrary && !s.phyLibraryDeadEnd(k, p, o) {
+		return false // gorge plans the hand, command, exile and graveyard origins only (payment_plan.go): a top-of-library cast is lowered first (libraryMayPlayLowersFirst) unless that dead-ends (phyLibraryDeadEnd)
 	}
 	if mode&2 != 0 {
 		if two, _, g := s.fbInstances(k, SeatIx(p), o); two && g {
@@ -765,6 +768,10 @@ func (s *State) plannedCastCostOf(k *prep, p uint8, o Obj, mode uint8, hyb, comp
 	if mode&2 != 0 {
 		cost = s.flashbackCostOf(k, o)
 	}
+	// the payer's PayLifeInsteadOf:B grant converts the cost's {B} pips into
+	// Phyrexian pips (static_paylife.go): the witness funds the cost the
+	// announcement will pose
+	cost = s.payLifeGrantCostFor(k, p, cost)
 	if cost.Phyrexian() {
 		// gorge pay.PlanManaHalf: the witness funds the cost without its
 		// Phyrexian pips (each face is announced afterwards)

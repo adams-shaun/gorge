@@ -99,6 +99,10 @@ type avail struct {
 	// life: the payer's life, read only by a Phyrexian pip's two-life face
 	// (affordsTb; set when the table has one: prep.phyMana)
 	life int16
+	// payLife: the payer holds a PayLifeInsteadOf:B grant (static_paylife.go):
+	// a plain {B} pip the units leave unfunded costs 2 life from life
+	// (hallUnits, affordsAnyColorPlain, tapNeed)
+	payLife bool
 	// one: the amount of each source making all its mana in one colour of
 	// its choosing. Those units are also in mask/cnt, where they read as
 	// independent; hallPlain then tries each source's colours. oneMask is the
@@ -610,10 +614,21 @@ func (a *avail) hallPlain(cost *kop.ManaCost, pipMask uint8, extra int) bool {
 
 // hallUnits is hallPlain with every unit independent.
 func (a *avail) hallUnits(cost *kop.ManaCost, pipMask uint8, extra int) bool {
+	// A PayLifeInsteadOf:B grant settles some {B} pips with 2 life each
+	// (static_paylife.go bLifeTake, CR 601.2h): at most the life holds and
+	// the pips themselves. Every life-settled pip is a {B} pip, so it lies in
+	// every subset containing B: the Hall bound weakens by k on those
+	// subsets, and the pips cost the total no unit.
+	nb := int(cost.Pips[kop.B])
+	k := 0
+	if a.payLife && nb > 0 && a.life >= 2 {
+		k = min(nb, int(a.life)/2)
+	}
 	tot := int(cost.Generic) + extra
 	for _, n := range cost.Pips {
 		tot += int(n)
 	}
+	tot -= k
 	if tot > a.total {
 		return false
 	}
@@ -628,6 +643,9 @@ func (a *avail) hallUnits(cost *kop.ManaCost, pipMask uint8, extra int) bool {
 			if q&(1<<c) != 0 {
 				need += int(cost.Pips[c])
 			}
+		}
+		if q&(1<<kop.B) != 0 {
+			need -= k // the life-settled {B} pips lie in every subset holding B
 		}
 		have := 0
 		for i := 0; i < a.n; i++ {
@@ -677,10 +695,17 @@ func (a *avail) affordsAnyColorPlain(cost *kop.ManaCost, extra int) bool {
 	if a.nExcl != 0 {
 		return a.exclAffords(0, cost, 0, extra, true)
 	}
+	// the grant's life-settled {B} pips (hallUnits): under the rider they
+	// read as the coloured category's
+	k := 0
+	if a.payLife && cost.Pips[kop.B] != 0 && a.life >= 2 {
+		k = min(int(cost.Pips[kop.B]), int(a.life)/2)
+	}
 	tot := int(cost.Generic) + extra
 	for _, n := range cost.Pips {
 		tot += int(n)
 	}
+	tot -= k
 	if tot > a.total {
 		return false
 	}
@@ -689,6 +714,7 @@ func (a *avail) affordsAnyColorPlain(cost *kop.ManaCost, extra int) bool {
 	for c := 0; c < 5; c++ {
 		needCol += int(cost.Pips[c])
 	}
+	needCol -= k
 	haveC, haveCol, both := 0, 0, 0
 	for i := 0; i < a.n; i++ {
 		m := a.mask[i]
@@ -1008,8 +1034,13 @@ type planner struct {
 	rdSet bool
 	// pairs: some type has a pair (a painland in the last-resort phase);
 	// life: the payer's life, the lethal guard on summed pain
-	pairs bool
-	life  int
+	// noPayLife: the plan is priced with the payer's PayLifeInsteadOf:B grant
+	// suspended (gorge manaWindowAsk's CostPayableClassLife lifeGrant false:
+	// a {B} pip the grant could settle with 2 life is not pool-paid, so the
+	// window opens)
+	pairs     bool
+	life      int
+	noPayLife bool // the grant suspended for this plan (the window's settle gate)
 	// anyFee: some type is a restricted mana-fee alternative (utype.fee);
 	// fpool is the pool the fee is charged against, maxFee the largest fee's
 	// mana value (mana.go feeOwed)
@@ -1104,6 +1135,10 @@ func (s *State) payRider(k *prep, p uint8, cost *kop.ManaCost, x int, exclude Ob
 	} else {
 		if !s.convAllPoolRoute(k, p, anyColor) && !s.convCRoute(k, *cost, x) {
 			s.tapForRider(k, p, cost, x, exclude, anyColor) // (the any-colour conversion's pool route taps nothing)
+		}
+		var rc kop.ManaCost
+		if s.payLifeGrantPay(k, p, cost, x, &rc) {
+			cost = &rc // the {B} pips the pool left are 2 life each (static_paylife.go)
 		}
 		s.payFromPoolRider(k, p, cost, x, anyColor)
 	}
@@ -1201,7 +1236,7 @@ func (s *State) tapForPK(k *prep, p uint8, cost *kop.ManaCost, x int, exclude Ob
 
 // tapNeed sets pk's deficit for cost (+X) after p's pool (gorge
 // pay/search.go deficit).
-func (s *State) tapNeed(pk *planner, p uint8, cost *kop.ManaCost, x int, anyColor bool) {
+func (s *State) tapNeed(k *prep, pk *planner, p uint8, cost *kop.ManaCost, x int, anyColor bool) {
 	if cost.XPip != 0 && cost.X != 0 {
 		c := cost.AtX(x) // a coloured X (XColor$) is that colour's pips in the deficit
 		cost, x = &c, 0
@@ -1237,6 +1272,33 @@ func (s *State) tapNeed(pk *planner, p uint8, cost *kop.ManaCost, x int, anyColo
 			}
 		}
 	}
+	// A PayLifeInsteadOf:B grant (static_paylife.go bLifeTake, CR 601.2h):
+	// gorge's planner prices a count vector whose produced mana the resolver
+	// pays with the grant's life alternatives (pay/search.go complete's
+	// Settle) and ranks the fewest sources first (pay/plan.go Rank key 3), so
+	// the need prices the pool-only assignment bLifeTake finds: the pips it
+	// settled with life need no unit and no mana, and the pool's {B} units it
+	// spent are no deficit. A pool-only assignment that fails (the life
+	// cannot settle the pips, or the pool cannot cover the rest) leaves the
+	// pips the life could settle off the need and off the total.
+	if !pk.noPayLife && s.payLifeGrantApplies(k, p, cost) && int(pl.life) >= 2 {
+		n := int(cost.Pips[kop.B])
+		if b0, _, ok := bLifeTake(cost, &pl.pool, int(pl.life)); ok {
+			pk.cpips[kop.B] = 0
+			pk.need[kop.B] = 0
+			pk.needAny = max(0, pk.needAny-(n-b0))
+			mv -= n - b0
+		} else if lifeCover := min(n, int(pl.life)/2); lifeCover > 0 {
+			d := max(0, n-lifeCover-int(pl.pool[kop.B]))
+			pk.cpips[kop.B] = uint8(d)
+			if anyColor {
+				pk.needAny = max(0, pk.needAny-lifeCover)
+			} else {
+				pk.need[kop.B] = d
+			}
+			mv -= lifeCover
+		}
+	}
 	pk.needT = mv - poolTot
 	pk.rawT = pk.needT
 	if pk.needT < 0 {
@@ -1253,7 +1315,27 @@ func (s *State) tapNeed(pk *planner, p uint8, cost *kop.ManaCost, x int, anyColo
 
 // tapPlanNeed sets the deficit and taps the plan for it.
 func (s *State) tapPlanNeed(k *prep, p uint8, cost *kop.ManaCost, x int, exclude Obj, first, anyColor bool, pk *planner) {
-	s.tapNeed(pk, p, cost, x, anyColor)
+	if !pk.noPayLife && s.payLifeGrantApplies(k, p, cost) {
+		// Once the pips are announced, gorge's plan for the settled cost
+		// settles with no life alternative (pay.PaymentSearchEnv:
+		// ResolveManaWith bLifeOK false), so a cost its sources pay in mana is
+		// paid in mana and the grant's life covers only what the sources
+		// cannot (the manual window's remainder): a plan with no discount is
+		// tried first. The witness lowered at the cast's start (pipN 0) prices
+		// the {B} pips with the grant's life instead (static_paylife.go
+		// payLifeGrantApplies, tapNeed)
+		probe := *pk
+		probe.dry, probe.noPayLife = true, true
+		s.tapNeed(k, &probe, p, cost, x, anyColor)
+		probe.lastSl = NoSlot
+		if probe.needT == 0 {
+			pk.noPayLife = true
+		} else {
+			s.planTiered(k, p, &probe, exclude)
+			pk.noPayLife = probe.found
+		}
+	}
+	s.tapNeed(k, pk, p, cost, x, anyColor)
 	pk.lastSl = NoSlot
 	if pk.needT > 0 {
 		pk.first = first
