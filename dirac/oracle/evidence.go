@@ -12,6 +12,13 @@ const (
 	// EvidenceAllKeys requires every own ability key (coverageInventory) to have
 	// been used: a card with an ability no game reaches is not verified.
 	EvidenceAllKeys = true
+	// EvidencePodMinPlays is how many clean four-seat games a Commander-legal
+	// card needs before a pod row evidences it (OD-4 stage 2). A pod game has
+	// commanders, so a key a two-seat game never reaches (Command Tower's
+	// colour-identity mana, CR 903.4) is used there and credited exactly as a
+	// two-seat game's key is. The floor is protected: lowering it would let a
+	// pod row stand for fewer games than the design approved.
+	EvidencePodMinPlays = 1
 	// EvidenceScriptedMinGames is how many clean scripted games, over at least two
 	// distinct seeds, must use a key organic games never used before a scripted
 	// run credits the card (design section 5, D10). A scripted game credits key
@@ -90,4 +97,17 @@ func (c *Coverage) Evidence() []string {
 		out = append(out, n)
 	}
 	return out
+}
+
+// EvidenceForSeats is Evidence for a run of seats seats. A pod run (four or
+// more seats) writes a row only with at least EvidencePodMinPlays clean games;
+// otherwise the row would claim a pod game the run did not have. The ability-key
+// rule is Evidence's at every seat count, so a commander-only key used in a
+// clean four-seat game is credited exactly as an own key used at two seats. A
+// two- or three-seat run is unchanged: a three-seat row is report only.
+func (c *Coverage) EvidenceForSeats(seats int) []string {
+	if seats >= 4 && c.Games < EvidencePodMinPlays {
+		return nil
+	}
+	return c.Evidence()
 }
