@@ -151,12 +151,20 @@ jobs:
         with:
           go-version-file: go.mod
           cache: false
-      - name: Corpus and tables for this tree
+      - name: Corpus and tables, and the shared compile beside them
         if: runner.environment == 'self-hosted'
-        run: |
-          bash scripts/ci-corpus.sh
-      - name: Compile the shards' test binaries
-        if: runner.environment == 'self-hosted'
+        # S1c (11-26), measured from five green merge-queue batches (gh run view <run> --log --job <job> step
+        # timestamps, box load ~89 on 32 threads): this job had two serial steps, the corpus/tables build
+        # (1-67 s: 1-4 s on a tree the box already built, ~25-67 s when this tree first reached the box)
+        # and the shared compile (17-87 s: a batch's merge moves packages, so it is never a no-op). The
+        # stage is the slowest box's job: 161, 111, 83, 68, 46 s over those five batches, and the compile
+        # was the largest step in every one. The compile reads only the checkout and the box's Go cache —
+        # never .cards, which ci-corpus.sh is about to link — so it does not wait for tables it does not
+        # read. Running both in one job makes the step max(corpus, compile) instead of their sum: predicted
+        # 161 -> ~100, 111 -> ~74, 83 -> ~48, 68 -> ~58, 46 -> ~46 s (after = predicted; the next green
+        # batch confirms it). Both stay in this one job on this box, so each box still warms only its own
+        # corpus tree and Go cache, and the compile is still the single owner of the shared set (each test
+        # shard compiles its own package list in the test stage).
         run: |
           # -exec /bin/true builds and vets each test binary and runs none of them.
           # <package>#A is a split package's second entry (ci_shard.sh, scripts/ci-splits.tsv), the same package.
@@ -177,7 +185,12 @@ jobs:
               if (!(top in best) || wt > bw[top]) { best[top] = $1; bw[top] = wt } }
             END { for (t in best) print best[t] }' scripts/ci-pkg-times.tsv <(printf '%s\n' "$pkgs") | sort)
           # shellcheck disable=SC2086
-          go test -exec /bin/true $repkgs ./dirac/oracle >/dev/null
+          go test -exec /bin/true $repkgs ./dirac/oracle >/dev/null &
+          compile=$!
+          rc=0
+          bash scripts/ci-corpus.sh || rc=$?
+          wait "$compile" || rc=$?
+          exit "$rc"
 
   # Two-step CI (Mergify): a pull request runs only this fast stage, the diff's packages and the tests that
   # import them (scripts/ci-fast.sh). The full suite runs once per queue batch, on mergify/merge-queue/* branches,
