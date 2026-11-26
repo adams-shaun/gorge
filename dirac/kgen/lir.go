@@ -251,6 +251,7 @@ const (
 	vExileKw             // exiled cards matching F that print the keyword N names (kop.ExStaticExileKw; lower_sharedkw.go)
 	vRemEachOwnNonLand   // the remembered cards that are nonland and owned by the repeated player (Remembered$Valid Card.nonLand+RememberedPlayerOwn, a RepeatEach body's ConditionCheckSVar$ gate)
 	vDmgOppsTaken        // the damage the living opponents were dealt this turn (Count$DamageOppsTakenThisTurn; bloodthirst)
+	vMaxOppDmgTaken      // the most damage any one living opponent was dealt this turn (Count$MaxOppDamageThisTurn; Spinerock Knoll)
 	vCmdGreatestMV       // the greatest mana value among the controller's commanders on the battlefield or in the command zone (kop.ExCmdGreatestMV; value_cmdmv.go)
 	vBlessing            // Sub[0] if the controller has the city's blessing, else Sub[1] (Count$Blessing.<yes>.<no>, CR 702.131)
 	vSrcRemCounters      // counters of kind S on the object the evaluating source remembers (a token's creator, kop.ExSrcRemCounters; lower_tokenrem.go)
@@ -382,6 +383,7 @@ var valNames = [...]string{
 	vExileKw:             "ExileKw",
 	vRemEachOwnNonLand:   "RemEachOwnNonLand",
 	vDmgOppsTaken:        "DmgOppsTaken",
+	vMaxOppDmgTaken:      "MaxOppDmgTaken",
 	vCmdGreatestMV:       "CmdGreatestMV",
 	vSVarNum:             "SVarNum",
 	vDevotionChosen:      "DevotionChosen",
