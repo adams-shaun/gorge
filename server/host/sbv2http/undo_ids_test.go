@@ -91,7 +91,7 @@ func TestSBV2UndoKeepsHandIDs(t *testing.T) {
 // numbered id: closed, or replaced by a later one. Request ids only grow.
 func awaitSuperseded(t *testing.T, ss *seatState, id string) {
 	t.Helper()
-	timeout := time.After(30 * time.Second)
+	timeout := time.After(testutil.WaitBudget)
 	for {
 		req, wake := ss.snapshot()
 		if req == nil || fmt.Sprint(req.id) != id {

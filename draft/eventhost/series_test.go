@@ -16,6 +16,7 @@ import (
 	"github.com/adams-shaun/gorge/draft/event"
 	"github.com/adams-shaun/gorge/server/host"
 	"github.com/adams-shaun/gorge/server/protocol"
+	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
 // bo3Series is one pairing's Bo3 entries in log order, grouped by kind.
@@ -555,7 +556,7 @@ func TestSeriesHookWaitsAndCloseReleases(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Close: %v", err)
 		}
-	case <-time.After(30 * time.Second):
+	case <-time.After(testutil.WaitBudget):
 		t.Fatal("Close did not return with a parked series call")
 	}
 }

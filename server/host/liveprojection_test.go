@@ -37,6 +37,7 @@ import (
 
 	"github.com/adams-shaun/gorge/engine/state"
 	"github.com/adams-shaun/gorge/server/protocol"
+	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
 // liveProjectionBoard plays fourSeatTable("t1", false) to completion once,
@@ -139,7 +140,7 @@ func assertLiveProjectionPinned(t *testing.T, m *match, label string, run func()
 	m.mu.RUnlock()
 	select {
 	case <-resumed:
-	case <-time.After(10 * time.Second):
+	case <-time.After(testutil.WaitBudget):
 		t.Fatalf("%s did not complete after m.mu was released — deadlock", label)
 	}
 }
@@ -203,7 +204,7 @@ func TestConcurrentLiveSnapshotsSerializeEngineProjection(t *testing.T) {
 		select {
 		case f := <-s.Out():
 			subFrame = f
-		case <-time.After(10 * time.Second):
+		case <-time.After(testutil.WaitBudget):
 			t.Errorf("concurrent Subscribe delivered no snapshot")
 		}
 	})
@@ -307,12 +308,12 @@ func TestConcurrentLiveSnapshotsSerializeEngineProjection(t *testing.T) {
 	m.mu.RUnlock()
 	select {
 	case <-dSubDone:
-	case <-time.After(10 * time.Second):
+	case <-time.After(testutil.WaitBudget):
 		t.Fatalf("overlapping Subscribe did not complete after m.mu was released — deadlock")
 	}
 	select {
 	case <-dRewindDone:
-	case <-time.After(10 * time.Second):
+	case <-time.After(testutil.WaitBudget):
 		t.Fatalf("overlapping pushRewind did not complete after m.mu was released — deadlock")
 	}
 	// Subscribe registers se.subs BEFORE it takes t.fanMu, so pushRewind's

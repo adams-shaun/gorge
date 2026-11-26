@@ -150,7 +150,7 @@ func runGoldenGame(t *testing.T, r *host.Registry, hub *Hub, base string, bot se
 	handled := map[string]bool{}
 	seenNative := map[string]bool{}
 	var lines [][]byte
-	deadline := time.Now().Add(2 * time.Minute)
+	deadline := time.Now().Add(testutil.WaitBudget)
 
 	for {
 		if done, _ := matchDone(t, r, goldenTable); done {
@@ -287,7 +287,7 @@ func goldenGetState(t *testing.T, base, path string) []byte {
 // terminal null frame.
 func goldenStreamFrame(t *testing.T, base string, table host.TableID, token, wantID string) []byte {
 	t.Helper()
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), testutil.WaitBudget)
 	defer cancel()
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet,
 		fmt.Sprintf("%s/api/sbv2/v1/tables/%s/matches/1/stream", base, table), nil)
