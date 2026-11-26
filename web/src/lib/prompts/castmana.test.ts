@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { CardView, Decision, PlayerView, View } from '../../protocol';
-import { activationCostText, castManaRows, isCastManaWindow, isManaSacrificeAsk, manaWindowDone } from './castmana';
+import { activationCostText, castManaReadout, castManaRows, isCastManaWindow, isManaSacrificeAsk, manaWindowDone } from './castmana';
 
 /**
  * castmana.test.ts builds the mid-cast CR 601.2g window the engine poses
@@ -111,11 +111,11 @@ describe('isCastManaWindow — the mid-cast mana window by shape', () => {
       options: [{ index: 0, player: 0, kind: 'sacrifice', obj: 43, label: 'Grizzly Bears' }],
     };
     expect(isCastManaWindow(sac, view(sac, board, onStack))).toBe(false);
-    expect(isManaSacrificeAsk(sac)).toBe(true);
+    expect(isManaSacrificeAsk(sac, view(sac, board, onStack))).toBe(true);
   });
 });
 
-describe('isManaSacrificeAsk — the mana-cost sacrifice election by shape', () => {
+describe('isManaSacrificeAsk — the mana-cost sacrifice election by shape and source', () => {
   const sacAsk: Decision = {
     seq: 54, player: 0, kind: 'choose', prompt: 'Choose permanents to sacrifice for the mana ability',
     min: 2, max: 2, source: 42,
@@ -124,19 +124,55 @@ describe('isManaSacrificeAsk — the mana-cost sacrifice election by shape', () 
       { index: 1, player: 0, kind: 'sacrifice', obj: 44, label: 'Sable' },
     ],
   };
+  const v = (d: Decision) => view(d, board, onStack);
 
-  it('captures the walk\'s ask: every option a sacrifice candidate with an object', () => {
-    expect(isManaSacrificeAsk(sacAsk)).toBe(true);
+  it('captures the walk\'s ask: sacrifice candidates, sourced at a mana permanent mid-cast', () => {
+    expect(isManaSacrificeAsk(sacAsk, v(sacAsk))).toBe(true);
   });
 
   it('refuses a list with any non-sacrifice option and one with no candidates', () => {
     const mixed: Decision = { ...sacAsk, options: [...sacAsk.options, { index: 2, player: 0, kind: 'done', label: 'Done' }] };
-    expect(isManaSacrificeAsk(mixed)).toBe(false);
-    expect(isManaSacrificeAsk({ ...sacAsk, options: [] })).toBe(false);
+    expect(isManaSacrificeAsk(mixed, v(mixed))).toBe(false);
+    const none: Decision = { ...sacAsk, options: [] };
+    expect(isManaSacrificeAsk(none, v(none))).toBe(false);
   });
 
   it('refuses a non-exact-N ask (min and max disagree)', () => {
-    expect(isManaSacrificeAsk({ ...sacAsk, min: 0, max: 2 })).toBe(false);
+    const ranged: Decision = { ...sacAsk, min: 0, max: 2 };
+    expect(isManaSacrificeAsk(ranged, v(ranged))).toBe(false);
+  });
+
+  it('refuses without a view', () => {
+    expect(isManaSacrificeAsk(sacAsk, null)).toBe(false);
+  });
+
+  it('refuses an edict from a resolving spell: its source is on the stack, not a mana permanent', () => {
+    // zone_bulk.go's Sacrifice effect: same options, Source is the spell.
+    const edict: Decision = { ...sacAsk, min: 1, max: 1, source: 30, options: [sacAsk.options[0]] };
+    expect(isManaSacrificeAsk(edict, v(edict))).toBe(false);
+  });
+
+  it('refuses a sacrifice election sourced at a permanent that produces no mana', () => {
+    const nonMana: Decision = { ...sacAsk, source: 43 };
+    expect(isManaSacrificeAsk(nonMana, v(nonMana))).toBe(false);
+  });
+
+  it('refuses an election with no spell of the payer on the stack (nothing is being cast)', () => {
+    expect(isManaSacrificeAsk(sacAsk, view(sacAsk, board, []))).toBe(false);
+    const theirs: View['stack'] = [{ ...onStack[0], controller: 1 }];
+    expect(isManaSacrificeAsk(sacAsk, view(sacAsk, board, theirs))).toBe(false);
+  });
+
+  it('refuses an election with no source', () => {
+    const noSource: Decision = { ...sacAsk, source: undefined };
+    expect(isManaSacrificeAsk(noSource, v(noSource))).toBe(false);
+  });
+});
+
+describe('castManaReadout — the still-owed estimate', () => {
+  it('settles generic with any leftover floating mana (CR 107.3b)', () => {
+    const w = view(windowDecision, board, onStack, { R: 3 });
+    expect(castManaReadout(windowDecision, w).owed).toBe('');
   });
 });
 

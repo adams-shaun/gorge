@@ -26,10 +26,10 @@ import { manaAmountText, paymentCostText } from '../announcepay';
  * its `mana_payment` readout is its own structural signal).
  *
  * The sacrifice election's shape (all "sacrifice" options with an Obj,
- * min===max) is the walk's own ask shape; a rules-ignorant client cannot
- * tell it from any other sacrifice election on the wire, and does not have
- * to: the panel that draws it posts exactly the offered option indices, so
- * any such election is answered correctly there too.
+ * min===max) is shared with unrelated engine asks (edicts, sub-counter and
+ * morph costs), so it is tied to a mana-source activation too: its Source
+ * is a mana-producing battlefield permanent while the payer has a spell
+ * on the stack (see isManaSacrificeAsk).
  */
 
 /**
@@ -57,14 +57,24 @@ export function isCastManaWindow(d: Decision | null, view: View | null): boolean
 
 /**
  * isManaSacrificeAsk reports whether d is a mana ability's sacrifice
- * election: a `choose` whose every option is a "sacrifice" candidate with
- * its object, asked of an exact number (min === max, the walk's election
- * shape). An ask with any other option kind, no candidates, or a range is
- * not it.
+ * election during a cast: a `choose` whose every option is a "sacrifice"
+ * candidate with its object, asked of an exact number (min === max, the
+ * walk's election shape), AND whose Source is the mana source being
+ * activated — a battlefield permanent that produces mana (CardView.produces)
+ * — while the asking seat has a spell on the stack. Every other engine
+ * sacrifice election (an edict or "sacrifice N" resolving, a sub-counter or
+ * morph-turn-up cost) poses the same option shape, but its Source is the
+ * resolving spell or ability on the stack or a non-mana permanent, so it
+ * stays on the generic list. view is required: without it the election is
+ * indistinguishable and the helper answers false.
  */
-export function isManaSacrificeAsk(d: Decision | null): boolean {
-  if (d === null || d.kind !== 'choose' || d.min !== d.max || d.options.length === 0) return false;
-  return d.options.every((o) => o.kind === 'sacrifice' && o.obj !== undefined);
+export function isManaSacrificeAsk(d: Decision | null, view: View | null): boolean {
+  if (d === null || view === null || d.kind !== 'choose' || d.min !== d.max || d.options.length === 0) return false;
+  if (!d.options.every((o) => o.kind === 'sacrifice' && o.obj !== undefined)) return false;
+  if (d.source === undefined || d.source === 0) return false;
+  const src = view.players.flatMap((p) => p.battlefield).find((c) => c.id === d.source);
+  if (src === undefined || !src.produces) return false;
+  return view.stack.some((s) => s.kind === 'spell' && s.controller === d.player);
 }
 
 /** manaWindowDone finds the window's single "done" option, or null. */
@@ -175,13 +185,15 @@ export function castManaReadout(d: Decision, view: View | null): CastManaReadout
       const at = SLOTS.indexOf(tok as (typeof SLOTS)[number]);
       if (at >= 0) pips[at]++;
     }
+    let leftover = 0;
     for (let i = 0; i < 6; i++) {
       const paid = Math.min(pips[i], poolCounts[i]);
       pips[i] -= paid;
-      // Floating mana of any kind can settle a generic requirement (CR
-      // 107.3b); the colourless slot counts towards it.
-      if (i === 5) genericOwed = Math.max(0, genericOwed - (poolCounts[5] - paid));
+      leftover += poolCounts[i] - paid;
     }
+    // Floating mana of any kind can settle a generic requirement (CR
+    // 107.3b), so every pool pip not spent on a coloured one counts.
+    genericOwed = Math.max(0, genericOwed - leftover);
     owed = paymentCostText({ generic: genericOwed, mana: pips as PaymentCostMana });
   }
   return {

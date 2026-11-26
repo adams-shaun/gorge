@@ -44,7 +44,7 @@ export function rendererFor(d: Decision, view?: View | null): RendererKind {
   if (isSearchPick(d)) return 'search';
   if (isNamePick(d)) return 'name';
   if (manaWindow(d) !== null) return 'payment';
-  if (isCastManaWindow(d, view ?? null) || isManaSacrificeAsk(d)) return 'castmana';
+  if (isCastManaWindow(d, view ?? null) || isManaSacrificeAsk(d, view ?? null)) return 'castmana';
   switch (d.kind) {
     case 'priority': return 'priority';
     case 'target': return 'target';

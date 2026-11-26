@@ -180,7 +180,7 @@ export function promptAnatomy(d: Decision, view: View): Anatomy {
       plain = 'Tap sources on the board or below, or let Auto-fill pick them.';
       break;
     case 'castmana':
-      if (isManaSacrificeAsk(d)) {
+      if (isManaSacrificeAsk(d, view)) {
         title = promptWords(d.prompt);
         plain = 'The candidate permanents are highlighted on the board.';
       } else {

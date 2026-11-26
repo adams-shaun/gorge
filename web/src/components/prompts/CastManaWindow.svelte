@@ -30,7 +30,7 @@
   let { decision, view, logic }: { decision: Decision; view: View | null; logic: SeatPanelState } = $props();
 
   const castWindow = $derived(isCastManaWindow(decision, view));
-  const sacAsk = $derived(!castWindow && isManaSacrificeAsk(decision));
+  const sacAsk = $derived(!castWindow && isManaSacrificeAsk(decision, view));
   const rows = $derived(castWindow ? castManaRows(decision, view) : []);
   const done = $derived(castWindow ? manaWindowDone(decision) : null);
   const readout = $derived(castWindow ? castManaReadout(decision, view) : null);
