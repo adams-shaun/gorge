@@ -26,12 +26,11 @@ var fdcDecks = []string{
 
 // fdcRefused is every FDC card kgen still refuses: a ratchet that only shrinks.
 // A card here plays as Wastes in TestFDCFourSeatPodsLockstep; a card refused
-// and not listed, or listed and lowered, fails it.
+// and not listed, or listed and lowered, fails it. The merge with main shrank
+// it by three: main's newer kgen lowered Cursed Mirror, Dragonhawk, Fate's
+// Tempest and Goddric, Cloaked Reveler.
 var fdcRefused = []string{
-	"Cursed Mirror",
-	"Dragonhawk, Fate's Tempest",
 	"Ezuri's Predation",
-	"Goddric, Cloaked Reveler",
 	"Leyline Tyrant",
 	"Spinerock Knoll",
 	"Thundermane Dragon",
