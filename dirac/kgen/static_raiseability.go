@@ -64,7 +64,7 @@ func (lc *lowerCtx) raiseAbility(sp *params, st *lStatic) (bool, error) {
 		return true, refuse("RaiseCost Type$ Ability with no Cost$ or Amount$")
 	}
 	st.AbilityRaise = 1
-	st.Kind = "RaiseAbility"
+	st.Kind = "RaiseCost" // the build arm reads AbilityRaise (build_ab.go); the LIR line says RaiseCost like a spell raise's
 	if hasAmount {
 		if st.Amount, err = lc.value(strings.TrimSpace(amount)); err != nil {
 			return true, err

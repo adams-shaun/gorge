@@ -35,15 +35,15 @@ func TestRaiseCostAbilityLowers(t *testing.T) {
 		}
 	}
 	for name, want := range map[string]string{
-		"Brutal Suppression": "static RaiseAbility",
-		"Oppressive Rays":    "static RaiseAbility",
+		"Brutal Suppression": "static RaiseCost",
+		"Oppressive Rays":    "static RaiseCost",
 	} {
 		if !strings.Contains(lir[name], want) {
 			t.Errorf("%s: lowered IR lacks %q:\n%s", name, want, lir[name])
 		}
 	}
 	for name, want := range map[string]string{
-		"Brutal Suppression": "RaiseAbility F={",
+		"Brutal Suppression": "flags=[SacPick]",
 		"Oppressive Rays":    "amount=3",
 	} {
 		if !strings.Contains(lir[name], want) {
