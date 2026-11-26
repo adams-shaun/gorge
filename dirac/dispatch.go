@@ -300,6 +300,8 @@ func (s *State) askOptionsCold2(k *prep, d *Decision) bool {
 		}
 	case raGenLibPlace:
 		s.libPlaceOptions(d) // act_libplace.go
+	case raGenRippleOrder:
+		s.rippleOrderOptions(d) // kw_ripple.go: the ripple tail's CR 401.4 arrangement
 	case raGenRearrShuffle:
 		d.Sub = ChGenConfirm // gorge's options: yes, no
 		d.add(MakeAction(AkChoose, 0, 0, 1))
@@ -354,6 +356,8 @@ func (s *State) applyAskCold2(k *prep, a Action) bool {
 		}
 	case raGenLibPlace:
 		s.libPlaceAnswer(k, a) // act_libplace.go
+	case raGenRippleOrder:
+		s.rippleOrderAnswer(k, a) // kw_ripple.go: the group bottoms in the picked order
 	case raGenRearrShuffle:
 		s.res.ask = raNone
 		if a.Mode() == 1 {
