@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/adams-shaun/gorge/dirac/cardset"
+	"github.com/adams-shaun/gorge/engine/cards"
 )
 
 // Well of Lost Dreams ("you may pay {X}") asks its controller to pay {1}
@@ -33,6 +34,12 @@ func fourSeatEdhReplay(t *testing.T, name string) Result {
 	if err != nil {
 		t.Fatal(err)
 	}
+	return fourSeatEdhReplayOf(t, reg, r)
+}
+
+// fourSeatEdhReplayOf replays r, a four-seat edh recording, in lockstep.
+func fourSeatEdhReplayOf(t *testing.T, reg *cards.Registry, r *Repro) Result {
+	t.Helper()
 	m, err := r.Matchup(reg)
 	if err != nil {
 		t.Fatal(err)
@@ -60,7 +67,7 @@ func fourSeatEdhReplay(t *testing.T, name string) Result {
 		t.Fatal(err)
 	}
 	defer CloseSide(k)
-	return Lockstep(m, r.Seed, k, &ScriptPolicy{Actions: r.Actions}, rc)
+	return Lockstep(m, r.Seed, k, r.Script(), rc)
 }
 
 // TestUnlessCommandTowerOfferLockstep replays the four-seat pod in lockstep
