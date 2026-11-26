@@ -957,7 +957,7 @@ func (s *State) countUntapped(k *prep, p uint8, f kop.FilterID, src Slot) int {
 // object o (from hand, o itself is not a discard candidate).
 func (s *State) spellCostsFeasible(k *prep, c CardID, p uint8, o Obj) bool {
 	ac := spellAddCost(k, c)
-	if ac.Flags == 0 && !k.t.Cards[c].HasAltAdd && !k.t.Cards[c].BeholdExile {
+	if ac.Flags == 0 && !ac.CloseEnc && !k.t.Cards[c].HasAltAdd && !k.t.Cards[c].BeholdExile {
 		return true
 	}
 	// the cards a discard cost can take: the hand, less the card cast from
@@ -1156,6 +1156,9 @@ func (s *State) gorgeLowersRider(p uint8, o Obj, mayPlay, anyColor bool) bool {
 	}
 	if spellAddCost(k, c).SacHalf {
 		return s.sacHalfLowers(k, p, c, o, mayPlay, anyColor) // cost_sachalf.go
+	}
+	if spellAddCost(k, c).CloseEnc {
+		return s.chooseEncLowers(k, p, c, o, mayPlay, anyColor) // cost_closeenc.go
 	}
 	if cd.HasAltAdd {
 		return s.altAddLowers(k, p, c, o, mayPlay, anyColor)

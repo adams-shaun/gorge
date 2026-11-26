@@ -394,6 +394,7 @@ type genPrep struct {
 	anyExHaste      bool           // some ability can't be blocked except by creatures with haste (Ext ExHaste; static_cantblockexcept.go)
 	anyColGrant     bool           // some ability grants by a chosen colour (Ext ColorGrant; static_colourgrant.go)
 	anyDiscRef      bool           // some expression reads RefDiscarded (value_discardedref.go)
+	anyEncRef       bool           // some expression reads RefChosenEnc (value_chosenenc.go)
 	anySpellCond    bool           // some spell ability carries a cast restriction in Trig.Cond (cast_spellcondition.go)
 	anyEntUntap     bool           // some ReplOthersEnterProgram untaps the entrant (ExtEnterUntapped): a tap/untap pair asks the CR 616.1 order (repl_entryorder.go)
 	anyEntAttack    bool           // some ReplOthersEnterProgram enters the entrant attacking (ExtEnterAttacking): beside another enter body it competes (repl_entryorder.go)
@@ -1019,6 +1020,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepExileX(t, g)
 	prepSacX(t, g)
 	prepDiscarded(t, g)
+	prepChosenEnc(t, g)
 	prepUniqueChain(t, g)
 	prepTgtSet(t, g) // tgt_setconstraints.go
 	prepEachDamage(t, g)
