@@ -2,6 +2,7 @@ package rules
 
 import (
 	"strconv"
+	"strings"
 
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
@@ -67,10 +68,224 @@ func oracleSnapshotOffers(r *oracleRun, d *decision.Decision) []OracleSnapOffere
 				kind = "play"
 			}
 		}
-		add(OracleSnapOffered{Source: source, Kind: kind, Label: o.Label})
+		add(OracleSnapOffered{Source: source, Kind: kind, Label: r.offerLabel(o, kind)})
 	}
 	r.addPotentialOffers(d, add)
 	return out
+}
+
+// offerLabel spells one activation row's label. A non-loyalty activation
+// keeps the option's own label byte-for-byte -- the bots', the wire's and the
+// scenario steps' spelling. A loyalty activation is spelled the way the
+// card's own rules text reads (loyaltySnapshotLabel): the loyalty cost in
+// front of the body, and the body the ability's WHOLE rules text, so the
+// label a follower spells from the same card can match. Only the snapshot's
+// rows spell this way; the priority offer's gate (castable) and what gorge
+// plays are unchanged -- this is a pure read over the option's own ability.
+func (r *oracleRun) offerLabel(o decision.Option, kind string) string {
+	if kind != "activate" {
+		return o.Label
+	}
+	if label, ok := r.loyaltySnapshotLabel(o, o.Label); ok {
+		return label
+	}
+	return o.Label
+}
+
+// loyaltySnapshotLabel spells a loyalty activation's snapshot label
+// "<Name>: <cost>: <body>": the cost the ability's loyalty counter change
+// ("0:", "+2:", "-2:", "-X:"), the body for a PRINTED ability the block the
+// ability's own face's Oracle text gives it (a multi-branch ability -- Comet,
+// Stellar Pup's [0] die roll, six CR 709 branches -- is labelled with every
+// branch, never the one branch a run's own roll would render), and for a
+// granted or gained one the ability's own SpellDescription (its rules text
+// lives on the grantor's card, not the recipient's Oracle text). An
+// alternate-cost twin keeps its " (alternate cost)" suffix. ok is false --
+// the option's own label stands -- for anything that does not resolve to a
+// loyalty ability, so this can never mislabel a non-loyalty activation.
+func (r *oracleRun) loyaltySnapshotLabel(o decision.Option, old string) (string, bool) {
+	e := r.e
+	ab := r.optionActivationSA(o)
+	if ab == nil || !e.isLoyaltyAbility(ab) {
+		return "", false
+	}
+	prefix := loyaltyCostPrefix(&e.abilityCompiledCost(ab).Cost)
+	if prefix == "" {
+		return "", false
+	}
+	name, _, _ := strings.Cut(old, ": ")
+	if name == "" || name == old {
+		return "", false
+	}
+	body := ab.ParamStr(cards.PKSpellDescription)
+	if o.SVar == "" && o.Keyword == "" && o.GainedSource == 0 {
+		if ob := e.G.Obj(o.Obj); ob != nil {
+			if pa, ok := ob.PileAbilityAt(o.Ability); ok {
+				if text, ok := loyaltyOracleBody(pa.Face, prefix, pa.SA); ok {
+					body = text
+				}
+			}
+		}
+	}
+	if strings.HasSuffix(old, " (alternate cost)") {
+		body += " (alternate cost)"
+	}
+	return name + ": " + prefix + ": " + body, true
+}
+
+// optionActivationSA resolves the ability SA an "ability" or "granted" offer
+// option activates, the same resolution beginActivation makes: PileAbilityAt
+// for a printed ability, the SVar anchor for a granted one (grantedAbilitySA,
+// the grantor's face when the option names one), and the foreign face for a
+// has-all-abilities-of activation. A keyword-granted activation's body is
+// synthesized from the derived keyword line -- no face index or SVar name
+// anchors it -- so it resolves nil and the caller keeps the option's label.
+func (r *oracleRun) optionActivationSA(o decision.Option) *cards.SA {
+	e := r.e
+	switch {
+	case o.GainedSource != 0:
+		foreign := e.G.Obj(o.GainedSource)
+		if foreign == nil || foreign.Face() == nil || o.GainedIdx < 0 || o.GainedIdx >= len(foreign.Face().Abilities) {
+			return nil
+		}
+		return foreign.Face().Abilities[o.GainedIdx]
+	case o.SVar != "":
+		return r.grantedAbilitySA(o)
+	case o.Keyword != "":
+		return nil
+	}
+	ob := e.G.Obj(o.Obj)
+	if ob == nil {
+		return nil
+	}
+	pa, ok := ob.PileAbilityAt(o.Ability)
+	if !ok {
+		return nil
+	}
+	return pa.SA
+}
+
+// loyaltyCostPrefix names a loyalty ability's cost the way the card's rules
+// text does: "0" for [+0], "+N" for [+N], "-N" for [-N] and "-X" for an
+// announced [-X] -- the delta is the loyalty counter change the cost
+// settles, the same sum abilityLoyaltyFact reads. Empty for a cost with no
+// LOYALTY part (the caller only reaches here for a classified loyalty
+// ability, so this is a fail-closed shape for an unmodelled spelling).
+func loyaltyCostPrefix(c *Cost) string {
+	delta := int32(0)
+	announced := false
+	for _, part := range c.AddCounter {
+		if strings.EqualFold(part.Spec, "LOYALTY") {
+			delta += part.N
+		}
+	}
+	for _, part := range c.SubCounter {
+		if !strings.EqualFold(part.Spec, "LOYALTY") {
+			continue
+		}
+		if part.Announced {
+			announced = true
+			continue
+		}
+		delta -= part.N
+	}
+	if announced {
+		return "-X"
+	}
+	switch {
+	case delta < 0:
+		return strconv.Itoa(int(delta))
+	case delta > 0:
+		return "+" + strconv.Itoa(int(delta))
+	}
+	return "0"
+}
+
+// loyaltyOracleBody spells a printed loyalty ability's body the way the
+// card's rules text does: the block the ability's own face's Oracle text
+// gives it -- the "[+N]:"/"[-N]:"/"[0]:"/"[-X]:" marker line and every
+// following line until the next loyalty marker (the lines under a marker are
+// that ability's own continuation: Comet, Stellar Pup's [0] die roll spells
+// all six CR 709 branches there). The block is matched by marker AND
+// position -- the k-th block whose marker names this ability's cost, where k
+// is the ability's index among the face's loyalty abilities -- so two
+// same-cost abilities (Tyvar Kell's two [+1] lines) cannot borrow each
+// other's text. ok is false, and the caller keeps the SpellDescription
+// fallback, when the face spells no such block.
+func loyaltyOracleBody(f *cards.Face, prefix string, ab *cards.SA) (string, bool) {
+	if f == nil || f.Oracle == "" || ab == nil {
+		return "", false
+	}
+	// k: this ability's index among the face's loyalty abilities, in the
+	// face's own ability order -- the order the corpus spells the markers in
+	// (the A: lines follow the Oracle text's blocks).
+	k := 0
+	for _, cand := range f.Abilities {
+		if cand == ab {
+			break
+		}
+		if isLoyaltyAbility(cand) {
+			k++
+		}
+	}
+	var head string
+	var rest []string
+	matched := -1
+	for _, line := range strings.Split(strings.ReplaceAll(f.Oracle, `\n`, "\n"), "\n") {
+		if shape, text, ok := loyaltyOracleMarker(line); ok {
+			if shape == prefix && matched < k {
+				matched++
+				rest = nil
+				head = text
+				continue
+			}
+			// A later marker: everything before it was the block. A further
+			// same-marker block is a later ability's.
+			if matched == k {
+				return strings.Join(append([]string{head}, rest...), "\n"), true
+			}
+			rest = nil
+			continue
+		}
+		if matched == k {
+			rest = append(rest, line)
+		}
+	}
+	if matched == k {
+		return strings.Join(append([]string{head}, rest...), "\n"), true
+	}
+	return "", false
+}
+
+// loyaltyOracleMarker reports whether one Oracle-text line starts a loyalty
+// ability's block ("[+1]: ", "[-2]: ", "[0]: ", "[-X]: ") and returns the
+// cost shape it names and the text after the marker. Any other line -- a
+// branch line under a block, a bracketed remark -- is a continuation.
+func loyaltyOracleMarker(line string) (shape, text string, ok bool) {
+	if !strings.HasPrefix(line, "[") {
+		return "", "", false
+	}
+	end := strings.IndexByte(line, ']')
+	if end <= 1 {
+		return "", "", false
+	}
+	after := line[end:]
+	if !strings.HasPrefix(after, "]:") {
+		return "", "", false
+	}
+	shape = line[1:end]
+	switch {
+	case shape == "0" || shape == "-X":
+	case len(shape) > 1 && (shape[0] == '+' || shape[0] == '-'):
+		for i := 1; i < len(shape); i++ {
+			if shape[i] < '0' || shape[i] > '9' {
+				return "", "", false
+			}
+		}
+	default:
+		return "", "", false
+	}
+	return shape, strings.TrimPrefix(after[2:], " "), true
 }
 
 // addPotentialOffers appends the potential-action walk's plays and the mana
@@ -153,7 +368,7 @@ func (r *oracleRun) addPotentialOffers(d *decision.Decision, add func(OracleSnap
 				kind = "play"
 			}
 		}
-		add(OracleSnapOffered{Source: r.objRef(r.e.G.Obj(o.Obj)), Kind: kind, Label: o.Label})
+		add(OracleSnapOffered{Source: r.objRef(r.e.G.Obj(o.Obj)), Kind: kind, Label: r.offerLabel(o, kind)})
 	}
 	units := r.e.windowManaUnits(p)
 	for _, id := range r.potentialManaSources(p) {
