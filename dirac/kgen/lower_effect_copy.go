@@ -208,16 +208,50 @@ func (lc *lowerCtx) copySpell(ps *params) error {
 	if perm {
 		in.C |= 2 // may copy a permanent spell: the copy becomes a token (CR 707.10f)
 	}
-	// Controller$ You is the copy controller gorge defaults to; any other
-	// selector stays unread (and refuses) until a carrier needs it.
-	if v, ok := ps.m["Controller"]; ok && strings.TrimSpace(v) == "You" {
-		ps.consume("Controller")
-	}
+	lc.copyController(ps, &in, lRef{Kind: rTriggeredPlayer})
 	if err := lc.copyNonLegendary(ps, &in); err != nil {
 		return err
 	}
 	lc.emit(in)
 	return nil
+}
+
+// copyController reads a spell copy's Controller$ (gorge copyControllersFor)
+// into the CopySpell's W: You is the resolving controller gorge defaults to;
+// TriggeredCardController and TriggeredActivator (a SpellCast trigger's
+// caster, Bonus Round) and TargetedController (the targeted spell's
+// controller, Meletis Charlatan) name one player, tgt being the referent
+// those forms read here. Any other selector stays unread (and refuses).
+//
+// NonTriggeredCardController (Hive Mind's "each other player copies that
+// spell") is C&4 with W the caster: one copy for each other living player,
+// Amount$ unread beside it.
+func (lc *lowerCtx) copyController(ps *params, in *lInstr, tgt lRef) {
+	v, ok := ps.m["Controller"]
+	if !ok {
+		return
+	}
+	switch v = strings.TrimSpace(v); v {
+	case "You":
+	case "TriggeredCardController", "TriggeredActivator":
+		if tgt.Kind != rTriggeredPlayer {
+			return
+		}
+		in.W = tgt
+	case "NonTriggeredCardController":
+		if _, amt := ps.get("Amount"); tgt.Kind != rTriggeredPlayer || amt {
+			return
+		}
+		in.W, in.C = tgt, in.C|4
+	case "TargetedController":
+		if tgt.Kind != rTargetController {
+			return
+		}
+		in.W = tgt
+	default:
+		return
+	}
+	ps.consume("Controller")
 }
 
 // copyNonLegendary reads a spell copy's NonLegendary$ True (The Sixth
@@ -295,19 +329,7 @@ func (lc *lowerCtx) copyTargetSpell(ps *params) error {
 	if perm {
 		in.C |= 2 // may copy a permanent spell: the copy becomes a token (CR 707.10f)
 	}
-	// Controller$ (gorge copyControllerFor): You is the default; the
-	// target-derived family (Meletis Charlatan's "the controller of target
-	// instant or sorcery spell copies it") gives the copy to the target
-	// spell's controller (C&4), who also answers its new-target election.
-	if v, ok := ps.get("Controller"); ok {
-		switch strings.TrimSpace(v) {
-		case "You":
-		case "TargetedController", "TargetedOrController", "Targeted":
-			in.C |= 4
-		default:
-			return refuse("CopySpellAbility Controller$ %q", v)
-		}
-	}
+	lc.copyController(ps, &in, lRef{Kind: rTargetController, N: t})
 	if err := lc.copyNonLegendary(ps, &in); err != nil {
 		return err
 	}

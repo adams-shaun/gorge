@@ -647,6 +647,9 @@ func dumpStatics(w io.Writer, c *lCard) {
 		if s.Kind == "MiracleGrant" {
 			fmt.Fprintf(w, " miraclecost=%s less=%d", s.Cost.Mana, s.CardCostLess)
 		}
+		if s.Kind == "MadnessGrant" {
+			fmt.Fprintf(w, " less=%d", s.CardCostLess)
+		}
 		if s.Kind == "WarpGrant" {
 			fmt.Fprintf(w, " warpcost=%s", s.Cost.Mana)
 		}
