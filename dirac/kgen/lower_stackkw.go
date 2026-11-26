@@ -1,8 +1,11 @@
 package kgen
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
+
+	"github.com/adams-shaun/gorge/engine/cards"
 )
 
 // stackKwGrant lowers a Mode$ Continuous static whose AffectedZone$ is Stack
@@ -49,6 +52,29 @@ import (
 //     conspired cast (kernel kw_conspire.go) taps two creatures sharing a
 //     colour with the spell and copies it. A printed K:Conspire is CardDef.Conspire
 //     (lower_squadreplicate.go), its copy the keyword's own trigger.
+//   - Rebound lowers to Kind "StackKw" too (Cast Through Time): gorge reads the
+//     derived keyword as the spell resolves (rules resolution_chain.go
+//     spellReboundGranted: not a copy, cast from hand), so the kernel reads
+//     the grant off the resolving entry (kw_rebound.go reboundPlan). The
+//     carrier holds the latent recast body and the static names it
+//     (GrantBody). A gate or an EffectZone$ Stack self grant refuses.
+//   - Web-slinging lowers to Kind "StackKw" too (Peter Parker's Amazing Spider-Man
+//     face): gorge prices the granted instance off the derived keyword
+//     (webslinging.go webSlingingCosts) at the hand offer and the cost build,
+//     so the kernel reads the grant there (kw_websling.go webSlingGrant). The
+//     static carries the plain mana cost (Static.GrantCost) and the grant's
+//     trailing spell spec as a second filter; the CardManaCost placeholder, a
+//     gate, a cast-origin word and an EffectZone$ Stack self grant refuse.
+//   - Offspring lowers to Kind "StackKw" too (Zinnia, Valley's Voice): gorge
+//     prices the granted instance off the derived keyword (offspring.go
+//     offspringCost) at the hand offer and the cast, and its ETB half is the
+//     printed expansion's own trigger (rules trigger_granted.go
+//     checkGrantedOffspringTriggers), so the kernel reads the grant there
+//     (kw_offspring.go kickGrant) and queues the carrier's latent trigger when
+//     the kicked permanent enters. The static carries the plain mana cost
+//     (Static.GrantCost) and names the carrier's latent trigger (GrantBody);
+//     the CardManaCost placeholder, an X/hybrid/phyrexian cost, a gate, a
+//     cast-origin word and an EffectZone$ Stack self grant refuse.
 //   - Delve lowers to Kind "StackKw" too: the cast announces graveyard cards
 //     to exile toward its generic cost (CR 702.66a; kernel kw_delve.go), read
 //     as the spell is cast. A cast-from-hand restriction is legal; a printed
@@ -107,8 +133,18 @@ func (lc *lowerCtx) stackKwGrant(sp *params, st *lStatic, aff string) ([]lStatic
 		}
 	}
 	switch head {
-	case "Affinity", "Cascade", "Improvise", "Convoke", "Casualty", "Lifelink", "Storm", "Split second", "Conspire", "Delve", "Demonstrate":
+	case "Affinity", "Cascade", "Improvise", "Convoke", "Casualty", "Lifelink", "Storm", "Split second", "Conspire", "Delve", "Demonstrate", "Rebound", "Web-slinging", "Offspring":
 	default:
+		// The face-only grants stay refused by name (Replicate: Djinn
+		// Illuminatus, Hatchery Sliver, Hugh, Ian Chesterton, Threefold
+		// Signal; Prowl: Hunting Velociraptor; Freerunning: Ezio Auditore da
+		// Firenze; Undaunted: Vox, Child of the Collective). gorge reads those
+		// keywords only off a printed face (replicateCost, the Prowl and
+		// Freerunning alternative modes, kwUndaunted), so a grant is inert
+		// there and lowering it would let the kernel act on a keyword gorge
+		// ignores. The gorge reader that would have to exist first is each
+		// one's derived-keyword read (derivedWith with the stack-zone
+		// override, the offspringRawParam shape).
 		return nil, refuse("AffectedZone Stack grant of %q", kw)
 	}
 	if st.Cond.Kind != cNone {
@@ -121,13 +157,21 @@ func (lc *lowerCtx) stackKwGrant(sp *params, st *lStatic, aff string) ([]lStatic
 		// priority time, where the kernel has no cast-time carrier to match
 		// gorge's point in the cast.
 		switch head {
-		case "Improvise", "Convoke", "Lifelink", "Split second":
+		case "Improvise", "Convoke", "Lifelink", "Split second", "Rebound", "Web-slinging", "Offspring":
 			return nil, refuse("AffectedZone Stack %s grant with a condition", head)
 		}
 	}
 	expr, prov, err := stackAffected(aff, head, selfStack)
 	if err != nil {
 		return nil, err
+	}
+	if selfStack && (head == "Rebound" || head == "Web-slinging" || head == "Offspring") {
+		return nil, refuse("AffectedZone Stack %s grant with EffectZone Stack", head)
+	}
+	if (head == "Web-slinging" || head == "Offspring") && prov != stackProvNone {
+		// the kernel reads the grant at the hand offer and the cost build,
+		// where the cast's origin is the hand and no cast word is asked
+		return nil, refuse("AffectedZone Stack %s grant with a cast-origin word", strings.ToLower(head))
 	}
 	if selfStack && prov != stackProvNone {
 		return nil, refuse("AffectedZone Stack self grant with a cast-origin word")
@@ -154,14 +198,36 @@ func (lc *lowerCtx) stackKwGrant(sp *params, st *lStatic, aff string) ([]lStatic
 			if one.Amount, err = lc.value("Count$Valid " + spec + sep + "YouCtrl"); err != nil {
 				return nil, err
 			}
-		case "Cascade", "Improvise", "Convoke", "Lifelink", "Storm", "Split second", "Conspire", "Delve", "Demonstrate":
+		case "Cascade", "Improvise", "Convoke", "Lifelink", "Storm", "Split second", "Conspire", "Delve", "Demonstrate", "Rebound":
 			if p != "" {
 				return nil, refuse("AffectedZone Stack grant of %q", tok)
+			}
+			if h == "Rebound" {
+				// CR 702.88a: the carrier keeps the recast body the exiled
+				// spell's upkeep program runs (GrantBody, build_stackkw.go)
+				one.GrantBody = lc.reboundBody().Index
 			}
 			if (h == "Lifelink" || h == "Split second") && prov == stackProvHand {
 				return nil, refuse("AffectedZone Stack %s grant restricted to spells cast from hand", strings.ToLower(h))
 			}
 			one.Kind = "StackKw"
+		case "Web-slinging":
+			one.Kind = "StackKw"
+			if err := lc.webSlingGrant(&one, p); err != nil {
+				return nil, err
+			}
+		case "Offspring":
+			one.Kind = "StackKw"
+			if err := lc.offspringGrant(&one, p); err != nil {
+				return nil, err
+			}
+			// CR 702.175a: the carrier keeps the ETB copy trigger the kicked
+			// permanent's cast pays for (GrantBody, build_stackkw.go)
+			j, err := lc.offspringGrantBody()
+			if err != nil {
+				return nil, err
+			}
+			one.GrantBody = j
 		case "Casualty":
 			if n, err := strconv.Atoi(p); err != nil || n < 1 || n > 127 || strconv.Itoa(n) != p {
 				return nil, refuse("AffectedZone Stack grant of %q", tok)
@@ -301,4 +367,82 @@ func stackAffected(aff, head string, selfStack bool) (string, stackProv, error) 
 		return "", stackProvNone, refuse("AffectedZone Stack grant: Affected$ mixes a cast-origin alternative and a plain one")
 	}
 	return strings.Join(alts, ","), prov, nil
+}
+
+// webSlingGrant fills a Web-slinging grant's static from the keyword's
+// parameter "<cost>[:<spell spec>]" (gorge webSlingingCosts): a plain mana
+// cost, and an optional "Spell.<preds>" spec every proposed spell must also
+// match, lowered as the static's second filter over the card.
+func (lc *lowerCtx) webSlingGrant(one *lStatic, param string) error {
+	costPart, spec, hasSpec := strings.Cut(param, ":")
+	mc, err := parseManaCost(costPart)
+	if err != nil || costPart == "" || mc.X || mc.None || len(mc.Hybrid) != 0 || len(mc.Twobrid) != 0 || len(mc.Phyrexian) != 0 || strings.Contains(costPart, "CardManaCost") {
+		return refuse("AffectedZone Stack web-slinging grant cost %q", costPart)
+	}
+	one.Cost = lCost{Mana: mc}
+	if !hasSpec {
+		return nil
+	}
+	rest, ok := strings.CutPrefix(spec, "Spell")
+	if !ok || strings.ContainsAny(spec, ":|") || rest != "" && rest[0] != '.' {
+		return refuse("AffectedZone Stack web-slinging grant spell spec %q", spec)
+	}
+	if one.F2, err = lc.filter("Card" + rest); err != nil {
+		return err
+	}
+	return nil
+}
+
+// offspringGrant fills an Offspring grant's static from the keyword's
+// parameter (gorge offspringCost, the derived keyword's parameter): a plain
+// mana cost. The CardManaCost placeholder and an X, hybrid, twobrid or
+// phyrexian part refuse (the kicked cast's offer prices the composed total;
+// a placeholder poses a pre-announcement the kernel's one kicked offer
+// cannot price).
+func (lc *lowerCtx) offspringGrant(one *lStatic, param string) error {
+	if param == "" {
+		return refuse("AffectedZone Stack offspring grant without a cost")
+	}
+	mc, err := parseManaCost(param)
+	if err != nil || mc.X || mc.None || len(mc.Hybrid) != 0 || len(mc.Twobrid) != 0 || len(mc.Phyrexian) != 0 || strings.Contains(param, "CardManaCost") {
+		return refuse("AffectedZone Stack offspring grant cost %q", param)
+	}
+	one.Cost = lCost{Mana: mc}
+	return nil
+}
+
+// offspringGrantBody lowers the latent ETB copy trigger a stack grant of
+// Offspring rides on its carrier: the printed K:Offspring expansion's own
+// trigger (engine/cards/kw_offspring.go kwOffspring), held AfLatent so the
+// kernel's trigger walks never fire it from the carrier (dirac
+// kw_offspring.go queueOffspringGrant enqueues it for a kicked permanent a
+// live grant reaches, the same shape gorge's checkGrantedOffspringTriggers
+// synthesizes). The parsed line is the expansion's exact text, so the
+// lowering goes through the ordinary trigger path the printed face lowers
+// through; Count$OffspringPaid reads the permanent's kicked mark without the
+// printed K:Offspring the value lowerer otherwise requires, so lc.offGrant
+// lifts that check.
+func (lc *lowerCtx) offspringGrantBody() (int, error) {
+	t, ok := cards.ParseTriggerLine("Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Card.Self | CheckSVar$ Count$OffspringPaid | TriggerDescription$ Offspring")
+	if !ok {
+		return 0, fmt.Errorf("offspring grant trigger line")
+	}
+	if t.Effect = cards.ResolveSVar(map[string]string{
+		"__kwOffspringGrant": "DB$ CopyPermanent | Defined$ Self | NumCopies$ Count$OffspringPaid | SetPower$ 1 | SetToughness$ 1",
+	}, "__kwOffspringGrant"); t.Effect == nil {
+		return 0, fmt.Errorf("offspring grant body")
+	}
+	idx := len(lc.out.Abilities)
+	saved := lc.offGrant
+	lc.offGrant = true
+	err := lc.withAbility(lc.ab, func() error { return lc.lowerTriggered(t, "") })
+	lc.offGrant = saved
+	if err != nil {
+		return 0, err
+	}
+	if len(lc.out.Abilities) != idx+1 {
+		return 0, fmt.Errorf("offspring grant trigger lowering")
+	}
+	lc.out.Abilities[idx].Latent = true
+	return idx, nil
 }
