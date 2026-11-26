@@ -492,6 +492,9 @@ func (s *State) hasSubGen(k *prep, sl Slot, i uint8) bool {
 		if ovrCreatSub(o) && !DebugRmCreatSubKeep {
 			m, all = m.AndNot(k.gen.creatSub), false
 		}
+		if ovrArtifactSub(o) {
+			m = stripArtifactSubs(m, k.t.Subtypes) // CR 205.1a: the Equipment/Vehicle word goes with Artifact
+		}
 		if o.SetLandSub {
 			m = m.AndNot(k.gen.landSub) // CR 305.7 (static_landtypesetter.go)
 		}
