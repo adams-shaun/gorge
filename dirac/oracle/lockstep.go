@@ -50,6 +50,8 @@ type Result struct {
 	Turns           int32
 	Div             *Divergence
 	Stats           Stats // the oracle side's
+	// Labels are the vocabulary picks' labels (ActionLabel), by index into Actions.
+	Labels []ActionLabel
 }
 
 // Clean reports whether the game counts as evidence: no divergence and no
@@ -349,7 +351,7 @@ func LockstepLed(m *Matchup, seed uint64, lead, follow Side, pol Policy, rc RunC
 		}
 	}()
 	if gorge != nil {
-		defer func() { res.Stats = gorge.Stats }()
+		defer func() { res.Stats, res.Labels = gorge.Stats, gorge.Labels }()
 		if rc.Finish != nil {
 			defer rc.Finish(gorge)
 		}
@@ -361,7 +363,9 @@ func LockstepLed(m *Matchup, seed uint64, lead, follow Side, pol Policy, rc RunC
 			if inSide != nil {
 				what = sideName(inSide)
 			}
-			res.Div = &Divergence{At: res.Decisions, What: what, Field: "panic", Detail: fmt.Sprintf("%v\n%s", r, debug.Stack())}
+			// Diff carries the panic's own text, so a caller that prints only Diff (the
+			// replay helpers do) names what failed, e.g. a skipped scripted action.
+			res.Div = &Divergence{At: res.Decisions, What: what, Field: "panic", Diff: []string{fmt.Sprint(r)}, Detail: fmt.Sprintf("%v\n%s", r, debug.Stack())}
 		}
 	}()
 	var pr, pk Projection

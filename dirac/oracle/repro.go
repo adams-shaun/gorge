@@ -61,6 +61,14 @@ type Repro struct {
 	Start *rules.StartSpec `json:"-"`
 	// Actions is the canonical prefix.
 	Actions []Canon `json:"actions"`
+	// Labels names the vocabulary word (creature type, land type, card name,
+	// colour) behind each pick Actions holds an index of, by action index: the
+	// replay fails when a label and its int disagree (ScriptPolicy), and
+	// kfuzz -remap rewrites the ints from the labels after a vocabulary change.
+	// AllowSkips lets the replay skip a scripted action the decision does not
+	// offer; without it a skip fails the replay.
+	Labels     []ActionLabel `json:"labels,omitempty"`
+	AllowSkips bool          `json:"allow_skips,omitempty"`
 	// Chance, when set, forces the gorge side's random outcomes
 	// (rules.NewHypothetical): a kernel game recorded with its own draws.
 	Chance []rules.ChanceDraw `json:"chance,omitempty"`
@@ -138,6 +146,7 @@ func NewRepro(m *Matchup, seed uint64, rc RunConfig, res *Result) *Repro {
 		r.MoreCards = append(r.MoreCards, names)
 	}
 	r.setActions(res.Actions)
+	r.Labels = res.Labels
 	return r
 }
 
@@ -287,35 +296,61 @@ func ReadRepro(path string) (*Repro, error) {
 	return &r, nil
 }
 
-// ScriptPolicy serves actions in order, skipping any the decision does not
-// offer, then plays tail (nil: FirstPolicy). Skipped counts the skips;
-// firstSkipAt is the canonical Seq of the first one (readable when Skipped>0).
+// ScriptPolicy serves actions in order, then plays tail (nil: FirstPolicy). An
+// action the decision does not offer is a skip: it counts in Skipped, with
+// firstSkipAt the canonical Seq of the first one (readable when Skipped>0), and
+// the replay goes on; with FailOnSkip it fails instead (Pick panics, which
+// Lockstep reports as a policy divergence). The zero value skips, as every
+// hand-built literal expects; Repro.Script sets FailOnSkip unless the repro
+// opts in (allow_skips). A labelled action (Labels, Repro.Labels) must also
+// name the word its label does, whatever FailOnSkip says; Remap serves the
+// label's option instead.
 type ScriptPolicy struct {
-	Actions     []Canon
-	Tail        Policy
+	Actions []Canon
+	Labels  []ActionLabel
+	Tail    Policy
+	// FailOnSkip fails the replay on a scripted action the decision does not
+	// offer, instead of skipping it (Repro.Script sets it unless the repro sets
+	// AllowSkips; a shrink probe opts in).
+	FailOnSkip bool
+	// Remap serves the option a label names where the recorded int differs
+	// (kfuzz -remap), so Result.Actions is the repro with its ints rewritten.
+	Remap       bool
 	next        int
+	labelNext   int
 	Skipped     int
 	firstSkipAt int
 }
 
 func (s *ScriptPolicy) Pick(c *PickCtx) Canon {
 	for s.next < len(s.Actions) {
-		a := s.Actions[s.next]
+		i := s.next
+		a := s.Actions[i]
 		s.next++
-		for _, o := range c.D.Options {
-			if o == a {
-				return a
+		label, labelled := s.labelAt(i)
+		if labelled {
+			if p, ok := s.pickLabelled(c, i, a, label); ok {
+				return p
+			}
+		} else {
+			for _, o := range c.D.Options {
+				if o == a {
+					return a
+				}
 			}
 		}
-		s.Skipped++
-		if s.Skipped == 1 {
-			s.firstSkipAt = c.Seq
-		}
+		s.skipAction(c, i, a, label, labelled)
 	}
 	if s.Tail == nil {
 		s.Tail = FirstPolicy()
 	}
 	return s.Tail.Pick(c)
+}
+
+// Script is the repro's scripted policy: its actions and labels, failing on a
+// skipped action unless the repro opts in (AllowSkips).
+func (r *Repro) Script() *ScriptPolicy {
+	return &ScriptPolicy{Actions: r.Actions, Labels: r.Labels, FailOnSkip: !r.AllowSkips}
 }
 
 // Exhausted reports whether every scripted action has been served or skipped.
@@ -324,13 +359,19 @@ func (s *ScriptPolicy) Exhausted() bool { return s.next >= len(s.Actions) }
 // Rerun replays the repro in lockstep against mk: the scripted prefix, then
 // FirstPolicy for at most tail more decisions.
 func (r *Repro) Rerun(m *Matchup, mk SideFactory, tail int) Result {
+	return r.RerunWith(m, mk, tail, r.Script())
+}
+
+// RerunWith is Rerun under pol, a policy that serves the repro's actions
+// (Script, adjusted).
+func (r *Repro) RerunWith(m *Matchup, mk SideFactory, tail int, pol *ScriptPolicy) Result {
 	k, err := mk(m, r.Seed)
 	if err != nil {
 		return Result{Div: &Divergence{What: "kernel", Field: "setup", Detail: err.Error()}}
 	}
 	rc := r.RunConfig()
 	rc.MaxDecisions = len(r.Actions) + tail
-	return Lockstep(m, r.Seed, k, &ScriptPolicy{Actions: r.Actions}, rc)
+	return Lockstep(m, r.Seed, k, pol, rc)
 }
 
 // Shrink drops prefix actions while the repro still diverges in the same
@@ -353,13 +394,14 @@ func Shrink(c *Corpus, r *Repro, mk SideFactory, attempts int) *Repro {
 	try := func(cand []Canon) bool {
 		tries++
 		probe := *r
-		probe.Actions = cand
+		probe.Actions, probe.Labels, probe.AllowSkips = cand, nil, true
 		res := probe.Rerun(m, mk, tail)
 		if res.Div == nil || res.Div.fieldClass() != class {
 			return false
 		}
 		best.Divergence = res.Div
 		best.setActions(res.Actions)
+		best.Labels = res.Labels
 		return true
 	}
 	for chunk := len(cur) / 2; chunk >= 1 && tries < attempts; chunk /= 2 {
