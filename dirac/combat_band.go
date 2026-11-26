@@ -122,7 +122,7 @@ func (s *State) applyBand(k *prep, a Action) {
 		s.stall(StallBand)
 		return
 	}
-	if !s.bandAsk(k) {
+	if !s.bandAsk(k) && !s.exertAsk(k) { // gorge asks the exert elections after the bands (combat_exert.go)
 		s.openPriority()
 	}
 }
