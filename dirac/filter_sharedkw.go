@@ -124,7 +124,7 @@ func (s *State) hasProtColor(k *prep, sl Slot, mask kop.ColorMask) bool {
 		return false
 	}
 	const all = kop.ColW | kop.ColU | kop.ColB | kop.ColR | kop.ColG
-	if p := k.t.Cards[s.cardAt(sl)].ProtColors; p != 0 && p != all && p&mask != 0 && !s.genLost(k, sl) {
+	if p := s.protPrintedCw(k, sl); p != 0 && p != all && p&mask != 0 && !s.genLost(k, sl) {
 		return true
 	}
 	kw := s.kw(k, sl)
