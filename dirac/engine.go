@@ -356,6 +356,9 @@ func (s *State) stepRaw(d *Decision) {
 		case ctlEnlist:
 			s.enlistOptions(k, d) // kw_enlist.go
 			return
+		case ctlExert:
+			s.exertOptions(d) // combat_exert.go
+			return
 		case ctlExileOrder:
 			s.exileOrderOptions(k, d)
 			return
@@ -437,6 +440,8 @@ func (s *State) Apply(a Action) {
 		s.applyBand(k, a) // combat_band.go
 	case ctlEnlist:
 		s.applyEnlist(k, a) // kw_enlist.go
+	case ctlExert:
+		s.applyExert(k, a) // combat_exert.go
 	case ctlExileOrder:
 		s.applyExileOrder(k, a)
 	case ctlReflectPick:

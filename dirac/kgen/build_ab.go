@@ -1243,6 +1243,7 @@ var eventMap = map[string]kop.TrigEvent{"ETB": kop.TrigETB, "Dies": kop.TrigDies
 	"ClassLevelGained": kop.TrigCounterAddedOnce, // N = CtrLevel (lower_class.go)
 	"BecomesPlotted":   kop.TrigBecomesPlotted,   // the card's own
 	"BecomesSaddled":   kop.TrigBecomesSaddled,
+	"Exerted":          kop.TrigExerted,     // the OptionalAttackCost rider (static_optattack.go)
 	"Evolved":          kop.TrigEvolved,     // the source's own, after its evolve counter lands
 	"Attached":         kop.TrigAttached,    // the attachment's own, Creature bearer (Assimilation Aegis)
 	"Unattached":       kop.TrigUnattached,  // the attachment's own, the FORMER BEARER (Captain's Hook family)
@@ -1969,6 +1970,9 @@ func (cb *cardBuilder) staticFor(s lStatic) (kop.Ability, []uint8, error) {
 	if s.Kind == "UnspentMana" {
 		return cb.unspentManaAbility(s) // static_unspentmana.go
 	}
+	if s.Kind == "OptionalAttackCost" {
+		return cb.optionalAttackCostAbility(s) // static_optattack.go
+	}
 	if s.Kind == "CanBlockIfShadow" {
 		return cb.canBlockIfShadowAbility(s) // static_canblockifshadow.go
 	}
@@ -2316,6 +2320,8 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 		}
 		if s.Zone == zAny {
 			st.Zone = kop.ZoneCommand
+		} else if s.Zone == zHand {
+			st.Zone = kop.ZoneHand // Origin$ Hand: the origin the cast gate reads (cast_cantself.go)
 		}
 		for _, fl := range s.Flags {
 			switch fl {
@@ -2338,6 +2344,10 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 				return ka, nil, fmt.Errorf("cant be cast limit %v", s.Amount)
 			}
 			st.A = int16(s.Amount.N)
+		}
+	case "CantPlayLand":
+		if err := cantPlayLandStatic(s, st); err != nil {
+			return ka, nil, err
 		}
 	case "CantBeActivated":
 		st.Kind = kop.StatCantActivate // lower_cantact.go
@@ -3518,4 +3528,25 @@ func tapExtraFlag(name string) (kop.StaticFlags, bool) {
 // alternative stays refused (TestDamageTargetPlayerOrPlaneswalkerBuilds).
 func dmgPlayerAltClause(c lClause) bool {
 	return c == (lClause{Types: tPlaneswalker}) || c == (lClause{Types: tBattle})
+}
+
+// cantPlayLandStatic builds the hand land-play lock (cast_cantplayland.go):
+// Origin$ Hand in the static's Zone, the player scope in StFlags, no filter
+// (the lowering refuses a ValidCard$).
+func cantPlayLandStatic(s lStatic, st *kop.Static) error {
+	st.Kind = kop.StatCantPlayLand
+	if s.Zone == zHand {
+		st.Zone = kop.ZoneHand
+	}
+	for _, fl := range s.Flags {
+		switch fl {
+		case "ActivatorYou":
+			st.StFlags |= kop.StRaiseYou
+		case "ActivatorOpp":
+			st.StFlags |= kop.StRaiseOpp
+		default:
+			return fmt.Errorf("cant play land flag %q", fl)
+		}
+	}
+	return nil
 }
