@@ -1,6 +1,7 @@
 package kgen
 
 import (
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -96,6 +97,9 @@ func (lc *lowerCtx) raiseSelfAdditional(sp *params) (bool, error) {
 	if !c.Mana.None || c.pureMana() {
 		return false, nil
 	}
+	if c.SacX && lc.sacHalfOfControlled(&c, strings.TrimSpace(cost)) {
+		c.SacX, c.SacHalf = false, true
+	}
 	if (c.DiscardX || c.SacX) && (!lc.out.Cost.X || strings.TrimSpace(lc.face.SVars["X"]) != "Count$xPaid") {
 		return false, nil
 	}
@@ -112,6 +116,24 @@ func (lc *lowerCtx) raiseSelfAdditional(sp *params) (bool, error) {
 	}
 	o.SpellCost = &c
 	return true, nil
+}
+
+// sacHalfX matches a lone Sac<X/Spec[/desc]> cost.
+var sacHalfX = regexp.MustCompile(`^Sac<X/([^/>.]+)(?:/[^>]*)?>$`)
+
+// sacHalfOfControlled reports whether cost, a lone Sac<X/Spec> already parsed
+// into c, sacrifices half of the permanents Spec names: SVar X is exactly
+// Count$Valid Spec.YouCtrl/HalfUp (Tectonic Split's "half the lands you
+// control, rounded up"). gorge folds the count into a fixed Sac<N/Spec> where
+// the cost is composed (raise_cost_extra.go), so no X is announced: the kernel
+// counts the permanents as the pick is posed (kop.Cost.SacHalf). Any other
+// body of X stays refused.
+func (lc *lowerCtx) sacHalfOfControlled(c *lCost, cost string) bool {
+	m := sacHalfX.FindStringSubmatch(cost)
+	if m == nil || c.Sac == nil || c.SacExile || c.SacSelf || c.XMin != 0 {
+		return false
+	}
+	return strings.TrimSpace(lc.face.SVars["X"]) == "Count$Valid "+m[1]+".YouCtrl/HalfUp"
 }
 
 func (lc *lowerCtx) raiseCost(sp *params, st *lStatic) error {

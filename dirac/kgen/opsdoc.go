@@ -632,6 +632,7 @@ func opsUsage(pt *poolTables, all []*lCard, bs []built) map[string]map[string]bo
 		filt(d.ProtFrom)
 		if d.SpellCost != (kop.Cost{}) {
 			add("card:SpellCost", name)
+			usageSacHalf(d.SpellCost, name, add)
 		}
 		if d.HasAltAdd {
 			add("card:AltAddCost", name)

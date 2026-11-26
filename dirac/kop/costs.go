@@ -283,6 +283,16 @@ type Cost struct {
 	// words are full). Only a printed activated ability's or a permanent
 	// spell's own additional cost carries it.
 	ExileBf bool
+	// SacHalf: the CostSac part (N 0, Filter the permanents the payer
+	// controls) sacrifices half of them, rounded up, counted when the cost is
+	// paid: Tectonic Split's "sacrifice half the lands you control, rounded
+	// up" (Sac<X/Land> with SVar X Count$Valid Land.YouCtrl/HalfUp; CR 118.3,
+	// 601.2b). gorge folds the count into a fixed Sac<N/Land> where the cost
+	// is composed (raise_cost_extra.go), so nothing is announced: Cost.N stays
+	// 0 but the part is not the announced X (dirac.sacXCost). A table byte,
+	// not a CostFlags bit (the words are full). Only a spell's own additional
+	// cost carries it.
+	SacHalf bool
 	// ExileGSelf: the source card itself, in its owner's graveyard, is
 	// exiled as a first ExileFromGrave<1/CARDNAME> part beside the
 	// CostExileGrave part (Cost.N cards matching Filter, the other cards;

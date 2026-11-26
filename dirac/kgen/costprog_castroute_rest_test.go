@@ -1,7 +1,6 @@
 package kgen
 
 import (
-	"strings"
 	"testing"
 
 	"github.com/adams-shaun/gorge/dirac/kop"
@@ -40,8 +39,10 @@ func TestCostProgCastRouteRemainderRest(t *testing.T) {
 	if sp.Cost.Flags&kop.CostDiscard == 0 || !sp.Cost.DiscardX {
 		t.Fatalf("Aether Tide spell cost %+v, want the announced-X discard (CostDiscard, DiscardX)", sp.Cost)
 	}
-	if got := costProgCastRouteReason(all[1]); !strings.Contains(got, "Sac<X/Land/land(s)>") {
-		t.Errorf("Tectonic Split refusals %q, want its computed-X sacrifice still refused", got)
+	// Tectonic Split's half-the-lands count lowers as kop.Cost.SacHalf
+	// (TestRaiseCostComputedPickLowers)
+	if got := costProgCastRouteReason(all[1]); got != "" {
+		t.Errorf("Tectonic Split refusals %q, want none (the kernel counts the lands)", got)
 	}
 
 	// the same shape with a computed X must not lower as an announced part
