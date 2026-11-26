@@ -549,6 +549,9 @@ func (e *Engine) askTargetChained(p state.PlayerID, source state.ObjID, sa *card
 		Prompt: "Choose a target for " + e.targetName(source),
 		Source: source, TargetEffect: e.describeTargetEffect(p, source, sa, 0),
 		TargetsWithSameController: sameController, SetPropMode: setMode, ResumeSA: sa}
+	if total, ok := e.placedDivisionTotal(source, sa); ok && total > 1 && max > 1 {
+		d.DivideTotal = total
+	}
 	for _, candidate := range candidates {
 		// targetOptionLabel tolerates the Face-less ability object a
 		// TargetType$ Activated/Triggered spec now offers: targetName falls
