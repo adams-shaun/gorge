@@ -67,7 +67,11 @@ func (s *State) restrFeePrefix(k *prep, a Action, p uint8) {
 			}
 			fund--
 		}
-		s.restrFeeActivate(k, p, sl, ab, fee, s.restrFeeGapColour(k, a, p, sl, ab, fee))
+		if restrFeeWideAb(ab) {
+			s.restrFeeActivateWide(k, p, a, sl, ab, fee)
+		} else {
+			s.restrFeeActivate(k, p, sl, ab, fee, s.restrFeeGapColour(k, a, p, sl, ab, fee))
+		}
 		s.plainOptions(k, &d, availNoActScript|availNoFeeUnit)
 		if hasOption(&d, a) {
 			return
