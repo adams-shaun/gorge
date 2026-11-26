@@ -1578,6 +1578,12 @@ func (lc *lowerCtx) lowerKeywords() {
 				lc.out.Kicker, lc.out.KickerCost = &mc, &rest
 				continue
 			}
+			if mc, floor, ok := lc.kickerXMin(param); ok {
+				// an announced {X} kicker with a floor (Thieving Skydiver's
+				// XMin1 X): the floor rides KickerCost.XMin (lower_kickerx.go)
+				lc.out.Kicker, lc.out.KickerCost = &mc, &floor
+				continue
+			}
 			mc, err := parseManaCost(param)
 			if err != nil || strings.Contains(param, ":") {
 				lc.refuseNode(node, "kicker cost %q", param)
