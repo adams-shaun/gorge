@@ -1,6 +1,10 @@
 package kgen
 
-import "github.com/adams-shaun/gorge/dirac/kop"
+import (
+	"slices"
+
+	"github.com/adams-shaun/gorge/dirac/kop"
+)
 
 // The Override static build arm (was an arm of (*cardBuilder).static in
 // build_ab.go): a layer-7 copy effect over Filter (kop.StatOverride; the
@@ -12,8 +16,12 @@ func init() {
 
 func cbOverrideStatic(cb *cardBuilder, s lStatic, st *kop.Static) ([]uint8, error) {
 	st.Kind = kop.StatOverride
+	zone := kop.ZoneBattlefield
+	if slices.Contains(s.Flags, offZoneFlag) {
+		zone = continuousKind(st, s.Flags, s.Zone) // lower_offzone.go: StatOffZoneGrant over the grant's zone
+	}
 	if s.F != nil {
-		fid, err := cb.filter(s.F, kop.ZoneBattlefield)
+		fid, err := cb.filter(s.F, zone)
 		st.Filter = fid
 		if err != nil {
 			return nil, err
