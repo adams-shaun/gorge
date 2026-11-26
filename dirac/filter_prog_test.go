@@ -203,7 +203,9 @@ func TestFilterProgEqualsStruct(t *testing.T) {
 					continue
 				}
 				pl := &s.perms[sl]
-				run := func(f kop.FilterID) bool { return s.matchPermOne(k, &k.t.Filters[f], sl, pl.ctrl, NoSlot, layerFull) }
+				run := func(f kop.FilterID) bool {
+					return s.matchPermOne(k, &k.t.Filters[f], sl, pl.ctrl, NoSlot, layerFull, NoObj)
+				}
 				check("perm", p, 0, run(p.st), run(p.pr), run(p.neg), k.t.Cards[s.cardAt(sl)].Name)
 				permCmp++
 			}
@@ -309,7 +311,9 @@ func TestFilterProgTwoComparisons(t *testing.T) {
 		}
 		forObjects(s, func(sl Slot) {
 			pl := &s.perms[sl]
-			m := func(f kop.FilterID) bool { return s.matchPermOne(k, &k.t.Filters[f], sl, pl.ctrl, NoSlot, layerFull) }
+			m := func(f kop.FilterID) bool {
+				return s.matchPermOne(k, &k.t.Filters[f], sl, pl.ctrl, NoSlot, layerFull, NoObj)
+			}
 			note(m(x.pw), m(x.mv), m(x.both), m(x.rev), "perm "+k.t.Cards[s.cardAt(sl)].Name)
 		}, func(o Obj) {
 			ob := &s.objs[o]
@@ -328,11 +332,11 @@ func TestFilterProgTwoComparisons(t *testing.T) {
 // permanent and the card matcher.
 func TestFilterProgNoAlloc(t *testing.T) {
 	sc, k, perm, card, fl := fpScenario(t)
-	if !sc.s.matchPermOne(k, &fl.subPerm, sc.s.objs[perm].slot, 0, NoSlot, layerFull) {
+	if !sc.s.matchPermOne(k, &fl.subPerm, sc.s.objs[perm].slot, 0, NoSlot, layerFull, NoObj) {
 		t.Fatal("precondition: the permanent has the subtype the program asks for")
 	}
 	if n := testing.AllocsPerRun(200, func() {
-		sc.s.matchPermOne(k, &fl.subPerm, sc.s.objs[perm].slot, 0, NoSlot, layerFull)
+		sc.s.matchPermOne(k, &fl.subPerm, sc.s.objs[perm].slot, 0, NoSlot, layerFull, NoObj)
 	}); n != 0 {
 		t.Errorf("permanent matcher: %v allocations per program, want 0", n)
 	}
@@ -425,7 +429,7 @@ func TestFilterProgReachesEveryMatcher(t *testing.T) {
 		}
 	}
 	has, miss := &k.t.Filters[f.hasID], &k.t.Filters[f.missID]
-	want("permanent", s.matchPermOne(k, has, sl, 0, NoSlot, layerFull), s.matchPermOne(k, miss, sl, 0, NoSlot, layerFull))
+	want("permanent", s.matchPermOne(k, has, sl, 0, NoSlot, layerFull, NoObj), s.matchPermOne(k, miss, sl, 0, NoSlot, layerFull, NoObj))
 	want("permanent (matchPerm)", s.matchPerm(k, f.hasID, sl, 0, NoSlot), s.matchPerm(k, f.missID, sl, 0, NoSlot))
 	card := s.objs[hand].card
 	want("card in hand", s.matchCardOne(k, has, card, 0, 0, hand), s.matchCardOne(k, miss, card, 0, 0, hand))

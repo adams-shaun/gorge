@@ -186,8 +186,9 @@ var debugGatedPair uint8
 func SetDebugGatedPair(m uint8) { debugGatedPair = m }
 
 // gatedLargerPair reports card c's gated ability gj as a larger alternative of
-// the first mana ability's colour: two plain {T} abilities of one fixed colour,
-// the gated one making more (Whisperer of the Wilds, Fanatic of Rhonas).
+// the first mana ability's colour: two plain {T} abilities of one fixed colour
+// (or both of any one colour: Sceptre of Eternal Glory), the gated one making
+// more (Whisperer of the Wilds, Fanatic of Rhonas).
 // gorge's census lists the gate-on source as one unit with both alternatives
 // (pay.appendUnitAlternatives) and the planner takes the one that ranks best
 // per payment; the kernel's unit is a restrPairUnit pair without the
@@ -204,7 +205,7 @@ func gatedLargerPair(c *kop.CardDef, gj int, pc *pcard) bool {
 		}
 	}
 	return n == 2 && a0.AFlags == 0 && ag.AFlags == 0 && a0.ManaRestrict == 0 && ag.ManaRestrict == 0 &&
-		a0.ManaColors == ag.ManaColors && bits.OnesCount8(uint8(ag.ManaColors&0x3f)) == 1 &&
+		a0.ManaColors == ag.ManaColors && (bits.OnesCount8(uint8(ag.ManaColors&0x3f)) == 1 || ag.ManaColors&kop.ColAny == kop.ColAny) &&
 		a0.Cost.Flags == kop.CostTap && ag.Cost.Flags == kop.CostTap && max(ag.ManaN, 1) > pc.manaN && !ag.ManaEach && !a0.ManaEach
 }
 

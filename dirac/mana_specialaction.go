@@ -151,7 +151,7 @@ func (s *State) restrSpecialFilter(k *prep, p uint8, src Slot, f kop.FilterID, s
 		if fl == (kop.Filter{}) {
 			return true // bare Static (or an SA-property-only tail): every object
 		}
-		if target != NoSlot && s.matchPermOne(k, &fl, target, p, src, layerFull) {
+		if target != NoSlot && s.matchPermOne(k, &fl, target, p, src, layerFull, NoObj) {
 			return true
 		}
 	}
