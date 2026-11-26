@@ -17,6 +17,11 @@ const preReturnCost uint8 = 8
 // returns the card it owned the exiler of without its as-enters choice.
 var DebugReturnLeaveNoAsk bool
 
+// DebugReturnPriorityNoAsk is the lockstep mutation of the priority sweep: a
+// returning card's as-enters choice parks at a step's start and a cost's
+// sacrifice only, not at priority (pair 629, Patchwork Banner).
+var DebugReturnPriorityNoAsk bool
+
 // returnParkable reports a control state a returning card's as-enters choice
 // parks from: a cost's sacrifice (ctlBuild), or a departure swept at a step's
 // start, which includes a seat leaving the game (CR 800.4a: the exiler it owned
@@ -28,7 +33,14 @@ func (s *State) returnParkable() bool {
 	if s.ctl == ctlBuild {
 		return true
 	}
-	return !DebugReturnLeaveNoAsk && s.ctl == ctlStepBegin
+	if DebugReturnLeaveNoAsk {
+		return false
+	}
+	// a sweep at priority parks too when no decision is outstanding: gorge's
+	// entry walker poses the choice with the card in exile unless another ask
+	// is pending (applyETBChoiceReplacement's pending gate; pair 629's Patchwork
+	// Banner, 4-seat cmd5 seed 2)
+	return s.ctl == ctlStepBegin || !DebugReturnPriorityNoAsk && s.ctl == ctlPriority && s.g.nask == 0 && s.g.ro.n == 0
 }
 
 // parkReturnCost parks returning card ret's as-enters choice kind when its
