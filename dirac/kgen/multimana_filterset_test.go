@@ -19,9 +19,9 @@ func TestMultiManaFilterSet(t *testing.T) {
 		"An-Havva Township": true,
 		"Aysen Abbey":       true,
 		"Wizards' School":   true,
+		"Murmuring Bosk":    true, // the pain-first coloured pair (kernel prepPainFirst)
 	}
 	refuse := map[string]string{
-		"Murmuring Bosk":        "a pain rider beside a coloured plain {T} ability",
 		"Cadaverous Bloom":      "gorge's census is unrelaxable, so no prefix search runs",
 		"Glittering Stockpile":  "mana ability with a counter rider beside another mana ability",
 		"The Eternity Elevator": "granted mana ability with a dynamic amount",
