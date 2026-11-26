@@ -562,6 +562,8 @@ func (s *State) expr(k *prep, i int16, ctx evalCtx) int {
 		v = s.oppsLifeLost(ctx.ctrl)
 	case kop.ExDmgOppsTaken:
 		v = s.oppsDmgTaken(ctx.ctrl) // kw_bloodthirst.go
+	case kop.ExMaxOppDamageThisTurn:
+		v = s.maxOppDmgTaken(ctx.ctrl) // kw_bloodthirst.go
 	case kop.ExCountersOn:
 		v = s.refCounters(k, x, x.Ref, x.Ctr, ctx)
 	case kop.ExCreaturesDied:

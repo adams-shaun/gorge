@@ -1300,6 +1300,11 @@ func (lc *lowerCtx) countValue(rest string, depth int) (lValue, error) {
 		// gorge count_body_paid.go: the damage the living opponents were
 		// dealt this turn (bloodthirst's reader, lower_bloodthirst.go)
 		return lValue{Kind: vDmgOppsTaken}, nil
+	case "MaxOppDamageThisTurn":
+		// gorge count_cov3.go evalCov3HeadMaxOppDamageThisTurn: the most
+		// damage any one living opponent was dealt this turn (Spinerock
+		// Knoll's Hideaway Play gate, Lightning Phoenix)
+		return lValue{Kind: vMaxOppDmgTaken}, nil
 	case "RememberedSize":
 		return lValue{Kind: vRememberedCount}, nil
 	case "ImprintedSize":
