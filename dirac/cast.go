@@ -715,6 +715,9 @@ func (s *State) buildCostPreRaw(k *prep, pre, charge bool) (kop.ManaCost, bool) 
 		if cd.HasAltAdd && s.bld().altAdd == 1 {
 			c = addCost(c, cd.AltAddCost.Mana)
 		}
+		if cd.HasAltAdd && s.bld().altAdd == buildAltAdd2 {
+			c = addCost(c, cd.AltAddCost2.Mana) // the either-or's third part (Dusk Mangler's PayLife<4>)
+		}
 		if cd.HasModeCost {
 			c = spreeCost(cd, e.mode, c) // kw_spree.go
 		}
@@ -827,7 +830,7 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 			continue
 		case bsAltAdd:
 			if e.kind == seSpell && k.t.Cards[e.card].HasAltAdd {
-				if !s.altAddPayable(k, 0) && !s.altAddPayable(k, 1) {
+				if !s.altAddAnyPayable(k, e.card) {
 					// gorge altAddAsk: no payable part aborts the cast with
 					// no ask and nothing tapped (CR 733.1)
 					s.reverseCast(k)
@@ -1118,7 +1121,7 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 			if e.kind != seTrigger && s.pipOptions(k, d) {
 				return true
 			}
-			if s.altAddPipsFirst(k) && s.bld().stage == bsPips && s.bld().altAdd <= 1 && !s.altAddPayable(k, s.bld().altAdd) {
+			if s.altAddPipsFirst(k) && s.bld().stage == bsPips && (s.bld().altAdd <= 1 || s.bld().altAdd == buildAltAdd2) && !s.altAddPayable(k, s.bld().altAdd) {
 				// the pips are answered and the part chosen cannot be paid:
 				// gorge's payment window reverses the cast (CR 733.1)
 				s.altAddWindowTap(k)
@@ -1574,8 +1577,8 @@ func (s *State) applyBuild(k *prep, a Action) {
 			break
 		}
 		if s.bld().stage == bsAltAdd {
-			part := uint8(a.Target()) // code-ok: the either-or part (0 or 1)
-			s.bld().altAdd = part
+			part := uint8(a.Target()) // code-ok: the either-or part (0 to 2)
+			s.bld().altAdd = altAddBuildOf(part)
 			s.nextStage(k)
 			if !s.altAddPayable(k, part) && !s.altAddOpenTargets(k) && !s.altAddPipsFirst(k) {
 				if !s.requiredTarget(k) && k.t.Cards[e.card].BeholdN == 0 &&
@@ -2757,6 +2760,9 @@ func (s *State) buildPickCost(k *prep) *kop.Cost {
 		if cd.HasAltAdd && s.bld().altAdd == 1 {
 			return &cd.AltAddCost
 		}
+		if cd.HasAltAdd && s.bld().altAdd == buildAltAdd2 {
+			return &cd.AltAddCost2
+		}
 		if s.bld().altAdd == buildAltCost {
 			if a := &cd.Abilities[k.gen.altFree[e.card]-1]; altPickCost(&a.Cost) {
 				return &a.Cost // the sacrifice / return / hand-exile alternative cost (Fireblast, Gush, Force of Will; cast_altfree.go)
@@ -2849,10 +2855,48 @@ func (s *State) pickCostPayable(k *prep, p uint8, c *kop.Cost, exclude Obj) bool
 	return true
 }
 
-// altAddPayable: part 0 (the spell's own additional cost) or part 1
-// (CardDef.AltAddCost, whose mana is added to the spell's) is payable, the
-// mana from the pool or from what the window can still activate (gorge
-// altAddPartPayable, CR 601.2g).
+// buildAltAdd2 in build.altAdd: the either-or additional cost's third part
+// (CardDef.AltAddCost2, Dusk Mangler's PayLife<4>). Not 2: buildCost's
+// alternative-cost branch reads altAdd == buildAltCost (legal_gen.go) with no
+// HasAltAdd gate, so a probe priced at altAdd 2 would read gen.altFree (nil
+// for an either-or card, prepAltFree) and panic; 4 keeps the three spaces
+// apart.
+const buildAltAdd2 = 4
+
+// altAddBuildOf is the build.altAdd value the either-or part index builds as:
+// 0 and 1 build as themselves, the third part as buildAltAdd2.
+func altAddBuildOf(part uint8) uint8 {
+	if part == 2 {
+		return buildAltAdd2
+	}
+	return part
+}
+
+// altAddPartsN is how many parts card c's either-or additional cost offers:
+// two, or three with a lowered third part (altAddCost2, kernel
+// altAddOptions).
+func altAddPartsN(k *prep, c CardID) uint8 {
+	if k.t.Cards[c].AltAddCost2 != (kop.Cost{}) {
+		return 3
+	}
+	return 2
+}
+
+// altAddAnyPayable: some part of card c's either-or additional cost is
+// payable (gorge altAddAsk: no payable part aborts the cast, CR 733.1).
+func (s *State) altAddAnyPayable(k *prep, c CardID) bool {
+	for part := uint8(0); part < altAddPartsN(k, c); part++ {
+		if s.altAddPayable(k, part) {
+			return true
+		}
+	}
+	return false
+}
+
+// altAddPayable: part 0 (the spell's own additional cost) or part 1 or 2
+// (CardDef.AltAddCost / CardDef.AltAddCost2, whose mana is added to the
+// spell's) is payable, the mana from the pool or from what the window can
+// still activate (gorge altAddPartPayable, CR 601.2g).
 func (s *State) altAddPayable(k *prep, part uint8) bool {
 	if !s.altAddPickPayable(k, part) {
 		return false
@@ -2867,7 +2911,7 @@ func (s *State) altAddPayable(k *prep, part uint8) bool {
 		s.availTapX(k, e.ctrl, &av) // the window activates a tap-another source (mana_window.go)
 	}
 	saved := s.bld().altAdd
-	s.bld().altAdd = 1
+	s.bld().altAdd = altAddBuildOf(part)
 	c := s.buildCost(k)
 	s.bld().altAdd = saved
 	// the restricted sources the payment may spend (CR 106.6): gorge's window prices them
@@ -2885,24 +2929,31 @@ func (s *State) altAddPickPayable(k *prep, part uint8) bool {
 	if part == 0 {
 		return s.pickCostPayable(k, e.ctrl, spellAddCost(k, e.card), e.obj) && s.beholdPayable(k, e.ctrl, e.card, e.obj)
 	}
+	if part == 2 || part == buildAltAdd2 { // the ask's part index (altAddPayable, the answer) or its build value
+		return s.pickCostPayable(k, e.ctrl, &k.t.Cards[e.card].AltAddCost2, e.obj)
+	}
 	return s.pickCostPayable(k, e.ctrl, &k.t.Cards[e.card].AltAddCost, e.obj)
 }
 
 // altAddOptions poses gorge's either-or additional cost ask (cast_asks.go
 // altAddAsk, KChoose "altaddcost"): the payable parts first, then the
 // unpayable ones, each AkChoose{target: part index (0 the spell's own
-// additional cost, 1 CardDef.AltAddCost), mode: option position}.
+// additional cost, 1 CardDef.AltAddCost, 2 CardDef.AltAddCost2), mode:
+// option position}.
 func (s *State) altAddOptions(k *prep, d *Decision) {
 	d.Kind, d.Sub, d.Player = DkChoose, ChAltAdd, s.bld().e.ctrl
-	var ok [2]bool
-	ok[0], ok[1] = s.altAddPayable(k, 0), s.altAddPayable(k, 1)
+	parts := altAddPartsN(k, s.bld().e.card)
+	var ok [3]bool
+	for part := uint8(0); part < parts; part++ {
+		ok[part] = s.altAddPayable(k, part)
+	}
 	pos := uint8(0)
 	passes := 2
-	if s.cfg&cfgGorgeAltAdd == 0 && (ok[0] || ok[1]) {
+	if s.cfg&cfgGorgeAltAdd == 0 && (ok[0] || ok[1] || parts == 3 && ok[2]) {
 		passes = 1 // the payable parts only (Config.GorgeAltAdd)
 	}
 	for pass := 0; pass < passes; pass++ {
-		for part := uint8(0); part < 2; part++ {
+		for part := uint8(0); part < parts; part++ {
 			if ok[part] == (pass == 0) {
 				d.add(MakeAction(AkChoose, 0, TCode(part), pos)) // code-ok: the either-or part
 				pos++

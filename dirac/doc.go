@@ -178,7 +178,8 @@
 //     not asked when the hand holds N or fewer.
 //   - Either-or additional cost (gorge KChoose "altaddcost", Eaten Alive):
 //     DkChoose/ChAltAdd before every other cost pick, AkChoose{target: part
-//     (0 the spell's own additional cost, 1 CardDef.AltAddCost), mode: option
+//     (0 the spell's own additional cost, 1 CardDef.AltAddCost, 2
+//     CardDef.AltAddCost2), mode: option
 //     position}, payable parts first; choosing an unpayable part undoes the
 //     cast (back to priority), as in gorge.
 //   - Cleanup discard (gorge KChoose "discard", Min=Max=excess): Sub

@@ -609,6 +609,9 @@ func (s *State) buildCostGenPre(k *prep, pre bool) (kop.ManaCost, bool, bool) {
 		if cd.HasAltAdd && s.bld().altAdd == 1 {
 			c = cd.AltAddCost.Mana
 		}
+		if cd.HasAltAdd && s.bld().altAdd == buildAltAdd2 {
+			c = cd.AltAddCost2.Mana // the either-or's third part, Dusk Mangler's (CR 118.9d)
+		}
 		if cd.HasModeCost {
 			c = spreeCost(cd, e.mode, c) // Spree's mode costs are additional costs (CR 702.172a)
 		}
@@ -641,6 +644,9 @@ func (s *State) buildCostGenPre(k *prep, pre bool) (kop.ManaCost, bool, bool) {
 		}
 		if cd.HasAltAdd && s.bld().altAdd == 1 {
 			c = addCost(c, cd.AltAddCost.Mana) // Eaten Alive's {3}{B} part (CR 601.2f)
+		}
+		if cd.HasAltAdd && s.bld().altAdd == buildAltAdd2 {
+			c = addCost(c, cd.AltAddCost2.Mana) // the either-or's third part, Dusk Mangler's (CR 601.2f)
 		}
 		if cd.HasModeCost {
 			c = spreeCost(cd, e.mode, c)

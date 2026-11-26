@@ -76,7 +76,7 @@ func TestEachReflectedPickStallsInAProbe(t *testing.T) {
 	var c kop.ManaCost
 	c.Pips[kop.W], c.Pips[kop.U] = 1, 1
 	sc.s.g.stalled = 0
-	if ok, _ := sc.s.windowTapWalk(sc.k, 0, &c, &c, false, false, false, false, false, false, false); !ok {
+	if ok, _ := sc.s.windowTapWalk(sc.k, 0, &c, &c, false, false, false, false, false, false, false, false); !ok {
 		t.Fatal("the probe walk failed")
 	}
 	if !sc.tapped(birds) {
