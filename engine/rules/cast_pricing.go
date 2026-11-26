@@ -471,6 +471,11 @@ func (pr *targetCostProbe) verdict(targets, rootTargets, allTargets []state.Targ
 		// the spell's mana value prices this target at it
 		mods = pc.withDefiler(e.costModifiersForTargetsX(pc.player, pc.card, scope, targets, pc.x))
 	}
+	// A RaiseCost static's additional parts (Brutal Suppression's "Sacrifice
+	// a land") were folded into pc.cost once at proposal start
+	// (foldRaiseExtra) and are priced by NonManaCastable below; the freshly
+	// composed mods carry them again, which would charge every copy twice.
+	mods.Extra, mods.HasExtra = Cost{}, false
 	cost := mods.ApplyTaxed(pc.resolvedMana(), pc.taxGeneric)
 	if pc.ownReduce > 0 {
 		if n := e.ownReduceCost(pc.player, pc.card, e.pcAbility(pc), rootTargets, allTargets, pc.abilityMerged); n < pc.ownReduce {
