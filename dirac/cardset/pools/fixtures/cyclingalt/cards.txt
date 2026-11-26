@@ -1,0 +1,12 @@
+# the cycling alternative cost pool: New Perspectives' {0} cycling at seven or
+# more cards in hand, over a plain, a typecycling and a pay-life cycler
+# (dirac/oracle/altcost_cycling_test.go)
+New Perspectives
+Street Wraith
+Lonely Sandbar
+Daggermaw Megalodon
+Jhessian Zombies
+Grizzly Bears
+Island
+Swamp
+Forest
