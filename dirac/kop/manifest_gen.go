@@ -2195,17 +2195,24 @@ const KwToxic KwID = 139
 // Unearth (dirac/manifest/KwID/KwUnearth)
 const KwUnearth KwID = 140
 
+// other:ChangeZone DestAltSVar without MANDATORY (a destination choice) (dirac/manifest/Op/OpAskDestAlt)
+//
+// the resolving controller chooses between a ChangeZone's primary and alternate destination (gorge changezone_dest_alt, ChGenDestAlt): primary falls through to the next instruction, alternate skips the next A.N instructions (Emeria Shepherd's "if that land is a Plains, you may return that card to the battlefield instead")
+const OpAskDestAlt Op = 158
+
+func init() { opNames[OpAskDestAlt] = "AskDestAlt" }
+
 // Op (dirac/manifest/Op/OpGrantEmbalmOwnCost)
 //
 // object Obj (a creature card in its owner's graveyard) gains embalm, with a cost equal to its mana cost, until end of turn (Cursecloth Wrappings; CR 702.128a); C = the index of the granting card's latent embalm body (dirac/kw_embalmgrant.go)
-const OpGrantEmbalmOwnCost Op = 158
+const OpGrantEmbalmOwnCost Op = 159
 
 func init() { opNames[OpGrantEmbalmOwnCost] = "GrantEmbalmOwnCost" }
 
 // other:Effect static mode CantRegenerate (dirac/manifest/Op/OpMarkNoRegen)
 //
 // the battlefield creature of Obj (Furnace Brood's targeted Effect "target creature can't be regenerated this turn", CR 701.19c) takes the mechNoRegen slot mark without a DealDamage carrying it (dirac/repl_noregen.go); the mark ends at the turn's cleanup and when the permanent leaves
-const OpMarkNoRegen Op = 159
+const OpMarkNoRegen Op = 160
 
 func init() { opNames[OpMarkNoRegen] = "MarkNoRegen" }
 
