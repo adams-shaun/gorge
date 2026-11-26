@@ -10,6 +10,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/seat"
 	"github.com/adams-shaun/gorge/engine/view"
 	"github.com/adams-shaun/gorge/server/protocol"
+	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
 // threeSeatHuman is an Options.Seats hook: a HumanSeat at slot 0 and a real
@@ -68,7 +69,7 @@ func TestTwoDefenderAttackFromHumanSeatContinuesToNormalEnd(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	deadline := time.Now().Add(60 * time.Second)
+	deadline := time.Now().Add(testutil.WaitBudget)
 	refused := false
 	for {
 		if time.Now().After(deadline) {
@@ -104,7 +105,7 @@ func TestTwoDefenderAttackFromHumanSeatContinuesToNormalEnd(t *testing.T) {
 				var serr error
 				select {
 				case serr = <-errc:
-				case <-time.After(10 * time.Second):
+				case <-time.After(testutil.WaitBudget):
 					t.Fatal("two-defender human intent hung: the submit never returned")
 				}
 				if serr == nil {

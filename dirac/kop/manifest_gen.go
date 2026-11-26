@@ -990,6 +990,8 @@ const ExDraftNotesHighest ExprKind = 84
 const ExManaPool ExprKind = 85
 
 // count MostCardName (dirac/manifest/ExprKind/ExMostCardName)
+//
+// the greatest number of objects matching the spec that share one face name (Endless Atlas, Mechanized Production, Chrome Replicator, Sceptre of Eternal Glory); dirac/value_mostcardname.go
 const ExMostCardName ExprKind = 86
 
 // count NumDamageThisTurn (dirac/manifest/ExprKind/ExNumDamageThisTurn)
@@ -1706,31 +1708,45 @@ const ExtPayLifeX ExtOp = 109
 
 func init() { extOpNames[ExtPayLifeX] = "PayLifeX" }
 
+// ExtOp (dirac/manifest/ExtOp/ExtPlaneCurse)
+//
+// Eloren Wilds' plane-source curse Effect (DB$ Effect | StaticAbilities$ STCantCast beside Triggers$ PlaneswalkedTo self-exile, Duration$ Permanent): the targeted player may not cast spells until any player planeswalks. gorge registers the CantBeCast static with the UntilPlaneswalk lifetime (effEffect's effectPlaneCurseEnd; rules' checkPlaneswalkTriggers ends it via withoutUntilPlaneswalk); the kernel keeps the narrow record instead -- planeSeat.curse's per-seat bitset, set by the instr's player target and cleared in planeswalk -- and castForbiddenCost reads it after the static scan (gorge consults registered effects after face statics). The Effect lives over the plane as its source; the record is the narrow equivalent the planebodies slice keeps on the cold planar record.
+const ExtPlaneCurse ExtOp = 111
+
+func init() { extOpNames[ExtPlaneCurse] = "PlaneCurse" }
+
 // ExtOp (dirac/manifest/ExtOp/ExtRememberPlayer)
 //
 // Pump RememberObjects$ TargetedController: record the target's controller as the resolution's player (res.chPl) so the chained Draw can read it after the GainControl (Rules of Acquisition; CR 608.2c).
-const ExtRememberPlayer ExtOp = 111
+const ExtRememberPlayer ExtOp = 112
 
 func init() { extOpNames[ExtRememberPlayer] = "RememberPlayer" }
 
 // RepeatOptional (dirac/manifest/ExtOp/ExtRepeatOptional)
 //
 // ExtRepeatOptional: an OpRepeatWhile body's RepeatOptional$ election (gorge effRepeat's repeat_optional "Repeat this process?"). B.N 0 at the body's head: C is the pass's progress condition, and a pass that starts without it is the last one, no election follows it (gorge's changed-nothing shortcut, CR 732.2a). B.N 1 at the body's tail: unless the pass was the last, the resolving controller is asked yes / no (ChGenConfirm); a no ends the loop. dirac/act_repeatoptional.go.
-const ExtRepeatOptional ExtOp = 112
+const ExtRepeatOptional ExtOp = 113
 
 func init() { extOpNames[ExtRepeatOptional] = "RepeatOptional" }
+
+// ExtOp (dirac/manifest/ExtOp/ExtRippleBottom)
+//
+// ExtRippleBottom: the tail of a granted ripple's trigger body (gorge effRippleBottom): every card of the resolution's remembered set still in its owner's library goes to the bottom of that library, in remembered order. Two or more pose the owner the CR 401.4 arrangement ask (ChArrange, gorge libraryPlacementOrder over the cards still at the top — the ask precedes the move), and the answer's order is the bottom order (libraryOrderPlacement bottom=true); one or none bottoms unasked. A cast card is on the stack and skipped; a card a response moved is skipped by the same zone recheck (gorge's placed). The kernel-native ripple body arms it (kw_ripple.go rippleProg); no ExtLibPlace bracket, the op asks itself. dirac/kw_ripple.go rippleBottomExt.
+const ExtRippleBottom ExtOp = 114
+
+func init() { extOpNames[ExtRippleBottom] = "RippleBottom" }
 
 // ExtOp (dirac/manifest/ExtOp/ExtStoreNum)
 //
 // StoreSVar's per-object number write (gorge effStoreSVar, events.StoreSVar -> Object.RuntimeSVars; CR 400.7): B the value (any ValueRef, evaluated at the write), C the SVar name (Table.SVarNames index, low 4 bits) with the delete-on-default flag (kop.StoreNumDel) and the printed default beside it (kop.StoreNumDefault); the target is the resolving source. The number is a record of the object-set store (kind osNum) keyed by the object, whatever zone it is in: only a departure from the battlefield clears it (gorge's wasBattlefield reset), so a write after the source left persists on the departed object. dirac/act_storenum.go.
-const ExtStoreNum ExtOp = 113
+const ExtStoreNum ExtOp = 115
 
 func init() { extOpNames[ExtStoreNum] = "StoreNum" }
 
 // ExtOp (dirac/manifest/ExtOp/ExtTwoPilesEach)
 //
 // A RepeatEach player body's battlefield TwoPiles (Bend or Break: Defined$ Remembered, Separator$ Remembered, Chooser$ ChosenPlayer, ValidCards$ Land.!token+RememberedPlayerCtrl; gorge effTwoPiles' battlefield arm over the repeated player): F names the repeated player's permanents (CtrlEachPl). They separate them into two piles (ChGenPileSplit, a permanent per pick, AkDone-closed, picking them all ends it; a one-permanent pool poses no split), the opponent their chain's ExtChoosePlayerEach chose picks one (ChGenPileChoose mode 0 the picks, 1 the rest; resChosenPlayer), and the chosen pile is destroyed while the other is tapped (ChosenPile$ DestroyAll Land.IsRemembered then UnchosenPile$ TapAll Land.IsRemembered: each pile's members still matching F run the ordinary destroy / tap-all passes, gorge twoPilesRunPile's fresh Remembered = pile). Pile A rides genState.sacM, the pool player genState.pickP; both are cleared at the end. B.N&1: the pick's mode-1 answer names pile A (the chosen/unchosen piles swap; the lockstep mutation). dirac/act_pileseach.go.
-const ExtTwoPilesEach ExtOp = 114
+const ExtTwoPilesEach ExtOp = 116
 
 func init() { extOpNames[ExtTwoPilesEach] = "TwoPilesEach" }
 
@@ -2186,17 +2202,24 @@ const KwToxic KwID = 139
 // Unearth (dirac/manifest/KwID/KwUnearth)
 const KwUnearth KwID = 140
 
+// other:ChangeZone DestAltSVar without MANDATORY (a destination choice) (dirac/manifest/Op/OpAskDestAlt)
+//
+// the resolving controller chooses between a ChangeZone's primary and alternate destination (gorge changezone_dest_alt, ChGenDestAlt): primary falls through to the next instruction, alternate skips the next A.N instructions (Emeria Shepherd's "if that land is a Plains, you may return that card to the battlefield instead")
+const OpAskDestAlt Op = 158
+
+func init() { opNames[OpAskDestAlt] = "AskDestAlt" }
+
 // Op (dirac/manifest/Op/OpGrantEmbalmOwnCost)
 //
 // object Obj (a creature card in its owner's graveyard) gains embalm, with a cost equal to its mana cost, until end of turn (Cursecloth Wrappings; CR 702.128a); C = the index of the granting card's latent embalm body (dirac/kw_embalmgrant.go)
-const OpGrantEmbalmOwnCost Op = 158
+const OpGrantEmbalmOwnCost Op = 159
 
 func init() { opNames[OpGrantEmbalmOwnCost] = "GrantEmbalmOwnCost" }
 
 // other:Effect static mode CantRegenerate (dirac/manifest/Op/OpMarkNoRegen)
 //
 // the battlefield creature of Obj (Furnace Brood's targeted Effect "target creature can't be regenerated this turn", CR 701.19c) takes the mechNoRegen slot mark without a DealDamage carrying it (dirac/repl_noregen.go); the mark ends at the turn's cleanup and when the permanent leaves
-const OpMarkNoRegen Op = 159
+const OpMarkNoRegen Op = 160
 
 func init() { opNames[OpMarkNoRegen] = "MarkNoRegen" }
 
@@ -2210,33 +2233,38 @@ const PredNamedCard Pred = 35
 // PredGoaded: the battlefield permanent is goaded by any player (gorge IsGoaded, engine/effects/filter.go matchPositive). PredN 1 is the positive word, 0 the ! negation; off the battlefield nothing is goaded.
 const PredGoaded Pred = 36
 
+// Card.Self+kicked 1 / Card.Self+kicked 2 (dirac/manifest/Pred/PredKickedAlt)
+//
+// PredKickedAlt: the battlefield permanent was cast with kicker alternative PredN (1 or 2) paid (CR 702.33b; gorge FlagKicked1 / FlagKicked2, filter_word.go wordKickedIndex). The kernel reads bit PredN-1 of the object's coldKickAlt byte, set only by setKickAlt; a single-cost kicked cast sets no bit, so both indexes read false for it (gorge parity). Off the battlefield it never matches (kgen refuses it there).
+const PredKickedAlt Pred = 37
+
 // ControlledBy Player.isMonarch (dirac/manifest/Pred/PredMonarchCtrl)
 //
 // PredMonarchCtrl: the battlefield permanent's controller is the monarch (PredN 0; gorge ControlledBy Player.isMonarch) or is not the monarch (PredN 1; gorge ControlledBy EnchantedController.!isMonarch read beside EnchantedBy, where the enchanted controller is the candidate's own). With no monarch the positive word fails and the negated word holds; off the battlefield it never matches either way.
-const PredMonarchCtrl Pred = 37
+const PredMonarchCtrl Pred = 38
 
 // Pred (dirac/manifest/Pred/PredProg)
 //
 // PredProg: the filter's predicate is a program of literals (PredN: kop.FilterProgID, an index into Table.FilterProgs). The matcher applies the struct's own fields first (types, colours, controller, zone, flags, the Or chain), which are the program's first conjuncts, then evaluates each kop.FLit in order and stops at the first that fails; a literal's Neg inverts its word. Each word is a kop.FilterWord with one kernel handler (dirac/filter_<name>.go). A word reading a field its matcher does not have fails closed, as gorge's unbound context does. kgen lowers it for a clause whose comparisons the filter struct cannot hold (dirac/kgen/filter_spill.go); the words so far are the struct's own Pred codes re-expressed (power, toughness, mana value, counters, keyword, subtype).
-const PredProg Pred = 38
+const PredProg Pred = 39
 
 // pred IsRingbearer (dirac/manifest/Pred/PredRingBearer)
-const PredRingBearer Pred = 39
+const PredRingBearer Pred = 40
 
 // Pred (dirac/manifest/Pred/PredSameNameSelf)
 //
 // PredSameNameSelf: the candidate's current name equals the reading source's current name (gorge sharesNameWith Self, filter_attachment.go; Marvin, Murderous Mimic's GainsAbilitiesOf$ Creature.YouCtrl+!sharesNameWith Self). The source is the static's own source slot, or the resolving entry's object; the name identity is sharesNameRem's (a battlefield permanent reads its layer-3 name, a face-down object has no name, CR 708.2). PredN 1 is the ordinary ! negation.
-const PredSameNameSelf Pred = 40
+const PredSameNameSelf Pred = 41
 
 // Pred (dirac/manifest/Pred/PredSharesCrCmdr)
 //
 // PredSharesCrCmdr: the object shares a creature type with a commander of the evaluating controller (gorge sharesCreatureTypeWith Commander, effects sharesTypeReferentsCommander: the resolving source's controller's commanders, Path of Ancestry's SpellCast ValidCard$ Creature.sharesCreatureTypeWith Commander). Each side reads its current creature types where it now is (a commander in the command zone its printed ones); an object with every creature type shares with any commander that has a creature type, and a commander with every type with any object that has one (CR 702.73a). A controller with no commander matches nothing.
-const PredSharesCrCmdr Pred = 41
+const PredSharesCrCmdr Pred = 42
 
 // Pred (dirac/manifest/Pred/PredStatBox)
 //
 // PredStatBox: the object's power and toughness each lie in a constant inclusive range (PredN: kop.PTBoxPack bounds, PTBoxOpen for no bound). kgen folds two constant power/toughness compares of one clause into it (gorge powerEQ1+toughnessEQ1, powerGE4+powerLE6: each conjunct reads the same current power and toughness, the layered values on the battlefield and the printed or CDA ones elsewhere, a face-down object 2/2).
-const PredStatBox Pred = 42
+const PredStatBox Pred = 43
 
 // repl BeginPhase (dirac/manifest/ReplKind/ReplBeginPhase)
 const ReplBeginPhase ReplKind = 42
@@ -2324,6 +2352,9 @@ const ReplDamageSet ReplKind = 69
 
 // repl LifeReduced (dirac/manifest/ReplKind/ReplLifeReduced)
 const ReplLifeReduced ReplKind = 70
+
+// repl TurnFaceUp replacement shape (the optional Attach body: as this face-down permanent is turned face up, its controller may attach it to a permanent the body's Choices$ names; Gift of Doom) (dirac/manifest/ReplKind/ReplTurnUpAttach)
+const ReplTurnUpAttach ReplKind = 71
 
 // stat OptionalAttackCost (dirac/manifest/StaticKind/StatOptionalAttackCost)
 const StatOptionalAttackCost StaticKind = 22
@@ -2498,28 +2529,38 @@ const StatRetraceGrant StaticKind = 73
 // StatColorWords is a Continuous static's ChangeColorWordsTo$ ChosenColor over Affected$ Spell,Permanent in AffectedZone$ Stack,Battlefield (Swirl the Mists; CR 612.5): every colour word in the text of the spells on the stack and the permanents on the battlefield becomes the source's recorded colour word. The kernel holds no per-object text (kop.ExtChangeText), so it models the change where it is a no-op and stalls where it is not: a spell about to be cast, a spell on the stack or a permanent whose card face reads (CardDef.TextWords) a colour word other than the source's chosen one stalls the game (StallTextChange, unmodelled) instead of answering from the unchanged face; a source with no recorded colour changes nothing, as gorge's colourWordEffects fails closed. Read at pushBuild and before each priority grant behind prep.anyColorWords (static_colorwords.go).
 const StatColorWords StaticKind = 74
 
+// StaticKind (dirac/manifest/StaticKind/StatCyclingAlt)
+//
+// StatCyclingAlt is an AlternativeCost static over the controller's cycling activations (New Perspectives' "As long as you have seven or more cards in hand, you may pay {0} rather than pay cycling costs", ValidSA$ Activated.Cycling, ValidPlayer$ You, Cost$ Discard<1/CARDNAME>; CR 118.9): while Cond2 holds (the hand-count gate) and the controller's hand card has a cycling ability, the kernel also offers that ability's twin (Ability.CycAltOf, built by kgen beside the printed one with the discard alone as its cost). gorge's abilityAlternateCostFor offers the same option (AltCostIndex 1) beside the printed one (kw_cyclingalt.go).
+const StatCyclingAlt StaticKind = 75
+
 // StaticKind (dirac/manifest/StaticKind/StatCyclingGrant)
 //
 // StatCyclingGrant is a Continuous static's AffectedZone$ Hand AddKeyword$ Cycling or TypeCycling grant (Rhet-Tomb Mystic, Jo Grant, Tectonic Reformation, Homing Sliver; CR 702.29a, 702.29e): Filter matches the card in a hand and GrantBody-1 is the latent cycling body (the printed kwCycling / kwTypeCycling expansion, cards.GrantedKeywordAbility, AfCycling, ActZone hand) the hand offer runs with the affected card as its source, discarding it as the cost. The offer is the hand owner's, whoever controls the static (kw_cyclinggrant.go).
-const StatCyclingGrant StaticKind = 75
+const StatCyclingGrant StaticKind = 76
 
 // StaticKind (dirac/manifest/StaticKind/StatDefenderAssigns)
 //
 // StatDefenderAssigns is a Continuous static's `Affected$ You | AddKeyword$ You assign combat damage of each creature attacking you.` (Defensive Formation, kgen lower_playerstatic.go): its controller, not the attacking player, divides the combat damage of each creature attacking them among its blockers (CR 510.1c as the card rewrites it; gorge defenderAssignsAttackerDamage). Read live from the battlefield (dirac/static_plkeyword.go defenderAssigns, combat_band.go bandDivider); no State bytes.
-const StatDefenderAssigns StaticKind = 76
+const StatDefenderAssigns StaticKind = 77
+
+// StaticKind (dirac/manifest/StaticKind/StatGraveNoAbilities)
+//
+// StatGraveNoAbilities is a Continuous static's AffectedZone$ Graveyard RemoveAllAbilities$ True (Yixlid Jailer; CR 613.1f): each card in a graveyard that Filter matches loses all abilities while the static's battlefield source is in force. Zone is the graveyard and the filter reads the card as a card, wherever it lies. It is not a StatContinuous, so no battlefield reader (the layer walks, loss6) sees it; only the graveyard readers ask it, through graveAbilitiesLost (static_graveabilityloss.go), which also answers the removal's timestamp so a granted graveyard ability that is newer than the removal survives (gorge grantLostTo).
+const StatGraveNoAbilities StaticKind = 78
 
 // StaticKind (dirac/manifest/StaticKind/StatMiracleGrant)
 //
 // StatMiracleGrant is a Continuous static's AffectedZone$ Hand AddKeyword$ Miracle:<cost> grant (Lorehold, the Historian; Molecule Man; Aminatou, Veil Piercer; CR 702.94a): Filter matches the card in a hand and the granted miracle cost is GrantCost, or under CardCostLess the card's own mana cost reduced by CardCostLess-1 generic (Miracle:ManaCost:4). A card with printed miracle keeps its own (gorge derivedKeywordParamH reads the printed head first); the first grant in perm.ts order wins. Read live from the battlefield at the draw, the reveal-trigger resolution and the cast, never stamped on the card (kw_miracle.go miracleCostOf).
-const StatMiracleGrant StaticKind = 77
+const StatMiracleGrant StaticKind = 79
 
 // stat AssignNoCombatDamage (dirac/manifest/StaticKind/StatNoCombatDamage)
-const StatNoCombatDamage StaticKind = 78
+const StatNoCombatDamage StaticKind = 80
 
 // StaticKind (dirac/manifest/StaticKind/StatUnearthGrant)
 //
 // StatUnearthGrant is a Continuous static's AffectedZone$ Graveyard AddKeyword$ Unearth grant (Sedris, the Traitor King, Mishra, Tamer of Mak Fawa, Dregscape Sliver, Solemn Doomguide; CR 702.84a): Filter matches the card in the graveyard and GrantBody-1 is the latent unearth body (the printed kwUnearth expander's AB$ ChangeZone, cards.GrantedKeywordAbility) the graveyard offer runs with the affected card as its source. The body's own Cost prices the explicit-cost shape; a zero body cost is the CardManaCost mark, which the offer charges as the affected card's own mana cost (kw_unearthgrant.go).
-const StatUnearthGrant StaticKind = 79
+const StatUnearthGrant StaticKind = 81
 
 // trig ChaosEnsues (dirac/manifest/TrigEvent/TrigChaosEnsues)
 const TrigChaosEnsues TrigEvent = 52

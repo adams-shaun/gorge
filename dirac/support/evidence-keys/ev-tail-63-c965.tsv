@@ -1,0 +1,128 @@
+card	lir16	plays	keys	unused	branches	missing_branches
+Aether Membrane	2c04434088e66f9c	4	1/1		0/1	ix:resp
+Affa Guard Hound	487d829331a5397a	4	1/1		0/1	ix:resp
+Ainok Artillerist	0e7ceb885e9ac362	8	0/0		0/0	
+Ambassador Oak	72913fa562500a63	4	1/1		0/1	ix:resp
+Ant-Man's Air Force	c492eb12ebecd9a3	4	1/1		0/1	ix:resp
+Arcane Proxy	3a033ceb832236fa	4	1/1		2/3	ix:resp
+Arcbound Ravager	48501fa942b6bcca	4	2/2		1/3	f0/t0/opt:n,f0/t0/opt:y
+Armed Assailant	498bdb0d56410390	6	0/0		0/0	
+Awakened Amalgam	54383545f7cc2cd3	9	0/0		0/0	
+Barbed Shocker	0631153cb836a431	4	1/1		0/1	ix:resp
+Bartizan Bats	6e52dfe39bc201f8	12	0/0		0/0	
+Belle of the Brawl	7ff688b8114dcd4d	5	1/1		0/1	ix:resp
+Black Carriage	57b69cfff2be299d	4	1/1		0/1	ix:resp
+Black Vise	a92f10037b12437d	4	1/1		0/1	ix:resp
+Blaring Captain	4323f7ada5d4901e	12	2/2		0/1	ix:resp
+Blindblast	a39d11a4b4aa4492	9	0/0		1/2	ix:resp
+Bureau Headmaster	57caa67bc3a36b07	4	0/0		0/0	
+Butcher Ghoul	805b696c82ec2024	6	1/1		0/1	ix:resp
+Cackling Fiend	b1fa0decd167be20	7	1/1		0/1	ix:resp
+Caregiver	7587dcd2e3488157	6	1/1		0/1	ix:resp
+Cavern Lampad	81ed2e03643e5836	4	0/0		2/2	
+Chainbreaker	1b99152ec5a0ce71	7	1/1		0/1	ix:resp
+Champion of the Flame	eb76479a4b58bad2	8	0/0		0/0	
+Citadel Gate	9ff7879809d04e3a	6	1/1		0/1	ix:resp
+Civilized Scholar	82bbef674e3ee373	4	2/2		0/1	ix:resp
+Convulsing Licid	ff3f240c7b56e20b	3	1/1		0/1	ix:resp
+Cruel Revival	a069256e2eef2ec8	4	0/0		1/2	ix:resp
+Cyclops of Eternal Fury	e4b3a8b04c632e4e	3	0/0		0/0	
+Dauthi Ghoul	2c77192775b6c062	9	1/1		0/1	ix:resp
+Deathbellow Raider	188e029120271921	16	1/1		1/1	
+Delayed Blast Fireball	1a696c449689605c	11	0/0		3/4	cast/alt:foretold
+Demonic Collusion	34bd43de7b891c31	9	0/0		3/4	ix:resp
+Dryad's Favor	3e5e66a900bf4542	6	0/0		1/2	ix:resp
+Durkwood Baloth	a7ca52badda895ef	10	0/0		1/2	cast/alt:none
+Excavated Wall	738efec843cd3aa3	4	1/1		0/1	ix:resp
+Eyes of the Beholder	afee9fac03c06404	6	0/0		1/2	ix:resp
+Firebrand Ranger	cbb43feb73d18ad5	8	1/1		0/1	ix:resp
+Flaying Tendrils	f1a370a3b7beac10	8	0/0		1/2	ix:resp
+Forest	6d0466c30f825dba	119	1/1		0/1	ix:resp
+Forge Armor	d9b5500e8bdeb006	4	0/0		1/2	ix:resp
+Furious Bellow	47d88131617eda87	6	0/0		1/2	ix:resp
+Furyborn Hellkite	8ea67e1423e8aad0	6	0/0		0/0	
+Gaea's Protector	0c8d48b6d41c6070	6	0/0		0/0	
+Go-Shintai of Ancient Wars	e4aee387713d7886	3	1/1		0/1	ix:resp
+Gobland	33aee63b45eed6d8	18	1/1		0/1	ix:resp
+Goblin Assailant	6105720cdab040b3	10	0/0		0/0	
+Goblin Cannon	11538dfeeca30531	14	1/1		1/1	
+Goblin Medics	89fe84df9cd9b759	8	1/1		0/1	ix:resp
+Goblin Pyromancer	41eefb78137175a8	6	2/2		0/1	ix:resp
+Goldspan Dragon	2eff3b9931db5a13	6	2/2		0/1	ix:resp
+Greenwheel Liberator	6ad8a27c8ac3c8b5	10	0/0		0/0	
+Guilty Conscience	6a1c814de9125bcf	4	1/1		1/2	ix:resp
+Hag of Twisted Visions	203c7b6466abfbf9	10	1/1		0/1	ix:resp
+Heir of the Ancient Fang	9bbae5d9b5042697	7	0/0		0/0	
+Hordeling Outburst	e2516558a88528e2	6	0/0		1/2	ix:resp
+Hulking Ogre	46bd3c6943eba469	10	0/0		0/0	
+Island	763c67ef7a27eaf5	86	1/1		0/1	ix:resp
+Jackalope Herd	0867a5fbc031cfd4	4	1/1		0/1	ix:resp
+Knight of the Skyward Eye	99802d9c3c111e23	7	1/1		0/1	ix:resp
+Loxodon Convert	738ffa42a078066c	6	0/0		0/0	
+Lurking Skirge	076dd6a78587c6b0	8	1/1		0/1	ix:resp
+Mardu Scout	56f87f8926e4feed	10	0/0		2/2	
+Maze Glider	82985d7557fbdb8b	4	0/0		0/0	
+Memorial to Glory	e1852dd90dbfeafd	20	2/2		0/1	ix:resp
+Merfolk Sovereign	aa92188a68bc524e	6	1/1		0/1	ix:resp
+Mistform Ultimus	f3b3fa2afc901361	4	0/0		0/0	
+Misthoof Kirin	0b155e19eb539d80	3	0/0		1/2	cast/alt:megamorphed
+Mistvault Bridge	7d6d24faefef8cac	25	1/1		0/1	ix:resp
+Mountain	9e71388353e907ed	330	1/1		0/1	ix:resp
+Omen of the Forge	f9096367cf2d8ce5	4	2/2		0/1	ix:resp
+Orzhov Enforcer	755e39f604d0ab31	4	1/1		0/1	ix:resp
+Palace Siege	932b9814f244cf6c	11	0/0		0/0	
+Paper Tiger	0201aff0bfc75d72	8	0/0		0/0	
+Phantom Blade	7ccb9e702e704439	7	2/2		0/1	ix:resp
+Pine Barrens	ec536b05f9f1de69	10	2/2		0/1	ix:resp
+Plains	82d63a695487e567	66	1/1		0/1	ix:resp
+Political Trickery	e589007c11daa518	4	0/0		2/2	
+Priest of Urabrask	58b8f50b6d350c2b	12	1/1		1/1	
+Pygmy Razorback	71e29f6e827a5eae	4	0/0		0/0	
+Pyromancer's Swath	787c01eeca6d58b3	3	1/1		0/1	ix:resp
+Quag Sickness	80ad1c2796d94cfd	4	0/0		1/2	ix:resp
+Raised by Wolves	6104c444824ee0c4	7	1/1		1/2	ix:resp
+Ratcatcher	ad9bbe80e7584d98	4	1/1		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Riddleform	a663e11ad5febfc9	6	2/2		0/3	f0/t0/opt:n,f0/t0/opt:y,ix:resp
+Ring of Renewal	d7220937d4fdad4a	8	1/1		1/1	
+Salvage	8577aee2c2d3c623	4	0/0		1/2	ix:resp
+Scalding Cauldron	05ca9953e30f17d7	4	1/1		0/1	ix:resp
+Searing Barb	f093754a6c7865fd	6	0/0		1/2	ix:resp
+Shivan Reef	bd256feeebb6e500	22	2/2		0/1	ix:resp
+Shizo, Death's Storehouse	c386cea31994e5cf	10	2/2		0/1	ix:resp
+Short Circuit	b9122ac90da5416a	4	0/0		1/2	ix:resp
+Shredded Sails	6c5829541728d1a2	3	1/1		1/2	ix:resp
+Singe	333b3c1c77967be7	8	0/0		1/2	ix:resp
+Snow-Covered Forest	a1a5f67cd8b33a1c	11	1/1		0/1	ix:resp
+Spire Golem	30746638b54259b1	3	0/0		0/0	
+Spiteful Banditry	03f8ecf2fe587941	3	2/2		0/1	ix:resp
+Stampeding Wildebeests	c00a1011b119f614	13	1/1		0/1	ix:resp
+Stitcher's Graft	e57dcf959c492130	6	3/3		0/1	ix:resp
+Stormblood Berserker	c6014266d543b730	4	0/0		0/0	
+Straw Soldiers	e2eed9613a04fed7	10	0/0		0/0	
+Student of Warfare	f22362065cdd3ffa	4	1/1		0/1	ix:resp
+Stupor	13e82146871af7f6	7	0/0		1/2	ix:resp
+Swamp	342b413902f441c3	97	1/1		0/1	ix:resp
+Thallid	ef28b7c87fd0d7a5	4	2/2		0/1	ix:resp
+The Autonomous Furnace	8e3bf3180c613bca	12	2/2		0/1	ix:resp
+Titanic Pelagosaur	35d534c05b5c9e95	4	0/0		0/0	
+Toil to Renown	3726479d5a837f3f	7	0/0		1/2	ix:resp
+Tower of Fortunes	198879bcc40f78e3	5	1/1		0/1	ix:resp
+Towering Viewpoint	c6e3bec8d9e36848	9	1/1		1/1	
+Tranquil Thicket	7f6cbe3d8c4d4b74	13	2/2		0/1	ix:resp
+Treasure Nabber	974a6ef4a75cde60	102	1/1		1/1	
+Turn the Tide	d64b7aa49a7acde0	8	0/0		2/2	
+Twilight Mire	2d0b7d4bfd07fabc	20	2/2		0/1	ix:resp
+Unholy Grotto	1bc87d0b6bc8e960	15	2/2		0/1	ix:resp
+Urborg Justice	0172d9971ab4a9a9	4	0/0		1/2	ix:resp
+Varchild's War-Riders	f00211c2fcd5091b	4	2/2		0/1	ix:resp
+Viashino Spearhunter	8ca9a4bf1d4754a7	11	0/0		0/0	
+Viper's Kiss	a243475ac0dd7e63	13	0/0		1/2	ix:resp
+Volcanic Fallout	87de9b4f75d2d166	6	0/0		2/2	
+War Machine, Avenging Arsenal	e386cd7f2e6922b9	4	1/1		1/1	
+Warbreak Trumpeter	ab9c25ca37b1a658	3	1/1		1/3	cast/alt:none,ix:resp
+Weapon Surge	f779d43cdaa6ee92	4	0/0		3/4	ix:resp
+Whispergear Sneak	4614ebcfd67cd858	9	0/0		0/0	
+Worry Beads	b465747fdc4b9af7	3	1/1		0/1	ix:resp
+Yavimaya Gnats	e450329b3cbd4602	6	1/1		0/1	ix:resp
+Yavimaya Sojourner	463d377c73a42fec	4	0/0		0/0	
+Young Wolf	c83665296a954082	4	1/1		0/1	ix:resp

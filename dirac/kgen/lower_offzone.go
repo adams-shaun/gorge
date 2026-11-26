@@ -434,6 +434,9 @@ func (lc *lowerCtx) affectedZone(sp *params, st *lStatic, aff, az string) (extra
 	case az == "Stack" && !sp.is("MayPlay", "True"):
 		extra, err = lc.stackKwGrant(sp, st, aff) // lower_stackkw.go
 		return extra, true, err
+	case az == "Graveyard" && sp.is("RemoveAllAbilities", "True"):
+		handled, err := lc.offZoneAbilityLoss(sp, st, aff, az) // lower_offzone_abilityloss.go
+		return nil, handled, err
 	case az == "Graveyard" && !sp.is("MayPlay", "True") && strings.HasPrefix(sp.str("AddKeyword"), "Flashback"):
 		return nil, true, lc.graveFbGrant(sp, st, aff) // lower_fbgrant.go
 	case az == "Graveyard" && !sp.is("MayPlay", "True") && strings.HasPrefix(sp.str("AddKeyword"), "Escape"):
@@ -454,6 +457,8 @@ func (lc *lowerCtx) affectedZone(sp *params, st *lStatic, aff, az string) (extra
 		return nil, handled, err
 	case az == "Graveyard" && !sp.is("MayPlay", "True") && sp.str("AddKeyword") != "":
 		return nil, true, refuseGraveKwGrant(sp, az) // lower_escapegrant.go
+	case sp.str("ChangeColorWordsTo") != "":
+		return nil, true, refuse("AffectedZone %q without MayPlay (ChangeColorWordsTo: agent-20261125T214327Z-46805547)", az)
 	case !sp.is("MayPlay", "True"):
 		return nil, true, refuse("AffectedZone %q without MayPlay", az)
 	}

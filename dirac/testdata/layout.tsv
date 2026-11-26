@@ -626,6 +626,7 @@ default	field	genPrep.anyStackKw	1
 default	field	genPrep.anyConspire	1
 default	field	genPrep.anyStorm	1
 default	field	genPrep.anyDemoGrant	1
+default	field	genPrep.anyRippleGrant	1
 default	field	genPrep.anySplitSecond	1
 default	field	genPrep.anyStackLife	1
 default	field	genPrep.anyOffZonePT	1
@@ -714,6 +715,7 @@ default	field	genPrep.anyHideaway	1
 default	field	genPrep.anyLoyaltyX	1
 default	field	genPrep.anyLifeX	1
 default	field	genPrep.anyExileX	1
+default	field	genPrep.anyBlightX	1
 default	field	genPrep.anySacX	1
 default	field	genPrep.anyXMin	1
 default	field	genPrep.anyCopyCast	1
@@ -723,6 +725,7 @@ default	field	genPrep.anyNumTimes	1
 default	field	genPrep.anyExHaste	1
 default	field	genPrep.anyColGrant	1
 default	field	genPrep.anyDiscRef	1
+default	field	genPrep.anyEncRef	1
 default	field	genPrep.anySpellCond	1
 default	field	genPrep.anyEntUntap	1
 default	field	genPrep.anyEntAttack	1
