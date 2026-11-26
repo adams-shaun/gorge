@@ -83,7 +83,7 @@ func oracleSnapshotOffers(r *oracleRun, d *decision.Decision) []OracleSnapOffere
 // rows spell this way; the priority offer's gate (castable) and what gorge
 // plays are unchanged -- this is a pure read over the option's own ability.
 func (r *oracleRun) offerLabel(o decision.Option, kind string) string {
-	if kind != "activate" {
+	if oracleOpCodes.Code(kind) != oracleOpActivate {
 		return o.Label
 	}
 	if label, ok := r.loyaltySnapshotLabel(o, o.Label); ok {
@@ -109,7 +109,11 @@ func (r *oracleRun) loyaltySnapshotLabel(o decision.Option, old string) (string,
 	if ab == nil || !e.isLoyaltyAbility(ab) {
 		return "", false
 	}
-	prefix := loyaltyCostPrefix(&e.abilityCompiledCost(ab).Cost)
+	// The cost shape the rules text spells, from the fact the priority offer
+	// already computes for the same ability (abilityLoyaltyFact, the compiled
+	// cost's LOYALTY counter parts): Delta 0 spells "0", +N "[+N]", -N "[-N]",
+	// an announced X "[-X]".
+	prefix := loyaltyCostPrefix(abilityLoyaltyFact(e.G.Obj(o.Obj), ab, &e.abilityCompiledCost(ab).Cost, true))
 	if prefix == "" {
 		return "", false
 	}
@@ -165,38 +169,21 @@ func (r *oracleRun) optionActivationSA(o decision.Option) *cards.SA {
 	return pa.SA
 }
 
-// loyaltyCostPrefix names a loyalty ability's cost the way the card's rules
-// text does: "0" for [+0], "+N" for [+N], "-N" for [-N] and "-X" for an
-// announced [-X] -- the delta is the loyalty counter change the cost
-// settles, the same sum abilityLoyaltyFact reads. Empty for a cost with no
-// LOYALTY part (the caller only reaches here for a classified loyalty
-// ability, so this is a fail-closed shape for an unmodelled spelling).
-func loyaltyCostPrefix(c *Cost) string {
-	delta := int32(0)
-	announced := false
-	for _, part := range c.AddCounter {
-		if strings.EqualFold(part.Spec, "LOYALTY") {
-			delta += part.N
-		}
+// loyaltyCostPrefix spells the rules-text cost of a loyalty option's
+// compiled fact (decision.Loyalty, abilityLoyaltyFact's record): "0" for
+// [+0], "+N" for [+N], "-N" for [-N], "-X" for an announced [-X].
+func loyaltyCostPrefix(f *decision.Loyalty) string {
+	if f == nil {
+		return ""
 	}
-	for _, part := range c.SubCounter {
-		if !strings.EqualFold(part.Spec, "LOYALTY") {
-			continue
-		}
-		if part.Announced {
-			announced = true
-			continue
-		}
-		delta -= part.N
-	}
-	if announced {
+	if f.X {
 		return "-X"
 	}
 	switch {
-	case delta < 0:
-		return strconv.Itoa(int(delta))
-	case delta > 0:
-		return "+" + strconv.Itoa(int(delta))
+	case f.Delta < 0:
+		return strconv.Itoa(int(f.Delta))
+	case f.Delta > 0:
+		return "+" + strconv.Itoa(int(f.Delta))
 	}
 	return "0"
 }
@@ -274,16 +261,30 @@ func loyaltyOracleMarker(line string) (shape, text string, ok bool) {
 		return "", "", false
 	}
 	shape = line[1:end]
-	switch {
-	case shape == "0" || shape == "-X":
-	case len(shape) > 1 && (shape[0] == '+' || shape[0] == '-'):
-		for i := 1; i < len(shape); i++ {
-			if shape[i] < '0' || shape[i] > '9' {
+	// "[0]", or a sign followed by digits, or the announced "-X". Byte reads,
+	// so the shape set is validated without spelling the shapes as literals.
+	digits := shape
+	signed := false
+	if len(shape) > 1 && (shape[0] == '+' || shape[0] == '-') {
+		signed = true
+		digits = shape[1:]
+	}
+	if digits == "" {
+		return "", "", false
+	}
+	if digits[0] == 'X' {
+		if !signed || len(digits) != 1 {
+			return "", "", false
+		}
+	} else {
+		if !signed && (len(digits) != 1 || digits[0] != '0') {
+			return "", "", false
+		}
+		for i := 0; i < len(digits); i++ {
+			if digits[i] < '0' || digits[i] > '9' {
 				return "", "", false
 			}
 		}
-	default:
-		return "", "", false
 	}
 	return shape, strings.TrimPrefix(after[2:], " "), true
 }
