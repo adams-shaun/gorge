@@ -3244,7 +3244,7 @@ func emblemExileLapse(ps *params, hasCap bool) (bool, error) {
 // emblem lowers a planeswalker emblem with one trigger (Kaito).
 func (lc *lowerCtx) emblem(ps *params, tr string) error {
 	lc.granted++
-	defer func() { lc.granted-- }()
+	defer func() { lc.granted--; lc.remSelf = false }()
 	_, hasDur := ps.get("Duration")
 	eot := !hasDur || ps.is("Duration", "EndOfTurn") // the spelled-out default (Jace, Cunning Castaway)
 	next := hasDur && ps.is("Duration", "UntilYourNextTurn")
@@ -3323,7 +3323,7 @@ func (lc *lowerCtx) emblem(ps *params, tr string) error {
 	lc.emblemUnblocked = hasCap && t.Mode == "AttackerUnblocked"
 	lc.emblemDmg = hasCap && !player && t.Mode == "DamageDone"
 	err = lc.withAbility(lc.ab, func() error { return lc.lowerTriggered(t, "Command") })
-	lc.capRem, lc.effCount, lc.ddoEvent, lc.emblemBlocked, lc.emblemBlocks, lc.emblemDmg, lc.emblemUnblocked = false, false, false, false, false, false, false
+	lc.capRem, lc.effCount, lc.ddoEvent, lc.emblemBlocked, lc.emblemBlocks, lc.emblemDmg, lc.emblemUnblocked, lc.remSelf = false, false, false, false, false, false, false, false
 	if err != nil {
 		return err
 	}
