@@ -1098,7 +1098,8 @@ type lAbility struct {
 	Reduce          *lValue // ReduceCost$: the generic reduction of an activated ability's own cost (lower_ownreduce.go)
 	ActCond         lCond   // CheckSVar$/SVarCompare$: activate only if (CR 602.5b)
 	Targets         []lTarget
-	Modes           int // charm: number of modes to choose from
+	Modes           int  // charm: number of modes to choose from
+	GenericChoice   bool // a triggered api:GenericChoice charm: each mode opens with its UnlessCost$ (kop.AfCharmTrigger)
 	// charm: CharmNum$ (the most picks) and MinCharmNum$ (default: the most)
 	ModesPick, ModesMin int
 	RepMax, RepCost     [4]uint8 // charm CanRepeatModes$ (lower_charmrepeat.go): the most each mode is chosen, its pawprint price
@@ -1373,7 +1374,7 @@ type lCard struct {
 	PTStar         bool
 	NoPT           bool     // the face prints no power or toughness (CardDef.NoPT)
 	TwoSeat        bool     // the lowering holds only for 2 players (CardDef.TwoSeat, set by lowerCtx.twoSeat)
-	HasChangeText  bool     // a ChangeText body lowered (textreach.go): the pool's cards carry CardDef.TextWords
+	HasChangeText  bool     // a ChangeText body or a ColorWords static lowered (textreach.go, lower_colorwords.go): the pool's cards carry CardDef.TextWords
 	TextWords      uint16   // the colour and basic land type words the face reads (textreach.go); copied to CardDef.TextWords in such a pool
 	TwoSeatWhy     []string // the reasons that set TwoSeat, in first-seen order (TestTwoSeatReasons)
 	Loyalty        int

@@ -39,12 +39,19 @@ func (cb *cardBuilder) stackKwStatic(st *kop.Static, s lStatic) error {
 		case "Convoke":
 			st.A = kop.StackKwConvoke
 		}
-	case "Lifelink", "Storm", "Split second", "Conspire", "Delve", "Demonstrate":
+	case "Lifelink", "Storm", "Split second", "Conspire", "Delve", "Demonstrate", "Rebound":
 		if param != "" {
 			return fmt.Errorf("stack keyword grant %q with a parameter", s.Kw[0])
 		}
 		st.A = kop.StackKwLifelink
 		switch head {
+		case "Rebound":
+			st.A = kop.StackKwRebound
+			j, ok := cb.abMap[s.GrantBody] // 0-based LIR index of the carrier's recast body
+			if !ok || j+1 > 255 {
+				return fmt.Errorf("stack keyword grant %q: the recast body was not emitted", s.Kw[0])
+			}
+			st.GrantBody = uint8(j + 1)
 		case "Demonstrate":
 			st.A = kop.StackKwDemonstrate
 		case "Conspire":
@@ -56,6 +63,35 @@ func (cb *cardBuilder) stackKwStatic(st *kop.Static, s lStatic) error {
 		case "Delve":
 			st.A = kop.StackKwDelve
 		}
+	case "Web-slinging":
+		cost, _, _ := strings.Cut(param, ":")
+		if cost == "" {
+			return fmt.Errorf("stack keyword grant %q without a cost", s.Kw[0])
+		}
+		st.A = kop.StackKwWebSling
+		var err error
+		if st.GrantCost, err = manaCostOf(s.Cost.Mana); err != nil {
+			return err
+		}
+		if s.F2 != nil {
+			if st.Filter2, err = cb.filter(s.F2, kop.ZoneStack); err != nil {
+				return err
+			}
+		}
+	case "Offspring":
+		if param == "" {
+			return fmt.Errorf("stack keyword grant %q without a cost", s.Kw[0])
+		}
+		st.A = kop.StackKwOffspring
+		var err error
+		if st.GrantCost, err = manaCostOf(s.Cost.Mana); err != nil {
+			return err
+		}
+		j, ok := cb.abMap[s.GrantBody] // 0-based LIR index of the carrier's latent copy trigger
+		if !ok || j+1 > 255 {
+			return fmt.Errorf("stack keyword grant %q: the copy trigger was not emitted", s.Kw[0])
+		}
+		st.GrantBody = uint8(j + 1)
 	case "Casualty":
 		n, err := strconv.Atoi(param)
 		if err != nil || n < 1 || n > 127 {

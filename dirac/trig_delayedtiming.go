@@ -46,6 +46,9 @@ func tableDelaysUpkeep(t *Table) bool {
 			return true // kw_rebound.go registers a your-upkeep program
 		}
 		for j := range t.Cards[i].Abilities {
+			if a := &t.Cards[i].Abilities[j]; a.Kind == kop.AbStatic && a.Static.Kind == kop.StatStackKw && a.Static.A == kop.StackKwRebound {
+				return true // a granted Rebound registers the same your-upkeep program (kw_rebound.go reboundPlan)
+			}
 			for _, in := range t.Cards[i].Abilities[j].Prog {
 				if in.Op == kop.OpDelayedProgram && in.A.N != 0 {
 					return true
