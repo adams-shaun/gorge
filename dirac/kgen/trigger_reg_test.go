@@ -7,8 +7,8 @@ const triggerRegProbe = `Name:Trigger Reg Probe
 ManaCost:1 G
 Types:Creature Bear
 PT:2/2
-T:MODE | Execute$ TrigDraw | TriggerDescription$ probe
-SVar:TrigDraw:DB$ Draw | NumCards$ 1 | Defined$ You
+T:MODE | Execute$ RegProbeDraw | TriggerDescription$ probe
+SVar:RegProbeDraw:DB$ Draw | NumCards$ 3 | Defined$ You
 Oracle:probe
 `
 
