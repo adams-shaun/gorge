@@ -2940,11 +2940,6 @@ func (cb *cardBuilder) prog(p []lInstr) ([]kop.Instr, error) {
 	if len(p) == 0 {
 		return nil, nil
 	}
-	if kvDiscoverTailRefused(p) {
-		// The kernel runs a Discover's tail before the free cast; see
-		// value_modifiers.go and kernel-discover-freecast-order.
-		return nil, refuse("Discover free cast with a program tail (the kernel defers the cast past the tail)")
-	}
 	out := make([]kop.Instr, 0, len(p))
 	for i, in := range p {
 		ki, err := cb.instr(in)
