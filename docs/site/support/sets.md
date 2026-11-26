@@ -21,6 +21,8 @@ the engine rows below carry the commits and corpus each figure was measured at.
 
 --8<-- "support/_generated_sets.md:headline"
 
+--8<-- "support/_generated_carddb.md:headline"
+
 ## At a glance
 
 One tile per Standard set (the sets on dirac's support page). The tint and large
@@ -175,6 +177,19 @@ newest first.
   `-surface full`, from the newest main run of the CI `dirac-slices` job
   (see [Lockstep slices](#lockstep-slices)). It says "—" when no run's summary
   was available to the build.
+
+### carddb: abilities per set
+
+Per set, how many abilities are agreed, owed or diverged between the engines,
+from carddb's xproof data.
+
+--8<-- "support/_generated_carddb.md:sets"
+
+### carddb: data freshness
+
+How fresh each carddb data writer is.
+
+--8<-- "support/_generated_carddb.md:freshness"
 
 ## Lockstep slices
 
