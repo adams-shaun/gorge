@@ -2504,10 +2504,15 @@ const StatMiracleGrant StaticKind = 76
 // stat AssignNoCombatDamage (dirac/manifest/StaticKind/StatNoCombatDamage)
 const StatNoCombatDamage StaticKind = 77
 
+// stat RaiseCost (dirac/manifest/StaticKind/StatRaiseAbility)
+//
+// StatRaiseAbility is a RaiseCost static of activated abilities (Type$ Ability, no ValidSpell$; CR 601.2f, 602.2b): activated (and mana) abilities of battlefield permanents matching Filter (activated by any player: costActorMatches applies an actor-less static to every activator) cost Static.A (VA under StDynamic, read from the static's source) generic more, composed before the reductions (gorge costModifiersCompose's raise group, manaToPay's pay.ApplyTo), or pay the Cost$ part: B bit 0 (kop.RaiseAbPick) is a Sac<1/filter> pick posed at the activation's cost stage (Brutal Suppression's "Sacrifice a land", Filter2 the pick's permanents), StRaiseLife is PayLife<N> (A the life, non-mana abilities only). B bit 1 (kop.RaiseAbMana) restricts the raise to mana abilities — unmodelled in the kernel's mana window, refused by kgen. kernel cost_abraise.go abRaised, the offer gate and the build charge; the pick rides the may-play raise's machinery (buildPickCost). Brutal Suppression, Oppressive Rays.
+const StatRaiseAbility StaticKind = 78
+
 // StaticKind (dirac/manifest/StaticKind/StatUnearthGrant)
 //
 // StatUnearthGrant is a Continuous static's AffectedZone$ Graveyard AddKeyword$ Unearth grant (Sedris, the Traitor King, Mishra, Tamer of Mak Fawa, Dregscape Sliver, Solemn Doomguide; CR 702.84a): Filter matches the card in the graveyard and GrantBody-1 is the latent unearth body (the printed kwUnearth expander's AB$ ChangeZone, cards.GrantedKeywordAbility) the graveyard offer runs with the affected card as its source. The body's own Cost prices the explicit-cost shape; a zero body cost is the CardManaCost mark, which the offer charges as the affected card's own mana cost (kw_unearthgrant.go).
-const StatUnearthGrant StaticKind = 78
+const StatUnearthGrant StaticKind = 79
 
 // trig ChaosEnsues (dirac/manifest/TrigEvent/TrigChaosEnsues)
 const TrigChaosEnsues TrigEvent = 52

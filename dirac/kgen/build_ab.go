@@ -2381,6 +2381,34 @@ func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 			}
 		}
 	case "RaiseCost":
+		if s.AbilityRaise != 0 {
+			// a RaiseCost of activated abilities (lower_reduceab.go's raise
+			// side, static_raiseability.go): the battlefield sources' cost
+			// raises (kernel cost_abraise.go abRaised)
+			st.Kind = kop.StatRaiseAbility
+			if st.Filter, err = filter(s.F, kop.ZoneBattlefield); err != nil {
+				return ka, nil, err
+			}
+			if s.F2 != nil {
+				if st.Filter2, err = filter(s.F2, kop.ZoneBattlefield); err != nil {
+					return ka, nil, err
+				}
+			}
+			if err := amounts(s.Amount, lValue{}); err != nil {
+				return ka, nil, err
+			}
+			for _, fl := range s.Flags {
+				switch fl {
+				case "SacPick":
+					st.B |= kop.RaiseAbPick
+				case "RaiseLife":
+					st.StFlags |= kop.StRaiseLife
+				default:
+					return ka, nil, fmt.Errorf("raise ability flag %q", fl)
+				}
+			}
+			break
+		}
 		st.Kind = kop.StatIncreaseCost
 		if st.Filter, err = filter(s.F, kop.ZoneStack); err != nil {
 			return ka, nil, err

@@ -1251,6 +1251,11 @@ type lStatic struct {
 	// 4 Power-up abilities only, 5 Equip abilities only (F2: their target;
 	// kop.StatReduceAbility)
 	AbilityRed uint8
+	// AbilityRaise: a RaiseCost static of activated abilities (Type$ Ability)
+	// rather than spells (kop.StatRaiseAbility; the raise part in Amount /
+	// flag "RaiseLife" / flag "SacPick" with F2 the pick's permanents;
+	// static_raiseability.go)
+	AbilityRaise uint8
 	// MinMana: that static's MinMana$ floor, 1..15 (kop.ReduceAbMinShift)
 	MinMana uint8
 	// PwVsSrc: CantBlockBy ValidBlocker$ powerLTX / powerGTX with X = Count$CardPower

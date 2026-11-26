@@ -464,6 +464,19 @@ const ReduceAbEquip = 1 << 3
 // (gorge pay.ApplyTo's per-reduction Floor).
 const ReduceAbMinShift = 4
 
+// RaiseAbPick (bit 0 of a StatRaiseAbility static's B): the raise carries a
+// Sac<1/filter> pick the activation pays at its cost stage (CR 601.2h; gorge
+// PlusRaiseExtra's Sac part, engine/rules/activate.go foldRaiseExtra). The
+// pick's permanents match Static.Filter2, read with the static's source as
+// Self; the count is 1 (a larger count is a different pick cost than the one
+// Cost a build poses, kgen refuses it).
+const RaiseAbPick = 1
+
+// RaiseAbMana (bit 1 of a StatRaiseAbility static's B): the raise reaches only
+// mana abilities (ValidSpell$ Activated.ManaAbility, Thran Portal). The
+// kernel's mana window prices no ability raise, so kgen refuses this bit.
+const RaiseAbMana = 1 << 1
+
 // ReduceColorBits is the width of one colour's count in Static.B under StReduceColor.
 const ReduceColorBits = 2
 
