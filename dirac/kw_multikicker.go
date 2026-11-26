@@ -170,12 +170,16 @@ func (s *State) offerKickedHand(k *prep, d *Decision, p uint8, c CardID, o Obj, 
 	if k.gen != nil && k.gen.anyTypeCreat && s.convAnyType(k, p, o) {
 		kc = anyType(kc) // the kicked total under Vizier's conversion too (mana_convertcreature.go)
 	}
-	aff := s.kickedAffordsOrPoolPays(k, p, c, o, &kc, cav)
+	// a kicker {X} with a floor (Thieving Skydiver's XMin1 X): the gates price
+	// the smallest legal announcement, as gorge's ComposeFeasibleP does on a
+	// local copy, while kc keeps the raw {X} marker for the guard below
+	kf := xFloorCost(kc, costXMin(&k.t.Cards[c].KickerCost))
+	aff := s.kickedAffordsOrPoolPays(k, p, c, o, &kf, cav)
 	if aff && s.cfg&cfgGorgeAutopay != 0 && k.gen != nil && k.gen.anyTapsMana && kc.X == 0 {
 		// gorge prices the kicked cast through its potential planner, whose
 		// summed lethal guard the real census does not carry for a
 		// TapsForMana watcher's damage (Manabarbs at 4 life: six taps)
-		aff = s.kickedPotentialPainOK(k, p, c, o, &kc)
+		aff = s.kickedPotentialPainOK(k, p, c, o, &kf)
 	}
 	cd := &k.t.Cards[c]
 	if s.cfg&(cfgGorgeAutopay|cfgGorgeLowering) != 0 && s.g.availX == 0 && s.spellTgtDep(k, p, c, o) {
@@ -190,7 +194,7 @@ func (s *State) offerKickedHand(k *prep, d *Decision, p uint8, c CardID, o Obj, 
 		// beside Esior and a granted sacrifice mana ability). The plain census read (kickedAffords) does not
 		// hold here: the search that prices a play the covered sources
 		// cannot pay is the one gorge never runs (CR 601.2f).
-		aff = s.ungrantedPaysNoDH(k, p, c, o, &kc)
+		aff = s.ungrantedPaysNoDH(k, p, c, o, &kf)
 	} else if !aff && s.cfg&cfgGorgeAutopay != 0 && s.g.availX == 0 {
 		// the real pool's refusal is not the whole gate under gorge's
 		// autopay surface: gorge keeps the kicked cast as one of its
@@ -198,7 +202,7 @@ func (s *State) offerKickedHand(k *prep, d *Decision, p uint8, c CardID, o Obj, 
 		// prices it against the potential pool (pair 98: Caligo
 		// Skin-Witch paid through Rain of Filth's grants)
 		spell := payDesc{class: pdSpell, card: c, src: NoSlot, og: s.restrOriginOfObj(o)}
-		aff = s.kickedPotentialPays(k, p, c, o, &kc, &spell)
+		aff = s.kickedPotentialPays(k, p, c, o, &kf, &spell)
 		if aff && k.gen != nil && k.gen.anyFilt && s.scriptFilt(k, p).any() && s.mixBoardFilt(k, p, filtSome) {
 			// a census gap that is a filter beside another gap kind (School of
 			// the Unseen's {2},{T} beside Holdout Settlement's tapped creature):
@@ -213,9 +217,9 @@ func (s *State) offerKickedHand(k *prep, d *Decision, p uint8, c CardID, o Obj, 
 	// no gorgeOffersKicked cache read: the real affordability gate above is
 	// the same one legal_walk_hand.go's offer uses.
 	gorgeOK := cd.RepeatedKind == kop.RepeatSquad || cd.RepeatedKind == kop.RepeatReplicate || s.gorgeOffersKicked(p, o)
-	if aff && s.kickedChainFeasible(k, c, p) && gorgeOK && (!k.sacMana || s.kickWitness(k, p, c, o, &kc)) && (k.gen == nil || !k.gen.anyKickCost || s.kickerCostOffer(k, p, c, o)) &&
-		!s.dhWithholdsCast(k, p, o, &kc) && // a hand cast the Diamonds alone fund: gorge's planner prices no plan (census_incomplete, mana_discardhand.go)
-		s.witnessKeepsTargets(k, p, c, o, &kc) { // a kicked total only a target-consuming sacrifice funds (Hurloon Battle Hymn's {W} from a Prism that is its only target): gorge's prefix search finds no script (cast_tgtkeep.go)
+	if aff && s.kickedChainFeasible(k, c, p) && gorgeOK && (!k.sacMana || s.kickWitness(k, p, c, o, &kf)) && (k.gen == nil || !k.gen.anyKickCost || s.kickerCostOffer(k, p, c, o)) &&
+		!s.dhWithholdsCast(k, p, o, &kf) && // a hand cast the Diamonds alone fund: gorge's planner prices no plan (census_incomplete, mana_discardhand.go)
+		s.witnessKeepsTargets(k, p, c, o, &kf) { // a kicked total only a target-consuming sacrifice funds (Hurloon Battle Hymn's {W} from a Prism that is its only target): gorge's prefix search finds no script (cast_tgtkeep.go)
 		d.add(MakeAction(AkCast, TCode(o), 0, 1))
 	}
 }
