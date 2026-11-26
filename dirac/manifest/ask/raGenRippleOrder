@@ -1,0 +1,5 @@
+family: ask
+name: raGenRippleOrder
+value: next
+status: active
+doc: the ripple tail's CR 401.4 arrangement ask (gorge effRippleBottom libraryPlacementOrder): the controller orders the revealed cards still in the library as they go to the bottom, asked with two or more of them (kw_ripple.go rippleOrderOptions / rippleOrderAnswer).

@@ -20,6 +20,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/seat"
 	"github.com/adams-shaun/gorge/engine/view"
 	"github.com/adams-shaun/gorge/server/protocol"
+	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
 // stormToken is the token the storm ability mints (the stem the TokenScript$
@@ -137,7 +138,7 @@ func TestTheDefaultObjectCapIsArmedOnEveryTableWithThePerTurnGuard(t *testing.T)
 	if err := r.Start("t1"); err != nil {
 		t.Fatal(err)
 	}
-	deadline := time.Now().Add(30 * time.Second)
+	deadline := time.Now().Add(testutil.WaitBudget)
 	for liveIntents(t, r, "t1") <= 0 {
 		if time.Now().After(deadline) {
 			t.Fatal("the match never answered a decision")
@@ -174,7 +175,7 @@ func TestTheObjectCapOptOutIsPropagatedUnchanged(t *testing.T) {
 	defer r.Close()
 	_ = r.AddTable(fourSeatTable("t1", false))
 	_ = r.Start("t1")
-	deadline := time.Now().Add(30 * time.Second)
+	deadline := time.Now().Add(testutil.WaitBudget)
 	for liveIntents(t, r, "t1") < 50 {
 		if time.Now().After(deadline) {
 			t.Fatal("the match never answered 50 decisions")

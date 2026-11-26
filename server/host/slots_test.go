@@ -23,6 +23,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/seat"
 	"github.com/adams-shaun/gorge/engine/view"
 	"github.com/adams-shaun/gorge/server/protocol"
+	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
 // slotSpyPolicy is the test-only hosted policy the slot tests seat. It is
@@ -237,7 +238,7 @@ func awaitSlot(t *testing.T, ch <-chan string, what string) string {
 	select {
 	case s := <-ch:
 		return s
-	case <-time.After(10 * time.Second):
+	case <-time.After(testutil.WaitBudget):
 		t.Fatalf("timed out waiting for %s", what)
 		return ""
 	}
@@ -254,7 +255,7 @@ func slotWaitQueued(t *testing.T, r *Registry, want int) {
 	if r.searchGate == nil {
 		t.Fatal("the registry has no search-slot gate; the test's bounded setup is wrong")
 	}
-	deadline := time.After(10 * time.Second)
+	deadline := time.After(testutil.WaitBudget)
 	for {
 		r.searchGate.mu.Lock()
 		queued := len(r.searchGate.waiters)
@@ -351,7 +352,7 @@ func TestSearchSlotsQueueFIFOAndNeverChangeIntents(t *testing.T) {
 		// The other table reaches WantsEnv (the projection immediately
 		// precedes the slot wait), so it is deterministically about to queue.
 		other := ""
-		deadline := time.After(10 * time.Second)
+		deadline := time.After(testutil.WaitBudget)
 		for other == "" || slotTag(other) == slotTag(first) {
 			select {
 			case w := <-h.wantC:
@@ -466,7 +467,7 @@ func TestSearchSlotWaitAbortsOnClose(t *testing.T) {
 	first := awaitSlot(t, h.enteredC, "table A's search decision to enter DecideEnv")
 	// Table B reaches its projection, is queued behind A's slot...
 	other := ""
-	deadline := time.After(10 * time.Second)
+	deadline := time.After(testutil.WaitBudget)
 	for other == "" || slotTag(other) == slotTag(first) {
 		select {
 		case w := <-h.wantC:
@@ -491,7 +492,7 @@ func TestSearchSlotWaitAbortsOnClose(t *testing.T) {
 	go func() { r.Wait("s1"); r.Wait("s2"); close(done) }()
 	select {
 	case <-done:
-	case <-time.After(10 * time.Second):
+	case <-time.After(testutil.WaitBudget):
 		t.Fatal("tables did not finish after Close; a search-slot wait did not abort on cancellation")
 	}
 

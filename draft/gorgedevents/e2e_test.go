@@ -321,7 +321,7 @@ func TestDraftEventEndToEndOverHTTP(t *testing.T) {
 	// re-sending the first pick once to prove a stale answer is a 409.
 	var packs []capturedPack
 	staleChecked := false
-	deadline := time.Now().Add(50 * time.Second)
+	deadline := time.Now().Add(testutil.WaitBudget)
 	for {
 		var st protocol.EventState
 		code, e := callJSON(t, "GET", evURL, tok0, nil, &st)
@@ -423,7 +423,7 @@ func TestDraftEventEndToEndOverHTTP(t *testing.T) {
 	// public state carries none, and the link's game token resolves the
 	// seat-scoped match view.
 	var series protocol.EventSeries
-	deadline = time.Now().Add(10 * time.Second)
+	deadline = time.Now().Add(testutil.WaitBudget)
 	for {
 		var st protocol.EventState
 		code, e := callJSON(t, "GET", evURL, tok0, nil, &st)
@@ -456,7 +456,7 @@ func TestDraftEventEndToEndOverHTTP(t *testing.T) {
 	if st := publicState(t, evURL); strings.Contains(st, `"join":"`) {
 		t.Fatalf("public state carries a join link: %s", st)
 	}
-	deadline = time.Now().Add(10 * time.Second)
+	deadline = time.Now().Add(testutil.WaitBudget)
 	for {
 		code, e := callJSON(t, "GET", srv.URL+"/api/tables/"+series.Table+"/matches/1/view?seat=0&token="+gameTok, "", nil, nil)
 		if code == 200 {
@@ -470,7 +470,7 @@ func TestDraftEventEndToEndOverHTTP(t *testing.T) {
 
 	// The rounds: the event completes with a sane standings table and a
 	// fully unredacted public log.
-	deadline = time.Now().Add(50 * time.Second)
+	deadline = time.Now().Add(testutil.WaitBudget)
 	var final protocol.EventState
 	for {
 		code, e := callJSON(t, "GET", evURL, tok0, nil, &final)

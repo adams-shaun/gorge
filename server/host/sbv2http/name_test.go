@@ -72,7 +72,7 @@ func TestSBV2NameDecisionPastTheCap(t *testing.T) {
 		return status
 	}
 
-	deadline := time.Now().Add(30 * time.Second)
+	deadline := time.Now().Add(testutil.WaitBudget)
 	handled := map[string]bool{}
 	for time.Now().Before(deadline) {
 		if done, _, err := parityMatchState(r, table); err != nil {
