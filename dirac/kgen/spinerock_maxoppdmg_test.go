@@ -7,10 +7,10 @@ import (
 )
 
 // TestSpinerockKnollMaxOppDamage: Spinerock Knoll's Hideaway Play gates on
-// "if an opponent was dealt 7 or more damage this turn"
-// (ConditionCheckSVar$ X GE7, SVar:X:Count$MaxOppDamageThisTurn). The value
-// head must lower to kop.ExMaxOppDamageThisTurn and reach the Play's SkipIf,
-// or the whole card is refused at the head.
+// "if an opponent was dealt 7 or more damage this turn": a Count$
+// MaxOppDamageThisTurn value is compared GE 7 by the script's condition. The
+// value head must lower to kop.ExMaxOppDamageThisTurn and reach the Play's
+// SkipIf, or the whole card is refused at the head.
 func TestSpinerockKnollMaxOppDamage(t *testing.T) {
 	c := lowerCorpusCard(t, "Spinerock Knoll")
 	for _, rf := range c.Refusals {
