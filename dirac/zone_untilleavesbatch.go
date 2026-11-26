@@ -116,8 +116,11 @@ func (s *State) flushReturns(k *prep) bool {
 	n, ctrl := int(s.g.nretHeld), s.g.retCtrl
 	s.g.nretHeld, s.g.retCtrl = 0, 0
 	for i := 0; i < n; i++ {
-		was := s.g.pre.state
+		was, nq := s.g.pre.state, s.g.nask
 		s.returnLinked(k, uint8(ctrl>>uint(2*i)&3), s.g.retHeld[i])
+		if was == 0 && s.g.nask > nq && s.holdBehindQueuedAsk(i, n, ctrl) {
+			return true // zone_untilleavesqask.go
+		}
 		if was == 0 && s.g.pre.state == preReturn {
 			// a return's ask is parked: gorge asks it with the rest of the
 			// batch still in exile and returns them once it is answered
@@ -140,6 +143,9 @@ func (s *State) flushReturns(k *prep) bool {
 // return that parks again poses its own ask and reports true.
 func (s *State) resumeReturns(k *prep) bool {
 	if s.g.nretHeld != 0 && s.flushReturns(k) {
+		if s.g.pre.state != preReturn {
+			return false // held behind a queued as-enters ask: its answer resumes (answerQueuedHold)
+		}
 		s.res.ask, s.res.askP = raGenRetChoice, s.objs[s.g.pre.obj].owner()
 		return true
 	}
