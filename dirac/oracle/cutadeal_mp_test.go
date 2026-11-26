@@ -13,11 +13,11 @@ import (
 // gorge counts the opponents controlling a drawn card; kernel ExOppExtreme
 // OppExtRemCtrl). Four-seat games play in lockstep; the mutation
 // (DebugRemCtrlNone) draws the caster nothing.
-var cutADealDeck = []cardset.Entry{
+var cutADealMpDeck = []cardset.Entry{
 	{Name: "Cut a Deal", Count: 10}, {Name: "Savannah Lions", Count: 6},
 	{Name: "Plains", Count: 24},
 }
 
 func TestFourSeatCutADealLockstep(t *testing.T) {
-	atkShapeLockstep(t, cutADealDeck, 12, 0, 0, nil, nil, &dirac.DebugRemCtrlNone)
+	atkShapeLockstep(t, cutADealMpDeck, 12, 0, 0, nil, nil, &dirac.DebugRemCtrlNone)
 }
