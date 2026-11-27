@@ -30,7 +30,7 @@ type genPrep struct {
 	// eleven per-card bools and the dense int8/int16 sentinel arrays this
 	// struct used to carry are one uint32 per card plus a record per card
 	// that actually has a value.
-	flags     []uint64
+	flags     []uint32
 	smallRecs []cardSmall
 	leyline   bool // some card is a Leyline
 	anyUmbra  bool // some card is an umbra Aura (CardDef.UmbraArmor; kw_umbraarmor.go)
@@ -909,7 +909,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	}
 	g := &genPrep{
 		enteredNeed: enteredNeed,
-		flags:       make([]uint64, len(t.Cards)),
+		flags:       make([]uint32, len(t.Cards)),
 		replBits:    make([]uint32, len(t.Cards)),
 		replBits2:   make([]uint32, len(t.Cards)),
 		uses:        tableUses(t), // genneed.go
@@ -1430,7 +1430,6 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 					g.setFlag(CardID(i), gfOthersRep)
 					pc.hasStat = true // scanned through statM
 				case kop.ReplCantLoseGame, kop.ReplOppsCantWinGame:
-					g.setFlag(CardID(i), gfLifeRepl)
 					pc.hasStat = true
 				case kop.ReplDoubleDamageToOpps:
 					g.replBits[i] |= rbDblDmg
@@ -1742,12 +1741,6 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		prepManaSplit(g, c, CardID(i), pc)
 		prepManaAsk(g, c, CardID(i), pc)
 		g.prepRestrSrc(c, CardID(i), pc)
-		if cardUsesProducedColour(t, c) {
-			// a SharesProducedColour reader: objTrigGen keeps the mana tap's
-			// produced colours in the queued Taps trigger's amount for it
-			// (filter_sharesproducedcolour.go)
-			g.setFlag(CardID(i), gfTrigProduced)
-		}
 		// latent triggered abilities are not subscriptions
 		pc.trigMask = 0
 		for j := range c.Abilities {
