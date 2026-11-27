@@ -3,6 +3,8 @@ package kgen
 import (
 	"strings"
 	"testing"
+
+	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
 // drawProgramCarriers are the Draw replacements this slice lowers: a
@@ -14,7 +16,8 @@ import (
 // own slice proves the kernel's movement against gorge's.
 var drawProgramCarriers = []string{
 	"Blood Scrivener", "Hullbreacher", "Jace, Wielder of Mysteries", "Laboratory Maniac",
-	"Notion Thief", "Obstinate Familiar", "Out of the Tombs", "Possessed Portal",
+	"Living Conundrum", "Notion Thief", "Obstinate Familiar", "Ormos, Archive Keeper",
+	"Out of the Tombs", "Possessed Portal",
 }
 
 // drawWinCarriers are the carriers whose body is "you win the game instead":
@@ -45,6 +48,53 @@ func TestReplDrawReplSlice(t *testing.T) {
 				t.Errorf("%s: lowered IR lacks the win op or the empty-library gate:\n%s", name, sb.String())
 			}
 		}
+	}
+}
+
+// TestReplDrawReplEmptyLibraryKinds pins the two empty-library-gated lines'
+// kinds: Ormos's mandatory ReplaceWith$ carries the DB$ PutCounter body as
+// its program, and Living Conundrum's bodyless Prevent$ line is the skip
+// (no program). Both meet the kernel's empty-library draw scan
+// (drawProgramMeetsEmpty, dirac/repl_drawprogram.go).
+func TestReplDrawReplEmptyLibraryKinds(t *testing.T) {
+	for _, w := range []struct {
+		name  string
+		check func(t *testing.T, r lRepl)
+	}{
+		{"Ormos, Archive Keeper", func(t *testing.T, r lRepl) {
+			put := false
+			for _, in := range r.Prog {
+				if in.Op == "PutCounter" {
+					put = true
+				}
+			}
+			if !put {
+				t.Fatalf("Ormos's DrawProgram carries no PutCounter body: %+v", r.Prog)
+			}
+			if r.Bits&kop.ReplDrawSkip != 0 {
+				t.Fatalf("Ormos's counter body must not be the skip: bits=%#x", r.Bits)
+			}
+		}},
+		{"Living Conundrum", func(t *testing.T, r lRepl) {
+			if r.Bits&kop.ReplDrawSkip == 0 {
+				t.Fatalf("the bodyless Prevent$ line lacks the skip bit: bits=%#x", r.Bits)
+			}
+			if len(r.Prog) != 0 {
+				t.Fatalf("the bodyless skip carries a program: %+v", r.Prog)
+			}
+		}},
+	} {
+		c := lowerNamedCard(t, w.name)
+		var found *lRepl
+		for i := range c.Repls {
+			if c.Repls[i].Kind == "DrawProgram" {
+				found = &c.Repls[i]
+			}
+		}
+		if found == nil {
+			t.Fatalf("%s lowered no DrawProgram repl: %+v", w.name, c.Repls)
+		}
+		w.check(t, *found)
 	}
 }
 
