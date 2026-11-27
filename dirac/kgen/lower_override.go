@@ -255,11 +255,11 @@ func (lc *lowerCtx) overrideStatic(sp *params, st *lStatic) ([]lStatic, error) {
 		o.AddSubtypes, o.SetSubtypes = o.SetSubtypes, nil
 	}
 	if r, ok := sp.get("RemoveKeyword"); ok {
-		ks, err := removeKeywords(r)
+		ks, lw, err := lc.removeKeywordsAndLandwalk(r)
 		if err != nil {
 			return nil, err
 		}
-		o.RemoveKw = ks
+		o.RemoveKw, o.RemoveLandwalk = ks, lw
 	}
 	if !attachedOnly(st.F) {
 		// a global override static (CR 613: Maha, Ygra) is walked
@@ -268,7 +268,7 @@ func (lc *lowerCtx) overrideStatic(sp *params, st *lStatic) ([]lStatic, error) {
 		if _, ok := sp.get("SetName"); ok {
 			return nil, refuse("global override with SetName")
 		}
-		l6 := o.LoseAbilities || len(o.AddKw) > 0 || len(o.RemoveKw) > 0
+		l6 := o.LoseAbilities || len(o.AddKw) > 0 || len(o.RemoveKw) > 0 || o.RemoveLandwalk != nil
 		if l6 && !selfOnlyCond(st.Cond) && !selfAffectedOnly(st.F) {
 			// a counting condition read while every permanent's
 			// abilities are derived would re-enter the derivation; a

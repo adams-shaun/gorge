@@ -2435,6 +2435,8 @@ func (cb *cardBuilder) ref(r lRef) (kop.Ref, error) {
 		return kop.RefImprinted, nil
 	case rTargetUnion:
 		switch r.N {
+		case 1:
+			return kop.RefTargets0, nil
 		case 3:
 			return kop.RefTargets01, nil
 		case 7:
@@ -2850,6 +2852,15 @@ func (cb *cardBuilder) override(o *lOverride) (int, error) {
 	if ko.RemoveKw, err = kwMask(o.RemoveKw); err != nil {
 		return 0, err
 	}
+	if o.RemoveLandwalk != nil {
+		if ko.RemoveLandwalk, err = cb.filter(o.RemoveLandwalk, kop.ZoneBattlefield); err != nil {
+			return 0, err
+		}
+		// the land filter's subtypes must survive the matchup remap like any
+		// value's filter does (refSubs walks ovVals)
+		cb.out.ovVals = append(cb.out.ovVals, kop.ValueRef{K: kop.VCountFilter, N: int16(ko.RemoveLandwalk)})
+	}
+	ko.ExileOnLeave = o.ExileOnLeave
 	if ko.CantHaveKw, err = kwMask(o.CantHaveKw); err != nil {
 		return 0, err
 	}

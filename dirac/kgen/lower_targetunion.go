@@ -27,7 +27,7 @@ import (
 //     (unionOps).
 
 // unionOps are the ops a union subject is lowered for.
-var unionOps = map[string]bool{"Destroy": true, "GrantKeyword": true, "Return": true, "Override": true, "Exile": true}
+var unionOps = map[string]bool{"Destroy": true, "GrantKeyword": true, "Return": true, "Override": true, "AtEOT": true, "Exile": true}
 
 // targetUnion is an effect subject's Defined$ Targeted over len(chainT) > 1
 // slots.
@@ -95,4 +95,20 @@ func (lc *lowerCtx) unionProbe(site string) {
 	if len(lc.chainT) > 1 && os.Getenv("KGEN_UNION_PROBE") != "" {
 		fmt.Fprintf(os.Stderr, "UNIONPROBE\t%s\t%s\tslots=%v\tmode=%d\tface=%d\n", lc.name, site, lc.chainT, lc.mode, lc.out.FaceMode)
 	}
+}
+
+// targetSlotUnion is Defined$ Targeted over one any-number target slot: the
+// kernel's RefTargets0 runs the op once per legal object of slot n (gorge
+// effAnimate's per-object grant and next-end-step promise over an
+// "any number of target ..." slot: Depthshaker Titan). The mask is one slot,
+// so unionSlotsWhole still requires it to be every slot of that mode.
+func (lc *lowerCtx) targetSlotUnion(n int) (lRef, error) {
+	lc.unionProbe("own-slot:any-number")
+	if n > 30 {
+		return lRef{}, refuse("Defined$ Targeted over target slot %d", n)
+	}
+	if lc.ab.Targets[n].AtRes {
+		return lRef{}, refuse("Defined$ Targeted over a mid-resolution target slot")
+	}
+	return lRef{Kind: rTargetUnion, N: 1 << n}, nil
 }
