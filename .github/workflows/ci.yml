@@ -180,8 +180,8 @@ jobs:
         # shard compiles its own package list in the test stage).
         run: |
           # -exec /bin/true builds and vets each test binary and runs none of them.
-          # <package>#A is a split package's second entry (ci_shard.sh, scripts/ci-splits.tsv), the same package.
-          pkgs=$(bash scripts/ci_shard.sh all "$SHARDS" | awk '{print $2}' | sed 's/#A$//' | sort -u)
+          # <package>#<label> is a split package's extra entry (ci_shard.sh, scripts/ci-splits.tsv), the same package.
+          pkgs=$(bash scripts/ci_shard.sh all "$SHARDS" | awk '{print $2}' | sed 's/#[A-Z]$//' | sort -u)
           # S1b (11-26): compile only what two or more jobs need, not every shard's leaf: the heaviest
           # package of each top-level directory (the balancer's own weights, scripts/ci-pkg-times.tsv,
           # default 3 as ci_shard.sh's) — 11 packages whose test builds cover 95 of the 118 repo packages
@@ -557,7 +557,7 @@ jobs:
         # no tests. GitHub-hosted runners already compile per shard in the test step below and keep
         # their own Actions cache.
         run: |
-          pkgs=$(bash scripts/ci_shard.sh ${{ matrix.shard }} "$SHARDS" | sed 's/#A$//' | sort -u)
+          pkgs=$(bash scripts/ci_shard.sh ${{ matrix.shard }} "$SHARDS" | sed 's/#[A-Z]$//' | sort -u)
           if [ -n "$pkgs" ]; then
             # shellcheck disable=SC2086
             go test -exec /bin/true $pkgs >/dev/null
@@ -585,19 +585,33 @@ jobs:
           # 11-20: kgen runs beside the shard's other packages, not after them. Serial, it added its ~224 s (median of
           # the 11-20 batches) to shard 0's ~200 s of other packages, and shard 0 was the slowest shard; together the
           # shard is bound by its single largest package instead. Its output goes to a file and is printed after.
-          # The packages in scripts/ci-splits.tsv are two entries each (ci_shard.sh): the package, minus its regex, and
-          # <package>#A, the regex (11-20 engine/rules, 11-21 testkit/conformance). The balancer places each; this step
-          # runs whichever it holds as a call of its own, beside the rest. kgen and the split calls log to files printed after.
+          # The packages in scripts/ci-splits.tsv run as one entry per row (ci_shard.sh): the package, minus every
+          # row's regex, and <package>#<label>, the row's regex (11-20 engine/rules, 11-21 testkit/conformance; 11-27
+          # engine/rules as three rows). The balancer places each; this step runs whichever it holds as a call of its
+          # own, beside the rest. A package's whole-minus-regex call runs once per package (on its first row), not
+          # once per row. kgen and the split calls log to files printed after.
           kgen=github.com/adams-shaun/gorge/dirac/kgen
           pids=() logs=() rc=0 ex=(-e "$kgen")
           solo() { local log=$1; shift; go test "$@" >"$log" 2>&1 & pids+=($!); logs+=("$log"); }
           has() { printf '%s\n' $pkgs | grep -qx "$1"; }
           if has "$kgen"; then solo kgen-test.log -count=1 $tags -timeout 20m -skip '^(TestHeads)$' "$kgen"; fi
-          while IFS=$'\t' read -r sp rx; do
+          # The skip for a package's whole call is the union of all its rows' regexes, so every top-level test runs
+          # in exactly one call: the first matching #entry, or the whole call.
+          declare -A whole_rx=()
+          while IFS=$'\t' read -r sp rx _; do
             case $sp in '' | '#'*) continue ;; esac
-            ex+=(-e "$sp" -e "$sp#A"); n=${sp##*/}
-            if has "$sp"; then solo "$n-test.log" $count $tags -timeout 20m -skip "^(TestHeads)\$|$rx" "$sp"; fi
-            if has "$sp#A"; then solo "$n-a-test.log" $count $tags -timeout 20m -run "$rx" "$sp"; fi
+            whole_rx[$sp]="${whole_rx[$sp]:-}${whole_rx[$sp]:+|}$rx"
+          done <scripts/ci-splits.tsv
+          declare -A ran_whole=()
+          while IFS=$'\t' read -r sp rx label; do
+            case $sp in '' | '#'*|"$kgen") continue ;; esac
+            label=${label:-A}
+            ex+=(-e "$sp" -e "$sp#$label"); n=${sp##*/}
+            if [ -z "${ran_whole[$sp]:-}" ]; then
+              ran_whole[$sp]=1
+              if has "$sp"; then solo "$n-test.log" $count $tags -timeout 20m -skip "^(TestHeads)\$|${whole_rx[$sp]}" "$sp"; fi
+            fi
+            if has "$sp#$label"; then solo "$n-$label-test.log" $count $tags -timeout 20m -run "$rx" "$sp"; fi
           done <scripts/ci-splits.tsv
           rest=$(printf '%s\n' $pkgs | grep -vx "${ex[@]}" || true)
           if [ -n "$rest" ]; then go test $count $tags -timeout 20m -skip '^(TestHeads)$' $rest || rc=1; fi
