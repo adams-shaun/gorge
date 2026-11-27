@@ -227,7 +227,17 @@ func (s *State) delveOptions(k *prep, d *Decision) bool {
 	// requirement as the shortfall.
 	rest := 0
 	ok := true
-	for i, n := range pl.pool {
+	pool := pl.pool
+	if m := s.restrPoolAdmits(k, e.ctrl); m != 0 {
+		// the restricted mana the spell admits pays generic too (gorge's pool
+		// holds it beside the plain mana)
+		var rn [kop.NumManaKinds]uint8
+		s.rbUnits(e.ctrl, m, &rn)
+		for i := range pool {
+			pool[i] += rn[i]
+		}
+	}
+	for i, n := range pool {
 		have := int(n)
 		if i < len(cost.Pips) {
 			if n < cost.Pips[i] {
