@@ -2825,13 +2825,8 @@ func (lc *lowerCtx) play(ps *params) error {
 		}
 		return emit(lRef{Kind: rNone}, zCommand, "")
 	case "Hand", "Graveyard":
-		if valid == "Card.TargetedPlayerCtrl" && vzone == "Hand" && !forget {
-			// the targeted player's hand (lower_playtgtplayer.go)
-			obj, err := lc.playTargetedPlayerHand()
-			if err != nil {
-				return err
-			}
-			return emit(obj, zHand, saExpr)
+		if handled, err := lc.playTargetedPlayerArm(valid, vzone, forget, saExpr, emit); handled {
+			return err // the targeted player's hand or graveyard (lower_playtgtplayer.go)
 		}
 		if handled, err := lc.playTriggeredPlayerHand(valid, vzone, forget, saExpr, emit); handled {
 			return err // the trigger's damaged player's hand (lower_playtrigplayer.go)

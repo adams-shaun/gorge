@@ -1894,7 +1894,13 @@ func (s *State) finishBuild(k *prep) {
 			// payFromPool folds the announced X itself (XGeneric), like
 			// payRider's pool arm: the folded copy above is only the
 			// window's settled check
-			s.payFromPoolRider(k, e.ctrl, &cost, int(e.x), anyColor)
+			if m := s.restrPoolAdmits(k, e.ctrl); m != 0 {
+				// the restricted mana the spell admits, which the settled
+				// check counted, pays first (CR 106.6)
+				s.payRestrSpend(k, e.ctrl, m, &cost, int(e.x), e.obj, anyColor)
+			} else {
+				s.payFromPoolRider(k, e.ctrl, &cost, int(e.x), anyColor)
+			}
 		} else if s.rbAny(e.ctrl) {
 			s.payRestrRider(k, e.ctrl, &cost, int(e.x), e.obj, anyColor) // an Angel spell spends Giada's {W}
 		} else if k.gen != nil && s.delvePaysEntry(k, &e) && !s.loweredPoolPays(k, &e, xFolded(cost, int(e.x)), anyColor) {
