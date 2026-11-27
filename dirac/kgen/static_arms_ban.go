@@ -34,6 +34,9 @@ func init() {
 	})
 	registerStaticBuild("CantGainLife", func(cb *cardBuilder, s lStatic, st *kop.Static) ([]uint8, error) {
 		st.Kind = kop.StatCantGainLife
+		if s.Amount.Kind != vNone {
+			st.A = 1 // the replacement form (lower_lifeprevent.go; static_lifeprevent.go)
+		}
 		return nil, banOppFlag(s.Flags, st)
 	})
 	registerStaticBuild("CantDraw", func(cb *cardBuilder, s lStatic, st *kop.Static) ([]uint8, error) {

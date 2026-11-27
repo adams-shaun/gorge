@@ -1567,7 +1567,16 @@ func (s *State) execDamageEx(k *prep, in *kop.Instr) {
 		}
 		return
 	}
-	s.damageTo(k, code, n)
+	if dealt := s.damageTo(k, code, n); dealt > 0 && in.C&kop.DmgLockGain != 0 && isPlayerTarget(code) {
+		if s.g.nc.n != 0 {
+			// damageTo returned the pending amount of an event parked on its
+			// replacement-order ask; gorge remembers the player only if the
+			// damage lands, which the answer may prevent: not decidable here
+			s.capFull(StallDmgMarkOrder)
+			return
+		}
+		s.pl[CodeSeat(code)].mark |= pmNoGain // static_lockgain.go
+	}
 }
 
 // markExileEx records a turn-scoped "exile instead of dying" effect on a slot.
