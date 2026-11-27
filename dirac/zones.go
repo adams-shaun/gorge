@@ -944,6 +944,12 @@ func (s *State) removePerm(k *prep, sl Slot, z kop.Zone, bottom bool) {
 	s.meldLeaveOnLeave(k, o, z, bottom, wasCreature) // face_meld.go: a melded permanent's partner goes with it
 	s.placeFromK(k, o, z, bottom, kop.ZoneBattlefield, wasCreature, leftCounters)
 	s.g.graveKept = false
+	if p.cseen&cseenSacNext != 0 {
+		if s.g.enteredOn {
+			s.noteSacrificedEntry(o) // this departure is a sacrifice (value_sacrificedthisturn.go)
+		}
+		p.cseen &^= cseenSacNext
+	}
 	if s.g.enteredOn {
 		s.noteLeftController(o, leftCtrl)
 	}
@@ -1083,7 +1089,7 @@ func whoseOK(w kop.Whose, ctrl, who uint8) bool {
 		return who == ctrl
 	case kop.WhoseOpp:
 		return who != ctrl
-	case kop.WhoseEnchCtrl, kop.WhoseChosen, kop.WhoseEnchanted, kop.WhoseMonarch:
+	case kop.WhoseEnchCtrl, kop.WhoseChosen, kop.WhoseEnchanted, kop.WhoseMonarch, kop.WhoseEnchantedOpp:
 		return false // read with the listener's slot (enchCtrlIs, chosenIs, defEnchanted); elsewhere it fails closed
 	}
 	return true

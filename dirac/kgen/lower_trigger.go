@@ -1541,13 +1541,10 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 	if tr.Static {
 		// gorge's staticTriggerAskFree (engine/rules/static_trigger.go):
 		// an off-stack resolution has no placement to announce targets, no
-		// Charm to pick modes, no tape to serve a mid-resolution ask. The
-		// body must be provably ask-free: the only shapes that lower to a
-		// single no-ask rider instruction (the enters-with-counters
-		// Effects, lower_effetbctr.go). Anything else stays on the stack
-		// in gorge — it refuses here rather than resolve wrongly.
-		if len(ab.Targets) != 0 || len(ab.Prog) != 1 || (ab.Prog[0].Op != "EffEtbCounters" && ab.Prog[0].Op != "EffFinalityCtr") {
-			return refuse("static SpellCast trigger body is not the proven ask-free rider shape")
+		// Charm to pick modes, no tape to serve a mid-resolution ask. Only a
+		// body provably ask-free lowers (staticSpellCastBody).
+		if err := lc.staticSpellCastBody(ab, t); err != nil {
+			return err
 		}
 	}
 	if err := lc.staticTriggerBody(staticCand, ab, tr, t, svars); err != nil {

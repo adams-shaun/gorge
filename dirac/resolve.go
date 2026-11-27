@@ -832,6 +832,8 @@ func (s *State) playerRef(k *prep, r kop.Ref) uint8 {
 		return s.attachedCtrl(s.objRefObj(kop.RefAttached))
 	case kop.RefEnchantedCtrl:
 		return s.enchantedCtrl(e.obj) // trig_attachedctrl.go
+	case kop.RefEnchantedPlayer:
+		return s.enchantedPlayer(k, e.obj) // trig_attachedctrl.go
 	}
 	if k.gen != nil {
 		return s.refPlayer(k, r, s.ctxEntry(&s.res.e))

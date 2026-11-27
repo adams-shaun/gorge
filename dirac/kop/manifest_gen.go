@@ -1878,30 +1878,35 @@ const FwCanProduceManaColor FilterWord = 20
 // FwCanProduceSameManaTypeWith: the battlefield permanent can produce at least one type of mana the object the referent R names can also produce (gorge's canProduceSameManaTypeWith predicate over SpecContext.TriggerCard, engine/effects/filter_word_manatype.go; Mana Web's TapAll body). The producible set is the printed mana abilities' types: kop.CardDef.ProduceCol for WUBRG plus {C} when a printed mana ability makes it, the same census kernel mana_reflected.go producesColourless reads. R is RefTriggerObj for the kgen shape TriggeredCard.canProduceSameManaTypeWith+<type>. An unbound referent or an object that produces nothing matches nothing, fail closed.
 const FwCanProduceSameManaTypeWith FilterWord = 21
 
+// FilterWord (dirac/manifest/FilterWord/FwManaCostEQ)
+//
+// FwManaCostEQ: the object prints a mana cost whose mana value is Arg (gorge's ManaCost<N> predicate, engine/effects/filter_manacost.go; Urza's Saga Chapter III's Artifact.ManaCost0,Artifact.ManaCost1). Unlike FwCMCCmp EQ it needs a printed mana cost at all (CR 202.1b: a land prints none, mana value 0 but no cost {0}), so a "no cost" card, a face-down object (CR 708.2) and a copy that loses its cost never match.
+const FwManaCostEQ FilterWord = 22
+
 // FilterWord (dirac/manifest/FilterWord/FwModal)
 //
 // FwModal: the cast spell chose at least one mode of its charm (gorge's `Modal` predicate, engine/effects/filter.go: len(ChosenModes) > 0; SpellCast ValidSA$ Spell.Modal, Riku of Many Paths). A spell that is no charm, a face-down spell and a card off the stack read false; an MDFC is not modal.
-const FwModal FilterWord = 22
+const FwModal FilterWord = 23
 
 // FilterWord (dirac/manifest/FilterWord/FwPaired)
 //
 // FwPaired: the battlefield permanent is paired with another creature by Soulbond (gorge predicates["Paired"], engine/effects/filter.go, o.Paired != 0; the kernel's kw_soulbond.go pair record). Negated, it is unpaired.
-const FwPaired FilterWord = 23
+const FwPaired FilterWord = 24
 
 // FilterWord (dirac/manifest/FilterWord/FwPairedWith)
 //
 // FwPairedWith: the battlefield permanent is the creature the reading source is paired with by Soulbond (gorge predicates["PairedWith"], engine/effects/filter.go, source.Paired == candidate; the kernel's kw_soulbond.go pair record). A source with no pair fails closed.
-const FwPairedWith FilterWord = 24
+const FwPairedWith FilterWord = 25
 
 // FilterWord (dirac/manifest/FilterWord/FwSingleTarget)
 //
 // FwSingleTarget: the cast spell has exactly one target, counting every chained sub-ability's targets with the root's (gorge's `singleTarget` predicate, engine/effects/filter.go: len(Targets)+len(SubTargets) == 1; SpellCast ValidSA$ Spell.singleTarget and Instant.singleTarget,Sorcery.singleTarget). No target and two targets both read false, and two slots naming one object count twice, as gorge counts them.
-const FwSingleTarget FilterWord = 25
+const FwSingleTarget FilterWord = 26
 
 // FilterWord (dirac/manifest/FilterWord/FwTeamwork)
 //
 // FwTeamwork: the cast spell paid its Teamwork cost (gorge's `Teamwork` predicate, Object.TeamworkPaid; SpellCast ValidSA$ Spell.Teamwork, Virtual Assistant). The kernel keeps the paid flag as sfKicked on the entry (kw_teamwork.go), which a kicker cast sets too, so the word also requires the spell's card to have Teamwork: a kicked non-teamwork spell reads false.
-const FwTeamwork FilterWord = 26
+const FwTeamwork FilterWord = 27
 
 // kw StickerSheet (dirac/manifest/KwID/KwStickerSheet)
 const KwStickerSheet KwID = 32

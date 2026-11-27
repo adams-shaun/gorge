@@ -28,22 +28,42 @@ const akRiot uint8 = 35 // a Riot entry's counter-or-haste election (CR 702.136a
 // counter grant), so it lasts for as long as the object is there. The
 // kernel sets the permanent's override keywords (perm.ovr.kw, cleared only
 // by a turn animation's ovTypesEOT cleanup or a copy exception's reset —
-// neither reaches a printed-Riot carrier) and records the grant's
-// timestamp (promoKw) so the layer-6 walk's lose-all-abilities ordering
-// sees it where the table needs one.
+// neither reaches a Riot carrier) and records the grant's timestamp
+// (promoKw) so the layer-6 walk's lose-all-abilities ordering sees it where
+// the table needs one.
 //
-// A GRANTED Riot (a static's AddKeyword$, Rhythm of the Wild, Spider-Punk)
-// stays refused: gorge's enteringRiot would ask for the derived read too,
-// and the kernel reads only the printed field. A face that also prints
-// Unleash refuses at lowering (gorge asks both as-enters elections; the
-// kernel's pre-entry ask carries one kind, and no corpus card has both).
-// A face-down manifest or cloak entry is a vanilla 2/2 and poses nothing
-// (CR 708.5, gorge's IsFaceDownEntry guard).
+// A GRANTED Riot is kop.Static.Riot on a Continuous static (kgen's
+// lower_riotgrant.go: Spider-Punk's other Spiders, Uncivil Unrest's and
+// Rhythm of the Wild's nontoken creatures), read beside CardDef.Riot, as
+// gorge's enteringRiot reads the derived keyword list. A non-cast entry
+// matches the grant on the entrant's new permanent slot (riotPermGranted);
+// a cast creature's pre-entry election matches it on the card while it is
+// still a spell (riotCardGranted, matchCardGen), so the ask keeps gorge's
+// place at the spell's resolution. A face that also prints Unleash refuses
+// at lowering (gorge asks both as-enters elections; the kernel's pre-entry
+// ask carries one kind, and no corpus card has both). A face-down manifest
+// or cloak entry is a vanilla 2/2 and poses nothing (CR 708.5, gorge's
+// IsFaceDownEntry guard).
 //
-// Cold and out of line: a table with no printed Riot takes none of these
-// paths (prep.riot, a prep bool like unleash so the hot hooks cost one
-// byte load).
+// Cold and out of line: a table with no printed or granted Riot takes none
+// of these paths (prep.riot/prep.riotGrant, prep bools like unleash so the
+// hot hooks cost one byte load).
 const _ = kop.KwRiot
+
+// RiotStats counts the granted Riot elections the kernel applied in a
+// lockstep game (DebugRiotStats; TestDemoRiotLockstep reads it so a green
+// game is one where a granted Riot was asked; nothing in the engine reads
+// it).
+type RiotStats struct {
+	Granted int64 // elections a static's grant posed (the card does not print Riot)
+}
+
+// DebugRiotStats, when set, receives the counts.
+var DebugRiotStats *RiotStats
+
+// DebugNoGrantedRiot (TestDemoRiotMutation): the kernel reads no granted
+// Riot, so a granted election gorge asks is never posed.
+var DebugNoGrantedRiot bool
 
 // tableHasRiot reports whether some card of t prints Riot.
 func tableHasRiot(t *kop.Table) bool {
@@ -55,36 +75,126 @@ func tableHasRiot(t *kop.Table) bool {
 	return false
 }
 
-// riotEntryAsk queues the CR 702.136a as-enters ask of the entrant at sl
-// when its card prints Riot: gorge parks the battlefield move on this ask
-// (riotMove, beside Unleash's), so it is queued at the entry's start, ahead
-// of the entry counters' own asks and of Unleash's (gorge's faceETBChoice
-// walks riot before unleash). A cast creature's election was asked with the
-// spell still on the stack (riotPreKind); the answer lands as the entry's
-// counter or haste grant. The ask is posed at the next priority, before the
-// entrant's ETB triggers resolve.
-func (s *State) riotEntryAsk(k *prep, sl Slot, o Obj) {
-	if k.riot && k.t.Cards[s.objs[o].card].Riot {
-		if p := &s.g.pre; p.state == 2 && p.kind == akRiot && p.obj == o {
-			// a cast creature's election was asked with the spell still on
-			// the stack (riotPreKind); the answer lands as the entry's grant
-			s.riotApply(k, sl, uint8(p.val))
-			return
+// tableGrantsRiot reports whether some static of t grants Riot.
+func tableGrantsRiot(t *kop.Table) bool {
+	scan := func(abs []kop.Ability) bool {
+		for j := range abs {
+			if a := &abs[j]; a.Kind == kop.AbStatic && a.Static.Kind == kop.StatContinuous && a.Static.Riot {
+				return true
+			}
 		}
+		return false
+	}
+	for i := range t.Cards {
+		if scan(t.Cards[i].Abilities) {
+			return true
+		}
+	}
+	for i := range t.Emblems {
+		if scan(t.Emblems[i].Abilities) {
+			return true
+		}
+	}
+	return false
+}
+
+// riotEntryAsk queues the CR 702.136a as-enters ask of the entrant at sl when
+// its card prints Riot or a live static grants it: gorge parks the battlefield
+// move on this ask (riotMove, beside Unleash's), so it is queued at the
+// entry's start, ahead of the entry counters' own asks and of Unleash's
+// (gorge's faceETBChoice walks riot before unleash). A cast creature's
+// election was asked with the spell still on the stack (riotPreKind); the
+// answer lands as the entry's counter or haste grant. The ask is posed at the
+// next priority, before the entrant's ETB triggers resolve.
+func (s *State) riotEntryAsk(k *prep, sl Slot, o Obj) {
+	if !k.riot {
+		return
+	}
+	pre := s.g.pre.state == 2 && s.g.pre.kind == akRiot && s.g.pre.obj == o
+	printed := k.t.Cards[s.objs[o].card].Riot
+	granted := !printed && s.riotPermGranted(k, sl)
+	if !printed && !granted && !pre {
+		return
+	}
+	if pre {
+		// a cast creature's election was asked with the spell still on
+		// the stack (riotPreKind); the answer lands as the entry's grant
+		s.riotApply(k, sl, uint8(s.g.pre.val))
+	} else {
 		s.queueAskAt(sl, akRiot, NoCard, 0, 0)
+	}
+	if granted && DebugRiotStats != nil {
+		DebugRiotStats.Granted++
 	}
 }
 
-// riotPreKind is akRiot when card c prints Riot: gorge asks a cast
-// creature's election at the spell's resolution, with the spell still on
-// the stack (cast.go chooseRiot, the same as-enters shape as Unleash's,
-// CR 614.12), so the kernel poses it through the pre-entry ask (preAskFor)
-// instead of queueing it after the entry; 0 otherwise.
-func (s *State) riotPreKind(k *prep, c CardID) uint8 {
-	if k.riot && k.t.Cards[c].Riot {
+// riotPreKind is akRiot when card c prints Riot or a live static grants it:
+// gorge asks a cast creature's election at the spell's resolution, with the
+// spell still on the stack (cast.go chooseRiot, the same as-enters shape as
+// Unleash's, CR 614.12), so the kernel poses it through the pre-entry ask
+// (preAskFor) instead of queueing it after the entry; 0 otherwise.
+func (s *State) riotPreKind(k *prep, c CardID, o Obj, ctrl uint8) uint8 {
+	if !k.riot {
+		return 0
+	}
+	if k.t.Cards[c].Riot || s.riotCardGranted(k, c, o, ctrl) {
 		return akRiot
 	}
 	return 0
+}
+
+// riotPermGranted reports whether the permanent at sl is granted Riot by a
+// live Continuous static: the layer-6 grant is read like toxic's
+// (kw_toxicgrant.go), a grant older than a loss of the recipient's abilities
+// granting nothing.
+func (s *State) riotPermGranted(k *prep, sl Slot) bool {
+	if !k.riotGrant || DebugNoGrantedRiot {
+		return false
+	}
+	lts, lost := s.lossAt(k, sl)
+	granted := false
+	s.eachStatic(k, func(st statSrc) bool {
+		ab := st.a
+		if ab.Kind != kop.AbStatic || ab.Static.Kind != kop.StatContinuous || !ab.Static.Riot ||
+			lost && s.grantTs(st) < lts {
+			return true
+		}
+		if s.statCond(k, st) && s.matchPermGen(k, ab.Static.Filter, sl, st.ctrl, st.sl, layerKw) {
+			granted = true
+			return false
+		}
+		return true
+	})
+	return granted
+}
+
+// riotCardGranted reports whether card c about to enter under ctrl is granted
+// Riot by a live Continuous static. A cast creature's election is asked while
+// the card is still a spell (riotPreKind), so the grant is matched on the
+// card (matchCardGen), the way the pre-entry as-enters choices read a
+// would-enter object: ctrl is the spell's controller (the card's "controller
+// on the stack") and the static's own controller is the filter's "you", so a
+// grant to "creatures you control" does not reach an opponent's spell.
+// "Other" is every battlefield source (the entering card is not one), so the
+// card's printed characteristics answer the filter as gorge's derived read
+// does at the spell's resolution.
+func (s *State) riotCardGranted(k *prep, c CardID, o Obj, ctrl uint8) bool {
+	if !k.riotGrant || DebugNoGrantedRiot {
+		return false
+	}
+	granted := false
+	s.eachStatic(k, func(st statSrc) bool {
+		ab := st.a
+		if ab.Kind != kop.AbStatic || ab.Static.Kind != kop.StatContinuous || !ab.Static.Riot {
+			return true
+		}
+		if s.statCond(k, st) && s.matchCardGen(k, ab.Static.Filter, c, ctrl, st.ctrl, o) {
+			granted = true
+			return false
+		}
+		return true
+	})
+	return granted
 }
 
 // riotOptions fills the queued as-enters ask: the counter-or-haste election

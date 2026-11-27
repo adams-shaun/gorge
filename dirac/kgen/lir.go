@@ -62,6 +62,7 @@ const (
 	rResChosenPlayer              // the resolution's chosen player: OpChoosePlayer's random pick (gorge Ctx.Chosen's player entry, Maddening Hex's Attach destination)
 	rExiledWithOwner              // the seat whose exile holds a card exiled with the source (kop.RefExiledWithOwner; DefinedPlayer$ Player.HasCardsInExile_Card.ExiledWithSource_GE1, Unidentified Hovership's leave trigger)
 	rEnchantedCtrl                // the controller of the permanent the source is attached to, read live, nobody once the source left (kop.RefEnchantedCtrl; Defined$ EnchantedController, Paralyze)
+	rEnchantedPlayer              // the player the source Aura enchants (kop.RefEnchantedPlayer; Defined$ / TokenOwner$ EnchantedPlayer, Overencumbered)
 	rEmblemSource                 // inside an emblem trigger's body: the object whose Effect made the emblem, as it was when the trigger was queued (kop.RefEmblemSource; an Effect's RememberObjects$ Self read as Defined$ Remembered, lower_effeottrig.go)
 	rCount
 )
@@ -111,6 +112,7 @@ var refNames = [...]string{
 	rExiledWithOwner:      "ExiledWithOwner",
 	rEnchantedCtrl:        "EnchantedCtrl",
 	rEmblemSource:         "EmblemSource",
+	rEnchantedPlayer:      "EnchantedPlayer",
 }
 
 type lRef struct {
@@ -209,7 +211,7 @@ const (
 	vExiledWithN         // the cards exiled with the reading source, every seat's exile zone (ExiledWith$Amount)
 	vConverge            // the colours of mana spent to cast the spell (Count$Converge)
 	vExileTypes          // the distinct card types among the exiled cards matching F, every seat's exile (Count$ValidExile <spec>$CardTypes)
-	vSacrificedThisTurn  // the permanents the controller sacrificed this turn; N 0 every one, N 1 artifact cards (PlayerCountPropertyYou$SacrificedThisTurn Permanent|Artifact)
+	vSacrificedThisTurn  // the permanents the controller sacrificed this turn: N 0/1/2 the Permanent/Artifact/Food tallies, else F over the turn's sacrifices (PlayerCountPropertyYou$SacrificedThisTurn <spec>)
 	vDiscardedThisTurn   // the cards the controller discarded this turn (PlayerCountPropertyYou$CardsDiscardedThisTurn)
 	vRingTempted         // the controller's temptation count (PlayerCountPropertyYou$RingTemptedYou; the Ring emblem's level gates, gorge count_body_player.go RingTemptedYou)
 	vNumColorsOf         // the colour count of object Ref (TriggeredCard$CardNumColors in a SpellCast trigger)
@@ -1281,6 +1283,8 @@ type lStatic struct {
 	Evasion uint8
 	Infect  bool
 	Toxic   uint8 // granted toxic N, summed (kop.Static.Toxic; lower_toxicgrant.go)
+	// Riot: a Continuous grant of riot (kop.Static.Riot; lower_riotgrant.go)
+	Riot bool
 	// PanhZones: a Panharmonicon static's ValidZone$ mask (kop.Static.PanhZones;
 	// 0 = the battlefield only, static_triggers.go)
 	PanhZones uint8
@@ -1645,11 +1649,12 @@ type lEmblem struct {
 	// Repls: the emblem's replacement abilities (a Duration$ Permanent
 	// Effect's all-but-N damage prevention, lower_effectemblemprevent.go); the
 	// emblem's abilities are its Statics, else its Repls, else its Trigger.
-	Repls         []lRepl
-	Trigger       int
-	UntilEOT      bool // an Effect without a Duration$: it ends at cleanup
-	UntilNextTurn bool // Duration$ UntilYourNextTurn: it ends at the next turn's cleanup
-	WhileHost     bool // Duration$ UntilHostLeavesPlayOrEOT: it ends when its host leaves too
+	Repls          []lRepl
+	Trigger        int
+	UntilEOT       bool // an Effect without a Duration$: it ends at cleanup
+	UntilEndCombat bool // Duration$ UntilEndOfCombat: it also ends at the end-of-combat step (UntilEOT beside it)
+	UntilNextTurn  bool // Duration$ UntilYourNextTurn: it ends at the next turn's cleanup
+	WhileHost      bool // Duration$ UntilHostLeavesPlayOrEOT: it ends when its host leaves too
 	// Capture: RememberObjects$ Targeted over the chain's target slot
 	// (CaptureSet); the trigger's ValidSource$ ...IsRemembered is then the
 	// emblem's own capture, lowered without the Remembered flag
