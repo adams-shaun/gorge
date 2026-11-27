@@ -236,23 +236,57 @@ func (s lStatic) flashCasterFlag() kop.StaticFlags {
 // "ValidSA$ Spell | ValidPlayer$ You"; Rooftop Storm's and Runeforge
 // Champion's ValidCard$ riders; gorge alternativeCosts' printed battlefield
 // walk, read relative to the granter's controller), or to any player's spells
-// when no ValidPlayer$ rider scopes it (Dream Halls' discard alternative). It
-// reports done with the static filled in (kop.StAltGrant, Filter = the
-// ValidCard$); a static of another shape is not done and falls through to the
-// own-static arms. A mana price lowers, and so does Dream Halls' dynamic
-// colour-share discard (altGrantDiscardCost).
+// when no ValidPlayer$ rider scopes it (Dream Halls' discard alternative). A
+// spell filter in ValidSA$ (Kentaro's "Spell.Samurai") is the grant's filter
+// when XAlternative$ prices its {X} at the cast card's mana value. It reports
+// done with the static filled in (kop.StAltGrant, Filter = the ValidCard$ or
+// the ValidSA$ filter); a static of another shape is not done and falls
+// through to the own-static arms. A mana price lowers, and so does Dream
+// Halls' dynamic colour-share discard (altGrantDiscardCost).
 func (sc *staticCtx) altGrantShape() (bool, error) {
 	sp := sc.sp
+	vs := sp.str("ValidSA")
 	vp := sp.str("ValidPlayer")
-	if sp.str("ValidSA") != "Spell" || vp != "You" && vp != "" || sp.str("EffectZone") != "" || sp.str("ValidCard") == "Card.Self" {
+	xalt := sp.str("XAlternative")
+	var xf *lFilter
+	switch {
+	case vs == "Spell":
+	case xalt != "" && strings.HasPrefix(vs, "Spell.") && vs != "Spell.Self":
+		// Kentaro, the Smiling Cat: the ValidSA$ constraint after Spell. is
+		// the cast card's filter, and XAlternative$ Count$CardManaCost
+		// prices the grant's one {X} (the kernel substitutes the cast
+		// card's mana value; cast_altgrant.go).
+		if xalt != "Count$CardManaCost" {
+			return true, refuse("AlternativeCost XAlternative %q", xalt)
+		}
+		f, err := sc.lc.filter(strings.TrimPrefix(vs, "Spell."))
+		if err != nil {
+			return true, err
+		}
+		xf = f
+	default:
 		return false, nil
 	}
+	if vp != "You" && vp != "" || sp.str("EffectZone") != "" || sp.str("ValidCard") == "Card.Self" {
+		return false, nil
+	}
+	if xf != nil && sp.str("ValidCard") != "" {
+		return true, refuse("AlternativeCost XAlternative beside ValidCard$")
+	}
 	var err error
-	if sc.st.F, err = sc.readF("ValidCard"); err != nil {
+	if xf != nil {
+		sc.st.F = xf
+	} else if sc.st.F, err = sc.readF("ValidCard"); err != nil {
 		return true, err
 	}
 	if sc.st.Cost, err = sc.lc.altCostCost(sp.str("Cost")); err != nil {
 		return true, err
+	}
+	if xf != nil {
+		if !xaltCostShape(&sc.st.Cost) {
+			return true, refuse("XAlternative cost %q: want one {X} and nothing else", sp.str("Cost"))
+		}
+		sc.st.AltXMana = true
 	}
 	// A grant with no ValidPlayer$ rider applies to every player's spell
 	// (Dream Halls: "its controller may discard..."), not only the static's
@@ -260,6 +294,16 @@ func (sc *staticCtx) altGrantShape() (bool, error) {
 	sc.st.AnyCaster = vp == ""
 	sc.st.Flags = append(sc.st.Flags, "AltGrant")
 	return true, nil
+}
+
+// xaltCostShape is an XAlternative$ Count$CardManaCost price: one {X} and no
+// other mana or non-mana part (Kentaro's Cost$ X). The kernel replaces that X
+// with the cast card's mana value (dirac/cast_altgrant.go).
+func xaltCostShape(c *lCost) bool {
+	m := c.Mana
+	return c.pureMana() && m.X && !m.XX && !m.XXX && m.Generic == 0 &&
+		m.Pips == [5]int{} && len(m.Hybrid) == 0 && len(m.Twobrid) == 0 &&
+		len(m.Phyrexian) == 0 && m.C == 0 && m.Snow == 0 && m.XColor == 0 && !m.None
 }
 
 // altGrantDiscardCost reports whether a grant's cost is Dream Halls' dynamic
@@ -291,6 +335,14 @@ func (cb *cardBuilder) altCostStatic(s lStatic, st *kop.Static) (kop.Cost, error
 		if st.Filter, err = cb.filter(s.F, kop.ZoneHand); err != nil {
 			return cost, err
 		}
+	}
+	if s.AltXMana {
+		// the grant's one {X} is the cast card's mana value (Kentaro); any
+		// other mana or a non-mana part is not that shape
+		if cost.Mana.X != 1 || cost.Mana.MV() != 0 || cost.Flags != 0 || cost.N != 0 {
+			return cost, fmt.Errorf("X alternative cost grant with a non-mana part or a non-bare {X} price")
+		}
+		return cost, nil
 	}
 	if cost.Flags != 0 || cost.N != 0 || cost.Mana.X != 0 {
 		if altGrantDiscardCost(&cost) {

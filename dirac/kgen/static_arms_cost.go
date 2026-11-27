@@ -122,10 +122,11 @@ func cbAlternativeCostStatic(cb *cardBuilder, s lStatic, st *kop.Static, cost *k
 	// (Dream Halls) is the one non-mana grant.
 	grantDiscard := st.StFlags&kop.StAltGrant != 0 && altGrantDiscardCost(cost)
 	sacAlt := altPickShape(cost) && cb.altSacOK(cost)
-	if !sacAlt && !grantDiscard && (cost.Flags != 0 || cost.N != 0 || cost.Mana.X != 0) {
+	if !sacAlt && !grantDiscard && (cost.Flags != 0 || cost.N != 0 || cost.Mana.X != 0 && !s.AltXMana) {
 		// the kernel offers a mana-only alternative cost
 		// (prepAltFree); a part the pick stages cannot carry would
-		// never be offered
+		// never be offered. A grant's one {X} is the cast card's mana
+		// value (s.AltXMana, Kentaro), priced by altXMana.
 		return nil, fmt.Errorf("alternative cost with a non-mana part (the kernel offers mana-only alternatives)")
 	}
 	return nil, nil
