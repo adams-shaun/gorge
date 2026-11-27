@@ -1083,6 +1083,9 @@ func (s *State) firePlayer(k *prep, ev kop.TrigEvent, who uint8, amt int16) {
 			if ev == kop.TrigLifeLost && a.Trig.Flags4&kop.Tf4CauseSpellAb != 0 && !s.lifeCauseSpellOK(lp.ctrl, &a.Trig) {
 				continue
 			}
+			if ev == kop.TrigLifeLost && (a.Trig.Whose == kop.WhoseActive || a.Trig.Whose == kop.WhoseOppActive) && who != s.active {
+				continue // the life-losing player is not the active player
+			}
 			if ev == kop.TrigDrawn && !drawStepGateOK(&a.Trig, s.drawStepFirst(who)) {
 				continue
 			}
@@ -1095,7 +1098,7 @@ func whoseOK(w kop.Whose, ctrl, who uint8) bool {
 	switch w {
 	case kop.WhoseYou:
 		return who == ctrl
-	case kop.WhoseOpp:
+	case kop.WhoseOpp, kop.WhoseOppActive:
 		return who != ctrl
 	case kop.WhoseEnchCtrl, kop.WhoseChosen, kop.WhoseEnchanted, kop.WhoseMonarch, kop.WhoseEnchantedOpp:
 		return false // read with the listener's slot (enchCtrlIs, chosenIs, defEnchanted); elsewhere it fails closed

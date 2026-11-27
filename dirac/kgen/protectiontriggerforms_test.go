@@ -44,10 +44,18 @@ func TestThisTurnCastProtection(t *testing.T) {
 	}
 	var sb strings.Builder
 	dumpLIR(&sb, c)
-	if !strings.Contains(sb.String(), "protfrom={types=0x9f CastByYou EnteredThisTurn}") {
-		t.Errorf("ProtFrom lacks the cast-this-turn flags:\n%s", sb.String())
+	// ProtFrom carries both printed qualities: the bare Spell clause (a
+	// SpellBase clause dumps as types=0x0) and the cast-this-turn permanent
+	// clause. The K:Protection:Spell quality lowers now (lower.go
+	// lowerKeywords) instead of refusing at the filter parser, so Emrakul's
+	// protection reads both spells and permanents cast this turn.
+	if !strings.Contains(sb.String(), "protfrom={types=0x0 | types=0x9f CastByYou EnteredThisTurn}") {
+		t.Errorf("ProtFrom lacks the spell or cast-this-turn clause:\n%s", sb.String())
 	}
-	for _, want := range []string{`a Spell head outside a ReduceCost ValidTarget$`, "GainControl AllValid$ beside ValidTgts$"} {
+	// The GainControl refusal is unrelated and must remain. The Spell-head
+	// refusal this card used to carry is gone: the Spell quality lowers now
+	// (asserted above), rather than being dropped at the parser.
+	for _, want := range []string{"GainControl AllValid$ beside ValidTgts$"} {
 		found := false
 		for _, r := range c.Refusals {
 			if strings.Contains(r.Reason, want) {
