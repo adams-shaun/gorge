@@ -36,7 +36,7 @@ func TestSelfFlashIsTargetingLowers(t *testing.T) {
 		}
 	}
 	// the control: a non-IsTargeting Spell.* carrier keeps its refusal
-	for _, name := range []string{"Silver Scrutiny"} {
+	for _, name := range []string{"Quantum Reduction"} {
 		c := lowerNamedCard(t, name)
 		got := ""
 		for _, r := range c.Refusals {
