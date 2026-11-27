@@ -126,6 +126,9 @@ func (sc *staticCtx) modeCastWithFlash() ([]lStatic, bool, error) {
 	sp := sc.sp
 	readF := sc.readF
 	var err error
+	if sp.str("ValidSA") == "Activated.Loyalty" {
+		return sc.loyaltyFlash() // static_loyaltyflash.go
+	}
 	caster := sp.str("Caster")
 	if caster != "You" && caster != "Player" || sp.str("ValidSA") != "Spell" {
 		return nil, true, refuse("CastWithFlash shape")
