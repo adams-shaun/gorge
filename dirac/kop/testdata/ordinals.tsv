@@ -97,6 +97,8 @@ ChooseCardAmount	untyped int	11
 ChooseCardAmountOpt	untyped int	12
 ChooseCardAtRandom	untyped int	13
 ChooseCardEach	untyped int	14
+ChooseCardEachAmount	untyped int	17
+ChooseEachNonLand	untyped int	1
 ChooseOpp	untyped int	2
 ChoosePlayerForget	untyped int	2
 ChoosePlayerFresh	untyped int	1
@@ -1384,6 +1386,8 @@ SacSumMV	untyped int	8
 SacSumPower	untyped int	2
 SacSumToughness	untyped int	4
 SacrificedFood	untyped int	2
+SfsaSpell	uint8	0
+SfsaTeamwork	uint8	1
 SkipPhaseAllCombats	untyped int	0
 SkipPhaseDraw	untyped int	2
 SkipPhaseNextCombat	untyped int	3

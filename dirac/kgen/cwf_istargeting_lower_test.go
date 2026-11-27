@@ -35,16 +35,11 @@ func TestSelfFlashIsTargetingLowers(t *testing.T) {
 			t.Errorf("%s: CastWithFlash line %q lacks %q (F2 must be the target spec, not nil)", tc.card, line, tc.f2)
 		}
 	}
-	// the control: a non-IsTargeting Spell.* carrier keeps its refusal
-	for _, name := range []string{"Quantum Reduction"} {
-		c := lowerNamedCard(t, name)
-		got := ""
-		for _, r := range c.Refusals {
-			got += r.Node + ": " + r.Reason + "; "
-		}
-		if !strings.Contains(got, "CastWithFlash shape") {
-			t.Errorf("%s: want a CastWithFlash shape refusal, got %q", name, got)
-		}
+	// the control: a non-IsTargeting Spell.* word keeps its refusal (Quantum
+	// Reduction's Spell.Teamwork since lower: cwf_teamwork_lower_test.go)
+	src := "Name:Probe\nManaCost:2 W\nTypes:Enchantment\nS:Mode$ CastWithFlash | ValidCard$ Card | ValidSA$ Spell.Bogus | Caster$ You\nOracle:x\n"
+	if got := strings.Join(lowerScript(t, "Probe", src), " | "); !strings.Contains(got, "CastWithFlash shape") {
+		t.Errorf("Spell.Bogus probe: want a CastWithFlash shape refusal, got %q", got)
 	}
 }
 

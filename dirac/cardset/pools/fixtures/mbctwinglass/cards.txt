@@ -1,0 +1,11 @@
+# the Twinning Glass pool: {1},{T}: you may cast a spell from your hand free
+# if it has the same name as a spell cast this turn (Play Valid$
+# Card.nonLand+sharesNameWith ThisTurnCast ValidZone$ Hand;
+# dirac/oracle/mbc_zone_moves_nine_lowers_test.go)
+Twinning Glass
+Grizzly Bears
+Shock
+Forest
+Mountain
+Raging Goblin
+Hill Giant

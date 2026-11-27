@@ -90,6 +90,11 @@ MAKEFILE = os.path.join(ROOT, "Makefile")
 SUPPORT_PAGE = os.path.join(ROOT, "dirac", "docs", "support.md")
 SUPPORT_COUNTS = ("cards", "lowered", "refused", "unverified", "supported")
 DASH = "—"
+# The support page's list table carries set codes beside named pools. A set code is 3-5
+# uppercase alphanumerics; a row named otherwise is a pool (hosted-cmdr), a union of decks
+# rather than a set, and has no place on the docs site's set tables. MBC is a pool whose
+# name happens to be code-shaped, so it stays a set row as it always has.
+SET_CODE = re.compile(r"[0-9A-Z]{3,5}")
 
 
 def load(stream):
@@ -150,13 +155,23 @@ def page_stamp(path):
 def load_dirac(path=SUPPORT_PAGE, commit=None, date=None):
     """dirac's per-set figures from the support page, checked; raise ValueError on a bad page.
 
-    commit and date stamp the figures; unset, they are the page's last commit."""
+    commit and date stamp the figures; unset, they are the page's last commit. The page's
+    list table also carries named pools: a row whose name is not a set code (hosted-cmdr)
+    is kept in "pools" and out of "sets", so the docs site's set tables and its set count
+    carry sets only."""
     rows = read_support_page(path)
-    if "ALL" not in rows or len(rows) < 2:
+    if "ALL" not in rows:
+        raise ValueError("%s: need the table's ALL row and at least one set row" % path)
+    corpus = rows.pop("ALL")
+    sets = {k: v for k, v in rows.items() if SET_CODE.fullmatch(k)}
+    pools = {k: v for k, v in rows.items() if not SET_CODE.fullmatch(k)}
+    if not sets:
         raise ValueError("%s: need the table's ALL row and at least one set row" % path)
     gc, gd = page_stamp(path) if commit is None or date is None else ("", "")
     d = {"date": gd if date is None else date, "commit": gc if commit is None else commit,
-         "corpus": rows.pop("ALL"), "sets": dict(sorted(rows.items()))}
+         "corpus": corpus, "sets": dict(sorted(sets.items()))}
+    if pools:
+        d["pools"] = dict(sorted(pools.items()))
     return check_dirac(d, path)
 
 

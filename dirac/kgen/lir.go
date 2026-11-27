@@ -1544,6 +1544,7 @@ type lCard struct {
 	World          bool            // the printed World supertype (CR 205.4a, 704.5k): CardDef.World
 	Snow           bool            // the printed Snow supertype (CR 205.4a): CardDef.Snow
 	SelfFlash      bool            // a CastWithFlash EffectZone$ All self grant (Illusion Spinners; CardDef.SelfFlash)
+	SelfFlashSA    uint8           // the self grant's ValidSA$ constraint (kop.SfsaSpell / kop.SfsaTeamwork; CardDef.SelfFlashSA)
 	Changeling     bool            // K:Changeling: every creature type (CR 702.73a), in every zone
 	CDAFace        *lCDAFace       // the face's own characteristics before cdaColorType folded a CDA into them (CardDef.CDAFace)
 	Offspring      *manaCost       // K:Offspring:<cost> (CR 702.175): the kernel's kicked cast and Kicker cost, CardDef.Offspring

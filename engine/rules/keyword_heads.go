@@ -19,6 +19,7 @@ var (
 	kwhAfflict          = newKWHead("Afflict")
 	kwhAnnihilator      = newKWHead("Annihilator")
 	kwhAscend           = newKWHead("Ascend")
+	kwhAssist           = newKWHead("Assist")
 	kwhBargain          = newKWHead("Bargain")
 	kwhBattleCry        = newKWHead("Battle cry")
 	kwhBeamMeUp         = newKWHead("Beam me up")

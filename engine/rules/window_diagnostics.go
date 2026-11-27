@@ -288,7 +288,7 @@ func (e *Engine) classifyBattlefieldAbilities(p state.PlayerID, w *windowCollect
 				w.record(id, windowKindActivation, wrActivationZone)
 				continue
 			}
-			if ab.ParamStr(cards.PKSorcerySpeed) == "True" && !sorcery {
+			if ab.ParamStr(cards.PKSorcerySpeed) == "True" && !sorcery && !e.equipAtInstantSpeed(p, id, ab) {
 				w.record(id, windowKindActivation, nonEmpty(e.sorcerySpeedReason(p), wrTimingNotMain))
 				continue
 			}

@@ -133,6 +133,7 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 			s.availOnce(k, p, &av, &haveAv)
 			s.offerOffering(k, d, p, o, c, &av)
 		}
+		twOnly := false // instant speed on the strength of a Spell.Teamwork self grant: the teamworked cast alone (cast_selfflash.go)
 		if !pc.instant && !sorc && !s.castFlash(k, p, c) {
 			if k.gen != nil && k.gen.anyMayFlash && k.t.Cards[c].HasMayFlash {
 				// the timing gate refused the plain cast: the may-flash
@@ -140,7 +141,10 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 				s.availOnce(k, p, &av, &haveAv)
 				s.offerMayFlashHand(k, d, p, o, c, &av)
 			}
-			continue
+			if !k.anySelfFlash || !k.teamwork || !s.selfFlashTeamworkOffer(k, p, c) {
+				continue
+			}
+			twOnly = true
 		}
 		if k.gen != nil && k.gen.anyCantCast && s.castForbiddenCost(k, p, c, o, &pc.cost, nil) {
 			continue
@@ -164,7 +168,9 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 		if pc.altCost {
 			s.offerAltHand(k, d, p, o, c, &av) // kw_impending.go
 		}
-		s.offerAltGrantHand(k, d, p, o, c, &av) // cast_altgrant.go
+		if !twOnly {
+			s.offerAltGrantHand(k, d, p, o, c, &av) // cast_altgrant.go
+		}
 		if k.gen != nil {
 			// a non-granting may-play alternative cost beside the plain hand
 			// cast (As Foretold's {0}, Demon of Fate's Design's pay-life,
@@ -224,6 +230,9 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 			}
 		}
 		if !paid {
+			if twOnly {
+				continue
+			}
 			if k.bargainRed {
 				s.offerBargainOnly(k, d, p, o, c, &av) // the discount alone pays it (cost_reducespell.go)
 				s.offerOptCostOnly(k, d, p, o, c, &av)
@@ -245,7 +254,9 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 			tgtOK = s.spellTargetsFeasibleFrom(k, c, p, o)
 		}
 		if !(tgtOK || twOK) || !s.spellCostsFeasible(k, c, p, o) || !s.altAddCastableFrom(k, c, p, o, preDelve, &base, false, false, &av) {
-			s.offerKickedRootless(k, d, p, c, o, pc.cost, tgtOK, twOK, preDelve, &base, cav, &av) // tgt_kickedroot.go
+			if !twOnly {
+				s.offerKickedRootless(k, d, p, c, o, pc.cost, tgtOK, twOK, preDelve, &base, cav, &av) // tgt_kickedroot.go
+			}
 			continue
 		}
 		if s.castHeldOut(o) {
@@ -254,7 +265,7 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 		// the kicked cast is gorge's lowered potential play even when the
 		// plain one is left out (pair 8638: Grow from the Ashes paid only
 		// through the imprisoned lands)
-		plainOK := tgtOK && s.gorgeOffers(p, o, 0) && (cost.X == 0 || s.spellXBoundPayable(k, c, p, cost))
+		plainOK := tgtOK && !twOnly && s.gorgeOffers(p, o, 0) && (cost.X == 0 || s.spellXBoundPayable(k, c, p, cost))
 		if plainOK {
 			d.add(MakeAction(AkCast, TCode(o), 0, 0))
 		}
@@ -265,6 +276,9 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 		if twOK && s.teamworkOffer(k, p, c) && s.casualtyOffers(p, o) {
 			// the teamworked cast (kw_teamwork.go): the same action kind
 			d.add(MakeAction(AkCastCasualty, TCode(o), 0, 0))
+		}
+		if twOnly {
+			continue // the permission is the teamworked cast's alone
 		}
 		if k.casualty && s.casualtyOffer(k, p, c, o) && s.casualtyOffers(p, o) {
 			// the casualty cast (kw_casualty.go): the plain cast's price, one more option
@@ -640,8 +654,8 @@ func (s *State) canActivate(k *prep, sl Slot, ab int, a *kop.Ability, sorc bool,
 		return false
 	}
 	f := a.Cost.Flags
-	if f&kop.CostSorcery != 0 && !sorc {
-		return false
+	if f&kop.CostSorcery != 0 && !sorc && !s.equipFlash(k, a, p.ctrl) {
+		return false // an Equip ability stays sorcery-speed without a StatEquipFlash grant (static_equipflash.go)
 	}
 	if a.Cost.Host != 0 && ab != 255 {
 		return false // a granting host's cost part: only a granted ability has a host (gorge leaves the referent unbound)

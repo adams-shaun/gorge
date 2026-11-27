@@ -197,6 +197,13 @@ func (w *legalWalk) offerCastable(p state.PlayerID, id state.ObjID, base Cost, s
 //
 // walkSkipVerify runs offerCastableUsing on every refusal.
 func (w *legalWalk) offerFloorRefuses(statics *costStaticViews, p state.PlayerID, id state.ObjID, base *Cost, scope costScope) bool {
+	// CR 702.132a: an Assist carrier's offer is not bounded by the caster's
+	// pool alone -- another seat may fund the generic part -- so the floor
+	// (which prices only that pool) cannot prove a refusal. Fall through to
+	// the full composition, which carries the potential assist.
+	if _, _, ok := w.e.assistOfCard(id); ok {
+		return false
+	}
 	if w.hyp != nil || !costStaticsInertFor(statics, id) ||
 		len(base.LifeX) != 0 || base.Waterbend != 0 || base.WaterbendX || base.XMin != 0 || base.Life < 0 || base.Snow < 0 {
 		return false

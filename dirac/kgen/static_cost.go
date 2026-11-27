@@ -124,6 +124,12 @@ func (sc *staticCtx) modeCastWithFlash() ([]lStatic, bool, error) {
 	lc := sc.lc
 	s := sc.s
 	sp := sc.sp
+	if sp.str("ValidSA") == "Activated.Equip" {
+		if err := sc.equipFlashShape(); err != nil { // static_equipflash.go
+			return nil, true, err
+		}
+		return nil, false, nil
+	}
 	if sp.str("ValidSA") == "Activated.Loyalty" {
 		return sc.loyaltyFlash() // static_loyaltyflash.go
 	}
@@ -152,7 +158,7 @@ func (sc *staticCtx) modeCastWithFlash() ([]lStatic, bool, error) {
 		// face statics of the mode ONLY when they name an EffectZone$
 		// (CR 113.6), so this is the card's own "you may cast this
 		// spell as though it had flash if ..." grant from every zone.
-		if err := lc.selfFlashShape(s, ez); err != nil {
+		if err := lc.selfFlashShape(s, ez, validSA); err != nil {
 			return nil, true, err
 		}
 		if isTgt {
@@ -164,9 +170,11 @@ func (sc *staticCtx) modeCastWithFlash() ([]lStatic, bool, error) {
 			}
 		}
 		lc.out.SelfFlash = true
-	} else if xmax != 0 {
+	} else if xmax != 0 || validSA == "Spell.Teamwork" {
 		// the kernel bounds only the SelfFlash carrier's own X
-		// (dirac/cast_flashxcap.go)
+		// (dirac/cast_flashxcap.go), and the Teamwork permission is the
+		// card's own self grant: a battlefield static granting it to others
+		// is not a kernel shape
 		return nil, true, refuse("CastWithFlash shape")
 	}
 	sc.st.FlashXMax = xmax

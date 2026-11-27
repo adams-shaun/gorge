@@ -47,7 +47,7 @@ func TestInstantLoyaltyFlashLowers(t *testing.T) {
 	for _, tc := range []struct{ name, line, want string }{
 		{"Probe Any Caster", "S:Mode$ CastWithFlash | ValidCard$ Card.Self | ValidSA$ Activated.Loyalty | Caster$ Player | Description$ x.\n", "CastWithFlash"},
 		{"Probe No Caster", "S:Mode$ CastWithFlash | ValidCard$ Card.Self | ValidSA$ Activated.Loyalty | Description$ x.\n", "CastWithFlash"},
-		{"Probe Equip", "S:Mode$ CastWithFlash | ValidCard$ Card.Self | ValidSA$ Activated.Equip | Caster$ You | Description$ x.\n", "CastWithFlash shape"},
+		{"Probe Equip", "S:Mode$ CastWithFlash | ValidCard$ Card.Self | ValidSA$ Activated.Equip | Caster$ You | Description$ x.\n", "CastWithFlash Activated.Equip with ValidCard$"},
 		{"Probe Unread Word", "S:Mode$ CastWithFlash | ValidCard$ Card.Self+Zzyzxword | ValidSA$ Activated.Loyalty | Caster$ You | Description$ x.\n", "Zzyzxword"},
 	} {
 		got := strings.Join(lowerScript(t, tc.name, "Name:"+tc.name+"\n"+pw+tc.line), "; ")

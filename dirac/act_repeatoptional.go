@@ -36,6 +36,15 @@ func (s *State) repeatOptionalExt(k *prep, in *kop.Instr) (ok, done bool) {
 		return true, true
 	}
 	d := r.loopD - 1
+	if in.B.N == 2 {
+		// the pure head (Dance with Calamity's Dig-to-exile body): no write
+		// but the moved card, so a pass that starts without the progress
+		// condition changes nothing and is the last
+		if !s.condEval(k, kop.CondID(in.C), s.ctxEntry(&r.e)) {
+			r.loopN[d] = 1
+		}
+		return true, true
+	}
 	if in.B.N == 0 {
 		first := r.loopN[d] == uint8(min(max(s.value(k, s.prog(k)[r.loopS[d]-1].A), 0), 255))
 		if !s.condEval(k, kop.CondID(in.C), s.ctxEntry(&r.e)) && !first && s.g.lostAmt <= 0 {
