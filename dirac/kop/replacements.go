@@ -194,6 +194,10 @@ const (
 	// engine/rules/trigger_cause.go drawCauseAdmits; the kernel's read is
 	// repl_drawprogram.go drawCauseCycling.
 	ReplDrawCauseCyclingNonLand = 1 << 5
+	// ReplDrawBodyDraw: ReplaceWith$ root API is Draw: a body drawing from
+	// the same empty library, so it does not meet an empty-library draw
+	// (gorge emptyDrawReplacement).
+	ReplDrawBodyDraw = 1 << 6
 )
 
 // Repl is a replacement-lite effect.

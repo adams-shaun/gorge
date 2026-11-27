@@ -42,7 +42,7 @@ func TestReplDrawOrderRememberDrawnStalls(t *testing.T) {
 			if !sc.onBF(plainObj) || !sc.onBF(progObj) {
 				t.Fatal("precondition: both draw replacements must be on the battlefield")
 			}
-			if got := sc.s.drawScan(sc.k, 0, drawChain{}); got.more != 1 || !got.prog || got.all != 2 {
+			if got := sc.s.drawScan(sc.k, 0, drawChain{}, false); got.more != 1 || !got.prog || got.all != 2 {
 				t.Fatalf("precondition: candidates more %d prog %v all %d, want one plain ReplDrawMore beside the program", got.more, got.prog, got.all)
 			}
 			if in := tb.tbl.Cards[spell].Abilities[0].Prog[0]; in.Op != kop.OpDraw || in.C&kop.MvRemember == 0 {
