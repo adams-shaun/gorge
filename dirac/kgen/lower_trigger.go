@@ -76,7 +76,6 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 		return err
 	}
 	var descended, dethrone bool // fire-time player gates
-	var playerCtrLine bool       // a player-counter line, inert in both engines (see the CounterAddedOnce arm)
 	ab := &lAbility{Kind: akTriggered, Index: len(lc.out.Abilities)}
 	defer func(b bool) { lc.trigBody = b }(lc.trigBody)
 	lc.trigBody = false
@@ -758,14 +757,12 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 			if vp, ok := tp.get("ValidPlayer"); ok {
 				// "Whenever you get one or more {E}" (Brotherhood Scribe,
 				// Aether Revolt, Fabrication Module, Territorial Gorger): a
-				// PLAYER counter. gorge's counterAddedMatches reads
-				// CounterChange (a permanent's counters) and
-				// CounterAddedInstances rejects every other event, so a
-				// PlayerCounterChange put never fires this line. The kernel
-				// has no player-counter placement event either; the line is
-				// kept in the ability list and never fires (the always-false
-				// condition below). Only this exact shape lowers: a player
-				// counter and ValidPlayer$ You.
+				// PLAYER counter. gorge's playerCounterAddedOnceMatches reads
+				// the PlayerCounterChange put (ValidPlayer$ the gaining
+				// player; a ValidCard$ never matches a player), and the
+				// kernel's TrigPlayerCounterAdded fires at each energy or
+				// experience gain (dirac/trig_playerctr.go). Only this exact
+				// shape lowers: a player counter and ValidPlayer$ You.
 				if vp != "You" {
 					return refuse("CounterAddedOnce ValidPlayer %q", vp)
 				}
@@ -775,8 +772,10 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 				if _, ok := tp.get("ValidSource"); ok {
 					return refuse("CounterAddedOnce ValidPlayer beside ValidSource")
 				}
-				tr.Step = "*"
-				playerCtrLine = true
+				if tr.F != nil {
+					return refuse("CounterAddedOnce ValidPlayer beside ValidCard")
+				}
+				tr.Event, tr.Step, tr.Whose = "PlayerCounterAddedOnce", strings.ToUpper(strings.TrimSpace(ct)), whoYou
 			}
 		case "CounterAddedAll", "CounterPlayerAddedAll", "CounterRemoved", "CounterRemovedOnce":
 			if err := lc.ctrRemovedOrPlayerAddedAll(tp, tr, t, readF); err != nil { // lower_counterremoved.go
@@ -1305,12 +1304,6 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 	// Intervening-if conditions.
 	noResolve := tp.is("NoResolvingCheck", "True")
 	var conds []lCond
-	if playerCtrLine {
-		// A player-counter line: never fires in gorge (CounterAddedOnce reads
-		// CounterChange only), so its condition is a constant false. The
-		// ability stays in the card's ability list, as gorge's does.
-		conds = append(conds, lCond{Kind: cValue, A: cst(0), Op: opGE, B: cst(1)})
-	}
 	fireOnly, err := lc.kvfTriggerConds(tp, &conds, descended)
 	if err != nil {
 		return err

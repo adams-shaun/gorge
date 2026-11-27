@@ -10,9 +10,9 @@ import (
 // and each carries the shape the lowering adds (CR 207.2c):
 //
 //   - Brotherhood Scribe: a Metalcraft-gated non-mana activated ability and
-//     the player-counter CounterAddedOnce line (inert in both engines: gorge's
-//     counterAddedMatches reads CounterChange only, so kgen keeps the ability
-//     with a constant-false condition);
+//     the player-counter line: TrigPlayerCounterAdded of PlCtrEnergy (an
+//     energy gain fires it in both engines, dirac/trig_playerctr.go; gorge's
+//     trigmatch playerCounterAddedOnceMatches);
 //   - Urza's Workshop: a plain {T}: Add {C} beside a Metalcraft-gated
 //     evaluated {T}: Add {C};
 //   - Vedalken Humiliator: an Attacks trigger whose intervening-if is the
@@ -51,7 +51,8 @@ func TestDemoMetalcraftShapes(t *testing.T) {
 		if a.Kind == kop.AbActivated && metalcraft(a.Trig.Cond) {
 			act = true
 		}
-		if a.Kind == kop.AbTriggered && a.Trig.Event == kop.TrigCounterAddedOnce && neverCond(pt, a.Trig.Cond) {
+		if a.Kind == kop.AbTriggered && a.Trig.Event == kop.TrigPlayerCounterAdded &&
+			a.Trig.N == kop.PlCtrEnergy && a.Trig.Whose == kop.WhoseYou {
 			ctr = true
 		}
 	}
@@ -59,7 +60,7 @@ func TestDemoMetalcraftShapes(t *testing.T) {
 		t.Error("Brotherhood Scribe: no Metalcraft-gated activated ability")
 	}
 	if !ctr {
-		t.Error("Brotherhood Scribe: no player-counter CounterAddedOnce line")
+		t.Error("Brotherhood Scribe: no player-counter TrigPlayerCounterAdded (energy) line")
 	}
 
 	workshop, ok := byName["Urza's Workshop"]
@@ -107,15 +108,4 @@ func metalcraftCond(pt *poolTables, id kop.CondID) bool {
 	c := &pt.conds[id]
 	return c.Kind == kop.CondValue && !c.Neg && c.Op == kop.CmpGE && c.B.K == kop.VConst && c.B.N == 3 &&
 		c.A.K == kop.VCountFilter && c.A.N != 0
-}
-
-// neverCond reports whether id is the constant-false condition the lowering
-// gives a player-counter line: 0 >= 1.
-func neverCond(pt *poolTables, id kop.CondID) bool {
-	if int(id) >= len(pt.conds) {
-		return false
-	}
-	c := &pt.conds[id]
-	return c.Kind == kop.CondValue && !c.Neg && c.Op == kop.CmpGE && c.A.K == kop.VConst && c.A.N == 0 &&
-		c.B.K == kop.VConst && c.B.N == 1
 }
