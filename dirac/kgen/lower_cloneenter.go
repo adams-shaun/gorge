@@ -107,11 +107,22 @@ func (lc *lowerCtx) cloneEnter(ps *params, node, sa *cards.SA) error {
 	}
 	for _, c := range f.Clauses {
 		// a copied Aura must attach and a copied planeswalker enters with
-		// its loyalty: neither is modelled, so the templates are creatures
-		// and artifacts only
-		if c.Types&^(tCreature|tArtifact) != 0 || c.Types == 0 && c.Subtype != "Equipment" {
-			return refuse("ETB copy of %q (not a creature or artifact)", ch)
+		// its loyalty: neither is modelled, so the templates are creatures,
+		// artifacts and lands (Vesuva: a copied land's mana abilities and
+		// name are its copiable values, read through cardAt like any copy's)
+		if c.Types&^(tCreature|tArtifact|tLand) != 0 || c.Types == 0 && c.Subtype != "Equipment" {
+			return refuse("ETB copy of %q (not a creature, artifact or land)", ch)
 		}
+	}
+	// IntoPlayTapped$ True (Vesuva): an elected copy enters tapped (gorge
+	// effClone taps after the decline's return); any other spelling refuses
+	// as gorge withholds it (clone_etb_selector.go)
+	tapped := false
+	if v, ok := ps.get("IntoPlayTapped"); ok {
+		if !strings.EqualFold(strings.TrimSpace(v), "True") {
+			return refuse("ETB copy IntoPlayTapped$ %q", v)
+		}
+		tapped = true
 	}
 	// the copy exceptions (CR 707.9b), read through the shared
 	// copyExceptions; a name change and the Changeling CDA are not copy
@@ -195,6 +206,9 @@ func (lc *lowerCtx) cloneEnter(ps *params, node, sa *cards.SA) error {
 	}
 	if eot {
 		flags |= kop.BecomeCopyEOT
+	}
+	if tapped {
+		flags |= kop.BecomeCopyTapped
 	}
 	if flags != 0 {
 		in.B = cst(flags)

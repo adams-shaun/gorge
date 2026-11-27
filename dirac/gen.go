@@ -3575,8 +3575,8 @@ func (s *State) preAskFor(k *prep, o Obj, c CardID, land bool) bool {
 		return false
 	}
 	kind := s.enterChoiceKind(k, c)
-	if kind == 0 && !land && k.gen.has(c, gfEnterRepl) {
-		kind = s.cloneAskKind(k, c) // only a cast spell is asked (gorge FlagManaSpent)
+	if kind == 0 && k.gen.has(c, gfEnterRepl) {
+		kind = s.cloneAskKind(k, c) // a cast spell, or a played land (Vesuva), asked before the move
 	}
 	if kind == 0 && !land {
 		kind = s.riotPreKind(k, c, o, s.stack[s.sp-1].ctrl) // kw_riot.go

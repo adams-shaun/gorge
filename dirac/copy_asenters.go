@@ -88,11 +88,13 @@ func (s *State) cloneOptions(k *prep, d *Decision) {
 		}
 	}
 	s.res.active = true
-	if s.res.ask == raGenTokChoice || s.res.ask == raGenRetChoice {
+	if s.g.pre.land || s.res.ask == raGenTokChoice || s.res.ask == raGenRetChoice {
 		s.res.e.trigAmt, s.res.e.x, s.res.e.spc, s.res.e.etbSrc, s.res.e.etbX, s.res.e.ov = 0, 0, 0, 0, [2]uint8{}, 0 // a minted token or a returned card was never cast: no mana spent, no colours (gorge reads 0)
 	}
 	ctrl := s.res.e.ctrl
-	if s.res.ask == raGenRetChoice || s.res.ask == raGenTokChoice {
+	if s.g.pre.land {
+		ctrl = s.preLandSeat() // a played land (Vesuva): its player, no spell on the stack
+	} else if s.res.ask == raGenRetChoice || s.res.ask == raGenTokChoice {
 		ctrl = s.res.askP // a returned card's or a copy token's controller, not the resolving spell's
 	}
 	if in.B.K == kop.VConst && in.B.N&kop.BecomeCopyGrave != 0 {
@@ -239,8 +241,8 @@ func (s *State) becomeCopyEnter(k *prep, sl Slot, in *kop.Instr) {
 	// the battlefield, the queued as-enters ask)
 	// A face-down template's values have none (copy_facedown.go).
 	pc := &k.cards[c]
-	if pc.enterTap && !blank {
-		p.flags |= pfTapped
+	if pc.enterTap && !blank || in.B.K == kop.VConst && in.B.N&kop.BecomeCopyTapped != 0 {
+		p.flags |= pfTapped // the template's own enters-tapped, or IntoPlayTapped$ True (Vesuva)
 	}
 	if !blank && pc.enterCtr != 0 && !(k.gen.anyEntryMerge && s.entryAcc(int(pc.enterCK), int(pc.enterCtr))) {
 		s.placeEntryCounters(k, sl, int(pc.enterCK), int(pc.enterCtr), p.ctrl)
