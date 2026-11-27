@@ -185,6 +185,10 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		s.execTriggerAttackers(k, in) // trig_attackers.go
 		return true, true
 	}
+	if in.Obj == kop.RefTriggerSpellTargets {
+		s.execTriggerSpellTargets(k, in) // trig_spelltargets.go
+		return true, true
+	}
 	if k.gen.anyUnion && unionMask(in.Obj) != 0 {
 		s.execUnion(k, in)
 		return true, true

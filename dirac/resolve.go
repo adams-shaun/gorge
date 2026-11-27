@@ -748,6 +748,14 @@ func (s *State) objRefObj(r kop.Ref) Obj {
 		return e.obj // RefEmblemSource: the emblem's source object; objRef holds it to its queued version
 	case kop.RefTriggerObj:
 		return e.trigObj
+	case kop.RefTriggerSpellTarget:
+		return s.triggerSpellTarget(e.trigObj) // trig_spelltarget.go
+	case kop.RefTriggerSpellTargets:
+		// a set, not one object: execTriggerSpellTargets runs the op per
+		// target (trig_spelltargets.go); objRef names none
+		return NoObj
+	case kop.RefEquippedByEnchanted:
+		return s.equippedByEnchanted(e.obj) // trig_equippedbyenchanted.go
 	case kop.RefLastCreated:
 		return s.res.lastTok
 	case kop.RefChosen:

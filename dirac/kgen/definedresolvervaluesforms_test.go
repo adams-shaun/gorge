@@ -11,8 +11,8 @@ var definedResolverValuesForms = []formCase{
 	{card: "Gremlin Infestation", form: "DealDamage Defined$ EnchantedController", lir: "EnchantedCtrl"},
 	// kept refused: the kernel records no object for these referents
 	{card: "Venerated Loxodon", form: "Defined$ Convoked (the kernel keeps only the convoke count)", refused: `Defined$ "Convoked"`},
-	{card: "Storm, Windrider", form: "Defined$ TriggeredSpellAbilityTargets (no kernel ref to a cast spell's targets)", refused: `Defined$ "TriggeredSpellAbilityTargets"`},
-	{card: "Energybending", form: "RememberObjects$ Valid <filter> (no emblem capture of a filtered set)", refused: `Defined$ "Valid Land.YouCtrl"`},
+	{card: "Storm, Windrider", form: "Defined$ TriggeredSpellAbilityTargets over a target set (RefTriggerSpellTargets)", lir: "GrantKeyword obj=TriggeredSpellTargets CS=Flying"},
+	{card: "Energybending", form: "RememberObjects$ Valid <filter> (ExtRememberAll, then a CaptureRem emblem)", lir: "RememberAll F={types=0x1 ctrl=1}\n     1 CreateEmblem obj=You"},
 	{card: "Saskia the Unyielding", form: "Defined$ ChosenPlayer after ChoosePlayer Choices$ Player (the kernel chooses opponents only)", refused: `Defined$ "ChosenPlayer"`},
 }
 

@@ -701,7 +701,26 @@ func (s *State) attachedToWord(k *prep, bits int16, sl Slot, ctrl uint8, src Slo
 			return false
 		}
 	}
+	if bits&kop.AttToTarget != 0 && !s.bearerIsTarget(h) {
+		// gorge AttachedTo Card.targetedBy: the bearer is one of the
+		// resolving entry's object targets (Disarm, Fulgent Distraction)
+		return false
+	}
 	return true
+}
+
+// bearerIsTarget reports whether the permanent at h is one of the resolving
+// entry's object targets (gorge's AttachedTo Card.targetedBy).
+func (s *State) bearerIsTarget(h Slot) bool {
+	o := s.perms[h].obj
+	var codes [kop.MaxTargets + maxXTgt]TCode
+	n := s.chainTargets(&s.res.e, &codes)
+	for i := 0; i < n; i++ {
+		if isObjTarget(codes[i]) && Obj(codes[i]) == o {
+			return true
+		}
+	}
+	return false
 }
 
 // blockingTrigObj is kop.W7BlockingTrigObj on battlefield slot sl: sl is

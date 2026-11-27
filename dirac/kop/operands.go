@@ -440,6 +440,13 @@ const (
 // zone-major walk). Clear of every Cz* code above.
 const CzGraveLibrary = 128
 
+// CzShuffleOwners is OpChangeZoneAll's B on a battlefield-to-library sweep
+// with Shuffle$ True (ChangeZone Defined$ Valid <filter> to the top of the
+// library): after the moves, each owner whose card moved shuffles its library
+// once (gorge changeZoneAllShuffleLibraries). Clear of the ChangeZoneAll/Ex B
+// codes above. Gomazoa, Vortex Elemental.
+const CzShuffleOwners = 256
+
 // RetAttachTo (OpReturnEx B.N, A counters absent):
 // AttachedTo$ -- the returned permanent enters attached to the permanent the
 // Ref in B.N bits 8..10 names (RefSelf, or a target slot; the low byte stays
@@ -940,6 +947,14 @@ const RepeatEachSeatOrder = 2
 // Defined$ RememberedController | DamageSource$ Remembered in a RepeatEach
 // card body: Rakdos Charm). B.N 1 is the trigger-object player mode.
 const DmgFromEachCtrl = 2
+
+// DmgFromEachAttached is OpDealDamageFrom's B.N for the permanent mode whose
+// source is the object the enclosing OpRepeatEach binds (Obj RefEach) and
+// whose one recipient is the permanent that source is attached to (gorge
+// DealDamage Defined$ Enchanted | DamageSource$ Valid Aura.AttachedTo
+// Creature | RelativeTarget$ True: Aura Barbs' second line). Nothing when the
+// source is unattached or its bearer is gone.
+const DmgFromEachAttached = 3
 
 // AtkPWHit is OpAtkPWGuard's C bit 1: an attacker attacking a planeswalker
 // or battle does not stall the game, because the DealDamage that follows

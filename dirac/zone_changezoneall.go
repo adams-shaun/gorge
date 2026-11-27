@@ -23,11 +23,22 @@ func (s *State) czallBattleHalf(k *prep, in *kop.Instr, only uint8, src Slot, z 
 			hit = hit.with(sl)
 		}
 	}
+	var owners uint8
+	if z == kop.ZoneLibrary && in.B.N&kop.CzShuffleOwners != 0 {
+		for m := hit; m.any(); m = m.rest() {
+			owners |= 1 << s.objs[s.perms[m.first()].obj].owner()
+		}
+	}
 	if mv&kop.MvRemember != 0 {
 		s.rememberLeaveAll(k, hit, z) // zone_rememberparams.go
-		return
+	} else {
+		s.leaveAll(k, hit, z)
 	}
-	s.leaveAll(k, hit, z)
+	for p := uint8(0); p < s.nSeats(); p++ {
+		if owners&(1<<p) != 0 {
+			s.shuffleLib(p)
+		}
+	}
 }
 
 // czallChosenOrder moves the chosen set to z in pick order, one object at a

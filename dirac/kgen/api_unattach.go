@@ -20,6 +20,9 @@ func (lc *lowerCtx) unattach(sa *cards.SA, ps *params) error {
 	if !ok {
 		return refuse("Unattach with no Defined$")
 	}
+	if done, err := lc.unattachValid(d, ps); done || err != nil {
+		return err // lower_definedvalid_set.go
+	}
 	ref, err := lc.defined(d)
 	if err != nil {
 		return err

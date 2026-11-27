@@ -37,14 +37,29 @@ func (lc *lowerCtx) changeZoneAllShuffle(ps *params, in lInstr, origin, dest int
 		lc.emit(in) // gorge: the flag acts only on a library origin or destination
 		return nil
 	}
-	if _, ok := ps.get("LibraryPosition"); ok {
-		return refuse("ChangeZoneAll Shuffle$ with LibraryPosition$")
-	}
 	if origin == zBattlefield {
 		// Teferi, Temporal Pilgrim's "shuffle each nonland permanent they
 		// control into its owner's library": the target player's permanents
 		// (ChangeType$ ...TargetedPlayerCtrl), to their owners' libraries,
 		// each receiving library shuffled (ExtLibSweep)
+		tgtScoped := in.Obj.Kind == rNone && in.F != nil && len(in.F.Clauses) != 0 && in.Note == ""
+		for _, c := range in.F.Clauses {
+			tgtScoped = tgtScoped && c.Ctrl == whoTgtPlayer
+		}
+		if !tgtScoped {
+			// A Defined$ Valid <filter> set put on top of its owners'
+			// libraries, then each receiving library shuffled (Gomazoa,
+			// Vortex Elemental). The kernel places a library-bound
+			// departure on top; CzShuffleOwners shuffles each owner that
+			// moved.
+			if lp, ok := ps.get("LibraryPosition"); ok && strings.TrimSpace(lp) != "0" {
+				return refuse("ChangeZoneAll Shuffle$ with LibraryPosition$ %q", lp)
+			}
+			ps.consume("LibraryPosition")
+			in.B = cst(kop.CzShuffleOwners)
+			lc.emit(in)
+			return nil
+		}
 		if in.Obj.Kind != rNone || in.F == nil || len(in.F.Clauses) == 0 || in.F.Players != 0 || in.Note != "" {
 			return refuse("ChangeZoneAll Shuffle$ of %s from the battlefield", in.Obj)
 		}
@@ -55,6 +70,9 @@ func (lc *lowerCtx) changeZoneAllShuffle(ps *params, in lInstr, origin, dest int
 		}
 		lc.emit(lInstr{Op: "LibSweep", F: in.F})
 		return nil
+	}
+	if _, ok := ps.get("LibraryPosition"); ok {
+		return refuse("ChangeZoneAll Shuffle$ with LibraryPosition$")
 	}
 	if origin != zGraveyard {
 		return refuse("ChangeZoneAll Shuffle$ from %s", zoneLabel[origin])

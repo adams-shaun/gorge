@@ -111,6 +111,11 @@ type lowerCtx struct {
 	ddoEvent bool // lowering an end-of-turn Effect's DamageDoneOnce line as the per-event DamageDone line gorge's delayed path queues (lower_damagedoneonce.go)
 	selfRem  bool // lowering the body of an Effect trigger whose Effect remembers its source (RememberObjects$ Self): Defined$ Remembered is the emblem's source object (lower_effeottrig.go emblemSelfRemember)
 	capRem   bool // lowering the body of a capturing emblem's DamageDealtOnce/DamageDoneOnce trigger: a Remembered read before the body writes its own set is the captured object, the damage source or the damaged object (lower_effectcaptured.go, lower_zone.go emblem)
+	// embRem: the Effect being lowered has RememberObjects$ Valid <filter>;
+	// effectStaticEOT emits the ExtRememberAll sweep and marks the emblem
+	// CaptureRem so its statics read the set (lower_effectremember.go
+	// effectRememberValidSet).
+	embRem   bool
 	effCount bool // lowering the body of an Effect trigger that remembers a count: Remembered$Amount reads the frozen trigger amount (lower_effectremember.go)
 	// emblemCapturedObj: lowering the body of a Phase or ChangesZone emblem whose trigger captures one object (an Effect's RememberObjects$ TriggeredCard; lower_effeottrig.go). The kernel queues the captured object as the trigger object (dirac triggers_gen.go fireEmblemsAmt, trig_emblems.go fireEmblemsObj), so Defined$ Remembered reads it.
 	emblemCapturedObj bool

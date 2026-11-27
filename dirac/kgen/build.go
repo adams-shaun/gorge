@@ -2471,7 +2471,18 @@ func (cb *cardBuilder) ref(r lRef) (kop.Ref, error) {
 			return kop.RefTargets0123, nil
 		}
 	}
+	if k, ok := slice4Refs[r.Kind]; ok {
+		return k, nil
+	}
 	return 0, fmt.Errorf("ref %s", r)
+}
+
+// slice4Refs holds the Defined$ referents kgen resolves by kind alone (kept out
+// of (*cardBuilder).ref's switch so that function's complexity does not grow).
+var slice4Refs = map[refKind]kop.Ref{
+	rTriggeredSpellTarget:  kop.RefTriggerSpellTarget,
+	rEquippedByEnchanted:   kop.RefEquippedByEnchanted,
+	rTriggeredSpellTargets: kop.RefTriggerSpellTargets,
 }
 
 // value maps an LIR value to a ValueRef (simple kinds direct, the rest

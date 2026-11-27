@@ -19,104 +19,110 @@ import (
 type refKind uint8
 
 const (
-	rNone                 refKind = iota
-	rTarget                       // target slot N of this ability
-	rSelf                         // the source object
-	rYou                          // the source's controller
-	rEachOpp                      // each opponent
-	rEachPlayer                   // each player
-	rTargetController             // controller of the object in target slot N
-	rTargetOwner                  // owner of the object in target slot N
-	rTriggered                    // the triggering object (as it last existed / now is)
-	rTriggeredNew                 // the triggering object in the zone it moved to
-	rTriggeredSource              // the source of the triggering damage
-	rTriggeredPlayer              // the player the trigger names (activator / controller)
-	rTriggeredTgtCtrl             // the triggering referent's controller, read live at resolution (gorge TriggeredTargetController; a dead referent reads its owner)
-	rEquipped                     // the object the source is attached to
-	rRemembered                   // the resolution's remembered objects
-	rDelayedRemembered            // the objects a delayed trigger remembered
-	rReplaced                     // the object an ETB replacement is modifying
-	rChosen                       // the chosen card(s)
-	rEach                         // the RepeatEach loop variable
-	rSacrificed                   // the object sacrificed to pay the cost
-	rHost                         // the permanent that granted this ability (OriginalHost)
-	rDefending                    // the defending player of an attack trigger the controller's attack fires
-	rTargetUnion                  // every target of the slots in bit mask N, in slot order (gorge's chain target union)
-	rRememberedController         // the remembered object's controller (its RememberLKI$ capture off the battlefield)
-	rDiscarded                    // the card a spell's Discard<1/...> cost discarded (Grab the Prize)
-	rChosenEnc                    // the object the spell's own CloseEncounter ChooseCard additional cost chose (RevealedCards$CardPower)
-	rLibTop                       // the top card of the controller's library (Defined$ TopOfLibrary)
-	rOppNonRemCtrl                // the opponent unless a remembered object's controller is that opponent (OppNonRememberedController)
-	rSrcOwner                     // the source object's owner (Defined$ CardOwner)
-	rTriggerAttackers             // the attacker group of the AttackersDeclared event (Defined$ TriggeredAttackers)
-	rRememberedOwner              // the remembered object's owner (Unidentified Hovership's leave trigger)
-	rAttackedBySource             // the player the source attacked this turn (Defined$ Player.attackedBySourceThisTurn)
-	rImprinted                    // the resolution's imprinted objects (Dig Imprint$ on a permanent's ability)
-	rPromised                     // the opponent the gift was promised to (Defined$ / TokenOwner$ Promised)
-	rAttachedCtrl                 // the controller of the object the source is attached to, read live (Contaminated Bond's blocker)
-	rLastCreated                  // the token(s) the previous CreateToken/copy op minted (kop.RefLastCreated; Encore's duty on the minted copy)
-	rTaxedAttacker                // the creature an attack tax is being priced for (kop.RefTaxedAttacker; Nils's RememberingAttacker$ charge, lower_attacktax.go)
-	rTriggeredOwner               // the owner of the triggering object (kop.RefTriggerObjOwner; Defined$ TriggeredCardOwner)
-	rChosenPlayer                 // the opponent the source permanent chose as it entered (kop.RefChosenPlayer; lower_chooseplayerenter.go)
-	rChosenPlayerRes              // the player this resolution's ChoosePlayer chose (kop.RefChosenPlayerRes; lower_chooseplayerres.go)
-	rTriggerOpps                  // each opponent of the trigger's player (kop.RefTriggerOpponents; Defined$ TriggeredCardOpponent, lower_triggeropps.go)
-	rResChosenPlayer              // the resolution's chosen player: OpChoosePlayer's random pick (gorge Ctx.Chosen's player entry, Maddening Hex's Attach destination)
-	rExiledWithOwner              // the seat whose exile holds a card exiled with the source (kop.RefExiledWithOwner; DefinedPlayer$ Player.HasCardsInExile_Card.ExiledWithSource_GE1, Unidentified Hovership's leave trigger)
-	rEnchantedCtrl                // the controller of the permanent the source is attached to, read live, nobody once the source left (kop.RefEnchantedCtrl; Defined$ EnchantedController, Paralyze)
-	rEnchantedPlayer              // the player the source Aura enchants (kop.RefEnchantedPlayer; Defined$ / TokenOwner$ EnchantedPlayer, Overencumbered)
-	rEmblemSource                 // inside an emblem trigger's body: the object whose Effect made the emblem, as it was when the trigger was queued (kop.RefEmblemSource; an Effect's RememberObjects$ Self read as Defined$ Remembered, lower_effeottrig.go)
-	rTargetCtrlLive               // the controller of target 0 read live at resolution (gorge Defined$ ParentTargetedController: a target that left the battlefield reads its owner, not its last-known controller)
+	rNone                  refKind = iota
+	rTarget                        // target slot N of this ability
+	rSelf                          // the source object
+	rYou                           // the source's controller
+	rEachOpp                       // each opponent
+	rEachPlayer                    // each player
+	rTargetController              // controller of the object in target slot N
+	rTargetOwner                   // owner of the object in target slot N
+	rTriggered                     // the triggering object (as it last existed / now is)
+	rTriggeredNew                  // the triggering object in the zone it moved to
+	rTriggeredSource               // the source of the triggering damage
+	rTriggeredPlayer               // the player the trigger names (activator / controller)
+	rTriggeredTgtCtrl              // the triggering referent's controller, read live at resolution (gorge TriggeredTargetController; a dead referent reads its owner)
+	rEquipped                      // the object the source is attached to
+	rRemembered                    // the resolution's remembered objects
+	rDelayedRemembered             // the objects a delayed trigger remembered
+	rReplaced                      // the object an ETB replacement is modifying
+	rChosen                        // the chosen card(s)
+	rEach                          // the RepeatEach loop variable
+	rSacrificed                    // the object sacrificed to pay the cost
+	rHost                          // the permanent that granted this ability (OriginalHost)
+	rDefending                     // the defending player of an attack trigger the controller's attack fires
+	rTargetUnion                   // every target of the slots in bit mask N, in slot order (gorge's chain target union)
+	rRememberedController          // the remembered object's controller (its RememberLKI$ capture off the battlefield)
+	rDiscarded                     // the card a spell's Discard<1/...> cost discarded (Grab the Prize)
+	rChosenEnc                     // the object the spell's own CloseEncounter ChooseCard additional cost chose (RevealedCards$CardPower)
+	rLibTop                        // the top card of the controller's library (Defined$ TopOfLibrary)
+	rOppNonRemCtrl                 // the opponent unless a remembered object's controller is that opponent (OppNonRememberedController)
+	rSrcOwner                      // the source object's owner (Defined$ CardOwner)
+	rTriggerAttackers              // the attacker group of the AttackersDeclared event (Defined$ TriggeredAttackers)
+	rRememberedOwner               // the remembered object's owner (Unidentified Hovership's leave trigger)
+	rAttackedBySource              // the player the source attacked this turn (Defined$ Player.attackedBySourceThisTurn)
+	rImprinted                     // the resolution's imprinted objects (Dig Imprint$ on a permanent's ability)
+	rPromised                      // the opponent the gift was promised to (Defined$ / TokenOwner$ Promised)
+	rAttachedCtrl                  // the controller of the object the source is attached to, read live (Contaminated Bond's blocker)
+	rLastCreated                   // the token(s) the previous CreateToken/copy op minted (kop.RefLastCreated; Encore's duty on the minted copy)
+	rTaxedAttacker                 // the creature an attack tax is being priced for (kop.RefTaxedAttacker; Nils's RememberingAttacker$ charge, lower_attacktax.go)
+	rTriggeredOwner                // the owner of the triggering object (kop.RefTriggerObjOwner; Defined$ TriggeredCardOwner)
+	rChosenPlayer                  // the opponent the source permanent chose as it entered (kop.RefChosenPlayer; lower_chooseplayerenter.go)
+	rChosenPlayerRes               // the player this resolution's ChoosePlayer chose (kop.RefChosenPlayerRes; lower_chooseplayerres.go)
+	rTriggerOpps                   // each opponent of the trigger's player (kop.RefTriggerOpponents; Defined$ TriggeredCardOpponent, lower_triggeropps.go)
+	rResChosenPlayer               // the resolution's chosen player: OpChoosePlayer's random pick (gorge Ctx.Chosen's player entry, Maddening Hex's Attach destination)
+	rExiledWithOwner               // the seat whose exile holds a card exiled with the source (kop.RefExiledWithOwner; DefinedPlayer$ Player.HasCardsInExile_Card.ExiledWithSource_GE1, Unidentified Hovership's leave trigger)
+	rEnchantedCtrl                 // the controller of the permanent the source is attached to, read live, nobody once the source left (kop.RefEnchantedCtrl; Defined$ EnchantedController, Paralyze)
+	rEnchantedPlayer               // the player the source Aura enchants (kop.RefEnchantedPlayer; Defined$ / TokenOwner$ EnchantedPlayer, Overencumbered)
+	rEmblemSource                  // inside an emblem trigger's body: the object whose Effect made the emblem, as it was when the trigger was queued (kop.RefEmblemSource; an Effect's RememberObjects$ Self read as Defined$ Remembered, lower_effeottrig.go)
+	rTargetCtrlLive                // the controller of target 0 read live at resolution (gorge Defined$ ParentTargetedController: a target that left the battlefield reads its owner, not its last-known controller)
+	rTriggeredSpellTarget          // inside a SpellCast trigger with IsSingleTarget$ True: the cast spell's one object target, captured as the trigger was queued (kop.RefTriggerSpellTarget; Defined$ TriggeredSpellAbilityTargets, lower_spelltarget.go)
+	rEquippedByEnchanted           // Defined$ Valid Card.EquippedByEnchanted: the permanent the source Aura's enchanted Equipment is attached to (kop.RefEquippedByEnchanted; Artificer's Hex, lower_effect_defined.go)
+	rTriggeredSpellTargets         // Defined$ TriggeredSpellAbilityTargets without IsSingleTarget$ True: every distinct object target of the cast spell, the op run once per object (kop.RefTriggerSpellTargets; Dack Fayden, Storm, Windrider, lower_spelltarget.go)
 	rCount
 )
 
 var refNames = [...]string{
-	rNone:                 "None",
-	rTarget:               "Target",
-	rSelf:                 "Self",
-	rYou:                  "You",
-	rEachOpp:              "EachOpp",
-	rEachPlayer:           "EachPlayer",
-	rTargetController:     "TargetController",
-	rTargetOwner:          "TargetOwner",
-	rTriggered:            "Triggered",
-	rTriggeredNew:         "TriggeredNew",
-	rTriggeredSource:      "TriggeredSource",
-	rTriggeredPlayer:      "TriggeredPlayer",
-	rTriggeredTgtCtrl:     "TriggeredTgtCtrl",
-	rEquipped:             "Equipped",
-	rRemembered:           "Remembered",
-	rDelayedRemembered:    "DelayedRemembered",
-	rReplaced:             "Replaced",
-	rChosen:               "Chosen",
-	rEach:                 "Each",
-	rSacrificed:           "Sacrificed",
-	rHost:                 "Host",
-	rDefending:            "Defending",
-	rTargetUnion:          "Targets",
-	rRememberedController: "RememberedController",
-	rDiscarded:            "Discarded",
-	rChosenEnc:            "ChosenEnc",
-	rLibTop:               "LibTop",
-	rOppNonRemCtrl:        "OppNonRemCtrl",
-	rSrcOwner:             "SrcOwner",
-	rTriggerAttackers:     "TriggerAttackers",
-	rRememberedOwner:      "RememberedOwner",
-	rAttackedBySource:     "AttackedBySource",
-	rImprinted:            "Imprinted",
-	rPromised:             "Promised",
-	rAttachedCtrl:         "AttachedCtrl",
-	rLastCreated:          "LastCreated",
-	rTaxedAttacker:        "TaxedAttacker",
-	rTriggeredOwner:       "TriggeredOwner",
-	rChosenPlayer:         "ChosenPlayer",
-	rChosenPlayerRes:      "ChosenPlayerRes",
-	rTriggerOpps:          "TriggerOpps",
-	rResChosenPlayer:      "ResChosenPlayer",
-	rExiledWithOwner:      "ExiledWithOwner",
-	rEnchantedCtrl:        "EnchantedCtrl",
-	rEmblemSource:         "EmblemSource",
-	rEnchantedPlayer:      "EnchantedPlayer",
-	rTargetCtrlLive:       "TargetCtrlLive",
+	rNone:                  "None",
+	rTarget:                "Target",
+	rSelf:                  "Self",
+	rYou:                   "You",
+	rEachOpp:               "EachOpp",
+	rEachPlayer:            "EachPlayer",
+	rTargetController:      "TargetController",
+	rTargetOwner:           "TargetOwner",
+	rTriggered:             "Triggered",
+	rTriggeredNew:          "TriggeredNew",
+	rTriggeredSource:       "TriggeredSource",
+	rTriggeredPlayer:       "TriggeredPlayer",
+	rTriggeredTgtCtrl:      "TriggeredTgtCtrl",
+	rEquipped:              "Equipped",
+	rRemembered:            "Remembered",
+	rDelayedRemembered:     "DelayedRemembered",
+	rReplaced:              "Replaced",
+	rChosen:                "Chosen",
+	rEach:                  "Each",
+	rSacrificed:            "Sacrificed",
+	rHost:                  "Host",
+	rDefending:             "Defending",
+	rTargetUnion:           "Targets",
+	rRememberedController:  "RememberedController",
+	rDiscarded:             "Discarded",
+	rChosenEnc:             "ChosenEnc",
+	rLibTop:                "LibTop",
+	rOppNonRemCtrl:         "OppNonRemCtrl",
+	rSrcOwner:              "SrcOwner",
+	rTriggerAttackers:      "TriggerAttackers",
+	rRememberedOwner:       "RememberedOwner",
+	rAttackedBySource:      "AttackedBySource",
+	rImprinted:             "Imprinted",
+	rPromised:              "Promised",
+	rAttachedCtrl:          "AttachedCtrl",
+	rLastCreated:           "LastCreated",
+	rTaxedAttacker:         "TaxedAttacker",
+	rTriggeredOwner:        "TriggeredOwner",
+	rChosenPlayer:          "ChosenPlayer",
+	rChosenPlayerRes:       "ChosenPlayerRes",
+	rTriggerOpps:           "TriggerOpps",
+	rResChosenPlayer:       "ResChosenPlayer",
+	rExiledWithOwner:       "ExiledWithOwner",
+	rEnchantedCtrl:         "EnchantedCtrl",
+	rEmblemSource:          "EmblemSource",
+	rEnchantedPlayer:       "EnchantedPlayer",
+	rTargetCtrlLive:        "TargetCtrlLive",
+	rTriggeredSpellTarget:  "TriggeredSpellTarget",
+	rEquippedByEnchanted:   "EquippedByEnchanted",
+	rTriggeredSpellTargets: "TriggeredSpellTargets",
 }
 
 type lRef struct {

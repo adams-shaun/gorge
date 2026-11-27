@@ -63,12 +63,12 @@ func TestDefinedValuesCensus(t *testing.T) {
 		fmt.Fprintf(&sb, "%4d  %s\n", r.n, r.value)
 	}
 	t.Logf("remaining Defined$ values (cards, value):\n%s", sb.String())
-	for _, gone := range []string{`Defined$ "EnchantedController"`, `Defined$ "TriggeredAttackingPlayer & You"`} {
+	for _, gone := range []string{`Defined$ "EnchantedController"`, `Defined$ "TriggeredAttackingPlayer & You"`, `Defined$ "TriggeredSpellAbilityTargets"`} {
 		if _, ok := cards[gone]; ok {
 			t.Errorf("%s still refused: the generic resolver lowers it", gone)
 		}
 	}
-	for _, kept := range []string{`Defined$ "Convoked"`, `Defined$ "TriggeredSpellAbilityTargets"`} {
+	for _, kept := range []string{`Defined$ "Convoked"`} {
 		if _, ok := cards[kept]; !ok {
 			t.Errorf("%s is no longer refused: record it in TestDefinedResolverValuesForms", kept)
 		}

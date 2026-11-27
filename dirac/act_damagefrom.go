@@ -272,3 +272,32 @@ func (s *State) dmgSrcOrderStalls(k *prep, ctrl uint8, srcSl Slot, srcCard CardI
 	}
 	return false
 }
+
+// dmgSrcAttached is OpDealDamageFrom with B.N kop.DmgFromEachAttached: the
+// source is the RepeatEach object (RefEach) and the recipient the permanent
+// it is attached to (gorge DealDamage Defined$ Enchanted | DamageSource$
+// Valid Aura.AttachedTo Creature; Aura Barbs). Nothing when the source left
+// the battlefield or is unattached.
+//
+//go:noinline
+func (s *State) dmgSrcAttached(k *prep, in *kop.Instr) {
+	sl := s.objRef(k, in.Obj)
+	if sl == NoSlot {
+		s.g.plusBatchAsked = false
+		return
+	}
+	h := s.perms[sl].attached
+	if h == NoSlot || !s.occ.has(h) {
+		s.g.plusBatchAsked = false
+		return
+	}
+	n := s.value(k, in.A)
+	if DebugDmgAmountPlusOne {
+		n++
+	}
+	if n <= 0 {
+		s.g.plusBatchAsked = false
+		return
+	}
+	s.dmgSrcObject(k, s.perms[h].obj, s.perms[sl].obj, sl, s.kw(k, sl), s.perms[sl].ctrl, s.infectAt(k, sl), n)
+}

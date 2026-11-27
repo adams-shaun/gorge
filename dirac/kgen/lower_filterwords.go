@@ -217,6 +217,10 @@ func attachedToWord(p string) (n int, ok bool) {
 		// bearer is what the filter's own source is attached to; With Great
 		// Power, Baki's Curse)
 		bits |= kop.AttToSrcBearer
+	case "targetedBy":
+		// the bearer is one of the resolving entry's object targets (gorge
+		// AttachedTo Card.targetedBy: Disarm, Fulgent Distraction)
+		bits |= kop.AttToTarget
 	default:
 		return 0, false
 	}

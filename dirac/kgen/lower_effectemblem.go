@@ -192,7 +192,7 @@ func (lc *lowerCtx) effectStaticEOT(ps *params, ss []cards.Static) error {
 		// view-only look, so the Effect resolves without creating anything.
 		return nil
 	}
-	emb := lEmblem{Statics: sts, UntilEOT: eot, UntilEndCombat: eoc, UntilNextTurn: next, WhileHost: host, Forget: forget}
+	emb := lEmblem{Statics: sts, UntilEOT: eot, UntilEndCombat: eoc, UntilNextTurn: next, WhileHost: host, Forget: forget, CaptureRem: lc.embRem}
 	if repl != nil {
 		emb.Repls = []lRepl{*repl}
 	}
