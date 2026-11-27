@@ -1523,6 +1523,7 @@ func (rs *tapXSearch) visit(k *prep, t *State, gapUsed bool) bool {
 	var order [MaxPerm]Slot
 	n := t.battlefieldOrder(p, t.ctrlM[SeatIx(p)].and(t.occ), order[:], 0)
 	t.planOtherSacSourceOrder(k, order[:], n)
+	rs.planFirstOrder(k, t, order[:], n, live)
 	for i := 0; i < n; i++ {
 		sl := order[i]
 		if !rs.gaps.has(sl) || sl == rs.own {
@@ -1674,6 +1675,32 @@ func (rs *tapXSearch) colourStep(k *prep, t *State, sl, cand Slot, cols *[5]uint
 		}
 	}
 	return false, false
+}
+
+// planFirstOrder moves to the front of order[:n], at the search's root, the
+// first plain-creature sacrifice source one activation of which pays the play
+// alone: gorge's planner funds it (autoPayOffer's last-resort arm) before the
+// prefix search is asked for any other gap, so no earlier source (a Gilded
+// Goose's Food, a creature to tap) is activated beside it. Every other node
+// keeps the walk's order.
+func (rs *tapXSearch) planFirstOrder(k *prep, t *State, order []Slot, n int, live slotMask) {
+	if rs.n != 0 {
+		return
+	}
+	for i := 0; i < n; i++ {
+		sl := order[i]
+		if !rs.gaps.has(sl) || sl == rs.own || !live.has(sl) || !t.planOtherSacSource(k, sl) {
+			continue
+		}
+		ab := k.tapXAbOf(t.cardAt(sl))
+		var cs [MaxPerm]Slot
+		if t.sacXCands(k, rs.p, sl, ab, &cs) == 0 || !rs.sacLast(k, t, sl, &cs, kop.SacXAnyColour(ab)) {
+			continue
+		}
+		copy(order[1:i+1], order[:i])
+		order[0] = sl
+		return
+	}
 }
 
 func (rs *tapXSearch) sacLast(k *prep, t *State, sl Slot, cs *[MaxPerm]Slot, anyCol bool) bool {
