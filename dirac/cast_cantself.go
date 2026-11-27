@@ -251,5 +251,9 @@ func (s *State) manaStage(k *prep) bool {
 		s.reverseCast(k) // CR 601.2e: the announced X makes the CantBeCast restriction apply
 		return true
 	}
+	if k.anySelfFlash && s.flashTgtRecheck(k, &s.bld().e) {
+		s.reverseCast(k) // CR 601.2e: the announced targets do not cover the self flash grant (cast_selfflashtgt.go)
+		return true
+	}
 	return s.manaStep(k)
 }
