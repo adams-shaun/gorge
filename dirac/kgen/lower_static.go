@@ -133,6 +133,46 @@ func (lc *lowerCtx) selfFlashShape(s cards.Static, ez string) error {
 	return lc.flashPresentShape(s.Params, "CastWithFlash self grant")
 }
 
+// selfFlashTargetingPrefix is the ValidSA$ head of the target-conditional
+// self flash grant (gorge spellMatchesValidSA's IsTargeting arm).
+const selfFlashTargetingPrefix = "Spell.IsTargeting Valid "
+
+// selfFlashTargetingSpec is the IsTargeting target spec the kernel's
+// caster-relative census reads: one object base word and only qualifiers
+// that read no source (the grant's census has none; the caster is "you").
+// Forge reads the spec over the battlefield alone (gorge
+// spellIsTargetingMatchesPtr), so a player base is no shape. Any other word
+// refuses with CastWithFlash shape rather than lower to a permissive filter.
+var selfFlashTargetingSpec = regexp.MustCompile(`^(Card|Permanent|Creature|Artifact|Enchantment|Land|Planeswalker|Battle)(\.(YouCtrl|YouOwn|OppCtrl|OppOwn|nonCreature|nonLand|IsCommander))*$`)
+
+// selfFlashTargeting splits a `Spell.IsTargeting Valid <spec>` ValidSA$ into
+// its spec; ok is false for every other shape, or a spec outside
+// selfFlashTargetingSpec.
+func selfFlashTargeting(validSA string) (spec string, ok bool) {
+	spec, ok = strings.CutPrefix(strings.TrimSpace(validSA), selfFlashTargetingPrefix)
+	if !ok {
+		return "", false
+	}
+	spec = strings.TrimSpace(spec)
+	return spec, selfFlashTargetingSpec.MatchString(spec)
+}
+
+// selfFlashTargetsFilter lowers an IsTargeting spec onto a self flash static
+// as F2 (flag "IsTargeting": a battlefield filter read with the caster as
+// "you", not the emblem's ForgetOnCast$ spell filter F2 otherwise is).
+func (lc *lowerCtx) selfFlashTargetsFilter(st *lStatic, spec string) error {
+	f, err := lc.filter(spec)
+	if err != nil {
+		return err
+	}
+	if filterReadsSource(f) {
+		return refuse("CastWithFlash shape")
+	}
+	st.F2 = f
+	st.Flags = append(st.Flags, "IsTargeting")
+	return nil
+}
+
 // staticBody lowers a static's parameters.
 func (lc *lowerCtx) staticBody(s cards.Static) ([]lStatic, error) {
 	sp := newParams(s.Params)

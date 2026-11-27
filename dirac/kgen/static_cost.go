@@ -127,7 +127,10 @@ func (sc *staticCtx) modeCastWithFlash() ([]lStatic, bool, error) {
 	readF := sc.readF
 	var err error
 	caster := sp.str("Caster")
-	if caster != "You" && caster != "Player" || sp.str("ValidSA") != "Spell" {
+	validSA := sp.str("ValidSA")
+	tgtSpec, isTgt := selfFlashTargeting(validSA)
+	_, hasZone := sp.get("EffectZone")
+	if caster != "You" && caster != "Player" || validSA != "Spell" && !(isTgt && hasZone) {
 		return nil, true, refuse("CastWithFlash shape")
 	}
 	sc.st.AnyCaster = caster == "Player"
@@ -141,6 +144,14 @@ func (sc *staticCtx) modeCastWithFlash() ([]lStatic, bool, error) {
 		// spell as though it had flash if ..." grant from every zone.
 		if err := lc.selfFlashShape(s, ez); err != nil {
 			return nil, true, err
+		}
+		if isTgt {
+			// ValidSA$ Spell.IsTargeting Valid <spec> (Flash Photography,
+			// Timely Ward): the grant holds only while the spell can
+			// announce a target matching <spec> (lower_static.go)
+			if err := lc.selfFlashTargetsFilter(&sc.st, tgtSpec); err != nil {
+				return nil, true, err
+			}
 		}
 		lc.out.SelfFlash = true
 	}
