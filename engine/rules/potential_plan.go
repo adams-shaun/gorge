@@ -2378,10 +2378,14 @@ func (e *Engine) planEachReservation(p state.PlayerID, id state.ObjID, cost Cost
 
 // planConsumed is the set of plan sources the plan uses up: every source
 // (tapped) when tapped is true, else only the last-resort steps that
-// sacrifice or return their source.
+// sacrifice or return their source. Every victim an other-sacrifice step
+// names is consumed in both senses: the cost cannot also tap or sacrifice it.
 func planConsumed(plan decision.PaymentPlan, tapped bool) map[state.ObjID]bool {
 	out := make(map[state.ObjID]bool, len(plan.Activations)) // lookup only
 	for _, a := range plan.Activations {
+		for _, v := range a.Sacrifices {
+			out[v] = true
+		}
 		if tapped || (a.Consequence != nil && (a.Consequence.Sacrifice || a.Consequence.ReturnToHand)) {
 			out[a.Source] = true
 		}
