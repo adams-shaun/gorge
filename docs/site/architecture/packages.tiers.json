@@ -223,6 +223,10 @@
       "tier": "cmd",
       "status": "TOOL"
     },
+    "cmd/irmeter": {
+      "tier": "cmd",
+      "status": "TOOL"
+    },
     "cmd/kcensus": {
       "tier": "cmd",
       "status": "TOOL",
@@ -367,6 +371,10 @@
       "tier": "tooling",
       "status": "TOOL",
       "purpose": "Heap-footprint ratchet (tests only)."
+    },
+    "internal/irmeter": {
+      "tier": "tooling",
+      "status": "TOOL"
     },
     "internal/precheckgate": {
       "tier": "tooling",
