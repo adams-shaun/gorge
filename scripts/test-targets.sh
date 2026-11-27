@@ -17,10 +17,10 @@
 #
 # Each run sits in one user systemd scope (MemoryMax, CPUQuota, GOMAXPROCS, GOMEMLIMIT) and exports
 # GORGE_TEST_WRAPPER=1. With no user systemd it says so and runs uncapped.
-# Preflight: the .cards corpus resolves and is not empty, dirac's tables exist when a dirac package runs,
-# BASE resolves. Postflight (scripts/test_targets.py): a skip that names the corpus, pools or tables is ENV,
-# a -run that matched nothing is EMPTY, a timeout or kill is BUDGET (BUSY in a run that fell back from the gate box
-# to a cap below 4 cores: the budget is set for 4).
+# Preflight: the .cards corpus resolves and is not empty, dirac's tables exist when a dirac package runs or the
+# change set feeds their key (tables_feeds_changed), BASE resolves. Postflight (scripts/test_targets.py): a skip
+# that names the corpus, pools or tables is ENV, a -run that matched nothing is EMPTY, a timeout or kill is BUDGET
+# (BUSY in a run that fell back from the gate box to a cap below 4 cores: the budget is set for 4).
 #
 # The last line on stdout is the one verdict line, and nothing else printed starts with "test-":
 #
@@ -189,6 +189,40 @@ dirac_tables() { # needed before any dirac package plays a game; a no-op when th
 	"${c[@]}" make -s dirac-tables >.ds4/scratch/test/dirac-tables.log 2>&1 || verdict ENV "make dirac-tables failed: .ds4/scratch/test/dirac-tables.log"
 }
 
+# tables_feeds_changed MB: 0 when the diff from MB to the working tree (committed, uncommitted and untracked files)
+# can change what decides dirac's card tables, so the tables must be built even though no ./dirac package runs: the
+# paths or bytes of the files scripts/table-key-files.sh lists (kgen's compile inputs, which the published key hashes:
+# ci-corpus.sh's dk), the engine/cards Go files and Makefile's FORGE_REF (its ck). A key file's directory counts too, so
+# a moved or deleted key file re-keys. False when nothing that feeds the key moved, so an ordinary run builds no tables:
+# key files live only under dirac/, engine/ or at the module root (tablesrc.go), so any other diff returns before the
+# go list below runs.
+tables_feeds_changed() {
+	local mb=$1 changed kf dirs roots d p
+	[ -n "$mb" ] || return 0
+	changed=$({ git diff --name-only "$mb"; git ls-files -o --exclude-standard; } 2>/dev/null | sort -u)
+	[ -n "$changed" ] || return 1
+	grep -qE '^(dirac/|engine/|tablesrc\.go$|Makefile$)' <<<"$changed" || return 1
+	if grep -qx Makefile <<<"$changed" && git diff "$mb" -- Makefile | grep -qE '^[-+]FORGE_REF[[:space:]]*\??='; then
+		return 0
+	fi
+	if ! kf=$(bash "$top/scripts/table-key-files.sh" 2>/dev/null); then
+		echo "test-targets: note: cannot list the files that key dirac's tables; building the tables to be safe" >&2
+		return 0
+	fi
+	[ -n "$kf" ] || return 0
+	# The shortest directories the key files sit in (drop a directory whose ancestor is also one, and the root-level
+	# key files, which match by exact name): a change under a key directory (or a key file itself) feeds the key.
+	dirs=$(printf '%s\n' "$kf" | awk -F/ 'NF > 1 { d = $1; for (i = 2; i < NF; i++) d = d "/" $i; print d }' | sort -u | awk '
+		{ keep = 1; for (k = 0; k < nk; k++) if (index($0, kept[k] "/") == 1) { keep = 0; break } if (keep) { kept[nk++] = $0; print } }')
+	roots=$(printf '%s\n' "$kf" | sed -n '/\//!p')
+	while IFS= read -r p; do
+		[ -z "$p" ] && continue
+		for d in $dirs; do case $p in "$d"/*) return 0 ;; esac; done
+		if [ -n "$roots" ] && grep -qxF -- "$p" <<<"$roots"; then return 0; fi
+	done <<<"$changed"
+	return 1
+}
+
 # gojson TIMEOUT args...: one `go test -json` call appended to $json; sets rc to the worst status so far.
 # -json, -v and -failfast are always the same flags: they are part of go's test-cache key.
 rc=0
@@ -244,7 +278,15 @@ if [ "$mode" = one ]; then
 		esac
 	done
 	pkgs_label=$pkg
-	case $pkg in ./dirac*) dirac_tables ;; esac
+	case $pkg in
+	./dirac*) dirac_tables ;;
+	*)
+		# A test outside ./dirac can still need the tables (a gorged test that plays a dirac game): build them when the
+		# change set feeds their key, but not otherwise (11-26 #5551: a dirac/kgen change made TestCreatePodDiracSeatsFour
+		# die on the gate box with "no card tables for this binary: run make dirac-tables").
+		tables_feeds_changed "$(git merge-base "$BASE" HEAD 2>/dev/null)" && dirac_tables
+		;;
+	esac
 	args=(-run "$RUN")
 	[ -z "${SKIP:-}" ] || args+=(-skip "$SKIP")
 	[ -z "${TAGS:-}" ] || args+=(-tags "$TAGS")
@@ -283,7 +325,9 @@ if [ "$mode" = targeted ]; then
 		vp=$(for f in $files; do echo "./$(dirname "$f")"; done | sort -u | sed 's|^\./\.$|.|')
 		vo=$(go vet $vp 2>&1) || { tail -15 <<<"$vo"; verdict FAIL "go vet"; }
 	fi
-	[ "$dirac" = 0 ] || dirac_tables
+	# Tables are needed by any dirac package, and by a non-dirac test that plays a dirac game when the change set feeds
+	# the tables' key (11-26 #5551).
+	if [ "$dirac" = 1 ] || tables_feeds_changed "$mb"; then dirac_tables; fi
 	# The cheap named/census runs first: a whole-package BUDGET below must not hide their failures.
 	for r in "${runs[@]+"${runs[@]}"}"; do
 		gojson "$(timeout_for "${r%%$'\t'*}")" -run "${r#*$'\t'}" "${r%%$'\t'*}" || finish ""
