@@ -252,6 +252,21 @@ func (s *State) dredgeDrawLoop(k *prep, in *kop.Instr, p uint8, left int, rest u
 				s.res.left = uint8(left)
 				return false
 			}
+			if s.drawPickAsked() {
+				// the draw's replacement program parked its hidden pick as a
+				// queued ask (repl_drawpick.go): the loop waits too, keeping the
+				// resolving entry on the stack with the rest of the draw owed,
+				// as gorge poses the pick mid-resolution. The frame cannot ride
+				// res.left / g.pickZ / g.pickLeft (the parked search owns them):
+				// it rides the cold program record, and the pick is posed on the
+				// resolution's ask tape (midResAsk's raGenEnterAsk).
+				if s.res.ask == raNone {
+					s.res.ask, s.res.askP = raGenEnterAsk, s.g.pickP
+				}
+				ds := s.drawState()
+				ds[0].left, ds[0].rest, ds[0].n, ds[0].waiting = uint8(left), rest, uint8(n), true
+				return false
+			}
 		}
 		if s.over {
 			return true

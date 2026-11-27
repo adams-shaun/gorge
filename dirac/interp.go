@@ -569,6 +569,7 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 				s.winGame(k, p)
 				break
 			}
+			s.noteDrawReplLoss() // repl_drawpick.go: the draw-repl pool's branch counter
 			s.lose(p)
 		}
 	case kop.OpShuffle:
