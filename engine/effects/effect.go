@@ -536,7 +536,11 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 		// The continuous side folds UntilYourNextEndStep into this-turn;
 		// use its same boundary rather than silently giving it permanence.
 		if !permanentComeback {
-			if forgetOn != "" {
+			// The "play ONE of them" watcher (effectTriggerLine.PlayReadsRemembered):
+			// its ValidCard$ reads the Effect's memory, so ForgetOnMoved$ must
+			// not ride this registration -- the play move it watches is the
+			// very move that would forget the card before the body matches.
+			if forgetOn != "" && !tl.PlayReadsRemembered {
 				expiry += "|FM=" + forgetOn
 			}
 			if exileOn != "" {

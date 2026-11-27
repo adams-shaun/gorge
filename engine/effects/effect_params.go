@@ -263,11 +263,22 @@ type effectTriggerLine struct {
 	// whose trigger event is the departure that would also end a
 	// source-bounded Duration$ Permanent registration.
 	SourceLeave bool
+	// PlayReadsRemembered is a SpellCast/LandPlayed body whose ValidCard$
+	// reads IsRemembered (`Card.IsRemembered`, `Land.IsRemembered`): the
+	// "you may play ONE of them" watcher (Unlucky Witness, Electrostatic
+	// Blast). Its memory must survive the play move it watches -- the card
+	// leaving exile IS the trigger event -- so effEffect must not let the
+	// Effect's ForgetOnMoved$ ride this registration, or sweepEffectDelayed
+	// forgets the card before the body evaluates ValidCard$.
+	PlayReadsRemembered bool
 }
 
 // readEffectTriggerLine reads one parsed Triggers$ body's parameters.
 func readEffectTriggerLine(tr *cards.Trigger) effectTriggerLine {
 	boonAmount, _ := strconv.Atoi(strings.TrimSpace(tr.ParamStr(cards.PKBoonAmount)))
+	mode := tr.ModeKind()
+	playReadsRemembered := (mode == cards.TriggerSpellCast || mode == cards.TriggerLandPlayed) &&
+		strings.Contains(tr.ParamStr(cards.PKValidCard), "IsRemembered")
 	return effectTriggerLine{
 		BoonAmount:      boonAmount,
 		Execute:         strings.TrimSpace(tr.ParamStr(cards.PKExecute)),
@@ -285,6 +296,8 @@ func readEffectTriggerLine(tr *cards.Trigger) effectTriggerLine {
 		PresentCompare:  strings.TrimSpace(tr.ParamStr(cards.PKPresentCompare)),
 		ValidSource:     strings.TrimSpace(tr.ParamStr(cards.PKValidSource)),
 		SourceLeave:     WatchesEffectSourceLeave(tr),
+
+		PlayReadsRemembered: playReadsRemembered,
 	}
 }
 
