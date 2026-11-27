@@ -938,6 +938,18 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 				if e.kind == seAbility && k.gen != nil && k.gen.anyLoyaltyX && s.loyaltyXOptions(k, d) {
 					return true // a planeswalker's [-X] (cost_loyaltyx.go)
 				}
+				if k.gen != nil && k.gen.anyAnnounceX && s.announceXBuilding(k) {
+					// the Shoal cycle's announced X-bound hand-exile alternative
+					// cost asks X over the hand cards' mana values, not over the
+					// mana window: the alt cost pays no mana X (gorge xAsk's
+					// announce arm returns straight from the candidate set,
+					// cast_subcounter.go; cost_announcex.go)
+					if !s.announceXOptions(k, d) {
+						return s.ctl == ctlBuild // the cast is reversed: the announcement is no longer payable (CR 733.1)
+					}
+					s.bld().stage = bsX | 0x80 // awaiting X
+					return true
+				}
 				if !s.announcedXBuilding(k) {
 					s.nextStage(k)
 					continue
