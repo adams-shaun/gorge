@@ -265,8 +265,7 @@ dirac-tables:
 	go build -o $(BIN_DIR)/kgen ./dirac/cmd/kgen
 	@$(BIN_DIR)/kgen -synth-pools & sp=$$!; \
 	$(BIN_DIR)/kgen -tables; rc=$$?; \
-	if [ $$rc -eq 3 ]; then \
-	  touch $(BIN_DIR)/.ids-rewritten; \
+	if [ $$rc -eq 3 ]; then touch $(BIN_DIR)/.ids-rewritten; \
 	  wait $$sp || true; \
 	  go build -o $(BIN_DIR)/kgen ./dirac/cmd/kgen && $(BIN_DIR)/kgen -tables && $(BIN_DIR)/kgen -synth-pools || exit $$?; \
 	elif [ $$rc -eq 0 ]; then \
