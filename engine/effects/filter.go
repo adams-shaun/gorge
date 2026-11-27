@@ -3703,11 +3703,11 @@ func matchesInOwnZone(g *state.Game, spec string, o *state.Object, sc SpecContex
 // object itself has reverted to its owner (CR 400.7).
 func matchesEnteredEntry(g *state.Game, spec string, e state.ZoneEntry, sc SpecContext) bool {
 	if e.To == state.ZBattlefield && e.From != state.ZBattlefield {
-		// A permanent that entered and has since left (an Aura returned to hand,
-		// a creature that died) still entered this turn (CR 700.14, 603.10a):
-		// match the card where it now lies, as a card, since the battlefield
-		// matcher rejects an object that is no longer a permanent.
-		if o := g.Obj(e.Obj); o != nil && o.Zone != state.ZBattlefield && o.Zone != state.ZStack {
+		// A permanent that entered and has since left (an Aura returned to hand
+		// and recast, a creature that died) still entered this turn (CR 700.14,
+		// 603.10a): match the card where it now lies, as a card, since the
+		// battlefield matcher rejects an object that is no longer a permanent.
+		if o := g.Obj(e.Obj); o != nil && o.Zone != state.ZBattlefield {
 			// The entry itself proves the object was a permanent on the
 			// battlefield, so CR 707.10h's ceased-copy rejection (meant for a
 			// spell copy parked off the stack) does not apply to it.
