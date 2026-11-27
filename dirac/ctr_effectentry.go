@@ -165,8 +165,10 @@ func (s *State) effEtbCtr(k *prep, in *kop.Instr) {
 		code, ok := etbCodeAdd(int(e.spc&spcEtbMask)>>spcEtbShift, n)
 		if ok {
 			e.spc = e.spc&^spcEtbMask | uint16(code)<<spcEtbShift
-		} else if e.spc&spcEtbMask != 0 && n <= 4 && etbXGet(e, n) < 15 {
-			etbXSet(e, n, etbXGet(e, n)+1) // a later effect the pair code cannot hold
+		} else if e.ov == 0 && e.spc&spcEtbMask != 0 && n <= 4 && etbXGet(e, n) < 15 {
+			// a later effect the pair code cannot hold; a carried spell
+			// override (static_spellcarry.go) owns etbX, so the two do not mix
+			etbXSet(e, n, etbXGet(e, n)+1)
 		} else {
 			s.capFull(StallEffEtbCtr)
 			return
@@ -187,10 +189,12 @@ func (s *State) effEtbEnter(k *prep, sl Slot, p *perm) {
 	a, b := etbCodeParts(int(s.res.e.spc&spcEtbMask) >> spcEtbShift)
 	var xs [4]int // effects beyond the pair, as counts of effects of 1..4 counters
 	nx, xsum := 0, 0
-	for n := 1; n <= 4; n++ {
-		xs[n-1] = etbXGet(&s.res.e, n)
-		nx += xs[n-1]
-		xsum += xs[n-1] * n
+	if s.res.e.ov == 0 { // a carried spell override owns etbX (static_spellcarry.go)
+		for n := 1; n <= 4; n++ {
+			xs[n-1] = etbXGet(&s.res.e, n)
+			nx += xs[n-1]
+			xsum += xs[n-1] * n
+		}
 	}
 	if DebugEffEtbCtr && a+b+xsum > 0 {
 		switch {

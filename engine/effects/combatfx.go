@@ -1213,6 +1213,42 @@ func emitAnimateColorsNotes(h Host, c *Ctx, ag animateGrant, api string) {
 		Text: api + " Colors$ Colorless without OverwriteColors$ is not implemented; colours unchanged"})
 }
 
+// ExileOnMovedStackCarry is the ExileOnMoved$ value for a grant made to a
+// spell while it sits on the stack. CR 400.7a carries a spell-on-the-stack
+// continuous effect onto the permanent the spell becomes, so the stack
+// departure must NOT end it when the destination is the battlefield; rules'
+// effectMoveSweep retargets the value to Battlefield on that move and ends
+// the grant on the permanent's own departure. Any other stack departure ends
+// it, as the ordinary ExileOnMoved$ Stack does. It is deliberately not a zone
+// word, so a path that never learned this directive can never match it.
+//
+// Only spellCarryAnimate's shape takes this value -- the default
+// until-end-of-turn, Keywords$-only grant. dirac mirrors exactly that shape
+// (kgen lower_statictrigger_spellcast.go -> kop.OvSpellCarry); every wider
+// Animate on a spell still ends at the stack until it has its own mirror.
+const ExileOnMovedStackCarry = "Stack->Battlefield"
+
+// spellCarryAnimate reports whether ag is the one Animate shape dirac mirrors
+// across CR 400.7a: the default until-end-of-turn, Keywords$-only grant made
+// on the spell itself (Thundermane Dragon's static SpellCast rider). A
+// duration rider, a colour/type/P-T/ability/name grant, or any other half
+// needs its own dirac lowering first; without one the engine keeps ending the
+// animation at the stack, which is what dirac does (Wickerwing Effigy's
+// permanent black 1/1 Bird). Widening this predicate without widening the
+// mirror diverges on exactly those cards.
+func spellCarryAnimate(ag animateGrant, untilEOT bool) bool {
+	if !untilEOT || len(ag.kws) == 0 {
+		return false
+	}
+	return !ag.hasPower && !ag.hasTough && len(ag.types) == 0 && !ag.removeCreatureTypes &&
+		len(ag.removeTypes) == 0 && !ag.allCreatureTypes && !ag.removeCardTypes &&
+		!ag.removeLandTypes && !ag.removeArtifactTypes && !ag.removeEnchantmentTypes &&
+		ag.name == "" && ag.colorsRaw == "" && len(ag.hiddenKws) == 0 &&
+		len(ag.abilities) == 0 && len(ag.triggers) == 0 && len(ag.svars) == 0 &&
+		len(ag.staticAbilities) == 0 && len(ag.removeKeywords) == 0 && !ag.removeAbilities &&
+		len(ag.replacements) == 0 && ag.leaveExile == ""
+}
+
 // registerAnimateEffects is Animate and AnimateAll's sole per-object
 // registration path: id is the animated object itself (Source = affected
 // object, Controller = the granting controller, Affects Card.Self, the same
@@ -1275,6 +1311,15 @@ func registerAnimateEffects(h Host, c *Ctx, id state.ObjID, ag animateGrant) {
 		if o := h.Game().Obj(id); o != nil {
 			if w := ZoneWord(o.Zone); w != "" {
 				exileOn = w
+				if o.Zone == state.ZStack && spellCarryAnimate(ag, untilEOT) {
+					// CR 400.7a: the timed keyword-only grant on the spell
+					// carries onto the permanent it becomes; rules'
+					// effectMoveSweep retargets this directive on the
+					// Stack->Battlefield move. Every other animation on a
+					// spell still ends at the stack: dirac has no mirror for
+					// it (spellCarryAnimate).
+					exileOn = ExileOnMovedStackCarry
+				}
 				remembered = []state.ObjID{id}
 			}
 		}

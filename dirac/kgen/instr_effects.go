@@ -132,6 +132,12 @@ func (ic *instrCtx) opOverride() error {
 	if _, ok := fl["enterWith"]; ok {
 		ki.B = kop.Const(kop.OvEnterWith)
 	}
+	if _, ok := fl["spellCarry"]; ok {
+		// a static SpellCast rider's timed Animate of the triggering spell:
+		// stamp the spell entry and apply the record as the permanent enters
+		// (dirac/static_spellcarry.go)
+		ki.B = kop.Const(kop.OvSpellCarry)
+	}
 	switch strings.SplitN(in.CS, "|", 2)[0] {
 	case "EOT":
 		ki.A = kop.Const(kop.DurEOT)
