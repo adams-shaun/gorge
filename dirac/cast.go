@@ -1957,6 +1957,7 @@ func (s *State) finishBuild(k *prep) {
 			s.forgetRemGen(e.obj)
 		}
 		s.rememberPlayedCommit(e.obj) // RememberPlayed$ True (cast_playremember.go)
+		s.imprintPlayedCommit(e.obj)  // ImprintPlayed$ True (cast_playimprint.go)
 		if k.gen != nil && k.gen.anyHist {
 			s.histCast(k, &e, &cost)
 		}
