@@ -2656,21 +2656,37 @@ func imprint(h Host, c *Ctx, sa *cards.SA) {
 // Effect's delayed trigger ever fires (Flickerform's end-step return).
 func imprintCaptureIDs(h Host, c *Ctx, spec string) []state.ObjID {
 	var ids []state.ObjID
-	for _, t := range imprintCardsTargets(h, c, spec) {
-		if t.IsPlayer {
+	targets := imprintCardsTargets(h, c, spec)
+	if spec == "TargetedSource" {
+		targets = targetedSourceTargets(h, targets)
+	}
+	for _, t := range targets {
+		if t.IsPlayer || h.Game().Obj(t.Obj) == nil {
 			continue
 		}
-		id := t.Obj
-		if spec == "TargetedSource" {
-			if o := h.Game().Obj(id); o != nil && o.Source != 0 {
-				id = o.Source
-			}
-		}
-		if h.Game().Obj(id) != nil {
-			ids = append(ids, id)
-		}
+		ids = append(ids, t.Obj)
 	}
 	return ids
+}
+
+// targetedSourceTargets resolves Forge's TargetedSource translation: each
+// object target becomes the source card of the stack ability it targets when
+// it has one, and otherwise stays the target itself (a spell card on the
+// stack). Players are passed through unchanged. This is the one home for the
+// word, shared by ImprintCards$ (imprintCaptureIDs) and RememberObjects$
+// (effectRemembered), so the two capture routes cannot disagree about what
+// "the targeted source" names.
+func targetedSourceTargets(h Host, ts []state.Target) []state.Target {
+	out := append([]state.Target(nil), ts...)
+	for i := range out {
+		if out[i].IsPlayer || out[i].Obj == 0 {
+			continue
+		}
+		if o := h.Game().Obj(out[i].Obj); o != nil && o.Source != 0 {
+			out[i].Obj = o.Source
+		}
+	}
+	return out
 }
 
 // imprintCardsTargets resolves an ImprintCards$ spec. A bare Remembered is
