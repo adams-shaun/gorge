@@ -223,7 +223,7 @@ func mrfaceRun(t *testing.T, c mrfaceCase, seeds int) {
 				gs = pc.G
 			}
 			for _, a := range pc.D.Options {
-				if a.Kind() == ActSpecial && (a.Mode() == up || a.Mode() == unl) {
+				if a.Kind() == ActSpecial && (a.Mode()&0xf == up || a.Mode()&0xf == unl) {
 					return a
 				}
 			}

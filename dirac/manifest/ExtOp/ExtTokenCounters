@@ -1,0 +1,5 @@
+family: ExtOp
+name: ExtTokenCounters
+value: next
+status: active
+doc: A Token's WithCountersType$ / WithCountersAmount$ rider: A.N > 0 arms genState.enterCtr with A counters of kind C for the OpCreateToken(Ex) that follows, so the minted token enters with them (CR 122.6, 614.1c), and A.N 0 clears the arm after the mint. Printlifter Ooze's 0/0 Ooze with X +1/+1 counters. dirac/ctr_tokenentry.go.
