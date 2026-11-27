@@ -30,6 +30,36 @@ func (s *State) fwSharesProducedColour(c *fctx, l *kop.FLit) bool {
 	return s.colorsAt(c.k, c.sl)&kop.ColorMask(col) != 0
 }
 
+// tapProduced binds the colour col the mana source at sl just floated onto
+// the Taps trigger entries its tap queued (manaTapped carries the source's
+// static production, which for a multicolour, any-colour or chosen-colour
+// land is more than the one colour the tap paid; gorge binds the activation's
+// actual ManaAdd batch, stampTriggeredManaProduced). It is called from artTag,
+// which every float site calls with the source and the colour it added: the
+// first call of a tap replaces the static set, later ones (a source that
+// floats two colours) add to it. Colourless is not a colour: no bit.
+func (s *State) tapProduced(k *prep, sl Slot, col int) {
+	o := s.perms[sl].obj
+	var bit int16
+	if col >= 0 && col < kop.C {
+		bit = 1 << (mtColShift + uint(col))
+	}
+	for i := 0; i < int(s.npend); i++ {
+		e := &s.pend[i]
+		if e.trigObj != o || !k.gen.has(e.card, gfTrigProduced) {
+			continue
+		}
+		if cd := &k.t.Cards[e.card]; int(e.ab) >= len(cd.Abilities) || cd.Abilities[e.ab].Trig.Event != kop.TrigTaps {
+			continue
+		}
+		if e.trigAmt&mtColBound == 0 {
+			e.trigAmt = mtColBound | bit
+		} else {
+			e.trigAmt |= bit
+		}
+	}
+}
+
 // cardUsesProducedColour reports whether one of c's abilities reads a filter
 // program's FwSharesProducedColour word: through an instruction filter, a
 // trigger filter, or a condition's filter (the Conds' nested Sub tree). The
