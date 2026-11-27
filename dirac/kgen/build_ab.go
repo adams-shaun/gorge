@@ -2573,11 +2573,17 @@ func selfCastClause(f *lFilter) (bool, error) {
 		if rest.Types == tCreature {
 			rest.Types = 0
 		}
-		if rest != (lClause{Flags: rest.Flags}) || rest.Flags&^(fKicked|fSneaked) != 0 {
+		bare := rest
+		if bare.CmpStat == cmpKickedAlt && bare.CmpOp == 0 && bare.CmpX == "" && bare.CmpCounter == "" {
+			// "Card.Self+kicked 1" / "kicked 2": the cast's kicker alternative,
+			// read off the spell's byte (kernel selfCastFilterOK)
+			bare.CmpStat, bare.CmpN = cmpNone, 0
+		}
+		if bare != (lClause{Flags: bare.Flags}) || bare.Flags&^(fKicked|fSneaked) != 0 {
 			return false, fmt.Errorf("SpellCast Card.Self+property beyond kicked or sneaked")
 		}
 		self = true
-		if rest.Flags == 0 {
+		if rest == (lClause{}) {
 			f.Clauses = nil
 		} else {
 			f.Clauses[0] = rest

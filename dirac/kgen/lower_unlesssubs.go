@@ -13,6 +13,7 @@ type usGate struct {
 	same    bool // the subs run on the side the body runs
 	nTgt    int  // len(Targets) after the unless node
 	guarded bool // the node sits behind a guard of its own (refused at apply)
+	condAt  int  // the node's own Condition SkipIf, or -1: a failed condition skips the node AND runs the subs (gorge's chain loop continues), so it must land past the jump
 }
 
 // unlessSubsMode reads UnlessResolveSubs$: whether a gate applies, and
@@ -31,6 +32,34 @@ func unlessSubsMode(ps *params) (gate, whenPaid bool, err error) {
 		return true, false, nil
 	}
 	return false, false, refuse("UnlessResolveSubs %q", v)
+}
+
+// guardUnlessGates applies the guard the node at at is about to get to the
+// UnlessResolveSubs$ gates recorded since n. A plain Condition guard (the
+// SkipIf inserted in front of the node) keeps them unguarded: they shift with
+// the insert and remember the condition's position, so a failed condition's
+// jump lands past an applied gate and the subs run, as gorge's chain loop
+// continues. Every other guard skips over the node alone and marks them
+// guarded (refused by applyUnlessSubs).
+func (lc *lowerCtx) guardUnlessGates(at, n, guardAt int, cond lCond, setPred *playerSetPred) {
+	plain := cond.Kind != cNone && guardAt < 0 && setPred == nil &&
+		!(at < len(lc.ab.Prog) && lc.ab.Prog[at].Op == "IfPaid" && lc.ab.Prog[at].Skip == -1)
+	if cond.Kind != cNone || guardAt >= 0 || setPred != nil {
+		if !plain {
+			lc.markUnlessGuarded(n)
+		}
+	}
+	if plain {
+		for i := n; i < len(lc.unlessSubs); i++ {
+			r := &lc.unlessSubs[i]
+			// A node records one gate; a shape that recorded two would
+			// have both name this one condition insert, which is the
+			// shift they both need.
+			if !r.guarded {
+				r.at, r.nodeEnd, r.condAt = r.at+1, r.nodeEnd+1, at
+			}
+		}
+	}
 }
 
 // markUnlessGuarded flags every gate recorded since n: the node that holds
@@ -55,6 +84,9 @@ func (lc *lowerCtx) applyUnlessSubs(base int) error {
 		if end == r.nodeEnd {
 			continue // no subs: nothing to gate
 		}
+		if r.condAt >= 0 && lc.ab.Prog[r.condAt].Op != "SkipIf" {
+			return refuse("UnlessResolveSubs inside a guarded node")
+		}
 		if len(lc.ab.Targets) != r.nTgt {
 			return refuse("UnlessResolveSubs over a sub that declares a target slot")
 		}
@@ -70,6 +102,9 @@ func (lc *lowerCtx) applyUnlessSubs(base int) error {
 		copy(lc.ab.Prog[r.nodeEnd+1:], lc.ab.Prog[r.nodeEnd:])
 		lc.ab.Prog[r.nodeEnd] = jump
 		lc.ab.Prog[r.at].Skip++
+		if r.condAt >= 0 {
+			lc.ab.Prog[r.condAt].Skip++ // the condition's skip lands past the jump: the subs run
+		}
 	}
 	return nil
 }
