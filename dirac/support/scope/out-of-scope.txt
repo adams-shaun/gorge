@@ -1,0 +1,1751 @@
+"Ach! Hans, Run!"	not-commander-legal
+1996 World Champion	not-commander-legal
+A Display of My Dark Power	non-tournament-type
+A Golden Opportunity	digital-only
+A Premonition of Your Demise	non-tournament-type
+A Reckoning Approaches	non-tournament-type
+A-Acererak the Archlich	alchemy-rebalanced
+A-Akki Ronin	alchemy-rebalanced
+A-Alrund's Epiphany	alchemy-rebalanced
+A-Alrund, God of the Cosmos	alchemy-rebalanced
+A-Ancestral Katana	alchemy-rebalanced
+A-Ardent Dustspeaker	alchemy-rebalanced
+A-Armory Veteran	alchemy-rebalanced
+A-Asari Captain	alchemy-rebalanced
+A-Baba Lysaga, Night Witch	alchemy-rebalanced
+A-Baleful Beholder	alchemy-rebalanced
+A-Base Camp	alchemy-rebalanced
+A-Binding Geist	alchemy-rebalanced
+A-Blessed Hippogriff	alchemy-rebalanced
+A-Blood Artist	alchemy-rebalanced
+A-Bretagard Stronghold	alchemy-rebalanced
+A-Briar Hydra	alchemy-rebalanced
+A-Brine Comber	alchemy-rebalanced
+A-Bruenor Battlehammer	alchemy-rebalanced
+A-Buy Your Silence	alchemy-rebalanced
+A-Cabaretti Charm	alchemy-rebalanced
+A-Canopy Tactician	alchemy-rebalanced
+A-Capenna Express	alchemy-rebalanced
+A-Carnelian Orb of Dragonkind	alchemy-rebalanced
+A-Case the Joint	alchemy-rebalanced
+A-Cauldron Familiar	alchemy-rebalanced
+A-Celebrity Fencer	alchemy-rebalanced
+A-Celestial Regulator	alchemy-rebalanced
+A-Circle of the Land Druid	alchemy-rebalanced
+A-Circuit Mender	alchemy-rebalanced
+A-Civil Servant	alchemy-rebalanced
+A-Cloister Gargoyle	alchemy-rebalanced
+A-Cobbled Lancer	alchemy-rebalanced
+A-Cori-Steel Cutter	alchemy-rebalanced
+A-Cosmos Charger	alchemy-rebalanced
+A-Cosmos Elixir	alchemy-rebalanced
+A-Dawnbringer Cleric	alchemy-rebalanced
+A-Deal Gone Bad	alchemy-rebalanced
+A-Death-Priest of Myrkul	alchemy-rebalanced
+A-Demilich	alchemy-rebalanced
+A-Demon's Due	alchemy-rebalanced
+A-Devoted Grafkeeper	alchemy-rebalanced
+A-Divide by Zero	alchemy-rebalanced
+A-Dokuchi Silencer	alchemy-rebalanced
+A-Dorothea, Vengeful Victim	alchemy-rebalanced
+A-Dragon's Rage Channeler	alchemy-rebalanced
+A-Dragonborn Looter	alchemy-rebalanced
+A-Dreamshackle Geist	alchemy-rebalanced
+A-Druid Class	alchemy-rebalanced
+A-Druidic Ritual	alchemy-rebalanced
+A-Dueling Coach	alchemy-rebalanced
+A-Dungeon Descent	alchemy-rebalanced
+A-Dwarfhold Champion	alchemy-rebalanced
+A-Earthquake Dragon	alchemy-rebalanced
+A-Eiganjo Exemplar	alchemy-rebalanced
+A-Elderfang Ritualist	alchemy-rebalanced
+A-Elderleaf Mentor	alchemy-rebalanced
+A-Ellywick Tumblestrum	alchemy-rebalanced
+A-Elven Bow	alchemy-rebalanced
+A-Emerald Dragon	alchemy-rebalanced
+A-Esika's Chariot	alchemy-rebalanced
+A-Excavation Explosion	alchemy-rebalanced
+A-Exhibition Magician	alchemy-rebalanced
+A-Eyes of the Beholder	alchemy-rebalanced
+A-Faceless Haven	alchemy-rebalanced
+A-Falcon Abomination	alchemy-rebalanced
+A-Fall of the Impostor	alchemy-rebalanced
+A-Fates' Reversal	alchemy-rebalanced
+A-Find the Path	alchemy-rebalanced
+A-Fires of Invention	alchemy-rebalanced
+A-Forge Boss	alchemy-rebalanced
+A-Futurist Operative	alchemy-rebalanced
+A-Galvanic Discharge	alchemy-rebalanced
+A-Geological Appraiser	alchemy-rebalanced
+A-Geology Enthusiast	alchemy-rebalanced
+A-Glamorous Outlaw	alchemy-rebalanced
+A-Glittermonger	alchemy-rebalanced
+A-Gnarlid Colony	alchemy-rebalanced
+A-Goggles of Night	alchemy-rebalanced
+A-Goldspan Dragon	alchemy-rebalanced
+A-Goma Fada Vanguard	alchemy-rebalanced
+A-Graveyard Shift	alchemy-rebalanced
+A-Guide of Souls	alchemy-rebalanced
+A-Guildsworn Prowler	alchemy-rebalanced
+A-Gutter Skulker	alchemy-rebalanced
+A-Hagra Constrictor	alchemy-rebalanced
+A-Hall of Tagsin	alchemy-rebalanced
+A-Harald Unites the Elves	alchemy-rebalanced
+A-Harald, King of Skemfar	alchemy-rebalanced
+A-Haywire Mite	alchemy-rebalanced
+A-Heartfire Hero	alchemy-rebalanced
+A-High-Rise Sawjack	alchemy-rebalanced
+A-Hobbling Zombie	alchemy-rebalanced
+A-Hullbreaker Horror	alchemy-rebalanced
+A-Imperial Subduer	alchemy-rebalanced
+A-Incriminate	alchemy-rebalanced
+A-Iridescent Hornbeetle	alchemy-rebalanced
+A-Jackhammer	alchemy-rebalanced
+A-Jade Orb of Dragonkind	alchemy-rebalanced
+A-Kargan Intimidator	alchemy-rebalanced
+A-Kargan Warleader	alchemy-rebalanced
+A-Karn, Living Legacy	alchemy-rebalanced
+A-Kenku Artificer	alchemy-rebalanced
+A-Knockout Blow	alchemy-rebalanced
+A-Kona, Rescue Beastie	alchemy-rebalanced
+A-Krydle of Baldur's Gate	alchemy-rebalanced
+A-Kumano Faces Kakkazan	alchemy-rebalanced
+A-Lantern Bearer	alchemy-rebalanced
+A-Lantern of Revealing	alchemy-rebalanced
+A-Lapis Orb of Dragonkind	alchemy-rebalanced
+A-Leyline of Resonance	alchemy-rebalanced
+A-Lier, Disciple of the Drowned	alchemy-rebalanced
+A-Llanowar Greenwidow	alchemy-rebalanced
+A-Llanowar Loamspeaker	alchemy-rebalanced
+A-Luminarch Aspirant	alchemy-rebalanced
+A-Maelstrom Muse	alchemy-rebalanced
+A-Manticore	alchemy-rebalanced
+A-Masked Bandits	alchemy-rebalanced
+A-Master of Winds	alchemy-rebalanced
+A-Mentor's Guidance	alchemy-rebalanced
+A-Meria's Outrider	alchemy-rebalanced
+A-Metropolis Angel	alchemy-rebalanced
+A-Midnight Assassin	alchemy-rebalanced
+A-Mightstone's Animation	alchemy-rebalanced
+A-Minsc & Boo, Timeless Heroes	alchemy-rebalanced
+A-Mischievous Catgeist	alchemy-rebalanced
+A-Mishra, Excavation Prodigy	alchemy-rebalanced
+A-Monster Manual	alchemy-rebalanced
+A-Moon-Circuit Hacker	alchemy-rebalanced
+A-Moss-Pit Skeleton	alchemy-rebalanced
+A-Most Wanted	alchemy-rebalanced
+A-Mr. Orfeo, the Boulder	alchemy-rebalanced
+A-Nadu, Winged Wisdom	alchemy-rebalanced
+A-Nael, Avizoa Aeronaut	alchemy-rebalanced
+A-Nahiri, Heir of the Ancients	alchemy-rebalanced
+A-Narfi, Betrayer King	alchemy-rebalanced
+A-Nashi, Moon Sage's Scion	alchemy-rebalanced
+A-Navigation Orb	alchemy-rebalanced
+A-Nezumi Prowler	alchemy-rebalanced
+A-Ocelot Pride	alchemy-rebalanced
+A-Ochre Jelly	alchemy-rebalanced
+A-Ominous Parcel	alchemy-rebalanced
+A-Omnath, Locus of Creation	alchemy-rebalanced
+A-Oran-Rief Ooze	alchemy-rebalanced
+A-Orcish Bowmasters	alchemy-rebalanced
+A-Paragon of Modernity	alchemy-rebalanced
+A-Patrician Geist	alchemy-rebalanced
+A-Peerless Samurai	alchemy-rebalanced
+A-Phantom Carriage	alchemy-rebalanced
+A-Phylath, World Sculptor	alchemy-rebalanced
+A-Plate Armor	alchemy-rebalanced
+A-Precipitous Drop	alchemy-rebalanced
+A-Prosperous Thief	alchemy-rebalanced
+A-Pseudodragon Familiar	alchemy-rebalanced
+A-Psionic Snoop	alchemy-rebalanced
+A-Public Enemy	alchemy-rebalanced
+A-Pyre-Sledge Arsonist	alchemy-rebalanced
+A-Queza, Augur of Agonies	alchemy-rebalanced
+A-Radha's Firebrand	alchemy-rebalanced
+A-Radha, Coalition Warlord	alchemy-rebalanced
+A-Raiyuu, Storm's Edge	alchemy-rebalanced
+A-Rakish Revelers	alchemy-rebalanced
+A-Ready to Rumble	alchemy-rebalanced
+A-Return Upon the Tide	alchemy-rebalanced
+A-Revel Ruiner	alchemy-rebalanced
+A-Riveteers Initiate	alchemy-rebalanced
+A-Rockslide Sorcerer	alchemy-rebalanced
+A-Rowan, Scholar of Sparks	alchemy-rebalanced
+A-Rulik Mons, Warren Chief	alchemy-rebalanced
+A-Saheeli, Filigree Master	alchemy-rebalanced
+A-Satoru Umezawa	alchemy-rebalanced
+A-Scout the Wilderness	alchemy-rebalanced
+A-Security Rhox	alchemy-rebalanced
+A-Sepulcher Ghoul	alchemy-rebalanced
+A-Sewer Crocodile	alchemy-rebalanced
+A-Shattered Seraph	alchemy-rebalanced
+A-Shessra, Death's Whisper	alchemy-rebalanced
+A-Shipwreck Sifters	alchemy-rebalanced
+A-Sigardian Paladin	alchemy-rebalanced
+A-Sigil of Myrkul	alchemy-rebalanced
+A-Silver-Fur Master	alchemy-rebalanced
+A-Sizzling Soloist	alchemy-rebalanced
+A-Skemfar Avenger	alchemy-rebalanced
+A-Skemfar Elderhall	alchemy-rebalanced
+A-Skull Skaab	alchemy-rebalanced
+A-Skyclave Shadowcat	alchemy-rebalanced
+A-Social Climber	alchemy-rebalanced
+A-Sorcerer Class	alchemy-rebalanced
+A-Sorin, Imperious Bloodlord	alchemy-rebalanced
+A-Soul of Windgrace	alchemy-rebalanced
+A-Spara's Adjudicators	alchemy-rebalanced
+A-Speakeasy Server	alchemy-rebalanced
+A-Spell Satchel	alchemy-rebalanced
+A-Split the Spoils	alchemy-rebalanced
+A-Splitting the Powerstone	alchemy-rebalanced
+A-Sprouting Goblin	alchemy-rebalanced
+A-Steadfast Unicorn	alchemy-rebalanced
+A-Stimulus Package	alchemy-rebalanced
+A-Stitched Assistant	alchemy-rebalanced
+A-Sunbathing Rootwalla	alchemy-rebalanced
+A-Symmetry Sage	alchemy-rebalanced
+A-Syndicate Infiltrator	alchemy-rebalanced
+A-Tanazir Quandrix	alchemy-rebalanced
+A-Tatyova, Steward of Tides	alchemy-rebalanced
+A-Teferi, Time Raveler	alchemy-rebalanced
+A-Tenured Inkcaster	alchemy-rebalanced
+A-The Meathook Massacre	alchemy-rebalanced
+A-The One Ring	alchemy-rebalanced
+A-Thornmantle Striker	alchemy-rebalanced
+A-Thousand-Faced Shadow	alchemy-rebalanced
+A-Thran Portal	alchemy-rebalanced
+A-Thran Spider	alchemy-rebalanced
+A-Tome Shredder	alchemy-rebalanced
+A-Triumphant Adventurer	alchemy-rebalanced
+A-Tyvar Kell	alchemy-rebalanced
+A-Umara Mystic	alchemy-rebalanced
+A-Unholy Heat	alchemy-rebalanced
+A-Urza's Command	alchemy-rebalanced
+A-Urza, Powerstone Prodigy	alchemy-rebalanced
+A-Uurg, Spawn of Turg	alchemy-rebalanced
+A-Vampire Scrivener	alchemy-rebalanced
+A-Vega, the Watcher	alchemy-rebalanced
+A-Visions of Phyrexia	alchemy-rebalanced
+A-Vivi Ornitier	alchemy-rebalanced
+A-Warm Welcome	alchemy-rebalanced
+A-Winota, Joiner of Forces	alchemy-rebalanced
+A-Wizard Class	alchemy-rebalanced
+A-You Come to a River	alchemy-rebalanced
+A-Young Blue Dragon	alchemy-rebalanced
+A-Young Red Dragon	alchemy-rebalanced
+A-Zar Ojanen, Scion of Efrava	alchemy-rebalanced
+AWOL	not-commander-legal
+Absorb Energy	digital-only
+Academy at Tolaria West	non-tournament-type
+Accessories to Murder	non-tournament-mechanic
+Accident-Prone Apprentice	digital-only
+Ace Flockbringer	digital-only
+Adaptive Armorer	digital-only
+Adherent's Heirloom	digital-only
+Adorable Kitten	not-commander-legal
+Advanced Floral Invocations	digital-only
+Aerial Toastmaster	non-tournament-mechanic
+Aetherflux Car	not-commander-legal
+Agent of Raffine	digital-only
+Aggressive Crag	not-commander-legal
+Agyrem	non-tournament-type
+Akoum	non-tournament-type
+Akroma, Angel of Wrath Avatar	digital-only
+Albiorix, Goose Tyrant	digital-only
+Algorithmic Ferocity	digital-only
+All Shall Smolder in My Wake	non-tournament-type
+All in Good Time	non-tournament-type
+Alora, Rogue Companion	digital-only
+Amateur Auteur	not-commander-legal
+Ambassador of Evendo	digital-only
+Amber-Plate Ainok	digital-only
+Ambergris, Citadel Agent	digital-only
+Amy's Home	non-tournament-type
+Andrios, Roaming Explorer	not-commander-legal
+Angel of Eternal Dawn	digital-only
+Angel of Unity	digital-only
+Angelic Reward	digital-only
+Angelic Rocket	not-commander-legal
+Anguished Recollection	digital-only
+Anina, Natural Parallelist	digital-only
+Antarctic Research Base	non-tournament-type
+Antique Collector	digital-only
+Aplan Mortarium	non-tournament-type
+Applied Aeronautics	non-tournament-mechanic
+Approach My Molten Realm	non-tournament-type
+Arcane Archery	digital-only
+Arcanis, the Omnipotent Avatar	digital-only
+Arcbound Overseer Avatar	digital-only
+Archaeomancer's Spade	digital-only
+Archipelagore	deferred-mutate
+Archival Whorl	digital-only
+Arek, False Goldwarden	digital-only
+Aretopolis	non-tournament-type
+Argivian Welcome	digital-only
+Argothian Uprooting	digital-only
+Arius, Flyby Trawler	digital-only
+Arming Gala	digital-only
+Arms Depot	non-tournament-mechanic
+Arms Scavenger	digital-only
+Arteeoh, Dread Scavenger	not-commander-legal
+Artifact Unknown Shores	not-commander-legal
+Artillery Enthusiast	digital-only
+Arvad of the Weatherlight	not-commander-legal
+Arvad, Weatherlight Smuggler	digital-only
+As Luck Would Have It	not-commander-legal
+Ashling the Pilgrim Avatar	digital-only
+Ashling, the Extinguisher Avatar	digital-only
+Ashnod	non-tournament-type
+Ashuza's Breath	digital-only
+Asmoranomardicadaistinaculdacar's Kitchen	non-tournament-type
+Assemble from Parts	digital-only
+Assemble the Team	digital-only
+Astral Arena	non-tournament-type
+Asymmetry Sage	digital-only
+Ate-o'-Clock	not-commander-legal
+Audacious Knuckleblade	digital-only
+Auspicious Starrix	deferred-mutate
+Auto-Key	non-tournament-mechanic
+Avacyn and Griselbrand	not-commander-legal
+Avoided Stairwurm	digital-only
+Awestruck Cygnet	digital-only
+Axavar, Fate Thief	digital-only
+B.O.B. (Bevy of Beebles)	not-commander-legal
+Back-Alley Gardener	digital-only
+Bad Wolf Bay	non-tournament-type
+Baffling Defenses	digital-only
+Bail Out	digital-only
+Baloth Packhunter	digital-only
+Banding Sliver	not-commander-legal
+Banescale Serpent	digital-only
+Bank Job	digital-only
+Bant	non-tournament-type
+Barrin	non-tournament-type
+Beast in Show	not-commander-legal
+Because I Have Willed It	non-tournament-type
+Bee-Bee Gun	non-tournament-mechanic
+Begin Anew	digital-only
+Behold My Grandeur	non-tournament-type
+Behold the Power of Destruction	non-tournament-type
+Believe in the Cleave	not-commander-legal
+Bellowsbreath Ogre	digital-only
+Benalish Knight-Counselor	digital-only
+Benalish Partisan	digital-only
+Bend Mortal Limits	digital-only
+Besieged Viking Village	non-tournament-type
+Better Offer	digital-only
+Bicycle Rack	non-tournament-type
+Big Boa Constrictor	not-commander-legal
+Big Spender	digital-only
+Bind to Secrecy	digital-only
+Birds of Paradise Avatar	digital-only
+Black Lotus Lounge	non-tournament-type
+Black Tulip	not-commander-legal
+Bladehold Cleaver	digital-only
+Blast from the Past	not-commander-legal
+Blessed Breath	deferred-splice
+Blighted Nightmare	digital-only
+Blightwing Whelp	digital-only
+Blood Age Muster	digital-only
+Bloodhill Bastion	non-tournament-type
+Bloodrage Alpha	digital-only
+Bloodspatter Vampire	not-commander-legal
+Bloodsprout Talisman	digital-only
+Blooming Cactusfolk	digital-only
+Boareskyr Tollkeeper	digital-only
+Boisterous Clique	digital-only
+Bone Rattler	not-commander-legal
+Boneyard Aberration	digital-only
+Boneyard Lurker	deferred-mutate
+Boomflinger	non-tournament-mechanic
+Border Guardian	not-commander-legal
+Boseiju Pathlighter	digital-only
+Bosh, Iron Golem Avatar	digital-only
+Bounty of the Deep	digital-only
+Bow to My Command	non-tournament-type
+Bowie Base One	non-tournament-type
+Box of Free-Range Goblins	not-commander-legal
+Braids, Conjurer Adept Avatar	digital-only
+Bram, Baguette Brawler	not-commander-legal
+Bramblearmor Brawler	digital-only
+Brave Meadowguard	digital-only
+Brazen Boarding	digital-only
+Break Expectations	digital-only
+Bringer of Green Zenith's Twilight	not-commander-legal
+Brittle Blast	digital-only
+Brokers' Safeguard	digital-only
+Brokkos, Apex of Forever	deferred-mutate
+Brood Astronomer	digital-only
+Bumbling Pangolin	not-commander-legal
+Buxton, Decorated Host	digital-only
+Buzz Buggy	non-tournament-mechanic
+Buzzing Whack-a-Doodle	not-commander-legal
+By Elspeth's Command	digital-only
+Cabaretti Revels	digital-only
+Cackling Observer	digital-only
+Caldera Breaker	digital-only
+Calim, Djinn Emperor	digital-only
+Call the Crash	digital-only
+Camato Scout	digital-only
+Candela, Aegis of Adagia	digital-only
+Candles' Glow	deferred-splice
+Cantor of the Refrain	digital-only
+Captain Eberhart	digital-only
+Captivating Crossroads	digital-only
+Cardboard Carapace	not-commander-legal
+Case of the Lost Witness	not-commander-legal
+Case of the Market Melee	digital-only
+Cat Oven	not-commander-legal
+Cathartic Operation	digital-only
+Caught in a Parallel Universe	non-tournament-type
+Cavern Whisperer	deferred-mutate
+Celestial Vault	digital-only
+Celestine Cave Witch	not-commander-legal
+Celestine Reef	non-tournament-type
+Cerise, Slayer of Fear	digital-only
+Champions of Archery	not-commander-legal
+Champions of Tyr	digital-only
+Chandra, Gremlin Wrangler	not-commander-legal
+Change the Narrative	digital-only
+Chaos Balor	digital-only
+Chaos Is My Plaything	non-tournament-type
+Chaotic Aether	non-tournament-type
+Char-Dog	not-commander-legal
+Charged Conjuration	digital-only
+Chatterstorm and Awaken the Woods	not-commander-legal
+Chicken Egg	not-commander-legal
+Chicken à la King	not-commander-legal
+Chimney Goyf	not-commander-legal
+Chipper Chopper	non-tournament-mechanic
+Chitinous Crawler	digital-only
+Chittering Doom	not-commander-legal
+Chittering Harvester	deferred-mutate
+Chittering Illuminator	digital-only
+Chittering Skullspeaker	digital-only
+Choice of Fortunes	digital-only
+Chomping Mastasaur	digital-only
+Choose Your Champion	non-tournament-type
+Choose Your Demise	non-tournament-type
+Chronatog Avatar	digital-only
+Chronicler of Worship	digital-only
+Cindercone Smite	digital-only
+Cinnamon, Seasoned Steed	not-commander-legal
+Circadian Struggle	digital-only
+Circus of the Sun	non-tournament-type
+City Hall	non-tournament-type
+City of the Daleks	non-tournament-type
+Citystalker Connoisseur	digital-only
+Clambassadors	not-commander-legal
+Cliffside Market	non-tournament-type
+Clock of DOOOOOOOOOOOOM!	non-tournament-mechanic
+Clone Crafter	digital-only
+Cloudpiercer	deferred-mutate
+Coal Hill School	non-tournament-type
+Coalition Construct	digital-only
+Cogmentor	non-tournament-mechanic
+Cogwork Progenitor	digital-only
+Colossal Chorus	digital-only
+Colossal Dreadmaw and Storm Crow	not-commander-legal
+Command the Chaff	not-commander-legal
+Common Iguana	not-commander-legal
+Compound Fracture	digital-only
+Concert Kaboomist	digital-only
+Conductive Current	digital-only
+Confront the Assault	digital-only
+Construction Arsonist	digital-only
+Consumed by History	digital-only
+Consuming Oni	digital-only
+Consuming Vortex	deferred-splice
+Contagion Dispenser	digital-only
+Contraption Cannon	non-tournament-mechanic
+Control Win Condition	not-commander-legal
+Corpseweaver Prodigy	digital-only
+Corrupted Key	not-commander-legal
+Cosmic Sovereign	digital-only
+Cottontail Caretaker	digital-only
+Craterous Stomp	digital-only
+Craving of Yeenoghu	digital-only
+Crescendo Conductor	digital-only
+Crovax	non-tournament-type
+Crow Storm	not-commander-legal
+Crucias, Titan of the Waves	digital-only
+Crude Abattoir	digital-only
+Cruel Cut	digital-only
+Cubwarden	deferred-mutate
+Cunning Azurescale	digital-only
+Curious Killbot	not-commander-legal
+Current Curriculum	digital-only
+Cursebound Witch	digital-only
+Cyclopean Titan	not-commander-legal
+Dakkon Blackblade Avatar	digital-only
+Dalek Intensive Care	non-tournament-type
+Dalkovan Outrider	digital-only
+Dampen Thought	deferred-splice
+Dance, Pathetic Marionette	non-tournament-type
+Darigaaz's Whelp	digital-only
+Darigaaz, Shivan Champion	digital-only
+Dark Wings Bring Your Downfall	non-tournament-type
+Darkstar Banisher	digital-only
+Darksteel Hydra	digital-only
+Dauntless Escort Avatar	digital-only
+Davriel's Withering	digital-only
+Davriel, Soul Broker	digital-only
+Daxiver, Izzet Electromancer	not-commander-legal
+Dazzling Flameweaver	digital-only
+Deadly Poison Sampler	non-tournament-mechanic
+Deb Thomas	not-commander-legal
+Dedicated Dollmaker	digital-only
+Deep Dish Pizza	not-commander-legal
+Delight in the Hunt	non-tournament-type
+Delighted Killbot	not-commander-legal
+Delve too Deep	not-commander-legal
+Denied!	not-commander-legal
+Desert Cenote	digital-only
+Desperate Ritual	deferred-splice
+Despondent Killbot	not-commander-legal
+Deviant Skytech	digital-only
+Diabolic Formula	digital-only
+Diabolical Salvation	not-commander-legal
+Diamond Faerie Avatar	digital-only
+Dictation Quillograph	non-tournament-mechanic
+Diminished Returner	digital-only
+Dina, Flesh Sower	digital-only
+Dirge Bat	deferred-mutate
+Dirty Rat	not-commander-legal
+Discover the Formula	digital-only
+Disguise Agent	not-commander-legal
+Dispatch Dispensary	non-tournament-mechanic
+Distracted Botanist	digital-only
+Divine Purge	digital-only
+Diviner of Fates	digital-only
+Division Table	non-tournament-mechanic
+Dogsnail Engine	non-tournament-mechanic
+Domesticated Mammoth	not-commander-legal
+Domesticated Watercourse	not-commander-legal
+Draconic Debut	digital-only
+Draconic Fealty	digital-only
+Dragon Typhoon	digital-only
+Dragonblood Twins	digital-only
+Dragonborn Immolator	digital-only
+Dragonfly Pilot	digital-only
+Dragonsoul Prodigy	digital-only
+Dragonweave Tapestry	digital-only
+Dreamtail Heron	deferred-mutate
+Drench the Soil in Their Blood	non-tournament-type
+Drix Interlacer	digital-only
+Drover of the Swine	digital-only
+Dual Doomsuits	non-tournament-mechanic
+Dunbarrow Revivalist	digital-only
+Dungeon Master	not-commander-legal
+Duplication Device	non-tournament-mechanic
+Dusk's Landing	digital-only
+Eager Beaver	not-commander-legal
+Eager Flameguide	digital-only
+Echoing Cavern	digital-only
+Edge of Malacol	non-tournament-type
+Effie, Fast Learner	digital-only
+Effluence Devourer	digital-only
+Eight-and-a-Half-Tails Avatar	digital-only
+Eladamri	non-tournament-type
+Eladamri, Lord of Leaves Avatar	digital-only
+Eldest Dragon Highlander	not-commander-legal
+Electrostatic Blast	digital-only
+Elemental, My Dear	not-commander-legal
+Eloren Wilds	non-tournament-type
+Elvish Champion Avatar	digital-only
+Elvish Elegy	digital-only
+Elvish Impersonation Contest	non-tournament-type
+Elvish Impersonators	not-commander-legal
+Embrace My Diabolical Vision	non-tournament-type
+Emerald Collector	not-commander-legal
+Emmara, Voice of the Conclave	digital-only
+Emperor Apatzec Intli IV	digital-only
+Emporium Thopterist	digital-only
+Enchanted Prairie	not-commander-legal
+Enchantmentize	not-commander-legal
+Enduring Friendship	digital-only
+Enigma Ridges	non-tournament-type
+Enigma Sphinx Avatar	digital-only
+Enraged Killbot	not-commander-legal
+Ensoul Ring	not-commander-legal
+Enter the Dungeon	not-commander-legal
+Erhnam Djinn Avatar	digital-only
+Ersta, Friend to All	not-commander-legal
+Ertai	non-tournament-type
+Esper	non-tournament-type
+Etched Oracle Avatar	digital-only
+Ethereal Escort	digital-only
+Ethereal Grasp	digital-only
+Ethrimik, Imagined Fiend	digital-only
+Eumidian Lifeseed	digital-only
+Euroakus	not-commander-legal
+Euru, Acorn Scrounger	not-commander-legal
+Everdream	deferred-splice
+Evermind	deferred-splice
+Everquill Phoenix	deferred-mutate
+Every Dream a Nightmare	non-tournament-type
+Every Hope Shall Vanish	non-tournament-type
+Every Last Vestige Shall Rot	non-tournament-type
+Everythingamajig	not-commander-legal
+Evil Boros Charm	not-commander-legal
+Evil Comes to Fruition	non-tournament-type
+Excogitator Sphinx	digital-only
+Expansive Reapplication	digital-only
+Expedition Supplier	digital-only
+Experimental Pilot	digital-only
+Fabled Path of Searo Point	not-commander-legal
+Face to Face	not-commander-legal
+Faceless Agent	digital-only
+Faerie Aerie	non-tournament-mechanic
+Faerie Dragon	digital-only
+Faithful Disciple	digital-only
+Fallaji Antiquarian	digital-only
+Fallen Angel Avatar	digital-only
+Favored Enemy	digital-only
+Fear My Authority	non-tournament-type
+Fear of Change	digital-only
+Fear of Ridicule	digital-only
+Fearsome Whelp	digital-only
+Feed the Bog	digital-only
+Feed the Machine	non-tournament-type
+Feeding Grounds	non-tournament-type
+Feisty Stegosaurus	not-commander-legal
+Fell Beast's Shriek	deferred-splice
+Feral Roar	digital-only
+Fields of Summer	non-tournament-type
+Figure of Destiny Avatar	digital-only
+Finders, Keepers	non-tournament-mechanic
+First Little Pig	digital-only
+First Pick	non-tournament-mechanic
+Fixed Point in Time	non-tournament-type
+Flames of Moradin	digital-only
+Flametongue Kavu Avatar	digital-only
+Flaming Fist Duskguard	digital-only
+Flock of Rabid Sheep	not-commander-legal
+Fluros of Myra's Marvels	not-commander-legal
+Follow the Tracks	digital-only
+For Each of You, a Gift	non-tournament-type
+Force of Rowan	not-commander-legal
+Forceful Cultivator	digital-only
+Forestfolk	not-commander-legal
+Forgeborn Phoenix	digital-only
+Forgefire Automaton	digital-only
+Form of the Squirrel	not-commander-legal
+Form of the Stax Player	not-commander-legal
+Forsaken Crossroads	not-commander-legal
+Foundry Beetle	digital-only
+Foundry Groundbreaker	digital-only
+Fountainport Charmer	digital-only
+Fowl Play	not-commander-legal
+Fragment Reality	digital-only
+Free-for-All	not-commander-legal
+Frenemy of the Guildpact	not-commander-legal
+Frenetic Efreet Avatar	digital-only
+Frenzied Geistblaster	digital-only
+Freyalise, Skyshroud Partisan	digital-only
+Frogkin Kidnapper	not-commander-legal
+Frontier Explorer	not-commander-legal
+Fruitcake Elemental	not-commander-legal
+Fuel Tank Feaster	digital-only
+Furgul, Quag Nurturer	digital-only
+Furnace Layer	non-tournament-type
+Futurist Spellthief	digital-only
+Galathul Galecaller	digital-only
+Gale, Conduit of the Arcane	digital-only
+Gallery of Legends	non-tournament-mechanic
+Garbage Elemental	non-tournament-mechanic
+Gardens of Tranquil Repose	non-tournament-type
+Garruk the Slayer	not-commander-legal
+Garruk's Lost Wolf	not-commander-legal
+Garruk, Wrath of the Wilds	digital-only
+Gate of the Black Dragon	digital-only
+Gate to Manorborn	digital-only
+Gate to Seatower	digital-only
+Gate to Tumbledown	digital-only
+Gate to the Citadel	digital-only
+Gavony	non-tournament-type
+Geist of Regret	digital-only
+Geistchanneler	digital-only
+Geistpack Alpha	digital-only
+Gem Bazaar	digital-only
+Gemrazer	deferred-mutate
+Genasi Rabble-Rouser	digital-only
+Generated Horizons	not-commander-legal
+Genetic Recombinator	non-tournament-mechanic
+Geometric Weird	not-commander-legal
+Gerrard	non-tournament-type
+Ghalma the Shaper	digital-only
+Ghirapur	non-tournament-type
+Ghirapur Grand Prix	non-tournament-type
+Ghitu Embercoiler	digital-only
+Giant Fire Beetles	digital-only
+Giant Regrowth	digital-only
+Gift Horse	non-tournament-mechanic
+Gilded Ambusher	digital-only
+Gilt-Leaf Alchemist	digital-only
+Gingerbehemoth	not-commander-legal
+Gitrog, Horror of Zhava	digital-only
+Gix	non-tournament-type
+Gixian Recycler	digital-only
+Glacial Ray	deferred-splice
+Gleemox	digital-only
+Glen Elendra	non-tournament-type
+Glimmer Hoarder	digital-only
+Glimmervoid Basin	non-tournament-type
+Glistening Extractor	digital-only
+Glorifying Verse	digital-only
+Glorious Dragon-Kin	not-commander-legal
+Glowstone Recluse	deferred-mutate
+Gnoll Hunting Party	digital-only
+Gnome-Made Engine	not-commander-legal
+Gnomeball Machine	non-tournament-mechanic
+Goblin Blastronauts	non-tournament-mechanic
+Goblin Bowling Team	not-commander-legal
+Goblin Crash Pilot	digital-only
+Goblin Influx Array	digital-only
+Goblin Morale Sergeant	digital-only
+Goblin Polka Band	digital-only
+Goblin Secret Agent	not-commander-legal
+Goblin Slingshot	non-tournament-mechanic
+Goblin Trapfinder	digital-only
+Goblin Tutor	not-commander-legal
+Goblin Warchief Avatar	digital-only
+Golden Sidekick	digital-only
+Goldmeadow	non-tournament-type
+Golgari Death Swarm	not-commander-legal
+Gorilla Tactics	not-commander-legal
+Goryo's Vengeance	deferred-splice
+Grand Ossuary	non-tournament-type
+Grave Choice	digital-only
+Grave Expectations	digital-only
+Grave Studies	digital-only
+Graven Archfiend	digital-only
+Graveyard Dig	not-commander-legal
+Gravitic Herald	digital-only
+Great Desert Hellion	digital-only
+Great Fang Chroniclers	digital-only
+Grenzo, Crooked Jailer	digital-only
+Greven il-Vec	non-tournament-type
+Grinning Demon Avatar	digital-only
+Grixis	non-tournament-type
+Grizzled Huntmaster	digital-only
+Ground Pounder	not-commander-legal
+Grove of the Dreampods	non-tournament-type
+Grow Old Together	digital-only
+Growth Charm	not-commander-legal
+Growth Spurt	not-commander-legal
+Guest List	non-tournament-mechanic
+Guildpact Greenwalker	digital-only
+Gut, Fanatical Priestess	digital-only
+Gutmorn, Pactbound Servant	digital-only
+Gyox, Brutal Carnivora	digital-only
+HONK!	not-commander-legal
+Haakon, Stromgald Scourge Avatar	digital-only
+Hadran, Naya Sunseeder	not-commander-legal
+Hag of Ceaseless Torment	digital-only
+Hag of Dark Duress	digital-only
+Hag of Death's Legion	digital-only
+Hag of Inner Weakness	digital-only
+Hag of Mage's Doom	digital-only
+Hag of Noxious Nightmares	digital-only
+Hag of Scoured Thoughts	digital-only
+Hag of Syphoned Breath	digital-only
+Hag of Twisted Visions	digital-only
+Hallowed Priest	digital-only
+Hammer Helper	not-commander-legal
+Hammer Jammer	not-commander-legal
+Hamza, Might of the Yathan	digital-only
+Hangarback Assembler	digital-only
+Hanna	non-tournament-type
+Hapato's Might	digital-only
+Hard Hat Area	non-tournament-mechanic
+Hardened Bonds	digital-only
+Harrowing Swarm	digital-only
+Head Banger	non-tournament-mechanic
+Head of the Class	digital-only
+Heartwood Storyteller Avatar	digital-only
+Hedron Fields of Agadeem	non-tournament-type
+Heir to Dragonfire	digital-only
+Hell's Caretaker Avatar	digital-only
+Herald of Vengeance	digital-only
+Herald's Reveille	digital-only
+Hermit Druid Avatar	digital-only
+Hex, Kellan's Companion	digital-only
+Hexgold Sledge	digital-only
+Hideous Laughter	deferred-splice
+High Fae Prankster	digital-only
+High Marshal Arguel	digital-only
+Highway Reaver	digital-only
+Higure, the Still Wind Avatar	digital-only
+Hinterland Chef	digital-only
+Hollowhenge Wrangler	digital-only
+Holographic Double	digital-only
+Honor the Past	digital-only
+Hook Horror	digital-only
+Horizon Boughs	non-tournament-type
+Horobi's Whisper	deferred-splice
+Hotel of Fears	non-tournament-type
+Hound of Urabrask	not-commander-legal
+Housemeld	digital-only
+How to Keep an Izzet Mage Busy	not-commander-legal
+Hundred-Talon Strike	deferred-splice
+Hungry Hungry Heifer	not-commander-legal
+Huntmaster Liger	deferred-mutate
+Hurkyl's Prodigy	digital-only
+Hydradoodle	not-commander-legal
+Hydroponics Architect	digital-only
+Hymn to the Ages	digital-only
+Hypnotic Pattern	digital-only
+Hypnotic Swirly Disc	non-tournament-mechanic
+I Am Duskmourn	non-tournament-type
+I Am Never Alone	non-tournament-type
+I Am Untouchable	non-tournament-type
+I Bask in Your Silent Awe	non-tournament-type
+I Call for Slaughter	non-tournament-type
+I Call on the Ancient Magics	non-tournament-type
+I Delight in Your Convulsions	non-tournament-type
+I Know All, I See All	non-tournament-type
+I Will Savor Your Agony	non-tournament-type
+Ichor Aberration	digital-only
+Ignite the Cloneforge!	non-tournament-type
+Illuminating Lash	digital-only
+Illuna, Apex of Wishes	deferred-mutate
+Imaginary Friends	not-commander-legal
+Immersturm	non-tournament-type
+Imoen, Trickster Friend	digital-only
+Impatient Iguana	not-commander-legal
+Imperial Blademaster	digital-only
+Impetuous Lootmonger	digital-only
+Impose Hierarchy	digital-only
+Imprison This Insolent Wretch	non-tournament-type
+Improvising Aerialist	digital-only
+Incessant Provocation	digital-only
+Inchblade Companion	digital-only
+Incisor Steed	not-commander-legal
+Incite Insight	non-tournament-mechanic
+Incoming!	not-commander-legal
+Incubob	not-commander-legal
+Indris, the Hydrostatic Surge	digital-only
+Infestation	digital-only
+Inflation Station	non-tournament-mechanic
+Inhumaniac	not-commander-legal
+Ink-Eyes, Servant of Oni Avatar	digital-only
+Innistrad Charm	not-commander-legal
+Innovative Metatect	digital-only
+Inquisitor Captain	digital-only
+Insatiable Hemophage	deferred-mutate
+Inspiring Commander	digital-only
+Inspiring Easel	digital-only
+Insufferable Syphon	non-tournament-mechanic
+Interdisciplinary Studies	digital-only
+Interplanar Tunnel	non-tournament-type
+Into the Earthen Maw	non-tournament-type
+Into the Fray	deferred-splice
+Introductions Are in Order	non-tournament-type
+Intruder's Inquisition	digital-only
+Inys Haen	non-tournament-type
+Inzerva, Master of Insights	not-commander-legal
+Isamaru and Yoshimaru	not-commander-legal
+Ishkanah, Broodmother	digital-only
+Isle of Vesuva	non-tournament-type
+Item Crate	not-commander-legal
+Izzet Polarizer	digital-only
+Izzet Steam Maze	non-tournament-type
+Jace's Saga	digital-only
+Jack-in-the-Mox	not-commander-legal
+Jackknight	non-tournament-mechanic
+Jaheira, Harper Emissary	digital-only
+Jalira's Show	non-tournament-type
+Jamming Device	non-tournament-mechanic
+Jarsyl, Dark Age Scion	digital-only
+Jasconian Isle	not-commander-legal
+Jaya Ballard Avatar	digital-only
+Jeska and Kamahl	not-commander-legal
+Jessie Zane, Fangbringer	digital-only
+Jet Collector	not-commander-legal
+Jewel Mine Overseer	digital-only
+Jhoira of the Ghitu Avatar	digital-only
+Johnny, Combo Player	not-commander-legal
+Jon Irenicus, the Exile	digital-only
+Joyride Rigger	non-tournament-mechanic
+Juggernaut Peddler	digital-only
+Juggle the Performance	digital-only
+Jukai Liberator	digital-only
+Jumbo Imp	not-commander-legal
+Jund	non-tournament-type
+Junkyard Scrapper	digital-only
+Kamachal, Ship's Mascot	digital-only
+Kami of Bamboo Groves	digital-only
+Kami of Mourning	digital-only
+Kami of Transmutation	digital-only
+Kamigawa Charm	not-commander-legal
+Kardum, Patron of Flames	digital-only
+Kari Zev, Crew of Two	digital-only
+Karlach, Raging Tiefling	digital-only
+Karlov's Crossbow	not-commander-legal
+Karn	non-tournament-type
+Karona, False God Avatar	digital-only
+Kavaron Consumed	digital-only
+Kayla's Kindling	digital-only
+Kemba's Outfitter	digital-only
+Kerblam! Warehouse	non-tournament-type
+Kessig	non-tournament-type
+Ketria	non-tournament-type
+Kevin, Questing Dragon	not-commander-legal
+Key to the Archive	digital-only
+Kharasha Foothills	non-tournament-type
+Kharis & The Beholder	not-commander-legal
+Khod, Etlan Shiis Envoy	not-commander-legal
+Killer Cosplay	not-commander-legal
+Killian, Spotlight Chaser	digital-only
+Kilnspire District	non-tournament-type
+Kindred Denial	digital-only
+Kiora, the Tide's Fury	digital-only
+Kithkin Brinefarer	digital-only
+Klement, Novice Acolyte	digital-only
+Kneel Before My Legions	non-tournament-type
+Know Evil	non-tournament-type
+Know Naught but Fire	non-tournament-type
+Knowing	not-commander-legal
+Kobold Warcaller	digital-only
+Kodama's Might	deferred-splice
+Koma and Toski, Compleated	not-commander-legal
+Krazy Kow	not-commander-legal
+Kresh the Bloodbraided Avatar	digital-only
+Krosa	non-tournament-type
+Krosan Adaptation	not-commander-legal
+Labro Bot	not-commander-legal
+Lackey Recycler	non-tournament-mechanic
+Lae'zel, Githyanki Warrior	digital-only
+Lair of the Ashen Idol	non-tournament-type
+Lake Silencio	non-tournament-type
+Lam, Storm Crane Elder	digital-only
+Landlore Navigator	digital-only
+Lantern of Undersight	not-commander-legal
+Largepox	not-commander-legal
+Leaf-Leap Guide	digital-only
+Leech Medic	not-commander-legal
+Legion Reconsecrator	digital-only
+Legion of Clay	digital-only
+Legion's Chant	digital-only
+Leisure Bicycle	not-commander-legal
+Leonin Sanctifier	digital-only
+Lethe Lake	non-tournament-type
+Liara of the Flaming Fist	digital-only
+Life Cloud	not-commander-legal
+Lifted by Clouds	deferred-splice
+Littjara	non-tournament-type
+Lizardfolk Librarians	digital-only
+Llanowar	non-tournament-type
+Lobe Lobber	not-commander-legal
+Loch Larent	digital-only
+Locus Cobra	not-commander-legal
+Lonely End	digital-only
+Longtusk Stalker	digital-only
+Look Skyward and Despair	non-tournament-type
+Look at Me, I'm the DCI	not-commander-legal
+Loose in the Park	digital-only
+Lore Drakkis	deferred-mutate
+Loxodon Hierarch Avatar	digital-only
+Lukamina, Moon Druid	digital-only
+Lulu, Forgetful Hollyphant	digital-only
+Lumbering Lightshield	digital-only
+Lupine Harbingers	digital-only
+Lurker in the Deep	digital-only
+Lurking Spinecrawler	digital-only
+Luxior and Shadowspear	not-commander-legal
+Lydari Druid	digital-only
+Lydari Elephant	digital-only
+Lyna	non-tournament-type
+Lyzolda, the Blood Witch Avatar	digital-only
+M'Odo, the Gnarled Oracle	not-commander-legal
+Mace of Disruption	digital-only
+Machinist's Dismissal	digital-only
+Mad Science Fair Project	not-commander-legal
+Maelstrom Archangel Avatar	digital-only
+MagicConsecrated Sphinx	not-commander-legal
+Magmatic Scorchwing	digital-only
+Majestic Auricorn	deferred-mutate
+Make Yourself Useful	non-tournament-type
+Malfegor Avatar	digital-only
+Mana Screw	not-commander-legal
+Managorger Phoenix	digital-only
+Manakin and Millikin	not-commander-legal
+Mandatory Friendship Shackles	non-tournament-mechanic
+Mangled Soulrager	digital-only
+Manor Guardian	digital-only
+Mapping the Maze	digital-only
+Maralen of the Mornsong Avatar	digital-only
+Maraxus	non-tournament-type
+March Toward Perfection	digital-only
+Mardu Thunderkite	digital-only
+Maro Avatar	digital-only
+Marshland Hordemaster	digital-only
+Marwyn's Kindred	digital-only
+Master of the Wild Hunt Avatar	digital-only
+Masterpiece Vault	digital-only
+May Civilization Collapse	non-tournament-type
+Mayael the Anima Avatar	digital-only
+Megaflora Jungle	non-tournament-type
+Melt Through	digital-only
+Menagerie Curator	digital-only
+Mentor of Evos Isle	digital-only
+Mephidross Slime	digital-only
+Mephit's Enthusiasm	digital-only
+Mer Man	not-commander-legal
+Merfolk Tunnel-Guide	digital-only
+Midlife Upgrade	non-tournament-mechanic
+Migratory Greathorn	deferred-mutate
+Minamo	non-tournament-type
+Mind Spike	digital-only
+Mindleecher	deferred-mutate
+Mine Is the Only Truth	non-tournament-type
+Mine Security	digital-only
+Mine, Mine, Mine!	not-commander-legal
+Minthara of the Absolute	digital-only
+Mirri	non-tournament-type
+Mirri the Cursed Avatar	digital-only
+Mirror Entity Avatar	digital-only
+Mirrored Depths	non-tournament-type
+Mirrored Lotus	not-commander-legal
+Mischievous Lookout	digital-only
+Mishra	non-tournament-type
+Mitotic Ultimus	digital-only
+Mojave Desert	non-tournament-type
+Molten Impact	digital-only
+Momir Vig, Simic Visionary Avatar	digital-only
+Mondassian Colony Ship	non-tournament-type
+Monoist Gravliner	digital-only
+Moradin's Disciples	digital-only
+More of That Strange Oil...	not-commander-legal
+Morinfen Avatar	digital-only
+Morphic Tide	non-tournament-type
+Mortal Flesh Is Weak	non-tournament-type
+Moth Herb Elixir	not-commander-legal
+Mother Kangaroo	not-commander-legal
+Mothlight Processionist	digital-only
+Mothrider Cavalry	digital-only
+Motivated Muralist	digital-only
+Mount Keralia	non-tournament-type
+Mountain Mover	not-commander-legal
+Mr. Monopoly, On the Go	not-commander-legal
+Multani	non-tournament-type
+Murasa	non-tournament-type
+Murderous Redcap Avatar	digital-only
+Murgish Cemetery	digital-only
+Mutable Pupa	digital-only
+Mutual Epiphany	non-tournament-type
+My Champion Stands Supreme	non-tournament-type
+My Crushing Masterstroke	non-tournament-type
+My Followers Ascend	non-tournament-type
+My Forces Are Innumerable	non-tournament-type
+My Genius Knows No Bounds	non-tournament-type
+My Laughter Echoes	non-tournament-type
+My Tendrils Run Deep	non-tournament-type
+My Undead Horde Awakens	non-tournament-type
+My Wealth Will Bury You	non-tournament-type
+My Will Is Irresistible	non-tournament-type
+My Wings Enfold All	non-tournament-type
+My Wish Is Your Command	non-tournament-type
+Mycelic Ballad	digital-only
+Mycoid Resurrection	digital-only
+Myojin of Night's Reach and Grim Betrayal	not-commander-legal
+Mysterious Confluence	not-commander-legal
+Mythweaver Poq	digital-only
+Naar Isle	non-tournament-type
+Naktamun	non-tournament-type
+Naktamun Shines Again	digital-only
+Nantuko Slicer	digital-only
+Nashi, Illusion Gadgeteer	digital-only
+Nature Demands an Offering	non-tournament-type
+Nature Shields Its Own	non-tournament-type
+Naya	non-tournament-type
+Nearby Planet	not-commander-legal
+Necropanther	deferred-mutate
+Necropolis of Azar	digital-only
+Necropotence Avatar	digital-only
+Nekrataal Avatar	digital-only
+Nephalia	non-tournament-type
+Nethroi, Apex of Death	deferred-mutate
+Nettling Host	digital-only
+Network Marauder	digital-only
+Neural Network	non-tournament-mechanic
+New Argive	non-tournament-type
+New New York	non-tournament-type
+Niambi, Beloved Protector	digital-only
+Night Out in Vegas	not-commander-legal
+Nightclub Bouncer	digital-only
+Nim Mongoose	not-commander-legal
+Nimble Pilferer	digital-only
+Nira, Hellkite Duelist	not-commander-legal
+No One Will Hear Your Cries	non-tournament-type
+No Secret Is Hidden from Me	non-tournament-type
+Norin and Feldon	not-commander-legal
+Norn's Disassembly	digital-only
+Norn's Dominion	non-tournament-type
+Norn's Fetchling	digital-only
+Norn's Seedcore	non-tournament-type
+North Pole Research Base	non-tournament-type
+Nothing Can Stop Me Now	non-tournament-type
+Novellamental	not-commander-legal
+Noxious Bayou	not-commander-legal
+Numbing Jellyfish	not-commander-legal
+Nylea's Oracle	digital-only
+Nyx	non-tournament-type
+Oaken Power Suit	non-tournament-mechanic
+Oasis of Renewal	digital-only
+Obscura Polymorphist	digital-only
+Obsessive Collector	digital-only
+Oglor, Devoted Assistant	digital-only
+Oko, Lord of the Fae	digital-only
+Old Fogey	not-commander-legal
+Omenpath Instability	non-tournament-type
+Ominous Lockbox	digital-only
+Ominous Traveler	digital-only
+Onakke Catacomb	non-tournament-type
+Once More with Feeling	not-commander-legal
+One with Death	not-commander-legal
+Oni of Wild Places Avatar	digital-only
+Only Blood Ends Your Nightmares	non-tournament-type
+Only I Know What Awaits	non-tournament-type
+Ood Sphere	non-tournament-type
+Optical Optimizer	non-tournament-mechanic
+Opulent Clomper	digital-only
+Oracle	non-tournament-type
+Oracle of the Alpha	not-commander-legal
+Orcish Catapult	digital-only
+Orcish Squatters Avatar	digital-only
+Organ Harvest	not-commander-legal
+Original Skullclamp	not-commander-legal
+Orim	non-tournament-type
+Ornate Imitations	digital-only
+Orochi Colony	non-tournament-type
+Orzhova	non-tournament-type
+Otaria	non-tournament-type
+Oteclán	non-tournament-type
+Otrimi, the Ever-Playful	deferred-mutate
+Oura, the Imitator	digital-only
+Outfitted Jouster	digital-only
+Overblaze	deferred-splice
+Overcooked	not-commander-legal
+Overt Operative	non-tournament-mechanic
+Oyaminartok, Polar Werebear	digital-only
+Painful Bond	digital-only
+Painiac	not-commander-legal
+Paliano	non-tournament-type
+Pampered Loamfrill	digital-only
+Pandora's Box	digital-only
+Panopticon	non-tournament-type
+Paper Tiger	not-commander-legal
+Paradigm Shifter	digital-only
+Paradox Kraken	digital-only
+Parcelbeast	deferred-mutate
+Pass the Torch	digital-only
+Patchplate Resolute	digital-only
+Paths of Tuinvale	digital-only
+Patient Zero	digital-only
+Patriar's Humiliation	digital-only
+Pay Tribute to Me	non-tournament-type
+Peacekeeper Avatar	digital-only
+Pearl Collector	not-commander-legal
+Pearl Lake Warden	digital-only
+Peel Out	not-commander-legal
+Penregon Besieged	digital-only
+Pep, Raucous Raider	digital-only
+Perennial Gravewarden	digital-only
+Perforator Crocodile	not-commander-legal
+Perhaps You've Met My Cohort	non-tournament-type
+Perilous Iteration	digital-only
+Personal Decoy	not-commander-legal
+Pet Project	non-tournament-mechanic
+Phage the Untouchable Avatar	digital-only
+Phantasmal Extraction	digital-only
+Phila, Unsealed	not-commander-legal
+Phoenix of Iteration	digital-only
+Phyresis Roach	digital-only
+Phyrexian Adapter	not-commander-legal
+Phyrexian Broodstar	not-commander-legal
+Phyrexian Chimney Imp	not-commander-legal
+Phyrexian Esthetician	not-commander-legal
+Phyrexian Harvester	digital-only
+Phyrexian Ornithopter	not-commander-legal
+Phyrexian Scrapyard	digital-only
+Piece It Together	digital-only
+Pirate's Landing	digital-only
+Plaguecrafter's Familiar	digital-only
+Plane-Merge Elf	not-commander-legal
+Planequake	not-commander-legal
+Planewide Disaster	non-tournament-type
+Platinum Angel Avatar	digital-only
+Plots That Span Centuries	non-tournament-type
+Plunderer's Prize	digital-only
+Polterheist	digital-only
+Pompeii	non-tournament-type
+Pool Resources	digital-only
+Pool of Vigorous Growth	digital-only
+Pools of Becoming	non-tournament-type
+Porcine Portent	digital-only
+Porcuparrot	deferred-mutate
+Potatoes	not-commander-legal
+Potential Horizon	digital-only
+Poultrygeist	not-commander-legal
+Pouncing Shoreshark	deferred-mutate
+Power Struggle	digital-only
+Power Without Equal	non-tournament-type
+Prahv	non-tournament-type
+Prairie Survivalist	digital-only
+Predatory Sludge	digital-only
+Preponderant Pearl	digital-only
+Preston's Stage	non-tournament-type
+Priest of Possibility	digital-only
+Prime Minister's Cabinet Room	non-tournament-type
+Primetime Suspect	not-commander-legal
+Prismatic Dragon	digital-only
+Prodigal Sorcerer Avatar	digital-only
+Propagator Primordium	digital-only
+Prophet of the Planeswalker	digital-only
+Protean War Engine	digital-only
+Prototype X-8	digital-only
+Providence of Night	digital-only
+Psychic Puppetry	deferred-splice
+Pull of the Mist Moon	digital-only
+Puppet Raiser	digital-only
+Puresteel Angel	not-commander-legal
+Pursued by Something	non-tournament-type
+Putrefying Rotboar	digital-only
+Putrid Hexhag	digital-only
+Quick-Stick Lick Trick	non-tournament-mechanic
+Quickbeast Amulet	digital-only
+Quicksilver Lapidary	digital-only
+Quicksilver Sea	non-tournament-type
+Quicksilver Servitor	digital-only
+Quintorius, Fate Splitter	digital-only
+Racketeer Boss	digital-only
+Raddic, Tal Zealot	digital-only
+Radiant Smite	digital-only
+Rahilda, Wanted Cutthroat	digital-only
+Raiders' Allegiance	non-tournament-type
+Rainbow Knights	digital-only
+Raksha Golden Cub Avatar	digital-only
+Rampaging Ursaguana	digital-only
+Ranger Squadron	digital-only
+Rankle, Pitiless Trickster	digital-only
+Rapid Prototyper	non-tournament-mechanic
+Rasaad, Monk of Selûne	digital-only
+Raven's Run	non-tournament-type
+Ravenous Pursuit	digital-only
+Razor Demon	digital-only
+Reality Is Mine to Control	non-tournament-type
+Reality Shaping	non-tournament-type
+Really Charming Prince	not-commander-legal
+Realms Befitting My Majesty	non-tournament-type
+Reaper King Avatar	digital-only
+Reckless Ringleader	digital-only
+Record Store	non-tournament-mechanic
+Recruit Instructor	digital-only
+Recycla-bird	not-commander-legal
+Red Priest of Yawgmoth	not-commander-legal
+Reezug, the Bonecobbler	digital-only
+Refibrillator	non-tournament-mechanic
+Reflection Net	digital-only
+Reflective Rimekin	digital-only
+Regal Leosaur	deferred-mutate
+Relics of the Rubblebelt	digital-only
+Replicating Terror	digital-only
+Resolute Rejection	digital-only
+Resourceful Collector	digital-only
+Reweave	deferred-splice
+Ribald Shanty	digital-only
+Richlau, Headmaster	digital-only
+Riku and Riku	not-commander-legal
+Rimewall Protector	digital-only
+Riptide Island	non-tournament-type
+Rising Chicane	digital-only
+Rith, the Awakener Avatar	digital-only
+Riven Turnbull and Princess Lucrezia	not-commander-legal
+River's Favor	digital-only
+Riveteers Provocateur	digital-only
+Riveting Rigger	non-tournament-mechanic
+Roalesk, Prime Specimen	digital-only
+Roar of Jukai	deferred-splice
+Robot Chicken	not-commander-legal
+Rock Lobster	not-commander-legal
+Rofellos	non-tournament-type
+Rootha, Ardent Artisan	digital-only
+Roots of All Evil	non-tournament-type
+Rope Line Attendant	digital-only
+Rot Like the Scum You Are	non-tournament-type
+Rothga, Bonded Engulfer	digital-only
+Rotted Ones, Lay Siege	non-tournament-type
+Routeway Moose	digital-only
+Royal Assassin Avatar	digital-only
+Ruby Collector	not-commander-legal
+Rumbling Slum Avatar	digital-only
+Runaway Growth	digital-only
+Runecarved Obelisk	digital-only
+Running Is Useless	non-tournament-type
+Rusko, Clockmaker	not-commander-legal
+Sagrada Familiar	not-commander-legal
+Saiba Syphoner	digital-only
+Saint Elenda	digital-only
+Saji's Torrent	digital-only
+Sakashima the Impostor Avatar	digital-only
+Sala, Deck Boss	digital-only
+Salacinder and Soot, Rascals	digital-only
+Salvaged Imitations	digital-only
+Sanctum of Serra	non-tournament-type
+Sandcloud Harbinger	digital-only
+Sanguine Brushstroke	not-commander-legal
+Sanguine Soothsayer	digital-only
+Sap Sucker	non-tournament-mechanic
+Sap Vitality	digital-only
+Sapphire Collector	not-commander-legal
+Sarah's Wings	not-commander-legal
+Sarevok the Usurper	digital-only
+Sarkhan's Scorn	digital-only
+Sarkhan, Wanderer to Shiv	digital-only
+Sawtusk Demolisher	deferred-mutate
+Scalar Scholar	digital-only
+Scaled Destruction	not-commander-legal
+Scalesoul Gnome	digital-only
+Scalespeaker Shepherd	digital-only
+Scintillating Encore	digital-only
+Scion of Shiv	digital-only
+Scissors Lizard	not-commander-legal
+Scour the Scene	digital-only
+Scrutiny of the Guildpact	digital-only
+Sea of Sand	non-tournament-type
+Sea-Dasher Octopus	deferred-mutate
+Searing Soloist	digital-only
+Season's Beatings	not-commander-legal
+Seatower Imprisonment	digital-only
+Second Little Pig	digital-only
+Seek New Knowledge	digital-only
+Seething Skitter-Priest	digital-only
+Segovian Sword	not-commander-legal
+Selenia	non-tournament-type
+Selesnya Loft Gardens	non-tournament-type
+Selfless Germinator	digital-only
+Semblance Scanner	digital-only
+Serra	non-tournament-type
+Serra Angel Avatar	digital-only
+Seshiro the Anointed Avatar	digital-only
+Settle the Wilds	digital-only
+Sewer Plague	digital-only
+Shadowheart, Sharran Cleric	digital-only
+Shaggy Camel	not-commander-legal
+Shattering Finale	digital-only
+Shellfish Scholar	digital-only
+Sheoldred's Assimilator	digital-only
+Shichifukujin Dragon	not-commander-legal
+Shifting Borders	deferred-splice
+Shiv	non-tournament-type
+Shoe Tree	not-commander-legal
+Shoreline Scout	digital-only
+Shove Aside	digital-only
+Shrine Keeper	digital-only
+Shy Town	non-tournament-type
+Sibsig's Artisan	digital-only
+Sidar Kondo	non-tournament-type
+Sigardian Evangel	not-commander-legal
+Signature Spells	digital-only
+Silent Extraction	digital-only
+Simic Slaw	not-commander-legal
+Singing Towers of Darillium	non-tournament-type
+Sinister Reflections	digital-only
+Sisay	non-tournament-type
+Sisters of Stone Death Avatar	digital-only
+Skanos, Dragon Vassal	digital-only
+Skullpiercer Gnat	digital-only
+Sky Deck	non-tournament-type
+Skybreen	non-tournament-type
+Skyline Savior	digital-only
+Skyshroud Ambush	digital-only
+Skyshroud Lookout	digital-only
+Skywriter Djinn	digital-only
+Slayer's Bounty	digital-only
+Sleuth Instructor	digital-only
+Slimefoot, Thallid Transplant	digital-only
+Sliv-Mizzet, Hivemind	not-commander-legal
+Slivdrazi Monstrosity	not-commander-legal
+Sliver Queen Avatar	digital-only
+Sliver Queen, Brood Mother	non-tournament-type
+Sliver Weftwinder	digital-only
+Sly Spy	not-commander-legal
+Smog Smasher	digital-only
+Smogbelcher Chariot	digital-only
+Snapdax, Apex of the Hunt	deferred-mutate
+Snarlfang Vermin	digital-only
+Snowborn Simulacra	digital-only
+Sojourner's Enforcermite	not-commander-legal
+Sokenzan	non-tournament-type
+Soldiers of the Watch	digital-only
+Solitary Defiance	digital-only
+Solitary Study	digital-only
+Song of Point Prime	digital-only
+Song of Seasons	digital-only
+Soovril, Patient Antiquarian	digital-only
+Soul Servitude	digital-only
+Soul Shredder	digital-only
+Soul of Mirrodin	not-commander-legal
+Soulhunter Rakshasa	digital-only
+Soulless Revival	deferred-splice
+Soulstealer Axe	digital-only
+Souvenir Snatcher	deferred-mutate
+Spara's Bodyguard	digital-only
+Spark Fiend	not-commander-legal
+Sparks Ablaze	digital-only
+Spatial Merging	non-tournament-type
+Spatula of the Ages	not-commander-legal
+Spawning Pod	digital-only
+Spectacle of Destruction	digital-only
+Spectrox Mines	non-tournament-type
+Speedbrood Stalker	digital-only
+Spell Suck	non-tournament-mechanic
+Spellchain Scatter	digital-only
+Spelldrain Assassin	digital-only
+Spirited Simulacrum	digital-only
+Spiritual Visit	deferred-splice
+Splicer's Skill	deferred-splice
+Spotlight Falcon	digital-only
+Sproutwatch Dryad	digital-only
+Squadron Carrier	digital-only
+Squee	non-tournament-type
+Squee, Goblin Nabob Avatar	digital-only
+Stairs to Infinity	non-tournament-type
+Stalking Tiger Avatar	digital-only
+Stalwart Realmwarden	digital-only
+Stalwart Speartail	digital-only
+Starke	non-tournament-type
+Static Discharge	digital-only
+Steady Tortoise	digital-only
+Steady-Handed Mook	non-tournament-mechanic
+Steamflogger Service Rep	non-tournament-mechanic
+Steamflogger Temp	non-tournament-mechanic
+Steamflogger of the Month	non-tournament-mechanic
+Steamfloggery	non-tournament-mechanic
+Steel Squirrel	not-commander-legal
+Stensia	non-tournament-type
+Stinging Scorpion	not-commander-legal
+Stoic Star-Captain	digital-only
+Stonehewer Giant Avatar	digital-only
+Stonehide Ancient	digital-only
+Stormcage Containment Facility	non-tournament-type
+Stormforged Armor	digital-only
+Stormkeld Curator	digital-only
+Strange Inversion	deferred-splice
+Strategy, Schmategy	not-commander-legal
+Strixhaven	non-tournament-type
+Stroke of Luck	digital-only
+Stronghold Furnace	non-tournament-type
+Stuffy Doll Avatar	digital-only
+Subversive Acolyte	digital-only
+Summitfest Closing Ceremony	digital-only
+Sundering Fork	non-tournament-mechanic
+Sundering Sentinel	digital-only
+Sune's Intervention	digital-only
+Suntail Squadron	digital-only
+Support Skyforge	digital-only
+Surge of Acclaim	digital-only
+Surgical Metamorph	digital-only
+Surrender Your Thoughts	non-tournament-type
+Suspicious Nanny	non-tournament-mechanic
+Svega, the Unconventional	not-commander-legal
+Swarm Saboteur	digital-only
+Swiftspear's Teachings	digital-only
+Swine Rebellion	digital-only
+Switchgrass Grazer	digital-only
+Sword of Dungeons & Dragons	not-commander-legal
+Sword of Fire and Ice and War and Peace	not-commander-legal
+Sworn to the Legion	digital-only
+Sylvan Smite	digital-only
+Syndicate Recruiter	digital-only
+Syr Joshua and Syr Saxon	digital-only
+TARDIS Bay	non-tournament-type
+Tactical Advantage	digital-only
+Tahngarth	non-tournament-type
+Taiga Stadium	not-commander-legal
+Tajic, Legion's Valor	digital-only
+Takara	non-tournament-type
+Takenuma	non-tournament-type
+Talion's Throneguard	digital-only
+Talon Gates	non-tournament-type
+Tan Jolom, the Worldwalker	digital-only
+Target Minotaur	not-commander-legal
+Targeting Rocket	non-tournament-mechanic
+Tarkir Charm	not-commander-legal
+Tarnation	non-tournament-type
+Tasha, Unholy Archmage	digital-only
+Tasteful Offering	digital-only
+Tawnos	non-tournament-type
+Tawnos Endures	digital-only
+Tazeem	non-tournament-type
+Teferi's Contingency	digital-only
+Tember City	non-tournament-type
+Temp of the Damned	not-commander-legal
+Tempest Trapper	digital-only
+Temple of Atropos	non-tournament-type
+Ten Wizards Mountain	non-tournament-type
+Tenacious Pup	not-commander-legal
+Tend to the Kiln	digital-only
+Territorial Strike	digital-only
+Terrors of the Track	digital-only
+Teyo, Aegis Adept	digital-only
+Teysa of the Ghost Council	digital-only
+Teysa, Orzhov Scion Avatar	digital-only
+Tezzeret's Reckoning	digital-only
+That's Enough Slices	non-tournament-type
+Thayan Evokers	digital-only
+The Aether Flues	non-tournament-type
+The Alright Henge	not-commander-legal
+The Ash Lizard	not-commander-legal
+The Battle of Dragon Brothers	not-commander-legal
+The Bean	non-tournament-type
+The Bear Force Pilot	not-commander-legal
+The Belligerent and Useless Island	not-commander-legal
+The Bloodbile Swarm	digital-only
+The Caldaia	non-tournament-type
+The Cave of Skulls	non-tournament-type
+The Cheese Stands Alone	not-commander-legal
+The Cheetah Planet	non-tournament-type
+The Cinematic Phoenix	not-commander-legal
+The Conundrum of Bowls	digital-only
+The Countdown Is at One	not-commander-legal
+The Covert Blue Mage	not-commander-legal
+The Crab Queen	not-commander-legal
+The Crafter	not-commander-legal
+The Crimson Avenger	not-commander-legal
+The Dark Barony	non-tournament-type
+The Dead Shall Serve	non-tournament-type
+The Dilu Horse	not-commander-legal
+The Dining Car	non-tournament-type
+The Disciple of Nissa	not-commander-legal
+The Disciple of Vess	not-commander-legal
+The Doctor's Childhood Barn	non-tournament-type
+The Doctor's Tomb	non-tournament-type
+The Drum, Mining Facility	non-tournament-type
+The Duke of Midrange	not-commander-legal
+The Eon Fog	non-tournament-type
+The Fate of the Flammable	non-tournament-type
+The Fertile Lands of Saulvinia	non-tournament-type
+The Food Court	non-tournament-type
+The Forgotten Place	not-commander-legal
+The Fourth Sphere	non-tournament-type
+The Golden City of Orazca	non-tournament-type
+The Grand Goatnapper	digital-only
+The Grand Tour	not-commander-legal
+The Great Aerie	non-tournament-type
+The Great Forest	non-tournament-type
+The Great Juggernaut	not-commander-legal
+The Hippodrome	non-tournament-type
+The Hourglass Coven	digital-only
+The Iron Guardian Stirs	non-tournament-type
+The Juzam Master	not-commander-legal
+The Keeper of Dark Pacts	not-commander-legal
+The Keeper of the Yellow Hat	not-commander-legal
+The Legend of Arena	not-commander-legal
+The Lux Foundation Library	non-tournament-type
+The Maelstrom	non-tournament-type
+The Magic Bandit	not-commander-legal
+The Marvelous Scientist	not-commander-legal
+The Massive Zatcatl	not-commander-legal
+The Master of Cuisine	not-commander-legal
+The Matrix of Time	non-tournament-type
+The Mighty Will Fall	non-tournament-type
+The Moonbase	non-tournament-type
+The Pieces Are Coming Together	non-tournament-type
+The Pit	non-tournament-type
+The Pyramid of Mars	non-tournament-type
+The Rebellious Intelligence	not-commander-legal
+The Roaring Toeclaws	not-commander-legal
+The Scholar of Seas	not-commander-legal
+The Spike Cactus	not-commander-legal
+The Value Knight	not-commander-legal
+The Very Soil Shall Shake	non-tournament-type
+The Western Cloud	non-tournament-type
+The Wilds	non-tournament-type
+The Windy City	non-tournament-type
+The Wise Sable	not-commander-legal
+The Zephyr Maze	non-tournament-type
+Then, Dreadmaws Ate Everyone	not-commander-legal
+Thendar, the Overminer	digital-only
+There Is No Refuge	non-tournament-type
+Theros Charm	not-commander-legal
+Thieving Aven	digital-only
+Third Little Pig	digital-only
+This World Belongs to Me	non-tournament-type
+Thorna and Twigtooth	digital-only
+Thought Partition	digital-only
+Thought Rattle	digital-only
+Thought-String Analyst	digital-only
+Thoughtsteal Sprites	digital-only
+Thoughtweft's Call	digital-only
+Three Tree Battalion	digital-only
+Through the Breach	deferred-splice
+Thud-for-Duds	non-tournament-mechanic
+Thunderbond Vanguard	digital-only
+Tiana, Angelic Mechanic	digital-only
+Tibalt the Chaotic	not-commander-legal
+Tibalt, Wicked Tormentor	digital-only
+Tiefling Outcasts	digital-only
+Time Bends to My Will	non-tournament-type
+Time Distortion	non-tournament-type
+Time Out	not-commander-legal
+Time Sidewalk	not-commander-legal
+Timmy, Power Gamer	not-commander-legal
+Tin Street Cadet	digital-only
+Tireless Angler	digital-only
+Titania	non-tournament-type
+Toe-Breaking Helmet	not-commander-legal
+Tomakul Phoenix	digital-only
+Tome of Gadwick	digital-only
+Tome of the Infinite	digital-only
+Tooth, Claw, and Tail	non-tournament-type
+Toothy and Zndrsplt	not-commander-legal
+Top-Secret Tunnel	non-tournament-mechanic
+Topsoil Turner	digital-only
+Topsy Turvy	not-commander-legal
+Toralf's Disciple	not-commander-legal
+Tornellan Protector	digital-only
+Torrent of Stone	deferred-splice
+Towashi	non-tournament-type
+Town-Razer Tyrant	digital-only
+Trackhand Trainer	digital-only
+Tradewind Rider Avatar	digital-only
+Trail of the Mage-Rings	non-tournament-type
+Traumatic Prank	digital-only
+Traverse Valley	digital-only
+Tread Mill	non-tournament-mechanic
+Treetop Warden	digital-only
+Triumphant Getaway	digital-only
+Trove Mage	digital-only
+Truga Jungle	non-tournament-type
+Trumpeting Gnarr	deferred-mutate
+Try-My-Deck Elemental	not-commander-legal
+Turbo-Thwacking Auto-Hammer	non-tournament-mechanic
+Turbocharged Escape	digital-only
+Turri Island	non-tournament-type
+Twiddlestick Charger	non-tournament-mechanic
+Two Streams Facility	non-tournament-type
+Two-Headed Giant of Foriys Avatar	digital-only
+UNIT Headquarters	non-tournament-type
+Uktabi Kong	not-commander-legal
+Ulder Ravengard, Marshal	digital-only
+Ulgrotha Charm	not-commander-legal
+Unbreakable Remnant	digital-only
+Underbridge Warlock	digital-only
+Undercity Plunder	digital-only
+Undercity Reaches	non-tournament-type
+Underdark Beholder	not-commander-legal
+Undersimplify	digital-only
+Unexpected Allies	digital-only
+Unexpected Conversion	digital-only
+Unforgiving Overtake	digital-only
+Unicycle	not-commander-legal
+Unleash the Flux	non-tournament-type
+Unnatural Summons	digital-only
+Unyaro	non-tournament-type
+Ureni's Counsel	digital-only
+Urza	non-tournament-type
+Urza's Construction Drone	digital-only
+Urza's Science Fair Project	not-commander-legal
+Urza, Academy Headmaster	not-commander-legal
+Uthgardt Fury	digital-only
+Vadrok, Apex of Thunder	deferred-mutate
+Val, Marooned Surveyor	digital-only
+Valiant Batrider	digital-only
+Valiant Emberkin	digital-only
+Valiant Farewell	digital-only
+Valko Indorian, Researcher	not-commander-legal
+Valor's Reach	non-tournament-type
+Vampire Nocturnus Avatar	digital-only
+Variable Solutions	digital-only
+Vazal, the Compleat	not-commander-legal
+Veil of Secrecy	deferred-splice
+Veko, Death's Doorkeeper	digital-only
+Velis Vel	non-tournament-type
+Verdant Dread	digital-only
+Verdant Rejuvenation	digital-only
+Vesuvan Mist	digital-only
+Veteran Charger	digital-only
+Veteran Ghoulcaller	digital-only
+Vexyr, Ich-Tekik's Heir	digital-only
+Vhal, Eager Scholar	digital-only
+Viconia, Nightsinger's Disciple	digital-only
+Victory of the Pyrohammer	digital-only
+Vigorous Farming	digital-only
+Vinesoul Spider	digital-only
+Viridian Zealot Avatar	digital-only
+Vital Surge	deferred-splice
+Vladimir and Godfrey	digital-only
+Vodalian Tide Mage	digital-only
+Voidcalled Devotee	digital-only
+Volatile Orbit	digital-only
+Volatile Rift	digital-only
+Volrath	non-tournament-type
+Vona de Iedo, the Antifex	digital-only
+Voracious Vacuum	not-commander-legal
+Vulpikeet	deferred-mutate
+Vv'viza, Orbital Overseer	digital-only
+Wagon Wrecker	digital-only
+Wandering Treefolk	digital-only
+War of the Spark	not-commander-legal
+Warriors of Tiamat	digital-only
+Wary Zone Guard	digital-only
+Warzone Duplicator	digital-only
+Waste Land	not-commander-legal
+Water Weird	digital-only
+Waystone's Guidance	digital-only
+Wear Away	deferred-splice
+Weave the Nightmare	digital-only
+Welcome the Darkness	digital-only
+Welcome to Mini-apolis	not-commander-legal
+What's Yours Is Now Mine	non-tournament-type
+When Will You Learn?	non-tournament-type
+Which of You Burns Brightest?	non-tournament-type
+Whimsy	digital-only
+White Rhystic Study	not-commander-legal
+Wickerwing Effigy	digital-only
+Widget Contraption	non-tournament-mechanic
+Wild Crocodile	not-commander-legal
+Wildgrove Summoner	digital-only
+Willing Test Subject	not-commander-legal
+Wilson, Bear Comrade	digital-only
+Windriddle Palaces	non-tournament-type
+Wingbane Vantasaur	digital-only
+Wingbright Thief	digital-only
+Wingsteed Trainer	digital-only
+Wish Good Luck	digital-only
+Wizened Arbiter	not-commander-legal
+Wizened Githzerai	digital-only
+Woodland Investigation	digital-only
+Work a Double	non-tournament-mechanic
+Worldweave	digital-only
+Wrath of Oko	not-commander-legal
+Wrath of Sod	not-commander-legal
+Wrench-Rigger	non-tournament-mechanic
+Wyll, Pact-Bound Duelist	digital-only
+Xander's Wake	digital-only
+Xantcha	non-tournament-type
+Xho Cai, Flickering Talon	digital-only
+Xyru Specter	not-commander-legal
+Yawgmoth's Testament	not-commander-legal
+Yotian Courier	digital-only
+You Are Unworthy of Mercy	non-tournament-type
+You Cannot Hide from Me	non-tournament-type
+You Exist Only to Amuse	non-tournament-type
+You Line Up the Shot	digital-only
+You Live Only Because I Will It	non-tournament-type
+You Will Know True Suffering	non-tournament-type
+You're in Command	not-commander-legal
+Your Fate Is Thrice Sealed	non-tournament-type
+Your Inescapable Doom	non-tournament-type
+Your Mistake Is My Triumph	non-tournament-type
+Your Nightmares Are Delicious	non-tournament-type
+Your Own Face Mocks You	non-tournament-type
+Your Plans Mean Nothing	non-tournament-type
+Your Puny Minds Cannot Fathom	non-tournament-type
+Your Will Is Not Your Own	non-tournament-type
+Yuan-Ti Scaleshield	digital-only
+Zephyr Gull	digital-only
+Zimone the Calculating	digital-only
