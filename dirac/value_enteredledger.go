@@ -233,12 +233,25 @@ func (s *State) thisTurnEntered(k *prep, x *kop.Expr, ctx evalCtx) int {
 	}
 	dest := kop.Zone(x.N)
 	n := 0
+	from, onlyLast := kop.EnteredLastOf(x.From)
+	last := -1
+	if onlyLast {
+		// the source's latest entry only (kop.EnteredLastFrom): the triggering move
+		for i := int(s.g.enteredN) - 1; i >= 0 && last < 0; i-- {
+			if e := &s.cold.entered[i]; e.o == ctx.src && e.to() == uint8(dest) {
+				last = i
+			}
+		}
+		if last < 0 {
+			return 0
+		}
+	}
 	for i := uint8(0); i < s.g.enteredN; i++ {
 		e := &s.cold.entered[i]
-		if e.to() != uint8(dest) {
+		if e.to() != uint8(dest) || last >= 0 && int(i) != last {
 			continue
 		}
-		if x.From >= 0 && int8(e.from()) != x.From {
+		if from >= 0 && int8(e.from()) != from {
 			continue
 		}
 		ob := &s.objs[e.o]

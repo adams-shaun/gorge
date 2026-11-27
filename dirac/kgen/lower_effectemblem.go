@@ -398,6 +398,13 @@ func (lc *lowerCtx) effectEmblemStaticHost(s cards.Static, host bool) (lStatic, 
 		}
 		delete(cp, "AffectedZone")
 		s.Params = cp
+	case "CantGainLife":
+		// the Effect-delivered life-gain lock (Roiling Vortex's "your opponents
+		// can't gain life this turn"): gorge registers it as a continuous
+		// restriction lifeGainForbidden reads from the effect's controller;
+		// ValidPlayer$ is the one scope read (modeCantGainLife), a remembered
+		// player (Screaming Nemesis) is not an emblem shape
+		keys = map[string]bool{"Mode": true, "ValidPlayer": true, "Description": true, "Secondary": true}
 	case "CantPreventDamage":
 		keys = map[string]bool{"Mode": true, "Description": true, "Secondary": true} // the global form (gorge cantPreventDamage: no Affected$)
 	case "CanAttackDefender":
@@ -455,10 +462,8 @@ func (lc *lowerCtx) effectEmblemStaticHost(s cards.Static, host bool) (lStatic, 
 			// Card.Self binds the card's own object; an emblem has none
 			return lStatic{}, refuse("Effect static CantBeCast lowered to %s over its own card", st.Kind)
 		}
-	} else if s.Mode == "CantPlayLand" {
-		if st.Kind != "CantPlayLand" {
-			return lStatic{}, refuse("Effect static CantPlayLand lowered to %s", st.Kind)
-		}
+	} else if err := effectEmblemRestrictionKind(s.Mode, st.Kind); err != nil {
+		return lStatic{}, err
 	} else if s.Mode == "Continuous" {
 		switch st.Kind {
 		case "CantBlock", "ExtraLandPlay", "NoMaxHandSize", "Continuous", "Override",
@@ -493,6 +498,20 @@ func (lc *lowerCtx) effectEmblemStaticHost(s cards.Static, host bool) (lStatic, 
 		return lStatic{}, err
 	}
 	return st, nil
+}
+
+// effectEmblemRestrictionKind refuses an Effect-delivered restriction whose
+// lowered static is not the mode itself. CantGainLife is the life-gain lock
+// (Roiling Vortex; the key set above) and CantPlayLand the hand lock; both
+// lower to exactly one static of their own kind.
+func effectEmblemRestrictionKind(mode, kind string) error {
+	if mode != "CantGainLife" && mode != "CantPlayLand" {
+		return nil
+	}
+	if kind != mode {
+		return refuse("Effect static %s lowered to %s", mode, kind)
+	}
+	return nil
 }
 
 // emblemFiltersRefuse refuses an emblem static or trigger filter that reads

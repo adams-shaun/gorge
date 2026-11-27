@@ -353,6 +353,7 @@ const (
 	DmgDivideEvenly                    // OpDealDamageDivided only: no division is chosen; A is divided by the slot's legal targets at resolution, rounded down, each taking the quotient (Fireball's DivideEvenly$ RoundedDown; gorge divideEvenlyDown)
 	DmgNoRegenTarget                   // OpDealDamageEx: the target object can't be regenerated this turn once the damage step ran, whether or not damage above 0 was dealt (Rage of Purphoros' ParentTarget follow-up; same arena mark as DmgNoRegen)
 	DmgNoPrevention                    // OpDealDamageEx: the damage can't be prevented (CR 615.12; DealDamage NoPrevention$ True, gorge's dmgNoPrevention read by cantPreventDamage; Arrow Storm's raid half)
+	DmgLockGain                        // OpDealDamageEx: a player dealt damage above 0 can't gain life for the rest of the game (Screaming Nemesis' RememberDamaged$ player beside its permanent CantGainLife Effect; the player's pmNoGain mark)
 )
 
 // TrigFlags2 (Trigger.Flags2).

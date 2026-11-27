@@ -246,6 +246,7 @@ type lowerCtx struct {
 	guardNode      string        // the top-level node guard is lowering (every-blocker census names extra refusals by it)
 	probeHead      *cards.SA     // probeBody: the refused activated ability whose body is probed (its Cost$ is no resolution cost)
 	curNode        *cards.SA     // the SA node being lowered (its Sub is the rest of the chain)
+	skipNode       *cards.SA     // a node an earlier one folded into itself, lowered to nothing (lower_lockgain.go)
 	condDefined    bool          // defined() is reading a ConditionDefined$ (lower_triggerattackers.go)
 	own            ownTgt        // the slot curNode declared itself (lower_owntarget.go)
 	mvNode         *cards.SA     // the node whose cost part may read Targeted$CardManaCost before its target (lower_targetmv.go)
@@ -4062,6 +4063,9 @@ func (lc *lowerCtx) chain(sa *cards.SA, ps *params) error {
 	for node := sa; node != nil; node = node.Sub {
 		lc.head = node == sa
 		lc.curNode = node
+		if node == lc.skipNode {
+			continue
+		}
 		p := ps
 		if node != sa || p == nil {
 			p = newParams(node.Params)

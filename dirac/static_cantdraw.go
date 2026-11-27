@@ -26,6 +26,9 @@ func (s *State) playerBanned(k *prep, sk kop.StaticKind, p uint8) bool {
 	if DebugPlayerBanOff {
 		return false
 	}
+	if sk == kop.StatCantGainLife && s.pl[p].mark&pmNoGain != 0 {
+		return true // static_lockgain.go
+	}
 	hit := false
 	s.eachStatic(k, func(st statSrc) bool {
 		if st.a.Kind == kop.AbStatic && st.a.Static.Kind == sk &&

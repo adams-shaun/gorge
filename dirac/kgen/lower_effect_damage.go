@@ -175,7 +175,12 @@ func (lc *lowerCtx) rememberDamaged(rd string, in *lInstr) error {
 		admitsPlayer = f == nil || f.Players != 0
 	}
 	if admitsPlayer && lc.restObservesRememberedPlayer() {
-		return refuse("RememberDamaged$ with a remembered player observed")
+		n := lc.lockGainNode() // lower_lockgain.go
+		if n == nil || in.Obj.Kind != rTarget {
+			return refuse("RememberDamaged$ with a remembered player observed")
+		}
+		lc.skipNode = n
+		in.CS = strings.TrimPrefix(in.CS+"|LockGain", "|")
 	}
 	in.CS = strings.TrimPrefix(in.CS+"|Remember", "|")
 	return nil

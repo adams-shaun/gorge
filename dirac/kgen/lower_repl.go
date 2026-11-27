@@ -246,6 +246,9 @@ func (lc *lowerCtx) lowerRepl(r cards.Repl) error {
 			return err
 		}
 	case "GainLife":
+		if ok, err := lc.lifePreventStatic(rp, r.With); err != nil || ok { // lower_lifeprevent.go
+			return err
+		}
 		if err := lc.lifeGainRepl(rp, r.With, &rl); err != nil {
 			return err
 		}
