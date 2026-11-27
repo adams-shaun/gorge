@@ -362,27 +362,24 @@ func (s *State) wordPerm3(k *prep, fl *kop.Filter, sl Slot, src Slot) bool {
 		// list: printed Warp, none while face down (CR 708.2) or after a
 		// lose-all-abilities effect (the kw gate, chars.go)
 		c := s.cardAt(sl)
-		ans = c != kop.NoCard && k.t.Cards[c].HasWarp && !s.faceDown(k, sl) &&
-			s.perms[sl].ovr.flags&(ovLoseAll|ovLoseAllEOT) == 0
+		ans = c != kop.NoCard && k.t.Cards[c].HasWarp && !s.genLost(k, sl)
 	case kop.W7WithDisguise, kop.W7FaceUpDisguise:
 		// gorge withDisguise on a battlefield object: the printed keyword,
 		// none while face down or after a lose-all-abilities effect
 		c := s.cardAt(sl)
-		ans = c != kop.NoCard && k.t.Cards[c].MorphFamily == kop.MorphDisguise && !s.faceDown(k, sl) &&
-			s.perms[sl].ovr.flags&(ovLoseAll|ovLoseAllEOT) == 0
+		ans = c != kop.NoCard && k.t.Cards[c].MorphFamily == kop.MorphDisguise && !s.genLost(k, sl)
 	case kop.W7WithFlashback:
 		// gorge withFlashback on a battlefield object: the printed keyword,
 		// none while face down or after a lose-all-abilities effect
 		c := s.cardAt(sl)
-		ans = c != kop.NoCard && k.t.Cards[c].Keywords&kop.KwFlashback != 0 && !s.faceDown(k, sl) &&
-			s.perms[sl].ovr.flags&(ovLoseAll|ovLoseAllEOT) == 0
+		ans = c != kop.NoCard && k.t.Cards[c].Keywords&kop.KwFlashback != 0 && !s.genLost(k, sl)
 	case kop.W7WithInfect:
 		// gorge withInfect on a battlefield object: the printed keyword,
-		// none while face down or after a lose-all-abilities effect; or a
+		// none while face down or after a lose-all-abilities effect (genLost,
+		// the one-shot records and an attached lose-all static); or a
 		// granted one (gorge's derived keywords; kw_kwmark.go)
 		c := s.cardAt(sl)
-		ans = c != kop.NoCard && k.t.Cards[c].Infect && !s.faceDown(k, sl) &&
-			s.perms[sl].ovr.flags&(ovLoseAll|ovLoseAllEOT) == 0 ||
+		ans = c != kop.NoCard && k.t.Cards[c].Infect && !s.genLost(k, sl) ||
 			k.gen != nil && k.gen.anyInfectGrant && s.infectGranted(k, sl)
 	case kop.W7LacksIslandwalk:
 		// !hasKeywordLandwalk:Island over the derived keywords: printed
@@ -473,10 +470,10 @@ func (s *State) snowWordPerm(k *prep, fl *kop.Filter, sl Slot) bool {
 	}
 	if n == kop.W7WithDevoid {
 		// gorge withDevoid on a battlefield object: the printed keyword, none
-		// while face down or after a lose-all-abilities effect
+		// while face down or after a lose-all-abilities effect (genLost, the
+		// one-shot records and an attached lose-all static)
 		c := s.cardAt(sl)
-		return c != kop.NoCard && k.t.Cards[c].Devoid && !s.faceDown(k, sl) &&
-			s.perms[sl].ovr.flags&(ovLoseAll|ovLoseAllEOT) == 0
+		return c != kop.NoCard && k.t.Cards[c].Devoid && !s.genLost(k, sl)
 	}
 	if n != kop.W7Snow && n != kop.W7NonSnow {
 		return false

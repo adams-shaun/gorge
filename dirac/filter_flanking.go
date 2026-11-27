@@ -10,11 +10,12 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // battlefield permanent that is face down or lost all abilities has none; off
 // the battlefield the printed card counts in any zone.
 
-// lacksFlankingPerm is W7WithoutFlanking on a battlefield permanent.
+// lacksFlankingPerm is W7WithoutFlanking on a battlefield permanent. genLost
+// is the loss read: a one-shot record or an attached lose-all static (an Aura
+// like Reprobation) leaves no flanking.
 func (s *State) lacksFlankingPerm(k *prep, sl Slot) bool {
 	c := s.cardAt(sl)
-	has := c != kop.NoCard && k.t.Cards[c].Flanking && !s.faceDown(k, sl) &&
-		s.perms[sl].ovr.flags&(ovLoseAll|ovLoseAllEOT) == 0
+	has := c != kop.NoCard && k.t.Cards[c].Flanking && !s.genLost(k, sl)
 	return !has
 }
 
