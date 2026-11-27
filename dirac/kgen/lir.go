@@ -263,6 +263,7 @@ const (
 	vSrcRemCounters      // counters of kind S on the object the evaluating source remembers (a token's creator, kop.ExSrcRemCounters; lower_tokenrem.go)
 	vVoteTally           // the resolution's current StoreVoteNum$ option tally (kop.ExVoteTally; lower_vote.go)
 	vCmdCastTotal        // the controller's casts of its own commanders from the command zone (kop.ExTotalCommanderCastFromCommandZone; value_cmdcast.go)
+	vAtkYouLast          // the controller's living opponents that attacked the controller during their last turn (PlayerCountPlayers$HasPropertyattackedYouTheirLastTurn; kop.ExAtkYouLastTurn; value_atkyoulast.go)
 	vSpellsLastTurn      // the spells cast last turn: N=0 whether any player cast one (0 or 1), N=1 the most one player cast (kop.ExSpellsCastLastTurn; value_spellslastturn.go)
 	vDevotionChosen      // the controller's devotion to the colour recorded on the source (Count$Devotion.Chosen, kop.ExDevotionChosen; value_devotion.go)
 	vSVarNum             // the evaluating source's StoreSVar number for the name S, else the printed body Sub[0] (kop.ExSVarNum; lower_storenum.go)
@@ -400,6 +401,7 @@ var valNames = [...]string{
 	vVoteTally:           "VoteTally",
 	vCmdCastTotal:        "CmdCastTotal",
 	vSpellsLastTurn:      "SpellsLastTurn",
+	vAtkYouLast:          "AtkYouLast",
 	vReplLKIPow:          "ReplLKIPow",
 	vPaidN:               "PaidN",
 	vMostProminentType:   "MostProminentType",
