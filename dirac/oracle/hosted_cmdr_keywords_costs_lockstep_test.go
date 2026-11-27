@@ -46,9 +46,9 @@ type hostedCmdrCase struct {
 
 // flayerProbeScript is Flayer of Loyalties' cast trigger on a {2}{B} body.
 const flayerProbeScript = "Name:Flayer Probe\nManaCost:2 B\nTypes:Creature Eldrazi\nPT:2/2\n" +
-	"T:Mode$ SpellCast | ValidCard$ Card.Self | Execute$ TrigGainControl | TriggerDescription$ When you cast this spell, gain control of target creature until end of turn. Untap that creature. Until end of turn, it has base power and toughness 10/10, and gains trample, annihilator 2, and haste.\n" +
-	"SVar:TrigGainControl:DB$ GainControl | ValidTgts$ Creature | LoseControl$ EOT | Untap$ True | AddKWs$ Haste & Trample & Annihilator:2 | SubAbility$ DBAnimate\n" +
-	"SVar:DBAnimate:DB$ Animate | Defined$ Targeted | Power$ 10 | Toughness$ 10\n" +
+	"T:Mode$ SpellCast | ValidCard$ Card.Self | Execute$ TrigGainControl | TriggerDescription$ Steal a creature for the turn.\n" +
+	"SVar:TrigGainControl:DB$ GainControl | Untap$ True | ValidTgts$ Creature | AddKWs$ Haste & Trample & Annihilator:2 | LoseControl$ EOT | SubAbility$ DBAnimate\n" +
+	"SVar:DBAnimate:DB$ Animate | Defined$ Targeted | Toughness$ 10 | Power$ 10\n" +
 	"Oracle:When you cast this spell, gain control of target creature until end of turn.\n"
 
 func hostedCmdrCases() []hostedCmdrCase {
