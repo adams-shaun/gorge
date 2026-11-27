@@ -4523,18 +4523,14 @@ func (lc *lowerCtx) gainControl(ps *params) error {
 	if ps.is("Untap", "True") {
 		flags = append(flags, "Untap")
 	}
+	var gcKeywords, gcAttackLines []string
 	if k, ok := ps.get("AddKWs"); ok {
-		ks, err := pumpKeywords(k)
+		var extra []string
+		extra, gcKeywords, gcAttackLines, err = lc.gainControlAddKWs(k, dur, lcv) // lower_attackkwgrant.go
 		if err != nil {
 			return err
 		}
-		if len(ks) != 1 || ks[0] != "Haste" {
-			// gorge grants AddKWs$ for as long as the control effect lasts;
-			// the kernel has haste only: until end of turn (GcHasteEOT) or
-			// for as long as the control record lives (GcHasteEOT on a longer duration)
-			return refuse("GainControl AddKWs %q with LoseControl %q", k, lcv)
-		}
-		flags = append(flags, "kw="+strings.Join(ks, "&"))
+		flags = append(flags, extra...)
 	}
 	if rc, ok := ps.get("RememberControlled"); ok {
 		// gorge effGainControl: each permanent whose control was registered
@@ -4556,6 +4552,9 @@ func (lc *lowerCtx) gainControl(ps *params) error {
 		in.C = int(to.Kind)<<8 | to.N
 	}
 	lc.emit(in)
+	if err := lc.emitGainControlGrants(obj, gcKeywords, gcAttackLines); err != nil { // lower_attackkwgrant.go
+		return err
+	}
 	return nil
 }
 

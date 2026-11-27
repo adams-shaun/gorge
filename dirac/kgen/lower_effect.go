@@ -29,6 +29,12 @@ func (lc *lowerCtx) effect(sa *cards.SA, ps *params) error {
 				return err
 			}
 			lc.trigOwnCost = lc.ab.Kind == akTriggered && len(lc.ab.Prog) == 0
+			if cost.LifeX && sa.API != "Draw" {
+				// the announced life X is lockstepped against Necrodominance's
+				// draw body only (cost_paylifetrig.go)
+				lc.trigOwnCost = false
+				return refuse("life cost PayLife<X> on a %s ability", "non-spell, non-activated")
+			}
 			if lc.trigOwnCost && cost.Mana.X && !cost.Mana.None {
 				// a printed trigger's own "you may pay {X}": gorge announces X
 				// first, capped by the body's XMax$ (lower_triggerxcost.go)
