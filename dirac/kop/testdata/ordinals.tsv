@@ -1020,6 +1020,7 @@ PayBSubDamage	untyped int	14
 PayBSubEvidence	untyped int	2
 PayBSubEvidenceX	untyped int	11
 PayBSubExileHand	untyped int	9
+PayBSubLifeX	untyped int	20
 PayBSubMill	untyped int	17
 PayBSubMoveGrave	untyped int	19
 PayBSubSacHost	untyped int	7

@@ -444,6 +444,12 @@ const PayBSubTrigNewEvidence = 10
 // value, then pays (collects evidence X).
 const PayBSubEvidenceX = 11
 
+// PayBSubLifeX: a PayManaX whose B.N carries this sentinel is a trigger's own
+// PayLife<X> cost (Necrodominance's "pay any amount of life"), A the cap on the
+// announced X: the payer announces X over 0..their life, then elects to pay
+// that much life (cost_paylifetrig.go).
+const PayBSubLifeX = 20
+
 // PayBSubXColor marks a PayManaX whose announced {X} is a coloured X (Forge's
 // XColor$; Leyline Tyrant's "you may pay any amount of {R}"): B.N is
 // PayBSubXColor | (colour + 1), colour the WUBRG index, so each announced X

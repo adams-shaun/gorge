@@ -2219,6 +2219,12 @@ func (lc *lowerCtx) lowerKeywords() {
 			// Deck construction only.
 		case head == "Partner" && deckOnlyPartner(param):
 			// CR 702.124a: deck construction only (lower_partner.go)
+		case k == "CARDNAME can be your commander.":
+			// Deck-construction eligibility (a Lord Windgrace planeswalker
+			// commander): gorge reads the Oracle phrase when the deck is checked
+			// (engine/deck commanderOraclePhrase, rules/commander_config) and the
+			// kernel seats the commander from Config.Commanders, so the keyword
+			// carries no game characteristic (oracle projchars gorgeKwElsewhere).
 		case k == "Daybound" || k == "Nightbound":
 			// CR 702.145 (gorge rules/daynight.go, cr-daybound-nightbound
 			// and -transform): the day/night designation and the faces it
@@ -3122,7 +3128,10 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 					}
 					return c, refuse("life cost PayLife<X> with SVar X %q", x)
 				}
-				if !lc.lifeXSpell && !lc.actCost {
+				// a printed trigger's own "you may pay any amount of life": the
+				// announced X rides the resolution cost (payInstr, lower_effect_pay.go)
+				ownTrig := lc.trigBodyCost && lc.ab != nil && lc.ab.Kind == akTriggered && len(lc.ab.Prog) == 0
+				if !lc.lifeXSpell && !lc.actCost && !ownTrig {
 					return c, refuse("life cost PayLife<X> on a %s ability", "non-spell, non-activated")
 				}
 				if c.LifeX || c.PayLife != 0 || c.LoyaltyX {
