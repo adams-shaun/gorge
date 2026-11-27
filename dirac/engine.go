@@ -62,6 +62,7 @@ func (s *State) InitNStart(tbl *Table, decks [MaxSeats][]CardID, n uint8, seed u
 		}
 	}
 	s.resetCold(lay)
+	s.filtMemoReset() // a new game: no transition memo carries over (mana_filtmemo.go, mana_pcmemo.go)
 	s.initPartners()
 	s.g.on = s.k().gen != nil
 	s.g.enteredOn = s.g.on && s.k().gen.enteredNeed
@@ -321,7 +322,9 @@ func (s *State) stepRaw(d *Decision) {
 				s.prio = s.nextAlive(s.prio) // gorge grantPriority: a departed holder's turn passes on
 			}
 			d.Kind, d.Player = DkPriority, s.prio
+			s.pcMemoOpen(k) // the per-decision manaPCGen memo (mana_pcmemo.go)
 			s.priorityOptions(k, d)
+			s.pcMemoClose()
 			return
 		case ctlPlaceTriggers:
 			if s.placeTriggers(k, d) {

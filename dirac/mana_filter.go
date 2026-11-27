@@ -280,8 +280,10 @@ func (s *State) filtBoundPaysWalk(k *prep, p uint8, sl Slot) bool {
 	}
 	saved := s.perms[sl].flags
 	s.perms[sl].flags |= pfTapped // the filter's own productions out of the bound
+	s.pcMemoHold()                // an unmarked in-place write: the manaPCGen memo stands aside (mana_pcmemo.go)
 	var pb avail
 	open := s.availPotentialFor(k, p, &pb, nil, false)
+	s.pcMemoRelease()
 	s.perms[sl].flags = saved
 	if open {
 		// an any-colour production priced unbounded: gorge's census cannot
