@@ -31,14 +31,14 @@ const unluckyWitnessSrc = "Name:Unlucky Witness\n" +
 	"ManaCost:R\n" +
 	"Types:Creature Human Wizard\n" +
 	"PT:3/1\n" +
-	"T:Mode$ ChangesZone | Origin$ Battlefield | Destination$ Graveyard | ValidCard$ Card.Self | Execute$ TrigExile\n" +
-	"SVar:TrigExile:DB$ Dig | Defined$ You | DigNum$ 2 | ChangeNum$ All | DestinationZone$ Exile | RememberChanged$ True | SubAbility$ DBEffect\n" +
-	"SVar:DBEffect:DB$ Effect | StaticAbilities$ STPlay | Triggers$ Play1,Play2 | RememberObjects$ Remembered | ForgetOnMoved$ Exile | SubAbility$ DBCleanup\n" +
-	"SVar:STPlay:Mode$ Continuous | AffectedZone$ Exile | Affected$ Card.IsRemembered | MayPlay$ True | Description$ You may play one of those cards until end of turn.\n" +
-	"SVar:Play1:Mode$ SpellCast | ValidCard$ Card.IsRemembered | ValidActivatingPlayer$ You | TriggerZones$ Command | Execute$ ExileSelf | Static$ True\n" +
-	"SVar:Play2:Mode$ LandPlayed | ValidCard$ Land.IsRemembered | TriggerZones$ Command | Execute$ ExileSelf | Static$ True\n" +
-	"SVar:ExileSelf:DB$ ChangeZone | Origin$ Command | Destination$ Exile\n" +
-	"SVar:DBCleanup:DB$ Cleanup | ClearRemembered$ True\n" +
+	"T:Mode$ ChangesZone | Origin$ Battlefield | Destination$ Graveyard | ValidCard$ Card.Self | Execute$ DiesDig\n" +
+	"SVar:DiesDig:DB$ Dig | DigNum$ 2 | Defined$ You | ChangeNum$ All | DestinationZone$ Exile | RememberChanged$ True | SubAbility$ DiesGrant\n" +
+	"SVar:DiesGrant:DB$ Effect | RememberObjects$ Remembered | StaticAbilities$ GrantPlay | Triggers$ WatchCast,WatchLand | ForgetOnMoved$ Exile | SubAbility$ DiesTidy\n" +
+	"SVar:GrantPlay:Mode$ Continuous | Affected$ Card.IsRemembered | AffectedZone$ Exile | MayPlay$ True | Description$ You may play one of those cards until end of turn.\n" +
+	"SVar:WatchCast:Mode$ SpellCast | TriggerZones$ Command | ValidCard$ Card.IsRemembered | ValidActivatingPlayer$ You | Static$ True | Execute$ EndGrant\n" +
+	"SVar:WatchLand:Mode$ LandPlayed | TriggerZones$ Command | ValidCard$ Land.IsRemembered | Static$ True | Execute$ EndGrant\n" +
+	"SVar:EndGrant:DB$ ChangeZone | Destination$ Exile | Origin$ Command\n" +
+	"SVar:DiesTidy:DB$ Cleanup | ClearRemembered$ True\n" +
 	"Oracle:When Unlucky Witness dies, exile the top two cards of your library. Until end of turn, you may play one of those cards.\n"
 
 func dugCreature(t *testing.T, name string) string {

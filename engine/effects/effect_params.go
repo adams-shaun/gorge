@@ -278,7 +278,7 @@ func readEffectTriggerLine(tr *cards.Trigger) effectTriggerLine {
 	boonAmount, _ := strconv.Atoi(strings.TrimSpace(tr.ParamStr(cards.PKBoonAmount)))
 	mode := tr.ModeKind()
 	playReadsRemembered := (mode == cards.TriggerSpellCast || mode == cards.TriggerLandPlayed) &&
-		strings.Contains(tr.ParamStr(cards.PKValidCard), "IsRemembered")
+		strings.Contains(tr.ParamStr(cards.PKValidCard), ".IsRemembered")
 	return effectTriggerLine{
 		BoonAmount:      boonAmount,
 		Execute:         strings.TrimSpace(tr.ParamStr(cards.PKExecute)),
