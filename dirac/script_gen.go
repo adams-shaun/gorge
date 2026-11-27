@@ -1779,7 +1779,9 @@ func (s *State) grantPrefix(k *prep, a Action, p uint8) {
 	}
 	var g grantSrch
 	if s.grantSearch(k, p, &cost, ex, s.grantPayDesc(k, a), need, &g) && g.np != 0 {
-		s.grantApply(k, &g) // the found prefix (mana_grantedoffers.go)
+		if !s.planSacDeferGrant(k, a, &g) {
+			s.grantApply(k, &g) // the found prefix (mana_grantedoffers.go)
+		}
 		return
 	}
 	// The granted mana cannot pay the play (a spell-only grant and an

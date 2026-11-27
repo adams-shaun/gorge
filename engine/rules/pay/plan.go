@@ -33,6 +33,10 @@ type Consequence struct {
 	Damage       uint32
 	NoUntap      bool
 	ReturnToHand bool
+	// SacrificeOthers: the activation sacrifices another permanent (not the
+	// source) as part of its cost -- the Ashnod's Altar family. The chosen
+	// victims ride the witness in PaymentActivation.Sacrifices.
+	SacrificeOthers bool
 }
 
 func ManaAmount(m state.Mana) decision.ManaAmount {
@@ -99,7 +103,7 @@ func (c Consequence) Wire() *decision.PaymentConsequence {
 	if c == (Consequence{}) {
 		return nil
 	}
-	return &decision.PaymentConsequence{Sacrifice: c.Sacrifice, Life: c.Life, Damage: c.Damage, NoUntap: c.NoUntap, ReturnToHand: c.ReturnToHand}
+	return &decision.PaymentConsequence{Sacrifice: c.Sacrifice, Life: c.Life, Damage: c.Damage, NoUntap: c.NoUntap, ReturnToHand: c.ReturnToHand, SacrificeOthers: c.SacrificeOthers}
 }
 
 // Irreversible-cost weights. They are

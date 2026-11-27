@@ -1,6 +1,7 @@
 package pay
 
 import (
+	"cmp"
 	"fmt"
 	"slices"
 	"strings"
@@ -185,6 +186,48 @@ func CostCauseForAbility(ability bool) CostCause {
 		return CostCauseActivated
 	}
 	return CostCauseSpell
+}
+
+// PaymentPlanSacrificeVictims ranks the ManaSacrificeCandidates of one
+// other-sacrifice cost part for the autopay planner and takes the first need
+// of them: tokens before nontokens, then lowest mana value, ties by object
+// id -- a fixed deterministic ranking, so the same board always funds the
+// same plan and the two engines cannot disagree about the victims. Reserved
+// names objects the plan already spends (its own sources, earlier picks).
+// It returns nil when fewer than need candidates remain: the plan is not
+// fundable and the caller declines it (manual payment still lets the player
+// choose any candidate).
+func PaymentPlanSacrificeVictims(e Engine, p state.PlayerID, source state.ObjID, part costvocab.CostPart, need int, reserved map[state.ObjID]bool) []state.ObjID {
+	if part.N != 1 || need != 1 || !PlanOtherSacShape(part) {
+		return nil // the closed shape is one victim per activation
+	}
+	var cands []state.ObjID
+	for _, id := range ManaSacrificeCandidates(e, p, source, part) {
+		if id != source && !reserved[id] {
+			cands = append(cands, id)
+		}
+	}
+	if len(cands) < need {
+		return nil
+	}
+	g := e.Game()
+	// A stable sort over the candidate walk's battlefield order, ranked on the
+	// three fixed keys: the keys form a total order (ids are unique), so the
+	// answer is independent of the walk's order.
+	slices.SortStableFunc(cands, func(x, y state.ObjID) int {
+		xo, yo := g.Obj(x), g.Obj(y)
+		if a, b := xo.IsToken, yo.IsToken; a != b {
+			if a {
+				return -1
+			}
+			return 1
+		}
+		if a, b := state.ManaValue(g, xo), state.ManaValue(g, yo); a != b {
+			return cmp.Compare(a, b)
+		}
+		return cmp.Compare(x, y)
+	})
+	return cands[:need]
 }
 
 // ManaCostPayableFull is the full cost walk of manaCostPayable.

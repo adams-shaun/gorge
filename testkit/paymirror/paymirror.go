@@ -1586,6 +1586,14 @@ func manaDelta(after, before state.Mana) decision.ManaAmount {
 func answerManaAsks(b *rules.Engine, p state.PlayerID, act decision.PaymentActivation, member state.ObjID) string {
 	for i := 0; i < 4; i++ {
 		d := b.Pending()
+		if idxs := plannedSacrificeAnswer(d, p, act); idxs != nil {
+			// The manual path asks the other-sacrifice election the plan's
+			// victims answer internally (PaymentActivation.Sacrifices).
+			if err := submitChoices(b, d, idxs); err != nil {
+				return "sacrifice_answer_rejected"
+			}
+			continue
+		}
 		if b.G.Over || d == nil || d.Kind != decision.KChoose || d.Player != p || !manaAsk(d, act.Source) {
 			return ""
 		}
@@ -1621,6 +1629,28 @@ func answerManaAsks(b *rules.Engine, p state.PlayerID, act decision.PaymentActiv
 		}
 	}
 	return "mana_ask_loop"
+}
+
+// plannedSacrificeAnswer is the option indexes that answer a mana ability's
+// sacrifice election with act's planned victims, or nil when d is not that
+// ask or an option is not a planned victim.
+func plannedSacrificeAnswer(d *decision.Decision, p state.PlayerID, act decision.PaymentActivation) []int {
+	if d == nil || d.Kind != decision.KChoose || d.Player != p || d.Source != act.Source || len(act.Sacrifices) == 0 || len(d.Options) == 0 {
+		return nil
+	}
+	var idxs []int
+	for i, o := range d.Options {
+		if o.Kind != "sacrifice" {
+			return nil
+		}
+		if slices.Contains(act.Sacrifices, o.Obj) {
+			idxs = append(idxs, i)
+		}
+	}
+	if len(idxs) < d.Min || len(idxs) > d.Max {
+		return nil
+	}
+	return idxs
 }
 
 // labelExact reports whether some option's label names the witness itself:
@@ -1973,6 +2003,9 @@ func collectDiffs(a, b *rules.Engine, fork int, res *RouteResult, rep *Report) {
 		sources := make([]state.ObjID, 0, len(rep.paid().Activations))
 		for _, act := range rep.paid().Activations {
 			sources = append(sources, act.Source)
+			// An other-sacrifice step's victims move the same way: run A
+			// sacrifices them inside the cast's window, the float before it.
+			sources = append(sources, act.Sacrifices...)
 		}
 		df.relax = newFloatReorder(a, b, rep.Object, sources, rep.forkObjs)
 	}
@@ -2104,7 +2137,7 @@ func witnessViolation(a *rules.Engine, fork int, plan decision.PaymentPlan, paye
 	lifeStarts := lifeOnlyStarts(evs, plan, payer)
 	var bad []string
 	for i, act := range plan.Activations {
-		got, ok := activationProduction(evs, act.Source, payer)
+		got, ok := activationProduction(evs, act.Source, payer, act.Sacrifices...)
 		if lifeStarts[i] >= 0 && (!ok || got == (decision.ManaAmount{})) {
 			got, ok = manaRunAfter(evs, lifeStarts[i]), true
 		}
@@ -2152,16 +2185,19 @@ func witnessViolation(a *rules.Engine, fork int, plan decision.PaymentPlan, paye
 // Such a zone change is passed over for the source's next Tap or zone
 // change; if none produces, the first start still reports what it made
 // (nothing), and a Tap followed by no mana always does.
-func activationProduction(evs []events.Event, source state.ObjID, payer state.PlayerID) (decision.ManaAmount, bool) {
+func activationProduction(evs []events.Event, source state.ObjID, payer state.PlayerID, victims ...state.ObjID) (decision.ManaAmount, bool) {
 	first := -1
 	for j, ev := range evs {
-		if ev.Obj != source || (ev.Kind != events.Tap && ev.Kind != events.MoveZone) {
+		// A victim's zone change starts an activation too: an other-sacrifice
+		// source without a tap (Ashnod's Altar) leaves no event naming itself.
+		own := ev.Obj == source && (ev.Kind == events.Tap || ev.Kind == events.MoveZone)
+		if !own && !(ev.Kind == events.MoveZone && slices.Contains(victims, ev.Obj)) {
 			continue
 		}
 		if first < 0 {
 			first = j
 		}
-		got := productionAfter(evs, j, source, payer)
+		got := productionAfter(evs, j, source, payer, victims)
 		if ev.Kind == events.Tap || got != (decision.ManaAmount{}) {
 			return got, true
 		}
@@ -2169,7 +2205,7 @@ func activationProduction(evs []events.Event, source state.ObjID, payer state.Pl
 	if first < 0 {
 		return decision.ManaAmount{}, false
 	}
-	return productionAfter(evs, first, source, payer), true
+	return productionAfter(evs, first, source, payer, victims), true
 }
 
 // sourceTapped reports whether evs taps source: a tapped source's activation
@@ -2191,12 +2227,12 @@ func sourceTapped(evs []events.Event, source state.ObjID) bool {
 // of the activation, not the end of its production window. The rider is tied
 // to the source by the DamageProvenance event the engine appends immediately
 // after every landed hit; an unrelated damage event still ends the window.
-func productionAfter(evs []events.Event, at int, source state.ObjID, payer state.PlayerID) decision.ManaAmount {
+func productionAfter(evs []events.Event, at int, source state.ObjID, payer state.PlayerID, victims []state.ObjID) decision.ManaAmount {
 	var got decision.ManaAmount
 	started := false
 	for i := at + 1; i < len(evs); i++ {
 		ev := evs[i]
-		if !started && isActivationCost(ev, source, payer) {
+		if !started && (isActivationCost(ev, source, payer) || (ev.Kind == events.MoveZone && slices.Contains(victims, ev.Obj))) {
 			continue
 		}
 		if sourceDamage(evs, i, source) {
@@ -2296,7 +2332,8 @@ func manaRunAfter(evs []events.Event, j int) decision.ManaAmount {
 
 // isActivationCost reports whether ev is part of paying source's own
 // activation cost: its tap, its own zone change (a sacrifice), or the
-// payer's life payment.
+// payer's life payment. The other permanents an other-sacrifice step
+// sacrifices (PaymentActivation.Sacrifices) are matched by the callers.
 func isActivationCost(ev events.Event, source state.ObjID, payer state.PlayerID) bool {
 	switch ev.Kind {
 	case events.Tap, events.MoveZone:

@@ -85,6 +85,136 @@ func (g *grantSrch) sacXLive(t *State, i int, sl Slot) bool {
 	return g.k.tapXAbOf(t.cardAt(sl)) != nil && t.scriptTapX(g.k, g.p).has(sl) // (tapped or its candidates gone since the root)
 }
 
+func (g *grantSrch) sacXLast(t *State, sl Slot, cs *[MaxPerm]Slot, anyCol bool) bool {
+	cost := g.cost
+	if g.dyn {
+		cost = t.grantDynamicCost(g.k, g.p, g.d.play, g.full)
+	}
+	var cols [5]uint8
+	ncol := 0
+	if fc, ok := kop.TapXFixedColour(g.k.tapXAbOf(t.cardAt(sl))); ok {
+		cols[0], ncol = uint8(fc), 1
+	} else if anyCol {
+		for i := range cols {
+			cols[i] = uint8(i)
+		}
+		ncol = 5
+	} else {
+		cols[0], ncol = 0, 1
+	}
+	saved := g.cheaper
+	for i := 0; i < ncol; i++ {
+		u := t.fork()
+		u.tapXDo(g.k, g.p, tapXStep{sl: sl, cand: cs[0], cand2: NoSlot, col: cols[i], kind: tapXAct})
+		var d Decision
+		ok := u.tapXNext(g.p, &d) && d.Kind == DkPriority && g.leafPays(u, &cost, saved)
+		t.unfork()
+		if ok {
+			g.cheaper = saved
+			return true
+		}
+	}
+	g.cheaper = saved
+	return false
+}
+
+// planFirst is the grant search's root probe for a play the plain-creature
+// sacrifice sources pay with no census gap beside them: gorge's planner
+// (autoPayOffer's last-resort arm, pay.PlanOtherSacShape) funds it before the
+// prefix search is asked for any gap, so no granted ability's {T} floats
+// beside it. One source's single activation is walked first, ahead of the gaps
+// before it; else the sources activate once each in gorge's plan order
+// (planOtherSacSourceOrder), two or more, the fewest that pay, each naming the
+// plan's victim (planUnits). Any other node, and a play needing a gap's unit
+// first, stay the battlefield-order walk.
+func (g *grantSrch) planFirst(t *State, sacd bool, stepped *slotMask) (found, stop bool) {
+	if g.np != 0 || g.gapN < 2 {
+		return false, false
+	}
+	var src [MaxPerm]int
+	m := 0
+	for i := 0; i < g.gapN; i++ {
+		sl := g.cand[i]
+		if !g.sacx[i] || !g.sacXLive(t, i, sl) || !t.planOtherSacSource(g.k, sl) {
+			continue
+		}
+		src[m] = i
+		m++
+	}
+	for j := 0; j < m; j++ {
+		i := src[j]
+		sl := g.cand[i]
+		ab := g.k.tapXAbOf(t.cardAt(sl))
+		var cs [MaxPerm]Slot
+		if t.sacXCands(g.k, g.p, sl, ab, &cs) == 0 || !g.sacXLast(t, sl, &cs, kop.SacXAnyColour(ab)) {
+			continue
+		}
+		if i == 0 {
+			return false, false // already the walk's first gap
+		}
+		return g.gapVisit(t, i, sacd, stepped)
+	}
+	cost := g.cost
+	if g.dyn {
+		cost = t.grantDynamicCost(g.k, g.p, g.d.play, g.full)
+	}
+	for k := 2; k <= m; k++ {
+		if g.planUnits(t, src[:k], 0, &cost) {
+			return true, false
+		}
+	}
+	return false, false
+}
+
+// planUnits activates src[j:]'s sacrifice sources once each on copies of t,
+// every one sacrificing the victim gorge's plan names (sacXVictimOrder), each
+// colour answer of an any-colour source tried, and prices the play once the
+// last one has produced. A found line stays in g.path.
+func (g *grantSrch) planUnits(t *State, src []int, j int, cost *kop.ManaCost) bool {
+	if j == len(src) {
+		saved := g.cheaper
+		if g.leafPays(t, cost, saved) {
+			return true
+		}
+		g.cheaper = saved
+		return false
+	}
+	i := src[j]
+	sl := g.cand[i]
+	ab := g.k.tapXAbOf(t.cardAt(sl))
+	var cs [MaxPerm]Slot
+	nc := t.sacXCands(g.k, g.p, sl, ab, &cs)
+	if nc == 0 || !t.occ.has(sl) || t.perms[sl].obj != g.cobj[i] {
+		return false
+	}
+	v := t.sacXVictimOrder(g.k, sl, &cs, nc, true)
+	order, ncol := [5]uint8{0, 1, 2, 3, 4}, 1
+	if fc, ok := kop.TapXFixedColour(ab); ok {
+		order[0] = uint8(fc)
+	} else if kop.SacXAnyColour(ab) {
+		ncol = 5
+		needFirst(order[:], g.need)
+	} else {
+		order[0] = 0
+	}
+	for _, col := range order[:ncol] {
+		if g.np >= len(g.path) {
+			return false
+		}
+		u := t.fork()
+		u.tapXDo(g.k, g.p, tapXStep{sl: sl, cand: v[0], cand2: NoSlot, col: col, kind: tapXAct})
+		g.path[g.np] = grantStep{i: uint8(i), col: col, gi: stepSacX, sl: sl, cand: v[0]}
+		g.np++
+		ok := g.planUnits(u, src, j+1, cost)
+		t.unfork()
+		if ok {
+			return true
+		}
+		g.np--
+	}
+	return false
+}
+
 // sacXAct is sacXBranch's activation of the sacrifice-another ability: the
 // sacrifice ask, then the colour ask of an any-colour production.
 func (g *grantSrch) sacXAct(t *State, i int, sl Slot) bool {
@@ -97,10 +227,12 @@ func (g *grantSrch) sacXAct(t *State, i int, sl Slot) bool {
 	if nc > 1 && !g.node() { // the sacrifice ask
 		return false
 	}
+	anyCol := kop.SacXAnyColour(ab)
+	plan := t.planOtherSacSource(g.k, sl) && g.sacXLast(t, sl, &cs, anyCol)
+	vorder := t.sacXVictimOrder(g.k, sl, &cs, nc, plan)
 	// the colour ask's answers: W U B R G, the play's announced colours first
 	// (gorge's scriptOrderAnswers, needFirst); a fixed production asks none
 	order, ncol := [5]uint8{0, 1, 2, 3, 4}, 1
-	anyCol := kop.SacXAnyColour(ab)
 	if anyCol {
 		ncol = 5
 		needFirst(order[:], g.need)
@@ -114,8 +246,8 @@ func (g *grantSrch) sacXAct(t *State, i int, sl Slot) bool {
 				return false
 			}
 			u := t.fork()
-			u.tapXDo(g.k, g.p, tapXStep{sl: sl, cand: cs[j], cand2: NoSlot, col: col, kind: tapXAct})
-			g.path[g.np] = grantStep{i: uint8(i), col: col, gi: stepSacX, sl: sl, cand: cs[j]}
+			u.tapXDo(g.k, g.p, tapXStep{sl: sl, cand: vorder[j], cand2: NoSlot, col: col, kind: tapXAct})
+			g.path[g.np] = grantStep{i: uint8(i), col: col, gi: stepSacX, sl: sl, cand: vorder[j]}
 			g.np++
 			sv := g.refreshGrants(u) // (a sacrificed grant holder's grants are gone below the step: mana_grantlive.go)
 			ok := g.next(u, sl)      // (the sacrifice queues its dies triggers, mana_granttapsdefer.go)
