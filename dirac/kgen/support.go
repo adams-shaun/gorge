@@ -36,6 +36,12 @@ const supportNode = "support"
 const (
 	podReportSeats = 3 // a clean pod game the support page reports
 	podCreditSeats = 4 // a clean pod game that evidences the card
+
+	// evidenceSourceXproof tags a row scripts/dirac-xproof-evidence.py wrote: a card whose
+	// xproof key agreed with Forge on gorge's side and played dirac in lockstep with gorge
+	// decision for decision. dirac plays two seats, so the row evidences from two.
+	evidenceSourceXproof = "xproof"
+	xproofCreditSeats    = 2
 )
 
 // supportLists is the parsed dirac/support tree.
@@ -73,15 +79,18 @@ func readSupport(src fs.FS) (*supportLists, error) {
 				continue
 			}
 			// A tabbed row is a pod run's row (Name\t<seats>): three seats
-			// report, four seats also evidence.
-			n, err := strconv.Atoi(strings.TrimSpace(r.col))
+			// report, four seats also evidence. A third column names the
+			// source of the row (Name\t<seats>\t<source>): an xproof row
+			// credits from two seats, the game its lockstep plays.
+			seats, source, _ := strings.Cut(r.col, "\t")
+			n, err := strconv.Atoi(strings.TrimSpace(seats))
 			if err != nil {
 				continue
 			}
 			if n >= podReportSeats {
 				s.podEvidenced[r.name] = true
 			}
-			if n >= podCreditSeats {
+			if n >= podCreditSeats || n >= xproofCreditSeats && strings.TrimSpace(source) == evidenceSourceXproof {
 				s.evidenced[r.name] = true
 			}
 		}
