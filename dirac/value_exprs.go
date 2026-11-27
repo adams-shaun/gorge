@@ -223,6 +223,11 @@ func (s *State) exprCold(k *prep, x *kop.Expr, ctx evalCtx) int {
 			return s.evalV(k, x.Sub[0], ctx)
 		}
 		return s.evalV(k, x.Sub[1], ctx)
+	case kop.ExCountTgtEntry:
+		// gorge TargetedByTarget$Valid <spec>: the object targets, matching F,
+		// of the spell or ability the evaluating entry targets
+		// (dirac/tgt_nestedcount.go)
+		return s.countTgtEntryMatches(k, x.F, ctx)
 	case kop.ExResolvedThisTurn:
 		return s.resolvedThisTurn(k)
 	case kop.ExThisTurnCast:

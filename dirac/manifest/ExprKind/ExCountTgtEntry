@@ -1,0 +1,9 @@
+family: ExprKind
+name: ExCountTgtEntry
+value: next
+forge: TargetedByTarget
+census: count TargetedByTarget all=2 std=0 mbc=0 sole=0
+state: code 0
+status: active
+ticket: dirac-targetedbytarget-count-head
+doc: the number of object targets, matching F, of the spell or ability the evaluating entry targets -- one level past entryTgtClause's own-targets walk (dirac/tgt_nestedcount.go; gorge engine/effects/count_body.go's TargetedByTarget$Valid arm). Player targets and empty slots never count. The subject entry is the resolution's (ctx.e), the spell being built during a CR 601.2c/h reprice, or the spell's potential-target census at the offer gate (gorge's costAmountTargets reads the first max candidates).
