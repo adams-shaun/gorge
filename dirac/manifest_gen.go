@@ -752,10 +752,20 @@ func init() {
 	mechName[mechEncore] = "encore"
 }
 
+// mech (dirac/manifest/mech/mechActTurn)
+//
+// slots whose permanent activated a non-mana ability this turn (the activation tally, gorge's Object.ActivatedThisTurn; filter_permmarks.go)
+const mechActTurn mech = 55
+
+func init() {
+	mechWidth[mechActTurn] = wSlot
+	mechName[mechActTurn] = "actTurn"
+}
+
 // mech (dirac/manifest/mech/mechBtTurn)
 //
 // slots whose permanent became a target this turn (BecomesTarget FirstTime$; trig_counterfirst.go)
-const mechBtTurn mech = 55
+const mechBtTurn mech = 56
 
 func init() {
 	mechWidth[mechBtTurn] = wSlot
@@ -765,7 +775,7 @@ func init() {
 // mech (dirac/manifest/mech/mechEmbalmGrant)
 //
 // object mask: graveyard cards with a granted embalm at their mana cost (Cursecloth Wrappings; kw_embalmgrant.go)
-const mechEmbalmGrant mech = 56
+const mechEmbalmGrant mech = 57
 
 func init() {
 	mechWidth[mechEmbalmGrant] = wObj
@@ -775,21 +785,11 @@ func init() {
 // mech (dirac/manifest/mech/mechEncSeat0)
 //
 // bit 0 of the seat an Encore token must attack this turn (CR 702.141a; gorge EncoreAttackDefender; kw_encore.go)
-const mechEncSeat0 mech = 57
+const mechEncSeat0 mech = 58
 
 func init() {
 	mechWidth[mechEncSeat0] = wSlot
 	mechName[mechEncSeat0] = "encSeat0"
-}
-
-// mech (dirac/manifest/mech/mechEncSeat1)
-//
-// bit 1 of the seat an Encore token must attack this turn (CR 702.141a; gorge EncoreAttackDefender; kw_encore.go)
-const mechEncSeat1 mech = 58
-
-func init() {
-	mechWidth[mechEncSeat1] = wSlot
-	mechName[mechEncSeat1] = "encSeat1"
 }
 
 // mech (dirac/manifest/mech/mechHorsemanship)
@@ -812,10 +812,30 @@ func init() {
 	mechName[mechHorsemanshipPost] = "horsemanshipPost"
 }
 
+// mech (dirac/manifest/mech/mechEncSeat1)
+//
+// bit 1 of the seat an Encore token must attack this turn (CR 702.141a; gorge EncoreAttackDefender; kw_encore.go)
+const mechEncSeat1 mech = 61
+
+func init() {
+	mechWidth[mechEncSeat1] = wSlot
+	mechName[mechEncSeat1] = "encSeat1"
+}
+
+// mech (dirac/manifest/mech/mechFaceUpTurn)
+//
+// slots whose permanent was turned face up this turn (turnUpFlip, gorge's Object.TurnedFaceUpThisTurn; filter_permmarks.go)
+const mechFaceUpTurn mech = 62
+
+func init() {
+	mechWidth[mechFaceUpTurn] = wSlot
+	mechName[mechFaceUpTurn] = "faceUpTurn"
+}
+
 // mech (dirac/manifest/mech/mechRemFaceDown)
 //
 // object mask: permanents a RememberSacrificed$ Sacrifice took while they were face down, whose mana value read through Remembered$CardManaCost stays 0 (CR 708.2, 608.2h; sacRemember)
-const mechRemFaceDown mech = 61
+const mechRemFaceDown mech = 63
 
 func init() {
 	mechWidth[mechRemFaceDown] = wObj
@@ -825,7 +845,7 @@ func init() {
 // mech (dirac/manifest/mech/mechSkulk)
 //
 // slots whose permanent has skulk until end of turn (ExtKwMark KwMarkSkulk; kw_kwmark.go)
-const mechSkulk mech = 62
+const mechSkulk mech = 64
 
 func init() {
 	mechWidth[mechSkulk] = wSlot
@@ -835,7 +855,7 @@ func init() {
 // mech (dirac/manifest/mech/mechSkulkPost)
 //
 // slots marked skulk while their permanent had lost all abilities (CR 613.7)
-const mechSkulkPost mech = 63
+const mechSkulkPost mech = 65
 
 func init() {
 	mechWidth[mechSkulkPost] = wSlot
@@ -843,7 +863,7 @@ func init() {
 }
 
 // numMech is one past the highest mech: the length of the arena's mech tables.
-const numMech mech = 64
+const numMech mech = 66
 
 // execExtGen runs an OpExt sub-op whose handler is marked //kmanifest:ext in its
 // feature file: the default arm of the hand switch (execExt, extop.go).

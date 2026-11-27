@@ -1,0 +1,6 @@
+family: mech
+name: mechActTurn
+value: next
+state: slotbit 16/16
+status: active
+doc: slots whose permanent activated a non-mana ability this turn (the activation tally, gorge's Object.ActivatedThisTurn; filter_permmarks.go)

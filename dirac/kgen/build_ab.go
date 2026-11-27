@@ -357,6 +357,9 @@ func (cb *cardBuilder) target(t lTarget) (kop.TargetSpec, error) {
 		if ts.Filter, err = cb.filter(f, kop.ZoneBattlefield); err != nil {
 			return ts, err
 		}
+		if t.StackOpp {
+			ts.TFlags |= kop.TgfStackOppCtrl
+		}
 	case t.Spell:
 		ts.Kind = kop.TgtSpell
 		if t.StackAb {

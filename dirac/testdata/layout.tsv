@@ -692,7 +692,7 @@ default	field	genPrep.anySuspect	1
 default	field	genPrep.anyRemEach	1
 default	field	genPrep.anyRemSearcher	1
 default	field	genPrep.anySacSub	1
-default	field	genPrep.ix	64
+default	field	genPrep.ix	66
 default	field	genPrep.anyInit	1
 default	field	genPrep.dungeon	2
 default	field	genPrep.anyFaceDown	1

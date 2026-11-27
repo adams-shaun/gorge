@@ -1217,8 +1217,10 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 		o.DealtDamageToPlayersThisTurnHere = 0
 		o.DealtDamageToAnyGame = false
 		o.DealtCombatDamageToAnyGame = false
-		// CR 400.7: a permanent that returns this turn has activated nothing.
+		// CR 400.7: a permanent that returns this turn has activated nothing
+		// and was not the object that was turned face up.
 		o.ActivatedThisTurn = 0
+		o.TurnedFaceUpThisTurn = false
 		o.RegeneratedThisTurn = 0
 		if !countersRemain || to == state.ZHand || to == state.ZLibrary {
 			o.Counters = nil

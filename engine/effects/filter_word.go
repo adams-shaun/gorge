@@ -55,6 +55,14 @@ const (
 	// has a real card face to reveal (CR 708.6). The corpus's only use is
 	// Experimental Lab // Staff Room's DBTurnFaceUp presence gate.
 	wordCanBeTurnedFaceUp
+	// Forge's Card.activated: an ability of this permanent was activated
+	// earlier in the turn (state.Object.ActivatedThisTurn, the same tally
+	// that bounds bot policy; Cut Short's Planeswalker.activated spec).
+	wordActivated
+	// Forge's Card.turnedFaceUpThisTurn: this permanent was turned face up
+	// during this turn (state.Object.TurnedFaceUpThisTurn, folded from the
+	// TurnFaceUp event; Kaust, Eyes of the Glade's trigger).
+	wordTurnedFaceUpThisTurn
 	// Forge's OppProtect: the object is a battle whose CR 310.10 protector
 	// is an opponent of the evaluating controller (SpecContext's You). The
 	// protector state lives on the battle object itself (state.Object
@@ -527,6 +535,10 @@ func wordPredicate(p string) (wordKind, string) {
 		return wordHasCounters, ""
 	case wordPredicateWordSuspended:
 		return wordSuspended, ""
+	case wordPredicateWordActivated:
+		return wordActivated, ""
+	case wordPredicateWordTurnedFaceUpThisTurn:
+		return wordTurnedFaceUpThisTurn, ""
 	// The object/game-context families. Each is a bare predicate word
 	// whose body reads provenance outside the object alone (see the
 	// wordKind block's comment); classification here is what makes the
@@ -930,6 +942,20 @@ func wordMatches(kind wordKind, key string, g *state.Game, o *state.Object, sc S
 		// still the "suspended card" the corpus's specs name, and a
 		// Clockspinning may put a time counter back on it.
 		return o.Zone == state.ZExile && o.CastFlags&state.FlagSuspend != 0
+	case wordActivated:
+		// Forge's Card.activated: one of this permanent's abilities was
+		// activated earlier this turn. The tally is events.Apply's AbilityPush
+		// fold (the same counter that bounds the bot's loop-shaped
+		// activations), which counts exactly the non-mana activations CR
+		// 602.2 puts on the stack -- and a planeswalker's loyalty activation
+		// mints one, so Cut Short's Planeswalker.activated reads it.
+		return o.ActivatedThisTurn > 0
+	case wordTurnedFaceUpThisTurn:
+		// Forge's Card.turnedFaceUpThisTurn: the TurnFaceUp fold marked the
+		// permanent this turn (the CR 708.6 morph family, AB$ SetState
+		// Mode$ TurnFaceUp); a new object never carries the old object's
+		// mark (CR 400.7, apply_zone's Move clear).
+		return o.TurnedFaceUpThisTurn
 	case wordOppProtect:
 		// Forge's OppProtect: the object is a battle whose CR 310.10
 		// protector is an opponent of the evaluating controller (sc.You).
@@ -1577,6 +1603,8 @@ const (
 	wordPredicateWordTopGraveyard
 	wordPredicateWordTopGraveyard2
 	wordPredicateWordTopGraveyardCreature
+	wordPredicateWordActivated
+	wordPredicateWordTurnedFaceUpThisTurn
 )
 
 var wordPredicateWordCodes = state.NewStrCodes(
@@ -1627,6 +1655,8 @@ var wordPredicateWordCodes = state.NewStrCodes(
 	state.StrEntry[wordPredicateWordCode]{Key: "IsRingbearer", Val: wordPredicateWordIsRingbearer},
 	state.StrEntry[wordPredicateWordCode]{Key: "HasCounters", Val: wordPredicateWordHasCounters},
 	state.StrEntry[wordPredicateWordCode]{Key: "suspended", Val: wordPredicateWordSuspended},
+	state.StrEntry[wordPredicateWordCode]{Key: "activated", Val: wordPredicateWordActivated},
+	state.StrEntry[wordPredicateWordCode]{Key: "turnedFaceUpThisTurn", Val: wordPredicateWordTurnedFaceUpThisTurn},
 	state.StrEntry[wordPredicateWordCode]{Key: "wasDealtDamageThisTurn", Val: wordPredicateWordWasDealtDamageThisTurn},
 	state.StrEntry[wordPredicateWordCode]{Key: "dealtDamageThisTurn", Val: wordPredicateWordDealtDamageThisTurn},
 	state.StrEntry[wordPredicateWordCode]{Key: "wasDealtExcessDamageThisTurn", Val: wordPredicateWordWasDealtExcessDamageThisTurn},

@@ -571,6 +571,9 @@ func (s *State) turnUpFlip(k *prep, sl Slot, o Obj, p uint8, x uint8) {
 		s.turnUpRepls(k, sl, o) // face_turnfaceup.go: the body runs while still face down
 	}
 	s.clearFaceDown(k, sl) // marks the slot changed (marks.go: every mutation marks)
+	if k.gen.anyPermMark {
+		s.markFaceUp(k, sl) // PredPermMark mark 5 (Kaust): gorge's TurnFaceUp fold stamps the same fact
+	}
 	s.subscribe(sl, &k.cards[c], true)
 	s.refreshTy(k)
 	s.fireTurnFaceUp(k, sl, o, p, x)

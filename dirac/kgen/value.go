@@ -889,6 +889,18 @@ func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 		// (CR 309.7; gorge Player.CompletedDungeons), ExEnergyOf with N
 		// kop.PlCtrDungeons (Ravenloft Adventurer).
 		v = lValue{Kind: vEnergyOf, Ref: lRef{Kind: rYou}, N: kop.PlCtrDungeons}
+	case "TargetedByTarget":
+		// The nested-target count (gorge engine/effects/count_body.go:
+		// TargetedByTarget$Valid <spec> counts the object targets, matching
+		// <spec>, of the spell/ability the resolving source targets). The
+		// kernel's target records cover ONE level (stackEntry.tgt + the xtp
+		// extras, read by entryTgtClause for TargetValidTargeting$); a count
+		// over the TARGETED entry's targets has no kernel op, and the only
+		// corpus carrier (Not of This World) gates its ReduceCost amount on
+		// exactly that read. Refused by name: the shape is separable
+		// (nestedTargetMask + an Ex count over it), and an unmodelled zero
+		// here would silently drop the reduction.
+		return lValue{}, refuse("value head TargetedByTarget$: the nested target count has no kernel op (Not of This World)")
 	default:
 		err = fmt.Errorf("value head %s$", head)
 	}
