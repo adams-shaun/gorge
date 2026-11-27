@@ -102,27 +102,8 @@ func (s *State) sbaScan(k *prep, r *sbaMasks) (busy bool) {
 			gy = gy.with(sl)
 			aur = aur.with(sl)
 		}
-		fort := k.t.Cards[s.cardAt(sl)].Fortification
-		if t&kop.TAura == 0 && !fort && p.attached != NoSlot && s.occ.has(p.attached) && s.typesAt(k, p.attached)&kop.TCreature == 0 {
+		if s.sbaAttachment(k, sl, p, t) {
 			busy = true // the legend ask decides it (legendOwed), which the scan key does not hold
-		}
-		if t&kop.TAura == 0 && !fort && p.attached != NoSlot && s.occ.has(p.attached) && s.typesAt(k, p.attached)&kop.TCreature == 0 && !s.legendOwed(k) {
-			// an Equipment whose creature is no longer one (Imprisoned
-			// in the Moon) becomes unattached and stays (CR 704.5n;
-			// gorge attachmentSBAs; pair 9856). Under a legend ask it
-			// stays attached: gorge parks the pass's batch with the ask
-			// (CR 704.3), and the pass after the answer detaches it
-			// (Crystallized Serah transformed beside another)
-			s.detachAttachment(k, sl, p)
-		}
-		if fort && p.attached != NoSlot && s.occ.has(p.attached) && s.typesAt(k, p.attached)&kop.TLand == 0 {
-			busy = true // the legend ask decides it (legendOwed), which the scan key does not hold
-		}
-		if fort && p.attached != NoSlot && s.occ.has(p.attached) && s.typesAt(k, p.attached)&kop.TLand == 0 && !s.legendOwed(k) {
-			// a Fortification whose bearer is no longer a land (CR 704.5n,
-			// CR 702.67b; gorge's isFortification arm, engine/rules/attach.go:244)
-			// detaches and stays; the same legend-ask park as the Equipment arm.
-			s.detachAttachment(k, sl, p)
 		}
 		if t&kop.TPlaneswalker != 0 && p.ctrLow(int(kop.CtrLoyalty)) == 0 {
 			gy = gy.with(sl)
@@ -130,6 +111,35 @@ func (s *State) sbaScan(k *prep, r *sbaMasks) (busy bool) {
 		}
 	}
 	r.die, r.gy, r.pwz, r.aur, r.anni = die, gy, pwz, aur, anni
+	return busy
+}
+
+// sbaAttachment applies the CR 704.5n attachment SBAs to p (at sl): an
+// Equipment whose bearer is no longer a creature (Imprisoned in the Moon;
+// pair 9856) and a Fortification whose bearer is no longer a land (CR 702.67b;
+// gorge's isFortification arm, engine/rules/attach.go:244) both detach and
+// stay. busy reports that the legend ask may decide the detach, which the
+// clean-scan key does not hold: under a pending ask the attachment stays
+// attached (gorge parks the pass's batch with the ask, CR 704.3), and the pass
+// after the answer detaches it (Crystallized Serah transformed beside another).
+func (s *State) sbaAttachment(k *prep, sl Slot, p *perm, t kop.TypeMask) (busy bool) {
+	if p.attached == NoSlot || !s.occ.has(p.attached) {
+		return false
+	}
+	fort := k.t.Cards[s.cardAt(sl)].Fortification
+	if t&kop.TAura == 0 && !fort && s.typesAt(k, p.attached)&kop.TCreature == 0 {
+		busy = true // the legend ask decides it (legendOwed), which the scan key does not hold
+		if !s.legendOwed(k) {
+			s.detachAttachment(k, sl, p)
+			return busy
+		}
+	}
+	if fort && s.typesAt(k, p.attached)&kop.TLand == 0 {
+		busy = true // the legend ask decides it (legendOwed), which the scan key does not hold
+		if !s.legendOwed(k) {
+			s.detachAttachment(k, sl, p)
+		}
+	}
 	return busy
 }
 
