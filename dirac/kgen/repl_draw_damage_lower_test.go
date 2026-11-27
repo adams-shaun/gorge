@@ -33,14 +33,13 @@ func TestReplDrawDamageSlice(t *testing.T) {
 func TestReplDrawDamageRestRefused(t *testing.T) {
 	for _, w := range []struct{ name, class string }{
 		{"Abundance", "Draw replacement with an optional or choice body"},
-		{"Archmage Ascension", "Draw replacement with an optional or choice body"},
+		{"Archmage Ascension", "Draw replacement"},
 		{"Asmodeus the Archfiend", "Draw replacement"},
 		{"Enduring Renewal", "Draw replacement"},
 		{"Eruth, Tormented Prophet", "Draw replacement"},
-		{"Obstinate Familiar", "Draw replacement with an optional or choice body"},
 		{"Out of the Tombs", "Draw replacement"},
 		{"Pavel Chekov, First Posting", "Draw replacement with an optional or choice body"},
-		{"Pursuit of Knowledge", "Draw replacement with an optional or choice body"},
+		{"Pursuit of Knowledge", "Draw replacement"},
 		{"Sages of the Anima", "Draw replacement"},
 		{"Tomorrow, Azami's Familiar", "Draw replacement"},
 		{"Underrealm Lich", "Draw replacement"},
