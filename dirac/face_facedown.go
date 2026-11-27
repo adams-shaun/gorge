@@ -11,6 +11,11 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // cast nor a turn-face-up, so the same games diverge from gorge.
 var DebugIgnoreFaceDown bool
 
+// DebugIgnoreFaceDownEntry is the face-down-family mutation switch
+// (TestDemoFacedownMutation): with it set a ChangeZone FaceDown$ True return
+// enters face up, as if kop.RetFaceDown were not read.
+var DebugIgnoreFaceDownEntry bool
+
 // DebugTurnUpNoncreature is the kmanifest mutation switch
 // (TestManifestMutation): with it set a manifested or cloaked noncreature
 // also offers the printed mana-cost turn-up, which gorge never offers.
@@ -139,6 +144,31 @@ func (s *State) enterFaceDown(k *prep, o Obj, ctrl uint8, fam uint8, from ...kop
 		s.fireObj(k, kop.TrigETB, sl, o, ctrl, 0)
 	}
 	s.storyGrant(k) // the emit-tail grant, after the entry's triggers (kw_storied.go)
+	return sl
+}
+
+// enterFaceDownMoved is the ChangeZone FaceDown$ True return (CR 708.2,
+// kop.RetFaceDown): a generic face-down entry, never the manifest
+// procedure's provenance (CR 701.40b), so its turn-up is the printed
+// Morph/Megamorph/Disguise cost alone. A held entry frame (a union return's
+// batch) holds its enters check like enterMoved.
+func (s *State) enterFaceDownMoved(k *prep, o Obj, ctrl uint8, from kop.Zone) Slot {
+	if s.g.batchLatch&batchHeld != 0 {
+		sl := s.enterNF(k, o, ctrl, false, from, kop.MorphMorph)
+		if from == kop.ZoneGraveyard {
+			s.fireLeavesGraveyardSelf(k, sl, o)
+		}
+		s.g.held |= 1 << (s.perms[sl].ts & 7)
+		return sl
+	}
+	sl := s.enterNF(k, o, ctrl, false, from, kop.MorphMorph)
+	if from == kop.ZoneGraveyard {
+		s.fireLeavesGraveyardSelf(k, sl, o)
+	}
+	if s.anyETB(k) || k.anyOffGrant {
+		s.fireObj(k, kop.TrigETB, sl, o, ctrl, 0)
+	}
+	s.storyGrant(k)
 	return sl
 }
 
@@ -543,4 +573,69 @@ func (s *State) fireTurnFaceUp(k *prep, sl Slot, o Obj, p uint8, x uint8) {
 			s.objTrigGen(k, kop.TrigTurnFaceUp, l, a, sl, o, p, int16(x))
 		})
 	}
+	s.fireGraveTurnFaceUp(k, sl, o, p, x)
+}
+
+// fireGraveTurnFaceUp queues the graveyard cards' TurnFaceUp triggers
+// (TriggerZones$ Graveyard: Deathmist Raptor's "whenever a permanent you
+// control is turned face up, you may return this card"). The battlefield
+// listeners fire first, in battlefield order; the graveyard walk is the
+// seat-major grave order the other grave scans use.
+//
+//go:noinline
+func (s *State) fireGraveTurnFaceUp(k *prep, sl Slot, o Obj, p uint8, x uint8) {
+	if len(k.gen.graveTrig) == 0 {
+		return
+	}
+	for _, c := range k.gen.graveTrig {
+		cd := &k.t.Cards[c]
+		for pp := uint8(0); pp < s.nSeats(); pp++ {
+			if s.out(pp) {
+				continue
+			}
+			pl := &s.pl[pp]
+			for i := 0; i < int(pl.graveN); i++ {
+				go_ := pl.grave[i]
+				if s.objs[go_].card != c {
+					continue
+				}
+				for j := range cd.Abilities {
+					a := &cd.Abilities[j]
+					if a.Kind != kop.AbTriggered || a.Trig.Zone != kop.ZoneGraveyard || a.Trig.Event != kop.TrigTurnFaceUp {
+						continue
+					}
+					if s.gravePrintedHidden(k, go_) {
+						continue
+					}
+					l := trigListener{obj: go_, sl: NoSlot, ctrl: pp, card: c, ab: uint8(j)}
+					s.objTrigGen(k, kop.TrigTurnFaceUp, l, a, sl, o, p, int16(x))
+				}
+			}
+		}
+	}
+}
+
+// turnFaceDownExt is ExtTurnFaceDown (gorge effSetState Mode$ TurnFaceDown):
+// the battlefield permanent Obj turns face down in place (CR 708.2). Its
+// printed triggers and statics unsubscribe; its counters and other effects
+// stay, and the face-down characteristics come from the walk (its types and
+// P/T are the 2/2, its abilities none). The permanent is already face down:
+// nothing happens.
+//
+//kmanifest:ext ExtTurnFaceDown
+func (s *State) turnFaceDownExt(k *prep, in *kop.Instr) (ok, done bool) {
+	sl := s.objRef(k, in.Obj)
+	if sl == NoSlot || s.faceDown(k, sl) {
+		return true, true
+	}
+	c := s.cardAt(sl)
+	s.subscribe(sl, &k.cards[c], false)
+	p := &s.perms[sl]
+	p.gty = kop.TCreature | gtyFaceDown
+	p.ovr.flags |= ovGenTy
+	p.ovr.walk = walkOn
+	p.spare &^= spareCopyFaceDown
+	s.touchSl(sl)
+	s.refreshTy(k)
+	return true, true
 }
