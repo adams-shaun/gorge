@@ -110,4 +110,5 @@ Thaumatic Compass
 Thrun, the Last Troll
 Traverse Eternity
 Vampiric Tutor
+Wakeroot Elemental
 Weatherseed Faeries

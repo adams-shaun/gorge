@@ -67,6 +67,7 @@ Join Forces
 Kaya's Onslaught
 Kismet
 Kjeldoran Gargoyle
+Krosan Druid
 Leonin Squire
 Magefire Wings
 Mageta the Lion
@@ -102,6 +103,7 @@ Servant of Nefarox
 Shinewend
 Shivan Oasis
 Sigil of the New Dawn
+Skarrg, the Rage Pits
 Skeletal Changeling
 Squash
 Sram, Senior Edificer
