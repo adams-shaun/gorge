@@ -133,7 +133,7 @@ func PaymentPlanShapeTierOf(ma *cards.SA, cost costvocab.Cost) (tier Tier, c Con
 		if len(cost.Sac) == 1 && !PlanSelfCost(cost.Sac[0], 0) {
 			// The closed "sacrifice another permanent" mana shape (Ashnod's
 			// Altar's Sac<1/Creature>, Phyrexian Tower's {T} plus
-			// Sac<1/Land>): exactly one fixed-count non-self Sac part, and
+			// Sac<1/Creature>): exactly one fixed-count non-self Sac part, and
 			// nothing else beyond the optional {T} the arm above already
 			// bounds -- no life, no self-return: the witness discloses the
 			// victims in PaymentActivation.Sacrifices and the search prices
