@@ -689,6 +689,8 @@ func (s *State) subscribe(sl Slot, pc *pcard, on bool) {
 func (s *State) leave(k *prep, sl Slot, z kop.Zone, bottom bool) {
 	if z == kop.ZoneGraveyard {
 		z = s.dieZone(k, sl) // Fiery Annihilation / a dies-to-exile replacement
+	} else if k.gen != nil && k.gen.uses.has(useExileOnLeaveOverride) {
+		z = s.overrideLeaveZone(k, sl, z) // an Animate Replacements$ record exiles a bounce too (repl_counters.go)
 	}
 	if s.cmdZoneReplace(k, s.perms[sl].obj, &z, &bottom) {
 		s.exileRiderReset(k, sl) // the exile it chose did not happen (repl_exilerider.go)
@@ -708,6 +710,7 @@ func (s *State) leave(k *prep, sl Slot, z kop.Zone, bottom bool) {
 }
 
 func (s *State) fireLeave(k *prep, sl Slot, z kop.Zone) {
+	s.stallBatchLeave(k, sl, z)
 	if k.gen != nil && k.gen.anyUnearth && z != kop.ZoneExile {
 		z = s.unearthZone(sl, z) // cast_altfree.go
 	}

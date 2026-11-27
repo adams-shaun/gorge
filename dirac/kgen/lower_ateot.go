@@ -27,7 +27,7 @@ func (lc *lowerCtx) animateAtEOT(ps *params, obj lRef) (func(), error) {
 	if err != nil {
 		return nil, err
 	}
-	if !lc.oneObjectSubject(obj) {
+	if !lc.oneObjectSubject(obj) && obj.Kind != rTargetUnion {
 		return nil, refuse("Animate AtEOT on a set")
 	}
 	return func() { lc.emit(lInstr{Op: "AtEOT", Obj: obj, C: act}) }, nil

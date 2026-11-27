@@ -249,11 +249,11 @@ func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
 	if r, ok := sp.get("RemoveKeyword"); ok {
 		// a layer-6 removal beside the Continuous parts (Starforged
 		// Sword's "gets +3/+3 and loses flying"): an Override carrying it
-		ks, err := removeKeywords(r)
+		ks, lw, err := lc.removeKeywordsAndLandwalk(r)
 		if err != nil {
 			return nil, err
 		}
-		st.Override = &lOverride{RemoveKw: ks}
+		st.Override = &lOverride{RemoveKw: ks, RemoveLandwalk: lw}
 		lc.out.overrides = append(lc.out.overrides, st.Override)
 		if err := cantHaveKeyword(sp, st); err != nil {
 			return nil, err // lower_canthavekw.go

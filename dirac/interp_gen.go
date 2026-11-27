@@ -809,10 +809,15 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		// a Self record whose object left and came back names a new object
 		// (CR 400.7; Fire Nation Warship destroyed in response to its crew).
 		sl := s.objRef(k, in.Obj)
+		retSelf := false
+		if sl == NoSlot {
+			sl = s.overrideReturnedSelf(k, in) // zone_overridereturnedself.go
+			retSelf = sl != NoSlot
+		}
 		if sl == NoSlot {
 			break
 		}
-		if pc := s.res.pc; pc > 0 && s.g.retMiss {
+		if pc := s.res.pc; pc > 0 && s.g.retMiss && !retSelf {
 			if p := &s.prog(k)[pc-1]; (p.Op == kop.OpReturnEx || p.Op == kop.OpReturn) && p.Obj == in.Obj {
 				break // a return's StaticEffect rider: the return moved nothing (Valkyrie's Call after Infernal Vessel's own return; Brilliance Unleashed's plain return of an artifact creature already on the battlefield)
 			}
@@ -1588,7 +1593,8 @@ func (s *State) dieZone(k *prep, sl Slot) kop.Zone {
 	var ctr kop.CounterKind
 	var ctrN uint8
 	src := NoSlot
-	if k.gen != nil && k.gen.anyRepl&rbExileOnLeave != 0 {
+	if k.gen != nil && (k.gen.anyRepl&rbExileOnLeave != 0 ||
+		k.gen.uses.has(useExileOnLeaveOverride) && s.fxM.has(sl)) {
 		exileN, ctr, ctrN, src = s.exileOnLeaveN(k, sl)
 	}
 	// a mark lasts whatever the object is by then: a planeswalker with no

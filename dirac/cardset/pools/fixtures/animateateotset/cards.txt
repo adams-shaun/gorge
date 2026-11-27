@@ -1,0 +1,13 @@
+# the any-number Animate AtEOT pool: Depthshaker Titan animates noncreature
+# artifacts and sacrifices them together at the next end step
+# (dirac/oracle/animatekernelsurfaces_lockstep_test.go)
+Depthshaker Titan
+Mind Stone
+Fellwar Stone
+Darksteel Relic
+Savannah Lions
+Elite Vanguard
+Wind Drake
+Mountain
+Plains
+Island

@@ -1,0 +1,7 @@
+family: Ref
+name: RefTargets0
+value: next
+state: code 0
+status: active
+ticket: animate-shapes-kernel-surfaces
+doc: every legal target of target slot 0 (gorge evalTarget's Animate grant over an any-number slot: effAnimate applies the grant and the AtEOT promise to each object of Defined$ Targeted). The kernel runs an op once per legal target of the slot (dirac/tgt_union.go execUnion).

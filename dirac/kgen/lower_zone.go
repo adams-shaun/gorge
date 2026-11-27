@@ -1238,6 +1238,12 @@ func overrideString(o *lOverride) string {
 	if len(o.RemoveKw) > 0 {
 		p = append(p, "removekw="+strings.Join(o.RemoveKw, ","))
 	}
+	if o.RemoveLandwalk != nil {
+		p = append(p, "removelandwalk="+o.RemoveLandwalk.String())
+	}
+	if o.ExileOnLeave {
+		p = append(p, "exileonleave")
+	}
 	if len(o.CantHaveKw) > 0 {
 		p = append(p, "canthavekw="+strings.Join(o.CantHaveKw, ","))
 	}
@@ -3602,6 +3608,15 @@ func (lc *lowerCtx) animate(ps *params) error {
 		if err != nil {
 			return err
 		}
+		if obj.Kind == rTarget && !lc.singleObjectSlot(obj.N) {
+			// an "any number of target ..." Animate reaches every target with
+			// both its override and its AtEOT promise (gorge effAnimate's
+			// per-object registration): the kernel's union arm runs the op
+			// once per legal target (Depthshaker Titan).
+			if obj, err = lc.targetSlotUnion(obj.N); err != nil {
+				return err
+			}
+		}
 	}
 	if lc.landTypeGrant && !selfDefined && strings.TrimSpace(ps.m["Types"]) == "ChosenType" {
 		return lc.animateChosenLandType(ps, obj) // lower_choosetype.go
@@ -3620,6 +3635,10 @@ func (lc *lowerCtx) animate(ps *params) error {
 	}
 	if err := lc.animateSelfAbilities(ps, o, obj); err != nil { // the plain Animate only: AnimateAll reads its own (animateAllGranted)
 		return err
+	}
+	if chosen && obj.Kind == rTargetUnion {
+		// one chosen-colour record cannot reach every object of a set
+		return refuse("chosen-colour Animate on an any-number target slot")
 	}
 	if chosen && obj.Kind == rTarget {
 		// the chosen-colour op applies to ONE battlefield object (the
@@ -3736,6 +3755,9 @@ func (lc *lowerCtx) animateOverride(ps *params, obj lRef) (*lOverride, string, b
 		return nil, "", false, err
 	}
 	if err := lc.animateRemoveKeywords(ps, o, obj); err != nil {
+		return nil, "", false, err
+	}
+	if err := lc.animateReplacements(ps, o); err != nil {
 		return nil, "", false, err
 	}
 	if v, ok := ps.get("RemoveTypes"); ok {
@@ -5304,11 +5326,17 @@ func (lc *lowerCtx) twoPilesSac(ps *params) error {
 // WhileHost sets no keyword record).
 func (lc *lowerCtx) animateRemoveKeywords(ps *params, o *lOverride, obj lRef) error {
 	if v, ok := ps.get("RemoveKeywords"); ok {
-		ks, err := removeKeywords(v)
+		ks, lw, err := lc.removeKeywordsAndLandwalk(v)
 		if err != nil {
 			return err
 		}
 		o.RemoveKw = append(o.RemoveKw, ks...)
+		if lw != nil {
+			if o.RemoveLandwalk != nil {
+				return refuse("Animate RemoveKeywords$ with two landwalk specs")
+			}
+			o.RemoveLandwalk = lw
+		}
 	}
 	v, ok := ps.get("staticAbilities")
 	if !ok {
@@ -6057,6 +6085,10 @@ func (lc *lowerCtx) animateSelfAbilities(ps *params, o *lOverride, obj lRef) err
 		if t.Zone != zBattlefield || !t.Max.isConst() || t.Max.N != 1 {
 			return refuse("Animate Abilities$ target slot: not one battlefield permanent")
 		}
+	case rTargetUnion:
+		// an any-number slot animate() widened to a union: one record names one
+		// object, so the grant stays refused by the same slot reason
+		return refuse("Animate Abilities$ target slot: not one battlefield permanent")
 	case rEquipped: // Defined$ Enchanted (Genju of the Fens): the record's RefAttached ref
 	default:
 		return refuse("Animate Abilities$ granted to object %v", obj.Kind)
