@@ -153,7 +153,6 @@ Arcane Encyclopedia
 Arcane Infusion
 Arcane Laboratory
 Arcane Omens
-Arcane Signet
 Arch of Orazca
 Archenemy's Charm
 Archers' Parapet
@@ -316,7 +315,6 @@ Biomechan Engineer
 Bionic Blow
 Biosynthic Burst
 Biotech Specialist
-Bishop of Wings
 Bitter Downfall
 Bitter Work
 Bitterbloom Bearer
@@ -474,11 +472,9 @@ Captain N'ghathrod
 Carapace Forger
 Carefree Swinemaster
 Caretaker's Talent
-Carnage Tyrant
 Carnivorous Cultivator
 Carrion Thrash
 Cast Away Doubt
-Castle Locthwain
 Catapult Fodder
 Cateran Slaver
 Caught in the Brights
@@ -579,7 +575,6 @@ Comet Crawler
 Comforting Counsel
 Command Bridge
 Command Decision
-Commander's Sphere
 Commanding Presence
 Commencement of Festivities
 Commodore Guff
@@ -749,7 +744,6 @@ Desert of the Glorified
 Deserted Beach
 Desolation Prowler
 Desolation of Smaug
-Despark
 Desperate Futurescribe
 Desperate Plea
 Destructive Flow
@@ -1301,7 +1295,6 @@ Grapple with Death
 Grasp of Darkness
 Gravblade Heavy
 Grave Researcher
-Grave Titan
 Grave Upheaval
 Gravelgill Duo
 Gravetiller Wurm
@@ -1408,7 +1401,6 @@ Hellspur Brute
 Helvault
 Hematite Talisman
 Hemosymbic Mite
-Herald's Horn
 Herd Baloth
 Herd Heirloom
 Herd Migration
@@ -1514,7 +1506,6 @@ Indomitable Ancients
 Indulging Patrician
 Infectious Bite
 Infectious Bloodlust
-Infernal Idol
 Inferno of the Star Mounts
 Infestation Expert
 Infiltrator's Magemark
@@ -1786,7 +1777,6 @@ Lightning, Army of One
 Lilah, Undefeated Slickshot
 Liliana the Faultless
 Liliana the Repentant
-Liliana's Reaver
 Lilypad Village
 Liquify
 Lita, Little Orphan Amphibian
@@ -1967,7 +1957,6 @@ Metallic Rebuke
 Meteor Shower
 Meticulous Artisan
 Meticulous Commons
-Metropolis Reformer
 Mica, Reader of Ruins
 Michelangelo's Technique
 Michelangelo, Game Master
@@ -2063,7 +2052,6 @@ Mugato
 Multani's Acolyte
 Multiply by Zero
 Murasa Behemoth
-Murderous Rider
 Murmuring Volume
 Muse's Encouragement
 Mutagen Man, Living Ooze
@@ -2074,7 +2062,6 @@ My Precious
 Mycosynth Golem
 Myojin of Infinite Rage
 Myr Matrix
-Myr Retriever
 Myrel, Shield of Argive
 Myrkul's Invoker
 Naga Fleshcrafter
@@ -2149,7 +2136,6 @@ Noggle the Mind
 Nogi, Draco-Zealot
 Nomad Decoy
 Nori, Teller of Tales
-Norn's Choirmaster
 Nova Hellkite
 Novablast Wurm
 Novel Nunchaku
@@ -2511,7 +2497,6 @@ Reverent Howl
 Revitalizing Repast
 Revival of the Ancestors
 Rewrite Regrets
-Rhonas the Indomitable
 Rhox Bodyguard
 Rhox War Monk
 Rhystic Scrying
@@ -2675,7 +2660,6 @@ Scrap
 Scrap Compactor
 Scrapbasket
 Scrappy Bruiser
-Scrapshooter
 Screaming Fury
 Screeching Drake
 Screeching Phoenix
@@ -3248,7 +3232,6 @@ Theorix Metamage
 They Came from the Pipes
 Thirsting Shade
 Thistledown Players
-Thopter Spy Network
 Thorin's Last Stand
 Thorin, Mountain-king
 Thornado
@@ -3295,7 +3278,6 @@ Tom, Bert, and William
 Tomb Blade
 Tomb of the Spirit Dragon
 Tombstalker
-Tome of Legends
 Tomik, Izzet Sparkmage
 Tony Stark
 Toph, Hardheaded Teacher
@@ -3443,7 +3425,6 @@ Vastwood Fortification
 Vastwood Hydra
 Vaultguard Trooper
 Vector Asp
-Vedalken Archmage
 Vedalken Heretic
 Veil of Birds
 Veil of Summer
@@ -3614,7 +3595,6 @@ Wirefly Hive
 Wirewood Symbiote
 Wisdom of Ages
 Witch of the Moors
-Witch's Clinic
 Witch-Maw Nephilim
 Witherbloom Apprentice
 Witherbloom Charm
