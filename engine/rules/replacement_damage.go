@@ -618,6 +618,13 @@ func (e *Engine) remainingDamageReplacements(ev events.Event, used []replMatch) 
 		}
 		for i := range f.Repls {
 			r := &f.Repls[i]
+			// The initial scan admits only a DamageDone line (replacementEventNameMatches);
+			// replacementMatches's Counter arm takes any event, so a Counter line
+			// (Rhythm of the Wild, Spider-Punk) must not join the re-collected
+			// set as a CR 616.1e candidate.
+			if !replacementEventNameMatches(r.Event, cards.ReplDamageDone.String()) {
+				continue
+			}
 			if alreadyUsed(replMatch{id: id, repl: r}) || !e.replacementMatches(*r, id, ev) {
 				continue
 			}

@@ -15,9 +15,8 @@ import (
 // the counter-or-haste election must be asked at the same decision. The pool
 // is dirac/cardset/pools/fixtures/riotgrant. The kernel's Granted count proves
 // a grant decided an election, so a green game is not one where no grant
-// mattered. The decks hold one Uncivil Unrest: two or more copies' damage
-// doubling poses a separate replacement-order divergence, not the Riot grant
-// this test measures.
+// mattered. The decks hold one Uncivil Unrest; the multi-copy damage-doubling
+// order is TestUncivilUnrestMultiCopyReplacementOrder's.
 const demoRiotPool = "riotgrant"
 
 var demoRiotDecks = [2][]cardset.Entry{
