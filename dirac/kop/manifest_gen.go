@@ -1917,20 +1917,25 @@ const FwPaired FilterWord = 25
 // FwPairedWith: the battlefield permanent is the creature the reading source is paired with by Soulbond (gorge predicates["PairedWith"], engine/effects/filter.go, source.Paired == candidate; the kernel's kw_soulbond.go pair record). A source with no pair fails closed.
 const FwPairedWith FilterWord = 26
 
+// FilterWord (dirac/manifest/FilterWord/FwSharesCardType)
+//
+// FwSharesCardType: the object shares a card type with the first object the referent R names (gorge sharesCardTypeWith over sharesTypeReferents, engine/effects/filter_attachment.go; Braids, Arisen Nightmare's Sacrifice SacValid$ Permanent.sharesCardTypeWith RememberedCard, RefRemembered the entry's first remembered card). A card type is an artifact, battle, creature, enchantment, instant, kindred, land, planeswalker or sorcery (CR 205.2), never a supertype or subtype. A battlefield object reads its current types (a land animated into a creature has both), anything else its printed types, the referent read where it now is (a sacrificed card in the graveyard answers from its card). An unbound referent matches nothing, fail closed.
+const FwSharesCardType FilterWord = 27
+
 // FilterWord (dirac/manifest/FilterWord/FwSharesNameThisTurnCast)
 //
 // FwSharesNameThisTurnCast: the object shares a printed name with a spell cast this turn by any player (gorge sharesNameWith ThisTurnCast, the referent bound from the cast ledger, engine/effects/filter_this_turn_cast.go; Twinning Glass's Play Valid$ Card.nonLand+sharesNameWith ThisTurnCast). The referents are the cast ring's pushes this turn (dirac/cast_castledger.go), every seat's, a reversed cast (CR 733.1) skipped, each read where it lives now. A face-down candidate has no name (CR 708.2). Only the positive spelling lowers: gorge's negated form fails closed on an empty ledger.
-const FwSharesNameThisTurnCast FilterWord = 27
+const FwSharesNameThisTurnCast FilterWord = 28
 
 // FilterWord (dirac/manifest/FilterWord/FwSingleTarget)
 //
 // FwSingleTarget: the cast spell has exactly one target, counting every chained sub-ability's targets with the root's (gorge's `singleTarget` predicate, engine/effects/filter.go: len(Targets)+len(SubTargets) == 1; SpellCast ValidSA$ Spell.singleTarget and Instant.singleTarget,Sorcery.singleTarget). No target and two targets both read false, and two slots naming one object count twice, as gorge counts them.
-const FwSingleTarget FilterWord = 28
+const FwSingleTarget FilterWord = 29
 
 // FilterWord (dirac/manifest/FilterWord/FwTeamwork)
 //
 // FwTeamwork: the cast spell paid its Teamwork cost (gorge's `Teamwork` predicate, Object.TeamworkPaid; SpellCast ValidSA$ Spell.Teamwork, Virtual Assistant). The kernel keeps the paid flag as sfKicked on the entry (kw_teamwork.go), which a kicker cast sets too, so the word also requires the spell's card to have Teamwork: a kicked non-teamwork spell reads false.
-const FwTeamwork FilterWord = 29
+const FwTeamwork FilterWord = 30
 
 // kw StickerSheet (dirac/manifest/KwID/KwStickerSheet)
 const KwStickerSheet KwID = 32

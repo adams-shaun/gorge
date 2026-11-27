@@ -255,6 +255,7 @@ const (
 	vPlExtreme           // the highest, over a player group, of the member's filtered count in the named zones (PlayerCountPlayers/Opponents$HighestValid<zones>)
 	vJoinForces          // the resolution's join-forces total (kop.ExJoinForces; lower_storesvar.go)
 	vExileKw             // exiled cards matching F that print the keyword N names (kop.ExStaticExileKw; lower_sharedkw.go)
+	vRemEachOwn          // the remembered cards owned (so controlled, off the battlefield) by the repeated player (Remembered$Valid Card.RememberedPlayerCtrl, a RepeatEach body's ConditionCheckSVar$ gate; ExRemEachOwnNonLand N 1: Braids, Arisen Nightmare)
 	vRemEachOwnNonLand   // the remembered cards that are nonland and owned by the repeated player (Remembered$Valid Card.nonLand+RememberedPlayerOwn, a RepeatEach body's ConditionCheckSVar$ gate)
 	vDmgOppsTaken        // the damage the living opponents were dealt this turn (Count$DamageOppsTakenThisTurn; bloodthirst)
 	vMaxOppDmgTaken      // the most damage any one living opponent was dealt this turn (Count$MaxOppDamageThisTurn; Spinerock Knoll)
@@ -388,6 +389,7 @@ var valNames = [...]string{
 	vPlExtreme:           "PlExtreme",
 	vJoinForces:          "JoinForces",
 	vExileKw:             "ExileKw",
+	vRemEachOwn:          "RemEachOwn",
 	vRemEachOwnNonLand:   "RemEachOwnNonLand",
 	vDmgOppsTaken:        "DmgOppsTaken",
 	vMaxOppDmgTaken:      "MaxOppDmgTaken",
