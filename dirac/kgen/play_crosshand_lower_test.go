@@ -6,13 +6,13 @@ import (
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
-// TestPlayCrossHandShapes pins the two Play spellings over the trigger's
-// damaged player's hand: Mindleech Mass's Valid$ Card.ControlledBy
+// TestPlayCrossHandTriggerPlayerShapes pins the two Play spellings over the
+// trigger's damaged player's hand: Mindleech Mass's Valid$ Card.ControlledBy
 // TriggeredTarget and Silent-Blade Oni's Valid$ Card.nonLand+OwnedBy
 // TriggeredTarget, both ValidZone$ Hand. Each lowers to a CastFree over
 // RefTriggerPlayer's hand with no target slot; the Oni keeps its nonLand
 // filter, the control predicate dropped because the ref picks the seat.
-func TestPlayCrossHandShapes(t *testing.T) {
+func TestPlayCrossHandTriggerPlayerShapes(t *testing.T) {
 	names := []string{"Mindleech Mass", "Silent-Blade Oni"}
 	all, bs, _, err := buildPool(lowerNamedPool(t, names))
 	if err != nil {
