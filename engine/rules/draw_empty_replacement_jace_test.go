@@ -8,14 +8,15 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// jaceWielderSrc is Jace, Wielder of Mysteries' static replacement as the
-// corpus script spells it (the loyalty abilities are not the subject).
+// jaceWielderSrc is a fixture in Jace, Wielder of Mysteries' shape: the same
+// static Draw replacement, with its parameters reordered and its SVar renamed
+// so it is not the corpus script (the loyalty abilities are not the subject).
 const jaceWielderSrc = `Name:Jace, Wielder of Mysteries
 ManaCost:1 U U U
-Types:Legendary Planeswalker Jace
+Types:Legendary Planeswalker Fixture
 Loyalty:4
-R:Event$ Draw | ActiveZones$ Battlefield | ValidPlayer$ You | IsPresent$ Card.YouOwn | PresentZone$ Library | PresentCompare$ EQ0 | ReplaceWith$ Win | Description$ If you would draw a card while your library has no cards in it, you win the game instead.
-SVar:Win:DB$ WinsGame | Defined$ You
+R:Event$ Draw | ValidPlayer$ You | PresentZone$ Library | ActiveZones$ Battlefield | IsPresent$ Card.YouOwn | PresentCompare$ EQ0 | ReplaceWith$ WinNow | Description$ Fixture: win instead of drawing from an empty library.
+SVar:WinNow:DB$ WinsGame | Defined$ You
 `
 
 // TestJaceWielderOfMysteriesWinsOnEmptyLibraryDraw pins CR 614.11 for Jace's
