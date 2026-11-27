@@ -159,6 +159,9 @@ func (s *State) chooserOf(k *prep, p uint8) uint8 {
 	if in := &s.prog(k)[s.res.pc]; (in.Op == kop.OpSearchEx || in.Op == kop.OpChooseMove) && in.B.N&kop.SrChooserOpp != 0 &&
 		!(in.Op == kop.OpChooseMove && s.searchZone(k) == kop.ZoneHand) {
 		if opp := s.playerRef(k, kop.RefOpponent); opp != 255 {
+			if in.Op == kop.OpSearchEx && DebugTutorPickStats != nil {
+				DebugTutorPickStats.OppAnswered++
+			}
 			return opp
 		}
 	}
