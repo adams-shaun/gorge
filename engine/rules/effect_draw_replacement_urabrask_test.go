@@ -155,8 +155,8 @@ func TestEffectDrawReplacementUrabraskOneShot(t *testing.T) {
 		t.Fatal("precondition: corpus script lost TrigExile")
 	}
 	ownBefore := e.G.Zone(state.ZExile, 0)
-	if len(face.Abilities) == 0 {
-		t.Fatal("precondition: Urabrask face carries no abilities")
+	if len(face.Triggers) != 2 {
+		t.Fatalf("precondition: Urabrask face carries %d triggers, want the two upkeep triggers", len(face.Triggers))
 	}
 	effects.Resolve(e, effects.NewCtxPtr(id, 0, effects.CtxInit{SVars: face.SVars}), trigExile)
 	ownExiled := e.G.Zone(state.ZExile, 0)
