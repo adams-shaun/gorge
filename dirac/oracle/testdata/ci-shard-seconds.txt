@@ -209,7 +209,14 @@ TestClonetokShepherd 9.7
 TestCmd5IdentityManaFundsDarksteelJuggernaut 1.0
 TestCmd5IdentityManaLockstep 3.5
 TestCmd5ShapesLockstep 21.4
-TestCmd5SliceCleanOnlyGrows 65.0
+TestCmd5SliceCleanOnlyGrows0 11.4
+TestCmd5SliceCleanOnlyGrows1 8.8
+TestCmd5SliceCleanOnlyGrows2 8.6
+TestCmd5SliceCleanOnlyGrows3 7.6
+TestCmd5SliceCleanOnlyGrows4 8.2
+TestCmd5SliceCleanOnlyGrows5 5.5
+TestCmd5SliceCleanOnlyGrows6 5.1
+TestCmd5SliceCleanOnlyGrows7 5.2
 TestCmpheadsLockstep 27.1
 TestCollectEvidenceXLockstep 40.0
 TestCommanderWordLockstep 37.4

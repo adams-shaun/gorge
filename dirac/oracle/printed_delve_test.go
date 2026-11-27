@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/adams-shaun/gorge/dirac/cardset"
@@ -12,10 +13,20 @@ import (
 	"github.com/adams-shaun/gorge/dirac/kgen"
 )
 
-// A card no synthetic pool holds (a printed Delve card outside the Standard set
-// lists, say) has no table: printedDelveSet builds the kernel table its repro's
-// decks need. The table is a test artifact, never committed (kgen's tables are
-// corpus-derived).
+// delveTables memoizes printedDelveSet by corpus and card set (11-27, the oracle
+// lane budget): a test's table depends only on the corpus it lowers from and the
+// sorted cards its decks hold, and the package builds one for tens of recordings
+// whose decks are the same - TestRefusedEntriesStillDiverge rebuilt the table of
+// each custom entry's decks with kgen on every run of that entry. The build is
+// deterministic, so sharing one table across tests cannot move a verdict; the
+// Set itself is read-only to callers (only cardset.Raw/AllowUnverified wrap it,
+// and each wrapper derives from the same PoolData).
+var delveTables sync.Map
+
+// printedDelveSet builds (or shares) the kernel table a repro's decks need: a
+// card no synthetic pool holds (a printed Delve card outside the Standard set
+// lists, say) has no table of its own. The table is a test artifact, never
+// committed (kgen's tables are corpus-derived).
 func printedDelveSet(t *testing.T, cards [2][]string) cardset.Set {
 	t.Helper()
 	var names []string
@@ -28,6 +39,19 @@ func printedDelveSet(t *testing.T, cards [2][]string) cardset.Set {
 	if err != nil {
 		t.Fatal(err)
 	}
+	key := cardsDir + "\x00" + strings.Join(names, "\x00")
+	if v, ok := delveTables.Load(key); ok {
+		return v.(cardset.Set)
+	}
+	set := buildPrintedDelveSet(t, cardsDir, names)
+	delveTables.Store(key, set)
+	return set
+}
+
+// buildPrintedDelveSet lowers the cards with kgen and loads the table they
+// build: printedDelveSet's once-per-(corpus, cards) build.
+func buildPrintedDelveSet(t *testing.T, cardsDir string, names []string) cardset.Set {
+	t.Helper()
 	dir := t.TempDir()
 	list := filepath.Join(dir, "cards.txt")
 	if err := os.WriteFile(list, []byte(strings.Join(names, "\n")+"\n"), 0o644); err != nil {
