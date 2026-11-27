@@ -6,9 +6,9 @@ import (
 )
 
 // The hosted-Commander unread-param and counter shapes of ticket
-// cli-20261127T065129Z-e7b92793. Two lower (the lockstep arms live in
+// cli-20261127T065129Z-e7b92793. Three lower (the lockstep arms live in
 // dirac/oracle's TestUnreadParams*Lockstep, which play each shape against
-// gorge); seven stay refused by name, each with kgen's own reason, because the
+// gorge); six stay refused by name, each with kgen's own reason, because the
 // shape needs state the kernel does not carry yet (see unreadHostedRefused).
 
 // unreadHostedLowered are the cards that lower with no refusals, and the shape
@@ -16,6 +16,7 @@ import (
 var unreadHostedLowered = []struct{ name, shape string }{
 	{"Nick Valentine, Private Eye", "DB$ Investigate: Optional$ True (OpMayAsk before the Clue mint)"},
 	{"Urza's Bauble", "AB$ Reveal: Random$ True over a target hand (ExtRevealRandom, one RNG draw)"},
+	{"Chandra, Awakened Inferno", "AB$ Effect: EffectOwner$ Player.Opponent (CreateEmblem obj=EachOpp)"},
 }
 
 // unreadHostedRefused are the cards that stay refused: the card and the
@@ -26,11 +27,6 @@ var unreadHostedLowered = []struct{ name, shape string }{
 //   - Filigree Vector: a remembered target set read by a later PutCounterAll.
 //   - Synth Eradicator: PutCounter Optional$ plus RememberPut$ read by a player-count condition.
 //   - Rise and Shine: RememberAnimated$ feeding a chained PutCounter Defined$ Remembered.
-//   - Chandra, Awakened Inferno: EffectOwner$ Player.Opponent. kgen could give each
-//     opponent the emblem, but gorge's Effect-registered Phase trigger never sets
-//     TriggerPlayer (engine/rules/trigger_delayed.go), so its DealDamage Defined$
-//     TriggeredPlayer hits nobody and the emblem is inert in gorge: lowering it
-//     would diverge from gorge.
 //   - Jeweled Amulet: the noted mana type of the activation cost (Special LastNotedType).
 //
 // When one starts to lower, this test fails: move it to unreadHostedLowered
@@ -41,12 +37,11 @@ var unreadHostedRefused = []struct{ name, reason string }{
 	{"Filigree Vector", "unread params [RememberTargets]"},
 	{"Synth Eradicator", "unread params [Optional RememberPut]"},
 	{"Rise and Shine", "unread params [RememberAnimated]"},
-	{"Chandra, Awakened Inferno", "unread params [EffectOwner]"},
 	{"Jeweled Amulet", "unread params [RememberCostMana]"},
 }
 
-// TestUnreadParamsHostedLockstep: the two lowered cards carry no refusal;
-// the seven refused ones are still refused, by their own reason.
+// TestUnreadParamsHostedLockstep: the three lowered cards carry no refusal;
+// the six refused ones are still refused, by their own reason.
 func TestUnreadParamsHostedLockstep(t *testing.T) {
 	t.Parallel()
 	var names []string
