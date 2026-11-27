@@ -463,6 +463,12 @@ const RetAttachTo = 1 << 11
 // RetAttachShift is the shift of RetAttachTo's bearer Ref in B.N.
 const RetAttachShift = 8
 
+// RetAttachW is an OpReturnEx B.N flag beside RetAttachTo: the bearer Ref is
+// the whole W field, not the three bits at RetAttachShift, for a Ref past
+// seven (Gift of Immortality's RefDelayedRemembered). A zero W with this flag
+// still names no bearer.
+const RetAttachW = 1 << 7
+
 // OpReturnEx B.N flag (A counters absent): Origin$ Library, the move takes a
 // library card only (every other OpReturnEx skips a library object), then
 // the owner's library is shuffled when the script owes it (RetShuffleOwed).
@@ -501,6 +507,13 @@ const (
 // RetShuffleOwed's bit: that one is read only for a card moving out of a library
 // and this body's origin is exile, where the walk skips a library card first.
 const RetDelayedMany = RetShuffleOwed
+
+// RetDelayedTypeCtr is OpReturn's B.N flag beside RetDelayedMany: the body is
+// Semester's End's return of the delayed remembered set, and each entering
+// creature gets one +1/+1 counter while each planeswalker gets one loyalty
+// counter (the as-enters replacement gorge registers on the same set). A
+// permanent of neither type enters plain.
+const RetDelayedTypeCtr = 1 << 11
 
 // RetCounterPairShift: an OpReturnEx whose WithCountersType$ names two kinds
 // (Perennation) carries its constant A as count | (second kind + 1)<<8 (read

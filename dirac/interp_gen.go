@@ -1921,7 +1921,17 @@ func (s *State) execReturnObj(k *prep, in *kop.Instr, host Slot, o Obj) bool {
 	if k.gen != nil && k.gen.anyMayLimit {
 		s.countMayPlayLand(k, o, from)
 	}
-	if n, k2 := returnEntryCount(s.value(k, in.A), in.A); n > 0 {
+	if in.B.N&kop.RetDelayedTypeCtr != 0 {
+		// Semester's End's return: a creature enters with a +1/+1 counter, a
+		// planeswalker with a loyalty counter (the Effect's Moved replacement)
+		s.g.enterCtr.n, s.g.enterCtr.kind, s.g.enterCtr.kind2 = 0, 0, 0
+		switch {
+		case k.cards[s.objs[o].card].types&kop.TCreature != 0:
+			s.g.enterCtr.n, s.g.enterCtr.kind = 1, kop.CtrP1P1
+		case k.cards[s.objs[o].card].types&kop.TPlaneswalker != 0:
+			s.g.enterCtr.n, s.g.enterCtr.kind = 1, kop.CtrLoyalty
+		}
+	} else if n, k2 := returnEntryCount(s.value(k, in.A), in.A); n > 0 {
 		s.g.enterCtr.n, s.g.enterCtr.kind, s.g.enterCtr.kind2 = uint8(n), kop.CounterKind(in.B.N), k2
 	}
 	var sl Slot

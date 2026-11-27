@@ -4611,6 +4611,7 @@ func (lc *lowerCtx) delayedTrigger(ps *params) error {
 	sacGroup := false
 	groupMany := false
 	lkiMany := false
+	lkiTypeCtr := false
 	if ps.str("RememberChain") == "False" {
 		if ro != "" {
 			return refuse("RememberChain$ False delayed trigger shape")
@@ -4637,8 +4638,16 @@ func (lc *lowerCtx) delayedTrigger(ps *params) error {
 		// ChangeZoneAll Remember sweep wrote, would return only the first
 		if lc.delayedLKIMulti() {
 			// a set of several objects: the kernel's DpMany program, for the
-			// one shape it returns exactly (lower_delayedlkimany.go)
-			if why := lc.delayedLKIManyShape(exec); why != "" {
+			// shapes it returns exactly (lower_delayedlkimany.go). Semester's
+			// End's Effect adds a type-conditional enters counter to the same
+			// return.
+			if ret, ok := lc.delayedLKICtrBody(exec); ok {
+				if why := lc.delayedLKITargetSetShape(); why != "" {
+					return refuse("delayed trigger RememberedLKI over a multi-object target slot: %s", why)
+				}
+				exec = ret
+				lkiTypeCtr = true
+			} else if why := lc.delayedLKIManyShape(exec); why != "" {
 				return refuse("delayed trigger RememberedLKI over a multi-object target slot: %s", why)
 			}
 			lkiMany = true
@@ -4714,6 +4723,9 @@ func (lc *lowerCtx) delayedTrigger(ps *params) error {
 			lat.Prog[0].CS = "DelayedMany"
 		} else {
 			lat.Prog[0].CS = cs + "|DelayedMany"
+		}
+		if lkiTypeCtr {
+			lat.Prog[0].CS += "|DelayedCtrByType"
 		}
 		in.B = cst(3)
 	}
@@ -5347,9 +5359,42 @@ func (lc *lowerCtx) rememberLKIGuard(ps *params) (bool, error) {
 		return true, refuse("RememberLKI$ controller read without a target capture")
 	}
 	if tm := strings.TrimSpace(ps.m["TargetMax"]); tm != "" && tm != "1" {
-		return true, refuse("RememberLKI$ on a move of two or more targets whose chain reads a controller")
+		// a set of several objects: only the per-controller Cloak shape
+		// carries each object's capture into its own pass (Unexplained
+		// Absence). Any other controller read still needs one target's.
+		if !lc.remLKIEachCloak() {
+			return true, refuse("RememberLKI$ on a move of two or more targets whose chain reads a controller")
+		}
+		lc.remLKIEach = true
 	}
 	return true, nil
+}
+
+// remLKIEachCloak reports whether the node after a multi-target RememberLKI$
+// move is the one reader that walks the set's controllers: a Cloak whose
+// DefinedPlayer$ is RememberedController and whose Defined$ is the top of
+// each controller's library (Unexplained Absence). The lowering turns the
+// Cloak into a RepeatRemembered loop over the remembered objects, whose RefEach
+// is each object's RememberLKI$ controller (dirac/act_repeatremembered.go).
+func (lc *lowerCtx) remLKIEachCloak() bool {
+	if lc.curNode == nil || lc.curNode.Sub == nil {
+		return false
+	}
+	c := lc.curNode.Sub
+	if c.API != "Cloak" || strings.TrimSpace(c.Params["DefinedPlayer"]) != "RememberedController" {
+		return false
+	}
+	if v, ok := c.Params["Defined"]; ok {
+		switch strings.TrimSpace(v) {
+		case "", "TopOfLibrary":
+		default:
+			return false
+		}
+	}
+	if _, ok := c.Params["Choices"]; ok {
+		return false
+	}
+	return true
 }
 
 // restReadsAny reports whether a node after the one being lowered in its

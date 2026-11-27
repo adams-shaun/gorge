@@ -239,7 +239,13 @@ func (s *State) czAttachHost(k *prep, in *kop.Instr, o Obj, ctrl uint8) (host Sl
 		return s.czBearerHost(k, in, o) // a filter bearer: the controller chooses (tgt_attachedto.go)
 	}
 	var b Obj
-	if bsl := s.objRef(k, kop.Ref(in.B.N>>kop.RetAttachShift&7)); bsl != NoSlot {
+	br := kop.Ref(in.B.N >> kop.RetAttachShift & 7)
+	if in.B.N&kop.RetAttachW != 0 {
+		// a bearer past the three B bits (Gift of Immortality's
+		// RefDelayedRemembered) rides the whole Ref in W
+		br = in.W
+	}
+	if bsl := s.objRef(k, br); bsl != NoSlot {
 		b = s.perms[bsl].obj // objRef's CR 400.7 ver guard: a bearer that left and returned since the ability went on the stack is a new object (gorge SourceReturned), so Self names nobody
 	}
 	return s.czAttachBearerHost(k, b, o, ctrl)

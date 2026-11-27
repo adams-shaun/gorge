@@ -230,14 +230,22 @@ func (ic *instrCtx) opReturn() error {
 			return err
 		}
 		if r > 7 {
-			return fmt.Errorf("attach bearer ref %d", r)
+			// a bearer past the three B bits (Gift of Immortality's
+			// RefDelayedRemembered): the op's W carries the whole Ref
+			ki.W = r
+			ki.B = kop.Const(kop.RetAttachTo | kop.RetAttachW)
+		} else {
+			ki.B = kop.Const(kop.RetAttachTo | int(r)<<kop.RetAttachShift)
 		}
-		ki.B = kop.Const(kop.RetAttachTo | int(r)<<kop.RetAttachShift)
 	}
 	if ki.Op == kop.OpReturn {
 		ki.B = kop.Const(originMask(fl["from"]))
 		if _, ok := fl["DelayedMany"]; ok {
 			ki.B = kop.Const(originMask(fl["from"]) | kop.RetDelayedMany) // the delayed many-object return (dirac/trig_delayedmanyreturn.go)
+		}
+		if _, ok := fl["DelayedCtrByType"]; ok {
+			// Semester's End: the ETB replacement's type-conditional counters
+			ki.B = kop.Const(int(ki.B.N) | kop.RetDelayedTypeCtr)
 		}
 	}
 	if fl["from"] == "Library" {

@@ -214,6 +214,27 @@ func knownDefinedTargets(h Host, c *Ctx, spec string) ([]state.Target, bool) {
 		}
 		return out, true
 	}
+	// Defined$ ReplacedNewCard.<Type>: the permanent a replacement is making
+	// enter, gated on its type (Semester's End's "it enters with an additional
+	// +1/+1 counter if it's a creature ... loyalty counter if it's a
+	// planeswalker"). This build has no separate new-card object for a Moved
+	// replacement, so the replaced object is the entering one and the type
+	// gate is the entire read. Spark Double's clone rider is classified before
+	// it reaches this path (CloneETBTypedCounters), so this spelling is the
+	// zone-change replacement's.
+	if typ, cut := strings.CutPrefix(spec, "ReplacedNewCard."); cut {
+		if cards.TypeMaskOfName(typ) == 0 {
+			return nil, false
+		}
+		if o := g.Obj(c.Repl.Replaced); o != nil && o.Face() != nil {
+			for _, t := range o.Face().Types {
+				if strings.EqualFold(t, typ) {
+					return []state.Target{{Obj: c.Repl.Replaced}}, true
+				}
+			}
+		}
+		return nil, true
+	}
 	if ts, ok := definedSpec(h, c, spec); ok {
 		return ts, true
 	}

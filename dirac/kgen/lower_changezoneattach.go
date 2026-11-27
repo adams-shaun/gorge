@@ -40,6 +40,13 @@ func (lc *lowerCtx) czAttachBearer(at string, moved lRef, origin int) (lRef, *lF
 		if moved.Kind != rSelf {
 			return lRef{}, nil, refuse("AttachedTo$ ParentTarget on a %s return", refNames[moved.Kind])
 		}
+	case "DelayTriggerRememberedLKI":
+		// Gift of Immortality: the returning Aura attaches to the object the
+		// delayed trigger remembered (the enchanted creature it returned).
+		if moved.Kind != rSelf {
+			return lRef{}, nil, refuse("AttachedTo$ DelayTriggerRememberedLKI on a %s return", refNames[moved.Kind])
+		}
+		return lRef{Kind: rDelayedRemembered}, nil, nil
 	default:
 		return lRef{}, nil, refuse("AttachedTo$ %q", at)
 	}

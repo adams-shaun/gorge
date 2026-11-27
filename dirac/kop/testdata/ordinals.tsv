@@ -813,8 +813,8 @@ MvUnderYourControl	untyped int	4
 NoCard	CardID	65535
 NumCounterKinds	CounterKind	7
 NumCounterKinds2	CounterKind	13
-NumCounterKinds3	CounterKind	242
-NumCounterKindsX	int	227
+NumCounterKinds3	CounterKind	253
+NumCounterKindsX	int	238
 NumExtOps	ExtOp	322
 NumManaKinds	untyped int	6
 NumSteps	Step	13
@@ -1387,8 +1387,10 @@ ReplTurnUpProgram	ReplKind	25
 ReplUncAnyCtrl	untyped int	1
 RetAttachShift	untyped int	8
 RetAttachTo	untyped int	2048
+RetAttachW	untyped int	128
 RetCounterPairShift	untyped int	8
 RetDelayedMany	untyped int	8192
+RetDelayedTypeCtr	untyped int	2048
 RetFaceDown	untyped int	256
 RetFromLibrary	untyped int	16384
 RetShuffleOwed	untyped int	8192
