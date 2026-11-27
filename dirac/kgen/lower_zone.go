@@ -879,6 +879,9 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 		if origin == zHand || origin == zBattlefield {
 			return refuse("move %s->Battlefield", zoneLabel[origin])
 		}
+		if ferr := lc.entryFaceDown(ps, dest, &in); ferr != nil { // lower_facedownentry.go
+			return ferr
+		}
 		// Attacking$ True: the returned permanent enters attacking
 		// (gorge attackingParam; kernel MvAttacking). Any other value is
 		// a selector gorge resolves differently.
@@ -1510,6 +1513,8 @@ func (lc *lowerCtx) dig(ps *params) error {
 	// not read exactly (a blind face-down exile, a look on a non-exile move)
 	fd, look := ps.is("ExileFaceDown", "True"), ps.is("WithMayLook", "True")
 	blind := fd && !look && dest == zExile && (lc.repeatBlindDig(ps) || lc.ownBlindDig(ps) || lc.blindDigShape(ps)) // lower_blinddig.go
+	// the seen-window rewrite lives in lower_facedownentry.go
+	look = digSeenFaceDownLook(fd, look, blind, dest)
 	if !digFaceDownShape(fd, look, blind, dest) {
 		return refuse("Dig ExileFaceDown$ shape")
 	}

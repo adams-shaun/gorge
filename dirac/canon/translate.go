@@ -349,7 +349,25 @@ func (r *Translator) Action(a dirac.Action) Canon {
 		return Pack(ActSpecial, src, RefNone, c|(mode+1)<<4) // mode = the door (face_rooms.go)
 	case dirac.AkTurnFaceUp:
 		c, _ := SpecialCode("turn_face_up")
-		return Pack(ActSpecial, src, RefNone, c|mode<<4) // mode = the turn-up procedure
+		proc := mode
+		if proc == 0 {
+			// mode 0 is the face-down cast's own keyword procedure; the
+			// canonical grammar names it by the printed family (morph 3,
+			// megamorph 4, disguise 5), the same sub-mode an effect-turned-
+			// down permanent's keyword procedure carries.
+			cid := r.S.ObjCard(dirac.Obj(src))
+			if int(cid) < len(r.Tbl.Cards) {
+				switch r.Tbl.Cards[cid].MorphFamily {
+				case 1:
+					proc = 3
+				case 2:
+					proc = 4
+				case 3:
+					proc = 5
+				}
+			}
+		}
+		return Pack(ActSpecial, src, RefNone, c|proc<<4) // mode = the turn-up procedure
 	case dirac.AkActivate:
 		if r.stationAbility(dirac.Obj(src), mode) {
 			c, _ := SpecialCode("station") // gorge's priority option (rules/station.go)

@@ -16,6 +16,7 @@ func init() {
 	instrOp("ClassLevelUp", (*instrCtx).opClassLevelUp)
 	instrOp("ExchangeControl", (*instrCtx).opExchangeControl)
 	instrOp("TurnFaceUp", (*instrCtx).opTurnFaceUp)
+	instrOp("TurnFaceDown", (*instrCtx).opTurnFaceDown)
 	instrOp("UnlockDoor", (*instrCtx).opUnlockDoor)
 	instrOp("BreachChoose", (*instrCtx).opBreachChoose)
 	instrOp("BreachReturn", (*instrCtx).opBreachReturn)
@@ -94,6 +95,18 @@ func (ic *instrCtx) opTurnFaceUp() error {
 			return err
 		}
 	}
+	return nil
+}
+
+func (ic *instrCtx) opTurnFaceDown() error {
+	ki := &ic.ki
+	in := &ic.in
+	// (CR 708.2; gorge effSetState Mode$ TurnFaceDown) OpExt
+	// ExtTurnFaceDown over the battlefield permanent Obj (lower_setstate.go)
+	if in.Obj.Kind != rSelf {
+		return fmt.Errorf("TurnFaceDown of %v", in.Obj)
+	}
+	ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtTurnFaceDown))
 	return nil
 }
 

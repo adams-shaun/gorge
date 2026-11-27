@@ -1,0 +1,23 @@
+# The face-down family: the generic face-down return (Ashcloud Phoenix,
+# Yedora), the in-place turn-down and face-down cost static (Obscuring
+# Aether), the graveyard TurnFaceUp trigger (Deathmist Raptor), the token
+# entry counters (Printlifter Ooze) and the hidden-library face-down exile
+# (Necropotence), with the Morph carriers, a Mox/Priest float for the {3} a
+# face-down cast prices from the pool, and basics.
+Ashcloud Phoenix
+Deathmist Raptor
+Printlifter Ooze
+Obscuring Aether
+Yedora, Grave Gardener
+Necropotence
+Grizzly Bears
+Priest of Gix
+Priest of Urabrask
+Mox Jet
+Mox Emerald
+Mox Ruby
+Plains
+Island
+Swamp
+Mountain
+Forest
