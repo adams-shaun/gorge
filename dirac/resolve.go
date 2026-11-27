@@ -816,6 +816,9 @@ func (s *State) playerRef(k *prep, r kop.Ref) uint8 {
 		return s.tgtCtrlSlot(k, int(r-kop.RefTgtCtrl1)+1) // tgt_stackability.go
 	case kop.RefTargetOwner:
 		t := s.tgtCode(0)
+		if t == NoTarget {
+			t = s.firstLiveExtra0(k, e) // gorge's owners of the legal targets: target 0 illegal, a later one of the slot may stand
+		}
 		if t == NoTarget || isPlayerOrNone(t) {
 			return 255
 		}
