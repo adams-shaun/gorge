@@ -561,7 +561,9 @@ var triggerModeEventRows = [...]struct {
 	{cards.TriggerCounterAdded, 1 << events.CounterChange},
 	{cards.TriggerCounterAddedAll, 1 << events.CounterChange},
 	{cards.TriggerCounterTypeAddedAll, 1 << events.CounterChange},
-	{cards.TriggerCounterAddedOnce, 1 << events.CounterChange},
+	// "Whenever you get one or more {E}" (Brotherhood Scribe) is the player
+	// placement event the matcher's player arm reads.
+	{cards.TriggerCounterAddedOnce, 1<<events.CounterChange | 1<<events.PlayerCounterChange},
 	{cards.TriggerCounterRemoved, 1 << events.CounterChange},
 	{cards.TriggerCounterRemovedOnce, 1 << events.CounterChange},
 	// The batch "whenever you put one or more counters on ..." mode
