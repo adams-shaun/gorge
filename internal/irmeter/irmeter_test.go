@@ -19,7 +19,7 @@ func TestMeasureFixture(t *testing.T) {
 	}
 	want := map[string]int{
 		"go_files\tengine/effects":                     1,
-		"go_lines\tengine/effects":                     21,
+		"go_lines\tengine/effects":                     29,
 		"strings_calls\tengine/effects":                2,
 		"forge_literals\tengine/effects":               4,
 		"param_string_reads\tengine/effects":           4,

@@ -1,12 +1,20 @@
 package effects
 
-import (
-	"strings"
+import "strings"
 
-	"example/cards"
-)
+// SA and cards stand in for the engine's types so this fixture type-checks
+// on its own: pr-precheck vets every directory holding a changed .go file.
+type SA struct{ Params map[string]string }
 
-func read(sa *cards.SA, x string) {
+func (*SA) Param(string) string    { return "" }
+func (*SA) ParamStr(string) string { return "" }
+func (*SA) ParamCode(string) int   { return 0 }
+
+var cards struct {
+	PKValidTgts, PKAffected, PKDefined, PKNumDmg, PKMode, PKOrigin string
+}
+
+func read(sa *SA, x string) {
 	_ = sa.ParamStr(cards.PKValidTgts)
 	_ = sa.Param(cards.PKAffected)
 	_ = sa.ParamStr(cards.PKDefined)
