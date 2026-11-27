@@ -990,6 +990,7 @@ OvChosenColor	untyped int	1
 OvChosenType	untyped int	3
 OvCwWord	untyped int	4
 OvEnterWith	untyped int	2
+OvSpellCarry	untyped int	5
 PTBoxOpen	untyped int	15
 PTRelEQ	int16	1
 PTRelLT	int16	0
@@ -1435,6 +1436,7 @@ SrTapped	untyped int	1
 SrThenTop	untyped int	2
 SrUnderYourControl	untyped int	2048
 StAlsoSideboard	StaticFlags	512
+StAltAnyCaster	StaticFlags	2
 StAltGrant	StaticFlags	1
 StAnyManaType	StaticFlags	4
 StAtkTaxPlayer	StaticFlags	2

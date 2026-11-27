@@ -527,7 +527,13 @@ const seAtkPlayer uint8 = 1 << 5
 const seAtkCtrl uint8 = 1 << 3
 
 type stackEntry struct {
-	kind   uint8
+	kind uint8
+	// ov is a carried override record's index + 1 (0 = none), stamped by
+	// OpOverride's OvSpellCarry arm on a spell while it is on the stack: a
+	// static SpellCast rider's timed Animate of the triggering spell follows
+	// it onto the permanent it becomes (CR 400.7a) and is applied there as
+	// the permanent enters (static_spellcarry.go). It fills the byte before obj.
+	ov     uint8
 	obj    Obj    // the spell's object, or the ability's source object
 	srcVer uint8  // the source's ver when the ability was created
 	sid    uint8  // an ability's stack identity, for a stack-ability target (tgt_stackability.go; 0 = none; the padding byte); a spell's FINALITY rider count (trig_mayplaystatic.go)

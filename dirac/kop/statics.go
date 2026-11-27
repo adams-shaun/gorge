@@ -934,6 +934,16 @@ const StFlashAnyCaster StaticFlags = 1 << 0
 // readers are gated on StatCastWithFlash (dirac/cast_altgrant.go).
 const StAltGrant StaticFlags = 1 << 0
 
+// StAltAnyCaster on a StatAlternativeCost grant: the grant applies to every
+// player's spell, not only the controller's (Dream Halls' "Rather than pay the
+// mana cost for a spell, its controller may discard a card that shares a color
+// with that spell": no ValidPlayer$ rider). Its cost is the dynamic discard
+// (Cost.DiscardSharesCastColor), never mana. The grant walk reads a granter's
+// controller as the static's "you" when the bit is set; without it the grant
+// is the controller's alone. It aliases bit 1 like StAtkTaxPlayer, whose
+// readers are gated on StatAttackTax (dirac/cast_altgrant.go).
+const StAltAnyCaster StaticFlags = 1 << 1
+
 // StatAsIfHaste (an explicit ordinal clear of the iota tail): the static's
 // controller may activate abilities of battlefield creatures matching Filter
 // (read with the static's controller as "you") as though they had haste

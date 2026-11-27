@@ -45,11 +45,16 @@ printf '%s\n' "$pkgs" | awk -F'\t' -v idx="$idx" -v count="$count" -v def="${DEF
 			o[j + 1] = k }
 		for (s = 0; s < count; s++) { load[s] = 0; cnt[s] = 0 }
 		for (i = 1; i <= n; i++) { k = o[i]; b = 0
-			# Among equal loads prefer the shard with fewer entries: a 0 s package still costs a
-			# process launch, and on ties the first minimum would otherwise collect every 0 s
-			# package (11-27: shard 2 held 64 entries against 21 on the rest).
-			for (s = 1; s < count; s++)
-				if (load[s] < load[b] || (load[s] == load[b] && cnt[s] < cnt[b])) b = s
+			# A 0 s package costs only a process launch, not CPU, so place it on the shard with the
+			# fewest entries even when the CPU loads are no longer exactly equal: a refreshed weight
+			# set rarely sums to an exact multiple of the shard count, and comparing load first would
+			# then make the unique lightest shard collect every 0 s package (11-27: 64 entries against
+			# 21 on the rest). A measured package goes to the least CPU load, then the fewest entries.
+			for (s = 1; s < count; s++) {
+				if (wt[k] == 0) {
+					if (cnt[s] < cnt[b] || (cnt[s] == cnt[b] && load[s] < load[b])) b = s
+				} else if (load[s] < load[b] || (load[s] == load[b] && cnt[s] < cnt[b])) b = s
+			}
 			load[b] += wt[k]; cnt[b]++; sh[k] = b }
 		for (i = 1; i <= n; i++) {
 			if (idx == "all") print sh[i], p[i]
