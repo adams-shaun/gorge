@@ -12,7 +12,7 @@ import (
 const (
 	planOutcomeFieldCount       = 4
 	paymentPlanFieldCount       = 6
-	paymentActivationFieldCount = 5
+	paymentActivationFieldCount = 6
 )
 
 // PlanOutcomeEqual is reflect.DeepEqual(a, b) for two plan outcomes.
@@ -40,6 +40,14 @@ func paymentPlanEqual(a, b *decision.PaymentPlan) bool {
 		}
 		if x.Consequence != y.Consequence && (x.Consequence == nil || y.Consequence == nil || *x.Consequence != *y.Consequence) {
 			return false
+		}
+		if (x.Sacrifices == nil) != (y.Sacrifices == nil) || len(x.Sacrifices) != len(y.Sacrifices) {
+			return false
+		}
+		for j, v := range x.Sacrifices {
+			if y.Sacrifices[j] != v {
+				return false
+			}
 		}
 	}
 	return true
