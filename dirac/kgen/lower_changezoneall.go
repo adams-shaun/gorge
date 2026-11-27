@@ -31,7 +31,7 @@ func (lc *lowerCtx) changeZoneAllShuffle(ps *params, in lInstr, origin, dest int
 	if dest != zLibrary && origin == zLibrary {
 		// gorge changeZoneAllShuffleTail shuffles each library a moved card
 		// left (Intuition's "... into your graveyard. Then shuffle.").
-		return refuse("ChangeZoneAll Shuffle$ from the library to %s", zoneLabel[dest])
+		return lc.libSweepShuffle(in, dest) // lower_tutorpick.go
 	}
 	if dest != zLibrary {
 		lc.emit(in) // gorge: the flag acts only on a library origin or destination
