@@ -1199,24 +1199,29 @@ func scriptManaTwins(r scriptManaAbilities, p state.PlayerID, a, b state.ObjID) 
 // payer can activate at priority, the search's one branching move.
 func scriptActivate(o *decision.Option) bool { return o.Kind == "activate" }
 
-// scriptTapsSource reports whether the mana ability at flat pile index
-// `ability` of id pays id's own {T}. A granted or gained ability (one outside
-// the printed pile) is not guessed: its cost is unknown here, so the one-tap
-// rule below leaves it alone rather than shortening a legal script.
-func scriptTapsSource(c *Engine, id state.ObjID, ability int) bool {
-	o := c.G.Obj(id)
-	if o == nil {
+// scriptActivationRetaps reports whether activating id for mana pays id's
+// own {T}: every mana ability p can activate on it now costs {T}. A priority
+// "activate" option carries no ability index (the mana ability is chosen in
+// a later ask), so a source with any mana ability that does not tap it
+// (Diamond Kaleidoscope's "Sacrifice a Prism token", Relic of Legends'
+// "Tap an untapped legendary creature you control") is left alone rather
+// than guessed: that activation is a legal second unit in one window.
+func scriptActivationRetaps(c *Engine, p state.PlayerID, id state.ObjID) bool {
+	mas := c.appendAvailableManaAbilities(nil, nil, p, id)
+	if len(mas) == 0 {
 		return false
 	}
-	pa, ok := o.PileAbilityAt(ability)
-	if !ok || pa.SA == nil {
-		return false
+	for _, ma := range mas {
+		if !c.abilityCompiledCost(ma).Cost.Tap {
+			return false
+		}
 	}
-	return c.abilityCompiledCost(pa.SA).Cost.Tap
+	return true
 }
 
-// pathPaidTap reports whether the script has already paid a {T} cost of id
-// and the untap trigger that tap set off has since untapped it.
+// pathPaidTap reports whether the script has already activated id for mana,
+// the untap trigger that tap set off has since untapped it, and activating
+// it again would pay its own {T} a second time.
 // The searched prefix is ONE payment window (CR 601.2g-i through 602.2b): a
 // source whose own tap an earlier step paid is not a second unit even when it
 // has untapped inside the script. The kernel's ordered prefix taps each gap
@@ -1226,21 +1231,22 @@ func scriptTapsSource(c *Engine, id state.ObjID, ability int) bool {
 // A source still tapped is left alone: the option cannot be paid, so it is
 // not a second unit, and pruning the dead branch would hand its node budget
 // to a sibling branch and change which script the walk finds.
-func (sr *scriptSearch) pathPaidTap(c *Engine, id state.ObjID) bool {
+func (sr *scriptSearch) pathPaidTap(c *Engine, p state.PlayerID, id state.ObjID) bool {
 	if o := c.G.Obj(id); o == nil || o.Tapped {
 		return false
 	}
+	activated := false
 	for _, st := range sr.path {
 		if st.Kind != decision.KPriority {
 			continue
 		}
 		for _, pk := range st.Picks {
-			if pk.Kind == "activate" && pk.Obj == id && scriptTapsSource(c, id, pk.Ability) {
-				return true
+			if pk.Kind == "activate" && pk.Obj == id {
+				activated = true
 			}
 		}
 	}
-	return false
+	return activated && scriptActivationRetaps(c, p, id)
 }
 
 // scriptOptionKey is a source's activate-option signature at d: the labels,
@@ -1329,7 +1335,7 @@ func (sr *scriptSearch) activations(pool *Engine, c *Engine, d *decision.Decisio
 			if sr.ownTapSource(c, opt.Obj) {
 				continue // its mana would tap the play's own {T} cost source (CR 602.2b)
 			}
-			if scriptTapsSource(c, opt.Obj, opt.Ability) && sr.pathPaidTap(c, opt.Obj) {
+			if sr.pathPaidTap(c, p, opt.Obj) {
 				// One payment window taps a source once: an untap trigger
 				// resolving inside the prefix does not make it a second unit
 				// (CR 601.2g-i; the kernel's scriptDFS taps each gap once).
