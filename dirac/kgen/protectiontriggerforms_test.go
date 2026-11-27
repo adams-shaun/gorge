@@ -49,22 +49,21 @@ func TestThisTurnCastProtection(t *testing.T) {
 	}
 	// The Spell quality now lowers to a ZoneStack FSpell clause (lower.go's
 	// protection keyword arm), so it is no longer a refusal. The GainControl
-	// refusal is unrelated and must remain.
+	// half lowered too (lower_gaincontrolall.go accepts a lone ValidTgts$
+	// Player whose AllValid$ filter reads TargetedPlayerCtrl), so no
+	// GainControl refusal may remain.
 	for _, r := range c.Refusals {
 		if strings.Contains(r.Reason, `a Spell head outside a ReduceCost ValidTarget$`) {
 			t.Errorf("Spell protection still refuses: %s: %s", r.Node, r.Reason)
 		}
 	}
-	for _, want := range []string{"GainControl AllValid$ beside ValidTgts$"} {
-		found := false
-		for _, r := range c.Refusals {
-			if strings.Contains(r.Reason, want) {
-				found = true
-			}
+	for _, r := range c.Refusals {
+		if strings.Contains(r.Reason, "GainControl") {
+			t.Errorf("GainControl still refuses: %s: %s", r.Node, r.Reason)
 		}
-		if !found {
-			t.Errorf("expected unrelated refusal %q to remain; refusals: %v", want, c.Refusals)
-		}
+	}
+	if len(c.Refusals) != 0 {
+		t.Errorf("Emrakul now lowers fully; refusals: %v", c.Refusals)
 	}
 }
 
