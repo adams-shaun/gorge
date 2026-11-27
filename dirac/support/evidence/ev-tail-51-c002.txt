@@ -156,6 +156,7 @@ Guide of Souls
 Guild Thief
 Gut Shot
 Guul Draz Overseer
+Gyre Sage
 Halimar Depths
 Halo Hunter
 Havoc
