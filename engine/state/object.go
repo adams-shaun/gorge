@@ -2129,7 +2129,9 @@ type Object struct {
 	// page-aligned Objs arena every object's hot head (the fields declared
 	// first) starts on a line of its own. Purely layout: it is never read or
 	// written. A field added above must re-pad it (TestObjectCacheLinePadded).
-	_ [52]byte
+	// TurnedFaceUpThisTurn's byte is absorbed by the alignment slack here, so
+	// the tail shrank from 52 to 44 to keep the 1600-byte total.
+	_ [44]byte
 }
 
 // IntensityTotal is the card's intensity as its text reads it: the printed

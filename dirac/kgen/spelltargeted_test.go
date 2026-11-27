@@ -25,16 +25,22 @@ import (
 //	     2 Recruit CS=w_1_1_human_soldier
 var kSpellTargetedForms = []formCase{
 	{card: "Sound the Trumpets", form: "SpellTargeted$CardManaCostLKI (ExMVOf over the countered spell's target slot)", lir: "0 Counter obj=Target0\n     1 SkipIf if=Value(op2,MVOf(Target0),2) skip=1\n     2 Recruit CS=w_1_1_human_soldier"},
-	// Scope pins: both carriers keep their ChangeZone refusal, which comes
-	// BEFORE the value head -- the new case must not move them.
-	{card: "Press the Enemy", form: "ChangeZone Origin$ Battlefield,Stack refuses before its SpellTargeted SVar", refused: `Origin$ Battlefield,Stack ValidTgts$`},
+	// Scope pins. Gale's Redirection keeps its ChangeZone refusal, which
+	// comes BEFORE the value head -- the new case must not move it.
+	// Press the Enemy carries the same ChangeZone shape as Sink into Stupor
+	// (Card.inZoneStack+OppCtrl): the hosted-cmdr residual ticket lowers that
+	// shape, so Press's first refusal is now its SpellTargeted SVar instead
+	// of the ChangeZone arm. The card stays refused (not lowered).
+	{card: "Press the Enemy", form: "SpellTargeted SVar refuses after the shared ChangeZone shape lowers", refused: "SpellTargeted$CardManaCostLKI of a target slot that is not exactly one spell on the stack"},
 	{card: "Gale's Redirection", form: "ChangeZone Origin$ Stack shape refuses before its SpellTargeted SVar", refused: "ChangeZone Origin$ Stack shape"},
 }
 
 func TestSpellTargetedMVLKI(t *testing.T) {
 	checkForms(t, kSpellTargetedForms)
-	// The ChangeZone refusals must not mention the value head: if the head
-	// slid in front of them their refusal chains would carry SpellTargeted$.
+	// Gale's ChangeZone refusal must not mention the value head: if the head
+	// slid in front of it its refusal chain would carry SpellTargeted$.
+	// Press the Enemy's shared ChangeZone shape now lowers, so its first
+	// refusal is the value head; that is the ticket's intended movement.
 	t.Run("scope", func(t *testing.T) {
 		cardsDir := ratchetCards(t)
 		dir := t.TempDir()
@@ -56,11 +62,18 @@ func TestSpellTargetedMVLKI(t *testing.T) {
 				reasons = append(reasons, r.Reason)
 			}
 			got := strings.Join(reasons, "; ")
-			if !strings.Contains(got, "ChangeZone") {
-				t.Errorf("%s: want the ChangeZone refusal, got %q", c.Name, got)
-			}
-			if strings.Contains(got, "SpellTargeted") || strings.Contains(got, "value head") {
-				t.Errorf("%s: refusal chain reaches the value head: %q", c.Name, got)
+			switch c.Name {
+			case "Press the Enemy":
+				if !strings.Contains(got, "SpellTargeted") {
+					t.Errorf("%s: want the value-head refusal, got %q", c.Name, got)
+				}
+			case "Gale's Redirection":
+				if !strings.Contains(got, "ChangeZone") {
+					t.Errorf("%s: want the ChangeZone refusal, got %q", c.Name, got)
+				}
+				if strings.Contains(got, "SpellTargeted") || strings.Contains(got, "value head") {
+					t.Errorf("%s: refusal chain reaches the value head: %q", c.Name, got)
+				}
 			}
 		}
 	})
