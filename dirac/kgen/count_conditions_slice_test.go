@@ -17,7 +17,12 @@ import "testing"
 // Keeper), whose announced X the kernel now asks, prices and stamps
 // (kickerx_lower_test.go); then Ugin's Labyrinth's ExiledWithSource count in
 // a mana ability's Amount$ (TestDemoExiledwithsourceLockstep, which matches
-// the read).
+// the read); then the two TargetedByTarget$Valid carriers (Not of This World's
+// ReduceCost amount and Bane's Contingency's Counter rider's scry-and-draw
+// gate), whose nested target count the kernel reads as kop.ExCountTgtEntry over
+// the targeted entry's own targets (TestHostedCmdrFilterPropsResidual plays both
+// clean, and TestTargetedByTargetLockstepMutation shows the read is what makes
+// them differ).
 var countConditionsLowered = []string{
 	"Athreos, God of Passage", "Iroas, God of Victory", "Karametra, God of Harvests",
 	"Klothys, God of Destiny", "Mogis, God of Slaughter", "Phenax, God of Deception",
@@ -28,6 +33,7 @@ var countConditionsLowered = []string{
 	"Baleful Mastery", "Fervent Mastery", "Ingenious Mastery",
 	"Verdeloth the Ancient", "Kangee, Aerie Keeper",
 	"Ugin's Labyrinth",
+	"Not of This World", "Bane's Contingency",
 }
 
 // countConditionsRefused are the cards the slice still refuses, each a class of
@@ -37,7 +43,7 @@ var countConditionsLowered = []string{
 // kind), Graxiplon's DefenderCtrl read in a CantBlockBy static, Devastating
 // Mastery's ChangeZone DefinedPlayer$ ChosenPlayer and Verdant Mastery's
 // GainControl$ ChosenPlayer (the Count$AltCost branch itself lowers), the
-// TargetedByTarget$ and TargetedController$CardsInGraveyard heads, Galloping
+// TargetedController$CardsInGraveyard head, Galloping
 // Lizrog's "any number" RemoveCounter and Sanctum Prelate's CantBeCast bound
 // "Chosen". A card that lowers must move to countConditionsLowered with its
 // lockstep evidence.
@@ -47,7 +53,7 @@ var countConditionsRefused = []string{
 	"Graxiplon",
 	"Devastating Mastery", "Verdant Mastery",
 	"Plumb the Forbidden", "Relentless Dead",
-	"Not of This World", "Bane's Contingency", "Lullmage's Domination",
+	"Lullmage's Domination",
 	"Galloping Lizrog", "Sanctum Prelate",
 }
 

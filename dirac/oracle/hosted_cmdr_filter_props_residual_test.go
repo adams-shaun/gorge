@@ -13,12 +13,13 @@ import (
 // cli-20261127T093648Z-c355c4bd-residual): Kaust, Eyes of the Glade
 // (turnedFaceUpThisTurn), Cut Short (Planeswalker.activated,Creature.tapped),
 // Emrakul, the World Anew (GainControl AllValid$ beside ValidTgts$), Sink into
-// Stupor (Permanent.nonLand+OppCtrl,Card.inZoneStack+OppCtrl) and Not of This
-// World (Count$Compare CheckTgt GE1.7.0 over TargetedByTarget$Valid). The
-// first four lower (StatusUnverified); Not of This World keeps a not-lowered
-// status with a refusal that names its shape (the nested target count has no
-// kernel op). The four cards the parent ticket lowered are pinned in
-// hosted_cmdr_filter_props_lockstep_test.go, not here.
+// Stupor (Permanent.nonLand+OppCtrl,Card.inZoneStack+OppCtrl) and the two
+// TargetedByTarget$Valid carriers: Not of This World (Count$Compare CheckTgt
+// GE1.7.0 gating its ReduceCost amount) and Bane's Contingency (the same head
+// gating a Counter's scry-and-draw rider). All six lower (StatusUnverified): the
+// nested target count is kop.ExCountTgtEntry, and TestTargetedByTargetLockstepMutation
+// holds the two carriers to the read. The four cards the parent ticket lowered
+// are pinned in hosted_cmdr_filter_props_lockstep_test.go, not here.
 var hostedFilterPropsResidualCards = []struct {
 	name string
 	want cardset.Status
@@ -38,15 +39,25 @@ var hostedFilterPropsResidualCards = []struct {
 	// have a legal target, so its cast is seed-dependent; the status pin and
 	// the clean lockstep games are the regression.
 	{"Sink into Stupor", cardset.StatusUnverified, "", false},
-	{"Not of This World", cardset.StatusNotLowered, "TargetedByTarget", false},
+	// Not of This World's reduction needs a 7-power creature the opponent's
+	// Lightning Bolt takes as its target, so the deck holds Vorstclaw; the
+	// read's liveness is TestTargetedByTargetLockstepMutation's, not this row's.
+	{"Not of This World", cardset.StatusUnverified, "", false},
+	// Bane's Contingency's scry-and-draw rider reads the same head over the
+	// commander the countered spell targets (Card.IsCommander, which a duel's
+	// seats never carry: the clean games, not a fired rider, are the pin).
+	{"Bane's Contingency", cardset.StatusUnverified, "", false},
 }
 
 // hostedFilterPropsResidualDecks pairs each card with the enablers its shape
 // needs: morph creatures beside Kaust so something arrives face down for his
 // {T} turn-face-up, untapped creatures beside Cut Short so convoke has
 // payers, a mass of lands beside Emrakul (its 12-mana cast is not required),
-// an opponent-controlled permanent and stack spell beside Sink, and a spell
-// that targets a creature you control beside Not of This World.
+// an opponent-controlled permanent and stack spell beside Sink, and beside the
+// two nested-target carriers a spell that targets a permanent you control:
+// Vorstclaw (a 7/7, so Not of This World's Card.powerGE7+YouCtrl spec can hold)
+// and Grizzled Wolverine (a legendary creature for Bane's Contingency's
+// commander read).
 var hostedFilterPropsResidualDecks = map[string][2][]cardset.Entry{
 	"Kaust, Eyes of the Glade": {
 		{{Name: "Kaust, Eyes of the Glade", Count: 4}, {Name: "Ivory Giant", Count: 8},
@@ -74,12 +85,25 @@ var hostedFilterPropsResidualDecks = map[string][2][]cardset.Entry{
 		{{Name: "Sink into Stupor", Count: 8}, {Name: "Grizzly Bears", Count: 8},
 			{Name: "Island", Count: 24}},
 	},
+	// Vorstclaw rather than a 2/2: the reduction's spec is Card.powerGE7, so a
+	// Bear's target never holds and the read would never move a price.
 	"Not of This World": {
 		{{Name: "Not of This World", Count: 8}, {Name: "Lightning Bolt", Count: 8},
-			{Name: "Grizzly Bears", Count: 8}, {Name: "Island", Count: 8},
-			{Name: "Mountain", Count: 8}},
+			{Name: "Vorstclaw", Count: 8}, {Name: "Forest", Count: 6},
+			{Name: "Island", Count: 5}, {Name: "Mountain", Count: 5}},
 		{{Name: "Not of This World", Count: 8}, {Name: "Lightning Bolt", Count: 8},
-			{Name: "Grizzly Bears", Count: 8}, {Name: "Island", Count: 8},
+			{Name: "Vorstclaw", Count: 8}, {Name: "Forest", Count: 6},
+			{Name: "Island", Count: 5}, {Name: "Mountain", Count: 5}},
+	},
+	// Bane's Contingency is {U}{U}, so the legendary creature beside it is the
+	// red Grizzled Wolverine: the opponent's Lightning Bolt can aim at it, and
+	// the countered spell then targets a permanent its caster does not control.
+	"Bane's Contingency": {
+		{{Name: "Bane's Contingency", Count: 8}, {Name: "Lightning Bolt", Count: 8},
+			{Name: "Grizzled Wolverine", Count: 8}, {Name: "Island", Count: 8},
+			{Name: "Mountain", Count: 8}},
+		{{Name: "Bane's Contingency", Count: 8}, {Name: "Lightning Bolt", Count: 8},
+			{Name: "Grizzled Wolverine", Count: 8}, {Name: "Island", Count: 8},
 			{Name: "Mountain", Count: 8}},
 	},
 }

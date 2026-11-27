@@ -280,6 +280,7 @@ const (
 	vPaidN               // the spell's Squad/Replicate payment count or Conspire's 1 (Count$SquadPaid / ReplicatePaid / Conspired; kop.ExKicked N 2; lower_squadreplicate.go)
 	vDelayedExileCount   // the fired delayed program's remembered objects (at most four, kop.DpMany's carriers) that are still the same object in exile (Count$ValidExile Card.IsTriggerRemembered in a delayed-many body; value_delayedexile.go)
 	vCardBasePower       // the source's base power before counters and pumps (Count$CardBasePower, kop.ExCardBasePower; value_basepower.go)
+	vCountTgtEntry       // the object targets, matching F, of the spell or ability the evaluating entry targets (Count$... over TargetedByTarget$Valid <spec>; kop.ExCountTgtEntry; dirac/tgt_nestedcount.go)
 	vCount_
 )
 
@@ -414,6 +415,7 @@ var valNames = [...]string{
 	vPaidN:               "PaidN",
 	vMostProminentType:   "MostProminentType",
 	vMostCardName:        "MostCardName",
+	vCountTgtEntry:       "CountTgtEntry",
 }
 
 // lValue is an amount: Kind with its operand, then Mul/Div/Add applied in
