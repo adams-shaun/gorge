@@ -141,6 +141,7 @@ func TestReplDrawProgramScenarios(t *testing.T) {
 			t.Fatalf("hand = %d, want %d (2 draws x 3 cards)", got, want)
 		}
 	})
+	t.Run("Optional$ True election", replDrawMayScenarios) // repl_drawrepl_may_test.go
 }
 
 // TestReplDrawProgramKeepsOuterPC: a draw replacement body runs inside the

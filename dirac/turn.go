@@ -229,8 +229,8 @@ func (s *State) beginStep(k *prep) {
 				return // kw_dredge.go: the active player's dredge ask comes first
 			}
 			s.draw(s.active)
-			if s.res.ask == raGenDrawOrder {
-				return // repl_draworder.go: the draw's replacement order is asked first
+			if s.drawReplAsked() {
+				return // repl_draworder.go / repl_drawmay.go: the draw's replacement ask suspends the step; its answer finishes it
 			}
 		}
 		s.g.drawFirst = false
