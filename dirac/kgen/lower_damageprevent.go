@@ -44,6 +44,9 @@ func (lc *lowerCtx) effectPrevent(ps *params) error {
 	if ok, err := lc.effectPreventScoped(ps); ok || err != nil {
 		return err
 	}
+	if ok, err := lc.effectDmgRedirectToYou(ps); ok || err != nil { // lower_effectredirect.go
+		return err
+	}
 	if ok, err := lc.effectDmgRedirectScope(ps); ok || err != nil { // lower_effectredirect.go
 		return err
 	}

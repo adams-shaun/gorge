@@ -9,9 +9,10 @@ import "testing"
 // ActiveZones$ Command spelling over RememberObjects$ TargetedPlayer &
 // ThisTargetedCard (Shieldmage Advocate, lower_choosesource.go),
 // Gideon's prevent-all-damage-to-him Effect (lower_preventallto.go), the
-// graveyard return's enters-with-counters rider (lower_effectreturnctr.go)
-// and the remembered host's redirect to the Effect's host (Daughter of
-// Autumn, lower_effectredirect.go).
+// graveyard return's enters-with-counters rider (lower_effectreturnctr.go),
+// the remembered host's redirect to the Effect's host (Daughter of Autumn,
+// lower_effectredirect.go) and the remembered creature's redirect to the
+// resolving controller (Vassal's Duty, Sivvi's Valor, same file).
 var effectReplacementsSlice = []string{
 	"Dire Fleet Daredevil", "Sins of the Past",
 	"Auriok Replica", "Burrenton Forge-Tender", "Charm Peddler", "Circle of Despair", "Martyr's Cause",
@@ -21,6 +22,7 @@ var effectReplacementsSlice = []string{
 	"Gideon, Ally of Zendikar", "Gideon, Champion of Justice", "Gideon, Martial Paragon",
 	"Recommission", "Heroic Return", "What Must Be Done", "Winter Soldier, Reborn Avenger",
 	"Daughter of Autumn",
+	"Vassal's Duty", "Sivvi's Valor",
 }
 
 func TestEffectReplacementsSlice(t *testing.T) {
