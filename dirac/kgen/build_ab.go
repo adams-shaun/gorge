@@ -76,6 +76,7 @@ func (cb *cardBuilder) abilities() error {
 		cb.node = fmt.Sprintf("emblem[%d]", i)
 		var ke kop.Emblem
 		ke.UntilEOT = e.UntilEOT
+		ke.UntilEndCombat = e.UntilEndCombat
 		ke.UntilNextTurn = e.UntilNextTurn
 		ke.WhileHost = e.WhileHost
 		ke.CaptureLapse = e.CaptureLapse
@@ -2234,6 +2235,14 @@ func (cb *cardBuilder) repl(r lRepl) (kop.Ability, error) {
 			return ka, fmt.Errorf("token %q", r.S)
 		}
 		rp.C = int16(idx) // a pool token index; the matchup remaps it
+		if r.F != nil {   // a list rewriter's ValidToken$ (lower_tokenrewritelist.go)
+			if rp.Filter, err = cb.filter(r.F, kop.ZoneBattlefield); err != nil {
+				return ka, err
+			}
+		}
+		if ka.Prog, err = cb.prog(r.Prog); err != nil { // its further scripts
+			return ka, err
+		}
 	case "AddToken":
 		rp.Kind = kop.ReplAddToken
 		idx, ok := cb.pt.tokenIdx[r.S]

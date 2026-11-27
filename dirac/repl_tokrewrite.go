@@ -87,8 +87,14 @@ func (s *State) replTokensRewApplied(k *prep, p uint8, tok CardID, n int, addsOK
 			}
 			switch a.Repl.Kind {
 			case kop.ReplRewriteTokens:
-				if DebugTokRewriteOff {
+				if DebugTokRewriteOff || !s.tokRewMatches(k, a, tok, p) {
 					continue
+				}
+				if len(a.Prog) > 0 {
+					// a list rewriter: only a CreateToken op mints its cards
+					// (repl_toklistrewrite.go)
+					s.capFull(StallTokRewrite)
+					return tok, 0, false, false
 				}
 				cands++
 				if rew > 0 && card != CardID(a.Repl.C) {

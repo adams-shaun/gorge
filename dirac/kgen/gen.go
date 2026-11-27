@@ -561,7 +561,9 @@ func dumpLIR(w io.Writer, c *lCard) {
 	}
 	for i, e := range c.Emblems {
 		eot := ""
-		if e.UntilEOT {
+		if e.UntilEndCombat {
+			eot = " until=EOC"
+		} else if e.UntilEOT {
 			eot = " until=EOT"
 		} else if e.UntilNextTurn {
 			eot = " until=next"

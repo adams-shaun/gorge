@@ -351,6 +351,11 @@ type Emblem struct {
 	// UntilEOT: an Effect without a Duration$ (gorge: it leaves the
 	// command zone at cleanup); the kernel drops it in cleanupGen
 	UntilEOT bool
+	// UntilEndCombat: Duration$ UntilEndOfCombat (CR 511.3): it also ends as
+	// the end-of-combat step does (gorge expireUntilEndOfCombat), a later
+	// extra combat not reviving it. UntilEOT is set beside it: a combat that
+	// never ran is swept at cleanup (static_emblemendcombat.go).
+	UntilEndCombat bool
 	// UntilNextTurn: Duration$ UntilYourNextTurn (gorge ends it at the
 	// cleanup before the controller's next turn); the kernel drops it in
 	// cleanupGen when that turn is the next one.

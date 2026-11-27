@@ -107,6 +107,17 @@ func (lc *lowerCtx) playerRefDefined(v string) (r lRef, ok bool, err error) {
 	if r, ok := lc.chosenPlayerEnterDefined(v); ok {
 		return r, true, nil
 	}
+	if v == "EnchantedPlayer" {
+		// gorge definedSpecEnchantedPlayer: the player the source Aura
+		// enchants, read live; nobody once the source has left
+		// (kop.RefEnchantedPlayer). Printed battlefield triggers only (the
+		// Aura's own enters trigger), as EnchantedController below.
+		if lc.ab != nil && lc.ab.Kind == akTriggered && !lc.ab.Latent && lc.ab.Trigger != nil &&
+			(lc.ab.Trigger.Zone == zBattlefield || lc.ab.Trigger.Zone == zNone) && lc.granted == 0 {
+			return lRef{Kind: rEnchantedPlayer}, true, nil
+		}
+		return lRef{}, true, refuse("Defined$ %q outside a printed battlefield trigger", v)
+	}
 	if v != "EnchantedController" {
 		return lRef{}, false, nil
 	}

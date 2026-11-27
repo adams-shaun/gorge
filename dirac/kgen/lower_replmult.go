@@ -223,6 +223,9 @@ func (lc *lowerCtx) tokenRepl(rp *params, w *cards.SA, rl *lRepl) error {
 		return refuse("repl-hard: CreateToken replacement shape")
 	}
 	if t := strings.TrimSpace(w.Params["Type"]); t == "ReplaceToken" {
+		if strings.Contains(w.Params["TokenScript"], ",") {
+			return lc.tokenRewriteList(rp, w, rl, youOnly) // lower_tokenrewritelist.go
+		}
 		return lc.tokenRewrite(rp, w, rl)
 	} else if t == "AddToken" {
 		return lc.tokenAdd(rp, w, rl, youOnly)
