@@ -266,9 +266,16 @@ type supportCounts struct {
 	cards, lowered, refused, unverified, supported int
 	fourSeat                                       int // supported and not two-seat only (CardDef.TwoSeat)
 	podEvidenced                                   int // 4-seat-capable cards whose evidence row carries a seats field; report only
+	// The cards, lowered and supported cards the scope list (scopeListPath) leaves in; report only.
+	inScope, inScopeLowered, inScopeSupported int
 }
 
-func countSupport(t *testing.T, cardsDir, list string, s *supportLists) supportCounts {
+// supportRow is r's line of the support page's table.
+func supportRow(r supportCounts) string {
+	return fmt.Sprintf("| %s | %d | %d | %d | %d | %d | %d | %d | %d | %d | %d |\n", r.list, r.cards, r.lowered, r.refused, r.unverified, r.supported, r.fourSeat, r.podEvidenced, r.inScope, r.inScopeLowered, r.inScopeSupported)
+}
+
+func countSupport(t *testing.T, cardsDir, list string, s *supportLists, out map[string]bool) supportCounts {
 	t.Helper()
 	path := testSetlistPath(t, list)
 	if slices.Contains(supportPoolRows, list) {
@@ -286,8 +293,15 @@ func countSupport(t *testing.T, cardsDir, list string, s *supportLists) supportC
 	r := supportCounts{list: list, cards: len(lw.cards)}
 	for _, c := range lw.cards {
 		st, _ := statusOf(c, s)
+		in := inScope(out, c.Name)
+		if in {
+			r.inScope++
+		}
 		if st != cardset.StatusNotLowered {
 			r.lowered++
+			if in {
+				r.inScopeLowered++
+			}
 		}
 		switch st {
 		case cardset.StatusRefused:
@@ -296,6 +310,9 @@ func countSupport(t *testing.T, cardsDir, list string, s *supportLists) supportC
 			r.unverified++
 		case cardset.StatusSupported:
 			r.supported++
+			if in {
+				r.inScopeSupported++
+			}
 			if !c.TwoSeat {
 				r.fourSeat++
 				if s.podEvidencedFor(c.Name) {
@@ -326,6 +343,8 @@ func supportDoc(t *testing.T, cardsDir string) []byte {
 	if err != nil {
 		t.Fatal(err)
 	}
+	scope := readScopeList(t)
+	out := outOfScope(scope)
 	var b bytes.Buffer
 	b.WriteString("# Card support\n\n")
 	fmt.Fprintf(&b, "Generated: `DIRAC_UPDATE_SUPPORT=1 go test -run TestSupportDocIsCurrent ./dirac/kgen` rewrites this page.\n\n")
@@ -336,15 +355,15 @@ func supportDoc(t *testing.T, cardsDir string) []byte {
 	} else {
 		b.WriteString(", so unverified cards still play")
 	}
-	b.WriteString(".\n\n| list | cards | lowered | refused | unverified | supported | 4-seat | pod-evidenced |\n|---|---:|---:|---:|---:|---:|---:|---:|\n")
+	b.WriteString(".\n\n| list | cards | lowered | refused | unverified | supported | 4-seat | pod-evidenced | in-scope | in-scope lowered | in-scope supported |\n|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|\n")
 	codes, err := readCardList(filepath.Join(testRoot, standardListPath))
 	if err != nil {
 		t.Fatal(err)
 	}
 	for _, list := range append(append(append(codes, supportDraftLists...), supportPoolRows...), "ALL") {
-		r := countSupport(t, cardsDir, list, s)
-		fmt.Fprintf(&b, "| %s | %d | %d | %d | %d | %d | %d | %d |\n", r.list, r.cards, r.lowered, r.refused, r.unverified, r.supported, r.fourSeat, r.podEvidenced)
+		b.WriteString(supportRow(countSupport(t, cardsDir, list, s, out)))
 	}
+	fmt.Fprintf(&b, "\n`in-scope` counts the cards `%s` (%d lines, written by `scripts/dirac-scope-list.py` from the public carddb) does not name: it leaves out digital-only and Alchemy-rebalanced cards, paper cards that are not Commander-legal (a banned card stays in), non-tournament types and mechanics, and Mutate and Splice cards deferred until 2027-01-15, and `in-scope lowered` and `in-scope supported` count the lowered and supported cards among them.\n", scopeListPath, len(scope))
 	b.WriteString("\n`ALL` is the whole corpus; `MBC` is the Mystery Booster Commander draft pool, every name its packs deal that gorge supports; `CMM`, `MH3`, `MH2` and `CM2` are Commander Masters, Modern Horizons 3 and 2 and Commander Anthology Volume II, from gorge-compliance's XMage manifests; `hosted-cmdr` is the union of every card of gorged's hosted Commander decks (`testkit/testutil/decks`, format commander), so each deck is judged in one set; the rest are the Standard sets. `4-seat` counts the supported cards whose lowering holds at any seat count: a card whose lowering reads the one opponent of a two-player game (`kop.CardDef.TwoSeat`) is refused in a game of three or more seats (`StallTwoSeat`). It is a ceiling, not evidence. `pod-evidenced` counts those cards whose evidence row carries a seats field of three or more — a clean pod game, which `kfuzz -evidence -seats 4` writes and `scripts/dirac-first-refusals.py evidence --pools pod-*` copies into `dirac/support/evidence` (`Name\\t<seats>`; readers take the name and ignore trailing columns). A four-seat row evidences its card (OD-4 stage 2, `oracle.EvidencePodMinPlays` = 1): a Commander-only key such as Command Tower's colour-identity mana is used there and credited as any own key is, while a three-seat row stays in this column only. The `4-seat` column's pod requirement is report only until pod coverage is large enough to gate it; read `pod-evidenced` beside it.\n\n## What supported covers\n\n")
 	b.WriteString("Evidence comes from the `fdn` and `blb` deck pools and one synthetic pool per Standard set: 1,500 pairs each, seed 1, the random policy, both surfaces, mulligans 0 and 1, every run passing `kfuzz -absolute`. A synthetic pool deals its decks from the cards it plays, so no pair is lost to a refused card; it skips only a pair the kernel refuses together, so it can play fewer games, and its cards met the floor in these:\n\n| pool | games per run |\n|---|---:|\n")
 	games, err := os.ReadFile(filepath.Join(testRoot, "dirac", "support", "evidence-games.tsv"))
@@ -437,7 +456,8 @@ type supportPage struct {
 }
 
 var (
-	supportRowLine   = regexp.MustCompile(`^\| ([A-Za-z0-9-]+) \| (\d+) \| (\d+) \| (\d+) \| (\d+) \| (\d+) \| (\d+) \| (\d+) \|$`)
+	// A page from before the in-scope columns still parses, its in-scope counts zero.
+	supportRowLine   = regexp.MustCompile(`^\| ([A-Za-z0-9-]+) \| (\d+) \| (\d+) \| (\d+) \| (\d+) \| (\d+) \| (\d+) \| (\d+) \|(?: (\d+) \| (\d+) \| (\d+) \|)?$`)
 	refusedClassLine = regexp.MustCompile(`^\| ([^|]+) \| (\d+) \|$`)
 )
 
@@ -467,11 +487,11 @@ func parseSupportDoc(b []byte) (supportPage, error) {
 			return p, fmt.Errorf("list %s has two rows", m[1])
 		}
 		seen[m[1]] = true
-		var n [7]int
+		var n [10]int
 		for i := range n {
-			n[i], _ = strconv.Atoi(m[i+2])
+			n[i], _ = strconv.Atoi(m[i+2]) // an absent in-scope column reads 0
 		}
-		p.rows = append(p.rows, supportCounts{list: m[1], cards: n[0], lowered: n[1], refused: n[2], unverified: n[3], supported: n[4], fourSeat: n[5], podEvidenced: n[6]})
+		p.rows = append(p.rows, supportCounts{list: m[1], cards: n[0], lowered: n[1], refused: n[2], unverified: n[3], supported: n[4], fourSeat: n[5], podEvidenced: n[6], inScope: n[7], inScopeLowered: n[8], inScopeSupported: n[9]})
 	}
 	if len(p.rows) == 0 || !sawRefused {
 		return p, fmt.Errorf("not a support page: %d list rows, refused-by-name section %v", len(p.rows), sawRefused)
@@ -530,7 +550,7 @@ func TestSupportDocFallOnly(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(stored.rows) != 3 || stored.rows[2] != (supportCounts{"ALL", 34442, 24129, 3, 18026, 6100, 6032, 1}) ||
+	if len(stored.rows) != 3 || stored.rows[2] != (supportCounts{"ALL", 34442, 24129, 3, 18026, 6100, 6032, 1, 0, 0, 0}) ||
 		stored.byClass["options"] != 2 || len(stored.byClass) != 2 {
 		t.Fatalf("parsed %+v", stored)
 	}
