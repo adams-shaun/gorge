@@ -138,6 +138,13 @@ func (ic *instrCtx) opOverride() error {
 		// (dirac/static_spellcarry.go)
 		ki.B = kop.Const(kop.OvSpellCarry)
 	}
+	if cb.c.overrides[in.C].RememberAnimated {
+		// Animate's RememberAnimated$ (Rise and Shine): W names the set the
+		// op adds each animated permanent to at the kernel's apply tail
+		// (dirac/interp_gen.go OpOverride, gorge effAnimate's
+		// rememberAnimated engine/effects/combatfx.go:751).
+		ki.W = kop.RefRemembered
+	}
 	switch strings.SplitN(in.CS, "|", 2)[0] {
 	case "EOT":
 		ki.A = kop.Const(kop.DurEOT)
