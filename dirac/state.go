@@ -1078,6 +1078,12 @@ type resCtx struct {
 	chPl  uint8
 	cpl   uint8 // the chosen player and the remembered players (ExtChoosePlayerRes; act_chooseplayerres.go)
 	remLK int16 // sum of the last-known power or toughness of the permanents this resolution sacrificed under RememberSacrificed$ (zone_rememberlki.go)
+	// ksrAt/ksrMass are the mass stack redirect's cursor (act_stackrewrite.go
+	// ExtChangeTargetsMass): ksrAt is the next stack index to offer, ksrMass
+	// that the ask in flight is the mass walk. The pair fits resCtx's tail
+	// padding, so State's pinned layout does not move.
+	ksrAt   uint8
+	ksrMass bool
 }
 
 // State is a whole game. Copy one with CopyFrom, or probe on a fork; go vet
