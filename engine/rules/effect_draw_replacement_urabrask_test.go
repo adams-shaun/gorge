@@ -19,15 +19,12 @@ package rules
 // registration assertion below.
 
 import (
-	"fmt"
 	"slices"
 	"strings"
 	"testing"
 
 	"github.com/adams-shaun/gorge/engine/cards"
-	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/effects"
-	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
@@ -96,79 +93,7 @@ func TestEffectDrawReplacementUrabraskOneShot(t *testing.T) {
 	if got := len(e.G.Zone(state.ZExile, 1)); got != 0 {
 		t.Fatalf("precondition: seat 1 exile = %d, want 0", got)
 	}
-	driveErr := func() string {
-		var sb strings.Builder
-		for _, ev := range e.L.Events {
-			if ev.Kind == events.Note && ev.Text != "" {
-				sb.WriteString("NOTE[" + ev.Text + "] ")
-			}
-		}
-		repl2, grant2 := urabraskPending(e, id)
-		fmt.Fprintf(&sb, "turn=%d step=%d active=%d repl=%v grant=%v hand1=%d lib1=%d ex1=%d",
-			e.G.Turn, e.G.Step, e.G.Active, repl2 != nil, grant2 != nil,
-			len(e.G.Zone(state.ZHand, 1)), len(e.G.Zone(state.ZLibrary, 1)), len(e.G.Zone(state.ZExile, 1)))
-		return sb.String()
-	}
-	t.Logf("DEBUG pre-draw: %s", driveErr())
-	if r0, _ := urabraskPending(e, id); r0 != nil {
-		t.Logf("DEBUG reg: players=%v remembered=%v group=%d eot=%v perm=%v dur=%q untilTurn=%d params=%v body=%q",
-			r0.RememberedPlayers, r0.Remembered, r0.EffectGroup, r0.UntilEOT, r0.Permanent,
-			r0.Duration, r0.UntilTurn, r0.ReplacementParams, r0.ReplacementBody)
-		with := replacementBodySA(r0.ReplacementBody)
-		rPr := cards.Repl{Event: r0.ReplacementEvent, Params: r0.ReplacementParams, With: with}
-		evProbe := events.Event{Kind: events.Draw, Player: 1, From: state.ZLibrary, To: state.ZHand, Secret: true}
-		t.Logf("DEBUG match=%v hold=%v with=%v",
-			e.replacementMatchesRememberedUngatedBy(rPr, id, evProbe, r0.Remembered, r0.RememberedPlayers, nil, 0, nil, chosenCapture{}),
-			e.replacementConditionHoldsWith(rPr, id, 0, nil, r0.Remembered), with != nil)
-		t.Logf("DEBUG possible=%v", e.effectReplacementsPossible())
-		hb, lb := len(e.G.Zone(state.ZHand, 1)), len(e.G.Zone(state.ZLibrary, 1))
-		e.drawCard(1)
-		repl1, _ := urabraskPending(e, id)
-		t.Logf("DEBUG after drawCard: hand %d->%d lib %d->%d exile1=%d replLive=%v notes=%d",
-			hb, len(e.G.Zone(state.ZHand, 1)), lb, len(e.G.Zone(state.ZLibrary, 1)),
-			len(e.G.Zone(state.ZExile, 1)), repl1 != nil, len(e.L.Events))
-		mPr := replMatch{id: id, repl: &rPr, remembered: r0.Remembered,
-			rememberedPlayers: r0.RememberedPlayers, chosen: r0.ChosenNumber,
-			controller: r0.Controller, frozenController: true, key: effectReplKey(r0)}
-		ctxPr := e.replCtx(mPr, evProbe)
-		hb2, lb2, ex2 := len(e.G.Zone(state.ZHand, 1)), len(e.G.Zone(state.ZLibrary, 1)), len(e.G.Zone(state.ZExile, 1))
-		ne0 := len(e.L.Events)
-		e.runReplaceWith(ctxPr, 0, rPr.With, &evProbe)
-		var sb2 strings.Builder
-		for _, evx := range e.L.Events[ne0:] {
-			fmt.Fprintf(&sb2, "{k=%d obj=%d p=%d from=%d to=%d amt=%d text=%q} ", evx.Kind, evx.Obj, evx.Player, evx.From, evx.To, evx.Amount, evx.Text)
-		}
-		ps, okp := effects.EffectOwnerPlayers(e, ctxPr, "ReplacedPlayer")
-		t.Logf("DEBUG replPlayer=%+v definedPlayers=%v ok=%v", ctxPr.Repl.Player, ps, okp)
-		withNC := replacementBodySA("DB$ Dig | Defined$ ReplacedPlayer | DigNum$ 1 | ChangeNum$ All | DestinationZone$ Exile | RememberChanged$ True")
-		ne3 := len(e.L.Events)
-		e.runReplaceWith(ctxPr, 0, withNC, &evProbe)
-		var sb3 strings.Builder
-		for _, evx := range e.L.Events[ne3:] {
-			fmt.Fprintf(&sb3, "{k=%d obj=%d p=%d from=%d to=%d text=%q} ", evx.Kind, evx.Obj, evx.Player, evx.From, evx.To, evx.Text)
-		}
-		t.Logf("DEBUG nocond: exile1=%d lib1=%d newevents: %s", len(e.G.Zone(state.ZExile, 1)), len(e.G.Zone(state.ZLibrary, 1)), sb3.String())
-		t.Logf("DEBUG body: exile1 %d->%d hand %d->%d lib %d->%d pending=%v newevents: %s",
-			ex2, len(e.G.Zone(state.ZExile, 1)), hb2, len(e.G.Zone(state.ZHand, 1)),
-			lb2, len(e.G.Zone(state.ZLibrary, 1)), e.Pending(), sb2.String())
-	}
-	for i := 0; i < 4000 && len(e.G.Zone(state.ZExile, 1)) == 0; i++ {
-		if answerIfDiscard(t, e) {
-			continue
-		}
-		d := e.Pending()
-		switch {
-		case d == nil:
-			e.Advance()
-		case d.Kind == decision.KPriority:
-			passOnce(t, e)
-		default:
-			submitChoices(t, e, d.Options[0].Index)
-		}
-	}
-	if len(e.G.Zone(state.ZExile, 1)) == 0 {
-		t.Fatalf("no draw was replaced: %s", driveErr())
-	}
+	passThroughTurns(t, e, func() bool { return len(e.G.Zone(state.ZExile, 1)) > 0 })
 	exiled := e.G.Zone(state.ZExile, 1)
 	if len(exiled) != 1 {
 		t.Fatalf("seat 1 exile = %d cards, want exactly 1 (the replaced draw)", len(exiled))
