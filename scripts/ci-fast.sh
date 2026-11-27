@@ -121,13 +121,26 @@ done <<<"$list"
 # PR must not pay a ./dirac compile. A pathspec `dir/*` matches recursively (git's fnmatch has no PATHNAME flag).
 # The diff is captured, not piped into grep -q: under pipefail, git diff's next write after grep exits at the first
 # match gets SIGPIPE and the if reads false, silently skipping exactly on the large PRs (pr-precheck.sh 11-26).
+# S4c (11-27): when the diff's selection already runs that package as a `whole` row, the batch call below runs the
+# same test under the same -short, so the separate run is a duplicate — two copies of TestManifestGenIsCurrent
+# (46 s each) competed on one box on run 45919671255: the batch's ./dirac finished at the same second as the derived
+# run, 88 s in, for a test the batch was already running. Launch it only when the package is not already selected.
+whole_pkg() { grep -qx "$1" <<<"$whole"; }
 if [ -n "$(git diff --name-only "$1"...HEAD -- 'dirac/manifest/*' 'dirac/kop/*' 'dirac/cmd/kmanifest/*' 'dirac/kgen/*' 2>/dev/null)" ]; then
-  echo "ci-fast: the diff touches a manifest or kmanifest input; running TestManifestGenIsCurrent"
-  bg derived-manifest gotest -timeout 5m -short -run '^TestManifestGenIsCurrent$' ./dirac
+  if whole_pkg ./dirac; then
+    echo "ci-fast: the batch's ./dirac run already includes TestManifestGenIsCurrent; not running it twice"
+  else
+    echo "ci-fast: the diff touches a manifest or kmanifest input; running TestManifestGenIsCurrent"
+    bg derived-manifest gotest -timeout 5m -short -run '^TestManifestGenIsCurrent$' ./dirac
+  fi
 fi
 if [ -n "$(git diff --name-only "$1"...HEAD -- 'server/*' 'engine/decision/*' 'docs/site/api/*' 2>/dev/null)" ]; then
-  echo "ci-fast: the diff touches a wire type or decision kind; running the four OpenAPI freshness checks"
-  bg derived-openapi gotest -timeout 5m -short -run '^TestOpenAPI(RoutesMatchSpec|SchemasMatchGo|YAMLIsRendered|ProtocolSchemaIsRendered)$' ./server/host/httpapi
+  if whole_pkg ./server/host/httpapi; then
+    echo "ci-fast: the batch's ./server/host/httpapi run already includes the OpenAPI freshness checks; not running them twice"
+  else
+    echo "ci-fast: the diff touches a wire type or decision kind; running the four OpenAPI freshness checks"
+    bg derived-openapi gotest -timeout 5m -short -run '^TestOpenAPI(RoutesMatchSpec|SchemasMatchGo|YAMLIsRendered|ProtocolSchemaIsRendered)$' ./server/host/httpapi
+  fi
 fi
 # Always, whatever the diff selects: nothing under .ds4/ (seat scratch) is tracked. A seat that force-adds a .ds4
 # report passes its own targeted tests and only a batch shard catches it (11-23: #3835 reddened batches 4024 and

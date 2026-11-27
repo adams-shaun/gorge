@@ -408,8 +408,24 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: bash scripts/check-forge-ref-driver.sh "${{ github.event.pull_request.base.sha }}"
       - name: gofmt
+        # S4c (11-27): a pull request formats only the Go files it changes. Formatting is a property of a file's own
+        # bytes, so a file this diff does not touch cannot be made unformatted by it, and every other file in the
+        # post-merge tree is one the base branch already passed this check on (or the main merged in above). The
+        # whole tree is still checked on a batch, main and the nightly. Measured 11-26: whole-tree gofmt spent 2-6 s
+        # of the PR lint job.
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
-          out=$(gofmt -l $(find . \( -name node_modules -o -name .worktrees \) -prune -o -type f -name '*.go' -print))
+          if [ "${{ github.event_name }}" = pull_request ] && [ -n "$HEAD_SHA" ]; then
+            keep=
+            for f in $(git diff --name-only "$BASE"..."$HEAD_SHA" -- '*.go'); do [ -f "$f" ] && keep="$keep $f"; done
+          else
+            keep=$(find . \( -name node_modules -o -name .worktrees \) -prune -o -type f -name '*.go' -print)
+          fi
+          if [ -z "$keep" ]; then echo "gofmt: no Go file in the diff"; exit 0; fi
+          # shellcheck disable=SC2086
+          out=$(gofmt -l $keep)
           if [ -n "$out" ]; then echo "gofmt: files need formatting:"; echo "$out"; exit 1; fi
       - name: go vet ./... (batches, main and the nightly)
         if: github.event_name != 'pull_request' || startsWith(github.head_ref, 'mergify/merge-queue/')
