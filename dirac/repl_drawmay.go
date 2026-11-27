@@ -36,7 +36,7 @@ const ChGenDrawMay ChoiceKind = 218
 // drawReplAsked reports the draw just made posed a replacement ask (the
 // order ask or the may election): the draw's site suspends on it.
 func (s *State) drawReplAsked() bool {
-	return s.res.ask == raGenDrawOrder || s.res.ask == raGenDrawMay
+	return s.res.ask == raGenDrawOrder || s.res.ask == raGenDrawMay || s.drawBodyAsked()
 }
 
 // drawMayPose parks the may candidate sel/abi on coldDraw and poses the
