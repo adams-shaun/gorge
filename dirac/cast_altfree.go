@@ -243,13 +243,15 @@ func (s *State) altCostCast(ctx evalCtx) bool {
 // altCostOf is the adjusted alternative mana cost of the spell being built.
 func (s *State) altCostOf(k *prep) kop.ManaCost {
 	e := &s.bld().e
-	return s.adjustCostGen(k, e.ctrl, e.card, e.obj, s.altAbOf(k).Cost.Mana)
+	return s.adjustCostGen(k, e.ctrl, e.card, e.obj, s.altBaseMana(k))
 }
 
 // altBaseMana is the mana of the alternative cost the build pays, before the
-// cost statics (altCostOf adjusts it).
+// cost statics (altCostOf adjusts it). A grant's {X} is the cast card's mana
+// value (altXMana, Kentaro).
 func (s *State) altBaseMana(k *prep) kop.ManaCost {
-	return s.altAbOf(k).Cost.Mana
+	e := &s.bld().e
+	return altXMana(k, e.card, s.altAbOf(k).Cost.Mana)
 }
 
 // altFreeCast reports whether a castMayPlay|castFree cast of o is its own

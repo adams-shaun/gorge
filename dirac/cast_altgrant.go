@@ -109,6 +109,25 @@ func (s *State) altGrantAb(k *prep, g altGrantRef) *kop.Ability {
 	return &k.t.Cards[g.card].Abilities[g.ab]
 }
 
+// altXMana prices a grant's one {X} at the cast card's mana value (Kentaro,
+// the Smiling Cat: XAlternative$ Count$CardManaCost, kgen's AltXMana). A
+// grant's {X} is only ever that shape; the card's own alternative cost never
+// carries X (prepAltFree), so the zero-X case is the ordinary price. The
+// substitution happens before the cost statics (adjustCost), as gorge prices
+// altCostParse's ConvertedManaCost token off the cast card.
+func altXMana(k *prep, c CardID, m kop.ManaCost) kop.ManaCost {
+	if m.X == 0 {
+		return m
+	}
+	n := int(m.X) * k.t.Cards[c].Cost.MV()
+	if n > 255-int(m.Generic) {
+		n = 255 - int(m.Generic)
+	}
+	m.Generic += uint8(n)
+	m.X = 0
+	return m
+}
+
 // offerAltGrantHand is offerAltGrants behind the gate that costs a deck with
 // no grant (or a board with no static) one inlined test.
 func (s *State) offerAltGrantHand(k *prep, d *Decision, p uint8, o Obj, c CardID, av *avail) {
@@ -157,7 +176,7 @@ func (s *State) offerAltGrants(k *prep, d *Decision, p uint8, o Obj, c CardID, a
 		if !s.pickCostPayable(k, p, &ab.Cost, o) {
 			continue
 		}
-		ac := s.adjustCost(k, p, c, o, ab.Cost.Mana)
+		ac := s.adjustCost(k, p, c, o, altXMana(k, c, ab.Cost.Mana))
 		if ac != (kop.ManaCost{}) && (!av.affords(&ac, pipMaskOf(&ac), 0) || !s.windowPoolPays(p, &ac, false)) {
 			continue
 		}
