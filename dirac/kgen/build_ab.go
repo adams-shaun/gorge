@@ -1250,16 +1250,17 @@ var eventMap = map[string]kop.TrigEvent{"ETB": kop.TrigETB, "Dies": kop.TrigDies
 	"CounterAddedOnce": kop.TrigCounterAddedOnce, "CounterAdded": kop.TrigCounterAddedOnce, "CounterAddedAll": kop.TrigCounterAddedAll, "Untaps": kop.TrigUntaps,
 	"CounterRemoved": kop.TrigCounterRemoved, "CounterRemovedOnce": kop.TrigCounterRemovedOnce, // the card's own (lower_counterremoved.go; dirac/trig_counterremoved.go)
 	"Sacrificed": kop.TrigSacrificed, "GiveGift": kop.TrigGiveGift, "Proliferate": kop.TrigProliferate, "FacesDilemma": kop.TrigFacesDilemma, "BecomeMonarch": kop.TrigBecomeMonarch, "TokenCreated": kop.TrigTokenCreated, "BecomeMonstrous": kop.TrigBecomeMonstrous, "ManaExpend": kop.TrigManaExpend, "AttackerBlocked": kop.TrigBecomesBlocked, "TurnFaceUp": kop.TrigTurnFaceUp, "Transformed": kop.TrigTransformed, "CommitCrime": kop.TrigCommitCrime, "UnlockDoor": kop.TrigUnlockDoor, "FullyUnlock": kop.TrigFullyUnlock, "RingTemptsYou": kop.TrigRingTemptsYou,
-	"BecomesTarget":    kop.TrigBecomesTarget,    // the Valiant, watcher and self shapes (lower_trigger.go)
-	"ClassLevelGained": kop.TrigCounterAddedOnce, // N = CtrLevel (lower_class.go)
-	"BecomesPlotted":   kop.TrigBecomesPlotted,   // the card's own
-	"BecomesSaddled":   kop.TrigBecomesSaddled,
-	"Exerted":          kop.TrigExerted,     // the OptionalAttackCost rider (static_optattack.go)
-	"Evolved":          kop.TrigEvolved,     // the source's own, after its evolve counter lands
-	"Attached":         kop.TrigAttached,    // the attachment's own, Creature bearer (Assimilation Aegis)
-	"Unattached":       kop.TrigUnattached,  // the attachment's own, the FORMER BEARER (Captain's Hook family)
-	"ChaosEnsues":      kop.TrigChaosEnsues, // the face-up plane's command-zone chaos ability (zone_planechase.go)
-	"LeaveExile":       kop.TrigLeaveExile}  // an imprinted card leaves exile (lower_changezonepairs.go; dirac/trig_leaveexile.go)
+	"PlayerCounterAddedOnce": kop.TrigPlayerCounterAdded, // a player's energy/experience gain (lower_trigger.go; dirac/trig_playerctr.go)
+	"BecomesTarget":          kop.TrigBecomesTarget,      // the Valiant, watcher and self shapes (lower_trigger.go)
+	"ClassLevelGained":       kop.TrigCounterAddedOnce,   // N = CtrLevel (lower_class.go)
+	"BecomesPlotted":         kop.TrigBecomesPlotted,     // the card's own
+	"BecomesSaddled":         kop.TrigBecomesSaddled,
+	"Exerted":                kop.TrigExerted,     // the OptionalAttackCost rider (static_optattack.go)
+	"Evolved":                kop.TrigEvolved,     // the source's own, after its evolve counter lands
+	"Attached":               kop.TrigAttached,    // the attachment's own, Creature bearer (Assimilation Aegis)
+	"Unattached":             kop.TrigUnattached,  // the attachment's own, the FORMER BEARER (Captain's Hook family)
+	"ChaosEnsues":            kop.TrigChaosEnsues, // the face-up plane's command-zone chaos ability (zone_planechase.go)
+	"LeaveExile":             kop.TrigLeaveExile}  // an imprinted card leaves exile (lower_changezonepairs.go; dirac/trig_leaveexile.go)
 
 // trigQualifierFlags is trigger's qualifier-flag block: the Evolve, the
 // SpellCast spend qualifiers (Increment, the mana-spend gate) and the split
@@ -1317,6 +1318,11 @@ func counterTriggerN(t *lTrigger) (int16, bool, error) {
 		if t.Step == "*" {
 			return kop.TrigNAnyCounter, true, nil
 		}
+	case "PlayerCounterAddedOnce":
+		if t.Step == "EXPERIENCE" {
+			return kop.PlCtrExperience, true, nil
+		}
+		return kop.PlCtrEnergy, true, nil
 	case "CounterAddedAll", "CounterRemoved", "CounterRemovedOnce":
 	default:
 		return 0, false, nil

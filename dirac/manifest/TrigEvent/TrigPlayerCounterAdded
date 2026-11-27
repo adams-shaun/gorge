@@ -1,0 +1,7 @@
+family: TrigEvent
+name: TrigPlayerCounterAdded
+value: next
+forge: CounterAddedOnce
+state: code 0
+status: active
+doc: a player (Whose) gets one or more player counters of kind Trigger.N (kop.PlCtrEnergy / kop.PlCtrExperience) (gorge Mode$ CounterAddedOnce with ValidPlayer$, trigmatch playerCounterAddedOnceMatches on a positive events.PlayerCounterChange); no slot subscription: the battlefield is scanned (trig_playerctr.go)
