@@ -15,7 +15,7 @@ import (
 //
 //	R:Event$ ProduceMana | ActiveZones$ Battlefield | ValidActivator$ You |
 //	  ValidCard$ Land.Basic | ReplaceWith$ ProduceThrice
-//	SVar:ProduceThrice:DB$ ReplaceMana | ReplaceAmount$ 3
+//	SVar:ProduceThrice: a ReplaceMana effect with ReplaceAmount 3
 //
 // gorge applies the replacement per ManaAdd (rules replacement_mana.go's
 // replaceMana rewrite: ReplaceAmount multiplies the whole production) only

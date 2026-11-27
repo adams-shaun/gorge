@@ -15,8 +15,8 @@ import (
 // Strength's ProduceMana replacement:
 //
 //	R:Event$ ProduceMana | ActiveZones$ Battlefield | ValidActivator$ You |
-//	  ValidCard$ Land.Basic | ReplaceWith$ ProduceThrice
-//	SVar:ProduceThrice:DB$ ReplaceMana | ReplaceAmount$ 3
+//	  ValidCard$ Land.Basic | ReplaceWith$ Triple
+//	SVar:Triple:DB$ ReplaceMana | ReplaceAmount$ 3
 //
 // kgen lowers the exact shape to the kernel's tap-extra static in reflected
 // mode (kop.StTapReflectDefer, TapAmt 2): the tapped basic land makes its own
@@ -35,8 +35,8 @@ import (
 // is not vacuous. The real Virtue of Strength is checked by the lowering test
 // in dirac/kgen (its split-card file name keeps it out of this corpus).
 const virtueProbeScript = "Name:Virtue Probe\nManaCost:5 G G\nTypes:Enchantment\n" +
-	"R:Event$ ProduceMana | ActiveZones$ Battlefield | ValidActivator$ You | ValidCard$ Land.Basic | ReplaceWith$ ProduceThrice | Description$ If you tap a basic land for mana, it produces three times as much of that mana instead.\n" +
-	"SVar:ProduceThrice:DB$ ReplaceMana | ReplaceAmount$ 3\n" +
+	"R:Event$ ProduceMana | ActiveZones$ Battlefield | ValidActivator$ You | ValidCard$ Land.Basic | ReplaceWith$ Triple | Description$ If you tap a basic land for mana, it produces three times as much of that mana instead.\n" +
+	"SVar:Triple:DB$ ReplaceMana | ReplaceAmount$ 3\n" +
 	"Oracle:If you tap a basic land for mana, it produces three times as much of that mana instead.\n"
 
 const cubProbeScript = "Name:Cub Probe\nManaCost:G\nTypes:Creature Bear\nPT:2/2\n" +
