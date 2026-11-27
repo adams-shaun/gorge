@@ -3752,26 +3752,8 @@ func (lc *lowerCtx) animate(ps *params) error {
 	if err != nil {
 		return err
 	}
-	if err := lc.animateSelfAbilities(ps, o, obj); err != nil { // the plain Animate only: AnimateAll reads its own (animateAllGranted)
+	if err := lc.animateSelfAndRemember(ps, o, obj, chosen); err != nil { // the plain Animate only: AnimateAll reads its own (animateAllGranted)
 		return err
-	}
-	// RememberAnimated$ True (Rise and Shine): every permanent this Animate
-	// reaches joins the resolution's remembered set, so the chained
-	// `DB$ PutCounter | Defined$ Remembered` names exactly them (gorge
-	// effAnimate's rememberAnimated, engine/effects/combatfx.go:751, the
-	// two-half discipline s.remember applies). Only the plain override arm
-	// carries the hook: the chosen-colour, colour-word and MustBeBlocked
-	// arms apply through records and extra ops the hook does not reach, so
-	// those combinations refuse.
-	if _, ok := ps.m["RememberAnimated"]; ok {
-		rememberAnimated := ps.is("RememberAnimated", "True")
-		ps.consume("RememberAnimated")
-		if rememberAnimated {
-			if chosen || o.CwWord || o.MustBeBlocked {
-				return refuse("Animate RememberAnimated$ with a chosen-colour, colour-word or keyword-granting grant")
-			}
-			o.RememberAnimated = true
-		}
 	}
 	if chosen && obj.Kind == rTargetUnion {
 		// one chosen-colour record cannot reach every object of a set
@@ -6247,6 +6229,41 @@ func (lc *lowerCtx) targetLibrarySearch(ps *params, origin int) (int, error) {
 	}
 	ps.consume("Chooser", "TgtPrompt")
 	return lc.addTarget(lTarget{F: pf}), nil
+}
+
+// animateSelfAndRemember completes the plain Animate grant: the Abilities$
+// grant on the source (animateSelfAbilities) and RememberAnimated$ (Rise and
+// Shine), the resolution's remembered set. Both sit behind the one call so
+// animate's dispatcher stays under the complexity threshold (funcgrowth).
+func (lc *lowerCtx) animateSelfAndRemember(ps *params, o *lOverride, obj lRef, chosen bool) error {
+	if err := lc.animateSelfAbilities(ps, o, obj); err != nil {
+		return err
+	}
+	return lc.animateRememberAnimated(ps, o, chosen)
+}
+
+// animateRememberAnimated reads Animate's RememberAnimated$ True (Rise and
+// Shine): every permanent this Animate reaches joins the resolution's
+// remembered set, so the chained `DB$ PutCounter | Defined$ Remembered` names
+// exactly them (gorge effAnimate's rememberAnimated,
+// engine/effects/combatfx.go:751, the two-half discipline s.remember
+// applies). Only the plain override arm carries the hook: the chosen-colour,
+// colour-word and MustBeBlocked arms apply through records and extra ops the
+// hook does not reach, so those combinations refuse.
+func (lc *lowerCtx) animateRememberAnimated(ps *params, o *lOverride, chosen bool) error {
+	if _, ok := ps.m["RememberAnimated"]; !ok {
+		return nil
+	}
+	rememberAnimated := ps.is("RememberAnimated", "True")
+	ps.consume("RememberAnimated")
+	if !rememberAnimated {
+		return nil
+	}
+	if chosen || o.CwWord || o.MustBeBlocked {
+		return refuse("Animate RememberAnimated$ with a chosen-colour, colour-word or keyword-granting grant")
+	}
+	o.RememberAnimated = true
+	return nil
 }
 
 // animateSelfAbilities reads an Animate's Abilities$ on the source itself
