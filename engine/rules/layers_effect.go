@@ -188,9 +188,60 @@ func (e *Engine) EndEffect(source state.ObjID, stamp uint32) {
 // state.ContinuousEffect.FromEffect are dropped, so the source's printed
 // statics survive. Engine-runtime only, rebuilt by re-execution on replay
 // exactly like EndEffect; it emits no event.
-func (e *Engine) EndEffectSource(source state.ObjID, spareAfter uint32) {
+//
+// spareAfter is the carrier's own registration clock on a carrier frame
+// (effectDelayedFrame), and the game clock a nested Effect registered at on a
+// plain source-scoped frame. On a carrier frame the ender drops only the
+// registrations of THAT activation -- the delayed registrations stamped at
+// the same clock and the continuous half stamped after it, up to the next
+// activation's clock -- so a second activation of the same source (Ugin, the
+// Ineffable's [+1] while the first Spirit is alive) is untouched and a later
+// trigger still fires.
+func (e *Engine) EndEffectSource(source state.ObjID, spareAfter uint32, carrier bool) {
 	if source == 0 {
 		return
+	}
+	// next is the clock of the next activation of the same source, the upper
+	// bound of this carrier's continuous half (an Effect registers its
+	// Triggers$ before its StaticAbilities$, so the continuous registrations
+	// of activation C carry Timestamps above C). Zero means this is the last
+	// activation.
+	next := uint32(0)
+	if carrier {
+		for i := range e.G.Delayed {
+			dt := &e.G.Delayed[i]
+			if dt.Source == source && dt.EffectRepeat && dt.RegistrationClock > spareAfter &&
+				(next == 0 || dt.RegistrationClock < next) {
+				next = dt.RegistrationClock
+			}
+		}
+	}
+	// dropDelayed reports whether a delayed registration made at clock c ends
+	// here. A plain source-scoped frame (spareAfter 0) ends every registration
+	// from the source; a nested frame spares later clocks; a carrier frame
+	// ends exactly its own activation's, whose registrations share its clock.
+	dropDelayed := func(c uint32) bool {
+		switch {
+		case carrier:
+			return c == spareAfter
+		case spareAfter != 0:
+			return c <= spareAfter
+		default:
+			return true
+		}
+	}
+	// dropContinuous reports whether a continuous registration stamped at c
+	// ends here. A carrier's continuous half is stamped after its delayed
+	// clock, so it is the range (spareAfter, next).
+	dropContinuous := func(c uint32) bool {
+		switch {
+		case carrier:
+			return c > spareAfter && (next == 0 || c < next)
+		case spareAfter != 0:
+			return c <= spareAfter
+		default:
+			return true
+		}
 	}
 	// The Effect's own lifetime also ends its EffectRepeat DELAYED-trigger
 	// registrations (the |EF form): Out of Time's comeback trigger is a
@@ -199,8 +250,9 @@ func (e *Engine) EndEffectSource(source state.ObjID, spareAfter uint32) {
 	// folds the same registration set.
 	var remove []uint32
 	for i := range e.G.Delayed {
-		if e.G.Delayed[i].Source == source && e.G.Delayed[i].EffectRepeat {
-			remove = append(remove, e.G.Delayed[i].ID)
+		dt := &e.G.Delayed[i]
+		if dt.Source == source && dt.EffectRepeat && dropDelayed(dt.RegistrationClock) {
+			remove = append(remove, dt.ID)
 		}
 	}
 	for _, id := range remove {
@@ -209,7 +261,7 @@ func (e *Engine) EndEffectSource(source state.ObjID, spareAfter uint32) {
 	kept := e.continuous[:0]
 	changed := false
 	for _, ce := range e.continuous {
-		if ce.Source == source && ce.FromEffect && (spareAfter == 0 || ce.Timestamp <= spareAfter) {
+		if ce.Source == source && ce.FromEffect && dropContinuous(ce.Timestamp) {
 			changed = true
 			continue
 		}

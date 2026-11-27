@@ -451,7 +451,9 @@ func (lc *lowerCtx) refuseCrossAbilityRemembered() {
 			lines = append(lines, in.String())
 			writes = writes || kremWrites(in)
 		}
-		if writes {
+		if writes || a.EmblemRem {
+			// a.EmblemRem: the body reads the emblem's own remembered set
+			// (kop.Emblem.CaptureRem), which outlives the resolution.
 			continue
 		}
 		for _, l := range lines {
