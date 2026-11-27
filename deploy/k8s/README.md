@@ -14,6 +14,9 @@ cluster-scoped except the namespace itself.
 | HTTPRoute `gorged` | on gateway `eg` (namespace `envoy-gateway-system`, listener `http`), hosts `master-edh.net` and `www.master-edh.net`, open to everyone; a `BackendTrafficPolicy` lifts the request timeout to 1h for the server-sent event streams |
 | `emptyDir` | `/art` (card art cache), `/feedback` |
 
+The Deployment passes the full gorged command as `args` (it replaces the image `CMD`): four
+Commander tables of four seats, plus play-vs-bot, draft events and the ManaBrew routes.
+
 Probes: all three (startup, readiness, liveness) read `GET /api/capabilities` on port 8080,
 since gorged has no dedicated health route. The startup probe allows 15 minutes for the first fetch.
 
