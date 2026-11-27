@@ -8,9 +8,9 @@ import (
 )
 
 // The ReplDrawProgram lockstep pool: the Draw replacements whose
-// ReplaceWith$ body is a draw, a life change or a token (Blood Scrivener,
-// Hullbreacher, Notion Thief), and the Optional$ True skip (Obstinate
-// Familiar, whose election both engines pose at each draw). The bodyless Prevent$ skip (Possessed Portal)
+// ReplaceWith$ body is a draw, a life change, a token or a win (Blood Scrivener,
+// Hullbreacher, Notion Thief, Laboratory Maniac, Jace), and the Optional$ True
+// skip (Obstinate Familiar, whose election both engines pose at each draw). The bodyless Prevent$ skip (Possessed Portal)
 // has no deck here: no pair reached its skip (the mutation never diverged in
 // 200 seeds), so a pair would be vacuous evidence. Each pair puts the one replacement on
 // seat 0 and plays a vanilla seat 1, so one draw never meets two replacements (the kernel stalls a
@@ -44,6 +44,20 @@ var kdrawReplDecks = map[string][2][]cardset.Entry{
 			{Name: "Divination", Count: 4}, {Name: "Mountain", Count: 8}, {Name: "Island", Count: 8}, {Name: "Forest", Count: 7}},
 		{{Name: "Grizzly Bears", Count: 12}, {Name: "Hill Giant", Count: 8},
 			{Name: "Divination", Count: 4}, {Name: "Island", Count: 8}, {Name: "Forest", Count: 8}},
+	},
+	// "You win the game instead" while the library is empty. Seat 0's deck
+	// draws its library down (Divination; Jace's +1 mills two and draws one);
+	// seat 1 is all lands and attacks no one, so the only way a game ends
+	// before a turn cap is a library running out: the win when the carrier is
+	// on the battlefield, the CR 704.5b loss when it is not. One carrier per
+	// deck: two would be a competition the kernel poses as an order ask.
+	"maniac": {
+		{{Name: "Laboratory Maniac", Count: 1}, {Name: "Divination", Count: 8}, {Name: "Island", Count: 31}},
+		{{Name: "Plains", Count: 40}},
+	},
+	"jace": {
+		{{Name: "Jace, Wielder of Mysteries", Count: 1}, {Name: "Divination", Count: 8}, {Name: "Island", Count: 31}},
+		{{Name: "Plains", Count: 40}},
 	},
 	"hullbreacher": {
 		{{Name: "Hullbreacher", Count: 1}, {Name: "Grizzly Bears", Count: 8}, {Name: "Hill Giant", Count: 4},
@@ -81,7 +95,7 @@ func TestReplDrawReplLockstepMutation(t *testing.T) {
 			}
 		}
 	}
-	for _, name := range []string{"scrivener", "thief", "hullbreacher"} {
+	for _, name := range []string{"scrivener", "thief", "hullbreacher", "maniac", "jace"} {
 		name := name
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
