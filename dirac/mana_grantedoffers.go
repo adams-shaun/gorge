@@ -3857,8 +3857,10 @@ func (s *State) altPlayCost(k *prep, p uint8, a Action) (kop.ManaCost, bool) {
 		return kop.ManaCost{}, true
 	case m&castFaceDown != 0:
 		return s.adjustCost(k, p, c, o, kop.ManaCost{Generic: 3}), true
-	case m == 0 && a.Target() == castAltTgt && k.gen != nil && k.gen.altFree != nil && k.gen.altFree[c] != 0:
-		return s.adjustCostGen(k, p, c, o, cd.Abilities[k.gen.altFree[c]-1].Cost.Mana), true
+	case m == 0 && k.gen != nil && (a.Target() == castAltTgt || a.Target() > castAltIdxTgt):
+		if ab := s.altTgtAbility(k, p, a); ab != nil { // the card's own alternative or a grant's
+			return s.adjustCostGen(k, p, c, o, ab.Cost.Mana), true
+		}
 	}
 	return kop.ManaCost{}, false
 }

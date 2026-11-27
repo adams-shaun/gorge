@@ -153,6 +153,19 @@ jobs:
           cache: false
       - name: Corpus and tables, and the shared compile beside them
         if: runner.environment == 'self-hosted'
+        # S1d (11-26): this step is what every test job waits for, and the shared compile in it is its largest
+        # part — 148.5 s of prepare's 192 s in batch 45774650152 (gh run view 45774650152 --log --job
+        # 139755268219 step timestamps), and 141-148 s of prepare's 156-192 s across 11-26's spot boxes. It ran
+        # on the workflow-wide GOFLAGS -p=4: four package builds at a time on a 32-thread box, so 28 of 32 lanes
+        # sat idle for the whole stage while the shards queued behind it. Nothing else on the box compiles these
+        # packages meanwhile (the shards are blocked on this job; a second overlapping batch adds its own 12),
+        # so -p=12 uses otherwise-idle lanes to cut the compile to roughly a third. GOMAXPROCS=8 (the shards'
+        # value) caps kgen's own workers on the corpus build that runs beside the compile, so the two fit the box
+        # together. -exec /bin/true builds and runs no tests, so the 4-vCPU per-test budget (AGENTS.md) is
+        # untouched — this only changes how many packages the go command builds at once.
+        env:
+          GOFLAGS: -p=12 -trimpath
+          GOMAXPROCS: "8"
         # S1c (11-26), measured from five green merge-queue batches (gh run view <run> --log --job <job> step
         # timestamps, box load ~89 on 32 threads): this job had two serial steps, the corpus/tables build
         # (1-67 s: 1-4 s on a tree the box already built, ~25-67 s when this tree first reached the box)
@@ -395,8 +408,24 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: bash scripts/check-forge-ref-driver.sh "${{ github.event.pull_request.base.sha }}"
       - name: gofmt
+        # S4c (11-27): a pull request formats only the Go files it changes. Formatting is a property of a file's own
+        # bytes, so a file this diff does not touch cannot be made unformatted by it, and every other file in the
+        # post-merge tree is one the base branch already passed this check on (or the main merged in above). The
+        # whole tree is still checked on a batch, main and the nightly. Measured 11-26: whole-tree gofmt spent 2-6 s
+        # of the PR lint job.
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
-          out=$(gofmt -l $(find . \( -name node_modules -o -name .worktrees \) -prune -o -type f -name '*.go' -print))
+          if [ "${{ github.event_name }}" = pull_request ] && [ -n "$HEAD_SHA" ]; then
+            keep=
+            for f in $(git diff --name-only "$BASE"..."$HEAD_SHA" -- '*.go'); do [ -f "$f" ] && keep="$keep $f"; done
+          else
+            keep=$(find . \( -name node_modules -o -name .worktrees \) -prune -o -type f -name '*.go' -print)
+          fi
+          if [ -z "$keep" ]; then echo "gofmt: no Go file in the diff"; exit 0; fi
+          # shellcheck disable=SC2086
+          out=$(gofmt -l $keep)
           if [ -n "$out" ]; then echo "gofmt: files need formatting:"; echo "$out"; exit 1; fi
       - name: go vet ./... (batches, main and the nightly)
         if: github.event_name != 'pull_request' || startsWith(github.head_ref, 'mergify/merge-queue/')
@@ -982,16 +1011,32 @@ jobs:
       - name: Replay the committed repros
         # Every test with Repro in its name, the set fast's REPLAYS selects (scripts/test_targets.py): 11-18 a
         # *ReprosReach replay went red on main because this step ran only *ReprosLockstep.
-        # The part's half of the listed names, round robin over their sorted order; together the parts run exactly the
-        # tests the one call did (-list matches top-level names as -run does; their subtests all run).
+        # Speed-S6 (11-27): one go test per part ran 426 tests serially, 211-337 s, and part 0 at 435 s gated the
+        # batch (run 45930969336) after S1-S5 cut prepare to 43-56 s. Each part now deals its names round robin to
+        # PROCS go test processes beside each other (as ci-sentinels.sh does; separate processes share no
+        # globals, and the test step already runs several go test processes in one workspace). The parts' union is
+        # unchanged: two levels of NR % n over the sorted -list output cover every name exactly once (-list matches
+        # top-level names as -run does; their subtests all run), so no test is dropped or trimmed. Still the
+        # matrix's two jobs: the extra processes are free of the runner queue that a wider matrix would add
+        # (speed-S3's lesson). A process that fails sets rc.
         env:
           PART: ${{ matrix.part }}
+          PROCS: 4
         run: |
           names=$(go test -list 'Repro|^TestRefusedEntriesStillDiverge$' ./dirac/oracle | grep -E '^Test' | sort)
           [ -n "$names" ] || { echo "go test -list found no repro tests"; exit 1; }
-          rx=$(awk -v p="$PART" 'NR % 2 == p' <<<"$names" | paste -sd'|')
-          echo "part $PART: $(wc -w <<<"${rx//|/ }") of $(wc -l <<<"$names") tests"
-          go test -timeout 12m -run "^($rx)\$" ./dirac/oracle
+          mine=$(awk -v p="$PART" 'NR % 2 == p' <<<"$names")
+          [ -n "$mine" ] || { echo "part $PART: no repro tests"; exit 1; }
+          echo "part $PART: $(wc -l <<<"$mine") of $(wc -l <<<"$names") tests, $PROCS processes"
+          pids=() logs=() rc=0
+          for ((i = 0; i < PROCS; i++)); do
+            rx=$(awk -v i="$i" -v n="$PROCS" 'NR % n == i' <<<"$mine" | paste -sd'|')
+            [ -n "$rx" ] || continue
+            log="repro-$PART-$i.log"
+            go test -timeout 12m -run "^($rx)\$" ./dirac/oracle >"$log" 2>&1 & pids+=($!); logs+=("$log")
+          done
+          for i in "${!pids[@]}"; do wait "${pids[$i]}" || rc=1; cat "${logs[$i]}"; done
+          exit "$rc"
 
   # The whole of ./dirac/oracle, on a pull request to main only. Its serial lockstep games
   # outlast one runner, so a matrix splits it (scripts/ci-oracle-shard.sh). No deck pool ships

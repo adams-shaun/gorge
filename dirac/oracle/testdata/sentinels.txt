@@ -11,6 +11,10 @@ TestManaRidersLockstep
 # Named by 11-25 red (whole-oracle run at 32bfe4888a and d6d98cb720)
 TestFourSeatHornChosenTypeRevealMutation
 TestFourSeatHornChosenTypeReveal
+# Named by 11-26 red (whole-oracle run 45904904786: #5287's CR 400.7a Animate/Pump stack-to-battlefield carry,
+# reverted by #5353). This is the cheapest test whose failure the revert cured; the run's other reds are a
+# separate divergence still open on main, so they are not sentinelled here.
+TestWascastGraveprovLockstep
 
 # Four-seat, pod, commander and EDH lockstep and deck tests
 TestCanBlockAnyFourSeatLockstep

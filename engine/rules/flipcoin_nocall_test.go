@@ -21,6 +21,7 @@ func TestNoCallLiteralBranchRunsOncePerOutcome(t *testing.T) {
 		t.Fatalf("synthetic card failed to parse: %v", d)
 	}
 	e, _ := corpusEngineCfg(t, reg, []*cards.Card{c}, nil)
+	forceCoinHeads(e)
 	id := moveByName(t, e, 0, "Test Literal Flip Turns", state.ZBattlefield)
 	if e.G.Obj(id).Zone != state.ZBattlefield {
 		t.Fatal("precondition: synthetic card must be on the battlefield")
@@ -30,7 +31,7 @@ func TestNoCallLiteralBranchRunsOncePerOutcome(t *testing.T) {
 
 	heads := countFlipHeads(e, 0)
 	if heads < 2 || heads > 5 {
-		t.Fatalf("precondition: got %d heads, want 2..5 so one-call-per-head differs from one total grant", heads)
+		t.Fatalf("precondition: forced %d heads, want 2..5 so one-call-per-head differs from one total grant", heads)
 	}
 	grants := 0
 	for _, ev := range e.L.Events {

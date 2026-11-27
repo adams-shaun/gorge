@@ -575,8 +575,8 @@ func (s *State) castRestRefuses(k *prep, o Obj, a Action) bool {
 		return false
 	}
 	switch {
-	case a.Target() == castAltTgt:
-		return k.gen.altFree != nil && k.gen.altFree[c] != 0
+	case a.Target() == castAltTgt || k.gen.anyAltGrant && a.Target() > castAltIdxTgt:
+		return s.altTgtAbility(k, s.prio, a) != nil // the card's own alternative or a grant's (cast_altgrant.go)
 	case a.Target() == castImpTgt:
 		return k.gen.anyImpending && cd.Impending > 0
 	case a.Target() == castEvokeTgt:

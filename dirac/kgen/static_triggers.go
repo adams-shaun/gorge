@@ -43,6 +43,11 @@ func (sc *staticCtx) modePanharmonicon() ([]lStatic, bool, error) {
 	if sc.st.F, err = lc.filter(v); err != nil {
 		return nil, true, err
 	}
+	if vz, ok := sp.get("ValidZone"); ok {
+		if sc.st.PanhZones, err = panharmoniconZones(vz); err != nil {
+			return nil, true, err
+		}
+	}
 	vm, hasMode := sp.get("ValidMode")
 	cause, hasCause := sp.get("ValidCause")
 	dest, hasDest := sp.get("Destination")
@@ -76,10 +81,42 @@ func (sc *staticCtx) modePanharmonicon() ([]lStatic, bool, error) {
 		if sc.st.F2, err = lc.filter(cause); err != nil {
 			return nil, true, err
 		}
+	case hasMode && !hasCause && !hasDest && vm == "TurnFaceUp":
+		// Panoptic Projektor: "if turning a face-down permanent face up
+		// causes a triggered ability of a permanent you control to trigger".
+		// ValidCard$ scopes the trigger's source; the paired ValidTurned$
+		// scopes the permanent the turn-up event turned (kop.PanhModeTurnFaceUp,
+		// Static.PanhTurned, Filter2).
+		sc.st.Flags = append(sc.st.Flags, "TurnFaceUp")
+		if turned, ok := sp.get("ValidTurned"); ok {
+			if sc.st.F2, err = lc.filter(turned); err != nil {
+				return nil, true, err
+			}
+			sc.st.PanhTurned = true
+		}
 	default:
 		return nil, true, refuse("Panharmonicon with a partial ValidMode$ / ValidCause$ / Destination$ set")
 	}
 	return nil, false, nil
+}
+
+// panharmoniconZones parses a Panharmonicon static's ValidZone$ list into the
+// 1<<kop.Zone mask the kernel reads. The real zones fit the byte; Any/All has
+// no single-zone answer and Sideboard is outside the mask, so both refuse by
+// name rather than lowering a set the kernel would read as the battlefield.
+func panharmoniconZones(v string) (uint8, error) {
+	var m uint8
+	for part := range strings.SplitSeq(v, ",") {
+		z, ok := zoneNames[strings.TrimSpace(part)]
+		if !ok || z == zNone || z == zAny || z == zSideboard {
+			return 0, refuse("Panharmonicon ValidZone$ %s", v)
+		}
+		m |= 1 << uint(zoneMap[z])
+	}
+	if m == 0 {
+		return 0, refuse("Panharmonicon ValidZone$ %s", v)
+	}
+	return m, nil
 }
 
 func (sc *staticCtx) modeDisableTriggers() ([]lStatic, bool, error) {

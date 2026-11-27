@@ -193,12 +193,14 @@ func (s *State) prolifApply(k *prep, o TCode) bool {
 		}
 		if s.g.energy[p] > 0 {
 			s.g.energy[p] = uint8(min(int(s.g.energy[p])+1, 255))
+			s.firePlayerCtr(k, p, kop.PlCtrEnergy, 1) // trig_playerctr.go
 		}
 		if s.contracts(p) > 0 {
 			s.addContract(k, p, 1) // ctr_contract.go
 		}
 		if c := s.plCtrPtr(p, kop.PlCtrExperience); c != nil && *c > 0 {
 			*c = uint8(min(int(*c)+1, 255))
+			s.firePlayerCtr(k, p, kop.PlCtrExperience, 1)
 		}
 		if s.Rad(p) > 0 {
 			s.addRad(k, p, 1) // act_radiation.go

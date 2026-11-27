@@ -1,0 +1,27 @@
+# The demo Panharmonicon pool (dirac/oracle/demo_panharmonicon_lockstep_test.go):
+# Echoes of Eternity (a Panharmonicon static over another colorless permanent on
+# the battlefield or a colorless spell on the stack) and Panoptic Projektor (a
+# turn-face-up Panharmonicon scoped by ValidTurned$, plus its Effect-delivered
+# face-down-spell ReduceCost ended by ForgetOnCast$). Growing Dread watches any
+# turn-up for a +1/+1 counter, Dog Walker/Mistfire Weaver/Icefeather Aven are
+# Morph/Disguise carriers whose own turn-up triggers Panoptic doubles, Eldrazi
+# Repurposer has a self-cast (stack) trigger and Eldrazi Skyspawner/Matter
+# Reshaper battlefield triggers for Echoes, and Priest of Urabrask floats the
+# face-down cast's {3}; Sol Ring and Mind Stone ramp Echoes's six mana.
+Dog Walker
+Echoes of Eternity
+Eldrazi Repurposer
+Eldrazi Skyspawner
+Forest
+Growing Dread
+Icefeather Aven
+Island
+Matter Reshaper
+Mind Stone
+Mistfire Weaver
+Mountain
+Panoptic Projektor
+Plains
+Priest of Urabrask
+Sol Ring
+Wastes

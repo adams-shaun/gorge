@@ -34,18 +34,11 @@ var demoCharmShapesDecks = [2][]cardset.Entry{
 	},
 }
 
-// demoCharmShapesPolicy is castFirstPolicy that holds Dromoka's Command while
-// a Lightning Bolt is on the stack and takes the first mode of a charm two
-// times in three. gorge does not prevent the damage of its first mode's
-// target: effectRemembered has no RememberObjects$ TargetedSource, so that
-// Effect remembers nothing (a gorge defect, ticketed), while the kernel
-// prevents it as Forge does (TestPrevSpellShield). The first mode still plays
-// against gorge over a spell that deals no damage; the other three modes
-// always do.
+// demoCharmShapesPolicy is castFirstPolicy that takes the first mode of a
+// charm two times in three; the other three modes always do.
 func demoCharmShapesPolicy(seed uint64) Policy {
 	base := castFirstPolicy(seed)
 	prng := rand.New(rand.NewPCG(seed, 0x64726f6d6f6b61)) // "dromoka"
-	var buf []Canon
 	return PolicyFunc(func(p *PickCtx) Canon {
 		switch p.D.Kind {
 		case DModes:
@@ -53,28 +46,6 @@ func demoCharmShapesPolicy(seed uint64) Policy {
 				if a.Kind() == ActMode && a.Mode() == 0 && prng.IntN(3) != 0 {
 					return a
 				}
-			}
-		case DPriority:
-			bolt := false
-			for _, id := range p.G.E.G.Stack {
-				if o := p.G.E.G.Obj(id); o != nil && o.Face() != nil && o.Face().Name == "Lightning Bolt" {
-					bolt = true
-				}
-			}
-			if !bolt {
-				break
-			}
-			buf = buf[:0]
-			for _, a := range p.D.Options {
-				if a.Kind() == ActCast && refCardName(p.G, a.Src()) == "Dromoka's Command" {
-					continue
-				}
-				buf = append(buf, a)
-			}
-			if len(buf) > 0 && len(buf) < len(p.D.Options) {
-				d := *p.D
-				d.Options = buf
-				return base.Pick(&PickCtx{D: &d, G: p.G, Seq: p.Seq})
 			}
 		}
 		return base.Pick(p)

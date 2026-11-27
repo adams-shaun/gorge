@@ -1,0 +1,21 @@
+# The granted-Riot pool (dirac/oracle/demo_riot_lockstep_test.go): Riot
+# granted rather than printed (CR 702.136a). Spider-Punk prints Riot and grants
+# it to other Spiders, Uncivil Unrest and Rhythm of the Wild grant it to the
+# controller's nontoken creatures; Spider-Punk and Rhythm of the Wild also carry
+# the "can't be countered" replacement (Spider-Punk's is every player's spells
+# and abilities, Rhythm's this controller's creature spells). The Spiders
+# (Deadly Recluse, Giant Spider) take Spider-Punk's grant, the other creatures
+# take the enchantments'. The lockstep decks hold ONE Uncivil Unrest: two or
+# more expose a separate damage-doubling replacement-order defect, not the Riot
+# grant this pool measures.
+Counterspell
+Deadly Recluse
+Forest
+Giant Spider
+Glory Seeker
+Grizzly Bears
+Island
+Mountain
+Rhythm of the Wild
+Spider-Punk
+Uncivil Unrest

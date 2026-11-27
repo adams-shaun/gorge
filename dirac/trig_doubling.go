@@ -6,6 +6,11 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // mutation test: the lockstep must then diverge).
 var DebugPanharmNoEcho bool
 
+// DebugPanhNoStack / DebugPanhNoTurnUp switch off one new read each (the demo
+// Panharmonicon mutation test): a ValidZone$ Stack source and a ValidMode$
+// TurnFaceUp echo. Both are test-only and cold.
+var DebugPanhNoStack, DebugPanhNoTurnUp bool
+
 // PanharmLog, when non-nil, records every echo placed (the panharm test
 // counts them; nothing else reads it).
 var PanharmLog *[]PanharmRec
@@ -16,6 +21,12 @@ type PanharmRec struct {
 	Card  string
 	Dies  bool
 	Token bool // the triggering object is a token (a token's death)
+	// Turned: the echoed trigger was caused by a turn-face-up event (the
+	// ValidMode$ TurnFaceUp shape, Panoptic Projektor).
+	Turned bool
+	// Stack: the echoed trigger's source is a spell on the stack (the
+	// ValidZone$ Stack half of Echoes of Eternity's static).
+	Stack bool
 }
 
 // panharmEcho appends one copy of the pending entry at index n for each
@@ -34,7 +45,13 @@ func (s *State) panharmEcho(k *prep, l trigListener, ev kop.TrigEvent, tobj Obj,
 		s.pend[s.npend] = s.pend[n]
 		s.npend++
 		if PanharmLog != nil {
-			*PanharmLog = append(*PanharmLog, PanharmRec{k.t.Cards[l.card].Name, ev == kop.TrigDies, tobj != NoObj && s.objs[tobj].of&ofToken != 0})
+			*PanharmLog = append(*PanharmLog, PanharmRec{
+				Card:   k.t.Cards[l.card].Name,
+				Dies:   ev == kop.TrigDies,
+				Token:  tobj != NoObj && s.objs[tobj].of&ofToken != 0,
+				Turned: ev == kop.TrigTurnFaceUp,
+				Stack:  l.sl == NoSlot && l.obj != NoObj && s.objs[l.obj].zone == kop.ZoneStack,
+			})
 		}
 	}
 }
@@ -73,8 +90,21 @@ func (s *State) panharmKeyword(k *prep, sl Slot, ev kop.TrigEvent, tobj Obj, n u
 // static's controller: gorge reads the trigger's own mode against ValidMode$
 // and the event's player against ValidPlayer$.
 func (s *State) panharmEchoes(k *prep, l trigListener, ev kop.TrigEvent, tobj Obj, who uint8) int {
-	if DebugPanharmNoEcho || l.sl == NoSlot || !s.occ.has(l.sl) || s.perms[l.sl].obj != l.obj {
+	if DebugPanharmNoEcho || l.obj == NoObj {
 		return 0
+	}
+	// A battlefield source is a live permanent slot (a dying permanent is
+	// still one while its dies trigger is checked). A spell's own trigger has
+	// no slot: its source is the stack object, and only a static whose
+	// ValidZone$ names Stack echoes it (Echoes of Eternity).
+	onBoard := l.sl != NoSlot && s.occ.has(l.sl) && s.perms[l.sl].obj == l.obj
+	ob := &s.objs[l.obj]
+	srcZone := kop.ZoneBattlefield
+	if !onBoard {
+		if DebugPanhNoStack {
+			return 0
+		}
+		srcZone = ob.zone
 	}
 	n := 0
 	for m := s.statM; m.any(); m = m.rest() {
@@ -92,19 +122,45 @@ func (s *State) panharmEchoes(k *prep, l trigListener, ev kop.TrigEvent, tobj Ob
 			if !s.statCond(k, statSrc{a: a, sl: sl, ctrl: p.ctrl, obj: p.obj}) {
 				continue
 			}
+			zoneOK := srcZone == kop.ZoneBattlefield
+			if zm := a.Static.PanhZones; zm != 0 {
+				zoneOK = srcZone <= 7 && zm&(1<<srcZone) != 0
+			}
+			if !zoneOK {
+				continue
+			}
 			if a.Static.StFlags&kop.StPanhETB != 0 && !s.panharmCause(k, a, ev, tobj, p.ctrl, sl) {
 				continue
 			}
-			if a.Static.A == kop.PanhModeDies {
+			switch {
+			case a.Static.A == kop.PanhModeDies:
 				if !s.panharmDies(k, a, ev, tobj, p.ctrl, sl) {
 					continue
 				}
-			} else if a.Static.A != 0 && !panharmModeOK(a.Static.A, kop.Whose(a.Static.B), ev, p.ctrl, who) {
+			case a.Static.A == kop.PanhModeTurnFaceUp:
+				if DebugPanhNoTurnUp || ev != kop.TrigTurnFaceUp {
+					continue
+				}
+				if a.Static.PanhTurned {
+					if tobj == NoObj {
+						continue
+					}
+					tob := &s.objs[tobj]
+					if !s.matchCardGen(k, a.Static.Filter2, tob.card, tob.owner(), p.ctrl, tobj) {
+						continue
+					}
+				}
+			case a.Static.A != 0 && !panharmModeOK(a.Static.A, kop.Whose(a.Static.B), ev, p.ctrl, who):
 				continue
 			}
-			if s.matchPermGen(k, a.Static.Filter, l.sl, p.ctrl, sl, layerFull) {
-				n++
+			if onBoard {
+				if !s.matchPermGen(k, a.Static.Filter, l.sl, p.ctrl, sl, layerFull) {
+					continue
+				}
+			} else if !s.matchCardGen(k, a.Static.Filter, ob.card, ob.owner(), p.ctrl, l.obj) {
+				continue
 			}
+			n++
 		}
 	}
 	return n + s.panharmGrants(l.obj)

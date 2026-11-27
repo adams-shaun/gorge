@@ -365,6 +365,10 @@ func (s *State) advance(k *prep) {
 			s.prevEndCombat() // repl_prevx.go: the Duration$ UntilEndOfCombat scoped records end here
 		}
 		s.ovEndCombat(k) // static_ovendcombat.go: the Pump Duration$ UntilEndOfCombat override records
+		// an end-of-combat emblem is an end-of-turn one too (kop.Emblem.UntilEndCombat)
+		if k.gen != nil && k.gen.anyEOTEmb {
+			s.dropEOCEmblems(k) // static_emblemendcombat.go
+		}
 	case kop.StepCleanup:
 		// a cleanup priority round (triggers) ends: another cleanup step
 		next = kop.StepCleanup

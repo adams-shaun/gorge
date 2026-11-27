@@ -314,9 +314,15 @@ func (s *State) planeswalkExt(k *prep, in *kop.Instr) (bool, bool) {
 }
 
 // rollPlanarDiceExt is ExtRollPlanarDice (DB$ RollPlanarDice): the player
-// rolls A six-sided planar dice (CR 901.3a: 1-4 blank, 5 planeswalk, 6
-// chaos), each draw from the engine rng exactly as gorge's Rand(6)+1. Every
-// kept result carries its CR 901.4 consequence.
+// rolls B six-sided planar dice (CR 901.3a: 1-4 blank, 5 planeswalk, 6
+// chaos), each draw from the engine rng exactly as gorge's Rand(6)+1, then
+// every KEPT result carries its CR 901.4 consequence. A is the ExtOp
+// ordinal, so the count rides B.
+//
+// The replacement class (Ichor Elixir) is matched before the dice roll:
+// each qualifying ReplRollPlanarDice adds its Plus dice and marks its Ignore
+// count, and only the first count-ignore rolls are kept, exactly gorge's
+// continuePlanarRollReplacements (the extra results are drawn and dropped).
 //
 //kmanifest:ext ExtRollPlanarDice
 func (s *State) rollPlanarDiceExt(k *prep, in *kop.Instr) (bool, bool) {
@@ -324,17 +330,65 @@ func (s *State) rollPlanarDiceExt(k *prep, in *kop.Instr) (bool, bool) {
 	if p == 255 {
 		return true, true
 	}
-	n := s.value(k, in.A)
+	n := int(s.value(k, in.B))
 	if n < 1 {
 		return true, true
 	}
+	plus, ignore := s.planarRollRepl(k, p)
+	n += plus
+	if ignore > n {
+		ignore = n
+	}
+	kept := n - ignore
+	PlanarDiceStats.Rolls.Add(1)
+	if plus > 0 || ignore > 0 {
+		PlanarDiceStats.Replaced.Add(1)
+		PlanarDiceStats.ExtraDice.Add(int64(plus))
+		PlanarDiceStats.Ignored.Add(int64(ignore))
+	}
 	for i := 0; i < n; i++ {
-		switch s.rng.IntN(6) + 1 {
-		case 5:
-			s.planeswalk(k, p)
-		case 6:
-			s.chaosEnsues(k, p)
+		die := s.rng.IntN(6) + 1
+		if i < kept {
+			switch die {
+			case 5:
+				s.planeswalk(k, p)
+			case 6:
+				s.chaosEnsues(k, p)
+			}
 		}
 	}
 	return true, true
+}
+
+// planarRollRepl sums the planar-dice replacements that apply to player p's
+// roll: the battlefield permanents p controls whose ReplRollPlanarDice line
+// is live (gorge scans every replacement active in the battlefield zone and
+// gates ValidPlayer$ You on the source's controller, so p's own permanents
+// are the scope). Plus is the number of extra dice the replacement adds and
+// Ignore the number of results it drops; multiple copies stack, as gorge
+// applies each matching ReplaceWith$ body in scan order. DebugNoPlanarReplacement
+// drops the scan (TestDemoPlanarDiceMutation).
+func (s *State) planarRollRepl(k *prep, p uint8) (plus, ignore int) {
+	if DebugNoPlanarReplacement || k.gen == nil || k.gen.anyRepl2&rb2RollPlanar == 0 {
+		return 0, 0
+	}
+	for m := s.statM.and(s.ctrlM[p]); m.any(); m = m.rest() {
+		sl := m.first()
+		if k.gen.replBits2[s.cardAt(sl)]&rb2RollPlanar == 0 || s.genLost(k, sl) {
+			continue
+		}
+		cd := &k.t.Cards[s.cardAt(sl)]
+		for i := range cd.Abilities {
+			a := &cd.Abilities[i]
+			if a.Kind != kop.AbReplacement || a.Repl.Kind != kop.ReplRollPlanarDice {
+				continue
+			}
+			if a.Repl.Cond != 0 && !s.replHostLive(k, a, sl) {
+				continue
+			}
+			plus += int(a.Repl.A)
+			ignore += int(a.Repl.C)
+		}
+	}
+	return plus, ignore
 }

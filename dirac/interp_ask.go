@@ -189,6 +189,8 @@ func (s *State) execPay(k *prep, in *kop.Instr) bool {
 	}
 	skip := uint16(in.C >> 4)
 	amt := max(s.value(k, in.A), 0) // CR 107.1b: a negative cost amount is 0 (gorge UnlessCostResolved; Mausoleum Wanderer shrunk by Torpor Dust)
+	// Behemoth of Vault 0's stat (cost_targetmv.go)
+	noteUnlessEnergyTargetMV(k, in, kind, amt)
 	pips := in.B.N
 	if kind == kop.PaySacSelf && pips == kop.PayBSubSacSelfMust && in.Op == kop.OpIfPaid && p != 255 {
 		s.payMandatorySacSelf(k, p, uint8(skip)) // cost_mandatorysac.go
@@ -2288,7 +2290,9 @@ func (s *State) moveFoundAns(k *prep, host Slot) {
 				s.handGraveArm(k) // WithCountersType$ on a hand/graveyard pick
 			}
 			s.enterOnto(host)
+			armed := s.pickOverrideArm(k, in, z) // dirac/zone_pickoverride.go
 			sl := s.enterFound(k, &eb, o, ep, fl&kop.SrTapped != 0, from, host)
+			s.pickOverrideSettle(k, sl, armed)
 			if s.g.pre.obj == o {
 				s.g.pre = preAsk{}
 			}

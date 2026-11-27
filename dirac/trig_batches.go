@@ -149,15 +149,25 @@ func (s *State) fireOrHoldEntries(k *prep, b *entBatch) {
 //
 //go:noinline
 func (s *State) createTokensHeld(k *prep, in *kop.Instr, p uint8, n int, ad []CardID) bool {
+	return s.createTokensSeq(k, in, p, n+len(ad), ad, false)
+}
+
+// createTokensSeq makes total tokens of one batch. cyc false: the first is
+// in.C, the next len(ad) are ad's cards and the rest in.C (createTokensHeld's
+// adders); cyc true: token i is ad[i%len(ad)] (a list rewriter's cards in
+// order for each token the effect would create, repl_toklistrewrite.go).
+func (s *State) createTokensSeq(k *prep, in *kop.Instr, p uint8, total int, ad []CardID, cyc bool) bool {
 	var eb entBatch
-	for i := 0; i < n+len(ad); i++ {
+	for i := 0; i < total; i++ {
 		if s.nearCapacity(k) {
 			s.fireEntries(k, &eb)
 			s.stall(StallBoard)
 			return true
 		}
 		c := CardID(in.C)
-		if i >= 1 && i <= len(ad) {
+		if cyc {
+			c = ad[i%len(ad)]
+		} else if i >= 1 && i <= len(ad) {
 			c = ad[i-1] // a ReplAddToken's token follows the first one (repl_tokorder.go)
 		}
 		o := s.newToken(c, p)

@@ -30,10 +30,10 @@ var fdcDecks = []string{
 // it by three: main's newer kgen lowered Cursed Mirror, Dragonhawk, Fate's
 // Tempest and Goddric, Cloaked Reveler. The MaxOppDamageThisTurn lowering
 // (Spinerock Knoll) shrank it again. Leyline Tyrant's coloured trigger X
-// (Cost$ X with XColor$ R) lowered since, shrinking it again.
+// (Cost$ X with XColor$ R) lowered since, shrinking it again, as did
+// Thundermane Dragon's static SpellCast rider.
 var fdcRefused = []string{
 	"Ezuri's Predation",
-	"Thundermane Dragon",
 }
 
 // fdcPodSet lowers every card of the five FDC decks into one table, and

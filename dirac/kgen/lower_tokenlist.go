@@ -16,10 +16,23 @@ const tokListBit = 4096
 // attacking, attached, remembered, AtEOT) refuses, except TokenOwner$ You,
 // which is the controller every list already mints for (Bestial Menace).
 func (lc *lowerCtx) tokenList(ps *params, list string) error {
-	youOwner := strings.TrimSpace(ps.m["TokenOwner"]) == "You"
+	owner := lRef{Kind: rYou}
+	ownerOK := false // a TokenOwner$ the list reads: You, or the player the Aura enchants
+	switch strings.TrimSpace(ps.m["TokenOwner"]) {
+	case "You":
+		ownerOK = true
+	case "EnchantedPlayer":
+		// Overencumbered: the enchanted opponent creates the list (gorge
+		// tokenOwnerPlayers over definedSpecEnchantedPlayer, one owner)
+		r, err := lc.defined("EnchantedPlayer")
+		if err != nil {
+			return err
+		}
+		owner, ownerOK = r, true
+	}
 	for _, k := range []string{"TokenAmount", "TokenOwner", "TokenTapped", "TokenAttacking",
 		"AttachedTo", "RememberTokens", "RememberOriginalTokens", "AtEOT", "ImprintTokens"} {
-		if _, ok := ps.m[k]; ok && !(k == "TokenOwner" && youOwner) {
+		if _, ok := ps.m[k]; ok && !(k == "TokenOwner" && ownerOK) {
 			return refuse("TokenScript list %q with %s$", list, k)
 		}
 	}
@@ -40,7 +53,7 @@ func (lc *lowerCtx) tokenList(ps *params, list string) error {
 	}
 	for _, s := range scripts {
 		lc.out.Tokens = append(lc.out.Tokens, s)
-		lc.emit(lInstr{Op: "CreateToken", Obj: lRef{Kind: rYou}, A: cst(1), CS: s, C: tokListBit})
+		lc.emit(lInstr{Op: "CreateToken", Obj: owner, A: cst(1), CS: s, C: tokListBit})
 	}
 	return nil
 }

@@ -970,6 +970,12 @@ func (sr *scriptSearch) visit(pool *Engine, c *Engine, funded int, gapUsed bool)
 		sr.limited = true
 		return false
 	}
+	// One node per clone, whatever it poses: a priority node, an activation's
+	// ask (a one-ability source's colour ask is one), each answer. The kernel's
+	// filtSearch.tick mirrors it ask for ask (mana_mixgaps.go ctrOther), and
+	// keys the pool's artifact-typed units by count as scriptStateKey does
+	// (coldArtN), or its count falls short of this one on a Lotus Blossom +
+	// Celestial Prism board (overload_cast_without_target: 523 nodes in both).
 	sr.nodes++
 	p := sr.p
 	d := c.Pending()

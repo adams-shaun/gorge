@@ -1188,6 +1188,9 @@ func init() { enum[kop.KwID]("kop.KwUnearth", kop.KwUnearth) }
 // dirac/manifest/Pred/PredNamedCard
 func init() { enum[kop.Pred]("kop.PredNamedCard", kop.PredNamedCard) }
 
+// dirac/manifest/Pred/PredCastFaceDown
+func init() { enum[kop.Pred]("kop.PredCastFaceDown", kop.PredCastFaceDown) }
+
 // dirac/manifest/Pred/PredGoaded
 func init() { enum[kop.Pred]("kop.PredGoaded", kop.PredGoaded) }
 
@@ -1725,6 +1728,9 @@ func init() { enum[kop.TrigEvent]("kop.TrigVisitAttraction", kop.TrigVisitAttrac
 
 // dirac/manifest/TrigEvent/TrigLeaveExile
 func init() { enum[kop.TrigEvent]("kop.TrigLeaveExile", kop.TrigLeaveExile) }
+
+// dirac/manifest/TrigEvent/TrigPlayerCounterAdded
+func init() { enum[kop.TrigEvent]("kop.TrigPlayerCounterAdded", kop.TrigPlayerCounterAdded) }
 
 // dirac/manifest/TypeMask/TVanguard
 func init() { mask[kop.TypeMask]("kop.TVanguard", kop.TVanguard) }

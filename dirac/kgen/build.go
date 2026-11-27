@@ -1990,7 +1990,7 @@ func (cb *cardBuilder) clause(c lClause, zone kop.Zone) (kop.Filter, error) {
 		kf.Pred = kop.PredModified
 	case cmpHasCounters:
 		kf.Pred = kop.PredHasCounters
-	case cmpMonstrous, cmpNoCounters, cmpMonoColor, cmpSharesCrCmdr:
+	case cmpMonstrous, cmpNoCounters, cmpMonoColor, cmpSharesCrCmdr, cmpCastFaceDown:
 		kf.Pred = bareCmpPreds[c.CmpStat]
 	case cmpRingBearer:
 		ringBearerPred(&kf, c)
@@ -2429,6 +2429,8 @@ func (cb *cardBuilder) ref(r lRef) (kop.Ref, error) {
 		return kop.RefExiledWithOwner, nil
 	case rEmblemSource:
 		return kop.RefEmblemSource, nil
+	case rEnchantedPlayer:
+		return kop.RefEnchantedPlayer, nil
 	case rImprinted:
 		return kop.RefImprinted, nil
 	case rTargetUnion:
@@ -2664,8 +2666,8 @@ func (cb *cardBuilder) expr(v lValue) (kop.Expr, error) {
 		case vThisTurnCastSpec, vRefCount, vPlExtreme:
 			zone = kop.ZoneNone // the object wherever it now lives
 		}
-		if v.Kind == vLeftZone {
-			e.F, err = cb.filterDepartures(v.F, kop.ZoneNone)
+		if v.Kind == vLeftZone || v.Kind == vSacrificedThisTurn {
+			e.F, err = cb.filterDepartures(v.F, kop.ZoneNone) // the object where it went, "you" as the sacrificer
 		} else {
 			e.F, err = cb.filter(v.F, zone)
 		}

@@ -561,7 +561,9 @@ func dumpLIR(w io.Writer, c *lCard) {
 	}
 	for i, e := range c.Emblems {
 		eot := ""
-		if e.UntilEOT {
+		if e.UntilEndCombat {
+			eot = " until=EOC"
+		} else if e.UntilEOT {
 			eot = " until=EOT"
 		} else if e.UntilNextTurn {
 			eot = " until=next"
@@ -625,6 +627,15 @@ func dumpStatics(w io.Writer, c *lCard) {
 		}
 		if s.Toxic != 0 {
 			fmt.Fprintf(w, " toxic=%d", s.Toxic)
+		}
+		if s.Riot {
+			fmt.Fprintf(w, " riot")
+		}
+		if s.PanhZones != 0 {
+			fmt.Fprintf(w, " zones=%d", s.PanhZones)
+		}
+		if s.PanhTurned {
+			fmt.Fprintf(w, " turned")
 		}
 		if s.OutlivesLoss {
 			fmt.Fprintf(w, " outlivesloss")
