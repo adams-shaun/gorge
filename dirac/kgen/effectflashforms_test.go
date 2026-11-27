@@ -13,7 +13,7 @@ var effectflashForms = []formCase{
 	{card: "Teferi, Time Raveler", form: "CantBeCast OnlySorcerySpeed$ True (kop CantCastSorcery) beside the +1's UntilYourNextTurn grant", lir: "flags=[ActivatorOpp SorcerySpeed]"},
 	{card: "Teferi, Time Raveler", form: "the +1's emblem lasts until the controller's next turn", lir: "emblem[0] trigger=0 statics=1 until=next"},
 	{card: "Complete the Circuit", form: "the grant beside a delayed copy trigger stays refused: no lockstep game casts it", refused: "its {5}{U} convoke cast is not reached by any lockstep game"},
-	{card: "Teferi, Temporal Archmage", form: "the loyalty-timing emblem is a different shape and stays refused", refused: "CastWithFlash shape"},
+	{card: "Teferi, Temporal Archmage", form: "the loyalty-timing emblem lowers to its own LoyaltyFlash grant (cwf_loyalty_lower_test.go)", lir: "emblem[0] trigger=0 statics=1"},
 }
 
 func TestEffectFlashForms(t *testing.T) { checkForms(t, effectflashForms) }

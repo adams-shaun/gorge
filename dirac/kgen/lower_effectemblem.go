@@ -447,7 +447,7 @@ func (lc *lowerCtx) effectEmblemStaticHost(s cards.Static, host bool) (lStatic, 
 			st.Flags = append(st.Flags, "MayPayLife")
 		}
 	} else if s.Mode == "CastWithFlash" {
-		if st.Kind != "CastWithFlash" {
+		if st.Kind != "CastWithFlash" && st.Kind != "LoyaltyFlash" { // LoyaltyFlash: ValidSA$ Activated.Loyalty (static_loyaltyflash.go)
 			return lStatic{}, refuse("Effect static CastWithFlash lowered to %s", st.Kind)
 		}
 	} else if s.Mode == "CantBeCast" {
