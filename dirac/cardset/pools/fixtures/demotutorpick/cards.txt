@@ -1,0 +1,19 @@
+# The demo tutor-pick pool (dirac/oracle/demo_tutor_pick_lockstep_test.go):
+# Fertilid (a target player searches their own library for a basic land and
+# puts it onto the battlefield tapped, Chooser$ Targeted with no
+# DefinedPlayer$), Intuition and Gifts Ungiven (search your library, then a
+# targeted opponent chooses which of the revealed cards go where, the rest
+# swept and the library shuffled), plus the creatures and basics the decks need.
+Fertilid
+Gifts Ungiven
+Grizzly Bears
+Glory Seeker
+Intuition
+Island
+Forest
+Plains
+Mountain
+Swamp
+Ornithopter
+Sol Ring
+Llanowar Elves
