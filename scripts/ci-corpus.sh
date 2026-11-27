@@ -12,22 +12,10 @@
 # A PR that changes dirac gets its own tree (a local copy of base, seconds), so it never rewrites the tables another
 # job is reading. Trees unused for 2 days are removed.
 set -euo pipefail
-ref=$(awk '/^FORGE_REF/ {print $3}' Makefile)
-h() { git ls-files -z -- "$@" | sort -z | xargs -0 cat | sha256sum | cut -c1-12; }
-ck=$ref-$(h 'engine/cards/*.go')
-# dk covers every file whose bytes and PATH can decide the tables: the non-test Go files and embedded files of each
-# in-module package kgen is built from (scripts/table-key-files.sh, from go list), not only tablesrc.go's embeds.
-# The published key hashes each embed's path, length and bytes (gorge.hashSources), so the key must see the list of
-# paths as well as their concatenation: a file added empty, removed or moved among the listed paths re-keys the
-# tables while a content-only hash stays. 11-21: keyed by the embeds alone, a box served tables an older tree had
-# built after engine/rules/pay changed, and batch #3110 passed a replay its own tables fail (main red; revert
-# #3141). 11-17: dirac/support alone must re-key too, which the embeds in this list still do.
-kl=$(bash scripts/table-key-files.sh)
-dk=$( { printf '%s\n' "$kl"; printf '%s\n' "$kl" | tr '\n' '\0' | xargs -0 cat; } | sha256sum | cut -c1-12)
-# RULE is the reuse rule a tree's .tables-ok was marked under (see the tables build below); bump it to orphan every
-# tree marked under an earlier rule rather than serve one.
-RULE=2
-root=${CI_CORPUS_ROOT:-$HOME/gorge-cards}; base=$root/base/$ck; tree=$root/tree/$ck-$dk-$RULE
+# The keys (ref, ck, dk, RULE, root, base, tree) come from scripts/ci-corpus-keys.sh, the one definition ci.yml's
+# prepare job also evals to key the Actions cache (cardstree-<ck>-<dk>-<RULE>). That script's comment carries the
+# dk and RULE rationale; sourcing it keeps the box's directories and the cache key from drifting.
+. "$(dirname "$0")/ci-corpus-keys.sh"
 mkdir -p "$root/base" "$root/tree"
 # Orphaned temp dirs (11-20: metal2's / sat at 80% for hours with ~1.1 TB in this user's /tmp: go-build work dirs and
 # test temp dirs from 11-17 on, left by jobs the merge queue cancelled; go removes its work dir only on a clean exit).
@@ -45,7 +33,19 @@ mkdir -p "$root/base" "$root/tree"
   [ "$n" -eq 0 ] || echo "ci-corpus: removed $n orphaned temp dirs (older than $age min)"
 ) || true
 exec 9>"$root/.lock"; flock 9
-if ! grep -qs "$ref" "$base/cards.lock"; then
+# A complete corpus tree restored from the Actions cache (ci.yml's prepare, self-hosted) arrives in
+# $CI_CORPUS_RESTORE: a workspace-local directory with .tables-ok and a cards.lock at FORGE_REF. Install it as the
+# box's tree; the key cardstree-<ck>-<dk>-<RULE> is this tree's every input, so a hit cannot carry a tree built
+# from different sources (the 11-21 failure mode has no differing input to hide behind). The restore step finishes
+# (or fails, and the workflow deletes its directory) before this runs, so a partial restore never reaches here.
+# No other caller sets CI_CORPUS_RESTORE.
+if [ -n "${CI_CORPUS_RESTORE:-}" ] && [ ! -e "$tree/.tables-ok" ] && [ -e "$CI_CORPUS_RESTORE/.tables-ok" ] && grep -qs "$ref" "$CI_CORPUS_RESTORE/cards.lock"; then
+  rm -rf "$tree"; cp -a "$CI_CORPUS_RESTORE" "$tree"; touch "$tree"
+  echo "ci-corpus: installed the restored corpus tree $tree"
+fi
+# base is only ever a source for trees: a complete tree on the box (built here, or installed above) makes fetching
+# and compiling a missing base pointless work.
+if ! grep -qs "$ref" "$base/cards.lock" && [ ! -e "$tree/.tables-ok" ]; then
   rm -rf "$base.tmp"; mkdir -p "$base.tmp"; rm -rf .cards; ln -sfn "$base.tmp" .cards
   make fetch-cards compile-cards
   rm -rf "$base"; mv "$base.tmp" "$base"
