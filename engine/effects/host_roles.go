@@ -274,6 +274,21 @@ type HostContinuous interface {
 	// source survives (Ugin, the Ineffable's second [+1] while the first
 	// Spirit is alive).
 	EndEffectSource(source state.ObjID, spareAfter uint32, carrier bool)
+	// RememberOnEffect grows the activation-scoped remembered list of the
+	// continuous-effect registration the resolving body belongs to: it
+	// appends id in place to the Remembered of every live registration that
+	// shares frame's (source, stamp) activation group, so an Effect body's
+	// RememberChanged$ capture (Urabrask, Heretic Praetor's DB$ Dig) joins
+	// the one list the sibling registrations read -- the one-shot
+	// IsPresent$ Card.IsRemembered | PresentCompare$ EQ0 gate, the MayPlay$
+	// grant's Affected$ Card.IsRemembered and the ExileOnMoved$ sweep. Like
+	// EndEffect/EndEffectSource it reaches the registry only through
+	// Ctx.EffectFrame (a body that is not an Effect-created replacement's
+	// grows nothing), is engine-runtime only, and is rebuilt by
+	// re-execution on replay; the object-level event-backed list that
+	// rememberMilled writes is the resolution's persistent memory, a
+	// different list.
+	RememberOnEffect(frame EffectFrame, id state.ObjID)
 	// EndImprintedEffects ends every live continuous-effect registration
 	// that an ImprintOnHost$ True Effect imprinted on the named host card
 	// (state.ContinuousEffect.ImprintOnHost): the analogue of Forge's

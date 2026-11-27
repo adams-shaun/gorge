@@ -359,35 +359,12 @@ func TestEffectDrawReplacementPlagiarizeRedirectsRememberedPlayer(t *testing.T) 
 	replayCheck(t, e, cfg)
 }
 
-// TestEffectDrawReplacementUrabraskStillNoted guards the hold-back: Urabrask,
-// Heretic Praetor's DrawReplace carries the IsPresent$ Card.IsRemembered
-// remembered-set gate whose list must grow while the body runs (the sibling
-// remembered-set ticket), so it must keep the loud Note and never swallow a
-// draw. The Note rides its opponent-upkeep trigger's DB$ Effect, so the pin
-// advances to turn 2's draw step and checks the opponent still draws.
-func TestEffectDrawReplacementUrabraskStillNoted(t *testing.T) {
-	t.Parallel()
-	e, cfg, id := drawReplGame(t, 135, "Urabrask, Heretic Praetor", false)
-	if o := e.G.Obj(id); o == nil || o.Zone != state.ZBattlefield {
-		t.Fatal("precondition: Urabrask not on seat 0's battlefield")
-	}
-	passThroughTurns(t, e, func() bool {
-		return hasNote(e, "continuous replacement unimplemented (DrawReplace)")
-	})
-	if !hasNote(e, "continuous replacement unimplemented (DrawReplace)") {
-		t.Fatal("Urabrask's IsPresent$ Card.IsRemembered DrawReplace registered live; it must keep its loud Note")
-	}
-	h1 := len(e.G.Zone(state.ZHand, 1))
-	e.drawCard(1)
-	if got := len(e.G.Zone(state.ZHand, 1)); got != h1+1 {
-		t.Fatalf("opponent hand %d -> %d, the noted replacement must swallow nothing", h1, got)
-	}
-	replayCheck(t, e, cfg)
-}
-
-// Mangara's Tome (its Effect carries Triggers$ and a RememberedFirst pile) and
-// Urabrask (an open-ended IsRemembered draw hook) stay on the loud Note, never
-// a live registration that swallows a draw with no card moved.
+// Mangara's Tome (its Effect carries Triggers$ and a RememberedFirst pile)
+// stays on the loud Note, never a live registration that swallows a draw
+// with no card moved. (Urabrask, Heretic Praetor's remembered-set one-shot
+// left this hold-back with the effect-scoped group list; its registration
+// pin is TestEffectDrawReplacementUrabraskOneShot in
+// effect_draw_replacement_urabrask_test.go.)
 func TestUnmodelledDrawEffectCarriersKeepTheirNote(t *testing.T) {
 	t.Parallel()
 	e, _, id := drawReplGame(t, 85, "Mangara's Tome", false)

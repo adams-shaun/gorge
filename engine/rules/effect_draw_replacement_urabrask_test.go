@@ -19,12 +19,15 @@ package rules
 // registration assertion below.
 
 import (
+	"fmt"
 	"slices"
 	"strings"
 	"testing"
 
 	"github.com/adams-shaun/gorge/engine/cards"
+	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/effects"
+	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
@@ -93,7 +96,42 @@ func TestEffectDrawReplacementUrabraskOneShot(t *testing.T) {
 	if got := len(e.G.Zone(state.ZExile, 1)); got != 0 {
 		t.Fatalf("precondition: seat 1 exile = %d, want 0", got)
 	}
-	passThroughTurns(t, e, func() bool { return len(e.G.Zone(state.ZExile, 1)) > 0 })
+	driveErr := func() string {
+		var sb strings.Builder
+		for _, ev := range e.L.Events {
+			if ev.Kind == events.Note && ev.Text != "" {
+				sb.WriteString("NOTE[" + ev.Text + "] ")
+			}
+		}
+		repl2, grant2 := urabraskPending(e, id)
+		fmt.Fprintf(&sb, "turn=%d step=%d active=%d repl=%v grant=%v hand1=%d lib1=%d ex1=%d",
+			e.G.Turn, e.G.Step, e.G.Active, repl2 != nil, grant2 != nil,
+			len(e.G.Zone(state.ZHand, 1)), len(e.G.Zone(state.ZLibrary, 1)), len(e.G.Zone(state.ZExile, 1)))
+		return sb.String()
+	}
+	t.Logf("DEBUG pre-draw: %s", driveErr())
+	if r0, _ := urabraskPending(e, id); r0 != nil {
+		t.Logf("DEBUG reg: players=%v remembered=%v group=%d eot=%v perm=%v dur=%q untilTurn=%d params=%v body=%q",
+			r0.RememberedPlayers, r0.Remembered, r0.EffectGroup, r0.UntilEOT, r0.Permanent,
+			r0.Duration, r0.UntilTurn, r0.ReplacementParams, r0.ReplacementBody)
+	}
+	for i := 0; i < 4000 && len(e.G.Zone(state.ZExile, 1)) == 0; i++ {
+		if answerIfDiscard(t, e) {
+			continue
+		}
+		d := e.Pending()
+		switch {
+		case d == nil:
+			e.Advance()
+		case d.Kind == decision.KPriority:
+			passOnce(t, e)
+		default:
+			submitChoices(t, e, d.Options[0].Index)
+		}
+	}
+	if len(e.G.Zone(state.ZExile, 1)) == 0 {
+		t.Fatalf("no draw was replaced: %s", driveErr())
+	}
 	exiled := e.G.Zone(state.ZExile, 1)
 	if len(exiled) != 1 {
 		t.Fatalf("seat 1 exile = %d cards, want exactly 1 (the replaced draw)", len(exiled))

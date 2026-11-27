@@ -349,6 +349,19 @@ func effectContinuous(h Host, ce state.ContinuousEffect) {
 	h.AddContinuous(ce)
 }
 
+// effectContinuousGrouped is effectContinuous for the registrations effEffect
+// itself makes: it additionally stamps the activation's group identity (the
+// game clock at the DB$ Effect's entry, state.ContinuousEffect.EffectGroup)
+// so the sibling registrations of ONE activation -- its ReplacementEffects$
+// line and its StaticAbilities$ grants -- share the remembered list that
+// Host.RememberOnEffect grows while the activation's body runs (Urabrask,
+// Heretic Praetor). AddContinuous still stamps each registration's own
+// Timestamp: the group is the sibling set, never an ordering key.
+func effectContinuousGrouped(h Host, group uint32, ce state.ContinuousEffect) {
+	ce.EffectGroup = group
+	effectContinuous(h, ce)
+}
+
 // effectChosenSnapshot captures the resolution's chosen-card set for an
 // Effect-delivered may-play grant whose Affected$ reads it (Card.ChosenCard):
 // Forge's EffectEffect copies the host's chosen cards onto the effect card it

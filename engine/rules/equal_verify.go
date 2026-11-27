@@ -135,6 +135,7 @@ func continuousEffectEqual(a, b *ContinuousEffect) bool {
 		a.Name == b.Name &&
 		sliceEq(a.Remembered, b.Remembered) &&
 		sliceEq(a.RememberedPlayers, b.RememberedPlayers) &&
+		a.EffectGroup == b.EffectGroup &&
 		sliceEq(a.Chosen, b.Chosen) &&
 		a.ChosenBound == b.ChosenBound &&
 		a.ChosenName == b.ChosenName &&
