@@ -2738,6 +2738,8 @@ func panharmoniconFlags(st *kop.Static, flags []string) error {
 			st.A = kop.PanhModeDrawn
 		case "Dies":
 			st.A = kop.PanhModeDies
+		case "TurnFaceUp":
+			st.A = kop.PanhModeTurnFaceUp
 		case "You":
 			st.B = int16(kop.WhoseYou)
 		default:

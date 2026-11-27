@@ -997,6 +997,7 @@ PTRelNE	int16	2
 PanhModeDies	int16	3
 PanhModeDrawn	int16	2
 PanhModeLifeGained	int16	1
+PanhModeTurnFaceUp	int16	4
 ParentTrigPl	uint8	255
 PayAddCounter	untyped int	16
 PayBBehold	untyped int	6
