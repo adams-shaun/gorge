@@ -676,16 +676,26 @@ func (s *State) affordableTargets(k *prep, buf *[MaxOptions]TCode, n int) int {
 	}
 	cd := &k.t.Cards[e.card]
 	var f kop.FilterID
+	tgtAmt := false
 	for i := range cd.Abilities {
 		a := &cd.Abilities[i]
 		// only a static that prices the card's own cast (ZoneCommand): a
 		// battlefield one the card carries (Strong Back's "Aura spells that
 		// target enchanted creature") prices other spells, bfTgtReduce's census
-		if a.Kind == kop.AbStatic && a.Static.Kind == kop.StatReduceCost && a.Static.Zone == kop.ZoneCommand && a.Static.StFlags&kop.StTargetsFilter2 != 0 {
+		if a.Kind != kop.AbStatic || a.Static.Kind != kop.StatReduceCost || a.Static.Zone != kop.ZoneCommand {
+			continue
+		}
+		if a.Static.StFlags&kop.StTargetsFilter2 != 0 {
 			f = a.Static.Filter2
+		} else if a.Static.StFlags&kop.StDynamic != 0 && exprReadsNestedTgts(k.t, a.Static.VA) {
+			// a self reduction whose Amount$ counts the targets of the spell it
+			// targets (Not of This World): its price moves with the target the
+			// slot picks, so each candidate is priced with it chosen
+			// (dirac/tgt_nestedcount.go)
+			tgtAmt = true
 		}
 	}
-	if f == 0 && !s.bfTgtReduce(k, e) {
+	if f == 0 && !tgtAmt && !s.bfTgtReduce(k, e) {
 		return n
 	}
 	if f != 0 {

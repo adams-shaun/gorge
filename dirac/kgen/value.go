@@ -893,14 +893,29 @@ func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 		// The nested-target count (gorge engine/effects/count_body.go:
 		// TargetedByTarget$Valid <spec> counts the object targets, matching
 		// <spec>, of the spell/ability the resolving source targets). The
-		// kernel's target records cover ONE level (stackEntry.tgt + the xtp
-		// extras, read by entryTgtClause for TargetValidTargeting$); a count
-		// over the TARGETED entry's targets has no kernel op, and the only
-		// corpus carrier (Not of This World) gates its ReduceCost amount on
-		// exactly that read. Refused by name: the shape is separable
-		// (nestedTargetMask + an Ex count over it), and an unmodelled zero
-		// here would silently drop the reduction.
-		return lValue{}, refuse("value head TargetedByTarget$: the nested target count has no kernel op (Not of This World)")
+		// kernel walks one level past its own entryTgtClause record (the
+		// stackEntry.tgt + xtp extras) in dirac/tgt_nestedcount.go: the read
+		// is live at the resolution (ctx.e), at the CR 601.2c/h reprice (the
+		// spell being built) and at the offer gate (the spell's potential
+		// targets, gorge's costAmountTargets census). Only Valid with an
+		// OBJECT spec is modelled: a player target can never match a Card...
+		// spec, so a player-only spec refuses rather than lowering a count
+		// that always reads zero (an unmodelled zero silently drops the
+		// reduction). Any other property and an empty spec fail closed per
+		// the unmodelled-property convention gorge's own arm follows.
+		spec, ok := strings.CutPrefix(strings.TrimSpace(rest), "Valid ")
+		spec = strings.TrimSpace(spec)
+		if !ok || spec == "" {
+			return lValue{}, refuse("value head TargetedByTarget$%s: only Valid <object spec> is modelled", rest)
+		}
+		f, ferr := lc.filter(spec)
+		if ferr != nil {
+			return lValue{}, ferr
+		}
+		if f.Players != 0 {
+			return lValue{}, refuse("value head TargetedByTarget$%s: a player spec matches no object target", rest)
+		}
+		v = lValue{Kind: vCountTgtEntry, F: f}
 	default:
 		err = fmt.Errorf("value head %s$", head)
 	}
