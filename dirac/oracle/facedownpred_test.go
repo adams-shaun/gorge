@@ -225,7 +225,7 @@ func kfacedownpredPolicy(seed uint64, st *kfacedownpredStats) Policy {
 		// a turn-up first (it fires Cryptid Inspector and leaves a Tunnel
 		// Tipster's face-down entry no longer face down), then a face-down cast
 		for _, tier := range [...]func(a Canon) bool{
-			func(a Canon) bool { return a.Kind() == ActSpecial && a.Mode() == kfacedownpredTurnUp },
+			func(a Canon) bool { return a.Kind() == ActSpecial && a.Mode()&0xf == kfacedownpredTurnUp },
 			func(a Canon) bool { return a.Kind() == ActCastFace },
 			func(a Canon) bool {
 				switch a.Kind() {
@@ -241,7 +241,7 @@ func kfacedownpredPolicy(seed uint64, st *kfacedownpredStats) Policy {
 				}
 			}
 			if len(buf) > 0 {
-				if tier(Canon(buf[0])) && buf[0].Kind() == ActSpecial && buf[0].Mode() == kfacedownpredTurnUp {
+				if tier(Canon(buf[0])) && buf[0].Kind() == ActSpecial && buf[0].Mode()&0xf == kfacedownpredTurnUp {
 					st.turnUps++
 				}
 				break

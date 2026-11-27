@@ -36,6 +36,7 @@ var ignoredParams = map[string]bool{
 	"UnlessAI":           true, // Forge AI hint (CopySpellAbilityAi / the unless-cost AI: whether the AI pays or copies); gorge never reads it (engine/rules/paramcensus_test.go records it as an AI hint)
 
 	"AIRespondsToOwnAbility": true, // Forge AI hint (Sensei's Divining Top: the AI may respond to its own activation); gorge never reads it
+	"AILifeThreshold":        true, // Forge AI hint (Necropotence's "never cast below N life"); gorge lists it as an AI key, never reads it
 }
 
 // params tracks which parameters of one IR node the lowering read, so an
