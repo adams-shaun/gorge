@@ -2020,6 +2020,10 @@ func (s *State) execChangeZoneAll(k *prep, in *kop.Instr, resume bool) (done boo
 	if mv&kop.MvEntryRiders != 0 && z == kop.ZoneBattlefield {
 		rid = s.sweepRidersOf(k, in)
 	}
+	first := uint8(0) // the first seat walked: seat 0, or the controller under CzShuffleScope
+	if in.B.N&kop.CzShuffleScope != 0 {
+		first = s.res.e.ctrl // Defined$ Player: gorge's AliveFrom(controller)
+	}
 	nz, zbase := 1, fl.Zone
 	if mv&kop.MvGraveExile != 0 {
 		nz, zbase = 2, czallFirstZone(in) // graveexile: Graveyard then Exile; Library then Sideboard
@@ -2039,7 +2043,8 @@ func (s *State) execChangeZoneAll(k *prep, in *kop.Instr, resume bool) (done boo
 		if zi == 1 {
 			zsrc = czallSecondZone(in)
 		}
-		for p := uint8(0); p < s.nSeats(); p++ {
+		for pi := uint8(0); pi < s.nSeats(); pi++ {
+			p := (first + pi) % s.nSeats()
 			if s.out(p) {
 				continue
 			}
@@ -2241,14 +2246,14 @@ func (s *State) execChangeZoneAll(k *prep, in *kop.Instr, resume bool) (done boo
 		// gorge changeZoneAllShuffleLibraries: each library that received
 		// a card shuffles first (in first-placement order), then -- the
 		// sweep's player scope being explicit -- every in-scope player's
-		// library that received nothing, in AliveFrom seat order (Survive's
+		// library that received nothing, in AliveFrom(controller) order (Survive's
 		// "Each player shuffles their graveyard into their library").
 		for i := 0; i < czRecvN; i++ {
 			s.shuffleLib(czRecv[i])
 		}
 		if in.B.N&kop.CzShuffleScope != 0 {
-			for p := uint8(0); p < s.nSeats(); p++ {
-				if czOwners&(1<<p) == 0 && !s.out(p) {
+			for pi := uint8(0); pi < s.nSeats(); pi++ {
+				if p := (first + pi) % s.nSeats(); czOwners&(1<<p) == 0 && !s.out(p) {
 					s.shuffleLib(p)
 				}
 			}

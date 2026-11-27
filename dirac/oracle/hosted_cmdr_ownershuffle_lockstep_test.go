@@ -1,6 +1,7 @@
 package oracle
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -19,18 +20,20 @@ import (
 //     ChangeType$ Card | Origin$ Graveyard | Destination$ Library |
 //     Shuffle$ True ("Each player shuffles their graveyard into their
 //     library"). gorge's changeZoneAllPlayers sweeps every player,
-//     AliveFrom(0) (engine/effects/zone_changeall.go); the kernel's sweep
-//     already walks every seat when the op names no player, and the new
-//     kop.CzShuffleOwners arm of the per-player zone sweep shuffles every
-//     library that received a card, in seat order -- gorge's
-//     changeZoneAllShuffleLibraries, which shuffles no library that received
-//     nothing.
+//     AliveFrom(controller) (Defined$ Player; engine/effects/zone_changeall.go);
+//     the kernel's sweep walks every seat when the op names no player, and
+//     the kop.CzShuffleOwners|CzShuffleScope arm of the per-player zone sweep
+//     starts at the controller and shuffles every library that received a
+//     card (first-placement order), then every in-scope library that
+//     received nothing -- gorge's changeZoneAllShuffleLibraries on an
+//     explicit scope. The case runs with the probe on seat 0 AND on seat 1
+//     (the controller-first order only differs when seat 1 casts it).
 //
 // The case builds the kernel table with printedDelveSetIn (kgen), which is
 // the RED signal: while kgen refuses the shape (its reason: ChangeZoneAll
 // Defined$ "Player"), printing the table fails -- the real Struggle //
 // Survive rides seat 1's deck for that. The mechanism itself is driven by
-// "Survive Probe", an inline {1}{G} sorcery carrying the identical A: line
+// "Survive Probe", an inline {1}{G} sorcery carrying the same A: parameters
 // (the real Survive is Aftermath-only, so a seed reaches the graveyard far
 // too slowly to gate the case on it): its case FAILS unless some seed
 // shuffles a graveyard holding a resolved Survive Probe into its owner's
@@ -43,16 +46,16 @@ import (
 // seed's own random stream.
 
 const surviveProbeScript = "Name:Survive Probe\nManaCost:1 G\nTypes:Sorcery\n" +
-	"A:SP$ ChangeZoneAll | Defined$ Player | ChangeType$ Card | Origin$ Graveyard | Destination$ Library | Shuffle$ True | SpellDescription$ Each player shuffles their graveyard into their library.\n" +
-	"Oracle:Each player shuffles their graveyard into their library.\n"
+	"A:SP$ ChangeZoneAll | Shuffle$ True | Destination$ Library | Origin$ Graveyard | Defined$ Player | ChangeType$ Card | SpellDescription$ Everyone shuffles a graveyard into a library.\n" +
+	"Oracle:Everyone shuffles a graveyard into a library.\n"
 
 // surviveOwnerShuffleReached: a resolved Survive Probe (in some player's
 // graveyard) moved graveyard -> library -- the ChangeZoneAll sweep itself.
-func surviveOwnerShuffleReached(g *GorgeSide) bool {
+func surviveOwnerShuffleReached(g *GorgeSide, owner state.PlayerID) bool {
 	for i := range g.E.L.Events {
 		e := &g.E.L.Events[i]
 		if e.Kind == events.MoveZone && e.From == state.ZGraveyard && e.To == state.ZLibrary {
-			if o := g.E.G.Obj(e.Obj); o != nil && o.Face() != nil && o.Face().Name == "Survive Probe" {
+			if o := g.E.G.Obj(e.Obj); o != nil && o.Face() != nil && o.Face().Name == "Survive Probe" && o.Owner == owner {
 				return true
 			}
 		}
@@ -109,10 +112,19 @@ func surviveShufflePolicy(m *Matchup, seed uint64) Policy {
 // match gorge, and some seed must really shuffle a filled graveyard into
 // its owner's library so the case cannot pass vacuously.
 func TestHostedCmdrSurviveOwnerShuffleLockstep(t *testing.T) {
+	for _, probeSeat := range []int{0, 1} {
+		t.Run(fmt.Sprintf("probe-seat-%d", probeSeat), func(t *testing.T) { surviveOwnerShuffleLockstep(t, probeSeat) })
+	}
+}
+
+func surviveOwnerShuffleLockstep(t *testing.T, probeSeat int) {
 	fixtures := map[string]string{"Survive Probe": surviveProbeScript}
 	decks := [2][]string{
 		append(append(deckOf(10, "Survive Probe"), deckOf(10, "Grizzly Bears")...), deckOf(20, "Forest")...),
 		append(append(deckOf(4, "Struggle // Survive"), deckOf(16, "Grizzly Bears")...), deckOf(20, "Forest")...),
+	}
+	if probeSeat == 1 {
+		decks[0], decks[1] = decks[1], decks[0]
 	}
 	src := corpusDirOrSkip(t)
 	dir := filters11Corpus(t, fixtures, "Forest", "Grizzly Bears")
@@ -162,7 +174,7 @@ func TestHostedCmdrSurviveOwnerShuffleLockstep(t *testing.T) {
 	cfg := Config{}
 	seen := false
 	played := 0
-	seats := [2]string{"hcs-surv-a", "hcs-surv-b"}
+	seats := [2]string{fmt.Sprintf("hcs-surv-a%d", probeSeat), fmt.Sprintf("hcs-surv-b%d", probeSeat)}
 	for seed := uint64(1); seed <= 60 && !(seen && played >= 3); seed++ {
 		m, err := NewMatchup(reg, seats, cardDecks, 1)
 		if err != nil {
@@ -174,7 +186,7 @@ func TestHostedCmdrSurviveOwnerShuffleLockstep(t *testing.T) {
 		}
 		rc := RunConfig{Config: cfg, MaxDecisions: 6000, MaxTurns: 40}
 		rc.Finish = func(g *GorgeSide) {
-			if !seen && surviveOwnerShuffleReached(g) {
+			if !seen && surviveOwnerShuffleReached(g, state.PlayerID(probeSeat)) {
 				seen = true
 			}
 		}

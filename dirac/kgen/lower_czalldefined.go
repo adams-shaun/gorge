@@ -23,15 +23,21 @@ func (lc *lowerCtx) czallDefinedScope(ps *params, in *lInstr) error {
 		return nil
 	case "Player":
 		// Forge's whole-field scope (Survive's "Each player shuffles their
-		// graveyard into their library"): gorge's changeZoneAllPlayers sweeps
-		// every player, AliveFrom(0) (zone_changeall.go); the kernel's sweep
-		// already walks every seat when the op names no player, so the Ref
-		// stays RefNone -- the same encoding as a Defined$ absent. Beside
+		// graveyard into their library"): Defined$ Player resolves to
+		// AliveFrom(controller), and gorge's changeZoneAllPlayers sweeps in
+		// that order (zone_changeall.go); the kernel's sweep walks every seat
+		// when the op names no player, so the Ref stays RefNone, and
+		// CzShuffleScope (changeZoneAllShuffle) starts the walk at the
+		// controller. Only the graveyard-to-library shuffle spelling is
+		// lowered (the one shape that carries that flag). Beside
 		// targeting the ANSWERED players win the scope in gorge ("targeting
 		// wins when both ride"), which the kernel's one-player Ref cannot
 		// carry here: refused, as this spelling always was.
 		if len(lc.ab.Targets) != 0 {
 			return refuse("ChangeZoneAll Defined$ %s beside targeting", v)
+		}
+		if !ps.is("Shuffle", "True") || !ps.is("Origin", "Graveyard") || !ps.is("Destination", "Library") {
+			return refuse("ChangeZoneAll Defined$ %s beyond a graveyard-to-library shuffle", v)
 		}
 		in.Obj = lRef{}
 		in.Note = "every player's zone"

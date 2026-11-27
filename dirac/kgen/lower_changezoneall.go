@@ -84,12 +84,14 @@ func (lc *lowerCtx) changeZoneAllShuffle(ps *params, in lInstr, origin, dest int
 	}
 	if in.Obj.Kind == rNone && ps.is("Defined", "Player") {
 		// Survive's "Each player shuffles their graveyard into their
-		// library": gorge sweeps every player's graveyard (AliveFrom(0))
-		// into each owner's library, then changeZoneAllShuffleLibraries
-		// shuffles each library that received (first-placement order) and,
-		// the scope being explicit, every player's library that received
-		// nothing (seat order). The kernel's sweep already walks every seat
-		// with no player ref; CzShuffleOwners|CzShuffleScope is that tail.
+		// library": gorge sweeps every player's graveyard
+		// (AliveFrom(controller)) into each owner's library, then
+		// changeZoneAllShuffleLibraries shuffles each library that received
+		// (first-placement order) and, the scope being explicit, every
+		// player's library that received nothing (AliveFrom(controller)
+		// order). The kernel's sweep walks every seat with no player ref;
+		// CzShuffleOwners|CzShuffleScope is that tail and starts the walk at
+		// the controller.
 		in.B = cst(kop.CzShuffleOwners | kop.CzShuffleScope)
 		lc.emit(in)
 		return nil
