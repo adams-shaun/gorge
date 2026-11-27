@@ -3411,22 +3411,12 @@ func (lc *lowerCtx) emblem(ps *params, tr string) error {
 	if err != nil {
 		return err
 	}
+	objCap, endsSelf := lc.emblemObjCapture(&t, hasCap && !player, mem.kind == memNone)
 	if err := emblemBlocksRefuse(t, eot, hasCap || mem.kind != memNone); err != nil {
 		return err
 	}
 	saved := len(lc.out.Abilities)
-	lc.capRem = hasCap && (t.Mode == "DamageDealtOnce" || t.Mode == "DamageDoneOnce")
-	lc.ddoEvent = eot && t.Mode == "DamageDoneOnce"
-	lc.effCount = mem.kind == memCount
-	lc.emblemBlocked = hasCap && (t.Mode == "AttackerBlocked" || t.Mode == "AttackerUnblocked")
-	lc.emblemBlocks = eot && t.Mode == "Blocks"
-	lc.emblemUnblocked = hasCap && t.Mode == "AttackerUnblocked"
-	lc.emblemDmg = hasCap && !player && t.Mode == "DamageDone"
-	lc.selfRem = selfRem
-	err = lc.withAbility(lc.ab, func() error { return lc.lowerTriggered(t, "Command") })
-	lc.selfRem = false
-	lc.capRem, lc.effCount, lc.ddoEvent, lc.emblemBlocked, lc.emblemBlocks, lc.emblemDmg, lc.emblemUnblocked, lc.remSelf = false, false, false, false, false, false, false, false
-	if err != nil {
+	if err := lc.lowerEmblemTrigger(t, eot, hasCap, player, mem.kind == memCount, objCap, selfRem); err != nil {
 		return err
 	}
 	if len(lc.out.Abilities) != saved+1 {
@@ -3440,7 +3430,7 @@ func (lc *lowerCtx) emblem(ps *params, tr string) error {
 		return err
 	}
 	recipientCap := false
-	if hasCap && !player {
+	if objCap.filter {
 		if recipientCap, err = emblemCaptureFilter(ab); err != nil {
 			return err
 		}
@@ -3455,13 +3445,55 @@ func (lc *lowerCtx) emblem(ps *params, tr string) error {
 	}
 	ab.Latent = true
 	ab.Name = "EmblemTrigger"
-	em := lEmblem{Trigger: saved, UntilEOT: eot, UntilNextTurn: next, Capture: capture, CaptureSet: hasCap, CaptureIsPlayer: player, CaptureLapse: lapse}
+	em := lEmblem{Trigger: saved, UntilEOT: eot, UntilNextTurn: next, Capture: capture, CaptureSet: hasCap, CaptureIsPlayer: player, CaptureLapse: lapse, Once: endsSelf}
 	ce := lInstr{Op: "CreateEmblem", Obj: lRef{Kind: rYou}}
 	mem.apply(&em, &ce) // lower_effectremember.go
 	lc.out.Emblems = append(lc.out.Emblems, em)
 	ce.C = len(lc.out.Emblems) - 1
 	lc.emit(ce)
 	return nil
+}
+
+// emblemObjCap is how an emblem's object capture reads: filter means the
+// capture narrows the trigger's filter (emblemCaptureFilter); captured means
+// the kernel queues the remembered object as the trigger object.
+type emblemObjCap struct{ filter, captured bool }
+
+// emblemObjCapture decides whether the emblem remembers one object beside a
+// Phase or ChangesZone trigger (an Effect's RememberObjects$ TriggeredCard).
+// The kernel queues that object as the trigger object (triggers_gen.go
+// fireEmblemsAmt for Phase, trig_emblems.go fireEmblemsObj for ChangesZone),
+// so the body's Defined$ Remembered reads it; the pair and list shapes carry
+// their own memory and keep their own trigger objects. An emblem over
+// TriggeredCard whose body ends by exiling the Effect fires once (endsSelf):
+// the emblem's Once flag is that end, and the self-exile body is dropped (it
+// would move the creating card, RefSelf, not the Effect).
+func (lc *lowerCtx) emblemObjCapture(t *cards.Trigger, objCap, noMem bool) (emblemObjCap, bool) {
+	captured := objCap && noMem && (t.Mode == "Phase" || t.Mode == "ChangesZone")
+	endsSelf := captured && effectTriggerSelfExiles(lc.face.SVars, *t)
+	if endsSelf {
+		t.Effect = trimEffectSelfExile(t.Effect)
+	}
+	return emblemObjCap{filter: objCap && !captured, captured: captured}, endsSelf
+}
+
+// lowerEmblemTrigger lowers an emblem's trigger under the per-shape flags the
+// trigger lowering reads, and clears them after.
+func (lc *lowerCtx) lowerEmblemTrigger(t cards.Trigger, eot, hasCap, player, count bool, objCap emblemObjCap, selfRem bool) error {
+	lc.capRem = hasCap && (t.Mode == "DamageDealtOnce" || t.Mode == "DamageDoneOnce")
+	lc.ddoEvent = eot && t.Mode == "DamageDoneOnce"
+	lc.effCount = count
+	lc.emblemBlocked = hasCap && (t.Mode == "AttackerBlocked" || t.Mode == "AttackerUnblocked")
+	lc.emblemBlocks = eot && t.Mode == "Blocks"
+	lc.emblemUnblocked = hasCap && t.Mode == "AttackerUnblocked"
+	lc.emblemDmg = hasCap && !player && t.Mode == "DamageDone"
+	lc.emblemCapturedObj = objCap.captured
+	lc.selfRem = selfRem
+	err := lc.withAbility(lc.ab, func() error { return lc.lowerTriggered(t, "Command") })
+	lc.selfRem = false
+	lc.capRem, lc.effCount, lc.ddoEvent, lc.emblemBlocked, lc.emblemBlocks, lc.emblemDmg, lc.emblemUnblocked, lc.remSelf = false, false, false, false, false, false, false, false
+	lc.emblemCapturedObj = false
+	return err
 }
 
 // emblemTimedMode reports whether an until-end-of-turn or until-your-next-turn

@@ -11,6 +11,11 @@ func (lc *lowerCtx) effectTriggers(ps *params, tr string) error {
 			return err
 		}
 	}
+	if _, st := ps.m["ReplacementEffects"]; st {
+		if done, err := lc.effectUntapDenial(ps, tr); done || err != nil { // lower_untapdenial.go
+			return err
+		}
+	}
 	if _, st := ps.m["StaticAbilities"]; st && ps.m["RememberObjects"] != "" {
 		if done, err := lc.effectPlaneCurse(ps, tr); done || err != nil { // lower_planecurse.go
 			return err
