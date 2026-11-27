@@ -2288,7 +2288,9 @@ func (s *State) moveFoundAns(k *prep, host Slot) {
 				s.handGraveArm(k) // WithCountersType$ on a hand/graveyard pick
 			}
 			s.enterOnto(host)
+			armed := s.pickOverrideArm(k, in, z) // dirac/zone_pickoverride.go
 			sl := s.enterFound(k, &eb, o, ep, fl&kop.SrTapped != 0, from, host)
+			s.pickOverrideSettle(k, sl, armed)
 			if s.g.pre.obj == o {
 				s.g.pre = preAsk{}
 			}
