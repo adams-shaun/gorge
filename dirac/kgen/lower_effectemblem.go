@@ -146,10 +146,15 @@ func (lc *lowerCtx) effectStaticEOT(ps *params, ss []cards.Static) error {
 				// effectCastSweep, kernel embFlashForget's em.Forget arm)
 				forget = f
 			case "ReduceCost":
-				// only an Affinity keyword grant (it carries the keyword): a plain
-				// Mode$ ReduceCost beside ForgetOnCast$ (Invasion of the Giants) is
-				// gorge's effectCastSweep over a cost reduction, which stays refused
-				if len(sts[0].Kw) == 0 {
+				// An Affinity keyword grant carries the keyword. A plain
+				// Mode$ ReduceCost lowers only for the face-down-spell shape
+				// (Panoptic Projektor), whose ForgetOnCast$ is gorge's
+				// effectCastSweep over the cost reduction and whose static the
+				// face-down cost path already prices (Goblin Maskmaker's
+				// emblem). Any other plain reduction (Invasion of the Giants)
+				// stays refused rather than lowering a sweep over a cost this
+				// build has not shown it applies.
+				if len(sts[0].Kw) == 0 && !effectReduceCostFaceDown(ss) {
 					return refuse("Effect ForgetOnCast$ beside a %s static", sts[0].Kind)
 				}
 				forget = f
@@ -191,6 +196,20 @@ func (lc *lowerCtx) effectStaticEOT(ps *params, ss []cards.Static) error {
 	lc.out.Emblems = append(lc.out.Emblems, emb)
 	lc.emit(lInstr{Op: "CreateEmblem", Obj: lRef{Kind: rYou}, C: len(lc.out.Emblems) - 1, A: chosen})
 	return nil
+}
+
+// effectReduceCostFaceDown reports whether one of the Effect's statics is a
+// ReduceCost whose ValidCard$ names the faceDown property: the Panoptic
+// Projektor shape (a discount on the next face-down creature spell, ended by
+// ForgetOnCast$). The property is an opaque filter word by the time it reaches
+// the lowering, so the written parameter is the only place to read it.
+func effectReduceCostFaceDown(ss []cards.Static) bool {
+	for _, s := range ss {
+		if s.Mode == "ReduceCost" && strings.Contains(strings.TrimSpace(s.Params["ValidCard"]), "faceDown") {
+			return true
+		}
+	}
+	return false
 }
 
 // effectEmblemChosenNumber reads a no-target Effect's SetChosenNumber$ for
