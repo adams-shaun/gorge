@@ -1,0 +1,13 @@
+{
+  "card": "Overencumbered",
+  "class": "projection-Cards.Zone",
+  "why": "the engines' state differs at projection Cards[].Zone; 10 games in the corpus",
+  "repro": {
+    "pool": "hosted-cmdr",
+    "surface": "autopay",
+    "seed": 1,
+    "pair": 228,
+    "policy": "random",
+    "mulligans": 0
+  }
+}
