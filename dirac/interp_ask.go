@@ -248,13 +248,13 @@ func (s *State) execPay(k *prep, in *kop.Instr) bool {
 			return s.execPayChain(k, p, ch, skip, amt, pips) // cost_exilepool.go
 		}
 	}
-	if kind == kop.PayManaX && in.B.N == kop.PayBSubEvidenceX {
-		return s.execTrigEvidenceX(k, p, skip, amt) // cost_collectevidencex.go
-	}
-	if kind == kop.PayManaX && in.B.N == kop.PayBSubLifeX {
-		return s.execTrigLifeX(k, p, skip, amt) // cost_paylifetrig.go
-	}
 	if kind == kop.PayManaX {
+		switch in.B.N {
+		case kop.PayBSubEvidenceX:
+			return s.execTrigEvidenceX(k, p, skip, amt) // cost_collectevidencex.go
+		case kop.PayBSubLifeX:
+			return s.execTrigLifeX(k, p, skip, amt) // cost_paylifetrig.go
+		}
 		if s.execTrigX(k, p, skip, amt) {
 			// No X value is payable, x = 0 included: no announcement ask. Fall
 			// through to the ordinary election, whose canPayGen reads the fixed
