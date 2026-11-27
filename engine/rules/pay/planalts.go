@@ -201,6 +201,10 @@ func appendUnitAlternatives(e Engine, dst []Alt, u WindowUnit) (grown, alts []Al
 			// The classifier vetted the whole cost and chain: {T} plus the
 			// disclosed self-sacrifice/life/self-return parts, or a tap-only
 			// cost with a disclosed rider, trigger or replacement.
+			// An other-sacrifice step needs a victim on the board.
+			if consequence.SacrificeOthers && !otherSacFundable(e, payer, u.ID, alt.Ma) {
+				continue
+			}
 		default:
 			continue
 		}
