@@ -12,8 +12,9 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // The scan is the whole battlefield, not the drawer's: a line may name its
 // player (ReplDrawOpponent / ReplDrawAnyPlayer: Hullbreacher, Notion Thief,
 // Possessed Portal). gorge asks the CR 616.1 order when two replacements
-// match one draw; the kernel stalls (StallDrawRepl) rather than pick an order
-// whose composition it does not read.
+// match one draw; the kernel asks it too at the sites a draw can be suspended
+// on (repl_draworder.go) and stalls (StallDrawRepl) at the rest rather than
+// pick an order whose composition it does not read.
 //
 // The draw's lineage (drawChain) rides coldDraw: a body's own OpDraw must not
 // meet the replacement that is replacing it (CR 614.5), and the program may
@@ -42,36 +43,40 @@ type drawProgram struct {
 // drawState is coldDraw's record, or nil.
 func (s *State) drawState() []drawProgram { return coldDraw.of(s) }
 
-// drawReplace is draw()'s replacement step when the table carries a
-// ReplDrawProgram: it scans every seat's battlefield for the draw p is about
-// to make, stalls on a competition, and runs the one body. A table without a
-// program keeps drawMore's own scan.
-func (s *State) drawReplace(p uint8, ch drawChain) bool {
-	k := s.k()
-	if !k.gen.hasDrawProgram() {
-		return s.drawMore(p, ch)
-	}
+// drawCands are the draw replacements matching one draw, in scan order: the
+// battlefield slot, the ability index, and the counts the competition rule
+// reads (a program body does not commute with another candidate).
+type drawCands struct {
+	n    int
+	sl   [drawCandMax]Slot
+	ab   [drawCandMax]uint8
+	all  int // every candidate, stored or not
+	prog bool
+	more int // the plain ReplDrawMore candidates
+}
+
+// drawCandMax bounds the candidates one order ask offers.
+const drawCandMax = 8
+
+// drawScan collects the draw replacements outside ch that match the draw p is
+// about to make, scanning every seat's battlefield: a line may name its
+// player (ReplDrawOpponent / ReplDrawAnyPlayer).
+func (s *State) drawScan(k *prep, p uint8, ch drawChain) (c drawCands) {
 	g := k.gen
-	var sel Slot
-	var ab *kop.Ability
-	abi := 0
-	n := 0
-	hasProgram := false
 	for seat := uint8(0); seat < MaxSeats; seat++ {
 		for m := s.statM.and(s.ctrlM[seat]); m.any(); m = m.rest() {
 			sl := m.first()
-			c := s.cardAt(sl)
-			if g.replBits[c]&rbDrawMore == 0 && g.replBits2[c]&rb2DrawProgram == 0 ||
+			cc := s.cardAt(sl)
+			if g.replBits[cc]&rbDrawMore == 0 && g.replBits2[cc]&rb2DrawProgram == 0 ||
 				ch.has(sl) || s.genLost(k, sl) {
 				continue
 			}
-			cd := &k.t.Cards[c]
+			cd := &k.t.Cards[cc]
 			for i := range cd.Abilities {
 				a := &cd.Abilities[i]
 				if a.Kind != kop.AbReplacement {
 					continue
 				}
-				isProg := false
 				switch a.Repl.Kind {
 				case kop.ReplDrawMore:
 					// ReplDrawMore is the controller's own draw (ValidPlayer$ You)
@@ -84,35 +89,47 @@ func (s *State) drawReplace(p uint8, ch drawChain) bool {
 					if a.Repl.Cond != 0 && !s.replHostLive(k, a, sl) {
 						continue
 					}
+					c.more++
 				case kop.ReplDrawProgram:
 					if !drawProgramPlayer(a.Repl.C, seat, p) {
 						continue
 					}
-					isProg = true
 					if a.Repl.C&kop.ReplDrawNotFirst != 0 && s.g.drawFirst && p == s.active && s.step == kop.StepDraw {
 						continue
 					}
 					if a.Repl.Cond != 0 && !s.replCondHolds(k, sl, seat, a.Repl.Cond) {
 						continue
 					}
+					c.prog = true
 				default:
 					continue
 				}
-				if n == 0 {
-					sel, ab, abi = sl, a, i
+				if c.n < drawCandMax {
+					c.sl[c.n], c.ab[c.n] = sl, uint8(i)
+					c.n++
 				}
-				if isProg {
-					hasProgram = true
-				}
-				n++
+				c.all++
 			}
 		}
 	}
+	return c
+}
+
+// drawReplace is draw()'s replacement step when the table carries a
+// ReplDrawProgram: it scans every seat's battlefield for the draw p is about
+// to make, asks the CR 616.1 order on a competition (repl_draworder.go), and
+// runs the one body. A table without a program keeps drawMore's own scan.
+func (s *State) drawReplace(p uint8, ch drawChain) bool {
+	k := s.k()
+	if !k.gen.hasDrawProgram() {
+		return s.drawMore(p, ch)
+	}
+	c := s.drawScan(k, p, ch)
 	switch {
-	case n == 0:
+	case c.all == 0:
 		return false
-	case n > 1:
-		if !hasProgram {
+	case c.all > 1:
+		if !c.prog {
 			// the candidates are all ReplDrawMore, whose composition is
 			// commutative; drawMore settles them in scan order exactly as
 			// gorge's commutative drawMoreCompetition does (repl_draw.go).
@@ -120,13 +137,19 @@ func (s *State) drawReplace(p uint8, ch drawChain) bool {
 		}
 		// gorge asks the CR 616.1 order: two draw replacements of one draw
 		// need not commute, so the kernel does not pick one.
-		s.capFull(StallDrawRepl)
-		return true
+		return s.drawOrderPose(k, p, ch, &c)
 	}
+	return s.drawApply(k, p, c.sl[0], c.ab[0], ch)
+}
+
+// drawApply applies the one draw replacement candidate at sl: a ReplDrawMore
+// by its own walk, a program body by drawProgramTake.
+func (s *State) drawApply(k *prep, p uint8, sl Slot, abi uint8, ch drawChain) bool {
+	ab := &k.t.Cards[s.cardAt(sl)].Abilities[abi]
 	if ab.Repl.Kind == kop.ReplDrawMore {
 		return s.drawMore(p, ch) // the one candidate, applied by its own walk
 	}
-	return s.drawProgramTake(k, p, sel, uint8(abi), ab, ch)
+	return s.drawProgramTake(k, p, sl, abi, ab, ch)
 }
 
 // drawProgramPlayer reports whether a ReplDrawProgram's ValidPlayer$ admits the
