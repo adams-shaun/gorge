@@ -86,5 +86,10 @@ func (s *State) selfCastFilterOK(k *prep, f kop.FilterID, e *stackEntry) bool {
 	if fl.Pred == kop.PredEscaped {
 		return escapeEntry(e) == (fl.PredN == 1)
 	}
+	if fl.Pred == kop.PredKickedAlt {
+		// the spell's own kicker-alternative byte (setKickAlt at beginCast)
+		ka := coldMkObj.of(s)
+		return fl.PredN >= 1 && fl.PredN <= 2 && int(e.obj) < len(ka) && ka[e.obj]&(1<<(uint(fl.PredN)-1)) != 0
+	}
 	return true
 }

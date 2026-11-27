@@ -2036,7 +2036,7 @@ func (cb *cardBuilder) clause(c lClause, zone kop.Zone) (kop.Filter, error) {
 	case cmpKickedAlt:
 		// the object's kicker-alternative byte (kernel kickedAltPredicate);
 		// no off-battlefield reading
-		if zone != kop.ZoneBattlefield {
+		if zone != kop.ZoneBattlefield && !cb.selfCast {
 			return kf, fmt.Errorf("the kicked alternative word off the battlefield")
 		}
 		kf.Pred, kf.PredN = kop.PredKickedAlt, int16(c.CmpN)
