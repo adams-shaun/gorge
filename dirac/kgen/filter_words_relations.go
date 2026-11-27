@@ -80,6 +80,13 @@ func init() {
 			}
 		}
 	}
+	// sharesNameWith ThisTurnCast: the spells cast this turn, any caster
+	// (Twinning Glass), read off the kernel's cast ring. Only the positive
+	// spelling: gorge's negated one fails closed on an empty ledger, which a
+	// negated literal would invert.
+	fwArms["sharesNameWith ThisTurnCast"] = func(c *lClause, _ string) error {
+		return c.fwLit(lSpillLit{W: kop.FwSharesNameThisTurnCast})
+	}
 	// The bare "sharesCreatureTypeWith" (no referent): gorge's
 	// wordSharesCreatureType over "Self" (engine/effects/filter_word.go), the
 	// source itself as the shared referent: Kinship's PeekAndReveal

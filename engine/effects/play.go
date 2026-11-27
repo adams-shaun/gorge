@@ -216,6 +216,7 @@ func effPlay(h Host, c *Ctx, sa *cards.SA) {
 			return
 		}
 		sc := c.SpecContext(c.Controller)
+		sc.ThisTurnCast = thisTurnCastFor(h, c, valid)
 		for _, zn := range zones {
 			// Exile and graveyard are public zones keyed by the card's OWNER;
 			// a Play can legitimately read a card another seat's slice holds
