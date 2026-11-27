@@ -494,6 +494,18 @@ func PlanSelfCost(part cost.CostPart, id state.ObjID) bool {
 	return part.N == 1 && (s == "cardname" || s == "this token" || s == "cardname/self" || s == "self")
 }
 
+// PlanOtherSacShape reports whether a non-self Sac cost part is the closed
+// "sacrifice another permanent" shape the other-sacrifice planner admits:
+// exactly one permanent, a literal count fixed at payment (not an announced
+// X, not an SVar Dyn count), not a granted ability's bound referent, and a
+// non-empty spec. Its counterpart on the source is PlanSelfCost; anything
+// else -- a second Sac part beside the source's own, an Announced count --
+// stays deferred (PaymentPlanShapeTierOf).
+func PlanOtherSacShape(part cost.CostPart) bool {
+	return part.N == 1 && !part.Announced && part.Dyn == "" && part.Referent == 0 &&
+		strings.TrimSpace(SacrificeMatchSpec(part.Spec)) != ""
+}
+
 // PlanLastResortChoices is phase 2's alternative table (spec 5): every
 // unit's normal AND last-resort alternatives, each carrying the source's
 // phase-2 flexibility (flexAll, key 5 over every eligible alternative), minus
