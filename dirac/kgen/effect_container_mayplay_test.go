@@ -196,10 +196,6 @@ func TestEffectContainerMayPlayRemainingRefusals(t *testing.T) {
 		// target remembered permission plus a literal {8} mana RaiseCost
 		// (no kernel mana raise on a may-play permission)
 		{"Mavinda, Students' Advocate", "RaiseCost"},
-		// EffectOwner$ Player.Opponent's opponent emblem: the kernel's
-		// emblem trigger diverges from gorge's in lockstep (the follow-up
-		// ticket carries the measured reproduction)
-		{"Chandra, Awakened Inferno", "EffectOwner"},
 		// the multi-static Effects whose primitives the kernel lacks:
 		// the {8} mana raise on a may-play permission (Mavinda), which
 		// keeps today's named refusal until its own ticket lands the

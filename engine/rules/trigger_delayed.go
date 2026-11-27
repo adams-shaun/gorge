@@ -363,7 +363,14 @@ func (e *Engine) checkDelayedTriggers(ev events.Event) {
 				EffectFrame: frame,
 				// A phase registration has no firing event, so its capture
 				// is both Remembered and the DelayTriggerRemembered referent.
+				// TriggeredPlayer is still the player whose step it is
+				// (CR 603.7c): Forge binds the phase's acting player to the
+				// Phase trigger's run, and bodies naming Defined$
+				// TriggeredPlayer read it -- Chandra, Awakened Inferno's
+				// emblem ("at the beginning of your upkeep, this emblem deals
+				// 1 damage to you") has no other referent.
 				TriggerContext: effects.TriggerContext{
+					TriggerPlayer:           state.Target{Player: e.G.Active, IsPlayer: true},
 					DelayedSelf:             delayedSelf,
 					DelayedRemembered:       append([]state.Target(nil), dt.Remembered...),
 					DelayedCaptureOnly:      dt.CaptureOnly,
