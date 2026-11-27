@@ -245,6 +245,19 @@ class MainTest(unittest.TestCase):
         self.assertEqual(got["sets"]["FDN"]["refused"], 1)
         self.assertNotIn("lockstep", got)
 
+    def test_named_pool_row_is_not_a_set(self):
+        page = ("| list | cards | lowered | refused | unverified | supported | 4-seat |\n|---|---:|---:|---:|---:|---:|---:|\n"
+                "| FDN | 517 | 505 | 1 | 4 | 500 | 498 |\n"
+                "| hosted-cmdr | 1234 | 1145 | 0 | 96 | 1049 | 1048 |\n"
+                "| ALL | 900 | 800 | 2 | 8 | 790 | 780 |\n")
+        with tempfile.TemporaryDirectory() as d:
+            p = os.path.join(d, "support.md")
+            with open(p, "w") as f:
+                f.write(page)
+            got = docs_sets.load_dirac(p, "abcdef0123456", "2026-11-01")
+        self.assertEqual(list(got["sets"]), ["FDN"])
+        self.assertEqual(list(got["pools"]), ["hosted-cmdr"])
+
     def test_unstamped_page_still_renders(self):
         with tempfile.TemporaryDirectory() as d:
             p = os.path.join(d, "support.md")
