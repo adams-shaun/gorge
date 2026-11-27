@@ -209,7 +209,7 @@ func (g *Game) deriveAttach(was, now *dirac.ProjObj, id state.ObjID, ids *idTabl
 // deriveCombat logs a declaration, one that declared nothing included.
 func (g *Game) deriveCombat(before func(int) *dirac.ProjObj, asked dirac.DecisionKind) {
 	cur := &g.kp
-	var attacks [2][]state.ObjID
+	var attacks [dirac.MaxSeats][]state.ObjID
 	var blocks [][2]state.ObjID
 	for o := 0; o < int(cur.NObj); o++ {
 		was, now := before(o), &cur.Objs[o]
@@ -226,12 +226,13 @@ func (g *Game) deriveCombat(before func(int) *dirac.ProjObj, asked dirac.Decisio
 			g.log.Append(events.Event{Kind: events.DeclareAttackers, Player: state.PlayerID(p), IDs: attacks[p]})
 		}
 	}
-	if asked == dirac.DkAttackers && len(attacks[0])+len(attacks[1]) == 0 {
-		g.log.Append(events.Event{Kind: events.DeclareAttackers, Player: state.PlayerID(1 - cur.Active)})
+	next := (cur.Active + 1) % g.s.NumSeats() // the defending player at two seats
+	if asked == dirac.DkAttackers && slices.IndexFunc(attacks[:], func(ids []state.ObjID) bool { return len(ids) > 0 }) < 0 {
+		g.log.Append(events.Event{Kind: events.DeclareAttackers, Player: state.PlayerID(next)})
 	}
 	if len(blocks) > 0 || asked == dirac.DkBlockers {
 		slices.SortFunc(blocks, func(a, b [2]state.ObjID) int { return int(a[0]) - int(b[0]) })
-		g.log.Append(events.Event{Kind: events.DeclareBlockers, Player: state.PlayerID(1 - cur.Active), Pairs: blocks})
+		g.log.Append(events.Event{Kind: events.DeclareBlockers, Player: state.PlayerID(next), Pairs: blocks})
 	}
 }
 
@@ -240,11 +241,11 @@ func (g *Game) deriveCombat(before func(int) *dirac.ProjObj, asked dirac.Decisio
 func (g *Game) defender(o *dirac.ProjObj) uint8 {
 	switch {
 	case dirac.TCode(o.Attacks) >= dirac.PlayerTarget0 && dirac.TCode(o.Attacks) != dirac.NoTarget:
-		return uint8((dirac.TCode(o.Attacks) - dirac.PlayerTarget0) & 1)
+		return uint8(dirac.TCode(o.Attacks) - dirac.PlayerTarget0)
 	case dirac.IsObjTarget(dirac.TCode(o.Attacks)):
-		return g.kp.Objs[o.Attacks].Ctrl & 1
+		return g.kp.Objs[o.Attacks].Ctrl
 	}
-	return (o.Ctrl + 1) & 1
+	return (o.Ctrl + 1) % g.s.NumSeats()
 }
 
 // lossText says why a seat lost, from the position it lost in.

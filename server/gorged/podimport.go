@@ -187,8 +187,12 @@ func checkImportedLegality(reg *cards.Registry, format host.Format, f deck.File)
 	return nil
 }
 
-// diracSeats is the seat count -engine dirac plays; a pod seats more.
-const diracSeats = 2
+// diracSeats is the seat count -engine dirac plays a table at; a Commander pod
+// seats diracPodSeats.
+const (
+	diracSeats    = 2
+	diracPodSeats = 4
+)
 
 // checkPodShape refuses a request this server cannot seat before any work is
 // done: a table past what -engine dirac plays, a submitted deck dirac was
@@ -202,8 +206,8 @@ func (c config) checkPodShape(req httpapi.CreateGameOptions, seats, humans int) 
 		return fmt.Errorf("humans %d, want 1 to %d", humans, seats)
 	case seats > 2 && req.Format != host.FormatCommander:
 		return fmt.Errorf("a %d-seat table needs format commander, not %s", seats, req.Format)
-	case c.diracOn() && seats > diracSeats:
-		return fmt.Errorf("-engine %s plays %d seats, so it cannot seat a %d-seat pod: use the gorge engine", c.engine, diracSeats, seats)
+	case c.diracOn() && seats != diracSeats && seats != diracPodSeats:
+		return fmt.Errorf("-engine %s plays %d seats or a %d-seat Commander pod, so it cannot seat a %d-seat pod: use the gorge engine", c.engine, diracSeats, diracPodSeats, seats)
 	case c.diracOn() && len(req.Decks) > 0:
 		return fmt.Errorf("-engine %s plays only the decks it checked at startup, not a submitted deck: use the gorge engine", c.engine)
 	case len(req.Decks) > 0 && c.imports == nil:

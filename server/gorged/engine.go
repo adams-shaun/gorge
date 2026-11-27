@@ -15,6 +15,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/deck"
 	"github.com/adams-shaun/gorge/engine/game"
+	"github.com/adams-shaun/gorge/server/host"
 	"github.com/adams-shaun/gorge/server/host/httpapi"
 )
 
@@ -29,9 +30,10 @@ func (c config) checkDiracFlags() error {
 	if !c.diracOn() {
 		return nil
 	}
+	if err := c.checkDiracSeats(); err != nil {
+		return err
+	}
 	switch {
-	case c.seats != 2:
-		return errors.New("dirac plays two seats: pass -seats 2")
 	case !c.autoMana:
 		return errors.New("-auto-mana=false: dirac pays for every cast and has no manual mana")
 	case !c.botAutoPayMana:
@@ -43,6 +45,26 @@ func (c config) checkDiracFlags() error {
 		if a.net != "" {
 			return fmt.Errorf("-%s-net: a network bot searches, and dirac deals no search roots", a.policy)
 		}
+	}
+	return nil
+}
+
+// checkDiracSeats names a table seat count -engine dirac cannot play: a constructed
+// table seats two, a commander table two or a four-seat pod (diracPodSeats).
+func (c config) checkDiracSeats() error {
+	f := c
+	if f.applyFormats() != nil {
+		f.formats = nil // serve names the bad -format once the flags are checked
+	}
+	cmdSeats := c.seats
+	if c.commanderSeats > 0 {
+		cmdSeats = c.commanderSeats
+	}
+	switch {
+	case (len(f.formats) == 0 || f.wantsFormat(host.FormatConstructed)) && c.seats != 2:
+		return errors.New("dirac plays constructed at two seats: pass -seats 2 (or -seats 4 -format commander for Commander pods)")
+	case f.wantsFormat(host.FormatCommander) && cmdSeats != 2 && cmdSeats != diracPodSeats:
+		return fmt.Errorf("dirac plays commander at two seats or a %d-seat pod, not %d", diracPodSeats, cmdSeats)
 	}
 	return nil
 }
