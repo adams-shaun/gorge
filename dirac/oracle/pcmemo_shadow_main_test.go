@@ -13,5 +13,6 @@ import (
 // (docs/design/dirac-static-source-cache.md).
 func TestMain(m *testing.M) {
 	dirac.DebugPCMemoShadow = true
+	dirac.DebugSFMemoShadow = true // scriptFilt's memo (dirac/mana_sfmemo.go)
 	os.Exit(m.Run())
 }

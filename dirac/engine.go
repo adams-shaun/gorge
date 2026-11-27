@@ -323,8 +323,10 @@ func (s *State) stepRaw(d *Decision) {
 			}
 			d.Kind, d.Player = DkPriority, s.prio
 			s.pcMemoOpen(k) // the per-decision manaPCGen memo (mana_pcmemo.go)
+			s.sfmOpen(k)    // scriptFilt's (mana_sfmemo.go)
 			s.priorityOptions(k, d)
 			s.pcMemoClose()
+			s.sfmClose()
 			return
 		case ctlPlaceTriggers:
 			if s.placeTriggers(k, d) {
