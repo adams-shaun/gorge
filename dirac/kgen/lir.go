@@ -790,6 +790,7 @@ type lCost struct {
 	DiscardHand    bool       // Discard<N/Hand> as an activated ability's cost: the whole hand (kop.Cost.DiscardHand)
 	DiscardSelf    bool       // discard this card (a hand ability: cycling)
 	DiscardF       *lFilter   // Discard<N/Spec>: the discard candidates' filter (CostDiscardFiltered)
+	DiscardShare   bool       // Discard<1/Card.SharesColorWith>: candidates share a colour with the cast card (kop.Cost.DiscardSharesCastColor)
 	Discard2N      int        // a second Discard<N/Spec> part (a spell's alternative cost; kop.Cost.Discard2N)
 	Discard2F      *lFilter   // the second part's filter, nil for any card (kop.Cost.Discard2F)
 	Loyalty        int        // +N / -N loyalty
@@ -1233,7 +1234,9 @@ type lStatic struct {
 	// AddChosen: AddType$ ChosenType, the static's host's chosen creature
 	// type (kop.Static.AddChosen)
 	AddChosen bool
-	// AnyCaster: a CastWithFlash grant with Caster$ Player (kop.StFlashAnyCaster)
+	// AnyCaster: a CastWithFlash grant with Caster$ Player
+	// (kop.StFlashAnyCaster), or an AlternativeCost grant with no ValidPlayer$
+	// rider (kop.StAltAnyCaster)
 	AnyCaster bool
 	// OutlivesLoss: the pump beside an override static with a part in layers
 	// 1 to 5 (kop.Static.OutlivesLoss)
