@@ -638,7 +638,16 @@ func PlanClassMembers(classes []Class) [][]int {
 
 // PlanSameAlternative compares two computations of one alternative.
 func PlanSameAlternative(a, b Alt) bool {
-	return a == b
+	return a.Ma == b.Ma && planSameAltFields(a, b)
+}
+
+// planSameAltFields compares every Alt field but Ma: the witness activation
+// (its victim list makes Alt incomparable with ==) through Equal, the rest
+// by value.
+func planSameAltFields(a, b Alt) bool {
+	return a.Activation.Equal(&b.Activation) && a.Mana == b.Mana && a.Creature == b.Creature &&
+		a.Flex == b.Flex && a.FlexAll == b.FlexAll && a.Colours == b.Colours &&
+		a.ExecProduced == b.ExecProduced && a.Tier == b.Tier && a.Consequence == b.Consequence
 }
 
 // PlanSameStep compares two resolutions of one witness step at one
@@ -648,6 +657,5 @@ func PlanSameStep(a, b Alt) bool {
 	if !SameManaAbility(a.Ma, b.Ma) {
 		return false
 	}
-	a.Ma, b.Ma = nil, nil
-	return a == b
+	return planSameAltFields(a, b)
 }

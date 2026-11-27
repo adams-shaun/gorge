@@ -63,9 +63,9 @@ func TestAutopayPlansAltarSacrificeTokenFirst(t *testing.T) {
 	if !(creature < token) {
 		t.Fatalf("precondition: creature id %d, token id %d, want creature first", creature, token)
 	}
-	if e.G.Obj(creature).ManaValue != e.G.Obj(token).ManaValue {
+	if state.ManaValue(e.G, e.G.Obj(creature)) != state.ManaValue(e.G, e.G.Obj(token)) {
 		t.Fatalf("precondition: creature MV %d, token MV %d, want equal",
-			e.G.Obj(creature).ManaValue, e.G.Obj(token).ManaValue)
+			state.ManaValue(e.G, e.G.Obj(creature)), state.ManaValue(e.G, e.G.Obj(token)))
 	}
 	if e.G.Obj(token).IsToken != true || e.G.Obj(creature).IsToken {
 		t.Fatalf("precondition: token IsToken = %v, creature IsToken = %v", e.G.Obj(token).IsToken, e.G.Obj(creature).IsToken)
@@ -104,8 +104,10 @@ func TestAutopayPlansAltarSacrificeTokenFirst(t *testing.T) {
 			t.Fatalf("unexpected ask while the planned cast resolves: %+v", d)
 		}
 	}
-	if z := e.G.Obj(token).Zone; z != state.ZGraveyard {
-		t.Fatalf("token zone = %s, want graveyard", z)
+	// A sacrificed token goes to the graveyard and then ceases to exist
+	// (CR 111.7, 704.5d).
+	if z := e.G.Obj(token).Zone; z != state.ZGraveyard && z != state.ZCeased {
+		t.Fatalf("token zone = %s, want sacrificed (graveyard or ceased)", z)
 	}
 	if z := e.G.Obj(creature).Zone; z != state.ZBattlefield {
 		t.Fatalf("creature zone = %s, want still on the battlefield", z)
