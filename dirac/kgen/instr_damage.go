@@ -314,6 +314,15 @@ func (ic *instrCtx) opDmgRedirect() error {
 	in := &ic.in
 	// OpExt ExtDmgRedirect, Obj the recipient, C the kop.DmgRedirect* kind (dirac/repl_dmgredirect.go)
 	ki.Op, ki.A, ki.C = kop.OpExt, kop.Const(int(kop.ExtDmgRedirect)), int16(in.C)
+	if in.Obj2.Kind != rNone {
+		// DmgRedirectHost (Daughter of Autumn): Obj2 names the damaged host,
+		// the resolving host permanent is the recipient
+		r, err := ic.cb.ref(in.Obj2)
+		if err != nil {
+			return err
+		}
+		ki.W = r
+	}
 	return nil
 }
 
