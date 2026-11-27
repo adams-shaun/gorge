@@ -789,6 +789,13 @@ func (e *Engine) effectMoveSweep(ev events.Event) {
 				continue
 			}
 		}
+		if keep, carried := spellCarrySweep(&ce, ev); carried {
+			changed = true
+			if keep {
+				kept = append(kept, ce)
+			}
+			continue
+		}
 		forget, exile := ce.ForgetOnMoved, ce.ExileOnMoved
 		exileAlso := ce.ExileOnMovedAlso
 		if forget != "" && effects.ParseZone(forget) == ev.From && objIDIn(ce.Remembered, ev.Obj) {
@@ -819,6 +826,24 @@ func (e *Engine) effectMoveSweep(ev events.Event) {
 	}
 	e.continuous = kept
 	e.continuousChanged()
+}
+
+// spellCarrySweep is ExileOnMovedStackCarry's move: a grant registered on a
+// spell while it sat on the stack follows the spell onto the battlefield
+// (CR 400.7a) and is then ended by the permanent's own departure. Leaving the
+// stack for anywhere else ends it, like the ordinary ExileOnMoved$ Stack.
+// keep reports whether the effect survives the move; changed reports that the
+// move touched it either way.
+func spellCarrySweep(ce *ContinuousEffect, ev events.Event) (keep, changed bool) {
+	if ce.ExileOnMoved != effects.ExileOnMovedStackCarry || ev.From != state.ZStack ||
+		!objIDIn(ce.Remembered, ev.Obj) {
+		return false, false
+	}
+	if ev.To == state.ZBattlefield {
+		ce.ExileOnMoved = "Battlefield"
+		return true, true
+	}
+	return false, true
 }
 
 // expireUntilUntaps drops every Duration$ UntilUntaps registration whose host

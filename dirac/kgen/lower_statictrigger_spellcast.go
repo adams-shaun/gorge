@@ -15,13 +15,13 @@ import (
 // lower_effetbctr.go), and an Animate of the triggering spell that only
 // grants keywords (Thundermane Dragon).
 //
-// The keyword Animate is a no-op for the permanent: gorge applies the
-// override to the spell on the stack, but a timed Animate grant ends as its
-// object leaves the zone it was made in (engine/effects/combatfx.go
-// registerAnimateEffects: the EOT grant's ExileOnMoved$ Stack), so the
-// creature that enters never has the keyword. The kernel has nothing to
-// mirror, and the body is dropped: dropping it is the only lowering that
-// matches gorge decision by decision.
+// The keyword Animate is a timed grant on the triggering spell that gorge
+// carries onto the permanent the spell becomes (CR 400.7a;
+// engine/effects/combatfx.go ExileOnMovedStackCarry and
+// engine/rules/layers_effect.go spellCarrySweep). The kernel mirrors it by
+// stamping the spell entry with the override record's index and applying the
+// record as the permanent enters (dirac/static_spellcarry.go): the instruction is
+// kept and marked spellCarry, not dropped.
 func (lc *lowerCtx) staticSpellCastBody(ab *lAbility, t cards.Trigger) error {
 	if len(ab.Targets) != 0 {
 		return refuse("static SpellCast trigger body carries an unannounced target")
@@ -32,7 +32,7 @@ func (lc *lowerCtx) staticSpellCastBody(ab *lAbility, t cards.Trigger) error {
 			return nil
 		case "Override":
 			if lc.staticSpellCastKeywordAnimate(t, &ab.Prog[0]) {
-				ab.Prog = nil
+				ab.Prog[0].CS = "EOT|spellCarry"
 				return nil
 			}
 		}
