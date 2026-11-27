@@ -18,8 +18,11 @@ import (
 // rides kop.Static.Zone (ZoneNone: the battlefield, Forge's default;
 // ZoneGraveyard: GainsAbilitiesOfZones$ Graveyard, every seat's graveyard;
 // ZoneExile: GainsAbilitiesOfZones$ Exile, every seat's exile zone). The
-// kernel's offer walk is dirac/static_gainsof.go. Other zones are refused by
-// name. An untyped source (Territory Forge's Card.ExiledWithSource) lowers:
+// kernel's offer walk is dirac/static_gainsof.go. A GainsTriggerAbsOf$ equal
+// to the GainsAbilitiesOf$ (Koh, the Face Stealer) additionally sets
+// kop.Static.GainsTrig: the lenders' triggered abilities fire as the
+// recipient's too (dirac/trig_gainedtrig.go, gorge's GainedTriggerFaces).
+// Other zones are refused by name. An untyped source (Territory Forge's Card.ExiledWithSource) lowers:
 // the walk matches any zone card and prices both its non-mana abilities
 // (static_gainsof.go gainedOffer) and its mana abilities
 // (mana_gainedgrants.go), and prep's StallGainsOf pair refuses the matchup
@@ -36,12 +39,15 @@ func (lc *lowerCtx) gainsAbilitiesOf(sp *params, st *lStatic, _ string) error {
 		// Koh, the Face Stealer's "has all activated and triggered abilities
 		// of the last chosen card" (gorge state.ContinuousEffect.
 		// GainedTriggerFaces: the lender's triggers fire as the recipient's).
-		// The kernel's trigger walk fires a permanent's own and its granted
-		// (AddTrigger$) triggers only, never a foreign card's. Measured: with
-		// the activated half lowered and a StallGainsOf at the first priority
-		// a lender with a triggered ability is in range, a Koh pool stalled on
-		// 8 of 200 lockstep seeds, an unmodelled stall the lockstep refuses.
-		return refuse("GainsTriggerAbsOf$ %q: the kernel has no gained-trigger walk for a foreign card's triggered abilities", trig)
+		// The triggered half must name the same lender as the activated one
+		// (Forge ships no carrier where they differ); the kernel's
+		// gained-trigger walk is dirac/trig_gainedtrig.go, reading the same
+		// GainsOf filter and firing each lender triggered ability with the
+		// foreign card's body and the recipient as the source.
+		if trig != spec {
+			return refuse("GainsTriggerAbsOf$ %q beside GainsAbilitiesOf$ %q", trig, spec)
+		}
+		st.GainsTrig = true
 	}
 	z, hasZone := sp.get("GainsAbilitiesOfZones")
 	grave := hasZone && z == "Graveyard"
@@ -101,6 +107,9 @@ func dumpStaticFilters(w io.Writer, s *lStatic) {
 	if s.GainsOf != nil {
 		fmt.Fprintf(w, " gainsof=%s", s.GainsOf)
 	}
+	if s.GainsTrig {
+		fmt.Fprint(w, " gainstrig")
+	}
 }
 
 // staticFilterLabels are the OPS.md labels of a table static's filter fields
@@ -114,6 +123,9 @@ func staticFilterLabels(st *kop.Static) []string {
 		if f.id != 0 {
 			out = append(out, f.label)
 		}
+	}
+	if st.GainsTrig {
+		out = append(out, "st:GainsTrig")
 	}
 	return out
 }

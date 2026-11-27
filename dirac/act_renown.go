@@ -46,7 +46,7 @@ func (s *State) renown(k *prep, in *kop.Instr) {
 	if n > 0 && k.anyCtrAdded {
 		s.ctrNote(k, sl, int(kop.CtrP1P1))
 	}
-	if n > 0 && s.subs[kop.TrigCounterAddedOnce].any() {
+	if n > 0 && s.evLive(kop.TrigCounterAddedOnce) {
 		s.fireObj(k, kop.TrigCounterAddedOnce, sl, p.obj, p.ctrl, int16(n))
 	}
 	s.mSlSet(k, mechRenowned, sl)

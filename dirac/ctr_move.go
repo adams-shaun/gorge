@@ -37,7 +37,7 @@ func (s *State) moveCounter(k *prep, in *kop.Instr) {
 	if n > 0 && k.anyCtrAdded {
 		s.ctrNote(k, dst, kind)
 	}
-	if n > 0 && s.subs[kop.TrigCounterAddedOnce].any() {
+	if n > 0 && s.evLive(kop.TrigCounterAddedOnce) {
 		s.g.lastCK = kop.CounterKind(kind)
 		s.fireObj(k, kop.TrigCounterAddedOnce, dst, pd.obj, pd.ctrl, int16(n))
 	}

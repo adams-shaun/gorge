@@ -1,0 +1,8 @@
+# the GainsTriggerAbsOf$ pool: Koh, the Face Stealer has all activated and triggered
+# abilities of the last chosen card exiled with it (dirac/oracle/kohgainstrig_lockstep_test.go)
+Koh, the Face Stealer
+Gravedigger
+Blood Artist
+Swamp
+Serendib Efreet
+Island

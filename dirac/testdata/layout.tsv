@@ -495,6 +495,8 @@ default	field	genPrep.anyHexOwn	1
 default	field	genPrep.anyProtCol	1
 default	field	genPrep.grantTrigEv	4
 default	field	genPrep.globTrigGrant	1
+default	field	genPrep.gainsTrigEv	4
+default	field	genPrep.gainsCtrAll	1
 default	field	genPrep.anyProtF	1
 default	field	genPrep.anyProtGrant	1
 default	field	genPrep.manaTaps	1

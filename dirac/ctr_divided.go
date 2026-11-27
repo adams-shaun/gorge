@@ -144,7 +144,7 @@ func (s *State) putDividedShare(k *prep, sl Slot, ck kop.CounterKind, amt int) {
 	if n > 0 && k.anyCtrAdded {
 		s.ctrNote(k, sl, int(ck))
 	}
-	if n > 0 && s.subs[kop.TrigCounterAddedOnce].any() {
+	if n > 0 && s.evLive(kop.TrigCounterAddedOnce) {
 		s.g.lastCK = ck
 		s.fireObj(k, kop.TrigCounterAddedOnce, sl, p.obj, p.ctrl, int16(n))
 	}

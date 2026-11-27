@@ -36,7 +36,7 @@ func (s *State) setCtrCellHit(on bool) {
 // fireCounterCell fires CounterAddedOnce for the n counters a cell-carrying
 // instruction just placed on sl, and enters sl in the action's cell.
 func (s *State) fireCounterCell(k *prep, sl Slot, n int) {
-	if n <= 0 || !s.subs[kop.TrigCounterAddedOnce].any() {
+	if n <= 0 || !s.evLive(kop.TrigCounterAddedOnce) {
 		return
 	}
 	s.setCtrCellHit(s.g.ctrCell.has(sl) && !DebugCtrCellOff)

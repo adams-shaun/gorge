@@ -521,7 +521,7 @@ func (s *State) declareAttacksDone(k *prep) {
 		if kw&(kop.KwFirstStrike|kop.KwDoubleStrike) != 0 {
 			fs = true
 		}
-		if k.gen == nil && s.subs[kop.TrigAttacks].any() {
+		if k.gen == nil && s.evLive(kop.TrigAttacks) {
 			s.fireObj(k, kop.TrigAttacks, sl, p.obj, p.ctrl, 0)
 		}
 	}
@@ -543,7 +543,7 @@ func (s *State) declareAttacksDone(k *prep) {
 				s.stampDefSeat(n0, s.firstAtkSeat(k), NoTarget) // the declaration's first event's seat (a player)
 			}
 		}
-		if s.subs[kop.TrigTaps].any() {
+		if s.evLive(kop.TrigTaps) {
 			tb := s.tapBatchOpen(k)   // the declaration's taps are one tapping action (CR 508.1f; trig_tapall.go)
 			s.fireTapsMask(k, tapped) // gorge taps the attackers after the declaration's triggers
 			s.tapBatchClose(tb)
@@ -551,7 +551,7 @@ func (s *State) declareAttacksDone(k *prep) {
 		for m := tapped; m.any(); m = m.rest() {
 			s.markTapped(k, m.first()) // after the declaration's Taps triggers
 		}
-	} else if s.nAttackers > 0 && s.subs[kop.TrigAttackersDeclared].any() {
+	} else if s.nAttackers > 0 && s.evLive(kop.TrigAttackersDeclared) {
 		s.firePlayer(k, kop.TrigAttackersDeclared, s.active, int16(s.nAttackers))
 	}
 	if s.bandAsk(k) {
@@ -577,6 +577,9 @@ func (s *State) fireAttacksGen(k *prep) {
 	m := s.subs[kop.TrigAttacks].or(s.subs[kop.TrigAttackersDeclared]).and(s.occ)
 	if k.gen.grantTrigEv&(1<<kop.TrigAttacks|1<<kop.TrigAttackersDeclared) != 0 {
 		m = s.grantTrigHosts(k, m)
+	}
+	if k.gen.gainsTrigEv&(1<<kop.TrigAttacks|1<<kop.TrigAttackersDeclared) != 0 {
+		m = s.gainsTrigHosts(k, m) // trig_gainedtrig.go
 	}
 	emb := k.gen.embCombatEv&(1<<kop.TrigAttacks|1<<kop.TrigAttackersDeclared) != 0 && s.anyEmb()
 	if !m.any() && len(k.gen.graveTrig) == 0 && !emb && !s.anyCommandTrigger(k, kop.TrigAttackersDeclared) && !k.gen.ringOn() {
@@ -1261,10 +1264,10 @@ func (s *State) finishBlocks(k *prep) {
 			s.touchSl(a)
 		}
 	}
-	if k.gen != nil && (s.subs[kop.TrigBecomesBlocked].any() || k.gen.embCombatEv&(1<<kop.TrigBecomesBlocked) != 0) {
+	if k.gen != nil && (s.evLive(kop.TrigBecomesBlocked) || k.gen.embCombatEv&(1<<kop.TrigBecomesBlocked) != 0) {
 		s.fireBlockedGen(k)
 	}
-	if k.gen != nil && (s.subs[kop.TrigBlocks].any() || k.gen.embCombatEv&(1<<kop.TrigBlocks) != 0) {
+	if k.gen != nil && (s.evLive(kop.TrigBlocks) || k.gen.embCombatEv&(1<<kop.TrigBlocks) != 0) {
 		s.fireBlocksGen(k)
 	}
 	if k.gen != nil && k.gen.anyUnblocked {
@@ -1285,7 +1288,7 @@ func (s *State) finishBlocks(k *prep) {
 			if s.kw(k, b)&(kop.KwFirstStrike|kop.KwDoubleStrike) != 0 {
 				s.fsStep = true
 			}
-			if k.gen == nil && s.subs[kop.TrigBlocks].any() {
+			if k.gen == nil && s.evLive(kop.TrigBlocks) {
 				s.fireObj(k, kop.TrigBlocks, b, s.perms[b].obj, s.perms[b].ctrl, 0)
 			}
 		}
@@ -1650,7 +1653,7 @@ func (s *State) combatDamage(k *prep, first bool) bool {
 			s.gainLife(k, pp, int(r.gain[pp]))
 		}
 	}
-	if s.subs[kop.TrigDamageDone].any() {
+	if s.evLive(kop.TrigDamageDone) {
 		m = s.occ
 		for m.any() {
 			sl := m.first()
@@ -1722,7 +1725,7 @@ func (s *State) loseLife(k *prep, p uint8, n int) {
 	}
 	s.pl[p].life -= int16(n)
 	s.pl[p].lifeLost += int16(n)
-	if s.subs[kop.TrigLifeLost].any() {
+	if s.evLive(kop.TrigLifeLost) {
 		s.firePlayer(k, kop.TrigLifeLost, p, int16(n))
 	}
 	if k.speed {
@@ -1749,7 +1752,7 @@ func (s *State) gainLife(k *prep, p uint8, n int) {
 	}
 	s.pl[p].life += int16(n)
 	s.pl[p].lifeGained += int16(n)
-	if s.subs[kop.TrigLifeGained].any() || k.gen != nil && k.gen.embCombatEv&(1<<kop.TrigLifeGained) != 0 {
+	if s.evLive(kop.TrigLifeGained) || k.gen != nil && k.gen.embCombatEv&(1<<kop.TrigLifeGained) != 0 {
 		s.firePlayer(k, kop.TrigLifeGained, p, int16(n))
 	}
 }

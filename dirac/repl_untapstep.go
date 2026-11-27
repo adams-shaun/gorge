@@ -138,7 +138,7 @@ func (s *State) untapCands(k *prep, sl Slot) int {
 // fireUntapsOrdered fires Untaps triggers for the permanents in up, in the
 // battlefield order ord.
 func (s *State) fireUntapsOrdered(k *prep, up slotMask, ord *[MaxPerm]Slot, n int) {
-	if !up.any() || !s.subs[kop.TrigUntaps].any() {
+	if !up.any() || !s.evLive(kop.TrigUntaps) {
 		return
 	}
 	for _, sl := range ord[:n] {

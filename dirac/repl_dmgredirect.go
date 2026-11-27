@@ -376,7 +376,7 @@ func (s *State) redirLand(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, tc
 	if k.gen.anyPermMark && srcSl != NoSlot {
 		s.markDealt(k, srcSl, false)
 	}
-	if s.subs[kop.TrigDamageDone].any() || s.subs[kop.TrigDamageDealtOnce].any() || k.gen.graveDmg {
+	if s.evLive(kop.TrigDamageDone) || s.evLive(kop.TrigDamageDealtOnce) || k.gen.graveDmg {
 		if srcSl != NoSlot {
 			s.fireDamage(k, srcSl, int16(m), false, false, tcode)
 		} else {

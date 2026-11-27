@@ -616,7 +616,7 @@ func (s *State) payConvoke(k *prep, e *stackEntry, cost *kop.ManaCost, anyType, 
 		s.perms[sl].flags |= pfTapped
 		s.touchSl(sl)
 		if was == 0 {
-			if k.gen != nil && s.subs[kop.TrigTaps].any() {
+			if k.gen != nil && s.evLive(kop.TrigTaps) {
 				tb = tb || s.tapBatchOpen(k) // the announcement's taps are one tapping action (gorge EmitConvokeTaps; trig_tapall.go)
 				s.fireTaps(k, sl)
 			}

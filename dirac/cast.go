@@ -380,7 +380,7 @@ func (s *State) pushBuild(k *prep) {
 			}
 		}
 	}
-	if e.kind != seSpell && k.gen != nil && (k.gen.anyStackTgt || k.gen.anyWard || k.gen.anyWardGrant || s.subs[kop.TrigBecomesTarget].any()) {
+	if e.kind != seSpell && k.gen != nil && (k.gen.anyStackTgt || k.gen.anyWard || k.gen.anyWardGrant || s.evLive(kop.TrigBecomesTarget)) {
 		s.stackSid(e) // a stack-ability target's identity (tgt_stackability.go); a ward trigger's warded ability (wardedIndex); a BecomesTarget TriggeredSourceSA's targeting ability (trig_becomestarget.go)
 	}
 	if e.kind != seSpell && k.anyColorWords {
@@ -2098,6 +2098,9 @@ func (s *State) onCast(k *prep, e *stackEntry) {
 	if k.gen != nil && k.gen.grantTrigEv&(1<<kop.TrigSpellCast) != 0 {
 		lm = s.grantTrigHosts(k, lm)
 	}
+	if k.gen != nil && k.gen.gainsTrigEv&(1<<kop.TrigSpellCast) != 0 {
+		lm = s.gainsTrigHosts(k, lm) // trig_gainedtrig.go
+	}
 	if e.ctrl != 0 && !e.faceDown() {
 		// the spell's own cast trigger: gorge walks the stack on seat 0's
 		// pass, after seat 0's battlefield and before every later seat's
@@ -2225,7 +2228,7 @@ func (s *State) targetedOne(k *prep, e *stackEntry, t TCode) {
 		// A player target's BecomesTarget watchers (gorge's TargetsChosen
 		// player half: ValidTarget$ You/Player/Opponent beside a permanent
 		// list). The object walk below never reaches it, so it has its own.
-		if k.gen != nil && s.subs[kop.TrigBecomesTarget].any() {
+		if k.gen != nil && s.evLive(kop.TrigBecomesTarget) {
 			s.becameTargetPlayer(k, t, e) // trig_becomestarget.go
 		}
 		return
@@ -2235,7 +2238,7 @@ func (s *State) targetedOne(k *prep, e *stackEntry, t TCode) {
 	}
 	ob := &s.objs[t]
 	if ob.zone != kop.ZoneBattlefield {
-		if ob.zone == kop.ZoneStack && k.gen != nil && k.gen.btSpell && s.subs[kop.TrigBecomesTarget].any() {
+		if ob.zone == kop.ZoneStack && k.gen != nil && k.gen.btSpell && s.evLive(kop.TrigBecomesTarget) {
 			s.btSpellTarget(k, Obj(t), e) // trig_becomestarget.go
 		}
 		return
@@ -2243,7 +2246,7 @@ func (s *State) targetedOne(k *prep, e *stackEntry, t TCode) {
 	sl := ob.slot
 	p := &s.perms[sl]
 	nb := s.npend // the BecomesTarget walk's first pending trigger (wardBeforeGranted)
-	if s.subs[kop.TrigBecomesTarget].any() {
+	if s.evLive(kop.TrigBecomesTarget) {
 		s.becameTarget(k, sl, e)
 		// after the walk: this targeting is not an earlier one (gorge's
 		// same-stack-object skip), but the next one must read it, even when no
@@ -2737,7 +2740,7 @@ func (s *State) payPickKind(k *prep, f pickKind) {
 				s.perms[ob.slot].flags |= pfTapped
 				s.touch(o)
 				if was == 0 {
-					if k.gen != nil && s.subs[kop.TrigTaps].any() {
+					if k.gen != nil && s.evLive(kop.TrigTaps) {
 						if g := k.gen; g.anyTWTap && s.bld().e.kind == seSpell && s.bld().e.flags&sfKicked != 0 && k.t.Cards[s.bld().e.card].Teamwork != 0 {
 							s.fireTapsTW(k, ob.slot) // a teamwork election pick (trig_params.go)
 						} else {

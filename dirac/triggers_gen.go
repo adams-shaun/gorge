@@ -19,6 +19,12 @@ type trigListener struct {
 	card CardID
 	ab   uint8
 	host Obj // the granting permanent plus one (stackEntry.trigHost); 0 = none
+	// gained: a GainsTrig lender's line. host is then only the
+	// once-per-turn/game limit key (the lender plus one, as the gained
+	// activations count); the stack entry's trigHost stays 0 because the
+	// recipient, not the lender, is the source (gorge's GainedTriggerPush
+	// mints no GrantedBy, trig_gainedtrig.go).
+	gained bool
 }
 
 // eachTrigger calls f for every triggered ability of event ev on the
@@ -45,6 +51,9 @@ func (s *State) eachBattlefieldTrigger(k *prep, ev kop.TrigEvent, f func(l trigL
 	m := s.subs[ev].and(s.occ)
 	if k.gen.grantTrigEv&(1<<ev) != 0 {
 		m = s.grantTrigHosts(k, m)
+	}
+	if k.gen.gainsTrigEv&(1<<ev) != 0 {
+		m = s.gainsTrigHosts(k, m) // trig_gainedtrig.go
 	}
 	n := s.listenerOrder(m, &ord)
 	for _, sl := range ord[:n] {
@@ -153,6 +162,12 @@ func (s *State) slotTriggers(k *prep, sl Slot, ev func(a *kop.Ability) bool, f f
 			}
 		}
 	}
+	if k.gen.gainsTrigEv != 0 {
+		// the GainsTrig lenders' triggers, after the printed face walk and
+		// before the AddTrigger$ grants, as gorge's granted walk lists them
+		// (trig_gainedtrig.go)
+		s.gainedTriggers(k, sl, ev, f)
+	}
 	// a granted Melee is listed apart from the other grants (kw_melee.go)
 	melee := k.gen.meleeGrant && ev(&meleeProbe)
 	meleeFirst := melee && s.meleeGrantsFirst(k, sl)
@@ -235,7 +250,7 @@ func (s *State) queueTrig(k *prep, l trigListener, a *kop.Ability, tobj Obj, tpl
 		ab = l.ab - 1
 	}
 	s.enqueueLKI(l.obj, s.objs[l.obj].ver, l.card, ab, l.ctrl, tobj, tpl, amt)
-	if s.npend > n {
+	if s.npend > n && !l.gained {
 		s.pend[n].remVer = objWord(l.host) // a granted trigger's host rides remVer (stackEntry.trigHost)
 	}
 	if a.Trig.Flags2&(kop.Tf2XBound|kop.Tf2SpentBound|kop.Tf2Convoked) != 0 {
@@ -739,9 +754,7 @@ func (d *dmgLatch) has(l trigListener, seen int) bool {
 // carries the batch total; without one the event is its own batch.
 func (s *State) fireDamageEvGen(k *prep, src Slot, amt int16, toPlayer, combat bool, latch *dmgLatch, rcp TCode, rl *refLatch) {
 	m := s.subs[kop.TrigDamageDone].or(s.subs[kop.TrigDamageDealtOnce]).and(s.occ)
-	if k.gen.grantTrigEv&(1<<kop.TrigDamageDone|1<<kop.TrigDamageDealtOnce) != 0 {
-		m = s.grantTrigHosts(k, m)
-	}
+	m = s.grantedHostsFor(k, m, 1<<kop.TrigDamageDone|1<<kop.TrigDamageDealtOnce)
 	if !m.any() {
 		if k.gen.graveDmg && (rl == nil || !rl.agg) { // a batch's aggregate fire is not a damage event
 			s.fireGraveDamage(k, src, s.perms[src].obj, s.perms[src].ctrl, amt, s.dmgPlayers(toPlayer, s.perms[src].ctrl, rcp), combat, rcp)
@@ -925,7 +938,7 @@ func (s *State) fireDamageSrc(k *prep, o Obj, ctrl uint8, amt int16, plM uint8, 
 		}
 	}
 	for _, ev := range evs {
-		if s.subs[ev].any() {
+		if s.evLive(ev) {
 			s.eachBattlefieldTrigger(k, ev, f)
 		}
 	}
@@ -936,7 +949,7 @@ func (s *State) fireDamageSrc(k *prep, o Obj, ctrl uint8, amt int16, plM uint8, 
 		s.fireEmblemsDmgSpell(k, o, ctrl, amt, toPlayer, rcp, rl) // trig_effectuntileot.go: Arcbond's emblem, damaged by a spell
 	}
 	for _, ev := range evs {
-		if s.subs[ev].any() {
+		if s.evLive(ev) {
 			s.eachCommandTrigger(k, ev, f)
 		}
 	}
@@ -1012,7 +1025,7 @@ func (s *State) castTrigGen(k *prep, l trigListener, a *kop.Ability, e *stackEnt
 // fireUntapsGen fires Untaps triggers for the active player's permanents
 // that were tapped (pre) and are untapped now.
 func (s *State) fireUntapsGen(k *prep, pre slotMask) {
-	if !s.subs[kop.TrigUntaps].any() {
+	if !s.evLive(kop.TrigUntaps) {
 		return
 	}
 	for m := pre; m.any(); m = m.rest() {
@@ -1118,7 +1131,7 @@ func (s *State) combatEventsGen(k *prep, r *dmgRec, dealt bool) {
 		add(r.ev[i].src)
 	}
 	// a gain's plus-one (Angel of Vitality) is per source, each its own event
-	life := s.subs[kop.TrigLifeLost].or(s.subs[kop.TrigLifeGained]).any() || k.gen.anyRepl&rbPlusLife != 0 ||
+	life := s.evLive2(kop.TrigLifeLost, kop.TrigLifeGained) || k.gen.anyRepl&rbPlusLife != 0 ||
 		k.gen.embCombatEv&(1<<kop.TrigLifeGained) != 0
 	if !life && !dealt {
 		for pp := uint8(0); pp < MaxSeats; pp++ {
@@ -1133,7 +1146,7 @@ func (s *State) combatEventsGen(k *prep, r *dmgRec, dealt bool) {
 			}
 		}
 	}
-	dmg := s.subs[kop.TrigDamageDone].or(s.subs[kop.TrigDamageDealtOnce]).any() || k.gen.embCombatEv&(1<<kop.TrigDamageDone) != 0 || k.gen.graveDmg
+	dmg := s.evLive2(kop.TrigDamageDone, kop.TrigDamageDealtOnce) || k.gen.embCombatEv&(1<<kop.TrigDamageDone) != 0 || k.gen.graveDmg
 	if dmg && k.gen.anyBatch {
 		defer s.batchClose(s.batchOpen())
 	}

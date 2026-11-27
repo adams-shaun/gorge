@@ -685,7 +685,7 @@ func (s *State) putCounterProg(k *prep, in *kop.Instr) {
 	if n > 0 && k.anyCtrAdded {
 		s.ctrNote(k, sl, int(in.C))
 	}
-	if n > 0 && s.subs[kop.TrigCounterAddedOnce].any() {
+	if n > 0 && s.evLive(kop.TrigCounterAddedOnce) {
 		s.g.lastCK = kop.CounterKind(in.C) // CounterAddedOnce reads the kind
 		s.fireObj(k, kop.TrigCounterAddedOnce, sl, s.perms[sl].obj, s.perms[sl].ctrl, int16(n))
 	}

@@ -299,7 +299,7 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 			s.perms[sl].flags |= pfTapped
 			s.touchSl(sl)
 			if was == 0 {
-				if k.gen != nil && s.subs[kop.TrigTaps].any() {
+				if k.gen != nil && s.evLive(kop.TrigTaps) {
 					who := s.effTapper(sl)
 					if in.W != 0 {
 						// the instruction's Tapper$ provenance (gorge
@@ -915,7 +915,7 @@ func (s *State) discardObjAs(k *prep, o Obj, effect bool) {
 	if k.gen != nil && k.gen.anyRemDisc {
 		s.discardRemember(k, o)
 	}
-	if s.subs[kop.TrigDiscarded].any() {
+	if s.evLive(kop.TrigDiscarded) {
 		s.firePlayer(k, kop.TrigDiscarded, s.objs[o].owner(), 1)
 	}
 	if k.gen != nil && k.gen.anySelfDisc {

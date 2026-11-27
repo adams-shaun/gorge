@@ -555,7 +555,7 @@ func (s *State) turnUpDone(k *prep, o Obj, p uint8, mode uint8, x int, megamorph
 		if n > 0 && k.anyCtrAdded {
 			s.ctrNote(k, sl, int(kop.CtrP1P1))
 		}
-		if n > 0 && s.subs[kop.TrigCounterAddedOnce].any() {
+		if n > 0 && s.evLive(kop.TrigCounterAddedOnce) {
 			s.fireObj(k, kop.TrigCounterAddedOnce, sl, s.perms[sl].obj, s.perms[sl].ctrl, int16(n))
 		}
 	}

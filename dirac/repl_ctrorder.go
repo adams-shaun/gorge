@@ -187,7 +187,7 @@ func (s *State) execPutCounterAt(k *prep, in *kop.Instr) bool {
 				s.g.ctrCell.clr(sl)
 			}
 			s.fireCounterCell(k, sl, n) // trig_countercell.go
-		} else if n > 0 && s.subs[kop.TrigCounterAddedOnce].any() {
+		} else if n > 0 && s.evLive(kop.TrigCounterAddedOnce) {
 			s.fireObj(k, kop.TrigCounterAddedOnce, sl, s.perms[sl].obj, s.perms[sl].ctrl, int16(n))
 		}
 		if in.B.N != 0 {

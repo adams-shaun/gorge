@@ -89,7 +89,7 @@ func (s *State) moveCounterAnyApply(k *prep, n int) {
 		if got > 0 && k.anyCtrAdded {
 			s.ctrNote(k, dst, kind)
 		}
-		if got > 0 && s.subs[kop.TrigCounterAddedOnce].any() {
+		if got > 0 && s.evLive(kop.TrigCounterAddedOnce) {
 			pd := &s.perms[dst]
 			s.g.lastCK = kop.CounterKind(kind)
 			s.fireObj(k, kop.TrigCounterAddedOnce, dst, pd.obj, pd.ctrl, int16(got))

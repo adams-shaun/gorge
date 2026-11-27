@@ -14,7 +14,7 @@ func (s *State) untapEffect(k *prep, sl Slot) {
 	was := p.flags & pfTapped
 	p.flags &^= pfTapped
 	s.untapEnds(k, p.obj) // the lock and the host-tapped grants end at the first untap (static_animatewhiletapped.go)
-	if was != 0 && k.gen != nil && s.subs[kop.TrigUntaps].any() {
+	if was != 0 && k.gen != nil && s.evLive(kop.TrigUntaps) {
 		s.fireObjGen(k, kop.TrigUntaps, sl, p.obj, p.ctrl, 0)
 	}
 }

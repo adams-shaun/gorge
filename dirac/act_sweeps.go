@@ -63,7 +63,7 @@ func (s *State) putCounterAll(k *prep, in *kop.Instr) {
 		}
 		if in.B.N == kop.PutCtrCellFirst || in.B.N == kop.PutCtrCellNext {
 			s.fireCounterCell(k, sl, m) // trig_countercell.go
-		} else if m > 0 && s.subs[kop.TrigCounterAddedOnce].any() {
+		} else if m > 0 && s.evLive(kop.TrigCounterAddedOnce) {
 			s.fireObj(k, kop.TrigCounterAddedOnce, sl, s.perms[sl].obj, s.perms[sl].ctrl, int16(m))
 		}
 	}
@@ -187,7 +187,7 @@ func (s *State) tapAll(k *prep, in *kop.Instr) {
 		}
 		p.flags |= pfTapped
 		s.touchSl(sl)
-		if s.subs[kop.TrigTaps].any() {
+		if s.evLive(kop.TrigTaps) {
 			tapper := s.effTapper(sl)
 			if in.C == 1 {
 				tapper = p.ctrl
