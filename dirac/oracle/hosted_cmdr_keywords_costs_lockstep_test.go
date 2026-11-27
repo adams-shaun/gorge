@@ -248,4 +248,5 @@ func TestHostedCmdrKeywordsCostsLockstep(t *testing.T) {
 		})
 	}
 	t.Run("windgrace_commander_keyword", hostedCmdrWindgrace)
+	t.Run("necrodominance_paylife_x_trigger", hostedCmdrNecrodominance)
 }

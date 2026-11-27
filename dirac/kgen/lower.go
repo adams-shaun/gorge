@@ -3128,7 +3128,10 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 					}
 					return c, refuse("life cost PayLife<X> with SVar X %q", x)
 				}
-				if !lc.lifeXSpell && !lc.actCost {
+				// a printed trigger's own "you may pay any amount of life": the
+				// announced X rides the resolution cost (payInstr, lower_effect_pay.go)
+				ownTrig := lc.trigBodyCost && lc.ab != nil && lc.ab.Kind == akTriggered && len(lc.ab.Prog) == 0
+				if !lc.lifeXSpell && !lc.actCost && !ownTrig {
 					return c, refuse("life cost PayLife<X> on a %s ability", "non-spell, non-activated")
 				}
 				if c.LifeX || c.PayLife != 0 || c.LoyaltyX {
