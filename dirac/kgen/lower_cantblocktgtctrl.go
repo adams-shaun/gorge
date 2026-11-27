@@ -34,6 +34,7 @@ func (lc *lowerCtx) cantBlockTargetedController(ps *params, ss []cards.Static) (
 	}
 	// the chain's own permanent target, read live at resolution
 	t := lc.lastTarget()
+	// lastTarget is -1 when the chain has no target: that lands here too.
 	if t != 0 {
 		return true, refuse("Effect CantBlockBy over TargetedController without target slot 0")
 	}

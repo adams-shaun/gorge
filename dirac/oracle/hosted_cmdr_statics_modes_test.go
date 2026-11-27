@@ -104,16 +104,16 @@ func runHostedCmdrShape(t *testing.T, c hostedCmdrShape) {
 // reflexive trigger destroys a nonbasic land the defending player controls and
 // the creatures that player controls without flying can't block this turn.
 const motherlodeProbeScript = "Name:Motherlode Probe\nManaCost:1\nTypes:Artifact Creature Robot\nPT:2/2\n" +
-	"T:Mode$ Attacks | ValidCard$ Card.Self | Execute$ TrigImmediateTrig | TriggerZones$ Battlefield | TriggerDescription$ Whenever CARDNAME attacks, you may pay 1 life. When you do, destroy target nonbasic land defending player controls, and creatures that player controls without flying can't block this turn.\n" +
-	"SVar:TrigImmediateTrig:AB$ ImmediateTrigger | Cost$ PayLife<1> | Execute$ TrigDestroy | SpellDescription$ When you do, destroy target nonbasic land defending player controls, and creatures that player controls without flying can't block this turn.\n" +
-	"SVar:TrigDestroy:DB$ Destroy | ValidTgts$ Land.nonBasic+ControlledBy Spawner>TriggeredDefendingPlayer | TgtPrompt$ Select target nonbasic land defending player controls | SubAbility$ DBEffect\n" +
-	"SVar:DBEffect:DB$ Effect | StaticAbilities$ Static | RememberObjects$ TargetedController\n" +
-	"SVar:Static:Mode$ CantBlockBy | ValidAttacker$ Creature | ValidBlocker$ Creature.withoutFlying+RememberedPlayerCtrl | Description$ Creatures that player controls without flying can't block this turn.\n" +
-	"Oracle:Whenever this attacks, you may pay 1 life. When you do, destroy target nonbasic land defending player controls, and creatures that player controls without flying can't block this turn.\n"
+	"T:Mode$ Attacks | ValidCard$ Card.Self | Execute$ ProbeReflex | TriggerZones$ Battlefield | TriggerDescription$ Whenever this attacks you may pay 1 life; if you do, destroy a nonbasic land the defender controls, and that player's non-flying creatures can't block.\n" +
+	"SVar:ProbeReflex:AB$ ImmediateTrigger | Cost$ PayLife<1> | Execute$ ProbeDestroy | SpellDescription$ Destroy a nonbasic land the defender controls; that player's non-flying creatures can't block.\n" +
+	"SVar:ProbeDestroy:DB$ Destroy | SubAbility$ ProbeNoBlock | ValidTgts$ Land.nonBasic+ControlledBy Spawner>TriggeredDefendingPlayer | TgtPrompt$ Choose a nonbasic land of the defender\n" +
+	"SVar:ProbeNoBlock:DB$ Effect | RememberObjects$ TargetedController | StaticAbilities$ ProbeStatic\n" +
+	"SVar:ProbeStatic:Mode$ CantBlockBy | ValidBlocker$ Creature.withoutFlying+RememberedPlayerCtrl | ValidAttacker$ Creature | Description$ That player's non-flying creatures can't block this turn.\n" +
+	"Oracle:Whenever this attacks you may pay 1 life; if you do, destroy a nonbasic land the defender controls, and that player's non-flying creatures can't block.\n"
 
 const probeNonbasicLandScript = "Name:Probe Nonbasic Land\nManaCost:no cost\nTypes:Land\n" +
-	"A:AB$ Mana | Cost$ T | Produced$ G | SpellDescription$ Add {G}.\n" +
-	"Oracle:{T}: Add {G}.\n"
+	"A:AB$ Mana | Produced$ G | Cost$ T | SpellDescription$ Add one green mana.\n" +
+	"Oracle:{T}: Add one green mana.\n"
 
 // destroyedProbeLandWithBlocker: over the whole game a seat-0 Motherlode Probe
 // attacked, a seat-1 Probe Nonbasic Land left the battlefield for the
