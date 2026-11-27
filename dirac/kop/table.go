@@ -205,9 +205,14 @@ type CardDef struct {
 	// spell as though it had flash if ..."; Illusion Spinners). The card's own
 	// StatCastWithFlash ability grants it from hand, never from the
 	// battlefield (kernel cast_selfflash.go).
-	SelfFlash  bool
-	SpellCost  Cost // the spell's additional cost (sacrifice / discard; mana zero)
-	AltAddCost Cost // AlternateAdditionalCost: may be paid instead of SpellCost (HasAltAdd)
+	SelfFlash bool
+	// SelfFlashSA is the self grant's ValidSA$ constraint on the spell side
+	// (SfsaSpell, the bare Spell of every grant but one; SfsaTeamwork: Quantum
+	// Reduction's Spell.Teamwork, granted only once the cast's teamwork election
+	// is made). Read with SelfFlash (kernel cast_selfflash.go).
+	SelfFlashSA uint8
+	SpellCost   Cost // the spell's additional cost (sacrifice / discard; mana zero)
+	AltAddCost  Cost // AlternateAdditionalCost: may be paid instead of SpellCost (HasAltAdd)
 	// AltAddCost2 is the either-or's third part (Dusk Mangler's
 	// PayLife<4>), paid instead of SpellCost when the ask chose it (the
 	// build's altAdd buildAltAdd2, 4; kernel cast.go altAddOptions offers
@@ -1171,3 +1176,10 @@ const MinBlockersAll uint8 = 255
 // CanBlockAny$ True form: the creature can block any number of creatures
 // (CR 509.1a), where 1 is CanBlockAmount$ 1. A Static.A of 0 is amount 1.
 const ExtraBlocksAny uint8 = 255
+
+// CardDef.SelfFlashSA values: the spell-side ValidSA$ constraint of a
+// CastWithFlash self grant.
+const (
+	SfsaSpell    uint8 = iota // bare "Spell": granted whenever the gate holds
+	SfsaTeamwork              // "Spell.Teamwork": granted once the cast's teamwork election is made
+)

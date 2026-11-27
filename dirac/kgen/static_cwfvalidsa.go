@@ -10,9 +10,11 @@ import (
 // cwfValidSA reads a CastWithFlash static's ValidSA$ tail, the spell-side
 // words gorge's spellMatchesValidSA grants on (rules/statics_cast.go):
 // bare `Spell`; `Spell.XCostLE<N>` (Silver Scrutiny), returned as xmax =
-// 1+N, the kernel's X bound (kop.Static.A, dirac/cast_flashxcap.go); and
+// 1+N, the kernel's X bound (kop.Static.A, dirac/cast_flashxcap.go);
 // `Spell.<creature type>` (Blur of Heroism's Hero), returned as the subtype
-// the static's card filter also requires. Every other word refuses.
+// the static's card filter also requires; and `Spell.Teamwork` (Quantum
+// Reduction), the self grant offered only on the teamworked cast (the SA bit
+// lowers in selfFlashShape). Every other word refuses.
 func cwfValidSA(v string) (xmax int, subtype string, err error) {
 	kind, tail, dotted := strings.Cut(strings.TrimSpace(v), ".")
 	if kind != "Spell" {
@@ -20,6 +22,9 @@ func cwfValidSA(v string) (xmax int, subtype string, err error) {
 	}
 	if !dotted {
 		return 0, "", nil
+	}
+	if tail == "Teamwork" {
+		return 0, "", nil // Spell.Teamwork: the SA bit lowers in selfFlashShape
 	}
 	if num, ok := strings.CutPrefix(tail, "XCostLE"); ok {
 		if n, err := strconv.Atoi(num); err == nil && n >= 0 && n < 255 {
