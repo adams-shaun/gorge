@@ -1,0 +1,6 @@
+family: FilterWord
+name: FwSharesCardType
+value: next
+contexts: perm,card,spell
+status: active
+doc: FwSharesCardType: the object shares a card type with the first object the referent R names (gorge sharesCardTypeWith over sharesTypeReferents, engine/effects/filter_attachment.go; Braids, Arisen Nightmare's Sacrifice SacValid$ Permanent.sharesCardTypeWith RememberedCard, RefRemembered the entry's first remembered card). A card type is an artifact, battle, creature, enchantment, instant, kindred, land, planeswalker or sorcery (CR 205.2), never a supertype or subtype. A battlefield object reads its current types (a land animated into a creature has both), anything else its printed types, the referent read where it now is (a sacrificed card in the graveyard answers from its card). An unbound referent matches nothing, fail closed.
