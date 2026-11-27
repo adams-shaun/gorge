@@ -1,0 +1,12 @@
+# the Sorcerous Squall pool: target opponent mills nine, then you may cast an
+# instant or sorcery from that player's graveyard free, exiling it if it would
+# be put into a graveyard (Play Valid$ Card.TargetedPlayerCtrl ValidZone$
+# Graveyard; dirac/oracle/mbc_zone_moves_nine_lowers_test.go). Abstract
+# Paintmage floats the {U}{U}{U}{R}{R}{R} the nine-mana Delve spell needs: no
+# land tap pays a Delve cast, which gorge offers only against the floating pool.
+Sorcerous Squall
+Abstract Paintmage
+Island
+Mountain
+Shock
+Lava Axe
