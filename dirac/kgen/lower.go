@@ -226,28 +226,30 @@ type lowerCtx struct {
 	card           *cards.Card
 	face           *cards.Face
 	out            *lCard
-	ab             *lAbility // the ability being lowered
-	mode           int       // the charm mode being lowered (-1 none)
-	chainT         []int     // target slots declared by the current SA chain, in order
-	remTgt         int       // target slots a Pump RememberObjects$ ThisTargetedCard remembered (bit per slot; lower_remembered.go)
-	condDone       bool      // the node's Condition*$ was lowered into its op (ChangeSpeed): nodeCondition skips it once
-	atRes          bool      // the node being lowered declares its targets mid-resolution
-	depth          int       // chain nesting (1: the ability's own chain)
-	head           bool      // the node being lowered heads its chain
-	inGroup        bool      // lowering a Mobilize group program's body (SacrificeDelayed is legal)
-	groupMany      bool      // ... of Mobilize 3-4: the DpMany program, SacrificeDelayed reads up to four objects
-	delayedSetDmg  bool      // delayedRemember accepted a dig's whole remembered set for a count-of-the-still-exiled body (lower_delayedsetdmg.go)
-	czForgetSet    bool      // a ChangeZoneAll ForgetOtherRemembered$ ran in this ability: Remembered is a many-object set (lower_changezoneall.go)
-	chains         int       // chain entries so far (every-blocker census: did a node's body get read?)
-	guardNode      string    // the top-level node guard is lowering (every-blocker census names extra refusals by it)
-	probeHead      *cards.SA // probeBody: the refused activated ability whose body is probed (its Cost$ is no resolution cost)
-	curNode        *cards.SA // the SA node being lowered (its Sub is the rest of the chain)
-	condDefined    bool      // defined() is reading a ConditionDefined$ (lower_triggerattackers.go)
-	own            ownTgt    // the slot curNode declared itself (lower_owntarget.go)
-	chainRoot      *cards.SA // the root of the outermost chain being lowered (chain, depth 1)
-	fbGranted      bool      // lowering a granted Firebending N trigger (lower_firegrant.go): manaEffect needs no ElementalBend marker
-	mlTrigger      bool      // lowering a Melee trigger, printed or granted (lower_meleegrant.go): its pump reads cards.MeleePumpCount
-	fbMarker       *cards.SA // the Firebending expansion's DB$ ElementalBend node manaEffect vetted (elementalBend lowers only it)
+	ab             *lAbility     // the ability being lowered
+	mode           int           // the charm mode being lowered (-1 none)
+	chainT         []int         // target slots declared by the current SA chain, in order
+	remTgt         int           // target slots a Pump RememberObjects$ ThisTargetedCard remembered (bit per slot; lower_remembered.go)
+	condDone       bool          // the node's Condition*$ was lowered into its op (ChangeSpeed): nodeCondition skips it once
+	atRes          bool          // the node being lowered declares its targets mid-resolution
+	depth          int           // chain nesting (1: the ability's own chain)
+	head           bool          // the node being lowered heads its chain
+	inGroup        bool          // lowering a Mobilize group program's body (SacrificeDelayed is legal)
+	groupMany      bool          // ... of Mobilize 3-4: the DpMany program, SacrificeDelayed reads up to four objects
+	delayedSetDmg  bool          // delayedRemember accepted a dig's whole remembered set for a count-of-the-still-exiled body (lower_delayedsetdmg.go)
+	czForgetSet    bool          // a ChangeZoneAll ForgetOtherRemembered$ ran in this ability: Remembered is a many-object set (lower_changezoneall.go)
+	chains         int           // chain entries so far (every-blocker census: did a node's body get read?)
+	guardNode      string        // the top-level node guard is lowering (every-blocker census names extra refusals by it)
+	probeHead      *cards.SA     // probeBody: the refused activated ability whose body is probed (its Cost$ is no resolution cost)
+	curNode        *cards.SA     // the SA node being lowered (its Sub is the rest of the chain)
+	condDefined    bool          // defined() is reading a ConditionDefined$ (lower_triggerattackers.go)
+	own            ownTgt        // the slot curNode declared itself (lower_owntarget.go)
+	mvNode         *cards.SA     // the node whose cost part may read Targeted$CardManaCost before its target (lower_targetmv.go)
+	pendMV         *pendTargetMV // a before-the-effect target-MV read awaiting the effect's slot (lower_targetmv.go)
+	chainRoot      *cards.SA     // the root of the outermost chain being lowered (chain, depth 1)
+	fbGranted      bool          // lowering a granted Firebending N trigger (lower_firegrant.go): manaEffect needs no ElementalBend marker
+	mlTrigger      bool          // lowering a Melee trigger, printed or granted (lower_meleegrant.go): its pump reads cards.MeleePumpCount
+	fbMarker       *cards.SA     // the Firebending expansion's DB$ ElementalBend node manaEffect vetted (elementalBend lowers only it)
 	// digImprinted: this chain's DigUntil imprinted its found card and
 	// remembered every revealed card, Jodah's shape (lower_digimprint.go): the
 	// Play of the Imprinted card and the random-order bottom of the
@@ -3543,7 +3545,7 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 		lc.forecastParam(ps)
 		lc.unblockedOK = strings.TrimSpace(sa.Params["Keyword"]) == "Ninjutsu"
 		lc.actCost = ab.Kind == akActivated
-		cost, err := lc.costHand(c)
+		cost, err := lc.costHandMV(sa, c)
 		lc.unblockedOK, lc.actCost = false, false
 		if err != nil {
 			return err

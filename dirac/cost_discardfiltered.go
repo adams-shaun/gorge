@@ -11,11 +11,18 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 //
 //go:noinline
 func (s *State) discardCandN(k *prep, p uint8, f kop.FilterID, exclude Obj) int {
+	return s.discardCandNAt(k, p, f, exclude, nil)
+}
+
+// discardCandNAt is discardCandN read in ctx (a target-bound cost filter's
+// candidate target; cost_targetmv.go). A nil ctx is the resolving or
+// building entry's, as before.
+func (s *State) discardCandNAt(k *prep, p uint8, f kop.FilterID, exclude Obj, ctx *evalCtx) int {
 	n := 0
 	pl := &s.pl[p]
 	for i := 0; i < int(pl.handN); i++ {
 		o := pl.hand[i]
-		if o == exclude || !s.matchCardGen(k, f, s.objs[o].card, p, p, o) {
+		if o == exclude || !s.matchCardGenAt(k, f, s.objs[o].card, p, p, o, ctx) {
 			continue
 		}
 		n++

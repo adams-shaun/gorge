@@ -452,6 +452,7 @@ func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 		case "Sacrificed":
 			ref = lRef{Kind: rSacrificed}
 		}
+		ref = lc.bindPendingTargetMV(ref, head, rest)
 		if ref.Kind == rTarget && ref.N < 0 {
 			return lValue{}, fmt.Errorf("%s$ with no target slot", head)
 		}
@@ -477,7 +478,7 @@ func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 					break
 				}
 			}
-			if ref.Kind != rTriggered && !(ref.Kind == rSacrificed && lc.sacrificedIsCost()) && !lc.targetMVReadable(ref) {
+			if ref.Kind != rTriggered && !(ref.Kind == rSacrificed && lc.sacrificedIsCost()) && !lc.targetMVReadableOrPending(ref) {
 				err = fmt.Errorf("%s$%s", head, rest)
 				break
 			}

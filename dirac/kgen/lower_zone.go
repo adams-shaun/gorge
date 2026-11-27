@@ -4543,6 +4543,13 @@ func (lc *lowerCtx) immediateTrigger(ps *params) error {
 	if err := immediateIsPresent(ps); err != nil { // lower_remembered.go
 		return err
 	}
+	if ps.peek("ValidTgts") != "" {
+		// an ImmediateTrigger with its own ValidTgts$ pre-asks that target;
+		// its RememberObjects$ Targeted (Behemoth of Vault 0) captures it
+		if _, err := lc.objOrTarget(ps, "", zBattlefield); err != nil {
+			return err
+		}
+	}
 	lat := lc.newLatent("ReflexiveTrigger")
 	if od, ok := ps.get("OptionalDecider"); ok {
 		// "When you do, you may ..." (Etched Slith, Dream Eater): gorge's
