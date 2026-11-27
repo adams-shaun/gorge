@@ -553,6 +553,7 @@ default	field	genPrep.anyUncScope	1
 default	field	genPrep.anyPlHexRec	1
 default	field	genPrep.anyHexUB	1
 default	field	genPrep.anyPlusCre	1
+default	field	genPrep.anyEtbCre	1
 default	field	genPrep.anyAtkLast	1
 default	field	genPrep.anyContract	1
 default	field	genPrep.anyDmgMark	1
