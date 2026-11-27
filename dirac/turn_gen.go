@@ -1414,6 +1414,10 @@ func (s *State) genAskOptions(k *prep, d *Decision) bool {
 		s.dredgeResOptions(k, d) // kw_dredge.go: a draw-replacement body's ask, before dredgeTurnAsked (the first body card's ask is still the draw step's first)
 		return true
 	}
+	if s.res.ask == raGenDrawOrder && !s.res.active {
+		s.drawOrderOptions(k, d) // repl_draworder.go: the turn draw's order ask, before dredgeTurnAsked
+		return true
+	}
 	if s.dredgeTurnAsked() {
 		s.dredgeOptions(k, s.active, d) // kw_dredge.go
 		return true
@@ -1521,6 +1525,10 @@ func (s *State) popAsk() {
 func (s *State) applyGen(k *prep, a Action) {
 	if s.res.ask == raDredgeRes && s.res.flags&rfBodyTurn != 0 {
 		s.dredgeResAnswer(k, a) // kw_dredge.go: a draw-replacement body's ask, before dredgeTurnAsked (the first body card's answer is still the draw step's first)
+		return
+	}
+	if s.res.ask == raGenDrawOrder && !s.res.active {
+		s.drawOrderAnswer(k, a) // repl_draworder.go: the turn draw's order ask, before dredgeTurnAsked
 		return
 	}
 	if s.dredgeTurnAsked() {
