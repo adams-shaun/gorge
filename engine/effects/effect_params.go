@@ -273,12 +273,32 @@ type effectTriggerLine struct {
 	PlayReadsRemembered bool
 }
 
+// validReadsRemembered reports whether a ValidCard$ filter has a positive
+// IsRemembered restriction token: some comma alternative whose "+"-joined
+// restrictions after the first "." include IsRemembered exactly
+// (`Card.IsRemembered`, `Card.IsImprinted+IsRemembered+wasCastFromExile`).
+// A negated `!IsRemembered` is a different token and does not count.
+func validReadsRemembered(valid string) bool {
+	for _, alt := range strings.Split(valid, ",") {
+		_, restr, ok := strings.Cut(alt, ".")
+		if !ok {
+			continue
+		}
+		for _, tok := range strings.Split(restr, "+") {
+			if strings.TrimSpace(tok) == "IsRemembered" {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // readEffectTriggerLine reads one parsed Triggers$ body's parameters.
 func readEffectTriggerLine(tr *cards.Trigger) effectTriggerLine {
 	boonAmount, _ := strconv.Atoi(strings.TrimSpace(tr.ParamStr(cards.PKBoonAmount)))
 	mode := tr.ModeKind()
 	playReadsRemembered := (mode == cards.TriggerSpellCast || mode == cards.TriggerLandPlayed) &&
-		strings.Contains(tr.ParamStr(cards.PKValidCard), ".IsRemembered")
+		validReadsRemembered(tr.ParamStr(cards.PKValidCard))
 	return effectTriggerLine{
 		BoonAmount:      boonAmount,
 		Execute:         strings.TrimSpace(tr.ParamStr(cards.PKExecute)),

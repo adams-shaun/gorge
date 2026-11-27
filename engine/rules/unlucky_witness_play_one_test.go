@@ -16,6 +16,7 @@ package rules
 // card stayed offered.
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/adams-shaun/gorge/engine/decision"
@@ -145,5 +146,36 @@ func TestUnluckyWitnessLandPlayEndsGrant(t *testing.T) {
 	}
 	if mayPlayOption(d, dugB) != nil {
 		t.Fatalf("Dug B still offered after playing Dug Land: %+v", d.Options)
+	}
+}
+
+// TestUnluckyWitnessPlusTokenWatcherEndsGrant: the watcher's ValidCard$ may
+// carry IsRemembered after a "+" (the corpus' `Card.IsImprinted+IsRemembered+
+// wasCastFromExile` carriers); the memory must survive the play move there too.
+func TestUnluckyWitnessPlusTokenWatcherEndsGrant(t *testing.T) {
+	t.Parallel()
+	src := strings.Replace(unluckyWitnessSrc, "ValidCard$ Card.IsRemembered | ValidActivatingPlayer",
+		"ValidCard$ Card.Creature+IsRemembered | ValidActivatingPlayer", 1)
+	if src == unluckyWitnessSrc {
+		t.Fatalf("fixture rewrite did not apply")
+	}
+	e := handEngine(t, card(t, src))
+	witness := e.G.Zone(state.ZHand, 0)[0]
+	seeded := seedLibraryTop(t, e, dugCreature(t, "Dug A"), dugCreature(t, "Dug B"))
+	dugA, dugB := seeded[0], seeded[1]
+	witnessToDeath(t, e, witness)
+	d := assertBothExiledAndOffered(t, e, dugA, dugB)
+	if mayPlayOption(d, dugA) == nil || mayPlayOption(d, dugB) == nil {
+		t.Fatalf("the grant did not offer both exiled Dugs: %+v", d.Options)
+	}
+	submitChoices(t, e, mayPlayOption(d, dugA).Index)
+	passUntilStackEmpty(t, e, 50)
+	addMana(t, e, 0, "R")
+	d = e.Pending()
+	if d == nil {
+		t.Fatalf("no pending decision after the may-play cast")
+	}
+	if mayPlayOption(d, dugB) != nil {
+		t.Fatalf("Dug B still offered after casting Dug A: %+v", d.Options)
 	}
 }
