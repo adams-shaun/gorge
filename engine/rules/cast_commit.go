@@ -162,6 +162,12 @@ func (e *Engine) payCast() {
 	if e.recheckIllegal(pc) {
 		return
 	}
+	// CR 702.132a: before the caster floats mana for the bill, each other seat
+	// may pay part of the spell's generic cost. The step, its per-seat APNAP
+	// cursor and its payment live in engine/rules/assist.go.
+	if e.assistAsk() {
+		return
+	}
 	// CR 601.2g: if the total cost includes a mana payment, the player gets a
 	// chance to activate mana abilities before paying. manaWindowAsk poses
 	// that window (returning true to suspend) only when the pool alone cannot

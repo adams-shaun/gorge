@@ -89,6 +89,7 @@ func TestRegisteredKeywordsAreHonoured(t *testing.T) {
 		"kw:Rebound":        "TestReboundCorpusCarrierExilesAndOffers",
 		"kw:Compleated":     "TestCompleatedLoyaltyFollowsPhyrexianLifePaid",
 		"kw:Casualty":       "TestCasualtyPrintedSpellSacrificeCopiesTarget",
+		"kw:Assist":         "TestAssistPaysGenericCost",
 	} {
 		if !sup[kw] {
 			t.Errorf("%s is not registered (proof test: %s)", kw, proof)

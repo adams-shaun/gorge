@@ -1177,8 +1177,13 @@ func manaSpentTotal(spent state.Mana) int32 {
 	return n
 }
 
+// paymentMana is the mana the caster still owes: the composed total after the
+// contributions that have already settled. Convoke's announced taps come off
+// first, then the CR 702.132 Assist contributions the other seats paid (whose
+// mana left their own pools when each answer arrived), so the window, the
+// payment plan and the charge at payCast all price the same reduced bill.
 func (e *Engine) paymentMana(pc *pendingCast) Cost {
-	return e.applyConvoke(pc, e.manaToPay(pc))
+	return applyAssist(pc, e.applyConvoke(pc, e.manaToPay(pc)))
 }
 
 // paymentManaX applies the same announced creature contributions after X is

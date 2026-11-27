@@ -512,6 +512,11 @@ func (e *Engine) castAnswer(d *decision.Decision, chosen []decision.Option) {
 	switch castAnswerCodes.Code(kind) {
 	case castAnswerChorus:
 		answerChorus(pc, chosen)
+	case castAnswerAssist:
+		// CR 702.132a: one seat's contribution to a spell's generic cost. The
+		// mana leaves THAT seat's pool and the caster's bill drops by what
+		// actually left it (engine/rules/assist.go).
+		e.answerAssist(pc, chosen)
 	case castAnswerCostType:
 		e.answerChooseTypeCost(pc, chosen)
 	case castAnswerDivide:
@@ -766,6 +771,7 @@ const (
 	castAnswerDefilerNo
 	castAnswerSplice
 	castAnswerChorus
+	castAnswerAssist
 )
 
 var castAnswerCodes = state.NewStrCodes(
@@ -801,4 +807,5 @@ var castAnswerCodes = state.NewStrCodes(
 	state.StrEntry[castAnswerCode]{Key: "no", Val: castAnswerDefilerNo},
 	state.StrEntry[castAnswerCode]{Key: "splice", Val: castAnswerSplice},
 	state.StrEntry[castAnswerCode]{Key: chorusAnswerKind, Val: castAnswerChorus},
+	state.StrEntry[castAnswerCode]{Key: assistAnswerKind, Val: castAnswerAssist},
 )
