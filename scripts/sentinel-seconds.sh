@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# sentinel-seconds.sh [run-id...]: print dirac/oracle/testdata/sentinel-seconds.txt, the mean top-level "--- PASS"
+# sentinel-seconds.sh [run-id...]: print dirac/oracle/testdata/sentinel-seconds.txt, the median top-level "--- PASS"
 # time of each oracle sentinel over the green oracle-sentinels jobs of the given ci.yml runs (default: the last 5
 # queue batches with one). scripts/ci-sentinels.sh deals the sentinels on it.
 # Refresh: scripts/sentinel-seconds.sh > dirac/oracle/testdata/sentinel-seconds.txt
@@ -25,8 +25,12 @@ for r in "${runs[@]}"; do
 	done
 done
 [ -s "$tmp/pass" ] || { echo "sentinel-seconds: no green oracle-sentinels job in runs ${runs[*]}" >&2; exit 1; }
-echo "# <test> <seconds>: the mean top-level \"--- PASS\" time of each oracle sentinel in the oracle-sentinels jobs of"
+echo "# <test> <seconds>: the median top-level \"--- PASS\" time of each oracle sentinel in the oracle-sentinels jobs of"
 echo "# ci.yml runs ${used[*]} ($(date -u +%F), $jobs green jobs)."
 echo "# scripts/ci-sentinels.sh deals the sentinels on it, heaviest first, to the least-loaded process; a sentinel it"
 echo "# does not list weighs DEFAULT_SECONDS (10). Refresh: scripts/sentinel-seconds.sh [run-id...] > this file."
-awk '{ s[$1] += $2; n[$1]++ } END { for (t in s) printf "%s %.1f\n", t, s[t] / n[t] }' "$tmp/pass" | sort
+awk '{ v[$1, ++n[$1]] = $2 } END {
+	for (t in n) { c = n[t]; for (i = 1; i <= c; i++) a[i] = v[t, i]
+		for (i = 1; i <= c; i++) for (j = i + 1; j <= c; j++) if (a[j] < a[i]) { x = a[i]; a[i] = a[j]; a[j] = x }
+		print t, ((c % 2) ? a[(c + 1) / 2] : (a[c / 2] + a[c / 2 + 1]) / 2) }
+}' "$tmp/pass" | sort -k1,1 | awk '{ printf "%s %.1f\n", $1, $2 }'
