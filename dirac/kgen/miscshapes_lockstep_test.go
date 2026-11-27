@@ -342,18 +342,24 @@ func miscCountersOn(name string) func(*state.Game, []events.Event) int {
 	}
 }
 
-// miscSacColourless counts ManaAdd batches of two or more colourless mana:
-// Crystal Vein's {T}, sacrifice-this alternative (its {T} makes one, and no
-// other card in its pool adds colourless mana at all).
-func miscSacColourless(_ *state.Game, evs []events.Event) int {
-	n := 0
-	for _, ev := range evs {
-		if ev.Kind == events.ManaAdd && ev.Counter == "C" && ev.Amount >= 2 {
-			n++
+// miscSacTwoOf counts ManaAdd batches of two or more of one colour, proving a
+// sacrifice-self pair's wider {T}, Sacrifice this unit resolved. Crystal
+// Vein's {C}, Havenwood Battleground's {G}: the pair is the only way to the
+// three-mana card, and no other card in either pool adds two of that colour.
+func miscSacTwoOf(col string) func(*state.Game, []events.Event) int {
+	return func(_ *state.Game, evs []events.Event) int {
+		n := 0
+		for _, ev := range evs {
+			if ev.Kind == events.ManaAdd && ev.Counter == col && ev.Amount >= 2 {
+				n++
+			}
 		}
+		return n
 	}
-	return n
 }
+
+// miscSacColourless counts Crystal Vein's wider {C}{C} unit.
+func miscSacColourless(g *state.Game, evs []events.Event) int { return miscSacTwoOf("C")(g, evs) }
 
 // miscFortifyThen casts C.A.M.P.'s one Fortify at the first priority it is
 // offered, passing until then so the mana is still untapped, then plays the
@@ -515,6 +521,25 @@ func miscShapes() []miscShape {
 				}
 				return miscStartOf(deck,
 					[]string{"Crystal Vein", "Crystal Vein"},
+					[]string{"Weldfast Monitor", "Weldfast Monitor", "Weldfast Monitor", "Weldfast Monitor"},
+					grave)
+			}},
+		// Havenwood Battleground is the very same sacrifice-self pair in {G}
+		// ({T}: {G}, then {T}, Sacrifice this: {G}{G}). Two open and every
+		// other copy is in the graveyard, so a Weldfast Monitor's {3} has
+		// exactly one plan: one Battleground's tap and the other's wider pair.
+		{card: "Havenwood Battleground", seeds: 20, min: 1, reached: miscSacTwoOf("G"),
+			matchups: [][2][]cardset.Entry{{
+				{e("Havenwood Battleground", 20), e("Weldfast Monitor", 20)},
+				burn,
+			}},
+			start: func(deck []*cards.Card) *rules.StartSpec {
+				grave := make([]string, 18)
+				for i := range grave {
+					grave[i] = "Havenwood Battleground"
+				}
+				return miscStartOf(deck,
+					[]string{"Havenwood Battleground", "Havenwood Battleground"},
 					[]string{"Weldfast Monitor", "Weldfast Monitor", "Weldfast Monitor", "Weldfast Monitor"},
 					grave)
 			}},
