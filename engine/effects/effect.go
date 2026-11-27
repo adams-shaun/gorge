@@ -775,8 +775,11 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 		// replaced result cannot lose an object, and a body this build cannot
 		// price is skipped by the dispatcher, never read as zero. Every OTHER
 		// AddCounter body keeps its loud Note.
+		// Event$ Draw is the fifth live class, only in the one-shot "next time you
+		// would draw this turn" shape effectDrawBodyLive admits (Words of
+		// Worship and kin, Aladdin's Lamp, Ring of Ma'ruf).
 		// Every OTHER Moved body (the unmodelled ChangeZone/Tap/Clone family,
-		// 44 measured files) and every Draw/ProduceMana body keeps its loud
+		// 44 measured files) and every other Draw/ProduceMana body keeps its loud
 		// Note: a half-modelled Replaced-result could LOSE the moved object.
 		// replacementMovedBodyLive admits the two recorded shapes that cannot
 		// lose it: a single-destination redirect of the ReplacedCard (exile,
@@ -796,6 +799,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 		chosenSnap, chosenBound := effectChosenSnapshot(h, c,
 			params[cards.PKValidSource.String()]+" "+params[cards.PKValidTarget.String()])
 		if body != "" && (event == "DamageDone" || event == "Destroy" ||
+			(event == "Draw" && effectDrawBodyLive(ep.Triggers != "", params, body, c.SVars)) ||
 			(event == "Moved" && replacementBodyAPI(body) == "PutCounter") ||
 			(event == "Moved" && replacementMovedBodyLive(params, body, c.SVars)) ||
 			(event == "CreateToken" && replacementBodyAPI(body) == "ReplaceToken") ||
