@@ -1111,7 +1111,8 @@ func (e *Engine) withSelfStatics(base []staticView, id state.ObjID, mode string,
 }
 
 // hasTargetConditionalFlash reports whether id carries or is granted a
-// CastWithFlash static whose ValidSA$ names an `IsTargeting` alternative. It
+// CastWithFlash static whose ValidSA$ names an `IsTargeting`, `Teamwork` or
+// `XCostLE<N>` alternative (a grant the announcement can falsify). It
 // is the narrow predicate recheckIllegal uses to decide whether an off-sorcery
 // cast's timing rested on a target-conditional grant (a card with no such
 // static keeps its existing CR 601.2e behaviour).
@@ -1120,7 +1121,7 @@ func (e *Engine) hasTargetConditionalFlash(p state.PlayerID, id state.ObjID) boo
 		if !e.actorMatches(sv, "Caster", p) {
 			continue
 		}
-		if validSpellHasTargeting(sv.ParamStr(cards.PKValidSA)) || validSpellHasTeamwork(sv.ParamStr(cards.PKValidSA)) {
+		if validSpellHasTargeting(sv.ParamStr(cards.PKValidSA)) || validSpellHasTeamwork(sv.ParamStr(cards.PKValidSA)) || validSpellHasXCostLE(sv.ParamStr(cards.PKValidSA)) {
 			return true
 		}
 	}
@@ -1156,6 +1157,44 @@ func validSpellHasTeamwork(raw string) bool {
 		}
 	}
 	return false
+}
+
+// validSAXCostLE parses a `XCostLE<N>` ValidSA$ constraint (Silver
+// Scrutiny's `Spell.XCostLE3`) into its bound N.
+func validSAXCostLE(constraint string) (int32, bool) {
+	num, ok := strings.CutPrefix(strings.TrimSpace(constraint), "XCostLE")
+	if !ok {
+		return 0, false
+	}
+	n, err := strconv.Atoi(num)
+	if err != nil || n < 0 {
+		return 0, false
+	}
+	return int32(n), true
+}
+
+// validSpellHasXCostLE reports whether a ValidSA$ OR-list carries a
+// `Spell.XCostLE<N>` alternative: a grant whose permission the CR 601.2e
+// recheck must re-judge once X is announced.
+func validSpellHasXCostLE(raw string) bool {
+	for alt := range strings.SplitSeq(raw, ",") {
+		kind, constraint, _ := strings.Cut(strings.TrimSpace(alt), ".")
+		if _, ok := validSAXCostLE(constraint); ok && kind == "Spell" {
+			return true
+		}
+	}
+	return false
+}
+
+// castXWithin is the XCostLE<N> read: true before id's cast has announced
+// {X} (the offer, where X = 0..N is still choosable), and afterwards exactly
+// when the announced X is at most n.
+func (e *Engine) castXWithin(id state.ObjID, n int32) bool {
+	pc := e.cast
+	if pc == nil || pc.card != id || pc.isAbility() || !pc.xDone {
+		return true
+	}
+	return pc.x <= n
 }
 
 // validSpellHasTargeting reports whether a ValidSA$/ValidSpell$ OR-list
@@ -1319,9 +1358,15 @@ func presentCountInZones(c presentZoneCounter, zoneParam, spec string, source st
 // targets and CR 601.2e's recheck passes the announced ones. A nil/empty
 // target list matches nothing, so an IsTargeting alternative never grants
 // unconditional timing. you is the caster the target spec's You clause binds
-// (never the granting static's controller). Constraint values beyond Self and
-// IsTargeting and Teamwork (e.g. XCostLE3) remain unimplemented and fail
-// closed.
+// (never the granting static's controller).
+//
+// `Spell.XCostLE<N>` (Silver Scrutiny's self grant) bounds the announced {X}:
+// before X is announced (the offer) some X <= N is always choosable, so it
+// matches; once this cast has announced X (xDone) it matches only for X <= N,
+// so CR 601.2e's recheck reverses an off-sorcery cast that chose a larger X.
+// A creature-subtype constraint (`Spell.Hero`, Blur of Heroism) matches a
+// spell with that creature type, read off the cast card. Every other
+// constraint value remains unimplemented and fails closed.
 func (e *Engine) spellMatchesValidSA(f *cards.Face, raw string, id, staticSource state.ObjID, you state.PlayerID, targets []state.Target, teamworkOffer bool) bool {
 	if strings.TrimSpace(raw) == "" {
 		return true
@@ -1348,6 +1393,12 @@ func (e *Engine) spellMatchesValidSA(f *cards.Face, raw string, id, staticSource
 				if e.cast == nil && o != nil && o.Zone == state.ZStack && o.TeamworkPaid {
 					return true
 				}
+			}
+			if n, ok := validSAXCostLE(constraint); ok && e.castXWithin(id, n) {
+				return true
+			}
+			if effects.CreatureTypeWords(constraint) && e.matchesSpec("Card."+constraint, id, e.specCtx(staticSource, you)) {
+				return true
 			}
 			if strings.HasPrefix(constraint, "IsTargeting") {
 				sc := e.specCtx(staticSource, you)
