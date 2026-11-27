@@ -449,6 +449,30 @@ func (lc *lowerCtx) ownAttackTrigger() bool {
 	return false
 }
 
+// ownTokenAttackTrigger is ownAttackTrigger plus an Attacks trigger on the
+// source's equipped creature (Card.EquippedBy: Sigiled Sword of Valeron,
+// Captain's Claws, Inquisitorial Rosette). The trigger's captured defending
+// player is that host's attack defender, which the kernel reads from the
+// queue-time defSeat like any other attack event, so the token's controller
+// (the Equipment's) needs no host-controller query. Only the TokenAttacking$
+// reader takes this arm: the other ownAttackTrigger callers read a referent,
+// not an entering attack, and widening them is a separate class.
+func (lc *lowerCtx) ownTokenAttackTrigger() bool {
+	if lc.ownAttackTrigger() {
+		return true
+	}
+	tr := lc.ab.Trigger
+	if tr == nil || tr.Event != "Attacks" || tr.F == nil || len(tr.F.Clauses) == 0 {
+		return false
+	}
+	for _, c := range tr.F.Clauses {
+		if c != (lClause{Flags: fEquippedBy}) {
+			return false
+		}
+	}
+	return true
+}
+
 // enchantedByYouCtrl reports whether c is the "enchanted creature" attacker
 // of an Aura whose printed Enchant word names only a creature its controller
 // controls. That attacker is then controlled by the Aura's controller, so

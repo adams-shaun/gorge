@@ -11,12 +11,14 @@ package kop
 // election parks the resolution as any token copy does. dirac/copy_picked.go.
 const ExtCopyPicked ExtOp = 316
 
-// CopyAttacking: ExtCopyPicked B.N bit 14 (the bit CopyPumpEOT is beside a
-// pump keyword, which this op never carries): the token enters tapped or
-// untapped attacking the controller's opponent (TokenAttacking$ True, CR
-// 508.4; gorge copyAttackRider: players only, so no planeswalker or battle
-// defender and no ask). The kernel reads it from the OpCopyAsTokenEx it
-// builds for the op.
+// CopyAttacking: ExtCopyPicked and OpCopyAsTokenEx B.N bit 14, the token
+// enters tapped or untapped attacking the controller's opponent
+// (TokenAttacking$ True, CR 508.4; gorge copyAttackRider: players only, so no
+// planeswalker or battle defender and no ask). The kernel reads it from the
+// OpCopyAsTokenEx it builds for ExtCopyPicked. The bit is CopyPumpEOT beside a
+// PumpKeywords$ keyword, so the attacking reading holds only with no pump
+// keyword; ExtCopyPicked never carries one, and kgen refuses a CopyPermanent
+// that asks for both (dirac.copyAttackingInstr).
 const CopyAttacking = 1 << 14
 
 func init() { extOpNames[ExtCopyPicked] = "CopyPicked" }
