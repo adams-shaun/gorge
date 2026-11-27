@@ -48,7 +48,103 @@ func (s *State) castGateAffordable(k *prep, p uint8, c CardID, o Obj, cost *kop.
 			return true
 		}
 	}
-	return (s.rbAny(p) || k.restrSrc) && s.restrFallback(k, p, c, s.restrOriginOfObj(o), cost, cav)
+	return (s.rbAny(p) || k.restrSrc) && s.restrFallback(k, p, c, s.restrOriginOfObj(o), cost, cav) ||
+		s.castOtherSacPays(k, p, cost, cav)
+}
+
+// castOtherSacPays prices a cast gorge's planner funds by activating
+// plain-creature sacrifice-another sources as its last resort
+// (pay.PlanOtherSacShape, AssignPlanVictims): the census plus one activation
+// of each such source (the planner activates each source at most once,
+// potential_plan.go manaAbilityCovered), its own census unit held out when
+// the cost taps it, and a distinct victim on the board for every activation.
+func (s *State) castOtherSacPays(k *prep, p uint8, cost *kop.ManaCost, cav *avail) bool {
+	if k.gen == nil || !k.tapMana || s.g.availX != 0 {
+		return false
+	}
+	const maxAltars = 8
+	var src [maxAltars]Slot
+	var unit [maxAltars]struct {
+		mask uint8
+		per  uint8
+		taps bool
+	}
+	var cands [maxAltars]slotMask
+	m := 0
+	for b := s.scriptTapXModelled(k, p); b.any() && m < maxAltars; b = b.rest() {
+		sl := b.first()
+		if !s.planOtherSacSource(k, sl) {
+			continue
+		}
+		ab := k.tapXAbOf(s.cardAt(sl))
+		if kop.RestrictedTapXOneShape(ab) ||
+			ab.ManaRestrict != 0 || ab.ManaRestrictAb != 0 || ab.AFlags&kop.AfManaNonSpell != 0 {
+			continue
+		}
+		var cs [MaxPerm]Slot
+		n := s.sacXCands(k, p, sl, ab, &cs)
+		var cm slotMask
+		for i := 0; i < n; i++ {
+			if cs[i] != sl { // the plan never sacrifices the source itself (PaymentPlanSacrificeVictims)
+				cm = cm.with(cs[i])
+			}
+		}
+		if !cm.any() {
+			continue
+		}
+		src[m] = sl
+		cands[m] = cm
+		unit[m].mask, unit[m].per = tapXUnit(ab)
+		unit[m].taps = ab.Cost.Flags&(kop.CostTap|kop.CostUntapSelf|kop.CostSacSelf) != 0
+		m++
+	}
+	// gorge's planner admits each source once (potential_plan.go
+	// manaAbilityCovered) and prices the fewest that pay; a plan's steps need
+	// distinct victims none of its sources supplies (AssignPlanVictims).
+	for n := 1; n <= m; n++ {
+		for set := 0; set < 1<<m; set++ {
+			if bits.OnesCount(uint(set)) != n {
+				continue
+			}
+			var used slotMask
+			for i := 0; i < m; i++ {
+				if set&(1<<i) != 0 {
+					used = used.with(src[i])
+				}
+			}
+			victims := 0
+			var seen slotMask
+			for i := 0; i < m; i++ {
+				if set&(1<<i) == 0 {
+					continue
+				}
+				for v := cands[i].andNot(used); v.any(); v = v.rest() {
+					seen = seen.with(v.first())
+				}
+			}
+			for v := seen; v.any(); v = v.rest() {
+				victims++
+			}
+			if victims < n {
+				continue
+			}
+			var t avail
+			t = *cav
+			for i := 0; i < m; i++ {
+				if set&(1<<i) == 0 {
+					continue
+				}
+				if unit[i].taps {
+					s.removeSrc(k, &t, src[i], s.manaPCGen(k, src[i]))
+				}
+				t.addUnits(unit[i].mask, unit[i].per)
+			}
+			if t.affords(cost, pipMaskOf(cost), 0) {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // castGateOrPoolPays is the plain cast's affordability read: the gate's own
