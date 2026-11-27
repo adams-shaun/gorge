@@ -1,6 +1,7 @@
 package scripts
 
-// TestTableKeyCoversEveryKgenDependency: the box's table directory (ci-corpus.sh's dk) is keyed by
+// TestTableKeyCoversEveryKgenDependency: the box's table directory (dk, defined in scripts/ci-corpus-keys.sh,
+// sourced by ci-corpus.sh and eval'd by ci.yml's prepare for the Actions cache key) is keyed by
 // scripts/table-key-files.sh, which must list every non-test Go file and every embedded file of each in-module
 // package ./dirac/cmd/kgen is built from. 11-21: keyed by tablesrc.go's embeds alone, a box served tables an older
 // tree had built after engine/rules/pay changed, and batch #3110 passed a replay its own tables fail. The expected
@@ -88,15 +89,22 @@ func TestTableKeyCoversEveryKgenDependency(t *testing.T) {
 		t.Errorf("kgen dependency %s: %d of its files are missing from the table key (table-key-files.sh)", p, n)
 	}
 
+	keys, err := os.ReadFile("ci-corpus-keys.sh")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(keys), "kl=$(bash scripts/table-key-files.sh") {
+		t.Error("ci-corpus-keys.sh's table directory key (dk) is not computed from scripts/table-key-files.sh")
+	}
+	if !strings.Contains(string(keys), `dk=$( { printf '%s\n' "$kl"`) {
+		t.Error("ci-corpus-keys.sh's table directory key (dk) does not hash the file list (the published key covers each embed's path, so a bare content stream underkeys it)")
+	}
 	corpus, err := os.ReadFile("ci-corpus.sh")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(corpus), "kl=$(bash scripts/table-key-files.sh") {
-		t.Error("ci-corpus.sh's table directory key (dk) is not computed from scripts/table-key-files.sh")
-	}
-	if !strings.Contains(string(corpus), `dk=$( { printf '%s\n' "$kl"`) {
-		t.Error("ci-corpus.sh's table directory key (dk) does not hash the file list (the published key covers each embed's path, so a bare content stream underkeys it)")
+	if !strings.Contains(string(corpus), "ci-corpus-keys.sh") {
+		t.Error("ci-corpus.sh does not source ci-corpus-keys.sh: its tree key must come from the one definition")
 	}
 }
 
@@ -162,7 +170,14 @@ func TestTablesReuseOnlySoundTrees(t *testing.T) {
 	if !strings.Contains(m, "if [ $$rc -eq 3 ]; then touch $(BIN_DIR)/.ids-rewritten") {
 		t.Error("Makefile: dirac-tables does not leave the marker when kgen rewrote ids.tsv (exit 3)")
 	}
-	if !strings.Contains(s, `tree=$root/tree/$ck-$dk-$RULE`) || !strings.Contains(s, "RULE=2") {
-		t.Error("ci-corpus.sh: the tree key carries no reuse-rule epoch; trees marked before the rewrite guard would still be served")
+	keys, err := os.ReadFile("ci-corpus-keys.sh")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(keys), `tree=$root/tree/$ck-$dk-$RULE`) || !strings.Contains(string(keys), "RULE=2") {
+		t.Error("ci-corpus-keys.sh: the tree key carries no reuse-rule epoch; trees marked before the rewrite guard would still be served")
+	}
+	if !strings.Contains(s, "ci-corpus-keys.sh") {
+		t.Error("ci-corpus.sh does not source ci-corpus-keys.sh: its tree key must come from the one definition")
 	}
 }
