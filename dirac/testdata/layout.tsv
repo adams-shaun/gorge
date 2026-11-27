@@ -381,6 +381,7 @@ default	field	perm.cs	6
 default	field	perm.cseen	1
 default	field	perm.atkVer	1
 default	field	perm.spare	1
+default	field	perm.atkPl	1
 default	field	perm.card	2
 default	field	perm.gty	2
 # struct genPrep

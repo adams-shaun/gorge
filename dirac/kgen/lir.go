@@ -50,6 +50,7 @@ const (
 	rSrcOwner                     // the source object's owner (Defined$ CardOwner)
 	rTriggerAttackers             // the attacker group of the AttackersDeclared event (Defined$ TriggeredAttackers)
 	rRememberedOwner              // the remembered object's owner (Unidentified Hovership's leave trigger)
+	rAttackedBySource             // the player the source attacked this turn (Defined$ Player.attackedBySourceThisTurn)
 	rImprinted                    // the resolution's imprinted objects (Dig Imprint$ on a permanent's ability)
 	rPromised                     // the opponent the gift was promised to (Defined$ / TokenOwner$ Promised)
 	rAttachedCtrl                 // the controller of the object the source is attached to, read live (Contaminated Bond's blocker)
@@ -99,6 +100,7 @@ var refNames = [...]string{
 	rSrcOwner:             "SrcOwner",
 	rTriggerAttackers:     "TriggerAttackers",
 	rRememberedOwner:      "RememberedOwner",
+	rAttackedBySource:     "AttackedBySource",
 	rImprinted:            "Imprinted",
 	rPromised:             "Promised",
 	rAttachedCtrl:         "AttachedCtrl",

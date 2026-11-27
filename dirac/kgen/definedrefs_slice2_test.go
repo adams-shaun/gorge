@@ -19,12 +19,14 @@ import (
 //   - TriggeredTargetController on a self-source DamageDone to a creature
 //     (the per-referent queue's damaged object);
 //   - TriggeredAttackerController on a printed become-blocked line (the
-//     attacker's controller gorge captures as it queues).
+//     attacker's controller gorge captures as it queues);
+//   - Destroy over a compound Defined$ TriggeredAttackerLKICopy & Self, the
+//     two members destroyed one after the other (Loyal Sentry).
 var definedRefsSlice2 = []string{
 	"Assembled Alphas", "Avarice Totem", "Bellowing Fiend", "Braids, Conjurer Adept", "Conjured Currency",
-	"Death Charmer", "Divine Gambit", "Eyes Everywhere", "Flayed Nim", "Meglonoth", "Metamorphose",
-	"Parasitic Implant", "Phyrexian Infiltrator", "Prying Questions", "Robe of Stars", "Slip Out the Back",
-	"Slow Motion", "Soul Charmer", "Taniwha", "Vanishing",
+	"Death Charmer", "Divine Gambit", "Eyes Everywhere", "Flayed Nim", "Loyal Sentry", "Meglonoth",
+	"Metamorphose", "Parasitic Implant", "Phyrexian Infiltrator", "Prying Questions", "Robe of Stars",
+	"Slip Out the Back", "Slow Motion", "Soul Charmer", "Taniwha", "Vanishing",
 }
 
 func TestDefinedRefsSlice2(t *testing.T) {
@@ -37,15 +39,13 @@ func TestDefinedRefsSlice2(t *testing.T) {
 
 // The forms the slice leaves refused: a TriggeredTargetController read on a
 // line whose sources are several objects (the per-referent latch would fire
-// once where gorge fires per event), a defending player on a become-blocked
-// line whose attacker may be another player's (the duel read names the
-// trigger controller's opponent), and a Destroy over a compound Defined$
-// (gorge destroys both as one batch).
+// once where gorge fires per event), and a defending player on a become-blocked
+// line whose attacker may be another player's (the duel read names the trigger
+// controller's opponent).
 func TestDefinedRefsSlice2StillRefused(t *testing.T) {
 	for name, why := range map[string]string{
 		"Greatbow Doyen":   `Defined$ "TriggeredTargetController" without a damage object referent`,
 		"Tormentor's Helm": `Defined$ "TriggeredDefendingPlayer" outside an attack trigger of the controller's own attack`,
-		"Loyal Sentry":     `Defined$ "TriggeredAttackerLKICopy & Self"`,
 	} {
 		c := lowerNamedCard(t, name)
 		found := false

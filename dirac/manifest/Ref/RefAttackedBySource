@@ -1,0 +1,7 @@
+family: Ref
+name: RefAttackedBySource
+value: next
+state: code 0
+status: active
+ticket: ca15
+doc: a player ref: the seat the resolving source attacked this turn (gorge effects/player_filter.go playerStateQualifierAttackedBySourceThisTurn over the source object's AttackedPlayersThisTurn ledger, folded from DeclareAttackers). Dirac is two-seat, so at most the one opponent; none when the source attacked no player this turn. Angel of Destiny's end-step lose.
