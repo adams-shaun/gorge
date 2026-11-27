@@ -103,7 +103,7 @@ func (c Consequence) Wire() *decision.PaymentConsequence {
 	if c == (Consequence{}) {
 		return nil
 	}
-	return &decision.PaymentConsequence{Sacrifice: c.Sacrifice, Life: c.Life, Damage: c.Damage, NoUntap: c.NoUntap, ReturnToHand: c.ReturnToHand}
+	return &decision.PaymentConsequence{Sacrifice: c.Sacrifice, Life: c.Life, Damage: c.Damage, NoUntap: c.NoUntap, ReturnToHand: c.ReturnToHand, SacrificeOthers: c.SacrificeOthers}
 }
 
 // Irreversible-cost weights. They are

@@ -1373,6 +1373,12 @@ export interface PaymentConsequence {
    * ReturnToHand: the source returns to its owner's hand.
    */
   return_to_hand?: boolean;
+  /**
+   * SacrificeOthers: the activation sacrifices another permanent (named in
+   * PaymentActivation.Sacrifices) as part of its cost -- the Ashnod's Altar
+   * family. The source itself is not among them.
+   */
+  sacrifice_others?: boolean;
 }
 
   /**
@@ -1387,6 +1393,16 @@ export interface PaymentActivation {
   ability: PaymentAbility;
   produces: [number, number, number, number, number, number];
   consequence?: PaymentConsequence | null;
+  /**
+   * Sacrifices names the permanents this step sacrifices when its
+   * consequence discloses an other-sacrifice (PaymentConsequence.
+   * SacrificeOthers): the witnesses of a "Sacrifice another permanent: Add"
+   * mana activation, so the panel can show what Accept will lose and the
+   * executor answers the sacrifice election internally. Absent (nil) for
+   * every other step; set exactly when the consequence does, which
+   * validateShape enforces.
+   */
+  sacrifices?: number[];
 }
 
   /**

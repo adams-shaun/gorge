@@ -1538,14 +1538,14 @@ func (e *Engine) resolveManaAbilityInteractive(p state.PlayerID, source state.Ob
 // resolveManaAbilityRef is resolveManaAbility with the gained identity
 // already known (answerManaActivation captured it before rewriting the SA).
 func (e *Engine) resolveManaAbilityRef(p state.PlayerID, source state.ObjID, ma *cards.SA, gained pay.GainedManaRef, cast, payment, interactive bool) {
-	e.resolveManaAbilityRefOriginal(p, source, ma, ma, gained, cast, payment, interactive)
+	e.resolveManaAbilityRefOriginal(p, source, ma, ma, gained, cast, payment, interactive, nil)
 }
 
 // resolveManaAbilityRefOriginal resolves ma while retaining original's printed
 // identity for activation-limit markers. Colour choices rewrite ma's Produced$
 // on an immutable copy, but the limit census is keyed to the compiled ability
 // in the source pile, not that copy.
-func (e *Engine) resolveManaAbilityRefOriginal(p state.PlayerID, source state.ObjID, ma, original *cards.SA, gained pay.GainedManaRef, cast, payment, interactive bool) {
+func (e *Engine) resolveManaAbilityRefOriginal(p state.PlayerID, source state.ObjID, ma, original *cards.SA, gained pay.GainedManaRef, cast, payment, interactive bool, victims []state.ObjID) {
 	if !interactive && pay.CostHasDynamicXTap((&e.abilityCompiledCost(ma).Cost)) {
 		return
 	}
@@ -1606,7 +1606,8 @@ func (e *Engine) resolveManaAbilityRefOriginal(p state.PlayerID, source state.Ob
 		len(cost.Evidence) > 0
 	if needsContinuation {
 		md := &manaDiscardActivation{Player: p, Source: source,
-			Ability: ma, Cost: cost, Cast: cast, Cumulative: payment, Gained: gained, Interactive: interactive}
+			Ability: ma, Cost: cost, Cast: cast, Cumulative: payment, Gained: gained, Interactive: interactive,
+			PlannedSacs: victims}
 		if !interactive {
 			md.Sacs = sacs
 			md.SacPart = len(cost.Sac)
@@ -2314,7 +2315,7 @@ func (e *Engine) answerManaActivation(chosen []decision.Option) bool {
 				// top-level abilities; granted and static-granted ones
 				// come from ResolveSVar bodies), so head == target copies
 				// the whole Sub chain with Produced$ rewritten.
-				e.resolveManaAbilityRefOriginal(ma.player, ma.source, pay.WithProduced(ab, ab, color), ab, gained, ma.cast, ma.cumulative, true)
+				e.resolveManaAbilityRefOriginal(ma.player, ma.source, pay.WithProduced(ab, ab, color), ab, gained, ma.cast, ma.cumulative, true, nil)
 				return ma.cast
 			}
 		}
