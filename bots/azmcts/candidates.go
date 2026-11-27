@@ -12,6 +12,7 @@ import (
 	"github.com/adams-shaun/gorge/bots/heuristic"
 
 	"github.com/adams-shaun/gorge/bots/botpolicy"
+	"github.com/adams-shaun/gorge/bots/encoder"
 	"github.com/adams-shaun/gorge/bots/policynet"
 	"github.com/adams-shaun/gorge/bots/searchprobe"
 	"github.com/adams-shaun/gorge/engine/decision"
@@ -1049,9 +1050,10 @@ func priorsWithLeaf(net *policynet.Model, e *rules.Engine, d *decision.Decision,
 	// Only the parts the network's encoders read are projected.
 	view.ProjectLeanInto(pv, e.G, e, d.Player, d, net.Features.ViewOmit())
 	// The state is encoded into pooled storage: it is read only by Score.
+	enc := encoder.ForModel(net)
 	sb := policynet.AcquireStateBuf()
 	defer policynet.ReleaseStateBuf(sb)
-	st := policynet.EncodeStateWithInto(sb, net.Features, pv, d.Player, nil)
+	st := enc.EncodeState(sb, pv, d.Player, nil)
 	opts := d.Options
 	// synth[i] is the index in opts of candidate i's synthetic cast option,
 	// -1 for none; nil when no candidate has one.
@@ -1074,8 +1076,8 @@ func priorsWithLeaf(net *policynet.Model, e *rules.Engine, d *decision.Decision,
 			opts = append(opts, o)
 		}
 	}
-	enc := policynet.EncodeOptionsWith(net.Features, pv, d.Player, d.Kind, opts, nil)
-	heuristic.MarkBotPicks(d, enc[:len(d.Options)], bot)
+	encoded := encoder.EncodeOptions(enc, pv, d.Player, d.Kind, opts, nil)
+	heuristic.MarkBotPicks(d, encoded[:len(d.Options)], bot)
 	if payCasts && bot.Payment != nil {
 		for i, c := range cands {
 			if c.in.Payment == nil || c.in.Payment.ActionID != bot.Payment.ActionID {
@@ -1084,15 +1086,15 @@ func priorsWithLeaf(net *policynet.Model, e *rules.Engine, d *decision.Decision,
 			if choices, ok := c.scoreChoices(); ok {
 				for _, k := range choices {
 					if k >= 0 && k < len(d.Options) {
-						enc[k].BotPick = true
+						encoded[k].BotPick = true
 					}
 				}
 			} else if synth != nil && synth[i] >= 0 {
-				enc[synth[i]].BotPick = true
+				encoded[synth[i]].BotPick = true
 			}
 		}
 	}
-	scores := net.Score(st, enc)
+	scores := net.Score(st, encoded)
 	if leaf != nil {
 		*leaf = clampValue(float64(net.Value(st)))
 	}

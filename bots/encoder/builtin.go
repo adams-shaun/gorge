@@ -53,3 +53,7 @@ func (e *featureSetEncoder) EncodeState(buf *policynet.StateBuf, v *view.View, s
 func (e *featureSetEncoder) EncodeOption(v *view.View, seat state.PlayerID, d decision.Kind, o decision.Option, idx, n int) policynet.Option {
 	return policynet.EncodeOptionWith(e.fs, *v, seat, d, o, idx, n)
 }
+
+func (e *featureSetEncoder) EncodeOptions(v *view.View, seat state.PlayerID, d decision.Kind, opts []decision.Option, dst []policynet.Option) []policynet.Option {
+	return policynet.EncodeOptionsWith(e.fs, v, seat, d, opts, dst)
+}
