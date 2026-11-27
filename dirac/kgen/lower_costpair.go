@@ -56,6 +56,8 @@ func discardCountPart(out *kop.Cost, c lCost, set func(kop.CostFlags, int), coun
 // and CostDiscardFiltered stays clear.
 func (cb *cardBuilder) discardFilterPart(out *kop.Cost, c lCost) (err error) {
 	switch {
+	case c.DiscardShare:
+		out.DiscardSharesCastColor = true
 	case c.DiscardF == nil:
 	case discardBesideSacFiltered(c):
 		out.DiscardSideF, err = cb.filter(c.DiscardF, kop.ZoneHand)
