@@ -2833,6 +2833,17 @@ func (lc *lowerCtx) play(ps *params) error {
 			}
 			return emit(obj, zHand, saExpr)
 		}
+		if obj, filter, ok, err := lc.playTriggeredPlayerHand(valid); ok && vzone == "Hand" && !forget {
+			// the trigger's damaged player's hand (lower_playtrigplayer.go)
+			if err != nil {
+				return err
+			}
+			expr, err := andFilterExpr(filter, saExpr)
+			if err != nil {
+				return err
+			}
+			return emit(obj, zHand, expr)
+		}
 		// P3/P4: untargeted filter population over the controller's hand or
 		// the graveyards, in seat order.
 		if !strings.Contains(valid, "YouOwn") && !strings.Contains(valid, "YouCtrl") && !playThisTurnCastHand(valid, vzone) && !(valid == "Card" && (playRememberedEmptyKey(ps, "ConditionDefined") || playOwnHand(ps)) && ps.str("ValidSA") == "Spell.nonCreature+YouOwn") {
