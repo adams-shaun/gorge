@@ -1826,19 +1826,28 @@ func changeTargetChooser(h Host, c *Ctx, sa *cards.SA) state.PlayerID {
 // it the effect changes the targets (CR 115.7a): each must move to another legal
 // target, and unless every one can, none does. ChangeSingleTarget$ is "change a
 // target" (CR 115.7b), which moves one. A random reselect may land where it was.
+//
+// Every stack object Defined$ names is redirected in turn, bottom first, each
+// finishing (its asks, then its write) before the next is offered: Boltbender's
+// Defined$ ValidStack SpellAbility is "any number of other spells and/or
+// abilities". The resolving redirect itself is never one of them.
 func effChangeTargets(h Host, c *Ctx, sa *cards.SA) {
-	var target *state.Object
+	self := c.ResolvingObj
+	if self == 0 {
+		self = c.Source
+	}
 	for _, t := range Defined(h, c, sa) {
-		if !t.IsPlayer {
-			if o := h.Game().Obj(t.Obj); o != nil && o.Zone == state.ZStack {
-				target = o
-				break
-			}
+		if t.IsPlayer || t.Obj == self {
+			continue
+		}
+		if o := h.Game().Obj(t.Obj); o != nil && o.Zone == state.ZStack {
+			changeTargetsOf(h, c, sa, o)
 		}
 	}
-	if target == nil {
-		return
-	}
+}
+
+// changeTargetsOf is effChangeTargets' redirect of the one stack object target.
+func changeTargetsOf(h Host, c *Ctx, sa *cards.SA, target *state.Object) {
 	subject := effectSA(target)
 	if subject == nil {
 		return
