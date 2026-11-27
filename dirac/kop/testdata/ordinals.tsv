@@ -358,6 +358,7 @@ DmgNE	DmgCmp	4
 DmgNoPrevention	untyped int	256
 DmgNoRegen	untyped int	32
 DmgNoRegenTarget	untyped int	128
+DmgRedirectHost	untyped int	3
 DmgRedirectNext	untyped int	1
 DmgRedirectScope	untyped int	2
 DmgRemember	untyped int	8
