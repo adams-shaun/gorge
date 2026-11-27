@@ -321,6 +321,7 @@ func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
 		}
 		rest, st.Evasion, st.Infect, st.Toxic = splitStaticKwMarks(rest) // lower_kwmark.go
 		rest, st.Riot = splitStaticRiotGrant(rest)                       // lower_riotgrant.go
+		rest, st.Unleash = splitStaticUnleashGrant(rest)                 // lower_unleash.go
 		if rest, err = lc.staticBandingGrant(sp, st, rest); err != nil {
 			return nil, err // lower_banding.go
 		}
