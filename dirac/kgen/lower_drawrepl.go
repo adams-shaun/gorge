@@ -42,6 +42,19 @@ func (lc *lowerCtx) drawRepl(rp *params, w *cards.SA, rl *lRepl) error {
 	if rp.is("NotFirstCardInDrawStep", "True") {
 		bits |= kop.ReplDrawNotFirst
 	}
+	// ValidCause$ <stack spec>: the line replaces only the draws its cause
+	// admits (gorge engine/rules/trigger_cause.go drawCauseAdmits, read at
+	// repl_drawprogram.go drawCauseCycling). The corpus's one Draw carrier is
+	// Unpredictable Cyclone's Activated.Cycling+nonLand; any other spec --
+	// another base kind, another keyword, another card qualifier -- is one the
+	// kernel cannot evaluate, so it fails closed rather than lowering the line
+	// unscoped (which would replace every draw the controller makes).
+	if v, ok := rp.get("ValidCause"); ok {
+		if strings.TrimSpace(v) != "Activated.Cycling+nonLand" {
+			return refuse("repl-hard: Draw replacement ValidCause$ %q", v)
+		}
+		bits |= kop.ReplDrawCauseCyclingNonLand
+	}
 	if w != nil && w.API == "WinsGame" {
 		// Laboratory Maniac, Jace, Wielder of Mysteries: the line replaces
 		// a draw from an empty library, which gorge logs as DrawEmpty and
@@ -67,11 +80,13 @@ func (lc *lowerCtx) drawRepl(rp *params, w *cards.SA, rl *lRepl) error {
 	// acceptance; a chained sub-ability on the body was read as nothing
 	// there). The program path is for every other body.
 	if w != nil && withIs(w, "Draw", map[string]string{"Defined": "You", "NumCards": w.Params["NumCards"]}) &&
-		bits&(kop.ReplDrawOpponent|kop.ReplDrawAnyPlayer) == 0 {
+		bits&(kop.ReplDrawOpponent|kop.ReplDrawAnyPlayer|kop.ReplDrawCauseCyclingNonLand) == 0 {
 		// ReplDrawMore is the controller's own draw only (drawMore scans
 		// ctrlM[p]): a line that names an opponent or any player must keep
 		// its player bits and take the program path instead of silently
-		// becoming the controller's replacement.
+		// becoming the controller's replacement. Its walk consults no cause
+		// either, so a ValidCause$-gated line takes the program path too
+		// (repl_drawprogram.go drawCauseCycling) rather than lose the gate.
 		if n, err := strconv.Atoi(w.Params["NumCards"]); err == nil && n >= 2 && n <= 8 {
 			rl.Kind, rl.N, rl.Bits = "DrawMore", cst(n), bits&kop.ReplDrawNotFirst
 			return nil

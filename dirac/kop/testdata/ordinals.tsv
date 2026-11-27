@@ -1309,6 +1309,7 @@ ReplDoubleCountersYou	ReplKind	23
 ReplDoubleDamageToOpps	ReplKind	10
 ReplDoubleTokens	ReplKind	12
 ReplDrawAnyPlayer	untyped int	8
+ReplDrawCauseCyclingNonLand	untyped int	32
 ReplDrawMore	ReplKind	29
 ReplDrawNotFirst	untyped int	1
 ReplDrawOpponent	untyped int	4
