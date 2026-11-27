@@ -41,6 +41,13 @@ func (lc *lowerCtx) drawRepl(rp *params, w *cards.SA, rl *lRepl) error {
 		// election stays refused until the movement is proven (ticket 02)
 		return refuse("repl-hard: Draw replacement with an optional or choice body")
 	}
+	if rp.is("Optional", "True") && w != nil {
+		// an optional line with a body (Pursuit of Knowledge's study counter)
+		// applies the body on accept: only the bodyless skip is proven in
+		// lockstep (Obstinate Familiar), the body's study counter diverged
+		// from gorge's, so the line refuses until that movement is proven
+		return refuse("repl-hard: Draw replacement with an optional or choice body")
+	}
 	if rp.is("Optional", "True") {
 		// the player is asked whether to replace the draw (gorge's
 		// replChoiceDraw, ReplDrawOptional): the body applies on accept, the
