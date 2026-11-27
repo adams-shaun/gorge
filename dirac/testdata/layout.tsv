@@ -678,6 +678,7 @@ default	field	genPrep.anyAnyAct	1
 default	field	genPrep.anyMonstrosity	1
 default	field	genPrep.anyAirbend	1
 default	field	genPrep.anyMeld	1
+default	field	genPrep.anyMerge	1
 default	field	genPrep.anyMayWhileSrc	1
 default	field	genPrep.anyGoad	1
 default	field	genPrep.anyPermMark	1

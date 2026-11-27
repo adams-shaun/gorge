@@ -352,6 +352,7 @@ type genPrep struct {
 	anyMonstrosity  bool           // some program is OpMonstrosity or some trigger is TrigBecomeMonstrous (act_monstrosity.go)
 	anyAirbend      bool           // some program is ExtAirbend (act_airbend.go)
 	anyMeld         bool           // some program is ExtMeld (face_meld.go)
+	anyMerge        bool           // some program is ExtMergePermanent (kw_mutate.go)
 	anyMayWhileSrc  bool           // some OpMayPlay lasts DurWhileSrcMay (cast_whilesource.go)
 	anyGoad         bool           // some program is OpGoad (act_goad.go)
 	anyPermMark     bool           // the table gives some kop.PredPermMark mark an arena mask (filter_permmarks.go)
@@ -1976,6 +1977,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepMonarch(t, g)        // act_monarch.go
 	prepAirbend(t, g)
 	prepMeld(t, g)        // face_meld.go
+	prepMerge(t, g)       // kw_mutate.go
 	prepMayWhileSrc(t, g) // cast_whilesource.go
 	prepInit(t, p, g)     // act_initiative.go
 	prepExileFD(t, g)     // zone_exilefacedown.go
