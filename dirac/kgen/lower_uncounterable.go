@@ -23,10 +23,13 @@ import (
 // controller word (Leyline of Lifeforce, Root Sliver) matches spells of every
 // controller, so the whole line lowers with the any-controller read
 // (kop.ReplUncAnyCtrl) and the kernel widens its scan to the battlefield;
-// alternatives that disagree on the scope refuse, fail-closed. Only the Spell
-// kind lowers; an Activated, Triggered or SpellAbility alternative refuses.
-// Secondary$ True (Cunning Nightbonder's paired line) is read by nothing in
-// gorge's replacement path and consumes.
+// alternatives that disagree on the scope refuse, fail-closed. An Activated
+// or Triggered alternative names an ability, which dirac's stack never holds
+// (its Counter events target spells only), so it contributes no spell match
+// and is ignored: Spider-Punk's Spell,Activated,Triggered is the Spell
+// alternative. A line with no Spell alternative (SpellAbility alone) still
+// refuses, fail-closed. Secondary$ True (Cunning Nightbonder's paired line)
+// is read by nothing in gorge's replacement path and consumes.
 func (lc *lowerCtx) spellsUncounterable(rp *params, rl *lRepl) error {
 	const shape = "Counter replacement shape"
 	if rp.str("Layer") != "CantHappen" {
@@ -34,10 +37,18 @@ func (lc *lowerCtx) spellsUncounterable(rp *params, rl *lRepl) error {
 	}
 	rp.consume("Secondary")
 	youAll, youAny := true, false
+	sawSpell := false
 	var alts []string
 	for _, alt := range strings.Split(rp.str("ValidSA"), ",") {
 		kind, quals, _ := strings.Cut(strings.TrimSpace(alt), ".")
-		if kind != "Spell" {
+		switch kind {
+		case "Spell":
+			sawSpell = true
+		case "Activated", "Triggered":
+			// dirac's stack holds spells only: a Counter on an ability never
+			// reaches a spell, so this alternative adds no spell match.
+			continue
+		default:
 			return refuse(shape)
 		}
 		you := false
@@ -63,6 +74,9 @@ func (lc *lowerCtx) spellsUncounterable(rp *params, rl *lRepl) error {
 			youAll = false
 		}
 		alts = append(alts, expr)
+	}
+	if !sawSpell {
+		return refuse(shape)
 	}
 	if youAny && !youAll {
 		return refuse("Counter ValidSA scope mix")

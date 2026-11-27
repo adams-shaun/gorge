@@ -626,6 +626,9 @@ func dumpStatics(w io.Writer, c *lCard) {
 		if s.Toxic != 0 {
 			fmt.Fprintf(w, " toxic=%d", s.Toxic)
 		}
+		if s.Riot {
+			fmt.Fprintf(w, " riot")
+		}
 		if s.PanhZones != 0 {
 			fmt.Fprintf(w, " zones=%d", s.PanhZones)
 		}
