@@ -693,7 +693,7 @@ func (s *State) canActivate(k *prep, sl Slot, ab int, a *kop.Ability, sorc bool,
 	if a.Kind == kop.AbActivated && a.Trig.Cond != 0 && !s.activateCondHolds(k, sl, a) {
 		return false
 	}
-	if f&kop.CostLoyalty != 0 && (!sorc || s.loyaltyUsedAtLimit(k, sl)) {
+	if f&kop.CostLoyalty != 0 && (!sorc && !s.loyaltyFlash(k, sl) || s.loyaltyUsedAtLimit(k, sl)) { // loyaltyFlash: static_loyaltyflash.go
 		return false
 	}
 	if f&kop.CostOncePerGame != 0 && s.onceBlocked(k, sl, a) {

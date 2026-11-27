@@ -1489,6 +1489,9 @@ func init() { enum[kop.StaticKind]("kop.StatDefiler", kop.StatDefiler) }
 // dirac/manifest/StaticKind/StatGraveNoAbilities
 func init() { enum[kop.StaticKind]("kop.StatGraveNoAbilities", kop.StatGraveNoAbilities) }
 
+// dirac/manifest/StaticKind/StatLoyaltyFlash
+func init() { enum[kop.StaticKind]("kop.StatLoyaltyFlash", kop.StatLoyaltyFlash) }
+
 // dirac/manifest/StaticKind/StatMadnessGrant
 func init() { enum[kop.StaticKind]("kop.StatMadnessGrant", kop.StatMadnessGrant) }
 

@@ -1,0 +1,5 @@
+family: StaticKind
+name: StatLoyaltyFlash
+value: next
+status: active
+doc: StatLoyaltyFlash is a CastWithFlash static whose ValidSA$ is Activated.Loyalty with Caster$ You ("you may activate loyalty abilities of <Filter> any time you could cast an instant"; The Wandering Emperor, Teferi, Master of Time, Teferi, Temporal Archmage's and Teferi's Talent's emblems, Jace's Machinations' EOT Effect): a loyalty ability of a permanent matching Filter (read with the static's controller as "you" and its source as Self) is offered at instant speed to that controller. CR 606.3's once-per-turn limit still holds (gorge rules/loyalty_flash.go loyaltyAtInstantSpeed; kernel static_loyaltyflash.go).

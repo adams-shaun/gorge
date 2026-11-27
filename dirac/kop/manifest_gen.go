@@ -2607,23 +2607,28 @@ const StatDefiler StaticKind = 78
 // StatGraveNoAbilities is a Continuous static's AffectedZone$ Graveyard RemoveAllAbilities$ True (Yixlid Jailer; CR 613.1f): each card in a graveyard that Filter matches loses all abilities while the static's battlefield source is in force. Zone is the graveyard and the filter reads the card as a card, wherever it lies. It is not a StatContinuous, so no battlefield reader (the layer walks, loss6) sees it; only the graveyard readers ask it, through graveAbilitiesLost (static_graveabilityloss.go), which also answers the removal's timestamp so a granted graveyard ability that is newer than the removal survives (gorge grantLostTo).
 const StatGraveNoAbilities StaticKind = 79
 
+// StaticKind (dirac/manifest/StaticKind/StatLoyaltyFlash)
+//
+// StatLoyaltyFlash is a CastWithFlash static whose ValidSA$ is Activated.Loyalty with Caster$ You ("you may activate loyalty abilities of <Filter> any time you could cast an instant"; The Wandering Emperor, Teferi, Master of Time, Teferi, Temporal Archmage's and Teferi's Talent's emblems, Jace's Machinations' EOT Effect): a loyalty ability of a permanent matching Filter (read with the static's controller as "you" and its source as Self) is offered at instant speed to that controller. CR 606.3's once-per-turn limit still holds (gorge rules/loyalty_flash.go loyaltyAtInstantSpeed; kernel static_loyaltyflash.go).
+const StatLoyaltyFlash StaticKind = 80
+
 // StaticKind (dirac/manifest/StaticKind/StatMadnessGrant)
 //
 // StatMadnessGrant is a Continuous static's AddKeyword$ Madness:ManaCost[:<N>] grant over the zones its AffectedZone$ lists, one static per zone (Falkenrath Gorger; CR 702.35a-b): Filter matches the card in Static.Zone and the granted madness cost is the card's own mana cost reduced by CardCostLess-1 generic (Madness:ManaCost is CardCostLess 1, no reduction). A card with printed madness keeps its own cost; the first grant in perm.ts order wins. Read live from the battlefield at the discard (Hand zone), the cast-or-graveyard ask and the cast from exile, never stamped on the card (kw_madness.go madnessCostOf).
-const StatMadnessGrant StaticKind = 80
+const StatMadnessGrant StaticKind = 81
 
 // StaticKind (dirac/manifest/StaticKind/StatMiracleGrant)
 //
 // StatMiracleGrant is a Continuous static's AffectedZone$ Hand AddKeyword$ Miracle:<cost> grant (Lorehold, the Historian; Molecule Man; Aminatou, Veil Piercer; CR 702.94a): Filter matches the card in a hand and the granted miracle cost is GrantCost, or under CardCostLess the card's own mana cost reduced by CardCostLess-1 generic (Miracle:ManaCost:4). A card with printed miracle keeps its own (gorge derivedKeywordParamH reads the printed head first); the first grant in perm.ts order wins. Read live from the battlefield at the draw, the reveal-trigger resolution and the cast, never stamped on the card (kw_miracle.go miracleCostOf).
-const StatMiracleGrant StaticKind = 81
+const StatMiracleGrant StaticKind = 82
 
 // stat AssignNoCombatDamage (dirac/manifest/StaticKind/StatNoCombatDamage)
-const StatNoCombatDamage StaticKind = 82
+const StatNoCombatDamage StaticKind = 83
 
 // StaticKind (dirac/manifest/StaticKind/StatUnearthGrant)
 //
 // StatUnearthGrant is a Continuous static's AffectedZone$ Graveyard AddKeyword$ Unearth grant (Sedris, the Traitor King, Mishra, Tamer of Mak Fawa, Dregscape Sliver, Solemn Doomguide; CR 702.84a): Filter matches the card in the graveyard and GrantBody-1 is the latent unearth body (the printed kwUnearth expander's AB$ ChangeZone, cards.GrantedKeywordAbility) the graveyard offer runs with the affected card as its source. The body's own Cost prices the explicit-cost shape; a zero body cost is the CardManaCost mark, which the offer charges as the affected card's own mana cost (kw_unearthgrant.go).
-const StatUnearthGrant StaticKind = 83
+const StatUnearthGrant StaticKind = 84
 
 // trig ChaosEnsues (dirac/manifest/TrigEvent/TrigChaosEnsues)
 const TrigChaosEnsues TrigEvent = 52
