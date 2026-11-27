@@ -1,0 +1,28 @@
+# The filtered sacrificed-this-turn pool (dirac/oracle/demo_sacrificed_count_lockstep_test.go):
+# Dargo, the Shipwrecker's ReduceCost SVar reads
+# PlayerCountPropertyYou$SacrificedThisTurn Artifact,Creature (a filter), and
+# Evendo Brushrazer's Continuous CheckSVar reads Permanent.!token. The token
+# makers (Dragon Fodder, Krenko's Command) make the !token filter observable,
+# the sacrifice outlets (Goblin Bombardment, Carrion Feeder, Hungry Ghoul)
+# provide the sacrifices, Goldhound and Ornithopter are non-token artifacts
+# for Dargo's union, and the basics and Sol Ring let the decks play.
+Dargo, the Shipwrecker
+Evendo Brushrazer
+Goblin Bombardment
+Carrion Feeder
+Hungry Ghoul
+Dragon Fodder
+Krenko's Command
+Goldhound
+Ornithopter
+Grizzly Bears
+Hill Giant
+Llanowar Elves
+Sol Ring
+Shock
+Lightning Bolt
+Mountain
+Forest
+Swamp
+Island
+Plains

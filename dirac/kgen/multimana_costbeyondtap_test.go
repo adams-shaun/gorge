@@ -14,8 +14,10 @@ import (
 // Sacrifice another Goblin: Add {B}{R}" (Bolg's Company's shape) lowers to the
 // sacrifice-another source the tap-another search activates
 // (kop.SacXEachManaAb, kernel mana_tapanother.go). Each other out-of-shape
-// variant (two sacrificed, a fee beside the sacrifice, one colour twice)
-// still refuses by name.
+// variant (two sacrificed, a fee beside the sacrifice) still refuses by name.
+// A sole "{T}, Sacrifice a <spec>: Add <N> of one fixed colour" (Evendo
+// Brushrazer, Krark-Clan Stoker) is the same sacrifice-another source with one
+// colour repeated, and lowers.
 func TestLowerMultimanaCostBeyondTap(t *testing.T) {
 	const land = "Name:Expanse Probe\nManaCost:no cost\nTypes:Land\n"
 	def, rs := kwardpowBuild(t, "Expanse Probe", land+"A:AB$ Mana | Cost$ 1 T | Produced$ W U | SpellDescription$ Probe pair.\n")
@@ -96,8 +98,6 @@ func TestLowerMultimanaCostBeyondTap(t *testing.T) {
 			"from a cost beyond {T}: a sacrifice of another permanent (no sacrifice gap kind"},
 		{"fee beside the sacrifice", goblin + "A:AB$ Mana | Cost$ 1 T Sac<1/Goblin.Other/another Goblin> | Produced$ B R | SpellDescription$ Probe sac pair.\n",
 			"from a cost beyond {T}: a sacrifice of another permanent (no sacrifice gap kind"},
-		{"one colour twice", brush + "A:AB$ Mana | Cost$ T Sac<1/Land> | Produced$ R R | SpellDescription$ Probe sac pair.\n",
-			"the kernel's mana walk cannot activate it"},
 		{"coloured fee", land + "A:AB$ Mana | Cost$ W T | Produced$ W U | SpellDescription$ Filter.\n", "several colours at once from a cost beyond {T}"},
 		{"two of each", land + "A:AB$ Mana | Cost$ 1 T | Produced$ W U W U | SpellDescription$ Filter.\n", "several colours at once from a cost beyond {T}"},
 		{"fee and sacrifice self", land + "A:AB$ Mana | Cost$ 1 T Sac<1/CARDNAME> | Produced$ W U | SpellDescription$ Filter.\n", "several colours at once from a cost beyond {T}"},
@@ -117,6 +117,33 @@ func TestLowerMultimanaCostBeyondTap(t *testing.T) {
 		if !strings.Contains(strings.Join(all, "; "), c.want) {
 			t.Errorf("%s: refusals %q, want %q", c.name, all, c.want)
 		}
+	}
+
+	// {T}, Sacrifice a land: Add {R}{R} (Evendo Brushrazer's shape): the sole
+	// sacrifice-another source with one fixed colour twice. The kernel's
+	// tap-another search pays it (kop.SacTapFixedManaAb), so it is honoured as
+	// the first and only mana ability too.
+	const sacPair = brush + "A:AB$ Mana | Cost$ T Sac<1/Land> | Produced$ R R | SpellDescription$ Probe sac pair.\n"
+	bdef, brs := kwardpowBuild(t, "Brush Probe", sacPair)
+	if len(brs) != 0 {
+		t.Fatalf("{T}, Sacrifice a land: Add {R}{R} refused: %v", brs)
+	}
+	bi := -1
+	for i := range bdef.Abilities {
+		if bdef.Abilities[i].Kind == kop.AbMana {
+			bi = i
+			break
+		}
+	}
+	if bi < 0 {
+		t.Fatal("no one-colour-twice sacrifice mana ability lowered")
+	}
+	ba := &bdef.Abilities[bi]
+	if ba.Cost.Flags != kop.CostTap|kop.CostSac || ba.ManaN != 2 || ba.ManaColors != kop.ColR || ba.ManaEach {
+		t.Fatalf("ability %+v: want {T} + sacrifice one, Mana R twice, not each", ba)
+	}
+	if !kop.SacTapFixedManaAb(ba) || !kop.ManaAbilityHonoured(&bdef, bi) {
+		t.Fatalf("ability %+v is not the honoured fixed-colour sacrifice source", ba)
 	}
 }
 
