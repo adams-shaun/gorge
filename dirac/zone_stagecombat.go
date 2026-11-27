@@ -177,7 +177,7 @@ func (s *State) stageCombat(k *prep, w *World) {
 		sl := s.objs[i].slot
 		p := &s.perms[sl]
 		p.flags |= pfAttacking
-		s.setAttackTarget(p, PlayerCode(o.AtkSeat))
+		s.setDeclaredAttackTarget(p, PlayerCode(o.AtkSeat))
 		p.bord = objWord(order)
 		order++
 		if o.Blocked {

@@ -273,6 +273,19 @@ func (lc *lowerCtx) defined(v string) (lRef, error) {
 			return lRef{}, refuse("Defined$ %q outside a RepeatEach body", v)
 		}
 		return lRef{Kind: rRemembered}, nil
+	case "Player.attackedBySourceThisTurn":
+		// gorge effects/player_filter.go playerStateQualifier
+		// (playerSpecQualifierAttackedBySourceThisTurn): the seats the
+		// resolving SOURCE attacked this turn, from its per-object
+		// AttackedPlayersThisTurn ledger (the DeclareAttackers fold). Dirac
+		// is two-seat, so at most the one opponent; the kernel's ref reads
+		// the same attacker record and names nobody when it did not attack a
+		// player this turn (Angel of Destiny's end-step "each player Angel of
+		// Destiny attacked this turn loses the game"). The kernel's ref names
+		// one seat, exact at two; more seats would need the whole attacked
+		// set, so the card is two-seat only.
+		lc.twoSeat("Defined$ Player.attackedBySourceThisTurn names the one opponent of a two-player game")
+		return lRef{Kind: rAttackedBySource}, nil
 	case "DelayTriggerRememberedLKI":
 		return lRef{Kind: rDelayedRemembered}, nil
 	case "DelayTriggerRemembered":

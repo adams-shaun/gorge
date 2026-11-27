@@ -286,7 +286,8 @@ func TestCtrOverFullStalls(t *testing.T) {
 // bits (obj, chosen, bord, atk: Obj, objWord, TCode). The 16-bit counter
 // kinds (ck) added three bytes, attack-version bookkeeping (atkVer) one and
 // the P/T-switch mark byte (spare) one; the keyword counters' CR 613.7
-// stamps (cs, three uint16) four more.
+// stamps (cs, three uint16) four more. The declared-attack ledger (atkPl)
+// fills the byte of tail padding the alignment left, so it adds none.
 func TestPermSize(t *testing.T) {
 	var p perm
 	want := uintptr(72)

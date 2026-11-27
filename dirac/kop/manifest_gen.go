@@ -2311,10 +2311,15 @@ const PredSharesCrCmdr Pred = 43
 // PredStatBox: the object's power and toughness each lie in a constant inclusive range (PredN: kop.PTBoxPack bounds, PTBoxOpen for no bound). kgen folds two constant power/toughness compares of one clause into it (gorge powerEQ1+toughnessEQ1, powerGE4+powerLE6: each conjunct reads the same current power and toughness, the layered values on the battlefield and the printed or CDA ones elsewhere, a face-down object 2/2).
 const PredStatBox Pred = 44
 
+// Ref (dirac/manifest/Ref/RefAttackedBySource)
+//
+// a player ref: the seat the resolving source attacked this turn (gorge effects/player_filter.go playerStateQualifierAttackedBySourceThisTurn over the source object's AttackedPlayersThisTurn ledger, folded from DeclareAttackers). Dirac is two-seat, so at most the one opponent; none when the source attacked no player this turn. Angel of Destiny's end-step lose.
+const RefAttackedBySource Ref = 49
+
 // Ref (dirac/manifest/Ref/RefTargets0)
 //
 // every legal target of target slot 0 (gorge evalTarget's Animate grant over an any-number slot: effAnimate applies the grant and the AtEOT promise to each object of Defined$ Targeted). The kernel runs an op once per legal target of the slot (dirac/tgt_union.go execUnion).
-const RefTargets0 Ref = 49
+const RefTargets0 Ref = 50
 
 // repl BeginPhase (dirac/manifest/ReplKind/ReplBeginPhase)
 const ReplBeginPhase ReplKind = 42

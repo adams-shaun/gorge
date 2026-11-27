@@ -1215,6 +1215,9 @@ func init() { enum[kop.Pred]("kop.PredSharesCrCmdr", kop.PredSharesCrCmdr) }
 // dirac/manifest/Pred/PredStatBox
 func init() { enum[kop.Pred]("kop.PredStatBox", kop.PredStatBox) }
 
+// dirac/manifest/Ref/RefAttackedBySource
+func init() { enum[kop.Ref]("kop.RefAttackedBySource", kop.RefAttackedBySource) }
+
 // dirac/manifest/Ref/RefTargets0
 func init() { enum[kop.Ref]("kop.RefTargets0", kop.RefTargets0) }
 

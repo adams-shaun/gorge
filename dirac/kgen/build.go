@@ -473,6 +473,7 @@ var counterKinds = map[string]kop.CounterKind{
 	"COMPONENT":  kop.CtrComponent,  // Component Pouch's named counter (CR 122.1)
 	"DESCENT":    kop.CtrDescent,    // Descent into Avernus's named counter (CR 122.1)
 	"OMEN":       kop.CtrOmen,       // Soulcipher Board's omen counter (CR 122.1)
+	"MEMORY":     kop.CtrMemory,     // Altair Ibn-La'Ahad's memory counter (CR 122.1)
 	"M2M1":       kop.CtrM2M1,       // a -2/-1 counter (CR 122.1a; Contagion; the kernel's ptGen)
 }
 
@@ -2436,6 +2437,8 @@ func (cb *cardBuilder) ref(r lRef) (kop.Ref, error) {
 		return kop.RefTriggerAttackers, nil
 	case rRememberedOwner:
 		return kop.RefRememberedOwner, nil
+	case rAttackedBySource:
+		return kop.RefAttackedBySource, nil
 	case rExiledWithOwner:
 		return kop.RefExiledWithOwner, nil
 	case rEmblemSource:

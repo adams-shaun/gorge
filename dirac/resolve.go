@@ -838,6 +838,20 @@ func (s *State) playerRef(k *prep, r kop.Ref) uint8 {
 		return s.enchantedCtrl(e.obj) // trig_attachedctrl.go
 	case kop.RefEnchantedPlayer:
 		return s.enchantedPlayer(k, e.obj) // trig_attachedctrl.go
+	case kop.RefAttackedBySource:
+		// gorge playerStateQualifierAttackedBySourceThisTurn: the seat the
+		// resolving SOURCE declared an attack at this turn. The source must
+		// still be the same object on the battlefield; beginTurn clears the
+		// ledger with gorge's TurnChange fold. None when it attacked no
+		// player this turn.
+		if int(e.obj) < MaxObj {
+			if ob := &s.objs[e.obj]; ob.zone == kop.ZoneBattlefield {
+				if p := &s.perms[ob.slot]; p.obj == e.obj && p.atkPl != 0 {
+					return p.atkPl - 1
+				}
+			}
+		}
+		return 255
 	}
 	if k.gen != nil {
 		return s.refPlayer(k, r, s.ctxEntry(&s.res.e))
@@ -1162,7 +1176,7 @@ func (s *State) refCode(k *prep, r kop.Ref) TCode {
 	case kop.RefTarget0, kop.RefTarget1, kop.RefTarget2, kop.RefTarget3, kop.RefTarget4:
 		sl, _ := tgtSlot(r)
 		return s.tgtCode(sl)
-	case kop.RefController, kop.RefOpponent, kop.RefTriggerPlayer, kop.RefDefendingPlayer, kop.RefTargetController, kop.RefEachOpponent, kop.RefPromised, kop.RefChosenPlayer, kop.RefChosenPlayerRes, kop.RefResChosenPlayer, kop.RefTriggerTgtCtrl, kop.RefTriggerObjOwner, kop.RefAttachedCtrl, kop.RefEnchantedCtrl:
+	case kop.RefController, kop.RefOpponent, kop.RefTriggerPlayer, kop.RefDefendingPlayer, kop.RefTargetController, kop.RefEachOpponent, kop.RefPromised, kop.RefChosenPlayer, kop.RefChosenPlayerRes, kop.RefResChosenPlayer, kop.RefTriggerTgtCtrl, kop.RefTriggerObjOwner, kop.RefAttachedCtrl, kop.RefEnchantedCtrl, kop.RefAttackedBySource:
 		p := s.playerRef(k, r)
 		if p == 255 {
 			return TCode(NoTarget)
