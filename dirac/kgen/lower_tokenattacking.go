@@ -54,8 +54,9 @@ const tokenAttackingRemembered = "RememberedPlayer & Valid Planeswalker.Controll
 // attack trigger's DefendingPlayer, asked among the opponent's
 // planeswalkers and battles too; the kernel stalls when there are any).
 // True is read inside an attack trigger of the controller's own attack
-// (charm modes included: Warren Warleader's AttackersDeclared charm) and in a
-// spell with no trigger (The Last Ronin's Technique's sneaked branch): the
+// (charm modes included: Warren Warleader's AttackersDeclared charm, and the
+// source's equipped creature's Attacks trigger: Sigiled Sword of Valeron) and
+// in a spell with no trigger (The Last Ronin's Technique's sneaked branch): the
 // kernel tokenAttacks gates the attack on gorge's enteringDefenderFallback
 // (the controller's declare attackers .. end of combat), which an attack
 // trigger always passes and a spell may not. Any other trigger is refused,
@@ -64,7 +65,7 @@ const tokenAttackingRemembered = "RememberedPlayer & Valid Planeswalker.Controll
 func (lc *lowerCtx) tokenAttacking(v string) (int, error) {
 	switch v = strings.TrimSpace(v); {
 	case v == "True":
-		if lc.ab.Trigger != nil && !lc.ownAttackTrigger() {
+		if lc.ab.Trigger != nil && !lc.ownTokenAttackTrigger() {
 			return 0, refuse("TokenAttacking$ True in a trigger other than the controller's own attack")
 		}
 		if lc.ab.Trigger == nil && lc.ab.Latent {
