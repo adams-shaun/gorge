@@ -1,0 +1,13 @@
+# the CastWithFlash ValidSA$ tail pool: Silver Scrutiny's Spell.XCostLE3
+# self grant and Blur of Heroism's Spell.Hero battlefield grant beside Hero
+# and non-Hero creatures, a counterspell and basics
+# (dirac/oracle/cwf_xcost_lockstep_test.go)
+Silver Scrutiny
+Blur of Heroism
+Amateur Hero
+Agent of Atlas
+Elite Vanguard
+Glory Seeker
+Cancel
+Plains
+Island
