@@ -39,7 +39,8 @@ const (
 
 	// evidenceSourceXproof tags a row scripts/dirac-xproof-evidence.py wrote: a card whose
 	// xproof key agreed with Forge on gorge's side and played dirac in lockstep with gorge
-	// decision for decision. dirac plays two seats, so the row evidences from two.
+	// decision for decision. The seats reading is seat-exact: dirac plays two seats, so the
+	// row evidences from two.
 	evidenceSourceXproof = "xproof"
 	xproofCreditSeats    = 2
 )
@@ -79,9 +80,9 @@ func readSupport(src fs.FS) (*supportLists, error) {
 				continue
 			}
 			// A tabbed row is a pod run's row (Name\t<seats>): three seats
-			// report, four seats also evidence. A third column names the
-			// source of the row (Name\t<seats>\t<source>): an xproof row
-			// credits from two seats, the game its lockstep plays.
+			// report, four seats also evidence. The reading is seat-exact: a
+			// third column names the source of the row (Name\t<seats>\t<source>):
+			// an xproof row credits from two seats, the game its lockstep plays.
 			seats, source, _ := strings.Cut(r.col, "\t")
 			n, err := strconv.Atoi(strings.TrimSpace(seats))
 			if err != nil {
