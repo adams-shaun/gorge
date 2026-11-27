@@ -147,8 +147,17 @@ type genPrep struct {
 	// source's host ("artifact creatures you control have ..."), so any
 	// permanent can hold the trigger (trigger_granted.go grantTrigHosts)
 	globTrigGrant bool
-	anyProtF      bool // a card has printed K:Protection:<spec> (CardDef.ProtFrom), or a granted one (anyProtGrant)
-	anyProtGrant  bool // a Continuous static or an Override record has a ProtFrom quality (kop.Static.ProtFrom, kop.Override.ProtFrom; kw_protection.go)
+	// gainsTrigEv: events (bit per TrigEvent, the subscribed events only) a
+	// table with a GainsTrig static can fire a gained trigger on: the lender
+	// is any card the GainsOf filter matches, so it is every event the table's
+	// own triggers subscribe to (trig_gainedtrig.go)
+	gainsTrigEv uint32
+	// gainsCtrAll: a table card has a printed CounterAddedAll trigger, so a
+	// GainsTrig recipient can lend it: ctrAllNote adds the recipients to its
+	// scan (its ordinal is past gainsTrigEv's 32 bits)
+	gainsCtrAll  bool
+	anyProtF     bool // a card has printed K:Protection:<spec> (CardDef.ProtFrom), or a granted one (anyProtGrant)
+	anyProtGrant bool // a Continuous static or an Override record has a ProtFrom quality (kop.Static.ProtFrom, kop.Override.ProtFrom; kw_protection.go)
 	// manaTaps: the table has a Taps trigger (TrigTaps) and a granted mana
 	// ability, which can tap a Taps listener for mana: the mana taps fire it
 	// (manaTapped)
@@ -910,6 +919,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		// per card, so the byte is never both
 		g.anyMultikick |= mkAny
 	}
+	prepGainsTrig(t, g)         // trig_gainedtrig.go: the gained-trigger event mask
 	g.anySnow = tableAnySnow(t) // the pool's snow tally (mana_snow.go)
 	for i := range t.Cards {
 		// the printed K:Prevent facts (dirac/kgen/lower_preventkw.go)

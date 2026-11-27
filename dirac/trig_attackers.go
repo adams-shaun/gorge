@@ -211,7 +211,7 @@ func (s *State) execTriggerAttackers(k *prep, in *kop.Instr) {
 				if m > 0 && k.anyCtrAdded {
 					s.ctrNote(k, sl, int(in.C))
 				}
-				if m > 0 && s.subs[kop.TrigCounterAddedOnce].any() {
+				if m > 0 && s.evLive(kop.TrigCounterAddedOnce) {
 					s.fireObj(k, kop.TrigCounterAddedOnce, sl, p.obj, p.ctrl, int16(m))
 				}
 			}

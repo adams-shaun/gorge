@@ -25,7 +25,7 @@ func (s *State) putCounterRemembered(k *prep, in *kop.Instr) {
 		if m > 0 && k.anyCtrAdded {
 			s.ctrNote(k, sl, int(in.C))
 		}
-		if m > 0 && s.subs[kop.TrigCounterAddedOnce].any() {
+		if m > 0 && s.evLive(kop.TrigCounterAddedOnce) {
 			s.fireObj(k, kop.TrigCounterAddedOnce, sl, s.perms[sl].obj, s.perms[sl].ctrl, int16(m))
 		}
 	}

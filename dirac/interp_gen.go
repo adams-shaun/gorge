@@ -2848,7 +2848,7 @@ func (s *State) damageBatch(k *prep, codes []TCode, amts []int, park bool) bool 
 	if k.gen.anyPermMark {
 		s.markDealt(k, s.objRef(k, kop.RefSelf), false) // filter_permmarks.go
 	}
-	lis := s.subs[kop.TrigDamageDone].or(s.subs[kop.TrigDamageDealtOnce]).any() || k.gen.graveDmg
+	lis := s.evLive(kop.TrigDamageDone) || s.evLive(kop.TrigDamageDealtOnce) || k.gen.graveDmg
 	if lis || k.embDmg() {
 		agg := refLatch{agg: true} // the once-per-batch lines take the total, the rest wait for the pass below
 		agg.dn = dn[:len(codes)]   // each recipient's share, an AtLeastOneInstance$ gate's read (trig_atleastone.go)

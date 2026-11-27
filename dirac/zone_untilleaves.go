@@ -110,7 +110,7 @@ func (s *State) linkRetPut(k *prep, n int, nsl Slot) {
 	if n > 0 && k.anyCtrAdded {
 		s.ctrNote(k, nsl, int(kop.CtrP1P1))
 	}
-	if n > 0 && s.subs[kop.TrigCounterAddedOnce].any() {
+	if n > 0 && s.evLive(kop.TrigCounterAddedOnce) {
 		s.fireObj(k, kop.TrigCounterAddedOnce, nsl, s.perms[nsl].obj, s.perms[nsl].ctrl, int16(n))
 	}
 }

@@ -10,9 +10,9 @@ import (
 // Realmbreaker, the Invasion Tree's ChangeType$ Land.TargetedPlayerCtrl
 // graveyard return lowers onto the graveyard pick with the targeted player's
 // ownership (a graveyard card's controller is its owner) and RememberChanged$
-// for the chained Animate. Koh, the Face Stealer's GainsTriggerAbsOf$ is
-// refused by name: the kernel has no gained-trigger walk (a measured
-// StallGainsOf on the Koh lockstep pool), not as an unread parameter.
+// for the chained Animate. Koh, the Face Stealer's GainsTriggerAbsOf$ now
+// lowers onto the GainsOf static with the GainsTrig flag (the kernel's
+// gained-trigger walk, dirac/trig_gainedtrig.go): Koh has no refusal left.
 func TestAnimateKernelSurfaceLeftovers(t *testing.T) {
 	rb := lowerNamedCard(t, "Realmbreaker, the Invasion Tree")
 	if len(rb.Refusals) != 0 {
@@ -37,14 +37,12 @@ func TestAnimateKernelSurfaceLeftovers(t *testing.T) {
 	}
 
 	koh := lowerNamedCard(t, "Koh, the Face Stealer")
-	found := false
-	for _, r := range koh.Refusals {
-		if strings.Contains(r.Reason, "unread params") && strings.Contains(r.Reason, "GainsTriggerAbsOf") {
-			t.Errorf("Koh refuses GainsTriggerAbsOf$ as an unread parameter: %v", r)
-		}
-		found = found || strings.Contains(r.Reason, "no gained-trigger walk")
+	if len(koh.Refusals) != 0 {
+		t.Errorf("Koh refusals = %v, want none (GainsTriggerAbsOf$ lowers onto the GainsTrig flag)", koh.Refusals)
 	}
-	if !found || len(koh.Refusals) != 1 {
-		t.Errorf("Koh refusals = %v, want the one named gained-trigger refusal", koh.Refusals)
+	var kb strings.Builder
+	dumpLIR(&kb, koh)
+	if !strings.Contains(kb.String(), "gainstrig") {
+		t.Errorf("Koh's static does not carry the GainsTrig flag:\n%s", kb.String())
 	}
 }

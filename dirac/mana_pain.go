@@ -483,7 +483,7 @@ func (s *State) painDamage(k *prep, sl Slot, p uint8, n int) {
 	if k.gen != nil && k.gen.anyPermMark {
 		s.markDealt(k, sl, false) // filter_permmarks.go
 	}
-	if s.subs[kop.TrigDamageDone].any() || k.gen != nil && (s.subs[kop.TrigDamageDealtOnce].any() || k.gen.graveDmg) {
+	if s.evLive(kop.TrigDamageDone) || k.gen != nil && (s.evLive(kop.TrigDamageDealtOnce) || k.gen.graveDmg) {
 		s.fireDamage(k, sl, int16(n), true, false, code)
 	}
 }

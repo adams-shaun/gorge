@@ -131,7 +131,7 @@ func (s *State) pilesEachTap(k *prep, in *kop.Instr, pile slotMask) {
 		}
 		p.flags |= pfTapped
 		s.touchSl(sl)
-		if s.subs[kop.TrigTaps].any() {
+		if s.evLive(kop.TrigTaps) {
 			s.fireTapsBy(k, sl, s.effTapper(sl))
 		}
 		s.markTapped(k, sl)

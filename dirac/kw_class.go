@@ -86,7 +86,7 @@ func (s *State) classLevelUp(k *prep, in *kop.Instr) {
 		s.ctrStall()
 		return
 	}
-	if s.subs[kop.TrigCounterAddedOnce].any() {
+	if s.evLive(kop.TrigCounterAddedOnce) {
 		s.g.lastCK = kop.CtrLevel
 		s.fireObj(k, kop.TrigCounterAddedOnce, sl, p.obj, p.ctrl, 1)
 	}

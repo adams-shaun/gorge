@@ -85,7 +85,7 @@ func (s *State) addLore(k *prep, sl Slot, n int) bool {
 	if k.anyCtrAdded {
 		s.ctrNoteBy(k, sl, int(kop.CtrLore), s.perms[sl].ctrl) // the turn-based lore counter's adder is the Saga's controller (gorge saga.go)
 	}
-	if s.subs[kop.TrigCounterAddedOnce].any() {
+	if s.evLive(kop.TrigCounterAddedOnce) {
 		s.g.lastCK = kop.CtrLore
 		s.fireObj(k, kop.TrigCounterAddedOnce, sl, p.obj, p.ctrl, int16(n))
 	}

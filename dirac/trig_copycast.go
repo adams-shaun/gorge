@@ -15,6 +15,9 @@ func (s *State) fireCopyTrigs(k *prep, e *stackEntry) {
 	if k.gen.grantTrigEv&(1<<kop.TrigSpellCast) != 0 {
 		lm = s.grantTrigHosts(k, lm)
 	}
+	if k.gen.gainsTrigEv&(1<<kop.TrigSpellCast) != 0 {
+		lm = s.gainsTrigHosts(k, lm) // trig_gainedtrig.go
+	}
 	if !lm.any() {
 		return
 	}

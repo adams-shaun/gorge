@@ -47,6 +47,7 @@ var fullyLowered = map[string]bool{
 	"Mirran Safehouse":         true,
 	"Mystic Decree":            true,
 	"Depthshaker Titan":        true,
+	"Koh, the Face Stealer":    true,
 }
 
 func TestAnimateShapesKernelSurfacesSlice(t *testing.T) {

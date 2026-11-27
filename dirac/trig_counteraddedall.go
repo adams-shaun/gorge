@@ -77,6 +77,12 @@ func (s *State) ctrAllNote(k *prep, evSl Slot, evObj Obj, evCtrl uint8, amt int1
 		// grantTrigEv's 32 bits, so the table carries a flag instead.
 		m = s.grantTrigHosts(k, m)
 	}
+	if k.gen.gainsCtrAll {
+		// a GainsTrig recipient (Koh) lends a CounterAddedAll line from a
+		// foreign zone; its slot is no subscriber, so add it here (the
+		// gainsTrigEv Once alias arms the counter sites' gate above)
+		m = s.gainsTrigHosts(k, m)
+	}
 	if !m.any() {
 		return
 	}

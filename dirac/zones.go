@@ -120,7 +120,7 @@ func (s *State) detach(o Obj) kop.Zone {
 	s.touch(o)
 	ob := &s.objs[o]
 	from := ob.zone
-	if s.g.on && from == kop.ZoneGraveyard && s.subs[kop.TrigLeaves].any() {
+	if s.g.on && from == kop.ZoneGraveyard && s.evLive(kop.TrigLeaves) {
 		s.fireLeavesGraveyard(s.k(), o, ob.card, ob.owner())
 	}
 	pl := &s.pl[ob.owner()]
@@ -390,7 +390,7 @@ func (s *State) drawExcl(p uint8, ch drawChain) {
 	if s.g.enteredOn {
 		s.noteEnter(o, kop.ZoneHand, kop.ZoneLibrary, false, false)
 	}
-	if s.subs[kop.TrigDrawn].any() || s.cfgx&cfgxGraveDrawn != 0 {
+	if s.evLive(kop.TrigDrawn) || s.cfgx&cfgxGraveDrawn != 0 {
 		s.fireDrawn(p)
 	}
 	if pl.drawnTurn == 1 && s.turn > 0 {
@@ -612,7 +612,7 @@ func (s *State) enterNF(k *prep, o Obj, ctrl uint8, tapped bool, from kop.Zone, 
 	if face == 0 && k.anyCtrAdded {
 		s.ctrNoteEnter(k, sl) // ctr_addedthisturn.go
 	}
-	if face == 0 && k.gen != nil && s.subs[kop.TrigCounterAddedOnce].any() {
+	if face == 0 && k.gen != nil && s.evLive(kop.TrigCounterAddedOnce) {
 		// the counters it entered with were put on it: gorge's entry
 		// counter notice follows the zone change event, but its triggers
 		// are queued before the enters triggers (Exemplar of Light before
@@ -736,14 +736,14 @@ func (s *State) fireLeave(k *prep, sl Slot, z kop.Zone) {
 		if cr && diesLeavesMerged(k) {
 			merged = true // the Leaves walk below covers the Dies lines (trig_diesleaves.go)
 			s.fireDiesLeaves(k, sl, p.obj, p.ctrl, czAmt(k, z))
-		} else if (cr || k.gen != nil && k.gen.anyDiesNC) && (s.subs[kop.TrigDies].any() || k.gen != nil && k.gen.embObjEv&(1<<kop.TrigDies) != 0) {
+		} else if (cr || k.gen != nil && k.gen.anyDiesNC) && (s.evLive(kop.TrigDies) || k.gen != nil && k.gen.embObjEv&(1<<kop.TrigDies) != 0) {
 			s.fireObj(k, kop.TrigDies, sl, p.obj, p.ctrl, 0)
 		}
 		if k.gen != nil && k.gen.graveDies && cr {
 			s.fireGraveDies(k, sl)
 		}
 	}
-	if !merged && (s.subs[kop.TrigLeaves].any() || k.gen != nil && k.gen.embObjEv&(1<<kop.TrigLeaves) != 0) {
+	if !merged && (s.evLive(kop.TrigLeaves) || k.gen != nil && k.gen.embObjEv&(1<<kop.TrigLeaves) != 0) {
 		if k.gen != nil && (k.gen.anyBatch || k.gen.anyPanharm) {
 			s.fireLeavesBatched(k, sl, z) // also latches a death for panharmDies
 		} else {
@@ -760,7 +760,7 @@ func (s *State) fireLeave(k *prep, sl Slot, z kop.Zone) {
 			s.fireUnattached(k, sl, h)
 		}
 	}
-	if s.subs[kop.TrigSacrificed].any() {
+	if s.evLive(kop.TrigSacrificed) {
 		s.sacLeaveOrder(k, p.obj, n0) // one walk over a sacrifice's triggers (trig_sacqueueorder.go)
 	}
 	if k.gen != nil && k.gen.anyEarthbend && (z == kop.ZoneGraveyard || z == kop.ZoneExile) {

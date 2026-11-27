@@ -131,6 +131,14 @@ type Static struct {
 	// battlefield). Armed by the useGainsOf genPrep.uses flag; the offer walk is
 	// dirac/static_gainsof.go (AkActivate mode 0xC0|ability index). 0 = none.
 	GainsOf FilterID
+	// GainsTrig: the same static also carries GainsTriggerAbsOf$ (Forge's
+	// triggered half of "has all activated and triggered abilities of ...",
+	// equal to GainsAbilitiesOf$; Koh, the Face Stealer): the GainsOf lenders'
+	// TRIGGERED abilities fire as the recipient's (gorge state.ContinuousEffect.
+	// GainedTriggerFaces, the granted-trigger walk checkGrantedStaticTriggersUsing
+	// with the recipient as the trigger source). Armed by the gainsTrigEv
+	// genPrep mask; the walk is dirac/trig_gainedtrig.go.
+	GainsTrig bool
 	// WardLife: a StatContinuous grant's "ward—pay N life" amount
 	// (AddKeyword$ Ward:PayLife<N>; Kw holds KwWard; CR 702.21a). Like Ward,
 	// each such static is its own ward instance; 0 = no life ward.
