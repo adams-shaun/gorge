@@ -48,8 +48,8 @@ func (s *State) freeQueued(o Obj) bool {
 //   - C bit 14 (freeSameName): a remembered candidate is offered only when it shares the resolving
 //     trigger's source object's printed name (gorge effRipple's CR 201.2 read; kw_ripple.go).
 //   - Obj: RefRemembered (P1), a target slot (P2: the targeted card; a
-//     player target: that player's hand), or RefNone with F (P3/P4 filter
-//     population over the zone; over exile, every alive seat's).
+//     player target: that player's hand or graveyard), or RefNone with F
+//     (P3/P4 filter population over the zone; over exile, every alive seat's).
 //
 // The zone, ReplaceGraveyard and ForgetPlayed bits ride to the freeQ drain
 // in s.g.freeP: the caster in the low freeSeatBits, the zone in the three
@@ -194,14 +194,14 @@ func (s *State) castFreeFillGen(k *prep, in *kop.Instr, e *stackEntry) {
 			if o := Obj(e.tgt[slot]); isObjTarget(TCode(o)) {
 				add(o)
 			} else if isPlayerTarget(e.tgt[slot]) {
-				s.castFreeFillHand(CodeSeat(e.tgt[slot]), zone, add) // cast_freetgtplayer.go
+				s.castFreeFillPlayerZone(CodeSeat(e.tgt[slot]), zone, add) // cast_freetgtplayer.go
 			}
 		}
 	case in.Obj == kop.RefTriggerPlayer:
 		// the trigger's player's hand (Mindleech Mass, Silent-Blade Oni: the
 		// seat a DamageDone trigger hit, e.trigPl); none fills nothing
 		if e != nil && e.trigPl != 255 {
-			s.castFreeFillHand(e.trigPl, zone, add) // cast_freetgtplayer.go
+			s.castFreeFillPlayerZone(e.trigPl, zone, add) // cast_freetgtplayer.go
 		}
 	case zone == kop.ZoneHand:
 		pl := &s.pl[e.ctrl]
