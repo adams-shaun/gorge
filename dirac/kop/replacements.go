@@ -186,6 +186,14 @@ const (
 	ReplDrawOpponent  = 1 << 2 // ValidPlayer$ Opponent: an opponent of the source's controller draws
 	ReplDrawAnyPlayer = 1 << 3 // ValidPlayer$ Player: any player draws
 	ReplDrawSkip      = 1 << 4 // Prevent$ True, no ReplaceWith$ body: the draw is skipped
+	// ReplDrawCauseCyclingNonLand is the line's ValidCause$ Activated.Cycling+nonLand
+	// (Unpredictable Cyclone, the corpus's only Draw ValidCause$ carrier): the
+	// draw's cause must be a resolving activated cycling ability (kop.AfCycling,
+	// which is what both Keyword$ Cycling and TypeCycling ride) whose source
+	// card is not a land. gorge reads the same three tests in
+	// engine/rules/trigger_cause.go drawCauseAdmits; the kernel's read is
+	// repl_drawprogram.go drawCauseCycling.
+	ReplDrawCauseCyclingNonLand = 1 << 5
 )
 
 // Repl is a replacement-lite effect.

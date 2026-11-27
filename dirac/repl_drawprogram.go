@@ -94,6 +94,9 @@ func (s *State) drawScan(k *prep, p uint8, ch drawChain) (c drawCands) {
 					if !drawProgramPlayer(a.Repl.C, seat, p) {
 						continue
 					}
+					if a.Repl.C&kop.ReplDrawCauseCyclingNonLand != 0 && !s.drawCauseCycling(k) {
+						continue // ValidCause$ Activated.Cycling+nonLand: this draw is not a cycling ability's
+					}
 					if a.Repl.C&kop.ReplDrawNotFirst != 0 && s.g.drawFirst && p == s.active && s.step == kop.StepDraw {
 						continue
 					}
@@ -163,6 +166,32 @@ func drawProgramPlayer(bits int16, ctrl, p uint8) bool {
 	default:
 		return ctrl == p
 	}
+}
+
+// drawCauseCycling is the line's ValidCause$ Activated.Cycling+nonLand gate
+// (kop.ReplDrawCauseCyclingNonLand). The draw's cause is the resolving stack
+// entry, the kernel's twin of gorge's actionCause for the Draw event
+// (engine/rules/trigger_cause.go drawCauseAdmits): a draw outside a resolution
+// is caused by nothing, so the gate fails closed, and so does every entry that
+// is not an activated ability (a spell, a trigger: gorge's StackKindOf test).
+// Inside one, the ability must carry the cycling flag (kop.AfCycling, which
+// both Keyword$ Cycling and TypeCycling ride: gorge's cyclingCauseKeywords)
+// and its source card must not be a land (the nonLand qualifier, read off the
+// cause card exactly as gorge matches it against Card.nonLand). A cycling
+// ability granted from off the card keeps its own AfCycling, so the entry
+// reads it the same way; an entry whose card or ability the table cannot name
+// fails closed.
+func (s *State) drawCauseCycling(k *prep) bool {
+	e := &s.res.e
+	if !s.res.active || e.kind != seAbility || e.card == NoCard {
+		return false
+	}
+	cd := &k.t.Cards[e.card]
+	if int(e.ab) >= len(cd.Abilities) {
+		return false
+	}
+	a := &cd.Abilities[e.ab]
+	return a.Kind == kop.AbActivated && a.AFlags&kop.AfCycling != 0 && k.cards[e.card].types&kop.TLand == 0
 }
 
 // drawProgramTake applies the one ReplDrawProgram candidate: it extends the
