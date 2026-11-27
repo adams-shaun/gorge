@@ -13,9 +13,10 @@ import "testing"
 // the remembered host's redirect to the Effect's host (Daughter of Autumn,
 // lower_effectredirect.go), the remembered creature's redirect to the
 // resolving controller (Vassal's Duty, Sivvi's Valor, same file) and the
-// unbounded shield with a counter body (Brace for Impact with the counter
-// rider, Gatta and Luzzu plain: the two arms of gorge's own Prevent$
-// classifier, lower_preventallto.go).
+// turn-long extra enters-with-counter rider (Zameck Guildmage,
+// lower_effturnetbctr.go) and the unbounded shield with a counter body
+// (Brace for Impact with the counter rider, Gatta and Luzzu plain: the two
+// arms of gorge's own Prevent$ classifier, lower_preventallto.go).
 var effectReplacementsSlice = []string{
 	"Dire Fleet Daredevil", "Sins of the Past",
 	"Auriok Replica", "Burrenton Forge-Tender", "Charm Peddler", "Circle of Despair", "Martyr's Cause",
@@ -24,9 +25,8 @@ var effectReplacementsSlice = []string{
 	"Cho-Arrim Alchemist", "Intervention Pact", "Reverse Damage",
 	"Gideon, Ally of Zendikar", "Gideon, Champion of Justice", "Gideon, Martial Paragon",
 	"Recommission", "Heroic Return", "What Must Be Done", "Winter Soldier, Reborn Avenger",
-	"Daughter of Autumn",
+	"Daughter of Autumn", "Zameck Guildmage", "Vassal's Duty", "Sivvi's Valor",
 	"Brace for Impact", "Gatta and Luzzu",
-	"Vassal's Duty", "Sivvi's Valor",
 }
 
 func TestEffectReplacementsSlice(t *testing.T) {
