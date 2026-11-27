@@ -22,8 +22,9 @@ func TestPrintedDelveTableIsShared(t *testing.T) {
 	if again != first {
 		t.Errorf("the same decks built two tables: kgen ran twice, the lane pays for both")
 	}
-	// and a different deck list must not hit the same entry
-	other := printedDelveSet(t, [2][]string{{"Gurmag Angler", "Swamp"}, {"Murderous Cut", "Island"}})
+	// and a different card set must not hit the same entry: the key is the sorted
+	// union of both decks, so the other decks must differ in that union (no Island)
+	other := printedDelveSet(t, [2][]string{{"Gurmag Angler", "Swamp"}, {"Murderous Cut"}})
 	if other == first {
 		t.Errorf("different card sets share one table: the cache key ignores the decks")
 	}

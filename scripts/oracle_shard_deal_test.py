@@ -54,23 +54,61 @@ def test_unlisted_default_never_outranks_a_listed_one_second_test():
     assert part["TestUnknown"] == part["TestOne"] != part["TestSlow"]
 
 
-def test_the_real_table_deals_no_part_over_40_percent_of_the_sum():
-    # Done-means (11-27): no lane may carry over 40% of the summed wall. The table lists every test of
-    # >= 1 s; a weight that drifted far from its measurement (TestReproManifest0 was listed at 146.6
-    # while its shard measured ~14 s, and TestCmd5SliceCleanOnlyGrows hid at 0.08 unlisted) shows up
-    # here as an over-loaded part, since the deal is greedy heaviest-first.
-    table = HERE.parent / "dirac" / "oracle" / "testdata" / "ci-shard-seconds.txt"
+REPO = HERE.parent
+# the planner's fixture graph for a source change the oracle imports (test_targets_slice_test.py's SRC):
+# the precheck arm that replays the slice
+ORACLE_DIRMAP = {"dirac": "m/dirac", "dirac/oracle": "m/dirac/oracle"}
+ORACLE_DEPS = {"m/dirac": {"m/dirac"}, "m/dirac/oracle": {"m/dirac/oracle", "m/dirac"}}
+
+
+def _real_slice_process_shares(monkeypatch, weights):
+    """Each lane process of the real oracle replay slice, for every one of the four merge-base slice
+    lanes: (slice lane, the process's -run, its share of its half's summed cost). The names are the
+    package's top-level test functions, the selection is the planner's (replay_sel over the real
+    recordings and test files), the deal is test_targets.oracle_lanes with ORACLE_LANES."""
+    import test_targets as tt
+    monkeypatch.chdir(REPO)  # replay_sel reads dirac/oracle relative to the module root
+    names = sorted({m.group(1) for f in sorted((REPO / "dirac" / "oracle").glob("*_test.go"))
+                    for ln in f.read_text().splitlines() for m in [tt._TESTFN.match(ln)] if m})
+    out = []
+    for lane in range(4):
+        sha = next("base%d" % i for i in range(1000) if tt.zlib.crc32(("base%d" % i).encode()) % 4 == lane)
+        reprosel = tt.replay_sel(ORACLE_DIRMAP, sha)
+        assert reprosel and reprosel["tests"], "the real replay selection must load"
+        res, _ = tt.plan({"dirac/state.go": None}, ORACLE_DIRMAP, ORACLE_DEPS, lambda p: [], None, (), None, reprosel)
+        laned = tt.oracle_lanes(res, names=names, weights=weights, zero=set())
+        procs = [rx for k, _, rx in laned if k == "oraclelane"]
+        assert len(procs) > tt.ORACLE_LANES, "the slice must be dealt into lanes: %s" % procs
+        halves = {}
+        for rx in procs:
+            top, _, sub = rx.partition("/")
+            share = tt.SLICE_SHARE if sub else 1.0
+            members = top[2:-2].split("|") if top.startswith("^(") and top.endswith(")$") else []
+            cost = sum(weights.get(n, deal.UNLISTED_SECONDS) * share for n in members)
+            halves.setdefault(sub, []).append((rx, cost))
+        for sub, procs_ in halves.items():
+            total = sum(c for _, c in procs_)
+            out.extend((lane, rx, c / total if total else 0.0) for rx, c in procs_)
+    return out
+
+
+def test_the_real_slice_deals_no_lane_process_over_40_percent_of_its_half(monkeypatch):
+    # Done-means (11-27): no lane of the precheck's oracle replay slice may carry over 40% of the summed
+    # wall. The slice is the planner's real selection over the package's real tests, dealt by
+    # test_targets.oracle_lanes with the committed table; each half (the plain -run and each subtest
+    # -run) is its own deal, so a process's share is of its own half's cost.
+    table = REPO / "dirac" / "oracle" / "testdata" / "ci-shard-seconds.txt"
     weights = deal.read_weights(str(table))
     assert weights, "the cost table must exist and parse"
-    parts = 4
-    loads = [0.0] * parts
-    total = 0.0
-    for p, _, s in deal.deal(sorted(weights), weights, parts, default=deal.UNLISTED_SECONDS):
-        loads[p] += s
-        total += s
-    assert total >= 1000.0, "the real table sums to thousands of seconds"
-    worst = max(loads) / total
-    assert worst <= 0.40, "no part over 40%% of the summed wall (loads %s)" % [round(x, 1) for x in loads]
+    shares = _real_slice_process_shares(monkeypatch, weights)
+    worst = max(shares, key=lambda x: x[2])
+    assert worst[2] <= 0.40, "slice lane %d's process %s carries %.0f%% of its half" % (
+        worst[0], worst[1][:120], 100 * worst[2])
+    # the check can fail: one test of the plain slice weighed as the whole slice is alone over 40%
+    plain = [rx for _, rx, _ in shares if "/" not in rx]
+    victim = plain[0][2:-2].split("|")[0]
+    heavy = dict(weights, **{victim: sum(weights.values())})
+    assert max(s for _, _, s in _real_slice_process_shares(monkeypatch, heavy)) > 0.40
 
 
 def test_read_zero_takes_the_top_level_name_of_a_subtest_path(tmp_path):

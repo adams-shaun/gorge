@@ -126,7 +126,8 @@ def test_the_slow_list_is_excluded_unless_the_recording_changed():
 def test_the_replay_arm_keeps_the_refusal_check_and_the_pool_globs_are_sliced():
     lane = zlib.crc32("TestStdFdnReprosLockstep".encode()) % 4
     kind, rx = oracle(planned(SRC, reprosel=sel(sha=sha_in_lane(lane))))
-    assert re.search(rx, "TestRefusedEntriesStillDiverge")
+    assert re.search(rx, "TestRefusedEntriesStillDiverge0")  # the shards, never the parent (11-27 review)
+    assert not re.search(rx, "TestRefusedEntriesStillDiverge")  # the whole 422 s parent is never dealt
     assert re.search(rx, "TestStdFdnReprosLockstep")  # the pool globs are in the slice population
     assert not re.search(rx, "TestShieldReplacementCollision")  # whole-game lockstep stays in the batch
     # out of the lane the glob is left to the batch with the rest
@@ -135,7 +136,7 @@ def test_the_replay_arm_keeps_the_refusal_check_and_the_pool_globs_are_sliced():
     res = planned(SRC, reprosel=sel(sha=sha_in_lane(zlib.crc32(RECORDINGS[0].encode()) % 4)))
     mrx = manifest_rx(res)
     assert mrx.count("/") == 1 and mrx.startswith(MANIFEST)  # its -run matches the manifest test only
-    assert not re.search(mrx, "TestRefusedEntriesStillDiverge")
+    assert not re.search(mrx, "TestRefusedEntriesStillDiverge0")
     assert not re.search(mrx, "TestStdFdnReprosLockstep")
 
 
@@ -175,7 +176,8 @@ def test_without_slice_input_the_replay_arm_still_covers_every_recording():
     # keeps full coverage rather than silently losing it)
     kind, rx = oracle(planned(SRC))
     assert tt.REPLAYS in rx
-    for name in ("TestMBCAmberTombReprosLockstep", "TestRefusedEntriesStillDiverge"):
+    for name in ("TestMBCAmberTombReprosLockstep", "TestRefusedEntriesStillDiverge0",
+                 "TestRefusedEntriesStillDiverge7"):  # the shards are the batch's refusal coverage
         assert re.search(rx, name), name
     assert manifest_rx(planned(SRC)) is None
 
@@ -214,7 +216,7 @@ def test_lanes_partition_the_replay_selection_exactly():
     res = planned(SRC, reprosel=sel(sha=sha_in_lane(1)))
     plain = oracle(res)[1]
     names = sorted(set(REPRO_TESTS) - {SLOW_TEST}) + [
-        "TestRefusedEntriesStillDiverge",           # the refusal guard the replay arm always adds
+        "TestRefusedEntriesStillDiverge0",          # a refusal shard the replay arm always adds
         "TestReproCensusIsCurrent",                 # selected by the census alternatives
         "TestPinManifest",                          # selected by nothing here
         "TestUnrelatedThing",
@@ -257,7 +259,7 @@ def test_each_half_is_dealt_into_its_own_lane_budget():
     # CENSUS names join the plain selection from any lane; the two lane-1 replay tests and the
     # refusal guard are the rest of the plain half. Four manifest shards make the sub half.
     names = (["TestHalfPlainACensus", "TestHalfPlainBCensus", "TestHalfPlainCCensus",
-              "TestHalfPlainDCensus", "TestRefusedEntriesStillDiverge",
+              "TestHalfPlainDCensus", "TestRefusedEntriesStillDiverge0",
               "TestMBCFrostGateReprosLockstep", "TestMBCGloomDoomReprosLockstep"]
              + [tt.MANIFEST_TEST + str(i) for i in range(4)])
     selected = [n for n in names if re.search(plain_rx, n)]
@@ -307,8 +309,8 @@ def test_each_half_is_dealt_into_its_own_lane_budget():
 def test_lanes_deal_by_cost_and_leave_an_undealtable_slice_alone():
     res = planned(SRC, reprosel=sel(sha=sha_in_lane(1)))
     # two lanes, one heavy test: it and nothing else is alone in its lane
-    names = ["TestHeavyCensus", "TestRefusedEntriesStillDiverge"]
-    weights = {"TestHeavyCensus": 100.0, "TestRefusedEntriesStillDiverge": 1.0}
+    names = ["TestHeavyCensus", "TestRefusedEntriesStillDiverge0"]
+    weights = {"TestHeavyCensus": 100.0, "TestRefusedEntriesStillDiverge0": 1.0}
     laned = tt.oracle_lanes(res, names=names, weights=weights, zero=set(), lanes=2)
     lanes = [rx for k, p, rx in laned if p == "./dirac/oracle" and "/" not in rx]
     assert "TestHeavyCensus" in lanes[0] and "TestHeavyCensus" not in lanes[1]

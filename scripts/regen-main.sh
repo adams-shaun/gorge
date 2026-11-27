@@ -35,10 +35,10 @@ source scripts/pr-cards.sh
 stale=$(mktemp -d)
 # A failed or timed-out refused test must not halt the pins' regen (the bot's other job): it
 # unrefuses nothing, and the pins go on.
-if "${cap[@]}" env DIRAC_UNREFUSE_STALE="$stale" go test -timeout 20m -run '^TestRefusedEntriesStillDiverge$' ./dirac/oracle; then
+if "${cap[@]}" env DIRAC_UNREFUSE_STALE="$stale" go test -timeout 20m -run '^TestRefusedEntriesStillDiverge[0-9]+$' ./dirac/oracle; then
   scripts/unrefuse-stale.sh "$stale" || { rm -rf "$stale"; echo "regen-main: unrefuse-stale failed"; exit 1; }
 else
-  echo "regen-main: TestRefusedEntriesStillDiverge failed; unrefusing nothing this run"
+  echo "regen-main: TestRefusedEntriesStillDiverge0..7 failed; unrefusing nothing this run"
 fi
 rm -rf "$stale"
 "${cap[@]}" env KGEN_REPIN=1 go test -timeout 5m -run "$pins" ./dirac/kgen >/dev/null 2>&1

@@ -7,12 +7,16 @@
 # printed no time for (pool-only tests, which skip on a CI clone) keep their old weights. Unlisted tests
 # weigh DEFAULT_SECONDS (0.08, the median of the rest). Refresh from the PASS lines of a green run's parts
 # (the "PASS and SKIP lines" group), or the "slowest tests" lines the CI parts print.
-# 2026-11-27 refresh of the entries below that had drifted (a precheck lane measurement, not the CI run above):
-# the test's leaf-subtest seconds in the 5-lane targeted run, divided by 4.57 (the ratio of that run to this
-# table over the 20 tests both measured, so the scale is this file's); a pool glob (TestStd*ReprosLockstep,
-# TestReproManifest*) ran one 25% slice of its recordings there, so its entry is that x 4. Tests this file
-# did not list that weighed >= 3 s were added; TestRefusedEntriesStillDiverge (4.7 -> 44.7) and the pool globs
-# moved most. scripts/test_targets.py's lanes weigh an unlisted test UNLISTED_SECONDS (0.08), not the median.
+# 2026-11-27 refresh (a precheck lane measurement and direct runs, not the CI run above): most rows below
+# are the leaf-subtest seconds of a 5-lane targeted run divided by 4.57 (the ratio of that run to this
+# table over the 20 tests both measured, so the scale stays this file's); a pool glob (TestStd*ReprosLockstep,
+# TestReproManifest*) ran one 25% slice of its recordings there, so its entry is that x 4. Measured by
+# running them directly instead, one go test each: the 8 TestReproManifest shards, the 8
+# TestCmd5SliceCleanOnlyGrows shards (the pairs dealt i % 8) and the 8 TestRefusedEntriesStillDiverge
+# shards (the refusal entries dealt i % 8, after the printed-delve table cache made every replayed table
+# shared -- it took the leaf sum from 422.7 s to 177.9 s); none of the three has a parent test. A test
+# that weighed >= 3 s in the 5-lane measurement was added when this file did not list it.
+# scripts/test_targets.py's lanes weigh an unlisted test UNLISTED_SECONDS (0.08), not the median.
 TestAbilityCopyAsksEachChainLink 1.1
 TestAbilityReductionExcessPaysXLockstep 1.1
 TestAbilitycastLockstep 15.2
@@ -965,7 +969,14 @@ TestReducespellLockstep 12.1
 TestReducespellMutation 3.9
 TestReferentsLockstep 248.3
 TestReflexiveRememberTargetLockstep 13.9
-TestRefusedEntriesStillDiverge 44.7
+TestRefusedEntriesStillDiverge0 14.3
+TestRefusedEntriesStillDiverge1 25.7
+TestRefusedEntriesStillDiverge2 1.8
+TestRefusedEntriesStillDiverge3 10.7
+TestRefusedEntriesStillDiverge4 43.9
+TestRefusedEntriesStillDiverge5 53.1
+TestRefusedEntriesStillDiverge6 2.0
+TestRefusedEntriesStillDiverge7 26.4
 TestRemCtlLockstep 9.4
 TestRememberDestroyedAmountLockstep 19.4
 TestRememberDestroyedAmountMutation 5.7

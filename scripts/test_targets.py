@@ -72,15 +72,19 @@ MANIFEST_RX = MANIFEST_TEST + "[0-9]+"
 # test-level slice cannot bound them: a pool of a few hundred recordings is minutes of subtests). Only in the
 # full-coverage fallback string.
 REPRO_GLOBS = "^TestStd[A-Za-z]*ReprosLockstep[A-Za-z]*$"
-# The refusal-staleness check, kept whole for every replay arm (it samples entries by name hash).
-REFUSED = "^TestRefusedEntriesStillDiverge$"
+# The refusal-staleness check, kept in every replay arm. The whole test is ~190 s
+# of serialized entry searches (one entry's 200-pair pool hunt is 42 s: Whim of
+# Volrath, 11-27), which no cost deal can fit into a lane, so it is 8 shards
+# (TestRefusedEntriesStillDiverge0..7, entry i in shard i % 8) with no parent
+# test, and the lanes deal the shards like any other test.
+REFUSED = "^TestRefusedEntriesStillDiverge[0-9]+$"
 # Every committed recording's replay: the manifest's ~595 named recordings, the oracle's other per-card
 # replay tests (the MBC tables) and the refusal-staleness check. TF-01 (2026-11-20): the precheck no longer
 # runs this blanket — with it 337 of 851 oracle legs ended at the 5m timeout (NOTES 05:55Z), the manifest's
 # subtests alone overrunning the wall — it replays the changed recordings plus a 25% slice (plan's reprosel,
 # slice_lane). The slice rotates with the merge base, so over successive PRs every recording still replays;
 # full coverage lives in the batch, which does not shrink: ci.yml's "Replay the committed repros" step runs
-# `go test -run 'Repro|^TestRefusedEntriesStillDiverge$' ./dirac/oracle` and the queue's test shards run
+# `go test -run 'Repro|^TestRefusedEntriesStillDiverge[0-9]+$' ./dirac/oracle` and the queue's test shards run
 # ./dirac/oracle whole. Nothing that leaves the precheck leaves the batch.
 REPLAYS = "^Test[A-Za-z0-9_]*Repro[A-Za-z0-9_]*$|" + REFUSED
 REPRO_TESTS = "^TestReproCompactRoundTrip$|^TestReproGlobMatchesTable$|" + REPRO_GLOBS + "|" + REPLAYS
@@ -560,7 +564,7 @@ def plan(changes, dirmap, deps, lines_of, repro_names=None, added=(), narrow=Non
         the rest (they are in reprosel's tests). The manifest's subtests never join this regex: a '/'
         in a -run filters the subtests of every other selected test to the pattern after it, which
         would pass the subtest-bearing tests that stay — the guard TestReproCompactRoundTrip, the
-        census tests, TestRefusedEntriesStillDiverge — empty, so they run on their own -run, appended
+        census tests, the TestRefusedEntriesStillDiverge shards — empty, so they run on their own -run, appended
         to the result after the plain entries."""
         if reprosel is None:
             return REPRO_TESTS if not deps else REPLAYS

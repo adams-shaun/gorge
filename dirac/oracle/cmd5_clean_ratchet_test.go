@@ -139,7 +139,7 @@ func cmd5SliceShard(t *testing.T, shard int) {
 		keep := map[int]bool{}
 		if b, err := os.ReadFile(cmd5CleanPin); err == nil {
 			for _, f := range strings.Fields(string(b)) {
-				if i, err := strconv.Atoi(f); err == nil && i%cmd5Shards != shard {
+				if i, err := strconv.Atoi(f); err == nil && i < len(ps) && i%cmd5Shards != shard {
 					keep[i] = true
 				}
 			}

@@ -1053,7 +1053,7 @@ jobs:
           PART: ${{ matrix.part }}
           PROCS: 4
         run: |
-          names=$(go test -list 'Repro|^TestRefusedEntriesStillDiverge$' ./dirac/oracle | grep -E '^Test' | sort)
+          names=$(go test -list 'Repro|^TestRefusedEntriesStillDiverge[0-9]+$' ./dirac/oracle | grep -E '^Test' | sort)
           [ -n "$names" ] || { echo "go test -list found no repro tests"; exit 1; }
           mine=$(awk -v p="$PART" 'NR % 2 == p' <<<"$names")
           [ -n "$mine" ] || { echo "part $PART: no repro tests"; exit 1; }

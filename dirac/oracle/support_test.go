@@ -269,13 +269,37 @@ func changedRefused(t *testing.T, base string) map[string]bool {
 	return changed
 }
 
-// TestRefusedEntriesStillDiverge: a card may be refused only while it diverges. A
+// refusedShards is how many top-level tests the refusal check is dealt into:
+// one entry's pool search can run for 42 s (Whim of Volrath's tail-02 hunt,
+// 11-27) and the whole list is ~178 s of leaf searches, which no cost deal can
+// put inside a lane's share of the package cap as one test. Entry i plays in
+// shard i % refusedShards; every caller that runs the whole check names all
+// the shards (^TestRefusedEntriesStillDiverge[0-9]+$: scripts/dirac-gate.sh,
+// scripts/regen-main.sh, ci.yml), so no parent test repeats their work.
+const refusedShards = 8
+
+// TestRefusedEntriesStillDiverge0..7: a card may be refused only while it diverges. A
 // clean replay of an entry's repro is not staleness, since games shift as gorge moves:
 // the card's pool is searched for another game that implicates it, and only finding
 // none fails. DIRAC_UPDATE_SUPPORT=1 writes the newer game into the entry.
 // KERNEL_REFUSED_BASE=<rev> checks only the entries that differ from rev, at most
-// refusedGateSample of them; KERNEL_REFUSED_SAMPLE=<n> checks n of all of them.
-func TestRefusedEntriesStillDiverge(t *testing.T) {
+// refusedGateSample of them; KERNEL_REFUSED_SAMPLE=<n> checks n of all of them
+// (the same sample in every shard, each checking its own entries of it).
+func TestRefusedEntriesStillDiverge0(t *testing.T) { refusedEntriesShard(t, 0) }
+func TestRefusedEntriesStillDiverge1(t *testing.T) { refusedEntriesShard(t, 1) }
+func TestRefusedEntriesStillDiverge2(t *testing.T) { refusedEntriesShard(t, 2) }
+func TestRefusedEntriesStillDiverge3(t *testing.T) { refusedEntriesShard(t, 3) }
+func TestRefusedEntriesStillDiverge4(t *testing.T) { refusedEntriesShard(t, 4) }
+func TestRefusedEntriesStillDiverge5(t *testing.T) { refusedEntriesShard(t, 5) }
+func TestRefusedEntriesStillDiverge6(t *testing.T) { refusedEntriesShard(t, 6) }
+func TestRefusedEntriesStillDiverge7(t *testing.T) { refusedEntriesShard(t, 7) }
+
+// refusedEntriesShard checks the entries with i % refusedShards == shard. The
+// shards run in parallel: each writes only its own entries' files, and a
+// land-grant entry replays in an isolate child, so no shard flips a global
+// another one reads.
+func refusedEntriesShard(t *testing.T, shard int) {
+	t.Parallel()
 	entries, err := cardset.ReadRefused(os.DirFS(moduleRootFromOracle))
 	if err != nil {
 		t.Fatal(err)
@@ -292,6 +316,9 @@ func TestRefusedEntriesStillDiverge(t *testing.T) {
 	}
 	for i := range entries {
 		e := &entries[i]
+		if i%refusedShards != shard {
+			continue
+		}
 		if only != nil && !only[cardset.SupportSlug(e.Card)] {
 			continue
 		}
