@@ -31,10 +31,9 @@ var fdcDecks = []string{
 // Tempest and Goddric, Cloaked Reveler. The MaxOppDamageThisTurn lowering
 // (Spinerock Knoll) shrank it again. Leyline Tyrant's coloured trigger X
 // (Cost$ X with XColor$ R) lowered since, shrinking it again, as did
-// Thundermane Dragon's static SpellCast rider.
-var fdcRefused = []string{
-	"Ezuri's Predation",
-}
+// Thundermane Dragon's static SpellCast rider. The RepeatEach ChangeZoneTable
+// lowering (Ezuri's Predation) emptied it.
+var fdcRefused = []string{}
 
 // fdcPodSet lowers every card of the five FDC decks into one table, and
 // returns the decks with each refused card swapped for Wastes (under the names
