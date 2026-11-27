@@ -1226,6 +1226,14 @@ func (r *Translator) generatedChoose(a dirac.Action) (Canon, bool) {
 			}
 		}
 		return Pack(ActReplacement, Ref(src), RefNone, occ), true
+	case dirac.ChGenDrawMay:
+		// gorge's replChoiceDraw election (engine/rules/replacement_choice.go):
+		// the KReplacement apply / decline pair (canon.go's ActYes / ActNo),
+		// both naming the replacement permanent (repl_drawmay.go)
+		if mode == 1 {
+			return Pack(ActYes, Ref(src), RefNone, 0), true
+		}
+		return Pack(ActNo, Ref(src), RefNone, 0), true
 	case dirac.ChGenPip:
 		// gorge's pip announcement (rules manaAsk): pay_W..pay_G
 		return Pack(kind("pay"), RefNone, RefNone, mode), true
@@ -1322,7 +1330,7 @@ func GeneratedKind(sub dirac.ChoiceKind) (DKind, bool) {
 	switch sub {
 	case dirac.ChGenBranch, dirac.ChGenCastFree, dirac.ChGenPayMode, dirac.ChWardPay, dirac.ChGenCipher:
 		return DModes, true
-	case dirac.ChGenReplOrder:
+	case dirac.ChGenReplOrder, dirac.ChGenDrawMay:
 		return DReplacement, true
 	}
 	return 0, false
