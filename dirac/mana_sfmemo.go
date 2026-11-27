@@ -17,7 +17,8 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 //   - the entry was written in this opening (gen), for the same seat, under the
 //     same inputs filtBoundPays' own memo keys on: the object-write count, the
 //     availFor bits, the stack depth, p's floating pool, the priority probe,
-//     the self target, the play-anything flag, the line of play and life.
+//     the self target, the play-anything flag, the line of play, life and p's
+//     control mask (a probe withholds slots from it in place, no object write).
 //
 // Anything else recomputes. DebugSFMemoShadow recomputes each hit and panics
 // when the answers differ.
@@ -32,6 +33,7 @@ type sfKey struct {
 	pr      probe
 	line    uint32
 	life    int16
+	ctrl    slotMask // p's control mask: probes withhold slots in place (improviseSourcesPay) without a write
 }
 
 type sfMemoEnt struct {
@@ -115,7 +117,7 @@ func (s *State) scriptFilt(k *prep, p uint8) slotMask {
 	}
 	key := sfKey{touch: s.touchN, avx: s.g.availX, sp: s.sp, p: p, mayAny: s.g.mayPlayAny,
 		pool: s.pl[SeatIx(p)].pool, tgtSelf: s.g.tgtSelf, pr: s.g.probe,
-		line: uint32(s.line ^ s.line>>32), life: s.pl[SeatIx(p)].life}
+		line: uint32(s.line ^ s.line>>32), life: s.pl[SeatIx(p)].life, ctrl: s.ctrlM[SeatIx(p)]}
 	if debugSFMemoNoInval {
 		key.touch = 0
 	}
