@@ -709,16 +709,21 @@ func (s *State) scriptStep(d *Decision) { s.stepRaw(d) }
 // queued later and joins no order choice). A trigger with a target or a mode
 // is answered with the script's first option; an order choice (two triggers at
 // once) is left pending for the ordinary priority path.
-func (s *State) flushPrefixTriggers(k *prep) {
+func (s *State) flushPrefixTriggers(k *prep) { s.flushPrefixPending(k, false) }
+
+// flushPrefixPending is flushPrefixTriggers; perTap reads the queue as the
+// prefix's separate taps left it, each tap's triggers one decision of its
+// own in gorge's search (a tap's trigger is placed, and a targetless one
+// removed, before the next gap is activated): an order choice is then only
+// the triggers one tapped source queued (pendTapCount), not every trigger
+// the whole path queued (pendDropsAll).
+func (s *State) flushPrefixPending(k *prep, perTap bool) {
 	for s.npend != 0 {
 		p := s.active
 		n := s.pendCount(p)
 		for i := uint8(1); n == 0 && i < s.aliveCount(); i++ {
 			p = s.nextAlive(p) // APNAP: the next player in turn order with a trigger
 			n = s.pendCount(p)
-		}
-		if n != 1 {
-			return // two or more: gorge asks for an order first
 		}
 		i := -1
 		for j := 0; j < int(s.npend); j++ {
@@ -729,6 +734,12 @@ func (s *State) flushPrefixTriggers(k *prep) {
 		}
 		if i < 0 {
 			return
+		}
+		if perTap {
+			n = s.pendTapCount(p, i)
+		}
+		if n != 1 {
+			return // two or more: gorge asks for an order first
 		}
 		// A may-election is a decision too (pendNeedsDecision): its build is
 		// run out here, and the election itself is the resolution ask
@@ -753,6 +764,23 @@ func (s *State) flushPrefixTriggers(k *prep) {
 			}
 		}
 	}
+}
+
+// pendTapCount is how many of p's pending triggers came from the same tap as
+// pending trigger i: those naming the same triggering object. A trigger that
+// names none (trigObj 0) cannot be told from another's, so every one of p's
+// counts, as pendCount does.
+func (s *State) pendTapCount(p uint8, i int) int {
+	if s.pend[i].trigObj == 0 {
+		return s.pendCount(p)
+	}
+	n := 0
+	for j := 0; j < int(s.npend); j++ {
+		if s.pend[j].ctrl == p && s.pend[j].trigObj == s.pend[i].trigObj {
+			n++
+		}
+	}
+	return n
 }
 
 // pendAbility is pending trigger i's lowered ability, nil when dirac models

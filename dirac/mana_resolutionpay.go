@@ -525,52 +525,6 @@ func (s *State) castRestPriced(k *prep, p uint8, o Obj, cost *kop.ManaCost) bool
 	return pk.found
 }
 
-// actRestPriced reports whether the ability planner prices a's payment from
-// the node's floating pool and the census with the Taps-deferred sources as
-// units: gorge's sr.priced node check (potential_script.go visit, after the
-// gap walk used a source). A node whose offer is listed but whose queued
-// triggers still sit above it stops here instead of activating another gap,
-// so the floats are the plain plan's (C.A.M.P.'s second Fortify). Only a
-// plain activation cost is priced and the plan's floats leave at most one
-// source for the payment (a deeper remainder is the node walk's whole, as the
-// cast arm's castRestPriced prices any remainder there). Another shape keeps
-// the node walk.
-func (t *State) actRestPriced(k *prep, a Action, p uint8) bool {
-	if a.Kind() != AkActivate {
-		return false
-	}
-	o, ab := Obj(a.Source()), a.Mode()
-	if isGainedMode(ab) || o == NoObj {
-		return false
-	}
-	ob := &t.objs[o]
-	if ob.zone != kop.ZoneBattlefield {
-		return false
-	}
-	cd := &k.t.Cards[t.cardAt(ob.slot)]
-	if int(ab) >= len(cd.Abilities) {
-		return false
-	}
-	abn := &cd.Abilities[ab]
-	if abn.Kind == kop.AbMana ||
-		abn.Cost.Flags&(kop.CostSac|kop.CostSacSelf|kop.CostTapX|kop.CostTapHost|kop.CostPowerUp|kop.CostWaterbend) != 0 ||
-		abn.Cost.Mana.X != 0 || abn.Cost.Mana.XPip != 0 {
-		return false
-	}
-	cost := t.abPlannedCost(k, abn, ob.slot, p)
-	if cost.X != 0 || cost.Hyb[0] != 0 || cost.Tb != 0 || cost.Snow != 0 || cost.Phyrexian() {
-		return false
-	}
-	var pk planner
-	pk.dry, pk.try = true, true
-	t.tapNeed(&pk, p, &cost, 0, false)
-	if pk.needT == 0 {
-		return true
-	}
-	t.plan(k, p, &pk, o)
-	return pk.found && pk.nu <= 1
-}
-
 // castRestPricedModes are the AkCast mode bits plannedCastCostOf prices as the
 // offer does: bit 1 (flashback: flashbackCostOf), castFace (turnFaceCast
 // rewrote the card to the face, whose own cost it reads) and castMayPlay (the
