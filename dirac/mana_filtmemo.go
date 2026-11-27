@@ -104,10 +104,12 @@ func (s *State) filtMemoNote(m *filtMemoProbe) {
 	fm.notes++
 }
 
-// filtMemoReset empties the memo: the game is about to change.
+// filtMemoReset empties the memo: the game is about to change. It closes
+// manaPCGen's per-decision memo as well (mana_pcmemo.go).
 func (s *State) filtMemoReset() {
 	if p := s.pool; p != nil {
 		p.fmemo.n, p.fmemo.next = 0, 0
+		p.pcm.owner, p.pcm.live = 0, 0
 	}
 }
 
