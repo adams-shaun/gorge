@@ -98,6 +98,7 @@ func (s *State) talliesKeep(prot, restr [MaxSeats]uint8) {
 			s.g.poolTre[p] = [kop.NumManaKinds]uint8{}
 			s.g.poolArt[p] = 0
 		}
+		s.tagClearAll() // the Cave/Desert spend tallies empty with the pools (mana_spenttag.go)
 		return
 	}
 	for p := uint8(0); p < s.nSeats(); p++ {
@@ -115,6 +116,7 @@ func (s *State) talliesKeep(prot, restr [MaxSeats]uint8) {
 					ax[int(i)*kop.NumManaKinds+c] = 0
 				}
 				s.g.poolTre[i][c] = 0
+				s.tagClearCol(p, c)
 				continue
 			}
 			art |= s.g.poolArt[i] & (1 << uint(c))

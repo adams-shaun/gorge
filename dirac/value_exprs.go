@@ -274,19 +274,7 @@ func (s *State) exprCold(k *prep, x *kop.Expr, ctx evalCtx) int {
 		}
 		return 0
 	case kop.ExCastManaSpent:
-		if e := ctx.e; e != nil && e.kind == seSpell {
-			return s.spentOfSpell(e) // recordSpent; cast_enterrecord.go
-		} else if e != nil && e.kind == seTrigger && int(e.ab) < len(k.t.Cards[e.card].Abilities) &&
-			k.t.Cards[e.card].Abilities[e.ab].Trig.Flags2&kop.Tf2SpentBound != 0 {
-			// bound as the self-ETB trigger queued (bindTrigX); a source that has
-			// left keeps what it was as it left (CR 608.2h), and one back as a
-			// new object was not cast for this spend
-			if ob := &s.objs[e.obj]; ob.zone == kop.ZoneBattlefield && ob.ver != e.srcVer {
-				return 0
-			}
-			return int(e.x)
-		}
-		return 0
+		return s.exCastManaSpent(k, ctx)
 	case kop.ExDmgAmountReceived:
 		return s.dmgAmountReceived(ctx.src) // value_dmgamount.go
 	case kop.ExTgtSpent:
@@ -430,4 +418,34 @@ func (s *State) countExile(k *prep, x *kop.Expr, ctx evalCtx) int {
 		}
 	}
 	return n
+}
+
+// exCastManaSpent is ExCastManaSpent: the mana spent to cast the spell the
+// context reads, from the spell entry, the bound self-ETB trigger, or the
+// resolving spell's recorded spend.
+func (s *State) exCastManaSpent(k *prep, ctx evalCtx) int {
+	if e := ctx.e; e != nil && e.kind == seSpell {
+		return s.spentOfSpell(e) // recordSpent; cast_enterrecord.go
+	} else if e != nil && e.kind == seTrigger && int(e.ab) < len(k.t.Cards[e.card].Abilities) &&
+		k.t.Cards[e.card].Abilities[e.ab].Trig.Flags2&kop.Tf2SpentBound != 0 {
+		// bound as the self-ETB trigger queued (bindTrigX); a source that has
+		// left keeps what it was as it left (CR 608.2h), and one back as a
+		// new object was not cast for this spend
+		if ob := &s.objs[e.obj]; ob.zone == kop.ZoneBattlefield && ob.ver != e.srcVer {
+			return 0
+		}
+		if e.x != 0 {
+			return int(e.x)
+		}
+		// the header CheckSVar (triggers_gen.go:203) is read before
+		// bindTrigX stamps the pending x: the source is the resolving
+		// spell's permanent, so its recorded spend is the answer
+		return int(s.spellSpent(ctx.src))
+	} else if e == nil {
+		// a fire-time trigger condition (triggers_gen.go:203 has no stack
+		// entry): the self-ETB or self-replacement source is the resolving
+		// spell's object and its recorded spend is live (mana_spenttag.go)
+		return int(s.spellSpent(ctx.src))
+	}
+	return 0
 }

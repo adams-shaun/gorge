@@ -61,6 +61,9 @@ func (s *State) artTag(k *prep, p uint8, sl Slot, col int) {
 				*n++
 			}
 		}
+		if k.gen != nil && k.gen.uses.has(useSpentTag) {
+			s.tagAdd(k, p, s.cardAt(sl), col, 1) // a Cave's or a Desert's tally (mana_spenttag.go)
+		}
 	}
 }
 
@@ -100,6 +103,9 @@ func (s *State) artTagN(k *prep, p uint8, card CardID, col, n int) {
 		if t := &s.g.poolTre[i][col]; *t < 255 {
 			*t = uint8(min(int(*t)+n, 255))
 		}
+	}
+	if k.gen != nil && k.gen.uses.has(useSpentTag) {
+		s.tagAdd(k, p, card, col, n) // a Cave's or a Desert's tally (mana_spenttag.go)
 	}
 	if st := DebugTypedManaStats; st != nil {
 		st.Added += n
@@ -180,6 +186,7 @@ func (s *State) artSync(p uint8) {
 	s.g.poolArt[SeatIx(p)] = a
 	s.snowSync(p) // the snow half of the tag, before the Treasure clamp reads it (mana_snow.go)
 	s.treSync(p)
+	s.tagSync(p)   // the Cave/Desert tallies after the Treasure clamp (mana_spenttag.go)
 	s.hasteSync(p) // the haste rider's units (mana_hastefloat.go)
 	if s.g.defSrc[SeatIx(p)] != 0 && s.pl[SeatIx(p)].pool[s.defColOf(p)] == 0 {
 		s.g.defSrc[SeatIx(p)] = 0

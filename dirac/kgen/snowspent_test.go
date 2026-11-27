@@ -31,7 +31,7 @@ SVar:AllUnits:Count$CastTotalManaSpent
 Oracle:probe
 `
 	lc := lowerProbe(t, both, "Both Probe", "")
-	if r := probeRefusals(lc); !strings.Contains(r, "Count$CastTotalManaSpent beside its Snow form") {
-		t.Errorf("probe refusals %q, want the beside-its-Snow-form refusal", r)
+	if r := probeRefusals(lc); !strings.Contains(r, "Count$CastTotalManaSpent read in more than one form") {
+		t.Errorf("probe refusals %q, want the more-than-one-form refusal", r)
 	}
 }

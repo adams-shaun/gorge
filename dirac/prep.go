@@ -36,7 +36,9 @@ type pcard struct {
 	manaIntrinsic bool
 	// castSrc: tapping this source for a cast is recorded (noteTapSrc):
 	// csTreasure, the card's printed subtypes include Treasure (CastSpecTreasure;
-	// set only when the cast ring is on); csObserved, the card carries a
+	// set only when the cast ring is on, or the table has a Treasure-tagged
+	// SpentTag reader); csCave / csDesert, a Cave / Desert producer, set only
+	// when the table has a Cave / Desert SpentTag reader; csObserved, the card carries a
 	// Tf2ManaFromSelf SpellCast trigger (mana_spendtrigger.go)
 	castSrc   uint8
 	manaMulti bool          // several plain fixed-colour mana abilities folded into manaCol (mana_multicolour.go)
@@ -443,7 +445,6 @@ func prepare(t *kop.Table) *prep {
 	p := &prep{t: t, nsub: uint8(len(t.Subtypes)), cards: make([]pcard, len(t.Cards)), selfCast: prepSelfCast(t), eachPay: prepEachPay(t), tapXAb: make([]int8, len(t.Cards)), ctrAb: make([]int8, len(t.Cards)), riderAb: make([]int8, len(t.Cards))}
 	p.w8 = tableWord8(t) // filter_props.go
 	p.nameRep = nameRepOf(t)
-	typedSub := typedManaSubtypes(t)
 	p.speed, p.engines = prepSpeed(t)
 	p.ascend = tableHasAscend(t)
 	p.storied = tableHasStoried(t)
@@ -454,6 +455,7 @@ func prepare(t *kop.Table) *prep {
 	p.enlist = tableHasEnlist(t)
 	p.exertOffer = tableHasExertOffer(t)
 	p.engAsc = p.engines || p.ascend
+	spentTre, spentTag := tableSpentTags(t) // mana_spenttag.go
 	for i := range t.Cards {
 		c := &t.Cards[i]
 		pc := &p.cards[i]
@@ -496,9 +498,14 @@ func prepare(t *kop.Table) *prep {
 		p.tapXAb[i], p.ctrAb[i], p.riderAb[i] = -1, -1, -1
 		// the card's mana is typed by its types (mana_artifact.go) whether
 		// the producing ability is printed or granted: the tag rides the
-		// source, not the ability (effects.ManaProducerTag)
-		typedWord := (c.Subtypes[0]&typedSub[0] | c.Subtypes[1]&typedSub[1]) != 0
+		// source, not the ability (effects.ManaProducerTag). CardDef.ManaTag
+		// is the printed producer word, kept apart from the table's subtype
+		// vocabulary (a matchup drops printed subtypes its cards do not name).
+		typedWord := manaTagTyped(c.ManaTag) // mana_spenttag.go
 		pc.manaTyped = c.Types&kop.TArtifact != 0 || typedWord || c.TypedMana
+		// the spend-tally marks (mana_spenttag.go) are set only in a table
+		// with a reader of that tag; every other table keeps its marks.
+		pc.castSrc |= spentTagMark(c.ManaTag, spentTre, spentTag) // mana_spenttag.go
 		pc.manaSnow = snowMana(c, typedWord)
 		p.artMana = p.artMana || pc.manaTyped
 		pc.land = c.Types&kop.TLand != 0
