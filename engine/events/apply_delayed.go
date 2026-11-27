@@ -366,6 +366,7 @@ func foldDelayedRegister(g *state.Game, e *Event) {
 	}
 	g.Delayed = append(g.Delayed, state.DelayedTrigger{
 		ID:                  g.DelayedNext,
+		RegistrationClock:   g.Clock,
 		Phase:               e.Step,
 		Source:              e.Obj,
 		Creator:             creator,

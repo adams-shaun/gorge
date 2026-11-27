@@ -39,7 +39,7 @@ func TestEntryPreviewMutationsNeverReachTheLiveEngine(t *testing.T) {
 	t.Parallel()
 	e, src := previewIsolationEngine(t)
 	preview, _ := e.entryPreview(events.Event{Kind: events.TokenCreate, Player: 0, Text: "w_1_1_human"})
-	preview.EndEffectSource(src, 0)
+	preview.EndEffectSource(src, 0, false)
 	preview.pendingTriggers = append(preview.pendingTriggers[:0], pendingTrigger{Source: 9999})
 	preview.legalOptBuf = append(preview.legalOptBuf[:0], decision.Option{Kind: "pass", Label: "preview"})
 	e.releaseEntryPreview(preview)
