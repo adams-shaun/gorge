@@ -13,10 +13,19 @@ import (
 func prepAltFree(t *kop.Table, g *genPrep, p *prep) {
 	for i := range t.Cards {
 		if t.Cards[i].HasAltAdd {
+			for j := range t.Cards[i].Abilities {
+				if a := &t.Cards[i].Abilities[j]; a.Kind == kop.AbStatic && a.Static.Kind == kop.StatAlternativeCost && a.Static.StFlags&kop.StAltGrant != 0 {
+					g.anyAltGrant = true
+				}
+			}
 			continue
 		}
 		for j := range t.Cards[i].Abilities {
 			a := &t.Cards[i].Abilities[j]
+			if a.Kind == kop.AbStatic && a.Static.Kind == kop.StatAlternativeCost && a.Static.StFlags&kop.StAltGrant != 0 {
+				g.anyAltGrant = true // a grant to other spells, not the card's own alternative (cast_altgrant.go)
+				continue
+			}
 			if a.Kind == kop.AbStatic && a.Static.Kind == kop.StatAlternativeCost && (a.Cost.Flags == 0 && a.Cost.N == 0 || altPickCost(&a.Cost)) && a.Cost.Mana.X == 0 && j < 255 {
 				if g.altFree == nil {
 					g.altFree = make([]uint8, len(t.Cards))
@@ -187,7 +196,11 @@ const buildAltCost = 2
 // through; the mark rides the same takeAltCast that sets the cost, so the
 // pushed entry carries it before its own SpellCast triggers queue.
 func (s *State) takeAltCast(k *prep, c CardID, mode uint8) {
-	if k.gen == nil || !s.g.altCast {
+	if k.gen == nil {
+		return
+	}
+	if !s.g.altCast {
+		s.g.altGrantAb = 0 // an earlier grant's price does not outlive its cast
 		return
 	}
 	s.g.altCast = false
@@ -230,15 +243,13 @@ func (s *State) altCostCast(ctx evalCtx) bool {
 // altCostOf is the adjusted alternative mana cost of the spell being built.
 func (s *State) altCostOf(k *prep) kop.ManaCost {
 	e := &s.bld().e
-	a := &k.t.Cards[e.card].Abilities[k.gen.altFree[e.card]-1]
-	return s.adjustCostGen(k, e.ctrl, e.card, e.obj, a.Cost.Mana)
+	return s.adjustCostGen(k, e.ctrl, e.card, e.obj, s.altAbOf(k).Cost.Mana)
 }
 
 // altBaseMana is the mana of the alternative cost the build pays, before the
 // cost statics (altCostOf adjusts it).
 func (s *State) altBaseMana(k *prep) kop.ManaCost {
-	e := &s.bld().e
-	return k.t.Cards[e.card].Abilities[k.gen.altFree[e.card]-1].Cost.Mana
+	return s.altAbOf(k).Cost.Mana
 }
 
 // altFreeCast reports whether a castMayPlay|castFree cast of o is its own
