@@ -303,7 +303,7 @@ func (w *legalWalk) battlefieldWalk() {
 						if cards.IsManaAbilitySA(ab) && !loyal {
 							continue
 						}
-						if ab.ParamStr(cards.PKSorcerySpeed) == "True" && !sorcery {
+						if ab.ParamStr(cards.PKSorcerySpeed) == "True" && !sorcery && !e.equipAtInstantSpeed(p, id, ab) {
 							continue
 						}
 						// Activator$ constrains who may activate the ability, not who
@@ -545,7 +545,7 @@ func (w *legalWalk) battlefieldWalk() {
 						if ab == nil || !abilityZoneOK(ab, z) {
 							continue
 						}
-						if ab.ParamStr(cards.PKSorcerySpeed) == "True" && !sorcery {
+						if ab.ParamStr(cards.PKSorcerySpeed) == "True" && !sorcery && !e.equipAtInstantSpeed(p, id, ab) {
 							continue
 						}
 						if !e.activatorAllows(p, id, ab) {
@@ -651,7 +651,7 @@ func (w *legalWalk) battlefieldWalk() {
 					if cards.IsManaAbilitySA(ab) && !e.isLoyaltyAbility(ab) {
 						continue
 					}
-					if ab.ParamStr(cards.PKSorcerySpeed) == "True" && !sorcery {
+					if ab.ParamStr(cards.PKSorcerySpeed) == "True" && !sorcery && !e.equipAtInstantSpeed(p, id, ab) {
 						continue
 					}
 					// Activator$ and ActivationPhases$ apply to a granted/gained ability
