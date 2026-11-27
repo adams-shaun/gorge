@@ -109,10 +109,10 @@ func flayerGrantedAnnihilatorSacrifices(g *GorgeSide) bool {
 	return false
 }
 
-// hostedCmdrPolicy plays a land, casts/activates the carrier, targets an
+// hostedCmdrKwCostsPolicy plays a land, casts/activates the carrier, targets an
 // opponent creature with a pending prompt, and declares every attacker; the
 // tail is the seed's own random stream.
-func hostedCmdrPolicy(m *Matchup, c hostedCmdrCase, seed uint64) Policy {
+func hostedCmdrKwCostsPolicy(m *Matchup, c hostedCmdrCase, seed uint64) Policy {
 	rnd := RandomPolicy(seed)
 	return PolicyFunc(func(p *PickCtx) Canon {
 		if p.D.Kind == DTarget && p.G != nil {
@@ -228,7 +228,7 @@ func TestHostedCmdrKeywordsCostsLockstep(t *testing.T) {
 						seen = true
 					}
 				}
-				res := Lockstep(m, seed, k, hostedCmdrPolicy(m, c, seed), rc)
+				res := Lockstep(m, seed, k, hostedCmdrKwCostsPolicy(m, c, seed), rc)
 				if res.Div != nil {
 					d := res.Div
 					CloseSide(k)
