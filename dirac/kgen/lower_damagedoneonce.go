@@ -46,8 +46,21 @@ func (lc *lowerCtx) damageDoneOnce(tp *params, tr *lTrigger, t cards.Trigger) er
 			return err
 		}
 	}
-	if tp.is("FirstTime", "True") {
-		return refuse("DamageDoneOnce FirstTime$")
+	if v, ok := tp.get("FirstTime"); ok {
+		// FirstTime$ True is the per-referent "the first time each turn" latch
+		// (gorge trigger_match.go firstTime): the kernel's latch
+		// (trig_counterfirst.go, Tf2FirstTime) is keyed on the listener object,
+		// so only the self-referent shape -- ValidTarget$ Card.Self, where the
+		// damaged referent is the listener -- lowers. A line whose referent is
+		// another object (or a player) would need a per-referent latch the
+		// kernel does not hold.
+		if v != "True" {
+			return refuse("DamageDoneOnce FirstTime$ %q", v)
+		}
+		if vt := tp.str("ValidTarget"); vt != "Card.Self" && vt != "Self" {
+			return refuse("DamageDoneOnce FirstTime$ ValidTarget %q", vt)
+		}
+		tr.First = true
 	}
 	if cd, ok := tp.get("CombatDamage"); ok {
 		if cd == "True" {

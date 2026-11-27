@@ -67,16 +67,34 @@ func abilityCastClass(k *prep, e *stackEntry, cls int16) bool {
 	if cls == kop.TrigAbCastAny {
 		return true // the target gate (abilityCastFires) is the whole test
 	}
+	if cls == kop.TrigAbCastActivated {
+		// ValidSA$ SpellAbility.!ManaAbility: a non-mana activated ability.
+		// fireManaAbilityCast's synthetic entry has no seAbility kind, so a
+		// mana ability never matches.
+		return e.kind == seAbility
+	}
 	// a planeswalker's [-X] carries CostLoyalty beside CostLoyaltyX; the
 	// latter alone is an announced SubCounter<X/KIND>, not a loyalty ability
 	return a.Cost.Flags&kop.CostLoyalty != 0
 }
 
 // abilityCastMatch is the listener test for one AbilityCast line.
-func abilityCastMatch(k *prep, e *stackEntry, l trigListener, a *kop.Ability) bool {
+func (s *State) abilityCastMatch(k *prep, e *stackEntry, l trigListener, a *kop.Ability) bool {
 	t := &a.Trig
 	if !whoseOK(t.Whose, l.ctrl, e.ctrl) || t.N == kop.TrigAbCastLoyaltyOpp && e.ctrl == l.ctrl {
 		return false
+	}
+	if t.Filter != 0 {
+		// ValidCard$ on the activated permanent (Harsh Mentor's
+		// Artifact/Creature/Land on the battlefield). The stack entry's obj is
+		// the ability's source; an ability activated off the battlefield (or
+		// a spell's) does not match.
+		if e.kind != seAbility || e.obj == NoObj || s.objs[e.obj].zone != kop.ZoneBattlefield {
+			return false
+		}
+		if !s.matchPermGen(k, t.Filter, s.objs[e.obj].slot, e.ctrl, l.sl, layerFull) {
+			return false
+		}
 	}
 	return abilityCastClass(k, e, t.N)
 }
@@ -89,7 +107,7 @@ func abilityCastMatch(k *prep, e *stackEntry, l trigListener, a *kop.Ability) bo
 // CopySpellAbility finds the ability again (ExtCopyAbility, CopyAbTriggering).
 // A mana ability has no targets, so it never satisfies the gate.
 func (s *State) abilityCastFires(k *prep, e *stackEntry, l trigListener, a *kop.Ability) (int16, bool) {
-	if !abilityCastMatch(k, e, l, a) {
+	if !s.abilityCastMatch(k, e, l, a) {
 		return 0, false
 	}
 	if a.Trig.N != kop.TrigAbCastAny {

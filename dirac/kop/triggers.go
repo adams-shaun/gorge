@@ -331,6 +331,7 @@ const (
 	TrigAbCastLoyalty    int16 = 2 // Activated.Loyalty
 	TrigAbCastLoyaltyOpp int16 = 3 // Activated.Loyalty+OppCtrl
 	TrigAbCastAny        int16 = 4 // ValidSA$ SpellAbility beside TargetsValid$ (Tf2TargetsFilter2 + Filter2): any activated ability whose chosen targets match, read once its targets are chosen (Ertha Jo, Frontier Mentor); the queued trigger carries the activated entry's stack identity in its trigAmt (ExtCopyAbility reads it)
+	TrigAbCastActivated  int16 = 5 // ValidSA$ SpellAbility.!ManaAbility: any non-mana activated ability of the trigger's Filter card (Harsh Mentor); the kernel fires it from the activated stack entry only, never from fireManaAbilityCast
 )
 
 // TokenRider flags (OpCreateToken's B.N).
@@ -469,6 +470,12 @@ func DmgGatePass(n int16, total int) bool {
 	}
 	return false
 }
+
+// Tf2UnblockedOnce: BecomesBlocked lowered from Mode$ AttackerUnblockedOnce
+// (gorge checkAttackerUnblockedOnceTriggers): at the declare-blockers
+// completion, ONE trigger per combat when at least one matching unblocked
+// attacker attacks the listener's controller (Coveted Jewel). Bit 30.
+const Tf2UnblockedOnce TrigFlags2 = 1 << 30
 
 // Tf2Attacked is the Attacked$ defender set (gorge attackedDefenderMatches):
 // with any of these bits the Attacks trigger fires only for attackers whose

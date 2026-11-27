@@ -1040,6 +1040,7 @@ type lTrigger struct {
 	ByCreature, AnchorBlocker bool
 	Cycled                    bool  // Discarded lowered from Mode$ Cycled ValidCard$ Card.Self: fires from the graveyard when the card is cycled
 	Unblocked                 bool  // AttackerBlocked lowered from Mode$ AttackerUnblocked: once per unblocked attacker matching F
+	UnblockedOnce             bool  // AttackerBlocked lowered from Mode$ AttackerUnblockedOnce: once per combat when an unblocked attacker matches (kernel Tf2UnblockedOnce)
 	OrCopy                    bool  // SpellCast lowered from Mode$ SpellCastOrCopy: also a spell copy
 	ConvergeBound             bool  // the body reads Count$Converge: the entering spell's colours spent, bound as it triggers (self ETB only; kernel Tf3ConvergeBound)
 	CastConverge              bool  // SpellCast: the amount is the triggering spell's colours spent as the trigger fires (TriggeredCard$Converge; kernel Tf3CastConverge)
