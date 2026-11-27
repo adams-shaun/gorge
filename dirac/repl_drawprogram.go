@@ -271,6 +271,9 @@ func (s *State) drawProgramTake(k *prep, p uint8, sel Slot, abi uint8, ab *kop.A
 	}
 	save := ds[0]
 	ds[0] = drawProgram{active: true, p: p, chain: ch}
+	if pk := s.drawParkRecord(); len(pk) > 0 {
+		pk[0] = drawPark{} // a new program: no park of the last one survives
+	}
 	nask := s.g.nask
 	s.runReplProgAs(k, sel, s.cardAt(sel), abi, 0, sel)
 	if s.res.ask == raNone && s.g.nask == nask {
@@ -287,7 +290,13 @@ func (s *State) drawProgramTake(k *prep, p uint8, sel Slot, abi uint8, ab *kop.A
 func (s *State) drawProgramDone() {
 	if ds := s.drawState(); len(ds) > 0 {
 		r := &ds[0]
+		// A parked pick's frame (waiting, left, rest, n) survives; a parked
+		// Dig body's (repl_drawbody.go coldDrawPark) does not: drawBodyEndRes
+		// and drawBodyEnd read it from a copy taken before this call.
 		*r = drawProgram{waiting: r.waiting, p: r.p, left: r.left, rest: r.rest, n: r.n}
+	}
+	if pk := s.drawParkRecord(); len(pk) > 0 {
+		pk[0] = drawPark{}
 	}
 }
 
