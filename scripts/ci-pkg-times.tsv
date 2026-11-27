@@ -1,11 +1,19 @@
 # ci-pkg-times.tsv: seconds per package, the median "ok" time over the queue batches named below (packages none of
 # them ran keep their earlier value). ci_shard.sh balances shards on it. <pkg> and its <pkg>#<label> entries are the
-# split rows of a package in ci-splits.tsv: engine/rules 178/87/83/61 (409 s, four groups as of 11-27), testkit/
+# split rows of a package in ci-splits.tsv: engine/rules 236/65/82/64 (447 s, four groups as of 11-27), testkit/
 # conformance 94/65 (159 s), dirac/kgen 48/43 (91 s), bots/azmcts 60/20 (80 s), engine/effects 40/25 (65 s).
 # Genuine per-group medians: the four-way engine/rules split's provisional flat 110/110/110/109 and the pre-split
 # totals the other split entries were seeded with are replaced by measured per-entry times. The same refresh realigns
 # the unsplit packages, whose weights had drifted: the balancer had equalized sums of stale weights (312 s nominal)
 # while the measured work per shard spread 315-412 s and the shard walls 106-236 s.
+# engine/rules' four entries carry the measured call order, which a size-sorted refresh cannot recover:
+# ci-pkg-times.sh sorts a split package's ok lines largest-first into whole,#A,#B,#C, so a cheap #A is labelled with a
+# heavy sibling's seconds (the size-sorted medians read 87/83/61; the calls measured 65/82/64). Basis 11-27
+# 19:42-20:07Z: green queue batches 46058522643 + 46059671394 + 46060758023 (three-run medians; the whole call
+# measured 245.2/197.7/235.8 s, a median 236 and a range 198-245). The whole call is indivisible and sets its
+# shard's floor, so underweighting it at 178 put it on a shard the balancer believed lighter than it was. Keep these
+# labelled values until ci.yml's split calls name themselves in their logs, which is when a refresh can assign them
+# honestly; the rest of the table keeps the four-run basis below.
 # Basis 11-27 10:56-12:30Z: green queue batches 45986255309 + 45992525248 + 45995974874 + 45999164050 (four-run
 # medians). Two more of the five most recent green batches (45994115325, 45995133842) had expired or partial logs, so
 # the refresh uses the four whose logs are complete; packages none of them printed keep their earlier value.
@@ -108,10 +116,10 @@ github.com/adams-shaun/gorge/engine/events	2
 github.com/adams-shaun/gorge/engine/game	0
 github.com/adams-shaun/gorge/engine/game/gorgegame	2
 github.com/adams-shaun/gorge/engine/replay	38
-github.com/adams-shaun/gorge/engine/rules	178
-github.com/adams-shaun/gorge/engine/rules#A	87
-github.com/adams-shaun/gorge/engine/rules#B	83
-github.com/adams-shaun/gorge/engine/rules#C	61
+github.com/adams-shaun/gorge/engine/rules	236
+github.com/adams-shaun/gorge/engine/rules#A	65
+github.com/adams-shaun/gorge/engine/rules#B	82
+github.com/adams-shaun/gorge/engine/rules#C	64
 github.com/adams-shaun/gorge/engine/rules/chars	0
 github.com/adams-shaun/gorge/engine/rules/combat	0
 github.com/adams-shaun/gorge/engine/rules/cost	3

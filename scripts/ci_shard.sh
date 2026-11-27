@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# ci_shard.sh <index> <count> -- print the Go packages CI shard <index> of
-# <count> runs, one per line.
+# ci_shard.sh <index|pkgs> <count> -- print the Go packages CI shard <index> of
+# <count> runs, one per line (<index> is 0-based); `pkgs` prints the whole test
+# package list before any split entry.
 #
 # Shards are balanced on measured time: scripts/ci-pkg-times.tsv holds each package's seconds from a CI run
 # (scripts/ci-pkg-times.sh <run-id> refreshes it). Packages go heaviest first to the least-loaded shard; on equal
@@ -9,11 +10,12 @@
 # seconds. 11-16: the old split (two heavy packages pinned, the rest by hash) gave shards of 72 s to 269 s of package
 # time; the slowest shard sets the PR's wall time.
 #
-# Shard index is 0-based. `ci_shard.sh all <count>` prints every package with
-# its shard, which is how the self-check in CI proves no package was dropped.
+# `ci_shard.sh all <count>` prints every entry with its shard, and scripts/
+# ci-shard-check.sh (a step in ci.yml's prepare job) asserts every package in
+# `pkgs` lands on exactly one shard and none is dropped or invented.
 set -euo pipefail
-idx=${1:?usage: ci_shard.sh <index|all> <count>}
-count=${2:?usage: ci_shard.sh <index|all> <count>}
+idx=${1:?usage: ci_shard.sh <index|all|pkgs> <count>}
+count=${2:?usage: ci_shard.sh <index|all|pkgs> <count>}
 times=$(dirname "$0")/ci-pkg-times.tsv
 
 # Experimental, benchmark, training-tool, fuzz and external-adapter packages,
@@ -28,6 +30,9 @@ pkgs=$(go list ./... | grep -v '/dirac/oracle$')
 if [ "${CI_FULL:-0}" != 1 ]; then
 	pkgs=$(printf '%s\n' "$pkgs" | grep -Ev "$EXCLUDE")
 fi
+# `pkgs` prints the test packages before any split entry is added; ci.yml's
+# ci-shard-check.sh compares the `all` placement of every entry against it.
+if [ "${idx:-}" = pkgs ]; then printf '%s\n' "$pkgs"; exit 0; fi
 # A package in ci-splits.tsv is one entry per row: the package, run minus every row's regex, and <package>#<label>
 # (label defaults to A), the row's regex (ci.yml's test step). engine/rules has three rows (four groups; 11-27).
 # Whole, engine/rules (242-269 s) and testkit/conformance (239 s) were the slowest shards' floors.
