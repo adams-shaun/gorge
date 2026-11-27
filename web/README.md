@@ -19,6 +19,9 @@ run the JS unit tests), that still works; `make lint`'s `lint-web` (svelte-check
 + eslint) and `make web` (build) do not need vitest. `make test-web` and
 `npm test` need Node ≥22.
 
+CI job `web-unit` (`.github/workflows/ci.yml`) runs `npm run check`, `npm run lint` and `npm test` on every pull request that touches `web/`.
+Contributors' machines need not run npm.
+
 ## Why vitest 5, not vitest 4
 
 vitest 4.1.x declares support for both Node 20 and Vite 8 in its own

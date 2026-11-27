@@ -1381,6 +1381,73 @@ jobs:
           path: ~/.cache/go-build
           key: gocache-browser-${{ github.sha }}
 
+  # The web client's unit tests (vitest), svelte-check and eslint, on every pull request that
+  # touches web/ and on every queue batch; a pull request that does not touch web/ skips the steps
+  # and ends green in seconds. Advisory until it has been green on main for a week; then it joins
+  # ci-ok (the browser job's rule: nothing proved this job before CI did).
+  web-unit:
+    needs: prior
+    if: ${{ !cancelled() && needs.prior.outputs.passed != 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Does the diff touch web/
+        id: changed
+        run: |
+          if [ "${{ github.event_name }}" != pull_request ] || git diff --name-only "origin/${{ github.base_ref || 'main' }}...HEAD" -- web/ | /usr/bin/grep -q .; then
+            echo "web=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "web/ untouched: skipping the web unit tests"
+          fi
+      - uses: actions/setup-node@v4
+        if: steps.changed.outputs.web == 'true'
+        id: node
+        with:
+          node-version: "24"
+      - name: Restore npm's cache, the installed client and the browser
+        # The browser job's cache: same key and paths, saved by that job on main.
+        if: steps.changed.outputs.web == 'true'
+        id: webcache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            ~/.npm
+            ~/.cache/ms-playwright
+            web/node_modules
+          key: web-${{ runner.os }}-node${{ steps.node.outputs.node-version }}-${{ hashFiles('web/package-lock.json') }}
+      - name: Install the client's dependencies
+        if: steps.changed.outputs.web == 'true' && steps.webcache.outputs.cache-hit != 'true'
+        run: npm ci
+        working-directory: web
+      - name: Install Chromium's system libraries
+        # The suite's browser-backed files share one Chromium (web/src/test/browser.global.ts);
+        # pretest (scripts/ensure-playwright.sh) installs the browser itself. The mirror swap and
+        # single retry are the browser job's, for the same apt flakiness.
+        if: steps.changed.outputs.web == 'true'
+        run: |
+          sudo grep -rl security.ubuntu.com /etc/apt/ | xargs -r sudo sed -i 's#http://security.ubuntu.com/ubuntu#http://azure.archive.ubuntu.com/ubuntu#g'
+          npx playwright install-deps chromium || {
+            echo "::warning::install-deps failed once (transient apt/mirror); retrying"
+            sleep 15
+            npx playwright install-deps chromium
+          }
+        working-directory: web
+      - name: svelte-check
+        if: steps.changed.outputs.web == 'true'
+        run: npm run check
+        working-directory: web
+      - name: eslint
+        if: steps.changed.outputs.web == 'true'
+        run: npm run lint
+        working-directory: web
+      - name: Unit tests (vitest)
+        if: steps.changed.outputs.web == 'true'
+        run: npm test
+        working-directory: web
+
   # One required check to name in branch protection, whatever the shard count.
   ci-ok:
     if: always()
