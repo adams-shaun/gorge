@@ -44,10 +44,18 @@ func TestThisTurnCastProtection(t *testing.T) {
 	}
 	var sb strings.Builder
 	dumpLIR(&sb, c)
-	if !strings.Contains(sb.String(), "protfrom={types=0x9f CastByYou EnteredThisTurn}") {
-		t.Errorf("ProtFrom lacks the cast-this-turn flags:\n%s", sb.String())
+	if !strings.Contains(sb.String(), "protfrom={types=0x0 | types=0x9f CastByYou EnteredThisTurn}") {
+		t.Errorf("ProtFrom lacks the Spell quality or the cast-this-turn flags:\n%s", sb.String())
 	}
-	for _, want := range []string{`a Spell head outside a ReduceCost ValidTarget$`, "GainControl AllValid$ beside ValidTgts$"} {
+	// The Spell quality now lowers to a ZoneStack FSpell clause (lower.go's
+	// protection keyword arm), so it is no longer a refusal. The GainControl
+	// refusal is unrelated and must remain.
+	for _, r := range c.Refusals {
+		if strings.Contains(r.Reason, `a Spell head outside a ReduceCost ValidTarget$`) {
+			t.Errorf("Spell protection still refuses: %s: %s", r.Node, r.Reason)
+		}
+	}
+	for _, want := range []string{"GainControl AllValid$ beside ValidTgts$"} {
 		found := false
 		for _, r := range c.Refusals {
 			if strings.Contains(r.Reason, want) {

@@ -15,7 +15,8 @@ import (
 // the parser to refuse.
 func (lc *lowerCtx) triggeredTargetCtrl(expr string) string {
 	const word = "ControlledBy TriggeredTarget"
-	if !strings.Contains(expr, word) || lc.ab == nil || lc.ab.Trigger == nil {
+	const own = "OwnedBy TriggeredTarget"
+	if !strings.Contains(expr, word) && !strings.Contains(expr, own) || lc.ab == nil || lc.ab.Trigger == nil {
 		return expr
 	}
 	t := lc.ab.Trigger
@@ -25,20 +26,43 @@ func (lc *lowerCtx) triggeredTargetCtrl(expr string) string {
 	if c := t.F.Clauses[0]; c.Flags&fSelf == 0 && c.Ctrl != whoYou {
 		return expr
 	}
-	for _, alt := range strings.Split(expr, ",") {
-		typ, rest, ok := strings.Cut(strings.TrimSpace(alt), ".")
-		// rest is the word alone or it after other properties of the same
-		// clause (Permanent.nonLand+ControlledBy TriggeredTarget, O-Kagachi,
-		// Vengeful Kami); a second comparison in the clause refuses in the
-		// parser ("two comparisons in one clause").
-		if !ok || (rest != word && !strings.HasSuffix(rest, "+"+word)) || strings.ContainsAny(typ, "+_ ") || typ == "Card" {
-			// the predicate is the clause's one comparison, read on the
-			// battlefield: any other shape keeps the two-player reading
-			lc.twoSeat("ControlledBy TriggeredTarget read as OppCtrl")
-			return strings.ReplaceAll(expr, word, "OppCtrl")
+	if strings.Contains(expr, word) {
+		for _, alt := range strings.Split(expr, ",") {
+			typ, rest, ok := strings.Cut(strings.TrimSpace(alt), ".")
+			// rest is the word alone or it after other properties of the same
+			// clause (Permanent.nonLand+ControlledBy TriggeredTarget, O-Kagachi,
+			// Vengeful Kami); a second comparison in the clause refuses in the
+			// parser ("two comparisons in one clause").
+			if !ok || (rest != word && !strings.HasSuffix(rest, "+"+word)) || strings.ContainsAny(typ, "+_ ") || typ == "Card" {
+				// the predicate is the clause's one comparison, read on the
+				// battlefield: any other shape keeps the two-player reading
+				lc.twoSeat("ControlledBy TriggeredTarget read as OppCtrl")
+				return strings.ReplaceAll(expr, word, "OppCtrl")
+			}
+		}
+		expr = strings.ReplaceAll(expr, word, trigPlayerCtrlWord)
+	}
+	// OwnedBy TriggeredTarget is the same player referent read on the
+	// candidate's owner (gorge controlReferentPlayers op OwnedBy): off the
+	// battlefield a card is controlled by its owner, so the kernel's
+	// trigger-player predicate reads it exactly there (Deluxe Dragster's
+	// Instant.OwnedBy TriggeredTarget graveyard target). A shape the
+	// rewrite cannot prove is left for the parser to refuse rather than
+	// read as OppOwn.
+	if strings.Contains(expr, own) {
+		ok := true
+		for _, alt := range strings.Split(expr, ",") {
+			typ, rest, cut := strings.Cut(strings.TrimSpace(alt), ".")
+			if !cut || (rest != own && !strings.HasSuffix(rest, "+"+own)) || strings.ContainsAny(typ, "+_ ") || typ == "Card" {
+				ok = false
+				break
+			}
+		}
+		if ok {
+			expr = strings.ReplaceAll(expr, own, trigPlayerCtrlWord)
 		}
 	}
-	return strings.ReplaceAll(expr, word, trigPlayerCtrlWord)
+	return expr
 }
 
 // trigPlayerCtrlWord is the filter word triggeredTargetCtrl writes: kgen's

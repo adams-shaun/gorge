@@ -1798,10 +1798,14 @@ func (cb *cardBuilder) clause(c lClause, zone kop.Zone) (kop.Filter, error) {
 	}
 	if c.SpellBase {
 		// the Spell base: an object on the stack (gorge compiled_predicate
-		// base Spell); only the ReduceCost ValidTarget$ Filter2 reads it
-		if zone != kop.ZoneStack {
+		// base Spell). The ReduceCost ValidTarget$ Filter2 builds it with
+		// ZoneStack; a protection quality's bare Spell (Emrakul, the World
+		// Anew's K:Protection:Spell) builds it with the quality's
+		// battlefield zone, and the clause still names the stack.
+		if zone != kop.ZoneStack && zone != kop.ZoneBattlefield {
 			return kf, refuse("a Spell head outside a stack filter")
 		}
+		kf.Zone = kop.ZoneStack
 		kf.Flags |= kop.FSpell
 	}
 	if zone != kop.ZoneBattlefield && zone != kop.ZoneStack && kf.Ctrl == kop.CtrlAny && !cb.keepOwner {
