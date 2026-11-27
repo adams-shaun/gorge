@@ -8,11 +8,10 @@ import (
 
 // TestDemoThundermaneShapes: Thundermane Dragon lowers with no refusal. Its
 // library-top permission is the MayPlayFrom static (lower_libtop.go); its
-// Static$ True SpellCast haste rider lowers to a static trigger whose body
-// is dropped: gorge applies the Animate to the spell but ends it when the
-// spell leaves the stack (engine/effects/combatfx.go registerAnimateEffects,
-// the timed grant's ExileOnMoved$ Stack), so the entering permanent never has
-// the haste and the kernel has nothing to mirror.
+// Static$ True SpellCast haste rider lowers to a static trigger whose one
+// body is the timed Animate of the triggering spell, marked spellCarry so the
+// kernel stamps the spell entry with the override record and applies it as
+// the permanent enters (CR 400.7a; dirac/static_spellcarry.go).
 func TestDemoThundermaneShapes(t *testing.T) {
 	names := []string{"Thundermane Dragon"}
 	lw := lowerNamedPool(t, names)
@@ -24,7 +23,7 @@ func TestDemoThundermaneShapes(t *testing.T) {
 			t.Errorf("%s refused: %s", c.Name, r.Reason)
 		}
 	}
-	_, bs, _, err := buildPool(lw)
+	_, bs, pt, err := buildPool(lw)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -42,16 +41,25 @@ func TestDemoThundermaneShapes(t *testing.T) {
 			case kop.AbStatic:
 				perm = true
 			case kop.AbTriggered:
-				if ab.Trig.Flags3&kop.Tf3Static != 0 && len(ab.Prog) == 0 {
-					trigger = true
+				if ab.Trig.Flags3&kop.Tf3Static == 0 || len(ab.Prog) != 1 {
+					continue
 				}
+				in := &ab.Prog[0]
+				if in.Op != kop.OpOverride || in.B.N != kop.OvSpellCarry || in.A.N != kop.DurEOT {
+					continue
+				}
+				if in.C < 0 || int(in.C) >= len(pt.overrides) || pt.overrides[in.C].AddKw&kop.KwHaste == 0 {
+					t.Errorf("Thundermane Dragon: static SpellCast rider override %d is not the haste grant", in.C)
+					continue
+				}
+				trigger = true
 			}
 		}
 		if !perm {
 			t.Error("Thundermane Dragon: no library-top MayPlay static lowered")
 		}
 		if !trigger {
-			t.Error("Thundermane Dragon: no static SpellCast trigger with the dropped haste rider")
+			t.Error("Thundermane Dragon: no static SpellCast trigger with the carried haste rider")
 		}
 	}
 }

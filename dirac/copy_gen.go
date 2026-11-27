@@ -190,8 +190,8 @@ func (s *State) mintSpellCopyExc(k *prep, si int, ctrl, exc uint8) bool {
 	if exc != 0 {
 		ce.remVer = ce.remVer&^spellCopyExcMask | objWord(exc)<<spellCopyExcShift
 	}
-	ce.prov, ce.spc, ce.etbSrc, ce.etbX = 0, 0, 0, [2]uint8{} // nor cast from a zone, nor convoked, nor spent colours, nor the rider's source
-	ce.cvok = 0                                               // nor the convoked creatures (a copy is not cast, CR 707.10; kw_convokelist.go)
+	ce.prov, ce.spc, ce.etbSrc, ce.etbX, ce.ov = 0, 0, 0, [2]uint8{}, 0 // nor cast from a zone, nor convoked, nor spent colours, nor the rider's source or carried override (static_spellcarry.go)
+	ce.cvok = 0                                                         // nor the convoked creatures (a copy is not cast, CR 707.10; kw_convokelist.go)
 	if ce.kind == seSpell {
 		ce.trigAmt = 0 // nor any mana spent to cast it (CR 707.10: a copy is not cast; "mana spent to cast this spell" reads 0)
 	}
