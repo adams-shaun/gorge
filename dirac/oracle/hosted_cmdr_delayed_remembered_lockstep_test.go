@@ -12,116 +12,83 @@ import (
 // The hosted-Commander delayed-trigger shapes this ticket lowers, played
 // decision by decision against gorge (gorge leads):
 //
-//   - Gift of Immortality: a triggered ability returns the enchanted creature
-//     and remembers it, then registers a delayed trigger over Remembered whose
-//     body returns the Aura attached to DelayTriggerRememberedLKI. The probe is
-//     the real script on a {W} Aura, with a {0} removal spell to force the dies
-//     trigger.
+//   - Gift of Immortality: the dies trigger returns the enchanted creature and
+//     remembers it, then registers a delayed trigger over Remembered whose body
+//     returns the Aura attached to DelayTriggerRememberedLKI. A {0} removal
+//     spell forces the dies trigger.
 //   - Semester's End: a multi-object Exile RememberChanged$ whose delayed
 //     RememberedLKI body returns the set with a +1/+1 counter per creature (the
-//     Effect's Moved replacement). The probe is the real script at {1}{W}.
+//     Effect's Moved replacement).
 //   - Unexplained Absence: a multi-object Exile RememberLKI$ whose Cloak reads
 //     RememberedController; each exiled permanent's controller cloaks their
-//     library top. The probe is the real script at {1}{W}.
+//     library top.
 //
 // Each case FAILS while kgen refuses its shape: printedDelveSetIn runs kgen over
 // the deck and fails on a refused card. The reached predicate then requires the
 // mechanism to have happened, so a game that never casts the card cannot pass.
 
 type hostedCmdrDelayedCase struct {
-	name     string
-	carrier  string
-	kind     string // "gift", "semester", "unexplained"
-	seats    [2]string
-	decks    [2][]string
-	fixtures map[string]string
-	reached  func(g *GorgeSide) bool
+	name    string
+	carrier string
+	kind    string // "gift", "semester", "unexplained"
+	seats   [2]string
+	decks   [2][]string
+	reached func(g *GorgeSide) bool
 }
 
-const giftProbeScript = "Name:Gift Probe\nManaCost:W\nTypes:Enchantment Aura\nK:Enchant:Creature\n" +
-	"SVar:AttachAITgts:Creature.!token\nSVar:AttachAILogic:Pump\n" +
-	"T:Mode$ ChangesZone | Origin$ Battlefield | Destination$ Graveyard | ValidCard$ Card.EnchantedBy | Execute$ TrigChange | TriggerDescription$ When enchanted creature dies, return that card to the battlefield under its owner's control. Return CARDNAME to the battlefield attached to that creature at the beginning of the next end step.\n" +
-	"SVar:TrigChange:DB$ ChangeZone | Origin$ Graveyard | Destination$ Battlefield | Defined$ TriggeredNewCardLKICopy | RememberChanged$ True | ForgetOtherRemembered$ True | SubAbility$ DBDelTrig\n" +
-	"SVar:DBDelTrig:DB$ DelayedTrigger | Mode$ Phase | Phase$ End of Turn | Execute$ TrigReturn | TriggerDescription$ Return CARDNAME attached to that creature. | SubAbility$ DBCleanup | RememberObjects$ Remembered\n" +
-	"SVar:TrigReturn:DB$ ChangeZone | Origin$ Graveyard | Destination$ Battlefield | Defined$ Self | AttachedTo$ DelayTriggerRememberedLKI\n" +
-	"SVar:DBCleanup:DB$ Cleanup | ClearRemembered$ True\n" +
-	"Oracle:Enchant creature. When enchanted creature dies, return it and this Aura at the next end step.\n"
-
+// giftRemovalScript is an inline {0} removal spell, not a card script from the
+// GPL corpus: it only forces Gift of Immortality's dies trigger.
 const giftRemovalScript = "Name:Gift Removal\nManaCost:0\nTypes:Sorcery\n" +
-	"A:SP$ Destroy | ValidTgts$ Creature | TargetMin$ 1 | TargetMax$ 1 | SpellDescription$ Destroy target creature.\n" +
-	"Oracle:Destroy target creature.\n"
-
-const semesterProbeScript = "Name:Semester Probe\nManaCost:1 W\nTypes:Instant\n" +
-	"A:SP$ ChangeZone | ValidTgts$ Creature.YouCtrl | TargetMin$ 0 | TargetMax$ X | Origin$ Battlefield | Destination$ Exile | SubAbility$ DelTrig | RememberChanged$ True | SpellDescription$ Exile any number of target creatures you control. At the beginning of the next end step, return each of them with an additional +1/+1 counter on it.\n" +
-	"SVar:DelTrig:DB$ DelayedTrigger | Mode$ Phase | Phase$ End of Turn | Execute$ TrigConditionEffect | RememberObjects$ RememberedLKI | SubAbility$ DBCleanup1 | TriggerDescription$ Return them with an additional +1/+1 counter.\n" +
-	"SVar:DBCleanup1:DB$ Cleanup | ClearRemembered$ True\n" +
-	"SVar:TrigConditionEffect:DB$ Effect | RememberObjects$ DelayTriggerRememberedLKI | ReplacementEffects$ ETBCreatPlans | ImprintOnHost$ True | ForgetOnMoved$ Exile | SubAbility$ DBReturn\n" +
-	"SVar:ETBCreatPlans:Event$ Moved | ValidCard$ Creature.IsRemembered,Planeswalker.IsRemembered | Destination$ Battlefield | ReplaceWith$ DBPutP1P1 | ReplacementResult$ Updated | Description$ It enters with an additional +1/+1 counter, or an additional loyalty counter if it is a planeswalker.\n" +
-	"SVar:DBPutP1P1:DB$ PutCounter | Defined$ ReplacedNewCard.Creature | CounterType$ P1P1 | ETB$ True | CounterNum$ 1 | SubAbility$ DBPutLOYALTY\n" +
-	"SVar:DBPutLOYALTY:DB$ PutCounter | Defined$ ReplacedNewCard.Planeswalker | CounterType$ LOYALTY | ETB$ True | CounterNum$ 1\n" +
-	"SVar:X:Count$Valid Permanent.YouCtrl\n" +
-	"SVar:DBReturn:DB$ ChangeZone | Origin$ Exile | Destination$ Battlefield | Defined$ DelayTriggerRememberedLKI | SubAbility$ DBCleanEff\n" +
-	"SVar:DBCleanEff:DB$ ChangeZone | Origin$ Command | Destination$ Exile | Defined$ Imprinted | SubAbility$ DBCleanup2\n" +
-	"SVar:DBCleanup2:DB$ Cleanup | ClearImprinted$ True\n" +
-	"Oracle:Exile any number of target creatures you control and return them with a +1/+1 counter at the next end step.\n"
-
-const unexplainedProbeScript = "Name:Unexplained Probe\nManaCost:1 W\nTypes:Instant\n" +
-	"A:SP$ ChangeZone | Origin$ Battlefield | Destination$ Exile | ValidTgts$ Permanent.nonLand | TgtPrompt$ Select up to one target nonland permanent each player controls | TargetMin$ 0 | TargetMax$ OneEach | TargetsForEachPlayer$ True | RememberLKI$ True | SubAbility$ CloakEach | SpellDescription$ For each player, exile up to one target nonland permanent that player controls. For each permanent exiled this way, its controller cloaks the top card of their library.\n" +
-	"SVar:CloakEach:DB$ Cloak | Amount$ 1 | Defined$ TopOfLibrary | DefinedPlayer$ RememberedController | SubAbility$ DBCleanup\n" +
-	"SVar:DBCleanup:DB$ Cleanup | ClearRemembered$ True\n" +
-	"SVar:OneEach:PlayerCountPlayers$Amount\n" +
-	"Oracle:For each player, exile up to one target nonland permanent that player controls. For each permanent exiled this way, its controller cloaks the top card of their library.\n"
+	"A:SP$ Destroy | ValidTgts$ Creature | TargetMin$ 1 | TargetMax$ 1 | SpellDescription$ Destroy a creature.\n" +
+	"Oracle:Destroy a creature.\n"
 
 func hostedCmdrDelayedCases() []hostedCmdrDelayedCase {
 	bears := append(deckOf(8, "Grizzly Bears"), deckOf(32, "Forest")...)
 	return []hostedCmdrDelayedCase{
 		{
 			name:    "gift_of_immortality_delayed_return_attached",
-			carrier: "Gift Probe",
+			carrier: "Gift of Immortality",
 			kind:    "gift",
 			seats:   [2]string{"hcd-gift-a", "hcd-gift-b"},
 			decks: [2][]string{
-				append(append(deckOf(4, "Gift Probe"), deckOf(4, "Gift Removal")...), append(deckOf(8, "Savannah Lions"), deckOf(24, "Plains")...)...),
+				append(append(deckOf(4, "Gift of Immortality"), deckOf(4, "Gift Removal")...), append(deckOf(8, "Savannah Lions"), deckOf(24, "Plains")...)...),
 				bears,
 			},
-			fixtures: map[string]string{"Gift Probe": giftProbeScript, "Gift Removal": giftRemovalScript},
-			reached:  giftReturnedFromGraveyard,
+			reached: giftReturnedFromGraveyard,
 		},
 		{
 			name:    "semesters_end_delayed_return_with_counters",
-			carrier: "Semester Probe",
+			carrier: "Semester's End",
 			kind:    "semester",
 			seats:   [2]string{"hcd-semester-a", "hcd-semester-b"},
 			decks: [2][]string{
-				append(append(deckOf(4, "Semester Probe"), deckOf(8, "Savannah Lions")...), deckOf(28, "Plains")...),
+				append(append(deckOf(4, "Semester's End"), deckOf(8, "Savannah Lions")...), deckOf(28, "Plains")...),
 				bears,
 			},
-			fixtures: map[string]string{"Semester Probe": semesterProbeScript},
-			reached:  semesterReturnedWithP1P1,
+			reached: semesterReturnedWithP1P1,
 		},
 		{
 			name:    "unexplained_absence_cloaks_each_controller",
-			carrier: "Unexplained Probe",
+			carrier: "Unexplained Absence",
 			kind:    "unexplained",
 			seats:   [2]string{"hcd-unexplained-a", "hcd-unexplained-b"},
 			decks: [2][]string{
-				append(append(deckOf(4, "Unexplained Probe"), deckOf(8, "Savannah Lions")...), deckOf(28, "Plains")...),
+				append(append(deckOf(4, "Unexplained Absence"), deckOf(8, "Savannah Lions")...), deckOf(28, "Plains")...),
 				bears,
 			},
-			fixtures: map[string]string{"Unexplained Probe": unexplainedProbeScript},
-			reached:  unexplainedCloakedForBothControllers,
+			reached: unexplainedCloakedForBothControllers,
 		},
 	}
 }
 
-// giftReturnedFromGraveyard: the Gift Probe Aura left the graveyard for the
-// battlefield after its enchanted creature died (the delayed return), and is
-// attached to a live permanent at the end.
+// giftReturnedFromGraveyard: the Aura left the graveyard for the battlefield
+// after its enchanted creature died (the delayed return), and is attached to a
+// live permanent at the end.
 func giftReturnedFromGraveyard(g *GorgeSide) bool {
 	back := false
 	for _, e := range g.E.L.Events {
 		if e.Kind == events.MoveZone && e.From == state.ZGraveyard && e.To == state.ZBattlefield {
-			if o := g.E.G.Obj(e.Obj); o != nil && o.Face() != nil && o.Face().Name == "Gift Probe" {
+			if o := g.E.G.Obj(e.Obj); o != nil && o.Face() != nil && o.Face().Name == "Gift of Immortality" {
 				back = true
 			}
 		}
@@ -131,14 +98,14 @@ func giftReturnedFromGraveyard(g *GorgeSide) bool {
 	}
 	for _, id := range g.E.G.Zone(state.ZBattlefield, 0) {
 		o := g.E.G.Obj(id)
-		if o != nil && o.Face() != nil && o.Face().Name == "Gift Probe" {
+		if o != nil && o.Face() != nil && o.Face().Name == "Gift of Immortality" {
 			return o.AttachedTo != 0
 		}
 	}
 	return false
 }
 
-// semesterReturnedWithP1P1: a Savannah Lions the probe exiled returned to the
+// semesterReturnedWithP1P1: a Savannah Lions the spell exiled returned to the
 // battlefield carrying a +1/+1 counter.
 func semesterReturnedWithP1P1(g *GorgeSide) bool {
 	for _, id := range g.E.G.Zone(state.ZBattlefield, 0) {
@@ -255,11 +222,11 @@ func hostedCmdrDelayedPolicy(m *Matchup, c hostedCmdrDelayedCase, seed uint64) P
 	})
 }
 
-// giftBearer is the live permanent the "Gift Probe" Aura is attached to, 0
-// when no Aura is on the battlefield.
+// giftBearer is the live permanent Gift of Immortality is attached to, 0 when
+// no Aura is on the battlefield.
 func giftBearer(g *GorgeSide) state.ObjID {
 	for _, id := range g.E.G.Zone(state.ZBattlefield, 0) {
-		if o := g.E.G.Obj(id); o != nil && o.Face() != nil && o.Face().Name == "Gift Probe" && o.AttachedTo != 0 {
+		if o := g.E.G.Obj(id); o != nil && o.Face() != nil && o.Face().Name == "Gift of Immortality" && o.AttachedTo != 0 {
 			return o.AttachedTo
 		}
 	}
@@ -351,9 +318,9 @@ func TestHostedCmdrDelayedRememberedLockstep(t *testing.T) {
 	for _, c := range hostedCmdrDelayedCases() {
 		t.Run(c.name, func(t *testing.T) {
 			dir := corpusDirOrSkip(t)
-			if len(c.fixtures) > 0 {
-				dir = filters11Corpus(t, c.fixtures, "Savannah Lions", "Grizzly Bears", "Plains", "Forest")
-			}
+			dir = filters11Corpus(t, map[string]string{"Gift Removal": giftRemovalScript},
+				"Gift of Immortality", "Semester's End", "Unexplained Absence",
+				"Savannah Lions", "Grizzly Bears", "Plains", "Forest")
 			reg, err := cards.SharedCorpus(dir)
 			if err != nil {
 				t.Fatal(err)
