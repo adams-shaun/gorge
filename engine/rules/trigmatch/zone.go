@@ -24,12 +24,20 @@ import (
 // gating (the entering creature's derived power OR toughness must exceed the
 // source's, CR 702.99a) is checked below once the rest of the spec matches.
 func ZoneChangeMatches(e Board, t cards.Trigger, source state.ObjID, ev events.Event, lki *state.Object) bool {
-	return ZoneChangeMatchesWithCapture(e, t, source, ev, lki, nil)
+	return ZoneChangeMatchesWithCapture(e, t, source, ev, lki, SpecOpts{})
 }
 
-func ZoneChangeMatchesWithCapture(e Board, t cards.Trigger, source state.ObjID, ev events.Event, lki *state.Object, remembered []state.Target) bool {
-	// Only a delayed registration passes a capture. Printed triggers see nil.
-	capture := SpecOpts{DelayedRemembered: remembered}
+// ZoneChangeMatchesWithCapture is ZoneChangeMatches with a delayed
+// registration's captures bound: opts carries the RememberObjects$ snapshot
+// (SpecOpts.DelayedRemembered) and the ImprintCards$ snapshot
+// (SpecOpts.DelayedImprinted, state.DelayedTrigger.Imprinted) so the
+// Card.IsRemembered / Card.IsImprinted predicates read the registration's
+// capture instead of the source's live association, which the creating chain's
+// own Cleanup cleared before the trigger fired (Ugin, the Ineffable's
+// Spirit-token return, CR 603.7a/610.3). Only a delayed registration passes a
+// capture; a printed trigger sees the zero SpecOpts.
+func ZoneChangeMatchesWithCapture(e Board, t cards.Trigger, source state.ObjID, ev events.Event, lki *state.Object, opts SpecOpts) bool {
+	capture := opts
 	if ev.Kind != events.MoveZone && ev.Kind != events.Draw && ev.Kind != events.PutOnStack &&
 		ev.Kind != events.TokenCreate && ev.Kind != events.CardToken {
 		return false
@@ -250,6 +258,13 @@ func ZoneChangeMatchesWithCapture(e Board, t cards.Trigger, source state.ObjID, 
 		}
 	}
 	return true
+}
+
+// ZoneChangeMatchesWithCaptureImprint is ZoneChangeMatchesWithCapture with the
+// registration's ImprintCards$ snapshot (state.DelayedTrigger.Imprinted) bound
+// for the Card.IsImprinted predicate. A printed trigger never binds it.
+func ZoneChangeMatchesWithCaptureImprint(e Board, t cards.Trigger, source state.ObjID, ev events.Event, lki *state.Object, remembered []state.Target, imprinted []state.ObjID) bool {
+	return ZoneChangeMatchesWithCapture(e, t, source, ev, lki, SpecOpts{DelayedRemembered: remembered, DelayedImprinted: imprinted})
 }
 
 // zoneLookBack reports whether a zone-change watcher judges the moving object

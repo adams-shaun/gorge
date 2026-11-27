@@ -268,7 +268,12 @@ type HostContinuous interface {
 	// are untouched.
 	// spareAfter, when non-zero, spares registrations whose Timestamp is
 	// later than it (Ctx.EffectFrame.Spare).
-	EndEffectSource(source state.ObjID, spareAfter uint32)
+	// carrier, when true, binds spareAfter to the carrier registration's own
+	// clock (Ctx.EffectFrame.Carrier): only the registrations of THAT Effect
+	// activation are ended, so an older or newer activation from the same
+	// source survives (Ugin, the Ineffable's second [+1] while the first
+	// Spirit is alive).
+	EndEffectSource(source state.ObjID, spareAfter uint32, carrier bool)
 	// EndImprintedEffects ends every live continuous-effect registration
 	// that an ImprintOnHost$ True Effect imprinted on the named host card
 	// (state.ContinuousEffect.ImprintOnHost): the analogue of Forge's

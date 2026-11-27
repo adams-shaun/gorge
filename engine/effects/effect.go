@@ -590,6 +590,20 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 		if permanentComeback && strings.Contains(raw, "Card.IsImprinted") {
 			regTrigger = strings.ReplaceAll(raw, "Card.IsImprinted", "Card.Self")
 		}
+		// The Effect's ImprintCards$ capture rides an event registration too
+		// when the trigger's own line reads IsImprinted (Ugin, the Ineffable's
+		// Card.IsImprinted leave trigger): the registration's DelayedImprinted
+		// set is what the fire-time predicate reads, since the chain's own
+		// DB$ Cleanup | ClearImprinted$ True has already cleared the source's
+		// live association (the same reason the Phase arm carries |IM=).
+		// imprintBody is the line the registration parses at fire time: the
+		// named body normally, the permanentComeback rewrite when it applies,
+		// so a rewrite to Card.Self carries no unused capture into the
+		// DelayedRegister text (and its hash).
+		imprintBody := raw
+		if permanentComeback {
+			imprintBody = regTrigger
+		}
 		switch tr.ModeKind() {
 		case cards.TriggerSpellCast, cards.TriggerChangesZone:
 			// Fire-time match re-parses the named body on the source face.
@@ -603,10 +617,11 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			if !resolveOwners() {
 				continue
 			}
+			eventImprint := effectImprintSuffix(h, c, ep.ImprintCards, imprintBody)
 			for _, owner := range owners {
 				h.Emit(events.Event{Kind: events.DelayedRegister, Obj: c.Source,
 					Player: owner, Step: h.Game().Step, Counter: exec,
-					IDs: encodeRemembered(regIDs), Text: tr.Mode + ":" + regTrigger + expiry + odSuffix + effectStaticSuffix(tl) + efMarker + cnSuffix + ccSuffix})
+					IDs: encodeRemembered(regIDs), Text: tr.Mode + ":" + regTrigger + expiry + odSuffix + effectStaticSuffix(tl) + efMarker + cnSuffix + ccSuffix + eventImprint})
 			}
 			registered = true
 		case cards.TriggerPhase:
@@ -708,10 +723,11 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			// (Great Train Heist's RememberObjects$ TargetedPlayer under a
 			// DamageDone trigger's ValidTarget$ Player.IsRemembered).
 			eventIDs := withRememberedPlayers(regIDs, effectRememberedPlayers(h, c, sa))
+			eventImprint := effectImprintSuffix(h, c, ep.ImprintCards, raw)
 			for _, owner := range owners {
 				h.Emit(events.Event{Kind: events.DelayedRegister, Obj: c.Source,
 					Player: owner, Step: h.Game().Step, Counter: exec,
-					IDs: encodeRemembered(eventIDs), Text: tr.Mode + ":" + name + expiry + odSuffix + effectStaticSuffix(tl) + efMarker + cnSuffix + ccSuffix})
+					IDs: encodeRemembered(eventIDs), Text: tr.Mode + ":" + name + expiry + odSuffix + effectStaticSuffix(tl) + efMarker + cnSuffix + ccSuffix + eventImprint})
 			}
 			registered = true
 		}

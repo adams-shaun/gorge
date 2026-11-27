@@ -744,8 +744,15 @@ type ZoneEntry struct {
 // arrives at the same set. Firing (events.Apply's DelayedPush case) removes
 // the entry, which is what keeps a delayed trigger one-shot.
 type DelayedTrigger struct {
-	ID    uint32
-	Phase Step
+	ID uint32
+	// RegistrationClock is the game clock at registration (folded from
+	// state.Game.Clock by events' DelayedRegister case, so a replay rebuilds
+	// it). It is the identity a source-scoped Effect self-exile compares
+	// against rules.Engine.EndEffectSource's spareAfter: registrations made
+	// after the carrier's own activation carry a later clock and survive it
+	// (Ugin, the Ineffable's second [+1] while the first Spirit is alive).
+	RegistrationClock uint32
+	Phase             Step
 	// Source is the object the delayed body names (Defined$ Self): the
 	// affected token or permanent for the AtEOT$ rider, the trigger's own
 	// source for every other registration. Creator below is the CR 603.7d

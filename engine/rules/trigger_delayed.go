@@ -318,7 +318,7 @@ func (e *Engine) checkDelayedTriggers(ev events.Event) {
 		// nothing.
 		frame := effectDelayedFrame(dt)
 		if frame.Source == 0 && dt.EffectDuration != "" {
-			frame = effects.EffectFrame{Source: dt.Source, Carrier: true}
+			frame = effects.EffectFrame{Source: dt.Source, Carrier: true, Spare: dt.RegistrationClock}
 		}
 		// CR 603.7d: the delayed trigger's source is the spell or ability
 		// that created it. An AtEOT$ rider records that creator beside the
@@ -588,7 +588,7 @@ func (e *Engine) checkEventDelayedTriggers(ev events.Event, lki *state.Object,
 			}
 			referentsArg = nil
 		} else if dt.EventMode == "ChangesZone" {
-			if !trigmatch.ZoneChangeMatchesWithCapture(boardOf(e), t, dt.Source, ev, lki, dt.Remembered) {
+			if !trigmatch.ZoneChangeMatchesWithCaptureImprint(boardOf(e), t, dt.Source, ev, lki, dt.Remembered, dt.Imprinted) {
 				continue
 			}
 			if vp := strings.TrimSpace(t.ParamStr(cards.PKValidPlayer)); vp != "" {
@@ -914,7 +914,11 @@ func effectDelayedFrame(dt *state.DelayedTrigger) effects.EffectFrame {
 	if dt == nil || !dt.EffectRepeat {
 		return effects.EffectFrame{}
 	}
-	return effects.EffectFrame{Source: dt.Source, Carrier: true}
+	// Spare is this registration's own game clock: the carrier body's
+	// self-exile ends every registration from the same Effect activation
+	// (whose registrations share the clock) and spares a later activation's
+	// (Ugin, the Ineffable's second [+1]).
+	return effects.EffectFrame{Source: dt.Source, Carrier: true, Spare: dt.RegistrationClock}
 }
 
 // delayedEventModeHandled names the modes delayedEventMatches evaluates with

@@ -757,6 +757,15 @@ func (s *State) hostEmblemDone(e *stackEntry, p uint8, emb uint8) bool {
 	if s.k().t.Emblems[emb-1].AsLongAsControl && s.perms[s.objs[e.obj].slot].ctrl != p {
 		return true // CR 611.2b: its player no longer controls the host
 	}
+	// The imprint-token Effect's identity includes the token it imprints:
+	// Ugin, the Ineffable's [+1] on a later turn makes one effect per Spirit,
+	// so the second is not the same effect as the first. Only
+	// lower_effectendtrig.go's imprintTokenEffect lowers
+	// Capture: RefImprinted beside CaptureRem; every other host-bound capture
+	// emblem keeps the one-record coalescing above.
+	if e := &s.k().t.Emblems[emb-1]; e.Capture == kop.RefImprinted && e.CaptureRem {
+		return false
+	}
 	for i := 0; i < int(s.g.nemb[p]); i++ {
 		if s.embIdx(p, i) == emb && s.embObj(p, i) == e.obj {
 			return true
