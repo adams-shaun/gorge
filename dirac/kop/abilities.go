@@ -698,6 +698,33 @@ func SecondSacTapManaAb(cd *CardDef, first, j int) bool {
 	return SacTapFixedManaAb(&cd.Abilities[j]) && plainFixedTapAb(&cd.Abilities[first])
 }
 
+// SacSelfPairManaAb reports whether a is a sacrifice-its-source larger mana
+// alternative: {T}, Sacrifice this permanent, no mana cost, adding a fixed
+// two or more mana of one fixed colour, unrestricted and ungated (Crystal
+// Vein's {C}{C} beside its {C}, the wider unit of the pair dirac/mana_sacpair.go
+// plans). The kernel honours it only beside a plain {T} first one of the
+// same colour (SecondSacSelfPairManaAb).
+func SacSelfPairManaAb(a *Ability) bool {
+	c := a.ManaColors
+	return a.Kind == AbMana && a.Cost.Flags == CostTap|CostSacSelf && a.Cost.Mana == (ManaCost{}) &&
+		a.ManaRestrict == 0 && !a.ManaEach && a.ManaN >= 2 && c != 0 && c&(c-1) == 0 && a.AFlags == 0 && len(a.Prog) == 0 &&
+		a.Gate.Ctr == 0 && a.Trig.Cond == 0 && (a.ActZone == ZoneNone || a.ActZone == ZoneBattlefield)
+}
+
+// SecondSacSelfPairManaAb reports whether ability j of cd, a later mana
+// ability than its first (index first), is the SacSelfPairManaAb wider
+// alternative beside a plain fixed-colour {T} first one making one mana of
+// the very same colour (Crystal Vein; dirac/kgen lower_multimana.go accepts
+// the pair on the same shape, dirac/mana_sacpair.go plans it).
+func SecondSacSelfPairManaAb(cd *CardDef, first, j int) bool {
+	if first < 0 || j <= first || j >= len(cd.Abilities) || cd.Abilities[j].Kind != AbMana {
+		return false
+	}
+	f := &cd.Abilities[first]
+	return SacSelfPairManaAb(&cd.Abilities[j]) && plainFixedTapAb(f) && f.ManaN == 1 &&
+		cd.Abilities[j].ManaColors == f.ManaColors
+}
+
 // TapXSearchMana is a mana ability the kernel's tap-another search activates:
 // a tap-another or sacrifice-another source or an exile-from-graveyard one
 // (ExileGManaAb).
@@ -845,6 +872,7 @@ func ManaAbilityHonoured(cd *CardDef, j int) bool {
 	}
 	if j != first {
 		return f == CostTap || f == CostTap|CostPayLife || SecondTapXManaAb(cd, first, j) || SecondTapXOneManaAb(cd, first, j) || SecondSacTapManaAb(cd, first, j) || SecondCtrTapManaAb(cd, first, j) ||
+			SecondSacSelfPairManaAb(cd, first, j) || // Crystal Vein's wider unit (dirac/mana_sacpair.go)
 			StoreManaAb(a) ||
 			ManaRiderAb(a) && f == CostTap && a.Cost.Mana.MV() == 0 && a.Cost.Mana.X == 0 && plainTapAb(&cd.Abilities[first])
 	}

@@ -173,6 +173,11 @@ type CardDef struct {
 	// Aura's enchanted permanent, were it destroyed, instead loses all its
 	// damage and this Aura is destroyed (kernel kw_umbraarmor.go).
 	UmbraArmor bool
+	// Fortification: the card prints the artifact subtype Fortification (CR
+	// 702.67; the CR 704.5n SBA detaches it from a non-land bearer). It is not
+	// a TypeMask bit: the 16-bit space is full, so its subtype projects as
+	// kop.TEquipment and the SBA reads this flag.
+	Fortification bool
 	// Dredge is printed K:Dredge:N (CR 702.52a, kop.KwDredge), N here (0:
 	// none): while the card is in its owner's graveyard, a draw of theirs
 	// may instead mill N and return it to their hand (kernel kw_dredge.go).
