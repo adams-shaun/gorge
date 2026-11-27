@@ -1,0 +1,5 @@
+family: ExtOp
+name: ExtTurnFaceDown
+value: next
+status: active
+doc: SetState Mode$ TurnFaceDown (gorge effSetState): battlefield permanent Obj turns face down in place (CR 708.2): a 2/2 colourless creature with no name, types or abilities. Its printed triggers and statics unsubscribe; its counters and other effects stay. Obscuring Aether. dirac/face_facedown.go.

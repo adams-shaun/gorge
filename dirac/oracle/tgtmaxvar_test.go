@@ -324,7 +324,7 @@ func ktvFalconPolicy(seed uint64, downs, ups *int) Policy {
 				tiger, haveTiger = a, true
 			case a.Kind() == ActCastFace && n == "Coveted Falcon":
 				down, haveDown = a, true
-			case a.Kind() == ActSpecial && a.Mode() == turnUp:
+			case a.Kind() == ActSpecial && a.Mode()&0xf == turnUp:
 				up, haveUp = a, true
 			}
 		}

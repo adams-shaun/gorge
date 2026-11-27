@@ -900,6 +900,10 @@ func (s *State) execExtGen(k *prep, in *kop.Instr) (ok, done bool) {
 		return s.rollPlanarDiceExt(k, in) // zone_planechase.go
 	case kop.ExtStoreNum:
 		return s.storeNumOp(k, in) // act_storenum.go
+	case kop.ExtTokenCounters:
+		return s.tokenCountersExt(k, in) // ctr_tokenentry.go
+	case kop.ExtTurnFaceDown:
+		return s.turnFaceDownExt(k, in) // face_facedown.go
 	case kop.ExtTwoPilesEach:
 		return s.pilesEachOp(k, in) // act_pileseach.go
 	case kop.ExtUnattach:
