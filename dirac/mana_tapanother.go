@@ -839,7 +839,7 @@ func (s *State) tapXScriptNeed(k *prep, a Action, p uint8, apply, hint bool) (bo
 		// stall on it latches there of its own (filtSearch's fs.spill).
 		return false, rs.stall
 	}
-	if apply {
+	if apply && !(rs.n == 1 && s.planSacDeferStep(k, a, &rs.path[0])) {
 		s.tapXPlay(k, p, rs.path[:rs.n])
 	}
 	return true, 0
@@ -1464,6 +1464,21 @@ func (rs *tapXSearch) ctrColourAsk(k *prep, t *State, sl Slot, cols *[5]uint8) (
 	return false, false
 }
 
+func (rs *tapXSearch) offersPlay(k *prep, t *State) bool {
+	var d Decision
+	t.restrOptions(k, &d, rs.p)
+	if !hasOption(&d, rs.a) {
+		return false
+	}
+	if rs.a.Kind() == AkCast && rs.a.Mode()&^3 == 0 {
+		if t.FeatPoolPays(rs.p, Obj(rs.a.Source()), rs.a.Mode()&3) {
+			return rs.witnessReaches(k, t, true)
+		}
+		return rs.witnessReaches(k, t, false)
+	}
+	return true
+}
+
 func (rs *tapXSearch) visit(k *prep, t *State, gapUsed bool) bool {
 	if !rs.tick() { // a payer priority node
 		return false
@@ -1479,19 +1494,8 @@ func (rs *tapXSearch) visit(k *prep, t *State, gapUsed bool) bool {
 	// draw-then-discard reaches one key twice: with the play discarded and
 	// with it kept. The kept one is offered when the pool pays it and
 	// otherwise found seen (gorge scriptSearch.visit).
-	offered := false
-	if gapUsed {
-		var d Decision
-		t.restrOptions(k, &d, p)
-		offered = hasOption(&d, rs.a)
-		if offered && rs.a.Kind() == AkCast && rs.a.Mode()&^3 == 0 && t.FeatPoolPays(p, Obj(rs.a.Source()), rs.a.Mode()&3) {
-			if rs.witnessReaches(k, t, true) {
-				return true
-			}
-			offered = false // the witness does not reach the pool-only plan: the node is no terminal, the search branches on
-		} else if offered && rs.a.Kind() == AkCast && rs.a.Mode()&^3 == 0 && !rs.witnessReaches(k, t, false) {
-			offered = false // nor the planned one (the branch below): the node is no terminal, the search branches on
-		}
+	if gapUsed && rs.offersPlay(k, t) {
+		return true
 	}
 	pl := &t.pl[SeatIx(p)]
 	key := tapXKey{pool: pl.pool, art: t.g.poolArt[SeatIx(p)], sp: t.sp, hand: pl.handN, gy: pl.graveN, bf: t.bfObjKey(p), rb: t.rb[SeatIx(p)], inHand: t.playInHand(p, rs.a)}
@@ -1509,9 +1513,6 @@ func (rs *tapXSearch) visit(k *prep, t *State, gapUsed bool) bool {
 		rs.seen[rs.nseen] = key
 		rs.nseen++
 	}
-	if offered {
-		return true
-	}
 	live := t.scriptTapX(k, p)
 	ctr := t.scriptCtr(k, p)
 	each := t.scriptGaps(k, p) // (rs.gaps keeps the root's: the Drum tapped, the Tender is still a gap)
@@ -1521,6 +1522,8 @@ func (rs *tapXSearch) visit(k *prep, t *State, gapUsed bool) bool {
 	rs.cols(&cols)
 	var order [MaxPerm]Slot
 	n := t.battlefieldOrder(p, t.ctrlM[SeatIx(p)].and(t.occ), order[:], 0)
+	t.planOtherSacSourceOrder(k, order[:], n)
+	rs.planFirstOrder(k, t, order[:], n, live)
 	for i := 0; i < n; i++ {
 		sl := order[i]
 		if !rs.gaps.has(sl) || sl == rs.own {
@@ -1674,12 +1677,149 @@ func (rs *tapXSearch) colourStep(k *prep, t *State, sl, cand Slot, cols *[5]uint
 	return false, false
 }
 
+// planFirstOrder moves to the front of order[:n], at the search's root, the
+// first plain-creature sacrifice source one activation of which pays the play
+// alone: gorge's planner funds it (autoPayOffer's last-resort arm) before the
+// prefix search is asked for any other gap, so no earlier source (a Gilded
+// Goose's Food, a creature to tap) is activated beside it. Every other node
+// keeps the walk's order.
+func (rs *tapXSearch) planFirstOrder(k *prep, t *State, order []Slot, n int, live slotMask) {
+	if rs.n != 0 {
+		return
+	}
+	for i := 0; i < n; i++ {
+		sl := order[i]
+		if !rs.gaps.has(sl) || sl == rs.own || !live.has(sl) || !t.planOtherSacSource(k, sl) {
+			continue
+		}
+		ab := k.tapXAbOf(t.cardAt(sl))
+		var cs [MaxPerm]Slot
+		if t.sacXCands(k, rs.p, sl, ab, &cs) == 0 || !rs.sacLast(k, t, sl, &cs, kop.SacXAnyColour(ab)) {
+			continue
+		}
+		copy(order[1:i+1], order[:i])
+		order[0] = sl
+		return
+	}
+}
+
+func (rs *tapXSearch) sacLast(k *prep, t *State, sl Slot, cs *[MaxPerm]Slot, anyCol bool) bool {
+	var cols [5]uint8
+	ncol := 0
+	if fc, ok := kop.TapXFixedColour(k.tapXAbOf(t.cardAt(sl))); ok {
+		cols[0], ncol = uint8(fc), 1
+	} else if anyCol {
+		for i := range cols {
+			cols[i] = uint8(i)
+		}
+		ncol = 5
+	} else {
+		cols[0], ncol = 0, 1
+	}
+	for i := 0; i < ncol; i++ {
+		c := t.fork()
+		c.tapXDo(k, rs.p, tapXStep{sl: sl, cand: cs[0], cand2: NoSlot, col: cols[i], kind: tapXAct})
+		var d Decision
+		ok := c.tapXNext(rs.p, &d) && d.Kind == DkPriority && rs.offersPlay(k, c)
+		t.unfork()
+		if ok {
+			return true
+		}
+	}
+	return false
+}
+
+// planOtherSacFilter reports whether fl is the plain creature victim gorge's
+// other-sacrifice plan admits (pay.PlanOtherSacShape): a filter of exactly one
+// creature with no subtype or other condition. A Goblin, an artifact, a land
+// or a named subtype stays the manual sacrifice gorge's plan leaves alone, and
+// keeps battlefield order.
+func planOtherSacFilter(fl *kop.Filter) bool {
+	return fl.Types == kop.TCreature && fl.NotTypes == 0 && fl.Sub == 0 && fl.NotSub == 0 &&
+		fl.Pred == 0 && (fl.Ctrl == kop.CtrlAny || fl.Ctrl == kop.CtrlYou) && fl.Owner == 0 &&
+		fl.Colors == 0 && fl.NotColors == 0 &&
+		fl.PickSumMax == (kop.ValueRef{}) && !fl.PickDistinctPower && fl.CtrlTgt == 0 && fl.Flags2 == 0 &&
+		(fl.Flags == 0 || fl.Flags == kop.FOther)
+}
+
+// planOtherSacSource reports whether sl is a source whose mana ability pays a
+// plain creature victim (planOtherSacFilter): a source gorge's other-sacrifice
+// plan enumerates in object-id order.
+func (s *State) planOtherSacSource(k *prep, sl Slot) bool {
+	ab := k.tapXAbOf(s.cardAt(sl))
+	return ab != nil && ab.Cost.Flags&kop.CostSac != 0 && planOtherSacFilter(&k.t.Filters[ab.Cost.Filter])
+}
+
+// planOtherSacSourceOrder reorders the plain-creature sacrifice sources among
+// order[:n] by ascending object id, the order gorge's plan enumerates its
+// units in (pay.PotentialPaymentPlans): with two identical carriers the kernel
+// then activates the same source the plan does, and sacXVictimOrder names the
+// same victim. Every other candidate keeps its battlefield place.
+func (s *State) planOtherSacSourceOrder(k *prep, order []Slot, n int) {
+	var pos [MaxPerm]int
+	np := 0
+	for i := 0; i < n; i++ {
+		if s.planOtherSacSource(k, order[i]) {
+			pos[np] = i
+			np++
+		}
+	}
+	for a := 1; a < np; a++ {
+		x := order[pos[a]]
+		b := a
+		for b > 0 && s.perms[order[pos[b-1]]].obj > s.perms[x].obj {
+			order[pos[b]] = order[pos[b-1]]
+			b--
+		}
+		order[pos[b]] = x
+	}
+}
+
+// sacXVictimOrder is cs[:nc] in the order the current payment's step names its
+// victim. A plan step (plan true) follows gorge's other-sacrifice plan
+// (pay.PaymentPlanSacrificeVictims): a token first, then the lowest mana value,
+// then the lowest object id. gorge leads: a cast the plan funds by sacrificing
+// another creature takes the same permanent in the kernel, so the lockstep
+// projection agrees. A non-final step, or a source whose filter is not that plain
+// creature shape, keeps the candidate walk's battlefield order (cs itself).
+// The plan order is written into out, the caller's buffer: returning a fresh
+// array's address moves it to the heap, and this runs on every visit.
+func (s *State) sacXVictimOrder(k *prep, sl Slot, cs *[MaxPerm]Slot, nc int, plan bool, out *[MaxPerm]Slot) *[MaxPerm]Slot {
+	if !plan || !planOtherSacFilter(&k.t.Filters[k.tapXAbOf(s.cardAt(sl)).Cost.Filter]) {
+		return cs
+	}
+	copy(out[:nc], cs[:nc])
+	less := func(a, b Slot) bool {
+		ao, bo := s.perms[a].obj, s.perms[b].obj
+		if at, bt := s.objs[ao].of&ofToken != 0, s.objs[bo].of&ofToken != 0; at != bt {
+			return at
+		}
+		am, bm := s.cardMV(k, s.objs[ao].card, ao, s.faceDown(k, a)), s.cardMV(k, s.objs[bo].card, bo, s.faceDown(k, b))
+		if am != bm {
+			return am < bm
+		}
+		return ao < bo
+	}
+	for i := 1; i < nc; i++ { // insertion sort: MaxPerm entries, no alloc
+		x := out[i]
+		j := i
+		for j > 0 && less(x, out[j-1]) {
+			out[j] = out[j-1]
+			j--
+		}
+		out[j] = x
+	}
+	return out
+}
+
 // sacStep is visit's branch for a sacrifice-another source sl with nc
 // candidates cs: the "sacrifice" ask only with two or more, in battlefield
 // order, then the colour ask of an any-colour one (the announced colours
 // first, as the tap-another cost's); a fixed or all-at-once production asks
 // none. An answer that takes the play's own source is tried: the next node ends
-// it (leftOwnZone). stop: visit returns found.
+// it (leftOwnZone). A plain creature victim is tried in gorge's plan ranking
+// (sacXVictimOrder) on the activation that completes the payment, battlefield
+// order before it. stop: visit returns found.
 func (rs *tapXSearch) sacStep(k *prep, t *State, sl Slot, cs *[MaxPerm]Slot, nc int, cols *[5]uint8) (found, stop bool) {
 	if k.exileGOf(t.cardAt(sl)) {
 		return rs.exileGStep(k, t, sl, cs, nc, cols) // an exile-from-graveyard source (mana_exilegrave.go)
@@ -1688,14 +1828,17 @@ func (rs *tapXSearch) sacStep(k *prep, t *State, sl Slot, cs *[MaxPerm]Slot, nc 
 		return false, true
 	}
 	anyCol := kop.SacXAnyColour(k.tapXAbOf(t.cardAt(sl)))
+	plan := nc > 0 && t.planOtherSacSource(k, sl) && rs.sacLast(k, t, sl, cs, anyCol)
+	var vbuf [MaxPerm]Slot
+	order := t.sacXVictimOrder(k, sl, cs, nc, plan, &vbuf)
 	for ci := 0; ci < nc; ci++ {
 		if anyCol {
-			if f, st := rs.colourStep(k, t, sl, cs[ci], cols); st {
+			if f, st := rs.colourStep(k, t, sl, order[ci], cols); st {
 				return f, true
 			}
 			continue
 		}
-		if rs.try(k, t, tapXStep{sl: sl, cand: cs[ci], cand2: NoSlot}) {
+		if rs.try(k, t, tapXStep{sl: sl, cand: order[ci], cand2: NoSlot}) {
 			return true, true
 		}
 	}
