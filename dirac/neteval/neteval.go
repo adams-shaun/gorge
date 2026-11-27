@@ -9,7 +9,11 @@
 //   - gonet (LoadWeights, when netsimd refuses the shape; LoadGonet to ask
 //     for it): gorge's bots/gonet plain float32 forward pass, which takes
 //     any MLP export, on the materialized encoding only and with gonet's
-//     own caches off (this package caches).
+//     own caches off (this package caches);
+//   - policynet (LoadPolicynet): a bots/policynet FeaturesEntity
+//     checkpoint (policytrain's output) on policynet.Model's own forward
+//     arithmetic, float-identical to azmcts's policynet prior and leaf
+//     (policynet.go).
 //
 // Value is the value head through gonet's sigmoid; Priors are the option
 // logits over the dirac Decision's options, with the bot's answer's
@@ -44,15 +48,19 @@ import (
 // Weights are a loaded network, shared by every Net: exactly one backend
 // is set.
 type Weights struct {
-	g    *netsimd.Net // netsimd: any shape netsimd's kernels take (parts or materialized)
-	gn   *gonet.Net   // gonet: any other MLP shape (materialized)
-	vecW int          // netsimd's bag and card-vector width (32 for d=64 nets; a wide net: its d_emb)
+	g    *netsimd.Net     // netsimd: any shape netsimd's kernels take (parts or materialized)
+	gn   *gonet.Net       // gonet: any other MLP shape (materialized)
+	pn   *policynet.Model // policynet: a policynet checkpoint (materialized)
+	vecW int              // netsimd's bag and card-vector width (32 for d=64 nets; a wide net: its d_emb)
 }
 
 // Backend names the weights' backend: netsimd or gonet.
 func (w *Weights) Backend() string {
 	if w.g != nil {
 		return "netsimd"
+	}
+	if w.pn != nil {
+		return "policynet"
 	}
 	return "gonet"
 }
@@ -248,6 +256,8 @@ type Net struct {
 
 	check *Check // EnableCheck
 
+	pn *pnScratch // the policynet backend's forward scratch
+
 	// NoViewBase builds every encoder view in full instead of against the
 	// search base (feat Encoder.SetBase).
 	NoViewBase bool
@@ -310,6 +320,9 @@ func New(w *Weights, pool *feat.Pool) *Net {
 		w.g.EvalBagExt(&n.sc, n.cin, n.pst.Dense, n.bagSum[:], nil, n.popts, n.score)
 	} else {
 		n.Materialize = true
+		if w.pn != nil {
+			n.pn = newPNScratch(w.pn, pnMaxCards)
+		}
 		if k := w.ValueK(); k > 0 {
 			n.vk = make([]float32, k)
 		}
@@ -790,6 +803,9 @@ func (n *Net) priors(s *dirac.State, d *dirac.Decision, bot []bool, out []float3
 func (n *Net) evalFull(opts []policynet.Option, out []float32) float32 {
 	if n.w.g != nil {
 		return sigmoid(n.w.g.EvalExt(&n.sc, &n.pst, n.ext, opts, out))
+	}
+	if n.pn != nil {
+		return n.pn.eval(&n.pst, opts, out)
 	}
 	return sigmoid(n.w.gn.Eval(&n.pst, opts, out))
 }
