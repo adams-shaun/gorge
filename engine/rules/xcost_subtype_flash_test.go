@@ -22,30 +22,35 @@ func xcostSubtypeCWF(t *testing.T, c *cards.Card, validSA string) {
 	t.Fatalf("precondition: %s has no CastWithFlash with ValidSA$ %s", c.Faces[0].Name, validSA)
 }
 
-// scrutinyCastWithX begins an off-turn cast of Silver Scrutiny and answers
-// the {X} announcement with x, then reports the card's zone.
-func scrutinyCastWithX(t *testing.T, x int) state.Zone {
+// scrutinyXAsk begins a cast of Silver Scrutiny with {4}{U}{U} floating
+// (X up to 4 payable), off-turn when offTurn, and returns the engine, the
+// card and the X values the announcement offers.
+func scrutinyXAsk(t *testing.T, offTurn bool) (*Engine, state.ObjID, []int) {
 	t.Helper()
 	e, spell := offTurnFlashEngine(t, "Silver Scrutiny", 4, 2)
+	if !offTurn {
+		e.G.Active = 0
+		if !e.sorcerySpeed(0) {
+			t.Fatal("precondition: seat 0 has sorcery timing on its own turn")
+		}
+	} else if e.sorcerySpeed(0) {
+		t.Fatal("precondition: seat 0 has no sorcery timing off-turn")
+	}
 	if !hasCastOption(e.legalActions(0), spell) {
-		t.Fatal("Silver Scrutiny (X <= 3 grants flash) was not offered off-turn")
+		t.Fatalf("Silver Scrutiny not offered (offTurn=%v)", offTurn)
 	}
 	e.beginCast(0, decision.Option{Kind: "cast", Obj: spell})
 	d := e.Pending()
 	if d == nil || d.Kind != decision.KChoose {
 		t.Fatalf("want the X announcement, got %+v", d)
 	}
-	idx := -1
-	for i, o := range d.Options {
-		if o.Kind == "x" && o.Amount == x {
-			idx = i
+	var xs []int
+	for _, o := range d.Options {
+		if o.Kind == "x" {
+			xs = append(xs, o.Amount)
 		}
 	}
-	if idx < 0 {
-		t.Fatalf("precondition: X=%d not offered: %+v", x, d.Options)
-	}
-	submitChoices(t, e, idx)
-	return e.G.Obj(spell).Zone
+	return e, spell, xs
 }
 
 // TestXCostSubtypeValidSAFlash pins the two spell-side ValidSA$ tails a
@@ -58,14 +63,35 @@ func TestXCostSubtypeValidSAFlash(t *testing.T) {
 	xcostSubtypeCWF(t, corpusAlternativeCard(t, "Silver Scrutiny"), "Spell.XCostLE3")
 	xcostSubtypeCWF(t, corpusAlternativeCard(t, "Blur of Heroism"), "Spell.Hero")
 
-	t.Run("XCostLE3 X=3 casts", func(t *testing.T) {
-		if z := scrutinyCastWithX(t, 3); z != state.ZStack {
+	t.Run("XCostLE3 sorcery timing offers X=4", func(t *testing.T) {
+		_, _, xs := scrutinyXAsk(t, false)
+		if len(xs) == 0 || xs[len(xs)-1] != 4 {
+			t.Fatalf("sorcery-timed X menu = %v, want up to 4 (the grant does not bound it)", xs)
+		}
+	})
+	t.Run("XCostLE3 off-turn caps X at 3 and casts", func(t *testing.T) {
+		e, spell, xs := scrutinyXAsk(t, true)
+		if len(xs) == 0 || xs[len(xs)-1] != 3 {
+			t.Fatalf("off-turn X menu = %v, want capped at 3", xs)
+		}
+		answerX(t, e, 3)
+		if z := e.G.Obj(spell).Zone; z != state.ZStack {
 			t.Fatalf("X=3 off-turn Silver Scrutiny ended in %s, want stack", z)
 		}
 	})
-	t.Run("XCostLE3 X=4 withheld", func(t *testing.T) {
-		if z := scrutinyCastWithX(t, 4); z != state.ZHand {
-			t.Fatalf("X=4 off-turn Silver Scrutiny ended in %s, want hand (CR 601.2e reversal)", z)
+	t.Run("XCostLE3 recheck rejects X=4", func(t *testing.T) {
+		e, spell, _ := scrutinyXAsk(t, true)
+		f := e.G.Obj(spell).Face()
+		if e.cast == nil || e.cast.card != spell || !e.cast.xDone || !e.cast.offSorcery {
+			t.Fatal("precondition: the off-turn X announcement is pending")
+		}
+		e.cast.x = 3
+		if !e.flashGrantCoversTargets(0, spell, f, nil) {
+			t.Fatal("CR 601.2e: X=3 must keep the XCostLE3 permission")
+		}
+		e.cast.x = 4
+		if e.flashGrantCoversTargets(0, spell, f, nil) {
+			t.Fatal("CR 601.2e: X=4 must lose the XCostLE3 permission")
 		}
 	})
 
