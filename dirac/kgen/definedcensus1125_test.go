@@ -37,14 +37,19 @@ var definedCensus1125Forms = []formCase{
 	// uses.
 	{card: "Angel of Destiny", form: "LosesGame Defined$ Player.attackedBySourceThisTurn", lir: "LoseGame obj=AttackedBySource"},
 	{card: "Cait, Cage Brawler", form: "Discard Defined$ TriggeredDefendingPlayer & You (compound outside an effect subject's grammar)", refused: `Defined$ "TriggeredDefendingPlayer & You"`},
-	// gorge does not read these (defined-selector-unknown.txt)
-	{card: "Prismari Command", form: "Draw Defined$ ThisTargetedPlayer (gorge unread)", refused: `Defined$ "ThisTargetedPlayer"`},
-	{card: "Glorious End", form: "LosesGame Defined$ SourceController (gorge unread)", refused: `Defined$ "SourceController"`},
-	// gorge reads these, but not as any kernel ref: ParentTargetedController
-	// is the live controller (definedSpecParentTargetedController, no CR
-	// 608.2h look-back) where RefTargetController reads the last known one;
-	// CorrectedSelf names a returned source Self does not (selfDefinedTarget)
-	{card: "Unlicensed Disintegration", form: "Defined$ ParentTargetedController (live, not last-known, controller)", refused: `Defined$ "ParentTargetedController"`},
+	// ThisTargetedPlayer names the player target the node itself declared.
+	// SourceController is unmodelled in gorge's definedSpec
+	// (engine/effects/testdata/defined-selector-unknown.txt): Draw/Mill read
+	// it through definedPlayers' object-to-controller projection, but
+	// LosesGame/WinsGame read Defined directly and fail closed on the source
+	// object, so only the projection consumers lower.
+	{card: "Prismari Command", form: "Draw Defined$ ThisTargetedPlayer (the mode's own player target)", lir: "Draw obj=Target1 A=2"},
+	{card: "Glorious End", form: "LosesGame Defined$ SourceController (gorge's Defined names the source object, not a player)", refused: "LosesGame with Defined$ SourceController"},
+	// ParentTargetedController is the live controller
+	// (definedSpecParentTargetedController, no CR 608.2h look-back), the new
+	// RefTargetCtrlLive the kernel reads; CorrectedSelf still names a
+	// returned source Self does not (selfDefinedTarget).
+	{card: "Unlicensed Disintegration", form: "Defined$ ParentTargetedController (live, not last-known, controller)", lir: "DealDamage obj=TargetCtrlLive A=3"},
 	{card: "Fickle Efreet", form: "Defined$ CorrectedSelf (a returned source)", refused: `Defined$ "CorrectedSelf"`},
 }
 
