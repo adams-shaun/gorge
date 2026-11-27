@@ -3027,7 +3027,11 @@ type SpecContext struct {
 	// nil when the site that built the context did not bind it, which the word
 	// reads as "no counters were put".
 	CounterAdds []CounterAdd
-	Resolve     func(name string) (int32, bool)
+	// ThisTurnCast is the per-turn cast ledger (every spell cast this turn,
+	// any caster) the `sharesNameWith ThisTurnCast` referent reads; nil when
+	// the building site did not bind it (thisTurnCastFor), which fails closed.
+	ThisTurnCast []state.ObjID
+	Resolve      func(name string) (int32, bool)
 	// The source's chosen-type/colour LKI (SourceLKIValid,
 	// SourceChosenType, SourceChosenColor) rides the embedded
 	// TriggerContext, so a resolving Ctx's SpecContext carries it with no
