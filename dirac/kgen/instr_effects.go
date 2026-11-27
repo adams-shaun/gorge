@@ -41,6 +41,13 @@ func (ic *instrCtx) opOverrideAll() error {
 		return err
 	}
 	ki.C = int16(i)
+	if cb.c.overrides[in.C].RememberAnimated {
+		// Animate's RememberAnimated$ on its mass form (Rise and Shine's
+		// overloaded cast, where "target" becomes "each"): W names the set
+		// every hit joins at the kernel's apply tail
+		// (dirac/static_animateallscope.go), the same read opOverride emits.
+		ki.W = kop.RefRemembered
+	}
 	if _, ok := ic.fl["cwWord"]; ok {
 		// C names the FIRST of six records, the printed colours then one
 		// colour each (lower_zone.go emitCwWordAll on the OverrideAll
@@ -137,6 +144,13 @@ func (ic *instrCtx) opOverride() error {
 		// stamp the spell entry and apply the record as the permanent enters
 		// (dirac/static_spellcarry.go)
 		ki.B = kop.Const(kop.OvSpellCarry)
+	}
+	if cb.c.overrides[in.C].RememberAnimated {
+		// Animate's RememberAnimated$ (Rise and Shine): W names the set the
+		// op adds each animated permanent to at the kernel's apply tail
+		// (dirac/interp_gen.go OpOverride, gorge effAnimate's
+		// rememberAnimated engine/effects/combatfx.go:751).
+		ki.W = kop.RefRemembered
 	}
 	switch strings.SplitN(in.CS, "|", 2)[0] {
 	case "EOT":

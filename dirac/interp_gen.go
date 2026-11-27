@@ -849,6 +849,16 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 			break
 		}
 		s.applyOverrideFl(k, sl, int(in.C), e.card, s.ovDurFl(in.A.N))
+		if in.W == kop.RefRemembered {
+			// Animate's RememberAnimated$ (Rise and Shine): every permanent
+			// this op animates joins the resolution's remembered set, so the
+			// chained `DB$ PutCounter | Defined$ Remembered` names exactly
+			// them (kgen lower_zone.go animate; gorge effAnimate's
+			// rememberAnimated, engine/effects/combatfx.go:763). The per-
+			// object union and multi-target loops rerun the op, so each
+			// animated object is added once, in gorge's target order.
+			s.remember(s.perms[sl].obj)
+		}
 	case kop.OpReflexiveTrigger:
 		n := s.value(k, in.A)
 		tobj, amt := NoObj, s.reflexAmt(k, in.B) // trig_reflexiveremembered.go: TriggerRemembered$ (B is the zero Const otherwise)

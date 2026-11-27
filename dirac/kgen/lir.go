@@ -1371,6 +1371,12 @@ type lStatic struct {
 
 // lOverride is the override record a hard static/effect applies.
 type lOverride struct {
+	// RememberAnimated: an Animate's RememberAnimated$ True -- the kernel's
+	// OpOverride adds every permanent it animates to the resolution's
+	// remembered set, so a chained Defined$ Remembered names them (gorge
+	// effAnimate's rememberAnimated, engine/effects/combatfx.go:751; Rise
+	// and Shine). Emits as the op's W = kop.RefRemembered.
+	RememberAnimated bool
 	SetP, SetT       int
 	PVal, TVal       lValue // non-None: Power$/Toughness$ values (ValPT)
 	HasSetPT         bool

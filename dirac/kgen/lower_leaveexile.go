@@ -5,6 +5,48 @@ import (
 	"strings"
 )
 
+// pumpLeaveExile lowers a Pump's LeaveBattlefield$ (Moira and Teshar, Dreams
+// of the Dead; gorge registerLeaveExile from registerPumpEffects,
+// engine/effects/combatfx.go:692, the same helper ChangeZone's
+// LeaveBattlefield$ uses, engine/effects/leavebattlefield.go): the pumped
+// object's promise, registered with the grant, that it is exiled instead of
+// going anywhere else. The kernel's ExtLeaveExile record is keyed on the
+// object and its incarnation and is ended by the departure itself, exactly
+// the lifetime gorge gives a Duration$ Permanent grant (the move sweep ends
+// both halves of the grant on the object's own move, leavebattlefield.go:440),
+// so only that duration lowers: a shorter grant would have to end the
+// promise early, which the record cannot. A leave to anything but exile is
+// unhandled in gorge too (it Notes and registers nothing), and a set recipient
+// is one record per object, which the op does not walk.
+func (lc *lowerCtx) pumpLeaveExile(ps *params, obj lRef, zone int) error {
+	v, ok := ps.m["LeaveBattlefield"]
+	if !ok {
+		return nil
+	}
+	if strings.TrimSpace(v) != "Exile" || zone != zBattlefield ||
+		strings.TrimSpace(ps.str("Duration")) != "Permanent" || !lc.pumpLeaveExileSingle(obj) {
+		return refuse("Pump LeaveBattlefield$ %q (Duration$ %q, recipient %v, zone %d)", v, ps.str("Duration"), obj, zone)
+	}
+	ps.consume("LeaveBattlefield")
+	lc.emit(lInstr{Op: "LeaveExile", Obj: obj, Note: "if it would leave the battlefield, it is exiled instead"})
+	return nil
+}
+
+// pumpLeaveExileSingle reports whether obj names the one battlefield object
+// the promise can ride (a Self, a single-object target slot, or a trigger
+// object); a set of them is gorge's per-object loop, which the one record is
+// not.
+func (lc *lowerCtx) pumpLeaveExileSingle(obj lRef) bool {
+	switch obj.Kind {
+	case rTargetUnion, rEach, rEachPlayer, rEachOpp, rRemembered, rImprinted, rNone:
+		return false
+	}
+	if obj.Kind == rTarget {
+		return lc.singleObjectSlot(obj.N)
+	}
+	return true
+}
+
 // leaveExileMove lowers a ChangeZone with LeaveBattlefield$ (changeZoneMove's
 // branch).
 func (lc *lowerCtx) leaveExileMove(ps *params) error {
