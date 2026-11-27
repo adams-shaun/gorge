@@ -1692,6 +1692,9 @@ type lEmblem struct {
 	// CaptureLapse: the capture ends when the object leaves the battlefield
 	// (ForgetOnMoved$ / ExileOnMoved$ Battlefield; kop.Emblem.CaptureLapse)
 	CaptureLapse bool
+	// CaptureCounter: the capture also lapses when the object's last counter
+	// of this kind is gone (an Effect's ForgetCounter$, kop.Emblem.CaptureCtr)
+	CaptureCounter string
 	// Capture2: the second target slot an Effect remembers beside Capture
 	// (T'Pring: RememberObjects$ Targeted over both fighters; kop.Emblem.Capture2)
 	Capture2    lRef

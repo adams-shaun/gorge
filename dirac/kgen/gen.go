@@ -587,7 +587,7 @@ func dumpLIR(w io.Writer, c *lCard) {
 		for _, f := range [...]struct {
 			on   bool
 			name string
-		}{{e.CaptureRem, "remembers=set"}, {e.Source, "source"}, {e.NotHere, "not-here"}, {e.NumAmount, "number-as-amount"}, {e.Once, "once"}} {
+		}{{e.CaptureCounter != "", "forgets-on-last-" + e.CaptureCounter}, {e.CaptureRem, "remembers=set"}, {e.Source, "source"}, {e.NotHere, "not-here"}, {e.NumAmount, "number-as-amount"}, {e.Once, "once"}} {
 			if f.on {
 				eot += " " + f.name
 			}
