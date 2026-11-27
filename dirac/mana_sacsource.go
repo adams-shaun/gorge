@@ -768,10 +768,10 @@ func (s *State) flushPrefixPending(k *prep, perTap bool) {
 
 // pendTapCount is how many of p's pending triggers came from the same tap as
 // pending trigger i: those naming the same triggering object. A trigger that
-// names none (trigObj 0) cannot be told from another's, so every one of p's
-// counts, as pendCount does.
+// names none (trigObj NoObj) cannot be told from another's, so every one of
+// p's counts, as pendCount does.
 func (s *State) pendTapCount(p uint8, i int) int {
-	if s.pend[i].trigObj == 0 {
+	if s.pend[i].trigObj == NoObj {
 		return s.pendCount(p)
 	}
 	n := 0
