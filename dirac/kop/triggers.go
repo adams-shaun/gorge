@@ -585,6 +585,17 @@ const Tf2ToGraveHalf TrigFlags2 = 1 << 24
 // whoNonActive (dirac/kgen/lower_castnonactive.go) must equal it.
 const WhoseNonActive Whose = 200
 
+// WhoseActive / WhoseOppActive: a player-event trigger whose ValidPlayer$ is
+// Player.Active / Opponent.Active: the event's player is the active player
+// (and, for the Opp form, an opponent of the listener's controller), gorge
+// playerSpecQualifierActive (engine/effects/player_filter.go: p == g.Active).
+// Explicit values beside WhoseNonActive: kgen's whoActive / whoOppActive
+// (dirac/kgen/lower_playeractive.go) must equal them.
+const (
+	WhoseActive    Whose = 205
+	WhoseOppActive Whose = 206
+)
+
 // Tf2ManaFromSelf (Trigger.Flags2): SpellCast, ValidSA$
 // Spell.ManaFromCard.StrictlySelf -- the cast's payment tapped the
 // trigger's own source for mana (gorge trigmatch validSAManaFromCardSelf:

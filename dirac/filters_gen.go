@@ -59,6 +59,9 @@ func (s *State) matchPermGenCw(k *prep, f kop.FilterID, sl Slot, ctrl uint8, src
 }
 
 func (s *State) matchPermOne(k *prep, fl *kop.Filter, sl Slot, ctrl uint8, src Slot, layer uint8, cwObj Obj) bool {
+	if fl.Flags&kop.FSpell != 0 {
+		return false // a Spell head names an object on the stack, never a permanent
+	}
 	p := &s.perms[sl]
 	switch fl.Ctrl {
 	case kop.CtrlYou:
@@ -992,6 +995,13 @@ func (s *State) matchCardOneAt(k *prep, fl *kop.Filter, c CardID, owner, ctrl ui
 		}
 		if fl.Pred == kop.PredPowerGTBase {
 			s.offZonePTRead(k, c, owner, o) // static_offzonept.go: the boost lifts power over base
+		}
+		if fl.Pred == kop.PredTrigPlayerCtrl {
+			// the damaged trigger player owns it: off the battlefield a card
+			// is controlled by its owner (gorge controlReferentPlayers op
+			// OwnedBy; Deluxe Dragster's graveyard targets)
+			e := s.curEntry()
+			return e != nil && e.kind == seTrigger && owner == e.trigPl
 		}
 		return predCardCold(k, fl, c, fd) // filter_typesall.go: PredTypesAll and later kinds
 	}
