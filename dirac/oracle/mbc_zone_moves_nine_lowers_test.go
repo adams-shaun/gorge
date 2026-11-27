@@ -22,6 +22,10 @@ import (
 //     the target opponent's revealed hand (Play Valid$
 //     Card.TargetedPlayerCtrl ValidZone$ Hand): CastFree over the player
 //     target's hand;
+//   - mbcsorceroussquall: Sorcerous Squall's mill nine, then free cast of an
+//     instant or sorcery from the target opponent's graveyard (Play Valid$
+//     Card.TargetedPlayerCtrl ValidZone$ Graveyard, ReplaceGraveyard$ Exile):
+//     CastFree over the player target's graveyard;
 //   - mbcmindleech: Mindleech Mass's and Silent-Blade Oni's free cast from
 //     the hand of the player their combat damage hit (Play Valid$
 //     Card.ControlledBy TriggeredTarget / Card.nonLand+OwnedBy
@@ -115,6 +119,33 @@ var mbcZoneMoves9Cases = []mbcZoneMoves9Case{
 		},
 		// the controller's own hand instead of the target's
 		mutate: func(tbl *kop.Table) { mbcTgtPlayerCast(tbl, "Mindclaw Shaman").Obj = kop.RefNone },
+	},
+	{
+		pool: "mbcsorceroussquall",
+		decks: [2][]cardset.Entry{
+			// the Squall costs {6}{U}{U}{U} with Delve and no land tap pays a
+			// Delve cast: the Paintmages float {U}{R} each at the first main
+			// phase (restricted to instants and sorceries), so seat 0 casts
+			// one before seat 1 kills them. Seat 1 mills into burn.
+			{
+				{Name: "Sorcerous Squall", Count: 8}, {Name: "Abstract Paintmage", Count: 14},
+				{Name: "Island", Count: 9}, {Name: "Mountain", Count: 9},
+			},
+			{
+				{Name: "Shock", Count: 6}, {Name: "Lava Axe", Count: 4}, {Name: "Mountain", Count: 30},
+			},
+		},
+		shape: func(t *testing.T, tbl *kop.Table) {
+			if mbcTgtPlayerGrave(tbl, "Sorcerous Squall") == nil {
+				t.Fatal("Sorcerous Squall has no CastFree over a target slot in the graveyard: the spelling did not lower")
+			}
+		},
+		// the target's hand instead of their graveyard: gorge offers the
+		// milled instant, the kernel would offer the hand
+		mutate: func(tbl *kop.Table) {
+			in := mbcTgtPlayerGrave(tbl, "Sorcerous Squall")
+			in.C = in.C&^7 | int16(kop.ZoneHand)
+		},
 	},
 	{
 		pool: "mbcmindleech",
@@ -295,6 +326,25 @@ func mbcTgtPlayerCast(tbl *kop.Table, name string) *kop.Instr {
 		prog := cd.Abilities[j].Prog
 		for k := range prog {
 			if prog[k].Op == kop.OpCastFree && prog[k].Obj == kop.RefTarget0 {
+				return &prog[k]
+			}
+		}
+	}
+	return nil
+}
+
+// mbcTgtPlayerGrave is the card's free cast whose population is the targeted
+// player's graveyard (a player target slot over kop.ZoneGraveyard).
+func mbcTgtPlayerGrave(tbl *kop.Table, name string) *kop.Instr {
+	cd := mbcCard(tbl, name)
+	if cd == nil {
+		return nil
+	}
+	for j := range cd.Abilities {
+		prog := cd.Abilities[j].Prog
+		for k := range prog {
+			if prog[k].Op == kop.OpCastFree && prog[k].Obj == kop.RefTarget0 &&
+				prog[k].C&7 == int16(kop.ZoneGraveyard) {
 				return &prog[k]
 			}
 		}
