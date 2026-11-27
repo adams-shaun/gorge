@@ -34,7 +34,7 @@ func (s *State) returnDefenderAsk(k *prep, in *kop.Instr, host Slot) bool {
 	if in.Op == kop.OpReturnEx && in.B.N&kop.RetUnderOpponent != 0 {
 		ctrl = s.retUnderOppSeat(s.res.e.ctrl) // GainControl$ ChosenPlayer (kop.RetUnderOpponent)
 	}
-	if in.W != kop.RefNone && in.B.N&kop.RetAttachW == 0 {
+	if in.W != kop.RefNone && (in.Op != kop.OpReturnEx || in.B.N&kop.RetAttachW == 0) {
 		if p := s.playerRef(k, in.W); p != 255 {
 			ctrl = p // GainControl$ Player.IsRemembered (kgen's W ref)
 		}

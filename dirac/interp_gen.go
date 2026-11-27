@@ -1875,12 +1875,13 @@ func (s *State) execReturnObj(k *prep, in *kop.Instr, host Slot, o Obj) bool {
 	if in.Op == kop.OpReturnEx && in.B.N&kop.RetUnderOpponent != 0 {
 		ctrl = s.retUnderOppSeat(e.ctrl) // GainControl$ ChosenPlayer (kop.RetUnderOpponent; zone_returndefender.go)
 	}
-	if in.W != kop.RefNone && in.B.N&kop.RetAttachW == 0 {
+	if in.W != kop.RefNone && (in.Op != kop.OpReturnEx || in.B.N&kop.RetAttachW == 0) {
 		// GainControl$ Player.IsRemembered inside an OpRepeatEachPlayer
 		// body: the card enters under the repeated player (Thieves'
 		// Auction, kgen's W ref). RetAttachW reads W as the AttachedTo$
 		// bearer Ref instead (Gift of Immortality's delayed return), so it
-		// is not a player.
+		// is not a player; the flag is OpReturnEx-only (an OpReturn's B.N
+		// bit 7 is the Command origin zone).
 		if p := s.playerRef(k, in.W); p != 255 {
 			ctrl = p
 		}
