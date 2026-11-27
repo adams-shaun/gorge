@@ -125,9 +125,23 @@ func PaymentPlanShapeTierOf(ma *cards.SA, cost costvocab.Cost) (tier Tier, c Con
 	}
 	if cost.Sac != nil || cost.Life != 0 || cost.Return != nil {
 		// Every other cost part must be absent: the witness discloses only
-		// the tap, the self-sacrifice, the life and the self-return.
+		// the tap, the self-sacrifice, the life, the self-return and the
+		// other-sacrifice victims.
 		if !PlanLastResortCostOK(cost) {
 			return deferred("source:last_resort")
+		}
+		if len(cost.Sac) == 1 && !PlanSelfCost(cost.Sac[0], 0) {
+			// The closed "sacrifice another permanent" mana shape (Ashnod's
+			// Altar's Sac<1/Creature>, Phyrexian Tower's {T} plus
+			// Sac<1/Creature>): exactly one fixed-count non-self Sac part, and
+			// nothing else beyond the optional {T} the arm above already
+			// bounds -- no life, no self-return: the witness discloses the
+			// victims in PaymentActivation.Sacrifices and the search prices
+			// the source only as a last resort.
+			if !PlanOtherSacShape(cost.Sac[0]) || cost.Life != 0 || len(cost.Return) != 0 {
+				return deferred("source:last_resort")
+			}
+			return TierLastResort, Consequence{SacrificeOthers: true}, "source:last_resort", false
 		}
 		if len(cost.Sac) > 0 && len(cost.Sac) == 1 && PlanSelfCost(cost.Sac[0], 0) {
 			c.Sacrifice = true

@@ -2378,10 +2378,14 @@ func (e *Engine) planEachReservation(p state.PlayerID, id state.ObjID, cost Cost
 
 // planConsumed is the set of plan sources the plan uses up: every source
 // (tapped) when tapped is true, else only the last-resort steps that
-// sacrifice or return their source.
+// sacrifice or return their source. Every victim an other-sacrifice step
+// names is consumed in both senses: the cost cannot also tap or sacrifice it.
 func planConsumed(plan decision.PaymentPlan, tapped bool) map[state.ObjID]bool {
 	out := make(map[state.ObjID]bool, len(plan.Activations)) // lookup only
 	for _, a := range plan.Activations {
+		for _, v := range a.Sacrifices {
+			out[v] = true
+		}
 		if tapped || (a.Consequence != nil && (a.Consequence.Sacrifice || a.Consequence.ReturnToHand)) {
 			out[a.Source] = true
 		}
@@ -2765,10 +2769,14 @@ func manaTapSingle(e supplyProofHost, p state.PlayerID, id state.ObjID, ma *card
 // manaAbilityCovered reports whether the payment planner's alternatives for
 // source id already cover mana ability ma: one of them is ma itself, or ma is
 // a gap a covered alternative dominates (manaTapGapDominated).
+//
+// A repeatable other-sacrifice ability (Ashnod's Altar: no {T}) is never
+// covered: the planner activates each source at most once, so a payment
+// needing a second activation is still the prefix search's gap.
 func manaAbilityCovered(e supplyProofHost, p state.PlayerID, id state.ObjID, ma *cards.SA, alts []pay.Alt) bool {
 	for _, a := range alts {
 		if pay.SameManaAbility(a.Ma, ma) {
-			return true
+			return !a.Consequence.SacrificeOthers || e.manaAbilityCC(p, id, ma).Cost.Tap
 		}
 	}
 	return manaTapGapDominated(e, p, id, ma, alts)

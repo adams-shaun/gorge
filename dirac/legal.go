@@ -814,7 +814,99 @@ func (s *State) actSourcesAfford(k *prep, sl Slot, ab int, a *kop.Ability, mana 
 		// (mana_sorcerygap.go)
 		return !s.sorceryGapSearched(k, sl, ab, a, &manaCost, av) || s.actScriptPays(k, sl, ab, a)
 	}
-	return s.actScriptPays(k, sl, ab, a)
+	if s.actScriptPays(k, sl, ab, a) {
+		return true
+	}
+	return s.actOtherSacOffers(k, sl, a, &manaCost, av)
+}
+
+// actOtherSacOffers is actSourcesAfford's last arm: a battlefield activation
+// the plain census and the filter script cannot price, but gorge's payment
+// planner prices by activating a sacrifice-another source as its last resort
+// (pay.PlanOtherSacShape; legal_walk_autopay.go autoPayOffer's planner arm,
+// autoPayFast refusing every other-sacrifice part). A cost that spends the
+// activation's own source ({T}, {Q}, a self-sacrifice) reserves it from
+// other-sacrifice victims (potential_plan.go kept/tapped, pay.planVictimReserve),
+// so no candidate takes it. A cost that leaves the source free lets the planner
+// sacrifice it to fund the play; the prefix search ends any line that takes it
+// (potential_script.go leftOwnZone), so only this gate prices that shape. The
+// branch's mana joins the plain census: a source the cost taps activates once
+// (its census {T} unit comes out first), a source it leaves untapped
+// (Ashnod's Altar) once per fundable victim; either way the activation's mana
+// is priced with the play's own {T} still held out (abilityAffords). Only
+// the real offer walk: inside a script walk the tapX prefix search owns these
+// sources (scriptOffers; the hand activations' handActCensusPays split). Cold,
+// out of line.
+//
+//go:noinline
+func (s *State) actOtherSacOffers(k *prep, sl Slot, a *kop.Ability, mana *kop.ManaCost, av *avail) bool {
+	if s.g.availX != 0 || k.gen == nil || !k.tapMana {
+		return false
+	}
+	p := s.perms[sl].ctrl
+	for b := s.scriptTapXModelled(k, p); b.any(); b = b.rest() {
+		sx := b.first()
+		if !s.planOtherSacSource(k, sx) {
+			continue // only a plain creature victim's source (gorge's plan enumerates those)
+		}
+		ox := k.tapXAbOf(s.cardAt(sx))
+		if kop.RestrictedTapXOneShape(ox) ||
+			ox.ManaRestrict != 0 || ox.ManaRestrictAb != 0 || ox.AFlags&kop.AfManaNonSpell != 0 {
+			continue // a spend-restricted source's unit is the census's own concern (availTapX)
+		}
+		var cs [MaxPerm]Slot
+		n := s.sacXCands(k, p, sx, ox, &cs)
+		if a.Cost.Flags&(kop.CostTap|kop.CostUntapSelf|kop.CostSacSelf) != 0 {
+			// A cost that spends the activation's own source reserves it from
+			// the plan's victims (potential_plan.go kept/tapped): drop it
+			// before counting. sacXCands makes this exclusion only under a
+			// live build (buildSelfTap), and a source a free cost leaves
+			// behind may fund the play by being sacrificed.
+			m := 0
+			for i := 0; i < n; i++ {
+				if cs[i] == sl {
+					continue
+				}
+				cs[m] = cs[i]
+				m++
+			}
+			n = m
+		}
+		if n == 0 {
+			continue // no fundable victim: the planner's last-resort unit is refused (pay.otherSacFundable)
+		}
+		mask, per := tapXUnit(ox)
+		var t avail
+		t = *av
+		// A sacrifice-another source that spends itself to activate ({T},
+		// Phyrexian Tower) is one activation whatever the victim count, and
+		// its plain census {T} unit comes out of it first (CR 605.1a: the
+		// same tap cannot both make the census's {B} and pay the branch's
+		// {T}; removeSrc as abilityAffords takes the play's own source out).
+		// Summing the two, or one activation per candidate, priced a
+		// sacrifice it can make once as a {5} play it can make twice: pair
+		// 42 seed 537512 decision 313 (Tower's {B} plus its own {B}{B}) and
+		// 372 (two victims, two branches). Only a source the cost leaves
+		// untapped (Ashnod's Altar's "Sacrifice a creature: Add {C}{C}")
+		// activates once per fundable victim, and keeps its census unit.
+		taps := ox.Cost.Flags&(kop.CostTap|kop.CostUntapSelf|kop.CostSacSelf) != 0
+		acts := n
+		if taps {
+			acts = 1
+			pcx := &k.cards[s.cardAt(sx)]
+			if k.gen != nil {
+				pcx = s.manaPCGen(k, sx)
+			}
+			s.removeSrc(k, &t, sx, pcx)
+		}
+		for i := 0; i < acts; i++ {
+			t.addUnits(mask, per)
+		}
+		if s.abilityAffords(k, sl, a, mana, &t) {
+			return true
+		}
+	}
+	return false
 }
 
 // sourcesPay reports whether an activation's mana cost is priced against the
@@ -3678,6 +3770,7 @@ func hybridCovered(left *[kop.NumManaKinds]int, hyb []kop.ColorMask) bool {
 
 func (s *State) applyPriority(k *prep, a Action) {
 	p := s.prio
+	s.g.planSac = [3]uint8{} // a stale deferred plan-paid activation (mana_plansacdefer.go)
 	if s.priManaAskBegin(k, a) {
 		return // an unless source's activation: its asks follow (mana_priask.go)
 	}

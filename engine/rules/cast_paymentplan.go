@@ -143,6 +143,11 @@ func (e *Engine) paymentPlanCheckUnits(pc *pendingCast) (string, []windowManaUni
 			return paymentFallbackSourceChanged, units, pay.Alt{}, false
 		}
 	}
+	// An other-sacrifice step sacrifices exactly the victims the witness
+	// names: one that left, changed or became ineligible stops the plan.
+	if !pay.PlanVictimsLegal(asPayer(e), pc.player, units, plan.Activations, next) {
+		return paymentFallbackSourceChanged, units, pay.Alt{}, false
+	}
 	desc := paymentForCast(pc, cost)
 	pool := pay.PlanPool(asPayer(e), pc.player, &desc)
 	var first pay.Alt
@@ -225,7 +230,7 @@ func (e *Engine) executePlannedManaActivationUnits(pc *pendingCast, units []wind
 	// "activate" answer makes (activateManaPayment), never the distinct
 	// cumulative/triggered-cost window, which is not open during a cast.
 	e.resolveManaAbilityRefOriginal(pc.player, pa.Source, exec, ma,
-		pay.GainedManaRefFor(asPayer(e), pc.player, pa.Source, ma), true, false, true)
+		pay.GainedManaRefFor(asPayer(e), pc.player, pa.Source, ma), true, false, true, pa.Sacrifices)
 	if e.pending != nil {
 		// The activation posed a real decision (a replacement's colour
 		// choice, say). Keep what completed, cancel the remaining steps, and
