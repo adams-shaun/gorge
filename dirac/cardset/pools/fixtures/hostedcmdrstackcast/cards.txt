@@ -1,0 +1,15 @@
+# the hosted-Commander stack/cast pool: the two-alternative Kicker's per-kick
+# SpellCast self triggers (Wastescape Battlemage's Card.Self+kicked 1 / kicked 2)
+# and a guarded node's UnlessResolveSubs$ gate (Springheart Nantuko's landfall
+# copy-or-insect); dirac/oracle/hostedcmdr_stackcast_lockstep_test.go
+Wastescape Battlemage
+Springheart Nantuko
+Wastes
+Forest
+Island
+Mountain
+Grizzly Bears
+Hill Giant
+Raging Goblin
+Darksteel Relic
+Shock
