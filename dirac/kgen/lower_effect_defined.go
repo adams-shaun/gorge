@@ -81,6 +81,12 @@ func (lc *lowerCtx) defined(v string) (lRef, error) {
 			return lRef{}, refuse("Defined$ %s without a player target slot", v)
 		}
 		return lRef{Kind: rTarget, N: t}, nil
+	case "ThisTargetedPlayer":
+		return lc.thisTargetedPlayer() // lower_owntarget.go
+	case "ParentTargetedController":
+		return lc.definedParentTargetedController(v)
+	case "SourceController":
+		return lc.definedSourceController()
 	case "TargetedController", "TargetedOrController":
 		// TargetedOrController: gorge definedAliases (effects context.go)
 		// spells it TargetedController, which maps a player target to itself

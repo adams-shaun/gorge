@@ -2328,10 +2328,15 @@ const PredStatBox Pred = 44
 // a player ref: the seat the resolving source attacked this turn (gorge effects/player_filter.go playerStateQualifierAttackedBySourceThisTurn over the source object's AttackedPlayersThisTurn ledger, folded from DeclareAttackers). Dirac is two-seat, so at most the one opponent; none when the source attacked no player this turn. Angel of Destiny's end-step lose.
 const RefAttackedBySource Ref = 49
 
+// Ref (dirac/manifest/Ref/RefTargetCtrlLive)
+//
+// the controller of target 0 read live at resolution (gorge Defined$ ParentTargetedController, effects context.go controllersOf(parentLinkTargets)): a target player is that player, a stack ability or spell its controller, a battlefield permanent its current controller, and a target that left the battlefield its owner (CR 400.7 resets the controller), never the last-known controller RefTargetController reads for a departed target. Unlicensed Disintegration's damage after its parent destroyed the creature; Season of the Burrow's draw after its parent exiled it.
+const RefTargetCtrlLive Ref = 50
+
 // Ref (dirac/manifest/Ref/RefTargets0)
 //
 // every legal target of target slot 0 (gorge evalTarget's Animate grant over an any-number slot: effAnimate applies the grant and the AtEOT promise to each object of Defined$ Targeted). The kernel runs an op once per legal target of the slot (dirac/tgt_union.go execUnion).
-const RefTargets0 Ref = 50
+const RefTargets0 Ref = 51
 
 // repl BeginPhase (dirac/manifest/ReplKind/ReplBeginPhase)
 const ReplBeginPhase ReplKind = 42

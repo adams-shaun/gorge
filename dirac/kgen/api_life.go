@@ -140,6 +140,17 @@ func (lc *lowerCtx) apiLosesGame(sa *cards.SA, ps *params) error {
 	// gorge effLosesGame / effWinsGame (effects/dice.go): the Defined$
 	// player (the controller when absent) loses / wins. A win is blocked
 	// only by an "opponents can't win" replacement (kernel winGame).
+	//
+	// Defined$ SourceController is NOT the caster here. gorge's definedSpec
+	// does not model it (engine/effects/testdata/defined-selector-unknown.txt),
+	// so Defined falls back to the source OBJECT, and both effects fail closed
+	// on a present selector that names no player. Only the player-valued
+	// consumers that project through definedPlayers (Draw/Mill/Discard) read
+	// the source's controller. Lowering this shape to rYou would make Glorious
+	// End's delayed trigger kill its caster where gorge does nothing.
+	if ps.is("Defined", "SourceController") {
+		return refuse("%s with Defined$ SourceController (gorge's Defined names the source object, not a player)", sa.API)
+	}
 	who, err := lc.objOrTarget(ps, "You", zNone)
 	if err != nil {
 		return err

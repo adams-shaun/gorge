@@ -810,6 +810,8 @@ func (s *State) playerRef(k *prep, r kop.Ref) uint8 {
 		return 255
 	case kop.RefTargetController:
 		return s.tgtCtrlSlot(k, 0)
+	case kop.RefTargetCtrlLive:
+		return s.tgtCtrlLive(0) // tgt_stackability.go: gorge ParentTargetedController
 	case kop.RefTgtCtrl1, kop.RefTgtCtrl2:
 		return s.tgtCtrlSlot(k, int(r-kop.RefTgtCtrl1)+1) // tgt_stackability.go
 	case kop.RefTargetOwner:
@@ -1176,7 +1178,7 @@ func (s *State) refCode(k *prep, r kop.Ref) TCode {
 	case kop.RefTarget0, kop.RefTarget1, kop.RefTarget2, kop.RefTarget3, kop.RefTarget4:
 		sl, _ := tgtSlot(r)
 		return s.tgtCode(sl)
-	case kop.RefController, kop.RefOpponent, kop.RefTriggerPlayer, kop.RefDefendingPlayer, kop.RefTargetController, kop.RefEachOpponent, kop.RefPromised, kop.RefChosenPlayer, kop.RefChosenPlayerRes, kop.RefResChosenPlayer, kop.RefTriggerTgtCtrl, kop.RefTriggerObjOwner, kop.RefAttachedCtrl, kop.RefEnchantedCtrl, kop.RefAttackedBySource:
+	case kop.RefController, kop.RefOpponent, kop.RefTriggerPlayer, kop.RefDefendingPlayer, kop.RefTargetController, kop.RefTargetCtrlLive, kop.RefEachOpponent, kop.RefPromised, kop.RefChosenPlayer, kop.RefChosenPlayerRes, kop.RefResChosenPlayer, kop.RefTriggerTgtCtrl, kop.RefTriggerObjOwner, kop.RefAttachedCtrl, kop.RefEnchantedCtrl, kop.RefAttackedBySource:
 		p := s.playerRef(k, r)
 		if p == 255 {
 			return TCode(NoTarget)

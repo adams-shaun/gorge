@@ -1218,6 +1218,9 @@ func init() { enum[kop.Pred]("kop.PredStatBox", kop.PredStatBox) }
 // dirac/manifest/Ref/RefAttackedBySource
 func init() { enum[kop.Ref]("kop.RefAttackedBySource", kop.RefAttackedBySource) }
 
+// dirac/manifest/Ref/RefTargetCtrlLive
+func init() { enum[kop.Ref]("kop.RefTargetCtrlLive", kop.RefTargetCtrlLive) }
+
 // dirac/manifest/Ref/RefTargets0
 func init() { enum[kop.Ref]("kop.RefTargets0", kop.RefTargets0) }
 

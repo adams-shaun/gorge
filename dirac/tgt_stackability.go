@@ -269,3 +269,45 @@ func (s *State) tgtCtrlSlot(k *prep, i int) uint8 {
 	}
 	return s.ctrlOfObj(Obj(t))
 }
+
+// tgtCtrlLive is the controller of target slot i read LIVE at resolution
+// (kop.RefTargetCtrlLive; gorge Defined$ ParentTargetedController). Unlike
+// tgtCtrlSlot it keeps no last-known controller for a target that left the
+// battlefield: CR 400.7 reset it to its owner, which is what gorge's
+// g.Obj(target).Controller names. A player target is that player, a stack
+// ability or spell its controller, a battlefield or phased-out permanent its
+// current controller, and a ceased object nobody.
+//
+// A stack-ability target that has left the stack is nobody here: counterAt
+// drops the entry, so its owner is no longer recoverable, and the last-known
+// controller is the wrong answer for a live read. kgen refuses a
+// ParentTargetedController whose parent slot may name a stack object
+// (lower_effect_defined.go), so the pipeline never reaches that arm.
+func (s *State) tgtCtrlLive(i int) uint8 {
+	t := s.tgtCode(i)
+	if t == NoTarget {
+		return 255
+	}
+	if isPlayerOrNone(t) {
+		return CodeSeat(t)
+	}
+	if isStackTarget(t) {
+		if j := s.stackTgtIdx(t, s.res.e.tver[i]); j >= 0 {
+			return s.stack[j].ctrl
+		}
+		return 255
+	}
+	ob := &s.objs[t]
+	if ob.zone == kop.ZoneNone {
+		return 255
+	}
+	if ob.zone == kop.ZoneStack {
+		if j := s.stackIndexOf(Obj(t)); j >= 0 {
+			return s.stack[j].ctrl // a spell is controlled by whoever cast it, not its owner
+		}
+	}
+	if ob.zone == kop.ZoneBattlefield || ob.zone.Phased() {
+		return s.perms[ob.slot].ctrl
+	}
+	return ob.owner()
+}

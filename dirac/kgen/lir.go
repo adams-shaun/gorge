@@ -65,6 +65,7 @@ const (
 	rEnchantedCtrl                // the controller of the permanent the source is attached to, read live, nobody once the source left (kop.RefEnchantedCtrl; Defined$ EnchantedController, Paralyze)
 	rEnchantedPlayer              // the player the source Aura enchants (kop.RefEnchantedPlayer; Defined$ / TokenOwner$ EnchantedPlayer, Overencumbered)
 	rEmblemSource                 // inside an emblem trigger's body: the object whose Effect made the emblem, as it was when the trigger was queued (kop.RefEmblemSource; an Effect's RememberObjects$ Self read as Defined$ Remembered, lower_effeottrig.go)
+	rTargetCtrlLive               // the controller of target 0 read live at resolution (gorge Defined$ ParentTargetedController: a target that left the battlefield reads its owner, not its last-known controller)
 	rCount
 )
 
@@ -115,6 +116,7 @@ var refNames = [...]string{
 	rEnchantedCtrl:        "EnchantedCtrl",
 	rEmblemSource:         "EmblemSource",
 	rEnchantedPlayer:      "EnchantedPlayer",
+	rTargetCtrlLive:       "TargetCtrlLive",
 }
 
 type lRef struct {
