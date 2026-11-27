@@ -8,11 +8,11 @@ import (
 // TestThundermaneLowering: Thundermane Dragon's library-top permission lowers
 // with its ValidAfterStack$ spell qualifier (Spell.Creature+powerGE4) folded
 // into the filter: creature, nonland, owned, power >= 4. Its static SpellCast
-// haste rider lowers too, as a static trigger with the Animate dropped: gorge
-// ends an Animate grant on a spell when the spell leaves the stack
-// (engine/effects/combatfx.go, ExileOnMoved$ Stack), so the cast creature
-// never has the haste the card grants and there is no gorge behaviour for the
-// kernel to mirror (staticSpellCastBody in lower_statictrigger_spellcast.go).
+// haste rider lowers too, as a static trigger whose timed Animate is marked
+// spellCarry: gorge carries the grant onto the permanent the spell becomes
+// (CR 400.7a; engine/effects/combatfx.go ExileOnMovedStackCarry), so the
+// kernel mirrors it as a record stamped on the spell entry and applied as the
+// permanent enters (staticSpellCastBody in lower_statictrigger_spellcast.go).
 func TestThundermaneLowering(t *testing.T) {
 	cs := lowerNamed(t, []string{"Thundermane Dragon"})
 	if len(cs) != 1 {

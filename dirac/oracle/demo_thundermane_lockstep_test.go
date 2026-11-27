@@ -11,14 +11,14 @@ import (
 // cast a power-4-or-greater creature spell, and the card's Static$ True
 // SpellCast trigger resolves off the stack before the CR 603.3b ordering ask.
 // The trigger's only body, DB$ Animate | Defined$ TriggeredCardLKICopy |
-// Keywords$ Haste, is a no-op for the permanent: gorge applies the timed
-// Animate to the spell and ends it when the spell leaves the stack
-// (engine/effects/combatfx.go registerAnimateEffects, ExileOnMoved$ Stack), so
-// the kernel drops the body to mirror gorge (dirac/kgen/
-// lower_statictrigger_spellcast.go). The pool is
-// dirac/cardset/pools/fixtures/demothundermane. StaticNoopStats counts the
-// dropped-rider static triggers the games resolved, so a green run is not one
-// where the trigger never fired.
+// Keywords$ Haste, is a timed grant on the triggering spell that gorge carries
+// onto the permanent it becomes (CR 400.7a; engine/effects/combatfx.go
+// ExileOnMovedStackCarry), so the kernel stamps the spell entry with the
+// override record and applies it as the permanent enters
+// (dirac/static_spellcarry.go). The pool is
+// dirac/cardset/pools/fixtures/demothundermane. SpellCarryStats counts the
+// records stamped and applied, so a green run is not one where the trigger
+// never fired.
 const demoThundermanePool = "demothundermane"
 
 var demoThundermaneDecks = [2][]cardset.Entry{
@@ -35,45 +35,45 @@ var demoThundermaneDecks = [2][]cardset.Entry{
 }
 
 // demoThundermaneGames plays the seeds and returns the clean games, the
-// divergent ones and the count of dropped-rider static triggers resolved.
-func demoThundermaneGames(t *testing.T, hi uint64, mode lockstepMode) (clean int, divs []lockstepDivergence, resolved, stacked int64) {
+// divergent ones and the count of rider records stamped on a spell and applied
+// as the permanent entered.
+func demoThundermaneGames(t *testing.T, hi uint64, mode lockstepMode) (clean int, divs []lockstepDivergence, stamped, entered int64) {
 	t.Helper()
 	reg, set, gd := lockstepPool(t, demoThundermanePool, demoThundermaneDecks)
-	before, beforeStacked := dirac.StaticNoopStats.Resolved.Load(), dirac.StaticNoopStats.Stacked.Load()
+	beforeStamped, beforeEntered := dirac.SpellCarryStats.Stamped.Load(), dirac.SpellCarryStats.Entered.Load()
 	c, _, d := lockstepSeedsMode(t, reg, set, demoThundermanePool, demoThundermaneDecks, gd, 1, hi, mode, nil, nil, castFirstPolicy)
-	return c, d, dirac.StaticNoopStats.Resolved.Load() - before, dirac.StaticNoopStats.Stacked.Load() - beforeStacked
+	return c, d, dirac.SpellCarryStats.Stamped.Load() - beforeStamped, dirac.SpellCarryStats.Entered.Load() - beforeEntered
 }
 
 // TestDemoThundermaneLockstep: no divergence and no kernel stall over 64
-// seeds, and across them the dropped-rider static trigger resolved.
+// seeds, and across them the rider was applied as the permanent entered.
 func TestDemoThundermaneLockstep(t *testing.T) {
-	clean, divs, resolved, _ := demoThundermaneGames(t, 64, lockstepFailEach)
+	clean, divs, stamped, entered := demoThundermaneGames(t, 64, lockstepFailEach)
 	if len(divs) > 0 {
 		t.Errorf("%d divergent games", len(divs))
 	}
-	if resolved == 0 {
-		t.Error("no game resolved Thundermane Dragon's static SpellCast trigger")
+	if stamped == 0 || entered == 0 {
+		t.Errorf("the rider was not applied: %d stamped, %d entered", stamped, entered)
 	}
-	t.Logf("%d clean games; %d static no-op triggers", clean, resolved)
+	t.Logf("%d clean games; %d rider records stamped, %d applied at entry", clean, stamped, entered)
 }
 
-// TestDemoThundermaneMutation: with the empty-body static trigger forced onto
-// the stack, the off-stack resolution the card lowers to is gone, and some
-// game diverges from gorge.
+// TestDemoThundermaneMutation: with the stamped rider not applied as the
+// permanent enters, the haste gorge grants is gone, and some game diverges.
 func TestDemoThundermaneMutation(t *testing.T) {
 	if isolate(t) {
 		return
 	}
-	dirac.DebugStaticNoopOnStack = true
-	defer func() { dirac.DebugStaticNoopOnStack = false }()
-	_, divs, _, stacked := demoThundermaneGames(t, 64, lockstepQuiet)
-	if stacked == 0 {
-		t.Fatal("DebugStaticNoopOnStack: no dropped-rider static trigger reached the mutation")
+	dirac.DebugSpellCarryOff = true
+	defer func() { dirac.DebugSpellCarryOff = false }()
+	_, divs, stamped, _ := demoThundermaneGames(t, 64, lockstepQuiet)
+	if stamped == 0 {
+		t.Fatal("DebugSpellCarryOff: no rider record was stamped")
 	}
 	if len(divs) == 0 {
-		t.Fatal("DebugStaticNoopOnStack: no divergence in 64 games")
+		t.Fatal("DebugSpellCarryOff: no divergence in 64 games")
 	}
-	t.Logf("mutation forced %d triggers onto the stack; diverged in %d games", stacked, len(divs))
+	t.Logf("mutation dropped %d stamped rider records; diverged in %d games", stamped, len(divs))
 }
 
 // TestFourSeatDemoThundermaneLockstep: four seats, gorge leading.
