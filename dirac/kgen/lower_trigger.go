@@ -571,10 +571,28 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 				return refuse("ValidPlayer %q", tp.str("ValidPlayer"))
 			}
 			tr.Whose = w
-		case "LifeGained", "LifeLost":
-			w, ok := whoOfPlayer(tp.str("ValidPlayer"))
+		case "LifeGained":
+			// Active-player spellings map only on LifeLost: the kernel's
+			// active-player gate is in its TrigLifeLost arms, so mapping
+			// Player.Active here would lower a trigger that fires for every
+			// player (no card at the pin has the shape). It fails closed.
+			vp := tp.str("ValidPlayer")
+			w, ok := whoOfPlayer(vp)
 			if !ok {
-				return refuse("ValidPlayer %q", tp.str("ValidPlayer"))
+				return refuse("ValidPlayer %q", vp)
+			}
+			tr.Whose = w
+			if tp.is("FirstTime", "True") {
+				tr.First = true
+			}
+		case "LifeLost":
+			vp := tp.str("ValidPlayer")
+			w, ok := whoOfPlayer(vp)
+			if aw, aok := activePlayerWho(vp); aok {
+				w, ok = aw, true
+			}
+			if !ok {
+				return refuse("ValidPlayer %q", vp)
 			}
 			tr.Whose = w
 			if tp.is("FirstTime", "True") {

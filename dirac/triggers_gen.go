@@ -519,6 +519,12 @@ func (s *State) playerTrigGenObj(k *prep, ev kop.TrigEvent, l trigListener, a *k
 	tobj := passed
 	switch ev {
 	case kop.TrigLifeLost:
+		// Player.Active / Opponent.Active: the life-losing player is the
+		// active player (and, for the Opp form, an opponent; whoseOK already
+		// read that half).
+		if (t.Whose == kop.WhoseActive || t.Whose == kop.WhoseOppActive) && who != s.active {
+			return
+		}
 		// Tf4CauseSpellAb (kop): the ValidCause$ SpellAbility gate (gorge
 		// lifeLossCauseMatches): the loss was caused by the spell or
 		// ability resolving right now, never by combat damage (gorge's

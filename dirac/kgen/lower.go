@@ -1340,7 +1340,14 @@ func (lc *lowerCtx) lowerKeywords() {
 			spec = strings.TrimSpace(spec)
 			var f *lFilter
 			var err error
-			if strings.EqualFold(spec, "Permanent.ThisTurnCast") {
+			if strings.EqualFold(spec, "Spell") {
+				// gorge sourceHasQuality: a card object on the stack is a
+				// spell (Emrakul, the World Anew's protection from spells).
+				// The clause's Spell base compiles as a ZoneStack FSpell
+				// filter; the permanent matcher refuses FSpell (a permanent
+				// is never a spell).
+				f = &lFilter{Clauses: []lClause{{SpellBase: true}}}
+			} else if strings.EqualFold(spec, "Permanent.ThisTurnCast") {
 				// gorge engine/rules/protection.go:259-260 special-cases this
 				// quality: o.Zone == Battlefield && permanentCastThisTurn(o.ID).
 				// The kernel has the same two facts: s.g.cast (set in enterGen
