@@ -54,7 +54,9 @@ func TestPaymentPlanTiers(t *testing.T) {
 		// Defined.Imprinted selector (no payment step can shrink an imprint),
 		// so it classifies as a normal tap-only source.
 		{"Chrome Mox", pay.TierNormal, "", func(c pay.Consequence) bool { return c == (pay.Consequence{}) }},
-		{"Ashnod's Altar", pay.TierDeferred, "source:last_resort", func(c pay.Consequence) bool { return c == (pay.Consequence{}) }},
+		// The closed other-sacrifice shape (one Sac<1/Spec> beside an
+		// optional {T}): last resort, its victims named by the witness.
+		{"Ashnod's Altar", pay.TierLastResort, "source:last_resort", func(c pay.Consequence) bool { return c == (pay.Consequence{SacrificeOthers: true}) }},
 		{"Cavern of Souls", pay.TierDeferred, "source:special_production", func(c pay.Consequence) bool { return c == (pay.Consequence{}) }},
 	}
 	e, _, _ := newFixtureDeck(t, 9810, "Name:Probe\nManaCost:1\nTypes:Instant\nA:SP$ Draw | Num$ 1\nOracle:x\n")
