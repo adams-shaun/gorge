@@ -290,6 +290,12 @@ func (s *State) unpushActivation(k *prep) {
 	if ob := &s.objs[e.obj]; ob.zone == kop.ZoneBattlefield && ob.activations() > 0 {
 		s.touch(e.obj)
 		ob.acts--
+		if ob.activations() == 0 && k.gen != nil && k.gen.anyPermMark {
+			// gorge's foldActivationReversed gives the count back, so the
+			// activated-this-turn word (PredPermMark mark 4) is false again
+			s.mSlClr(k, mechActTurn, ob.slot)
+			s.touchSl(ob.slot)
+		}
 		if e.trigObj != NoObj && s.grantActOn() {
 			s.dropGrantAct(e.obj)
 		}
