@@ -98,7 +98,7 @@ func (s *State) scriptAny(k *prep) bool {
 // gapMask: p's untapped permanents whose card carries the sparse mana
 // ability bit (gfEachCol, gfRestr, gfAnyR, gfFilt, gfGapOther) and can be
 // activated now.
-func (s *State) gapMask(k *prep, p uint8, bit uint32) slotMask {
+func (s *State) gapMask(k *prep, p uint8, bit uint64) slotMask {
 	var m slotMask
 	for b := s.ctrlM[SeatIx(p)]; b.any(); b = b.rest() {
 		sl := b.first()

@@ -20,7 +20,7 @@ func (s *State) fireTaps(k *prep, sl Slot) {
 // for mana; the rest never reach the trigger machinery.
 func (s *State) manaTapped(k *prep, sl Slot) {
 	var pc *pcard
-	if k.gen != nil && (k.gen.anyManaOnce || k.gen.anyManaRider) {
+	if k.gen != nil && (k.gen.anyManaOnce || k.gen.anyManaRider || k.gen.manaTaps) {
 		pc = s.manaPCGen(k, sl)
 	}
 	if k.gen != nil && k.gen.anyManaOnce {
@@ -36,7 +36,14 @@ func (s *State) manaTapped(k *prep, sl Slot) {
 	}
 	if k.gen != nil && k.gen.manaTaps {
 		p := &s.perms[sl]
-		s.fireObj(k, kop.TrigTaps, sl, p.obj, p.ctrl, int16(p.ctrl)|mtTapBit) // the tap pays a mana ability: TapsForMana lines fire too
+		// the tap pays a mana ability: TapsForMana lines fire too. The
+		// mana's colours ride amt above mtTapBit (mtColShift): gorge binds the
+		// activation's actual ManaAdd batch onto the trigger's context as
+		// TriggerMana (engine/rules/mana_activation.go's
+		// stampTriggeredManaProduced), which Card.SharesColorWith
+		// TriggeredProduced reads (C.A.M.P.); the kernel's one home for that
+		// set is the tap's own production, srcMaskAt on the paid view
+		s.fireObj(k, kop.TrigTaps, sl, p.obj, p.ctrl, int16(p.ctrl)|mtTapBit|int16(s.srcMaskAt(pc, sl)&0x1f)<<mtColShift)
 	}
 	if k.gen != nil && k.gen.anyManaRider && !pc.manaIntrinsic {
 		s.manaRider(k, sl) // a counter rider resolves with the mana (mana_rider.go)

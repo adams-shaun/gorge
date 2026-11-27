@@ -1380,7 +1380,7 @@ func deferGapWalk(s *State, k *prep, a Action, p uint8, order []Slot, tapsDef sl
 					var d Decision
 					t.restrOptionsProbe(k, &d, p) // a node reads no script listing of its own (prefixAnyProbe)
 					complete := w.nu == n
-					found = hasOption(&d, a) && (t.npend == 0 || complete || !resolvePlay || post) && !foreign
+					found = hasOption(&d, a) && (t.npend == 0 || complete || !resolvePlay || post || t.pendDropsAll(k)) && !foreign
 					if found && t.npend != 0 {
 						t.resolvePrefixPlay(k, a, p, t.sp, resolvePlay)
 						if t.over {
