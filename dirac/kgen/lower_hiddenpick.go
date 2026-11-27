@@ -238,11 +238,12 @@ func onlyTargetedCtrl(f *lFilter) bool {
 // graveToBattlefieldFlags admits a graveyard pick onto the battlefield
 // (gorge effHiddenPick: Mandatory$ True compulsory, else Min 0 "you may";
 // Tapped$ True enters it tapped; GainControl$ True enters it under the
-// resolving controller) with no other rider: the move flags Mandatory,
-// Tapped, Confirm and UnderYourControl only.
+// resolving controller; RememberChanged$ remembers the entered card, the
+// kernel's battlefield arm's SrRemember) with no other rider: the move flags
+// Mandatory, Tapped, Confirm, UnderYourControl and Remember only.
 func graveToBattlefieldFlags(flags []string) bool {
 	for _, f := range flags {
-		if f != "Mandatory" && f != "Tapped" && f != "Confirm" && f != "UnderYourControl" {
+		if f != "Mandatory" && f != "Tapped" && f != "Confirm" && f != "UnderYourControl" && f != "Remember" {
 			return false
 		}
 	}

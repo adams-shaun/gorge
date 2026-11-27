@@ -33,6 +33,17 @@ func (lc *lowerCtx) gainsAbilitiesOf(sp *params, st *lStatic, _ string) error {
 	if !ok {
 		return nil
 	}
+	if trig, ok := sp.get("GainsTriggerAbsOf"); ok {
+		// Koh, the Face Stealer's "has all activated and triggered abilities
+		// of the last chosen card" (gorge state.ContinuousEffect.
+		// GainedTriggerFaces: the lender's triggers fire as the recipient's).
+		// The kernel's trigger walk fires a permanent's own and its granted
+		// (AddTrigger$) triggers only, never a foreign card's. Measured: with
+		// the activated half lowered and a StallGainsOf at the first priority
+		// a lender with a triggered ability is in range, a Koh pool stalled on
+		// 8 of 200 lockstep seeds, an unmodelled stall the lockstep refuses.
+		return refuse("GainsTriggerAbsOf$ %q: the kernel has no gained-trigger walk for a foreign card's triggered abilities", trig)
+	}
 	z, hasZone := sp.get("GainsAbilitiesOfZones")
 	grave := hasZone && z == "Graveyard"
 	exile := hasZone && z == "Exile"
