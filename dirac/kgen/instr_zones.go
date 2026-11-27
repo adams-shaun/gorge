@@ -166,7 +166,24 @@ func (ic *instrCtx) opReturn() error {
 	ki.Op, ki.C = kop.OpReturn, int16(zoneMap[in.C])
 	_, underOpp := fl["UnderOpponent"]
 	_, attachTo := fl["AttachTo"]
-	if m := ic.moveFlags(); m != 0 || fl["counters"] != "" || fl["from"] == "Library" || underOpp || attachTo {
+	_, faceDown := fl["FaceDown"]
+	if faceDown {
+		// kop.RetFaceDown rides OpReturn's C bit 8 (the destination zone
+		// takes bits 0-2). A move that needs ReturnEx (counters, a library
+		// origin, UnderOpponent, AttachedTo) has no face-down arm; the one
+		// move flag it reads is GainControl$ True, carried as W = the
+		// resolving controller (execReturnSimple).
+		if _, has := fl["counters"]; has || fl["from"] == "Library" || underOpp || attachTo {
+			return fmt.Errorf("face-down return with another move flag")
+		}
+		if m := ic.moveFlags(); m != 0 && m != kop.MvUnderYourControl {
+			return fmt.Errorf("face-down return with another move flag")
+		} else if m == kop.MvUnderYourControl {
+			ki.W = kop.RefController
+		}
+		ki.C |= kop.RetFaceDown
+	}
+	if m := ic.moveFlags(); !faceDown && (m != 0 || fl["counters"] != "" || fl["from"] == "Library" || underOpp || attachTo) {
 		ki.Op = kop.OpReturnEx
 		ki.C = int16(int(zoneMap[in.C]) | m<<3)
 		if err := ic.counters(); err != nil {

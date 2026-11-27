@@ -143,7 +143,7 @@ func kaurPick(c *PickCtx, st *kaurState, rnd Policy) Canon {
 			priest, havePriest = a, true
 		case a.Kind() == ActCastFace && n == "Aurelia's Vindicator":
 			aurDown, haveAur = a, true
-		case a.Kind() == ActSpecial && a.Mode() == kfacedownTurnUp && n == "Aurelia's Vindicator":
+		case a.Kind() == ActSpecial && a.Mode()&0xf == kfacedownTurnUp && n == "Aurelia's Vindicator":
 			turnUp, haveTurnUp = a, true
 		}
 	}
@@ -195,7 +195,7 @@ func kaurPick(c *PickCtx, st *kaurState, rnd Policy) Canon {
 	for _, a := range c.D.Options {
 		n := optionFaceName(c, a)
 		switch {
-		case a.Kind() == ActSpecial && a.Mode() == kfacedownTurnUp:
+		case a.Kind() == ActSpecial && a.Mode()&0xf == kfacedownTurnUp:
 		case a.Kind() == ActCast && (n == "Iridescent Tiger" || n == "Shock" || n == "Aven Farseer" || n == "Aurelia's Vindicator"):
 		case a.Kind() == ActActivate && n == "Mox Pearl":
 		case a.Kind() == ActCastFace, a.Kind() == ActAttack:

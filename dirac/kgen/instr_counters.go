@@ -20,6 +20,7 @@ func init() {
 	instrOp("Proliferate", (*instrCtx).opProliferate)
 	instrOp("DigCounters", (*instrCtx).opDigCounters)
 	instrOp("SearchCounters", (*instrCtx).opSearchCounters)
+	instrOp("TokenCounters", (*instrCtx).opTokenCounters)
 	instrOp("Cumulative", (*instrCtx).opCumulative)
 	instrOp("PutCounterExisting", (*instrCtx).opPutCounterExisting)
 	instrOp("AddOrRemoveCounter", (*instrCtx).opAddOrRemoveCounter)
@@ -175,6 +176,23 @@ func (ic *instrCtx) opSearchCounters() error {
 	// (Captain Jean-Luc Picard) OpExt ExtSearchCounters: B the amount
 	// (0 clears), C the kind; kgen emits it around the Search.
 	ki.Op, ki.A, ki.C = kop.OpExt, kop.Const(int(kop.ExtSearchCounters)), int16(in.C)
+	return nil
+}
+
+func (ic *instrCtx) opTokenCounters() error {
+	ki := &ic.ki
+	in := &ic.in
+	// OpExt ExtTokenCounters: B the amount (0 clears), C the kind; kgen
+	// emits it around the CreateToken (Printlifter Ooze's entry counters).
+	v, err := ic.cb.value(in.A)
+	if err != nil {
+		return err
+	}
+	k, err := counterKind(in.CS)
+	if err != nil {
+		return err
+	}
+	ki.Op, ki.A, ki.B, ki.C = kop.OpExt, kop.Const(int(kop.ExtTokenCounters)), v, int16(k)
 	return nil
 }
 
