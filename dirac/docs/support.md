@@ -8,7 +8,7 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 
 | list | cards | lowered | refused | unverified | supported | 4-seat | pod-evidenced |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| BIG | 30 | 29 | 0 | 4 | 25 | 25 | 0 |
+| BIG | 30 | 28 | 0 | 3 | 25 | 25 | 0 |
 | BLB | 278 | 264 | 1 | 1 | 262 | 262 | 1 |
 | DFT | 276 | 259 | 0 | 1 | 258 | 258 | 2 |
 | DSK | 276 | 260 | 2 | 6 | 252 | 252 | 1 |
@@ -35,10 +35,9 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 | MH3 | 308 | 245 | 1 | 19 | 225 | 225 | 1 |
 | MH2 | 309 | 273 | 0 | 19 | 254 | 254 | 1 |
 | CM2 | 279 | 246 | 1 | 10 | 235 | 235 | 10 |
-| hosted-cmdr | 1234 | 1145 | 0 | 96 | 1049 | 1048 | 33 |
-| ALL | 34480 | 27193 | 41 | 1275 | 25877 | 25874 | 33 |
+| ALL | 34480 | 27177 | 41 | 1259 | 25877 | 25874 | 33 |
 
-`ALL` is the whole corpus; `MBC` is the Mystery Booster Commander draft pool, every name its packs deal that gorge supports; `CMM`, `MH3`, `MH2` and `CM2` are Commander Masters, Modern Horizons 3 and 2 and Commander Anthology Volume II, from gorge-compliance's XMage manifests; `hosted-cmdr` is the union of every card of gorged's hosted Commander decks (`testkit/testutil/decks`, format commander), so each deck is judged in one set; the rest are the Standard sets. `4-seat` counts the supported cards whose lowering holds at any seat count: a card whose lowering reads the one opponent of a two-player game (`kop.CardDef.TwoSeat`) is refused in a game of three or more seats (`StallTwoSeat`). It is a ceiling, not evidence. `pod-evidenced` counts those cards whose evidence row carries a seats field of three or more — a clean pod game, which `kfuzz -evidence -seats 4` writes and `scripts/dirac-first-refusals.py evidence --pools pod-*` copies into `dirac/support/evidence` (`Name\t<seats>`; readers take the name and ignore trailing columns). A four-seat row evidences its card (OD-4 stage 2, `oracle.EvidencePodMinPlays` = 1): a Commander-only key such as Command Tower's colour-identity mana is used there and credited as any own key is, while a three-seat row stays in this column only. The `4-seat` column's pod requirement is report only until pod coverage is large enough to gate it; read `pod-evidenced` beside it.
+`ALL` is the whole corpus; `MBC` is the Mystery Booster Commander draft pool, every name its packs deal that gorge supports; `CMM`, `MH3`, `MH2` and `CM2` are Commander Masters, Modern Horizons 3 and 2 and Commander Anthology Volume II, from gorge-compliance's XMage manifests; the rest are the Standard sets. `4-seat` counts the supported cards whose lowering holds at any seat count: a card whose lowering reads the one opponent of a two-player game (`kop.CardDef.TwoSeat`) is refused in a game of three or more seats (`StallTwoSeat`). It is a ceiling, not evidence. `pod-evidenced` counts those cards whose evidence row carries a seats field of three or more — a clean pod game, which `kfuzz -evidence -seats 4` writes and `scripts/dirac-first-refusals.py evidence --pools pod-*` copies into `dirac/support/evidence` (`Name\t<seats>`; readers take the name and ignore trailing columns). A four-seat row evidences its card (OD-4 stage 2, `oracle.EvidencePodMinPlays` = 1): a Commander-only key such as Command Tower's colour-identity mana is used there and credited as any own key is, while a three-seat row stays in this column only. The `4-seat` column's pod requirement is report only until pod coverage is large enough to gate it; read `pod-evidenced` beside it.
 
 ## What supported covers
 
