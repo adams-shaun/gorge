@@ -164,8 +164,12 @@ gate's limits (`scripts/dirac-gate.sh:47-48`):
 
 ## Not done
 
-- A per-player `scriptFilt` result (15% cumulative after this change). Its callers run
-  under several `availFor` modes and in filter searches, so it needs its own key audit.
+- (Done in the stacked change, `dirac/mana_sfmemo.go`.) The per-player `scriptFilt` mask
+  is memoised per seat in `ForkPool.sfm`, under the same scope as `pcm` (same State, no
+  fork, no `inFilt`/census, no `pcMemoHold`). Its key is `filtBoundPays`' own key
+  (write count, stack depth, the seat's pool, probe, self target, play-anything, line)
+  plus the `availFor` bits and the seat's life. Shadow: `DebugSFMemoShadow`; mutation:
+  `TestSFMemoShadowMutation`.
 - A `typesGen` per-slot memo (11%).
 - Relaxing the `inFilt` and census guards.
 
