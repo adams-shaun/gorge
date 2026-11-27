@@ -830,10 +830,12 @@ func (s *State) actSourcesAfford(k *prep, sl Slot, ab int, a *kop.Ability, mana 
 // so no candidate takes it. A cost that leaves the source free lets the planner
 // sacrifice it to fund the play; the prefix search ends any line that takes it
 // (potential_script.go leftOwnZone), so only this gate prices that shape. The
-// branch's mana joins the plain census: a source the cost taps activates once
-// (its census {T} unit comes out first), a source it leaves untapped
-// (Ashnod's Altar) once per fundable victim; either way the activation's mana
-// is priced with the play's own {T} still held out (abilityAffords). Only
+// plain census's own unit of the source (a Phyrexian Tower's "{T}: Add {C}") is
+// the same permanent's tap: its sacrifice production replaces that unit, never
+// stands beside it (CR 605.1a), and a {T} source pays one activation however
+// many victims its filter admits (one without a tap cost is the repeatable
+// shape, one per candidate). The activation's mana is priced against that with
+// the source's own {T} still held out (abilityAffords). Only
 // the real offer walk: inside a script walk the tapX prefix search owns these
 // sources (scriptOffers; the hand activations' handActCensusPays split). Cold,
 // out of line.
@@ -875,31 +877,22 @@ func (s *State) actOtherSacOffers(k *prep, sl Slot, a *kop.Ability, mana *kop.Ma
 		if n == 0 {
 			continue // no fundable victim: the planner's last-resort unit is refused (pay.otherSacFundable)
 		}
+		if ox.Cost.Flags&kop.CostTap != 0 && n > 1 {
+			// A {T} source pays one activation, however many victims its
+			// filter admits: the candidates are alternative victims, not
+			// further activations (CR 602.2b). A source with no tap cost is
+			// the repeatable shape the counts below price, one per victim.
+			n = 1
+		}
 		mask, per := tapXUnit(ox)
 		var t avail
 		t = *av
-		// A sacrifice-another source that spends itself to activate ({T},
-		// Phyrexian Tower) is one activation whatever the victim count, and
-		// its plain census {T} unit comes out of it first (CR 605.1a: the
-		// same tap cannot both make the census's {B} and pay the branch's
-		// {T}; removeSrc as abilityAffords takes the play's own source out).
-		// Summing the two, or one activation per candidate, priced a
-		// sacrifice it can make once as a {5} play it can make twice: pair
-		// 42 seed 537512 decision 313 (Tower's {B} plus its own {B}{B}) and
-		// 372 (two victims, two branches). Only a source the cost leaves
-		// untapped (Ashnod's Altar's "Sacrifice a creature: Add {C}{C}")
-		// activates once per fundable victim, and keeps its census unit.
-		taps := ox.Cost.Flags&(kop.CostTap|kop.CostUntapSelf|kop.CostSacSelf) != 0
-		acts := n
-		if taps {
-			acts = 1
-			pcx := &k.cards[s.cardAt(sx)]
-			if k.gen != nil {
-				pcx = s.manaPCGen(k, sx)
-			}
-			s.removeSrc(k, &t, sx, pcx)
-		}
-		for i := 0; i < acts; i++ {
+		// The source's own census unit is the same permanent's tap: a
+		// Phyrexian Tower counted as its "{T}: Add {C}" cannot also be
+		// activated for its sacrifice production. Price the sacrifice
+		// activation instead of the plain one, not beside it (CR 605.1a).
+		s.removeSrc(k, &t, sx, s.manaPCGen(k, sx))
+		for i := 0; i < n; i++ {
 			t.addUnits(mask, per)
 		}
 		if s.abilityAffords(k, sl, a, mana, &t) {
