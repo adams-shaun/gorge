@@ -149,10 +149,19 @@ jobs:
       - uses: actions/checkout@v4
         if: steps.checkout.outcome == 'failure'
       - uses: actions/setup-go@v5
-        if: runner.environment == 'self-hosted'
+        # Unconditional so the shard-split assertion below has go on a GitHub-hosted prepare too. The self-hosted
+        # path pays ~0.1-0.5 s for it (measured in the job's step timestamps); the hosted path installs the
+        # go.mod toolchain, which its image may not carry.
         with:
           go-version-file: go.mod
           cache: false
+      - name: Every test package is on exactly one shard
+        # ci_shard.sh's comment says `all` "is how the self-check in CI proves no package was dropped"; scripts/
+        # ci-shard-check.sh is that check, and it was missing from every workflow. A package that falls out of all
+        # shards never runs, and a green batch where a test never ran is indistinguishable from one where it
+        # passed; a package placed twice runs twice. It needs only `go list`, runs before the corpus work, and a
+        # failure here fails prepare, so the test shards (which need prepare) never start.
+        run: bash scripts/ci-shard-check.sh "$SHARDS"
       - name: Corpus keys (self-hosted)
         if: runner.environment == 'self-hosted'
         id: keys
