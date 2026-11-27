@@ -10,7 +10,7 @@ const worldTreePrefixBudgetRepro = "world_tree_any_colour_prefix_budget"
 // O'aka, Traveling Merchant ({1}{U}) and Wormhole Serpent ({4}{U}) would be
 // payable by tapping Swamp or Dwarven Hold for {U} and sacrificing lands for
 // the rest. Gorge's potentialPrefixScript walks the sacrifice answers first and
-// spends its 160-clone budget before it reaches the granted any-colour answer,
+// spends its potentialScriptNodes budget before it reaches the granted any-colour answer,
 // so both casts are priced census_incomplete and not offered (tail-08 pair 8,
 // decision 473). The kernel's grant search used to keep the grant lists it read
 // at the root through a sacrifice step and offered them; it now re-reads each

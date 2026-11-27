@@ -9,7 +9,7 @@ import (
 
 // budgetSeeds replay the granted_prefix_tap_trigger_pass fixture's matchup
 // under castFirstPolicy. The ticket's eleven are the seeds its dependency
-// ticket priced (one play, one 160-node prefix search); 2 and 74 are the
+// ticket priced (one play, one potentialScriptNodes prefix search); 2 and 74 are the
 // priority-over-offer seeds this ticket's re-measured sweep added (the
 // budget's continuation into scriptOffers' filter search and the
 // granted-mana float). The classes left out deliberately: 35 is the tap's

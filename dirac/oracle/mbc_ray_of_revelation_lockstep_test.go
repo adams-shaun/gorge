@@ -13,8 +13,8 @@ const rayOfRevelationRepro = "grove_gap_flashback_script_budget"
 // Burnwillows' "{T}: Add {R} or {G}" (a census gap through its opponent-gains-1-life
 // rider) with Racecourse Fury a legal target. Darkwater Catacombs' {1},{T} filter
 // and Gemstone Caverns' counter-conditioned mana are two more gaps, so gorge's
-// prefix search walks their colour and funding branches, exhausts its 160-node
-// budget (164 nodes, limited, no script) and prices the cast census_incomplete: it
+// prefix search walks their colour and funding branches, exhausts its potentialScriptNodes
+// budget (potentialScriptNodes, limited, no script) and prices the cast census_incomplete: it
 // offers pass and two activations at decision 1854, while the kernel also offers
 // the cast (tail-04-c000 pair 3, seed 755213). Matching gorge's exhaustion node for
 // node is beyond bounded dirac code, so the card is refused by name and its

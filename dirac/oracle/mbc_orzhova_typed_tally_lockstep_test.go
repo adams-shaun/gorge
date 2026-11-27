@@ -8,7 +8,7 @@ import "testing"
 // count (Player.ManaUnits), so a pool of two {R} with one filter-made unit is
 // a different payer state from one with two; dirac keyed them by colour bit on
 // a table with no hand-mana card, dedup'd the second, and priced the play in
-// fewer nodes than gorge's 160-node budget (decision 1237 of tail-02 pair 13).
+// fewer nodes than gorge's potentialScriptNodes budget (decision 1237 of tail-02 pair 13).
 func TestMBCOrzhovaTypedArtifactTallyReprosLockstep(t *testing.T) {
 	t.Parallel()
 	stdReproNamed(t, "typed_artifact_mana_tally_without_hand_mana_dedup")

@@ -11,7 +11,7 @@ import (
 // Grotto under an Island grant makes {C} or {U}) is an ask in gorge's
 // scriptSearch.visit: one node for the ask, and a branch per answer in the
 // ask's order. The step used to take the source's lowest colour alone, with
-// no ask node and no second branch, so the plain run's budget (160 nodes)
+// no ask node and no second branch, so the plain run's budget (potentialScriptNodes)
 // ran out in gorge on a subtree the mirror never walked.
 
 // gapFreeOrder lists the colours of mask that gap source sl's free ask offers,

@@ -14,7 +14,7 @@ const bogardanPhoenixRepro = "bogardan_phoenix_granted_tap_gold_budget"
 // color) and a Gold token (sacrifice: one mana of any color) once Jaheira,
 // Friend of the Forest gives the token "{T}: Add {G}". That granted tap makes
 // the Gold token a census gap beside the Bluffs, and gorge's plain prefix
-// search needs 372 nodes against its 160-node budget, so the play is left
+// search needs 372 nodes against its potentialScriptNodes budget, so the play is left
 // "unsupported census_incomplete" and the full surface withholds it while the
 // kernel prices and offers it (tail-76 pair 183, decision 291, "options
 // options"). The search is not modelled in the kernel, so the card is refused

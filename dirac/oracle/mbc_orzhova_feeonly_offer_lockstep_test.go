@@ -100,9 +100,9 @@ func (y *feeOnlyBoardTally) pricedRow(ref *GorgeSide, p state.PlayerID, play sta
 // It does NOT bite on the swapped-line cut (feeOnlyAskPrune's second cut,
 // feeOnlyFreeTapColour / filtFreeTapColour): measured at d29d39ab40 with the
 // cut reverted, the plain run still finds this game's script at 34-80 nodes
-// (25-57 with the cut), far inside the 160-node budget, and on the bare class
+// (25-57 with the cut), far inside the potentialScriptNodes budget, and on the bare class
 // board (feeOnlyClassBoard) the plain run starves but the phased fallback
-// prices the play. Starving all three runs (plain, phased, subsume, 160 nodes
+// prices the play. Starving all three runs (plain, phased, subsume, potentialScriptNodes budget
 // each) needs a class shape ~6x deeper than any board reachable here, so no
 // oracle-level witness exists. That cut's biting witness is the unit test
 // TestFeeOnlySwappedLineCutFindsTheLine (budget 10); its oracle-level claim is

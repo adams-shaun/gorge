@@ -12,7 +12,7 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // dominated by the same line through a lacking one (CR 601.2g-h, 605.1a).
 // Wakeroot Elemental's {G}{G}{G}{G}{G} beside two Forests and four Islands
 // under Dune Chanter's "{T}: Add one mana of any color": the plain search
-// spends its 160 nodes on the Islands' printed {U} and the grants' other
+// spends its potentialScriptNodes budget on the Islands' printed {U} and the grants' other
 // colours; the subsume run answers each grant's colour ask {G} and finds three
 // Islands' green before the Forests pay the rest.
 //

@@ -15,7 +15,7 @@ import (
 // only in the restricted colour are distinct states and both subtrees are
 // visited. The deferred search's seenSet hashed the raw pool alone, so the
 // second answer looked like a duplicate of the first and its subtree was
-// dropped: an undercount of the 160-node budget (dirac offers what gorge
+// dropped: an undercount of the potentialScriptNodes budget (dirac offers what gorge
 // withholds).
 func TestTapsDeferSeenKeyKeepsRestrictedColours(t *testing.T) {
 	var st State

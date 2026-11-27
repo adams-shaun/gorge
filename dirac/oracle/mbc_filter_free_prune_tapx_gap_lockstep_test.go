@@ -6,7 +6,7 @@ import "testing"
 // creature: any colour) beside School of the Unseen ({2},{T}: any colour) and
 // Akoum Refuge. gorge's prefix search taps Holdout for {C} first and walks the
 // whole dead subtree below it (School's {C}, every funding order), spending its
-// 160-node budget before the creature-tap route that pays Baloth Prime's {G}
+// potentialScriptNodes budget before the creature-tap route that pays Baloth Prime's {G}
 // is reached, so neither Baloth Prime nor Bountiful Harvest is offered. The
 // kernel's free-branch prune read the board at the node, where the spent
 // Holdout was no longer a tap-another gap, and skipped School's {C} subtree,

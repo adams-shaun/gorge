@@ -8,7 +8,7 @@ import "testing"
 //
 // The reverse: with two petal counters on the Lotus, four Swamps and a
 // Celestial Prism (a fee-carrying any-colour gap), gorge's prefix search spends
-// its 160-clone budget on the Prism's fee branches before it reaches the Lotus,
+// its potentialScriptNodes budget on the Prism's fee branches before it reaches the Lotus,
 // prices the overloaded cast census_incomplete and does not offer it, so the
 // kernel must not offer it either (tail-74-c001 pair 195, decision 156).
 func TestMBCFangsOfKaloniaReprosLockstep(t *testing.T) {

@@ -47,17 +47,27 @@ type ScriptStep struct {
 // beyond either stays unpriced (never a proof). Both are stated limits, not
 // proofs of completeness: a query with more than sixteen plays the printed
 // sources cannot pay leaves the later ones census_incomplete, and so does a
-// search that needs more than 164 clones. (Four plays left a legal play
+// search that needs more than 600 clones. (Four plays left a legal play
 // unoffered on boards with a gap source; sixteen was never reached in 1500
-// Standard games, at about 2% more clones than four. 164: a board whose
+// Standard games, at about 2% more clones than four. 600: a board whose
 // every land tap is Taps-deferred by an outside watcher -- Manabarbs, whose
 // trigger each gap activation stacks for the walk's passes arm to resolve --
-// reached a fee-gap's funding line at 163 clones (the fee gap's {1} beside
-// Silver Myr paying a {U}{U} attach), three past the old 160, and the kernel's
-// mirror prices such a play; the limit is the pair's (dirac/mana_filter.go).)
+// reached a fee-gap's funding line at 163 clones, and repeatable fee-only
+// filters (funding 328) and multi-gap sources (Grunn kicked, Nykthos Paragon,
+// Orzhova) hit the old 164 and were offered by the kernel alone; a sweep of
+// the cap (200, 256, 300, 512, 1000) over those plays cleared each by
+// 512 and Grunn needed more than 300. 600 and not 512: the two engines count
+// a Lotus Blossom plus Celestial Prism board's script at slightly different
+// nodes (the kernel's lies in 507..512 and gorge's in 521..530 or the other
+// way round; overload_cast_without_target diverges for caps 512 and 520 only
+// and is clean at 506 and 530), so a cap inside that window offers the cast
+// on one side alone. Not larger: the may-play budget-gap board's script is the
+// 657th node, and a plain cap past that would make the may-play fallback
+// below dead code. The limit is the pair's, one value (dirac/mana_filter.go,
+// tied by //lockstep:const).)
 const (
 	potentialScriptPlays = 16
-	potentialScriptNodes = 164
+	potentialScriptNodes = 600
 	// potentialMayPlayNodes is the budget of the may-play fallback run
 	// (potentialPrefixScript): a plain run, after the three above found none
 	// and the first spent its budget.
@@ -294,7 +304,7 @@ type scriptSearch struct {
 	// whose options run W U B R G otherwise spends the node budget proving the
 	// colours a cost does not name dead before the first one it does -- a
 	// 4GG cast behind Great Divide Guide's granted any-colour abilities went
-	// budget-limited at 160 clones exploring B before G at the deepest asks.
+	// budget-limited at potentialScriptNodes clones exploring B before G at the deepest asks.
 	need   [state.MC + 1]bool
 	passes bool // also pass priority while the stack is non-empty
 	// phased runs the visit activation loop in its phased order with the
