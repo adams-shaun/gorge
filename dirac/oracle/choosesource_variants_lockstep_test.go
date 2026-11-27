@@ -38,7 +38,7 @@ var kchosenVariantDecks = [2][]cardset.Entry{
 var kchosenVariantShields = map[string]bool{"Pay No Heed": true, "Auriok Replica": true, "Martyr's Cause": true,
 	"Sanctum Guardian": true, "Pilgrim of Justice": true, "Pilgrim of Virtue": true, "Burrenton Forge-Tender": true,
 	"Charm Peddler": true, "Samite Blessing": true, "Reverse Damage": true, "Cho-Arrim Alchemist": true,
-	"Intervention Pact": true}
+	"Intervention Pact": true, "Shieldmage Advocate": true}
 
 func kchosenVariantPolicy(seed uint64) Policy { return kchosenPolicyOf(seed, kchosenVariantShields) }
 
