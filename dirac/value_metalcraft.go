@@ -15,6 +15,7 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // new shapes fired; nothing in the engine reads it).
 type MetalcraftStats struct {
 	CondHeld int64 // metalcraft conditions evaluated true
+	EnergyTr int64 // "whenever you get one or more {E}" triggers queued (trig_playerctr.go)
 }
 
 // DebugMetalcraftStats, when set, receives the counts.
@@ -24,6 +25,10 @@ var DebugMetalcraftStats *MetalcraftStats
 // condition false: the gate-off view, the unfired trigger and the refused
 // activation together are the new read disabled.
 var DebugMetalcraftOff bool
+
+// DebugPlayerCtrOff (TestDemoPlayerCtrMutation) silences every
+// TrigPlayerCounterAdded fire: the energy gain no longer triggers anything.
+var DebugPlayerCtrOff bool
 
 // isMetalcraftCond reports whether c is kgen's metalcraft condition:
 // Count$Valid Artifact.YouCtrl >= 3, not negated. A filter name cannot be

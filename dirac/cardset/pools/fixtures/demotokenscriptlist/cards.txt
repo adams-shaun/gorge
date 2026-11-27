@@ -1,0 +1,16 @@
+# The demo comma-listed TokenScript$ pool (dirac/oracle/demo_tokenscript_list_lockstep_test.go):
+# Academy Manufactor's CreateToken rewriter (a Clue, Food or Treasure token is
+# instead one of each) and Overencumbered's enters trigger (the enchanted
+# opponent creates a Clue, a Food and a Junk token), with the Clue, Food and
+# Treasure makers that feed the rewriter, a control token maker it must leave
+# alone, and the creatures and basics the decks need.
+Academy Manufactor
+Dragon Fodder
+Forest
+Glory Seeker
+Grizzly Bears
+Mountain
+Overencumbered
+Plains
+Strike It Rich
+Thraben Inspector

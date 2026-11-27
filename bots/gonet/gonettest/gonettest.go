@@ -112,6 +112,19 @@ func WriteExt(dir, name string, sh Shape, extW int, extIn []float32) (string, er
 	return WriteExtLayout(dir, name, sh, extW, extIn, DefaultLayout)
 }
 
+// WriteExtHash is WriteExt with the header's ext_hash set to hash (omitted
+// when hash is "").
+func WriteExtHash(dir, name string, sh Shape, extW int, extIn []float32, hash string) (string, error) {
+	if len(extIn) != sh.D*extW {
+		return "", fmt.Errorf("gonettest: ext_in has %d values, want %d·%d", len(extIn), sh.D, extW)
+	}
+	extra := map[string]any{"EXT_W": extW}
+	if hash != "" {
+		extra["ext_hash"] = hash
+	}
+	return writeShape(dir, name, sh, policynet.EntityRawWidth, extra, extIn, DefaultLayout)
+}
+
 // WriteExtLayout is WriteExt at layout lay.
 func WriteExtLayout(dir, name string, sh Shape, extW int, extIn []float32, lay Layout) (string, error) {
 	if len(extIn) != sh.D*extW {

@@ -346,6 +346,13 @@ const (
 	cseenDT                                // deathtouch mark seen
 )
 
+// cseenSacNext: the permanent's imminent departure is a sacrifice (noteSac;
+// removePerm records it on the zone entry and clears it,
+// value_sacrificedthisturn.go). It rides perm.cseen's free bit above
+// cseenSaddled (bits 0-5 counters and saddled, bits 6-7 free) and is zeroed
+// with the rest of the perm when the slot is next entered.
+const cseenSacNext uint8 = 1 << 6
+
 // ctrN is p's count of counter kind c.
 func (p *perm) ctrN(s *State, c int) int {
 	if n := p.ctrLow(c); n != 0 || p.ck[ctrSlots-1] == 0 {

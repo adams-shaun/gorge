@@ -16,7 +16,10 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // queued Aura host ask. It reports whether the card waits in exile.
 func (s *State) queueRiotRet(k *prep, srcCtrl uint8, o, ret Obj) bool {
 	x := &s.objs[ret]
-	if s.res.active || !s.retAuraAskQueued() || !k.riot || !k.t.Cards[x.card].Riot || s.g.pre.state != 0 {
+	if s.res.active || !s.retAuraAskQueued() || !k.riot || s.g.pre.state != 0 {
+		return false
+	}
+	if !k.t.Cards[x.card].Riot && !s.riotCardGranted(k, x.card, ret, x.owner()) {
 		return false
 	}
 	if int(s.g.nask) >= len(s.g.ask) {

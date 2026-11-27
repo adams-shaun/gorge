@@ -94,7 +94,7 @@ func cbCastWithFlashStatic(cb *cardBuilder, s lStatic, st *kop.Static) ([]uint8,
 func cbAlternativeCostStatic(cb *cardBuilder, s lStatic, st *kop.Static, cost *kop.Cost) ([]uint8, error) {
 	var err error
 	st.Kind = kop.StatAlternativeCost
-	if *cost, err = cb.cost(s.Cost); err != nil {
+	if *cost, err = cb.altCostStatic(s, st); err != nil { // static_cost.go: a grant's flag and filter too
 		return nil, err
 	}
 	// the zone the static is offered from (kernel prepAltFree's one

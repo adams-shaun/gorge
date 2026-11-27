@@ -40,3 +40,19 @@ func (s *State) enchantedCtrl(src Obj) uint8 {
 	}
 	return s.perms[a].ctrl
 }
+
+// enchantedPlayer is kop.RefEnchantedPlayer for the entry whose source object
+// is src: the seat the source Aura enchants (atchSeat), while the source is on
+// the battlefield or phased out (both keep the attachment, CR 702.26g); 255
+// (no player) once it has left or is attached to no player (gorge
+// definedSpecEnchantedPlayer reads the source's own AttachedPlayer, which
+// leaving the battlefield clears, CR 704.5m).
+func (s *State) enchantedPlayer(k *prep, src Obj) uint8 {
+	if src == NoObj {
+		return 255
+	}
+	if z := s.objs[src].zone; z != kop.ZoneBattlefield && z != kop.ZonePhased && z != kop.ZonePhasedInd {
+		return 255
+	}
+	return s.atchSeat(k, s.objs[src].slot) - 1 // 0 (none) wraps to 255
+}

@@ -1203,6 +1203,7 @@ RefEachOpponent	Ref	8
 RefEachPlayer	Ref	7
 RefEmblemSource	Ref	47
 RefEnchantedCtrl	Ref	44
+RefEnchantedPlayer	Ref	48
 RefExiledWithOwner	Ref	43
 RefHost	Ref	23
 RefImprinted	Ref	35
@@ -1432,6 +1433,7 @@ SrTapped	untyped int	1
 SrThenTop	untyped int	2
 SrUnderYourControl	untyped int	2048
 StAlsoSideboard	StaticFlags	512
+StAltGrant	StaticFlags	1
 StAnyManaType	StaticFlags	4
 StAtkTaxPlayer	StaticFlags	2
 StAtkTaxWalker	StaticFlags	4
@@ -1878,6 +1880,7 @@ WhoseAny	Whose	0
 WhoseChosen	Whose	201
 WhoseEnchCtrl	Whose	3
 WhoseEnchanted	Whose	202
+WhoseEnchantedOpp	Whose	204
 WhoseMonarch	Whose	203
 WhoseNonActive	Whose	200
 WhoseOpp	Whose	2

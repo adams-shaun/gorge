@@ -8,7 +8,7 @@ import (
 )
 
 // The metalcraft lockstep (CR 207.2c): Brotherhood Scribe's Metalcraft-gated
-// non-mana activation (and its player-counter line, inert in both engines),
+// non-mana activation and its energy-gain trigger (a PlayerCounterChange put),
 // Urza's Workshop's plain {T}: Add {C} beside a Metalcraft-gated evaluated
 // {T}: Add {C}, and Vedalken Humiliator's Metalcraft$ Attacks trigger. The
 // pool is dirac/cardset/pools/fixtures/metalcraft; artifact lands and
@@ -56,7 +56,25 @@ func TestDemoMetalcraftLockstep(t *testing.T) {
 	if st.CondHeld == 0 {
 		t.Error("no game read a metalcraft condition true")
 	}
+	if st.EnergyTr == 0 {
+		t.Error("no game queued Brotherhood Scribe's energy-gain trigger (TrigPlayerCounterAdded)")
+	}
 	t.Logf("%d clean games; %+v", clean, *st)
+}
+
+// TestDemoPlayerCtrMutation: with the energy-gain trigger silenced in the
+// kernel, some game diverges from gorge (which queues it).
+func TestDemoPlayerCtrMutation(t *testing.T) {
+	if isolate(t) {
+		return
+	}
+	dirac.DebugPlayerCtrOff = true
+	defer func() { dirac.DebugPlayerCtrOff = false }()
+	_, divs, _ := metalcraftGames(t, 64, lockstepQuiet)
+	if divs == 0 {
+		t.Fatal("DebugPlayerCtrOff: no divergence in 64 games")
+	}
+	t.Logf("mutation diverged in %d games", divs)
 }
 
 // TestDemoMetalcraftMutation: with every metalcraft read forced false, some

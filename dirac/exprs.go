@@ -789,6 +789,8 @@ func (s *State) refPlayer(k *prep, r kop.Ref, ctx evalCtx) uint8 {
 		return s.attachedCtrl(s.refObjCtx(kop.RefAttached, ctx))
 	case kop.RefEnchantedCtrl:
 		return s.enchantedCtrl(ctx.src)
+	case kop.RefEnchantedPlayer:
+		return s.enchantedPlayer(k, ctx.src)
 	case kop.RefTriggerPlayer:
 		return e.trigPl
 	case kop.RefTriggerObjOwner:
