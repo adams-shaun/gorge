@@ -171,7 +171,7 @@ func TestReplDrawOrderDredgeBodyStall(t *testing.T) {
 	if s.dredgeCands(sc.k, 0, nil) != 1 {
 		t.Fatal("precondition: seat 0 has no dredge candidate")
 	}
-	if c := s.drawScan(sc.k, 0, drawChain{}); c.more != 1 || !c.prog || c.all != 2 {
+	if c := s.drawScan(sc.k, 0, drawChain{}, false); c.more != 1 || !c.prog || c.all != 2 {
 		t.Fatalf("candidates more %d prog %v all %d, want one plain ReplDrawMore beside the program", c.more, c.prog, c.all)
 	}
 	toDrawStep(sc)
@@ -217,7 +217,7 @@ func TestReplDrawOrderMixedOneMore(t *testing.T) {
 	if !sc.onBF(plainObj) || !sc.onBF(progObj) {
 		t.Fatal("precondition: both replacements must be on the battlefield")
 	}
-	if c := sc.s.drawScan(sc.k, 0, drawChain{}); c.more != 1 || !c.prog || c.all != 2 {
+	if c := sc.s.drawScan(sc.k, 0, drawChain{}, false); c.more != 1 || !c.prog || c.all != 2 {
 		t.Fatalf("candidates more %d prog %v all %d, want one plain ReplDrawMore beside the program", c.more, c.prog, c.all)
 	}
 	s := sc.s
@@ -263,7 +263,7 @@ func TestReplDrawOrderMixedMoreStall(t *testing.T) {
 	sc.perm(a, 0)
 	sc.perm(b, 0)
 	sc.perm(prog, 1)
-	if c := sc.s.drawScan(sc.k, 0, drawChain{}); c.more != 2 || !c.prog || c.all != 3 {
+	if c := sc.s.drawScan(sc.k, 0, drawChain{}, false); c.more != 2 || !c.prog || c.all != 3 {
 		t.Fatalf("candidates more %d prog %v all %d, want two plain ReplDrawMore beside the program", c.more, c.prog, c.all)
 	}
 	toDrawStep(sc)
