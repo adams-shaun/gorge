@@ -120,6 +120,13 @@ func TestEffectDrawReplacementUrabraskOneShot(t *testing.T) {
 		t.Logf("DEBUG match=%v hold=%v with=%v",
 			e.replacementMatchesRememberedUngatedBy(rPr, id, evProbe, r0.Remembered, r0.RememberedPlayers, nil, 0, nil, chosenCapture{}),
 			e.replacementConditionHoldsWith(rPr, id, 0, nil, r0.Remembered), with != nil)
+		t.Logf("DEBUG possible=%v", e.effectReplacementsPossible())
+		hb, lb := len(e.G.Zone(state.ZHand, 1)), len(e.G.Zone(state.ZLibrary, 1))
+		e.drawCard(1)
+		repl1, _ := urabraskPending(e, id)
+		t.Logf("DEBUG after drawCard: hand %d->%d lib %d->%d exile1=%d replLive=%v notes=%d",
+			hb, len(e.G.Zone(state.ZHand, 1)), lb, len(e.G.Zone(state.ZLibrary, 1)),
+			len(e.G.Zone(state.ZExile, 1)), repl1 != nil, len(e.L.Events))
 	}
 	for i := 0; i < 4000 && len(e.G.Zone(state.ZExile, 1)) == 0; i++ {
 		if answerIfDiscard(t, e) {
