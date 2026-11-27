@@ -303,6 +303,9 @@ func (s *State) restrFeeCastFunded(k *prep, p uint8, d payDesc, own, v *pcard, k
 // plain's charge takes leaves a too, group by group; a fee plain cannot pay
 // leaves both untouched.
 func (a *avail) restrFeeChargePlain(plain *avail, fee kop.ManaCost, cost *kop.ManaCost, extra int) bool {
+	if capped, ok := a.restrFeePlainCap(plain); ok {
+		return a.restrFeeChargeCapped(plain, &capped, fee, cost, extra)
+	}
 	b := *plain
 	if !b.restrFeeCharge(fee, cost, extra) {
 		return false
@@ -314,6 +317,47 @@ func (a *avail) restrFeeChargePlain(plain *avail, fee kop.ManaCost, cost *kop.Ma
 		}
 	}
 	*a, *plain = c, b
+	return true
+}
+
+// restrFeePlainCap is plain with each group cut to the mana a still holds of
+// that production mask, and whether any group was cut: an earlier widened
+// unit took its source's census mana out of a (that source taps once, for its
+// restricted alternative), so a fee paid from plain must not spend it (Haven
+// of the Spirit Dragon's {C} reserved for its Dragon mana: an Orb of
+// Dragonkind's {1} is paid from a Mountain instead, CR 605.3b, 106.6).
+func (a *avail) restrFeePlainCap(plain *avail) (capped avail, cut bool) {
+	capped = *plain
+	for i := 0; i < capped.n; i++ {
+		left := uint16(0)
+		for j := 0; j < a.n; j++ {
+			if a.mask[j] == capped.mask[i] {
+				left += a.cnt[j]
+			}
+		}
+		if left < capped.cnt[i] {
+			capped.total -= int(capped.cnt[i] - left)
+			capped.cnt[i] = left
+			cut = true
+		}
+	}
+	return capped, cut
+}
+
+// restrFeeChargeCapped is restrFeeChargePlain over capped (plain cut to what a
+// still holds): the fee's mana leaves a and plain alike.
+func (a *avail) restrFeeChargeCapped(plain, capped *avail, fee kop.ManaCost, cost *kop.ManaCost, extra int) bool {
+	b := *capped
+	if !b.restrFeeCharge(fee, cost, extra) {
+		return false
+	}
+	c, p := *a, *plain
+	for i := 0; i < capped.n && i < b.n; i++ {
+		if n := capped.cnt[i] - b.cnt[i]; n != 0 && (!c.removeWide(capped.mask[i], n) || !p.removeWide(capped.mask[i], n)) {
+			return false
+		}
+	}
+	*a, *plain = c, p
 	return true
 }
 
