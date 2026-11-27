@@ -57,6 +57,11 @@ type ManaCostActivation struct {
 	// announced SubCounter, Forage and untapYType parts with deterministic
 	// no-host picks instead of posing an election.
 	Interactive bool
+	// PlannedSacs is a payment plan's named victims for the ability's
+	// single other-sacrifice part (PaymentActivation.Sacrifices): the
+	// sacrifice stage records them without an ask while they are still
+	// exactly a legal answer, and asks as usual otherwise.
+	PlannedSacs []state.ObjID
 }
 
 // SubCounterPicked counts the units already recorded for one part index.

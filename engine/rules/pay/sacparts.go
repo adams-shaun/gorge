@@ -1,6 +1,7 @@
 package pay
 
 import (
+	"cmp"
 	"fmt"
 	"slices"
 	"strings"
@@ -202,7 +203,7 @@ func PaymentPlanSacrificeVictims(e Engine, p state.PlayerID, source state.ObjID,
 	}
 	var cands []state.ObjID
 	for _, id := range ManaSacrificeCandidates(e, p, source, part) {
-		if !reserved[id] {
+		if id != source && !reserved[id] {
 			cands = append(cands, id)
 		}
 	}
