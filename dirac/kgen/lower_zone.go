@@ -4158,14 +4158,20 @@ func (lc *lowerCtx) copyPermanent(ps *params) error {
 	if ps.is("RememberTokens", "True") {
 		flags = append(flags, "Remember")
 	}
+	var atk bool
 	if picked {
-		atk, err := lc.copyChoiceAttacking(ps)
-		if err != nil {
-			return err
+		atk, err = lc.copyChoiceAttacking(ps)
+	} else {
+		atk, err = lc.copyAttacking(ps)
+	}
+	if err != nil {
+		return err
+	}
+	if atk {
+		if nonRem {
+			return refuse("CopyPermanent TokenAttacking$ beside a per-player Controller$")
 		}
-		if atk {
-			flags = append(flags, "Attacking")
-		}
+		flags = append(flags, "Attacking")
 	}
 	if v, ok := ps.get("TokenTapped"); ok {
 		// the token enters tapped (gorge copypermanent.go's CopyTokenTapped)
