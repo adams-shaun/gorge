@@ -126,6 +126,16 @@ func (lc *lowerCtx) drawRepl(rp *params, w *cards.SA, rl *lRepl) error {
 	if len(ab.Prog) == 0 {
 		return refuse("repl-hard: Draw replacement")
 	}
+	if drawReplGraveReturnLose(ab.Prog) {
+		// Out of the Tombs: the mandatory hidden pick returns a creature card
+		// you own from your graveyard to the battlefield; the Remembered-gated
+		// LosesGame branch then loses you the game exactly when the move
+		// remembered nothing, and Cleanup clears the memory. The one movement
+		// shape a DrawProgram body may carry; every other movement keeps the
+		// refusal below.
+		rl.Kind, rl.Bits, rl.Prog = "DrawProgram", bits, ab.Prog
+		return nil
+	}
 	for i := range ab.Prog {
 		// This slice's bodies: a draw, a life change, a token or a counter.
 		// A body that moves library or graveyard cards (a dig, a ChooseMove,
@@ -151,6 +161,51 @@ func (lc *lowerCtx) drawRepl(rp *params, w *cards.SA, rl *lRepl) error {
 	}
 	rl.Kind, rl.Bits, rl.Prog = "DrawProgram", bits, ab.Prog
 	return nil
+}
+
+// drawReplGraveReturnLose reports whether prog is Out of the Tombs' body: a
+// mandatory hidden pick of a creature card you own from your graveyard onto
+// the battlefield that remembers what it moved, a LoseGame under the
+// "nothing was remembered" gate, then the Cleanup that clears the memory. The
+// kernel's ChooseMove already runs the pick (repl_drawprogram.go resumes the
+// body across the ask); this predicate keeps every other graveyard movement
+// refused (Forbidden Crypt's graveyard-to-hand body, a Dig, a Play).
+func drawReplGraveReturnLose(prog []lInstr) bool {
+	if len(prog) != 4 {
+		return false
+	}
+	mv := &prog[0]
+	if mv.Op != "ChooseMove" || mv.Obj.Kind != rYou || !isConstN(mv.A, 1) || mv.C != zBattlefield {
+		return false
+	}
+	if mv.F == nil || mv.F.Players != 0 || mv.F.Each || len(mv.F.Clauses) != 1 ||
+		mv.F.Clauses[0] != (lClause{Types: tCreature, Owner: whoYou}) {
+		return false
+	}
+	flags := map[string]bool{}
+	for _, f := range strings.Split(mv.CS, "|") {
+		flags[f] = true
+	}
+	if len(flags) != 3 || !flags["from=Graveyard"] || !flags["Remember"] || !flags["Mandatory"] {
+		return false
+	}
+	skip := &prog[1]
+	if skip.Op != "SkipIf" || skip.Skip != 1 {
+		return false
+	}
+	c := skip.Cond
+	if c.Kind != cRefMatches || c.Ref.Kind != rRemembered || c.Op != opEQ || c.Neg ||
+		!c.A.isConst() || c.A.N != 0 || len(c.Sub) != 0 || c.B.Kind != vNone {
+		return false
+	}
+	if c.F == nil || c.F.Players != 0 || len(c.F.Clauses) != 1 || !anyCardClause(c.F.Clauses[0]) {
+		return false
+	}
+	lose := &prog[2]
+	if lose.Op != "LoseGame" || lose.Obj.Kind != rYou || lose.C != 0 {
+		return false
+	}
+	return prog[3].Op == "ClearRemembered"
 }
 
 // drawReplCond reads the R: line's own replacement gates into rl.Cond:

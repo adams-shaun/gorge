@@ -3,13 +3,15 @@ package oracle
 import (
 	"testing"
 
+	"github.com/adams-shaun/gorge/dirac"
 	"github.com/adams-shaun/gorge/dirac/cardset"
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
 // The ReplDrawProgram lockstep pool: the Draw replacements whose
 // ReplaceWith$ body is a draw, a life change, a token or a win (Blood Scrivener,
-// Hullbreacher, Notion Thief, Laboratory Maniac, Jace), and the Optional$ True
+// Hullbreacher, Notion Thief, Laboratory Maniac, Jace), Out of the Tombs'
+// graveyard return with its Remembered-gated LosesGame, and the Optional$ True
 // skip (Obstinate Familiar, whose election both engines pose at each draw). The bodyless Prevent$ skip (Possessed Portal)
 // has no deck here: no pair reached its skip (the mutation never diverged in
 // 200 seeds), so a pair would be vacuous evidence. Each pair puts the one replacement on
@@ -65,6 +67,28 @@ var kdrawReplDecks = map[string][2][]cardset.Entry{
 		{{Name: "Grizzly Bears", Count: 12}, {Name: "Hill Giant", Count: 8},
 			{Name: "Divination", Count: 4}, {Name: "Island", Count: 8}, {Name: "Forest", Count: 8}},
 	},
+	// Out of the Tombs' empty-library return. The upkeep trigger mills its
+	// own controller, so a game that resolves the enchantment reaches an
+	// empty library without another mill card; the two pairs separate the
+	// branches by whether a creature card can have been milled.
+	"tombs_returns": {
+		{{Name: "Out of the Tombs", Count: 1}, {Name: "Grizzly Bears", Count: 12}, {Name: "Hill Giant", Count: 8},
+			{Name: "Swamp", Count: 19}},
+		{{Name: "Grizzly Bears", Count: 12}, {Name: "Hill Giant", Count: 8}, {Name: "Swamp", Count: 20}},
+	},
+	"tombs_loses": {
+		{{Name: "Out of the Tombs", Count: 1}, {Name: "Swamp", Count: 39}},
+		{{Name: "Grizzly Bears", Count: 12}, {Name: "Hill Giant", Count: 8}, {Name: "Swamp", Count: 20}},
+	},
+	// Divination resolving into an empty library poses the return's hidden
+	// pick mid-resolution (the queued akDrawPick): gorge keeps the spell on
+	// the stack with its second draw pending while the pick is open, so this
+	// pair compares the pick's pose and the outer Draw's continuation.
+	"tombs_divination": {
+		{{Name: "Out of the Tombs", Count: 1}, {Name: "Grizzly Bears", Count: 12},
+			{Name: "Divination", Count: 8}, {Name: "Swamp", Count: 10}, {Name: "Island", Count: 9}},
+		{{Name: "Grizzly Bears", Count: 12}, {Name: "Hill Giant", Count: 8}, {Name: "Swamp", Count: 20}},
+	},
 }
 
 func TestReplDrawReplLockstep(t *testing.T) {
@@ -95,7 +119,7 @@ func TestReplDrawReplLockstepMutation(t *testing.T) {
 			}
 		}
 	}
-	for _, name := range []string{"scrivener", "thief", "hullbreacher", "maniac", "jace"} {
+	for _, name := range []string{"scrivener", "thief", "hullbreacher", "maniac", "jace", "tombs_returns", "tombs_loses"} {
 		name := name
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
@@ -103,5 +127,47 @@ func TestReplDrawReplLockstepMutation(t *testing.T) {
 				t.Fatalf("%s: dropping the draw program's body diverged no seed (the deck never applies it)", name)
 			}
 		})
+	}
+}
+
+// TestReplDrawReplBranches is the draw-repl pool's "both branches reached"
+// check: the Out of the Tombs pairs must resolve the replacement into a
+// battlefield move (tombs_returns, tombs_divination) and into the
+// Remembered-gated loss (tombs_loses), not merely play beside the
+// enchantment. An untouched pair
+// passes while its branch never fires (the in-resolution pick hid a
+// divergence exactly that way before tombs_divination existed), so the
+// kernel counts each outcome (repl_drawpick.go's DrawPickStats) and the
+// pair whose count is zero fails. It runs sequentially on purpose: the
+// counters are process-wide, and Go resumes the parallel top-level tests
+// only after the sequential ones have finished.
+func TestReplDrawReplBranches(t *testing.T) {
+	for _, tc := range []struct {
+		name  string
+		moved bool
+		lost  bool
+	}{
+		{"tombs_returns", true, false},
+		{"tombs_loses", false, true},
+		{"tombs_divination", true, false},
+	} {
+		dirac.DrawPickStats.Moved.Store(0)
+		dirac.DrawPickStats.Lost.Store(0)
+		if n := lockstepRun(t, "draw-repl", kdrawReplDecks[tc.name], 200, false, nil); n != 0 {
+			t.Fatalf("%s: %d of 200 seeds diverge", tc.name, n)
+		}
+		moved, lost := dirac.DrawPickStats.Moved.Load(), dirac.DrawPickStats.Lost.Load()
+		if tc.moved && moved == 0 {
+			t.Errorf("%s: the replacement moved no card to the battlefield in 200 seeds", tc.name)
+		}
+		if tc.lost && lost == 0 {
+			t.Errorf("%s: the Remembered-gated LosesGame ran in none of 200 seeds", tc.name)
+		}
+		if !tc.moved && moved != 0 {
+			// seat 0's deck holds no creature card (Out of the Tombs and
+			// Swamps), so a move here means the pick's filter matched what it
+			// must not.
+			t.Errorf("%s: the replacement moved %d cards although seat 0 owns no creature", tc.name, moved)
+		}
 	}
 }

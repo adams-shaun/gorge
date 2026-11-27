@@ -474,6 +474,7 @@ var counterKinds = map[string]kop.CounterKind{
 	"DESCENT":    kop.CtrDescent,    // Descent into Avernus's named counter (CR 122.1)
 	"OMEN":       kop.CtrOmen,       // Soulcipher Board's omen counter (CR 122.1)
 	"MEMORY":     kop.CtrMemory,     // Altair Ibn-La'Ahad's memory counter (CR 122.1)
+	"EON":        kop.CtrEon,        // Out of the Tombs' eon counter (CR 122.1; its mill count reads it)
 	"BRAIN":      kop.CtrBrain,      // Rex, Cyber-Hound's named counter (CR 122.1)
 	"M2M1":       kop.CtrM2M1,       // a -2/-1 counter (CR 122.1a; Contagion; the kernel's ptGen)
 }

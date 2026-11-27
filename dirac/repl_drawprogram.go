@@ -37,13 +37,24 @@ var coldDraw = newCold[drawProgram]("drawProgram", func(g *genPrep) int {
 // Optional$ True election parked for an answer (may, repl_drawmay.go: the
 // candidate sel/abi; the site's continuation is the order ask's, laid in
 // res.left and g.pickZ/pickLeft).
+//
+// A hidden pick parked as a queued ask (repl_drawpick.go) suspends its
+// OpDraw site, and the loop's frame rides here — the cards p still owes
+// counting the replaced one (left), the players still owed (rest) and each
+// one's count (n) — because the parked search owns res.left and
+// g.pickZ/g.pickLeft (startSearch writes them). waiting survives
+// drawProgramDone; drawPickResume consumes the record outright.
 type drawProgram struct {
-	active bool
-	p      uint8
-	chain  drawChain
-	may    bool
-	sel    Slot
-	abi    uint8
+	active  bool
+	p       uint8
+	chain   drawChain
+	may     bool
+	sel     Slot
+	abi     uint8
+	waiting bool
+	left    uint8
+	rest    uint8
+	n       uint8
 }
 
 // drawState is coldDraw's record, or nil.
@@ -269,10 +280,14 @@ func (s *State) drawProgramTake(k *prep, p uint8, sel Slot, abi uint8, ab *kop.A
 }
 
 // drawProgramDone clears the in-flight program after an answered ask's
-// resumed body finishes.
+// resumed body finishes. A parked pick's draw-loop frame survives it (the
+// body is done, so active and the chain die, but the suspended OpDraw still
+// owes its remaining cards): drawPickResume reads the frame and clears the
+// record outright.
 func (s *State) drawProgramDone() {
 	if ds := s.drawState(); len(ds) > 0 {
-		ds[0] = drawProgram{}
+		r := &ds[0]
+		*r = drawProgram{waiting: r.waiting, p: r.p, left: r.left, rest: r.rest, n: r.n}
 	}
 }
 

@@ -1449,10 +1449,17 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 			s.g.ask[0].kind = akNameAny // the look is acknowledged: the name is asked next (repl_choosename.go)
 			return
 		}
+		wasDrawPick := s.g.nask > 0 && s.g.ask[0].kind == akDrawPick
 		saved := s.res
 		s.res.active = false // the enters program runs with its own source as the context
 		s.answerQueuedAsk(k, a)
 		s.res = saved
+		if wasDrawPick && s.drawPickResume(k) {
+			return // the pick's body finished; the suspended Draw draws its remaining cards (repl_drawpick.go)
+		}
+		if s.drawPickWaiting() && s.g.nask != 0 && s.midResAsk(k) {
+			return // an older queued ask was answered behind the parked pick: the draw instruction stays put
+		}
 		if s.answerQueuedHold(k) {
 			return // zone_untilleavesqask.go: the next held return parked its own ask
 		}

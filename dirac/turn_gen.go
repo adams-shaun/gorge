@@ -575,7 +575,7 @@ func (s *State) runReplProgAs(k *prep, sl Slot, c CardID, ab, pc uint8, src Slot
 			s.restoreRes(&saved, isDrawProgram)
 			return
 		case kop.OpChooseBranch, kop.OpChooseMove:
-			if !s.replAskOp(k, sl, c, ab, i, in) { // repl_enterreveal.go
+			if !s.replAskOp(k, sl, c, ab, i, in, isDrawProgram) { // repl_enterreveal.go, repl_drawpick.go
 				break
 			}
 			s.restoreRes(&saved, isDrawProgram)
@@ -1741,6 +1741,10 @@ func (s *State) answerQueuedAsk(k *prep, a Action) {
 		if !s.enterRevealAnswer(k, ask, a) { // repl_enterreveal.go
 			return // the pick is asked again, or the yes/no became the pick
 		}
+	} else if ask.kind == akDrawPick {
+		if !s.drawPickAnswer(k, ask, a) { // repl_drawpick.go
+			return // the multi-card pick is asked again
+		}
 	} else if ask.kind == akColor || ask.kind == akNumber || ask.kind == akPlayer || isNameAsk(ask.kind) {
 		p.chosen = objWord(a.Mode())
 	} else {
@@ -1758,8 +1762,15 @@ func (s *State) answerQueuedAsk(k *prep, a Action) {
 		s.runReplProg(k, ask.sl, ask.card, uint8(ask.ab), ask.pc)
 		s.g.replaced = saveRep
 		if a := &k.t.Cards[ask.card].Abilities[uint8(ask.ab)]; a.Kind == kop.AbReplacement &&
-			a.Repl.Kind == kop.ReplDrawProgram && s.res.ask == raNone && s.g.nask == n0 {
-			s.drawProgramDone() // the resumed body finished
+			a.Repl.Kind == kop.ReplDrawProgram && s.g.nask == n0 &&
+			(ask.kind == akDrawPick || s.res.ask == raNone) {
+			// the resumed body finished. The DrawProgram pick is posed as the
+			// outer resolution's raGenEnterAsk (drawPickAsked in
+			// repl_drawpick.go) and stays on that resCtx through the answer:
+			// drawPickResume's continueRes is what clears it, so while the
+			// pick is being answered res.ask is never raNone and the ask
+			// kind itself is the "no new ask" proof.
+			s.drawProgramDone()
 		}
 		if ask.ts&askETBDeferred != 0 {
 			s.deferredETBFire(k, ask, n0) // ctr_choice.go
@@ -1901,6 +1912,10 @@ func (s *State) askOptions(k *prep, d *Decision, kind uint8) {
 	}
 	if kind == akEnterReveal || kind == akEnterRevealPick {
 		s.enterRevealOptions(k, d, kind) // repl_enterreveal.go
+		return
+	}
+	if kind == akDrawPick {
+		s.drawPickOptions(k, d) // repl_drawpick.go
 		return
 	}
 	if kind == akMode {
