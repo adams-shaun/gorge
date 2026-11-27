@@ -47,6 +47,10 @@ func (s *State) execCold1(k *prep, in *kop.Instr) (ok, done bool) {
 			s.dmgSrcPlayers(k, in) // players mode (act_damagefrom.go)
 			break
 		}
+		if in.B.N == kop.DmgFromEachAttached {
+			s.dmgSrcAttached(k, in) // the attached-bearer mode (act_damagefrom.go)
+			break
+		}
 		a := s.objRef(k, in.Obj)
 		b := s.objRef(k, kop.Ref(in.C))
 		if a != NoSlot && b != NoSlot && (s.isCreature(k, a) || s.typesAt(k, a)&kop.TPlaneswalker != 0) && (s.isCreature(k, b) || s.typesAt(k, b)&kop.TPlaneswalker != 0) {

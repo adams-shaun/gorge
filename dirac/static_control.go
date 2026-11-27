@@ -644,6 +644,13 @@ func (s *State) opGainControl(k *prep, in *kop.Instr) {
 	} else if sl := s.objRef(k, in.Obj); sl != NoSlot {
 		list[0], n = sl, 1
 	}
+	s.gainControlSlots(k, in, list[:n])
+}
+
+// gainControlSlots is opGainControl's grant over the already-resolved
+// battlefield slots (the group arms and RefTriggerSpellTargets share it).
+func (s *State) gainControlSlots(k *prep, in *kop.Instr, list []Slot) {
+	n := len(list)
 	if n == 0 {
 		return
 	}

@@ -23,6 +23,9 @@ func (lc *lowerCtx) dealDamage(ps *params) error {
 	if n, err = lc.amount(ps, "NumDmg", 0); err != nil {
 		return err
 	}
+	if done, err := lc.dealDamageValidSource(ps, n); done { // lower_damagesourcevalid.go
+		return err
+	}
 	if s, ok := ps.get("DamageSource"); ok {
 		if dmgSrc, err = lc.defined(s); err != nil {
 			return err

@@ -229,6 +229,12 @@ func (ic *instrCtx) opDealDamageFrom() error {
 		ki.C, ki.B = 0, kop.Const(kop.DmgFromEachCtrl)
 		return nil
 	}
+	if in.CS == "eachattached" {
+		// the RepeatEach Aura deals to the permanent it is attached to
+		// (lower_damagesourcevalid.go): B.N DmgFromEachAttached
+		ki.C, ki.B = 0, kop.Const(kop.DmgFromEachAttached)
+		return nil
+	}
 	if in.CS == "anytgt" {
 		// the slot may name a player or a permanent (lower_damagesourceplayers.go)
 		r, err := cb.ref(lRef{Kind: rTarget, N: in.C})

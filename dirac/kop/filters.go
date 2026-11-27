@@ -480,6 +480,10 @@ const (
 	AttToOther     = 4
 	AttToYouCtrl   = 8
 	AttToSrcBearer = 16
+	// AttToTarget: the bearer is one of the resolving entry's object targets
+	// (gorge AttachedTo Card.targetedBy: Disarm and Fulgent Distraction's
+	// "all Equipment attached to target creature(s)").
+	AttToTarget = 32
 )
 
 // W7NoNameTwinGrave (PredWord7 sub-kind 20): the pair "doesNotShareNameWith

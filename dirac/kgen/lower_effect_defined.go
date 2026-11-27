@@ -105,6 +105,14 @@ func (lc *lowerCtx) defined(v string) (lRef, error) {
 		return lRef{Kind: rTargetOwner, N: t}, nil
 	case "ThisTargetedCard":
 		return lc.thisTargetedCard()
+	case "TriggeredSpellAbilityTargets":
+		return lc.triggeredSpellTarget(v) // lower_spelltarget.go
+	case "Valid Card.EquippedByEnchanted":
+		// Artificer's Hex (DB$ Destroy): gorge reads the candidate as the card
+		// EQUIPPED BY the enchanted object, i.e. the creature the Aura's
+		// enchanted Equipment is attached to (effects/filter_attachment.go).
+		// One object, so one kernel reference rather than a filter sweep.
+		return lRef{Kind: rEquippedByEnchanted}, nil
 	case "TriggeredCard", "TriggeredCardLKICopy", "TriggeredCards":
 		// gorge definedSpecTriggeredCard reads the card forms
 		return lRef{Kind: rTriggered}, nil

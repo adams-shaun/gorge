@@ -2953,6 +2953,9 @@ func (lc *lowerCtx) effectAPI(ps *params) error {
 	if serr != nil {
 		return serr
 	}
+	if done, err := lc.effectRememberValidSet(ps, ss); done || err != nil { // lower_effectremember.go
+		return err
+	}
 	if ok, err := lc.noRegenRemembered(ps, ss); ok || err != nil { // lower_noregen.go
 		return err
 	}
@@ -6286,6 +6289,9 @@ func (lc *lowerCtx) changeZoneDefinedSet(ps *params) (bool, error) {
 	}
 	if done, err := lc.definedValidGraveyard(ps); done || err != nil {
 		return true, err
+	}
+	if done, err := lc.changeZoneDefinedValid(ps); done || err != nil {
+		return true, err // lower_definedvalid_set.go
 	}
 	if _, ok := ps.m["DestAltSVar"]; ok {
 		return true, lc.czAltDest(ps)
