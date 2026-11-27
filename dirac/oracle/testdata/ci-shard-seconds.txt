@@ -7,6 +7,12 @@
 # printed no time for (pool-only tests, which skip on a CI clone) keep their old weights. Unlisted tests
 # weigh DEFAULT_SECONDS (0.08, the median of the rest). Refresh from the PASS lines of a green run's parts
 # (the "PASS and SKIP lines" group), or the "slowest tests" lines the CI parts print.
+# 2026-11-27 refresh of the entries below that had drifted (a precheck lane measurement, not the CI run above):
+# the test's leaf-subtest seconds in the 5-lane targeted run, divided by 4.57 (the ratio of that run to this
+# table over the 20 tests both measured, so the scale is this file's); a pool glob (TestStd*ReprosLockstep,
+# TestReproManifest*) ran one 25% slice of its recordings there, so its entry is that x 4. Tests this file
+# did not list that weighed >= 3 s were added; TestRefusedEntriesStillDiverge (4.7 -> 44.7) and the pool globs
+# moved most. scripts/test_targets.py's lanes weigh an unlisted test UNLISTED_SECONDS (0.08), not the median.
 TestAbilityCopyAsksEachChainLink 1.1
 TestAbilityReductionExcessPaysXLockstep 1.1
 TestAbilitycastLockstep 15.2
@@ -497,6 +503,7 @@ TestForetellLockstep 30.1
 TestForetellMutation 3.2
 TestForgetchangedLockstep 23.0
 TestFourSeatGorgeLockstepRunsClean 1.6
+TestFourSeatPlainCensusSacWitnessLockstep 4.0
 TestFreePlaySpellingsLockstep 94.0
 TestFrillbackLockstep 43.5
 TestFullyUnlockLockstep 39.5
@@ -622,6 +629,7 @@ TestLureGrantLockstep 95.0
 TestLureLockstep 29.1
 TestLwaxanaTroiLockstep 13.8
 TestLwaxanaTroiMutation 1.0
+TestMBCAboshanSDesireReprosLockstep 34.3
 TestMBCAnimate1Lowers 16.7
 TestMBCAnimate2Lowers 27.4
 TestMBCApiParams11Lowers 1.4
@@ -632,10 +640,13 @@ TestMBCApiParams3Lowers 2.5
 TestMBCApiParams7Lowers 6.8
 TestMBCApiParams8Lowers 3.6
 TestMBCApiParamsFamilyLowers 1.5
+TestMBCArdenvaleTacticianReprosLockstep 9.9
 TestMBCAzraOddsmakerLowers 11.5
+TestMBCCapsizeReprosLockstep 3.2
 TestMBCChangeTextLowers 7.3
 TestMBCChangeTextReadsStall 4.4
 TestMBCChosenCardStrictLowers 4.5
+TestMBCCobblebruteReprosLockstep 5.3
 TestMBCCombat2Lowers 15.4
 TestMBCCombat4Lowers 17.2
 TestMBCCombat6Lowers 68.2
@@ -646,6 +657,7 @@ TestMBCCosts9Lowers 1.4
 TestMBCCounters1Lowers 48.8
 TestMBCCounters2Lowers 2.8
 TestMBCDamageRedirectLowers 8.6
+TestMBCDiregrafRebirthReprosLockstep 9.9
 TestMBCEffectApi1DoublingMutation 5.0
 TestMBCEffectApi1Lowers 96.5
 TestMBCEffectApi1PreventionMutation 1.2
@@ -656,23 +668,37 @@ TestMBCFilters5Lowers 5.4
 TestMBCFilters6Lowers 2.6
 TestMBCFilters8Lowers 3.7
 TestMBCFilters9Lowers 20.3
+TestMBCFireDragonReprosLockstep 3.6
+TestMBCGeneralTazriReprosLockstep 44.5
+TestMBCInvertReprosLockstep 4.1
+TestMBCKavuAggressorReprosLockstep 7.9
 TestMBCKeywords2Lowers 5.8
 TestMBCKeywords4Lowers 96.0
 TestMBCKeywords5Lowers 10.9
 TestMBCKeywordsElsewhereLockstep 46.3
+TestMBCLavaStormReprosLockstep 23.0
 TestMBCLevelupLowers 59.8
 TestMBCManaAbilities2Lowers 37.2
+TestMBCMercurialPretenderBouncePaidReprosLockstep 3.4
+TestMBCOrzhovaFeeOnlyCensusNotAProofLockstep 40.7
 TestMBCPlayerHeadLowers 18.7
 TestMBCProtection1Lowers 32.1
 TestMBCProtection2Lowers 22.7
 TestMBCProtectionChosenColorLowers 77.6
 TestMBCProtectionManaValueLowers 26.5
+TestMBCReclaimingVinesReprosLockstep 3.2
 TestMBCRepeatEach1Lowers 1.9
 TestMBCReplacements2Lowers 5.3
+TestMBCRudeAwakeningEntwineReprosLockstep 16.4
+TestMBCScorchRiderReprosLockstep 13.8
+TestMBCSolitonReprosLockstep 9.8
+TestMBCStarfleetAcademyReprosLockstep 15.9
 TestMBCStatics2GrantsLowers 14.9
 TestMBCStatics2Lowers 29.4
 TestMBCStatics3Lowers 78.2
 TestMBCStatics5Lowers 2.0
+TestMBCSunscapeMasterReprosLockstep 8.1
+TestMBCSvogthosReproReplaysClean 22.7
 TestMBCTokens1Lowers 12.7
 TestMBCTokens2Lowers 14.9
 TestMBCTriggerReferents10Lowers 4.3
@@ -685,6 +711,7 @@ TestMBCTriggerReferents5Lowers 3.5
 TestMBCTriggerReferents6Lowers 41.7
 TestMBCTriggerReferents7Lowers 22.3
 TestMBCTriggersWhenSpentLowers 7.0
+TestMBCTwistedEmbraceReprosLockstep 5.1
 TestMBCValues1Lowers 8.7
 TestMBCValues2Lowers 10.2
 TestMBCValues3Lowers 5.4
@@ -931,7 +958,7 @@ TestReducespellLockstep 12.1
 TestReducespellMutation 3.9
 TestReferentsLockstep 248.3
 TestReflexiveRememberTargetLockstep 13.9
-TestRefusedEntriesStillDiverge 4.7
+TestRefusedEntriesStillDiverge 44.7
 TestRemCtlLockstep 9.4
 TestRememberDestroyedAmountLockstep 19.4
 TestRememberDestroyedAmountMutation 5.7
@@ -954,6 +981,7 @@ TestReplmultLockstep 14.6
 TestReplmultMutation 5.7
 TestReproBanefire 1.3
 TestReproFireballXRaiseLockstep 7.9
+TestReproManifest0 146.6
 TestReproStackRaiseLockstep 5.3
 TestRepulsiveMutationLockstep 7.0
 TestResistanceIsFutileLockstep 16.8
@@ -996,6 +1024,7 @@ TestSagaLockstep 4.5
 TestSagaRememberedLockstep 15.8
 TestSanarInnovativeFirstYearLockstep 9.5
 TestScriptTriggerWithATargetIsPlacedBeforeThePlay 2.4
+TestScriptedStartRepro 6.9
 TestScrysurveilArrangeRestOrder 1.5
 TestScrysurveilLockstep 22.7
 TestScrytallyLockstep 13.2
@@ -1062,30 +1091,30 @@ TestStandardSweepClassesLockstep 21.1
 TestStationLockstep 28.6
 TestStationgrantLockstep 67.0
 TestStdBigReprosLockstep 9.1
-TestStdBlbReprosLockstep 11.7
-TestStdDftReprosLockstep 6.8
-TestStdDskReprosLockstep 11.5
-TestStdEclReprosLockstep 9.5
+TestStdBlbReprosLockstep 44.0
+TestStdDftReprosLockstep 44.8
+TestStdDskReprosLockstep 77.6
+TestStdEclReprosLockstep 67.3
 TestStdEoeReprosLockstep 8.8
-TestStdFdnReprosLockstep 5.2
-TestStdFinReprosLockstep 27.8
-TestStdFraReprosLockstep 3.6
+TestStdFdnReprosLockstep 28.3
+TestStdFinReprosLockstep 130.0
+TestStdFraReprosLockstep 18.1
 TestStdHobReprosLockstep 5.6
-TestStdLciReprosLockstep 4.4
-TestStdMetaGrantedFlashbackReprosLockstep 27.4
+TestStdLciReprosLockstep 39.3
+TestStdMetaGrantedFlashbackReprosLockstep 231.0
 TestStdMetaReprosLockstep 12.2
-TestStdMkmReprosLockstep 16.6
-TestStdMshReprosLockstep 24.5
-TestStdOtjReprosLockstep 7.8
+TestStdMkmReprosLockstep 36.6
+TestStdMshReprosLockstep 281.6
+TestStdOtjReprosLockstep 15.4
 TestStdSetReprosLockstep 20.8
-TestStdSosReprosLockstep 2.0
-TestStdSpmReprosLockstep 5.9
+TestStdSosReprosLockstep 37.3
+TestStdSpmReprosLockstep 67.8
 TestStdTdmReprosLockstep 8.2
 TestStdTlaHybridWindowRestrictedAnyReproLockstep 1.0
 TestStdTlaReprosLockstep 63.7
 TestStdTmtReprosLockstep 2.9
-TestStdTrcReprosLockstep 4.2
-TestStdTrkReprosLockstep 29.0
+TestStdTrcReprosLockstep 6.5
+TestStdTrkReprosLockstep 62.6
 TestStdWoeReprosLockstep 6.8
 TestStdfixLockstep 49.6
 TestStdmechLockstep 60.1

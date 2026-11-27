@@ -903,23 +903,39 @@ def oracle_pools_present():
     return all(os.path.isdir(os.path.join(pools, p, "decks")) for p in ("fdn", "blb"))
 
 
+# The share of a pool glob's (and the manifest's) cost the replay slice plays: slice_lane keeps crc32 % 4 of the
+# recordings, so a sub-run top weighs this fraction of its table cost.
+SLICE_SHARE = 0.25
+
+
+def sub_run_tops(rx, names):
+    """The listed test names a subtest -run's top-level part matches ('A|B/(subs)': go's unanchored match)."""
+    tops = rx.split("/", 1)[0].split("|")
+    return [n for n in names if any(re.search(t, n) for t in tops)]
+
+
 def oracle_lanes(res, names=None, lanes=ORACLE_LANES, weights=None, zero=None):
-    """Deal the ./dirac/oracle replay slice into `lanes` cost-balanced "oraclelane" entries.
+    """Deal the ./dirac/oracle replay slice into `lanes` cost-balanced bins of "oraclelane" entries.
 
     The replay slice is the census and refusal families plus the 25% slice (slice_lane) in one -run, and
     the manifest/pool-glob subtest -run plan appends after the plain entries. In one go test process they
     outran the package's 5m cap on 34 of the last 40 targeted runs (11-27, ~200 top-level tests and a
     ~500 s summed test wall); test-targets.sh runs the entries of kind oraclelane as concurrent processes.
-    The plain entry's selected names are dealt by measured cost (oracle_shard_deal.deal, the deal
-    ci-oracle-shard.sh performs) and each lane is one anchored -run; the subtest entry joins them as it
-    is. Every selected test still runs exactly once: the union of the lanes is the names the single
-    entry matched, and no name the package does not list can run.
+    Both halves are dealt by measured cost (oracle_shard_deal.deal, the deal ci-oracle-shard.sh performs)
+    into the same bins: measured alone on 11-27, the subtest half was 178 s of the slice's ~380 s and, left
+    as one undealt process, was the lane that hit the cap. A bin is one -run for its plain tests (^(a|b)$)
+    and one for its subtest tops (^(A|B)$/(subs): a '/' in -run filters every test the pattern matches, so
+    the subtest tops never share a process with the plain ones). Every selected test still runs exactly
+    once: the union of the bins is the names the entries matched, and no name the package does not list
+    can run.
 
     names is the package's test list (oracle_test_names); None lists it lazily. weights is the
     "<test> <seconds>" table (dirac/oracle/testdata/ci-shard-seconds.txt); a test it does not list
-    weighs the table's median, never zero. zero is the names that weigh nothing (the pool-only tests
-    when no deck pools are on disk). When the slice cannot be dealt (no test list) every entry is left
-    as it was, so a broken listing never runs less. Every other package and entry is untouched."""
+    weighs oracle_shard_deal.UNLISTED_SECONDS, the table's own default (it lists only tests of >= 1 s;
+    the old table median, ~14 s, made every sub-second test outweigh the real ones). A subtest top weighs
+    SLICE_SHARE of its table cost. zero is the names that weigh nothing (the pool-only tests when no deck
+    pools are on disk). When the slice cannot be dealt (no test list) every entry is left as it was, so a
+    broken listing never runs less. Every other package and entry is untouched."""
     picks = [i for i, (kind, pkg, rx) in enumerate(res)
              if pkg == ORACLE and kind == "named" and "/" not in rx and REFUSED in rx]
     if not picks:
@@ -932,22 +948,38 @@ def oracle_lanes(res, names=None, lanes=ORACLE_LANES, weights=None, zero=None):
     selected = [n for n in names if re.search(rx, n)]  # go's -run: an unanchored match on the top-level name
     if not selected:
         return res
+    subs = [i for i, (kind, pkg, srx) in enumerate(res) if pkg == ORACLE and kind == "named" and "/" in srx]
+    sub_tops = {i: sub_run_tops(res[i][2], names) for i in subs}
     if weights is None:
         weights = oracle_shard_deal.read_weights()
     if zero is None:
         zero = set() if oracle_pools_present() else oracle_shard_deal.read_zero()
-    by_part = {}
-    for part, name, _ in oracle_shard_deal.deal(selected, weights, lanes, default=None, zero=zero):
-        by_part.setdefault(part, []).append(name)
-    dealt = [("oraclelane", ORACLE, "^%s$" % "|".join(by_part[p])) for p in sorted(by_part)]
+    dflt = oracle_shard_deal.UNLISTED_SECONDS
+    # one item per plain test and per (sub entry, top): the sub items are keyed so a test in both halves
+    # (none today) is dealt once as each
+    cost = {}
+    for n in selected:
+        cost[("p", n)] = 0.0 if n in zero else weights.get(n, dflt)
+    for i, tops in sub_tops.items():
+        for n in tops:
+            cost[("s%d" % i, n)] = 0.0 if n in zero else weights.get(n, dflt) * SLICE_SHARE
+    keys = sorted(cost)
+    flat = {"%s:%s" % k: cost[k] for k in keys}
+    bins = {}
+    for part, name, _ in oracle_shard_deal.deal(list(flat), flat, lanes, default=dflt, zero=frozenset()):
+        kind, n = name.split(":", 1)
+        bins.setdefault(part, {}).setdefault(kind, []).append(n)
     out = []
     for i, entry in enumerate(res):
         if i == picks[0]:
-            out.extend(dealt)
-        elif entry[1] == ORACLE and entry[0] == "named" and "/" in entry[2]:
-            # the replay slice's own subtest -run (manifest and pool globs, filtered to the slice): the same
-            # concurrent group, its -run unchanged
-            out.append(("oraclelane", ORACLE, entry[2]))
+            out.extend(("oraclelane", ORACLE, "^(%s)$" % "|".join(sorted(bins[p]["p"])))
+                       for p in sorted(bins) if "p" in bins[p])
+        elif i in sub_tops and not sub_tops[i]:
+            out.append(("oraclelane", ORACLE, entry[2]))  # its tops are not listed: left whole, never dropped
+        elif i in sub_tops:
+            sub = entry[2].split("/", 1)[1]
+            out.extend(("oraclelane", ORACLE, "^(%s)$/%s" % ("|".join(sorted(bins[p]["s%d" % i])), sub))
+                       for p in sorted(bins) if "s%d" % i in bins[p])
         else:
             out.append(entry)
     return out

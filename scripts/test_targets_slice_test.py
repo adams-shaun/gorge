@@ -226,14 +226,23 @@ def test_lanes_partition_the_replay_selection_exactly():
     assert 1 < len(lanes) <= tt.ORACLE_LANES
     got = []
     for _, rx in lanes:
-        assert rx.startswith("^") and rx.endswith("$"), rx
-        got.extend(rx[1:-1].split("|"))
+        assert rx.startswith("^(") and rx.endswith(")$"), rx  # anchored: a name never matches as a substring
+        got.extend(rx[2:-2].split("|"))
     assert sorted(got) == sorted(before), "the lanes must cover the single-process selection exactly once"
-    # the subtest -run (manifest and pool globs, filtered to the slice) joins the concurrent lanes as it was
+    # the subtest -run (manifest and pool globs, filtered to the slice) is dealt too: its tops are split across
+    # the lanes (anchored, so the manifest's shards are named), every lane keeps the subtest filter as it was
     assert manifest_rx(res) is not None
+    mtop, msub = manifest_rx(res).split("/", 1)
     subs = [(k, rx) for k, p, rx in laned if p == "./dirac/oracle" and "/" in rx]
-    assert subs == [("oraclelane", manifest_rx(res))]
-    assert len(laned) == len(res) - 1 + len(lanes)  # nothing else moved
+    assert subs and all(k == "oraclelane" and rx.split("/", 1)[1] == msub for k, rx in subs)
+    got_tops = []
+    for _, rx in subs:
+        top = rx.split("/", 1)[0]
+        assert top.startswith("^(") and top.endswith(")$"), rx
+        got_tops.extend(top[2:-2].split("|"))
+    want_tops = [n for n in names if any(re.search(t, n) for t in mtop.split("|"))]
+    assert want_tops and sorted(got_tops) == sorted(want_tops), "each subtest top runs in exactly one lane"
+    assert len(laned) == len(res) - 2 + len(lanes) + len(subs)  # nothing else moved
 
 
 def test_lanes_deal_by_cost_and_leave_an_undealtable_slice_alone():
