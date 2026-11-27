@@ -4484,18 +4484,45 @@ func (lc *lowerCtx) gainControl(ps *params) error {
 	if ps.is("Untap", "True") {
 		flags = append(flags, "Untap")
 	}
+	var gcKeywords, gcAttackLines []string
 	if k, ok := ps.get("AddKWs"); ok {
-		ks, err := pumpKeywords(k)
+		rest, attackLines, err := splitAttackKwGrant(k) // lower_attackkwgrant.go
 		if err != nil {
 			return err
 		}
-		if len(ks) != 1 || ks[0] != "Haste" {
+		var ks []string
+		if strings.TrimSpace(rest) != "" {
+			if ks, err = pumpKeywords(rest); err != nil {
+				return err
+			}
+		}
+		if len(attackLines) > 0 {
+			// Flayer of Loyalties: `AddKWs$ Haste & Trample & Annihilator:2`
+			// beside LoseControl$ EOT. gorge keeps an AddKWs$ grant for as
+			// long as the control effect lives; on an end-of-turn record the
+			// pump's until-end-of-turn keyword grant (OpGrantKeyword) and the
+			// latent Attacks trigger riding an end-of-turn override record
+			// (lower_attackkwgrant.go, the Reckless Pyrosurfer arm) expire at
+			// exactly the same moment, so each listed keyword and
+			// attack-trigger line rides those two proven arms. Any other
+			// lifetime keeps the refusal below.
+			if dur != "EOT" {
+				return refuse("GainControl AddKWs %q with LoseControl %q", k, lcv)
+			}
+			for _, s := range ks {
+				if !simpleKeywords[s] {
+					return refuse("GainControl AddKWs %q: keyword %q", k, s)
+				}
+			}
+			gcKeywords, gcAttackLines = ks, attackLines
+		} else if len(ks) != 1 || ks[0] != "Haste" {
 			// gorge grants AddKWs$ for as long as the control effect lasts;
 			// the kernel has haste only: until end of turn (GcHasteEOT) or
 			// for as long as the control record lives (GcHasteEOT on a longer duration)
 			return refuse("GainControl AddKWs %q with LoseControl %q", k, lcv)
+		} else {
+			flags = append(flags, "kw="+strings.Join(ks, "&"))
 		}
-		flags = append(flags, "kw="+strings.Join(ks, "&"))
 	}
 	if rc, ok := ps.get("RememberControlled"); ok {
 		// gorge effGainControl: each permanent whose control was registered
@@ -4517,6 +4544,21 @@ func (lc *lowerCtx) gainControl(ps *params) error {
 		in.C = int(to.Kind)<<8 | to.N
 	}
 	lc.emit(in)
+	if len(gcKeywords) > 0 {
+		// the AddKWs$ terms live until end of turn -- the same lifetime the
+		// end-of-turn control record has (gorge AddKWs$ beside LoseControl$
+		// EOT, the Flayer of Loyalties shape; the pump's own arm, instr_pump.go)
+		lc.emit(lInstr{Op: "GrantKeyword", Obj: obj, CS: strings.Join(gcKeywords, "&")})
+	}
+	for _, line := range gcAttackLines {
+		// the granted Annihilator N's latent Attacks Self trigger rides an
+		// end-of-turn override record beside the control record
+		idx, err := lc.attackKwGrantTrigger(line) // lower_attackkwgrant.go
+		if err != nil {
+			return err
+		}
+		lc.emitOverride(obj, &lOverride{GrantAbility: []int{idx}}, "EOT")
+	}
 	return nil
 }
 
