@@ -133,6 +133,24 @@ func newFixtureDeck(t *testing.T, seed uint64, fixtureSrc string, extras ...stri
 // Config carries no Spare.
 func newFixtureDeckSpare(t *testing.T, sp *Spare, seed uint64, fixtureSrc string, extras ...string) (*Engine, Config, state.ObjID) {
 	t.Helper()
+	return newFixtureDeckN(t, sp, seed, 2, fixtureSrc, extras...)
+}
+
+// newFixtureDeckSeats is newFixtureDeck at `seats` seats (2..4): seat 0 holds
+// the fixture and extras, every other seat a 40-card Mountain deck; names are
+// "a", "b", "c", "d".
+func newFixtureDeckSeats(t *testing.T, seed uint64, seats int, fixtureSrc string, extras ...string) (*Engine, Config, state.ObjID) {
+	t.Helper()
+	return newFixtureDeckN(t, nil, seed, seats, fixtureSrc, extras...)
+}
+
+// newFixtureDeckN is the worker behind newFixtureDeckSpare (two seats) and
+// newFixtureDeckSeats: the same fixture board at `seats` seats (2..4).
+func newFixtureDeckN(t *testing.T, sp *Spare, seed uint64, seats int, fixtureSrc string, extras ...string) (*Engine, Config, state.ObjID) {
+	t.Helper()
+	if seats < 2 || seats > 4 {
+		t.Fatalf("newFixtureDeckN: seats = %d, want 2..4", seats)
+	}
 	fixture := card(t, fixtureSrc)
 	name := fixture.Faces[0].Name
 	deck := []*cards.Card{fixture}
@@ -142,11 +160,18 @@ func newFixtureDeckSpare(t *testing.T, sp *Spare, seed uint64, fixtureSrc string
 	var e *Engine
 	var cfg Config
 	build := func(s uint64) Config {
-		return Config{Seed: s, Names: []string{"a", "b"},
-			Decks: [][]*cards.Card{
-				append(append([]*cards.Card{fixture}, deck[1:]...), mountainDeck(t, 40-len(deck))...),
-				mountainDeck(t, 40),
-			},
+		names := make([]string, seats)
+		decks := make([][]*cards.Card, seats)
+		for p := range names {
+			names[p] = string(rune('a' + p))
+			if p == 0 {
+				decks[p] = append(append([]*cards.Card{fixture}, deck[1:]...), mountainDeck(t, 40-len(deck))...)
+				continue
+			}
+			decks[p] = mountainDeck(t, 40)
+		}
+		return Config{Seed: s, Names: names,
+			Decks: decks,
 			// Non-nil (not just the zero value) so a caller that mints a test
 			// fixture into the live game via a logged TokenCreate event (for a second card replayFromLog could otherwise never reconstruct -- see this function's own doc above)
 			// shares the same map between e.G.Tokens and the cfg this function
