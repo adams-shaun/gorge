@@ -901,9 +901,14 @@ func TestDeadlyRollickAltCostGatedOnCommanderPresence(t *testing.T) {
 // the free cast is denied, never silently widened.
 func TestAlternativeCostValidPlayerScopesTheOffer(t *testing.T) {
 	t.Parallel()
+	// A self-carried alternative cost is encoded ValidCard$ Card.Self (or
+	// ValidSA$ Spell.Self, or with an EffectZone$); a bare ValidSA$ Spell is
+	// a battlefield GRANT to other spells and is not offered for itself
+	// (Fist of Suns). This test pins the ValidPlayer$ rider, so it uses the
+	// explicit self encoding.
 	freebie := card(t, "Name:Freebie\nManaCost:1 U\nTypes:Instant\n"+
 		"A:SP$ Draw | Defined$ You | NumCards$ 1\n"+
-		"S:Mode$ AlternativeCost | ValidSA$ Spell | ValidPlayer$ You | Cost$ 0\nOracle:x\n")
+		"S:Mode$ AlternativeCost | ValidCard$ Card.Self | ValidPlayer$ You | Cost$ 0\nOracle:x\n")
 	e := handEngine(t, freebie)
 	freeID := e.G.Zone(state.ZHand, 0)[0]
 
