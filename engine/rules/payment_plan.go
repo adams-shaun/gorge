@@ -354,9 +354,14 @@ func planCastPaymentCheckedBody(b *planCastBody, p state.PlayerID, cast decision
 		// The mana abilities run first (CR 601.2g-h), so a source that
 		// sacrifices itself can use up what an additional cost must sacrifice.
 		parts, _ := planCostParts(cost, cast.Object, false)
-		return e.planReserving(p, cast.Object, cost, false, false, parts, func(tapR, keptR []state.ObjID) PaymentPlanOutcome {
+		out := e.planReserving(p, cast.Object, cost, false, false, parts, func(tapR, keptR []state.ObjID) PaymentPlanOutcome {
 			return pay.PlanPaymentCostWithout(asPayer(e), p, cast, c, d, tapR, nil, keptR)
 		})
+		// Alternatives are for a plain mana cost: the search's other plans
+		// are not held to the reservation, and could spend what the cost
+		// itself taps or sacrifices.
+		e.PlanAlts = nil
+		return out
 	}
 	out := planManaUnderRider(asPayer(e), p, e.G.Players[p].Life, cast, mana, rider, plan)
 	if len(cost.Phyrexian) != 0 {
@@ -426,13 +431,15 @@ func castPlanPhyrexianReplan(pe pay.Engine, w castPlanReplan, p state.PlayerID, 
 			// sacrifices itself can use up what an additional cost must
 			// sacrifice.
 			parts, _ := planCostParts(cost, cast.Object, false)
-			return w.planReserving(p, cast.Object, cost, false, false, parts, func(tr, kr []state.ObjID) PaymentPlanOutcome {
+			out := w.planReserving(p, cast.Object, cost, false, false, parts, func(tr, kr []state.ObjID) PaymentPlanOutcome {
 				all := tr
 				if len(tapR) != 0 {
 					all = append(append([]state.ObjID(nil), tr...), tapR...)
 				}
 				return pay.PlanPaymentCostWithout(pe, p, cast, c, d, all, nil, kr)
 			})
+			pe.Session().PlanAlts = nil // as in plan: no alternatives beside a tap or sacrifice cost
+			return out
 		}
 	}
 	excluded := make([]state.ObjID, 0, len(half.Plan.Activations))

@@ -510,8 +510,10 @@ func PlanOtherSacShape(part cost.CostPart) bool {
 		return false
 	}
 	spec := strings.ToLower(strings.TrimSpace(SacrificeMatchSpec(part.Spec)))
-	base, _, _ := strings.Cut(spec, ".")
-	return base == "creature"
+	// The closed shape dirac's planOtherSacFilter admits: a plain creature,
+	// or "another" one. Any other qualifier (".black;Creature.Artifact",
+	// ".token", ".namedX") stays manual.
+	return spec == "creature" || spec == "creature.other"
 }
 
 // PlanLastResortChoices is phase 2's alternative table (spec 5): every
