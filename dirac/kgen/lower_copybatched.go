@@ -19,10 +19,10 @@ func (lc *lowerCtx) copyBatchedAttacking(ps *params, picked bool, flags *[]strin
 	if _, err := lc.tokenAttacking(v); err != nil {
 		return err
 	}
-	// the kernel's copyEnterAttacking (copy_picked.go) attacks
-	// nextSeat(ctrl); gorge asks the CR 508.4 choose:player
-	// question, so the reduction is exact at two seats only.
-	lc.twoSeat("RepeatEach batched copy enters attacking the next seat, not gorge's CR 508.4 defender ask")
+	// the kernel's copyEnterAttacking resolves TokenAttacking$ True through
+	// the same CR 508.4 ask: the batched loop is a resumable frame
+	// (act_repeatcards.go), so the copy's defender pick parks it before the
+	// copy enters. The reading is seat-exact.
 	*flags = append(*flags, "Attacking")
 	return nil
 }
