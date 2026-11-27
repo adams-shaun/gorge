@@ -194,8 +194,6 @@ var knownUnknownFilterPredicates = []string{
 	"Imprinted",
 	"IsUnearthed",
 	"LostLifeThisTurn",
-	"ManaCost0",
-	"ManaCost1",
 	"ManaCost=Equipped",
 	"ManaCost=Imprinted",
 	"ManaSpent EQ0",

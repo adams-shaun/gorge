@@ -1,0 +1,6 @@
+family: FilterWord
+name: FwManaCostEQ
+value: next
+contexts: perm,card
+status: active
+doc: FwManaCostEQ: the object prints a mana cost whose mana value is Arg (gorge's ManaCost<N> predicate, engine/effects/filter_manacost.go; Urza's Saga Chapter III's Artifact.ManaCost0,Artifact.ManaCost1). Unlike FwCMCCmp EQ it needs a printed mana cost at all (CR 202.1b: a land prints none, mana value 0 but no cost {0}), so a "no cost" card, a face-down object (CR 708.2) and a copy that loses its cost never match.
