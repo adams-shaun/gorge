@@ -1,0 +1,14 @@
+# the granted mana alternative cost pool: Fist of Suns' {W}{U}{B}{R}{G} for
+# any spell (Channel the Suns floats all five colours) and Rooftop Storm's {0} for Zombie creature spells
+# (dirac/oracle/altcost_grant_test.go)
+Fist of Suns
+Rooftop Storm
+Walking Corpse
+Channel the Suns
+Grizzly Bears
+Plains
+Island
+Swamp
+Mountain
+Forest
+Blaze
