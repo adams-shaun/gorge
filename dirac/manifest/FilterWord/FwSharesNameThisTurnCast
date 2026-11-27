@@ -1,0 +1,6 @@
+family: FilterWord
+name: FwSharesNameThisTurnCast
+value: next
+contexts: perm,card,spell
+status: active
+doc: FwSharesNameThisTurnCast: the object shares a printed name with a spell cast this turn by any player (gorge sharesNameWith ThisTurnCast, the referent bound from the cast ledger, engine/effects/filter_this_turn_cast.go; Twinning Glass's Play Valid$ Card.nonLand+sharesNameWith ThisTurnCast). The referents are the cast ring's pushes this turn (dirac/cast_castledger.go), every seat's, a reversed cast (CR 733.1) skipped, each read where it lives now. A face-down candidate has no name (CR 708.2). Only the positive spelling lowers: gorge's negated form fails closed on an empty ledger.
