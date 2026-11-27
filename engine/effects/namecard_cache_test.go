@@ -125,8 +125,18 @@ func TestInternNameUniverseNamesSharesEqualLists(t *testing.T) {
 // type-signature walk) to the per-card matcher walk on the real corpus, for
 // the imaged universe and a plain-slice one, every pure spec word, strict
 // and not, with and without a ChooseFromList$.
-func TestNameChoicesPureMatchesFiltered(t *testing.T) {
-	reg := testutil.CorpusRegistry(t)
+//
+// nameChoicesPureChunks is how many parallel tests that sweep (2 universes x
+// 108 specs x 2 lists x strict/loose) is sharded into. Run as one serial test
+// it was 54 s under gate contention -- over half the package's wall and at the
+// one-minute per-test budget -- so chunk c owns the strided spec slice
+// specs[c], specs[c+K], ... in every universe. Every comparison is kept; only
+// the sharding is new.
+const nameChoicesPureChunks = 8
+
+// nameChoicesPureSpecs is the pure spec word list crossed with the modifier
+// list the walker must agree on.
+func nameChoicesPureSpecs() []string {
 	words := []string{"Card", "Creature", "Land", "Artifact", "Enchantment", "Planeswalker", "Instant", "Sorcery", "Battle"}
 	mods := []string{"", ".nonLand", ".nonBasic", ".Basic", ".Legendary", ".Snow", ".nonCreature", ".nonArtifact+nonLand",
 		".Land+nonBasic", ".Artifact+Creature", ".nonLegendary+Creature", ".nonSnow+Land"}
@@ -136,23 +146,79 @@ func TestNameChoicesPureMatchesFiltered(t *testing.T) {
 			specs = append(specs, w+m)
 		}
 	}
+	return specs
+}
+
+// nameChoicesPureChunk returns the indices of chunk c's specs.
+func nameChoicesPureChunk(n, c int) []int {
+	var out []int
+	for i := c; i < n; i += nameChoicesPureChunks {
+		out = append(out, i)
+	}
+	return out
+}
+
+// runNameChoicesPureChunk pins one shard of the pure-vs-filtered sweep.
+func runNameChoicesPureChunk(t *testing.T, c int) {
+	t.Parallel()
+	reg := testutil.CorpusRegistry(t)
+	specs := nameChoicesPureSpecs()
+	idx := nameChoicesPureChunk(len(specs), c)
 	for _, u := range []*cards.Universe{reg.Universe(), cards.UniverseOf(reg.AllCards())} {
 		g := state.NewGame(names(2))
 		g.NameUniverse = u
 		g.NameUniverseNames = NameUniverseNames(u)
-		for _, spec := range specs {
+		for _, i := range idx {
+			spec := specs[i]
 			if !pureNameSpec(spec) {
-				t.Fatalf("pureNameSpec(%q) = false", spec)
+				t.Errorf("pureNameSpec(%q) = false", spec)
+				continue
 			}
 			for _, list := range []string{"", "Island,Forest,Black Lotus"} {
 				for _, strict := range []bool{false, true} {
 					want := nameChoicesFiltered(g, spec, list, strict, nil)
 					got := nameChoicesPure(g, spec, list, strict, nil)
 					if !slices.Equal(got, want) {
-						t.Fatalf("spec %q list %q strict %v: pure %d names, filtered %d", spec, list, strict, len(got), len(want))
+						t.Errorf("spec %q list %q strict %v: pure %d names, filtered %d", spec, list, strict, len(got), len(want))
 					}
 				}
 			}
 		}
+	}
+}
+
+func TestNameChoicesPureMatchesFilteredChunk00(t *testing.T) { runNameChoicesPureChunk(t, 0) }
+func TestNameChoicesPureMatchesFilteredChunk01(t *testing.T) { runNameChoicesPureChunk(t, 1) }
+func TestNameChoicesPureMatchesFilteredChunk02(t *testing.T) { runNameChoicesPureChunk(t, 2) }
+func TestNameChoicesPureMatchesFilteredChunk03(t *testing.T) { runNameChoicesPureChunk(t, 3) }
+func TestNameChoicesPureMatchesFilteredChunk04(t *testing.T) { runNameChoicesPureChunk(t, 4) }
+func TestNameChoicesPureMatchesFilteredChunk05(t *testing.T) { runNameChoicesPureChunk(t, 5) }
+func TestNameChoicesPureMatchesFilteredChunk06(t *testing.T) { runNameChoicesPureChunk(t, 6) }
+func TestNameChoicesPureMatchesFilteredChunk07(t *testing.T) { runNameChoicesPureChunk(t, 7) }
+
+// TestNameChoicesPureChunksPartitionTheSpecs holds the sharding to full
+// coverage: one TestNameChoicesPureMatchesFilteredChunkN per chunk, and every
+// spec index in exactly one chunk.
+func TestNameChoicesPureChunksPartitionTheSpecs(t *testing.T) {
+	const n = 1003 // any size: the stride covers every index for every n
+	for _, size := range []int{0, 1, nameChoicesPureChunks - 1, nameChoicesPureChunks, n} {
+		seen := make([]int, size)
+		for c := 0; c < nameChoicesPureChunks; c++ {
+			for _, i := range nameChoicesPureChunk(size, c) {
+				seen[i]++
+			}
+		}
+		for i, k := range seen {
+			if k != 1 {
+				t.Fatalf("n=%d: spec %d is in %d chunks", size, i, k)
+			}
+		}
+	}
+	if tests := len([]func(*testing.T){TestNameChoicesPureMatchesFilteredChunk00,
+		TestNameChoicesPureMatchesFilteredChunk01, TestNameChoicesPureMatchesFilteredChunk02,
+		TestNameChoicesPureMatchesFilteredChunk03, TestNameChoicesPureMatchesFilteredChunk04,
+		TestNameChoicesPureMatchesFilteredChunk05, TestNameChoicesPureMatchesFilteredChunk06,
+		TestNameChoicesPureMatchesFilteredChunk07}); tests != nameChoicesPureChunks {
+		t.Fatalf("%d chunk tests for %d chunks", tests, nameChoicesPureChunks)
 	}
 }
