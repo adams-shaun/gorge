@@ -5,7 +5,6 @@ import (
 	"io"
 
 	"github.com/adams-shaun/gorge/dirac/kop"
-	"github.com/adams-shaun/gorge/engine/effects"
 )
 
 // gainsAbilitiesOf lowers a Continuous static's GainsAbilitiesOf$ (CR
@@ -25,9 +24,9 @@ import (
 // (static_gainsof.go gainedOffer) and its mana abilities
 // (mana_gainedgrants.go), and prep's StallGainsOf pair refuses the matchup
 // when a lender actually carries an ability the walk does not model. An
-// artifact or land source stays refused: Mirran Safehouse's graveyard lands
-// lend mana abilities whose payment tap order the kernel does not match
-// (lockstep: the gainsof pool diverges on which source taps).
+// artifact or land source lowers like any other (Mirran Safehouse's
+// graveyard lands, Trazyn's artifacts; the animategainsof lockstep pool
+// plays Safehouse's lent mana abilities beside real lands).
 func (lc *lowerCtx) gainsAbilitiesOf(sp *params, st *lStatic, _ string) error {
 	spec, ok := sp.get("GainsAbilitiesOf")
 	if !ok {
@@ -59,15 +58,6 @@ func (lc *lowerCtx) gainsAbilitiesOf(sp *params, st *lStatic, _ string) error {
 	}
 	if f.Players != 0 || len(f.Clauses) == 0 {
 		return refuse("GainsAbilitiesOf$ %q: a player alternative", spec)
-	}
-	for _, c := range f.Clauses {
-		// a clause with no card type must name a creature type (Elf) or no
-		// subtype at all: a subtype-only "Equipment" or "Forest" matches an
-		// artifact or a land
-		creatSub := c.Types == 0 && c.Subtype != "" && effects.CreatureTypeWords(c.Subtype)
-		if c.Types&(tArtifact|tLand) != 0 || c.Types == 0 && c.Subtype != "" && !creatSub {
-			return refuse("GainsAbilitiesOf$ %q: artifact or land sources", spec)
-		}
 	}
 	if offField {
 		return refuse("GainsAbilitiesOfZones$ %q", z)

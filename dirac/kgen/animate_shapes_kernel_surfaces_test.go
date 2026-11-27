@@ -44,6 +44,7 @@ var fullyLowered = map[string]bool{
 	"Llanowar Greenwidow":      true,
 	"Geth, Thane of Contracts": true,
 	"Territory Forge":          true,
+	"Mirran Safehouse":         true,
 	"Mystic Decree":            true,
 	"Depthshaker Titan":        true,
 }
@@ -52,19 +53,6 @@ func TestAnimateShapesKernelSurfacesSlice(t *testing.T) {
 	for _, name := range animateShapesKernelSurfacesCarriers {
 		c := lowerNamedCard(t, name)
 		want := kernelSurfaceRefusal[name]
-		if name == "Mirran Safehouse" {
-			// its graveyard land lenders' mana abilities diverge from gorge on
-			// which source taps (lockstep, the animategainsof pool): the typed
-			// artifact/land refusal stays until that payment order is modelled
-			found := false
-			for _, r := range c.Refusals {
-				found = found || strings.Contains(r.Reason, "artifact or land sources")
-			}
-			if !found {
-				t.Errorf("%s refusals = %v, want the artifact or land sources refusal", name, c.Refusals)
-			}
-			continue
-		}
 		for _, r := range c.Refusals {
 			if strings.Contains(r.Reason, want) {
 				t.Errorf("%s still refuses its %s class: %v", name, want, r)
@@ -81,7 +69,7 @@ func TestAnimateShapesKernelSurfacesSlice(t *testing.T) {
 			if !strings.Contains(overrideLIR(c), "exileonleave") {
 				t.Errorf("%s: override lacks the Replacements$ leave-to-exile field:\n%s", name, overrideLIR(c))
 			}
-		case "Territory Forge":
+		case "Territory Forge", "Mirran Safehouse":
 			if !strings.Contains(got, "gainsof=") {
 				t.Errorf("%s: lowered IR lacks gainsof=:\n%s", name, got)
 			}
