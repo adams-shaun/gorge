@@ -14,6 +14,7 @@ import (
 // kremparamsAccepted are the carriers that lower and
 // build: 21 Std-20 cards plus Titania's Command, Sunfall and Zephyr Sentinel.
 var kremparamsAccepted = []string{
+	"Screaming Nemesis", // the damaged-player life-gain lock folds into the damage (lower_lockgain.go)
 	"Elixir", "Clive, Ifrit's Dominant", "Jill, Shiva's Dominant", "Stiltzkin, Moogle Merchant",
 	"Hotshot Investigators", "Unyielding Gatekeeper", "Steamcore Scholar",
 	"Arid Archway", "Nurturing Pixie", "Neutralize the Guards",
@@ -33,7 +34,6 @@ var kremparamsAccepted = []string{
 // refusal each must carry.
 var kremparamsRefused = []struct{ card, why string }{
 	{"Sonic Shrieker", "RememberDamaged$ with a remembered player observed"},
-	{"Screaming Nemesis", "RememberDamaged$ with a remembered player observed"},
 	{"Vanish into Memory", ""},
 	{"Stolen Uniform", "RememberObjects"},
 }

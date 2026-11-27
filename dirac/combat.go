@@ -1735,6 +1735,9 @@ func (s *State) gainLife(k *prep, p uint8, n int) {
 		return
 	}
 	if k.gen != nil && k.gen.anyCantGain && s.playerBanned(k, kop.StatCantGainLife, p) {
+		if s.lifePreventCompetes(k, p) {
+			s.stall(StallLifeRepl) // static_lifeprevent.go: gorge asks the CR 616.1 order
+		}
 		return // static_cantdraw.go: swallowed before any gain replacement
 	}
 	if k.gen != nil && k.gen.anyRepl&(rbDblLife|rbPlusLife) != 0 {

@@ -1435,11 +1435,22 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 				return refuse("IsPresent2$ with %s", k)
 			}
 		}
-		f, err := lc.filter(ip2)
-		if err != nil {
-			return err
+		if strings.TrimSpace(ip2) == "Card.Self" {
+			// the source object itself is on the battlefield, by identity as
+			// gorge reads it (an object keeps its id through a flicker in
+			// response, which the kernel's per-version Self filter would not)
+			conds = append(conds, lCond{Kind: cSourceZone, Zone: uint8(zBattlefield)})
+		} else {
+			f, err := lc.filter(ip2)
+			if err != nil {
+				return err
+			}
+			conds = append(conds, lCond{Kind: cPresent, F: f, Op: opGE, A: cst(1)})
 		}
-		conds = append(conds, lCond{Kind: cPresent, F: f, Op: opGE, A: cst(1)})
+	}
+	exclConds, err := lc.triggerExcludedOrigins(t, tp) // lower_excludedorigins.go
+	if err != nil {
+		return err
 	}
 	if tp.is("Threshold", "True") {
 		conds = append(conds, lCond{Kind: cThreshold})
@@ -1489,6 +1500,15 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 	}
 	if err := echoGate(tp, tr, ab, &conds, noResolve || fireOnly || giftSelf); err != nil { // lower_echo.go
 		return err
+	}
+	if len(exclConds) > 0 { // lower_excludedorigins.go
+		var checkOnce bool
+		if conds, bodyGuard, checkOnce, err = exclOriginsSplit(exclConds, conds, bodyGuard, fireOnly || noResolve || giftSelf); err != nil {
+			return err
+		}
+		if checkOnce {
+			ab.Name = "CheckOnTriggerOnly"
+		}
 	}
 	switch len(conds) {
 	case 0:

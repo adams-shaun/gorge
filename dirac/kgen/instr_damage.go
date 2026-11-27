@@ -52,6 +52,9 @@ func (ic *instrCtx) opDealDamage() error {
 	if _, ok := fl["Remember"]; ok {
 		c |= kop.DmgRemember
 	}
+	if _, ok := fl["LockGain"]; ok {
+		c |= kop.DmgLockGain // lower_lockgain.go
+	}
 	if _, ok := fl["ExileIfDealt"]; ok {
 		c |= kop.DmgExileIfDealt
 	}

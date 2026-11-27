@@ -452,6 +452,7 @@ func (p *perm) subCtrN(s *State, c, n int) {
 const (
 	pmDrewEmpty uint8 = 1 << iota // CR 704.5b: the next state-based check loses the seat
 	pmLostPass                    // lost in the pass now running, not yet swept: its graveyard still counts for that pass's scan (beginSBAPass, markPassLosses)
+	pmNoGain                      // can't gain life for the rest of the game (DmgLockGain; playerBanned reads it)
 )
 
 // player is one seat.

@@ -1,0 +1,33 @@
+# hosted Commander Effect-delivered statics and replacements (the lockstep
+# carriers for dirac/oracle/hostedcmdr_effectstatic_lockstep_test.go): the
+# Effect-delivered life-gain lock (Roiling Vortex) and the printed blanket
+# gain-life prevention (Sulfuric Vortex), beside the life-gain sources they
+# swallow
+Roiling Vortex
+Sulfuric Vortex
+Lone Missionary
+Healer's Hawk
+Soulmender
+Savannah Lions
+Rhox Faithmender
+Grizzly Bears
+Hill Giant
+Plains
+Mountain
+Forest
+# a self enters trigger that excludes the graveyard and exile origins ("Name
+# Sticker" Goblin's ExcludedOrigins$), beside the reanimate, flicker and
+# discard cards that put it onto the battlefield from those zones
+"Name Sticker" Goblin
+Zombify
+Cloudshift
+Faithless Looting
+Swamp
+Unsummon
+Island
+Reanimate
+# damaged-player life-gain lock (Screaming Nemesis: it is dealt damage and deals
+# that much to a target; a player so damaged can't gain life for the rest of
+# the game), beside the burn that damages it and the life-gain sources
+Screaming Nemesis
+Lightning Bolt
