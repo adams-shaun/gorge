@@ -76,6 +76,34 @@ func graveyardSelfAltCost(st *cards.Static) bool {
 	return false
 }
 
+// alternativeCostGrantToOtherSpells reports whether an AlternativeCost
+// static grants its alternative to spells its own card need not be part of:
+// a bare ValidSA$ Spell (matching every spell) with no Card.Self in
+// ValidCard$. That is a battlefield continuous effect (CR 113.6) -- Fist of
+// Suns, Rooftop Storm, Leyline of Mutation -- which the activeStatics walk
+// offers for other cards' casts while the source is on the battlefield; read
+// on its own card in hand it would pay for itself. Everything else is the
+// card's own alternative cost: ValidCard$ Card.Self, ValidSA$ Spell.Self, or
+// neither rider (the shorthand the free-cast tests print).
+func alternativeCostGrantToOtherSpells(params map[string]string) bool {
+	bareSpell := false
+	for tok := range strings.SplitSeq(strings.TrimSpace(params["ValidSA"]), ",") {
+		if strings.TrimSpace(tok) == "Spell" {
+			bareSpell = true
+			break
+		}
+	}
+	if !bareSpell {
+		return false
+	}
+	for tok := range strings.SplitSeq(strings.TrimSpace(params["ValidCard"]), ",") {
+		if strings.TrimSpace(tok) == "Card.Self" {
+			return false
+		}
+	}
+	return true
+}
+
 // faceHasGraveyardSelfAltCost reports whether f carries a self-carried
 // AlternativeCost static scoped to the graveyard. The ir probe first: a face
 // with no EffectZone$ key anywhere cannot have one.
@@ -174,12 +202,15 @@ func (e *Engine) alternativeCosts(p state.PlayerID, id state.ObjID) []altCostVie
 				if st.Mode != "AlternativeCost" {
 					continue
 				}
-				if st.ParamStr(cards.PKEffectZone) == "" {
-					// No EffectZone$: the static functions on the battlefield
-					// only (CR 113.6), where the activeStatics walk above
-					// already priced it. Read here it would let Fist of Suns
-					// in hand pay {W}{U}{B}{R}{G} for itself, and Rooftop
-					// Storm in hand {0} for itself, a grant to other spells.
+				if st.ParamStr(cards.PKEffectZone) == "" && alternativeCostGrantToOtherSpells(st.Params) {
+					// A no-EffectZone$ static that grants a bare ValidSA$ Spell
+					// functions on the battlefield only (CR 113.6), where the
+					// activeStatics walk above already priced it for other
+					// cards' casts. Read on its own card in hand it would let
+					// Fist of Suns pay {W}{U}{B}{R}{G} for itself and Rooftop
+					// Storm {0} for itself. The self-carried forms (ValidCard$
+					// Card.Self, ValidSA$ Spell.Self, or neither rider) are the
+					// card's own alternative cost and stay.
 					continue
 				}
 				if !e.alternativeCostScopeOK(st.Params, id, id, p, o.Controller) {
