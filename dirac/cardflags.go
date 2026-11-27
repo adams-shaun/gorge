@@ -10,38 +10,40 @@ package dirac
 // still allocates nothing.
 
 const (
-	gfEnterRepl   uint32 = 1 << iota // ReplEntersProgram on the card
-	gfOthersRep                      // ReplOthersEnterProgram on the card
-	gfLifeRepl                       // ReplCantLoseGame / ReplOppsCantWinGame (reserved; no reader today)
-	gfCDAPT                          // StatCDAPT
-	gfOvrStat                        // a StatOverride static
-	gfLoseStat                       // an override static that removes abilities (Witness Protection)
-	gfGlobOvr                        // an override static not limited to the source's host (Maha, Ygra)
-	gfSubGrant                       // a Continuous subtype grant
-	gfCtrlStat                       // a StatControl static (static_control.go)
-	gfContGrant                      // a Continuous grant of a mana ability not limited to its host
-	gfDivCard                        // a target slot whose damage divides
-	gfEachCol                        // smallRecs.eachCol is set
-	gfRestr                          // smallRecs.restr is set
-	gfAnyR                           // smallRecs.anyR is set
-	gfFilt                           // smallRecs.filt is set
-	gfGapOther                       // smallRecs.gapOther is set
-	gfManaVar                        // the card has a dynamic-amount planner view (varPC)
-	gfManaGate                       // gated mana ability: varPC holds the gate-off and gate-on views (mana_gate.go)
-	gfGlobGrant                      // a Continuous static Grant not limited to the source's host (globalGrantsGen)
-	gfManaRefl                       // reflected mana: varPC holds one view per reflected colour set (mana_reflected.go)
-	gfRestrSrc                       // a restricted mana ability the payment planner counts per payment (gorge; mana_restrictedsource.go)
-	gfRestrScript                    // a restricted source that is a scripted-prefix gap (smallRecs.restr set and not a gfRestrSrc one)
-	gfShockEntry                     // the enters program opens with the shock land's pay-life election (repl_shockland.go)
-	gfFiltFee                        // a filter whose fee a reducer may take to nothing: varPC holds the fee-paid and fee-free views (mana_filterfree.go)
-	gfSpendRd                        // a Tf2CastSpent or Tf3CastConverge reader: gorge's planner prices no cast while it is out (trig_castmanaspent.go)
-	gfCtrAdd                         // an ExCtrAdded Self reader (ctr_addedthisturn.go)
-	gfDeferred                       // a TriggersWhenSpent$ mana source gorge's planner defers (Pyromancer's Goggles; kop.Ability.ManaDeferred; mana_deferred.go)
-	gfTapsDefer                      // a TrigTaps watcher classed kop.TapPlanDefer: its tapped mana source is a payment tier gorge defers (mana_tapsdefer.go)
-	gfTapsPain                       // a TrigTaps watcher classed kop.TapPlanPain: its tapped mana source is a last-resort unit (mana_tapsdefer.go)
-	gfEtbOrder                       // the card's own enter body is exactly one prepared line the CR 616.1 entry-order ask orders (repl_etborder.go)
-	gfManaDynPair                    // a plain {T} mana ability beside an evaluated one of its colour: varPC holds one view per count (mana_dynpair.go)
-	gfDiscHand                       // a discard-hand, sacrifice-this, instant-only mana ability (Lion's Eye Diamond): a prefix-search gap alone (mana_discardhand.go)
+	gfEnterRepl    uint64 = 1 << iota // ReplEntersProgram on the card
+	gfOthersRep                       // ReplOthersEnterProgram on the card
+	gfLifeRepl                        // ReplCantLoseGame / ReplOppsCantWinGame (reserved; no reader today)
+	gfCDAPT                           // StatCDAPT
+	gfOvrStat                         // a StatOverride static
+	gfLoseStat                        // an override static that removes abilities (Witness Protection)
+	gfGlobOvr                         // an override static not limited to the source's host (Maha, Ygra)
+	gfSubGrant                        // a Continuous subtype grant
+	gfCtrlStat                        // a StatControl static (static_control.go)
+	gfContGrant                       // a Continuous grant of a mana ability not limited to its host
+	gfDivCard                         // a target slot whose damage divides
+	gfEachCol                         // smallRecs.eachCol is set
+	gfRestr                           // smallRecs.restr is set
+	gfAnyR                            // smallRecs.anyR is set
+	gfFilt                            // smallRecs.filt is set
+	gfGapOther                        // smallRecs.gapOther is set
+	gfManaVar                         // the card has a dynamic-amount planner view (varPC)
+	gfManaGate                        // gated mana ability: varPC holds the gate-off and gate-on views (mana_gate.go)
+	gfGlobGrant                       // a Continuous static Grant not limited to the source's host (globalGrantsGen)
+	gfManaRefl                        // reflected mana: varPC holds one view per reflected colour set (mana_reflected.go)
+	gfRestrSrc                        // a restricted mana ability the payment planner counts per payment (gorge; mana_restrictedsource.go)
+	gfRestrScript                     // a restricted source that is a scripted-prefix gap (smallRecs.restr set and not a gfRestrSrc one)
+	gfShockEntry                      // the enters program opens with the shock land's pay-life election (repl_shockland.go)
+	gfFiltFee                         // a filter whose fee a reducer may take to nothing: varPC holds the fee-paid and fee-free views (mana_filterfree.go)
+	gfSpendRd                         // a Tf2CastSpent or Tf3CastConverge reader: gorge's planner prices no cast while it is out (trig_castmanaspent.go)
+	gfCtrAdd                          // an ExCtrAdded Self reader (ctr_addedthisturn.go)
+	gfDeferred                        // a TriggersWhenSpent$ mana source gorge's planner defers (Pyromancer's Goggles; kop.Ability.ManaDeferred; mana_deferred.go)
+	gfTapsDefer                       // a TrigTaps watcher classed kop.TapPlanDefer: its tapped mana source is a payment tier gorge defers (mana_tapsdefer.go)
+	gfTapsPain                        // a TrigTaps watcher classed kop.TapPlanPain: its tapped mana source is a last-resort unit (mana_tapsdefer.go)
+	gfEtbOrder                        // the card's own enter body is exactly one prepared line the CR 616.1 entry-order ask orders (repl_etborder.go)
+	gfManaDynPair                     // a plain {T} mana ability beside an evaluated one of its colour: varPC holds one view per count (mana_dynpair.go)
+	gfDiscHand                        // a discard-hand, sacrifice-this, instant-only mana ability (Lion's Eye Diamond): a prefix-search gap alone (mana_discardhand.go)
+	gfTrigProduced                    // an ability reads the SharesProducedColour filter word: objTrigGen carries the mana tap's produced colours in the queued Taps trigger's amount (filter_sharesproducedcolour.go)
+	gfManaSacPair                     // a plain {T} mana ability beside its {T}, sacrifice-this larger alternative: the planner's pair, its wider unit sac'd as it pays (mana_sacpair.go)
 )
 
 // cardSmall is a card's sparse generated-table values, all -1 when absent.
@@ -62,10 +64,10 @@ type cardSmall struct {
 }
 
 // has reports whether the card carries flag f.
-func (g *genPrep) has(c CardID, f uint32) bool { return g.flags[c]&f != 0 }
+func (g *genPrep) has(c CardID, f uint64) bool { return g.flags[c]&f != 0 }
 
 // setFlag adds flag f to the card.
-func (g *genPrep) setFlag(c CardID, f uint32) { g.flags[c] |= f }
+func (g *genPrep) setFlag(c CardID, f uint64) { g.flags[c] |= f }
 
 // small returns the card's sparse record, nil when it carries none.
 func (g *genPrep) small(c CardID) *cardSmall {

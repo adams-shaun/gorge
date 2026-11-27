@@ -2029,6 +2029,9 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 				if pc.wideN != 0 && rv[i] == 0 && k.gen != nil && k.gen.anyGatePair && k.gen.flags[s.cardAt(sl)]&(gfManaGate|gfManaDynPair) != 0 && debugGatedPair != 2 && s.restrPairUnit(k, sl, pc, pk, i, false, -1) {
 					continue // a gated same-colour larger ability: the pair, its larger alternative ordinary mana (mana_gate.go)
 				}
+				if pc.wideN != 0 && rv[i] == 0 && k.gen != nil && k.gen.anySacPair && k.gen.has(s.cardAt(sl), gfManaSacPair) && !pk.kept.has(sl) && s.sacPairUnit(k, sl, pc, pk, i) {
+					continue // the {T}, sacrifice-this larger alternative: the pair, its wider unit sac'd as it pays (mana_sacpair.go)
+				}
 				cr := s.isCreature(k, sl)
 				dmk := mask
 				if dm[i] != 0 {
