@@ -20,7 +20,9 @@ queue_rules:
     merge_method: merge
 
 merge_queue:
-  max_parallel_checks: 2
+  # One runner pool: two concurrent batch suites halve each other's throughput and
+  # neither finishes inside the rebuild window, so run one suite at a time.
+  max_parallel_checks: 1
 
 # A fix for a red main jumps the queue: push it on a hotfix/* branch and it is batched first. Only the `hotfix` label
 # also interrupts a running batch (11-24: with every hotfix/* branch interrupting, auto-revert drafts and script fixes
