@@ -238,6 +238,10 @@ func (lc *lowerCtx) cloakEachRememberedController(ps *params) error {
 	if !lc.remLKIEach {
 		return refuse("Cloak DefinedPlayer$ RememberedController without a multi-target RememberLKI$ move")
 	}
+	// the guard admits exactly this Cloak as the multi-target move's reader, so
+	// the flag is spent here: a later Cloak in another ability of the same card
+	// must not inherit it.
+	lc.remLKIEach = false
 	for _, k := range []string{"Choices", "ValidLibrary"} {
 		if _, ok := ps.m[k]; ok {
 			return refuse("Cloak DefinedPlayer$ RememberedController with %s$", k)

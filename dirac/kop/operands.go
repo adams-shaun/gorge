@@ -512,8 +512,10 @@ const RetDelayedMany = RetShuffleOwed
 // Semester's End's return of the delayed remembered set, and each entering
 // creature gets one +1/+1 counter while each planeswalker gets one loyalty
 // counter (the as-enters replacement gorge registers on the same set). A
-// permanent of neither type enters plain.
-const RetDelayedTypeCtr = 1 << 11
+// permanent of neither type enters plain. Its bit is the sign bit, which no
+// Origin$ zone bit (1<<ZoneNone..1<<ZoneAny) and no OpReturnEx B.N flag uses,
+// so it cannot alias RetAttachTo (1<<11) or RetUnderOpponent (1<<12).
+const RetDelayedTypeCtr = -0x8000
 
 // RetCounterPairShift: an OpReturnEx whose WithCountersType$ names two kinds
 // (Perennation) carries its constant A as count | (second kind + 1)<<8 (read

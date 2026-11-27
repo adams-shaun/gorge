@@ -1872,13 +1872,15 @@ func (s *State) execReturnObj(k *prep, in *kop.Instr, host Slot, o Obj) bool {
 	if fl&kop.MvUnderYourControl != 0 {
 		ctrl = e.ctrl
 	}
-	if in.B.N&kop.RetUnderOpponent != 0 {
+	if in.Op == kop.OpReturnEx && in.B.N&kop.RetUnderOpponent != 0 {
 		ctrl = s.retUnderOppSeat(e.ctrl) // GainControl$ ChosenPlayer (kop.RetUnderOpponent; zone_returndefender.go)
 	}
-	if in.W != kop.RefNone {
+	if in.W != kop.RefNone && in.B.N&kop.RetAttachW == 0 {
 		// GainControl$ Player.IsRemembered inside an OpRepeatEachPlayer
 		// body: the card enters under the repeated player (Thieves'
-		// Auction, kgen's W ref).
+		// Auction, kgen's W ref). RetAttachW reads W as the AttachedTo$
+		// bearer Ref instead (Gift of Immortality's delayed return), so it
+		// is not a player.
 		if p := s.playerRef(k, in.W); p != 255 {
 			ctrl = p
 		}
@@ -1886,7 +1888,7 @@ func (s *State) execReturnObj(k *prep, in *kop.Instr, host Slot, o Obj) bool {
 	if z == kop.ZoneBattlefield && fl&kop.MvTransformed != 0 {
 		s.enterTransformed(k, o)
 	}
-	if z == kop.ZoneBattlefield && host == NoSlot && in.B.N&kop.RetAttachTo != 0 {
+	if z == kop.ZoneBattlefield && host == NoSlot && in.Op == kop.OpReturnEx && in.B.N&kop.RetAttachTo != 0 {
 		var stay bool
 		if host, stay = s.czAttachHost(k, in, o, ctrl); stay { // AttachedTo$ (zone_originalternative.go)
 			return s.res.ask == raGenCzBearer // the filter bearer's ask (tgt_attachedto.go)
@@ -1921,15 +1923,22 @@ func (s *State) execReturnObj(k *prep, in *kop.Instr, host Slot, o Obj) bool {
 	if k.gen != nil && k.gen.anyMayLimit {
 		s.countMayPlayLand(k, o, from)
 	}
-	if in.B.N&kop.RetDelayedTypeCtr != 0 {
+	if in.Op == kop.OpReturn && in.B.N&kop.RetDelayedTypeCtr != 0 {
 		// Semester's End's return: a creature enters with a +1/+1 counter, a
-		// planeswalker with a loyalty counter (the Effect's Moved replacement)
+		// planeswalker with a loyalty counter (the Effect's Moved replacement).
+		// A card of both types gets both (the pair's second kind rides kind2,
+		// as a Return's WithCountersType$ pair does).
 		s.g.enterCtr.n, s.g.enterCtr.kind, s.g.enterCtr.kind2 = 0, 0, 0
-		switch {
-		case k.cards[s.objs[o].card].types&kop.TCreature != 0:
-			s.g.enterCtr.n, s.g.enterCtr.kind = 1, kop.CtrP1P1
-		case k.cards[s.objs[o].card].types&kop.TPlaneswalker != 0:
-			s.g.enterCtr.n, s.g.enterCtr.kind = 1, kop.CtrLoyalty
+		types := k.cards[s.objs[o].card].types
+		if types&kop.TCreature != 0 {
+			s.g.enterCtr.n, s.g.enterCtr.kind, s.g.enterCtr.kind2 = 1, kop.CtrP1P1, 0
+		}
+		if types&kop.TPlaneswalker != 0 {
+			if s.g.enterCtr.n == 0 {
+				s.g.enterCtr.n, s.g.enterCtr.kind = 1, kop.CtrLoyalty
+			} else {
+				s.g.enterCtr.kind2 = uint8(kop.CtrLoyalty) + 1
+			}
 		}
 	} else if n, k2 := returnEntryCount(s.value(k, in.A), in.A); n > 0 {
 		s.g.enterCtr.n, s.g.enterCtr.kind, s.g.enterCtr.kind2 = uint8(n), kop.CounterKind(in.B.N), k2
@@ -1957,7 +1966,7 @@ func (s *State) execReturnObj(k *prep, in *kop.Instr, host Slot, o Obj) bool {
 	}
 	if host != NoSlot && s.occ.has(host) {
 		s.attachedTo(k, sl, host)
-	} else if host == NoSlot && in.B.N&kop.RetAttachTo != 0 && in.F != 0 {
+	} else if host == NoSlot && in.Op == kop.OpReturnEx && in.B.N&kop.RetAttachTo != 0 && in.F != 0 {
 		return s.czBearerAfter(k, in, o) // an Equipment's filter bearer is asked after it enters (tgt_attachedto.go)
 	}
 	return false

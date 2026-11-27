@@ -1390,7 +1390,7 @@ RetAttachTo	untyped int	2048
 RetAttachW	untyped int	128
 RetCounterPairShift	untyped int	8
 RetDelayedMany	untyped int	8192
-RetDelayedTypeCtr	untyped int	2048
+RetDelayedTypeCtr	untyped int	-32768
 RetFaceDown	untyped int	256
 RetFromLibrary	untyped int	16384
 RetShuffleOwed	untyped int	8192
