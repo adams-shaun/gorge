@@ -662,6 +662,9 @@ func (s *State) runProg(k *prep) {
 	if k.gen != nil && s.drawBodyEnd() {
 		return // a parked draw body's program is done (repl_drawbody.go)
 	}
+	if k.gen != nil && s.drawBodyEndRes(k) {
+		return // a body parked at the spell's OpDraw ends: the outer context returns and the draw loop goes on (repl_drawbody.go)
+	}
 	if k.gen != nil && s.payETBGate(k) {
 		return // the pay-before-entering program paid: the resolution re-runs to enter the card (repl_paybeforeetb.go)
 	}
