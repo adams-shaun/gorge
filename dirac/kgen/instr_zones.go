@@ -61,6 +61,14 @@ func (ic *instrCtx) opExile() error {
 	if (in.Obj.Kind == rTriggered || in.Obj.Kind == rTriggeredNew) && fl["from"] == "Graveyard" {
 		ki.C |= kop.MvFromGraveyard
 	}
+	if _, ok := fl["DelayedMany"]; ok {
+		// a DpMany delayed program's whole remembered set (Mirror-Style
+		// Master): exile every object the entry names (dirac/trig_delayedmany.go).
+		// The body stays the ordinary battlefield-origin exile shape
+		// (RefDelayedRemembered with only MvFromBattlefield): the kernel
+		// recognizes it there, so no extra C bit is needed.
+		ki.Op = kop.OpExileEx
+	}
 	return nil
 }
 
