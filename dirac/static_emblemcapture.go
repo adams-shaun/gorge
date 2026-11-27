@@ -18,7 +18,13 @@ func (s *State) embCaptureOK(k *prep, emb uint8, sl Slot) bool {
 		return false // a player capture has no object statics
 	}
 	if e.Capture == kop.RefNone {
-		return true
+		if !e.CaptureRem {
+			return true
+		}
+		// a remembered-set emblem's static (Promise of Loyalty's CantAttack)
+		// reaches the set's members, and with CaptureCtr only while the
+		// object still holds a counter of that kind (gorge ForgetCounter$)
+		return s.embRemHolds(p, i, s.perms[sl].obj) && (e.CaptureCtr == 0 || s.perms[sl].ctrN(s, int(e.CaptureCtr)) > 0)
 	}
 	return int(s.embNum(p, i)) == int(s.perms[sl].obj)+1
 }

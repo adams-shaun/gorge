@@ -40,7 +40,13 @@ func (lc *lowerCtx) putCounterChoices(ps *params) error {
 	// adder (putCounterPlacerFor, emitPutCounterChange). Any other value, or one
 	// outside a mid-resolution ChoosePlayer's ability, refuses unread.
 	chooser, placer := lRef{Kind: rYou}, lRef{}
-	if v, ok := ps.get("Chooser"); ok {
+	if v, ok := ps.get("Chooser"); ok && lc.repeatPl > 0 && strings.TrimSpace(v) == "Player.IsRemembered" {
+		// a RepeatEach player body: the repeated player picks among the
+		// creatures they control and is the counters' adder (Promise of
+		// Loyalty; vowElectionNode admits only that spelling)
+		chooser = lRef{Kind: rEach}
+		ps.consume("Chooser")
+	} else if ok {
 		r, ok := lc.chosenPlayerResDefined(v)
 		if !ok {
 			return refuse("PutCounter Choices$ with Chooser$ %q", v)
@@ -49,7 +55,10 @@ func (lc *lowerCtx) putCounterChoices(ps *params) error {
 		ps.consume("Chooser")
 		spec = chosenPlayerCtrlFilter(spec)
 	}
-	if v, ok := ps.get("Placer"); ok {
+	if v, ok := ps.get("Placer"); ok && lc.repeatPl > 0 && strings.TrimSpace(v) == "Player.IsRemembered" {
+		placer = lRef{Kind: rEach}
+		ps.consume("Placer")
+	} else if ok {
 		r, ok := lc.chosenPlayerResDefined(v)
 		if !ok {
 			return refuse("PutCounter Choices$ with Placer$ %q", v)
