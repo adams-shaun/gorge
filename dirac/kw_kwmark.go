@@ -234,7 +234,6 @@ func (s *State) infectGranted(k *prep, sl Slot) bool {
 // one.
 func (s *State) hasSkulkPerm(k *prep, sl Slot) bool {
 	c := s.cardAt(sl)
-	return c != kop.NoCard && k.t.Cards[c].Evasion&kop.EvSkulk != 0 && !s.faceDown(k, sl) &&
-		s.perms[sl].ovr.flags&(ovLoseAll|ovLoseAllEOT) == 0 ||
+	return c != kop.NoCard && k.t.Cards[c].Evasion&kop.EvSkulk != 0 && !s.genLost(k, sl) ||
 		k.gen != nil && k.gen.anyEvasionGrant && s.evasionGranted(k, sl)&kop.EvSkulk != 0
 }
