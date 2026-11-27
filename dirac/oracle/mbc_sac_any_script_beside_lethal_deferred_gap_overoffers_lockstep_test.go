@@ -14,10 +14,17 @@ const sacAnyScriptRepro = "sac_any_script_beside_lethal_deferred_gap_overoffers"
 // the stack while the repeatable sac-any asks branch per creature, and every
 // priority node of that subtree has a pass child whose resolving trigger kills
 // p0 (life 1). gorge counts that dead child as a node (scriptSearch.visit counts
-// before it sees the game over), so its 164-node budget dies before the
+// before it sees the game over), so a small node budget dies before the
 // Altar-only line is reached and it offers no Spiked Ripsaw equip at decision
 // 614 (CR 603.2, 104.3a, 605.3b). The kernel's tap-another search did not tick
 // for the dead child and priced the equip at its 136th node.
+//
+// At the shared potentialScriptNodes budget gorge reaches Drana, Kalastria
+// Bloodchief's cast too (two Altar sacrifices and the land, 190 nodes). The
+// kernel's any-mana candidate walk withheld that cast at 1 life under Burning
+// Earth (plainCastPainOK), where the gaps walk lists it, so it never searched
+// it; on a closed sacrifice-any bound the candidates are both walks' plays
+// (unionGapsWalk).
 func TestMBCSacAnyScriptBesideLethalDeferredGapLockstep(t *testing.T) {
 	r, err := ReadRepro(filepath.Join("testdata", "repro", sacAnyScriptRepro+".repro.json"))
 	if err != nil {

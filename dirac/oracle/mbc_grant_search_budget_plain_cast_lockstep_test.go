@@ -7,7 +7,7 @@ import "testing"
 // Forest, an Island and Wooded Bastion's "{T}: Add {C}". Gorge's legal walk
 // prices the cast from its availability census, which counts the grants, and
 // offers it; the kernel's plain offer gate does too, but grantCap then re-ran
-// its 160-node grant search over the four gap sources. That search counted
+// its potentialScriptNodes grant search over the four gap sources. That search counted
 // Viridian Acolyte's first-and-only filter fee as an extra funding step on an
 // unrelaxable census that does not carry it, so its bound was one too high
 // and it ran out of budget. The fixed funding count matches the census and

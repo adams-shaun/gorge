@@ -14,7 +14,7 @@ import (
 
 // TestCtrGapBesideFeeFilterFeeOrder: Vivid Grove and Vivid Marsh (counter-cost
 // any-colour gaps) beside Izzet Signet ({1},{T}: {U}{R}, a fee gap) and four
-// Islands. gorge's plain prefix run spends its 160 nodes on the fee's branches;
+// Islands. gorge's plain prefix run spends its potentialScriptNodes budget on the fee's branches;
 // its fee-order run then finds {B}{B} (Marsh's {B}, Grove's counter) in 15. The
 // kernel's feeOrderFallback used to decline with any other gap on the board and
 // offered neither cast.

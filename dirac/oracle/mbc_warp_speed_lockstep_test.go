@@ -8,7 +8,7 @@ const warpSpeedRepro = "filter_five_unit_fee_script_budget_exhausted"
 // sacrificing itself) is payable only through Starfleet Academy's
 // "{5}, {T}: Add X mana of one colour" filter, fed by five other lands.
 // Gorge's prefix search walks the filter's five-unit fee through every land's
-// colour ask and exhausts its 160-node budget (plain and phased) with no
+// colour ask and exhausts its potentialScriptNodes budget (plain and phased) with no
 // script, so it offers pass alone at decision 681 (std-trk pair 128, seed
 // 697578). The kernel's filter search used to fund the line in 9 nodes: its
 // freeBranchHopeless prune (#2670) skipped the dead free branches gorge walks.

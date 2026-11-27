@@ -14,7 +14,7 @@ import "testing"
 //
 // CR 605.3a with CR 605.3b: with one Swamp untapped, Dauthi Embrace's {B}{B}
 // is payable only through School of the Unseen's {2},{T} filter, and gorge
-// leaves it unpriced and unoffered: its 160-node prefix search spends the
+// leaves it unpriced and unoffered: its potentialScriptNodes prefix search spends the
 // budget on funding lines before the two-Mountain one, because Karplusan
 // Forest's mana ask lists {C}, {R} and {G} (the painful ability is no cost).
 // The kernel funded with Karplusan's {C} alone, reached the paying line and
@@ -23,7 +23,7 @@ import "testing"
 //
 // CR 605.3a with CR 601.2h: the same Dauthi Embrace {B}{B}, with Holdout
 // Settlement's tap-an-untapped-creature ask, School of the Unseen's filter and
-// Karplusan Forest all untapped, outruns gorge's 160-node search; the kernel's
+// Karplusan Forest all untapped, outruns gorge's potentialScriptNodes search; the kernel's
 // filter search found the paying line and offered the activation (decision 385
 // of the tail-42 autopay game, pair 11, seed 786007;
 // dauthi_tapx_filter_budget).

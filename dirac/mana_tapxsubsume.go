@@ -9,7 +9,7 @@ package dirac
 // so each line through it is dominated by the same line through a lacking
 // one (CR 601.2g-h, 605.1a). General Tazri's {W}{U}{B}{R}{G} beside five
 // Prism tokens under Diamond Kaleidoscope's "Sacrifice a Prism token: Add one
-// mana of any color": the plain search spends its 160 nodes on the Prisms'
+// mana of any color": the plain search spends its potentialScriptNodes budget on the Prisms'
 // repeated colours (five candidates by five colours per activation); the
 // subsume run answers each ask with a colour still owed and finds the five
 // activations in as many nodes.

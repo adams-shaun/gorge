@@ -3,7 +3,7 @@ package oracle
 import "testing"
 
 // CR 601.2b, 605.3b: a counter-cost gap (Vivid Marsh, Vivid Grove) beside a fee filter (Izzet Signet's
-// {1},{T}: {U}{R}) on a board of five Islands. gorge's plain prefix run spends its whole 160-node budget
+// {1},{T}: {U}{R}) on a board of five Islands. gorge's plain prefix run spends its whole potentialScriptNodes budget
 // walking the fee's branches and finds no script; its fee-order run (covered funding first, then the
 // fee-carrying gaps, then the free ones) pays {B}{B} for A-The Meathook Massacre and {2}{B}{B} for
 // Phyrexian Defiler in 15 nodes. The kernel declined the fee-order run whenever any other gap was on the

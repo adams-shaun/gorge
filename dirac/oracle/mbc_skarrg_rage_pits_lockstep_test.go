@@ -14,7 +14,7 @@ const skarrgRagePitsRepro = "skarrg_rage_pits_pump_offer"
 // color"), the board's one green source, with a Mountain funding the Star's
 // {1}. Gorge's planner prices no filter from its census, so its prefix search
 // runs for the activation. The search tries the Star's red answer first, a dead
-// line, and spends its whole 160-node budget on that line's draw triggers (two
+// line, and spends its whole potentialScriptNodes budget on that line's draw triggers (two
 // Tolarian Krakens, each asking whether to pay {1} and for a target) before it
 // reaches green: the play is "unsupported census_incomplete" and withheld,
 // while the kernel's mirror walks a far smaller trigger tree, reaches green at

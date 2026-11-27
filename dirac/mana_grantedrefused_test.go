@@ -9,17 +9,20 @@ import (
 )
 
 // TestFilterSearchDoesNotRepriceAGrantRefusedActivation: beside Great Divide
-// Guide's grant, Rumble Arena's filter and the Cub's watcher, Earthen Ally's
+// Guide's grant and Rumble Arena's filter, Earthen Ally's
 // "{2}{W}{U}{B}{R}{G}: Earthbend 5" costs more than the printed census holds
 // (Jasmine Dragon Tea Shop's any-colour unit answers only an Ally play, the
-// pool holds a {C}). grantCap's grant search exhausts gorge's 160-node budget
-// on the play and refuses. Gorge searched the play once, so the kernel's
-// filter search must not price it again on a fresh budget: legal.go caps the
-// refused play (grantCap's capSpent) and scriptOffers skips it there. Its
-// funding would be the granted mana — the printed census cannot pay it
-// (affordsUngrantedPlay), and the filter search lists the granted sources as
-// other gaps (mana_mixgaps.go's live-grant block) — so a second search that
-// did not see the grant would price the very play the cap drops.
+// pool holds a {C}). The board keeps no Badgermole Cub: its TapsForMana watcher
+// floats an extra {G} that lets the grant search price the play inside
+// potentialScriptNodes (600) nodes, ending the budget refusal this test pins.
+// grantCap's grant search exhausts that budget on the play and refuses. Gorge
+// searched the play once, so the kernel's filter search must not price it
+// again on a fresh budget: legal.go caps the refused play (grantCap's
+// capSpent) and scriptOffers skips it there. Its funding would be the granted
+// mana — the printed census cannot pay it (affordsUngrantedPlay), and the
+// filter search lists the granted sources as other gaps (mana_mixgaps.go's
+// live-grant block) — so a second search that did not see the grant would
+// price the very play the cap drops.
 func TestFilterSearchDoesNotRepriceAGrantRefusedActivation(t *testing.T) {
 	deck := []cardset.Entry{
 		{Name: "Great Divide Guide", Count: 1}, {Name: "Rumble Arena", Count: 1}, {Name: "Earthen Ally", Count: 1},
@@ -40,7 +43,7 @@ func TestFilterSearchDoesNotRepriceAGrantRefusedActivation(t *testing.T) {
 	sc := newScenTableLib(t, tbl, id["Island"], Config{NoElide: true})
 	sl := map[string]Slot{}
 	for _, n := range []string{"Great Divide Guide", "Rumble Arena", "Earthen Ally", "Jasmine Dragon Tea Shop",
-		"Badgermole Cub", "Badgermole Cub", "Badgermole Cub", "Meditation Pools", "Plains", "Mountain", "White Lotus Hideout"} {
+		"Meditation Pools", "Plains", "Mountain", "White Lotus Hideout"} {
 		o := sc.perm(id[n], 0)
 		sl[n] = sc.slot(o)
 	}

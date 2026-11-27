@@ -19,7 +19,7 @@ import (
 // Four makers ("{T}: Add {B}"; "{T}, Remove a charge counter: Add one mana
 // of any color", one counter on each) beside a {G}{G}{U}{U}{U}{U} play: the plain
 // run's descent through the printed {B} answers (which pay nothing) exhausts
-// its 160-node budget, and the unpruned subsume run's colour asks keep every
+// its potentialScriptNodes budget, and the unpruned subsume run's colour asks keep every
 // colour, so it exhausts the same way. Pruned, each maker's colour ask keeps
 // {G} and {U} while they lack them: the run walks B, B, G, U, U and pays.
 func TestGrantSubsumeCtrGapPrune(t *testing.T) {

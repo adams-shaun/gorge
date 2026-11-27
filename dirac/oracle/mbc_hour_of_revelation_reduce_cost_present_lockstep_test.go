@@ -6,7 +6,7 @@ import "testing"
 // full, seed 813294, recorded shrunk game; decision 683): p0 has nine lands, six
 // untapped, and with six lands The World Tree lets every land tap for one mana of
 // any colour (CR 601.2f, 106.1b), so the six pay the cost. gorge's prefix search
-// over the nine census gaps once spent its 160-node budget (potentialScriptNodes)
+// over the nine census gaps once spent its potentialScriptNodes budget
 // and left the cast census_incomplete, so only the kernel offered it. gorge now
 // answers a mana grant's gate once per walk, the cast is priced and offered by both
 // sides, and the recorded game replays clean.
