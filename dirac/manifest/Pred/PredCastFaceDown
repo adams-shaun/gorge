@@ -1,0 +1,6 @@
+family: Pred
+name: PredCastFaceDown
+value: next
+forge: Spell.isCastFaceDown
+status: active
+doc: PredCastFaceDown: the spell is a face-down cast (gorge Spell.isCastFaceDown, a ReduceCost ValidSpell$ constraint; the kernel's cast marks the object's slot with slotFaceDownSpell while pricing). Obscuring Aether. dirac/statics_gen.go.

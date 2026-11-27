@@ -216,6 +216,16 @@ func (s *State) matchSpellAltCtx(k *prep, fl kop.Filter, c CardID, owner, ctrl u
 	if fl.Zone == kop.ZoneStack {
 		fl.Zone = kop.ZoneNone
 	}
+	if fl.Pred == kop.PredCastFaceDown {
+		// gorge's Spell.isCastFaceDown (a ReduceCost ValidSpell$): the
+		// candidate is being priced as a face-down cast, which the cast
+		// marks on the object's slot (slotFaceDownSpell; cast.go and
+		// adjustCostFaceDown). Everything else still matches.
+		if o == NoObj || s.objs[o].slot != slotFaceDownSpell {
+			return false
+		}
+		fl.Pred = kop.PredNone
+	}
 	if fl.Pred == kop.PredNamedCard {
 		// the card-name property NamedCard (CR 201.4): the candidate shares
 		// the static's source's chosen name, or its emblem's frozen capture

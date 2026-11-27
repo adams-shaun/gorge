@@ -192,6 +192,7 @@ const (
 	cmpHasProtEachColor // hasKeywordProtection:each color: has protection from all five colours (no operator)
 	cmpMonarchCtrl      // ControlledBy Player.isMonarch (CmpN 0) / ControlledBy EnchantedController.!isMonarch (CmpN 1): the controller is / is not the monarch (kop.PredMonarchCtrl; filter_monarch.go; no operator)
 	cmpKickedAlt        // kicked 1 (CmpN 1) / kicked 2 (CmpN 2): the kicker alternative paid (kop.PredKickedAlt; filter_kickedalt.go; no operator)
+	cmpCastFaceDown     // a face-down cast (gorge Spell.isCastFaceDown; ReduceCost ValidSpell$ only). Appended last: the ordinals above are the IR's, so new compares go after it.
 )
 
 // cmpWasCastSpell's CmpN (kernel PredWasCastSpell's PredN): the origin the
@@ -1487,7 +1488,7 @@ func (c *lClause) addNotSub(w string) error {
 
 // bareCmpPreds maps the compare words build.go's clause reads as one
 // argument-less predicate each (kernel sharesCrCmdr is filter_sharescmdr.go).
-var bareCmpPreds = map[uint8]kop.Pred{cmpMonstrous: kop.PredMonstrous, cmpNoCounters: kop.PredNoCounters, cmpMonoColor: kop.PredMonoColor, cmpSharesCrCmdr: kop.PredSharesCrCmdr}
+var bareCmpPreds = map[uint8]kop.Pred{cmpMonstrous: kop.PredMonstrous, cmpNoCounters: kop.PredNoCounters, cmpMonoColor: kop.PredMonoColor, cmpSharesCrCmdr: kop.PredSharesCrCmdr, cmpCastFaceDown: kop.PredCastFaceDown}
 
 // battlefieldPreds maps the compare words build.go's clause reads as one
 // battlefield-only predicate each.
