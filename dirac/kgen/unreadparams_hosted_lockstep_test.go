@@ -9,7 +9,7 @@ import (
 // cli-20261127T065129Z-e7b92793, and continued by
 // cli-20261127T171904Z-e493ca42. Five lower (the lockstep arms live in
 // dirac/oracle's TestUnreadParams*Lockstep and TestHostedCmdrCounterShapes
-// Lockstep, which play each shape against gorge); four stay refused by name,
+// Lockstep, which play each shape against gorge); five stay refused by name,
 // each with kgen's own reason, because the shape needs state the kernel does
 // not carry yet (see unreadHostedRefused).
 
@@ -30,6 +30,9 @@ var unreadHostedLowered = []struct{ name, shape string }{
 //   - Filigree Vector: a remembered target set read by a later PutCounterAll.
 //   - Synth Eradicator: PutCounter Optional$ plus RememberPut$ read by a player-count condition.
 //   - Jeweled Amulet: the noted mana type of the activation cost (Special LastNotedType).
+//   - Quicksilver Elemental: a continuous static gaining the activated abilities of a
+//     remembered-LKI object (GainsAbilitiesOfDefined$ RememberedLKI); the kernel keeps no
+//     per-object borrowed ability list.
 //
 // When one starts to lower, this test fails: move it to unreadHostedLowered
 // and add its lockstep arm in dirac/oracle.
@@ -38,10 +41,11 @@ var unreadHostedRefused = []struct{ name, reason string }{
 	{"Filigree Vector", "unread params [RememberTargets]"},
 	{"Synth Eradicator", "unread params [Optional RememberPut]"},
 	{"Jeweled Amulet", "unread params [RememberCostMana]"},
+	{"Quicksilver Elemental", "Effect RememberObjects"},
 }
 
-// TestUnreadParamsHostedLockstep: the three lowered cards carry no refusal;
-// the six refused ones are still refused, by their own reason.
+// TestUnreadParamsHostedLockstep: the five lowered cards carry no refusal;
+// the five refused ones are still refused, by their own reason.
 func TestUnreadParamsHostedLockstep(t *testing.T) {
 	t.Parallel()
 	var names []string
