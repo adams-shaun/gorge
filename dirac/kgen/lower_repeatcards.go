@@ -110,11 +110,14 @@ func (lc *lowerCtx) repeatEachCards(ps *params) error {
 }
 
 // repeatEachCardsBatch lowers the batched loop's body (ChangeZoneTable$ True):
-// a lone Role Token (the WOE Roles), or one of the two shapes the kernel's
-// inline loop can run: a Token with a body chain (Ezuri's Predation's token
-// then Fight) and a CopyPermanent (Mirror-Style Master). ChooseOrder$ True is
-// read for those two shapes only (kop.RepeatEachOrder): the controller orders
-// the subjects before the loop, as gorge's repeatEachChooseOrder asks.
+// a lone Role Token (the WOE Roles), or one of the two shapes the kernel
+// runs: a Token with a body chain (Ezuri's Predation's token then Fight) and
+// a CopyPermanent (Mirror-Style Master). ChooseOrder$ True is read for the
+// Token chain only (kop.RepeatEachOrder): the controller orders the subjects
+// before the loop, as gorge's repeatEachChooseOrder asks. A CopyPermanent
+// body is the resumable frame a copy's CR 508.4 ask parks
+// (act_repeatcards.go repeatEachCardsBatchFrame), entered before the order
+// ask, so ordering it refuses by name instead of dropping the rider.
 func (lc *lowerCtx) repeatEachCardsBatch(ps *params, in lInstr, body *cards.SA) error {
 	switch body.API {
 	case "Token", "CopyPermanent":
@@ -137,6 +140,12 @@ func (lc *lowerCtx) repeatEachCardsBatch(ps *params, in lInstr, body *cards.SA) 
 			// the lone Role shape keeps its existing refusal (no corpus card
 			// carries ChooseOrder$ on it)
 			return refuse("RepeatEach cards ChooseOrder$ True body Token")
+		}
+		if body.API == "CopyPermanent" {
+			// the copy loop is the resumable frame (act_repeatcards.go
+			// repeatEachCardsBatchFrame), entered before the order ask: the
+			// loop would silently run in scan order, so refuse the rider
+			return refuse("RepeatEach cards ChooseOrder$ True body CopyPermanent")
 		}
 		order = true
 	}
