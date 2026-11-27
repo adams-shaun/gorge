@@ -86,7 +86,13 @@ func TestChooseCardControlledByChosenPod(t *testing.T) {
 			t.Errorf("ControlledByPlayer$ %s: refusals %v, want the mandatory refusal", v, rs)
 		}
 	}
-	for _, d := range []string{"Player", "TargetedController", "ChosenPlayer"} {
+	// Defined$ Player is the each-player counted pick (Planetary Annihilation,
+	// chooseCardEachAmount): every player picks from their own objects
+	lir, rs = ccpLower(t, ccpHead+ch+" | Defined$ Player\n")
+	if len(rs) != 0 || !strings.Contains(lir, "EachAmount") {
+		t.Errorf("Defined$ Player with ControlledByPlayer$ Chooser: refusals %v, want an EachAmount lowering:\n%s", rs, lir)
+	}
+	for _, d := range []string{"TargetedController", "ChosenPlayer"} {
 		_, rs := ccpLower(t, ccpHead+ch+" | Defined$ "+d+"\n")
 		if len(rs) == 0 {
 			t.Errorf("Defined$ %s with ControlledByPlayer$ Chooser lowered, want a refusal", d)

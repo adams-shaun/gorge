@@ -41,13 +41,22 @@ func (lc *lowerCtx) repeatOptional(ps *params) error {
 		return refuse("Repeat body %q", ps.str("RepeatSubAbility"))
 	}
 	pre, ok := repeatOptionalShape(body)
+	pure := false
+	if !ok {
+		pre, ok = repeatOptionalDigExile(body)
+		pure = ok
+	}
 	if !ok {
 		return refuse("Repeat RepeatOptional$ body shape %s$ (no change test)", body.API)
 	}
 	at := len(lc.ab.Prog)
 	always := lCond{Kind: cValue, A: lValue{Kind: vLibrarySizeOf, Ref: lRef{Kind: rYou}}, Op: opGE, B: cst(0)}
 	lc.emit(lInstr{Op: "RepeatWhile", A: cst(255), Cond: always, Note: "RepeatOptional$: again while the controller says yes"})
-	lc.emit(lInstr{Op: "RepeatOptional", B: cst(0), Cond: pre, Note: "a pass that changes nothing is the last"})
+	headB := 0
+	if pure {
+		headB = 2 // no life-loss write beside the dig: an empty pass changes nothing, first or not
+	}
+	lc.emit(lInstr{Op: "RepeatOptional", B: cst(headB), Cond: pre, Note: "a pass that changes nothing is the last"})
 	if err := lc.chain(body, nil); err != nil {
 		return err
 	}
@@ -69,6 +78,22 @@ func repeatOptionalShape(n *cards.SA) (lCond, bool) {
 		return lCond{}, false
 	}
 	if c := l.Sub; c == nil || c.API != "Cleanup" || c.Sub != nil {
+		return lCond{}, false
+	}
+	return lCond{Kind: cValue, A: lValue{Kind: vLibrarySizeOf, Ref: lRef{Kind: rYou}}, Op: opGE, B: cst(1)}, true
+}
+
+// repeatOptionalDigExile matches Dance with Calamity's body: one Dig of your
+// own top card, ChangeNum$ All, to exile with RememberChanged$ and nothing
+// else (no LoseLife StoreSVar write). A pass over a card moves it, a change;
+// a pass over an empty library moves nothing and writes nothing, so it is the
+// last, first pass or not (the head op's B 2). The Dig lowering reads every
+// parameter and refuses what it does not model.
+func repeatOptionalDigExile(n *cards.SA) (lCond, bool) {
+	you := func(p string) bool { p = strings.TrimSpace(p); return p == "" || p == "You" }
+	if n == nil || n.API != "Dig" || n.Sub != nil || !you(n.Params["Defined"]) || strings.TrimSpace(n.Params["DigNum"]) != "1" ||
+		n.Params["ChangeNum"] != "All" || n.Params["ChangeValid"] != "Card" || n.Params["Optional"] != "" || n.Params["RevealOptional"] != "" ||
+		n.Params["DestinationZone"] != "Exile" || n.Params["RememberChanged"] != "True" {
 		return lCond{}, false
 	}
 	return lCond{Kind: cValue, A: lValue{Kind: vLibrarySizeOf, Ref: lRef{Kind: rYou}}, Op: opGE, B: cst(1)}, true

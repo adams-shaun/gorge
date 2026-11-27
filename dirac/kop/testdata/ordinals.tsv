@@ -97,6 +97,8 @@ ChooseCardAmount	untyped int	11
 ChooseCardAmountOpt	untyped int	12
 ChooseCardAtRandom	untyped int	13
 ChooseCardEach	untyped int	14
+ChooseCardEachAmount	untyped int	17
+ChooseEachNonLand	untyped int	1
 ChooseOpp	untyped int	2
 ChoosePlayerForget	untyped int	2
 ChoosePlayerFresh	untyped int	1

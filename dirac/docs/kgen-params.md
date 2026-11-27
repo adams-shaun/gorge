@@ -158,8 +158,8 @@ so this table is complete by construction.
 |---|---|---|
 | ChoiceZone | 2: Chandra, Flameshaper; Strongbox Raider | F.Zone |
 | Choices | 3: Chandra, Flameshaper; Liliana, Dreadhorde General; Strongbox Raider | OpChooseCard F (zone = ChoiceZone) |
-| ChooseEach | 1: Liliana, Dreadhorde General | Liliana -9: OpChooseEachType Obj=RefEachOpponent; the following SacrificeAll takes F2NotChosenCard |
-| ControlledByPlayer | 1: Liliana, Dreadhorde General | Chooser (with ChooseEach) |
+| ChooseEach | 2: Liliana, Dreadhorde General; Cataclysmic Gearhulk | OpChooseEachType, A = the groups' TypeMask (groups in the kernel's type order), C bit 0 for Choices$ Permanent.nonLand; Obj = RefEachOpponent (Liliana -9) or RefEachPlayer (Gearhulk); the following SacrificeAll takes F2NotChosenCard |
+| ControlledByPlayer | 2: Liliana, Dreadhorde General; Planetary Annihilation | Chooser (with ChooseEach; with a mandatory each-player counted ChooseCard, kop.ChooseCardEachAmount) |
 | Cost | 1: Liliana, Dreadhorde General | ability cost -> kop.Cost (mana, CostTap/SacSelf/Sac/Discard/AddCtr/RemoveCtr/PayLife/TapX/TapHost); on an AB$ inside a trigger body: an optional resolution cost -> OpIfPaid covering the rest of the chain |
 | Defined | 1: Liliana, Dreadhorde General | Obj ref (see Defined$ in Shared grammar) |
 | ForgetOtherRemembered | 2: Chandra, Flameshaper; Strongbox Raider | consumed: the unchosen remembered cards are only cleaned up afterwards |
