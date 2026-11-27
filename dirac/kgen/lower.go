@@ -1385,14 +1385,6 @@ func (lc *lowerCtx) lowerKeywords() {
 			lc.out.Storied = true
 		case head == "Unleash" && param == "": // CR 702.86: the as-enters ask and the block gate (lower_unleash.go)
 			lc.lowerUnleash(node)
-		case head == "CARDNAME can be your commander.":
-			// Deck-construction legality, not a game action: gorge reads
-			// the phrase off the Oracle text when the deck is checked
-			// (engine/deck's commanderOraclePhrase, engine/rules'
-			// commander_config), and the kernel's commander gate reads the
-			// deck list the adapter was handed -- the card is already its
-			// seat's commander, so the in-game keyword is inert (a Lord
-			// Windgrace planeswalker commander). Nothing is emitted.
 		case lc.lowerParamKeyword(node, head, param): // Bloodthirst, Dredge (lower_dredge.go)
 		case head == "Wither" && param == "":
 			lc.out.Wither = true // CR 702.80: gorge damage riders read HasKeyword(source, "Wither")
