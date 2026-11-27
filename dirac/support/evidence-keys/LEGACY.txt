@@ -362,6 +362,7 @@ Blossom-Blessed Angel
 Blot Out the Sky
 Bofur, Reliable Guardian
 Bog Tatters
+Bogardan Phoenix
 Boggart Cursecrafter
 Boggart Mischief
 Boggart Prankster
@@ -3271,6 +3272,7 @@ Thrumming Hivepool
 Thundercloud Elemental
 Thundering Broodwagon
 Thundering Ceratok
+Thunderscape Master
 Thundertrap Trainer
 Tidecaller Mentor
 Tidings of War
@@ -3516,6 +3518,7 @@ Vren, the Relentless
 Wail of War
 Wake the Dragon
 Wake the Reflections
+Wakeroot Elemental
 Wall of Faith
 Wall of One Thousand Cuts
 Wall of Runes
