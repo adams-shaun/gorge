@@ -34,13 +34,6 @@ func (lc *lowerCtx) xBound() error {
 	if tr == nil || !lc.trigBody || lc.ab.Latent {
 		return fmt.Errorf("Count$xPaid in a trigger without an {X} cost")
 	}
-	if lc.out.Kicker != nil && lc.out.Kicker.X {
-		// a kicked {X} cast (Verdeloth the Ancient, Kangee): its X is paid
-		// through the kicker, which the lockstep showed gorge's
-		// lowering surface pays otherwise (it taps for the kicker before
-		// the X ask): not lifted here
-		return fmt.Errorf("Count$xPaid in a trigger without an {X} cost (kicker {X})")
-	}
 	self := tr.F != nil && tr.F.Players == 0 && len(tr.F.Clauses) == 1 && tr.F.Clauses[0].Flags&fSelf != 0
 	switch {
 	case tr.Event == "ETB" && !tr.Batch && self:
@@ -63,23 +56,31 @@ func (lc *lowerCtx) xBound() error {
 	return nil
 }
 
-// spentBound: Count$CastTotalManaSpent read by the body of a self-ETB
-// trigger (Astelli Reclaimer). gorge reads manaSpentTotalsOf of the source
-// object (count_body_paid.go), the cast spend carried stack to battlefield
-// and 0 for a permanent that was not cast; the kernel copies the entering
-// spell's recorded spend into the pending entry as it triggers
-// (Tf2SpentBound). Every other trigger refuses.
+// spentBound: Count$CastTotalManaSpent read by a self-ETB trigger (Astelli
+// Reclaimer, the Treasure/Cave carriers' CheckSVar$ and body) or a self
+// SpellCast trigger (Prossh, Skyraider of Kher). gorge reads
+// manaSpentTotalsOf of the source object (count_body_paid.go), the cast spend
+// carried stack to battlefield and 0 for a permanent that was not cast; the
+// kernel copies the entering or triggering spell's recorded spend into the
+// pending entry as it triggers (Tf2SpentBound). Every other trigger refuses.
 func (lc *lowerCtx) spentBound() error {
-	if lc.ab == nil || lc.ab.Trigger == nil || !lc.trigBody || lc.ab.Latent {
+	if lc.ab == nil || lc.ab.Trigger == nil || lc.ab.Latent {
 		return fmt.Errorf("CastTotalManaSpent outside an as-enters copy")
 	}
 	tr := lc.ab.Trigger
 	self := tr.F != nil && tr.F.Players == 0 && len(tr.F.Clauses) == 1 && tr.F.Clauses[0].Flags&fSelf != 0
-	if tr.Event != "ETB" || tr.Batch || !self {
-		return fmt.Errorf("CastTotalManaSpent in a %s trigger", tr.Event)
+	if tr.Event == "ETB" && !tr.Batch && self {
+		// the trigger header's CheckSVar$ reads it too as the trigger queues
+		tr.SpentBound = true
+		return nil
 	}
-	tr.SpentBound = true
-	return nil
+	if tr.Event == "SpellCast" && !tr.OrCopy && self && lc.trigBody {
+		// the card's own cast trigger: the trigger object is the spell, so its
+		// recorded spend is the captured one
+		tr.SpentBound = true
+		return nil
+	}
+	return fmt.Errorf("CastTotalManaSpent in a %s trigger", tr.Event)
 }
 
 // cardHasX: the card's own mana cost or kicker has an {X}.

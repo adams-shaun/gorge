@@ -17,6 +17,7 @@ import (
 	"github.com/adams-shaun/gorge/server/host"
 	"github.com/adams-shaun/gorge/server/host/httpapi"
 	"github.com/adams-shaun/gorge/server/protocol"
+	"github.com/adams-shaun/gorge/testkit/testutil"
 
 	mb "github.com/adams-shaun/gorge/server/protocol/manabrew"
 )
@@ -157,7 +158,7 @@ func TestCreatePodSeatsAFourSeatCommanderTableFromOneRequest(t *testing.T) {
 	// 10 s deadline is the bound; the 1 ms tick only paces the poll, so no
 	// PASS/FAIL depends on a short wall-clock window.
 	var ms []protocol.MatchInfo
-	for deadline := time.Now().Add(10 * time.Second); len(ms) == 0 && time.Now().Before(deadline); time.Sleep(time.Millisecond) {
+	for deadline := time.Now().Add(testutil.WaitBudget); len(ms) == 0 && time.Now().Before(deadline); time.Sleep(time.Millisecond) {
 		ms, _ = r.Matches(host.TableID(resp.Table))
 	}
 	if len(ms) != 1 {
@@ -276,14 +277,14 @@ func TestCreatePodAcceptsManaBrewsOwnDeckShape(t *testing.T) {
 	}
 }
 
-// TestCreatePodRefusesDiracUntilItSeatsFour: -engine dirac plays two seats, so
-// a pod, and a submitted deck it never checked, are refused before any table
-// is built.
-func TestCreatePodRefusesDiracUntilItSeatsFour(t *testing.T) {
+// TestCreatePodRefusesDiracPastItsSeats: -engine dirac plays two seats or a
+// four-seat Commander pod, so a 3-seat pod, and a submitted deck it never
+// checked, are refused before any table is built.
+func TestCreatePodRefusesDiracPastItsSeats(t *testing.T) {
 	c := diracConfig()
 	srv, r, _ := podServer(t, c, []string{"p1", "p2", "p3", "p4"})
 	for _, tc := range []struct{ name, body, want string }{
-		{"pod", `{"format":"commander","seats":4}`, "cannot seat a 4-seat pod"},
+		{"pod", `{"format":"commander","seats":3}`, "cannot seat a 3-seat pod"},
 		{"submitted deck", podBody(t, map[string]any{"format": "commander", "decks": []map[string]any{{"seat": 0, "deck": podLegal("D", 0)}}}), "submitted deck"},
 	} {
 		code, raw := podPost(t, srv.URL, tc.body)

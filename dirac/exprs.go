@@ -15,6 +15,11 @@ type evalCtx struct {
 	src   Obj
 	srcSl Slot
 	ctrl  uint8
+	// cwObj is the object whose face a filter's colour masks read under the
+	// colour-word statics (static_colorwords.go); NoObj reads them as printed.
+	// Only the target-spec funnels (matchCardTgt, matchCardAtTgt) and protMatch
+	// set it: the filter is that face's own.
+	cwObj Obj
 	// uncounted is one more than the spell a cost static is pricing, which its
 	// zone counts skip: CR 601.2a has it on the stack by the time CR 601.2f
 	// determines the total cost. 0 skips nothing, and NoObj+1 wraps to 0.
@@ -81,6 +86,12 @@ func (s *State) ctxEntry(e *stackEntry) evalCtx {
 // by slot, written as it entered). A permanent that changed zones reads 0, as
 // gorge's Object.TimesKicked resets.
 func (s *State) timesKicked(ctx evalCtx) int {
+	// the two-alternative "and/or" Kicker's count (CR 702.33b; kw_kickalt.go):
+	// the paid alternatives, the popcount of the kickAlt byte the cast stored,
+	// 0/1/2; a copy keeps the spell's bits (CR 707.10)
+	if n, ok := s.kickAltCount(ctx); ok {
+		return n
+	}
 	if ctx.srcSl != NoSlot && int(ctx.srcSl) < len(s.cold.mk) {
 		return int(s.cold.mk[ctx.srcSl])
 	}
@@ -486,6 +497,17 @@ func (s *State) expr(k *prep, i int16, ctx evalCtx) int {
 		} else {
 			v = s.evalV(k, x.Sub[1], ctx)
 		}
+	case kop.ExAltCost:
+		// Count$AltCost.<paid>.<unpaid> (Worldheart Phoenix's SpellCast
+		// CheckSVar): the spell was cast for its own StatAlternativeCost
+		// static's alternative (the spell entry's trigPlAltCost mark,
+		// cast_altfree.go takeAltCast; gorge reads FlagAltCostPaid or the
+		// pending cast's PendingAltCost)
+		if s.altCostCast(ctx) {
+			v = s.evalV(k, x.Sub[0], ctx)
+		} else {
+			v = s.evalV(k, x.Sub[1], ctx)
+		}
 	case kop.ExCastFromGrave:
 		if s.castFromGrave(e) {
 			v = s.evalV(k, x.Sub[0], ctx)
@@ -540,6 +562,8 @@ func (s *State) expr(k *prep, i int16, ctx evalCtx) int {
 		v = s.oppsLifeLost(ctx.ctrl)
 	case kop.ExDmgOppsTaken:
 		v = s.oppsDmgTaken(ctx.ctrl) // kw_bloodthirst.go
+	case kop.ExMaxOppDamageThisTurn:
+		v = s.maxOppDmgTaken(ctx.ctrl) // kw_bloodthirst.go
 	case kop.ExCountersOn:
 		v = s.refCounters(k, x, x.Ref, x.Ctr, ctx)
 	case kop.ExCreaturesDied:
@@ -696,6 +720,9 @@ func (s *State) refObjCtx(r kop.Ref, ctx evalCtx) Obj {
 	if r == kop.RefDiscarded {
 		return discardedObj(e) // value_discardedref.go
 	}
+	if r == kop.RefChosenEnc {
+		return chosenEncObj(e) // value_chosenenc.go
+	}
 	switch r {
 	case kop.RefTarget0, kop.RefTarget1, kop.RefTarget2, kop.RefTarget3, kop.RefTarget4:
 		sl, _ := tgtSlot(r)
@@ -762,6 +789,8 @@ func (s *State) refPlayer(k *prep, r kop.Ref, ctx evalCtx) uint8 {
 		return s.attachedCtrl(s.refObjCtx(kop.RefAttached, ctx))
 	case kop.RefEnchantedCtrl:
 		return s.enchantedCtrl(ctx.src)
+	case kop.RefEnchantedPlayer:
+		return s.enchantedPlayer(k, ctx.src)
 	case kop.RefTriggerPlayer:
 		return e.trigPl
 	case kop.RefTriggerObjOwner:
@@ -779,6 +808,14 @@ func (s *State) refPlayer(k *prep, r kop.Ref, ctx evalCtx) uint8 {
 			return s.ctrlOfObj(o)
 		}
 		return e.trigPl
+	case kop.RefTargetCtrlLive:
+		// gorge ParentTargetedController: the live controller read
+		// (resolve.go playerRef / tgt_stackability.go tgtCtrlLive). Only the
+		// resolving entry has target slots.
+		if e != &s.res.e {
+			return 255
+		}
+		return s.tgtCtrlLive(0)
 	case kop.RefTarget0, kop.RefTarget1, kop.RefTarget2, kop.RefTarget3, kop.RefTarget4, kop.RefTargetController, kop.RefTargetOwner:
 		i, _ := tgtSlot(r)
 		t := e.tgt[i]
@@ -866,6 +903,14 @@ func (s *State) condEval(k *prep, id kop.CondID, ctx evalCtx) bool {
 		r = ctx.src != NoObj && s.mObj(k, mechRem, ctx.src)
 	default:
 		panic("kernel: condition kind not implemented")
+	}
+	if (DebugMetalcraftStats != nil || DebugMetalcraftOff) && isMetalcraftCond(c) { // dirac/value_metalcraft.go
+		if DebugMetalcraftOff {
+			return false
+		}
+		if r {
+			DebugMetalcraftStats.CondHeld++
+		}
 	}
 	return r != c.Neg
 }
@@ -1056,7 +1101,7 @@ func (s *State) objRefGen(r kop.Ref) (Obj, bool) {
 // sourceChosen does; matchCardGen sees only a resolution's own ChooseType answer.
 func (s *State) refCardMatch(k *prep, f kop.FilterID, ob *object, o Obj, ctx evalCtx) bool {
 	if k.gen.chosenCardTgt && !DebugRefChosenResOnly {
-		return s.matchCardSrc(k, f, ob.card, ob.owner(), ctx.ctrl, o, ctx.srcSl, ctx.src)
+		return s.matchCardSrc(k, f, ob.card, ob.owner(), ctx.ctrl, o, ctx.srcSl, ctx.src, NoObj)
 	}
 	return s.matchCardGen(k, f, ob.card, ob.owner(), ctx.ctrl, o)
 }

@@ -364,6 +364,29 @@ type pendingCast struct {
 	teamworkDone bool `clone:"deep"`
 	teamworkPaid bool `clone:"deep"`
 
+	// Assist (CR 702.132, engine/rules/assist.go) is a payment step, not an
+	// ability: assistDone marks the step already run, assistAsked is the APNAP
+	// cursor (the index of the seat currently deciding, or the count of seats
+	// that have finished), assistPayer names that seat, assistActive is true
+	// while it is deciding (a window or an amount election), assistCap is the
+	// step's ceiling (the amount the first pass priced, which no later seat
+	// may push the total above), assistWindow marks the pending decision as
+	// that seat's mana-ability window, assistWindowDone records that the seat
+	// closed it, assistPaid is the mana the other seats promised — the amount
+	// applyAssist credits against the caster's bill — and assistPays is the
+	// per-seat promise drained only when the caster's payment commits, so an
+	// aborted cast never takes a contributing seat's mana. Plain data, so
+	// Clone's generated copy carries them.
+	assistDone       bool            `clone:"deep"`
+	assistAsked      int             `clone:"deep"`
+	assistPayer      state.PlayerID  `clone:"deep"`
+	assistActive     bool            `clone:"deep"`
+	assistWindow     bool            `clone:"deep"`
+	assistWindowDone bool            `clone:"deep"`
+	assistCap        int32           `clone:"deep"`
+	assistPaid       int32           `clone:"deep"`
+	assistPays       []assistPayment `clone:"deep"`
+
 	// chooseTypeDone marks the ChooseCreatureType<N> cost part answered
 	// (chooseTypeCostAsk); preChosenType is the card's ChosenType before the
 	// answer's Choose event, restored by abortCast (CR 733.1).

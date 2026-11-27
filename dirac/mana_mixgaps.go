@@ -760,8 +760,9 @@ func (fs *filtSearch) ctrOther(k *prep, t *State, sl Slot, try func(otherStep) b
 		// (scriptSearch.visit; the payment window's flattening into one
 		// option per colour, announce_pay.go AnnouncedAbilityColours, is not
 		// this ask). A source with the one ability poses only the colour ask,
-		// which the activation's own node already counts.
-		if k.ctrSecond(c) && !fs.tick() {
+		// and that ask is a node of its own (the clone its activation makes,
+		// before one clone per colour answer).
+		if !fs.tick() {
 			return false
 		}
 		order := t.ctrColOrder(k, fs.a)

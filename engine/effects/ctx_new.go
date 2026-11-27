@@ -131,6 +131,8 @@ func (c *Ctx) ForTrigger(tc TriggerContext) Ctx {
 			Revealed:   append([]state.ObjID(nil), c.Paid.Revealed...),
 			Discarded:  append([]state.ObjID(nil), c.Paid.Discarded...),
 			CounterPut: append([]state.ObjID(nil), c.Paid.CounterPut...),
+			// the count, not a list: a copy is the value
+			CountersRemoved: c.Paid.CountersRemoved,
 		},
 	}
 }

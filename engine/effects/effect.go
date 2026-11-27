@@ -92,6 +92,36 @@ func effectChosenCardSuffix(h Host, c *Ctx, body string) string {
 	return "|CC=" + strings.Join(ids, ",")
 }
 
+// effectImprintSuffix is the "|IM=<id>[,<id>...]" tail an Effect's Phase
+// registration carries when its body reads IsImprinted and the Effect holds
+// an ImprintCards$ capture (Flickerform's end-step return, the only corpus
+// carrier). Forge's EffectEffect imprints the ImprintCards$ set on the
+// CREATED EFFECT token, so the delayed body's Card.IsImprinted later reads
+// the Effect's imprint; this build has no effect token, so the set rides the
+// registration (state.DelayedTrigger.Imprinted) and the resolving body's
+// predicate reads it (TriggerContext.DelayedImprinted) instead of the host's
+// live association -- which the chain's own Cleanup (Flickerform's DBCleanup
+// ClearImprinted$ True) cleared before the trigger ever fired
+// (CR 603.7a/610.3). Captured at registration, inside the link's binding
+// window (the registry's ImprintCards$ rider resolves in the same one) and
+// before that cleanup. A body that never reads IsImprinted (Ertai's
+// Meddling's upkeep counter) carries no spelling, so its registration is
+// byte-identical.
+func effectImprintSuffix(h Host, c *Ctx, imprintCards, body string) string {
+	if imprintCards == "" || !strings.Contains(body, "IsImprinted") {
+		return ""
+	}
+	ids := imprintCaptureIDs(h, c, imprintCards)
+	if len(ids) == 0 {
+		return ""
+	}
+	parts := make([]string, 0, len(ids))
+	for _, id := range ids {
+		parts = append(parts, strconv.Itoa(int(id)))
+	}
+	return "|IM=" + strings.Join(parts, ",")
+}
+
 // effEffect creates a lasting effect object holding StaticAbilities$ for
 // Duration$. This is the part that turns a Note into a real
 // registration: a StaticAbilities$ entry naming a RESTRICTION static
@@ -338,8 +368,9 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 		// chosen-card set rides the registration, before the chain's own
 		// ClearChosenCard$ cleanup wipes the source (Azra Oddsmaker).
 		ccSuffix := effectChosenCardSuffix(h, c, raw)
-		if effectSelfExileOnCastTrigger(h, c, tr) {
-			// The Effect's cast-driven lifetime, already consumed by the
+		if effectSelfExileOnCastTrigger(h, c, tr) || effectPlaneCurseTrigger(h, c, ep, tr) {
+			// The Effect's cast-driven lifetime (or Eloren Wilds'
+			// planeswalk-driven one), already consumed by the
 			// effectSelfExileOnCastSpec scan above. It is not a delayed
 			// promise this build can run: there is no effect-token object
 			// for the body's `Origin$ Command` self-exile to move, so
@@ -505,7 +536,11 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 		// The continuous side folds UntilYourNextEndStep into this-turn;
 		// use its same boundary rather than silently giving it permanence.
 		if !permanentComeback {
-			if forgetOn != "" {
+			// The "play ONE of them" watcher (effectTriggerLine.PlayReadsRemembered):
+			// its ValidCard$ reads the Effect's memory, so ForgetOnMoved$ must
+			// not ride this registration -- the play move it watches is the
+			// very move that would forget the card before the body matches.
+			if forgetOn != "" && !tl.PlayReadsRemembered {
 				expiry += "|FM=" + forgetOn
 			}
 			if exileOn != "" {
@@ -559,6 +594,20 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 		if permanentComeback && strings.Contains(raw, "Card.IsImprinted") {
 			regTrigger = strings.ReplaceAll(raw, "Card.IsImprinted", "Card.Self")
 		}
+		// The Effect's ImprintCards$ capture rides an event registration too
+		// when the trigger's own line reads IsImprinted (Ugin, the Ineffable's
+		// Card.IsImprinted leave trigger): the registration's DelayedImprinted
+		// set is what the fire-time predicate reads, since the chain's own
+		// DB$ Cleanup | ClearImprinted$ True has already cleared the source's
+		// live association (the same reason the Phase arm carries |IM=).
+		// imprintBody is the line the registration parses at fire time: the
+		// named body normally, the permanentComeback rewrite when it applies,
+		// so a rewrite to Card.Self carries no unused capture into the
+		// DelayedRegister text (and its hash).
+		imprintBody := raw
+		if permanentComeback {
+			imprintBody = regTrigger
+		}
 		switch tr.ModeKind() {
 		case cards.TriggerSpellCast, cards.TriggerChangesZone:
 			// Fire-time match re-parses the named body on the source face.
@@ -572,10 +621,11 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			if !resolveOwners() {
 				continue
 			}
+			eventImprint := effectImprintSuffix(h, c, ep.ImprintCards, imprintBody)
 			for _, owner := range owners {
 				h.Emit(events.Event{Kind: events.DelayedRegister, Obj: c.Source,
 					Player: owner, Step: h.Game().Step, Counter: exec,
-					IDs: encodeRemembered(regIDs), Text: tr.Mode + ":" + regTrigger + expiry + odSuffix + effectStaticSuffix(tl) + efMarker + cnSuffix + ccSuffix})
+					IDs: encodeRemembered(regIDs), Text: tr.Mode + ":" + regTrigger + expiry + odSuffix + effectStaticSuffix(tl) + efMarker + cnSuffix + ccSuffix + eventImprint})
 			}
 			registered = true
 		case cards.TriggerPhase:
@@ -641,6 +691,9 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			if !tl.OneOff {
 				text += "|EF"
 			}
+			// The Effect's ImprintCards$ capture rides the registration when
+			// the body reads IsImprinted (see effectImprintSuffix).
+			imSuffix := effectImprintSuffix(h, c, ep.ImprintCards, c.SVars[exec])
 			// The Effect's remembered PLAYERS join the capture (Rowan
 			// Kenrith's RememberObjects$ Targeted names a player): the phase
 			// scan's ValidPlayer$ Player.IsRemembered gate and the body's
@@ -650,7 +703,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			for _, owner := range owners {
 				h.Emit(events.Event{Kind: events.DelayedRegister, Obj: c.Source,
 					Player: owner, Step: step, Counter: exec,
-					IDs: encodeRemembered(phaseIDs), Text: text + cnSuffix + ccSuffix})
+					IDs: encodeRemembered(phaseIDs), Text: text + cnSuffix + ccSuffix + imSuffix})
 			}
 			registered = true
 		default:
@@ -674,10 +727,11 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			// (Great Train Heist's RememberObjects$ TargetedPlayer under a
 			// DamageDone trigger's ValidTarget$ Player.IsRemembered).
 			eventIDs := withRememberedPlayers(regIDs, effectRememberedPlayers(h, c, sa))
+			eventImprint := effectImprintSuffix(h, c, ep.ImprintCards, raw)
 			for _, owner := range owners {
 				h.Emit(events.Event{Kind: events.DelayedRegister, Obj: c.Source,
 					Player: owner, Step: h.Game().Step, Counter: exec,
-					IDs: encodeRemembered(eventIDs), Text: tr.Mode + ":" + name + expiry + odSuffix + effectStaticSuffix(tl) + efMarker + cnSuffix + ccSuffix})
+					IDs: encodeRemembered(eventIDs), Text: tr.Mode + ":" + name + expiry + odSuffix + effectStaticSuffix(tl) + efMarker + cnSuffix + ccSuffix + eventImprint})
 			}
 			registered = true
 		}
@@ -725,8 +779,11 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 		// replaced result cannot lose an object, and a body this build cannot
 		// price is skipped by the dispatcher, never read as zero. Every OTHER
 		// AddCounter body keeps its loud Note.
+		// Event$ Draw is the fifth live class, only in the one-shot "next time you
+		// would draw this turn" shape effectDrawBodyLive admits (Words of
+		// Worship and kin, Aladdin's Lamp, Ring of Ma'ruf).
 		// Every OTHER Moved body (the unmodelled ChangeZone/Tap/Clone family,
-		// 44 measured files) and every Draw/ProduceMana body keeps its loud
+		// 44 measured files) and every other Draw/ProduceMana body keeps its loud
 		// Note: a half-modelled Replaced-result could LOSE the moved object.
 		// replacementMovedBodyLive admits the two recorded shapes that cannot
 		// lose it: a single-destination redirect of the ReplacedCard (exile,
@@ -746,6 +803,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 		chosenSnap, chosenBound := effectChosenSnapshot(h, c,
 			params[cards.PKValidSource.String()]+" "+params[cards.PKValidTarget.String()])
 		if body != "" && (event == "DamageDone" || event == "Destroy" ||
+			(event == "Draw" && effectDrawBodyLive(ep.Triggers != "", params, body, c.SVars)) ||
 			(event == "Moved" && replacementBodyAPI(body) == "PutCounter") ||
 			(event == "Moved" && replacementMovedBodyLive(params, body, c.SVars)) ||
 			(event == "CreateToken" && replacementBodyAPI(body) == "ReplaceToken") ||
@@ -1564,7 +1622,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			if mode == "CantBlockBy" {
 				freezeChosenColor(h, c, &ce)
 			}
-			effectRegisterRestriction(h, c, ownerSel, mode, ce)
+			effectRegisterRestriction(h, c, ownerSel, mode, effectPlaneCurseEnd(h, c, ep, ce))
 			registered = true
 		case cards.StaticPanharmonicon:
 			// An Effect-delivered trigger doubler (Lwaxana Troi, Charming

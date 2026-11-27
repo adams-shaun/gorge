@@ -40,6 +40,22 @@ const (
 	OptCancelCast = "cancel_cast"
 )
 
+// Option kinds of the CR 702.132 Assist election and the contributing seat's
+// mana-ability window. They are exported so the rules ask, the castAnswer
+// dispatch and bots/botpolicy's arms all key off one identifier, rather than
+// each carrying its own string.
+const (
+	// OptAssist is the amount election's option Kind: one option per payable
+	// amount, with the amount riding Option.Amount.
+	OptAssist = "assist"
+	// OptAssistActivate is one untapped mana source in the contributing
+	// seat's window.
+	OptAssistActivate = "assist_activate"
+	// OptAssistDone closes that window: the seat activates no more mana
+	// abilities and is then offered its amount election (or pays 0).
+	OptAssistDone = "assist_done"
+)
+
 // CloneAnnounceSelection copies a submitted announce selector.
 func CloneAnnounceSelection(s *AnnounceSelection) *AnnounceSelection {
 	if s == nil {

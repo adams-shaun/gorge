@@ -860,6 +860,38 @@ func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combine
 					break
 				}
 			}
+		case decision.OptAssistActivate:
+			// CR 702.132a: the contributing seat's mana-ability window. The
+			// deterministic bot declines every activation (Done) -- the same
+			// decline direction the amount election takes below -- so it never
+			// taps its own lands for another seat's spell. Selected by KIND,
+			// not position, so a reordered list still declines.
+			in.Choices = []int{d.Options[0].Index}
+			for _, o := range d.Options {
+				if o.Kind == decision.OptAssistDone {
+					in.Choices = []int{o.Index}
+					break
+				}
+			}
+		case decision.OptAssist:
+			// CR 702.132: another seat's contribution to a spell being cast.
+			// The deterministic bot pays nothing -- the decline direction, the
+			// same one the no-host stand-in takes: floating mana at the wrong
+			// moment is how a bot loses the game to its own empty pool, and no
+			// policy here values another seat's spell. 0 is always an offered
+			// option (rules' assistDecision offers 0..cap), so the answer is
+			// total and consumes no rng. Selected by KIND and AMOUNT, never by
+			// position, so a reordered option list still declines; the whole
+			// legal-answer rule is the Min 1 / Max 1 KChoose contract the
+			// engine's own ask poses, which botpolicy's assist test runs this
+			// answer back through Decision.Validate.
+			in.Choices = []int{d.Options[0].Index}
+			for _, o := range d.Options {
+				if o.Kind == decision.OptAssist && o.Amount == 0 {
+					in.Choices = []int{o.Index}
+					break
+				}
+			}
 		case "protector":
 			// CR 310.10 protector. The protector is the opponent the battle
 			// will be attacked by/for, so prefer the opponent closest to

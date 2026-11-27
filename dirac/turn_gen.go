@@ -109,18 +109,26 @@ func (s *State) enterGen(k *prep, sl Slot, o Obj, from kop.Zone, face uint8) {
 		if escapeMarks(&s.res.e) {
 			s.mSlSet(k, mechEscaped, sl) // kw_escape.go
 		}
-	} else if int(o) < len(s.cold.mkObj) {
-		// an entry that is not the resolving spell (reanimate, blink, return)
-		// is a new object with no payments (CR 400.7, 702.43): the last cast's
-		// count must not survive to the ETB trigger's target bound (exprs.go)
-		s.cold.mkObj[o] = 0
-		s.clearPaidN(o)
+	} else {
+		if int(o) < len(s.cold.mkObj) {
+			// an entry that is not the resolving spell (reanimate, blink, return)
+			// is a new object with no payments (CR 400.7, 702.43): the last cast's
+			// count -- and the two-alternative Kicker's selection byte that
+			// shares the region (filter_kickedalt.go) -- must not survive to
+			// the ETB trigger's target bound (exprs.go)
+			s.cold.mkObj[o] = 0
+			s.clearPaidN(o)
+		}
 	}
 	s.g.zoneTurn.set(o)
 	if s.g.enteredOn {
 		s.noteEnter(o, kop.ZoneBattlefield, from, false, false)
 	}
 	s.stashClr(k, o) // an entry from exile is a new object: the stash counter does not follow it (CR 400.7)
+	// The turn-long extra-ETB-counter rider folds into the entry's one put only
+	// when gorge stages the entry (entryPlan); read that before entryWinOpen
+	// consumes the requested count entryPlan also reads.
+	etbStaged := s.etbCreStaged(k, sl, p, face)
 	if k.gen.anyEntryMerge && face == 0 {
 		s.entryWinOpen(k, sl, p) // ctr_entryperkind.go: the printed and requested counters start the entry's one put per kind
 	} else if n := s.g.enterCtr.n; n > 0 {
@@ -136,6 +144,7 @@ func (s *State) enterGen(k *prep, sl Slot, o Obj, from kop.Zone, face uint8) {
 	if k.gen.anyEffEtbCtr && face == 0 && s.res.active && s.res.e.kind == seSpell && s.res.e.obj == o {
 		s.effEtbEnter(k, sl, p) // ctr_effectentry.go: after the printed counters, before the entry's triggers
 	}
+	s.etbCreEnter(k, sl, p, face, etbStaged) // repl_turnrepl.go: the turn-long extra counter rider
 	if k.gen.anyFinality && face == 0 && s.res.active && s.res.e.kind == seSpell && s.res.e.obj == o {
 		s.finalityEnter(k, sl, p) // trig_mayplaystatic.go: the FINALITY rider, beside the P1P1 one
 	}
@@ -335,6 +344,13 @@ func (s *State) runReplProg(k *prep, sl Slot, c CardID, ab, pc uint8) {
 // (TestNoNewFixedStateFields); only a table with an others-enter replacement
 // carries the byte.
 var coldReplSrc = newCold[uint8]("replSrc", func(g *genPrep) int {
+	if g.hasDrawProgram() {
+		// a Draw replacement's body runs with the replacement permanent as
+		// its source; the body's own Self reads (Ormos, Archive Keeper's
+		// PutCounter on Self) resolve through replSrcOf when the body runs
+		// inside an outer resolution (objRefObj, resolve.go)
+		return 1
+	}
 	for _, f := range g.flags {
 		if f&gfOthersRep != 0 {
 			return 1
@@ -415,19 +431,53 @@ func replAskKind(in *kop.Instr) (kind uint8, ok bool) {
 	return 0, false
 }
 
+// restoreRes gives the resCtx borrowed by a replacement body back to the
+// outer resolution. A Draw replacement body always restores it, even under an
+// active outer resolution, so its own pc (and every field its exec wrote) does
+// not become the outer program's next instruction; every other body keeps the
+// older rule and restores only when it created its own context.
+func (s *State) restoreRes(saved *resCtx, isDrawProgram bool) {
+	if !saved.active || isDrawProgram {
+		s.res = *saved
+	}
+}
+
 // runReplProgAs runs it with the permanent at src as the source (an
 // "other permanents enter" replacement). A choice stops it: the rest runs
 // once the choice is answered.
 func (s *State) runReplProgAs(k *prep, sl Slot, c CardID, ab, pc uint8, src Slot) {
 	prog := k.t.Cards[c].Abilities[ab].Prog
 	saved := s.res
+	// A Draw replacement body can run inside an active outer resolution (a
+	// resolving spell's draw). It borrows the outer resCtx, so it must give
+	// its fields back when it returns: otherwise runProg resumes the spell
+	// from the body's pc and skips the instruction after the draw (the
+	// unconditional isDrawProgram restores below).
 	saveSrc := s.replSrcOf()
 	s.setReplSrc(uint8(src) + 1)
 	defer func() { s.setReplSrc(saveSrc) }()
+	isDrawProgram := false
+	if ra := &k.t.Cards[c].Abilities[ab]; ra.Kind == kop.AbReplacement && ra.Repl.Kind == kop.ReplDrawProgram {
+		// a Draw replacement body: ReplacedPlayer is the player drawing the
+		// replaced card, bound on the cold in-flight record
+		// (repl_drawprogram.go)
+		isDrawProgram = true
+	}
 	if !s.res.active {
 		// a value context for the program: the source as a resolving entry
 		sp := &s.perms[src]
 		s.res = resCtx{e: stackEntry{kind: seAbility, obj: sp.obj, srcVer: s.objs[sp.obj].ver, card: s.cardAt(src), ab: ab, ctrl: sp.ctrl, trigObj: NoObj}}
+		s.res.e.tgt = noTargets
+	} else if isDrawProgram {
+		// a Draw replacement body inside an outer resolution answers to its
+		// own entry too (the same one the fresh context below builds): its
+		// ask builders and answers read s.prog(k)[s.res.pc], and a parked
+		// Dig's ask walk runs on this entry after the program (digMayStop,
+		// tailOp, the raGenDig arms). The outer's entry rides saved;
+		// restoreRes returns it, and drawBodyEndRes does for a parked ask
+		// (repl_drawbody.go).
+		sp := &s.perms[src]
+		s.res.e = stackEntry{kind: seAbility, obj: sp.obj, srcVer: s.objs[sp.obj].ver, card: s.cardAt(src), ab: ab, ctrl: sp.ctrl, trigObj: NoObj}
 		s.res.e.tgt = noTargets
 	} else if c := s.perms[src].ctrl; c != s.res.e.ctrl {
 		// the program's "you" is its source's controller (CR 109.5), not
@@ -437,8 +487,20 @@ func (s *State) runReplProgAs(k *prep, sl Slot, c CardID, ab, pc uint8, src Slot
 		s.res.e.ctrl = c
 		defer func() { s.res.e.ctrl = was }()
 	}
+	if isDrawProgram {
+		if ds := s.drawState(); len(ds) > 0 && ds[0].active {
+			was := s.res.e.trigPl
+			s.res.e.trigPl = ds[0].p
+			defer func() { s.res.e.trigPl = was }()
+		}
+	}
 	for i := int(pc); i < len(prog); i++ {
 		in := &prog[i]
+		if isDrawProgram {
+			// a Draw replacement body's own pc: the ask builders and answers
+			// read s.prog(k)[s.res.pc] for the op that posed the ask
+			s.res.pc = uint8(i)
+		}
 		switch in.Op {
 		case kop.OpBecomeCopy:
 			s.becomeCopyEnter(k, sl, in)
@@ -475,9 +537,7 @@ func (s *State) runReplProgAs(k *prep, sl Slot, c CardID, ab, pc uint8, src Slot
 					continue
 				}
 				s.queueAskAt(sl, kind, c, ab, uint8(i+1))
-				if !saved.active {
-					s.res = saved
-				}
+				s.restoreRes(&saved, isDrawProgram)
 				return
 			}
 			if kind != akCard && kind != akCtrPick && s.g.pre.state == 2 && s.g.pre.obj == s.perms[sl].obj {
@@ -485,6 +545,9 @@ func (s *State) runReplProgAs(k *prep, sl Slot, c CardID, ab, pc uint8, src Slot
 				s.touchSl(sl)
 				if isPayLifeOp(in) {
 					s.payLifeApply(k, sl, in, int(s.g.pre.val)) // repl_paylife.go: the answer pays now the entry happens
+				}
+				if kind == akNumber && readAheadCard(&k.t.Cards[c]) {
+					s.readAheadPlace(k, sl, int(s.g.pre.val), false) // kw_readahead.go: the answer is the entry's lore count
 				}
 				s.g.pre.state = 0
 				continue
@@ -534,17 +597,13 @@ func (s *State) runReplProgAs(k *prep, sl Slot, c CardID, ab, pc uint8, src Slot
 				continue
 			}
 			s.queueAskAt(sl, kind, c, ab, uint8(i+1))
-			if !saved.active {
-				s.res = saved
-			}
+			s.restoreRes(&saved, isDrawProgram)
 			return
 		case kop.OpChooseBranch, kop.OpChooseMove:
-			if !s.replAskOp(k, sl, c, ab, i, in) { // repl_enterreveal.go
+			if !s.replAskOp(k, sl, c, ab, i, in, isDrawProgram) { // repl_enterreveal.go, repl_drawpick.go
 				break
 			}
-			if !saved.active {
-				s.res = saved
-			}
+			s.restoreRes(&saved, isDrawProgram)
 			return
 		case kop.OpSkipUnless, kop.OpBranch:
 			i += s.replSkip(k, sl, in) // repl_entersunless.go; a mode's block (face_siegemode.go)
@@ -556,20 +615,28 @@ func (s *State) runReplProgAs(k *prep, sl Slot, c CardID, ab, pc uint8, src Slot
 			case shockNo:
 				s.execGen(k, in)
 			case shockQueued:
-				if !saved.active {
-					s.res = saved
-				}
+				s.restoreRes(&saved, isDrawProgram)
 				return
 			default:
 				i += skip
 			}
 		default:
+			if isDrawProgram {
+				// a Draw replacement body's ordinary effect op: exec falls
+				// through to the core executor when execGen does not claim it
+				if !s.exec(k, in) {
+					// the op posed an ask on the borrowed resCtx: the gap is
+					// declared or the last Dig's ask is parked, and the
+					// program ends either way (drawBodyAskGap)
+					s.drawBodyAskGap(k, &saved, i, len(prog), src, ab)
+					return
+				}
+				continue
+			}
 			s.execGen(k, in)
 		}
 	}
-	if !saved.active {
-		s.res = saved
-	}
+	s.restoreRes(&saved, isDrawProgram)
 }
 
 // entryAskOutstanding reports a decision gorge has pending while an enters
@@ -667,6 +734,9 @@ func (s *State) entryAskDefault(k *prep, sl Slot, c CardID, kind uint8, in *kop.
 	a := d.Options[0]
 	p := &s.perms[sl]
 	s.touchSl(sl)
+	if kind == akNumber && readAheadCard(&k.t.Cards[c]) {
+		s.readAheadPlace(k, sl, int(a.Mode()), false) // kw_readahead.go: the floor chapter's lore count enters with it
+	}
 	if kind == akCard {
 		p.chosen = objWord(a.Source()) // the chosen object rides the action's code
 	} else if kind == akColor || kind == akNumber || kind == akPlayer || isNameAsk(kind) {
@@ -718,7 +788,7 @@ func (s *State) queueAskRet(o Obj) {
 // enchant (it stays in exile, CR 303.4g) or one host (it enters attached).
 func (s *State) retAuraAsk(k *prep, d *Decision, a *askRec) bool {
 	if a.kind == akRiot {
-		return s.retRiotAsk(d, a) // kw_riotret.go
+		return s.retRiotAsk(k, d, a) // kw_riotret.go
 	}
 	o := Obj(a.ab)
 	x := &s.objs[o]
@@ -744,6 +814,7 @@ func (s *State) retAuraAsk(k *prep, d *Decision, a *askRec) bool {
 	if n == 1 {
 		s.enterRetAura(k, o, s.objs[buf[0]].slot)
 	}
+	s.resumeQueuedReturns(k) // the batch this ask held: the rest returns now
 	return false
 }
 
@@ -792,11 +863,20 @@ func (s *State) leaveGen(k *prep, sl Slot, o Obj) {
 }
 
 // returnLinked returns what the departed source o exiled until it left; srcCtrl
-// is its last controller.
-func (s *State) returnLinked(k *prep, srcCtrl uint8, o Obj) {
+// is its last controller. held says the source is part of a return batch
+// parked behind a returning Aura's host ask (flushReturns' redrive after the
+// answer): its links were judged live when the batch was held, so the source
+// version is not re-judged (a version that moved while the batch waited does
+// not unmake a departure gorge already accepted).
+// holdQ says the flush runs inside a flow gorge wraps in a kernel run
+// (zone_untilleavesbatch.go flushReturns): a return that queues its own ask
+// then suspends the sweep, so this source's later links wait with the rest of
+// the batch. Without it the ask is an ordinary queued pose and the sweep
+// returns everything (gorge's legacy-ask path).
+func (s *State) returnLinked(k *prep, srcCtrl uint8, o Obj, held, holdQ bool) {
 	for i := 0; i < int(s.g.nlinks); i++ {
 		l := s.g.links[i]
-		if l.src != o || s.objs[o].ver != l.sver+1 || k.gen.anyRemPersist && k.t.Cards[s.objs[o].card].RemPersist || s.g.linkHide>>uint(i)&1 != 0 {
+		if l.src != o || !held && s.objs[o].ver != l.sver+1 || k.gen.anyRemPersist && k.t.Cards[s.objs[o].card].RemPersist || s.g.linkHide>>uint(i)&1 != 0 {
 			continue // (a RemPersist link is its leaves trigger's: zone_rememberpersist.go; a Hideaway link stays: kw_hideaway.go)
 		}
 		toHand := s.g.linkHand|s.g.linkHide|s.g.linkAeg != 0 && s.dropLinkHand(i) // act_mayask.go
@@ -812,30 +892,9 @@ func (s *State) returnLinked(k *prep, srcCtrl uint8, o Obj) {
 			continue
 		}
 		if x.zone == kop.ZoneExile && s.auraWithHosts(k, l.obj) > 1 {
-			// a returning Aura (Witness Protection under Banishing Light):
-			// gorge asks its host with the card still in exile (CR 303.4f).
-			// During a resolution the kernel parks the choice (preReturn)
-			// and enters the card once answered (raGenRetChoice; pair 5605).
-			// A cost's pick still being answered when the host leaves -- the
-			// sacrificed host is what exiled it -- parks it too: the pending
-			// answer continues the resolution, and runProg poses the host ask
-			// before it ends (pair 1265). Outside a resolution (its source
-			// died to a state-based action) every returning Aura queues its
-			// own host ask before the next priority (queueAskRet) instead of
-			// entering unattached to fall to CR 704.5m: they are asked in
-			// entry order, one answer each.
-			parked, queued := false, false
-			if s.res.active && s.g.pre.state == 0 {
-				s.g.pre = preAsk{obj: l.obj, kind: akEnchant, state: preReturn}
-				parked = true
-			} else if !s.res.active {
-				s.queueAskRet(l.obj)
-				queued = true
-			}
-			if parked || queued {
-				if k.gen.anyLinkCtr {
-					s.linkRetStall(k, srcCtrl, o, l.obj)
-				}
+			if handled, stop := s.retAuraHostAsk(k, srcCtrl, o, l.obj, holdQ); stop {
+				return
+			} else if handled {
 				continue
 			}
 		}
@@ -908,13 +967,49 @@ func (s *State) returnLinked(k *prep, srcCtrl uint8, o Obj) {
 			if k.gen.anyLinkCtr {
 				ctrN = s.linkRetCtrs(k, srcCtrl, o, l.obj) // before the card takes the source's slot
 			}
+			nq := s.g.nask
 			from := s.detach(l.obj)
 			nsl := s.enterLinkRetRun(k, l.obj, x.owner(), from)
 			if ctrN > 0 {
 				s.linkRetPut(k, ctrN, nsl)
 			}
+			if s.g.nask > nq && s.res.active && !DebugReturnQueuedAskNoHold {
+				return // the entry queued an as-enters ask: gorge poses it now and the rest of the batch waits (zone_untilleavesqask.go)
+			}
 		}
 	}
+}
+
+// retAuraHostAsk parks or queues the host ask of a returning Aura (o's link
+// to a) that has more than one permanent it can enchant: gorge asks its host
+// with the card still in exile (CR 303.4f). During a resolution the kernel
+// parks the choice (preReturn) and enters the card once answered
+// (raGenRetChoice; pair 5605). A cost's pick still being answered when the
+// host leaves -- the sacrificed host is what exiled it -- parks it too: the
+// pending answer continues the resolution, and runProg poses the host ask
+// before it ends (pair 1265). Outside a resolution (its source died to a
+// state-based action) every returning Aura queues its own host ask before the
+// next priority (queueAskRet) instead of entering unattached to fall to CR
+// 704.5m: they are asked in entry order, one answer each. handled says the
+// ask was parked or queued; stop says returnLinked's sweep suspends on it
+// (gorge suspends its sweep on the ask: this source's later links wait with
+// the rest of the batch; flushReturns holds it, resumeQueuedReturns redrives).
+func (s *State) retAuraHostAsk(k *prep, srcCtrl uint8, o, a Obj, holdQ bool) (handled, stop bool) {
+	parked, queued := false, false
+	if s.res.active && s.g.pre.state == 0 {
+		s.g.pre = preAsk{obj: a, kind: akEnchant, state: preReturn}
+		parked = true
+	} else if !s.res.active {
+		s.queueAskRet(a)
+		queued = true
+	}
+	if !parked && !queued {
+		return false, false
+	}
+	if k.gen.anyLinkCtr {
+		s.linkRetStall(k, srcCtrl, o, a)
+	}
+	return true, queued && holdQ
 }
 
 // enterLinkRetRun enters the returning card o and marks the entry's enter
@@ -1357,8 +1452,19 @@ func (s *State) stepGen(k *prep, d *Decision) bool {
 }
 
 func (s *State) genAskOptions(k *prep, d *Decision) bool {
+	if s.drawBodyAsked() {
+		return s.resolveOptions(k, d) // repl_drawbody.go: a draw body's parked Dig ask
+	}
 	if s.res.ask == raDredgeRes && s.res.flags&(rfBodyOp|rfBodyTurn) != 0 {
 		s.dredgeResOptions(k, d) // kw_dredge.go: a draw-replacement body's ask, before dredgeTurnAsked (the first body card's ask is still the draw step's first)
+		return true
+	}
+	if s.res.ask == raGenDrawOrder && !s.res.active {
+		s.drawOrderOptions(k, d) // repl_draworder.go: the turn draw's order ask, before dredgeTurnAsked
+		return true
+	}
+	if s.res.ask == raGenDrawMay && !s.res.active {
+		s.drawMayOptions(k, d) // repl_drawmay.go: the turn draw's optional replacement election, before dredgeTurnAsked
 		return true
 	}
 	if s.dredgeTurnAsked() {
@@ -1466,8 +1572,20 @@ func (s *State) popAsk() {
 }
 
 func (s *State) applyGen(k *prep, a Action) {
+	if s.drawBodyAsked() {
+		s.drawBodyAnswer(k, a) // repl_drawbody.go: a draw body's parked Dig ask
+		return
+	}
 	if s.res.ask == raDredgeRes && s.res.flags&rfBodyTurn != 0 {
 		s.dredgeResAnswer(k, a) // kw_dredge.go: a draw-replacement body's ask, before dredgeTurnAsked (the first body card's answer is still the draw step's first)
+		return
+	}
+	if s.res.ask == raGenDrawOrder && !s.res.active {
+		s.drawOrderAnswer(k, a) // repl_draworder.go: the turn draw's order ask, before dredgeTurnAsked
+		return
+	}
+	if s.res.ask == raGenDrawMay && !s.res.active {
+		s.drawMayAnswer(k, a) // repl_drawmay.go: the turn draw's optional replacement election, before dredgeTurnAsked
 		return
 	}
 	if s.dredgeTurnAsked() {
@@ -1600,6 +1718,7 @@ func (s *State) answerQueuedAsk(k *prep, a Action) {
 	s.popAsk()
 	if ask.sl == NoSlot && ask.kind == akRiot {
 		s.enterRetRiot(k, Obj(ask.ab), a.Mode()) // kw_riotret.go
+		s.resumeQueuedReturns(k)                 // the batch this ask held
 		return
 	}
 	if ask.sl == NoSlot {
@@ -1608,6 +1727,7 @@ func (s *State) answerQueuedAsk(k *prep, a Action) {
 		// host (CR 303.4f)
 		host := s.objs[a.Source()].slot
 		s.enterRetAura(k, Obj(ask.ab), host)
+		s.resumeQueuedReturns(k) // the batch this ask held
 		return
 	}
 	p := &s.perms[ask.sl]
@@ -1646,6 +1766,10 @@ func (s *State) answerQueuedAsk(k *prep, a Action) {
 		if !s.enterRevealAnswer(k, ask, a) { // repl_enterreveal.go
 			return // the pick is asked again, or the yes/no became the pick
 		}
+	} else if ask.kind == akDrawPick {
+		if !s.drawPickAnswer(k, ask, a) { // repl_drawpick.go
+			return // the multi-card pick is asked again
+		}
 	} else if ask.kind == akColor || ask.kind == akNumber || ask.kind == akPlayer || isNameAsk(ask.kind) {
 		p.chosen = objWord(a.Mode())
 	} else {
@@ -1653,7 +1777,8 @@ func (s *State) answerQueuedAsk(k *prep, a Action) {
 		p.chosen = objWord(s.typeVocabCode(k, v))
 	}
 	if ask.kind == akNumber {
-		s.payLifeAnswer(k, ask, a) // repl_paylife.go: a no-op unless ExtPayLifeX posed it
+		s.payLifeAnswer(k, ask, a)   // repl_paylife.go: a no-op unless ExtPayLifeX posed it
+		s.readAheadAnswer(k, ask, a) // kw_readahead.go: a no-op unless a read-ahead Saga posed it
 	}
 	if ask.card != NoCard {
 		saveRep := s.g.replaced
@@ -1661,6 +1786,17 @@ func (s *State) answerQueuedAsk(k *prep, a Action) {
 		n0 := s.g.nask
 		s.runReplProg(k, ask.sl, ask.card, uint8(ask.ab), ask.pc)
 		s.g.replaced = saveRep
+		if a := &k.t.Cards[ask.card].Abilities[uint8(ask.ab)]; a.Kind == kop.AbReplacement &&
+			a.Repl.Kind == kop.ReplDrawProgram && s.g.nask == n0 &&
+			(ask.kind == akDrawPick || s.res.ask == raNone) {
+			// the resumed body finished. The DrawProgram pick is posed as the
+			// outer resolution's raGenEnterAsk (drawPickAsked in
+			// repl_drawpick.go) and stays on that resCtx through the answer:
+			// drawPickResume's continueRes is what clears it, so while the
+			// pick is being answered res.ask is never raNone and the ask
+			// kind itself is the "no new ask" proof.
+			s.drawProgramDone()
+		}
 		if ask.ts&askETBDeferred != 0 {
 			s.deferredETBFire(k, ask, n0) // ctr_choice.go
 		}
@@ -1801,6 +1937,10 @@ func (s *State) askOptions(k *prep, d *Decision, kind uint8) {
 	}
 	if kind == akEnterReveal || kind == akEnterRevealPick {
 		s.enterRevealOptions(k, d, kind) // repl_enterreveal.go
+		return
+	}
+	if kind == akDrawPick {
+		s.drawPickOptions(k, d) // repl_drawpick.go
 		return
 	}
 	if kind == akMode {

@@ -4,4 +4,4 @@ value: 109
 forge: MaxOppDamageThisTurn
 census: count MaxOppDamageThisTurn all=2 std=0 mbc=0 sole=2
 state: player 4 (turn tallies)
-status: reserved
+status: active

@@ -112,21 +112,28 @@ const (
 	ReplDoubleCountersYou        // the controller would put counters on a permanent or player: twice that many instead (the putter: gorge's in-flight counter adder; Innkeeper's Talent level 3, gated by Repl.Cond)
 	ReplLifeLossDouble           // an opponent of the controller would lose life during the controller's turn: twice that much instead, damage's life loss and life costs included (Bloodletter of Aclazotz; gorge LifeReduced ReplaceCount$Amount/Twice)
 	ReplTurnUpProgram            // as this face-down permanent is turned face up, run the ability's Prog on it before it turns up (PutCounter on RefReplaced; gorge applyTurnFaceUpReplacements, replacement_phase.go; Bubble Smuggler)
-	ReplCantTurnUp               // a permanent matching Repl.Filter (read in this source's frame) can't be turned face up while Repl.Cond holds: the special action is never offered (gorge turnFaceUpCantHappen, replacement_phase.go; Karlov Watchdog, Unable to Scream; CR 614.17a)
-	ReplSpellsCantBeCountered    // a spell its controller (this source's controller) casts that matches Repl.Filter can't be countered while this source is on the battlefield (gorge counterReplacementMatchesAll, Layer$ CantHappen with ValidSA$ Spell[.types]+YouCtrl; Chimil, the Inner Sun, Sphinx of the Final Word)
-	ReplAnyUntap                 // a permanent matching Repl.Filter (read in this source's frame) can't become untapped at any time: every Untap event is replaced, in any untap step and by an effect or cost (gorge cards.ReplUntap with no ValidStepTurnToController$, rules/replacement_match.go:338; CR 614.17; Frozen in Ice, Blossombind). The untap step's ReplOthersDoesntUntap gates do not cover it
-	ReplDrawMore                 // the controller would draw a card: Repl.A cards instead, each a new draw this replacement does not meet again (CR 614.5); Repl.C&ReplDrawNotFirst exempts the first card the controller draws in their draw step (gorge applyReplacements, a ReplaceWith$ DB$ Draw body)
-	ReplRewriteTokens            // a token the controller would create is the token of pool token index Repl.C instead, the same number (R:Event$ CreateToken | ReplaceWith$ DB$ ReplaceToken | Type$ ReplaceToken | TokenScript$; Holo-Engineer). The matchup remaps Repl.C to its CardID
-	ReplMayNotUntap              // this permanent's controller may choose not to untap it during their untap step: a tapped one asks "untap or keep tapped" (CR 502.3; gorge hasUntapStepChoice, the keyword line "You may choose not to untap CARDNAME during your untap step."); no other field
-	ReplDestroyHeal              // a creature matching Repl.Filter would be destroyed: remove all +1/+1 counters from it and heal all damage on it instead (Dr. McCoy, Surly Surgeon; gorge's Destroy ReplaceWith$ RemoveCounter body)
-	ReplDiscardOppToBattlefield  // this card in hand discarded by a spell or ability an opponent of its owner controls (not a cost, not cleanup) enters the battlefield under its owner's control instead of the graveyard (Wilt-Leaf Liege; gorge replacement_match.go ReplMoved Discard$ True, EffectOnly$ True, ValidCause$ SpellAbility.OppCtrl)
-	ReplPreventMillOpps          // damage a source the controller controls would deal to an opponent is prevented and that opponent mills that many cards instead (The Mindskinner; gorge's ReplaceWith$ DB$ Mill body, NumCards$ ReplaceCount$DamageAmount)
-	ReplAddToken                 // a token matching Repl.Filter (none: every token) the controller would create is made, and one token of pool token index Repl.C is made beside the creation as well, once per creation event (R:Event$ CreateToken | ValidPlayer$ You | ReplaceWith$ DB$ ReplaceToken | Type$ AddToken | Amount$ 1 | TokenScript$; Worldwalker Helm). The matchup remaps Repl.C to its CardID
-	ReplPreventDamageCounters    // damage that would be dealt to this permanent is prevented and that many +1/+1 counters are put on it instead, once per damage event (Anti-Venom, Horrifying Healer; gorge's PreventionEffect$ True with a DB$ PutCounter | Defined$ ReplacedTarget | CounterNum$ ReplaceCount$DamageAmount body: under a can't-prevent static the counters are put and the damage stands, CR 615.12)
-	ReplDamageHealFirst          // damage that would be dealt to this permanent is dealt, but all damage already marked on it is healed first, once per damage event (Wolverine, Fierce Fighter; gorge's ReplacementResult$ Updated DB$ HealDamage | Defined$ ReplacedTarget body: the damage is still dealt, so lifelink and damage triggers see it)
-	ReplCopyFirstToken           // the first time this turn the controller would create a token while no token they own has entered this turn (Repl.Cond, the gate), they may instead have it be a copy of the permanent this source is attached to: an election, decline first (R:Event$ CreateToken | ValidPlayer$ You | Optional$ True | Layer$ Copy | CheckSVar$ X | SVarCompare$ EQ0 | ReplaceWith$ DB$ ReplaceToken | Type$ ReplaceToken | ValidChoices$ Card.EquippedBy or Card.EnchantedBy | TokenScript$ Chosen; Mirrormind Crown, Moonlit Meditation; gorge poseChosenTokenReplacement). The election is asked once per creation, at the first token of a plain CreateToken op; every other mint site stalls (StallTokRewrite)
-	ReplPayBeforeETB             // this permanent spell's controller may discard a land card as it would enter: the ability's Prog is that optional discard, run as the spell resolves; the card then enters when it discarded one and goes to its owner's graveyard otherwise (Mox Diamond; gorge's Moved replacement with a Discard / ChangeZone chain). An entry by any other route stalls (StallPayETB)
-	ReplDestroyRegenerate        // this permanent would be destroyed by a destruction it can be regenerated from (not NoRegen$, no can't-be-regenerated mark, toughness above 0 when a creature): regenerate it instead, no shield spent (CR 701.19a; gorge's R:Event$ Destroy | ValidCard$ Card.Self | Regeneration$ True line with a DB$ Regeneration | Defined$ ReplacedCard body, replacement_destroy.go; Mossbridge Troll). No other field
+	// ReplTurnUpAttach (manifest_gen.go; the kind above it is frozen): as this
+	// face-down permanent is turned face up, its controller may attach it to
+	// a battlefield permanent Repl.Filter admits that its Enchant word does
+	// not refuse (gorge applyTurnFaceUpReplacements' DB$ Attach body,
+	// Object$ Self, Optional$ True: the ask parks the turn-up still face down,
+	// replacement_phase.go; dirac/face_turnupattach.go; Gift of Doom). No
+	// other field beside Repl.Filter and Repl.Cond.
+	ReplCantTurnUp              // a permanent matching Repl.Filter (read in this source's frame) can't be turned face up while Repl.Cond holds: the special action is never offered (gorge turnFaceUpCantHappen, replacement_phase.go; Karlov Watchdog, Unable to Scream; CR 614.17a)
+	ReplSpellsCantBeCountered   // a spell its controller (this source's controller) casts that matches Repl.Filter can't be countered while this source is on the battlefield (gorge counterReplacementMatchesAll, Layer$ CantHappen with ValidSA$ Spell[.types]+YouCtrl; Chimil, the Inner Sun, Sphinx of the Final Word)
+	ReplAnyUntap                // a permanent matching Repl.Filter (read in this source's frame) can't become untapped at any time: every Untap event is replaced, in any untap step and by an effect or cost (gorge cards.ReplUntap with no ValidStepTurnToController$, rules/replacement_match.go:338; CR 614.17; Frozen in Ice, Blossombind). The untap step's ReplOthersDoesntUntap gates do not cover it
+	ReplDrawMore                // the controller would draw a card: Repl.A cards instead, each a new draw this replacement does not meet again (CR 614.5); Repl.C&ReplDrawNotFirst exempts the first card the controller draws in their draw step (gorge applyReplacements, a ReplaceWith$ DB$ Draw body)
+	ReplRewriteTokens           // a token the controller would create is the token of pool token index Repl.C instead, the same number (R:Event$ CreateToken | ReplaceWith$ DB$ ReplaceToken | Type$ ReplaceToken | TokenScript$; Holo-Engineer). The matchup remaps Repl.C to its CardID
+	ReplMayNotUntap             // this permanent's controller may choose not to untap it during their untap step: a tapped one asks "untap or keep tapped" (CR 502.3; gorge hasUntapStepChoice, the keyword line "You may choose not to untap CARDNAME during your untap step."); no other field
+	ReplDestroyHeal             // a creature matching Repl.Filter would be destroyed: remove all +1/+1 counters from it and heal all damage on it instead (Dr. McCoy, Surly Surgeon; gorge's Destroy ReplaceWith$ RemoveCounter body)
+	ReplDiscardOppToBattlefield // this card in hand discarded by a spell or ability an opponent of its owner controls (not a cost, not cleanup) enters the battlefield under its owner's control instead of the graveyard (Wilt-Leaf Liege; gorge replacement_match.go ReplMoved Discard$ True, EffectOnly$ True, ValidCause$ SpellAbility.OppCtrl)
+	ReplPreventMillOpps         // damage a source the controller controls would deal to an opponent is prevented and that opponent mills that many cards instead (The Mindskinner; gorge's ReplaceWith$ DB$ Mill body, NumCards$ ReplaceCount$DamageAmount)
+	ReplAddToken                // a token matching Repl.Filter (none: every token) the controller would create is made, and one token of pool token index Repl.C is made beside the creation as well, once per creation event (R:Event$ CreateToken | ValidPlayer$ You | ReplaceWith$ DB$ ReplaceToken | Type$ AddToken | Amount$ 1 | TokenScript$; Worldwalker Helm). The matchup remaps Repl.C to its CardID
+	ReplPreventDamageCounters   // damage that would be dealt to this permanent is prevented and that many +1/+1 counters are put on it instead, once per damage event (Anti-Venom, Horrifying Healer; gorge's PreventionEffect$ True with a DB$ PutCounter | Defined$ ReplacedTarget | CounterNum$ ReplaceCount$DamageAmount body: under a can't-prevent static the counters are put and the damage stands, CR 615.12)
+	ReplDamageHealFirst         // damage that would be dealt to this permanent is dealt, but all damage already marked on it is healed first, once per damage event (Wolverine, Fierce Fighter; gorge's ReplacementResult$ Updated DB$ HealDamage | Defined$ ReplacedTarget body: the damage is still dealt, so lifelink and damage triggers see it)
+	ReplCopyFirstToken          // the first time this turn the controller would create a token while no token they own has entered this turn (Repl.Cond, the gate), they may instead have it be a copy of the permanent this source is attached to: an election, decline first (R:Event$ CreateToken | ValidPlayer$ You | Optional$ True | Layer$ Copy | CheckSVar$ X | SVarCompare$ EQ0 | ReplaceWith$ DB$ ReplaceToken | Type$ ReplaceToken | ValidChoices$ Card.EquippedBy or Card.EnchantedBy | TokenScript$ Chosen; Mirrormind Crown, Moonlit Meditation; gorge poseChosenTokenReplacement). The election is asked once per creation, at the first token of a plain CreateToken op; every other mint site stalls (StallTokRewrite)
+	ReplPayBeforeETB            // this permanent spell's controller may discard a land card as it would enter: the ability's Prog is that optional discard, run as the spell resolves; the card then enters when it discarded one and goes to its owner's graveyard otherwise (Mox Diamond; gorge's Moved replacement with a Discard / ChangeZone chain). An entry by any other route stalls (StallPayETB)
+	ReplDestroyRegenerate       // this permanent would be destroyed by a destruction it can be regenerated from (not NoRegen$, no can't-be-regenerated mark, toughness above 0 when a creature): regenerate it instead, no shield spent (CR 701.19a; gorge's R:Event$ Destroy | ValidCard$ Card.Self | Regeneration$ True line with a DB$ Regeneration | Defined$ ReplacedCard body, replacement_destroy.go; Mossbridge Troll). No other field
 	// ReplCount ends the frozen iota list (the kinds above are 0..40). It
 	// is a fixed value: do not append above it. A new replacement kind is a
 	// manifest entry (dirac/manifest/ReplKind, kmanifest).
@@ -169,6 +176,29 @@ const ReplCopyFirstAttached = 1
 
 // ReplDrawMore flags (Repl.C).
 const ReplDrawNotFirst = 1 // NotFirstCardInDrawStep$ True
+
+// ReplDrawProgram flags (Repl.C). The program in the ability's Prog replaces
+// the draw (gorge's R:Event$ Draw ReplaceWith$ body); the kind's other fields
+// are the line's match: ValidPlayer$ (You when neither of the two below is
+// set), Optional$, NotFirstCardInDrawStep$ and Prevent$ (a bodyless skip).
+const (
+	ReplDrawOptional  = 1 << 1 // Optional$ True: the draw's player elects apply / decline (dirac/repl_drawmay.go)
+	ReplDrawOpponent  = 1 << 2 // ValidPlayer$ Opponent: an opponent of the source's controller draws
+	ReplDrawAnyPlayer = 1 << 3 // ValidPlayer$ Player: any player draws
+	ReplDrawSkip      = 1 << 4 // Prevent$ True, no ReplaceWith$ body: the draw is skipped
+	// ReplDrawCauseCyclingNonLand is the line's ValidCause$ Activated.Cycling+nonLand
+	// (Unpredictable Cyclone, the corpus's only Draw ValidCause$ carrier): the
+	// draw's cause must be a resolving activated cycling ability (kop.AfCycling,
+	// which is what both Keyword$ Cycling and TypeCycling ride) whose source
+	// card is not a land. gorge reads the same three tests in
+	// engine/rules/trigger_cause.go drawCauseAdmits; the kernel's read is
+	// repl_drawprogram.go drawCauseCycling.
+	ReplDrawCauseCyclingNonLand = 1 << 5
+	// ReplDrawBodyDraw: ReplaceWith$ root API is Draw: a body drawing from
+	// the same empty library, so it does not meet an empty-library draw
+	// (gorge emptyDrawReplacement).
+	ReplDrawBodyDraw = 1 << 6
+)
 
 // Repl is a replacement-lite effect.
 type Repl struct {

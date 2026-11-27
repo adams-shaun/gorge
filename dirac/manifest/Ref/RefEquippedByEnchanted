@@ -1,0 +1,7 @@
+family: Ref
+name: RefEquippedByEnchanted
+value: next
+state: code 0
+status: active
+ticket: gap-defined-refs-slice4
+doc: the battlefield permanent the source Aura's enchanted Equipment is attached to (gorge Defined$ Valid Card.EquippedByEnchanted: the card equipped by the enchanted object, effects/filter_attachment.go attachedToArg's inverse read). None when the source is not attached to an Equipment, the Equipment is not attached to a permanent, or either has left. Artificer's Hex.

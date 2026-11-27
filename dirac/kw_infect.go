@@ -25,6 +25,11 @@ func prepInfect(t *kop.Table, g *genPrep) {
 	if g.anyInfectGrant {
 		g.anyInfect = true // a granted infect (kw_kwmark.go)
 	}
+	toxicOnly := false // a granted toxic alone makes the table an infect table (kw_toxicgrant.go)
+	if tableGrantsToxic(t) {
+		toxicOnly = !g.anyInfect
+		g.anyInfect, g.anyInfectGrant = true, true // a granted toxic (kw_toxicgrant.go)
+	}
 	if !g.anyInfect {
 		return
 	}
@@ -42,7 +47,9 @@ func prepInfect(t *kop.Table, g *genPrep) {
 	for i := range t.Cards {
 		for j := range t.Cards[i].Abilities {
 			a := &t.Cards[i].Abilities[j]
-			if a.Kind == kop.AbTriggered && a.Trig.Event == kop.TrigCounterAddedOnce {
+			if a.Kind == kop.AbTriggered && a.Trig.Event == kop.TrigCounterAddedOnce && (!toxicOnly || a.Trig.N == kop.TrigNAnyCounter) {
+				// a granted toxic alone adds player poison, which no object
+				// counter kind names: only an any-kind watcher can see it
 				g.infectStall = true
 			}
 			for _, in := range a.Prog {
@@ -56,6 +63,12 @@ func prepInfect(t *kop.Table, g *genPrep) {
 				}
 			}
 		}
+	}
+	if toxicOnly {
+		// toxic is a triggered ability, no replacement (CR 702.164b): a
+		// replacement-order ask beside it orders no conversion, so only the
+		// counter-added trigger shape above stalls such a table
+		return
 	}
 	if g.anyRepl&(rbDblDmg|rbPrevNC|rbPlusDmg) != 0 || g.anyRepl&rbPrevCol != 0 && ask {
 		g.infectStall = true
@@ -115,6 +128,13 @@ func (s *State) toxicAt(k *prep, sl Slot) int {
 	if k.gen.anyColGrant {
 		_, _, t := s.cgOf(sl) // a chosen-colour toxic grant (static_colourgrant.go)
 		n += t
+	}
+	if k.gen.anyInfectGrant && !DebugNoGrantedToxic {
+		g := s.toxicGranted(k, sl)
+		n += g
+		if g > 0 && DebugToxicStats != nil {
+			DebugToxicStats.GrantedPoison += int64(g)
+		}
 	}
 	return n
 }
@@ -194,7 +214,7 @@ func (s *State) infectDamageTo(k *prep, code TCode, n int, kw kop.KwMask) {
 	if k.gen.anyPermMark {
 		s.markDealt(k, s.objRef(k, kop.RefSelf), false) // filter_permmarks.go
 	}
-	if s.subs[kop.TrigDamageDone].any() || s.subs[kop.TrigDamageDealtOnce].any() || k.gen != nil && k.gen.graveDmg {
+	if s.evLive(kop.TrigDamageDone) || s.evLive(kop.TrigDamageDealtOnce) || k.gen != nil && k.gen.graveDmg {
 		if sl := s.objRef(k, kop.RefSelf); sl != NoSlot {
 			s.fireDamage(k, sl, int16(n), isPlayerOrNone(code), false, code)
 		} else if e.obj != NoObj {

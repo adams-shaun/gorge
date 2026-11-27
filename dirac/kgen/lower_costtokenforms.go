@@ -41,12 +41,35 @@ func (lc *lowerCtx) discardCost(c *lCost, parts []string, n int, t string) error
 	if len(parts) < 2 || len(parts) > 3 || n < 1 {
 		return refuse("discard cost %q", t)
 	}
+	if lc.altCostHand && n == 1 && parts[1] == "Card.SharesColorWith" {
+		// Dream Halls' granted alternative cost: discard a card that shares
+		// a colour with the spell being cast. The candidate test depends on
+		// the cast card, so the cost carries the kernel's dynamic marker
+		// (kop.Cost.DiscardSharesCastColor) instead of a fixed hand filter.
+		c.DiscardShare = true
+		c.DiscardN = n
+		return nil
+	}
 	switch parts[1] {
 	case "Card":
 		c.DiscardSpec = ""
 	case "Random", "Hand":
 		c.DiscardSpec = parts[1]
 	default:
+		if strings.EqualFold(parts[1], "Card+WithDifferentNames") {
+			// Forge's set-modifier spelling: gorge's DiscardCandidates
+			// passes the RAW spec to MatchesSpecFrom (its discard path has
+			// no SacrificeMatchSpec strip and no DistinctNameCandidates),
+			// and the unknown WithDifferentNames word fails closed there:
+			// the part has no candidates, is never payable, and the ability
+			// carrying it is never offered (Ormos, Archive Keeper's
+			// {1}{U}{U}, Discard three cards with different names). The
+			// kernel mirrors that read with a clause that matches no card
+			// (the blankNeverClauses read, lower_zone.go).
+			c.DiscardF = &lFilter{Clauses: []lClause{{NotTypes: tAnyCard}}}
+			c.DiscardN = n
+			return nil
+		}
 		// A filtered discard (CR 118.3, 601.2h; gorge cost
 		// nonManaCost's spec over pay.DiscardCandidates'
 		// MatchesSpecFrom): Solitary Cell's Card.Legendary,
@@ -144,6 +167,8 @@ func (lc *lowerCtx) namedCostToken(c *lCost, head string, parts []string, t stri
 		return true, lc.drawXCost(c, parts, t)
 	case head == "RevealChosen":
 		return true, lc.revealChosenCost(c, parts, t)
+	case head == "ExiledMoveToGrave":
+		return true, lc.exiledMoveGraveCost(c, parts, t) // lower_exiledmovegrave.go
 	}
 	return false, nil
 }

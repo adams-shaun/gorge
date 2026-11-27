@@ -43,7 +43,7 @@ func TestVariableAltCostReprosReach(t *testing.T) {
 	}
 	up := 0
 	for _, a := range read("disguise_reduced_turn_up_fugitive_codebreaker").Actions {
-		if a.Kind() == ActSpecial && a.Mode() == kfacedownTurnUp {
+		if a.Kind() == ActSpecial && a.Mode()&0xf == kfacedownTurnUp {
 			up++
 		}
 	}

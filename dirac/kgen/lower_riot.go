@@ -14,9 +14,9 @@ func init() { kwHandlers["Riot"] = (*lowerCtx).lowerRiotKw }
 // battlefield re-entry asks again (CR 400.7's new object asks too). A face
 // that also prints Unleash refuses: gorge asks both as-enters elections and
 // the kernel's pre-entry ask carries one kind (no corpus card has both). A
-// GRANTED Riot (a static's AddKeyword$, Rhythm of the Wild, Spider-Punk)
-// stays refused: gorge's enteringRiot would ask for the derived read too,
-// and the kernel reads only the printed field.
+// GRANTED Riot is a Continuous static's AddKeyword$ Riot (lower_riotgrant.go):
+// the kernel reads it beside this printed field, matching the granting static
+// on the entrant, exactly as gorge's enteringRiot reads the derived keywords.
 func (lc *lowerCtx) lowerRiotKw(node, _ string) {
 	if lc.out.Unleash {
 		lc.refuseNode(node, "a face that also prints Unleash")

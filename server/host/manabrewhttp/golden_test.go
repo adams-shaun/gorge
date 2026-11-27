@@ -74,6 +74,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 	"github.com/adams-shaun/gorge/server/manabrew"
 	mb "github.com/adams-shaun/gorge/server/protocol/manabrew"
+	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
 // The last line of the fixture is the terminal gameOver prompt. The synthetic
@@ -231,7 +232,7 @@ func runGoldenGame(t *testing.T) [][]byte {
 
 	var transcript [][]byte
 	lastSeq := map[state.PlayerID]uint64{}
-	overallDeadline := time.Now().Add(30 * time.Second)
+	overallDeadline := time.Now().Add(testutil.WaitBudget)
 	for {
 		var seat state.PlayerID
 		var d *decision.Decision

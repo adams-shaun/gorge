@@ -1112,11 +1112,15 @@ func (s *State) availUngranted(k *prep, p uint8, a *avail) {
 // proof; the ask branches between states are not charged, matching gorge's
 // clone count (scriptSearch.try clones per answer, scriptSearch.visit charges
 // the clone).
+//
+//lockstep:const engine/rules.potentialScriptNodes * 5 / 4
 const phasedScriptNodes = potentialScriptNodes + potentialScriptNodes/4
 
 // mayPlayScriptNodes is gorge's potentialMayPlayNodes: the node bound of the
 // may-play fallback run (grantSearch's last), a plain run after the others
 // found none and the first spent its budget (CR 601.2g, 605.3a).
+//
+//lockstep:const engine/rules.potentialMayPlayNodes
 const mayPlayScriptNodes = 1024
 
 // grantSrch is one prefix search (gorge scriptSearch under gapsOnly): the
@@ -1407,6 +1411,7 @@ func (g *grantSrch) candidates(s *State) {
 			continue
 		}
 		ng := s.grantIdxs(g.k, sl, &g.gi[g.n])
+		ng = s.uncoveredGrants(g.k, sl, &g.gi[g.n], ng) // a grant the source's own printed ability equals is no census gap (mana_grantcovered.go)
 		smi := sm
 		if ng > 0 && si.has(sl) {
 			smi = sm.with(sl) // an idle battery beside its grant: the printed ask answer first
@@ -1594,13 +1599,13 @@ func (g *grantSrch) node() bool {
 		// scriptSearch.try takes one clone per answer and scriptSearch.visit
 		// charges the node at the clone. The kernel also charges each ask
 		// branch separately (the choose-a-mana-ability and colour asks), so a
-		// phased run that charged both would spend gorge's 160 clones on half
+		// phased run that charged both would spend gorge's potentialScriptNodes clones on half
 		// the states. A repeatable fee-only filter's run charges payer states
 		// alone (gorge hoists the visited-state check for it, so a duplicate
 		// state is no node); any other phased run charges every ask clone as
 		// the plain one does (Alchemist's Talent's two Treasures and Graven
 		// Cairns: gorge's 7-step script is its 260th node, not the 164th
-		// payer state, and the 160 budget refuses it).
+		// payer state, and the potentialScriptNodes budget refuses it).
 		return true
 	}
 	limit := potentialScriptNodes
@@ -1710,7 +1715,7 @@ func (g *grantSrch) phasedScope(s *State) bool {
 	}
 	cd := &g.k.t.Cards[s.castFaceCard(g.k, g.d.play)]
 	const sacOrReturn = kop.CostSac | kop.CostSacSelf | kop.CostReturn | kop.CostReturnSelf
-	if cd.SpellCost.Flags&sacOrReturn != 0 || cd.AltAddCost.Flags&sacOrReturn != 0 {
+	if cd.SpellCost.Flags&sacOrReturn != 0 || cd.AltAddCost.Flags&sacOrReturn != 0 || cd.AltAddCost2.Flags&sacOrReturn != 0 {
 		return true
 	}
 	for ai := range cd.Abilities {
@@ -3531,6 +3536,12 @@ func (s *State) grantPlayCostRaise(k *prep, p uint8, a Action, kicked bool) (cos
 			// the composed cost (pair 8638)
 			c := s.objs[a.Source()].card
 			kp := s.kickPayment(k, SeatIx(p), c, Obj(a.Source()), true)
+			if sel := s.kickAltActionSel(a); sel != 0 {
+				// the two-alternative Kicker's selection is the additional
+				// cost alone: part one only for sel 1, part two only for
+				// sel 2 (kickSelPayment's home; kw_kickalt.go)
+				kp = kickSelPayment(&k.t.Cards[c], sel)
+			}
 			if DebugGrantKickNoMulti && k.t.Cards[c].HasMultikicker {
 				kp = k.t.Cards[c].Kicker // the mutation switch: a Multikicker play priced at its base alone
 			}
@@ -3631,7 +3642,7 @@ func (s *State) xFlashbackPlanCost(k *prep, p uint8, a Action) (cost kop.ManaCos
 // search (filtScript) does not take this hint: it mirrors gorge's prefix
 // search, which reads no pips for a flashback cast, so it reads
 // playNeedPrinted (a Calibrated Blast flashback beside two fee filters spends
-// gorge's 160-node budget in engine order and is withheld). The card's
+// gorge's potentialScriptNodes budget in engine order and is withheld). The card's
 // printed cost is read unreduced (CR 601.2b announces the printed pip
 // colours).
 func (s *State) playNeed(k *prep, a Action) (need [kop.NumManaKinds]bool) {
@@ -3846,8 +3857,10 @@ func (s *State) altPlayCost(k *prep, p uint8, a Action) (kop.ManaCost, bool) {
 		return kop.ManaCost{}, true
 	case m&castFaceDown != 0:
 		return s.adjustCost(k, p, c, o, kop.ManaCost{Generic: 3}), true
-	case m == 0 && a.Target() == castAltTgt && k.gen != nil && k.gen.altFree != nil && k.gen.altFree[c] != 0:
-		return s.adjustCostGen(k, p, c, o, cd.Abilities[k.gen.altFree[c]-1].Cost.Mana), true
+	case m == 0 && k.gen != nil && (a.Target() == castAltTgt || a.Target() > castAltIdxTgt):
+		if ab := s.altTgtAbility(k, p, a); ab != nil { // the card's own alternative or a grant's
+			return s.adjustCostGen(k, p, c, o, ab.Cost.Mana), true
+		}
 	}
 	return kop.ManaCost{}, false
 }

@@ -1,0 +1,22 @@
+# CardID index of the pool table, maintained by dirac/kgen: an id never moves.
+0	card	Cataclysmic Prospecting
+1	card	Desert
+2	card	Devour Intellect
+3	card	Grizzly Bears
+4	card	Hill Giant
+5	card	Hired Hexblade
+6	card	Jaded Sell-Sword
+7	card	Lightning Bolt
+8	card	Marut
+9	card	Price of Loyalty
+10	card	Prossh, Skyraider of Kher
+11	card	Spoils of the Hunt
+12	card	Strike It Rich
+13	token	c_a_treasure_sac
+14	token	kobolds_of_kher_keep
+15	card	Forest
+16	card	Mountain
+17	card	Swamp
+18	card	Bat Colony
+19	card	Hidden Courtyard
+20	token	b_1_1_bat_flying

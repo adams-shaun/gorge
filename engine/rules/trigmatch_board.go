@@ -103,6 +103,7 @@ func (b *trigBoard) MatchesSpec(spec string, id, source state.ObjID, you state.P
 	e := b.eng()
 	sc := e.specCtx(source, you)
 	sc.DelayedRemembered, sc.ExtraTypes, sc.Layers.StaticGoads = o.DelayedRemembered, o.ExtraTypes, o.StaticGoads
+	sc.DelayedImprinted = o.DelayedImprinted
 	// A registration's frozen chosen-card set IS the chosen list its body's
 	// ChosenCard(Strict) predicate reads (state.DelayedTrigger.ChosenCard,
 	// Forge's Effect card), bound like DelayedRemembered is.
@@ -132,6 +133,7 @@ func (b *trigBoard) MatchesObject(spec string, obj *state.Object, source state.O
 	e := b.eng()
 	sc := e.specCtx(source, you)
 	sc.DelayedRemembered, sc.ExtraTypes, sc.Layers.StaticGoads = o.DelayedRemembered, o.ExtraTypes, o.StaticGoads
+	sc.DelayedImprinted = o.DelayedImprinted
 	if o.DelayedChosenBound {
 		sc.Chosen, sc.ChosenValid = o.DelayedChosen, true
 	}
@@ -216,14 +218,7 @@ func (b *trigBoard) LiveActivation(card state.ObjID) (trigmatch.Activation, bool
 	if pc == nil || !pc.isAbility() || pc.card != card {
 		return trigmatch.Activation{}, false
 	}
-	var n int32
-	for _, part := range pc.cost.SubCounter {
-		if part.Announced {
-			n += pc.x
-		} else {
-			n += part.N
-		}
-	}
+	n := pc.countersRemoved()
 	// The WHOLE target chain the activation announced (CR 602.2b importing
 	// 601.2c): the root declaration's answers plus every cast-time
 	// SubAbility$ link's answers, in chain order. The links are all announced

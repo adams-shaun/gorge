@@ -23,7 +23,7 @@ func TestCompileDigUntil(t *testing.T) {
 		"Valid": "Permanent.Creature", "RevealedDestination": " Graveyard ", "FoundDestination": "Battlefield",
 		"RevealedLibraryPosition": " -1 ", "OptionalFoundMove": "True", "NoMoveRevealed": "true",
 		"RevealRandomOrder": " True ", "Tapped": "True", "GainControl": "True", "RememberFound": "True",
-		"RememberRevealed": "True", "Amount": " 3 ", "DigZone": "PlanarDeck", "NoMoveFound": "Maybe",
+		"RememberRevealed": "True", "Amount": " 3 ", "DigZone": "Graveyard", "NoMoveFound": "Maybe",
 		"Shuffle": "True", "ShuffleCondition": "Always", "ImprintFound": "True", "ImprintRevealed": "False",
 		"FoundLibraryPosition": "2", "NoneFoundLibraryPosition": "7", "OptionalNoDestination": "Exile",
 		"Defined": " You", "Hidden": "True",
@@ -41,7 +41,7 @@ func TestCompileDigUntil(t *testing.T) {
 	if !p.NoneFoundSet || p.NoneFoundDest != state.ZLibrary || p.NoneFoundPos != "" {
 		t.Fatalf("none-found = %+v", p)
 	}
-	want := []string{"DigZone$ PlanarDeck", "NoMoveFound$ Maybe", "ShuffleCondition$ Always",
+	want := []string{"DigZone$ Graveyard", "NoMoveFound$ Maybe", "ShuffleCondition$ Always",
 		"FoundLibraryPosition$ 2", "NoneFoundLibraryPosition$ 7"}
 	if !slices.Equal(p.Withheld, want) {
 		t.Fatalf("withheld = %q, want %q", p.Withheld, want)

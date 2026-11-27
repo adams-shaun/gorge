@@ -44,7 +44,9 @@ const (
 	ClonePick      = 1 << 3 // the Choices$ pick itself (F the candidates)
 	CloneTmplShift = 4      // bits 4-5: the template's target slot
 	CloneBatch     = 1 << 6 // the Choices$ pool is the trigger's batch members in exile (with ClonePick and CloneTmplPick; the copy is of the picked card, not a permanent)
-	CloneGrant     = 1 << 7 // GainThisAbility$: the override record after C (index C+1) is a grant-only record, applied as the copy's own granted ability (CR 707.9b)
+	CloneGrant     = 1 << 7 // GainThisAbility$ or AddTriggers$: the override record after C (index C+1) is a grant-only record, applied as the copy's own granted abilities (CR 707.9b)
+	CloneTmplCard  = 1 << 8 // the template is the target slot's card off the battlefield (TgtZone$ Graveyard), copied as its printed card (CR 400.7)
+	CloneTmplSac   = 1 << 9 // the template is the card the activation's own Exile<> cost exiled (Defined$ Exiled), copied as its printed card
 )
 
 // BecomeCopyCtr is OpBecomeCopy's B.N bit (a different op from ExtCloneCopy,
@@ -71,6 +73,16 @@ const BecomeCopyEmbalm = 1 << 1
 // permanent enters. Gorge: rules/cast_etbchoice.go etbCloneOptions over
 // ChoiceZoneKind, effects/clone.go cloneETBTemplateLegal.
 const BecomeCopyGrave = 1 << 2
+
+// BecomeCopyEOT is OpBecomeCopy's Duration$ UntilEndOfTurn bit (Cursed
+// Mirror: "you may have it become a copy of any creature on the battlefield
+// until end of turn, except it has haste"): the entering copy is
+// duration-bounded, so becomeCopyEnter records it as an fxCopyEOT record and
+// the cleanup step (cloneCleanup, CR 514.2) ends it — the permanent goes back
+// to its printed card and drops the copy's exceptions and grants, as an
+// ExtCloneCopy until-end-of-turn copy's. Gorge: effects/clone.go cloneDuration
+// untilEOT, EndOfTurnCleanup's clone sweep.
+const BecomeCopyEOT = 1 << 3
 
 // MayGuardCloneCopy: the OpMayAsk guard of an Optional$ Clone: the next op is
 // an ExtCloneCopy that has a live template and at least one becomer (gorge
@@ -257,6 +269,13 @@ const (
 	MvFromGraveyard    = 1 << 13   // OpExile/OpExileEx C: a trigger object's graveyard-origin exile moves only if the card is still in the graveyard (bits 11 and 12 belong to the shifted OpChangeZoneAllEx/OpReturnEx space, so this unshifted flag takes 13)
 )
 
+// RetFaceDown is OpReturn's C bit 8 (the destination zone takes bits 0-2;
+// kop.Zone(in.C) reads only the low byte): the object enters the battlefield
+// face down (CR 708.2, a generic ChangeZone FaceDown$ True entry, not the
+// manifest procedure). The entry runs face-down characteristics before its
+// enters checks, as gorge's applyMoveFaceDown folds the mark into the move.
+const RetFaceDown = 1 << 8
+
 // CzChosenOrder is OpChangeZoneAll's C bit 3 (the non-Ex form's C is only
 // the destination zone): move the chosen set in its stored (pick) order, one
 // object at a time, as gorge's ChangeZone Defined$ ChosenCard does (Split the
@@ -268,6 +287,12 @@ const CzChosenOrder = 1 << 3
 // Destroy Defined$ ChosenCard does (The Horus Heresy). Bits 0..1 are
 // RememberDestroyed$/NoRegen$.
 const DestroyAllChosenOrder = 1 << 4
+
+// DestroySumToughness is OpDestroy's C bit 3, beside RememberDestroyed$ (2)
+// and RememberLKI$ (4): a destroyed target that lands in a graveyard adds its
+// last-known toughness to the resolution's remLK, the sum RememberedLKI$
+// CardToughness reads (Noxious Gearhulk's "gain life equal to its toughness").
+const DestroySumToughness = 1 << 3
 
 // AttachUnattach (OpAttach C, beside MvRemember's bit 0): Reconfigure's
 // unattach half (CR 702.151a), "unattach from a creature": the source stops
@@ -310,7 +335,17 @@ const (
 	ChooseCardAtRandom      = 13 // A = the pick count, the engine rng picks (no ask)
 	ChooseCardEach          = 14 // every player picks one, AliveFrom(controller)
 	ChooseCardActivatorBase = 16 // match the pool from the activator (Drana's TriggeredDefendingPlayer)
+	// ChooseCardEachAmount: every player in Obj, AliveFrom(controller), picks
+	// A cards (every pick taken, no Done), each from a pool matched from the
+	// asking player: the filter's YouCtrl is the chooser's own objects
+	// (Planetary Annihilation's "each player chooses six lands they control")
+	ChooseCardEachAmount = 17
 )
+
+// ChooseEachNonLand is OpChooseEachType's C bit 0: the pool is Choices$
+// Permanent.nonLand, so no type group offers a land (an artifact land is no
+// artifact candidate). A holds the groups' TypeMask (0 = all six).
+const ChooseEachNonLand = 1
 
 // Search flags carried in Instr.B (a VConst) of OpSearchEx / OpChooseMove,
 // not in C: C>>3 has no room left (bit 11 is the last positive bit of the
@@ -404,6 +439,13 @@ const (
 // graveyard, then every seat's library, top first (gorge effChangeZoneAll's
 // zone-major walk). Clear of every Cz* code above.
 const CzGraveLibrary = 128
+
+// CzShuffleOwners is OpChangeZoneAll's B on a battlefield-to-library sweep
+// with Shuffle$ True (ChangeZone Defined$ Valid <filter> to the top of the
+// library): after the moves, each owner whose card moved shuffles its library
+// once (gorge changeZoneAllShuffleLibraries). Clear of the ChangeZoneAll/Ex B
+// codes above. Gomazoa, Vortex Elemental.
+const CzShuffleOwners = 256
 
 // RetAttachTo (OpReturnEx B.N, A counters absent):
 // AttachedTo$ -- the returned permanent enters attached to the permanent the
@@ -530,6 +572,8 @@ const (
 	// the chosen set (gorge ImprintFound$ True emits one seek-found Imprint
 	// on the source after the player walk; the kernel accumulates per
 	// player, which only the later Effect reads).
+	// The dig's planar arm (DigZone$ PlanarDeck) rides W, not a flag bit:
+	// the flag field is int16, so a bit 13 shifted by 3 falls off the top.
 	DuImprintFound = 1 << 12
 )
 
@@ -771,6 +815,16 @@ const RepeatRemembered = 2
 // across every pass's ask (Stench of Evil; gorge effRepeatEach's damage bracket).
 const RepeatDmgBatch = 4
 
+// RepeatEachOrder is OpRepeatEach's C bit 3 (ChooseOrder$ True on the batched
+// ChangeZoneTable$ Token body): before the loop runs, the resolving
+// controller orders the subjects in one KChoose of gorge's "order" options
+// (Ezuri's Predation; repeatEachChooseOrder asks it with more than one
+// subject). The chosen permutation rides res.arr, so the loop's one zone
+// batch opens after the last pick and spans the whole loop. A Copy body is
+// the resumable copy frame (act_repeatcards.go) and refuses ChooseOrder$ at
+// lowering.
+const RepeatEachOrder = 8
+
 // OpGainControl riders (B.N).
 const (
 	GcUntap    = 1 << iota // untap it (Untap$ True; a stun counter is removed instead)
@@ -894,11 +948,28 @@ const RepeatEachSeatOrder = 2
 // card body: Rakdos Charm). B.N 1 is the trigger-object player mode.
 const DmgFromEachCtrl = 2
 
+// DmgFromEachAttached is OpDealDamageFrom's B.N for the permanent mode whose
+// source is the object the enclosing OpRepeatEach binds (Obj RefEach) and
+// whose one recipient is the permanent that source is attached to (gorge
+// DealDamage Defined$ Enchanted | DamageSource$ Valid Aura.AttachedTo
+// Creature | RelativeTarget$ True: Aura Barbs' second line). Nothing when the
+// source is unattached or its bearer is gone.
+const DmgFromEachAttached = 3
+
 // AtkPWHit is OpAtkPWGuard's C bit 1: an attacker attacking a planeswalker
 // or battle does not stall the game, because the DealDamage that follows
 // (B.N DmgAtkedObj) hits that object (gorge's Valid Planeswalker.TriggeredDefender
 // arm, Raid Bombardment, Fathom Fleet Swordjack).
 const AtkPWHit = 1
+
+// BiteExcessTrample is OpBite's A.N: when the biting creature has trample
+// and its power exceeds what is lethal to the bitten creature or planeswalker
+// (toughness less marked damage, or loyalty, read before the hit), it deals
+// exactly the lethal amount to it and the rest to its controller, in the one
+// damage batch (gorge emitObjectDamageExcess: DealDamage ExcessDamage$
+// ThisTargetedController | ExcessDamageCondition$ Card.withTrample, Ram
+// Through; CR 120.4a, 120.10).
+const BiteExcessTrample = 2
 
 // DmgAtkedObj is OpDealDamage's B.N (Obj RefDefendingPlayer, in an Attacks
 // trigger behind OpAtkPWGuard C AtkPWHit): the damage goes to the planeswalker

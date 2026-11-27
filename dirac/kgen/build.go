@@ -37,6 +37,11 @@ type poolTables struct {
 	missing   map[string]bool  // subtypes a build looked up that the table lacks
 	paradigm  map[string]int   // Paradigm card name -> the table's Paradigm-name index
 	svarNames []string         // the SVar names ExtStoreNum writes, first-use order (index = kop.Table.SVarNames; lower_storenum.go)
+
+	cyclingAlt bool // some lowered card carries a StatCyclingAlt static: every cycling ability gets its twin (build_cyclingalt.go)
+	// costProgs are the pool's cost programs (kop.Table.CostProgs, lower_costprog.go): nil until one is interned, [0] unused
+	costProgs   [][]kop.CostAtom
+	costProgKey map[string]uint16
 }
 
 // ovSub carries an override's subtype sets as pool subtype indexes (the
@@ -95,6 +100,7 @@ func newPoolTables(lw *lowered, extra map[string]bool) *poolTables {
 	}
 	pt.cardIdx = map[string]int{}
 	pt.named = map[string][]int{}
+	pt.cyclingAlt = poolHasCyclingAlt(lw.cards) // build_cyclingalt.go
 	for i, c := range lw.cards {
 		pt.cardIdx[c.Name] = i
 		pt.named[c.Name] = append(pt.named[c.Name], i)
@@ -467,6 +473,9 @@ var counterKinds = map[string]kop.CounterKind{
 	"COMPONENT":  kop.CtrComponent,  // Component Pouch's named counter (CR 122.1)
 	"DESCENT":    kop.CtrDescent,    // Descent into Avernus's named counter (CR 122.1)
 	"OMEN":       kop.CtrOmen,       // Soulcipher Board's omen counter (CR 122.1)
+	"MEMORY":     kop.CtrMemory,     // Altair Ibn-La'Ahad's memory counter (CR 122.1)
+	"EON":        kop.CtrEon,        // Out of the Tombs' eon counter (CR 122.1; its mill count reads it)
+	"BRAIN":      kop.CtrBrain,      // Rex, Cyber-Hound's named counter (CR 122.1)
 	"M2M1":       kop.CtrM2M1,       // a -2/-1 counter (CR 122.1a; Contagion; the kernel's ptGen)
 }
 
@@ -510,6 +519,33 @@ func copyKeptSets(d *kop.CardDef, c *lCard) {
 	d.ImpPersist, d.SrcMem, d.SmSeed = c.ImpPersist, c.SrcMem, c.SmSeed
 	d.HasCycling, d.HasWard, d.HasEnchant = c.HasCycling, c.HasWard, c.HasEnchant
 	d.HasUnearth, d.HasDecayed, d.HasPersist, d.HasDoctorsCompanion = c.HasUnearth, c.HasDecayed, c.HasPersist, c.HasDoctorsCompanion
+}
+
+// recordOffering records K:Offering. CR 702.48: no KwMask bit is free, so the
+// offering marker is its own field; the filter is the sacrifice's
+// (dirac/kw_offering.go).
+func (cb *cardBuilder) recordOffering() error {
+	c, d := cb.c, &cb.out.def
+	if c.Offering == nil {
+		return nil
+	}
+	d.HasOffering = true
+	var err error
+	d.OfferingF, err = cb.filter(c.Offering, kop.ZoneBattlefield)
+	return err
+}
+
+// hexQualityBits is the hexproof-from-quality bits (monocolored,
+// multicolored) a card's lowering read.
+func hexQualityBits(c *lCard) kop.ColorMask {
+	var b kop.ColorMask
+	if c.HexMono {
+		b |= kop.HexMono
+	}
+	if c.HexMulti {
+		b |= kop.HexMulti
+	}
+	return b
 }
 
 // recordEvoke records an Evoke cost. CR 702.74a: no KwMask bit is free, so
@@ -610,7 +646,7 @@ func (cb *cardBuilder) record() error {
 	if c.OptCost != nil {
 		// an OptionalCost part rides sfKicked and the kicked cast action
 		// (dirac/cost_optional.go): no other optional cost may share it
-		if c.Kicker != nil || c.Offspring != nil || c.Casualty != 0 || c.Bargain || c.Teamwork != 0 || c.SpellCost != nil || c.AltAddCost != nil {
+		if c.Kicker != nil || c.Offspring != nil || c.Casualty != 0 || c.Bargain || c.Teamwork != 0 || c.SpellCost != nil || c.AltAddCost != nil || c.AltAddCost2 != nil {
 			return fmt.Errorf("optional cost with another optional cost")
 		}
 		oc := *c.OptCost
@@ -644,7 +680,7 @@ func (cb *cardBuilder) record() error {
 		if c.Kicker != nil || c.Offspring != nil || c.Casualty != 0 || c.Bargain {
 			return fmt.Errorf("teamwork with a kicker/offspring/casualty/bargain")
 		}
-		for _, sc := range []*lCost{c.SpellCost, c.AltAddCost} {
+		for _, sc := range []*lCost{c.SpellCost, c.AltAddCost, c.AltAddCost2} {
 			if sc != nil && (sc.TapN != 0 || sc.TapPowN != 0) {
 				// the Taps teamwork gate reads every pkTapX pick of the build as a teamwork tap
 				return fmt.Errorf("Teamwork beside a tap-creatures cost")
@@ -655,6 +691,7 @@ func (cb *cardBuilder) record() error {
 		cb.bargain = true // the kicked-range target slots (Tear Asunder's), read by the same provenance
 	}
 	d.ModesMinCount = c.ModesMinCount != 0
+	d.ModesMinKicked = c.ModesMinKicked
 	if c.ModesPickV.Kind != vNone {
 		if d.ModesPickV, err = cb.value(c.ModesPickV); err != nil {
 			return err
@@ -737,6 +774,13 @@ func (cb *cardBuilder) record() error {
 				return err
 			}
 		}
+		if c.Kicker2 != nil {
+			// the two-alternative "and/or" Kicker's part two (CR 702.33b;
+			// lower_kickercost.go): always beside a set Kicker
+			if d.Kicker2, err = manaCostOf(*c.Kicker2); err != nil {
+				return err
+			}
+		}
 	}
 	if c.Multikicker != nil {
 		if err := cb.repeated(d, c); err != nil { // lower_squadreplicate.go
@@ -745,6 +789,11 @@ func (cb *cardBuilder) record() error {
 	}
 	if c.MorphCost != nil {
 		d.MorphFamily, d.MorphLife = c.MorphFamily, c.MorphLife
+		if c.MorphPick != nil {
+			if d.MorphPick, err = cb.cost(*c.MorphPick); err != nil {
+				return err
+			}
+		}
 		if d.MorphCost, err = cb.morphCostOf(d, c); err != nil { // lower_revealpick.go
 			return err
 		}
@@ -884,6 +933,9 @@ func (cb *cardBuilder) record() error {
 				return err
 			}
 		}
+	}
+	if err := cb.recordOffering(); err != nil {
+		return err
 	}
 	if c.FbBeholdN != 0 {
 		// the flashback cost's behold part (kernel act_behold.go): the
@@ -1084,15 +1136,22 @@ func (cb *cardBuilder) record() error {
 		}
 		d.HasAltAdd = true
 	}
+	if c.AltAddCost2 != nil {
+		if d.AltAddCost2, err = cb.cost(*c.AltAddCost2); err != nil {
+			return err
+		}
+		d.HasAltAdd = true
+	}
 	if cb.pt.textWords {
 		d.TextWords = c.TextWords
+		d.CWUnmodelled = c.CWUnmodelled
 	}
 	d.Leyline = c.Leyline
 	d.LeylineGem, d.LeylineCtr, d.LeylineCtrN = c.LeylineGem, c.LeylineCtr, c.LeylineCtrN
 	d.World, d.Snow = c.World, c.Snow
-	d.SelfFlash = c.SelfFlash
+	d.SelfFlash, d.SelfFlashSA = c.SelfFlash, c.SelfFlashSA
 	d.Gift = c.Gift
-	d.SpentSelf, d.SpentSnow = c.SpentSelf, c.SpentSnow
+	d.SpentSelf, d.SpentSnow, d.SpentTag = c.SpentSelf, c.SpentSnow, c.SpentTag
 	d.DmgAmt = c.DmgAmt
 	if c.CastBF != nil {
 		// Count$LastStateBattlefieldWithFallback: the
@@ -1129,7 +1188,18 @@ func (cb *cardBuilder) record() error {
 	d.Daybound, d.Nightbound = c.Daybound, c.Nightbound
 	d.AltAddOne = c.AltAddOne
 	for _, st := range c.Subtypes {
-		if st == "Cave" || st == "Desert" {
+		switch st {
+		case "Treasure":
+			d.ManaTag = kop.ManaTagTreasure
+		case "Cave":
+			if d.ManaTag == 0 {
+				d.ManaTag = kop.ManaTagCave
+			}
+			d.TypedMana = true
+		case "Desert":
+			if d.ManaTag == 0 {
+				d.ManaTag = kop.ManaTagDesert
+			}
 			d.TypedMana = true
 		}
 	}
@@ -1139,6 +1209,7 @@ func (cb *cardBuilder) record() error {
 	for _, r := range c.HexColors {
 		d.HexColors |= kop.ColW << strings.IndexRune("WUBRG", r)
 	}
+	d.HexColors |= hexQualityBits(c)
 	if c.Landwalk != nil {
 		if d.Landwalk, err = cb.filter(c.Landwalk, kop.ZoneBattlefield); err != nil {
 			return err
@@ -1238,7 +1309,8 @@ func (cb *cardBuilder) cost(c lCost) (kop.Cost, error) {
 		}
 	}
 	out.ExileBf = c.SacExile
-	out.SacHalf = c.SacHalf // sacrifice half the matching permanents at payment (kernel cost_sachalf.go)
+	out.SacHalf = c.SacHalf   // sacrifice half the matching permanents at payment (kernel cost_sachalf.go)
+	out.CloseEnc = c.CloseEnc // the CloseEncounter ChooseCard additional cost (kernel cost_closeenc.go)
 	if c.XMin > 0 {
 		out.XMin = uint8(c.XMin) // the announced X's floor (kernel cost_sacx.go)
 	}
@@ -1428,9 +1500,11 @@ func (cb *cardBuilder) cost(c lCost) (kop.Cost, error) {
 			return out, err
 		}
 	}
-	if c.BlightN > 0 {
+	if c.BlightN > 0 || c.BlightX {
 		// Blight<N> (CR 701.68): one creature you control, the source
-		// included (gorge cost.parse: Spec Creature.YouCtrl)
+		// included (gorge cost.parse: Spec Creature.YouCtrl). Blight<X> is
+		// the same part with Cost.N 0: the announced X is the count
+		// (kernel cost_blightx.go)
 		set(kop.CostBlight, c.BlightN)
 		f := &lFilter{Clauses: []lClause{{Types: tCreature, Ctrl: whoYou}}}
 		if out.Filter, err = cb.filter(f, kop.ZoneBattlefield); err != nil {
@@ -1725,10 +1799,14 @@ func (cb *cardBuilder) clause(c lClause, zone kop.Zone) (kop.Filter, error) {
 	}
 	if c.SpellBase {
 		// the Spell base: an object on the stack (gorge compiled_predicate
-		// base Spell); only the ReduceCost ValidTarget$ Filter2 reads it
-		if zone != kop.ZoneStack {
+		// base Spell). The ReduceCost ValidTarget$ Filter2 builds it with
+		// ZoneStack; a protection quality's bare Spell (Emrakul, the World
+		// Anew's K:Protection:Spell) builds it with the quality's
+		// battlefield zone, and the clause still names the stack.
+		if zone != kop.ZoneStack && zone != kop.ZoneBattlefield {
 			return kf, refuse("a Spell head outside a stack filter")
 		}
+		kf.Zone = kop.ZoneStack
 		kf.Flags |= kop.FSpell
 	}
 	if zone != kop.ZoneBattlefield && zone != kop.ZoneStack && kf.Ctrl == kop.CtrlAny && !cb.keepOwner {
@@ -1930,7 +2008,7 @@ func (cb *cardBuilder) clause(c lClause, zone kop.Zone) (kop.Filter, error) {
 		kf.Pred = kop.PredModified
 	case cmpHasCounters:
 		kf.Pred = kop.PredHasCounters
-	case cmpMonstrous, cmpNoCounters, cmpMonoColor, cmpSharesCrCmdr:
+	case cmpMonstrous, cmpNoCounters, cmpMonoColor, cmpSharesCrCmdr, cmpCastFaceDown:
 		kf.Pred = bareCmpPreds[c.CmpStat]
 	case cmpRingBearer:
 		ringBearerPred(&kf, c)
@@ -1961,6 +2039,13 @@ func (cb *cardBuilder) clause(c lClause, zone kop.Zone) (kop.Filter, error) {
 			return kf, fmt.Errorf("the monarch controller word off the battlefield")
 		}
 		kf.Pred, kf.PredN = kop.PredMonarchCtrl, int16(c.CmpN)
+	case cmpKickedAlt:
+		// the object's kicker-alternative byte (kernel kickedAltPredicate);
+		// no off-battlefield reading
+		if zone != kop.ZoneBattlefield && !cb.selfCast {
+			return kf, fmt.Errorf("the kicked alternative word off the battlefield")
+		}
+		kf.Pred, kf.PredN = kop.PredKickedAlt, int16(c.CmpN)
 	case cmpRenowned, cmpAttackingYou, cmpGoaded:
 		// battlefield-only reads (act_renown.go, attackingYou, filter_goaded.go)
 		kf.Pred, kf.PredN = battlefieldPreds[c.CmpStat], int16(c.CmpN)
@@ -2062,6 +2147,9 @@ func (cb *cardBuilder) clause(c lClause, zone kop.Zone) (kop.Filter, error) {
 		}
 		kf.Pred, kf.PredN = kop.PredHasKeyword, int16(c.CmpN)
 	case cmpCMC:
+		if err := greatestCMCZoneRefusal(c, zone); err != nil {
+			return kf, err
+		}
 		if c.CmpV != nil {
 			bound := *c.CmpV
 			switch c.CmpOp {
@@ -2285,6 +2373,11 @@ func (cb *cardBuilder) ref(r lRef) (kop.Ref, error) {
 			return kop.RefTargetController, nil
 		}
 		return kop.RefTargetOwner, nil
+	case rTargetCtrlLive:
+		if r.N != 0 {
+			return 0, fmt.Errorf("live controller of target slot %d", r.N)
+		}
+		return kop.RefTargetCtrlLive, nil
 	case rSelf:
 		return kop.RefSelf, nil
 	case rYou:
@@ -2323,6 +2416,8 @@ func (cb *cardBuilder) ref(r lRef) (kop.Ref, error) {
 		return kop.RefRememberedController, nil
 	case rDiscarded:
 		return kop.RefDiscarded, nil
+	case rChosenEnc:
+		return kop.RefChosenEnc, nil
 	case rLibTop:
 		return kop.RefLibTop, nil
 	case rOppNonRemCtrl:
@@ -2353,12 +2448,20 @@ func (cb *cardBuilder) ref(r lRef) (kop.Ref, error) {
 		return kop.RefTriggerAttackers, nil
 	case rRememberedOwner:
 		return kop.RefRememberedOwner, nil
+	case rAttackedBySource:
+		return kop.RefAttackedBySource, nil
 	case rExiledWithOwner:
 		return kop.RefExiledWithOwner, nil
+	case rEmblemSource:
+		return kop.RefEmblemSource, nil
+	case rEnchantedPlayer:
+		return kop.RefEnchantedPlayer, nil
 	case rImprinted:
 		return kop.RefImprinted, nil
 	case rTargetUnion:
 		switch r.N {
+		case 1:
+			return kop.RefTargets0, nil
 		case 3:
 			return kop.RefTargets01, nil
 		case 7:
@@ -2369,7 +2472,18 @@ func (cb *cardBuilder) ref(r lRef) (kop.Ref, error) {
 			return kop.RefTargets0123, nil
 		}
 	}
+	if k, ok := slice4Refs[r.Kind]; ok {
+		return k, nil
+	}
 	return 0, fmt.Errorf("ref %s", r)
+}
+
+// slice4Refs holds the Defined$ referents kgen resolves by kind alone (kept out
+// of (*cardBuilder).ref's switch so that function's complexity does not grow).
+var slice4Refs = map[refKind]kop.Ref{
+	rTriggeredSpellTarget:  kop.RefTriggerSpellTarget,
+	rEquippedByEnchanted:   kop.RefEquippedByEnchanted,
+	rTriggeredSpellTargets: kop.RefTriggerSpellTargets,
 }
 
 // value maps an LIR value to a ValueRef (simple kinds direct, the rest
@@ -2435,9 +2549,10 @@ var exprKinds = map[valKind]kop.ExprKind{
 	vOppLifeLostThisTurn: kop.ExOppLifeLostThisTurn, vCountersOn: kop.ExCountersOn, vCreaturesDied: kop.ExCreaturesDied,
 	vRememberedCount: kop.ExRememberedCount, vExcessDamage: kop.ExExcessDamage, vLastLifeLost: kop.ExLastLifeLost,
 	vTokensCreated: kop.ExTokensCreated, vLifeLostThisTurn: kop.ExLifeLostThisTurn, vSum: kop.ExSum,
-	vHandSizeOf: kop.ExHandSizeOf, vCountExile: kop.ExCountExile, vExileTypes: kop.ExCountExile, vOppsLostLife: kop.ExOppsLostLife, vMVOf: kop.ExMVOf, vNotOwnLibMV: kop.ExNotOwnLibMV, vRemEachOwnNonLand: kop.ExRemEachOwnNonLand,
-	vCountAtLeast: kop.ExCountAtLeast,
-	vPromisedGift: kop.ExPromisedGift, vResolvedThisTurn: kop.ExResolvedThisTurn,
+	vHandSizeOf: kop.ExHandSizeOf, vCountExile: kop.ExCountExile, vExileTypes: kop.ExCountExile, vOppsLostLife: kop.ExOppsLostLife, vMVOf: kop.ExMVOf, vNotOwnLibMV: kop.ExNotOwnLibMV, vRemEachOwnNonLand: kop.ExRemEachOwnNonLand, vRemEachOwn: kop.ExRemEachOwnNonLand,
+	vCountAtLeast:      kop.ExCountAtLeast,
+	vDelayedExileCount: kop.ExDelayedExileCount,
+	vPromisedGift:      kop.ExPromisedGift, vResolvedThisTurn: kop.ExResolvedThisTurn,
 	vThisTurnCast: kop.ExThisTurnCast,
 	vRollResult:   kop.ExRollResult, vCastManaSpent: kop.ExCastManaSpent, vConverge: kop.ExConverge,
 	vCompare: kop.ExCompare, vBranches: kop.ExBranches,
@@ -2449,6 +2564,7 @@ var exprKinds = map[valKind]kop.ExprKind{
 	vSelfPrepared:       kop.ExSelfPrepared,
 	vThisTurnActGrave:   kop.ExThisTurnActGrave,
 	vSneaked:            kop.ExSneaked,
+	vAltCost:            kop.ExAltCost,
 	vTriggerSpellMVLKI:  kop.ExTriggerSpellMVLKI,
 	vPoisonOf:           kop.ExPoisonOf,
 	vProduct:            kop.ExProduct,
@@ -2502,9 +2618,11 @@ var exprKinds = map[valKind]kop.ExprKind{
 	vJoinForces:         kop.ExJoinForces, // lower_storesvar.go
 	vExileKw:            kop.ExStaticExileKw,
 	vCmdGreatestMV:      kop.ExCmdGreatestMV,
-	vDmgOppsTaken:       kop.ExDmgOppsTaken,   // lower_bloodthirst.go
-	vSrcRemCounters:     kop.ExSrcRemCounters, // lower_tokenrem.go
-	vVoteTally:          kop.ExVoteTally,      // lower_vote.go
+	vDmgOppsTaken:       kop.ExDmgOppsTaken,         // lower_bloodthirst.go
+	vMaxOppDmgTaken:     kop.ExMaxOppDamageThisTurn, // value.go: MaxOppDamageThisTurn
+	vSrcRemCounters:     kop.ExSrcRemCounters,       // lower_tokenrem.go
+	vVoteTally:          kop.ExVoteTally,            // lower_vote.go
+	vCardBasePower:      kop.ExCardBasePower,        // Count$CardBasePower
 }
 
 func (cb *cardBuilder) expr(v lValue) (kop.Expr, error) {
@@ -2528,6 +2646,9 @@ func (cb *cardBuilder) expr(v lValue) (kop.Expr, error) {
 	}
 	if v.Kind == vExileKw {
 		e.N = int16(v.N) // the keyword bit, or 32 + the protection colour (kop.ExileKwProtN)
+	}
+	if v.Kind == vRemEachOwn {
+		e.N = 1 // ExRemEachOwnNonLand N 1: every remembered card, land or not (value_remeachown.go)
 	}
 	if v.Kind == vPWTypes {
 		e.N = 1 // ExCount N 1: the distinct planeswalker subtypes, not the count
@@ -2586,8 +2707,8 @@ func (cb *cardBuilder) expr(v lValue) (kop.Expr, error) {
 		case vThisTurnCastSpec, vRefCount, vPlExtreme:
 			zone = kop.ZoneNone // the object wherever it now lives
 		}
-		if v.Kind == vLeftZone {
-			e.F, err = cb.filterDepartures(v.F, kop.ZoneNone)
+		if v.Kind == vLeftZone || v.Kind == vSacrificedThisTurn {
+			e.F, err = cb.filterDepartures(v.F, kop.ZoneNone) // the object where it went, "you" as the sacrificer
 		} else {
 			e.F, err = cb.filter(v.F, zone)
 		}
@@ -2605,7 +2726,7 @@ func (cb *cardBuilder) expr(v lValue) (kop.Expr, error) {
 			return e, err
 		}
 	}
-	if v.Kind == vCountersOn && v.S == "ALL" {
+	if (v.Kind == vCountersOn || v.Kind == vValidAgg) && v.S == "ALL" {
 		e.Ctr = kop.CtrAll // Count$CardCounters.ALL: every kind summed (kernel refCounters)
 	} else if v.S != "" && v.Kind != vRememberedCount && v.Kind != vSVarNum { // vRememberedCount's S is the ctx marker (value.go), not a counter kind
 		if e.Ctr, err = counterKind(v.S); err != nil {
@@ -2741,6 +2862,8 @@ func (cb *cardBuilder) override(o *lOverride) (int, error) {
 	}
 	ko.Banding = o.Banding
 	ko.Horsemanship = o.Horsemanship
+	ko.FaceDownOnly = o.FaceDownOnly
+	ko.Toxic = o.Toxic
 	ko.NoCost = o.NoCost
 	ko.RemoveLegendary = o.RemoveLegendary
 	ko.GrantStatics = o.GrantStatics
@@ -2768,6 +2891,15 @@ func (cb *cardBuilder) override(o *lOverride) (int, error) {
 	if ko.RemoveKw, err = kwMask(o.RemoveKw); err != nil {
 		return 0, err
 	}
+	if o.RemoveLandwalk != nil {
+		if ko.RemoveLandwalk, err = cb.filter(o.RemoveLandwalk, kop.ZoneBattlefield); err != nil {
+			return 0, err
+		}
+		// the land filter's subtypes must survive the matchup remap like any
+		// value's filter does (refSubs walks ovVals)
+		cb.out.ovVals = append(cb.out.ovVals, kop.ValueRef{K: kop.VCountFilter, N: int16(ko.RemoveLandwalk)})
+	}
+	ko.ExileOnLeave = o.ExileOnLeave
 	if ko.CantHaveKw, err = kwMask(o.CantHaveKw); err != nil {
 		return 0, err
 	}
@@ -2844,6 +2976,46 @@ func (cb *cardBuilder) chosenColorOverridesOK(first int) error {
 		}
 		if o.SetColors != col {
 			return fmt.Errorf("chosen-colour override %d has SetColors %#x, want %#x", first+i, o.SetColors, col)
+		}
+	}
+	return nil
+}
+
+// cwWordOverridesOK asserts the word-list contract: the six records from
+// first are consecutive; the first is the printed colours and records 1..5
+// are identical to it apart from the one colour field, one colour each W, U,
+// B, R, G in that order, so the kernel's frozen-colour pick first + 1 +
+// colour names the colour's record (static_colorwords.go ovCwRow).
+func (cb *cardBuilder) cwWordOverridesOK(first int) error {
+	if first+6 > len(cb.pt.overrides) {
+		return fmt.Errorf("cw-word override: %d records from %d", len(cb.pt.overrides)-first, first)
+	}
+	base := cb.pt.overrides[first]
+	isSet := base.HasColors
+	if isSet {
+		if base.SetColors == 0 {
+			return fmt.Errorf("cw-word override %d: the printed row sets no colour", first)
+		}
+	} else if base.AddColors == 0 {
+		return fmt.Errorf("cw-word override %d: the printed row adds no colour", first)
+	}
+	want := [5]kop.ColorMask{kop.ColW, kop.ColU, kop.ColB, kop.ColR, kop.ColG}
+	for i, col := range want {
+		o := cb.pt.overrides[first+1+i]
+		cmp, bcmp := o, base
+		if isSet {
+			cmp.SetColors, bcmp.SetColors = 0, 0
+			if o.SetColors != col {
+				return fmt.Errorf("cw-word override %d has SetColors %#x, want %#x", first+1+i, o.SetColors, col)
+			}
+		} else {
+			cmp.AddColors, bcmp.AddColors = 0, 0
+			if o.AddColors != col {
+				return fmt.Errorf("cw-word override %d has AddColors %#x, want %#x", first+1+i, o.AddColors, col)
+			}
+		}
+		if cmp != bcmp {
+			return fmt.Errorf("cw-word override %d differs beyond its colour", first+1+i)
 		}
 	}
 	return nil

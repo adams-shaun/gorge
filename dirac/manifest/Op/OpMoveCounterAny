@@ -1,0 +1,9 @@
+family: Op
+name: OpMoveCounterAny
+value: next
+approval: ticket cli-20261127T065132Z-290de7f0 brief: a MoveCounter Any distribution onto a ValidDefined$ sweep is no existing op; OpMoveCounter names one destination and OpMoveCounterAll does not ask an amount or sweep a definition.
+census: other:MoveCounter ValidDefined$
+state: code 0
+status: active
+ticket: cli-20261127T065132Z-290de7f0
+doc: the resolving source moves a chosen 0..N counters of kind B.N onto each battlefield permanent matching F, the source excluded, distributed round-robin in battlefield order (gorge effMoveCounter/moveCounterMove, CR 122.5; Forgotten Ancient's "move any number of +1/+1 counters ... onto other creatures"). dirac/ctr_moveany.go.

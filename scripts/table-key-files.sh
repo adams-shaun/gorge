@@ -10,6 +10,11 @@
 # kgen dependency joins the key by itself (scripts/table_key_files_test.go).
 set -euo pipefail
 cd "$(git rev-parse --show-toplevel)"
+# Collation is pinned: the order of this list is part of ci-corpus-keys.sh's dk, so the key must depend on the
+# files, never on the box's locale. 2026-11-27: metal2 (en_US.UTF-8) and spotci (C) logged different ck/dk for the
+# same merge-queue commit — sort -z/-u used the ambient collation — while kgen's published key (byte-order over
+# the embeds) was identical, proving the content equal and only the ordering different.
+export LC_ALL=C
 mod=$(go list -m)
 go list -deps -f '{{if .Module}}{{if eq .Module.Path "'"$mod"'"}}{{$d := .Dir}}{{range .GoFiles}}{{$d}}/{{.}}
 {{end}}{{range .EmbedFiles}}{{$d}}/{{.}}

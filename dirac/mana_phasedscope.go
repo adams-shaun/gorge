@@ -12,7 +12,7 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // phased run is out of scope (phasedOutOfScope), so a play the filter route
 // found no script for stays unoffered however few taps of the deferred gaps
 // alone would pay it: gorge's one search walks the filters among them and
-// spends its 160 nodes first (Manabarbs over five lands beside Unknown
+// spends its potentialScriptNodes budget first (Manabarbs over five lands beside Unknown
 // Shores at 3 life: {1}{R} and {R}{R} both unoffered).
 func (s *State) phasedRunInScope(k *prep, p uint8, a Action) bool {
 	filt := s.scriptFilt(k, p)

@@ -21,6 +21,8 @@ var DebugNoExtraTurnBegun bool
 //go:noinline
 func (s *State) exprCold(k *prep, x *kop.Expr, ctx evalCtx) int {
 	switch x.Kind {
+	case kop.ExAtkYouLastTurn:
+		return s.atkYouLastCount(ctx.ctrl) // value_atkyoulast.go
 	case kop.ExSpellsCastLastTurn:
 		return s.spellsCastLastTurn(x.N) // value_spellslastturn.go
 	case kop.ExVoteTally:
@@ -128,7 +130,7 @@ func (s *State) exprCold(k *prep, x *kop.Expr, ctx evalCtx) int {
 	case kop.ExTotalCommanderCastFromCommandZone:
 		return s.cmdCastTotal(ctx.ctrl) // value_cmdcast.go
 	case kop.ExCmdGreatestMV:
-		return s.cmdGreatestMV(k, ctx.ctrl) // value_cmdmv.go
+		return s.cmdGreatestMV(k, ctx.ctrl, x.N == kop.CmdMVAllZones) // value_cmdmv.go
 	case kop.ExRevolt:
 		if s.revoltHolds(ctx.ctrl) { // zone_leftzonering.go
 			return 1
@@ -150,6 +152,8 @@ func (s *State) exprCold(k *prep, x *kop.Expr, ctx evalCtx) int {
 		return int(s.pl[ctx.ctrl].lastLost)
 	case kop.ExMostProminentCreatureType:
 		return s.mostProminentType(k, x, ctx) // value_mostprominent.go
+	case kop.ExMostCardName:
+		return s.mostCardName(k, x, ctx) // value_mostcardname.go
 	case kop.ExSum:
 		return s.evalV(k, x.Sub[0], ctx) + s.evalV(k, x.Sub[1], ctx)
 	case kop.ExHandSizeOf:
@@ -161,10 +165,9 @@ func (s *State) exprCold(k *prep, x *kop.Expr, ctx evalCtx) int {
 		}
 		return 0
 	case kop.ExCountExile:
-		if x.N == 1 {
-			return s.exileTypeAgg(k, x, ctx) // zone_exiledwithstatic.go
-		}
-		return s.countExile(k, x, ctx)
+		return s.countExileOrAgg(k, x, ctx) // value_delayedexile.go
+	case kop.ExDelayedExileCount:
+		return s.delayedExileCount(ctx) // value_delayedexile.go
 	case kop.ExPhaseCount:
 		return s.phaseCount(x) // act_addphase.go
 	case kop.ExStepIn:
@@ -179,7 +182,7 @@ func (s *State) exprCold(k *prep, x *kop.Expr, ctx evalCtx) int {
 	case kop.ExNotOwnLibMV:
 		return s.notOwnLibMV(k) // value_objectmv.go
 	case kop.ExRemEachOwnNonLand:
-		return s.remEachOwnNonLand(k) // value_remeachown.go
+		return s.remEachOwnNonLand(k, x.N) // value_remeachown.go
 	case kop.ExCounterKinds:
 		return s.counterKinds(k, x, ctx) // value_counterkinds.go
 	case kop.ExReplLKIPower:
@@ -267,33 +270,13 @@ func (s *State) exprCold(k *prep, x *kop.Expr, ctx evalCtx) int {
 		return s.devotion(k, kop.ColorMask(x.N), ctx.ctrl)
 	case kop.ExDevotionChosen:
 		return s.exDevotionChosen(k, ctx) // act_chosencolor.go
-	case kop.ExValidAgg:
-		return s.validAgg(k, x, ctx)
-	case kop.ExGraveAgg:
-		return s.graveAgg(k, x, ctx)
-	case kop.ExOppExtreme:
-		return s.oppExtreme(k, x, ctx)
-	case kop.ExPlExtreme:
-		return s.plExtreme(k, x, ctx) // value_plrextreme.go
 	case kop.ExHighestOppPoison:
 		if k.gen != nil && k.gen.anyPoisonHigh {
 			return s.highestOppPoison(ctx.ctrl)
 		}
 		return 0
 	case kop.ExCastManaSpent:
-		if e := ctx.e; e != nil && e.kind == seSpell {
-			return s.spentOfSpell(e) // recordSpent; cast_enterrecord.go
-		} else if e != nil && e.kind == seTrigger && int(e.ab) < len(k.t.Cards[e.card].Abilities) &&
-			k.t.Cards[e.card].Abilities[e.ab].Trig.Flags2&kop.Tf2SpentBound != 0 {
-			// bound as the self-ETB trigger queued (bindTrigX); a source that has
-			// left keeps what it was as it left (CR 608.2h), and one back as a
-			// new object was not cast for this spend
-			if ob := &s.objs[e.obj]; ob.zone == kop.ZoneBattlefield && ob.ver != e.srcVer {
-				return 0
-			}
-			return int(e.x)
-		}
-		return 0
+		return s.exCastManaSpent(k, ctx)
 	case kop.ExDmgAmountReceived:
 		return s.dmgAmountReceived(ctx.src) // value_dmgamount.go
 	case kop.ExTgtSpent:
@@ -312,10 +295,31 @@ func (s *State) exprCold(k *prep, x *kop.Expr, ctx evalCtx) int {
 		return s.refNumColors(k, x.Ref, ctx) // trig_colours.go
 	case kop.ExChromaOf:
 		return s.refChroma(k, x.Ref, int(x.N), ctx) // trig_colours.go
-	case kop.ExPoisonOf, kop.ExEnergyOf, kop.ExProduct, kop.ExAttackersAll, kop.ExSrcRemCounters, kop.ExStaticExileKw:
+	case kop.ExPoisonOf, kop.ExEnergyOf, kop.ExProduct, kop.ExAttackersAll, kop.ExSrcRemCounters, kop.ExStaticExileKw, kop.ExCardBasePower:
 		return s.exprKvf(k, x, ctx) // filter_valueheads.go
 	}
+	if v, ok := s.exprColdAgg(k, x, ctx); ok {
+		return v
+	}
 	panic("kernel: expr kind not implemented")
+}
+
+// exprColdAgg is the aggregate and extreme heads of the cold-value switch,
+// kept out of exprCold to hold the switch within its line allowance
+// (funcgrowth): valid-agg folds a filter's object counts, the extremes read
+// the players' life-lost ledgers.
+func (s *State) exprColdAgg(k *prep, x *kop.Expr, ctx evalCtx) (int, bool) {
+	switch x.Kind {
+	case kop.ExValidAgg:
+		return s.validAgg(k, x, ctx), true
+	case kop.ExGraveAgg:
+		return s.graveAgg(k, x, ctx), true
+	case kop.ExOppExtreme:
+		return s.oppExtreme(k, x, ctx), true
+	case kop.ExPlExtreme:
+		return s.plExtreme(k, x, ctx), true // value_plrextreme.go
+	}
+	return 0, false
 }
 
 // tgtPlayerCount counts the player targets of target slot i on entry e: the
@@ -416,4 +420,34 @@ func (s *State) countExile(k *prep, x *kop.Expr, ctx evalCtx) int {
 		}
 	}
 	return n
+}
+
+// exCastManaSpent is ExCastManaSpent: the mana spent to cast the spell the
+// context reads, from the spell entry, the bound self-ETB trigger, or the
+// resolving spell's recorded spend.
+func (s *State) exCastManaSpent(k *prep, ctx evalCtx) int {
+	if e := ctx.e; e != nil && e.kind == seSpell {
+		return s.spentOfSpell(e) // recordSpent; cast_enterrecord.go
+	} else if e != nil && e.kind == seTrigger && int(e.ab) < len(k.t.Cards[e.card].Abilities) &&
+		k.t.Cards[e.card].Abilities[e.ab].Trig.Flags2&kop.Tf2SpentBound != 0 {
+		// bound as the self-ETB trigger queued (bindTrigX); a source that has
+		// left keeps what it was as it left (CR 608.2h), and one back as a
+		// new object was not cast for this spend
+		if ob := &s.objs[e.obj]; ob.zone == kop.ZoneBattlefield && ob.ver != e.srcVer {
+			return 0
+		}
+		if e.x != 0 {
+			return int(e.x)
+		}
+		// the header CheckSVar (triggers_gen.go:203) is read before
+		// bindTrigX stamps the pending x: the source is the resolving
+		// spell's permanent, so its recorded spend is the answer
+		return int(s.spellSpent(ctx.src))
+	} else if e == nil {
+		// a fire-time trigger condition (triggers_gen.go:203 has no stack
+		// entry): the self-ETB or self-replacement source is the resolving
+		// spell's object and its recorded spend is live (mana_spenttag.go)
+		return int(s.spellSpent(ctx.src))
+	}
+	return 0
 }

@@ -21,6 +21,8 @@ const (
 	csTreasure uint8 = 1 << iota
 	csObserved
 	csManaHaste // a ManaHasteValid rider's source (mana_spentrider.go)
+	csCave      // a Cave producer: its units feed the Cave spend tally (mana_spenttag.go)
+	csDesert    // a Desert producer: its units feed the Desert spend tally
 )
 
 // prepManaSrc sets the reader's per-card marks and genPrep.castTapOn.

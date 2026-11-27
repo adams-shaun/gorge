@@ -112,7 +112,7 @@ func (s *State) handEntryResolve(k *prep, plain bool) bool {
 	if pp.flags&pfTapped == 0 {
 		pp.flags |= pfTapped
 		s.touchSl(sl)
-		if s.subs[kop.TrigTaps].any() {
+		if s.evLive(kop.TrigTaps) {
 			s.fireTaps(k, sl)
 		}
 	}

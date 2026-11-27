@@ -3,11 +3,20 @@
 # coverage and reach file per run under <out>. Exit 0 when every run passes
 # kfuzz -absolute, then scripts/dirac-first-refusals.py evidence <out> writes the lists.
 #
-#   the corpus  fdn, blb and pauper real decks, one synthetic pool per Standard list and per draft
+#   the corpus  fdn, blb, pauper and hosted-cmdr real decks, one synthetic pool per Standard list and per draft
 #               pool (dirac/cardset/draftpools.txt, dr-<code>), and one
 #               focus pool per list in dirac/support/focus (fx-<set>: std-<set> dealt around
 #               the cards that list names, kfuzz -focus); 1500 pairs each, seed 1, the random policy
 #   the forms   surfaces autopay and full, mulligans 0 and 1
+#   hosted-cmdr gorged's hosted Commander decks, played 2-seat as -kernel hosted-cmdr from
+#               <pools>/hosted-cmdr, built from testkit/testutil/decks' format-commander decks
+#               (refused copies replaced by basics, a deck with a refused commander left out):
+#               python3 dirac/oracle/pools/decks.py --set HOSTED-CMDR --from-decks <those decks>
+#               --deck-size 100 --max-refused 100 --allow-unverified --label sim <pools>/hosted-cmdr;
+#               the tree dirac/oracle/pools.go pins is that build before its own refusals
+#   fdc-gaps    dirac/support/pools/fdc-gaps: four committed 50-card decks holding the five Foundations
+#               Commander cards the fdc-gaps lowerings add, played 2-seat as -kernel fdn -set cmd5
+#               (its verdict line reads cmd5:, see run_kernel in scripts/dirac-first-refusals.py)
 #   the pods    a run named pod-<pool> (POOLS="pod-cmd5 pod-edh") plays <pool>'s decks as
 #               four-seat pods, PODS pods (one game each, 0: 1500) cut to CMD_MINI cards: its
 #               -evidence rows carry the seat count, which scripts/dirac-first-refusals.py
@@ -34,8 +43,9 @@ go build -trimpath -o "$out/kfuzz" ./dirac/oracle/cmd/kfuzz || exit 2
 if [ -n "${POOLS:-}" ]; then
 	pools=$POOLS
 else
-	pools="fdn blb pauper $("$out/kfuzz" -list-synth | grep -E '^(std|dr)-' | tr '\n' ' ')"
+	pools="fdn blb pauper hosted-cmdr $("$out/kfuzz" -list-synth | grep -E '^(std|dr)-' | tr '\n' ' ')"
 	for f in dirac/support/focus/fx-*.txt; do [ -e "$f" ] && pools="$pools $(basename "$f" .txt)"; done
+	pools="$pools fdc-gaps"
 fi
 surfaces=${SURFACES:-autopay full}
 mulligans=${MULLIGANS:-0 1}
@@ -47,6 +57,7 @@ for pool in $pools; do
 	std-* | dr-* | tail-*) what=(-synth "$pool") ;;
 	fx-*) what=(-synth "std-${pool#fx-}" -focus "$top/dirac/support/focus/$pool.txt") ;;
 	pod-*) what=(-kernel "${pool#pod-}" -seats 4 -pods "${PODS:-1500}" -cmd-mini "${CMD_MINI:-60}") ;;
+	fdc-gaps) what=(-kernel fdn -set cmd5 -decks "$top/dirac/support/pools/fdc-gaps/decks" -allow-unverified) ;;
 	*) what=(-kernel "$pool") ;;
 	esac
 	for surface in $surfaces; do

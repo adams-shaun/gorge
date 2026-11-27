@@ -34,7 +34,7 @@ func (s *State) tapCostPerm(k *prep, sl Slot, o Obj) {
 	}
 	s.perms[sl].flags |= pfTapped
 	s.touch(o)
-	if k.gen != nil && s.subs[kop.TrigTaps].any() {
+	if k.gen != nil && s.evLive(kop.TrigTaps) {
 		s.fireTaps(k, sl)
 	}
 	s.markTapped(k, sl)
@@ -96,7 +96,7 @@ func prepManaGate(g *genPrep, c *kop.CardDef, id CardID, pc *pcard) {
 			// {G}{G}. The unit's two alternatives differ in amount; the
 			// window answers ability 0 (manaN stays the {G}), the planner
 			// and the affordability bounds read the larger (wideN)
-			on.wideN, on.wideCol = c.Abilities[gj].ManaN, c.Abilities[gj].ManaColors&kop.ColAny
+			on.wideN, on.wideCol = c.Abilities[gj].ManaN, c.Abilities[gj].ManaColors&colOrC
 			g.anyGatePair = true
 		}
 		if on.manaMulti && bits.TrailingZeros8(uint8(off.manaCol)) != bits.TrailingZeros8(uint8(on.manaCol)) {
@@ -186,8 +186,9 @@ var debugGatedPair uint8
 func SetDebugGatedPair(m uint8) { debugGatedPair = m }
 
 // gatedLargerPair reports card c's gated ability gj as a larger alternative of
-// the first mana ability's colour: two plain {T} abilities of one fixed colour,
-// the gated one making more (Whisperer of the Wilds, Fanatic of Rhonas).
+// the first mana ability's colour: two plain {T} abilities of one fixed colour
+// (or both of any one colour: Sceptre of Eternal Glory), the gated one making
+// more (Whisperer of the Wilds, Fanatic of Rhonas).
 // gorge's census lists the gate-on source as one unit with both alternatives
 // (pay.appendUnitAlternatives) and the planner takes the one that ranks best
 // per payment; the kernel's unit is a restrPairUnit pair without the
@@ -204,7 +205,7 @@ func gatedLargerPair(c *kop.CardDef, gj int, pc *pcard) bool {
 		}
 	}
 	return n == 2 && a0.AFlags == 0 && ag.AFlags == 0 && a0.ManaRestrict == 0 && ag.ManaRestrict == 0 &&
-		a0.ManaColors == ag.ManaColors && bits.OnesCount8(uint8(ag.ManaColors&0x3f)) == 1 &&
+		a0.ManaColors == ag.ManaColors && (bits.OnesCount8(uint8(ag.ManaColors&0x3f)) == 1 || ag.ManaColors&kop.ColAny == kop.ColAny) &&
 		a0.Cost.Flags == kop.CostTap && ag.Cost.Flags == kop.CostTap && max(ag.ManaN, 1) > pc.manaN && !ag.ManaEach && !a0.ManaEach
 }
 

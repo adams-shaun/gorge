@@ -5,8 +5,10 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // fwWithKeyword: FwWithKeyword, with<Keyword> over the printed keyword Arg
 // (a KwID); gorge's objectHasKeyword (engine/effects/filter.go:986) reads the
 // printed face and the keyword counters. A permanent reads nothing while face
-// down (CR 708.2) or after a lose-all-abilities effect (the same gates as
-// kop.W7WithInfect, filter_props.go). A layer-walk view fails closed, and so
+// down (CR 708.2) or after a lose-all-abilities effect, from a one-shot record
+// OR a continuous override static (Amphibian Downpour's "loses all abilities"):
+// genLost is that full read (kop.W7WithInfect's own gate names only the applied
+// record flags, a narrower read). A layer-walk view fails closed, and so
 // does a keyword the table keeps no printed record of (printedKeyword's
 // default): kgen lowers only the keywords listed here (fwKeywordWords).
 // Known limit: gorge's keywordInCtx also sees keywords a layer table derives
@@ -21,13 +23,16 @@ func (s *State) fwWithKeyword(c *fctx, l *kop.FLit) bool {
 		return false
 	case c.perm():
 		cid := s.cardAt(c.sl)
-		if cid == kop.NoCard || s.faceDown(c.k, c.sl) || s.perms[c.sl].ovr.flags&(ovLoseAll|ovLoseAllEOT) != 0 {
+		if cid == kop.NoCard || s.genLost(c.k, c.sl) {
 			return false
 		}
 		id := kop.KwID(l.Arg)
 		if id == kop.KwHorsemanship && c.k.gen != nil && c.k.gen.anyEvasionGrant &&
 			s.evasionGranted(c.k, c.sl)&kop.EvHorsemanship != 0 {
 			return true // a granted horsemanship (kw_kwmark.go), as hasSkulkPerm reads skulk
+		}
+		if id == kop.KwToxic && c.k.gen != nil && c.k.gen.anyInfectGrant && !DebugNoGrantedToxic && s.toxicGranted(c.k, c.sl) > 0 {
+			return true // a granted toxic (kw_toxicgrant.go), gorge's derived keyword list
 		}
 		return printedKeyword(&c.k.t.Cards[cid], id)
 	case c.card():

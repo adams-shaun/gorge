@@ -3,10 +3,11 @@
 # <count> runs, one per line.
 #
 # Shards are balanced on measured time: scripts/ci-pkg-times.tsv holds each package's seconds from a CI run
-# (scripts/ci-pkg-times.sh <run-id> refreshes it). Packages go heaviest first to the least-loaded shard (ties: lower
-# index, then import path), so the split is deterministic on every runner. A package with no measurement weighs
-# DEFAULT_WEIGHT seconds. 11-16: the old split (two heavy packages pinned, the rest by hash) gave shards of 72 s to
-# 269 s of package time; the slowest shard sets the PR's wall time.
+# (scripts/ci-pkg-times.sh <run-id> refreshes it). Packages go heaviest first to the least-loaded shard; on equal
+# load, to the shard with fewer entries (then lower index, then import path), so a 0 s package's process launch is
+# counted and the split is deterministic on every runner. A package with no measurement weighs DEFAULT_WEIGHT
+# seconds. 11-16: the old split (two heavy packages pinned, the rest by hash) gave shards of 72 s to 269 s of package
+# time; the slowest shard sets the PR's wall time.
 #
 # Shard index is 0-based. `ci_shard.sh all <count>` prints every package with
 # its shard, which is how the self-check in CI proves no package was dropped.
@@ -27,11 +28,13 @@ pkgs=$(go list ./... | grep -v '/dirac/oracle$')
 if [ "${CI_FULL:-0}" != 1 ]; then
 	pkgs=$(printf '%s\n' "$pkgs" | grep -Ev "$EXCLUDE")
 fi
-# A package in ci-splits.tsv is two entries: the package, run minus its regex, and <package>#A, the regex (ci.yml's
-# test step). Whole, engine/rules (242-269 s) and testkit/conformance (239 s) were the slowest shards' floors.
-while IFS=$'\t' read -r sp _; do
+# A package in ci-splits.tsv is one entry per row: the package, run minus every row's regex, and <package>#<label>
+# (label defaults to A), the row's regex (ci.yml's test step). engine/rules has three rows (four groups; 11-27).
+# Whole, engine/rules (242-269 s) and testkit/conformance (239 s) were the slowest shards' floors.
+while IFS=$'\t' read -r sp _ label; do
 	case $sp in '' | '#'*) continue ;; esac
-	if printf '%s\n' "$pkgs" | grep -qx "$sp"; then pkgs=$(printf '%s\n' "$pkgs" "$sp#A"); fi
+	label=${label:-A}
+	if printf '%s\n' "$pkgs" | grep -qx "$sp"; then pkgs=$(printf '%s\n' "$pkgs" "$sp#$label"); fi
 done <"$(dirname "$0")/ci-splits.tsv"
 
 printf '%s\n' "$pkgs" | awk -F'\t' -v idx="$idx" -v count="$count" -v def="${DEFAULT_WEIGHT:-3}" '
@@ -42,10 +45,19 @@ printf '%s\n' "$pkgs" | awk -F'\t' -v idx="$idx" -v count="$count" -v def="${DEF
 		for (i = 2; i <= n; i++) { k = o[i]; j = i - 1
 			while (j >= 1 && (wt[o[j]] < wt[k] || (wt[o[j]] == wt[k] && p[o[j]] > p[k]))) { o[j + 1] = o[j]; j-- }
 			o[j + 1] = k }
-		for (s = 0; s < count; s++) load[s] = 0
+		for (s = 0; s < count; s++) { load[s] = 0; cnt[s] = 0 }
 		for (i = 1; i <= n; i++) { k = o[i]; b = 0
-			for (s = 1; s < count; s++) if (load[s] < load[b]) b = s
-			load[b] += wt[k]; sh[k] = b }
+			# A 0 s package costs only a process launch, not CPU, so place it on the shard with the
+			# fewest entries even when the CPU loads are no longer exactly equal: a refreshed weight
+			# set rarely sums to an exact multiple of the shard count, and comparing load first would
+			# then make the unique lightest shard collect every 0 s package (11-27: 64 entries against
+			# 21 on the rest). A measured package goes to the least CPU load, then the fewest entries.
+			for (s = 1; s < count; s++) {
+				if (wt[k] == 0) {
+					if (cnt[s] < cnt[b] || (cnt[s] == cnt[b] && load[s] < load[b])) b = s
+				} else if (load[s] < load[b] || (load[s] == load[b] && cnt[s] < cnt[b])) b = s
+			}
+			load[b] += wt[k]; cnt[b]++; sh[k] = b }
 		for (i = 1; i <= n; i++) {
 			if (idx == "all") print sh[i], p[i]
 			else if (sh[i] == idx) print p[i]

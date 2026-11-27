@@ -41,7 +41,23 @@ func (ic *instrCtx) opOverrideAll() error {
 		return err
 	}
 	ki.C = int16(i)
-	switch in.CS {
+	if _, ok := ic.fl["cwWord"]; ok {
+		// C names the FIRST of six records, the printed colours then one
+		// colour each (lower_zone.go emitCwWordAll on the OverrideAll
+		// shape), so only the first has an op: intern the other five here. B
+		// marks the op for the kernel's frozen colour-word colour pick
+		// (static_colorwords.go ovCwRow, one row for every hit).
+		for n := 1; n < 6; n++ {
+			if _, err := cb.override(cb.c.overrides[in.C+n]); err != nil {
+				return err
+			}
+		}
+		ki.B = kop.Const(kop.OvCwWord)
+		if err := cb.cwWordOverridesOK(i); err != nil {
+			return err
+		}
+	}
+	switch strings.SplitN(in.CS, "|", 2)[0] {
 	case "EOT":
 		ki.A = kop.Const(kop.DurEOT)
 	case "Permanent":
@@ -98,8 +114,29 @@ func (ic *instrCtx) opOverride() error {
 			return err
 		}
 	}
+	if _, ok := fl["cwWord"]; ok {
+		// C names the FIRST of six records, the printed colours then one
+		// colour each (lower_zone.go emitCwWordAnimate), so only the first
+		// has an op: intern the other five here. B marks the op for the
+		// kernel's frozen colour-word colour pick (C + 1 + colour).
+		for n := 1; n < 6; n++ {
+			if _, err := cb.override(cb.c.overrides[in.C+n]); err != nil {
+				return err
+			}
+		}
+		ki.B = kop.Const(kop.OvCwWord)
+		if err := cb.cwWordOverridesOK(i); err != nil {
+			return err
+		}
+	}
 	if _, ok := fl["enterWith"]; ok {
 		ki.B = kop.Const(kop.OvEnterWith)
+	}
+	if _, ok := fl["spellCarry"]; ok {
+		// a static SpellCast rider's timed Animate of the triggering spell:
+		// stamp the spell entry and apply the record as the permanent enters
+		// (dirac/static_spellcarry.go)
+		ki.B = kop.Const(kop.OvSpellCarry)
 	}
 	switch strings.SplitN(in.CS, "|", 2)[0] {
 	case "EOT":

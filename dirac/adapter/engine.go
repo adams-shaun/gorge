@@ -7,6 +7,7 @@ package adapter
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/adams-shaun/gorge/dirac"
 	"github.com/adams-shaun/gorge/dirac/cardset"
@@ -60,8 +61,8 @@ func (e *Engine) Accepts(c game.Config) error {
 func (e *Engine) CheckDeck(deck []*cards.Card) error {
 	var best error
 	fewest := -1
-	es := entries(deck)
 	for _, s := range e.sets {
+		es := entries(s, deck)
 		n := refused(s, deck)
 		if n == 0 {
 			if _, _, _, err := s.Matchup(es, nil); err == nil {
@@ -79,17 +80,21 @@ func (e *Engine) CheckDeck(deck []*cards.Card) error {
 	return best
 }
 
-// table picks the first set holding both decks and builds their table.
+// podSeats is the seat count of a Commander pod: dirac plays two seats, or four
+// at Commander.
+const podSeats = 4
+
+// table picks the first set holding every deck and builds their table.
 func (e *Engine) table(c game.Config) (cardset.Set, *kop.Table, error) {
 	var cmdErr error
 	if c.Format == game.FormatCommander {
 		cmdErr = checkCommander(c)
 	}
 	switch {
-	case len(c.Decks) != 2:
-		return nil, nil, fmt.Errorf("dirac plays two seats, table has %d", len(c.Decks))
+	case len(c.Decks) != 2 && (len(c.Decks) != podSeats || c.Format != game.FormatCommander):
+		return nil, nil, fmt.Errorf("dirac plays two seats, or four at commander; the table has %d", len(c.Decks))
 	case c.Format != game.FormatConstructed && c.Format != game.FormatCommander:
-		return nil, nil, errors.New("dirac plays constructed and two-seat commander only")
+		return nil, nil, errors.New("dirac plays constructed and commander only")
 	case cmdErr != nil:
 		return nil, nil, cmdErr
 	case c.StartChooser != nil:
@@ -97,29 +102,51 @@ func (e *Engine) table(c game.Config) (cardset.Set, *kop.Table, error) {
 	case c.Sideboards != nil:
 		return nil, nil, errors.New("dirac plays no sideboards: a match with sideboarding needs the gorge engine")
 	}
-	if n := len(c.Decks[0]) + len(c.Decks[1]); n > dirac.MaxObj {
+	n := 0
+	for _, d := range c.Decks {
+		n += len(d)
+	}
+	if n > dirac.MaxObj {
 		return nil, nil, fmt.Errorf("dirac holds %d objects, the decks have %d cards", dirac.MaxObj, n)
 	}
 	var best error
 	fewest := -1
 	for _, s := range e.sets {
-		tbl, _, _, err := s.Matchup(entries(c.Decks[0]), entries(c.Decks[1]))
+		tbl, err := matchup(s, c.Decks)
 		if err == nil {
 			return s, tbl, nil
 		}
-		if n := refused(s, c.Decks[0]) + refused(s, c.Decks[1]); fewest < 0 || n < fewest {
+		n := 0
+		for _, d := range c.Decks {
+			n += refused(s, d)
+		}
+		if fewest < 0 || n < fewest {
 			best, fewest = err, n
 		}
 	}
 	return nil, nil, best
 }
 
+// matchup builds s's table for the decks: Matchup at two seats, MatchupN past it.
+func matchup(s cardset.Set, decks [][]*cards.Card) (*kop.Table, error) {
+	if len(decks) == 2 {
+		tbl, _, _, err := s.Matchup(entries(s, decks[0]), entries(s, decks[1]))
+		return tbl, err
+	}
+	es := make([][]cardset.Entry, len(decks))
+	for i, d := range decks {
+		es[i] = entries(s, d)
+	}
+	tbl, _, err := s.MatchupN(es)
+	return tbl, err
+}
+
 // entries is a deck as the name counts a table is built from.
-func entries(deck []*cards.Card) []cardset.Entry {
+func entries(s cardset.Set, deck []*cards.Card) []cardset.Entry {
 	es := make([]cardset.Entry, 0, 24)
 	at := map[string]int{}
 	for _, c := range deck {
-		n := frontName(c)
+		n := poolName(s, c)
 		if i, ok := at[n]; ok {
 			es[i].Count++
 			continue
@@ -135,11 +162,36 @@ func refused(s cardset.Set, deck []*cards.Card) int {
 	plays := s.Supported()
 	n := 0
 	for _, c := range deck {
-		if i, ok := s.Lookup(frontName(c)); !ok || !plays[i] {
+		if i, ok := s.Lookup(poolName(s, c)); !ok || !plays[i] {
 			n++
 		}
 	}
 	return n
+}
+
+// poolName is the name a pool keys c under: the faces joined with " // " for a
+// split, adventure or modal card when the pool holds that spelling, else the
+// front name (a card with one face, or a pool that keys the front face).
+func poolName(s cardset.Set, c *cards.Card) string {
+	return resolveName(func(n string) bool { _, ok := s.Lookup(n); return ok }, c)
+}
+
+// resolveName is poolName over any membership test.
+func resolveName(has func(string) bool, c *cards.Card) string {
+	front := frontName(c)
+	if len(c.Faces) > 1 {
+		names := make([]string, 0, len(c.Faces))
+		for _, f := range c.Faces {
+			if f == nil || f.Name == "" {
+				return front
+			}
+			names = append(names, f.Name)
+		}
+		if joined := strings.Join(names, " // "); has(joined) {
+			return joined
+		}
+	}
+	return front
 }
 
 func frontName(c *cards.Card) string {
@@ -155,8 +207,8 @@ func (e *Engine) New(c game.Config) (game.Game, error) {
 	if err != nil {
 		return nil, err
 	}
-	var decks [2][]dirac.CardID
-	for i := range decks {
+	var decks [dirac.MaxSeats][]dirac.CardID
+	for i := range c.Decks {
 		decks[i], err = deckIDs(tbl, c.Decks[i])
 		if err != nil {
 			return nil, err
@@ -176,7 +228,7 @@ func (e *Engine) New(c game.Config) (game.Game, error) {
 	}
 	g.tr.BindSet(s, tbl, e.reg)
 	g.bind()
-	g.s.Init(tbl, decks[0], decks[1], c.Seed, e.config(c))
+	g.s.InitN(tbl, decks, uint8(len(c.Decks)), c.Seed, e.config(c))
 	g.s.Project(&g.kp)
 	g.ids.sync(&g.kp)
 	g.kp.Turn = 0 // so the log opens with the first turn, which the view's round anchors on
@@ -215,9 +267,9 @@ func checkCommander(c game.Config) error {
 	if c.DraftPartners {
 		return fmt.Errorf("dirac does not seat the Commander-draft partner rule")
 	}
-	// table names a non-two-seat table before this check, so a wrong seat
-	// count keeps that error even when the commander list is short.
-	if len(c.Decks) != 2 {
+	// table names a table of another seat count before this check, so a wrong
+	// seat count keeps that error even when the commander list is short.
+	if len(c.Decks) != 2 && len(c.Decks) != podSeats {
 		return nil
 	}
 	for i := range c.Decks {
@@ -240,7 +292,7 @@ func checkCommander(c game.Config) error {
 		}
 	}
 	if len(c.Commanders) > len(c.Decks) {
-		return fmt.Errorf("dirac plays two seats, the table names commanders for seat %d", len(c.Decks))
+		return fmt.Errorf("dirac plays %d seats, the table names commanders for seat %d", len(c.Decks), len(c.Decks))
 	}
 	return nil
 }
@@ -254,9 +306,10 @@ func deckIDs(tbl *kop.Table, deck []*cards.Card) ([]dirac.CardID, error) {
 	}
 	out := make([]dirac.CardID, len(deck))
 	for i, c := range deck {
-		id, ok := at[frontName(c)]
+		n := resolveName(func(n string) bool { _, ok := at[n]; return ok }, c)
+		id, ok := at[n]
 		if !ok {
-			return nil, fmt.Errorf("dirac: %q is not in table %s", frontName(c), tbl.Name)
+			return nil, fmt.Errorf("dirac: %q is not in table %s", n, tbl.Name)
 		}
 		out[i] = id
 	}

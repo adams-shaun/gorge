@@ -1,0 +1,7 @@
+# Leyline Tyrant's coloured trigger X (Cost$ X with XColor$ R;
+# dirac/oracle/leyline_tyrant_test.go)
+Forest
+Grizzly Bears
+Leyline Tyrant
+Mountain
+Shock

@@ -19,94 +19,110 @@ import (
 type refKind uint8
 
 const (
-	rNone                 refKind = iota
-	rTarget                       // target slot N of this ability
-	rSelf                         // the source object
-	rYou                          // the source's controller
-	rEachOpp                      // each opponent
-	rEachPlayer                   // each player
-	rTargetController             // controller of the object in target slot N
-	rTargetOwner                  // owner of the object in target slot N
-	rTriggered                    // the triggering object (as it last existed / now is)
-	rTriggeredNew                 // the triggering object in the zone it moved to
-	rTriggeredSource              // the source of the triggering damage
-	rTriggeredPlayer              // the player the trigger names (activator / controller)
-	rTriggeredTgtCtrl             // the triggering referent's controller, read live at resolution (gorge TriggeredTargetController; a dead referent reads its owner)
-	rEquipped                     // the object the source is attached to
-	rRemembered                   // the resolution's remembered objects
-	rDelayedRemembered            // the objects a delayed trigger remembered
-	rReplaced                     // the object an ETB replacement is modifying
-	rChosen                       // the chosen card(s)
-	rEach                         // the RepeatEach loop variable
-	rSacrificed                   // the object sacrificed to pay the cost
-	rHost                         // the permanent that granted this ability (OriginalHost)
-	rDefending                    // the defending player of an attack trigger the controller's attack fires
-	rTargetUnion                  // every target of the slots in bit mask N, in slot order (gorge's chain target union)
-	rRememberedController         // the remembered object's controller (its RememberLKI$ capture off the battlefield)
-	rDiscarded                    // the card a spell's Discard<1/...> cost discarded (Grab the Prize)
-	rLibTop                       // the top card of the controller's library (Defined$ TopOfLibrary)
-	rOppNonRemCtrl                // the opponent unless a remembered object's controller is that opponent (OppNonRememberedController)
-	rSrcOwner                     // the source object's owner (Defined$ CardOwner)
-	rTriggerAttackers             // the attacker group of the AttackersDeclared event (Defined$ TriggeredAttackers)
-	rRememberedOwner              // the remembered object's owner (Unidentified Hovership's leave trigger)
-	rImprinted                    // the resolution's imprinted objects (Dig Imprint$ on a permanent's ability)
-	rPromised                     // the opponent the gift was promised to (Defined$ / TokenOwner$ Promised)
-	rAttachedCtrl                 // the controller of the object the source is attached to, read live (Contaminated Bond's blocker)
-	rLastCreated                  // the token(s) the previous CreateToken/copy op minted (kop.RefLastCreated; Encore's duty on the minted copy)
-	rTaxedAttacker                // the creature an attack tax is being priced for (kop.RefTaxedAttacker; Nils's RememberingAttacker$ charge, lower_attacktax.go)
-	rTriggeredOwner               // the owner of the triggering object (kop.RefTriggerObjOwner; Defined$ TriggeredCardOwner)
-	rChosenPlayer                 // the opponent the source permanent chose as it entered (kop.RefChosenPlayer; lower_chooseplayerenter.go)
-	rChosenPlayerRes              // the player this resolution's ChoosePlayer chose (kop.RefChosenPlayerRes; lower_chooseplayerres.go)
-	rTriggerOpps                  // each opponent of the trigger's player (kop.RefTriggerOpponents; Defined$ TriggeredCardOpponent, lower_triggeropps.go)
-	rResChosenPlayer              // the resolution's chosen player: OpChoosePlayer's random pick (gorge Ctx.Chosen's player entry, Maddening Hex's Attach destination)
-	rExiledWithOwner              // the seat whose exile holds a card exiled with the source (kop.RefExiledWithOwner; DefinedPlayer$ Player.HasCardsInExile_Card.ExiledWithSource_GE1, Unidentified Hovership's leave trigger)
-	rEnchantedCtrl                // the controller of the permanent the source is attached to, read live, nobody once the source left (kop.RefEnchantedCtrl; Defined$ EnchantedController, Paralyze)
+	rNone                  refKind = iota
+	rTarget                        // target slot N of this ability
+	rSelf                          // the source object
+	rYou                           // the source's controller
+	rEachOpp                       // each opponent
+	rEachPlayer                    // each player
+	rTargetController              // controller of the object in target slot N
+	rTargetOwner                   // owner of the object in target slot N
+	rTriggered                     // the triggering object (as it last existed / now is)
+	rTriggeredNew                  // the triggering object in the zone it moved to
+	rTriggeredSource               // the source of the triggering damage
+	rTriggeredPlayer               // the player the trigger names (activator / controller)
+	rTriggeredTgtCtrl              // the triggering referent's controller, read live at resolution (gorge TriggeredTargetController; a dead referent reads its owner)
+	rEquipped                      // the object the source is attached to
+	rRemembered                    // the resolution's remembered objects
+	rDelayedRemembered             // the objects a delayed trigger remembered
+	rReplaced                      // the object an ETB replacement is modifying
+	rChosen                        // the chosen card(s)
+	rEach                          // the RepeatEach loop variable
+	rSacrificed                    // the object sacrificed to pay the cost
+	rHost                          // the permanent that granted this ability (OriginalHost)
+	rDefending                     // the defending player of an attack trigger the controller's attack fires
+	rTargetUnion                   // every target of the slots in bit mask N, in slot order (gorge's chain target union)
+	rRememberedController          // the remembered object's controller (its RememberLKI$ capture off the battlefield)
+	rDiscarded                     // the card a spell's Discard<1/...> cost discarded (Grab the Prize)
+	rChosenEnc                     // the object the spell's own CloseEncounter ChooseCard additional cost chose (RevealedCards$CardPower)
+	rLibTop                        // the top card of the controller's library (Defined$ TopOfLibrary)
+	rOppNonRemCtrl                 // the opponent unless a remembered object's controller is that opponent (OppNonRememberedController)
+	rSrcOwner                      // the source object's owner (Defined$ CardOwner)
+	rTriggerAttackers              // the attacker group of the AttackersDeclared event (Defined$ TriggeredAttackers)
+	rRememberedOwner               // the remembered object's owner (Unidentified Hovership's leave trigger)
+	rAttackedBySource              // the player the source attacked this turn (Defined$ Player.attackedBySourceThisTurn)
+	rImprinted                     // the resolution's imprinted objects (Dig Imprint$ on a permanent's ability)
+	rPromised                      // the opponent the gift was promised to (Defined$ / TokenOwner$ Promised)
+	rAttachedCtrl                  // the controller of the object the source is attached to, read live (Contaminated Bond's blocker)
+	rLastCreated                   // the token(s) the previous CreateToken/copy op minted (kop.RefLastCreated; Encore's duty on the minted copy)
+	rTaxedAttacker                 // the creature an attack tax is being priced for (kop.RefTaxedAttacker; Nils's RememberingAttacker$ charge, lower_attacktax.go)
+	rTriggeredOwner                // the owner of the triggering object (kop.RefTriggerObjOwner; Defined$ TriggeredCardOwner)
+	rChosenPlayer                  // the opponent the source permanent chose as it entered (kop.RefChosenPlayer; lower_chooseplayerenter.go)
+	rChosenPlayerRes               // the player this resolution's ChoosePlayer chose (kop.RefChosenPlayerRes; lower_chooseplayerres.go)
+	rTriggerOpps                   // each opponent of the trigger's player (kop.RefTriggerOpponents; Defined$ TriggeredCardOpponent, lower_triggeropps.go)
+	rResChosenPlayer               // the resolution's chosen player: OpChoosePlayer's random pick (gorge Ctx.Chosen's player entry, Maddening Hex's Attach destination)
+	rExiledWithOwner               // the seat whose exile holds a card exiled with the source (kop.RefExiledWithOwner; DefinedPlayer$ Player.HasCardsInExile_Card.ExiledWithSource_GE1, Unidentified Hovership's leave trigger)
+	rEnchantedCtrl                 // the controller of the permanent the source is attached to, read live, nobody once the source left (kop.RefEnchantedCtrl; Defined$ EnchantedController, Paralyze)
+	rEnchantedPlayer               // the player the source Aura enchants (kop.RefEnchantedPlayer; Defined$ / TokenOwner$ EnchantedPlayer, Overencumbered)
+	rEmblemSource                  // inside an emblem trigger's body: the object whose Effect made the emblem, as it was when the trigger was queued (kop.RefEmblemSource; an Effect's RememberObjects$ Self read as Defined$ Remembered, lower_effeottrig.go)
+	rTargetCtrlLive                // the controller of target 0 read live at resolution (gorge Defined$ ParentTargetedController: a target that left the battlefield reads its owner, not its last-known controller)
+	rTriggeredSpellTarget          // inside a SpellCast trigger with IsSingleTarget$ True: the cast spell's one object target, captured as the trigger was queued (kop.RefTriggerSpellTarget; Defined$ TriggeredSpellAbilityTargets, lower_spelltarget.go)
+	rEquippedByEnchanted           // Defined$ Valid Card.EquippedByEnchanted: the permanent the source Aura's enchanted Equipment is attached to (kop.RefEquippedByEnchanted; Artificer's Hex, lower_effect_defined.go)
+	rTriggeredSpellTargets         // Defined$ TriggeredSpellAbilityTargets without IsSingleTarget$ True: every distinct object target of the cast spell, the op run once per object (kop.RefTriggerSpellTargets; Dack Fayden, Storm, Windrider, lower_spelltarget.go)
 	rCount
 )
 
 var refNames = [...]string{
-	rNone:                 "None",
-	rTarget:               "Target",
-	rSelf:                 "Self",
-	rYou:                  "You",
-	rEachOpp:              "EachOpp",
-	rEachPlayer:           "EachPlayer",
-	rTargetController:     "TargetController",
-	rTargetOwner:          "TargetOwner",
-	rTriggered:            "Triggered",
-	rTriggeredNew:         "TriggeredNew",
-	rTriggeredSource:      "TriggeredSource",
-	rTriggeredPlayer:      "TriggeredPlayer",
-	rTriggeredTgtCtrl:     "TriggeredTgtCtrl",
-	rEquipped:             "Equipped",
-	rRemembered:           "Remembered",
-	rDelayedRemembered:    "DelayedRemembered",
-	rReplaced:             "Replaced",
-	rChosen:               "Chosen",
-	rEach:                 "Each",
-	rSacrificed:           "Sacrificed",
-	rHost:                 "Host",
-	rDefending:            "Defending",
-	rTargetUnion:          "Targets",
-	rRememberedController: "RememberedController",
-	rDiscarded:            "Discarded",
-	rLibTop:               "LibTop",
-	rOppNonRemCtrl:        "OppNonRemCtrl",
-	rSrcOwner:             "SrcOwner",
-	rTriggerAttackers:     "TriggerAttackers",
-	rRememberedOwner:      "RememberedOwner",
-	rImprinted:            "Imprinted",
-	rPromised:             "Promised",
-	rAttachedCtrl:         "AttachedCtrl",
-	rLastCreated:          "LastCreated",
-	rTaxedAttacker:        "TaxedAttacker",
-	rTriggeredOwner:       "ChosenPlayer",
-	rChosenPlayer:         "TriggeredOwner",
-	rChosenPlayerRes:      "ChosenPlayerRes",
-	rTriggerOpps:          "TriggerOpps",
-	rResChosenPlayer:      "ResChosenPlayer",
-	rExiledWithOwner:      "ExiledWithOwner",
-	rEnchantedCtrl:        "EnchantedCtrl",
+	rNone:                  "None",
+	rTarget:                "Target",
+	rSelf:                  "Self",
+	rYou:                   "You",
+	rEachOpp:               "EachOpp",
+	rEachPlayer:            "EachPlayer",
+	rTargetController:      "TargetController",
+	rTargetOwner:           "TargetOwner",
+	rTriggered:             "Triggered",
+	rTriggeredNew:          "TriggeredNew",
+	rTriggeredSource:       "TriggeredSource",
+	rTriggeredPlayer:       "TriggeredPlayer",
+	rTriggeredTgtCtrl:      "TriggeredTgtCtrl",
+	rEquipped:              "Equipped",
+	rRemembered:            "Remembered",
+	rDelayedRemembered:     "DelayedRemembered",
+	rReplaced:              "Replaced",
+	rChosen:                "Chosen",
+	rEach:                  "Each",
+	rSacrificed:            "Sacrificed",
+	rHost:                  "Host",
+	rDefending:             "Defending",
+	rTargetUnion:           "Targets",
+	rRememberedController:  "RememberedController",
+	rDiscarded:             "Discarded",
+	rChosenEnc:             "ChosenEnc",
+	rLibTop:                "LibTop",
+	rOppNonRemCtrl:         "OppNonRemCtrl",
+	rSrcOwner:              "SrcOwner",
+	rTriggerAttackers:      "TriggerAttackers",
+	rRememberedOwner:       "RememberedOwner",
+	rAttackedBySource:      "AttackedBySource",
+	rImprinted:             "Imprinted",
+	rPromised:              "Promised",
+	rAttachedCtrl:          "AttachedCtrl",
+	rLastCreated:           "LastCreated",
+	rTaxedAttacker:         "TaxedAttacker",
+	rTriggeredOwner:        "TriggeredOwner",
+	rChosenPlayer:          "ChosenPlayer",
+	rChosenPlayerRes:       "ChosenPlayerRes",
+	rTriggerOpps:           "TriggerOpps",
+	rResChosenPlayer:       "ResChosenPlayer",
+	rExiledWithOwner:       "ExiledWithOwner",
+	rEnchantedCtrl:         "EnchantedCtrl",
+	rEmblemSource:          "EmblemSource",
+	rEnchantedPlayer:       "EnchantedPlayer",
+	rTargetCtrlLive:        "TargetCtrlLive",
+	rTriggeredSpellTarget:  "TriggeredSpellTarget",
+	rEquippedByEnchanted:   "EquippedByEnchanted",
+	rTriggeredSpellTargets: "TriggeredSpellTargets",
 }
 
 type lRef struct {
@@ -187,6 +203,7 @@ const (
 	vThisTurnActGrave    // activations this turn by the controller whose source now sits in a graveyard
 	vSelfPrepared        // 1 if the source is prepared, else 0; N=1 negates (Count$ValidSelf Card.[!]IsPrepared)
 	vSneaked             // Sub[0] if the resolving spell was cast for its sneak cost, else Sub[1]
+	vAltCost             // Sub[0] if the resolving spell was cast for its own AlternativeCost static's alternative, else Sub[1] (Count$AltCost.<paid>.<unpaid>; kop.ExAltCost)
 	vTriggerSpellMVLKI   // the mana value of the spell that triggered a SpellCast ability, as gorge's LKI
 	vPoisonOf            // poison counters of player Ref
 	vProduct             // Sub[0] * Sub[1]
@@ -204,7 +221,7 @@ const (
 	vExiledWithN         // the cards exiled with the reading source, every seat's exile zone (ExiledWith$Amount)
 	vConverge            // the colours of mana spent to cast the spell (Count$Converge)
 	vExileTypes          // the distinct card types among the exiled cards matching F, every seat's exile (Count$ValidExile <spec>$CardTypes)
-	vSacrificedThisTurn  // the permanents the controller sacrificed this turn; N 0 every one, N 1 artifact cards (PlayerCountPropertyYou$SacrificedThisTurn Permanent|Artifact)
+	vSacrificedThisTurn  // the permanents the controller sacrificed this turn: N 0/1/2 the Permanent/Artifact/Food tallies, else F over the turn's sacrifices (PlayerCountPropertyYou$SacrificedThisTurn <spec>)
 	vDiscardedThisTurn   // the cards the controller discarded this turn (PlayerCountPropertyYou$CardsDiscardedThisTurn)
 	vRingTempted         // the controller's temptation count (PlayerCountPropertyYou$RingTemptedYou; the Ring emblem's level gates, gorge count_body_player.go RingTemptedYou)
 	vNumColorsOf         // the colour count of object Ref (TriggeredCard$CardNumColors in a SpellCast trigger)
@@ -244,19 +261,25 @@ const (
 	vPlExtreme           // the highest, over a player group, of the member's filtered count in the named zones (PlayerCountPlayers/Opponents$HighestValid<zones>)
 	vJoinForces          // the resolution's join-forces total (kop.ExJoinForces; lower_storesvar.go)
 	vExileKw             // exiled cards matching F that print the keyword N names (kop.ExStaticExileKw; lower_sharedkw.go)
+	vRemEachOwn          // the remembered cards owned (so controlled, off the battlefield) by the repeated player (Remembered$Valid Card.RememberedPlayerCtrl, a RepeatEach body's ConditionCheckSVar$ gate; ExRemEachOwnNonLand N 1: Braids, Arisen Nightmare)
 	vRemEachOwnNonLand   // the remembered cards that are nonland and owned by the repeated player (Remembered$Valid Card.nonLand+RememberedPlayerOwn, a RepeatEach body's ConditionCheckSVar$ gate)
 	vDmgOppsTaken        // the damage the living opponents were dealt this turn (Count$DamageOppsTakenThisTurn; bloodthirst)
+	vMaxOppDmgTaken      // the most damage any one living opponent was dealt this turn (Count$MaxOppDamageThisTurn; Spinerock Knoll)
 	vCmdGreatestMV       // the greatest mana value among the controller's commanders on the battlefield or in the command zone (kop.ExCmdGreatestMV; value_cmdmv.go)
 	vBlessing            // Sub[0] if the controller has the city's blessing, else Sub[1] (Count$Blessing.<yes>.<no>, CR 702.131)
 	vSrcRemCounters      // counters of kind S on the object the evaluating source remembers (a token's creator, kop.ExSrcRemCounters; lower_tokenrem.go)
 	vVoteTally           // the resolution's current StoreVoteNum$ option tally (kop.ExVoteTally; lower_vote.go)
 	vCmdCastTotal        // the controller's casts of its own commanders from the command zone (kop.ExTotalCommanderCastFromCommandZone; value_cmdcast.go)
+	vAtkYouLast          // the controller's living opponents that attacked the controller during their last turn (PlayerCountPlayers$HasPropertyattackedYouTheirLastTurn; kop.ExAtkYouLastTurn; value_atkyoulast.go)
 	vSpellsLastTurn      // the spells cast last turn: N=0 whether any player cast one (0 or 1), N=1 the most one player cast (kop.ExSpellsCastLastTurn; value_spellslastturn.go)
 	vDevotionChosen      // the controller's devotion to the colour recorded on the source (Count$Devotion.Chosen, kop.ExDevotionChosen; value_devotion.go)
 	vSVarNum             // the evaluating source's StoreSVar number for the name S, else the printed body Sub[0] (kop.ExSVarNum; lower_storenum.go)
 	vMostProminentType   // the size of the largest group of battlefield objects matching F that share a creature type (Count$MostProminentCreatureType; kop.ExMostProminentCreatureType; value_mostprominent.go)
 	vReplLKIPow          // the replaced creature's derived power before a dies-to-exile rider moved it (ReplacedCardLKI$CardPower; value_repllki.go)
+	vMostCardName        // the greatest number of battlefield objects matching F that share one face name (Count$MostCardName; kop.ExMostCardName; value_mostcardname.go)
 	vPaidN               // the spell's Squad/Replicate payment count or Conspire's 1 (Count$SquadPaid / ReplicatePaid / Conspired; kop.ExKicked N 2; lower_squadreplicate.go)
+	vDelayedExileCount   // the fired delayed program's remembered objects (at most four, kop.DpMany's carriers) that are still the same object in exile (Count$ValidExile Card.IsTriggerRemembered in a delayed-many body; value_delayedexile.go)
+	vCardBasePower       // the source's base power before counters and pumps (Count$CardBasePower, kop.ExCardBasePower; value_basepower.go)
 	vCount_
 )
 
@@ -290,6 +313,7 @@ var valNames = [...]string{
 	vSum:                 "Sum",
 	vHandSizeOf:          "HandSizeOf",
 	vCountExile:          "CountExile",
+	vDelayedExileCount:   "DelayedExileCount",
 	vOppsLostLife:        "OppsLostLife",
 	vMVOf:                "MVOf",
 	vCountAtLeast:        "CountAtLeast",
@@ -314,6 +338,7 @@ var valNames = [...]string{
 	vThisTurnActGrave:    "ThisTurnActGrave",
 	vSelfPrepared:        "SelfPrepared",
 	vSneaked:             "Sneaked",
+	vAltCost:             "AltCost",
 	vTriggerSpellMVLKI:   "TriggerSpellMVLKI",
 	vPoisonOf:            "PoisonOf",
 	vProduct:             "Product",
@@ -371,19 +396,24 @@ var valNames = [...]string{
 	vPlExtreme:           "PlExtreme",
 	vJoinForces:          "JoinForces",
 	vExileKw:             "ExileKw",
+	vRemEachOwn:          "RemEachOwn",
 	vRemEachOwnNonLand:   "RemEachOwnNonLand",
 	vDmgOppsTaken:        "DmgOppsTaken",
+	vMaxOppDmgTaken:      "MaxOppDmgTaken",
 	vCmdGreatestMV:       "CmdGreatestMV",
 	vSVarNum:             "SVarNum",
 	vDevotionChosen:      "DevotionChosen",
 	vBlessing:            "Blessing",
 	vSrcRemCounters:      "SrcRemCounters",
+	vCardBasePower:       "CardBasePower",
 	vVoteTally:           "VoteTally",
 	vCmdCastTotal:        "CmdCastTotal",
 	vSpellsLastTurn:      "SpellsLastTurn",
+	vAtkYouLast:          "AtkYouLast",
 	vReplLKIPow:          "ReplLKIPow",
 	vPaidN:               "PaidN",
 	vMostProminentType:   "MostProminentType",
+	vMostCardName:        "MostCardName",
 }
 
 // lValue is an amount: Kind with its operand, then Mul/Div/Add applied in
@@ -599,6 +629,10 @@ type lInstr struct {
 	// Hyb: a trigger's own PayMana cost's hybrid pips, as printed ("GW";
 	// lower_trighybrid.go), packed into the kernel instruction's F.
 	Hyb []string
+	// Pips: a trigger's own PayManaX cost's fixed coloured pips beside the
+	// announced {X} (Elenda and Azor's "{X}{W}{U}{B}"), packed into the
+	// kernel instruction's F as PayMana does its hybrid pips (lower_triggerxcost.go).
+	Pips int
 	// Follows: a MayPlay grant the record follows its card through (kop
 	// MayPlayFollows on the emitted C): the offer stands every time the card
 	// is back in the grant's zone within the duration (lower_zone.go's
@@ -722,6 +756,9 @@ type lTarget struct {
 	// PermOrSpell: with Origin$ Battlefield,Stack, a permanent matching F or
 	// any spell (TgtPermOrSpell)
 	PermOrSpell bool
+	// StackOpp: with PermOrSpell, the stack alternative carries OppCtrl
+	// (kop.TgfStackOppCtrl: the spell must be an opponent's, Sink into Stupor)
+	StackOpp bool
 
 	// PermOrGraveCard: with Origin$ Battlefield,Graveyard, a permanent or a
 	// graveyard card matching F (TgtPermOrGraveCard)
@@ -766,22 +803,25 @@ type lCost struct {
 	SacSelf        bool
 	Sac            *lFilter // sacrifice SacN permanents matching
 	SacN           int
-	SacX           bool     // Sac<X/Spec>: sacrifice the announced X permanents matching Sac (kop.CostSac with N 0; SacN stays 0)
-	XMin           int      // XMin<N> / XMin$ N: the announced X's floor (kop.Cost.XMin)
-	DiscardN       int      // discard N cards (any)
-	DiscardSpec    string   // Discard<N/Spec>: "" (Card, any card), "Random" or "Hand"
-	DiscardHand    bool     // Discard<N/Hand> as an activated ability's cost: the whole hand (kop.Cost.DiscardHand)
-	DiscardSelf    bool     // discard this card (a hand ability: cycling)
-	DiscardF       *lFilter // Discard<N/Spec>: the discard candidates' filter (CostDiscardFiltered)
-	Discard2N      int      // a second Discard<N/Spec> part (a spell's alternative cost; kop.Cost.Discard2N)
-	Discard2F      *lFilter // the second part's filter, nil for any card (kop.Cost.Discard2F)
-	Loyalty        int      // +N / -N loyalty
-	LoyaltyX       bool     // [-X]: SubCounter<X/LOYALTY>, X announced up to the loyalty
-	Exert          bool     // Exert<1/NICKNAME>: exert the source as the cost (CR 702.100a)
-	SubCtr         int      // remove N counters of kind SubCtrKind from the source
-	SubCtrX        bool     // SubCounter<X/Kind>: X announced up to the counters of SubCtrXKnd on the source
+	SacMore        []lSacPart // the further filtered Sac<N/Spec> parts after Sac, in script order (a cost program; lower_costprog.go)
+	SacX           bool       // Sac<X/Spec>: sacrifice the announced X permanents matching Sac (kop.CostSac with N 0; SacN stays 0)
+	XMin           int        // XMin<N> / XMin$ N: the announced X's floor (kop.Cost.XMin)
+	DiscardN       int        // discard N cards (any)
+	DiscardSpec    string     // Discard<N/Spec>: "" (Card, any card), "Random" or "Hand"
+	DiscardHand    bool       // Discard<N/Hand> as an activated ability's cost: the whole hand (kop.Cost.DiscardHand)
+	DiscardSelf    bool       // discard this card (a hand ability: cycling)
+	DiscardF       *lFilter   // Discard<N/Spec>: the discard candidates' filter (CostDiscardFiltered)
+	DiscardShare   bool       // Discard<1/Card.SharesColorWith>: candidates share a colour with the cast card (kop.Cost.DiscardSharesCastColor)
+	Discard2N      int        // a second Discard<N/Spec> part (a spell's alternative cost; kop.Cost.Discard2N)
+	Discard2F      *lFilter   // the second part's filter, nil for any card (kop.Cost.Discard2F)
+	Loyalty        int        // +N / -N loyalty
+	LoyaltyX       bool       // [-X]: SubCounter<X/LOYALTY>, X announced up to the loyalty
+	Exert          bool       // Exert<1/NICKNAME>: exert the source as the cost (CR 702.100a)
+	SubCtr         int        // remove N counters of kind SubCtrKind from the source
+	SubCtrX        bool       // SubCounter<X/Kind>: X announced up to the counters of SubCtrXKnd on the source
 	SubCtrXKnd     string
-	SubAmongN      int // RemoveAnyCounter<N/Kind/Filter>: remove N counters of kind SubAmongKnd from among SubAmongF you control (kop.CostSubAmong)
+	SubCtrAll      string // SubCounter<All/KIND>: remove every counter of this kind from the source (a cost program; lower_costprog.go)
+	SubAmongN      int    // RemoveAnyCounter<N/Kind/Filter>: remove N counters of kind SubAmongKnd from among SubAmongF you control (kop.CostSubAmong)
 	SubAmongKnd    string
 	SubAmongF      *lFilter
 	SubCtrKnd      string
@@ -798,6 +838,7 @@ type lCost struct {
 	SacHost        bool // sacrifice the granting host (Sac<1/OriginalHost>), or exile it when HostExile (Exile<1/OriginalHost>)
 	HostExile      bool // SacHost's part exiles the granting host (kop.CostHostExile; an activated ability's cost only)
 	SacHalf        bool // Sac<X/Spec> whose SVar X is Count$Valid Spec.YouCtrl/HalfUp: sacrifice half of those permanents, rounded up, counted at payment (kop.Cost.SacHalf; a spell's own additional cost; lower_raisecost.go)
+	CloseEnc       bool // the spell's own additional cost is Close Encounter's ChooseCard pick over two zones (kop.Cost.CloseEnc; a spell's own additional cost; lower_raisecost.go)
 	SacExile       bool // Sac/SacN's part is Exile<N/Spec> from the battlefield (kop.Cost.ExileBf; an activated ability's or a spell's additional cost only)
 	TapPowN        int  // tap any number of untapped creatures you control matching TapPowF with total power >= TapPowN (Crew, Saddle; lower_tappower.go)
 	TapPowF        *lFilter
@@ -806,10 +847,12 @@ type lCost struct {
 	Forage         *lFilter // forage: exile three cards from your graveyard or sacrifice a Food matching (CR 701.61a)
 	ExileG         *lFilter // ExileFromGrave<N/Spec>: exile ExileGN cards matching from your graveyard (CARDNAME: Self)
 	ExileGN        int
-	ExileGX        bool     // ExileFromGrave<X/Spec>: exile the announced X cards matching ExileG (kop.CostExileGrave with N 0; a spell's own cost beside a printed {X}; lower_exilex.go)
-	ExileGSelf     bool     // ExileFromGrave<1/CARDNAME> first, then ExileFromGrave<N/Other spec> (kop.Cost.ExileGSelf; a graveyard activated ability's cost)
-	exileGCard     bool     // ExileG is the CARDNAME singleton part (a second ExileFromGrave part may follow)
-	ExileHandN     int      // ExileFromHand<N/Card>: exile N cards from your hand (a trigger's own cost only; cost_exilefromhand.go)
+	ExileGX        bool // ExileFromGrave<X/Spec>: exile the announced X cards matching ExileG (kop.CostExileGrave with N 0; a spell's own cost beside a printed {X}; lower_exilex.go)
+	ExileGSelf     bool // ExileFromGrave<1/CARDNAME> first, then ExileFromGrave<N/Other spec> (kop.Cost.ExileGSelf; a graveyard activated ability's cost)
+	exileGCard     bool // ExileG is the CARDNAME singleton part (a second ExileFromGrave part may follow)
+	ExileHandN     int  // ExileFromHand<N/Card>: exile N cards from your hand (a trigger's own cost only; cost_exilefromhand.go)
+	MoveGraveN     int  // ExiledMoveToGrave<N/Spec>: put N exiled cards matching MoveGraveF into their owners' graveyards (a trigger's own cost only; lower_exiledmovegrave.go)
+	MoveGraveF     *lFilter
 	ExileHand      bool     // ExileFromHand<1/Card>: the ExileG cards come from the payer's hand (kop.Cost.ExileHand; a granted exile ability's cost only)
 	ExileGBf       bool     // ExileCtrlOrGrave<N/Spec>: the battlefield (the payer's permanents) as well (kop.CostExileCtrlOrGrave, Craft)
 	ExileStackSelf bool     // ExileFromStack<1/Card.Self>: the resolving spell exiles itself from the stack (an unless cost beside ExileG)
@@ -818,6 +861,7 @@ type lCost struct {
 	EnergyX        bool     // PayEnergy<X>: pay the announced X energy (a printed activated ability's own cost, no printed {X}; kop.Cost.EnergyX, kernel cost_energyx.go)
 	Waterbend      int      // Waterbend<N>: N generic payable by tapping artifacts/creatures (an activated ability's cost only)
 	WaterbendX     bool     // Waterbend<X>: the cost's one {X} payable by tapping artifacts/creatures (kop.CostWaterbend with N 0; an activated ability's cost only)
+	BlightX        bool     // Blight<X>: X -1/-1 counters on a creature you control, X the announced count bounded by the greatest toughness among them (kop.CostBlight with Cost.N 0; a spell's own RaiseCost additional cost; lower_blightx.go)
 	BlightN        int      // Blight<N>: put N -1/-1 counters on a creature you control (CR 701.68; shares Cost.N/Filter)
 	ReturnSelf     bool     // Return<1/CARDNAME>: return this permanent to its owner's hand (an activated ability's cost only)
 	ExileSelf      bool     // Exile<1/CARDNAME>: exile this permanent (an activated ability's cost only)
@@ -846,10 +890,10 @@ type lCost struct {
 // reduction (CR 702.193b) applies to the mana cost, so a PowerUp$ ability
 // with any other cost is outside the modelled shape.
 func (c lCost) pureMana() bool {
-	return !c.Tap && !c.Untap && !c.SacSelf && c.Sac == nil && c.SacN == 0 &&
+	return !c.Tap && !c.Untap && !c.SacSelf && c.Sac == nil && c.SacN == 0 && len(c.SacMore) == 0 &&
 		c.DiscardN == 0 && c.DiscardSpec == "" && !c.DiscardHand && !c.DiscardSelf && c.DiscardF == nil && !c.DiscardX && c.Discard2N == 0 && c.Loyalty == 0 && !c.LoyaltyX &&
-		c.SubCtr == 0 && !c.SubCtrX && c.SubAmongN == 0 && c.AddCtr == 0 && c.PayLife == 0 && !c.LifeX && c.LifeBy == nil && !c.LifeIdent && !c.SacX && !c.SacHalf && c.XMin == 0 && c.TapN == 0 && !c.TapHost && !c.SacHost && !c.HostExile && !c.SacExile && c.TapPowN == 0 && !c.Exert &&
-		c.Forage == nil && c.ExileG == nil && !c.ExileGSelf && c.ExileHandN == 0 && c.Energy == 0 && c.EnergyBy == nil && !c.EnergyX && !c.ReturnSelf &&
+		c.SubCtr == 0 && !c.SubCtrX && c.SubCtrAll == "" && c.SubAmongN == 0 && c.AddCtr == 0 && c.PayLife == 0 && !c.LifeX && c.LifeBy == nil && !c.LifeIdent && !c.SacX && !c.SacHalf && !c.BlightX && c.XMin == 0 && c.TapN == 0 && !c.TapHost && !c.SacHost && !c.HostExile && !c.SacExile && c.TapPowN == 0 && !c.Exert &&
+		c.Forage == nil && c.ExileG == nil && !c.ExileGSelf && c.ExileHandN == 0 && c.MoveGraveN == 0 && c.Energy == 0 && c.EnergyBy == nil && !c.EnergyX && !c.ReturnSelf &&
 		!c.ExileSelf && !c.ExileStackSelf && c.Return == nil && c.DrawN == 0 && c.DrawBy == nil && c.DamageYouN == 0 && c.BlightN == 0 && c.EvidenceN == 0 && !c.EvidenceX && !c.TapXVar && !c.ExileTrigNew &&
 		c.pureManaTail()
 }
@@ -857,7 +901,7 @@ func (c lCost) pureMana() bool {
 // pureManaTail is the rest of pureMana's conjunction: the token and library
 // parts a power-up cost (CR 702.193b) cannot carry beside its mana cost.
 func (c lCost) pureManaTail() bool {
-	return !c.PutLibSelf && c.BeholdN == 0 && c.BeholdF == nil && c.RevealN == 0 && c.RevealF == nil && c.MillN == 0
+	return !c.PutLibSelf && c.BeholdN == 0 && c.BeholdF == nil && c.RevealN == 0 && c.RevealF == nil && c.MillN == 0 && !c.CloseEnc
 }
 
 // manaCost is a printed mana cost.
@@ -1017,6 +1061,7 @@ type lTrigger struct {
 	ByCreature, AnchorBlocker bool
 	Cycled                    bool  // Discarded lowered from Mode$ Cycled ValidCard$ Card.Self: fires from the graveyard when the card is cycled
 	Unblocked                 bool  // AttackerBlocked lowered from Mode$ AttackerUnblocked: once per unblocked attacker matching F
+	UnblockedOnce             bool  // AttackerBlocked lowered from Mode$ AttackerUnblockedOnce: once per combat when an unblocked attacker matches (kernel Tf2UnblockedOnce)
 	OrCopy                    bool  // SpellCast lowered from Mode$ SpellCastOrCopy: also a spell copy
 	ConvergeBound             bool  // the body reads Count$Converge: the entering spell's colours spent, bound as it triggers (self ETB only; kernel Tf3ConvergeBound)
 	CastConverge              bool  // SpellCast: the amount is the triggering spell's colours spent as the trigger fires (TriggeredCard$Converge; kernel Tf3CastConverge)
@@ -1058,6 +1103,9 @@ type lTrigger struct {
 	// player has no contract counter (kop.Tf5DmgNoContract;
 	// lower_contract.go).
 	NoContract bool
+	// SpellCast: NoColoredMana$ True, the cast spent no coloured mana
+	// (kop.Tf5CastNoColoredMana; trig_spellcast.go).
+	NoColoredMana bool
 	// Discarded Card.Self: ValidCause$ SpellAbility.OppCtrl, the discard caused
 	// by a spell or ability an opponent controls (kop.Tf5OppCause).
 	OppCause bool
@@ -1077,8 +1125,11 @@ type lAbility struct {
 	TrigRem         string // a reflexive trigger's TriggerRemembered$ rest (lower_trigremembered.go)
 	RemTgt          bool   // a Pump RememberObjects$ ThisTargetedCard (lower_remembered.go)
 	ReflexObj       bool   // a reflexive latent whose ImmediateTrigger captured a target (lower_remembered.go)
+	ReflexOptional  bool   // a reflexive latent whose ImmediateTrigger carries OptionalDecider$ You: asked as it resolves (kop.TfOptional; lower_zone.go immediateTrigger)
 	DelayedObjOnly  bool   // a delayed latent whose RememberObjects$ set holds objects only (lower_delayedobjects.go)
 	DelayedPlayer   bool   // a delayed latent registered with a remembered PLAYER (the countered spell's controller): Defined$ DelayTriggerRemembered reads the trigger player (lower_delayremplayer.go)
+	DelayedSetDmg   bool   // a delayed latent registered over a dig's whole remembered set whose body counts the still-exiled ones (Dragonhawk's Count$ValidExile Card.IsTriggerRemembered; lower_zone.go)
+	EmblemRem       bool   // an emblem trigger whose body reads the emblem's CaptureRem set, not the resolution's remembered set (lower_effectendtrig.go)
 	DelayedSelf     bool   // the delayed program remembered the source's own card (Transformed$ return; lower_delayedobjects.go)
 	Origin          int    // gorge's Face.Abilities index, or 0x80|Face.Triggers index; 0 is ambiguous with A[0], so Origin is valid only when OriginOK
 	OriginOK        bool
@@ -1206,8 +1257,13 @@ type lStatic struct {
 	// AddChosen: AddType$ ChosenType, the static's host's chosen creature
 	// type (kop.Static.AddChosen)
 	AddChosen bool
-	// AnyCaster: a CastWithFlash grant with Caster$ Player (kop.StFlashAnyCaster)
+	// AnyCaster: a CastWithFlash grant with Caster$ Player
+	// (kop.StFlashAnyCaster), or an AlternativeCost grant with no ValidPlayer$
+	// rider (kop.StAltAnyCaster)
 	AnyCaster bool
+	// FlashXMax: a CastWithFlash self grant's `ValidSA$ Spell.XCostLE<N>`
+	// bound, 1+N (0 = none; kop.Static.A, dirac/cast_flashxcap.go)
+	FlashXMax int
 	// OutlivesLoss: the pump beside an override static with a part in layers
 	// 1 to 5 (kop.Static.OutlivesLoss)
 	OutlivesLoss bool
@@ -1216,7 +1272,11 @@ type lStatic struct {
 	PerAffected bool
 	Amount      lValue
 	Cost        lCost
-	Zone        int
+	// AltXMana: a grant whose cost is one {X}, priced at the cast card's mana
+	// value (XAlternative$ Count$CardManaCost; Kentaro, the Smiling Cat). The
+	// kernel prices it in cast_altgrant.go.
+	AltXMana bool
+	Zone     int
 	// BlockAmount: an ExtraBlock grant's kop.ExtraBlocksAny (CanBlockAny$
 	// True), 0 for the amount-1 grant
 	BlockAmount int
@@ -1232,7 +1292,12 @@ type lStatic struct {
 	// GainsOf: GainsAbilitiesOf$, the permanents whose activated abilities
 	// the source has (kop.Static.GainsOf; lower_gainsof.go)
 	GainsOf *lFilter
-	Grant   []int // latent abilities the affected objects gain
+	// GainsTrig: the static's GainsTriggerAbsOf$ names the same lender as its
+	// GainsAbilitiesOf$: the lenders' triggered abilities fire as the
+	// recipient's too (kop.Static.GainsTrig; lower_gainsof.go,
+	// dirac/trig_gainedtrig.go)
+	GainsTrig bool
+	Grant     []int // latent abilities the affected objects gain
 	// GrantBody: the latent ability the affected objects' granted-keyword
 	// activation runs, a 0-based index into the card's Abilities like Grant
 	// (always set when the static's kind is UnearthGrant or CyclingGrant; kop.Static.GrantBody
@@ -1255,6 +1320,18 @@ type lStatic struct {
 	// and infect (kop.Static.Evasion / Infect; lower_kwmark.go)
 	Evasion uint8
 	Infect  bool
+	Toxic   uint8 // granted toxic N, summed (kop.Static.Toxic; lower_toxicgrant.go)
+	// Riot: a Continuous grant of riot (kop.Static.Riot; lower_riotgrant.go)
+	Riot bool
+	// Unleash: a Continuous grant of unleash (kop.Static.Unleash;
+	// lower_unleash.go)
+	Unleash bool
+	// PanhZones: a Panharmonicon static's ValidZone$ mask (kop.Static.PanhZones;
+	// 0 = the battlefield only, static_triggers.go)
+	PanhZones uint8
+	// PanhTurned: a Panharmonicon static's ValidTurned$ is present; F2 scopes
+	// the turned permanent (kop.Static.PanhTurned, Panoptic Projektor)
+	PanhTurned bool
 
 	// AbilityRed: a ReduceCost static of activated abilities (Type$ Ability)
 	// rather than spells: 1 any, 2 Exhaust abilities only, 3 a Room unlock,
@@ -1279,6 +1356,8 @@ type lStatic struct {
 	// RedCol: a ReduceCost's Color$ counts, two bits per colour W U B R G C
 	// (flag "ReduceColor"; lower_reducespell.go)
 	RedCol uint16
+	// Defiler: a Defiler static's colour, 1 + the WUBRG index (Amount is its life; lower_defiler.go)
+	Defiler uint8
 	// RaiseCol: a per-target RaiseCost's Cost$ pips per charge, packed like
 	// RedCol (flag "RaisePerTarget"; lower_raisecost.go)
 	RaiseCol uint16
@@ -1309,32 +1388,42 @@ type lOverride struct {
 	RemoveCreatureSub bool
 	SetColors         string
 	HasSetColors      bool
-	LoseAbilities     bool
-	AddKw             []string
-	GrantAbility      []int    // latent ability indexes granted
-	Name              string   // SetName: the layer-3 name (a name card, lowerPool)
-	KeepP, KeepT      bool     // a set of base toughness / power only (Maha)
-	RemoveKw          []string // RemoveKeyword$: keywords removed (layer 6)
-	CantHaveKw        []string // CantHaveKeyword$: keywords the affected can't have or gain (a final layer-6 filter)
-	Dedup             bool     // share a byte-identical pool record across cards (Earthbend)
-	UntilUpkeep       bool     // Duration$ UntilYourNextUpkeep: the Override row carries the class (kop.Override.UntilUpkeep)
-	WhileHost         bool     // Duration$ UntilHostLeavesPlay / AsLongAsInPlay
-	WhileTapped       bool     // Duration$ UntilUntaps: WhileHost, and the host's untap ends it too
-	AsLongAsControl   bool     // Pump Duration$ AsLongAsControl: WhileHost, gated on and ended by the host's control (kop.Override.AsLongAsControl)
-	CantAttack        bool     // HiddenKeywords$ CARDNAME can't attack or block. (with AddKw CantBlock)
-	UntilEndCombat    bool     // Pump Duration$ UntilEndOfCombat: the kernel drops the record leaving the end-of-combat step
-	UntilCtrlUntap    bool     // an Effect's Phase$ Untap end (Orcish Farmer): the record ends as its controller's untap step does (kop.Override.UntilCtrlUntap)
-	UntilCast         *lFilter // an Effect's SpellCast end (Soul Sculptor): the record ends when its resolver casts a spell matching this filter (kop.Override.UntilCast)
-	Banding           bool     // a granted Banding (KW$ Banding): no KwMask bit is free, so the record carries it (kop.Override.Banding)
-	Horsemanship      bool     // a Duration$ Permanent KW$ Horsemanship grant: no KwMask bit, so the record carries it (kop.Override.Horsemanship)
-	MustBeBlocked     bool     // HiddenKeywords$ CARDNAME must be blocked if able.: emitOverride follows the record with ExtMustBeBlocked on the same ref (not a record field)
-	NoCost            bool     // a copy exception's "with no mana cost" (RemoveCost$)
-	AddColors         string   // a copy exception's AddColors$: colour letters added after any set
-	RemoveLegendary   bool     // a copy exception's NonLegendary$ (CR 707.9b)
-	PTDelta           bool     // PVal/TVal are a +N/+M pump (layer 7c), not a base P/T: PumpAll Duration$ UntilYourNextTurn NumAtt$/NumDef$ (kop.Override.PTDelta)
-	GrantStatics      uint8    // an Animate staticAbilities$ grant of card statics gated by lStatic.OvGate (kop.Override.GrantStatics)
-	Landwalk          *lFilter // a Pump KW$ Landwalk:<spec> grant's land filter (kop.Override.Landwalk)
-	SetLandSub        bool     // RemoveLandTypes$ True with basic land types added: a CR 305.7 land-type setter (kop.Override.SetLandSub)
+	// CwWord: SetColors/AddColors came from a word-list Colors$ (An Animate
+	// Colors$ Red,Green), so the colour-word statics' colour frozen as the
+	// ability was put on the stack rewrites the applied record (kop.Override
+	// .CwWord, static_colorwords.go ovCw). The ChosenColor token leaves it
+	// clear: its colour is resolved at application, no word names it.
+	CwWord          bool
+	LoseAbilities   bool
+	AddKw           []string
+	GrantAbility    []int    // latent ability indexes granted
+	Name            string   // SetName: the layer-3 name (a name card, lowerPool)
+	KeepP, KeepT    bool     // a set of base toughness / power only (Maha)
+	RemoveKw        []string // RemoveKeyword$: keywords removed (layer 6)
+	RemoveLandwalk  *lFilter // RemoveKeyword$ Landwalk:<spec>: the landwalk land filter removed (kop.Override.RemoveLandwalk)
+	ExileOnLeave    bool     // Replacements$: "if it would leave the battlefield, exile it instead" (kop.Override.ExileOnLeave)
+	CantHaveKw      []string // CantHaveKeyword$: keywords the affected can't have or gain (a final layer-6 filter)
+	Dedup           bool     // share a byte-identical pool record across cards (Earthbend)
+	UntilUpkeep     bool     // Duration$ UntilYourNextUpkeep: the Override row carries the class (kop.Override.UntilUpkeep)
+	WhileHost       bool     // Duration$ UntilHostLeavesPlay / AsLongAsInPlay
+	WhileTapped     bool     // Duration$ UntilUntaps: WhileHost, and the host's untap ends it too
+	AsLongAsControl bool     // Pump Duration$ AsLongAsControl: WhileHost, gated on and ended by the host's control (kop.Override.AsLongAsControl)
+	CantAttack      bool     // HiddenKeywords$ CARDNAME can't attack or block. (with AddKw CantBlock)
+	UntilEndCombat  bool     // Pump Duration$ UntilEndOfCombat: the kernel drops the record leaving the end-of-combat step
+	UntilCtrlUntap  bool     // an Effect's Phase$ Untap end (Orcish Farmer): the record ends as its controller's untap step does (kop.Override.UntilCtrlUntap)
+	UntilCast       *lFilter // an Effect's SpellCast end (Soul Sculptor): the record ends when its resolver casts a spell matching this filter (kop.Override.UntilCast)
+	Banding         bool     // a granted Banding (KW$ Banding): no KwMask bit is free, so the record carries it (kop.Override.Banding)
+	Horsemanship    bool     // a Duration$ Permanent KW$ Horsemanship grant: no KwMask bit, so the record carries it (kop.Override.Horsemanship)
+	FaceDownOnly    bool     // a ChangeZone FaceDownSetType$ folded type set: the record applies only while face down (kop.Override.FaceDownOnly)
+	Toxic           uint8    // an Animate's Keywords$ Toxic:N, summed (kop.Override.Toxic; lower_toxicgrant.go)
+	MustBeBlocked   bool     // HiddenKeywords$ CARDNAME must be blocked if able.: emitOverride follows the record with ExtMustBeBlocked on the same ref (not a record field)
+	NoCost          bool     // a copy exception's "with no mana cost" (RemoveCost$)
+	AddColors       string   // a copy exception's AddColors$: colour letters added after any set
+	RemoveLegendary bool     // a copy exception's NonLegendary$ (CR 707.9b)
+	PTDelta         bool     // PVal/TVal are a +N/+M pump (layer 7c), not a base P/T: PumpAll Duration$ UntilYourNextTurn NumAtt$/NumDef$ (kop.Override.PTDelta)
+	GrantStatics    uint8    // an Animate staticAbilities$ grant of card statics gated by lStatic.OvGate (kop.Override.GrantStatics)
+	Landwalk        *lFilter // a Pump KW$ Landwalk:<spec> grant's land filter (kop.Override.Landwalk)
+	SetLandSub      bool     // RemoveLandTypes$ True with basic land types added: a CR 305.7 land-type setter (kop.Override.SetLandSub)
 	// Chosen: the setter's added type is the source's own as-enters ChooseType
 	// answer (Convincing Mirage's AddType$ ChosenType): the record adds no
 	// subtype of its own and the static carries AddChosen; the walk grants
@@ -1371,6 +1460,9 @@ type lRepl struct {
 	Phase                                     uint8    // BeginPhaseSkip: the kop.Step it skips (Repl.A)
 	Body                                      int      // DamageInstead: the kop.ReplDmgIns* effect bits (Repl.A's low byte); F2 is the damage source, F the damaged permanent, Ctr the counter kind
 	Trig                                      int      // DamageInstead ReplDmgInsVind: the reflexive-trigger latent the body queues (the ImmediateTrigger Execute's DealDamage)
+	// Plus/Ignore: RollPlanarDice's ReplaceEffect chain adds Plus dice and
+	// ignores Ignore of them (Ichor Elixir: 1/1; kop.Repl.A / kop.Repl.C).
+	Plus, Ignore int
 }
 
 // lCard is a lowered card.
@@ -1388,12 +1480,14 @@ type lCard struct {
 	TwoSeat        bool     // the lowering holds only for 2 players (CardDef.TwoSeat, set by lowerCtx.twoSeat)
 	HasChangeText  bool     // a ChangeText body or a ColorWords static lowered (textreach.go, lower_colorwords.go): the pool's cards carry CardDef.TextWords
 	TextWords      uint16   // the colour and basic land type words the face reads (textreach.go); copied to CardDef.TextWords in such a pool
+	CWUnmodelled   uint16   // the colour words the face reads on a surface the colour-word model does not rewrite (textreach.go); copied to CardDef.CWUnmodelled
 	TwoSeatWhy     []string // the reasons that set TwoSeat, in first-seen order (TestTwoSeatReasons)
 	Loyalty        int
 	Defense        int // a Battle's printed Defense (lower_battle.go)
 	Kw             []string
 	Flash          bool
 	Kicker         *manaCost
+	Kicker2        *manaCost   // K:Kicker:<a>:<b>, the two-alternative "and/or" Kicker's part two (CR 702.33b; lower_kickercost.go): part one stays in Kicker
 	Multikicker    *manaCost   // K:Multikicker:<cost> (CR 702.43): the per-payment additional cost, paid any number of times
 	Repeated       *lCost      // K:Squad / K:Replicate: the full per-payment cost (lower_squadreplicate.go)
 	RepeatedKind   uint8       // kop.Repeat*: which keyword owns the multikicker slot
@@ -1406,6 +1500,7 @@ type lCard struct {
 	MorphReduce    lValue      // the turn-up cost's printed generic reduction (lower_morphreduce.go)
 	MorphLife      uint8       // the turn-up cost's PayLife<N> (lower_morphlife.go)
 	MorphReveal    *lFilter    // the turn-up cost's Reveal<1/Spec> hand candidates (lower_revealpick.go)
+	MorphPick      *lCost      // the turn-up cost's single Discard/Sac/Return pick part (lower_morphpick.go)
 	Flashback      *manaCost
 	RemPersist     bool          // the enters/leaves remembered pair, or a Saga's chapter pair (lower_rempersist.go)
 	RemSeed        uint32        // RemPersist: the abilities that start with the kept set (CardDef.RemSeed)
@@ -1439,6 +1534,7 @@ type lCard struct {
 	LivingMetal    bool      // K:Living metal (CR 702.161a): its static is the face's own lowered Override
 	MayFlash       *manaCost // K:MayFlashCost:<cost> (CR 702.8): the extra mana that buys an instant-timing cast from the hand
 	MayFlashBehold *lFilter  // K:MayFlashCost:Behold<1/Type>: the extra is beholding one of these, no mana (MayFlash is empty)
+	Offering       *lFilter  // K:Offering:<Type> (CR 702.48): the instant-speed cast that sacrifices one of these and is reduced by its mana cost
 	FbBeholdN      int       // K:Flashback:<mana> Behold<N/Type>: the flashback cast also beholds N of FbBeholdF (lower_fbcost.go, CardDef.FbBehold)
 	FbBeholdF      *lFilter
 	Dash           *manaCost // K:Dash:<cost> (CR 702.109a): the hand's alternative cost; the permanent gains haste and returns to its owner's hand at the next end step
@@ -1470,6 +1566,7 @@ type lCard struct {
 	RetraceCost    *lCost    // the retrace cast's additional cost: Discard<1/Land> (CardDef.RetraceCost)
 	JumpStart      bool      // K:Jump-start (CR 702.84a): the retrace cast with Discard<1/Card> and the flashback exile (Retrace set beside it; dirac/kw_jumpstart.go)
 	AltAddCost     *lCost    // AlternateAdditionalCost: pay this instead of the printed additional cost
+	AltAddCost2    *lCost    // the either-or's third part (Dusk Mangler's PayLife<4>): CardDef.AltAddCost2
 	SpellCost      *lCost    // additional costs on the spell (Sac/Discard)
 	AltAddOne      bool      // SpellCost is a one-part AlternateAdditionalCost (gorge's planner: shape:optional_cost)
 	Leyline        bool
@@ -1479,6 +1576,7 @@ type lCard struct {
 	World          bool            // the printed World supertype (CR 205.4a, 704.5k): CardDef.World
 	Snow           bool            // the printed Snow supertype (CR 205.4a): CardDef.Snow
 	SelfFlash      bool            // a CastWithFlash EffectZone$ All self grant (Illusion Spinners; CardDef.SelfFlash)
+	SelfFlashSA    uint8           // the self grant's ValidSA$ constraint (kop.SfsaSpell / kop.SfsaTeamwork; CardDef.SelfFlashSA)
 	Changeling     bool            // K:Changeling: every creature type (CR 702.73a), in every zone
 	CDAFace        *lCDAFace       // the face's own characteristics before cdaColorType folded a CDA into them (CardDef.CDAFace)
 	Offspring      *manaCost       // K:Offspring:<cost> (CR 702.175): the kernel's kicked cast and Kicker cost, CardDef.Offspring
@@ -1498,11 +1596,13 @@ type lCard struct {
 	Teamwork       int      // printed K:Teamwork:<N> (CR 702.194, N 1..15), CardDef.Teamwork
 	ModesPickTW    int      // a Teamwork charm's CharmNum$ X over Count$Teamwork.<a>.<b>: <a> picks teamworked, <b> otherwise (CardDef.ModesPickTW)
 	ModesPickV     lValue   // a spell or triggered charm's CharmNum$ over Count$Compare or a branch head (constant arms): the pick count, evaluated as the modes are chosen, or a general count beside MinCharmNum$ 0 (CardDef.ModesPickV; lower_charmcmp.go)
+	ModesMinKicked bool     // MinCharmNum$ Count$Kicked.0.<ModesMinCount> beside the kicked CharmNum$ (CardDef.ModesMinKicked; lower_charmminkicked.go)
 	ModesMinCount  int      // a charm with no MinCharmNum$ over a two-arm count: its smaller arm, the offer gate's minimum (CardDef.ModesMinCount; lower_charmcmp.go)
 	TrigCharmFixed bool     // a triggered charm with a fixed pick count, which a ModesPickV would also reach in the kernel
 	DungeonNext    []uint8  // a dungeon entry's room arrows (CardDef.DungeonNext; lower_initiative.go)
 	TypeValid      []uint16 // an as-enters ChooseType's ValidTypes$ vocabulary indexes (CardDef.TypeValid; lower_choosetype.go)
 	SpentSnow      bool     // the card reads Count$CastTotalManaSpent Snow: the snow units its cast spent (CardDef.SpentSnow)
+	SpentTag       uint8    // the card reads Count$CastTotalManaSpent Treasure/Cave/Desert: that tag's units its cast spent (CardDef.SpentTag)
 	SpentSelf      bool     // the card reads Count$CastTotalManaSpent in a spell chain or a self-ETB trigger: gorge's planner declines its cast (CardDef.SpentSelf)
 	DmgAmt         bool     // the card reads Count$TotalDamageReceivedThisTurn (CardDef.DmgAmt)
 	CastBF         *lFilter // the card reads Count$LastStateBattlefieldWithFallback <spec> in a spell's own program (CardDef.CastBF)
@@ -1520,6 +1620,7 @@ type lCard struct {
 	Landwalk            *lFilter // K:Landwalk:<land filter> (CR 702.14)
 	ProtColors          string   // printed "Protection from <colour>" (CR 702.16): WUBRG letters
 	HexColors           string   // printed K:Hexproof:<Colour> (CR 702.11d): WUBRG letters
+	HexMono, HexMulti   bool     // printed K:Hexproof:Card.MonoColor / Card.MultiColor (CR 702.11d; kop.HexMono, kop.HexMulti)
 	ProtFrom            *lFilter // printed K:Protection:<spec> (CR 702.16): the sources it protects from
 	Infect              bool     // printed K:Infect (CR 702.90)
 	Devoid              bool     // printed K:Devoid (CR 702.114a): CardDef.Devoid, read by the withDevoid filter word
@@ -1599,11 +1700,12 @@ type lEmblem struct {
 	// Repls: the emblem's replacement abilities (a Duration$ Permanent
 	// Effect's all-but-N damage prevention, lower_effectemblemprevent.go); the
 	// emblem's abilities are its Statics, else its Repls, else its Trigger.
-	Repls         []lRepl
-	Trigger       int
-	UntilEOT      bool // an Effect without a Duration$: it ends at cleanup
-	UntilNextTurn bool // Duration$ UntilYourNextTurn: it ends at the next turn's cleanup
-	WhileHost     bool // Duration$ UntilHostLeavesPlayOrEOT: it ends when its host leaves too
+	Repls          []lRepl
+	Trigger        int
+	UntilEOT       bool // an Effect without a Duration$: it ends at cleanup
+	UntilEndCombat bool // Duration$ UntilEndOfCombat: it also ends at the end-of-combat step (UntilEOT beside it)
+	UntilNextTurn  bool // Duration$ UntilYourNextTurn: it ends at the next turn's cleanup
+	WhileHost      bool // Duration$ UntilHostLeavesPlayOrEOT: it ends when its host leaves too
 	// Capture: RememberObjects$ Targeted over the chain's target slot
 	// (CaptureSet); the trigger's ValidSource$ ...IsRemembered is then the
 	// emblem's own capture, lowered without the Remembered flag
@@ -1616,6 +1718,9 @@ type lEmblem struct {
 	// CaptureLapse: the capture ends when the object leaves the battlefield
 	// (ForgetOnMoved$ / ExileOnMoved$ Battlefield; kop.Emblem.CaptureLapse)
 	CaptureLapse bool
+	// CaptureCounter: the capture also lapses when the object's last counter
+	// of this kind is gone (an Effect's ForgetCounter$, kop.Emblem.CaptureCtr)
+	CaptureCounter string
 	// Capture2: the second target slot an Effect remembers beside Capture
 	// (T'Pring: RememberObjects$ Targeted over both fighters; kop.Emblem.Capture2)
 	Capture2    lRef

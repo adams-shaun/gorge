@@ -19,10 +19,28 @@ func (lc *lowerCtx) permOrSpellMove(ps *params) error {
 	vt := strings.TrimSpace(ps.str("ValidTgts"))
 	var bf []string
 	stack := 0
+	stackOpp := false
 	for _, c := range strings.Split(vt, ",") {
 		c = strings.TrimSpace(c)
-		if c == "Card.inZoneStack" {
+		head, rest, hasProps := strings.Cut(c, "+")
+		if head == "Card.inZoneStack" {
 			stack++
+			// A property suffix on the stack alternative (Sink into Stupor's
+			// Card.inZoneStack+OppCtrl, "return target spell ... an opponent
+			// controls"): only OppCtrl is carried, and the kernel gates the
+			// stack arm with it (kop.TgfStackOppCtrl, tgt_permorspell.go).
+			// Any other property refuses by name rather than lowering a
+			// filter the stack arm would silently drop.
+			for _, prop := range strings.Split(rest, "+") {
+				prop = strings.TrimSpace(prop)
+				if prop == "" && !hasProps {
+					continue
+				}
+				if !strings.EqualFold(prop, "OppCtrl") {
+					return refuse("Origin$ Battlefield,Stack stack alternative %q", c)
+				}
+				stackOpp = true
+			}
 			continue
 		}
 		bf = append(bf, c)
@@ -64,7 +82,7 @@ func (lc *lowerCtx) permOrSpellMove(ps *params) error {
 	if f.Players != 0 {
 		return refuse("Origin$ Battlefield,Stack ValidTgts$ %q names players", vt)
 	}
-	tr := lRef{Kind: rTarget, N: lc.addTarget(lTarget{F: f, Zone: zBattlefield, PermOrSpell: true})}
+	tr := lRef{Kind: rTarget, N: lc.addTarget(lTarget{F: f, Zone: zBattlefield, PermOrSpell: true, StackOpp: stackOpp})}
 	if lib {
 		lc.emit(lInstr{Op: "ToLibrary", Obj: tr, C: 3, Note: "the owner chooses top or bottom (a spell too)"})
 		return nil

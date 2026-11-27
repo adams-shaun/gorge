@@ -41,7 +41,14 @@ type PlayerSpecCtx struct {
 	Source            state.ObjID
 	DefendingPlayer   state.Target
 	DelayedRemembered []state.Target
-	OpponentOf        []state.Target
+	// DelayedRememberedStamps is the registration's Incarnation and ZoneGen
+	// stamp of each DelayedRemembered object (state.DelayedTrigger.
+	// RememberedStamps): the nested controlsCard.IsTriggerRemembered object
+	// filter skips a remembered object that left and came back -- a new
+	// object (CR 400.7) -- exactly as the resolving body's own SpecContext
+	// does (the shared delayedRememberedStampMoved read).
+	DelayedRememberedStamps []state.TargetStamp
+	OpponentOf              []state.Target
 	// Replaced is the draw-er of the Draw replacement being resolved (the
 	// Ctx.Repl.Player a Player.OpponentOf ReplacedPlayer clause reads: Shared
 	// Fate's ChoosePlayer pool). Unbound (IsPlayer false) outside one.
@@ -793,6 +800,7 @@ func playerControlsMatches(g *state.Game, p state.PlayerID, you state.PlayerID, 
 	}
 	sc := NewSpecContext(you, pc.Source)
 	sc.DelayedRemembered = pc.DelayedRemembered
+	sc.DelayedRememberedStamps = pc.DelayedRememberedStamps
 	if pc.RememberedBound {
 		sc.Remembered = pc.Remembered
 	}
@@ -842,6 +850,7 @@ func playerHasCardsInZoneMatches(g *state.Game, p, you state.PlayerID, pc Player
 	}
 	sc := NewSpecContext(you, pc.Source)
 	sc.DelayedRemembered = pc.DelayedRemembered
+	sc.DelayedRememberedStamps = pc.DelayedRememberedStamps
 	if pc.RememberedBound {
 		sc.Remembered = pc.Remembered
 	}

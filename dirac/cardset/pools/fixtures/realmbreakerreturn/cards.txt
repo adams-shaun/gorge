@@ -1,0 +1,13 @@
+# Realmbreaker, the Invasion Tree's Mill rider: a Hidden$ graveyard pick of a land
+# the milled opponent owns (ChangeType$ Land.TargetedPlayerCtrl), put onto the
+# battlefield tapped under your control and animated with the leave-to-exile
+# replacement (dirac/oracle/realmbreakerreturn_lockstep_test.go)
+Realmbreaker, the Invasion Tree
+Mind Stone
+Darksteel Relic
+Savannah Lions
+Elite Vanguard
+Island
+Mountain
+Plains
+Forest

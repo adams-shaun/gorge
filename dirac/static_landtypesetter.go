@@ -42,22 +42,29 @@ var DebugLandSetOwnMana bool
 // colour mask (32 per card): the card's facts with its own mana abilities
 // replaced by the intrinsic ones. manaAb names no ability of the card
 // (len(Abilities)), so manaAbView and the guarded direct readers see none.
+// A FaceDownOnly basic-land grant (Yedora's "It's a Forest land") builds the
+// same intrinsic-only views for every card, not only printed lands: the
+// returned creature card is a face-down Forest land and keeps the intrinsic
+// ability of its basic subtype (CR 305.6) while its own abilities are lost.
 func prepLandSet(t *kop.Table, p *prep, g *genPrep) {
 	for i := range t.Overrides {
 		g.landSet = g.landSet || t.Overrides[i].SetLandSub
 	}
-	if !g.landSet {
+	fdLand := faceDownLandGrant(t, g)
+	if !g.landSet && !fdLand {
 		return
 	}
-	for i, n := range t.Subtypes {
-		if i < kop.MaxSubtypes && landTypeWords[n] {
-			g.landSub = g.landSub.With(i)
+	if g.landSet {
+		for i, n := range t.Subtypes {
+			if i < kop.MaxSubtypes && landTypeWords[n] {
+				g.landSub = g.landSub.With(i)
+			}
 		}
 	}
 	g.setIdx = make([]int16, len(t.Cards))
 	for i := range t.Cards {
 		g.setIdx[i] = -1
-		if t.Cards[i].Types&kop.TLand == 0 || len(t.Cards[i].Abilities) > 127 {
+		if (t.Cards[i].Types&kop.TLand == 0 && !fdLand) || len(t.Cards[i].Abilities) > 127 {
 			continue
 		}
 		g.setIdx[i] = int16(len(g.setPC) / 32)
@@ -76,6 +83,25 @@ func prepLandSet(t *kop.Table, p *prep, g *genPrep) {
 			g.setPC = append(g.setPC, v)
 		}
 	}
+}
+
+// faceDownLandGrant reports whether an override is a FaceDownOnly type set
+// that grants a basic land subtype: the face-down permanent it makes has
+// that basic land type's intrinsic mana ability (CR 305.6), so prepLandSet
+// builds the intrinsic-only planner views for it.
+func faceDownLandGrant(t *kop.Table, g *genPrep) bool {
+	for i := range t.Overrides {
+		o := &t.Overrides[i]
+		if !o.FaceDownOnly || !o.HasSub {
+			continue
+		}
+		for _, si := range g.blgSub {
+			if si != subOutside && o.SetSub.Has(int(si)) {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // bareMana is pc without any mana ability facts.

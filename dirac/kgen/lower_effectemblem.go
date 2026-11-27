@@ -91,8 +91,11 @@ func (lc *lowerCtx) effectStaticEOT(ps *params, ss []cards.Static) error {
 		}
 	}
 	eot, next, durHost, err := true, false, false, error(nil)
+	eoc := false
 	if !host {
-		if eot, next, durHost, err = effectEmblemDuration(ps); err != nil {
+		if eoc = effectEndCombatCantAttack(ps, ss); eoc { // lower_effectendcombat.go
+			ps.consume("Duration")
+		} else if eot, next, durHost, err = effectEmblemDuration(ps); err != nil {
 			return err
 		}
 	}
@@ -139,11 +142,22 @@ func (lc *lowerCtx) effectStaticEOT(ps *params, ss []cards.Static) error {
 				sts[0].F2 = f
 			case "StackKw":
 				forget = f
+			case "AlternativeCost":
+				// the Effect-delivered alternative cost ends on the
+				// controller's next completed cast, whether or not it used
+				// the alternative (Marshland Bloodcaster; gorge
+				// effectCastSweep, kernel embFlashForget's em.Forget arm)
+				forget = f
 			case "ReduceCost":
-				// only an Affinity keyword grant (it carries the keyword): a plain
-				// Mode$ ReduceCost beside ForgetOnCast$ (Invasion of the Giants) is
-				// gorge's effectCastSweep over a cost reduction, which stays refused
-				if len(sts[0].Kw) == 0 {
+				// An Affinity keyword grant carries the keyword. A plain
+				// Mode$ ReduceCost lowers only for the face-down-spell shape
+				// (Panoptic Projektor), whose ForgetOnCast$ is gorge's
+				// effectCastSweep over the cost reduction and whose static the
+				// face-down cost path already prices (Goblin Maskmaker's
+				// emblem). Any other plain reduction (Invasion of the Giants)
+				// stays refused rather than lowering a sweep over a cost this
+				// build has not shown it applies.
+				if len(sts[0].Kw) == 0 && !effectReduceCostFaceDown(ss) {
 					return refuse("Effect ForgetOnCast$ beside a %s static", sts[0].Kind)
 				}
 				forget = f
@@ -178,13 +192,27 @@ func (lc *lowerCtx) effectStaticEOT(ps *params, ss []cards.Static) error {
 		// view-only look, so the Effect resolves without creating anything.
 		return nil
 	}
-	emb := lEmblem{Statics: sts, UntilEOT: eot, UntilNextTurn: next, WhileHost: host, Forget: forget}
+	emb := lEmblem{Statics: sts, UntilEOT: eot, UntilEndCombat: eoc, UntilNextTurn: next, WhileHost: host, Forget: forget, CaptureRem: lc.embRem}
 	if repl != nil {
 		emb.Repls = []lRepl{*repl}
 	}
 	lc.out.Emblems = append(lc.out.Emblems, emb)
 	lc.emit(lInstr{Op: "CreateEmblem", Obj: lRef{Kind: rYou}, C: len(lc.out.Emblems) - 1, A: chosen})
 	return nil
+}
+
+// effectReduceCostFaceDown reports whether one of the Effect's statics is a
+// ReduceCost whose ValidCard$ names the faceDown property: the Panoptic
+// Projektor shape (a discount on the next face-down creature spell, ended by
+// ForgetOnCast$). The property is an opaque filter word by the time it reaches
+// the lowering, so the written parameter is the only place to read it.
+func effectReduceCostFaceDown(ss []cards.Static) bool {
+	for _, s := range ss {
+		if s.Mode == "ReduceCost" && strings.Contains(strings.TrimSpace(s.Params["ValidCard"]), "faceDown") {
+			return true
+		}
+	}
+	return false
 }
 
 // effectEmblemChosenNumber reads a no-target Effect's SetChosenNumber$ for
@@ -337,6 +365,13 @@ func (lc *lowerCtx) effectEmblemStaticHost(s cards.Static, host bool) (lStatic, 
 				}
 			}
 		}
+	case "CantAttack":
+		// "creatures can't attack this combat" (lower_effectendcombat.go): the
+		// all-creatures restriction only
+		if s.Params["ValidCard"] != "Creature" {
+			return lStatic{}, refuse("Effect static CantAttack ValidCard$ %q", s.Params["ValidCard"])
+		}
+		keys = map[string]bool{"Mode": true, "ValidCard": true, "Description": true}
 	case "CantBeCast":
 		// gorge cantBeCastParamsReadableKeys; the lowering consumes the
 		// subset the kernel's cast gate reads, the rest refuses as unread
@@ -363,6 +398,13 @@ func (lc *lowerCtx) effectEmblemStaticHost(s cards.Static, host bool) (lStatic, 
 		}
 		delete(cp, "AffectedZone")
 		s.Params = cp
+	case "CantGainLife":
+		// the Effect-delivered life-gain lock (Roiling Vortex's "your opponents
+		// can't gain life this turn"): gorge registers it as a continuous
+		// restriction lifeGainForbidden reads from the effect's controller;
+		// ValidPlayer$ is the one scope read (modeCantGainLife), a remembered
+		// player (Screaming Nemesis) is not an emblem shape
+		keys = map[string]bool{"Mode": true, "ValidPlayer": true, "Description": true, "Secondary": true}
 	case "CantPreventDamage":
 		keys = map[string]bool{"Mode": true, "Description": true, "Secondary": true} // the global form (gorge cantPreventDamage: no Affected$)
 	case "CanAttackDefender":
@@ -375,6 +417,11 @@ func (lc *lowerCtx) effectEmblemStaticHost(s cards.Static, host bool) (lStatic, 
 		// damage step. ValidCard$ names the effect's source (rewritten to
 		// Self by effectSourceSelf, the host the emblem reads as its source).
 		keys = map[string]bool{"Mode": true, "ValidCard": true, "Description": true}
+	case "AlternativeCost":
+		// the Effect-delivered alternative cost (Marshland Bloodcaster's
+		// pay-life grant; lower_effectaltcost.go), returned here because its
+		// shape is not the card route's Spell.Self one staticBody lowers
+		return lc.effectAltCostStatic(s)
 	case "ReduceCost":
 		// gorge costStaticParamsReadableKeys
 		keys = map[string]bool{"Mode": true, "Type": true, "ValidCard": true, "ValidSA": true, "ValidPlayer": true, "ValidSpell": true, "ValidTarget": true, "Activator": true, "Caster": true, "Amount": true, "Cost": true, "Announce": true, "Color": true, "MinMana": true, "IgnoreGeneric": true, "RaiseTo": true, "OnlyFirstSpell": true, "IsPresent": true, "PresentZone": true, "PresentCompare": true, "CheckSVar": true, "SVarCompare": true, "CheckSecondSVar": true, "SecondSVarCompare": true, "Condition": true, "EffectZone": true, "AffectedZone": true, "Secondary": true, "Relative": true, "ClassBand": true, "UnlessValidTarget": true, "PlayerTurn": true, "Phases": true, "Description": true, "SpellDescription": true}
@@ -407,7 +454,7 @@ func (lc *lowerCtx) effectEmblemStaticHost(s cards.Static, host bool) (lStatic, 
 			st.Flags = append(st.Flags, "MayPayLife")
 		}
 	} else if s.Mode == "CastWithFlash" {
-		if st.Kind != "CastWithFlash" {
+		if st.Kind != "CastWithFlash" && st.Kind != "LoyaltyFlash" { // LoyaltyFlash: ValidSA$ Activated.Loyalty (static_loyaltyflash.go)
 			return lStatic{}, refuse("Effect static CastWithFlash lowered to %s", st.Kind)
 		}
 	} else if s.Mode == "CantBeCast" {
@@ -415,10 +462,8 @@ func (lc *lowerCtx) effectEmblemStaticHost(s cards.Static, host bool) (lStatic, 
 			// Card.Self binds the card's own object; an emblem has none
 			return lStatic{}, refuse("Effect static CantBeCast lowered to %s over its own card", st.Kind)
 		}
-	} else if s.Mode == "CantPlayLand" {
-		if st.Kind != "CantPlayLand" {
-			return lStatic{}, refuse("Effect static CantPlayLand lowered to %s", st.Kind)
-		}
+	} else if err := effectEmblemRestrictionKind(s.Mode, st.Kind); err != nil {
+		return lStatic{}, err
 	} else if s.Mode == "Continuous" {
 		switch st.Kind {
 		case "CantBlock", "ExtraLandPlay", "NoMaxHandSize", "Continuous", "Override",
@@ -453,6 +498,20 @@ func (lc *lowerCtx) effectEmblemStaticHost(s cards.Static, host bool) (lStatic, 
 		return lStatic{}, err
 	}
 	return st, nil
+}
+
+// effectEmblemRestrictionKind refuses an Effect-delivered restriction whose
+// lowered static is not the mode itself. CantGainLife is the life-gain lock
+// (Roiling Vortex; the key set above) and CantPlayLand the hand lock; both
+// lower to exactly one static of their own kind.
+func effectEmblemRestrictionKind(mode, kind string) error {
+	if mode != "CantGainLife" && mode != "CantPlayLand" {
+		return nil
+	}
+	if kind != mode {
+		return refuse("Effect static %s lowered to %s", mode, kind)
+	}
+	return nil
 }
 
 // emblemFiltersRefuse refuses an emblem static or trigger filter that reads

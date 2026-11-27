@@ -12,7 +12,7 @@ import (
 // every ability the source can activate, in ability order, each one's colours
 // in printed order: Karplusan Forest's {C}, then its painful {R} or {G}
 // (CR 605.3a, 605.3b: the rider is no cost, so the painful ability is as
-// activatable as the plain one). Each answer is a node of gorge's 160-node
+// activatable as the plain one). Each answer is a node of gorge's potentialScriptNodes
 // budget, so a kernel search that funded with {C} alone reached a line gorge's
 // ran out of budget before (Dauthi Embrace's {B}{B} beside School of the
 // Unseen, Karplusan Forest and five Mountains: gorge leaves it unpriced and

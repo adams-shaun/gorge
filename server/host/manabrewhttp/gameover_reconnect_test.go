@@ -13,6 +13,7 @@ import (
 	"github.com/adams-shaun/gorge/server/manabrew"
 	"github.com/adams-shaun/gorge/server/manabrew/mbtest"
 	mb "github.com/adams-shaun/gorge/server/protocol/manabrew"
+	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
 // The gameOver prompt is delivered once per seat, not once per connection.
@@ -79,7 +80,7 @@ func TestReconnectGameOverIsDeliberatelyStateOnly(t *testing.T) {
 		}
 	}
 	answered := map[state.PlayerID]uint64{}
-	deadline := time.Now().Add(60 * time.Second)
+	deadline := time.Now().Add(testutil.WaitBudget)
 	over := false
 	for !over && time.Now().Before(deadline) {
 		progressed := false
@@ -112,7 +113,7 @@ func TestReconnectGameOverIsDeliberatelyStateOnly(t *testing.T) {
 	// Assertion 1: the stream connected across match end delivered exactly
 	// one terminal prompt to seat 0. (This is the delivery whose absence on
 	// a later connect is deliberate, not a bug.)
-	gd := time.Now().Add(10 * time.Second)
+	gd := time.Now().Add(testutil.WaitBudget)
 	for c0.gameOvers() == 0 && time.Now().Before(gd) {
 		time.Sleep(2 * time.Millisecond)
 	}
@@ -134,7 +135,7 @@ func TestReconnectGameOverIsDeliberatelyStateOnly(t *testing.T) {
 	// state already carries the game-over flag -- the client is not left
 	// without the information; only the redundant terminal prompt is absent.
 	var first mb.EngineMessage
-	suDeadline := time.Now().Add(10 * time.Second)
+	suDeadline := time.Now().Add(testutil.WaitBudget)
 	for {
 		if f, ok := c2.firstFrame(); ok {
 			first = f

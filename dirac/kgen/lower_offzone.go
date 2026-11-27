@@ -364,6 +364,11 @@ const offZoneFlag = "OffZoneGrant"
 // never see a StatOffZoneGrant) and the off-zone grant for every other zone.
 func (sc *staticCtx) allZoneTwin() {
 	st := &sc.st
+	if len(sc.extra) == 1 && sc.extra[0].Kind == "Override" && twinsOffZone(sc.extra[0]) {
+		bf, off := splitOffZone(sc.extra[0]) // lower_offzoneoverride.go: the override shapes
+		sc.extra = []lStatic{bf, off}
+		return
+	}
 	if sc.extra != nil || st.Zone != int(kop.ZoneAny) || !slices.Contains(st.Flags, offZoneFlag) {
 		return
 	}
@@ -428,12 +433,18 @@ func (cb *cardBuilder) offKwGrantAbility(s lStatic) (kop.Ability, []uint8, error
 // that the static was handled (lowered or refused) and continuous must
 // return; the off-zone type arm leaves the static to continuous' common tail.
 func (lc *lowerCtx) affectedZone(sp *params, st *lStatic, aff, az string) (extra []lStatic, done bool, err error) {
+	if took, err := offZoneOverride(sp, st, az); took {
+		return nil, err != nil, err // lower_offzoneoverride.go: a refusal ends it; the accepted override is lowered by continuous' tail
+	}
 	switch {
 	case az == "Battlefield":
 		return nil, false, nil // the default
 	case az == "Stack" && !sp.is("MayPlay", "True"):
 		extra, err = lc.stackKwGrant(sp, st, aff) // lower_stackkw.go
 		return extra, true, err
+	case az == "Graveyard" && sp.is("RemoveAllAbilities", "True"):
+		handled, err := lc.offZoneAbilityLoss(sp, st, aff, az) // lower_offzone_abilityloss.go
+		return nil, handled, err
 	case az == "Graveyard" && !sp.is("MayPlay", "True") && strings.HasPrefix(sp.str("AddKeyword"), "Flashback"):
 		return nil, true, lc.graveFbGrant(sp, st, aff) // lower_fbgrant.go
 	case az == "Graveyard" && !sp.is("MayPlay", "True") && strings.HasPrefix(sp.str("AddKeyword"), "Escape"):
@@ -448,12 +459,17 @@ func (lc *lowerCtx) affectedZone(sp *params, st *lStatic, aff, az string) (extra
 		return nil, true, lc.colorWordsStatic(sp, st, aff, az) // lower_colorwords.go
 	case az == "All" && offZonePTShape(sp, aff):
 		return nil, true, offZonePTStatic(sp, st) // lower_offzonept.go
+	case !sp.is("MayPlay", "True") && strings.HasPrefix(sp.str("AddKeyword"), "Madness"):
+		extra, err = lc.madnessGrant(sp, st, aff) // lower_madnessgrant.go
+		return extra, true, err
 	case offZoneEligible(sp, az):
 		z, _ := offZone(az)
 		handled, err := lc.offZoneStatic(sp, st, aff, az, z) // the type/keyword arms above
 		return nil, handled, err
 	case az == "Graveyard" && !sp.is("MayPlay", "True") && sp.str("AddKeyword") != "":
 		return nil, true, refuseGraveKwGrant(sp, az) // lower_escapegrant.go
+	case sp.str("ChangeColorWordsTo") != "":
+		return nil, true, refuse("AffectedZone %q without MayPlay (ChangeColorWordsTo: agent-20261125T214327Z-46805547)", az)
 	case !sp.is("MayPlay", "True"):
 		return nil, true, refuse("AffectedZone %q without MayPlay", az)
 	}

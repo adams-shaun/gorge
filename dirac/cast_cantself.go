@@ -42,6 +42,13 @@ func (s *State) castForbiddenCost(k *prep, p uint8, c CardID, o Obj, cost *kop.M
 	if !hit {
 		hit = s.castForbiddenSelf(k, p, c, o) // cast_cantself.go
 	}
+	if !hit {
+		// Eloren Wilds' plane-source curse: a registered CantBeCast
+		// restriction gorge consults after its face statics
+		// (castRestrictionSources' registered arm). The kernel's narrow
+		// record stands in for the registration; dirac/zone_planecurse.go.
+		hit = s.planeCurseBlocks(p)
+	}
 	return hit
 }
 
@@ -143,6 +150,9 @@ func (s *State) castForbiddenSelf(k *prep, p uint8, c CardID, o Obj) bool {
 		if st.StFlags&kop.StCasterActive != 0 && p != s.active {
 			continue
 		}
+		if st.B&kop.CantCastSelfZones != 0 && o != NoObj && st.B>>kop.CantCastSelfShift&(1<<s.objs[o].zone) == 0 {
+			continue // EffectZone$ and Origin$ name zones the card is not in (Haakon off its graveyard)
+		}
 		if st.Cond2 != 0 && !s.condEval(k, st.Cond2, evalCtx{src: o, srcSl: NoSlot, ctrl: ctrl}) {
 			continue
 		}
@@ -240,8 +250,12 @@ func (s *State) castXRestrictionRecheck(k *prep, e *stackEntry) bool {
 // payment window opens, then the ordinary mana step. Kept out of manaStep so
 // the hot function grows no branch (codeshape).
 func (s *State) manaStage(k *prep) bool {
-	if s.castXRestrictionRecheck(k, &s.bld().e) {
-		s.reverseCast(k) // CR 601.2e: the announced X makes the CantBeCast restriction apply
+	if s.castXRestrictionRecheck(k, &s.bld().e) || s.teamworkFlashRecheck(k, &s.bld().e) {
+		s.reverseCast(k) // CR 601.2e: the announced X makes the CantBeCast restriction apply, or the Teamwork flash grant went unelected (cast_selfflash.go)
+		return true
+	}
+	if k.anySelfFlash && s.flashTgtRecheck(k, &s.bld().e) {
+		s.reverseCast(k) // CR 601.2e: the announced targets do not cover the self flash grant (cast_selfflashtgt.go)
 		return true
 	}
 	return s.manaStep(k)

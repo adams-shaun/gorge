@@ -171,7 +171,7 @@ func (s *State) dmgSrcPlayers(k *prep, in *kop.Instr) {
 		if k.gen != nil && k.gen.anyPermMark && sl != NoSlot {
 			s.markDealt(k, sl, false)
 		}
-		if s.subs[kop.TrigDamageDone].any() || k.gen != nil && (s.subs[kop.TrigDamageDealtOnce].any() || k.gen.graveDmg) || k.embDmg() {
+		if s.evLive(kop.TrigDamageDone) || k.gen != nil && (s.evLive(kop.TrigDamageDealtOnce) || k.gen.graveDmg) || k.embDmg() {
 			if sl != NoSlot {
 				s.fireDamage(k, sl, int16(m), true, false, code)
 			} else if k.gen != nil {
@@ -238,7 +238,7 @@ func (s *State) dmgSrcObject(k *prep, dst, o Obj, sl Slot, kw kop.KwMask, ctrl u
 	if kw&kop.KwLifelink != 0 {
 		s.gainLife(k, ctrl, m)
 	}
-	if k.gen != nil && (s.subs[kop.TrigDamageDone].any() || s.subs[kop.TrigDamageDealtOnce].any() || k.embDmg()) {
+	if k.gen != nil && (s.evLive(kop.TrigDamageDone) || s.evLive(kop.TrigDamageDealtOnce) || k.embDmg()) {
 		s.fireDamageSrc(k, o, ctrl, int16(m), 0, code, nil)
 	}
 }
@@ -271,4 +271,33 @@ func (s *State) dmgSrcOrderStalls(k *prep, ctrl uint8, srcSl Slot, srcCard CardI
 		}
 	}
 	return false
+}
+
+// dmgSrcAttached is OpDealDamageFrom with B.N kop.DmgFromEachAttached: the
+// source is the RepeatEach object (RefEach) and the recipient the permanent
+// it is attached to (gorge DealDamage Defined$ Enchanted | DamageSource$
+// Valid Aura.AttachedTo Creature; Aura Barbs). Nothing when the source left
+// the battlefield or is unattached.
+//
+//go:noinline
+func (s *State) dmgSrcAttached(k *prep, in *kop.Instr) {
+	sl := s.objRef(k, in.Obj)
+	if sl == NoSlot {
+		s.g.plusBatchAsked = false
+		return
+	}
+	h := s.perms[sl].attached
+	if h == NoSlot || !s.occ.has(h) {
+		s.g.plusBatchAsked = false
+		return
+	}
+	n := s.value(k, in.A)
+	if DebugDmgAmountPlusOne {
+		n++
+	}
+	if n <= 0 {
+		s.g.plusBatchAsked = false
+		return
+	}
+	s.dmgSrcObject(k, s.perms[h].obj, s.perms[sl].obj, sl, s.kw(k, sl), s.perms[sl].ctrl, s.infectAt(k, sl), n)
 }

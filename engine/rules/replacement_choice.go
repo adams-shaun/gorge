@@ -118,6 +118,7 @@ type replChoice struct {
 	used            []replMatch
 	player          state.PlayerID
 	drawCompetition bool // optional Draw candidate chosen from a multi-replacement order ask
+	turnDraw        bool // parked by the draw step's turn-based draw: the answer grants the step's priority (replacement_turndraw.go)
 	// combat marks a damage competition parked from the combat-damage step's
 	// own assignment loop (engine/rules/combat.go): the chosen replacement's
 	// lifelink/deathtouch riders and commander-damage tally pay the way

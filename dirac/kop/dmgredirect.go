@@ -2,8 +2,9 @@ package kop
 
 // ExtDmgRedirect (Nomads en-Kor, Warrior en-Kor; Gideon's Sacrifice): an
 // Effect's DamageDone redirect replacement. Obj names the permanent the
-// damage is dealt to instead (the ability's target, or the chosen card), C the
-// kind:
+// damage is dealt to instead (the ability's target, or the chosen card; the
+// W side input names it instead for DmgRedirectHost, whose recipient is the
+// resolving host permanent), C the kind:
 //
 //	DmgRedirectNext:  "the next 1 damage that would be dealt to CARDNAME this
 //	  turn is dealt to target creature you control instead" (DB$
@@ -15,6 +16,25 @@ package kop
 //	  permanents you control is dealt to the chosen permanent instead" (DB$
 //	  ReplaceEffect, VarName$ Affected over You,Permanent.YouCtrl): the
 //	  resolving controller's, until the chosen permanent leaves or the turn ends.
+//	DmgRedirectHost: "the next 1 damage that would be dealt to target creature
+//	  this turn is dealt to CARDNAME instead" (Daughter of Autumn: DB$
+//	  ReplaceSplitDamage, DamageTarget$ EffectSource, over ValidTarget$
+//	  Creature.IsRemembered): DmgRedirectNext's pair -- the ability's target
+//	  named in W is the damaged host and the resolving host permanent is the
+//	  recipient. The pool, the spend and the drops are DmgRedirectNext's.
+//	DmgRedirectYouNext: "the next 1 damage that would be dealt to target
+//	  creature this turn is dealt to you instead" (Vassal's Duty: DB$
+//	  ReplaceSplitDamage, DamageTarget$ You, over ValidTarget$
+//	  Creature.IsRemembered): DmgRedirectNext with the recipient being the
+//	  resolving controller. The pool, the spend and the drop are theirs;
+//	  combat events to the host stall (the redirect records' new events name
+//	  permanents; dirac/repl_dmgredirect.go redirCombat).
+//	DmgRedirectYouAll: "all damage that would be dealt to target creature this
+//	  turn is dealt to you instead" (Sivvi's Valor: DB$ ReplaceEffect,
+//	  VarName$ Affected | VarValue$ You | VarType$ Player, over ValidTarget$
+//	  Card.IsRemembered): DmgRedirectScope with the roles swapped -- the
+//	  damaged host is the remembered permanent and the recipient the resolving
+//	  controller, until the host leaves or the turn ends.
 //
 // The redirected damage is a new event from the same source, so it meets
 // protection, prevention and doubling again. dirac/repl_dmgredirect.go.
@@ -27,6 +47,9 @@ const ExtDmgRedirect ExtOp = 293
 const (
 	DmgRedirectNext = 1 + iota
 	DmgRedirectScope
+	DmgRedirectHost
+	DmgRedirectYouNext
+	DmgRedirectYouAll
 )
 
 func init() { extOpNames[ExtDmgRedirect] = "DmgRedirect" }

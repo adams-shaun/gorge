@@ -1,0 +1,13 @@
+# The Urza's Saga pool (dirac/oracle/demo_urza_saga_lockstep_test.go):
+# Chapter III searches for an artifact with mana cost {0} or {1} (Artifact.ManaCost0,
+# Artifact.ManaCost1). Ornithopter ({0}) and Sol Ring ({1}) are the targets; Seat of the
+# Synod prints no mana cost (mana value 0 but no {0}) and Mind Stone and Commander's
+# Sphere cost more, so each must stay in the library.
+Urza's Saga
+Ornithopter
+Sol Ring
+Seat of the Synod
+Mind Stone
+Commander's Sphere
+Forest
+Island

@@ -1038,6 +1038,14 @@ func yesFirstAsk(sub ChoiceKind) bool {
 func (rs *tapXSearch) settle(k *prep, t *State, gapUsed bool) bool {
 	var d Decision
 	if !t.tapXNext(rs.p, &d) {
+		if t.over {
+			// The line ended the game (a lethal trigger of the path resolved on
+			// the passes: Burning Earth under a nonbasic land's tap, CR 603.2,
+			// 104.3a). gorge's visit counts that node before it sees the game
+			// over (scriptSearch.visit), so the dead child spends one of the
+			// budget's potentialScriptNodes.
+			rs.tick()
+		}
 		rs.stallOf(t)
 		return false
 	}
@@ -1214,7 +1222,7 @@ func (s *State) tapXDo(k *prep, p uint8, st tapXStep) {
 		cp.flags |= pfTapped
 		s.touchSl(cd)
 		if was == 0 {
-			if s.subs[kop.TrigTaps].any() {
+			if s.evLive(kop.TrigTaps) {
 				s.fireTaps(k, cd)
 			}
 			s.markTapped(k, cd) // only a tap that happens marks

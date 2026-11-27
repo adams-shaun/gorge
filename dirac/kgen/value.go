@@ -178,6 +178,9 @@ func (lc *lowerCtx) svarHead(rest string, depth int) (lValue, error) {
 	if fv, fok := lc.flipSideValue(rest); !ok && fok {
 		return fv, nil
 	}
+	if !ok && rest == "CostCountersRemoved" {
+		return lc.costCountersRemoved() // gorge runtimePublished, after the face's SVars (lower_costprog.go)
+	}
 	if !ok {
 		return lValue{}, fmt.Errorf("value head SVar$%s names no SVar", rest)
 	}
@@ -382,6 +385,12 @@ func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 			v, err = lc.oppCastCondValue(rest) // value_oppcondition.go
 		case rest == oppsDealtDamageBody:
 			v = lValue{Kind: vOppsLostLife, N: 3} // value_turntallies.go
+		case rest == "HasPropertyIsRememberedOrController":
+			// the opponents controlling a remembered object (Cut a Deal's
+			// drawn cards; dirac value_remctrl.go). The general seat-count
+			// read, seat-exact at every count; main's two-seat reduction
+			// (value_remdrawrecipients.go) is superseded by it.
+			v = lValue{Kind: vOppExtreme, N: kop.OppExtRemCtrl}
 		default:
 			err = fmt.Errorf("PlayerCountOpponents$%s", rest)
 		}
@@ -443,6 +452,7 @@ func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 		case "Sacrificed":
 			ref = lRef{Kind: rSacrificed}
 		}
+		ref = lc.bindPendingTargetMV(ref, head, rest)
 		if ref.Kind == rTarget && ref.N < 0 {
 			return lValue{}, fmt.Errorf("%s$ with no target slot", head)
 		}
@@ -468,7 +478,7 @@ func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 					break
 				}
 			}
-			if ref.Kind != rTriggered && !(ref.Kind == rSacrificed && lc.sacrificedIsCost()) && !lc.targetMVReadable(ref) {
+			if ref.Kind != rTriggered && !(ref.Kind == rSacrificed && lc.sacrificedIsCost()) && !lc.targetMVReadableOrPending(ref) {
 				err = fmt.Errorf("%s$%s", head, rest)
 				break
 			}
@@ -509,6 +519,14 @@ func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 			// the triggering spell's colours on the
 			// stack (gorge count_ref_property.go CardNumColors,
 			// len(h.ObjectColors(o)))
+			// Targeted$: the chosen target's colours wherever it now is
+			// (Breathe Your Last's "1 life for each of its colors" after
+			// the Destroy): live layer-5 colours on the battlefield, the
+			// printed card elsewhere (kernel refNumColors' target arm)
+			if head == "Targeted" {
+				v = lValue{Kind: vNumColorsOf, Ref: ref}
+				break
+			}
 			tr := lc.ab.Trigger
 			if head != "TriggeredCard" || tr == nil || !lc.trigBody || lc.ab.Latent || tr.Event != "SpellCast" {
 				err = refuse("TriggeredCard$CardNumColors outside a SpellCast trigger")
@@ -595,6 +613,10 @@ func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 			return lValue{}, fmt.Errorf("TargetedPlayer$ with no target slot")
 		}
 		ref := lRef{Kind: rTarget, N: t}
+		if spec, ok := strings.CutPrefix(rest, "ValidGraveyard "); ok {
+			v, err = lc.targetedPlayerGraveyard(spec) // value_tgtplayeryard.go
+			break
+		}
 		switch rest {
 		case "LifeTotal":
 			v = lValue{Kind: vLifeOf, Ref: ref}
@@ -708,7 +730,7 @@ func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 		case "HasPropertyMaxSpeed":
 			v = lValue{Kind: vYourSpeed, N: 1} // 1 at max speed (gorge playerMaxSpeedProperty), else 0
 		default:
-			v, err = sacrificedThisTurnValue(rest) // value_sacrificed.go; refuses any other property
+			v, err = lc.sacrificedThisTurnValue(rest) // value_sacrificed.go; any other property
 		}
 	case "PlayerCountRemembered":
 		v, err = lc.playerCountRemembered(rest, depth) // lower_repeatplayers.go
@@ -731,6 +753,17 @@ func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 			return lValue{}, ferr
 		}
 		v = lValue{Kind: vRefCount, Ref: lRef{Kind: rDiscarded}, F: f}
+	case "RevealedCards":
+		// gorge refTargetsCodeOf's <List>Cards spelling of the cast-cost PAID
+		// lists (Ctx.Paid.Revealed). Close Encounter's X is the chosen
+		// object's power, read where it now is: live on the battlefield, the
+		// printed face in exile (gorge count_ref_property.go's CardPower;
+		// kernel RefChosenEnc over the spell entry's trigObj, dirac
+		// cost_closeenc.go).
+		if rest != "CardPower" || !lc.chosenEncIsCost() {
+			return lValue{}, refuse("value head RevealedCards$%s", rest)
+		}
+		v = lValue{Kind: vPowerOf, Ref: lRef{Kind: rChosenEnc}}
 	case "ExiledWith":
 		// gorge count_ref.go ExiledWith$Amount: exiledWithSet's size, the
 		// cards in every seat's exile zone exiled with the reading source
@@ -824,6 +857,10 @@ func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 				v = mv
 				break
 			}
+			if mv, ok := remEachCtrl(rest); ok {
+				v = mv // Braids, Arisen Nightmare's gate (remEachCtrl)
+				break
+			}
 		}
 		if spec, ok := strings.CutPrefix(rest, "Valid "); ok {
 			// gorge evalRefProperty Valid: the remembered objects matching
@@ -852,6 +889,18 @@ func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 		// (CR 309.7; gorge Player.CompletedDungeons), ExEnergyOf with N
 		// kop.PlCtrDungeons (Ravenloft Adventurer).
 		v = lValue{Kind: vEnergyOf, Ref: lRef{Kind: rYou}, N: kop.PlCtrDungeons}
+	case "TargetedByTarget":
+		// The nested-target count (gorge engine/effects/count_body.go:
+		// TargetedByTarget$Valid <spec> counts the object targets, matching
+		// <spec>, of the spell/ability the resolving source targets). The
+		// kernel's target records cover ONE level (stackEntry.tgt + the xtp
+		// extras, read by entryTgtClause for TargetValidTargeting$); a count
+		// over the TARGETED entry's targets has no kernel op, and the only
+		// corpus carrier (Not of This World) gates its ReduceCost amount on
+		// exactly that read. Refused by name: the shape is separable
+		// (nestedTargetMask + an Ex count over it), and an unmodelled zero
+		// here would silently drop the reduction.
+		return lValue{}, refuse("value head TargetedByTarget$: the nested target count has no kernel op (Not of This World)")
 	default:
 		err = fmt.Errorf("value head %s$", head)
 	}
@@ -1253,6 +1302,8 @@ func (lc *lowerCtx) countValue(rest string, depth int) (lValue, error) {
 		return lValue{Kind: vPowerOf, Ref: lRef{Kind: rSelf}}, nil
 	case "CardToughness":
 		return lValue{Kind: vToughnessOf, Ref: lRef{Kind: rSelf}}, nil
+	case "CardBasePower":
+		return lValue{Kind: vCardBasePower}, nil // the source's base power (value_basepower.go)
 	case "TotalDamageDoneByThisTurn":
 		return lc.totalDamageValue()
 	case "LifeYouGainedThisTurn":
@@ -1271,6 +1322,11 @@ func (lc *lowerCtx) countValue(rest string, depth int) (lValue, error) {
 		// gorge count_body_paid.go: the damage the living opponents were
 		// dealt this turn (bloodthirst's reader, lower_bloodthirst.go)
 		return lValue{Kind: vDmgOppsTaken}, nil
+	case "MaxOppDamageThisTurn":
+		// gorge count_cov3.go evalCov3HeadMaxOppDamageThisTurn: the most
+		// damage any one living opponent was dealt this turn (Spinerock
+		// Knoll's Hideaway Play gate, Lightning Phoenix)
+		return lValue{Kind: vMaxOppDmgTaken}, nil
 	case "RememberedSize":
 		return lValue{Kind: vRememberedCount}, nil
 	case "ImprintedSize":
@@ -1493,6 +1549,9 @@ func (lc *lowerCtx) countValue(rest string, depth int) (lValue, error) {
 	if arms, ok := strings.CutPrefix(rest, "Revolt."); ok {
 		return lc.revoltValue(arms, depth) // value_revolt.go
 	}
+	if arms, ok := strings.CutPrefix(rest, "UrzaLands."); ok {
+		return lc.urzaLandsValue(arms, depth) // value_urzalands.go
+	}
 	if arms, ok := strings.CutPrefix(rest, "Hellbent."); ok {
 		// gorge cov3BranchHolds: <yes> with no cards in your hand, else <no>
 		parts := strings.Split(arms, ".")
@@ -1517,6 +1576,11 @@ func (lc *lowerCtx) countValue(rest string, depth int) (lValue, error) {
 			return lValue{}, refuse("Count$TimesKicked with both Kicker and Multikicker")
 		case lc.out.Multikicker != nil:
 			return lValue{Kind: vTimesKicked}, nil
+		case lc.out.Kicker2 != nil:
+			// the two-alternative "and/or" Kicker (CR 702.33b): the count is
+			// the paid alternatives, 0/1/2 (kernel kw_kickalt.go; gorge
+			// count_body_paid.go reads the per-part flags)
+			return lValue{Kind: vTimesKicked}, nil
 		case lc.out.Kicker != nil:
 			return lValue{Kind: vKicked, Sub: []lValue{cst(1), cst(0)}}, nil
 		case faceHasKeyword(lc.face, "Multikicker"):
@@ -1534,6 +1598,12 @@ func (lc *lowerCtx) countValue(rest string, depth int) (lValue, error) {
 		{"CommittedCrimeThisTurn.", vCommittedCrime, false}, {"Void.", vVoid, false}, {"IfCastInOwnMainPhase.", vIfCastOwnMain, false},
 		{"Monarch.", vMonarch, false}, {"Blessing.", vBlessing, false},
 		{"wasCastFromGraveyard.", vCastFromGrave, false},
+		// AltCost.<paid>.<unpaid> (Worldheart Phoenix's trigger CheckSVar,
+		// the mastery cards' BranchConditionSVar): the cast's alternative
+		// cost, its own StatAlternativeCost static's (kop.ExAltCost; gorge
+		// count_body_heads.go reads FlagAltCostPaid / the pending cast's
+		// PendingAltCost)
+		{"AltCost.", vAltCost, false},
 		{"Bargained.", vKicked, true}, {"Bargain.", vKicked, true}, {"OptionalGenericCostPaid.", vKicked, false}} {
 		if !strings.HasPrefix(rest, cv.pre) {
 			continue
@@ -1604,11 +1674,17 @@ func (lc *lowerCtx) countValue(rest string, depth int) (lValue, error) {
 		// mark is the stack-side read; a permanent's is the arena's mechSneaked.
 		return lValue{Kind: vSneaked, Sub: []lValue{cst(1), cst(0)}}, nil
 	}
+	if spec, ok := strings.CutPrefix(rest, "MostCardName "); ok {
+		return lc.mostCardNameValue(spec) // value_mostcardname.go
+	}
 	if strings.HasPrefix(rest, "ValidStack ") {
 		return lValue{}, refuse("Count$%s: only ValidStack Card.Self+sneaked is read", rest)
 	}
 	if spec, ok := strings.CutPrefix(rest, "ValidBattlefield,Command "); ok {
 		return cmdGreatestMVValue(spec) // value_cmdmv.go
+	}
+	if spec, ok := strings.CutPrefix(rest, "ValidAll "); ok && spec == cmdGreatestMVSpec {
+		return cmdGreatestMVAll(spec) // value_cmdmv.go
 	}
 	for _, zc := range []struct {
 		pre  string
@@ -1635,6 +1711,13 @@ func (lc *lowerCtx) countValue(rest string, depth int) (lValue, error) {
 		if strings.Contains(expr, "$") {
 			return lValue{}, fmt.Errorf("Count$%s: aggregate", rest)
 		}
+		if expr == "Card.IsTriggerRemembered" && zc.pre == "ValidExile " && lc.ab != nil && lc.ab.DelayedSetDmg {
+			// Dragonhawk's body count: the cards its delayed trigger
+			// remembered that are still in exile (lower_zone.go's
+			// DelayedSetDmg registration; value_delayedexile.go). The
+			// /Twice suffix applies as usual.
+			return lValue{Kind: vDelayedExileCount}, nil
+		}
 		f, own, err := lc.zoneCountFilter(zc.pre, expr) // value_filterheads.go
 		if err != nil {
 			return lValue{}, err
@@ -1643,6 +1726,16 @@ func (lc *lowerCtx) countValue(rest string, depth int) (lValue, error) {
 			return lValue{Kind: zc.kind[0], F: f, N: own.N, Ref: own.Ref}, nil
 		}
 		return lValue{Kind: vSum, Sub: []lValue{{Kind: zc.kind[0], F: f}, {Kind: zc.kind[1], F: f}}}, nil
+	}
+	if v, ok, err := lc.multiZoneCount(rest); ok { // value_multizone.go
+		return v, err
+	}
+	if spec, ok := strings.CutPrefix(rest, "ValidAll "); ok && validAllBattlefieldOnly(spec) {
+		// gorge's ValidAll scans every zone, but a spec every alternative of
+		// which carries an attacking word matches only battlefield objects
+		// (IsAttacking clears on any zone move), so it is the battlefield
+		// Count$Valid fold (Mangara, the Diplomat; Tomik, Wielder of Law)
+		rest = "Valid " + spec
 	}
 	if strings.HasPrefix(rest, "Valid ") || strings.HasPrefix(rest, "ValidGraveyard ") {
 		kind := vCount
@@ -1682,11 +1775,12 @@ func (lc *lowerCtx) countValue(rest string, depth int) (lValue, error) {
 				// ExCount N=1
 				kind = vPWTypes
 			default:
-				if ck, ok := strings.CutPrefix(agg, "CardCounters."); ok && ck != "ALL" {
-					// gorge zoneFold: CardCounters.<KIND> sums o.Counter(kind).
-					// ALL (every kind) has no kernel read (refCounters takes
-					// one kind) and keeps refusing below.
-					if _, kerr := counterKind(ck); kerr != nil {
+				if ck, ok := strings.CutPrefix(agg, "CardCounters."); ok {
+					// gorge zoneFold: CardCounters.<KIND> sums o.Counter(kind);
+					// ALL sums every kind (Object.Counter("ALL"), Backstreet
+					// Bruiser): build interns it as kop.CtrAll, which the
+					// kernel's fold reads as permCountersAll
+					if _, kerr := counterKind(ck); kerr != nil && ck != "ALL" {
 						return lValue{}, fmt.Errorf("Count$Valid aggregate %q", agg)
 					}
 					f, err := lc.filter(e)
@@ -1879,4 +1973,28 @@ func (lc *lowerCtx) activeHandCount() (lValue, error) {
 		return lValue{}, err
 	}
 	return lValue{Kind: vCountHand, F: f}, nil
+}
+
+// validAllBattlefieldOnly reports whether a Count$ValidAll spec can match only
+// battlefield objects: no aggregate, and every comma alternative carries an
+// attacking word (attacking, attackingYou, attackingYouOrYourPW[LKI]), which
+// gorge reads from Object.IsAttacking, false off the battlefield.
+func validAllBattlefieldOnly(spec string) bool {
+	if spec == "" || strings.Contains(spec, "$") {
+		return false
+	}
+	for _, alt := range strings.Split(spec, ",") {
+		_, props, _ := strings.Cut(strings.TrimSpace(alt), ".")
+		found := false
+		for _, w := range strings.Split(props, "+") {
+			switch w {
+			case "attacking", "attackingYou", "attackingYouOrYourPW", "attackingYouOrYourPWLKI":
+				found = true
+			}
+		}
+		if !found {
+			return false
+		}
+	}
+	return true
 }

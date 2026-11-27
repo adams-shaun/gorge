@@ -134,6 +134,9 @@ func (s *State) costObjOptions(k *prep, d *Decision) bool {
 	if s.revealCastOptions(k, d) {
 		return true // a spell's reveal part (act_revealpick.go)
 	}
+	if s.chooseEncOptions(k, d) {
+		return true // a spell's CloseEncounter choose part (cost_closeenc.go)
+	}
 	pc := s.buildPickCost(k)
 	if pc == nil || pc.Flags&costObjFlags == 0 && !pc.PutLibSelf {
 		return false
@@ -244,7 +247,14 @@ func (s *State) costObjOptions(k *prep, d *Decision) bool {
 			continue
 		}
 		if int(d.N) < left {
-			panic("kernel: exile cost no longer payable")
+			// the pick's candidates shrank below what the entry owes since
+			// the offer counted them: gorge exAsk's "exile cost no longer
+			// payable" abortCast (CR 733.1, cast_asks.go) -- the hand moved
+			// between the offer walk and the pick, nothing has moved yet, so
+			// the build reverses with the pool intact
+			d.N = 0
+			s.reverseCast(k)
+			return false
 		}
 		d.Kind, d.Sub, d.Player = DkChoose, ChCostExile, e.ctrl
 		return true
@@ -259,6 +269,10 @@ func (s *State) answerCostObj(a Action) {
 	}
 	if s.bld().pickK == pkReveal {
 		s.answerCastReveal()
+		return
+	}
+	if s.bld().pickK == pkCloseEnc {
+		s.answerChosenEnc(a)
 		return
 	}
 	if s.bld().pickK == pickForage {
@@ -307,7 +321,7 @@ func (s *State) payBlightPicks(k *prep) {
 			DebugCostBlightStats.Abilities.Add(1)
 		}
 	}
-	n := int(pc.N)
+	n := blightXOwed(pc, int(s.bld().e.x)) // Blight<X>: the announced X (cost_blightx.go)
 	for i := 0; i < int(s.bld().pickN); i++ {
 		if s.bld().pickKs[i] != pkBlight {
 			continue

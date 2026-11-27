@@ -5,7 +5,6 @@ import (
 	"io"
 
 	"github.com/adams-shaun/gorge/dirac/kop"
-	"github.com/adams-shaun/gorge/engine/effects"
 )
 
 // gainsAbilitiesOf lowers a Continuous static's GainsAbilitiesOf$ (CR
@@ -19,12 +18,36 @@ import (
 // rides kop.Static.Zone (ZoneNone: the battlefield, Forge's default;
 // ZoneGraveyard: GainsAbilitiesOfZones$ Graveyard, every seat's graveyard;
 // ZoneExile: GainsAbilitiesOfZones$ Exile, every seat's exile zone). The
-// kernel's offer walk is dirac/static_gainsof.go. Other zones and artifact or land sources (whose mana abilities the walk
-// does not model) are refused by name.
+// kernel's offer walk is dirac/static_gainsof.go. A GainsTriggerAbsOf$ equal
+// to the GainsAbilitiesOf$ (Koh, the Face Stealer) additionally sets
+// kop.Static.GainsTrig: the lenders' triggered abilities fire as the
+// recipient's too (dirac/trig_gainedtrig.go, gorge's GainedTriggerFaces).
+// Other zones are refused by name. An untyped source (Territory Forge's Card.ExiledWithSource) lowers:
+// the walk matches any zone card and prices both its non-mana abilities
+// (static_gainsof.go gainedOffer) and its mana abilities
+// (mana_gainedgrants.go), and prep's StallGainsOf pair refuses the matchup
+// when a lender actually carries an ability the walk does not model. An
+// artifact or land source lowers like any other (Mirran Safehouse's
+// graveyard lands, Trazyn's artifacts; the animategainsof lockstep pool
+// plays Safehouse's lent mana abilities beside real lands).
 func (lc *lowerCtx) gainsAbilitiesOf(sp *params, st *lStatic, _ string) error {
 	spec, ok := sp.get("GainsAbilitiesOf")
 	if !ok {
 		return nil
+	}
+	if trig, ok := sp.get("GainsTriggerAbsOf"); ok {
+		// Koh, the Face Stealer's "has all activated and triggered abilities
+		// of the last chosen card" (gorge state.ContinuousEffect.
+		// GainedTriggerFaces: the lender's triggers fire as the recipient's).
+		// The triggered half must name the same lender as the activated one
+		// (Forge ships no carrier where they differ); the kernel's
+		// gained-trigger walk is dirac/trig_gainedtrig.go, reading the same
+		// GainsOf filter and firing each lender triggered ability with the
+		// foreign card's body and the recipient as the source.
+		if trig != spec {
+			return refuse("GainsTriggerAbsOf$ %q beside GainsAbilitiesOf$ %q", trig, spec)
+		}
+		st.GainsTrig = true
 	}
 	z, hasZone := sp.get("GainsAbilitiesOfZones")
 	grave := hasZone && z == "Graveyard"
@@ -40,16 +63,7 @@ func (lc *lowerCtx) gainsAbilitiesOf(sp *params, st *lStatic, _ string) error {
 		return err
 	}
 	if f.Players != 0 || len(f.Clauses) == 0 {
-		return refuse("GainsAbilitiesOf$ %q: artifact or land sources", spec)
-	}
-	for _, c := range f.Clauses {
-		// a clause with no card type must name a creature type (Elf): a
-		// subtype-only "Elf" cannot match an artifact or a land, and a
-		// creature's mana ability stalls the walk (StallGainsOf) anyway
-		creatSub := c.Types == 0 && c.Subtype != "" && effects.CreatureTypeWords(c.Subtype)
-		if c.Types&(tArtifact|tLand) != 0 || c.Types == 0 && !creatSub {
-			return refuse("GainsAbilitiesOf$ %q: artifact or land sources", spec)
-		}
+		return refuse("GainsAbilitiesOf$ %q: a player alternative", spec)
 	}
 	if offField {
 		return refuse("GainsAbilitiesOfZones$ %q", z)
@@ -93,6 +107,9 @@ func dumpStaticFilters(w io.Writer, s *lStatic) {
 	if s.GainsOf != nil {
 		fmt.Fprintf(w, " gainsof=%s", s.GainsOf)
 	}
+	if s.GainsTrig {
+		fmt.Fprint(w, " gainstrig")
+	}
 }
 
 // staticFilterLabels are the OPS.md labels of a table static's filter fields
@@ -106,6 +123,9 @@ func staticFilterLabels(st *kop.Static) []string {
 		if f.id != 0 {
 			out = append(out, f.label)
 		}
+	}
+	if st.GainsTrig {
+		out = append(out, "st:GainsTrig")
 	}
 	return out
 }

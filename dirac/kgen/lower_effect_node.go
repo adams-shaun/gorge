@@ -358,6 +358,9 @@ func (lc *lowerCtx) node(sa *cards.SA, ps *params) error {
 	if err := lc.effect(sa, ps); err != nil {
 		return err
 	}
+	if err := lc.checkPendingTargetMV(sa); err != nil {
+		return err
+	}
 	lc.targetedDefined = ""
 	if ownTgt {
 		if err := lc.ownTargetedSlot(guard); err != nil { // lower_targetedown.go
@@ -379,9 +382,10 @@ func (lc *lowerCtx) node(sa *cards.SA, ps *params) error {
 	if err != nil {
 		return err
 	}
-	if cond.Kind != cNone || guardAt >= 0 || setPred != nil {
-		lc.markUnlessGuarded(usN) // a skip over the node alone (lower_unlesssubs.go)
-	}
+	// the node's guard decides whether its UnlessResolveSubs$ gates shift
+	// with the plain Condition insert below or are marked guarded
+	// (lower_unlesssubs.go)
+	lc.guardUnlessGates(at, usN, guardAt, cond, setPred)
 	if cond.Kind != cNone && guardAt < 0 && at < len(lc.ab.Prog) && lc.ab.Prog[at].Op == "IfPaid" && lc.ab.Prog[at].Skip == -1 {
 		// a trigger's own "you may pay" cost (Feed the Pack's Sac<1/...>):
 		// gorge's triggered-cost window pays it before the body runs, and the
@@ -418,6 +422,18 @@ func (lc *lowerCtx) unless(ps *params, fn func() error) error {
 		return fn()
 	}
 	var in lInstr
+	// an unless amount may read the effect's own single target before the
+	// effect declares it (Behemoth of Vault 0's PayEnergy<X>; lower_targetmv.go).
+	// A filtered Discard/Sac part is a different shape and stays refused.
+	savedMV := lc.mvNode
+	defer func() { lc.mvNode = savedMV }()
+	if lc.ab != nil && lc.ab.Kind == akTriggered && lc.curNode != nil &&
+		!strings.Contains(uc, "Discard<") && !strings.Contains(uc, "Sac<") {
+		// only the reflexive trigger shape is lowered here (Behemoth): a
+		// spell's unless amount reads the target at resolution too, but no
+		// carrier of that shape is in this change's lockstep pool
+		lc.mvNode = lc.curNode
+	}
 	ri, isRes, rerr := lc.resUnlessToken(strings.TrimSpace(uc)) // lower_costtokens.go
 	if rerr != nil {
 		return rerr
@@ -467,6 +483,7 @@ func (lc *lowerCtx) unless(ps *params, fn func() error) error {
 			return err
 		}
 	}
+	lc.mvNode = savedMV // the read is limited to the amount, not the effect fn runs
 	if ps.is("UnlessSwitched", "True") {
 		in.Op = "UnlessSwitched"
 	} else {
@@ -529,7 +546,7 @@ func (lc *lowerCtx) unless(ps *params, fn func() error) error {
 	lc.ab.Prog[at].Skip = len(lc.ab.Prog) - at - 1
 	if gate {
 		lc.unlessSubs = append(lc.unlessSubs, usGate{at: at, nodeEnd: len(lc.ab.Prog),
-			same: ps.is("UnlessSwitched", "True") == whenPaid, nTgt: len(lc.ab.Targets)})
+			same: ps.is("UnlessSwitched", "True") == whenPaid, nTgt: len(lc.ab.Targets), condAt: -1})
 	}
 	return nil
 }

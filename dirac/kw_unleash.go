@@ -19,22 +19,35 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // at the spell's resolution with the spell still on the stack, so
 // unleashPreKind makes it a pre-entry ask (s.g.pre, like the colour and type
 // elections) and the entry applies the answer. The two options are gorge's, in its order: "yes" first (its
-// option 0, the counter), then "no".
+// option 0, the counter), then "no". The ask reads the printed keyword only,
+// both in gorge (faceETBChoice's and applyUnleashReplacement's face read,
+// beside enteringRiot's derived one) and in the kernel: a GRANTED Unleash
+// asks no entry election, it only gates blocking (below).
 //
 // The can't-block half: canBlock refuses a blocker whose card carries
 // Unleash and at least one +1/+1 counter, from any source, beside the
 // Suspected gate (gorge combat/block.go reads the same two facts beside
-// Suspected). The kernel reads the printed keyword only; a GRANTED Unleash
-// (a static's AddKeyword$) is refused at lowering.
+// Suspected).
 //
-// Cold and out of line: a table with no printed Unleash takes none of these
-// paths (prep.unleash, a prep bool like ascend so the hot hooks cost one
-// byte load).
+// A GRANTED Unleash is kop.Static.Unleash on a Continuous static (kgen's
+// splitStaticUnleashGrant, Tesak, Judith's Hellhound's other Dogs): it
+// grants the block gate only, read beside CardDef.Unleash by
+// State.unleashPermGranted as gorge's derived keyword list reads it
+// (combat/board.go HasKW(blocker, KWUnleash), layer-6 included); the entry
+// election is printed-only, as gorge reads it off the printed face. Unleash has no KwMask bit, so the grant is its own static
+// field (the arena takes KwMask bits only, which are full). A grant older
+// than a loss of the recipient's abilities grants nothing (the layer-6
+// timestamp order, like riotPermGranted's).
+//
+// Cold and out of line: a table with no printed Unleash takes none of the
+// entry-ask paths (prep.unleash, a prep bool like ascend so the hot hooks
+// cost one byte load); a table with no grant takes none of the block-gate
+// walk (prep.unleashGrant, like riotGrant).
 
 // KwUnleash is the manifest's KwID for the keyword (dirac/manifest/KwID/
 // KwUnleash, state: code 0): the code this mechanic implements; the printed
-// carrier is CardDef.Unleash, and a later granted-Unleash carrier would
-// grant through it (the arena takes KwMask bits only, which are full).
+// carrier is CardDef.Unleash and the grant carrier is kop.Static.Unleash
+// (the arena takes KwMask bits only, which are full).
 const _ = kop.KwUnleash
 
 // tableHasUnleash reports whether some card of t prints Unleash.
@@ -47,13 +60,37 @@ func tableHasUnleash(t *kop.Table) bool {
 	return false
 }
 
+// tableGrantsUnleash reports whether some static of t grants Unleash.
+func tableGrantsUnleash(t *kop.Table) bool {
+	scan := func(abs []kop.Ability) bool {
+		for j := range abs {
+			if a := &abs[j]; a.Kind == kop.AbStatic && a.Static.Kind == kop.StatContinuous && a.Static.Unleash {
+				return true
+			}
+		}
+		return false
+	}
+	for i := range t.Cards {
+		if scan(t.Cards[i].Abilities) {
+			return true
+		}
+	}
+	for i := range t.Emblems {
+		if scan(t.Emblems[i].Abilities) {
+			return true
+		}
+	}
+	return false
+}
+
 // unleashEntryAsk queues the CR 702.86a as-enters counter ask of the entrant
-// at sl when its card prints Unleash: gorge parks the battlefield move on
-// this ask (applyUnleashReplacement, posed on every face-up entry), so it is
-// queued at the entry's start, ahead of the entry counters' own asks. A
-// face-down manifest or cloak entry is a vanilla 2/2 and poses nothing
-// (CR 708.5, gorge's IsFaceDownEntry guard). The ask is posed at the next
-// priority, before the entrant's ETB triggers resolve.
+// at sl when its card prints Unleash (a granted Unleash asks nothing, as
+// gorge reads this choice off the printed face): gorge parks the battlefield
+// move on this ask (applyUnleashReplacement, posed on every face-up entry),
+// so it is queued at the entry's start, ahead of the entry counters' own
+// asks. A face-down manifest or cloak entry is a vanilla 2/2 and poses
+// nothing (CR 708.5, gorge's IsFaceDownEntry guard). The ask is posed at the
+// next priority, before the entrant's ETB triggers resolve.
 func (s *State) unleashEntryAsk(k *prep, sl Slot, o Obj) {
 	if k.unleash && k.t.Cards[s.objs[o].card].Unleash {
 		if p := &s.g.pre; p.state == 2 && p.kind == akUnleash && p.obj == o {
@@ -93,6 +130,31 @@ func (s *State) unleashTokKind(k *prep, kind uint8, c CardID) uint8 {
 	return s.unleashPreKind(k, c)
 }
 
+// unleashPermGranted reports whether the permanent at sl is granted Unleash
+// by a live Continuous static: the layer-6 grant is read like riot's
+// (kw_riot.go), a grant older than a loss of the recipient's abilities
+// granting nothing.
+func (s *State) unleashPermGranted(k *prep, sl Slot) bool {
+	if !k.unleashGrant || DebugNoGrantedUnleash {
+		return false
+	}
+	lts, lost := s.lossAt(k, sl)
+	granted := false
+	s.eachStatic(k, func(st statSrc) bool {
+		ab := st.a
+		if ab.Kind != kop.AbStatic || ab.Static.Kind != kop.StatContinuous || !ab.Static.Unleash ||
+			lost && s.grantTs(st) < lts {
+			return true
+		}
+		if s.statCond(k, st) && s.matchPermGen(k, ab.Static.Filter, sl, st.ctrl, st.sl, layerKw) {
+			granted = true
+			return false
+		}
+		return true
+	})
+	return granted
+}
+
 // unleashAskObj is the object the posed counter ask is about: a cast
 // creature's or a parked copy token's election rides s.g.pre (asked before
 // it enters); any other entry's is the queued ask[0].
@@ -123,20 +185,30 @@ func (s *State) unleashAnswer(k *prep, ask askRec, a Action) {
 	s.placeEntryCounters(k, ask.sl, int(kop.CtrP1P1), 1, p.ctrl)
 }
 
+// DebugNoGrantedUnleash (TestHostedCmdrGrantedUnleashMutation): the kernel
+// reads no granted Unleash, so a granted election gorge asks is never posed
+// and a granted carrier with a counter blocks.
+var DebugNoGrantedUnleash bool
+
 // unleashNoBlock reports whether the blocker at b is refused by its Unleash
-// keyword: it carries the printed keyword and at least one +1/+1 counter. The
-// refusal is the keyword's own CantBlock static (Forge lowers it as one, Mode$
-// CantBlock beside the keyword), so a lose-all-abilities effect that removes
-// the printed keyword lifts it: the counter stays, the creature blocks (CR
-// 613.1f; gorge combat/block.go reads the derived keyword list the same way).
-// Unleash has no KwMask bit and a granted Unleash is refused at lowering, so
-// no layer-6 grant can bring the refusal back.
+// keyword: it carries the keyword, printed or granted, and at least one
+// +1/+1 counter. The refusal is the keyword's own CantBlock static (Forge
+// lowers it as one, Mode$ CantBlock beside the keyword), so a
+// lose-all-abilities effect that removes the keyword lifts it: the counter
+// stays, the creature blocks (CR 613.1f; gorge combat/block.go reads the
+// derived keyword list the same way). A granted Unleash read is the layer-6
+// walk (unleashPermGranted), which also orders the grant against a loss of
+// abilities by timestamp.
 func (s *State) unleashNoBlock(k *prep, b Slot) bool {
-	if !k.t.Cards[s.cardAt(b)].Unleash || s.perms[b].ctrN(s, int(kop.CtrP1P1)) == 0 {
+	if s.perms[b].ctrN(s, int(kop.CtrP1P1)) == 0 {
 		return false
 	}
-	if _, lost := s.lossAt(k, b); lost {
-		return false // Stasis Field: the printed Unleash is gone with all abilities
+	if k.t.Cards[s.cardAt(b)].Unleash {
+		if _, lost := s.lossAt(k, b); !lost {
+			return true
+		}
+		// Stasis Field: the printed Unleash is gone with all abilities, but a
+		// grant newer than the loss holds (CR 613.7), read below
 	}
-	return true
+	return s.unleashPermGranted(k, b)
 }

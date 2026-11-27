@@ -43,7 +43,7 @@ type Static struct {
 	Kind    StaticKind
 	Filter  FilterID
 	Filter2 FilterID // CantBlockBy: the blockers that can't block; ReduceCost (spell or activated ability): the target it needs; CastWithFlash of an emblem: the spell whose cast ends the emblem (the Effect's ForgetOnCast$, Quicken)
-	A, B    int16    // P/T deltas, cost reduction
+	A, B    int16    // P/T deltas, cost reduction; StatCastWithFlash A: 1 + a SelfFlash grant's ValidSA$ Spell.XCostLE<N> bound (0 = none; dirac/cast_flashxcap.go)
 	Kw      KwMask
 	Cond    uint8 // reserved condition opcode (0 = always)
 
@@ -131,6 +131,14 @@ type Static struct {
 	// battlefield). Armed by the useGainsOf genPrep.uses flag; the offer walk is
 	// dirac/static_gainsof.go (AkActivate mode 0xC0|ability index). 0 = none.
 	GainsOf FilterID
+	// GainsTrig: the same static also carries GainsTriggerAbsOf$ (Forge's
+	// triggered half of "has all activated and triggered abilities of ...",
+	// equal to GainsAbilitiesOf$; Koh, the Face Stealer): the GainsOf lenders'
+	// TRIGGERED abilities fire as the recipient's (gorge state.ContinuousEffect.
+	// GainedTriggerFaces, the granted-trigger walk checkGrantedStaticTriggersUsing
+	// with the recipient as the trigger source). Armed by the gainsTrigEv
+	// genPrep mask; the walk is dirac/trig_gainedtrig.go.
+	GainsTrig bool
 	// WardLife: a StatContinuous grant's "ward—pay N life" amount
 	// (AddKeyword$ Ward:PayLife<N>; Kw holds KwWard; CR 702.21a). Like Ward,
 	// each such static is its own ward instance; 0 = no life ward.
@@ -145,6 +153,33 @@ type Static struct {
 	// 702.90; Grafted Exoskeleton, Phyresis): read beside CardDef.Infect by
 	// State.infectAt (dirac/kw_kwmark.go).
 	Infect bool
+	// Toxic: a StatContinuous grant of toxic N (AddKeyword$ Toxic:N, CR
+	// 702.164; Karumonix, Necrogen Communion, Prosthetic Injector), the sum
+	// of its terms. Toxic is cumulative (702.164c), so State.toxicAt adds
+	// every live static's N to the printed toxic (dirac/kw_toxicgrant.go).
+	// 0 = none.
+	Toxic uint8
+	// Riot: a StatContinuous grant of riot (AddKeyword$ Riot, CR 702.136;
+	// Spider-Punk, Uncivil Unrest, Rhythm of the Wild): the affected
+	// permanent enters with its controller's choice of a +1/+1 counter or
+	// haste (the as-enters ask, dirac/kw_riot.go), read beside CardDef.Riot.
+	Riot bool
+	// Unleash: a StatContinuous grant of unleash (AddKeyword$ Unleash, CR
+	// 702.86; Tesak, Judith's Hellhound's other Dogs): the affected
+	// permanent can't block while it carries a +1/+1 counter (the block
+	// gate, dirac/kw_unleash.go), read beside CardDef.Unleash; the entry
+	// election is printed-only.
+	Unleash bool
+	// PanhZones: a StatPanharmonicon static's ValidZone$ zone mask (1<<Zone;
+	// 0 = the battlefield only, the default). The triggering object's own
+	// zone, at the moment the event caused the trigger, must be in the set;
+	// a colorless spell on the stack is the Echoes of Eternity shape
+	// (gorge statics_echo.go panharmoniconEchoes).
+	PanhZones uint8
+	// PanhTurned: a StatPanharmonicon static's ValidTurned$ is present; its
+	// Filter2 scopes the permanent the turn-up event turned (Panoptic
+	// Projektor), distinct from Filter's trigger source.
+	PanhTurned bool
 }
 
 // Override is a fixed-order override record (the plan's replacement for a
@@ -188,6 +223,18 @@ type Override struct {
 	// chars.derive applies it as a final filter after every layer-6 grant,
 	// so the kernel's layer-6 walk drops these bits from its result.
 	CantHaveKw KwMask
+	// RemoveLandwalk: the land filter whose landwalk the effect removes
+	// (layer 6, CR 613.1f: RemoveKeyword$ Landwalk:Island, Mystic Decree).
+	// KwMask has no parameterised bit, so this filter is the removal; read
+	// by State.landwalkRemoved (kw_evasion.go). 0 = none.
+	RemoveLandwalk FilterID
+	// ExileOnLeave: the affected object carries the "if it would leave the
+	// battlefield, exile it instead" replacement for this record's lifetime
+	// (Animate Replacements$ ReplaceLeaves: Llanowar Greenwidow, Realmbreaker,
+	// Geth). It is a replacement effect on the object, so dieZone reads it
+	// beside the printed ReplExileOnLeave sources (dirac/repl_counters.go
+	// exileOnLeaveN).
+	ExileOnLeave bool
 	// UntilUpkeep: the record lasts until the resolving controller's next
 	// upkeep begins (Duration$ UntilYourNextUpkeep, CR 611.2b; Erhnam Djinn).
 	// The applied record keeps that controller in its P/T fields, which a
@@ -247,6 +294,19 @@ type Override struct {
 	// (dirac's evasionGranted, through evasionAt); a layer-6 grant: a record
 	// older than a loss of the permanent's abilities grants nothing.
 	Horsemanship bool
+	// FaceDownOnly: the record applies only while the permanent is face down
+	// (a ChangeZone FaceDownSetType$ entry's folded type set: Yedora's
+	// "It's a Forest land", CR 708.2a). The set replaces the whole type
+	// line, and clearFaceDown removes the record at the turn-up, so the
+	// card's own face returns.
+	FaceDownOnly bool
+	// Toxic: the permanent gains toxic N (CR 702.164) for as long as the
+	// record lasts (an Animate's Keywords$ Toxic:N, Monument to Perfection),
+	// the sum of the record's terms. Toxic has a CardDef field, not a KwMask
+	// bit, so the record carries the amount; State.toxicAt adds it to the
+	// printed toxic, a layer-6 grant (a record older than a loss of the
+	// permanent's abilities grants nothing; dirac/kw_toxicgrant.go).
+	Toxic uint8
 	// NoCost: a copy exception's "with no mana cost" (CR 707.9b; embalm's
 	// RemoveCost$): the copy's mana value is 0.
 	NoCost bool
@@ -323,6 +383,11 @@ type Emblem struct {
 	// UntilEOT: an Effect without a Duration$ (gorge: it leaves the
 	// command zone at cleanup); the kernel drops it in cleanupGen
 	UntilEOT bool
+	// UntilEndCombat: Duration$ UntilEndOfCombat (CR 511.3): it also ends as
+	// the end-of-combat step does (gorge expireUntilEndOfCombat), a later
+	// extra combat not reviving it. UntilEOT is set beside it: a combat that
+	// never ran is swept at cleanup (static_emblemendcombat.go).
+	UntilEndCombat bool
 	// UntilNextTurn: Duration$ UntilYourNextTurn (gorge ends it at the
 	// cleanup before the controller's next turn); the kernel drops it in
 	// cleanupGen when that turn is the next one.
@@ -375,6 +440,11 @@ type Emblem struct {
 	// triggers apply to nothing. Without it the capture names the object
 	// across zone changes (gorge matches the object, not a version).
 	CaptureLapse bool
+	// CaptureCtr: with CaptureRem and CaptureLapse, an object also drops out
+	// of the remembered set when it has lost its last counter of this kind
+	// (the Effect's ForgetCounter$: Promise of Loyalty's "for as long as it
+	// has a vow counter on it"); 0 = none. dirac/static_emblemctr.go.
+	CaptureCtr CounterKind
 	// NumAmount: the emblem's frozen number (State.g.embN, evaluated by
 	// OpCreateEmblem's A) rides each of its triggers as the trigger amount, so
 	// a body reading VTriggerAmount reads it (The Eagles Are Coming!: the
@@ -429,6 +499,7 @@ const (
 	PanhModeLifeGained int16 = 1 // ValidMode$ LifeGained: a trigger of a player gaining life
 	PanhModeDrawn      int16 = 2 // ValidMode$ Drawn: a trigger of a player drawing a card
 	PanhModeDies       int16 = 3 // ValidCause$ + Origin$ Battlefield + Destination$ Graveyard: a ChangesZone trigger caused by a matching permanent dying (Filter2 = the cause)
+	PanhModeTurnFaceUp int16 = 4 // ValidMode$ TurnFaceUp: a trigger caused by turning a face-down permanent face up; Static.PanhTurned then scopes the turned object with Filter2 (Panoptic Projektor)
 )
 
 // StaticFlags (Static.StFlags).
@@ -510,6 +581,19 @@ const CantCastNamed = 1
 // castSorceryTimingExempt). A free cast made while a spell or ability
 // resolves is read with the stack non-empty (castForbiddenFree).
 const CantCastSorcery = 2
+
+// CantCastSelfZones is the StatCantBeCast B bit for a card's own "can't be
+// cast from here" static whose EffectZone$ and Origin$ name zones (Haakon,
+// Stromgald Scourge: "from your graveyard, but not from anywhere else"):
+// B>>CantCastSelfShift is the bitmask (1<<Zone) of the zones the card's
+// current zone must be in for the restriction to bind (gorge
+// castRestrictionSources' staticEffectZoneOK intersected with
+// castOriginGateHolds). The static is still the self marker, Zone ==
+// ZoneCommand.
+const CantCastSelfZones = 4
+
+// CantCastSelfShift is the shift of CantCastSelfZones' zone mask in B.
+const CantCastSelfShift = 3
 
 // StCasterActive: on a StatCantBeCast only, the
 // restriction binds a caster who is the active player (Caster$
@@ -883,6 +967,26 @@ const StFbOwnCost StaticFlags = 1 << 0
 // Equinox), not only the static's controller (gorge castWithFlashTargets
 // actorMatches "Caster").
 const StFlashAnyCaster StaticFlags = 1 << 0
+
+// StAltGrant on a StatAlternativeCost static: a battlefield GRANT of a mana
+// alternative cost to the spells its controller casts (Fist of Suns: "you may
+// pay {W}{U}{B}{R}{G} rather than pay the mana cost for spells that you cast";
+// Rooftop Storm's {0} for Zombie creature spells, Runeforge Champion's {1} for
+// Rune spells), not the card's own alternative cost. Filter is the ValidCard$
+// the cast card must match (0: any spell), Cond2 the static's condition, and
+// the cost is Ability.Cost.Mana. It aliases bit 0 like StFlashAnyCaster, whose
+// readers are gated on StatCastWithFlash (dirac/cast_altgrant.go).
+const StAltGrant StaticFlags = 1 << 0
+
+// StAltAnyCaster on a StatAlternativeCost grant: the grant applies to every
+// player's spell, not only the controller's (Dream Halls' "Rather than pay the
+// mana cost for a spell, its controller may discard a card that shares a color
+// with that spell": no ValidPlayer$ rider). Its cost is the dynamic discard
+// (Cost.DiscardSharesCastColor), never mana. The grant walk reads a granter's
+// controller as the static's "you" when the bit is set; without it the grant
+// is the controller's alone. It aliases bit 1 like StAtkTaxPlayer, whose
+// readers are gated on StatAttackTax (dirac/cast_altgrant.go).
+const StAltAnyCaster StaticFlags = 1 << 1
 
 // StatAsIfHaste (an explicit ordinal clear of the iota tail): the static's
 // controller may activate abilities of battlefield creatures matching Filter

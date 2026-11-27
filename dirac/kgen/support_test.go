@@ -270,10 +270,15 @@ type supportCounts struct {
 
 func countSupport(t *testing.T, cardsDir, list string, s *supportLists) supportCounts {
 	t.Helper()
-	p, err := loadCardList(testSetlistPath(t, list), cardsDir)
+	path := testSetlistPath(t, list)
+	if slices.Contains(supportPoolRows, list) {
+		path = filepath.Join("..", "..", poolsDir, list, "cards.txt")
+	}
+	p, err := loadCardList(path, cardsDir)
 	if err != nil {
 		t.Fatal(err)
 	}
+	p.commander = commanderPools[list]
 	lw := lowerPool(p)
 	if _, _, _, err := buildPool(lw); err != nil {
 		t.Fatalf("%s: %v", list, err)
@@ -308,6 +313,11 @@ func countSupport(t *testing.T, cardsDir, list string, s *supportLists) supportC
 // Standard sets.
 var supportDraftLists = []string{"MBC", "CMM", "MH3", "MH2", "CM2"}
 
+// supportPoolRows are pools (dirac/cardset/pools/<name>/cards.txt) the support
+// page counts as a row after the lists: hosted-cmdr is the union of gorged's
+// hosted Commander decks, judged as one set the way a pod plays them.
+var supportPoolRows = []string{"hosted-cmdr"}
+
 // supportDoc renders the support page from this binary's lists and a lowering of
 // every Standard list and the whole corpus.
 func supportDoc(t *testing.T, cardsDir string) []byte {
@@ -331,11 +341,11 @@ func supportDoc(t *testing.T, cardsDir string) []byte {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, list := range append(append(codes, supportDraftLists...), "ALL") {
+	for _, list := range append(append(append(codes, supportDraftLists...), supportPoolRows...), "ALL") {
 		r := countSupport(t, cardsDir, list, s)
 		fmt.Fprintf(&b, "| %s | %d | %d | %d | %d | %d | %d | %d |\n", r.list, r.cards, r.lowered, r.refused, r.unverified, r.supported, r.fourSeat, r.podEvidenced)
 	}
-	b.WriteString("\n`ALL` is the whole corpus; `MBC` is the Mystery Booster Commander draft pool, every name its packs deal that gorge supports; `CMM`, `MH3`, `MH2` and `CM2` are Commander Masters, Modern Horizons 3 and 2 and Commander Anthology Volume II, from gorge-compliance's XMage manifests; the rest are the Standard sets. `4-seat` counts the supported cards whose lowering holds at any seat count: a card whose lowering reads the one opponent of a two-player game (`kop.CardDef.TwoSeat`) is refused in a game of three or more seats (`StallTwoSeat`). It is a ceiling, not evidence. `pod-evidenced` counts those cards whose evidence row carries a seats field — a clean game of three or more seats, which `kfuzz -evidence -seats 4` writes and `scripts/dirac-first-refusals.py evidence --pools pod-*` copies into `dirac/support/evidence` (`Name\\t<seats>`; readers take the name and ignore trailing columns). A pod game does not evidence a card: the support rule below is unchanged.\n\n## What supported covers\n\n")
+	b.WriteString("\n`ALL` is the whole corpus; `MBC` is the Mystery Booster Commander draft pool, every name its packs deal that gorge supports; `CMM`, `MH3`, `MH2` and `CM2` are Commander Masters, Modern Horizons 3 and 2 and Commander Anthology Volume II, from gorge-compliance's XMage manifests; `hosted-cmdr` is the union of every card of gorged's hosted Commander decks (`testkit/testutil/decks`, format commander), so each deck is judged in one set; the rest are the Standard sets. `4-seat` counts the supported cards whose lowering holds at any seat count: a card whose lowering reads the one opponent of a two-player game (`kop.CardDef.TwoSeat`) is refused in a game of three or more seats (`StallTwoSeat`). It is a ceiling, not evidence. `pod-evidenced` counts those cards whose evidence row carries a seats field of three or more — a clean pod game, which `kfuzz -evidence -seats 4` writes and `scripts/dirac-first-refusals.py evidence --pools pod-*` copies into `dirac/support/evidence` (`Name\\t<seats>`; readers take the name and ignore trailing columns). A four-seat row evidences its card (OD-4 stage 2, `oracle.EvidencePodMinPlays` = 1): a Commander-only key such as Command Tower's colour-identity mana is used there and credited as any own key is, while a three-seat row stays in this column only. The `4-seat` column's pod requirement is report only until pod coverage is large enough to gate it; read `pod-evidenced` beside it.\n\n## What supported covers\n\n")
 	b.WriteString("Evidence comes from the `fdn` and `blb` deck pools and one synthetic pool per Standard set: 1,500 pairs each, seed 1, the random policy, both surfaces, mulligans 0 and 1, every run passing `kfuzz -absolute`. A synthetic pool deals its decks from the cards it plays, so no pair is lost to a refused card; it skips only a pair the kernel refuses together, so it can play fewer games, and its cards met the floor in these:\n\n| pool | games per run |\n|---|---:|\n")
 	games, err := os.ReadFile(filepath.Join(testRoot, "dirac", "support", "evidence-games.tsv"))
 	if err != nil {

@@ -81,6 +81,9 @@ func (s *State) dredgeCands(k *prep, p uint8, buf *[dredgeMaxCands]Obj) int {
 		if d == 0 || d > lib || n == dredgeMaxCands {
 			continue
 		}
+		if graveLossOn(k) && s.gravePrintedHidden(k, o) {
+			continue // the card lost all abilities: gorge reads the derived keyword (static_graveabilityloss.go)
+		}
 		if buf != nil {
 			buf[n] = o
 		}
@@ -174,6 +177,9 @@ func (s *State) dredgeTurnAnswer(k *prep, a Action) {
 		s.cfgx |= cfgxDredgeAsked
 		s.draw(s.active)
 		s.cfgx &^= cfgxDredgeAsked
+		if s.drawReplAsked() {
+			return // the draw's replacement order or may election is asked first (repl_draworder.go, repl_drawmay.go)
+		}
 		if s.res.ask == raDredgeRes && s.res.flags&rfBodyTurn != 0 {
 			return // the draw's body batch suspended on its first ask (dredgeBodyAnswer)
 		}
@@ -191,8 +197,8 @@ func (s *State) dredgeTurnAnswer(k *prep, a Action) {
 // drawOp is OpDraw: in.A cards for each player in.Obj names; in a dredge
 // table each card asks first (dredgeDraws). false: an ask is posed.
 func (s *State) drawOp(k *prep, in *kop.Instr) bool {
-	if dredgeOn(k) {
-		return s.dredgeDraws(k, in)
+	if dredgeOn(k) || drawOrderOn(k) {
+		return s.dredgeDraws(k, in) // the resumable loop: an ask is posed between cards
 	}
 	q := s.players(k, in.Obj)
 	n := s.value(k, in.A)
@@ -204,7 +210,7 @@ func (s *State) drawOp(k *prep, in *kop.Instr) bool {
 	return true
 }
 
-// dredgeDraws is OpDraw in a dredge table: in.A cards for each player in.Obj
+// dredgeDraws is the resumable OpDraw loop: in.A cards for each player in.Obj
 // names, each card asked first when its player has a candidate; false: an
 // ask is posed.
 func (s *State) dredgeDraws(k *prep, in *kop.Instr) bool {
@@ -212,7 +218,17 @@ func (s *State) dredgeDraws(k *prep, in *kop.Instr) bool {
 	if q.n == 0 {
 		return true
 	}
-	n := min(max(s.value(k, in.A), 0), 255)
+	n := max(s.value(k, in.A), 0)
+	if n > 255 {
+		if !dredgeOn(k) {
+			// The loop's state (res.left, g.pickLeft) is one byte per count,
+			// so a program table's draw-order loop cannot resume a longer
+			// draw; before the order ask such a draw took the plain path.
+			s.capFull(StallDrawRepl)
+			return true
+		}
+		n = 255 // a dredge table has always clamped its resumable loop here
+	}
 	return s.dredgeDrawLoop(k, in, q.s[0], n, seatsPack(q, 1), n)
 }
 
@@ -227,7 +243,46 @@ func (s *State) dredgeDrawLoop(k *prep, in *kop.Instr, p uint8, left int, rest u
 				s.res.ask, s.res.askP = raDredge, p
 				return false
 			}
+			s.digLoopMark(true)
 			s.dredgeDrawOne(in, p)
+			parked := s.drawBodyResAsked()
+			s.digLoopMark(false)
+			if parked {
+				// the draw's Dig body parked its choose on its own context
+				// (repl_drawbody.go drawBodyParkRes): the loop's state rides
+				// the in-flight record; the answer's body end re-enters this
+				// loop past the asked card (drawBodyEndRes).
+				ds := s.drawState()
+				ds[0].rest = rest
+				if pk := s.drawParkRecord(); len(pk) > 0 {
+					pk[0].outer.left = uint8(left)
+					pk[0].pickN = uint8(n)
+				}
+				return false
+			}
+			if s.drawReplAsked() {
+				// the draw posed its CR 616.1 order ask (repl_draworder.go) or its
+				// may replacement's election (repl_drawmay.go): the loop waits in
+				// the dredge ask's state
+				s.g.pickP, s.g.pickZ, s.g.pickLeft = p, rest, uint8(n)
+				s.res.left = uint8(left)
+				return false
+			}
+			if s.drawPickAsked() {
+				// the draw's replacement program parked its hidden pick as a
+				// queued ask (repl_drawpick.go): the loop waits too, keeping the
+				// resolving entry on the stack with the rest of the draw owed,
+				// as gorge poses the pick mid-resolution. The frame cannot ride
+				// res.left / g.pickZ / g.pickLeft (the parked search owns them):
+				// it rides the cold program record, and the pick is posed on the
+				// resolution's ask tape (midResAsk's raGenEnterAsk).
+				if s.res.ask == raNone {
+					s.res.ask, s.res.askP = raGenEnterAsk, s.g.pickP
+				}
+				ds := s.drawState()
+				ds[0].left, ds[0].rest, ds[0].n, ds[0].waiting = uint8(left), rest, uint8(n), true
+				return false
+			}
 		}
 		if s.over {
 			return true
@@ -267,6 +322,9 @@ func (s *State) dredgeAskAnswer(k *prep, a Action) {
 		s.cfgx |= cfgxDredgeAsked
 		s.dredgeDrawOne(in, p)
 		s.cfgx &^= cfgxDredgeAsked
+		if s.drawReplAsked() {
+			return // the draw posed its replacement order ask or may election (repl_draworder.go, repl_drawmay.go)
+		}
 		if s.res.ask == raDredgeRes && s.res.flags&rfBodyOp != 0 {
 			return // the draw's body batch suspended on its first ask (dredgeBodyAnswer)
 		}

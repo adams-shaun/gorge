@@ -102,8 +102,8 @@ func (s *State) declareMustAttack(k *prep) {
 					continue
 				}
 				s.perms[sl].flags |= pfAttacking
-				s.setAttackTarget(&s.perms[sl], PlayerCode(def)) // two live seats only: mustAttackAsked asks at more
-				s.perms[sl].bord = objWord(s.nAttackers)         // declaration order (fireAttacksGen)
+				s.setDeclaredAttackTarget(&s.perms[sl], PlayerCode(def)) // two live seats only: mustAttackAsked asks at more
+				s.perms[sl].bord = objWord(s.nAttackers)                 // declaration order (fireAttacksGen)
 				s.touchSl(sl)
 				s.nAttackers++
 				changed = true
@@ -449,6 +449,19 @@ func (s *State) setAttackTarget(p *perm, t TCode) {
 	}
 }
 
+// setDeclaredAttackTarget is setAttackTarget for an attacker this turn's
+// DeclareAttackers declaration chose: it also folds the attacked player into
+// the per-object ledger Defined$ Player.attackedBySourceThisTurn reads
+// (gorge's Object.AttackedPlayersThisTurn, events.Apply's DeclareAttackers
+// fold). A permanent put onto the battlefield attacking is not a declaration
+// (CR 508.1), so its callers keep setAttackTarget.
+func (s *State) setDeclaredAttackTarget(p *perm, t TCode) {
+	s.setAttackTarget(p, t)
+	if isPlayerTarget(t) {
+		p.atkPl = CodeSeat(t) + 1
+	}
+}
+
 func (s *State) applyAttack(k *prep, a Action) {
 	if a.Kind() == AkDone {
 		s.finishAttacks(k)
@@ -456,7 +469,7 @@ func (s *State) applyAttack(k *prep, a Action) {
 	}
 	sl := s.objs[a.Source()].slot
 	s.perms[sl].flags |= pfAttacking
-	s.setAttackTarget(&s.perms[sl], a.Target())
+	s.setDeclaredAttackTarget(&s.perms[sl], a.Target())
 	s.perms[sl].bord = objWord(s.nAttackers) // declaration order (fireAttacksGen)
 	s.touchSl(sl)
 	s.nAttackers++
@@ -508,7 +521,7 @@ func (s *State) declareAttacksDone(k *prep) {
 		if kw&(kop.KwFirstStrike|kop.KwDoubleStrike) != 0 {
 			fs = true
 		}
-		if k.gen == nil && s.subs[kop.TrigAttacks].any() {
+		if k.gen == nil && s.evLive(kop.TrigAttacks) {
 			s.fireObj(k, kop.TrigAttacks, sl, p.obj, p.ctrl, 0)
 		}
 	}
@@ -530,7 +543,7 @@ func (s *State) declareAttacksDone(k *prep) {
 				s.stampDefSeat(n0, s.firstAtkSeat(k), NoTarget) // the declaration's first event's seat (a player)
 			}
 		}
-		if s.subs[kop.TrigTaps].any() {
+		if s.evLive(kop.TrigTaps) {
 			tb := s.tapBatchOpen(k)   // the declaration's taps are one tapping action (CR 508.1f; trig_tapall.go)
 			s.fireTapsMask(k, tapped) // gorge taps the attackers after the declaration's triggers
 			s.tapBatchClose(tb)
@@ -538,7 +551,7 @@ func (s *State) declareAttacksDone(k *prep) {
 		for m := tapped; m.any(); m = m.rest() {
 			s.markTapped(k, m.first()) // after the declaration's Taps triggers
 		}
-	} else if s.nAttackers > 0 && s.subs[kop.TrigAttackersDeclared].any() {
+	} else if s.nAttackers > 0 && s.evLive(kop.TrigAttackersDeclared) {
 		s.firePlayer(k, kop.TrigAttackersDeclared, s.active, int16(s.nAttackers))
 	}
 	if s.bandAsk(k) {
@@ -564,6 +577,9 @@ func (s *State) fireAttacksGen(k *prep) {
 	m := s.subs[kop.TrigAttacks].or(s.subs[kop.TrigAttackersDeclared]).and(s.occ)
 	if k.gen.grantTrigEv&(1<<kop.TrigAttacks|1<<kop.TrigAttackersDeclared) != 0 {
 		m = s.grantTrigHosts(k, m)
+	}
+	if k.gen.gainsTrigEv&(1<<kop.TrigAttacks|1<<kop.TrigAttackersDeclared) != 0 {
+		m = s.gainsTrigHosts(k, m) // trig_gainedtrig.go
 	}
 	emb := k.gen.embCombatEv&(1<<kop.TrigAttacks|1<<kop.TrigAttackersDeclared) != 0 && s.anyEmb()
 	if !m.any() && len(k.gen.graveTrig) == 0 && !emb && !s.anyCommandTrigger(k, kop.TrigAttackersDeclared) && !k.gen.ringOn() {
@@ -753,6 +769,52 @@ var DebugDropDefSeat bool
 // stalls when the attacker has left before the trigger resolves).
 var DebugAtkTriggerNoDefenderBind bool
 
+// fireAtkListener queues one Attacks or AttackersDeclared listener's triggers
+// for one DeclareAttackers event of fireAtkGroup (grp its attackers, atk the
+// declaration's, first the declaration's first event). A method, not a
+// closure: a func value taking grp makes the caller's grp array escape.
+func (s *State) fireAtkListener(k *prep, l trigListener, a *kop.Ability, grp, atk []Slot, first bool) {
+	if a.Trig.Event == kop.TrigAttackersDeclared {
+		if a.Trig.Flags2&kop.Tf2DefPlayer != 0 {
+			s.fireDefPlayer(k, l, a, grp) // act_discover.go
+			return
+		}
+		if first {
+			n := int16(s.nAttackers)
+			if a.Trig.Filter != 0 {
+				n = s.attackersMatching(k, l, a, atk) // filter_predicates.go
+			}
+			if n > 0 {
+				s.fireAtkDecl(k, l, a, n, atk) // trig_attackers.go
+			}
+		}
+		return
+	}
+	if a.Trig.Flags2&(kop.Tf2Alone|kop.Tf2Attacked) != 0 && !s.attacksGate(k, a.Trig.Flags2, l.ctrl, s.perms[grp[0]].atk) {
+		return // gorge Alone$ / Attacked$ (filter_predicates.go)
+	}
+	if a.Trig.Flags4&kop.Tf4DefEnch != 0 && !s.attacksDefEnch(k, l, grp) {
+		return // Attacked$ Player.EnchantedBy (trig_attacksenchanted.go)
+	}
+	if a.Trig.N == kop.TrigNTraining && !s.trainingGate(k, l.sl, atk) {
+		return // Training (kw_training.go)
+	}
+	for _, as := range grp {
+		if k.gen.anyAddPhase && a.Trig.Flags3&kop.Tf3FirstAttack != 0 && s.attackedBefore(k, s.perms[as].obj) {
+			continue // FirstAttack$ True: AttacksThisTurn == 1 (act_addphase.go)
+		}
+		n0 := s.npend
+		s.objTrigGen(k, kop.TrigAttacks, l, a, as, s.perms[as].obj, s.perms[as].ctrl, 0)
+		if s.duel() && !DebugAtkTriggerNoDefenderBind && progHasOp(a, kop.OpAtkPWGuard) {
+			// past two seats stampDefSeat binds every attack trigger of
+			// the event; at two seats only a TriggeredDefender damage
+			// reads the seat, and binding every trigger would change
+			// the others' reads.
+			s.stampDefSeat(n0, s.atkSeat(k, as), s.perms[as].atk)
+		}
+	}
+}
+
 // fireAtkGroup runs the listeners in ord[:n] over one DeclareAttackers event
 // of fireAttacksGen: grp is the event's attackers, atk the declaration's;
 // first marks the declaration's first event.
@@ -760,47 +822,7 @@ func (s *State) fireAtkGroup(k *prep, ord *[MaxPerm]Slot, n int, atk, grp []Slot
 	isAtk := func(a *kop.Ability) bool {
 		return a.Trig.Event == kop.TrigAttacks || a.Trig.Event == kop.TrigAttackersDeclared
 	}
-	fire := func(l trigListener, a *kop.Ability) {
-		if a.Trig.Event == kop.TrigAttackersDeclared {
-			if a.Trig.Flags2&kop.Tf2DefPlayer != 0 {
-				s.fireDefPlayer(k, l, a, grp) // act_discover.go
-				return
-			}
-			if first {
-				n := int16(s.nAttackers)
-				if a.Trig.Filter != 0 {
-					n = s.attackersMatching(k, l, a, atk) // filter_predicates.go
-				}
-				if n > 0 {
-					s.fireAtkDecl(k, l, a, n, atk) // trig_attackers.go
-				}
-			}
-			return
-		}
-		if a.Trig.Flags2&(kop.Tf2Alone|kop.Tf2Attacked) != 0 && !s.attacksGate(k, a.Trig.Flags2, l.ctrl, s.perms[grp[0]].atk) {
-			return // gorge Alone$ / Attacked$ (filter_predicates.go)
-		}
-		if a.Trig.Flags4&kop.Tf4DefEnch != 0 && !s.attacksDefEnch(k, l, grp) {
-			return // Attacked$ Player.EnchantedBy (trig_attacksenchanted.go)
-		}
-		if a.Trig.N == kop.TrigNTraining && !s.trainingGate(k, l.sl, atk) {
-			return // Training (kw_training.go)
-		}
-		for _, as := range grp {
-			if k.gen.anyAddPhase && a.Trig.Flags3&kop.Tf3FirstAttack != 0 && s.attackedBefore(k, s.perms[as].obj) {
-				continue // FirstAttack$ True: AttacksThisTurn == 1 (act_addphase.go)
-			}
-			n0 := s.npend
-			s.objTrigGen(k, kop.TrigAttacks, l, a, as, s.perms[as].obj, s.perms[as].ctrl, 0)
-			if s.duel() && !DebugAtkTriggerNoDefenderBind && progHasOp(a, kop.OpAtkPWGuard) {
-				// past two seats stampDefSeat binds every attack trigger of
-				// the event; at two seats only a TriggeredDefender damage
-				// reads the seat, and binding every trigger would change
-				// the others' reads.
-				s.stampDefSeat(n0, s.atkSeat(k, as), s.perms[as].atk)
-			}
-		}
-	}
+	fire := func(l trigListener, a *kop.Ability) { s.fireAtkListener(k, l, a, grp, atk, first) }
 	for _, sl := range ord[:n] {
 		s.slotTriggers(k, sl, isAtk, fire)
 	}
@@ -809,7 +831,7 @@ func (s *State) fireAtkGroup(k *prep, ord *[MaxPerm]Slot, n int, atk, grp []Slot
 	}
 	s.eachCommandTrigger(k, kop.TrigAttackersDeclared, fire)
 	if emb {
-		s.emblemAtkListeners(k, fire) // gorge: the delayed registrations are checked after the event's face triggers
+		s.emblemAtkListeners(k, grp, atk, first) // gorge: the delayed registrations are checked after the event's face triggers
 	}
 	if k.gen.ringOn() {
 		s.ringAtkTrigs(k, grp) // the Ring emblem's level 2 (act_ring.go), after the event's triggers
@@ -1242,14 +1264,17 @@ func (s *State) finishBlocks(k *prep) {
 			s.touchSl(a)
 		}
 	}
-	if k.gen != nil && (s.subs[kop.TrigBecomesBlocked].any() || k.gen.embCombatEv&(1<<kop.TrigBecomesBlocked) != 0) {
+	if k.gen != nil && (s.evLive(kop.TrigBecomesBlocked) || k.gen.embCombatEv&(1<<kop.TrigBecomesBlocked) != 0) {
 		s.fireBlockedGen(k)
 	}
-	if k.gen != nil && (s.subs[kop.TrigBlocks].any() || k.gen.embCombatEv&(1<<kop.TrigBlocks) != 0) {
+	if k.gen != nil && (s.evLive(kop.TrigBlocks) || k.gen.embCombatEv&(1<<kop.TrigBlocks) != 0) {
 		s.fireBlocksGen(k)
 	}
 	if k.gen != nil && k.gen.anyUnblocked {
 		s.fireUnblocked(k)
+	}
+	if k.gen != nil && k.gen.anyUnbOnce {
+		s.fireUnblockedOnce(k)
 	}
 	if k.gen != nil && k.gen.ringOn() {
 		s.ringBlockTrigs(k) // the Ring emblem's level 3 (act_ring.go), after the event's triggers
@@ -1263,7 +1288,7 @@ func (s *State) finishBlocks(k *prep) {
 			if s.kw(k, b)&(kop.KwFirstStrike|kop.KwDoubleStrike) != 0 {
 				s.fsStep = true
 			}
-			if k.gen == nil && s.subs[kop.TrigBlocks].any() {
+			if k.gen == nil && s.evLive(kop.TrigBlocks) {
 				s.fireObj(k, kop.TrigBlocks, b, s.perms[b].obj, s.perms[b].ctrl, 0)
 			}
 		}
@@ -1468,11 +1493,11 @@ func (s *State) combatDamage(k *prep, first bool) bool {
 		trample := kw&kop.KwTrample != 0
 		for i := 0; i < nb && rem > 0; i++ {
 			b := bl[i]
-			_, t := s.pt(k, b)
+			bp, t := s.pt(k, b)
 			// marked damage only: what another attacker assigns a blocker of
 			// two in this step is not read (gorge lethalDamageNeed; CR
 			// 702.19b allows either, combat_extrablock.go)
-			lethal := t - int(s.perms[b].damage)
+			lethal := s.lethalThreshold(k, b, bp, t) - int(s.perms[b].damage)
 			if dt {
 				// A deathtouch source owes the blocker only 1, or nothing
 				// once the blocker already carries a Deathtouched mark: the
@@ -1628,7 +1653,7 @@ func (s *State) combatDamage(k *prep, first bool) bool {
 			s.gainLife(k, pp, int(r.gain[pp]))
 		}
 	}
-	if s.subs[kop.TrigDamageDone].any() {
+	if s.evLive(kop.TrigDamageDone) {
 		m = s.occ
 		for m.any() {
 			sl := m.first()
@@ -1700,7 +1725,7 @@ func (s *State) loseLife(k *prep, p uint8, n int) {
 	}
 	s.pl[p].life -= int16(n)
 	s.pl[p].lifeLost += int16(n)
-	if s.subs[kop.TrigLifeLost].any() {
+	if s.evLive(kop.TrigLifeLost) {
 		s.firePlayer(k, kop.TrigLifeLost, p, int16(n))
 	}
 	if k.speed {
@@ -1713,6 +1738,9 @@ func (s *State) gainLife(k *prep, p uint8, n int) {
 		return
 	}
 	if k.gen != nil && k.gen.anyCantGain && s.playerBanned(k, kop.StatCantGainLife, p) {
+		if s.lifePreventCompetes(k, p) {
+			s.stall(StallLifeRepl) // static_lifeprevent.go: gorge asks the CR 616.1 order
+		}
 		return // static_cantdraw.go: swallowed before any gain replacement
 	}
 	if k.gen != nil && k.gen.anyRepl&(rbDblLife|rbPlusLife) != 0 {
@@ -1724,7 +1752,7 @@ func (s *State) gainLife(k *prep, p uint8, n int) {
 	}
 	s.pl[p].life += int16(n)
 	s.pl[p].lifeGained += int16(n)
-	if s.subs[kop.TrigLifeGained].any() || k.gen != nil && k.gen.embCombatEv&(1<<kop.TrigLifeGained) != 0 {
+	if s.evLive(kop.TrigLifeGained) || k.gen != nil && k.gen.embCombatEv&(1<<kop.TrigLifeGained) != 0 {
 		s.firePlayer(k, kop.TrigLifeGained, p, int16(n))
 	}
 }

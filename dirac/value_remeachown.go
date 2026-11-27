@@ -13,15 +13,21 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // append it to s.g.rem (gorge appends the subject player to cc.Remembered),
 // so every entry is a card and needs no non-card skip.
 //
+// n1 is the expression's N: 1 drops the nonland test, counting every
+// remembered card the repeated player owns (gorge Remembered$Valid
+// Card.RememberedPlayerCtrl, Braids, Arisen Nightmare's gate: a card off the
+// battlefield is controlled by its owner, so the card the repeated opponent
+// sacrificed counts and the card the resolving controller sacrificed does not).
+//
 //go:noinline
-func (s *State) remEachOwnNonLand(k *prep) int {
+func (s *State) remEachOwnNonLand(k *prep, n1 int16) int {
 	if s.g.repEnd == 0 {
 		return 0
 	}
 	n := 0
 	for _, o := range s.g.rem[:s.g.nrem] {
 		ob := &s.objs[o]
-		if ob.owner() == s.g.eachPl && (DebugRemEachOwnAnyCard || k.t.Cards[ob.card].Types&kop.TLand == 0) {
+		if ob.owner() == s.g.eachPl && (DebugRemEachOwnAnyCard || n1 != 0 || k.t.Cards[ob.card].Types&kop.TLand == 0) {
 			n++
 		}
 	}

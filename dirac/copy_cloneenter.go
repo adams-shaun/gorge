@@ -62,6 +62,26 @@ func (s *State) execReturnSimple(k *prep, in *kop.Instr, o Obj) {
 	if k.gen != nil {
 		s.g.retMiss = false
 	}
+	if z == kop.ZoneBattlefield && in.C&kop.RetFaceDown != 0 && !DebugIgnoreFaceDownEntry {
+		// CR 708.2: the return enters face down. The face-down
+		// characteristics are set before the entry's triggers match the
+		// permanent, and a FaceDownSetType$ override (a following
+		// OvEnterWith OpOverride) lands before the held enters checks.
+		ctrl := ob.owner()
+		if in.W == kop.RefController {
+			ctrl = s.res.e.ctrl // GainControl$ True (Ashcloud Phoenix)
+		}
+		if s.g.batchLatch&batchHeld != 0 && k.gen != nil && s.enterWithOverride(k, in) {
+			sl := s.enterFaceDownMoved(k, o, ctrl, from)
+			s.enterWithApply(k, sl)
+			s.g.ewDone++
+		} else if k.gen != nil && s.enterWithOverride(k, in) {
+			s.enterFaceDownAssimilated(k, o, ctrl, from)
+		} else {
+			s.enterFaceDownMoved(k, o, ctrl, from)
+		}
+		return
+	}
 	if z == kop.ZoneBattlefield && k.gen != nil && k.gen.anyMayLimit {
 		s.countMayPlayLand(k, o, from)
 	}

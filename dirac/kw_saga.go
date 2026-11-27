@@ -51,7 +51,7 @@ var DebugIgnoreChapterCross bool
 // first chapter crossed is the count before the event, floored at 1).
 //
 //go:noinline
-func (s *State) chapterCrossed(sl Slot, a *kop.Ability, amt int) bool {
+func (s *State) chapterCrossed(k *prep, sl Slot, a *kop.Ability, amt int) bool {
 	if DebugIgnoreChapterCross || sl == NoSlot || amt <= 0 {
 		return false
 	}
@@ -61,6 +61,9 @@ func (s *State) chapterCrossed(sl Slot, a *kop.Ability, amt int) bool {
 		first = 1
 	}
 	n := int(a.Gate.N)
+	if s.readAheadEntryTurn(k, sl) {
+		return n == count // CR 702.155a: only the chapter its lore count names (kw_readahead.go)
+	}
 	return n >= first && n <= count
 }
 
@@ -82,7 +85,7 @@ func (s *State) addLore(k *prep, sl Slot, n int) bool {
 	if k.anyCtrAdded {
 		s.ctrNoteBy(k, sl, int(kop.CtrLore), s.perms[sl].ctrl) // the turn-based lore counter's adder is the Saga's controller (gorge saga.go)
 	}
-	if s.subs[kop.TrigCounterAddedOnce].any() {
+	if s.evLive(kop.TrigCounterAddedOnce) {
 		s.g.lastCK = kop.CtrLore
 		s.fireObj(k, kop.TrigCounterAddedOnce, sl, p.obj, p.ctrl, int16(n))
 	}

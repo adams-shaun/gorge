@@ -22,13 +22,15 @@ const flipSkipSrc = "Name:Test Flip Skip\nManaCost:2 R\nTypes:Sorcery\n" +
 	"SVar:DBSkip:DB$ SkipTurn | NumTurns$ X\n" +
 	"Oracle:Flip three coins. Skip X turns, where X is the number of heads.\n"
 
-// countFlipHeads counts the canonical heads-flip Notes a resolution emitted
-// (FlipCoinNote is the encoding the FlippedCoin trigger matcher reads).
+// countFlipHeads counts the heads-flip result Notes a resolution emitted,
+// via the shared effects.FlipNoteResult parser (the encoding the FlippedCoin
+// trigger matcher reads). A NoCall$ flip's Note carries the " (no call)"
+// annotation, and it is still a flip that landed heads even though it wins
+// nothing, so the parser -- not an exact-text match -- is what counts it.
 func countFlipHeads(e *Engine, flipper state.PlayerID) int {
 	n := 0
 	for _, ev := range e.L.Events {
-		if ev.Kind == events.Note && ev.Player == flipper &&
-			ev.Text == effects.FlipNotePrefix+"heads" {
+		if f, win, ok := effects.FlipNoteResult(ev); ok && win && f == flipper {
 			n++
 		}
 	}
@@ -72,6 +74,7 @@ func TestSkipTurnNoCallBranchFiresOnceWithTotalHeads(t *testing.T) {
 		t.Fatalf("synthetic card failed to parse: %v", d)
 	}
 	e, cfg := corpusEngineCfg(t, reg, []*cards.Card{c}, nil)
+	forceCoinHeads(e)
 	id := moveByName(t, e, 0, "Test Flip Skip", state.ZBattlefield)
 	if e.G.Obj(id).Zone != state.ZBattlefield {
 		t.Fatal("precondition: Test Flip Skip must be on the battlefield")
@@ -82,7 +85,7 @@ func TestSkipTurnNoCallBranchFiresOnceWithTotalHeads(t *testing.T) {
 
 	heads := countFlipHeads(e, 0)
 	if heads < 1 || heads > 3 {
-		t.Fatalf("precondition: seeded flips produced %d heads, want 1..3 so the deferred branch actually fires", heads)
+		t.Fatalf("precondition: forced flips produced %d heads, want 1..3 so the deferred branch actually fires", heads)
 	}
 	grants := countSkipTurnEvents(e, func(ev events.Event) bool { return ev.Amount > 0 })
 	if grants != 1 {
@@ -117,6 +120,7 @@ func TestRalZarekGuestLecturerUltimateSkipsOpponent(t *testing.T) {
 		}
 	}
 	e, cfg := corpusEngineCfg(t, reg, []*cards.Card{ral}, nil)
+	forceCoinHeads(e)
 	ralID := moveByName(t, e, 0, "Ral Zarek, Guest Lecturer", state.ZBattlefield)
 	if e.G.Obj(ralID).Zone != state.ZBattlefield {
 		t.Fatal("precondition: Ral Zarek must be on the battlefield")
@@ -134,7 +138,7 @@ func TestRalZarekGuestLecturerUltimateSkipsOpponent(t *testing.T) {
 
 	heads := countFlipHeads(e, 0)
 	if heads < 1 || heads > 5 {
-		t.Fatalf("precondition: seeded ultimate produced %d heads, want 1..5 so the skip actually happens", heads)
+		t.Fatalf("precondition: forced ultimate produced %d heads, want 1..5 so the skip actually happens", heads)
 	}
 	grants := countSkipTurnEvents(e, func(ev events.Event) bool {
 		return ev.Amount > 0 && ev.Player == 1

@@ -353,6 +353,11 @@ func refSubs(pt *poolTables, d *kop.CardDef, ovVals []kop.ValueRef) []uint8 {
 	var abil func(ab *kop.Ability)
 	abil = func(ab *kop.Ability) {
 		filt(ab.Cost.Filter)
+		if int(ab.CostProg) < len(pt.costProgs) {
+			for _, at := range pt.costProgs[ab.CostProg] {
+				filt(at.F) // a cost program's atom filters (lower_costprog.go)
+			}
+		}
 		for _, t := range ab.Targets {
 			filt(t.Filter)
 			filt(t.SpellF) // TgtSpellTgting's and TgtStackTgting's spell-side filter
@@ -428,7 +433,9 @@ func refSubs(pt *poolTables, d *kop.CardDef, ovVals []kop.ValueRef) []uint8 {
 	filt(d.AltAddCost.Filter)
 	filt(d.KickerCost.Filter)
 	filt(d.BeholdF)
+	filt(d.OfferingF) // the offering's sacrifice filter (kw_offering.go)
 	filt(d.RevealF)
+	filt(d.MorphPick.Filter) // the turn-up pick's candidates (CardDef.MorphPick)
 	filt(d.WardSac)
 	filt(d.CastBF)   // the frozen count's filter (CardDef.CastBF)
 	filt(d.ProtFrom) // K:Protection:Coyote can't name a subtype the matchup then drops

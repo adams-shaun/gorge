@@ -988,6 +988,12 @@ func (lc *lowerCtx) refuseGatedMana(ms []*lAbility) bool {
 	if gated == 0 {
 		return false
 	}
+	if len(ms) == 2 && metalcraftDynPair(ms[0], ms[1]) {
+		// Urza's Workshop: a plain {T}: Add {C} and a Metalcraft$-gated
+		// {T}: Add {C} for each Urza's land. The kernel's evaluated pair
+		// (mana_dynpair.go) reads the gate per view (lower_metalcraftdyn.go).
+		return true
+	}
 	if len(ms) != 1 {
 		for _, a := range ms {
 			if metalcraftGate(a.ActCond) {
@@ -1371,15 +1377,20 @@ const maxEachMana = 4
 
 // gatedLargerSameColour reports the pair refuseGatedMana names: a plain
 // unrestricted {T}: Add one mana of a fixed colour, then a gated {T}: Add a
-// literal two or more of that same colour.
+// literal two or more of that same colour. The colour may be "any one colour"
+// (Produced$ Any) on both abilities (Sceptre of Eternal Glory: three of any
+// one colour beside one of any colour), and the gate an IsPresent$ presence
+// count or a CheckSVar$ value count (CR 602.5b), both read as Trig.Cond.
 func gatedLargerSameColour(ms []*lAbility) bool {
-	if len(ms) != 2 || ms[0].ActCond.Kind != cNone || ms[1].ActCond.Kind != cPresent {
+	if len(ms) != 2 || ms[0].ActCond.Kind != cNone || ms[1].ActCond.Kind != cPresent && ms[1].ActCond.Kind != cValue {
 		return false
 	}
 	c := *ms[1]
 	c.ActCond = lCond{}
 	m := c.Mana
+	m0 := ms[0].Mana
+	oneColour := len(m0.Colors) == 1 || m0.Colors == "WUBRG"
 	return plainTapMana(ms[0], false) && unrestrictedOne(ms[0]) && plainTapMana(&c, false) &&
-		len(ms[0].Mana.Colors) == 1 && !ms[0].Mana.Choice && !ms[0].Mana.Each &&
-		m.Colors == ms[0].Mana.Colors && !m.Choice && !m.Each && m.Amount.Kind == vConst && m.Amount.N > 1
+		oneColour && !m0.Choice && !m0.Each &&
+		m.Colors == m0.Colors && !m.Choice && !m.Each && m.Amount.Kind == vConst && m.Amount.N > 1
 }

@@ -300,6 +300,14 @@ func effDealDamage(h Host, c *Ctx, sa *cards.SA) {
 					multiSources = append(multiSources, id)
 				}
 			}
+			if dp.RelativeTarget && len(multiSources) == 0 {
+				// A relative multi-source line resolves its recipient per
+				// source (aura barbs: each enchantment damages its own
+				// controller). With no source there is no recipient: the
+				// resolving spell must not stand in and damage its own
+				// controller (CR 609.7a has no provenance to assign).
+				return
+			}
 		}
 	}
 	// DamageMap$ True (Forge's AbilityFactoryDealDamage "addDamage" into the
@@ -456,10 +464,13 @@ func divideEvenlyDown(h Host, c *Ctx, sa *cards.SA, n int32) int32 {
 // caller falls through to its single-rider path unchanged.
 func emitFromEachSource(h Host, c *Ctx, sa *cards.SA, dp *DealDamageParams, sources []state.ObjID, n int32,
 	remember bool, dying *[]state.Target, bindExcess func(o *state.Object, lethal, dealt int32)) bool {
-	if len(sources) < 2 {
+	relative := dp.RelativeTarget
+	if len(sources) == 0 {
 		return false
 	}
-	relative := dp.RelativeTarget
+	if len(sources) < 2 && !relative {
+		return false
+	}
 	var shared []state.Target
 	if !relative {
 		shared = definedDelayRememberedTargets(h, c, sa)

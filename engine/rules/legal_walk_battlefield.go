@@ -303,7 +303,7 @@ func (w *legalWalk) battlefieldWalk() {
 						if cards.IsManaAbilitySA(ab) && !loyal {
 							continue
 						}
-						if ab.ParamStr(cards.PKSorcerySpeed) == "True" && !sorcery {
+						if ab.ParamStr(cards.PKSorcerySpeed) == "True" && !sorcery && !e.equipAtInstantSpeed(p, id, ab) {
 							continue
 						}
 						// Activator$ constrains who may activate the ability, not who
@@ -451,7 +451,7 @@ func (w *legalWalk) battlefieldWalk() {
 						// closed on an unpriceable rider, so no unpayable option is ever
 						// offered, and the ability is withheld only when NEITHER cost is
 						// payable.
-						altCost, hasAlt := e.abilityAlternateCostFor(p, ab)
+						altCost, hasAlt := e.abilityAlternateCostFor(p, id, ab)
 						printedOK := w.offerCastable(p, id, cost, abilityScope(ab), true) || w.autoPayOffer(p, id, i, cost, ab)
 						altOK := hasAlt && w.offerCastable(p, id, altCost, abilityScope(ab), true)
 						if !printedOK && !altOK {
@@ -545,7 +545,7 @@ func (w *legalWalk) battlefieldWalk() {
 						if ab == nil || !abilityZoneOK(ab, z) {
 							continue
 						}
-						if ab.ParamStr(cards.PKSorcerySpeed) == "True" && !sorcery {
+						if ab.ParamStr(cards.PKSorcerySpeed) == "True" && !sorcery && !e.equipAtInstantSpeed(p, id, ab) {
 							continue
 						}
 						if !e.activatorAllows(p, id, ab) {
@@ -651,7 +651,7 @@ func (w *legalWalk) battlefieldWalk() {
 					if cards.IsManaAbilitySA(ab) && !e.isLoyaltyAbility(ab) {
 						continue
 					}
-					if ab.ParamStr(cards.PKSorcerySpeed) == "True" && !sorcery {
+					if ab.ParamStr(cards.PKSorcerySpeed) == "True" && !sorcery && !e.equipAtInstantSpeed(p, id, ab) {
 						continue
 					}
 					// Activator$ and ActivationPhases$ apply to a granted/gained ability

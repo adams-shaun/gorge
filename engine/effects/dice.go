@@ -724,7 +724,7 @@ func runtimeSVar(c *Ctx, name string) (int32, bool) {
 }
 
 // runtimePublished reports the value a runtime SVar publication of this
-// resolution made under name. Two producers publish here, both through the
+// resolution made under name. Three producers publish here, both through the
 // same three readers (Num's bare-name fallback, evalCountExpr's SVar$ head
 // and a bare-name body, and Ctx.SpecContext's numeric-RHS resolver):
 //
@@ -734,6 +734,8 @@ func runtimeSVar(c *Ctx, name string) (int32, bool) {
 //   - api:Vote's AmountFromVotes$ RepeatEach: the reserved name "Votes"
 //     bound to the current loop subject's vote tally (Ctx.VotePublished,
 //     the form of Forge's sa.setSVar("Votes", "Number$<n>")).
+//   - a SubCounter cost: CostCountersRemoved, the counters the cost removed
+//     (Ctx.Paid.CountersRemoved; zero when the cost removed none).
 //
 // ok=false on any resolution that published no such name -- the conservative
 // same-as-before degrade every unmodelled head applies.
@@ -743,6 +745,13 @@ func runtimePublished(c *Ctx, name string) (int32, bool) {
 	}
 	if v, ok := runtimeSVar(c, name); ok {
 		return v, true
+	}
+	if name == costCountersRemovedSVar {
+		// Forge's CostRemoveCounter publishes the counters a SubCounter cost
+		// part removed under this name on the paying ability (Jar of
+		// Eyeballs' X, the counters removed this way); rules carries the
+		// count onto the stack object (castCountersRemoved).
+		return c.Paid.CountersRemoved, true
 	}
 	if c.Vote.PublishedSet && name == "Votes" {
 		return c.Vote.Published, true
@@ -778,6 +787,9 @@ func runtimePublished(c *Ctx, name string) (int32, bool) {
 func rollPublished(c *Ctx, name string) (int32, bool) {
 	return runtimePublished(c, name)
 }
+
+// costCountersRemovedSVar is the runtime SVar name of Ctx.Paid.CountersRemoved.
+const costCountersRemovedSVar = "CostCountersRemoved"
 
 type diceRuntimePublishCode uint16
 

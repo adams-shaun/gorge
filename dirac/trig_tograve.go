@@ -73,7 +73,7 @@ func (s *State) fireToGrave(k *prep, o Obj, from kop.Zone) {
 //
 //go:noinline
 func (s *State) fireToGraveDies(k *prep, sl Slot, z kop.Zone) {
-	if k.gen == nil || !k.gen.anyToGrave || z != kop.ZoneGraveyard || !s.subs[kop.TrigDies].any() {
+	if k.gen == nil || !k.gen.anyToGrave || z != kop.ZoneGraveyard || !s.evLive(kop.TrigDies) {
 		return
 	}
 	p := &s.perms[sl]

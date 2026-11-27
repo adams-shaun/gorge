@@ -169,6 +169,15 @@ func presentZoneValue(zn, zones, spec string, lc *lowerCtx) (lValue, error) {
 		// battlefield is controlled by its owner
 		return lValue{Kind: vCountHand, F: f}, nil
 	case "Library":
+		if strings.EqualFold(strings.TrimSpace(spec), "Card.YouOwn") {
+			// "no cards you own in a library": a card in a library is
+			// normally its controller's, so the owned-cards count is the
+			// controller's library size, the same read Count$ValidLibrary
+			// Card.YouOwn takes (value.go). As a bounded value it survives
+			// selfCondCheck beside a characteristic write, unlike the
+			// general filter count (Living Conundrum's library-empty arm).
+			return lValue{Kind: vLibrarySizeOf, Ref: lRef{Kind: rYou}}, nil
+		}
 		return lValue{Kind: vCountHand, N: 1, F: f}, nil // Count$ValidLibrary's read: every library
 	}
 	return lValue{}, refuse("PresentZone %q", zones)

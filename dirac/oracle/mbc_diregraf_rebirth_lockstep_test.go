@@ -8,7 +8,7 @@ const diregrafFlashbackRepro = "diregraf_rebirth_flashback_two_filter_budget"
 // the recorded shrunk game; decision 1183): the board holds four Swamps,
 // Artifact Unknown Shores and Heap Gate ({1},{T}: add one mana of any color)
 // beside Turbulent Shore and an Eldrazi Spawn. gorge's prefix search walks its
-// 160-node budget (potentialScriptNodes) across the two filter lands, dies
+// potentialScriptNodes budget across the two filter lands, dies
 // before a script for the flashback cast is found and withholds the cast as
 // census_incomplete, offering only pass and the land play. The kernel used to
 // price it: #2392's graveyard-cast pip hint led its grant and tap-another

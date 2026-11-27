@@ -1826,19 +1826,28 @@ func changeTargetChooser(h Host, c *Ctx, sa *cards.SA) state.PlayerID {
 // it the effect changes the targets (CR 115.7a): each must move to another legal
 // target, and unless every one can, none does. ChangeSingleTarget$ is "change a
 // target" (CR 115.7b), which moves one. A random reselect may land where it was.
+//
+// Every stack object Defined$ names is redirected in turn, bottom first, each
+// finishing (its asks, then its write) before the next is offered: Boltbender's
+// Defined$ ValidStack SpellAbility is "any number of other spells and/or
+// abilities". The resolving redirect itself is never one of them.
 func effChangeTargets(h Host, c *Ctx, sa *cards.SA) {
-	var target *state.Object
+	self := c.ResolvingObj
+	if self == 0 {
+		self = c.Source
+	}
 	for _, t := range Defined(h, c, sa) {
-		if !t.IsPlayer {
-			if o := h.Game().Obj(t.Obj); o != nil && o.Zone == state.ZStack {
-				target = o
-				break
-			}
+		if t.IsPlayer || t.Obj == self {
+			continue
+		}
+		if o := h.Game().Obj(t.Obj); o != nil && o.Zone == state.ZStack {
+			changeTargetsOf(h, c, sa, o)
 		}
 	}
-	if target == nil {
-		return
-	}
+}
+
+// changeTargetsOf is effChangeTargets' redirect of the one stack object target.
+func changeTargetsOf(h Host, c *Ctx, sa *cards.SA, target *state.Object) {
 	subject := effectSA(target)
 	if subject == nil {
 		return
@@ -2160,6 +2169,28 @@ func repeatPlayers(h Host, c *Ctx, spec string) ([]state.PlayerID, bool) {
 	case repeatPlayersChosenYou:
 		add(c.Chosen)
 		selected[c.Controller] = true
+	case repeatPlayersImprintedController:
+		// The controller of each permanent in this source's imprint pile
+		// (Chaotic Transformation's ChangeZone$ ... Imprint$ True exiles,
+		// CR 607.2a). Read the last-known controller the ChangeZone captured
+		// where one exists, else the live object's -- the same order
+		// definedSpec's ImprintedController case uses, because events.Apply's
+		// Move resets a battlefield departure's controller to its owner
+		// (CR 400.7).
+		g := h.Game()
+		var ts []state.Target
+		for _, t := range imprintPileTargets(g, c) {
+			o := g.Obj(t.Obj)
+			if o == nil {
+				continue
+			}
+			p := o.Controller
+			if lp, ok := lkiControllerFor(c, t.Obj); ok {
+				p = lp
+			}
+			ts = append(ts, state.Target{Player: p, IsPlayer: true})
+		}
+		add(ts)
 	default:
 		// The shared player filter covers Player.Chosen and other qualifiers
 		// for which the engine has state. Unknown qualifiers fail closed and
@@ -2429,6 +2460,7 @@ const (
 	repeatPlayersOppNonRememberedController
 	repeatPlayersOppNonTriggeredDefender
 	repeatPlayersChosenYou
+	repeatPlayersImprintedController
 )
 
 var repeatPlayersCodes = state.NewStrCodes(
@@ -2448,4 +2480,5 @@ var repeatPlayersCodes = state.NewStrCodes(
 	state.StrEntry[repeatPlayersCode]{Key: "OppNonTriggeredDefender", Val: repeatPlayersOppNonTriggeredDefender},
 	state.StrEntry[repeatPlayersCode]{Key: ".Chosen,You", Val: repeatPlayersChosenYou},
 	state.StrEntry[repeatPlayersCode]{Key: "Chosen,You", Val: repeatPlayersChosenYou},
+	state.StrEntry[repeatPlayersCode]{Key: "ImprintedController", Val: repeatPlayersImprintedController},
 )

@@ -636,7 +636,21 @@ func (e *Engine) applyNonMoveReplacements(ev events.Event, matches []replMatch) 
 		}
 		ctx := e.replCtx(m, ev)
 		rewritesHeldEvent := replacementBodyRewritesHeldEvent(m.repl.With, ctx.SVars)
+		beforeObj, beforePlayer := ev.Obj, ev.Player
 		e.runReplaceWith(ctx, ev.Obj, m.repl.With, &ev)
+		if rewritesHeldEvent && ev.Kind == events.Damage && ev.Amount > 0 &&
+			(ev.Obj != beforeObj || ev.Obj == 0 && ev.Player != beforePlayer) {
+			// CR 702.16e on the redirected event: emit's protection guard
+			// read the ORIGINAL recipient, so a redirect (Pariah's "dealt to
+			// enchanted creature instead") onto a recipient protected from
+			// the source is prevented here, as Forge's damage prevention
+			// reads the final recipient.
+			if src := e.inFlightDamageSource(); src != 0 && e.redirectedProtected(ev, src) && !e.cantPreventDamage(src, ev.Obj) {
+				e.emit(events.Event{Kind: events.Note, Obj: ev.Obj, Player: ev.Player,
+					Amount: ev.Amount, Text: "prevented: protection"})
+				return stoppedDamage(ev), true
+			}
+		}
 		if rewritesHeldEvent {
 			// The body rewrote the held amount (changed) or could not resolve
 			// its value and left it alone; either way the event stands and the
@@ -673,6 +687,16 @@ func (e *Engine) applyNonMoveReplacements(ev events.Event, matches []replMatch) 
 // loop -- that dealt is 0. Returning the held Damage would let each of them
 // price a ghost hit from its still-intact Amount. Every other kind keeps its
 // historical shape.
+// redirectedProtected reports whether the recipient of a redirected Damage
+// event has protection from src (the check emit's guard makes on the
+// original recipient).
+func (e *Engine) redirectedProtected(ev events.Event, src state.ObjID) bool {
+	if ev.Obj != 0 {
+		return e.protectedFrom(ev.Obj, src)
+	}
+	return int(ev.Player) < len(e.G.Players) && e.playerProtectedFrom(ev.Player, src)
+}
+
 func stoppedDamage(ev events.Event) events.Event {
 	if ev.Kind == events.Damage {
 		return events.Event{}
@@ -1379,13 +1403,16 @@ func (e *Engine) applyReplacement(ev events.Event, m replMatch) (events.Event, b
 			// not reach the battlefield, so report it handled.
 			return ev, true
 		}
-		if ev.Kind == events.Draw || ev.Kind == events.DrawBatchProposal {
+		if ev.Kind == events.Draw || ev.Kind == events.DrawBatchProposal || emptyDrawProposal(ev) {
 			// A bodyless R:Event$ Draw line's complete replacement is stopping
 			// the draw (CR 614.1a). Reaching here means the election has already
 			// been made: a lone Optional$ replacement is asked at dispatch, and
 			// selecting one in a competition is itself the election. The
 			// DrawCards batch proposal is the same shape: its complete
-			// replacement is that the batch draws nothing.
+			// replacement is that the batch draws nothing. The attempted draw
+			// from an empty library (CR 614.11, emptyDrawProposal) stops the
+			// same way: the DrawEmpty mark is left unrecorded, so the CR 704.5b
+			// loss never follows.
 			return ev, true
 		}
 		return ev, false

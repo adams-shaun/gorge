@@ -139,7 +139,7 @@ var tokenKnownKeys = [...]string{
 	"DefinedDesc",
 	"DefinedTarget",
 	"Description",
-	"EffectZone", "Exclude",
+	"Duration", "EffectZone", "Exclude",
 	"ExcludeZone", "Exhaust",
 	"ForgetOtherRemembered",
 	"ForgetOtherTargets",
@@ -237,7 +237,7 @@ var tokenKnownKeys = [...]string{
 	"TokenToughness",
 	"TriggerController", "TriggerDescription",
 	"Type",
-	"Ultimate",
+	"Types", "Ultimate",
 	"UnlessAI",
 	"UnlessCost",
 	"UnlessPayer",
@@ -255,7 +255,7 @@ var tokenKnownKeys = [...]string{
 	"WithCountersAmount",
 	"WithCountersType",
 	"WithoutManaCost",
-	"XColor", "XMax",
+	"XAnnounceTitle", "XColor", "XMax",
 	"XMin",
 }
 

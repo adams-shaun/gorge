@@ -11,6 +11,11 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // cast nor a turn-face-up, so the same games diverge from gorge.
 var DebugIgnoreFaceDown bool
 
+// DebugIgnoreFaceDownEntry is the face-down-family mutation switch
+// (TestDemoFacedownMutation): with it set a ChangeZone FaceDown$ True return
+// enters face up, as if kop.RetFaceDown were not read.
+var DebugIgnoreFaceDownEntry bool
+
 // DebugTurnUpNoncreature is the kmanifest mutation switch
 // (TestManifestMutation): with it set a manifested or cloaked noncreature
 // also offers the printed mana-cost turn-up, which gorge never offers.
@@ -58,6 +63,18 @@ func (s *State) lostSlow(k *prep, sl Slot) bool {
 	return s.perms[sl].gty&gtyFaceDown != 0 || s.ovrLoses(k, sl)
 }
 
+// faceDownBlankOnly reports whether the permanent at sl's ability loss is
+// the CR 708.2 face-down blank alone: face down with the ovr flag word
+// clean and no override record or lose-all static taking its abilities
+// (genLost's three sources are the ovr flags, the face-down bit and
+// ovrLoses). Only this blank keeps the intrinsic "{T}: Add [c]" a basic
+// land subtype grants (CR 305.6, static_landtype.go#blgMask): a face-down
+// Forest under a real lose-all taps for nothing, as gorge's
+// rules/mana_activation.go handles the lost case before the face-down one.
+func (s *State) faceDownBlankOnly(k *prep, sl Slot) bool {
+	return s.faceDown(k, sl) && s.perms[sl].ovr.flags&(ovLoseAll|ovLoseAllEOT) == 0 && !s.ovrLoses(k, sl)
+}
+
 // blankCopy reports a copy of a face-down permanent, a token copy or a
 // permanent's copy layer (copy_facedown.go): gtyFaceDown gives it the
 // face-down characteristics, but it is face up and cannot be turned (CR 707.2).
@@ -100,13 +117,21 @@ func (s *State) faceDownSlots() (m slotMask) {
 }
 
 // clearFaceDown drops the face-down mark and the ovGenTy types and walk
-// flag it carried; refreshTy rederives both if an override still applies.
-func (s *State) clearFaceDown(sl Slot) {
+// flag it carried; refreshTy rederives both if an override still applies. A
+// FaceDownSetType$ override (kop.Override.FaceDownOnly) ends with the mark,
+// so the card's own face returns.
+func (s *State) clearFaceDown(k *prep, sl Slot) {
 	p := &s.perms[sl]
 	p.gty = 0
 	p.spare &^= spareCopyFaceDown
 	p.ovr.flags &^= ovGenTy
 	p.ovr.walk = 0
+	if k.gen != nil && k.gen.anyFaceDown {
+		s.dropFx(func(i int) bool {
+			r := &s.g.fx[i]
+			return r.sl == sl && r.kind == fxOverride && r.r.idx != 0 && k.t.Overrides[r.r.idx-1].FaceDownOnly
+		})
+	}
 	s.touchSl(sl)
 }
 
@@ -139,6 +164,31 @@ func (s *State) enterFaceDown(k *prep, o Obj, ctrl uint8, fam uint8, from ...kop
 		s.fireObj(k, kop.TrigETB, sl, o, ctrl, 0)
 	}
 	s.storyGrant(k) // the emit-tail grant, after the entry's triggers (kw_storied.go)
+	return sl
+}
+
+// enterFaceDownMoved is the ChangeZone FaceDown$ True return (CR 708.2,
+// kop.RetFaceDown): a generic face-down entry, never the manifest
+// procedure's provenance (CR 701.40b), so its turn-up is the printed
+// Morph/Megamorph/Disguise cost alone. A held entry frame (a union return's
+// batch) holds its enters check like enterMoved.
+func (s *State) enterFaceDownMoved(k *prep, o Obj, ctrl uint8, from kop.Zone) Slot {
+	if s.g.batchLatch&batchHeld != 0 {
+		sl := s.enterNF(k, o, ctrl, false, from, kop.MorphMorph)
+		if from == kop.ZoneGraveyard {
+			s.fireLeavesGraveyardSelf(k, sl, o)
+		}
+		s.g.held |= 1 << (s.perms[sl].ts & 7)
+		return sl
+	}
+	sl := s.enterNF(k, o, ctrl, false, from, kop.MorphMorph)
+	if from == kop.ZoneGraveyard {
+		s.fireLeavesGraveyardSelf(k, sl, o)
+	}
+	if s.anyETB(k) || k.anyOffGrant {
+		s.fireObj(k, kop.TrigETB, sl, o, ctrl, 0)
+	}
+	s.storyGrant(k)
 	return sl
 }
 
@@ -417,6 +467,9 @@ func (s *State) turnFaceUp(k *prep, o Obj, p uint8, proc ...uint8) {
 	if s.turnUpRevealStage(k, o, p, mode, kw) {
 		return // act_revealpick.go: the reveal pick among several candidates
 	}
+	if s.turnUpPickStage(k, o, p, mode, kw) {
+		return // face_morphpick.go: the pick part's ask parks the turn-up
+	}
 	s.settleTurnUp(k, o, p, mode, 0)
 }
 
@@ -452,24 +505,27 @@ func (s *State) turnUpCost(k *prep, sl Slot, mode uint8) (cost kop.ManaCost, meg
 }
 
 // settleTurnUp pays the priced turn-up at X = x and turns the permanent up;
-// a stale request (the permanent changed, the pool no longer pays) is a no-op.
-func (s *State) settleTurnUp(k *prep, o Obj, p uint8, mode uint8, x int) {
+// a stale request (the permanent changed, the pool no longer pays) is a
+// no-op. It reports whether the turn-up is parked still face down (an
+// attach-election ask, face_turnupattach.go): the caller keeps the window's
+// ctl until that ask is answered.
+func (s *State) settleTurnUp(k *prep, o Obj, p uint8, mode uint8, x int) bool {
 	ob := &s.objs[o]
 	if ob.zone != kop.ZoneBattlefield {
-		return
+		return false
 	}
 	sl := ob.slot
 	pm := &s.perms[sl]
 	if pm.ctrl != p || !s.faceDown(k, sl) {
-		return
+		return false
 	}
 	cost, megamorph, kw, ok := s.turnUpCost(k, sl, mode)
 	if !ok || !turnUpHybOK(&cost) {
-		return
+		return false
 	}
 	sp := turnUpSpecial(mode, k.t.Cards[s.cardAt(sl)].MorphFamily)
 	if !s.specialAffords(k, p, &cost, sp, sl, x) || kw && !s.turnUpKwPayable(k, p, sl) {
-		return
+		return false
 	}
 	cost = cost.AtX(x)
 	if cost.Hyb[0] != 0 {
@@ -479,18 +535,30 @@ func (s *State) settleTurnUp(k *prep, o Obj, p uint8, mode uint8, x int) {
 	if kw {
 		s.payTurnUpLife(k, p, sl) // face_morphlife.go
 	}
+	if k.gen.anyTurnUpRepl && s.turnUpAttachStage(k, o, p, mode, x) {
+		return true // face_turnupattach.go: the attach ask parks the turn-up still face down
+	}
+	s.turnUpDone(k, o, p, mode, x, megamorph)
+	s.passes = 0
+	return false
+}
+
+// turnUpDone folds a paid turn-up: the flip (its replacements, the face-up
+// characteristics and the TurnFaceUp triggers) and a Megamorph's +1/+1
+// counter. settleTurnUp's tail and the parked attach answer's fold.
+func (s *State) turnUpDone(k *prep, o Obj, p uint8, mode uint8, x int, megamorph bool) {
+	sl := s.objs[o].slot
 	s.turnUpFlip(k, sl, o, p, uint8(x))
 	if megamorph {
 		s.g.lastCK = kop.CtrP1P1
-		n := s.placeCounters(k, sl, int(kop.CtrP1P1), 1, pm.ctrl, ctrPutEffect)
+		n := s.placeCounters(k, sl, int(kop.CtrP1P1), 1, s.perms[sl].ctrl, ctrPutEffect)
 		if n > 0 && k.anyCtrAdded {
 			s.ctrNote(k, sl, int(kop.CtrP1P1))
 		}
-		if n > 0 && s.subs[kop.TrigCounterAddedOnce].any() {
-			s.fireObj(k, kop.TrigCounterAddedOnce, sl, pm.obj, pm.ctrl, int16(n))
+		if n > 0 && s.evLive(kop.TrigCounterAddedOnce) {
+			s.fireObj(k, kop.TrigCounterAddedOnce, sl, s.perms[sl].obj, s.perms[sl].ctrl, int16(n))
 		}
 	}
-	s.passes = 0
 }
 
 // turnUpFlip turns the face-down permanent at sl face up once any cost is
@@ -502,7 +570,10 @@ func (s *State) turnUpFlip(k *prep, sl Slot, o Obj, p uint8, x uint8) {
 	if k.gen.anyTurnUpRepl {
 		s.turnUpRepls(k, sl, o) // face_turnfaceup.go: the body runs while still face down
 	}
-	s.clearFaceDown(sl) // marks the slot changed (marks.go: every mutation marks)
+	s.clearFaceDown(k, sl) // marks the slot changed (marks.go: every mutation marks)
+	if k.gen.anyPermMark {
+		s.markFaceUp(k, sl) // PredPermMark mark 5 (Kaust): gorge's TurnFaceUp fold stamps the same fact
+	}
 	s.subscribe(sl, &k.cards[c], true)
 	s.refreshTy(k)
 	s.fireTurnFaceUp(k, sl, o, p, x)
@@ -525,4 +596,69 @@ func (s *State) fireTurnFaceUp(k *prep, sl Slot, o Obj, p uint8, x uint8) {
 			s.objTrigGen(k, kop.TrigTurnFaceUp, l, a, sl, o, p, int16(x))
 		})
 	}
+	s.fireGraveTurnFaceUp(k, sl, o, p, x)
+}
+
+// fireGraveTurnFaceUp queues the graveyard cards' TurnFaceUp triggers
+// (TriggerZones$ Graveyard: Deathmist Raptor's "whenever a permanent you
+// control is turned face up, you may return this card"). The battlefield
+// listeners fire first, in battlefield order; the graveyard walk is the
+// seat-major grave order the other grave scans use.
+//
+//go:noinline
+func (s *State) fireGraveTurnFaceUp(k *prep, sl Slot, o Obj, p uint8, x uint8) {
+	if len(k.gen.graveTrig) == 0 {
+		return
+	}
+	for _, c := range k.gen.graveTrig {
+		cd := &k.t.Cards[c]
+		for pp := uint8(0); pp < s.nSeats(); pp++ {
+			if s.out(pp) {
+				continue
+			}
+			pl := &s.pl[pp]
+			for i := 0; i < int(pl.graveN); i++ {
+				go_ := pl.grave[i]
+				if s.objs[go_].card != c {
+					continue
+				}
+				for j := range cd.Abilities {
+					a := &cd.Abilities[j]
+					if a.Kind != kop.AbTriggered || a.Trig.Zone != kop.ZoneGraveyard || a.Trig.Event != kop.TrigTurnFaceUp {
+						continue
+					}
+					if s.gravePrintedHidden(k, go_) {
+						continue
+					}
+					l := trigListener{obj: go_, sl: NoSlot, ctrl: pp, card: c, ab: uint8(j)}
+					s.objTrigGen(k, kop.TrigTurnFaceUp, l, a, sl, o, p, int16(x))
+				}
+			}
+		}
+	}
+}
+
+// turnFaceDownExt is ExtTurnFaceDown (gorge effSetState Mode$ TurnFaceDown):
+// the battlefield permanent Obj turns face down in place (CR 708.2). Its
+// printed triggers and statics unsubscribe; its counters and other effects
+// stay, and the face-down characteristics come from the walk (its types and
+// P/T are the 2/2, its abilities none). The permanent is already face down:
+// nothing happens.
+//
+//kmanifest:ext ExtTurnFaceDown
+func (s *State) turnFaceDownExt(k *prep, in *kop.Instr) (ok, done bool) {
+	sl := s.objRef(k, in.Obj)
+	if sl == NoSlot || s.faceDown(k, sl) {
+		return true, true
+	}
+	c := s.cardAt(sl)
+	s.subscribe(sl, &k.cards[c], false)
+	p := &s.perms[sl]
+	p.gty = kop.TCreature | gtyFaceDown
+	p.ovr.flags |= ovGenTy
+	p.ovr.walk = walkOn
+	p.spare &^= spareCopyFaceDown
+	s.touchSl(sl)
+	s.refreshTy(k)
+	return true, true
 }

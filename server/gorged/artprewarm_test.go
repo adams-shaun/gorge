@@ -257,7 +257,7 @@ func TestServePrewarmsTheDealtDecks(t *testing.T) {
 	go func() { done <- serve(ctx, cfg, ln) }()
 
 	// 1. A prewarm fetch is in flight (and blocked on release).
-	deadline := time.Now().Add(10 * time.Second)
+	deadline := time.Now().Add(testutil.WaitBudget)
 	for lookups.Load() == 0 {
 		if time.Now().After(deadline) {
 			select {
@@ -275,7 +275,7 @@ func TestServePrewarmsTheDealtDecks(t *testing.T) {
 	close(release)
 	for _, name := range []string{"Island", "Mountain", "Plains"} {
 		marker := filepath.Join(artDir, artKey(name)+".miss")
-		deadline = time.Now().Add(10 * time.Second)
+		deadline = time.Now().Add(testutil.WaitBudget)
 		for {
 			if _, err := os.Stat(marker); err == nil {
 				break

@@ -30,10 +30,15 @@ const exwCopyMax = 64
 
 func (s *State) copyExiledWith(k *prep, in *kop.Instr) bool {
 	e := &s.res.e
+	// B.N bit 15 is CopyNonRemCtrl on OpCopyAsTokenEx; ExtCopyExiledWith never
+	// sets that rider, so the same bit names the ValidExile form: only the
+	// resolving controller's exile zone is walked (gorge
+	// definedZoneValidTargets' ValidExile arm; kgen's CopyAllExile).
+	ctlOnly := uint16(in.B.N)&kop.CopyNonRemCtrl != 0
 	var ord [exwCopyMax]Obj
 	n := 0
 	for p := uint8(0); p < s.nSeats(); p++ {
-		if s.out(p) {
+		if s.out(p) || ctlOnly && p != e.ctrl {
 			continue
 		}
 		pl := &s.pl[p]

@@ -1,0 +1,16 @@
+# The damage redirect to the resolving host (Daughter of Autumn: ExtDmgRedirect
+# Host: the next 1 damage to the target this turn is dealt to the host instead)
+# beside red burn, creatures and a lifelinker
+# (dirac/oracle/dmgredirect_host_lockstep_test.go)
+Daughter of Autumn
+Savannah Lions
+Serra Angel
+Lightning Bolt
+Shock
+Hill Giant
+Raging Goblin
+Grizzly Bears
+Child of Night
+Plains
+Forest
+Mountain

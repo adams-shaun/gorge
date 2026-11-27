@@ -1,0 +1,14 @@
+# the Animate Replacements$ pool: Geth, Thane of Contracts and Llanowar Greenwidow
+# animate a reanimated permanent with the leave-to-exile line (no Destination$),
+# beside creatures to die and bounce effects (dirac/oracle/animatekernelsurfaces_lockstep_test.go)
+Geth, Thane of Contracts
+Llanowar Greenwidow
+Typhoid Rats
+Grizzly Bears
+Unsummon
+Vapor Snag
+Doom Blade
+Wind Drake
+Island
+Swamp
+Forest

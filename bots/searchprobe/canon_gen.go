@@ -732,6 +732,12 @@ func (e *canonEncoder) encdecision_Decision(v *decision.Decision) error {
 		e.buf = append(e.buf, 1)
 		e.buf = binary.AppendVarint(e.buf, int64(v.PayerLife))
 	}
+	if v.DivideTotal == 0 {
+		e.buf = append(e.buf, 0)
+	} else {
+		e.buf = append(e.buf, 1)
+		e.buf = binary.AppendVarint(e.buf, int64(v.DivideTotal))
+	}
 	if v.ChargeTapPool == 0 {
 		e.buf = append(e.buf, 0)
 	} else {

@@ -521,7 +521,12 @@ func (e *Engine) startTriggeredEffectCost(rp *resumePoint, source state.ObjID) {
 		return
 	}
 	label := rp.sa.ParamStr(cards.PKCost)
-	amount := e.parseCost(label)
+	// AbilityCompiledCost is parseCost plus the ability's own XColor$: the
+	// announced X of a trigger's Cost$ X must be paid with that colour
+	// (Leyline Tyrant's "any amount of {R}", CR 107.3, 601.2b). parseCost
+	// alone leaves the cost generic, so the X fold and every price/charge
+	// read would spend any colour.
+	amount := pay.AbilityCompiledCost(asPayer(e), rp.sa).Cost
 	// A granted trigger's OriginalHost cost part names the granting static's
 	// host (Sunfire Torch's "you may sacrifice [the Equipment]"), not the
 	// recipient the window's source is (CR 603.5, 701.21a).
@@ -1181,8 +1186,15 @@ func (e *Engine) triggeredCostXAsk(tc *triggeredEffectCost) bool {
 	if o := e.G.Obj(tc.source); o != nil && o.Face() != nil {
 		name = o.Face().Name
 	}
+	// XAnnounceTitle$ (Leyline Tyrant: "any amount of red mana to pay") is
+	// what the announced X counts: Forge's announce prompt names it.
+	prompt := name + " — choose a value for X"
+	if sa := tc.resume.sa; strings.TrimSpace(sa.ParamStr(cards.PKXAnnounceTitle)) != "" {
+		t := strings.TrimSpace(sa.ParamStr(cards.PKXAnnounceTitle))
+		prompt = name + " — choose " + t
+	}
 	windowAsk(e, &decision.Decision{Player: tc.player, Kind: decision.KChoose, Min: 1, Max: 1,
-		Prompt: name + " — choose a value for X", Source: tc.source, Options: opts}, chooseTriggeredCost)
+		Prompt: prompt, Source: tc.source, Options: opts}, chooseTriggeredCost)
 	return true
 }
 

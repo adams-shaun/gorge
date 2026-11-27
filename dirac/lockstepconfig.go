@@ -47,18 +47,7 @@ func (s *State) xWindowPays(k *prep, e *stackEntry, a *kop.Ability, sl Slot, cos
 	if cost.X == 0 || s.cfg&cfgGorgeSurface == 0 {
 		return false
 	}
-	if k.gen != nil && k.gen.anyWaterbend && waterbendIsX(a) || hybridX(a) {
-		return true // gorge's planner keeps declining a Waterbend<X> or hybrid {X} cost (planAbilityPayment)
-	}
-	floor := xFolded(s.abPlannedCost(k, a, sl, e.ctrl), costXMin(&a.Cost))
-	settled := *cost
-	if m := s.restrActNow(k, e.ctrl); m != 0 {
-		// gorge's witness plans what the admitted restricted mana leaves
-		// (pay.PlanPool; Boommobile's {A}), at the least X and at the announced one
-		floor = s.restrShortAdm(e.ctrl, m, floor)
-		settled = s.restrShortAdm(e.ctrl, m, xFolded(s.buildCost(k), int(e.x)))
-	}
-	return !s.abilityPlanSettles(k, e, floor, floor, settled, saved)
+	return true // gorge's planner declines every {X} activation (planAbilityPayment; hotfix/fl-oracle-5)
 }
 
 // xWindowPay pays an announced X through gorge's manual CR 601.2g window, which its
@@ -73,7 +62,7 @@ func (s *State) xWindowPays(k *prep, e *stackEntry, a *kop.Ability, sl Slot, cos
 func (s *State) xWindowPay(k *prep, e *stackEntry, cost *kop.ManaCost) bool {
 	c := xFolded(*cost, int(e.x))
 	anyColor := s.bld().bfl&bflAnyColor != 0
-	ok, held := s.windowTapWalk(k, e.ctrl, &c, &c, !anyColor, anyColor, false, false, true, false, true)
+	ok, held := s.windowTapWalk(k, e.ctrl, &c, &c, !anyColor, anyColor, false, false, true, false, true, false)
 	for col := range held {
 		s.pl[e.ctrl].pool[col] += held[col]
 	}
@@ -436,6 +425,9 @@ func (s *State) addXOptions(k *prep, d *Decision, e *stackEntry, mx, hi int, av 
 	if dl := s.xDelveCredit(k, e); dl > 0 {
 		hi = min(maxXAsk, max(hi, mx+dl))
 	}
+	if n, ok := s.flashXCap(k, e); ok {
+		mx, hi = min(mx, n), min(hi, n) // a Spell.XCostLE<N> self flash grant (cast_flashxcap.go)
+	}
 	base := s.buildCost(k)
 	anyColor := s.bld().bfl&bflAnyColor != 0
 	// pays: X = x is payable. An announced convoke pick pays one generic of
@@ -473,12 +465,23 @@ func (s *State) addXOptions(k *prep, d *Decision, e *stackEntry, mx, hi int, av 
 	n0 := d.N
 	fl := s.xFloor(k) // the announced X's floor (cost_sacx.go)
 	dxb := s.xDiscardBound(k)
+	modeBlocked := false
 	if bound || dxb {
 		for x := fl; x <= hi; x++ {
 			if (!bound || s.xAnswerable(k, a, e, x)) && (!dxb || s.xDiscardPays(k, e, x)) && pays(x) {
 				d.add(MakeAction(AkChoose, 0, 0, uint8(x)))
+			} else if bound && a.NModes > 0 && e.kind == seSpell && pays(x) {
+				modeBlocked = true // a payable X no chosen mode set can answer (xAnswerable's modes)
 			}
 		}
+	}
+	if d.N == n0 && modeBlocked {
+		// gorge xAsk: some X was payable but none keeps the chosen modes
+		// targetable (X is announced after the modes, CR 601.2b): the cast
+		// is aborted with no decision (CR 733.1; "no legal modal choice")
+		d.N = 0
+		s.reverseCast(k)
+		return false
 	}
 	convokeFallback := picks && !wbX
 	if d.N == n0 {

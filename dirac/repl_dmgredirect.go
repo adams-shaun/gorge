@@ -22,6 +22,21 @@ import (
 //     own damage is the replacement's own recipient already: the rewrite
 //     changes nothing, but the record is still a candidate of the event (two
 //     of them, or one beside another replacement, are gorge's order ask).
+//   - DmgRedirectHost (Daughter of Autumn): DmgRedirectNext with the pair
+//     swapped -- the next `pool` (1) damage that would be dealt to the
+//     ability's target this turn is dealt to the host instead. The host and
+//     the recipient are read back at the registration, the spend is the pool.
+//   - DmgRedirectYouNext (Vassal's Duty): DmgRedirectNext with the recipient
+//     being the resolving controller -- the next `pool` (1) damage that would
+//     be dealt to the remembered creature this turn is dealt to them.
+//   - DmgRedirectYouAll (Sivvi's Valor): DmgRedirectScope with the roles
+//     swapped -- all damage this turn to the remembered permanent is dealt to
+//     the resolving controller instead while the record lives.
+//
+// The two You kinds deal their damage to a player (redirLandPlayer, the
+// damageTo player arm's landings); a controller who has lost matches nothing
+// (gorge leaves the event standing), and a combat event to the host stalls
+// (dmgEv has no player field for the new event: redirCombat).
 //
 // A record ends with the turn, with its pool, and when the host or the
 // recipient leaves the battlefield (the Effect's ExileOnMoved$ Battlefield and
@@ -43,8 +58,11 @@ const (
 )
 
 // redirRec is one live redirect: kind 0 is a free slot; host the damaged
-// permanent (DmgRedirectNext), tgt the recipient, ctl the controller whose
-// damage is redirected (DmgRedirectScope) and pool the damage left (Next).
+// permanent (DmgRedirectNext, DmgRedirectHost, the You kinds' remembered
+// creature), tgt the recipient permanent (NoObj for the You kinds, whose
+// recipient is the player ctl), ctl the controller whose damage is
+// redirected (DmgRedirectScope) or receiving it (the You kinds) and pool the
+// damage left (Next, Host, YouNext).
 type redirRec struct {
 	host, tgt       Obj
 	ctl, pool, kind uint8
@@ -59,23 +77,65 @@ func init() {
 // and spent nowhere; the damage is dealt to its original recipient.
 var DebugNoDmgRedirect bool
 
+// redirIsNext reports whether a record's kind matches the damaged host and
+// spends its pool one damage at a time (DmgRedirectNext, and DmgRedirectHost
+// with the host and the recipient swapped).
+func redirIsNext(kind uint8) bool {
+	return kind == kop.DmgRedirectNext || kind == kop.DmgRedirectHost
+}
+
+// redirIsYou reports whether a record's kind redirects the damage to the
+// resolving controller (Vassal's Duty, Sivvi's Valor): the recipient is the
+// player ctl, not the (empty) tgt permanent.
+func redirIsYou(kind uint8) bool {
+	return kind == kop.DmgRedirectYouNext || kind == kop.DmgRedirectYouAll
+}
+
+// redirPermanent reports whether code names a live battlefield permanent.
+func (s *State) redirPermanent(code TCode) bool {
+	return code != NoTarget && !isPlayerOrNone(code) && int(code) < MaxObj && s.objs[code].zone == kop.ZoneBattlefield
+}
+
 // redirAdd is Ext DmgRedirect: the resolving Effect registers a redirect to
-// the permanent Obj names.
+// the permanent Obj names (DmgRedirectHost: to the resolving host permanent,
+// the damaged host being the permanent W names).
 func (s *State) redirAdd(k *prep, in *kop.Instr) {
-	code := s.refCode(k, in.Obj)
-	if code == NoTarget || isPlayerOrNone(code) || int(code) >= MaxObj || s.objs[code].zone != kop.ZoneBattlefield {
-		return // gorge: no live referent, the registration redirects nothing
-	}
 	e := &s.res.e
-	r := redirRec{tgt: Obj(code), kind: uint8(in.C)}
-	switch r.kind {
+	var r redirRec
+	switch in.C {
 	case kop.DmgRedirectNext:
 		if e.obj == NoObj || s.objs[e.obj].zone != kop.ZoneBattlefield {
 			return // Duration$ UntilHostLeavesPlayOrEOT: the host has left
 		}
-		r.host, r.pool = e.obj, 1
+		code := s.refCode(k, in.Obj)
+		if !s.redirPermanent(code) {
+			return // gorge: no live referent, the registration redirects nothing
+		}
+		r = redirRec{host: e.obj, tgt: Obj(code), pool: 1, kind: uint8(in.C)}
+	case kop.DmgRedirectHost:
+		if e.obj == NoObj || s.objs[e.obj].zone != kop.ZoneBattlefield {
+			return // Duration$ UntilHostLeavesPlayOrEOT: the recipient has left
+		}
+		h := s.refCode(k, in.W)
+		if !s.redirPermanent(h) {
+			return // gorge: the remembered host has no live referent
+		}
+		r = redirRec{host: Obj(h), tgt: e.obj, pool: 1, kind: uint8(in.C)}
 	case kop.DmgRedirectScope:
-		r.ctl = e.ctrl
+		code := s.refCode(k, in.Obj)
+		if !s.redirPermanent(code) {
+			return
+		}
+		r = redirRec{tgt: Obj(code), ctl: e.ctrl, kind: uint8(in.C)}
+	case kop.DmgRedirectYouNext, kop.DmgRedirectYouAll:
+		code := s.refCode(k, in.Obj)
+		if !s.redirPermanent(code) {
+			return // gorge: no live referent, the registration redirects nothing
+		}
+		r = redirRec{host: Obj(code), tgt: NoObj, ctl: e.ctrl, kind: uint8(in.C)}
+		if in.C == kop.DmgRedirectYouNext {
+			r.pool = 1 // the next 1 damage (Vassal's Duty)
+		}
 	default:
 		return
 	}
@@ -91,7 +151,7 @@ func (s *State) redirAdd(k *prep, in *kop.Instr) {
 // redirDrop ends the records that name the permanent o leaving the battlefield.
 func (s *State) redirDrop(o Obj) {
 	for i := range s.g.redir {
-		if r := &s.g.redir[i]; r.kind != 0 && (r.tgt == o || r.host == o && r.kind == kop.DmgRedirectNext) {
+		if r := &s.g.redir[i]; r.kind != 0 && (r.tgt == o || r.host == o && (redirIsNext(r.kind) || redirIsYou(r.kind))) {
 			*r = redirRec{}
 		}
 	}
@@ -117,19 +177,25 @@ func (s *State) redirFind(code TCode, rcp uint8) (at, hits int) {
 	for i := range s.g.redir {
 		r := &s.g.redir[i]
 		switch r.kind {
-		case kop.DmgRedirectNext:
-			if r.pool == 0 || code != TCode(r.host) {
+		case kop.DmgRedirectNext, kop.DmgRedirectHost, kop.DmgRedirectScope:
+			if r.kind == kop.DmgRedirectScope {
+				if r.ctl != rcp {
+					continue
+				}
+			} else if r.pool == 0 || code != TCode(r.host) {
 				continue
 			}
-		case kop.DmgRedirectScope:
-			if r.ctl != rcp {
+			if s.objs[r.tgt].zone != kop.ZoneBattlefield {
+				continue // "if it's still on the battlefield": the held event stands
+			}
+		case kop.DmgRedirectYouNext, kop.DmgRedirectYouAll:
+			// the recipient is the player ctl (no permanent to check): a
+			// controller who has lost leaves the event standing (gorge)
+			if code != TCode(r.host) || r.kind == kop.DmgRedirectYouNext && r.pool == 0 || s.pl[r.ctl].lost {
 				continue
 			}
 		default:
 			continue
-		}
-		if s.objs[r.tgt].zone != kop.ZoneBattlefield {
-			continue // "if it's still on the battlefield": the held event stands
 		}
 		at = i
 		hits++
@@ -165,11 +231,17 @@ func (s *State) redirCompetes(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID
 }
 
 // redirSpend takes record at's share of an event of n: the amount to
-// redirect and its recipient's object code. A pool spent ends the record.
+// redirect and its recipient's object code (the player ctl for the You
+// kinds). A pool spent ends the record.
 func (s *State) redirSpend(at, n int) (int, TCode) {
 	r := &s.g.redir[at]
 	tgt := TCode(r.tgt)
-	if r.kind != kop.DmgRedirectNext {
+	if redirIsYou(r.kind) {
+		tgt = PlayerCode(r.ctl)
+		if r.kind == kop.DmgRedirectYouAll {
+			return n, tgt // all of it, this turn: the record stays
+		}
+	} else if !redirIsNext(r.kind) {
 		return n, tgt
 	}
 	m := min(n, int(r.pool))
@@ -229,15 +301,51 @@ func (s *State) redirTake(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, co
 	return n - m, true
 }
 
-// redirDeal deals the redirected damage m to the permanent tcode as a new
-// event from the source: replacements again (the ReplaceSplitDamage shield's
-// new event meets them again, gorge replacement_splitdamage.go), then the
-// damage with deathtouch, lifelink and the damage triggers of damageTo.
+// redirDeal deals the redirected damage m to the permanent or player tcode
+// as a new event from the source: replacements again (the ReplaceSplitDamage
+// shield's new event meets them again, gorge replacement_splitdamage.go),
+// then the damage with deathtouch, lifelink and the damage triggers of
+// damageTo (the player's arm for the You kinds).
 func (s *State) redirDeal(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, tcode TCode, m int) {
 	if m = s.replDamage(k, srcCtrl, srcSl, srcCard, tcode, false, m); m <= 0 {
 		return
 	}
+	if isPlayerOrNone(tcode) {
+		s.redirLandPlayer(k, srcCtrl, srcSl, srcCard, tcode, m)
+		return
+	}
 	s.redirLand(k, srcCtrl, srcSl, srcCard, tcode, m)
+}
+
+// redirLandPlayer lands m damage from the source on the player tcode as the
+// one event it is (the You kinds' recipient: gorge replacement_replace.go's
+// Affected rewrite to a player), with the lifelink and the damage triggers
+// of damageTo's player arm (resolve.go). Infect and wither never reach it:
+// they stall in redirMatch.
+func (s *State) redirLandPlayer(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, tcode TCode, m int) {
+	kw, ok := s.redirKw(k, srcSl, srcCard)
+	if !ok {
+		return
+	}
+	seat := CodeSeat(tcode)
+	s.notePlDamagedNC(k, tcode)
+	s.noteDmgTaken(seat, m)   // kw_bloodthirst.go
+	s.loseLifeDmg(k, seat, m) // the damage is life loss (CR 119.3b)
+	s.plDmgMark(seat, m)      // wasDealtDamageThisTurn's seat arm (gen.go)
+	s.res.lastDmg = int16(m)
+	if kw&kop.KwLifelink != 0 {
+		s.gainLife(k, srcCtrl, m) // the source's controller, as damageTo's
+	}
+	if k.gen.anyPermMark && srcSl != NoSlot {
+		s.markDealt(k, srcSl, false) // a permanent source dealt damage (filter_permmarks.go)
+	}
+	if s.subs[kop.TrigDamageDone].any() || s.subs[kop.TrigDamageDealtOnce].any() || k.gen.graveDmg {
+		if srcSl != NoSlot {
+			s.fireDamage(k, srcSl, int16(m), true, false, tcode)
+		} else {
+			s.fireDamageSrc(k, s.res.e.obj, s.res.e.ctrl, int16(m), dmgPl(tcode), tcode, nil)
+		}
+	}
 }
 
 // redirLand lands m damage from the source on the permanent tcode as the one
@@ -268,7 +376,7 @@ func (s *State) redirLand(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, tc
 	if k.gen.anyPermMark && srcSl != NoSlot {
 		s.markDealt(k, srcSl, false)
 	}
-	if s.subs[kop.TrigDamageDone].any() || s.subs[kop.TrigDamageDealtOnce].any() || k.gen.graveDmg {
+	if s.evLive(kop.TrigDamageDone) || s.evLive(kop.TrigDamageDealtOnce) || k.gen.graveDmg {
 		if srcSl != NoSlot {
 			s.fireDamage(k, srcSl, int16(m), false, false, tcode)
 		} else {
@@ -300,6 +408,10 @@ func (s *State) redirKw(k *prep, srcSl Slot, srcCard CardID) (kop.KwMask, bool) 
 func (s *State) redirCombat(k *prep, r *dmgRec, ev *dmgEv, byOrd bool, code TCode, rcp uint8) bool {
 	at := s.redirMatch(k, s.perms[ev.src].ctrl, ev.src, s.cardAt(ev.src), code, rcp, ev.dst, true)
 	if at < 0 {
+		return false
+	}
+	if redirIsYou(s.g.redir[at].kind) {
+		s.capFull(StallRedirOrder) // a player recipient: dmgEv has no player field for the new event (a declared limit: only noncombat damage is modelled)
 		return false
 	}
 	if byOrd || s.g.ro.on || r.nev >= len(r.ev) {

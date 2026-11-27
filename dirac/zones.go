@@ -120,7 +120,7 @@ func (s *State) detach(o Obj) kop.Zone {
 	s.touch(o)
 	ob := &s.objs[o]
 	from := ob.zone
-	if s.g.on && from == kop.ZoneGraveyard && s.subs[kop.TrigLeaves].any() {
+	if s.g.on && from == kop.ZoneGraveyard && s.evLive(kop.TrigLeaves) {
 		s.fireLeavesGraveyard(s.k(), o, ob.card, ob.owner())
 	}
 	pl := &s.pl[ob.owner()]
@@ -139,6 +139,9 @@ func (s *State) detach(o Obj) kop.Zone {
 		}
 		if s.osAnyOf(osMExw) {
 			s.exwLeaveExile(o) // its reverse exiled-with link ends (zone_exiledwith.go)
+		}
+		if s.osAnyOf(1 << osEncoded) {
+			s.cipherUnlink(o) // its encode link ends (kw_cipher.go)
 		}
 	case kop.ZoneBattlefield:
 		panic("kernel: detach of a permanent (use leave)")
@@ -336,6 +339,14 @@ func (s *State) draw(p uint8) {
 // drawExcl is draw with the draw replacements already applied to this
 // draw's lineage (repl_draw.go); the zero chain is an ordinary draw.
 func (s *State) drawExcl(p uint8, ch drawChain) {
+	if s.g.on && s.k().gen.hasDrawProgram() && ch.n == 0 {
+		// a ReplDrawProgram body's own draw: the replacement being run is
+		// already applied to this lineage (CR 614.5). Cleared when the
+		// program finishes (repl_drawprogram.go).
+		if ds := s.drawState(); len(ds) > 0 && ds[0].active {
+			ch = ds[0].chain
+		}
+	}
 	if s.g.on && s.dredgeHeld(p) {
 		return // kw_dredge.go: a dredge candidate on a draw no ask was posed for
 	}
@@ -343,14 +354,19 @@ func (s *State) drawExcl(p uint8, ch drawChain) {
 	if s.cfgx&cfgxCantDraw != 0 && s.playerBanned(s.k(), kop.StatCantDraw, p) {
 		return // static_cantdraw.go: before the empty-library mark
 	}
-	if pl.libLo == pl.libHi {
+	// CR 614.11: a Draw replacement also meets an attempted draw from an
+	// empty library (gorge's emptyDrawReplacement). The scan runs before the
+	// mark, restricted to the lines that shape admits, so a matching line
+	// replaces the draw and leaves no mark; otherwise the mark stands.
+	empty := pl.libLo == pl.libHi
+	if (s.cfgx&cfgxDrawMore != 0 || s.g.on && s.k().gen.hasDrawProgram()) && s.drawReplace(p, ch, empty) {
+		return // repl_draw.go, repl_drawprogram.go: the replacement drew in this draw's place
+	}
+	if empty {
 		// the player loses at the next state-based check (CR 704.5b), not
 		// mid-resolution (Strix Lookout's draw then its other effects)
 		pl.mark |= pmDrewEmpty
 		return
-	}
-	if s.cfgx&cfgxDrawMore != 0 && s.drawMore(p, ch) {
-		return // repl_draw.go: the replacement drew in this draw's place
 	}
 	if int(pl.handN) >= len(pl.hand) {
 		s.capFull(StallZone) // the hand is full of bounced tokens (placeFrom)
@@ -374,7 +390,7 @@ func (s *State) drawExcl(p uint8, ch drawChain) {
 	if s.g.enteredOn {
 		s.noteEnter(o, kop.ZoneHand, kop.ZoneLibrary, false, false)
 	}
-	if s.subs[kop.TrigDrawn].any() || s.cfgx&cfgxGraveDrawn != 0 {
+	if s.evLive(kop.TrigDrawn) || s.cfgx&cfgxGraveDrawn != 0 {
 		s.fireDrawn(p)
 	}
 	if pl.drawnTurn == 1 && s.turn > 0 {
@@ -567,7 +583,7 @@ func (s *State) enterNF(k *prep, o Obj, ctrl uint8, tapped bool, from kop.Zone, 
 		if pc.enterCtr != 0 && !(k.gen != nil && k.gen.anyEntryMerge) { // anyEntryMerge: enterGen's window places it (ctr_entryperkind.go)
 			s.placeEntryCounters(k, sl, int(pc.enterCK), int(pc.enterCtr), p.ctrl)
 		}
-		if pc.sagaN != 0 {
+		if pc.sagaN != 0 && !readAheadCard(&k.t.Cards[ob.card]) { // kw_readahead.go: its ask's answer is the entry's lore count
 			// CR 702.151a: a Saga enters with a lore counter (gorge
 			// events.EntryCounterGrants), placed through the counter
 			// replacements; the CounterAddedOnce loop below fires the chapters
@@ -596,7 +612,7 @@ func (s *State) enterNF(k *prep, o Obj, ctrl uint8, tapped bool, from kop.Zone, 
 	if face == 0 && k.anyCtrAdded {
 		s.ctrNoteEnter(k, sl) // ctr_addedthisturn.go
 	}
-	if face == 0 && k.gen != nil && s.subs[kop.TrigCounterAddedOnce].any() {
+	if face == 0 && k.gen != nil && s.evLive(kop.TrigCounterAddedOnce) {
 		// the counters it entered with were put on it: gorge's entry
 		// counter notice follows the zone change event, but its triggers
 		// are queued before the enters triggers (Exemplar of Light before
@@ -678,6 +694,8 @@ func (s *State) subscribe(sl Slot, pc *pcard, on bool) {
 func (s *State) leave(k *prep, sl Slot, z kop.Zone, bottom bool) {
 	if z == kop.ZoneGraveyard {
 		z = s.dieZone(k, sl) // Fiery Annihilation / a dies-to-exile replacement
+	} else if k.gen != nil && k.gen.uses.has(useExileOnLeaveOverride) {
+		z = s.overrideLeaveZone(k, sl, z) // an Animate Replacements$ record exiles a bounce too (repl_counters.go)
 	}
 	if s.cmdZoneReplace(k, s.perms[sl].obj, &z, &bottom) {
 		s.exileRiderReset(k, sl) // the exile it chose did not happen (repl_exilerider.go)
@@ -697,6 +715,7 @@ func (s *State) leave(k *prep, sl Slot, z kop.Zone, bottom bool) {
 }
 
 func (s *State) fireLeave(k *prep, sl Slot, z kop.Zone) {
+	s.stallBatchLeave(k, sl, z)
 	if k.gen != nil && k.gen.anyUnearth && z != kop.ZoneExile {
 		z = s.unearthZone(sl, z) // cast_altfree.go
 	}
@@ -717,14 +736,14 @@ func (s *State) fireLeave(k *prep, sl Slot, z kop.Zone) {
 		if cr && diesLeavesMerged(k) {
 			merged = true // the Leaves walk below covers the Dies lines (trig_diesleaves.go)
 			s.fireDiesLeaves(k, sl, p.obj, p.ctrl, czAmt(k, z))
-		} else if (cr || k.gen != nil && k.gen.anyDiesNC) && (s.subs[kop.TrigDies].any() || k.gen != nil && k.gen.embObjEv&(1<<kop.TrigDies) != 0) {
+		} else if (cr || k.gen != nil && k.gen.anyDiesNC) && (s.evLive(kop.TrigDies) || k.gen != nil && k.gen.embObjEv&(1<<kop.TrigDies) != 0) {
 			s.fireObj(k, kop.TrigDies, sl, p.obj, p.ctrl, 0)
 		}
 		if k.gen != nil && k.gen.graveDies && cr {
 			s.fireGraveDies(k, sl)
 		}
 	}
-	if !merged && (s.subs[kop.TrigLeaves].any() || k.gen != nil && k.gen.embObjEv&(1<<kop.TrigLeaves) != 0) {
+	if !merged && (s.evLive(kop.TrigLeaves) || k.gen != nil && k.gen.embObjEv&(1<<kop.TrigLeaves) != 0) {
 		if k.gen != nil && (k.gen.anyBatch || k.gen.anyPanharm) {
 			s.fireLeavesBatched(k, sl, z) // also latches a death for panharmDies
 		} else {
@@ -741,7 +760,7 @@ func (s *State) fireLeave(k *prep, sl Slot, z kop.Zone) {
 			s.fireUnattached(k, sl, h)
 		}
 	}
-	if s.subs[kop.TrigSacrificed].any() {
+	if s.evLive(kop.TrigSacrificed) {
 		s.sacLeaveOrder(k, p.obj, n0) // one walk over a sacrifice's triggers (trig_sacqueueorder.go)
 	}
 	if k.gen != nil && k.gen.anyEarthbend && (z == kop.ZoneGraveyard || z == kop.ZoneExile) {
@@ -839,7 +858,7 @@ func (s *State) removePerm(k *prep, sl Slot, z kop.Zone, bottom bool) {
 		s.hostLeft(k, o) // filter_combatwords.go
 	}
 	if p.gty&gtyFaceDown != 0 {
-		s.clearFaceDown(sl) // CR 708.9: leaving reveals the card (face_facedown.go)
+		s.clearFaceDown(k, sl) // CR 708.9: leaving reveals the card (face_facedown.go)
 	}
 	s.subscribe(sl, &k.cards[p.card], false)
 	if p.ovr.flags&ovCopy != 0 {
@@ -933,6 +952,12 @@ func (s *State) removePerm(k *prep, sl Slot, z kop.Zone, bottom bool) {
 	s.meldLeaveOnLeave(k, o, z, bottom, wasCreature) // face_meld.go: a melded permanent's partner goes with it
 	s.placeFromK(k, o, z, bottom, kop.ZoneBattlefield, wasCreature, leftCounters)
 	s.g.graveKept = false
+	if p.cseen&cseenSacNext != 0 {
+		if s.g.enteredOn {
+			s.noteSacrificedEntry(o) // this departure is a sacrifice (value_sacrificedthisturn.go)
+		}
+		p.cseen &^= cseenSacNext
+	}
 	if s.g.enteredOn {
 		s.noteLeftController(o, leftCtrl)
 	}
@@ -1058,6 +1083,9 @@ func (s *State) firePlayer(k *prep, ev kop.TrigEvent, who uint8, amt int16) {
 			if ev == kop.TrigLifeLost && a.Trig.Flags4&kop.Tf4CauseSpellAb != 0 && !s.lifeCauseSpellOK(lp.ctrl, &a.Trig) {
 				continue
 			}
+			if ev == kop.TrigLifeLost && (a.Trig.Whose == kop.WhoseActive || a.Trig.Whose == kop.WhoseOppActive) && who != s.active {
+				continue // the life-losing player is not the active player
+			}
 			if ev == kop.TrigDrawn && !drawStepGateOK(&a.Trig, s.drawStepFirst(who)) {
 				continue
 			}
@@ -1070,9 +1098,9 @@ func whoseOK(w kop.Whose, ctrl, who uint8) bool {
 	switch w {
 	case kop.WhoseYou:
 		return who == ctrl
-	case kop.WhoseOpp:
+	case kop.WhoseOpp, kop.WhoseOppActive:
 		return who != ctrl
-	case kop.WhoseEnchCtrl, kop.WhoseChosen, kop.WhoseEnchanted, kop.WhoseMonarch:
+	case kop.WhoseEnchCtrl, kop.WhoseChosen, kop.WhoseEnchanted, kop.WhoseMonarch, kop.WhoseEnchantedOpp:
 		return false // read with the listener's slot (enchCtrlIs, chosenIs, defEnchanted); elsewhere it fails closed
 	}
 	return true

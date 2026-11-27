@@ -47,7 +47,7 @@ func (s *State) exploreNonland(k *prep, in *kop.Instr, grave bool) {
 		if n > 0 && k.anyCtrAdded {
 			s.ctrNote(k, sl, int(kop.CtrP1P1))
 		}
-		if n > 0 && s.subs[kop.TrigCounterAddedOnce].any() {
+		if n > 0 && s.evLive(kop.TrigCounterAddedOnce) {
 			s.g.lastCK = kop.CtrP1P1 // CounterAddedOnce reads the kind (a stale LORE fired a Saga's chapter)
 			s.fireObj(k, kop.TrigCounterAddedOnce, sl, s.perms[sl].obj, s.perms[sl].ctrl, int16(n))
 		}

@@ -140,6 +140,10 @@ const (
 	ChGenRiot                                 // source = the entering permanent; mode 0 = enter with the +1/+1 counter, 1 = gain haste (gorge's "riot" KChoose, option 0 = the counter, CR 702.136; kw_riot.go)
 	ChGenPayLife                              // source = the entering permanent; mode = the life paid as it enters, 0..min(life, XMax$) (gorge's R:Event$ Moved pay-any-amount-of-life "paylife" KChoose, the amount on Amount; ExtPayLifeX, repl_paylife.go)
 	ChGenOptInSeat                            // mode 1 = yes / 0 = no, asked of the repeated player (the loop's seat, not the controller): RepeatOptionalForEachPlayer$ True's offer (gorge's repeat_each_optional "yes" / "no"; canonical kinds yes_seat / no_seat; act_optinseat.go)
+	ChGenPayMoveGrave                         // source = an exiled card put into its owner's graveyard to pay a trigger's own ExiledMoveToGrave cost (gorge's "graveyard_cost"; cost_exiledmovegrave.go)
+	ChGenReadAhead                            // source = the entering read-ahead Saga; mode = the chapter chosen, its lore count (gorge's "readahead" KChoose, the chapter on Amount, CR 702.155b; kw_readahead.go)
+	ChGenCipher                               // source = the creature a resolving Cipher spell is encoded on, mode its battlefield-order index; Done declines (gorge effCipher's KModes Min 0 Max 1; kw_cipher.go)
+	ChGenEachOrder                            // source = one RepeatEach subject of a ChooseOrder$ True batched body, picked in permutation order (gorge repeatEachChooseOrder's "order" KChoose; act_eachorder.go)
 )
 
 // sfFree marks a spell cast without paying its mana cost (OpCastFree);
@@ -179,6 +183,10 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 	e := &s.res.e
 	if k.gen.anyTriggerAttackers && in.Obj == kop.RefTriggerAttackers {
 		s.execTriggerAttackers(k, in) // trig_attackers.go
+		return true, true
+	}
+	if in.Obj == kop.RefTriggerSpellTargets {
+		s.execTriggerSpellTargets(k, in) // trig_spelltargets.go
 		return true, true
 	}
 	if k.gen.anyUnion && unionMask(in.Obj) != 0 {
@@ -271,6 +279,9 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		return false, true
 	case kop.OpRepeatEach:
 		s.repeatEachCards(k, in) // act_repeatcards.go
+		if s.res.ask != raNone {
+			return false, true // the ChooseOrder$ pick parks the resolution
+		}
 	case kop.OpRepeatEachPlayer:
 		q := s.eachPlayers(k, in.Obj)
 		if in.C&1 == 0 && in.Obj == kop.RefEachPlayer { // seat-ok: an instruction flag bit
@@ -447,6 +458,10 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		}
 		return true, false
 	case kop.OpExile, kop.OpExileEx:
+		if in.Op == kop.OpExileEx && in.Obj == kop.RefDelayedRemembered && in.C == kop.MvFromBattlefield {
+			s.exileDelayedMany(k, in) // trig_delayedmany.go: the whole DpMany set
+			break
+		}
 		if in.Op == kop.OpExileEx && in.C&kop.MvForgetOther != 0 {
 			s.forgetOtherMove(k, in) // zone_rememberparams.go
 			break
@@ -559,8 +574,7 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 	case kop.OpDigEx:
 		return s.startDig(k, in), true
 	case kop.OpDigUntil:
-		s.res.left = 0 // the parked-tail marker (zone_parkedtail.go)
-		return s.execDigUntil(k, in, false), true
+		return s.startDigUntil(k, in), true
 	case kop.OpPeek:
 		return s.execPeek(k, in) // act_peekreveal.go
 	case kop.OpGrantKeyword:
@@ -627,8 +641,8 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		}
 	case kop.OpCastFree:
 		s.g.nfree, s.g.nfreeAll = 0, 0
-		if in.Obj != kop.RefRemembered || in.C&(0xF8|freeLands) != 0 || in.F != 0 {
-			s.castFreeFillGen(k, in, e) // P2/P3/P4 and P1's new bits
+		if in.Obj != kop.RefRemembered || in.C&(0xF8|1<<9|freeLands|freeSameName) != 0 || in.F != 0 {
+			s.castFreeFillGen(k, in, e) // P2/P3/P4 and P1's new bits (bit 9: the UpTo bound keeps the walked population)
 		} else {
 			for i := 0; i < int(s.g.nrem); i++ {
 				o := s.g.rem[i]
@@ -656,6 +670,13 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		if s.g.nfree == 0 {
 			break
 		}
+		if in.C&512 != 0 && s.value(k, in.A) < 1 {
+			// a counted Amount$ priced below one offers nothing (gorge
+			// effPlay's Amount$ 0 note and return, engine/effects/play.go
+			// :421-423), and a literal one never prices that low
+			// (playUpToOK admits only N >= 2)
+			break
+		}
 		// freeP: the caster, the zone, ReplaceGraveyard and ForgetPlayed
 		// (cast_freecast.go; the freeQ drain reads them)
 		s.g.freeP = seatWord(e.ctrl) | seatWord(in.C&7)<<freeZoneShift
@@ -676,6 +697,12 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 			// marker rides freeP to the drain; a refused or reversed cast
 			// never commits, so the card stays remembered (CR 733.1-2).
 			s.g.freeP |= freeForget
+		}
+		if in.C&(1<<13) != 0 {
+			s.g.freeP |= freeRemember // RememberPlayed$ True (cast_playremember.go)
+		}
+		if uint16(in.C)&castFreeImprint != 0 {
+			s.g.freeP |= freeImprint // ImprintPlayed$ True (cast_playimprint.go)
 		}
 		s.res.ask, s.res.askP = raGenCastFree, e.ctrl
 		return false, true
@@ -772,18 +799,39 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 			s.g.ewDone--
 			break // applied as the return entered (enterAssimilated)
 		}
+		if in.B.N == kop.OvCwWord {
+			// a word-list Animate Colors$: the frozen colour-word colour picks
+			// the row (static_colorwords.go ovCwRow); everything below, the
+			// remembered walk and the WhileHost arm included, runs on the
+			// picked row
+			var ci kop.Instr
+			in = s.ovCwRow(k, in, &ci)
+		}
 		if in.Obj == kop.RefRemembered && s.g.nrem > 1 {
 			s.overrideRemembered(k, in) // zone_changezoneall.go: every remembered object
 			break
+		}
+		if in.B.N == kop.OvSpellCarry {
+			// a static SpellCast rider's timed Animate of the triggering
+			// spell: stamp the spell entry and apply the record as the
+			// permanent enters (static_spellcarry.go)
+			if s.spellCarryOverride(k, in) {
+				break
+			}
 		}
 		// objRef is the one resolver of "the same object on the battlefield":
 		// a Self record whose object left and came back names a new object
 		// (CR 400.7; Fire Nation Warship destroyed in response to its crew).
 		sl := s.objRef(k, in.Obj)
+		retSelf := false
+		if sl == NoSlot {
+			sl = s.overrideReturnedSelf(k, in) // zone_overridereturnedself.go
+			retSelf = sl != NoSlot
+		}
 		if sl == NoSlot {
 			break
 		}
-		if pc := s.res.pc; pc > 0 && s.g.retMiss {
+		if pc := s.res.pc; pc > 0 && s.g.retMiss && !retSelf {
 			if p := &s.prog(k)[pc-1]; (p.Op == kop.OpReturnEx || p.Op == kop.OpReturn) && p.Obj == in.Obj {
 				break // a return's StaticEffect rider: the return moved nothing (Valkyrie's Call after Infernal Vessel's own return; Brilliance Unleashed's plain return of an artifact creature already on the battlefield)
 			}
@@ -1526,7 +1574,16 @@ func (s *State) execDamageEx(k *prep, in *kop.Instr) {
 		}
 		return
 	}
-	s.damageTo(k, code, n)
+	if dealt := s.damageTo(k, code, n); dealt > 0 && in.C&kop.DmgLockGain != 0 && isPlayerTarget(code) {
+		if s.g.nc.n != 0 {
+			// damageTo returned the pending amount of an event parked on its
+			// replacement-order ask; gorge remembers the player only if the
+			// damage lands, which the answer may prevent: not decidable here
+			s.capFull(StallDmgMarkOrder)
+			return
+		}
+		s.pl[CodeSeat(code)].mark |= pmNoGain // static_lockgain.go
+	}
 }
 
 // markExileEx records a turn-scoped "exile instead of dying" effect on a slot.
@@ -1559,7 +1616,8 @@ func (s *State) dieZone(k *prep, sl Slot) kop.Zone {
 	var ctr kop.CounterKind
 	var ctrN uint8
 	src := NoSlot
-	if k.gen != nil && k.gen.anyRepl&rbExileOnLeave != 0 {
+	if k.gen != nil && (k.gen.anyRepl&rbExileOnLeave != 0 ||
+		k.gen.uses.has(useExileOnLeaveOverride) && s.fxM.has(sl)) {
 		exileN, ctr, ctrN, src = s.exileOnLeaveN(k, sl)
 	}
 	// a mark lasts whatever the object is by then: a planeswalker with no
@@ -2390,6 +2448,9 @@ func (s *State) inEachCopy() bool {
 
 // copyCardTokenFor is copyCardToken for the resolving entry's controller.
 func (s *State) copyCardTokenFor(k *prep, in *kop.Instr, c CardID) bool {
+	if s.copyDefenderAsk(k, in, s.res.e.ctrl) {
+		return true // the CR 508.4 defender ask, before any copy is minted
+	}
 	if !s.inEachCopy() {
 		// the each-target loop keeps the flag across targets: one resolution's
 		// copies share one AtEOT$ trigger (execEachTarget)
@@ -2573,8 +2634,8 @@ func (s *State) copyTokenEnterFd(k *prep, in *kop.Instr, t Obj, host, tmpl Slot,
 		s.perms[sl].spare |= spareCopyFaceDown
 	}
 	s.touch(t)
-	if uint16(in.B.N)&(kop.CopyAttacking|0x3f<<kop.CopyPumpShift) == kop.CopyAttacking && s.occ.has(sl) {
-		s.copyEnterAttacking(k, sl, e.ctrl) // ExtCopyPicked's TokenAttacking$ True (copy_picked.go)
+	if copyAttackingInstr(in) && s.occ.has(sl) {
+		s.copyEnterAttacking(k, sl, e.ctrl) // CopyPermanent's TokenAttacking$ True (copy_attackdefender.go)
 	}
 	if s.res.flags&rfOppCopy != 0 && s.occ.has(sl) {
 		s.oppCopyEnter(k, in, sl, t) // kw_encore.go: Encore's duty, Myriad's attack
@@ -2787,7 +2848,7 @@ func (s *State) damageBatch(k *prep, codes []TCode, amts []int, park bool) bool 
 	if k.gen.anyPermMark {
 		s.markDealt(k, s.objRef(k, kop.RefSelf), false) // filter_permmarks.go
 	}
-	lis := s.subs[kop.TrigDamageDone].or(s.subs[kop.TrigDamageDealtOnce]).any() || k.gen.graveDmg
+	lis := s.evLive(kop.TrigDamageDone) || s.evLive(kop.TrigDamageDealtOnce) || k.gen.graveDmg
 	if lis || k.embDmg() {
 		agg := refLatch{agg: true} // the once-per-batch lines take the total, the rest wait for the pass below
 		agg.dn = dn[:len(codes)]   // each recipient's share, an AtLeastOneInstance$ gate's read (trig_atleastone.go)

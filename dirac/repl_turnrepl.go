@@ -6,23 +6,30 @@ import (
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
-// ExtTurnRepl (kop/turnrepl.go): two until-end-of-turn replacements an Effect
-// makes over a player's side of the board. Neither costs State bytes: the
-// exile one is a scope record in the cold exMark table, the counter one a
-// region of the cold buffer (coldCtrP) that exists only for a table
-// with such a program.
+// ExtTurnRepl (kop/turnrepl.go): until-end-of-turn replacements an Effect
+// makes over a player's side of the board. None costs State bytes: the exile
+// one is a scope record in the cold exMark table, the counter ones regions of
+// the cold buffer (coldCtrP, coldEtbC) that exist only for a table with such
+// a program.
 
-// DebugTurnReplOff is the mutation switch: both replacements are set but
-// ignored, so a lockstep that reaches either diverges.
+// DebugTurnReplOff is the mutation switch: the replacements are set but
+// ignored, so a lockstep that reaches any of them diverges.
 var DebugTurnReplOff bool
+
+// DebugEtbCreOff is TestExtraEtbCtrMutation's switch: the turn-long extra
+// enters-with-counter rider is recorded but ignored, so a lockstep that
+// reaches it diverges.
+var DebugEtbCreOff bool
 
 // TurnReplStats counts the lockstep tests' coverage: opposing creatures sent
 // to exile by the scope record, placements the creature counter-plus-one made
 // larger, CR 616.1 order asks that offered a scope record as a candidate,
 // spells an uncounter record protected (Unc), targetings a player's hexproof
-// record refused (HexP) and permanents asked about while marked with Veil's
-// grant (HexO).
-var TurnReplStats struct{ Exiled, Plus, Asked, Unc, HexP, HexO atomic.Int64 }
+// record refused (HexP), permanents asked about while marked with Veil's
+// grant (HexO), and creatures the extra-ETB-counter rider gave counters to
+// (Etb), among them the ones whose counters joined the entry's one put
+// (EtbMerged).
+var TurnReplStats struct{ Exiled, Plus, Asked, Unc, HexP, HexO, Etb, EtbMerged, EtbFaceDown atomic.Int64 }
 
 // StallTurnRepl is a second scope record or creature counter record past what
 // the cold table holds: the exile-instead table is full.
@@ -46,6 +53,15 @@ var coldCtrP = newCold[plusCreRec]("ctrP", func(g *genPrep) int {
 	return 0
 })
 
+// coldEtbC is the extra-enters-with-counter record (0 or 1 of them), for a
+// table with a Zameck Guildmage replacement.
+var coldEtbC = newCold[etbCreRec]("etbCre", func(g *genPrep) int {
+	if g.anyEtbCre {
+		return 1
+	}
+	return 0
+})
+
 func init() { stallNames[StallTurnRepl] = "turnrepl" }
 
 // slotExScope is the exMarkRec.sl of a scope record: "a creature an opponent
@@ -63,8 +79,8 @@ const (
 )
 
 // prepTurnRepl sets what the table's ExtTurnRepl programs need: the counter
-// kind reads genPrep.anyRepl's rbPlusCtrEOT gates beside Boimler's, and the cold
-// buffer region; the uncounter kinds arm uncounterable's scope scan.
+// kinds read genPrep.anyRepl's rbPlusCtrEOT gates beside Boimler's and the
+// cold buffer regions; the uncounter kinds arm uncounterable's scope scan.
 func prepTurnRepl(t *kop.Table, g *genPrep) {
 	for i := range t.Cards {
 		for j := range t.Cards[i].Abilities {
@@ -76,6 +92,8 @@ func prepTurnRepl(t *kop.Table, g *genPrep) {
 				case kop.TurnReplPlusCreatureCtr:
 					g.anyRepl |= rbPlusCtrEOT
 					g.anyPlusCre = true
+				case kop.TurnReplEtbCreatureCtr:
+					g.anyEtbCre = true
 				case kop.TurnReplUncounter, kop.TurnReplUncounterCreature:
 					g.anyUncScope, g.anyTurnScope = true, true
 				case kop.TurnReplPlayerHex, kop.TurnReplHexUB:
@@ -153,6 +171,13 @@ func (s *State) turnRepl(k *prep, in *kop.Instr) {
 			}
 			c.n[p]++
 		}
+	case kop.TurnReplEtbCreatureCtr:
+		// each resolution is its own replacement (CR 616.1), so the count
+		// stacks; the entry hook applies one counter per count
+		c := s.etbCreCold()
+		if p := s.res.e.ctrl; c != nil && c.n[p] < 255 {
+			c.n[p]++
+		}
 	}
 }
 
@@ -195,6 +220,66 @@ func (s *State) plusCreCold() *plusCreRec {
 	return nil
 }
 
+// etbCreRec is the extra-enters-with-counter record: per player the count of
+// resolved riders. Each puts one +1/+1 counter on every creature that player's
+// side enters with, so the entry hook applies one put per count.
+type etbCreRec struct {
+	n [MaxSeats]uint8
+}
+
+// etbCreCold is the extra-ETB-counter record, nil when the table has none.
+func (s *State) etbCreCold() *etbCreRec {
+	if c := coldEtbC.of(s); c != nil {
+		return &c[0]
+	}
+	return nil
+}
+
+// etbCreStaged reports whether the entry at sl is one gorge stages for
+// counters (entryPlan), so the turn-long extra-ETB-counter rider folds into
+// the entry's one put per kind instead of its own one-counter puts. enterGen
+// reads it before entryWinOpen consumes the requested count entryPlan also
+// reads. A table with no rider, or a face-down entry, stages nothing.
+func (s *State) etbCreStaged(k *prep, sl Slot, p *perm, face uint8) bool {
+	return k.gen.anyEtbCre && face == 0 && s.entryPlan(k, sl, p)
+}
+
+// etbCreEnter applies the turn-long extra-ETB-counter rider to the creature
+// entering at sl (a face-down entrant too: ValidCard$ judges it as the 2/2
+// creature it enters as, CR 708.2/614.12, so it gets the counters unstaged): one +1/+1 counter per resolved rider. gorge folds an
+// Effect-borne body into the entry's one put per kind only when the entry is
+// staged (entryPlan); otherwise each Effect's body is its own put, so n
+// riders make n separate one-counter puts (ctr_entryperkind.go). staged is
+// etbCreStaged read before enterGen opened the counter window.
+func (s *State) etbCreEnter(k *prep, sl Slot, p *perm, face uint8, staged bool) {
+	if DebugEtbCreOff || DebugTurnReplOff || !k.gen.anyEtbCre {
+		return
+	}
+	c := s.etbCreCold()
+	if c == nil || !s.isCreature(k, sl) {
+		return
+	}
+	n := int(c.n[p.ctrl])
+	if n == 0 {
+		return
+	}
+	TurnReplStats.Etb.Add(1)
+	if face != 0 {
+		TurnReplStats.EtbFaceDown.Add(1)
+	}
+	if staged {
+		if k.gen.anyEntryMerge && s.entryAcc(int(kop.CtrP1P1), n) {
+			TurnReplStats.EtbMerged.Add(1)
+			return
+		}
+		s.placeCounters(k, sl, int(kop.CtrP1P1), n, p.ctrl, ctrPutBy)
+		return
+	}
+	for i := 0; i < n; i++ {
+		s.placeCounters(k, sl, int(kop.CtrP1P1), 1, p.ctrl, ctrPutBy)
+	}
+}
+
 // plusCreN is the number of Prairie Dog activations whose replacement puts one
 // more of kind counters on sl, and their source (NoObj when two differ).
 func (s *State) plusCreN(k *prep, sl Slot, kind int) (uint8, Obj) {
@@ -217,6 +302,9 @@ func (s *State) plusCreN(k *prep, sl Slot, kind int) (uint8, Obj) {
 func (s *State) turnReplEnd(scope bool) {
 	if c := s.plusCreCold(); c != nil {
 		*c = plusCreRec{}
+	}
+	if c := s.etbCreCold(); c != nil {
+		*c = etbCreRec{}
 	}
 	if scope {
 		for i := range s.cold.exMark {

@@ -9,7 +9,7 @@ const ironFistHeroForHireRepro = "prefix_search_budget_granted_any_with_sac_gran
 // Add one mana of any color". Iron Fist, Hero for Hire costs {1}{R}: tap the
 // Swamp for {R} and sacrifice any land for {B} would pay it (CR 605.3a, 106.1b).
 // gorge's prefix search (potentialPrefixScript) finds no script over those
-// grants within its 160-node budget (potentialScriptNodes), so the cast is
+// grants within its potentialScriptNodes budget, so the cast is
 // census_incomplete and never offered, while Dread Specter and Heirloom Blade,
 // payable by sacrifices alone, are (tail-08-c000 pair 43, decision 637). The
 // kernel's grant search used to keep the grant lists it read at the root through

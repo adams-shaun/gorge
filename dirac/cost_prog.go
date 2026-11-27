@@ -139,6 +139,10 @@ func (s *State) payCostAtom(k *prep, e *stackEntry, sl Slot, src Obj, at *kop.Co
 		if live {
 			s.perms[sl].seeCtr(s)
 			s.subCtrFire(k, sl, int(at.Ctr), n) // trig_counterremoved.go
+			// the counters removed: the activation's amount, which
+			// SVar$CostCountersRemoved reads as the trigger amount (gorge
+			// Ctx.Paid.CountersRemoved; kgen lower_costprog.go)
+			s.bld().e.trigAmt += int16(n)
 		}
 	case kop.CostAtomAddCounter:
 		if live {
@@ -166,6 +170,9 @@ func (s *State) payCostAtom(k *prep, e *stackEntry, sl Slot, src Obj, at *kop.Co
 func (s *State) canPayCostProg(k *prep, p uint8, sl Slot, a *kop.Ability) bool {
 	prog := costProgOf(k, a)
 	src := s.perms[sl].obj
+	if mp := multiSacProg(k, a); mp != nil && !s.multiSacFeasible(k, mp, p, sl) {
+		return false // the Sac atoms need distinct permanents (cost_progsac.go)
+	}
 	tapped := false
 	for i := range prog {
 		tapped = tapped || prog[i].K == kop.CostAtomTap
@@ -246,7 +253,7 @@ func (s *State) tapSelfCost(k *prep, sl Slot) {
 	was := s.perms[sl].flags & pfTapped
 	s.perms[sl].flags |= pfTapped
 	if was == 0 {
-		if k.gen != nil && s.subs[kop.TrigTaps].any() {
+		if k.gen != nil && s.evLive(kop.TrigTaps) {
 			s.fireTaps(k, sl)
 		}
 		s.markTapped(k, sl) // only a tap that happens marks
@@ -270,7 +277,7 @@ func (s *State) addCounterCost(k *prep, sl Slot, c, n int, payer uint8) {
 	if placed > 0 && k.anyCtrAdded {
 		s.ctrNoteBy(k, sl, c, payer) // a cost: gorge pay_engine publishes the payer
 	}
-	if placed > 0 && s.subs[kop.TrigCounterAddedOnce].any() {
+	if placed > 0 && s.evLive(kop.TrigCounterAddedOnce) {
 		// "whenever you put one or more counters on" fires for the cost's
 		// placement too: the [+1] of a loyalty ability (CR 606.4, 122.6)
 		s.g.lastCK = kop.CounterKind(c)

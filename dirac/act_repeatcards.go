@@ -14,14 +14,17 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // goes on after them.
 //
 // The plain loop (C kop.RepeatPlain) is a resumable frame
-// (repeatEachCardsFrame), so its body may ask. The batched loop's body is run
-// here, inline, in one call (the way execUnion runs one instruction over its
-// objects), so that loop needs no State of its own: the frame is the Go stack
-// and eachObj, which a resolution starts afresh. A body instruction that asks
-// (exec false) cannot be resumed from inside it, so it stalls loudly; kgen
-// lowers only a Role mint there, which asks nothing (createAttachedToken), and
-// an Aura-token replacement that would ask stalls the mint itself
-// (StallRoleMulti).
+// (repeatEachCardsFrame), so its body may ask. A batched loop over a copy body
+// (body == 1, OpCopyAsTokenEx: Mirror-Style Master) is the resumable
+// repeatEachCardsBatchFrame, so a copy's CR 508.4 defender ask parks the
+// resolution and the answer re-runs the copy op. Every other batched body is
+// run here, inline, in one call (the way execUnion runs one instruction over
+// its objects), so that loop needs no State of its own: the frame is the Go
+// stack and eachObj, which a resolution starts afresh. A body instruction that
+// asks (exec false) cannot be resumed from inside it, so it stalls loudly;
+// kgen lowers only a Role mint there, which asks nothing
+// (createAttachedToken), and an Aura-token replacement that would ask stalls
+// the mint itself (StallRoleMulti).
 //
 // ChangeZoneTable$ True: the zone changes of every pass reach the batch
 // listeners ("one or more ...") once, after the last pass, so the loop runs
@@ -37,9 +40,23 @@ func (s *State) repeatEachCards(k *prep, in *kop.Instr) {
 	r := &s.res
 	pc := int(r.pc)
 	if n > 0 && body > 0 {
-		if _, tgt := tgtSlot(in.Obj); in.C&kop.RepeatPlain != 0 && !tgt && !s.g.inLoop && r.loopD < uint8(len(r.loopN)) {
-			s.repeatEachCardsFrame(in, &list, n, pc, body) // the caller's step moves pc onto the body
-			return
+		if _, tgt := tgtSlot(in.Obj); !tgt && !s.g.inLoop && r.loopD < uint8(len(r.loopN)) {
+			if in.C&kop.RepeatPlain != 0 {
+				s.repeatEachCardsFrame(in, &list, n, pc, body) // the caller's step moves pc onto the body
+				return
+			}
+			if !DebugRepeatEachCztOff && body == 1 && s.prog(k)[pc+1].Op == kop.OpCopyAsTokenEx {
+				s.repeatEachCardsBatchFrame(k, in, &list, n, pc, body)
+				return
+			}
+		}
+	}
+	if n > 1 && in.C&kop.RepeatEachOrder != 0 {
+		if DebugRepeatCztStats != nil {
+			DebugRepeatCztStats.Ordered++
+		}
+		if s.eachOrderStart(list[:n], n) {
+			return // parked at the header; the answer re-enters here
 		}
 	}
 	r.pc += uint8(body) // the header's own step is the caller's
@@ -57,8 +74,12 @@ func (s *State) repeatEachCards(k *prep, in *kop.Instr) {
 	saveLoop := s.g.inLoop
 	s.g.inLoop = true
 	for i := 0; i < n && !s.over; i++ {
+		if DebugRepeatEachCztOff {
+			break // the mutation: no pass runs
+		}
 		r.eachObj = list[i]
 		for j := 1; j <= body; j++ {
+			s.repeatCztPass(&prog[pc+j])
 			if !s.exec(k, &prog[pc+j]) {
 				s.capFull(StallRoleMulti) // a body that asks: not resumable from here
 				break
@@ -101,13 +122,50 @@ func (s *State) repeatEachCardsFrame(in *kop.Instr, list *[MaxPerm]Obj, n, pc, b
 	s.g.inLoop = true
 }
 
-// eachCardAdvance binds the plain loop's next subject, the first of the
-// remaining ones in eachCardList's order that is still on the battlefield, and
-// reports whether there was one (loopBack; repeatEachCardsFrame). A
-// remembered-set loop (in.C kop.RepeatRemembered) walks g.rem instead: the
-// next index still in the mask, bound whether or not the card is on the
-// battlefield.
-func (s *State) eachCardAdvance(in *kop.Instr) bool {
+// eachBatchSusp is a batched RepeatEach-over-cards loop parked on a body ask
+// (repeatEachCardsBatchFrame): the zone batch and entry hold it keeps open
+// across the answer, and the state batchClose restores.
+type eachBatchSusp struct {
+	old  uint8
+	hold holdRec
+	on   bool // a batched frame is open
+}
+
+// repeatEachCardsBatchFrame runs the batched loop over a one-instruction copy
+// body (C has RepeatPlain clear, the body is OpCopyAsTokenEx) as a resumable
+// frame, so the copy's CR 508.4 defender ask (copy_attackdefender.go) parks
+// the resolution: the answer stores g.tokDef and re-runs the copy op at
+// res.pc (applyAskCzParams). The zone batch and entry hold the inline loop
+// opened around every pass stay open across the ask and close behind the last
+// pass (eachCardClose). The subjects after the first are held as slots in
+// eachRem, as the plain frame holds them, so a copy minted by an earlier pass
+// never joins the filter's subject list.
+func (s *State) repeatEachCardsBatchFrame(k *prep, in *kop.Instr, list *[MaxPerm]Obj, n, pc, body int) {
+	r := &s.res
+	rem := &s.resArm().eachRem
+	*rem = slotMask{}
+	for _, o := range list[1:n] {
+		*rem = rem.with(s.objs[o].slot)
+	}
+	f := &s.g.eachBatch
+	*f = eachBatchSusp{on: true}
+	f.old = s.batchOpen() // gorge's effRepeatEach brackets the whole loop, listener or not
+	f.hold = s.holdOpen(k)
+	d := r.loopD
+	r.loopN[d], r.loopS[d], r.loopPC[d] = 1, uint8(pc+1), uint8(pc+1+body)
+	r.loopD++
+	r.eachObj = list[0]
+	s.repeatCztPass(&s.prog(k)[pc+1]) // the first pass's body instruction
+	s.g.inLoop = true
+}
+
+// eachCardAdvance binds the loop's next subject, the first of the remaining
+// ones in eachCardList's order that is still on the battlefield, and reports
+// whether there was one (loopBack; repeatEachCardsFrame). A remembered-set
+// loop (in.C kop.RepeatRemembered) walks g.rem instead: the next index still
+// in the mask, bound whether or not the card is on the battlefield. A batched
+// frame (repeatEachCardsBatchFrame) counts the pass for RepeatCztStats.
+func (s *State) eachCardAdvance(k *prep, in *kop.Instr) bool {
 	rem := &s.resArm().eachRem
 	if in.C&kop.RepeatRemembered != 0 {
 		if !rem.any() {
@@ -126,6 +184,9 @@ func (s *State) eachCardAdvance(in *kop.Instr) bool {
 		if n := s.battlefieldOrder(p, hit, ord[:], 0); n > 0 {
 			*rem = rem.without(ord[0])
 			s.res.eachObj = s.perms[ord[0]].obj
+			if s.g.eachBatch.on && in.C&kop.RepeatPlain == 0 {
+				s.repeatCztPass(&s.prog(k)[s.res.loopS[s.res.loopD-1]])
+			}
 			return true
 		}
 	}
@@ -149,12 +210,21 @@ func (s *State) eachRememberedMask(rem *slotMask) {
 	}
 }
 
-// eachCardClose ends the plain loop whose header is in, once its last pass is
-// done: the loop's damage batch (DamageMap$ True, kop.RepeatDmgBatch), which
-// stayed open across every pass's ask, closes.
-func (s *State) eachCardClose(in *kop.Instr) {
+// eachCardClose ends the loop whose header is in, once its last pass is done:
+// the loop's damage batch (DamageMap$ True, kop.RepeatDmgBatch), which stayed
+// open across every pass's ask, closes, and a batched frame's zone batch and
+// entry hold (repeatEachCardsBatchFrame) close with it.
+func (s *State) eachCardClose(k *prep, in *kop.Instr) {
 	if in.C&kop.RepeatDmgBatch != 0 {
 		s.dmgBatchClose()
+	}
+	if in.C&kop.RepeatPlain == 0 {
+		if f := &s.g.eachBatch; f.on {
+			hold, old := f.hold, f.old
+			*f = eachBatchSusp{}
+			s.holdClose(k, hold)
+			s.batchClose(old)
+		}
 	}
 }
 

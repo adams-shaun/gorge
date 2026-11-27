@@ -75,10 +75,11 @@ func (s *State) beginTurn(p uint8) {
 	}
 	for m := live; m.any(); m = m.rest() {
 		pm := &s.perms[m.first()]
-		if pm.actUsed != 0 || pm.flags&pfLoyaltyUsed != 0 {
+		if pm.actUsed != 0 || pm.flags&pfLoyaltyUsed != 0 || pm.atkPl != 0 {
 			s.touch(pm.obj)
 		}
 		pm.actUsed = 0
+		pm.atkPl = 0 // the turn's declared player attacks end (gorge's TurnChange fold)
 		pm.flags &^= pfLoyaltyUsed
 		s.resetLoyaltyActivations(m.first())
 	}
@@ -228,6 +229,9 @@ func (s *State) beginStep(k *prep) {
 				return // kw_dredge.go: the active player's dredge ask comes first
 			}
 			s.draw(s.active)
+			if s.drawReplAsked() {
+				return // repl_draworder.go / repl_drawmay.go: the draw's replacement ask suspends the step; its answer finishes it
+			}
 		}
 		s.g.drawFirst = false
 		if s.over {
@@ -365,6 +369,10 @@ func (s *State) advance(k *prep) {
 			s.prevEndCombat() // repl_prevx.go: the Duration$ UntilEndOfCombat scoped records end here
 		}
 		s.ovEndCombat(k) // static_ovendcombat.go: the Pump Duration$ UntilEndOfCombat override records
+		// an end-of-combat emblem is an end-of-turn one too (kop.Emblem.UntilEndCombat)
+		if k.gen != nil && k.gen.anyEOTEmb {
+			s.dropEOCEmblems(k) // static_emblemendcombat.go
+		}
 	case kop.StepCleanup:
 		// a cleanup priority round (triggers) ends: another cleanup step
 		next = kop.StepCleanup
@@ -441,7 +449,7 @@ func (s *State) finishCleanup(k *prep) {
 		}
 		p.flags &^= pfDeathtouched | pfDtMore | pfRegen
 		p.eotP, p.eotT, p.eotKw, p.eotKwRep = 0, 0, 0, [2]kop.KwMask{}
-		p.spare &^= spareSwitchPT | spareRegenX // spare: the P/T switch (kw_kwmark.go); the copied-face-down mark stays (copy_facedown.go)
+		p.spare &^= spareSwitchPT | spareRegenX | spareToxic // spare: the P/T switch (kw_kwmark.go), granted toxic (kw_toxicgrant.go); the copied-face-down mark stays (copy_facedown.go)
 		if p.ovr.flags&ovSetPTEOT != 0 {
 			p.ovr.flags &^= ovSetPTEOT
 		}
@@ -584,6 +592,13 @@ func (s *State) sba(k *prep) bool {
 	}
 	var sm sbaMasks // each pass's board scan (sbaBoard fills it in place)
 	for {
+		if s.g.retHold {
+			// an until-leaves return batch is held behind a returning Aura's
+			// queued host ask (flushReturns): gorge suspends its sweep on
+			// that ask inside the pass, so no further pass runs until the
+			// answer resumes the batch (resumeQueuedReturns)
+			return false
+		}
 		pre := s.beginSBAPass() // the seats out before this pass: its losses end their control effects together (sweepDeparted)
 		if k.gen != nil && k.gen.ctrlSBA {
 			s.ctrlSBA(k) // layer-2 control records and statics (static_control.go)
@@ -779,6 +794,13 @@ func (s *State) sba(k *prep) bool {
 		for i := 0; i < n; i++ {
 			zs[i] = s.dieZone(k, order[i])
 		}
+		// gorge brackets the pass's whole departure in ONE zone batch
+		// (applySBABatch -> BatchDepartures, rules/sba.go): every until-leaves
+		// source of the pass -- creatures and non-creatures alike -- is held
+		// and returned as one batch at its end (CR 603.6a, 610.3d), not one
+		// frame per leaving object. The creature casualties ride a casBatch
+		// inside it (trig_casualtybatch.go).
+		hr := s.holdOpen(k)
 		// the creature casualties (the order's first nd) are one zone batch
 		// (trig_casualtybatch.go); the rest stay outside it
 		nd := 0
@@ -802,6 +824,7 @@ func (s *State) sba(k *prep) bool {
 		if anni.any() {
 			s.annihilateAll(anni.and(s.occ))
 		}
+		s.holdClose(k, hr) // the pass's until-leaves returns, as one batch
 		// CR 800.4a: the departed seats' objects left, after this pass's
 		// casualties applied (gorge sweepDepartedPlayers, rules/sba.go)
 		if !s.duel() && s.sweepDeparted(k, pre) {
@@ -1094,7 +1117,7 @@ func (s *State) regenerateBody(sl Slot) {
 	s.leaveCombat(sl) // CR 701.19b: regeneration removes it from combat
 	p.flags &^= pfDeathtouched | pfDtMore
 	wasUntapped := p.flags&pfTapped == 0
-	fire := wasUntapped && s.g.on && s.subs[kop.TrigTaps].any()
+	fire := wasUntapped && s.g.on && s.evLive(kop.TrigTaps)
 	if fire {
 		defer func() {
 			s.fireTaps(s.k(), sl) // gorge regeneration taps it (EmitTap)

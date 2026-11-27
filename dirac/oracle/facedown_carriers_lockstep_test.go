@@ -81,7 +81,7 @@ func facedownCarrierPolicy(seed uint64, down, up map[string]int, setup *[2]int) 
 				if !haveDown || down[n] < downCount {
 					downA, downName, downCount, haveDown = a, n, down[n], true
 				}
-			case a.Kind() == ActSpecial && a.Mode() == kfacedownTurnUp:
+			case a.Kind() == ActSpecial && a.Mode()&0xf == kfacedownTurnUp:
 				if !haveUp || up[n] < upCount {
 					upA, upName, upCount, haveUp = a, n, up[n], true
 				}

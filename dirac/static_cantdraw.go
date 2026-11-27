@@ -10,20 +10,31 @@ const cfgxCantDraw uint8 = 1 << 6
 // DebugPlayerBanOff is TestPbanMutation's switch.
 var DebugPlayerBanOff bool
 
+// DebugDrawLimitOff is TestDrawLimitMutation's switch: a DrawLimit$ static
+// bans nothing.
+var DebugDrawLimitOff bool
+
 // playerBanned: a functioning static of kind sk (StatCantGainLife /
 // StatCantDraw) is on the battlefield and bans player p: every player, or with
 // StBanOpp only the seats other than the static's controller (gorge
-// lifeGainForbidden / drawForbidden: an empty ValidPlayer$, or Opponent).
+// lifeGainForbidden / drawForbidden: an empty ValidPlayer$, or Opponent). A
+// StatCantDraw with A = N+1 is DrawLimit$ N: it bans only once p has drawn N
+// cards this turn (gorge drawForbidden's CardsDrawnThisTurn cap).
 //
 //go:noinline
 func (s *State) playerBanned(k *prep, sk kop.StaticKind, p uint8) bool {
 	if DebugPlayerBanOff {
 		return false
 	}
+	if sk == kop.StatCantGainLife && s.pl[p].mark&pmNoGain != 0 {
+		return true // static_lockgain.go
+	}
 	hit := false
 	s.eachStatic(k, func(st statSrc) bool {
 		if st.a.Kind == kop.AbStatic && st.a.Static.Kind == sk &&
-			(st.a.Static.StFlags&kop.StBanOpp == 0 || st.ctrl != p) && s.statCond(k, st) {
+			(st.a.Static.StFlags&kop.StBanOpp == 0 || st.ctrl != p) &&
+			(sk != kop.StatCantDraw || st.a.Static.A == 0 || !DebugDrawLimitOff && int16(s.pl[p].drawnTurn) >= st.a.Static.A-1) &&
+			s.statCond(k, st) {
 			hit = true
 			return false
 		}

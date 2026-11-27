@@ -40,6 +40,14 @@ const (
 	ColAny ColorMask = 0x1f
 )
 
+// HexMono and HexMulti ride CardDef.HexColors beside the colour bits, in two
+// bits no colour uses: printed "hexproof from monocolored" (K:Hexproof:
+// Card.MonoColor) and "from multicolored" (Card.MultiColor), CR 702.11d.
+const (
+	HexMono  ColorMask = 1 << 6
+	HexMulti ColorMask = 1 << 7
+)
+
 // CtrlSel selects by controller relative to the source's controller.
 type CtrlSel uint8
 
@@ -310,6 +318,26 @@ const OvEnterWith = 2
 // source's ChosenType AT RESOLUTION.
 const OvChosenType = 3
 
+// OvCwWord, in an OpOverride's B field: a word-list Animate Colors$ (Raging
+// Ravine's "becomes a 2/2 red and green Elemental creature"). C names the
+// FIRST of SIX consecutive Overrides records, the printed colours then one
+// colour each (W, U, B, R, G in that order; kgen emitCwWordAnimate). At
+// resolution the kernel applies the record whose colour is the colour-word
+// statics' colour frozen as the ability was put on the stack
+// (static_colorwords.go cwFreeze, ovCwRow), the printed one with none: gorge
+// reads the ability's Colors$ from its face as it was put on the stack (CR
+// 112.7a, 608.2h), so a later static change moves nothing installed.
+const OvCwWord = 4
+
+// OvSpellCarry, in an OpOverride's B field: the override is a static
+// SpellCast rider's timed Animate of the triggering spell (Thundermane
+// Dragon's "it gains haste until end of turn"). A spell on the stack has no
+// battlefield slot, so OpOverride stamps the triggering spell entry with
+// C+1 (stackEntry.ov) and resolve.go applies the record to the permanent the
+// spell becomes as it enters (static_spellcarry.go), the same object CR 400.7a
+// carries the grant onto.
+const OvSpellCarry = 5
+
 // ChooseTypeBasicLand, in a mid-resolution OpChooseType's B field: the ask
 // offers the five basic land types (gorge effChooseType Type$ Basic Land,
 // CR 205.3i) rather than the creature-type vocabulary. The answer is the
@@ -452,6 +480,10 @@ const (
 	AttToOther     = 4
 	AttToYouCtrl   = 8
 	AttToSrcBearer = 16
+	// AttToTarget: the bearer is one of the resolving entry's object targets
+	// (gorge AttachedTo Card.targetedBy: Disarm and Fulgent Distraction's
+	// "all Equipment attached to target creature(s)").
+	AttToTarget = 32
 )
 
 // W7NoNameTwinGrave (PredWord7 sub-kind 20): the pair "doesNotShareNameWith
@@ -669,6 +701,14 @@ const W7HasProtEachColor int16 = 45
 // Creature.withoutFlanking blocker filter (Benalish Cavalry, Knight of Valor).
 const W7WithoutFlanking int16 = 46
 
+// W7GreatestMVArtifact (PredWord7 sub-kind 47) is reserved: gorge's
+// greatestCMC_<prop> lowers through the ExValidAgg AggGreatestMV bound
+// (kgen/filter.go's greatestCMC) instead of a word — a battlefield artifact
+// whose mana value no other battlefield artifact exceeds, ties matching
+// (CR 202.3). The ordinal stays consumed (ordinals.tsv); no filter lowers
+// to it.
+const W7GreatestMVArtifact int16 = 47
+
 // PredPowerLTToughness's PredN: the power/toughness relation it reads. 0 is
 // power < toughness (gorge powerLTtoughness); PTRelEQ is gorge's equalPT
 // (net power equal to net toughness) and PTRelNE its negation !equalPT, each
@@ -704,13 +744,14 @@ func PTBoxHolds(n int16, pw, t int) bool {
 		(b[2] == PTBoxOpen || t >= b[2]) && (b[3] == PTBoxOpen || t <= b[3])
 }
 
-// PredPermMark, four per-permanent marks the filter words
-// attackedThisTurn, dealtDamageThisTurn, dealtDamagetoAny and
-// dealtCombatDamagetoAny read (gorge filter.go AttackedTurn; filter_word.go
-// DamageDealtThisTurn, DealtDamageToAnyGame, DealtCombatDamageToAnyGame).
-// PredN bits 0-3 name the mark (PermMark*), bit 4 (PermMarkNot) negates it.
-// Each mark is an arena slot bit; a card off the battlefield has none, so
-// the negated word is true there.
+// PredPermMark, the per-permanent marks the filter words attackedThisTurn,
+// dealtDamageThisTurn, dealtDamagetoAny, dealtCombatDamagetoAny, activated
+// and turnedFaceUpThisTurn read (gorge filter.go AttackedTurn; filter_word.go
+// DamageDealtThisTurn, DealtDamageToAnyGame, DealtCombatDamageToAnyGame,
+// wordActivated, wordTurnedFaceUpThisTurn). PredN bits 0-3 name the mark
+// (PermMark*), bit 4 (PermMarkNot) negates it. Each mark is an arena slot
+// bit; a card off the battlefield has none, so the negated word is true
+// there.
 const PredPermMark Pred = 244
 
 const (
@@ -718,6 +759,8 @@ const (
 	PermMarkDealtTurn   = 1 // dealt damage this turn (CR 120.1; cleared as the turn changes)
 	PermMarkDealtAny    = 2 // dealt damage since it entered (game-long)
 	PermMarkDealtCombat = 3 // dealt combat damage since it entered (game-long)
+	PermMarkActTurn     = 4 // activated a non-mana ability this turn (gorge's ActivatedThisTurn tally; cut_short)
+	PermMarkFaceUpTurn  = 5 // was turned face up this turn (the CR 708.6 turn-up; Kaust)
 	PermMarkNot         = 16
 )
 
@@ -788,7 +831,9 @@ const PredTrigPlayerCtrl Pred = 239
 // is the evaluating controller: the attacked player, the controller of the
 // attacked planeswalker or the protector of the attacked battle (gorge
 // attackingYou: o.Attacking == you; CR 506.2, 508.1b). At any seat count;
-// false off the battlefield. Explicit ordinal.
+// false off the battlefield. PredN 1 is gorge attackingYouOrYourPW(LKI):
+// attacking the evaluating controller itself or a planeswalker it controls
+// (animated or not), never a battle. Explicit ordinal.
 const PredAttackingYou Pred = 235
 
 // PredSuspected: PredN 1, a suspected battlefield permanent; PredN 0, anything

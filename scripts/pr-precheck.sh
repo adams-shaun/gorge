@@ -7,8 +7,33 @@ set -uo pipefail
 base=${1:?usage: pr-precheck.sh BASE}
 source scripts/pr-cards.sh
 cap=(systemd-run --user --scope -q -p MemoryMax=4G -p CPUQuota=400% env GOMAXPROCS=4 GOMEMLIMIT=3GiB)
+# go vet type-checks the test packages; a cold cache over ./dirac ./dirac/oracle ./engine/rules runs two compiles plus vet
+# in one scope and hit the 4G cap (11-26: OOM-killed, verdict empty). 8G/6GiB matches the dirac lockstep tests' cap.
+vetcap=(systemd-run --user --scope -q -p MemoryMax=8G -p CPUQuota=400% env GOMAXPROCS=4 GOMEMLIMIT=6GiB)
 log=$(mktemp); trap 'rm -f "$log"' EXIT
+# vet_reason RC LOG: the verdict text for a failed go vet. An OOM kill writes no file:line (rc 137 is SIGKILL; go prints
+# "signal: killed" for a killed child), so it is named; any other diagnostic-less failure shows the last log line.
+vet_reason() {
+  local why
+  why=$(grep -m1 -E '^[^ #].*\.go:[0-9]+' "$2" | cut -c1-200)
+  if [ -z "$why" ] && { [ "$1" = 137 ] || grep -q 'signal: killed' "$2"; }; then why="killed (memory cap 8G; rc $1)"; fi
+  [ -n "$why" ] || why="rc $1: $(grep -v '^[[:space:]]*$' "$2" | tail -1 | cut -c1-200)"
+  echo "$why"
+}
 fail() { echo "pr-precheck: $*"; exit 1; }
+# A pass is stamped by the hash of the branch's own diff against $base (the merge-base diff). When main moves and a
+# CLEAN merge or rebase leaves that diff unchanged, the stamp matches and the checks below are not run again: the
+# merge queue's batch is the gate for the merge itself (11-26: a GLM subagent merged main and re-ran the whole
+# battery in a loop, each time main had moved again). PR_PRECHECK_FORCE=1 re-runs. The key is read on stdin.
+already_passed() {
+  read -r key
+  [ -n "$key" ] && [ -e "${PRECHECK_STAMP_DIR:-$HOME/.cache/gorge-precheck}/$key" ]
+}
+own_key=$(git diff --binary "$base"...HEAD | sha256sum | cut -d' ' -f1)
+if [ -z "${PR_PRECHECK_FORCE:-}" ] && already_passed <<<"$own_key"; then
+  echo "pr-precheck: ok (this diff already passed; main moving does not re-run it, the merge queue gates the merge)"
+  exit 0
+fi
 # gofmt, the lint job's first step (.github/workflows/ci.yml): #1964 printed "pr-precheck: ok" here and then failed
 # lint on ./dirac/turn_gen.go and ./dirac/combat_mustbeblocked.go, needing a hand gofmt commit and a requeue. First,
 # before any heavy step. --diff-filter=ACMR is the "still exist" half: a file the branch deletes is not there for
@@ -25,11 +50,57 @@ fi
 heads_gate() {
   grep -q -E '^(engine/(events|effects|state|rules|cards)/|cmd/forgec/)'
 }
+# The branch name on stdin: regen/* owns the derived records (scripts/regen-main.sh
+# regenerates them wholesale) and mergify/merge-queue/* replays regen branches, so the derived step below skips
+# them. Detached HEAD resolves to "HEAD": not exempt.
+derived_exempt() {
+  case $(cat) in
+  regen/* | mergify/merge-queue/*) return 0 ;;
+  *) return 1 ;;
+  esac
+}
 changed=$(git diff --name-only "$base"...HEAD)
+# A branch still carrying a rise in the derived records conflicts with regen/main the moment it merges (11-26: 25
+# open wt/* PRs CONFLICTING after each regen merge, every one rewriting support.md or a pin table). pr-derived.sh
+# --check flags one: a record the diff touches is stale iff the tolerant test passes on $base's copy — a rise
+# regen/main owns; a fall is kept by design. The corpus lives only here (pr-cards.sh), so the CI lint job and
+# queue-precheck cannot run this step (a path-only rule would block every legitimate fall).
+if grep -qxF -f <(bash scripts/pr-derived.sh --list) <<<"$changed"; then
+  if ! derived_exempt <<<"${PR_PRECHECK_BRANCH:-$(git rev-parse --abbrev-ref HEAD)}"; then
+    rc=0; out=$(bash scripts/pr-derived.sh --check "$base") || rc=$?
+    if [ "$rc" = 1 ]; then
+      files=${out##*pr-derived: stale }
+      files=${files%%$'\n'*}
+      fail "derived records $files carry a rise that regen/main owns: run scripts/pr-derived.sh $base and commit what it changes (a fall is kept by design)"
+    elif [ "$rc" != 0 ]; then
+      fail "derived records check: $out"
+    fi
+  fi
+fi
 if ! "${cap[@]}" go test -timeout 3m -run '^TestCodeShapeOnlyShrinks$' ./internal/codeshape >"$log" 2>&1; then
   # TestCodeShapeOnlyShrinks holds the tree-wide counts (stringLiteralCompares and the rest): a dirac ticket added two
   # string compares and failed its batch's test (0), as no affected-package rule selects ./internal/codeshape (#662, 11-17).
   cat "$log"; fail "codeshape: $(grep -o -E '[A-Za-z]+: measured [0-9]+, above the frozen ceiling of [0-9]+' "$log" | head -1)"
+fi
+# go vet over the packages the diff touches (lint runs ./... ; a vet error in a changed package is the one a PR can
+# cause). --diff-filter=ACMR leaves out deleted files, so a removed package is not asked for.
+vetpkgs=$(git diff --name-only --diff-filter=ACMR "$base"...HEAD -- '*.go' | xargs -r -n1 dirname | sort -u | sed 's|^|./|')
+if [ -n "$vetpkgs" ]; then
+  # shellcheck disable=SC2086
+  rc=0; "${vetcap[@]}" go vet $vetpkgs >"$log" 2>&1 || rc=$?
+  if [ "$rc" != 0 ]; then
+    cat "$log"
+    why=$(vet_reason "$rc" "$log")
+    fail "go vet: $why"
+  fi
+fi
+# The base-relative function growth rule (cmd/funcgrowth, #5106) runs in lint and in every merge batch; run it here so a
+# PR learns it grew a function past its allowance before the push, not in the queue (11-26: batch #5138's lint failed on
+# featPoolPays 45 -> 52 although each PR passed this script). A tree without the rule yet skips the step. Two PRs that each
+# grow one function inside its allowance can still cross the threshold together: only the batch sees that sum, so keep a
+# function's headroom for the other PRs (extract a helper) instead of using all of it.
+if [ -d cmd/funcgrowth ]; then
+  "${cap[@]}" go run ./cmd/funcgrowth -base "$base" >"$log" 2>&1 || { cat "$log"; fail "funcgrowth: $(grep -m1 -E 'grew to|grew past' "$log" | sed 's/^[[:space:]]*//' | cut -c1-200)"; }
 fi
 # The public boundary scans every tracked file, so no affected-package rule selects it: a test fixture holding a
 # Forge script line verbatim passed the seat's checks and failed fast's TestNoVerbatimForgeLines (#613, 11-17).
@@ -130,4 +201,9 @@ if [ -n "$fresh" ]; then
   done
   rm -rf "$scratch"
 fi
+# Two stamps: the git-dir one records the exact head this script passed and the pre-push hook (.githooks/pre-push)
+# reads it; the diff-keyed one is how main moving does not re-run the checks (already_passed above).
+git rev-parse HEAD >"$(git rev-parse --git-path pr-precheck-ok)" 2>/dev/null || true
+sd=${PRECHECK_STAMP_DIR:-$HOME/.cache/gorge-precheck}
+mkdir -p "$sd" && : >"$sd/$own_key" && find "$sd" -type f -mtime +7 -delete 2>/dev/null
 echo "pr-precheck: ok"

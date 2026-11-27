@@ -87,6 +87,11 @@ func (s *State) announcedHyb(c *kop.ManaCost) {
 // PayMana instruction (whose F is no filter), its hybrid pips.
 func (s *State) resPayCost(k *prep) kop.ManaCost {
 	in := &s.prog(k)[s.res.pc]
+	if in.C&0xF == kop.PayManaX {
+		// a trigger's own announced {X}: pickLeft is the X and the
+		// instruction's XColor$ (if any) makes it pips of that colour
+		return s.trigXCostAt(k, int(s.g.pickLeft))
+	}
 	c := s.numTimesCost(k, int(s.g.pickLeft), s.cumPips(k, in.B.N))
 	if in.IsPayMana() {
 		s.payManaHyb(k, in.F, &c)

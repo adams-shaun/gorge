@@ -492,35 +492,37 @@ func emitPlayerDamage(r damageRider, target state.PlayerID) int32 {
 // BEFORE the damage lands (CR 120.10 measures excess against the damage that
 // was lethal, and already-marked damage counts toward it): a creature's
 // derived toughness minus its marked damage, a planeswalker's remaining
-// loyalty. Anything else -- an artifact, land or enchantment has no lethal
-// threshold; a Battle's defence-counter threshold is not modelled here -- has
-// no excess computation, so ok is false and NO value is bound (the
-// conservative direction: the sub reads its own default rather than an
-// invented number). Damage to a PLAYER never reaches here: excess is not
-// defined against a player. deathtouch is whether the damage SOURCE has it
-// (CR 120.4a, 702.2c): any nonzero damage from it is lethal to a creature, so
-// a creature not yet dead has a lethal amount of 1, however much toughness it
-// has left. A planeswalker's loyalty is unaffected.
+// loyalty, a battle's remaining defense (CR 120.4a); a permanent with several
+// of those types takes the greatest amount. Anything else -- an artifact, land
+// or enchantment has no lethal threshold -- has no excess computation, so ok
+// is false and NO value is bound (the conservative direction: the sub reads
+// its own default rather than an invented number). Damage to a PLAYER never
+// reaches here: excess is not defined against a player. deathtouch is whether
+// the damage SOURCE has it (CR 120.4a, 702.2c): any nonzero damage from it is
+// lethal to a creature, so a creature not yet dead has a lethal amount of 1,
+// however much toughness it has left. Loyalty and defense are unaffected.
 func excessLethal(h Host, o *state.Object, deathtouch bool) (int32, bool) {
-	switch {
-	case h.IsCreature(o.ID):
-		lethal := h.Toughness(o.ID) - o.Damage
-		if lethal < 0 {
-			lethal = 0
-		}
+	f := o.Face()
+	isPW := f != nil && f.IsPlaneswalker()
+	isBattle := f != nil && f.IsBattle()
+	isCreature := h.IsCreature(o.ID)
+	if !isCreature && !isPW && !isBattle {
+		return 0, false
+	}
+	var lethal int32
+	if isCreature {
+		lethal = max(LethalThreshold(h, o.ID)-o.Damage, 0)
 		if deathtouch && lethal > 1 {
 			lethal = 1
 		}
-		return lethal, true
-	case o.Face() != nil && o.Face().IsPlaneswalker():
-		loyalty := o.Counter("LOYALTY")
-		if loyalty < 0 {
-			loyalty = 0
-		}
-		return loyalty, true
-	default:
-		return 0, false
 	}
+	if isPW && !isCreature {
+		lethal = max(lethal, o.Counter("LOYALTY"))
+	}
+	if isBattle {
+		lethal = max(lethal, o.Counter("DEFENSE"))
+	}
+	return lethal, true
 }
 
 // excessConditionHolds evaluates DealDamage's ExcessSVarCondition$ gate. The
@@ -1457,3 +1459,15 @@ var validPlayersSelectorUnknownCodes = state.NewStrCodes(
 	state.StrEntry[validPlayersSelectorUnknownCode]{Key: "Opponent", Val: validPlayersSelectorUnknownKnownBase},
 	state.StrEntry[validPlayersSelectorUnknownCode]{Key: "Other", Val: validPlayersSelectorUnknownKnownBase},
 )
+
+// LethalThreshold is the damage that is lethal to creature id before marked
+// damage: the host's LethalDamageThreshold when it models Forge's
+// LethalDamageByPower$ (rules: power under such a static, else toughness),
+// otherwise the creature's toughness. The one shared read for CR 120.10's
+// excess and every rules-side lethal-damage threshold.
+func LethalThreshold(h interface{ Toughness(state.ObjID) int32 }, id state.ObjID) int32 {
+	if l, ok := h.(interface{ LethalDamageThreshold(state.ObjID) int32 }); ok {
+		return l.LethalDamageThreshold(id)
+	}
+	return h.Toughness(id)
+}

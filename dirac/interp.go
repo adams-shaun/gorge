@@ -277,6 +277,8 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 			hb.add(s, a, b, pa)
 			if in.Op == kop.OpFight {
 				hb.add(s, b, a, s.power(k, b))
+			} else if in.A.K == kop.VConst && in.A.N == kop.BiteExcessTrample {
+				s.biteExcess(k, &hb, a, b, pa) // act_bitelki.go
 			}
 		}
 		lethal := 0
@@ -297,7 +299,7 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 			s.perms[sl].flags |= pfTapped
 			s.touchSl(sl)
 			if was == 0 {
-				if k.gen != nil && s.subs[kop.TrigTaps].any() {
+				if k.gen != nil && s.evLive(kop.TrigTaps) {
 					who := s.effTapper(sl)
 					if in.W != 0 {
 						// the instruction's Tapper$ provenance (gorge
@@ -567,6 +569,7 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 				s.winGame(k, p)
 				break
 			}
+			s.noteDrawReplLoss() // repl_drawpick.go: the draw-repl pool's branch counter
 			s.lose(p)
 		}
 	case kop.OpShuffle:
@@ -720,8 +723,20 @@ func (s *State) execGrantKeyword(k *prep, in *kop.Instr) {
 		return
 	}
 	m := kop.KwMask(uint16(in.C)) | kop.KwMask(uint16(in.B.N))<<16
+	// a granted protection-from-colour keyword's colour reads as the
+	// colour-word statics rewrite the granting entry's text
+	// (static_colorwords.go cwProtGrant): the composed colour, marked where no
+	// keyword bit names it
+	var srcCard CardID
+	if e := s.curEntry(); e != nil {
+		srcCard = e.card
+	}
+	m, marks := s.cwProtGrant(k, srcCard, m)
 	s.grantEOT(sl, m)
 	s.promoKw(k, sl, m)
+	if marks != 0 {
+		s.colProtMarkAll(k, sl, marks)
+	}
 	if in.A.K == kop.VConst && in.A.N != 0 {
 		s.recordPrevGrant(sl, m) // an Effect's grant (kgen effectPrevent): gorge's option names the Effect
 	}
@@ -900,7 +915,7 @@ func (s *State) discardObjAs(k *prep, o Obj, effect bool) {
 	if k.gen != nil && k.gen.anyRemDisc {
 		s.discardRemember(k, o)
 	}
-	if s.subs[kop.TrigDiscarded].any() {
+	if s.evLive(kop.TrigDiscarded) {
 		s.firePlayer(k, kop.TrigDiscarded, s.objs[o].owner(), 1)
 	}
 	if k.gen != nil && k.gen.anySelfDisc {
@@ -1008,6 +1023,32 @@ func (s *State) resolveOptions(k *prep, d *Decision) bool {
 	default:
 		return s.resolveOptionsGen(k, d)
 	}
+	return true
+}
+
+// applyMoveCounterAnyPick takes one answer of the MoveCounter Any pick and
+// reports whether the pick closed (the program then advances); false re-poses.
+func (s *State) applyMoveCounterAnyPick(k *prep, a Action) bool {
+	r := &s.res
+	if a.Kind() == AkDone {
+		n := 0
+		if r.peekI > 0 {
+			n = int(r.arr[0])
+		}
+		r.peekI = 0
+		s.moveCounterAnyApply(k, n)
+		return true
+	}
+	if int(r.peekI) < len(r.arr) {
+		r.arr[r.peekI] = Obj(a.Mode()) // code-ok: a counter amount (0..held), not an object code
+		r.peekI++
+	}
+	if int(r.peekI) < int(s.g.pickLeft) {
+		return false
+	}
+	n := int(r.arr[0])
+	r.peekI = 0
+	s.moveCounterAnyApply(k, n)
 	return true
 }
 

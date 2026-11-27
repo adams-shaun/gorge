@@ -264,6 +264,18 @@ func lowerTokenEntry(p *pool, cards []*lCard, k string) *lCard {
 	return lowerCard(p, k, c, true)
 }
 
+// altAddCostDump is dumpLIR's either-or additional cost fields: the parts of
+// an AlternateAdditionalCost beyond the spell's own (Dusk Mangler's third).
+func altAddCostDump(w io.Writer, c *lCard) {
+	if c.AltAddCost == nil {
+		return
+	}
+	fmt.Fprintf(w, " altaddcost=%s", costString(*c.AltAddCost))
+	if c.AltAddCost2 != nil {
+		fmt.Fprintf(w, " altaddcost2=%s", costString(*c.AltAddCost2))
+	}
+}
+
 // dumpLIR writes a readable LIR listing.
 func dumpLIR(w io.Writer, c *lCard) {
 	fmt.Fprintf(w, "CARD %s token=%v cost=%s types=%#x sub=%v colors=%q pt=%d/%d star=%v loyalty=%d kw=%v flash=%v",
@@ -338,6 +350,7 @@ func dumpLIR(w io.Writer, c *lCard) {
 			fmt.Fprintf(w, "+behold1%s", c.MayFlashBehold)
 		}
 	}
+	dumpOffering(w, c)
 	if c.FbBeholdN != 0 {
 		fmt.Fprintf(w, " fbbehold=%d%s", c.FbBeholdN, c.FbBeholdF)
 	}
@@ -383,9 +396,7 @@ func dumpLIR(w io.Writer, c *lCard) {
 	if c.SpellCost != nil {
 		fmt.Fprintf(w, " spellcost=%s", costString(*c.SpellCost))
 	}
-	if c.AltAddCost != nil {
-		fmt.Fprintf(w, " altaddcost=%s", costString(*c.AltAddCost))
-	}
+	altAddCostDump(w, c) // altaddcost= / altaddcost2= (the either-or's parts, Dusk Mangler's third)
 	if c.KickerCost != nil {
 		fmt.Fprintf(w, " kickercost=%s", costString(*c.KickerCost))
 	}
@@ -412,6 +423,9 @@ func dumpLIR(w io.Writer, c *lCard) {
 	}
 	if c.SelfFlash {
 		fmt.Fprintf(w, " selfflash")
+		if c.SelfFlashSA != kop.SfsaSpell {
+			fmt.Fprintf(w, "=%d", c.SelfFlashSA)
+		}
 	}
 	if c.Landwalk != nil {
 		fmt.Fprintf(w, " landwalk=%s", c.Landwalk)
@@ -463,6 +477,7 @@ func dumpLIR(w io.Writer, c *lCard) {
 	if c.HexColors != "" {
 		fmt.Fprintf(w, " hexproof=%s", c.HexColors)
 	}
+	dumpHexQuality(w, c)
 	if c.ProtColors != "" {
 		fmt.Fprintf(w, " protection=%s", c.ProtColors)
 	}
@@ -549,7 +564,9 @@ func dumpLIR(w io.Writer, c *lCard) {
 	}
 	for i, e := range c.Emblems {
 		eot := ""
-		if e.UntilEOT {
+		if e.UntilEndCombat {
+			eot = " until=EOC"
+		} else if e.UntilEOT {
 			eot = " until=EOT"
 		} else if e.UntilNextTurn {
 			eot = " until=next"
@@ -570,7 +587,7 @@ func dumpLIR(w io.Writer, c *lCard) {
 		for _, f := range [...]struct {
 			on   bool
 			name string
-		}{{e.CaptureRem, "remembers=set"}, {e.Source, "source"}, {e.NotHere, "not-here"}, {e.NumAmount, "number-as-amount"}, {e.Once, "once"}} {
+		}{{e.CaptureCounter != "", "forgets-on-last-" + e.CaptureCounter}, {e.CaptureRem, "remembers=set"}, {e.Source, "source"}, {e.NotHere, "not-here"}, {e.NumAmount, "number-as-amount"}, {e.Once, "once"}} {
 			if f.on {
 				eot += " " + f.name
 			}
@@ -611,8 +628,26 @@ func dumpStatics(w io.Writer, c *lCard) {
 		if s.Infect {
 			fmt.Fprintf(w, " infect")
 		}
+		if s.Toxic != 0 {
+			fmt.Fprintf(w, " toxic=%d", s.Toxic)
+		}
+		if s.Riot {
+			fmt.Fprintf(w, " riot")
+		}
+		if s.Unleash {
+			fmt.Fprintf(w, " unleash")
+		}
+		if s.PanhZones != 0 {
+			fmt.Fprintf(w, " zones=%d", s.PanhZones)
+		}
+		if s.PanhTurned {
+			fmt.Fprintf(w, " turned")
+		}
 		if s.OutlivesLoss {
 			fmt.Fprintf(w, " outlivesloss")
+		}
+		if s.FlashXMax != 0 {
+			fmt.Fprintf(w, " xmax=%d", s.FlashXMax-1)
 		}
 		if s.BlockAmount != 0 {
 			fmt.Fprintf(w, " blockamount=%d", s.BlockAmount)
@@ -634,6 +669,9 @@ func dumpStatics(w io.Writer, c *lCard) {
 		}
 		if s.Kind == "MiracleGrant" {
 			fmt.Fprintf(w, " miraclecost=%s less=%d", s.Cost.Mana, s.CardCostLess)
+		}
+		if s.Kind == "MadnessGrant" {
+			fmt.Fprintf(w, " less=%d", s.CardCostLess)
 		}
 		if s.Kind == "WarpGrant" {
 			fmt.Fprintf(w, " warpcost=%s", s.Cost.Mana)
@@ -672,11 +710,17 @@ func costString(c lCost) string {
 	if c.Sac != nil {
 		p = append(p, fmt.Sprintf("Sac%d%s", c.SacN, c.Sac))
 	}
+	for _, m := range c.SacMore {
+		p = append(p, fmt.Sprintf("Sac%d%s", m.N, m.F))
+	}
 	if c.SacX {
 		p = append(p, "SacX")
 	}
 	if c.SacHalf {
 		p = append(p, "SacHalf")
+	}
+	if c.BlightX {
+		p = append(p, "BlightX")
 	}
 	if c.XMin > 0 {
 		p = append(p, fmt.Sprintf("XMin%d", c.XMin))
@@ -708,6 +752,9 @@ func costString(c lCost) string {
 	}
 	if c.SubCtr > 0 {
 		p = append(p, fmt.Sprintf("Remove%d%s", c.SubCtr, c.SubCtrKnd))
+	}
+	if c.SubCtrAll != "" {
+		p = append(p, "RemoveAll"+c.SubCtrAll)
 	}
 	if c.PayLife > 0 {
 		p = append(p, fmt.Sprintf("Life%d", c.PayLife))
@@ -799,4 +846,21 @@ func nameCard(cards []*lCard, key string) *lCard {
 		}
 	}
 	return c
+}
+
+// dumpOffering prints a card's K:Offering filter in dumpLIR's CARD line.
+func dumpOffering(w io.Writer, c *lCard) {
+	if c.Offering != nil {
+		fmt.Fprintf(w, " offering%s", c.Offering)
+	}
+}
+
+// dumpHexQuality prints a card's hexproof-from-quality words in dumpLIR's CARD line.
+func dumpHexQuality(w io.Writer, c *lCard) {
+	if c.HexMono {
+		fmt.Fprintf(w, " hexproof=monocolored")
+	}
+	if c.HexMulti {
+		fmt.Fprintf(w, " hexproof=multicolored")
+	}
 }

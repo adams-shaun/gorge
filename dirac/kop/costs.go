@@ -293,6 +293,18 @@ type Cost struct {
 	// not a CostFlags bit (the words are full). Only a spell's own additional
 	// cost carries it.
 	SacHalf bool
+	// CloseEnc: the spell's own additional cost is Close Encounter's
+	// ChooseCard pick — choose one creature you control or a warped creature
+	// card you own in exile (gorge's costvocab.CloseEncounterChooseSpec, the
+	// sole spec its cost parser admits; CR 118.3, 601.2b). The choice moves
+	// and marks nothing: it rides the cast's paid "Revealed" list (gorge
+	// castPayChoosecost), and the spell body's RevealedCards$ value reads the
+	// chosen object through RefChosenEnc (the entry's trigObj, dirac
+	// cost_closeenc.go). gorge offers the cast only with a candidate
+	// (pay.RevealOrChooseCandidates) and asks only over several; a lone one is
+	// taken unasked. A table byte, not a CostFlags bit (the words are full).
+	// Only a spell's own additional cost carries it.
+	CloseEnc bool
 	// ExileGSelf: the source card itself, in its owner's graveyard, is
 	// exiled as a first ExileFromGrave<1/CARDNAME> part beside the
 	// CostExileGrave part (Cost.N cards matching Filter, the other cards;
@@ -313,6 +325,14 @@ type Cost struct {
 	// full). Only a spell's own alternative cost carries them.
 	Discard2N uint8
 	Discard2F FilterID
+	// DiscardSharesCastColor: the CostDiscard part's candidates are the
+	// payer's hand cards that share a colour with the spell being cast
+	// (Dream Halls' granted alternative cost Discard<1/Card.SharesColorWith>,
+	// CR 118.3, 601.2h). Cost.Filter stays 0; the cast card's colour mask is
+	// read at offer and pick time (dirac/cast_altgrant.go). A table byte, not
+	// a CostFlags bit (the words are full). Only a battlefield grant's
+	// alternative cost carries it.
+	DiscardSharesCastColor bool
 	// DiscardSideN / DiscardSideF: a filtered discard part that sits beside
 	// a sacrifice on an activated ability (Skoa, Embermage: Discard<1/Card.
 	// namedSkoa, Embermage> Sac<2/Mountain>). Cost.N / Cost.Filter stay the
@@ -407,6 +427,11 @@ const PayBSubTrigNew = 3
 // exiled), not a graveyard exile.
 const PayBSubExileHand = 9
 
+// PayBSubMoveGrave: a PayExileGrave whose B.N carries this sentinel is a
+// trigger's own ExiledMoveToGrave<N/Spec> cost (N cards matching F put from
+// any seat's exile zone into their owners' graveyards), not a graveyard exile.
+const PayBSubMoveGrave = 19
+
 // PayBSubTrigNewEvidence: a PayExileGrave whose B.N carries this sentinel is
 // a dies trigger's own ExileAnyGrave<1/Card.TriggeredNewCard>
 // CollectEvidence<A> cost (Lamplight Phoenix): the triggered card is exiled
@@ -418,6 +443,36 @@ const PayBSubTrigNewEvidence = 10
 // announced X: the payer announces X over 0..the graveyard's total mana
 // value, then pays (collects evidence X).
 const PayBSubEvidenceX = 11
+
+// PayBSubLifeX: a PayManaX whose B.N carries this sentinel is a trigger's own
+// PayLife<X> cost (Necrodominance's "pay any amount of life"), A the cap on the
+// announced X: the payer announces X over 0..their life, then elects to pay
+// that much life (cost_paylifetrig.go).
+const PayBSubLifeX = 20
+
+// PayBSubXColor marks a PayManaX whose announced {X} is a coloured X (Forge's
+// XColor$; Leyline Tyrant's "you may pay any amount of {R}"): B.N is
+// PayBSubXColor | (colour + 1), colour the WUBRG index, so each announced X
+// is that colour's pip instead of generic mana (CR 107.3, 601.2b). The high
+// byte keeps the marker clear of the small PayBSub* sentinels a PayManaX
+// carries (PayBSubEvidence, PayBSubEvidenceX).
+const PayBSubXColor = 1 << 8
+
+// PayXColorB is the PayManaX B.N of a coloured X of colour (W = 0 .. G = 4).
+func PayXColorB(colour int) int16 { return PayBSubXColor | int16(colour+1) }
+
+// PayXColor reads a PayManaX B.N: the coloured X's colour index and true when
+// B.N is a PayBSubXColor marker, else 0, false (an ordinary generic X).
+func PayXColor(n int16) (uint8, bool) {
+	if n&PayBSubXColor == 0 {
+		return 0, false
+	}
+	c := int(n) & 0xFF
+	if c < 1 || c > 5 {
+		return 0, false
+	}
+	return uint8(c - 1), true
+}
 
 // PayBSubSacHost: a PaySacSelf whose B.N carries this sentinel is a granted
 // trigger's own Sac<1/OriginalHost> cost: the Equipment or Aura whose static

@@ -47,17 +47,27 @@ type ScriptStep struct {
 // beyond either stays unpriced (never a proof). Both are stated limits, not
 // proofs of completeness: a query with more than sixteen plays the printed
 // sources cannot pay leaves the later ones census_incomplete, and so does a
-// search that needs more than 164 clones. (Four plays left a legal play
+// search that needs more than 600 clones. (Four plays left a legal play
 // unoffered on boards with a gap source; sixteen was never reached in 1500
-// Standard games, at about 2% more clones than four. 164: a board whose
+// Standard games, at about 2% more clones than four. 600: a board whose
 // every land tap is Taps-deferred by an outside watcher -- Manabarbs, whose
 // trigger each gap activation stacks for the walk's passes arm to resolve --
-// reached a fee-gap's funding line at 163 clones (the fee gap's {1} beside
-// Silver Myr paying a {U}{U} attach), three past the old 160, and the kernel's
-// mirror prices such a play; the limit is the pair's (dirac/mana_filter.go).)
+// reached a fee-gap's funding line at 163 clones, and repeatable fee-only
+// filters (funding 328) and multi-gap sources (Grunn kicked, Nykthos Paragon,
+// Orzhova) hit the old 164 and were offered by the kernel alone; a sweep of
+// the cap (200, 256, 300, 512, 1000) over those plays cleared each by
+// 512 and Grunn needed more than 300. 600 and not 512: the two engines count
+// a Lotus Blossom plus Celestial Prism board's script at slightly different
+// nodes (the kernel's lies in 507..512 and gorge's in 521..530 or the other
+// way round; overload_cast_without_target diverges for caps 512 and 520 only
+// and is clean at 506 and 530), so a cap inside that window offers the cast
+// on one side alone. Not larger: the may-play budget-gap board's script is the
+// 657th node, and a plain cap past that would make the may-play fallback
+// below dead code. The limit is the pair's, one value (dirac/mana_filter.go,
+// tied by //lockstep:const).)
 const (
 	potentialScriptPlays = 16
-	potentialScriptNodes = 164
+	potentialScriptNodes = 600
 	// potentialMayPlayNodes is the budget of the may-play fallback run
 	// (potentialPrefixScript): a plain run, after the three above found none
 	// and the first spent its budget.
@@ -294,7 +304,7 @@ type scriptSearch struct {
 	// whose options run W U B R G otherwise spends the node budget proving the
 	// colours a cost does not name dead before the first one it does -- a
 	// 4GG cast behind Great Divide Guide's granted any-colour abilities went
-	// budget-limited at 160 clones exploring B before G at the deepest asks.
+	// budget-limited at potentialScriptNodes clones exploring B before G at the deepest asks.
 	need   [state.MC + 1]bool
 	passes bool // also pass priority while the stack is non-empty
 	// phased runs the visit activation loop in its phased order with the
@@ -960,6 +970,12 @@ func (sr *scriptSearch) visit(pool *Engine, c *Engine, funded int, gapUsed bool)
 		sr.limited = true
 		return false
 	}
+	// One node per clone, whatever it poses: a priority node, an activation's
+	// ask (a one-ability source's colour ask is one), each answer. The kernel's
+	// filtSearch.tick mirrors it ask for ask (mana_mixgaps.go ctrOther), and
+	// keys the pool's artifact-typed units by count as scriptStateKey does
+	// (coldArtN), or its count falls short of this one on a Lotus Blossom +
+	// Celestial Prism board (overload_cast_without_target: 523 nodes in both).
 	sr.nodes++
 	p := sr.p
 	d := c.Pending()
@@ -1183,6 +1199,56 @@ func scriptManaTwins(r scriptManaAbilities, p state.PlayerID, a, b state.ObjID) 
 // payer can activate at priority, the search's one branching move.
 func scriptActivate(o *decision.Option) bool { return o.Kind == "activate" }
 
+// scriptActivationRetaps reports whether activating id for mana pays id's
+// own {T}: every mana ability p can activate on it now costs {T}. A priority
+// "activate" option carries no ability index (the mana ability is chosen in
+// a later ask), so a source with any mana ability that does not tap it
+// (Diamond Kaleidoscope's "Sacrifice a Prism token", Relic of Legends'
+// "Tap an untapped legendary creature you control") is left alone rather
+// than guessed: that activation is a legal second unit in one window.
+func scriptActivationRetaps(c *Engine, p state.PlayerID, id state.ObjID) bool {
+	mas := c.appendAvailableManaAbilities(nil, nil, p, id)
+	if len(mas) == 0 {
+		return false
+	}
+	for _, ma := range mas {
+		if !c.abilityCompiledCost(ma).Cost.Tap {
+			return false
+		}
+	}
+	return true
+}
+
+// pathPaidTap reports whether the script has already activated id for mana,
+// the untap trigger that tap set off has since untapped it, and activating
+// it again would pay its own {T} a second time.
+// The searched prefix is ONE payment window (CR 601.2g-i through 602.2b): a
+// source whose own tap an earlier step paid is not a second unit even when it
+// has untapped inside the script. The kernel's ordered prefix taps each gap
+// source once (dirac's scriptDFS/resolvePrefixStack); without this guard the
+// search re-taps the untapped source and floats mana the kernel never makes.
+//
+// A source still tapped is left alone: the option cannot be paid, so it is
+// not a second unit, and pruning the dead branch would hand its node budget
+// to a sibling branch and change which script the walk finds.
+func (sr *scriptSearch) pathPaidTap(c *Engine, p state.PlayerID, id state.ObjID) bool {
+	if o := c.G.Obj(id); o == nil || o.Tapped {
+		return false
+	}
+	activated := false
+	for _, st := range sr.path {
+		if st.Kind != decision.KPriority {
+			continue
+		}
+		for _, pk := range st.Picks {
+			if pk.Kind == "activate" && pk.Obj == id {
+				activated = true
+			}
+		}
+	}
+	return activated && scriptActivationRetaps(c, p, id)
+}
+
 // scriptOptionKey is a source's activate-option signature at d: the labels,
 // symbols and ability indices the decision offers for it, in engine order.
 func scriptOptionKey(d *decision.Decision, id state.ObjID) string {
@@ -1268,6 +1334,12 @@ func (sr *scriptSearch) activations(pool *Engine, c *Engine, d *decision.Decisio
 			}
 			if sr.ownTapSource(c, opt.Obj) {
 				continue // its mana would tap the play's own {T} cost source (CR 602.2b)
+			}
+			if sr.pathPaidTap(c, p, opt.Obj) {
+				// One payment window taps a source once: an untap trigger
+				// resolving inside the prefix does not make it a second unit
+				// (CR 601.2g-i; the kernel's scriptDFS taps each gap once).
+				continue
 			}
 			twin := false
 			if sr.feeOnly || sr.twinCut {
@@ -1486,6 +1558,10 @@ func scriptStepOf(d *decision.Decision, in decision.Intent) ScriptStep {
 	return st
 }
 
+// scriptAnswersCap bounds each scriptAnswers enumeration branch: the answer
+// list a prefix search branches on (dirac mirrors it as maxCAAnswers).
+const scriptAnswersCap = 64
+
 // scriptAnswers enumerates the answers to an activation's ask that
 // validate: every single option (and the empty answer when Min is 0), for a
 // Min == Max == n object election every n-combination of its options, for a
@@ -1508,7 +1584,7 @@ func scriptAnswers(d *decision.Decision) []decision.Intent {
 	case d.Min == d.Max && len(d.Options)%d.Min == 0:
 		n, per := d.Min, len(d.Options)/d.Min
 		idx := make([]int, n)
-		for len(out) < 64 {
+		for len(out) < scriptAnswersCap {
 			ch := make([]int, n)
 			for u := 0; u < n; u++ {
 				ch[u] = d.Options[u*per+idx[u]].Index
@@ -1574,7 +1650,7 @@ func scriptSubsets(d *decision.Decision, n int, mk func([]int) decision.Intent) 
 	for i := range idx {
 		idx[i] = i
 	}
-	for len(out) < 64 {
+	for len(out) < scriptAnswersCap {
 		ch := make([]int, n)
 		for i, j := range idx {
 			ch[i] = d.Options[j].Index

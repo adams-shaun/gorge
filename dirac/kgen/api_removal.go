@@ -35,6 +35,9 @@ func (lc *lowerCtx) apiDestroy(sa *cards.SA, ps *params) error {
 		}
 		return nil
 	}
+	if d := ps.peek("Defined"); strings.Contains(d, " & ") {
+		return lc.destroyCompound(sa, ps, d)
+	}
 	obj, err := lc.objOrTarget(ps, "", zBattlefield)
 	if err != nil {
 		return err
@@ -58,6 +61,31 @@ func (lc *lowerCtx) apiDestroy(sa *cards.SA, ps *params) error {
 	return nil
 }
 
+// destroyCompound runs a Destroy once per member of a compound Defined$
+// "A & B" (gorge's DefinedRef RefCompound arm: the members are joined, not
+// intersected, and each resolves on its own; effects/zone_bulk.go effDestroy
+// destroys each target of the resulting set). Alaborn Zealot / Loyal Sentry:
+// TriggeredAttackerLKICopy & Self destroys the blocked creature and the
+// source itself. Every member must name an object; a player member refuses
+// because the one-object Destroy has no player reading. A NoRegen$ or a
+// Remember* rider stays unread and refuses the node through the census.
+func (lc *lowerCtx) destroyCompound(sa *cards.SA, ps *params, d string) error {
+	refs, err := lc.definedCompound(d)
+	if err != nil {
+		return err
+	}
+	for _, r := range refs {
+		if !objectSubject(r) {
+			return refuse("%s Defined$ %q over %s", sa.API, d, r)
+		}
+	}
+	ps.get("Defined")
+	for _, r := range refs {
+		lc.emit(lInstr{Op: "Destroy", Obj: r})
+	}
+	return nil
+}
+
 func (lc *lowerCtx) apiDestroyAll(sa *cards.SA, ps *params) error {
 	if ps.peek("RememberAllObjects") != "" {
 		// Angrath, Minotaur Pirate's -11 remembers the destroyed set for
@@ -65,9 +93,17 @@ func (lc *lowerCtx) apiDestroyAll(sa *cards.SA, ps *params) error {
 		return refuse("DestroyAll RememberAllObjects$: the remembered destroyed set is not modelled")
 	}
 	if vt := ps.peek("ValidTgts"); vt != "" {
-		// gorge's targetPlayerKindScope scopes a DestroyAll to the
-		// target's permanents; the kernel instruction is one filter
-		return refuse("DestroyAll ValidTgts$ %q: a target-scoped sweep is not modelled", vt)
+		// gorge's targetPlayerKindScope scopes a DestroyAll to a target
+		// player kind's permanents; the kernel instruction is one filter
+		// and models no such scope. An object target (Fell the Mighty's
+		// "target creature", read by the ValidCards$ X) scopes nothing: it
+		// is declared as the spell's slot and the sweep is the plain one.
+		if err := lc.destroyAllObjTarget(ps, vt); err != nil {
+			return err
+		}
+	}
+	if lc.impSweep != "" && ps.peek("ValidCards") == "Card.IsImprinted" {
+		ps.m["ValidCards"], lc.impSweep = lc.impSweep, "" // lower_imprintzone.go imprintNameSweep
 	}
 	f, err := lc.destroyAllFilter(ps) // lower_destroyalltargeted.go
 	if err != nil {
@@ -224,6 +260,14 @@ func (lc *lowerCtx) apiSacrifice(sa *cards.SA, ps *params) error {
 		// gorge effSacrifice never reads Mode$: a targeted player
 		// chooses what to sacrifice whether or not it says so
 		ps.consume("Mode")
+	}
+	if ps.str("ChangeNum") == "1" {
+		// Forge's SacrificeEffect reads only Amount$ (default 1), never
+		// ChangeNum$; the corpus's ChangeNum$ 1 (Glacial Chasm) is that
+		// default, which gorge ignores too (cards.Primitives reports any
+		// other value as api:Sacrifice.ChangeNum). Another value stays
+		// unread and refuses.
+		ps.consume("ChangeNum")
 	}
 	if sv := strings.TrimSpace(ps.str("SacValid")); strings.Contains(sv, " & ") && ps.is("SacEachValid", "True") {
 		// SacEachValid$ True ("an artifact, a creature, and a land", Tomb of

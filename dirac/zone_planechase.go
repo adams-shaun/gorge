@@ -1,6 +1,8 @@
 package dirac
 
-import "github.com/adams-shaun/gorge/dirac/kop"
+import (
+	"github.com/adams-shaun/gorge/dirac/kop"
+)
 
 // Planechase object space (CR 901): each seat's planar deck is a cold,
 // pointer-free record of objects in ZonePlanarDeck, top-first. The top plane
@@ -19,10 +21,22 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 const MaxPlane = 10
 
 // planeSeat is one table's planar-deck records, indexed by seat. deck[p][0]
-// is the face-up current plane; deck[p][1:] are face down in order.
+// is the face-up current plane; deck[p][1:] are face down in order. up[p]
+// is the face-up mask, bit j set when deck[p][j] is face up: gorge keeps
+// Object.FaceDown on the card, so a card the dig moved to the deck's bottom
+// is face up THERE (its same-zone MoveZone fold clears FaceDown) until the
+// next shuffle or planeswalk resets every card, and a position rule ("only
+// the head is face up") cannot say that.
 type planeSeat struct {
 	deck [MaxSeats][MaxPlane]Obj
+	up   [MaxSeats]uint16
 	n    [MaxSeats]uint8
+	// curse[p]: seat p may not cast spells -- Eloren Wilds' plane-source
+	// curse Effect (dirac/zone_planecurse.go). The Effect's CantBeCast static
+	// lasts until any player planeswalks, so the record is target-only: the
+	// predicate gorge's registered restriction evaluates names the captured
+	// player, and every live curse ends at the next PlanarWalk.
+	curse [MaxSeats]bool
 }
 
 // coldPlane is the planar-deck record. Its length is set explicitly in
@@ -91,6 +105,18 @@ func (s *State) shufflePlanar(p uint8) {
 		j := s.rng.IntN(i + 1)
 		ps.deck[p][i], ps.deck[p][j] = ps.deck[p][j], ps.deck[p][i]
 	}
+	// foldPlanarDeckShuffle: every card of the shuffled deck is face down
+	// (the fold sets FaceDown on each listed id); the deal's PlanarReveal
+	// then turns the head back up.
+	ps.up[p] = 0
+}
+
+// revealPlaneTop is gorge's PlanarReveal fold (genesis deal): the deck's
+// head plane is face up.
+func (s *State) revealPlaneTop(p uint8) {
+	if ps := s.planeCold(); ps != nil {
+		ps.up[p] = 1
+	}
 }
 
 // planeTop is seat p's face-up current plane, NoObj when it has none.
@@ -116,14 +142,19 @@ func (s *State) planePos(p uint8, o Obj) int {
 	return -1
 }
 
-// planeFaceDown reports whether o, a card in a planar deck, is face down:
-// every card but the seat's top plane is.
+// planeFaceDown reports whether o, a card in a planar deck, is face down,
+// by the record's face-up mask (see planeSeat.up).
 func (s *State) planeFaceDown(o Obj) bool {
 	if o == NoObj || int(o) >= int(s.nobj) || s.objs[o].zone != kop.ZonePlanarDeck {
 		return false
 	}
 	p := s.objs[o].owner()
-	return s.planePos(p, o) > 0
+	j := s.planePos(p, o)
+	if j < 0 {
+		return false
+	}
+	ps := s.planeCold()
+	return ps == nil || ps.up[p]&(1<<uint(j)) == 0
 }
 
 // planeswalk rotates seat p's planar deck (CR 901.8): the current plane goes
@@ -139,6 +170,14 @@ func (s *State) planeswalk(k *prep, p uint8) {
 	n := int(ps.n[p])
 	copy(ps.deck[p][:n-1], ps.deck[p][1:n])
 	ps.deck[p][n-1] = away
+	// foldPlanarWalk: every card of the rotated deck is face down, the new
+	// head face up.
+	ps.up[p] = 1
+	// Eloren Wilds' plane-source curse ends here: the Effect's own unscoped
+	// PlaneswalkedTo self-exile trigger fires at any player's planeswalk
+	// (gorge planar.go's checkPlaneswalkTriggers ends the UntilPlaneswalk
+	// registration on the same scan that queues the walk's plane triggers).
+	s.planeCurseClear()
 	s.queuePlaneTriggers(k, p, away, kop.TrigPlaneswalkedFrom)
 	s.queuePlaneTriggers(k, p, ps.deck[p][0], kop.TrigPlaneswalkedTo)
 }
@@ -210,11 +249,54 @@ func (s *State) eachPlaneTrigger(k *prep, ev kop.TrigEvent, f func(l trigListene
 }
 
 // chaosEnsuesExt is ExtChaosEnsues (DB$ ChaosEnsues): chaos ensues on the
-// resolving controller's current plane. Defined$ is read as You; another
-// plane (Fertile Lands' Remembered destination) is a later shape.
+// resolving controller's current plane. Defined$ You (or absent) is the
+// player arm; Defined$ Remembered (The Fertile Lands of Saulvinia) is the
+// remembered arm: each remembered plane of the resolving controller's OWN
+// planar deck erupts while it is still face up -- the dig's RememberFound$
+// put the revealed plane at the deck's bottom and the same-zone move cleared
+// its face-down state, so the remembered plane is face up there (gorge
+// effChaosEnsues' chaosDestinations arm plus planar.go
+// checkChaosEnsuesTriggers' boundary: a face-up plane of ev.Player's own
+// deck, whatever seat of it now holds).
 //
 //kmanifest:ext ExtChaosEnsues
 func (s *State) chaosEnsuesExt(k *prep, in *kop.Instr) (bool, bool) {
+	if in.Obj == kop.RefRemembered {
+		p := s.res.e.ctrl
+		seen := 0
+		var seenArr [MaxPlane]Obj
+		for i := 0; i < int(s.g.nrem); i++ {
+			o := s.g.rem[i]
+			if o == NoObj || s.objs[o].zone != kop.ZonePlanarDeck {
+				continue
+			}
+			if s.planePos(p, o) < 0 {
+				continue // a plane that left the deck (gorge planarRememberedIDs)
+			}
+			if s.planeFaceDown(o) {
+				continue // chaos erupts the plane only while it is still face up
+			}
+			dup := false
+			for j := 0; j < seen; j++ {
+				if seenArr[j] == o {
+					dup = true
+					break
+				}
+			}
+			if dup {
+				continue
+			}
+			seenArr[seen] = o
+			seen++
+			s.queuePlaneTriggers(k, p, o, kop.TrigChaosEnsues)
+		}
+		if seen == 0 {
+			// Nothing remembered qualifies: gorge's effChaosEnsues falls back
+			// to the controller's current plane.
+			s.chaosEnsues(k, p)
+		}
+		return true, true
+	}
 	if p := s.playerRef(k, in.Obj); p != 255 {
 		s.chaosEnsues(k, p)
 	}
@@ -232,9 +314,15 @@ func (s *State) planeswalkExt(k *prep, in *kop.Instr) (bool, bool) {
 }
 
 // rollPlanarDiceExt is ExtRollPlanarDice (DB$ RollPlanarDice): the player
-// rolls A six-sided planar dice (CR 901.3a: 1-4 blank, 5 planeswalk, 6
-// chaos), each draw from the engine rng exactly as gorge's Rand(6)+1. Every
-// kept result carries its CR 901.4 consequence.
+// rolls B six-sided planar dice (CR 901.3a: 1-4 blank, 5 planeswalk, 6
+// chaos), each draw from the engine rng exactly as gorge's Rand(6)+1, then
+// every KEPT result carries its CR 901.4 consequence. A is the ExtOp
+// ordinal, so the count rides B.
+//
+// The replacement class (Ichor Elixir) is matched before the dice roll:
+// each qualifying ReplRollPlanarDice adds its Plus dice and marks its Ignore
+// count, and only the first count-ignore rolls are kept, exactly gorge's
+// continuePlanarRollReplacements (the extra results are drawn and dropped).
 //
 //kmanifest:ext ExtRollPlanarDice
 func (s *State) rollPlanarDiceExt(k *prep, in *kop.Instr) (bool, bool) {
@@ -242,17 +330,65 @@ func (s *State) rollPlanarDiceExt(k *prep, in *kop.Instr) (bool, bool) {
 	if p == 255 {
 		return true, true
 	}
-	n := s.value(k, in.A)
+	n := int(s.value(k, in.B))
 	if n < 1 {
 		return true, true
 	}
+	plus, ignore := s.planarRollRepl(k, p)
+	n += plus
+	if ignore > n {
+		ignore = n
+	}
+	kept := n - ignore
+	PlanarDiceStats.Rolls.Add(1)
+	if plus > 0 || ignore > 0 {
+		PlanarDiceStats.Replaced.Add(1)
+		PlanarDiceStats.ExtraDice.Add(int64(plus))
+		PlanarDiceStats.Ignored.Add(int64(ignore))
+	}
 	for i := 0; i < n; i++ {
-		switch s.rng.IntN(6) + 1 {
-		case 5:
-			s.planeswalk(k, p)
-		case 6:
-			s.chaosEnsues(k, p)
+		die := s.rng.IntN(6) + 1
+		if i < kept {
+			switch die {
+			case 5:
+				s.planeswalk(k, p)
+			case 6:
+				s.chaosEnsues(k, p)
+			}
 		}
 	}
 	return true, true
+}
+
+// planarRollRepl sums the planar-dice replacements that apply to player p's
+// roll: the battlefield permanents p controls whose ReplRollPlanarDice line
+// is live (gorge scans every replacement active in the battlefield zone and
+// gates ValidPlayer$ You on the source's controller, so p's own permanents
+// are the scope). Plus is the number of extra dice the replacement adds and
+// Ignore the number of results it drops; multiple copies stack, as gorge
+// applies each matching ReplaceWith$ body in scan order. DebugNoPlanarReplacement
+// drops the scan (TestDemoPlanarDiceMutation).
+func (s *State) planarRollRepl(k *prep, p uint8) (plus, ignore int) {
+	if DebugNoPlanarReplacement || k.gen == nil || k.gen.anyRepl2&rb2RollPlanar == 0 {
+		return 0, 0
+	}
+	for m := s.statM.and(s.ctrlM[p]); m.any(); m = m.rest() {
+		sl := m.first()
+		if k.gen.replBits2[s.cardAt(sl)]&rb2RollPlanar == 0 || s.genLost(k, sl) {
+			continue
+		}
+		cd := &k.t.Cards[s.cardAt(sl)]
+		for i := range cd.Abilities {
+			a := &cd.Abilities[i]
+			if a.Kind != kop.AbReplacement || a.Repl.Kind != kop.ReplRollPlanarDice {
+				continue
+			}
+			if a.Repl.Cond != 0 && !s.replHostLive(k, a, sl) {
+				continue
+			}
+			plus += int(a.Repl.A)
+			ignore += int(a.Repl.C)
+		}
+	}
+	return plus, ignore
 }

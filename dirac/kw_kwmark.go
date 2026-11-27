@@ -10,8 +10,8 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // keywords are blind to where the keyword came from):
 //
 //   - a Continuous static's kop.Static.Evasion / Infect (AddKeyword$
-//     Intimidate / Infect: Bellowing Tanglewurm, Vow of Malice, Grafted
-//     Exoskeleton), a layer-6 grant: a later loss of the recipient's
+//     Intimidate / Skulk / Horsemanship / Infect: Bellowing Tanglewurm, Vow
+//     of Malice, Grafted Exoskeleton, Sun Quan, Lord of Wu), a layer-6 grant: a later loss of the recipient's
 //     abilities removes it (landwalkGranted's rule);
 //   - a Pump's Duration$ Permanent KW$ Horsemanship: kop.Override.Horsemanship
 //     on the grant's override record (ovHorsemanship), which a cleanup step
@@ -78,16 +78,22 @@ func kwMarkUses(in *kop.Instr, u *[numMech]bool) {
 // Obj RefNone (the sweep fixed before any mark lands, CR 611.2c), gains the
 // keywords C names until end of turn.
 func (s *State) kwMarkExt(k *prep, in *kop.Instr) {
+	tox := 0
+	if in.C&kop.KwMarkToxic != 0 {
+		tox = int(in.C) >> kop.KwMarkToxicShift // granted toxic N (kw_toxicgrant.go)
+	}
 	if in.Obj == kop.RefNone {
 		var ord [MaxPerm]Slot
 		n := s.sweepHits(k, in.F, &ord)
 		for _, sl := range ord[:n] {
 			s.kwMark(k, sl, in.C)
+			s.toxicMark(k, sl, tox)
 		}
 		return
 	}
 	if sl := s.objRef(k, in.Obj); sl != NoSlot {
 		s.kwMark(k, sl, in.C)
+		s.toxicMark(k, sl, tox)
 	}
 }
 
@@ -176,6 +182,9 @@ func (s *State) staticKwGrant(k *prep, sl Slot, has func(st *kop.Static) bool) b
 func staticGrantsIntimidate(st *kop.Static) bool { return st.Evasion&kop.EvIntimidate != 0 }
 func staticGrantsInfect(st *kop.Static) bool     { return st.Infect }
 func staticGrantsSkulk(st *kop.Static) bool      { return st.Evasion&kop.EvSkulk != 0 }
+func staticGrantsHorsemanship(st *kop.Static) bool {
+	return st.Evasion&kop.EvHorsemanship != 0
+}
 
 // evasionGranted is the permanent at sl's granted CardDef.Evasion bits.
 //
@@ -188,7 +197,8 @@ func (s *State) evasionGranted(k *prep, sl Slot) uint8 {
 	if s.kwMarked(k, sl, mechSkulk, mechSkulkPost) || s.staticKwGrant(k, sl, staticGrantsSkulk) {
 		ev |= kop.EvSkulk
 	}
-	if s.kwMarked(k, sl, mechHorsemanship, mechHorsemanshipPost) || s.ovHorsemanship(k, sl) {
+	if s.kwMarked(k, sl, mechHorsemanship, mechHorsemanshipPost) || s.ovHorsemanship(k, sl) ||
+		s.staticKwGrant(k, sl, staticGrantsHorsemanship) {
 		ev |= kop.EvHorsemanship
 	}
 	return ev
@@ -224,7 +234,6 @@ func (s *State) infectGranted(k *prep, sl Slot) bool {
 // one.
 func (s *State) hasSkulkPerm(k *prep, sl Slot) bool {
 	c := s.cardAt(sl)
-	return c != kop.NoCard && k.t.Cards[c].Evasion&kop.EvSkulk != 0 && !s.faceDown(k, sl) &&
-		s.perms[sl].ovr.flags&(ovLoseAll|ovLoseAllEOT) == 0 ||
+	return c != kop.NoCard && k.t.Cards[c].Evasion&kop.EvSkulk != 0 && !s.genLost(k, sl) ||
 		k.gen != nil && k.gen.anyEvasionGrant && s.evasionGranted(k, sl)&kop.EvSkulk != 0
 }

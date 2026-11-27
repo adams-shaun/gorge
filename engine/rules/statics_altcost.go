@@ -76,6 +76,36 @@ func graveyardSelfAltCost(st *cards.Static) bool {
 	return false
 }
 
+// alternativeCostGrantToOtherSpells reports whether an AlternativeCost
+// static grants its alternative to spells its own card need not be part of:
+// a ValidSA$ Spell or Spell.<filter> other than Spell.Self (Kentaro's
+// Spell.Samurai) with no Card.Self in ValidCard$. That is a battlefield
+// continuous effect (CR 113.6) -- Fist of Suns, Rooftop Storm, Leyline of
+// Mutation, Kentaro -- which the activeStatics walk offers for other cards'
+// casts while the source is on the battlefield; read on its own card in hand
+// it would pay for itself. Everything else is the card's own alternative
+// cost: ValidCard$ Card.Self, ValidSA$ Spell.Self, or neither rider (the
+// shorthand the free-cast tests print).
+func alternativeCostGrantToOtherSpells(params map[string]string) bool {
+	grant := false
+	for tok := range strings.SplitSeq(strings.TrimSpace(params["ValidSA"]), ",") {
+		tok = strings.TrimSpace(tok)
+		if tok == "Spell" || strings.HasPrefix(tok, "Spell.") && tok != "Spell.Self" {
+			grant = true
+			break
+		}
+	}
+	if !grant {
+		return false
+	}
+	for tok := range strings.SplitSeq(strings.TrimSpace(params["ValidCard"]), ",") {
+		if strings.TrimSpace(tok) == "Card.Self" {
+			return false
+		}
+	}
+	return true
+}
+
 // faceHasGraveyardSelfAltCost reports whether f carries a self-carried
 // AlternativeCost static scoped to the graveyard. The ir probe first: a face
 // with no EffectZone$ key anywhere cannot have one.
@@ -125,7 +155,7 @@ func (e *Engine) alternativeCosts(p state.PlayerID, id state.ObjID) []altCostVie
 		if !e.alternativeCostScopeOK(sv.Params, id, sv.Source, p, sv.Controller) {
 			continue
 		}
-		cost, ok := e.altCostParse(id, sv.ParamStr(cards.PKCost))
+		cost, ok := e.altCostParse(id, altCostRaw(e.G, id, sv.Params))
 		if !ok {
 			continue
 		}
@@ -160,7 +190,7 @@ func (e *Engine) alternativeCosts(p state.PlayerID, id state.ObjID) []altCostVie
 		if !e.alternativeCostScopeOK(sv.Params, id, sv.Source, p, sv.Controller) {
 			continue
 		}
-		cost, ok := e.altCostParse(id, sv.ParamStr(cards.PKCost))
+		cost, ok := e.altCostParse(id, altCostRaw(e.G, id, sv.Params))
 		if !ok {
 			continue
 		}
@@ -174,10 +204,21 @@ func (e *Engine) alternativeCosts(p state.PlayerID, id state.ObjID) []altCostVie
 				if st.Mode != "AlternativeCost" {
 					continue
 				}
+				if st.ParamStr(cards.PKEffectZone) == "" && alternativeCostGrantToOtherSpells(st.Params) {
+					// A no-EffectZone$ static that grants a bare ValidSA$ Spell
+					// functions on the battlefield only (CR 113.6), where the
+					// activeStatics walk above already priced it for other
+					// cards' casts. Read on its own card in hand it would let
+					// Fist of Suns pay {W}{U}{B}{R}{G} for itself and Rooftop
+					// Storm {0} for itself. The self-carried forms (ValidCard$
+					// Card.Self, ValidSA$ Spell.Self, or neither rider) are the
+					// card's own alternative cost and stay.
+					continue
+				}
 				if !e.alternativeCostScopeOK(st.Params, id, id, p, o.Controller) {
 					continue
 				}
-				cost, ok := e.altCostParse(id, st.ParamStr(cards.PKCost))
+				cost, ok := e.altCostParse(id, altCostRaw(e.G, id, st.Params))
 				if !ok {
 					continue
 				}
@@ -195,6 +236,23 @@ func (e *Engine) alternativeCosts(p state.PlayerID, id state.ObjID) []altCostVie
 		out = append(out, altCostView{cost: v.cost, flash: v.flash, mayPlayKey: v.key})
 	}
 	return out
+}
+
+// altCostRaw is an AlternativeCost static's Cost$ with an XAlternative$
+// Count$CardManaCost {X} priced at the cast card's mana value (Kentaro, the
+// Smiling Cat: "You may pay {X} rather than pay the mana cost for Samurai
+// spells you cast, where X is that spell's mana value"). It is the same
+// cast-card read altCostParse makes for ConvertedManaCost.
+func altCostRaw(g *state.Game, id state.ObjID, params map[string]string) string {
+	raw := params["Cost"]
+	if strings.TrimSpace(params["XAlternative"]) != "Count$CardManaCost" || strings.TrimSpace(raw) != "X" {
+		return raw
+	}
+	o := g.Obj(id)
+	if o == nil || o.Face() == nil {
+		return raw
+	}
+	return strconv.FormatInt(int64(o.Face().ManaValue()), 10)
 }
 
 // altCostParse prices one alternative-cost token (an AlternativeCost
@@ -322,16 +380,25 @@ func (e *Engine) alternativeCostScopeOK(params map[string]string, id, srcID stat
 				// casting option; this list prices a spell cast only.
 				continue
 			}
-			switch alternativeCostScopeOKCodes.Code(string(strings.TrimSpace(constraint))) {
+			cons := strings.TrimSpace(constraint)
+			switch alternativeCostScopeOKCodes.Code(cons) {
 			case alternativeCostScopeOKEmpty:
 				ok = true // bare Spell: any cast
 			case alternativeCostScopeOKSelf:
 				if id == srcID {
 					ok = true // the card's own cast (Daze, the Flares)
 				}
+			default:
+				// An XAlternative$ Count$CardManaCost grant evaluates its
+				// Spell.<filter> constraint against the cast card (Kentaro's
+				// Spell.Samurai). Any other unevaluable Spell constraint
+				// (Spell.Teamwork, ...): deny — a free cast wrongly granted
+				// is an illegal action.
+				if strings.TrimSpace(params["XAlternative"]) == "Count$CardManaCost" && cons != "" &&
+					e.matchesSpec(cons, id, e.staticSpecCtx(staticView{Source: srcID, Controller: controller, Params: params})) {
+					ok = true
+				}
 			}
-			// An unevaluable Spell constraint (Spell.Samurai, ...): deny — a
-			// free cast wrongly granted is an illegal action.
 		}
 		if !ok {
 			return false

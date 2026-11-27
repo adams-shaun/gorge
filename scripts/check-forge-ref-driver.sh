@@ -13,7 +13,8 @@
 # compare/<driver>...<FORGE_REF>: `behind` or `identical` means the driver contains FORGE_REF. FORGE_DRIVER_REF
 # overrides the driver (a branch or a commit; default oracle-driver).
 #
-# Exit: 0 unchanged or contained; 1 not contained; 2 usage or environment (no gh, the API could not answer).
+# Exit: 0 unchanged or contained; 1 not contained; 2 usage or environment (an unreadable <base>:Makefile, no gh, the
+# API could not answer).
 set -euo pipefail
 
 base=${1:?usage: check-forge-ref-driver.sh <base>}
@@ -24,6 +25,21 @@ die() {
 	exit 2
 }
 pin() { awk -v n="$1" '$1 == n && ($2 == "?=" || $2 == "=") { v = $3; sub(/#.*/, "", v); print v; exit }'; }
+
+# The checkout may not carry <base>: a broken or shallow workspace store makes git show fail, so a FORGE_REF that has
+# not moved reads as moved (old comes back empty) and the step used to die on the gh line before the compare API could
+# answer, blaming a missing gh for an unreadable base. This happened twice: 2026-11-26 16:27Z on metal2-gorge-box-2 for
+# PR #4816 (4f8d2c6491 is the merge ref's own parent and its Makefile still failed to read), and 2026-11-27 17:25Z for
+# PR #5621, which does not touch FORGE_REF at all. Fetch the base when the checkout cannot read it; if it is still
+# unreadable, die before the gh check with the true cause rather than guessing that the pin moved. The verdicts below
+# are unchanged and a real move still goes to the compare API.
+if ! git show "$base:Makefile" >/dev/null 2>&1; then
+	echo "check-forge-ref-driver: base ${base:0:10} is not readable in the checkout; fetching it from origin" >&2
+	git fetch -q origin "$base" 2>/dev/null || true
+fi
+if ! git show "$base:Makefile" >/dev/null 2>&1; then
+	die "cannot read Makefile at base $base; refusing to guess whether FORGE_REF moved (fetch the base, e.g. actions/checkout fetch-depth: 0)"
+fi
 
 new=$(pin FORGE_REF <Makefile)
 old=$(git show "$base:Makefile" 2>/dev/null | pin FORGE_REF) || old=

@@ -1,0 +1,6 @@
+family: mech
+name: mechFaceUpTurn
+value: next
+state: slotbit 16/16
+status: active
+doc: slots whose permanent was turned face up this turn (turnUpFlip, gorge's Object.TurnedFaceUpThisTurn; filter_permmarks.go)

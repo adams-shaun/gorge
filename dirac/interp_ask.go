@@ -139,8 +139,24 @@ func (s *State) canPayGenMode(k *prep, p uint8, kind int, amt int, pips int16, f
 		return s.countGraveExile(k, p, f) >= amt
 	case payKindExileHand:
 		return int(s.pl[SeatIx(p)].handN) >= amt // cost_exilefromhand.go
+	case payKindMoveGrave:
+		return s.countMoveGrave(k, p, f) >= amt // cost_exiledmovegrave.go
 	case kop.PayManaX:
-		return true // X = 0 is always payable
+		// X = 0 pays only the cost's fixed pips: a PayManaX whose F carries
+		// them (Elenda and Azor's {X}{W}{U}{B}) is unpayable at zero when the
+		// pips are. No fixed pips (every other PayManaX carrier) is free.
+		if f == 0 {
+			return true
+		}
+		c := manaOf(0, int16(f))
+		var av avail
+		av.xd, av.xdOn = payDesc{class: pdOther}, true
+		s.availWindowFor(k, p, &av)
+		av.xdOn = false
+		if av.affords(&c, pipMaskOf(&c), 0) {
+			return true
+		}
+		return k.restrSrc && s.restrSrcAffords(k, p, payDesc{class: pdOther, src: NoSlot}, &c, &av, NoSlot, 0)
 	case payKindEvidence:
 		return s.graveTotalMV(k, p) >= amt // gorge evidenceStage: the graveyard reaches N
 	case payKindTrigNewEvidence:
@@ -179,11 +195,16 @@ func (s *State) execPay(k *prep, in *kop.Instr) bool {
 	if kind == kop.PayExileGrave && in.B.N == kop.PayBSubExileHand {
 		kind = payKindExileHand // a trigger's own ExileFromHand<N/Card> cost rides PayExileGrave (cost_exilefromhand.go)
 	}
+	if kind == kop.PayExileGrave && in.B.N == kop.PayBSubMoveGrave {
+		kind = payKindMoveGrave // a trigger's own ExiledMoveToGrave<N/Spec> cost rides PayExileGrave (cost_exiledmovegrave.go)
+	}
 	if kind == kop.PayExileGrave && in.B.N == kop.PayBSubTrigNewEvidence {
 		kind = payKindTrigNewEvidence // a dies trigger's own triggered-card exile beside evidence (cost_collectevidencex.go)
 	}
 	skip := uint16(in.C >> 4)
 	amt := max(s.value(k, in.A), 0) // CR 107.1b: a negative cost amount is 0 (gorge UnlessCostResolved; Mausoleum Wanderer shrunk by Torpor Dust)
+	// Behemoth of Vault 0's stat (cost_targetmv.go)
+	noteUnlessEnergyTargetMV(k, in, kind, amt)
 	pips := in.B.N
 	if kind == kop.PaySacSelf && pips == kop.PayBSubSacSelfMust && in.Op == kop.OpIfPaid && p != 255 {
 		s.payMandatorySacSelf(k, p, uint8(skip)) // cost_mandatorysac.go
@@ -227,11 +248,20 @@ func (s *State) execPay(k *prep, in *kop.Instr) bool {
 			return s.execPayChain(k, p, ch, skip, amt, pips) // cost_exilepool.go
 		}
 	}
-	if kind == kop.PayManaX && in.B.N == kop.PayBSubEvidenceX {
-		return s.execTrigEvidenceX(k, p, skip, amt) // cost_collectevidencex.go
-	}
 	if kind == kop.PayManaX {
-		return s.execTrigX(k, p, skip, amt) // trig_maypayx.go
+		switch in.B.N {
+		case kop.PayBSubEvidenceX:
+			return s.execTrigEvidenceX(k, p, skip, amt) // cost_collectevidencex.go
+		case kop.PayBSubLifeX:
+			return s.execTrigLifeX(k, p, skip, amt) // cost_paylifetrig.go
+		}
+		if s.execTrigX(k, p, skip, amt) {
+			// No X value is payable, x = 0 included: no announcement ask. Fall
+			// through to the ordinary election, whose canPayGen reads the fixed
+			// pips and poses decline only (gorge's unpayable-cost arm).
+		} else {
+			return false
+		}
 	}
 	if kind == kop.PayMana && skip&pfModes == 0 && s.res.e.kind == seTrigger && kop.PayManaHybN(in.F) != 0 {
 		return s.startPayPips(p, skip, amt) // a trigger's own hybrid cost announces its pips first (cost_trighybrid.go)
@@ -322,6 +352,28 @@ func (s *State) trigCostPotentialPays(k *prep, p uint8, kind int, skip uint16, a
 	if l := kop.PayManaLife(life); l != 0 && int(s.pl[SeatIx(p)].life) < l {
 		return false
 	}
+	c := s.numTimesCost(k, amt, pips)
+	s.payManaHyb(k, life, &c) // cost_trighybrid.go
+	s.announcedHyb(&c)
+	return s.trigCostPotentialPaysCost(k, p, &c)
+}
+
+// trigCostPotentialPaysX is trigCostPotentialPays over a trigger's own
+// announced {X} with an XColor$ (Leyline Tyrant): the cost is x pips of one
+// colour, which the pips argument of the generic form cannot carry. The
+// caller has already built the coloured cost (trigXCostAt).
+//
+//go:noinline
+func (s *State) trigCostPotentialPaysX(k *prep, p uint8, skip uint16, c *kop.ManaCost) bool {
+	if skip&pfModes != 0 || s.res.e.kind != seTrigger {
+		return false
+	}
+	return s.trigCostPotentialPaysCost(k, p, c)
+}
+
+// trigCostPotentialPaysCost is the over-bound both forms share: the payer's
+// potential mana (gorge's potentialManaFor) priced against c.
+func (s *State) trigCostPotentialPaysCost(k *prep, p uint8, c *kop.ManaCost) bool {
 	if s.caPotentialOpen(k, p) {
 		return true // Sage of the Maze: gorge's potential walk prices a Combo Any production unbounded in every colour (mana_comboany.go)
 	}
@@ -336,16 +388,13 @@ func (s *State) trigCostPotentialPays(k *prep, p uint8, kind int, skip uint16, a
 	if !s.anyDifferentOpen(k, p) && !sacAny && !s.anyLiveSource(k, p, &other) {
 		return false
 	}
-	c := s.numTimesCost(k, amt, pips)
-	s.payManaHyb(k, life, &c) // cost_trighybrid.go
-	s.announcedHyb(&c)
-	if s.potentialDynOpen(k, p, &c, &other) {
+	if s.potentialDynOpen(k, p, c, &other) {
 		return true // a dynamic-amount source's potentialUnbounded fold (mana_dyntrigcost.go)
 	}
 	var av avail
 	s.availPotentialFor(k, p, &av, &other, false)
 	s.availSacAny(k, p, &av, &other)
-	return av.affords(&c, pipMaskOf(&c), 0)
+	return av.affords(c, pipMaskOf(c), 0)
 }
 
 // anyManaSource reports whether p has an untapped source to fund payment d with:
@@ -570,6 +619,10 @@ func (s *State) resolveOptionsGen(k *prep, d *Decision) bool {
 			s.handExileOptions(d, p) // cost_exilefromhand.go
 			break
 		}
+		if s.g.pickZ == payKindMoveGrave {
+			s.moveGraveOptions(k, d, p) // cost_exiledmovegrave.go
+			break
+		}
 		if z := s.g.pickZ; z == payKindBehold || z == payKindReveal {
 			s.unlessRevealOptions(k, d, p) // cost_unlessreveal.go: a Behold rides the same dispatch (cost_unlessbehold.go)
 			break
@@ -706,9 +759,10 @@ func (s *State) resolveOptionsGen(k *prep, d *Decision) bool {
 		t := chooseEachTypes[s.g.pickZ]
 		var buf [MaxPerm]Obj
 		n := 0
+		nonLand := s.prog(k)[r.pc].C&kop.ChooseEachNonLand != 0
 		for m := s.ctrlM[s.g.pickP]; m.any(); m = m.rest() {
 			sl := m.first()
-			if s.typesGen(k, sl)&t != 0 {
+			if s.chooseEachHas(k, sl, t, nonLand) {
 				o := s.perms[sl].obj
 				j := n
 				for ; j > 0 && buf[j-1] > o; j-- {
@@ -849,10 +903,10 @@ func (s *State) autoPayPick(k *prep) bool {
 			objs[j-1], objs[j] = objs[j], objs[j-1]
 		}
 	}
-	if k.gen.anyBatch && s.g.pickZ != kop.PayDiscard && s.g.pickZ != kop.PayReturn && s.g.pickZ != kop.PayExileGrave && s.g.pickZ != payKindExileHand {
+	if k.gen.anyBatch && s.g.pickZ != kop.PayDiscard && s.g.pickZ != kop.PayReturn && s.g.pickZ != kop.PayExileGrave && s.g.pickZ != payKindExileHand && s.g.pickZ != payKindMoveGrave {
 		defer s.batchClose(s.sacBatchOpen()) // gorge emitSacrifices (unlessflow): one sacrifice batch
 	}
-	if len(objs) > 0 && s.g.pickZ != kop.PayExileGrave && s.g.pickZ != payKindExileHand && s.g.pickZ != kop.PayDiscard && s.g.pickZ != kop.PayReturn {
+	if len(objs) > 0 && s.g.pickZ != kop.PayExileGrave && s.g.pickZ != payKindExileHand && s.g.pickZ != payKindMoveGrave && s.g.pickZ != kop.PayDiscard && s.g.pickZ != kop.PayReturn {
 		s.snapTrigSacrificed(k, s.objs[Obj(objs[0].Source())].slot) // trig_sacrificedlki.go
 	}
 	moved := uint8(0)
@@ -860,6 +914,8 @@ func (s *State) autoPayPick(k *prep) bool {
 		o := Obj(a.Source())
 		if s.g.pickZ == kop.PayExileGrave || s.g.pickZ == payKindExileHand {
 			s.exileFromGrave(o)
+		} else if s.g.pickZ == payKindMoveGrave {
+			s.moveGraveCost(k, o) // cost_exiledmovegrave.go
 		} else if s.g.pickZ == kop.PayDiscard {
 			s.discardUnlessPay(k, o)
 		} else if s.g.pickZ == kop.PayReturn {
@@ -907,6 +963,9 @@ func (s *State) continueRes(k *prep, n uint8) {
 	}
 	if n == 0 && k.gen != nil && s.parkReturnAsk() {
 		return // the answer made a departure frame park a return: ask it before the program goes on (zone_untilleavesbatch.go)
+	}
+	if int(s.res.pc) < len(s.prog(k)) {
+		s.clearCopyDefender(&s.prog(k)[s.res.pc])
 	}
 	s.res.pc += n + 1
 	s.loopBack(k)
@@ -1102,6 +1161,8 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 		}
 		if s.g.pickZ == kop.PayExileGrave || s.g.pickZ == payKindExileHand {
 			s.exileFromGrave(o) // a cost exile from either zone (cost_exilefromhand.go)
+		} else if s.g.pickZ == payKindMoveGrave {
+			s.moveGraveCost(k, o) // cost_exiledmovegrave.go
 		} else if s.g.pickZ == kop.PayDiscard {
 			s.discardUnlessPay(k, o)
 		} else if s.g.pickZ == kop.PayReturn {
@@ -1297,7 +1358,7 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 			}
 		}
 		s.g.pickZ++
-		if s.nextChooseEach(k) {
+		if s.nextChooseEach(k, &s.prog(k)[s.res.pc]) {
 			return
 		}
 		s.continueRes(k, 0)
@@ -1388,10 +1449,20 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 			s.g.ask[0].kind = akNameAny // the look is acknowledged: the name is asked next (repl_choosename.go)
 			return
 		}
+		wasDrawPick := s.g.nask > 0 && s.g.ask[0].kind == akDrawPick
 		saved := s.res
 		s.res.active = false // the enters program runs with its own source as the context
 		s.answerQueuedAsk(k, a)
 		s.res = saved
+		if wasDrawPick && s.drawPickResume(k) {
+			return // the pick's body finished; the suspended Draw draws its remaining cards (repl_drawpick.go)
+		}
+		if s.drawPickWaiting() && s.g.nask != 0 && s.midResAsk(k) {
+			return // an older queued ask was answered behind the parked pick: the draw instruction stays put
+		}
+		if s.answerQueuedHold(k) {
+			return // zone_untilleavesqask.go: the next held return parked its own ask
+		}
 		if s.g.nask != 0 && s.midResAsk(k) {
 			return // gorge defers the next election behind this one; a parked tail waits for them all
 		}
@@ -1606,16 +1677,27 @@ func (s *State) payDone(k *prep, paid bool) {
 		skip = uint8(f & 0x7ff)
 	}
 	if paid && s.g.pickZ == kop.PayMana && s.res.e.kind == seTrigger {
-		if life := kop.PayManaLife(s.prog(k)[s.res.pc].F); life != 0 {
-			s.loseLife(k, s.g.pickP, life) // the mana-and-life cost's life (Zoraline)
+		if in := &s.prog(k)[s.res.pc]; in.C&0xF == kop.PayManaX {
+			// A trigger's own announced {X}: the X election folds to a
+			// PayMana election, but F packs the cost's fixed pips, not
+			// PayManaF's life-and-hybrid rider (Elenda and Azor's
+			// "{X}{W}{U}{B}"; trigXCostAt). Nothing is paid beside the mana.
+			s.trigXBind(k)
+		} else {
+			if life := kop.PayManaLife(in.F); life != 0 {
+				s.loseLife(k, s.g.pickP, life) // the mana-and-life cost's life (Zoraline)
+			}
+			s.trigXBind(k) // a PayManaX cost: the announced X is Count$xPaid
 		}
-		s.trigXBind(k) // a PayManaX cost: the announced X is Count$xPaid
 	}
 	if paid && s.g.pickZ == kop.PayTapX && s.res.e.kind == seTrigger {
 		s.tapXVarBind(k) // tapXType<X/Spec>: the count tapped is Count$xPaid
 	}
 	if paid && s.g.pickZ == payKindEvidence && s.res.e.kind == seTrigger {
 		s.evidenceXBind(k) // CollectEvidence<X>: the announced X is Count$xPaid
+	}
+	if paid && s.g.pickZ == kop.PayLife && s.res.e.kind == seTrigger {
+		s.lifeXBind(k) // PayLife<X>: the announced X is Count$xPaid (cost_paylifetrig.go)
 	}
 	s.continueRes(k, skip)
 }
@@ -1904,7 +1986,7 @@ func (s *State) searchPick(k *prep) bool {
 	}
 	var d Decision
 	s.searchCands(k, &d)
-	if d.N == 0 && s.prog(k)[s.res.pc].B.N&kop.SrImprint != 0 {
+	if d.N == 0 && s.prog(k)[s.res.pc].B.N&kop.SrImprint != 0 && s.searchZone(k) == kop.ZoneLibrary {
 		// gorge effSearchLibrary's fail-to-find drops the resolution's remembered
 		// objects (zone_search.go, c.Remembered = nil): Sanar's later colour
 		// picks then see an empty set.
@@ -2253,7 +2335,9 @@ func (s *State) moveFoundAns(k *prep, host Slot) {
 				s.handGraveArm(k) // WithCountersType$ on a hand/graveyard pick
 			}
 			s.enterOnto(host)
+			armed := s.pickOverrideArm(k, in, z) // dirac/zone_pickoverride.go
 			sl := s.enterFound(k, &eb, o, ep, fl&kop.SrTapped != 0, from, host)
+			s.pickOverrideSettle(k, sl, armed)
 			if s.g.pre.obj == o {
 				s.g.pre = preAsk{}
 			}
@@ -2285,8 +2369,8 @@ func (s *State) moveFoundAns(k *prep, host Slot) {
 				s.handExileLink(o) // until the source leaves (act_mayask.go)
 			}
 		}
-		s.forgetFound(k, o)  // ForgetChanged$ (SrForgetChanged): the moved card leaves the remembered set
-		s.imprintFound(k, o) // Imprint$ (SrImprint): the moved card joins the chosen set
+		s.forgetFound(k, o)      // ForgetChanged$ (SrForgetChanged): the moved card leaves the remembered set
+		s.imprintFound(k, o, zz) // Imprint$ (SrImprint): the moved card joins the chosen (library) or imprinted (hand) set
 		if z == kop.ZoneBattlefield && s.parkEnterDefender(tailSearchEnter) {
 			// the entry posed the CR 508.4 defender ask: the cards after it
 			// stay where they are until it is answered, as they do behind an
@@ -2783,26 +2867,46 @@ func (s *State) digRestOut(n int) {
 
 func (s *State) startChooseEach(k *prep, in *kop.Instr) bool {
 	s.g.nchosen = 0
-	first := s.eachPlayers(k, in.Obj).at(0)
-	if first == 255 {
-		return true
-	}
-	s.g.pickP = first
+	s.g.pickLeft = 0
 	s.g.pickZ = 0
-	if s.nextChooseEach(k) {
-		return false
-	}
-	return true
+	return !s.nextChooseEach(k, in)
 }
 
-// nextChooseEach poses the next type with candidates; false when done.
-func (s *State) nextChooseEach(k *prep) bool {
-	for ; int(s.g.pickZ) < len(chooseEachTypes); s.g.pickZ++ {
-		t := chooseEachTypes[s.g.pickZ]
-		for m := s.ctrlM[s.g.pickP]; m.any(); m = m.rest() {
-			if s.typesGen(k, m.first())&t != 0 {
-				s.res.ask, s.res.askP = raGenChooseEach, s.g.pickP
-				return true
+// chooseEachHas reports whether the permanent in slot sl is a candidate of
+// type t: a permanent of that type, a nonland one when the pool is
+// Choices$ Permanent.nonLand (kop.ChooseEachNonLand: Cataclysmic Gearhulk
+// leaves an artifact land out of its artifact group).
+func (s *State) chooseEachHas(k *prep, sl Slot, t kop.TypeMask, nonLand bool) bool {
+	ty := s.typesGen(k, sl)
+	return ty&t != 0 && !(nonLand && ty&kop.TLand != 0)
+}
+
+// nextChooseEach poses the next (player, type) pair with candidates; false
+// when done. The walk is chooser-major, type-minor (gorge effChooseCard's
+// flat chooser*groups+group cursor): every player in in.Obj, in
+// AliveFrom(controller) order, picks for each type of the op's mask (A; 0 is
+// all six, the ChooseEach$ spelling of Liliana, Dreadhorde General) in the
+// ChooseEach$ order, which chooseEachTypes spells.
+func (s *State) nextChooseEach(k *prep, in *kop.Instr) bool {
+	mask := kop.TypeMask(in.A.N)
+	nonLand := in.C&kop.ChooseEachNonLand != 0
+	q := s.eachPlayers(k, in.Obj)
+	for ; s.g.pickLeft < q.n; s.g.pickLeft, s.g.pickZ = s.g.pickLeft+1, 0 {
+		p := q.s[s.g.pickLeft]
+		if p == 255 || s.out(p) {
+			continue
+		}
+		s.g.pickP = p
+		for ; int(s.g.pickZ) < len(chooseEachTypes); s.g.pickZ++ {
+			t := chooseEachTypes[s.g.pickZ]
+			if mask != 0 && mask&t == 0 {
+				continue
+			}
+			for m := s.ctrlM[p]; m.any(); m = m.rest() {
+				if s.chooseEachHas(k, m.first(), t, nonLand) {
+					s.res.ask, s.res.askP = raGenChooseEach, p
+					return true
+				}
 			}
 		}
 	}
@@ -2833,6 +2937,10 @@ func (s *State) chooseCardBase(obj kop.Ref, askP uint8) uint8 {
 // with Done.
 func (s *State) chooseCardOptions(k *prep, pc, askP uint8, d *Decision) {
 	in := &s.prog(k)[pc]
+	if in.Op == kop.OpRepeatEach && in.C&kop.RepeatEachOrder != 0 {
+		s.eachOrderOptions(k, d) // act_eachorder.go
+		return
+	}
 	d.Sub = ChGenChooseCard
 	c := in.C
 	if c == chooseAttachPick || c == chooseAttachPickOpt {
@@ -2857,7 +2965,9 @@ func (s *State) chooseCardOptions(k *prep, pc, askP uint8, d *Decision) {
 		c == kop.ChooseCardAmount || c == kop.ChooseCardAmountOpt {
 		base = s.res.e.ctrl
 	}
-	s.cardCandsBaseEx(k, in.F, askP, base, d, c == kop.ChooseCardAmount || c == kop.ChooseCardAmountOpt)
+	// ChooseCardEachAmount keeps the asker as the base: its filter's YouCtrl
+	// is the chooser's own objects (ControlledByPlayer$ Chooser)
+	s.cardCandsBaseEx(k, in.F, askP, base, d, c == kop.ChooseCardAmount || c == kop.ChooseCardAmountOpt || c == kop.ChooseCardEachAmount)
 	if c == 1 || c == chooseLibUpTo || c == kop.ChooseCardAmountOpt {
 		d.add(MakeAction(AkDone, 0, 0, 0)) // up to one (gorge choiceBounds Min 0)
 	}

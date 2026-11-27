@@ -17,7 +17,7 @@ const sacManaActivationRepro = "sac_mana_funds_sorcery_sac_land_activation"
 // menu carries activate(#76)). With Vigil for the Lost out, the sacrificed
 // Prism queues its pay-X trigger, and gorge poses that ask with a third,
 // manual route (trigger_cost_pay_manual) that opens a window over every
-// untapped mana source: gorge's prefix search spends its 160-node budget there
+// untapped mana source: gorge's prefix search spends its potentialScriptNodes budget there
 // before it reaches the red answer, and offers no activation. The kernel's
 // tap-another search sees the ask as two answers; mirroring the manual window
 // node for node is far past bounded dirac code. Surtland Frostpyre is refused

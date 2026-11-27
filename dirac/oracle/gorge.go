@@ -688,13 +688,55 @@ func (g *GorgeSide) build(d0 *decision.Decision) *frame {
 	return fr
 }
 
+// faceDownFamily is the printed face-down family of the object a turn-up
+// option names (0 none, 1 Morph, 2 Megamorph, 3 Disguise), read from the
+// cast provenance flags the family is named by.
+func (g *GorgeSide) faceDownFamily(id state.ObjID) uint8 {
+	o := g.E.G.Obj(id)
+	if o == nil {
+		return 0
+	}
+	switch {
+	case o.CastFlags&state.FlagMorphed != 0:
+		return 1
+	case o.CastFlags&state.FlagMegamorphed != 0:
+		return 2
+	case o.CastFlags&state.FlagDisguised != 0:
+		return 3
+	}
+	return 0
+}
+
+// turnUpSubMode is the canonical turn_face_up sub-mode of an offered option
+// or a potential action. Mode 0 is the face-down cast's own keyword
+// procedure; the kernel's canonical grammar names it by the printed family
+// (3 morph, 4 megamorph, 5 disguise), so this side must too or a cast
+// permanent's mode-0 option diverges from the kernel's family-named one
+// (canon.Translate). A non-cast provenance already names its procedure
+// ("manifest", "cloak", "morph", ...).
+func (g *GorgeSide) turnUpSubMode(id state.ObjID, mode string) uint8 {
+	sub := turnUpModeCode(mode)
+	if sub != 0 {
+		return sub
+	}
+	switch g.faceDownFamily(id) {
+	case 1:
+		return 3
+	case 2:
+		return 4
+	case 3:
+		return 5
+	}
+	return 0
+}
+
 // turnUpPotentialAction is the canonical action of a potential turn-face-up
 // plan (CR 708.6), the offered option's form. Only the Morph-family keyword
 // procedures are projected: a manifested or cloaked card's printed-cost
 // procedure stays the pool-only offer the kernel makes (face_facedown.go's
 // turnUpListed), so the union does not name an action the kernel cannot take.
-func turnUpPotentialAction(pa decision.PotentialAction, ref func(state.ObjID) Ref) (Canon, bool) {
-	sub := turnUpModeCode(pa.Mode)
+func (g *GorgeSide) turnUpPotentialAction(pa decision.PotentialAction, ref func(state.ObjID) Ref) (Canon, bool) {
+	sub := g.turnUpSubMode(pa.Obj, pa.Mode)
 	if sub == 1 || sub == 2 {
 		return 0, false
 	}
@@ -743,6 +785,11 @@ func paymentCastAction(pa decision.PaymentAction, ref func(state.ObjID) Ref) (a 
 		return Pack(ActCastCasualty, ref(pa.Cast.Object), RefNone, 0), false, ""
 	case "impended":
 		return Pack(ActCastImpended, ref(pa.Cast.Object), RefNone, 0), false, ""
+	case "kicked1", "kicked2", "kickedboth":
+		// CR 702.33b: the two-alternative Kicker's per-alternative cast is
+		// its own action kind (the 16-entry cast-mode table is full;
+		// kw_kickalt.go)
+		return Pack(ActCastKickedAlt, ref(pa.Cast.Object), RefNone, kickedAltSelector(mode)), false, ""
 	case "conspired":
 		return Pack(ActCast, ref(pa.Cast.Object), RefNone, castModeOther|15<<4), false, ""
 	case "suspend", "bargained", "teamworked", "harmonize", "mayhem", "buyback", "entwined", "optionalcost", "web-slinging", "overloaded", "cleaved":
@@ -868,6 +915,17 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 				add(prioEntry{a: Pack(ActCastImpended, ref(o.Obj), RefNone, uint8(o.AltCostIndex)<<4), opt: o.Index})
 				continue
 			}
+			if sel := kickedAltSelector(o.Mode); sel != 0 {
+				// CR 702.33b: the two-alternative Kicker's per-alternative
+				// cast is its own action kind (the 16-entry cast-mode table
+				// is full; kw_kickalt.go)
+				if o.AltCostIndex > 15 {
+					note("cast/" + o.Mode)
+					continue
+				}
+				add(prioEntry{a: Pack(ActCastKickedAlt, ref(o.Obj), RefNone, sel|uint8(o.AltCostIndex)<<4), opt: o.Index})
+				continue
+			}
 			if o.Mode == "harmonize" {
 				// CR 702.180a: the 16-entry cast-mode table is full; the
 				// kernel's mode-2 cast of a Harmonize card canonicalises to
@@ -938,9 +996,11 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 				add(prioEntry{a: Pack(ActCast, ref(o.Obj), RefNone, castModeOther|uint8(o.AltCostIndex)<<4), opt: o.Index})
 				continue
 			}
-			if o.Mode == "mayflash" {
+			if o.Mode == "mayflash" || o.Mode == "offering" {
 				// CR 702.8: the kernel's AkMayFlash canonicalises to
-				// castModeOther, like "web-slinging" (kw_mayflash.go)
+				// castModeOther, like "web-slinging" (kw_mayflash.go); so
+				// does the offering cast that rides it (CR 702.48;
+				// kw_offering.go)
 				if o.AltCostIndex > 15 {
 					note("cast/mayflash")
 					continue
@@ -1086,6 +1146,17 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 				add(prioEntry{a: grantedEmbalmAction(ref(o.Obj)), opt: o.Index})
 				continue
 			}
+			if g.cyclingAltOption(o) {
+				// a cycling activation at the alternative cost (New Perspectives,
+				// kop.StatCyclingAlt): the kernel's twin ability, cyclingAltBit
+				add(prioEntry{a: Pack(ActActivate, ref(o.Obj), RefNone, cyclingAltBit|uint8(o.Ability)), opt: o.Index})
+				continue
+			}
+			if o.AltCostIndex == 1 && o.SVar == "" && o.Keyword == "" && o.GrantSource == 0 && o.GainedSource == 0 && o.Ability >= 0 && o.Ability < maxSpeedBase-altActivateBase {
+				// a Vehicle's own crew alternative cost (Heart of Kiran; kop.Ability.AltOf)
+				add(prioEntry{a: Pack(ActActivate, ref(o.Obj), RefNone, altActivateBase+uint8(o.Ability)), opt: o.Index})
+				continue
+			}
 			if o.SVar != "" || o.Keyword != "" || o.GainedSource != 0 || o.AltCostIndex != 0 || o.Ability > 0x7F {
 				note("ability/anchored")
 				continue
@@ -1101,6 +1172,9 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 				sub := turnUpModeCode(o.Mode)
 				if o.Kind == "unlock" {
 					sub = unlockModeCode(o.Mode)
+				}
+				if o.Kind == "turn_face_up" {
+					sub = g.turnUpSubMode(o.Obj, o.Mode)
 				}
 				add(prioEntry{a: Pack(ActSpecial, ref(o.Obj), RefNone, c|sub<<4), opt: o.Index})
 			} else {
@@ -1180,7 +1254,7 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 			a, kw = g.potentialAbilityAction(pa, ref)
 		case "turn_face_up":
 			var ok bool
-			if a, ok = turnUpPotentialAction(pa, ref); !ok {
+			if a, ok = g.turnUpPotentialAction(pa, ref); !ok {
 				continue
 			}
 		default:
@@ -1561,7 +1635,64 @@ func blockFloorsMatchable(fr *frame, chosen []int) bool {
 		}
 		return false
 	}
-	return blockFloorSlots(missing, free, canBlock)
+	if !blockFloorSlots(missing, free, canBlock) {
+		return false
+	}
+	return !d.HasBudget() || blockFloorsAffordable(fr, chosen, missing, free, usedPair)
+}
+
+// blockFloorsAffordable reports whether the blockers missing from the answer
+// so far (blockFloorsMatchable's missing and free slots) can be added within
+// Decision.MaxSum: the least sum of their pairs' Values (a block tax's
+// charges, CR 509.1d) beside the chosen picks' fits the budget. Without it a
+// pick whose menace attacker's second blocker the budget cannot pay is
+// completable only by an exhaustive search, which runs out of nodes on a wide
+// board and answers optimistically; the kernel's blkTaxFillCost prices the
+// same completion. A depth-first search bounded by the best found: one entry
+// per missing blocker, a handful.
+func blockFloorsAffordable(fr *frame, chosen []int, missing, free []state.ObjID, usedPair map[[2]state.ObjID]bool) bool {
+	d := fr.d
+	sum := 0
+	for _, c := range chosen {
+		sum += optByIndex(d, c).Value
+	}
+	limit := d.MaxSum - sum
+	if limit < 0 {
+		return false
+	}
+	value := func(b, a state.ObjID) (int, bool) {
+		for i := range d.Options {
+			if o := &d.Options[i]; fr.valid[i] && o.Obj == b && o.Attacker == a {
+				return o.Value, true
+			}
+		}
+		return 0, false
+	}
+	used := make([]bool, len(free))
+	pair := map[[2]state.ObjID]bool{}
+	best := limit + 1
+	var fill func(i, cost int)
+	fill = func(i, cost int) {
+		if i == len(missing) {
+			best = cost
+			return
+		}
+		a := missing[i]
+		for j, b := range free {
+			if used[j] || usedPair[[2]state.ObjID{b, a}] || pair[[2]state.ObjID{b, a}] {
+				continue
+			}
+			v, ok := value(b, a)
+			if !ok || cost+v >= best {
+				continue
+			}
+			used[j], pair[[2]state.ObjID{b, a}] = true, true
+			fill(i+1, cost+v)
+			used[j], pair[[2]state.ObjID{b, a}] = false, false
+		}
+	}
+	fill(0, 0)
+	return best <= limit
 }
 
 // blockRequirementPath reports whether the kernel offers this blockers
@@ -1775,7 +1906,7 @@ func (g *GorgeSide) Apply(a Canon) {
 	// election is its own payment (no pips): reset so its manual window keeps
 	// the no-owed first-colour answer.
 	switch a.Kind() {
-	case ActActivate, ActCast, ActCastFace, ActCastCasualty, ActCastImpended, ActCastAirbend, ActPass, ActPlayLand, ActSpecial:
+	case ActActivate, ActCast, ActCastFace, ActCastCasualty, ActCastImpended, ActCastAirbend, ActCastKickedAlt, ActPass, ActPlayLand, ActSpecial:
 		g.payPips = [6]uint8{}
 	}
 	if a.Kind() >= ActChoose {

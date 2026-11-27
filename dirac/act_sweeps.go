@@ -63,7 +63,7 @@ func (s *State) putCounterAll(k *prep, in *kop.Instr) {
 		}
 		if in.B.N == kop.PutCtrCellFirst || in.B.N == kop.PutCtrCellNext {
 			s.fireCounterCell(k, sl, m) // trig_countercell.go
-		} else if m > 0 && s.subs[kop.TrigCounterAddedOnce].any() {
+		} else if m > 0 && s.evLive(kop.TrigCounterAddedOnce) {
 			s.fireObj(k, kop.TrigCounterAddedOnce, sl, s.perms[sl].obj, s.perms[sl].ctrl, int16(m))
 		}
 	}
@@ -124,7 +124,7 @@ func (s *State) fireGraveSac(k *prep, sl Slot) {
 				}
 				for j := range cd.Abilities {
 					a := &cd.Abilities[j]
-					if a.Kind == kop.AbTriggered && a.Trig.Zone == kop.ZoneGraveyard && a.Trig.Event == kop.TrigSacrificed {
+					if a.Kind == kop.AbTriggered && a.Trig.Zone == kop.ZoneGraveyard && a.Trig.Event == kop.TrigSacrificed && !s.gravePrintedHidden(k, o) {
 						s.objTrigGen(k, kop.TrigSacrificed, trigListener{obj: o, sl: NoSlot, ctrl: pp, card: c, ab: uint8(j)}, a, sl, ev.obj, ev.ctrl, 0)
 					}
 				}
@@ -154,7 +154,7 @@ func (s *State) fireGraveDies(k *prep, sl Slot) {
 				}
 				for j := range cd.Abilities {
 					a := &cd.Abilities[j]
-					if a.Kind == kop.AbTriggered && a.Trig.Zone == kop.ZoneGraveyard && a.Trig.Event == kop.TrigDies {
+					if a.Kind == kop.AbTriggered && a.Trig.Zone == kop.ZoneGraveyard && a.Trig.Event == kop.TrigDies && !s.gravePrintedHidden(k, o) {
 						s.objTrigGen(k, kop.TrigDies, trigListener{obj: o, sl: NoSlot, ctrl: pp, card: c, ab: uint8(j)}, a, sl, ev.obj, ev.ctrl, 0)
 					}
 				}
@@ -187,7 +187,7 @@ func (s *State) tapAll(k *prep, in *kop.Instr) {
 		}
 		p.flags |= pfTapped
 		s.touchSl(sl)
-		if s.subs[kop.TrigTaps].any() {
+		if s.evLive(kop.TrigTaps) {
 			tapper := s.effTapper(sl)
 			if in.C == 1 {
 				tapper = p.ctrl

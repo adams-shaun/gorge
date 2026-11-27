@@ -137,7 +137,7 @@ var attachKnownKeys = [...]string{
 	"DefinedDesc",
 	"DefinedTarget",
 	"Description",
-	"EffectZone", "Exclude",
+	"Duration", "EffectZone", "Exclude",
 	"ExcludeZone", "Exhaust",
 	"ForgetOtherTargets",
 	"FromDesc", "GameActivationLimit",
@@ -225,7 +225,7 @@ var attachKnownKeys = [...]string{
 	"TokenScript",
 	"TriggerController", "TriggerDescription",
 	"Type",
-	"Ultimate",
+	"Types", "Ultimate",
 	"Unattach",
 	"UnlessAI",
 	"UnlessCost",
@@ -242,7 +242,7 @@ var attachKnownKeys = [...]string{
 	"ValidTgtsDesc",
 	"VoteMessage",
 	"WithoutManaCost",
-	"XColor", "XMax",
+	"XAnnounceTitle", "XColor", "XMax",
 	"XMin",
 }
 

@@ -81,6 +81,12 @@ func (lc *lowerCtx) defined(v string) (lRef, error) {
 			return lRef{}, refuse("Defined$ %s without a player target slot", v)
 		}
 		return lRef{Kind: rTarget, N: t}, nil
+	case "ThisTargetedPlayer":
+		return lc.thisTargetedPlayer() // lower_owntarget.go
+	case "ParentTargetedController":
+		return lc.definedParentTargetedController(v)
+	case "SourceController":
+		return lc.definedSourceController()
 	case "TargetedController", "TargetedOrController":
 		// TargetedOrController: gorge definedAliases (effects context.go)
 		// spells it TargetedController, which maps a player target to itself
@@ -99,6 +105,14 @@ func (lc *lowerCtx) defined(v string) (lRef, error) {
 		return lRef{Kind: rTargetOwner, N: t}, nil
 	case "ThisTargetedCard":
 		return lc.thisTargetedCard()
+	case "TriggeredSpellAbilityTargets":
+		return lc.triggeredSpellTarget(v) // lower_spelltarget.go
+	case "Valid Card.EquippedByEnchanted":
+		// Artificer's Hex (DB$ Destroy): gorge reads the candidate as the card
+		// EQUIPPED BY the enchanted object, i.e. the creature the Aura's
+		// enchanted Equipment is attached to (effects/filter_attachment.go).
+		// One object, so one kernel reference rather than a filter sweep.
+		return lRef{Kind: rEquippedByEnchanted}, nil
 	case "TriggeredCard", "TriggeredCardLKICopy", "TriggeredCards":
 		// gorge definedSpecTriggeredCard reads the card forms
 		return lRef{Kind: rTriggered}, nil
@@ -273,6 +287,19 @@ func (lc *lowerCtx) defined(v string) (lRef, error) {
 			return lRef{}, refuse("Defined$ %q outside a RepeatEach body", v)
 		}
 		return lRef{Kind: rRemembered}, nil
+	case "Player.attackedBySourceThisTurn":
+		// gorge effects/player_filter.go playerStateQualifier
+		// (playerSpecQualifierAttackedBySourceThisTurn): the seats the
+		// resolving SOURCE attacked this turn, from its per-object
+		// AttackedPlayersThisTurn ledger (the DeclareAttackers fold). Dirac
+		// is two-seat, so at most the one opponent; the kernel's ref reads
+		// the same attacker record and names nobody when it did not attack a
+		// player this turn (Angel of Destiny's end-step "each player Angel of
+		// Destiny attacked this turn loses the game"). The kernel's ref names
+		// one seat, exact at two; more seats would need the whole attacked
+		// set, so the card is two-seat only.
+		lc.twoSeat("Defined$ Player.attackedBySourceThisTurn names the one opponent of a two-player game")
+		return lRef{Kind: rAttackedBySource}, nil
 	case "DelayTriggerRememberedLKI":
 		return lRef{Kind: rDelayedRemembered}, nil
 	case "DelayTriggerRemembered":
@@ -289,6 +316,14 @@ func (lc *lowerCtx) defined(v string) (lRef, error) {
 		return lRef{Kind: rDelayedRemembered}, nil
 	case "ReplacedCard":
 		return lRef{Kind: rReplaced}, nil
+	case "ReplacedPlayer":
+		// a Draw replacement body: the player drawing the replaced card. The
+		// kernel binds it as the program's trigger player
+		// (dirac/repl_drawprogram.go).
+		if !lc.drawReplBody {
+			return lRef{}, refuse("Defined$ ReplacedPlayer outside a Draw replacement body")
+		}
+		return lRef{Kind: rTriggeredPlayer}, nil
 	case "ChosenCard":
 		return lRef{Kind: rChosen}, nil
 	case triggeredDefenderOrPW:
@@ -355,7 +390,10 @@ func (lc *lowerCtx) defined(v string) (lRef, error) {
 // whose controller RefTriggerTgtCtrl reads (rTriggeredTgtCtrl); the queue's
 // trigger player there is the damaged seat, not the attacker.
 func (lc *lowerCtx) triggeredAttackingPlayerDefined(v string) (lRef, error) {
-	if tr := lc.ab.Trigger; tr != nil && tr.Event == "AttackersDeclared" {
+	if tr := lc.ab.Trigger; tr != nil && (tr.Event == "AttackersDeclared" || tr.UnblockedOnce) {
+		// AttackerUnblockedOnce queues its one instance with the first
+		// matching attacker's controller as the trigger player
+		// (fireUnblockedOnce, gorge TriggerContext.AttackingPlayer).
 		return lRef{Kind: rTriggeredPlayer}, nil
 	}
 	if tr := lc.ab.Trigger; ddoAttackingPlayer(tr) {
@@ -439,6 +477,30 @@ func (lc *lowerCtx) ownAttackTrigger() bool {
 		return tr.Whose == whoYou
 	}
 	return false
+}
+
+// ownTokenAttackTrigger is ownAttackTrigger plus an Attacks trigger on the
+// source's equipped creature (Card.EquippedBy: Sigiled Sword of Valeron,
+// Captain's Claws, Inquisitorial Rosette). The trigger's captured defending
+// player is that host's attack defender, which the kernel reads from the
+// queue-time defSeat like any other attack event, so the token's controller
+// (the Equipment's) needs no host-controller query. Only the TokenAttacking$
+// reader takes this arm: the other ownAttackTrigger callers read a referent,
+// not an entering attack, and widening them is a separate class.
+func (lc *lowerCtx) ownTokenAttackTrigger() bool {
+	if lc.ownAttackTrigger() {
+		return true
+	}
+	tr := lc.ab.Trigger
+	if tr == nil || tr.Event != "Attacks" || tr.F == nil || len(tr.F.Clauses) == 0 {
+		return false
+	}
+	for _, c := range tr.F.Clauses {
+		if c != (lClause{Flags: fEquippedBy}) {
+			return false
+		}
+	}
+	return true
 }
 
 // enchantedByYouCtrl reports whether c is the "enchanted creature" attacker

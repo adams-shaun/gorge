@@ -46,7 +46,7 @@ func prepEntryMerge(t *kop.Table, g *genPrep) {
 	if g.anyRepl&(rbDblCtr|rbCtrOn|rbDblCtrYou|rbPlusCtrEOT) == 0 {
 		return
 	}
-	src := g.anyEffEtbCtr
+	src := g.anyEffEtbCtr || g.anyEtbCre
 	for i := range t.Cards {
 		if t.Cards[i].Impending > 0 {
 			src = true

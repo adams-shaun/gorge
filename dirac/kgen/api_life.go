@@ -39,24 +39,67 @@ func (lc *lowerCtx) apiGainLife(sa *cards.SA, ps *params) error {
 			return nil
 		}
 	}
+	if d := ps.peek("Defined"); strings.Contains(d, " & ") {
+		return lc.gainLifeCompound(sa, ps, d)
+	}
 	who, err := lc.objOrTarget(ps, "You", zNone)
 	if err != nil {
 		return err
 	}
+	n, err := lc.gainLifeAmount(sa, ps)
+	if err != nil {
+		return err
+	}
+	lc.emit(lInstr{Op: sa.API, Obj: who, A: n})
+	return nil
+}
+
+// gainLifeAmount reads a GainLife/LoseLife LifeAmount$ (the AFLifeLost and
+// zero-SVar riders included). One home for both the single-subject and the
+// compound-subject paths.
+func (lc *lowerCtx) gainLifeAmount(sa *cards.SA, ps *params) (lValue, error) {
 	var n lValue
+	var err error
 	if sa.API == "GainLife" && strings.TrimSpace(ps.str("LifeAmount")) == "AFLifeLost" && lc.followsLoseLife() {
 		// Gonti's Machinations: the bare AFLifeLost token (no SVar), the sum
 		// the LoseLife just before it in this chain requested (gorge
 		// loseLife's StoreSVar), read as the life it took (ExLastLifeLost).
 		n = lValue{Kind: vLastLifeLost}
 	} else if n, err = lc.amount(ps, "LifeAmount", 1); err != nil {
-		return err
+		return lValue{}, err
 	}
 	if sa.API == "GainLife" && n.Kind == vConst && lc.face.SVars[ps.str("LifeAmount")] == "Number$0" {
 		// Exsanguinate's AFLifeLost: the life the previous LoseLife took.
 		n = lValue{Kind: vLastLifeLost}
 	}
-	lc.emit(lInstr{Op: sa.API, Obj: who, A: n})
+	return n, nil
+}
+
+// gainLifeCompound runs a GainLife/LoseLife once per member of a compound
+// Defined$ "A & B" (gorge's DefinedRef RefCompound arm joins the members and
+// the effect acts on each). Angel of Destiny's "you and that player each gain
+// that much life" is definedSpecYou + definedSpecTriggeredTarget. Every
+// member must be a player the kernel names directly; an object member would
+// need gorge's object-to-controller projection, which this shape does not
+// promise, so it refuses.
+func (lc *lowerCtx) gainLifeCompound(sa *cards.SA, ps *params, d string) error {
+	refs, err := lc.definedCompound(d)
+	if err != nil {
+		return err
+	}
+	for _, r := range refs {
+		if !playerSubject(r) {
+			return refuse("%s Defined$ %q over %s", sa.API, d, r)
+		}
+	}
+	ps.get("Defined")
+	n, err := lc.gainLifeAmount(sa, ps)
+	if err != nil {
+		return err
+	}
+	for _, r := range refs {
+		lc.emit(lInstr{Op: sa.API, Obj: r, A: n})
+	}
 	return nil
 }
 
@@ -97,12 +140,23 @@ func (lc *lowerCtx) apiLosesGame(sa *cards.SA, ps *params) error {
 	// gorge effLosesGame / effWinsGame (effects/dice.go): the Defined$
 	// player (the controller when absent) loses / wins. A win is blocked
 	// only by an "opponents can't win" replacement (kernel winGame).
+	//
+	// Defined$ SourceController is NOT the caster here. gorge's definedSpec
+	// does not model it (engine/effects/testdata/defined-selector-unknown.txt),
+	// so Defined falls back to the source OBJECT, and both effects fail closed
+	// on a present selector that names no player. Only the player-valued
+	// consumers that project through definedPlayers (Draw/Mill/Discard) read
+	// the source's controller. Lowering this shape to rYou would make Glorious
+	// End's delayed trigger kill its caster where gorge does nothing.
+	if ps.is("Defined", "SourceController") {
+		return refuse("%s with Defined$ SourceController (gorge's Defined names the source object, not a player)", sa.API)
+	}
 	who, err := lc.objOrTarget(ps, "You", zNone)
 	if err != nil {
 		return err
 	}
 	switch who.Kind {
-	case rYou, rEachOpp, rTriggeredPlayer:
+	case rYou, rEachOpp, rTriggeredPlayer, rAttackedBySource:
 	case rTarget:
 		if t := lc.ab.Targets[who.N]; t.F == nil || t.F.Players == 0 || len(t.F.Clauses) != 0 {
 			return refuse("%s of a non-player target", sa.API)

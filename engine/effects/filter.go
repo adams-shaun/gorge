@@ -329,8 +329,10 @@ var predicates = map[string]predFn{
 		if b == nil || b.Controller != you || b.Face() == nil {
 			return false
 		}
-		f := b.Face()
-		return f.IsPlaneswalker() && !f.IsCreature()
+		// Forge's CardProperty branch checks only isPlaneswalker (XMage's
+		// AttacksAllTriggeredAbility likewise), so an animated planeswalker
+		// (Gideon as a creature) still counts.
+		return b.Face().IsPlaneswalker()
 	},
 	"blocking": func(g *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool { return isBlocking(g, o.ID) },
 	"token":    func(g *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool { return o.IsToken },
@@ -1054,6 +1056,26 @@ func init() {
 			return strings.Contains(ColorsOf(o), letter)
 		}
 	}
+	// canProduceManaColor <Colour> is Forge's CardProperty of that name: one
+	// of the candidate's mana abilities can produce that colour
+	// (AbilityManaPart.canProduce over MagicColor.toShortString). An "Any"
+	// production yields every colour but never colourless, exactly Forge's
+	// `isAnyMana() && !s.equals("C")`; producibleSymbols already reads the
+	// face's mana abilities that way. Break the Ice's and Obsidian Charmaw's
+	// `Land.canProduceManaColor Colorless`.
+	for _, cl := range [...]struct {
+		name   string
+		letter byte
+	}{{"White", 'W'}, {"Blue", 'U'}, {"Black", 'B'}, {"Red", 'R'}, {"Green", 'G'}, {"Colorless", 'C'}} {
+		letter := cl.letter
+		predicates["canProduceManaColor "+cl.name] = func(_ *state.Game, o *state.Object, _ state.PlayerID, _ state.ObjID) bool {
+			return strings.IndexByte(producibleSymbols(o), letter) >= 0
+		}
+	}
+	// attackingYouOrYourPW is Forge's prefix match of the same CardProperty
+	// branch attackingYouOrYourPWLKI takes (`property.startsWith(
+	// "attackingYouOrYourPW")`): Soul Snare's target spec.
+	predicates["attackingYouOrYourPW"] = predicates["attackingYouOrYourPWLKI"]
 	// StrictlyOther is Forge's other spelling of the same "not the source"
 	// test Other already implements.
 	predicates["StrictlyOther"] = predicates["Other"]
@@ -1520,8 +1542,14 @@ func triggerManaColorMask(mana string) ColorMask {
 }
 
 // matchSharesColorWith evaluates one bare-referent `SharesColorWith
-// <referent>` predicate token against the candidate o. Two referent forms
-// are bound:
+// <referent>` predicate token against the candidate o. Three forms are bound:
+//
+//	the bare form `SharesColorWith` -- Dream Halls' alternative discard
+//	(`Discard<1/Card.SharesColorWith/color sharing>`): the candidate's
+//	colours intersect the filter's own source's (SpecContext.Source, the
+//	spell being cast), read through colorMaskCtx like the ordinary colour
+//	predicates. An absent source, or two colourless objects, is "shares
+//	nothing", a resolved false, never an unresolved gate.
 //
 //	TriggeredProduced -- C.A.M.P.'s "If that creature shares a color with the
 //	mana that land produced": the candidate's colours intersect the
@@ -1539,11 +1567,18 @@ func triggerManaColorMask(mana string) ColorMask {
 //	TriggeredProduced's empty set takes.
 //
 //	Every other spelling -- MostProminentColor, Imprinted, Equipped,
-//	TopOfLibrary, Sacrificed, LastCastThisTurn, the bare form, and the
-//	`Valid <spec>` unit (alternative-level,
-//	sharesColorShape) -- returns ok=false here, so a token carrying one fails
-//	closed exactly as it did before these referents were bound.
+//	TopOfLibrary, Sacrificed, LastCastThisTurn, and the `Valid <spec>` unit
+//	(alternative-level, sharesColorShape) -- returns ok=false here, so a token
+//	carrying one fails closed exactly as it did before these referents were
+//	bound.
 func matchSharesColorWith(g *state.Game, p string, o *state.Object, sc SpecContext) (result, ok bool) {
+	if p == "SharesColorWith" {
+		src := predicateSource(p, &sc)
+		if src == 0 {
+			return false, true
+		}
+		return colorMaskCtx(o, &sc)&colorMaskCtx(g.Obj(src), &sc) != 0, true
+	}
 	arg, has := strings.CutPrefix(p, "SharesColorWith ")
 	if !has || !sharesColorBareReferent(arg) {
 		return false, false
@@ -1592,13 +1627,17 @@ func positiveRecognised(p string) bool {
 		return true
 	}
 	// Forge's base-qualified `SharesColorWith <referent>` predicate (C.A.M.P.'s
-	// TriggeredProduced, Guard Dogs' ChosenCard). The `SharesColorWith Valid
-	// <spec>` spelling is recognised at the ALTERNATIVE level, sharesColorShape
-	// (the IsTargeting precedent). Every other spelling (MostProminentColor,
-	// Imprinted, Equipped, TopOfLibrary, Sacrificed, LastCastThisTurn, the bare
-	// form) stays unrecognised: those carriers keep
-	// today's fail-open/closed behaviour, and UnknownPredicates keeps reporting
-	// them.
+	// TriggeredProduced, Guard Dogs' ChosenCard) and the bare
+	// `SharesColorWith` (Dream Halls' alternative discard: shares a colour
+	// with the cast spell). The `SharesColorWith Valid <spec>` spelling is
+	// recognised at the ALTERNATIVE level, sharesColorShape (the IsTargeting
+	// precedent). Every other spelling (MostProminentColor, Imprinted,
+	// Equipped, TopOfLibrary, Sacrificed, LastCastThisTurn) stays
+	// unrecognised: those carriers keep today's fail-open/closed behaviour,
+	// and UnknownPredicates keeps reporting them.
+	if p == "SharesColorWith" {
+		return true
+	}
 	if arg, has := strings.CutPrefix(p, "SharesColorWith "); has {
 		return sharesColorBareReferent(arg)
 	}
@@ -2378,6 +2417,11 @@ func matchPositive(g *state.Game, p string, o *state.Object, sc SpecContext) (re
 		}
 		return chosen, true
 	}
+	if p == "SharesColorWith" {
+		// Dream Halls' bare form: the candidate shares a colour with the
+		// filter's own source (the spell being cast).
+		return matchSharesColorWith(g, p, o, sc)
+	}
 	if _, has := strings.CutPrefix(p, "SharesColorWith "); has {
 		// Forge's base-qualified `SharesColorWith <referent>` predicate (C.A.M.P.,
 		// Guard Dogs). The `Valid <spec>` spelling is an ALTERNATIVE-level unit
@@ -2570,6 +2614,20 @@ func matchPositive(g *state.Game, p string, o *state.Object, sc SpecContext) (re
 		}
 		for _, t := range sc.DelayedRemembered {
 			if !t.IsPlayer && t.Obj == o.ID {
+				// CR 400.7: the registration stamps each remembered object's
+				// Incarnation and ZoneGen at registration (TriggerContext.
+				// DelayedRememberedStamps). One whose stamps differ left the
+				// zone and came back, so it is a NEW object the delayed
+				// trigger cannot find -- Dragonhawk, Fate's Tempest's
+				// "for each of those cards that are still exiled" counts
+				// nothing for a card that was cast out of exile and
+				// Swords to Plowshares'd back in. A stamp-less capture (a
+				// registration that predates stamping, a hand-built context)
+				// keeps the ObjID read: the same direction
+				// dropDelayedRememberedMoved keeps an unstamped target.
+				if lo := g.Obj(o.ID); lo != nil && delayedRememberedStampMoved(lo, sc.DelayedRememberedStamps) {
+					return false, true
+				}
 				return true, true
 			}
 		}
@@ -2969,7 +3027,11 @@ type SpecContext struct {
 	// nil when the site that built the context did not bind it, which the word
 	// reads as "no counters were put".
 	CounterAdds []CounterAdd
-	Resolve     func(name string) (int32, bool)
+	// ThisTurnCast is the per-turn cast ledger (every spell cast this turn,
+	// any caster) the `sharesNameWith ThisTurnCast` referent reads; nil when
+	// the building site did not bind it (thisTurnCastFor), which fails closed.
+	ThisTurnCast []state.ObjID
+	Resolve      func(name string) (int32, bool)
 	// The source's chosen-type/colour LKI (SourceLKIValid,
 	// SourceChosenType, SourceChosenColor) rides the embedded
 	// TriggerContext, so a resolving Ctx's SpecContext carries it with no
@@ -3641,11 +3703,11 @@ func matchesInOwnZone(g *state.Game, spec string, o *state.Object, sc SpecContex
 // object itself has reverted to its owner (CR 400.7).
 func matchesEnteredEntry(g *state.Game, spec string, e state.ZoneEntry, sc SpecContext) bool {
 	if e.To == state.ZBattlefield && e.From != state.ZBattlefield {
-		// A permanent that entered and has since left (an Aura returned to hand,
-		// a creature that died) still entered this turn (CR 700.14, 603.10a):
-		// match the card where it now lies, as a card, since the battlefield
-		// matcher rejects an object that is no longer a permanent.
-		if o := g.Obj(e.Obj); o != nil && o.Zone != state.ZBattlefield && o.Zone != state.ZStack {
+		// A permanent that entered and has since left (an Aura returned to hand
+		// and recast, a creature that died) still entered this turn (CR 700.14,
+		// 603.10a): match the card where it now lies, as a card, since the
+		// battlefield matcher rejects an object that is no longer a permanent.
+		if o := g.Obj(e.Obj); o != nil && o.Zone != state.ZBattlefield {
 			// The entry itself proves the object was a permanent on the
 			// battlefield, so CR 707.10h's ceased-copy rejection (meant for a
 			// spell copy parked off the stack) does not apply to it.

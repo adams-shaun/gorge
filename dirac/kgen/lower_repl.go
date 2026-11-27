@@ -246,11 +246,18 @@ func (lc *lowerCtx) lowerRepl(r cards.Repl) error {
 			return err
 		}
 	case "GainLife":
+		if ok, err := lc.lifePreventStatic(rp, r.With); err != nil || ok { // lower_lifeprevent.go
+			return err
+		}
 		if err := lc.lifeGainRepl(rp, r.With, &rl); err != nil {
 			return err
 		}
 	case "Draw":
 		if err := lc.drawRepl(rp, r.With, &rl); err != nil { // lower_drawrepl.go
+			return err
+		}
+	case "RollPlanarDice":
+		if err := lc.rollPlanarDiceRepl(rp, r.With, &rl); err != nil { // lower_planarrepl.go
 			return err
 		}
 	case "LifeReduced":

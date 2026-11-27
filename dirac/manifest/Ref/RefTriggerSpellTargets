@@ -1,0 +1,7 @@
+family: Ref
+name: RefTriggerSpellTargets
+value: next
+state: code 0
+status: active
+ticket: gap-defined-refs-slice4
+doc: every distinct object target of the spell whose cast raised this SpellCast trigger, read at resolution off the spell's stack entry (gorge Defined$ TriggeredSpellAbilityTargets over a line without IsSingleTarget$ True, effects context.go definedSpecTriggeredSpellAbilityTargets: the cast spell's root then chain targets, de-duplicated; gorge clears them once the spell left the stack, so a spell countered in response to the trigger names nothing). None when the spell is gone, or its targets are players only. The op runs once per object, in target order. Dack Fayden and Storm, Windrider.

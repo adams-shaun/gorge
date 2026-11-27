@@ -28,6 +28,14 @@ func init() {
 	instrOp("Shuffle", (*instrCtx).opShuffle)
 	instrOp("Rearrange", (*instrCtx).opRearrange)
 	instrOp("DelayLeaveReturn", (*instrCtx).opDelayLeaveReturn)
+	instrOp("AskDestAlt", (*instrCtx).opAskDestAlt)
+}
+
+// opAskDestAlt is OpAskDestAlt: the controller's primary-or-alternate
+// destination ask (lower_czaltdest.go); A is the alternate's skip.
+func (ic *instrCtx) opAskDestAlt() error {
+	ic.ki.Op, ic.ki.A = kop.OpAskDestAlt, ic.skip()
+	return nil
 }
 
 func (ic *instrCtx) opExile() error {
@@ -52,6 +60,14 @@ func (ic *instrCtx) opExile() error {
 	}
 	if (in.Obj.Kind == rTriggered || in.Obj.Kind == rTriggeredNew) && fl["from"] == "Graveyard" {
 		ki.C |= kop.MvFromGraveyard
+	}
+	if _, ok := fl["DelayedMany"]; ok {
+		// a DpMany delayed program's whole remembered set (Mirror-Style
+		// Master): exile every object the entry names (dirac/trig_delayedmany.go).
+		// The body stays the ordinary battlefield-origin exile shape
+		// (RefDelayedRemembered with only MvFromBattlefield): the kernel
+		// recognizes it there, so no extra C bit is needed.
+		ki.Op = kop.OpExileEx
 	}
 	return nil
 }
@@ -158,7 +174,24 @@ func (ic *instrCtx) opReturn() error {
 	ki.Op, ki.C = kop.OpReturn, int16(zoneMap[in.C])
 	_, underOpp := fl["UnderOpponent"]
 	_, attachTo := fl["AttachTo"]
-	if m := ic.moveFlags(); m != 0 || fl["counters"] != "" || fl["from"] == "Library" || underOpp || attachTo {
+	_, faceDown := fl["FaceDown"]
+	if faceDown {
+		// kop.RetFaceDown rides OpReturn's C bit 8 (the destination zone
+		// takes bits 0-2). A move that needs ReturnEx (counters, a library
+		// origin, UnderOpponent, AttachedTo) has no face-down arm; the one
+		// move flag it reads is GainControl$ True, carried as W = the
+		// resolving controller (execReturnSimple).
+		if _, has := fl["counters"]; has || fl["from"] == "Library" || underOpp || attachTo {
+			return fmt.Errorf("face-down return with another move flag")
+		}
+		if m := ic.moveFlags(); m != 0 && m != kop.MvUnderYourControl {
+			return fmt.Errorf("face-down return with another move flag")
+		} else if m == kop.MvUnderYourControl {
+			ki.W = kop.RefController
+		}
+		ki.C |= kop.RetFaceDown
+	}
+	if m := ic.moveFlags(); !faceDown && (m != 0 || fl["counters"] != "" || fl["from"] == "Library" || underOpp || attachTo) {
 		ki.Op = kop.OpReturnEx
 		ki.C = int16(int(zoneMap[in.C]) | m<<3)
 		if err := ic.counters(); err != nil {

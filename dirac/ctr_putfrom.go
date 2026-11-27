@@ -165,7 +165,7 @@ func ctrRecipientFilterStable(k *prep, f kop.FilterID) bool {
 // creature you don't control").
 func (s *State) ctrAddedListenerBy(k *prep, c kop.CounterKind, putter uint8, at Slot) (int, trigListener, *kop.Ability) {
 	const ev = kop.TrigCounterAddedOnce
-	if !s.subs[ev].any() && (k.gen == nil || (k.gen.embObjEv|k.gen.grantTrigEv)&(1<<ev) == 0) {
+	if !s.subs[ev].any() && (k.gen == nil || (k.gen.embObjEv|k.gen.grantTrigEv|k.gen.gainsTrigEv)&(1<<ev) == 0) {
 		return 0, trigListener{}, nil
 	}
 	n := 0

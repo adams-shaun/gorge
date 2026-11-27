@@ -7,6 +7,25 @@ type CardID uint16
 
 const NoCard CardID = 0xFFFF
 
+// SpentTag values of CardDef.SpentTag: the producer-tag word of
+// Count$CastTotalManaSpent <Tag>. SpentTagNone is the plain total; the Snow
+// form rides CardDef.SpentSnow and the kernel's snow tally.
+const (
+	SpentTagNone uint8 = iota
+	SpentTagSnow
+	SpentTagTreasure
+	SpentTagCave
+	SpentTagDesert
+)
+
+// ManaTag values of CardDef.ManaTag: the producer word a face's mana carries.
+const (
+	ManaTagNone uint8 = iota
+	ManaTagTreasure
+	ManaTagCave
+	ManaTagDesert
+)
+
 // MaxSubtypes bounds Table.Subtypes: a SubMask holds that many.
 const MaxSubtypes = 192
 
@@ -177,19 +196,43 @@ type CardDef struct {
 	// not set it yet (the kernel's snow-spend bit rides the snow tally,
 	// dirac/mana_snow.go).
 	SpentSnow bool
+	// SpentTag: the face reads a producer-tagged Count$CastTotalManaSpent
+	// <Tag> (Treasure / Cave / Desert): the kernel records that tag's units
+	// its cast's payment spent in place of the total (dirac/mana_spenttag.go).
+	// SpentTagNone means no tag (the plain total or the Snow form).
+	SpentTag uint8
 	// SelfFlash: a CastWithFlash EffectZone$ All self grant ("you may cast this
 	// spell as though it had flash if ..."; Illusion Spinners). The card's own
 	// StatCastWithFlash ability grants it from hand, never from the
 	// battlefield (kernel cast_selfflash.go).
-	SelfFlash  bool
-	SpellCost  Cost // the spell's additional cost (sacrifice / discard; mana zero)
-	AltAddCost Cost // AlternateAdditionalCost: may be paid instead of SpellCost (HasAltAdd)
-	HasAltAdd  bool
+	SelfFlash bool
+	// SelfFlashSA is the self grant's ValidSA$ constraint on the spell side
+	// (SfsaSpell, the bare Spell of every grant but one; SfsaTeamwork: Quantum
+	// Reduction's Spell.Teamwork, granted only once the cast's teamwork election
+	// is made). Read with SelfFlash (kernel cast_selfflash.go).
+	SelfFlashSA uint8
+	SpellCost   Cost // the spell's additional cost (sacrifice / discard; mana zero)
+	AltAddCost  Cost // AlternateAdditionalCost: may be paid instead of SpellCost (HasAltAdd)
+	// AltAddCost2 is the either-or's third part (Dusk Mangler's
+	// PayLife<4>), paid instead of SpellCost when the ask chose it (the
+	// build's altAdd buildAltAdd2, 4; kernel cast.go altAddOptions offers
+	// all three parts, the payable ones first, as gorge's altAddAsk orders
+	// them).
+	AltAddCost2 Cost
+	HasAltAdd   bool
 	// KickerCost: the kicker's non-mana cost (one Sac<1/..> or Return<1/..>
 	// part, Vayne's Treachery, Chocobo Kick; CR 702.33a). Kicker is then
 	// zero mana; a kicked cast pays this through the cost stages (kernel
 	// kw_kicker.go).
 	KickerCost Cost
+	// Kicker2: part two of the two-alternative "and/or" Kicker (Forge's
+	// K:Kicker:<a>:<b>, printed "Kicker {a} and/or {b}", CR 702.33b;
+	// Stormscape/Wastescape/Thornscape Battlemage, Stronghold Arena,
+	// Archangel of Wrath, Urborg Lhurgoyf). Part one stays in Kicker; each
+	// part may be paid alone or both together (CR 601.2b), the kernel's
+	// per-alternative kicked casts (kw_kickalt.go). Kicker2 is never set
+	// without Kicker, and never beside Multikicker (kgen refuses it).
+	Kicker2 ManaCost
 	// Multikicker, HasMultikicker: K:Multikicker:<cost> (CR 702.43). The
 	// per-payment cost is paid any number of times as the spell is cast; a
 	// Multikicker card's kicked cast asks the count before X and targets
@@ -313,6 +356,12 @@ type CardDef struct {
 	// offer gate's minimum, the unpaid arm (the gate reads an unseeded
 	// hand card), and the mode step's minimum is the evaluated cap.
 	ModesMinCount bool
+	// ModesMinKicked: the charm's MinCharmNum$ is Count$Kicked.0.<n> beside
+	// a Count$Kicked.<hi>.<n> CharmNum$ (Inscription of Abundance: "choose
+	// one; if kicked, choose any number instead"). The kicked cast's mode
+	// step needs no mode; the unkicked cast's minimum is ModesMinCount's, and
+	// Ability.ModesFew holds the offer gate's (unkicked) minimum.
+	ModesMinKicked bool
 	// DungeonNext: a dungeon card (CR 309; the Undercity
 	// token script), one entry per room in printed order, the room's
 	// ability Abilities[i] (latent); the entry packs its NextRoom$ arrows
@@ -361,7 +410,9 @@ type CardDef struct {
 	ProtColors ColorMask
 	// HexColors are the printed "hexproof from <colour>" keywords' colours
 	// (CR 702.11d; 0 = none): a spell or ability of one of them an opponent
-	// controls can't target the permanent.
+	// controls can't target the permanent. HexMono and HexMulti (bits no
+	// colour uses) are "hexproof from monocolored" / "from multicolored": a
+	// source of exactly one colour / of two or more.
 	HexColors ColorMask
 	// ProtFrom is the printed K:Protection:<spec> keywords' source filter
 	// (CR 702.16; type, subtype and colour terms only; 0 = none).
@@ -457,6 +508,12 @@ type CardDef struct {
 	// makes is typed in gorge's pool (state.Game TypedMana; an artifact's
 	// is typed too, read from Types).
 	TypedMana bool
+	// ManaTag: the printed face's producer word (ManaTagTreasure / Cave /
+	// Desert), the tag its mana carries in gorge's pool. A dedicated field,
+	// not a subtype read, because a matchup table keeps only the subtypes its
+	// cards name and drops the printed ones (cardset.matchup subSet); the
+	// kernel's spend tally reads it (dirac/mana_spenttag.go).
+	ManaTag uint8
 	// Engines is printed Start your engines! (CR 702.179a): its controller's
 	// speed starts at 1 when it has none (dirac/kw_speed.go).
 	Engines bool
@@ -619,6 +676,17 @@ type CardDef struct {
 	// then {0}, and the action is offered only while the controller's life
 	// covers N (dirac/face_morphlife.go).
 	MorphLife uint8
+	// MorphPick (zero = none) is the pick part of a keyword turn-up whose
+	// cost is one Discard, Sac or Return part (CR 702.37e; Gathan Raiders'
+	// Morph—Discard a card, Fathom Seer's return two Islands, Gift of Doom's
+	// sacrifice another creature): exactly one of CostDiscard (N cards from
+	// the payer's hand), CostSac or CostReturn (N permanents the payer
+	// controls; the face-down permanent itself never a candidate — the
+	// printed spec is "another ..."), with MorphCost {0}. The kernel's
+	// turn-up window poses gorge's pick ask for it before the permanent
+	// turns up (dirac/face_morphpick.go; gorge morph_turnup.go's
+	// turnUpSacAsk / turnUpDiscardAsk / turnUpReturnAsk).
+	MorphPick Cost
 	// CostEmpty is an EMPTY printed mana-cost text, the one case gorge's
 	// manifestFaceUpCost rejects outright (strings.TrimSpace(f.ManaCost)=="");
 	// Cost is also the zero ManaCost for {0} and for a printed "no cost", so
@@ -679,6 +747,15 @@ type CardDef struct {
 	// Exhale), no mana: the cast is offered only with a candidate and owes
 	// the behold (BeholdN/BeholdF) in its cost-pick stage (kw_mayflash.go).
 	MayFlashBehold bool
+	// HasOffering is printed K:Offering:<Type> (CR 702.48; no KwMask bit is
+	// free): the hand offers the offering cast (AkMayFlash on this card) at
+	// instant speed, beside the plain cast; it sacrifices a permanent of
+	// OfferingF and its cost is reduced by that permanent's mana cost,
+	// symbol by symbol (dirac/kw_offering.go).
+	HasOffering bool
+	// OfferingF is the offering's sacrifice filter (a battlefield permanent
+	// of the printed type its caster controls; HasOffering).
+	OfferingF FilterID
 	// FbBehold: the printed flashback cost carries Behold<N/Type> beside
 	// its mana (Kindle the Inner Flame): the printed flashback cast is
 	// offered only with BeholdN candidates and owes the behold (BeholdN/
@@ -918,6 +995,15 @@ type CardDef struct {
 	// replacement parameter; dirac/kgen textreach.go). Set only in a table
 	// that holds an ExtChangeText, so every other table is unchanged.
 	TextWords uint16
+	// CWUnmodelled is the colour words of TextWords (bits 0..4) the face reads
+	// on a surface the StatColorWords model does not rewrite: a target spec's
+	// filter and the printed Protection keywords are rewritten in place
+	// (dirac/static_colorwords.go); every other surface - the type line, the
+	// SVars, any other ability, trigger, static or replacement parameter -
+	// keeps the stall (display text is inert), so a face with a rewritten word there still stalls
+	// StallTextChange. Set only in a table that holds an ExtChangeText, so
+	// every other table is unchanged.
+	CWUnmodelled uint16
 	// FaceName is a token's or face entry's printed name (its script's
 	// Name: line, "Soldier Token"; lCard.printed): the table Name is the
 	// pool key (the script stem, "w_1_1_soldier"), and the legend rule
@@ -1090,3 +1176,10 @@ const MinBlockersAll uint8 = 255
 // CanBlockAny$ True form: the creature can block any number of creatures
 // (CR 509.1a), where 1 is CanBlockAmount$ 1. A Static.A of 0 is amount 1.
 const ExtraBlocksAny uint8 = 255
+
+// CardDef.SelfFlashSA values: the spell-side ValidSA$ constraint of a
+// CastWithFlash self grant.
+const (
+	SfsaSpell    uint8 = iota // bare "Spell": granted whenever the gate holds
+	SfsaTeamwork              // "Spell.Teamwork": granted once the cast's teamwork election is made
+)

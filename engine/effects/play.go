@@ -51,16 +51,44 @@ func init() { Register("Play", effPlay) }
 //     remembered set so a chained "if you don't play it" arm only sees the
 //     unplayed remainder. A refused or reversed cast never began, so its
 //     card stays remembered (CR 733.1-2).
-func playValidReadsOtherHand(valid string) bool {
+func playValidReadsOtherHand(valid string) (playValidReadsOtherHandCode, string) {
 	for _, token := range strings.FieldsFunc(valid, func(r rune) bool {
 		return r == '.' || r == '+' || r == ','
 	}) {
-		switch playValidReadsOtherHandCodes.Code(string(strings.ToLower(strings.TrimSpace(token)))) {
+		token = strings.TrimSpace(token)
+		switch code := playValidReadsOtherHandCodes.Code(strings.ToLower(token)); code {
 		case playValidReadsOtherHandPlayerRef:
-			return true
+			return code, ""
+		case playValidReadsOtherHandReferent:
+			_, ref, _ := strings.Cut(token, " ")
+			return code, strings.TrimSpace(ref)
 		}
 	}
-	return false
+	return 0, ""
+}
+
+// playHandSeats is the seats whose hands a Play's Valid$ population walks.
+// The default is the resolving controller's own hand. The remembered and
+// targeted-player filters widen it to every alive seat (their predicate keeps
+// only the bound cards); a two-token control predicate naming a defined
+// player (Mindleech Mass's `ControlledBy TriggeredTarget`, Silent-Blade Oni's
+// `OwnedBy TriggeredTarget`) scans only that referent's hand, resolved through
+// the shared defined-player grammar. An unresolvable referent keeps the
+// controller-only walk, which the filter's control clause then empties.
+func playHandSeats(h Host, c *Ctx, valid string) []state.PlayerID {
+	seats := []state.PlayerID{c.Controller}
+	switch code, ref := playValidReadsOtherHand(valid); code {
+	case playValidReadsOtherHandPlayerRef:
+		seats = nil
+		for _, q := range h.Game().AliveFrom(0) {
+			seats = append(seats, q)
+		}
+	case playValidReadsOtherHandReferent:
+		if ps := definedPlayerIDs(h, c, ref); len(ps) > 0 {
+			seats = ps
+		}
+	}
+	return seats
 }
 
 // playBegan reports whether the card a Play's answer chose was actually
@@ -216,6 +244,7 @@ func effPlay(h Host, c *Ctx, sa *cards.SA) {
 			return
 		}
 		sc := c.SpecContext(c.Controller)
+		sc.ThisTurnCast = thisTurnCastFor(h, c, valid)
 		for _, zn := range zones {
 			// Exile and graveyard are public zones keyed by the card's OWNER;
 			// a Play can legitimately read a card another seat's slice holds
@@ -224,14 +253,11 @@ func effPlay(h Host, c *Ctx, sa *cards.SA) {
 			// order and the spec's own ownership predicates decide -- the same
 			// all-seats walk mayPlaySpellIds uses. A private zone (hand,
 			// library) normally scans only the resolving controller's slice;
-			// the hand widens only for the two explicit cross-seat filter
-			// predicates above, after the chain has revealed that hand.
+			// the hand widens only for the explicit cross-seat filter
+			// predicates playHandSeats reads, after the chain revealed it.
 			seats := []state.PlayerID{c.Controller}
-			if zn == state.ZHand && playValidReadsOtherHand(valid) {
-				seats = nil
-				for _, q := range g.AliveFrom(0) {
-					seats = append(seats, q)
-				}
+			if zn == state.ZHand {
+				seats = playHandSeats(h, c, valid)
 			}
 			if zn == state.ZExile || zn == state.ZGraveyard {
 				seats = nil
@@ -598,11 +624,14 @@ type playValidReadsOtherHandCode uint16
 
 const (
 	playValidReadsOtherHandPlayerRef playValidReadsOtherHandCode = iota + 1
+	playValidReadsOtherHandReferent
 )
 
 var playValidReadsOtherHandCodes = state.NewStrCodes(
 	state.StrEntry[playValidReadsOtherHandCode]{Key: "isremembered", Val: playValidReadsOtherHandPlayerRef},
 	state.StrEntry[playValidReadsOtherHandCode]{Key: "targetedplayerctrl", Val: playValidReadsOtherHandPlayerRef},
+	state.StrEntry[playValidReadsOtherHandCode]{Key: "controlledby triggeredtarget", Val: playValidReadsOtherHandReferent},
+	state.StrEntry[playValidReadsOtherHandCode]{Key: "ownedby triggeredtarget", Val: playValidReadsOtherHandReferent},
 )
 
 type zoneFromStringCode uint16

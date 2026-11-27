@@ -365,6 +365,23 @@ func SourceIsNewObject(g *state.Game, ro *state.Object) bool {
 	return src != nil && src.Zone == state.ZBattlefield && src.Incarnation != ro.PushSourceIncarnation
 }
 
+// delayedRememberedStampMoved reports whether o is a remembered object the
+// delayed trigger registration stamped (TriggerContext.DelayedRememberedStamps)
+// whose Incarnation or ZoneGen differs from that stamp: the object changed
+// zones since (back from the battlefield, or graveyard to exile), so it is a
+// new object the registration cannot find (CR 400.7). An object with no stamp
+// entry -- or a stamp-less registration -- is kept: the same direction
+// dropDelayedRememberedMoved takes, and the read the IsTriggerRemembered
+// filter shares.
+func delayedRememberedStampMoved(o *state.Object, stamps []state.TargetStamp) bool {
+	for _, s := range stamps {
+		if s.Obj == o.ID {
+			return s.Incarnation != o.Incarnation || s.ZoneGen != o.ZoneGen
+		}
+	}
+	return false
+}
+
 // dropDelayedRememberedMoved removes from a Defined$
 // DelayTriggerRemembered[LKI] mover's list every object whose Incarnation or
 // ZoneGen differs from the delayed trigger registration's stamp
@@ -383,12 +400,7 @@ func dropDelayedRememberedMoved(h Host, c *Ctx, targets []state.Target) []state.
 		moved := false
 		if !t.IsPlayer {
 			if o := h.Game().Obj(t.Obj); o != nil {
-				for _, s := range stamps {
-					if s.Obj == t.Obj {
-						moved = s.Incarnation != o.Incarnation || s.ZoneGen != o.ZoneGen
-						break
-					}
-				}
+				moved = delayedRememberedStampMoved(o, stamps)
 			}
 		}
 		if moved && out == nil {
@@ -1024,7 +1036,7 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 			// the spell/ability that registered it -- so end every Effect-created
 			// registration from that source. The ender's FromEffect marker keeps
 			// the source's printed statics out of it.
-			h.EndEffectSource(f.Source, f.Spare)
+			h.EndEffectSource(f.Source, f.Spare, f.Carrier)
 		}
 		return
 	}

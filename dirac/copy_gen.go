@@ -53,6 +53,9 @@ func (s *State) execCopySpell(k *prep, in *kop.Instr) bool {
 	if s.res.e.ab == abStorm {
 		return s.copySpells(k, in, int(s.res.e.trigAmt)) // the count fixed when the cast trigger fired (kw_storm.go)
 	}
+	if in.C&4 != 0 && in.Obj != kop.RefSelf {
+		return s.copyEachOther(k, in, copyEachStart) // Hive Mind (copy_eachother.go)
+	}
 	return s.copySpells(k, in, s.value(k, in.A))
 }
 
@@ -64,9 +67,15 @@ func (s *State) copySpells(k *prep, in *kop.Instr, n int) bool {
 	if in.Obj == kop.RefSelf {
 		return s.copyParentSpell(k, in, n) // kw_madness.go
 	}
+	if in.C&4 != 0 {
+		return s.copyEachOther(k, in, n) // a resumed Hive Mind copy (copy_eachother.go)
+	}
 	ctrl := s.res.e.ctrl
-	if in.C&4 != 0 { // seat-ok: an instruction flag bit
-		if p := s.playerRef(k, kop.RefTargetController); p != 255 {
+	if in.W != kop.RefNone {
+		// Controller$ (gorge copyControllersFor): the copy's controller is the
+		// player W names (Meletis Charlatan's TargetedController, Bonus
+		// Round's TriggeredCardController); none keeps the resolving one
+		if p := s.playerRef(k, in.W); p != 255 {
 			ctrl = p
 		}
 	}
@@ -128,6 +137,13 @@ func (s *State) mintSpellCopyExc(k *prep, si int, ctrl, exc uint8) bool {
 		return false
 	}
 	ce := s.stack[si]
+	ka := uint8(0)
+	if hasKicker2(&k.t.Cards[ce.card]) {
+		// the two-alternative Kicker's alternatives (kw_kickalt.go): one
+		// kicked family per card (kgen refuses the Multikicker pair), so the
+		// shared byte below is the copy's whole kicked record
+		ka = s.kickAltBits(ce.obj)
+	}
 	mk := s.multikickCount(&ce) // CR 707.10: the copy keeps the spell's kicked status, the count included
 	if k.gen.anyPermCopy && s.permCopyBlocked(k, &ce) {
 		return false
@@ -144,7 +160,11 @@ func (s *State) mintSpellCopyExc(k *prep, si int, ctrl, exc uint8) bool {
 		s.noteEnter(o, kop.ZoneStack, kop.ZoneLibrary, false, false)
 	}
 	ce.obj, ce.ctrl, ce.srcVer = o, ctrl, s.objs[o].ver
-	s.setMultikick(&ce, mk)
+	if ka != 0 {
+		s.setKickAlt(o, ka) // the copy keeps the spell's kicked alternatives (kw_kickalt.go)
+	} else {
+		s.setMultikick(&ce, mk)
+	}
 	ce.flags &= sfKicked | sfPromised // the copy keeps the gift election (CR 707.10)
 	if cd := &k.t.Cards[ce.card]; cd.Bargain || cd.Teamwork != 0 {
 		// a copy is never cast, so it carries no FlagBargained or
@@ -170,8 +190,8 @@ func (s *State) mintSpellCopyExc(k *prep, si int, ctrl, exc uint8) bool {
 	if exc != 0 {
 		ce.remVer = ce.remVer&^spellCopyExcMask | objWord(exc)<<spellCopyExcShift
 	}
-	ce.prov, ce.spc, ce.etbSrc, ce.etbX = 0, 0, 0, [2]uint8{} // nor cast from a zone, nor convoked, nor spent colours, nor the rider's source
-	ce.cvok = 0                                               // nor the convoked creatures (a copy is not cast, CR 707.10; kw_convokelist.go)
+	ce.prov, ce.spc, ce.etbSrc, ce.etbX, ce.ov = 0, 0, 0, [2]uint8{}, 0 // nor cast from a zone, nor convoked, nor spent colours, nor the rider's source or carried override (static_spellcarry.go)
+	ce.cvok = 0                                                         // nor the convoked creatures (a copy is not cast, CR 707.10; kw_convokelist.go)
 	if ce.kind == seSpell {
 		ce.trigAmt = 0 // nor any mana spent to cast it (CR 707.10: a copy is not cast; "mana spent to cast this spell" reads 0)
 	}
@@ -195,6 +215,9 @@ func (s *State) mintSpellCopyExc(k *prep, si int, ctrl, exc uint8) bool {
 	}
 	if ce.trigPl == trigPlWebSling {
 		ce.trigPl = 0 // nor web-slinged (CR 707.10: gorge's FlagWebSlinged; kw_websling.go)
+	}
+	if ce.trigPl == trigPlAltCost {
+		ce.trigPl = 0 // nor cast for an alternative cost (CR 707.10: gorge's copy keeps only FlagPrototype; cast_altfree.go takeAltCast)
 	}
 	if ce.trigPl == trigPlEscape {
 		ce.trigPl = 0 // nor escape-cast (CR 707.10: gorge's FlagEscaped is cast provenance; kw_escape.go)

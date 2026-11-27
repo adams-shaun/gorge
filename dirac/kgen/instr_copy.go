@@ -17,8 +17,9 @@ func init() {
 	instrOp("CopyNamed", (*instrCtx).opCopyAsToken)
 	instrOp("CopyPicked", (*instrCtx).opCopyAsToken)
 	instrOp("CopyExiledWith", (*instrCtx).opCopyAsToken)
-	instrOp("Encore", (*instrCtx).opCopyAsToken) // kop.ExtEncore (dirac/kw_encore.go)
-	instrOp("Myriad", (*instrCtx).opCopyAsToken) // kop.ExtMyriad (dirac/kw_myriad.go)
+	instrOp("CopyAllExile", (*instrCtx).opCopyAsToken) // Defined$ ValidExile (Altaïr Ibn-La'Ahad)
+	instrOp("Encore", (*instrCtx).opCopyAsToken)       // kop.ExtEncore (dirac/kw_encore.go)
+	instrOp("Myriad", (*instrCtx).opCopyAsToken)       // kop.ExtMyriad (dirac/kw_myriad.go)
 	instrOp("CopyAsTokenCtr", (*instrCtx).opCopyAsTokenCtr)
 	instrOp("BecomeCopy", (*instrCtx).opBecomeCopy)
 }
@@ -135,7 +136,14 @@ func (ic *instrCtx) opCopyAsToken() error {
 		cf |= kop.CopyNonRemCtrl
 	}
 	if _, ok := fl["Attacking"]; ok {
-		cf |= kop.CopyAttacking // ExtCopyPicked only (lower_copypicked.go)
+		cf |= kop.CopyAttacking // CopyPermanent's TokenAttacking$ (lower_copypicked.go)
+	}
+	if in.Op == "CopyAllExile" {
+		// ExtCopyExiledWith's op-scoped use of B.N bit 15: only the
+		// resolving controller's exile zone is walked (gorge
+		// definedZoneValidTargets' ValidExile arm). The bit is
+		// CopyNonRemCtrl on OpCopyAsTokenEx, which this op never sets.
+		cf |= kop.CopyNonRemCtrl
 	}
 	pk, ok := fl["Pump"]
 	pe, eot := fl["PumpEOT"]
@@ -190,8 +198,10 @@ func (ic *instrCtx) opCopyAsToken() error {
 		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtCopyNamed))
 		ki.B, ki.C = kop.Const(idx), int16(int(ki.C)<<kop.CopyNamedExcShift|int(uint16(ki.B.N)))
 	}
-	if in.Op == "CopyExiledWith" {
-		// kop.ExtCopyExiledWith: F the exiled-with set, B and C as above
+	if in.Op == "CopyExiledWith" || in.Op == "CopyAllExile" {
+		// kop.ExtCopyExiledWith: F the exiled set, B and C as above. A
+		// CopyAllExile is the same op over the resolving controller's exile
+		// zone only (B.N bit 15, set above).
 		ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtCopyExiledWith))
 		if err := ic.objFilter(kop.ZoneExile); err != nil {
 			return err
@@ -227,7 +237,7 @@ func (ic *instrCtx) opBecomeCopy() error {
 		return err
 	}
 	if in.B.Kind != vNone {
-		if !in.B.isConst() || in.B.N&^(kop.BecomeCopyCtr|kop.BecomeCopyEmbalm|kop.BecomeCopyGrave) != 0 || in.B.N == 0 {
+		if !in.B.isConst() || in.B.N&^(kop.BecomeCopyCtr|kop.BecomeCopyEmbalm|kop.BecomeCopyGrave|kop.BecomeCopyEOT) != 0 || in.B.N == 0 {
 			return fmt.Errorf("BecomeCopy B %v", in.B)
 		}
 		ki.B = kop.Const(in.B.N)

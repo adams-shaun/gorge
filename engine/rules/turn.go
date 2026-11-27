@@ -535,6 +535,9 @@ func (e *Engine) drawStepTurnAction() bool {
 		// The draw suspended on a mid-draw ask (a Dredge replacement's
 		// KModes choice): the step's priority comes from the answer's
 		// path (the kernel's answered draw -> Advance -> priorityRound), so the emit below must not grant it twice.
+		// A replacement choice's answer grants it through the mark
+		// (replacement_turndraw.go).
+		markTurnDrawChoice(e.pending, e.replChoices)
 		return true
 	}
 	return false
@@ -1543,7 +1546,15 @@ func (e *Engine) handle(d *decision.Decision, in decision.Intent) {
 		// (engine/rules/replacement.go): the answered decision applies the chosen
 		// replacement for real and hands the queue to the next parked
 		// competition, if any.
+		// A choice the draw step's turn draw parked also grants the step's
+		// priority (replacement_turndraw.go).
+		turnDraw := len(e.replChoices) > 0 && e.replChoices[0].turnDraw
 		e.handleReplacement(d, in, false)
+		if turnDrawPriorityDue(turnDraw, e.G.Over, e.pending) {
+			e.emit(events.Event{Kind: events.Priority, Player: e.G.Active})
+		} else if turnDraw && !e.G.Over {
+			markTurnDrawChoice(e.pending, e.replChoices)
+		}
 	case decision.KChoose:
 		e.handleChoose(d, in)
 	case decision.KMulligan:

@@ -1,0 +1,9 @@
+family: ExtOp
+name: ExtRevealRandom
+value: next
+forge: Random
+census: api Reveal Random all=1 std=0 mbc=0 sole=0
+state: code 0
+status: active
+ticket: cli-20261127T065129Z-e7b92793
+doc: a Reveal Random$ True of one target player's hand (Urza's Bauble, "look at a card at random in target player's hand"): one draw of the engine RNG over that hand's cards when it holds any, no card moves, no decision; the reveal is a Note in gorge, so only the RNG draw is state

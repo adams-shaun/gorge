@@ -36,7 +36,9 @@ type pcard struct {
 	manaIntrinsic bool
 	// castSrc: tapping this source for a cast is recorded (noteTapSrc):
 	// csTreasure, the card's printed subtypes include Treasure (CastSpecTreasure;
-	// set only when the cast ring is on); csObserved, the card carries a
+	// set only when the cast ring is on, or the table has a Treasure-tagged
+	// SpentTag reader); csCave / csDesert, a Cave / Desert producer, set only
+	// when the table has a Cave / Desert SpentTag reader; csObserved, the card carries a
 	// Tf2ManaFromSelf SpellCast trigger (mana_spendtrigger.go)
 	castSrc   uint8
 	manaMulti bool          // several plain fixed-colour mana abilities folded into manaCol (mana_multicolour.go)
@@ -166,6 +168,10 @@ type prep struct {
 	// pinned fixed-State inventory is unchanged
 	grantSrcCard    []bool
 	contGrantAlways bool
+	// pcMemo: manaPCGen's per-decision memo pays on this table (prepPCMemo,
+	// mana_pcmemo.go); on prep, not genPrep, so the pinned fixed-State
+	// inventory is unchanged
+	pcMemo bool
 
 	// landGrantPair: a granted basic land type beside a mana source whose own
 	// ability is no plain {T} one (static_landgrantpair.go): StallLandGrant; on
@@ -236,6 +242,9 @@ type prep struct {
 	// keyword grant (kop.Emblem.Forget): the completed cast ends the emblem
 	// (cast_selfflash.go embFlashForget, after the cascade triggers)
 	anyEmbForget bool
+	// anyEmbAltCost: some Effect emblem carries the StatAlternativeCost static:
+	// the Effect-delivered alternative cost (cast_embaltcost.go)
+	anyEmbAltCost bool
 	// anyRedNC: some value reads ExRedNCDmg: replDamage tallies
 	// the noncombat damage red sources deal, beginTurn clears the tally
 	anyRedNC bool
@@ -292,9 +301,14 @@ type prep struct {
 	offKwCC    [4]offKwBody
 	offKwCCN   uint8
 	// costObj: some card's cost forages or exiles cards from a graveyard
-	// (kop.CostForage / kop.CostExileGrave; act_forage.go): guards their
-	// payability and pick paths
+	// (kop.CostForage / kop.CostExileGrave; act_forage.go) or is the Close
+	// Encounter choose pick (a.Cost.CloseEnc; cost_closeenc.go, asked by the
+	// same costObjOptions): guards their payability and pick paths
 	costObj bool
+	// graveAlt: some card's own StatAlternativeCost static names the
+	// graveyard (kop.Static.Zone ZoneGraveyard; cast_altfree.go prepAltFree):
+	// the graveyard cast walk runs (cast_gravealt.go offerGraveyardAltCasts)
+	graveAlt bool
 	// subAmong: some ability's cost removes counters from among permanents
 	// (kop.CostSubAmong; kw_training.go): guards its pick
 	subAmong bool
@@ -365,14 +379,20 @@ type prep struct {
 	// storied: some card prints Storied: the enduring-story scan runs
 	// (kw_storied.go); a prep bool like ascend, for the same reason
 	storied bool
-	// unleash: some card prints Unleash: the as-enters counter ask queues at
-	// entry and the block gate reads it (kw_unleash.go); a prep bool like
-	// ascend, for the same reason
+	// unleash: some card prints or grants Unleash: the as-enters counter ask
+	// queues at entry (printed only) and the block gate reads it (kw_unleash.go); a prep
+	// bool like ascend, for the same reason
 	unleash bool
-	// riot: some card prints Riot: the as-enters counter-or-haste election
-	// queues at entry (kw_riot.go); a prep bool like unleash, for the same
-	// reason
+	// unleashGrant: some static grants Unleash, so a blocker that does not
+	// print it is gated at blocking too (kw_unleash.go)
+	unleashGrant bool
+	// riot: some card prints or grants Riot: the as-enters counter-or-haste
+	// election queues at entry (kw_riot.go); a prep bool like unleash, for
+	// the same reason
 	riot bool
+	// riotGrant: some static grants Riot, so an entry that does not print it
+	// matches the grant (kw_riot.go); a prep bool like riot
+	riotGrant bool
 	// enlist: some card prints Enlist: the declare-attackers election
 	// (kw_enlist.go); a prep bool like riot
 	enlist bool
@@ -428,16 +448,18 @@ func prepare(t *kop.Table) *prep {
 	p := &prep{t: t, nsub: uint8(len(t.Subtypes)), cards: make([]pcard, len(t.Cards)), selfCast: prepSelfCast(t), eachPay: prepEachPay(t), tapXAb: make([]int8, len(t.Cards)), ctrAb: make([]int8, len(t.Cards)), riderAb: make([]int8, len(t.Cards))}
 	p.w8 = tableWord8(t) // filter_props.go
 	p.nameRep = nameRepOf(t)
-	typedSub := typedManaSubtypes(t)
 	p.speed, p.engines = prepSpeed(t)
 	p.ascend = tableHasAscend(t)
 	p.storied = tableHasStoried(t)
 	p.anyFbCard = tableHasFlashback(t)
-	p.unleash = tableHasUnleash(t)
-	p.riot = tableHasRiot(t)
+	p.unleashGrant = tableGrantsUnleash(t)
+	p.unleash = tableHasUnleash(t) || p.unleashGrant
+	p.riotGrant = tableGrantsRiot(t)
+	p.riot = tableHasRiot(t) || p.riotGrant
 	p.enlist = tableHasEnlist(t)
 	p.exertOffer = tableHasExertOffer(t)
 	p.engAsc = p.engines || p.ascend
+	spentTre, spentTag := tableSpentTags(t) // mana_spenttag.go
 	for i := range t.Cards {
 		c := &t.Cards[i]
 		pc := &p.cards[i]
@@ -475,14 +497,19 @@ func prepare(t *kop.Table) *prep {
 		p.teamwork = p.teamwork || c.Teamwork != 0
 		p.entwine = p.entwine || c.Entwine
 		p.offspring = p.offspring || c.Offspring || c.Buyback || c.Entwine
-		p.costObj = p.costObj || (c.SpellCost.Flags|c.AltAddCost.Flags|c.OptCost.Flags|c.KickerCost.Flags|c.FbCost.Flags|c.EscCost.Flags|c.EscBfCost.Flags|c.Repeated.Flags|c.EvokePick.Flags)&costObjFlags != 0 || c.BeholdN != 0 || c.RevealN != 0 || c.HasSneak || c.HasWebSling // a behold part's ask (act_behold.go); a sneak or web-slinging cast's return pick (kw_sneak.go, kw_websling.go); a Squad/Replicate payment's exile part (kw_squadreplicate.go)
+		p.costObj = p.costObj || (c.SpellCost.Flags|c.AltAddCost.Flags|c.AltAddCost2.Flags|c.OptCost.Flags|c.KickerCost.Flags|c.FbCost.Flags|c.EscCost.Flags|c.EscBfCost.Flags|c.Repeated.Flags|c.EvokePick.Flags)&costObjFlags != 0 || c.BeholdN != 0 || c.RevealN != 0 || c.HasSneak || c.HasWebSling || c.SpellCost.CloseEnc // a behold part's ask (act_behold.go); a sneak or web-slinging cast's return pick (kw_sneak.go, kw_websling.go); a Squad/Replicate payment's exile part (kw_squadreplicate.go); the Close Encounter choose pick (cost_closeenc.go)
 		pc.spellAb, pc.manaAb = -1, -1
 		p.tapXAb[i], p.ctrAb[i], p.riderAb[i] = -1, -1, -1
 		// the card's mana is typed by its types (mana_artifact.go) whether
 		// the producing ability is printed or granted: the tag rides the
-		// source, not the ability (effects.ManaProducerTag)
-		typedWord := (c.Subtypes[0]&typedSub[0] | c.Subtypes[1]&typedSub[1]) != 0
+		// source, not the ability (effects.ManaProducerTag). CardDef.ManaTag
+		// is the printed producer word, kept apart from the table's subtype
+		// vocabulary (a matchup drops printed subtypes its cards do not name).
+		typedWord := manaTagTyped(c.ManaTag) // mana_spenttag.go
 		pc.manaTyped = c.Types&kop.TArtifact != 0 || typedWord || c.TypedMana
+		// the spend-tally marks (mana_spenttag.go) are set only in a table
+		// with a reader of that tag; every other table keeps its marks.
+		pc.castSrc |= spentTagMark(c.ManaTag, spentTre, spentTag) // mana_spenttag.go
 		pc.manaSnow = snowMana(c, typedWord)
 		p.artMana = p.artMana || pc.manaTyped
 		pc.land = c.Types&kop.TLand != 0
@@ -492,7 +519,7 @@ func prepare(t *kop.Table) *prep {
 			a := &c.Abilities[j]
 			p.anyGate = p.anyGate || a.Gate.Ctr != 0
 			p.anyStateCtr = p.anyStateCtr || a.Kind == kop.AbTriggered && a.Trig.Flags4&kop.Tf4StateCtr != 0
-			p.costObj = p.costObj || a.Cost.Flags&costObjFlags != 0 || a.Cost.PutLibSelf
+			p.costObj = p.costObj || a.Cost.Flags&costObjFlags != 0 || a.Cost.PutLibSelf || a.Cost.CloseEnc
 			p.subAmong = p.subAmong || a.Cost.Flags&kop.CostSubAmong != 0
 			p.bargainRed = p.bargainRed || a.Kind == kop.AbStatic && a.Static.StFlags&kop.StBargained != 0
 			switch a.Kind {
@@ -632,8 +659,9 @@ func prepare(t *kop.Table) *prep {
 	p.embExileLeave = tableEmbHasExileLeave(t)
 	p.embExileAny = tableEmbHasExileAny(t)
 	p.gen = prepareGen(t, p)
-	prepLayerSrc(t, p) // static_layerwalk.go: the walk's per-card ability masks
-	prepHandStat(t, p) // cast_handleaves.go
+	p.pcMemo = prepPCMemo(p) // mana_pcmemo.go
+	prepLayerSrc(t, p)       // static_layerwalk.go: the walk's per-card ability masks
+	prepHandStat(t, p)       // cast_handleaves.go
 	p.gyCont = tableHasGyCont(t)
 	p.anyNoDmg = tableHasStatic(t, kop.StatNoCombatDamage)
 	p.anyAsUnblk = tableHasStatic(t, kop.StatAssignCombatDamageAsUnblocked)

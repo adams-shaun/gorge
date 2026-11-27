@@ -209,6 +209,9 @@ func (s *State) resolveTop(k *prep) {
 			if k.gen != nil && k.gen.anyManaHaste {
 				s.manaHasteEnter(k, sl, &e) // mana_spentrider.go
 			}
+			if e.ov != 0 {
+				s.spellCarryEnter(k, sl, &e) // static_spellcarry.go: a static SpellCast rider's timed Animate
+			}
 			if k.gen != nil && k.gen.anyEvoke {
 				s.evokeEnter(k, &e) // the Adamant bind and the evoke sacrifice (kw_evoke.go)
 			}
@@ -252,6 +255,15 @@ func (s *State) resolveTop(k *prep) {
 			s.runProg(k)
 			return
 		}
+		if e.ab == abRipple {
+			// CR 603.5: the ripple trigger's OptionalDecider$ You may, asked
+			// as it resolves (gorge askOptionalAtResolution); a decline
+			// resolves nothing (applyAsk's raOptional finishResolve). The
+			// decider is the trigger's controller.
+			s.res.ask, s.res.askP = raOptional, e.ctrl
+			s.ctl = ctlResolve
+			return
+		}
 		if e.ab == abWard {
 			s.resolveWard(k)
 			return
@@ -264,6 +276,10 @@ func (s *State) resolveTop(k *prep) {
 				if s.resolveVentureTrig(k) { // act_initiative.go
 					s.finishResolve(k, false)
 				}
+				return
+			}
+			if isCipherTrig(&e) {
+				s.cipherResolve(k) // kw_cipher.go: the copy cast, a program
 				return
 			}
 			s.resolveDelayed(k, &e)
@@ -340,7 +356,18 @@ func (s *State) finishResolve(k *prep, fizzled bool) {
 		s.ctl = ctlResolve // another held return parks its own ask (zone_untilleavesbatch.go)
 		return
 	}
-	s.sp-- // the resolving entry leaves the stack
+	if s.g.hold && s.res.active {
+		// resumeFreeCast kept the held copy in place under the casts (gorge's
+		// suspended resolution object leaves from where it sits, CR 608.2g):
+		// take it off there, not from the top.
+		if i := s.holdIndex(); i >= 0 {
+			copy(s.stack[i:s.sp], s.stack[i+1:s.sp])
+			s.sp--
+		}
+		s.g.hold = false
+	} else {
+		s.sp-- // the resolving entry leaves the stack
+	}
 	e := &s.res.e
 	if k.gen != nil && k.gen.anyRemPersist && remPersistKeeps(k, e) {
 		s.remPersistKeep(e) // zone_rememberpersist.go
@@ -561,6 +588,12 @@ func (s *State) prog(k *prep) []kop.Instr {
 			}
 			return stormProg[:]
 		}
+		if e.ab == abRipple {
+			return rippleProg[:] // the reveal + may-cast + bottom body (kw_ripple.go)
+		}
+		if isCipherTrig(e) {
+			return cipherProg[:] // kw_cipher.go
+		}
 		return nil
 	}
 	if p := s.overloadProg(k); p != nil {
@@ -622,8 +655,15 @@ func (s *State) runProg(k *prep) {
 			s.ctl = ctlExileOrder
 			return
 		}
+		s.clearCopyDefender(in)
 		s.res.pc++
 		s.loopBack(k)
+	}
+	if k.gen != nil && s.drawBodyEnd() {
+		return // a parked draw body's program is done (repl_drawbody.go)
+	}
+	if k.gen != nil && s.drawBodyEndRes(k) {
+		return // a body parked at the spell's OpDraw ends: the outer context returns and the draw loop goes on (repl_drawbody.go)
 	}
 	if k.gen != nil && s.payETBGate(k) {
 		return // the pay-before-entering program paid: the resolution re-runs to enter the card (repl_paybeforeetb.go)
@@ -651,11 +691,11 @@ func (s *State) loopBack(k *prep) {
 			continue
 		}
 		if in := &s.prog(k)[r.loopS[d]-1]; in.Op == kop.OpRepeatEach { // act_repeatcards.go: the plain card loop's frame
-			if s.eachCardAdvance(in) {
+			if s.eachCardAdvance(k, in) {
 				r.pc = r.loopS[d]
 				return
 			}
-			s.eachCardClose(in)
+			s.eachCardClose(k, in)
 			r.eachObj, s.g.inLoop = NoObj, false
 			r.loopD--
 			continue
@@ -680,13 +720,29 @@ func (s *State) objRef(k *prep, r kop.Ref) Slot {
 	if ob.zone != kop.ZoneBattlefield {
 		return NoSlot
 	}
-	if r == kop.RefSelf && ob.ver != s.res.e.srcVer && s.res.e.kind != seSpell {
+	if r == kop.RefSelf && ob.ver != s.res.e.srcVer && s.res.e.kind != seSpell && s.drawBodySrc() == 0 {
+		// (inside a replacement program Self is the replacement permanent,
+		// on the battlefield now by construction: the outer entry's queued
+		// version is not its version)
 		return NoSlot
 	}
 	if r == kop.RefTriggerObj && s.res.flags&rfTrigGone != 0 {
 		return NoSlot // the triggering permanent left and came back meanwhile: a new object (CR 400.7)
 	}
+	if r == kop.RefEmblemSource && ob.ver+1 != s.res.e.srcVer {
+		return NoSlot // the emblem trigger was queued at srcVer = ver+1: the source moved since (CR 400.7)
+	}
 	return ob.slot
+}
+
+// drawBodySrc is replSrcOf while a Draw replacement body runs (the cold
+// in-flight draw record is active), 0 otherwise: only that body's Self is
+// redirected to the replacement permanent in objRefObj.
+func (s *State) drawBodySrc() uint8 {
+	if ds := s.drawState(); len(ds) > 0 && ds[0].active {
+		return s.replSrcOf()
+	}
+	return 0
 }
 
 func (s *State) objRefObj(r kop.Ref) Obj {
@@ -705,9 +761,29 @@ func (s *State) objRefObj(r kop.Ref) Obj {
 		}
 		return Obj(t)
 	case kop.RefSelf:
+		// Inside a Draw replacement body (runReplProgAs, turn_gen.go) the
+		// body's source is the replacement permanent, exactly as gorge
+		// passes it: a PutCounter-on-Self body under an outer resolution
+		// (Ormos, Archive Keeper's five counters while a Deep Analysis is
+		// resolving) counters the permanent, not the resolving entry.
+		// Others-enter programs keep reading e.obj: their amounts are
+		// redirected in enterCountValue (the entrant mutation relies on it).
+		if r := s.drawBodySrc(); r != 0 {
+			return s.perms[Slot(r-1)].obj
+		}
 		return e.obj
+	case kop.RefEmblemSource:
+		return e.obj // objRef holds it to its queued version
 	case kop.RefTriggerObj:
 		return e.trigObj
+	case kop.RefTriggerSpellTarget:
+		return s.triggerSpellTarget(e.trigObj) // trig_spelltarget.go
+	case kop.RefTriggerSpellTargets:
+		// a set, not one object: execTriggerSpellTargets runs the op per
+		// target (trig_spelltargets.go); objRef names none
+		return NoObj
+	case kop.RefEquippedByEnchanted:
+		return s.equippedByEnchanted(e.obj) // trig_equippedbyenchanted.go
 	case kop.RefLastCreated:
 		return s.res.lastTok
 	case kop.RefChosen:
@@ -773,10 +849,15 @@ func (s *State) playerRef(k *prep, r kop.Ref) uint8 {
 		return 255
 	case kop.RefTargetController:
 		return s.tgtCtrlSlot(k, 0)
+	case kop.RefTargetCtrlLive:
+		return s.tgtCtrlLive(0) // tgt_stackability.go: gorge ParentTargetedController
 	case kop.RefTgtCtrl1, kop.RefTgtCtrl2:
 		return s.tgtCtrlSlot(k, int(r-kop.RefTgtCtrl1)+1) // tgt_stackability.go
 	case kop.RefTargetOwner:
 		t := s.tgtCode(0)
+		if t == NoTarget {
+			t = s.firstLiveExtra0(k, e) // gorge's owners of the legal targets: target 0 illegal, a later one of the slot may stand
+		}
 		if t == NoTarget || isPlayerOrNone(t) {
 			return 255
 		}
@@ -799,6 +880,22 @@ func (s *State) playerRef(k *prep, r kop.Ref) uint8 {
 		return s.attachedCtrl(s.objRefObj(kop.RefAttached))
 	case kop.RefEnchantedCtrl:
 		return s.enchantedCtrl(e.obj) // trig_attachedctrl.go
+	case kop.RefEnchantedPlayer:
+		return s.enchantedPlayer(k, e.obj) // trig_attachedctrl.go
+	case kop.RefAttackedBySource:
+		// gorge playerStateQualifierAttackedBySourceThisTurn: the seat the
+		// resolving SOURCE declared an attack at this turn. The source must
+		// still be the same object on the battlefield; beginTurn clears the
+		// ledger with gorge's TurnChange fold. None when it attacked no
+		// player this turn.
+		if int(e.obj) < MaxObj {
+			if ob := &s.objs[e.obj]; ob.zone == kop.ZoneBattlefield {
+				if p := &s.perms[ob.slot]; p.obj == e.obj && p.atkPl != 0 {
+					return p.atkPl - 1
+				}
+			}
+		}
+		return 255
 	}
 	if k.gen != nil {
 		return s.refPlayer(k, r, s.ctxEntry(&s.res.e))
@@ -860,6 +957,23 @@ func (s *State) enterCountValue(k *prep, v kop.ValueRef, sl Slot, ctrl uint8) in
 			c.src, c.srcSl = s.perms[src].obj, src
 		}
 		return s.expr(k, v.N, c)
+	}
+	if r := s.replSrcOf(); r != 0 && Slot(r-1) != sl && !DebugOthersEnterEntrantValue {
+		// the direct self reads of another permanent's others-enter program
+		// read that source too (Master Biomancer's "equal to Master
+		// Biomancer's power": kgen writes Count$CardPower as VSelfPower,
+		// where Arwen's toughness rides VExpr above)
+		src := Slot(r - 1)
+		switch v.K {
+		case kop.VSelfPower, kop.VSelfToughness:
+			p, t := s.pt(k, src)
+			if v.K == kop.VSelfPower {
+				return p
+			}
+			return t
+		case kop.VCountersSelf:
+			return s.perms[src].ctrN(s, int(v.N))
+		}
 	}
 	if v.K != kop.VCountFilter {
 		return s.value(k, v)
@@ -1088,7 +1202,7 @@ func (s *State) damageTo(k *prep, code TCode, n int) int {
 	if k.gen != nil && k.gen.anyPermMark {
 		s.markDealt(k, s.objRef(k, kop.RefSelf), false) // filter_permmarks.go
 	}
-	if s.subs[kop.TrigDamageDone].any() || k.gen != nil && (s.subs[kop.TrigDamageDealtOnce].any() || k.gen.graveDmg) || k.embDmg() {
+	if s.evLive(kop.TrigDamageDone) || k.gen != nil && (s.evLive(kop.TrigDamageDealtOnce) || k.gen.graveDmg) || k.embDmg() {
 		if sl := s.objRef(k, kop.RefSelf); sl != NoSlot {
 			s.fireDamage(k, sl, int16(n), isPlayerOrNone(code), false, code)
 		} else if k.gen != nil && e.obj != NoObj {
@@ -1106,7 +1220,7 @@ func (s *State) refCode(k *prep, r kop.Ref) TCode {
 	case kop.RefTarget0, kop.RefTarget1, kop.RefTarget2, kop.RefTarget3, kop.RefTarget4:
 		sl, _ := tgtSlot(r)
 		return s.tgtCode(sl)
-	case kop.RefController, kop.RefOpponent, kop.RefTriggerPlayer, kop.RefDefendingPlayer, kop.RefTargetController, kop.RefEachOpponent, kop.RefPromised, kop.RefChosenPlayer, kop.RefChosenPlayerRes, kop.RefResChosenPlayer, kop.RefTriggerTgtCtrl, kop.RefTriggerObjOwner, kop.RefAttachedCtrl, kop.RefEnchantedCtrl:
+	case kop.RefController, kop.RefOpponent, kop.RefTriggerPlayer, kop.RefDefendingPlayer, kop.RefTargetController, kop.RefTargetCtrlLive, kop.RefEachOpponent, kop.RefPromised, kop.RefChosenPlayer, kop.RefChosenPlayerRes, kop.RefResChosenPlayer, kop.RefTriggerTgtCtrl, kop.RefTriggerObjOwner, kop.RefAttachedCtrl, kop.RefEnchantedCtrl, kop.RefAttackedBySource:
 		p := s.playerRef(k, r)
 		if p == 255 {
 			return TCode(NoTarget)

@@ -1,0 +1,25 @@
+# The demo Path-of-the-X pool (dirac/oracle/demo_path_cycle_lockstep_test.go):
+# the five Path sorceries (four chain through Forge's DB$ BlankLine spacer, and
+# Path of the Schemer puts a picked graveyard creature onto the battlefield
+# with StaticEffect$ Animate), with artifact watchers (Kappa Cannoneer's
+# artifact-enters counter, Master of Etherium's artifact count and pump,
+# Thoughtcast's affinity) that make the added artifact type observable, plus
+# the creatures, artifacts and basics the decks need.
+Grizzly Bears
+Glory Seeker
+Island
+Kappa Cannoneer
+Master of Etherium
+Merfolk of the Pearl Trident
+Mountain
+Ornithopter
+Path of the Animist
+Path of the Enigma
+Path of the Ghosthunter
+Path of the Pyromancer
+Path of the Schemer
+Plains
+Sol Ring
+Swamp
+Thoughtcast
+Forest

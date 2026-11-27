@@ -22,6 +22,14 @@ import (
 //     the target opponent's revealed hand (Play Valid$
 //     Card.TargetedPlayerCtrl ValidZone$ Hand): CastFree over the player
 //     target's hand;
+//   - mbcsorceroussquall: Sorcerous Squall's mill nine, then free cast of an
+//     instant or sorcery from the target opponent's graveyard (Play Valid$
+//     Card.TargetedPlayerCtrl ValidZone$ Graveyard, ReplaceGraveyard$ Exile):
+//     CastFree over the player target's graveyard;
+//   - mbcmindleech: Mindleech Mass's and Silent-Blade Oni's free cast from
+//     the hand of the player their combat damage hit (Play Valid$
+//     Card.ControlledBy TriggeredTarget / Card.nonLand+OwnedBy
+//     TriggeredTarget ValidZone$ Hand): CastFree over RefTriggerPlayer's hand;
 //   - mbcghostform: Kaya's Ghostform's "when enchanted permanent dies or is
 //     put into exile" (ChangesZone Battlefield->Graveyard,Exile ValidCard$
 //     Card.AttachedBy), a Leaves line over the destination set read on the
@@ -30,7 +38,11 @@ import (
 //   - mbciwamori: Iwamori of the Open Fist's "each opponent may put a
 //     legendary creature card from their hand onto the battlefield" (hand
 //     move DefinedPlayer$ Player.Opponent), a RepeatEach over the opponents
-//     around the repeated player's may-move.
+//     around the repeated player's may-move;
+//   - mbctwinglass: Twinning Glass's free cast from hand of a card sharing a
+//     name with a spell cast this turn (Play Valid$ Card.nonLand+sharesNameWith
+//     ThisTurnCast ValidZone$ Hand): CastFree over the hand whose filter reads
+//     FwSharesNameThisTurnCast off the cast ring.
 //
 // Each case asserts the lowered shape is in the table, plays clean, and then
 // diverges with that shape broken (the pool reaches what it tests).
@@ -109,6 +121,58 @@ var mbcZoneMoves9Cases = []mbcZoneMoves9Case{
 		mutate: func(tbl *kop.Table) { mbcTgtPlayerCast(tbl, "Mindclaw Shaman").Obj = kop.RefNone },
 	},
 	{
+		pool: "mbcsorceroussquall",
+		decks: [2][]cardset.Entry{
+			// the Squall costs {6}{U}{U}{U} with Delve and no land tap pays a
+			// Delve cast: the Paintmages float {U}{R} each at the first main
+			// phase (restricted to instants and sorceries), so seat 0 casts
+			// one before seat 1 kills them. Seat 1 mills into burn.
+			{
+				{Name: "Sorcerous Squall", Count: 8}, {Name: "Abstract Paintmage", Count: 14},
+				{Name: "Island", Count: 9}, {Name: "Mountain", Count: 9},
+			},
+			{
+				{Name: "Shock", Count: 6}, {Name: "Lava Axe", Count: 4}, {Name: "Mountain", Count: 30},
+			},
+		},
+		shape: func(t *testing.T, tbl *kop.Table) {
+			if mbcTgtPlayerGrave(tbl, "Sorcerous Squall") == nil {
+				t.Fatal("Sorcerous Squall has no CastFree over a target slot in the graveyard: the spelling did not lower")
+			}
+		},
+		// the target's hand instead of their graveyard: gorge offers the
+		// milled instant, the kernel would offer the hand
+		mutate: func(tbl *kop.Table) {
+			in := mbcTgtPlayerGrave(tbl, "Sorcerous Squall")
+			in.C = in.C&^7 | int16(kop.ZoneHand)
+		},
+	},
+	{
+		pool: "mbcmindleech",
+		decks: [2][]cardset.Entry{
+			{
+				{Name: "Mindleech Mass", Count: 7}, {Name: "Silent-Blade Oni", Count: 7},
+				{Name: "Island", Count: 13}, {Name: "Swamp", Count: 13},
+			},
+			{
+				{Name: "Shock", Count: 12}, {Name: "Lava Axe", Count: 4}, {Name: "Mountain", Count: 24},
+			},
+		},
+		shape: func(t *testing.T, tbl *kop.Table) {
+			for _, name := range []string{"Mindleech Mass", "Silent-Blade Oni"} {
+				if mbcTrigPlayerCast(tbl, name) == nil {
+					t.Fatalf("%s has no CastFree over the trigger's player: the spelling did not lower", name)
+				}
+			}
+		},
+		// the controller's own hand instead of the damaged player's
+		mutate: func(tbl *kop.Table) {
+			for _, name := range []string{"Mindleech Mass", "Silent-Blade Oni"} {
+				mbcTrigPlayerCast(tbl, name).Obj = kop.RefNone
+			}
+		},
+	},
+	{
 		pool: "mbcghostform",
 		decks: [2][]cardset.Entry{
 			{
@@ -145,6 +209,56 @@ var mbcZoneMoves9Cases = []mbcZoneMoves9Case{
 		// every player, the controller too: gorge never asks the controller
 		mutate: func(tbl *kop.Table) { mbcIwamoriLoop(tbl).Obj = kop.RefEachPlayer },
 	},
+	{
+		pool: "mbctwinglass",
+		decks: [2][]cardset.Entry{
+			{
+				{Name: "Twinning Glass", Count: 8}, {Name: "Grizzly Bears", Count: 14}, {Name: "Forest", Count: 18},
+			},
+			{
+				{Name: "Shock", Count: 8}, {Name: "Raging Goblin", Count: 8}, {Name: "Hill Giant", Count: 6},
+				{Name: "Mountain", Count: 18},
+			},
+		},
+		shape: func(t *testing.T, tbl *kop.Table) {
+			if len(mbcTwinGlassLits(tbl)) == 0 {
+				t.Fatal("Twinning Glass has no CastFree whose filter reads FwSharesNameThisTurnCast: the spelling did not lower")
+			}
+		},
+		// the name comparison inverted: a card sharing no name with a spell
+		// cast this turn is offered, and one that does is not
+		mutate: func(tbl *kop.Table) {
+			for _, l := range mbcTwinGlassLits(tbl) {
+				l.Neg = !l.Neg
+			}
+		},
+	},
+}
+
+// mbcTwinGlassLits are the FwSharesNameThisTurnCast literals of Twinning
+// Glass's CastFree filter.
+func mbcTwinGlassLits(tbl *kop.Table) []*kop.FLit {
+	cd := mbcCard(tbl, "Twinning Glass")
+	if cd == nil {
+		return nil
+	}
+	var out []*kop.FLit
+	for j := range cd.Abilities {
+		for _, in := range cd.Abilities[j].Prog {
+			if in.Op != kop.OpCastFree || in.F == 0 {
+				continue
+			}
+			if f := &tbl.Filters[in.F]; f.Pred == kop.PredProg {
+				lits := tbl.FilterProgs[f.PredN].Lits
+				for k := range lits {
+					if lits[k].W == kop.FwSharesNameThisTurnCast {
+						out = append(out, &lits[k])
+					}
+				}
+			}
+		}
+	}
+	return out
 }
 
 func TestMBCZoneMoves9Lowers(t *testing.T) {
@@ -212,6 +326,43 @@ func mbcTgtPlayerCast(tbl *kop.Table, name string) *kop.Instr {
 		prog := cd.Abilities[j].Prog
 		for k := range prog {
 			if prog[k].Op == kop.OpCastFree && prog[k].Obj == kop.RefTarget0 {
+				return &prog[k]
+			}
+		}
+	}
+	return nil
+}
+
+// mbcTgtPlayerGrave is the card's free cast whose population is the targeted
+// player's graveyard (a player target slot over kop.ZoneGraveyard).
+func mbcTgtPlayerGrave(tbl *kop.Table, name string) *kop.Instr {
+	cd := mbcCard(tbl, name)
+	if cd == nil {
+		return nil
+	}
+	for j := range cd.Abilities {
+		prog := cd.Abilities[j].Prog
+		for k := range prog {
+			if prog[k].Op == kop.OpCastFree && prog[k].Obj == kop.RefTarget0 &&
+				prog[k].C&7 == int16(kop.ZoneGraveyard) {
+				return &prog[k]
+			}
+		}
+	}
+	return nil
+}
+
+// mbcTrigPlayerCast is the card's free cast whose population is the
+// trigger's player's hand (RefTriggerPlayer).
+func mbcTrigPlayerCast(tbl *kop.Table, name string) *kop.Instr {
+	cd := mbcCard(tbl, name)
+	if cd == nil {
+		return nil
+	}
+	for j := range cd.Abilities {
+		prog := cd.Abilities[j].Prog
+		for k := range prog {
+			if prog[k].Op == kop.OpCastFree && prog[k].Obj == kop.RefTriggerPlayer {
 				return &prog[k]
 			}
 		}

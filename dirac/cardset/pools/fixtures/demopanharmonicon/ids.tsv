@@ -1,0 +1,21 @@
+# CardID index of the pool table, maintained by dirac/kgen: an id never moves.
+0	card	Dog Walker
+1	card	Echoes of Eternity
+2	card	Eldrazi Repurposer
+3	card	Eldrazi Skyspawner
+4	card	Forest
+5	card	Growing Dread
+6	card	Icefeather Aven
+7	card	Island
+8	card	Matter Reshaper
+9	card	Mind Stone
+10	card	Mistfire Weaver
+11	card	Mountain
+12	card	Panoptic Projektor
+13	card	Plains
+14	card	Priest of Urabrask
+15	card	Sol Ring
+16	card	Wastes
+17	token	c_0_1_eldrazi_spawn_sac
+18	token	c_1_1_eldrazi_scion_sac
+19	token	w_1_1_dog

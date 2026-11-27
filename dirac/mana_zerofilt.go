@@ -10,7 +10,7 @@ import (
 // search never funds its fee as a gap. It is still one of the source's mana
 // abilities, though, and gorge's funding tap of the source (the free {T}: {C})
 // poses the "choose a mana ability" ask whenever the floating pool pays the
-// fee: the ask is a node of the search's 160-node budget (scriptSearch.visit
+// fee: the ask is a node of the search's potentialScriptNodes budget (scriptSearch.visit
 // counts a node before its dedup), so a board holding the source spends one
 // node the plain funding lines do not (CR 605.3a, 107.4a).
 

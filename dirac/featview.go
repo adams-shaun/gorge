@@ -47,10 +47,12 @@ func (s *State) FeatKeywords(o Obj) (m kop.KwMask, printed bool) {
 	ob := &s.objs[o]
 	k := s.k()
 	if ob.zone != kop.ZoneBattlefield || ob.slot == NoSlot {
+		if _, lost := s.graveViewLost(k, o); lost {
+			return 0, false // a graveyard card that lost all abilities has no printed keyword (static_graveabilityloss.go)
+		}
 		return k.cards[ob.card].kw, true
 	}
-	p := &s.perms[ob.slot]
-	return s.kw(k, ob.slot), p.ovr.flags&(ovLoseAll|ovLoseAllEOT) == 0
+	return s.kw(k, ob.slot), !s.genLost(k, ob.slot)
 }
 
 // FeatGranted is the keywords battlefield object o gains beyond its printed
@@ -396,8 +398,25 @@ func (s *State) FeatPoolPaysPlus(p uint8, o Obj, mode uint8, extra *[6]int32) bo
 // pool, {C} stays strict (gorge's offer gate mayPlayAffordable prices the
 // cast under the rider, CR 609.4b).
 func (s *State) featPoolPays(p uint8, o Obj, mode uint8, extra *[6]int32, anyColor bool) bool {
+	return s.featPoolPaysSel(p, o, mode, extra, anyColor, 0)
+}
+
+// FeatPoolPaysKickAlt is the two-alternative Kicker's selection sel
+// (kw_kickalt.go) under the pool-only offer gate: gorge poses the
+// per-alternative casts from its floating-pool walk gate alone
+// (legal_walk_hand.go's and/or branch, the hyp-nil offerCastable), and its
+// potential planner has no kicked1/kicked2/kickedboth row
+// (potential_plan.go's potentialModeBaseCostCodes), so no witness lowers
+// them either -- the offers are exactly the pool's.
+func (s *State) FeatPoolPaysKickAlt(p uint8, o Obj, sel uint8) bool {
+	return s.featPoolPaysSel(p, o, 1, nil, false, sel) // seat-ok: a cast-mode bit
+}
+
+// featPoolPaysSel is featPoolPays with a two-alternative Kicker selection
+// riding mode&1 (kw_kickalt.go): the selection's parts compose the additional
+// cost instead of kickPayment.
+func (s *State) featPoolPaysSel(p uint8, o Obj, mode uint8, extra *[6]int32, anyColor bool, kickSel uint8) bool {
 	k := s.k()
-	pl := &s.pl[SeatIx(p)]
 	a := s.poolAvailPlus(p, extra)
 	c := s.objs[o].card
 	if s.rbAny(p) {
@@ -409,7 +428,13 @@ func (s *State) featPoolPays(p uint8, o Obj, mode uint8, extra *[6]int32, anyCol
 	} else if mode&2 != 0 {
 		cost = s.flashbackCostOf(k, o)
 	} else if mode&1 != 0 { // seat-ok: a cast-mode bit
-		cost = addCost(cost, s.kickPayment(k, SeatIx(p), c, o, s.objs[o].zone == kop.ZoneHand))
+		if kickSel != 0 {
+			// the two-alternative Kicker's selection: its parts are the
+			// additional cost (kickSelPayment's home)
+			cost = addCost(cost, kickSelPayment(&k.t.Cards[c], kickSel))
+		} else {
+			cost = addCost(cost, s.kickPayment(k, SeatIx(p), c, o, s.objs[o].zone == kop.ZoneHand))
+		}
 	}
 	if (mode == 0 || mode&8 != 0) && k.gen != nil && k.gen.anyConvoke {
 		cost = s.convokeCredit(k, SeatIx(p), c, o, cost) // a granted retrace cast convokes too (kw_retrace.go)
@@ -419,6 +444,7 @@ func (s *State) featPoolPays(p uint8, o Obj, mode uint8, extra *[6]int32, anyCol
 	// convoke credit came off the printed cost (gorge castOfferBase), the
 	// delve credit comes after
 	addCommanderTax(&cost, s.commanderTax(SeatIx(p), o))
+	raw := cost // the base the Defilers' second chance counts pips in (cost_defiler.go)
 	tb := false
 	if mode&4 != 0 || mode&1 != 0 && k.bargainRed && k.gen != nil && k.gen.anyOptCost && optCostCard(k, c) { // seat-ok: a cast-mode bit
 		cost = s.bargainedPrice(k, SeatIx(p), c, o, cost) // the bargained cast's price, or the optional-cost cast's (cost_reducespell.go)
@@ -440,24 +466,11 @@ func (s *State) featPoolPays(p uint8, o Obj, mode uint8, extra *[6]int32, anyCol
 	if mode&2 != 0 && k.t.Cards[c].Harmonize {
 		cost = s.harmonizeCredit(k, SeatIx(p), cost) // gorge harmonizePayment prices the offer after the reductions
 	}
-	if cd := &k.t.Cards[c]; cd.HasAltAdd && mode&2 == 0 {
-		pre := cost
-		// gorge's gate is existential over the either-or parts: one whose
-		// picks can be paid and whose mana the pool pays with the spell's
-		ac := spellAddCost(k, c)
-		if s.pickCostPayable(k, SeatIx(p), ac, o) && (ac.Flags&kop.CostDiscard == 0 || int(pl.handN)-s.inHandN(o) >= discardCount(ac)) && s.beholdPayable(k, SeatIx(p), c, o) {
-			t := addCost(pre, ac.Mana)
-			if a.delve == 0 || !tb { // the faces took the credit (tb: adjustFit priced them)
-				t = s.delveOfferCredit(k, SeatIx(p), c, o, true, t)
-			}
-			if a.affords(&t, pipMaskOf(&t), 0) {
-				return true
-			}
+	if k.t.Cards[c].HasAltAdd && mode&2 == 0 {
+		var verdict, done bool
+		if cost, verdict, done = s.featAltAddPays(k, p, o, c, &a, tb, cost); done {
+			return verdict
 		}
-		if !s.pickCostPayable(k, SeatIx(p), &cd.AltAddCost, o) {
-			return false
-		}
-		cost = addCost(cost, cd.AltAddCost.Mana)
 	}
 	if mode&4 == 0 && (a.delve == 0 || !tb) {
 		cost = s.delveOfferCredit(k, SeatIx(p), c, o, mode&2 == 0, cost)
@@ -476,7 +489,61 @@ func (s *State) featPoolPays(p uint8, o Obj, mode uint8, extra *[6]int32, anyCol
 	if anyColor && cost.Snow == 0 {
 		return a.affordsAnyColor(&cost, 0) // the credited composed cost, as offerPlay's pool half reads it
 	}
-	return a.affords(&cost, pipMaskOf(&cost), 0)
+	if a.affords(&cost, pipMaskOf(&cost), 0) {
+		return true
+	}
+	if mode == 0 && defilerOn(k) {
+		own := 0
+		if ac := spellAddCost(k, c); ac.Flags&kop.CostPayLife != 0 {
+			own = lifeCostOwed(ac)
+		}
+		rd, ok := s.defilerOfferCost(k, SeatIx(p), c, o, &raw, own, cost)
+		return ok && !DebugDefilerNoOffer && a.affords(&rd, pipMaskOf(&rd), 0) // the Defilers' second chance, the pool's alone (cost_defiler.go)
+	}
+	return false
+}
+
+// featAltAddPays is featPoolPays's either-or additional-cost gate (a card
+// with HasAltAdd, cast other than by flashback). gorge's gate is existential
+// over the parts: done reports that the offer is decided (verdict) because
+// one part whose picks can be paid has mana the pool pays with the spell's;
+// otherwise cost is the cost with the payable second part's mana joined (CR
+// 601.2f), or done with a false verdict when no part's picks are payable.
+func (s *State) featAltAddPays(k *prep, p uint8, o Obj, c CardID, a *avail, tb bool, cost kop.ManaCost) (kop.ManaCost, bool, bool) {
+	cd := &k.t.Cards[c]
+	pl := &s.pl[SeatIx(p)]
+	// one whose picks can be paid and whose mana the pool pays with the spell's
+	ac := spellAddCost(k, c)
+	if s.pickCostPayable(k, SeatIx(p), ac, o) && (ac.Flags&kop.CostDiscard == 0 || int(pl.handN)-s.inHandN(o) >= discardCount(ac)) && s.beholdPayable(k, SeatIx(p), c, o) &&
+		s.altAddPartAffords(k, p, o, c, a, tb, cost, ac.Mana) {
+		return cost, true, true
+	}
+	if !s.pickCostPayable(k, SeatIx(p), &cd.AltAddCost, o) {
+		if cd.AltAddCost2 == (kop.Cost{}) || !s.pickCostPayable(k, SeatIx(p), &cd.AltAddCost2, o) {
+			return cost, false, true
+		}
+		return addCost(cost, cd.AltAddCost2.Mana), false, false // the either-or's third part (Dusk Mangler)
+	}
+	// The gate is existential over the parts: the second part's picks are
+	// payable, so the third part's own mana is an alternative the offer must
+	// try beside it (its picks payable too, its mana joining the spell's the
+	// same way, CR 601.2f), as the part-0 block above tries the spell's own cost.
+	if cd.AltAddCost2 != (kop.Cost{}) && s.pickCostPayable(k, SeatIx(p), &cd.AltAddCost2, o) &&
+		s.altAddPartAffords(k, p, o, c, a, tb, cost, cd.AltAddCost2.Mana) {
+		return cost, true, true
+	}
+	return addCost(cost, cd.AltAddCost.Mana), false, false
+}
+
+// altAddPartAffords is whether the pool pays pre plus one either-or part's
+// mana, the delve credit applied unless the faces took it (tb: adjustFit
+// priced them).
+func (s *State) altAddPartAffords(k *prep, p uint8, o Obj, c CardID, a *avail, tb bool, pre kop.ManaCost, part kop.ManaCost) bool {
+	t := addCost(pre, part)
+	if a.delve == 0 || !tb {
+		t = s.delveOfferCredit(k, SeatIx(p), c, o, true, t)
+	}
+	return a.affords(&t, pipMaskOf(&t), 0)
 }
 
 // poolAvailPlus is p's floating pool plus extra as an avail.
@@ -721,7 +788,7 @@ func (s *State) FeatPlannedCast(p uint8, o Obj, mode uint8) bool {
 // admissible (PlanNonManaAdmissible's Announced and N<=0 arms).
 func planDeclinesAddCost(k *prep, c CardID) bool {
 	ac := spellAddCost(k, c)
-	return ac.Flags&^(kop.CostSac|kop.CostDiscard|kop.CostDiscardFiltered) != 0 || ac.ExileBf || sacXCost(ac) || ac.SacHalf || discardXCost(ac) // an Exile<N/Spec> part is "cost:exile" (cost_exilebf.go); an announced Sac<X/Spec> is not "cost:sacrifice" admissible, nor an announced Discard<X/Spec> "cost:discard" (PlanNonManaAdmissible; cost_sacx.go, cost_discardfiltered.go)
+	return ac.Flags&^(kop.CostSac|kop.CostDiscard|kop.CostDiscardFiltered) != 0 || ac.ExileBf || sacXCost(ac) || ac.SacHalf || ac.CloseEnc || discardXCost(ac) // an Exile<N/Spec> part is "cost:exile" (cost_exilebf.go); an announced Sac<X/Spec> is not "cost:sacrifice" admissible, nor an announced Discard<X/Spec> "cost:discard" (PlanNonManaAdmissible; cost_sacx.go, cost_discardfiltered.go); the choose pick is "shape:additional_cost" too (cost_closeenc.go)
 }
 
 // plannedCastCost is the cost gorge's cast planner prices for p's cast of
@@ -744,7 +811,7 @@ func (s *State) plannedCastCost(k *prep, p uint8, o Obj, mode uint8) (kop.ManaCo
 func (s *State) plannedCastCostOf(k *prep, p uint8, o Obj, mode uint8, hyb, composed bool) (kop.ManaCost, bool) {
 	c := s.objs[o].card
 	refused := planNeverPricesCore(k, c, hyb, composed, false) || s.boardLifeTgtDep(k, p, c, o) || s.boardRaiseTgtDep(k, p, c, o) || s.stackTgtDep(k, c)
-	optRefused := k.gen != nil && k.gen.anyOptCost && optCostCard(k, c)
+	optRefused := k.gen != nil && k.gen.anyOptCost && optCostCard(k, c) || defilerOn(k) && s.defilerApplies(k, p, c, o) // (shape:optional_cost: an OptionalCost card, or an applicable Defiler)
 	spendRefused := !composed && k.gen != nil && k.gen.anyCastSpent && s.spendReaderOut(k)
 	fromHand := s.objs[o].zone == kop.ZoneHand
 	lifted := !refused && !optRefused && !spendRefused && mode&3 == 0 && s.improviseLiftedFrom(k, p, c, o, fromHand, plainCastZone(s.objs[o].zone))
@@ -857,6 +924,9 @@ func (s *State) FeatAltAddMana(p uint8, o Obj) (kop.ManaCost, bool) {
 	part := spellAddCost(k, c)
 	if manaEmpty(&part.Mana) {
 		part = &cd.AltAddCost
+		if manaEmpty(&part.Mana) && cd.AltAddCost2 != (kop.Cost{}) {
+			part = &cd.AltAddCost2
+		}
 	}
 	if !s.pickCostPayable(k, p, part, o) {
 		return kop.ManaCost{}, false
@@ -1294,6 +1364,9 @@ func (s *State) FeatViewTypes(o Obj) (types kop.TypeMask, subs kop.SubMask, all,
 			setSub = s.copyExcSetsSub(k, sl)
 		}
 		s.eachOverride(k, sl, func(ov *kop.Override, _ CardID) {
+			// no FaceDownOnly gate: a FaceDownSetType$ record wears only a
+			// face-down slot, which is always a walk slot (face_facedown.go),
+			// so lfxApply4 reads it and this fast path never sees one
 			if ov.HasSub {
 				subs, all, setSub = subs.And(ov.KeepSub).Or(ov.SetSub), false, true
 			}
@@ -1388,10 +1461,17 @@ func (s *State) featViewTypesOff(k *prep, o Obj, ob *object) (types kop.TypeMask
 		subs = subs.Or(add)
 		return true
 	})
-	if subs == printed {
+	types = k.cards[c].types
+	if k.gen.anyOffZoneChar {
+		types, subs, all = s.offZoneChars(k, c, ob.owner(), o, types, subs) // static_offzonechars.go
+	}
+	if all && types == k.cards[c].types {
+		return 0, kop.SubMask{}, false, false, false // an all-creature-types grant alone leaves the line as printed, as on the battlefield
+	}
+	if subs == printed && types == k.cards[c].types {
 		return 0, kop.SubMask{}, false, false, false
 	}
-	return k.cards[c].types, subs, false, false, true
+	return types, subs, all, false, true
 }
 
 // FeatStaticKey fingerprints what the statics in play read beyond the
@@ -1754,6 +1834,7 @@ func (s *State) FeatGrantedOffRep(o Obj) (kop.KwMask, FeatKwReps) {
 	k := s.k()
 	ob := &s.objs[o]
 	var granted kop.KwMask
+	lossTs, lost := s.graveViewLost(k, o)
 	if k.gen != nil && s.statM.any() {
 		// a StatOffZoneGrant keyword grant in the card's
 		// zone (ZoneAny for All), projected as a keyword bit
@@ -1769,6 +1850,9 @@ func (s *State) FeatGrantedOffRep(o Obj) (kop.KwMask, FeatKwReps) {
 			if !s.statCond(k, st) || !s.matchCardGenAt(k, a.Static.Filter, ob.card, ob.owner(), st.ctrl, o, nil) {
 				return true
 			}
+			if lost && lossTs > s.grantTs(st) {
+				return true // the removal is newer than the grant (gorge grantLostTo)
+			}
 			rep.add(granted, a.Static.Kw)
 			granted |= a.Static.Kw
 			return true
@@ -1777,6 +1861,9 @@ func (s *State) FeatGrantedOffRep(o Obj) (kop.KwMask, FeatKwReps) {
 	n := s.fbGrants(k, o)
 	if s.fbLive(k, o) {
 		n++ // a live static's grant (kw_fbgrant.go), listed after the stamped ones
+	}
+	if lost {
+		n = s.graveFbViewGrants(k, o, lossTs) // static_graveabilityloss.go
 	}
 	if n == 0 {
 		return granted, rep

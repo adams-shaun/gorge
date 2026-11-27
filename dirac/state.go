@@ -325,6 +325,15 @@ type perm struct {
 	// (copy_facedown.go), spareRegenX (repl_regenerate.go) and spareSolved
 	// (kw_crewsaddle.go).
 	spare uint8
+	// atkPl is the seat+1 of the player this attacker last DECLARED an
+	// attack at this turn (gorge's per-object AttackedPlayersThisTurn
+	// ledger, the DeclareAttackers fold); 0 means none. beginTurn clears it
+	// with gorge's TurnChange fold. Written by setDeclaredAttackTarget only:
+	// a permanent put onto the battlefield attacking was not declared
+	// (CR 508.1), and atk must keep naming the planeswalker/battle of a
+	// later declaration. The byte fills the tail padding the alignment left,
+	// so perm stays 72 bytes.
+	atkPl uint8
 	card  CardID       // the card's id (the copy-of id lives in ovr)
 	gty   kop.TypeMask // types derived by a generated table's overrides (ovGenTy)
 }
@@ -345,6 +354,13 @@ const (
 	cseenP1 uint8 = 1 << (ctrSlots + iota) // +1/+1 seen
 	cseenDT                                // deathtouch mark seen
 )
+
+// cseenSacNext: the permanent's imminent departure is a sacrifice (noteSac;
+// removePerm records it on the zone entry and clears it,
+// value_sacrificedthisturn.go). It rides perm.cseen's free bit above
+// cseenSaddled (bits 0-5 counters and saddled, bits 6-7 free) and is zeroed
+// with the rest of the perm when the slot is next entered.
+const cseenSacNext uint8 = 1 << 6
 
 // ctrN is p's count of counter kind c.
 func (p *perm) ctrN(s *State, c int) int {
@@ -436,6 +452,7 @@ func (p *perm) subCtrN(s *State, c, n int) {
 const (
 	pmDrewEmpty uint8 = 1 << iota // CR 704.5b: the next state-based check loses the seat
 	pmLostPass                    // lost in the pass now running, not yet swept: its graveyard still counts for that pass's scan (beginSBAPass, markPassLosses)
+	pmNoGain                      // can't gain life for the rest of the game (DmgLockGain; playerBanned reads it)
 )
 
 // player is one seat.
@@ -520,7 +537,13 @@ const seAtkPlayer uint8 = 1 << 5
 const seAtkCtrl uint8 = 1 << 3
 
 type stackEntry struct {
-	kind   uint8
+	kind uint8
+	// ov is a carried override record's index + 1 (0 = none), stamped by
+	// OpOverride's OvSpellCarry arm on a spell while it is on the stack: a
+	// static SpellCast rider's timed Animate of the triggering spell follows
+	// it onto the permanent it becomes (CR 400.7a) and is applied there as
+	// the permanent enters (static_spellcarry.go). It fills the byte before obj.
+	ov     uint8
 	obj    Obj    // the spell's object, or the ability's source object
 	srcVer uint8  // the source's ver when the ability was created
 	sid    uint8  // an ability's stack identity, for a stack-ability target (tgt_stackability.go; 0 = none; the padding byte); a spell's FINALITY rider count (trig_mayplaystatic.go)
@@ -811,6 +834,15 @@ const (
 	// awaiting the pick among several candidates (act_revealpick.go; parked in
 	// genState.pick*)
 	ctlTurnUpReveal
+	// ctlTurnUpPick: a keyword turn-up whose cost is a pick part
+	// (CardDef.MorphPick), awaiting the picks it owes, one per object
+	// (face_morphpick.go; parked in genState.pick*)
+	ctlTurnUpPick
+	// ctlTurnUpAttach: a keyword turn-up whose card has a ReplTurnUpAttach
+	// replacement, awaiting the optional attach election its body poses
+	// before the turn-up event folds (face_turnupattach.go; parked in
+	// genState.pickP / pickZ / pickF, the announced X in pickLeft)
+	ctlTurnUpAttach
 	// ctlManaAsk: a priority-time activation of a colour-asking unless source
 	// (Rhystic Cave) under Config.PriorityManaAsk: the colour ask, then each
 	// player's unless ask (mana_priask.go; parked in genState.winSrc,
@@ -848,6 +880,7 @@ const (
 	bsReplicate // the replicate count ask (CR 702.56a: gorge replicateAsk, after the tap costs and before the multikicker ask; kw_squadreplicate.go)
 	bsMulti     // the multikicker count ask (CR 702.43: gorge multikickAsk, after the tap costs and before Convoke/X; kw_multikicker.go)
 	bsSquad     // the squad count ask (CR 702.157a: gorge squadAsk in preCostAsks, after the multikicker ask and before Convoke/X; kw_squadreplicate.go)
+	bsDefiler   // the Defiler yes/no asks (gorge defilerAsk, after the multikicker ask and before the squad ask; cost_defiler.go)
 	nBuildStages
 )
 
@@ -875,7 +908,7 @@ type build struct {
 	dilLo       uint8 // bflDilemma: the pending triggers that dilemma queued, [dilLo, dilHi)
 	dilHi       uint8
 	bfl         uint16   // bflPushed: the entry is on the stack (top); bflLowered: the oracle lowered the cast
-	altAdd      uint8    // either-or additional cost: 0 the spell's own, 1 CardDef.AltAddCost
+	altAdd      uint8    // either-or additional cost: 0 the spell's own, 1 CardDef.AltAddCost, 4 buildAltAdd2 CardDef.AltAddCost2 (2 is buildAltCost's value: an either-or card keeps no alternative-cost cast, prepAltFree)
 	pipN        uint8    // hybrid pips announced so far
 	pipC        [2]uint8 // their colours (W U B R G = 0..4), in pip order
 	pushNP      uint8    // pending triggers when the spell was pushed: a reversed cast drops the ones its own move queued (CR 733.1)
@@ -897,6 +930,7 @@ type build struct {
 	altAbort    bool     // the chosen either-or part cannot be paid: the fallback CR 601.2g window runs at bsMana (manaStep) and reverses the cast (CR 733.1)
 	impPlan     bool     // gorge's planner priced this Improvise cast (kw_improvisepay.go)
 	snowPre     uint8    // a SpentSnow card's cast: the seat's snow units before the mana payment (snowSpentRec, mana_snow.go)
+	tagPre      uint8    // a SpentTag card's cast: the tag's units before the mana payment (castSpentRec, mana_spenttag.go)
 	convC       bool     // the cast went through a may-play permission carrying the colourless-mana conversion (ManaConversion$ C->AnyColor; cast_mayconvc.go)
 	payLifeMV   bool     // the cast went through a may-play permission whose alternative cost is life equal to its mana value (cast_mayplaypaylife.go)
 	payEnergy   uint8    // the cast went through a may-play permission whose alternative cost is this much energy (kop.StMayPayEnergy, Nissa, Worldsoul Speaker; paid beside payLifeMV)
@@ -905,6 +939,13 @@ type build struct {
 	// answered count, returned by buildPickCost so the ordinary pick stages
 	// pay it (kw_squadreplicate.go).
 	repeatCost kop.Cost
+	// the Defiler cycle's answers (cost_defiler.go; scratch only, no State bytes):
+	// defN the applicable statics consulted, defPend an ask posed (defCol its
+	// colour, defAsk its life), defLife the life the yeses owe, defRed their
+	// pips per colour (W U B R G)
+	defN, defCol, defAsk, defLife uint8
+	defPend                       bool
+	defRed                        [5]uint8
 }
 
 // build.bfl bits. bflLowered: a cast gorge's planner does not price,
@@ -1054,6 +1095,12 @@ type resCtx struct {
 	chPl  uint8
 	cpl   uint8 // the chosen player and the remembered players (ExtChoosePlayerRes; act_chooseplayerres.go)
 	remLK int16 // sum of the last-known power or toughness of the permanents this resolution sacrificed under RememberSacrificed$ (zone_rememberlki.go)
+	// ksrAt/ksrMass are the mass stack redirect's cursor (act_stackrewrite.go
+	// ExtChangeTargetsMass): ksrAt is the next stack index to offer, ksrMass
+	// that the ask in flight is the mass walk. The pair fits resCtx's tail
+	// padding, so State's pinned layout does not move.
+	ksrAt   uint8
+	ksrMass bool
 }
 
 // State is a whole game. Copy one with CopyFrom, or probe on a fork; go vet

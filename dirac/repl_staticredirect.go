@@ -151,7 +151,7 @@ func (s *State) statRdrMatch(k *prep, b Slot, a *kop.Ability, e *rdrEv) bool {
 		} else if c&kop.RdrSrcChosen != 0 {
 			// the source's own choice against the spell's colours (Harsh
 			// Judgment; Diamond Mare's spell-of-the-chosen-colour read)
-			if !s.matchCardSrc(k, r.Filter2, e.srcCard, e.srcCtrl, hc, NoObj, b, s.perms[b].obj) {
+			if !s.matchCardSrc(k, r.Filter2, e.srcCard, e.srcCtrl, hc, NoObj, b, s.perms[b].obj, NoObj) {
 				return false
 			}
 		} else {
@@ -332,7 +332,7 @@ func (s *State) statRdrDeal(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, 
 	if k.gen.anyPermMark && srcSl != NoSlot {
 		s.markDealt(k, srcSl, false) // filter_permmarks.go
 	}
-	if s.subs[kop.TrigDamageDone].any() || s.subs[kop.TrigDamageDealtOnce].any() || k.gen.graveDmg {
+	if s.evLive(kop.TrigDamageDone) || s.evLive(kop.TrigDamageDealtOnce) || k.gen.graveDmg {
 		if srcSl != NoSlot {
 			s.fireDamage(k, srcSl, int16(n), true, false, to)
 		} else {

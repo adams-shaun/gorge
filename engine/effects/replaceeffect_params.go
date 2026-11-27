@@ -143,7 +143,7 @@ var replaceEffectKnownKeys = [...]string{
 	"DefinedDesc",
 	"DefinedTarget",
 	"Description",
-	"EffectZone", "Exclude",
+	"Duration", "EffectZone", "Exclude",
 	"ExcludeZone", "Exhaust",
 	"ForgetOtherTargets",
 	"FromDesc", "GameActivationLimit",
@@ -226,7 +226,7 @@ var replaceEffectKnownKeys = [...]string{
 	"TokenScript",
 	"TriggerController", "TriggerDescription",
 	"Type",
-	"Ultimate",
+	"Types", "Ultimate",
 	"UnlessAI",
 	"UnlessCost",
 	"UnlessPayer",
@@ -244,7 +244,7 @@ var replaceEffectKnownKeys = [...]string{
 	"VarType", "VarValue",
 	"VoteMessage",
 	"WithoutManaCost",
-	"XColor", "XMax",
+	"XAnnounceTitle", "XColor", "XMax",
 	"XMin",
 }
 

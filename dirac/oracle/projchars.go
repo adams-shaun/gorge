@@ -148,25 +148,26 @@ var gorgeKwElsewhere = map[string]string{
 	"Saddle":                   "an activated ability with a CostTapPower cost and OpSaddle (gorge kwSaddle's expansion; C6)",
 	"Station":                  "an activated ability flagged AfStation (gorge rules/station.go; kcounters)",
 	"A deck can have any number of cards named CARDNAME.": "a deckbuilding rule, no game characteristic",
-	"Partner":             "a deckbuilding rule (CR 702.124, a commander pair), no game characteristic; the kernel seats the pair from Config.Commanders",
-	"Partner with":        "the commander-pair marker as Partner, and gorge kwPartnerWith's enters trigger (CR 702.124j: the targeted player's search of their own library for the named partner; kgen lower_partnerwith.go), no battlefield characteristic",
-	"Doctor's companion":  "a deckbuilding rule (CR 702.124, a commander pair), no game characteristic; the kernel seats the pair from Config.Commanders",
-	"Reconfigure":         "CardDef.HasReconfigure + the attach and unattach activated abilities (gorge kwReconfigure's expansion, kgen lower_reconfigure.go; the type switch, kernel kw_reconfigure.go; compared through the types, the options and the attach events)",
-	"Choose a Background": "a deckbuilding rule (CR 702.124k, a commander pair), no game characteristic; the kernel seats the pair from Config.Commanders",
-	"Landwalk":            "CardDef.Landwalk, or a Continuous static's Static.Landwalk grant (CR 702.14; compared through the block options)",
-	"Horsemanship":        "CardDef.Evasion, the until-end-of-turn mark ExtKwMark sets, or a permanent override record's Horsemanship (kw_kwmark.go; compared through the block options)",
-	"Intimidate":          "CardDef.Evasion, a Continuous static's Static.Evasion grant, or the until-end-of-turn mark ExtKwMark sets (kw_kwmark.go; compared through the block options)",
-	"Wither":              "CardDef.Wither (compared through the -1/-1 counters)",
-	"Undying":             "gorge kwUndying's dies trigger (kgen expandedKeywords; compared through the zone moves and the +1/+1 counters)",
-	"Persist":             "gorge kwPersist's dies trigger (CR 702.77, kgen expandedKeywords; compared through the zone moves and the -1/-1 counters)",
-	"Modular":             "gorge kwModular's entering-counters replacement and dies trigger (CR 702.43a, kgen expandedKeywords; compared through the +1/+1 counters and the zone moves)",
-	"Graft":               "gorge kwGraft's entering-counters replacement and another creature's enters trigger moving a +1/+1 counter (CR 702.58a, kgen expandedKeywords; compared through the +1/+1 counters and the trigger on the stack)",
-	"Rampage":             "gorge kwRampage's attacker-blocked trigger (CR 702.23a, kgen expandedKeywords; compared through the pump on the stack and P/T)",
-	"Squad":               "gorge kwSquad's self-entry trigger minting one token copy per squad payment (CR 702.157a, kgen expandedKeywords + Count$SquadPaid; compared through the tokens and the stack), no battlefield characteristic",
-	"Replicate":           "gorge kwReplicate's SpellCast trigger copying the spell once per replicate payment (CR 702.56a, kgen expandedKeywords + Count$ReplicatePaid; compared through the stack copies), no battlefield characteristic",
-	"Dredge":              "CardDef.Dredge, a replacement of the controller's draw read at every draw (CR 702.52a, kgen lower_dredge.go; compared through the dredge choice, the mill and the graveyard return), no battlefield characteristic",
-	"Umbra armor":         "CardDef.UmbraArmor, a destroy replacement read at every destruction (CR 702.89a, kgen lower_umbraarmor.go, kernel kw_umbraarmor.go; compared through the destroy, the damage and deathtouch clears and the Aura's move to the graveyard), no battlefield characteristic",
-	"Exalted":             "gorge's expanded attacks-alone trigger (kgen expandedKeywords, Tf2Alone; compared through the pump on the stack and P/T)",
+	"Partner":                         "a deckbuilding rule (CR 702.124, a commander pair), no game characteristic; the kernel seats the pair from Config.Commanders",
+	"CARDNAME can be your commander.": "a deckbuilding rule (commander eligibility, a planeswalker commander), no game characteristic; the kernel seats the commander from Config.Commanders",
+	"Partner with":                    "the commander-pair marker as Partner, and gorge kwPartnerWith's enters trigger (CR 702.124j: the targeted player's search of their own library for the named partner; kgen lower_partnerwith.go), no battlefield characteristic",
+	"Doctor's companion":              "a deckbuilding rule (CR 702.124, a commander pair), no game characteristic; the kernel seats the pair from Config.Commanders",
+	"Reconfigure":                     "CardDef.HasReconfigure + the attach and unattach activated abilities (gorge kwReconfigure's expansion, kgen lower_reconfigure.go; the type switch, kernel kw_reconfigure.go; compared through the types, the options and the attach events)",
+	"Choose a Background":             "a deckbuilding rule (CR 702.124k, a commander pair), no game characteristic; the kernel seats the pair from Config.Commanders",
+	"Landwalk":                        "CardDef.Landwalk, or a Continuous static's Static.Landwalk grant (CR 702.14; compared through the block options)",
+	"Horsemanship":                    "CardDef.Evasion, the until-end-of-turn mark ExtKwMark sets, or a permanent override record's Horsemanship (kw_kwmark.go; compared through the block options)",
+	"Intimidate":                      "CardDef.Evasion, a Continuous static's Static.Evasion grant, or the until-end-of-turn mark ExtKwMark sets (kw_kwmark.go; compared through the block options)",
+	"Wither":                          "CardDef.Wither (compared through the -1/-1 counters)",
+	"Undying":                         "gorge kwUndying's dies trigger (kgen expandedKeywords; compared through the zone moves and the +1/+1 counters)",
+	"Persist":                         "gorge kwPersist's dies trigger (CR 702.77, kgen expandedKeywords; compared through the zone moves and the -1/-1 counters)",
+	"Modular":                         "gorge kwModular's entering-counters replacement and dies trigger (CR 702.43a, kgen expandedKeywords; compared through the +1/+1 counters and the zone moves)",
+	"Graft":                           "gorge kwGraft's entering-counters replacement and another creature's enters trigger moving a +1/+1 counter (CR 702.58a, kgen expandedKeywords; compared through the +1/+1 counters and the trigger on the stack)",
+	"Rampage":                         "gorge kwRampage's attacker-blocked trigger (CR 702.23a, kgen expandedKeywords; compared through the pump on the stack and P/T)",
+	"Squad":                           "gorge kwSquad's self-entry trigger minting one token copy per squad payment (CR 702.157a, kgen expandedKeywords + Count$SquadPaid; compared through the tokens and the stack), no battlefield characteristic",
+	"Replicate":                       "gorge kwReplicate's SpellCast trigger copying the spell once per replicate payment (CR 702.56a, kgen expandedKeywords + Count$ReplicatePaid; compared through the stack copies), no battlefield characteristic",
+	"Dredge":                          "CardDef.Dredge, a replacement of the controller's draw read at every draw (CR 702.52a, kgen lower_dredge.go; compared through the dredge choice, the mill and the graveyard return), no battlefield characteristic",
+	"Umbra armor":                     "CardDef.UmbraArmor, a destroy replacement read at every destruction (CR 702.89a, kgen lower_umbraarmor.go, kernel kw_umbraarmor.go; compared through the destroy, the damage and deathtouch clears and the Aura's move to the graveyard), no battlefield characteristic",
+	"Exalted":                         "gorge's expanded attacks-alone trigger (kgen expandedKeywords, Tf2Alone; compared through the pump on the stack and P/T)",
 	"Prevent all damage that would be dealt to CARDNAME.": "CardDef.PreventDmgTo (CR 615.1; compared through the damage behaviour)",
 	"CantAttackAlone":         "CardDef.AloneAtk (CR 506.5; compared through the attack options and Done, combat_alone.go)",
 	"CantBlockAlone":          "CardDef.AloneBlk (CR 506.5; compared through the block options and Done, combat_alone.go)",
@@ -179,6 +180,7 @@ var gorgeKwElsewhere = map[string]string{
 	"Bestow":                  "CardDef.HasBestow (a hand alt cost, the Aura spell and the attached type switch; compared through the cast options, the types and the attachments)",
 	"Sneak":                   "CardDef.HasSneak (a declare-blockers hand alt cost; compared through the cast options and the entry's tapped and attacking flags)",
 	"MayFlashCost":            "CardDef.HasMayFlash (an instant-timing hand cast for the mana cost plus the extra; compared through the cast options; kw_mayflash.go)",
+	"Offering":                "CardDef.HasOffering (an instant-timing hand cast that sacrifices a permanent of the quality and is reduced by its mana cost; compared through the cast options, the sacrifice ask and the payment; kw_offering.go)",
 	"Web-slinging":            "CardDef.HasWebSling (a hand alt cost plus returning a tapped creature; compared through the cast options and the return; kw_websling.go)",
 	"More Than Meets the Eye": "CardDef.FlipCast/FlipCost (the hand's converted cast of the back face; compared through the cast options; face_flipcast.go)",
 	"Disturb":                 "CardDef.FlipCast/FlipCost (the graveyard's transformed cast of the back face; compared through the cast options; face_flipcast.go)",
@@ -191,6 +193,7 @@ var gorgeKwElsewhere = map[string]string{
 	"Ascend":                  "CardDef.Ascend (CR 702.131; the city's blessing latch, compared through its readers: Count$Blessing and Condition$ Blessing; kw_ascend.go)",
 	"Storied":                 "CardDef.Storied (CR 702.195; the enduring-story latch, compared through its readers: the Condition$ EnduringStory statics; kw_storied.go)",
 	"Unleash":                 "CardDef.Unleash (CR 702.86; the as-enters counter ask, posed before a cast creature enters, and the can't-block gate while it holds a +1/+1 counter; compared through the choose options, the counter and the block options; kw_unleash.go)",
+	"Read ahead":              "the Saga's enters program opening with the as-enters number ask over 1..the final chapter, and its entry-turn chapter gate (CR 702.155; compared through the readahead choose options, the lore counters and the chapter triggers; kw_readahead.go)",
 	"Enlist":                  "CardDef.Enlist (CR 702.154; the declare-attackers election and its tap and end-of-turn pump; compared through the choose options, the tapped state and the power; kw_enlist.go)",
 	"Riot":                    "CardDef.Riot (CR 702.136; the as-enters counter-or-haste election, posed before a cast creature enters and on any other face-up entry, beside Unleash's; compared through the choose options and the entry counters; kw_riot.go)",
 	"Bargain":                 "CardDef.Bargain (an optional additional cost, no battlefield characteristic; compared through the cast options; kw_bargain.go)",
@@ -288,6 +291,13 @@ func gorgeKw(s string) (kop.KwMask, bool) {
 			// hexproof from a chosen colour (Skrelv; genState.colG,
 			// compared through the target options), or a printed
 			// K:Hexproof:<Colour> (CardDef.HexColors)
+			return 0, true
+		}
+		switch spec, _, _ := strings.Cut(q, ":"); spec {
+		case "Card.MonoColor", "Card.MultiColor", "Card.nonColorless":
+			// a printed hexproof from monocolored / multicolored / each
+			// colour (CardDef.HexColors' kop.HexMono, kop.HexMulti, WUBRG),
+			// compared through the target options
 			return 0, true
 		}
 	}

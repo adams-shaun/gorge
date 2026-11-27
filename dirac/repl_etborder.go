@@ -121,7 +121,13 @@ func (s *State) etbOrderAnswer(k *prep, a Action) {
 	p := &s.g.pre
 	e := &s.stack[s.sp-1]
 	if Obj(a.Source()) != e.etbSrc {
-		e.spc, e.etbX = e.spc&^spcEtbMask, [2]uint8{} // the own body applies first: the rider is dropped
+		// the own body applies first: the rider is dropped. A carried spell
+		// override's source card rides etbX (static_spellcarry.go), so leave
+		// the pair for spellCarryEnter; only the counter count is dropped.
+		e.spc = e.spc &^ spcEtbMask
+		if e.ov == 0 {
+			e.etbX = [2]uint8{}
+		}
 	}
 	p.state = 2
 	s.ctl = ctlPriority

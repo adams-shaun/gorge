@@ -80,6 +80,12 @@ func (s *State) skipUntap(k *prep, in *kop.Instr) {
 		}
 		return
 	}
+	if in.C == kop.SkipUntapPlayerCreatures {
+		if q := s.playerRef(k, in.Obj); q != 255 {
+			s.g.noUntapL |= noUntapCreat << q
+		}
+		return
+	}
 	if in.C == 1 {
 		s.g.noUntapL |= 1 << p
 		return

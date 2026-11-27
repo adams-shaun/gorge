@@ -89,7 +89,9 @@ type EffectFrame struct {
 	Spare uint32
 	// Carrier marks the frame rules binds for an Effect-created delayed
 	// trigger's body (the carrier's own Triggers$ execution), as opposed to
-	// the one effEffect binds after a registration in the same chain.
+	// the one effEffect binds after a registration in the same chain. Its
+	// Spare is the carrier's RegistrationClock, so the body's self-exile
+	// spares a later activation's registrations.
 	Carrier bool
 }
 

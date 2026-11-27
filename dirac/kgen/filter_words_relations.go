@@ -26,7 +26,9 @@ func init() {
 	fwName[kop.FwEnchantedControllerCtrl] = "FwEnchantedControllerCtrl"
 	fwName[kop.FwSharesCr] = "FwSharesCr"
 	fwName[kop.FwSharesName] = "FwSharesName"
+	fwName[kop.FwSharesCardType] = "FwSharesCardType"
 	fwName[kop.FwSameName] = "FwSameName"
+	fwName[kop.FwOppProtect] = "FwOppProtect"
 
 	// with<K>, without<K> and !with<K> over a printed keyword the kernel keeps
 	// a record of (dirac/filter_withkeyword.go printedKeyword); gorge registers
@@ -49,6 +51,14 @@ func init() {
 					return c.fwLit(lSpillLit{W: kop.FwWithKeyword, Neg: neg, N: int(id)})
 				}
 			}
+		}
+		// Forge's hasKeyword<K> is the exact-keyword spelling of with<K>
+		// (gorge registers both over objectHasKeyword, engine/effects/filter.go):
+		// the same printed keyword record, no negated spelling. Kasla, the
+		// Broken Halo's Card.hasKeywordConvoke.
+		id := id
+		fwArms["hasKeyword"+name] = func(c *lClause, _ string) error {
+			return c.fwLit(lSpillLit{W: kop.FwWithKeyword, N: int(id)})
 		}
 	}
 	// the referent words (T13b-2): gorge's two-token
@@ -80,6 +90,21 @@ func init() {
 			}
 		}
 	}
+	// sharesCardTypeWith RememberedCard: a permanent that shares a card type
+	// with the entry's first remembered card (gorge sharesCardTypeWith over
+	// sharesTypeReferents' RememberedCard arm; Braids, Arisen Nightmare). Only
+	// the positive spelling over that one referent: gorge's negated form on an
+	// unbound referent is not the word's complement.
+	fwArms["sharesCardTypeWith RememberedCard"] = func(c *lClause, _ string) error {
+		return c.fwLit(lSpillLit{W: kop.FwSharesCardType, R: kop.RefRemembered})
+	}
+	// sharesNameWith ThisTurnCast: the spells cast this turn, any caster
+	// (Twinning Glass), read off the kernel's cast ring. Only the positive
+	// spelling: gorge's negated one fails closed on an empty ledger, which a
+	// negated literal would invert.
+	fwArms["sharesNameWith ThisTurnCast"] = func(c *lClause, _ string) error {
+		return c.fwLit(lSpillLit{W: kop.FwSharesNameThisTurnCast})
+	}
 	// The bare "sharesCreatureTypeWith" (no referent): gorge's
 	// wordSharesCreatureType over "Self" (engine/effects/filter_word.go), the
 	// source itself as the shared referent: Kinship's PeekAndReveal
@@ -103,6 +128,19 @@ func init() {
 	fwArms["canProduceSameManaTypeWith"] = func(c *lClause, _ string) error {
 		return c.fwLit(lSpillLit{W: kop.FwCanProduceSameManaTypeWith, R: kop.RefTriggerObj})
 	}
+	// canProduceManaColor <Colour>: a printed mana ability of the candidate
+	// can produce that colour (gorge canProduceManaColor; kernel
+	// FwCanProduceManaColor over the colour mask in Arg). Break the Ice,
+	// Obsidian Charmaw.
+	for _, cl := range [...]struct {
+		name string
+		m    kop.ColorMask
+	}{{"White", kop.ColW}, {"Blue", kop.ColU}, {"Black", kop.ColB}, {"Red", kop.ColR}, {"Green", kop.ColG}, {"Colorless", kop.ColC}} {
+		m := int(cl.m)
+		fwArms["canProduceManaColor "+cl.name] = func(c *lClause, _ string) error {
+			return c.fwLit(lSpillLit{W: kop.FwCanProduceManaColor, N: m})
+		}
+	}
 	// ChosenCtrl: controlled by the player the source chose as it entered.
 	fwArms["ChosenCtrl"] = func(c *lClause, _ string) error {
 		return c.fwLit(lSpillLit{W: kop.FwChosenCtrl})
@@ -112,6 +150,14 @@ func init() {
 	// link inverts to nothing), so only the positive spelling lowers.
 	fwArms["EnchantedControllerCtrl"] = func(c *lClause, _ string) error {
 		return c.fwLit(lSpillLit{W: kop.FwEnchantedControllerCtrl})
+	}
+	// OppProtect: the battlefield battle's protector is an opponent of the
+	// evaluating controller (gorge wordOppProtect; Joyful Stormsculptor's
+	// Battle.OppProtect DamageAll). The kernel reads the recorded protector
+	// and the source controller; the '!' spelling has no carrier and falls
+	// through to unknown.
+	fwArms["OppProtect"] = func(c *lClause, _ string) error {
+		return c.fwLit(lSpillLit{W: kop.FwOppProtect})
 	}
 }
 
@@ -212,14 +258,17 @@ func (c *lClause) fwArmOrUnknown(p string, knownSub func(string) bool) error {
 		return c.fwSharesNameValid(inner, neg, knownSub)
 	}
 	if strings.HasPrefix(p, "with") || strings.HasPrefix(p, "!with") ||
+		p == "sharesCardTypeWith RememberedCard" ||
 		strings.HasPrefix(p, "sharesCreatureTypeWith") || strings.HasPrefix(p, "!sharesCreatureTypeWith") ||
 		strings.HasPrefix(p, "sharesNameWith") || strings.HasPrefix(p, "!sharesNameWith") ||
 		p == "sameName" || p == "!sameName" ||
 		p == "ChosenCtrl" || p == "EnchantedControllerCtrl" ||
 		p == "suspended" || p == "TopLibrary" || p == "DoubleFaced" ||
-		p == "Modal" || p == "singleTarget" ||
+		p == "Modal" || p == "singleTarget" || p == "OppProtect" ||
 		p == "Paired" || p == "!Paired" || p == "PairedWith" ||
-		p == "canProduceSameManaTypeWith" {
+		p == "canProduceSameManaTypeWith" || strings.HasPrefix(p, "canProduceManaColor ") ||
+		strings.HasPrefix(p, "hasKeyword") ||
+		isManaCostWord(p) {
 		if arm, ok := fwArms[p]; ok {
 			return arm(c, p)
 		}

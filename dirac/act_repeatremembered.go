@@ -91,5 +91,8 @@ func (g *genPrep) prepProgOps(t *kop.Table, card CardID, a *kop.Ability) {
 		if in.Op == kop.OpRepeatEach && in.C&kop.RepeatRemembered != 0 {
 			g.anyRemEach = true
 		}
+		if in.Op == kop.OpExt && in.A.K == kop.VConst && in.A.N == int16(kop.ExtRememberSearcher) {
+			g.anyRemSearcher = true
+		}
 	}
 }

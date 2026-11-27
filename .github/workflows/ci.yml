@@ -64,7 +64,7 @@ env:
   GOFLAGS: -p=4 -trimpath
 
 # Runner priority (operator 11-16: "the mergify queue checks run w/ higher prio"): GitHub Actions has no job
-# priority, so a pull request's own checks (fast, lint) run only on the runners labelled gorge-pr (on metal and metal2). The others
+# priority, so a pull request's own checks (fast, lint) run only on the runners labelled gorge-pr (on metal2 and the spot boxes). The others
 # box runners always stay free for Mergify's queue batches (mergify/merge-queue/*), main, nightly and on demand.
 jobs:
   # A push to main only: did a queue batch or pull request's ci-ok already pass this exact tree?
@@ -91,19 +91,27 @@ jobs:
           echo "passed=$passed" >> "$GITHUB_OUTPUT"
 
   # Stage 1 of the pipeline: on the box, build the corpus and dirac's tables once for this tree (scripts/ci-corpus.sh
-  # keys them by FORGE_REF, engine/cards and dirac sources); the test stage's jobs then find them built. On a
-  # GitHub-hosted runner it does nothing: each hosted job restores .cards from the Actions cache.
+  # keys them by FORGE_REF, engine/cards and dirac sources); the test stage's jobs then find them built. A box
+  # without the tree (a fresh spot instance) first tries the Actions cache under cardstree-<ck>-<dk>-<RULE>, the key
+  # of every input the tree's bytes depend on (scripts/ci-corpus-keys.sh); on a miss it builds and, from main, saves.
+  # On a GitHub-hosted runner it does nothing: each hosted job restores .cards from the Actions cache.
   prepare:
     needs: prior
     if: ${{ !cancelled() && needs.prior.outputs.passed != 'true' && (github.event_name != 'pull_request' || startsWith(github.head_ref, 'mergify/merge-queue/')) }}
-    # Once per box: the corpus and tables for this tree, then every shard's test binaries compiled into the box's
-    # shared Go cache (its runners share ~/.cache/go-build). 11-17: six shards on a box compiled the same changed
-    # packages at once, and test (0) spent ~6 min compiling for 97 s of kgen tests.
+    # Once per box: the corpus and tables for this tree, then the compile work two or more jobs share — a
+    # small representative set's test binaries plus ./dirac/oracle — into the box's shared Go cache (its
+    # runners share ~/.cache/go-build); every shard's own binaries compile in that shard's job. 11-17: six
+    # shards on a box compiled the same changed packages at once, and test (0) spent ~6 min compiling for
+    # 97 s of kgen tests; one owner per compile action is what keeps that from coming back.
     strategy:
       matrix:
-        # The boxes come from the repo variable CI_BOXES (a JSON list, e.g. ["metal2","metal"]), so adding or
+        # The boxes come from the repo variable CI_BOXES (a JSON list, e.g. ["metal2"]), so adding or
         # dropping a box is `gh variable set CI_BOXES`, never a PR. Every listed box must have a gorge-box runner.
-        box: ${{ fromJSON(vars.CI_BOXES || '["metal2","metal"]') }}
+        # An empty list falls back to metal2 as well: 11-26 10:0x-11:11 CI_BOXES expanded to no box, prepare got
+        # zero matrix jobs, test/wire-matrix/dirac-slices all skipped and ci-ok reddened four batches in a row
+        # (runs 45802945687, 45803903089, 45807210008, 45807737930) while nothing merged for 2 h. The suite must
+        # run somewhere even then; CI_BOXES='[]' is not a way to pause batch CI (set CI_SELF_HOSTED instead).
+        box: ${{ fromJSON((vars.CI_BOXES != '' && vars.CI_BOXES != '[]' && vars.CI_BOXES) || '["metal2"]') }}
     runs-on: ${{ vars.CI_SELF_HOSTED == 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && fromJSON(format('["gorge-box","box-{0}"]', matrix.box)) || 'ubuntu-24.04' }}
     steps:
       - name: Heal the runner's workspace (self-hosted)
@@ -145,19 +153,109 @@ jobs:
         with:
           go-version-file: go.mod
           cache: false
-      - name: Corpus and tables for this tree
+      - name: Corpus keys (self-hosted)
         if: runner.environment == 'self-hosted'
+        id: keys
         run: |
-          bash scripts/ci-corpus.sh
-      - name: Compile the shards' test binaries
+          # scripts/ci-corpus-keys.sh is the single definition of the corpus keys; ci-corpus.sh sources it.
+          # tree-present: this box already holds a complete tree for this key, so the restore below (hundreds of
+          # MB off the cache service) runs only where the alternative is fetching and building from scratch.
+          eval "$(bash scripts/ci-corpus-keys.sh)"
+          present=false
+          if [ -e "$tree/.tables-ok" ]; then present=true; fi
+          {
+            echo "ck=$ck"
+            echo "dk=$dk"
+            echo "rule=$RULE"
+            echo "tree=$tree"
+            echo "tree-present=$present"
+          } >> "$GITHUB_OUTPUT"
+      - name: Restore the corpus tree (self-hosted)
+        id: treerestore
+        # Fail-open: a cache-service hiccup costs the tree build, never a red batch.
+        continue-on-error: true
+        if: runner.environment == 'self-hosted' && steps.keys.outputs.tree-present != 'true'
+        uses: actions/cache/restore@v4
+        with:
+          # Workspace-local, so two prepares on one box cannot race one extraction; ci-corpus.sh installs it as
+          # the box's tree under its own lock.
+          path: .cards-restore
+          # The key, no restore-keys: it is the tree's every input (FORGE_REF, engine/cards, everything kgen is
+          # built from, and the reuse rule), so a partial match could only serve tables another tree built — the
+          # 11-21 failure mode.
+          key: cardstree-${{ steps.keys.outputs.ck }}-${{ steps.keys.outputs.dk }}-${{ steps.keys.outputs.rule }}
+      - name: Discard a partial corpus restore (self-hosted)
+        if: runner.environment == 'self-hosted' && steps.treerestore.outcome == 'failure'
+        run: rm -rf .cards-restore
+      - name: Corpus and tables, and the shared compile beside them
         if: runner.environment == 'self-hosted'
+        # S1d (11-26): this step is what every test job waits for, and the shared compile in it is its largest
+        # part — 148.5 s of prepare's 192 s in batch 45774650152 (gh run view 45774650152 --log --job
+        # 139755268219 step timestamps), and 141-148 s of prepare's 156-192 s across 11-26's spot boxes. It ran
+        # on the workflow-wide GOFLAGS -p=4: four package builds at a time on a 32-thread box, so 28 of 32 lanes
+        # sat idle for the whole stage while the shards queued behind it. Nothing else on the box compiles these
+        # packages meanwhile (the shards are blocked on this job; a second overlapping batch adds its own 12),
+        # so -p=12 uses otherwise-idle lanes to cut the compile to roughly a third. GOMAXPROCS=8 (the shards'
+        # value) caps kgen's own workers on the corpus build that runs beside the compile, so the two fit the box
+        # together. -exec /bin/true builds and runs no tests, so the 4-vCPU per-test budget (AGENTS.md) is
+        # untouched — this only changes how many packages the go command builds at once.
+        env:
+          GOFLAGS: -p=12 -trimpath
+          GOMAXPROCS: "8"
+        # S1c (11-26), measured from five green merge-queue batches (gh run view <run> --log --job <job> step
+        # timestamps, box load ~89 on 32 threads): this job had two serial steps, the corpus/tables build
+        # (1-67 s: 1-4 s on a tree the box already built, ~25-67 s when this tree first reached the box)
+        # and the shared compile (17-87 s: a batch's merge moves packages, so it is never a no-op). The
+        # stage is the slowest box's job: 161, 111, 83, 68, 46 s over those five batches, and the compile
+        # was the largest step in every one. The compile reads only the checkout and the box's Go cache —
+        # never .cards, which ci-corpus.sh is about to link — so it does not wait for tables it does not
+        # read. Running both in one job makes the step max(corpus, compile) instead of their sum: predicted
+        # 161 -> ~100, 111 -> ~74, 83 -> ~48, 68 -> ~58, 46 -> ~46 s (after = predicted; the next green
+        # batch confirms it). Both stay in this one job on this box, so each box still warms only its own
+        # corpus tree and Go cache, and the compile is still the single owner of the shared set (each test
+        # shard compiles its own package list in the test stage).
         run: |
           # -exec /bin/true builds and vets each test binary and runs none of them.
-          # <package>#A is a split package's second entry (ci_shard.sh, scripts/ci-splits.tsv), the same package.
-          pkgs=$(bash scripts/ci_shard.sh all "$SHARDS" | awk '{print $2}' | sed 's/#A$//' | sort -u)
-          # ./dirac/oracle too: ci_shard.sh leaves it out, and dirac-repros compiled it itself (~100-170 s, 11-20).
+          # <package>#<label> is a split package's extra entry (ci_shard.sh, scripts/ci-splits.tsv), the same package.
+          pkgs=$(bash scripts/ci_shard.sh all "$SHARDS" | awk '{print $2}' | sed 's/#[A-Z]$//' | sort -u)
+          # S1b (11-26): compile only what two or more jobs need, not every shard's leaf: the heaviest
+          # package of each top-level directory (the balancer's own weights, scripts/ci-pkg-times.tsv,
+          # default 3 as ci_shard.sh's) — 11 packages whose test builds cover 95 of the 118 repo packages
+          # two or more shard closures share (measured at tree 61f994c1fc); the rest compile lazily in
+          # the first shard that needs them. ./dirac/oracle stays here: ci_shard.sh leaves it out and the
+          # sentinels, slices and repros read it warm. Each shard's own binaries compile at the head of
+          # that shard's job (the test stage's compile step). The split rides go test's cache identity —
+          # a go build does not serve a later go test (shard 2's warm-up was still 25.6 s of its 31.9 s
+          # after a go build of the shared set, but 2.1 s after another shard's go test) — so no package
+          # compiles twice, which is what killed the 11-17 fan-out. -exec /bin/true runs no tests.
+          repkgs=$(awk -F'\t' 'NR==FNR { if ($1 !~ /^#/ && NF >= 2) w[$1] = $2 + 0; next }
+            { n = split($1, a, "/"); top = n < 4 ? $1 : a[1] "/" a[4]
+              wt = ($1 in w) ? w[$1] : 3
+              if (!(top in best) || wt > bw[top]) { best[top] = $1; bw[top] = wt } }
+            END { for (t in best) print best[t] }' scripts/ci-pkg-times.tsv <(printf '%s\n' "$pkgs") | sort)
           # shellcheck disable=SC2086
-          go test -exec /bin/true $pkgs ./dirac/oracle >/dev/null
+          go test -exec /bin/true $repkgs ./dirac/oracle >/dev/null &
+          compile=$!
+          rc=0
+          # A tree restored from the Actions cache (above) installs as the box's tree instead of a fetch and a
+          # fresh make dirac-tables; a warm box (tree-present) skipped the restore and has nothing here.
+          if [ -d .cards-restore ]; then export CI_CORPUS_RESTORE=.cards-restore; fi
+          bash scripts/ci-corpus.sh || rc=$?
+          rm -rf .cards-restore
+          wait "$compile" || rc=$?
+          exit "$rc"
+      - name: Save the corpus tree (self-hosted)
+        # Main only, the workflow's cache policy (a PR reads main's cache and never writes one). Publishes the
+        # tree under its exact key for a fresh box; a duplicate key is a cheap no-op. A queue batch is a pull
+        # request and cannot save, so the entry refreshes with main's own prepares — the nightly, and any push or
+        # dispatch prepare prior did not skip.
+        continue-on-error: true
+        if: runner.environment == 'self-hosted' && steps.treerestore.outputs.cache-hit != 'true' && github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        uses: actions/cache/save@v4
+        with:
+          # .cards is hard links to the tree: the archive is the tree's content without a second copy on disk.
+          path: .cards
+          key: cardstree-${{ steps.keys.outputs.ck }}-${{ steps.keys.outputs.dk }}-${{ steps.keys.outputs.rule }}
 
   # Two-step CI (Mergify): a pull request runs only this fast stage, the diff's packages and the tests that
   # import them (scripts/ci-fast.sh). The full suite runs once per queue batch, on mergify/merge-queue/* branches,
@@ -217,9 +315,25 @@ jobs:
       - name: Read the corpus pin
         id: pin
         run: echo "forge_ref=$(awk '/^FORGE_REF/ {print $3}' Makefile)" >> "$GITHUB_OUTPUT"
-      - name: Keep the corpus on the box (self-hosted)
+      - name: Select the diff's tests
+        # S4 (11-26): the selection runs once (3-8 s) and is handed to the corpus step's background compile and to
+        # the test run below, so the two cannot select different packages.
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+        run: bash scripts/test-targets.sh list > "$RUNNER_TEMP/ci-fast.list"
+      - name: Keep the corpus on the box and compile the diff's tests beside it (self-hosted)
+        # S4 (11-26): the corpus/tables build was the fast job's last serial prefix (14-83 s on a tree this box has
+        # not built, 2-5 s warm), and the affected-package run is the wall (measured 11-26 on 11 PR runs: 398 s of
+        # a 512 s job). The compile reads only the checkout and the box's Go build cache — never .cards, which
+        # ci-corpus.sh is about to link — so the two run together: the step costs max(corpus, compile) instead of
+        # their sum, and the test run below reuses every compiled binary. Same selection, same skip rules, no
+        # selected test runs here (-exec /bin/true; go keys a cached test result on the -exec command, so nothing is
+        # faked); the .ds4 always-gate keeps its literal line and runs in both steps — it reads git ls-files only.
         if: runner.environment == 'self-hosted'
-        run: bash scripts/ci-corpus.sh
+        env:
+          CI_FAST_SKIP_KGEN: "1"
+          CI_FAST_SKIP_ORACLE_REPLAY: "1"
+        run: bash scripts/ci-fast.sh --precompile "${{ github.event.pull_request.base.sha }}" "$RUNNER_TEMP/ci-fast.list"
       - name: Restore the corpus
         id: corpus
         if: runner.environment == 'github-hosted'
@@ -251,6 +365,7 @@ jobs:
         env:
           CI_FAST_SKIP_KGEN: "1"
           CI_FAST_SKIP_ORACLE_REPLAY: "1"
+          CI_FAST_LIST: ${{ runner.temp }}/ci-fast.list
         run: bash scripts/ci-fast.sh ${{ github.event.pull_request.base.sha }}
 
   lint:
@@ -334,12 +449,9 @@ jobs:
           else
             git merge --abort; echo "::warning::conflicts with the current base; Mergify will report it"
           fi
-      - name: Functions grow only by their allowance
-        # The base-relative growth rule (cmd/funcgrowth): there are no per-function rows shared
-        # between pull requests. A pull request is measured against its base, a merge-queue batch
-        # against the batch's base, a main push against origin/main (an empty pull_request event
-        # falls through to it).
-        run: go run ./cmd/funcgrowth -base "${{ github.event.pull_request.base.sha || 'origin/main' }}"
+      # The per-function growth rule (cmd/funcgrowth) is not a CI step: 11-26 operator, it ran in a merge batch and one PR's
+      # growth reddened lint for eight. It runs locally in .githooks/pre-push (and `make lint`), against origin/main.
+      # cmd/countgrowth (the count-metric growth rule) follows the same policy: it runs in `make lint`, not as a CI step.
       - name: FORGE_REF is in the Forge oracle driver
         # A FORGE_REF the driver (gorge-compliance develop's FORGE_ORACLE_REF) lacks fails forge-oracle-setup's pin
         # invariant on every xproof cycle (2026-11-25, 5bc5851a54). Only a diff that moves FORGE_REF calls the API.
@@ -348,11 +460,45 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: bash scripts/check-forge-ref-driver.sh "${{ github.event.pull_request.base.sha }}"
       - name: gofmt
+        # S4c (11-27): a pull request formats only the Go files it changes. Formatting is a property of a file's own
+        # bytes, so a file this diff does not touch cannot be made unformatted by it, and every other file in the
+        # post-merge tree is one the base branch already passed this check on (or the main merged in above). The
+        # whole tree is still checked on a batch, main and the nightly. Measured 11-26: whole-tree gofmt spent 2-6 s
+        # of the PR lint job.
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
-          out=$(gofmt -l $(find . \( -name node_modules -o -name .worktrees \) -prune -o -type f -name '*.go' -print))
+          if [ "${{ github.event_name }}" = pull_request ] && [ -n "$HEAD_SHA" ]; then
+            keep=
+            for f in $(git diff --name-only "$BASE"..."$HEAD_SHA" -- '*.go'); do [ -f "$f" ] && keep="$keep $f"; done
+          else
+            keep=$(find . \( -name node_modules -o -name .worktrees \) -prune -o -type f -name '*.go' -print)
+          fi
+          if [ -z "$keep" ]; then echo "gofmt: no Go file in the diff"; exit 0; fi
+          # shellcheck disable=SC2086
+          out=$(gofmt -l $keep)
           if [ -n "$out" ]; then echo "gofmt: files need formatting:"; echo "$out"; exit 1; fi
-      - name: go vet
+      - name: go vet ./... (batches, main and the nightly)
+        if: github.event_name != 'pull_request' || startsWith(github.head_ref, 'mergify/merge-queue/')
         run: go vet ./...
+      - name: go vet the diff's affected packages
+        # A pull request vets the selection scripts/ci-fast.sh tests (test-targets.sh list: the changed packages and
+        # every package whose tests import them; 3-8 s, and it needs no corpus — `list` execs the selector before the
+        # preflight) instead of the whole tree. A vet finding needs a source change in the package it fires in, so
+        # anything this diff can turn red is in that set, and the queue batch's lint — this same job on
+        # mergify/merge-queue/* — still runs `go vet ./...` on the merged tree before anything lands. Measured 11-26:
+        # vet ./... spent 58 s of a 94 s lint PR job recompiling the whole tree beside the concurrent fast job's
+        # compile of the same packages. A diff that selects no package (docs, workflows) vets nothing here; the batch
+        # covers the tree.
+        if: github.event_name == 'pull_request' && !startsWith(github.head_ref, 'mergify/merge-queue/')
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+        run: |
+          pkgs=$(awk -F'\t' '{print $2}' <<<"$(bash scripts/test-targets.sh list)" | sort -u)
+          if [ -z "$pkgs" ]; then echo "vet: the diff selects no package; the batch's go vet ./... covers the tree"; exit 0; fi
+          # shellcheck disable=SC2086
+          go vet $pkgs
       - name: generated types are current
         run: go run ./cmd/gentypes -check
       - name: A fresh clone builds, and dirac's tests skip without a corpus
@@ -453,6 +599,21 @@ jobs:
           if [ "${{ runner.environment }}" != self-hosted ]; then make dirac-tables; fi
       - name: Stable mtimes for the Go test cache
         run: bash scripts/ci-stable-mtimes.sh .
+      - name: Compile this shard's test binaries
+        if: runner.environment == 'self-hosted'
+        # S1b (11-26): prepare compiled what two or more jobs need; this shard's own test binaries and
+        # the libraries only its closure imports compile here, at the head of its own job, off prepare's
+        # serial path. go test reuses go test's cached work, and no compile action has two jobs racing
+        # for it (the 11-17 six-shard fan-out paid 127.5 s of work for one tree against prepare's 53.4 s
+        # here; the split pays 40.8 s across six jobs that run beside each other). -exec /bin/true runs
+        # no tests. GitHub-hosted runners already compile per shard in the test step below and keep
+        # their own Actions cache.
+        run: |
+          pkgs=$(bash scripts/ci_shard.sh ${{ matrix.shard }} "$SHARDS" | sed 's/#[A-Z]$//' | sort -u)
+          if [ -n "$pkgs" ]; then
+            # shellcheck disable=SC2086
+            go test -exec /bin/true $pkgs >/dev/null
+          fi
       - name: Test shard ${{ matrix.shard }} of ${{ env.SHARDS }}
         env:
           # Load is 55-90 on 32 threads with 6 runners x go -p=4 test binaries, each defaulting to GOMAXPROCS=32. The
@@ -476,28 +637,54 @@ jobs:
           # 11-20: kgen runs beside the shard's other packages, not after them. Serial, it added its ~224 s (median of
           # the 11-20 batches) to shard 0's ~200 s of other packages, and shard 0 was the slowest shard; together the
           # shard is bound by its single largest package instead. Its output goes to a file and is printed after.
-          # The packages in scripts/ci-splits.tsv are two entries each (ci_shard.sh): the package, minus its regex, and
-          # <package>#A, the regex (11-20 engine/rules, 11-21 testkit/conformance). The balancer places each; this step
-          # runs whichever it holds as a call of its own, beside the rest. kgen and the split calls log to files printed after.
+          # The packages in scripts/ci-splits.tsv run as one entry per row (ci_shard.sh): the package, minus every
+          # row's regex, and <package>#<label>, the row's regex (label defaults to A; 11-20 engine/rules, 11-21
+          # testkit/conformance, 11-27 dirac/kgen, bots/azmcts and engine/effects, engine/rules as three rows). The
+          # balancer places each; this step runs whichever it holds as a call of its own, beside the rest. A package's
+          # whole-minus-regex call runs once per package (on its first row), not once per row. kgen keeps its own
+          # branch (both halves uncached) and the loop below skips it, so it runs once; every split call logs to a
+          # file printed after.
           kgen=github.com/adams-shaun/gorge/dirac/kgen
-          pids=() logs=() rc=0 ex=(-e "$kgen")
+          pids=() logs=() rc=0 ex=(-e "$kgen" -e "$kgen#A")
           solo() { local log=$1; shift; go test "$@" >"$log" 2>&1 & pids+=($!); logs+=("$log"); }
           has() { printf '%s\n' $pkgs | grep -qx "$1"; }
-          if has "$kgen"; then solo kgen-test.log -count=1 $tags -timeout 20m -skip '^(TestHeads)$' "$kgen"; fi
-          while IFS=$'\t' read -r sp rx; do
+          kgen_rx=$(awk -F'\t' -v k="$kgen" '$1 == k { print $2 }' scripts/ci-splits.tsv)
+          if has "$kgen"; then
+            if [ -n "$kgen_rx" ]; then solo kgen-test.log -count=1 $tags -timeout 20m -skip "^(TestHeads)\$|$kgen_rx" "$kgen"
+            else solo kgen-test.log -count=1 $tags -timeout 20m -skip '^(TestHeads)$' "$kgen"; fi
+          fi
+          if [ -n "$kgen_rx" ] && has "$kgen#A"; then solo kgen-a-test.log -count=1 $tags -timeout 20m -run "$kgen_rx" "$kgen"; fi
+          # The skip for a package's whole call is the union of all its rows' regexes, so every top-level test runs
+          # in exactly one call: the first matching #entry, or the whole call.
+          declare -A whole_rx=()
+          while IFS=$'\t' read -r sp rx _; do
             case $sp in '' | '#'*) continue ;; esac
-            ex+=(-e "$sp" -e "$sp#A"); n=${sp##*/}
-            if has "$sp"; then solo "$n-test.log" $count $tags -timeout 20m -skip "^(TestHeads)\$|$rx" "$sp"; fi
-            if has "$sp#A"; then solo "$n-a-test.log" $count $tags -timeout 20m -run "$rx" "$sp"; fi
+            whole_rx[$sp]="${whole_rx[$sp]:-}${whole_rx[$sp]:+|}$rx"
+          done <scripts/ci-splits.tsv
+          declare -A ran_whole=()
+          while IFS=$'\t' read -r sp rx label; do
+            case $sp in '' | '#'*|"$kgen") continue ;; esac
+            label=${label:-A}
+            ex+=(-e "$sp" -e "$sp#$label"); n=${sp##*/}
+            if [ -z "${ran_whole[$sp]:-}" ]; then
+              ran_whole[$sp]=1
+              if has "$sp"; then solo "$n-test.log" $count $tags -timeout 20m -skip "^(TestHeads)\$|${whole_rx[$sp]}" "$sp"; fi
+            fi
+            if has "$sp#$label"; then solo "$n-$label-test.log" $count $tags -timeout 20m -run "$rx" "$sp"; fi
           done <scripts/ci-splits.tsv
           rest=$(printf '%s\n' $pkgs | grep -vx "${ex[@]}" || true)
           if [ -n "$rest" ]; then go test $count $tags -timeout 20m -skip '^(TestHeads)$' $rest || rc=1; fi
           for i in "${!pids[@]}"; do wait "${pids[$i]}" || rc=1; cat "${logs[$i]}"; done
           exit $rc
       - name: Golden chain heads
-        # Not shard 0: it holds dirac/kgen (250-550 s) and set the batch's wall time. Shard 5 was the lightest
-        # (145-465 pkg-seconds) in the 11-20 batches. ci_shard.sh has no weight for this step, so pin it here.
-        if: matrix.shard == 5
+        # Not shard 0: it holds engine/rules (181 s) and set the batch's wall time. Pin it to the lightest shard;
+        # ci_shard.sh has no weight for this step, so the pin lives here. It recompiles engine/rules in whatever
+        # shard it lands, so place it where that (~15 s compile + 14 s TestHeads) fits under the gate.
+        # 11-27 (speed-S7): the 11-20 premise (shard 5, 145-465 pkg-seconds) no longer holds. In queue batch
+        # 45936102895 shard 5 held de-facto dirac/kgen (182 s), bots/azmcts (176 s) and engine/effects (167 s)
+        # and its job ran 311 s, the batch's gate; this step's 28 s sat after the test body on the critical path.
+        # Shard 4 was the lightest (130 s of a 311 s tail), so the same work moved off the gate.
+        if: matrix.shard == 4
         run: go test -timeout 10m -run '^TestHeads$' ./engine/rules
       - name: Save the Go cache
         if: runner.environment == 'github-hosted' && github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
@@ -902,16 +1089,32 @@ jobs:
       - name: Replay the committed repros
         # Every test with Repro in its name, the set fast's REPLAYS selects (scripts/test_targets.py): 11-18 a
         # *ReprosReach replay went red on main because this step ran only *ReprosLockstep.
-        # The part's half of the listed names, round robin over their sorted order; together the parts run exactly the
-        # tests the one call did (-list matches top-level names as -run does; their subtests all run).
+        # Speed-S6 (11-27): one go test per part ran 426 tests serially, 211-337 s, and part 0 at 435 s gated the
+        # batch (run 45930969336) after S1-S5 cut prepare to 43-56 s. Each part now deals its names round robin to
+        # PROCS go test processes beside each other (as ci-sentinels.sh does; separate processes share no
+        # globals, and the test step already runs several go test processes in one workspace). The parts' union is
+        # unchanged: two levels of NR % n over the sorted -list output cover every name exactly once (-list matches
+        # top-level names as -run does; their subtests all run), so no test is dropped or trimmed. Still the
+        # matrix's two jobs: the extra processes are free of the runner queue that a wider matrix would add
+        # (speed-S3's lesson). A process that fails sets rc.
         env:
           PART: ${{ matrix.part }}
+          PROCS: 4
         run: |
           names=$(go test -list 'Repro|^TestRefusedEntriesStillDiverge$' ./dirac/oracle | grep -E '^Test' | sort)
           [ -n "$names" ] || { echo "go test -list found no repro tests"; exit 1; }
-          rx=$(awk -v p="$PART" 'NR % 2 == p' <<<"$names" | paste -sd'|')
-          echo "part $PART: $(wc -w <<<"${rx//|/ }") of $(wc -l <<<"$names") tests"
-          go test -timeout 12m -run "^($rx)\$" ./dirac/oracle
+          mine=$(awk -v p="$PART" 'NR % 2 == p' <<<"$names")
+          [ -n "$mine" ] || { echo "part $PART: no repro tests"; exit 1; }
+          echo "part $PART: $(wc -l <<<"$mine") of $(wc -l <<<"$names") tests, $PROCS processes"
+          pids=() logs=() rc=0
+          for ((i = 0; i < PROCS; i++)); do
+            rx=$(awk -v i="$i" -v n="$PROCS" 'NR % n == i' <<<"$mine" | paste -sd'|')
+            [ -n "$rx" ] || continue
+            log="repro-$PART-$i.log"
+            go test -timeout 12m -run "^($rx)\$" ./dirac/oracle >"$log" 2>&1 & pids+=($!); logs+=("$log")
+          done
+          for i in "${!pids[@]}"; do wait "${pids[$i]}" || rc=1; cat "${logs[$i]}"; done
+          exit "$rc"
 
   # The whole of ./dirac/oracle, on a pull request to main only. Its serial lockstep games
   # outlast one runner, so a matrix splits it (scripts/ci-oracle-shard.sh). No deck pool ships
@@ -924,10 +1127,14 @@ jobs:
     if: ${{ !cancelled() && needs.prior.outputs.passed != 'true' && needs.prepare.result == 'success' && (github.event_name != 'pull_request' || startsWith(github.head_ref, 'mergify/merge-queue/')) }}
     # 11-24: one job ran every sentinel in 8-12 min against its 15 min cap; on a box at load 50 it timed out with every
     # test passing (batch #4244 dequeued #4205). Three shards (every third name) keep each far inside the cap.
+    # 11-26 (speed-S3): #5165's four cost-dealt processes per shard left each job 107-209 s of work, but as three
+    # matrix jobs they queue for runners: batch 45812749457 dispatched them 11:51:21/11:58:35/12:00:58 and the last
+    # one gated ci-ok (12:02:45, ci-ok 12:02:47). One job (12 processes; 150-157 s when all three shards ran
+    # together in batch 45826576495) is dispatched in the first wave and cannot be split across the queue.
     strategy:
       fail-fast: false
       matrix:
-        shard: [0, 1, 2]
+        shard: [0]
     runs-on: ${{ vars.CI_SELF_HOSTED == 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && 'gorge-box' || 'ubuntu-24.04' }}
     steps:
       - name: Heal the runner's workspace (self-hosted)
@@ -1005,24 +1212,11 @@ jobs:
       # are the tests named in dirac/oracle/testdata/sentinels.txt (four-seat deck and pod lockstep, and every test
       # that has reddened main's oracle); TestSentinelsExist keeps the list honest.
       - name: Run the oracle sentinels
-        run: |
-          all=$(grep -vE '^[[:space:]]*(#|$)' dirac/oracle/testdata/sentinels.txt | sed 's/[[:space:]]*#.*//; s/[[:space:]]*$//' | sort -u)
-          [ -n "$all" ] || { echo "sentinels.txt names no tests"; exit 1; }
-          names=$(awk -v s=${{ matrix.shard }} '(NR-1)%3==s' <<<"$all")
-          [ -n "$names" ] || { echo "shard ${{ matrix.shard }}: no sentinels"; exit 0; }
-          rx=$(paste -sd'|' <<<"$names")
-          want=$(wc -l <<<"$names")
-          echo "$want of $(wc -l <<<"$all") sentinels (shard ${{ matrix.shard }} of 3)"
-          # A sentinel that skips (no corpus, no tables) or never runs must not read green: every name must print --- PASS.
-          go test -v -timeout 15m -run "^($rx)\$" ./dirac/oracle 2>&1 | tee sentinels.log
-          rc=${PIPESTATUS[0]}
-          [ "$rc" -eq 0 ] || exit "$rc"
-          got=$(grep -c '^--- PASS: ' sentinels.log || true)
-          if [ "$got" -lt "$want" ]; then
-            echo "::error::oracle-sentinels: $want sentinels named, only $got passed (missing corpus or tables, a skip, or a name that matches nothing)"
-            grep -E '^--- SKIP: ' sentinels.log || true
-            exit 1
-          fi
+        # 11-26: one go test per shard ran its third of the sentinels one after another (225-265 s of test time; most
+        # flip package-level mutation switches and cannot call t.Parallel). ci-sentinels.sh runs go test processes
+        # dealt by measured cost (dirac/oracle/testdata/sentinel-seconds.txt) and fails unless every sentinel prints
+        # its own --- PASS line. 11-26 (speed-S3): one job of 12 processes, not three jobs of 4 — see the job comment.
+        run: bash scripts/ci-sentinels.sh ${{ matrix.shard }} 1 12
 
   oracle:
     # On demand only here: the whole oracle runs about every 2 hours in oracle.yml (operator 11-17), never on a pull
@@ -1088,6 +1282,7 @@ jobs:
           go-version-file: go.mod
           cache: false
       - uses: actions/setup-node@v4
+        id: node
         with:
           node-version: "24"
       - name: Read the corpus pin
@@ -1114,23 +1309,41 @@ jobs:
           path: ~/.cache/go-build
           key: gocache-browser-${{ github.sha }}
           restore-keys: gocache-browser-
-      - name: Restore npm's cache and the browser
+      - name: Restore npm's cache, the installed client and the browser
         id: webcache
         uses: actions/cache/restore@v4
         with:
+          # web/node_modules is the product of `npm ci` for exactly this lockfile
+          # and Node version. Cache it so a hit skips the install (measured
+          # 38-52 s of npm ci here, 11-26) instead of re-extracting the tree;
+          # a miss saves it on main, after npm ci produced it. The key is the
+          # lockfile hash plus the version setup-node resolved, so a dependency
+          # or toolchain change is always a miss: a hit cannot serve stale,
+          # mismatched content.
           path: |
             ~/.npm
             ~/.cache/ms-playwright
-          key: web-${{ runner.os }}-${{ hashFiles('web/package-lock.json') }}
+            web/node_modules
+          key: web-${{ runner.os }}-node${{ steps.node.outputs.node-version }}-${{ hashFiles('web/package-lock.json') }}
       - name: Install the client's dependencies
+        # A cache hit restored web/node_modules exactly as `npm ci` leaves it for
+        # this lockfile and Node version; there is nothing to install.
+        if: steps.webcache.outputs.cache-hit != 'true'
         run: npm ci
         working-directory: web
       - name: Install Chromium's system libraries
         # security.ubuntu.com has stopped answering GitHub's runners; the Azure archive mirror
-        # carries the same -security pocket.
+        # carries the same -security pocket. apt reaches a network mirror, so it is retried
+        # once: one transient mirror/DNS blip in this step failed a whole merge-queue batch
+        # (46025989080, 11-27) while every adjacent batch passed it. A second consecutive
+        # failure still fails the job — only one retry, so a real break is not hidden.
         run: |
           sudo grep -rl security.ubuntu.com /etc/apt/ | xargs -r sudo sed -i 's#http://security.ubuntu.com/ubuntu#http://azure.archive.ubuntu.com/ubuntu#g'
-          npx playwright install-deps chromium
+          npx playwright install-deps chromium || {
+            echo "::warning::install-deps failed once (transient apt/mirror); retrying"
+            sleep 15
+            npx playwright install-deps chromium
+          }
         working-directory: web
       - name: Run the browser gate
         run: make smoke
@@ -1141,14 +1354,17 @@ jobs:
           name: browser-test-results
           path: web/test-results
           if-no-files-found: ignore
-      - name: Save npm's cache and the browser
+      - name: Save npm's cache, the installed client and the browser
+        # Save must use the restore step's exact key and paths, or the next
+        # batch's restore misses forever.
         if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && steps.webcache.outputs.cache-hit != 'true'
         uses: actions/cache/save@v4
         with:
           path: |
             ~/.npm
             ~/.cache/ms-playwright
-          key: web-${{ runner.os }}-${{ hashFiles('web/package-lock.json') }}
+            web/node_modules
+          key: web-${{ runner.os }}-node${{ steps.node.outputs.node-version }}-${{ hashFiles('web/package-lock.json') }}
       - name: Save the Go cache
         if: runner.environment == 'github-hosted' && github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         uses: actions/cache/save@v4

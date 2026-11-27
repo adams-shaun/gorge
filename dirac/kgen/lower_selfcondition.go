@@ -123,12 +123,23 @@ func valueRd(v lValue) condRd {
 		vLifeGainedThisTurn, vOppLifeLostThisTurn, vCreaturesDied, vLifeLostThisTurn, vLifeLostLastTurn, vHandSizeOf,
 		vOppsLostLife, vDrawnThisTurn, vGraveTypes, vGraveAgg, vYourSpeed, vHighestOppPoison,
 		vKicked, vTimesKicked, vPaidN, vMorbid, vSum, vPromisedGift, vCompare, vBranches, vCommittedCrime, vCountersOn,
-		vLowestLife, vOppsAttacked, vBlessing:
+		vLowestLife, vOppsAttacked, vBlessing, vAtkYouLast:
 	case vCount, vCountAtLeast, vCountExile:
 		// vCountExile: the count runs over the exile zones, whose cards no
 		// layer walk derives; filterRd's per-clause bounds still hold
 		// (Duplicant's CheckSVar$ Count$ValidExile Creature.IsImprinted).
 		r = filterRd(v.F)
+	case vThisTurnEntered:
+		// the entered ledger's entries, each tested where it lives now: the
+		// filter's reads are the whole read (Goddric's Celebration count,
+		// nonLand permanents you control); the Creature-base rewrite and the
+		// other alternatives test the same spec
+		r = filterRd(v.F)
+		for _, f := range []*lFilter{v.F2, v.F3, v.F4} {
+			if f != nil {
+				r.or(filterRd(f))
+			}
+		}
 	default:
 		r.all = true
 	}

@@ -29,6 +29,9 @@ func (lc *lowerCtx) effectPrevent(ps *params) error {
 	if ok, err := lc.effectCounterPlusEOT(ps); ok || err != nil { // lower_ctrpluseot.go
 		return err
 	}
+	if ok, err := lc.effectTurnEtbCounter(ps); ok || err != nil { // lower_effturnetbctr.go
+		return err
+	}
 	if ok, err := lc.effectExileScope(ps); ok || err != nil { // lower_effectexilescope.go
 		return err
 	}
@@ -42,6 +45,9 @@ func (lc *lowerCtx) effectPrevent(ps *params) error {
 		return err
 	}
 	if ok, err := lc.effectPreventScoped(ps); ok || err != nil {
+		return err
+	}
+	if ok, err := lc.effectDmgRedirectToYou(ps); ok || err != nil { // lower_effectredirect.go
 		return err
 	}
 	if ok, err := lc.effectDmgRedirectScope(ps); ok || err != nil { // lower_effectredirect.go
@@ -127,6 +133,9 @@ func (lc *lowerCtx) effectDurationRoutes(ps *params) (bool, error) {
 	}
 	if ps.is("Duration", "UntilHostLeavesPlayOrEOT") {
 		if ok, err := lc.effectPreventHost(ps); ok || err != nil { // lower_preventallto.go
+			return true, err
+		}
+		if ok, err := lc.effectDmgRedirectToHost(ps); ok || err != nil { // lower_effectredirect.go
 			return true, err
 		}
 		return true, lc.effectDmgRedirectNext(ps) // lower_effectredirect.go

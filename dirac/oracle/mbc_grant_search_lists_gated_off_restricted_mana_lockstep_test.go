@@ -12,7 +12,7 @@ import "testing"
 // checking its IsPresent$ "seven or more lands" gate — off at six lands —
 // so it explored, with ghost-keyed states, a subtree gorge never offers
 // (mana_gate.go: a gated-off ability is absent from the priority offer, the
-// payment window and the planner census), exhausted its 160-node budget, and
+// payment window and the planner census), exhausted its potentialScriptNodes budget, and
 // never reached the plan gorge's search finds; cast(Amnesia) was withheld
 // (options options, lead gorge, implicates Amnesia).
 func TestMBCAmnesiaReprosLockstep(t *testing.T) {

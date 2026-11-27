@@ -13,10 +13,15 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // no permanent slot (the Aura's shape), the card's object in ab.
 
 // queueRiotRet queues the Riot election of returning card ret behind a
-// queued Aura host ask. It reports whether the card waits in exile.
+// queued Aura host ask (or behind the host ask the return batch is already
+// held on: retHold, whose answer is being resumed). It reports whether the
+// card waits in exile.
 func (s *State) queueRiotRet(k *prep, srcCtrl uint8, o, ret Obj) bool {
 	x := &s.objs[ret]
-	if s.res.active || !s.retAuraAskQueued() || !k.riot || !k.t.Cards[x.card].Riot || s.g.pre.state != 0 {
+	if s.res.active || (!s.retAuraAskQueued() && !s.g.retHold) || !k.riot || s.g.pre.state != 0 {
+		return false
+	}
+	if !k.t.Cards[x.card].Riot && !s.riotCardGranted(k, x.card, ret, x.owner()) {
 		return false
 	}
 	if int(s.g.nask) >= len(s.g.ask) {
@@ -34,7 +39,7 @@ func (s *State) queueRiotRet(k *prep, srcCtrl uint8, o, ret Obj) bool {
 
 // retRiotAsk poses a queued returning card's Riot election (queueRiotRet),
 // or drops it when the card left exile meanwhile.
-func (s *State) retRiotAsk(d *Decision, a *askRec) bool {
+func (s *State) retRiotAsk(k *prep, d *Decision, a *askRec) bool {
 	o := Obj(a.ab)
 	if x := &s.objs[o]; x.zone == kop.ZoneExile && x.ver == a.ver {
 		d.Player, d.Kind = x.owner(), DkChoose
@@ -42,6 +47,7 @@ func (s *State) retRiotAsk(d *Decision, a *askRec) bool {
 		return true
 	}
 	s.popAsk()
+	s.resumeQueuedReturns(k) // the batch this ask held: the rest returns now
 	return false
 }
 

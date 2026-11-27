@@ -39,7 +39,7 @@ type lSpillLit struct {
 	Neg     bool
 	Op      uint8   // a comparison word's operator (opGE ...)
 	N       int     // the bound, or a keyword bit
-	R       kop.Ref // a referent word's referent (FwSharesCr, FwSharesName, FwSameName)
+	R       kop.Ref // a referent word's referent (FwSharesCr, FwSharesCardType, FwSharesName, FwSameName)
 	Counter string  // FwCountersCmp's kind
 	Sub     string  // FwSubtype's subtype
 	// Inner is the nested Valid <filter> a FwSharesName literal reads over
@@ -197,7 +197,8 @@ var fwContexts = sync.OnceValue(func() map[string][]string {
 var fwName = map[kop.FilterWord]string{
 	kop.FwPowerCmp: "FwPowerCmp", kop.FwToughnessCmp: "FwToughnessCmp", kop.FwCMCCmp: "FwCMCCmp",
 	kop.FwCountersCmp: "FwCountersCmp", kop.FwKeyword: "FwKeyword", kop.FwSubtype: "FwSubtype",
-	kop.FwCanProduceSameManaTypeWith: "FwCanProduceSameManaTypeWith",
+	kop.FwCanProduceSameManaTypeWith: "FwCanProduceSameManaTypeWith", kop.FwCanProduceManaColor: "FwCanProduceManaColor",
+	kop.FwManaCostEQ: "FwManaCostEQ", kop.FwSharesNameThisTurnCast: "FwSharesNameThisTurnCast",
 }
 
 // fwReadIn is the matcher kinds a filter built for zone is read in: a
@@ -264,9 +265,13 @@ func (cb *cardBuilder) spillProg(c *lClause, zone kop.Zone) (kop.FilterProgID, e
 			fl.Arg = int16(l.N)
 		case kop.FwWithKeyword:
 			fl.Arg = int16(l.N) // the KwID
+		case kop.FwCanProduceManaColor:
+			fl.Arg = int16(l.N) // the colour mask
+		case kop.FwManaCostEQ:
+			fl.Arg = int16(l.N) // the mana value
 		case kop.FwBasePowerCmp, kop.FwBaseToughnessCmp:
 			fl.V = kop.Const(l.N) // the layer-7b base P/T bound
-		case kop.FwSharesCr, kop.FwSharesName, kop.FwSameName, kop.FwCanProduceSameManaTypeWith:
+		case kop.FwSharesCr, kop.FwSharesCardType, kop.FwSharesName, kop.FwSameName, kop.FwCanProduceSameManaTypeWith:
 			fl.R = l.R // the referent (filter_sharesreferents.go)
 			if l.Inner != nil {
 				if l.W != kop.FwSharesName || l.R != 0 {

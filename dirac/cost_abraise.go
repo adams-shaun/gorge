@@ -20,9 +20,6 @@ import (
 // poses the first one's pick filter once per matching static (a second pick card is a different Cost
 // than the one a build poses, unmodelled: cardset's raise guard refuses a pool
 // holding two cards with a pick; copies of one card compose as one Sac<N/f>).
-// gorge's target ask aborts
-// an activation whose controller holds fewer than 2N sacrifice candidates
-// (abRaiseSacShort), so the kernel reverses there too.
 // Mana abilities the mana window prices pay no raise; the guard keeps a pool
 // whose raiser can match a mana-ability card out (cardset.AbRaiseRefusal). A
 // life raise (PayLife<N>, Thran Portal's mana abilities) has no path here: it
@@ -135,28 +132,4 @@ func (s *State) abRaisePick(k *prep, e *stackEntry) *kop.Cost {
 		return nil
 	}
 	return &kop.Cost{Flags: kop.CostSac, N: uint8(picks), Filter: pick}
-}
-
-// abRaiseSacShort reports whether the activation being built owes a raise pick
-// gorge's target ask cannot place: its target probe (cast_pricing.go
-// targetCostProbe, folding the raise's Sac part into the composed cost) finds
-// no assignment unless the controller holds twice the sacrifices owed in
-// candidates, so a required target aborts the activation ("cast aborted: no
-// legal target", CR 733.1) after its offer admitted it, and an up-to target
-// asks nothing (targetStageAborts' contract). Measured in gorge on basic lands
-// (one to four Brutal Suppressions, a {3} Rebel Informer, a {T}-only Blightspeaker
-// and Errant Doomsayers): the activation proceeds iff the mana is payable and
-// the land count is at least 2N (N = 1: 2 lands with no mana, 3 with {3}; N = 2: 4;
-// N = 3: 6; N = 4: 8). Unmeasured: a raised ability with no target at all (a
-// Ramosian searcher) never reaches targetStageAborts, so the kernel builds it
-// below 2N; whether gorge aborts there too is open (ticket
-// raiseability-gorge-probe-quirks). Ticket raiseability-sac-offer-vs-mana owns
-// the engine's offer gate; until it lands the kernel reverses where gorge does.
-func (s *State) abRaiseSacShort(k *prep) bool {
-	e := &s.bld().e
-	if k.gen == nil || !k.gen.anyAbRaise || e.kind != seAbility {
-		return false
-	}
-	pc := s.abRaisePick(k, e)
-	return pc != nil && s.countCostSac(k, e.ctrl, pc, NoSlot) < 2*int(pc.N)
 }

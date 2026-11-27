@@ -11,16 +11,56 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 //
 //go:noinline
 func (s *State) discardCandN(k *prep, p uint8, f kop.FilterID, exclude Obj) int {
+	return s.discardCandNAt(k, p, f, exclude, nil)
+}
+
+// discardCandNAt is discardCandN read in ctx (a target-bound cost filter's
+// candidate target; cost_targetmv.go). A nil ctx is the resolving or
+// building entry's, as before.
+func (s *State) discardCandNAt(k *prep, p uint8, f kop.FilterID, exclude Obj, ctx *evalCtx) int {
 	n := 0
 	pl := &s.pl[p]
 	for i := 0; i < int(pl.handN); i++ {
 		o := pl.hand[i]
-		if o == exclude || !s.matchCardGen(k, f, s.objs[o].card, p, p, o) {
+		if o == exclude || !s.matchCardGenAt(k, f, s.objs[o].card, p, p, o, ctx) {
 			continue
 		}
 		n++
 	}
 	return n
+}
+
+// discardShareColorCandN counts p's hand cards sharing a colour with the
+// spell being cast (exclude, the cast card itself, not counted), the candidate
+// set of Dream Halls' granted alternative cost (Cost.DiscardSharesCastColor).
+// A colourless cast card shares nothing, so it has no candidates.
+func (s *State) discardShareColorCandN(k *prep, p uint8, exclude Obj) int {
+	if exclude == NoObj {
+		return 0
+	}
+	cols := k.t.Cards[s.objs[exclude].card].Colors & kop.ColAny
+	if cols == 0 {
+		return 0
+	}
+	n := 0
+	pl := &s.pl[p]
+	for i := 0; i < int(pl.handN); i++ {
+		o := pl.hand[i]
+		if o != exclude && k.t.Cards[s.objs[o].card].Colors&cols != 0 {
+			n++
+		}
+	}
+	return n
+}
+
+// handSharesColor reports whether hand object o shares a printed colour with
+// the spell being cast (cast), the pick-side test of Cost.DiscardSharesCastColor.
+func (s *State) handSharesColor(k *prep, o, cast Obj) bool {
+	if cast == NoObj {
+		return false
+	}
+	cols := k.t.Cards[s.objs[cast].card].Colors & kop.ColAny
+	return cols != 0 && k.t.Cards[s.objs[o].card].Colors&cols != 0
 }
 
 // discardPayable reports whether p's hand pays cost c's discard parts
@@ -35,7 +75,9 @@ func (s *State) discardPayable(k *prep, p uint8, c *kop.Cost, exclude Obj) bool 
 	}
 	n := int(s.pl[p].handN)
 	dn, df, filtered := discardPart(c)
-	if filtered {
+	if c.DiscardSharesCastColor {
+		n = s.discardShareColorCandN(k, p, exclude)
+	} else if filtered {
 		n = s.discardCandN(k, p, df, exclude)
 	} else if exclude != NoObj && s.objs[exclude].zone == kop.ZoneHand {
 		n--

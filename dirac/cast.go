@@ -28,6 +28,10 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8, tgt uint8) {
 		s.cold.mkObj[o] = 0 // a card cast again starts with no payments (CR 702.43; kw_multikicker.go)
 	}
 	s.clearPaidN(o)
+	s.clearKickAlt(o)
+	if sel := kickAltSelOf(tgt); sel != 0 {
+		s.setKickAlt(o, sel) // the two-alternative Kicker's selection: the byte the kicked N filters, Count$TimesKicked and the build's pricing read (kw_kickalt.go)
+	}
 	var fl uint8
 	if mode&1 != 0 { // seat-ok: a cast-mode bit
 		fl |= sfKicked
@@ -151,7 +155,7 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8, tgt uint8) {
 		// a miracle cast begun as its trigger resolves has no payment
 		// witness: gorge pays it through the mana window, and a cost the
 		// window cannot finish reverses the cast (kw_miracle.go)
-	} else if (fl&sfKicked != 0 || k.gen != nil && (k.gen.anySurge && s.bld().e.surged(k) || k.gen.anyCleave && s.bld().e.cleaved(k) || k.gen.anyBlitz() && s.bld().e.blitzed(k))) && k.t.Cards[c].Cost.X == 0 && k.t.Cards[c].OptWaterbend == 0 {
+	} else if (fl&sfKicked != 0 || k.gen != nil && (k.gen.anySurge && s.bld().e.surged(k) || k.gen.anyCleave && s.bld().e.cleaved(k) || k.gen.anyBlitz() && s.bld().e.blitzed(k))) && k.t.Cards[c].Cost.X == 0 && k.t.Cards[c].OptWaterbend == 0 && !kickerXCast(&k.t.Cards[c], fl) {
 		// (an optional waterbend cast taps nothing here: its window pays after
 		// the picks, manaStep's waterbendCastWindow, as gorge's convokeAsk
 		// precedes its manual window)
@@ -181,7 +185,7 @@ func (s *State) beginCast(k *prep, o Obj, mode uint8, tgt uint8) {
 			cost = s.gateDelveCredit(k, p, c, o, ob.zone == kop.ZoneHand, cost)
 		}
 		s.tapFor(k, p, &cost, 0, NoObj)
-	} else if fl&sfKicked != 0 && k.t.Cards[c].Cost.X != 0 && !k.t.Cards[c].HasMultikicker && k.t.Cards[c].OptWaterbend == 0 {
+	} else if fl&sfKicked != 0 && (k.t.Cards[c].Cost.X != 0 || kickerXCast(&k.t.Cards[c], fl)) && !k.t.Cards[c].HasMultikicker && k.t.Cards[c].OptWaterbend == 0 {
 		// a kicked or buyback {X} cast is a potential play too (gorge's
 		// "kicked"/"buyback" mode): its witness is the composed cost at the
 		// largest X the sources pay (rules potentialModeCastPlan's binary
@@ -368,6 +372,9 @@ func (s *State) pushBuild(k *prep) {
 			if ob.activations() < objActsMask {
 				s.touch(e.obj)
 				ob.acts++
+				if k.gen != nil && k.gen.anyPermMark {
+					s.markActivated(k, ob.slot) // PredPermMark mark 4 (Cut Short)
+				}
 				if e.trigObj != NoObj && s.grantActOn() {
 					s.noteGrantAct(e.obj) // act_grantledger.go
 				}
@@ -376,8 +383,11 @@ func (s *State) pushBuild(k *prep) {
 			}
 		}
 	}
-	if e.kind != seSpell && k.gen != nil && (k.gen.anyStackTgt || k.gen.anyWard || k.gen.anyWardGrant || s.subs[kop.TrigBecomesTarget].any()) {
+	if e.kind != seSpell && k.gen != nil && (k.gen.anyStackTgt || k.gen.anyWard || k.gen.anyWardGrant || s.evLive(kop.TrigBecomesTarget)) {
 		s.stackSid(e) // a stack-ability target's identity (tgt_stackability.go); a ward trigger's warded ability (wardedIndex); a BecomesTarget TriggeredSourceSA's targeting ability (trig_becomestarget.go)
+	}
+	if e.kind != seSpell && k.anyColorWords {
+		e.prov = s.cwFreeze(k) // the ability's text as it is put on the stack (static_colorwords.go)
 	}
 	s.push(*e)
 	s.bld().bfl |= bflPushed
@@ -486,7 +496,7 @@ func (s *State) syncBuild() {
 // these rows. A triggered ability is pushed by takePending before its
 // program starts.
 var buildProgram = [3][]uint8{
-	seSpell:   {bsPush, bsModes, bsAltAdd, bsGift, bsCasualty, bsTapCost, bsReplicate, bsMulti, bsSquad, bsConspire, bsConvoke, bsX, bsDelve, bsPips, bsTargets, bsDivide, bsEvidence, bsMana, bsCosts, bsPay},
+	seSpell:   {bsPush, bsModes, bsAltAdd, bsGift, bsCasualty, bsTapCost, bsReplicate, bsMulti, bsDefiler, bsSquad, bsConspire, bsConvoke, bsX, bsDelve, bsPips, bsTargets, bsDivide, bsEvidence, bsMana, bsCosts, bsPay},
 	seAbility: {bsPush, bsModes, bsTapCost, bsX, bsPips, bsTargets, bsDivide, bsEvidence, bsMana, bsCosts, bsPay},
 	seTrigger: {bsModes, bsPips, bsTargets, bsDivide, bsPay},
 }
@@ -692,8 +702,10 @@ func (s *State) buildCostPreRaw(k *prep, pre, charge bool) (kop.ManaCost, bool) 
 		if cd.Escape && e.trigPl == trigPlEscape {
 			c = cd.AltCost // the escape cost (CR 702.138a; kw_escape.go)
 		}
-		if e.trigPl == trigPlMadness && cd.HasMadness {
-			c = cd.MadnessCost // the madness cast from exile (CR 702.35b)
+		if e.trigPl == trigPlMadness {
+			if mc, ok := s.madnessCostOf(k, e.obj); ok {
+				c = mc // the madness cast from exile (CR 702.35b; kw_madness.go), printed or granted
+			}
 		}
 		if e.trigPl == trigPlMiracle {
 			if mc, ok := s.miracleCostOf(k, e.obj); ok {
@@ -712,8 +724,14 @@ func (s *State) buildCostPreRaw(k *prep, pre, charge bool) (kop.ManaCost, bool) 
 		if k.gen != nil && k.gen.anyMayFlash && mayFlashEntry(e) && cd.HasMayFlash && !DebugMayFlashFree {
 			c = addCost(c, cd.MayFlashCost) // the mana cost plus the extra (CR 702.8; kw_mayflash.go)
 		}
+		if k.gen != nil && k.gen.uses.has(useOffering) && offeringEntry(k, e) {
+			c = s.offeringReduced(k, c) // less the sacrificed permanent's mana cost (CR 702.48c; kw_offering.go)
+		}
 		if cd.HasAltAdd && s.bld().altAdd == 1 {
 			c = addCost(c, cd.AltAddCost.Mana)
+		}
+		if cd.HasAltAdd && s.bld().altAdd == buildAltAdd2 {
+			c = addCost(c, cd.AltAddCost2.Mana) // the either-or's third part (Dusk Mangler's PayLife<4>)
 		}
 		if cd.HasModeCost {
 			c = spreeCost(cd, e.mode, c) // kw_spree.go
@@ -795,7 +813,7 @@ func (s *State) freePlayCast() bool {
 // payCast reverses it in the window.
 func (s *State) targetStageAborts(k *prep, t *kop.TargetSpec, e *stackEntry) bool {
 	return s.playTargetGateAborts(k, t, e) || s.convokeTargetAbort(k) || s.delveTargetAbort(k) || s.altAddTargetAbort(k) ||
-		s.addCostTargetAbort(k) || s.abRaiseSacShort(k) || s.paidXTargetAbort(k) || s.copyCastTargetWindowShort(k) || s.copyCastXTargetAbort(k, t)
+		s.addCostTargetAbort(k) || s.paidXTargetAbort(k) || s.copyCastTargetWindowShort(k) || s.copyCastXTargetAbort(k, t)
 }
 
 // buildStep advances the entry being built; it returns true with d filled
@@ -830,7 +848,7 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 			continue
 		case bsAltAdd:
 			if e.kind == seSpell && k.t.Cards[e.card].HasAltAdd {
-				if !s.altAddPayable(k, 0) && !s.altAddPayable(k, 1) {
+				if !s.altAddAnyPayable(k, e.card) {
 					// gorge altAddAsk: no payable part aborts the cast with
 					// no ask and nothing tapped (CR 733.1)
 					s.reverseCast(k)
@@ -872,6 +890,12 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 		case bsReplicate, bsMulti, bsSquad:
 			if s.repeatCountOptions(k, d) {
 				return true
+			}
+			s.nextStage(k)
+			continue
+		case bsDefiler:
+			if e.kind == seSpell && defilerOn(k) && s.defilerOptions(k, d) {
+				return true // cost_defiler.go
 			}
 			s.nextStage(k)
 			continue
@@ -1121,7 +1145,7 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 			if e.kind != seTrigger && s.pipOptions(k, d) {
 				return true
 			}
-			if s.altAddPipsFirst(k) && s.bld().stage == bsPips && s.bld().altAdd <= 1 && !s.altAddPayable(k, s.bld().altAdd) {
+			if s.altAddPipsFirst(k) && s.bld().stage == bsPips && (s.bld().altAdd <= 1 || s.bld().altAdd == buildAltAdd2) && !s.altAddPayable(k, s.bld().altAdd) {
 				// the pips are answered and the part chosen cannot be paid:
 				// gorge's payment window reverses the cast (CR 733.1)
 				s.altAddWindowTap(k)
@@ -1260,7 +1284,10 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 					continue
 				}
 			}
-			n, narrowed := s.mustTargetSingle(k, e, &buf, n)
+			n, narrowed := s.mustTargetSingle(k, e, &buf, s.buildTgtMVDiscardCands(k, ti, &buf, n)) // cost_targetmv.go
+			if k.anySelfFlash {
+				n = s.flashTgtNarrow(k, e, &buf, n) // cast_selfflashtgt.go
+			}
 			if n == 0 && !t.UpTo {
 				// no legal target: a trigger is removed (CR 603.3d)
 				if e.kind == seTrigger {
@@ -1283,8 +1310,8 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 					s.reverseCast(k) // the offer did not know its X
 					return false
 				}
-				if _, _, ok := s.equipTargetPriced(k); ok {
-					s.reverseCast(k) // no candidate's own equip price is payable (statics_gen.go)
+				if s.targetPricedStale(k) {
+					s.reverseCast(k) // no candidate's own equip price, or target-bound discard, is payable (statics_gen.go, cost_targetmv.go)
 					return false
 				}
 				// an activation was checked feasible and moves nothing
@@ -1572,13 +1599,17 @@ func (s *State) applyBuild(k *prep, a Action) {
 			s.answerConspire(k, a)
 			return
 		}
+		if s.bld().stage == bsDefiler {
+			s.answerDefiler(a)
+			return
+		}
 		if s.bld().stage == bsEvidence {
 			s.answerCostEvidence(k, a)
 			break
 		}
 		if s.bld().stage == bsAltAdd {
-			part := uint8(a.Target()) // code-ok: the either-or part (0 or 1)
-			s.bld().altAdd = part
+			part := uint8(a.Target()) // code-ok: the either-or part (0 to 2)
+			s.bld().altAdd = altAddBuildOf(part)
 			s.nextStage(k)
 			if !s.altAddPayable(k, part) && !s.altAddOpenTargets(k) && !s.altAddPipsFirst(k) {
 				if !s.requiredTarget(k) && k.t.Cards[e.card].BeholdN == 0 &&
@@ -1753,6 +1784,7 @@ func (s *State) payCastParts(k *prep, ep *stackEntry, anyColor bool) {
 		s.tapForRider(k, e.ctrl, &cost, int(e.x), e.obj, anyColor)
 	}
 	s.snowPreSpend(k, &e)
+	s.spentPreSpend(k, &e) // a producer-tagged Count$CastTotalManaSpent (mana_spenttag.go)
 	s.payPicks(k)
 	s.payBlightPicks(k)
 	if e.flags&sfKicked != 0 && k.gen != nil && k.gen.anyOptCost {
@@ -1868,7 +1900,13 @@ func (s *State) finishBuild(k *prep) {
 			// payFromPool folds the announced X itself (XGeneric), like
 			// payRider's pool arm: the folded copy above is only the
 			// window's settled check
-			s.payFromPoolRider(k, e.ctrl, &cost, int(e.x), anyColor)
+			if m := s.restrPoolAdmits(k, e.ctrl); m != 0 {
+				// the restricted mana the spell admits, which the settled
+				// check counted, pays first (CR 106.6)
+				s.payRestrSpend(k, e.ctrl, m, &cost, int(e.x), e.obj, anyColor)
+			} else {
+				s.payFromPoolRider(k, e.ctrl, &cost, int(e.x), anyColor)
+			}
 		} else if s.rbAny(e.ctrl) {
 			s.payRestrRider(k, e.ctrl, &cost, int(e.x), e.obj, anyColor) // an Angel spell spends Giada's {W}
 		} else if k.gen != nil && s.delvePaysEntry(k, &e) && !s.loweredPoolPays(k, &e, xFolded(cost, int(e.x)), anyColor) {
@@ -1885,6 +1923,9 @@ func (s *State) finishBuild(k *prep) {
 		}
 		if s.winPaused() {
 			return // a free or Spree cast's window waits on a tap-another pick (mana_window.go)
+		}
+		if defilerOn(k) {
+			s.payDefilerLife(k) // the answered Defilers' life, one loss, once the mana is paid: gorge pays it with the cast, and a cast its mana cannot finish is rewound unpaid (cost_defiler.go)
 		}
 		s.obsWinSettle(k, e.ctrl, obsPool, obsOK)
 		if k.gen != nil && k.gen.anyManaHaste {
@@ -1921,6 +1962,8 @@ func (s *State) finishBuild(k *prep) {
 		if s.freePlayCast() && s.g.freeP&freeForget != 0 && s.bld().bfl&bflPushed != 0 {
 			s.forgetRemGen(e.obj)
 		}
+		s.rememberPlayedCommit(e.obj) // RememberPlayed$ True (cast_playremember.go)
+		s.imprintPlayedCommit(e.obj)  // ImprintPlayed$ True (cast_playimprint.go)
 		if k.gen != nil && k.gen.anyHist {
 			s.histCast(k, &e, &cost)
 		}
@@ -2061,6 +2104,9 @@ func (s *State) onCast(k *prep, e *stackEntry) {
 	if k.gen != nil && k.gen.grantTrigEv&(1<<kop.TrigSpellCast) != 0 {
 		lm = s.grantTrigHosts(k, lm)
 	}
+	if k.gen != nil && k.gen.gainsTrigEv&(1<<kop.TrigSpellCast) != 0 {
+		lm = s.gainsTrigHosts(k, lm) // trig_gainedtrig.go
+	}
 	if e.ctrl != 0 && !e.faceDown() {
 		// the spell's own cast trigger: gorge walks the stack on seat 0's
 		// pass, after seat 0's battlefield and before every later seat's
@@ -2155,7 +2201,7 @@ func (s *State) castTrigGraves(k *prep, e *stackEntry) {
 				}
 				for j := range cd.Abilities {
 					a := &cd.Abilities[j]
-					if a.Kind == kop.AbTriggered && a.Trig.Zone == kop.ZoneGraveyard && a.Trig.Event == kop.TrigSpellCast {
+					if a.Kind == kop.AbTriggered && a.Trig.Zone == kop.ZoneGraveyard && a.Trig.Event == kop.TrigSpellCast && !s.gravePrintedHidden(k, o) {
 						s.castTrigGen(k, trigListener{obj: o, sl: NoSlot, ctrl: pp, card: c, ab: uint8(j)}, a, e)
 					}
 				}
@@ -2188,7 +2234,7 @@ func (s *State) targetedOne(k *prep, e *stackEntry, t TCode) {
 		// A player target's BecomesTarget watchers (gorge's TargetsChosen
 		// player half: ValidTarget$ You/Player/Opponent beside a permanent
 		// list). The object walk below never reaches it, so it has its own.
-		if k.gen != nil && s.subs[kop.TrigBecomesTarget].any() {
+		if k.gen != nil && s.evLive(kop.TrigBecomesTarget) {
 			s.becameTargetPlayer(k, t, e) // trig_becomestarget.go
 		}
 		return
@@ -2198,7 +2244,7 @@ func (s *State) targetedOne(k *prep, e *stackEntry, t TCode) {
 	}
 	ob := &s.objs[t]
 	if ob.zone != kop.ZoneBattlefield {
-		if ob.zone == kop.ZoneStack && k.gen != nil && k.gen.btSpell && s.subs[kop.TrigBecomesTarget].any() {
+		if ob.zone == kop.ZoneStack && k.gen != nil && k.gen.btSpell && s.evLive(kop.TrigBecomesTarget) {
 			s.btSpellTarget(k, Obj(t), e) // trig_becomestarget.go
 		}
 		return
@@ -2206,7 +2252,7 @@ func (s *State) targetedOne(k *prep, e *stackEntry, t TCode) {
 	sl := ob.slot
 	p := &s.perms[sl]
 	nb := s.npend // the BecomesTarget walk's first pending trigger (wardBeforeGranted)
-	if s.subs[kop.TrigBecomesTarget].any() {
+	if s.evLive(kop.TrigBecomesTarget) {
 		s.becameTarget(k, sl, e)
 		// after the walk: this targeting is not an earlier one (gorge's
 		// same-stack-object skip), but the next one must read it, even when no
@@ -2512,6 +2558,11 @@ func (s *State) costPickOptions(k *prep, d *Decision, allowed kop.CostFlags) boo
 			} else if s.bld().pickK == pkSac && pc.N == 0 {
 				s.bld().pickLeft = uint8(e.x) // Sac<X/Spec>: the announced X (cost_sacx.go; 0 asks nothing)
 			}
+			if s.bld().pickK == pkSac && k.gen != nil && k.gen.uses.has(useCostProg) {
+				if mp := multiSacProg(k, s.buildAbility(k)); mp != nil {
+					s.bld().pickLeft = multiSacUnits(mp) // every Sac atom's units (cost_progsac.go)
+				}
+			}
 		}
 		if s.bld().pickLeft == 0 {
 			s.bld().donePicks |= s.bld().pickK &^ pickSubCtr // a posed counter pick stepped again owes no done bit
@@ -2519,8 +2570,13 @@ func (s *State) costPickOptions(k *prep, d *Decision, allowed kop.CostFlags) boo
 			continue
 		}
 		d.N = 0
-		s.costCands(k, pc, src, d)
-		if s.bld().pickK == pkSac && int(d.N) < int(s.bld().pickLeft) || s.bld().pickK == pkDiscard && d.N == 0 ||
+		need := int(s.bld().pickLeft)
+		if mp := s.pickMultiSac(k); mp != nil {
+			need = s.multiSacCands(k, mp, e.ctrl, src, d) // the current Sac atom's units (cost_progsac.go)
+		} else {
+			s.costCands(k, pc, src, d)
+		}
+		if s.bld().pickK == pkSac && int(d.N) < need || s.bld().pickK == pkDiscard && d.N == 0 ||
 			s.bld().pickK == pkTapX && e.kind == seSpell && int(d.N) < int(s.bld().pickLeft) {
 			// no card left to discard, or too few permanents to tap: a free cast begun without
 			// the offer's cost census (Wishing Well's Play, a discover's Guardian of the Great
@@ -2565,16 +2621,23 @@ func (s *State) costCands(k *prep, c *kop.Cost, src Slot, d *Decision) {
 		pl := &s.pl[e.ctrl]
 		// a filtered discard (CostDiscardFiltered) offers only the hand
 		// cards matching Cost.Filter (cost_discardfiltered.go); past the
-		// first part's picks a second part offers its own (Discard2F)
+		// first part's picks a second part offers its own (Discard2F).
+		// Dream Halls' dynamic cost offers the cards sharing a colour with
+		// the spell being cast (Cost.DiscardSharesCastColor).
 		_, f, fmatch := discardPart(c)
+		share := c.DiscardSharesCastColor
 		if s.discardPartTwo(c) {
-			fmatch, f = c.Discard2F != 0, c.Discard2F
+			fmatch, f, share = c.Discard2F != 0, c.Discard2F, false
 		}
 		for i := 0; i < int(pl.handN); i++ {
-			if o := pl.hand[i]; !s.picked(o) && o != e.obj &&
-				!(fmatch && !s.matchCardGen(k, f, s.objs[o].card, e.ctrl, e.ctrl, o)) {
-				d.add(MakeAction(AkChoose, TCode(o), 0, 0))
+			o := pl.hand[i]
+			if s.picked(o) || o == e.obj {
+				continue
 			}
+			if share && !s.handSharesColor(k, o, e.obj) || !share && fmatch && !s.matchCardGen(k, f, s.objs[o].card, e.ctrl, e.ctrl, o) {
+				continue
+			}
+			d.add(MakeAction(AkChoose, TCode(o), 0, 0))
 		}
 	case pkSac, pkTapX:
 		for m := s.ctrlM[e.ctrl]; m.any(); m = m.rest() {
@@ -2683,7 +2746,7 @@ func (s *State) payPickKind(k *prep, f pickKind) {
 				s.perms[ob.slot].flags |= pfTapped
 				s.touch(o)
 				if was == 0 {
-					if k.gen != nil && s.subs[kop.TrigTaps].any() {
+					if k.gen != nil && s.evLive(kop.TrigTaps) {
 						if g := k.gen; g.anyTWTap && s.bld().e.kind == seSpell && s.bld().e.flags&sfKicked != 0 && k.t.Cards[s.bld().e.card].Teamwork != 0 {
 							s.fireTapsTW(k, ob.slot) // a teamwork election pick (trig_params.go)
 						} else {
@@ -2765,8 +2828,11 @@ func (s *State) buildPickCost(k *prep) *kop.Cost {
 		if cd.HasAltAdd && s.bld().altAdd == 1 {
 			return &cd.AltAddCost
 		}
+		if cd.HasAltAdd && s.bld().altAdd == buildAltAdd2 {
+			return &cd.AltAddCost2
+		}
 		if s.bld().altAdd == buildAltCost {
-			if a := &cd.Abilities[k.gen.altFree[e.card]-1]; altPickCost(&a.Cost) {
+			if a := s.altAbOf(k); altPickCost(&a.Cost) {
 				return &a.Cost // the sacrifice / return / hand-exile alternative cost (Fireblast, Gush, Force of Will; cast_altfree.go)
 			}
 		}
@@ -2860,6 +2926,9 @@ func (s *State) pickCostPayable(k *prep, p uint8, c *kop.Cost, exclude Obj) bool
 	if f&kop.CostTapX != 0 && s.countUntapped(k, p, c.Filter, NoSlot) < int(c.N) {
 		return false
 	}
+	if c.CloseEnc && s.chooseEncCands(k, p, nil) < 1 {
+		return false // the choose pick owes one candidate (cost_closeenc.go)
+	}
 	if f&kop.CostPayLife != 0 && int(s.pl[p].life) < lifeCostOwed(c) {
 		return false
 	}
@@ -2869,10 +2938,48 @@ func (s *State) pickCostPayable(k *prep, p uint8, c *kop.Cost, exclude Obj) bool
 	return true
 }
 
-// altAddPayable: part 0 (the spell's own additional cost) or part 1
-// (CardDef.AltAddCost, whose mana is added to the spell's) is payable, the
-// mana from the pool or from what the window can still activate (gorge
-// altAddPartPayable, CR 601.2g).
+// buildAltAdd2 in build.altAdd: the either-or additional cost's third part
+// (CardDef.AltAddCost2, Dusk Mangler's PayLife<4>). Not 2: buildCost's
+// alternative-cost branch reads altAdd == buildAltCost (legal_gen.go) with no
+// HasAltAdd gate, so a probe priced at altAdd 2 would read gen.altFree (nil
+// for an either-or card, prepAltFree) and panic; 4 keeps the three spaces
+// apart.
+const buildAltAdd2 = 4
+
+// altAddBuildOf is the build.altAdd value the either-or part index builds as:
+// 0 and 1 build as themselves, the third part as buildAltAdd2.
+func altAddBuildOf(part uint8) uint8 {
+	if part == 2 {
+		return buildAltAdd2
+	}
+	return part
+}
+
+// altAddPartsN is how many parts card c's either-or additional cost offers:
+// two, or three with a lowered third part (altAddCost2, kernel
+// altAddOptions).
+func altAddPartsN(k *prep, c CardID) uint8 {
+	if k.t.Cards[c].AltAddCost2 != (kop.Cost{}) {
+		return 3
+	}
+	return 2
+}
+
+// altAddAnyPayable: some part of card c's either-or additional cost is
+// payable (gorge altAddAsk: no payable part aborts the cast, CR 733.1).
+func (s *State) altAddAnyPayable(k *prep, c CardID) bool {
+	for part := uint8(0); part < altAddPartsN(k, c); part++ {
+		if s.altAddPayable(k, part) {
+			return true
+		}
+	}
+	return false
+}
+
+// altAddPayable: part 0 (the spell's own additional cost) or part 1 or 2
+// (CardDef.AltAddCost / CardDef.AltAddCost2, whose mana is added to the
+// spell's) is payable, the mana from the pool or from what the window can
+// still activate (gorge altAddPartPayable, CR 601.2g).
 func (s *State) altAddPayable(k *prep, part uint8) bool {
 	if !s.altAddPickPayable(k, part) {
 		return false
@@ -2887,7 +2994,7 @@ func (s *State) altAddPayable(k *prep, part uint8) bool {
 		s.availTapX(k, e.ctrl, &av) // the window activates a tap-another source (mana_window.go)
 	}
 	saved := s.bld().altAdd
-	s.bld().altAdd = 1
+	s.bld().altAdd = altAddBuildOf(part)
 	c := s.buildCost(k)
 	s.bld().altAdd = saved
 	// the restricted sources the payment may spend (CR 106.6): gorge's window prices them
@@ -2905,24 +3012,31 @@ func (s *State) altAddPickPayable(k *prep, part uint8) bool {
 	if part == 0 {
 		return s.pickCostPayable(k, e.ctrl, spellAddCost(k, e.card), e.obj) && s.beholdPayable(k, e.ctrl, e.card, e.obj)
 	}
+	if part == 2 || part == buildAltAdd2 { // the ask's part index (altAddPayable, the answer) or its build value
+		return s.pickCostPayable(k, e.ctrl, &k.t.Cards[e.card].AltAddCost2, e.obj)
+	}
 	return s.pickCostPayable(k, e.ctrl, &k.t.Cards[e.card].AltAddCost, e.obj)
 }
 
 // altAddOptions poses gorge's either-or additional cost ask (cast_asks.go
 // altAddAsk, KChoose "altaddcost"): the payable parts first, then the
 // unpayable ones, each AkChoose{target: part index (0 the spell's own
-// additional cost, 1 CardDef.AltAddCost), mode: option position}.
+// additional cost, 1 CardDef.AltAddCost, 2 CardDef.AltAddCost2), mode:
+// option position}.
 func (s *State) altAddOptions(k *prep, d *Decision) {
 	d.Kind, d.Sub, d.Player = DkChoose, ChAltAdd, s.bld().e.ctrl
-	var ok [2]bool
-	ok[0], ok[1] = s.altAddPayable(k, 0), s.altAddPayable(k, 1)
+	parts := altAddPartsN(k, s.bld().e.card)
+	var ok [3]bool
+	for part := uint8(0); part < parts; part++ {
+		ok[part] = s.altAddPayable(k, part)
+	}
 	pos := uint8(0)
 	passes := 2
-	if s.cfg&cfgGorgeAltAdd == 0 && (ok[0] || ok[1]) {
+	if s.cfg&cfgGorgeAltAdd == 0 && (ok[0] || ok[1] || parts == 3 && ok[2]) {
 		passes = 1 // the payable parts only (Config.GorgeAltAdd)
 	}
 	for pass := 0; pass < passes; pass++ {
-		for part := uint8(0); part < 2; part++ {
+		for part := uint8(0); part < parts; part++ {
 			if ok[part] == (pass == 0) {
 				d.add(MakeAction(AkChoose, 0, TCode(part), pos)) // code-ok: the either-or part
 				pos++
@@ -3102,6 +3216,7 @@ func (s *State) announcedXBuilding(k *prep) bool {
 	return (g.anyLifeX && s.lifeXBuilding(k)) ||
 		(g.anySacX && s.sacXBuilding(k)) ||
 		(g.anyExileX && s.exileXBuilding(k)) ||
+		(g.anyBlightX && s.blightXBuilding(k)) ||
 		(g.uses.has(useEnergyX) && s.energyXBuilding(k)) ||
 		(g.uses.has(useDiscardX) && s.discardXBuilding(k))
 }

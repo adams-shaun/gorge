@@ -276,6 +276,7 @@ func (e *Engine) checkDelayedTriggers(ev events.Event) {
 		// ValidPlayer$ IsRemembered, so only Effect registrations read it.
 		pc := e.playerSpecCtx(dt.Source)
 		pc.DelayedRemembered = dt.Remembered
+		pc.DelayedRememberedStamps = dt.RememberedStamps
 		pc.Remembered, pc.RememberedBound = dt.Remembered, true
 		if dt.ValidPlayer != "" && !effects.MatchesPlayerSpecCtx(e.G, dt.ValidPlayer, e.G.Active, dt.Controller, pc) {
 			continue
@@ -317,7 +318,7 @@ func (e *Engine) checkDelayedTriggers(ev events.Event) {
 		// nothing.
 		frame := effectDelayedFrame(dt)
 		if frame.Source == 0 && dt.EffectDuration != "" {
-			frame = effects.EffectFrame{Source: dt.Source, Carrier: true}
+			frame = effects.EffectFrame{Source: dt.Source, Carrier: true, Spare: dt.RegistrationClock}
 		}
 		// CR 603.7d: the delayed trigger's source is the spell or ability
 		// that created it. An AtEOT$ rider records that creator beside the
@@ -362,11 +363,19 @@ func (e *Engine) checkDelayedTriggers(ev events.Event) {
 				EffectFrame: frame,
 				// A phase registration has no firing event, so its capture
 				// is both Remembered and the DelayTriggerRemembered referent.
+				// TriggeredPlayer is still the player whose step it is
+				// (CR 603.7c): Forge binds the phase's acting player to the
+				// Phase trigger's run, and bodies naming Defined$
+				// TriggeredPlayer read it -- Chandra, Awakened Inferno's
+				// emblem ("at the beginning of your upkeep, this emblem deals
+				// 1 damage to you") has no other referent.
 				TriggerContext: effects.TriggerContext{
+					TriggerPlayer:           state.Target{Player: e.G.Active, IsPlayer: true},
 					DelayedSelf:             delayedSelf,
 					DelayedRemembered:       append([]state.Target(nil), dt.Remembered...),
 					DelayedCaptureOnly:      dt.CaptureOnly,
 					DelayedRememberedStamps: dt.RememberedStamps,
+					DelayedImprinted:        dt.Imprinted,
 					DelayedManaSpent:        dt.RememberedManaSpent,
 					OptionalSpec:            dt.OptionalSpec,
 					// RememberNumber$ True's remembered Integer (Mana
@@ -586,13 +595,14 @@ func (e *Engine) checkEventDelayedTriggers(ev events.Event, lki *state.Object,
 			}
 			referentsArg = nil
 		} else if dt.EventMode == "ChangesZone" {
-			if !trigmatch.ZoneChangeMatchesWithCapture(boardOf(e), t, dt.Source, ev, lki, dt.Remembered) {
+			if !trigmatch.ZoneChangeMatchesWithCaptureImprint(boardOf(e), t, dt.Source, ev, lki, dt.Remembered, dt.Imprinted) {
 				continue
 			}
 			if vp := strings.TrimSpace(t.ParamStr(cards.PKValidPlayer)); vp != "" {
 				p, ok := e.delayedEventPlayer(t, ev, lki)
 				pc := e.playerSpecCtx(dt.Source)
 				pc.DelayedRemembered = dt.Remembered
+				pc.DelayedRememberedStamps = dt.RememberedStamps
 				if !ok || !effects.MatchesPlayerSpecCtx(e.G, vp, p, dt.Controller, pc) {
 					continue
 				}
@@ -614,6 +624,7 @@ func (e *Engine) checkEventDelayedTriggers(ev events.Event, lki *state.Object,
 				// LosesGame body's `ValidPlayer$ Player.IsRemembered` reads
 				// only the source card's own list and matches nobody.
 				pc.DelayedRemembered = dt.Remembered
+				pc.DelayedRememberedStamps = dt.RememberedStamps
 				pc.Remembered, pc.RememberedBound = dt.Remembered, true
 				if !ok || !effects.MatchesPlayerSpecCtx(e.G, vp, p, dt.Controller, pc) {
 					continue
@@ -683,7 +694,8 @@ func (e *Engine) checkEventDelayedTriggers(ev events.Event, lki *state.Object,
 			// card) and an Effect's source-leave promise: the registration's
 			// capture IS the referent this body resolves.
 			remembered = append([]state.Target(nil), dt.Remembered...)
-		} else if dt.EffectRepeat && (dt.EventMode == "ChangesZone" || t.ModeKind() == cards.TriggerUntaps || t.ModeKind() == cards.TriggerDamageDealtOnce) {
+		} else if dt.EffectRepeat && (dt.EventMode == "ChangesZone" || t.ModeKind() == cards.TriggerUntaps || t.ModeKind() == cards.TriggerDamageDealtOnce ||
+			dt.EventMode == "SpellCast" && e.effectTriggerRemembersObjects(dt)) {
 			// An Effect-owned ChangesZone trigger's `Defined$ Remembered`
 			// names the Effect's OWN capture (Forge's created-effect
 			// Remembered list), not the zone-changing card: Out of Time's
@@ -909,7 +921,11 @@ func effectDelayedFrame(dt *state.DelayedTrigger) effects.EffectFrame {
 	if dt == nil || !dt.EffectRepeat {
 		return effects.EffectFrame{}
 	}
-	return effects.EffectFrame{Source: dt.Source, Carrier: true}
+	// Spare is this registration's own game clock: the carrier body's
+	// self-exile ends every registration from the same Effect activation
+	// (whose registrations share the clock) and spares a later activation's
+	// (Ugin, the Ineffable's second [+1]).
+	return effects.EffectFrame{Source: dt.Source, Carrier: true, Spare: dt.RegistrationClock}
 }
 
 // delayedEventModeHandled names the modes delayedEventMatches evaluates with
@@ -1171,6 +1187,21 @@ var delayedRegistrationLiveCodes = state.NewStrCodes(
 	state.StrEntry[delayedRegistrationLiveCode]{Key: "untilyournextturn", Val: delayedRegistrationLiveUntilYourNextTurn},
 	state.StrEntry[delayedRegistrationLiveCode]{Key: "untiltheendofyournextturn", Val: delayedRegistrationLiveUntilYourNextTurn},
 )
+
+// effectTriggerRemembersObjects reports whether dt, a recurring Effect
+// trigger, was registered by an Effect with RememberObjects$ (Forge's created
+// effect card holds that memory, and its trigger body's Defined$ Remembered
+// reads it). A SpellCast event's object is the cast spell, so Mountain
+// Titan's "put a +1/+1 counter on Mountain Titan" (RememberObjects$ Self)
+// otherwise named the spell. The registration carries no such mark, so the
+// source face's Effect that names the trigger answers it.
+func (e *Engine) effectTriggerRemembersObjects(dt *state.DelayedTrigger) bool {
+	src := e.G.Obj(dt.Source)
+	if src == nil || src.Face() == nil {
+		return false
+	}
+	return effects.EffectTriggerRemembersObjects(src.Face(), dt.Trigger)
+}
 
 // delayedRemembersOwnCapture reports whether a firing registration's
 // Remembered referent is its own capture rather than the firing event's

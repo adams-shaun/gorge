@@ -1,0 +1,23 @@
+# The targeted-card-mana-cost pool (dirac/oracle/demotargetedcmc_lockstep_test.go):
+# Behemoth of Vault 0's ImmediateTrigger and Kozilek, the Great Distortion's
+# AB$ Counter both read SVar:X Targeted$CardManaCost before the effect declares
+# its one target. Sol Ring / Mind Stone / Worn Powerstone / Thran Dynamo and the
+# Wastes are Kozilek's ramp; the cheap spells and creatures are the opponent's
+# stack and Behemoth's nonland targets. Carrion Feeder is Behemoth's sacrifice
+# outlet so its dies trigger asks the energy amount.
+Behemoth of Vault 0
+Carrion Feeder
+Divination
+Grizzly Bears
+Hill Giant
+Island
+Kozilek, the Great Distortion
+Lightning Bolt
+Mind Stone
+Mountain
+Opt
+Sol Ring
+Swamp
+Thran Dynamo
+Wastes
+Worn Powerstone

@@ -68,7 +68,7 @@ func (s *State) amassRiders(k *prep, in *kop.Instr, sl Slot, n int) {
 		s.ctrNote(k, sl, int(kop.CtrP1P1))
 	}
 	s.g.lastCK = kop.CtrP1P1
-	if m > 0 && s.subs[kop.TrigCounterAddedOnce].any() {
+	if m > 0 && s.evLive(kop.TrigCounterAddedOnce) {
 		s.fireObj(k, kop.TrigCounterAddedOnce, sl, s.perms[sl].obj, s.perms[sl].ctrl, int16(m))
 	}
 	if ov := int(uint16(in.B.N) & 0xfff); ov > 0 {

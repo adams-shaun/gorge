@@ -448,7 +448,13 @@ func (s *State) lfxApply4(k *prep, sl Slot, e *lfx, c *dchars) {
 		return
 	}
 	o := e.o
-	const keep = kop.TLegendary | kop.TBasic | kop.TToken
+	keep := kop.TLegendary | kop.TBasic | kop.TToken
+	if o.FaceDownOnly {
+		if !s.faceDown(k, sl) {
+			return // a FaceDownSetType$ set applies while the permanent is face down
+		}
+		keep = 0 // the card text replaces the whole type line (Yedora's "It's a Forest land")
+	}
 	if o.HasTypes {
 		c.types = c.types&(keep|o.KeepTypes) | o.SetTypes
 	}
@@ -491,16 +497,122 @@ func (s *State) lfxApply4(k *prep, sl Slot, e *lfx, c *dchars) {
 
 // chars is the walk: sl's characteristics through layer upTo.
 func (s *State) chars(k *prep, sl Slot, upTo uint8) dchars {
+	if !s.charsFxMay(k, sl) {
+		skip := s.charsPrinted(k, sl, upTo) // no effect can reach sl: the array is never built
+		if DebugCharsGateShadow {
+			charsGateShadow(s, k, sl, upTo, skip)
+		}
+		return skip
+	}
 	var fx [maxLfx]lfx
-	var n int
-	return s.charsFx(k, sl, upTo, &fx, &n)
+	n := s.lfxCollect(k, sl, &fx)
+	return s.charsFxN(k, sl, upTo, &fx, n)
+}
+
+// charsFxMay reports whether the walk can find or apply anything for sl: an
+// effect record on sl (its override records, or the copy exceptions the
+// walk's layer 1 applies), an override flag on the permanent, a
+// subtype-granting emblem, or a live source whose card prints a
+// walk-collected static — the same per-card records the collection itself
+// reads (prep.srcs when the table walks, the gen flags otherwise). False
+// skips the whole walk for charsPrinted: most charsFx calls on
+// BenchmarkTransitionEDH4 (the #5086 grant gate's shape, a per-table flag
+// plus a per-card prep table; mana_grantedoffers.go manaGrantMay).
+func (s *State) charsFxMay(k *prep, sl Slot) bool {
+	if s.fxM.has(sl) { // a record reaches it: lfxCollectRecords, or the copy exceptions (fxM)
+		return true
+	}
+	if s.perms[sl].ovr.flags != 0 { // the ovr types and base P/T the walk's layer 1 applies
+		return true
+	}
+	g := k.gen
+	if g == nil {
+		return false // no gen prep: the walk is never reached (its collection reads the gen flags)
+	}
+	if g.embSubGrant {
+		return true // an emblem's subtype grant reaches every slot
+	}
+	if k.srcs != nil {
+		for m := s.statM; m.any(); m = m.rest() {
+			if k.srcs[s.cardAt(m.first())].flags != 0 {
+				return true
+			}
+		}
+		return false
+	}
+	for m := s.statM; m.any(); m = m.rest() {
+		cid := s.cardAt(m.first())
+		if g.has(cid, gfOvrStat) || g.has(cid, gfSubGrant) {
+			return true
+		}
+	}
+	return false
+}
+
+// charsPrinted is the walk's no-op exit: sl's printed characteristics (the
+// card's, or a face-down permanent's), with the walk's fx-dependent parts
+// absent because charsFxMay said no. The layer-4, layer-5 and layer-7
+// setters are the collected effects, and there are none; the copy
+// exceptions and the ovr types and P/T live on the record pool and the
+// permanent's ovr flags, both of which the gate read.
+func (s *State) charsPrinted(k *prep, sl Slot, upTo uint8) dchars {
+	cid := s.cardAt(sl)
+	cd := &k.t.Cards[cid]
+	var c dchars
+	fd := s.faceDown(k, sl)
+	if fd {
+		c.types = kop.TCreature // CR 708.2; a face-down permanent has no colours or subtypes
+	} else {
+		c.types = k.cards[cid].types
+		c.cols = cd.Colors
+		c.subs = cd.Subtypes
+	}
+	// the changeling seed without copy exceptions (walkAllSeed's fxM gate)
+	c.all = cd.AllCreatureTypes && !fd
+	if upTo == upTo7b { // layer 5 has no setter without effects; 7a/7b are the printed P/T or its CDA
+		c.bp, c.bt = s.basePT7a(k, sl)
+	}
+	return c
+}
+
+// DebugCharsGateShadow makes chars and charsFx run the full collection and
+// walk behind every charsFxMay no and panic if the result or the walk's
+// overflow state differs (TestCharsFxGateShadow).
+var DebugCharsGateShadow = false
+
+// charsGateShadowN counts the walks charsGateShadow checked.
+var charsGateShadowN int
+
+func charsGateShadow(s *State, k *prep, sl Slot, upTo uint8, skip dchars) {
+	charsGateShadowN++
+	over, stalled := s.over, s.g.stalled
+	var fx [maxLfx]lfx
+	n := s.lfxCollect(k, sl, &fx)
+	if full := s.charsFxN(k, sl, upTo, &fx, n); full != skip || s.over != over || s.g.stalled != stalled {
+		panic("dirac: charsFxMay skipped a walk that finds effects or moves the overflow state")
+	}
 }
 
 // charsFx is chars leaving the walk's effects (with their layer-4
 // verdicts) in fx[:*np] for the layer-3 and layer-6 walks (static_layer6.go).
 func (s *State) charsFx(k *prep, sl Slot, upTo uint8, fx *[maxLfx]lfx, np *int) dchars {
+	if !s.charsFxMay(k, sl) {
+		*np = 0
+		skip := s.charsPrinted(k, sl, upTo)
+		if DebugCharsGateShadow {
+			charsGateShadow(s, k, sl, upTo, skip)
+		}
+		return skip
+	}
 	n := s.lfxCollect(k, sl, fx)
 	*np = n
+	return s.charsFxN(k, sl, upTo, fx, n)
+}
+
+// charsFxN is charsFx with the effects already collected in fx[:n]. fx may
+// be nil when n is 0 (charsFxMay's no-op exit): every read of fx sits
+// behind an n bound or is lfxCollect's, which the gate already answered.
+func (s *State) charsFxN(k *prep, sl Slot, upTo uint8, fx *[maxLfx]lfx, n int) dchars {
 	p := &s.perms[sl]
 	cid := s.cardAt(sl)
 	cd := &k.t.Cards[cid]
@@ -846,7 +958,7 @@ func (s *State) matchCurOne(k *prep, fl *kop.Filter, sl Slot, ctrl uint8, src Sl
 		return s.predAttached(sl, src)
 	}
 	if isAttackingYou(fl) {
-		return s.attackingYou(k, sl, ctrl) // the static's controller (filter_attackingyou.go)
+		return s.attackingYou(k, sl, ctrl, fl.PredN) // the static's controller (filter_attackingyou.go)
 	}
 	return s.predPermGen(k, fl, sl, src, layerKw)
 }

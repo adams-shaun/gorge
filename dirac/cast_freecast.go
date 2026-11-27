@@ -30,7 +30,9 @@ func (s *State) freeQueued(o Obj) bool {
 //   - C bit 6: CopyCard$ True; bit 7: AllowRepeats$ True with Amount$ A (cast_freerepeat.go).
 //   - C bit 8: the cast pays its mana cost (a Play without WithoutManaCost$
 //     True: the copy's cast via cast_exilegrant.go, every other card's via
-//     turn_gen.go's drain); bit 9: a literal Amount$ A (the ask closes after A picks).
+//     turn_gen.go's drain); bit 9: an Amount$ A read as a value (interp_ask.go
+//     and the count-0 break in interp_gen.go; the literal N >= 2 and the
+//     counted Amount$ of a ChandraX all ride it).
 //   - C bit 11 (freeMandatory): no Optional$ True, so no Done is offered.
 //   - C bit 12 (freeLands): the population may hold lands (a Play without
 //     ValidSA$ over a land-capable remembered set: Dungeon of the Mad Mage's
@@ -40,14 +42,21 @@ func (s *State) freeQueued(o Obj) bool {
 //     played in pick order by the freeQ drain (cast_freeland.go).
 //   - C bit 10 (freeSpellMV): the filter's mana-value bound is the ValidSA$ one, read on the spell
 //     cast: a split card counts its front half, not the sum of its halves.
+//   - C bit 13 (freeRemember): RememberPlayed$ True (add the begun card, the
+//     minted copy for a CopyCard$ play, to s.g.rem once its cast commits; the
+//     first begun card only; cast_playremember.go).
+//   - C bit 14 (freeSameName): a remembered candidate is offered only when it shares the resolving
+//     trigger's source object's printed name (gorge effRipple's CR 201.2 read; kw_ripple.go).
+//   - C bit 15 (freeImprint): ImprintPlayed$ True (every card the Play
+//     actually begins joins the resolution source's Imprinted list; cast_playimprint.go).
 //   - Obj: RefRemembered (P1), a target slot (P2: the targeted card; a
-//     player target: that player's hand), or RefNone with F (P3/P4 filter
-//     population over the zone; over exile, every alive seat's).
+//     player target: that player's hand or graveyard), or RefNone with F
+//     (P3/P4 filter population over the zone; over exile, every alive seat's).
 //
 // The zone, ReplaceGraveyard and ForgetPlayed bits ride to the freeQ drain
 // in s.g.freeP: the caster in the low freeSeatBits, the zone in the three
 // bits above, then freeGY (ReplaceGraveyard), freeCopy (CopyCard), freePaid
-// freeForget (ForgetPlayed) and freeLandsOn (the queue's lands are played). At
+// freeForget (ForgetPlayed), freeLandsOn (the queue's lands are played). At
 // two seats that is bit 0, bits 1-3 and bits 4-8 of a word.
 const (
 	// freeSpellMV is OpCastFree's C bit 10 (see the operands above).
@@ -58,6 +67,12 @@ const (
 	freeMandatory = 1 << 11
 	// freeLands is OpCastFree's C bit 12 (see the operands above).
 	freeLands = 1 << 12
+	// freeSameName is OpCastFree's C bit 14: a remembered candidate is
+	// offered only when it shares the resolving entry's source object's
+	// printed name (gorge effRipple's CR 201.2 face-name read over the
+	// revealed same-name set; kw_ripple.go's rippleProg; the ripple spell is
+	// a spell, never a land, so its same-name cards are never lands).
+	freeSameName = 1 << 14
 
 	freeSeatBits  = MaxSeats / 2 // one bit at two seats, two at four
 	freeSeatMask  = 1<<freeSeatBits - 1
@@ -67,6 +82,12 @@ const (
 	freePaid      = freeGY << 2
 	freeForget    = freeGY << 3
 	freeLandsOn   = freeGY << 4 // the queue holds a land-capable Play's picks (freeLands): its lands are played
+	freeRemember  = freeGY << 5 // RememberPlayed$ True: the first begun cast is remembered (cast_playremember.go)
+	freeImprint   = freeGY << 6 // ImprintPlayed$ True: every begun card is imprinted on the resolution source (cast_playimprint.go)
+
+	// castFreeImprint is OpCastFree's C bit 15 (the int16 operand's sign
+	// bit; read through uint16): ImprintPlayed$ True.
+	castFreeImprint = 1 << 15
 )
 
 // freeSeatBits holds every seat.
@@ -126,7 +147,12 @@ func (s *State) castFreeFillGen(k *prep, in *kop.Instr, e *stackEntry) {
 		if ob.zone != zone || land && in.C&freeLands == 0 {
 			return true
 		}
-		if in.F != 0 && !DebugFreeFilterIgnored && !s.matchCardGenAt(k, in.F, ob.card, ob.owner(), e.ctrl, o, spellCtx) {
+		// freeSameName: the candidate must share the resolving trigger's
+		// source object's printed name (the ripple spell; CR 201.2).
+		if in.C&freeSameName != 0 && !s.sharesNameSelf(NoSlot, e.obj, NoSlot, ob.card, o, false, false) {
+			return true
+		}
+		if castFreeFilterOn(in, zone) && !s.matchCardGenAt(k, in.F, ob.card, ob.owner(), e.ctrl, o, spellCtx) {
 			return true
 		}
 		if land {
@@ -149,6 +175,20 @@ func (s *State) castFreeFillGen(k *prep, in *kop.Instr, e *stackEntry) {
 	}
 	switch {
 	case in.Obj == kop.RefRemembered:
+		if zone == kop.ZoneLibrary {
+			// gorge effPlay's private-zone walk (engine/effects/play.go):
+			// the library is scanned in the resolving controller's slice
+			// only, in library order. A card remembered while in another
+			// seat's library (Talent of the Telepath's revealed seven) is
+			// remembered but never offered.
+			pl := &s.pl[e.ctrl]
+			for i := int(pl.libLo); i < int(pl.libHi); i++ {
+				if s.remContains(pl.lib[i]) && !add(pl.lib[i]) {
+					return
+				}
+			}
+			break
+		}
 		for i := 0; i < int(s.g.nrem); i++ {
 			if !add(s.g.rem[i]) {
 				return
@@ -161,8 +201,14 @@ func (s *State) castFreeFillGen(k *prep, in *kop.Instr, e *stackEntry) {
 			if o := Obj(e.tgt[slot]); isObjTarget(TCode(o)) {
 				add(o)
 			} else if isPlayerTarget(e.tgt[slot]) {
-				s.castFreeFillHand(CodeSeat(e.tgt[slot]), zone, add) // cast_freetgtplayer.go
+				s.castFreeFillPlayerZone(CodeSeat(e.tgt[slot]), zone, add) // cast_freetgtplayer.go
 			}
+		}
+	case in.Obj == kop.RefTriggerPlayer:
+		// the trigger's player's hand (Mindleech Mass, Silent-Blade Oni: the
+		// seat a DamageDone trigger hit, e.trigPl); none fills nothing
+		if e != nil && e.trigPl != 255 {
+			s.castFreeFillPlayerZone(e.trigPl, zone, add) // cast_freetgtplayer.go
 		}
 	case zone == kop.ZoneHand:
 		pl := &s.pl[e.ctrl]
@@ -213,6 +259,16 @@ func (s *State) castFreeFillGen(k *prep, in *kop.Instr, e *stackEntry) {
 	if in.C&128 != 0 {
 		s.castFreeRepeat(k, in) // cast_freerepeat.go: AllowRepeats$ with Amount$ X
 	}
+}
+
+// remContains reports whether o is in the resolution's remembered set.
+func (s *State) remContains(o Obj) bool {
+	for i := 0; i < int(s.g.nrem); i++ {
+		if s.g.rem[i] == o {
+			return true
+		}
+	}
+	return false
 }
 
 // addFree appends o to the offered free-cast cards; false: the pool is full.

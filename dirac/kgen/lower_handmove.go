@@ -21,7 +21,11 @@ func lineReadsX(v string) bool {
 // starts (s.value) so a zero tally takes nothing. counted marks the "any
 // number" form.
 func (lc *lowerCtx) handMoveCount(n lValue) (counted bool, err error) {
-	counted = n.Kind == vCountHand
+	// Count$ValidHand Card.YouOwn (Valakut Awakening's X) lowers to the
+	// controller's hand size, the same "any number" bound as the Count$ValidHand
+	// walk: gorge reads one zone count over every hand, and the cards you own
+	// there are exactly your hand
+	counted = n.Kind == vCountHand || n.Kind == vHandSizeOf && n.N == 1 && n.Ref.Kind == rYou
 	if !counted && n.Kind != vVoteTally && (!n.isConst() || n.N < 1) {
 		return false, refuse("hand move ChangeNum$ %v", n)
 	}
@@ -208,6 +212,11 @@ func (lc *lowerCtx) handMove(ps *params, f *lFilter, n lValue, flags []string, c
 			return refuse("hand move ForgetOtherRemembered$ %q", v)
 		}
 		cs = append(cs, "ForgetOther")
+	}
+	if imp, err := lc.handMoveImprint(ps, dest); err != nil { // lower_imprintzone.go
+		return err
+	} else if imp {
+		cs = append(cs, "Imprint")
 	}
 	in := lInstr{Op: "ChooseMove", Obj: owner, A: n, F: f, C: dest, CS: strings.Join(cs, "|")}
 	if eachOpp && (owner.Kind == rEachOpp || owner.Kind == rEachPlayer) {

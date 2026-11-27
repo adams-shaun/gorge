@@ -1,0 +1,17 @@
+# CardID index of the pool table, maintained by dirac/kgen: an id never moves.
+0	card	Academy Manufactor
+1	card	Dragon Fodder
+2	card	Forest
+3	card	Gilded Goose
+4	card	Glory Seeker
+5	card	Grizzly Bears
+6	card	Mountain
+7	card	Overencumbered
+8	card	Plains
+9	card	Strike It Rich
+10	card	Thraben Inspector
+11	token	c_a_clue_draw
+12	token	c_a_food_sac
+13	token	c_a_junk_sac_exileplay
+14	token	c_a_treasure_sac
+15	token	r_1_1_goblin

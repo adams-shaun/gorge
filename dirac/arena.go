@@ -188,6 +188,13 @@ func arenaUses(t *kop.Table) (u [numMech]bool) {
 					if kop.KwMask(uint16(in.B.N))<<16&kop.KwFlashbackOwnCost != 0 {
 						u[mechFBLo], u[mechFBHi] = true, true
 					}
+					// a protection keyword's colour-word rewrite marks the
+					// protW..protG runs (static_colorwords.go cwProtGrant)
+					if grantKwMask(&in)&protColKw != 0 {
+						for c := mech(0); c < 5; c++ {
+							u[mechProtW+c], u[mechProtPostW+c] = true, true
+						}
+					}
 				}
 			}
 		}

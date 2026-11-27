@@ -244,12 +244,35 @@ compile-cards: $(BIN_DIR)/forgec
 # synthetic evidence pools' under $(CARDS_DIR)/kernel-synth-tables/<key>. Exit 3
 # means kgen wrote an ids.tsv: the binary embeds the old bytes, so it is rebuilt
 # and rerun. Built, not `go run`, because go run exits 1 whatever the program's
-# status was, which would hide the 3.
+# status was, which would hide the 3. A rerun leaves $(BIN_DIR)/.ids-rewritten
+# behind, for scripts/ci-corpus.sh to refuse marking the shared tree reusable:
+# the tables then carry a key over the rewritten embeds, which no committed
+# tree has (11-26 mred-b74f).
+#
+# -tables and -synth-pools lower the same corpus and write disjoint keyed
+# directories (kernel-tables/ and kernel-synth-tables/), sharing nothing
+# writable: publishTables puts each key directory together atomically and
+# prunes only its own root, and neither run reads the other's output. So they
+# run together and the stage costs max(tables, synth) instead of their sum.
+# CI batch 45936102895 measured 29.8 s in -tables and 14.7 s in -synth-pools
+# serially (prepare's corpus step, gh run view --log --job step timestamps);
+# locally the pair is 9.9 s serial and 5.0 s concurrent, byte-identical output.
+# In the rare exit-3 (ids.tsv rewrite) path the already-started synth run is
+# waited for, then both are rerun with the rebuilt binary; the tree is left
+# unmarked either way, so mixed-key output is never reused.
 dirac-tables:
-	@mkdir -p $(BIN_DIR)
-	go build -o $(BIN_DIR)/kgen ./dirac/cmd/kgen && $(BIN_DIR)/kgen -tables; rc=$$?; \
-	if [ $$rc -eq 3 ]; then go build -o $(BIN_DIR)/kgen ./dirac/cmd/kgen && $(BIN_DIR)/kgen -tables || exit $$?; elif [ $$rc -ne 0 ]; then exit $$rc; fi; \
-	$(BIN_DIR)/kgen -synth-pools
+	@mkdir -p $(BIN_DIR); rm -f $(BIN_DIR)/.ids-rewritten
+	go build -o $(BIN_DIR)/kgen ./dirac/cmd/kgen
+	@$(BIN_DIR)/kgen -synth-pools & sp=$$!; \
+	$(BIN_DIR)/kgen -tables; rc=$$?; \
+	if [ $$rc -eq 3 ]; then touch $(BIN_DIR)/.ids-rewritten; \
+	  wait $$sp || true; \
+	  go build -o $(BIN_DIR)/kgen ./dirac/cmd/kgen && $(BIN_DIR)/kgen -tables && $(BIN_DIR)/kgen -synth-pools || exit $$?; \
+	elif [ $$rc -eq 0 ]; then \
+	  wait $$sp; \
+	else \
+	  wait $$sp || true; exit $$rc; \
+	fi
 
 .PHONY: dirac-slices
 # dirac against gorge on the committed FDN and BLB slices, both surfaces. A divergence, an
@@ -442,8 +465,9 @@ lint-web: web/node_modules/.package-lock.json
 # the board killed every table page, and the one the omniscient-only unit
 # fixtures cannot see), one -spectator omniscient, one SEATED 1v1
 # play-vs-bot server (-vsbot -humans 1), two fixtures, and one server per
-# engine offering all three wires — on smoke ports in
-# 8090-8099, and drives the headless-browser test at web/e2e against them.
+# engine offering all three wires — each on a kernel-assigned port
+# (`-addr 127.0.0.1:0`, read back from the server's startup line), and drives
+# the headless-browser test at web/e2e against them.
 # It fails on any pageerror, any console.error, any failed request to
 # the server's own origin, a page still in its loading state after a bounded
 # wait, or a blank page that never mounts. It also asserts the SEATED layout
@@ -471,6 +495,7 @@ lint: lint-web
 	go vet ./...
 	go run ./cmd/gentypes -check
 	go run ./cmd/funcgrowth -base origin/main
+	go run ./cmd/countgrowth -base origin/main
 
 # seat-check is the fast structural gate to run before finishing a change:
 # formatting, the generated wire types, and the two architecture/shape ratchets.

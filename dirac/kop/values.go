@@ -152,6 +152,7 @@ const (
 	AggSumCounters       = 11 // total of counter kind Expr.Ctr over the matches (CR 122.1)
 	AggPermTypes         = 12 // distinct permanent card types (artifact, battle, creature, enchantment, land, planeswalker) on the matches' faces (CR 110.4; ExGraveAgg only)
 	AggCreatureTypes     = 13 // distinct current creature types among the matches (CR 205.3m), every one for a Changeling
+	AggMostName          = 14 // the greatest number of matches sharing one card name (CR 201.2; gorge Count$MostCardName)
 )
 
 // Expr is a computed amount: Kind over its operands, then *Mul (0 = 1),
@@ -173,7 +174,7 @@ type Expr struct {
 	F2   FilterID // creature-base alternatives rewritten onto Card (gated by WasCreature)
 	F3   FilterID // the spec's non-Creature alternatives
 	F4   FilterID // dest=Battlefield, object off it: the card-base form of F
-	From int8     // -1 = no from_ origin; else the pre-move Zone
+	From int8     // -1 = no from_ origin; else the pre-move Zone (EnteredLastFrom: only the source's latest entry)
 	Prop uint8    // 0 = count; PropCardPower/Toughness/ManaCost sum the face value
 }
 
@@ -183,6 +184,21 @@ const (
 	PropCardToughness       // gorge objectPropertyCardToughness
 	PropCardManaCost        // gorge objectPropertyCardManaCost
 )
+
+// EnteredLastFrom is the Expr.From of an ExThisTurnEntered that reads only
+// the evaluating source's latest entry into the destination, from zone z: the
+// move that is entering now, not an earlier one this turn (gorge reads the
+// triggering move's From; trigmatch ZoneChangeMatches).
+func EnteredLastFrom(z int8) int8 { return z | 0x40 }
+
+// EnteredLastOf splits an Expr.From: the origin zone (-1: none) and whether
+// the read is the source's latest entry only.
+func EnteredLastOf(from int8) (z int8, last bool) {
+	if from >= 0x40 {
+		return from &^ 0x40, true
+	}
+	return from, false
+}
 
 // ExThisTurnCastSpec's Expr.N bits (gorge spellsCastThisTurnMatching).
 const (
@@ -305,6 +321,12 @@ const (
 	// Trap's "an opponent had two or more creatures enter under their
 	// control"). Sub[0] is the bound, read once from the controller's side.
 	OppExtMemberExpr = 9
+	// OppExtRemCtrl: the members that control some object of the
+	// resolution's remembered set (a battlefield permanent's controller,
+	// else its owner), counted once each (gorge
+	// PlayerCountOpponents$HasPropertyIsRememberedOrController: Cut a Deal's
+	// "each opponent who drew a card this way", the drawn cards remembered)
+	OppExtRemCtrl = 10
 )
 
 // ExStepIn is 1 while the game's current step is one of the kop.Step bits

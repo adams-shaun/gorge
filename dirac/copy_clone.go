@@ -137,6 +137,9 @@ func (s *State) cloneBecomers(k *prep, in *kop.Instr, tmpl Slot, ord *[MaxPerm]S
 			m++
 		}
 	}
+	if m > 0 && DebugCharmShapeStats != nil {
+		DebugCharmShapeStats.CloneBecomers += int64(m)
+	}
 	return m
 }
 
@@ -221,6 +224,31 @@ func (s *State) clonePermNote(sl Slot, src Obj, c CardID, idx uint8, ts uint16) 
 	s.cloneSelfHeldGC(sl)
 }
 
+// cloneEOTNote records that slot sl's until-end-of-turn as-enters copy
+// (OpBecomeCopy's BecomeCopyEOT bit, Cursed Mirror's "become a copy ... until
+// end of turn") became the copy of object src: c the card it showed, idx the
+// op's exception override (index+1, 0 none), ts the layer timestamp. One
+// record per permanent, the newest copy's card and timestamp in place, as
+// cloneLayerPrep updates an ExtCloneCopy's; the cleanup step (cloneCleanup)
+// ends it, dropping the copy's exceptions (fxCopyExc) and grants with it.
+//
+//go:noinline
+func (s *State) cloneEOTNote(sl Slot, src Obj, c CardID, idx uint8, ts uint16) {
+	for i := 0; i < int(s.g.nfx); i++ {
+		if r := &s.g.fx[i]; r.sl == sl && r.kind == fxCopyEOT {
+			r.r = ovRec{idx: idx, src: c, p: int16(src), ts: ts}
+			return
+		}
+	}
+	if int(s.g.nfx) >= maxFx {
+		s.stall(StallTables)
+		return
+	}
+	s.g.fx[s.g.nfx] = fxRec{sl: sl, kind: fxCopyEOT, r: ovRec{idx: idx, src: c, p: int16(src), ts: ts}}
+	s.g.nfx++
+	s.fxM.set(sl)
+}
+
 // cloneSelfHeldPush keeps a self-copy layer's inherited exception indices
 // beside the layer, stamped with its timestamp (fxCopySelf). While the layer
 // is on top its live fxCopyExc records hold the same indices; when a newer
@@ -287,6 +315,13 @@ func (s *State) cloneCopy(k *prep, in *kop.Instr) {
 			return
 		}
 		tmpl, c = NoSlot, s.objs[s.g.chosen[0]].card
+	} else if in.B.N&(kop.CloneTmplCard|kop.CloneTmplSac) != 0 {
+		// an off-battlefield template is copied as its printed card
+		var ok bool
+		if c, ok = s.cloneCardTmpl(in); !ok {
+			return
+		}
+		tmpl = NoSlot
 	} else if tmpl = s.cloneTmpl(k, in); tmpl == NoSlot {
 		return // the template left (or was never chosen): nothing happens
 	} else {
@@ -384,7 +419,7 @@ func (s *State) cloneCopy(k *prep, in *kop.Instr) {
 		}
 		p.ovr.kw = p.ovr.kw&^old | s.copyExcKw(k, sl)
 		if !eot {
-			s.clonePermNote(sl, s.perms[tmpl].obj, c, uint8(in.C), ts)
+			s.clonePermNote(sl, src, c, uint8(in.C), ts)
 			if grant != 0 {
 				s.clonePermGrantFrom(sl, grant, s.res.e.card)
 			}
@@ -402,6 +437,7 @@ func (s *State) cloneCopy(k *prep, in *kop.Instr) {
 		return
 	}
 	s.refreshTy(k)
+	s.cloneCardNote(k, in, grant)
 	if st := DebugCloneCopyStats; st != nil {
 		if eot {
 			st.EOT += uint32(made)
@@ -510,7 +546,7 @@ func (s *State) cloneCleanup(k *prep) {
 		s.touchSl(sl)
 		s.subscribe(sl, &k.cards[s.cardAt(sl)], false)
 		if s.permBlank(sl) {
-			s.clearFaceDown(sl) // the ended layer was a face-down template's (copy_facedown.go)
+			s.clearFaceDown(k, sl) // the ended layer was a face-down template's (copy_facedown.go)
 		}
 		p.ovr.flags &^= ovCopy
 		p.ovr.copyOf = 0

@@ -33,13 +33,23 @@ func (s *State) targetOKPermOrSpell(k *prep, t *kop.TargetSpec, p uint8, src Slo
 	ob := &s.objs[o]
 	switch ob.zone {
 	case kop.ZoneBattlefield:
-		return s.matchPerm(k, t.Filter, ob.slot, p, src) && s.objTargetable(k, ob.slot, p)
+		return s.matchPermTgt(k, t.Filter, ob.slot, p, src) && s.objTargetable(k, ob.slot, p)
 	case kop.ZoneStack:
 		if o == self && !DebugPermOrSpellSelf {
 			return false
 		}
 		i := s.stackIndexOf(o)
-		return i >= 0 && s.stack[i].kind == seSpell
+		if i < 0 || s.stack[i].kind != seSpell {
+			return false
+		}
+		// kop.TgfStackOppCtrl (Sink into Stupor, gorge
+		// Card.inZoneStack+OppCtrl): the stack alternative names a spell an
+		// opponent of the chooser controls. The battlefield arm's OppCtrl
+		// rides t.Filter above.
+		if t.TFlags&kop.TgfStackOppCtrl != 0 && s.stack[i].ctrl == p {
+			return false
+		}
+		return true
 	}
 	return false
 }

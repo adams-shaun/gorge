@@ -81,7 +81,7 @@ func (ic *instrCtx) opCastFree() error {
 	ki := &ic.ki
 	in := &ic.in
 	fl := ic.fl
-	// C: zone | AmountOne<<3 | ForgetPlayed<<4 | ReplaceGraveyard<<5 | CopyCard<<6 | Repeat<<7 | Paid<<8 | UpTo<<9 | SpellMV<<10 | Mandatory<<11 | Lands<<12
+	// C: zone | AmountOne<<3 | ForgetPlayed<<4 | ReplaceGraveyard<<5 | CopyCard<<6 | Repeat<<7 | Paid<<8 | UpTo<<9 | SpellMV<<10 | Mandatory<<11 | Lands<<12 | Remember<<13 | ImprintPlayed<<15
 	// (Repeat: A is the copy count, AllowRepeats$ with Amount$ X)
 	// Obj: RefRemembered (P1), a target slot (P2), or
 	// RefNone with F (P3/P4 filter population).
@@ -106,7 +106,7 @@ func (ic *instrCtx) opCastFree() error {
 		ki.C |= 1 << 8 // the copy pays its mana cost (an exile-granted ability's Play)
 	}
 	if _, ok := fl["UpTo"]; ok {
-		ki.C |= 1 << 9 // a literal Amount$ N: the ask closes after A picks
+		ki.C |= 1 << 9 // the Amount$ value A: the ask closes after A picks, the count-0 one offers nothing
 	}
 	if _, ok := fl["SpellMV"]; ok {
 		ki.C |= 1 << 10 // the ValidSA$ mana-value bound reads the spell: a split card counts its front half
@@ -117,6 +117,10 @@ func (ic *instrCtx) opCastFree() error {
 	if _, ok := fl["Lands"]; ok {
 		ki.C |= 1 << 12 // the population may hold lands, offered as land plays (dirac/cast_freeland.go)
 	}
+	if _, ok := fl["Imprint"]; ok {
+		ki.C = int16(uint16(ki.C) | 1<<15) // ImprintPlayed$ True: every begun card joins the source's Imprinted list (dirac/cast_playimprint.go)
+	}
+	ic.castFreeRemember() // lower_playremember.go: C bit 13
 	if err := ic.objFilter(zoneMap[in.C]); err != nil {
 		return err
 	}

@@ -962,6 +962,11 @@
             "description": "DistinctTypePicks requires each picked card to be assigned a different matching ChangeValid alternative (DigMultiple). SetProps lists the alternatives each option satisfies, including overlapping types.",
             "type": "boolean"
           },
+          "divide_total": {
+            "description": "DivideTotal, on a KTarget decision whose spell or ability divides a total among its targets (DividedAsYouChoose$, CR 601.2d / 603.3d), is that total: the engine asks the targets first and the division second, and this lets a client collect both in one prompt. Informational only: Validate ignores it, the follow-up division decision is unchanged. 0 (omitted) means no division follows, so every other decision serialises byte-identically.",
+            "format": "int32",
+            "type": "integer"
+          },
           "groupLimit": {
             "description": "GroupLimit caps how many options ONE Group may contribute to an answer: the sum of the picked options sharing a Group must not exceed it. It is the per-type pick count of Forge's EACH multi-type search grammar (\"EACH Forest & Plains\" with ChangeNum$ 2 finds two Forests and two Plainses), where one Group is one listed type and its cap is ChangeNum -- a cap the single-pick exclusivity rule cannot express. 0 or 1 reads as the ordinary at-most-one-per-Group rule, so every existing decision serialises byte-identically and validates unchanged. Validate is the rule's one home; FitRequired and botpolicy's Clamp derive the same cap from GroupCap, never a second copy.",
             "format": "int64",

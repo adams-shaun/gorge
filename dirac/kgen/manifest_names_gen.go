@@ -821,6 +821,12 @@ func init() { enum[kop.ExprKind]("kop.ExWasCastFromYourLibrary", kop.ExWasCastFr
 // dirac/manifest/ExprKind/ExXColorPaid
 func init() { enum[kop.ExprKind]("kop.ExXColorPaid", kop.ExXColorPaid) }
 
+// dirac/manifest/ExprKind/ExAtkYouLastTurn
+func init() { enum[kop.ExprKind]("kop.ExAtkYouLastTurn", kop.ExAtkYouLastTurn) }
+
+// dirac/manifest/ExprKind/ExDelayedExileCount
+func init() { enum[kop.ExprKind]("kop.ExDelayedExileCount", kop.ExDelayedExileCount) }
+
 // dirac/manifest/ExprKind/ExDevotionChosen
 func init() { enum[kop.ExprKind]("kop.ExDevotionChosen", kop.ExDevotionChosen) }
 
@@ -1185,8 +1191,14 @@ func init() { enum[kop.KwID]("kop.KwUnearth", kop.KwUnearth) }
 // dirac/manifest/Pred/PredNamedCard
 func init() { enum[kop.Pred]("kop.PredNamedCard", kop.PredNamedCard) }
 
+// dirac/manifest/Pred/PredCastFaceDown
+func init() { enum[kop.Pred]("kop.PredCastFaceDown", kop.PredCastFaceDown) }
+
 // dirac/manifest/Pred/PredGoaded
 func init() { enum[kop.Pred]("kop.PredGoaded", kop.PredGoaded) }
+
+// dirac/manifest/Pred/PredKickedAlt
+func init() { enum[kop.Pred]("kop.PredKickedAlt", kop.PredKickedAlt) }
 
 // dirac/manifest/Pred/PredMonarchCtrl
 func init() { enum[kop.Pred]("kop.PredMonarchCtrl", kop.PredMonarchCtrl) }
@@ -1205,6 +1217,24 @@ func init() { enum[kop.Pred]("kop.PredSharesCrCmdr", kop.PredSharesCrCmdr) }
 
 // dirac/manifest/Pred/PredStatBox
 func init() { enum[kop.Pred]("kop.PredStatBox", kop.PredStatBox) }
+
+// dirac/manifest/Ref/RefAttackedBySource
+func init() { enum[kop.Ref]("kop.RefAttackedBySource", kop.RefAttackedBySource) }
+
+// dirac/manifest/Ref/RefEquippedByEnchanted
+func init() { enum[kop.Ref]("kop.RefEquippedByEnchanted", kop.RefEquippedByEnchanted) }
+
+// dirac/manifest/Ref/RefTargetCtrlLive
+func init() { enum[kop.Ref]("kop.RefTargetCtrlLive", kop.RefTargetCtrlLive) }
+
+// dirac/manifest/Ref/RefTargets0
+func init() { enum[kop.Ref]("kop.RefTargets0", kop.RefTargets0) }
+
+// dirac/manifest/Ref/RefTriggerSpellTarget
+func init() { enum[kop.Ref]("kop.RefTriggerSpellTarget", kop.RefTriggerSpellTarget) }
+
+// dirac/manifest/Ref/RefTriggerSpellTargets
+func init() { enum[kop.Ref]("kop.RefTriggerSpellTargets", kop.RefTriggerSpellTargets) }
 
 // dirac/manifest/ReplKind/ReplBeginPhase
 func init() { enum[kop.ReplKind]("kop.ReplBeginPhase", kop.ReplBeginPhase) }
@@ -1290,8 +1320,14 @@ func init() { enum[kop.ReplKind]("kop.ReplDamageMinus", kop.ReplDamageMinus) }
 // dirac/manifest/ReplKind/ReplDamageSet
 func init() { enum[kop.ReplKind]("kop.ReplDamageSet", kop.ReplDamageSet) }
 
+// dirac/manifest/ReplKind/ReplDrawProgram
+func init() { enum[kop.ReplKind]("kop.ReplDrawProgram", kop.ReplDrawProgram) }
+
 // dirac/manifest/ReplKind/ReplLifeReduced
 func init() { enum[kop.ReplKind]("kop.ReplLifeReduced", kop.ReplLifeReduced) }
+
+// dirac/manifest/ReplKind/ReplTurnUpAttach
+func init() { enum[kop.ReplKind]("kop.ReplTurnUpAttach", kop.ReplTurnUpAttach) }
 
 // dirac/manifest/StaticKind/StatOptionalAttackCost
 func init() { enum[kop.StaticKind]("kop.StatOptionalAttackCost", kop.StatOptionalAttackCost) }
@@ -1456,11 +1492,29 @@ func init() { enum[kop.StaticKind]("kop.StatRetraceGrant", kop.StatRetraceGrant)
 // dirac/manifest/StaticKind/StatColorWords
 func init() { enum[kop.StaticKind]("kop.StatColorWords", kop.StatColorWords) }
 
+// dirac/manifest/StaticKind/StatCyclingAlt
+func init() { enum[kop.StaticKind]("kop.StatCyclingAlt", kop.StatCyclingAlt) }
+
 // dirac/manifest/StaticKind/StatCyclingGrant
 func init() { enum[kop.StaticKind]("kop.StatCyclingGrant", kop.StatCyclingGrant) }
 
 // dirac/manifest/StaticKind/StatDefenderAssigns
 func init() { enum[kop.StaticKind]("kop.StatDefenderAssigns", kop.StatDefenderAssigns) }
+
+// dirac/manifest/StaticKind/StatDefiler
+func init() { enum[kop.StaticKind]("kop.StatDefiler", kop.StatDefiler) }
+
+// dirac/manifest/StaticKind/StatEquipFlash
+func init() { enum[kop.StaticKind]("kop.StatEquipFlash", kop.StatEquipFlash) }
+
+// dirac/manifest/StaticKind/StatGraveNoAbilities
+func init() { enum[kop.StaticKind]("kop.StatGraveNoAbilities", kop.StatGraveNoAbilities) }
+
+// dirac/manifest/StaticKind/StatLoyaltyFlash
+func init() { enum[kop.StaticKind]("kop.StatLoyaltyFlash", kop.StatLoyaltyFlash) }
+
+// dirac/manifest/StaticKind/StatMadnessGrant
+func init() { enum[kop.StaticKind]("kop.StatMadnessGrant", kop.StatMadnessGrant) }
 
 // dirac/manifest/StaticKind/StatMiracleGrant
 func init() { enum[kop.StaticKind]("kop.StatMiracleGrant", kop.StatMiracleGrant) }
@@ -1704,6 +1758,9 @@ func init() { enum[kop.TrigEvent]("kop.TrigVisitAttraction", kop.TrigVisitAttrac
 
 // dirac/manifest/TrigEvent/TrigLeaveExile
 func init() { enum[kop.TrigEvent]("kop.TrigLeaveExile", kop.TrigLeaveExile) }
+
+// dirac/manifest/TrigEvent/TrigPlayerCounterAdded
+func init() { enum[kop.TrigEvent]("kop.TrigPlayerCounterAdded", kop.TrigPlayerCounterAdded) }
 
 // dirac/manifest/TypeMask/TVanguard
 func init() { mask[kop.TypeMask]("kop.TVanguard", kop.TVanguard) }

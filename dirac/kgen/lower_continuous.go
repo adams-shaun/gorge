@@ -139,6 +139,17 @@ func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
 		return nil, err
 	}
 	st.F = f
+	if v, ok := sp.get("LethalDamageByPower"); ok {
+		// Zilortha, Strength Incarnate: lethal damage to the affected
+		// creatures is judged by power (gorge LethalDamageThreshold;
+		// kop.StatLethalByPower). Any effect param beside it stays unread
+		// and refuses.
+		if strings.TrimSpace(v) != "True" {
+			return nil, refuse("LethalDamageByPower %q", v)
+		}
+		st.Kind = "LethalByPower"
+		return nil, nil
+	}
 	if gc, ok := sp.get("GainControl"); ok {
 		// layer 2 (CR 613.1b): "You control enchanted creature";
 		// the kernel settles it on the source's attached object, so the
@@ -238,11 +249,11 @@ func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
 	if r, ok := sp.get("RemoveKeyword"); ok {
 		// a layer-6 removal beside the Continuous parts (Starforged
 		// Sword's "gets +3/+3 and loses flying"): an Override carrying it
-		ks, err := removeKeywords(r)
+		ks, lw, err := lc.removeKeywordsAndLandwalk(r)
 		if err != nil {
 			return nil, err
 		}
-		st.Override = &lOverride{RemoveKw: ks}
+		st.Override = &lOverride{RemoveKw: ks, RemoveLandwalk: lw}
 		lc.out.overrides = append(lc.out.overrides, st.Override)
 		if err := cantHaveKeyword(sp, st); err != nil {
 			return nil, err // lower_canthavekw.go
@@ -292,7 +303,15 @@ func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
 		rest, livingWeapon := splitLivingWeaponGrant(rest) // lower_livingweapongrant.go
 		rest, extort := splitExtortGrant(rest)             // lower_extortgrant.go
 		rest, myriad := splitMyriadGrant(rest)             // lower_myriad.go
-		rest, err = lc.splitProtGrant(rest, st)            // lower_protgrant.go
+		rest, afterlife, err := splitAfterlifeGrant(rest)  // lower_afterlifegrant.go
+		if err != nil {
+			return nil, err
+		}
+		rest, attackKws, err := splitAttackKwGrant(rest) // lower_attackkwgrant.go
+		if err != nil {
+			return nil, err
+		}
+		rest, err = lc.splitProtGrant(rest, st) // lower_protgrant.go
 		if err != nil {
 			return nil, err
 		}
@@ -300,7 +319,9 @@ func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
 		if err != nil {
 			return nil, err
 		}
-		rest, st.Evasion, st.Infect = splitStaticKwMarks(rest) // lower_kwmark.go
+		rest, st.Evasion, st.Infect, st.Toxic = splitStaticKwMarks(rest) // lower_kwmark.go
+		rest, st.Riot = splitStaticRiotGrant(rest)                       // lower_riotgrant.go
+		rest, st.Unleash = splitStaticUnleashGrant(rest)                 // lower_unleash.go
 		if rest, err = lc.staticBandingGrant(sp, st, rest); err != nil {
 			return nil, err // lower_banding.go
 		}
@@ -361,6 +382,26 @@ func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
 			// once per instance (lower_extortgrant.go; gorge
 			// rules/scriptfacts)
 			idx, err := lc.extortGrantTrigger()
+			if err != nil {
+				return nil, err
+			}
+			st.Grant = append(st.Grant, idx)
+		}
+		for _, n := range afterlife {
+			// CR 702.135a granted: one latent dies trigger per grant
+			// (lower_afterlifegrant.go; gorge
+			// scriptfacts.GrantedKeywordTrigger)
+			idx, err := lc.afterlifeGrantTrigger(n)
+			if err != nil {
+				return nil, err
+			}
+			st.Grant = append(st.Grant, idx)
+		}
+		for _, line := range attackKws {
+			// CR 702.86a / 702.91a granted: one latent Attacks Self trigger
+			// per grant (lower_attackkwgrant.go; gorge
+			// scriptfacts.GrantedKeywordTrigger)
+			idx, err := lc.attackKwGrantTrigger(line)
 			if err != nil {
 				return nil, err
 			}

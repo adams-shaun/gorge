@@ -1,0 +1,12 @@
+# the GainsAbilitiesOf untyped-source pool: Territory Forge exiles an artifact or land and has its
+# activated abilities (dirac/oracle/animatekernelsurfaces_lockstep_test.go)
+Territory Forge
+Mind Stone
+Darksteel Relic
+Savannah Lions
+Elite Vanguard
+Island
+Mountain
+Plains
+Mirran Safehouse
+Wasteland

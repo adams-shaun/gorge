@@ -131,6 +131,17 @@ const (
 	Tf5OptSrcCtrl TrigFlags5 = 1 << 6
 )
 
+// Tf5CastNoColoredMana (Trigger.Flags5, bit 0, shared with
+// Tf5FirstCardInDrawStep: that flag is set only on a Drawn line and this one
+// only on a SpellCast line, so no trigger carries both; readers scope the bit
+// by event, as the Tf4CauseSpellAb / Tf4NthFiltered pair does): a SpellCast
+// line's NoColoredMana$ True (Void Mirror, "if no colored mana was spent to
+// cast it"): it fires only for a cast whose payment spent no mana of any
+// colour (gorge trigmatch SpellCastEval over Object.ManaColorSpent, Forge
+// TriggerSpellAbilityCastOrCopy). The kernel reads the spell entry's
+// per-colour spend (stackEntry.spc, trig_nocoloredmana.go).
+const Tf5CastNoColoredMana TrigFlags5 = 1 << 0
+
 // TrigEvent is a triggered ability's subscription: the event kind it listens
 // for. The kernel keeps, per event, a bitmask of battlefield slots whose card
 // has a trigger on it, so an event only scans the subscribers. Append-only.
@@ -320,6 +331,7 @@ const (
 	TrigAbCastLoyalty    int16 = 2 // Activated.Loyalty
 	TrigAbCastLoyaltyOpp int16 = 3 // Activated.Loyalty+OppCtrl
 	TrigAbCastAny        int16 = 4 // ValidSA$ SpellAbility beside TargetsValid$ (Tf2TargetsFilter2 + Filter2): any activated ability whose chosen targets match, read once its targets are chosen (Ertha Jo, Frontier Mentor); the queued trigger carries the activated entry's stack identity in its trigAmt (ExtCopyAbility reads it)
+	TrigAbCastActivated  int16 = 5 // ValidSA$ SpellAbility.!ManaAbility: any non-mana activated ability of the trigger's Filter card (Harsh Mentor); the kernel fires it from the activated stack entry only, never from fireManaAbilityCast
 )
 
 // TokenRider flags (OpCreateToken's B.N).
@@ -341,6 +353,7 @@ const (
 	DmgDivideEvenly                    // OpDealDamageDivided only: no division is chosen; A is divided by the slot's legal targets at resolution, rounded down, each taking the quotient (Fireball's DivideEvenly$ RoundedDown; gorge divideEvenlyDown)
 	DmgNoRegenTarget                   // OpDealDamageEx: the target object can't be regenerated this turn once the damage step ran, whether or not damage above 0 was dealt (Rage of Purphoros' ParentTarget follow-up; same arena mark as DmgNoRegen)
 	DmgNoPrevention                    // OpDealDamageEx: the damage can't be prevented (CR 615.12; DealDamage NoPrevention$ True, gorge's dmgNoPrevention read by cantPreventDamage; Arrow Storm's raid half)
+	DmgLockGain                        // OpDealDamageEx: a player dealt damage above 0 can't gain life for the rest of the game (Screaming Nemesis' RememberDamaged$ player beside its permanent CantGainLife Effect; the player's pmNoGain mark)
 )
 
 // TrigFlags2 (Trigger.Flags2).
@@ -459,6 +472,21 @@ func DmgGatePass(n int16, total int) bool {
 	return false
 }
 
+// Tf2UnblockedOnce: BecomesBlocked lowered from Mode$ AttackerUnblockedOnce
+// (gorge checkAttackerUnblockedOnceTriggers): at the declare-blockers
+// completion, ONE trigger per combat when at least one matching unblocked
+// attacker attacks the listener's controller (Coveted Jewel).
+//
+// Bit 26, shared with Tf2SrcInPlay: TrigFlags2 has no free bit. Tf2SrcInPlay
+// is set and read only on DamageDone / DamageDealtOnce lines
+// (fireDamageSrc, trig_gravedamage.go, emblemSourceOK), and every
+// Tf2UnblockedOnce reader tests a.Trig.Event == TrigBecomesBlocked first
+// (tableUnblocked, fireBlockedGen, fireUnblockedOnce), so the two
+// event-disjoint flags cannot collide -- the Tf2SpellToo / Tf2SpentBound
+// precedent. Never a bit any event-blind path reads (Tf2Evolve, bit 30, is
+// read by objTrigGen for every event).
+const Tf2UnblockedOnce TrigFlags2 = 1 << 26
+
 // Tf2Attacked is the Attacked$ defender set (gorge attackedDefenderMatches):
 // with any of these bits the Attacks trigger fires only for attackers whose
 // defender is in the set.
@@ -556,6 +584,17 @@ const Tf2ToGraveHalf TrigFlags2 = 1 << 24
 // evaluated on the caster). An explicit value, not an iota step: kgen's
 // whoNonActive (dirac/kgen/lower_castnonactive.go) must equal it.
 const WhoseNonActive Whose = 200
+
+// WhoseActive / WhoseOppActive: a player-event trigger whose ValidPlayer$ is
+// Player.Active / Opponent.Active: the event's player is the active player
+// (and, for the Opp form, an opponent of the listener's controller), gorge
+// playerSpecQualifierActive (engine/effects/player_filter.go: p == g.Active).
+// Explicit values beside WhoseNonActive: kgen's whoActive / whoOppActive
+// (dirac/kgen/lower_playeractive.go) must equal them.
+const (
+	WhoseActive    Whose = 205
+	WhoseOppActive Whose = 206
+)
 
 // Tf2ManaFromSelf (Trigger.Flags2): SpellCast, ValidSA$
 // Spell.ManaFromCard.StrictlySelf -- the cast's payment tapped the

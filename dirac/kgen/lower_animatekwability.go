@@ -12,6 +12,7 @@ import (
 // override grants (gorge mints it with cards.GrantedKeywordAbility, the
 // printed kwEquip expander's body on a scratch face). The latent keeps the
 // expander's Name "Equip" (set by attach) so build marks it kop.AfEquip.
+// Each "Toxic:N" word is kop.Override.Toxic's amount (lower_toxicgrant.go).
 // The remaining words return joined for pumpKeywords. Any other
 // activated-keyword head stays there and refuses by name.
 //
@@ -24,6 +25,10 @@ func (lc *lowerCtx) animateGrantedKeywordAbilities(kw string, o *lOverride) (str
 	var rest []string
 	for _, w := range strings.Split(kw, "&") {
 		w = strings.TrimSpace(w)
+		if n, ok := toxicTerm(w); ok && int(o.Toxic)+n <= 255 {
+			o.Toxic += uint8(n) // granted toxic N, summed (lower_toxicgrant.go)
+			continue
+		}
 		if cards.KeywordHead(w) != "Equip" {
 			rest = append(rest, w)
 			continue

@@ -17,6 +17,7 @@ func init() {
 	instrOp("DealDamageFrom", (*instrCtx).opDealDamageFrom)
 	instrOp("Bite", (*instrCtx).opBite)
 	instrOp("Fight", (*instrCtx).opBite)
+	instrOp("FightRemembered", (*instrCtx).opFightRemembered)
 	instrOp("EachDamage", (*instrCtx).opEachDamage)
 	instrOp("DmgMark", (*instrCtx).opDmgMark)
 	instrOp("DmgRedirect", (*instrCtx).opDmgRedirect)
@@ -50,6 +51,9 @@ func (ic *instrCtx) opDealDamage() error {
 	}
 	if _, ok := fl["Remember"]; ok {
 		c |= kop.DmgRemember
+	}
+	if _, ok := fl["LockGain"]; ok {
+		c |= kop.DmgLockGain // lower_lockgain.go
 	}
 	if _, ok := fl["ExileIfDealt"]; ok {
 		c |= kop.DmgExileIfDealt
@@ -225,6 +229,12 @@ func (ic *instrCtx) opDealDamageFrom() error {
 		ki.C, ki.B = 0, kop.Const(kop.DmgFromEachCtrl)
 		return nil
 	}
+	if in.CS == "eachattached" {
+		// the RepeatEach Aura deals to the permanent it is attached to
+		// (lower_damagesourcevalid.go): B.N DmgFromEachAttached
+		ki.C, ki.B = 0, kop.Const(kop.DmgFromEachAttached)
+		return nil
+	}
 	if in.CS == "anytgt" {
 		// the slot may name a player or a permanent (lower_damagesourceplayers.go)
 		r, err := cb.ref(lRef{Kind: rTarget, N: in.C})
@@ -248,6 +258,9 @@ func (ic *instrCtx) opBite() error {
 	cb := ic.cb
 	fl := ic.fl
 	ki.Op = kop.OpBite
+	if _, ok := fl["ExcessTrample"]; ok && in.Op == "Bite" {
+		ki.A = kop.Const(kop.BiteExcessTrample) // lower_effect_damage.go biteExcess
+	}
 	if in.Op == "Fight" {
 		ki.Op = kop.OpFight
 		if _, ok := fl["TrackExcess"]; ok {
@@ -255,6 +268,22 @@ func (ic *instrCtx) opBite() error {
 		}
 	}
 	r, err := cb.ref(lRef{Kind: rTarget, N: in.C})
+	if err != nil {
+		return err
+	}
+	ki.C = int16(r)
+	return nil
+}
+
+// opFightRemembered is the batched RepeatEach body's Fight over
+// Defined$ Imprinted & Remembered (Ezuri's Predation): Obj is the loop
+// subject (RefEach), Obj2 the resolution's remembered token (RefRemembered),
+// and the two fight each other (OpFight's C target).
+func (ic *instrCtx) opFightRemembered() error {
+	ki := &ic.ki
+	in := &ic.in
+	ki.Op = kop.OpFight
+	r, err := ic.cb.ref(in.Obj2)
 	if err != nil {
 		return err
 	}
@@ -294,6 +323,15 @@ func (ic *instrCtx) opDmgRedirect() error {
 	in := &ic.in
 	// OpExt ExtDmgRedirect, Obj the recipient, C the kop.DmgRedirect* kind (dirac/repl_dmgredirect.go)
 	ki.Op, ki.A, ki.C = kop.OpExt, kop.Const(int(kop.ExtDmgRedirect)), int16(in.C)
+	if in.Obj2.Kind != rNone {
+		// DmgRedirectHost (Daughter of Autumn): Obj2 names the damaged host,
+		// the resolving host permanent is the recipient
+		r, err := ic.cb.ref(in.Obj2)
+		if err != nil {
+			return err
+		}
+		ki.W = r
+	}
 	return nil
 }
 

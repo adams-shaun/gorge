@@ -5,17 +5,19 @@
 # GitHub-hosted runners, so it takes nothing from the self-hosted boxes the queue runs on. A run still
 # going when the next one is due finishes first; the next one waits rather than cancelling it.
 #
-# The cadence is kept by the due job, not by the cron. GitHub delays scheduled events by hours under load and
-# drops some outright (no run is created): with '23 */6 * * *', 11-17..11-19 every 06:23 and 18:23 event was
-# dropped and the 12:23 ones arrived 3-4 hours late, so the oracle ran about twice a day, and after the 00:30 run
-# on 11-19 nothing ran for 10 hours while TestTgteachoppMutation sat red on main. The cron fires hourly and
-# due starts the oracle only when no run of it started in the last 1h45m; a dropped event costs an hour.
+# The cadence is kept by the due job, not by the cron. GitHub does not deliver this account's scheduled events
+# reliably: over 26 scheduled oracle runs (11-17..11-27) the gaps were min 5.0 h, median 8.8 h, mean 9.2 h, max
+# 20.3 h despite an hourly cron, and this repo's own 10-minute queue-precheck cron is throttled the same way. So
+# the oracle also runs on every push to main (delivered immediately), where the same due job
+# starts it only when no run started in the last 1h45m; a throttle gap can no longer hide a red main for hours.
 # A manual dispatch always runs.
 name: oracle
 
 on:
   schedule:
     - cron: '23 * * * *'
+  push:
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -41,17 +43,29 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          if [ "$GITHUB_EVENT_NAME" != schedule ]; then echo "run=true" >> "$GITHUB_OUTPUT"; exit 0; fi
+          if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ]; then echo "run=true" >> "$GITHUB_OUTPUT"; exit 0; fi
           now=$(date +%s)
           last=""
-          while read -r id at; do
-            [ $((now - $(date -d "$at" +%s))) -ge 6300 ] && break
+          while read -r id at concl; do
+            age=$((now - $(date -d "$at" +%s)))
+            [ "$age" -ge 6300 ] && break
             # a run whose due job skipped its oracle jobs does not count
             n=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$id/jobs?per_page=50" \
               --jq '[.jobs[] | select(.name | startswith("oracle")) | select(.conclusion != "skipped")] | length')
-            if [ "$n" -gt 0 ]; then last="$id $at"; break; fi
+            if [ "$n" -gt 0 ]; then
+              # A green run keeps the full 1h45m window. A failed oracle run still counts as
+              # "ran", but only for 30m: a red whole-oracle must not hide behind its own
+              # failure for the rest of the cadence.
+              window=6300
+              if [ "$concl" = failure ]; then
+                window=1800
+                echo "oracle run $id $at concluded failure; retry window 30m"
+              fi
+              [ "$age" -lt "$window" ] && last="$id $at"
+              break
+            fi
           done < <(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/oracle.yml/runs?branch=main&per_page=30" \
-            --jq ".workflow_runs[] | select(.id != $GITHUB_RUN_ID) | select(.conclusion != \"cancelled\") | \"\(.id) \(.created_at)\"")
+            --jq ".workflow_runs[] | select(.id != $GITHUB_RUN_ID) | select(.conclusion != \"cancelled\") | \"\(.id) \(.created_at) \(.conclusion)\"")
           if [ -n "$last" ]; then
             echo "oracle ran recently (run $last): not due"
             echo "run=false" >> "$GITHUB_OUTPUT"
@@ -188,13 +202,20 @@ jobs:
         id: bisect
         if: steps.pin.outcome == 'success'
         run: bash scripts/oracle-bisect.sh "${{ steps.good.outputs.good }}" "$GITHUB_SHA" failing.txt
+      # REGEN_TOKEN, never github.token: a PR opened or pushed with GITHUB_TOKEN starts no CI (its ci/docs runs sit at
+      # action_required), so the revert could never pass the queue (11-26: #5150 waited with no checks). The checkout's
+      # GITHUB_TOKEN header is dropped so the push goes out as the user token.
       - name: Open a draft revert PR
         if: steps.bisect.outcome == 'success' && steps.bisect.outputs.pr != ''
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.REGEN_TOKEN }}
           PR: ${{ steps.bisect.outputs.pr }}
           CULPRIT: ${{ steps.bisect.outputs.culprit }}
         run: |
+          [ -n "$GH_TOKEN" ] || { echo "::error::secrets.REGEN_TOKEN is empty: a GITHUB_TOKEN revert PR starts no CI, so none is opened. Culprit #$PR ($CULPRIT)."; exit 1; }
+          echo "::add-mask::$GH_TOKEN"
+          git config --unset-all http.https://github.com/.extraheader || true
+          export GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0="url.https://x-access-token:${GH_TOKEN}@github.com/.insteadOf" GIT_CONFIG_VALUE_0="https://github.com/"
           git config user.name "gorge oracle bisect"
           git config user.email "noreply@github.com"
           br="hotfix/auto-revert-$PR"

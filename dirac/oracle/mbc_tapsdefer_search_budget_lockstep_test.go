@@ -16,11 +16,12 @@ import (
 // 163 clones -- three past the pair's stated 160 -- so gorge's search was
 // budget-limited, dropped the offer, and the kernel's mirror still priced the
 // play (options options, decision 491 of 491; pool tail-34). The limit is the
-// pair's stated capacity, so it moved to 164 on both sides (rules
-// potential_script.go, dirac/mana_filter.go): the smallest limit past the 163
-// clones, because a larger one (176, 192) moves other plays over the same
+// pair's stated capacity: it moved to 164 on both sides (the smallest limit
+// past the 163 clones, because 176 and 192 moved other plays over the same
 // boundary -- the kernel's fee-order run prices Otawara's channel in its last
-// nodes where gorge's phased run does not. The kernel's name
+// nodes where gorge's phased run does not), and the pair later raised it to
+// potentialScriptNodes (600) for repeatable fee-only filters and multi-gap
+// sources, so this board now clears it. The kernel's name
 // TestMBCNeurokStealthsuitReprosLockstep is taken by an earlier Stealthsuit
 // ticket, so this one names its cause.
 func TestMBCTapsdeferSearchBudgetReprosLockstep(t *testing.T) {

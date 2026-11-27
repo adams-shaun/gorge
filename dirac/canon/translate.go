@@ -184,6 +184,13 @@ func (r *Translator) Action(a dirac.Action) Canon {
 			cm, _ := CastModeCode("mayplay")
 			return Pack(ActCast, src, RefNone, cm)
 		}
+		if mode&1 != 0 && dirac.FeatKickAltSel(uint8(tgt)) != 0 &&
+			dirac.FeatKicker2(&r.Tbl.Cards[r.S.ObjCard(dirac.Obj(src))]) {
+			// the two-alternative Kicker's per-alternative cast the target
+			// byte names (CR 702.33b; kw_kickalt.go): gorge's
+			// "kicked1"/"kicked2"/"kickedboth" cast option
+			return Pack(ActCastKickedAlt, src, RefNone, dirac.FeatKickAltSel(uint8(tgt)))
+		}
 		if mode&(dirac.FeatCastPlotted|dirac.FeatCastMayPlay) == dirac.FeatCastPlotted {
 			// a plotted card cast from exile (CR 702.170b): gorge's
 			// "plot_cast" face route (kw_plot.go)
@@ -251,6 +258,18 @@ func (r *Translator) Action(a dirac.Action) Canon {
 			// the card's own mana alternative cost (Blasphemous Edict's {B};
 			// kernel cast_altfree.go castAltTgt): gorge's
 			// alternativeCosts cast, mode "", AltCostIndex 1
+			cm = 1 << 4
+		case mode == 0 && tgt > dirac.FeatCastAltIdxTgt && tgt <= dirac.FeatCastAltIdxTgt+dirac.FeatMaxAltGrants && r.S.ObjZone(dirac.Obj(src)) == kop.ZoneHand:
+			// a granted mana alternative cost (Fist of Suns, Rooftop Storm;
+			// kernel cast_altgrant.go): the target byte is the entry's
+			// AltCostIndex in gorge's alternativeCosts list
+			cm = uint8(tgt-dirac.FeatCastAltIdxTgt) << 4
+		case mode == 0 && tgt == 1 && r.S.ObjZone(dirac.Obj(src)) == kop.ZoneGraveyard:
+			// the same alternative from the graveyard (kernel
+			// cast_gravealt.go offerGraveyardAltCasts; gorge
+			// legal_walk_grave_altcost.go, a card's own EffectZone$
+			// Graveyard static): gorge's alternativeCosts cast, mode "",
+			// the same AltCostIndex
 			cm = 1 << 4
 		case mode&dirac.FeatCastWarp != 0:
 			cm, _ = CastModeCode("warped") // a hand cast for its warp cost (kw_warp.go)
@@ -330,7 +349,25 @@ func (r *Translator) Action(a dirac.Action) Canon {
 		return Pack(ActSpecial, src, RefNone, c|(mode+1)<<4) // mode = the door (face_rooms.go)
 	case dirac.AkTurnFaceUp:
 		c, _ := SpecialCode("turn_face_up")
-		return Pack(ActSpecial, src, RefNone, c|mode<<4) // mode = the turn-up procedure
+		proc := mode
+		if proc == 0 {
+			// mode 0 is the face-down cast's own keyword procedure; the
+			// canonical grammar names it by the printed family (morph 3,
+			// megamorph 4, disguise 5), the same sub-mode an effect-turned-
+			// down permanent's keyword procedure carries.
+			cid := r.S.ObjCard(dirac.Obj(src))
+			if int(cid) < len(r.Tbl.Cards) {
+				switch r.Tbl.Cards[cid].MorphFamily {
+				case 1:
+					proc = 3
+				case 2:
+					proc = 4
+				case 3:
+					proc = 5
+				}
+			}
+		}
+		return Pack(ActSpecial, src, RefNone, c|proc<<4) // mode = the turn-up procedure
 	case dirac.AkActivate:
 		if r.stationAbility(dirac.Obj(src), mode) {
 			c, _ := SpecialCode("station") // gorge's priority option (rules/station.go)
@@ -338,6 +375,14 @@ func (r *Translator) Action(a dirac.Action) Canon {
 		}
 		if c, ok := r.grantedOrGained(src, tgt, mode); ok {
 			return c
+		}
+		if c, ok := r.altActivation(dirac.Obj(src), mode); ok {
+			return Pack(ActActivate, src, RefNone, c)
+		}
+		if of := r.cyclingAltOf(dirac.Obj(src), mode); of != 0 {
+			// the cycling alternative cost's twin (kop.StatCyclingAlt): gorge's
+			// ability option at AltCostIndex 1, over the printed cycling's index
+			return Pack(ActActivate, src, RefNone, CyclingAltBit|r.FaceAbility(dirac.Obj(src), of-1, false))
 		}
 		return Pack(ActActivate, src, RefNone, r.FaceAbility(dirac.Obj(src), mode, false))
 	case dirac.AkAttack:
@@ -496,6 +541,11 @@ func (r *Translator) Action(a dirac.Action) Canon {
 			return r.combatDamageChoose(src, mode)
 		case dirac.ChAltAdd:
 			return ch("altaddcost", RefNone, mode)
+		case dirac.ChCostChosenEnc:
+			// gorge revealCostOrChooseAsk's Close Encounter choose-cost pick:
+			// the option kind "choosecost" over the chosen object (CR 601.2b,
+			// 601.2h; dirac cost_closeenc.go)
+			return ch("choosecost", src, 0)
 		case dirac.ChCostForage:
 			// gorge forageAsk: forage_exile (no object), forage_food
 			if mode == 1 {
@@ -526,6 +576,10 @@ func (r *Translator) Action(a dirac.Action) Canon {
 			return ch("gift_decline", RefNone, 0)
 		case dirac.ChGenManifestDread:
 			return ch("manifest_dread", src, 0)
+		case dirac.ChGenEachOrder:
+			// gorge repeatEachChooseOrder's KChoose option kind "order" over
+			// the repeated card (act_eachorder.go)
+			return ch("order", src, 0)
 		}
 		return r.numberChoose(src, mode) // translate_paylife.go
 	}
@@ -570,6 +624,26 @@ func (r *Translator) FaceAbility(o dirac.Obj, idx uint8, _ bool) uint8 {
 		return MaxSpeedCode(r.Tbl.Cards[c].Abilities, int(idx))
 	}
 	return r.CardAbility(r.KP.Objs[o].Card, idx)
+}
+
+// CyclingAltBit marks a canonical activation as the cycling alternative cost's
+// (a New Perspectives static, kop.StatCyclingAlt): the printed cycling
+// ability's face index with this bit, the way gorge lists it as an "ability"
+// option at AltCostIndex 1 (activate_static_altcost.go). Face indexes stay
+// below it and the max-speed codes (MaxSpeedBase) above its range.
+const CyclingAltBit uint8 = 0x40
+
+// cyclingAltOf is 1 + the printed ability index ability idx of object o is the
+// cycling alternative cost's twin of (kop.Ability.CycAltOf), 0 for any other.
+func (r *Translator) cyclingAltOf(o dirac.Obj, idx uint8) uint8 {
+	if int(o) >= int(r.KP.NObj) {
+		return 0
+	}
+	c := r.KP.Objs[o].Card
+	if int(c) >= len(r.Tbl.Cards) || int(idx) >= len(r.Tbl.Cards[c].Abilities) {
+		return 0
+	}
+	return r.Tbl.Cards[c].Abilities[idx].CycAltOf
 }
 
 // stationAbility reports whether ability idx of object o is a Station
@@ -790,6 +864,30 @@ func (r *Translator) StackAbility(srcCard, card dirac.CardID, ab uint8) uint8 {
 // SVar (GorgeSide), the kernel as the card's Gate{CtrMaxSpeed} ability.
 const MaxSpeedBase = 0xE0
 
+// AltActivateBase is the first canonical ability code of an activation paid
+// at its alternative cost (gorge's "ability" option at AltCostIndex 1, CR
+// 118.9): AltActivateBase+n is face ability n's alternative, the kernel's
+// kop.Ability.AltOf twin of it (Heart of Kiran's crew alternative). Codes
+// 0xC0..0xDF, below MaxSpeedBase.
+const AltActivateBase = 0xC0
+
+// altActivation is the canonical code of ability mode of object o when it is
+// the alternative-cost twin of a face ability (kop.Ability.AltOf).
+func (r *Translator) altActivation(o dirac.Obj, mode uint8) (uint8, bool) {
+	if int(o) >= int(r.KP.NObj) || int(r.KP.Objs[o].Card) >= len(r.Tbl.Cards) {
+		return 0, false
+	}
+	abs := r.Tbl.Cards[r.KP.Objs[o].Card].Abilities
+	if int(mode) >= len(abs) || abs[mode].AltOf == 0 {
+		return 0, false
+	}
+	host := r.FaceAbility(o, abs[mode].AltOf-1, false)
+	if host >= MaxSpeedBase-AltActivateBase {
+		return 0, false
+	}
+	return AltActivateBase + host, true
+}
+
 // MaxSpeedCode is the canonical code of the max-speed activated ability abs[idx].
 func MaxSpeedCode(abs []kop.Ability, idx int) uint8 {
 	n := 0
@@ -832,6 +930,11 @@ func (r *Translator) generatedChoose(a dirac.Action) (Canon, bool) {
 			return Pack(ActMode, RefNone, RefNone, 0), true
 		}
 		return Pack(ActMode, RefNone, RefNone, 1), true
+	case dirac.ChMoveCounterAny:
+		// gorge's "move_counter" amount KChoose (OpMoveCounterAny): the kind
+		// is outside ChooseKinds, so both sides use choose:other (gorge's
+		// chooseOtherAction packs the option index as the mode).
+		return Pack(ActChoose+ChooseOther, RefNone, RefNone, mode), true
 	case dirac.ChGenPair:
 		// gorge effPair's "soulbond" KChoose over the unpaired creatures
 		// (CR 702.95a): an ordinary object pick, choose:other as gorge's
@@ -887,7 +990,7 @@ func (r *Translator) generatedChoose(a dirac.Action) (Canon, bool) {
 		// gorge's face_down_choice pick: the hand card to put onto the
 		// battlefield face down (CR 701.58a)
 		return Pack(kind("face_down_choice"), Ref(src), RefNone, 0), true
-	case dirac.ChGenChooseCard, dirac.ChGenResTarget, dirac.ChGenChooseEach:
+	case dirac.ChGenChooseCard, dirac.ChGenResTarget, dirac.ChGenChooseEach, dirac.ChTurnUpAttach:
 		// (ChGenChooseEach: gorge's ChooseCard per permanent type, Liliana's -9)
 		return Pack(kind("card"), Ref(src), RefNone, 0), true
 	case dirac.ChGenEnchant:
@@ -919,6 +1022,8 @@ func (r *Translator) generatedChoose(a dirac.Action) (Canon, bool) {
 		return Pack(kind("returncost"), Ref(src), RefNone, 0), true
 	case dirac.ChGenPayExile:
 		return Pack(kind("exile_cost"), Ref(src), RefNone, 0), true
+	case dirac.ChGenPayMoveGrave:
+		return Pack(kind("graveyard_cost"), Ref(src), RefNone, 0), true
 	case dirac.ChGenPileSplit:
 		return Pack(kind("twopiles"), Ref(src), RefNone, 0), true
 	case dirac.ChGenPileChoose:
@@ -958,6 +1063,10 @@ func (r *Translator) generatedChoose(a dirac.Action) (Canon, bool) {
 		// gorge's modes over the castable cards, in object order, an index
 		// kept after a cast
 		return Pack(ActMode, RefNone, RefNone, r.S.CastFreeIndex(dirac.Obj(src))), true
+	case dirac.ChGenCipher:
+		// gorge effCipher's KModes over the creatures, in battlefield order
+		// (kw_cipher.go): the option index
+		return Pack(ActMode, RefNone, RefNone, mode), true
 	case dirac.ChGenLookAck:
 		return Pack(kind("yes"), RefNone, RefNone, 0), true
 	case dirac.ChGenDestAlt:
@@ -1122,6 +1231,14 @@ func (r *Translator) generatedChoose(a dirac.Action) (Canon, bool) {
 			}
 		}
 		return Pack(ActReplacement, Ref(src), RefNone, occ), true
+	case dirac.ChGenDrawMay:
+		// gorge's replChoiceDraw election (engine/rules/replacement_choice.go):
+		// the KReplacement apply / decline pair (canon.go's ActYes / ActNo),
+		// both naming the replacement permanent (repl_drawmay.go)
+		if mode == 1 {
+			return Pack(ActYes, Ref(src), RefNone, 0), true
+		}
+		return Pack(ActNo, Ref(src), RefNone, 0), true
 	case dirac.ChGenPip:
 		// gorge's pip announcement (rules manaAsk): pay_W..pay_G
 		return Pack(kind("pay"), RefNone, RefNone, mode), true
@@ -1216,9 +1333,9 @@ func confirmChoice(mode uint8) (Canon, bool) {
 
 func GeneratedKind(sub dirac.ChoiceKind) (DKind, bool) {
 	switch sub {
-	case dirac.ChGenBranch, dirac.ChGenCastFree, dirac.ChGenPayMode, dirac.ChWardPay:
+	case dirac.ChGenBranch, dirac.ChGenCastFree, dirac.ChGenPayMode, dirac.ChWardPay, dirac.ChGenCipher:
 		return DModes, true
-	case dirac.ChGenReplOrder:
+	case dirac.ChGenReplOrder, dirac.ChGenDrawMay:
 		return DReplacement, true
 	}
 	return 0, false

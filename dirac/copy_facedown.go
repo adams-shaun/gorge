@@ -57,7 +57,7 @@ func (s *State) copyBlankLayer(k *prep, sl, tmpl Slot) bool {
 	}
 	if tmpl == NoSlot || !s.faceDown(k, tmpl) {
 		if blank {
-			s.clearFaceDown(sl)
+			s.clearFaceDown(k, sl)
 		}
 		return false
 	}

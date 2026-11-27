@@ -9,7 +9,7 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // (manaAbilityYieldsNothing), and so does scriptFilt. Its card is still a
 // covered funding source of gorge's prefix search, and its "activate" option
 // there poses gorge's mana-ability ask whenever the floating pool pays the
-// filter's fee: the ask is a node of the 160-node budget and its {C} answer is
+// filter's fee: the ask is a node of the potentialScriptNodes budget and its {C} answer is
 // one child. The filter's own answer is no branch: it pays the fee, asks the
 // colour and adds no unit, and gorge's search prunes exactly that answer from
 // the ask's list (scriptDropEmptyManaAnswers; rules scriptSearch.visit and

@@ -19,6 +19,12 @@ type trigListener struct {
 	card CardID
 	ab   uint8
 	host Obj // the granting permanent plus one (stackEntry.trigHost); 0 = none
+	// gained: a GainsTrig lender's line. host is then only the
+	// once-per-turn/game limit key (the lender plus one, as the gained
+	// activations count); the stack entry's trigHost stays 0 because the
+	// recipient, not the lender, is the source (gorge's GainedTriggerPush
+	// mints no GrantedBy, trig_gainedtrig.go).
+	gained bool
 }
 
 // eachTrigger calls f for every triggered ability of event ev on the
@@ -45,6 +51,9 @@ func (s *State) eachBattlefieldTrigger(k *prep, ev kop.TrigEvent, f func(l trigL
 	m := s.subs[ev].and(s.occ)
 	if k.gen.grantTrigEv&(1<<ev) != 0 {
 		m = s.grantTrigHosts(k, m)
+	}
+	if k.gen.gainsTrigEv&(1<<ev) != 0 {
+		m = s.gainsTrigHosts(k, m) // trig_gainedtrig.go
 	}
 	n := s.listenerOrder(m, &ord)
 	for _, sl := range ord[:n] {
@@ -153,6 +162,12 @@ func (s *State) slotTriggers(k *prep, sl Slot, ev func(a *kop.Ability) bool, f f
 			}
 		}
 	}
+	if k.gen.gainsTrigEv != 0 {
+		// the GainsTrig lenders' triggers, after the printed face walk and
+		// before the AddTrigger$ grants, as gorge's granted walk lists them
+		// (trig_gainedtrig.go)
+		s.gainedTriggers(k, sl, ev, f)
+	}
 	// a granted Melee is listed apart from the other grants (kw_melee.go)
 	melee := k.gen.meleeGrant && ev(&meleeProbe)
 	meleeFirst := melee && s.meleeGrantsFirst(k, sl)
@@ -235,7 +250,7 @@ func (s *State) queueTrig(k *prep, l trigListener, a *kop.Ability, tobj Obj, tpl
 		ab = l.ab - 1
 	}
 	s.enqueueLKI(l.obj, s.objs[l.obj].ver, l.card, ab, l.ctrl, tobj, tpl, amt)
-	if s.npend > n {
+	if s.npend > n && !l.gained {
 		s.pend[n].remVer = objWord(l.host) // a granted trigger's host rides remVer (stackEntry.trigHost)
 	}
 	if a.Trig.Flags2&(kop.Tf2XBound|kop.Tf2SpentBound|kop.Tf2Convoked) != 0 {
@@ -406,7 +421,7 @@ func (s *State) objTrigGen(k *prep, ev kop.TrigEvent, l trigListener, a *kop.Abi
 				if s.stateTrigOutstanding(l.obj, l.ab) {
 					return
 				}
-			} else if (a.Gate.Ctr != 0 || a.Gate.N != 0) && !s.crossingOK(l.sl, a, int(amt)) {
+			} else if (a.Gate.Ctr != 0 || a.Gate.N != 0) && !s.crossingOK(k, l.sl, a, int(amt)) {
 				return // a Saga chapter / "Nth counter" line triggers only when its number is reached
 			}
 		}
@@ -519,6 +534,12 @@ func (s *State) playerTrigGenObj(k *prep, ev kop.TrigEvent, l trigListener, a *k
 	tobj := passed
 	switch ev {
 	case kop.TrigLifeLost:
+		// Player.Active / Opponent.Active: the life-losing player is the
+		// active player (and, for the Opp form, an opponent; whoseOK already
+		// read that half).
+		if (t.Whose == kop.WhoseActive || t.Whose == kop.WhoseOppActive) && who != s.active {
+			return
+		}
 		// Tf4CauseSpellAb (kop): the ValidCause$ SpellAbility gate (gorge
 		// lifeLossCauseMatches): the loss was caused by the spell or
 		// ability resolving right now, never by combat damage (gorge's
@@ -597,7 +618,7 @@ func (s *State) playerTrigGenObj(k *prep, ev kop.TrigEvent, l trigListener, a *k
 // command-zone triggers, then emblems.
 func (s *State) firePhaseGen(k *prep, st kop.Step) {
 	f := func(l trigListener, a *kop.Ability) {
-		if a.Trig.Step != st || !whoseOK(a.Trig.Whose, l.ctrl, s.active) && !(a.Trig.Whose == kop.WhoseEnchCtrl && s.enchCtrlIs(l.sl, s.active)) && !(a.Trig.Whose == kop.WhoseChosen && s.chosenIs(l.sl, s.active)) && !(a.Trig.Whose == kop.WhoseEnchanted && s.defEnchanted(k, l, s.active)) && !(a.Trig.Whose == kop.WhoseMonarch && s.monarchTurnIs(s.active)) || !s.trigOK(k, l, a) {
+		if a.Trig.Step != st || !whoseOK(a.Trig.Whose, l.ctrl, s.active) && !(a.Trig.Whose == kop.WhoseEnchCtrl && s.enchCtrlIs(l.sl, s.active)) && !(a.Trig.Whose == kop.WhoseChosen && s.chosenIs(l.sl, s.active)) && !(a.Trig.Whose == kop.WhoseEnchanted && s.defEnchanted(k, l, s.active)) && !(a.Trig.Whose == kop.WhoseEnchantedOpp && s.active != l.ctrl && s.defEnchanted(k, l, s.active)) && !(a.Trig.Whose == kop.WhoseMonarch && s.monarchTurnIs(s.active)) || !s.trigOK(k, l, a) {
 			return
 		}
 		s.queueTrig(k, l, a, NoObj, s.active, 0)
@@ -619,6 +640,9 @@ func (s *State) firePhaseGen(k *prep, st kop.Step) {
 					a := &cd.Abilities[j]
 					if a.Kind != kop.AbTriggered || a.Trig.Zone != kop.ZoneGraveyard || a.Trig.Event != kop.TrigPhase || a.Trig.Step != st {
 						continue
+					}
+					if s.gravePrintedHidden(k, o) {
+						continue // the card lost all abilities in the graveyard (static_graveabilityloss.go)
 					}
 					l := trigListener{obj: o, sl: NoSlot, ctrl: pp, card: c, ab: uint8(j)}
 					if !whoseOK(a.Trig.Whose, pp, s.active) || !s.trigOK(k, l, a) {
@@ -655,13 +679,23 @@ func (s *State) fireEmblemsAmt(k *prep, ev kop.TrigEvent, who uint8, tobj Obj, a
 				if ea.Kind != kop.AbTriggered || ea.Trig.Event != ev || !whoseOK(ea.Trig.Whose, pp, who) || !extra(ea) {
 					continue
 				}
+				// A Phase emblem's captured object is handed to the trigger
+				// as its object (RememberObjects$ TriggeredCard: the body's
+				// Defined$ Remembered), so the trigger runs for the object
+				// the Effect remembered rather than the step's player.
+				triggerObj := tobj
+				if ev == kop.TrigPhase && e.Capture != kop.RefNone {
+					if n := s.embNum(pp, i); n != 0 {
+						triggerObj = Obj(n - 1)
+					}
+				}
 				// the emblem's trigger runs as the creating card's latent copy
 				for ab := range cd.Abilities {
 					la := &cd.Abilities[ab]
 					if la.Kind == kop.AbTriggered && la.AFlags&kop.AfLatent != 0 && la.Trig.Event == ev && la.Trig.Zone == kop.ZoneCommand {
 						o := s.embObj(pp, i)
 						n0 := s.npend
-						s.enqueueLKI(o, s.objs[o].ver+1, c, uint8(ab), pp, tobj, who, s.embTrigAmt(e, pp, i, amt))
+						s.enqueueLKI(o, s.objs[o].ver+1, c, uint8(ab), pp, triggerObj, who, s.embTrigAmt(e, pp, i, amt))
 						if e.Once && s.npend > n0 && i < 8 {
 							done[pp] |= 1 << uint(i)
 						}
@@ -720,9 +754,7 @@ func (d *dmgLatch) has(l trigListener, seen int) bool {
 // carries the batch total; without one the event is its own batch.
 func (s *State) fireDamageEvGen(k *prep, src Slot, amt int16, toPlayer, combat bool, latch *dmgLatch, rcp TCode, rl *refLatch) {
 	m := s.subs[kop.TrigDamageDone].or(s.subs[kop.TrigDamageDealtOnce]).and(s.occ)
-	if k.gen.grantTrigEv&(1<<kop.TrigDamageDone|1<<kop.TrigDamageDealtOnce) != 0 {
-		m = s.grantTrigHosts(k, m)
-	}
+	m = s.grantedHostsFor(k, m, 1<<kop.TrigDamageDone|1<<kop.TrigDamageDealtOnce)
 	if !m.any() {
 		if k.gen.graveDmg && (rl == nil || !rl.agg) { // a batch's aggregate fire is not a damage event
 			s.fireGraveDamage(k, src, s.perms[src].obj, s.perms[src].ctrl, amt, s.dmgPlayers(toPlayer, s.perms[src].ctrl, rcp), combat, rcp)
@@ -906,7 +938,7 @@ func (s *State) fireDamageSrc(k *prep, o Obj, ctrl uint8, amt int16, plM uint8, 
 		}
 	}
 	for _, ev := range evs {
-		if s.subs[ev].any() {
+		if s.evLive(ev) {
 			s.eachBattlefieldTrigger(k, ev, f)
 		}
 	}
@@ -917,7 +949,7 @@ func (s *State) fireDamageSrc(k *prep, o Obj, ctrl uint8, amt int16, plM uint8, 
 		s.fireEmblemsDmgSpell(k, o, ctrl, amt, toPlayer, rcp, rl) // trig_effectuntileot.go: Arcbond's emblem, damaged by a spell
 	}
 	for _, ev := range evs {
-		if s.subs[ev].any() {
+		if s.evLive(ev) {
 			s.eachCommandTrigger(k, ev, f)
 		}
 	}
@@ -947,6 +979,9 @@ func (s *State) castTrigGen(k *prep, l trigListener, a *kop.Ability, e *stackEnt
 	}
 	if t.Flags3&kop.Tf3ManaFromTreasure != 0 && !s.castTreasureOK(e) {
 		return // trig_validsa.go
+	}
+	if t.Flags5&kop.Tf5CastNoColoredMana != 0 && !s.castNoColoredOK(e) {
+		return // trig_nocoloredmana.go
 	}
 	if t.Flags2&kop.Tf2Increment != 0 && !s.incrementAdmits(k, l, e) {
 		return // kw_increment.go: the cast's spend against the source's P/T (gorge incrementAdmits)
@@ -990,7 +1025,7 @@ func (s *State) castTrigGen(k *prep, l trigListener, a *kop.Ability, e *stackEnt
 // fireUntapsGen fires Untaps triggers for the active player's permanents
 // that were tapped (pre) and are untapped now.
 func (s *State) fireUntapsGen(k *prep, pre slotMask) {
-	if !s.subs[kop.TrigUntaps].any() {
+	if !s.evLive(kop.TrigUntaps) {
 		return
 	}
 	for m := pre; m.any(); m = m.rest() {
@@ -1096,7 +1131,7 @@ func (s *State) combatEventsGen(k *prep, r *dmgRec, dealt bool) {
 		add(r.ev[i].src)
 	}
 	// a gain's plus-one (Angel of Vitality) is per source, each its own event
-	life := s.subs[kop.TrigLifeLost].or(s.subs[kop.TrigLifeGained]).any() || k.gen.anyRepl&rbPlusLife != 0 ||
+	life := s.evLive2(kop.TrigLifeLost, kop.TrigLifeGained) || k.gen.anyRepl&rbPlusLife != 0 ||
 		k.gen.embCombatEv&(1<<kop.TrigLifeGained) != 0
 	if !life && !dealt {
 		for pp := uint8(0); pp < MaxSeats; pp++ {
@@ -1111,7 +1146,7 @@ func (s *State) combatEventsGen(k *prep, r *dmgRec, dealt bool) {
 			}
 		}
 	}
-	dmg := s.subs[kop.TrigDamageDone].or(s.subs[kop.TrigDamageDealtOnce]).any() || k.gen.embCombatEv&(1<<kop.TrigDamageDone) != 0 || k.gen.graveDmg
+	dmg := s.evLive2(kop.TrigDamageDone, kop.TrigDamageDealtOnce) || k.gen.embCombatEv&(1<<kop.TrigDamageDone) != 0 || k.gen.graveDmg
 	if dmg && k.gen.anyBatch {
 		defer s.batchClose(s.batchOpen())
 	}
@@ -1141,6 +1176,9 @@ func (s *State) combatEventsGen(k *prep, r *dmgRec, dealt bool) {
 			}
 		}
 		if !life || dealt {
+			if k.gen.anyCipher && r.dealtPl[sl] > 0 {
+				s.cipherHit(sl) // after the source's face triggers (kw_cipher.go)
+			}
 			continue // dealt: the life changes were made per event (dealCombatEvent)
 		}
 		if r.dealtPl[sl] > 0 && isPlayerOrNone(s.perms[sl].atk) && !r.infM.has(sl) {
@@ -1149,6 +1187,9 @@ func (s *State) combatEventsGen(k *prep, r *dmgRec, dealt bool) {
 			if int(s.npend)-loPl >= 2 {
 				s.pendListenerOrder(loPl)
 			}
+		}
+		if k.gen.anyCipher && r.dealtPl[sl] > 0 {
+			s.cipherHit(sl) // after the source's face and life-loss triggers (kw_cipher.go)
 		}
 		if !s.occ.has(sl) || s.kw(k, sl)&kop.KwLifelink == 0 {
 			continue

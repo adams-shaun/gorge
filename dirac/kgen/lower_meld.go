@@ -29,7 +29,7 @@ const (
 )
 
 // commanderPools are the pools whose games are Commander pods.
-var commanderPools = map[string]bool{"cmd5": true, "edh": true, "mbc": true}
+var commanderPools = map[string]bool{"cmd5": true, "edh": true, "hosted-cmdr": true, "mbc": true}
 
 var (
 	meldPrimaryRe   = regexp.MustCompile(`Primary\$\s*([^|]+?)\s*(?:\||$)`)
@@ -155,7 +155,9 @@ func meldPresent2OK(lc *lowerCtx, ip2 string) bool {
 		return true
 	}
 	p := strings.TrimSpace(ip2)
-	return p == "Card.Self+!IsSolved" || p == "Card.Self+IsSolved"
+	// "Card.Self": the source is on the battlefield ("Name Sticker" Goblin's
+	// "if it's on the battlefield and you control 9 or fewer ...")
+	return p == "Card.Self+!IsSolved" || p == "Card.Self+IsSolved" || p == "Card.Self"
 }
 
 // meldSVarCompareDefault supplies Forge's GE1 default compare for a meld

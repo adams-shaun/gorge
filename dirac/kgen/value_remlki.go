@@ -49,7 +49,17 @@ func remLKBits(note string) int {
 	return 0
 }
 
+// remLKDestroy is a Destroy RememberLKI$ whose destroyed target joins the
+// remembered set with its last-known controller (C bits 2 and 4): the writer
+// of a RememberedLKI$CardToughness read (kop.DestroySumToughness).
+func remLKDestroy(in lInstr) bool {
+	return in.Op == "Destroy" && in.Note == noteRememberDestroyed && in.C&6 == 6
+}
+
 func remLKSacrifice(in lInstr) bool {
+	if remLKDestroy(in) {
+		return true
+	}
 	// a trigger's own IfPaid Sacrifice cost is the same
 	// capture (gorge's trigger_cost sacrificed list); it accumulates the one
 	// characteristic the reading value names.
@@ -169,7 +179,13 @@ func (lc *lowerCtx) refuseRemLKIPT() {
 			suffix = ":mv" // Sacrificed$CardManaCost
 		}
 		for i := range a.Prog {
-			if remLKSacrifice(a.Prog[i]) {
+			if remLKDestroy(a.Prog[i]) {
+				if n != 1 {
+					lc.refuseNode(fmt.Sprintf("ab[%d]", a.Index), "%s (a Destroy sums only toughness)", shape)
+					return
+				}
+				a.Prog[i].C |= kop.DestroySumToughness
+			} else if remLKSacrifice(a.Prog[i]) {
 				a.Prog[i].Note = noteRememberSacrificed + suffix
 			}
 		}

@@ -47,14 +47,33 @@ const clueToken = "c_a_clue_draw"
 // Num is). Defined$ Player.withMostTypeCreature (gorge playerHasMost over
 // AliveFrom(controller)) runs the mint once per player who controls the
 // most creatures, controller first, both on a tie. Other Defined$ and
-// ValidTgts$ than You, Optional$ and RememberInvestigatingPlayers$ refuse.
+// ValidTgts$ than You and RememberInvestigatingPlayers$ refuse; Optional$ True
+// lowers for the controller's one-token mint (an OpMayAsk before it).
 func (lc *lowerCtx) investigate(ps *params) error {
 	most := false
+	fromTgt := -1
 	if d, ok := ps.get("Defined"); ok {
 		switch strings.TrimSpace(d) {
 		case "You":
 		case "Player.withMostTypeCreature":
 			most = true
+		case "TargetedController":
+			// the controller of the current link's one earlier object target
+			// (Fateful Absence's Destroy, then "Its controller investigates"):
+			// gorge effInvestigate's Defined$ read resolves TargetedController
+			// the same selector the Defined$ TargetedController arm lowers,
+			// the target's controller (lower_effect_defined.go); a target
+			// destroyed in the same resolution reads its controller where it
+			// is now, its LKI included (CR 603.7a). The mint is once, to that
+			// player, no target of its own.
+			fromTgt = lc.lastTarget()
+			if fromTgt < 0 {
+				return refuse("Investigate Defined$ TargetedController with no target slot")
+			}
+			if lc.ab.Targets[fromTgt].Spell || lc.ab.Targets[fromTgt].F == nil || lc.ab.Targets[fromTgt].F.Players != 0 {
+				return refuse("Investigate Defined$ TargetedController over a slot that is not one object target")
+			}
+			ps.consume("Defined")
 		default:
 			return refuse("Investigate Defined$ %q", d)
 		}
@@ -68,7 +87,9 @@ func (lc *lowerCtx) investigate(ps *params) error {
 	}
 	who := lRef{Kind: rEach}
 	if !most {
-		if who, err = lc.investigator(ps); err != nil {
+		if fromTgt >= 0 {
+			who = lRef{Kind: rTargetController, N: fromTgt}
+		} else if who, err = lc.investigator(ps); err != nil {
 			return err
 		}
 	}
@@ -90,6 +111,21 @@ func (lc *lowerCtx) investigate(ps *params) error {
 		}
 	}
 	lc.out.Tokens = append(lc.out.Tokens, clueToken)
+	if _, ok := ps.get("Optional"); ok {
+		// Optional$ True ("you may investigate", Nick Valentine): gorge
+		// effInvestigate's investigateOptionalWalk asks each acting player
+		// yes / no before their Clue mint, only when the amount is above 0
+		// (MayGuardMill's guard is exactly that over the next CreateToken's
+		// amount). One ask over the one controller's one-instruction mint
+		// lowers; a per-player (Defined$ Most, a target) or multi-op mint
+		// refuses.
+		if most || fromTgt >= 0 || who.Kind != rYou || len(body) != 1 {
+			return refuse("Investigate Optional$ beside a per-player or multi-token mint")
+		}
+		if err := lc.mayGate(ps, kop.MayGuardMill, who); err != nil {
+			return err
+		}
+	}
 	if most {
 		lc.emit(lInstr{Op: "RepeatEach", Obj: lRef{Kind: rEachPlayer}, C: 1, Skip: len(body), B: cst(kop.PlayerPredMostCreatures)})
 	}
@@ -202,7 +238,7 @@ func (lc *lowerCtx) connive(ps *params) error {
 // one with the next-turn boundary dropNextTurnOv ends. Keywords without a
 // kernel bit, other durations, AllSuffixKeywords$ and Activator$ refuse.
 func (lc *lowerCtx) debuff(ps *params) error {
-	ks, err := removeKeywords(ps.str("Keywords"))
+	ks, lw, err := lc.removeKeywordsAndLandwalk(ps.str("Keywords"))
 	if err != nil {
 		return err
 	}
@@ -231,7 +267,7 @@ func (lc *lowerCtx) debuff(ps *params) error {
 	default:
 		return refuse("Debuff of %s", obj)
 	}
-	lc.emitOverride(obj, &lOverride{RemoveKw: ks}, dur)
+	lc.emitOverride(obj, &lOverride{RemoveKw: ks, RemoveLandwalk: lw}, dur)
 	return nil
 }
 
@@ -246,6 +282,9 @@ func (lc *lowerCtx) explore(ps *params) error {
 	}
 	if n.isConst() && (n.N < 1 || n.N > 4) {
 		return refuse("Explore Num %v", n)
+	}
+	if done, err := lc.exploreValid(ps, n); done || err != nil {
+		return err // lower_definedvalid_set.go
 	}
 	obj, err := lc.objOrTarget(ps, "Self", zBattlefield)
 	if err != nil {

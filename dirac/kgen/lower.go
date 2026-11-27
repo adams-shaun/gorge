@@ -36,6 +36,7 @@ var ignoredParams = map[string]bool{
 	"UnlessAI":           true, // Forge AI hint (CopySpellAbilityAi / the unless-cost AI: whether the AI pays or copies); gorge never reads it (engine/rules/paramcensus_test.go records it as an AI hint)
 
 	"AIRespondsToOwnAbility": true, // Forge AI hint (Sensei's Divining Top: the AI may respond to its own activation); gorge never reads it
+	"AILifeThreshold":        true, // Forge AI hint (Necropotence's "never cast below N life"); gorge lists it as an AI key, never reads it
 }
 
 // params tracks which parameters of one IR node the lowering read, so an
@@ -106,11 +107,19 @@ func refuse(format string, a ...any) error { return errRefuse{fmt.Sprintf(format
 
 // lowerCtx lowers one card (or token).
 type lowerCtx struct {
-	proto    bool  // lowering a FacePrototype card's face 1: lowerRecord applies the inset (lower_prototype.go)
-	ddoEvent bool  // lowering an end-of-turn Effect's DamageDoneOnce line as the per-event DamageDone line gorge's delayed path queues (lower_damagedoneonce.go)
-	capRem   bool  // lowering the body of a capturing emblem's DamageDealtOnce/DamageDoneOnce trigger: a Remembered read before the body writes its own set is the captured object, the damage source or the damaged object (lower_effectcaptured.go, lower_zone.go emblem)
-	effCount bool  // lowering the body of an Effect trigger that remembers a count: Remembered$Amount reads the frozen trigger amount (lower_effectremember.go)
-	pairCap  *lRef // the capture slot the pair lowering already resolved for the emblem (lower_effectcaptured.go)
+	proto    bool // lowering a FacePrototype card's face 1: lowerRecord applies the inset (lower_prototype.go)
+	ddoEvent bool // lowering an end-of-turn Effect's DamageDoneOnce line as the per-event DamageDone line gorge's delayed path queues (lower_damagedoneonce.go)
+	selfRem  bool // lowering the body of an Effect trigger whose Effect remembers its source (RememberObjects$ Self): Defined$ Remembered is the emblem's source object (lower_effeottrig.go emblemSelfRemember)
+	capRem   bool // lowering the body of a capturing emblem's DamageDealtOnce/DamageDoneOnce trigger: a Remembered read before the body writes its own set is the captured object, the damage source or the damaged object (lower_effectcaptured.go, lower_zone.go emblem)
+	// embRem: the Effect being lowered has RememberObjects$ Valid <filter>;
+	// effectStaticEOT emits the ExtRememberAll sweep and marks the emblem
+	// CaptureRem so its statics read the set (lower_effectremember.go
+	// effectRememberValidSet).
+	embRem   bool
+	effCount bool // lowering the body of an Effect trigger that remembers a count: Remembered$Amount reads the frozen trigger amount (lower_effectremember.go)
+	// emblemCapturedObj: lowering the body of a Phase or ChangesZone emblem whose trigger captures one object (an Effect's RememberObjects$ TriggeredCard; lower_effeottrig.go). The kernel queues the captured object as the trigger object (dirac triggers_gen.go fireEmblemsAmt, trig_emblems.go fireEmblemsObj), so Defined$ Remembered reads it.
+	emblemCapturedObj bool
+	pairCap           *lRef // the capture slot the pair lowering already resolved for the emblem (lower_effectcaptured.go)
 
 	// exertRider: lowering an OptionalAttackCost static's Trigger$ rider as
 	// the self-Exerted trigger (static_optattack.go)
@@ -135,6 +144,10 @@ type lowerCtx struct {
 	emblemBlocked bool
 	// emblemUnblocked: the same body of an AttackerUnblocked emblem with a capture: Remembered is the trigger object too (Delif's Cone: the captured attacker; lower_effeottrig.go capturedTriggerRef, value.go)
 	emblemUnblocked bool
+	// drawReplBody: lowering a Draw replacement's ReplaceWith$ body, where
+	// Defined$ ReplacedPlayer is the player drawing (the kernel binds it as the
+	// program's trigger player; dirac/repl_drawprogram.go).
+	drawReplBody bool
 
 	// emblemBlocks: lowering the body of an end-of-turn Effect's Mode$ Blocks
 	// trigger. The kernel emblem hook (dirac/trig_emblemblocks.go) queues the
@@ -171,6 +184,7 @@ type lowerCtx struct {
 	imprintMox     bool      // the face is the imprint-mox shape: its two static bookkeeping triggers lower to nothing (lower_imprintmox.go)
 	impPersist     bool      // the face keeps its Imprinted on the source (lower_imppersist.go)
 	impFoldExiled  bool      // every ImpPersist writer is a ChangeZone exile: IsImprinted+ExiledWithSource may fold (lower_imppersist.go)
+	cipher         bool      // the face prints K:Cipher: lowerTail appends the encode (lower_cipher.go)
 	bluffPlay      bool      // lowering the Play behind a nothing-remembered gate: ValidSA$ Spell.nonCreature+YouOwn may lower (lower_zone.go, Brazen Bluff; Yue's hand population, playOwnHand)
 	replEnter      bool      // inside an ETB replacement's ReplaceWith chain
 	exileRider     bool      // inside a dies-to-exile rider's prog: ReplacedCardLKI$CardPower may read the pre-move capture (value_repllki.go)
@@ -179,6 +193,7 @@ type lowerCtx struct {
 	blind          *blindDig // a blind face-down Dig whose Effect lowers next (lower_blinddig.go)
 	grantInner     []lStatic // a station self grant's inner statics, emitted after the outer static (lower_stationgrant.go)
 	station        bool      // the face prints K:Station (lower_station.go)
+	readAhead      bool      // the face prints K:Read ahead (lower_readahead.go)
 	revealOK       bool      // the cost being read is a spell's AlternateAdditionalCost first part: Reveal<1/Spec> may lower (kernel act_revealpick.go)
 	beholdOK       bool      // the cost being read is a spell's AlternateAdditionalCost first part or a MayFlashCost extra: Behold<N/Type> may lower (kernel act_behold.go)
 	unblockedOK    bool      // the filter being read is K:Ninjutsu's Return cost: "unblocked" may lower (lower_ninjutsu.go)
@@ -191,6 +206,7 @@ type lowerCtx struct {
 	chosenNumOK    bool      // the filter being read is a battlefield SpellCast ValidCard$ of a card that chooses a number as it enters: a "Chosen" bound may lower (lower_choosenumber.go)
 	exwOK          bool      // the filter being read is a resolution-time mover's ChangeType$: ExiledWithSource may lower
 	exwTgtOK       bool      // lowering a ChangeZone Origin$ Exile ValidTgts$: ExiledWithSource reads the ability's own source at target time
+	exwRes         bool      // lowering a resolution-time value of the source: a mana ability's Amount$ or a trigger's CheckSVar$ (the kernel's exwFlag reads ctx.src)
 	exwStatic      bool      // lowering a Mode$ Continuous static: ExiledWithSource reads the static's own source
 	srcRemStatic   bool      // lowering a token's CDA static: Remembered$CardCounters reads the creator the token remembers (lower_tokenrem.go)
 	spellBaseOK    bool      // the filter being read is a ReduceCost ValidTarget$: a Spell head may lower (lower_trigger.go)
@@ -218,27 +234,32 @@ type lowerCtx struct {
 	card           *cards.Card
 	face           *cards.Face
 	out            *lCard
-	ab             *lAbility // the ability being lowered
-	mode           int       // the charm mode being lowered (-1 none)
-	chainT         []int     // target slots declared by the current SA chain, in order
-	remTgt         int       // target slots a Pump RememberObjects$ ThisTargetedCard remembered (bit per slot; lower_remembered.go)
-	condDone       bool      // the node's Condition*$ was lowered into its op (ChangeSpeed): nodeCondition skips it once
-	atRes          bool      // the node being lowered declares its targets mid-resolution
-	depth          int       // chain nesting (1: the ability's own chain)
-	head           bool      // the node being lowered heads its chain
-	inGroup        bool      // lowering a Mobilize group program's body (SacrificeDelayed is legal)
-	groupMany      bool      // ... of Mobilize 3-4: the DpMany program, SacrificeDelayed reads up to four objects
-	czForgetSet    bool      // a ChangeZoneAll ForgetOtherRemembered$ ran in this ability: Remembered is a many-object set (lower_changezoneall.go)
-	chains         int       // chain entries so far (every-blocker census: did a node's body get read?)
-	guardNode      string    // the top-level node guard is lowering (every-blocker census names extra refusals by it)
-	probeHead      *cards.SA // probeBody: the refused activated ability whose body is probed (its Cost$ is no resolution cost)
-	curNode        *cards.SA // the SA node being lowered (its Sub is the rest of the chain)
-	condDefined    bool      // defined() is reading a ConditionDefined$ (lower_triggerattackers.go)
-	own            ownTgt    // the slot curNode declared itself (lower_owntarget.go)
-	chainRoot      *cards.SA // the root of the outermost chain being lowered (chain, depth 1)
-	fbGranted      bool      // lowering a granted Firebending N trigger (lower_firegrant.go): manaEffect needs no ElementalBend marker
-	mlTrigger      bool      // lowering a Melee trigger, printed or granted (lower_meleegrant.go): its pump reads cards.MeleePumpCount
-	fbMarker       *cards.SA // the Firebending expansion's DB$ ElementalBend node manaEffect vetted (elementalBend lowers only it)
+	ab             *lAbility     // the ability being lowered
+	mode           int           // the charm mode being lowered (-1 none)
+	chainT         []int         // target slots declared by the current SA chain, in order
+	remTgt         int           // target slots a Pump RememberObjects$ ThisTargetedCard remembered (bit per slot; lower_remembered.go)
+	condDone       bool          // the node's Condition*$ was lowered into its op (ChangeSpeed): nodeCondition skips it once
+	atRes          bool          // the node being lowered declares its targets mid-resolution
+	depth          int           // chain nesting (1: the ability's own chain)
+	head           bool          // the node being lowered heads its chain
+	inGroup        bool          // lowering a Mobilize group program's body (SacrificeDelayed is legal)
+	groupMany      bool          // ... of Mobilize 3-4: the DpMany program, SacrificeDelayed reads up to four objects
+	delayedSetDmg  bool          // delayedRemember accepted a dig's whole remembered set for a count-of-the-still-exiled body (lower_delayedsetdmg.go)
+	delayedExile   bool          // delayedStepRemember accepted a RepeatEach body's whole remembered set for an exile-many body (Mirror-Style Master)
+	czForgetSet    bool          // a ChangeZoneAll ForgetOtherRemembered$ ran in this ability: Remembered is a many-object set (lower_changezoneall.go)
+	chains         int           // chain entries so far (every-blocker census: did a node's body get read?)
+	guardNode      string        // the top-level node guard is lowering (every-blocker census names extra refusals by it)
+	probeHead      *cards.SA     // probeBody: the refused activated ability whose body is probed (its Cost$ is no resolution cost)
+	curNode        *cards.SA     // the SA node being lowered (its Sub is the rest of the chain)
+	skipNode       *cards.SA     // a node an earlier one folded into itself, lowered to nothing (lower_lockgain.go)
+	condDefined    bool          // defined() is reading a ConditionDefined$ (lower_triggerattackers.go)
+	own            ownTgt        // the slot curNode declared itself (lower_owntarget.go)
+	mvNode         *cards.SA     // the node whose cost part may read Targeted$CardManaCost before its target (lower_targetmv.go)
+	pendMV         *pendTargetMV // a before-the-effect target-MV read awaiting the effect's slot (lower_targetmv.go)
+	chainRoot      *cards.SA     // the root of the outermost chain being lowered (chain, depth 1)
+	fbGranted      bool          // lowering a granted Firebending N trigger (lower_firegrant.go): manaEffect needs no ElementalBend marker
+	mlTrigger      bool          // lowering a Melee trigger, printed or granted (lower_meleegrant.go): its pump reads cards.MeleePumpCount
+	fbMarker       *cards.SA     // the Firebending expansion's DB$ ElementalBend node manaEffect vetted (elementalBend lowers only it)
 	// digImprinted: this chain's DigUntil imprinted its found card and
 	// remembered every revealed card, Jodah's shape (lower_digimprint.go): the
 	// Play of the Imprinted card and the random-order bottom of the
@@ -271,7 +292,14 @@ type lowerCtx struct {
 	// Rotisserie Elemental; lower_digimprintset.go): only that chain's
 	// Effect, Defined$ Imprinted and Cleanup read it
 	digImprintRoot *cards.SA
-	known          func(string) bool
+	// retImprint: the ChangeZone being lowered is a Return with Imprint$
+	// True whose writer brackets its move (lower_imprintzone.go
+	// returnImprint).
+	retImprint bool
+	// impSweep: the filter a following DestroyAll ValidCards$
+	// Card.IsImprinted reads instead (lower_imprintzone.go imprintNameSweep).
+	impSweep string
+	known    func(string) bool
 	// granted > 0 while an ability or trigger another object is granted
 	// (an AddAbility$/AddTrigger$ SVar, an emblem's trigger) is lowered
 	granted int
@@ -282,6 +310,10 @@ type lowerCtx struct {
 	// altCostHand while a spell's own AlternativeCost static's Cost$ is
 	// lowered: an ExileFromHand<1/Spec> part keeps its filter (lower_trigger.go)
 	altCostHand bool
+	// crewAltCost while a Vehicle's own crew AlternativeCost static's Cost$ is
+	// lowered: its SubCounter<N/LOYALTY/Filter> removal reads the filter
+	// (static_crewalt.go), which no other cost spelling does
+	crewAltCost bool
 	// grantAttached while the trigger an Equipment's or Aura's static grants
 	// its attached permanent is lowered (AffectedDefined$ Equipped/Enchanted)
 	grantAttached bool
@@ -291,6 +323,13 @@ type lowerCtx struct {
 	// repeatCard > 0 while a RepeatEach-over-cards body is lowered: its
 	// Token AttachedTo$ Remembered is the repeated card (lower_repeatcards.go)
 	repeatCard int
+	// repeatUseImp: that body's RepeatEach carries UseImprinted$ True, so
+	// Defined$ Imprinted is the repeated card (lower_repeatcards.go)
+	repeatUseImp bool
+	// repeatCztNode is the RepeatEach node whose ChangeZoneTable$ Token /
+	// CopyPermanent body writes a remembered set the following SubAbility's
+	// DelayedTrigger reads (Mirror-Style Master), nil otherwise.
+	repeatCztNode *cards.SA
 	// repeatRem: that body repeats over the resolution's remembered cards
 	// (kop.RepeatRemembered, lower_repeatremembered.go): its Defined$ /
 	// TokenOwner$ ImprintedController is the repeated card's controller
@@ -378,6 +417,10 @@ type lowerCtx struct {
 	// announced life part) may lower on a spell or an
 	// activated ability (actCost) and nowhere else
 	lifeXSpell bool
+	// blightXOK while a spell's own RaiseCost Cost$ is retried for an announced
+	// Blight<X> (raiseSelfAdditional, lower_blightx.go); every other cost
+	// refuses a variable Blight
+	blightXOK bool
 	// prevColor while a mid-resolution ChooseColor waits for its
 	// prevent-the-chosen-colour Effect (Prismatic Strands)
 	prevColor bool
@@ -612,6 +655,9 @@ func (lc *lowerCtx) lowerTail() {
 	if lc.station {
 		lc.guard("K:Station", lc.lowerStation)
 	}
+	if lc.readAhead {
+		lc.guard("K:Read ahead", lc.lowerReadAhead)
+	}
 	lc.lowerGift()
 	lc.refuseCrossAbilityRemembered()
 	lc.refuseCrossAbilityImprinted()
@@ -626,6 +672,7 @@ func (lc *lowerCtx) lowerTail() {
 	lc.refusePlotCombos()
 	lc.refuseHarmonizeCombos()
 	lc.refuseReboundCombos() // lower_rebound.go
+	lc.lowerCipher()         // lower_cipher.go
 	lc.refuseMayhemCombos()
 	lc.refuseEscapeCombos()
 	lc.lowerRetrace()
@@ -635,6 +682,7 @@ func (lc *lowerCtx) lowerTail() {
 	lc.refuseEntwineCombos() // lower_entwine.go
 	lc.refuseWebSlingCombos()
 	lc.refuseMayFlashCombos()
+	lc.refuseOfferingCombos() // lower_offering.go
 	lc.refuseEvokeCombos()
 	lc.refuseDashCombos()          // lower_dash.go
 	lc.refuseBlitzCombos()         // lower_blitz.go
@@ -903,7 +951,9 @@ func (lc *lowerCtx) lowerRecord() {
 		out.Snow = out.Snow || t == "Snow"
 		out.Subtypes = append(out.Subtypes, t)
 	}
-	out.TextWords = textWordsOf(lc.card)
+	tw := textWordsMasks(lc.card)
+	out.TextWords = tw.words
+	out.CWUnmodelled = tw.unmodelled
 	out.NoAbilities = effects.FaceHasNoAbilities(f, out.Types&tLand != 0)
 	out.HasManaAbility = effects.FaceHasManaAbility(f)
 	out.Colors = colorsOf(f)
@@ -1168,6 +1218,18 @@ var protColourLetters = map[string]string{"white": "W", "blue": "U", "black": "B
 // stays refused.
 var hexColourLetters = map[string]string{"white": "W", "blue": "U", "black": "B", "red": "R", "green": "G"}
 
+// hexQualityParam is the spec of a "Hexproof:<spec>:<display text>"
+// parameter when it is one of the colour-count specs the kernel reads
+// (Card.MonoColor, Card.MultiColor, Card.nonColorless), else "".
+func hexQualityParam(param string) string {
+	q, _, _ := strings.Cut(param, ":")
+	switch q = strings.TrimSpace(q); q {
+	case "Card.MonoColor", "Card.MultiColor", "Card.nonColorless":
+		return q
+	}
+	return ""
+}
+
 // mergeColours unions two WUBRG letter sets in WUBRG order.
 func mergeColours(a, b string) string {
 	var out strings.Builder
@@ -1228,6 +1290,18 @@ func (lc *lowerCtx) lowerKeywords() {
 			// consumed with its minted R: lines
 		case head == "Hexproof" && hexColourLetters[strings.ToLower(param)] != "":
 			lc.out.HexColors = mergeColours(lc.out.HexColors, hexColourLetters[strings.ToLower(param)])
+		case head == "Hexproof" && hexQualityParam(param) != "":
+			// K:Hexproof:<spec>:<display text> over a colour-count spec
+			// (CR 702.11d): gorge hexproofQuality keeps the spec and matches
+			// the source against it (sourceHasQuality)
+			switch hexQualityParam(param) {
+			case "Card.MonoColor":
+				lc.out.HexMono = true
+			case "Card.MultiColor":
+				lc.out.HexMulti = true
+			case "Card.nonColorless":
+				lc.out.HexColors = mergeColours(lc.out.HexColors, "WUBRG") // a source of any colour
+			}
 		case head == "Hexproof" && param == "Instant":
 			lc.out.Kw = append(lc.out.Kw, "HexproofFromInstants")
 		case simpleKeywords[head] && param == "":
@@ -1272,7 +1346,14 @@ func (lc *lowerCtx) lowerKeywords() {
 			spec = strings.TrimSpace(spec)
 			var f *lFilter
 			var err error
-			if strings.EqualFold(spec, "Permanent.ThisTurnCast") {
+			if strings.EqualFold(spec, "Spell") {
+				// gorge sourceHasQuality: a card object on the stack is a
+				// spell (Emrakul, the World Anew's protection from spells).
+				// The clause's Spell base compiles as a ZoneStack FSpell
+				// filter; the permanent matcher refuses FSpell (a permanent
+				// is never a spell).
+				f = &lFilter{Clauses: []lClause{{SpellBase: true}}}
+			} else if strings.EqualFold(spec, "Permanent.ThisTurnCast") {
 				// gorge engine/rules/protection.go:259-260 special-cases this
 				// quality: o.Zone == Battlefield && permanentCastThisTurn(o.ID).
 				// The kernel has the same two facts: s.g.cast (set in enterGen
@@ -1456,11 +1537,9 @@ func (lc *lowerCtx) lowerKeywords() {
 			// lore counter, gated at its chapter number (kw_saga.go)
 			lc.lowerChapters(param)
 		case head == "Read ahead":
-			// CR 714.3b: gorge implements it since (the lore-count
-			// choice on entry; chapters below it do not trigger that turn),
-			// but the kernel has no entry choice for it yet; refuse rather
-			// than silently drop a keyword with rules meaning
-			lc.refuseNode(node, "read ahead (CR 714.3b): the kernel has no lore-count entry choice")
+			// CR 702.155 / 714.3b: the as-enters chapter choice, lowered once
+			// the Chapter count is known (lowerTail, lower_readahead.go)
+			lc.readAhead = true
 		case head == "Station":
 			// rules-side in gorge (rules/station.go); appended after the
 			// face's own abilities (lowerFace, lower_station.go). The older
@@ -1547,11 +1626,25 @@ func (lc *lowerCtx) lowerKeywords() {
 		case expandedKeywords[head]:
 			// Lowered from the expansion's own lines.
 		case head == "Kicker":
+			if ma, mb, ok := lc.kickerTwoCosts(param); ok {
+				// the two-alternative "and/or" Kicker (CR 702.33b; gorge
+				// twoPartKickerCosts): part one rides Kicker, part two
+				// Kicker2; the kernel offers the per-part kicked casts
+				// (kw_kickalt.go)
+				lc.out.Kicker, lc.out.Kicker2 = &ma, &mb
+				continue
+			}
 			if mc, rest, ok := lc.kickerNonMana(param); ok {
 				// one non-mana part kop.Cost carries alone (gorge kickerCost
 				// is a full Cost, folded into the kicked cast's cost); the
 				// mana rides Kicker and the part KickerCost
 				lc.out.Kicker, lc.out.KickerCost = &mc, &rest
+				continue
+			}
+			if mc, floor, ok := lc.kickerXMin(param); ok {
+				// an announced {X} kicker with a floor (Thieving Skydiver's
+				// XMin1 X): the floor rides KickerCost.XMin (lower_kickerx.go)
+				lc.out.Kicker, lc.out.KickerCost = &mc, &floor
 				continue
 			}
 			mc, err := parseManaCost(param)
@@ -1570,6 +1663,16 @@ func (lc *lowerCtx) lowerKeywords() {
 			// (lower_morphreduce.go).
 			cs, red, rok := lc.morphReduceParam(param)
 			mc, life, rev, err := lc.morphCostParse(cs) // lower_morphlife.go, lower_revealpick.go
+			var pick lCost
+			if err != nil && life == 0 && rev == nil {
+				// not a mana, life or reveal cost: one Discard/Sac/Return
+				// pick part lowers too (lower_morphpick.go)
+				mp, pok, perr := lc.morphPickParse(cs)
+				if pok {
+					err = perr
+					pick = mp
+				}
+			}
 			if !rok || err != nil || cs == "" || strings.Contains(cs, ":") || mc.None || red.Kind != vNone && (life != 0 || mc.X || mc.Generic == 0) {
 				lc.refuseNode(node, "%s cost %q", strings.ToLower(head), param)
 				continue
@@ -1579,6 +1682,9 @@ func (lc *lowerCtx) lowerKeywords() {
 				continue
 			}
 			lc.out.MorphCost, lc.out.MorphReduce, lc.out.MorphLife, lc.out.MorphReveal = &mc, red, life, rev
+			if pick.Sac != nil || pick.DiscardN > 0 || pick.Return != nil {
+				lc.out.MorphPick = &pick
+			}
 			switch head {
 			case "Morph":
 				lc.out.MorphFamily = kop.MorphMorph
@@ -1618,6 +1724,8 @@ func (lc *lowerCtx) lowerKeywords() {
 			}
 		case head == "Escalate":
 			lc.lowerEscalate(node, param) // lower_escalate.go
+		case head == "Offering":
+			lc.lowerOffering(node, param) // lower_offering.go
 		case head == "Casualty":
 			// CR 702.153a: the optional creature sacrifice and the copy
 			// trigger are the kernel's casualty cast (kw_casualty.go). The
@@ -2046,14 +2154,17 @@ func (lc *lowerCtx) lowerKeywords() {
 			}
 			lc.out.Paradigm = true
 		case head == "AlternateAdditionalCost":
-			// "Sac<1/Creature>:3 B": pay either the first or the second.
-			a, b, ok := strings.Cut(param, ":")
-			if !ok && lc.out.SpellCost == nil {
+			// "Sac<1/Creature>:3 B": pay either the first or the second;
+			// a third part (Dusk Mangler's "Sac<1/Creature>:Discard<1/
+			// Card>:PayLife<4>") joins as CardDef.AltAddCost2, the either-or's
+			// third slot (kernel cast.go altAddOptions).
+			parts := strings.SplitN(param, ":", 3)
+			if len(parts) == 1 && lc.out.SpellCost == nil {
 				// one part (Dusk Rose Reliquary's "Sac<1/Creature;Artifact/
 				// creature or artifact>"): gorge altAddAsk folds a lone
 				// part into the cost unasked, an ordinary additional cost;
 				// its ";" alternation is ParseCost's "," (cost/parse.go)
-				c, err := lc.cost(strings.ReplaceAll(a, ";", ","))
+				c, err := lc.cost(strings.ReplaceAll(parts[0], ";", ","))
 				rest := c
 				rest.Sac, rest.SacN = nil, 0
 				if err != nil || c.Sac == nil || c.SacN != 1 || !rest.pureMana() || c.Mana.Generic != 0 || c.Mana.Pips != [5]int{} || c.Mana.X || len(c.Mana.Hybrid) != 0 {
@@ -2063,26 +2174,35 @@ func (lc *lowerCtx) lowerKeywords() {
 				lc.out.SpellCost, lc.out.AltAddOne = &c, true
 				continue
 			}
-			if !ok {
+			if len(parts) == 1 {
 				lc.refuseNode(node, "alternate additional cost %q", param)
 				continue
 			}
-			c1, err1 := lc.altAddFirstPart(a) // the spell's first part only (kernel act_behold.go, act_revealpick.go; lower_revealpick.go)
-			c2, err2 := lc.cost(b)
+			c1, err1 := lc.altAddFirstPart(parts[0]) // the spell's first part only (kernel act_behold.go, act_revealpick.go; lower_revealpick.go)
+			c2, err2 := lc.cost(parts[1])
+			var c3 lCost
+			var err3 error
+			if len(parts) == 3 {
+				c3, err3 = lc.cost(parts[2])
+			}
 			if c1.BeholdN != 0 {
 				// "Behold<1/Kithkin>:2": the behold is the whole of part one
 				rest := c1
 				rest.BeholdN, rest.BeholdF = 0, nil
 				if err1 == nil && (lc.out.BeholdExile || c1.BeholdN != 1 || !rest.pureMana() || !c1.Mana.None) {
-					err1 = refuse("behold cost %q", a)
+					err1 = refuse("behold cost %q", parts[0])
 				}
 			}
-			if err1 != nil || err2 != nil || c1.Energy != 0 || c2.Energy != 0 || c1.Return != nil || c2.Return != nil {
+			bad3 := len(parts) == 3 && (c3.Energy != 0 || c3.Return != nil || c3.BeholdN != 0 || c3.RevealN != 0)
+			if err1 != nil || err2 != nil || err3 != nil || c1.Energy != 0 || c2.Energy != 0 || c1.Return != nil || c2.Return != nil || bad3 {
 				lc.refuseNode(node, "alternate additional cost %q", param)
 				continue
 			}
 			lc.out.SpellCost = &c1
 			lc.out.AltAddCost = &c2
+			if len(parts) == 3 {
+				lc.out.AltAddCost2 = &c3
+			}
 		case head == "MayEffectFromOpeningHand" && param == "FromHand":
 			body := lc.face.SVars["FromHand"]
 			sa := cards.ResolveSVar(lc.face.SVars, "FromHand")
@@ -2104,6 +2224,12 @@ func (lc *lowerCtx) lowerKeywords() {
 			// Deck construction only.
 		case head == "Partner" && deckOnlyPartner(param):
 			// CR 702.124a: deck construction only (lower_partner.go)
+		case k == "CARDNAME can be your commander.":
+			// Deck-construction eligibility (a Lord Windgrace planeswalker
+			// commander): gorge reads the Oracle phrase when the deck is checked
+			// (engine/deck commanderOraclePhrase, rules/commander_config) and the
+			// kernel seats the commander from Config.Commanders, so the keyword
+			// carries no game characteristic (oracle projchars gorgeKwElsewhere).
 		case k == "Daybound" || k == "Nightbound":
 			// CR 702.145 (gorge rules/daynight.go, cr-daybound-nightbound
 			// and -transform): the day/night designation and the faces it
@@ -2530,6 +2656,10 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 			if len(parts) != 1 {
 				return c, refuse("blight cost %q", t)
 			}
+			if parts[0] == "X" && lc.blightXOK && c.BlightN == 0 && !c.BlightX {
+				c.BlightX = true // the announced count (lower_blightx.go)
+				continue
+			}
 			n, err := strconv.Atoi(parts[0])
 			if err != nil {
 				return c, refuse("blight cost %q: a variable amount", t)
@@ -2659,6 +2789,12 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 			c.SubCtrX, c.SubCtrXKnd = true, parts[1]
 			continue
 		}
+		if head == "SubCounter" && len(parts) >= 2 && parts[0] == "All" {
+			if err := lc.subCtrAllCost(&c, parts, t); err != nil { // lower_costprog.go
+				return c, err
+			}
+			continue
+		}
 		if head == "tapXType" && parts[0] == "X" {
 			// tapXType<X/Spec>: tap any number, X the count (lower_tapxvar.go)
 			if err := lc.tapXVarCost(&c, parts, t); err != nil {
@@ -2713,6 +2849,19 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 				continue
 			}
 			// gorge cost.parse folds a cost spec's ";" alternation to ","
+			if c.Sac != nil && !c.SacX && !c.SacExile && n >= 1 && len(mana) == 0 && lc.sacMoreOK() {
+				// a further filtered part of a printed activated ability's
+				// cost: its own pick, paid by the cost program (lower_costprog.go).
+				// Beside a mana part it keeps the refusal below (the planner's
+				// sacrifice reservation claims one part; costProg refuses a
+				// mana part written after the sacrifices)
+				f, err := lc.filter(strings.ReplaceAll(parts[1], ";", ","))
+				if err != nil {
+					return c, err
+				}
+				c.SacMore = append(c.SacMore, lSacPart{F: f, N: n})
+				continue
+			}
 			if c.SacX || c.SacExile || c.Sac != nil {
 				// the kernel pays one Sac pick: a second part (Jarad's Sac<1/Swamp>
 				// Sac<1/Forest>) would overwrite the first and offer the wrong land
@@ -2831,7 +2980,10 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 				return c, refuse("counter cost %q", t)
 			}
 			kind := parts[1]
-			if kind == "LOYALTY" && head != "RemoveAnyCounter" {
+			if filteredLoyalty := kind == "LOYALTY" && len(parts) != 2 && lc.crewAltCost && head == "SubCounter"; kind == "LOYALTY" && head != "RemoveAnyCounter" && !filteredLoyalty {
+				// (a filtered loyalty removal -- "remove a loyalty counter from a
+				// planeswalker you control" -- is the among cost below, only for
+				// the crew alternative: static_crewalt.go)
 				if len(parts) != 2 {
 					return c, refuse("counter cost %q", t)
 				}
@@ -2981,7 +3133,10 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 					}
 					return c, refuse("life cost PayLife<X> with SVar X %q", x)
 				}
-				if !lc.lifeXSpell && !lc.actCost {
+				// a printed trigger's own "you may pay any amount of life": the
+				// announced X rides the resolution cost (payInstr, lower_effect_pay.go)
+				ownTrig := lc.trigBodyCost && lc.ab != nil && lc.ab.Kind == akTriggered && len(lc.ab.Prog) == 0
+				if !lc.lifeXSpell && !lc.actCost && !ownTrig {
 					return c, refuse("life cost PayLife<X> on a %s ability", "non-spell, non-activated")
 				}
 				if c.LifeX || c.PayLife != 0 || c.LoyaltyX {
@@ -3138,6 +3293,19 @@ func (lc *lowerCtx) filter(expr string) (*lFilter, error) {
 	for i := range f.Clauses {
 		c := &f.Clauses[i]
 		lc.foldImprintExiledWith(c)
+		if c.GreatestCMCSet != "" {
+			// a greatestCMC_<set> property's bound: the greatest mana value
+			// over the set, every battlefield (greatestCMCFilter's RepeatEach
+			// twin reads it through the loop's SVar; Padeem, Consul of
+			// Innovation)
+			set, err := lc.filter(c.GreatestCMCSet)
+			if err != nil {
+				return nil, refuse("filter %q: greatestCMC set %q: %v", expr, c.GreatestCMCSet, err)
+			}
+			v := lValue{Kind: vValidAgg, N: kop.AggGreatestMV, F: set}
+			c.CmpV = &v
+			c.GreatestCMCSet = ""
+		}
 		if c.Flags&fNamedAsSource != 0 {
 			// every named<X> is a literal clause (gorge wordNamed ->
 			// sharesName reads the NAME, not the source; CR 201.2):
@@ -3186,9 +3354,10 @@ func (lc *lowerCtx) filter(expr string) (*lFilter, error) {
 		}
 		if c.CmpStat == cmpExiledWith || c.Flags&fExiledWith != 0 {
 			// the kernel reads the link against the matcher's source: the
-			// resolving entry's, or a Continuous static's own object. A
+			// resolving entry's, a resolution-time value's (a mana amount or
+			// a trigger condition), or a Continuous static's own object. A
 			// target, a cost or a granted ability has none
-			if lc.granted > 0 || !((lc.exwOK || lc.exwTgtOK) && lc.ab != nil || lc.exwStatic) {
+			if lc.granted > 0 || !((lc.exwOK || lc.exwTgtOK || lc.exwRes) && lc.ab != nil || lc.exwStatic) {
 				return nil, refuse("filter %q: ExiledWithSource outside a resolution-time mover or a continuous static", expr)
 			}
 			lc.out.ExiledWith = true
@@ -3320,6 +3489,7 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 		if err := lc.spellWindow(ps, ab); err != nil { // lower_actwindow.go
 			return err
 		}
+		lc.blightXBody(sa, ps) // XMax$ of a Blight<X> raise (lower_blightx.go)
 		if lc.out.Types&tLegendary != 0 && lc.out.Types&(tInstant|tSorcery) != 0 {
 			// CR 205.4e: a legendary instant or sorcery is cast only while
 			// its caster controls a legendary creature or planeswalker
@@ -3408,7 +3578,7 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 		lc.forecastParam(ps)
 		lc.unblockedOK = strings.TrimSpace(sa.Params["Keyword"]) == "Ninjutsu"
 		lc.actCost = ab.Kind == akActivated
-		cost, err := lc.costHand(c)
+		cost, err := lc.costHandMV(sa, c)
 		lc.unblockedOK, lc.actCost = false, false
 		if err != nil {
 			return err
@@ -3683,10 +3853,10 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 				ab.ActCond = deliriumCond() // gorge activationConditionOK
 			case "Metalcraft":
 				// "activate only if you control three or more artifacts"
-				// (CR 207.2c; gorge activationConditionOK's metalcraft arm)
-				if sa.API != "Mana" {
-					return refuse("Activation %q outside a mana ability", v)
-				}
+				// (CR 207.2c; gorge activationConditionOK's metalcraft arm).
+				// The kernel reads a printed battlefield ability's Trig.Cond
+				// for both the mana and the non-mana offer (legal.go's
+				// canActivate, activateCondHolds), so the gate lowers alike.
 				c, err := lc.bareCondition(ps, "Metalcraft")
 				if err != nil {
 					return err
@@ -3708,9 +3878,8 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 			if ab.ActCond.Kind != cNone {
 				return refuse("two activation conditions")
 			}
-			if sa.API == "Mana" {
-				return refuse("CheckSVar$ on a mana ability")
-			}
+			// on a mana ability the gate rides the kernel's planner/window
+			// variant (mana_gate.go), read per call by condEval
 			v, err := lc.value(cs)
 			if err != nil {
 				return err
@@ -3915,6 +4084,9 @@ func (lc *lowerCtx) chain(sa *cards.SA, ps *params) error {
 	for node := sa; node != nil; node = node.Sub {
 		lc.head = node == sa
 		lc.curNode = node
+		if node == lc.skipNode {
+			continue
+		}
 		p := ps
 		if node != sa || p == nil {
 			p = newParams(node.Params)

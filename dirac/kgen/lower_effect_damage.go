@@ -23,6 +23,9 @@ func (lc *lowerCtx) dealDamage(ps *params) error {
 	if n, err = lc.amount(ps, "NumDmg", 0); err != nil {
 		return err
 	}
+	if done, err := lc.dealDamageValidSource(ps, n); done { // lower_damagesourcevalid.go
+		return err
+	}
 	if s, ok := ps.get("DamageSource"); ok {
 		if dmgSrc, err = lc.defined(s); err != nil {
 			return err
@@ -71,6 +74,9 @@ func (lc *lowerCtx) dealDamage(ps *params) error {
 		in.B = lValue{Kind: vNone}
 		in.CS = "to=" + obj.String()
 		in.C = obj.N
+		if err := lc.biteExcess(ps, obj, &in); err != nil {
+			return err
+		}
 	}
 	if d, ok := ps.get("DividedAsYouChoose"); ok {
 		dv, err := lc.value(d)
@@ -172,7 +178,12 @@ func (lc *lowerCtx) rememberDamaged(rd string, in *lInstr) error {
 		admitsPlayer = f == nil || f.Players != 0
 	}
 	if admitsPlayer && lc.restObservesRememberedPlayer() {
-		return refuse("RememberDamaged$ with a remembered player observed")
+		n := lc.lockGainNode() // lower_lockgain.go
+		if n == nil || in.Obj.Kind != rTarget {
+			return refuse("RememberDamaged$ with a remembered player observed")
+		}
+		lc.skipNode = n
+		in.CS = strings.TrimPrefix(in.CS+"|LockGain", "|")
 	}
 	in.CS = strings.TrimPrefix(in.CS+"|Remember", "|")
 	return nil
@@ -460,5 +471,27 @@ func (lc *lowerCtx) eachDamage(ps *params) error {
 		return refuse("EachDamage to %s", obj)
 	}
 	lc.emit(lInstr{Op: "EachDamage", F: f, B: n, Obj2: obj, C: mask})
+	return nil
+}
+
+// biteExcess reads a Bite's ExcessDamage$ (Ram Through: "If the creature you
+// control has trample, excess damage is dealt to that creature's controller
+// instead"; gorge emitObjectDamageExcess): the recipient the bitten object's
+// controller, the condition the source's trample (kop.BiteExcessTrample). A
+// target slot of one object only: the kernel's per-target bite
+// (biteEachTarget) splits no excess.
+func (lc *lowerCtx) biteExcess(ps *params, obj lRef, in *lInstr) error {
+	ed, ok := ps.get("ExcessDamage")
+	if !ok {
+		return nil
+	}
+	cond := strings.TrimSpace(ps.str("ExcessDamageCondition"))
+	if ed = strings.TrimSpace(ed); ed != "ThisTargetedController" && ed != "TargetedController" || cond != "Card.withTrample" {
+		return refuse("Bite ExcessDamage$ %q ExcessDamageCondition$ %q", ed, cond)
+	}
+	if mx := lc.ab.Targets[obj.N].Max; !mx.isConst() || mx.N != 1 {
+		return refuse("Bite ExcessDamage$ on a slot of several targets")
+	}
+	in.CS += "|ExcessTrample"
 	return nil
 }

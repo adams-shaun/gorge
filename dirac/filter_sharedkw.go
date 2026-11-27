@@ -35,7 +35,8 @@ func filterChainEqual(t *kop.Table, a, b kop.FilterID) bool {
 //
 //go:noinline
 func (s *State) hasLandwalkSpec(k *prep, sl Slot, spec kop.FilterID) bool {
-	if f := k.t.Cards[s.cardAt(sl)].Landwalk; f != 0 && !s.genLost(k, sl) && filterChainEqual(k.t, f, spec) {
+	if f := k.t.Cards[s.cardAt(sl)].Landwalk; f != 0 && !s.genLost(k, sl) &&
+		!s.landwalkRemoved(k, sl, f, 0) && filterChainEqual(k.t, f, spec) {
 		return true
 	}
 	lts, lost := s.lossAt(k, sl)
@@ -43,7 +44,8 @@ func (s *State) hasLandwalkSpec(k *prep, sl Slot, spec kop.FilterID) bool {
 	grant := func(st statSrc) bool {
 		ab := st.a
 		if ab.Kind != kop.AbStatic || ab.Static.Kind != kop.StatContinuous || ab.Static.Landwalk == 0 ||
-			lost && s.grantTs(st) < lts || !filterChainEqual(k.t, ab.Static.Landwalk, spec) {
+			lost && s.grantTs(st) < lts || !filterChainEqual(k.t, ab.Static.Landwalk, spec) ||
+			s.landwalkRemoved(k, sl, ab.Static.Landwalk, s.grantTs(st)) {
 			return true
 		}
 		if s.statCond(k, st) && s.matchPermGen(k, ab.Static.Filter, sl, st.ctrl, st.sl, layerKw) {
@@ -58,7 +60,8 @@ func (s *State) hasLandwalkSpec(k *prep, sl Slot, spec kop.FilterID) bool {
 	}
 	if !hit {
 		s.eachOverrideTs(k, sl, func(o *kop.Override, ts uint16) {
-			if o.Landwalk != 0 && (!lost || ts >= lts) && filterChainEqual(k.t, o.Landwalk, spec) {
+			if o.Landwalk != 0 && (!lost || ts >= lts) && !s.landwalkRemoved(k, sl, o.Landwalk, ts) &&
+				filterChainEqual(k.t, o.Landwalk, spec) {
 				hit = true
 			}
 		})
@@ -124,7 +127,7 @@ func (s *State) hasProtColor(k *prep, sl Slot, mask kop.ColorMask) bool {
 		return false
 	}
 	const all = kop.ColW | kop.ColU | kop.ColB | kop.ColR | kop.ColG
-	if p := k.t.Cards[s.cardAt(sl)].ProtColors; p != 0 && p != all && p&mask != 0 && !s.genLost(k, sl) {
+	if p := s.protPrintedCw(k, sl); p != 0 && p != all && p&mask != 0 && !s.genLost(k, sl) {
 		return true
 	}
 	kw := s.kw(k, sl)

@@ -47,6 +47,10 @@ func (s *State) execCold1(k *prep, in *kop.Instr) (ok, done bool) {
 			s.dmgSrcPlayers(k, in) // players mode (act_damagefrom.go)
 			break
 		}
+		if in.B.N == kop.DmgFromEachAttached {
+			s.dmgSrcAttached(k, in) // the attached-bearer mode (act_damagefrom.go)
+			break
+		}
 		a := s.objRef(k, in.Obj)
 		b := s.objRef(k, kop.Ref(in.C))
 		if a != NoSlot && b != NoSlot && (s.isCreature(k, a) || s.typesAt(k, a)&kop.TPlaneswalker != 0) && (s.isCreature(k, b) || s.typesAt(k, b)&kop.TPlaneswalker != 0) {
@@ -71,6 +75,10 @@ func (s *State) execCold2(k *prep, in *kop.Instr) (ok, done bool) {
 	case kop.OpGainEnergy:
 		s.gainEnergy(k, in)
 	case kop.OpOverrideAll:
+		if in.B.N == kop.OvCwWord {
+			var ci kop.Instr
+			in = s.ovCwRow(k, in, &ci) // a word-list Colors$ reads the frozen colour-word colour (static_colorwords.go)
+		}
 		if in.Obj != kop.RefNone {
 			s.overrideAllScoped(k, in)
 		} else {
@@ -253,6 +261,8 @@ func (s *State) execCold5(k *prep, in *kop.Instr) (ok, done bool) {
 		s.discover(k, in)
 	case kop.OpMoveCounter:
 		s.moveCounter(k, in)
+	case kop.OpMoveCounterAny:
+		return s.moveCounterAny(k, in), true
 	case kop.OpRearrange:
 		return s.rearrange(k, in), true
 	case kop.OpFog:
@@ -300,6 +310,8 @@ func (s *State) askOptionsCold2(k *prep, d *Decision) bool {
 		}
 	case raGenLibPlace:
 		s.libPlaceOptions(d) // act_libplace.go
+	case raGenRippleOrder:
+		s.rippleOrderOptions(d) // kw_ripple.go: the ripple tail's CR 401.4 arrangement
 	case raGenRearrShuffle:
 		d.Sub = ChGenConfirm // gorge's options: yes, no
 		d.add(MakeAction(AkChoose, 0, 0, 1))
@@ -354,6 +366,8 @@ func (s *State) applyAskCold2(k *prep, a Action) bool {
 		}
 	case raGenLibPlace:
 		s.libPlaceAnswer(k, a) // act_libplace.go
+	case raGenRippleOrder:
+		s.rippleOrderAnswer(k, a) // kw_ripple.go: the group bottoms in the picked order
 	case raGenRearrShuffle:
 		s.res.ask = raNone
 		if a.Mode() == 1 {
@@ -607,6 +621,9 @@ func (s *State) askOptionsUnread(k *prep, d *Decision) bool {
 		if s.askOptionsTurnUpEff(k, d) { // face_turnupeffect.go
 			return true
 		}
+		if s.askOptionsTurnUpAttach(k, d) { // face_turnupattach.go
+			return true
+		}
 		if s.askOptionsDistPick(k, d) { // ctr_distpick.go
 			return true
 		}
@@ -688,6 +705,9 @@ func (s *State) applyAskUnread(k *prep, a Action) bool {
 			return true
 		}
 		if s.applyAskTurnUpEff(k, a) { // face_turnupeffect.go
+			return true
+		}
+		if s.applyAskTurnUpAttach(k, a) { // face_turnupattach.go
 			return true
 		}
 		if s.applyAskDistPick(k, a) { // ctr_distpick.go

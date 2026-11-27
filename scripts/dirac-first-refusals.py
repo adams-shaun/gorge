@@ -45,7 +45,9 @@ EVIDENCE_MIN_PLAYS = 3  # oracle.EvidenceMinPlays
 EVIDENCE_SCRIPTED_MIN_GAMES = 3  # oracle.EvidenceScriptedMinGames
 SCRIPTED_MIN_SEEDS = 2  # design section 5: over at least two distinct seeds
 SCRIPTED_PREFIX = "sc-"  # a scripted run's name: sc-<pool>-<seed>
-DECK_POOLS = ("fdn", "blb", "pauper")
+# The real deck pools. hosted-cmdr is gorged's hosted Commander decks (dirac/oracle/pools.go), played
+# two-seat as -kernel hosted-cmdr: its lowered cards earn evidence the way fdn's do.
+DECK_POOLS = ("fdn", "blb", "pauper", "hosted-cmdr")
 DECK_CLEARED_PLAYS = 50
 REFUSED_DIR = "dirac/support/refused"
 EVIDENCE_DIR = "dirac/support/evidence"
@@ -937,7 +939,10 @@ def prune_legacy(top, keyed):
 def run_kernel(pool):
     """The name a run's verdict line carries. A pod run is dealt as -kernel <pool without pod->
     (scripts/dirac-evidence.sh's pod case), so its out file names the set (cmd5), not the run
-    (pod-cmd5); every other run names its own pool."""
+    (pod-cmd5), and fdc-gaps is the committed decks played as -kernel fdn -set cmd5 (its verdict
+    names cmd5); every other run names its own pool."""
+    if pool == "fdc-gaps":
+        return "cmd5"
     return pool[len("pod-"):] if pool.startswith("pod-") else pool
 
 

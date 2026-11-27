@@ -21,7 +21,9 @@ func (lc *lowerCtx) choosePlayerRes(ps *params) error {
 	if lc.chosenOppAb != nil && lc.chosenOppAb == lc.ab {
 		return refuse("ChoosePlayer Choices$ %q beside the one-opponent ChoosePlayer", ps.str("Choices"))
 	}
-	if v := ps.str("Defined"); v != "You" {
+	// an absent Defined$ names the same chooser as Defined$ You (gorge
+	// choiceChoosers: no named chooser is the controller; Lodestone Bauble)
+	if v := ps.str("Defined"); v != "You" && v != "" {
 		return refuse("ChoosePlayer Choices$ %q with Defined$ %q", ps.str("Choices"), v)
 	}
 	// gorge appends the answer to the resolution's remembered list only under
@@ -29,7 +31,10 @@ func (lc *lowerCtx) choosePlayerRes(ps *params) error {
 	// Choices$-less pool (Valleymaker: any living player) is the one shape that
 	// lowers without it, answering without remembering (kop.ChoosePlayerForget)
 	remember := ps.is("RememberChosen", "True")
-	if !remember && ps.str("Choices") != "" {
+	// Choices$ Player with no Defined$ (Lodestone Bauble) reads the same as
+	// the Choices$-less pool: every living player, the answer unremembered
+	bauble := ps.str("Choices") == "Player" && ps.str("Defined") == ""
+	if !remember && ps.str("Choices") != "" && !bauble {
 		return refuse("ChoosePlayer Choices$ %q without RememberChosen$ True", ps.str("Choices"))
 	}
 	if _, ok := ps.get("ValidTgts"); ok {

@@ -1,0 +1,14 @@
+# The RepeatEach ChangeZoneTable$ Token/Copy pool (dirac/oracle/
+# repeateachczt_lockstep_test.go): Ezuri's Predation (a Beast token per
+# opponent creature, each Fight) and Mirror-Style Master (a CopyPermanent of
+# each attacking modified creature, exiled at end of combat), with the hosts
+# their decks need: vanilla creatures, an Aura and an Equipment to make an
+# attacker modified, and basics.
+Ezuri's Predation
+Mirror-Style Master
+Grizzly Bears
+Glory Seeker
+Rancor
+Bonesplitter
+Forest
+Mountain

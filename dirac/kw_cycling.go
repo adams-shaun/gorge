@@ -21,7 +21,7 @@ func (s *State) cycleDiscard(k *prep, o Obj, x uint8) {
 	}
 	s.g.disc = o
 	who := s.objs[o].owner()
-	if s.subs[kop.TrigDiscarded].any() {
+	if s.evLive(kop.TrigDiscarded) {
 		s.eachTrigger(k, kop.TrigDiscarded, func(l trigListener, a *kop.Ability) {
 			if a.Trig.Flags2&kop.Tf2Cycled != 0 {
 				s.cycledTrigGen(k, l, a, o, who)

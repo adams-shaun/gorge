@@ -194,10 +194,10 @@ var cloneKnownKeys = [...]string{
 	"TargetsWithDifferentNames", "TargetsWithEqualToughness", "TargetsWithRelatedProperty", "TargetsWithSameCardType",
 	"TargetsWithSameController", "TargetsWithSameCreatureType", "TargetsWithSharedCardType",
 	"TargetsWithSharedTypes", "TgtPrompt", "TgtZone", "TokenScript", "TriggerController", "TriggerDescription",
-	"Triggers", "Type", "Ultimate", "UnlessAI", "UnlessCost", "UnlessPayer", "UnlessResolveSubs",
+	"Triggers", "Type", "Types", "Ultimate", "UnlessAI", "UnlessCost", "UnlessPayer", "UnlessResolveSubs",
 	"UnlessSwitched", "ValidAfterStack", "ValidCard", "ValidCards", "ValidCardsDesc", "ValidChoices",
 	"ValidCounterType", "ValidDescription", "ValidTgts", "ValidTgtsDesc", "VoteMessage", "WithoutManaCost",
-	"XColor", "XMax", "XMin",
+	"XAnnounceTitle", "XColor", "XMax", "XMin",
 }
 
 // isCloneSA reports whether sa resolves as api:Clone.

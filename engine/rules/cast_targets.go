@@ -314,6 +314,16 @@ func (e *Engine) targetAsk() bool {
 	// are applied and Delve credit is subtracted, all settled by the stages
 	// above.
 	mana := e.castPaymentMana(pc)
+	// CR 702.132a: the other seats may still fund the generic part, so the
+	// proposal is not dead just because the caster alone cannot. Price the
+	// same potential the offer gate priced (a possible assist), then let the
+	// real per-seat elections and the caster's own window settle the truth.
+	if credit := e.assistOfferCredit(pc.player, pc.card, mana.Generic); credit > 0 {
+		mana.Generic -= credit
+		if mana.Generic < 0 {
+			mana.Generic = 0
+		}
+	}
 	// resolvedMana carries no live pip at this stage (the pip announcements
 	// are already settled, manaAsk runs before targetAsk), so the composed
 	// payable check here is the same composition manaToPay charges;
@@ -545,6 +555,9 @@ func (e *Engine) targetAsk() bool {
 		Prompt: "Choose a target for " + e.targetName(pc.card),
 		Source: src, TargetEffect: e.describeTargetEffect(pc.player, pc.card, sa, pc.x),
 		TargetsWithSameController: sameController, SetPropMode: setMode}
+	if total, ok := e.castDivisionTotal(pc, sa); ok && total > 1 && max > 1 {
+		d.DivideTotal = total
+	}
 	if !pc.isAbility() && pc.stackObj == pc.card {
 		lim := max
 		if lim < 0 || lim > len(candidates) {

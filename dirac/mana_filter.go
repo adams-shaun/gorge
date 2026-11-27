@@ -30,7 +30,8 @@ import (
 // Only boards whose census gaps are all filters take it; a filter beside a
 // Bloom Tender or a restricted gap keeps the older scripts' logic.
 
-const potentialScriptNodes = 164 // gorge rules/potential_script.go: the pair's stated limit; a board whose every land tap a Taps watcher defers (Manabarbs) reaches a fee gap's funding line at 163 clones, three past the old 160, and the kernel prices such a play
+//lockstep:const engine/rules.potentialScriptNodes
+const potentialScriptNodes = 600 // gorge rules/potential_script.go: the pair's stated limit (see the comment there for why 600); a board whose every land tap a Taps watcher defers (Manabarbs) reaches a fee gap's funding line at 163 clones, and the kernel prices such a play
 
 // paySearchNodes bounds a payment plan's search. A payment taps the cost's own
 // sources beside the filters' fees, so its tree is wider than a play prefix's;
@@ -151,8 +152,9 @@ func (g *genPrep) prepCensusGap(c CardID, j int, a *kop.Ability) {
 	}
 }
 
-// scriptFilt: p's activatable filter sources (untapped), a slot mask.
-func (s *State) scriptFilt(k *prep, p uint8) slotMask {
+// scriptFiltCalc: p's activatable filter sources (untapped), a slot mask
+// (scriptFilt, mana_sfmemo.go, is the per-decision memo in front of it).
+func (s *State) scriptFiltCalc(k *prep, p uint8) slotMask {
 	if !k.gen.anyFilt {
 		return slotMask{}
 	}
@@ -173,7 +175,7 @@ func (s *State) scriptFilt(k *prep, p uint8) slotMask {
 	// source's own mana (mana_filterfree.go's gate-on view): it stays out of
 	// the gap set on both paths. Otherwise a table holding any first-ability
 	// filter (anyFiltFirst) would leave a later free filter in it, and the
-	// prefix search spends its 160-node budget on the extra branch instead of
+	// prefix search spends its potentialScriptNodes budget on the extra branch instead of
 	// funding the paid filters beside it.
 	if k.gen.anyAbReduce {
 		for b := m; b.any(); b = b.rest() {
@@ -279,8 +281,10 @@ func (s *State) filtBoundPaysWalk(k *prep, p uint8, sl Slot) bool {
 	}
 	saved := s.perms[sl].flags
 	s.perms[sl].flags |= pfTapped // the filter's own productions out of the bound
+	s.pcMemoHold()                // an unmarked in-place write: the manaPCGen memo stands aside (mana_pcmemo.go)
 	var pb avail
 	open := s.availPotentialFor(k, p, &pb, nil, false)
+	s.pcMemoRelease()
 	s.perms[sl].flags = saved
 	if open {
 		// an any-colour production priced unbounded: gorge's census cannot
@@ -1537,6 +1541,8 @@ type filtKey struct {
 // activation from the pool, so the search walks chains longer than sixteen
 // steps (Simic Cluestone's {G}{U} through repeated Signpost Scarecrow
 // activations) and the cap dropped the branch gorge takes.
+//
+//lockstep:const engine/rules.potentialScriptNodes
 const maxFiltPath = potentialScriptNodes
 
 // maxFaceFilters bounds the filters faceReachable tries in combination.
@@ -1794,7 +1800,7 @@ func (s *State) filtFunders(k *prep, p uint8, gap slotMask) int {
 // filtScript reports whether gorge's prefix search finds a script for play
 // a of p; with apply it plays the script on s (the play's prefix).
 //
-// On the autopay surface, when the search spends its whole 160-node budget on
+// On the autopay surface, when the search spends its whole potentialScriptNodes budget on
 // an activation, a staged fallback reruns it with a funding cap at the play's
 // mana value and
 // then one step at a time: a fixed cost needs at most its mana value's taps
@@ -1992,6 +1998,7 @@ func (s *State) filtScript(k *prep, a Action, p uint8, apply bool) bool {
 	s.pool.inFilt++ // (fork made the pool)
 	found := fs.visit(k, t, 0, false)
 	nodes := fs.nodes
+	DebugFiltNodes = nodes
 	if !found && s.feeOrderFallback(k, p, a, &fs) {
 		// gorge's plain run spent its node budget walking the filters' fee
 		// branches before the fee was funded: its fee-order run floats the
@@ -2250,6 +2257,11 @@ func (s *State) filtPlay(k *prep, p uint8, path []filtStep) {
 // search's budget is paySearchNodes and its own table is that long, so the cap
 // works there too.
 var DebugFiltNodeBudget int
+
+// DebugFiltNodes is the node count of the last play search's first run (the
+// plain order's, before any fallback), for tests that pin the search's node
+// accounting against gorge's scriptSearch.nodes.
+var DebugFiltNodes int
 
 // DebugFiltTryGapExempt limits try's priced-node exemption from the visited-set
 // cut to gap lines, as it was before the hand guides' funding pass shared it
@@ -2700,7 +2712,7 @@ func (fs *filtSearch) twinTried(k *prep, t *State, sl Slot, tried []Slot) bool {
 // animated into a creature (Kamahl, Fist of Krosa's {G} on a Plains) still
 // pairs with an unanimated one: gorge reads the options and the mana-ability
 // sets, which the animate leaves alone (twinSlotFx, ovrKeepsMana); a strict
-// test walked the second Plains' subtree gorge's cut skips, spent the 160-node
+// test walked the second Plains' subtree gorge's cut skips, spent the potentialScriptNodes
 // budget, and left a payable {2}{G}{G}{G} unoffered (CR 605.3a, 601.2g).
 func (fs *filtSearch) twinSlot(k *prep, t *State, a, b Slot) bool { return twinSlotFx(k, t, a, b) }
 
@@ -3011,7 +3023,7 @@ func (fs *filtSearch) passShape(pass, funded int, feeGapsOut *bool) (gap, freeOn
 
 // holdDualFilter reports whether sl is a lone dual filter on a cast whose
 // fee the funding pass can pay: its free {C} tap must wait, or it spends the
-// 160-node budget before the fee floats and the paid activation is never
+// potentialScriptNodes budget before the fee floats and the paid activation is never
 // reached (Baxter Building beside four lands, King T'Challa). A board with a
 // second filter or with too few funders keeps the plain walk's free tap.
 //
@@ -3240,7 +3252,7 @@ func (fs *filtSearch) fundTap(k *prep, t *State, sl Slot, rm uint8, free bool, f
 	zeroAsk := free && rm == 0 && fs.zeroFiltAsk(k, t, sl)
 	if free {
 		pc := t.manaPCGen(k, sl)
-		if pc.altCol != 0 && !DebugLandGrantAltFund {
+		if pc.altCol != 0 {
 			if fs.fundAlt(k, t, sl, pc, funded, gapUsed) {
 				return true, true
 			}
@@ -3515,7 +3527,7 @@ func (fs *filtSearch) freeBranchHopeless(k *prep, t *State, sl Slot) bool {
 		// A root gap that is no filter (a tap-another Holdout Settlement
 		// whose plain {C} answer the path already took): the census below
 		// no longer lists it, but gorge's search walked the same dead
-		// subtree beside it and spent its 160 nodes there before the paying
+		// subtree beside it and spent its potentialScriptNodes budget there before the paying
 		// line, so the prune must not hide it (CR 605.3a, 601.2h).
 		return false
 	}

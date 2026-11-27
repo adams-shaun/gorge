@@ -160,6 +160,9 @@ func (s *State) adjustCostGenB(k *prep, p uint8, c CardID, o, priced Obj, base k
 		}
 		g += s.waterbendOwnPart(k, p, c, own) // the spell's own waterbend {N} (RaiseCost Cost$ Waterbend<N>)
 	}
+	if defilerOn(k) && s.defilerPricing(c) {
+		g -= s.defilerTake(&base) // the answered Defilers' pips, after the statics (cost_defiler.go)
+	}
 	if g < 0 {
 		if base.X != 0 {
 			base.XRed = uint8(min(-g, 255)) // CR 601.2f: the excess pays into {X}
@@ -212,6 +215,16 @@ func (s *State) matchSpellAlt(k *prep, fl kop.Filter, c CardID, owner, ctrl uint
 func (s *State) matchSpellAltCtx(k *prep, fl kop.Filter, c CardID, owner, ctrl uint8, o Obj, src Slot, emb uint8, ctx *evalCtx) bool {
 	if fl.Zone == kop.ZoneStack {
 		fl.Zone = kop.ZoneNone
+	}
+	if fl.Pred == kop.PredCastFaceDown {
+		// gorge's Spell.isCastFaceDown (a ReduceCost ValidSpell$): the
+		// candidate is being priced as a face-down cast, which the cast
+		// marks on the object's slot (slotFaceDownSpell; cast.go and
+		// adjustCostFaceDown). Everything else still matches.
+		if o == NoObj || s.objs[o].slot != slotFaceDownSpell {
+			return false
+		}
+		fl.Pred = kop.PredNone
 	}
 	if fl.Pred == kop.PredNamedCard {
 		// the card-name property NamedCard (CR 201.4): the candidate shares

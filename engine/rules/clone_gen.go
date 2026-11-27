@@ -381,6 +381,12 @@ func cloneFieldsEngineTriggerMaps(c, e *Engine, sp *Spare, remap *cloneRemap) {
 			c.castReturned[k0] = nv0
 		}
 	}
+	if e.castCountersRemoved != nil {
+		c.castCountersRemoved = make(map[state.ObjID]int32, len(e.castCountersRemoved))
+		for k0, v0 := range e.castCountersRemoved {
+			c.castCountersRemoved[k0] = v0
+		}
+	}
 	if e.fuseTargets != nil {
 		c.fuseTargets = make(map[state.ObjID][][]state.Target, len(e.fuseTargets))
 		for k0, v0 := range e.fuseTargets {
@@ -424,10 +430,10 @@ func cloneFieldsEngineTriggerMaps(c, e *Engine, sp *Spare, remap *cloneRemap) {
 			c.resolutionTargets[k0] = nv0
 		}
 	}
-	c.trigSub = e.trigSub.clone()
 }
 
 func cloneFieldsEngineTriggerMaps2(c, e *Engine, sp *Spare, remap *cloneRemap) {
+	c.trigSub = e.trigSub.clone()
 	if e.charmTargets != nil {
 		c.charmTargets = make(map[state.ObjID][][]state.Target, len(e.charmTargets))
 		for k0, v0 := range e.charmTargets {
@@ -805,6 +811,7 @@ func cloneFieldsEngineContinuation(c, e *Engine, sp *Spare, remap *cloneRemap) {
 			}
 		}
 		p0.delve = append([]state.ObjID(nil), e.cast.delve...)
+		p0.assistPays = append([]assistPayment(nil), e.cast.assistPays...)
 		p0.PaidCost.Sacs = append([]state.ObjID(nil), e.cast.PaidCost.Sacs...)
 		p0.PaidCost.Discards = append([]state.ObjID(nil), e.cast.PaidCost.Discards...)
 		p0.PaidCost.Exiles = append([]state.ObjID(nil), e.cast.PaidCost.Exiles...)
@@ -894,10 +901,10 @@ func cloneFieldsEngineContinuation(c, e *Engine, sp *Spare, remap *cloneRemap) {
 	c.auraEntries = append([]auraEntryState(nil), e.auraEntries...)
 	c.etbLandPlay = e.etbLandPlay
 	c.etbLandObj = e.etbLandObj
-	c.etbLandPlayer = e.etbLandPlayer
 }
 
 func cloneFieldsEngineContinuation2(c, e *Engine, sp *Spare, remap *cloneRemap) {
+	c.etbLandPlayer = e.etbLandPlayer
 	c.etbLandPerm = e.etbLandPerm
 	c.etbLandFrom = e.etbLandFrom
 	if e.riotMove != nil {

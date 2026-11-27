@@ -103,6 +103,11 @@ var DebugAtkTaxNoGrant bool
 // Priest of Forgotten Gods, Red Death, Shipwrecker) as a fixed {C} source.
 var DebugAtkTaxCountActivated bool
 
+// DebugAtkTaxHasteUnlisted (test only, TestFourSeatAtkTaxHasteRiderLockstep):
+// the walk skips a source whose mana carries a haste spend rider (Carnelian
+// Orb of Dragonkind), as if the window never listed it.
+var DebugAtkTaxHasteUnlisted bool
+
 // DebugAtkTaxNoExtra (test only, TestFourSeatAtkTaxTapExtraLockstep): the
 // window's tap floats no StatTapExtra mana beside the source's own.
 var DebugAtkTaxNoExtra bool
@@ -286,6 +291,9 @@ func atkTaxFirstMana(c *kop.CardDef) int {
 // tapped, so the walk ignores it (CR 605.3a: the payer may still activate it
 // outside the window).
 func atkTaxUnlisted(a *kop.Ability) bool {
+	if DebugAtkTaxHasteUnlisted && a.Kind == kop.AbMana && a.ManaHasteValid != 0 {
+		return true
+	}
 	const other = kop.CostSac | kop.CostRemoveCtr | kop.CostAddCtr | kop.CostDiscard | kop.CostTapX | kop.CostExileGrave
 	f := a.Cost.Flags
 	fee := a.Cost.Mana.MV() != 0 || a.Cost.Mana.X != 0
@@ -320,11 +328,15 @@ func atkTaxRestricted(a *kop.Ability) bool {
 // attackChoiceManaSources): a cost of {T} alone, a literal amount, no spend
 // restriction, rider, gate, deferral or simultaneous production, and one
 // colour, a choice of colours or the chosen colour, or the commander's colour
-// identity (ManaIdentity), which the window never lists (atkTaxShape).
+// identity (ManaIdentity), which the window never lists (atkTaxShape). The
+// spent-mana haste rider (ManaHasteValid: Carnelian Orb of Dragonkind) is no
+// restriction: gorge lists the source as the plain unit it makes and pays the
+// charge from it, the grant riding only a spell's payment (mana_spentrider.go;
+// the tap tags the unit, artTag).
 func atkTaxManaAb(a *kop.Ability) bool {
 	return a.Cost == (kop.Cost{Flags: kop.CostTap}) && a.ManaN > 0 && len(a.Prog) == 0 &&
 		(a.AFlags&^(kop.AfManaChoice|kop.AfManaChosen) == 0 || a.ManaIdentity && a.AFlags&^(kop.AfManaChoice|kop.AfManaReflect) == 0 || atkTaxReflAb(a)) && a.ManaRestrict == 0 && a.ManaRestrictAb == 0 &&
-		(!a.ManaEach || atkTaxEachAb(a)) && !a.ManaDeferred && (a.SplitGate == 0 || atkTaxSplitAb(a)) && a.ManaHasteValid == 0 && a.ManaRider == 0 &&
+		(!a.ManaEach || atkTaxEachAb(a)) && !a.ManaDeferred && (a.SplitGate == 0 || atkTaxSplitAb(a)) && a.ManaRider == 0 &&
 		a.ActZone == kop.ZoneNone && a.Gate == (kop.Gate{}) && !a.Exhaust && a.Once == 0
 }
 

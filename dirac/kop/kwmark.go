@@ -39,4 +39,12 @@ const (
 	// one, as the attacker's restriction and as the blocker's exception
 	// (Riding Red Hare; PumpAll: Merry-Go-Round).
 	KwMarkHorsemanship
+	// KwMarkToxic is toxic N (CR 702.164) granted until end of turn, N the
+	// high byte of C (KwMarkToxicShift, 1..127): perm.spare's three toxic bits
+	// count the permanent's granted toxic (cumulative, 702.164c), no arena
+	// mask (Aspirant's Ascent; PumpAll: Plague Nurse). dirac/kw_toxicgrant.go.
+	KwMarkToxic
 )
+
+// KwMarkToxicShift is where KwMarkToxic's amount sits in ExtKwMark's C.
+const KwMarkToxicShift = 8

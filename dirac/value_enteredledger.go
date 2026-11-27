@@ -65,6 +65,36 @@ const (
 // clears them off the object; see matchDeparture).
 const enteredModified uint8 = 1 << enteredModifiedShift
 
+// enteredSacrificed is zoneEntry.flags' sacrifice bit: the battlefield
+// departure was made under the sacrifice action (CR 701.21a). It is gorge's
+// ZoneEntry.Sacrificed, folded into the ledger so a filtered
+// PlayerCountPropertyYou$SacrificedThisTurn read can match each entry's card
+// where it went (value_sacrificedthisturn.go). The bit sits above the
+// controller and LeftCounters bits.
+const enteredSacrificed uint8 = 1 << (enteredModifiedShift + 1)
+
+// noteSacrificedEntry marks o's battlefield departure, just added, as a
+// sacrifice.
+//
+//go:noinline
+func (s *State) noteSacrificedEntry(o Obj) {
+	if s.g.enteredN == 0 {
+		return
+	}
+	// Walk back to o's most recent entry: a replacement during the move may
+	// have appended another object's entry after o's departure.
+	for i := int(s.g.enteredN) - 1; i >= 0; i-- {
+		e := &s.cold.entered[i]
+		if e.o != o {
+			continue
+		}
+		if e.from() == uint8(kop.ZoneBattlefield) {
+			e.flags |= enteredSacrificed
+		}
+		return
+	}
+}
+
 // noteLeftController records on o's battlefield departure, just added, the
 // controller it left under (CR 603.10a).
 //
@@ -203,12 +233,25 @@ func (s *State) thisTurnEntered(k *prep, x *kop.Expr, ctx evalCtx) int {
 	}
 	dest := kop.Zone(x.N)
 	n := 0
+	from, onlyLast := kop.EnteredLastOf(x.From)
+	last := -1
+	if onlyLast {
+		// the source's latest entry only (kop.EnteredLastFrom): the triggering move
+		for i := int(s.g.enteredN) - 1; i >= 0 && last < 0; i-- {
+			if e := &s.cold.entered[i]; e.o == ctx.src && e.to() == uint8(dest) {
+				last = i
+			}
+		}
+		if last < 0 {
+			return 0
+		}
+	}
 	for i := uint8(0); i < s.g.enteredN; i++ {
 		e := &s.cold.entered[i]
-		if e.to() != uint8(dest) {
+		if e.to() != uint8(dest) || last >= 0 && int(i) != last {
 			continue
 		}
-		if x.From >= 0 && int8(e.from()) != x.From {
+		if from >= 0 && int8(e.from()) != from {
 			continue
 		}
 		ob := &s.objs[e.o]

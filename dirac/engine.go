@@ -4,6 +4,7 @@ import (
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
+//lockstep:const engine/rules.openingHand
 const openingHand = 7
 
 // New starts a game with the default Config (pass-elision on, no mulligan
@@ -61,6 +62,7 @@ func (s *State) InitNStart(tbl *Table, decks [MaxSeats][]CardID, n uint8, seed u
 		}
 	}
 	s.resetCold(lay)
+	s.filtMemoReset() // a new game: no transition memo carries over (mana_filtmemo.go, mana_pcmemo.go)
 	s.initPartners()
 	s.g.on = s.k().gen != nil
 	s.g.enteredOn = s.g.on && s.k().gen.enteredNeed
@@ -147,6 +149,7 @@ func (s *State) InitNStart(tbl *Table, decks [MaxSeats][]CardID, n uint8, seed u
 		// gorge's genesis deal order: the planar deck's shuffle, then the
 		// commander leaves the library, then the library shuffle and hand.
 		s.shufflePlanar(p)
+		s.revealPlaneTop(p)
 		if s.cfg&cfgCommander != 0 || cfg.SeatCommanders {
 			s.cmdGenesis(p, cfg.Commanders[p])
 		}
@@ -297,6 +300,9 @@ func (s *State) stepRaw(d *Decision) {
 			if s.sba(k) {
 				continue
 			}
+			if s.g.pre.state == preReturnCost {
+				continue // a swept seat's returning card parked its as-enters ask (zone_untilleavescost.go): stepGen poses it before this priority
+			}
 			// a Swirl-class colour-word static reads a rewritten word: stall before any
 			// trigger's targets are asked or a player acts (static_colorwords.go)
 			if k.anyColorWords && s.colorWordsStall(k) {
@@ -316,7 +322,11 @@ func (s *State) stepRaw(d *Decision) {
 				s.prio = s.nextAlive(s.prio) // gorge grantPriority: a departed holder's turn passes on
 			}
 			d.Kind, d.Player = DkPriority, s.prio
+			s.pcMemoOpen(k) // the per-decision manaPCGen memo (mana_pcmemo.go)
+			s.sfmOpen(k)    // scriptFilt's (mana_sfmemo.go)
 			s.priorityOptions(k, d)
+			s.pcMemoClose()
+			s.sfmClose()
 			return
 		case ctlPlaceTriggers:
 			if s.placeTriggers(k, d) {
@@ -365,11 +375,8 @@ func (s *State) stepRaw(d *Decision) {
 		case ctlReflectPick:
 			s.reflectPickOptions(d) // mana_reflectpickask.go
 			return
-		case ctlTurnUpX:
-			s.turnUpXOptions(d) // face_turnfaceup.go
-			return
-		case ctlTurnUpReveal:
-			s.turnUpRevealOptions(k, d) // act_revealpick.go
+		case ctlTurnUpX, ctlTurnUpReveal, ctlTurnUpPick, ctlTurnUpAttach:
+			s.turnUpAskOptions(k, d) // face_morphpick.go
 			return
 		case ctlManaAsk:
 			s.priManaAskOptions(k, d) // mana_priask.go
@@ -450,6 +457,10 @@ func (s *State) Apply(a Action) {
 		s.applyTurnUpX(k, a) // face_turnfaceup.go
 	case ctlTurnUpReveal:
 		s.applyTurnUpReveal(k) // act_revealpick.go
+	case ctlTurnUpPick:
+		s.applyTurnUpPick(k, a) // face_morphpick.go
+	case ctlTurnUpAttach:
+		s.applyTurnUpAttach(k, a) // face_turnupattach.go
 	case ctlManaAsk:
 		s.applyPriManaAsk(k, a) // mana_priask.go
 	case ctlCmdZone0, ctlCmdZone1, ctlCmdZone2, ctlCmdZone3, ctlCmdZone4, ctlCmdZone5, ctlCmdZone6, ctlCmdZone7:

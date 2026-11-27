@@ -37,6 +37,9 @@ func (s *State) chooseCardAsk(k *prep, in *kop.Instr, p, base uint8) (ok, done b
 		s.chooseCardAtRandom(k, in, base)
 		return true, true
 	}
+	if in.C == kop.ChooseCardEachAmount {
+		return !s.chooseCardEachAmountPose(k, in, true), true // below
+	}
 	if in.C == kop.ChooseCardAmount || in.C == kop.ChooseCardAmountOpt {
 		s.chooseCardAmountReset(k, in)
 		if s.chooseCardAmountPose(k, in, p, base, true) {
@@ -159,6 +162,10 @@ func (s *State) chooseCardEachPose(k *prep, in *kop.Instr, first bool) bool {
 // one card (or none).
 func (s *State) applyChooseCard(k *prep, a Action) {
 	in := &s.prog(k)[s.res.pc]
+	if in.Op == kop.OpRepeatEach && in.C&kop.RepeatEachOrder != 0 {
+		s.eachOrderAnswer(k, a) // act_eachorder.go
+		return
+	}
 	if in.C == chooseLibUpTo {
 		s.chooseLibAnswer(k, a) // zone_optionalmoves.go: asks again or continues
 		return
@@ -195,6 +202,22 @@ func (s *State) applyChooseCard(k *prep, a Action) {
 		s.continueRes(k, 0)
 		return
 	}
+	if in.C == kop.ChooseCardEachAmount {
+		if int(s.g.nchosen) >= len(s.g.chosen) {
+			s.capFull(StallRemember)
+			return
+		}
+		s.g.chosen[s.g.nchosen] = Obj(a.Source())
+		s.g.nchosen++
+		if s.res.left > 0 {
+			s.res.left--
+		}
+		if s.chooseCardEachAmountPose(k, in, false) {
+			return // the same player's next card, or the next player's first
+		}
+		s.continueRes(k, 0)
+		return
+	}
 	if in.C == kop.ChooseCardEach {
 		if int(s.g.nchosen) >= len(s.g.chosen) {
 			s.capFull(StallRemember)
@@ -223,4 +246,40 @@ func (s *State) applyChooseCard(k *prep, a Action) {
 		}
 	}
 	s.continueRes(k, 0)
+}
+
+// chooseCardEachAmountPose poses the next ChooseCardEachAmount pick: the
+// current player's next card while it has picks left and candidates, else the
+// first pick of the next player with a candidate (gorge effChooseCard's
+// chooser-major walk; a chooser whose pool is empty poses no decision). first
+// clears the chosen set. false when every player has answered.
+//
+//go:noinline
+func (s *State) chooseCardEachAmountPose(k *prep, in *kop.Instr, first bool) bool {
+	q := s.chooseCardEachOrder(k, in)
+	if first {
+		s.g.nchosen = 0
+		s.g.pickLeft = 0
+		s.res.left = 0
+	} else if s.res.left > 0 && s.cardCandsBaseEx(k, in.F, s.g.pickP, s.g.pickP, nil, true) > 0 {
+		s.res.ask, s.res.askP = raGenChooseCard, s.g.pickP
+		return true
+	}
+	n := s.value(k, in.A)
+	if n > len(s.g.chosen) {
+		n = len(s.g.chosen)
+	}
+	for i := s.g.pickLeft; n > 0 && i < q.n; i++ {
+		p := q.s[i]
+		if s.out(p) || s.cardCandsBaseEx(k, in.F, p, p, nil, true) == 0 {
+			continue
+		}
+		s.g.pickP = p
+		s.g.pickLeft = i + 1
+		s.res.left = uint8(n)
+		s.res.ask, s.res.askP = raGenChooseCard, p
+		return true
+	}
+	s.g.pickLeft = 0
+	return false
 }

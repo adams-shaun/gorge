@@ -1,0 +1,40 @@
+# The ReplDrawProgram lockstep pool (dirac/oracle/repl_drawrepl_lockstep_test.go):
+# the Draw replacements whose ReplaceWith$ body is a draw, a life change or a
+# token, Out of the Tombs' graveyard-to-battlefield return with its
+# Remembered-gated LosesGame, the bodyless Prevent$ skip (Blood Scrivener,
+# Hullbreacher, Notion Thief, Out of the Tombs, Possessed Portal), and the
+# Optional$ True skip (Obstinate Familiar: its player elects apply / decline
+# at each draw). One with Nothing and Dark Ritual reach Blood Scrivener's
+# Hellbent gate, where its body applies. Revitalize is not a carrier: it is a
+# spell whose Draw is its second instruction, so the opponent deck's Draw under
+# a replacement exercises a Draw after another spell instruction (the outer
+# resolution's restore path). Laboratory Maniac and Jace, Wielder of Mysteries
+# are the "win the game instead" carriers, played against an empty library.
+Blood Scrivener
+Hullbreacher
+Notion Thief
+Out of the Tombs
+Possessed Portal
+One with Nothing
+Dark Ritual
+Grizzly Bears
+Hill Giant
+Divination
+Plains
+Island
+Swamp
+Mountain
+Forest
+Revitalize
+Obstinate Familiar
+Laboratory Maniac
+Jace, Wielder of Mysteries
+Living Conundrum
+Ormos, Archive Keeper
+Wall of Stone
+Deep Analysis
+# The library-look Dig bodies whose choose the kernel parks at the turn draw
+# (dirac/repl_drawbody.go): look at the top three, take one, rest elsewhere.
+Sages of the Anima
+Tomorrow, Azami's Familiar
+Underrealm Lich

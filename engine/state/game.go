@@ -744,8 +744,15 @@ type ZoneEntry struct {
 // arrives at the same set. Firing (events.Apply's DelayedPush case) removes
 // the entry, which is what keeps a delayed trigger one-shot.
 type DelayedTrigger struct {
-	ID    uint32
-	Phase Step
+	ID uint32
+	// RegistrationClock is the game clock at registration (folded from
+	// state.Game.Clock by events' DelayedRegister case, so a replay rebuilds
+	// it). It is the identity a source-scoped Effect self-exile compares
+	// against rules.Engine.EndEffectSource's spareAfter: registrations made
+	// after the carrier's own activation carry a later clock and survive it
+	// (Ugin, the Ineffable's second [+1] while the first Spirit is alive).
+	RegistrationClock uint32
+	Phase             Step
 	// Source is the object the delayed body names (Defined$ Self): the
 	// affected token or permanent for the AtEOT$ rider, the trigger's own
 	// source for every other registration. Creator below is the CR 603.7d
@@ -897,6 +904,20 @@ type DelayedTrigger struct {
 	// that took no snapshot.
 	ChosenCard       []ObjID
 	ChosenCardFrozen bool
+	// Imprinted is an Effect-created trigger's snapshot of the Effect's own
+	// ImprintCards$ capture at REGISTRATION (Forge's EffectEffect imprints
+	// that set on the effect card it creates). The body's IsImprinted filter
+	// is re-evaluated at fire time against the source object, whose live
+	// imprint association the chain's own `DB$ Cleanup | ClearImprinted$
+	// True` cleared before the trigger ever fired (Flickerform's end-step
+	// return: the body's Card.IsRemembered+IsImprinted must read the
+	// Effect's capture, CR 603.7a/610.3); a bound set makes the IsImprinted
+	// predicate read THIS set instead (TriggerContext.DelayedImprinted).
+	// The set rides the DelayedRegister event's Text ("|IM=<id>[,<id>...]")
+	// because the event gains no field. nil is a registration that took no
+	// snapshot, which keeps the live association the only reader, exactly as
+	// before.
+	Imprinted []ObjID
 	// Effect-created trigger lifetime riders, folded from DelayedRegister.Text.
 	// BirthTurn distinguishes a later turn belonging to the effect controller
 	// from the turn in which the promise was created.
@@ -1270,6 +1291,7 @@ func (g *Game) CloneIntoDirty(objs []Object, dirty int) *Game {
 			dt.RememberedStamps = append([]TargetStamp(nil), dt.RememberedStamps...)
 			dt.RememberedManaSpent = append([]ManaSpentLKI(nil), dt.RememberedManaSpent...)
 			dt.ChosenCard = append([]ObjID(nil), dt.ChosenCard...)
+			dt.Imprinted = append([]ObjID(nil), dt.Imprinted...)
 			c.Delayed[i] = dt
 		}
 	}

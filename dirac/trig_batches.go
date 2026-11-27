@@ -89,7 +89,12 @@ type entBatch struct {
 
 // enterHeld is enter with the enters check held in b.
 func (s *State) enterHeld(k *prep, b *entBatch, o Obj, ctrl uint8, tapped bool, from kop.Zone) Slot {
-	sl := s.enterNF(k, o, ctrl, tapped, from, 0)
+	return s.enterHeldFace(k, b, o, ctrl, tapped, from, 0)
+}
+
+// enterHeldFace is enterHeld with the face-down entry mark (0: face up).
+func (s *State) enterHeldFace(k *prep, b *entBatch, o Obj, ctrl uint8, tapped bool, from kop.Zone, face uint8) Slot {
+	sl := s.enterNF(k, o, ctrl, tapped, from, face)
 	if b.n < len(b.sl) {
 		b.sl[b.n], b.o[b.n] = sl, o
 		b.n++
@@ -149,15 +154,25 @@ func (s *State) fireOrHoldEntries(k *prep, b *entBatch) {
 //
 //go:noinline
 func (s *State) createTokensHeld(k *prep, in *kop.Instr, p uint8, n int, ad []CardID) bool {
+	return s.createTokensSeq(k, in, p, n+len(ad), ad, false)
+}
+
+// createTokensSeq makes total tokens of one batch. cyc false: the first is
+// in.C, the next len(ad) are ad's cards and the rest in.C (createTokensHeld's
+// adders); cyc true: token i is ad[i%len(ad)] (a list rewriter's cards in
+// order for each token the effect would create, repl_toklistrewrite.go).
+func (s *State) createTokensSeq(k *prep, in *kop.Instr, p uint8, total int, ad []CardID, cyc bool) bool {
 	var eb entBatch
-	for i := 0; i < n+len(ad); i++ {
+	for i := 0; i < total; i++ {
 		if s.nearCapacity(k) {
 			s.fireEntries(k, &eb)
 			s.stall(StallBoard)
 			return true
 		}
 		c := CardID(in.C)
-		if i >= 1 && i <= len(ad) {
+		if cyc {
+			c = ad[i%len(ad)]
+		} else if i >= 1 && i <= len(ad) {
 			c = ad[i-1] // a ReplAddToken's token follows the first one (repl_tokorder.go)
 		}
 		o := s.newToken(c, p)
@@ -355,7 +370,7 @@ func (s *State) dealHitsLatched(k *prep, hs []dmgHit, rl *refLatch) bool {
 			}
 		}
 	}
-	if k.gen != nil && s.subs[kop.TrigDamageDone].or(s.subs[kop.TrigDamageDealtOnce]).any() {
+	if k.gen != nil && (s.evLive(kop.TrigDamageDone) || s.evLive(kop.TrigDamageDealtOnce)) {
 		at := uint8(0)
 		// One source dealing the whole batch (a creature's sweep) is one
 		// damage batch for its DamageDealtOnce lines: they queue once, at
@@ -363,7 +378,7 @@ func (s *State) dealHitsLatched(k *prep, hs []dmgHit, rl *refLatch) bool {
 		// damageBatchKey), as a combat damage step does.
 		var lt dmgLatch
 		var latch *dmgLatch
-		if s.subs[kop.TrigDamageDealtOnce].any() && rl == nil {
+		if s.evLive(kop.TrigDamageDealtOnce) && rl == nil {
 			latch = &lt
 			for i := range hs {
 				if h := &hs[i]; h.n > 0 {
@@ -387,9 +402,14 @@ func (s *State) dealHitsLatched(k *prep, hs []dmgHit, rl *refLatch) bool {
 			if rl != nil {
 				rl.at = at
 			}
-			rcp, toPl := TCode(s.perms[h.dst].obj), false
+			// a player hit (biteExcess's trample arm, a sweep's player arm)
+			// carries its dst as NoSlot (the dmgEv record's dst arm below): its
+			// recipient is the pl seat, never a perms slot (hitCode above)
+			rcp, toPl := TCode(0), false
 			if h.pl != 0 {
 				rcp, toPl = PlayerCode(h.pl-1), true
+			} else {
+				rcp = TCode(s.perms[h.dst].obj)
 			}
 			s.fireDamageEvGen(k, h.src, h.n, toPl, false, latch, rcp, rl)
 		}

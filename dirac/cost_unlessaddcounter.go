@@ -51,7 +51,7 @@ func (s *State) payAddCounter(k *prep, in *kop.Instr) {
 		s.ctrNoteBy(k, sl, int(kind), s.g.pickP)
 	}
 	s.g.lastCK = kind
-	if m > 0 && s.subs[kop.TrigCounterAddedOnce].any() {
+	if m > 0 && s.evLive(kop.TrigCounterAddedOnce) {
 		s.fireObj(k, kop.TrigCounterAddedOnce, sl, s.perms[sl].obj, s.perms[sl].ctrl, int16(m))
 	}
 	s.payDone(k, true)

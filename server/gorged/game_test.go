@@ -74,7 +74,7 @@ func TestCreateGameBuildsARealSingleShotHumanVsBotTable(t *testing.T) {
 	}
 	// Seat 0 parks on a real decision: the human-vs-bot match began and the
 	// bot seat is not answering for the human.
-	deadline := time.Now().Add(20 * time.Second)
+	deadline := time.Now().Add(testutil.WaitBudget)
 	for {
 		if time.Now().After(deadline) {
 			t.Fatal("seat 0 never parked on a decision")
@@ -123,7 +123,7 @@ func TestCreateGameDealsADistinctConstructedPairAndIncrementsIDs(t *testing.T) {
 	// The match is built on the table's own goroutine shortly after Start;
 	// poll until it is visible, so the seat deck names are on the wire.
 	var ms []protocol.MatchInfo
-	deadline := time.Now().Add(20 * time.Second)
+	deadline := time.Now().Add(testutil.WaitBudget)
 	for {
 		if time.Now().After(deadline) {
 			t.Fatal("match never appeared on table " + resp.Table)
@@ -175,7 +175,7 @@ func TestCreateGameHonoursBothSelectedDecks(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	deadline := time.Now().Add(20 * time.Second)
+	deadline := time.Now().Add(testutil.WaitBudget)
 	for {
 		ms, err := r.Matches(host.TableID(resp.Table))
 		if err != nil {

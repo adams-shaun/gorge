@@ -91,7 +91,15 @@ func (e *Engine) resolveTop() {
 			// trigger queued against, which no current state can re-derive.
 			tc := e.triggerContexts[id]
 			e.bindSourceLKI(&tc, id, o.Source)
-			if !e.triggerResolvingCheckHolds(t, o.Source, o.Controller, &tc, e.triggerLineSVars[id]) {
+			// The causing event's full object snapshot, when the trigger kept
+			// one: a source that left after the event reads it for a
+			// resolution-time check (CR 608.2h), exactly as the effect body
+			// reads ctx.LKI after it (cumulative.go's bindTriggerObjectLKI).
+			var lki *state.Object
+			if held, ok := e.triggerLKI[id]; ok {
+				lki = held.object
+			}
+			if !e.triggerResolvingCheckHolds(t, o.Source, o.Controller, &tc, e.triggerLineSVars[id], lki) {
 				e.emit(events.Event{Kind: events.MoveZone, Obj: id,
 					From: state.ZStack, To: state.ZExile, Text: "fizzled: intervening-if no longer holds"})
 				e.ensureLeftTheStack(id, state.ZExile, "a replacement fully discarded this "+
@@ -246,7 +254,12 @@ func (e *Engine) resolveTop() {
 			if triggered {
 				label = e.abilityLabel(o, rt)
 			}
-			e.askOptionalAtResolution(who, o, o.Ability, label, e.triggerContexts[id].OptionalSpec != "")
+			// EffectOptional marks an api:Effect registration's election (the
+			// bot policy's default decline); a reflexive "when you do, you
+			// may" carries its spec on the same channel but is no such
+			// election.
+			tcx := e.triggerContexts[id]
+			e.askOptionalAtResolution(who, o, o.Ability, label, tcx.OptionalSpec != "" && !tcx.Reflexive)
 			return
 		}
 		// ResolvedLimit$ ("Do this only once each turn."): a MANDATORY
@@ -466,6 +479,7 @@ func (e *Engine) resolveTop() {
 		ctx.Paid.CounterPut = e.castCounterPut[id]
 		ctx.Paid.Tapped = e.castTapped[id]
 		ctx.Paid.Returned = e.castReturned[id]
+		ctx.Paid.CountersRemoved = e.castCountersRemoved[id]
 		if link, ok := e.sourceLifelinkLKI[id]; ok {
 			ctx.Snap.SourceLifelink = link
 			ctx.Snap.SourceLifelinkValid = true
@@ -786,6 +800,7 @@ func (e *Engine) resolveTop() {
 		ctx.Paid.CounterPut = e.castCounterPut[id]
 		ctx.Paid.Tapped = e.castTapped[id]
 		ctx.Paid.Returned = e.castReturned[id]
+		ctx.Paid.CountersRemoved = e.castCountersRemoved[id]
 		effects.SetSVars(ctx, f.SVars)
 		// CR 601.2b: a modal spell's choice was recorded on its proposal before
 		// targets and payment. Pre-seeding Modes makes effCharm execute exactly

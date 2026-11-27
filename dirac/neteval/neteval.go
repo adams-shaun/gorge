@@ -9,7 +9,11 @@
 //   - gonet (LoadWeights, when netsimd refuses the shape; LoadGonet to ask
 //     for it): gorge's bots/gonet plain float32 forward pass, which takes
 //     any MLP export, on the materialized encoding only and with gonet's
-//     own caches off (this package caches).
+//     own caches off (this package caches);
+//   - policynet (LoadPolicynet): a bots/policynet FeaturesEntity
+//     checkpoint (policytrain's output) on policynet.Model's own forward
+//     arithmetic, float-identical to azmcts's policynet prior and leaf
+//     (policynet.go).
 //
 // Value is the value head through gonet's sigmoid; Priors are the option
 // logits over the dirac Decision's options, with the bot's answer's
@@ -29,6 +33,8 @@ package neteval
 import (
 	"fmt"
 	"math"
+	"strconv"
+	"strings"
 	"sync"
 	"unsafe"
 
@@ -42,15 +48,19 @@ import (
 // Weights are a loaded network, shared by every Net: exactly one backend
 // is set.
 type Weights struct {
-	g    *netsimd.Net // netsimd: any shape netsimd's kernels take (parts or materialized)
-	gn   *gonet.Net   // gonet: any other MLP shape (materialized)
-	vecW int          // netsimd's bag and card-vector width (32 for d=64 nets; a wide net: its d_emb)
+	g    *netsimd.Net     // netsimd: any shape netsimd's kernels take (parts or materialized)
+	gn   *gonet.Net       // gonet: any other MLP shape (materialized)
+	pn   *policynet.Model // policynet: a policynet checkpoint (materialized)
+	vecW int              // netsimd's bag and card-vector width (32 for d=64 nets; a wide net: its d_emb)
 }
 
 // Backend names the weights' backend: netsimd or gonet.
 func (w *Weights) Backend() string {
 	if w.g != nil {
 		return "netsimd"
+	}
+	if w.pn != nil {
+		return "policynet"
 	}
 	return "gonet"
 }
@@ -85,6 +95,9 @@ func LoadWeights(path string) (*Weights, error) {
 	if x := g.ExtWidth(); x != 0 && x != feat.ExtWidth {
 		return nil, fmt.Errorf("neteval %s: net reads EXT_W = %d, this encoder writes %d", path, x, feat.ExtWidth)
 	}
+	if err := checkExtHash(path, g.ExtWidth()); err != nil {
+		return nil, err
+	}
 	return &Weights{g: g, vecW: g.BagWidth()}, nil
 }
 
@@ -101,7 +114,56 @@ func LoadGonet(path string) (*Weights, error) {
 	if raw := gn.RawWidth(); raw > feat.EntityRawWidth {
 		return nil, fmt.Errorf("neteval %s: net reads entity width %d, this encoder writes %d", path, raw, feat.EntityRawWidth)
 	}
+	if err := checkHeaderHashes(path, gn); err != nil {
+		return nil, err
+	}
 	return &Weights{gn: gn}, nil
+}
+
+// checkHeaderHashes refuses a gonet-loaded net whose header names an
+// encoder_hash gonet did not check (gonet refuses a mismatch itself, so a
+// hash present and unchecked means a loader that skipped it), and a net whose
+// ext_hash names an extension block gonet cannot run (it has none).
+func checkHeaderHashes(path string, gn *gonet.Net) error {
+	enc, ext, err := gonet.HeaderHashes(path)
+	if err != nil {
+		return fmt.Errorf("neteval %s: %w", path, err)
+	}
+	if enc != "" && !gn.EncoderHashChecked() {
+		return fmt.Errorf("neteval %s: header carries encoder_hash %q but it was not checked against this encoder", path, enc)
+	}
+	return checkExtHashValue(path, ext, 0)
+}
+
+// checkExtHash checks the header's ext_hash (absent: unchecked, like every
+// net exported before the field) for a net reading extW extension slots.
+func checkExtHash(path string, extW int) error {
+	_, ext, err := gonet.HeaderHashes(path)
+	if err != nil {
+		return fmt.Errorf("neteval %s: %w", path, err)
+	}
+	return checkExtHashValue(path, ext, extW)
+}
+
+// checkExtHashValue is the ext_hash rule: when the header carries one, the
+// net must read the extension block (extW > 0) and the hash must equal the
+// layout feat writes for feat.ExtAll.
+func checkExtHashValue(path, ext string, extW int) error {
+	if ext == "" {
+		return nil
+	}
+	got, err := strconv.ParseUint(strings.TrimPrefix(ext, "0x"), 16, 64)
+	if err != nil {
+		return fmt.Errorf("neteval %s: ext_hash %q: %w", path, ext, err)
+	}
+	want := feat.ExtHash(feat.ExtAll)
+	if got != want {
+		return fmt.Errorf("neteval %s: ext_hash %#x does not match this encoder's extension layout %#x", path, got, want)
+	}
+	if extW == 0 {
+		return fmt.Errorf("neteval %s: header carries ext_hash %q but this backend reads no extension block (EXT_W = 0)", path, ext)
+	}
+	return nil
 }
 
 // checkWidths refuses a net this encoder cannot feed exactly. The bag and
@@ -194,6 +256,8 @@ type Net struct {
 
 	check *Check // EnableCheck
 
+	pn *pnScratch // the policynet backend's forward scratch
+
 	// NoViewBase builds every encoder view in full instead of against the
 	// search base (feat Encoder.SetBase).
 	NoViewBase bool
@@ -256,6 +320,9 @@ func New(w *Weights, pool *feat.Pool) *Net {
 		w.g.EvalBagExt(&n.sc, n.cin, n.pst.Dense, n.bagSum[:], nil, n.popts, n.score)
 	} else {
 		n.Materialize = true
+		if w.pn != nil {
+			n.pn = newPNScratch(w.pn, pnMaxCards)
+		}
 		if k := w.ValueK(); k > 0 {
 			n.vk = make([]float32, k)
 		}
@@ -736,6 +803,9 @@ func (n *Net) priors(s *dirac.State, d *dirac.Decision, bot []bool, out []float3
 func (n *Net) evalFull(opts []policynet.Option, out []float32) float32 {
 	if n.w.g != nil {
 		return sigmoid(n.w.g.EvalExt(&n.sc, &n.pst, n.ext, opts, out))
+	}
+	if n.pn != nil {
+		return n.pn.eval(&n.pst, opts, out)
 	}
 	return sigmoid(n.w.gn.Eval(&n.pst, opts, out))
 }

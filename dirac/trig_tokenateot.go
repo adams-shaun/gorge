@@ -82,12 +82,23 @@ func (s *State) sacAtEndFollowers(k *prep, head Obj, hit slotMask) {
 		s.dly[i] = delayed{}
 	}
 	s.ndly = w
+	// gorge's one Sacrifice walks the group in registration order: the head,
+	// then the followers as they joined (an any-number Animate's targets in
+	// target order, which need not be battlefield order)
+	var order [MaxPerm]Slot
+	no := 0
+	for m := hit; m.any(); m = m.rest() {
+		order[no] = m.first()
+		no++
+	}
 	for i := 0; i < nf; i++ {
 		ob := &s.objs[fol[i]]
-		if ob.zone != kop.ZoneBattlefield || s.sacBlocked(k, ob.slot) {
+		if ob.zone != kop.ZoneBattlefield || s.sacBlocked(k, ob.slot) || hit.has(ob.slot) {
 			continue
 		}
 		hit = hit.with(ob.slot)
+		order[no] = ob.slot
+		no++
 	}
 	switch hit.count() {
 	case 0:
@@ -97,7 +108,7 @@ func (s *State) sacAtEndFollowers(k *prep, head Obj, hit slotMask) {
 		s.leaveParked(k, sl)
 	default:
 		s.fireSacAll(k, hit)
-		s.leaveAll(k, hit, kop.ZoneGraveyard)
+		s.leaveOrder(k, order[:], no, kop.ZoneGraveyard)
 	}
 }
 
@@ -120,6 +131,28 @@ func (s *State) atEOTRider(t Obj, exile bool) {
 	} else {
 		s.capFull(StallDelayed)
 	}
+}
+
+// atEOTUnionJoin joins a later object of an any-number Animate's target set to
+// the grouped next-end-step promise the set's first object registered (gorge
+// scheduleAtEOTGroup, CR 603.7: Depthshaker Titan's one "sacrifice them"
+// trigger). Only the sacrifice and exile acts group; execUnion calls it for
+// the second and later objects, once the first has pushed a record.
+//
+//go:noinline
+func (s *State) atEOTUnionJoin(k *prep, in *kop.Instr) bool {
+	if in.C > 1 {
+		return false
+	}
+	sl := s.objRef(k, in.Obj)
+	if sl == NoSlot {
+		return false
+	}
+	t := s.perms[sl].obj
+	if in.C == 1 {
+		return s.exileAtEndJoin(t)
+	}
+	return s.sacAtEndJoin(t, dlyUntracked)
 }
 
 // a created token's AtEOT$ Destroy and AtEOT$ SacrificeCombat

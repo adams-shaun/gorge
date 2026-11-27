@@ -115,6 +115,14 @@ func (lc *lowerCtx) repeatEachPlayers(ps *params) error {
 			// TwoPiles shape keeps refusing in its own lowering.
 			continue
 		}
+		if vowElectionNode(n) {
+			// Promise of Loyalty's per-player election (lower_vowelection.go):
+			// putCounterChoices reads every parameter of the pick and the
+			// sacrifice's one filter names the repeated player and the set the
+			// pick remembered, so the blanket remembered-read check below
+			// would refuse the shape they are meant to lower.
+			continue
+		}
 		var bad []string
 		for k, v := range n.Params {
 			v = strings.TrimSpace(v)
@@ -123,6 +131,9 @@ func (lc *lowerCtx) repeatEachPlayers(ps *params) error {
 			}
 			if k == "TokenAttacking" && (v == tokenAttackingRemembered || v == "Remembered" || v == "RememberedPlayer") && who.Kind == rEachOpp {
 				continue // the repeated opponent (lower_tokenattacking.go tokenAttacking)
+			}
+			if repeatSharesTypeSacParam(n, k, v, who) {
+				continue // the repeated opponent's shares-a-type sacrifice (Braids)
 			}
 			if strings.Contains(k, "Remember") || strings.Contains(v, "Remember") ||
 				strings.Contains(lc.face.SVars[v], "Remember") && !lc.eachPlSVarOK(lc.face.SVars[v]) || k == "ValidTgts" {
@@ -179,6 +190,30 @@ func (lc *lowerCtx) repeatEachTargetedSlot() (lRef, error) {
 		return lRef{}, refuse("RepeatEach Targeted: the target slot is not a player target")
 	}
 	return lRef{Kind: rTarget}, nil
+}
+
+// sharesTypeSacValid is the SacValid$ filter of Braids' per-opponent sacrifice.
+const sharesTypeSacValid = "Permanent.sharesCardTypeWith RememberedCard"
+
+// repeatSharesTypeSacParam admits the two remembered reads of the per-opponent
+// shares-a-type sacrifice in a RepeatEach body (Braids, Arisen Nightmare's
+// DBMaySac): RememberSacrificed$ True, which the kernel's Sacrifice writes to
+// the resolution's remembered set the gate reads (value_remeachown.go), and
+// the SacValid$ filter Permanent.sharesCardTypeWith RememberedCard, the first
+// remembered card being the one the resolving controller sacrificed
+// (kop.FwSharesCardType over RefRemembered). Both only on a Sacrifice node of
+// the repeated opponent; the sacrifice lowering reads every other parameter.
+func repeatSharesTypeSacParam(n *cards.SA, k, v string, who lRef) bool {
+	if n.API != "Sacrifice" || who.Kind != rEachOpp || strings.TrimSpace(n.Params["SacValid"]) != sharesTypeSacValid {
+		return false // only the one shape: any other remembering body keeps refusing
+	}
+	switch k {
+	case "RememberSacrificed":
+		return v == "True"
+	case "SacValid":
+		return v == sharesTypeSacValid
+	}
+	return false
 }
 
 // repeatPlayerOps are the ops whose Obj the kernel resolves as a player
@@ -380,9 +415,14 @@ func (lc *lowerCtx) eachPlSVarOK(body string) bool {
 	if head, n, ok := strings.Cut(b, "/Minus."); ok && n != "" && strings.Trim(n, "0123456789") == "" {
 		b = head // Doomsday Excruciator's all-but-six
 	}
+	if head, n, ok := strings.Cut(b, "/Times."); ok && n != "" && strings.Trim(n, "0123456789") == "" {
+		b = head // Price of Progress' twice the nonbasic lands
+	}
 	admitRem := false
 	if _, ok := remEachOwnNonLand(strings.TrimPrefix(b, "Remembered$")); ok {
 		admitRem, b = true, "" // Kroxa's exact read; the trial below proves it lowers
+	} else if _, ok := remEachCtrl(strings.TrimPrefix(b, "Remembered$")); ok {
+		admitRem, b = true, "" // Braids' exact read; the trial below proves it lowers
 	}
 	switch {
 	case admitRem:
@@ -420,6 +460,20 @@ func (lc *lowerCtx) eachPlSVarOK(body string) bool {
 func remEachOwnNonLand(rest string) (lValue, bool) {
 	if rest == "Valid Card.nonLand+RememberedPlayerOwn" {
 		return lValue{Kind: vRemEachOwnNonLand}, true
+	}
+	return lValue{}, false
+}
+
+// remEachCtrl matches exactly the gate read of Braids, Arisen Nightmare's
+// RepeatEach body: "the remembered cards the repeated opponent controls"
+// (Remembered$Valid Card.RememberedPlayerCtrl; a card off the battlefield is
+// controlled by its owner, so X is 1 exactly when that opponent sacrificed
+// the card this way and 0 when only the resolving controller's own sacrificed
+// card is remembered). It returns the parameterless vRemEachOwn read, admitted
+// only inside a RepeatEach player body. Nothing else is admitted.
+func remEachCtrl(rest string) (lValue, bool) {
+	if rest == "Valid Card.RememberedPlayerCtrl" {
+		return lValue{Kind: vRemEachOwn}, true
 	}
 	return lValue{}, false
 }

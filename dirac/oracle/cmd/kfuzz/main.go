@@ -919,9 +919,11 @@ func readNames(path string) (map[string]bool, error) {
 // row (Name\t<seats>); the evidence lander
 // (scripts/dirac-first-refusals.py evidence --pools pod-<pool>) copies those rows into
 // dirac/support/evidence and records the column as the card's clean pod games, and
-// readers of the lists take the name and ignore trailing columns.
+// readers of the lists take the name and ignore trailing columns. A four-seat row
+// evidences the card (OD-4 stage 2), and EvidenceForSeats applies the protected
+// EvidencePodMinPlays floor, so a pod run with no clean game writes no row.
 func writeEvidence(path string, seats int, refused map[string]bool, cov *oracle.Coverage) error {
-	names := slices.DeleteFunc(cov.Evidence(), func(n string) bool { return refused[n] })
+	names := slices.DeleteFunc(cov.EvidenceForSeats(seats), func(n string) bool { return refused[n] })
 	var b strings.Builder
 	for _, n := range names {
 		b.WriteString(n)

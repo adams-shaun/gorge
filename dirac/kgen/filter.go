@@ -191,6 +191,12 @@ const (
 	cmpHasProtColor     // hasKeywordProtection:<colour>: has protection from a colour in CmpN (no operator)
 	cmpHasProtEachColor // hasKeywordProtection:each color: has protection from all five colours (no operator)
 	cmpMonarchCtrl      // ControlledBy Player.isMonarch (CmpN 0) / ControlledBy EnchantedController.!isMonarch (CmpN 1): the controller is / is not the monarch (kop.PredMonarchCtrl; filter_monarch.go; no operator)
+	cmpKickedAlt        // kicked 1 (CmpN 1) / kicked 2 (CmpN 2): the kicker alternative paid (kop.PredKickedAlt; filter_kickedalt.go; no operator)
+	// cmpCastFaceDown is appended: the dump prints these as cmp(N ...), and
+	// the kgen shape tests (valuefilter_test.go, hascountersforms_test.go,
+	// exwstat_test.go, ...) pin N as a literal, so a new statistic goes at the
+	// end of the block, never between two existing ones.
+	cmpCastFaceDown // a face-down cast (gorge Spell.isCastFaceDown; ReduceCost ValidSpell$ only)
 )
 
 // cmpWasCastSpell's CmpN (kernel PredWasCastSpell's PredN): the origin the
@@ -252,10 +258,15 @@ type lClause struct {
 	Flags          uint64
 	CmpStat        uint8
 	CmpOp          uint8
-	CmpN           int      // the constant, or
-	CmpX           string   // the SVar naming the bound (cmcLEX)
-	CmpV           *lValue  // CmpX lowered
-	CmpCounter     string   // counter kind for cmpCounters
+	CmpN           int     // the constant, or
+	CmpX           string  // the SVar naming the bound (cmcLEX)
+	CmpV           *lValue // CmpX lowered
+	CmpCounter     string  // counter kind for cmpCounters
+	// GreatestCMCSet: the comparison set a greatestCMC_<set> property names,
+	// "" = none ("Permanent.nonLand", or the set's type word). lc.filter
+	// lowers it into CmpV, the greatest-mana-value aggregate over the set,
+	// which the == CmpOp reads (Padeem, Consul of Innovation).
+	GreatestCMCSet string
 	CmpFilter      *lFilter // the compiled land/quality filter cmpHasLandwalk / cmpHasProtQuality read
 	Colors         string   // must have this colour (one of WUBRG; "" = none)
 	NotColors      string   // must have none of these colours
@@ -431,6 +442,14 @@ var propWords = map[string]uint64{
 	// gorge matchPredicate's '!' of attachedBy: true for
 	// every object but the source's live host
 	"!EnchantedBy": fNotAttachedBy, "!EquippedBy": fNotAttachedBy, "!AttachedBy": fNotAttachedBy,
+	// blockingEquipped: Forge's "a creature blocking the equipped creature"
+	// (Plasma Caster's ValidTgts$, Trailblazer's Torch's DamageAll). Gorge's
+	// filter matcher leaves the word unknown (engine/effects'
+	// knownUnknownFilterPredicates), so the alternative fails closed and
+	// matches NO object; the two contradictory source flags lower exactly
+	// that (kop.FSelf requires the source, kop.FOther excludes it), never a
+	// guessed blocker relation dirac would offer and gorge would not.
+	"blockingEquipped": fSelf | fOther, "!blockingEquipped": fSelf | fOther,
 	"ChosenType": fChosenType, "ChosenColor": fChosenColor, "IsRemembered": fRemembered,
 	"!IsRemembered": fNotRemembered, "ChosenCard": fChosenCard, "nonChosenCard": fNotChosenCard, "!ChosenCard": fNotChosenCard,
 	"AttachedTo ParentTarget": fAttachedToParentTarget, "targetedBy": fTargetedBy, "Basic": fBasic,
@@ -737,6 +756,13 @@ func (c *lClause) prop(p string, knownSub func(string) bool) error {
 		// K. Ross). fAttacking stays for the readers that gate on it.
 		c.Flags |= fAttacking
 		return c.setCmp(cmpAttackingYou, 0, 0, "", "")
+	case "attackingYouOrYourPW", "attackingYouOrYourPWLKI":
+		// gorge attackingYouOrYourPW(LKI): attacking "you" itself, or a
+		// planeswalker (animated or not) the evaluating player controls;
+		// a battle's attacker never counts. PredN 1 on the same predicate
+		// (kernel attackingYou's pw arm; Soul Snare, Mangara, Tomik).
+		c.Flags |= fAttacking
+		return c.setCmp(cmpAttackingYou, 0, 1, "", "")
 	case "YouCtrl", "YourTeamCtrl":
 		// gorge predicates["YourTeamCtrl"] reads YouCtrl: gorge models no
 		// teams, so a player's team is that player alone (Combo Attack)
@@ -756,10 +782,11 @@ func (c *lClause) prop(p string, knownSub func(string) bool) error {
 		// link's target's controller, a player target read as itself and an
 		// object target as its controller (kop.Filter.CtrlTgt)
 		return c.setWho(&c.Ctrl, whoTgtOrCtrl)
-	case "ControlledBy Remembered":
+	case "ControlledBy Remembered", "ControlledBy Player.IsRemembered":
 		// inside a RepeatEach player body Remembered is the repeated player
-		// (gorge controlReferentPlayers Remembered). The kernel reads the
-		// same CtrlEachPl as RememberedPlayerCtrl; lc.filter refuses the
+		// (gorge controlReferentPlayers Remembered; Player.IsRemembered is the
+		// same player set, Promise of Loyalty's election). The kernel reads
+		// the same CtrlEachPl as RememberedPlayerCtrl; lc.filter refuses the
 		// word outside the loop.
 		return c.setWho(&c.Ctrl, whoEachPl)
 	case "ControlledBy TriggeredDefendingPlayer", "DefenderCtrl":
@@ -1042,6 +1069,9 @@ func (c *lClause) prop(p string, knownSub func(string) bool) error {
 		}
 		return c.setCmp(cmpPowerLTToughness, opEQ, int(rel), "", "")
 	}
+	if rest, ok := strings.CutPrefix(p, "greatestCMC_"); ok {
+		return c.greatestCMC(p, rest)
+	}
 	if strings.HasPrefix(p, "named") {
 		// named<X> (gorge wordNamed, sharesName; CR 201.2): Name is X
 		// normalised as gorge's nameArg does (';' -> ',', '_' -> ' ').
@@ -1111,6 +1141,13 @@ func (c *lClause) prop(p string, knownSub func(string) bool) error {
 		// Animate Defined$ Targeted.!Creature qualifier); any other
 		// negated word falls through to "unknown property"
 		if bits, ok := typeBits[w]; ok && bits&tAnyCard != 0 && w != "Card" && w != "Permanent" {
+			c.NotTypes |= bits
+			return nil
+		}
+		if bits, ok := typeBits[w]; ok && bits&tSupertype != 0 {
+			// gorge's '!' of a supertype word (Unmarked Grave's
+			// Card.!Legendary): !hasType <w>, the nonLegendary / nonBasic
+			// clause
 			c.NotTypes |= bits
 			return nil
 		}
@@ -1385,6 +1422,8 @@ func (c *lClause) designationWord(p string) (ok bool, err error) {
 		return true, c.goadedWord(n) // filter_goaded.go
 	case monarchCtrlWord, monarchEnchNotWrd:
 		return c.monarchCtrlProp(p) // filter_monarch.go
+	case kickedAltFirst, kickedAltSecond:
+		return c.kickedAltProp(p) // filter_kickedalt.go (a negated spelling stays an unknown property)
 	}
 	return false, nil
 }
@@ -1462,8 +1501,72 @@ func (c *lClause) addNotSub(w string) error {
 
 // bareCmpPreds maps the compare words build.go's clause reads as one
 // argument-less predicate each (kernel sharesCrCmdr is filter_sharescmdr.go).
-var bareCmpPreds = map[uint8]kop.Pred{cmpMonstrous: kop.PredMonstrous, cmpNoCounters: kop.PredNoCounters, cmpMonoColor: kop.PredMonoColor, cmpSharesCrCmdr: kop.PredSharesCrCmdr}
+var bareCmpPreds = map[uint8]kop.Pred{cmpMonstrous: kop.PredMonstrous, cmpNoCounters: kop.PredNoCounters, cmpMonoColor: kop.PredMonoColor, cmpSharesCrCmdr: kop.PredSharesCrCmdr, cmpCastFaceDown: kop.PredCastFaceDown}
 
 // battlefieldPreds maps the compare words build.go's clause reads as one
 // battlefield-only predicate each.
 var battlefieldPreds = map[uint8]kop.Pred{cmpRenowned: kop.PredRenowned, cmpAttackingYou: kop.PredAttackingYou, cmpGoaded: kop.PredGoaded}
+
+// greatestCMC lowers the greatestCMC_<set> property p (suffix rest) onto the
+// clause. Forge's greatestCMC_<type>[ControlledBy <players>] (CardProperty;
+// gorge filter.go): the candidate is a battlefield card of the suffix's
+// type whose mana value no other battlefield card of that type exceeds
+// -- ties match, every card at the maximum. The comparison set is the
+// suffix's type over every battlefield, not the filter base (a
+// ControlledBy suffix only appears in the RepeatEach spellings
+// chooseCardFilter lowers, so it refuses here), and the candidate must
+// be in the set, so the set's type joins the clause. The bound is the
+// greatest-mana-value aggregate over the set (kop ExValidAgg
+// AggGreatestMV, gorge zoneFold's $GreatestCardManaCost), read live at
+// count time; the value-bounded CMC compare lowers it (PredCMCLEV with
+// the == PredN), the same shape greatestCMCFilter gives a RepeatEach
+// body (Padeem, Consul of Innovation).
+func (c *lClause) greatestCMC(p, rest string) error {
+	if c.CmpStat != 0 || c.CmpV != nil {
+		return fmt.Errorf("%q beside a bound", p)
+	}
+	setType, setNonLand := "", false
+	switch rest {
+	case "NonLandPermanent":
+		setNonLand = true
+	default:
+		bits, ok := typeBits[rest]
+		if !ok || bits&^tAnyCard != 0 || rest == "Card" || rest == "Permanent" {
+			return fmt.Errorf("unknown property %q", p)
+		}
+		setType = rest
+		if c.Types != 0 && c.Types != bits {
+			// gorge's read is the head's own words AND the set's membership
+			// (filter.go cmcSetMember beside the candidate clause): the
+			// any-of mask would read head OR set, matching a candidate of
+			// either type at the bound. Only a head of the set's type (or an
+			// untyped head, whose words the set then are) lowers.
+			return fmt.Errorf("%q beside a different head type", p)
+		}
+		c.Types |= bits
+	}
+	if setNonLand {
+		// the candidate is a nonland permanent (a head word may name less)
+		c.NotTypes |= tLand
+	}
+	spec := "Permanent.nonLand"
+	if setType != "" {
+		spec = setType
+	}
+	c.CmpStat, c.CmpOp, c.GreatestCMCSet = cmpCMC, opEQ, spec
+	return nil
+}
+
+// greatestCMCZoneRefusal refuses a greatestCMC_<set> bound (Padeem's property)
+// compiled beside a zone other than the battlefield: the aggregate reads every
+// battlefield, and gorge's candidate read also requires the candidate itself
+// there (filter.go o.Zone == ZBattlefield). A clause compiled in another zone
+// would match an off-battlefield card at the tied maximum, where gorge would
+// not; the clause cannot express the zone it needs (Filter.Zone is the
+// candidate's), so it fails closed. Any other clause is nil.
+func greatestCMCZoneRefusal(c lClause, zone kop.Zone) error {
+	if c.CmpV != nil && c.CmpV.Kind == vValidAgg && c.CmpV.N == kop.AggGreatestMV && zone != kop.ZoneBattlefield {
+		return refuse("greatestCMC beside a non-battlefield zone")
+	}
+	return nil
+}

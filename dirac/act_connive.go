@@ -79,7 +79,7 @@ func (s *State) conniveCounters(k *prep, in *kop.Instr) {
 		s.ctrNote(k, sl, int(kop.CtrP1P1))
 	}
 	s.g.lastCK = kop.CtrP1P1
-	if m > 0 && s.subs[kop.TrigCounterAddedOnce].any() {
+	if m > 0 && s.evLive(kop.TrigCounterAddedOnce) {
 		s.fireObj(k, kop.TrigCounterAddedOnce, sl, s.perms[sl].obj, s.perms[sl].ctrl, int16(m))
 	}
 }

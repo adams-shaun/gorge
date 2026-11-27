@@ -184,6 +184,7 @@ default	field	genState.probe	8
 default	field	genState.tgtSelf	2
 default	field	genState.inLoop	1
 default	field	genState.each	10
+default	field	genState.eachBatch	8
 default	field	genState.sbaFP	6
 default	field	genState.tokFrz	24
 default	field	genState.tokFrzOn	1
@@ -262,6 +263,8 @@ default	field	genState.endTurn	1
 default	field	genState.fog	1
 default	field	genState.beamPick	1
 default	field	genState.altCast	1
+default	field	genState.altGrantAb	1
+default	field	genState.altGrantC	2
 default	field	genState.beamGrant	1
 default	field	genState.impCast	1
 default	field	genState.warpGrant	1
@@ -286,7 +289,7 @@ default	field	genState.nlinks	1
 default	field	genState.linkHide	2
 default	field	genState.linkAeg	2
 default	field	genState.linkHand	2
-default	field	genState.linkPad	68
+default	field	genState.linkPad	60
 default	field	genState.retHeld	16
 default	field	genState.nretHeld	1
 default	field	genState.retCtrl	2
@@ -378,6 +381,7 @@ default	field	perm.cs	6
 default	field	perm.cseen	1
 default	field	perm.atkVer	1
 default	field	perm.spare	1
+default	field	perm.atkPl	1
 default	field	perm.card	2
 default	field	perm.gty	2
 # struct genPrep
@@ -491,6 +495,8 @@ default	field	genPrep.anyHexOwn	1
 default	field	genPrep.anyProtCol	1
 default	field	genPrep.grantTrigEv	4
 default	field	genPrep.globTrigGrant	1
+default	field	genPrep.gainsTrigEv	4
+default	field	genPrep.gainsCtrAll	1
 default	field	genPrep.anyProtF	1
 default	field	genPrep.anyProtGrant	1
 default	field	genPrep.manaTaps	1
@@ -547,6 +553,7 @@ default	field	genPrep.anyUncScope	1
 default	field	genPrep.anyPlHexRec	1
 default	field	genPrep.anyHexUB	1
 default	field	genPrep.anyPlusCre	1
+default	field	genPrep.anyEtbCre	1
 default	field	genPrep.anyAtkLast	1
 default	field	genPrep.anyContract	1
 default	field	genPrep.anyDmgMark	1
@@ -574,6 +581,7 @@ default	field	genPrep.anyLinkRet	1
 default	field	genPrep.anyDmgRef	1
 default	field	genPrep.anyUnion	1
 default	field	genPrep.anyUnblocked	1
+default	field	genPrep.anyUnbOnce	1
 default	field	genPrep.anyOrCopy	1
 default	field	genPrep.anySkipUntap	1
 default	field	genPrep.anyDelayUp	1
@@ -591,6 +599,7 @@ default	field	genPrep.anyCantAct	1
 default	field	genPrep.anyCantSac	1
 default	field	genPrep.anyCantTgt	1
 default	field	genPrep.anyCantTgtGrave	1
+default	field	genPrep.anyOffZoneChar	1
 default	field	genPrep.anyFaces	1
 default	field	genPrep.anyWarp	1
 default	field	genPrep.anyDash	1
@@ -627,6 +636,7 @@ default	field	genPrep.anyStackKw	1
 default	field	genPrep.anyConspire	1
 default	field	genPrep.anyStorm	1
 default	field	genPrep.anyDemoGrant	1
+default	field	genPrep.anyRippleGrant	1
 default	field	genPrep.anySplitSecond	1
 default	field	genPrep.anyStackLife	1
 default	field	genPrep.anyOffZonePT	1
@@ -682,8 +692,9 @@ default	field	genPrep.anyMonarch	1
 default	field	genPrep.anyAttackedObj	1
 default	field	genPrep.anySuspect	1
 default	field	genPrep.anyRemEach	1
+default	field	genPrep.anyRemSearcher	1
 default	field	genPrep.anySacSub	1
-default	field	genPrep.ix	64
+default	field	genPrep.ix	66
 default	field	genPrep.anyInit	1
 default	field	genPrep.dungeon	2
 default	field	genPrep.anyFaceDown	1
@@ -715,14 +726,17 @@ default	field	genPrep.anyHideaway	1
 default	field	genPrep.anyLoyaltyX	1
 default	field	genPrep.anyLifeX	1
 default	field	genPrep.anyExileX	1
+default	field	genPrep.anyBlightX	1
 default	field	genPrep.anySacX	1
 default	field	genPrep.anyXMin	1
 default	field	genPrep.anyCopyCast	1
+default	field	genPrep.anyCipher	1
 default	field	genPrep.anyExileGrant	1
 default	field	genPrep.anyNumTimes	1
 default	field	genPrep.anyExHaste	1
 default	field	genPrep.anyColGrant	1
 default	field	genPrep.anyDiscRef	1
+default	field	genPrep.anyEncRef	1
 default	field	genPrep.anySpellCond	1
 default	field	genPrep.anyEntUntap	1
 default	field	genPrep.anyEntAttack	1
@@ -759,6 +773,7 @@ default	field	genPrep.exileAnyC	24
 default	field	genPrep.destroyHeal	24
 default	field	genPrep.anyExileAny	1
 default	field	genPrep.altFree	24
+default	field	genPrep.anyAltGrant	1
 default	field	genPrep.anyDeferred	1
 default	field	genPrep.anyTapsDefer	1
 default	field	genPrep.anyTapsPain	1

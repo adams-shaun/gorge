@@ -73,6 +73,11 @@ func furySetup(t *testing.T) (*Engine, Config, *decision.Decision, state.ObjID, 
 	for _, b := range []state.ObjID{bear1, bear2} {
 		furyOptionForObj(t, d, b) // both bears must be legal targets
 	}
+	// The trigger's target ask publishes the total its follow-up division
+	// ask will split, so a client can collect both in one prompt.
+	if d.DivideTotal != 4 {
+		t.Fatalf("trigger target ask DivideTotal = %d, want the divided total 4", d.DivideTotal)
+	}
 	return e, cfg, d, bear1, bear2
 }
 

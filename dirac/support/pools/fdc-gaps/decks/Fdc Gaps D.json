@@ -1,0 +1,99 @@
+{
+ "name": "Fdc Gaps D",
+ "format": "commander",
+ "notes": "Synthetic lockstep evidence pool (dirac/support/pools/fdc-gaps): the five Foundations Commander cards the fdc-gaps lowerings add, beside two copies of each filler card and basics; 50 cards.",
+ "cards": [
+  {
+   "name": "Bite Down",
+   "count": 2
+  },
+  {
+   "name": "Chandra's Ignition",
+   "count": 1
+  },
+  {
+   "name": "Count on Luck",
+   "count": 2
+  },
+  {
+   "name": "Dragonlord's Servant",
+   "count": 2
+  },
+  {
+   "name": "Endless Atlas",
+   "count": 1
+  },
+  {
+   "name": "Fateful Absence",
+   "count": 1
+  },
+  {
+   "name": "Firespitter Whelp",
+   "count": 2
+  },
+  {
+   "name": "Forest",
+   "count": 5
+  },
+  {
+   "name": "Haven of the Spirit Dragon",
+   "count": 1
+  },
+  {
+   "name": "Island",
+   "count": 4
+  },
+  {
+   "name": "Lightning Bolt",
+   "count": 2
+  },
+  {
+   "name": "Mountain",
+   "count": 4
+  },
+  {
+   "name": "Negate",
+   "count": 2
+  },
+  {
+   "name": "Padeem, Consul of Innovation",
+   "count": 1
+  },
+  {
+   "name": "Palladium Myr",
+   "count": 2
+  },
+  {
+   "name": "Plains",
+   "count": 4
+  },
+  {
+   "name": "Rapacious Dragon",
+   "count": 2
+  },
+  {
+   "name": "Silver Myr",
+   "count": 2
+  },
+  {
+   "name": "Sol Ring",
+   "count": 2
+  },
+  {
+   "name": "Steel Leaf Champion",
+   "count": 2
+  },
+  {
+   "name": "Swords to Plowshares",
+   "count": 2
+  },
+  {
+   "name": "Thrashing Brontodon",
+   "count": 2
+  },
+  {
+   "name": "Thrill of Possibility",
+   "count": 2
+  }
+ ]
+}

@@ -89,7 +89,7 @@ func (s *State) cloneOptions(k *prep, d *Decision) {
 	}
 	s.res.active = true
 	if s.res.ask == raGenTokChoice || s.res.ask == raGenRetChoice {
-		s.res.e.trigAmt, s.res.e.x, s.res.e.spc, s.res.e.etbSrc, s.res.e.etbX = 0, 0, 0, 0, [2]uint8{} // a minted token or a returned card was never cast: no mana spent, no colours (gorge reads 0)
+		s.res.e.trigAmt, s.res.e.x, s.res.e.spc, s.res.e.etbSrc, s.res.e.etbX, s.res.e.ov = 0, 0, 0, 0, [2]uint8{}, 0 // a minted token or a returned card was never cast: no mana spent, no colours (gorge reads 0)
 	}
 	ctrl := s.res.e.ctrl
 	if s.res.ask == raGenRetChoice || s.res.ask == raGenTokChoice {
@@ -221,7 +221,13 @@ func (s *State) becomeCopyEnter(k *prep, sl Slot, in *kop.Instr) {
 		// stays (kgen lower_cloneentergrant.go; grantCardAt)
 		s.copyGrantPut(k, sl, cgrantRef{uint8(in.A.N), p.card}) // not twice: the template may carry it (a Pretender copying a Pretender copy)
 	}
-	if k.gen.anyCloneCopy {
+	if in.B.K == kop.VConst && in.B.N&kop.BecomeCopyEOT != 0 {
+		// Duration$ UntilEndOfTurn (Cursed Mirror): the copy is
+		// duration-bounded — the cleanup step (cloneCleanup) ends it, and no
+		// permanent marker is recorded beneath (nothing to re-base on: the
+		// permanent goes back to its printed card).
+		s.cloneEOTNote(sl, t, c, exc, s.tick())
+	} else if k.gen.anyCloneCopy {
 		s.clonePermNote(sl, t, c, exc, s.tick()) // the marker a later cleanup settle re-bases from
 		if in.A.K == kop.VConst {
 			s.clonePermGrant(sl, uint8(in.A.N))
