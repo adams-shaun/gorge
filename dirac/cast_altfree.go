@@ -68,11 +68,13 @@ func altReturnCost(c *kop.Cost) bool {
 // filter, and paying N life beside it or not, nothing else (Force of Will's
 // PayLife<1> and ExileFromHand<1/Card.Blue+Other>, Misdirection's exile alone,
 // the Force cycle's bare ExileFromHand<1/Card.Blue+Other>, CR 118.9; kgen
-// altPayLifeExileHand).
+// altPayLifeExileHand), or the announced X-bound one: the exile alone with
+// Cost.N 0, its filter's cmcEQX clause bound to the announced X (the Shoal
+// cycle; announceHandXCost, cost_announcex.go).
 func altHandExileCost(c *kop.Cost) bool {
 	shared := c.Flags == kop.CostPayLife|kop.CostExileGrave
 	bare := c.Flags == kop.CostExileGrave
-	return (shared || bare) && c.ExileHand && c.N > 0
+	return (shared || bare) && c.ExileHand && (c.N > 0 || announceHandXCost(c))
 }
 
 // altDiscardCost: the alternative cost is one discard part, or two, and

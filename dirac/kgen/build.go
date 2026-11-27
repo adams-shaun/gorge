@@ -1470,7 +1470,11 @@ func (cb *cardBuilder) cost(c lCost) (kop.Cost, error) {
 		}
 	}
 	if c.ExileG != nil {
-		set(kop.CostExileGrave, c.ExileGN) // ExileGN 0 (ExileGX): the announced X (kernel cost_exilex.go)
+		n := c.ExileGN
+		if c.AnnounceX {
+			n = 0 // the announced X-bound hand exile rides Cost.N 0 (kernel cost_announcex.go)
+		}
+		set(kop.CostExileGrave, n) // ExileGN 0 (ExileGX): the announced X (kernel cost_exilex.go)
 		if c.ExileGBf {
 			out.Flags |= kop.CostExileCtrlOrGrave
 		}

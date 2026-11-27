@@ -14,6 +14,34 @@ import (
 // or ability that targeted the watched permanent (gorge TriggerStack, the
 // kernel queue's trigSA slot; Kira, Great Glass-Spinner). Every other
 // Defined$ refuses.
+// counterTargeted lowers DB$ Counter | Defined$ Targeted cast as a spell:
+// gorge effCounter over Defined (→ Targeted, the resolving chain's own
+// targets, context.go definedSpecTargeted) counters the spell in the cast's
+// one stack-spell slot — the slot the TargetOnly head declared (Disrupting
+// Shoal's DBCounter sub; the kernel's execCounter resolves the slot's stack
+// entry, act_counter.go). The SVar-condition gate on the node (Disrupting
+// Shoal's ConditionCheckSVar$ T | ConditionSVarCompare$ EQX, T the targeted
+// spell's mana value) is the node's own gate, lowered with it. A chain that
+// is not exactly one spell slot is not this shape: false sends it to
+// counterTriggered's refusal, which names the trigger it lacks.
+func (lc *lowerCtx) counterTargeted(ps *params) (bool, error) {
+	t := lc.lastTarget()
+	if len(lc.chainT) != 1 || t < 0 {
+		return false, nil
+	}
+	tg := lc.ab.Targets[t]
+	if !tg.Spell || tg.Zone != zStack || tg.StackAb || !isConstN(tg.Min, 1) || !isConstN(tg.Max, 1) {
+		return false, nil
+	}
+	dest, err := counterDestination(ps)
+	if err != nil {
+		return true, err
+	}
+	ps.consume("Defined")
+	lc.emit(lInstr{Op: "Counter", Obj: lRef{Kind: rTarget, N: t}, C: dest})
+	return true, nil
+}
+
 func (lc *lowerCtx) counterTriggered(d string) error {
 	tr := lc.ab.Trigger
 	if d == "TriggeredSourceSA" && tr != nil && tr.Event == "BecomesTarget" {

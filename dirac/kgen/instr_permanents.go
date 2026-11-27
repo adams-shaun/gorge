@@ -24,6 +24,7 @@ func init() {
 	instrOp("Meld", (*instrCtx).opMeld)
 	instrOp("ChangeTargets", (*instrCtx).opChangeTargets)
 	instrOp("ChangeTargetsMass", (*instrCtx).opChangeTargetsMass)
+	instrOp("ControlSpell", (*instrCtx).opControlSpell)
 	instrOp("Phases", (*instrCtx).opPhases)
 	instrOp("Attach", (*instrCtx).opAttach)
 	instrOp("Exploit", (*instrCtx).opExploit)
@@ -161,6 +162,15 @@ func (ic *instrCtx) opChangeTargets() error {
 	// OpExt ExtChangeTargets over Obj (the
 	// TgtStackObj slot, or the triggering spell); C bit 0: Optional$
 	ki.Op, ki.A, ki.C = kop.OpExt, kop.Const(int(kop.ExtChangeTargets)), int16(in.C)
+	return nil
+}
+
+// opControlSpell is OpExt ExtControlSpell (dirac/act_controlspell.go): the
+// resolving controller gains control of the spell on the stack that Obj
+// names (Commandeer's cast spell target; gorge effControlSpell's Gain arm).
+func (ic *instrCtx) opControlSpell() error {
+	ki := &ic.ki
+	ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtControlSpell))
 	return nil
 }
 
