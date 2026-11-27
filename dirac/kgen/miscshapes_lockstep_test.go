@@ -325,6 +325,23 @@ func miscJunkTokens(_ *state.Game, evs []events.Event) int {
 	return n
 }
 
+// miscCountersOn returns a reach that counts the +1/+1 counters put on the
+// named creature (in its pool the only counter source is C.A.M.P.'s rider).
+func miscCountersOn(name string) func(*state.Game, []events.Event) int {
+	return func(g *state.Game, evs []events.Event) int {
+		n := 0
+		for _, ev := range evs {
+			if ev.Kind != events.CounterChange || ev.Amount <= 0 {
+				continue
+			}
+			if o := g.Obj(ev.Obj); o != nil && o.Face() != nil && o.Face().Name == name {
+				n += int(ev.Amount)
+			}
+		}
+		return n
+	}
+}
+
 // miscSacColourless counts ManaAdd batches of two or more colourless mana:
 // Crystal Vein's {T}, sacrifice-this alternative (its {T} makes one, and no
 // other card in its pool adds colourless mana at all).
@@ -362,6 +379,33 @@ func miscFortifyThen(seed uint64) oracle.Policy {
 		}
 		return base.Pick(c)
 	})
+}
+
+// miscCampSavannah is C.A.M.P. fortifying one of three Savannahs with the one
+// creature the battlefield holds named by bear (a white Savannah Lions or a
+// green Grizzly Bears): the trigger's counter can only land on it.
+func miscCampSavannah(bear string, reached func(*state.Game, []events.Event) int) miscShape {
+	e := func(n string, c int) cardset.Entry { return cardset.Entry{Name: n, Count: c} }
+	burn := []cardset.Entry{e("Shock", 6), e("Hill Giant", 8), e("Grizzly Bears", 8), e("Mountain", 10), e("Forest", 8)}
+	return miscShape{card: "C.A.M.P.", seeds: 16, min: 1, reached: reached,
+		policy: miscFortifyThen,
+		matchups: [][2][]cardset.Entry{{
+			{e("C.A.M.P.", 4), e(bear, 4), e("Giant Growth", 8), e("Savannah", 24)},
+			burn,
+		}},
+		start: func(deck []*cards.Card) *rules.StartSpec {
+			grave := make([]string, 0, 24)
+			for i := 0; i < 21; i++ {
+				grave = append(grave, "Savannah")
+			}
+			for i := 0; i < 3; i++ {
+				grave = append(grave, "C.A.M.P.")
+			}
+			return miscStartOf(deck,
+				[]string{"Savannah", "Savannah", "Savannah", "C.A.M.P.", bear, bear, bear},
+				[]string{"Giant Growth", "Giant Growth", "Giant Growth", "Giant Growth"},
+				grave)
+		}}
 }
 
 func miscShapes() []miscShape {
@@ -437,6 +481,24 @@ func miscShapes() []miscShape {
 					[]string{"Giant Growth", "Giant Growth", "Giant Growth", "Giant Growth"},
 					grave)
 			}},
+		// C.A.M.P. in an ordinary deck and ordinary play: every Fortify
+		// activation the policy takes pays its {3} through the Taps-deferred
+		// Forests (a fortified land's own watcher defers its sources), more than
+		// one per game, so the prefix search's payment is compared decision by
+		// decision.
+		{card: "C.A.M.P.", seeds: 16, min: 1, reached: miscJunkTokens,
+			matchups: [][2][]cardset.Entry{{
+				{e("C.A.M.P.", 4), e("Grizzly Bears", 12), e("Forest", 24)},
+				burn,
+			}}},
+		// C.A.M.P. on Savannahs, a land of two colours: a Giant Growth's {G}
+		// taps the fortified Savannah for G though its static production is
+		// {G}{W}. A white Savannah Lions the trigger's counter lands on shares
+		// no colour with the mana the land produced, so no Junk token (the
+		// kernel's static set would owe one); a green Grizzly Bears does share
+		// it, so one is made.
+		miscCampSavannah("Savannah Lions", miscCountersOn("Savannah Lions")),
+		miscCampSavannah("Grizzly Bears", miscJunkTokens),
 		// Two Crystal Veins open, and every other Vein is in the graveyard: a
 		// Weldfast Monitor's {3} has exactly one plan, one Vein's tap and the
 		// other's {T}, Sacrifice this permanent: Add {C}{C} pair
