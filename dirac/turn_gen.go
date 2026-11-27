@@ -767,7 +767,7 @@ func (s *State) queueAskRet(o Obj) {
 // enchant (it stays in exile, CR 303.4g) or one host (it enters attached).
 func (s *State) retAuraAsk(k *prep, d *Decision, a *askRec) bool {
 	if a.kind == akRiot {
-		return s.retRiotAsk(d, a) // kw_riotret.go
+		return s.retRiotAsk(k, d, a) // kw_riotret.go
 	}
 	o := Obj(a.ab)
 	x := &s.objs[o]
@@ -793,6 +793,7 @@ func (s *State) retAuraAsk(k *prep, d *Decision, a *askRec) bool {
 	if n == 1 {
 		s.enterRetAura(k, o, s.objs[buf[0]].slot)
 	}
+	s.resumeQueuedReturns(k) // the batch this ask held: the rest returns now
 	return false
 }
 
@@ -841,11 +842,20 @@ func (s *State) leaveGen(k *prep, sl Slot, o Obj) {
 }
 
 // returnLinked returns what the departed source o exiled until it left; srcCtrl
-// is its last controller.
-func (s *State) returnLinked(k *prep, srcCtrl uint8, o Obj) {
+// is its last controller. held says the source is part of a return batch
+// parked behind a returning Aura's host ask (flushReturns' redrive after the
+// answer): its links were judged live when the batch was held, so the source
+// version is not re-judged (a version that moved while the batch waited does
+// not unmake a departure gorge already accepted).
+// holdQ says the flush runs inside a flow gorge wraps in a kernel run
+// (zone_untilleavesbatch.go flushReturns): a return that queues its own ask
+// then suspends the sweep, so this source's later links wait with the rest of
+// the batch. Without it the ask is an ordinary queued pose and the sweep
+// returns everything (gorge's legacy-ask path).
+func (s *State) returnLinked(k *prep, srcCtrl uint8, o Obj, held, holdQ bool) {
 	for i := 0; i < int(s.g.nlinks); i++ {
 		l := s.g.links[i]
-		if l.src != o || s.objs[o].ver != l.sver+1 || k.gen.anyRemPersist && k.t.Cards[s.objs[o].card].RemPersist || s.g.linkHide>>uint(i)&1 != 0 {
+		if l.src != o || !held && s.objs[o].ver != l.sver+1 || k.gen.anyRemPersist && k.t.Cards[s.objs[o].card].RemPersist || s.g.linkHide>>uint(i)&1 != 0 {
 			continue // (a RemPersist link is its leaves trigger's: zone_rememberpersist.go; a Hideaway link stays: kw_hideaway.go)
 		}
 		toHand := s.g.linkHand|s.g.linkHide|s.g.linkAeg != 0 && s.dropLinkHand(i) // act_mayask.go
@@ -861,30 +871,9 @@ func (s *State) returnLinked(k *prep, srcCtrl uint8, o Obj) {
 			continue
 		}
 		if x.zone == kop.ZoneExile && s.auraWithHosts(k, l.obj) > 1 {
-			// a returning Aura (Witness Protection under Banishing Light):
-			// gorge asks its host with the card still in exile (CR 303.4f).
-			// During a resolution the kernel parks the choice (preReturn)
-			// and enters the card once answered (raGenRetChoice; pair 5605).
-			// A cost's pick still being answered when the host leaves -- the
-			// sacrificed host is what exiled it -- parks it too: the pending
-			// answer continues the resolution, and runProg poses the host ask
-			// before it ends (pair 1265). Outside a resolution (its source
-			// died to a state-based action) every returning Aura queues its
-			// own host ask before the next priority (queueAskRet) instead of
-			// entering unattached to fall to CR 704.5m: they are asked in
-			// entry order, one answer each.
-			parked, queued := false, false
-			if s.res.active && s.g.pre.state == 0 {
-				s.g.pre = preAsk{obj: l.obj, kind: akEnchant, state: preReturn}
-				parked = true
-			} else if !s.res.active {
-				s.queueAskRet(l.obj)
-				queued = true
-			}
-			if parked || queued {
-				if k.gen.anyLinkCtr {
-					s.linkRetStall(k, srcCtrl, o, l.obj)
-				}
+			if handled, stop := s.retAuraHostAsk(k, srcCtrl, o, l.obj, holdQ); stop {
+				return
+			} else if handled {
 				continue
 			}
 		}
@@ -968,6 +957,38 @@ func (s *State) returnLinked(k *prep, srcCtrl uint8, o Obj) {
 			}
 		}
 	}
+}
+
+// retAuraHostAsk parks or queues the host ask of a returning Aura (o's link
+// to a) that has more than one permanent it can enchant: gorge asks its host
+// with the card still in exile (CR 303.4f). During a resolution the kernel
+// parks the choice (preReturn) and enters the card once answered
+// (raGenRetChoice; pair 5605). A cost's pick still being answered when the
+// host leaves -- the sacrificed host is what exiled it -- parks it too: the
+// pending answer continues the resolution, and runProg poses the host ask
+// before it ends (pair 1265). Outside a resolution (its source died to a
+// state-based action) every returning Aura queues its own host ask before the
+// next priority (queueAskRet) instead of entering unattached to fall to CR
+// 704.5m: they are asked in entry order, one answer each. handled says the
+// ask was parked or queued; stop says returnLinked's sweep suspends on it
+// (gorge suspends its sweep on the ask: this source's later links wait with
+// the rest of the batch; flushReturns holds it, resumeQueuedReturns redrives).
+func (s *State) retAuraHostAsk(k *prep, srcCtrl uint8, o, a Obj, holdQ bool) (handled, stop bool) {
+	parked, queued := false, false
+	if s.res.active && s.g.pre.state == 0 {
+		s.g.pre = preAsk{obj: a, kind: akEnchant, state: preReturn}
+		parked = true
+	} else if !s.res.active {
+		s.queueAskRet(a)
+		queued = true
+	}
+	if !parked && !queued {
+		return false, false
+	}
+	if k.gen.anyLinkCtr {
+		s.linkRetStall(k, srcCtrl, o, a)
+	}
+	return true, queued && holdQ
 }
 
 // enterLinkRetRun enters the returning card o and marks the entry's enter
@@ -1661,6 +1682,7 @@ func (s *State) answerQueuedAsk(k *prep, a Action) {
 	s.popAsk()
 	if ask.sl == NoSlot && ask.kind == akRiot {
 		s.enterRetRiot(k, Obj(ask.ab), a.Mode()) // kw_riotret.go
+		s.resumeQueuedReturns(k)                 // the batch this ask held
 		return
 	}
 	if ask.sl == NoSlot {
@@ -1669,6 +1691,7 @@ func (s *State) answerQueuedAsk(k *prep, a Action) {
 		// host (CR 303.4f)
 		host := s.objs[a.Source()].slot
 		s.enterRetAura(k, Obj(ask.ab), host)
+		s.resumeQueuedReturns(k) // the batch this ask held
 		return
 	}
 	p := &s.perms[ask.sl]

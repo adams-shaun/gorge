@@ -147,6 +147,10 @@ func (s *State) leaveGame(k *prep, p uint8) bool {
 		// back to its controller before the effect, not to exile
 		s.ctrlExpire(k, false)
 	}
+	// gorge runs the sweep's zone moves as one zone batch (openZoneBatch,
+	// rules/sba.go ceaseDepartedObjects): every until-leaves return waits
+	// until every owned object has left (CR 800.4a, 610.3d)
+	hr := s.holdOpen(k)
 	// the attackers attacking p, judged before any of p's walkers cease
 	var atk slotMask
 	if s.nAttackers > 0 {
@@ -211,6 +215,7 @@ func (s *State) leaveGame(k *prep, p uint8) bool {
 	if s.ctrlM[SeatIx(p)].any() {
 		moved = s.exileControlled(k, p) || moved
 	}
+	s.holdClose(k, hr) // the sweep's until-leaves returns, as one batch
 	// p's pending triggers go with p (gorge dropDepartedTriggers)
 	if s.orderLeft == 0 && s.orderPlace == 0 {
 		n := uint8(0)

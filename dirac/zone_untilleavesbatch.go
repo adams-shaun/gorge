@@ -71,7 +71,7 @@ func (s *State) holdClose(k *prep, r holdRec) {
 		if k.gen.anyBatch {
 			s.batchOpen()
 		}
-		parked = s.flushReturns(k)
+		parked = s.flushReturns(k, false)
 	}
 	if parked {
 		s.g.retHold, s.g.retOld, s.g.retStamp = true, old, r.ts
@@ -105,20 +105,56 @@ func (s *State) holdReturns(sl Slot, o Obj) {
 	}
 }
 
-// flushReturns returns the cards of the sources holdReturns recorded. When a
-// return parks an ask it stops, leaving the rest in retHeld for resumeReturns;
-// the caller keeps the entry frame open. A queued ask (retAuraAsk, outside a
-// resolution) cannot park this way: every returning Aura queues its own ask and
-// the rest of the batch stays in exile until those answers land, in entry order.
+// retAskQueuedSince reports that a return queued its own ask (queueAskRet,
+// queueRiotRet: an ask with no permanent slot) at ask index nask or later.
+func (s *State) retAskQueuedSince(nask uint8) bool {
+	for i := int(nask); i < int(s.g.nask); i++ {
+		if s.g.ask[i].sl == NoSlot {
+			return true
+		}
+	}
+	return false
+}
+
+// flushReturns returns the cards of the sources holdReturns recorded. gorge
+// suspends its tape while a return's own ask waits for an answer (the parked
+// as-enters choice of replacement_etb.go, and the CR 303.4f host question
+// asked with the Aura still in exile): the sweep that met the ask stops with
+// the asking card in exile, and closeZoneBatch defers the sweep's rest while
+// the tape unwinds, so every later return waits too. The kernel mirrors that
+// suspension in retHold: a return whose ask parks (preReturn, mid-resolution)
+// or queues (queueAskRet, a state-based departure) stops the flush there, the
+// rest staying in retHeld for the answer (resumeReturns,
+// resumeQueuedReturns), and a plain flush while such an ask still waits is
+// refused entirely -- its sources are kept in retHeld behind the pending ask.
+// The resumptions pass resume to get past that gate; each flush may meet the
+// next asking return and hold behind it again, one answer at a time, in entry
+// order.
+//
+// A QUEUED ask holds the flush only while the flush runs inside a flow gorge
+// wraps in a kernel run (holdQ, false in the plain state-based-action pass
+// before priority): there the ask goes through the tape path and its answer
+// unwinds the sweep (Kernel.Answer's unwind panic, the Ward class --
+// measured against gorge, the step-begin flushes hold, the pre-priority ones
+// do not). Outside such a flow gorge's ask is an ordinary legacy pose: the
+// sweep never stops and every later card returns while the asker waits in
+// exile.
 //
 //go:noinline
-func (s *State) flushReturns(k *prep) bool {
+func (s *State) flushReturns(k *prep, resume bool) bool {
 	n, ctrl := int(s.g.nretHeld), s.g.retCtrl
+	if !resume && s.g.retHold {
+		// a return ask still waits on its answer: gorge's sweep cannot get
+		// past it, so this frame's sources stay held (their holdReturns
+		// entries are already in retHeld, in entry order)
+		return true
+	}
+	holdQ := s.ctl == ctlStepBegin
 	s.g.nretHeld, s.g.retCtrl = 0, 0
 	for i := 0; i < n; i++ {
-		was, nq := s.g.pre.state, s.g.nask
-		s.returnLinked(k, uint8(ctrl>>uint(2*i)&3), s.g.retHeld[i])
-		if was == 0 && s.g.nask > nq && s.holdBehindQueuedAsk(i, n, ctrl) {
+		was, nask := s.g.pre.state, s.g.nask
+		s.returnLinked(k, uint8(ctrl>>uint(2*i)&3), s.g.retHeld[i], resume, holdQ)
+		if was == 0 && s.g.nask > nask && s.holdBehindQueuedAsk(i, n, ctrl) {
 			return true // zone_untilleavesqask.go
 		}
 		if was == 0 && s.g.pre.state == preReturn {
@@ -133,6 +169,16 @@ func (s *State) flushReturns(k *prep) bool {
 			s.refreshTy(k)
 			return true
 		}
+		if was == 0 && holdQ && s.retAskQueuedSince(nask) {
+			// this return queued its own host choice: the card stays in
+			// exile behind it and the rest of the batch waits with it (CR
+			// 603.6a, 610.3d, 303.4f)
+			copy(s.g.retHeld[:], s.g.retHeld[i:n])
+			s.g.retCtrl = ctrl >> uint(2*i)
+			s.g.nretHeld = uint8(n - i)
+			s.refreshTy(k)
+			return true
+		}
 	}
 	s.refreshTy(k)
 	return false
@@ -142,9 +188,9 @@ func (s *State) flushReturns(k *prep) bool {
 // it is answered, and closes the departure frame that kept them held. A later
 // return that parks again poses its own ask and reports true.
 func (s *State) resumeReturns(k *prep) bool {
-	if s.g.nretHeld != 0 && s.flushReturns(k) {
+	if s.g.nretHeld != 0 && s.flushReturns(k, true) {
 		if s.g.pre.state != preReturn {
-			return false // held behind a queued as-enters ask: its answer resumes (answerQueuedHold)
+			return false // held behind a queued ask: its answer resumes (answerQueuedHold, resumeQueuedReturns)
 		}
 		s.res.ask, s.res.askP = raGenRetChoice, s.objs[s.g.pre.obj].owner()
 		return true
@@ -153,6 +199,23 @@ func (s *State) resumeReturns(k *prep) bool {
 		s.finishHeldFrame(k)
 	}
 	return false
+}
+
+// resumeQueuedReturns flushes the return batch a queued return ask held back
+// (flushReturns) once that ask has settled (retAuraAsk, answerQueuedAsk). The
+// flush may queue the next returning card's own ask and hold the rest behind
+// it again; when nothing is held the departure frame that kept the batch
+// closes and its held enters checks fire (finishHeldFrame).
+func (s *State) resumeQueuedReturns(k *prep) {
+	if s.g.nretHeld == 0 && !s.g.retHold {
+		return
+	}
+	if s.g.nretHeld != 0 && s.flushReturns(k, true) {
+		return // another return asked: the rest stays in exile behind it
+	}
+	if s.g.retHold {
+		s.finishHeldFrame(k)
+	}
 }
 
 // resumeEntryBatch resumes after a return completed an entry batch: it poses
