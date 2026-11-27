@@ -1833,6 +1833,20 @@ func (e *canonEncoder) encdecision_PaymentActivation(v *decision.PaymentActivati
 			}
 		}
 	}
+	if len(v.Sacrifices) == 0 {
+		e.buf = append(e.buf, 0)
+	} else {
+		e.buf = append(e.buf, 1)
+		if v.Sacrifices == nil {
+			e.buf = append(e.buf, 0)
+		} else {
+			e.buf = append(e.buf, 1)
+			e.buf = binary.AppendUvarint(e.buf, uint64(len(v.Sacrifices)))
+			for x76 := range v.Sacrifices {
+				e.buf = binary.AppendUvarint(e.buf, uint64(v.Sacrifices[x76]))
+			}
+		}
+	}
 	return nil
 }
 
@@ -1897,6 +1911,16 @@ func (e *canonEncoder) encdecision_PaymentConsequence(v *decision.PaymentConsequ
 	} else {
 		e.buf = append(e.buf, 1)
 		if v.ReturnToHand {
+			e.buf = append(e.buf, 1)
+		} else {
+			e.buf = append(e.buf, 0)
+		}
+	}
+	if !v.SacrificeOthers {
+		e.buf = append(e.buf, 0)
+	} else {
+		e.buf = append(e.buf, 1)
+		if v.SacrificeOthers {
 			e.buf = append(e.buf, 1)
 		} else {
 			e.buf = append(e.buf, 0)
