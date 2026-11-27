@@ -5435,10 +5435,10 @@ func (lc *lowerCtx) animateGrantedStatic(ps *params, name string, st cards.Stati
 // the printed static it reads as on the source card, switched on by a bit of
 // the override record the Animate applies (kop.Static.OvGate,
 // kop.Override.GrantStatics), so the grant is source-scoped and lasts as long
-// as the record. A Continuous body is read only on the source itself (the
-// P/T/keyword walks gate it on the source slot's own record), so it is refused
-// on any other holder; a rule static and a CombatDamageToughness body are read
-// on the record's holder instead.
+// as the record. A Continuous body lowers to the ordinary static it spells
+// (Monk Class's StPlay is the exile MayPlayFrom permission), whose own reader
+// decides how far the record reaches on a non-Self holder; a
+// CombatDamageToughness body is read on the record's holder.
 func (lc *lowerCtx) animateGrantStatics(ps *params, names string, o *lOverride, single bool, obj lRef) error {
 	d := strings.TrimSpace(ps.str("Defined"))
 	// A comma list is the permission/land-play family: one permanent grant on
@@ -5464,13 +5464,6 @@ func (lc *lowerCtx) animateGrantStatics(ps *params, names string, o *lOverride, 
 			return refuse("Animate staticAbilities$ %q", name)
 		}
 		if single && ss[0].Mode == "Continuous" {
-			if obj.Kind != rSelf {
-				// The P/T/keyword walks gate an OvGate Continuous static on
-				// the source slot's own record (statCond -> ovGranted(st.sl)),
-				// so a record on another holder never switches it on. Refuse
-				// until a chars arm reads the record's source on the holder.
-				return refuse("Animate staticAbilities$ %q: a Continuous grant on a non-Self holder", name)
-			}
 			// A body over OTHER permanents (an anthem, keyword grant or
 			// equipped pump) is still the permanent grant on Self the earlier
 			// pass lowered: only a self body or a rule static rides a
