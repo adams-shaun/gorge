@@ -145,6 +145,89 @@ func (lc *lowerCtx) effectDmgRedirectToHost(ps *params) (bool, error) {
 	return true, nil
 }
 
+// effectDmgRedirectToYou lowers the no-Duration redirect-to-controller
+// Effects: Vassal's Duty (AB$ Effect | ValidTgts$ Creature.Legendary+YouCtrl |
+// RememberObjects$ Targeted | ExileOnMoved$ Battlefield over one Event$
+// DamageDone | ValidTarget$ Creature.IsRemembered | DamageTarget$ You whose
+// body is DB$ ReplaceSplitDamage | DamageTarget$ You: the next 1 damage to the
+// remembered creature this turn is dealt to the resolving controller) and
+// Sivvi's Valor (SP$ Effect | ValidTgts$ Creature | RememberObjects$ Targeted
+// | ForgetOnMoved$ Battlefield over one Event$ DamageDone | ValidTarget$
+// Card.IsRemembered | DamageTarget$ You whose body is DB$ ReplaceEffect |
+// VarName$ Affected | VarValue$ You | VarType$ Player: all of it, this turn)
+// (gorge replacement_splitdamage.go, replacement_replace.go's Affected
+// rewrite). One OpExt ExtDmgRedirect over the remembered target, C the kind
+// (dirac/repl_dmgredirect.go). It reports false, consuming nothing, for any
+// other shape, so the other arms' refusals stand.
+func (lc *lowerCtx) effectDmgRedirectToYou(ps *params) (bool, error) {
+	name := strings.TrimSpace(ps.str("ReplacementEffects"))
+	if name == "" || strings.Contains(name, ",") {
+		return false, nil
+	}
+	r := etbParams(lc.face.SVars[name])
+	if r == nil || r["Event"] != "DamageDone" || strings.TrimSpace(r["DamageTarget"]) != "You" {
+		return false, nil
+	}
+	switch strings.TrimSpace(r["ValidTarget"]) {
+	case "Creature.IsRemembered", "Card.IsRemembered":
+	default:
+		return false, nil
+	}
+	body := etbParams(lc.face.SVars[r["ReplaceWith"]])
+	var kind int
+	switch {
+	case len(body) == 2 && body["DB"] == "ReplaceSplitDamage" && body["DamageTarget"] == "You":
+		kind = kop.DmgRedirectYouNext // the next 1 damage (Vassal's Duty)
+	case len(body) == 4 && body["DB"] == "ReplaceEffect" && body["VarName"] == "Affected" &&
+		body["VarValue"] == "You" && body["VarType"] == "Player":
+		kind = kop.DmgRedirectYouAll // all of it, this turn (Sivvi's Valor)
+	default:
+		return false, nil
+	}
+	if ps.str("RememberObjects") != "Targeted" {
+		return false, nil
+	}
+	if _, ok := ps.get("ValidTgts"); !ok {
+		return false, nil
+	}
+	if _, ok := ps.get("Duration"); ok {
+		return false, nil // effectDurationRoutes owns every Duration$ lifetime
+	}
+	// the record ends when the remembered host leaves: the Effect's
+	// ExileOnMoved$/ForgetOnMoved$ Battlefield, exactly one of the two
+	ex, hasEx := ps.get("ExileOnMoved")
+	fg, hasFg := ps.get("ForgetOnMoved")
+	switch {
+	case hasEx && !hasFg && strings.TrimSpace(ex) == "Battlefield":
+	case hasFg && !hasEx && strings.TrimSpace(fg) == "Battlefield":
+	default:
+		return false, nil
+	}
+	rp := newParams(r)
+	rp.consume("Event", "Description", "ValidTarget", "ActiveZones", "DamageTarget", "ReplaceWith")
+	if left := rp.unread(); len(left) > 0 {
+		return false, nil
+	}
+	if f, err := lc.filter(ps.str("ValidTgts")); err != nil {
+		return true, err
+	} else if f.Players != 0 {
+		// the damaged host is a battlefield record (a player ValidTgts would
+		// have the damage dealt to a player's own event: not modelled)
+		return false, nil
+	}
+	obj, err := lc.objOrTarget(ps, "", zBattlefield)
+	if err != nil {
+		return true, err
+	}
+	ps.consume("ReplacementEffects", "RememberObjects", "Duration", "ExileOnMoved", "ForgetOnMoved", "Name")
+	note := "all damage to the target this turn is dealt to the controller instead"
+	if kind == kop.DmgRedirectYouNext {
+		note = "the next 1 damage to the target this turn is dealt to the controller instead"
+	}
+	lc.emit(lInstr{Op: "DmgRedirect", Obj: obj, C: kind, Note: note})
+	return true, nil
+}
+
 // redirectLine reads the Effect's one DamageDone replacement line and checks
 // the parts both redirects share: DamageTarget$ Remembered, and that nothing
 // else is on the line. The returned params still hold ValidTarget$,
