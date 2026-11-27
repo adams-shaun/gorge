@@ -1246,7 +1246,11 @@ type lStatic struct {
 	PerAffected bool
 	Amount      lValue
 	Cost        lCost
-	Zone        int
+	// AltXMana: a grant whose cost is one {X}, priced at the cast card's mana
+	// value (XAlternative$ Count$CardManaCost; Kentaro, the Smiling Cat). The
+	// kernel prices it in cast_altgrant.go.
+	AltXMana bool
+	Zone     int
 	// BlockAmount: an ExtraBlock grant's kop.ExtraBlocksAny (CanBlockAny$
 	// True), 0 for the amount-1 grant
 	BlockAmount int
