@@ -1156,6 +1156,10 @@ var simpleKeywords = map[string]bool{
 var expandedKeywords = map[string]bool{
 	"Equip": true, "Ward": true, "Exalted": true, "Prowess": true, "Affinity": true, "Enchant": true,
 	"etbCounter": true, "ETBReplacement": true,
+	// Fortify (CR 702.67): gorge kwFortify (cards/kw_fortify.go) expands it to
+	// the same AB$ Attach shape kw:Equip mints, with the land-facing defaults
+	// (a Fortification attaches to a land you control, only as a sorcery)
+	"Fortify": true,
 	// Sunburst (CR 702.47): gorge kwSunburst expands it to a Moved
 	// replacement putting Count$Converge P1P1 (a creature) or CHARGE
 	// counters on the entering permanent
