@@ -315,6 +315,7 @@ CzHandGrave	untyped int	32
 CzLibrarySideboard	untyped int	16
 CzShuffleEach	untyped int	64
 CzShuffleOwners	untyped int	256
+CzShuffleScope	untyped int	512
 CzUntilLeaves	untyped int	1
 DelayBeginCombat	untyped int	6
 DelayDiesThisTurn	untyped int	5

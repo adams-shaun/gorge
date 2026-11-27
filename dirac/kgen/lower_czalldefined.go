@@ -21,6 +21,21 @@ func (lc *lowerCtx) czallDefinedScope(ps *params, in *lInstr) error {
 		in.Obj = lRef{Kind: rYou}
 		in.Note = "only the controller's zone"
 		return nil
+	case "Player":
+		// Forge's whole-field scope (Survive's "Each player shuffles their
+		// graveyard into their library"): gorge's changeZoneAllPlayers sweeps
+		// every player, AliveFrom(0) (zone_changeall.go); the kernel's sweep
+		// already walks every seat when the op names no player, so the Ref
+		// stays RefNone -- the same encoding as a Defined$ absent. Beside
+		// targeting the ANSWERED players win the scope in gorge ("targeting
+		// wins when both ride"), which the kernel's one-player Ref cannot
+		// carry here: refused, as this spelling always was.
+		if len(lc.ab.Targets) != 0 {
+			return refuse("ChangeZoneAll Defined$ %s beside targeting", v)
+		}
+		in.Obj = lRef{}
+		in.Note = "every player's zone"
+		return nil
 	case "Targeted", "ParentTarget", "ParentTargeted", "TargetedPlayer":
 		t := lc.lastTarget()
 		if v != "Targeted" && v != "TargetedPlayer" {

@@ -2014,6 +2014,9 @@ func (s *State) execChangeZoneAll(k *prep, in *kop.Instr, resume bool) (done boo
 	stamp := s.ts
 	var rid sweepRiders // MvEntryRiders (zone_sweepriders.go)
 	var pend czallPend  // a two-zone sweep into the library places once, in move order
+	var czOwners uint8  // CzShuffleOwners (Survive): owners whose library received a card
+	var czRecv [4]uint8 // its owners, in first-placement order (gorge's shuffle loop order)
+	czRecvN := 0
 	if mv&kop.MvEntryRiders != 0 && z == kop.ZoneBattlefield {
 		rid = s.sweepRidersOf(k, in)
 	}
@@ -2079,6 +2082,13 @@ func (s *State) execChangeZoneAll(k *prep, in *kop.Instr, resume bool) (done boo
 				}
 				if in.B.N&kop.CzShuffleEach != 0 && mv&kop.MvGraveExile != 0 {
 					carry.noteFirst(s, o) // zone_changezoneall.go
+				}
+				if z == kop.ZoneLibrary && in.B.N&kop.CzShuffleOwners != 0 {
+					if o := s.objs[o].owner(); czOwners&(1<<o) == 0 && czRecvN < len(czRecv) {
+						czOwners |= 1 << o
+						czRecv[czRecvN] = o
+						czRecvN++
+					} // zone_changezoneall.go: each receiving library shuffles once, in placement order
 				}
 				if z == kop.ZoneBattlefield && s.occ.full() {
 					// a mass return onto a full battlefield: the kernel's
@@ -2226,6 +2236,23 @@ func (s *State) execChangeZoneAll(k *prep, in *kop.Instr, resume bool) (done boo
 	carry.finish(s)
 	if mv&kop.MvGraveExile != 0 && in.B.N&kop.CzShuffleEach != 0 {
 		carry.shuffleEach(s) // after the placement: each library shuffles once all cards are in
+	}
+	if z == kop.ZoneLibrary && in.B.N&kop.CzShuffleOwners != 0 {
+		// gorge changeZoneAllShuffleLibraries: each library that received
+		// a card shuffles first (in first-placement order), then -- the
+		// sweep's player scope being explicit -- every in-scope player's
+		// library that received nothing, in AliveFrom seat order (Survive's
+		// "Each player shuffles their graveyard into their library").
+		for i := 0; i < czRecvN; i++ {
+			s.shuffleLib(czRecv[i])
+		}
+		if in.B.N&kop.CzShuffleScope != 0 {
+			for p := uint8(0); p < s.nSeats(); p++ {
+				if czOwners&(1<<p) == 0 && !s.out(p) {
+					s.shuffleLib(p)
+				}
+			}
+		}
 	}
 	if resume {
 		s.holdBatch(&eb)
