@@ -10,7 +10,7 @@ import (
 // paths that read prep.gen (the table's own prep is shared by every scenario).
 func testGen(sc *scen) *prep {
 	k := *sc.k
-	k.gen = &genPrep{flags: make([]uint64, len(sc.k.t.Cards))}
+	k.gen = &genPrep{flags: make([]uint32, len(sc.k.t.Cards))}
 	return &k
 }
 

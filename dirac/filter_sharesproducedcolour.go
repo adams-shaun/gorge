@@ -46,7 +46,7 @@ func (s *State) tapProduced(k *prep, sl Slot, col int) {
 	}
 	for i := 0; i < int(s.npend); i++ {
 		e := &s.pend[i]
-		if e.trigObj != o || !k.gen.has(e.card, gfTrigProduced) {
+		if e.trigObj != o || !readsProducedColour(k, e.card) {
 			continue
 		}
 		if cd := &k.t.Cards[e.card]; int(e.ab) >= len(cd.Abilities) || cd.Abilities[e.ab].Trig.Event != kop.TrigTaps {
@@ -62,10 +62,10 @@ func (s *State) tapProduced(k *prep, sl Slot, col int) {
 
 // cardUsesProducedColour reports whether one of c's abilities reads a filter
 // program's FwSharesProducedColour word: through an instruction filter, a
-// trigger filter, or a condition's filter (the Conds' nested Sub tree). The
-// prepareGen flag gfTrigProduced records it per card, and objTrigGen carries
-// a mana tap's colour bits only for such a card, so every other table keeps
-// the TrigTaps entry's amount exactly 0.
+// trigger filter, or a condition's filter (the Conds' nested Sub tree).
+// readsProducedColour asks it per card, and objTrigGen carries a mana tap's
+// colour bits only for such a card, so every other table keeps the TrigTaps
+// entry's amount exactly 0.
 func cardUsesProducedColour(t *kop.Table, c *kop.CardDef) bool {
 	ok := func(f kop.FilterID) bool {
 		if f == 0 || int(f) >= len(t.Filters) || t.Filters[f].Pred != kop.PredProg {
@@ -123,3 +123,10 @@ var useTrigProduced = newGenUse(func(t *kop.Table) bool {
 	}
 	return false
 })
+
+// readsProducedColour reports whether card c reads the word. The table-wide
+// use bit gates the per-card scan, so only a table holding a reader pays for
+// it (no genPrep flag: the card-flag block is full at 32 bits).
+func readsProducedColour(k *prep, c CardID) bool {
+	return k.gen.uses.has(useTrigProduced) && cardUsesProducedColour(k.t, &k.t.Cards[c])
+}

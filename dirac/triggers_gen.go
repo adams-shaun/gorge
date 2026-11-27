@@ -440,7 +440,7 @@ func (s *State) objTrigGen(k *prep, ev kop.TrigEvent, l trigListener, a *kop.Abi
 		if a.Trig.Flags2&kop.Tf2FirstTime != 0 && s.mSl(k, mechTappedTurn, evSl) {
 			return // an earlier tap this turn: FirstTime$ is false (gorge Facts.TappedTurn)
 		}
-		if k.gen.has(l.card, gfTrigProduced) {
+		if readsProducedColour(k, l.card) {
 			amt &= mtColMask // keep the mana tap's produced colours for the SharesProducedColour word (trig_params.go)
 		} else {
 			amt = 0 // the tapper (fireTapsBy), not an amount
