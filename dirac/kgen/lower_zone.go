@@ -547,7 +547,7 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 		if origin == zGraveyard && (dest == zExile || dest == zHand || dest == zBattlefield) && ps.is("AtRandom", "True") {
 			return lc.randomGraveMove(ps, f, n, flags, counterKind, override, dest) // lower_randomgravemove.go
 		}
-		graveBF := dest == zBattlefield && override == nil && graveToBattlefieldFlags(flags)
+		graveBF := dest == zBattlefield && graveToBattlefieldFlags(flags)
 		if origin == zGraveyard && (dest == zHand || graveBF) {
 			owner, chosenPool, err := lc.chosenMidPool(ps, dest) // lower_chooseplayermid.go
 			if err != nil {
@@ -639,7 +639,29 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 			lc.pickEachLoop(pickLoop)
 			// dpScope You / Player (graveDefinedPlayer) already read the param, so
 			// pickOwner is You and emitGravePick opens the each-player loop for Player
-			return lc.emitGravePick(dpScope, lInstr{Op: "ChooseMove", Obj: pickOwner, A: n, F: f, C: dest, CS: cs}) // lower_gravedefinedplayer.go
+			in := lInstr{Op: "ChooseMove", Obj: pickOwner, A: n, F: f, C: dest, CS: cs}
+			if override == nil {
+				return lc.emitGravePick(dpScope, in) // lower_gravedefinedplayer.go
+			}
+			// StaticEffect$ (Path of the Schemer's Animate): gorge
+			// applyStaticEffect registers the body on each card the move puts
+			// onto the battlefield, before the entry event (CR 603.6a). The
+			// kernel reads the OvEnterWith override emitted right after the
+			// pick as the picked card enters (dirac/zone_pickoverride.go), so
+			// only the one-card, one-player battlefield pick carries it: the
+			// rider is one instruction.
+			if dest != zBattlefield || counterKind != "" || dpScope != dpNone || pickLoop.Kind != rNone || !isConstN(n, 1) {
+				return refuse("graveyard pick with StaticEffect$ outside a one-card battlefield pick")
+			}
+			if err := lc.emitGravePick(dpScope, in); err != nil {
+				return err
+			}
+			// The rider's Obj is unused: the kernel's enterWithApply applies
+			// the record to the entrant's slot as it enters, so no remembered
+			// set is read (and the chain's cross-ability remembered census
+			// stays honest).
+			lc.emitOverride(lRef{}, override, "Permanent|enterWith")
+			return nil
 		}
 		if exwPick {
 			return lc.exilePick(ps, f, n, flags, counterKind, override, dest) // lower_exw.go
