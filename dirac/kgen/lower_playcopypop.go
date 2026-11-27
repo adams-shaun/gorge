@@ -2,6 +2,26 @@ package kgen
 
 import "strings"
 
+// playCopyCard reads CopyCard$ True (CR 707.12): the cast is of a copy of the
+// card. Read exactly for the one shape the kernel proves in lockstep: the
+// remembered cards in exile (Valid$ Card.IsRemembered, ValidZone$ Exile),
+// ValidSA$ Spell, free and optional. Every other population (Defined$,
+// targets, hand/graveyard, ExiledWith) is refused: a Defined$ Remembered
+// card may be in any zone, which the kernel's exile population does not see.
+func (lc *lowerCtx) playCopyCard(ps *params) (bool, error) {
+	v, ok := ps.get("CopyCard")
+	if !ok {
+		return false, nil
+	}
+	if v != "True" {
+		return false, refuse("Play CopyCard %q", v)
+	}
+	if err := lc.playCopyPopOK(ps); err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
 // playCopyPopOK reads the population of a CopyCard$ True Play (CR 707.12: the
 // cast is of a minted copy; gorge effects/play.go, beginPlay). Two shapes are
 // proven in lockstep:
