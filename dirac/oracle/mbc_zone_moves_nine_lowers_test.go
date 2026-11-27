@@ -22,6 +22,10 @@ import (
 //     the target opponent's revealed hand (Play Valid$
 //     Card.TargetedPlayerCtrl ValidZone$ Hand): CastFree over the player
 //     target's hand;
+//   - mbcmindleech: Mindleech Mass's and Silent-Blade Oni's free cast from
+//     the hand of the player their combat damage hit (Play Valid$
+//     Card.ControlledBy TriggeredTarget / Card.nonLand+OwnedBy
+//     TriggeredTarget ValidZone$ Hand): CastFree over RefTriggerPlayer's hand;
 //   - mbcghostform: Kaya's Ghostform's "when enchanted permanent dies or is
 //     put into exile" (ChangesZone Battlefield->Graveyard,Exile ValidCard$
 //     Card.AttachedBy), a Leaves line over the destination set read on the
@@ -107,6 +111,31 @@ var mbcZoneMoves9Cases = []mbcZoneMoves9Case{
 		},
 		// the controller's own hand instead of the target's
 		mutate: func(tbl *kop.Table) { mbcTgtPlayerCast(tbl, "Mindclaw Shaman").Obj = kop.RefNone },
+	},
+	{
+		pool: "mbcmindleech",
+		decks: [2][]cardset.Entry{
+			{
+				{Name: "Mindleech Mass", Count: 7}, {Name: "Silent-Blade Oni", Count: 7},
+				{Name: "Island", Count: 13}, {Name: "Swamp", Count: 13},
+			},
+			{
+				{Name: "Shock", Count: 12}, {Name: "Lava Axe", Count: 4}, {Name: "Mountain", Count: 24},
+			},
+		},
+		shape: func(t *testing.T, tbl *kop.Table) {
+			for _, name := range []string{"Mindleech Mass", "Silent-Blade Oni"} {
+				if mbcTrigPlayerCast(tbl, name) == nil {
+					t.Fatalf("%s has no CastFree over the trigger's player: the spelling did not lower", name)
+				}
+			}
+		},
+		// the controller's own hand instead of the damaged player's
+		mutate: func(tbl *kop.Table) {
+			for _, name := range []string{"Mindleech Mass", "Silent-Blade Oni"} {
+				mbcTrigPlayerCast(tbl, name).Obj = kop.RefNone
+			}
+		},
 	},
 	{
 		pool: "mbcghostform",
@@ -212,6 +241,24 @@ func mbcTgtPlayerCast(tbl *kop.Table, name string) *kop.Instr {
 		prog := cd.Abilities[j].Prog
 		for k := range prog {
 			if prog[k].Op == kop.OpCastFree && prog[k].Obj == kop.RefTarget0 {
+				return &prog[k]
+			}
+		}
+	}
+	return nil
+}
+
+// mbcTrigPlayerCast is the card's free cast whose population is the
+// trigger's player's hand (RefTriggerPlayer).
+func mbcTrigPlayerCast(tbl *kop.Table, name string) *kop.Instr {
+	cd := mbcCard(tbl, name)
+	if cd == nil {
+		return nil
+	}
+	for j := range cd.Abilities {
+		prog := cd.Abilities[j].Prog
+		for k := range prog {
+			if prog[k].Op == kop.OpCastFree && prog[k].Obj == kop.RefTriggerPlayer {
 				return &prog[k]
 			}
 		}

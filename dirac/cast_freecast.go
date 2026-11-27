@@ -181,6 +181,12 @@ func (s *State) castFreeFillGen(k *prep, in *kop.Instr, e *stackEntry) {
 				s.castFreeFillHand(CodeSeat(e.tgt[slot]), zone, add) // cast_freetgtplayer.go
 			}
 		}
+	case in.Obj == kop.RefTriggerPlayer:
+		// the trigger's player's hand (Mindleech Mass, Silent-Blade Oni: the
+		// seat a DamageDone trigger hit, e.trigPl); none fills nothing
+		if e != nil && e.trigPl != 255 {
+			s.castFreeFillHand(e.trigPl, zone, add) // cast_freetgtplayer.go
+		}
 	case zone == kop.ZoneHand:
 		pl := &s.pl[e.ctrl]
 		for i := 0; i < int(pl.handN); i++ {
