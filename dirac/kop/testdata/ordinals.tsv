@@ -1060,10 +1060,12 @@ PeekHand	untyped int	8
 PeekMayReveal	untyped int	4
 PeekPublic	untyped int	1
 PeekRemember	untyped int	2
+PermMarkActTurn	untyped int	4
 PermMarkAttacked	untyped int	0
 PermMarkDealtAny	untyped int	2
 PermMarkDealtCombat	untyped int	3
 PermMarkDealtTurn	untyped int	1
+PermMarkFaceUpTurn	untyped int	5
 PermMarkNot	untyped int	16
 PhaseCountCombats	untyped int	0
 PhaseCountEndSteps	untyped int	1
