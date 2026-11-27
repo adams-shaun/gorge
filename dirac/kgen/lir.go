@@ -1407,6 +1407,9 @@ type lRepl struct {
 	Phase                                     uint8    // BeginPhaseSkip: the kop.Step it skips (Repl.A)
 	Body                                      int      // DamageInstead: the kop.ReplDmgIns* effect bits (Repl.A's low byte); F2 is the damage source, F the damaged permanent, Ctr the counter kind
 	Trig                                      int      // DamageInstead ReplDmgInsVind: the reflexive-trigger latent the body queues (the ImmediateTrigger Execute's DealDamage)
+	// Plus/Ignore: RollPlanarDice's ReplaceEffect chain adds Plus dice and
+	// ignores Ignore of them (Ichor Elixir: 1/1; kop.Repl.A / kop.Repl.C).
+	Plus, Ignore int
 }
 
 // lCard is a lowered card.
