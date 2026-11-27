@@ -1380,7 +1380,19 @@ func deferGapWalk(s *State, k *prep, a Action, p uint8, order []Slot, tapsDef sl
 					var d Decision
 					t.restrOptionsProbe(k, &d, p) // a node reads no script listing of its own (prefixAnyProbe)
 					complete := w.nu == n
-					found = hasOption(&d, a) && (t.npend == 0 || complete || !resolvePlay || post || t.pendDropsAll(k)) && !foreign
+					offerNow := hasOption(&d, a)
+					found = offerNow && (t.npend == 0 || complete || !resolvePlay || post || t.pendDropsAll(k)) && !foreign
+					// The node's floats pay the play but its queued triggers still
+					// sit above it (a Taps-deferred source's ask): gorge's search
+					// stops at its planner's priced node, before it activates
+					// another gap (potential_script.go visit's sr.priced). Without
+					// the stop the walk taps a source the plain plan leaves for
+					// the payment and floats a unit too many (C.A.M.P.'s second
+					// Fortify). The found block below resolves the triggers and
+					// rechecks the offer.
+					if !found && cp == nil && !post && !complete && t.npend != 0 && t.sp == s.sp && offerNow && t.actRestPriced(k, a, p) {
+						found = true
+					}
 					if found && t.npend != 0 {
 						t.resolvePrefixPlay(k, a, p, t.sp, resolvePlay)
 						if t.over {
