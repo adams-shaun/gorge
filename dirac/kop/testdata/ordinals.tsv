@@ -366,6 +366,8 @@ DmgNoRegenTarget	untyped int	128
 DmgRedirectHost	untyped int	3
 DmgRedirectNext	untyped int	1
 DmgRedirectScope	untyped int	2
+DmgRedirectYouAll	untyped int	5
+DmgRedirectYouNext	untyped int	4
 DmgRemember	untyped int	8
 DmgTrackExcess	untyped int	1
 DpDiesYou	untyped int	4

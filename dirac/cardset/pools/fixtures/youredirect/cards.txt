@@ -1,0 +1,19 @@
+# The damage redirect to the resolving controller (Vassal's Duty, Sivvi's
+# Valor: ExtDmgRedirect YouNext/YouAll: the next 1 damage / all damage to the
+# remembered creature this turn is dealt to the controller instead) beside
+# red burn and creatures
+# (dirac/oracle/dmgredirect_you_lockstep_test.go)
+Vassal's Duty
+Sivvi's Valor
+Rofellos, Llanowar Emissary
+Savannah Lions
+Serra Angel
+Lightning Bolt
+Shock
+Hill Giant
+Raging Goblin
+Grizzly Bears
+Child of Night
+Plains
+Forest
+Mountain
