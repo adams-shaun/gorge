@@ -2316,6 +2316,7 @@ type genState struct {
 	tgtSelf    Obj             // the card a feasibility check is for, plus one (0: none): a graveyard or exile card leaves that zone for the stack when cast, and the spell build a post-push sweep prices (its X ask) is on the stack already; CR 115.5 makes both no target of their own cast
 	inLoop     bool            // executing one object of a multi-object target slot
 	each       eachSusp        // an each-target loop parked on a copy token's as-enters ask (copy_eachtarget.go)
+	eachBatch  eachBatchSusp   // a batched RepeatEach-over-cards loop parked on a copy body's CR 508.4 ask (act_repeatcards.go)
 	sbaFP      [6]byte         // the non-object half of sba's clean-scan key (static_sbaskip.go); fills the padding before tokFrz
 	tokFrz     slotMask        // the permanents whose CreateToken replacements an each-target copy loop reads, fixed when it began (tokSrcM)
 	tokFrzOn   bool            // tokFrz is in force

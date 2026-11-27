@@ -26,6 +26,12 @@ type TokenAttackingStats struct {
 	// PickedAsks: the Asks that ExtCopyPicked's copy posed (Calamity,
 	// Galloping Inferno's two CopyPermanent calls each pose their own).
 	PickedAsks int64
+	// BatchedAsks: the Asks posed inside a batched RepeatEach copy loop's
+	// resumable frame (act_repeatcards.go; Mirror-Style Master).
+	BatchedAsks int64
+	// BatchedHeld: the BatchedAsks posed while the frame's zone batch was
+	// still open (the loop parked, not closed, on the ask).
+	BatchedHeld int64
 }
 
 // DebugTokenAttackingStats, when set, receives the TokenAttackingStats counts.
@@ -34,6 +40,11 @@ var DebugTokenAttackingStats *TokenAttackingStats
 // DebugNoCopyAttacking makes a CopyPermanent TokenAttacking$ copy enter
 // without attacking (mutation test only).
 var DebugNoCopyAttacking bool
+
+// DebugNoCopyDefenderAsk makes a CopyAttacking copy enter attacking without
+// gorge's CR 508.4 defender ask (mutation test only): copyEnterAttacking
+// attacks the fallback or next seat.
+var DebugNoCopyDefenderAsk bool
 
 // copyAttackingInstr reports whether in carries TokenAttacking$ True. Bit 14
 // is CopyAttacking on ExtCopyPicked (which never carries a pump keyword) and
@@ -58,7 +69,7 @@ func copyAttackingInstr(in *kop.Instr) bool {
 //
 //go:noinline
 func (s *State) copyDefenderAsk(k *prep, in *kop.Instr, ctrl uint8) bool {
-	if !copyAttackingInstr(in) || s.g.tokDefSet {
+	if !copyAttackingInstr(in) || s.g.tokDefSet || DebugNoCopyDefenderAsk {
 		return false
 	}
 	var buf [MaxOptions]TCode
@@ -72,6 +83,12 @@ func (s *State) copyDefenderAsk(k *prep, in *kop.Instr, ctrl uint8) bool {
 	s.res.ask, s.res.askP, s.res.chosen = raGenEnterDefender, ctrl, objWord(uint8(NoSlot))
 	if DebugTokenAttackingStats != nil {
 		DebugTokenAttackingStats.Asks++
+		if s.g.eachBatch.on {
+			DebugTokenAttackingStats.BatchedAsks++
+			if s.g.batchLatch&batchOpenMask != 0 {
+				DebugTokenAttackingStats.BatchedHeld++
+			}
+		}
 		if copyPickedOp(&s.prog(k)[s.res.pc]) {
 			DebugTokenAttackingStats.PickedAsks++
 		}

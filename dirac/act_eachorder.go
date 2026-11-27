@@ -112,6 +112,6 @@ func (s *State) eachOrderAnswer(k *prep, a Action) {
 	if s.g.stalled != 0 {
 		return
 	}
-	r.pc++ // the op set pc to the last body instruction
+	r.pc++ // past the last body instruction (the inline loop ran it)
 	s.runProg(k)
 }

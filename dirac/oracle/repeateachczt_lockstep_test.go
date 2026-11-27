@@ -81,11 +81,10 @@ func TestDemoRepeateachCztMutation(t *testing.T) {
 }
 
 // TestFourSeatDemoRepeateachCztLockstep: four seats, gorge leading, Ezuri's
-// Predation (its order ask and batch hold at four seats). Mirror-Style
-// Master is not played four-seat: its batched copy enters attacking
-// nextSeat, not gorge's CR 508.4 defender ask, so the card is marked
-// two-seat and a pod refuses its table at the start (StallTwoSeat) rather
-// than desyncing silently — asserted here.
+// Predation (its order ask and batch hold at four seats). Mirror-Style Master
+// plays at four seats too: its batched copy body is a resumable frame, so the
+// copy's CR 508.4 defender ask parks the loop (TestFourSeatMirrorCztLockstep);
+// the card must not be marked two-seat, or a pod would refuse its table.
 func TestFourSeatDemoRepeateachCztLockstep(t *testing.T) {
 	a := pod4Deck(deckOf(3, "Ezuri's Predation"), deckOf(8, "Grizzly Bears"), deckOf(5, "Glory Seeker"), deckOf(24, "Forest"))
 	if n := pod4FixtureLockstep(t, repeateachcztPool, [4][]string{a, a, a, a}, 30, true, nil); n != 0 {
@@ -96,7 +95,7 @@ func TestFourSeatDemoRepeateachCztLockstep(t *testing.T) {
 	if !ok {
 		t.Fatal("Mirror-Style Master is not in the repeateachczt pool")
 	}
-	if d := set.Def(i); !kop.CardTwoSeat(d) {
-		t.Error("Mirror-Style Master is not marked two-seat: a pod would attack the next seat silently")
+	if d := set.Def(i); kop.CardTwoSeat(d) {
+		t.Error("Mirror-Style Master is marked two-seat: a pod would refuse its table")
 	}
 }
