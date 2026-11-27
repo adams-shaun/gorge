@@ -159,13 +159,19 @@ func specialPositiveToken(p string) bool {
 	if specialPositiveTokenSet.Has(p) {
 		return true
 	}
+	if p == "SharesColorWith" {
+		// The bare source-share form (Dream Halls' alternative discard):
+		// matchSharesColorWith compares the candidate with the filter's own
+		// source. The `SharesColorWith Valid <spec>` spelling is an
+		// ALTERNATIVE-level unit (sharesColorShape/compileSpec), so a token
+		// carrying it classifies csUnknown here and fails closed -- only
+		// reachable for a shape the alt-level unit did not claim.
+		return true
+	}
 	if arg, has := strings.CutPrefix(p, "SharesColorWith "); has {
 		// The one bare referent token matchSharesColorWith binds (C.A.M.P.'s
 		// TriggeredProduced), by the same classifier
-		// positiveRecognised takes. The `SharesColorWith Valid <spec>` spelling
-		// is an ALTERNATIVE-level unit (sharesColorShape/compileSpec), so a
-		// token carrying it classifies csUnknown here and fails closed -- only
-		// reachable for a shape the alt-level unit did not claim.
+		// positiveRecognised takes.
 		return sharesColorBareReferent(arg)
 	}
 	// Forge's base-qualified `Spell.IsTargeting <target-spec>` form is handled

@@ -118,9 +118,11 @@ func cbAlternativeCostStatic(cb *cardBuilder, s lStatic, st *kop.Static, cost *k
 	// graveyard exile, a discard, life alone or taps: the kernel's
 	// altPickCost picks, now with the mana part beside them too (a
 	// Borderpost's {1} plus a Return, Sephara's {W} plus taps, Squee's
-	// {3}{R}; prepAltFree)
+	// {3}{R}; prepAltFree). A grant's dynamic colour-share discard
+	// (Dream Halls) is the one non-mana grant.
+	grantDiscard := st.StFlags&kop.StAltGrant != 0 && altGrantDiscardCost(cost)
 	sacAlt := altPickShape(cost) && cb.altSacOK(cost)
-	if !sacAlt && (cost.Flags != 0 || cost.N != 0 || cost.Mana.X != 0) {
+	if !sacAlt && !grantDiscard && (cost.Flags != 0 || cost.N != 0 || cost.Mana.X != 0) {
 		// the kernel offers a mana-only alternative cost
 		// (prepAltFree); a part the pick stages cannot carry would
 		// never be offered

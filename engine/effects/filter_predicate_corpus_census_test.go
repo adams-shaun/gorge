@@ -226,7 +226,6 @@ var knownUnknownFilterPredicates = []string{
 	"SharesCMCWith Imprinted",
 	"SharesCMCWith Imprinted.ExiledWithSource",
 	"SharesCMCWith TriggeredCard",
-	"SharesColorWith",
 	"SharesColorWith Equipped",
 	"SharesColorWith Imprinted.ExiledWithSource",
 	"SharesColorWith LastCastThisTurn",

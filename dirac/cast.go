@@ -2601,16 +2601,23 @@ func (s *State) costCands(k *prep, c *kop.Cost, src Slot, d *Decision) {
 		pl := &s.pl[e.ctrl]
 		// a filtered discard (CostDiscardFiltered) offers only the hand
 		// cards matching Cost.Filter (cost_discardfiltered.go); past the
-		// first part's picks a second part offers its own (Discard2F)
+		// first part's picks a second part offers its own (Discard2F).
+		// Dream Halls' dynamic cost offers the cards sharing a colour with
+		// the spell being cast (Cost.DiscardSharesCastColor).
 		_, f, fmatch := discardPart(c)
+		share := c.DiscardSharesCastColor
 		if s.discardPartTwo(c) {
-			fmatch, f = c.Discard2F != 0, c.Discard2F
+			fmatch, f, share = c.Discard2F != 0, c.Discard2F, false
 		}
 		for i := 0; i < int(pl.handN); i++ {
-			if o := pl.hand[i]; !s.picked(o) && o != e.obj &&
-				!(fmatch && !s.matchCardGen(k, f, s.objs[o].card, e.ctrl, e.ctrl, o)) {
-				d.add(MakeAction(AkChoose, TCode(o), 0, 0))
+			o := pl.hand[i]
+			if s.picked(o) || o == e.obj {
+				continue
 			}
+			if share && !s.handSharesColor(k, o, e.obj) || !share && fmatch && !s.matchCardGen(k, f, s.objs[o].card, e.ctrl, e.ctrl, o) {
+				continue
+			}
+			d.add(MakeAction(AkChoose, TCode(o), 0, 0))
 		}
 	case pkSac, pkTapX:
 		for m := s.ctrlM[e.ctrl]; m.any(); m = m.rest() {
