@@ -47,6 +47,8 @@ func (s *State) freeQueued(o Obj) bool {
 //     first begun card only; cast_playremember.go).
 //   - C bit 14 (freeSameName): a remembered candidate is offered only when it shares the resolving
 //     trigger's source object's printed name (gorge effRipple's CR 201.2 read; kw_ripple.go).
+//   - C bit 15 (freeImprint): ImprintPlayed$ True (every card the Play
+//     actually begins joins the resolution source's Imprinted list; cast_playimprint.go).
 //   - Obj: RefRemembered (P1), a target slot (P2: the targeted card; a
 //     player target: that player's hand or graveyard), or RefNone with F
 //     (P3/P4 filter population over the zone; over exile, every alive seat's).
@@ -81,6 +83,11 @@ const (
 	freeForget    = freeGY << 3
 	freeLandsOn   = freeGY << 4 // the queue holds a land-capable Play's picks (freeLands): its lands are played
 	freeRemember  = freeGY << 5 // RememberPlayed$ True: the first begun cast is remembered (cast_playremember.go)
+	freeImprint   = freeGY << 6 // ImprintPlayed$ True: every begun card is imprinted on the resolution source (cast_playimprint.go)
+
+	// castFreeImprint is OpCastFree's C bit 15 (the int16 operand's sign
+	// bit; read through uint16): ImprintPlayed$ True.
+	castFreeImprint = 1 << 15
 )
 
 // freeSeatBits holds every seat.
