@@ -2,10 +2,11 @@ package dirac
 
 import "github.com/adams-shaun/gorge/dirac/kop"
 
-// Mutate (CR 702.140, 730), cold: reached only when the table holds an
-// OpExt ExtMergePermanent (genPrep.anyMerge). gorge folds a merged permanent
-// in events.foldMutate (engine/events/apply_copy.go) and splits it in the
-// Move fold (apply_zone.go), whose component moves run before the top's own
+// Mutate (CR 702.140, 730), cold: the pile is reached only when the table
+// prints a Mutate card (genPrep.anyMutate) or a program carries
+// ExtMergePermanent (genPrep.anyMerge). gorge folds a merged permanent in
+// events.foldMutate (engine/events/apply_copy.go) and splits it in the Move
+// fold (apply_zone.go), whose component moves run before the top's own
 // placement.
 //
 // dirac keeps the pile as an ordered list of parked objects, one cold record
@@ -20,6 +21,10 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // object, which is already leaving the stack, and the survivor takes the
 // spell's card. The parked cards are the same set, and the kernel mints no
 // non-token object (newToken sets ofToken).
+//
+// The cast half below (genPrep.anyMutate): gorge's mutated cast mode, the
+// CR 702.140b placement ask and the resolution diversion (trig_mutates.go
+// fires the trigger after the fold lands).
 
 // mergeCap is the components under the top; the corpus's maximum is two.
 const mergeCap = 4
@@ -41,9 +46,10 @@ type mergeRec struct {
 	und   [mergeCap]objWord
 }
 
-// coldMerge holds the pile records, for a table with a merge op.
+// coldMerge holds the pile records, for a table with a Mutate card or a merge
+// op.
 var coldMerge = newCold[mergeRec]("merge", func(g *genPrep) int {
-	if g.anyMerge {
+	if g.anyMerge || g.anyMutate {
 		return maxMerged
 	}
 	return 0
@@ -54,11 +60,22 @@ var coldMerge = newCold[mergeRec]("merge", func(g *genPrep) int {
 // must catch it).
 var DebugMergeKeep bool
 
-// prepMerge sets anyMerge: some program is ExtMergePermanent.
+// prepMerge sets anyMerge (some program is ExtMergePermanent) and anyMutate
+// (some card prints Mutate). It also refuses the pair kgen refuses by name
+// (docs/design/mutate.md: bestow and mutate collide on the permanent spell's
+// mode bits): a table printing both on one card is a build error, never a
+// game.
 func prepMerge(t *kop.Table, g *genPrep) {
 	for i := range t.Cards {
-		for j := range t.Cards[i].Abilities {
-			for _, in := range t.Cards[i].Abilities[j].Prog {
+		cd := &t.Cards[i]
+		if cd.HasMutate {
+			if cd.HasBestow {
+				panic("kernel: card prints both Mutate and Bestow")
+			}
+			g.anyMutate = true
+		}
+		for j := range cd.Abilities {
+			for _, in := range cd.Abilities[j].Prog {
 				g.anyMerge = g.anyMerge || in.Ext() == kop.ExtMergePermanent
 			}
 		}
@@ -77,8 +94,29 @@ func (s *State) mergeFree() int {
 	return -1
 }
 
-// mergeRoom reports whether surv has room for one more component. Ticket 2's
-// legality check reads it.
+// mergeRecOf is the pile record of the merged permanent o, nil when o is
+// not merged.
+func (s *State) mergeRecOf(o Obj) *mergeRec {
+	recs := coldMerge.of(s)
+	for i := range recs {
+		if recs[i].top == objWord(o)+1 {
+			return &recs[i]
+		}
+	}
+	return nil
+}
+
+// timesMutated is Count$TimesMutated's kernel read (kop.ExTimesMutated):
+// the record's tm, 0 for an unmerged permanent (gorge's Object.TimesMutated).
+func (s *State) timesMutated(o Obj) int {
+	if rec := s.mergeRecOf(o); rec != nil {
+		return int(rec.tm)
+	}
+	return 0
+}
+
+// mergeRoom reports whether surv has room for one more component. The
+// mutating cast's offer gate reads it (kw_mutate.go below).
 func (s *State) mergeRoom(surv Obj) bool {
 	for _, r := range coldMerge.of(s) {
 		if r.top == objWord(surv)+1 {
@@ -195,8 +233,10 @@ func (s *State) retargetMergeCmd(surv, src Obj) {
 
 // mergeLeaveOnLeave is the removePerm hook: a merged permanent's components
 // leave with it, in pile order, before the top's own placement (zones.go).
+// The gate covers the Ext op's tables and the cast's Mutate-printing tables
+// alike.
 func (s *State) mergeLeaveOnLeave(k *prep, o Obj, z kop.Zone, bottom bool, wasCreature bool) {
-	if k.gen != nil && k.gen.anyMerge {
+	if k.gen != nil && (k.gen.anyMerge || k.gen.anyMutate) {
 		s.mergeLeave(k, o, z, bottom, wasCreature)
 	}
 }
@@ -232,3 +272,168 @@ func (s *State) mergeLeave(k *prep, o Obj, z kop.Zone, bottom bool, wasCreature 
 		return
 	}
 }
+
+// modeMutated: stackEntry.mode on a mutating permanent spell.
+const modeMutated = 1 << 0
+
+// modeMutateTop: the placement answer, top over under (gorge
+// FlagMutatedTop). Unset means under (CR 702.140b).
+const modeMutateTop = 1 << 1
+
+// mutatedEntry reports whether e is a mutating permanent spell.
+func (e *stackEntry) mutatedEntry() bool {
+	return e.ab == 255 && e.kind == seSpell && e.mode&(seFaceDown|modeMutated) == modeMutated
+}
+
+// offerMutateHand offers hand card o's mutating cast (gorge legal_walk_alt's
+// mutate half: offerCastable at the mutate cost beside castTargetsAvailable
+// over the synthesized target SA, with the pile capacity gate of
+// docs/design/mutate.md: a merge that would overflow makes the cast an
+// illegal option). The caller has checked the card's timing, its
+// prohibition and the plain cast's gates.
+//
+//go:noinline
+func (s *State) offerMutateHand(k *prep, d *Decision, p uint8, o Obj, c CardID, av *avail) {
+	if DebugNoMutate {
+		return
+	}
+	cd := &k.t.Cards[c]
+	bc := s.adjustCost(k, p, c, o, cd.MutateCost) // the reduction applies to an alternative cost too (CR 601.2f)
+	if !av.affords(&bc, pipMaskOf(&bc), 0) {
+		return
+	}
+	if s.castHeldOut(o) {
+		return
+	}
+	var buf [MaxOptions]TCode
+	n := s.targetCands(k, &cd.MutateTgt, p, NoSlot, o, &buf)
+	if n == 0 {
+		return // gorge castTargetsAvailable over mutateTargetSA
+	}
+	// CR 702.140a's target stays legal through the merge; a pile at capacity
+	// is not a target this kernel may take (declared-limit offer gate)
+	ok := false
+	for i := 0; i < n; i++ {
+		if buf[i] != 0 && s.mergeRoom(Obj(buf[i])) {
+			ok = true
+			break
+		}
+	}
+	if !ok {
+		return
+	}
+	d.add(MakeAction(AkMutate, TCode(o), 0, 0))
+}
+
+// offerMutateIfPrinted is offerMutateHand for a card printed with Mutate.
+func (s *State) offerMutateIfPrinted(k *prep, d *Decision, p uint8, o Obj, c CardID, av *avail) {
+	if k.gen != nil && k.gen.anyMutate && k.t.Cards[c].HasMutate {
+		s.offerMutateHand(k, d, p, o, c, av)
+	}
+}
+
+// beginMutate casts hand card o mutated. Like beginBestow: a cast the pool
+// pays is an ordinary option; otherwise the planner prices it and the
+// witness's sources are tapped first.
+//
+//go:noinline
+func (s *State) beginMutate(k *prep, o Obj) {
+	s.beginCast(k, o, castFace, 0)
+	s.bld().e.mode |= modeMutated
+	cost := s.buildCost(k)
+	if s.sneakPoolPays(k, s.prio, s.bld().e.card, o, &cost) {
+		return
+	}
+	s.bld().bfl |= bflLowered
+	s.lowerWitness(k, s.prio)
+}
+
+// mutatePlaceOptions poses the CR 702.140b placement choice (gorge
+// mutatePlaceAsk, asked once during the cast): On top / Under, gorge's
+// Amount 1 and Amount 0 carried as the AkChoose mode so the answer is a
+// replayable action.
+func (s *State) mutatePlaceOptions(k *prep, d *Decision) {
+	d.Kind, d.Player = DkChoose, s.bld().e.ctrl
+	d.add(MakeAction(AkChoose, 0, 0, 1)) // On top
+	d.add(MakeAction(AkChoose, 0, 0, 0)) // Under
+}
+
+// answerMutatePlace folds the placement answer onto the build's stack entry
+// (gorge castAnswer's pendingCast.mutateTop, riding the pay-time CastFlags):
+// the mode bit is the replayable record of the choice.
+func (s *State) answerMutatePlace(k *prep, a Action) {
+	if a.Kind() != AkChoose {
+		return
+	}
+	if a.Mode()&1 != 0 {
+		s.bld().e.mode |= modeMutateTop
+	}
+	s.nextStage(k)
+	s.syncBuild()
+}
+
+// mutateResolve begins a mutating spell's resolution (CR 702.140b, 608.2b;
+// gorge mutateVictim's recheck at stack.go's resolveTop head, the bestow
+// arm's mirror): an illegal target ceases to be mutating — the mode bits
+// clear (gorge's AlterAttribute AttrMutating removal of
+// FlagMutated/FlagMutatedTop), the target is dropped and the spell falls
+// through to the ordinary permanent tail, entering as its own creature
+// under its controller.
+//
+//go:noinline
+func (s *State) mutateResolve(k *prep, e *stackEntry) {
+	if k.gen == nil || !k.gen.anyMutate || e.mode&modeMutated == 0 || !e.mutatedEntry() {
+		return // not a mutating spell
+	}
+	if s.targetStillLegal(k, e, 0) {
+		return
+	}
+	e.mode &^= modeMutated | modeMutateTop
+	e.nt = 0
+	e.tgt[0] = TCode(NoTarget)
+	s.res.e = *e
+	s.stack[s.sp-1].mode, s.stack[s.sp-1].nt, s.stack[s.sp-1].tgt[0] = e.mode, 0, TCode(NoTarget)
+}
+
+// divertMutated diverts a mutated permanent spell's resolution (resolveTop's
+// permanent arm): it never becomes an independent permanent but merges into
+// its target (gorge resolveMutate, before the ordinary moveResolvedOffStack).
+// No battlefield slot, no enter triggers, no enter replacements — the pile
+// takes no new slot, so the battlefield-full capacity draw does not apply.
+// It reports whether it resolved e.
+//
+//go:noinline
+func (s *State) divertMutated(k *prep, e *stackEntry) bool {
+	if k.gen == nil || !k.gen.anyMutate || !e.mutatedEntry() {
+		return false
+	}
+	s.sp--
+	s.touch(e.obj)
+	s.objs[e.obj].zone = kop.ZoneNone
+	s.resolveMutate(k, e)
+	s.res.active = false
+	s.afterResolve()
+	return true
+}
+
+// resolveMutate is a mutated spell's resolution diversion (gorge
+// resolveMutate, before the ordinary moveResolvedOffStack): the pile folds
+// onto the target (mergeFold above) and the spell's object parks with the
+// fold — the mutating card never becomes an independent permanent
+// (CR 702.140c) and fires no entry trigger; TrigMutates fires instead,
+// after the fold lands so the pile's top and components are current
+// (gorge folds the Mutate event before triggers run).
+//
+//go:noinline
+func (s *State) resolveMutate(k *prep, e *stackEntry) {
+	v := Obj(e.tgt[0])
+	if v == NoObj || s.objs[v].zone != kop.ZoneBattlefield {
+		return // the recheck holds; fail closed to no fold (unreachable in play)
+	}
+	s.mergeFold(k, v, e.obj, e.mode&modeMutateTop != 0, 1)
+	s.fireMutates(k, s.objs[v].slot, v, e.ctrl)
+}
+
+// DebugNoMutate withholds the mutating cast (the mutate mutation test proves
+// the pool casts it).
+var DebugNoMutate bool

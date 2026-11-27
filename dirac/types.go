@@ -81,6 +81,7 @@ const (
 	AkWebSling                       // source = a hand card; cast it for its web-slinging cost (CR 702.188a; kw_websling.go)
 	AkMayFlash                       // source = a hand card; cast it as though it had flash for its mana cost plus the extra (CR 702.8; kw_mayflash.go)
 	AkCastConspire                   // source = a hand card; the conspired cast of a spell with granted conspire (CR 702.78a; kw_conspire.go)
+	AkMutate                         // source = a hand card; cast it mutated, for its mutate cost at a non-Human creature its controller owns (CR 702.140a; kw_mutate.go)
 	AkCount
 )
 
@@ -88,9 +89,9 @@ const (
 func isCastKind(k ActionKind) bool { return k == AkCast || k == AkCastCasualty || k == AkCastConspire }
 
 // scriptPlayKinds is the set of kinds a scripted activation can fund: the
-// casts, a bestowed cast, an activation, a plot and a sneak (script_gen.go);
-// one mask test.
-const scriptPlayKinds = 1<<AkCast | 1<<AkCastCasualty | 1<<AkCastConspire | 1<<AkBestow | 1<<AkActivate | 1<<AkPlot | 1<<AkSneak
+// casts, a bestowed cast, a mutated cast, an activation, a plot and a sneak
+// (script_gen.go); one mask test.
+const scriptPlayKinds = 1<<AkCast | 1<<AkCastCasualty | 1<<AkCastConspire | 1<<AkBestow | 1<<AkMutate | 1<<AkActivate | 1<<AkPlot | 1<<AkSneak
 
 func isScriptPlayKind(k ActionKind) bool { return scriptPlayKinds>>k&1 != 0 }
 

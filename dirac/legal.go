@@ -334,8 +334,10 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 				s.offerOptCostOnly(k, d, p, o, c, &av)
 			}
 			if k.gen == nil || !k.gen.anySacX || !s.sacXPoolOffer(k, p, o) {
-				// the bestow cost needs no affordable mana cost (CR 702.103a)
+				// the bestow cost needs no affordable mana cost (CR 702.103a),
+				// nor does the mutate cost (CR 702.140a)
 				s.offerBestowIfPrinted(k, d, p, o, c, &av)
+				s.offerMutateIfPrinted(k, d, p, o, c, &av) // kw_mutate.go
 				if pc.kw&kop.KwKicker != 0 || k.t.Cards[c].HasMultikicker || s.offGrantOffer(k, p, c, o) {
 					s.offerKickedPotentialOnly(k, d, p, c, o, pc.cost, preDelve, &base, cav, &av) // kw_multikicker.go
 				}
@@ -389,6 +391,7 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 			d.add(MakeAction(AkCast, TCode(o), 0, 1))
 		}
 		s.offerBestowIfPrinted(k, d, p, o, c, &av) // kw_bestow.go
+		s.offerMutateIfPrinted(k, d, p, o, c, &av) // kw_mutate.go
 		if pc.kw&kop.KwKicker != 0 || k.t.Cards[c].HasMultikicker || k.offspring && offspringOffer(k, c) || s.offGrantOffer(k, p, c, o) {
 			s.offerKickedHand(k, d, p, c, o, pc.cost, cav)
 		}
@@ -3989,6 +3992,8 @@ func (s *State) applyPriority(k *prep, a Action) {
 		s.beginSneak(k, Obj(a.Source())) // CR 702.190a; kw_sneak.go
 	case AkBestow:
 		s.beginBestow(k, Obj(a.Source())) // CR 702.103a; kw_bestow.go
+	case AkMutate:
+		s.beginMutate(k, Obj(a.Source())) // CR 702.140a; kw_mutate.go
 	case AkWebSling:
 		s.beginWebSling(k, Obj(a.Source())) // CR 702.188a; kw_websling.go
 	case AkMayFlash:

@@ -23,6 +23,17 @@ func (s *State) exprCold(k *prep, x *kop.Expr, ctx evalCtx) int {
 	switch x.Kind {
 	case kop.ExAtkYouLastTurn:
 		return s.atkYouLastCount(ctx.ctrl) // value_atkyoulast.go
+	case kop.ExTimesMutated:
+		// Count$TimesMutated (CR 702.140f): the merge record's tm (gorge's
+		// Object.TimesMutated), read of the expression's source object; an
+		// unmerged permanent was never mutated (kw_mutate.go)
+		if o := ctx.src; o != NoObj {
+			return s.timesMutated(o)
+		}
+		if ctx.srcSl != NoSlot {
+			return s.timesMutated(s.perms[ctx.srcSl].obj)
+		}
+		return 0
 	case kop.ExSpellsCastLastTurn:
 		return s.spellsCastLastTurn(x.N) // value_spellslastturn.go
 	case kop.ExVoteTally:

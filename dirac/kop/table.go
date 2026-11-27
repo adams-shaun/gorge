@@ -850,6 +850,15 @@ type CardDef struct {
 	HasBestow  bool
 	BestowCost ManaCost
 	BestowTgt  TargetSpec
+	// HasMutate is printed Mutate (CR 702.140; no KwMask bit is free): the
+	// hand offers the mutating cast (AkMutate) at MutateCost, targeting a
+	// non-Human creature its controller owns (MutateTgt, the kernel read of
+	// gorge's mutateTargetSA); the spell merges into that creature as it
+	// resolves (dirac/kw_mutate.go). kgen still refuses
+	// K:Mutate cards, so only synthetic tables set these today.
+	HasMutate  bool
+	MutateCost ManaCost
+	MutateTgt  TargetSpec
 	// HasReconfigure is printed Reconfigure (CR 702.151; no KwMask bit is
 	// free): while the permanent is attached it is not a creature
 	// (dirac/kw_reconfigure.go). The attach and unattach abilities are the

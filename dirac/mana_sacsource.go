@@ -797,8 +797,8 @@ func (s *State) castNeedsEmptyStack(k *prep, a Action) bool {
 	if a.Kind() == AkCast && a.Mode()&^(castTimingNeutral|castFace) == 0 && a.Mode()&castFace != 0 {
 		return s.faceCastNeedsEmptyStack(k, a) // face_castface.go
 	}
-	if a.Kind() != AkBestow && (a.Kind() != AkCast || a.Mode()&^castTimingNeutral != 0) {
-		// (a bestowed, kicked, flashback, permission or free cast is timed as its card: CR 702.103a, 702.34a, 307.1, 117.1a)
+	if a.Kind() != AkBestow && a.Kind() != AkMutate && (a.Kind() != AkCast || a.Mode()&^castTimingNeutral != 0) {
+		// (a bestowed, mutated, kicked, flashback, permission or free cast is timed as its card: CR 702.103a, 702.140a, 702.34a, 307.1, 117.1a)
 		return false
 	}
 	o := Obj(a.Source())

@@ -4,4 +4,4 @@ value: 80
 forge: TimesMutated
 census: count TimesMutated all=5 std=0 mbc=0 sole=0
 state: objobj 236 (mutate)
-status: reserved
+status: active

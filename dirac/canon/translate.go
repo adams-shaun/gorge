@@ -163,6 +163,11 @@ func (r *Translator) Action(a dirac.Action) Canon {
 	case dirac.AkBestow:
 		cm, _ := CastModeCode("bestowed") // gorge's "bestowed" cast option (CR 702.103a; kw_bestow.go)
 		return Pack(ActCast, src, RefNone, cm)
+	case dirac.AkMutate:
+		// gorge's "mutated" cast option (CR 702.140a; kw_mutate.go): the
+		// cast-mode table has no room for it, so it canonicalises to
+		// CastModeOther, like "web-slinging" and "mayflash"
+		return Pack(ActCast, src, RefNone, CastModeOther)
 	case dirac.AkCast:
 		if mode&dirac.FeatCastFaceDown != 0 {
 			return Pack(ActCastFace, src, RefNone, FaceDownCastCanon(r.S.FeatFaceDownFamily(dirac.Obj(src))))

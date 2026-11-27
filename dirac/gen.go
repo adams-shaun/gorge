@@ -352,6 +352,8 @@ type genPrep struct {
 	anyMonstrosity  bool           // some program is OpMonstrosity or some trigger is TrigBecomeMonstrous (act_monstrosity.go)
 	anyAirbend      bool           // some program is ExtAirbend (act_airbend.go)
 	anyMeld         bool           // some program is ExtMeld (face_meld.go)
+	anyMutate       bool           // some card prints Mutate (CardDef.HasMutate; kw_mutate.go)
+	anyMutateTrig   bool           // some ability is a TrigMutates trigger (trig_mutates.go)
 	anyMerge        bool           // some program is ExtMergePermanent (kw_mutate.go)
 	anyMayWhileSrc  bool           // some OpMayPlay lasts DurWhileSrcMay (cast_whilesource.go)
 	anyGoad         bool           // some program is OpGoad (act_goad.go)
@@ -1980,6 +1982,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepAirbend(t, g)
 	prepMeld(t, g)        // face_meld.go
 	prepMerge(t, g)       // kw_mutate.go
+	prepMutateTrig(t, g)  // trig_mutates.go
 	prepMayWhileSrc(t, g) // cast_whilesource.go
 	prepInit(t, p, g)     // act_initiative.go
 	prepExileFD(t, g)     // zone_exilefacedown.go

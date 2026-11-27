@@ -4,4 +4,4 @@ value: 56
 forge: Mutates
 census: trig Mutates all=32 std=0 mbc=1 sole=3
 state: objobj 236 (mutate)
-status: reserved
+status: active
