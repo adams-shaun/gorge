@@ -1,0 +1,21 @@
+{
+  "card": "Ashnod's Altar",
+  "class": "options-options",
+  "why": "gorge's payment planner prices a sacrifice-another-creature mana source as a last-resort step (pay/planshape.go, victims ranked tokens first, then lowest mana value, then id) and offers every cast it alone makes payable, with the victims in the plan; dirac's planner has no such source tier, so it withholds those casts (and, on the full surface, differs in what the plan sacrifices) (tail-71 pair 14)",
+  "repro": {
+    "pool": "custom",
+    "surface": "autopay",
+    "seed": 174002903873183565,
+    "pair": 14,
+    "policy": "random",
+    "mulligans": 1,
+    "file": "ashnods_altar_other_sacrifice_plan"
+  },
+  "evidence": [
+    "ev-tail-71-c000",
+    "ev-tail-71-c001",
+    "ev-tail-71-c002",
+    "ev-tail-71-c003",
+    "ev-tail-71-s000"
+  ]
+}
