@@ -857,6 +857,15 @@ const StTapOnC StaticFlags = 1 << 1
 // (StallTapExtra), as a pick-dependent extra does.
 const StTapReflect = StAnyManaType
 
+// StTapReflectDefer (aliases StDynamic, a bit no StatTapExtra reader reads) on a
+// StatTapExtra static: the extra is B mana of the type the tap produced, but
+// the replacement it comes from is not folded into gorge's payment plan
+// (a ProduceMana replacement: Virtue of Strength). The planner's pricing
+// readers skip it, so the source is priced at its own production and the
+// extra floats at the tap itself (dirac mana_tapextra.go addGatedExtra),
+// exactly the mana gorge's replacement adds at resolution.
+const StTapReflectDefer = StDynamic
+
 // StTapAnyPlayer (aliases StWithoutManaCost, a MayPlayFrom-only bit) on a
 // StatTapExtra static: it fires whoever taps the permanent, and the extra
 // goes to the tapping player (no Activator$, Defined$ TriggeredActivator:

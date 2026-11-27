@@ -2216,8 +2216,11 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 			continue
 		}
 		s.pl[p].pool[col] += ty.n
-		var xvOwn [kop.NumManaKinds]uint8 // the unit's xv floated restricted (mana_eachrestr.go)
-		s.planTapsInExtra(k, p, pk, sl)   // a Taps-deferred source's trigger extra (mana_tapsinextra.go)
+		var xvOwn [kop.NumManaKinds]uint8             // the unit's xv floated restricted (mana_eachrestr.go)
+		s.planTapsInExtra(k, p, pk, sl)               // a Taps-deferred source's trigger extra (mana_tapsinextra.go)
+		if !(pk.tapsIn && s.tapsDeferred(k, p, sl)) { // else planTapsInExtra's addGatedExtra floated it
+			s.planReflectDeferExtra(k, p, sl, col) // a ProduceMana replacement's extra (mana_tapextra.go)
+		}
 		if ty.rb && DebugRestrictedSource != 5 {
 			// a restricted source's larger alternative (or its sole ability of
 			// more than one mana): its mana floats restricted (restrPairUnit,

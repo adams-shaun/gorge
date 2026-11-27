@@ -171,6 +171,9 @@ func (s *State) srcExtraPainPick(k *prep, sl Slot, pc *pcard) (r uint8, xv [kop.
 		if !s.tapExtraReaches(k, st, sl, ctl) {
 			return true
 		}
+		if a.StFlags&kop.StTapReflectDefer != 0 {
+			return true // unpriced at the plan: addGatedExtra floats it at the tap
+		}
 		if a.StFlags&(kop.StTapReflect|kop.StTapOnC) != 0 {
 			if a.StFlags&kop.StTapReflect != 0 {
 				r += uint8(a.B)
@@ -225,6 +228,9 @@ func (s *State) srcExtraTapped(k *prep, sl Slot, pc *pcard, colour bool) (xv [ko
 		a := &st.a.Static
 		if !s.tapExtraReaches(k, st, sl, ctl) {
 			return true
+		}
+		if a.StFlags&kop.StTapReflectDefer != 0 {
+			return true // unpriced at the plan: addGatedExtra floats it at the tap
 		}
 		if a.StFlags&kop.StTapReflect != 0 {
 			// one mana of the type the tap produced: fixed for a source of one
@@ -385,6 +391,9 @@ func (s *State) srcExtraPick(k *prep, sl Slot, pc *pcard, col int) (xv [kop.NumM
 		if !s.tapExtraReaches(k, st, sl, ctl) {
 			return true
 		}
+		if a.StFlags&kop.StTapReflectDefer != 0 {
+			return true // unpriced at the plan: addGatedExtra floats it at the tap
+		}
 		if a.StFlags&kop.StTapOnC != 0 && col != kop.C {
 			return true
 		}
@@ -454,11 +463,30 @@ func (s *State) addGatedExtra(k *prep, p uint8, sl Slot, ctl uint8) {
 	ord := 0 // the answer units of the reaching carriers so far: a search's forced answers are per unit (forceAnyColAnswers)
 	s.eachStatic(k, func(st statSrc) bool {
 		a := &st.a.Static
-		chosen := a.StFlags&kop.StTapChosen != 0   // Produced$ Chosen: gated like a Cond2 static, in the source's colour
-		anyCol := a.StFlags&kop.StTapAnyCol != 0   // Produced$ Any / Combo Any: the answer rides genState (fillTapAnyCol)
-		dynamic := a.StFlags&kop.StTapDynamic != 0 // StTapDynamic: a Count$ value, read here
-		if st.a.Kind != kop.AbStatic || a.Kind != kop.StatTapExtra || st.sl == NoSlot || a.Cond2 == 0 && !chosen && !anyCol && !dynamic ||
+		chosen := a.StFlags&kop.StTapChosen != 0             // Produced$ Chosen: gated like a Cond2 static, in the source's colour
+		anyCol := a.StFlags&kop.StTapAnyCol != 0             // Produced$ Any / Combo Any: the answer rides genState (fillTapAnyCol)
+		dynamic := a.StFlags&kop.StTapDynamic != 0           // StTapDynamic: a Count$ value, read here
+		reflectDefer := a.StFlags&kop.StTapReflectDefer != 0 // a ProduceMana replacement's extra: unpriced at the plan
+		if st.a.Kind != kop.AbStatic || a.Kind != kop.StatTapExtra || st.sl == NoSlot || a.Cond2 == 0 && !chosen && !anyCol && !dynamic && !reflectDefer ||
 			st.ctrl != ctl && a.StFlags&kop.StTapAnyPlayer == 0 {
+			return true
+		}
+		if reflectDefer {
+			// Virtue of Strength: the tap makes its own mana, and the
+			// replacement adds a.B more of the same type. Only a source the
+			// replacement's filter reaches (a basic land) gains it; that
+			// source makes one type, so the tap's view names it, and
+			// anything else is the unmodelled multi-type shape (StallTapExtra).
+			if !s.tapExtraReaches(k, st, sl, ctl) {
+				return true
+			}
+			pc := s.manaPCAt(k, sl)
+			m := s.srcMaskAt(pc, sl)
+			if m == 0 || m&(m-1) != 0 {
+				s.capFull(StallTapExtra)
+				return true
+			}
+			s.pl[p].pool[bits.TrailingZeros8(m)] += uint8(a.B)
 			return true
 		}
 		if a.StFlags&(kop.StTapReflect|kop.StTapOnC) != 0 {
@@ -1014,6 +1042,26 @@ func (s *State) addReflectOne(k *prep, a *avail, sl Slot, pc *pcard) {
 		return // one fixed colour: the carrier's extra is a fixed vector (srcExtra)
 	}
 	s.addOneColourMask(a, m, s.srcYieldAt(k, sl, pc))
+}
+
+// planReflectDeferExtra adds the StTapReflectDefer statics' extra to p's pool
+// after the planner's tap of sl made colour col. The plan priced the source at
+// its own production (gorge does not fold a ProduceMana replacement), so the
+// replacement's extra floats here, exactly as the window taps do through
+// addGatedExtra.
+func (s *State) planReflectDeferExtra(k *prep, p uint8, sl Slot, col int) {
+	if k.gen == nil || !k.gen.anyTapExtra {
+		return
+	}
+	ctl := s.perms[sl].ctrl
+	s.eachTapExtra(k, func(st statSrc) bool {
+		a := &st.a.Static
+		if a.Kind != kop.StatTapExtra || a.StFlags&kop.StTapReflectDefer == 0 || !s.tapExtraReaches(k, st, sl, ctl) {
+			return true
+		}
+		s.pl[p].pool[col] += uint8(a.B)
+		return true
+	})
 }
 
 // addExtra floats the extra mana of sl's tap in p's pool. A reflected extra of
