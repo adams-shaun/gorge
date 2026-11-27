@@ -29,6 +29,8 @@ package neteval
 import (
 	"fmt"
 	"math"
+	"strconv"
+	"strings"
 	"sync"
 	"unsafe"
 
@@ -85,6 +87,9 @@ func LoadWeights(path string) (*Weights, error) {
 	if x := g.ExtWidth(); x != 0 && x != feat.ExtWidth {
 		return nil, fmt.Errorf("neteval %s: net reads EXT_W = %d, this encoder writes %d", path, x, feat.ExtWidth)
 	}
+	if err := checkExtHash(path, g.ExtWidth()); err != nil {
+		return nil, err
+	}
 	return &Weights{g: g, vecW: g.BagWidth()}, nil
 }
 
@@ -101,7 +106,56 @@ func LoadGonet(path string) (*Weights, error) {
 	if raw := gn.RawWidth(); raw > feat.EntityRawWidth {
 		return nil, fmt.Errorf("neteval %s: net reads entity width %d, this encoder writes %d", path, raw, feat.EntityRawWidth)
 	}
+	if err := checkHeaderHashes(path, gn); err != nil {
+		return nil, err
+	}
 	return &Weights{gn: gn}, nil
+}
+
+// checkHeaderHashes refuses a gonet-loaded net whose header names an
+// encoder_hash gonet did not check (gonet refuses a mismatch itself, so a
+// hash present and unchecked means a loader that skipped it), and a net whose
+// ext_hash names an extension block gonet cannot run (it has none).
+func checkHeaderHashes(path string, gn *gonet.Net) error {
+	enc, ext, err := gonet.HeaderHashes(path)
+	if err != nil {
+		return fmt.Errorf("neteval %s: %w", path, err)
+	}
+	if enc != "" && !gn.EncoderHashChecked() {
+		return fmt.Errorf("neteval %s: header carries encoder_hash %q but it was not checked against this encoder", path, enc)
+	}
+	return checkExtHashValue(path, ext, 0)
+}
+
+// checkExtHash checks the header's ext_hash (absent: unchecked, like every
+// net exported before the field) for a net reading extW extension slots.
+func checkExtHash(path string, extW int) error {
+	_, ext, err := gonet.HeaderHashes(path)
+	if err != nil {
+		return fmt.Errorf("neteval %s: %w", path, err)
+	}
+	return checkExtHashValue(path, ext, extW)
+}
+
+// checkExtHashValue is the ext_hash rule: when the header carries one, the
+// net must read the extension block (extW > 0) and the hash must equal the
+// layout feat writes for feat.ExtAll.
+func checkExtHashValue(path, ext string, extW int) error {
+	if ext == "" {
+		return nil
+	}
+	got, err := strconv.ParseUint(strings.TrimPrefix(ext, "0x"), 16, 64)
+	if err != nil {
+		return fmt.Errorf("neteval %s: ext_hash %q: %w", path, ext, err)
+	}
+	want := feat.ExtHash(feat.ExtAll)
+	if got != want {
+		return fmt.Errorf("neteval %s: ext_hash %#x does not match this encoder's extension layout %#x", path, got, want)
+	}
+	if extW == 0 {
+		return fmt.Errorf("neteval %s: header carries ext_hash %q but this backend reads no extension block (EXT_W = 0)", path, ext)
+	}
+	return nil
 }
 
 // checkWidths refuses a net this encoder cannot feed exactly. The bag and
