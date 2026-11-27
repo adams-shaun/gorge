@@ -52,8 +52,7 @@ func (s *State) FeatKeywords(o Obj) (m kop.KwMask, printed bool) {
 		}
 		return k.cards[ob.card].kw, true
 	}
-	p := &s.perms[ob.slot]
-	return s.kw(k, ob.slot), p.ovr.flags&(ovLoseAll|ovLoseAllEOT) == 0
+	return s.kw(k, ob.slot), !s.genLost(k, ob.slot)
 }
 
 // FeatGranted is the keywords battlefield object o gains beyond its printed
