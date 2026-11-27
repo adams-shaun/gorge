@@ -261,6 +261,14 @@ func (lc *lowerCtx) apiSacrifice(sa *cards.SA, ps *params) error {
 		// chooses what to sacrifice whether or not it says so
 		ps.consume("Mode")
 	}
+	if ps.str("ChangeNum") == "1" {
+		// Forge's SacrificeEffect reads only Amount$ (default 1), never
+		// ChangeNum$; the corpus's ChangeNum$ 1 (Glacial Chasm) is that
+		// default, which gorge ignores too (cards.Primitives reports any
+		// other value as api:Sacrifice.ChangeNum). Another value stays
+		// unread and refuses.
+		ps.consume("ChangeNum")
+	}
 	if sv := strings.TrimSpace(ps.str("SacValid")); strings.Contains(sv, " & ") && ps.is("SacEachValid", "True") {
 		// SacEachValid$ True ("an artifact, a creature, and a land", Tomb of
 		// Annihilation's Oubliette room; Catch // Release, Perilous
