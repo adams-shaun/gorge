@@ -277,6 +277,9 @@ func (s *State) applyAskTrigX(k *prep, a Action) bool {
 	if s.g.pickZ == payKindEvidence {
 		return s.applyAskEvidenceX(k, a) // CollectEvidence<X> (cost_collectevidencex.go)
 	}
+	if s.g.pickZ == payKindLifeX {
+		return s.applyAskLifeX(k, a) // PayLife<X> (cost_paylifetrig.go)
+	}
 	s.g.pickZ = kop.PayMana
 	s.g.pickLeft = a.Mode()
 	p := s.g.pickP

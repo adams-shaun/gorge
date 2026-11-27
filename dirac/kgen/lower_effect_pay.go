@@ -189,6 +189,19 @@ func (lc *lowerCtx) payInstr(c lCost, payer lRef, subCtrOK bool) (lInstr, error)
 		c.EvidenceN = 0
 		n++
 	}
+	if c.LifeX {
+		// PayLife<X> as a printed trigger's own whole cost (Necrodominance's
+		// "pay any amount of life"): gorge's triggeredCostXAsk announces X over
+		// 0..the payer's life (capped at 64), then the ordinary pay election,
+		// and the body's Count$xPaid is X (kernel cost_paylifetrig.go).
+		if !lc.trigOwnCost || n != 0 || !c.Mana.None || c.PayLife != 0 {
+			return in, refuse("resolution PayLife<X> cost shape")
+		}
+		in.CS, in.A = "LifeXTrig", cst(trigXFoldCap)
+		lc.trigXPaid = true
+		c.LifeX = false
+		n++
+	}
 	if c.EvidenceX {
 		// CollectEvidence<X> as a printed trigger's own cost (Incinerator of
 		// the Guilty): gorge's triggeredCostXAsk announces X over 0..the
