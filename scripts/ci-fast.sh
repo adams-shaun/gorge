@@ -89,8 +89,27 @@ if grep -qx './dirac/kgen' <<<"$whole"; then
   fi
 fi
 if [ -n "$whole" ]; then
-  # shellcheck disable=SC2086
-  bg batch gotest -timeout 20m -short $whole
+  # S4d (11-27): one call ran GOFLAGS -p=4 packages at a time and was the job's wall. Measured on run 45936882491
+  # (11-27, PR #5448): 77 package runs summed 1047 s in a 256 s step (4.09x, exactly the -p), with engine/rules
+  # 101 s and dirac/shadow 93 s the longest single slots; run 45939170717's 84 runs summed 681 s in a 197 s step.
+  # Two independent halves over one selection (same flags, same -short, nothing dropped, narrowed or skipped) run
+  # eight packages at once, so the step approaches max(its longest package, sum/8) instead of sum/4. Each half
+  # keeps its own -timeout, a failure in either fails the step (rc is the OR of both via the wait loop), and
+  # round-robin — not two contiguous runs — keeps path-sorted ./dirac and ./engine packages out of one half.
+  # Only on a self-hosted runner: a github-hosted runner has 4 vCPU, which GOFLAGS -p=4 already fills.
+  if [ "${RUNNER_ENVIRONMENT:-self-hosted}" = self-hosted ]; then
+    mapfile -t half_a < <(awk 'NR % 2 == 1' <<<"$whole")
+    mapfile -t half_b < <(awk 'NR % 2 == 0' <<<"$whole")
+  else
+    half_a=(); half_b=()
+  fi
+  if [ "${#half_a[@]}" -gt 0 ] && [ "${#half_b[@]}" -gt 0 ]; then
+    bg batch-a gotest -timeout 20m -short "${half_a[@]}"
+    bg batch-b gotest -timeout 20m -short "${half_b[@]}"
+  else
+    # shellcheck disable=SC2086
+    bg batch gotest -timeout 20m -short $whole
+  fi
 fi
 # --precompile (ci.yml's corpus step): the corpus and dirac's tables for this tree run beside the builds above.
 # Neither reads what the other writes — the builds never read .cards, ci-corpus.sh never reads a test binary — so
