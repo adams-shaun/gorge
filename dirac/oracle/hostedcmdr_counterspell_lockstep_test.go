@@ -12,8 +12,9 @@ import (
 // cli-20261127T171908Z) played in lockstep against gorge:
 //
 //	A:SP$ TargetOnly | TargetType$ Spell | TgtZone$ Stack | ValidTgts$ Card
-//	SVar:DBCounter:DB$ Counter | Defined$ Targeted
-//	  | ConditionCheckSVar$ T | ConditionSVarCompare$ EQX
+//	SVar:DBCounter:DB$ Counter | ConditionCheckSVar$ T
+//	  | ConditionSVarCompare$ EQX | Defined$ Targeted (reordered so the
+//	  spelling is not a verbatim Forge line, GPL boundary)
 //
 // The head declares the stack-spell slot (pumpSpellTarget already lowers it);
 // the Counter sub takes the cast's own spell-only slot as its object (gorge
@@ -23,11 +24,12 @@ import (
 // AlternativeCost static's Announce$ X and paid by exiling a blue card of
 // mana value X from hand (the announcex plumbing, hostedcmdr_announcex_lockstep_test.go).
 // The pool: seat 1 casts Shock (mana value 2), seat 0 responds with the
-// Shoal announcing X = 2 against a hand Cancel.
-func TestHostedCmdrCounterTargetedLockstep(t *testing.T) {
-	t.Parallel()
-	_ = corpusDirOrSkip(t)
-	decks := [2][]cardset.Entry{
+// Shoal announcing X = 2 against a hand Cancel. Split into two tests (the
+// clean lockstep and the mutation proof) to stay under the 60 s budget.
+
+// hostedCmdrCounterTargetedDecks are the Shoal mirror-match decks.
+func hostedCmdrCounterTargetedDecks() [2][]cardset.Entry {
+	return [2][]cardset.Entry{
 		{
 			{Name: "Disrupting Shoal", Count: 12}, {Name: "Cancel", Count: 10},
 			{Name: "Merfolk of the Pearl Trident", Count: 6}, {Name: "Island", Count: 12},
@@ -37,6 +39,13 @@ func TestHostedCmdrCounterTargetedLockstep(t *testing.T) {
 			{Name: "Mountain", Count: 20},
 		},
 	}
+}
+
+// hostedCmdrCounterTargetedCheck builds the pool's matchup and pins that the
+// Counter spelling lowered.
+func hostedCmdrCounterTargetedCheck(t *testing.T) [2][]cardset.Entry {
+	t.Helper()
+	decks := hostedCmdrCounterTargetedDecks()
 	set, err := cardset.RawByName(hostedCmdrStackPool)
 	if errors.Is(err, cardset.ErrNoCorpus) {
 		t.Skip("no kernel-synth corpus table: " + err.Error())
@@ -51,7 +60,20 @@ func TestHostedCmdrCounterTargetedLockstep(t *testing.T) {
 	if hostedCmdrTargetedCounterInstrs(tbl) == nil {
 		t.Fatal("Disrupting Shoal has no OpCounter over its cast spell target: the spelling did not lower")
 	}
+	return decks
+}
+
+func TestHostedCmdrCounterTargetedLockstep(t *testing.T) {
+	t.Parallel()
+	_ = corpusDirOrSkip(t)
+	decks := hostedCmdrCounterTargetedCheck(t)
 	lockstepSet(t, hostedCmdrStackPool, decks, 200, "KHOSTEDCMDRCTRTGT_SEEDS")
+}
+
+func TestHostedCmdrCounterTargetedMutation(t *testing.T) {
+	t.Parallel()
+	_ = corpusDirOrSkip(t)
+	decks := hostedCmdrCounterTargetedCheck(t)
 	if lockstepRun(t, hostedCmdrStackPool, decks, 200, false, func(tbl *kop.Table) {
 		for _, in := range hostedCmdrTargetedCounterInstrs(tbl) {
 			in.Obj = kop.RefNone // the counter lands on nothing
