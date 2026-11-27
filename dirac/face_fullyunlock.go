@@ -83,7 +83,7 @@ func (s *State) fireFullyUnlock(k *prep, roomSl Slot, roomObj Obj, unlocker uint
 // commander in a command zone has no battlefield subscription either, so the
 // printed command-zone trigger keeps the event alive too (Inalla's eminence).
 func (s *State) anyETB(k *prep) bool {
-	return s.subs[kop.TrigETB].any() ||
+	return s.evLive(kop.TrigETB) ||
 		k != nil && k.gen != nil && (k.gen.graveETB || k.gen.embObjEv&(1<<kop.TrigETB) != 0 && s.anyEmb()) ||
 		k != nil && s.anyCommandTrigger(k, kop.TrigETB)
 }

@@ -253,7 +253,7 @@ func (s *State) tapSelfCost(k *prep, sl Slot) {
 	was := s.perms[sl].flags & pfTapped
 	s.perms[sl].flags |= pfTapped
 	if was == 0 {
-		if k.gen != nil && s.subs[kop.TrigTaps].any() {
+		if k.gen != nil && s.evLive(kop.TrigTaps) {
 			s.fireTaps(k, sl)
 		}
 		s.markTapped(k, sl) // only a tap that happens marks
@@ -277,7 +277,7 @@ func (s *State) addCounterCost(k *prep, sl Slot, c, n int, payer uint8) {
 	if placed > 0 && k.anyCtrAdded {
 		s.ctrNoteBy(k, sl, c, payer) // a cost: gorge pay_engine publishes the payer
 	}
-	if placed > 0 && s.subs[kop.TrigCounterAddedOnce].any() {
+	if placed > 0 && s.evLive(kop.TrigCounterAddedOnce) {
 		// "whenever you put one or more counters on" fires for the cost's
 		// placement too: the [+1] of a loyalty ability (CR 606.4, 122.6)
 		s.g.lastCK = kop.CounterKind(c)

@@ -34,7 +34,7 @@ func (s *State) tapCostPerm(k *prep, sl Slot, o Obj) {
 	}
 	s.perms[sl].flags |= pfTapped
 	s.touch(o)
-	if k.gen != nil && s.subs[kop.TrigTaps].any() {
+	if k.gen != nil && s.evLive(kop.TrigTaps) {
 		s.fireTaps(k, sl)
 	}
 	s.markTapped(k, sl)

@@ -370,7 +370,7 @@ func (s *State) dealHitsLatched(k *prep, hs []dmgHit, rl *refLatch) bool {
 			}
 		}
 	}
-	if k.gen != nil && s.subs[kop.TrigDamageDone].or(s.subs[kop.TrigDamageDealtOnce]).any() {
+	if k.gen != nil && (s.evLive(kop.TrigDamageDone) || s.evLive(kop.TrigDamageDealtOnce)) {
 		at := uint8(0)
 		// One source dealing the whole batch (a creature's sweep) is one
 		// damage batch for its DamageDealtOnce lines: they queue once, at
@@ -378,7 +378,7 @@ func (s *State) dealHitsLatched(k *prep, hs []dmgHit, rl *refLatch) bool {
 		// damageBatchKey), as a combat damage step does.
 		var lt dmgLatch
 		var latch *dmgLatch
-		if s.subs[kop.TrigDamageDealtOnce].any() && rl == nil {
+		if s.evLive(kop.TrigDamageDealtOnce) && rl == nil {
 			latch = &lt
 			for i := range hs {
 				if h := &hs[i]; h.n > 0 {

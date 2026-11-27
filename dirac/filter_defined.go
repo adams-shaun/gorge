@@ -388,7 +388,7 @@ func (s *State) doubleCountersAll(k *prep, in *kop.Instr) {
 func (s *State) doubleCountersAt(k *prep, sl Slot, ck int16) {
 	s.touchSl(sl)
 	p := &s.perms[sl]
-	once := s.subs[kop.TrigCounterAddedOnce].any()
+	once := s.evLive(kop.TrigCounterAddedOnce)
 	// placeCounters puts counters of kind c only, so the kinds held stay the list's
 	var held ctrHeld
 	for _, hc := range held[:p.heldKinds(s, &held)] {

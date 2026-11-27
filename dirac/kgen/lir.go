@@ -1289,7 +1289,12 @@ type lStatic struct {
 	// GainsOf: GainsAbilitiesOf$, the permanents whose activated abilities
 	// the source has (kop.Static.GainsOf; lower_gainsof.go)
 	GainsOf *lFilter
-	Grant   []int // latent abilities the affected objects gain
+	// GainsTrig: the static's GainsTriggerAbsOf$ names the same lender as its
+	// GainsAbilitiesOf$: the lenders' triggered abilities fire as the
+	// recipient's too (kop.Static.GainsTrig; lower_gainsof.go,
+	// dirac/trig_gainedtrig.go)
+	GainsTrig bool
+	Grant     []int // latent abilities the affected objects gain
 	// GrantBody: the latent ability the affected objects' granted-keyword
 	// activation runs, a 0-based index into the card's Abilities like Grant
 	// (always set when the static's kind is UnearthGrant or CyclingGrant; kop.Static.GrantBody

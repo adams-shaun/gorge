@@ -212,7 +212,7 @@ func (s *State) prolifApply(k *prep, o TCode) bool {
 		return true
 	}
 	sl := ob.slot
-	if s.res.topN == 0 && s.subs[kop.TrigCounterAddedOnce].any() && s.permRealCtrs(sl) > 1 && s.prolifOrderObservable(k, sl) {
+	if s.res.topN == 0 && s.evLive(kop.TrigCounterAddedOnce) && s.permRealCtrs(sl) > 1 && s.prolifOrderObservable(k, sl) {
 		s.capFull(StallProlif)
 	}
 	// bolsterPut puts counters of kind c only, so the kinds held stay the list's

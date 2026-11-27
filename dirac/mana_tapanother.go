@@ -1222,7 +1222,7 @@ func (s *State) tapXDo(k *prep, p uint8, st tapXStep) {
 		cp.flags |= pfTapped
 		s.touchSl(cd)
 		if was == 0 {
-			if s.subs[kop.TrigTaps].any() {
+			if s.evLive(kop.TrigTaps) {
 				s.fireTaps(k, cd)
 			}
 			s.markTapped(k, cd) // only a tap that happens marks

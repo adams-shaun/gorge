@@ -1117,7 +1117,7 @@ func (s *State) regenerateBody(sl Slot) {
 	s.leaveCombat(sl) // CR 701.19b: regeneration removes it from combat
 	p.flags &^= pfDeathtouched | pfDtMore
 	wasUntapped := p.flags&pfTapped == 0
-	fire := wasUntapped && s.g.on && s.subs[kop.TrigTaps].any()
+	fire := wasUntapped && s.g.on && s.evLive(kop.TrigTaps)
 	if fire {
 		defer func() {
 			s.fireTaps(s.k(), sl) // gorge regeneration taps it (EmitTap)

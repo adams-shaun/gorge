@@ -192,7 +192,7 @@ func (s *State) faceDownRiders(k *prep, o Obj, sl Slot, tapped, remember bool) {
 	if tapped {
 		s.perms[sl].flags |= pfTapped
 		s.touchSl(sl)
-		if k.gen != nil && s.subs[kop.TrigTaps].any() {
+		if k.gen != nil && s.evLive(kop.TrigTaps) {
 			s.fireTaps(k, sl)
 		}
 	}

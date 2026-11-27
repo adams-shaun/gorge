@@ -120,7 +120,7 @@ func (s *State) applyEnlist(k *prep, a Action) {
 		ctrl := s.perms[atk].ctrl
 		s.perms[sl].flags |= pfTapped
 		s.touchSl(sl)
-		if s.subs[kop.TrigTaps].any() {
+		if s.evLive(kop.TrigTaps) {
 			s.fireTapsBy(k, sl, ctrl)
 		}
 		s.markTapped(k, sl)

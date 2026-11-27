@@ -32,7 +32,11 @@ func (s *State) fireBlockedGen(k *prep) {
 		return
 	}
 	var ord [MaxPerm]Slot
-	n := s.listenerOrder(s.subs[kop.TrigBecomesBlocked].and(s.occ), &ord)
+	m := s.subs[kop.TrigBecomesBlocked].and(s.occ)
+	if k.gen.gainsTrigEv&(1<<kop.TrigBecomesBlocked) != 0 {
+		m = s.gainsTrigHosts(k, m)
+	}
+	n := s.listenerOrder(m, &ord)
 	isBlk := func(a *kop.Ability) bool { return a.Trig.Event == kop.TrigBecomesBlocked }
 	for _, sl := range ord[:n] {
 		s.slotTriggers(k, sl, isBlk, func(l trigListener, a *kop.Ability) {
@@ -97,7 +101,11 @@ func (s *State) fireBlocksGen(k *prep) {
 		return
 	}
 	var ord [MaxPerm]Slot
-	n := s.listenerOrder(s.subs[kop.TrigBlocks].and(s.occ), &ord)
+	m := s.subs[kop.TrigBlocks].and(s.occ)
+	if k.gen.gainsTrigEv&(1<<kop.TrigBlocks) != 0 {
+		m = s.gainsTrigHosts(k, m)
+	}
+	n := s.listenerOrder(m, &ord)
 	isBlocks := func(a *kop.Ability) bool { return a.Trig.Event == kop.TrigBlocks }
 	for _, sl := range ord[:n] {
 		s.slotTriggers(k, sl, isBlocks, func(l trigListener, a *kop.Ability) {

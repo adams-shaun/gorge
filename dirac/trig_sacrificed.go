@@ -13,7 +13,7 @@ func (s *State) fireSac(k *prep, sl Slot) {
 	if k.gen != nil && k.gen.anyRemSac {
 		s.sacRemember(k, sl)
 	}
-	if s.subs[kop.TrigSacrificed].any() {
+	if s.evLive(kop.TrigSacrificed) {
 		s.fireSacCold(k, sl)
 	}
 	if k.gen != nil && k.gen.graveSac {
@@ -49,7 +49,7 @@ func (s *State) fireSacAll(k *prep, hit slotMask) {
 			}
 		}()
 	}
-	if !s.subs[kop.TrigSacrificed].any() {
+	if !s.evLive(kop.TrigSacrificed) {
 		return
 	}
 	for _, sl := range ord[:n] {

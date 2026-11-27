@@ -156,7 +156,7 @@ func (s *State) putCountersDmg(k *prep, sl Slot, kind, n int) {
 		s.ctrNoteBy(k, sl, kind, adder) // the ledger's actor is the putter used above, not counterAdder()
 	}
 	s.g.lastCK = kop.CounterKind(kind)
-	if m > 0 && s.subs[kop.TrigCounterAddedOnce].any() {
+	if m > 0 && s.evLive(kop.TrigCounterAddedOnce) {
 		s.fireObj(k, kop.TrigCounterAddedOnce, sl, s.perms[sl].obj, s.perms[sl].ctrl, int16(m))
 	}
 }

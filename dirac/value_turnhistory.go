@@ -70,7 +70,7 @@ func (s *State) histCast(k *prep, e *stackEntry, cost *kop.ManaCost) {
 		return
 	}
 	s.g.spent[e.ctrl] = uint16(min(int(s.g.spent[e.ctrl])+spent, 0xFFFF))
-	if s.subs[kop.TrigManaExpend].any() {
+	if s.evLive(kop.TrigManaExpend) {
 		s.firePlayer(k, kop.TrigManaExpend, e.ctrl, int16(spent))
 	}
 }

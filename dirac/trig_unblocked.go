@@ -54,7 +54,11 @@ func (s *State) fireUnblocked(k *prep) {
 		return
 	}
 	var ord [MaxPerm]Slot
-	m := s.listenerOrder(s.subs[kop.TrigBecomesBlocked].and(s.occ), &ord)
+	lm := s.subs[kop.TrigBecomesBlocked].and(s.occ)
+	if k.gen.gainsTrigEv&(1<<kop.TrigBecomesBlocked) != 0 {
+		lm = s.gainsTrigHosts(k, lm)
+	}
+	m := s.listenerOrder(lm, &ord)
 	isUnb := func(a *kop.Ability) bool {
 		return a.Trig.Event == kop.TrigBecomesBlocked && a.Trig.Flags2&kop.Tf2Unblocked != 0
 	}
@@ -108,7 +112,11 @@ func (s *State) fireUnblockedOnce(k *prep) {
 		return
 	}
 	var ord [MaxPerm]Slot
-	ln := s.listenerOrder(s.subs[kop.TrigBecomesBlocked].and(s.occ), &ord)
+	lm := s.subs[kop.TrigBecomesBlocked].and(s.occ)
+	if k.gen.gainsTrigEv&(1<<kop.TrigBecomesBlocked) != 0 {
+		lm = s.gainsTrigHosts(k, lm)
+	}
+	ln := s.listenerOrder(lm, &ord)
 	isOnce := func(a *kop.Ability) bool {
 		return a.Trig.Event == kop.TrigBecomesBlocked && a.Trig.Flags2&kop.Tf2UnblockedOnce != 0
 	}

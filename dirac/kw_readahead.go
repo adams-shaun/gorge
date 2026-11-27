@@ -57,7 +57,7 @@ func (s *State) readAheadPlace(k *prep, sl Slot, n int, fire bool) {
 	if n <= 0 || !fire || !s.occ.has(sl) {
 		return
 	}
-	if s.subs[kop.TrigCounterAddedOnce].any() {
+	if s.evLive(kop.TrigCounterAddedOnce) {
 		s.g.lastCK = kop.CtrLore
 		s.g.ctrEntry = true
 		s.fireObj(k, kop.TrigCounterAddedOnce, sl, p.obj, p.ctrl, int16(n))
