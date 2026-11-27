@@ -66,6 +66,21 @@ var MayPlayStats struct {
 	OrdinaryCasts  atomic.Int64 // casts a may-play-source gate refused (an ordinary cast of a carrier)
 }
 
+// StaticNoopStats counts the static triggers whose body lowered to no
+// instruction (Thundermane Dragon's timed keyword Animate, which gorge ends
+// when the spell leaves the stack). It proves a lockstep game exercised the
+// dropped-rider shape, not merely a card that never fired.
+var StaticNoopStats struct {
+	Resolved atomic.Int64 // dropped-rider static triggers resolved off the stack
+	Stacked  atomic.Int64 // the mutation sent one to the stack instead
+}
+
+// DebugStaticNoopOnStack is TestDemoThundermaneMutation's switch: a static
+// trigger whose body is empty stays in the queue and is placed on the stack
+// like an ordinary trigger. The lockstep must diverge (gorge resolves it
+// off-stack, with no stack object and no priority pass).
+var DebugStaticNoopOnStack bool
+
 // prepStaticTrig sets the cold-path prep gates (placeTriggers, enterGen).
 func prepStaticTrig(t *kop.Table, g *genPrep) {
 	for i := range t.Cards {
@@ -101,6 +116,10 @@ func (s *State) staticPend(k *prep, pt *pendingTrig) bool {
 		return false // a sentinel (cascade, ward, delayed): never static
 	}
 	a := &k.t.Cards[pt.card].Abilities[pt.ab]
+	if DebugStaticNoopOnStack && len(a.Prog) == 0 {
+		StaticNoopStats.Stacked.Add(1)
+		return false // the mutation: the dropped-rider trigger takes the stack path
+	}
 	return a.Kind == kop.AbTriggered && a.Trig.Flags3&kop.Tf3Static != 0
 }
 
@@ -133,6 +152,9 @@ func (s *State) placeStaticTriggers(k *prep, d *Decision) bool {
 		}
 		s.prio, s.passes = prio, passes
 		MayPlayStats.StaticResolved.Add(1)
+		if len(k.t.Cards[pt.card].Abilities[pt.ab].Prog) == 0 {
+			StaticNoopStats.Resolved.Add(1)
+		}
 		return true
 	}
 	return false
