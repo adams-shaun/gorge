@@ -1,0 +1,11 @@
+# the Mindleech Mass / Silent-Blade Oni pool: combat damage to a player, look
+# at that player's hand, cast a spell from it free (Play Valid$
+# Card.ControlledBy TriggeredTarget / Card.nonLand+OwnedBy TriggeredTarget
+# ValidZone$ Hand; dirac/oracle/mbc_zone_moves_nine_lowers_test.go)
+Mindleech Mass
+Silent-Blade Oni
+Island
+Swamp
+Shock
+Lava Axe
+Mountain
