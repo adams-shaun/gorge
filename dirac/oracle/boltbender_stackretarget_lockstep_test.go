@@ -16,23 +16,24 @@ import (
 // turn-up from untapped sources.
 var boltbenderDeck = []cardset.Entry{
 	{Name: "Boltbender", Count: 4},
-	{Name: "Shock", Count: 4},
+	{Name: "Shock", Count: 8},
 	{Name: "Mox Ruby", Count: 4},
 	{Name: "Mox Emerald", Count: 4},
 	{Name: "Priest of Urabrask", Count: 4},
-	{Name: "Mountain", Count: 20},
+	{Name: "Mountain", Count: 16},
 }
 
 var boltbenderTurnUp = func() uint8 { c, _ := specialCode("turn_face_up"); return c }()
 
 type boltbenderCounts struct {
 	asks, picks, turnUps, downs, shocks int
+	twoTurnUps, twoAsks                 int // the games that leave two Shocks under the turn-up
 }
 
 // boltbenderStage is the policy's per-seat setup state.
 type boltbenderStage struct {
 	down  [2]bool // Boltbender is on the battlefield face down
-	shock [2]bool // a Shock is waiting on the stack for the turn-up
+	shock [2]int  // Shocks waiting on the stack for the turn-up
 }
 
 // boltbenderRedSources counts the untapped red sources the seat can spend on
@@ -56,29 +57,53 @@ func boltbenderRedSources(c *PickCtx, p int) int {
 	return n
 }
 
-// boltbenderStackShock reports whether the priority's stack is exactly the
-// Shock spell: the one object Boltbender's trigger must see to redirect.
-func boltbenderStackShock(c *PickCtx) bool {
-	if c.G == nil || len(c.G.E.G.Stack) != 1 {
+// boltbenderShocksInHand counts the Shocks seat p holds; priority options list
+// one cast per name, so the hand is the only place that sees the copies.
+func boltbenderShocksInHand(c *PickCtx, p int) int {
+	if c.G == nil {
+		return 0
+	}
+	g := c.G.E.G
+	n := 0
+	for _, id := range g.Zone(state.ZHand, state.PlayerID(p)) {
+		if o := g.Obj(id); o != nil && o.Face() != nil && o.Face().Name == "Shock" {
+			n++
+		}
+	}
+	return n
+}
+
+// boltbenderStackShocks reports whether the priority's stack is exactly n
+// Shock spells: the objects Boltbender's trigger must see to redirect.
+func boltbenderStackShocks(c *PickCtx, n int) bool {
+	if c.G == nil || len(c.G.E.G.Stack) != n {
 		return false
 	}
-	o := c.G.E.G.Obj(c.G.E.G.Stack[0])
-	return o != nil && o.Face() != nil && o.Face().Name == "Shock"
+	for _, id := range c.G.E.G.Stack {
+		o := c.G.E.G.Obj(id)
+		if o == nil || o.Face() == nil || o.Face().Name != "Shock" {
+			return false
+		}
+	}
+	return true
 }
 
 // boltbenderPolicy steers one game into the redirect: build mana, cast
-// Boltbender face down from the Priest's float, cast exactly one Shock, and
-// turn Boltbender up while that Shock alone is on the stack. The per-entry
+// Boltbender face down from the Priest's float, cast exactly want Shocks, and
+// turn Boltbender up while those Shocks alone are on the stack. The per-entry
 // redirect ask (ChKsrTarget) picks a new target rather than Done, so the mass
 // walk's write is exercised; all other asks fall back to the seed's
 // RandomPolicy.
-func boltbenderPolicy(seed uint64, st *boltbenderCounts, seq *boltbenderStage) Policy {
+func boltbenderPolicy(seed uint64, want int, st *boltbenderCounts, seq *boltbenderStage) Policy {
 	rnd := RandomPolicy(seed)
 	return PolicyFunc(func(c *PickCtx) Canon {
 		// The per-entry redirect ask: a new target (not Done) is what makes
 		// the mass walk write, and the count proves the path ran.
 		if c.G != nil && c.G.fr != nil && c.G.fr.d != nil && c.G.fr.d.Prompt == "Choose new target" {
 			st.asks++
+			if want > 1 {
+				st.twoAsks++
+			}
 			for _, a := range c.D.Options {
 				if a.Kind() >= ActChoose {
 					st.picks++
@@ -138,13 +163,22 @@ func boltbenderPolicy(seed uint64, st *boltbenderCounts, seq *boltbenderStage) P
 		// no longer waits for its redirect: the next face-down try casts a
 		// fresh one.
 		if stackEmpty {
-			seq.shock[p] = false
+			seq.shock[p] = 0
 		}
 		switch {
-		case haveUp && seq.shock[p] && boltbenderStackShock(c) && seq.down[p]:
-			seq.down[p], seq.shock[p] = false, false
+		case haveUp && seq.shock[p] == want && boltbenderStackShocks(c, want) && seq.down[p]:
+			seq.down[p], seq.shock[p] = false, 0
 			st.turnUps++
+			if want > 1 {
+				st.twoTurnUps++
+			}
 			return up
+		case haveShock && seq.down[p] && seq.shock[p] > 0 && seq.shock[p] < want &&
+			boltbenderStackShocks(c, seq.shock[p]) && boltbenderRedSources(c, p) >= 2+want-seq.shock[p]:
+			// The next Shock goes on top of the one still waiting.
+			seq.shock[p]++
+			st.shocks++
+			return shock
 		case !stackEmpty:
 			// Wait for the stack to empty before the next setup cast; a
 			// random in-response cast would leave two objects under the
@@ -158,8 +192,8 @@ func boltbenderPolicy(seed uint64, st *boltbenderCounts, seq *boltbenderStage) P
 			seq.down[p] = true
 			st.downs++
 			return face
-		case haveShock && seq.down[p] && !seq.shock[p] && boltbenderRedSources(c, p) >= 3:
-			seq.shock[p] = true
+		case haveShock && seq.down[p] && seq.shock[p] == 0 && boltbenderShocksInHand(c, p) >= want && boltbenderRedSources(c, p) >= 2+want:
+			seq.shock[p] = 1
 			st.shocks++
 			return shock
 		case haveMox:
@@ -173,6 +207,9 @@ func boltbenderPolicy(seed uint64, st *boltbenderCounts, seq *boltbenderStage) P
 		for _, a := range c.D.Options {
 			if a.Kind() == ActSpecial && a.Mode()&0x0f == boltbenderTurnUp {
 				continue // the turn-up is only taken with Shock on the stack
+			}
+			if a.Kind() == ActCast && optionFaceName(c, a) == "Shock" {
+				continue // a random Shock cast would spend the copies the stack setup needs
 			}
 			buf = append(buf, a)
 		}
@@ -191,8 +228,9 @@ func boltbenderPolicy(seed uint64, st *boltbenderCounts, seq *boltbenderStage) P
 }
 
 // TestBoltbenderStackRetargetLockstep: 64 seeds of the disguised Boltbender
-// turning up with exactly one Shock on the stack. The trigger's ChangeTargets
-// over Defined$ ValidStack SpellAbility must ask the same per-entry
+// turning up with exactly one Shock on the stack (seeds 1, 4, 5, ...) or two
+// (seeds 2, 3, 6, ...). The trigger's ChangeTargets over Defined$ ValidStack
+// SpellAbility must ask the same per-entry
 // ChKsrTarget decision in gorge and the kernel and write the same new target;
 // the counts fail the test if the games never reach the redirect at all.
 func TestBoltbenderStackRetargetLockstep(t *testing.T) {
@@ -248,7 +286,7 @@ func TestBoltbenderStackRetargetLockstep(t *testing.T) {
 			}
 			return nil
 		}
-		res := Lockstep(m, seed, k, boltbenderPolicy(seed, &st, &stage), RunConfig{Config: cfg, MaxDecisions: 4000, MaxTurns: 40, Check: check})
+		res := Lockstep(m, seed, k, boltbenderPolicy(seed, 1+int(seed/2)%2, &st, &stage), RunConfig{Config: cfg, MaxDecisions: 4000, MaxTurns: 40, Check: check})
 		CloseSide(k)
 		if d := res.Div; d != nil {
 			lo := d.At - 12
@@ -266,10 +304,19 @@ func TestBoltbenderStackRetargetLockstep(t *testing.T) {
 		total.turnUps += st.turnUps
 		total.downs += st.downs
 		total.shocks += st.shocks
+		total.twoTurnUps += st.twoTurnUps
+		total.twoAsks += st.twoAsks
 	}
 	t.Logf("%d games, %d downs, %d shocks, %d redirect asks, %d new targets, %d turn-ups; %d turn-face-up events", 64, total.downs, total.shocks, total.asks, total.picks, total.turnUps, tuEvents)
 	if total.asks == 0 {
 		t.Fatalf("no game asked Boltbender's stack redirect: the lockstep does not see the mass walk")
+	}
+	t.Logf("two-Shock games: %d turn-ups, %d redirect asks", total.twoTurnUps, total.twoAsks)
+	if total.twoTurnUps == 0 {
+		t.Fatalf("no game turned Boltbender up over two Shocks: the lockstep does not see the second object")
+	}
+	if total.twoAsks < 2*total.twoTurnUps {
+		t.Fatalf("two-Shock games asked %d redirects for %d turn-ups: want one per Shock", total.twoAsks, total.twoTurnUps)
 	}
 	if total.picks == 0 {
 		t.Fatalf("no redirect ask picked a new target: the lockstep never wrote the redirect")

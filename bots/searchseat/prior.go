@@ -5,6 +5,7 @@ import (
 
 	"github.com/adams-shaun/gorge/bots/heuristic"
 
+	"github.com/adams-shaun/gorge/bots/encoder"
 	"github.com/adams-shaun/gorge/bots/policynet"
 	"github.com/adams-shaun/gorge/bots/searchprobe"
 	"github.com/adams-shaun/gorge/engine/decision"
@@ -115,13 +116,11 @@ func applyPrior(collector *searchprobe.Collector, e *rules.Engine, d *decision.D
 //
 // choices[i] is candidate i's option indices in d (choices[0] the bot's).
 func priorOrder(m *policynet.Model, v view.View, d *decision.Decision, bot decision.Intent, kind string, choices [][]int, topK int) (keep []int, changed bool) {
-	st := policynet.EncodeStateWith(m.Features, v, d.Player, nil)
-	enc := make([]policynet.Option, len(d.Options))
-	for i := range d.Options {
-		enc[i] = policynet.EncodeOptionWith(m.Features, v, d.Player, d.Kind, d.Options[i], i, len(d.Options))
-	}
-	heuristic.MarkBotPicks(d, enc, bot)
-	scores := m.Score(st, enc)
+	enc := encoder.ForModel(m)
+	st := enc.EncodeState(nil, &v, d.Player, nil)
+	encoded := encoder.EncodeOptions(enc, &v, d.Player, d.Kind, d.Options, nil)
+	heuristic.MarkBotPicks(d, encoded, bot)
+	scores := m.Score(st, encoded)
 
 	rest := make([]int, 0, len(choices)-1)
 	val := make([]float64, len(choices))
