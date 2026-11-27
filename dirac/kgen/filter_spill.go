@@ -198,7 +198,7 @@ var fwName = map[kop.FilterWord]string{
 	kop.FwPowerCmp: "FwPowerCmp", kop.FwToughnessCmp: "FwToughnessCmp", kop.FwCMCCmp: "FwCMCCmp",
 	kop.FwCountersCmp: "FwCountersCmp", kop.FwKeyword: "FwKeyword", kop.FwSubtype: "FwSubtype",
 	kop.FwCanProduceSameManaTypeWith: "FwCanProduceSameManaTypeWith", kop.FwCanProduceManaColor: "FwCanProduceManaColor",
-	kop.FwManaCostEQ: "FwManaCostEQ",
+	kop.FwManaCostEQ: "FwManaCostEQ", kop.FwSharesNameThisTurnCast: "FwSharesNameThisTurnCast",
 }
 
 // fwReadIn is the matcher kinds a filter built for zone is read in: a

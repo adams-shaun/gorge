@@ -2833,7 +2833,7 @@ func (lc *lowerCtx) play(ps *params) error {
 		}
 		// P3/P4: untargeted filter population over the controller's hand or
 		// the graveyards, in seat order.
-		if !strings.Contains(valid, "YouOwn") && !strings.Contains(valid, "YouCtrl") && !(valid == "Card" && (playRememberedEmptyKey(ps, "ConditionDefined") || playOwnHand(ps)) && ps.str("ValidSA") == "Spell.nonCreature+YouOwn") {
+		if !strings.Contains(valid, "YouOwn") && !strings.Contains(valid, "YouCtrl") && !playThisTurnCastHand(valid, vzone) && !(valid == "Card" && (playRememberedEmptyKey(ps, "ConditionDefined") || playOwnHand(ps)) && ps.str("ValidSA") == "Spell.nonCreature+YouOwn") {
 			return refuse("Play Valid$ %q without YouOwn/YouCtrl", valid)
 		}
 		if forget {

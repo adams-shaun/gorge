@@ -34,7 +34,11 @@ import (
 //   - mbciwamori: Iwamori of the Open Fist's "each opponent may put a
 //     legendary creature card from their hand onto the battlefield" (hand
 //     move DefinedPlayer$ Player.Opponent), a RepeatEach over the opponents
-//     around the repeated player's may-move.
+//     around the repeated player's may-move;
+//   - mbctwinglass: Twinning Glass's free cast from hand of a card sharing a
+//     name with a spell cast this turn (Play Valid$ Card.nonLand+sharesNameWith
+//     ThisTurnCast ValidZone$ Hand): CastFree over the hand whose filter reads
+//     FwSharesNameThisTurnCast off the cast ring.
 //
 // Each case asserts the lowered shape is in the table, plays clean, and then
 // diverges with that shape broken (the pool reaches what it tests).
@@ -174,6 +178,56 @@ var mbcZoneMoves9Cases = []mbcZoneMoves9Case{
 		// every player, the controller too: gorge never asks the controller
 		mutate: func(tbl *kop.Table) { mbcIwamoriLoop(tbl).Obj = kop.RefEachPlayer },
 	},
+	{
+		pool: "mbctwinglass",
+		decks: [2][]cardset.Entry{
+			{
+				{Name: "Twinning Glass", Count: 8}, {Name: "Grizzly Bears", Count: 14}, {Name: "Forest", Count: 18},
+			},
+			{
+				{Name: "Shock", Count: 8}, {Name: "Raging Goblin", Count: 8}, {Name: "Hill Giant", Count: 6},
+				{Name: "Mountain", Count: 18},
+			},
+		},
+		shape: func(t *testing.T, tbl *kop.Table) {
+			if len(mbcTwinGlassLits(tbl)) == 0 {
+				t.Fatal("Twinning Glass has no CastFree whose filter reads FwSharesNameThisTurnCast: the spelling did not lower")
+			}
+		},
+		// the name comparison inverted: a card sharing no name with a spell
+		// cast this turn is offered, and one that does is not
+		mutate: func(tbl *kop.Table) {
+			for _, l := range mbcTwinGlassLits(tbl) {
+				l.Neg = !l.Neg
+			}
+		},
+	},
+}
+
+// mbcTwinGlassLits are the FwSharesNameThisTurnCast literals of Twinning
+// Glass's CastFree filter.
+func mbcTwinGlassLits(tbl *kop.Table) []*kop.FLit {
+	cd := mbcCard(tbl, "Twinning Glass")
+	if cd == nil {
+		return nil
+	}
+	var out []*kop.FLit
+	for j := range cd.Abilities {
+		for _, in := range cd.Abilities[j].Prog {
+			if in.Op != kop.OpCastFree || in.F == 0 {
+				continue
+			}
+			if f := &tbl.Filters[in.F]; f.Pred == kop.PredProg {
+				lits := tbl.FilterProgs[f.PredN].Lits
+				for k := range lits {
+					if lits[k].W == kop.FwSharesNameThisTurnCast {
+						out = append(out, &lits[k])
+					}
+				}
+			}
+		}
+	}
+	return out
 }
 
 func TestMBCZoneMoves9Lowers(t *testing.T) {
