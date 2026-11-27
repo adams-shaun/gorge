@@ -736,9 +736,10 @@ func (s *State) resolveOptionsGen(k *prep, d *Decision) bool {
 		t := chooseEachTypes[s.g.pickZ]
 		var buf [MaxPerm]Obj
 		n := 0
+		nonLand := s.prog(k)[r.pc].C&kop.ChooseEachNonLand != 0
 		for m := s.ctrlM[s.g.pickP]; m.any(); m = m.rest() {
 			sl := m.first()
-			if s.typesGen(k, sl)&t != 0 {
+			if s.chooseEachHas(k, sl, t, nonLand) {
 				o := s.perms[sl].obj
 				j := n
 				for ; j > 0 && buf[j-1] > o; j-- {
@@ -1334,7 +1335,7 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 			}
 		}
 		s.g.pickZ++
-		if s.nextChooseEach(k) {
+		if s.nextChooseEach(k, &s.prog(k)[s.res.pc]) {
 			return
 		}
 		s.continueRes(k, 0)
@@ -2825,26 +2826,46 @@ func (s *State) digRestOut(n int) {
 
 func (s *State) startChooseEach(k *prep, in *kop.Instr) bool {
 	s.g.nchosen = 0
-	first := s.eachPlayers(k, in.Obj).at(0)
-	if first == 255 {
-		return true
-	}
-	s.g.pickP = first
+	s.g.pickLeft = 0
 	s.g.pickZ = 0
-	if s.nextChooseEach(k) {
-		return false
-	}
-	return true
+	return !s.nextChooseEach(k, in)
 }
 
-// nextChooseEach poses the next type with candidates; false when done.
-func (s *State) nextChooseEach(k *prep) bool {
-	for ; int(s.g.pickZ) < len(chooseEachTypes); s.g.pickZ++ {
-		t := chooseEachTypes[s.g.pickZ]
-		for m := s.ctrlM[s.g.pickP]; m.any(); m = m.rest() {
-			if s.typesGen(k, m.first())&t != 0 {
-				s.res.ask, s.res.askP = raGenChooseEach, s.g.pickP
-				return true
+// chooseEachHas reports whether the permanent in slot sl is a candidate of
+// type t: a permanent of that type, a nonland one when the pool is
+// Choices$ Permanent.nonLand (kop.ChooseEachNonLand: Cataclysmic Gearhulk
+// leaves an artifact land out of its artifact group).
+func (s *State) chooseEachHas(k *prep, sl Slot, t kop.TypeMask, nonLand bool) bool {
+	ty := s.typesGen(k, sl)
+	return ty&t != 0 && !(nonLand && ty&kop.TLand != 0)
+}
+
+// nextChooseEach poses the next (player, type) pair with candidates; false
+// when done. The walk is chooser-major, type-minor (gorge effChooseCard's
+// flat chooser*groups+group cursor): every player in in.Obj, in
+// AliveFrom(controller) order, picks for each type of the op's mask (A; 0 is
+// all six, the ChooseEach$ spelling of Liliana, Dreadhorde General) in the
+// ChooseEach$ order, which chooseEachTypes spells.
+func (s *State) nextChooseEach(k *prep, in *kop.Instr) bool {
+	mask := kop.TypeMask(in.A.N)
+	nonLand := in.C&kop.ChooseEachNonLand != 0
+	q := s.eachPlayers(k, in.Obj)
+	for ; s.g.pickLeft < q.n; s.g.pickLeft, s.g.pickZ = s.g.pickLeft+1, 0 {
+		p := q.s[s.g.pickLeft]
+		if p == 255 || s.out(p) {
+			continue
+		}
+		s.g.pickP = p
+		for ; int(s.g.pickZ) < len(chooseEachTypes); s.g.pickZ++ {
+			t := chooseEachTypes[s.g.pickZ]
+			if mask != 0 && mask&t == 0 {
+				continue
+			}
+			for m := s.ctrlM[p]; m.any(); m = m.rest() {
+				if s.chooseEachHas(k, m.first(), t, nonLand) {
+					s.res.ask, s.res.askP = raGenChooseEach, p
+					return true
+				}
 			}
 		}
 	}
@@ -2903,7 +2924,9 @@ func (s *State) chooseCardOptions(k *prep, pc, askP uint8, d *Decision) {
 		c == kop.ChooseCardAmount || c == kop.ChooseCardAmountOpt {
 		base = s.res.e.ctrl
 	}
-	s.cardCandsBaseEx(k, in.F, askP, base, d, c == kop.ChooseCardAmount || c == kop.ChooseCardAmountOpt)
+	// ChooseCardEachAmount keeps the asker as the base: its filter's YouCtrl
+	// is the chooser's own objects (ControlledByPlayer$ Chooser)
+	s.cardCandsBaseEx(k, in.F, askP, base, d, c == kop.ChooseCardAmount || c == kop.ChooseCardAmountOpt || c == kop.ChooseCardEachAmount)
 	if c == 1 || c == chooseLibUpTo || c == kop.ChooseCardAmountOpt {
 		d.add(MakeAction(AkDone, 0, 0, 0)) // up to one (gorge choiceBounds Min 0)
 	}
