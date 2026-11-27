@@ -2,8 +2,8 @@ package dirac
 
 import "github.com/adams-shaun/gorge/dirac/kop"
 
-// the per-permanent attacked / dealt-damage marks
-// (kop.PredPermMark), four slot masks on the mechanic-bit arena (0 B).
+// the per-permanent attacked / dealt-damage / activated / face-up marks
+// (kop.PredPermMark), slot masks on the mechanic-bit arena (0 B).
 //   - mechAttacked: set for each declared attacker (finishAttacks; gorge
 //     stamps the attack-declaration event's IDs, so a creature put onto the
 //     battlefield attacking is not stamped), cleared as the turn begins.
@@ -12,6 +12,12 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 //     turn begins.
 //   - mechDealtAny / mechDealtCombat: the same event, game-long: never reset
 //     by the turn; a new permanent takes the slot clear (arenaClrSlot, CR 400.7).
+//   - mechActTurn: set when the permanent activates a non-mana ability
+//     (cast.go's activation tally, gorge's Object.ActivatedThisTurn), cleared
+//     as the turn begins.
+//   - mechFaceUpTurn: set when the permanent is turned face up (turnUpFlip,
+//     gorge's TurnFaceUp fold and Object.TurnedFaceUpThisTurn), cleared as
+//     the turn begins.
 // Every write sits behind genPrep.anyPermMark and touches the slot, so the
 // layer caches that read the marks (a hexproof grant on !dealtDamagetoAny)
 // see the change.
@@ -21,12 +27,14 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 var DebugPermMarkNoReset bool
 
 // permMarkMech maps kop.PermMark* to the arena mechanic.
-var permMarkMech = [4]mech{mechAttacked, mechDealtTurn, mechDealtAny, mechDealtCombat}
+var permMarkMech = [6]mech{mechAttacked, mechDealtTurn, mechDealtAny, mechDealtCombat,
+	mechActTurn, mechFaceUpTurn}
 
 // prepPermMark sets anyPermMark: the table gives some mark an arena mask.
 func prepPermMark(g *genPrep) {
 	g.anyPermMark = g.ix[mechAttacked] != arenaNone || g.ix[mechDealtTurn] != arenaNone ||
-		g.ix[mechDealtAny] != arenaNone || g.ix[mechDealtCombat] != arenaNone
+		g.ix[mechDealtAny] != arenaNone || g.ix[mechDealtCombat] != arenaNone ||
+		g.ix[mechActTurn] != arenaNone || g.ix[mechFaceUpTurn] != arenaNone
 	g.anyTappedTurn = g.ix[mechTappedTurn] != arenaNone
 	g.anyBtTurn = g.ix[mechBtTurn] != arenaNone
 }
@@ -35,14 +43,14 @@ func prepPermMark(g *genPrep) {
 func permMarkUses(t *kop.Table, u *[numMech]bool) {
 	for i := range t.Filters {
 		if f := &t.Filters[i]; f.Pred == kop.PredPermMark {
-			u[permMarkMech[f.PredN&3]] = true
+			u[permMarkMech[f.PredN&7]] = true
 		}
 	}
 }
 
 // permMarkRead is PredPermMark on a battlefield permanent.
 func (s *State) permMarkRead(k *prep, fl *kop.Filter, sl Slot) bool {
-	return s.mSl(k, permMarkMech[fl.PredN&3], sl) != (fl.PredN&kop.PermMarkNot != 0)
+	return s.mSl(k, permMarkMech[fl.PredN&7], sl) != (fl.PredN&kop.PermMarkNot != 0)
 }
 
 // markAttackers stamps every declared attacker (finishAttacks, after the
@@ -89,6 +97,34 @@ func (s *State) markDealtRec(k *prep, r *dmgRec) {
 	}
 }
 
+// markActivated records that the permanent at sl activated a non-mana
+// ability this turn (the same ledger the object's activation tally keeps,
+// gorge's Object.ActivatedThisTurn; Cut Short's Planeswalker.activated). The
+// write sits beside the tally's own increment, so the filter and the network
+// feature never disagree.
+//
+//go:noinline
+func (s *State) markActivated(k *prep, sl Slot) {
+	if sl == NoSlot || !s.occ.has(sl) {
+		return
+	}
+	s.mSlSet(k, mechActTurn, sl)
+	s.touchSl(sl)
+}
+
+// markFaceUp records that the face-down permanent at sl was turned face up
+// this turn (gorge's TurnFaceUp fold sets Object.TurnedFaceUpThisTurn on the
+// same event; Kaust, Eyes of the Glade). Call it only on a real flip.
+//
+//go:noinline
+func (s *State) markFaceUp(k *prep, sl Slot) {
+	if sl == NoSlot || !s.occ.has(sl) {
+		return
+	}
+	s.mSlSet(k, mechFaceUpTurn, sl)
+	s.touchSl(sl)
+}
+
 // permMarkNewTurn ends the per-turn marks as the turn begins.
 func (s *State) permMarkNewTurn(k *prep) {
 	if DebugPermMarkNoReset {
@@ -98,6 +134,8 @@ func (s *State) permMarkNewTurn(k *prep) {
 	s.mSlZero(k, mechDealtTurn)
 	s.mSlZero(k, mechTappedTurn)
 	s.mSlZero(k, mechBtTurn)
+	s.mSlZero(k, mechActTurn)
+	s.mSlZero(k, mechFaceUpTurn)
 }
 
 // markTapped records that the permanent at sl has become tapped this turn

@@ -744,13 +744,14 @@ func PTBoxHolds(n int16, pw, t int) bool {
 		(b[2] == PTBoxOpen || t >= b[2]) && (b[3] == PTBoxOpen || t <= b[3])
 }
 
-// PredPermMark, four per-permanent marks the filter words
-// attackedThisTurn, dealtDamageThisTurn, dealtDamagetoAny and
-// dealtCombatDamagetoAny read (gorge filter.go AttackedTurn; filter_word.go
-// DamageDealtThisTurn, DealtDamageToAnyGame, DealtCombatDamageToAnyGame).
-// PredN bits 0-3 name the mark (PermMark*), bit 4 (PermMarkNot) negates it.
-// Each mark is an arena slot bit; a card off the battlefield has none, so
-// the negated word is true there.
+// PredPermMark, the per-permanent marks the filter words attackedThisTurn,
+// dealtDamageThisTurn, dealtDamagetoAny, dealtCombatDamagetoAny, activated
+// and turnedFaceUpThisTurn read (gorge filter.go AttackedTurn; filter_word.go
+// DamageDealtThisTurn, DealtDamageToAnyGame, DealtCombatDamageToAnyGame,
+// wordActivated, wordTurnedFaceUpThisTurn). PredN bits 0-3 name the mark
+// (PermMark*), bit 4 (PermMarkNot) negates it. Each mark is an arena slot
+// bit; a card off the battlefield has none, so the negated word is true
+// there.
 const PredPermMark Pred = 244
 
 const (
@@ -758,6 +759,8 @@ const (
 	PermMarkDealtTurn   = 1 // dealt damage this turn (CR 120.1; cleared as the turn changes)
 	PermMarkDealtAny    = 2 // dealt damage since it entered (game-long)
 	PermMarkDealtCombat = 3 // dealt combat damage since it entered (game-long)
+	PermMarkActTurn     = 4 // activated a non-mana ability this turn (gorge's ActivatedThisTurn tally; cut_short)
+	PermMarkFaceUpTurn  = 5 // was turned face up this turn (the CR 708.6 turn-up; Kaust)
 	PermMarkNot         = 16
 )
 

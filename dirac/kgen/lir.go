@@ -756,6 +756,9 @@ type lTarget struct {
 	// PermOrSpell: with Origin$ Battlefield,Stack, a permanent matching F or
 	// any spell (TgtPermOrSpell)
 	PermOrSpell bool
+	// StackOpp: with PermOrSpell, the stack alternative carries OppCtrl
+	// (kop.TgfStackOppCtrl: the spell must be an opponent's, Sink into Stupor)
+	StackOpp bool
 
 	// PermOrGraveCard: with Origin$ Battlefield,Graveyard, a permanent or a
 	// graveyard card matching F (TgtPermOrGraveCard)

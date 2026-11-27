@@ -968,6 +968,15 @@ type Object struct {
 	// legal unlimited activations -- the count is advice, never a gate.
 	ActivatedThisTurn int32
 
+	// TurnedFaceUpThisTurn records that this permanent was turned face up
+	// during this turn: set by events.Apply's TurnFaceUp fold (the CR 708.6
+	// morph family's turn-up and AB$ SetState Mode$ TurnFaceUp), reset in
+	// TurnChange's per-object loop and cleared on a zone change (CR 400.7:
+	// a new object never carries the old object's face-up provenance). The
+	// filter word turnedFaceUpThisTurn reads it (Kaust, Eyes of the Glade's
+	// DamageDone trigger). Clone copies it with the struct.
+	TurnedFaceUpThisTurn bool
+
 	// RegeneratedThisTurn counts the times this permanent regenerated this
 	// turn (CR 701.19): events.Apply's EndCombatReset fold, for the one
 	// regeneration the effects package's regenerate marks with
@@ -2120,7 +2129,9 @@ type Object struct {
 	// page-aligned Objs arena every object's hot head (the fields declared
 	// first) starts on a line of its own. Purely layout: it is never read or
 	// written. A field added above must re-pad it (TestObjectCacheLinePadded).
-	_ [52]byte
+	// TurnedFaceUpThisTurn's byte is absorbed by the alignment slack here, so
+	// the tail shrank from 52 to 44 to keep the 1600-byte total.
+	_ [44]byte
 }
 
 // IntensityTotal is the card's intensity as its text reads it: the printed

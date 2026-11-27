@@ -372,6 +372,9 @@ func (s *State) pushBuild(k *prep) {
 			if ob.activations() < objActsMask {
 				s.touch(e.obj)
 				ob.acts++
+				if k.gen != nil && k.gen.anyPermMark {
+					s.markActivated(k, ob.slot) // PredPermMark mark 4 (Cut Short)
+				}
 				if e.trigObj != NoObj && s.grantActOn() {
 					s.noteGrantAct(e.obj) // act_grantledger.go
 				}
