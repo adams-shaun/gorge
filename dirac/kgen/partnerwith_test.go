@@ -87,11 +87,12 @@ func TestPartnerWithLowersTheClass(t *testing.T) {
 }
 
 // TestTargetPlayerOwnSearchOnlyThisShape: only the targeted player's search
-// of their own library that they answer themself (DefinedPlayer$ and
-// Chooser$ Targeted over one ValidTgts$ Player slot, into the hand) admits a
-// ChangeType$ beside ValidTgts$ for a library origin (TestPartnerWithLowersTheClass
-// lowers it); every neighbouring shape is declined with nothing read, so the
-// gate refuses it as before.
+// of their own library that they answer themself (Chooser$ Targeted over one
+// ValidTgts$ Player slot, into the hand or onto the battlefield, with
+// DefinedPlayer$ Targeted or absent: TestPartnerWithLowersTheClass lowers it,
+// as do Fertilid and Fertilid's Favor) admits a ChangeType$ beside ValidTgts$
+// for a library origin; every neighbouring shape is declined with nothing
+// read, so the gate refuses it as before.
 func TestTargetPlayerOwnSearchOnlyThisShape(t *testing.T) {
 	own := map[string]string{"ValidTgts": "Player", "DefinedPlayer": "Targeted", "Chooser": "Targeted"}
 	with := func(k, v string) map[string]string {
@@ -110,9 +111,7 @@ func TestTargetPlayerOwnSearchOnlyThisShape(t *testing.T) {
 		params       map[string]string
 		origin, dest int
 	}{
-		{with("DefinedPlayer", ""), zLibrary, zBattlefield}, // Fertilid: the searched library is the target's, onto the battlefield
-		{with("Chooser", "You"), zLibrary, zExile},          // Hide // Seek: the controller picks from the target's library
-		{own, zLibrary, zBattlefield},
+		{with("Chooser", "You"), zLibrary, zExile}, // Hide // Seek: the controller picks from the target's library
 		{own, zLibrary, zExile},
 		{own, zHand, zHand},
 		{with("ValidTgts", "Opponent"), zLibrary, zHand},
@@ -134,14 +133,15 @@ func TestTargetPlayerOwnSearchOnlyThisShape(t *testing.T) {
 
 // The corpus carriers of the other ChangeType$-with-ValidTgts$ library
 // searches keep that refusal: the target's library searched by its owner
-// onto the battlefield (Fertilid, Fertilid's Favor, Turtle Tracks), with a
-// graveyard alternative (Auditore Ambush), two target players (Scheming
-// Symmetry), onto the top (Varragoth), the controller's library picked by an
-// opponent (Gifts Ungiven).
+// onto the battlefield behind a target bound or an alternative origin
+// (Turtle Tracks, Auditore Ambush), two target players (Scheming Symmetry),
+// onto the top (Varragoth). The neighbouring lowered shapes are pinned by
+// TestChangeTypeValidTgtsForms and TestDemoTutorPickShapes (Fertilid,
+// Fertilid's Favor, Intuition, Gifts Ungiven).
 func TestTargetedLibrarySearchesStayRefused(t *testing.T) {
 	reg := testutil.CorpusRegistry(t)
-	for _, name := range []string{"Fertilid", "Fertilid's Favor", "Turtle Tracks", "Auditore Ambush", "Scheming Symmetry",
-		"Varragoth, Bloodsky Sire", "Gifts Ungiven"} {
+	for _, name := range []string{"Turtle Tracks", "Auditore Ambush", "Scheming Symmetry",
+		"Varragoth, Bloodsky Sire"} {
 		card, ok := reg.Lookup(name)
 		if !ok {
 			t.Fatalf("%s not in the corpus", name)
