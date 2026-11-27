@@ -253,6 +253,10 @@ func (lc *lowerCtx) lowerRepl(r cards.Repl) error {
 		if err := lc.drawRepl(rp, r.With, &rl); err != nil { // lower_drawrepl.go
 			return err
 		}
+	case "RollPlanarDice":
+		if err := lc.rollPlanarDiceRepl(rp, r.With, &rl); err != nil { // lower_planarrepl.go
+			return err
+		}
 	case "LifeReduced":
 		if err := lc.lifeLossRepl(rp, r.With, &rl); err != nil {
 			return err

@@ -9,6 +9,7 @@ func init() {
 	instrOp("ChaosEnsues", (*instrCtx).opChaosEnsues)
 	instrOp("PlaneCurse", (*instrCtx).opPlaneCurse)
 	instrOp("Planeswalk", (*instrCtx).opPlaneswalk)
+	instrOp("RollPlanarDice", (*instrCtx).opRollPlanarDice)
 }
 
 func (ic *instrCtx) opChaosEnsues() error {
@@ -23,5 +24,11 @@ func (ic *instrCtx) opPlaneCurse() error {
 
 func (ic *instrCtx) opPlaneswalk() error {
 	ic.ki.Op, ic.ki.A = kop.OpExt, kop.Const(int(kop.ExtPlaneswalk))
+	return nil
+}
+
+func (ic *instrCtx) opRollPlanarDice() error {
+	// OpExt ExtRollPlanarDice; B is the die count (apiRollPlanarDice).
+	ic.ki.Op, ic.ki.A = kop.OpExt, kop.Const(int(kop.ExtRollPlanarDice))
 	return nil
 }

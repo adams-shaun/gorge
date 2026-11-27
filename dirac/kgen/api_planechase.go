@@ -18,6 +18,7 @@ import (
 func init() {
 	apiOp("ChaosEnsues", (*lowerCtx).apiChaosEnsues)
 	apiOp("Planeswalk", (*lowerCtx).apiPlaneswalk)
+	apiOp("RollPlanarDice", (*lowerCtx).apiRollPlanarDice)
 }
 
 // apiPlaneswalk lowers DB$ Planeswalk's plain rotation form: the resolving
@@ -63,5 +64,24 @@ func (lc *lowerCtx) apiChaosEnsues(_ *cards.SA, ps *params) error {
 	default:
 		return refuse("ChaosEnsues Defined$ %q", ps.str("Defined"))
 	}
+	return nil
+}
+
+// apiRollPlanarDice lowers DB$ RollPlanarDice (CR 901.3): the resolving
+// player rolls Amount$ planar dice (default 1, gorge effRollPlanarDice's
+// Num). The count rides B because the instruction's A names the ExtOp
+// (dirac zone_planechase.go rollPlanarDiceExt); each die is a d6 whose 5/6
+// faces planeswalk/ensue chaos. The roll's own replacements (Ichor Elixir)
+// are matched by the kernel at the roll, so no body is lowered here.
+func (lc *lowerCtx) apiRollPlanarDice(_ *cards.SA, ps *params) error {
+	n, err := lc.amount(ps, "Amount", 1)
+	if err != nil {
+		return err
+	}
+	who, err := lc.defined("You")
+	if err != nil {
+		return err
+	}
+	lc.emit(lInstr{Op: "RollPlanarDice", Obj: who, B: n, Note: "roll Amount planar dice (CR 901.3; dirac zone_planechase.go)"})
 	return nil
 }
