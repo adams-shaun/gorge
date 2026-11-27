@@ -652,6 +652,7 @@ func (s *State) runProg(k *prep) {
 			s.ctl = ctlExileOrder
 			return
 		}
+		s.clearCopyDefender(in)
 		s.res.pc++
 		s.loopBack(k)
 	}

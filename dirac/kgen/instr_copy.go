@@ -135,7 +135,7 @@ func (ic *instrCtx) opCopyAsToken() error {
 		cf |= kop.CopyNonRemCtrl
 	}
 	if _, ok := fl["Attacking"]; ok {
-		cf |= kop.CopyAttacking // ExtCopyPicked only (lower_copypicked.go)
+		cf |= kop.CopyAttacking // CopyPermanent's TokenAttacking$ (lower_copypicked.go)
 	}
 	pk, ok := fl["Pump"]
 	pe, eot := fl["PumpEOT"]
