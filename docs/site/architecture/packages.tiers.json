@@ -108,6 +108,11 @@
       "status": "SUPP",
       "purpose": "Thin registration of a built-in policy in the bots registry."
     },
+    "bots/encoder": {
+      "tier": "bots",
+      "status": "EXT",
+      "purpose": "State-encoder contract: Schema, ViewEncoder, registry over the policynet feature sets."
+    },
     "bots/policynet": {
       "tier": "bots",
       "status": "EXT (linked into seat)"
