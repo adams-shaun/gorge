@@ -2931,9 +2931,11 @@ func (lc *lowerCtx) effectAPI(ps *params) error {
 	// lazily with EffectOwnerPlayers, whose empty value and You both name the
 	// resolving controller (engine/effects/effect.go:197-199,
 	// engine/effects/context.go:1804-1805) -- exactly the owner the kernel
-	// already gives an Effect. Only You is the default; any other spelling
-	// (Opponent, TriggeredTarget, ...) stays unread, so the node check
-	// refuses it by name.
+	// already gives an Effect. You is consumed here; Player.Opponent is read
+	// by emblem (the only owner spelling the kernel's CreateEmblem can place
+	// elsewhere, one emblem per opponent). Every other spelling (Opponent,
+	// TriggeredTarget, ...) stays unread, so the node check refuses it by
+	// name.
 	if lc.blind != nil {
 		if err := lc.blindEffectOwner(ps); err != nil {
 			return err
@@ -3419,6 +3421,15 @@ func (lc *lowerCtx) emblem(ps *params, tr string) error {
 		return emblemDurationRefuse(t.Mode)
 	}
 	ps.consume("Name", "Image", "Stackable")
+	// EffectOwner$ Player.Opponent (Chandra, Awakened Inferno): each opponent
+	// gets the emblem, not the resolving controller. The direct map read
+	// keeps every other non-You spelling unread, so the node check still
+	// refuses it by name.
+	owner := lRef{Kind: rYou}
+	if strings.TrimSpace(ps.m["EffectOwner"]) == "Player.Opponent" {
+		ps.consume("EffectOwner")
+		owner = lRef{Kind: rEachOpp}
+	}
 	if sa, ok := ps.get("StaticAbilities"); ok && lc.pairCap == nil {
 		// Osteomancer Adept: gorge's effEffect Notes its may-play grant as
 		// unimplemented and offers NOTHING through it (the RaiseCost$
@@ -3511,7 +3522,7 @@ func (lc *lowerCtx) emblem(ps *params, tr string) error {
 	ab.Latent = true
 	ab.Name = "EmblemTrigger"
 	em := lEmblem{Trigger: saved, UntilEOT: eot, UntilNextTurn: next, Capture: capture, CaptureSet: hasCap, CaptureIsPlayer: player, CaptureLapse: lapse, Once: endsSelf}
-	ce := lInstr{Op: "CreateEmblem", Obj: lRef{Kind: rYou}}
+	ce := lInstr{Op: "CreateEmblem", Obj: owner}
 	mem.apply(&em, &ce) // lower_effectremember.go
 	lc.out.Emblems = append(lc.out.Emblems, em)
 	ce.C = len(lc.out.Emblems) - 1
