@@ -6,10 +6,12 @@ import (
 )
 
 // The hosted-Commander unread-param and counter shapes of ticket
-// cli-20261127T065129Z-e7b92793. Three lower (the lockstep arms live in
-// dirac/oracle's TestUnreadParams*Lockstep, which play each shape against
-// gorge); six stay refused by name, each with kgen's own reason, because the
-// shape needs state the kernel does not carry yet (see unreadHostedRefused).
+// cli-20261127T065129Z-e7b92793, and continued by
+// cli-20261127T171904Z-e493ca42. Four lower (the lockstep arms live in
+// dirac/oracle's TestUnreadParams*Lockstep and TestHostedCmdrCounterShapes
+// Lockstep, which play each shape against gorge); five stay refused by name,
+// each with kgen's own reason, because the shape needs state the kernel does
+// not carry yet (see unreadHostedRefused).
 
 // unreadHostedLowered are the cards that lower with no refusals, and the shape
 // each carries.
@@ -17,6 +19,7 @@ var unreadHostedLowered = []struct{ name, shape string }{
 	{"Nick Valentine, Private Eye", "DB$ Investigate: Optional$ True (OpMayAsk before the Clue mint)"},
 	{"Urza's Bauble", "AB$ Reveal: Random$ True over a target hand (ExtRevealRandom, one RNG draw)"},
 	{"Chandra, Awakened Inferno", "AB$ Effect: EffectOwner$ Player.Opponent (CreateEmblem obj=EachOpp)"},
+	{"Rise and Shine", "DB$ Animate: RememberAnimated$ True (OpOverride W=RefRemembered, so the chained PutCounter Defined$ Remembered names the animated artifacts)"},
 }
 
 // unreadHostedRefused are the cards that stay refused: the card and the
@@ -26,7 +29,6 @@ var unreadHostedLowered = []struct{ name, shape string }{
 //   - Moira and Teshar: a leave-the-battlefield exile replacement on a Pump's target.
 //   - Filigree Vector: a remembered target set read by a later PutCounterAll.
 //   - Synth Eradicator: PutCounter Optional$ plus RememberPut$ read by a player-count condition.
-//   - Rise and Shine: RememberAnimated$ feeding a chained PutCounter Defined$ Remembered.
 //   - Jeweled Amulet: the noted mana type of the activation cost (Special LastNotedType).
 //
 // When one starts to lower, this test fails: move it to unreadHostedLowered
@@ -36,7 +38,6 @@ var unreadHostedRefused = []struct{ name, reason string }{
 	{"Moira and Teshar", "unread params [LeaveBattlefield]"},
 	{"Filigree Vector", "unread params [RememberTargets]"},
 	{"Synth Eradicator", "unread params [Optional RememberPut]"},
-	{"Rise and Shine", "unread params [RememberAnimated]"},
 	{"Jeweled Amulet", "unread params [RememberCostMana]"},
 }
 

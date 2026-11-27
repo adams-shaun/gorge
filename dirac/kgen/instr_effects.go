@@ -41,6 +41,13 @@ func (ic *instrCtx) opOverrideAll() error {
 		return err
 	}
 	ki.C = int16(i)
+	if cb.c.overrides[in.C].RememberAnimated {
+		// Animate's RememberAnimated$ on its mass form (Rise and Shine's
+		// overloaded cast, where "target" becomes "each"): W names the set
+		// every hit joins at the kernel's apply tail
+		// (dirac/static_animateallscope.go), the same read opOverride emits.
+		ki.W = kop.RefRemembered
+	}
 	if _, ok := ic.fl["cwWord"]; ok {
 		// C names the FIRST of six records, the printed colours then one
 		// colour each (lower_zone.go emitCwWordAll on the OverrideAll

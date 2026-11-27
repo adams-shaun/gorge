@@ -1200,6 +1200,13 @@ func overrideString(o *lOverride) string {
 	if o.AddTypes != 0 {
 		p = append(p, "addtypes="+strconv.Itoa(int(o.AddTypes)))
 	}
+	if o.RememberAnimated {
+		// Animate's RememberAnimated$: the op writes the resolution's
+		// remembered set too (interp_gen.go's OpOverride W=RefRemembered
+		// arm). Lowercase: kremWrites' writer test reads this note, and
+		// kremReads' reader test must not mistake the writer for a reader.
+		p = append(p, "remember")
+	}
 	if o.HasSetSubtypes {
 		p = append(p, "subtypes="+strings.Join(o.SetSubtypes, ","))
 	}
