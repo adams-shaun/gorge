@@ -976,6 +976,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		}
 		// value_dmgamount.go: every damage site records the amount for a reader card
 		g.anyDmgAmt = g.anyDmgAmt || t.Exprs[i].Kind == kop.ExDmgAmountReceived
+		g.anyAtkLast = g.anyAtkLast || t.Exprs[i].Kind == kop.ExAtkYouLastTurn                                                  // value_atkyoulast.go
 		g.anyDmgTaken = g.anyDmgTaken || t.Exprs[i].Kind == kop.ExDmgOppsTaken || t.Exprs[i].Kind == kop.ExMaxOppDamageThisTurn // kw_bloodthirst.go
 	}
 	if tableNthFiltered(t) {

@@ -150,6 +150,9 @@ func (s *State) castForbiddenSelf(k *prep, p uint8, c CardID, o Obj) bool {
 		if st.StFlags&kop.StCasterActive != 0 && p != s.active {
 			continue
 		}
+		if st.B&kop.CantCastSelfZones != 0 && o != NoObj && st.B>>kop.CantCastSelfShift&(1<<s.objs[o].zone) == 0 {
+			continue // EffectZone$ and Origin$ name zones the card is not in (Haakon off its graveyard)
+		}
 		if st.Cond2 != 0 && !s.condEval(k, st.Cond2, evalCtx{src: o, srcSl: NoSlot, ctrl: ctrl}) {
 			continue
 		}
