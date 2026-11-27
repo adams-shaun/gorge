@@ -83,10 +83,12 @@ func prepLandGrant(t *kop.Table, p *prep, g *genPrep) {
 	}
 	if !on {
 		// Table.Overrides is the pool's list, not the table's (tableReach): an
-		// override no card of this table can apply grants nothing here.
+		// override no card of this table can apply grants nothing here. A
+		// FaceDownSetType$ record's Forest is a SetSub, and its intrinsic
+		// ability must still be planned (Yedora's face-down Forest).
 		reach := tableReach(t)
 		for i, live := range reach.override {
-			on = on || live && meets(t.Overrides[i].AddSub)
+			on = on || live && (meets(t.Overrides[i].AddSub) || t.Overrides[i].FaceDownOnly && meets(t.Overrides[i].SetSub))
 		}
 	}
 	if !on {
@@ -271,8 +273,8 @@ func blgRiderFirst(c *kop.CardDef, pc *pcard) bool {
 //
 //go:noinline
 func (s *State) blgMask(k *prep, sl Slot) kop.ColorMask {
-	if s.typesAt(k, sl)&kop.TLand == 0 || s.genLost(k, sl) && !s.landSetLost(k, sl) {
-		return 0 // a layer-6 loss takes the intrinsic abilities too, whatever its timestamp (gorge: lossStamp != 0, mana_activation.go); a land-type setter's does not
+	if s.typesAt(k, sl)&kop.TLand == 0 || s.genLost(k, sl) && !s.landSetLost(k, sl) && !s.faceDownBlankOnly(k, sl) {
+		return 0 // a layer-6 loss takes the intrinsic abilities too, whatever its timestamp (gorge: lossStamp != 0, mana_activation.go); a land-type setter's does not, and the CR 708.2 blank of a face-down permanent alone does not take the intrinsic ability a basic land subtype grants (CR 305.6, a rules-generated ability rather than card text): a face-down permanent under a real lose-all keeps none of them (faceDownBlankOnly)
 	}
 	var m kop.ColorMask
 	if g := k.gen; g.fxNeed != 0 && !g.anyBestow && !g.anyImpending && s.walkSlot(k, sl) {

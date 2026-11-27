@@ -1365,6 +1365,9 @@ func (s *State) FeatViewTypes(o Obj) (types kop.TypeMask, subs kop.SubMask, all,
 			setSub = s.copyExcSetsSub(k, sl)
 		}
 		s.eachOverride(k, sl, func(ov *kop.Override, _ CardID) {
+			// no FaceDownOnly gate: a FaceDownSetType$ record wears only a
+			// face-down slot, which is always a walk slot (face_facedown.go),
+			// so lfxApply4 reads it and this fast path never sees one
 			if ov.HasSub {
 				subs, all, setSub = subs.And(ov.KeepSub).Or(ov.SetSub), false, true
 			}

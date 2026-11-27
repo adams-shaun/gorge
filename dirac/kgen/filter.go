@@ -192,7 +192,11 @@ const (
 	cmpHasProtEachColor // hasKeywordProtection:each color: has protection from all five colours (no operator)
 	cmpMonarchCtrl      // ControlledBy Player.isMonarch (CmpN 0) / ControlledBy EnchantedController.!isMonarch (CmpN 1): the controller is / is not the monarch (kop.PredMonarchCtrl; filter_monarch.go; no operator)
 	cmpKickedAlt        // kicked 1 (CmpN 1) / kicked 2 (CmpN 2): the kicker alternative paid (kop.PredKickedAlt; filter_kickedalt.go; no operator)
-	cmpCastFaceDown     // a face-down cast (gorge Spell.isCastFaceDown; ReduceCost ValidSpell$ only). Appended last: the ordinals above are the IR's, so new compares go after it.
+	// cmpCastFaceDown is appended: the dump prints these as cmp(N ...), and
+	// the kgen shape tests (valuefilter_test.go, hascountersforms_test.go,
+	// exwstat_test.go, ...) pin N as a literal, so a new statistic goes at the
+	// end of the block, never between two existing ones.
+	cmpCastFaceDown // a face-down cast (gorge Spell.isCastFaceDown; ReduceCost ValidSpell$ only)
 )
 
 // cmpWasCastSpell's CmpN (kernel PredWasCastSpell's PredN): the origin the

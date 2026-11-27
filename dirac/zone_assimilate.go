@@ -92,6 +92,26 @@ func (s *State) enterAssimilated(k *prep, o Obj, ctrl uint8, from kop.Zone) Slot
 	return sl
 }
 
+// enterFaceDownAssimilated enters o face down with the following
+// OvEnterWith override applied before the enters checks: a ChangeZone
+// FaceDown$ True return carrying a FaceDownSetType$ type set (Yedora's
+// "It's a Forest land", CR 708.2a).
+func (s *State) enterFaceDownAssimilated(k *prep, o Obj, ctrl uint8, from kop.Zone) Slot {
+	var eb entBatch
+	s.g.ewPend = true
+	sl := s.enterHeldFace(k, &eb, o, ctrl, false, from, kop.MorphMorph)
+	if s.g.ewPend {
+		s.g.ewPend = false
+		s.enterWithApply(k, sl)
+	}
+	if from == kop.ZoneGraveyard {
+		s.fireLeavesGraveyardSelf(k, sl, o)
+	}
+	s.g.ewDone++ // the override op that follows is spent
+	s.fireEntries(k, &eb)
+	return sl
+}
+
 // enterWithApply applies the OvEnterWith override that follows the
 // resolving return to its entrant at sl.
 func (s *State) enterWithApply(k *prep, sl Slot) {
