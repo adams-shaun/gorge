@@ -70,7 +70,8 @@ func animateAtEOTSetDecks() [2][]cardset.Entry {
 func animateGainsOfDecks() [2][]cardset.Entry {
 	a := []cardset.Entry{
 		{Name: "Territory Forge", Count: 8}, {Name: "Mind Stone", Count: 6},
-		{Name: "Darksteel Relic", Count: 4}, {Name: "Mountain", Count: 14}, {Name: "Island", Count: 8},
+		{Name: "Darksteel Relic", Count: 4}, {Name: "Mountain", Count: 8}, {Name: "Island", Count: 2},
+		{Name: "Mirran Safehouse", Count: 8}, {Name: "Wasteland", Count: 4},
 	}
 	b := []cardset.Entry{
 		{Name: "Savannah Lions", Count: 8}, {Name: "Elite Vanguard", Count: 8},

@@ -8,3 +8,5 @@ Elite Vanguard
 Island
 Mountain
 Plains
+Mirran Safehouse
+Wasteland
