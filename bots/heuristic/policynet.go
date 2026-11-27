@@ -103,6 +103,7 @@ import (
 	"strings"
 
 	"github.com/adams-shaun/gorge/bots/botpolicy"
+	"github.com/adams-shaun/gorge/bots/encoder"
 	"github.com/adams-shaun/gorge/bots/explain"
 	"github.com/adams-shaun/gorge/bots/policynet"
 	"github.com/adams-shaun/gorge/engine/decision"
@@ -434,14 +435,12 @@ func (b *PolicyNetBot) encode(v view.View, d *decision.Decision) (policynet.Stat
 	if b.scorer == nil || len(d.Options) == 0 {
 		return policynet.State{}, nil, false
 	}
-	// The checkpoint's feature set: FeaturesV1 is the pinned encoder
-	// byte for byte; a non-v1 checkpoint is scored under the set it trained on.
-	fs := b.scorer.Features()
-	st := policynet.EncodeStateWith(fs, v, d.Player, nil)
-	opts := make([]policynet.Option, len(d.Options))
-	for i := range d.Options {
-		opts[i] = policynet.EncodeOptionWith(fs, v, d.Player, d.Kind, d.Options[i], i, len(d.Options))
-	}
+	// The encoder the checkpoint's network names: FeaturesV1 is the pinned
+	// encoder byte for byte; a non-v1 checkpoint is scored under the encoder
+	// it trained on.
+	enc := encoder.ForName(b.scorer.EncoderName(), b.scorer.Features())
+	st := enc.EncodeState(nil, &v, d.Player, nil)
+	opts := encoder.EncodeOptions(enc, &v, d.Player, d.Kind, d.Options, nil)
 	return st, opts, true
 }
 

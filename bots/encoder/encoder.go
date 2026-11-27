@@ -18,3 +18,25 @@ type ViewEncoder interface {
 	// EncodeOption encodes option o (index idx of n) of a decision of kind d.
 	EncodeOption(v *view.View, seat state.PlayerID, d decision.Kind, o decision.Option, idx, n int) policynet.Option
 }
+
+// OptionListEncoder is optionally implemented by a ViewEncoder that can encode
+// a whole option list against one view, resolving the view's cards once.
+type OptionListEncoder interface {
+	EncodeOptions(v *view.View, seat state.PlayerID, d decision.Kind, opts []decision.Option, dst []policynet.Option) []policynet.Option
+}
+
+// EncodeOptions encodes every option of opts through e, using e's bulk method
+// when it has one. The result parallels opts.
+func EncodeOptions(e ViewEncoder, v *view.View, seat state.PlayerID, d decision.Kind, opts []decision.Option, dst []policynet.Option) []policynet.Option {
+	if b, ok := e.(OptionListEncoder); ok {
+		return b.EncodeOptions(v, seat, d, opts, dst)
+	}
+	if cap(dst) < len(opts) {
+		dst = make([]policynet.Option, len(opts))
+	}
+	dst = dst[:len(opts)]
+	for i := range opts {
+		dst[i] = e.EncodeOption(v, seat, d, opts[i], i, len(opts))
+	}
+	return dst
+}

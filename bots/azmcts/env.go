@@ -12,6 +12,7 @@ import (
 	"github.com/adams-shaun/gorge/bots/heuristic"
 
 	"github.com/adams-shaun/gorge/bots/botpolicy"
+	"github.com/adams-shaun/gorge/bots/encoder"
 	"github.com/adams-shaun/gorge/bots/policynet"
 	"github.com/adams-shaun/gorge/bots/searchprobe"
 	"github.com/adams-shaun/gorge/engine/decision"
@@ -964,8 +965,9 @@ func leafValue(net *policynet.Model, e *rules.Engine, actor state.PlayerID, sc *
 	}
 	v := &sc.leaf
 	view.ProjectLeanInto(v, e.G, e, actor, e.Pending(), net.Features.ViewOmit())
+	enc := encoder.ForModel(net)
 	sb := policynet.AcquireStateBuf()
-	x := float64(net.Value(policynet.EncodeStateWithInto(sb, net.Features, v, actor, nil)))
+	x := float64(net.Value(enc.EncodeState(sb, v, actor, nil)))
 	policynet.ReleaseStateBuf(sb)
 	return clampValue(x)
 }
@@ -1216,8 +1218,9 @@ func netLeafVec(net *policynet.Model, e *rules.Engine, actor state.PlayerID, sc 
 	}
 	v := &sc.leaf
 	view.ProjectLeanInto(v, e.G, e, actor, e.Pending(), net.Features.ViewOmit())
+	enc := encoder.ForModel(net)
 	sb := policynet.AcquireStateBuf()
-	p := net.ValueVec(policynet.EncodeStateWithInto(sb, net.Features, v, actor, nil))
+	p := net.ValueVec(enc.EncodeState(sb, v, actor, nil))
 	policynet.ReleaseStateBuf(sb)
 	if len(p) < n+1 {
 		return vec, 0, false
