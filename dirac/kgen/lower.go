@@ -334,6 +334,11 @@ type lowerCtx struct {
 	// (kop.RepeatRemembered, lower_repeatremembered.go): its Defined$ /
 	// TokenOwner$ ImprintedController is the repeated card's controller
 	repeatRem bool
+	// remLKIEach: a multi-object RememberLKI$ move's chain reads the
+	// remembered set's controllers (Unexplained Absence's per-controller
+	// Cloak); the reader lowers as a RepeatRemembered loop over the set
+	// (lower_manifest.go cloakEachRememberedController).
+	remLKIEach bool
 	// repeatOpp: that body repeats over the controller's opponents
 	repeatOpp bool
 	// repeatAllPl: that body repeats over every player (RepeatPlayers$ Player)

@@ -381,13 +381,15 @@ const (
 // manifest entry (dirac/manifest/CounterKind, kmanifest), not an append here.
 var _ = [1]struct{}{}[CtrM2M1-80]
 
-// NumCounterKinds3 is the frozen cover of the counter kinds: every kind below
+// NumCounterKinds3 is the cover of the counter kinds: every kind below
 // it that IsCounterKind admits is one the kernel's per-kind walks, its
-// CountersX projection and CtrXNames serve. It moved once, at the manifest
-// cutover (81 to 242), to cover the pre-mapped manifest kinds, and is fixed
-// since: the manifest defers a kind at or above it (manifest.CounterKindCover),
-// and a kind of 256 or more also needs dirac's ctrMode byte widened.
-const NumCounterKinds3 CounterKind = 242
+// CountersX projection and CtrXNames serve. It moved at the manifest cutover
+// (81 to 242), then to 253 for VOW (Promise of Loyalty's vow counter): VOW is
+// 248, and the next value past the highest manifest kind (WRECK, 252) is
+// CtrMode, which IsCounterKind excludes as a Gate.Ctr sentinel, not a counter.
+// The manifest defers a kind at or above it (manifest.CounterKindCover), and a
+// kind of 256 or more also needs dirac's ctrMode byte widened.
+const NumCounterKinds3 CounterKind = 253
 
 // Player counter kinds: OpGainEnergy's C and ExEnergyOf's N name which of a
 // player's counters (CR 122.1) the op adds to or the expression reads. The

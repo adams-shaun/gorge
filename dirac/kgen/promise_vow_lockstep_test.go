@@ -104,9 +104,8 @@ func TestPromiseOfLoyaltyVowLowering(t *testing.T) {
 }
 
 // promiseVowKindServed reports whether the kernel has a counter kind for the
-// vow counter. CtrVow is deferred past kop.NumCounterKinds3 (the counter
-// family's frozen cover, ordinals.tsv), so until the cover moves the card
-// refuses by name and the lockstep below has nothing to play.
+// vow counter. CtrVow is below kop.NumCounterKinds3 since the cover moved to
+// 253, so the card lowers and the lockstep below plays it.
 func promiseVowKindServed() bool {
 	_, err := counterKind("VOW")
 	return err == nil
@@ -204,7 +203,7 @@ func promiseVowPolicy(seed uint64, seen *promiseVowSeen) oracle.Policy {
 func TestPromiseOfLoyaltyVowLockstep(t *testing.T) {
 	t.Parallel()
 	if !promiseVowKindServed() {
-		t.Skip("blocked: the kernel has no counter kind for VOW (kop.CtrVow is deferred past the frozen cover kop.NumCounterKinds3); the counter-kind cover ticket (dirac-counter-kind-cover) lifts it")
+		t.Fatal("the kernel has no counter kind for VOW: kop.CtrVow fell outside kop.NumCounterKinds3")
 	}
 	cardsDir, err := cardset.CorpusDir()
 	if err != nil {

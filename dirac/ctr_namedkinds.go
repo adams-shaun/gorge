@@ -79,6 +79,7 @@ var namedCounterKinds = [...]kop.CounterKind{
 	kop.CtrElixir,  // Essence Bottle (cost_prog.go: SubCounter<All/ELIXIR>)
 	kop.CtrEyeball, // Jar of Eyeballs
 	kop.CtrPain,    // Torture Chamber
+	kop.CtrVow,     // Promise of Loyalty's vow counter
 }
 
 func init() {

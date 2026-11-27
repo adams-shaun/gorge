@@ -185,6 +185,9 @@ func (lc *lowerCtx) cloak(ps *params) error {
 			return lc.cloakValidLibrary(ps, spec)
 		}
 	}
+	if v, ok := ps.get("DefinedPlayer"); ok && strings.TrimSpace(v) == "RememberedController" {
+		return lc.cloakEachRememberedController(ps)
+	}
 	if v, ok := ps.get("Amount"); ok {
 		// gorge's effCloak refuses X/Y loudly (effCloak's Amount$ scope).
 		switch strings.TrimSpace(v) {
@@ -216,6 +219,56 @@ func (lc *lowerCtx) cloak(ps *params) error {
 		return err
 	}
 	lc.emit(lInstr{Op: "Cloak", Obj: ref, A: n, C: fl})
+	return nil
+}
+
+// cloakEachRememberedController lowers Unexplained Absence's
+//
+//	DB$ Cloak | Amount$ 1 | Defined$ TopOfLibrary | DefinedPlayer$ RememberedController
+//
+// after a ChangeZone that exiled several targets with RememberLKI$: for each
+// exiled permanent, its controller cloaks the top card of their library. gorge
+// expands RememberedController over every remembered object (gorge
+// rememberedControllersLKI), so the kernel runs one Cloak per remembered
+// object with RefEach as its player, the controller its RememberLKI$ capture
+// holds (kop.RepeatRemembered; dirac/act_repeatremembered.go). A plain resumable
+// frame (RepeatPlain) so a future asking body would park, and one instruction
+// so the loop has no resume state.
+func (lc *lowerCtx) cloakEachRememberedController(ps *params) error {
+	if !lc.remLKIEach {
+		return refuse("Cloak DefinedPlayer$ RememberedController without a multi-target RememberLKI$ move")
+	}
+	// the guard admits exactly this Cloak as the multi-target move's reader, so
+	// the flag is spent here: a later Cloak in another ability of the same card
+	// must not inherit it.
+	lc.remLKIEach = false
+	for _, k := range []string{"Choices", "ValidLibrary"} {
+		if _, ok := ps.m[k]; ok {
+			return refuse("Cloak DefinedPlayer$ RememberedController with %s$", k)
+		}
+	}
+	if v, ok := ps.get("Defined"); ok {
+		switch strings.TrimSpace(v) {
+		case "", "TopOfLibrary":
+		default:
+			return refuse("Cloak DefinedPlayer$ RememberedController with Defined$ %q", v)
+		}
+	}
+	if v, ok := ps.get("Amount"); ok {
+		switch strings.TrimSpace(v) {
+		case "", "1":
+		default:
+			return refuse("Cloak DefinedPlayer$ RememberedController with Amount$ %q", strings.TrimSpace(v))
+		}
+	}
+	fl, err := lc.cloakRiders(ps)
+	if err != nil {
+		return err
+	}
+	lc.emit(lInstr{Op: "RepeatEachCard", C: kop.RepeatRemembered | kop.RepeatPlain, Skip: 1,
+		Note: "one cloak for each remembered object's controller"})
+	lc.emit(lInstr{Op: "Cloak", Obj: lRef{Kind: rEach}, A: cst(1), C: fl})
+	ps.consume("Defined", "DefinedPlayer", "Amount")
 	return nil
 }
 
