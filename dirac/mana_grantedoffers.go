@@ -1384,6 +1384,7 @@ func (s *State) filtFirstFreeFee(k *prep, sl Slot) bool {
 func (g *grantSrch) candidates(s *State) {
 	var order [MaxPerm]Slot
 	n := s.battlefieldOrder(g.p, s.ctrlM[SeatIx(g.p)].and(s.occ), order[:], 0)
+	s.planOtherSacSourceOrder(g.k, order[:], n) // (mana_tapanother.go: gorge's plan walks these sources by object id)
 	var fm slotMask
 	if k := g.k; k.gen.anyFilt {
 		fm = s.scriptFilt(k, g.p)
@@ -2190,6 +2191,9 @@ func (g *grantSrch) visit(t *State) bool {
 	}
 	g.remember(key)
 	sacd, sacStepped := g.sacrificed(), slotMask{}
+	if found, stop := g.planFirst(t, sacd, &sacStepped); found || stop {
+		return found
+	}
 	if g.feeOrder {
 		if found, stop := g.feeOrderPasses(t, sacd, &sacStepped); found {
 			return true
