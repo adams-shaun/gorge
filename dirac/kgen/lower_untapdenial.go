@@ -16,56 +16,104 @@ var untapDenialAffected = map[string]bool{
 	"Land.RememberedPlayerCtrl":     true,
 }
 
-// effectUntapDenial lowers a DB$ Effect whose one StaticAbilities$ body is
-// gorge's UntapDenial grant (engine/effects effEffect: Affected$ over
-// RememberedPlayerCtrl with AddHiddenKeyword$ "This card doesn't untap during
-// your next untap step.", registered as a restriction rules' untap-step scan
-// reads) beside a Triggers$ line that is the Effect's own end: Mode$ Phase |
-// Phase$ Untap | ValidPlayer$ Player.IsRemembered, exiling the Effect from the
-// command zone (Exhaustion). The restriction holds the targeted player's
-// creatures and lands tapped through that player's next untap step and ends
-// there, which is OpSkipUntap C=SkipUntapPlayerCL over the player target (CR
-// 611.2b). It reports whether the Effect had that shape; any other
-// static-beside-trigger Effect returns false for the pair lowering to read, and
-// a half-matching one refuses by name.
+// effectUntapDenial lowers a DB$ Effect that keeps the targeted player's
+// permanents tapped through their next untap step, beside a Triggers$ line
+// that is the Effect's own end: Mode$ Phase | Phase$ Untap | ValidPlayer$
+// Player.IsRemembered, exiling the Effect from the command zone. Two bodies
+// spell the restriction:
+//
+//   - gorge's UntapDenial grant (engine/effects effEffect: Affected$ over
+//     RememberedPlayerCtrl with AddHiddenKeyword$ "This card doesn't untap
+//     during your next untap step.", registered as a restriction rules'
+//     untap-step scan reads): the creatures and lands of the remembered
+//     player (Exhaustion), OpSkipUntap C=SkipUntapPlayerCL;
+//   - a ReplacementEffects$ line Event$ Untap | Layer$ CantHappen |
+//     ValidCard$ Creature | ValidStepTurnToController$ Player.IsRemembered,
+//     which replaces the untap of the remembered player's creatures
+//     (Blinding Beam), OpSkipUntap C=SkipUntapPlayerCreatures.
+//
+// Both end with the untap step they skip (rules/turn.go expireUntapStepEffects),
+// which is why the self-exile trigger emits nothing. It reports whether the
+// Effect had that shape; any other static- or replacement-beside-trigger
+// Effect returns false for the pair lowering to read, and a half-matching one
+// refuses by name.
 func (lc *lowerCtx) effectUntapDenial(ps *params, tr string) (bool, error) {
-	list, ok := ps.get("StaticAbilities")
-	if !ok {
-		return false, nil
-	}
-	ss, err := lc.effectStaticBodies(list)
-	if err != nil {
-		return false, nil // the pair lowering names it
-	}
-	if len(ss) != 1 || ss[0].Mode != "Continuous" ||
-		!cards.IsHiddenUntapNextStepKeyword(strings.TrimSpace(ss[0].Params["AddHiddenKeyword"])) {
+	list, hasStatic := ps.get("StaticAbilities")
+	replName, hasRepl := ps.get("ReplacementEffects")
+	no := func() (bool, error) {
+		// an unsuccessful read must not mark the params consumed: the pair
+		// lowering (or the node check) still names them
 		delete(ps.used, "StaticAbilities")
+		delete(ps.used, "ReplacementEffects")
 		return false, nil
+	}
+	if !hasStatic && !hasRepl {
+		return no()
 	}
 	why := func(more string) (bool, error) {
-		return true, refuse("Effect untap denial %q (%s)", list, more)
+		if hasStatic {
+			return true, refuse("Effect untap denial %q (%s)", list, more)
+		}
+		return true, refuse("Effect untap denial %q (%s)", replName, more)
+	}
+	if hasStatic && hasRepl {
+		// one Effect cannot be both a grant and a replacement here: the
+		// static body is the grant shape and the replacement body is the
+		// untap-step skip, and each branch would leave the other unread
+		return why("both StaticAbilities$ and ReplacementEffects$")
 	}
 	if lc.ab.Kind == akMana {
 		return why("in a mana ability")
 	}
-	sp := newParams(ss[0].Params)
-	sp.consume("Mode", "Description", "AffectedZone", "AddHiddenKeyword")
-	if z, ok := ss[0].Params["AffectedZone"]; ok && strings.TrimSpace(z) != "Battlefield" {
-		return why("AffectedZone$ " + z)
-	}
-	seen := map[string]bool{}
-	for _, a := range strings.Split(sp.str("Affected"), ",") {
-		a = strings.TrimSpace(a)
-		if !untapDenialAffected[a] || seen[a] {
+	captures := kop.SkipUntapPlayerCL
+	if hasStatic {
+		ss, err := lc.effectStaticBodies(list)
+		if err != nil {
+			return no() // the pair lowering names it
+		}
+		if len(ss) != 1 || ss[0].Mode != "Continuous" ||
+			!cards.IsHiddenUntapNextStepKeyword(strings.TrimSpace(ss[0].Params["AddHiddenKeyword"])) {
+			return no()
+		}
+		sp := newParams(ss[0].Params)
+		sp.consume("Mode", "Description", "AffectedZone", "AddHiddenKeyword")
+		if z, ok := ss[0].Params["AffectedZone"]; ok && strings.TrimSpace(z) != "Battlefield" {
+			return why("AffectedZone$ " + z)
+		}
+		seen := map[string]bool{}
+		for _, a := range strings.Split(sp.str("Affected"), ",") {
+			a = strings.TrimSpace(a)
+			if !untapDenialAffected[a] || seen[a] {
+				return why("Affected$ " + ss[0].Params["Affected"])
+			}
+			seen[a] = true
+		}
+		if len(seen) != len(untapDenialAffected) {
 			return why("Affected$ " + ss[0].Params["Affected"])
 		}
-		seen[a] = true
-	}
-	if len(seen) != len(untapDenialAffected) {
-		return why("Affected$ " + ss[0].Params["Affected"])
-	}
-	if left := sp.unread(); len(left) > 0 {
-		return why("static unread " + strings.Join(left, ","))
+		if left := sp.unread(); len(left) > 0 {
+			return why("static unread " + strings.Join(left, ","))
+		}
+	} else {
+		r, ok := cards.ParseReplacementLine(lc.face.SVars[strings.TrimSpace(replName)])
+		if !ok || r.Event != "Untap" {
+			return no()
+		}
+		rp := newParams(r.Params)
+		rp.consume("Event")
+		if !rp.is("Layer", "CantHappen") || strings.TrimSpace(rp.str("ValidCard")) != "Creature" ||
+			rp.str("ValidStepTurnToController") != "Player.IsRemembered" {
+			return no() // another Untap replacement keeps its own route
+		}
+		if _, ok := rp.get("ReplaceWith"); ok {
+			return no()
+		}
+		rp.consume("ValidCard", "ValidStepTurnToController", "Description")
+		if left := rp.unread(); len(left) > 0 {
+			return why("replacement unread " + strings.Join(left, ","))
+		}
+		ps.consume("ReplacementEffects")
+		captures = kop.SkipUntapPlayerCreatures
 	}
 	if !ps.is("Duration", "Permanent") || ps.str("RememberObjects") != "Targeted" {
 		return why("Duration$ " + ps.m["Duration"] + " RememberObjects$ " + ps.m["RememberObjects"])
@@ -84,11 +132,15 @@ func (lc *lowerCtx) effectUntapDenial(ps *params, tr string) (bool, error) {
 		return why("the target is not one player")
 	}
 	ps.consume("Triggers", "RememberObjects", "Duration", "Name", "Image", "Stackable")
+	note := "the target player's creatures and lands"
+	if !hasStatic {
+		note = "the target player's creatures"
+	}
 	// The Effect's Phase$ Untap self-exile is Static$ True: gorge resolves it
 	// inline as CR 611.2a duration bookkeeping and never puts it on the stack,
 	// so the kernel emits nothing for it (the Effect is no object here, and
 	// the restriction ends with the untap step it skips).
-	lc.emit(lInstr{Op: "SkipUntap", Obj: obj, C: kop.SkipUntapPlayerCL, Note: "the target player's creatures and lands"})
+	lc.emit(lInstr{Op: "SkipUntap", Obj: obj, C: captures, Note: note})
 	return true, nil
 }
 
@@ -106,10 +158,16 @@ func (lc *lowerCtx) untapDenialEnd(tr string) error {
 	if t.Effect == nil {
 		return refuse("Effect untap denial trigger %q has no body", tr)
 	}
+	// TriggerZones$ Command is the printed spelling; an Effect's registered
+	// trigger is in the command zone anyway, so an absent one is the same
+	// shape (Blinding Beam's RestoreSight).
+	if tz, ok := t.Params["TriggerZones"]; ok && strings.TrimSpace(tz) != "Command" {
+		return refuse("Effect untap denial trigger %q trigger zones %q", tr, tz)
+	}
 	tp := newParams(t.Params)
 	tp.consume("Mode", "Phase", "ValidPlayer", "TriggerZones", "Static", "Execute", "TriggerDescription")
 	if !tp.is("Phase", "Untap") || !tp.is("ValidPlayer", "Player.IsRemembered") ||
-		!tp.is("TriggerZones", "Command") || !tp.is("Static", "True") {
+		!tp.is("Static", "True") {
 		return refuse("Effect untap denial trigger %q shape", tr)
 	}
 	if left := tp.unread(); len(left) > 0 {
