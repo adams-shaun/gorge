@@ -357,10 +357,6 @@ func (s *State) filtIntrinsicFree(k *prep, sl Slot) bool {
 	return k.gen != nil && k.gen.blgOn && !DebugLandGrantFiltOrder && s.manaPCGen(k, sl).manaIntrinsic && k.gen.has(s.cardAt(sl), gfFilt)
 }
 
-// DebugLandGrantAltFund is the mutation: a prefix search's funding tap of a
-// two-face land answers its own face alone.
-var DebugLandGrantAltFund bool
-
 // fundAlt taps the two-face funding source sl (view pc, altCol set) for its own
 // face, then for the granted intrinsic one: gorge's ability ask lists the
 // printed ability before the intrinsic one (CR 305.6) and the search takes the

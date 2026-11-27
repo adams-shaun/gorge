@@ -3252,7 +3252,7 @@ func (fs *filtSearch) fundTap(k *prep, t *State, sl Slot, rm uint8, free bool, f
 	zeroAsk := free && rm == 0 && fs.zeroFiltAsk(k, t, sl)
 	if free {
 		pc := t.manaPCGen(k, sl)
-		if pc.altCol != 0 && !DebugLandGrantAltFund {
+		if pc.altCol != 0 {
 			if fs.fundAlt(k, t, sl, pc, funded, gapUsed) {
 				return true, true
 			}
