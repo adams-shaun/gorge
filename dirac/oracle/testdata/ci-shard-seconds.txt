@@ -981,7 +981,14 @@ TestReplmultLockstep 14.6
 TestReplmultMutation 5.7
 TestReproBanefire 1.3
 TestReproFireballXRaiseLockstep 7.9
-TestReproManifest0 146.6
+TestReproManifest0 13.5
+TestReproManifest1 55.8
+TestReproManifest2 59.8
+TestReproManifest3 22.3
+TestReproManifest4 253.1
+TestReproManifest5 15.7
+TestReproManifest6 61.5
+TestReproManifest7 55.3
 TestReproStackRaiseLockstep 5.3
 TestRepulsiveMutationLockstep 7.0
 TestResistanceIsFutileLockstep 16.8

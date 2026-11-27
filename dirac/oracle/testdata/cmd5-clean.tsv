@@ -1,4 +1,4 @@
-# cmd5 slice pairs 0..1499 that play clean (TestCmd5SliceCleanOnlyGrows); grows only, CMD5_CLEAN_REPIN=1 rewrites it
+# cmd5 slice pairs 0..1499 that play clean (TestCmd5SliceCleanOnlyGrows0..7); grows only, CMD5_CLEAN_REPIN=1 rewrites it
 0
 1
 2

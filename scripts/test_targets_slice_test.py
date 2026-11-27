@@ -245,6 +245,65 @@ def test_lanes_partition_the_replay_selection_exactly():
     assert len(laned) == len(res) - 2 + len(lanes) + len(subs)  # nothing else moved
 
 
+def test_each_half_is_dealt_into_its_own_lane_budget():
+    # 11-27 review: one deal over both halves balanced each bin's sum, but every bin starts two
+    # processes (the ^(a|b)$ and the ^(A|B)$/(subs)), so the process walls spanned 2x while the bins
+    # looked balanced (69-131 s on the real table). Each half must be dealt into its own lanes
+    # budget: a process's load is exactly what the deal of that half alone gives it. On this
+    # fixture the single deal puts 40+20 and 40+20 in two plain processes (loads 40,40,60,60)
+    # while the plain-only deal gives 40,50,50,60 -- the multiset equality below is the contract.
+    res = planned(SRC, reprosel=sel(sha=sha_in_lane(1)))
+    plain_rx = oracle(res)[1]
+    # CENSUS names join the plain selection from any lane; the two lane-1 replay tests and the
+    # refusal guard are the rest of the plain half. Four manifest shards make the sub half.
+    names = (["TestHalfPlainACensus", "TestHalfPlainBCensus", "TestHalfPlainCCensus",
+              "TestHalfPlainDCensus", "TestRefusedEntriesStillDiverge",
+              "TestMBCFrostGateReprosLockstep", "TestMBCGloomDoomReprosLockstep"]
+             + [tt.MANIFEST_TEST + str(i) for i in range(4)])
+    selected = [n for n in names if re.search(plain_rx, n)]
+    assert len(selected) == 7, selected
+    weights = dict(zip(sorted(selected), [40.0, 40.0, 40.0, 30.0, 20.0, 20.0, 10.0]))
+    for i in range(4):
+        weights[tt.MANIFEST_TEST + str(i)] = [120.0, 120.0, 80.0, 80.0][i]  # x SLICE_SHARE = 30,30,20,20
+    laned = tt.oracle_lanes(res, names=names, weights=weights, zero=set(), lanes=4)
+    plain = [rx for k, p, rx in laned if k == "oraclelane" and "/" not in rx]
+    subs = [rx for k, p, rx in laned if k == "oraclelane" and "/" in rx]
+    assert plain and subs
+
+    def members(rx):
+        top = rx if "/" not in rx else rx.split("/", 1)[0]
+        return top[2:-2].split("|")
+
+    def loads(rxs, share):
+        return sorted(sum(weights[n] * share for n in members(rx)) for rx in rxs)
+
+    def dealt(names_, share):
+        flat = {n: weights[n] * share for n in names_}
+        got = [0.0] * 4
+        for part, _, secs in tt.oracle_shard_deal.deal(sorted(flat), flat, 4,
+                                                       default=tt.oracle_shard_deal.UNLISTED_SECONDS):
+            got[part] += secs
+        return sorted(got)
+
+    tops = [tt.MANIFEST_TEST + str(i) for i in range(4)]
+    assert sorted(n for rx in plain for n in members(rx)) == sorted(selected)
+    assert sorted(n for rx in subs for n in members(rx)) == sorted(tops)
+    assert loads(plain, 1.0) == dealt(selected, 1.0), plain
+    assert loads(subs, tt.SLICE_SHARE) == dealt(tops, tt.SLICE_SHARE), subs
+    # and so no process carries over 40% of its own half's summed wall
+    assert loads(plain, 1.0)[-1] <= 0.40 * sum(weights[n] for n in selected)
+    assert loads(subs, tt.SLICE_SHARE)[-1] <= 0.40 * sum(weights[n] for n in tops) * tt.SLICE_SHARE
+    # an unlisted test weighs oracle_shard_deal.UNLISTED_SECONDS, not the table median: one listed 1 s
+    # test against seven unlisted ones (0.08 each) must leave the listed one alone in its process; at
+    # the median (1.0 for a one-entry table) the deal would spread the eight evenly, 4 to a lane.
+    few = ["TestListedCensus"] + ["TestUnlistedCensus%d" % i for i in range(7)]  # match the CENSUS arm
+    laned = tt.oracle_lanes(planned(SRC, reprosel=sel(sha=sha_in_lane(1))), names=few,
+                            weights={"TestListedCensus": 1.0}, zero=set(), lanes=2)
+    lanes2 = [rx[2:-2].split("|") for k, p, rx in laned if k == "oraclelane" and "/" not in rx]
+    assert sorted(n for l in lanes2 for n in l) == sorted(few)
+    assert any(l == ["TestListedCensus"] for l in lanes2), lanes2
+
+
 def test_lanes_deal_by_cost_and_leave_an_undealtable_slice_alone():
     res = planned(SRC, reprosel=sel(sha=sha_in_lane(1)))
     # two lanes, one heavy test: it and nothing else is alone in its lane

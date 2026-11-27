@@ -961,7 +961,8 @@ def test_census_selects_the_pin_and_registration_ratchets():
     for rx in (tt.CENSUS, c):
         for name in ("TestGrantedKeywordHeadsAreRegisteredOrPinned",
                      "TestEveryRepoDeckParamsAreRead", "TestNonAPIPrimitivesAreRegistered",
-                     "TestKnownUnsupportedFilesWellFormed", "TestCmd5SliceCleanOnlyGrows"):
+                     "TestKnownUnsupportedFilesWellFormed", "TestCmd5SliceCleanOnlyGrows0",
+                     "TestCmd5SliceCleanOnlyGrows7"):
             assert re.search(rx, name), (rx, name)
         assert not re.search(rx, "TestPinnedFarmWarpSpeed")
 
@@ -1045,4 +1046,7 @@ def test_smart_runs_the_oracle_in_chunks():
     assert 'oracle_chunked "$C" \'^TestStd[A-Za-z]*ReprosLockstep\'' in sh
     assert 'if [ "$pkg" = ./dirac/oracle ]; then oracle_chunked "$rx"' in sh
     assert 'go test -list "$1" ./dirac/oracle' in sh
-    assert "chunks+=('^TestCmd5SliceCleanOnlyGrows$')" in sh
+    # 11-27: the cmd5 ratchet is 8 shards (was 91-195 s whole), so it round-robins with every other
+    # census test: no chunk of its own any more.
+    assert "grep -vx 'TestCmd5SliceCleanOnlyGrows'" not in sh
+    assert "chunks+=(" in sh

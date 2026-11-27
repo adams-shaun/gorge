@@ -43,6 +43,36 @@ def test_empty_table_still_deals_every_test():
     assert len({p for p, _, _ in got}) == 3
 
 
+def test_unlisted_default_never_outranks_a_listed_one_second_test():
+    # 11-27: the lanes dealt with the table's median (~14 s) for an unlisted test, so an untested-at-all
+    # test outweighed a listed 1 s one. The callers' UNLISTED_SECONDS default keeps the order honest.
+    weights = {"TestSlow": 60.0, "TestOne": 1.0}
+    got = deal.deal(["TestUnknown", "TestOne", "TestSlow"], weights, 2, default=deal.UNLISTED_SECONDS)
+    assert [n for _, n, _ in got] == ["TestSlow", "TestOne", "TestUnknown"]  # 0.08 < 1.0 < 60
+    part = {n: p for p, n, _ in got}
+    # the 0.08 s test joins a lighter part rather than balancing one: it is not a lane's worth of work
+    assert part["TestUnknown"] == part["TestOne"] != part["TestSlow"]
+
+
+def test_the_real_table_deals_no_part_over_40_percent_of_the_sum():
+    # Done-means (11-27): no lane may carry over 40% of the summed wall. The table lists every test of
+    # >= 1 s; a weight that drifted far from its measurement (TestReproManifest0 was listed at 146.6
+    # while its shard measured ~14 s, and TestCmd5SliceCleanOnlyGrows hid at 0.08 unlisted) shows up
+    # here as an over-loaded part, since the deal is greedy heaviest-first.
+    table = HERE.parent / "dirac" / "oracle" / "testdata" / "ci-shard-seconds.txt"
+    weights = deal.read_weights(str(table))
+    assert weights, "the cost table must exist and parse"
+    parts = 4
+    loads = [0.0] * parts
+    total = 0.0
+    for p, _, s in deal.deal(sorted(weights), weights, parts, default=deal.UNLISTED_SECONDS):
+        loads[p] += s
+        total += s
+    assert total >= 1000.0, "the real table sums to thousands of seconds"
+    worst = max(loads) / total
+    assert worst <= 0.40, "no part over 40%% of the summed wall (loads %s)" % [round(x, 1) for x in loads]
+
+
 def test_read_zero_takes_the_top_level_name_of_a_subtest_path(tmp_path):
     p = tmp_path / "poolskips.txt"
     p.write_text("# comment\nTestA\nTestB/sub/test\n")

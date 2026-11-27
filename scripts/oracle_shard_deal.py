@@ -10,8 +10,9 @@ the same one.
 
 Weights are dirac/oracle/testdata/ci-shard-seconds.txt ("<test> <seconds>", a test's leaf subtests
 summed: its cost, not its wall). A test the table does not list weighs `default`: the table's median
-unless the caller passes one. The table lists only tests of >= 1 s, so both real callers pass
-UNLISTED_SECONDS, never the median. A name in `zero`
+unless the caller passes one. The table lists only tests of >= 1 s, so neither real caller uses the
+median: test_targets.py passes this module's UNLISTED_SECONDS and ci-oracle-shard.sh its own
+DEFAULT_SECONDS (the same 0.08, the default in that file's header). A name in `zero`
 weighs 0: on a clone with no deck pool the pool-only tests (dirac/oracle/testdata/poolskips.txt) skip.
 
 Usage (the parts, as "<part> <seconds> <test>"; part indices are 0-based, as CI's matrix is):

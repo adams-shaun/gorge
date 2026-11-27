@@ -36,16 +36,33 @@ type cmd5Outcome struct {
 	class string // why the game is not clean
 }
 
-// TestCmd5SliceCleanOnlyGrows plays the first cmd5Window pairs of the committed
-// cmd5 slice (1v1 Commander, the Foundations Commander decks) dirac against
-// gorge, as kfuzz -kernel cmd5 plays them under the heuristic policy on the
-// autopay surface with one mulligan. The pairs that
+// cmd5Shards is how many top-level tests the ratchet plays in (11-27: the single test measured
+// 106.5 s isolated and 270-280 s inside a lane process, past the 60 s per-test budget, so no cost
+// deal could give it a lane of its own: the targeted lanes and oracle_chunked can only split at a
+// top-level name). Pair i plays in shard i % cmd5Shards. Each shard re-checks only its own pairs
+// and re-pins only its own lines, so testdata/cmd5-clean.tsv keeps one grows-only pin for the
+// whole slice.
+const cmd5Shards = 8
+
+func TestCmd5SliceCleanOnlyGrows0(t *testing.T) { cmd5SliceShard(t, 0) }
+func TestCmd5SliceCleanOnlyGrows1(t *testing.T) { cmd5SliceShard(t, 1) }
+func TestCmd5SliceCleanOnlyGrows2(t *testing.T) { cmd5SliceShard(t, 2) }
+func TestCmd5SliceCleanOnlyGrows3(t *testing.T) { cmd5SliceShard(t, 3) }
+func TestCmd5SliceCleanOnlyGrows4(t *testing.T) { cmd5SliceShard(t, 4) }
+func TestCmd5SliceCleanOnlyGrows5(t *testing.T) { cmd5SliceShard(t, 5) }
+func TestCmd5SliceCleanOnlyGrows6(t *testing.T) { cmd5SliceShard(t, 6) }
+func TestCmd5SliceCleanOnlyGrows7(t *testing.T) { cmd5SliceShard(t, 7) }
+
+// TestCmd5SliceCleanOnlyGrows* (shards 0..cmd5Shards-1) play the first cmd5Window pairs of the
+// committed cmd5 slice (1v1 Commander, the Foundations Commander decks) dirac against gorge, as
+// kfuzz -kernel cmd5 plays them under the heuristic policy on the autopay surface with one
+// mulligan. The pairs that
 // play clean are pinned in testdata/cmd5-clean.tsv. The test fails when a
 // pinned pair is no longer clean (a divergence, an unmodelled stall, a capacity
 // stall or a refusal) and when an unpinned pair becomes clean without the pin
 // being raised: the clean set only grows. CMD5_CLEAN_REPIN=1 rewrites the pin
 // to the measurement; never edit it by hand.
-func TestCmd5SliceCleanOnlyGrows(t *testing.T) {
+func cmd5SliceShard(t *testing.T, shard int) {
 	set, err := cardset.ByName("cmd5")
 	if errors.Is(err, cardset.ErrNoCorpus) {
 		t.Skipf("no cmd5 table or corpus (make dirac-tables): %v", err)
@@ -82,6 +99,10 @@ func TestCmd5SliceCleanOnlyGrows(t *testing.T) {
 		ps[i] = Pairing{Index: i, A: lines[i].A, B: lines[i].B, Seed: s}
 	}
 	rc := RunConfig{Config: Config{GorgeAutopaySurface: true}, MaxDecisions: 20000, MaxTurns: 100}
+	var idxs []int
+	for i := shard; i < len(ps); i += cmd5Shards {
+		idxs = append(idxs, i)
+	}
 	out := make([]cmd5Outcome, len(ps))
 	t0 := time.Now()
 	var wg sync.WaitGroup
@@ -95,7 +116,7 @@ func TestCmd5SliceCleanOnlyGrows(t *testing.T) {
 			}
 		}()
 	}
-	for i := range ps {
+	for _, i := range idxs {
 		next <- i
 	}
 	close(next)
@@ -103,30 +124,52 @@ func TestCmd5SliceCleanOnlyGrows(t *testing.T) {
 
 	var clean []int
 	byClass := map[string]int{}
-	for i, o := range out {
-		if o.clean {
+	for _, i := range idxs {
+		if out[i].clean {
 			clean = append(clean, i)
 		} else {
-			byClass[o.class]++
+			byClass[out[i].class]++
 		}
 	}
-	t.Logf("cmd5 slice: N=%d pairs in %.1fs: %d clean, %d not clean %v", len(ps), time.Since(t0).Seconds(), len(clean), len(ps)-len(clean), byClass)
+	t.Logf("cmd5 slice shard %d/%d: N=%d pairs in %.1fs: %d clean, %d not clean %v", shard, cmd5Shards, len(idxs), time.Since(t0).Seconds(), len(clean), len(idxs)-len(clean), byClass)
 	if os.Getenv("CMD5_CLEAN_REPIN") == "1" {
-		var b strings.Builder
-		fmt.Fprintf(&b, "# cmd5 slice pairs 0..%d that play clean (TestCmd5SliceCleanOnlyGrows); grows only, CMD5_CLEAN_REPIN=1 rewrites it\n", len(ps)-1)
+		// merge with the other shards' lines: each shard owns its indexes (i % cmd5Shards) and
+		// rewrites only those, so a repin run (all shards, one process, in order) measures every
+		// pair and a partial one still leaves the rest of the pin as it was.
+		keep := map[int]bool{}
+		if b, err := os.ReadFile(cmd5CleanPin); err == nil {
+			for _, f := range strings.Fields(string(b)) {
+				if i, err := strconv.Atoi(f); err == nil && i%cmd5Shards != shard {
+					keep[i] = true
+				}
+			}
+		} else if !errors.Is(err, os.ErrNotExist) {
+			t.Fatal(err)
+		}
 		for _, i := range clean {
+			keep[i] = true
+		}
+		lines := make([]int, 0, len(keep))
+		for i := range keep {
+			lines = append(lines, i)
+		}
+		slices.Sort(lines)
+		var b strings.Builder
+		fmt.Fprintf(&b, "# cmd5 slice pairs 0..%d that play clean (TestCmd5SliceCleanOnlyGrows0..%d); grows only, CMD5_CLEAN_REPIN=1 rewrites it\n", len(ps)-1, cmd5Shards-1)
+		for _, i := range lines {
 			fmt.Fprintf(&b, "%d\n", i)
 		}
 		if err := os.WriteFile(cmd5CleanPin, []byte(b.String()), 0o644); err != nil {
 			t.Fatal(err)
 		}
-		t.Logf("re-pinned %s: %d clean pairs", cmd5CleanPin, len(clean))
+		t.Logf("re-pinned %s shard %d: %d clean pairs", cmd5CleanPin, shard, len(clean))
 		return
 	}
 	pin := readCmd5Pin(t, len(ps))
 	const repro = "kfuzz -kernel cmd5 -first-pair %d -pairs 1 -seed 1 -surface autopay -mulligans 1 -policy heuristic -shrink 0 -keep-going -v"
 	var raised []string
-	for i, o := range out {
+	for _, i := range idxs {
+		o := out[i]
 		switch {
 		case pin[i] && !o.clean:
 			t.Errorf("pair %d (%s vs %s, seed %d) was clean and is not: %s; repro: "+repro, i, ps[i].A, ps[i].B, ps[i].Seed, o.class, i)
@@ -135,7 +178,7 @@ func TestCmd5SliceCleanOnlyGrows(t *testing.T) {
 		}
 	}
 	if len(raised) > 0 {
-		t.Errorf("%d pairs play clean that the pin does not list (%s): raise the pin, from dirac/oracle: CMD5_CLEAN_REPIN=1 go test -run '^TestCmd5SliceCleanOnlyGrows$' .", len(raised), strings.Join(raised, " "))
+		t.Errorf("%d pairs play clean that the pin does not list (%s): raise the pin, from dirac/oracle: CMD5_CLEAN_REPIN=1 go test -run '^TestCmd5SliceCleanOnlyGrows' .", len(raised), strings.Join(raised, " "))
 	}
 }
 

@@ -920,14 +920,18 @@ def oracle_lanes(res, names=None, lanes=ORACLE_LANES, weights=None, zero=None):
     The replay slice is the census and refusal families plus the 25% slice (slice_lane) in one -run, and
     the manifest/pool-glob subtest -run plan appends after the plain entries. In one go test process they
     outran the package's 5m cap on 34 of the last 40 targeted runs (11-27, ~200 top-level tests and a
-    ~500 s summed test wall); test-targets.sh runs the entries of kind oraclelane as concurrent processes.
-    Both halves are dealt by measured cost (oracle_shard_deal.deal, the deal ci-oracle-shard.sh performs)
-    into the same bins: measured alone on 11-27, the subtest half was 178 s of the slice's ~380 s and, left
-    as one undealt process, was the lane that hit the cap. A bin is one -run for its plain tests (^(a|b)$)
-    and one for its subtest tops (^(A|B)$/(subs): a '/' in -run filters every test the pattern matches, so
-    the subtest tops never share a process with the plain ones). Every selected test still runs exactly
-    once: the union of the bins is the names the entries matched, and no name the package does not list
-    can run.
+    ~500 s summed test wall); test-targets.sh starts every oraclelane entry as its own concurrent process.
+    Each half is dealt by measured cost (oracle_shard_deal.deal, the deal ci-oracle-shard.sh performs) into
+    its own `lanes` lane budget: the plain tests as one deal, and each subtest -run's tops as a deal of
+    their own. Measured alone on 11-27, the subtest half was 178 s of the slice's ~380 s and, left as one
+    undealt process, was the lane that hit the cap. One deal over both halves balances each bin's sum, but
+    every bin becomes two processes -- one -run for its plain tests (^(a|b)$) and one for its subtest tops
+    (^(A|B)$/(subs): a '/' in -run filters every test the pattern matches, so the subtest tops never share a
+    process with the plain ones) -- and the process walls, each set by its own half, spanned 2x on 11-27
+    while the bins looked balanced. Dealing a half at a time makes the balanced cost the cost of each
+    process: the run starts at most `lanes` plain processes and `lanes` per subtest -run. Every selected
+    test still runs exactly once: the union of the bins is the names the entries matched, and no name the
+    package does not list can run.
 
     names is the package's test list (oracle_test_names); None lists it lazily. weights is the
     "<test> <seconds>" table (dirac/oracle/testdata/ci-shard-seconds.txt); a test it does not list
@@ -963,12 +967,15 @@ def oracle_lanes(res, names=None, lanes=ORACLE_LANES, weights=None, zero=None):
     for i, tops in sub_tops.items():
         for n in tops:
             cost[("s%d" % i, n)] = 0.0 if n in zero else weights.get(n, dflt) * SLICE_SHARE
-    keys = sorted(cost)
-    flat = {"%s:%s" % k: cost[k] for k in keys}
     bins = {}
-    for part, name, _ in oracle_shard_deal.deal(list(flat), flat, lanes, default=dflt, zero=frozenset()):
-        kind, n = name.split(":", 1)
-        bins.setdefault(part, {}).setdefault(kind, []).append(n)
+    # one deal per half, each into its own `lanes` lane budget: the plain tests as one deal and each
+    # subtest -run's tops as a deal of their own, so a bin sum is a process's cost (a subtest top
+    # never shares a process with a plain test: a '/' in -run filters every other test's subtests).
+    halves = [("p", selected)] + [("s%d" % i, tops) for i, tops in sorted(sub_tops.items())]
+    for kind, members in halves:
+        flat = {n: cost[(kind, n)] for n in members}
+        for part, n, _ in oracle_shard_deal.deal(sorted(flat), flat, lanes, default=dflt, zero=frozenset()):
+            bins.setdefault(part, {}).setdefault(kind, []).append(n)
     out = []
     for i, entry in enumerate(res):
         if i == picks[0]:

@@ -335,7 +335,9 @@ if [ "$mode" = targeted ]; then
 		gojson "$(timeout_for "${r%%$'\t'*}")" -run "${r#*$'\t'}" "${r%%$'\t'*}" || finish ""
 	done
 	# ./dirac/oracle's replay slice: the selector deals it into cost-balanced lanes (test_targets.py
-	# oracle_lanes, the deal CI's oracle shards use), one process each, all concurrent. In one process the
+	# oracle_lanes, the deal CI's oracle shards use), one process each, all concurrent: the plain half
+	# into ORACLE_LANES bins and each subtest -run's tops into its own ORACLE_LANES, so a balanced bin
+	# sum is a process's own wall (at most ORACLE_LANES x (1 + the number of subtest -runs) processes). In one process the
 	# slice ran past the 5m cap on 34 of the last 40 targeted runs (11-27: ~200 top-level tests and ~500 s
 	# of summed test wall). Each lane keeps its own -json log; test_targets.py merge concatenates them into
 	# the run's stream and keeps the worst exit status, so the verdict line and the exit codes are the
@@ -478,8 +480,9 @@ fi
 # oracle_chunked RUN [SKIP]: ./dirac/oracle's tests matching RUN (less SKIP) in fixed chunks of their sorted names,
 # each its own go test call with the oracle's cap. 11-20: its census set (~120 tests) and step 4's named set (the
 # fast tier and every repro replay) each summed past the 5m cap in one call on a loaded box (0.2-0.7 idle cores),
-# so test-smart printed BUDGET for diffs that never touched the oracle. The cmd5 clean-pair ratchet (91-195 s) is
-# a chunk of its own. The chunks are the same on every run, so each keeps its test-cache entry.
+# so test-smart printed BUDGET for diffs that never touched the oracle. The cmd5 clean-pair ratchet is 8 shards
+# (11-27: 91-195 s whole), small enough to round-robin with the rest. The chunks are the same on every run, so
+# each keeps its test-cache entry.
 # ORACLE_CHUNKS round-robin chunks (11-21: 4 still let one chunk pass the 5m cap on a loaded gate box, test-smart
 # BUDGET on #3135's diff, which never touched the oracle; each extra chunk costs a few seconds of binary start).
 ORACLE_CHUNKS=8
@@ -491,9 +494,10 @@ oracle_chunked() {
 		capped 8G "$lcpu" env GOMAXPROCS="$lprocs" GOMEMLIMIT=6GiB go test -json -v -failfast -timeout "$(timeout_for ./dirac/oracle)" -run "$1" ${2:+-skip "$2"} ./dirac/oracle >>"$json" 2>&1
 		return
 	fi
-	! grep -qx 'TestCmd5SliceCleanOnlyGrows' <<<"$names" || chunks+=('^TestCmd5SliceCleanOnlyGrows$')
+	# 11-27: the cmd5 ratchet split into 8 shards (each ~15-35 s, was 91-195 s whole), so it round-robins
+	# with every other census test: no chunk of its own any more.
 	for ((k = 0; k < ORACLE_CHUNKS; k++)); do
-		rx=$(grep -vx 'TestCmd5SliceCleanOnlyGrows' <<<"$names" | awk -v k=$k -v n=$ORACLE_CHUNKS 'NR % n == k' | paste -sd'|')
+		rx=$(awk -v k=$k -v n=$ORACLE_CHUNKS 'NR % n == k' <<<"$names" | paste -sd'|')
 		[ -z "$rx" ] || chunks+=("^($rx)\$")
 	done
 	for rx in "${chunks[@]}"; do
