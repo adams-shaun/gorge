@@ -879,8 +879,13 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 		if origin == zHand || origin == zBattlefield {
 			return refuse("move %s->Battlefield", zoneLabel[origin])
 		}
-		if ferr := lc.entryFaceDown(ps, dest, &in); ferr != nil { // lower_facedownentry.go
+		if fdOverride, ferr := lc.entryFaceDown(ps, dest, &in); ferr != nil { // lower_facedownentry.go
 			return ferr
+		} else if fdOverride != nil {
+			if override != nil {
+				return refuse("FaceDownSetType$ beside StaticEffect$")
+			}
+			override = fdOverride
 		}
 		// Attacking$ True: the returned permanent enters attacking
 		// (gorge attackingParam; kernel MvAttacking). Any other value is
@@ -1019,6 +1024,9 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 		}
 		lc.emitOverride(lRef{Kind: rRemembered}, override, "Permanent|enterWith")
 		lc.ab.Prog[len(lc.ab.Prog)-1].Note = "applies to the returned object"
+		if override.FaceDownOnly {
+			lc.ab.Prog[len(lc.ab.Prog)-1].Note = "the face-down type set applies to the returned object while it is face down"
+		}
 		lc.ab.Prog[len(lc.ab.Prog)-1].Obj = obj
 	}
 	return nil

@@ -89,7 +89,12 @@ type entBatch struct {
 
 // enterHeld is enter with the enters check held in b.
 func (s *State) enterHeld(k *prep, b *entBatch, o Obj, ctrl uint8, tapped bool, from kop.Zone) Slot {
-	sl := s.enterNF(k, o, ctrl, tapped, from, 0)
+	return s.enterHeldFace(k, b, o, ctrl, tapped, from, 0)
+}
+
+// enterHeldFace is enterHeld with the face-down entry mark (0: face up).
+func (s *State) enterHeldFace(k *prep, b *entBatch, o Obj, ctrl uint8, tapped bool, from kop.Zone, face uint8) Slot {
+	sl := s.enterNF(k, o, ctrl, tapped, from, face)
 	if b.n < len(b.sl) {
 		b.sl[b.n], b.o[b.n] = sl, o
 		b.n++
