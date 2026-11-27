@@ -6078,7 +6078,11 @@ func (lc *lowerCtx) targetPlayerSearch(ps *params, origin, dest int) (claimed bo
 		return ownSearch, -1, err
 	}
 	tgtLib, err = lc.targetLibrarySearch(ps, origin)
-	return tgtLib >= 0, tgtLib, err
+	if err != nil || tgtLib >= 0 {
+		return tgtLib >= 0, tgtLib, err
+	}
+	claimed, err = lc.targetChooserPick(ps, origin) // lower_tutorpick.go
+	return claimed, -1, err
 }
 
 // libSearchOwner is the searched library's owner (searchOwner,

@@ -24,14 +24,16 @@ import "github.com/adams-shaun/gorge/engine/cards"
 // targetPlayerOwnSearch lowers the target of the library search the targeted
 // player makes of their own library and answers themself: DefinedPlayer$
 // Targeted (whose library) with Chooser$ Targeted (who answers) over one
-// ValidTgts$ Player slot, into the hand. It reports false, with nothing read,
+// ValidTgts$ Player slot, into the hand (or, with DefinedPlayer$ absent,
+// onto the battlefield: Fertilid). It reports false, with nothing read,
 // for any other ChangeZone; only this shape admits a ChangeType$ beside
 // ValidTgts$ for a library origin. The slot is the player target
 // definedPlayer reads next; Chooser$ is consumed here because the kernel's
 // default chooser is already that player.
 func (lc *lowerCtx) targetPlayerOwnSearch(ps *params, origin, dest int) (bool, error) {
-	if origin != zLibrary || dest != zHand || ps.peek("ValidTgts") != "Player" ||
-		ps.peek("DefinedPlayer") != "Targeted" || ps.peek("Chooser") != "Targeted" {
+	dp := ps.peek("DefinedPlayer")
+	if origin != zLibrary || dest != zHand && dest != zBattlefield || ps.peek("ValidTgts") != "Player" ||
+		dp != "Targeted" && dp != "" || ps.peek("Chooser") != "Targeted" {
 		return false, nil
 	}
 	for _, k := range []string{"TargetMin", "TargetMax", "OriginAlternative", "ChooseFromDefined", "RememberSearcher"} {
@@ -51,6 +53,13 @@ func (lc *lowerCtx) targetPlayerOwnSearch(ps *params, origin, dest int) (bool, e
 	}
 	lc.addTarget(lTarget{F: pf})
 	ps.consume("Chooser", "TgtPrompt")
+	if dp == "" {
+		// Fertilid's "target player searches their library for a basic
+		// land card, puts it onto the battlefield tapped": no
+		// DefinedPlayer$, so gorge's searchPlayersFor reads the owners off
+		// the targets, the same library DefinedPlayer$ Targeted names.
+		ps.m["DefinedPlayer"] = "Targeted"
+	}
 	return true, nil
 }
 
