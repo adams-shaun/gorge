@@ -118,6 +118,35 @@ func (g *grantSrch) sacXLast(t *State, sl Slot, cs *[MaxPerm]Slot, anyCol bool) 
 	return false
 }
 
+// planFirst is the grant search's root probe for a play one activation of a
+// plain-creature sacrifice source pays alone: gorge's planner (autoPayOffer's
+// last-resort arm, pay.PlanOtherSacShape) funds it before the prefix search is
+// asked for any gap, so no census-gap unit (a granted ability's {T}) floats
+// beside it. The first such source in gorge's plan order (planOtherSacSourceOrder)
+// is walked ahead of the gaps before it; any other node, and a source needing a
+// unit before it, stay the battlefield-order walk.
+func (g *grantSrch) planFirst(t *State, sacd bool, stepped *slotMask) (found, stop bool) {
+	if g.np != 0 || g.gapN < 2 {
+		return false, false
+	}
+	for i := 0; i < g.gapN; i++ {
+		sl := g.cand[i]
+		if !g.sacx[i] || !g.sacXLive(t, i, sl) || !t.planOtherSacSource(g.k, sl) {
+			continue
+		}
+		ab := g.k.tapXAbOf(t.cardAt(sl))
+		var cs [MaxPerm]Slot
+		if t.sacXCands(g.k, g.p, sl, ab, &cs) == 0 || !g.sacXLast(t, sl, &cs, kop.SacXAnyColour(ab)) {
+			continue
+		}
+		if i == 0 {
+			return false, false // already the walk's first gap
+		}
+		return g.gapVisit(t, i, sacd, stepped)
+	}
+	return false, false
+}
+
 // sacXAct is sacXBranch's activation of the sacrifice-another ability: the
 // sacrifice ask, then the colour ask of an any-colour production.
 func (g *grantSrch) sacXAct(t *State, i int, sl Slot) bool {
