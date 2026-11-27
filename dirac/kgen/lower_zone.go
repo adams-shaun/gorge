@@ -2833,16 +2833,8 @@ func (lc *lowerCtx) play(ps *params) error {
 			}
 			return emit(obj, zHand, saExpr)
 		}
-		if obj, filter, ok, err := lc.playTriggeredPlayerHand(valid); ok && vzone == "Hand" && !forget {
-			// the trigger's damaged player's hand (lower_playtrigplayer.go)
-			if err != nil {
-				return err
-			}
-			expr, err := andFilterExpr(filter, saExpr)
-			if err != nil {
-				return err
-			}
-			return emit(obj, zHand, expr)
+		if handled, err := lc.playTriggeredPlayerHand(valid, vzone, forget, saExpr, emit); handled {
+			return err // the trigger's damaged player's hand (lower_playtrigplayer.go)
 		}
 		// P3/P4: untargeted filter population over the controller's hand or
 		// the graveyards, in seat order.

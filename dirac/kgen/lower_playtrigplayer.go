@@ -10,8 +10,26 @@ import "strings"
 // population is RefTriggerPlayer's hand and the control predicate drops: the
 // ref picks the seat. The remaining Valid$ qualifiers become the filter. It
 // reports false for any other spelling; a referent that is not the
-// trigger's player refuses.
-func (lc *lowerCtx) playTriggeredPlayerHand(valid string) (lRef, string, bool, error) {
+// trigger's player refuses. emit builds the CastFree over the hand.
+func (lc *lowerCtx) playTriggeredPlayerHand(valid, vzone string, forget bool, saExpr string, emit func(lRef, int, string) error) (bool, error) {
+	obj, filter, ok, err := lc.playTriggeredPlayerHandShape(valid)
+	if !ok || vzone != "Hand" || forget {
+		return false, nil
+	}
+	if err != nil {
+		return true, err
+	}
+	filter, err = andFilterExpr(filter, saExpr)
+	if err != nil {
+		return true, err
+	}
+	return true, emit(obj, zHand, filter)
+}
+
+// playTriggeredPlayerHandShape matches a Card.<qualifier>*ControlledBy|OwnedBy
+// TriggeredTarget spelling and returns the trigger-player referent plus the
+// remaining qualifiers as a card filter.
+func (lc *lowerCtx) playTriggeredPlayerHandShape(valid string) (lRef, string, bool, error) {
 	quals, ok := strings.CutPrefix(valid, "Card.")
 	if !ok || strings.ContainsAny(quals, ",.") {
 		return lRef{}, "", false, nil
