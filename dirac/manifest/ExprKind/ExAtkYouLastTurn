@@ -1,0 +1,8 @@
+family: ExprKind
+name: ExAtkYouLastTurn
+value: next
+forge: HasPropertyattackedYouTheirLastTurn
+state: code 0
+status: active
+ticket: gap-trigger-shapes-remaining
+doc: the count of the controller's living opponents that attacked the controller during their last turn (gorge PlayerCountPlayers$HasPropertyattackedYouTheirLastTurn); reads the per-seat attack record of trig_atklastturn.go.
