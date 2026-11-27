@@ -2415,29 +2415,51 @@ func (lc *lowerCtx) playSAExpr(v string) (string, error) {
 			return "", refuse("spell-ability filter ValidSA %q", v)
 		}
 		for _, p := range parts[1:] {
-			switch {
-			case isCmcLEVar(p):
-				clause = andClause(clause, p)
-			case spellHead && lc.bluffPlay && playNonCreatureYouOwn(p):
-				// Spell.nonCreature+YouOwn (Brazen Bluff's free cast from hand)
-				clause = andClause(clause, p)
-			case strings.HasPrefix(p, "cmcLE"), strings.HasPrefix(p, "cmcLT"), strings.HasPrefix(p, "cmcEQ"):
-				if _, err := strconv.Atoi(p[5:]); err != nil {
-					return "", refuse("spell-ability filter ValidSA %q", v)
-				}
-				if spellHead && !strings.HasPrefix(p, "cmcLE") {
-					return "", refuse("spell-ability filter ValidSA %q", v)
-				}
-				clause = andClause(clause, p)
-			default:
-				return "", refuse("spell-ability filter ValidSA %q", v)
+			add, err := lc.playSAProp(p, spellHead, v)
+			if err != nil {
+				return "", err
 			}
+			clause = andClause(clause, add)
 		}
 		if clause != "" {
 			alts = append(alts, clause)
 		}
 	}
 	return strings.Join(alts, ","), nil
+}
+
+// playSAProp reads one +-joined ValidSA$ property after the shape head. The
+// vocabulary is validSAOK's (engine/effects/play.go): a mana-value bound, a
+// creature type word (Scarlet Witch's Spell.Hero), the nonCreature negation,
+// and -- over the resolving controller's own hand -- the YouOwn provenance
+// marker (West Coast Expansion's Spell.Hero+YouOwn), which that walk already
+// enforces. Anything else refuses by the whole spec, as before.
+func (lc *lowerCtx) playSAProp(p string, spellHead bool, spec string) (string, error) {
+	var out string
+	for _, seg := range strings.Split(p, "+") {
+		switch {
+		case isCmcVar(seg):
+			out = andClause(out, seg)
+		case spellHead && lc.bluffPlay && seg == "YouOwn":
+			// gorge validSAOK passes the ownership marker through: the
+			// hand walk reads only the controller's own cards
+		case spellHead && effects.CreatureTypeWords(seg):
+			out = andClause(out, seg)
+		case spellHead && seg == "nonCreature":
+			out = andClause(out, seg)
+		case strings.HasPrefix(seg, "cmcLE"), strings.HasPrefix(seg, "cmcLT"), strings.HasPrefix(seg, "cmcEQ"):
+			if _, err := strconv.Atoi(seg[5:]); err != nil {
+				return "", refuse("spell-ability filter ValidSA %q", spec)
+			}
+			if spellHead && !strings.HasPrefix(seg, "cmcLE") {
+				return "", refuse("spell-ability filter ValidSA %q", spec)
+			}
+			out = andClause(out, seg)
+		default:
+			return "", refuse("spell-ability filter ValidSA %q", spec)
+		}
+	}
+	return out, nil
 }
 
 // playSpellMVFlag is OpCastFree's SpellMV flag: set when the filter's mana-value
@@ -2451,16 +2473,22 @@ func playSpellMVFlag(saExpr, valid string) string {
 	return ""
 }
 
-// isCmcLEVar reports a mana-value bound named by a one-letter SVar: cmcLEX,
-// cmcLEY (Captain Benjamin Sisko's Officer count). gorge reads any one
-// capital letter from the resolving ability's SVar table
-// (effects/play.go validSAOK).
-func isCmcLEVar(p string) bool {
-	return len(p) == 6 && strings.HasPrefix(p, "cmcLE") && p[5] >= 'A' && p[5] <= 'Z'
+// isCmcVar reports a mana-value bound named by a one-letter SVar: cmcLEX,
+// cmcLEY (Captain Benjamin Sisko's Officer count), cmcLTX (Rashmi and
+// Ragavan's artifact count) and cmcEQX. gorge reads any one capital letter
+// from the resolving ability's SVar table (effects/play.go validSAOK); the
+// filter parser resolves the letter (filter.go's cmc prefix arm, build.go's
+// cmpCMC bound).
+func isCmcVar(p string) bool {
+	if len(p) != 6 || p[5] < 'A' || p[5] > 'Z' {
+		return false
+	}
+	switch p[:5] {
+	case "cmcLE", "cmcLT", "cmcEQ":
+		return true
+	}
+	return false
 }
-
-// playNonCreatureYouOwn is the ValidSA$ property pair nonCreature+YouOwn.
-func playNonCreatureYouOwn(p string) bool { return p == "nonCreature+YouOwn" }
 
 // playOwnHand is a Play whose candidates are the resolving controller's hand:
 // Valid$ Card, ValidZone$ Hand, no target, no Defined$, no Controller$ other
@@ -2541,7 +2569,7 @@ func (lc *lowerCtx) playRememberedAlt(alt, valid string) (string, error) {
 			// owned by the controller: kept as a filter clause (a library can
 			// hold a card another player owns), not assumed from the Dig
 			cmc = andClause(cmc, part)
-		case isCmcLEVar(part):
+		case isCmcVar(part):
 			cmc = andClause(cmc, part)
 		case strings.HasPrefix(part, "cmcLE"), strings.HasPrefix(part, "cmcLT"), strings.HasPrefix(part, "cmcEQ"):
 			if _, err := strconv.Atoi(part[5:]); err != nil {
@@ -2573,28 +2601,21 @@ func (lc *lowerCtx) playRememberedAlt(alt, valid string) (string, error) {
 // play lowers api:Play's four resolution-time free-cast spellings.
 func (lc *lowerCtx) play(ps *params) error {
 	// Named parameters this reader does not model: refuse rather than drop.
+	// A parameter the ability reader already modelled (SorcerySpeed$ on an
+	// AB, which sets the ability's timing) is not one this reader drops.
 	for _, k := range []string{"PlayCost", "WithTotalCMC", "ManaConversion",
-		"SorcerySpeed", "ShowCardToActivator", "ImprintPlayed", "ReplaceGraveyardValid", "TargetMin", "TargetMax"} {
-		if _, ok := ps.get(k); ok {
+		"SorcerySpeed", "ShowCardToActivator", "ReplaceGraveyardValid", "TargetMin", "TargetMax"} {
+		if _, ok := ps.m[k]; ok && !ps.used[k] {
 			return refuse("Play %s", k)
 		}
 	}
-	// CopyCard$ True (CR 707.12): the cast is of a copy of the card.
-	// Read exactly for the one shape the kernel proves in lockstep: the
-	// remembered cards in exile (Valid$ Card.IsRemembered, ValidZone$ Exile),
-	// ValidSA$ Spell, free and optional. Every other population (Defined$,
-	// targets, hand/graveyard, ExiledWith) is refused: a Defined$ Remembered
-	// card may be in any zone, which the kernel's exile population does not
-	// see.
-	copyCard := false
-	if v, ok := ps.get("CopyCard"); ok {
-		if v != "True" {
-			return refuse("Play CopyCard %q", v)
-		}
-		if err := lc.playCopyPopOK(ps); err != nil { // lower_playcopypop.go
-			return err
-		}
-		copyCard = true
+	imprintPlayed, err := lc.playImprint(ps) // lower_playimprint.go
+	if err != nil {
+		return err
+	}
+	copyCard, err := lc.playCopyCard(ps) // lower_playcopypop.go
+	if err != nil {
+		return err
 	}
 	hideDef := ps.m["Defined"] == "ExiledWith" // the Hideaway Play keeps its ConditionCheckSVar$ gate (nodeCondition)
 	for _, k := range sortedParamKeys(ps.m) {
@@ -2659,6 +2680,10 @@ func (lc *lowerCtx) play(ps *params) error {
 		}
 		replace = true
 	}
+	landPlay := playLandShape(ps, paid, mandatory, copyCard, repeat, upTo, forget, replace, amount)
+	if err := playImprintShapeOK(imprintPlayed, hideDef, landPlay); err != nil {
+		return err
+	}
 	if hideDef {
 		// the Hideaway card's Play (lower_hideaway.go)
 		for _, k := range []string{"Valid", "ValidZone", "ValidTgts", "ValidSA"} {
@@ -2678,7 +2703,6 @@ func (lc *lowerCtx) play(ps *params) error {
 	// cards that player owns, so YouOwn filters nothing there
 	lc.bluffPlay = playRememberedEmptyKey(ps, "ConditionDefined") || playOwnHand(ps)
 	var saExpr string
-	landPlay := playLandShape(ps, paid, mandatory, copyCard, repeat, upTo, forget, replace, amount)
 	if !playCommandZone(ps) && !landPlay {
 		// (the command-zone Play reads its absent ValidSA$: lower_playcommand.go)
 		sa, _ := playDefaultValidSA(ps)
@@ -2729,6 +2753,7 @@ func (lc *lowerCtx) play(ps *params) error {
 		cs += "|UpTo"
 	}
 	cs += playRememberFlags(forget, remember)
+	cs += playImprintFlag(imprintPlayed)
 	if replace {
 		cs += "|ReplaceGY"
 	}
@@ -2844,8 +2869,11 @@ func (lc *lowerCtx) play(ps *params) error {
 			return err // the trigger's damaged player's hand (lower_playtrigplayer.go)
 		}
 		// P3/P4: untargeted filter population over the controller's hand or
-		// the graveyards, in seat order.
-		if !strings.Contains(valid, "YouOwn") && !strings.Contains(valid, "YouCtrl") && !playThisTurnCastHand(valid, vzone) && !(valid == "Card" && (playRememberedEmptyKey(ps, "ConditionDefined") || playOwnHand(ps)) && ps.str("ValidSA") == "Spell.nonCreature+YouOwn") {
+		// the graveyards, in seat order. A Valid$ with an ownership clause
+		// carries it; the hand walk is the controller's own cards, so a
+		// ValidSA$ YouOwn marker is provenance only (Brazen Bluff's
+		// Spell.nonCreature+YouOwn, West Coast Expansion's Spell.Hero+YouOwn).
+		if !strings.Contains(valid, "YouOwn") && !strings.Contains(valid, "YouCtrl") && !playThisTurnCastHand(valid, vzone) && !(valid == "Card" && (playRememberedEmptyKey(ps, "ConditionDefined") || playOwnHand(ps)) && strings.Contains(ps.str("ValidSA"), "YouOwn")) {
 			return refuse("Play Valid$ %q without YouOwn/YouCtrl", valid)
 		}
 		if forget {

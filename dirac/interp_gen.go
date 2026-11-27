@@ -697,6 +697,9 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		if in.C&(1<<13) != 0 {
 			s.g.freeP |= freeRemember // RememberPlayed$ True (cast_playremember.go)
 		}
+		if uint16(in.C)&castFreeImprint != 0 {
+			s.g.freeP |= freeImprint // ImprintPlayed$ True (cast_playimprint.go)
+		}
 		s.res.ask, s.res.askP = raGenCastFree, e.ctrl
 		return false, true
 	case kop.OpMayPlay:
