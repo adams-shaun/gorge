@@ -1819,12 +1819,15 @@ func (s *State) returnCtrl(k *prep, in *kop.Instr, ob *object) uint8 {
 	if in.Op == kop.OpReturnEx && in.B.N&kop.RetUnderOpponent != 0 {
 		ctrl = s.retUnderOppSeat(s.res.e.ctrl) // GainControl$ ChosenPlayer (kop.RetUnderOpponent; zone_returndefender.go)
 	}
-	if in.W != kop.RefNone && (in.Op != kop.OpReturnEx || in.B.N&kop.RetAttachW == 0) {
+	if in.W != kop.RefNone && (in.Op != kop.OpReturnEx || in.B.N&(kop.RetAttachTo|kop.RetAttachW) != kop.RetAttachTo|kop.RetAttachW) {
 		// GainControl$ Player.IsRemembered inside an OpRepeatEachPlayer
 		// body: the card enters under the repeated player (Thieves'
-		// Auction, kgen's W ref). RetAttachW reads W as the AttachedTo$
-		// bearer Ref instead (Gift of Immortality's delayed return), so it
-		// is not a player.
+		// Auction, kgen's W ref). RetAttachW names the AttachedTo$ bearer
+		// Ref instead (Gift of Immortality's delayed return), but an
+		// OpReturnEx B.N also holds a WithCountersType$ kind, and every
+		// kind of 128 or more sets bit 7 by coincidence. Only the bearer
+		// form carries RetAttachTo beside it, so only that skips the
+		// player read.
 		if p := s.playerRef(k, in.W); p != 255 {
 			ctrl = p
 		}
