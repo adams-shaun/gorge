@@ -40,15 +40,16 @@ type altGrantRef struct {
 }
 
 // altGrants lists the battlefield grants that let p cast hand card o (card c)
-// for a mana alternative cost, in the order gorge's alternativeCosts lists
-// them: p's battlefield in entry order (battlefieldOrder), a permanent's
-// grants in script order. It returns how many grants apply, which may exceed
-// maxAltGrants (out holds the first maxAltGrants). A grant is read relative to its controller
-// (ValidPlayer$ You), so only p's own permanents grant, and a permanent that
-// lost its abilities grants nothing.
+// for an alternative cost, in the order gorge's alternativeCosts lists them:
+// the battlefield in entry order (battlefieldOrder), a permanent's grants in
+// script order. A grant with kop.StAltAnyCaster applies to every player's
+// spell, so every player's permanents are scanned; a controller-only grant is
+// filtered out by altGrantApplies. It returns how many grants apply, which may
+// exceed maxAltGrants (out holds the first maxAltGrants). A permanent that lost
+// its abilities grants nothing.
 func (s *State) altGrants(k *prep, p uint8, o Obj, c CardID, out *[maxAltGrants]altGrantRef) int {
 	var hit slotMask
-	for m := s.statM.and(s.ctrlM[p]); m.any(); m = m.rest() {
+	for m := s.statM; m.any(); m = m.rest() {
 		src := m.first()
 		if s.perms[src].ovr.flags&(ovLoseAll|ovLoseAllEOT) != 0 || s.ovrLoses(k, src) {
 			continue
@@ -81,18 +82,27 @@ func (s *State) altGrants(k *prep, p uint8, o Obj, c CardID, out *[maxAltGrants]
 	return n
 }
 
-// altGrantApplies reports whether ability a of p's permanent src is a grant of
-// a mana alternative cost that applies to the cast of card c: the ValidCard$
-// filter (read with p as "you"; none matches any spell) and the static's
-// condition (read with src as its source and p the controller).
+// altGrantApplies reports whether ability a of permanent src is a grant of an
+// alternative cost that applies to the cast of card c: the ValidCard$ filter
+// (read with the granter's controller as "you"; none matches any spell) and
+// the static's condition (read with src as its source and the controller).
+// Without kop.StAltAnyCaster only the granter's controller's spells apply;
+// with it every player's spell does.
 func (s *State) altGrantApplies(k *prep, p uint8, src Slot, a *kop.Ability, c CardID) bool {
 	if a.Kind != kop.AbStatic || a.Static.Kind != kop.StatAlternativeCost || a.Static.StFlags&kop.StAltGrant == 0 {
 		return false
 	}
-	if a.Static.Filter != 0 && !s.matchCard(k, a.Static.Filter, c, p, p) {
+	anyCaster := a.Static.StFlags&kop.StAltAnyCaster != 0
+	ctrl := p
+	if anyCaster {
+		ctrl = s.perms[src].ctrl
+	} else if s.perms[src].ctrl != p {
 		return false
 	}
-	return a.Static.Cond2 == 0 || s.condEval(k, a.Static.Cond2, evalCtx{src: s.perms[src].obj, srcSl: src, ctrl: p})
+	if a.Static.Filter != 0 && !s.matchCard(k, a.Static.Filter, c, ctrl, ctrl) {
+		return false
+	}
+	return a.Static.Cond2 == 0 || s.condEval(k, a.Static.Cond2, evalCtx{src: s.perms[src].obj, srcSl: src, ctrl: ctrl})
 }
 
 func (s *State) altGrantAb(k *prep, g altGrantRef) *kop.Ability {
@@ -107,9 +117,10 @@ func (s *State) offerAltGrantHand(k *prep, d *Decision, p uint8, o Obj, c CardID
 	}
 }
 
-// offerAltGrants offers hand card o's casts for the mana alternative costs
-// the battlefield grants (altGrants): one cast per grant, at its AltCostIndex.
+// offerAltGrants offers hand card o's casts for the alternative costs the
+// battlefield grants (altGrants): one cast per grant, at its AltCostIndex.
 // The gates are offerAltFreeHand's: target and additional-cost feasibility,
+// the grant cost's pick parts (Dream Halls' colour-share discard, CR 601.2h),
 // and the planner-surface rule (the payment planner skips AltCostIndex
 // options, gorge payment_plan.go), so a priced alternative is offered only
 // while the floating pool pays what the cost statics make of it. A free grant
@@ -142,7 +153,11 @@ func (s *State) offerAltGrants(k *prep, d *Decision, p uint8, o Obj, c CardID, a
 		return
 	}
 	for i := 0; i < n; i++ {
-		ac := s.adjustCost(k, p, c, o, s.altGrantAb(k, gr[i]).Cost.Mana)
+		ab := s.altGrantAb(k, gr[i])
+		if !s.pickCostPayable(k, p, &ab.Cost, o) {
+			continue
+		}
+		ac := s.adjustCost(k, p, c, o, ab.Cost.Mana)
 		if ac != (kop.ManaCost{}) && (!av.affords(&ac, pipMaskOf(&ac), 0) || !s.windowPoolPays(p, &ac, false)) {
 			continue
 		}
