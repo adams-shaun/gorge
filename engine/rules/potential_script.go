@@ -1183,6 +1183,43 @@ func scriptManaTwins(r scriptManaAbilities, p state.PlayerID, a, b state.ObjID) 
 // payer can activate at priority, the search's one branching move.
 func scriptActivate(o *decision.Option) bool { return o.Kind == "activate" }
 
+// scriptTapsSource reports whether the mana ability at flat pile index
+// `ability` of id pays id's own {T}. A granted or gained ability (one outside
+// the printed pile) is not guessed: its cost is unknown here, so the one-tap
+// rule below leaves it alone rather than shortening a legal script.
+func scriptTapsSource(c *Engine, id state.ObjID, ability int) bool {
+	o := c.G.Obj(id)
+	if o == nil {
+		return false
+	}
+	pa, ok := o.PileAbilityAt(ability)
+	if !ok || pa.SA == nil {
+		return false
+	}
+	return c.abilityCompiledCost(pa.SA).Cost.Tap
+}
+
+// pathPaidTap reports whether the script has already paid a {T} cost of id.
+// The searched prefix is ONE payment window (CR 601.2g-i through 602.2b): a
+// source whose own tap an earlier step paid is tapped for the rest of it, so
+// it is not a second unit even when an untap trigger the tap set off has
+// resolved inside the script. The kernel's ordered prefix taps each gap
+// source once (dirac's scriptDFS/resolvePrefixStack); without this guard the
+// search re-taps the untapped source and floats mana the kernel never makes.
+func (sr *scriptSearch) pathPaidTap(c *Engine, id state.ObjID) bool {
+	for _, st := range sr.path {
+		if st.Kind != decision.KPriority {
+			continue
+		}
+		for _, pk := range st.Picks {
+			if pk.Kind == "activate" && pk.Obj == id && scriptTapsSource(c, id, pk.Ability) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // scriptOptionKey is a source's activate-option signature at d: the labels,
 // symbols and ability indices the decision offers for it, in engine order.
 func scriptOptionKey(d *decision.Decision, id state.ObjID) string {
@@ -1268,6 +1305,12 @@ func (sr *scriptSearch) activations(pool *Engine, c *Engine, d *decision.Decisio
 			}
 			if sr.ownTapSource(c, opt.Obj) {
 				continue // its mana would tap the play's own {T} cost source (CR 602.2b)
+			}
+			if scriptTapsSource(c, opt.Obj, opt.Ability) && sr.pathPaidTap(c, opt.Obj) {
+				// One payment window taps a source once: an untap trigger
+				// resolving inside the prefix does not make it a second unit
+				// (CR 601.2g-i; the kernel's scriptDFS taps each gap once).
+				continue
 			}
 			twin := false
 			if sr.feeOnly || sr.twinCut {
