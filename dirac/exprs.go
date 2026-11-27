@@ -808,6 +808,14 @@ func (s *State) refPlayer(k *prep, r kop.Ref, ctx evalCtx) uint8 {
 			return s.ctrlOfObj(o)
 		}
 		return e.trigPl
+	case kop.RefTargetCtrlLive:
+		// gorge ParentTargetedController: the live controller read
+		// (resolve.go playerRef / tgt_stackability.go tgtCtrlLive). Only the
+		// resolving entry has target slots.
+		if e != &s.res.e {
+			return 255
+		}
+		return s.tgtCtrlLive(0)
 	case kop.RefTarget0, kop.RefTarget1, kop.RefTarget2, kop.RefTarget3, kop.RefTarget4, kop.RefTargetController, kop.RefTargetOwner:
 		i, _ := tgtSlot(r)
 		t := e.tgt[i]

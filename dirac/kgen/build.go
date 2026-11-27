@@ -2367,6 +2367,11 @@ func (cb *cardBuilder) ref(r lRef) (kop.Ref, error) {
 			return kop.RefTargetController, nil
 		}
 		return kop.RefTargetOwner, nil
+	case rTargetCtrlLive:
+		if r.N != 0 {
+			return 0, fmt.Errorf("live controller of target slot %d", r.N)
+		}
+		return kop.RefTargetCtrlLive, nil
 	case rSelf:
 		return kop.RefSelf, nil
 	case rYou:

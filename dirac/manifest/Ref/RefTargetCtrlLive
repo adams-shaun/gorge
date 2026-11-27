@@ -1,0 +1,7 @@
+family: Ref
+name: RefTargetCtrlLive
+value: next
+state: code 0
+status: active
+ticket: gap-defined-refs
+doc: the controller of target 0 read live at resolution (gorge Defined$ ParentTargetedController, effects context.go controllersOf(parentLinkTargets)): a target player is that player, a stack ability or spell its controller, a battlefield permanent its current controller, and a target that left the battlefield its owner (CR 400.7 resets the controller), never the last-known controller RefTargetController reads for a departed target. Unlicensed Disintegration's damage after its parent destroyed the creature; Season of the Burrow's draw after its parent exiled it.

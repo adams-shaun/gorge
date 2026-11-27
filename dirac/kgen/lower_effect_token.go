@@ -47,17 +47,15 @@ func (lc *lowerCtx) token(ps *params) error {
 		// controller, its RememberLKI$ capture once it left the battlefield
 		owner = lRef{Kind: rRememberedController}
 	} else if ok {
-		if (o == "Targeted" || o == "TargetedPlayer") && strings.TrimSpace(ps.str("ValidTgts")) != "" {
+		if (o == "Targeted" || o == "TargetedPlayer" || o == "ThisTargetedPlayer") && strings.TrimSpace(ps.str("ValidTgts")) != "" {
 			// gorge's tokenOwnerPlayers (effects/token.go:144) reads
-			// definedSpec for Targeted/TargetedPlayer: the Token SA's own
-			// targets, so its own ValidTgts$ answers, not the chain's last
-			// slot. Only a player-only, one-target declaration is exact; a
-			// count rider would make the created token's owner ambiguous
-			// here.
-			for _, k := range []string{"TargetMin", "TargetMax", "TargetUnique", "TgtZone"} {
-				if _, ok := ps.get(k); ok {
-					return refuse("Token TokenOwner$ %q with %s$", o, k)
-				}
+			// definedSpec for Targeted/TargetedPlayer/ThisTargetedPlayer: the
+			// Token SA's own targets, so its own ValidTgts$ answers, not the
+			// chain's last slot. Only a player-only declaration is exact; a
+			// count rider would make the created token's owner ambiguous here.
+			unique, err := tokenOwnerTargetRiders(ps, o)
+			if err != nil {
+				return err
 			}
 			vt := ps.str("ValidTgts")
 			pf, err := lc.filter(vt)
@@ -67,7 +65,7 @@ func (lc *lowerCtx) token(ps *params) error {
 			if pf.Players == 0 || len(pf.Clauses) != 0 {
 				return refuse("Token TokenOwner$ %q ValidTgts$ %q", o, vt)
 			}
-			owner = lRef{Kind: rTarget, N: lc.addTarget(lTarget{F: pf, Zone: zNone})}
+			owner = lRef{Kind: rTarget, N: lc.addTarget(lTarget{F: pf, Zone: zNone, Unique: unique})}
 			ps.consume("ValidTgts", "TgtPrompt")
 		} else if owner, err = lc.defined(o); err != nil {
 			return err
