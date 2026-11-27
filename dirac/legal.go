@@ -802,7 +802,77 @@ func (s *State) actSourcesAfford(k *prep, sl Slot, ab int, a *kop.Ability, mana 
 		// (mana_sorcerygap.go)
 		return !s.sorceryGapSearched(k, sl, ab, a, &manaCost, av) || s.actScriptPays(k, sl, ab, a)
 	}
-	return s.actScriptPays(k, sl, ab, a)
+	if s.actScriptPays(k, sl, ab, a) {
+		return true
+	}
+	return s.actOtherSacOffers(k, sl, a, &manaCost, av)
+}
+
+// actOtherSacOffers is actSourcesAfford's last arm: a battlefield activation
+// the plain census and the filter script cannot price, but gorge's payment
+// planner prices by activating a sacrifice-another source as its last resort
+// (pay.PlanOtherSacShape; legal_walk_autopay.go autoPayOffer's planner arm,
+// autoPayFast refusing every other-sacrifice part). A cost that spends the
+// activation's own source ({T}, {Q}, a self-sacrifice) reserves it from
+// other-sacrifice victims (potential_plan.go kept/tapped, pay.planVictimReserve),
+// so no candidate takes it. A cost that leaves the source free lets the planner
+// sacrifice it to fund the play; the prefix search ends any line that takes it
+// (potential_script.go leftOwnZone), so only this gate prices that shape. One
+// activation per fundable candidate -- each takes one victim and produces the
+// source's mana -- joins the plain census; the activation's mana is priced
+// against it with the source's own {T} still held out (abilityAffords). Only
+// the real offer walk: inside a script walk the tapX prefix search owns these
+// sources (scriptOffers; the hand activations' handActCensusPays split). Cold,
+// out of line.
+//
+//go:noinline
+func (s *State) actOtherSacOffers(k *prep, sl Slot, a *kop.Ability, mana *kop.ManaCost, av *avail) bool {
+	if s.g.availX != 0 || k.gen == nil || !k.tapMana {
+		return false
+	}
+	p := s.perms[sl].ctrl
+	for b := s.scriptTapXModelled(k, p); b.any(); b = b.rest() {
+		sx := b.first()
+		if !s.planOtherSacSource(k, sx) {
+			continue // only a plain creature victim's source (gorge's plan enumerates those)
+		}
+		ox := k.tapXAbOf(s.cardAt(sx))
+		if kop.RestrictedTapXOneShape(ox) ||
+			ox.ManaRestrict != 0 || ox.ManaRestrictAb != 0 || ox.AFlags&kop.AfManaNonSpell != 0 {
+			continue // a spend-restricted source's unit is the census's own concern (availTapX)
+		}
+		var cs [MaxPerm]Slot
+		n := s.sacXCands(k, p, sx, ox, &cs)
+		if a.Cost.Flags&(kop.CostTap|kop.CostUntapSelf|kop.CostSacSelf) != 0 {
+			// A cost that spends the activation's own source reserves it from
+			// the plan's victims (potential_plan.go kept/tapped): drop it
+			// before counting. sacXCands makes this exclusion only under a
+			// live build (buildSelfTap), and a source a free cost leaves
+			// behind may fund the play by being sacrificed.
+			m := 0
+			for i := 0; i < n; i++ {
+				if cs[i] == sl {
+					continue
+				}
+				cs[m] = cs[i]
+				m++
+			}
+			n = m
+		}
+		if n == 0 {
+			continue // no fundable victim: the planner's last-resort unit is refused (pay.otherSacFundable)
+		}
+		mask, per := tapXUnit(ox)
+		var t avail
+		t = *av
+		for i := 0; i < n; i++ {
+			t.addUnits(mask, per)
+		}
+		if s.abilityAffords(k, sl, a, mana, &t) {
+			return true
+		}
+	}
+	return false
 }
 
 // sourcesPay reports whether an activation's mana cost is priced against the
