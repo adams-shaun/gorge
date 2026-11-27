@@ -301,7 +301,7 @@ fi
 # ---- test-targeted -----------------------------------------------------------------------------------
 if [ "$mode" = targeted ]; then
 	sel=$("${py[@]}" select --base "$BASE") || verdict FAIL "selection failed: $sel"
-	whole=() named=() runs=() dirac=0
+	whole=() named=() runs=() lanes=() dirac=0
 	while IFS=$'\t' read -r kind pkg rx; do
 		[ -n "$kind" ] || continue
 		case $pkg in ./dirac*) dirac=1 ;; esac
@@ -309,13 +309,15 @@ if [ "$mode" = targeted ]; then
 		whole) whole+=("$pkg") ;;
 		named) runs+=("$pkg"$'\t'"$rx"); named+=("$mod/${pkg#./}") ;;
 		census) runs+=("$pkg"$'\t'"$rx") ;;
+		oraclelane) lanes+=("$pkg"$'\t'"$rx"); named+=("$mod/${pkg#./}") ;;
 		excluded) echo "test-targets: note: $pkg imports a changed package but is over budget; it runs post-merge" >&2; continue ;;
 		esac
-		pkgs_label=${pkgs_label:+$pkgs_label,}$pkg
+		case ",$pkgs_label," in *",$pkg,"*) ;; *) pkgs_label=${pkgs_label:+$pkgs_label,}$pkg ;; esac
 	done <<<"$sel"
-	echo "== selection: ${#whole[@]} whole, ${#runs[@]} named/census"
+	echo "== selection: ${#whole[@]} whole, ${#runs[@]} named/census, ${#lanes[@]} oracle lanes"
 	for w in "${whole[@]+"${whole[@]}"}"; do echo "   whole  $w"; done
 	for r in "${runs[@]+"${runs[@]}"}"; do echo "   named  ${r%%$'\t'*}"; done
+	for l in "${lanes[@]+"${lanes[@]}"}"; do echo "   lane   ${l%%$'\t'*}"; done
 	# gofmt and vet on the Go files this change touches.
 	mb=$(git merge-base "$BASE" HEAD)
 	files=$({ git diff --name-only --diff-filter=d "$mb" -- '*.go'; git ls-files -o --exclude-standard -- '*.go'; } | sort -u)
@@ -332,6 +334,33 @@ if [ "$mode" = targeted ]; then
 	for r in "${runs[@]+"${runs[@]}"}"; do
 		gojson "$(timeout_for "${r%%$'\t'*}")" -run "${r#*$'\t'}" "${r%%$'\t'*}" || finish ""
 	done
+	# ./dirac/oracle's replay slice: the selector deals it into cost-balanced lanes (test_targets.py
+	# oracle_lanes, the deal CI's oracle shards use), one process each, all concurrent. In one process the
+	# slice ran past the 5m cap on 34 of the last 40 targeted runs (11-27: ~200 top-level tests and ~500 s
+	# of summed test wall). Each lane keeps its own -json log; test_targets.py merge concatenates them into
+	# the run's stream and keeps the worst exit status, so the verdict line and the exit codes are the
+	# single run's: a FAIL, a build error or a BUDGET in any lane wins over a passing one.
+	if [ "${#lanes[@]}" -gt 0 ]; then
+		lane_dir=.ds4/scratch/test/lanes-${sha%+dirty}
+		rm -rf "$lane_dir" && mkdir -p "$lane_dir" || finish ""
+		lane_logs=() lane_pids=() n=0
+		for r in "${lanes[@]}"; do
+			log=$lane_dir/lane$n.json
+			lane_logs+=("$log")
+			go test -json -v -failfast -timeout "$(timeout_for "${r%%$'\t'*}")" -run "${r#*$'\t'}" "${r%%$'\t'*}" >"$log" 2>&1 &
+			lane_pids+=($!)
+			n=$((n + 1))
+		done
+		lane_merge=()
+		for i in "${!lane_pids[@]}"; do
+			lr=0
+			wait "${lane_pids[$i]}" || lr=$?
+			lane_merge+=(--lane "${lane_logs[$i]}" --rc "$lr")
+		done
+		# a merge that cannot read a lane log is not a pass: the stream would be missing tests it never ran
+		rc=$("${py[@]}" merge --out "$json" "${lane_merge[@]}") || verdict FAIL "oracle lane merge failed"
+		[ "$rc" = 0 ] || finish ""
+	fi
 	if [ "${#whole[@]}" -gt 0 ]; then
 		group_by_timeout "${whole[@]}" || finish ""
 		for i in "${!G_TO[@]}"; do
