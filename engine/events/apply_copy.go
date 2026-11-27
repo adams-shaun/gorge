@@ -814,6 +814,11 @@ func foldTurnFaceUp(g *state.Game, e *Event) {
 		o.FaceDownPower = 0
 		o.FaceDownToughness = 0
 		o.FaceDownHasPT = false
+		// The per-turn face-up provenance the turnedFaceUpThisTurn filter
+		// word reads (Kaust, Eyes of the Glade): only a real turn-up marks
+		// it, inside the same face-down-battlefield gate that retires the
+		// face-down characteristic set.
+		o.TurnedFaceUpThisTurn = true
 		restampLayer(g, o) // CR 613.7f
 	}
 }

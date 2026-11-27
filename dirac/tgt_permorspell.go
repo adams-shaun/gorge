@@ -39,7 +39,17 @@ func (s *State) targetOKPermOrSpell(k *prep, t *kop.TargetSpec, p uint8, src Slo
 			return false
 		}
 		i := s.stackIndexOf(o)
-		return i >= 0 && s.stack[i].kind == seSpell
+		if i < 0 || s.stack[i].kind != seSpell {
+			return false
+		}
+		// kop.TgfStackOppCtrl (Sink into Stupor, gorge
+		// Card.inZoneStack+OppCtrl): the stack alternative names a spell an
+		// opponent of the chooser controls. The battlefield arm's OppCtrl
+		// rides t.Filter above.
+		if t.TFlags&kop.TgfStackOppCtrl != 0 && s.stack[i].ctrl == p {
+			return false
+		}
+		return true
 	}
 	return false
 }

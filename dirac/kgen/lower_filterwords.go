@@ -447,6 +447,17 @@ func permMarkWord(p string) (n int, ok bool) {
 		return kop.PermMarkDealtAny, true
 	case "dealtCombatDamagetoAny":
 		return kop.PermMarkDealtCombat, true
+	case "activated":
+		// gorge wordActivated: this permanent's non-mana activation tally
+		// is non-zero (Object.ActivatedThisTurn; Cut Short's
+		// Planeswalker.activated). The arena stamp rides the tally's own
+		// increment (cast.go), so filter and network feature agree.
+		return kop.PermMarkActTurn, true
+	case "turnedFaceUpThisTurn":
+		// gorge wordTurnedFaceUpThisTurn: the CR 708.6 turn-up fired this
+		// turn (Object.TurnedFaceUpThisTurn; Kaust, Eyes of the Glade). The
+		// stamp rides turnUpFlip (face_facedown.go).
+		return kop.PermMarkFaceUpTurn, true
 	}
 	return 0, false
 }

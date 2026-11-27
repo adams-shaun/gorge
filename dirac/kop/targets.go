@@ -163,6 +163,12 @@ const TgfTrigChooser TargetFlags = 1 << 16
 // adds the comparison with the active player.
 const TgfOppToActive TargetFlags = 1 << 17
 
+// TgfStackOppCtrl (TargetSpec.TFlags, TgtPermOrSpell slots): the stack half's
+// spell must be controlled by an opponent of the chooser (gorge
+// Card.inZoneStack+OppCtrl, Sink into Stupor's "return target spell ... an
+// opponent controls"). The battlefield half's OppCtrl rides its filter.
+const TgfStackOppCtrl TargetFlags = 1 << 21
+
 // TgfThanShift and TgfThanMask place the ThanActive comparison in TFlags
 // (bits 18-20): the candidate player must hold strictly more (Than*) or, for
 // ThanYardFewer, fewer of a quantity than the active player does (gorge's

@@ -1719,6 +1719,7 @@ TgfPlayerCompareOK	TargetFlags	1966080
 TgfSameController	TargetFlags	2
 TgfSharedCrType	TargetFlags	1024
 TgfSingleTgt	TargetFlags	8192
+TgfStackOppCtrl	TargetFlags	2097152
 TgfThanMask	TargetFlags	1835008
 TgfThanShift	untyped int	18
 TgfTrigChooser	TargetFlags	65536
