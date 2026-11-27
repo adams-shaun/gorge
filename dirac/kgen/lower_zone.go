@@ -3002,6 +3002,9 @@ func (lc *lowerCtx) effectAPI(ps *params) error {
 	if ok, err := lc.cantAttackRemembered(ps, ss); ok || err != nil { // lower_effectcantattackplayer.go
 		return err
 	}
+	if ok, err := lc.cantBlockTargetedController(ps, ss); ok || err != nil { // lower_cantblocktgtctrl.go
+		return err
+	}
 	if len(ss) != 1 && !attackBlockPair(ss) { // lower_effectattacksifable.go
 		if ok, err := lc.effectPlayLocks(ps, st, ss); ok || err != nil { // lower_effectplaylocks.go
 			return err
