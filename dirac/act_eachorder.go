@@ -112,6 +112,6 @@ func (s *State) eachOrderAnswer(k *prep, a Action) {
 	if s.g.stalled != 0 {
 		return
 	}
-	r.pc++ // inline: past the last body instruction; batched frame: onto the body (its op left pc at the header)
+	r.pc++ // past the last body instruction (the inline loop ran it)
 	s.runProg(k)
 }

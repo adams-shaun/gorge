@@ -793,11 +793,13 @@ const RepeatRemembered = 2
 const RepeatDmgBatch = 4
 
 // RepeatEachOrder is OpRepeatEach's C bit 3 (ChooseOrder$ True on the batched
-// ChangeZoneTable$ Token/Copy body): before the loop runs, the resolving
+// ChangeZoneTable$ Token body): before the loop runs, the resolving
 // controller orders the subjects in one KChoose of gorge's "order" options
 // (Ezuri's Predation; repeatEachChooseOrder asks it with more than one
 // subject). The chosen permutation rides res.arr, so the loop's one zone
-// batch opens after the last pick and spans the whole loop.
+// batch opens after the last pick and spans the whole loop. A Copy body is
+// the resumable copy frame (act_repeatcards.go) and refuses ChooseOrder$ at
+// lowering.
 const RepeatEachOrder = 8
 
 // OpGainControl riders (B.N).
