@@ -127,7 +127,8 @@ func (sc *staticCtx) modeCastWithFlash() ([]lStatic, bool, error) {
 	readF := sc.readF
 	var err error
 	caster := sp.str("Caster")
-	if caster != "You" && caster != "Player" || sp.str("ValidSA") != "Spell" {
+	validSA := sp.str("ValidSA")
+	if caster != "You" && caster != "Player" || validSA != "Spell" && validSA != "Spell.Teamwork" {
 		return nil, true, refuse("CastWithFlash shape")
 	}
 	sc.st.AnyCaster = caster == "Player"
@@ -139,10 +140,14 @@ func (sc *staticCtx) modeCastWithFlash() ([]lStatic, bool, error) {
 		// face statics of the mode ONLY when they name an EffectZone$
 		// (CR 113.6), so this is the card's own "you may cast this
 		// spell as though it had flash if ..." grant from every zone.
-		if err := lc.selfFlashShape(s, ez); err != nil {
+		if err := lc.selfFlashShape(s, ez, validSA); err != nil {
 			return nil, true, err
 		}
 		lc.out.SelfFlash = true
+	} else if validSA != "Spell" {
+		// the Teamwork permission is the card's own self grant; a battlefield
+		// static granting it to others is not a kernel shape
+		return nil, true, refuse("CastWithFlash shape")
 	}
 	return nil, false, nil
 }
