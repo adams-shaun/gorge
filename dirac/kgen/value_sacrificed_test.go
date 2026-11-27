@@ -6,10 +6,11 @@ import (
 	"github.com/adams-shaun/gorge/engine/cards"
 )
 
-// TestValueLoweringSacrificedThisTurn:
-// exactly the three spellings the kernel keeps tallies for lower, with an /Op
-// suffix applied to the count (Bonecache Overseer's three per Food); any other
-// spec refuses by name.
+// TestValueLoweringSacrificedThisTurn: the three spellings the kernel keeps
+// tallies for stay tallies (with an /Op suffix applied to the count, Bonecache
+// Overseer's three per Food); every other spec is a filter, so Dargo's
+// Artifact,Creature and Evendo's Permanent.!token widen the value with no
+// State field. An empty spec and the other PlayerCount groups refuse.
 func TestValueLoweringSacrificedThisTurn(t *testing.T) {
 	lc := &lowerCtx{face: &cards.Face{SVars: map[string]string{}}}
 	for _, c := range []struct {
@@ -21,17 +22,24 @@ func TestValueLoweringSacrificedThisTurn(t *testing.T) {
 		{"PlayerCountPropertyYou$SacrificedThisTurn Food", 2},
 	} {
 		v, err := lc.svarValue(c.body, 0)
-		if err != nil || v.Kind != vSacrificedThisTurn || v.N != c.n {
-			t.Errorf("%q: got %s N=%d, %v; want SacrificedThisTurn N=%d", c.body, v, v.N, err, c.n)
+		if err != nil || v.Kind != vSacrificedThisTurn || v.N != c.n || v.F != nil {
+			t.Errorf("%q: got %s N=%d, %v; want SacrificedThisTurn N=%d, no filter", c.body, v, v.N, err, c.n)
 		}
 	}
 	for _, body := range []string{
-		"PlayerCountPropertyYou$SacrificedThisTurn Clue",
+		"PlayerCountPropertyYou$SacrificedThisTurn Artifact,Creature",
 		"PlayerCountPropertyYou$SacrificedThisTurn Permanent.!token",
 		"PlayerCountPropertyYou$SacrificedThisTurn Creature",
+		"PlayerCountPropertyYou$SacrificedThisTurn Artifact.YouCtrl",
+	} {
+		v, err := lc.svarValue(body, 0)
+		if err != nil || v.Kind != vSacrificedThisTurn || v.F == nil {
+			t.Errorf("%q: got %s F=%v, %v; want SacrificedThisTurn with a filter", body, v, v.F, err)
+		}
+	}
+	for _, body := range []string{
 		"PlayerCountPropertyYou$SacrificedThisTurn",
 		"PlayerCountPropertyYou$SacrificedThisTurn ",
-		"PlayerCountPropertyYou$SacrificedThisTurn Artifact.YouCtrl",
 		"PlayerCountPlayers$SacrificedThisTurn Permanent",
 		"PlayerCountOpponents$SacrificedThisTurn Permanent",
 		"PlayerCount$SacrificedThisTurn Permanent",
