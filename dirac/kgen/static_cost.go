@@ -124,6 +124,12 @@ func (sc *staticCtx) modeCastWithFlash() ([]lStatic, bool, error) {
 	lc := sc.lc
 	s := sc.s
 	sp := sc.sp
+	if sp.str("ValidSA") == "Activated.Equip" {
+		if err := sc.equipFlashShape(); err != nil { // static_equipflash.go
+			return nil, true, err
+		}
+		return nil, false, nil
+	}
 	if sp.str("ValidSA") == "Activated.Loyalty" {
 		return sc.loyaltyFlash() // static_loyaltyflash.go
 	}
