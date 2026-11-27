@@ -122,11 +122,22 @@ func tapeLandReplWalk(e *Engine, ev events.Event, n int) bool {
 
 // tapeStepMayAsk reports whether the pass that ends the current step (empty
 // stack) begins a turn-based action that may pose a decision: the draw step's
-// draw, which a Dredge card in a graveyard replaces with its election.
+// draw, which a Dredge card in a graveyard replaces with its election, or a
+// board with a Draw replacement whose ReplaceWith$ body asks (Tomorrow,
+// Azami's Familiar's Dig choose and bottom-arrange, Underrealm Lich's, Sages
+// of the Anima's): the body runs inside this pass, and with no run its asks
+// fall to Engine.Ask's no-run default instead of being posed.
 func tapeStepMayAsk(e *Engine) bool {
 	switch e.G.Step {
 	case state.StepUpkeep:
-		return tapeDredgeMayAsk(e)
+		return tapeDredgeMayAsk(e) || tapeTurnDrawBodyMayAsk(e)
+	case state.StepEnd:
+		// With no upkeep pass (no upkeep trigger granted priority) the walk
+		// beginTurn -> upkeep -> draw happens inside the pass that ends the
+		// previous turn's end step: the same body gate, so the turn draw's
+		// replacement body is under a run from either entry. The dredge gate
+		// stays at upkeep alone (its committed scope).
+		return tapeTurnDrawBodyMayAsk(e)
 	case state.StepDeclareBlockers, state.StepCombatDamage:
 		// The pass into the combat damage step: a DamageDone replacement
 		// that elects asks as the damage is dealt. The pass's SBA tail may
@@ -146,6 +157,17 @@ func tapeStepMayAsk(e *Engine) bool {
 // and the deaths it causes).
 func tapeAnyReplBodyMayAsk(e *Engine) bool {
 	return tapeReplBodyMayAsk(e, ^uint32(0), replWalkScope{})
+}
+
+// tapeTurnDrawBodyMayAsk is the turn-draw Draw gate: the board carries a
+// R:Event$ Draw replacement whose ReplaceWith$ body may ask (a library-look
+// Dig's choose and bottom-arrange: Tomorrow, Azami's Familiar, Underrealm
+// Lich, Sages of the Anima; or an Optional$ election) and can apply to the
+// draw step's draw. The body runs inside the pass commit that reaches the
+// draw step; with no run serving it its asks fall to Engine.Ask's no-run
+// default (the tapeStepMayAsk gate).
+func tapeTurnDrawBodyMayAsk(e *Engine) bool {
+	return tapeReplBodyMayAsk(e, replEventBit("Draw"), replWalkScope{})
 }
 
 // tapeReplBodyMayAsk is tapeAnyReplBodyMayAsk over the replacements of the
