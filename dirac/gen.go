@@ -2931,10 +2931,11 @@ func (s *State) Stalled() bool { return s.g.stalled != 0 }
 // StallReason is why the game was stopped at capacity (StallNone if not).
 func (s *State) StallReason() uint8 { return s.g.stalled }
 
-// manaPCGen is the planner's view of slot sl as a mana source on a
+// manaPCGenCalc is the planner's view of slot sl as a mana source on a
 // generated table: a mana ability granted to it (Imprisoned in the Moon),
-// none when an override took its own away, else its card's.
-func (s *State) manaPCGen(k *prep, sl Slot) *pcard {
+// none when an override took its own away, else its card's. manaPCGen reads
+// it through the per-decision memo (mana_pcmemo.go).
+func (s *State) manaPCGenCalc(k *prep, sl Slot) *pcard {
 	if k.gen.anyCantAct && s.actForbidden(k, sl, true) {
 		return &noManaPC // a CantBeActivated lock, a granted ability's too (cast_cantactivate.go)
 	}

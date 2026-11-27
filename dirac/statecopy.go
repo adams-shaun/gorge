@@ -18,6 +18,7 @@ func (*noCopy) Unlock() {}
 // own cold buffer and fork pool, and allocates only if its buffer is too small.
 func (dst *State) CopyFrom(src *State) {
 	stale := dst.permHi
+	dst.pcMemoDrop() // mana_pcmemo.go
 	dst.stateCore = src.stateCore
 	hi := src.permHi
 	copy(dst.perms[:hi], src.perms[:hi])
@@ -100,6 +101,8 @@ type ForkPool struct {
 	payBusy bool
 	// payCalls counts filtPay's searches over the pool's life (tests read it).
 	payCalls uint32
+	// pcm: manaPCGen's per-decision view memo (mana_pcmemo.go).
+	pcm pcMemo
 }
 
 // warmForkDepth is past the deepest nesting measured, 5 in random play.
