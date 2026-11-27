@@ -96,7 +96,7 @@ func prepManaGate(g *genPrep, c *kop.CardDef, id CardID, pc *pcard) {
 			// {G}{G}. The unit's two alternatives differ in amount; the
 			// window answers ability 0 (manaN stays the {G}), the planner
 			// and the affordability bounds read the larger (wideN)
-			on.wideN, on.wideCol = c.Abilities[gj].ManaN, c.Abilities[gj].ManaColors&kop.ColAny
+			on.wideN, on.wideCol = c.Abilities[gj].ManaN, c.Abilities[gj].ManaColors&colOrC
 			g.anyGatePair = true
 		}
 		if on.manaMulti && bits.TrailingZeros8(uint8(off.manaCol)) != bits.TrailingZeros8(uint8(on.manaCol)) {

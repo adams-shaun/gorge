@@ -3347,8 +3347,17 @@ func (s *State) potentialDynamicSource(k *prep, sl Slot, pc *pcard, done *[MaxPe
 		done[sl] &^= s.filtPipBit(k, sl) // a one-pip filter joins below once the pool pays it (mana_filterpip.go)
 	}
 	cd := &k.t.Cards[c]
-	return pc.manaAb >= 0 && int(pc.manaAb) < len(cd.Abilities) && cd.Abilities[pc.manaAb].AFlags&kop.AfManaDynamic != 0 ||
-		k.gen.flags[c]&gfManaDynPair != 0 // gorge's potentialAmount reads the second ability's Count$ as indeterminate: unbounded (mana_dynpair.go)
+	if k.gen.flags[c]&gfManaDynPair != 0 {
+		// gorge's potentialAmount reads the second ability's Count$ as
+		// indeterminate: unbounded (mana_dynpair.go). A gated evaluated pair
+		// is open only while its gate holds (Urza's Workshop).
+		if dj := dynPairAbility(cd); dj >= 0 {
+			a := &cd.Abilities[dj]
+			return a.Trig.Cond == 0 || s.condEval(k, a.Trig.Cond, evalCtx{src: s.perms[sl].obj, srcSl: sl, ctrl: s.perms[sl].ctrl})
+		}
+		return false
+	}
+	return pc.manaAb >= 0 && int(pc.manaAb) < len(cd.Abilities) && cd.Abilities[pc.manaAb].AFlags&kop.AfManaDynamic != 0
 }
 
 // potentialAnyColourUnit adds a fixed any-colour source in bounded mode as one

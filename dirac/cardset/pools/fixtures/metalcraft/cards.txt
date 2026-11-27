@@ -1,0 +1,19 @@
+# The metalcraft pool (dirac/oracle/metalcraft_lockstep_test.go): the three
+# demo-deck cards the lowering adds, beside the artifacts and Urza's lands
+# their shapes read. Brotherhood Scribe's A[0] is a Metalcraft-gated
+# non-mana activation and its T[0] a player-counter line gorge never fires;
+# Urza's Workshop is a plain {T}: Add {C} beside a Metalcraft-gated
+# {T}: Add {C} for each Urza's land; Vedalken Humiliator's Attacks trigger
+# carries Metalcraft$. Artifact lands and zero-cost artifact creatures bring
+# the gate up, and the Urza's lands (four Workshops) make the evaluated
+# amount two or more.
+Brotherhood Scribe
+Urza's Workshop
+Vedalken Humiliator
+Memnite
+Ornithopter
+Seat of the Synod
+Ancient Den
+Urza's Tower
+Island
+Plains

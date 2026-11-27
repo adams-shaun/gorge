@@ -894,6 +894,14 @@ func (s *State) condEval(k *prep, id kop.CondID, ctx evalCtx) bool {
 	default:
 		panic("kernel: condition kind not implemented")
 	}
+	if (DebugMetalcraftStats != nil || DebugMetalcraftOff) && isMetalcraftCond(c) { // dirac/value_metalcraft.go
+		if DebugMetalcraftOff {
+			return false
+		}
+		if r {
+			DebugMetalcraftStats.CondHeld++
+		}
+	}
 	return r != c.Neg
 }
 
