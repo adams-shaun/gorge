@@ -33,6 +33,26 @@ func repeatedCards(h Host, c *Ctx, rp *RepeatEachParams) ([]state.Target, bool) 
 			return objectsOf(hostRemembered(h, c)), true
 		case repeatedCardsChosenCard:
 			return objectsOf(c.Chosen), true
+		case repeatedCardsImprintedLKI:
+			// Forge's ImprintedLKI names the source's exile-gated imprint pile
+			// (the cards ChangeZone$ ... Imprint$ True linked, CR 607.2a --
+			// Chaotic Transformation's "each permanent exiled this way"), NOT
+			// the host remembered list. The text after the first `.` filters
+			// the pile through the shared dotted-qualifier matcher:
+			// .RememberedPlayerCtrl keeps the cards controlled by the player
+			// this iteration remembers, so each seat digs for its own exile.
+			g := h.Game()
+			qualifier := ""
+			if _, rest, has := strings.Cut(spec, "."); has {
+				qualifier = rest
+			}
+			var out []state.Target
+			for _, t := range imprintPileTargets(g, c) {
+				if o := g.Obj(t.Obj); o != nil && definedCardQualifierMatches(h, g, c, qualifier, o) {
+					out = append(out, t)
+				}
+			}
+			return out, true
 		}
 		return objectsOf(DefinedSpec(h, c, spec)), true
 	}
@@ -502,6 +522,7 @@ const (
 	repeatedCardsTargeted repeatedCardsCode = iota + 1
 	repeatedCardsRemembered
 	repeatedCardsChosenCard
+	repeatedCardsImprintedLKI
 )
 
 var repeatedCardsCodes = state.NewStrCodes(
@@ -510,6 +531,6 @@ var repeatedCardsCodes = state.NewStrCodes(
 	state.StrEntry[repeatedCardsCode]{Key: "RememberedLKI", Val: repeatedCardsRemembered},
 	state.StrEntry[repeatedCardsCode]{Key: "RememberedCard", Val: repeatedCardsRemembered},
 	state.StrEntry[repeatedCardsCode]{Key: "DirectRemembered", Val: repeatedCardsRemembered},
-	state.StrEntry[repeatedCardsCode]{Key: "ImprintedLKI", Val: repeatedCardsRemembered},
+	state.StrEntry[repeatedCardsCode]{Key: "ImprintedLKI", Val: repeatedCardsImprintedLKI},
 	state.StrEntry[repeatedCardsCode]{Key: "ChosenCard", Val: repeatedCardsChosenCard},
 )
