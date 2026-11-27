@@ -43,7 +43,7 @@ func TestInstantLoyaltyFlashLowers(t *testing.T) {
 		}
 	}
 	const pw = "ManaCost:2 U U\nTypes:Legendary Planeswalker\nLoyalty:3\n" +
-		"A:AB$ Draw | Cost$ AddCounter<1/LOYALTY> | Planeswalker$ True | NumCards$ 1 | SpellDescription$ Draw a card.\n"
+		"A:AB$ Draw | Cost$ AddCounter<1/LOYALTY> | Planeswalker$ True | NumCards$ 1 | SpellDescription$ Probe: draw one.\n"
 	for _, tc := range []struct{ name, line, want string }{
 		{"Probe Any Caster", "S:Mode$ CastWithFlash | ValidCard$ Card.Self | ValidSA$ Activated.Loyalty | Caster$ Player | Description$ x.\n", "CastWithFlash"},
 		{"Probe No Caster", "S:Mode$ CastWithFlash | ValidCard$ Card.Self | ValidSA$ Activated.Loyalty | Description$ x.\n", "CastWithFlash"},
