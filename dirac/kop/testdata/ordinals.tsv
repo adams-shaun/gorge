@@ -1898,6 +1898,7 @@ W7WithInfect	int16	28
 W7WithSkulk	int16	40
 W7WithWarp	int16	11
 W7WithoutFlanking	int16	46
+WhoseActive	Whose	205
 WhoseAny	Whose	0
 WhoseChosen	Whose	201
 WhoseEnchCtrl	Whose	3
@@ -1906,6 +1907,7 @@ WhoseEnchantedOpp	Whose	204
 WhoseMonarch	Whose	203
 WhoseNonActive	Whose	200
 WhoseOpp	Whose	2
+WhoseOppActive	Whose	206
 WhoseYou	Whose	1
 ZoneAny	Zone	11
 ZoneBattlefield	Zone	3

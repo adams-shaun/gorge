@@ -1,0 +1,6 @@
+family: FilterWord
+name: FwOppProtect
+value: next
+contexts: perm
+status: active
+doc: FwOppProtect: the battlefield battle's CR 310.10 protector is an opponent of the evaluating controller (gorge wordOppProtect, engine/effects/filter_word.go:934; the permanent's state.Object.Protector against SpecContext.You, a protector that is the evaluator itself or left the game does not match). The evaluator is the reading source's controller (fctx.ctrl). No recorded protector fails closed; off the battlefield a card never matches.
