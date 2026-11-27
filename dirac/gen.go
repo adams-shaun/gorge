@@ -228,6 +228,7 @@ type genPrep struct {
 	anyPlHexRec     bool           // some program is ExtTurnRepl TurnReplPlayerHex or TurnReplHexUB: playerHexproof reads the scope records
 	anyHexUB        bool           // some program is ExtTurnRepl TurnReplHexUB: targetableGen reads the mechHexUB plane
 	anyPlusCre      bool           // some program is ExtTurnRepl TurnReplPlusCreatureCtr: the cold buffer holds its per-player count and source (repl_turnrepl.go)
+	anyEtbCre       bool           // some program is ExtTurnRepl TurnReplEtbCreatureCtr: the cold buffer holds its per-player activation count and enterGen adds the counters (repl_turnrepl.go)
 	anyAtkLast      bool           // some DamageDone line carries kop.Tf5DmgAttackedYouLastTurn: the cold buffer holds each seat's attacked defenders (trig_atklastturn.go)
 	anyContract     bool           // some line reads or puts contract counters: the cold buffer holds each seat's count (ctr_contract.go)
 	anyDmgMark      bool           // some program is ExtDmgMark: every damage site reads the per-player marks (repl_dmgmark.go)

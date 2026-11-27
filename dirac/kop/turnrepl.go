@@ -31,6 +31,11 @@ package kop
 //	the controller controls as it resolves marked in the arena's mechHexUB
 //	plane. A source of either colour its controller's opponents control can't
 //	target them (CR 702.11d). Both end at cleanup.
+//	TurnReplEtbCreatureCtr: "each creature you control enters with an
+//	additional +1/+1 counter on it this turn" (Zameck Guildmage's Effect-borne
+//	Moved replacement over the controller's creatures): a per-player count of
+//	activations in the cold buffer, applied by enterGen as the creature enters.
+//	Both end at cleanup.
 //
 // No other field. dirac/repl_turnrepl.go.
 //
@@ -45,6 +50,7 @@ const (
 	TurnReplUncounterCreature
 	TurnReplPlayerHex
 	TurnReplHexUB
+	TurnReplEtbCreatureCtr
 )
 
 func init() { extOpNames[ExtTurnRepl] = "TurnRepl" }

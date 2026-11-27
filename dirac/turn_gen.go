@@ -125,6 +125,10 @@ func (s *State) enterGen(k *prep, sl Slot, o Obj, from kop.Zone, face uint8) {
 		s.noteEnter(o, kop.ZoneBattlefield, from, false, false)
 	}
 	s.stashClr(k, o) // an entry from exile is a new object: the stash counter does not follow it (CR 400.7)
+	// The turn-long extra-ETB-counter rider folds into the entry's one put only
+	// when gorge stages the entry (entryPlan); read that before entryWinOpen
+	// consumes the requested count entryPlan also reads.
+	etbStaged := s.etbCreStaged(k, sl, p, face)
 	if k.gen.anyEntryMerge && face == 0 {
 		s.entryWinOpen(k, sl, p) // ctr_entryperkind.go: the printed and requested counters start the entry's one put per kind
 	} else if n := s.g.enterCtr.n; n > 0 {
@@ -140,6 +144,7 @@ func (s *State) enterGen(k *prep, sl Slot, o Obj, from kop.Zone, face uint8) {
 	if k.gen.anyEffEtbCtr && face == 0 && s.res.active && s.res.e.kind == seSpell && s.res.e.obj == o {
 		s.effEtbEnter(k, sl, p) // ctr_effectentry.go: after the printed counters, before the entry's triggers
 	}
+	s.etbCreEnter(k, sl, p, face, etbStaged) // repl_turnrepl.go: the turn-long extra counter rider
 	if k.gen.anyFinality && face == 0 && s.res.active && s.res.e.kind == seSpell && s.res.e.obj == o {
 		s.finalityEnter(k, sl, p) // trig_mayplaystatic.go: the FINALITY rider, beside the P1P1 one
 	}
