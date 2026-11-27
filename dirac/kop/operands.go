@@ -447,6 +447,16 @@ const CzGraveLibrary = 128
 // codes above. Gomazoa, Vortex Elemental.
 const CzShuffleOwners = 256
 
+// CzShuffleScope pairs with CzShuffleOwners on a sweep whose player scope is
+// EXPLICIT (ChangeZoneAll Defined$ Player): gorge's
+// changeZoneAllShuffleLibraries then shuffles every in-scope library after
+// the receiving ones, even one that received nothing (Survive's "Each player
+// shuffles their graveyard into their library": an empty graveyard still
+// shuffles that library). Clear unless CzShuffleOwners is set; the extra
+// shuffles run in seat order after the receiving ones, which run in
+// first-placement order.
+const CzShuffleScope = 512
+
 // RetAttachTo (OpReturnEx B.N, A counters absent):
 // AttachedTo$ -- the returned permanent enters attached to the permanent the
 // Ref in B.N bits 8..10 names (RefSelf, or a target slot; the low byte stays
