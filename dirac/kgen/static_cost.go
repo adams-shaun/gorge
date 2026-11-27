@@ -124,8 +124,6 @@ func (sc *staticCtx) modeCastWithFlash() ([]lStatic, bool, error) {
 	lc := sc.lc
 	s := sc.s
 	sp := sc.sp
-	readF := sc.readF
-	var err error
 	if sp.str("ValidSA") == "Activated.Loyalty" {
 		return sc.loyaltyFlash() // static_loyaltyflash.go
 	}
@@ -133,11 +131,20 @@ func (sc *staticCtx) modeCastWithFlash() ([]lStatic, bool, error) {
 	validSA := sp.str("ValidSA")
 	tgtSpec, isTgt := selfFlashTargeting(validSA)
 	_, hasZone := sp.get("EffectZone")
-	if caster != "You" && caster != "Player" || validSA != "Spell" && !(isTgt && hasZone) {
+	if caster != "You" && caster != "Player" || isTgt && !hasZone {
 		return nil, true, refuse("CastWithFlash shape")
 	}
+	var xmax int
+	var subtype string
+	var err error
+	if !isTgt {
+		xmax, subtype, err = cwfValidSA(validSA) // static_cwfvalidsa.go
+		if err != nil {
+			return nil, true, err
+		}
+	}
 	sc.st.AnyCaster = caster == "Player"
-	if sc.st.F, err = readF("ValidCard"); err != nil {
+	if sc.st.F, err = sc.cwfValidCard(subtype); err != nil {
 		return nil, true, err
 	}
 	if ez, ok := sp.get("EffectZone"); ok {
@@ -157,7 +164,12 @@ func (sc *staticCtx) modeCastWithFlash() ([]lStatic, bool, error) {
 			}
 		}
 		lc.out.SelfFlash = true
+	} else if xmax != 0 {
+		// the kernel bounds only the SelfFlash carrier's own X
+		// (dirac/cast_flashxcap.go)
+		return nil, true, refuse("CastWithFlash shape")
 	}
+	sc.st.FlashXMax = xmax
 	return nil, false, nil
 }
 

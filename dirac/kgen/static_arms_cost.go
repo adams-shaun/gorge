@@ -85,6 +85,7 @@ func cbCastWithFlashStatic(cb *cardBuilder, s lStatic, st *kop.Static) ([]uint8,
 	var err error
 	st.Kind = kop.StatCastWithFlash
 	st.StFlags |= s.flashCasterFlag()
+	st.A = int16(s.FlashXMax) // a self grant's Spell.XCostLE<N> bound, 1+N (dirac/cast_flashxcap.go)
 	if st.Filter, err = cb.staticFilter(s.F, kop.ZoneHand); err != nil {
 		return nil, err
 	}
