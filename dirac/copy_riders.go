@@ -77,6 +77,9 @@ func (s *State) copyExcTy(k *prep, sl Slot, base kop.TypeMask) kop.TypeMask {
 	for i := 0; i < int(s.g.nfx); i++ {
 		if r := &s.g.fx[i]; r.sl == sl && r.kind == fxCopyExc {
 			o := &k.t.Overrides[r.r.idx-1]
+			// no FaceDownOnly gate: a copy exception is a copiable-value
+			// set (Dino DNA), never the entry FaceDownSetType$ record, which
+			// rides as fxOverride on a walk slot only (lfxApply4 gates it)
 			if o.HasTypes {
 				const keep = kop.TLegendary | kop.TBasic | kop.TToken
 				t = t&(keep|o.KeepTypes) | o.SetTypes

@@ -850,7 +850,7 @@ func (s *State) removePerm(k *prep, sl Slot, z kop.Zone, bottom bool) {
 		s.hostLeft(k, o) // filter_combatwords.go
 	}
 	if p.gty&gtyFaceDown != 0 {
-		s.clearFaceDown(sl) // CR 708.9: leaving reveals the card (face_facedown.go)
+		s.clearFaceDown(k, sl) // CR 708.9: leaving reveals the card (face_facedown.go)
 	}
 	s.subscribe(sl, &k.cards[p.card], false)
 	if p.ovr.flags&ovCopy != 0 {

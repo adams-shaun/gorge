@@ -1366,6 +1366,7 @@ type lOverride struct {
 	UntilCast       *lFilter // an Effect's SpellCast end (Soul Sculptor): the record ends when its resolver casts a spell matching this filter (kop.Override.UntilCast)
 	Banding         bool     // a granted Banding (KW$ Banding): no KwMask bit is free, so the record carries it (kop.Override.Banding)
 	Horsemanship    bool     // a Duration$ Permanent KW$ Horsemanship grant: no KwMask bit, so the record carries it (kop.Override.Horsemanship)
+	FaceDownOnly    bool     // a ChangeZone FaceDownSetType$ folded type set: the record applies only while face down (kop.Override.FaceDownOnly)
 	Toxic           uint8    // an Animate's Keywords$ Toxic:N, summed (kop.Override.Toxic; lower_toxicgrant.go)
 	MustBeBlocked   bool     // HiddenKeywords$ CARDNAME must be blocked if able.: emitOverride follows the record with ExtMustBeBlocked on the same ref (not a record field)
 	NoCost          bool     // a copy exception's "with no mana cost" (RemoveCost$)

@@ -143,6 +143,9 @@ func demoFacedownScan(gs *GorgeSide, stat map[string]int) {
 			if ev.To == state.ZBattlefield && strings.HasPrefix(ev.Counter, "entered_face_down") {
 				stat["faceDownEntry"]++
 			}
+			if ev.To == state.ZBattlefield && strings.HasPrefix(ev.Counter, events.FaceDownEntryCounter+";settype=Land & Forest") {
+				stat["setTypeLand"]++
+			}
 			if ev.To == state.ZExile && strings.HasPrefix(ev.Counter, "exiled_with_face_down") {
 				stat["faceDownExile"]++
 			}

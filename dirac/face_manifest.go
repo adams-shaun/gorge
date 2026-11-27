@@ -341,8 +341,9 @@ func (s *State) dreadMove(k *prep, chosen, other Obj) bool {
 
 // cardMintsFaceDown reports whether a card's programs contain an op that puts
 // a face-down permanent onto the battlefield (Manifest, Cloak,
-// ManifestDread), so genPrep.anyFaceDown turns on the face-down walk for a
-// table with no Morph-family card.
+// ManifestDread, or a generic ChangeZone FaceDown$ True return:
+// kop.RetFaceDown), so genPrep.anyFaceDown turns on the face-down walk for a
+// table with no Morph-family card (Yedora, Grave Gardener's face-down Forest).
 func cardMintsFaceDown(c *kop.CardDef) bool {
 	for i := range c.Abilities {
 		p := c.Abilities[i].Prog
@@ -350,6 +351,10 @@ func cardMintsFaceDown(c *kop.CardDef) bool {
 			switch p[j].Op {
 			case kop.OpManifest, kop.OpCloak, kop.OpManifestDread:
 				return true
+			case kop.OpReturn:
+				if p[j].C&kop.RetFaceDown != 0 {
+					return true
+				}
 			}
 		}
 	}
