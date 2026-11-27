@@ -355,7 +355,6 @@ func (s *State) payPrefixRest(k *prep, a Action, p uint8, force bool) {
 	if cost.X != 0 || cost.Hyb[0] != 0 || cost.Tb != 0 || cost.Snow != 0 || cost.Phyrexian() {
 		return
 	}
-	println("DBG payPrefixRest pool", s.pl[p].pool[4], "cost", cost.MV())
 	if s.poolPays(p, &cost) {
 		return // the prefix settled it
 	}
@@ -425,7 +424,6 @@ func (s *State) payPrefixRest(k *prep, a Action, p uint8, force bool) {
 	saved := chk
 	chk.try = true // the first pass: the census without the Taps-deferred sources
 	s.plan(k, p, &chk, NoObj)
-	println("DBG payPrefixRest first pass found", chk.found)
 	if chk.found {
 		return // the plain census prices it: gorge's planner pays it post-push
 	}

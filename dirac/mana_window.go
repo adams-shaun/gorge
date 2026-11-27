@@ -2783,10 +2783,8 @@ func (s *State) scriptPrefixAny(k *prep, a Action, p uint8, restr, anyR, tapsDef
 	var d Decision
 	s.plainOptions(k, &d, s.prefixAnyProbe(k, p))
 	if hasOption(&d, a) || s.lifePlannedPlay(k, p, a) {
-		println("DBG scriptPrefixAny: plain option has a", a.Kind())
 		return
 	}
-	println("DBG scriptPrefixAny: searching", a.Kind(), "pool", s.pl[p].pool[4])
 	tapsDef = s.deferGapsForPlay(k, a, tapsDef)
 	anyR = s.caSpendable(k, a, p, anyR) // a plain play's restriction must admit its payment (CR 106.6); any other keeps every gap
 	var order [MaxPerm]Slot
