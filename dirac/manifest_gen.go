@@ -1068,6 +1068,8 @@ func (s *State) fwRun(c *fctx, l *kop.FLit) bool {
 		return s.fwEnchantedControllerCtrl(c, l) // filter_enchantedctrlctrl.go
 	case kop.FwKeyword:
 		return s.fwKeyword(c, l) // filter_keyword.go
+	case kop.FwManaCostEQ:
+		return s.fwManaCostEQ(c, l) // filter_manacosteq.go
 	case kop.FwModal:
 		return s.fwModal(c, l) // filter_spellability.go
 	case kop.FwPaired:
@@ -1105,7 +1107,7 @@ func (s *State) fwRun(c *fctx, l *kop.FLit) bool {
 // fwHandled reports whether word w has a handler.
 func fwHandled(w kop.FilterWord) bool {
 	switch w {
-	case kop.FwAttacking, kop.FwBasePowerCmp, kop.FwBaseToughnessCmp, kop.FwCMCCmp, kop.FwCanProduceManaColor, kop.FwCanProduceSameManaTypeWith, kop.FwChosenCtrl, kop.FwCountersCmp, kop.FwDoubleFaced, kop.FwEnchantedControllerCtrl, kop.FwKeyword, kop.FwModal, kop.FwPaired, kop.FwPairedWith, kop.FwPowerCmp, kop.FwSameName, kop.FwSharesCr, kop.FwSharesName, kop.FwSingleTarget, kop.FwSubtype, kop.FwSuspended, kop.FwTapped, kop.FwTeamwork, kop.FwTopLibrary, kop.FwToughnessCmp, kop.FwWithKeyword:
+	case kop.FwAttacking, kop.FwBasePowerCmp, kop.FwBaseToughnessCmp, kop.FwCMCCmp, kop.FwCanProduceManaColor, kop.FwCanProduceSameManaTypeWith, kop.FwChosenCtrl, kop.FwCountersCmp, kop.FwDoubleFaced, kop.FwEnchantedControllerCtrl, kop.FwKeyword, kop.FwManaCostEQ, kop.FwModal, kop.FwPaired, kop.FwPairedWith, kop.FwPowerCmp, kop.FwSameName, kop.FwSharesCr, kop.FwSharesName, kop.FwSingleTarget, kop.FwSubtype, kop.FwSuspended, kop.FwTapped, kop.FwTeamwork, kop.FwTopLibrary, kop.FwToughnessCmp, kop.FwWithKeyword:
 		return true
 	}
 	return false
