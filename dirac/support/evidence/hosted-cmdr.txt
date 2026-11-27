@@ -109,6 +109,7 @@ Giada, Font of Hope
 Gigantosaurus
 Go for the Throat
 God-Eternal Bontu
+Goddric, Cloaked Reveler
 Goreclaw, Terror of Qal Sisma
 Graaz, Unstoppable Juggernaut
 Grasp of Fate
@@ -192,6 +193,7 @@ Open the Graves
 Order of Midnight
 Ornithopter of Paradise
 Orzhov Signet
+Overencumbered
 Oversold Cemetery
 Overwhelming Stampede
 Padeem, Consul of Innovation
@@ -313,6 +315,7 @@ Whiptongue Hydra
 Whirler Rogue
 Whisperer of the Wilds
 Wight of Precinct Six
+Winter Soldier, Reborn Avenger
 Wintermoor Commander
 Witch's Clinic
 Witch's Cottage
