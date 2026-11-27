@@ -33,6 +33,10 @@ type Consequence struct {
 	Damage       uint32
 	NoUntap      bool
 	ReturnToHand bool
+	// SacrificeOthers: the activation sacrifices another permanent (not the
+	// source) as part of its cost -- the Ashnod's Altar family. The chosen
+	// victims ride the witness in PaymentActivation.Sacrifices.
+	SacrificeOthers bool
 }
 
 func ManaAmount(m state.Mana) decision.ManaAmount {
