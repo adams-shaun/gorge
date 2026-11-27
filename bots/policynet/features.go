@@ -259,6 +259,10 @@ func featuresForHashW(h uint64) (FeatureSet, int, int, bool) {
 // encodes with EncodeStateWith/EncodeOptionWith of this set.
 func (sc *Scorer) Features() FeatureSet { return sc.m.Features }
 
+// EncoderName is the registered encoder the scorer's network names
+// (Model.Encoder), or "" when its FeatureSet names it.
+func (sc *Scorer) EncoderName() string { return sc.m.Encoder }
+
 // EncodeStateWith is EncodeState under feature set fs. FeaturesV1 is exactly
 // EncodeState. diag is read only by the diagnostic sets (nil = none known).
 func EncodeStateWith(fs FeatureSet, v view.View, seat state.PlayerID, diag *Diag) State {

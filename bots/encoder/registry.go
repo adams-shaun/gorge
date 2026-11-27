@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"sort"
 	"sync"
+
+	"github.com/adams-shaun/gorge/bots/policynet"
 )
 
 var (
@@ -59,4 +61,26 @@ func Resolve(name string, hash uint64, seat bool) (ViewEncoder, error) {
 		return nil, fmt.Errorf("encoder %q reads hidden information and cannot be seated", name)
 	}
 	return e, nil
+}
+
+// ForName returns the encoder a net names: the registered encoder called name,
+// or, for a net from before the header (name ""), the built-in encoder of its
+// feature set. It is nil when the named encoder is not registered (a net that
+// loaded checks this already) or the feature set has no built-in.
+func ForName(name string, fs policynet.FeatureSet) ViewEncoder {
+	if name != "" {
+		e, _ := Lookup(name)
+		return e
+	}
+	e, _ := Lookup(fs.String())
+	return e
+}
+
+// ForModel is ForName for the model a call site holds: the encoder its
+// network names, else its FeatureSet's. A nil model returns nil.
+func ForModel(m *policynet.Model) ViewEncoder {
+	if m == nil {
+		return nil
+	}
+	return ForName(m.Encoder, m.Features)
 }

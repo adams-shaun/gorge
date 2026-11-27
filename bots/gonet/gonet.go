@@ -72,8 +72,9 @@ var (
 	gonets   = map[string]*Net{}
 )
 
-// Model is the shared network at path wrapped as a policynet.Model encoding under
-// the entity feature set. A network with a K-way value head carries its width
+// Model is the shared network at path wrapped as a policynet.Model encoding
+// under the encoder its header names (Model.Encoder), or the entity encoder
+// for a headerless file. A network with a K-way value head carries its width
 // as the Model's ValueK, so a reader of the vector (azmcts under MaxN) finds it
 // through the External's ValueVec.
 func Model(path string) (*policynet.Model, error) {
@@ -81,7 +82,15 @@ func Model(path string) (*policynet.Model, error) {
 	if err != nil {
 		return nil, err
 	}
-	m := policynet.NewExternal(g, policynet.FeaturesEntity)
+	name := g.EncoderName()
+	fs := policynet.FeaturesEntity
+	if name != "" {
+		if parsed, err := policynet.ParseFeatureSet(name); err == nil {
+			fs = parsed
+		}
+	}
+	m := policynet.NewExternal(g, fs)
+	m.Encoder = name
 	m.ValueK = g.ValueK()
 	return m, nil
 }
@@ -155,7 +164,8 @@ type gnBlock struct {
 
 type Net struct {
 	path                string
-	hashChecked         bool // the header carried an encoder_hash, and it matched
+	encoderName         string // the registered encoder the header names; "" for a legacy entity file
+	hashChecked         bool   // the header carried an encoder_hash, and it matched
 	d, ff, dEmb, cd, hh int
 	table               []float32 // TableRows×dEmb
 	cardRaw, cardRows   gnLinear
@@ -244,6 +254,10 @@ type gnHeader struct {
 // exported before the field existed: it loads, unchecked, and the caller
 // decides whether to warn.
 func (g *Net) EncoderHashChecked() bool { return g.hashChecked }
+
+// EncoderName is the registered encoder the header names, "" for a headerless
+// legacy file (whose FeatureSet names it).
+func (g *Net) EncoderName() string { return g.encoderName }
 
 // RawWidth is the entity raw width the network's card_raw layer reads: 68
 // for a format-1 network, EntityRawWidth for the current encoding.
@@ -341,6 +355,7 @@ func Load(path string) (*Net, error) {
 	denseW := h.Consts["DENSE_W"]
 	pod := false
 	hashChecked := false
+	encoderName := h.Encoder
 	if h.Encoder != "" {
 		// A named header resolves through the encoder registry; its Schema
 		// is the geometry guard, not this package's hardcoded entity widths.
@@ -454,12 +469,17 @@ func Load(path string) (*Net, error) {
 	}
 	cfg := func(k string) int { return int(h.Config[k]) }
 	if h.Arch == "gnn" {
-		return loadGNN(path, h, tensors, shapes, rawW, hashChecked, pod)
+		g, err := loadGNN(path, h, tensors, shapes, rawW, hashChecked, pod)
+		if err != nil {
+			return nil, err
+		}
+		g.encoderName = encoderName
+		return g, nil
 	}
 	if pod && cfg("player_nodes") != 0 {
 		return nil, fmt.Errorf("gonet %s: an mlp network has no player nodes (config player_nodes %d)", path, cfg("player_nodes"))
 	}
-	g := &Net{path: path, hashChecked: hashChecked, groups: groups, d: cfg("d"), ff: cfg("ff"), dEmb: cfg("d_emb"), cd: cfg("card_d"), hh: cfg("head_hidden")}
+	g := &Net{path: path, encoderName: encoderName, hashChecked: hashChecked, groups: groups, d: cfg("d"), ff: cfg("ff"), dEmb: cfg("d_emb"), cd: cfg("card_d"), hh: cfg("head_hidden")}
 	var errs []error
 	get := func(name string, shape ...int) []float32 {
 		t, ok := tensors[name]
