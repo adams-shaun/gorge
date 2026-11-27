@@ -2012,11 +2012,13 @@ func (s *State) execChangeZoneAll(k *prep, in *kop.Instr, resume bool) (done boo
 	// outer loop) -- not one player's two zones.
 	var eb entBatch
 	stamp := s.ts
-	var rid sweepRiders // MvEntryRiders (zone_sweepriders.go)
-	var pend czallPend  // a two-zone sweep into the library places once, in move order
+	var rid sweepRiders           // MvEntryRiders (zone_sweepriders.go)
+	var pend czallPend            // a two-zone sweep into the library places once, in move order
+	var owners czallShuffleOwners // CzShuffleOwners (Survive): the receiving libraries
 	if mv&kop.MvEntryRiders != 0 && z == kop.ZoneBattlefield {
 		rid = s.sweepRidersOf(k, in)
 	}
+	first := s.czallFirstSeat(in) // seat 0, or the controller under CzShuffleScope
 	nz, zbase := 1, fl.Zone
 	if mv&kop.MvGraveExile != 0 {
 		nz, zbase = 2, czallFirstZone(in) // graveexile: Graveyard then Exile; Library then Sideboard
@@ -2036,7 +2038,8 @@ func (s *State) execChangeZoneAll(k *prep, in *kop.Instr, resume bool) (done boo
 		if zi == 1 {
 			zsrc = czallSecondZone(in)
 		}
-		for p := uint8(0); p < s.nSeats(); p++ {
+		for pi := uint8(0); pi < s.nSeats(); pi++ {
+			p := (first + pi) % s.nSeats()
 			if s.out(p) {
 				continue
 			}
@@ -2079,6 +2082,9 @@ func (s *State) execChangeZoneAll(k *prep, in *kop.Instr, resume bool) (done boo
 				}
 				if in.B.N&kop.CzShuffleEach != 0 && mv&kop.MvGraveExile != 0 {
 					carry.noteFirst(s, o) // zone_changezoneall.go
+				}
+				if z == kop.ZoneLibrary {
+					owners.note(s, in, o) // zone_changezoneall.go: each receiving library shuffles once, in placement order
 				}
 				if z == kop.ZoneBattlefield && s.occ.full() {
 					// a mass return onto a full battlefield: the kernel's
@@ -2226,6 +2232,9 @@ func (s *State) execChangeZoneAll(k *prep, in *kop.Instr, resume bool) (done boo
 	carry.finish(s)
 	if mv&kop.MvGraveExile != 0 && in.B.N&kop.CzShuffleEach != 0 {
 		carry.shuffleEach(s) // after the placement: each library shuffles once all cards are in
+	}
+	if z == kop.ZoneLibrary {
+		owners.shuffle(s, in, first) // zone_changezoneall.go: gorge changeZoneAllShuffleLibraries
 	}
 	if resume {
 		s.holdBatch(&eb)

@@ -250,6 +250,60 @@ func czallFirstZone(in *kop.Instr) kop.Zone {
 	return kop.ZoneGraveyard
 }
 
+// czallShuffleOwners records the libraries a CzShuffleOwners sweep moves cards
+// into, and shuffles them at the sweep's end: each receiving library once, in
+// first-placement order, then -- when the player scope is explicit
+// (CzShuffleScope, Defined$ Player) -- every in-scope library that received
+// nothing (gorge changeZoneAllShuffleLibraries; Survive's "Each player
+// shuffles their graveyard into their library" still shuffles an empty one).
+type czallShuffleOwners struct {
+	owners uint8
+	recv   [MaxSeats]uint8
+	n      int
+}
+
+// note records the owner of o, once, in first-placement order, on a sweep that
+// shuffles the receiving libraries (CzShuffleOwners); other sweeps ignore it.
+func (c *czallShuffleOwners) note(s *State, in *kop.Instr, o Obj) {
+	if in.B.N&kop.CzShuffleOwners == 0 {
+		return
+	}
+	p := s.objs[o].owner()
+	if c.owners&(1<<p) == 0 && c.n < len(c.recv) {
+		c.owners |= 1 << p
+		c.recv[c.n] = p
+		c.n++
+	}
+}
+
+// shuffle is the sweep's tail, after placement. first is the sweep's first seat
+// (czallFirstSeat): the scope tail runs in AliveFrom(controller) order.
+func (c *czallShuffleOwners) shuffle(s *State, in *kop.Instr, first uint8) {
+	if in.B.N&kop.CzShuffleOwners == 0 {
+		return
+	}
+	for i := 0; i < c.n; i++ {
+		s.shuffleLib(c.recv[i])
+	}
+	if in.B.N&kop.CzShuffleScope != 0 {
+		for pi := uint8(0); pi < s.nSeats(); pi++ {
+			if p := (first + pi) % s.nSeats(); c.owners&(1<<p) == 0 && !s.out(p) {
+				s.shuffleLib(p)
+			}
+		}
+	}
+}
+
+// czallFirstSeat is the first seat a sweep walks: seat 0, or the controller
+// when the sweep's player scope is explicit (CzShuffleScope, Defined$ Player:
+// gorge's AliveFrom(controller), not AliveFrom(0)).
+func (s *State) czallFirstSeat(in *kop.Instr) uint8 {
+	if in.B.N&kop.CzShuffleScope != 0 {
+		return s.res.e.ctrl
+	}
+	return 0
+}
+
 // czallPend collects the library-bound cards of a two-zone sweep per owner
 // across both zones, so they are placed once in move order (gorge
 // libraryOrderPlacement: zone-major moves, then the rest), not
