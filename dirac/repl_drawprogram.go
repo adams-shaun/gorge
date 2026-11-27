@@ -33,11 +33,17 @@ var coldDraw = newCold[drawProgram]("drawProgram", func(g *genPrep) int {
 	return 0
 })
 
-// drawProgram is one ReplDrawProgram body in flight.
+// drawProgram is one ReplDrawProgram in flight: its body (active), or the
+// Optional$ True election parked for an answer (may, repl_drawmay.go: the
+// candidate sel/abi; the site's continuation is the order ask's, laid in
+// res.left and g.pickZ/pickLeft).
 type drawProgram struct {
 	active bool
 	p      uint8
 	chain  drawChain
+	may    bool
+	sel    Slot
+	abi    uint8
 }
 
 // drawState is coldDraw's record, or nil.
@@ -151,6 +157,16 @@ func (s *State) drawApply(k *prep, p uint8, sl Slot, abi uint8, ch drawChain) bo
 	ab := &k.t.Cards[s.cardAt(sl)].Abilities[abi]
 	if ab.Repl.Kind == kop.ReplDrawMore {
 		return s.drawMore(p, ch) // the one candidate, applied by its own walk
+	}
+	if ab.Repl.C&kop.ReplDrawOptional != 0 {
+		// gorge parks the draw and asks its player (replChoiceDraw): the
+		// kernel poses the same election where its answer can resume the
+		// site, and stalls where it cannot (repl_drawmay.go)
+		if s.drawMayPose(k, p, sl, abi, ch) {
+			return true
+		}
+		s.capFull(StallDrawRepl)
+		return true
 	}
 	return s.drawProgramTake(k, p, sl, abi, ab, ch)
 }

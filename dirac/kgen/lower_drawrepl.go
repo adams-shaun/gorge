@@ -15,8 +15,10 @@ import (
 // card of the draw step (NotFirstCardInDrawStep). It also lowers a Draw
 // replacement whose ReplaceWith$ body is any program the kernel can run at a
 // draw (ReplDrawProgram: the draw's card is replaced by the program, run with
-// the draw's player as ReplacedPlayer) and the bodyless Prevent$ skip. Every
-// other Draw shape refuses.
+// the draw's player as ReplacedPlayer), the bodyless Prevent$ skip, and either
+// shape's Optional$ True form (the draw pipeline poses gorge's apply / decline
+// election of the draw's player: kop.ReplDrawOptional, repl_drawmay.go).
+// GenericChoice bodies and every other Draw shape refuse.
 func (lc *lowerCtx) drawRepl(rp *params, w *cards.SA, rl *lRepl) error {
 	if rp.str("ActiveZones") != "Battlefield" {
 		return refuse("repl-hard: Draw replacement")
@@ -33,11 +35,17 @@ func (lc *lowerCtx) drawRepl(rp *params, w *cards.SA, rl *lRepl) error {
 	default:
 		return refuse("repl-hard: Draw replacement")
 	}
-	if rp.is("Optional", "True") || w != nil && w.API == "GenericChoice" {
-		// the player is asked whether to replace the draw, then which kind
-		// of card to dig for: the draw pipeline does not yet pose that
-		// election (ReplDrawOptional), so the line refuses as before
+	if w != nil && w.API == "GenericChoice" {
+		// the player is asked which kind of card to dig for after the may:
+		// the corpus's choice bodies all move library cards (a dig), so the
+		// election stays refused until the movement is proven (ticket 02)
 		return refuse("repl-hard: Draw replacement with an optional or choice body")
+	}
+	if rp.is("Optional", "True") {
+		// the player is asked whether to replace the draw (gorge's
+		// replChoiceDraw, ReplDrawOptional): the body applies on accept, the
+		// draw goes off unasked on decline (repl_drawmay.go)
+		bits |= kop.ReplDrawOptional
 	}
 	if rp.is("NotFirstCardInDrawStep", "True") {
 		bits |= kop.ReplDrawNotFirst
@@ -80,7 +88,7 @@ func (lc *lowerCtx) drawRepl(rp *params, w *cards.SA, rl *lRepl) error {
 	// acceptance; a chained sub-ability on the body was read as nothing
 	// there). The program path is for every other body.
 	if w != nil && withIs(w, "Draw", map[string]string{"Defined": "You", "NumCards": w.Params["NumCards"]}) &&
-		bits&(kop.ReplDrawOpponent|kop.ReplDrawAnyPlayer|kop.ReplDrawCauseCyclingNonLand) == 0 {
+		bits&(kop.ReplDrawOpponent|kop.ReplDrawAnyPlayer|kop.ReplDrawOptional|kop.ReplDrawCauseCyclingNonLand) == 0 {
 		// ReplDrawMore is the controller's own draw only (drawMore scans
 		// ctrlM[p]): a line that names an opponent or any player must keep
 		// its player bits and take the program path instead of silently
