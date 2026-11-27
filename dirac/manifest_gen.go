@@ -842,6 +842,8 @@ func (s *State) execExtGen(k *prep, in *kop.Instr) (ok, done bool) {
 		return s.addOrRemoveCounter(k, in) // ctr_addorremove.go
 	case kop.ExtChangeCombatants:
 		return s.changeCombatantsExt(k, in) // act_changecombatants.go
+	case kop.ExtChangeTargetsMass:
+		return s.changeTargetsMass(k, in) // act_stackrewrite.go
 	case kop.ExtChaosEnsues:
 		return s.chaosEnsuesExt(k, in) // zone_planechase.go
 	case kop.ExtChoosePlayerEach:

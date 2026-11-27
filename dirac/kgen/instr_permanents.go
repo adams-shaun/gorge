@@ -23,6 +23,7 @@ func init() {
 	instrOp("Airbend", (*instrCtx).opAirbend)
 	instrOp("Meld", (*instrCtx).opMeld)
 	instrOp("ChangeTargets", (*instrCtx).opChangeTargets)
+	instrOp("ChangeTargetsMass", (*instrCtx).opChangeTargetsMass)
 	instrOp("Phases", (*instrCtx).opPhases)
 	instrOp("Attach", (*instrCtx).opAttach)
 	instrOp("Exploit", (*instrCtx).opExploit)
@@ -160,6 +161,16 @@ func (ic *instrCtx) opChangeTargets() error {
 	// OpExt ExtChangeTargets over Obj (the
 	// TgtStackObj slot, or the triggering spell); C bit 0: Optional$
 	ki.Op, ki.A, ki.C = kop.OpExt, kop.Const(int(kop.ExtChangeTargets)), int16(in.C)
+	return nil
+}
+
+// opChangeTargetsMass is OpExt ExtChangeTargetsMass (dirac/act_stackrewrite.go):
+// every matching stack entry but the resolving redirect, in stack order; C bit
+// 0: Optional$.
+func (ic *instrCtx) opChangeTargetsMass() error {
+	ki := &ic.ki
+	in := &ic.in
+	ki.Op, ki.A, ki.C = kop.OpExt, kop.Const(int(kop.ExtChangeTargetsMass)), int16(in.C)
 	return nil
 }
 

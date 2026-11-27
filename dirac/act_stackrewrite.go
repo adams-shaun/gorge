@@ -235,6 +235,51 @@ func (s *State) changeTargets(k *prep, in *kop.Instr) bool {
 	return s.ksrAskFrom(k, ksrFirstDecl(k, e), must)
 }
 
+// changeTargetsMass is ExtChangeTargetsMass; false: the ask is posed.
+//
+// The mass walk is ExtChangeTargets over every spell and ability on the stack
+// but the resolving redirect itself, bottom first (gorge's ValidStack zone
+// order), each entry finishing before the next is offered. The per-entry
+// declaration asks, the answers and their write are the single-entry walk's
+// (ksrAskFrom/ksrApply); ksrAt is the next stack index and ksrMass that the
+// ask in flight is this walk.
+//
+//kmanifest:ext ExtChangeTargetsMass
+func (s *State) changeTargetsMass(k *prep, in *kop.Instr) (ok, done bool) {
+	must := in.C&1 == 0 // seat-ok: an instruction flag bit
+	s.res.ksrAt, s.res.ksrMass = 0, true
+	if !s.ksrMassNext(k, must) {
+		return false, true
+	}
+	s.res.ksrMass = false
+	return true, true
+}
+
+// ksrMassNext offers the first stack entry at or after ksrAt that has a
+// target, skipping the resolving redirect (the top entry). true: the walk is
+// done; false: an ask is posed.
+func (s *State) ksrMassNext(k *prep, must bool) bool {
+	for {
+		i := int(s.res.ksrAt)
+		if i >= int(s.sp) {
+			s.res.ksrAt, s.res.left, s.res.peekN = 0, 0, 0
+			return true
+		}
+		s.res.ksrAt = uint8(i) + 1
+		if i == int(s.sp)-1 {
+			continue // "any number of OTHER spells and/or abilities"
+		}
+		e := &s.stack[i]
+		if s.ksrTotal(e) == 0 {
+			continue
+		}
+		s.res.left, s.res.peekN = uint8(i)+1, 0
+		if !s.ksrAskFrom(k, ksrFirstDecl(k, e), must) {
+			return false
+		}
+	}
+}
+
 // ksrMagnetPlaces lists the places of the DefinedMagnet$ Self with
 // ChangeSingleTarget$ True redirect (gorge changeTargetMagnet) in the walk's
 // order: each target of each declaration whose offer holds the resolving
@@ -481,6 +526,12 @@ func (s *State) applyAskStackRewrite(k *prep, a Action) bool {
 	r.ask = raNone
 	if !s.ksrAskFrom(k, ksrNextDecl(k, &s.stack[idx], d), must) {
 		return true
+	}
+	if r.ksrMass {
+		if !s.ksrMassNext(k, must) {
+			return true
+		}
+		r.ksrMass = false
 	}
 	s.continueRes(k, 0)
 	return true

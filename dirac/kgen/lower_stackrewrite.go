@@ -5,11 +5,13 @@ import "strings"
 // api ChangeTargets (CR 115.7; gorge effChangeTargets)
 // and the mass Counter over Defined$ ValidStack.
 //
-// ChangeTargets lowers in two shapes only. A target slot over the stack
+// ChangeTargets lowers in three shapes only. A target slot over the stack
 // (changeTargetsShapes: a spell or ability, a spell, an activated ability,
 // each with or without exactly one distinct target, TgfSingleTgt), or
 // Defined$ TriggeredSpellAbility inside a SpellCast trigger (the spell whose
-// cast fired it). Optional$ True is read on both; DefinedMagnet$ Self with
+// cast fired it), or Defined$ ValidStack SpellAbility with Optional$ True in
+// a TurnFaceUp trigger (Boltbender's any-number walk, ExtChangeTargetsMass).
+// Optional$ True is read on all three; DefinedMagnet$ Self with
 // ChangeSingleTarget$ True (Spellskite, Hydroelectric Specimen: the source
 // takes the first target it can, C bit 1) only beside a slot. Every other
 // param (Chooser$, RandomTarget$, TargetRestriction$, Condition* ...) stays
@@ -24,6 +26,22 @@ func (lc *lowerCtx) changeTargets(ps *params) error {
 	}
 	if d, ok := ps.get("Defined"); ok {
 		tr := lc.ab.Trigger
+		if strings.TrimSpace(d) == "ValidStack SpellAbility" {
+			// Boltbender: "choose new targets for any number of other spells
+			// and/or abilities". The mass walk is the same per-entry redirect
+			// over every stack entry but the resolving trigger, bottom first.
+			if tr == nil || tr.Event != "TurnFaceUp" {
+				return refuse("ChangeTargets Defined$ ValidStack SpellAbility outside a TurnFaceUp trigger")
+			}
+			if c != 1 {
+				return refuse("ChangeTargets Defined$ ValidStack SpellAbility without Optional$ True")
+			}
+			if _, ok := ps.m["TargetType"]; ok {
+				return refuse("ChangeTargets with both Defined$ and TargetType$")
+			}
+			lc.emit(lInstr{Op: "ChangeTargetsMass", C: c})
+			return nil
+		}
 		if strings.TrimSpace(d) != "TriggeredSpellAbility" || tr == nil || tr.Event != "SpellCast" {
 			return refuse("ChangeTargets Defined$ %q outside a SpellCast trigger", d)
 		}
