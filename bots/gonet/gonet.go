@@ -215,12 +215,16 @@ type gnHeader struct {
 	// feature set the network was trained on (dzgw-1 additive field). It must
 	// equal this build's entity encoder hash; a file without it loads, and
 	// Net.EncoderHashChecked reports that nothing was checked.
-	EncoderHash string             `json:"encoder_hash,omitempty"`
-	Arch        string             `json:"arch"`
-	Config      map[string]float64 `json:"config"`
-	Consts      map[string]int     `json:"consts"`
-	Eps         map[string]float64 `json:"layernorm_eps"`
-	Tensors     []struct {
+	EncoderHash string `json:"encoder_hash,omitempty"`
+	// ExtHash, when present, is the %016x feat.ExtHash of the extension
+	// block layout an EXT_W net reads (dirac/neteval checks it; this package
+	// runs no ext net and ignores it).
+	ExtHash string             `json:"ext_hash,omitempty"`
+	Arch    string             `json:"arch"`
+	Config  map[string]float64 `json:"config"`
+	Consts  map[string]int     `json:"consts"`
+	Eps     map[string]float64 `json:"layernorm_eps"`
+	Tensors []struct {
 		Name   string `json:"name"`
 		Shape  []int  `json:"shape"`
 		Offset int64  `json:"offset"`
@@ -248,26 +252,9 @@ func (g *Net) RawWidth() int {
 // caller choosing a backend asks before loading, since only this package
 // runs the K-way head.
 func HeaderValueK(path string) (int, error) {
-	f, err := os.Open(path)
+	raw, err := readHeader(path)
 	if err != nil {
 		return 0, err
-	}
-	defer f.Close()
-	var pre [16]byte
-	if _, err := io.ReadFull(f, pre[:]); err != nil || string(pre[:8]) != gnMagic {
-		return 0, fmt.Errorf("gonet %s: not a .dzgw file (python -m dzg.export)", path)
-	}
-	hl := int64(binary.LittleEndian.Uint64(pre[8:]))
-	st, err := f.Stat()
-	if err != nil {
-		return 0, err
-	}
-	if hl <= 0 || hl > st.Size()-16 {
-		return 0, fmt.Errorf("gonet %s: bad header length %d", path, hl)
-	}
-	raw := make([]byte, hl)
-	if _, err := io.ReadFull(f, raw); err != nil {
-		return 0, fmt.Errorf("gonet %s: header: %w", path, err)
 	}
 	var h struct {
 		Config map[string]float64 `json:"config"`
@@ -276,6 +263,50 @@ func HeaderValueK(path string) (int, error) {
 		return 0, fmt.Errorf("gonet %s: header: %w", path, err)
 	}
 	return int(h.Config["value_k"]), nil
+}
+
+// HeaderHashes reads only the header of the .dzgw file at path and returns
+// its encoder_hash and ext_hash strings as written ("" when absent), for a
+// caller that runs the net on another backend and checks them itself.
+func HeaderHashes(path string) (encoderHash, extHash string, err error) {
+	raw, err := readHeader(path)
+	if err != nil {
+		return "", "", err
+	}
+	var h struct {
+		EncoderHash string `json:"encoder_hash"`
+		ExtHash     string `json:"ext_hash"`
+	}
+	if err := json.Unmarshal(raw, &h); err != nil {
+		return "", "", fmt.Errorf("gonet %s: header: %w", path, err)
+	}
+	return h.EncoderHash, h.ExtHash, nil
+}
+
+// readHeader returns the JSON header bytes of the .dzgw file at path.
+func readHeader(path string) ([]byte, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+	var pre [16]byte
+	if _, err := io.ReadFull(f, pre[:]); err != nil || string(pre[:8]) != gnMagic {
+		return nil, fmt.Errorf("gonet %s: not a .dzgw file (python -m dzg.export)", path)
+	}
+	hl := int64(binary.LittleEndian.Uint64(pre[8:]))
+	st, err := f.Stat()
+	if err != nil {
+		return nil, err
+	}
+	if hl <= 0 || hl > st.Size()-16 {
+		return nil, fmt.Errorf("gonet %s: bad header length %d", path, hl)
+	}
+	raw := make([]byte, hl)
+	if _, err := io.ReadFull(f, raw); err != nil {
+		return nil, fmt.Errorf("gonet %s: header: %w", path, err)
+	}
+	return raw, nil
 }
 
 // Load reads a .dzgw file (contract dzgw, docs/contracts.md).
