@@ -238,6 +238,7 @@ type lowerCtx struct {
 	inGroup        bool          // lowering a Mobilize group program's body (SacrificeDelayed is legal)
 	groupMany      bool          // ... of Mobilize 3-4: the DpMany program, SacrificeDelayed reads up to four objects
 	delayedSetDmg  bool          // delayedRemember accepted a dig's whole remembered set for a count-of-the-still-exiled body (lower_delayedsetdmg.go)
+	delayedExile   bool          // delayedStepRemember accepted a RepeatEach body's whole remembered set for an exile-many body (Mirror-Style Master)
 	czForgetSet    bool          // a ChangeZoneAll ForgetOtherRemembered$ ran in this ability: Remembered is a many-object set (lower_changezoneall.go)
 	chains         int           // chain entries so far (every-blocker census: did a node's body get read?)
 	guardNode      string        // the top-level node guard is lowering (every-blocker census names extra refusals by it)
@@ -314,6 +315,13 @@ type lowerCtx struct {
 	// repeatCard > 0 while a RepeatEach-over-cards body is lowered: its
 	// Token AttachedTo$ Remembered is the repeated card (lower_repeatcards.go)
 	repeatCard int
+	// repeatUseImp: that body's RepeatEach carries UseImprinted$ True, so
+	// Defined$ Imprinted is the repeated card (lower_repeatcards.go)
+	repeatUseImp bool
+	// repeatCztNode is the RepeatEach node whose ChangeZoneTable$ Token /
+	// CopyPermanent body writes a remembered set the following SubAbility's
+	// DelayedTrigger reads (Mirror-Style Master), nil otherwise.
+	repeatCztNode *cards.SA
 	// repeatRem: that body repeats over the resolution's remembered cards
 	// (kop.RepeatRemembered, lower_repeatremembered.go): its Defined$ /
 	// TokenOwner$ ImprintedController is the repeated card's controller

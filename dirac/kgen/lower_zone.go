@@ -4190,6 +4190,9 @@ func (lc *lowerCtx) copyPermanent(ps *params) error {
 		}
 		flags = append(flags, "Tapped")
 	}
+	if err := lc.copyBatchedAttacking(ps, picked, &flags); err != nil {
+		return err
+	}
 	if ct, ok := ps.get("WithCountersType"); ok {
 		// the token enters with the counters (gorge copypermanent.go folds
 		// them into the copy's own entry MoveZone; CR 122.6, 614.1c). The

@@ -576,6 +576,10 @@ func (r *Translator) Action(a dirac.Action) Canon {
 			return ch("gift_decline", RefNone, 0)
 		case dirac.ChGenManifestDread:
 			return ch("manifest_dread", src, 0)
+		case dirac.ChGenEachOrder:
+			// gorge repeatEachChooseOrder's KChoose option kind "order" over
+			// the repeated card (act_eachorder.go)
+			return ch("order", src, 0)
 		}
 		return r.numberChoose(src, mode) // translate_paylife.go
 	}

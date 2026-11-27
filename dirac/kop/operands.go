@@ -792,6 +792,14 @@ const RepeatRemembered = 2
 // across every pass's ask (Stench of Evil; gorge effRepeatEach's damage bracket).
 const RepeatDmgBatch = 4
 
+// RepeatEachOrder is OpRepeatEach's C bit 3 (ChooseOrder$ True on the batched
+// ChangeZoneTable$ Token/Copy body): before the loop runs, the resolving
+// controller orders the subjects in one KChoose of gorge's "order" options
+// (Ezuri's Predation; repeatEachChooseOrder asks it with more than one
+// subject). The chosen permutation rides res.arr, so the loop's one zone
+// batch opens after the last pick and spans the whole loop.
+const RepeatEachOrder = 8
+
 // OpGainControl riders (B.N).
 const (
 	GcUntap    = 1 << iota // untap it (Untap$ True; a stun counter is removed instead)
