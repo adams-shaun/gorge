@@ -35,6 +35,9 @@ func (lc *lowerCtx) apiDestroy(sa *cards.SA, ps *params) error {
 		}
 		return nil
 	}
+	if d := ps.peek("Defined"); strings.Contains(d, " & ") {
+		return lc.destroyCompound(sa, ps, d)
+	}
 	obj, err := lc.objOrTarget(ps, "", zBattlefield)
 	if err != nil {
 		return err
@@ -55,6 +58,31 @@ func (lc *lowerCtx) apiDestroy(sa *cards.SA, ps *params) error {
 		return err
 	}
 	lc.emit(in)
+	return nil
+}
+
+// destroyCompound runs a Destroy once per member of a compound Defined$
+// "A & B" (gorge's DefinedRef RefCompound arm: the members are joined, not
+// intersected, and each resolves on its own; effects/zone_bulk.go effDestroy
+// destroys each target of the resulting set). Alaborn Zealot / Loyal Sentry:
+// TriggeredAttackerLKICopy & Self destroys the blocked creature and the
+// source itself. Every member must name an object; a player member refuses
+// because the one-object Destroy has no player reading. A NoRegen$ or a
+// Remember* rider stays unread and refuses the node through the census.
+func (lc *lowerCtx) destroyCompound(sa *cards.SA, ps *params, d string) error {
+	refs, err := lc.definedCompound(d)
+	if err != nil {
+		return err
+	}
+	for _, r := range refs {
+		if !objectSubject(r) {
+			return refuse("%s Defined$ %q over %s", sa.API, d, r)
+		}
+	}
+	ps.get("Defined")
+	for _, r := range refs {
+		lc.emit(lInstr{Op: "Destroy", Obj: r})
+	}
 	return nil
 }
 

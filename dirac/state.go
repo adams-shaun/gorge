@@ -325,6 +325,15 @@ type perm struct {
 	// (copy_facedown.go), spareRegenX (repl_regenerate.go) and spareSolved
 	// (kw_crewsaddle.go).
 	spare uint8
+	// atkPl is the seat+1 of the player this attacker last DECLARED an
+	// attack at this turn (gorge's per-object AttackedPlayersThisTurn
+	// ledger, the DeclareAttackers fold); 0 means none. beginTurn clears it
+	// with gorge's TurnChange fold. Written by setDeclaredAttackTarget only:
+	// a permanent put onto the battlefield attacking was not declared
+	// (CR 508.1), and atk must keep naming the planeswalker/battle of a
+	// later declaration. The byte fills the tail padding the alignment left,
+	// so perm stays 72 bytes.
+	atkPl uint8
 	card  CardID       // the card's id (the copy-of id lives in ovr)
 	gty   kop.TypeMask // types derived by a generated table's overrides (ovGenTy)
 }

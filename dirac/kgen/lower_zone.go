@@ -4089,6 +4089,9 @@ func (lc *lowerCtx) copyNonRemController(ps *params, obj lRef) (bool, error) {
 }
 
 func (lc *lowerCtx) copyPermanent(ps *params) error {
+	if d, ok := ps.m["Defined"]; ok && strings.HasPrefix(strings.TrimSpace(d), "ValidExile ") {
+		return lc.copyPermanentValidExile(ps, strings.TrimSpace(d))
+	}
 	if d, ok := ps.m["Defined"]; ok && strings.HasPrefix(strings.TrimSpace(d), "Valid ") {
 		if _, ok := ps.m["ValidTgts"]; ok {
 			// a player target whose permanents the Valid set names
@@ -4295,6 +4298,65 @@ func (lc *lowerCtx) copyPermanent(ps *params) error {
 		}
 	}
 	in.CS = strings.Join(flags, "|")
+	lc.emit(in)
+	return nil
+}
+
+// copyPermanentValidExile lowers CopyPermanent over Defined$ ValidExile
+// <filter> (Altaïr Ibn-La'Ahad's "for each creature card you own in exile
+// with a memory counter on it, create a token that's a copy of it"). gorge's
+// definedZoneValidTargets reads the zone-qualified Valid family over the
+// resolving controller's exile zone (the other zones range over every living
+// player; exile does not), in zone order, and effCopyPermanent mints a token
+// copy of each match. The kernel's ExtCopyExiledWith already walks the exile
+// zones and matches a card filter; B.N bit 15 restricts it to the
+// controller's zone (dirac/copy_exiledwith.go). A Choices$ pool, or any
+// copy-count rider the op does not carry, is left to the node's unread-param
+// refusal.
+func (lc *lowerCtx) copyPermanentValidExile(ps *params, d string) error {
+	spec := strings.TrimSpace(strings.TrimPrefix(d, "ValidExile "))
+	ps.get("Defined")
+	if _, ok := ps.m["Choices"]; ok {
+		return refuse("CopyPermanent Defined$ %q: a Choices$ pool", d)
+	}
+	f, err := lc.filter(spec)
+	if err != nil {
+		return err
+	}
+	if f.Players != 0 || len(f.Clauses) == 0 {
+		return refuse("CopyPermanent Defined$ %q: a player alternative or empty filter", d)
+	}
+	exc, hasExc, err := lc.copyExceptions(ps)
+	if err != nil {
+		return err
+	}
+	var flags []string
+	if v, ok := ps.get("TokenTapped"); ok {
+		if v != "True" {
+			return refuse("CopyPermanent TokenTapped %q", v)
+		}
+		flags = append(flags, "Tapped")
+	}
+	atk, err := lc.copyAttacking(ps)
+	if err != nil {
+		return err
+	}
+	if atk {
+		flags = append(flags, "Attacking")
+	}
+	if a, ok := ps.get("AtEOT"); ok {
+		f, err := lc.copyAtEOTFlag(ps, a)
+		if err != nil {
+			return err
+		}
+		flags = append(flags, f)
+	}
+	in := lInstr{Op: "CopyAllExile", F: f, CS: strings.Join(flags, "|")}
+	if hasExc {
+		lc.out.overrides = append(lc.out.overrides, exc)
+		in.C = len(lc.out.overrides) // index+1
+		in.Note = "except " + overrideString(exc)
+	}
 	lc.emit(in)
 	return nil
 }
