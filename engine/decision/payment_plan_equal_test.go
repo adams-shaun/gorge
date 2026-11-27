@@ -3,15 +3,17 @@ package decision
 import (
 	"reflect"
 	"testing"
+
+	"github.com/adams-shaun/gorge/engine/state"
 )
 
 func TestPaymentPlanEqualMatchesDeepEqual(t *testing.T) {
 	for typ, n := range map[reflect.Type]int{
 		reflect.TypeFor[PaymentPlan]():        6,
-		reflect.TypeFor[PaymentActivation]():  5,
+		reflect.TypeFor[PaymentActivation]():  6,
 		reflect.TypeFor[PaymentCost]():        2,
 		reflect.TypeFor[PaymentAbility]():     4,
-		reflect.TypeFor[PaymentConsequence](): 5,
+		reflect.TypeFor[PaymentConsequence](): 6,
 	} {
 		if typ.NumField() != n {
 			t.Fatalf("%s has %d fields, payment_plan_equal.go was written against %d: extend it", typ, typ.NumField(), n)
@@ -39,6 +41,13 @@ func TestPaymentPlanEqualMatchesDeepEqual(t *testing.T) {
 		func(p *PaymentPlan) { p.Activations[0].Consequence = nil },
 		func(p *PaymentPlan) { p.Activations[0].Consequence = &PaymentConsequence{Life: 1, Sacrifice: true} },
 		func(p *PaymentPlan) { p.Activations[0].Consequence = &PaymentConsequence{Life: 1} }, // equal pointee, new pointer
+		func(p *PaymentPlan) { p.Activations[0].Sacrifices = []state.ObjID{} },
+		func(p *PaymentPlan) { p.Activations[0].Sacrifices = []state.ObjID{7} },
+		func(p *PaymentPlan) { p.Activations[0].Sacrifices = []state.ObjID{7, 8} },
+		func(p *PaymentPlan) { p.Activations[0].Sacrifices = []state.ObjID{8} },
+		func(p *PaymentPlan) {
+			p.Activations[0].Consequence = &PaymentConsequence{Life: 1, SacrificeOthers: true}
+		},
 		func(p *PaymentPlan) { p.PoolSpend[0] = 7 },
 		func(p *PaymentPlan) { p.PoolAfter[1] = 7 },
 	}

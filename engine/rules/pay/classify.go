@@ -494,6 +494,28 @@ func PlanSelfCost(part cost.CostPart, id state.ObjID) bool {
 	return part.N == 1 && (s == "cardname" || s == "this token" || s == "cardname/self" || s == "self")
 }
 
+// PlanOtherSacShape reports whether a non-self Sac cost part is the closed
+// "sacrifice another permanent" shape the other-sacrifice planner admits:
+// exactly one permanent, a literal count fixed at payment (not an announced
+// X, not an SVar Dyn count), not a granted ability's bound referent, and a
+// non-empty spec. Its counterpart on the source is PlanSelfCost; anything
+// else -- a second Sac part beside the source's own, an Announced count --
+// stays deferred (PaymentPlanShapeTierOf). The victim must be a creature
+// (Ashnod's Altar, Phyrexian Altar, Phyrexian Tower): a sacrifice of an
+// artifact, a land or a named subtype (Krark-Clan Ironworks, Lake of the
+// Dead, Skirk Prospector) stays manual, as does every shape dirac's
+// planner does not mirror.
+func PlanOtherSacShape(part cost.CostPart) bool {
+	if part.N != 1 || part.Announced || part.Dyn != "" || part.Referent != 0 {
+		return false
+	}
+	spec := strings.ToLower(strings.TrimSpace(SacrificeMatchSpec(part.Spec)))
+	// The closed shape dirac's planOtherSacFilter admits: a plain creature,
+	// or "another" one. Any other qualifier (".black;Creature.Artifact",
+	// ".token", ".namedX") stays manual.
+	return spec == "creature" || spec == "creature.other"
+}
+
 // PlanLastResortChoices is phase 2's alternative table (spec 5): every
 // unit's normal AND last-resort alternatives, each carrying the source's
 // phase-2 flexibility (flexAll, key 5 over every eligible alternative), minus
@@ -626,7 +648,16 @@ func PlanClassMembers(classes []Class) [][]int {
 
 // PlanSameAlternative compares two computations of one alternative.
 func PlanSameAlternative(a, b Alt) bool {
-	return a == b
+	return a.Ma == b.Ma && planSameAltFields(a, b)
+}
+
+// planSameAltFields compares every Alt field but Ma: the witness activation
+// (its victim list makes Alt incomparable with ==) through Equal, the rest
+// by value.
+func planSameAltFields(a, b Alt) bool {
+	return a.Activation.Equal(&b.Activation) && a.Mana == b.Mana && a.Creature == b.Creature &&
+		a.Flex == b.Flex && a.FlexAll == b.FlexAll && a.Colours == b.Colours &&
+		a.ExecProduced == b.ExecProduced && a.Tier == b.Tier && a.Consequence == b.Consequence
 }
 
 // PlanSameStep compares two resolutions of one witness step at one
@@ -636,6 +667,5 @@ func PlanSameStep(a, b Alt) bool {
 	if !SameManaAbility(a.Ma, b.Ma) {
 		return false
 	}
-	a.Ma, b.Ma = nil, nil
-	return a == b
+	return planSameAltFields(a, b)
 }

@@ -1,6 +1,7 @@
 package pay
 
 import (
+	"slices"
 	"strings"
 
 	"github.com/adams-shaun/gorge/engine/decision"
@@ -134,6 +135,14 @@ func ManaCostChoiceStages(e Engine, md *ManaCostActivation) ManaCostStep {
 		if n <= 0 || n > len(candidates) {
 			e.Session().ManaCost = nil
 			return ManaCostDropped
+		}
+		if !hasLaterSac && plannedSacsAnswer(md.PlannedSacs, candidates, n) {
+			// The payment plan's victims (AssignPlanVictims) answer the
+			// election the manual path asks.
+			md.Sacs = append(md.Sacs, md.PlannedSacs...)
+			md.SacPart++
+			md.SacPaid = 0
+			continue
 		}
 		var d *decision.Decision
 		if hasLaterSac {
@@ -320,4 +329,18 @@ func manaCostUntapStage(e Engine, md *ManaCostActivation) ManaCostStep {
 		return ManaCostAsked
 	}
 	return ManaCostNext
+}
+
+// plannedSacsAnswer reports whether planned is exactly a legal answer to the
+// last Sac part's election: n distinct objects, each a current candidate.
+func plannedSacsAnswer(planned, candidates []state.ObjID, n int) bool {
+	if len(planned) != n {
+		return false
+	}
+	for i, id := range planned {
+		if !slices.Contains(candidates, id) || slices.Contains(planned[:i], id) {
+			return false
+		}
+	}
+	return true
 }

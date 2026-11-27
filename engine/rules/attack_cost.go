@@ -1108,7 +1108,7 @@ func (e *Engine) blockPayAnswer(d *decision.Decision, in decision.Intent) {
 			st.plan.routePhyPip(true)
 		default:
 			if s, ok := paySourceForAnswer(st.sources, chosen[0]); ok {
-				e.resolveManaAbilityRefOriginal(st.plan.player, s.id, s.ma, s.original, s.gained, false, false, false)
+				e.resolveManaAbilityRefOriginal(st.plan.player, s.id, s.ma, s.original, s.gained, false, false, false, nil)
 			}
 		}
 	}
@@ -2050,7 +2050,7 @@ func (e *Engine) attackPayAnswer(d *decision.Decision, in decision.Intent) {
 		default:
 			if chosen[0].Obj != 0 {
 				if s, ok := paySourceForAnswer(st.sources, chosen[0]); ok {
-					e.resolveManaAbilityRefOriginal(st.plan.player, s.id, s.ma, s.original, s.gained, false, false, false)
+					e.resolveManaAbilityRefOriginal(st.plan.player, s.id, s.ma, s.original, s.gained, false, false, false, nil)
 				}
 			}
 		}
