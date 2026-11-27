@@ -46,14 +46,26 @@ jobs:
           if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ]; then echo "run=true" >> "$GITHUB_OUTPUT"; exit 0; fi
           now=$(date +%s)
           last=""
-          while read -r id at; do
-            [ $((now - $(date -d "$at" +%s))) -ge 6300 ] && break
+          while read -r id at concl; do
+            age=$((now - $(date -d "$at" +%s)))
+            [ "$age" -ge 6300 ] && break
             # a run whose due job skipped its oracle jobs does not count
             n=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$id/jobs?per_page=50" \
               --jq '[.jobs[] | select(.name | startswith("oracle")) | select(.conclusion != "skipped")] | length')
-            if [ "$n" -gt 0 ]; then last="$id $at"; break; fi
+            if [ "$n" -gt 0 ]; then
+              # A green run keeps the full 1h45m window. A failed oracle run still counts as
+              # "ran", but only for 30m: a red whole-oracle must not hide behind its own
+              # failure for the rest of the cadence.
+              window=6300
+              if [ "$concl" = failure ]; then
+                window=1800
+                echo "oracle run $id $at concluded failure; retry window 30m"
+              fi
+              [ "$age" -lt "$window" ] && last="$id $at"
+              break
+            fi
           done < <(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/oracle.yml/runs?branch=main&per_page=30" \
-            --jq ".workflow_runs[] | select(.id != $GITHUB_RUN_ID) | select(.conclusion != \"cancelled\") | \"\(.id) \(.created_at)\"")
+            --jq ".workflow_runs[] | select(.id != $GITHUB_RUN_ID) | select(.conclusion != \"cancelled\") | \"\(.id) \(.created_at) \(.conclusion)\"")
           if [ -n "$last" ]; then
             echo "oracle ran recently (run $last): not due"
             echo "run=false" >> "$GITHUB_OUTPUT"
