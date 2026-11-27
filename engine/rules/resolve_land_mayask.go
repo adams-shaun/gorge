@@ -167,7 +167,47 @@ func tapeAnyReplBodyMayAsk(e *Engine) bool {
 // draw step; with no run serving it its asks fall to Engine.Ask's no-run
 // default (the tapeStepMayAsk gate).
 func tapeTurnDrawBodyMayAsk(e *Engine) bool {
+	if !turnDrawDigBodyOnBoard(e) {
+		return false
+	}
 	return tapeReplBodyMayAsk(e, replEventBit("Draw"), replWalkScope{})
+}
+
+// turnDrawDigBodyOnBoard reports whether the board's Draw replacements include
+// a ReplaceWith$ body that runs a library-look Dig: the body this gate opens
+// for. A Draw body that asks only through a hidden pick (Out of the Tombs'
+// graveyard return) is not it: its pick is posed outside the tape run, so
+// opening one for it would change the decisions gorge makes on a card whose
+// dirac pair already locks step by step (dirac/oracle's tombs pairs).
+func turnDrawDigBodyOnBoard(e *Engine) bool {
+	bit := replEventBit("Draw")
+	found := false
+	e.forEachReplacementSourceFor(bit, func(id state.ObjID) {
+		if found {
+			return
+		}
+		o := e.G.Obj(id)
+		if o == nil {
+			return
+		}
+		f := o.Face()
+		if f == nil {
+			return
+		}
+		for i := range f.Repls {
+			r := &f.Repls[i]
+			if r.Event == "Moved" || !replBitIn(replLineBit(r), bit) {
+				continue
+			}
+			for s := r.With; s != nil; s = s.Sub {
+				if s.API == "Dig" || s.API == "DigUntil" {
+					found = true
+					return
+				}
+			}
+		}
+	})
+	return found
 }
 
 // tapeReplBodyMayAsk is tapeAnyReplBodyMayAsk over the replacements of the

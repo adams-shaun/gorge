@@ -253,8 +253,11 @@ func (s *State) dredgeDrawLoop(k *prep, in *kop.Instr, p uint8, left int, rest u
 				// the in-flight record; the answer's body end re-enters this
 				// loop past the asked card (drawBodyEndRes).
 				ds := s.drawState()
-				ds[0].outer.left = uint8(left)
-				ds[0].rest, ds[0].pickN = rest, uint8(n)
+				ds[0].rest = rest
+				if pk := s.drawParkRecord(); len(pk) > 0 {
+					pk[0].outer.left = uint8(left)
+					pk[0].pickN = uint8(n)
+				}
 				return false
 			}
 			if s.drawReplAsked() {

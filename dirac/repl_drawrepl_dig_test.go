@@ -142,7 +142,8 @@ func replDrawDigScenarios(t *testing.T) {
 		if s.g.stalled != 0 {
 			t.Fatalf("stalled %d: the answered body stalled", s.g.stalled)
 		}
-		if ds := s.drawState(); len(ds) > 0 && (ds[0].active || ds[0].outerOn) {
+		if ds, pk := s.drawState(), s.drawParkRecord(); len(ds) > 0 && ds[0].active ||
+			len(pk) > 0 && pk[0].on {
 			t.Fatal("coldDraw still live after the body and the spell finished")
 		}
 	})

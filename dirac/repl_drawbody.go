@@ -50,18 +50,70 @@ func (s *State) drawBodyPark(k *prep, saved *resCtx, i, n int, src Slot, abi uin
 	return true
 }
 
+// useDrawPark reports a table with a Draw replacement body that is a
+// library-look Dig: the only body whose choose can be parked at a resolution
+// site (drawBodyParkRes). A table whose draw programs carry no Dig body pays
+// neither the digLoop byte nor the park record (coldDrawPark), which is what
+// keeps a pool like mbc (one draw program, no Dig body) inside the State bar.
+var useDrawPark = newGenUse(tableHasDrawDigBody)
+
+// tableHasDrawDigBody: some card's ReplDrawProgram body contains a
+// library-look Dig op.
+func tableHasDrawDigBody(t *kop.Table) bool {
+	for i := range t.Cards {
+		c := &t.Cards[i]
+		for j := range c.Abilities {
+			a := &c.Abilities[j]
+			if a.Kind != kop.AbReplacement || a.Repl.Kind != kop.ReplDrawProgram {
+				continue
+			}
+			for k := range a.Prog {
+				switch a.Prog[k].Op {
+				case kop.OpDig, kop.OpDigEx, kop.OpDigUntil:
+					return true
+				}
+			}
+		}
+	}
+	return false
+}
+
 // coldDigLoop marks that the draw in flight is inside dredgeDrawLoop's
 // resumable loop (kw_dredge.go): the only site where a resolution's Dig body
 // ask can be parked (drawBodyParkRes), because the loop lays its state on
 // the in-flight record right after dredgeDrawOne returns. A cold region like
 // coldDraw, not a fixed-State field (TestNoNewFixedStateFields); only a
-// table with a draw program carries the byte.
+// table with a Dig body draw replacement carries the byte.
 var coldDigLoop = newCold[uint8]("digLoop", func(g *genPrep) int {
-	if g.hasDrawProgram() {
+	if g.uses.has(useDrawPark) {
 		return 1
 	}
 	return 0
 })
+
+// drawPark is a Dig body's ask parked at a resolution site (drawBodyParkRes):
+// the outer resolution's resCtx to restore when the body ends (its left count
+// rides outer.left), the OpDraw loop's per-player count the park could not
+// keep in the borrowed context (pickN), and the body's own entry, which tells
+// the body's live context from the outer's (drawBodyEndRes). A cold region of
+// its own, not fields of drawProgram, so a pool whose draw program is not a
+// Dig body carries none of it (useDrawPark).
+type drawPark struct {
+	on    bool
+	outer resCtx
+	pickN uint8
+	bodyE stackEntry
+}
+
+var coldDrawPark = newCold[drawPark]("drawPark", func(g *genPrep) int {
+	if g.uses.has(useDrawPark) {
+		return 1
+	}
+	return 0
+})
+
+// drawParkRecord is the park in s, or nil.
+func (s *State) drawParkRecord() []drawPark { return coldDrawPark.of(s) }
 
 // digLoopMark sets the coldDigLoop byte (a table without the region keeps
 // none).
@@ -103,10 +155,13 @@ func (s *State) drawBodyParkRes(k *prep, ds []drawProgram, saved *resCtx, i int,
 	if q := s.prog(k); len(q) == 0 || &q[0] != &k.t.Cards[s.cardAt(src)].Abilities[abi].Prog[0] {
 		return false // an overload or special frame claims s.prog: the ask walk would read the wrong op
 	}
-	d := &ds[0]
-	d.outer = *saved
-	d.outerOn = true
-	d.bodyE = s.res.e
+	pk := s.drawParkRecord()
+	if len(pk) == 0 {
+		return false // no Dig body in this table: nothing can park
+	}
+	pk[0].outer = *saved
+	pk[0].bodyE = s.res.e
+	pk[0].on = true
 	s.res.pc = uint8(i)
 	return true
 }
@@ -116,7 +171,11 @@ func (s *State) drawBodyParkRes(k *prep, ds []drawProgram, saved *resCtx, i int,
 // outer context and the live context is the body's own entry.
 func (s *State) drawBodyResAsked() bool {
 	ds := s.drawState()
-	return len(ds) > 0 && ds[0].active && ds[0].outerOn && isDigAsk(s.res.ask) && s.res.e == ds[0].bodyE
+	if len(ds) == 0 || !ds[0].active || !isDigAsk(s.res.ask) {
+		return false
+	}
+	pk := s.drawParkRecord()
+	return len(pk) > 0 && pk[0].on && s.res.e == pk[0].bodyE
 }
 
 // drawBodyEndRes is runProg's end for a body parked at a resolution site:
@@ -129,13 +188,15 @@ func (s *State) drawBodyEndRes(k *prep) bool {
 		return false
 	}
 	d := ds[0]
-	if !d.active || !d.outerOn || s.res.e != d.bodyE {
+	pk := s.drawParkRecord()
+	if len(pk) == 0 || !d.active || !pk[0].on || s.res.e != pk[0].bodyE {
 		return false
 	}
+	p := pk[0] // a copy: drawProgramDone clears the park
 	s.drawProgramDone()
-	s.res = d.outer
+	s.res = p.outer
 	in := &s.prog(k)[s.res.pc]
-	if s.dredgeDrawLoop(k, in, d.p, int(d.outer.left)-1, d.rest, int(d.pickN)) {
+	if s.dredgeDrawLoop(k, in, d.p, int(p.outer.left)-1, d.rest, int(p.pickN)) {
 		s.continueRes(k, 0)
 	}
 	return true

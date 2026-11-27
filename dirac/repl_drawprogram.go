@@ -55,17 +55,6 @@ type drawProgram struct {
 	left    uint8
 	rest    uint8
 	n       uint8
-	// A Dig body's ask parked at a resolution site (the resolving spell's
-	// OpDraw, repl_drawbody.go drawBodyParkRes): the outer resolution's
-	// resCtx to restore when the body ends (its left count rides outer.left),
-	// the OpDraw loop's state the park could not keep in the borrowed
-	// context (the players still to draw ride rest, the per-player count
-	// pickN), and the body's own entry, which tells the body's live context
-	// from the outer's (drawBodyEndRes).
-	outerOn bool
-	outer   resCtx
-	pickN   uint8
-	bodyE   stackEntry
 }
 
 // drawState is coldDraw's record, or nil.
@@ -282,6 +271,9 @@ func (s *State) drawProgramTake(k *prep, p uint8, sel Slot, abi uint8, ab *kop.A
 	}
 	save := ds[0]
 	ds[0] = drawProgram{active: true, p: p, chain: ch}
+	if pk := s.drawParkRecord(); len(pk) > 0 {
+		pk[0] = drawPark{} // a new program: no park of the last one survives
+	}
 	nask := s.g.nask
 	s.runReplProgAs(k, sel, s.cardAt(sel), abi, 0, sel)
 	if s.res.ask == raNone && s.g.nask == nask {
@@ -299,9 +291,12 @@ func (s *State) drawProgramDone() {
 	if ds := s.drawState(); len(ds) > 0 {
 		r := &ds[0]
 		// A parked pick's frame (waiting, left, rest, n) survives; a parked
-		// Dig body's (outerOn, outer, pickN, bodyE) does not: drawBodyEndRes
+		// Dig body's (repl_drawbody.go coldDrawPark) does not: drawBodyEndRes
 		// and drawBodyEnd read it from a copy taken before this call.
 		*r = drawProgram{waiting: r.waiting, p: r.p, left: r.left, rest: r.rest, n: r.n}
+	}
+	if pk := s.drawParkRecord(); len(pk) > 0 {
+		pk[0] = drawPark{}
 	}
 }
 
