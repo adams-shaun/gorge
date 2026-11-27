@@ -91,8 +91,10 @@ jobs:
           echo "passed=$passed" >> "$GITHUB_OUTPUT"
 
   # Stage 1 of the pipeline: on the box, build the corpus and dirac's tables once for this tree (scripts/ci-corpus.sh
-  # keys them by FORGE_REF, engine/cards and dirac sources); the test stage's jobs then find them built. On a
-  # GitHub-hosted runner it does nothing: each hosted job restores .cards from the Actions cache.
+  # keys them by FORGE_REF, engine/cards and dirac sources); the test stage's jobs then find them built. A box
+  # without the tree (a fresh spot instance) first tries the Actions cache under cardstree-<ck>-<dk>-<RULE>, the key
+  # of every input the tree's bytes depend on (scripts/ci-corpus-keys.sh); on a miss it builds and, from main, saves.
+  # On a GitHub-hosted runner it does nothing: each hosted job restores .cards from the Actions cache.
   prepare:
     needs: prior
     if: ${{ !cancelled() && needs.prior.outputs.passed != 'true' && (github.event_name != 'pull_request' || startsWith(github.head_ref, 'mergify/merge-queue/')) }}
@@ -151,6 +153,40 @@ jobs:
         with:
           go-version-file: go.mod
           cache: false
+      - name: Corpus keys (self-hosted)
+        if: runner.environment == 'self-hosted'
+        id: keys
+        run: |
+          # scripts/ci-corpus-keys.sh is the single definition of the corpus keys; ci-corpus.sh sources it.
+          # tree-present: this box already holds a complete tree for this key, so the restore below (hundreds of
+          # MB off the cache service) runs only where the alternative is fetching and building from scratch.
+          eval "$(bash scripts/ci-corpus-keys.sh)"
+          present=false
+          if [ -e "$tree/.tables-ok" ]; then present=true; fi
+          {
+            echo "ck=$ck"
+            echo "dk=$dk"
+            echo "rule=$RULE"
+            echo "tree=$tree"
+            echo "tree-present=$present"
+          } >> "$GITHUB_OUTPUT"
+      - name: Restore the corpus tree (self-hosted)
+        id: treerestore
+        # Fail-open: a cache-service hiccup costs the tree build, never a red batch.
+        continue-on-error: true
+        if: runner.environment == 'self-hosted' && steps.keys.outputs.tree-present != 'true'
+        uses: actions/cache/restore@v4
+        with:
+          # Workspace-local, so two prepares on one box cannot race one extraction; ci-corpus.sh installs it as
+          # the box's tree under its own lock.
+          path: .cards-restore
+          # The key, no restore-keys: it is the tree's every input (FORGE_REF, engine/cards, everything kgen is
+          # built from, and the reuse rule), so a partial match could only serve tables another tree built — the
+          # 11-21 failure mode.
+          key: cardstree-${{ steps.keys.outputs.ck }}-${{ steps.keys.outputs.dk }}-${{ steps.keys.outputs.rule }}
+      - name: Discard a partial corpus restore (self-hosted)
+        if: runner.environment == 'self-hosted' && steps.treerestore.outcome == 'failure'
+        run: rm -rf .cards-restore
       - name: Corpus and tables, and the shared compile beside them
         if: runner.environment == 'self-hosted'
         # S1d (11-26): this step is what every test job waits for, and the shared compile in it is its largest
@@ -201,9 +237,25 @@ jobs:
           go test -exec /bin/true $repkgs ./dirac/oracle >/dev/null &
           compile=$!
           rc=0
+          # A tree restored from the Actions cache (above) installs as the box's tree instead of a fetch and a
+          # fresh make dirac-tables; a warm box (tree-present) skipped the restore and has nothing here.
+          if [ -d .cards-restore ]; then export CI_CORPUS_RESTORE=.cards-restore; fi
           bash scripts/ci-corpus.sh || rc=$?
+          rm -rf .cards-restore
           wait "$compile" || rc=$?
           exit "$rc"
+      - name: Save the corpus tree (self-hosted)
+        # Main only, the workflow's cache policy (a PR reads main's cache and never writes one). Publishes the
+        # tree under its exact key for a fresh box; a duplicate key is a cheap no-op. A queue batch is a pull
+        # request and cannot save, so the entry refreshes with main's own prepares — the nightly, and any push or
+        # dispatch prepare prior did not skip.
+        continue-on-error: true
+        if: runner.environment == 'self-hosted' && steps.treerestore.outputs.cache-hit != 'true' && github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        uses: actions/cache/save@v4
+        with:
+          # .cards is hard links to the tree: the archive is the tree's content without a second copy on disk.
+          path: .cards
+          key: cardstree-${{ steps.keys.outputs.ck }}-${{ steps.keys.outputs.dk }}-${{ steps.keys.outputs.rule }}
 
   # Two-step CI (Mergify): a pull request runs only this fast stage, the diff's packages and the tests that
   # import them (scripts/ci-fast.sh). The full suite runs once per queue batch, on mergify/merge-queue/* branches,
