@@ -25,8 +25,64 @@ var DebugEmbFlashOff, DebugEmbForgetOff bool
 // diverge.
 var DebugSelfFlashOff bool
 
-// selfFlash reports whether card c, cast by p, grants itself flash.
+// selfFlash reports whether card c, cast by p, grants itself flash. A grant
+// whose ValidSA$ is Spell.Teamwork (Quantum Reduction) also needs the teamwork
+// election made so far on the cast being built (gorge spellMatchesValidSA:
+// e.cast.teamworkPaid), so it grants nothing at the offer, where only
+// selfFlashTeamworkOffer reads it.
 func (s *State) selfFlash(k *prep, p uint8, c CardID) bool {
+	if !s.selfFlashGate(k, p, c) {
+		return false
+	}
+	return k.t.Cards[c].SelfFlashSA != kop.SfsaTeamwork || s.teamworkElected(c)
+}
+
+// selfFlashTeamworkOffer reports whether card c's self grant is the
+// Spell.Teamwork one and its gate holds for p: the instant-speed offer of the
+// teamworked cast alone (gorge teamworkFlashOffer reads castWithFlashTargets
+// with the prospective teamwork offer).
+func (s *State) selfFlashTeamworkOffer(k *prep, p uint8, c CardID) bool {
+	return k.t.Cards[c].SelfFlashSA == kop.SfsaTeamwork && s.selfFlashGate(k, p, c)
+}
+
+// teamworkElected reports whether the spell being built is card c's teamworked
+// cast with a creature tapped for it: the intent bit (sfKicked) stands and the
+// election has not declined.
+func (s *State) teamworkElected(c CardID) bool {
+	if !s.buildLive() {
+		return false
+	}
+	b := s.bld()
+	if b.e.kind != seSpell || b.e.card != c || b.e.flags&sfKicked == 0 || b.cas == casTWDecline {
+		return false
+	}
+	for i := 0; i < int(b.pickN); i++ {
+		if b.pickKs[i] == pkTapX {
+			return true
+		}
+	}
+	return false
+}
+
+// teamworkFlashRecheck is the CR 601.2e recheck of a Spell.Teamwork self grant
+// (gorge flashGrantCoversTargets over castWithFlashTargets): a hand cast made
+// at a time a sorcery could not have been cast, with nothing else granting it
+// flash once the election closed, is reversed. The spell is already on the
+// stack, so the sorcery-speed read leaves it out (the one entry is its own).
+func (s *State) teamworkFlashRecheck(k *prep, e *stackEntry) bool {
+	if !k.anySelfFlash || e.kind != seSpell || k.t.Cards[e.card].SelfFlashSA != kop.SfsaTeamwork || k.cards[e.card].instant ||
+		e.flags&sfFree != 0 || s.bld().bfl&bflPushed == 0 || s.bld().origin != kop.ZoneHand {
+		return false
+	}
+	if s.sp == 1 && e.ctrl == s.active && (s.step == kop.StepMain1 || s.step == kop.StepMain2) && s.cfgx&cfgxNoSorcery == 0 {
+		return false // cast at sorcery speed: the grant was never read
+	}
+	return !s.castFlash(k, e.ctrl, e.card)
+}
+
+// selfFlashGate is the self grant's own gate: the card's CastWithFlash static
+// matches the spell and its condition holds for the caster.
+func (s *State) selfFlashGate(k *prep, p uint8, c CardID) bool {
 	if DebugSelfFlashOff {
 		return false
 	}

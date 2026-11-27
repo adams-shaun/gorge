@@ -1,6 +1,10 @@
 package kgen
 
-import "strings"
+import (
+	"strings"
+
+	"github.com/adams-shaun/gorge/dirac/kop"
+)
 
 // cdaFlash lowers the conditional "this spell has flash" characteristic-
 // defining static (CR 604.3, 613.3) to the carrier's own CastWithFlash
@@ -46,6 +50,9 @@ func (lc *lowerCtx) cdaFlash(sp *params, st *lStatic) (done bool, err error) {
 	}
 	if lc.hasFlash() {
 		return false, refuse("CDA flash on a card with flash")
+	}
+	if lc.out.SelfFlashSA != kop.SfsaSpell {
+		return false, refuse("CDA flash beside a ValidSA-constrained self grant")
 	}
 	if err := lc.flashPresentShape(sp.m, "CDA flash"); err != nil {
 		return false, err
