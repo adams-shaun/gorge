@@ -142,6 +142,7 @@ func TestReplDrawProgramScenarios(t *testing.T) {
 		}
 	})
 	t.Run("Optional$ True election", replDrawMayScenarios) // repl_drawrepl_may_test.go
+	t.Run("choose-one Dig body", replDrawDigScenarios)     // repl_drawrepl_dig_test.go
 }
 
 // TestReplDrawProgramKeepsOuterPC: a draw replacement body runs inside the

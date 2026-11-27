@@ -659,6 +659,9 @@ func (s *State) runProg(k *prep) {
 		s.res.pc++
 		s.loopBack(k)
 	}
+	if k.gen != nil && s.drawBodyEnd() {
+		return // a parked draw body's program is done (repl_drawbody.go)
+	}
 	if k.gen != nil && s.payETBGate(k) {
 		return // the pay-before-entering program paid: the resolution re-runs to enter the card (repl_paybeforeetb.go)
 	}
