@@ -2986,6 +2986,9 @@ func (lc *lowerCtx) effectAPI(ps *params) error {
 		if sp := newParams(ss[0].Params); ss[0].Mode == "Continuous" && sp.is("MayPlay", "True") && affectedRemembered(sp.str("Affected")) {
 			return refuse("Effect MayPlay over the remembered cards, unsupported shape")
 		}
+		if ok, err := lc.rememberedCantAttack(ps, ss[0]); ok || err != nil { // lower_vowemblem.go
+			return err
+		}
 		return lc.emblemStatic(ps, ss[0])
 	}
 	if obj, ok := lc.chosenMayPlayNextTurn(ps, ss); ok { // lower_effectdurations.go

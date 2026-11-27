@@ -115,6 +115,14 @@ func (lc *lowerCtx) repeatEachPlayers(ps *params) error {
 			// TwoPiles shape keeps refusing in its own lowering.
 			continue
 		}
+		if vowElectionNode(n) {
+			// Promise of Loyalty's per-player election (lower_vowelection.go):
+			// putCounterChoices reads every parameter of the pick and the
+			// sacrifice's one filter names the repeated player and the set the
+			// pick remembered, so the blanket remembered-read check below
+			// would refuse the shape they are meant to lower.
+			continue
+		}
 		var bad []string
 		for k, v := range n.Params {
 			v = strings.TrimSpace(v)

@@ -80,6 +80,13 @@ func (cb *cardBuilder) abilities() error {
 		ke.UntilNextTurn = e.UntilNextTurn
 		ke.WhileHost = e.WhileHost
 		ke.CaptureLapse = e.CaptureLapse
+		if e.CaptureCounter != "" {
+			ck, cerr := counterKind(e.CaptureCounter)
+			if cerr != nil {
+				return bfail(cb.node, "%v", cerr)
+			}
+			ke.CaptureCtr = ck
+		}
 		ke.CaptureRem, ke.Source, ke.NumAmount, ke.Once, ke.NotHere = e.CaptureRem, e.Source, e.NumAmount, e.Once, e.NotHere
 		if e.Forget != nil {
 			f, ferr := cb.filter(e.Forget, kop.ZoneStack)
