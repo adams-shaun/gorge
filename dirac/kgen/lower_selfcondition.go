@@ -123,7 +123,7 @@ func valueRd(v lValue) condRd {
 		vLifeGainedThisTurn, vOppLifeLostThisTurn, vCreaturesDied, vLifeLostThisTurn, vLifeLostLastTurn, vHandSizeOf,
 		vOppsLostLife, vDrawnThisTurn, vGraveTypes, vGraveAgg, vYourSpeed, vHighestOppPoison,
 		vKicked, vTimesKicked, vPaidN, vMorbid, vSum, vPromisedGift, vCompare, vBranches, vCommittedCrime, vCountersOn,
-		vLowestLife, vOppsAttacked, vBlessing:
+		vLowestLife, vOppsAttacked, vBlessing, vAtkYouLast:
 	case vCount, vCountAtLeast, vCountExile:
 		// vCountExile: the count runs over the exile zones, whose cards no
 		// layer walk derives; filterRd's per-clause bounds still hold

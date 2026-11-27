@@ -563,6 +563,19 @@ const CantCastNamed = 1
 // resolves is read with the stack non-empty (castForbiddenFree).
 const CantCastSorcery = 2
 
+// CantCastSelfZones is the StatCantBeCast B bit for a card's own "can't be
+// cast from here" static whose EffectZone$ and Origin$ name zones (Haakon,
+// Stromgald Scourge: "from your graveyard, but not from anywhere else"):
+// B>>CantCastSelfShift is the bitmask (1<<Zone) of the zones the card's
+// current zone must be in for the restriction to bind (gorge
+// castRestrictionSources' staticEffectZoneOK intersected with
+// castOriginGateHolds). The static is still the self marker, Zone ==
+// ZoneCommand.
+const CantCastSelfZones = 4
+
+// CantCastSelfShift is the shift of CantCastSelfZones' zone mask in B.
+const CantCastSelfShift = 3
+
 // StCasterActive: on a StatCantBeCast only, the
 // restriction binds a caster who is the active player (Caster$
 // Player.Active; gorge actorMatches). It aliases StTargetsFilter2, whose
