@@ -600,14 +600,10 @@ func (s *State) runReplProgAs(k *prep, sl Slot, c CardID, ab, pc uint8, src Slot
 				// a Draw replacement body's ordinary effect op: exec falls
 				// through to the core executor when execGen does not claim it
 				if !s.exec(k, in) {
-					// the op posed an ask on the borrowed resCtx (a dredge
-					// choice before a body card): the body cannot be resumed
-					// from there and restoring the outer context wipes the
-					// ask, so declare the gap rather than drop the body
-					if s.res.ask != raNone {
-						s.capFull(StallDredge)
-					}
-					s.restoreRes(&saved, isDrawProgram)
+					// the op posed an ask on the borrowed resCtx: the gap is
+					// declared or the last Dig's ask is parked, and the
+					// program ends either way (drawBodyAskGap)
+					s.drawBodyAskGap(&saved, i, len(prog))
 					return
 				}
 				continue
@@ -1431,6 +1427,9 @@ func (s *State) stepGen(k *prep, d *Decision) bool {
 }
 
 func (s *State) genAskOptions(k *prep, d *Decision) bool {
+	if s.drawBodyAsked() {
+		return s.resolveOptions(k, d) // repl_drawbody.go: a draw body's parked Dig ask
+	}
 	if s.res.ask == raDredgeRes && s.res.flags&(rfBodyOp|rfBodyTurn) != 0 {
 		s.dredgeResOptions(k, d) // kw_dredge.go: a draw-replacement body's ask, before dredgeTurnAsked (the first body card's ask is still the draw step's first)
 		return true
@@ -1548,6 +1547,10 @@ func (s *State) popAsk() {
 }
 
 func (s *State) applyGen(k *prep, a Action) {
+	if s.drawBodyAsked() {
+		s.drawBodyAnswer(k, a) // repl_drawbody.go: a draw body's parked Dig ask
+		return
+	}
 	if s.res.ask == raDredgeRes && s.res.flags&rfBodyTurn != 0 {
 		s.dredgeResAnswer(k, a) // kw_dredge.go: a draw-replacement body's ask, before dredgeTurnAsked (the first body card's answer is still the draw step's first)
 		return
