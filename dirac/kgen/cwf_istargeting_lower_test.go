@@ -8,8 +8,8 @@ import (
 // TestSelfFlashIsTargetingLowers: the `S:Mode$ CastWithFlash | ValidCard$
 // Card.Self | ValidSA$ Spell.IsTargeting Valid <spec> | EffectZone$ All`
 // self grant lowers (Flash Photography, Timely Ward): the carrier is a
-// SelfFlash card whose static carries the target spec as F2. Every other
-// non-bare ValidSA$ shape still refuses by name.
+// SelfFlash card whose static carries the target spec as F2. A ValidSA$ shape
+// the lowerer does not read still refuses by name.
 func TestSelfFlashIsTargetingLowers(t *testing.T) {
 	for _, tc := range []struct{ card, f2 string }{
 		{"Flash Photography", "F2={types=0x9f ctrl=1}"},
@@ -35,16 +35,14 @@ func TestSelfFlashIsTargetingLowers(t *testing.T) {
 			t.Errorf("%s: CastWithFlash line %q lacks %q (F2 must be the target spec, not nil)", tc.card, line, tc.f2)
 		}
 	}
-	// the control: a non-IsTargeting Spell.* carrier keeps its refusal
-	for _, name := range []string{"Quantum Reduction"} {
-		c := lowerNamedCard(t, name)
-		got := ""
-		for _, r := range c.Refusals {
-			got += r.Node + ": " + r.Reason + "; "
-		}
-		if !strings.Contains(got, "CastWithFlash shape") {
-			t.Errorf("%s: want a CastWithFlash shape refusal, got %q", name, got)
-		}
+	// the control: a ValidSA$ shape the lowerer does not read keeps its
+	// refusal. A probe, not a corpus carrier: every real Spell.* carrier
+	// lowers now (Quantum Reduction's Spell.Teamwork:
+	// cwf_teamwork_lower_test.go; the Spell.Hero subtype:
+	// cwf_xcost_subtype_lower_test.go).
+	src := "Name:Probe\nManaCost:2 W\nTypes:Enchantment\nS:Mode$ CastWithFlash | ValidCard$ Card.Self | ValidSA$ Spell.Bogus | Caster$ You\nOracle:x\n"
+	if got := strings.Join(lowerScript(t, "Probe", src), "; "); !strings.Contains(got, "CastWithFlash shape") {
+		t.Errorf("ValidSA$ Spell.Bogus: want a CastWithFlash shape refusal, got %q", got)
 	}
 }
 

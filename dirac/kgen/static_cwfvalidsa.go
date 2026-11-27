@@ -12,7 +12,10 @@ import (
 // bare `Spell`; `Spell.XCostLE<N>` (Silver Scrutiny), returned as xmax =
 // 1+N, the kernel's X bound (kop.Static.A, dirac/cast_flashxcap.go); and
 // `Spell.<creature type>` (Blur of Heroism's Hero), returned as the subtype
-// the static's card filter also requires. Every other word refuses.
+// the static's card filter also requires; and `Spell.Teamwork` (Quantum
+// Reduction), the card's own teamworked self grant, which reads as bare
+// Spell here -- selfFlashShape records the tail as CardDef.SelfFlashSA.
+// Every other word refuses.
 func cwfValidSA(v string) (xmax int, subtype string, err error) {
 	kind, tail, dotted := strings.Cut(strings.TrimSpace(v), ".")
 	if kind != "Spell" {
@@ -20,6 +23,9 @@ func cwfValidSA(v string) (xmax int, subtype string, err error) {
 	}
 	if !dotted {
 		return 0, "", nil
+	}
+	if tail == "Teamwork" {
+		return 0, "", nil // selfFlashShape lowers the tail (kop.SfsaTeamwork)
 	}
 	if num, ok := strings.CutPrefix(tail, "XCostLE"); ok {
 		if n, err := strconv.Atoi(num); err == nil && n >= 0 && n < 255 {
