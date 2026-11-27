@@ -448,7 +448,13 @@ func (s *State) lfxApply4(k *prep, sl Slot, e *lfx, c *dchars) {
 		return
 	}
 	o := e.o
-	const keep = kop.TLegendary | kop.TBasic | kop.TToken
+	keep := kop.TLegendary | kop.TBasic | kop.TToken
+	if o.FaceDownOnly {
+		if !s.faceDown(k, sl) {
+			return // a FaceDownSetType$ set applies while the permanent is face down
+		}
+		keep = 0 // the card text replaces the whole type line (Yedora's "It's a Forest land")
+	}
 	if o.HasTypes {
 		c.types = c.types&(keep|o.KeepTypes) | o.SetTypes
 	}

@@ -2949,6 +2949,19 @@ func (s *State) manaPCGen(k *prep, sl Slot) *pcard {
 		}
 	}
 	c := s.cardAt(sl)
+	if k.gen.setIdx != nil && s.faceDown(k, sl) {
+		// A face-down basic land keeps the intrinsic "{T}: Add [c]" its
+		// basic land subtype grants (CR 305.6, a rules-generated ability
+		// rather than card text), though CR 708.2 takes its own abilities:
+		// setPC is the intrinsic-only view prepLandSet built for it.
+		if idx := k.gen.setIdx[c]; idx >= 0 {
+			m := s.blgMask(k, sl)
+			if m == 0 {
+				return &noManaPC
+			}
+			return &k.gen.setPC[int(idx)*32+int(m&0x1f)]
+		}
+	}
 	pc := &k.cards[c]
 	vi := int16(-1)
 	if k.gen.flags[c]&gfManaVar != 0 {

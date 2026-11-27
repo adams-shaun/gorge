@@ -268,6 +268,12 @@ type Override struct {
 	// (dirac's evasionGranted, through evasionAt); a layer-6 grant: a record
 	// older than a loss of the permanent's abilities grants nothing.
 	Horsemanship bool
+	// FaceDownOnly: the record applies only while the permanent is face down
+	// (a ChangeZone FaceDownSetType$ entry's folded type set: Yedora's
+	// "It's a Forest land", CR 708.2a). The set replaces the whole type
+	// line, and clearFaceDown removes the record at the turn-up, so the
+	// card's own face returns.
+	FaceDownOnly bool
 	// Toxic: the permanent gains toxic N (CR 702.164) for as long as the
 	// record lasts (an Animate's Keywords$ Toxic:N, Monument to Perfection),
 	// the sum of the record's terms. Toxic has a CardDef field, not a KwMask

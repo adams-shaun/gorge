@@ -18,3 +18,19 @@ github.com/adams-shaun/gorge/engine/rules	^(TestQuietProofCorpusSweepChunk(8|9|1
 # testkit/conformance (11-21, median 239 s; CPU-bound JSON wire simulation, already parallel inside its tests): the
 # ManaBrew wire tests (~72 s of serial games) apart from the native-wire game sets.
 github.com/adams-shaun/gorge/testkit/conformance	^(TestManaBrew|TestBotThroughManaBrew)
+# dirac/kgen (11-27, batch 45936102895: 182 s, one call, the shard's floor; 1219 tests). Its all-corpus work is lumpy
+# by first letter, so the split names the five table tests and the two census tests instead. Every sync.Once build
+# group (tables, pool, census, corpus acceptance) stays whole in one half, so no once-only build is paid twice: the
+# four table tests share one build and TestTableBuildDeterministic's second build stays beside them. The one fixed
+# path both halves may write, .cards/kgen/ALL.txt via corpusAllList, is written whole and renamed from a unique temp
+# file with identical bytes, so concurrent writers cannot corrupt it. ci.yml runs kgen's halves with -count=1.
+github.com/adams-shaun/gorge/dirac/kgen	^(Test[A-K][A-Za-z0-9_]*|Test[N-O][A-Za-z0-9_]*|TestTablesUpToDate|TestTablesCarryNoPaths|TestTablesIDsChangeStops|TestTableBuildDeterministic|TestTableBuildDeterministicSingleP|TestStdCensus|TestRememberedSpanCensus)$
+# bots/azmcts (11-27, batch 45936102895: 176 s, one call; 179 tests). The S block is 43 tests and its heaviest family,
+# so A-J plus the Search family (~half the search work) makes the two halves 89/90 tests with the heavy helpers split
+# 46/43. No per-process build is shared between azmcts tests; the golden/net writers are env-gated off in CI.
+github.com/adams-shaun/gorge/bots/azmcts	^(Test[A-J][A-Za-z0-9_]*|TestSearch[A-Za-z0-9_]*)$
+# engine/effects (11-27, batch 45936102895: 167 s, one call; 1861 tests). The letters split 924/937, and the only
+# shared per-process build (the compiled-vs-textual filter oracle fixture, ~12 s of parallel chunks) stays with its
+# eight chunk tests in the #A half; the other half carries 17 more corpus-walking tests. Only env-gated regen paths
+# write, so the halves never share a file.
+github.com/adams-shaun/gorge/engine/effects	^(Test[A-G][A-Za-z0-9_]*)$
