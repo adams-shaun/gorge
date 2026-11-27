@@ -1,0 +1,22 @@
+# The TokenAttacking$ demo pool (dirac/oracle/tokenattacking_lockstep_test.go):
+# Flamerush Rider's Attacks trigger copies another attacker tapped and
+# attacking (CopyPermanent TokenAttacking$ True beside ValidTgts$), Shaun,
+# Father of Synths' AttackersDeclared trigger copies an attacking legendary
+# creature, and Sigiled Sword of Valeron's equipped-creature Attacks trigger
+# makes an attacking token (Token TokenAttacking$ True outside the source's
+# own attack). Calamity, Galloping Inferno (Choices$ beside TokenAttacking$,
+# two calls, ExtCopyPicked) is the four-seat witness that each call's defender
+# ask is its own.
+Flamerush Rider
+Shaun, Father of Synths
+Sigiled Sword of Valeron
+Calamity, Galloping Inferno
+Savannah Lions
+Isamaru, Hound of Konda
+Grizzly Bears
+Glory Seeker
+Shock
+Plains
+Island
+Mountain
+Forest

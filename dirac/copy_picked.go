@@ -67,13 +67,3 @@ func (s *State) copyPicked(k *prep, in *kop.Instr) bool {
 	// token copy's do (copyTokensRun; the answer arms resume from this op)
 	return s.copyCardToken(k, &cin, c)
 }
-
-// copyEnterAttacking is a copy token's TokenAttacking$ True: it enters
-// attacking the controller's opponent (gorge copyAttackRider: players only,
-// the attack trigger's defending player, CR 508.4), unless that player has
-// lost.
-func (s *State) copyEnterAttacking(k *prep, sl Slot, ctrl uint8) {
-	if opp := s.nextSeat(ctrl); !s.pl[opp].lost {
-		s.setEnterAttacker(k, sl, PlayerCode(opp))
-	}
-}
