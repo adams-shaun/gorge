@@ -129,6 +129,9 @@ func (lc *lowerCtx) effectDurationRoutes(ps *params) (bool, error) {
 		if ok, err := lc.effectPreventHost(ps); ok || err != nil { // lower_preventallto.go
 			return true, err
 		}
+		if ok, err := lc.effectDmgRedirectToHost(ps); ok || err != nil { // lower_effectredirect.go
+			return true, err
+		}
 		return true, lc.effectDmgRedirectNext(ps) // lower_effectredirect.go
 	}
 	if _, ok := ps.get("Duration"); ok {
