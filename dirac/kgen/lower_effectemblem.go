@@ -91,8 +91,11 @@ func (lc *lowerCtx) effectStaticEOT(ps *params, ss []cards.Static) error {
 		}
 	}
 	eot, next, durHost, err := true, false, false, error(nil)
+	eoc := false
 	if !host {
-		if eot, next, durHost, err = effectEmblemDuration(ps); err != nil {
+		if eoc = effectEndCombatCantAttack(ps, ss); eoc { // lower_effectendcombat.go
+			ps.consume("Duration")
+		} else if eot, next, durHost, err = effectEmblemDuration(ps); err != nil {
 			return err
 		}
 	}
@@ -189,7 +192,7 @@ func (lc *lowerCtx) effectStaticEOT(ps *params, ss []cards.Static) error {
 		// view-only look, so the Effect resolves without creating anything.
 		return nil
 	}
-	emb := lEmblem{Statics: sts, UntilEOT: eot, UntilNextTurn: next, WhileHost: host, Forget: forget}
+	emb := lEmblem{Statics: sts, UntilEOT: eot, UntilEndCombat: eoc, UntilNextTurn: next, WhileHost: host, Forget: forget}
 	if repl != nil {
 		emb.Repls = []lRepl{*repl}
 	}
@@ -362,6 +365,13 @@ func (lc *lowerCtx) effectEmblemStaticHost(s cards.Static, host bool) (lStatic, 
 				}
 			}
 		}
+	case "CantAttack":
+		// "creatures can't attack this combat" (lower_effectendcombat.go): the
+		// all-creatures restriction only
+		if s.Params["ValidCard"] != "Creature" {
+			return lStatic{}, refuse("Effect static CantAttack ValidCard$ %q", s.Params["ValidCard"])
+		}
+		keys = map[string]bool{"Mode": true, "ValidCard": true, "Description": true}
 	case "CantBeCast":
 		// gorge cantBeCastParamsReadableKeys; the lowering consumes the
 		// subset the kernel's cast gate reads, the rest refuses as unread
