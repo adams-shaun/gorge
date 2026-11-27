@@ -1358,6 +1358,7 @@ Ossification
 Otharri, Suns' Glory
 Otherworldly Journey
 Oubliette
+Out of Bounds
 Outmaneuver
 Outmuscle
 Outnumber
@@ -1915,6 +1916,7 @@ Thassa's Emissary
 Thassa's Oracle
 Thassa, Deep-Dwelling
 The Birth of Meletis
+The Crowd Goes Wild
 The Eternal Wanderer
 The Everforger
 The Madcap Jester
