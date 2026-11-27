@@ -37,7 +37,7 @@ func (a *PaymentActivation) Equal(b *PaymentActivation) bool {
 	}
 	// The victim list keeps DeepEqual's nil-versus-empty distinction, like
 	// Activations above.
-	if (a.Sacrifices == nil) != (b.Sacrifices == nil) {
+	if (a.Sacrifices == nil) != (b.Sacrifices == nil) || len(a.Sacrifices) != len(b.Sacrifices) {
 		return false
 	}
 	for i, v := range a.Sacrifices {
