@@ -857,6 +857,10 @@ func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 				v = mv
 				break
 			}
+			if mv, ok := remEachCtrl(rest); ok {
+				v = mv // Braids, Arisen Nightmare's gate (remEachCtrl)
+				break
+			}
 		}
 		if spec, ok := strings.CutPrefix(rest, "Valid "); ok {
 			// gorge evalRefProperty Valid: the remembered objects matching

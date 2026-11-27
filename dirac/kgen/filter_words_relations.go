@@ -26,6 +26,7 @@ func init() {
 	fwName[kop.FwEnchantedControllerCtrl] = "FwEnchantedControllerCtrl"
 	fwName[kop.FwSharesCr] = "FwSharesCr"
 	fwName[kop.FwSharesName] = "FwSharesName"
+	fwName[kop.FwSharesCardType] = "FwSharesCardType"
 	fwName[kop.FwSameName] = "FwSameName"
 	fwName[kop.FwOppProtect] = "FwOppProtect"
 
@@ -88,6 +89,14 @@ func init() {
 				}
 			}
 		}
+	}
+	// sharesCardTypeWith RememberedCard: a permanent that shares a card type
+	// with the entry's first remembered card (gorge sharesCardTypeWith over
+	// sharesTypeReferents' RememberedCard arm; Braids, Arisen Nightmare). Only
+	// the positive spelling over that one referent: gorge's negated form on an
+	// unbound referent is not the word's complement.
+	fwArms["sharesCardTypeWith RememberedCard"] = func(c *lClause, _ string) error {
+		return c.fwLit(lSpillLit{W: kop.FwSharesCardType, R: kop.RefRemembered})
 	}
 	// sharesNameWith ThisTurnCast: the spells cast this turn, any caster
 	// (Twinning Glass), read off the kernel's cast ring. Only the positive
@@ -249,6 +258,7 @@ func (c *lClause) fwArmOrUnknown(p string, knownSub func(string) bool) error {
 		return c.fwSharesNameValid(inner, neg, knownSub)
 	}
 	if strings.HasPrefix(p, "with") || strings.HasPrefix(p, "!with") ||
+		p == "sharesCardTypeWith RememberedCard" ||
 		strings.HasPrefix(p, "sharesCreatureTypeWith") || strings.HasPrefix(p, "!sharesCreatureTypeWith") ||
 		strings.HasPrefix(p, "sharesNameWith") || strings.HasPrefix(p, "!sharesNameWith") ||
 		p == "sameName" || p == "!sameName" ||
