@@ -3,6 +3,7 @@ package kgen
 import (
 	"strings"
 
+	"github.com/adams-shaun/gorge/dirac/kop"
 	"github.com/adams-shaun/gorge/engine/cards"
 )
 
@@ -11,13 +12,16 @@ import (
 // DefinedCards$ Targeted over the chain's one target slot, whose
 // RepeatSubAbility$ body runs once per card with that card as Remembered
 // (cc.Remembered = [card]). Lowered as OpRepeatEach (act_repeatcards.go) for
-// the one body the kernel loops: a single Token whose AttachedTo$ Remembered
+// the body the kernel loops: a lone Role Token whose AttachedTo$ Remembered
 // names the repeated card (the WOE Roles: Asinine Antics, Become Brutes,
-// Twisted Sewer-Witch), read as RefEach. That loop runs inside one zone batch
-// under ChangeZoneTable$ True; without it the loop is a plain per-card one
-// over a one-instruction body (repeatEachCardsLoop); every other rider (ChooseOrder$, DamageMap$, a body of any other shape, a
-// nested loop) refuses by name. The one other body is a DealDamage by the
-// repeated card to its controller under DamageMap$ True
+// Twisted Sewer-Witch), read as RefEach, or, under ChangeZoneTable$ True, a
+// Token with a body chain (Ezuri's Predation: a Beast token per creature and
+// a Fight, lower_repeatcards.go) or a CopyPermanent (Mirror-Style
+// Master). That loop runs inside one zone batch under ChangeZoneTable$ True;
+// without it the loop is a plain per-card one over a one-instruction body
+// (repeatEachCardsLoop); every other rider (DamageMap$, a body of any other
+// shape, a nested loop) refuses by name. The one other body is a DealDamage
+// by the repeated card to its controller under DamageMap$ True
 // (repeatEachCardsDamage), which moves no card, so it reads no
 // ChangeZoneTable$.
 //
@@ -102,26 +106,115 @@ func (lc *lowerCtx) repeatEachCards(ps *params) error {
 	if !table {
 		return lc.repeatEachCardsLoop(in, body) // lower_repeatcardsloop.go
 	}
-	if body.API != "Token" || body.Sub != nil {
+	return lc.repeatEachCardsBatch(ps, in, body) // lower_repeatcards.go
+}
+
+// repeatEachCardsBatch lowers the batched loop's body (ChangeZoneTable$ True):
+// a lone Role Token (the WOE Roles), or one of the two shapes the kernel's
+// inline loop can run: a Token with a body chain (Ezuri's Predation's token
+// then Fight) and a CopyPermanent (Mirror-Style Master). ChooseOrder$ True is
+// read for those two shapes only (kop.RepeatEachOrder): the controller orders
+// the subjects before the loop, as gorge's repeatEachChooseOrder asks.
+func (lc *lowerCtx) repeatEachCardsBatch(ps *params, in lInstr, body *cards.SA) error {
+	switch body.API {
+	case "Token", "CopyPermanent":
+	default:
 		return refuse("RepeatEach cards ChangeZoneTable$ True body %s (only a lone Token: gorge batches the moves)", body.API)
+	}
+	useImp := false
+	if v, ok := ps.get("UseImprinted"); ok {
+		if v != "True" {
+			return refuse("RepeatEach cards UseImprinted$ %q", v)
+		}
+		useImp = true
+	}
+	order := false
+	if v, ok := ps.get("ChooseOrder"); ok {
+		if v != "True" {
+			return refuse("RepeatEach cards ChooseOrder$ %q", v)
+		}
+		if body.API == "Token" && body.Sub == nil {
+			// the lone Role shape keeps its existing refusal (no corpus card
+			// carries ChooseOrder$ on it)
+			return refuse("RepeatEach cards ChooseOrder$ True body Token")
+		}
+		order = true
 	}
 	at, nt := len(lc.ab.Prog), len(lc.ab.Targets)
 	lc.emit(in)
+	savedImp := lc.repeatUseImp
+	lc.repeatUseImp = useImp
+	if useImp && body.API == "CopyPermanent" && lc.curNode != nil && lc.curNode.Sub != nil {
+		// the delayed trigger that follows the loop reads the whole
+		// remembered set (Mirror-Style Master's end-of-combat exile)
+		lc.repeatCztNode = lc.curNode
+	}
 	lc.repeatCard++
 	err := lc.chain(body, nil)
 	lc.repeatCard--
+	lc.repeatUseImp = savedImp
 	if err != nil {
 		return err
 	}
 	if len(lc.ab.Targets) != nt {
 		return refuse("RepeatEach body with a target")
 	}
-	if len(lc.ab.Prog) != at+2 {
-		return refuse("RepeatEach cards body emitted %d instructions", len(lc.ab.Prog)-at-1)
+	n := len(lc.ab.Prog) - at - 1
+	if err := lc.checkRepeatBatchBody(body, lc.ab.Prog[at+1:at+1+n]); err != nil {
+		return err
 	}
-	if tok := &lc.ab.Prog[at+1]; tok.Op != "CreateToken" || tok.C&32 == 0 || tok.Obj2.Kind != rEach {
-		return refuse("RepeatEach cards body is not a Role token attached to the repeated card")
+	if order {
+		lc.ab.Prog[at].C |= kop.RepeatEachOrder
 	}
-	lc.ab.Prog[at].Skip = 1
+	lc.ab.Prog[at].Skip = n
+	return nil
+}
+
+// checkRepeatBatchBody validates the instructions the batched body emitted.
+// The lone Role shape keeps its exact check; a Token chain may only create the
+// token, run the Imprinted/Remembered Fight and clear the remembered set
+// (Ezuri's Predation); a CopyPermanent is one copy instruction.
+func (lc *lowerCtx) checkRepeatBatchBody(body *cards.SA, prog []lInstr) error {
+	if body.API == "CopyPermanent" {
+		if body.Sub != nil {
+			return refuse("RepeatEach cards CopyPermanent body with a SubAbility$")
+		}
+		if len(prog) != 1 || prog[0].Op != "CopyAsToken" {
+			return refuse("RepeatEach cards CopyPermanent body emitted %d instructions", len(prog))
+		}
+		return nil
+	}
+	if body.Sub == nil {
+		if len(prog) != 1 {
+			return refuse("RepeatEach cards body emitted %d instructions", len(prog))
+		}
+		if tok := &prog[0]; tok.Op != "CreateToken" || tok.C&32 == 0 || tok.Obj2.Kind != rEach {
+			return refuse("RepeatEach cards body is not a Role token attached to the repeated card")
+		}
+		return nil
+	}
+	if len(prog) == 0 || prog[0].Op != "CreateToken" {
+		return refuse("RepeatEach cards Token body emitted %d instructions, not a CreateToken first", len(prog))
+	}
+	fight := false
+	for i := range prog {
+		switch prog[i].Op {
+		case "CreateToken":
+			if i != 0 {
+				return refuse("RepeatEach cards Token body creates a second token")
+			}
+		case "FightRemembered":
+			if fight {
+				return refuse("RepeatEach cards Token body fights twice")
+			}
+			fight = true
+		case "ClearRemembered":
+		default:
+			return refuse("RepeatEach cards Token body %s is not the token-then-Fight shape", prog[i].Op)
+		}
+	}
+	if !fight {
+		return refuse("RepeatEach cards Token body without the Imprinted/Remembered Fight")
+	}
 	return nil
 }

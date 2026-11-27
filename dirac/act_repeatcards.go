@@ -42,6 +42,14 @@ func (s *State) repeatEachCards(k *prep, in *kop.Instr) {
 			return
 		}
 	}
+	if n > 1 && in.C&kop.RepeatEachOrder != 0 {
+		if DebugRepeatCztStats != nil {
+			DebugRepeatCztStats.Ordered++
+		}
+		if s.eachOrderStart(list[:n], n) {
+			return // parked at the header; the answer re-enters here
+		}
+	}
 	r.pc += uint8(body) // the header's own step is the caller's
 	if n == 0 || body == 0 {
 		return
@@ -57,8 +65,12 @@ func (s *State) repeatEachCards(k *prep, in *kop.Instr) {
 	saveLoop := s.g.inLoop
 	s.g.inLoop = true
 	for i := 0; i < n && !s.over; i++ {
+		if DebugRepeatEachCztOff {
+			break // the mutation: no pass runs
+		}
 		r.eachObj = list[i]
 		for j := 1; j <= body; j++ {
+			s.repeatCztPass(&prog[pc+j])
 			if !s.exec(k, &prog[pc+j]) {
 				s.capFull(StallRoleMulti) // a body that asks: not resumable from here
 				break
