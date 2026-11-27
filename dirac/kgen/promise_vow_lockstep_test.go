@@ -204,7 +204,7 @@ func promiseVowPolicy(seed uint64, seen *promiseVowSeen) oracle.Policy {
 func TestPromiseOfLoyaltyVowLockstep(t *testing.T) {
 	t.Parallel()
 	if !promiseVowKindServed() {
-		t.Skip("blocked: the kernel has no counter kind for VOW (kop.CtrVow is deferred past the frozen cover kop.NumCounterKinds3); see .ds4/new-tickets/dirac-counter-kind-cover.md")
+		t.Skip("blocked: the kernel has no counter kind for VOW (kop.CtrVow is deferred past the frozen cover kop.NumCounterKinds3); the counter-kind cover ticket (dirac-counter-kind-cover) lifts it")
 	}
 	cardsDir, err := cardset.CorpusDir()
 	if err != nil {
