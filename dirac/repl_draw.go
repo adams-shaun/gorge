@@ -4,8 +4,10 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 
 // ReplDrawMore: "If you would draw a card, draw N cards instead" (Mr. Spock,
 // Alhammarret's Archive, Bard, Vnwxt). gorge's applyReplacements matches the
-// Draw event of a card that really leaves a non-empty library (an empty
-// library only marks the player, CR 704.5b), runs the body, and the body's
+// Draw event of a card that really leaves a non-empty library (a "draw N
+// instead" body does not meet an attempted draw from an empty library,
+// CR 614.11's emptyDrawReplacement; the library is then only marked for the
+// CR 704.5b loss), runs the body, and the body's
 // N draws are new events that meet every draw replacement but the ones
 // already applied to this draw's lineage (CR 614.5, 616.1e: replDrawChain).
 // drawExcl and drawMore are that walk: the chain is the sources applied so

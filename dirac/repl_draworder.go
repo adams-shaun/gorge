@@ -68,7 +68,9 @@ func (s *State) drawOrderPose(k *prep, p uint8, ch drawChain, c *drawCands) bool
 //kmanifest:askopts raGenDrawOrder
 func (s *State) drawOrderOptions(k *prep, d *Decision) {
 	p := s.res.askP
-	c := s.drawScan(k, p, drawChain{})
+	// the same empty-library read drawExcl scanned with: the ask suspends
+	// before any candidate draws, so the library is unchanged (repl_drawprogram.go)
+	c := s.drawScan(k, p, drawChain{}, s.pl[p].libLo == s.pl[p].libHi)
 	d.Kind, d.Sub, d.Player = DkChoose, ChGenReplOrder, p
 	for i := 0; i < c.n; i++ {
 		d.add(MakeAction(AkChoose, TCode(s.perms[c.sl[i]].obj), 0, uint8(i)))
@@ -81,7 +83,7 @@ func (s *State) drawOrderOptions(k *prep, d *Decision) {
 //kmanifest:askapply raGenDrawOrder
 func (s *State) drawOrderAnswer(k *prep, a Action) {
 	p := s.res.askP
-	c := s.drawScan(k, p, drawChain{})
+	c := s.drawScan(k, p, drawChain{}, s.pl[p].libLo == s.pl[p].libHi) // as in drawOrderOptions
 	turn := !s.res.active
 	s.res.ask = raNone
 	if turn {
