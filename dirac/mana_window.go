@@ -3857,6 +3857,7 @@ func (s *State) manaStep(k *prep) bool {
 			s.bld().manaNP = 1 + uint8(s.npend) // the payment's mana abilities queue from here (unpushSpell keeps them)
 		}
 		s.bld().bfl |= bflManaStep | bflCostFixed
+		s.planSacPay(k)             // a plan-paid sacrifice source the prefix left for this payment (mana_plansacdefer.go)
 		s.convRouteFlag(k, e, cost) // the any-colour conversion's pool route rides bflAnyColor (mana_convertcreature.go)
 		anyColor := s.bld().bfl&bflAnyColor != 0
 		if (e.flags&sfAnyMana != 0 || anyColor) && s.bld().bfl&bflMsDone == 0 {
