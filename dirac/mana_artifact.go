@@ -209,7 +209,11 @@ var useArtN = newGenUse(tableAnyTypedMana)
 // the typed producer's own side: a hand-mana card's plain mana beside it, or
 // the typed producer's own mana ability being a repeatable fee (kop.FeeOnlyManaAb:
 // Energy Refractor's "{2}: Add one mana of any color", paid from lands' plain
-// mana), whose prefix search keys states by the tagged units left.
+// mana) or any ability with a mana cost (Celestial Prism's "{2},{T}: Add one
+// mana of any color": its {2} spends the pool, plain first, so {plain B,
+// Prism's B} and {Lotus Blossom's B, Prism's B} are two states for gorge and
+// one for a bit per colour), whose prefix search keys states by the tagged
+// units left.
 func tableAnyTypedMana(t *kop.Table) bool {
 	// Any typed producer alone would make a vanilla fixture's table need gen,
 	// and the fresh-clone tests pin a nil gen there. A table with typed
@@ -228,7 +232,7 @@ func tableAnyTypedMana(t *kop.Table) bool {
 			continue
 		}
 		for j := range c.Abilities {
-			if a := &c.Abilities[j]; a.Kind == kop.AbMana && (hand || kop.FeeOnlyManaAb(a)) {
+			if a := &c.Abilities[j]; a.Kind == kop.AbMana && (hand || kop.FeeOnlyManaAb(a) || a.Cost.Mana.MV() > 0) {
 				return true
 			}
 		}
