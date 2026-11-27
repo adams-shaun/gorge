@@ -1,7 +1,5 @@
 package kgen
 
-import "strings"
-
 // rememberedHoldsOne reports whether the resolution's remembered set, as the
 // program so far wrote it, holds at most one object: exactly one writer, and
 // that writer names one object -- a hand-to-battlefield choice of the constant
@@ -23,10 +21,11 @@ func (lc *lowerCtx) rememberedHoldsOne() bool {
 			continue
 		}
 		writers++
+		// Gift of Immortality is the only TriggeredNewCardLKICopy return this
+		// path serves: any other remembering writer (for example Saltskitter's
+		// Exile of Self) has a different body and stays refused.
 		ok = in.Op == "ChooseMove" && in.A.isConst() && in.A.N == 1 ||
-			(in.Op == "Return" || in.Op == "Exile" || in.Op == "Bounce") &&
-				(in.Obj.Kind == rTriggeredNew || in.Obj.Kind == rTriggered || in.Obj.Kind == rSelf) &&
-				strings.Contains(in.CS, "Remember")
+			in.Op == "Return" && in.Obj.Kind == rTriggeredNew
 	}
 	return writers == 1 && ok
 }
