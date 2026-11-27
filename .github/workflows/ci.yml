@@ -153,6 +153,19 @@ jobs:
           cache: false
       - name: Corpus and tables, and the shared compile beside them
         if: runner.environment == 'self-hosted'
+        # S1d (11-26): this step is what every test job waits for, and the shared compile in it is its largest
+        # part — 148.5 s of prepare's 192 s in batch 45774650152 (gh run view 45774650152 --log --job
+        # 139755268219 step timestamps), and 141-148 s of prepare's 156-192 s across 11-26's spot boxes. It ran
+        # on the workflow-wide GOFLAGS -p=4: four package builds at a time on a 32-thread box, so 28 of 32 lanes
+        # sat idle for the whole stage while the shards queued behind it. Nothing else on the box compiles these
+        # packages meanwhile (the shards are blocked on this job; a second overlapping batch adds its own 12),
+        # so -p=12 uses otherwise-idle lanes to cut the compile to roughly a third. GOMAXPROCS=8 (the shards'
+        # value) caps kgen's own workers on the corpus build that runs beside the compile, so the two fit the box
+        # together. -exec /bin/true builds and runs no tests, so the 4-vCPU per-test budget (AGENTS.md) is
+        # untouched — this only changes how many packages the go command builds at once.
+        env:
+          GOFLAGS: -p=12 -trimpath
+          GOMAXPROCS: "8"
         # S1c (11-26), measured from five green merge-queue batches (gh run view <run> --log --job <job> step
         # timestamps, box load ~89 on 32 threads): this job had two serial steps, the corpus/tables build
         # (1-67 s: 1-4 s on a tree the box already built, ~25-67 s when this tree first reached the box)
