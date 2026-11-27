@@ -1224,9 +1224,10 @@ func (e *Engine) replCtx(m replMatch, ev events.Event) *effects.Ctx {
 // body Ctx: the frozen SetChosenNumber$ number and (key-only: never a printed
 // replacement) the effect's registered Remembered list. See replCtx's doc for
 // why the seed is scoped to effect-created matches. The Draw branch above
-// clears ctx.Remembered for the bodies that re-draw; no Draw body is ever
-// registered live (effects' registration gate keeps them on the loud Note),
-// so a live seed cannot be erased by that clearing on a registered shape.
+// clears ctx.Remembered for the bodies that re-draw; the live Draw
+// registrations (effects' effectDrawBodyLive admits the one-shot self-exile
+// family and Plagiarize's redirect) run AFTER that clearing, so the seed
+// below is what puts a registered Draw body's remembered capture back.
 func (e *Engine) seedEffectReplCtx(ctx *effects.Ctx, m replMatch) {
 	ctx.Num.Chosen = m.chosen
 	// The bound flag is the Count$ChosenNumber head's verdict: effect-created

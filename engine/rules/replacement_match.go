@@ -600,8 +600,7 @@ func (e *Engine) replacementMatchesRememberedUngatedBy(r cards.Repl, source stat
 		// source is already on the battlefield — there is no entering case,
 		// a card cannot replace the draw of the event that would put it into
 		// play).
-		if v, ok := r.Param(cards.PKValidPlayer); ok &&
-			!effects.MatchesPlayerSpec(e.G, v, ev.Player, you) {
+		if v, ok := r.Param(cards.PKValidPlayer); ok && !drawReplacementPlayerMatches(e.G, v, ev.Player, you, rememberedPlayers) {
 			return false
 		}
 		// NotFirstCardInDrawStep$ True exempts the player's own turn-based

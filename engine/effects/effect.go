@@ -779,9 +779,13 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 		// replaced result cannot lose an object, and a body this build cannot
 		// price is skipped by the dispatcher, never read as zero. Every OTHER
 		// AddCounter body keeps its loud Note.
-		// Event$ Draw is the fifth live class, only in the one-shot "next time you
-		// would draw this turn" shape effectDrawBodyLive admits (Words of
-		// Worship and kin, Aladdin's Lamp, Ring of Ma'ruf).
+		// Event$ Draw is the fifth live class, in the two shapes
+		// effectDrawBodyLive admits: the one-shot "next time you would draw
+		// this turn" (Words of Worship and kin, Aladdin's Lamp, Ring of
+		// Ma'ruf) and Plagiarize's remembered-player redirect (a ValidPlayer$
+		// Player.IsRemembered line with a single DB$ Draw | Defined$ You
+		// body -- the RememberedPlayers capture on the registration below is
+		// what the Draw matcher's ValidPlayer$ gate reads).
 		// Every OTHER Moved body (the unmodelled ChangeZone/Tap/Clone family,
 		// 44 measured files) and every other Draw/ProduceMana body keeps its loud
 		// Note: a half-modelled Replaced-result could LOSE the moved object.
@@ -802,8 +806,9 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 		// not erase it. No ChosenCard text, no snapshot.
 		chosenSnap, chosenBound := effectChosenSnapshot(h, c,
 			params[cards.PKValidSource.String()]+" "+params[cards.PKValidTarget.String()])
+		replPlayers := effectRememberedPlayers(h, c, sa)
 		if body != "" && (event == "DamageDone" || event == "Destroy" ||
-			(event == "Draw" && effectDrawBodyLive(ep.Triggers != "", params, body, c.SVars)) ||
+			(event == "Draw" && effectDrawBodyLive(ep.Triggers != "", params, body, c.SVars, replPlayers)) ||
 			(event == "Moved" && replacementBodyAPI(body) == "PutCounter") ||
 			(event == "Moved" && replacementMovedBodyLive(params, body, c.SVars)) ||
 			(event == "CreateToken" && replacementBodyAPI(body) == "ReplaceToken") ||
