@@ -127,6 +127,15 @@ func TestEffectDrawReplacementUrabraskOneShot(t *testing.T) {
 		t.Logf("DEBUG after drawCard: hand %d->%d lib %d->%d exile1=%d replLive=%v notes=%d",
 			hb, len(e.G.Zone(state.ZHand, 1)), lb, len(e.G.Zone(state.ZLibrary, 1)),
 			len(e.G.Zone(state.ZExile, 1)), repl1 != nil, len(e.L.Events))
+		mPr := replMatch{id: id, repl: &rPr, remembered: r0.Remembered,
+			rememberedPlayers: r0.RememberedPlayers, chosen: r0.ChosenNumber,
+			controller: r0.Controller, frozenController: true, key: effectReplKey(r0)}
+		ctxPr := e.replCtx(mPr, evProbe)
+		hb2, lb2, ex2 := len(e.G.Zone(state.ZHand, 1)), len(e.G.Zone(state.ZLibrary, 1)), len(e.G.Zone(state.ZExile, 1))
+		e.runReplaceWith(ctxPr, 0, rPr.With, &evProbe)
+		t.Logf("DEBUG body: exile1 %d->%d hand %d->%d lib %d->%d frame=%+v remembered=%v",
+			ex2, len(e.G.Zone(state.ZExile, 1)), hb2, len(e.G.Zone(state.ZHand, 1)),
+			lb2, len(e.G.Zone(state.ZLibrary, 1)), ctxPr.EffectFrame, ctxPr.Remembered)
 	}
 	for i := 0; i < 4000 && len(e.G.Zone(state.ZExile, 1)) == 0; i++ {
 		if answerIfDiscard(t, e) {
