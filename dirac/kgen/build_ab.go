@@ -716,6 +716,10 @@ func (cb *cardBuilder) ability(a *lAbility) (kop.Ability, error) {
 	if a.Latent {
 		ka.AFlags |= kop.AfLatent
 		ka.MeleeGrant = a.Name == "GrantedMelee" // lower_meleegrant.go
+		// the dies-return Undying and Persist a Pump grants (an override
+		// record) are layer-6 keyword grants gorge lists by timestamp beside
+		// a static's AddKeyword$ grant (lower_attackkwgrant.go)
+		ka.GrantedKw = a.Name == "GrantedUndying" || a.Name == "GrantedPersist"
 	}
 	if a.Kind == akSpell {
 		ka.Cost = cb.spellCost
@@ -742,6 +746,9 @@ func (cb *cardBuilder) ability(a *lAbility) (kop.Ability, error) {
 			return ka, fmt.Errorf("evidence cost on a mana ability")
 		}
 		if ka.Cost, err = cb.cost(abCost); err != nil {
+			return ka, err
+		}
+		if ka.CostProg, err = cb.costProg(a); err != nil { // lower_costprog.go
 			return ka, err
 		}
 		if a.Kind == akMana && exileGraveManaCostRefused(ka.Cost) {
@@ -869,6 +876,9 @@ func (cb *cardBuilder) ability(a *lAbility) (kop.Ability, error) {
 			// gap reads it off the source (mana_countercost.go).
 			ka.ManaV = kop.ValueRef{K: kop.VCountersSelf, N: int16(ka.Cost.Ctr)}
 		}
+	}
+	if a.ReflexOptional {
+		ka.Trig.Flags |= kop.TfOptional // the kernel asks a TfOptional seTrigger entry as it resolves (resolve.go)
 	}
 	if a.Trigger != nil {
 		if a.Trigger.OncePer && (a.Latent || a.Trigger.Zone == zCommand) && a.Trigger.Event != "CounterAddedOnce" {
@@ -1234,7 +1244,7 @@ var stepMap = map[string]kop.Step{"Upkeep": kop.StepUpkeep, "End": kop.StepEnd, 
 var eventMap = map[string]kop.TrigEvent{"ETB": kop.TrigETB, "Dies": kop.TrigDies, "Leaves": kop.TrigLeaves, "ToGraveyard": kop.TrigToGraveyard, "Blocks": kop.TrigBlocks, "Taps": kop.TrigTaps, "Attacks": kop.TrigAttacks,
 	"AttackersDeclared": kop.TrigAttackersDeclared, "Phase": kop.TrigPhase, "SpellCast": kop.TrigSpellCast,
 	"LifeGained": kop.TrigLifeGained, "LifeLost": kop.TrigLifeLost, "DamageDone": kop.TrigDamageDone,
-	"DamageDealtOnce": kop.TrigDamageDealtOnce, "Drawn": kop.TrigDrawn, "Discarded": kop.TrigDiscarded, "DiscardedAll": kop.TrigDiscardedAll, "AbilityCast": kop.TrigAbilityCast, "Scry": kop.TrigScry, "Surveil": kop.TrigSurveil, "Explores": kop.TrigExplores, "CollectEvidence": kop.TrigCollectEvidence, "Exploited": kop.TrigExploited,
+	"DamageDealtOnce": kop.TrigDamageDealtOnce, "Drawn": kop.TrigDrawn, "Discarded": kop.TrigDiscarded, "DiscardedAll": kop.TrigDiscardedAll, "AbilityCast": kop.TrigAbilityCast, "Scry": kop.TrigScry, "Surveil": kop.TrigSurveil, "FlippedCoin": kop.TrigFlippedCoin, "Explores": kop.TrigExplores, "CollectEvidence": kop.TrigCollectEvidence, "Exploited": kop.TrigExploited,
 	"LandPlayed": kop.TrigLandPlayed, "SearchedLibrary": kop.TrigSearchedLibrary, "Forage": kop.TrigForage, "Discover": kop.TrigDiscover, "ManifestDread": kop.TrigManifestDread,
 	"CounterAddedOnce": kop.TrigCounterAddedOnce, "CounterAdded": kop.TrigCounterAddedOnce, "CounterAddedAll": kop.TrigCounterAddedAll, "Untaps": kop.TrigUntaps,
 	"CounterRemoved": kop.TrigCounterRemoved, "CounterRemovedOnce": kop.TrigCounterRemovedOnce, // the card's own (lower_counterremoved.go; dirac/trig_counterremoved.go)
@@ -1457,7 +1467,7 @@ func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
 	if t.Event == "AbilityCast" {
 		kt.N = t.AbClass
 	}
-	if t.Event == "LandPlayed" || t.Event == "Leaves" || t.Event == "BecomeMonarch" || t.Event == "ToGraveyard" {
+	if t.Event == "LandPlayed" || t.Event == "Leaves" || t.Event == "BecomeMonarch" || t.Event == "ToGraveyard" || t.Event == "FlippedCoin" {
 		kt.N = t.N // Leaves: the destination mask; BecomeMonarch: kop.TrigNMonarchBeganTurn; ToGraveyard: the origin mask
 	}
 	switch t.Combat {
@@ -1999,6 +2009,7 @@ func (cb *cardBuilder) combatAmountFilter(st *kop.Static, kind kop.StaticKind, f
 }
 
 // static builds a static ability and its granted subtypes.
+
 func (cb *cardBuilder) static(s lStatic) (kop.Ability, []uint8, error) {
 	ka := kop.Ability{Kind: kop.AbStatic}
 	st := &ka.Static
@@ -2314,6 +2325,18 @@ func (cb *cardBuilder) repl(r lRepl) (kop.Ability, error) {
 			return ka, fmt.Errorf("draw more %v", r.N)
 		}
 		rp.A, rp.C = int16(r.N.N), int16(r.Bits)
+	case "DrawProgram":
+		rp.Kind = kop.ReplDrawProgram // lower_drawrepl.go
+		rp.C = int16(r.Bits)
+		if ka.Prog, err = cb.prog(r.Prog); err != nil {
+			return ka, err
+		}
+	case "RollPlanarDice":
+		rp.Kind = kop.ReplRollPlanarDice // lower_planarrepl.go
+		if r.Plus <= 0 || r.Ignore <= 0 {
+			return ka, fmt.Errorf("planar-dice replacement plus %d ignore %d", r.Plus, r.Ignore)
+		}
+		rp.A, rp.C = int16(r.Plus), int16(r.Ignore)
 	case "LifeDouble":
 		rp.Kind = kop.ReplLifeDouble
 	case "LifeLossDouble":
@@ -2721,6 +2744,8 @@ func panharmoniconFlags(st *kop.Static, flags []string) error {
 			st.A = kop.PanhModeDrawn
 		case "Dies":
 			st.A = kop.PanhModeDies
+		case "TurnFaceUp":
+			st.A = kop.PanhModeTurnFaceUp
 		case "You":
 			st.B = int16(kop.WhoseYou)
 		default:

@@ -562,6 +562,8 @@ func (s *State) expr(k *prep, i int16, ctx evalCtx) int {
 		v = s.oppsLifeLost(ctx.ctrl)
 	case kop.ExDmgOppsTaken:
 		v = s.oppsDmgTaken(ctx.ctrl) // kw_bloodthirst.go
+	case kop.ExMaxOppDamageThisTurn:
+		v = s.maxOppDmgTaken(ctx.ctrl) // kw_bloodthirst.go
 	case kop.ExCountersOn:
 		v = s.refCounters(k, x, x.Ref, x.Ctr, ctx)
 	case kop.ExCreaturesDied:
@@ -891,6 +893,14 @@ func (s *State) condEval(k *prep, id kop.CondID, ctx evalCtx) bool {
 		r = ctx.src != NoObj && s.mObj(k, mechRem, ctx.src)
 	default:
 		panic("kernel: condition kind not implemented")
+	}
+	if (DebugMetalcraftStats != nil || DebugMetalcraftOff) && isMetalcraftCond(c) { // dirac/value_metalcraft.go
+		if DebugMetalcraftOff {
+			return false
+		}
+		if r {
+			DebugMetalcraftStats.CondHeld++
+		}
 	}
 	return r != c.Neg
 }

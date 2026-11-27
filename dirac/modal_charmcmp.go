@@ -15,6 +15,10 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // picks of one build, so it is never stored. Cold; reached behind
 // genPrep.anyCharmV.
 
+// DebugCharmMinKicked makes the mode step ignore CardDef.ModesMinKicked: a
+// kicked cast keeps the unkicked minimum (mutation test only).
+var DebugCharmMinKicked bool
+
 // DebugCharmCmpCap makes charmCap answer 1 always (mutation test only).
 var DebugCharmCmpCap bool
 

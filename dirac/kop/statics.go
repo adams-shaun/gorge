@@ -145,6 +145,22 @@ type Static struct {
 	// 702.90; Grafted Exoskeleton, Phyresis): read beside CardDef.Infect by
 	// State.infectAt (dirac/kw_kwmark.go).
 	Infect bool
+	// Toxic: a StatContinuous grant of toxic N (AddKeyword$ Toxic:N, CR
+	// 702.164; Karumonix, Necrogen Communion, Prosthetic Injector), the sum
+	// of its terms. Toxic is cumulative (702.164c), so State.toxicAt adds
+	// every live static's N to the printed toxic (dirac/kw_toxicgrant.go).
+	// 0 = none.
+	Toxic uint8
+	// PanhZones: a StatPanharmonicon static's ValidZone$ zone mask (1<<Zone;
+	// 0 = the battlefield only, the default). The triggering object's own
+	// zone, at the moment the event caused the trigger, must be in the set;
+	// a colorless spell on the stack is the Echoes of Eternity shape
+	// (gorge statics_echo.go panharmoniconEchoes).
+	PanhZones uint8
+	// PanhTurned: a StatPanharmonicon static's ValidTurned$ is present; its
+	// Filter2 scopes the permanent the turn-up event turned (Panoptic
+	// Projektor), distinct from Filter's trigger source.
+	PanhTurned bool
 }
 
 // Override is a fixed-order override record (the plan's replacement for a
@@ -247,6 +263,13 @@ type Override struct {
 	// (dirac's evasionGranted, through evasionAt); a layer-6 grant: a record
 	// older than a loss of the permanent's abilities grants nothing.
 	Horsemanship bool
+	// Toxic: the permanent gains toxic N (CR 702.164) for as long as the
+	// record lasts (an Animate's Keywords$ Toxic:N, Monument to Perfection),
+	// the sum of the record's terms. Toxic has a CardDef field, not a KwMask
+	// bit, so the record carries the amount; State.toxicAt adds it to the
+	// printed toxic, a layer-6 grant (a record older than a loss of the
+	// permanent's abilities grants nothing; dirac/kw_toxicgrant.go).
+	Toxic uint8
 	// NoCost: a copy exception's "with no mana cost" (CR 707.9b; embalm's
 	// RemoveCost$): the copy's mana value is 0.
 	NoCost bool
@@ -429,6 +452,7 @@ const (
 	PanhModeLifeGained int16 = 1 // ValidMode$ LifeGained: a trigger of a player gaining life
 	PanhModeDrawn      int16 = 2 // ValidMode$ Drawn: a trigger of a player drawing a card
 	PanhModeDies       int16 = 3 // ValidCause$ + Origin$ Battlefield + Destination$ Graveyard: a ChangesZone trigger caused by a matching permanent dying (Filter2 = the cause)
+	PanhModeTurnFaceUp int16 = 4 // ValidMode$ TurnFaceUp: a trigger caused by turning a face-down permanent face up; Static.PanhTurned then scopes the turned object with Filter2 (Panoptic Projektor)
 )
 
 // StaticFlags (Static.StFlags).

@@ -35,7 +35,10 @@ if [ "${1:-}" = --check ]; then
 else
   base=${1:?usage: pr-derived.sh BASE}
 fi
-changed() { git diff --name-only "$base" HEAD -- "$@"; }
+# The working tree, not HEAD: pr-regen writes remspan.tsv as a side effect of
+# KGEN_REPIN=1 without staging it, so a HEAD-only diff misses the rewrite and
+# the caller's `git add -u` then commits it (a rise regen/main owns).
+changed() { git diff --name-only "$base" -- "$@"; }
 
 # leave REGEX FILE...: take BASE's copy of the files; keep it when the tolerant tests pass on it, else restore
 # HEAD's. In --check mode nothing is kept: a pass records the files as stale (a rise regen/main owns) and HEAD's

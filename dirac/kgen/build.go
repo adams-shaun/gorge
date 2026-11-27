@@ -39,6 +39,9 @@ type poolTables struct {
 	svarNames []string         // the SVar names ExtStoreNum writes, first-use order (index = kop.Table.SVarNames; lower_storenum.go)
 
 	cyclingAlt bool // some lowered card carries a StatCyclingAlt static: every cycling ability gets its twin (build_cyclingalt.go)
+	// costProgs are the pool's cost programs (kop.Table.CostProgs, lower_costprog.go): nil until one is interned, [0] unused
+	costProgs   [][]kop.CostAtom
+	costProgKey map[string]uint16
 }
 
 // ovSub carries an override's subtype sets as pool subtype indexes (the
@@ -685,6 +688,7 @@ func (cb *cardBuilder) record() error {
 		cb.bargain = true // the kicked-range target slots (Tear Asunder's), read by the same provenance
 	}
 	d.ModesMinCount = c.ModesMinCount != 0
+	d.ModesMinKicked = c.ModesMinKicked
 	if c.ModesPickV.Kind != vNone {
 		if d.ModesPickV, err = cb.value(c.ModesPickV); err != nil {
 			return err
@@ -2574,9 +2578,11 @@ var exprKinds = map[valKind]kop.ExprKind{
 	vJoinForces:         kop.ExJoinForces, // lower_storesvar.go
 	vExileKw:            kop.ExStaticExileKw,
 	vCmdGreatestMV:      kop.ExCmdGreatestMV,
-	vDmgOppsTaken:       kop.ExDmgOppsTaken,   // lower_bloodthirst.go
-	vSrcRemCounters:     kop.ExSrcRemCounters, // lower_tokenrem.go
-	vVoteTally:          kop.ExVoteTally,      // lower_vote.go
+	vDmgOppsTaken:       kop.ExDmgOppsTaken,         // lower_bloodthirst.go
+	vMaxOppDmgTaken:     kop.ExMaxOppDamageThisTurn, // value.go: MaxOppDamageThisTurn
+	vSrcRemCounters:     kop.ExSrcRemCounters,       // lower_tokenrem.go
+	vVoteTally:          kop.ExVoteTally,            // lower_vote.go
+	vCardBasePower:      kop.ExCardBasePower,        // Count$CardBasePower
 }
 
 func (cb *cardBuilder) expr(v lValue) (kop.Expr, error) {
@@ -2677,7 +2683,7 @@ func (cb *cardBuilder) expr(v lValue) (kop.Expr, error) {
 			return e, err
 		}
 	}
-	if v.Kind == vCountersOn && v.S == "ALL" {
+	if (v.Kind == vCountersOn || v.Kind == vValidAgg) && v.S == "ALL" {
 		e.Ctr = kop.CtrAll // Count$CardCounters.ALL: every kind summed (kernel refCounters)
 	} else if v.S != "" && v.Kind != vRememberedCount && v.Kind != vSVarNum { // vRememberedCount's S is the ctx marker (value.go), not a counter kind
 		if e.Ctr, err = counterKind(v.S); err != nil {
@@ -2813,6 +2819,7 @@ func (cb *cardBuilder) override(o *lOverride) (int, error) {
 	}
 	ko.Banding = o.Banding
 	ko.Horsemanship = o.Horsemanship
+	ko.Toxic = o.Toxic
 	ko.NoCost = o.NoCost
 	ko.RemoveLegendary = o.RemoveLegendary
 	ko.GrantStatics = o.GrantStatics

@@ -211,7 +211,19 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 		}
 		var fav avail
 		cav := s.castGrantAvail(k, p, o, &av, &fav) // a restricted grant the cast cannot spend is no unit of its census
-		if !s.castPaysUnderPain(k, p, c, o, cost, cav) && !s.instantTapsLethalPays(k, p, c, o, cost) {
+		paid := s.castPaysUnderPain(k, p, c, o, cost, cav) || s.instantTapsLethalPays(k, p, c, o, cost)
+		var rd kop.ManaCost
+		if !paid && defilerOn(k) {
+			own := 0
+			if ac := spellAddCost(k, c); ac.Flags&kop.CostPayLife != 0 {
+				own = lifeCostOwed(ac)
+			}
+			rd, paid = s.defilerPoolPays(k, p, c, o, &base, own, *cost) // the Defilers' second chance, the pool's alone (cost_defiler.go)
+			if paid {
+				cost = &rd
+			}
+		}
+		if !paid {
 			if k.bargainRed {
 				s.offerBargainOnly(k, d, p, o, c, &av) // the discount alone pays it (cost_reducespell.go)
 				s.offerOptCostOnly(k, d, p, o, c, &av)
@@ -3336,8 +3348,17 @@ func (s *State) potentialDynamicSource(k *prep, sl Slot, pc *pcard, done *[MaxPe
 		done[sl] &^= s.filtPipBit(k, sl) // a one-pip filter joins below once the pool pays it (mana_filterpip.go)
 	}
 	cd := &k.t.Cards[c]
-	return pc.manaAb >= 0 && int(pc.manaAb) < len(cd.Abilities) && cd.Abilities[pc.manaAb].AFlags&kop.AfManaDynamic != 0 ||
-		k.gen.flags[c]&gfManaDynPair != 0 // gorge's potentialAmount reads the second ability's Count$ as indeterminate: unbounded (mana_dynpair.go)
+	if k.gen.flags[c]&gfManaDynPair != 0 {
+		// gorge's potentialAmount reads the second ability's Count$ as
+		// indeterminate: unbounded (mana_dynpair.go). A gated evaluated pair
+		// is open only while its gate holds (Urza's Workshop).
+		if dj := dynPairAbility(cd); dj >= 0 {
+			a := &cd.Abilities[dj]
+			return a.Trig.Cond == 0 || s.condEval(k, a.Trig.Cond, evalCtx{src: s.perms[sl].obj, srcSl: sl, ctrl: s.perms[sl].ctrl})
+		}
+		return false
+	}
+	return pc.manaAb >= 0 && int(pc.manaAb) < len(cd.Abilities) && cd.Abilities[pc.manaAb].AFlags&kop.AfManaDynamic != 0
 }
 
 // potentialAnyColourUnit adds a fixed any-colour source in bounded mode as one

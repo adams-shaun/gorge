@@ -57,14 +57,22 @@ func (s *State) offerCommanderSlot(k *prep, d *Decision, p uint8, av *avail, o O
 		cost = s.convokeCreditFrom(k, p, c, o, false, cost)
 	}
 	addCommanderTax(&cost, s.commanderTax(p, o))
+	raw := cost
 	if s.statM.any() || k.gen != nil {
 		// the same reduction the hand walk composes (adjustFit), over the
 		// taxed total
 		av.delve = s.tbDelveCredit(k, p, c, o, true)
 		cost = s.adjustFit(k, av, p, c, o, cost, false)
 	}
-	if !s.castAffordsR(k, p, c, s.restrOriginOfObj(o), &cost, av) ||
-		!s.spellTargetsFeasible(k, c, p) || !s.spellCostsFeasible(k, c, p, o) {
+	if !s.castAffordsR(k, p, c, s.restrOriginOfObj(o), &cost, av) {
+		// the Defilers' second chance (cost_defiler.go; gorge prices the command-zone raw cost with no own life)
+		rd, ok := s.defilerPoolPays(k, p, c, o, &raw, 0, cost)
+		if !ok {
+			return
+		}
+		cost = rd
+	}
+	if !s.spellTargetsFeasible(k, c, p) || !s.spellCostsFeasible(k, c, p, o) {
 		return
 	}
 	if s.castHeldOut(o) || !s.gorgeOffers(p, o, 0) {

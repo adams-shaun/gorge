@@ -9,6 +9,9 @@ import (
 // TestCutADealLowering: Cut a Deal's "you draw a card for each opponent who
 // drew a card this way" (X = PlayerCountOpponents$HasPropertyIsRememberedOrController)
 // lowers to the remembered-set read, behind the opponents' RememberDrawn$ Draw.
+// The count is the general rem-ctrl read (kop.OppExtRemCtrl; dirac
+// value_remctrl.go), exact at every seat count, so the def is NOT two-seat —
+// main's two-seat reduction of the same body was superseded by it.
 func TestCutADealLowering(t *testing.T) {
 	lw := lowerNamedPool(t, []string{"Cut a Deal"})
 	all, bs, _, err := buildPool(lw)
@@ -28,8 +31,8 @@ func TestCutADealLowering(t *testing.T) {
 		t.Fatalf("Cut a Deal: refused: %v", r)
 	}
 	def := bs[idx].def
-	if !def.TwoSeat {
-		t.Error("Cut a Deal: not marked two-seat")
+	if def.TwoSeat {
+		t.Error("Cut a Deal: marked two-seat; the general rem-ctrl read seats any count")
 	}
 	var draws []kop.Instr
 	for _, a := range def.Abilities {

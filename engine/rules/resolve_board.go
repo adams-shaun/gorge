@@ -77,6 +77,12 @@ func asResolve(e *Engine) *resolveBoard { return (*resolveBoard)(e) }
 // in line, unlessAnswerSettle). ok false: no run serves it, and the asking
 // site takes its deterministic default.
 func (e *Engine) TapeAnswer(d *decision.Decision) (decision.Intent, bool) {
+	if e.gameDecided() {
+		// A decided game poses nothing (the kernel asks no one after a loss):
+		// an as-enters choice of a card the loss's SBA sweep returns (CR
+		// 610.3d) takes its deterministic default instead.
+		return decision.Intent{}, false
+	}
 	return e.tape.Answer(asResolve(e), d)
 }
 
@@ -287,6 +293,10 @@ func (b *resolveBoard) Restore(cp *resolve.Checkpoint, evEnd int) {
 	// must replay the same forced results (forcedFlips rewinds its cursor
 	// by the log), so it stays attached instead of being parked or dropped.
 	coinHook := e.CoinFlipHook
+	// The taped die-roll override is the same kind of forced result: the
+	// re-executed prefix must replay the recorded rolls (draw rewinds its
+	// cursor by the log, like forcedFlips), so it stays attached too.
+	dieRoll := e.dieRollOverride
 	evs, ints := l.Events, l.Intents
 	l.Events, l.Intents = nil, nil
 	// The decision arena stays out of the release: Release clears its
@@ -354,6 +364,7 @@ func (b *resolveBoard) Restore(cp *resolve.Checkpoint, evEnd int) {
 	e.tapeHeldHook, e.tapeHeldStats = hook, stats
 	e.tapeHeldStaticHook = staticHook
 	e.CoinFlipHook = coinHook
+	e.dieRollOverride = dieRoll
 	tapeRebindOwner(e, sc, arenaOn)
 }
 
@@ -565,4 +576,16 @@ func saChainShape(sa *cards.SA) string {
 		out += s.API
 	}
 	return out
+}
+
+// gameDecided reports a game that is over or that the state-based pass in
+// flight is about to end: at most one of several seats is left (CR 104.2a).
+// checkGameOver emits the GameOver only after the departed seat's objects
+// have been swept, so G.Over alone is still false while that sweep runs.
+// AliveCount() <= 1 is also already true inside a resolution whose own
+// effect set Lost (a "target player loses the game"), before any SBA pass
+// runs; that resolution's later asks then take their defaults — the
+// decided-game rule — where they used to be served.
+func (e *Engine) gameDecided() bool {
+	return e.G.Over || (len(e.G.Players) > 1 && !e.deferGameOver && e.G.AliveCount() <= 1)
 }

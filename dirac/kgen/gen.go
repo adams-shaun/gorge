@@ -623,6 +623,15 @@ func dumpStatics(w io.Writer, c *lCard) {
 		if s.Infect {
 			fmt.Fprintf(w, " infect")
 		}
+		if s.Toxic != 0 {
+			fmt.Fprintf(w, " toxic=%d", s.Toxic)
+		}
+		if s.PanhZones != 0 {
+			fmt.Fprintf(w, " zones=%d", s.PanhZones)
+		}
+		if s.PanhTurned {
+			fmt.Fprintf(w, " turned")
+		}
 		if s.OutlivesLoss {
 			fmt.Fprintf(w, " outlivesloss")
 		}
@@ -646,6 +655,9 @@ func dumpStatics(w io.Writer, c *lCard) {
 		}
 		if s.Kind == "MiracleGrant" {
 			fmt.Fprintf(w, " miraclecost=%s less=%d", s.Cost.Mana, s.CardCostLess)
+		}
+		if s.Kind == "MadnessGrant" {
+			fmt.Fprintf(w, " less=%d", s.CardCostLess)
 		}
 		if s.Kind == "WarpGrant" {
 			fmt.Fprintf(w, " warpcost=%s", s.Cost.Mana)
@@ -683,6 +695,9 @@ func costString(c lCost) string {
 	}
 	if c.Sac != nil {
 		p = append(p, fmt.Sprintf("Sac%d%s", c.SacN, c.Sac))
+	}
+	for _, m := range c.SacMore {
+		p = append(p, fmt.Sprintf("Sac%d%s", m.N, m.F))
 	}
 	if c.SacX {
 		p = append(p, "SacX")
@@ -723,6 +738,9 @@ func costString(c lCost) string {
 	}
 	if c.SubCtr > 0 {
 		p = append(p, fmt.Sprintf("Remove%d%s", c.SubCtr, c.SubCtrKnd))
+	}
+	if c.SubCtrAll != "" {
+		p = append(p, "RemoveAll"+c.SubCtrAll)
 	}
 	if c.PayLife > 0 {
 		p = append(p, fmt.Sprintf("Life%d", c.PayLife))

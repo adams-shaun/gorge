@@ -76,6 +76,7 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 		return err
 	}
 	var descended, dethrone bool // fire-time player gates
+	var playerCtrLine bool       // a player-counter line, inert in both engines (see the CounterAddedOnce arm)
 	ab := &lAbility{Kind: akTriggered, Index: len(lc.out.Abilities)}
 	defer func(b bool) { lc.trigBody = b }(lc.trigBody)
 	lc.trigBody = false
@@ -754,6 +755,29 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 			} else if ok {
 				tr.Whose = whoYou
 			}
+			if vp, ok := tp.get("ValidPlayer"); ok {
+				// "Whenever you get one or more {E}" (Brotherhood Scribe,
+				// Aether Revolt, Fabrication Module, Territorial Gorger): a
+				// PLAYER counter. gorge's counterAddedMatches reads
+				// CounterChange (a permanent's counters) and
+				// CounterAddedInstances rejects every other event, so a
+				// PlayerCounterChange put never fires this line. The kernel
+				// has no player-counter placement event either; the line is
+				// kept in the ability list and never fires (the always-false
+				// condition below). Only this exact shape lowers: a player
+				// counter and ValidPlayer$ You.
+				if vp != "You" {
+					return refuse("CounterAddedOnce ValidPlayer %q", vp)
+				}
+				if !playerCounterKind(ct) {
+					return refuse("CounterAddedOnce ValidPlayer %q on the %q counter", vp, ct)
+				}
+				if _, ok := tp.get("ValidSource"); ok {
+					return refuse("CounterAddedOnce ValidPlayer beside ValidSource")
+				}
+				tr.Step = "*"
+				playerCtrLine = true
+			}
 		case "CounterAddedAll", "CounterPlayerAddedAll", "CounterRemoved", "CounterRemovedOnce":
 			if err := lc.ctrRemovedOrPlayerAddedAll(tp, tr, t, readF); err != nil { // lower_counterremoved.go
 				return err
@@ -860,6 +884,10 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 			}
 		case "Scry", "Surveil":
 			if err := lc.scrySurveilTrigger(tp, tr, t.Mode); err != nil {
+				return err
+			}
+		case "FlippedCoin":
+			if err := lc.flippedCoinTrigger(tp, tr); err != nil { // lower_trigactions.go
 				return err
 			}
 		case "Explores":
@@ -1277,6 +1305,12 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 	// Intervening-if conditions.
 	noResolve := tp.is("NoResolvingCheck", "True")
 	var conds []lCond
+	if playerCtrLine {
+		// A player-counter line: never fires in gorge (CounterAddedOnce reads
+		// CounterChange only), so its condition is a constant false. The
+		// ability stays in the card's ability list, as gorge's does.
+		conds = append(conds, lCond{Kind: cValue, A: cst(0), Op: opGE, B: cst(1)})
+	}
 	fireOnly, err := lc.kvfTriggerConds(tp, &conds, descended)
 	if err != nil {
 		return err
@@ -1303,7 +1337,19 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 			}
 			conds = append(conds, c)
 		} else {
+			// an Attacks trigger's CheckSVar$ reads DefenderCtrl as its
+			// IsPresent$ does (Aerial Surveyor's Land.DefenderCtrl): gorge's
+			// checkSVarGateHolds evaluates it with the trigger's
+			// TriggerContext, whose DefendingPlayer the event bound
+			lc.atkPresent = tr.Event == "Attacks"
+			// the condition may count the cards exiled with the triggering
+			// source (Valakut Exploration's Count$ValidExile): the kernel's
+			// exwFlag reads ctx.src, the trigger's source, both as it fires
+			// and at the resolution recheck
+			lc.exwRes = true
 			v, err := lc.value(cs)
+			lc.exwRes = false
+			lc.atkPresent = false
 			if err != nil {
 				return err
 			}
@@ -1368,6 +1414,20 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 	}
 	if tp.is("Threshold", "True") {
 		conds = append(conds, lCond{Kind: cThreshold})
+	}
+	if v, ok := tp.get("Metalcraft"); ok {
+		// gorge trigger_condition.go: Metalcraft$ True, the trigger
+		// controller's three-or-more-artifacts census (CR 207.2c), an
+		// intervening-if checked as it triggers and again at resolution, as
+		// Threshold$ True joins the conds (Vedalken Humiliator).
+		if v != "True" {
+			return refuse("Metalcraft %q", v)
+		}
+		c, err := lc.bareCondition(tp, "Metalcraft")
+		if err != nil {
+			return err
+		}
+		conds = append(conds, c)
 	}
 	if v, ok := tp.get("Blessing"); ok {
 		// gorge trigger_condition.go: Blessing$ True, the trigger's

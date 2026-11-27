@@ -1296,6 +1296,9 @@ func init() { enum[kop.ReplKind]("kop.ReplDamageMinus", kop.ReplDamageMinus) }
 // dirac/manifest/ReplKind/ReplDamageSet
 func init() { enum[kop.ReplKind]("kop.ReplDamageSet", kop.ReplDamageSet) }
 
+// dirac/manifest/ReplKind/ReplDrawProgram
+func init() { enum[kop.ReplKind]("kop.ReplDrawProgram", kop.ReplDrawProgram) }
+
 // dirac/manifest/ReplKind/ReplLifeReduced
 func init() { enum[kop.ReplKind]("kop.ReplLifeReduced", kop.ReplLifeReduced) }
 
@@ -1474,8 +1477,14 @@ func init() { enum[kop.StaticKind]("kop.StatCyclingGrant", kop.StatCyclingGrant)
 // dirac/manifest/StaticKind/StatDefenderAssigns
 func init() { enum[kop.StaticKind]("kop.StatDefenderAssigns", kop.StatDefenderAssigns) }
 
+// dirac/manifest/StaticKind/StatDefiler
+func init() { enum[kop.StaticKind]("kop.StatDefiler", kop.StatDefiler) }
+
 // dirac/manifest/StaticKind/StatGraveNoAbilities
 func init() { enum[kop.StaticKind]("kop.StatGraveNoAbilities", kop.StatGraveNoAbilities) }
+
+// dirac/manifest/StaticKind/StatMadnessGrant
+func init() { enum[kop.StaticKind]("kop.StatMadnessGrant", kop.StatMadnessGrant) }
 
 // dirac/manifest/StaticKind/StatMiracleGrant
 func init() { enum[kop.StaticKind]("kop.StatMiracleGrant", kop.StatMiracleGrant) }

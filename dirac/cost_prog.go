@@ -139,6 +139,10 @@ func (s *State) payCostAtom(k *prep, e *stackEntry, sl Slot, src Obj, at *kop.Co
 		if live {
 			s.perms[sl].seeCtr(s)
 			s.subCtrFire(k, sl, int(at.Ctr), n) // trig_counterremoved.go
+			// the counters removed: the activation's amount, which
+			// SVar$CostCountersRemoved reads as the trigger amount (gorge
+			// Ctx.Paid.CountersRemoved; kgen lower_costprog.go)
+			s.bld().e.trigAmt += int16(n)
 		}
 	case kop.CostAtomAddCounter:
 		if live {
@@ -166,6 +170,9 @@ func (s *State) payCostAtom(k *prep, e *stackEntry, sl Slot, src Obj, at *kop.Co
 func (s *State) canPayCostProg(k *prep, p uint8, sl Slot, a *kop.Ability) bool {
 	prog := costProgOf(k, a)
 	src := s.perms[sl].obj
+	if mp := multiSacProg(k, a); mp != nil && !s.multiSacFeasible(k, mp, p, sl) {
+		return false // the Sac atoms need distinct permanents (cost_progsac.go)
+	}
 	tapped := false
 	for i := range prog {
 		tapped = tapped || prog[i].K == kop.CostAtomTap

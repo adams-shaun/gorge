@@ -1,0 +1,29 @@
+# DB$ Clone beyond the battlefield and the exceptions it read (dirac/oracle/democloneadd_lockstep_test.go):
+# Saheeli, Sublime Artificer (AddTypes$ Artifact, until end of turn), Curie, Emergent Intelligence
+# (Defined$ Exiled template, AddTriggers$ grant, Count$CardBasePower draw) and Shifting Woodland
+# (TgtZone$ Graveyard template, delirium). Artifact bodies of every power for the
+# templates and the Artifact targets, graveyard permanents of every type (an aura, an
+# artifact creature, a land, a plain creature) and self-mill and removal to fill the graveyard.
+Curie, Emergent Intelligence
+Saheeli, Sublime Artificer
+Shifting Woodland
+Juggernaut
+Ornithopter
+Phyrexian Walker
+Steel Overseer
+Grizzly Bears
+Glorious Anthem
+Giant Growth
+Llanowar Elves
+Darksteel Relic
+Pacifism
+Unholy Strength
+Deadly Dispute
+Doom Blade
+Mind Rot
+Liliana of the Veil
+Mulch
+Forest
+Island
+Mountain
+Swamp

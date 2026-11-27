@@ -270,6 +270,7 @@ func (e *Engine) runSplicedSegments(o *state.Object, segs []spliceSegment) {
 		ctx.Paid.CounterPut = e.castCounterPut[o.ID]
 		ctx.Paid.Tapped = e.castTapped[o.ID]
 		ctx.Paid.Returned = e.castReturned[o.ID]
+		ctx.Paid.CountersRemoved = e.castCountersRemoved[o.ID]
 		effects.SetSVars(ctx, so.Face().SVars)
 		effects.Resolve(e, ctx, seg.sa)
 		e.damaging = 0

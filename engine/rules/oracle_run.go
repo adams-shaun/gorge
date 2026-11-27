@@ -463,9 +463,17 @@ type oracleDieRollTape struct {
 	queue []oracleDieRoll
 	step  int
 	fails []string
+	// taken is the log length at each consumed roll, ascending. Like
+	// forcedFlips, it makes the cursor a function of the event log: a
+	// resolution that asks after a roll is re-executed from its checkpoint,
+	// which restores the log but not this tape, so a draw at a length some
+	// consumption already reached is a re-execution that rewinds to it.
+	taken []int
 	// ctx points at the live engine's resolutionCtx field, so draw can name
 	// the roller without the tape holding the Engine itself.
 	ctx **effects.Ctx
+	// log points at the live engine's Log, for the re-execution cursor.
+	log **events.Log
 }
 
 // begin queues the taped die results whose window is step, in tape order.
@@ -479,6 +487,7 @@ func (t *oracleDieRollTape) begin(rolls []oracleDieRoll, step int) {
 			t.queue = append(t.queue, dr)
 		}
 	}
+	t.taken = t.taken[:0]
 }
 
 // draw is Engine.dieRollOverride: it consumes the next queued result for the
@@ -491,7 +500,25 @@ func (t *oracleDieRollTape) draw(sides int) (int, bool) {
 	if len(t.queue) == 0 {
 		return 0, false
 	}
-	next := t.queue[0]
+	at := 0
+	if t.log != nil && *t.log != nil {
+		at = len((*t.log).Events)
+	}
+	// A draw at a log length an earlier consumption already reached is the
+	// re-execution of that roll: rewind the cursor so the same record is
+	// served again (the recorded prefix must reproduce byte for byte).
+	for len(t.taken) > 0 && t.taken[len(t.taken)-1] >= at {
+		t.taken = t.taken[:len(t.taken)-1]
+	}
+	i := len(t.taken)
+	if i >= len(t.queue) {
+		// Every recorded roll for this step is spent. Engine.Rand serves every
+		// random draw, not only dice, so this is an ordinary seeded pick, not
+		// evidence of an extra roll: fall through silently as the old
+		// empty-queue early return did.
+		return 0, false
+	}
+	next := t.queue[i]
 	if next.Sides != sides {
 		t.fail("queued d%d, engine rolled d%d", next.Sides, sides)
 		return 0, false
@@ -506,7 +533,7 @@ func (t *oracleDieRollTape) draw(sides int) (int, bool) {
 		t.fail("natural %d outside 1..%d", next.Natural, next.Sides)
 		return 0, false
 	}
-	t.queue = t.queue[1:]
+	t.taken = append(t.taken, at)
 	return next.Natural - 1, true
 }
 
@@ -515,11 +542,11 @@ func (t *oracleDieRollTape) draw(sides int) (int, bool) {
 // another window fails loudly instead of silently replaying with the seeded
 // generator.
 func (t *oracleDieRollTape) check() {
-	if len(t.queue) == 0 {
-		return
+	if n := len(t.queue) - len(t.taken); n > 0 {
+		t.fail("%d recorded roll(s) left unconsumed", n)
 	}
-	t.fail("%d recorded roll(s) left unconsumed", len(t.queue))
 	t.queue = t.queue[:0]
+	t.taken = t.taken[:0]
 }
 
 func (t *oracleDieRollTape) fail(format string, a ...any) {
@@ -904,6 +931,7 @@ func (r *oracleRun) build(sc oracleScenario) error {
 	// rolls are queued for step -1 by the caller. The override stays active
 	// for the whole run, and nil queues leave the seeded generator alone.
 	r.dieRolls.ctx = &e.resolutionCtx
+	r.dieRolls.log = &e.L
 	e.dieRollOverride = r.dieRolls.draw
 	e.CoinFlipHook = r.forcedFlips(sc.CoinFlips)
 	if e.G.StartingPlayer != 0 {

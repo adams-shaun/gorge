@@ -183,7 +183,7 @@ type genPrep struct {
 	chPlOrder       bool           // an as-enters opponent choice beside another object's enters replacement (repl_chooseplayer.go prepChoosePlayer): StallChoosePlayerOrder
 	tokListAdd      bool           // a comma-listed TokenScript$ mint beside a ReplAddToken (repl_toklistadd.go prepTokListAdd): StallTokRewrite
 	anyWitherGrant  bool           // some table part grants kop.KwWither (kw_wither.go); sets anyInfect
-	anyInfectGrant  bool           // some static or ExtKwMark grants infect (kw_kwmark.go); sets anyInfect
+	anyInfectGrant  bool           // some static, override record or ExtKwMark grants infect or toxic (kw_kwmark.go, kw_toxicgrant.go); sets anyInfect
 	anyEvasionGrant bool           // some static or ExtKwMark grants intimidate (kw_kwmark.go); sets anyEvasion
 	anyKwMark       bool           // some program has an ExtKwMark (kw_kwmark.go: the cleanup clear)
 	anyEOTEmb       bool           // some emblem ends at cleanup (kop.Emblem.UntilEOT; kw_protection.go)
@@ -233,7 +233,7 @@ type genPrep struct {
 	anySpent        bool           // some expression reads the mana spent to cast a spell (ExCastManaSpent; copy_asenters.go)
 	anyTgtSpent     bool           // some expression reads the resolving spell's target spell's spend (ExTgtSpent; resolve.go snapTgtSpent)
 	anyDmgAmt       bool           // some card reads the damage its object received this turn (CardDef.DmgAmt; value_dmgamount.go)
-	anyDmgTaken     bool           // some expression reads the damage players were dealt this turn (ExDmgOppsTaken): the cold buffer holds the per-player tally (kw_bloodthirst.go)
+	anyDmgTaken     bool           // some expression reads the damage players were dealt this turn (ExDmgOppsTaken, ExMaxOppDamageThisTurn): the cold buffer holds the per-player tally (kw_bloodthirst.go)
 	anyBecomeCopy   bool           // some enters program is OpBecomeCopy (an as-enters clone): a permanent it made a copy is projected as its printed card, and a token copy of a clone is asked its election (ctr_entryperkind.go)
 	anyEntryMerge   bool           // the table has an AddCounter replacement and more than one source of entry counters: enterGen merges them into one put per kind (ctr_entryperkind.go)
 	anyEffEtbCtr    bool           // some instruction is ExtEffEtbCtr: enterGen puts a cast spell's pending extra counters on (ctr_effectentry.go)
@@ -589,11 +589,13 @@ const (
 // word filled its 32 bits. Bit 0 in anyRepl2 only marks the word's presence
 // sites, the way anyRepl does for the first word.
 const (
-	rb2BeginPhase uint32 = 1 << iota // ReplBeginPhase: the step boundary consults the skip (repl_beginphase.go)
-	rb2LifeFloor                     // ReplLifeReduced: damage's life loss is floored (repl_lifefloor.go)
-	rb2DmgMinus                      // ReplDamageMinus: the event's damage is that much minus Repl.A (repl_dmgminus.go)
-	rb2DmgSet                        // ReplDamageSet: damage of the gate and up is set to Repl.A (repl_dmgminus.go)
-	rb2DmgInst                       // ReplDamageInstead: the damage is replaced by counters, mill, exile or draw (repl_dmginstead.go)
+	rb2BeginPhase  uint32 = 1 << iota // ReplBeginPhase: the step boundary consults the skip (repl_beginphase.go)
+	rb2LifeFloor                      // ReplLifeReduced: damage's life loss is floored (repl_lifefloor.go)
+	rb2DmgMinus                       // ReplDamageMinus: the event's damage is that much minus Repl.A (repl_dmgminus.go)
+	rb2DmgSet                         // ReplDamageSet: damage of the gate and up is set to Repl.A (repl_dmgminus.go)
+	rb2DmgInst                        // ReplDamageInstead: the damage is replaced by counters, mill, exile or draw (repl_dmginstead.go)
+	rb2DrawProgram                    // ReplDrawProgram: the draw pipeline runs the ability's Prog (repl_drawprogram.go)
+	rb2RollPlanar                     // ReplRollPlanarDice: the planar roll reads its plus/ignore counts (zone_planechase.go planarRollRepl)
 )
 
 // rb2DmgAny are the rb2 damage replacements the damage sites' gates open for.
@@ -848,6 +850,10 @@ func prepReplBit2(g *genPrep, a *kop.Ability, i int, pc *pcard) {
 		bit = rb2DmgSet // replDamage's set rewrite (repl_dmgminus.go)
 	case kop.ReplDamageInstead:
 		bit = rb2DmgInst // replDamage's replace-the-damage step (repl_dmginstead.go)
+	case kop.ReplDrawProgram:
+		bit = rb2DrawProgram // the draw pipeline runs the program (repl_drawprogram.go)
+	case kop.ReplRollPlanarDice:
+		bit = rb2RollPlanar // the planar roll reads plus/ignore (zone_planechase.go)
 	}
 	g.replBits2[i] |= bit
 	pc.hasStat = true
@@ -964,7 +970,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		}
 		// value_dmgamount.go: every damage site records the amount for a reader card
 		g.anyDmgAmt = g.anyDmgAmt || t.Exprs[i].Kind == kop.ExDmgAmountReceived
-		g.anyDmgTaken = g.anyDmgTaken || t.Exprs[i].Kind == kop.ExDmgOppsTaken // kw_bloodthirst.go
+		g.anyDmgTaken = g.anyDmgTaken || t.Exprs[i].Kind == kop.ExDmgOppsTaken || t.Exprs[i].Kind == kop.ExMaxOppDamageThisTurn // kw_bloodthirst.go
 	}
 	if tableNthFiltered(t) {
 		g.castRingOn, g.anyHist = true, true
@@ -1313,6 +1319,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 				if a.Trig.Event == kop.TrigScry || a.Trig.Event == kop.TrigSurveil {
 					g.anyScryTrig = true
 				}
+				if a.Trig.Event == kop.TrigFlippedCoin {
+					g.anyKwAct = true // trig_flippedcoin.go: no fixed State field of its own
+				}
 				if a.Trig.Event == kop.TrigLandPlayed {
 					g.anyLandPlayed = true
 				}
@@ -1448,7 +1457,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 				case kop.ReplLifeLossDouble:
 					g.replBits[i] |= rbDblLoss
 					pc.hasStat = true
-				case kop.ReplBeginPhase, kop.ReplLifeReduced, kop.ReplDamageMinus, kop.ReplDamageSet, kop.ReplDamageInstead:
+				case kop.ReplBeginPhase, kop.ReplLifeReduced, kop.ReplDamageMinus, kop.ReplDamageSet, kop.ReplDamageInstead, kop.ReplDrawProgram, kop.ReplRollPlanarDice:
 					prepReplBit2(g, a, i, pc)
 				case kop.ReplDestroyHeal:
 					g.replBits[i] |= rbDestroyHeal
@@ -1542,6 +1551,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 				case kop.StatEscapeGrant:
 					g.anyEscapeGrant = true
 					pc.hasStat = true // scanned through statM (kw_escape.go)
+				case kop.StatMadnessGrant:
+					g.anyMadness = true // a granted madness exiles the discard too (kw_madness.go)
+					pc.hasStat = true   // scanned through statM
 				case kop.StatMiracleGrant:
 					g.anyMiracle = true // a granted miracle queues the draw trigger too (kw_miracle.go)
 					pc.hasStat = true   // scanned through statM
@@ -1945,7 +1957,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepExileFD(t, g)     // zone_exilefacedown.go
 	prepEmpower(t, g)
 	prepCardKinds(t, p, g) // act_choosecardenter.go
-	g.tyCombat = overridesUncreature(t)
+	g.tyCombat = overridesUncreature(t) || tableClonesBattlefield(t)
 	g.lossSlow = g.anyLoseStat  // fxNeedL6 alone: loss6 reads only the records (loss6Rec, kperf2), which genLost gates itself
 	prepFaceDown(g)             // face_facedown.go
 	prepLandGrant(t, p, g)      // static_landtype.go

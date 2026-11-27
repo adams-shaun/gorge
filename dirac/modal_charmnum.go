@@ -109,6 +109,12 @@ func (s *State) charmModesStep(k *prep, a *kop.Ability, d *Decision) int {
 			need = int(c) // no MinCharmNum$: gorge's minimum is the count itself
 		}
 	}
+	if cd := &k.t.Cards[e.card]; cd.ModesMinKicked && e.kind == seSpell && e.flags&sfKicked != 0 && !DebugCharmMinKicked {
+		if need > 0 && DebugCharmShapeStats != nil {
+			DebugCharmShapeStats.KickedAnyNumber++
+		}
+		need = 0 // MinCharmNum$ Count$Kicked.0.<n>: "choose any number" once kicked
+	}
 	if tw := s.twModes(k); tw != 0 {
 		need = int(tw) // a teamworked Teamwork charm (kw_teamwork.go)
 	}

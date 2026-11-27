@@ -35,7 +35,7 @@ func prepManaDynPair(g *genPrep, c *kop.CardDef, id CardID, pc *pcard) {
 	for n := 0; n <= maxDynMana; n++ {
 		v := *pc
 		if n >= 2 {
-			v.wideN, v.wideCol = uint8(n), a.ManaColors&kop.ColAny
+			v.wideN, v.wideCol = uint8(n), a.ManaColors&colOrC
 		}
 		g.varPC = append(g.varPC, v)
 	}
@@ -80,6 +80,13 @@ func dynPairShape(c *kop.CardDef, pc *pcard) bool {
 //go:noinline
 func (s *State) dynPairView(k *prep, sl Slot, c CardID, vi int16) *pcard {
 	cd := &k.t.Cards[c]
-	n := s.dynManaN(k, &cd.Abilities[dynPairAbility(cd)], sl)
+	a := &cd.Abilities[dynPairAbility(cd)]
+	n := 0
+	// A gated evaluated pair (Urza's Workshop's Metalcraft$ on the counted
+	// ability, mana_gate.go's mechanism) is the plain ability while the gate
+	// is off: the count view only exists while it holds.
+	if a.Trig.Cond == 0 || s.condEval(k, a.Trig.Cond, evalCtx{src: s.perms[sl].obj, srcSl: sl, ctrl: s.perms[sl].ctrl}) {
+		n = s.dynManaN(k, a, sl)
+	}
 	return &k.gen.varPC[int(vi)+min(max(n, 0), maxDynMana)]
 }

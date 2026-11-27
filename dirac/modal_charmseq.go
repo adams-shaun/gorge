@@ -25,7 +25,7 @@ var DebugCharmSeqCombined bool
 // charmSeqSlots reports whether the chosen modes' root slots are asked
 // sequentially: two or more modes bear a target (a lone one takes the
 // ordinary ask, gorge's len(slots) < 2) and some root slot takes more than
-// one target.
+// one target or is "up to" (Min 0: Kozilek's Command's X cards from graveyards).
 func charmSeqSlots(a *kop.Ability, mode uint8) bool {
 	if DebugCharmSeqCombined || a.Repeats() {
 		return false
@@ -35,8 +35,8 @@ func charmSeqSlots(a *kop.Ability, mode uint8) bool {
 		return false
 	}
 	for j := 0; j < int(a.NTargets); j++ {
-		if mask&(1<<j) != 0 && a.Targets[j].Max > 1 {
-			return true
+		if mask&(1<<j) != 0 && (a.Targets[j].Max > 1 || a.Targets[j].UpTo && !DebugCharmUpToX) {
+			return true // an "up to X" slot (0..X, TgfBoundsV) is outside 1..1 too
 		}
 	}
 	return false
@@ -81,6 +81,10 @@ func (s *State) charmSeqPrime(k *prep, a *kop.Ability, ti int) bool {
 		return false
 	}
 	t := &a.Targets[ti]
+	if t.UpTo && t.Divide == 0 && t.TFlags&^(kop.TgfDecl|kop.TgfBoundsV) == 0 && t.TFlags&kop.TgfBoundsV != 0 {
+		s.charmUpToPrime(k, t, ti) // an "up to X" slot
+		return true
+	}
 	if t.Max < 2 || t.UpTo || t.Divide != 0 || t.TFlags&^kop.TgfDecl != 0 {
 		return true
 	}
@@ -101,4 +105,34 @@ func min8(a, b uint8) uint8 {
 		return b
 	}
 	return a
+}
+
+// charmUpToPrime readies a sequential charm ask's "up to X" root slot (a
+// TgfBoundsV slot of Min 0, Kozilek's Command's X cards from graveyards):
+// gorge's askCharmSeqSlot resolves the slot's bounds as it is announced,
+// asks nothing for a resolved maximum of 0 or a slot with no candidate (an
+// empty group), and clamps the maximum to the candidate count, so a slot
+// taking every candidate closes with no done-only ask (an ordinary spell's
+// "up to X" slot keeps that ask: tgt_variablemax.go). The bound is
+// evaluated here, as tgtBoundsV would, and clamped.
+//
+//go:noinline
+func (s *State) charmUpToPrime(k *prep, t *kop.TargetSpec, ti int) {
+	e := &s.bld().e
+	lo, hi := s.tgtBoundsEval(k, t, e)
+	var buf [MaxOptions]TCode
+	n := s.targetCands(k, t, e.ctrl, s.srcSlot(), e.obj, &buf)
+	if k.gen != nil {
+		n = s.affordableTargets(k, &buf, n)
+	}
+	if hi == 0 || n == 0 {
+		return // no ask: the ordinary slot step records the empty group
+	}
+	if DebugCharmShapeStats != nil {
+		DebugCharmShapeStats.UpToXSlots++
+	}
+	if hi > n {
+		hi = n
+	}
+	s.g.mt = multiTgt{active: true, slot: uint8(ti), min: uint8(min(lo, hi)), max: uint8(min(hi, 254))}
 }

@@ -136,6 +136,10 @@ type lowerCtx struct {
 	emblemBlocked bool
 	// emblemUnblocked: the same body of an AttackerUnblocked emblem with a capture: Remembered is the trigger object too (Delif's Cone: the captured attacker; lower_effeottrig.go capturedTriggerRef, value.go)
 	emblemUnblocked bool
+	// drawReplBody: lowering a Draw replacement's ReplaceWith$ body, where
+	// Defined$ ReplacedPlayer is the player drawing (the kernel binds it as the
+	// program's trigger player; dirac/repl_drawprogram.go).
+	drawReplBody bool
 
 	// emblemBlocks: lowering the body of an end-of-turn Effect's Mode$ Blocks
 	// trigger. The kernel emblem hook (dirac/trig_emblemblocks.go) queues the
@@ -194,6 +198,7 @@ type lowerCtx struct {
 	chosenNumOK    bool      // the filter being read is a battlefield SpellCast ValidCard$ of a card that chooses a number as it enters: a "Chosen" bound may lower (lower_choosenumber.go)
 	exwOK          bool      // the filter being read is a resolution-time mover's ChangeType$: ExiledWithSource may lower
 	exwTgtOK       bool      // lowering a ChangeZone Origin$ Exile ValidTgts$: ExiledWithSource reads the ability's own source at target time
+	exwRes         bool      // lowering a resolution-time value of the source: a mana ability's Amount$ or a trigger's CheckSVar$ (the kernel's exwFlag reads ctx.src)
 	exwStatic      bool      // lowering a Mode$ Continuous static: ExiledWithSource reads the static's own source
 	srcRemStatic   bool      // lowering a token's CDA static: Remembered$CardCounters reads the creator the token remembers (lower_tokenrem.go)
 	spellBaseOK    bool      // the filter being read is a ReduceCost ValidTarget$: a Spell head may lower (lower_trigger.go)
@@ -2752,6 +2757,12 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 			c.SubCtrX, c.SubCtrXKnd = true, parts[1]
 			continue
 		}
+		if head == "SubCounter" && len(parts) >= 2 && parts[0] == "All" {
+			if err := lc.subCtrAllCost(&c, parts, t); err != nil { // lower_costprog.go
+				return c, err
+			}
+			continue
+		}
 		if head == "tapXType" && parts[0] == "X" {
 			// tapXType<X/Spec>: tap any number, X the count (lower_tapxvar.go)
 			if err := lc.tapXVarCost(&c, parts, t); err != nil {
@@ -2806,6 +2817,19 @@ func (lc *lowerCtx) costHand(s string) (lCost, error) {
 				continue
 			}
 			// gorge cost.parse folds a cost spec's ";" alternation to ","
+			if c.Sac != nil && !c.SacX && !c.SacExile && n >= 1 && len(mana) == 0 && lc.sacMoreOK() {
+				// a further filtered part of a printed activated ability's
+				// cost: its own pick, paid by the cost program (lower_costprog.go).
+				// Beside a mana part it keeps the refusal below (the planner's
+				// sacrifice reservation claims one part; costProg refuses a
+				// mana part written after the sacrifices)
+				f, err := lc.filter(strings.ReplaceAll(parts[1], ";", ","))
+				if err != nil {
+					return c, err
+				}
+				c.SacMore = append(c.SacMore, lSacPart{F: f, N: n})
+				continue
+			}
 			if c.SacX || c.SacExile || c.Sac != nil {
 				// the kernel pays one Sac pick: a second part (Jarad's Sac<1/Swamp>
 				// Sac<1/Forest>) would overwrite the first and offer the wrong land
@@ -3295,9 +3319,10 @@ func (lc *lowerCtx) filter(expr string) (*lFilter, error) {
 		}
 		if c.CmpStat == cmpExiledWith || c.Flags&fExiledWith != 0 {
 			// the kernel reads the link against the matcher's source: the
-			// resolving entry's, or a Continuous static's own object. A
+			// resolving entry's, a resolution-time value's (a mana amount or
+			// a trigger condition), or a Continuous static's own object. A
 			// target, a cost or a granted ability has none
-			if lc.granted > 0 || !((lc.exwOK || lc.exwTgtOK) && lc.ab != nil || lc.exwStatic) {
+			if lc.granted > 0 || !((lc.exwOK || lc.exwTgtOK || lc.exwRes) && lc.ab != nil || lc.exwStatic) {
 				return nil, refuse("filter %q: ExiledWithSource outside a resolution-time mover or a continuous static", expr)
 			}
 			lc.out.ExiledWith = true
@@ -3793,10 +3818,10 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 				ab.ActCond = deliriumCond() // gorge activationConditionOK
 			case "Metalcraft":
 				// "activate only if you control three or more artifacts"
-				// (CR 207.2c; gorge activationConditionOK's metalcraft arm)
-				if sa.API != "Mana" {
-					return refuse("Activation %q outside a mana ability", v)
-				}
+				// (CR 207.2c; gorge activationConditionOK's metalcraft arm).
+				// The kernel reads a printed battlefield ability's Trig.Cond
+				// for both the mana and the non-mana offer (legal.go's
+				// canActivate, activateCondHolds), so the gate lowers alike.
 				c, err := lc.bareCondition(ps, "Metalcraft")
 				if err != nil {
 					return err

@@ -251,6 +251,7 @@ const (
 	vExileKw             // exiled cards matching F that print the keyword N names (kop.ExStaticExileKw; lower_sharedkw.go)
 	vRemEachOwnNonLand   // the remembered cards that are nonland and owned by the repeated player (Remembered$Valid Card.nonLand+RememberedPlayerOwn, a RepeatEach body's ConditionCheckSVar$ gate)
 	vDmgOppsTaken        // the damage the living opponents were dealt this turn (Count$DamageOppsTakenThisTurn; bloodthirst)
+	vMaxOppDmgTaken      // the most damage any one living opponent was dealt this turn (Count$MaxOppDamageThisTurn; Spinerock Knoll)
 	vCmdGreatestMV       // the greatest mana value among the controller's commanders on the battlefield or in the command zone (kop.ExCmdGreatestMV; value_cmdmv.go)
 	vBlessing            // Sub[0] if the controller has the city's blessing, else Sub[1] (Count$Blessing.<yes>.<no>, CR 702.131)
 	vSrcRemCounters      // counters of kind S on the object the evaluating source remembers (a token's creator, kop.ExSrcRemCounters; lower_tokenrem.go)
@@ -264,6 +265,7 @@ const (
 	vMostCardName        // the greatest number of battlefield objects matching F that share one face name (Count$MostCardName; kop.ExMostCardName; value_mostcardname.go)
 	vPaidN               // the spell's Squad/Replicate payment count or Conspire's 1 (Count$SquadPaid / ReplicatePaid / Conspired; kop.ExKicked N 2; lower_squadreplicate.go)
 	vDelayedExileCount   // the fired delayed program's remembered objects (at most four, kop.DpMany's carriers) that are still the same object in exile (Count$ValidExile Card.IsTriggerRemembered in a delayed-many body; value_delayedexile.go)
+	vCardBasePower       // the source's base power before counters and pumps (Count$CardBasePower, kop.ExCardBasePower; value_basepower.go)
 	vCount_
 )
 
@@ -382,11 +384,13 @@ var valNames = [...]string{
 	vExileKw:             "ExileKw",
 	vRemEachOwnNonLand:   "RemEachOwnNonLand",
 	vDmgOppsTaken:        "DmgOppsTaken",
+	vMaxOppDmgTaken:      "MaxOppDmgTaken",
 	vCmdGreatestMV:       "CmdGreatestMV",
 	vSVarNum:             "SVarNum",
 	vDevotionChosen:      "DevotionChosen",
 	vBlessing:            "Blessing",
 	vSrcRemCounters:      "SrcRemCounters",
+	vCardBasePower:       "CardBasePower",
 	vVoteTally:           "VoteTally",
 	vCmdCastTotal:        "CmdCastTotal",
 	vSpellsLastTurn:      "SpellsLastTurn",
@@ -776,22 +780,24 @@ type lCost struct {
 	SacSelf        bool
 	Sac            *lFilter // sacrifice SacN permanents matching
 	SacN           int
-	SacX           bool     // Sac<X/Spec>: sacrifice the announced X permanents matching Sac (kop.CostSac with N 0; SacN stays 0)
-	XMin           int      // XMin<N> / XMin$ N: the announced X's floor (kop.Cost.XMin)
-	DiscardN       int      // discard N cards (any)
-	DiscardSpec    string   // Discard<N/Spec>: "" (Card, any card), "Random" or "Hand"
-	DiscardHand    bool     // Discard<N/Hand> as an activated ability's cost: the whole hand (kop.Cost.DiscardHand)
-	DiscardSelf    bool     // discard this card (a hand ability: cycling)
-	DiscardF       *lFilter // Discard<N/Spec>: the discard candidates' filter (CostDiscardFiltered)
-	Discard2N      int      // a second Discard<N/Spec> part (a spell's alternative cost; kop.Cost.Discard2N)
-	Discard2F      *lFilter // the second part's filter, nil for any card (kop.Cost.Discard2F)
-	Loyalty        int      // +N / -N loyalty
-	LoyaltyX       bool     // [-X]: SubCounter<X/LOYALTY>, X announced up to the loyalty
-	Exert          bool     // Exert<1/NICKNAME>: exert the source as the cost (CR 702.100a)
-	SubCtr         int      // remove N counters of kind SubCtrKind from the source
-	SubCtrX        bool     // SubCounter<X/Kind>: X announced up to the counters of SubCtrXKnd on the source
+	SacMore        []lSacPart // the further filtered Sac<N/Spec> parts after Sac, in script order (a cost program; lower_costprog.go)
+	SacX           bool       // Sac<X/Spec>: sacrifice the announced X permanents matching Sac (kop.CostSac with N 0; SacN stays 0)
+	XMin           int        // XMin<N> / XMin$ N: the announced X's floor (kop.Cost.XMin)
+	DiscardN       int        // discard N cards (any)
+	DiscardSpec    string     // Discard<N/Spec>: "" (Card, any card), "Random" or "Hand"
+	DiscardHand    bool       // Discard<N/Hand> as an activated ability's cost: the whole hand (kop.Cost.DiscardHand)
+	DiscardSelf    bool       // discard this card (a hand ability: cycling)
+	DiscardF       *lFilter   // Discard<N/Spec>: the discard candidates' filter (CostDiscardFiltered)
+	Discard2N      int        // a second Discard<N/Spec> part (a spell's alternative cost; kop.Cost.Discard2N)
+	Discard2F      *lFilter   // the second part's filter, nil for any card (kop.Cost.Discard2F)
+	Loyalty        int        // +N / -N loyalty
+	LoyaltyX       bool       // [-X]: SubCounter<X/LOYALTY>, X announced up to the loyalty
+	Exert          bool       // Exert<1/NICKNAME>: exert the source as the cost (CR 702.100a)
+	SubCtr         int        // remove N counters of kind SubCtrKind from the source
+	SubCtrX        bool       // SubCounter<X/Kind>: X announced up to the counters of SubCtrXKnd on the source
 	SubCtrXKnd     string
-	SubAmongN      int // RemoveAnyCounter<N/Kind/Filter>: remove N counters of kind SubAmongKnd from among SubAmongF you control (kop.CostSubAmong)
+	SubCtrAll      string // SubCounter<All/KIND>: remove every counter of this kind from the source (a cost program; lower_costprog.go)
+	SubAmongN      int    // RemoveAnyCounter<N/Kind/Filter>: remove N counters of kind SubAmongKnd from among SubAmongF you control (kop.CostSubAmong)
 	SubAmongKnd    string
 	SubAmongF      *lFilter
 	SubCtrKnd      string
@@ -860,9 +866,9 @@ type lCost struct {
 // reduction (CR 702.193b) applies to the mana cost, so a PowerUp$ ability
 // with any other cost is outside the modelled shape.
 func (c lCost) pureMana() bool {
-	return !c.Tap && !c.Untap && !c.SacSelf && c.Sac == nil && c.SacN == 0 &&
+	return !c.Tap && !c.Untap && !c.SacSelf && c.Sac == nil && c.SacN == 0 && len(c.SacMore) == 0 &&
 		c.DiscardN == 0 && c.DiscardSpec == "" && !c.DiscardHand && !c.DiscardSelf && c.DiscardF == nil && !c.DiscardX && c.Discard2N == 0 && c.Loyalty == 0 && !c.LoyaltyX &&
-		c.SubCtr == 0 && !c.SubCtrX && c.SubAmongN == 0 && c.AddCtr == 0 && c.PayLife == 0 && !c.LifeX && c.LifeBy == nil && !c.LifeIdent && !c.SacX && !c.SacHalf && !c.BlightX && c.XMin == 0 && c.TapN == 0 && !c.TapHost && !c.SacHost && !c.HostExile && !c.SacExile && c.TapPowN == 0 && !c.Exert &&
+		c.SubCtr == 0 && !c.SubCtrX && c.SubCtrAll == "" && c.SubAmongN == 0 && c.AddCtr == 0 && c.PayLife == 0 && !c.LifeX && c.LifeBy == nil && !c.LifeIdent && !c.SacX && !c.SacHalf && !c.BlightX && c.XMin == 0 && c.TapN == 0 && !c.TapHost && !c.SacHost && !c.HostExile && !c.SacExile && c.TapPowN == 0 && !c.Exert &&
 		c.Forage == nil && c.ExileG == nil && !c.ExileGSelf && c.ExileHandN == 0 && c.MoveGraveN == 0 && c.Energy == 0 && c.EnergyBy == nil && !c.EnergyX && !c.ReturnSelf &&
 		!c.ExileSelf && !c.ExileStackSelf && c.Return == nil && c.DrawN == 0 && c.DrawBy == nil && c.DamageYouN == 0 && c.BlightN == 0 && c.EvidenceN == 0 && !c.EvidenceX && !c.TapXVar && !c.ExileTrigNew &&
 		c.pureManaTail()
@@ -1072,6 +1078,9 @@ type lTrigger struct {
 	// player has no contract counter (kop.Tf5DmgNoContract;
 	// lower_contract.go).
 	NoContract bool
+	// SpellCast: NoColoredMana$ True, the cast spent no coloured mana
+	// (kop.Tf5CastNoColoredMana; trig_spellcast.go).
+	NoColoredMana bool
 	// Discarded Card.Self: ValidCause$ SpellAbility.OppCtrl, the discard caused
 	// by a spell or ability an opponent controls (kop.Tf5OppCause).
 	OppCause bool
@@ -1091,6 +1100,7 @@ type lAbility struct {
 	TrigRem         string // a reflexive trigger's TriggerRemembered$ rest (lower_trigremembered.go)
 	RemTgt          bool   // a Pump RememberObjects$ ThisTargetedCard (lower_remembered.go)
 	ReflexObj       bool   // a reflexive latent whose ImmediateTrigger captured a target (lower_remembered.go)
+	ReflexOptional  bool   // a reflexive latent whose ImmediateTrigger carries OptionalDecider$ You: asked as it resolves (kop.TfOptional; lower_zone.go immediateTrigger)
 	DelayedObjOnly  bool   // a delayed latent whose RememberObjects$ set holds objects only (lower_delayedobjects.go)
 	DelayedPlayer   bool   // a delayed latent registered with a remembered PLAYER (the countered spell's controller): Defined$ DelayTriggerRemembered reads the trigger player (lower_delayremplayer.go)
 	DelayedSetDmg   bool   // a delayed latent registered over a dig's whole remembered set whose body counts the still-exiled ones (Dragonhawk's Count$ValidExile Card.IsTriggerRemembered; lower_zone.go)
@@ -1270,6 +1280,13 @@ type lStatic struct {
 	// and infect (kop.Static.Evasion / Infect; lower_kwmark.go)
 	Evasion uint8
 	Infect  bool
+	Toxic   uint8 // granted toxic N, summed (kop.Static.Toxic; lower_toxicgrant.go)
+	// PanhZones: a Panharmonicon static's ValidZone$ mask (kop.Static.PanhZones;
+	// 0 = the battlefield only, static_triggers.go)
+	PanhZones uint8
+	// PanhTurned: a Panharmonicon static's ValidTurned$ is present; F2 scopes
+	// the turned permanent (kop.Static.PanhTurned, Panoptic Projektor)
+	PanhTurned bool
 
 	// AbilityRed: a ReduceCost static of activated abilities (Type$ Ability)
 	// rather than spells: 1 any, 2 Exhaust abilities only, 3 a Room unlock,
@@ -1289,6 +1306,8 @@ type lStatic struct {
 	// RedCol: a ReduceCost's Color$ counts, two bits per colour W U B R G C
 	// (flag "ReduceColor"; lower_reducespell.go)
 	RedCol uint16
+	// Defiler: a Defiler static's colour, 1 + the WUBRG index (Amount is its life; lower_defiler.go)
+	Defiler uint8
 	// RaiseCol: a per-target RaiseCost's Cost$ pips per charge, packed like
 	// RedCol (flag "RaisePerTarget"; lower_raisecost.go)
 	RaiseCol uint16
@@ -1343,6 +1362,7 @@ type lOverride struct {
 	UntilCast       *lFilter // an Effect's SpellCast end (Soul Sculptor): the record ends when its resolver casts a spell matching this filter (kop.Override.UntilCast)
 	Banding         bool     // a granted Banding (KW$ Banding): no KwMask bit is free, so the record carries it (kop.Override.Banding)
 	Horsemanship    bool     // a Duration$ Permanent KW$ Horsemanship grant: no KwMask bit, so the record carries it (kop.Override.Horsemanship)
+	Toxic           uint8    // an Animate's Keywords$ Toxic:N, summed (kop.Override.Toxic; lower_toxicgrant.go)
 	MustBeBlocked   bool     // HiddenKeywords$ CARDNAME must be blocked if able.: emitOverride follows the record with ExtMustBeBlocked on the same ref (not a record field)
 	NoCost          bool     // a copy exception's "with no mana cost" (RemoveCost$)
 	AddColors       string   // a copy exception's AddColors$: colour letters added after any set
@@ -1387,6 +1407,9 @@ type lRepl struct {
 	Phase                                     uint8    // BeginPhaseSkip: the kop.Step it skips (Repl.A)
 	Body                                      int      // DamageInstead: the kop.ReplDmgIns* effect bits (Repl.A's low byte); F2 is the damage source, F the damaged permanent, Ctr the counter kind
 	Trig                                      int      // DamageInstead ReplDmgInsVind: the reflexive-trigger latent the body queues (the ImmediateTrigger Execute's DealDamage)
+	// Plus/Ignore: RollPlanarDice's ReplaceEffect chain adds Plus dice and
+	// ignores Ignore of them (Ichor Elixir: 1/1; kop.Repl.A / kop.Repl.C).
+	Plus, Ignore int
 }
 
 // lCard is a lowered card.
@@ -1519,6 +1542,7 @@ type lCard struct {
 	Teamwork       int      // printed K:Teamwork:<N> (CR 702.194, N 1..15), CardDef.Teamwork
 	ModesPickTW    int      // a Teamwork charm's CharmNum$ X over Count$Teamwork.<a>.<b>: <a> picks teamworked, <b> otherwise (CardDef.ModesPickTW)
 	ModesPickV     lValue   // a spell or triggered charm's CharmNum$ over Count$Compare or a branch head (constant arms): the pick count, evaluated as the modes are chosen, or a general count beside MinCharmNum$ 0 (CardDef.ModesPickV; lower_charmcmp.go)
+	ModesMinKicked bool     // MinCharmNum$ Count$Kicked.0.<ModesMinCount> beside the kicked CharmNum$ (CardDef.ModesMinKicked; lower_charmminkicked.go)
 	ModesMinCount  int      // a charm with no MinCharmNum$ over a two-arm count: its smaller arm, the offer gate's minimum (CardDef.ModesMinCount; lower_charmcmp.go)
 	TrigCharmFixed bool     // a triggered charm with a fixed pick count, which a ModesPickV would also reach in the kernel
 	DungeonNext    []uint8  // a dungeon entry's room arrows (CardDef.DungeonNext; lower_initiative.go)

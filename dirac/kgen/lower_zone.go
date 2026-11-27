@@ -547,7 +547,7 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 		if origin == zGraveyard && (dest == zExile || dest == zHand || dest == zBattlefield) && ps.is("AtRandom", "True") {
 			return lc.randomGraveMove(ps, f, n, flags, counterKind, override, dest) // lower_randomgravemove.go
 		}
-		graveBF := dest == zBattlefield && override == nil && graveToBattlefieldFlags(flags)
+		graveBF := dest == zBattlefield && graveToBattlefieldFlags(flags)
 		if origin == zGraveyard && (dest == zHand || graveBF) {
 			owner, chosenPool, err := lc.chosenMidPool(ps, dest) // lower_chooseplayermid.go
 			if err != nil {
@@ -639,7 +639,29 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 			lc.pickEachLoop(pickLoop)
 			// dpScope You / Player (graveDefinedPlayer) already read the param, so
 			// pickOwner is You and emitGravePick opens the each-player loop for Player
-			return lc.emitGravePick(dpScope, lInstr{Op: "ChooseMove", Obj: pickOwner, A: n, F: f, C: dest, CS: cs}) // lower_gravedefinedplayer.go
+			in := lInstr{Op: "ChooseMove", Obj: pickOwner, A: n, F: f, C: dest, CS: cs}
+			if override == nil {
+				return lc.emitGravePick(dpScope, in) // lower_gravedefinedplayer.go
+			}
+			// StaticEffect$ (Path of the Schemer's Animate): gorge
+			// applyStaticEffect registers the body on each card the move puts
+			// onto the battlefield, before the entry event (CR 603.6a). The
+			// kernel reads the OvEnterWith override emitted right after the
+			// pick as the picked card enters (dirac/zone_pickoverride.go), so
+			// only the one-card, one-player battlefield pick carries it: the
+			// rider is one instruction.
+			if dest != zBattlefield || counterKind != "" || dpScope != dpNone || pickLoop.Kind != rNone || !isConstN(n, 1) {
+				return refuse("graveyard pick with StaticEffect$ outside a one-card battlefield pick")
+			}
+			if err := lc.emitGravePick(dpScope, in); err != nil {
+				return err
+			}
+			// The rider's Obj is unused: the kernel's enterWithApply applies
+			// the record to the entrant's slot as it enters, so no remembered
+			// set is read (and the chain's cross-ability remembered census
+			// stays honest).
+			lc.emitOverride(lRef{}, override, "Permanent|enterWith")
+			return nil
 		}
 		if exwPick {
 			return lc.exilePick(ps, f, n, flags, counterKind, override, dest) // lower_exw.go
@@ -1177,6 +1199,9 @@ func overrideString(o *lOverride) string {
 	}
 	if o.Horsemanship {
 		p = append(p, "horsemanship")
+	}
+	if o.Toxic != 0 {
+		p = append(p, "toxic="+strconv.Itoa(int(o.Toxic)))
 	}
 	if o.NoCost {
 		p = append(p, "nocost")
@@ -2816,24 +2841,7 @@ func (lc *lowerCtx) effectStaticBodies(list string) ([]cards.Static, error) {
 
 func (lc *lowerCtx) effectAPI(ps *params) error {
 	if tr, ok := ps.get("Triggers"); ok {
-		if done, err := lc.effectImprintShieldFrom(ps); done || err != nil { // lower_effectimprintshield.go
-			return err
-		}
-		if _, st := ps.m["StaticAbilities"]; st {
-			if done, err := lc.effectUntapDenial(ps, tr); done || err != nil { // lower_untapdenial.go
-				return err
-			}
-		}
-		if _, st := ps.m["StaticAbilities"]; st && ps.m["RememberObjects"] != "" {
-			if done, err := lc.effectPlaneCurse(ps, tr); done || err != nil { // lower_planecurse.go
-				return err
-			}
-			return lc.effectStaticTriggerPair(ps, tr) // lower_effectcaptured.go
-		}
-		if done, err := lc.contractLossEffect(ps, tr); done || err != nil { // lower_contract.go
-			return err
-		}
-		return lc.emblem(ps, tr)
+		return lc.effectTriggers(ps, tr) // lower_effecttriggers.go
 	}
 	// EffectOwner$ (CR 611.2): effEffect resolves the created effect's owner
 	// lazily with EffectOwnerPlayers, whose empty value and You both name the
@@ -2856,6 +2864,9 @@ func (lc *lowerCtx) effectAPI(ps *params) error {
 			return lc.effectPrevent(ps)
 		}
 		return refuse("Effect without statics")
+	}
+	if ok, err := lc.effectPreventSpell(ps); ok || err != nil { // lower_effectpreventspell.go
+		return err
 	}
 	ss, serr := lc.effectStaticBodies(st)
 	if serr != nil {
@@ -4533,6 +4544,17 @@ func (lc *lowerCtx) immediateTrigger(ps *params) error {
 		return err
 	}
 	lat := lc.newLatent("ReflexiveTrigger")
+	if od, ok := ps.get("OptionalDecider"); ok {
+		// "When you do, you may ..." (Etched Slith, Dream Eater): gorge's
+		// effImmediateTrigger copies the line's OptionalDecider$ onto the
+		// minted trigger (TriggerContext.OptionalSpec), so the reflexive
+		// ability is an optional trigger its controller is asked about as
+		// it resolves (CR 603.5): the latent carries kop.TfOptional.
+		if strings.TrimSpace(od) != "You" {
+			return refuse("ImmediateTrigger OptionalDecider %q", od)
+		}
+		lat.ReflexOptional = true
+	}
 	lat.TrigRem = lc.trigRemInit(ps) // lower_trigremembered.go
 	savedRemX := lc.trigRemX
 	lc.trigRemX = false
@@ -4737,7 +4759,12 @@ func (lc *lowerCtx) lowerMana(sa *cards.SA, ps *params, ab *lAbility) error {
 		m.Each = len(cols) > 1
 		return lc.finishMana(sa, ps, ab, m)
 	}
+	// the amount may read the cards exiled with the resolving source (Ugin's
+	// Labyrinth's Count$ValidExile): the kernel's exwFlag reads ctx.src, the
+	// mana source itself
+	lc.exwRes = true
 	amt, err := lc.amount(ps, "Amount", 1)
+	lc.exwRes = false
 	if err != nil {
 		return err
 	}
@@ -5444,16 +5471,27 @@ func (lc *lowerCtx) animateGrantStatics(ps *params, names string, o *lOverride, 
 		// keyword/P/T walks honour OvGate (statCond); a player-hexproof or
 		// stack-keyword static reads no gate and would be live unanimated.
 		// Two walks read no OvGate: the attached-grant walk (grantsBetween)
-		// now reads statCond, but its StatOverride arm still does not, so a
-		// granted ability or trigger (AddAbility$/AddTrigger$) is refused
-		// here until that is checked; and the layer walk's lfxApplies gates a
+		// now reads statCond, but its StatOverride arm still does not, so an
+		// attached grant or a granted trigger is refused below (a granted
+		// ability over other permanents is not); and the layer walk's lfxApplies gates a
 		// collected subtype grant (AddType$ subtype or ChosenType) on Cond2
 		// only, so it would apply unanimated whenever the walk is on: refuse
 		// both.
 		if st := &lc.out.Statics[before]; single && !may && !land {
 			switch st.Kind {
 			case "Continuous":
-				if len(st.Grant) != 0 {
+				// A granted activated or mana ability (AddAbility$, Roar of
+				// the Fifth People's "Creatures you control have '{T}: Add
+				// {R}, {G}, or {W}.'") is read by the grant walks
+				// (act_empower.go, mana_grantedoffers.go, chars_gen.go
+				// grantedAbilities), each gated through statCond, which
+				// honours OvGate. A granted trigger (AddTrigger$) is set up
+				// by the trigger walks, which are not checked against the
+				// gate, and an attached grant (AffectedDefined$ Equipped,
+				// an EquippedBy/EnchantedBy clause) is the attached-grant
+				// walk's, whose StatOverride arm reads no gate: refuse both.
+				_, trig := ss[0].Params["AddTrigger"]
+				if len(st.Grant) != 0 && (trig || touchesHost(st.F)) {
 					return refuse("Animate staticAbilities$ %q grants an ability the kernel does not gate", name)
 				}
 				if len(st.AddSub) != 0 || st.AddChosen {
@@ -5484,15 +5522,29 @@ func animatePumpOrKeywordStatic(st cards.Static) bool {
 	return strings.TrimSpace(st.Params["AddPower"]) != "" || strings.TrimSpace(st.Params["AddToughness"]) != ""
 }
 
+// touchesHost reports whether some clause of f is limited to the source's
+// host (EquippedBy / EnchantedBy).
+func touchesHost(f *lFilter) bool {
+	if f == nil {
+		return false
+	}
+	for _, c := range f.Clauses {
+		if c.Flags&(fEquippedBy|fEnchantedBy) != 0 {
+			return true
+		}
+	}
+	return false
+}
+
 // animateGateableBody reports whether a single Animate staticAbilities$ body
 // is lowered as a static whose walk reads kop.Static.OvGate: a Continuous
-// anthem/keyword/P-T grant, or one of the rule statics whose generic walk
+// anthem/keyword/P-T grant or an AddAbility$ grant, or one of the rule statics whose generic walk
 // (dirac staticFlagGen / the gated CantBlockBy arm) checks the record's
 // GrantStatics bit.
 func animateGateableBody(st cards.Static) bool {
 	switch st.Mode {
 	case "Continuous":
-		return animatePumpOrKeywordStatic(st)
+		return animatePumpOrKeywordStatic(st) || strings.TrimSpace(st.Params["AddAbility"]) != ""
 	case "MustAttack", "MinMaxBlocker", "CantBlockBy":
 		return true
 	}

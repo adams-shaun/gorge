@@ -988,6 +988,12 @@ func (lc *lowerCtx) refuseGatedMana(ms []*lAbility) bool {
 	if gated == 0 {
 		return false
 	}
+	if len(ms) == 2 && metalcraftDynPair(ms[0], ms[1]) {
+		// Urza's Workshop: a plain {T}: Add {C} and a Metalcraft$-gated
+		// {T}: Add {C} for each Urza's land. The kernel's evaluated pair
+		// (mana_dynpair.go) reads the gate per view (lower_metalcraftdyn.go).
+		return true
+	}
 	if len(ms) != 1 {
 		for _, a := range ms {
 			if metalcraftGate(a.ActCond) {

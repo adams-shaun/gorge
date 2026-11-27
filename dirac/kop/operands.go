@@ -44,7 +44,9 @@ const (
 	ClonePick      = 1 << 3 // the Choices$ pick itself (F the candidates)
 	CloneTmplShift = 4      // bits 4-5: the template's target slot
 	CloneBatch     = 1 << 6 // the Choices$ pool is the trigger's batch members in exile (with ClonePick and CloneTmplPick; the copy is of the picked card, not a permanent)
-	CloneGrant     = 1 << 7 // GainThisAbility$: the override record after C (index C+1) is a grant-only record, applied as the copy's own granted ability (CR 707.9b)
+	CloneGrant     = 1 << 7 // GainThisAbility$ or AddTriggers$: the override record after C (index C+1) is a grant-only record, applied as the copy's own granted abilities (CR 707.9b)
+	CloneTmplCard  = 1 << 8 // the template is the target slot's card off the battlefield (TgtZone$ Graveyard), copied as its printed card (CR 400.7)
+	CloneTmplSac   = 1 << 9 // the template is the card the activation's own Exile<> cost exiled (Defined$ Exiled), copied as its printed card
 )
 
 // BecomeCopyCtr is OpBecomeCopy's B.N bit (a different op from ExtCloneCopy,
@@ -911,6 +913,15 @@ const DmgFromEachCtrl = 2
 // (B.N DmgAtkedObj) hits that object (gorge's Valid Planeswalker.TriggeredDefender
 // arm, Raid Bombardment, Fathom Fleet Swordjack).
 const AtkPWHit = 1
+
+// BiteExcessTrample is OpBite's A.N: when the biting creature has trample
+// and its power exceeds what is lethal to the bitten creature or planeswalker
+// (toughness less marked damage, or loyalty, read before the hit), it deals
+// exactly the lethal amount to it and the rest to its controller, in the one
+// damage batch (gorge emitObjectDamageExcess: DealDamage ExcessDamage$
+// ThisTargetedController | ExcessDamageCondition$ Card.withTrample, Ram
+// Through; CR 120.4a, 120.10).
+const BiteExcessTrample = 2
 
 // DmgAtkedObj is OpDealDamage's B.N (Obj RefDefendingPlayer, in an Attacks
 // trigger behind OpAtkPWGuard C AtkPWHit): the damage goes to the planeswalker

@@ -178,6 +178,9 @@ func (lc *lowerCtx) svarHead(rest string, depth int) (lValue, error) {
 	if fv, fok := lc.flipSideValue(rest); !ok && fok {
 		return fv, nil
 	}
+	if !ok && rest == "CostCountersRemoved" {
+		return lc.costCountersRemoved() // gorge runtimePublished, after the face's SVars (lower_costprog.go)
+	}
 	if !ok {
 		return lValue{}, fmt.Errorf("value head SVar$%s names no SVar", rest)
 	}
@@ -382,8 +385,12 @@ func (lc *lowerCtx) svarValue(body string, depth int) (lValue, error) {
 			v, err = lc.oppCastCondValue(rest) // value_oppcondition.go
 		case rest == oppsDealtDamageBody:
 			v = lValue{Kind: vOppsLostLife, N: 3} // value_turntallies.go
-		case rest == remDrawRecipientsBody:
-			v, err = lc.remDrawRecipientsValue() // value_remdrawrecipients.go
+		case rest == "HasPropertyIsRememberedOrController":
+			// the opponents controlling a remembered object (Cut a Deal's
+			// drawn cards; dirac value_remctrl.go). The general seat-count
+			// read, seat-exact at every count; main's two-seat reduction
+			// (value_remdrawrecipients.go) is superseded by it.
+			v = lValue{Kind: vOppExtreme, N: kop.OppExtRemCtrl}
 		default:
 			err = fmt.Errorf("PlayerCountOpponents$%s", rest)
 		}
@@ -1278,6 +1285,8 @@ func (lc *lowerCtx) countValue(rest string, depth int) (lValue, error) {
 		return lValue{Kind: vPowerOf, Ref: lRef{Kind: rSelf}}, nil
 	case "CardToughness":
 		return lValue{Kind: vToughnessOf, Ref: lRef{Kind: rSelf}}, nil
+	case "CardBasePower":
+		return lValue{Kind: vCardBasePower}, nil // the source's base power (value_basepower.go)
 	case "TotalDamageDoneByThisTurn":
 		return lc.totalDamageValue()
 	case "LifeYouGainedThisTurn":
@@ -1296,6 +1305,11 @@ func (lc *lowerCtx) countValue(rest string, depth int) (lValue, error) {
 		// gorge count_body_paid.go: the damage the living opponents were
 		// dealt this turn (bloodthirst's reader, lower_bloodthirst.go)
 		return lValue{Kind: vDmgOppsTaken}, nil
+	case "MaxOppDamageThisTurn":
+		// gorge count_cov3.go evalCov3HeadMaxOppDamageThisTurn: the most
+		// damage any one living opponent was dealt this turn (Spinerock
+		// Knoll's Hideaway Play gate, Lightning Phoenix)
+		return lValue{Kind: vMaxOppDmgTaken}, nil
 	case "RememberedSize":
 		return lValue{Kind: vRememberedCount}, nil
 	case "ImprintedSize":
@@ -1652,6 +1666,9 @@ func (lc *lowerCtx) countValue(rest string, depth int) (lValue, error) {
 	if spec, ok := strings.CutPrefix(rest, "ValidBattlefield,Command "); ok {
 		return cmdGreatestMVValue(spec) // value_cmdmv.go
 	}
+	if spec, ok := strings.CutPrefix(rest, "ValidAll "); ok && spec == cmdGreatestMVSpec {
+		return cmdGreatestMVAll(spec) // value_cmdmv.go
+	}
 	for _, zc := range []struct {
 		pre  string
 		kind []valKind
@@ -1692,6 +1709,9 @@ func (lc *lowerCtx) countValue(rest string, depth int) (lValue, error) {
 			return lValue{Kind: zc.kind[0], F: f, N: own.N, Ref: own.Ref}, nil
 		}
 		return lValue{Kind: vSum, Sub: []lValue{{Kind: zc.kind[0], F: f}, {Kind: zc.kind[1], F: f}}}, nil
+	}
+	if v, ok, err := lc.multiZoneCount(rest); ok { // value_multizone.go
+		return v, err
 	}
 	if spec, ok := strings.CutPrefix(rest, "ValidAll "); ok && validAllBattlefieldOnly(spec) {
 		// gorge's ValidAll scans every zone, but a spec every alternative of
@@ -1738,11 +1758,12 @@ func (lc *lowerCtx) countValue(rest string, depth int) (lValue, error) {
 				// ExCount N=1
 				kind = vPWTypes
 			default:
-				if ck, ok := strings.CutPrefix(agg, "CardCounters."); ok && ck != "ALL" {
-					// gorge zoneFold: CardCounters.<KIND> sums o.Counter(kind).
-					// ALL (every kind) has no kernel read (refCounters takes
-					// one kind) and keeps refusing below.
-					if _, kerr := counterKind(ck); kerr != nil {
+				if ck, ok := strings.CutPrefix(agg, "CardCounters."); ok {
+					// gorge zoneFold: CardCounters.<KIND> sums o.Counter(kind);
+					// ALL sums every kind (Object.Counter("ALL"), Backstreet
+					// Bruiser): build interns it as kop.CtrAll, which the
+					// kernel's fold reads as permCountersAll
+					if _, kerr := counterKind(ck); kerr != nil && ck != "ALL" {
 						return lValue{}, fmt.Errorf("Count$Valid aggregate %q", agg)
 					}
 					f, err := lc.filter(e)

@@ -1042,6 +1042,8 @@ const ExValidCommand ExprKind = 101
 const ExValidSideboard ExprKind = 102
 
 // count CardBasePower (dirac/manifest/ExprKind/ExCardBasePower)
+//
+// ExCardBasePower: the evaluating source's base power (Count$CardBasePower, gorge h.Chars(Source).BasePower: layer 7b before counters and pumps, CR 613.4); a source off the battlefield reads its printed power. Curie, Emergent Intelligence's draw. dirac/value_basepower.go.
 const ExCardBasePower ExprKind = 103
 
 // count DomainActivePlayer (dirac/manifest/ExprKind/ExDomainActivePlayer)
@@ -2362,11 +2364,14 @@ const ReplDamageMinus ReplKind = 68
 // repl DamageSet (dirac/manifest/ReplKind/ReplDamageSet)
 const ReplDamageSet ReplKind = 69
 
+// Draw (dirac/manifest/ReplKind/ReplDrawProgram)
+const ReplDrawProgram ReplKind = 70
+
 // repl LifeReduced (dirac/manifest/ReplKind/ReplLifeReduced)
-const ReplLifeReduced ReplKind = 70
+const ReplLifeReduced ReplKind = 71
 
 // repl TurnFaceUp replacement shape (the optional Attach body: as this face-down permanent is turned face up, its controller may attach it to a permanent the body's Choices$ names; Gift of Doom) (dirac/manifest/ReplKind/ReplTurnUpAttach)
-const ReplTurnUpAttach ReplKind = 71
+const ReplTurnUpAttach ReplKind = 72
 
 // stat OptionalAttackCost (dirac/manifest/StaticKind/StatOptionalAttackCost)
 const StatOptionalAttackCost StaticKind = 22
@@ -2556,23 +2561,33 @@ const StatCyclingGrant StaticKind = 76
 // StatDefenderAssigns is a Continuous static's `Affected$ You | AddKeyword$ You assign combat damage of each creature attacking you.` (Defensive Formation, kgen lower_playerstatic.go): its controller, not the attacking player, divides the combat damage of each creature attacking them among its blockers (CR 510.1c as the card rewrites it; gorge defenderAssignsAttackerDamage). Read live from the battlefield (dirac/static_plkeyword.go defenderAssigns, combat_band.go bandDivider); no State bytes.
 const StatDefenderAssigns StaticKind = 77
 
+// StaticKind (dirac/manifest/StaticKind/StatDefiler)
+//
+// StatDefiler is the Defiler cycle's board static (S:Mode$ OptionalCost | ValidCard$ Permanent.<Colour> | ValidSA$ Spell | Activator$ You | Cost$ PayLife<N> | ReduceColor$ <C>; Defiler of Dreams, Faith, Flesh, Instinct and Vigor): as an additional cost to cast the static controller's spells matching Filter, the caster may pay N life (A), and then the spell costs one pip of colour B (W U B R G = 0..4) less, never spilling to generic (CR 601.2b, 601.2f, 119.4). Not a ReduceCost: the reduction reads the caster's answer (build.def*, cost_defiler.go), one yes/no (ChGenConfirm) per applicable static in battlefield order, asked at bsDefiler beside gorge's defilerAsk.
+const StatDefiler StaticKind = 78
+
 // StaticKind (dirac/manifest/StaticKind/StatGraveNoAbilities)
 //
 // StatGraveNoAbilities is a Continuous static's AffectedZone$ Graveyard RemoveAllAbilities$ True (Yixlid Jailer; CR 613.1f): each card in a graveyard that Filter matches loses all abilities while the static's battlefield source is in force. Zone is the graveyard and the filter reads the card as a card, wherever it lies. It is not a StatContinuous, so no battlefield reader (the layer walks, loss6) sees it; only the graveyard readers ask it, through graveAbilitiesLost (static_graveabilityloss.go), which also answers the removal's timestamp so a granted graveyard ability that is newer than the removal survives (gorge grantLostTo).
-const StatGraveNoAbilities StaticKind = 78
+const StatGraveNoAbilities StaticKind = 79
+
+// StaticKind (dirac/manifest/StaticKind/StatMadnessGrant)
+//
+// StatMadnessGrant is a Continuous static's AddKeyword$ Madness:ManaCost[:<N>] grant over the zones its AffectedZone$ lists, one static per zone (Falkenrath Gorger; CR 702.35a-b): Filter matches the card in Static.Zone and the granted madness cost is the card's own mana cost reduced by CardCostLess-1 generic (Madness:ManaCost is CardCostLess 1, no reduction). A card with printed madness keeps its own cost; the first grant in perm.ts order wins. Read live from the battlefield at the discard (Hand zone), the cast-or-graveyard ask and the cast from exile, never stamped on the card (kw_madness.go madnessCostOf).
+const StatMadnessGrant StaticKind = 80
 
 // StaticKind (dirac/manifest/StaticKind/StatMiracleGrant)
 //
 // StatMiracleGrant is a Continuous static's AffectedZone$ Hand AddKeyword$ Miracle:<cost> grant (Lorehold, the Historian; Molecule Man; Aminatou, Veil Piercer; CR 702.94a): Filter matches the card in a hand and the granted miracle cost is GrantCost, or under CardCostLess the card's own mana cost reduced by CardCostLess-1 generic (Miracle:ManaCost:4). A card with printed miracle keeps its own (gorge derivedKeywordParamH reads the printed head first); the first grant in perm.ts order wins. Read live from the battlefield at the draw, the reveal-trigger resolution and the cast, never stamped on the card (kw_miracle.go miracleCostOf).
-const StatMiracleGrant StaticKind = 79
+const StatMiracleGrant StaticKind = 81
 
 // stat AssignNoCombatDamage (dirac/manifest/StaticKind/StatNoCombatDamage)
-const StatNoCombatDamage StaticKind = 80
+const StatNoCombatDamage StaticKind = 82
 
 // StaticKind (dirac/manifest/StaticKind/StatUnearthGrant)
 //
 // StatUnearthGrant is a Continuous static's AffectedZone$ Graveyard AddKeyword$ Unearth grant (Sedris, the Traitor King, Mishra, Tamer of Mak Fawa, Dregscape Sliver, Solemn Doomguide; CR 702.84a): Filter matches the card in the graveyard and GrantBody-1 is the latent unearth body (the printed kwUnearth expander's AB$ ChangeZone, cards.GrantedKeywordAbility) the graveyard offer runs with the affected card as its source. The body's own Cost prices the explicit-cost shape; a zero body cost is the CardManaCost mark, which the offer charges as the affected card's own mana cost (kw_unearthgrant.go).
-const StatUnearthGrant StaticKind = 81
+const StatUnearthGrant StaticKind = 83
 
 // trig ChaosEnsues (dirac/manifest/TrigEvent/TrigChaosEnsues)
 const TrigChaosEnsues TrigEvent = 52

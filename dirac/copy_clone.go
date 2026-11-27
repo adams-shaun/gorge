@@ -137,6 +137,9 @@ func (s *State) cloneBecomers(k *prep, in *kop.Instr, tmpl Slot, ord *[MaxPerm]S
 			m++
 		}
 	}
+	if m > 0 && DebugCharmShapeStats != nil {
+		DebugCharmShapeStats.CloneBecomers += int64(m)
+	}
 	return m
 }
 
@@ -312,6 +315,13 @@ func (s *State) cloneCopy(k *prep, in *kop.Instr) {
 			return
 		}
 		tmpl, c = NoSlot, s.objs[s.g.chosen[0]].card
+	} else if in.B.N&(kop.CloneTmplCard|kop.CloneTmplSac) != 0 {
+		// an off-battlefield template is copied as its printed card
+		var ok bool
+		if c, ok = s.cloneCardTmpl(in); !ok {
+			return
+		}
+		tmpl = NoSlot
 	} else if tmpl = s.cloneTmpl(k, in); tmpl == NoSlot {
 		return // the template left (or was never chosen): nothing happens
 	} else {
@@ -409,7 +419,7 @@ func (s *State) cloneCopy(k *prep, in *kop.Instr) {
 		}
 		p.ovr.kw = p.ovr.kw&^old | s.copyExcKw(k, sl)
 		if !eot {
-			s.clonePermNote(sl, s.perms[tmpl].obj, c, uint8(in.C), ts)
+			s.clonePermNote(sl, src, c, uint8(in.C), ts)
 			if grant != 0 {
 				s.clonePermGrantFrom(sl, grant, s.res.e.card)
 			}
@@ -427,6 +437,7 @@ func (s *State) cloneCopy(k *prep, in *kop.Instr) {
 		return
 	}
 	s.refreshTy(k)
+	s.cloneCardNote(k, in, grant)
 	if st := DebugCloneCopyStats; st != nil {
 		if eot {
 			st.EOT += uint32(made)

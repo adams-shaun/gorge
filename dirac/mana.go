@@ -1795,7 +1795,41 @@ func (s *State) planOrder(k *prep, p uint8, pk *planner, exclude Obj) (order [Ma
 	return order, no, rd
 }
 
+// planHoldFeeUnit prices the payment pk describes. A cast's payment is gorge's
+// composed-cost plan, whose census prices no restricted fee ability
+// (paid_mana_census.go: a generic or coloured mana fee is the cast window's
+// own price): when the census alone affords the cast, a fee unit whose fee
+// feeOK draws from the pool the plan's own units fill (CR 605.3b) is a plan
+// gorge's script search never composes -- it funds a fee gap only beside
+// funding steps of the potential prefix's script. So a cast-payment pass
+// first probes the census alone (availNoFeeUnit, the X-witness's way,
+// mana_window.go) and, when that plan exists, holds the fee unit out of the
+// real pass too. A cast only a fee unit pays (a Castle Garenbrig's {2}{G}{G},
+// {T} beside the lands that fund it) keeps the fee unit's plan. (cmd5 Orb
+// pool, full surface: the kernel's plan activated a Treasure to fill the
+// pool, drew the Orb's {1} fee from it and paid one fewer sacrifice than
+// gorge's census plan -- a composition the search never composed.)
+func (s *State) planHoldFeeUnit(k *prep, p uint8, pk *planner, exclude Obj) (ax uint16, held bool) {
+	if k.gen == nil || k.gen.rs == nil || !k.gen.rs.fee || s.g.availX&availNoFeeUnit != 0 ||
+		!(pk.castPay || s.castPaySpellBuild(k)) {
+		return 0, false
+	}
+	ax = s.g.availX
+	s.g.availX = ax | availNoFeeUnit
+	probe := *pk
+	probe.dry, probe.try = true, true
+	s.plan(k, p, &probe, exclude)
+	if !probe.found {
+		s.g.availX = ax
+		return 0, false
+	}
+	return ax, true
+}
+
 func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
+	if ax, held := s.planHoldFeeUnit(k, p, pk, exclude); held {
+		defer func() { s.g.availX = ax }()
+	}
 	order, no, rd := s.planOrder(k, p, pk, exclude)
 	s.planHandDemand(k, p, pk, exclude)
 	if pk.maxN == 0 {
@@ -1852,7 +1886,11 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 					// admits it per payment and floats its tap (mana_pain.go);
 					// the census ability stays the source's ordinary unit
 				} else if v, kd, ab, dmask, abi := s.restrViewW(k, p, sl, pcs[i], &rd); v != nil {
-					if pk.noChosenPair && v.wideChosen {
+					if s.planFeeUnitPriced(v) {
+						if planFeeUnitDropped(pcs[i], kd, abi) {
+							pcs[i] = &noManaPC
+						}
+					} else if pk.noChosenPair && v.wideChosen {
 						// The census-only trial: gorge's census omits a choice-shaped
 						// larger alternative whose amount is not 1
 						// (payment_plan.go paymentPlanManaUnitsOnlyCompute), so for
@@ -3144,4 +3182,34 @@ func (s *State) availPlainUnit(k *prep, sl Slot, pc *pcard, a *avail) {
 			}
 		}
 	}
+}
+
+// planFeeUnitPriced reports whether the plan is the census-only probe and
+// the source's view v carries a restricted fee ability.
+func (s *State) planFeeUnitPriced(v *pcard) bool {
+	return (v.restrFee != 0 || v.restrFeeCol != 0) && s.g.availX&availNoFeeUnit != 0
+}
+
+// planFeeUnitDropped reports whether the census-only probe prices the source
+// pc nothing (the view's kind kd, ability abi).
+// The census-only probe prices no restricted fee
+// ability: gorge's composed plan prices its census
+// alone (paid_mana_census.go), so when a census-only
+// plan affords it is the payment and a fee unit beside
+// it -- an Orb of Dragonkind's {1},{T} whose {1} the
+// plan's own units fund -- must not replace it (that
+// plan is the phased script's, priced only for a play
+// the census cannot pay). The probe's caller holds
+// availNoFeeUnit for the pass (restrSrcAvailD's gate,
+// mana_restrictedfeeprefix.go). A fee ability is the
+// source's own mana ability (the prep keeps its
+// fee-less plain shape on the card, manaAb naming it
+// or the deferral shape manaCol keeps with manaAb -1)
+// unless a free one is paired with it: then the source
+// prices nothing at all in this pass, its real census
+// unit (a pair's free view, pc.restrPair, or a
+// dynamic-amount layer) stays.
+func planFeeUnitDropped(pc *pcard, kd uint8, abi int8) bool {
+	return pc.restrPair == 0 && kd == rkExt &&
+		(int(pc.manaAb) == int(abi) || pc.manaAb < 0)
 }
