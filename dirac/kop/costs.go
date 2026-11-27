@@ -325,6 +325,14 @@ type Cost struct {
 	// full). Only a spell's own alternative cost carries them.
 	Discard2N uint8
 	Discard2F FilterID
+	// DiscardSharesCastColor: the CostDiscard part's candidates are the
+	// payer's hand cards that share a colour with the spell being cast
+	// (Dream Halls' granted alternative cost Discard<1/Card.SharesColorWith>,
+	// CR 118.3, 601.2h). Cost.Filter stays 0; the cast card's colour mask is
+	// read at offer and pick time (dirac/cast_altgrant.go). A table byte, not
+	// a CostFlags bit (the words are full). Only a battlefield grant's
+	// alternative cost carries it.
+	DiscardSharesCastColor bool
 	// DiscardSideN / DiscardSideF: a filtered discard part that sits beside
 	// a sacrifice on an activated ability (Skoa, Embermage: Discard<1/Card.
 	// namedSkoa, Embermage> Sac<2/Mountain>). Cost.N / Cost.Filter stay the

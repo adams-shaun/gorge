@@ -1542,8 +1542,14 @@ func triggerManaColorMask(mana string) ColorMask {
 }
 
 // matchSharesColorWith evaluates one bare-referent `SharesColorWith
-// <referent>` predicate token against the candidate o. Two referent forms
-// are bound:
+// <referent>` predicate token against the candidate o. Three forms are bound:
+//
+//	the bare form `SharesColorWith` -- Dream Halls' alternative discard
+//	(`Discard<1/Card.SharesColorWith/color sharing>`): the candidate's
+//	colours intersect the filter's own source's (SpecContext.Source, the
+//	spell being cast), read through colorMaskCtx like the ordinary colour
+//	predicates. An absent source, or two colourless objects, is "shares
+//	nothing", a resolved false, never an unresolved gate.
 //
 //	TriggeredProduced -- C.A.M.P.'s "If that creature shares a color with the
 //	mana that land produced": the candidate's colours intersect the
@@ -1561,11 +1567,18 @@ func triggerManaColorMask(mana string) ColorMask {
 //	TriggeredProduced's empty set takes.
 //
 //	Every other spelling -- MostProminentColor, Imprinted, Equipped,
-//	TopOfLibrary, Sacrificed, LastCastThisTurn, the bare form, and the
-//	`Valid <spec>` unit (alternative-level,
-//	sharesColorShape) -- returns ok=false here, so a token carrying one fails
-//	closed exactly as it did before these referents were bound.
+//	TopOfLibrary, Sacrificed, LastCastThisTurn, and the `Valid <spec>` unit
+//	(alternative-level, sharesColorShape) -- returns ok=false here, so a token
+//	carrying one fails closed exactly as it did before these referents were
+//	bound.
 func matchSharesColorWith(g *state.Game, p string, o *state.Object, sc SpecContext) (result, ok bool) {
+	if p == "SharesColorWith" {
+		src := predicateSource(p, &sc)
+		if src == 0 {
+			return false, true
+		}
+		return colorMaskCtx(o, &sc)&colorMaskCtx(g.Obj(src), &sc) != 0, true
+	}
 	arg, has := strings.CutPrefix(p, "SharesColorWith ")
 	if !has || !sharesColorBareReferent(arg) {
 		return false, false
@@ -1614,13 +1627,17 @@ func positiveRecognised(p string) bool {
 		return true
 	}
 	// Forge's base-qualified `SharesColorWith <referent>` predicate (C.A.M.P.'s
-	// TriggeredProduced, Guard Dogs' ChosenCard). The `SharesColorWith Valid
-	// <spec>` spelling is recognised at the ALTERNATIVE level, sharesColorShape
-	// (the IsTargeting precedent). Every other spelling (MostProminentColor,
-	// Imprinted, Equipped, TopOfLibrary, Sacrificed, LastCastThisTurn, the bare
-	// form) stays unrecognised: those carriers keep
-	// today's fail-open/closed behaviour, and UnknownPredicates keeps reporting
-	// them.
+	// TriggeredProduced, Guard Dogs' ChosenCard) and the bare
+	// `SharesColorWith` (Dream Halls' alternative discard: shares a colour
+	// with the cast spell). The `SharesColorWith Valid <spec>` spelling is
+	// recognised at the ALTERNATIVE level, sharesColorShape (the IsTargeting
+	// precedent). Every other spelling (MostProminentColor, Imprinted,
+	// Equipped, TopOfLibrary, Sacrificed, LastCastThisTurn) stays
+	// unrecognised: those carriers keep today's fail-open/closed behaviour,
+	// and UnknownPredicates keeps reporting them.
+	if p == "SharesColorWith" {
+		return true
+	}
 	if arg, has := strings.CutPrefix(p, "SharesColorWith "); has {
 		return sharesColorBareReferent(arg)
 	}
@@ -2399,6 +2416,11 @@ func matchPositive(g *state.Game, p string, o *state.Object, sc SpecContext) (re
 			chosen = !chosen
 		}
 		return chosen, true
+	}
+	if p == "SharesColorWith" {
+		// Dream Halls' bare form: the candidate shares a colour with the
+		// filter's own source (the spell being cast).
+		return matchSharesColorWith(g, p, o, sc)
 	}
 	if _, has := strings.CutPrefix(p, "SharesColorWith "); has {
 		// Forge's base-qualified `SharesColorWith <referent>` predicate (C.A.M.P.,
