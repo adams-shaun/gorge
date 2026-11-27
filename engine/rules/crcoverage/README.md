@@ -1,9 +1,12 @@
 # CR coverage
 
 Rule by rule, how gorge stands against the Magic: The Gathering Comprehensive
-Rules (effective 2026-09-25), and where the code that implements each rule
-lives. One file per CR chapter; one row per numbered rule, split into subrules
-only where the status or the code differs.
+Rules, and where the code that implements each rule lives. The rule ids are
+checked against `cr-index.tsv`, an index (ids, kinds, section and keyword
+titles, a scope flag, example counts; no rules text) derived from the
+2026-08-07 rules text by `scripts/cr_index.py`; `cr-scope-exclusions.tsv`
+names what is out of scope. One file per CR chapter; one row per numbered
+rule, split into subrules only where the status or the code differs.
 
 The tables were seeded from a full CR audit on 2026-10-20 (eleven slices, each
 rule checked against the code and, where gorge was suspected wrong, against
