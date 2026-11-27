@@ -1333,10 +1333,17 @@ jobs:
         working-directory: web
       - name: Install Chromium's system libraries
         # security.ubuntu.com has stopped answering GitHub's runners; the Azure archive mirror
-        # carries the same -security pocket.
+        # carries the same -security pocket. apt reaches a network mirror, so it is retried
+        # once: one transient mirror/DNS blip in this step failed a whole merge-queue batch
+        # (46025989080, 11-27) while every adjacent batch passed it. A second consecutive
+        # failure still fails the job — only one retry, so a real break is not hidden.
         run: |
           sudo grep -rl security.ubuntu.com /etc/apt/ | xargs -r sudo sed -i 's#http://security.ubuntu.com/ubuntu#http://azure.archive.ubuntu.com/ubuntu#g'
-          npx playwright install-deps chromium
+          npx playwright install-deps chromium || {
+            echo "::warning::install-deps failed once (transient apt/mirror); retrying"
+            sleep 15
+            npx playwright install-deps chromium
+          }
         working-directory: web
       - name: Run the browser gate
         run: make smoke
