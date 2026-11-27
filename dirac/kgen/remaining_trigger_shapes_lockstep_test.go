@@ -36,6 +36,23 @@ func avengeReducedCasts(g *state.Game, evs []events.Event) int {
 	return n
 }
 
+// castFromGraveyard counts the casts of the named card from a graveyard (the
+// PutOnStack of its object from the graveyard).
+func castFromGraveyard(name string) func(*state.Game, []events.Event) int {
+	return func(g *state.Game, evs []events.Event) int {
+		n := 0
+		for _, ev := range evs {
+			if ev.Kind != events.PutOnStack || ev.From != state.ZGraveyard {
+				continue
+			}
+			if o := g.Obj(ev.Obj); o != nil && o.Face() != nil && o.Face().Name == name {
+				n++
+			}
+		}
+		return n
+	}
+}
+
 func remainingShapes() []miscShape {
 	e := func(n string, c int) cardset.Entry { return cardset.Entry{Name: n, Count: c} }
 	return []miscShape{
@@ -46,7 +63,22 @@ func remainingShapes() []miscShape {
 				{e("Avenge", 8), e("Plains", 32)},
 				{e("Raging Goblin", 20), e("Mountain", 20)},
 			}}},
+		// Haakon cannot be cast from the hand: only the graveyard cast (after
+		// Careful Study's discard or an opponent's burn) can put it in play, and
+		// the battlefield Haakon lets Black Knight be cast from the graveyard.
+		{card: "Haakon, Stromgald Scourge", seeds: 60, min: 3, reached: castFromGraveyard("Haakon, Stromgald Scourge"),
+			matchups: haakonMatchups()},
+		{card: "Haakon, Stromgald Scourge", seeds: 60, min: 1, reached: castFromGraveyard("Black Knight"),
+			matchups: haakonMatchups()},
 	}
+}
+
+func haakonMatchups() [][2][]cardset.Entry {
+	e := func(n string, c int) cardset.Entry { return cardset.Entry{Name: n, Count: c} }
+	return [][2][]cardset.Entry{{
+		{e("Haakon, Stromgald Scourge", 4), e("Black Knight", 8), e("Careful Study", 4), e("Swamp", 14), e("Island", 10)},
+		{e("Shock", 6), e("Hill Giant", 8), e("Grizzly Bears", 8), e("Mountain", 10), e("Forest", 8)},
+	}}
 }
 
 // TestRemainingTriggerShapesHostedLockstep plays each lowered shape against
