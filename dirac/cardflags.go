@@ -3,7 +3,7 @@ package dirac
 // The generated table's per-card flags and sparse small values
 // genPrep used to carry eleven []bool arrays, five []int8
 // arrays and two []int16 arrays, one entry per card, most of them the -1
-// sentinel. One uint32 per card now holds the flags and the presence bits
+// sentinel. One uint64 per card now holds the flags and the presence bits
 // of the small values; the values themselves live in smallRecs, in card
 // order, one record per card that carries any. Readers are pure loads (a
 // bit test, then at most a binary search over a few records), so a walk

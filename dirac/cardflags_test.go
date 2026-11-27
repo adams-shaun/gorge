@@ -69,7 +69,7 @@ func TestCardFlagsShareOneIotaBlock(t *testing.T) {
 		}
 		if i == 0 {
 			if !isOneShlIota(vs) {
-				t.Errorf("%s: %s must be `uint32 = 1 << iota`", fset.Position(vs.Pos()), vs.Names[0].Name)
+				t.Errorf("%s: %s must be `uint64 = 1 << iota`", fset.Position(vs.Pos()), vs.Names[0].Name)
 			}
 			continue
 		}
@@ -77,8 +77,8 @@ func TestCardFlagsShareOneIotaBlock(t *testing.T) {
 			t.Errorf("%s: %s must repeat the block's `1 << iota` (no type, no value)", fset.Position(vs.Pos()), vs.Names[0].Name)
 		}
 	}
-	if inBlock > 32 {
-		t.Errorf("%d gf flags do not fit genPrep.flags' uint32", inBlock)
+	if inBlock > 64 {
+		t.Errorf("%d gf flags do not fit genPrep.flags' uint64", inBlock)
 	}
 }
 
@@ -88,10 +88,10 @@ func isCardFlagName(name string) bool {
 	return len(name) > 2 && strings.HasPrefix(name, "gf") && name[2] >= 'A' && name[2] <= 'Z'
 }
 
-// isOneShlIota reports whether vs is `uint32 = 1 << iota`.
+// isOneShlIota reports whether vs is `uint64 = 1 << iota`.
 func isOneShlIota(vs *ast.ValueSpec) bool {
 	typ, ok := vs.Type.(*ast.Ident)
-	if !ok || typ.Name != "uint32" || len(vs.Values) != 1 {
+	if !ok || typ.Name != "uint64" || len(vs.Values) != 1 {
 		return false
 	}
 	b, ok := vs.Values[0].(*ast.BinaryExpr)

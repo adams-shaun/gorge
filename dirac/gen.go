@@ -28,7 +28,7 @@ type genPrep struct {
 	anyRad      bool     // some line gives rad counters: the cold buffer holds each seat's count (act_radiation.go); in the padding before flags
 	// flags and the sparse small values (cardflags.go): the
 	// eleven per-card bools and the dense int8/int16 sentinel arrays this
-	// struct used to carry are one uint32 per card plus a record per card
+	// struct used to carry are one uint64 per card plus a record per card
 	// that actually has a value.
 	flags     []uint64
 	smallRecs []cardSmall
