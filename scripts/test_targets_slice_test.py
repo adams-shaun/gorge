@@ -203,3 +203,49 @@ def test_narrow_applies_the_slice_too():
     for part in ("^TestPinManifest$", "^(TestFastA)$", "Census"):
         assert part in rx, part
     assert manifest_names(res), "the narrow precheck replays the changed recordings and the slice"
+
+
+# ---- the targeted lanes ------------------------------------------------------------------------------
+
+def test_lanes_partition_the_replay_selection_exactly():
+    # test-targeted deals the oracle replay slice into concurrent lanes (11-27: 34 of 40 targeted runs
+    # hit the 5m cap on one ~200-test process). Deal it and prove the union is the single-process
+    # selection, name for name, and that the manifest/pool-glob subtest -run is still there, unchanged.
+    res = planned(SRC, reprosel=sel(sha=sha_in_lane(1)))
+    plain = oracle(res)[1]
+    names = sorted(set(REPRO_TESTS) - {SLOW_TEST}) + [
+        "TestRefusedEntriesStillDiverge",           # the refusal guard the replay arm always adds
+        "TestReproCensusIsCurrent",                 # selected by the census alternatives
+        "TestPinManifest",                          # selected by nothing here
+        "TestUnrelatedThing",
+        tt.MANIFEST_TEST + "0", "TestStdFdnReprosLockstep"]  # the subtest entry's parents, not the plain entry
+    before = [n for n in names if re.search(plain, n)]
+    assert "TestReproCensusIsCurrent" in before and "TestUnrelatedThing" not in before
+    laned = tt.oracle_lanes(res, names=names, weights={n: 10.0 for n in names}, zero=set())
+    lanes = [(k, rx) for k, p, rx in laned if p == "./dirac/oracle" and k == "oraclelane" and "/" not in rx]
+    assert 1 < len(lanes) <= tt.ORACLE_LANES
+    got = []
+    for _, rx in lanes:
+        assert rx.startswith("^") and rx.endswith("$"), rx
+        got.extend(rx[1:-1].split("|"))
+    assert sorted(got) == sorted(before), "the lanes must cover the single-process selection exactly once"
+    # the subtest -run (manifest and pool globs, filtered to the slice) joins the concurrent lanes as it was
+    assert manifest_rx(res) is not None
+    subs = [(k, rx) for k, p, rx in laned if p == "./dirac/oracle" and "/" in rx]
+    assert subs == [("oraclelane", manifest_rx(res))]
+    assert len(laned) == len(res) - 1 + len(lanes)  # nothing else moved
+
+
+def test_lanes_deal_by_cost_and_leave_an_undealtable_slice_alone():
+    res = planned(SRC, reprosel=sel(sha=sha_in_lane(1)))
+    # two lanes, one heavy test: it and nothing else is alone in its lane
+    names = ["TestHeavyCensus", "TestRefusedEntriesStillDiverge"]
+    weights = {"TestHeavyCensus": 100.0, "TestRefusedEntriesStillDiverge": 1.0}
+    laned = tt.oracle_lanes(res, names=names, weights=weights, zero=set(), lanes=2)
+    lanes = [rx for k, p, rx in laned if p == "./dirac/oracle" and "/" not in rx]
+    assert "TestHeavyCensus" in lanes[0] and "TestHeavyCensus" not in lanes[1]
+    # no listing: the entries are left whole, never split away the slice
+    assert tt.oracle_lanes(res, names=[], weights={}, zero=set()) == res
+    # no replay entry in the selection: nothing is dealt
+    assert tt.oracle_lanes([("named", "./dirac/oracle", tt.CENSUS)], names=names, weights={}, zero=set()) == \
+        [("named", "./dirac/oracle", tt.CENSUS)]

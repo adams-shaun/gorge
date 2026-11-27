@@ -23,6 +23,11 @@ import subprocess
 import sys
 import zlib
 
+# The script directory, which `python3 -I` does not put on sys.path: the deal CI's oracle shards and the
+# precheck's lanes share lives there (scripts/oracle_shard_deal.py), one implementation, not a copy.
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import oracle_shard_deal  # noqa: E402
+
 EXIT = {"PASS": 0, "FAIL": 1, "ENV": 3, "EMPTY": 4, "BUDGET": 5, "BUSY": 75}
 
 # A skip whose message says the corpus, the pools or dirac's tables are missing means the environment, not
@@ -119,6 +124,11 @@ GUARDS = (("./dirac/kop", "^TestKopOrdinalsUnchanged$"),
 TABLE_DATA = ("dirac/support/", "dirac/cardset/pools/", "dirac/cardset/setlists/", "dirac/manifest/key/",
               "dirac/manifest/mech/")
 TABLE_READERS = ("dirac/cardset", "dirac/oracle/cmd/kfuzz")
+# The precheck's oracle replay slice ran as one go test process (~200 top-level tests: the census and refusal
+# families plus the 25% slice) and outran the package's 5m cap on 34 of the last 40 targeted runs (11-27);
+# its summed test wall was ~500 s. test-targets.sh runs the slice as this many concurrent, cost-dealt lanes
+# (scripts/oracle_shard_deal.py, the same deal CI's matrix parts use).
+ORACLE_LANES = 4
 RULES = "./engine/rules"
 ORACLE = "./dirac/oracle"
 ARCHTEST = "./internal/archtest"
@@ -852,6 +862,95 @@ def replay_sel(dirmap, sha):
             "slow": set(slow_repros()), "sha": sha}
 
 
+def oracle_test_names(pkg=ORACLE):
+    """The package's top-level test names, as ci-oracle-shard.sh lists them; [] when it cannot be listed."""
+    return [ln.strip() for ln in sh("go", "test", "-list", ".*", pkg, check=False).splitlines()
+            if ln.strip().startswith("Test")]
+
+
+def oracle_pools_present():
+    """Whether both deck pools are on disk, the shell's test (ci-oracle-shard.sh): without them the
+    pool-only tests skip and weigh nothing, so they must not unbalance a lane."""
+    pools = os.environ.get("GORGE_POOLS") or ".pools"
+    return all(os.path.isdir(os.path.join(pools, p, "decks")) for p in ("fdn", "blb"))
+
+
+def oracle_lanes(res, names=None, lanes=ORACLE_LANES, weights=None, zero=None):
+    """Deal the ./dirac/oracle replay slice into `lanes` cost-balanced "oraclelane" entries.
+
+    The replay slice is the census and refusal families plus the 25% slice (slice_lane) in one -run, and
+    the manifest/pool-glob subtest -run plan appends after the plain entries. In one go test process they
+    outran the package's 5m cap on 34 of the last 40 targeted runs (11-27, ~200 top-level tests and a
+    ~500 s summed test wall); test-targets.sh runs the entries of kind oraclelane as concurrent processes.
+    The plain entry's selected names are dealt by measured cost (oracle_shard_deal.deal, the deal
+    ci-oracle-shard.sh performs) and each lane is one anchored -run; the subtest entry joins them as it
+    is. Every selected test still runs exactly once: the union of the lanes is the names the single
+    entry matched, and no name the package does not list can run.
+
+    names is the package's test list (oracle_test_names); None lists it lazily. weights is the
+    "<test> <seconds>" table (dirac/oracle/testdata/ci-shard-seconds.txt); a test it does not list
+    weighs the table's median, never zero. zero is the names that weigh nothing (the pool-only tests
+    when no deck pools are on disk). When the slice cannot be dealt (no test list) every entry is left
+    as it was, so a broken listing never runs less. Every other package and entry is untouched."""
+    picks = [i for i, (kind, pkg, rx) in enumerate(res)
+             if pkg == ORACLE and kind == "named" and "/" not in rx and REFUSED in rx]
+    if not picks:
+        return res
+    if names is None:
+        names = oracle_test_names()
+    if not names:
+        return res
+    rx = res[picks[0]][2]
+    selected = [n for n in names if re.search(rx, n)]  # go's -run: an unanchored match on the top-level name
+    if not selected:
+        return res
+    if weights is None:
+        weights = oracle_shard_deal.read_weights()
+    if zero is None:
+        zero = set() if oracle_pools_present() else oracle_shard_deal.read_zero()
+    by_part = {}
+    for part, name, _ in oracle_shard_deal.deal(selected, weights, lanes, default=None, zero=zero):
+        by_part.setdefault(part, []).append(name)
+    dealt = [("oraclelane", ORACLE, "^%s$" % "|".join(by_part[p])) for p in sorted(by_part)]
+    out = []
+    for i, entry in enumerate(res):
+        if i == picks[0]:
+            out.extend(dealt)
+        elif entry[1] == ORACLE and entry[0] == "named" and "/" in entry[2]:
+            # the replay slice's own subtest -run (manifest and pool globs, filtered to the slice): the same
+            # concurrent group, its -run unchanged
+            out.append(("oraclelane", ORACLE, entry[2]))
+        else:
+            out.append(entry)
+    return out
+
+
+def merge_lane_logs(out, lanes):
+    """Append the lane processes' `go test -json` streams to out, in order, and return the worst exit
+    status. `finish` then classifies the one stream a single run produced: every lane's lines are kept, so
+    a failure, a build error or a timeout panic (BUDGET) in any lane wins over a passing one."""
+    rc = 0
+    for path, lane_rc in lanes:
+        rc = max(rc, lane_rc)
+        with open(path, errors="replace") as f:
+            data = f.read()
+        if data and not data.endswith("\n"):
+            data += "\n"  # a stream's last line is still a line: never glue two lanes' lines into one
+        with open(out, "a") as f:
+            f.write(data)
+    return rc
+
+
+def cmd_merge(a):
+    if len(a.lane) != len(a.rc):
+        sys.exit("test_targets: merge: each --lane needs its --rc")
+    try:
+        print(merge_lane_logs(a.out, list(zip(a.lane, a.rc))))
+    except OSError as e:
+        sys.exit("test_targets: merge: %s" % e)
+    return 0
+
+
 def cmd_select(a):
     dirmap, deps = go_graph()
     changes = diff_changes(a.base)
@@ -859,8 +958,13 @@ def cmd_select(a):
     narrow = None
     if a.narrow:
         narrow = {"fast": fast_tier(), "sha": sh("git", "rev-parse", "HEAD", check=False).strip()}
+    reprosel = replay_sel(dirmap, mb)
     res, skipped = plan(changes, dirmap, deps, read_lines, repro_named(changes, dirmap, read_lines),
-                       added_files(a.base), narrow, replay_sel(dirmap, mb))
+                       added_files(a.base), narrow, reprosel)
+    # The targeted run deals the oracle's replay slice into concurrent lanes (test-smart keeps its own
+    # fixed chunker, oracle_chunked); nothing else about the selection moves.
+    if reprosel is not None and not a.narrow:
+        res = oracle_lanes(res)
     for kind, pkg, rx in res:
         print("%s\t%s\t%s" % (kind, pkg, rx))
     for p in skipped:
@@ -893,6 +997,10 @@ def main(argv=None):
     s.add_argument("--narrow", action="store_true", help="test-smart's narrow precheck selection")
     c = sub.add_parser("census")
     c.add_argument("--base", default="origin/main")
+    m = sub.add_parser("merge")
+    m.add_argument("--out", required=True, help="the run's one go test -json stream, appended to")
+    m.add_argument("--lane", action="append", default=[], help="a lane process's -json log")
+    m.add_argument("--rc", action="append", default=[], type=int, help="that lane's exit status")
     t = sub.add_parser("timeout")
     t.add_argument("--pkg", required=True)
     a = ap.parse_args(argv)
@@ -907,6 +1015,8 @@ def main(argv=None):
                       changed=diff_changed_tests(a.base) if a.base else None)
     if a.cmd == "census":
         return cmd_census(a)
+    if a.cmd == "merge":
+        return cmd_merge(a)
     if a.cmd == "timeout":
         print(timeout_for(a.pkg))
         return 0

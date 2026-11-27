@@ -6,9 +6,11 @@
 # tests are dealt by measured cost, longest first, each to the part with the least so far
 # (dirac/oracle/testdata/ci-shard-seconds.txt: "<test> <seconds>"; a test it does not list weighs
 # DEFAULT_SECONDS, and a pool-only test weighs nothing on a clone with no pool, where it skips). The
-# deal is a pure function of the test list and that file, so every part computes the same one. A part
-# ends by printing its slowest tests, the input of the next refresh of the file. By name, round-robin,
-# the parts measured 574-1184 s on one promote PR (2026-11-12): a few heavy tests shared a part.
+# deal is a pure function of the test list and that file, so every part computes the same one; it is
+# scripts/oracle_shard_deal.py's, shared with the precheck's targeted lanes (scripts/test_targets.py),
+# never copied. Part indices are 0-based, as .github/workflows/*'s matrix is. A part ends by printing
+# its slowest tests, the input of the next refresh of the file. By name, round-robin, the parts
+# measured 574-1184 s on one promote PR (2026-11-12): a few heavy tests shared a part.
 #
 # A skip must not read green. A clone with no deck pool plays committed slices and synthetic decks,
 # where exactly the tests in dirac/oracle/testdata/poolskips.txt skip; with the FDN and BLB pools
@@ -27,15 +29,13 @@ havepools=0
 if [ -d "$pools/fdn/decks" ] && [ -d "$pools/blb/decks" ]; then havepools=1; fi
 weights=dirac/oracle/testdata/ci-shard-seconds.txt
 [ -r "$weights" ] || weights=/dev/null
-# "<seconds> <test>" per test, heaviest first (ties by name), then a greedy deal: part k gets the next
-# test while it carries the least. awk keeps the arithmetic exact enough and the order fixed (LC_ALL=C).
+# "<part> <seconds> <test>" per test: the shared deal, heaviest first (ties by name), each test to the
+# part carrying the least so far. A pool-only test weighs nothing on a clone with no pool, where it skips.
+zero=()
+[ "$havepools" = 1 ] || zero=(--zero dirac/oracle/testdata/poolskips.txt)
 mapfile -t dealt < <(
-	awk -v nopool=$((1 - havepools)) -v def="${DEFAULT_SECONDS:-0.08}" '
-		FILENAME == ARGV[1] { if ($0 !~ /^#/ && NF == 2) w[$1] = $2; next }
-		FILENAME == ARGV[2] { if ($0 !~ /^#/ && NF) { split($0, a, "/"); skip[a[1]] = 1 }; next }
-		NF { s = ($1 in w) ? w[$1] : def; if (nopool && ($1 in skip)) s = 0; printf "%.3f %s\n", s, $1 }
-	' "$weights" dirac/oracle/testdata/poolskips.txt - <<<"$list" | sort -k1,1gr -k2,2 |
-	awk -v n="$n" '{ b = 0; for (k = 1; k < n; k++) if (l[k] < l[b]) b = k; l[b] += $1; print b, $1, $2 }'
+	python3 -I scripts/oracle_shard_deal.py --parts "$n" --weights "$weights" \
+		--default "${DEFAULT_SECONDS:-0.08}" ${zero[@]+"${zero[@]}"} <<<"$list"
 )
 sel=()
 est=0
