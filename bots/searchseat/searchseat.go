@@ -42,6 +42,7 @@ import (
 	"fmt"
 
 	"github.com/adams-shaun/gorge/bots/botpolicy"
+	"github.com/adams-shaun/gorge/bots/encoder"
 	"github.com/adams-shaun/gorge/bots/policynet"
 	"github.com/adams-shaun/gorge/bots/searchprobe"
 	"github.com/adams-shaun/gorge/engine/decision"
@@ -398,8 +399,9 @@ func valueLeaf(m *policynet.Model) func(view.View, state.PlayerID) float64 {
 	if m == nil || !m.HasValue() {
 		return nil
 	}
+	enc := encoder.ForModel(m)
 	return func(v view.View, actor state.PlayerID) float64 {
-		return float64(m.Value(policynet.EncodeStateWith(m.Features, v, actor, nil)))
+		return float64(m.Value(enc.EncodeState(nil, &v, actor, nil)))
 	}
 }
 
@@ -412,9 +414,10 @@ func oracleLeaf(m *policynet.Model) func(view.View, state.PlayerID) float64 {
 	if m == nil || !m.HasValue() {
 		return nil
 	}
+	enc := encoder.ForModel(m)
 	return func(v view.View, actor state.PlayerID) float64 {
 		own, diag := policynet.SplitOmniscientView(v, actor)
-		return float64(m.Value(policynet.EncodeStateWith(m.Features, own, actor, diag)))
+		return float64(m.Value(enc.EncodeState(nil, &own, actor, diag)))
 	}
 }
 

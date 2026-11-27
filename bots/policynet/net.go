@@ -123,6 +123,12 @@ type Model struct {
 	// add hashed rows to the same table. The checkpoint carries it through
 	// its encoder hash (EncoderHashFor).
 	Features FeatureSet
+	// Encoder is the registered encoder name the network's header carries (a
+	// bots/encoder registry key), or "" for a net from before the header:
+	// Features then names the encoder. Call sites that encode a state for
+	// scoring resolve it through bots/encoder, so a net trained under a
+	// plugin encoder encodes under that encoder.
+	Encoder string
 
 	Table  []float32 // Rows*H, row-major: Table[r*H+j]
 	StateW []float32 // StateDenseW()*H, row-major: StateW[d*H+j]
