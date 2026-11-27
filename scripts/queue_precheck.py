@@ -542,7 +542,9 @@ def main():
     culprits = set(blame)
     # A build item (a go test timeout, a panic, a dead binary) cannot be re-run against a prefix, so it is never
     # blamed. With one present, no PR is reported green either: the red is real and must stay visible until a later
-    # run or the batch shows it a flake; queue_conditions veto a failure, not a missing success.
+    # run or the batch shows it a flake. Posting no status is safe: queue_conditions only veto a failure (.mergify.yml
+    # "a failing status keeps a PR out, a missing one does not"), and a red batch is split by Mergify itself, never
+    # dumped (batch_max_failure_resolution_attempts is unset there, default null: split until the root cause).
     unattributable = [f for f in fails if not attributable(f)]
     for p in merged:
         if p["number"] in culprits:
