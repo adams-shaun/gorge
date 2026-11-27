@@ -94,37 +94,111 @@ const maxImportedDeckCards = 250
 // may bring: the 40 of the smallest limited deck.
 const minConstructedDeckCards = 40
 
-// check parses one submitted ManaBrew deck and refuses it unless the server
-// itself finds it fit for the table's format: every card resolves, the engine
-// can play every card, and the deck is legal (Commander construction for a
+// check parses one submitted deck -- ManaBrew JSON in sd.Deck, or a
+// plain-text decklist in sd.Text -- and refuses it unless the server itself
+// finds it fit for the table's format: every card resolves, the engine can
+// play every card, and the deck is legal (Commander construction for a
 // commander table; no commander and a legal size for a constructed one).
 // The client's own claims -- its format field, its validity -- decide nothing.
-func (d *deckImports) check(format host.Format, seat int, raw json.RawMessage) (host.Deck, error) {
-	var md mb.Deck
-	if err := json.Unmarshal(raw, &md); err != nil {
-		return host.Deck{}, fmt.Errorf("seat %d deck is not a ManaBrew deck: %w", seat, err)
+func (d *deckImports) check(format host.Format, sd httpapi.SeatDeck) (host.Deck, error) {
+	if sd.Text != "" {
+		return d.checkText(format, sd.Seat, sd.Text)
 	}
-	label := fmt.Sprintf("seat %d deck %q", seat, md.Name)
+	var md mb.Deck
+	if err := json.Unmarshal(sd.Deck, &md); err != nil {
+		return host.Deck{}, fmt.Errorf("seat %d deck is not a ManaBrew deck: %w", sd.Seat, err)
+	}
+	label := fmt.Sprintf("seat %d deck %q", sd.Seat, md.Name)
 	if err := deckFormatMatches(format, md.Format); err != nil {
 		return host.Deck{}, fmt.Errorf("%s: %w", label, err)
 	}
 	if len(md.Cards) > maxImportedDeckCards {
 		return host.Deck{}, fmt.Errorf("%s has %d cards, more than the %d a table seats", label, len(md.Cards), maxImportedDeckCards)
 	}
-	f, rep, err := manabrew.ImportDeck(d.reg, md, d.supported)
-	var why []string
+	f, rep, _ := manabrew.ImportDeck(d.reg, md, d.supported)
+	return d.checkFile(label, format, f, rep.Unresolved, rep.Unsupported)
+}
+
+// checkText parses one seat's plain-text decklist and checks the deck it
+// names exactly as a ManaBrew one. A line the parser cannot read is refused
+// naming the line; a list past maxImportedDeckCards copies is refused before
+// any card is resolved, so a huge count never reaches Resolve.
+func (d *deckImports) checkText(format host.Format, seat int, text string) (host.Deck, error) {
+	label := fmt.Sprintf("seat %d deck", seat)
+	tl, err := deck.ParseText([]byte(text))
 	if err != nil {
-		why = append(why, fmt.Sprintf("cards not in the card pool: %s", capNames(rep.Unresolved)))
+		return host.Deck{}, fmt.Errorf("%s: %w", label, err)
 	}
-	if len(rep.Unsupported) > 0 {
-		names := make([]string, 0, len(rep.Unsupported))
-		for n := range rep.Unsupported {
+	total := 0
+	for _, e := range tl.Cards {
+		if e.Count > maxImportedDeckCards || total+e.Count > maxImportedDeckCards {
+			return host.Deck{}, fmt.Errorf("%s has more than the %d cards a table seats", label, maxImportedDeckCards)
+		}
+		total += e.Count
+	}
+	f := tl.File(label)
+	unresolved, unsupported := d.census(f)
+	return d.checkFile(label, format, f, unresolved, unsupported)
+}
+
+// census looks up every card f names -- main deck, sideboard and
+// commanders -- and returns the names the card pool does not hold (first-seen order, no
+// repeats) and, under each card's front-face name, the primitives the engine
+// does not yet implement for the cards it does hold.
+func (d *deckImports) census(f deck.File) (unresolved []string, unsupported map[string][]string) {
+	unsupported = map[string][]string{}
+	missed := map[string]bool{}
+	names := make([]string, 0, len(f.Cards)+len(f.Sideboard)+len(f.Commanders))
+	for _, e := range f.Cards {
+		names = append(names, e.Name)
+	}
+	for _, e := range f.Sideboard {
+		names = append(names, e.Name)
+	}
+	names = append(names, f.Commanders...)
+	for _, n := range names {
+		c, ok := d.reg.Lookup(n)
+		if !ok {
+			if !missed[n] {
+				missed[n] = true
+				unresolved = append(unresolved, n)
+			}
+			continue
+		}
+		if missing := d.reg.Unsupported(c, d.supported); len(missing) > 0 {
+			unsupported[frontFaceName(c, n)] = missing
+		}
+	}
+	return unresolved, unsupported
+}
+
+// frontFaceName is the card's front-face name, or name when the card carries
+// none.
+func frontFaceName(c *cards.Card, name string) string {
+	if len(c.Faces) == 0 || c.Faces[0].Name == "" {
+		return name
+	}
+	return c.Faces[0].Name
+}
+
+// checkFile refuses f, naming the cards, unless every card resolved and the
+// engine plays every card, then checks it for the table's format and
+// resolves it into the deck the table seats. Both the ManaBrew and the text
+// path end here.
+func (d *deckImports) checkFile(label string, format host.Format, f deck.File, unresolved []string, unsupported map[string][]string) (host.Deck, error) {
+	var why []string
+	if len(unresolved) > 0 {
+		why = append(why, fmt.Sprintf("cards not in the card pool: %s", capNames(unresolved)))
+	}
+	if len(unsupported) > 0 {
+		names := make([]string, 0, len(unsupported))
+		for n := range unsupported {
 			names = append(names, n)
 		}
 		sort.Strings(names)
 		parts := make([]string, len(names))
 		for i, n := range names {
-			parts[i] = fmt.Sprintf("%s (needs %s)", n, strings.Join(rep.Unsupported[n], ", "))
+			parts[i] = fmt.Sprintf("%s (needs %s)", n, strings.Join(unsupported[n], ", "))
 		}
 		why = append(why, fmt.Sprintf("cards the engine cannot play yet: %s", capNames(parts)))
 	}
@@ -236,7 +310,7 @@ func (c config) importSeatDecks(req httpapi.CreateGameOptions) (map[int]host.Dec
 	}
 	out := make(map[int]host.Deck, len(req.Decks))
 	for _, sd := range req.Decks {
-		d, err := c.imports.check(req.Format, sd.Seat, sd.Deck)
+		d, err := c.imports.check(req.Format, sd)
 		if err != nil {
 			return nil, err
 		}
