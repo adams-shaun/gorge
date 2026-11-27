@@ -27,13 +27,18 @@ import (
 // trigger its "whenever you play a legendary land or cast a legendary spell,
 // you draw a card and you lose 1 life" — and requires the game clean (gorge
 // leads, full surface, the run's mulligans and caps).
+//
+// The pair is 42, not the loop's 38: once hosted-cmdr's evidence credits twenty
+// more cards the dealt set holds them, pairs 38-41 deal Baird, Steward of Argive
+// beside Gemstone Caverns, a combination dirac refuses by name (atktax), and 42
+// is the first pair that deals neither and holds Shanid in both decks.
 func TestMBCShanidSleepersScourgeReprosLockstep(t *testing.T) {
 	t.Parallel()
 	const (
 		pool      = "dr-mbc-abbb"
 		seed      = 644180
 		perDeck   = 6
-		pair      = 38
+		pair      = 42
 		nDecks    = 400
 		mulligans = 1
 	)
