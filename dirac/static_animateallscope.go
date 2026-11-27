@@ -21,6 +21,17 @@ func (s *State) overrideAll(k *prep, in *kop.Instr) {
 		if s.occ.has(sl) {
 			s.animAllTally(k, int(in.C), sl)
 			s.applyOverridePT(k, sl, int(in.C), src, fl, p, t)
+			if in.W == kop.RefRemembered {
+				// Animate's RememberAnimated$ on its mass form (Rise and
+				// Shine's overloaded cast): every permanent this op animates
+				// joins the resolution's remembered set, so the chained
+				// `DB$ PutCounter | Defined$ Remembered` names exactly them
+				// (gorge effAnimate's rememberAnimated inside its one
+				// Defined loop, engine/effects/combatfx.go:763, which the
+				// overloaded "each" form runs too). In sweep order, as
+				// gorge's Defined order is.
+				s.remember(s.perms[sl].obj)
+			}
 		}
 	}
 }
@@ -47,6 +58,9 @@ func (s *State) overrideAllScoped(k *prep, in *kop.Instr) {
 		if (DebugAnimAllNoScope || s.ctrlM[only].has(sl)) && s.occ.has(sl) {
 			s.animAllTally(k, int(in.C), sl)
 			s.applyOverridePT(k, sl, int(in.C), src, fl, p, t)
+			if in.W == kop.RefRemembered {
+				s.remember(s.perms[sl].obj) // overrideAll's RememberAnimated$ hook, same discipline
+			}
 		}
 	}
 }
