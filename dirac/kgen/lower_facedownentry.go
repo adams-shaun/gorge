@@ -4,38 +4,61 @@ import "strings"
 
 // entryFaceDown reads ChangeZone's FaceDown$ True on a move to the
 // battlefield: the card enters face down (CR 708.2, kop.RetFaceDown) rather
-// than through the manifest procedure. FaceDownSetType$ (Yedora's "It's a
-// Forest land") stays unlowered: a face-down basic land's intrinsic mana
-// ability is not modelled (the kernel hides every ability of a face-down
-// permanent, and Yedora's type set makes the returned card a Forest), so the
-// card is refused by name and tracked in a follow-up ticket.
-// FaceDownPower$/FaceDownToughness$ are the wider set-type family and stay
-// refused; no card in this change carries them.
-func (lc *lowerCtx) entryFaceDown(ps *params, dest int, in *lInstr) error {
+// than through the manifest procedure. FaceDownSetType$ folds the card
+// text's face-down type set (Yedora's "It's a Forest land") into an override
+// record applied as the permanent enters and only while it is face down
+// (kop.Override.FaceDownOnly). FaceDownPower$/FaceDownToughness$ are the
+// wider set-type family and stay refused; no brief card carries them.
+func (lc *lowerCtx) entryFaceDown(ps *params, dest int, in *lInstr) (*lOverride, error) {
 	fd, hasFD := ps.get("FaceDown")
-	if _, hasSet := ps.get("FaceDownSetType"); hasSet {
-		return refuse("FaceDownSetType$ (the face-down type set stays unlowered)")
-	}
+	setType, hasSet := ps.get("FaceDownSetType")
 	if !hasFD {
-		return nil
+		if hasSet {
+			return nil, refuse("FaceDownSetType$ without FaceDown$")
+		}
+		return nil, nil
 	}
 	if strings.TrimSpace(fd) != "True" {
-		return refuse("FaceDown$ %q", fd)
+		return nil, refuse("FaceDown$ %q", fd)
 	}
 	if dest != zBattlefield {
-		return refuse("FaceDown$ to %s", zoneLabel[dest])
+		return nil, refuse("FaceDown$ to %s", zoneLabel[dest])
 	}
 	if _, ok := ps.get("StaticEffect"); ok {
-		return refuse("FaceDown$ beside StaticEffect$ (the enter-with rider is not applied by the face-down entry)")
+		return nil, refuse("FaceDown$ beside StaticEffect$ (the enter-with rider is not applied by the face-down entry)")
 	}
 	for _, k := range []string{"FaceDownPower", "FaceDownToughness"} {
 		if _, ok := ps.get(k); ok {
-			return refuse("FaceDown$ with %s (the face-down P/T set stays unlowered)", k)
+			return nil, refuse("FaceDownSetType$ with %s (the P/T set type stays unlowered)", k)
 		}
 	}
 	ps.consume("FaceDown")
 	in.CS = strings.TrimPrefix(in.CS+"|FaceDown", "|")
-	return nil
+	if !hasSet {
+		return nil, nil
+	}
+	ps.consume("FaceDownSetType")
+	o := &lOverride{FaceDownOnly: true}
+	for _, w := range strings.Split(setType, "&") {
+		w = strings.TrimSpace(w)
+		if w == "" {
+			continue
+		}
+		if b, ok := typeAddBit(w); ok {
+			o.SetTypes |= b
+			o.HasSetTypes = true
+			continue
+		}
+		if !lc.known(w) {
+			return nil, refuse("FaceDownSetType$ word %q", w)
+		}
+		o.SetSubtypes = append(o.SetSubtypes, w)
+		o.HasSetSubtypes = true
+	}
+	if !o.HasSetTypes && !o.HasSetSubtypes {
+		return nil, refuse("FaceDownSetType$ %q has no type", setType)
+	}
+	return o, nil
 }
 
 // digSeenFaceDownLook reports whether a Dig that exiles face down without

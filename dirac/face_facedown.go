@@ -63,6 +63,18 @@ func (s *State) lostSlow(k *prep, sl Slot) bool {
 	return s.perms[sl].gty&gtyFaceDown != 0 || s.ovrLoses(k, sl)
 }
 
+// faceDownBlankOnly reports whether the permanent at sl's ability loss is
+// the CR 708.2 face-down blank alone: face down with the ovr flag word
+// clean and no override record or lose-all static taking its abilities
+// (genLost's three sources are the ovr flags, the face-down bit and
+// ovrLoses). Only this blank keeps the intrinsic "{T}: Add [c]" a basic
+// land subtype grants (CR 305.6, static_landtype.go#blgMask): a face-down
+// Forest under a real lose-all taps for nothing, as gorge's
+// rules/mana_activation.go handles the lost case before the face-down one.
+func (s *State) faceDownBlankOnly(k *prep, sl Slot) bool {
+	return s.faceDown(k, sl) && s.perms[sl].ovr.flags&(ovLoseAll|ovLoseAllEOT) == 0 && !s.ovrLoses(k, sl)
+}
+
 // blankCopy reports a copy of a face-down permanent, a token copy or a
 // permanent's copy layer (copy_facedown.go): gtyFaceDown gives it the
 // face-down characteristics, but it is face up and cannot be turned (CR 707.2).
@@ -105,13 +117,21 @@ func (s *State) faceDownSlots() (m slotMask) {
 }
 
 // clearFaceDown drops the face-down mark and the ovGenTy types and walk
-// flag it carried; refreshTy rederives both if an override still applies.
-func (s *State) clearFaceDown(sl Slot) {
+// flag it carried; refreshTy rederives both if an override still applies. A
+// FaceDownSetType$ override (kop.Override.FaceDownOnly) ends with the mark,
+// so the card's own face returns.
+func (s *State) clearFaceDown(k *prep, sl Slot) {
 	p := &s.perms[sl]
 	p.gty = 0
 	p.spare &^= spareCopyFaceDown
 	p.ovr.flags &^= ovGenTy
 	p.ovr.walk = 0
+	if k.gen != nil && k.gen.anyFaceDown {
+		s.dropFx(func(i int) bool {
+			r := &s.g.fx[i]
+			return r.sl == sl && r.kind == fxOverride && r.r.idx != 0 && k.t.Overrides[r.r.idx-1].FaceDownOnly
+		})
+	}
 	s.touchSl(sl)
 }
 
@@ -550,7 +570,7 @@ func (s *State) turnUpFlip(k *prep, sl Slot, o Obj, p uint8, x uint8) {
 	if k.gen.anyTurnUpRepl {
 		s.turnUpRepls(k, sl, o) // face_turnfaceup.go: the body runs while still face down
 	}
-	s.clearFaceDown(sl) // marks the slot changed (marks.go: every mutation marks)
+	s.clearFaceDown(k, sl) // marks the slot changed (marks.go: every mutation marks)
 	s.subscribe(sl, &k.cards[c], true)
 	s.refreshTy(k)
 	s.fireTurnFaceUp(k, sl, o, p, x)

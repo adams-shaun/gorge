@@ -546,7 +546,7 @@ func (s *State) cloneCleanup(k *prep) {
 		s.touchSl(sl)
 		s.subscribe(sl, &k.cards[s.cardAt(sl)], false)
 		if s.permBlank(sl) {
-			s.clearFaceDown(sl) // the ended layer was a face-down template's (copy_facedown.go)
+			s.clearFaceDown(k, sl) // the ended layer was a face-down template's (copy_facedown.go)
 		}
 		p.ovr.flags &^= ovCopy
 		p.ovr.copyOf = 0

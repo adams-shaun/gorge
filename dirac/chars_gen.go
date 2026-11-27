@@ -339,6 +339,9 @@ func (s *State) typesGen(k *prep, sl Slot) kop.TypeMask {
 	if p.ovr.flags&(ovTypes|ovTypesEOT) != 0 {
 		t = p.ovr.types
 	}
+	// no FaceDownOnly gate below: such a record rides only on a face-down
+	// slot, and every face-down slot is a walk slot (face_facedown.go), so
+	// lfxApply4's faceDown gate is its only reader
 	apply := func(o *kop.Override) {
 		const keep = kop.TLegendary | kop.TBasic | kop.TToken
 		if o.HasTypes {
@@ -492,6 +495,9 @@ func (s *State) hasSubGen(k *prep, sl Slot, i uint8) bool {
 		all = s.copyExcAll(k, sl, false) // a copy's changeling: every creature type, until a later set
 	}
 	s.eachOverride(k, sl, func(o *kop.Override, _ CardID) {
+		// no FaceDownOnly gate: a FaceDownSetType$ record wears only a
+		// face-down slot, which is always a walk slot (face_facedown.go),
+		// so lfxApply4 reads it and this fast path never sees one
 		if o.HasSub {
 			m = m.And(o.KeepSub).Or(o.SetSub)
 			all = false
@@ -574,6 +580,9 @@ func (s *State) subsGen(k *prep, sl Slot) (subs kop.SubMask, all bool) {
 		}
 		mAll := copyAll // the matchup subtypes' changeling: a copy's (a printed one is outside-only)
 		s.eachOverride(k, sl, func(o *kop.Override, _ CardID) {
+			// no FaceDownOnly gate: a FaceDownSetType$ record wears only a
+			// face-down slot, which is always a walk slot (face_facedown.go),
+			// so lfxApply4 reads it and this fast path never sees one
 			if o.HasSub {
 				m = m.And(o.KeepSub).Or(o.SetSub)
 				mAll, allOut = false, false

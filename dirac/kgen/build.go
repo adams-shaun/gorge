@@ -2821,6 +2821,7 @@ func (cb *cardBuilder) override(o *lOverride) (int, error) {
 	}
 	ko.Banding = o.Banding
 	ko.Horsemanship = o.Horsemanship
+	ko.FaceDownOnly = o.FaceDownOnly
 	ko.Toxic = o.Toxic
 	ko.NoCost = o.NoCost
 	ko.RemoveLegendary = o.RemoveLegendary
