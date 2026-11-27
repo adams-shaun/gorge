@@ -948,10 +948,12 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 			// CR 602.2 / 603.2 (gorge trigmatch abilityCastMatches): the
 			// activation completes. Only the three ValidSA$ classes the kernel
 			// reads exactly lower (kop.TrigAbCast*); ValidActivatingPlayer$ is
-			// absent or You; ValidSA$ SpellAbility beside TargetsValid$ is the
-			// target-shape class; ValidCard$, ValidSAonCard$ and the rest stay
-			// unread and refuse. The kernel scans the battlefield and
-			// graveyard cards only.
+			// absent, You or Opponent (Whose); ValidCard$ lowers to the
+			// trigger Filter, judged on the activated permanent on the
+			// battlefield with the trigger controller as "you"; ValidSA$
+			// SpellAbility beside TargetsValid$ is the target-shape class;
+			// ValidSAonCard$ and the rest stay unread and refuse. The kernel
+			// scans the battlefield and graveyard cards only.
 			if zone != "" {
 				return refuse("AbilityCast trigger on an Effect")
 			}

@@ -24,8 +24,8 @@ func tableUnblocked(t *kop.Table) (any, once bool) {
 			if a.Trig.Flags2&kop.Tf2Unblocked != 0 {
 				any = true
 			}
-			if a.Trig.Flags2&kop.Tf2UnblockedOnce != 0 {
-				once = true
+			if a.Trig.Event == kop.TrigBecomesBlocked && a.Trig.Flags2&kop.Tf2UnblockedOnce != 0 {
+				once = true // the bit is shared with Tf2SrcInPlay (kop.Tf2UnblockedOnce)
 			}
 		}
 	}

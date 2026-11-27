@@ -88,11 +88,13 @@ func (s *State) abilityCastMatch(k *prep, e *stackEntry, l trigListener, a *kop.
 		// ValidCard$ on the activated permanent (Harsh Mentor's
 		// Artifact/Creature/Land on the battlefield). The stack entry's obj is
 		// the ability's source; an ability activated off the battlefield (or
-		// a spell's) does not match.
+		// a spell's) does not match. "You" in the filter is the trigger's
+		// controller (gorge abilityCastMatches: MatchesSpec(..., ctrl) with
+		// ctrl = ControllerOf(source)), never the activating player.
 		if e.kind != seAbility || e.obj == NoObj || s.objs[e.obj].zone != kop.ZoneBattlefield {
 			return false
 		}
-		if !s.matchPermGen(k, t.Filter, s.objs[e.obj].slot, e.ctrl, l.sl, layerFull) {
+		if !s.matchPermGen(k, t.Filter, s.objs[e.obj].slot, l.ctrl, l.sl, layerFull) {
 			return false
 		}
 	}

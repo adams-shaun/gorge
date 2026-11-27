@@ -474,8 +474,17 @@ func DmgGatePass(n int16, total int) bool {
 // Tf2UnblockedOnce: BecomesBlocked lowered from Mode$ AttackerUnblockedOnce
 // (gorge checkAttackerUnblockedOnceTriggers): at the declare-blockers
 // completion, ONE trigger per combat when at least one matching unblocked
-// attacker attacks the listener's controller (Coveted Jewel). Bit 30.
-const Tf2UnblockedOnce TrigFlags2 = 1 << 30
+// attacker attacks the listener's controller (Coveted Jewel).
+//
+// Bit 26, shared with Tf2SrcInPlay: TrigFlags2 has no free bit. Tf2SrcInPlay
+// is set and read only on DamageDone / DamageDealtOnce lines
+// (fireDamageSrc, trig_gravedamage.go, emblemSourceOK), and every
+// Tf2UnblockedOnce reader tests a.Trig.Event == TrigBecomesBlocked first
+// (tableUnblocked, fireBlockedGen, fireUnblockedOnce), so the two
+// event-disjoint flags cannot collide -- the Tf2SpellToo / Tf2SpentBound
+// precedent. Never a bit any event-blind path reads (Tf2Evolve, bit 30, is
+// read by objTrigGen for every event).
+const Tf2UnblockedOnce TrigFlags2 = 1 << 26
 
 // Tf2Attacked is the Attacked$ defender set (gorge attackedDefenderMatches):
 // with any of these bits the Attacks trigger fires only for attackers whose

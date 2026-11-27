@@ -1640,7 +1640,7 @@ Tf2ToGraveHalf	TrigFlags2	16777216
 Tf2ToOpponent	TrigFlags2	16
 Tf2ToYou	TrigFlags2	16777216
 Tf2Unblocked	TrigFlags2	262144
-Tf2UnblockedOnce	TrigFlags2	1073741824
+Tf2UnblockedOnce	TrigFlags2	67108864
 Tf2XBound	TrigFlags2	2097152
 Tf2YourTurn	TrigFlags2	2
 Tf3CastConverge	TrigFlags3	2
