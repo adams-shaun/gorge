@@ -1,0 +1,18 @@
+{
+  "card": "Phyrexian Tower",
+  "class": "options-options",
+  "why": "gorge's payment planner prices a sacrifice-another-creature mana source as a last-resort step (pay/planshape.go, victims ranked tokens first, then lowest mana value, then id) and offers every cast it alone makes payable, with the victims in the plan; dirac's planner has no such source tier, so it withholds those casts (and, on the full surface, differs in what the plan sacrifices) (tail-73 pair 8)",
+  "repro": {
+    "pool": "custom",
+    "surface": "autopay",
+    "seed": 10215742739101889101,
+    "pair": 8,
+    "policy": "random",
+    "mulligans": 1,
+    "file": "phyrexian_tower_other_sacrifice_plan"
+  },
+  "evidence": [
+    "ev-tail-73-c000",
+    "ev-tail-73-c001"
+  ]
+}
