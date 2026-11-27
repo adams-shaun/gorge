@@ -12,7 +12,6 @@ package dirac
 const (
 	gfEnterRepl   uint32 = 1 << iota // ReplEntersProgram on the card
 	gfOthersRep                      // ReplOthersEnterProgram on the card
-	gfLifeRepl                       // ReplCantLoseGame / ReplOppsCantWinGame (reserved; no reader today)
 	gfCDAPT                          // StatCDAPT
 	gfOvrStat                        // a StatOverride static
 	gfLoseStat                       // an override static that removes abilities (Witness Protection)
@@ -42,6 +41,7 @@ const (
 	gfEtbOrder                       // the card's own enter body is exactly one prepared line the CR 616.1 entry-order ask orders (repl_etborder.go)
 	gfManaDynPair                    // a plain {T} mana ability beside an evaluated one of its colour: varPC holds one view per count (mana_dynpair.go)
 	gfDiscHand                       // a discard-hand, sacrifice-this, instant-only mana ability (Lion's Eye Diamond): a prefix-search gap alone (mana_discardhand.go)
+	gfManaSacPair                    // a plain {T} mana ability beside its {T}, sacrifice-this larger alternative: the planner's pair, its wider unit sac'd as it pays (mana_sacpair.go)
 )
 
 // cardSmall is a card's sparse generated-table values, all -1 when absent.

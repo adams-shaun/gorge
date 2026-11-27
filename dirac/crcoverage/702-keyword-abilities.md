@@ -115,7 +115,7 @@ Coverage of this chapter of the Comprehensive Rules (2026-09-25) by the dirac ke
 | 702.64a-c | n/a | - | - | SILENT (granted-only in corpus) |
 | 702.65a,b | n/a | - | - | LOUD (1) |
 | 702.66a-c | n/a | - | - |  |
-| 702.67a-c | n/a | - | - |  |
+| 702.67a-c | follows | `dirac/kgen/lower.go#expandedKeywords` | `TestMiscShapesHostedLockstep` | Fortify lowers from gorge's kwFortify expansion to the same AB$ Attach shape kw:Equip mints (a land you control, sorcery timing); the FortifiedBy filter reads attached-to-by-source (C.A.M.P.'s Taps rider) |
 | 702.68a,b | n/a | - | - | ordinary attack-unblocked triggers |
 | 702.69a,b | n/a | - | - |  |
 | 702.70a,b | n/a | - | - | SILENT: granted keyword does nothing |

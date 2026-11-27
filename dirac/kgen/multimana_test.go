@@ -18,9 +18,10 @@ func TestMultiManaShapes(t *testing.T) {
 		"Vivid Crag":        true, // {T}, remove a charge counter: one mana of any colour (kernel counter gap)
 		"Nightshade Dryad":  true, // {C}, then one mana of any colour (kernel union C|WUBRG, mana_multicolour.go)
 		"Cascade Bluffs":    true, // {U/R}, {T}: Add {U}{U}, {U}{R} or {R}{R} (kernel hybrid-fee filter, mana_filterhybrid.go)
-		"An-Havva Township": true} // {T}: Add {C}, {1},{T}: Add {G}, {2},{T}: Add {R} or {W} (kernel paid filter set)
+		"An-Havva Township": true, // {T}: Add {C}, {1},{T}: Add {G}, {2},{T}: Add {R} or {W} (kernel paid filter set)
+		"Crystal Vein":      true} // {T}: Add {C}, {T}, Sacrifice this: Add {C}{C} (kernel sacrifice-self pair, mana_sacpair.go)
 	refuse := map[string]bool{"Abandoned Outpost": true,
-		"Eye of Ramos": true, "Crystal Vein": true,
+		"Eye of Ramos":     true,
 		"Cabal Stronghold": true, "Tournament Grounds": true}
 	var names []string
 	for n := range accept {
