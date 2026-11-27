@@ -23,6 +23,21 @@ spec:
         - name: gorged
           # The name is rewritten by kustomization.yaml (images:); gorge-pod.sh up sets the tag.
           image: ghcr.io/adams-shaun/gorge:latest
+          args:
+            - gorged
+            - -addr=:8080
+            - -cards=/cards
+            - -decks=/app/decks
+            - -dir=/data
+            - -art-dir=/art
+            - -feedback=/feedback
+            - -format=commander
+            - -tables=4
+            - -seats=4
+            - -commander-seats=4
+            - -vsbot
+            - -events
+            - -manabrew
           ports:
             - name: http
               containerPort: 8080
