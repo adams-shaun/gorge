@@ -990,6 +990,7 @@ OvChosenColor	untyped int	1
 OvChosenType	untyped int	3
 OvCwWord	untyped int	4
 OvEnterWith	untyped int	2
+OvSpellCarry	untyped int	5
 PTBoxOpen	untyped int	15
 PTRelEQ	int16	1
 PTRelLT	int16	0
