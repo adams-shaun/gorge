@@ -980,6 +980,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	if tableNthFiltered(t) {
 		g.castRingOn, g.anyHist = true, true
 	}
+	if tableReadsCastNames(t) {
+		g.castRingOn, g.anyHist = true, true // filter_thisturncastname.go reads the ring
+	}
 	if g.castRingOn {
 		for i, n := range t.Subtypes {
 			if n == "Treasure" {
