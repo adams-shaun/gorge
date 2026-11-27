@@ -2111,29 +2111,11 @@ func (g *grantSrch) seenHoisted(t *State) bool {
 	return false
 }
 
-// visit is one payer priority of the search on working copy t: the play
-// is found when the pool and the printed sources pay it (gorge
-// offered / priced); else each untapped candidate is activated in turn,
-// its answers branched on in gorge's order, each payer state once.
-func (g *grantSrch) visit(t *State) bool {
-	if g.feeOnly && g.np > 0 && g.seenHoisted(t) {
-		return false // a duplicate payer state is no node of the search (gorge's scriptSearch.try, the hoisted seen check)
-	}
-	g.stallOf(t) // (the stall the step into this node latched on its fork; the node's own probes are the root's too)
-	if g.feeOnly && g.seenDuplicate(t) {
-		return false
-	}
-	g.visitNode = true
-	ok := g.node()
-	g.visitNode = false
-	if !ok {
-		return false
-	}
-	if g.playSourceGone(t) {
-		return false
-	}
-	cost := g.cost
-	cheap := false // this node's price asks less than the root's (set on success only)
+// nodePrice is the price visit asks at node t: the root's, or the dynamic
+// one, repriced after an answered trigger or a sacrificed permanent (cheap is
+// set when the price asks less than the root's).
+func (g *grantSrch) nodePrice(t *State) (cost kop.ManaCost, cheap bool) {
+	cost = g.cost
 	if g.dyn {
 		cost = t.grantDynamicCost(g.k, g.p, g.d.play, g.full)
 	}
@@ -2164,6 +2146,31 @@ func (g *grantSrch) visit(t *State) bool {
 			cost = fc
 		}
 	}
+	return cost, cheap
+}
+
+// visit is one payer priority of the search on working copy t: the play
+// is found when the pool and the printed sources pay it (gorge
+// offered / priced); else each untapped candidate is activated in turn,
+// its answers branched on in gorge's order, each payer state once.
+func (g *grantSrch) visit(t *State) bool {
+	if g.feeOnly && g.np > 0 && g.seenHoisted(t) {
+		return false // a duplicate payer state is no node of the search (gorge's scriptSearch.try, the hoisted seen check)
+	}
+	g.stallOf(t) // (the stall the step into this node latched on its fork; the node's own probes are the root's too)
+	if g.feeOnly && g.seenDuplicate(t) {
+		return false
+	}
+	g.visitNode = true
+	ok := g.node()
+	g.visitNode = false
+	if !ok {
+		return false
+	}
+	if g.playSourceGone(t) {
+		return false
+	}
+	cost, cheap := g.nodePrice(t)
 	key := g.stateKey(t)
 	// gorge's key reads the floated pool, whose restriction it does not
 	// (scriptStateKey): a state that differs from a seen one only in which
