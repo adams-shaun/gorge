@@ -1490,6 +1490,9 @@ func (e *Engine) ValidateCastPayment(p state.PlayerID, cast decision.PlannedCast
 		lastResort = lastResort || step.Tier == pay.TierLastResort
 		produced = pay.ManaAdd(produced, step.Mana)
 	}
+	if !pay.PlanVictimsLegal(asPayer(e), p, units, plan.Activations, 0) {
+		return fmt.Errorf("payment plan sacrifice victims are no longer eligible")
+	}
 	// The lethal guard and the phase rule (spec 5): a witness never kills its
 	// caster, and it uses a last-resort source only when no plan from normal
 	// sources exists -- exactly when the planner's own best plan uses one.
