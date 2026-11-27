@@ -2350,15 +2350,30 @@ const PredStatBox Pred = 44
 // a player ref: the seat the resolving source attacked this turn (gorge effects/player_filter.go playerStateQualifierAttackedBySourceThisTurn over the source object's AttackedPlayersThisTurn ledger, folded from DeclareAttackers). Dirac is two-seat, so at most the one opponent; none when the source attacked no player this turn. Angel of Destiny's end-step lose.
 const RefAttackedBySource Ref = 49
 
+// Ref (dirac/manifest/Ref/RefEquippedByEnchanted)
+//
+// the battlefield permanent the source Aura's enchanted Equipment is attached to (gorge Defined$ Valid Card.EquippedByEnchanted: the card equipped by the enchanted object, effects/filter_attachment.go attachedToArg's inverse read). None when the source is not attached to an Equipment, the Equipment is not attached to a permanent, or either has left. Artificer's Hex.
+const RefEquippedByEnchanted Ref = 50
+
 // Ref (dirac/manifest/Ref/RefTargetCtrlLive)
 //
 // the controller of target 0 read live at resolution (gorge Defined$ ParentTargetedController, effects context.go controllersOf(parentLinkTargets)): a target player is that player, a stack ability or spell its controller, a battlefield permanent its current controller, and a target that left the battlefield its owner (CR 400.7 resets the controller), never the last-known controller RefTargetController reads for a departed target. Unlicensed Disintegration's damage after its parent destroyed the creature; Season of the Burrow's draw after its parent exiled it.
-const RefTargetCtrlLive Ref = 50
+const RefTargetCtrlLive Ref = 51
 
 // Ref (dirac/manifest/Ref/RefTargets0)
 //
 // every legal target of target slot 0 (gorge evalTarget's Animate grant over an any-number slot: effAnimate applies the grant and the AtEOT promise to each object of Defined$ Targeted). The kernel runs an op once per legal target of the slot (dirac/tgt_union.go execUnion).
-const RefTargets0 Ref = 51
+const RefTargets0 Ref = 52
+
+// Ref (dirac/manifest/Ref/RefTriggerSpellTarget)
+//
+// the single object target of the spell whose cast raised this SpellCast trigger, read at resolution off the spell's stack entry (gorge Defined$ TriggeredSpellAbilityTargets over a line with IsSingleTarget$ True, effects context.go definedSpecTriggeredSpellAbilityTargets: the cast spell's root then chain targets, de-duplicated; gorge clears them once the spell left the stack, so a spell countered in response to the trigger names nothing, and never the trigger's source). None when the spell's one distinct target is a player or it has none. A permanent that left the battlefield names nothing (objRef). Loki, God of Lies's control change, untap and haste.
+const RefTriggerSpellTarget Ref = 53
+
+// Ref (dirac/manifest/Ref/RefTriggerSpellTargets)
+//
+// every distinct object target of the spell whose cast raised this SpellCast trigger, read at resolution off the spell's stack entry (gorge Defined$ TriggeredSpellAbilityTargets over a line without IsSingleTarget$ True, effects context.go definedSpecTriggeredSpellAbilityTargets: the cast spell's root then chain targets, de-duplicated; gorge clears them once the spell left the stack, so a spell countered in response to the trigger names nothing). None when the spell is gone, or its targets are players only. The op runs once per object, in target order. Dack Fayden and Storm, Windrider.
+const RefTriggerSpellTargets Ref = 54
 
 // repl BeginPhase (dirac/manifest/ReplKind/ReplBeginPhase)
 const ReplBeginPhase ReplKind = 42

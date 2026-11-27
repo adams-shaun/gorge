@@ -50,6 +50,7 @@ AttToCreature	untyped int	1
 AttToLand	untyped int	2
 AttToOther	untyped int	4
 AttToSrcBearer	untyped int	16
+AttToTarget	untyped int	32
 AttToYouCtrl	untyped int	8
 AttachUnattach	untyped int	2
 AttacksOpponent	untyped int	1
@@ -313,6 +314,7 @@ CzGraveLibrary	untyped int	128
 CzHandGrave	untyped int	32
 CzLibrarySideboard	untyped int	16
 CzShuffleEach	untyped int	64
+CzShuffleOwners	untyped int	256
 CzUntilLeaves	untyped int	1
 DelayBeginCombat	untyped int	6
 DelayDiesThisTurn	untyped int	5
@@ -348,6 +350,7 @@ DmgDivideEvenly	untyped int	64
 DmgEQ	DmgCmp	3
 DmgExileIfDealt	untyped int	16
 DmgExileIfDiesThisTurn	untyped int	2
+DmgFromEachAttached	untyped int	3
 DmgFromEachCtrl	untyped int	2
 DmgGE	DmgCmp	1
 DmgGT	DmgCmp	5

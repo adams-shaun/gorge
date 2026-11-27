@@ -77,7 +77,7 @@ func (lc *lowerCtx) pumpChoice(ps *params, obj lRef, zone int, kwc string) error
 func (lc *lowerCtx) pumpObjectRef(obj lRef) bool {
 	switch obj.Kind {
 	case rSelf, rTriggered, rTriggeredNew, rTriggeredSource, rEquipped, rRemembered,
-		rDelayedRemembered, rReplaced, rChosen, rEach, rSacrificed, rHost, rDiscarded:
+		rDelayedRemembered, rReplaced, rChosen, rEach, rSacrificed, rHost, rDiscarded, rTriggeredSpellTargets:
 		return true
 	case rTarget:
 		t := lc.ab.Targets[obj.N]

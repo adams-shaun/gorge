@@ -1221,11 +1221,20 @@ func init() { enum[kop.Pred]("kop.PredStatBox", kop.PredStatBox) }
 // dirac/manifest/Ref/RefAttackedBySource
 func init() { enum[kop.Ref]("kop.RefAttackedBySource", kop.RefAttackedBySource) }
 
+// dirac/manifest/Ref/RefEquippedByEnchanted
+func init() { enum[kop.Ref]("kop.RefEquippedByEnchanted", kop.RefEquippedByEnchanted) }
+
 // dirac/manifest/Ref/RefTargetCtrlLive
 func init() { enum[kop.Ref]("kop.RefTargetCtrlLive", kop.RefTargetCtrlLive) }
 
 // dirac/manifest/Ref/RefTargets0
 func init() { enum[kop.Ref]("kop.RefTargets0", kop.RefTargets0) }
+
+// dirac/manifest/Ref/RefTriggerSpellTarget
+func init() { enum[kop.Ref]("kop.RefTriggerSpellTarget", kop.RefTriggerSpellTarget) }
+
+// dirac/manifest/Ref/RefTriggerSpellTargets
+func init() { enum[kop.Ref]("kop.RefTriggerSpellTargets", kop.RefTriggerSpellTargets) }
 
 // dirac/manifest/ReplKind/ReplBeginPhase
 func init() { enum[kop.ReplKind]("kop.ReplBeginPhase", kop.ReplBeginPhase) }

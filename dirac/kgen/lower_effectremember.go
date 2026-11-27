@@ -182,6 +182,40 @@ func (lc *lowerCtx) effectRememberCount(ps *params, t *cards.Trigger, eot, next 
 	return effMem{kind: memCount}, nil
 }
 
+// effectRememberValidSet lowers an Effect's RememberObjects$ Valid <filter>
+// (Energybending's "lands you control gain all basic land types"; Suicidal
+// Charge's and Taunt from the Rampart's "those creatures"): the resolution
+// remembers every battlefield permanent F admits (ExtRememberAll, the
+// kernel's OpExt sweep), then effectStaticEOT makes the emblem that carries
+// the statics and CaptureRem copies the set into it. Only the static-only
+// Effect shape lowers; a trigger's own RememberObjects$ still takes the
+// emblemCapture paths in effectRemember.
+func (lc *lowerCtx) effectRememberValidSet(ps *params, ss []cards.Static) (bool, error) {
+	ro := strings.TrimSpace(ps.str("RememberObjects"))
+	if !strings.HasPrefix(ro, "Valid ") {
+		return false, nil
+	}
+	if _, ok := ps.m["Triggers"]; ok {
+		return true, refuse("Effect RememberObjects$ %q beside Triggers$", ro)
+	}
+	if _, ok := ps.m["ValidTgts"]; ok {
+		return true, refuse("Effect RememberObjects$ %q beside ValidTgts$", ro)
+	}
+	f, err := lc.filter(strings.TrimSpace(strings.TrimPrefix(ro, "Valid ")))
+	if err != nil {
+		return true, err
+	}
+	if f == nil || f.Players != 0 || len(f.Clauses) == 0 {
+		return true, refuse("Effect RememberObjects$ %q: not a battlefield object set", ro)
+	}
+	ps.consume("RememberObjects")
+	lc.emit(lInstr{Op: "RememberAll", F: f})
+	saved := lc.embRem
+	lc.embRem = true
+	defer func() { lc.embRem = saved }()
+	return true, lc.effectStaticEOT(ps, ss)
+}
+
 // effectRememberBody checks a lowered emblem trigger against its memory: a
 // count emblem's body reads the set only as the trigger amount (a Remembered
 // read left in the body would see the kernel's empty set).

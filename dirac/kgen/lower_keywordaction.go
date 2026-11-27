@@ -283,6 +283,9 @@ func (lc *lowerCtx) explore(ps *params) error {
 	if n.isConst() && (n.N < 1 || n.N > 4) {
 		return refuse("Explore Num %v", n)
 	}
+	if done, err := lc.exploreValid(ps, n); done || err != nil {
+		return err // lower_definedvalid_set.go
+	}
 	obj, err := lc.objOrTarget(ps, "Self", zBattlefield)
 	if err != nil {
 		return err
