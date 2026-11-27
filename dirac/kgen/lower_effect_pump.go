@@ -388,6 +388,9 @@ func (lc *lowerCtx) pumpDurationBody(ps *params, obj lRef, zone int) error {
 // pumpBody emits one Pump's effects for the already-resolved subject obj.
 // extra is the keyword a KWChoice$ branch chose (nil for a plain Pump).
 func (lc *lowerCtx) pumpBody(ps *params, obj lRef, zone int, extra []string) error {
+	if err := lc.pumpLeaveExile(ps, obj, zone); err != nil {
+		return err
+	}
 	if v, ok := ps.get("AtEOT"); ok {
 		// gorge pump.go -> scheduleAtEOT over the pumped battlefield objects,
 		// after the pump

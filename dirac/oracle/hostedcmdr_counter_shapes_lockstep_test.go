@@ -3,6 +3,7 @@ package oracle
 import (
 	"testing"
 
+	"github.com/adams-shaun/gorge/dirac"
 	"github.com/adams-shaun/gorge/dirac/cardset"
 	"github.com/adams-shaun/gorge/engine/state"
 )
@@ -27,6 +28,49 @@ import (
 //     leaves a dead 0/0 where gorge has a 4/4.
 var hostedCmdrRiseAndShineDeck = []cardset.Entry{
 	{Name: "Rise and Shine", Count: 8}, {Name: "Sol Ring", Count: 8}, {Name: "Island", Count: 24},
+}
+
+// Moira and Teshar's trigger returns a nonland permanent card from the
+// graveyard, grants it haste, exiles it at the next end step and promises it
+// is exiled instead of leaving anywhere else (`DB$ Pump | KW$ Haste |
+// LeaveBattlefield$ Exile | Defined$ Targeted | Duration$ Permanent | AtEOT$
+// Exile`). Urza's Bauble and Phyrexian Walker are the historic spells cast and
+// the permanent cards returned; Lightning Bolt is what tries to kill the
+// returnee, which the promise sends to exile instead of the graveyard.
+var hostedCmdrMoiraDeck = []cardset.Entry{
+	{Name: "Moira and Teshar", Count: 4}, {Name: "Urza's Bauble", Count: 8},
+	{Name: "Phyrexian Walker", Count: 8}, {Name: "Lightning Bolt", Count: 7},
+	{Name: "Plains", Count: 7}, {Name: "Swamp", Count: 6},
+}
+
+// TestHostedCmdrPumpLeaveExileLockstep plays Moira and Teshar's
+// LeaveBattlefield$ Exile against gorge, counting the kernel's promises by
+// source card and the objects they exiled instead: a game that never sent a
+// promised permanent off the battlefield cannot pass it. Not t.Parallel: the
+// promise hook is a package global.
+func TestHostedCmdrPumpLeaveExileLockstep(t *testing.T) {
+	d := hostedCmdrMoiraDeck
+	// the deck holds no other promise carrier (no unearth, no Isareth), so
+	// every registration and every exile-instead is Moira's Pump's.
+	regs := 0
+	hits := map[dirac.Obj]bool{}
+	dirac.DebugLeaveExileHook = &struct {
+		Reg func(c dirac.CardID)
+		Hit func(o dirac.Obj)
+	}{
+		Reg: func(c dirac.CardID) { regs++ },
+		Hit: func(o dirac.Obj) { hits[o] = true },
+	}
+	defer func() { dirac.DebugLeaveExileHook = nil }()
+	got := cedhPodRun(t, "hcc-moirateshar", [][]cardset.Entry{d, d}, []string{"Moira and Teshar"}, 40,
+		func(g *state.Game) int { return cedhZoneCount(g, state.ZExile, "Phyrexian Walker") })
+	t.Logf("%d exiled Walkers, %d promises, %d exiled instead", got, regs, len(hits))
+	if regs == 0 {
+		t.Fatal("Moira and Teshar registered no exile-instead promise: its Pump never resolved")
+	}
+	if len(hits) == 0 {
+		t.Fatal("no promised permanent left the battlefield: the exile-instead branch was never read")
+	}
 }
 
 // TestHostedCmdrCounterShapesLockstep plays each lowered shape.
