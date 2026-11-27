@@ -9,7 +9,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// TestOmniscientRecordNotForSeats pins the E8 producer: the record holds every
+// TestOmniscientRecordNotForSeats pins the omniscient-record producer: the record holds every
 // seat's library in true order, a playing seat (the zero RecordCaller) is
 // refused, and neither producing a record nor the record's own View changes
 // what a Seat or Omniscient projection shows.
