@@ -52,6 +52,7 @@ TestPoolFrozen/blb
 TestPoolFrozen/cmd5
 TestPoolFrozen/edh
 TestPoolFrozen/fdn
+TestPoolFrozen/hosted-cmdr
 TestPoolFrozen/mbc
 TestPoolFrozen/pauper
 TestPoolFrozen/standard-meta
@@ -61,6 +62,7 @@ TestSliceMatchesPool/blb
 TestSliceMatchesPool/cmd5
 TestSliceMatchesPool/edh
 TestSliceMatchesPool/fdn
+TestSliceMatchesPool/hosted-cmdr
 TestSliceMatchesPool/mbc
 TestSliceMatchesPool/pauper
 TestSliceMatchesPool/standard-meta
