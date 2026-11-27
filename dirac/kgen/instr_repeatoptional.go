@@ -10,7 +10,7 @@ func (ic *instrCtx) opRepeatOptional() error {
 	ki := &ic.ki
 	in := &ic.in
 	ki.Op, ki.A, ki.B = kop.OpExt, kop.Const(int(kop.ExtRepeatOptional)), kop.Const(in.B.N)
-	if in.B.N == 0 {
+	if in.B.N == 0 || in.B.N == 2 {
 		id, err := ic.cb.cond(in.Cond)
 		if err != nil {
 			return err

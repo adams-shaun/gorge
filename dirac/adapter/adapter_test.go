@@ -94,7 +94,7 @@ func TestStallIsReported(t *testing.T) {
 }
 
 // TestAdapterConfigIsLockstepConfig holds what a served game plays under to the config
-// lockstep proves, and config as the one way into Init.
+// lockstep proves, and config as the one way into Init (InitN, which a pod's four seats need).
 func TestAdapterConfigIsLockstepConfig(t *testing.T) {
 	for _, surface := range []dirac.Surface{dirac.SurfaceFull, dirac.SurfaceAutopay} {
 		want := dirac.LockstepConfig(surface)
@@ -119,7 +119,7 @@ func TestAdapterConfigIsLockstepConfig(t *testing.T) {
 		}
 		ast.Inspect(f, func(n ast.Node) bool {
 			if c, ok := n.(*ast.CallExpr); ok {
-				if s, ok := c.Fun.(*ast.SelectorExpr); ok && s.Sel.Name == "Init" {
+				if s, ok := c.Fun.(*ast.SelectorExpr); ok && (s.Sel.Name == "Init" || s.Sel.Name == "InitN") {
 					inits++
 					last, ok := c.Args[len(c.Args)-1].(*ast.CallExpr)
 					if sel, sok := last.Fun.(*ast.SelectorExpr); !ok || !sok || sel.Sel.Name != "config" {
@@ -131,7 +131,7 @@ func TestAdapterConfigIsLockstepConfig(t *testing.T) {
 		})
 	}
 	if inits != 1 {
-		t.Errorf("%d calls of Init, want 1", inits)
+		t.Errorf("%d calls of Init or InitN, want 1", inits)
 	}
 }
 

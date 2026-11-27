@@ -109,6 +109,32 @@ func (lc *lowerCtx) emblemCapture(ps *params, t cards.Trigger, eot bool) (lRef, 
 		ps.consume("RememberObjects")
 		return ref, true, true, t, nil
 	}
+	if strings.TrimSpace(ro) == "TriggeredCard" {
+		// The Effect registers its trigger over the card whose event created
+		// it (gorge effectRemembered's TriggeredCard is the parent trigger's
+		// referent). Only a Phase or ChangesZone trigger is carried: the
+		// kernel's Phase emblem hook queues the captured object as the
+		// trigger object (dirac triggers_gen.go fireEmblemsAmt) and the
+		// object-event hook does the same (trig_emblems.go fireEmblemsObj),
+		// which the body's Defined$ Remembered reads (capturedTriggerRef). A
+		// trigger line that filters on the remembered set refuses: neither
+		// hook matches a remembered object filter.
+		if t.Mode != "Phase" && t.Mode != "ChangesZone" {
+			return lRef{}, false, false, t, refuse("Effect triggers with RememberObjects$ %q", ro)
+		}
+		keys := make([]string, 0, len(t.Params))
+		for k := range t.Params {
+			keys = append(keys, k)
+		}
+		sort.Strings(keys) // the refusal text reaches the census: name the same key every run
+		for _, k := range keys {
+			if k != "Execute" && strings.Contains(t.Params[k], "Remembered") {
+				return lRef{}, false, false, t, refuse("Effect triggers with RememberObjects$ %q and trigger %s$ %q", ro, k, t.Params[k])
+			}
+		}
+		ps.consume("RememberObjects")
+		return lRef{Kind: rTriggered}, true, false, t, nil
+	}
 	if strings.TrimSpace(ro) != "Targeted" || !eot || t.Mode != "DamageDone" && t.Mode != "DamageDoneOnce" && t.Mode != "DamageDealtOnce" && t.Mode != "AttackerBlocked" && t.Mode != "AttackerUnblocked" && t.Mode != "Attacks" {
 		return lRef{}, false, false, t, refuse("Effect triggers with RememberObjects$ %q", ro)
 	}
@@ -327,6 +353,9 @@ func (lc *lowerCtx) capturedTriggerRef(v string) (lRef, bool) {
 	if v == "Remembered" && lc.selfRem {
 		return lRef{Kind: rEmblemSource}, true // emblemSelfRemember
 	}
+	if v == "Remembered" && lc.emblemCapturedObj && !lc.hasRememberWriter() {
+		return lRef{Kind: rTriggered}, true // the Phase emblem's captured TriggeredCard
+	}
 	if v == "Remembered" && lc.capRem && !lc.hasRememberWriter() {
 		return lRef{Kind: rTriggeredSource}, true
 	}
@@ -442,6 +471,46 @@ func emblemSelfRememberBody(ab *lAbility) error {
 		return refuse("Effect RememberObjects$ Self never read by its trigger body")
 	}
 	return nil
+}
+
+// effectTriggerSelfExiles reports whether a trigger's Execute chain ends with
+// the Effect's own exile from the command zone (gorge's "end this Effect"
+// body). The first body must do something else: a trigger that only ends the
+// Effect has no observable body and gets no emblem. An Effect whose captured
+// TriggeredCard reads that body fires once (kop.Emblem.Once), because its
+// registered trigger ends the Effect the first time it resolves.
+func effectTriggerSelfExiles(svars map[string]string, t cards.Trigger) bool {
+	name := strings.TrimSpace(t.Params["Execute"])
+	first := true
+	for name != "" {
+		if effectSelfExile(svars, name) {
+			return !first
+		}
+		sa := cards.ResolveSVar(svars, name)
+		if sa == nil {
+			return false
+		}
+		name = strings.TrimSpace(sa.Params["SubAbility"])
+		first = false
+	}
+	return false
+}
+
+// trimEffectSelfExile copies an Effect trigger's Execute chain without its
+// trailing self-exile body. The emblem's Once flag performs that end (the
+// Effect is no object here), and leaving the body would move the creating
+// card instead (RefSelf names the source).
+func trimEffectSelfExile(sa *cards.SA) *cards.SA {
+	if sa == nil {
+		return nil
+	}
+	cp := *sa
+	if selfExileSA(sa.Sub) {
+		cp.Sub = nil
+	} else {
+		cp.Sub = trimEffectSelfExile(sa.Sub)
+	}
+	return &cp
 }
 
 // emblemBlockedLapse reads the capture's end for a become-blocked emblem: an

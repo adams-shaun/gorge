@@ -102,8 +102,8 @@ func (s *State) declareMustAttack(k *prep) {
 					continue
 				}
 				s.perms[sl].flags |= pfAttacking
-				s.setAttackTarget(&s.perms[sl], PlayerCode(def)) // two live seats only: mustAttackAsked asks at more
-				s.perms[sl].bord = objWord(s.nAttackers)         // declaration order (fireAttacksGen)
+				s.setDeclaredAttackTarget(&s.perms[sl], PlayerCode(def)) // two live seats only: mustAttackAsked asks at more
+				s.perms[sl].bord = objWord(s.nAttackers)                 // declaration order (fireAttacksGen)
 				s.touchSl(sl)
 				s.nAttackers++
 				changed = true
@@ -449,6 +449,19 @@ func (s *State) setAttackTarget(p *perm, t TCode) {
 	}
 }
 
+// setDeclaredAttackTarget is setAttackTarget for an attacker this turn's
+// DeclareAttackers declaration chose: it also folds the attacked player into
+// the per-object ledger Defined$ Player.attackedBySourceThisTurn reads
+// (gorge's Object.AttackedPlayersThisTurn, events.Apply's DeclareAttackers
+// fold). A permanent put onto the battlefield attacking is not a declaration
+// (CR 508.1), so its callers keep setAttackTarget.
+func (s *State) setDeclaredAttackTarget(p *perm, t TCode) {
+	s.setAttackTarget(p, t)
+	if isPlayerTarget(t) {
+		p.atkPl = CodeSeat(t) + 1
+	}
+}
+
 func (s *State) applyAttack(k *prep, a Action) {
 	if a.Kind() == AkDone {
 		s.finishAttacks(k)
@@ -456,7 +469,7 @@ func (s *State) applyAttack(k *prep, a Action) {
 	}
 	sl := s.objs[a.Source()].slot
 	s.perms[sl].flags |= pfAttacking
-	s.setAttackTarget(&s.perms[sl], a.Target())
+	s.setDeclaredAttackTarget(&s.perms[sl], a.Target())
 	s.perms[sl].bord = objWord(s.nAttackers) // declaration order (fireAttacksGen)
 	s.touchSl(sl)
 	s.nAttackers++
@@ -1256,6 +1269,9 @@ func (s *State) finishBlocks(k *prep) {
 	}
 	if k.gen != nil && k.gen.anyUnblocked {
 		s.fireUnblocked(k)
+	}
+	if k.gen != nil && k.gen.anyUnbOnce {
+		s.fireUnblockedOnce(k)
 	}
 	if k.gen != nil && k.gen.ringOn() {
 		s.ringBlockTrigs(k) // the Ring emblem's level 3 (act_ring.go), after the event's triggers

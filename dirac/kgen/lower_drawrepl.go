@@ -15,8 +15,10 @@ import (
 // card of the draw step (NotFirstCardInDrawStep). It also lowers a Draw
 // replacement whose ReplaceWith$ body is any program the kernel can run at a
 // draw (ReplDrawProgram: the draw's card is replaced by the program, run with
-// the draw's player as ReplacedPlayer) and the bodyless Prevent$ skip. Every
-// other Draw shape refuses.
+// the draw's player as ReplacedPlayer), the bodyless Prevent$ skip, and either
+// shape's Optional$ True form (the draw pipeline poses gorge's apply / decline
+// election of the draw's player: kop.ReplDrawOptional, repl_drawmay.go).
+// GenericChoice bodies and every other Draw shape refuse.
 func (lc *lowerCtx) drawRepl(rp *params, w *cards.SA, rl *lRepl) error {
 	if rp.str("ActiveZones") != "Battlefield" {
 		return refuse("repl-hard: Draw replacement")
@@ -33,11 +35,24 @@ func (lc *lowerCtx) drawRepl(rp *params, w *cards.SA, rl *lRepl) error {
 	default:
 		return refuse("repl-hard: Draw replacement")
 	}
-	if rp.is("Optional", "True") || w != nil && w.API == "GenericChoice" {
-		// the player is asked whether to replace the draw, then which kind
-		// of card to dig for: the draw pipeline does not yet pose that
-		// election (ReplDrawOptional), so the line refuses as before
+	if w != nil && w.API == "GenericChoice" {
+		// the player is asked which kind of card to dig for after the may:
+		// the corpus's choice bodies all move library cards (a dig), so the
+		// election stays refused until the movement is proven (ticket 02)
 		return refuse("repl-hard: Draw replacement with an optional or choice body")
+	}
+	if rp.is("Optional", "True") && w != nil {
+		// an optional line with a body (Pursuit of Knowledge's study counter)
+		// applies the body on accept: only the bodyless skip is proven in
+		// lockstep (Obstinate Familiar), the body's study counter diverged
+		// from gorge's, so the line refuses until that movement is proven
+		return refuse("repl-hard: Draw replacement with an optional or choice body")
+	}
+	if rp.is("Optional", "True") {
+		// the player is asked whether to replace the draw (gorge's
+		// replChoiceDraw, ReplDrawOptional): the body applies on accept, the
+		// draw goes off unasked on decline (repl_drawmay.go)
+		bits |= kop.ReplDrawOptional
 	}
 	if rp.is("NotFirstCardInDrawStep", "True") {
 		bits |= kop.ReplDrawNotFirst
@@ -56,12 +71,11 @@ func (lc *lowerCtx) drawRepl(rp *params, w *cards.SA, rl *lRepl) error {
 		bits |= kop.ReplDrawCauseCyclingNonLand
 	}
 	if w != nil && w.API == "WinsGame" {
-		// Laboratory Maniac, Jace, Wielder of Mysteries: the line replaces
-		// a draw from an empty library, which gorge logs as DrawEmpty and
-		// never meets with a Draw replacement, so the drawer loses (CR
-		// 121.4 and 614 say the replacement applies): not lowered until
-		// gorge applies it
-		return refuse("repl-hard: Draw replacement WinsGame (gorge never replaces an empty-library draw)")
+		// Laboratory Maniac, Jace, Wielder of Mysteries: gorge does apply
+		// the line to an attempted draw from an empty library (CR 614.11),
+		// but the kernel's win arm beside the state-based loss pass is a
+		// separate slice; until it lands the line stays refused.
+		return refuse("repl-hard: Draw replacement WinsGame")
 	}
 	// The line's own gates. A bodyless Prevent$ is the skip kind; a line
 	// with neither a body nor Prevent$ (or with both) is not a shape the
@@ -73,6 +87,12 @@ func (lc *lowerCtx) drawRepl(rp *params, w *cards.SA, rl *lRepl) error {
 	case prevent:
 		bits |= kop.ReplDrawSkip
 	}
+	if w != nil && w.API == "Draw" {
+		// A "draw N instead" body does not meet an attempted draw from an
+		// empty library (gorge emptyDrawReplacement): mark the program so the
+		// kernel's empty-library scan skips it.
+		bits |= kop.ReplDrawBodyDraw
+	}
 	if err := lc.drawReplCond(rp, rl); err != nil {
 		return err
 	}
@@ -80,7 +100,7 @@ func (lc *lowerCtx) drawRepl(rp *params, w *cards.SA, rl *lRepl) error {
 	// acceptance; a chained sub-ability on the body was read as nothing
 	// there). The program path is for every other body.
 	if w != nil && withIs(w, "Draw", map[string]string{"Defined": "You", "NumCards": w.Params["NumCards"]}) &&
-		bits&(kop.ReplDrawOpponent|kop.ReplDrawAnyPlayer|kop.ReplDrawCauseCyclingNonLand) == 0 {
+		bits&(kop.ReplDrawOpponent|kop.ReplDrawAnyPlayer|kop.ReplDrawOptional|kop.ReplDrawCauseCyclingNonLand) == 0 {
 		// ReplDrawMore is the controller's own draw only (drawMore scans
 		// ctrlM[p]): a line that names an opponent or any player must keep
 		// its player bits and take the program path instead of silently
@@ -114,12 +134,12 @@ func (lc *lowerCtx) drawRepl(rp *params, w *cards.SA, rl *lRepl) error {
 		return refuse("repl-hard: Draw replacement")
 	}
 	for i := range ab.Prog {
-		// This slice's bodies: a draw, a life change or a token. A body that
-		// moves library or graveyard cards (a dig, a ChooseMove, a Play)
-		// keeps the old refusal until its own slice proves the kernel's
-		// movement against gorge's (repl_drawprogram.go).
+		// This slice's bodies: a draw, a life change, a token or a counter.
+		// A body that moves library or graveyard cards (a dig, a ChooseMove,
+		// a Play) keeps the old refusal until its own slice proves the
+		// kernel's movement against gorge's (repl_drawprogram.go).
 		switch ab.Prog[i].Op {
-		case "Draw", "LoseLife", "GainLife", "CreateToken", "CreateTokenEx":
+		case "Draw", "LoseLife", "GainLife", "CreateToken", "CreateTokenEx", "PutCounter":
 		default:
 			return refuse("repl-hard: Draw replacement")
 		}
@@ -154,13 +174,21 @@ func (lc *lowerCtx) drawReplCond(rp *params, rl *lRepl) error {
 		return nil
 	}
 	zone := strings.TrimSpace(rp.str("PresentZone"))
-	_, hasCmp := rp.get("PresentCompare")
+	cmp, hasCmp := rp.get("PresentCompare")
 	if zone == "Library" {
-		// "while your library has no cards in it" (Out of the Tombs, Living
-		// Conundrum): the draw pipeline marks an empty-library draw before
-		// the replacements run today, so the kernel cannot apply this gate
-		// yet. The line stays refused.
-		return refuse("repl-hard: Draw replacement IsPresent$ %q PresentZone$ Library", ip)
+		// "while your library has no cards in it" (Ormos, Archive Keeper;
+		// Living Conundrum; Out of the Tombs): the kernel's empty-library
+		// draw scan meets this line (drawExcl, CR 614.11). The owned-cards
+		// count over an empty library is the controller's library size; any
+		// other compare literal keeps the refusal.
+		if !strings.EqualFold(strings.TrimSpace(ip), "Card.YouOwn") || !strings.EqualFold(strings.TrimSpace(cmp), "EQ0") {
+			return refuse("repl-hard: Draw replacement IsPresent$ %q PresentZone$ Library PresentCompare$ %q", ip, cmp)
+		}
+		if rl.Cond.Kind != cNone {
+			return refuse("two replacement conditions")
+		}
+		rl.Cond = lCond{Kind: cValue, A: lValue{Kind: vLibrarySizeOf, Ref: lRef{Kind: rYou}}, Op: opEQ, B: cst(0)}
+		return nil
 	}
 	if zone != "" || hasCmp {
 		return refuse("repl-hard: Draw replacement IsPresent$ with PresentZone$ %q", zone)

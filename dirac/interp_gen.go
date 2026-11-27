@@ -637,8 +637,8 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		}
 	case kop.OpCastFree:
 		s.g.nfree, s.g.nfreeAll = 0, 0
-		if in.Obj != kop.RefRemembered || in.C&(0xF8|freeLands|freeSameName) != 0 || in.F != 0 {
-			s.castFreeFillGen(k, in, e) // P2/P3/P4 and P1's new bits
+		if in.Obj != kop.RefRemembered || in.C&(0xF8|1<<9|freeLands|freeSameName) != 0 || in.F != 0 {
+			s.castFreeFillGen(k, in, e) // P2/P3/P4 and P1's new bits (bit 9: the UpTo bound keeps the walked population)
 		} else {
 			for i := 0; i < int(s.g.nrem); i++ {
 				o := s.g.rem[i]
@@ -664,6 +664,13 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 		copy(s.g.freeAll[:s.g.nfree], s.g.free[:s.g.nfree])
 		s.g.nfreeAll = s.g.nfree
 		if s.g.nfree == 0 {
+			break
+		}
+		if in.C&512 != 0 && s.value(k, in.A) < 1 {
+			// a counted Amount$ priced below one offers nothing (gorge
+			// effPlay's Amount$ 0 note and return, engine/effects/play.go
+			// :421-423), and a literal one never prices that low
+			// (playUpToOK admits only N >= 2)
 			break
 		}
 		// freeP: the caster, the zone, ReplaceGraveyard and ForgetPlayed

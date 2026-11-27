@@ -30,16 +30,18 @@ func TestValidSAGuardClasses(t *testing.T) {
 			class:  `other:spell-ability filter ValidSA "_"`,
 		},
 		{
+			// SpellAbility.!ManaAbility lowers (kop.TrigAbCastActivated,
+			// Harsh Mentor); a class the kernel has no word for still refuses
 			what: "an AbilityCast trigger's ValidSA$",
 			src: strings.Join([]string{
 				"Name:Probe Bracers",
 				"ManaCost:3",
 				"Types:Artifact",
-				"T:Mode$ AbilityCast | ValidSA$ SpellAbility.!ManaAbility | TriggerZones$ Battlefield | Execute$ ProbeDraw | TriggerDescription$ Probe.",
+				"T:Mode$ AbilityCast | ValidSA$ Activated.Equip | TriggerZones$ Battlefield | Execute$ ProbeDraw | TriggerDescription$ Probe.",
 				"SVar:ProbeDraw:DB$ Draw | NumCards$ 2",
 				"Oracle:Probe.",
 			}, "\n"),
-			reason: `AbilityCast spell-ability filter ValidSA$ "SpellAbility.!ManaAbility"`,
+			reason: `AbilityCast spell-ability filter ValidSA$ "Activated.Equip"`,
 			class:  `other:AbilityCast spell-ability filter ValidSA$ "_"`,
 		},
 		{

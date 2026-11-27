@@ -277,14 +277,14 @@ func TestCreatePodAcceptsManaBrewsOwnDeckShape(t *testing.T) {
 	}
 }
 
-// TestCreatePodRefusesDiracUntilItSeatsFour: -engine dirac plays two seats, so
-// a pod, and a submitted deck it never checked, are refused before any table
-// is built.
-func TestCreatePodRefusesDiracUntilItSeatsFour(t *testing.T) {
+// TestCreatePodRefusesDiracPastItsSeats: -engine dirac plays two seats or a
+// four-seat Commander pod, so a 3-seat pod, and a submitted deck it never
+// checked, are refused before any table is built.
+func TestCreatePodRefusesDiracPastItsSeats(t *testing.T) {
 	c := diracConfig()
 	srv, r, _ := podServer(t, c, []string{"p1", "p2", "p3", "p4"})
 	for _, tc := range []struct{ name, body, want string }{
-		{"pod", `{"format":"commander","seats":4}`, "cannot seat a 4-seat pod"},
+		{"pod", `{"format":"commander","seats":3}`, "cannot seat a 3-seat pod"},
 		{"submitted deck", podBody(t, map[string]any{"format": "commander", "decks": []map[string]any{{"seat": 0, "deck": podLegal("D", 0)}}}), "submitted deck"},
 	} {
 		code, raw := podPost(t, srv.URL, tc.body)

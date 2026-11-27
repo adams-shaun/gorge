@@ -24,7 +24,7 @@ type board struct {
 	pending []state.PendingTrigger
 	// blockers[o] is who has blocked kernel object o this combat.
 	blockers [dirac.MaxObj][]state.ObjID
-	zone     [2][7][]state.ObjID
+	zone     [dirac.MaxSeats][7][]state.ObjID
 	prio     state.PlayerID
 	step     kop.Step
 	seen     bool
@@ -35,7 +35,7 @@ type board struct {
 	divided bool
 	// landOpen is each seat's land drop as of now: gorge counts a seat's lands until its
 	// next turn (Game.landsPlayed).
-	landOpen [2]bool
+	landOpen [dirac.MaxSeats]bool
 }
 
 // objFacts are the derived characteristics the view asks for, by object.
@@ -63,7 +63,7 @@ func (g *Game) materialise() {
 	if b.g == nil {
 		names := g.cfg.Names
 		if len(names) == 0 {
-			names = []string{"p0", "p1"}
+			names = []string{"p0", "p1", "p2", "p3"}[:g.s.NumSeats()]
 		}
 		b.g = state.NewGameLife(names, int32(g.kp.Life[0]))
 		b.g.Tokens = g.eng.reg.Tokens
@@ -74,7 +74,7 @@ func (g *Game) materialise() {
 		}
 	}
 	if !b.seen {
-		b.landOpen = [2]bool{true, true}
+		b.landOpen = [dirac.MaxSeats]bool{true, true, true, true}
 	}
 	b.game = g
 	gm := b.g
@@ -90,8 +90,10 @@ func (g *Game) materialise() {
 		b.facts = b.facts[:n]
 	}
 	g.boardGame()
-	for z := range b.zone[0] {
-		b.zone[0][z], b.zone[1][z] = b.zone[0][z][:0], b.zone[1][z][:0]
+	for p := range b.zone {
+		for z := range b.zone[p] {
+			b.zone[p][z] = b.zone[p][z][:0]
+		}
 	}
 	for i := 0; i < int(kp.NObj); i++ {
 		g.boardObject(canon.Ref(i))
@@ -160,19 +162,19 @@ func (g *Game) triggerText(c dirac.CardID, gi uint8) string {
 // that reads them, and the view shows them for every seat.
 func (g *Game) noteTally(before *[dirac.MaxObj]kop.Zone, turn int32) {
 	if turn != g.tallyTurn {
-		g.tally, g.tallyTurn = [2]turnTally{}, turn
+		g.tally, g.tallyTurn = [dirac.MaxSeats]turnTally{}, turn
 	}
 	for o := 0; o < int(g.kp.NObj); o++ {
 		po := &g.kp.Objs[o]
 		switch {
 		case po.Zone == kop.ZoneStack && before[o] != kop.ZoneStack:
 			if !g.s.FeatStackCopy(dirac.Obj(o)) { // not cast (CR 707.10)
-				g.tally[po.Ctrl&1].spells++
+				g.tally[po.Ctrl].spells++
 			}
-		case g.building == dirac.Obj(o) && before[o] == kop.ZoneStack && po.Zone != kop.ZoneStack && g.tally[po.Ctrl&1].spells > 0:
-			g.tally[po.Ctrl&1].spells-- // the proposal was reversed
+		case g.building == dirac.Obj(o) && before[o] == kop.ZoneStack && po.Zone != kop.ZoneStack && g.tally[po.Ctrl].spells > 0:
+			g.tally[po.Ctrl].spells-- // the proposal was reversed
 		case po.Token && before[o] == kop.ZoneNone && po.Zone != kop.ZoneNone:
-			g.tally[po.Ctrl&1].tokens++
+			g.tally[po.Ctrl].tokens++
 		}
 	}
 	g.building = dirac.NoObj
@@ -339,6 +341,9 @@ func (g *Game) boardGame() {
 	}
 	if g.conceded {
 		gm.Over, gm.Winner, gm.Draw = true, state.PlayerID(1-g.loser), false
+		if g.s.NumSeats() > 2 {
+			gm.Winner, gm.Draw = 0, true // a concession past two seats ends the pod with no winner
+		}
 	}
 	gm.DayNight = state.DayNight(g.s.DayNight())
 	for p := range gm.Players {
@@ -350,7 +355,7 @@ func (g *Game) boardGame() {
 			}
 			b.landOpen[p] = g.landsPlayed[p] < g.s.FeatLandLimit(uint8(p))
 		}
-		pl.Lost = gm.Over && !gm.Draw && gm.Winner != state.PlayerID(p)
+		pl.Lost = gm.Over && !gm.Draw && gm.Winner != state.PlayerID(p) || kp.Lost[p]
 		pl.Commanders, pl.CmdCasts, pl.CmdDamage = pl.Commanders[:0], pl.CmdCasts[:0], pl.CmdDamage[:0]
 		// the projection carries a seat's totals, saturating at 255; a partner
 		// (slot 1, CR 702.124) takes its own count out of them, the first
@@ -484,14 +489,14 @@ func zoneOf(z kop.Zone) state.Zone {
 
 // place records id at its position in its zone; boardZones orders them.
 func (b *board) place(z state.Zone, seat uint8, id state.ObjID) {
-	list := b.zone[seat&1][z]
-	b.zone[seat&1][z] = append(list, id)
+	list := b.zone[seat][z]
+	b.zone[seat][z] = append(list, id)
 }
 
 // boardZones hands each zone over in the kernel's order.
 func (g *Game) boardZones() {
 	b := &g.board
-	for seat := range b.zone {
+	for seat := range b.g.Players {
 		for _, z := range []state.Zone{state.ZLibrary, state.ZHand, state.ZBattlefield, state.ZGraveyard, state.ZExile, state.ZCommand} {
 			ids := b.zone[seat][z]
 			for i := 1; i < len(ids); i++ {

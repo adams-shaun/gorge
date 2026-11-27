@@ -2,6 +2,7 @@ package kgen
 
 import (
 	"fmt"
+	"slices"
 
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
@@ -84,7 +85,14 @@ func cbCastWithFlashStatic(cb *cardBuilder, s lStatic, st *kop.Static) ([]uint8,
 	var err error
 	st.Kind = kop.StatCastWithFlash
 	st.StFlags |= s.flashCasterFlag()
+	st.A = int16(s.FlashXMax) // a self grant's Spell.XCostLE<N> bound, 1+N (dirac/cast_flashxcap.go)
 	if st.Filter, err = cb.staticFilter(s.F, kop.ZoneHand); err != nil {
+		return nil, err
+	}
+	if slices.Contains(s.Flags, "IsTargeting") {
+		// a self grant's Spell.IsTargeting Valid <spec> (lower_static.go): read
+		// over the battlefield candidates of the spell's targets
+		st.Filter2, err = cb.staticFilter(s.F2, kop.ZoneBattlefield)
 		return nil, err
 	}
 	st.Filter2, err = cb.staticFilter(s.F2, kop.ZoneStack) // an emblem's ForgetOnCast$ (lower_effectemblem.go)

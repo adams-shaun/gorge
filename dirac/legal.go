@@ -654,8 +654,8 @@ func (s *State) canActivate(k *prep, sl Slot, ab int, a *kop.Ability, sorc bool,
 		return false
 	}
 	f := a.Cost.Flags
-	if f&kop.CostSorcery != 0 && !sorc {
-		return false
+	if f&kop.CostSorcery != 0 && !sorc && !s.equipFlash(k, a, p.ctrl) {
+		return false // an Equip ability stays sorcery-speed without a StatEquipFlash grant (static_equipflash.go)
 	}
 	if a.Cost.Host != 0 && ab != 255 {
 		return false // a granting host's cost part: only a granted ability has a host (gorge leaves the referent unbound)
@@ -707,7 +707,7 @@ func (s *State) canActivate(k *prep, sl Slot, ab int, a *kop.Ability, sorc bool,
 	if a.Kind == kop.AbActivated && a.Trig.Cond != 0 && !s.activateCondHolds(k, sl, a) {
 		return false
 	}
-	if f&kop.CostLoyalty != 0 && (!sorc || s.loyaltyUsedAtLimit(k, sl)) {
+	if f&kop.CostLoyalty != 0 && (!sorc && !s.loyaltyFlash(k, sl) || s.loyaltyUsedAtLimit(k, sl)) { // loyaltyFlash: static_loyaltyflash.go
 		return false
 	}
 	if f&kop.CostOncePerGame != 0 && s.onceBlocked(k, sl, a) {

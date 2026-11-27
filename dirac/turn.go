@@ -75,10 +75,11 @@ func (s *State) beginTurn(p uint8) {
 	}
 	for m := live; m.any(); m = m.rest() {
 		pm := &s.perms[m.first()]
-		if pm.actUsed != 0 || pm.flags&pfLoyaltyUsed != 0 {
+		if pm.actUsed != 0 || pm.flags&pfLoyaltyUsed != 0 || pm.atkPl != 0 {
 			s.touch(pm.obj)
 		}
 		pm.actUsed = 0
+		pm.atkPl = 0 // the turn's declared player attacks end (gorge's TurnChange fold)
 		pm.flags &^= pfLoyaltyUsed
 		s.resetLoyaltyActivations(m.first())
 	}
@@ -228,8 +229,8 @@ func (s *State) beginStep(k *prep) {
 				return // kw_dredge.go: the active player's dredge ask comes first
 			}
 			s.draw(s.active)
-			if s.res.ask == raGenDrawOrder {
-				return // repl_draworder.go: the draw's replacement order is asked first
+			if s.drawReplAsked() {
+				return // repl_draworder.go / repl_drawmay.go: the draw's replacement ask suspends the step; its answer finishes it
 			}
 		}
 		s.g.drawFirst = false

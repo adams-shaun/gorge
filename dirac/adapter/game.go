@@ -45,11 +45,11 @@ type Game struct {
 	// vers[o] is object o's zone-change count at the last settle.
 	vers [dirac.MaxObj]uint8
 	// tally is this turn's casts and tokens, per seat.
-	tally     [2]turnTally
+	tally     [dirac.MaxSeats]turnTally
 	tallyTurn int32
 	// landsPlayed is each seat's lands in its latest turn: the kernel clears the count
 	// at every turn, and a seat's land drop reads it until its next turn.
-	landsPlayed [2]uint8
+	landsPlayed [dirac.MaxSeats]uint8
 	// building is the object the last decision's cast or activation was building.
 	building dirac.Obj
 
@@ -74,7 +74,7 @@ type Game struct {
 	// prev is the position before the last answer, which the log is derived from.
 	prev dirac.Projection
 	// poison is each seat's count as last logged.
-	poison [2]int32
+	poison [dirac.MaxSeats]int32
 
 	conceded bool
 	loser    uint8
@@ -178,15 +178,30 @@ func (g *Game) settle() {
 
 // logSettled records the end of the game or the ask just posed.
 func (g *Game) logSettled() {
+	over, win := g.s.Terminal()
+	if g.s.NumSeats() > 2 {
+		g.logPodLosses(over && g.stalled == 0, win)
+	}
 	if g.pend != nil {
 		g.log.Append(events.Event{Kind: events.DecisionAsk, Player: g.pend.Player, Text: string(g.pend.Kind)})
 		return
 	}
-	if over, win := g.s.Terminal(); over && g.stalled == 0 {
-		if win >= 0 {
+	if over && g.stalled == 0 {
+		if win >= 0 && g.s.NumSeats() == 2 {
 			g.log.Append(events.Event{Kind: events.PlayerLost, Player: state.PlayerID(1 - win), Text: g.lossText(uint8(1 - win))})
 		}
 		g.logOver(win)
+	}
+}
+
+// logPodLosses logs each seat of a game past two seats as it loses (CR 800.4a),
+// once: the game goes on without it. At the end every seat but the winner has lost.
+func (g *Game) logPodLosses(over bool, win int8) {
+	for p := uint8(0); p < g.s.NumSeats(); p++ {
+		if g.prev.Lost[p] || !g.kp.Lost[p] && (!over || win < 0 || int8(p) == win) {
+			continue
+		}
+		g.log.Append(events.Event{Kind: events.PlayerLost, Player: state.PlayerID(p), Text: g.lossText(p)})
 	}
 }
 

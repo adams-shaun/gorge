@@ -33,11 +33,17 @@ var coldDraw = newCold[drawProgram]("drawProgram", func(g *genPrep) int {
 	return 0
 })
 
-// drawProgram is one ReplDrawProgram body in flight.
+// drawProgram is one ReplDrawProgram in flight: its body (active), or the
+// Optional$ True election parked for an answer (may, repl_drawmay.go: the
+// candidate sel/abi; the site's continuation is the order ask's, laid in
+// res.left and g.pickZ/pickLeft).
 type drawProgram struct {
 	active bool
 	p      uint8
 	chain  drawChain
+	may    bool
+	sel    Slot
+	abi    uint8
 }
 
 // drawState is coldDraw's record, or nil.
@@ -60,8 +66,10 @@ const drawCandMax = 8
 
 // drawScan collects the draw replacements outside ch that match the draw p is
 // about to make, scanning every seat's battlefield: a line may name its
-// player (ReplDrawOpponent / ReplDrawAnyPlayer).
-func (s *State) drawScan(k *prep, p uint8, ch drawChain) (c drawCands) {
+// player (ReplDrawOpponent / ReplDrawAnyPlayer). empty is the attempted draw
+// from an empty library: only the lines gorge's emptyDrawReplacement admits
+// may meet it (a mandatory non-Draw body or a bodyless Prevent$ skip).
+func (s *State) drawScan(k *prep, p uint8, ch drawChain, empty bool) (c drawCands) {
 	g := k.gen
 	for seat := uint8(0); seat < MaxSeats; seat++ {
 		for m := s.statM.and(s.ctrlM[seat]); m.any(); m = m.rest() {
@@ -79,6 +87,12 @@ func (s *State) drawScan(k *prep, p uint8, ch drawChain) (c drawCands) {
 				}
 				switch a.Repl.Kind {
 				case kop.ReplDrawMore:
+					// A "draw N cards instead" body would draw from the same
+					// empty library, so it does not meet an empty-library
+					// attempt (gorge emptyDrawReplacement).
+					if empty {
+						continue
+					}
 					// ReplDrawMore is the controller's own draw (ValidPlayer$ You)
 					if seat != p {
 						continue
@@ -91,6 +105,9 @@ func (s *State) drawScan(k *prep, p uint8, ch drawChain) (c drawCands) {
 					}
 					c.more++
 				case kop.ReplDrawProgram:
+					if empty && !drawProgramMeetsEmpty(a) {
+						continue
+					}
 					if !drawProgramPlayer(a.Repl.C, seat, p) {
 						continue
 					}
@@ -122,12 +139,18 @@ func (s *State) drawScan(k *prep, p uint8, ch drawChain) (c drawCands) {
 // ReplDrawProgram: it scans every seat's battlefield for the draw p is about
 // to make, asks the CR 616.1 order on a competition (repl_draworder.go), and
 // runs the one body. A table without a program keeps drawMore's own scan.
-func (s *State) drawReplace(p uint8, ch drawChain) bool {
+// empty is the attempted draw from an empty library: only the lines gorge's
+// emptyDrawReplacement admits may meet it (a mandatory non-Draw body or a
+// bodyless Prevent$ skip).
+func (s *State) drawReplace(p uint8, ch drawChain, empty bool) bool {
 	k := s.k()
 	if !k.gen.hasDrawProgram() {
+		if empty {
+			return false // a table with only ReplDrawMore has nothing CR 614.11 admits
+		}
 		return s.drawMore(p, ch)
 	}
-	c := s.drawScan(k, p, ch)
+	c := s.drawScan(k, p, ch, empty)
 	switch {
 	case c.all == 0:
 		return false
@@ -152,7 +175,29 @@ func (s *State) drawApply(k *prep, p uint8, sl Slot, abi uint8, ch drawChain) bo
 	if ab.Repl.Kind == kop.ReplDrawMore {
 		return s.drawMore(p, ch) // the one candidate, applied by its own walk
 	}
+	if ab.Repl.C&kop.ReplDrawOptional != 0 {
+		// gorge parks the draw and asks its player (replChoiceDraw): the
+		// kernel poses the same election where its answer can resume the
+		// site, and stalls where it cannot (repl_drawmay.go)
+		if s.drawMayPose(k, p, sl, abi, ch) {
+			return true
+		}
+		s.capFull(StallDrawRepl)
+		return true
+	}
 	return s.drawProgramTake(k, p, sl, abi, ab, ch)
+}
+
+// drawProgramMeetsEmpty reports whether a ReplDrawProgram line meets an
+// attempted draw from an empty library (gorge's emptyDrawReplacement): a
+// bodyless Prevent$ skip, or a mandatory body whose own root is not a draw
+// (a Draw body would draw from the same empty library). Every lowered program
+// is mandatory; kgen refuses Optional$ True.
+func drawProgramMeetsEmpty(a *kop.Ability) bool {
+	if a.Repl.C&kop.ReplDrawSkip != 0 {
+		return true
+	}
+	return a.Repl.C&kop.ReplDrawBodyDraw == 0 && len(a.Prog) > 0
 }
 
 // drawProgramPlayer reports whether a ReplDrawProgram's ValidPlayer$ admits the

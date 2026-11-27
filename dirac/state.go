@@ -325,6 +325,15 @@ type perm struct {
 	// (copy_facedown.go), spareRegenX (repl_regenerate.go) and spareSolved
 	// (kw_crewsaddle.go).
 	spare uint8
+	// atkPl is the seat+1 of the player this attacker last DECLARED an
+	// attack at this turn (gorge's per-object AttackedPlayersThisTurn
+	// ledger, the DeclareAttackers fold); 0 means none. beginTurn clears it
+	// with gorge's TurnChange fold. Written by setDeclaredAttackTarget only:
+	// a permanent put onto the battlefield attacking was not declared
+	// (CR 508.1), and atk must keep naming the planeswalker/battle of a
+	// later declaration. The byte fills the tail padding the alignment left,
+	// so perm stays 72 bytes.
+	atkPl uint8
 	card  CardID       // the card's id (the copy-of id lives in ovr)
 	gty   kop.TypeMask // types derived by a generated table's overrides (ovGenTy)
 }
@@ -920,6 +929,7 @@ type build struct {
 	altAbort    bool     // the chosen either-or part cannot be paid: the fallback CR 601.2g window runs at bsMana (manaStep) and reverses the cast (CR 733.1)
 	impPlan     bool     // gorge's planner priced this Improvise cast (kw_improvisepay.go)
 	snowPre     uint8    // a SpentSnow card's cast: the seat's snow units before the mana payment (snowSpentRec, mana_snow.go)
+	tagPre      uint8    // a SpentTag card's cast: the tag's units before the mana payment (castSpentRec, mana_spenttag.go)
 	convC       bool     // the cast went through a may-play permission carrying the colourless-mana conversion (ManaConversion$ C->AnyColor; cast_mayconvc.go)
 	payLifeMV   bool     // the cast went through a may-play permission whose alternative cost is life equal to its mana value (cast_mayplaypaylife.go)
 	payEnergy   uint8    // the cast went through a may-play permission whose alternative cost is this much energy (kop.StMayPayEnergy, Nissa, Worldsoul Speaker; paid beside payLifeMV)

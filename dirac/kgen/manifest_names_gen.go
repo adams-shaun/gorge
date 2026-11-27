@@ -1215,6 +1215,9 @@ func init() { enum[kop.Pred]("kop.PredSharesCrCmdr", kop.PredSharesCrCmdr) }
 // dirac/manifest/Pred/PredStatBox
 func init() { enum[kop.Pred]("kop.PredStatBox", kop.PredStatBox) }
 
+// dirac/manifest/Ref/RefAttackedBySource
+func init() { enum[kop.Ref]("kop.RefAttackedBySource", kop.RefAttackedBySource) }
+
 // dirac/manifest/Ref/RefTargets0
 func init() { enum[kop.Ref]("kop.RefTargets0", kop.RefTargets0) }
 
@@ -1486,8 +1489,14 @@ func init() { enum[kop.StaticKind]("kop.StatDefenderAssigns", kop.StatDefenderAs
 // dirac/manifest/StaticKind/StatDefiler
 func init() { enum[kop.StaticKind]("kop.StatDefiler", kop.StatDefiler) }
 
+// dirac/manifest/StaticKind/StatEquipFlash
+func init() { enum[kop.StaticKind]("kop.StatEquipFlash", kop.StatEquipFlash) }
+
 // dirac/manifest/StaticKind/StatGraveNoAbilities
 func init() { enum[kop.StaticKind]("kop.StatGraveNoAbilities", kop.StatGraveNoAbilities) }
+
+// dirac/manifest/StaticKind/StatLoyaltyFlash
+func init() { enum[kop.StaticKind]("kop.StatLoyaltyFlash", kop.StatLoyaltyFlash) }
 
 // dirac/manifest/StaticKind/StatMadnessGrant
 func init() { enum[kop.StaticKind]("kop.StatMadnessGrant", kop.StatMadnessGrant) }

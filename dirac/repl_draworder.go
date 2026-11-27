@@ -68,7 +68,9 @@ func (s *State) drawOrderPose(k *prep, p uint8, ch drawChain, c *drawCands) bool
 //kmanifest:askopts raGenDrawOrder
 func (s *State) drawOrderOptions(k *prep, d *Decision) {
 	p := s.res.askP
-	c := s.drawScan(k, p, drawChain{})
+	// the same empty-library read drawExcl scanned with: the ask suspends
+	// before any candidate draws, so the library is unchanged (repl_drawprogram.go)
+	c := s.drawScan(k, p, drawChain{}, s.pl[p].libLo == s.pl[p].libHi)
 	d.Kind, d.Sub, d.Player = DkChoose, ChGenReplOrder, p
 	for i := 0; i < c.n; i++ {
 		d.add(MakeAction(AkChoose, TCode(s.perms[c.sl[i]].obj), 0, uint8(i)))
@@ -81,17 +83,13 @@ func (s *State) drawOrderOptions(k *prep, d *Decision) {
 //kmanifest:askapply raGenDrawOrder
 func (s *State) drawOrderAnswer(k *prep, a Action) {
 	p := s.res.askP
-	c := s.drawScan(k, p, drawChain{})
+	c := s.drawScan(k, p, drawChain{}, s.pl[p].libLo == s.pl[p].libHi) // as in drawOrderOptions
 	turn := !s.res.active
 	s.res.ask = raNone
 	if turn {
 		s.ctl = ctlStepBegin
 	}
 	left, rest, n := int(s.res.left), s.g.pickZ, int(s.g.pickLeft)
-	var in *kop.Instr
-	if !turn {
-		in = &s.prog(k)[s.res.pc]
-	}
 	n0 := s.npend
 	i := int(a.Mode())
 	if i >= c.n {
@@ -99,22 +97,15 @@ func (s *State) drawOrderAnswer(k *prep, a Action) {
 		return
 	}
 	s.drawApply(k, p, c.sl[i], c.ab[i], drawChain{})
+	if s.res.ask == raGenDrawMay {
+		// the pick is an Optional$ True line: gorge promotes it to its own
+		// apply / decline (scheduleSelectedOptionalDraw), whose answer runs
+		// this site's tail (repl_drawmay.go)
+		return
+	}
 	if s.res.ask != raNone {
 		s.capFull(StallDrawRepl) // the body posed an ask neither site can wait behind
 		return
 	}
-	if turn {
-		s.g.drawFirst = false
-		if s.over {
-			return
-		}
-		n1 := s.npend
-		s.firePhase(k, kop.StepDraw)
-		s.pendFirst(n0, n1) // the step's own triggers ahead of the draw's
-		s.openPriority()
-		return
-	}
-	if s.dredgeDrawLoop(k, in, p, left-1, rest, n) {
-		s.continueRes(k, 0)
-	}
+	s.drawAskTail(k, turn, p, left, rest, n, n0)
 }

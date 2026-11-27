@@ -124,15 +124,33 @@ func (sc *staticCtx) modeCastWithFlash() ([]lStatic, bool, error) {
 	lc := sc.lc
 	s := sc.s
 	sp := sc.sp
-	readF := sc.readF
-	var err error
+	if sp.str("ValidSA") == "Activated.Equip" {
+		if err := sc.equipFlashShape(); err != nil { // static_equipflash.go
+			return nil, true, err
+		}
+		return nil, false, nil
+	}
+	if sp.str("ValidSA") == "Activated.Loyalty" {
+		return sc.loyaltyFlash() // static_loyaltyflash.go
+	}
 	caster := sp.str("Caster")
 	validSA := sp.str("ValidSA")
-	if caster != "You" && caster != "Player" || validSA != "Spell" && validSA != "Spell.Teamwork" {
+	tgtSpec, isTgt := selfFlashTargeting(validSA)
+	_, hasZone := sp.get("EffectZone")
+	if caster != "You" && caster != "Player" || isTgt && !hasZone {
 		return nil, true, refuse("CastWithFlash shape")
 	}
+	var xmax int
+	var subtype string
+	var err error
+	if !isTgt {
+		xmax, subtype, err = cwfValidSA(validSA) // static_cwfvalidsa.go
+		if err != nil {
+			return nil, true, err
+		}
+	}
 	sc.st.AnyCaster = caster == "Player"
-	if sc.st.F, err = readF("ValidCard"); err != nil {
+	if sc.st.F, err = sc.cwfValidCard(subtype); err != nil {
 		return nil, true, err
 	}
 	if ez, ok := sp.get("EffectZone"); ok {
@@ -143,12 +161,23 @@ func (sc *staticCtx) modeCastWithFlash() ([]lStatic, bool, error) {
 		if err := lc.selfFlashShape(s, ez, validSA); err != nil {
 			return nil, true, err
 		}
+		if isTgt {
+			// ValidSA$ Spell.IsTargeting Valid <spec> (Flash Photography,
+			// Timely Ward): the grant holds only while the spell can
+			// announce a target matching <spec> (lower_static.go)
+			if err := lc.selfFlashTargetsFilter(&sc.st, tgtSpec); err != nil {
+				return nil, true, err
+			}
+		}
 		lc.out.SelfFlash = true
-	} else if validSA != "Spell" {
-		// the Teamwork permission is the card's own self grant; a battlefield
-		// static granting it to others is not a kernel shape
+	} else if xmax != 0 || validSA == "Spell.Teamwork" {
+		// the kernel bounds only the SelfFlash carrier's own X
+		// (dirac/cast_flashxcap.go), and the Teamwork permission is the
+		// card's own self grant: a battlefield static granting it to others
+		// is not a kernel shape
 		return nil, true, refuse("CastWithFlash shape")
 	}
+	sc.st.FlashXMax = xmax
 	return nil, false, nil
 }
 

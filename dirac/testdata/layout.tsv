@@ -381,6 +381,7 @@ default	field	perm.cs	6
 default	field	perm.cseen	1
 default	field	perm.atkVer	1
 default	field	perm.spare	1
+default	field	perm.atkPl	1
 default	field	perm.card	2
 default	field	perm.gty	2
 # struct genPrep
@@ -577,6 +578,7 @@ default	field	genPrep.anyLinkRet	1
 default	field	genPrep.anyDmgRef	1
 default	field	genPrep.anyUnion	1
 default	field	genPrep.anyUnblocked	1
+default	field	genPrep.anyUnbOnce	1
 default	field	genPrep.anyOrCopy	1
 default	field	genPrep.anySkipUntap	1
 default	field	genPrep.anyDelayUp	1

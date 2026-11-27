@@ -28,10 +28,12 @@ import (
 // reads it: a Duration$ Permanent trigger of a source that was on the
 // battlefield when the Effect resolved is removed when that incarnation leaves,
 // or when the registration's controller has lost, and the continuous effect
-// then stays for good. When any registration fires, its self-exile (the Effect's
-// ChangeZone from the command zone, EndEffectSource) ends every Effect record of
-// the same source OBJECT, live or not, whatever it targeted. The applied record
-// carries all of that in the fields a set P/T would use (the rows have none):
+// then stays for good. When a registration fires, its self-exile (the Effect's
+// ChangeZone from the command zone, EndEffectSource on a carrier frame) ends
+// the registrations of THAT activation only: one Effect activation applies one
+// record (one targeted permanent, one row), so the fired record alone ends and
+// a second activation of the same source keeps its own record and trigger. The
+// applied record carries all of that in the fields a set P/T would use (the rows have none):
 // r.p the source object; r.t the source's version in its low byte, the
 // registration controller in bits 8-9 and evBound (bit 10) when the source was
 // on the battlefield at resolution.
@@ -106,9 +108,9 @@ func (s *State) ctrlUntapEnd(k *prep) {
 	}
 }
 
-// ovEndFired returns the source object of the first event-ended record whose
+// ovEndFired returns the fx index of the first event-ended record whose
 // trigger fires now (ctrl: the untap step when true, else a cast by e), or -1.
-func (s *State) ovEndFired(k *prep, untap bool, e *stackEntry) int16 {
+func (s *State) ovEndFired(k *prep, untap bool, e *stackEntry) int {
 	for i := 0; i < int(s.g.nfx); i++ {
 		r := &s.g.fx[i]
 		if r.kind != fxOverride {
@@ -123,47 +125,42 @@ func (s *State) ovEndFired(k *prep, untap bool, e *stackEntry) int16 {
 			continue
 		}
 		if s.ovEndLive(&r.r) {
-			return r.r.p
+			return i
 		}
 	}
 	return -1
 }
 
-// ovEndSource ends every event-ended record of source object host.
-func (s *State) ovEndSource(k *prep, host int16) {
-	s.dropFx(func(i int) bool {
-		r := &s.g.fx[i]
-		if r.kind != fxOverride || r.r.p != host {
-			return false
-		}
-		o := &k.t.Overrides[r.r.idx-1]
-		return o.UntilCtrlUntap || o.UntilCast != 0
-	})
+// ovEndRecord ends the event-ended record at fx index at: its own activation's
+// registrations end with it, and every other activation of the same source
+// object keeps its record (gorge EndEffectSource's carrier frame).
+func (s *State) ovEndRecord(k *prep, at int) {
+	s.dropFx(func(i int) bool { return i == at })
 	s.refreshTy(k)
 }
 
 // dropCtrlUntapOv ends the Orcish Farmer records whose permanent the active
 // player controls (the trigger's ValidPlayer$ Player.controlsCard.IsRemembered),
-// with every other record of the same Farmer.
+// each on its own: another activation of the same Farmer keeps its record.
 func (s *State) dropCtrlUntapOv(k *prep) {
 	if DebugNoEventOvDrop || s.g.nfx == 0 {
 		return
 	}
 	for h := s.ovEndFired(k, true, nil); h >= 0; h = s.ovEndFired(k, true, nil) {
 		EventOvDropStats.CtrlUntap.Add(1)
-		s.ovEndSource(k, h)
+		s.ovEndRecord(k, h)
 	}
 }
 
 // dropUntilCastOv ends the Soul Sculptor records whose resolver has just cast
-// spell e as a spell matching the row's filter, with every other record of the
-// same Sculptor.
+// spell e as a spell matching the row's filter, each on its own: another
+// activation of the same Sculptor keeps its record.
 func (s *State) dropUntilCastOv(k *prep, e *stackEntry) {
 	if DebugNoEventOvDrop || s.g.nfx == 0 {
 		return
 	}
 	for h := s.ovEndFired(k, false, e); h >= 0; h = s.ovEndFired(k, false, e) {
 		EventOvDropStats.Cast.Add(1)
-		s.ovEndSource(k, h)
+		s.ovEndRecord(k, h)
 	}
 }

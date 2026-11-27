@@ -50,6 +50,7 @@ const (
 	rSrcOwner                     // the source object's owner (Defined$ CardOwner)
 	rTriggerAttackers             // the attacker group of the AttackersDeclared event (Defined$ TriggeredAttackers)
 	rRememberedOwner              // the remembered object's owner (Unidentified Hovership's leave trigger)
+	rAttackedBySource             // the player the source attacked this turn (Defined$ Player.attackedBySourceThisTurn)
 	rImprinted                    // the resolution's imprinted objects (Dig Imprint$ on a permanent's ability)
 	rPromised                     // the opponent the gift was promised to (Defined$ / TokenOwner$ Promised)
 	rAttachedCtrl                 // the controller of the object the source is attached to, read live (Contaminated Bond's blocker)
@@ -99,6 +100,7 @@ var refNames = [...]string{
 	rSrcOwner:             "SrcOwner",
 	rTriggerAttackers:     "TriggerAttackers",
 	rRememberedOwner:      "RememberedOwner",
+	rAttackedBySource:     "AttackedBySource",
 	rImprinted:            "Imprinted",
 	rPromised:             "Promised",
 	rAttachedCtrl:         "AttachedCtrl",
@@ -1040,6 +1042,7 @@ type lTrigger struct {
 	ByCreature, AnchorBlocker bool
 	Cycled                    bool  // Discarded lowered from Mode$ Cycled ValidCard$ Card.Self: fires from the graveyard when the card is cycled
 	Unblocked                 bool  // AttackerBlocked lowered from Mode$ AttackerUnblocked: once per unblocked attacker matching F
+	UnblockedOnce             bool  // AttackerBlocked lowered from Mode$ AttackerUnblockedOnce: once per combat when an unblocked attacker matches (kernel Tf2UnblockedOnce)
 	OrCopy                    bool  // SpellCast lowered from Mode$ SpellCastOrCopy: also a spell copy
 	ConvergeBound             bool  // the body reads Count$Converge: the entering spell's colours spent, bound as it triggers (self ETB only; kernel Tf3ConvergeBound)
 	CastConverge              bool  // SpellCast: the amount is the triggering spell's colours spent as the trigger fires (TriggeredCard$Converge; kernel Tf3CastConverge)
@@ -1239,6 +1242,9 @@ type lStatic struct {
 	// (kop.StFlashAnyCaster), or an AlternativeCost grant with no ValidPlayer$
 	// rider (kop.StAltAnyCaster)
 	AnyCaster bool
+	// FlashXMax: a CastWithFlash self grant's `ValidSA$ Spell.XCostLE<N>`
+	// bound, 1+N (0 = none; kop.Static.A, dirac/cast_flashxcap.go)
+	FlashXMax int
 	// OutlivesLoss: the pump beside an override static with a part in layers
 	// 1 to 5 (kop.Static.OutlivesLoss)
 	OutlivesLoss bool
@@ -1564,6 +1570,7 @@ type lCard struct {
 	DungeonNext    []uint8  // a dungeon entry's room arrows (CardDef.DungeonNext; lower_initiative.go)
 	TypeValid      []uint16 // an as-enters ChooseType's ValidTypes$ vocabulary indexes (CardDef.TypeValid; lower_choosetype.go)
 	SpentSnow      bool     // the card reads Count$CastTotalManaSpent Snow: the snow units its cast spent (CardDef.SpentSnow)
+	SpentTag       uint8    // the card reads Count$CastTotalManaSpent Treasure/Cave/Desert: that tag's units its cast spent (CardDef.SpentTag)
 	SpentSelf      bool     // the card reads Count$CastTotalManaSpent in a spell chain or a self-ETB trigger: gorge's planner declines its cast (CardDef.SpentSelf)
 	DmgAmt         bool     // the card reads Count$TotalDamageReceivedThisTurn (CardDef.DmgAmt)
 	CastBF         *lFilter // the card reads Count$LastStateBattlefieldWithFallback <spec> in a spell's own program (CardDef.CastBF)

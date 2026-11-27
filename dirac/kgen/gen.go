@@ -643,6 +643,9 @@ func dumpStatics(w io.Writer, c *lCard) {
 		if s.OutlivesLoss {
 			fmt.Fprintf(w, " outlivesloss")
 		}
+		if s.FlashXMax != 0 {
+			fmt.Fprintf(w, " xmax=%d", s.FlashXMax-1)
+		}
 		if s.BlockAmount != 0 {
 			fmt.Fprintf(w, " blockamount=%d", s.BlockAmount)
 		}

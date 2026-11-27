@@ -30,7 +30,9 @@ func (s *State) freeQueued(o Obj) bool {
 //   - C bit 6: CopyCard$ True; bit 7: AllowRepeats$ True with Amount$ A (cast_freerepeat.go).
 //   - C bit 8: the cast pays its mana cost (a Play without WithoutManaCost$
 //     True: the copy's cast via cast_exilegrant.go, every other card's via
-//     turn_gen.go's drain); bit 9: a literal Amount$ A (the ask closes after A picks).
+//     turn_gen.go's drain); bit 9: an Amount$ A read as a value (interp_ask.go
+//     and the count-0 break in interp_gen.go; the literal N >= 2 and the
+//     counted Amount$ of a ChandraX all ride it).
 //   - C bit 11 (freeMandatory): no Optional$ True, so no Done is offered.
 //   - C bit 12 (freeLands): the population may hold lands (a Play without
 //     ValidSA$ over a land-capable remembered set: Dungeon of the Mad Mage's
@@ -166,6 +168,20 @@ func (s *State) castFreeFillGen(k *prep, in *kop.Instr, e *stackEntry) {
 	}
 	switch {
 	case in.Obj == kop.RefRemembered:
+		if zone == kop.ZoneLibrary {
+			// gorge effPlay's private-zone walk (engine/effects/play.go):
+			// the library is scanned in the resolving controller's slice
+			// only, in library order. A card remembered while in another
+			// seat's library (Talent of the Telepath's revealed seven) is
+			// remembered but never offered.
+			pl := &s.pl[e.ctrl]
+			for i := int(pl.libLo); i < int(pl.libHi); i++ {
+				if s.remContains(pl.lib[i]) && !add(pl.lib[i]) {
+					return
+				}
+			}
+			break
+		}
 		for i := 0; i < int(s.g.nrem); i++ {
 			if !add(s.g.rem[i]) {
 				return
@@ -230,6 +246,16 @@ func (s *State) castFreeFillGen(k *prep, in *kop.Instr, e *stackEntry) {
 	if in.C&128 != 0 {
 		s.castFreeRepeat(k, in) // cast_freerepeat.go: AllowRepeats$ with Amount$ X
 	}
+}
+
+// remContains reports whether o is in the resolution's remembered set.
+func (s *State) remContains(o Obj) bool {
+	for i := 0; i < int(s.g.nrem); i++ {
+		if s.g.rem[i] == o {
+			return true
+		}
+	}
+	return false
 }
 
 // addFree appends o to the offered free-cast cards; false: the pool is full.

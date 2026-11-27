@@ -97,6 +97,8 @@ ChooseCardAmount	untyped int	11
 ChooseCardAmountOpt	untyped int	12
 ChooseCardAtRandom	untyped int	13
 ChooseCardEach	untyped int	14
+ChooseCardEachAmount	untyped int	17
+ChooseEachNonLand	untyped int	1
 ChooseOpp	untyped int	2
 ChoosePlayerForget	untyped int	2
 ChoosePlayerFresh	untyped int	1
@@ -736,6 +738,10 @@ ManaRiderNone	uint8	0
 ManaRiderOppGainLife	uint8	2
 ManaRiderSelfGainLife	uint8	4
 ManaRiderStayTapped	uint8	3
+ManaTagCave	uint8	2
+ManaTagDesert	uint8	3
+ManaTagNone	uint8	0
+ManaTagTreasure	uint8	1
 MaxSubtypes	untyped int	192
 MaxTargets	untyped int	5
 MayGuardAnimateAll	untyped int	7
@@ -1309,6 +1315,7 @@ ReplDoubleCountersYou	ReplKind	23
 ReplDoubleDamageToOpps	ReplKind	10
 ReplDoubleTokens	ReplKind	12
 ReplDrawAnyPlayer	untyped int	8
+ReplDrawBodyDraw	untyped int	64
 ReplDrawCauseCyclingNonLand	untyped int	32
 ReplDrawMore	ReplKind	29
 ReplDrawNotFirst	untyped int	1
@@ -1391,6 +1398,12 @@ SkipUntapLockHostStep	untyped int	5
 SkipUntapLockStep	untyped int	2
 SkipUntapLockUntapStep	untyped int	6
 SkipUntapPlayerCL	untyped int	4
+SkipUntapPlayerCreatures	untyped int	7
+SpentTagCave	uint8	3
+SpentTagDesert	uint8	4
+SpentTagNone	uint8	0
+SpentTagSnow	uint8	1
+SpentTagTreasure	uint8	2
 SplitGateCounter	uint8	1
 SplitGateLands	uint8	2
 SplitGateNone	uint8	0
@@ -1640,6 +1653,7 @@ Tf2ToGraveHalf	TrigFlags2	16777216
 Tf2ToOpponent	TrigFlags2	16
 Tf2ToYou	TrigFlags2	16777216
 Tf2Unblocked	TrigFlags2	262144
+Tf2UnblockedOnce	TrigFlags2	67108864
 Tf2XBound	TrigFlags2	2097152
 Tf2YourTurn	TrigFlags2	2
 Tf3CastConverge	TrigFlags3	2
@@ -1743,6 +1757,7 @@ TrAttacking	untyped int	2
 TrHasteEOT	untyped int	4
 TrList	untyped int	8
 TrTapped	untyped int	1
+TrigAbCastActivated	int16	5
 TrigAbCastAny	int16	4
 TrigAbCastExhaust	int16	1
 TrigAbCastLoyalty	int16	2

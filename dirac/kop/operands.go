@@ -329,7 +329,17 @@ const (
 	ChooseCardAtRandom      = 13 // A = the pick count, the engine rng picks (no ask)
 	ChooseCardEach          = 14 // every player picks one, AliveFrom(controller)
 	ChooseCardActivatorBase = 16 // match the pool from the activator (Drana's TriggeredDefendingPlayer)
+	// ChooseCardEachAmount: every player in Obj, AliveFrom(controller), picks
+	// A cards (every pick taken, no Done), each from a pool matched from the
+	// asking player: the filter's YouCtrl is the chooser's own objects
+	// (Planetary Annihilation's "each player chooses six lands they control")
+	ChooseCardEachAmount = 17
 )
+
+// ChooseEachNonLand is OpChooseEachType's C bit 0: the pool is Choices$
+// Permanent.nonLand, so no type group offers a land (an artifact land is no
+// artifact candidate). A holds the groups' TypeMask (0 = all six).
+const ChooseEachNonLand = 1
 
 // Search flags carried in Instr.B (a VConst) of OpSearchEx / OpChooseMove,
 // not in C: C>>3 has no room left (bit 11 is the last positive bit of the

@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/adams-shaun/gorge/dirac/cardset"
+	"github.com/adams-shaun/gorge/engine/state"
 )
 
 // The Play Amount$/Defined$ population lockstep
@@ -16,6 +17,8 @@ import (
 // Harness the Storm's Play Defined$ Targeted joins the deck: two of its
 // triggers share one graveyard card, and a paid cast the pool cannot cover is
 // reversed with the card still a legal target for the second trigger.
+// Chandra Ablaze's -7 (Amount$ ChandraX over ValidZone$ Graveyard) sizes the
+// one ask's Max by the count of red instants and sorceries in the graveyard.
 // Run as its own shard (-run '^TestPlayPopCountLockstep$').
 func playPopCountDecks() [2][]cardset.Entry {
 	d := []cardset.Entry{
@@ -24,8 +27,8 @@ func playPopCountDecks() [2][]cardset.Entry {
 		{Name: "Shock", Count: 4},
 		{Name: "Lightning Strike", Count: 4},
 		{Name: "Volcanic Hammer", Count: 3},
-		{Name: "Raging Goblin", Count: 4},
-		{Name: "Goblin Piker", Count: 3},
+		{Name: "Chandra Ablaze", Count: 4},
+		{Name: "Raging Goblin", Count: 3},
 		{Name: "Lava Axe", Count: 3},
 		{Name: "Mountain", Count: 11},
 	}
@@ -35,8 +38,30 @@ func playPopCountDecks() [2][]cardset.Entry {
 func TestPlayPopCountLockstep(t *testing.T) {
 	t.Parallel()
 	tally := new(psTally)
-	lockstepRunPolicy(t, "playpopcount", playPopCountDecks(), 200, true, nil, nil, playShapesPolicy(tally))
-	t.Logf("free plays %d (Plargg and Nassari)", tally.free)
+	grave := 0
+	base := playShapesPolicy(tally)
+	policy := func(seed uint64) Policy {
+		inner := base(seed)
+		return PolicyFunc(func(c *PickCtx) Canon {
+			a := inner.Pick(c)
+			if c.G != nil {
+				// a free play begun from a graveyard: Chandra Ablaze's ultimate
+				if pd := c.G.Pending(); pd != nil && pd.ResumeKind == "play" {
+					if opt, ok := c.G.GorgeOption(a); ok && opt.Kind == "mode" && opt.Obj != 0 {
+						if ob := c.G.E.G.Obj(opt.Obj); ob != nil && ob.Zone == state.ZGraveyard {
+							grave++
+						}
+					}
+				}
+			}
+			return a
+		})
+	}
+	lockstepRunPolicy(t, "playpopcount", playPopCountDecks(), 200, true, nil, nil, policy)
+	t.Logf("free plays %d (Plargg and Nassari), graveyard plays %d (Chandra Ablaze)", tally.free, grave)
+	if grave < 3 {
+		t.Errorf("graveyard plays %d, want at least 3; the ChandraX ask is not reached", grave)
+	}
 	if tally.free < 20 {
 		t.Errorf("free plays %d, want at least 20; the lockstep proves nothing", tally.free)
 	}

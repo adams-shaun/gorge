@@ -202,7 +202,7 @@ func (e *Engine) EndEffectSource(source state.ObjID, spareAfter uint32, carrier 
 		return
 	}
 	// next is the clock of the next activation of the same source, the upper
-	// bound of this carrier's continuous half (an Effect registers its
+	// bound of this carrier's continuous half, inclusive (an Effect registers its
 	// Triggers$ before its StaticAbilities$, so the continuous registrations
 	// of activation C carry Timestamps above C). Zero means this is the last
 	// activation.
@@ -232,11 +232,15 @@ func (e *Engine) EndEffectSource(source state.ObjID, spareAfter uint32, carrier 
 	}
 	// dropContinuous reports whether a continuous registration stamped at c
 	// ends here. A carrier's continuous half is stamped after its delayed
-	// clock, so it is the range (spareAfter, next).
+	// clock, so it is the range (spareAfter, next]: the last continuous
+	// registration of activation C can carry the very clock the next
+	// activation's delayed registration reads (no tick between them), so the
+	// upper bound is inclusive (the next activation's own continuous half is
+	// ticked after its delayed clock, so it stays above next).
 	dropContinuous := func(c uint32) bool {
 		switch {
 		case carrier:
-			return c > spareAfter && (next == 0 || c < next)
+			return c > spareAfter && (next == 0 || c <= next)
 		case spareAfter != 0:
 			return c <= spareAfter
 		default:

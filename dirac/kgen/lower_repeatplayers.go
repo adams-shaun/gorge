@@ -380,6 +380,9 @@ func (lc *lowerCtx) eachPlSVarOK(body string) bool {
 	if head, n, ok := strings.Cut(b, "/Minus."); ok && n != "" && strings.Trim(n, "0123456789") == "" {
 		b = head // Doomsday Excruciator's all-but-six
 	}
+	if head, n, ok := strings.Cut(b, "/Times."); ok && n != "" && strings.Trim(n, "0123456789") == "" {
+		b = head // Price of Progress' twice the nonbasic lands
+	}
 	admitRem := false
 	if _, ok := remEachOwnNonLand(strings.TrimPrefix(b, "Remembered$")); ok {
 		admitRem, b = true, "" // Kroxa's exact read; the trial below proves it lowers

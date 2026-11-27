@@ -561,6 +561,18 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 				if chosenPool || f.Clauses[i].Owner != whoAny {
 					continue
 				}
+				if f.Clauses[i].Ctrl == whoTgtPlayer {
+					// TargetedPlayerCtrl on a graveyard card: its controller
+					// is its owner off the battlefield (gorge
+					// matchTargetedPlayerCtrl reads Object.Controller, the
+					// owner there), so the pool is the targeted player's
+					// graveyard, the owner role the kernel reads off the
+					// battlefield (ownerRoleF2: Realmbreaker, the Invasion
+					// Tree's land from the milled opponent's graveyard)
+					f.Clauses[i].Owner = whoTgtPlayer
+					f.Clauses[i].Ctrl = whoAny
+					continue
+				}
 				if dpScope != dpNone {
 					// DefinedPlayer$ names the fetch player: gorge's pool is that
 					// player's own graveyard (effHiddenPick, not gameWide), the
@@ -1900,16 +1912,24 @@ var chooseCardRememberModes = map[string]string{
 	"Optional":  "OptionalRemember",
 }
 
-func (lc *lowerCtx) chooseCard(ps *params) error {
+// chooseCardShape lowers the ChooseCard shapes that stand apart from the
+// general pick: ChooseEach$ (the per-type pick), the each-player counted pick
+// and the target carrier. ok false: not one of them.
+func (lc *lowerCtx) chooseCardShape(ps *params) (bool, error) {
 	if each, ok := ps.get("ChooseEach"); ok {
-		// Liliana's -9: each opponent chooses a permanent they control of
-		// each permanent type; the SacrificeAll that follows takes the rest.
-		if ps.str("Choices") != "Permanent" || ps.str("ControlledByPlayer") != "Chooser" || ps.str("Defined") != "Opponent" {
-			return refuse("ChooseEach shape")
+		return true, lc.chooseEachType(ps, each)
+	}
+	if ps.str("ControlledByPlayer") == "Chooser" && ps.str("Defined") == "Player" && ps.is("Mandatory", "True") {
+		if ok, err := lc.chooseCardEachAmount(ps); ok || err != nil {
+			return true, err
 		}
-		ps.consume("Mandatory", "Reveal")
-		lc.emit(lInstr{Op: "ChooseEachType", Obj: lRef{Kind: rEachOpp}, CS: each})
-		return nil
+	}
+	return lc.chooseCardCarrier(ps)
+}
+
+func (lc *lowerCtx) chooseCard(ps *params) error {
+	if ok, err := lc.chooseCardShape(ps); ok || err != nil {
+		return err
 	}
 	// A ValidTgts$ chooser must be read before Choices$: the Choices$ filter
 	// (TargetedPlayerCtrl) reads the target slot this adds (lower_choosecardtarget.go).
@@ -2691,8 +2711,13 @@ func (lc *lowerCtx) play(ps *params) error {
 		cs += "|Repeat"
 	}
 	if upTo {
+		// A counted Amount$ lowers through the value machinery: the UpTo
+		// bound is the SVar's count, evaluated by the kernel as the ask
+		// closes (interp_ask.go reads A as a value). One lc.value cannot
+		// price stays refused by this arm's name, the shape of gorge's
+		// unpriced-count fallback.
 		if repeatN, err = lc.value(amount); err != nil {
-			return err
+			return refuse("Play Amount %q", amount)
 		}
 		cs += "|UpTo"
 	}
@@ -2810,13 +2835,15 @@ func (lc *lowerCtx) play(ps *params) error {
 		}
 		// P3/P4: untargeted filter population over the controller's hand or
 		// the graveyards, in seat order.
-		if !strings.Contains(valid, "YouOwn") && !strings.Contains(valid, "YouCtrl") && !(valid == "Card" && (playRememberedEmptyKey(ps, "ConditionDefined") || playOwnHand(ps)) && ps.str("ValidSA") == "Spell.nonCreature+YouOwn") {
+		if !strings.Contains(valid, "YouOwn") && !strings.Contains(valid, "YouCtrl") && !playThisTurnCastHand(valid, vzone) && !(valid == "Card" && (playRememberedEmptyKey(ps, "ConditionDefined") || playOwnHand(ps)) && ps.str("ValidSA") == "Spell.nonCreature+YouOwn") {
 			return refuse("Play Valid$ %q without YouOwn/YouCtrl", valid)
 		}
 		if forget {
 			return refuse("Play ForgetPlayed$ outside P1")
 		}
-		if vzone == "Graveyard" && amount != "1" {
+		if vzone == "Graveyard" && amount != "1" && !upTo {
+			// the counted Amount$ over this filter population is admitted by
+			// playUpToOK (Chandra Ablaze's ChandraX, lower_playpopcount.go)
 			return refuse("Play from Graveyard without Amount$ 1")
 		}
 		expr, err := andFilterExpr(valid, saExpr)
@@ -3411,22 +3438,12 @@ func (lc *lowerCtx) emblem(ps *params, tr string) error {
 	if err != nil {
 		return err
 	}
+	objCap, endsSelf := lc.emblemObjCapture(&t, hasCap && !player, mem.kind == memNone)
 	if err := emblemBlocksRefuse(t, eot, hasCap || mem.kind != memNone); err != nil {
 		return err
 	}
 	saved := len(lc.out.Abilities)
-	lc.capRem = hasCap && (t.Mode == "DamageDealtOnce" || t.Mode == "DamageDoneOnce")
-	lc.ddoEvent = eot && t.Mode == "DamageDoneOnce"
-	lc.effCount = mem.kind == memCount
-	lc.emblemBlocked = hasCap && (t.Mode == "AttackerBlocked" || t.Mode == "AttackerUnblocked")
-	lc.emblemBlocks = eot && t.Mode == "Blocks"
-	lc.emblemUnblocked = hasCap && t.Mode == "AttackerUnblocked"
-	lc.emblemDmg = hasCap && !player && t.Mode == "DamageDone"
-	lc.selfRem = selfRem
-	err = lc.withAbility(lc.ab, func() error { return lc.lowerTriggered(t, "Command") })
-	lc.selfRem = false
-	lc.capRem, lc.effCount, lc.ddoEvent, lc.emblemBlocked, lc.emblemBlocks, lc.emblemDmg, lc.emblemUnblocked, lc.remSelf = false, false, false, false, false, false, false, false
-	if err != nil {
+	if err := lc.lowerEmblemTrigger(t, eot, hasCap, player, mem.kind == memCount, objCap, selfRem); err != nil {
 		return err
 	}
 	if len(lc.out.Abilities) != saved+1 {
@@ -3440,7 +3457,7 @@ func (lc *lowerCtx) emblem(ps *params, tr string) error {
 		return err
 	}
 	recipientCap := false
-	if hasCap && !player {
+	if objCap.filter {
 		if recipientCap, err = emblemCaptureFilter(ab); err != nil {
 			return err
 		}
@@ -3455,13 +3472,55 @@ func (lc *lowerCtx) emblem(ps *params, tr string) error {
 	}
 	ab.Latent = true
 	ab.Name = "EmblemTrigger"
-	em := lEmblem{Trigger: saved, UntilEOT: eot, UntilNextTurn: next, Capture: capture, CaptureSet: hasCap, CaptureIsPlayer: player, CaptureLapse: lapse}
+	em := lEmblem{Trigger: saved, UntilEOT: eot, UntilNextTurn: next, Capture: capture, CaptureSet: hasCap, CaptureIsPlayer: player, CaptureLapse: lapse, Once: endsSelf}
 	ce := lInstr{Op: "CreateEmblem", Obj: lRef{Kind: rYou}}
 	mem.apply(&em, &ce) // lower_effectremember.go
 	lc.out.Emblems = append(lc.out.Emblems, em)
 	ce.C = len(lc.out.Emblems) - 1
 	lc.emit(ce)
 	return nil
+}
+
+// emblemObjCap is how an emblem's object capture reads: filter means the
+// capture narrows the trigger's filter (emblemCaptureFilter); captured means
+// the kernel queues the remembered object as the trigger object.
+type emblemObjCap struct{ filter, captured bool }
+
+// emblemObjCapture decides whether the emblem remembers one object beside a
+// Phase or ChangesZone trigger (an Effect's RememberObjects$ TriggeredCard).
+// The kernel queues that object as the trigger object (triggers_gen.go
+// fireEmblemsAmt for Phase, trig_emblems.go fireEmblemsObj for ChangesZone),
+// so the body's Defined$ Remembered reads it; the pair and list shapes carry
+// their own memory and keep their own trigger objects. An emblem over
+// TriggeredCard whose body ends by exiling the Effect fires once (endsSelf):
+// the emblem's Once flag is that end, and the self-exile body is dropped (it
+// would move the creating card, RefSelf, not the Effect).
+func (lc *lowerCtx) emblemObjCapture(t *cards.Trigger, objCap, noMem bool) (emblemObjCap, bool) {
+	captured := objCap && noMem && (t.Mode == "Phase" || t.Mode == "ChangesZone")
+	endsSelf := captured && effectTriggerSelfExiles(lc.face.SVars, *t)
+	if endsSelf {
+		t.Effect = trimEffectSelfExile(t.Effect)
+	}
+	return emblemObjCap{filter: objCap && !captured, captured: captured}, endsSelf
+}
+
+// lowerEmblemTrigger lowers an emblem's trigger under the per-shape flags the
+// trigger lowering reads, and clears them after.
+func (lc *lowerCtx) lowerEmblemTrigger(t cards.Trigger, eot, hasCap, player, count bool, objCap emblemObjCap, selfRem bool) error {
+	lc.capRem = hasCap && (t.Mode == "DamageDealtOnce" || t.Mode == "DamageDoneOnce")
+	lc.ddoEvent = eot && t.Mode == "DamageDoneOnce"
+	lc.effCount = count
+	lc.emblemBlocked = hasCap && (t.Mode == "AttackerBlocked" || t.Mode == "AttackerUnblocked")
+	lc.emblemBlocks = eot && t.Mode == "Blocks"
+	lc.emblemUnblocked = hasCap && t.Mode == "AttackerUnblocked"
+	lc.emblemDmg = hasCap && !player && t.Mode == "DamageDone"
+	lc.emblemCapturedObj = objCap.captured
+	lc.selfRem = selfRem
+	err := lc.withAbility(lc.ab, func() error { return lc.lowerTriggered(t, "Command") })
+	lc.selfRem = false
+	lc.capRem, lc.effCount, lc.ddoEvent, lc.emblemBlocked, lc.emblemBlocks, lc.emblemDmg, lc.emblemUnblocked, lc.remSelf = false, false, false, false, false, false, false, false
+	lc.emblemCapturedObj = false
+	return err
 }
 
 // emblemTimedMode reports whether an until-end-of-turn or until-your-next-turn
@@ -4045,6 +4104,9 @@ func (lc *lowerCtx) copyNonRemController(ps *params, obj lRef) (bool, error) {
 }
 
 func (lc *lowerCtx) copyPermanent(ps *params) error {
+	if d, ok := ps.m["Defined"]; ok && strings.HasPrefix(strings.TrimSpace(d), "ValidExile ") {
+		return lc.copyPermanentValidExile(ps, strings.TrimSpace(d))
+	}
 	if d, ok := ps.m["Defined"]; ok && strings.HasPrefix(strings.TrimSpace(d), "Valid ") {
 		if _, ok := ps.m["ValidTgts"]; ok {
 			// a player target whose permanents the Valid set names
@@ -4251,6 +4313,65 @@ func (lc *lowerCtx) copyPermanent(ps *params) error {
 		}
 	}
 	in.CS = strings.Join(flags, "|")
+	lc.emit(in)
+	return nil
+}
+
+// copyPermanentValidExile lowers CopyPermanent over Defined$ ValidExile
+// <filter> (Altaïr Ibn-La'Ahad's "for each creature card you own in exile
+// with a memory counter on it, create a token that's a copy of it"). gorge's
+// definedZoneValidTargets reads the zone-qualified Valid family over the
+// resolving controller's exile zone (the other zones range over every living
+// player; exile does not), in zone order, and effCopyPermanent mints a token
+// copy of each match. The kernel's ExtCopyExiledWith already walks the exile
+// zones and matches a card filter; B.N bit 15 restricts it to the
+// controller's zone (dirac/copy_exiledwith.go). A Choices$ pool, or any
+// copy-count rider the op does not carry, is left to the node's unread-param
+// refusal.
+func (lc *lowerCtx) copyPermanentValidExile(ps *params, d string) error {
+	spec := strings.TrimSpace(strings.TrimPrefix(d, "ValidExile "))
+	ps.get("Defined")
+	if _, ok := ps.m["Choices"]; ok {
+		return refuse("CopyPermanent Defined$ %q: a Choices$ pool", d)
+	}
+	f, err := lc.filter(spec)
+	if err != nil {
+		return err
+	}
+	if f.Players != 0 || len(f.Clauses) == 0 {
+		return refuse("CopyPermanent Defined$ %q: a player alternative or empty filter", d)
+	}
+	exc, hasExc, err := lc.copyExceptions(ps)
+	if err != nil {
+		return err
+	}
+	var flags []string
+	if v, ok := ps.get("TokenTapped"); ok {
+		if v != "True" {
+			return refuse("CopyPermanent TokenTapped %q", v)
+		}
+		flags = append(flags, "Tapped")
+	}
+	atk, err := lc.copyAttacking(ps)
+	if err != nil {
+		return err
+	}
+	if atk {
+		flags = append(flags, "Attacking")
+	}
+	if a, ok := ps.get("AtEOT"); ok {
+		f, err := lc.copyAtEOTFlag(ps, a)
+		if err != nil {
+			return err
+		}
+		flags = append(flags, f)
+	}
+	in := lInstr{Op: "CopyAllExile", F: f, CS: strings.Join(flags, "|")}
+	if hasExc {
+		lc.out.overrides = append(lc.out.overrides, exc)
+		in.C = len(lc.out.overrides) // index+1
+		in.Note = "except " + overrideString(exc)
+	}
 	lc.emit(in)
 	return nil
 }

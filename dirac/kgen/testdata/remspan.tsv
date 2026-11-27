@@ -1,13 +1,13 @@
 # TestRememberedSpanCensus: distinct ALL-list cards per Remembered/Imprinted refusal bucket (key<TAB>cards)
 imp.activated	24
-imp.bound.1	108
+imp.bound.1	109
 imp.bound.all	19
 imp.bound.n	3
-imp.cards	130
-imp.leaves	23
+imp.cards	131
+imp.leaves	24
 imp.other	2
 imp.phase	16
-imp.sole	2
+imp.sole	3
 imp.spell	34
 imp.static	2
 imp.trigger	55

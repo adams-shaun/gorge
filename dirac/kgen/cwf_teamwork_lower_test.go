@@ -1,15 +1,15 @@
 package kgen
 
 import (
-	"slices"
 	"testing"
 
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
 // TestSelfFlashTeamworkLowers: Quantum Reduction's `ValidSA$ Spell.Teamwork`
-// self grant lowers (CardDef.SelfFlashSA = kop.SfsaTeamwork), while every other
-// ValidSA$ shape stays refused with the same "CastWithFlash shape".
+// self grant lowers (CardDef.SelfFlashSA = kop.SfsaTeamwork), while the other
+// Spell.* shapes still lower as the plain Spell grant (only Spell.Teamwork sets
+// SfsaTeamwork).
 func TestSelfFlashTeamworkLowers(t *testing.T) {
 	c := lowerNamedCard(t, "Quantum Reduction")
 	if len(c.Refusals) != 0 {
@@ -22,11 +22,11 @@ func TestSelfFlashTeamworkLowers(t *testing.T) {
 	if b := lowerNamedCard(t, "Illusion Spinners"); !b.SelfFlash || b.SelfFlashSA != kop.SfsaSpell {
 		t.Errorf("Illusion Spinners SelfFlash=%v SelfFlashSA=%d, want the bare Spell grant", b.SelfFlash, b.SelfFlashSA)
 	}
-	// a different Spell.* carrier still refuses by name
+	// the other supported Spell.* shapes lower with the plain Spell grant:
+	// the Teamwork SA bit is Quantum Reduction's alone
 	for _, name := range []string{"Blur of Heroism", "Flash Photography"} {
-		got := lowerNamedCard(t, name)
-		if !slices.ContainsFunc(got.Refusals, func(r refusal) bool { return r.Reason == "CastWithFlash shape" }) {
-			t.Errorf("%s refusals = %v, want CastWithFlash shape", name, got.Refusals)
+		if got := lowerNamedCard(t, name); got.SelfFlash && got.SelfFlashSA != kop.SfsaSpell {
+			t.Errorf("%s SelfFlashSA=%d, want the plain Spell grant", name, got.SelfFlashSA)
 		}
 	}
 }

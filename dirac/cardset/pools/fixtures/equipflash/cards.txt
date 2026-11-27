@@ -1,0 +1,11 @@
+# Mode$ CastWithFlash | ValidSA$ Activated.Equip (Leonin Shikari;
+# kop.StatEquipFlash, kernel static_equipflash.go, gorge equipAtInstantSpeed),
+# beside Equipment and creatures to carry it, for the oracle's constructed
+# lockstep (dirac/oracle/cwf_equip_lockstep_test.go)
+Leonin Shikari
+Bonesplitter
+Grizzly Bears
+Hill Giant
+Lightning Bolt
+Mountain
+Plains

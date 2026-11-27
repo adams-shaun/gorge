@@ -310,7 +310,6 @@ var knownUnknownFilterPredicates = []string{
 	"sharesNameWith NonToken",
 	"sharesNameWith Remembered.ExiledWithSource",
 	"sharesNameWith Sacrificed",
-	"sharesNameWith ThisTurnCast",
 	"sharesNameWith ValidExile Card.ExiledWithSource",
 	"sharesNameWith YourGraveyard",
 	"sharesOwnerWith TriggeredCard",

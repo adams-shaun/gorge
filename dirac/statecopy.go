@@ -19,6 +19,7 @@ func (*noCopy) Unlock() {}
 func (dst *State) CopyFrom(src *State) {
 	stale := dst.permHi
 	dst.pcMemoDrop() // mana_pcmemo.go
+	dst.sfmDrop()    // mana_sfmemo.go
 	dst.stateCore = src.stateCore
 	hi := src.permHi
 	copy(dst.perms[:hi], src.perms[:hi])
@@ -103,6 +104,8 @@ type ForkPool struct {
 	payCalls uint32
 	// pcm: manaPCGen's per-decision view memo (mana_pcmemo.go).
 	pcm pcMemo
+	// sfm: scriptFilt's per-decision memo (mana_sfmemo.go).
+	sfm sfMemo
 }
 
 // warmForkDepth is past the deepest nesting measured, 5 in random play.

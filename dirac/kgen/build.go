@@ -473,6 +473,7 @@ var counterKinds = map[string]kop.CounterKind{
 	"COMPONENT":  kop.CtrComponent,  // Component Pouch's named counter (CR 122.1)
 	"DESCENT":    kop.CtrDescent,    // Descent into Avernus's named counter (CR 122.1)
 	"OMEN":       kop.CtrOmen,       // Soulcipher Board's omen counter (CR 122.1)
+	"MEMORY":     kop.CtrMemory,     // Altair Ibn-La'Ahad's memory counter (CR 122.1)
 	"M2M1":       kop.CtrM2M1,       // a -2/-1 counter (CR 122.1a; Contagion; the kernel's ptGen)
 }
 
@@ -1148,7 +1149,7 @@ func (cb *cardBuilder) record() error {
 	d.World, d.Snow = c.World, c.Snow
 	d.SelfFlash, d.SelfFlashSA = c.SelfFlash, c.SelfFlashSA
 	d.Gift = c.Gift
-	d.SpentSelf, d.SpentSnow = c.SpentSelf, c.SpentSnow
+	d.SpentSelf, d.SpentSnow, d.SpentTag = c.SpentSelf, c.SpentSnow, c.SpentTag
 	d.DmgAmt = c.DmgAmt
 	if c.CastBF != nil {
 		// Count$LastStateBattlefieldWithFallback: the
@@ -1185,7 +1186,18 @@ func (cb *cardBuilder) record() error {
 	d.Daybound, d.Nightbound = c.Daybound, c.Nightbound
 	d.AltAddOne = c.AltAddOne
 	for _, st := range c.Subtypes {
-		if st == "Cave" || st == "Desert" {
+		switch st {
+		case "Treasure":
+			d.ManaTag = kop.ManaTagTreasure
+		case "Cave":
+			if d.ManaTag == 0 {
+				d.ManaTag = kop.ManaTagCave
+			}
+			d.TypedMana = true
+		case "Desert":
+			if d.ManaTag == 0 {
+				d.ManaTag = kop.ManaTagDesert
+			}
 			d.TypedMana = true
 		}
 	}
@@ -2425,6 +2437,8 @@ func (cb *cardBuilder) ref(r lRef) (kop.Ref, error) {
 		return kop.RefTriggerAttackers, nil
 	case rRememberedOwner:
 		return kop.RefRememberedOwner, nil
+	case rAttackedBySource:
+		return kop.RefAttackedBySource, nil
 	case rExiledWithOwner:
 		return kop.RefExiledWithOwner, nil
 	case rEmblemSource:

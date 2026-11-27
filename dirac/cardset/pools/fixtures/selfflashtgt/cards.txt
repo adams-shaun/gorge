@@ -1,0 +1,11 @@
+# the CastWithFlash self grant with ValidSA$ Spell.IsTargeting Valid <spec>:
+# Flash Photography (Permanent.YouCtrl) and Timely Ward (Card.IsCommander, never
+# true outside a Commander game) beside creatures to target
+# (dirac/oracle/selfflash_istargeting_lockstep_test.go)
+Flash Photography
+Timely Ward
+Wind Drake
+Elite Vanguard
+Savannah Lions
+Island
+Plains

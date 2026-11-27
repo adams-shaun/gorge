@@ -1279,6 +1279,9 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 				}
 			}
 			n, narrowed := s.mustTargetSingle(k, e, &buf, s.buildTgtMVDiscardCands(k, ti, &buf, n)) // cost_targetmv.go
+			if k.anySelfFlash {
+				n = s.flashTgtNarrow(k, e, &buf, n) // cast_selfflashtgt.go
+			}
 			if n == 0 && !t.UpTo {
 				// no legal target: a trigger is removed (CR 603.3d)
 				if e.kind == seTrigger {
@@ -1775,6 +1778,7 @@ func (s *State) payCastParts(k *prep, ep *stackEntry, anyColor bool) {
 		s.tapForRider(k, e.ctrl, &cost, int(e.x), e.obj, anyColor)
 	}
 	s.snowPreSpend(k, &e)
+	s.spentPreSpend(k, &e) // a producer-tagged Count$CastTotalManaSpent (mana_spenttag.go)
 	s.payPicks(k)
 	s.payBlightPicks(k)
 	if e.flags&sfKicked != 0 && k.gen != nil && k.gen.anyOptCost {

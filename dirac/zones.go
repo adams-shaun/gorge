@@ -354,14 +354,19 @@ func (s *State) drawExcl(p uint8, ch drawChain) {
 	if s.cfgx&cfgxCantDraw != 0 && s.playerBanned(s.k(), kop.StatCantDraw, p) {
 		return // static_cantdraw.go: before the empty-library mark
 	}
-	if pl.libLo == pl.libHi {
+	// CR 614.11: a Draw replacement also meets an attempted draw from an
+	// empty library (gorge's emptyDrawReplacement). The scan runs before the
+	// mark, restricted to the lines that shape admits, so a matching line
+	// replaces the draw and leaves no mark; otherwise the mark stands.
+	empty := pl.libLo == pl.libHi
+	if (s.cfgx&cfgxDrawMore != 0 || s.g.on && s.k().gen.hasDrawProgram()) && s.drawReplace(p, ch, empty) {
+		return // repl_draw.go, repl_drawprogram.go: the replacement drew in this draw's place
+	}
+	if empty {
 		// the player loses at the next state-based check (CR 704.5b), not
 		// mid-resolution (Strix Lookout's draw then its other effects)
 		pl.mark |= pmDrewEmpty
 		return
-	}
-	if (s.cfgx&cfgxDrawMore != 0 || s.g.on && s.k().gen.hasDrawProgram()) && s.drawReplace(p, ch) {
-		return // repl_draw.go, repl_drawprogram.go: the replacement drew in this draw's place
 	}
 	if int(pl.handN) >= len(pl.hand) {
 		s.capFull(StallZone) // the hand is full of bounced tokens (placeFrom)

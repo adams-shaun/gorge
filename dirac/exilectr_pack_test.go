@@ -30,7 +30,7 @@ func TestExileCtrPackRoundTrips(t *testing.T) {
 	if e := exileCtr(0); e.kind() != kop.CounterKind(0) || e.n() != 0 {
 		t.Fatalf("the zero record reads (%v,%d)", e.kind(), e.n())
 	}
-	if got := len(exileCtrKinds); got != 5 {
-		t.Fatalf("the code table has %d kinds, want 5 (Void, Ice, Blood, Hit, Croak)", got)
+	if got := len(exileCtrKinds); got != 6 {
+		t.Fatalf("the code table has %d kinds, want 6 (Void, Ice, Blood, Hit, Croak, Memory)", got)
 	}
 }
