@@ -55,6 +55,16 @@ bg() {
 gotest() {
   if [ "$precompile" = 1 ]; then command go test -exec /bin/true "$@" >/dev/null; else command go test "$@"; fi
 }
+# CI_FAST_SKIP_ORACLE_REPLAY=1 skips ./dirac/oracle's named row (the replays), but that row also carries the
+# sub-second table guards test_targets.GUARDS puts there. Skipping the whole row dropped them: #5074 added two
+# recordings written by a plain json.Marshal, `fast` stayed green, and merge batch 45901506759 failed on
+# TestReproCompactRoundTrip ("file on disk is not the compact encoding"). The guards read files only, so they
+# still run, on their own call, when the diff can change a recording. Any other testdata (fasttier, slowrepros)
+# does not need them. The call is one oracle test-binary compile, on the PRs that add or edit a recording.
+if [ "${CI_FAST_SKIP_ORACLE_REPLAY:-0}" = 1 ] && [ -n "$(git diff --name-only "$1"...HEAD -- 'dirac/oracle/testdata/repro/*' 'dirac/oracle/testdata/repro_table_names.txt' 2>/dev/null)" ]; then
+  echo "ci-fast: the diff changes oracle recordings; the replays are skipped here but the table guards still run"
+  bg oracle-guards gotest -timeout 5m -short -run '^TestReproCompactRoundTrip$|^TestReproGlobMatchesTable$' ./dirac/oracle
+fi
 # ./dirac/oracle whole is the full lockstep suite (over 20 min: 11-17 #443 timed out); the oracle job runs it nightly
 # and the batch's dirac jobs cover it. Here it runs only the tests in its changed test files and, when the diff adds
 # or edits a recording, every repro replay (the recording's pool test is not named by the diff).
