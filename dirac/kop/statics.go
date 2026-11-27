@@ -43,7 +43,7 @@ type Static struct {
 	Kind    StaticKind
 	Filter  FilterID
 	Filter2 FilterID // CantBlockBy: the blockers that can't block; ReduceCost (spell or activated ability): the target it needs; CastWithFlash of an emblem: the spell whose cast ends the emblem (the Effect's ForgetOnCast$, Quicken)
-	A, B    int16    // P/T deltas, cost reduction
+	A, B    int16    // P/T deltas, cost reduction; StatCastWithFlash A: 1 + a SelfFlash grant's ValidSA$ Spell.XCostLE<N> bound (0 = none; dirac/cast_flashxcap.go)
 	Kw      KwMask
 	Cond    uint8 // reserved condition opcode (0 = always)
 

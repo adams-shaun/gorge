@@ -395,6 +395,9 @@ func (e *Engine) xAsk() bool {
 		}
 		applyCap(cap)
 	}
+	if cap, ok := e.flashXCap(pc); ok {
+		applyCap(cap) // a Spell.XCostLE<N> flash grant (flash_xcost_cap.go)
+	}
 	var legal []int32
 	maxOld := int32(0)
 	// A cost whose announced X feeds a ReduceCost static (Dargo's Sac<X>

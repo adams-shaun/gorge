@@ -1242,6 +1242,9 @@ type lStatic struct {
 	// (kop.StFlashAnyCaster), or an AlternativeCost grant with no ValidPlayer$
 	// rider (kop.StAltAnyCaster)
 	AnyCaster bool
+	// FlashXMax: a CastWithFlash self grant's `ValidSA$ Spell.XCostLE<N>`
+	// bound, 1+N (0 = none; kop.Static.A, dirac/cast_flashxcap.go)
+	FlashXMax int
 	// OutlivesLoss: the pump beside an override static with a part in layers
 	// 1 to 5 (kop.Static.OutlivesLoss)
 	OutlivesLoss bool

@@ -425,6 +425,9 @@ func (s *State) addXOptions(k *prep, d *Decision, e *stackEntry, mx, hi int, av 
 	if dl := s.xDelveCredit(k, e); dl > 0 {
 		hi = min(maxXAsk, max(hi, mx+dl))
 	}
+	if n, ok := s.flashXCap(k, e); ok {
+		mx, hi = min(mx, n), min(hi, n) // a Spell.XCostLE<N> self flash grant (cast_flashxcap.go)
+	}
 	base := s.buildCost(k)
 	anyColor := s.bld().bfl&bflAnyColor != 0
 	// pays: X = x is payable. An announced convoke pick pays one generic of
