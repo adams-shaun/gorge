@@ -35,6 +35,9 @@ func (lc *lowerCtx) delayedUpkeep(ps *params) error {
 	if ro == "RememberedController" {
 		return lc.delayedRemPlayer(when, exec) // lower_delayremplayer.go
 	}
+	if ro == "TargetedOwner & ChosenPlayer" {
+		return lc.delayedOwnerOrChosen(when, exec) // lower_delayedownerchosen.go
+	}
 	obj, err := lc.delayedStepRemember("upkeep", ro, exec)
 	if err != nil {
 		return err

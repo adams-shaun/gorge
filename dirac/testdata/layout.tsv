@@ -688,6 +688,7 @@ default	field	genPrep.anyMonarch	1
 default	field	genPrep.anyAttackedObj	1
 default	field	genPrep.anySuspect	1
 default	field	genPrep.anyRemEach	1
+default	field	genPrep.anyRemSearcher	1
 default	field	genPrep.anySacSub	1
 default	field	genPrep.ix	64
 default	field	genPrep.anyInit	1

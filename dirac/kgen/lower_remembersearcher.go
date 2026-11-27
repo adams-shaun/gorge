@@ -26,7 +26,7 @@ func (lc *lowerCtx) rememberSearcher(ps *params, obj lRef, flags []string) error
 	if v != "True" {
 		return refuse("RememberSearcher %q", v)
 	}
-	if obj.Kind != rYou {
+	if obj.Kind != rYou && obj.Kind != rEachOpp {
 		// In a remembered-set card loop the searched library is the bound
 		// card's controller's (Wave of Vitriol's DefinedPlayer$
 		// ImprintedController): RefEach, resolved per pass.
@@ -38,7 +38,7 @@ func (lc *lowerCtx) rememberSearcher(ps *params, obj lRef, flags []string) error
 		if strings.HasPrefix(f, "alt=") {
 			return refuse("RememberSearcher$ beside %s", f)
 		}
-		if f == "Confirm" && obj.Kind != rEach {
+		if f == "Confirm" && obj.Kind != rEach && obj.Kind != rEachOpp {
 			return refuse("RememberSearcher$ beside %s", f)
 		}
 	}
@@ -52,6 +52,9 @@ func (lc *lowerCtx) rememberSearcher(ps *params, obj lRef, flags []string) error
 			// the repeated card's controller is both the searched library's
 			// owner and the chooser (Wave of Vitriol); the search lowering
 			// read both.
+			if obj.Kind == rEachOpp && k == "DefinedPlayer" {
+				continue // the one opponent's own search (Tempt with Discovery)
+			}
 			if obj.Kind == rEach && (k == "DefinedPlayer" || k == "Chooser") && strings.TrimSpace(ps.m[k]) == "ImprintedController" {
 				continue
 			}

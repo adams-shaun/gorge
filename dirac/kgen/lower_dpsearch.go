@@ -11,6 +11,13 @@ func (lc *lowerCtx) definedPlayer(v string) (lRef, error) {
 	switch v {
 	case "You":
 		return lRef{Kind: rYou}, nil
+	case "Opponent":
+		// "each opponent searches their library" (Tempt with Discovery's
+		// tempting offer): dirac is two seat, so the one opponent. gorge
+		// searchChooser answers for the library's owner, which is the
+		// kernel's default chooser of a search over another seat's library.
+		lc.twoSeat("DefinedPlayer$ Opponent on a library search")
+		return lRef{Kind: rEachOpp}, nil
 	case "ImprintedController":
 		// the repeated card's controller inside a remembered-set card loop
 		// (Wave of Vitriol's per-pass search); eachCtrl resolves the ref
