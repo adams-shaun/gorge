@@ -3818,10 +3818,10 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 				ab.ActCond = deliriumCond() // gorge activationConditionOK
 			case "Metalcraft":
 				// "activate only if you control three or more artifacts"
-				// (CR 207.2c; gorge activationConditionOK's metalcraft arm)
-				if sa.API != "Mana" {
-					return refuse("Activation %q outside a mana ability", v)
-				}
+				// (CR 207.2c; gorge activationConditionOK's metalcraft arm).
+				// The kernel reads a printed battlefield ability's Trig.Cond
+				// for both the mana and the non-mana offer (legal.go's
+				// canActivate, activateCondHolds), so the gate lowers alike.
 				c, err := lc.bareCondition(ps, "Metalcraft")
 				if err != nil {
 					return err
