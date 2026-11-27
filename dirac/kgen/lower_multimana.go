@@ -135,7 +135,7 @@ func (lc *lowerCtx) refuseMultiMana() {
 		// the kernel's per-count pair view (mana_dynpair.go) plans it
 		return
 	}
-	if len(ms) == 2 && plainTapMana(ms[0], false) && unrestrictedOne(ms[0]) && sacSelfPairMana(ms[0], ms[1]) {
+	if sacSelfPair(ms) {
 		// {T}: Add {C}, then {T}, Sacrifice this permanent: Add {C}{C}
 		// (Crystal Vein): gorge's census unit holds both alternatives, and
 		// the planner takes the sacrificing one only when the tap alone
@@ -612,6 +612,13 @@ func tapXOneGapMana(a *lAbility) bool {
 	b := *a
 	b.Cost.TapN, b.Cost.TapF, b.Cost.Tap = 0, nil, true
 	return plainTapMana(&b, false)
+}
+
+// sacSelfPair: ms is the Crystal Vein pair, a plain unrestricted {T} first
+// mana ability beside the wider sacrifice-self alternative of the same single
+// fixed colour (sacSelfPairMana).
+func sacSelfPair(ms []*lAbility) bool {
+	return len(ms) == 2 && plainTapMana(ms[0], false) && unrestrictedOne(ms[0]) && sacSelfPairMana(ms[0], ms[1])
 }
 
 // sacSelfPairMana: a is the wider unit of the Crystal Vein pair beside the
