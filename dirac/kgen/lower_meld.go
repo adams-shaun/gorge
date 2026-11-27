@@ -29,7 +29,7 @@ const (
 )
 
 // commanderPools are the pools whose games are Commander pods.
-var commanderPools = map[string]bool{"cmd5": true, "edh": true, "mbc": true}
+var commanderPools = map[string]bool{"cmd5": true, "edh": true, "hosted-cmdr": true, "mbc": true}
 
 var (
 	meldPrimaryRe   = regexp.MustCompile(`Primary\$\s*([^|]+?)\s*(?:\||$)`)
