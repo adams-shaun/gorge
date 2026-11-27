@@ -7,13 +7,14 @@ import (
 
 // drawProgramCarriers are the Draw replacements this slice lowers: a
 // ReplaceWith$ body composed of a draw, a life change, a token or a win
-// (ReplDrawProgram), or a bodyless Prevent$ skip. The optional/choice group
-// and every body that moves library or graveyard cards (a dig, a ChooseMove,
-// a Play) keep their refusal until their own slice proves the kernel's
-// movement against gorge's.
+// (ReplDrawProgram), Out of the Tombs' graveyard-to-battlefield return with
+// its Remembered-gated LosesGame, or a bodyless Prevent$ skip. The
+// optional/choice group and every other body that moves library or graveyard
+// cards (a dig, a different ChooseMove, a Play) keep their refusal until their
+// own slice proves the kernel's movement against gorge's.
 var drawProgramCarriers = []string{
 	"Blood Scrivener", "Hullbreacher", "Jace, Wielder of Mysteries", "Laboratory Maniac",
-	"Notion Thief", "Obstinate Familiar", "Possessed Portal",
+	"Notion Thief", "Obstinate Familiar", "Out of the Tombs", "Possessed Portal",
 }
 
 // drawWinCarriers are the carriers whose body is "you win the game instead":
@@ -59,7 +60,6 @@ func TestReplDrawReplRestRefused(t *testing.T) {
 		{"Enduring Renewal", "Draw replacement"},
 		{"Eruth, Tormented Prophet", "Draw replacement"},
 		{"Forbidden Crypt", "Draw replacement"},
-		{"Out of the Tombs", "Draw replacement"},
 		{"Pavel Chekov, First Posting", "Draw replacement with an optional or choice body"},
 		{"Pursuit of Knowledge", "Draw replacement"},
 		{"Sages of the Anima", "Draw replacement"},

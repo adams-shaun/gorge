@@ -183,7 +183,7 @@ func (s *State) requeueEnterReveal(ask askRec, kind uint8) {
 // mode (face_siegemode.go) and the as-enters Reveal (enterRevealStart) queue
 // their ask and report true, the program stopping there; any other form runs
 // in place.
-func (s *State) replAskOp(k *prep, sl Slot, c CardID, ab uint8, i int, in *kop.Instr) bool {
+func (s *State) replAskOp(k *prep, sl Slot, c CardID, ab uint8, i int, in *kop.Instr, drawProgram bool) bool {
 	if in.Op == kop.OpChooseBranch {
 		if in.C != 2 {
 			s.execGen(k, in)
@@ -194,6 +194,9 @@ func (s *State) replAskOp(k *prep, sl Slot, c CardID, ab uint8, i int, in *kop.I
 	}
 	if in.C&7 == 0 && in.C>>3&kop.SrReveal != 0 {
 		return s.enterRevealStart(k, sl, c, ab, uint8(i), in)
+	}
+	if drawProgram && in.Op == kop.OpChooseMove {
+		return s.drawPickStart(k, sl, c, ab, uint8(i), in) // repl_drawpick.go
 	}
 	s.execGen(k, in)
 	return false

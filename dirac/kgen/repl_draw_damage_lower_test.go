@@ -37,7 +37,6 @@ func TestReplDrawDamageRestRefused(t *testing.T) {
 		{"Asmodeus the Archfiend", "Draw replacement"},
 		{"Enduring Renewal", "Draw replacement"},
 		{"Eruth, Tormented Prophet", "Draw replacement"},
-		{"Out of the Tombs", "Draw replacement"},
 		{"Pavel Chekov, First Posting", "Draw replacement with an optional or choice body"},
 		{"Pursuit of Knowledge", "Draw replacement"},
 		{"Sages of the Anima", "Draw replacement"},
