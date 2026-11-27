@@ -138,6 +138,8 @@ func TestEffectDrawReplacementUrabraskOneShot(t *testing.T) {
 		for _, evx := range e.L.Events[ne0:] {
 			fmt.Fprintf(&sb2, "{k=%d obj=%d p=%d from=%d to=%d amt=%d text=%q} ", evx.Kind, evx.Obj, evx.Player, evx.From, evx.To, evx.Amount, evx.Text)
 		}
+		ps, okp := effects.EffectOwnerPlayers(e, ctxPr, "ReplacedPlayer")
+		t.Logf("DEBUG replPlayer=%+v definedPlayers=%v ok=%v", ctxPr.Repl.Player, ps, okp)
 		t.Logf("DEBUG body: exile1 %d->%d hand %d->%d lib %d->%d pending=%v newevents: %s",
 			ex2, len(e.G.Zone(state.ZExile, 1)), hb2, len(e.G.Zone(state.ZHand, 1)),
 			lb2, len(e.G.Zone(state.ZLibrary, 1)), e.Pending(), sb2.String())
