@@ -4,8 +4,9 @@ package kgen
 // engine/effects/filter_word.go wordKickedIndex over Object.CastFlags
 // FlagKicked1 / FlagKicked2): "kicked 1" and "kicked 2" hold when that
 // alternative was paid. Both lower to kop.PredKickedAlt, PredN the index,
-// read on the battlefield only (dirac/filter_kickedalt.go; build.go refuses
-// the word elsewhere). The bare "kicked" word is a different clause flag
+// read on the battlefield, or on the spell itself as a SpellCast self
+// trigger's filter (dirac/trig_selfcast.go selfCastFilterOK; selfCastClause);
+// build.go refuses the word elsewhere. The bare "kicked" word is a different clause flag
 // (fKicked) and never reaches here.
 const (
 	kickedAltFirst  = "kicked 1"

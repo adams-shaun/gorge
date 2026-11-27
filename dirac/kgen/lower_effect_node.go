@@ -382,9 +382,10 @@ func (lc *lowerCtx) node(sa *cards.SA, ps *params) error {
 	if err != nil {
 		return err
 	}
-	if cond.Kind != cNone || guardAt >= 0 || setPred != nil {
-		lc.markUnlessGuarded(usN) // a skip over the node alone (lower_unlesssubs.go)
-	}
+	// the node's guard decides whether its UnlessResolveSubs$ gates shift
+	// with the plain Condition insert below or are marked guarded
+	// (lower_unlesssubs.go)
+	lc.guardUnlessGates(at, usN, guardAt, cond, setPred)
 	if cond.Kind != cNone && guardAt < 0 && at < len(lc.ab.Prog) && lc.ab.Prog[at].Op == "IfPaid" && lc.ab.Prog[at].Skip == -1 {
 		// a trigger's own "you may pay" cost (Feed the Pack's Sac<1/...>):
 		// gorge's triggered-cost window pays it before the body runs, and the
@@ -545,7 +546,7 @@ func (lc *lowerCtx) unless(ps *params, fn func() error) error {
 	lc.ab.Prog[at].Skip = len(lc.ab.Prog) - at - 1
 	if gate {
 		lc.unlessSubs = append(lc.unlessSubs, usGate{at: at, nodeEnd: len(lc.ab.Prog),
-			same: ps.is("UnlessSwitched", "True") == whenPaid, nTgt: len(lc.ab.Targets)})
+			same: ps.is("UnlessSwitched", "True") == whenPaid, nTgt: len(lc.ab.Targets), condAt: -1})
 	}
 	return nil
 }
