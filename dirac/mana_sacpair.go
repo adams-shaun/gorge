@@ -53,7 +53,6 @@ func prepManaSacPair(g *genPrep, c *kop.CardDef, id CardID, pc *pcard) {
 	a := &c.Abilities[wider]
 	pc.wideN, pc.wideCol = a.ManaN, a.ManaColors&colOrC
 	g.setFlag(id, gfManaSacPair)
-	g.anySacPair = true
 }
 
 // sacPairUnit registers Crystal Vein's source as the pair of unit types
