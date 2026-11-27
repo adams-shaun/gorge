@@ -247,4 +247,5 @@ func TestHostedCmdrKeywordsCostsLockstep(t *testing.T) {
 			}
 		})
 	}
+	t.Run("windgrace_commander_keyword", hostedCmdrWindgrace)
 }

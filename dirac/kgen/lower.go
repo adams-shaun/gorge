@@ -2219,6 +2219,12 @@ func (lc *lowerCtx) lowerKeywords() {
 			// Deck construction only.
 		case head == "Partner" && deckOnlyPartner(param):
 			// CR 702.124a: deck construction only (lower_partner.go)
+		case k == "CARDNAME can be your commander.":
+			// Deck-construction eligibility (a Lord Windgrace planeswalker
+			// commander): gorge reads the Oracle phrase when the deck is checked
+			// (engine/deck commanderOraclePhrase, rules/commander_config) and the
+			// kernel seats the commander from Config.Commanders, so the keyword
+			// carries no game characteristic (oracle projchars gorgeKwElsewhere).
 		case k == "Daybound" || k == "Nightbound":
 			// CR 702.145 (gorge rules/daynight.go, cr-daybound-nightbound
 			// and -transform): the day/night designation and the faces it
