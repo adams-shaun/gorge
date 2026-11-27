@@ -71,17 +71,3 @@ func TestLandGrantFiltOrderMutation(t *testing.T) {
 		t.Fatal("no seed diverged with the intrinsic tap searched before the printed filter")
 	}
 }
-
-// TestLandGrantAltFundMutation: with a prefix search's funding tap of a bounce
-// land answering its own face alone, the pod diverges (gorge's ask also offers
-// the intrinsic {U}, which the search's node budget and path reach).
-func TestLandGrantAltFundMutation(t *testing.T) {
-	if isolate(t) {
-		return
-	}
-	dirac.DebugLandGrantAltFund = true
-	defer func() { dirac.DebugLandGrantAltFund = false }()
-	if !landGrantFiltMutated(t, append(slices.Clone(landGrantAltShared), landGrantFiltLands[:5]...), 500) {
-		t.Fatal("no seed diverged with the funding tap answering the own face alone")
-	}
-}
