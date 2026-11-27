@@ -164,6 +164,12 @@ type Static struct {
 	// permanent enters with its controller's choice of a +1/+1 counter or
 	// haste (the as-enters ask, dirac/kw_riot.go), read beside CardDef.Riot.
 	Riot bool
+	// Unleash: a StatContinuous grant of unleash (AddKeyword$ Unleash, CR
+	// 702.86; Tesak, Judith's Hellhound's other Dogs): the affected
+	// permanent can't block while it carries a +1/+1 counter (the block
+	// gate, dirac/kw_unleash.go), read beside CardDef.Unleash; the entry
+	// election is printed-only.
+	Unleash bool
 	// PanhZones: a StatPanharmonicon static's ValidZone$ zone mask (1<<Zone;
 	// 0 = the battlefield only, the default). The triggering object's own
 	// zone, at the moment the event caused the trigger, must be in the set;

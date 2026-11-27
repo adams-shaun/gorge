@@ -65,6 +65,7 @@ func cbContinuousStatic(cb *cardBuilder, s lStatic, st *kop.Static) ([]uint8, er
 	st.GainsTrig = s.GainsTrig && st.GainsOf != 0                  // lower_gainsof.go, dirac/trig_gainedtrig.go
 	st.Evasion, st.Infect, st.Toxic = s.Evasion, s.Infect, s.Toxic // lower_kwmark.go
 	st.Riot = s.Riot                                               // lower_riotgrant.go
+	st.Unleash = s.Unleash                                         // lower_unleash.go
 	if err := cb.staticOverride(st, s); err != nil {
 		return nil, err
 	}
