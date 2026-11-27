@@ -114,6 +114,12 @@ func TestEffectDrawReplacementUrabraskOneShot(t *testing.T) {
 		t.Logf("DEBUG reg: players=%v remembered=%v group=%d eot=%v perm=%v dur=%q untilTurn=%d params=%v body=%q",
 			r0.RememberedPlayers, r0.Remembered, r0.EffectGroup, r0.UntilEOT, r0.Permanent,
 			r0.Duration, r0.UntilTurn, r0.ReplacementParams, r0.ReplacementBody)
+		with := replacementBodySA(r0.ReplacementBody)
+		rPr := cards.Repl{Event: r0.ReplacementEvent, Params: r0.ReplacementParams, With: with}
+		evProbe := events.Event{Kind: events.Draw, Player: 1, From: state.ZLibrary, To: state.ZHand, Secret: true}
+		t.Logf("DEBUG match=%v hold=%v with=%v",
+			e.replacementMatchesRememberedUngatedBy(rPr, id, evProbe, r0.Remembered, r0.RememberedPlayers, nil, 0, nil, chosenCapture{}),
+			e.replacementConditionHoldsWith(rPr, id, 0, nil, r0.Remembered), with != nil)
 	}
 	for i := 0; i < 4000 && len(e.G.Zone(state.ZExile, 1)) == 0; i++ {
 		if answerIfDiscard(t, e) {
