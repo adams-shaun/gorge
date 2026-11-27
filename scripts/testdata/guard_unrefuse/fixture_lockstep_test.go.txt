@@ -1,0 +1,25 @@
+package oracle
+
+// Fixture copied into the fake tree's dirac/oracle by
+// TestUnrefuseStaleKeepsLockstepCards. It is never compiled: scripts/testdata is
+// ignored by the go tool. It only has the shape a real refusal-pinning test has,
+// so the guard must read it as one.
+
+import "testing"
+
+// TestGuardLockedCardReprosLockstep pins a refusal entry: it names the card and
+// fails when the entry is gone, so unrefuse-stale.sh must keep that entry.
+func TestGuardLockedCardReprosLockstep(t *testing.T) {
+	card := "Guard Locked Card"
+	if card != "Guard Locked Card" {
+		t.Fatal("Guard Locked Card has no dirac/support/refused entry")
+	}
+}
+
+// TestGuardFreeCardNoLockstep names the free card but is not a ReprosLockstep
+// test, so it does not pin the entry: unrefuse-stale.sh may unrefuse it.
+func TestGuardFreeCardNoLockstep(t *testing.T) {
+	if "Guard Free Card" == "" {
+		t.Fatal("unreachable")
+	}
+}
