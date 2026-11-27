@@ -817,10 +817,11 @@ func (s *State) actSourcesAfford(k *prep, sl Slot, ab int, a *kop.Ability, mana 
 // other-sacrifice victims (potential_plan.go kept/tapped, pay.planVictimReserve),
 // so no candidate takes it. A cost that leaves the source free lets the planner
 // sacrifice it to fund the play; the prefix search ends any line that takes it
-// (potential_script.go leftOwnZone), so only this gate prices that shape. One
-// activation per fundable candidate -- each takes one victim and produces the
-// source's mana -- joins the plain census; the activation's mana is priced
-// against it with the source's own {T} still held out (abilityAffords). Only
+// (potential_script.go leftOwnZone), so only this gate prices that shape. The
+// branch's mana joins the plain census: a source the cost taps activates once
+// (its census {T} unit comes out first), a source it leaves untapped
+// (Ashnod's Altar) once per fundable victim; either way the activation's mana
+// is priced with the play's own {T} still held out (abilityAffords). Only
 // the real offer walk: inside a script walk the tapX prefix search owns these
 // sources (scriptOffers; the hand activations' handActCensusPays split). Cold,
 // out of line.
@@ -865,7 +866,28 @@ func (s *State) actOtherSacOffers(k *prep, sl Slot, a *kop.Ability, mana *kop.Ma
 		mask, per := tapXUnit(ox)
 		var t avail
 		t = *av
-		for i := 0; i < n; i++ {
+		// A sacrifice-another source that spends itself to activate ({T},
+		// Phyrexian Tower) is one activation whatever the victim count, and
+		// its plain census {T} unit comes out of it first (CR 605.1a: the
+		// same tap cannot both make the census's {B} and pay the branch's
+		// {T}; removeSrc as abilityAffords takes the play's own source out).
+		// Summing the two, or one activation per candidate, priced a
+		// sacrifice it can make once as a {5} play it can make twice: pair
+		// 42 seed 537512 decision 313 (Tower's {B} plus its own {B}{B}) and
+		// 372 (two victims, two branches). Only a source the cost leaves
+		// untapped (Ashnod's Altar's "Sacrifice a creature: Add {C}{C}")
+		// activates once per fundable victim, and keeps its census unit.
+		taps := ox.Cost.Flags&(kop.CostTap|kop.CostUntapSelf|kop.CostSacSelf) != 0
+		acts := n
+		if taps {
+			acts = 1
+			pcx := &k.cards[s.cardAt(sx)]
+			if k.gen != nil {
+				pcx = s.manaPCGen(k, sx)
+			}
+			s.removeSrc(k, &t, sx, pcx)
+		}
+		for i := 0; i < acts; i++ {
 			t.addUnits(mask, per)
 		}
 		if s.abilityAffords(k, sl, a, mana, &t) {
