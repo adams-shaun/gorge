@@ -1107,6 +1107,7 @@ type lAbility struct {
 	DelayedObjOnly  bool   // a delayed latent whose RememberObjects$ set holds objects only (lower_delayedobjects.go)
 	DelayedPlayer   bool   // a delayed latent registered with a remembered PLAYER (the countered spell's controller): Defined$ DelayTriggerRemembered reads the trigger player (lower_delayremplayer.go)
 	DelayedSetDmg   bool   // a delayed latent registered over a dig's whole remembered set whose body counts the still-exiled ones (Dragonhawk's Count$ValidExile Card.IsTriggerRemembered; lower_zone.go)
+	EmblemRem       bool   // an emblem trigger whose body reads the emblem's CaptureRem set, not the resolution's remembered set (lower_effectendtrig.go)
 	DelayedSelf     bool   // the delayed program remembered the source's own card (Transformed$ return; lower_delayedobjects.go)
 	Origin          int    // gorge's Face.Abilities index, or 0x80|Face.Triggers index; 0 is ambiguous with A[0], so Origin is valid only when OriginOK
 	OriginOK        bool

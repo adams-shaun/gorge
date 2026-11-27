@@ -199,6 +199,13 @@ type Facts struct {
 type SpecOpts struct {
 	// DelayedRemembered is a delayed registration's captured objects.
 	DelayedRemembered []state.Target
+	// DelayedImprinted is a delayed registration's ImprintCards$ capture
+	// (state.DelayedTrigger.Imprinted): the Card.IsImprinted predicate reads
+	// THIS set instead of the source's live association, which the creating
+	// chain's own Cleanup cleared before the trigger fired (Ugin, the
+	// Ineffable's Spirit-token return, CR 603.7a/610.3). nil keeps the live
+	// read exactly as before.
+	DelayedImprinted []state.ObjID
 	// DelayedChosen is a delayed registration's snapshotted chosen-card set
 	// (state.DelayedTrigger.ChosenCard, the ChooseCard answer the registering
 	// Effect copied, CR 611.2a) and DelayedChosenBound says it was captured.

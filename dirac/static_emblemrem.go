@@ -84,16 +84,27 @@ func (s *State) embRemFill(e *kop.Emblem, r *embRec) bool {
 	if !e.CaptureRem {
 		return true
 	}
-	if int(s.g.nrem) > embRemSlots {
+	// Capture owns slot 0; CaptureRem then fills the remaining slots from the
+	// resolution's remembered set (Ugin, the Ineffable's Effect captures the
+	// imprinted token as its trigger and the exiled card as the set its body
+	// returns). Without a Capture the set starts at slot 0 and clears the
+	// frozen number, as before (Mysterio, Master of Illusion).
+	start := 0
+	if e.Capture != kop.RefNone {
+		start = 1
+	}
+	if int(s.g.nrem) > embRemSlots-start {
 		return false
 	}
-	r.num = 0
+	if start == 0 {
+		r.num = 0
+	}
 	for j := 0; j < int(s.g.nrem); j++ {
 		v := objWord(s.g.rem[j]) + 1
-		if j == 0 {
+		if j+start == 0 {
 			r.num = v
 		} else {
-			r.rem[j-1] = v
+			r.rem[j+start-1] = v
 		}
 	}
 	return true

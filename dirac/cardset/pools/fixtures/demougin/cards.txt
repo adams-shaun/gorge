@@ -1,0 +1,10 @@
+# The demo Ugin pool (dirac/oracle/demo_ugin_lockstep_test.go): Ugin, the
+# Ineffable's [+1] face-down Dig, the 2/2 Spirit it imprints, and the removal
+# that makes the token leave so the Effect returns the exiled card.
+Doom Blade
+Island
+Mountain
+Shock
+Swamp
+Ugin, the Ineffable
+Unsummon

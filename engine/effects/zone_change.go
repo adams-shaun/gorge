@@ -1036,7 +1036,7 @@ func effChangeZone(h Host, c *Ctx, sa *cards.SA) {
 			// the spell/ability that registered it -- so end every Effect-created
 			// registration from that source. The ender's FromEffect marker keeps
 			// the source's printed statics out of it.
-			h.EndEffectSource(f.Source, f.Spare)
+			h.EndEffectSource(f.Source, f.Spare, f.Carrier)
 		}
 		return
 	}
