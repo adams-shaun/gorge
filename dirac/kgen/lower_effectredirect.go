@@ -89,6 +89,62 @@ func (lc *lowerCtx) effectDmgRedirectScope(ps *params) (bool, error) {
 	return true, nil
 }
 
+// effectDmgRedirectToHost lowers Daughter of Autumn's Effect: AB$ Effect |
+// Cost$ W | ValidTgts$ Creature.White | RememberObjects$ Targeted |
+// ExileOnMoved$ Battlefield | Duration$ UntilHostLeavesPlayOrEOT over one
+// Event$ DamageDone | ValidTarget$ Creature.IsRemembered | DamageTarget$
+// EffectSource | ReplaceWith$ line whose body is DB$ ReplaceSplitDamage |
+// DamageTarget$ EffectSource (gorge replacement_splitdamage.go: the next 1
+// damage to the remembered creature is dealt to the host instead). One OpExt
+// ExtDmgRedirect of the kop.DmgRedirectHost kind, Obj2 naming the host
+// (dirac/repl_dmgredirect.go): DmgRedirectNext with host and recipient
+// swapped. It reports false, consuming nothing, for any shape it does not
+// read, so the en-Kor arm's refusals stand.
+func (lc *lowerCtx) effectDmgRedirectToHost(ps *params) (bool, error) {
+	name := strings.TrimSpace(ps.str("ReplacementEffects"))
+	if name == "" || strings.Contains(name, ",") {
+		return false, nil
+	}
+	r := etbParams(lc.face.SVars[name])
+	if r == nil || r["Event"] != "DamageDone" ||
+		strings.TrimSpace(r["ValidTarget"]) != "Creature.IsRemembered" ||
+		strings.TrimSpace(r["DamageTarget"]) != "EffectSource" {
+		return false, nil
+	}
+	rp := newParams(r)
+	rp.consume("Event", "Description", "ValidTarget", "DamageTarget")
+	body := etbParams(lc.face.SVars[rp.str("ReplaceWith")])
+	if len(body) != 2 || body["DB"] != "ReplaceSplitDamage" || body["DamageTarget"] != "EffectSource" {
+		return false, nil
+	}
+	if err := lc.redirectBody(rp, "ReplaceSplitDamage", 2); err != nil {
+		return true, err
+	}
+	if ps.str("RememberObjects") != "Targeted" {
+		return true, refuse("Effect DamageDone redirect RememberObjects %q", ps.str("RememberObjects"))
+	}
+	if _, ok := ps.get("ValidTgts"); !ok {
+		return true, refuse("Effect DamageDone redirect without a target")
+	}
+	if f, err := lc.filter(ps.str("ValidTgts")); err != nil {
+		return true, err
+	} else if f.Players != 0 {
+		// a player host is no battlefield record (the damage would have to be
+		// dealt to a player: the redirect records name permanents)
+		return true, refuse("Effect DamageDone redirect ValidTgts$ %q names a player", ps.str("ValidTgts"))
+	}
+	if v, ok := ps.get("ExileOnMoved"); !ok || strings.TrimSpace(v) != "Battlefield" {
+		return true, refuse("Effect DamageDone redirect without ExileOnMoved$ Battlefield")
+	}
+	host, err := lc.objOrTarget(ps, "", zBattlefield)
+	if err != nil {
+		return true, err
+	}
+	ps.consume("ReplacementEffects", "RememberObjects", "Duration", "ExileOnMoved", "Name")
+	lc.emit(lInstr{Op: "DmgRedirect", Obj2: host, C: kop.DmgRedirectHost, Note: "the next 1 damage to the target this turn is dealt to the host instead"})
+	return true, nil
+}
+
 // redirectLine reads the Effect's one DamageDone replacement line and checks
 // the parts both redirects share: DamageTarget$ Remembered, and that nothing
 // else is on the line. The returned params still hold ValidTarget$,
