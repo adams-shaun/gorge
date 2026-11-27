@@ -9,7 +9,8 @@ import (
 
 // The ReplDrawProgram lockstep pool: the Draw replacements whose
 // ReplaceWith$ body is a draw, a life change or a token (Blood Scrivener,
-// Hullbreacher, Notion Thief). The bodyless Prevent$ skip (Possessed Portal)
+// Hullbreacher, Notion Thief), and the Optional$ True skip (Obstinate
+// Familiar, whose election both engines pose at each draw). The bodyless Prevent$ skip (Possessed Portal)
 // has no deck here: no pair reached its skip (the mutation never diverged in
 // 200 seeds), so a pair would be vacuous evidence. Each pair puts the one replacement on
 // seat 0 and plays a vanilla seat 1, so one draw never meets two replacements (the kernel stalls a
@@ -33,6 +34,16 @@ var kdrawReplDecks = map[string][2][]cardset.Entry{
 		{{Name: "Grizzly Bears", Count: 8}, {Name: "Hill Giant", Count: 8},
 			{Name: "Divination", Count: 4}, {Name: "Revitalize", Count: 4},
 			{Name: "Island", Count: 8}, {Name: "Forest", Count: 4}, {Name: "Plains", Count: 4}},
+	},
+	"familiar": {
+		// Obstinate Familiar's Optional$ True skip: every draw its controller
+		// makes once it resolves (the turn draw and each Divination card)
+		// poses the apply / decline election (dirac/repl_drawmay.go). One copy:
+		// two Familiars would be a competition the kernel stalls.
+		{{Name: "Obstinate Familiar", Count: 1}, {Name: "Grizzly Bears", Count: 8}, {Name: "Hill Giant", Count: 4},
+			{Name: "Divination", Count: 4}, {Name: "Mountain", Count: 8}, {Name: "Island", Count: 8}, {Name: "Forest", Count: 7}},
+		{{Name: "Grizzly Bears", Count: 12}, {Name: "Hill Giant", Count: 8},
+			{Name: "Divination", Count: 4}, {Name: "Island", Count: 8}, {Name: "Forest", Count: 8}},
 	},
 	"hullbreacher": {
 		{{Name: "Hullbreacher", Count: 1}, {Name: "Grizzly Bears", Count: 8}, {Name: "Hill Giant", Count: 4},

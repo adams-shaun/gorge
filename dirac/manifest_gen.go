@@ -35,68 +35,71 @@ const raGenCipher uint8 = 153
 // ask (dirac/manifest/ask/raGenClash)
 const raGenClash uint8 = 154
 
+// ask (dirac/manifest/ask/raGenDrawMay)
+const raGenDrawMay uint8 = 155
+
 // ask (dirac/manifest/ask/raGenDrawOrder)
 //
 // the CR 616.1 order ask of competing Draw replacement programs (gorge poseReplacementChoice on a Draw event): the drawing player picks which candidate applies to the draw, asked at an OpDraw card or the turn draw when two or more candidates match and one is a ReplDrawProgram body (repl_draworder.go).
-const raGenDrawOrder uint8 = 155
+const raGenDrawOrder uint8 = 156
 
 // ask (dirac/manifest/ask/raGenMyriad)
-const raGenMyriad uint8 = 156
+const raGenMyriad uint8 = 157
 
 // ask (dirac/manifest/ask/raGenOptInSeat)
-const raGenOptInSeat uint8 = 157
+const raGenOptInSeat uint8 = 158
 
 // ask (dirac/manifest/ask/raGenPayETB)
-const raGenPayETB uint8 = 158
+const raGenPayETB uint8 = 159
 
 // ask (dirac/manifest/ask/raGenPileOpp)
-const raGenPileOpp uint8 = 159
+const raGenPileOpp uint8 = 160
 
 // ask (dirac/manifest/ask/raGenRepeatOptional)
-const raGenRepeatOptional uint8 = 160
+const raGenRepeatOptional uint8 = 161
 
 // ask (dirac/manifest/ask/raGenRippleOrder)
 //
 // the ripple tail's CR 401.4 arrangement ask (gorge effRippleBottom libraryPlacementOrder): the controller orders the revealed cards still in the library as they go to the bottom, asked with two or more of them (kw_ripple.go rippleOrderOptions / rippleOrderAnswer).
-const raGenRippleOrder uint8 = 161
+const raGenRippleOrder uint8 = 162
 
 // ask (dirac/manifest/ask/raGenTurnUpAttach)
 //
 // the effect-driven turn-up's attach election (an ExtTurnFaceUp op turning up a card with a ReplTurnUpAttach replacement; gorge applyTurnFaceUpReplacements parks the event for the body's Optional$ attach ask): Done declines, each destination a choose (face_turnupattach.go).
-const raGenTurnUpAttach uint8 = 162
+const raGenTurnUpAttach uint8 = 163
 
 // ask (dirac/manifest/ask/raLearn)
 //
 // the learn election (CR 701.48a; act_learn.go): gorge effLearn's "learn" KChoose, nothing first, then each sideboard Lesson, then the rummage.
-const raLearn uint8 = 163
+const raLearn uint8 = 164
 
 // ask (dirac/manifest/ask/raLearnDiscard)
 //
 // the learn rummage's discard (CR 701.48a; act_learn.go): gorge learnRummage's "discard" KChoose over the hand in hand order, asked even with one card; the draw follows.
-const raLearnDiscard uint8 = 164
+const raLearnDiscard uint8 = 165
 
 // ask (dirac/manifest/ask/raPair)
 //
 // the Soulbond partner pick of ExtPair (CR 702.95a; kw_soulbond.go pairExt): up to one unpaired creature the trigger's controller controls, gorge effPair's Min 0 Max 1 KChoose; AkDone declines.
-const raPair uint8 = 165
+const raPair uint8 = 166
 
 // ask (dirac/manifest/ask/raPodClashOpp)
-const raPodClashOpp uint8 = 166
+const raPodClashOpp uint8 = 168
 
 // ask (dirac/manifest/ask/raRingBearer)
 //
 // the Ring-bearer choice of ExtRingTemptsYou (CR 701.54a; act_ring.go ringTemptsExt): the tempted player's pick among the creatures they control, the deterministic default (the existing Ring-bearer when still controlled, else the first eligible in zone order) offered first exactly as gorge's KChoose does.
-const raRingBearer uint8 = 168
+const raRingBearer uint8 = 169
 
 // ask (dirac/manifest/ask/raRingLoot)
 //
 // the loot discard of the Ring emblem's level 2 (CR 701.54c; act_ring.go ringLootDiscard): the looting player discards one card of their choice from their hand, gorge's Draw You 1 with the Discard You TgtChoose 1 Sub.
-const raRingLoot uint8 = 169
+const raRingLoot uint8 = 170
 
 // ask (dirac/manifest/ask/raTrigDemoOpp)
 //
 // the demonstrate trigger's opponent pick (CR 702.152a; gorge effDemonstrate stage 1): which living opponent also copies the spell, asked with two or more of them (kw_demonstrate.go).
-const raTrigDemoOpp uint8 = 170
+const raTrigDemoOpp uint8 = 171
 
 // key named card (dirac/manifest/key/keyNamedCard)
 const keyNamedCard key = 0
@@ -967,6 +970,9 @@ func (s *State) askOptionsGen(k *prep, d *Decision) bool {
 	case raGenCipher:
 		s.cipherOptions(k, d) // kw_cipher.go
 		return true
+	case raGenDrawMay:
+		s.drawMayOptions(k, d) // repl_drawmay.go
+		return true
 	case raGenDrawOrder:
 		s.drawOrderOptions(k, d) // repl_draworder.go
 		return true
@@ -1027,6 +1033,9 @@ func (s *State) applyAskGen(k *prep, a Action) bool {
 		return true
 	case raGenCipher:
 		s.cipherAnswer(k, a) // kw_cipher.go
+		return true
+	case raGenDrawMay:
+		s.drawMayAnswer(k, a) // repl_drawmay.go
 		return true
 	case raGenDrawOrder:
 		s.drawOrderAnswer(k, a) // repl_draworder.go

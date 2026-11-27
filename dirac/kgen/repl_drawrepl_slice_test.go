@@ -12,7 +12,7 @@ import (
 // a Play) keep their refusal until their own slice proves the kernel's
 // movement against gorge's.
 var drawProgramCarriers = []string{
-	"Blood Scrivener", "Hullbreacher", "Notion Thief", "Possessed Portal",
+	"Blood Scrivener", "Hullbreacher", "Notion Thief", "Obstinate Familiar", "Possessed Portal",
 }
 
 func TestReplDrawReplSlice(t *testing.T) {
@@ -40,17 +40,16 @@ func TestReplDrawReplSlice(t *testing.T) {
 func TestReplDrawReplRestRefused(t *testing.T) {
 	for _, w := range []struct{ name, class string }{
 		{"Abundance", "Draw replacement with an optional or choice body"},
-		{"Archmage Ascension", "Draw replacement with an optional or choice body"},
+		{"Archmage Ascension", "Draw replacement"},
 		{"Asmodeus the Archfiend", "Draw replacement"},
 		{"Breathstealer's Crypt", "Draw replacement"},
 		{"Chains of Mephistopheles", "Draw replacement"},
 		{"Enduring Renewal", "Draw replacement"},
 		{"Eruth, Tormented Prophet", "Draw replacement"},
 		{"Forbidden Crypt", "Draw replacement"},
-		{"Obstinate Familiar", "Draw replacement with an optional or choice body"},
 		{"Out of the Tombs", "Draw replacement"},
 		{"Pavel Chekov, First Posting", "Draw replacement with an optional or choice body"},
-		{"Pursuit of Knowledge", "Draw replacement with an optional or choice body"},
+		{"Pursuit of Knowledge", "Draw replacement"},
 		{"Sages of the Anima", "Draw replacement"},
 		{"Tomorrow, Azami's Familiar", "Draw replacement"},
 		{"Underrealm Lich", "Draw replacement"},

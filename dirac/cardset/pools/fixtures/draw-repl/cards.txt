@@ -1,7 +1,8 @@
 # The ReplDrawProgram lockstep pool (dirac/oracle/repl_drawrepl_lockstep_test.go):
 # the Draw replacements whose ReplaceWith$ body is a draw, a life change or a
 # token, and the bodyless Prevent$ skip (Blood Scrivener, Hullbreacher,
-# Notion Thief, Possessed Portal). One with Nothing and Dark Ritual reach
+# Notion Thief, Possessed Portal), and the Optional$ True skip (Obstinate
+# Familiar: its player elects apply / decline at each draw). One with Nothing and Dark Ritual reach
 # Blood Scrivener's Hellbent gate, where its body applies. Revitalize is not a
 # carrier: it is a spell whose Draw is its second instruction, so the opponent
 # deck's Draw under a replacement exercises a Draw after another spell
@@ -21,3 +22,4 @@ Swamp
 Mountain
 Forest
 Revitalize
+Obstinate Familiar

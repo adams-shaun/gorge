@@ -1439,6 +1439,10 @@ func (s *State) genAskOptions(k *prep, d *Decision) bool {
 		s.drawOrderOptions(k, d) // repl_draworder.go: the turn draw's order ask, before dredgeTurnAsked
 		return true
 	}
+	if s.res.ask == raGenDrawMay && !s.res.active {
+		s.drawMayOptions(k, d) // repl_drawmay.go: the turn draw's optional replacement election, before dredgeTurnAsked
+		return true
+	}
 	if s.dredgeTurnAsked() {
 		s.dredgeOptions(k, s.active, d) // kw_dredge.go
 		return true
@@ -1550,6 +1554,10 @@ func (s *State) applyGen(k *prep, a Action) {
 	}
 	if s.res.ask == raGenDrawOrder && !s.res.active {
 		s.drawOrderAnswer(k, a) // repl_draworder.go: the turn draw's order ask, before dredgeTurnAsked
+		return
+	}
+	if s.res.ask == raGenDrawMay && !s.res.active {
+		s.drawMayAnswer(k, a) // repl_drawmay.go: the turn draw's optional replacement election, before dredgeTurnAsked
 		return
 	}
 	if s.dredgeTurnAsked() {
