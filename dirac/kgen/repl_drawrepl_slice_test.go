@@ -6,14 +6,20 @@ import (
 )
 
 // drawProgramCarriers are the Draw replacements this slice lowers: a
-// ReplaceWith$ body composed of a draw, a life change or a token
+// ReplaceWith$ body composed of a draw, a life change, a token or a win
 // (ReplDrawProgram), or a bodyless Prevent$ skip. The optional/choice group
 // and every body that moves library or graveyard cards (a dig, a ChooseMove,
 // a Play) keep their refusal until their own slice proves the kernel's
 // movement against gorge's.
 var drawProgramCarriers = []string{
-	"Blood Scrivener", "Hullbreacher", "Notion Thief", "Obstinate Familiar", "Possessed Portal",
+	"Blood Scrivener", "Hullbreacher", "Jace, Wielder of Mysteries", "Laboratory Maniac",
+	"Notion Thief", "Obstinate Familiar", "Possessed Portal",
 }
+
+// drawWinCarriers are the carriers whose body is "you win the game instead":
+// the lowered IR carries the kernel's win op (LoseGame, C 1) and the
+// library-empty gate.
+var drawWinCarriers = map[string]bool{"Jace, Wielder of Mysteries": true, "Laboratory Maniac": true}
 
 func TestReplDrawReplSlice(t *testing.T) {
 	for _, name := range drawProgramCarriers {
@@ -31,6 +37,12 @@ func TestReplDrawReplSlice(t *testing.T) {
 		dumpLIR(&sb, c)
 		if !strings.Contains(sb.String(), "repl DrawProgram") {
 			t.Errorf("%s: lowered IR lacks the draw program:\n%s", name, sb.String())
+		}
+		if drawWinCarriers[name] {
+			const gate = "cond=Value(op3,LibrarySizeOf(You),0)"
+			if !strings.Contains(sb.String(), "LoseGame") || !strings.Contains(sb.String(), gate) {
+				t.Errorf("%s: lowered IR lacks the win op or the empty-library gate:\n%s", name, sb.String())
+			}
 		}
 	}
 }
