@@ -232,6 +232,27 @@ def test_heavy_package_helper_or_fixture_change_runs_whole_not_census():
     assert planned({"dirac/oracle/testdata/x.txt": None})[0]["./dirac/oracle"][0] == "whole"
 
 
+def test_a_source_reading_census_runs_when_the_source_it_parses_changes():
+    # dirac/crcoverage's kwlowered_test.go parses dirac/kgen's registries with go/parser and imports
+    # nothing from kgen, so the reverse-dependency closure never selected it: #5642's kgen change passed
+    # `fast` and reddened merge batch 46056406666 on TestLoweredKeywordRowsAreNotNA.
+    dm = dict(DIRMAP, **{"dirac/kgen": "m/dirac/kgen", "dirac/crcoverage": "m/dirac/crcoverage",
+                         "engine/view": "m/engine/view"})
+    dp = dict(DEPS, **{"m/dirac/kgen": {"m/dirac/kgen"}, "m/dirac/crcoverage": {"m/dirac/crcoverage"},
+                       "m/engine/view": {"m/engine/view"}})
+
+    def got(changes):
+        res, _ = tt.plan(changes, dm, dp, lambda p: [])
+        return {p: (k, rx) for k, p, rx in res}
+
+    assert got({"dirac/kgen/lower.go": None})["./dirac/crcoverage"] == ("whole", "")
+    # the parsed files are the non-test .go sources, so a kgen test change does not select the reader
+    assert "./dirac/crcoverage" not in got({"dirac/kgen/lower_test.go": None})
+    # a change to a package nothing in the table parses gains no reader
+    assert "./dirac/crcoverage" not in got({"engine/view/view.go": None})
+    assert got({"engine/view/view.go": None})["./engine/view"] == ("whole", "")
+
+
 def test_touched_excluded_package_is_excluded_not_census():
     got, skipped = planned({"server/host/host.go": None})
     assert "./server/host" not in got

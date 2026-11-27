@@ -124,6 +124,20 @@ GUARDS = (("./dirac/kop", "^TestKopOrdinalsUnchanged$"),
 TABLE_DATA = ("dirac/support/", "dirac/cardset/pools/", "dirac/cardset/setlists/", "dirac/manifest/key/",
               "dirac/manifest/mech/")
 TABLE_READERS = ("dirac/cardset", "dirac/oracle/cmd/kfuzz")
+# The censuses that read another package's source with go/parser instead of importing it, so the
+# reverse-dependency closure above (which follows imports only) never selects them. Each pair is
+# (reader package, the repo-relative source directories its tests parse); a changed non-test .go file
+# under a source dir selects the reader whole. Measured cost of the missing pair: #5642 changed
+# dirac/kgen's lowering to lower the Fortify keyword head, `fast` stayed green and merge batch
+# 46056406666 went red on dirac/crcoverage's TestLoweredKeywordRowsAreNotNA ("kgen lowers keyword head
+# Fortify (expandedKeywords) but it is in neither loweredKeywordRule nor loweredNotKeywordRule").
+# Whole, not a census -run: the test that catches it need not carry a census name (that one does not),
+# and these readers are cheap (dirac/crcoverage: 2 s, scripts/ci-pkg-times.tsv). A reader too heavy to
+# run whole needs its own named row, not an entry here. Every reader in this table is already a
+# candidate of test-smart's census step (test-targets.sh's C regexp, coverage audit 2026-11-14,
+# section 5); this table supplies the pairs that step's import graph cannot see. Adding a census is one
+# row.
+SOURCE_READERS = (("dirac/crcoverage", ("dirac/kgen",)),)
 # The precheck's oracle replay slice ran as one go test process (~200 top-level tests: the census and refusal
 # families plus the 25% slice) and outran the package's 5m cap on 34 of the last 40 targeted runs (11-27);
 # its summed test wall was ~500 s. test-targets.sh runs the slice as this many concurrent, cost-dealt lanes
@@ -606,6 +620,20 @@ def plan(changes, dirmap, deps, lines_of, repro_names=None, added=(), narrow=Non
                     sel["replayed"].add(lp)
             elif lp not in out:
                 out[lp] = ("census", lp, CENSUS)
+    # A source-reading census (SOURCE_READERS) parses another package's files with go/parser, so the
+    # import graph followed by the two loops above cannot reach it: the changed source file itself
+    # belongs to the parsed package, never to the reader. Select the reader when the diff changes a
+    # non-test .go file it parses (its own tests skip _test.go), never as a blanket always-run.
+    for reader, dirs in SOURCE_READERS:
+        if not any(p.endswith(".go") and not p.endswith("_test.go") and p.startswith(d + "/")
+                   for p in changes for d in dirs):
+            continue
+        ip = dirmap.get(reader)
+        if ip is None or ip not in deps:
+            continue  # no such package (or no test binary): nothing to select
+        lp = local(ip)
+        if lp not in out:
+            out[lp] = ("whole", lp, "")
     for lp, rx in GUARDS:
         if lp not in out:
             out[lp] = ("named", lp, rx)
