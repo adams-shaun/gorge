@@ -1,0 +1,6 @@
+family: StaticKind
+name: StatEquipFlash
+value: next
+state: code 0
+status: active
+doc: S:Mode$ CastWithFlash | ValidSA$ Activated.Equip | Caster$ You (Leonin Shikari, Forge Anew's PlayerTurn-gated copy): the controller may activate Equip abilities any time they could cast an instant (CR 702.6). No operands beyond Cond2; dirac/static_equipflash.go.
