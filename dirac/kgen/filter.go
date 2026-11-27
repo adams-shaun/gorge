@@ -442,6 +442,14 @@ var propWords = map[string]uint64{
 	// gorge matchPredicate's '!' of attachedBy: true for
 	// every object but the source's live host
 	"!EnchantedBy": fNotAttachedBy, "!EquippedBy": fNotAttachedBy, "!AttachedBy": fNotAttachedBy,
+	// blockingEquipped: Forge's "a creature blocking the equipped creature"
+	// (Plasma Caster's ValidTgts$, Trailblazer's Torch's DamageAll). Gorge's
+	// filter matcher leaves the word unknown (engine/effects'
+	// knownUnknownFilterPredicates), so the alternative fails closed and
+	// matches NO object; the two contradictory source flags lower exactly
+	// that (kop.FSelf requires the source, kop.FOther excludes it), never a
+	// guessed blocker relation dirac would offer and gorge would not.
+	"blockingEquipped": fSelf | fOther, "!blockingEquipped": fSelf | fOther,
 	"ChosenType": fChosenType, "ChosenColor": fChosenColor, "IsRemembered": fRemembered,
 	"!IsRemembered": fNotRemembered, "ChosenCard": fChosenCard, "nonChosenCard": fNotChosenCard, "!ChosenCard": fNotChosenCard,
 	"AttachedTo ParentTarget": fAttachedToParentTarget, "targetedBy": fTargetedBy, "Basic": fBasic,

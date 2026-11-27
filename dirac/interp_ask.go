@@ -142,7 +142,21 @@ func (s *State) canPayGenMode(k *prep, p uint8, kind int, amt int, pips int16, f
 	case payKindMoveGrave:
 		return s.countMoveGrave(k, p, f) >= amt // cost_exiledmovegrave.go
 	case kop.PayManaX:
-		return true // X = 0 is always payable
+		// X = 0 pays only the cost's fixed pips: a PayManaX whose F carries
+		// them (Elenda and Azor's {X}{W}{U}{B}) is unpayable at zero when the
+		// pips are. No fixed pips (every other PayManaX carrier) is free.
+		if f == 0 {
+			return true
+		}
+		c := manaOf(0, int16(f))
+		var av avail
+		av.xd, av.xdOn = payDesc{class: pdOther}, true
+		s.availWindowFor(k, p, &av)
+		av.xdOn = false
+		if av.affords(&c, pipMaskOf(&c), 0) {
+			return true
+		}
+		return k.restrSrc && s.restrSrcAffords(k, p, payDesc{class: pdOther, src: NoSlot}, &c, &av, NoSlot, 0)
 	case payKindEvidence:
 		return s.graveTotalMV(k, p) >= amt // gorge evidenceStage: the graveyard reaches N
 	case payKindTrigNewEvidence:
@@ -238,7 +252,13 @@ func (s *State) execPay(k *prep, in *kop.Instr) bool {
 		return s.execTrigEvidenceX(k, p, skip, amt) // cost_collectevidencex.go
 	}
 	if kind == kop.PayManaX {
-		return s.execTrigX(k, p, skip, amt) // trig_maypayx.go
+		if s.execTrigX(k, p, skip, amt) {
+			// No X value is payable, x = 0 included: no announcement ask. Fall
+			// through to the ordinary election, whose canPayGen reads the fixed
+			// pips and poses decline only (gorge's unpayable-cost arm).
+		} else {
+			return false
+		}
 	}
 	if kind == kop.PayMana && skip&pfModes == 0 && s.res.e.kind == seTrigger && kop.PayManaHybN(in.F) != 0 {
 		return s.startPayPips(p, skip, amt) // a trigger's own hybrid cost announces its pips first (cost_trighybrid.go)
@@ -1647,10 +1667,18 @@ func (s *State) payDone(k *prep, paid bool) {
 		skip = uint8(f & 0x7ff)
 	}
 	if paid && s.g.pickZ == kop.PayMana && s.res.e.kind == seTrigger {
-		if life := kop.PayManaLife(s.prog(k)[s.res.pc].F); life != 0 {
-			s.loseLife(k, s.g.pickP, life) // the mana-and-life cost's life (Zoraline)
+		if in := &s.prog(k)[s.res.pc]; in.C&0xF == kop.PayManaX {
+			// A trigger's own announced {X}: the X election folds to a
+			// PayMana election, but F packs the cost's fixed pips, not
+			// PayManaF's life-and-hybrid rider (Elenda and Azor's
+			// "{X}{W}{U}{B}"; trigXCostAt). Nothing is paid beside the mana.
+			s.trigXBind(k)
+		} else {
+			if life := kop.PayManaLife(in.F); life != 0 {
+				s.loseLife(k, s.g.pickP, life) // the mana-and-life cost's life (Zoraline)
+			}
+			s.trigXBind(k) // a PayManaX cost: the announced X is Count$xPaid
 		}
-		s.trigXBind(k) // a PayManaX cost: the announced X is Count$xPaid
 	}
 	if paid && s.g.pickZ == kop.PayTapX && s.res.e.kind == seTrigger {
 		s.tapXVarBind(k) // tapXType<X/Spec>: the count tapped is Count$xPaid

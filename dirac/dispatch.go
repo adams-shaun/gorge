@@ -257,6 +257,8 @@ func (s *State) execCold5(k *prep, in *kop.Instr) (ok, done bool) {
 		s.discover(k, in)
 	case kop.OpMoveCounter:
 		s.moveCounter(k, in)
+	case kop.OpMoveCounterAny:
+		return s.moveCounterAny(k, in), true
 	case kop.OpRearrange:
 		return s.rearrange(k, in), true
 	case kop.OpFog:

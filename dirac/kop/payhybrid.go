@@ -63,9 +63,11 @@ func (in *Instr) IsPayMana() bool {
 }
 
 // InstrFilter is in's filter for a walk over every instruction's filter: F,
-// or 0 on a PayMana pay instruction.
+// or 0 on a PayMana or PayManaX pay instruction (PayMana's F packs life and
+// hybrid pips; PayManaX's packs fixed coloured pips beside the announced {X},
+// dirac/kgen/lower_triggerxcost.go and dirac/trig_maypayx.go trigXCostAt).
 func InstrFilter(in *Instr) FilterID {
-	if in.IsPayMana() {
+	if in.IsPayMana() || (in.Op == OpUnlessPaid || in.Op == OpIfPaid || in.Op == OpUnlessSwitched) && int(in.C&0xF) == PayManaX {
 		return 0
 	}
 	return in.F

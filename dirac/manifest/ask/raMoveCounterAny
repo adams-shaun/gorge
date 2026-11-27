@@ -1,0 +1,5 @@
+family: ask
+name: raMoveCounterAny
+value: next
+status: active
+doc: OpMoveCounterAny: the 0..held amount pick of gorge's "move_counter" KChoose (Forgotten Ancient's move any number of counters, CR 122.5; ctr_moveany.go)
