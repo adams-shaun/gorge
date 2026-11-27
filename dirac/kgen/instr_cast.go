@@ -106,7 +106,7 @@ func (ic *instrCtx) opCastFree() error {
 		ki.C |= 1 << 8 // the copy pays its mana cost (an exile-granted ability's Play)
 	}
 	if _, ok := fl["UpTo"]; ok {
-		ki.C |= 1 << 9 // a literal Amount$ N: the ask closes after A picks
+		ki.C |= 1 << 9 // the Amount$ value A: the ask closes after A picks, the count-0 one offers nothing
 	}
 	if _, ok := fl["SpellMV"]; ok {
 		ki.C |= 1 << 10 // the ValidSA$ mana-value bound reads the spell: a split card counts its front half
