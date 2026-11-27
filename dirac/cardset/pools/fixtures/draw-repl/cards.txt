@@ -6,7 +6,9 @@
 # Blood Scrivener's Hellbent gate, where its body applies. Revitalize is not a
 # carrier: it is a spell whose Draw is its second instruction, so the opponent
 # deck's Draw under a replacement exercises a Draw after another spell
-# instruction (the outer resolution's restore path).
+# instruction (the outer resolution's restore path). Laboratory Maniac and
+# Jace, Wielder of Mysteries are the "win the game instead" carriers, played
+# against an empty library.
 Blood Scrivener
 Hullbreacher
 Notion Thief
@@ -23,3 +25,5 @@ Mountain
 Forest
 Revitalize
 Obstinate Familiar
+Laboratory Maniac
+Jace, Wielder of Mysteries
