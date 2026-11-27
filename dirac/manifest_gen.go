@@ -899,6 +899,8 @@ func (s *State) execExtGen(k *prep, in *kop.Instr) (ok, done bool) {
 		return s.learnExt(k, in) // act_learn.go
 	case kop.ExtMeld:
 		return s.meldExt(k, in) // face_meld.go
+	case kop.ExtMergePermanent:
+		return s.mergeExt(k, in) // kw_mutate.go
 	case kop.ExtMonarchJail:
 		return s.monarchJailOp(k, in) // act_monarchjail.go
 	case kop.ExtMustBlock:
