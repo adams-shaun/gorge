@@ -174,7 +174,7 @@ type Expr struct {
 	F2   FilterID // creature-base alternatives rewritten onto Card (gated by WasCreature)
 	F3   FilterID // the spec's non-Creature alternatives
 	F4   FilterID // dest=Battlefield, object off it: the card-base form of F
-	From int8     // -1 = no from_ origin; else the pre-move Zone
+	From int8     // -1 = no from_ origin; else the pre-move Zone (EnteredLastFrom: only the source's latest entry)
 	Prop uint8    // 0 = count; PropCardPower/Toughness/ManaCost sum the face value
 }
 
@@ -184,6 +184,21 @@ const (
 	PropCardToughness       // gorge objectPropertyCardToughness
 	PropCardManaCost        // gorge objectPropertyCardManaCost
 )
+
+// EnteredLastFrom is the Expr.From of an ExThisTurnEntered that reads only
+// the evaluating source's latest entry into the destination, from zone z: the
+// move that is entering now, not an earlier one this turn (gorge reads the
+// triggering move's From; trigmatch ZoneChangeMatches).
+func EnteredLastFrom(z int8) int8 { return z | 0x40 }
+
+// EnteredLastOf splits an Expr.From: the origin zone (-1: none) and whether
+// the read is the source's latest entry only.
+func EnteredLastOf(from int8) (z int8, last bool) {
+	if from >= 0x40 {
+		return from &^ 0x40, true
+	}
+	return from, false
+}
 
 // ExThisTurnCastSpec's Expr.N bits (gorge spellsCastThisTurnMatching).
 const (

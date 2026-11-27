@@ -350,6 +350,7 @@ DmgGE	DmgCmp	1
 DmgGT	DmgCmp	5
 DmgLE	DmgCmp	2
 DmgLT	DmgCmp	6
+DmgLockGain	untyped int	512
 DmgMapped	untyped int	4
 DmgMarkBySource	untyped int	1
 DmgNE	DmgCmp	4

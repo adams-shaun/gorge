@@ -1101,7 +1101,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		}
 	}
 	g.anyDisETB = tableHasStatic(t, kop.StatDisableETB)
-	g.anyCantGain = tableHasStatic(t, kop.StatCantGainLife)
+	g.anyCantGain = tableHasStatic(t, kop.StatCantGainLife) || tableHasLockGain(t)
 	g.anyCantDraw = tableHasStatic(t, kop.StatCantDraw)
 	g.anyNoPrev = tableHasStatic(t, kop.StatCantPreventDamage)
 	g.anyAsIfHaste = tableHasStatic(t, kop.StatAsIfHaste)
