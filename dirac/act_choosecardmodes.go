@@ -159,10 +159,6 @@ func (s *State) chooseCardEachPose(k *prep, in *kop.Instr, first bool) bool {
 // one card (or none).
 func (s *State) applyChooseCard(k *prep, a Action) {
 	in := &s.prog(k)[s.res.pc]
-	if in.Op == kop.OpRepeatEach && in.C&kop.RepeatEachOrder != 0 {
-		s.eachOrderAnswer(k, a) // act_eachorder.go
-		return
-	}
 	if in.C == chooseLibUpTo {
 		s.chooseLibAnswer(k, a) // zone_optionalmoves.go: asks again or continues
 		return

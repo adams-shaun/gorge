@@ -89,25 +89,9 @@ func (lc *lowerCtx) delayedEndCombat(ps *params) error {
 	if err := lc.withAbility(lat, func() error { return lc.chain(exec, nil) }); err != nil {
 		return err
 	}
-	many := false
-	if lc.delayedExile {
-		if len(lat.Prog) != 1 || lat.Prog[0].Op != "Exile" || lat.Prog[0].Obj.Kind != rDelayedRemembered {
-			return refuse("delayed many-object exile body lowered to %d ops, not one Exile of the delayed set", len(lat.Prog))
-		}
-		if lat.Prog[0].CS == "" {
-			lat.Prog[0].CS = "DelayedMany"
-		} else {
-			lat.Prog[0].CS += "|DelayedMany"
-		}
-		lc.delayedExile = false
-		many = true
-	}
 	in := lInstr{Op: "DelayedTrigger", Obj: obj, C: lat.Index, CS: "NextEndCombat"}
 	if decayedRegistration(ps) {
 		in.B = cst(2) // incarnation-tracked (lower_decayed.go)
-	}
-	if many {
-		in.B = cst(3) // the many-object program (dirac/trig_delayedmany.go)
 	}
 	lc.emit(in)
 	return nil
@@ -385,26 +369,7 @@ func (lc *lowerCtx) delayedStepRemember(arm, ro string, exec *cards.SA) (lRef, e
 			return lRef{}, refuse("delayed trigger RememberObjects %q", ro)
 		}
 		return r, nil
-	case "Remembered":
-		// only the end-of-combat arm consumes the many-object exile mark
-		// (delayedEndCombat), so the upkeep and beginning-of-combat arms take
-		// the general one-object refusal below.
-		if arm == "end-of-combat" && lc.repeatCztNode != nil && lc.repeatCztNode.Sub == lc.curNode {
-			// the RepeatEach body just lowered wrote the remembered set (its
-			// RememberTokens$), and this delayed trigger reads the whole set
-			// (Mirror-Style Master's end-of-combat exile). The kernel's
-			// DpMany program carries up to four and its body must be exactly
-			// one exile of the delayed set.
-			if exec == nil || exec.API != "ChangeZone" || exec.Sub != nil || len(exec.Params) != 3 ||
-				exec.Params["Defined"] != "DelayTriggerRememberedLKI" ||
-				exec.Params["Origin"] != "Battlefield" || exec.Params["Destination"] != "Exile" {
-				return lRef{}, refuse("delayed trigger over a RepeatEach remembered set: the body is not one ChangeZone Battlefield->Exile of DelayTriggerRememberedLKI")
-			}
-			lc.delayedExile = true
-			return lRef{Kind: rRemembered}, nil
-		}
-		return lRef{}, refuse("delayed %s trigger RememberObjects %q: a set of several objects (the record holds one)", arm, ro)
-	case "RememberedLKI":
+	case "Remembered", "RememberedLKI":
 		return lRef{}, refuse("delayed %s trigger RememberObjects %q: a set of several objects (the record holds one)", arm, ro)
 	}
 	return lc.delayedRemember(ro, exec)

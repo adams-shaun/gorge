@@ -11,20 +11,6 @@ func (lc *lowerCtx) fight(ps *params) error {
 	var err error
 	d, hasD := ps.get("Defined")
 	if hasD {
-		if d == "Imprinted & Remembered" {
-			// Ezuri's Predation's batched body: the repeated creature
-			// (Imprinted) fights the Token it just made (Remembered); gorge's
-			// fightPairs takes the union's first two in script order, which
-			// is the same pair (lower_repeatcards.go)
-			if lc.repeatCard == 0 || !lc.repeatUseImp {
-				return refuse("Fight Defined$ %q outside a RepeatEach UseImprinted$ body", d)
-			}
-			if _, ok := ps.get("ValidTgts"); ok {
-				return refuse("Fight Defined$ %q beside ValidTgts$", d)
-			}
-			lc.emit(lInstr{Op: "FightRemembered", Obj: lRef{Kind: rEach}, Obj2: lRef{Kind: rRemembered}})
-			return nil
-		}
 		if d == "DelayTriggerRemembered" && lc.ab != nil && lc.ab.ReflexObj {
 			a = lRef{Kind: rDelayedRemembered} // the reflexive trigger's captured target (lower_remembered.go)
 		} else if a, err = lc.defined(d); err != nil {

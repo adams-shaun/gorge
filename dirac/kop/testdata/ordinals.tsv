@@ -1250,7 +1250,6 @@ RememberAllImprintCard	untyped int	4
 RememberAllObjOrder	untyped int	1
 RepeatDmgBatch	untyped int	4
 RepeatEachDmgBatch	untyped int	8
-RepeatEachOrder	untyped int	8
 RepeatEachSeatOrder	untyped int	2
 RepeatEachZoneBatch	untyped int	4
 RepeatMultikicker	uint8	1

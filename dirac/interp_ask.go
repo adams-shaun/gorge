@@ -2875,10 +2875,6 @@ func (s *State) chooseCardBase(obj kop.Ref, askP uint8) uint8 {
 // with Done.
 func (s *State) chooseCardOptions(k *prep, pc, askP uint8, d *Decision) {
 	in := &s.prog(k)[pc]
-	if in.Op == kop.OpRepeatEach && in.C&kop.RepeatEachOrder != 0 {
-		s.eachOrderOptions(k, d) // act_eachorder.go
-		return
-	}
 	d.Sub = ChGenChooseCard
 	c := in.C
 	if c == chooseAttachPick || c == chooseAttachPickOpt {

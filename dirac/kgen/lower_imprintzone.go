@@ -40,12 +40,6 @@ func (lc *lowerCtx) openImprint(what string) error {
 // persistent ref in any ability (lower_imppersist.go); otherwise the DigUntil
 // ImprintFound$ chain reads the seek-found chosen set (lower_digimprint.go).
 func (lc *lowerCtx) definedImprinted() (lRef, error) {
-	if lc.repeatCard > 0 && lc.repeatUseImp {
-		// the batched RepeatEach body of lower_repeatcards.go: its
-		// UseImprinted$ True names the loop's current subject (Ezuri's
-		// Predation's Fight, Mirror-Style Master's copied creature)
-		return lRef{Kind: rEach}, nil
-	}
 	if lc.impPersist && (lc.repeatPl > 0 || lc.repeatCard > 0) {
 		// Inside a RepeatEach iteration gorge's definedSpecImprinted gives
 		// the loop's subject precedence over the source's persistent pile.
