@@ -500,10 +500,18 @@ func PlanSelfCost(part cost.CostPart, id state.ObjID) bool {
 // X, not an SVar Dyn count), not a granted ability's bound referent, and a
 // non-empty spec. Its counterpart on the source is PlanSelfCost; anything
 // else -- a second Sac part beside the source's own, an Announced count --
-// stays deferred (PaymentPlanShapeTierOf).
+// stays deferred (PaymentPlanShapeTierOf). The victim must be a creature
+// (Ashnod's Altar, Phyrexian Altar, Phyrexian Tower): a sacrifice of an
+// artifact, a land or a named subtype (Krark-Clan Ironworks, Lake of the
+// Dead, Skirk Prospector) stays manual, as does every shape dirac's
+// planner does not mirror.
 func PlanOtherSacShape(part cost.CostPart) bool {
-	return part.N == 1 && !part.Announced && part.Dyn == "" && part.Referent == 0 &&
-		strings.TrimSpace(SacrificeMatchSpec(part.Spec)) != ""
+	if part.N != 1 || part.Announced || part.Dyn != "" || part.Referent != 0 {
+		return false
+	}
+	spec := strings.ToLower(strings.TrimSpace(SacrificeMatchSpec(part.Spec)))
+	base, _, _ := strings.Cut(spec, ".")
+	return base == "creature"
 }
 
 // PlanLastResortChoices is phase 2's alternative table (spec 5): every
