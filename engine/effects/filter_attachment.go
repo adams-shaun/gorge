@@ -310,12 +310,13 @@ func sharesTypeArg(p string) (name, arg string, ok bool) {
 // sharesNameWithArg recognises the supported two-token name-comparison
 // referents. It matches on the shared referent resolver's OWN vocabulary
 // table, whose supported referents (Targeted, Remembered, RememberedCard,
-// TriggeredCard, Self) each carry a distinct code, so an unintended referent
+// TriggeredCard, Self, ThisTurnCast) each carry a distinct code, so an unintended referent
 // cannot leak in through a shared code. Self is the static's own source
 // (Marvin, Murderous Mimic's `Creature.YouCtrl+!sharesNameWith Self`, whose
 // GainsAbilitiesOf$ filter excludes the source's own name); sharesTypeReferents
-// resolves it to SpecContext.Source. Anything else stays unbound and fails
-// closed.
+// resolves it to SpecContext.Source. ThisTurnCast is every spell cast this
+// turn (Twinning Glass), bound per site into SpecContext.ThisTurnCast.
+// Anything else stays unbound and fails closed.
 func sharesNameWithArg(p string) (string, bool) {
 	name, arg, ok := strings.Cut(p, " ")
 	if !ok || wordPredicateSharesCodes.Code(name) != wordPredicateSharesNameWith {
@@ -325,7 +326,7 @@ func sharesNameWithArg(p string) (string, bool) {
 	switch sharesTypeReferentsCodes.Code(arg) {
 	case sharesTypeReferentsTargeted, sharesTypeReferentsRemembered,
 		sharesTypeReferentsRememberedCard, sharesTypeReferentsTriggeredCard,
-		sharesTypeReferentsSelf:
+		sharesTypeReferentsSelf, sharesTypeReferentsThisTurnCast:
 		return arg, true
 	}
 	if _, ok := sharesNameValidBattlefield(arg); ok {
@@ -553,6 +554,13 @@ func sharesTypeReferents(g *state.Game, sc SpecContext, ref string) []state.Targ
 	case sharesTypeReferentsSelf:
 		if sc.Source != 0 {
 			ts = append(ts, state.Target{Obj: sc.Source})
+		}
+	case sharesTypeReferentsThisTurnCast:
+		// The spells cast this turn by any player (Twinning Glass's "a spell
+		// that was cast this turn"), bound by the site that reads the token
+		// (thisTurnCastFor). An unbound ledger names nothing: fail closed.
+		for _, id := range sc.ThisTurnCast {
+			ts = append(ts, state.Target{Obj: id})
 		}
 	case sharesTypeReferentsImprinted:
 		// The SOURCE's live imprint association -- the same pile Defined$
@@ -1187,6 +1195,7 @@ const (
 	sharesTypeReferentsImprinted
 	sharesTypeReferentsTriggeredAttacker
 	sharesTypeReferentsTriggeredAttackerLKICopy
+	sharesTypeReferentsThisTurnCast
 )
 
 var sharesTypeReferentsCodes = state.NewStrCodes(
@@ -1202,6 +1211,7 @@ var sharesTypeReferentsCodes = state.NewStrCodes(
 	state.StrEntry[sharesTypeReferentsCode]{Key: "Imprinted", Val: sharesTypeReferentsImprinted},
 	state.StrEntry[sharesTypeReferentsCode]{Key: "TriggeredAttacker", Val: sharesTypeReferentsTriggeredAttacker},
 	state.StrEntry[sharesTypeReferentsCode]{Key: "TriggeredAttackerLKICopy", Val: sharesTypeReferentsTriggeredAttackerLKICopy},
+	state.StrEntry[sharesTypeReferentsCode]{Key: "ThisTurnCast", Val: sharesTypeReferentsThisTurnCast},
 )
 
 type attachedToReferentCode uint16
