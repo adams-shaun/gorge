@@ -222,7 +222,7 @@ func (lc *lowerCtx) connive(ps *params) error {
 // one with the next-turn boundary dropNextTurnOv ends. Keywords without a
 // kernel bit, other durations, AllSuffixKeywords$ and Activator$ refuse.
 func (lc *lowerCtx) debuff(ps *params) error {
-	ks, err := removeKeywords(ps.str("Keywords"))
+	ks, lw, err := lc.removeKeywordsAndLandwalk(ps.str("Keywords"))
 	if err != nil {
 		return err
 	}
@@ -251,7 +251,7 @@ func (lc *lowerCtx) debuff(ps *params) error {
 	default:
 		return refuse("Debuff of %s", obj)
 	}
-	lc.emitOverride(obj, &lOverride{RemoveKw: ks}, dur)
+	lc.emitOverride(obj, &lOverride{RemoveKw: ks, RemoveLandwalk: lw}, dur)
 	return nil
 }
 

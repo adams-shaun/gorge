@@ -1362,6 +1362,8 @@ type lOverride struct {
 	Name            string   // SetName: the layer-3 name (a name card, lowerPool)
 	KeepP, KeepT    bool     // a set of base toughness / power only (Maha)
 	RemoveKw        []string // RemoveKeyword$: keywords removed (layer 6)
+	RemoveLandwalk  *lFilter // RemoveKeyword$ Landwalk:<spec>: the landwalk land filter removed (kop.Override.RemoveLandwalk)
+	ExileOnLeave    bool     // Replacements$: "if it would leave the battlefield, exile it instead" (kop.Override.ExileOnLeave)
 	CantHaveKw      []string // CantHaveKeyword$: keywords the affected can't have or gain (a final layer-6 filter)
 	Dedup           bool     // share a byte-identical pool record across cards (Earthbend)
 	UntilUpkeep     bool     // Duration$ UntilYourNextUpkeep: the Override row carries the class (kop.Override.UntilUpkeep)

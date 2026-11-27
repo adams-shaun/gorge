@@ -209,6 +209,18 @@ type Override struct {
 	// chars.derive applies it as a final filter after every layer-6 grant,
 	// so the kernel's layer-6 walk drops these bits from its result.
 	CantHaveKw KwMask
+	// RemoveLandwalk: the land filter whose landwalk the effect removes
+	// (layer 6, CR 613.1f: RemoveKeyword$ Landwalk:Island, Mystic Decree).
+	// KwMask has no parameterised bit, so this filter is the removal; read
+	// by State.landwalkRemoved (kw_evasion.go). 0 = none.
+	RemoveLandwalk FilterID
+	// ExileOnLeave: the affected object carries the "if it would leave the
+	// battlefield, exile it instead" replacement for this record's lifetime
+	// (Animate Replacements$ ReplaceLeaves: Llanowar Greenwidow, Realmbreaker,
+	// Geth). It is a replacement effect on the object, so dieZone reads it
+	// beside the printed ReplExileOnLeave sources (dirac/repl_counters.go
+	// exileOnLeaveN).
+	ExileOnLeave bool
 	// UntilUpkeep: the record lasts until the resolving controller's next
 	// upkeep begins (Duration$ UntilYourNextUpkeep, CR 611.2b; Erhnam Djinn).
 	// The applied record keeps that controller in its P/T fields, which a

@@ -12,7 +12,7 @@ import (
 //
 //go:noinline
 func (s *State) landwalkEvades(k *prep, b, a Slot) bool {
-	if f := k.t.Cards[s.cardAt(a)].Landwalk; f != 0 && !s.genLost(k, a) && s.landwalkHit(k, f, b, a, a) {
+	if f := k.t.Cards[s.cardAt(a)].Landwalk; f != 0 && !s.genLost(k, a) && !s.landwalkRemoved(k, a, f, 0) && s.landwalkHit(k, f, b, a, a) {
 		return true
 	}
 	if s.landwalkGranted(k, b, a) || s.landwalkPumped(k, b, a) {
@@ -37,11 +37,86 @@ func (s *State) landwalkPumped(k *prep, b, a Slot) bool {
 	lts, lost := s.lossAt(k, a)
 	hit := false
 	s.eachOvRec(a, func(r ovRec) {
-		if f := k.t.Overrides[r.idx-1].Landwalk; f != 0 && !hit && (!lost || r.ts >= lts) && s.landwalkHit(k, f, b, a, a) {
+		if f := k.t.Overrides[r.idx-1].Landwalk; f != 0 && !hit && (!lost || r.ts >= lts) &&
+			!s.landwalkRemoved(k, a, f, r.ts) && s.landwalkHit(k, f, b, a, a) {
 			hit = true
 		}
 	})
 	return hit
+}
+
+// useRemoveLandwalk arms the landwalk-removal scan: a table with any
+// kop.Override.RemoveLandwalk record takes the check at every landwalk read
+// (kw_evasion.go landwalkRemoved). A table without one skips it.
+var useRemoveLandwalk = newGenUse(tableHasRemoveLandwalk)
+
+// tableHasRemoveLandwalk reports whether some override record removes a
+// parameterised landwalk (RemoveKeyword$ Landwalk:Island, Mystic Decree).
+func tableHasRemoveLandwalk(t *kop.Table) bool {
+	for i := range t.Overrides {
+		if t.Overrides[i].RemoveLandwalk != 0 {
+			return true
+		}
+	}
+	return false
+}
+
+// landwalkRemoved reports whether a layer-6 removal removes the landwalk whose
+// land filter is f from sl (kop.Override.RemoveLandwalk: RemoveKeyword$
+// Landwalk:Island, Mystic Decree). grantTs is the grant's layer timestamp (0
+// for the printed keyword at the base): a removal older than the grant leaves
+// it, as does one tied with it (timestamps of two layer-6 effects are
+// distinct, so a tie cannot happen), and only a newer one takes it; a removal older than a loss of all abilities does not apply.
+//
+//go:noinline
+func (s *State) landwalkRemoved(k *prep, sl Slot, f kop.FilterID, grantTs uint16) bool {
+	if f == 0 || k.gen == nil || !k.gen.uses.has(useRemoveLandwalk) {
+		return false
+	}
+	lts, lost := s.lossAt(k, sl)
+	removed := false
+	s.eachOverrideTs(k, sl, func(o *kop.Override, ts uint16) {
+		if removed || o.RemoveLandwalk == 0 || !filterChainEqual(k.t, o.RemoveLandwalk, f) {
+			return
+		}
+		if lost && ts < lts {
+			return
+		}
+		if grantTs != 0 && ts <= grantTs {
+			return
+		}
+		removed = true
+	})
+	if removed {
+		return true
+	}
+	check := func(st statSrc) bool {
+		a := st.a
+		if a.Kind != kop.AbStatic || a.Static.Kind != kop.StatContinuous || a.Static.Override <= 0 {
+			return true
+		}
+		o := &k.t.Overrides[a.Static.Override-1]
+		if o.RemoveLandwalk == 0 || !filterChainEqual(k.t, o.RemoveLandwalk, f) {
+			return true
+		}
+		ts := s.grantTs(st)
+		if lost && ts < lts {
+			return true
+		}
+		if grantTs != 0 && ts <= grantTs {
+			return true
+		}
+		if s.statCond(k, st) && s.matchPermGen(k, a.Static.Filter, sl, st.ctrl, st.sl, layerKw) {
+			removed = true
+			return false
+		}
+		return true
+	}
+	s.eachStatic(k, check)
+	if !removed && k.gyCont {
+		s.eachGyStatic(k, 0, check)
+	}
+	return removed
 }
 
 // landwalkHit: the defending player (blocker b's controller) controls a land
@@ -78,6 +153,9 @@ func (s *State) landwalkGranted(k *prep, b, a Slot) bool {
 			return true
 		}
 		if lost && s.grantTs(st) < lts {
+			return true
+		}
+		if s.landwalkRemoved(k, a, ab.Static.Landwalk, s.grantTs(st)) {
 			return true
 		}
 		src := st.sl // the host's choice; a graveyard grant (no slot) reads the attacker
@@ -139,7 +217,7 @@ func landwalkNames(t *kop.Table, f kop.FilterID, sub uint8) bool {
 //go:noinline
 func (s *State) hasIslandwalk(k *prep, sl Slot) bool {
 	sub := islandSub(k)
-	if f := k.t.Cards[s.cardAt(sl)].Landwalk; f != 0 && !s.genLost(k, sl) && landwalkNames(k.t, f, sub) {
+	if f := k.t.Cards[s.cardAt(sl)].Landwalk; f != 0 && !s.genLost(k, sl) && !s.landwalkRemoved(k, sl, f, 0) && landwalkNames(k.t, f, sub) {
 		return true
 	}
 	lts, lost := s.lossAt(k, sl)
@@ -147,7 +225,8 @@ func (s *State) hasIslandwalk(k *prep, sl Slot) bool {
 	f := func(st statSrc) bool {
 		ab := st.a
 		if ab.Kind != kop.AbStatic || ab.Static.Kind != kop.StatContinuous || ab.Static.Landwalk == 0 ||
-			!landwalkNames(k.t, ab.Static.Landwalk, sub) || lost && s.grantTs(st) < lts {
+			!landwalkNames(k.t, ab.Static.Landwalk, sub) || lost && s.grantTs(st) < lts ||
+			s.landwalkRemoved(k, sl, ab.Static.Landwalk, s.grantTs(st)) {
 			return true
 		}
 		if s.statCond(k, st) && s.matchPermGen(k, ab.Static.Filter, sl, st.ctrl, st.sl, layerKw) {
@@ -163,7 +242,8 @@ func (s *State) hasIslandwalk(k *prep, sl Slot) bool {
 	if !hit && s.fxM.has(sl) {
 		// a Pump's granted landwalk (landwalkPumped)
 		s.eachOvRec(sl, func(r ovRec) {
-			if f := k.t.Overrides[r.idx-1].Landwalk; f != 0 && (!lost || r.ts >= lts) && landwalkNames(k.t, f, sub) {
+			if f := k.t.Overrides[r.idx-1].Landwalk; f != 0 && (!lost || r.ts >= lts) &&
+				!s.landwalkRemoved(k, sl, f, r.ts) && landwalkNames(k.t, f, sub) {
 				hit = true
 			}
 		})

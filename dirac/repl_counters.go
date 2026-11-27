@@ -87,6 +87,71 @@ func ctrKindKw(k uint16) kop.KwMask {
 	return 0
 }
 
+// useExileOnLeaveOverride arms the Override.ExileOnLeave scan (an Animate
+// Replacements$ record on the dying permanent). A table without one keeps the
+// printed-source fast path.
+var useExileOnLeaveOverride = newGenUse(tableHasExileOnLeaveOverride)
+
+// tableHasExileOnLeaveOverride reports whether some override record carries
+// the leave-to-exile replacement.
+func tableHasExileOnLeaveOverride(t *kop.Table) bool {
+	for i := range t.Overrides {
+		if t.Overrides[i].ExileOnLeave {
+			return true
+		}
+	}
+	return false
+}
+
+// overrideExileOnLeaveN counts the active Override.ExileOnLeave records on the
+// permanent at sl (an Animate Replacements$ line: one continuous replacement
+// each, gorge registers one per animation).
+func (s *State) overrideExileOnLeaveN(k *prep, sl Slot) int {
+	n := 0
+	if k.gen != nil && k.gen.uses.has(useExileOnLeaveOverride) && s.fxM.has(sl) {
+		s.eachOvRec(sl, func(r ovRec) {
+			if k.t.Overrides[r.idx-1].ExileOnLeave {
+				n += r.reps() // identical applications merge into one record (addOvRecMk)
+			}
+		})
+	}
+	return n
+}
+
+// stallBatchLeave stops the game on a batch departure to a hand or library
+// that bypassed leave: the kernel does not redirect it past an Animate
+// Replacements$ record, so it stalls rather than diverge (overrideLeaveZone).
+func (s *State) stallBatchLeave(k *prep, sl Slot, z kop.Zone) {
+	if z == kop.ZoneGraveyard || z == kop.ZoneExile || k.gen == nil || !k.gen.uses.has(useExileOnLeaveOverride) {
+		return
+	}
+	if s.overrideExileOnLeaveN(k, sl) > 0 {
+		s.capFull(StallReplLeave)
+	}
+}
+
+// overrideLeaveZone is the zone a permanent leaving the battlefield for z (a
+// hand or library move: a bounce, a tuck) really goes to under an Animate
+// Replacements$ record on it. The carriers' R: line names no Destination$
+// ("if this permanent would leave the battlefield, exile it instead": Geth's
+// "instead of putting it anywhere else"), so gorge's matcher fires it for every
+// departure and the permanent is exiled. The graveyard move is dieZone's.
+// Two or more such records are CR 616.1 competing effects: a stall, as
+// dieZone's.
+func (s *State) overrideLeaveZone(k *prep, sl Slot, z kop.Zone) kop.Zone {
+	if z == kop.ZoneGraveyard || z == kop.ZoneExile || k.gen == nil || !k.gen.uses.has(useExileOnLeaveOverride) {
+		return z
+	}
+	switch n := s.overrideExileOnLeaveN(k, sl); {
+	case n == 1:
+		return kop.ZoneExile
+	case n > 1:
+		s.capFull(StallReplLeave)
+		return kop.ZoneExile
+	}
+	return z
+}
+
 // exileOnLeaveN counts the dies-to-exile replacements that apply to
 // sl, a permanent about to leave the battlefield for a graveyard. Each
 // matching source is a separate CR 616.1 replacement: gorge asks the
@@ -98,7 +163,7 @@ func ctrKindKw(k uint16) kop.KwMask {
 // NoSlot when none): its rider runs after the move (repl_exilerider.go).
 func (s *State) exileOnLeaveN(k *prep, sl Slot) (int, kop.CounterKind, uint8, Slot) {
 	g := k.gen
-	if g == nil || g.anyRepl&rbExileOnLeave == 0 {
+	if g == nil || g.anyRepl&rbExileOnLeave == 0 && !(g.uses.has(useExileOnLeaveOverride) && s.fxM.has(sl)) {
 		return 0, 0, 0, NoSlot
 	}
 	n := 0
@@ -128,6 +193,12 @@ func (s *State) exileOnLeaveN(k *prep, sl Slot) (int, kop.CounterKind, uint8, Sl
 	// counter, no rider); two or more matches, or one beside a card source,
 	// are dieZone's StallReplLeave below
 	cardN := n
+	// an Animate Replacements$ record on the permanent itself (Llanowar
+	// Greenwidow, Realmbreaker, Geth): the override's ExileOnLeave rides its
+	// lifetime, so it is a battlefield-only replacement with no counter and
+	// no rider. It competes with any printed source by the same CR 616.1
+	// count.
+	n += s.overrideExileOnLeaveN(k, sl)
 	if embN := s.embExileLeaveN(k, sl); embN > 0 {
 		n += embN
 		if cardN == 0 && embN == 1 {

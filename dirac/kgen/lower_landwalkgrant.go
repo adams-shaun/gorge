@@ -106,3 +106,20 @@ func (lc *lowerCtx) splitLandwalkPump(kw string) (string, *lFilter, error) {
 	}
 	return strings.Join(rest, " & "), out, nil
 }
+
+// removeKeywordsAndLandwalk splits a RemoveKeyword$ list into the plain
+// keywords (RemoveKw bits) and the parameterised Landwalk:<spec> terms, which
+// become the override's RemoveLandwalk filter (kop.Override.RemoveLandwalk).
+// A Landwalk term has no KwMask bit, so a bare removeKeywords call would
+// refuse it; the kernel's landwalk readers consult the filter directly.
+func (lc *lowerCtx) removeKeywordsAndLandwalk(kw string) ([]string, *lFilter, error) {
+	rest, lw, err := lc.splitLandwalkPump(kw)
+	if err != nil {
+		return nil, nil, refuse("RemoveKeyword %q: %v", kw, err)
+	}
+	ks, err := removeKeywords(rest)
+	if err != nil {
+		return nil, nil, err
+	}
+	return ks, lw, nil
+}

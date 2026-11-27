@@ -12,6 +12,8 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // unionMask is the slot mask a union ref names (0: not a union ref).
 func unionMask(r kop.Ref) uint8 {
 	switch r {
+	case kop.RefTargets0:
+		return 1
 	case kop.RefTargets01:
 		return 3
 	case kop.RefTargets012:
@@ -41,7 +43,11 @@ func tableUnion(t *kop.Table) bool {
 // execUnion runs in once per legal object of its union's slots: each
 // slot's first object, then its other objects (the multi-object slot's
 // order, execEachTarget), slot by slot -- the order of gorge's union. The
-// objects are listed before the first run, as gorge resolves Defined once.
+// objects are listed before the first run, as gorge resolves Defined once:
+// an extra target is judged as the resolution began (CR 608.2b, xtLegalRes), so
+// an earlier op of the resolution that changed what a target is (an Animate
+// making a noncreature artifact a creature, Depthshaker Titan) does not drop
+// it from the next op's set.
 // A destroy drops the indestructible objects first: gorge effDestroy builds
 // its victim list before the batch's first move, so one destroyed this way
 // (an Equipment granting indestructible) does not expose another.
@@ -63,7 +69,7 @@ func (s *State) execUnion(k *prep, in *kop.Instr) {
 		}
 		xt := s.xtOf(e)
 		for j := 0; j < int(xt.n); j++ {
-			if xt.slot[j] == i && s.xtLegal(k, e, j) {
+			if xt.slot[j] == i && s.xtLegalRes(k, e, j, i) {
 				slot[n], code[n], ver[n] = i, xt.code[j], xt.ver[j]
 				n++
 			}
@@ -89,6 +95,7 @@ func (s *State) execUnion(k *prep, in *kop.Instr) {
 	defer s.holdClose(k, hr)
 	s.g.inLoop = true
 	one := *in
+	ndly0 := s.ndly
 	for j := 0; j < n && !s.over; j++ {
 		if code[j] == NoTarget {
 			continue
@@ -97,6 +104,9 @@ func (s *State) execUnion(k *prep, in *kop.Instr) {
 		e.tgt[i], e.tver[i] = code[j], ver[j]
 		s.res.bad &^= 1 << i
 		one.Obj = tgtRef(int(i))
+		if in.Op == kop.OpAtEOT && s.ndly > ndly0 && s.atEOTUnionJoin(k, &one) {
+			continue // a later object of the set joins the first one's grouped promise
+		}
 		s.exec(k, &one)
 	}
 	e.tgt, e.tver, s.res.bad, s.g.inLoop = saveT, saveV, saveBad, saveLoop

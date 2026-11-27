@@ -19,8 +19,15 @@ import (
 // rides kop.Static.Zone (ZoneNone: the battlefield, Forge's default;
 // ZoneGraveyard: GainsAbilitiesOfZones$ Graveyard, every seat's graveyard;
 // ZoneExile: GainsAbilitiesOfZones$ Exile, every seat's exile zone). The
-// kernel's offer walk is dirac/static_gainsof.go. Other zones and artifact or land sources (whose mana abilities the walk
-// does not model) are refused by name.
+// kernel's offer walk is dirac/static_gainsof.go. Other zones are refused by
+// name. An untyped source (Territory Forge's Card.ExiledWithSource) lowers:
+// the walk matches any zone card and prices both its non-mana abilities
+// (static_gainsof.go gainedOffer) and its mana abilities
+// (mana_gainedgrants.go), and prep's StallGainsOf pair refuses the matchup
+// when a lender actually carries an ability the walk does not model. An
+// artifact or land source stays refused: Mirran Safehouse's graveyard lands
+// lend mana abilities whose payment tap order the kernel does not match
+// (lockstep: the gainsof pool diverges on which source taps).
 func (lc *lowerCtx) gainsAbilitiesOf(sp *params, st *lStatic, _ string) error {
 	spec, ok := sp.get("GainsAbilitiesOf")
 	if !ok {
@@ -40,14 +47,14 @@ func (lc *lowerCtx) gainsAbilitiesOf(sp *params, st *lStatic, _ string) error {
 		return err
 	}
 	if f.Players != 0 || len(f.Clauses) == 0 {
-		return refuse("GainsAbilitiesOf$ %q: artifact or land sources", spec)
+		return refuse("GainsAbilitiesOf$ %q: a player alternative", spec)
 	}
 	for _, c := range f.Clauses {
-		// a clause with no card type must name a creature type (Elf): a
-		// subtype-only "Elf" cannot match an artifact or a land, and a
-		// creature's mana ability stalls the walk (StallGainsOf) anyway
+		// a clause with no card type must name a creature type (Elf) or no
+		// subtype at all: a subtype-only "Equipment" or "Forest" matches an
+		// artifact or a land
 		creatSub := c.Types == 0 && c.Subtype != "" && effects.CreatureTypeWords(c.Subtype)
-		if c.Types&(tArtifact|tLand) != 0 || c.Types == 0 && !creatSub {
+		if c.Types&(tArtifact|tLand) != 0 || c.Types == 0 && c.Subtype != "" && !creatSub {
 			return refuse("GainsAbilitiesOf$ %q: artifact or land sources", spec)
 		}
 	}
