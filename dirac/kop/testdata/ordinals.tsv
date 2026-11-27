@@ -1517,6 +1517,7 @@ StTapPowerSaddle	StaticFlags	4
 StTapPowerStation	StaticFlags	8
 StTapPowerTough	StaticFlags	16
 StTapReflect	StaticFlags	4
+StTapReflectDefer	StaticFlags	1
 StTargetsFilter2	StaticFlags	64
 StUnspentYou	StaticFlags	512
 StWithoutManaCost	StaticFlags	8
