@@ -128,6 +128,17 @@ func init() {
 	fwArms["canProduceSameManaTypeWith"] = func(c *lClause, _ string) error {
 		return c.fwLit(lSpillLit{W: kop.FwCanProduceSameManaTypeWith, R: kop.RefTriggerObj})
 	}
+	// "SharesColorWith TriggeredProduced": C.A.M.P.'s "If that creature shares
+	// a color with the mana that land produced" (gorge's matchSharesColorWith
+	// over SpecContext.TriggerMana, engine/effects/filter.go): the candidate's
+	// colours intersect the colour set the Taps trigger's mana tap produced
+	// (kernel FwSharesProducedColour, dirac/filter_sharesproducedcolour.go).
+	// Only this exact spelling: gorge's bare SharesColorWith and its
+	// ChosenCard form read other referents the kernel carries nowhere, and
+	// every other referent spelling fails closed there (ok=false).
+	fwArms["SharesColorWith TriggeredProduced"] = func(c *lClause, _ string) error {
+		return c.fwLit(lSpillLit{W: kop.FwSharesProducedColour})
+	}
 	// canProduceManaColor <Colour>: a printed mana ability of the candidate
 	// can produce that colour (gorge canProduceManaColor; kernel
 	// FwCanProduceManaColor over the colour mask in Arg). Break the Ice,
@@ -268,6 +279,7 @@ func (c *lClause) fwArmOrUnknown(p string, knownSub func(string) bool) error {
 		p == "Paired" || p == "!Paired" || p == "PairedWith" ||
 		p == "canProduceSameManaTypeWith" || strings.HasPrefix(p, "canProduceManaColor ") ||
 		strings.HasPrefix(p, "hasKeyword") ||
+		p == "SharesColorWith TriggeredProduced" ||
 		isManaCostWord(p) {
 		if arm, ok := fwArms[p]; ok {
 			return arm(c, p)

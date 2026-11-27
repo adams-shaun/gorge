@@ -9,6 +9,7 @@ import (
 	"github.com/adams-shaun/gorge/dirac/oracle"
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/events"
+	"github.com/adams-shaun/gorge/engine/rules"
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
@@ -16,9 +17,12 @@ import (
 // Each shape's card is built, with real corpus fillers, into an in-process
 // table through the ordinary kgen tableOf path (cardset.Raw: lowered, no
 // evidence needed) and played against gorge over seeds of ordinary play with
-// a policy that casts, activates and attacks whenever it can. A shape's count
-// of gorge-side resolutions is asserted, so a pool that never reaches the card
-// cannot pass.
+// a policy that casts, activates and attacks whenever it can. A shape may
+// script its opening position and pick its policy (start, policy): C.A.M.P.
+// opens with its three Forests and takes its one Fortify before playing, and
+// Crystal Vein opens with exactly two Veins so its {T}, sacrifice pair is the
+// only way to a three-mana card. A shape's count of gorge-side resolutions is
+// asserted, so a pool that never reaches the card cannot pass.
 
 // miscShape is one card's lockstep: its matchups (two 40-card decks each) and
 // the gorge-side tally that proves the shape ran.
@@ -29,6 +33,12 @@ type miscShape struct {
 	// reached reads one game's gorge events and counts the shape's resolutions.
 	reached func(g *state.Game, evs []events.Event) int
 	min     int // the least total reach over all games
+	// start, when set, is the shape's scripted opening position (the
+	// matchup's StartSpec): seat 0 is built from its deck, seat 1 keeps a
+	// dealt hand.
+	start func(deck []*cards.Card) *rules.StartSpec
+	// policy, when set, answers the leader's decisions instead of miscPolicy.
+	policy func(seed uint64) oracle.Policy
 }
 
 // miscCardNames is every distinct card name the matchups name.
@@ -47,6 +57,42 @@ func miscCardNames(m [][2][]cardset.Entry) []string {
 	}
 	sort.Strings(names)
 	return names
+}
+
+// miscFaceName is a deck card's printed name.
+func miscFaceName(c *cards.Card) string {
+	if c == nil || len(c.Faces) == 0 || c.Faces[0] == nil {
+		return ""
+	}
+	return c.Faces[0].Name
+}
+
+// miscStartOf builds a scripted start over deck: battlefield, hand and
+// graveyard name cards by their first unclaimed index in the deck, and the
+// cards left over stay in the library.
+func miscStartOf(deck []*cards.Card, battlefield, hand, graveyard []string) *rules.StartSpec {
+	at := map[string][]int{}
+	for i, c := range deck {
+		n := miscFaceName(c)
+		at[n] = append(at[n], i)
+	}
+	used := map[string]int{}
+	take := func(names []string) []int {
+		var out []int
+		for _, n := range names {
+			i := used[n]
+			if i >= len(at[n]) {
+				continue
+			}
+			out = append(out, at[n][i])
+			used[n] = i + 1
+		}
+		return out
+	}
+	return &rules.StartSpec{Seats: []rules.StartSeat{
+		{Battlefield: take(battlefield), Hand: take(hand), Graveyard: take(graveyard)},
+		{Hand: []int{0, 1, 2, 3, 4, 5, 6}},
+	}}
 }
 
 // miscPolicy casts, activates and plays lands whenever it can; in combat it
@@ -125,9 +171,16 @@ func miscRun(t *testing.T, sh miscShape) (div, reach int) {
 			t.Fatal(err)
 		}
 		for seed := uint64(1); seed <= sh.seeds; seed++ {
-			m, err := oracle.NewMatchup(reg, [2]string{"misc-a", "misc-b"}, gd, 1)
+			mull := 1
+			if sh.start != nil {
+				mull = 0 // a scripted start plays mulligans 0
+			}
+			m, err := oracle.NewMatchup(reg, [2]string{"misc-a", "misc-b"}, gd, mull)
 			if err != nil {
 				t.Fatal(err)
+			}
+			if sh.start != nil {
+				m.Start = sh.start(gd[0])
 			}
 			cfg := oracle.Config{GorgeAutopaySurface: seed%4 == 0}
 			k, err := oracle.SetSide(set, tbl, cfg)(m, seed)
@@ -135,7 +188,9 @@ func miscRun(t *testing.T, sh miscShape) (div, reach int) {
 				t.Fatal(err)
 			}
 			pol := miscPolicy(seed)
-			if seed%8 == 0 {
+			if sh.policy != nil {
+				pol = sh.policy(seed)
+			} else if seed%8 == 0 {
 				pol = oracle.RandomPolicy(seed)
 			}
 			var last *oracle.GorgeSide
@@ -257,6 +312,58 @@ func miscBrainCounters(_ *state.Game, evs []events.Event) int {
 	return n
 }
 
+// miscJunkTokens counts the Junk Token mints C.A.M.P.'s TapsForMana rider
+// makes: the CreateToken event names the token's script stem, and no other
+// card in its pool mints one.
+func miscJunkTokens(_ *state.Game, evs []events.Event) int {
+	n := 0
+	for _, ev := range evs {
+		if ev.Kind == events.TokenCreate && ev.Text == "c_a_junk_sac_exileplay" {
+			n++
+		}
+	}
+	return n
+}
+
+// miscSacColourless counts ManaAdd batches of two or more colourless mana:
+// Crystal Vein's {T}, sacrifice-this alternative (its {T} makes one, and no
+// other card in its pool adds colourless mana at all).
+func miscSacColourless(_ *state.Game, evs []events.Event) int {
+	n := 0
+	for _, ev := range evs {
+		if ev.Kind == events.ManaAdd && ev.Counter == "C" && ev.Amount >= 2 {
+			n++
+		}
+	}
+	return n
+}
+
+// miscFortifyThen casts C.A.M.P.'s one Fortify at the first priority it is
+// offered, passing until then so the mana is still untapped, then plays the
+// ordinary mix: the hand's Giant Growths tap the fortified land, which is the
+// shape's TapsForMana rider. One Fortify only: a second would repay the cost
+// the shape has no mana for, and is not what the test is proving.
+func miscFortifyThen(seed uint64) oracle.Policy {
+	base := miscPolicy(seed)
+	fortified := false
+	return oracle.PolicyFunc(func(c *oracle.PickCtx) oracle.Canon {
+		if !fortified && c.D.Kind == oracle.DPriority {
+			for _, a := range c.D.Options {
+				if a.Kind() == oracle.ActActivate && c.G != nil && c.G.M.InstanceCard(int(a.Src())) == "C.A.M.P." {
+					fortified = true
+					return a
+				}
+			}
+			for _, a := range c.D.Options {
+				if a.Kind() == oracle.ActPass {
+					return a
+				}
+			}
+		}
+		return base.Pick(c)
+	})
+}
+
 func miscShapes() []miscShape {
 	e := func(n string, c int) cardset.Entry { return cardset.Entry{Name: n, Count: c} }
 	burn := []cardset.Entry{e("Shock", 6), e("Hill Giant", 8), e("Grizzly Bears", 8), e("Mountain", 10), e("Forest", 8)}
@@ -305,6 +412,50 @@ func miscShapes() []miscShape {
 				{e("Rex, Cyber-Hound", 4), e("Grizzly Bears", 8), e("Forest", 10), e("Plains", 8), e("Island", 10)},
 				{e("Rootwalla", 20), e("Mountain", 20)},
 			}}},
+		// C.A.M.P. opens with the deck's only three Forests; the hand's Giant
+		// Growths tap a fortified Forest for mana, running the TapsForMana
+		// rider's PutCounter and its produced-colour Junk token.
+		{card: "C.A.M.P.", seeds: 8, min: 1, reached: miscJunkTokens,
+			policy: miscFortifyThen,
+			matchups: [][2][]cardset.Entry{{
+				{e("C.A.M.P.", 4), e("Grizzly Bears", 8), e("Giant Growth", 8), e("Forest", 20)},
+				burn,
+			}},
+			start: func(deck []*cards.Card) *rules.StartSpec {
+				grave := make([]string, 0, 22)
+				for i := 0; i < 17; i++ {
+					grave = append(grave, "Forest")
+				}
+				for i := 0; i < 3; i++ {
+					grave = append(grave, "C.A.M.P.")
+				}
+				for i := 0; i < 5; i++ {
+					grave = append(grave, "Grizzly Bears")
+				}
+				return miscStartOf(deck,
+					[]string{"Forest", "Forest", "Forest", "C.A.M.P.", "Grizzly Bears", "Grizzly Bears", "Grizzly Bears"},
+					[]string{"Giant Growth", "Giant Growth", "Giant Growth", "Giant Growth"},
+					grave)
+			}},
+		// Two Crystal Veins open, and every other Vein is in the graveyard: a
+		// Weldfast Monitor's {3} has exactly one plan, one Vein's tap and the
+		// other's {T}, Sacrifice this permanent: Add {C}{C} pair
+		// (mana_sacpair.go).
+		{card: "Crystal Vein", seeds: 20, min: 1, reached: miscSacColourless,
+			matchups: [][2][]cardset.Entry{{
+				{e("Crystal Vein", 20), e("Weldfast Monitor", 20)},
+				burn,
+			}},
+			start: func(deck []*cards.Card) *rules.StartSpec {
+				grave := make([]string, 18)
+				for i := range grave {
+					grave[i] = "Crystal Vein"
+				}
+				return miscStartOf(deck,
+					[]string{"Crystal Vein", "Crystal Vein"},
+					[]string{"Weldfast Monitor", "Weldfast Monitor", "Weldfast Monitor", "Weldfast Monitor"},
+					grave)
+			}},
 	}
 }
 

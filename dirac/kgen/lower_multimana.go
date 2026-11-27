@@ -135,6 +135,15 @@ func (lc *lowerCtx) refuseMultiMana() {
 		// the kernel's per-count pair view (mana_dynpair.go) plans it
 		return
 	}
+	if len(ms) == 2 && plainTapMana(ms[0], false) && unrestrictedOne(ms[0]) && sacSelfPairMana(ms[0], ms[1]) {
+		// {T}: Add {C}, then {T}, Sacrifice this permanent: Add {C}{C}
+		// (Crystal Vein): gorge's census unit holds both alternatives, and
+		// the planner takes the sacrificing one only when the tap alone
+		// cannot pay (pay planalts' last-resort tier); the kernel plans the
+		// same pair with its wider unit sacrificed as it pays
+		// (kop.SacSelfPairManaAb; dirac/mana_sacpair.go).
+		return
+	}
 	if len(ms) == 2 && plainTapMana(ms[0], false) && unrestrictedOne(ms[0]) && chosenTapMana(ms[1]) {
 		// a plain fixed {T} ability beside "{T}: Add one mana of the chosen
 		// color" (Quirion Elves): gorge's planner lists the one unit with a
@@ -603,6 +612,35 @@ func tapXOneGapMana(a *lAbility) bool {
 	b := *a
 	b.Cost.TapN, b.Cost.TapF, b.Cost.Tap = 0, nil, true
 	return plainTapMana(&b, false)
+}
+
+// sacSelfPairMana: a is the wider unit of the Crystal Vein pair beside the
+// plain first mana ability first: a {T} ability whose cost also sacrifices
+// its own source, no mana cost, making a literal two or more mana of the
+// very same single fixed colour, unrestricted and ungated
+// (kop.SacSelfPairManaAb; dirac/mana_sacpair.go plans the pair).
+func sacSelfPairMana(first, a *lAbility) bool {
+	c := &a.Cost
+	if !c.Tap || !c.SacSelf || c.Sac != nil || c.SacN != 0 || len(c.SacMore) > 0 ||
+		c.DiscardN != 0 || c.DiscardSelf || c.Loyalty != 0 || c.SubCtr != 0 || c.PayLife != 0 ||
+		c.TapN != 0 || c.TapHost || c.SacHost || c.Forage != nil || c.ExileG != nil || c.Energy != 0 || c.ReturnSelf || c.ExileSelf || c.Return != nil {
+		return false
+	}
+	m := &c.Mana
+	if m.Pips != [5]int{} || len(m.Hybrid) > 0 || m.X || m.C != 0 || m.Generic != 0 {
+		return false
+	}
+	if len(a.Prog) > 0 || a.ActCond.Kind != cNone || a.Limit != 0 || a.TurnOnce || a.Gate != nil || a.Sorcery || a.Loyalty {
+		return false
+	}
+	mn := a.Mana
+	if mn.Special != "" || mn.SpecialF != nil || mn.RestrictAb != nil && mn.Restrict == nil || mn.Colors == "" || mn.Colors == "Chosen" {
+		return false
+	}
+	if mn.Choice || mn.Each || mn.Restrict != nil || mn.RestrictAb != nil || mn.NonSpell {
+		return false
+	}
+	return mn.Colors == first.Mana.Colors && len(mn.Colors) == 1 && mn.Amount.isConst() && mn.Amount.N >= 2
 }
 
 // sacTapGapMana: a is a {T} ability whose cost also sacrifices exactly one

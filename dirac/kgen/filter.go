@@ -97,6 +97,7 @@ const (
 	fSameNameRem   // a sameName context base: the head's Remembered prefix names the referent (gorge sameNameContextBase)
 	fSameNameTgt   // a sameName context base: the head's Targeted prefix
 	fSameNameTrig  // a sameName context base: the head's Triggered prefix
+	fFortifiedBy   // attached to by the source (Fortification), gorge's FortifiedBy predicate
 	fFlagCount     = iota
 )
 
@@ -104,7 +105,7 @@ var flagNames = [...]string{"Self", "Other", "Token", "NonToken", "Attacking", "
 	"WithFlying", "WithoutFlying", "Kicked", "CastByYou", "EquippedBy", "EnchantedBy", "EnteredThisTurn",
 	"ChosenType", "ChosenColor", "Remembered", "NotRemembered", "ChosenCard", "NotChosenCard",
 	"AttachedToParentTarget", "TargetedBy", "NamedAsSource", "Basic", "SharesColorWithOtherRemembered", "NotTriggerObj", "PromisedGift", "WasDamaged", "Legendary", "Saddled", "Sneaked", "BlockedBySrc", "DamagedBy", "CrewedSrc", "Warped", "Bargained", "Escaped", "Teamwork", "ExiledWith", "NotAttacking", "NotAttachedBy", "NamedCard",
-	"SameNameRem", "SameNameTgt", "SameNameTrig"}
+	"SameNameRem", "SameNameTgt", "SameNameTrig", "FortifiedBy"}
 
 // Controller / owner selectors.
 const (
@@ -439,6 +440,11 @@ var propWords = map[string]uint64{
 	"attacking":    fAttacking, "!attacking": fNotAttacking, "!TriggeredCard": fNotTriggerObj, "blocking": fBlocking, "tapped": fTapped, "untapped": fUntapped,
 	"withFlying": fWithFlying, "withoutFlying": fWithoutFlying, "kicked": fKicked, "wasCastByYou": fCastByYou,
 	"EquippedBy": fEquippedBy, "EnchantedBy": fEnchantedBy, "AttachedBy": fEquippedBy, "ThisTurnEntered": fEnteredThisTurn,
+	// FortifiedBy: the same "attached to" relation spelled for Fortifications
+	// (C.A.M.P.'s TapsForMana ValidCard$ Card.FortifiedBy, Darksteel
+	// Garrison's Land.FortifiedBy); gorge's predicates map serves all four
+	// spellings (engine/effects/filter.go's attachedBy).
+	"FortifiedBy": fFortifiedBy,
 	// gorge matchPredicate's '!' of attachedBy: true for
 	// every object but the source's live host
 	"!EnchantedBy": fNotAttachedBy, "!EquippedBy": fNotAttachedBy, "!AttachedBy": fNotAttachedBy,

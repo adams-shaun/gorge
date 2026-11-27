@@ -25,6 +25,18 @@ const twTapBit = 0x100 // rides fireTapsBy's amt above the tapper byte
 // TapsForMana, trigmatch tapsMatches' forMana flag) admits.
 const mtTapBit = 0x200
 
+// mtColShift and mtColMask: the colours of the mana a mana tap produces ride
+// the same amt above mtTapBit, in bits 10-14 as the W U B R G mask (gorge's
+// TriggerMana set, engine/rules/mana_activation.go's stampTriggeredManaProduced).
+// objTrigGen keeps them in the queued trigger's amount while dropping the
+// tapper, and the SharesProducedColour filter word reads them off the
+// resolving entry (filter_sharesproducedcolour.go; C.A.M.P.'s
+// Card.SharesColorWith TriggeredProduced). Colourless is not a colour: no bit.
+const (
+	mtColShift = 10
+	mtColMask  = 0x7C00
+)
+
 // tapsManaOK: a Tf5TapsForMana line admits only a mana tap (mtTapBit), and
 // with Tf5TapperNonActive only one by a player other than the active player
 // (Activator$ Player.NonActive; the tapper is fireTapsBy's low byte). A

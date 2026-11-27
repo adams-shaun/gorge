@@ -102,28 +102,27 @@ func (s *State) sbaScan(k *prep, r *sbaMasks) (busy bool) {
 			gy = gy.with(sl)
 			aur = aur.with(sl)
 		}
-		if t&kop.TAura == 0 && p.attached != NoSlot && s.occ.has(p.attached) && s.typesAt(k, p.attached)&kop.TCreature == 0 {
+		fort := k.t.Cards[s.cardAt(sl)].Fortification
+		if t&kop.TAura == 0 && !fort && p.attached != NoSlot && s.occ.has(p.attached) && s.typesAt(k, p.attached)&kop.TCreature == 0 {
 			busy = true // the legend ask decides it (legendOwed), which the scan key does not hold
 		}
-		if t&kop.TAura == 0 && p.attached != NoSlot && s.occ.has(p.attached) && s.typesAt(k, p.attached)&kop.TCreature == 0 && !s.legendOwed(k) {
+		if t&kop.TAura == 0 && !fort && p.attached != NoSlot && s.occ.has(p.attached) && s.typesAt(k, p.attached)&kop.TCreature == 0 && !s.legendOwed(k) {
 			// an Equipment whose creature is no longer one (Imprisoned
 			// in the Moon) becomes unattached and stays (CR 704.5n;
 			// gorge attachmentSBAs; pair 9856). Under a legend ask it
 			// stays attached: gorge parks the pass's batch with the ask
 			// (CR 704.3), and the pass after the answer detaches it
 			// (Crystallized Serah transformed beside another)
-			h := p.attached
-			s.touchSl(h)
-			if k.gen != nil && k.gen.anyUnattach {
-				// gorge's Equipment-bearer arm publishes the detach with
-				// the bearer (CR 704.5n, attachmentSBAs)
-				s.fireUnattached(k, sl, h)
-			}
-			p.attached = NoSlot
-			s.touchSl(sl)
-			if k.gen != nil && k.gen.anyAegis {
-				s.aegisUnlink(k, sl, h, false) // zone_exilethenattach.go
-			}
+			s.detachAttachment(k, sl, p)
+		}
+		if fort && p.attached != NoSlot && s.occ.has(p.attached) && s.typesAt(k, p.attached)&kop.TLand == 0 {
+			busy = true // the legend ask decides it (legendOwed), which the scan key does not hold
+		}
+		if fort && p.attached != NoSlot && s.occ.has(p.attached) && s.typesAt(k, p.attached)&kop.TLand == 0 && !s.legendOwed(k) {
+			// a Fortification whose bearer is no longer a land (CR 704.5n,
+			// CR 702.67b; gorge's isFortification arm, engine/rules/attach.go:244)
+			// detaches and stays; the same legend-ask park as the Equipment arm.
+			s.detachAttachment(k, sl, p)
 		}
 		if t&kop.TPlaneswalker != 0 && p.ctrLow(int(kop.CtrLoyalty)) == 0 {
 			gy = gy.with(sl)
@@ -132,4 +131,23 @@ func (s *State) sbaScan(k *prep, r *sbaMasks) (busy bool) {
 	}
 	r.die, r.gy, r.pwz, r.aur, r.anni = die, gy, pwz, aur, anni
 	return busy
+}
+
+// detachAttachment detaches p (at sl) from its bearer as the CR 704.5n
+// attachment SBA: the Equipment-bearer and Fortification-bearer arms of gorge's
+// attachmentSBAs (engine/rules/attach.go) both publish the detach with the
+// bearer (Mode$ Unattached watchers, Grafted Exoskeleton) and leave the
+// permanent on the battlefield; the caller's legendOwed check holds the pass
+// under a pending legend ask (CR 704.3).
+func (s *State) detachAttachment(k *prep, sl Slot, p *perm) {
+	h := p.attached
+	s.touchSl(h)
+	if k.gen != nil && k.gen.anyUnattach {
+		s.fireUnattached(k, sl, h)
+	}
+	p.attached = NoSlot
+	s.touchSl(sl)
+	if k.gen != nil && k.gen.anyAegis {
+		s.aegisUnlink(k, sl, h, false) // zone_exilethenattach.go
+	}
 }
