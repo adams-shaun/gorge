@@ -1,0 +1,14 @@
+# The demo Thundermane pool (dirac/oracle/demo_thundermane_lockstep_test.go):
+# Thundermane Dragon and the power-4-or-greater creatures its library-top
+# permission may cast, plus the lands the decks need. The static SpellCast
+# haste rider lowers as a static trigger with the Animate dropped (gorge ends
+# the timed grant when the spell leaves the stack), so the lockstep's job is
+# to prove the off-stack resolution and the may-play path stay aligned.
+Colossal Dreadmaw
+Craw Wurm
+Earth Elemental
+Fire Elemental
+Forest
+Grizzly Bears
+Mountain
+Thundermane Dragon
