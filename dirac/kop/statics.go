@@ -151,6 +151,16 @@ type Static struct {
 	// every live static's N to the printed toxic (dirac/kw_toxicgrant.go).
 	// 0 = none.
 	Toxic uint8
+	// PanhZones: a StatPanharmonicon static's ValidZone$ zone mask (1<<Zone;
+	// 0 = the battlefield only, the default). The triggering object's own
+	// zone, at the moment the event caused the trigger, must be in the set;
+	// a colorless spell on the stack is the Echoes of Eternity shape
+	// (gorge statics_echo.go panharmoniconEchoes).
+	PanhZones uint8
+	// PanhTurned: a StatPanharmonicon static's ValidTurned$ is present; its
+	// Filter2 scopes the permanent the turn-up event turned (Panoptic
+	// Projektor), distinct from Filter's trigger source.
+	PanhTurned bool
 }
 
 // Override is a fixed-order override record (the plan's replacement for a
@@ -442,6 +452,7 @@ const (
 	PanhModeLifeGained int16 = 1 // ValidMode$ LifeGained: a trigger of a player gaining life
 	PanhModeDrawn      int16 = 2 // ValidMode$ Drawn: a trigger of a player drawing a card
 	PanhModeDies       int16 = 3 // ValidCause$ + Origin$ Battlefield + Destination$ Graveyard: a ChangesZone trigger caused by a matching permanent dying (Filter2 = the cause)
+	PanhModeTurnFaceUp int16 = 4 // ValidMode$ TurnFaceUp: a trigger caused by turning a face-down permanent face up; Static.PanhTurned then scopes the turned object with Filter2 (Panoptic Projektor)
 )
 
 // StaticFlags (Static.StFlags).

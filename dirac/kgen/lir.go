@@ -1281,6 +1281,12 @@ type lStatic struct {
 	Evasion uint8
 	Infect  bool
 	Toxic   uint8 // granted toxic N, summed (kop.Static.Toxic; lower_toxicgrant.go)
+	// PanhZones: a Panharmonicon static's ValidZone$ mask (kop.Static.PanhZones;
+	// 0 = the battlefield only, static_triggers.go)
+	PanhZones uint8
+	// PanhTurned: a Panharmonicon static's ValidTurned$ is present; F2 scopes
+	// the turned permanent (kop.Static.PanhTurned, Panoptic Projektor)
+	PanhTurned bool
 
 	// AbilityRed: a ReduceCost static of activated abilities (Type$ Ability)
 	// rather than spells: 1 any, 2 Exhaust abilities only, 3 a Room unlock,
