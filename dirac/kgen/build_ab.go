@@ -2863,6 +2863,8 @@ func tapExtraFlag(name string) (kop.StaticFlags, bool) {
 		return kop.StTapOnC, true
 	case "TapReflect":
 		return kop.StTapReflect, true
+	case "TapReflectDefer":
+		return kop.StTapReflectDefer, true
 	case "TapAnyPlayer":
 		return kop.StTapAnyPlayer, true
 	case "TapChosen":
