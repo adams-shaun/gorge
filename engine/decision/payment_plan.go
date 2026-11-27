@@ -125,6 +125,14 @@ type PaymentActivation struct {
 	Ability       PaymentAbility      `json:"ability"`
 	Produces      ManaAmount          `json:"produces"`
 	Consequence   *PaymentConsequence `json:"consequence,omitempty"`
+	// Sacrifices names the permanents this step sacrifices when its
+	// consequence discloses an other-sacrifice (PaymentConsequence.
+	// SacrificeOthers): the witnesses of a "Sacrifice another permanent: Add"
+	// mana activation, so the panel can show what Accept will lose and the
+	// executor answers the sacrifice election internally. Absent (nil) for
+	// every other step; set exactly when the consequence does, which
+	// validateShape enforces.
+	Sacrifices []state.ObjID `json:"sacrifices,omitempty"`
 }
 
 // PaymentConsequence is a last-resort step's disclosed consequence. A present
@@ -141,6 +149,10 @@ type PaymentConsequence struct {
 	NoUntap bool `json:"no_untap,omitempty"`
 	// ReturnToHand: the source returns to its owner's hand.
 	ReturnToHand bool `json:"return_to_hand,omitempty"`
+	// SacrificeOthers: the activation sacrifices another permanent (named in
+	// PaymentActivation.Sacrifices) as part of its cost -- the Ashnod's Altar
+	// family. The source itself is not among them.
+	SacrificeOthers bool `json:"sacrifice_others,omitempty"`
 }
 
 // IsZero reports whether c sets no consequence at all.
@@ -148,9 +160,10 @@ func (c PaymentConsequence) IsZero() bool { return c == PaymentConsequence{} }
 
 // consequence trailer flag bits (codec note, payment-plan-v1-codec.md).
 const (
-	paymentConsequenceSacrifice    uint32 = 1 << 0
-	paymentConsequenceNoUntap      uint32 = 1 << 1
-	paymentConsequenceReturnToHand uint32 = 1 << 2
+	paymentConsequenceSacrifice     uint32 = 1 << 0
+	paymentConsequenceNoUntap       uint32 = 1 << 1
+	paymentConsequenceReturnToHand  uint32 = 1 << 2
+	paymentConsequenceSacrificeOthr uint32 = 1 << 3
 )
 
 func (c PaymentConsequence) flags() uint32 {
@@ -163,6 +176,9 @@ func (c PaymentConsequence) flags() uint32 {
 	}
 	if c.ReturnToHand {
 		f |= paymentConsequenceReturnToHand
+	}
+	if c.SacrificeOthers {
+		f |= paymentConsequenceSacrificeOthr
 	}
 	return f
 }
@@ -290,6 +306,9 @@ func ClonePaymentPlan(p PaymentPlan) PaymentPlan {
 			if c := p.Activations[i].Consequence; c != nil {
 				cc := *c
 				p.Activations[i].Consequence = &cc
+			}
+			if s := p.Activations[i].Sacrifices; s != nil {
+				p.Activations[i].Sacrifices = append([]state.ObjID(nil), s...)
 			}
 		}
 	}
@@ -494,6 +513,34 @@ func (p PaymentPlan) validateShape() error {
 				return fmt.Errorf("payment activation %d: %w", i, err)
 			}
 		}
+		// The victim list is the witness of an other-sacrifice step and only
+		// of one: it is present exactly when the consequence discloses the
+		// other-sacrifice, names distinct nonzero permanents, none of them a
+		// step's own source.
+		others := a.Consequence != nil && a.Consequence.SacrificeOthers
+		if others != (len(a.Sacrifices) > 0) {
+			return fmt.Errorf("payment activation %d victims %v, other-sacrifice %v", i, a.Sacrifices, others)
+		}
+		for j, v := range a.Sacrifices {
+			if v == 0 {
+				return fmt.Errorf("payment activation %d has a zero victim", i)
+			}
+			if v == a.Source {
+				return fmt.Errorf("payment activation %d sacrifices its own source %d", i, v)
+			}
+			for _, prev := range a.Sacrifices[:j] {
+				if prev == v {
+					return fmt.Errorf("payment activation %d sacrifices %d twice", i, v)
+				}
+			}
+			for _, prev := range p.Activations[:i] {
+				for _, pv := range prev.Sacrifices {
+					if pv == v {
+						return fmt.Errorf("payment activation %d reuses victim %d of an earlier activation", i, v)
+					}
+				}
+			}
+		}
 	}
 	return nil
 }
@@ -592,6 +639,26 @@ func appendPaymentPlanCanonical(b []byte, p PaymentPlan) []byte {
 		b = appendU32(b, c.flags())
 		b = appendU32(b, c.Life)
 		b = appendU32(b, c.Damage)
+	}
+	// The victims trailer follows the same additive rule: appended only when
+	// some step names sacrificed victims, so every plan without one -- and
+	// every plan encoded before the field existed -- keeps its exact identity.
+	hasVictims := false
+	for _, a := range p.Activations {
+		if len(a.Sacrifices) > 0 {
+			hasVictims = true
+			break
+		}
+	}
+	if !hasVictims {
+		return b
+	}
+	b = appendString(b, "victims")
+	for _, a := range p.Activations {
+		b = appendU32(b, uint32(len(a.Sacrifices)))
+		for _, v := range a.Sacrifices {
+			b = appendU64(b, uint64(v))
+		}
 	}
 	return b
 }
