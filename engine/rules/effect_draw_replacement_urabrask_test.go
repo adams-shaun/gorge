@@ -140,6 +140,14 @@ func TestEffectDrawReplacementUrabraskOneShot(t *testing.T) {
 		}
 		ps, okp := effects.EffectOwnerPlayers(e, ctxPr, "ReplacedPlayer")
 		t.Logf("DEBUG replPlayer=%+v definedPlayers=%v ok=%v", ctxPr.Repl.Player, ps, okp)
+		withNC := replacementBodySA("DB$ Dig | Defined$ ReplacedPlayer | DigNum$ 1 | ChangeNum$ All | DestinationZone$ Exile | RememberChanged$ True")
+		ne3 := len(e.L.Events)
+		e.runReplaceWith(ctxPr, 0, withNC, &evProbe)
+		var sb3 strings.Builder
+		for _, evx := range e.L.Events[ne3:] {
+			fmt.Fprintf(&sb3, "{k=%d obj=%d p=%d from=%d to=%d text=%q} ", evx.Kind, evx.Obj, evx.Player, evx.From, evx.To, evx.Text)
+		}
+		t.Logf("DEBUG nocond: exile1=%d lib1=%d newevents: %s", len(e.G.Zone(state.ZExile, 1)), len(e.G.Zone(state.ZLibrary, 1)), sb3.String())
 		t.Logf("DEBUG body: exile1 %d->%d hand %d->%d lib %d->%d pending=%v newevents: %s",
 			ex2, len(e.G.Zone(state.ZExile, 1)), hb2, len(e.G.Zone(state.ZHand, 1)),
 			lb2, len(e.G.Zone(state.ZLibrary, 1)), e.Pending(), sb2.String())
