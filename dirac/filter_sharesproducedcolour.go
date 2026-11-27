@@ -111,3 +111,15 @@ func cardUsesProducedColour(t *kop.Table, c *kop.CardDef) bool {
 	}
 	return false
 }
+
+// useTrigProduced: some card reads the SharesProducedColour word, so artTag
+// rebinds a mana tap's queued Taps trigger to the colour the source floated
+// (a genPrep use bit, not a field: TestNoNewFixedStateFields).
+var useTrigProduced = newGenUse(func(t *kop.Table) bool {
+	for i := range t.Cards {
+		if cardUsesProducedColour(t, &t.Cards[i]) {
+			return true
+		}
+	}
+	return false
+})
