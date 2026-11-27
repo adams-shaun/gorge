@@ -111,6 +111,28 @@ var kdrawReplDecks = map[string][2][]cardset.Entry{
 			{Name: "Island", Count: 17}, {Name: "Swamp", Count: 5}, {Name: "Plains", Count: 5}},
 		{{Name: "Wall of Stone", Count: 20}, {Name: "Mountain", Count: 20}},
 	},
+	// The library-look Dig bodies (Tomorrow, Underrealm Lich, Sages of the
+	// Anima): the turn draw parks the body's choose (dirac/repl_drawbody.go),
+	// both engines ask. One carrier per deck: two would be a competition the
+	// kernel stalls.
+	"sages": {
+		{{Name: "Sages of the Anima", Count: 1}, {Name: "Grizzly Bears", Count: 8}, {Name: "Hill Giant", Count: 4},
+			{Name: "Divination", Count: 4}, {Name: "Island", Count: 12}, {Name: "Forest", Count: 11}},
+		{{Name: "Grizzly Bears", Count: 12}, {Name: "Hill Giant", Count: 8},
+			{Name: "Divination", Count: 4}, {Name: "Island", Count: 8}, {Name: "Forest", Count: 8}},
+	},
+	"tomorrow": {
+		{{Name: "Tomorrow, Azami's Familiar", Count: 1}, {Name: "Grizzly Bears", Count: 8}, {Name: "Hill Giant", Count: 4},
+			{Name: "Divination", Count: 4}, {Name: "Island", Count: 12}, {Name: "Forest", Count: 11}},
+		{{Name: "Grizzly Bears", Count: 12}, {Name: "Hill Giant", Count: 8},
+			{Name: "Divination", Count: 4}, {Name: "Island", Count: 8}, {Name: "Forest", Count: 8}},
+	},
+	"lich": {
+		{{Name: "Underrealm Lich", Count: 1}, {Name: "Grizzly Bears", Count: 8}, {Name: "Hill Giant", Count: 4},
+			{Name: "Divination", Count: 4}, {Name: "Island", Count: 12}, {Name: "Forest", Count: 11}},
+		{{Name: "Grizzly Bears", Count: 12}, {Name: "Hill Giant", Count: 8},
+			{Name: "Divination", Count: 4}, {Name: "Island", Count: 8}, {Name: "Forest", Count: 8}},
+	},
 }
 
 func TestReplDrawReplLockstep(t *testing.T) {

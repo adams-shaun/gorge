@@ -33,3 +33,8 @@ Living Conundrum
 Ormos, Archive Keeper
 Wall of Stone
 Deep Analysis
+# The library-look Dig bodies whose choose the kernel parks at the turn draw
+# (dirac/repl_drawbody.go): look at the top three, take one, rest elsewhere.
+Sages of the Anima
+Tomorrow, Azami's Familiar
+Underrealm Lich

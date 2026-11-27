@@ -29,7 +29,10 @@ func TestReplDrawDamageSlice(t *testing.T) {
 // The slice's other carriers keep the refusals the ticket names: the draw
 // replacements (plain, optional or choice) stay refused until their own slices
 // lower them. (Dralnu and Phyrexian Vindicator, the DamageDone bodies that ask
-// a player, lower now: TestReplDmgAskBodiesSlice.)
+// a player, lower now: TestReplDmgAskBodiesSlice. The library-look Dig bodies —
+// Sages of the Anima, Tomorrow, Azami's Familiar, Underrealm Lich — lower now
+// too: their own slice, repl_drawrepl_dig_test.go and the lockstep pairs, and
+// they are drawProgramCarriers in repl_drawrepl_slice_test.go.)
 func TestReplDrawDamageRestRefused(t *testing.T) {
 	for _, w := range []struct{ name, class string }{
 		{"Abundance", "Draw replacement with an optional or choice body"},
@@ -39,9 +42,6 @@ func TestReplDrawDamageRestRefused(t *testing.T) {
 		{"Eruth, Tormented Prophet", "Draw replacement"},
 		{"Pavel Chekov, First Posting", "Draw replacement with an optional or choice body"},
 		{"Pursuit of Knowledge", "Draw replacement"},
-		{"Sages of the Anima", "Draw replacement"},
-		{"Tomorrow, Azami's Familiar", "Draw replacement"},
-		{"Underrealm Lich", "Draw replacement"},
 		{"Unpredictable Cyclone", "Draw replacement"},
 		{"Breathstealer's Crypt", "Draw replacement"},
 		{"Chains of Mephistopheles", "Draw replacement"},

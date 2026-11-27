@@ -456,10 +456,28 @@ func (s *State) runReplProgAs(k *prep, sl Slot, c CardID, ab, pc uint8, src Slot
 	saveSrc := s.replSrcOf()
 	s.setReplSrc(uint8(src) + 1)
 	defer func() { s.setReplSrc(saveSrc) }()
+	isDrawProgram := false
+	if ra := &k.t.Cards[c].Abilities[ab]; ra.Kind == kop.AbReplacement && ra.Repl.Kind == kop.ReplDrawProgram {
+		// a Draw replacement body: ReplacedPlayer is the player drawing the
+		// replaced card, bound on the cold in-flight record
+		// (repl_drawprogram.go)
+		isDrawProgram = true
+	}
 	if !s.res.active {
 		// a value context for the program: the source as a resolving entry
 		sp := &s.perms[src]
 		s.res = resCtx{e: stackEntry{kind: seAbility, obj: sp.obj, srcVer: s.objs[sp.obj].ver, card: s.cardAt(src), ab: ab, ctrl: sp.ctrl, trigObj: NoObj}}
+		s.res.e.tgt = noTargets
+	} else if isDrawProgram {
+		// a Draw replacement body inside an outer resolution answers to its
+		// own entry too (the same one the fresh context below builds): its
+		// ask builders and answers read s.prog(k)[s.res.pc], and a parked
+		// Dig's ask walk runs on this entry after the program (digMayStop,
+		// tailOp, the raGenDig arms). The outer's entry rides saved;
+		// restoreRes returns it, and drawBodyEndRes does for a parked ask
+		// (repl_drawbody.go).
+		sp := &s.perms[src]
+		s.res.e = stackEntry{kind: seAbility, obj: sp.obj, srcVer: s.objs[sp.obj].ver, card: s.cardAt(src), ab: ab, ctrl: sp.ctrl, trigObj: NoObj}
 		s.res.e.tgt = noTargets
 	} else if c := s.perms[src].ctrl; c != s.res.e.ctrl {
 		// the program's "you" is its source's controller (CR 109.5), not
@@ -469,12 +487,7 @@ func (s *State) runReplProgAs(k *prep, sl Slot, c CardID, ab, pc uint8, src Slot
 		s.res.e.ctrl = c
 		defer func() { s.res.e.ctrl = was }()
 	}
-	isDrawProgram := false
-	if ra := &k.t.Cards[c].Abilities[ab]; ra.Kind == kop.AbReplacement && ra.Repl.Kind == kop.ReplDrawProgram {
-		// a Draw replacement body: ReplacedPlayer is the player drawing the
-		// replaced card, bound on the cold in-flight record
-		// (repl_drawprogram.go)
-		isDrawProgram = true
+	if isDrawProgram {
 		if ds := s.drawState(); len(ds) > 0 && ds[0].active {
 			was := s.res.e.trigPl
 			s.res.e.trigPl = ds[0].p
@@ -615,7 +628,7 @@ func (s *State) runReplProgAs(k *prep, sl Slot, c CardID, ab, pc uint8, src Slot
 					// the op posed an ask on the borrowed resCtx: the gap is
 					// declared or the last Dig's ask is parked, and the
 					// program ends either way (drawBodyAskGap)
-					s.drawBodyAskGap(&saved, i, len(prog))
+					s.drawBodyAskGap(k, &saved, i, len(prog), src, ab)
 					return
 				}
 				continue
