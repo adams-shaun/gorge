@@ -424,6 +424,7 @@ var counterKinds = map[string]kop.CounterKind{
 	"REVIVAL": kop.CtrRevival, "STASH": kop.CtrStash, classLevelCounter: kop.CtrLevel,
 	"CHARGE": kop.CtrCharge, "OIL": kop.CtrOil, "SPORE": kop.CtrSpore, "QUEST": kop.CtrQuest,
 	"VERSE": kop.CtrVerse, "GROWTH": kop.CtrGrowth, "FUSE": kop.CtrFuse, "STORY": kop.CtrStory,
+	"VOW":          kop.CtrVow,    // Promise of Loyalty's named counter (CR 122.1)
 	"Flying":       kop.CtrFlying, // CR 122.1b keyword counter (the featurized kind)
 	"First Strike": kop.CtrFirstStrike, "Double Strike": kop.CtrDoubleStrike, "Deathtouch": kop.CtrDeathtouch,
 	"Haste": kop.CtrHaste, "Hexproof": kop.CtrHexproof, "Indestructible": kop.CtrIndestructible,

@@ -54,13 +54,15 @@ type Family struct {
 	check func(e *Entry) error
 }
 
-// CounterKindCover is kop.NumCounterKinds3, frozen at the cutover: the
-// counter kinds the kernel's per-kind tables and walks reach (ProjObj.CountersX,
-// CtrXNames, kop.IsCounterKind). A kind at or above it waits on moving the
-// cover, and a kind of 256 or more also on widening the Action mode byte and
-// the CostSubAmong pick key (dirac ctrMode). dirac's
+// CounterKindCover is kop.NumCounterKinds3: the counter kinds the kernel's
+// per-kind tables and walks reach (ProjObj.CountersX, CtrXNames,
+// kop.IsCounterKind). It moved to 253 for VOW (Promise of Loyalty), the value
+// past the highest manifest kind (WRECK, 252); kop.CtrMode is 253 and
+// IsCounterKind excludes it. A kind at or above it waits on moving the cover,
+// and a kind of 256 or more also on widening the Action mode byte and the
+// CostSubAmong pick key (dirac ctrMode). dirac's
 // TestManifestStatusMatchesCode holds the two equal.
-const CounterKindCover = 242
+const CounterKindCover = 253
 
 // CoverWhy is the status reason of an entry at or above its family's Cover.
 const CoverWhy = "cover:NumCounterKinds3"

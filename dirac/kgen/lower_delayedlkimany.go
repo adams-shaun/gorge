@@ -21,7 +21,12 @@ import (
 //     player-scoped sweep beside its player target slot, RememberChanged$
 //     True), so the set is everything the sweep moved;
 //   - a body of one ChangeZone Origin$ Exile, Destination$ Battlefield of
-//     Defined$ DelayTriggerRememberedLKI and nothing else.
+//     Defined$ DelayTriggerRememberedLKI and nothing else; or
+//   - Semester's End's Effect body: the same return behind a Moved replacement
+//     that gives an entering creature a +1/+1 counter and an entering
+//     planeswalker a loyalty counter. The Effect affects that one move only,
+//     so the counters ride the return (kop.RetDelayedTypeCtr) and the Effect
+//     and its imprint cleanup are dropped (delayedLKICtrBody).
 //
 // Capacity: the carrier holds four objects, so Hide on the Ceiling with X >= 5,
 // Eerie Interlude exiling five or more and Planar Guide sweeping five or more
@@ -30,6 +35,17 @@ import (
 //
 // It returns the reason the chain is another shape, "" when it is this one.
 func (lc *lowerCtx) delayedLKIManyShape(exec *cards.SA) string {
+	if why := lc.delayedLKITargetSetShape(); why != "" {
+		return why
+	}
+	return delayedLKIReturnBody(exec)
+}
+
+// delayedLKITargetSetShape checks that the chain's remembered set is exactly
+// the one target slot's exile (RememberChanged$ on the Exile), which is the
+// set both the plain many-object return and Semester's End's replacement
+// return carry.
+func (lc *lowerCtx) delayedLKITargetSetShape() string {
 	if len(lc.ab.Targets) != 1 {
 		return "not exactly one target slot"
 	}
@@ -45,7 +61,7 @@ func (lc *lowerCtx) delayedLKIManyShape(exec *cards.SA) string {
 	if writes != 1 || !exiled {
 		return "the remembered set is not the target slot's exile"
 	}
-	return delayedLKIReturnBody(exec)
+	return ""
 }
 
 // delayedLKISweepMulti reports whether the chain's only remembering write is
@@ -76,6 +92,75 @@ func delayedLKIReturnBody(exec *cards.SA) string {
 		return "the body is not one ChangeZone Exile->Battlefield of DelayTriggerRememberedLKI"
 	}
 	return ""
+}
+
+// delayedLKICtrBody reads Semester's End's delayed body: an Effect over the
+// delayed remembered set whose Moved replacement gives a returning creature an
+// additional +1/+1 counter and a returning planeswalker an additional loyalty
+// counter, and whose Sub returns the set from exile. The Effect exists only for
+// that one move, so the lowering carries the counters on the return itself
+// (kop.RetDelayedTypeCtr) and drops the Effect and its imprint cleanup, which
+// affect nothing else. ok is false for every other body.
+func (lc *lowerCtx) delayedLKICtrBody(exec *cards.SA) (ret *cards.SA, ok bool) {
+	if exec.API != "Effect" || exec.Sub == nil || len(exec.Params) != 5 {
+		return nil, false
+	}
+	for k := range exec.Params {
+		switch k {
+		case "RememberObjects", "ReplacementEffects", "ImprintOnHost", "ForgetOnMoved", "SubAbility":
+		default:
+			return nil, false
+		}
+	}
+	if exec.Params["RememberObjects"] != "DelayTriggerRememberedLKI" ||
+		exec.Params["ImprintOnHost"] != "True" || exec.Params["ForgetOnMoved"] != "Exile" {
+		return nil, false
+	}
+	ret = exec.Sub
+	if ret.API != "ChangeZone" || len(ret.Params) != 4 ||
+		ret.Params["Defined"] != "DelayTriggerRememberedLKI" ||
+		ret.Params["Origin"] != "Exile" || ret.Params["Destination"] != "Battlefield" ||
+		ret.Params["SubAbility"] == "" {
+		return nil, false
+	}
+	clean := ret.Sub
+	if clean == nil || clean.API != "ChangeZone" || len(clean.Params) != 4 ||
+		clean.Params["Defined"] != "Imprinted" || clean.Params["Origin"] != "Command" ||
+		clean.Params["Destination"] != "Exile" || clean.Sub == nil ||
+		clean.Sub.API != "Cleanup" || clean.Sub.Params["ClearImprinted"] != "True" {
+		return nil, false
+	}
+	repl := etbParams(lc.face.SVars[exec.Params["ReplacementEffects"]])
+	if repl == nil || repl["Event"] != "Moved" || repl["Destination"] != "Battlefield" ||
+		repl["ReplacementResult"] != "Updated" ||
+		repl["ValidCard"] != "Creature.IsRemembered,Planeswalker.IsRemembered" {
+		return nil, false
+	}
+	for k := range repl {
+		switch k {
+		case "Event", "ValidCard", "Destination", "ReplaceWith", "ReplacementResult", "Description":
+		default:
+			return nil, false
+		}
+	}
+	body := etbParams(lc.face.SVars[repl["ReplaceWith"]])
+	if body == nil || body["DB"] != "PutCounter" || body["Defined"] != "ReplacedNewCard.Creature" ||
+		body["CounterType"] != "P1P1" || body["ETB"] != "True" || body["CounterNum"] != "1" ||
+		body["SubAbility"] == "" || len(body) != 6 {
+		return nil, false
+	}
+	loy := etbParams(lc.face.SVars[body["SubAbility"]])
+	if loy == nil || loy["DB"] != "PutCounter" || loy["Defined"] != "ReplacedNewCard.Planeswalker" ||
+		loy["CounterType"] != "LOYALTY" || loy["ETB"] != "True" || loy["CounterNum"] != "1" ||
+		len(loy) != 5 {
+		return nil, false
+	}
+	cp := *ret
+	cp.Sub = nil
+	cp.Params = map[string]string{
+		"Defined": "DelayTriggerRememberedLKI", "Origin": "Exile", "Destination": "Battlefield",
+	}
+	return &cp, true
 }
 
 // delayedLKIMulti reports whether any target slot of the chain takes a variable
@@ -161,4 +246,22 @@ func (lc *lowerCtx) delayedChainManyShape(exec *cards.SA) string {
 		return "the set's last write is not one ChangeZone of the set itself"
 	}
 	return delayedLKIReturnBody(exec)
+}
+
+// delayedLKIManyBody checks the body of a RememberedLKI delayed trigger over
+// a set of several objects: the kernel's DpMany program, for the shapes it
+// returns exactly (lower_delayedlkimany.go). Semester's End's Effect adds a
+// type-conditional enters counter to the same return: that body is lowered as
+// its plain return, csFlag the |DelayedCtrByType flag.
+func (lc *lowerCtx) delayedLKIManyBody(exec *cards.SA) (body *cards.SA, csFlag string, err error) {
+	if ret, ok := lc.delayedLKICtrBody(exec); ok {
+		if why := lc.delayedLKITargetSetShape(); why != "" {
+			return exec, "", refuse("delayed trigger RememberedLKI over a multi-object target slot: %s", why)
+		}
+		return ret, "|DelayedCtrByType", nil
+	}
+	if why := lc.delayedLKIManyShape(exec); why != "" {
+		return exec, "", refuse("delayed trigger RememberedLKI over a multi-object target slot: %s", why)
+	}
+	return exec, "", nil
 }
