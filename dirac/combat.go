@@ -1257,6 +1257,9 @@ func (s *State) finishBlocks(k *prep) {
 	if k.gen != nil && k.gen.anyUnblocked {
 		s.fireUnblocked(k)
 	}
+	if k.gen != nil && k.gen.anyUnbOnce {
+		s.fireUnblockedOnce(k)
+	}
 	if k.gen != nil && k.gen.ringOn() {
 		s.ringBlockTrigs(k) // the Ring emblem's level 3 (act_ring.go), after the event's triggers
 	}

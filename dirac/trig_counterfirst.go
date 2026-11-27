@@ -46,12 +46,16 @@ var CounterFirstLog *[]CounterFirstRec
 
 // firstTimeLatchEvent reports the events whose Tf2FirstTime is the per-source
 // once-a-turn latch of this file: CounterAddedOnce (FirstTime$ True on a
-// Card.Self counter line) and BecomesTarget (FirstTime$ True on the ungated
-// Card.Self self line; kgen lowers only that shape, lower_trigger.go). The
-// other FirstTime events read their own per-turn facts (taps: mechTappedTurn;
-// life lost/gained: the loss and gain amounts).
+// Card.Self counter line), BecomesTarget (FirstTime$ True on the ungated
+// Card.Self self line; kgen lowers only that shape, lower_trigger.go) and
+// DamageDoneOnce (FirstTime$ True on the Card.Self line, Hercules, Olympian
+// Hero; kgen lowers only that shape, lower_damagedoneonce.go, where the
+// damaged referent is the listener the latch is keyed on). The other FirstTime
+// events read their own per-turn facts (taps: mechTappedTurn; life
+// lost/gained: the loss and gain amounts).
 func firstTimeLatchEvent(a *kop.Ability) bool {
-	return a.Trig.Event == kop.TrigCounterAddedOnce || a.Trig.Event == kop.TrigBecomesTarget
+	return a.Trig.Event == kop.TrigCounterAddedOnce || a.Trig.Event == kop.TrigBecomesTarget ||
+		a.Trig.Event == kop.TrigDamageDone && a.Trig.Flags2&kop.Tf2PerReferent != 0
 }
 
 // counterFirstUsed reports whether a's first-time line already had its turn

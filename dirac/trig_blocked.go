@@ -36,8 +36,8 @@ func (s *State) fireBlockedGen(k *prep) {
 	isBlk := func(a *kop.Ability) bool { return a.Trig.Event == kop.TrigBecomesBlocked }
 	for _, sl := range ord[:n] {
 		s.slotTriggers(k, sl, isBlk, func(l trigListener, a *kop.Ability) {
-			if a.Trig.Flags2&kop.Tf2Unblocked != 0 {
-				return // an unblocked-attacker line (fireUnblocked)
+			if a.Trig.Flags2&(kop.Tf2Unblocked|kop.Tf2UnblockedOnce) != 0 {
+				return // an unblocked-attacker line (fireUnblocked / fireUnblockedOnce)
 			}
 			if a.Trig.Flags2&kop.Tf2PerPair != 0 {
 				s.firePairTrig(k, l, a, ps[:nb])
