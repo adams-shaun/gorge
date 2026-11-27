@@ -591,6 +591,13 @@ func (s *State) sba(k *prep) bool {
 	}
 	var sm sbaMasks // each pass's board scan (sbaBoard fills it in place)
 	for {
+		if s.g.retHold {
+			// an until-leaves return batch is held behind a returning Aura's
+			// queued host ask (flushReturns): gorge suspends its sweep on
+			// that ask inside the pass, so no further pass runs until the
+			// answer resumes the batch (resumeQueuedReturns)
+			return false
+		}
 		pre := s.beginSBAPass() // the seats out before this pass: its losses end their control effects together (sweepDeparted)
 		if k.gen != nil && k.gen.ctrlSBA {
 			s.ctrlSBA(k) // layer-2 control records and statics (static_control.go)
@@ -786,6 +793,13 @@ func (s *State) sba(k *prep) bool {
 		for i := 0; i < n; i++ {
 			zs[i] = s.dieZone(k, order[i])
 		}
+		// gorge brackets the pass's whole departure in ONE zone batch
+		// (applySBABatch -> BatchDepartures, rules/sba.go): every until-leaves
+		// source of the pass -- creatures and non-creatures alike -- is held
+		// and returned as one batch at its end (CR 603.6a, 610.3d), not one
+		// frame per leaving object. The creature casualties ride a casBatch
+		// inside it (trig_casualtybatch.go).
+		hr := s.holdOpen(k)
 		// the creature casualties (the order's first nd) are one zone batch
 		// (trig_casualtybatch.go); the rest stay outside it
 		nd := 0
@@ -809,6 +823,7 @@ func (s *State) sba(k *prep) bool {
 		if anni.any() {
 			s.annihilateAll(anni.and(s.occ))
 		}
+		s.holdClose(k, hr) // the pass's until-leaves returns, as one batch
 		// CR 800.4a: the departed seats' objects left, after this pass's
 		// casualties applied (gorge sweepDepartedPlayers, rules/sba.go)
 		if !s.duel() && s.sweepDeparted(k, pre) {
