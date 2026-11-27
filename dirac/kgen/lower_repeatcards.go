@@ -50,8 +50,15 @@ func (lc *lowerCtx) repeatEachCards(ps *params) error {
 	}
 	// no ChangeZoneTable$: a plain per-card loop (repeatEachCardsLoop)
 	table := dmgBody || ps.is("ChangeZoneTable", "True")
-	if z := strings.TrimSpace(ps.str("Zone")); z != "" && z != "Battlefield" {
-		return refuse("RepeatEach cards Zone$ %q", z)
+	zone := strings.TrimSpace(ps.str("Zone"))
+	if strings.Contains(zone, ",") {
+		return refuse("RepeatEach cards Zone$ list %q", zone) // Scythe Specter's five zones
+	}
+	if zone == "Battlefield" {
+		zone = ""
+	}
+	if zone != "" && defSpec != "" {
+		return refuse("RepeatEach cards Zone$ %q", zone) // the DefinedCards$ forms' ticket
 	}
 	in := lInstr{Op: "RepeatEachCard", Obj: lRef{Kind: rNone}}
 	if strings.HasPrefix(defSpec, "DirectRemembered.") {
@@ -92,6 +99,12 @@ func (lc *lowerCtx) repeatEachCards(ps *params) error {
 		}
 		if f == nil || f.Players != 0 || len(f.Clauses) == 0 {
 			return refuse("RepeatEach RepeatCards$ %q: not a card filter", cardsSpec)
+		}
+		if zone != "" {
+			// gorge walks Zone$ (repeatedCards); the kernel's card walk
+			// (dirac eachCardList) reads battlefield slots only. Checked after
+			// the filter so a card's first refusal is its real blocker.
+			return refuse("RepeatEach cards Zone$ %q: the kernel walks battlefield cards only", zone)
 		}
 		in.F = f
 	}
