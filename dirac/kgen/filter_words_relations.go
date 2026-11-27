@@ -27,6 +27,7 @@ func init() {
 	fwName[kop.FwSharesCr] = "FwSharesCr"
 	fwName[kop.FwSharesName] = "FwSharesName"
 	fwName[kop.FwSameName] = "FwSameName"
+	fwName[kop.FwOppProtect] = "FwOppProtect"
 
 	// with<K>, without<K> and !with<K> over a printed keyword the kernel keeps
 	// a record of (dirac/filter_withkeyword.go printedKeyword); gorge registers
@@ -49,6 +50,14 @@ func init() {
 					return c.fwLit(lSpillLit{W: kop.FwWithKeyword, Neg: neg, N: int(id)})
 				}
 			}
+		}
+		// Forge's hasKeyword<K> is the exact-keyword spelling of with<K>
+		// (gorge registers both over objectHasKeyword, engine/effects/filter.go):
+		// the same printed keyword record, no negated spelling. Kasla, the
+		// Broken Halo's Card.hasKeywordConvoke.
+		id := id
+		fwArms["hasKeyword"+name] = func(c *lClause, _ string) error {
+			return c.fwLit(lSpillLit{W: kop.FwWithKeyword, N: int(id)})
 		}
 	}
 	// the referent words (T13b-2): gorge's two-token
@@ -132,6 +141,14 @@ func init() {
 	// link inverts to nothing), so only the positive spelling lowers.
 	fwArms["EnchantedControllerCtrl"] = func(c *lClause, _ string) error {
 		return c.fwLit(lSpillLit{W: kop.FwEnchantedControllerCtrl})
+	}
+	// OppProtect: the battlefield battle's protector is an opponent of the
+	// evaluating controller (gorge wordOppProtect; Joyful Stormsculptor's
+	// Battle.OppProtect DamageAll). The kernel reads the recorded protector
+	// and the source controller; the '!' spelling has no carrier and falls
+	// through to unknown.
+	fwArms["OppProtect"] = func(c *lClause, _ string) error {
+		return c.fwLit(lSpillLit{W: kop.FwOppProtect})
 	}
 }
 
@@ -237,9 +254,10 @@ func (c *lClause) fwArmOrUnknown(p string, knownSub func(string) bool) error {
 		p == "sameName" || p == "!sameName" ||
 		p == "ChosenCtrl" || p == "EnchantedControllerCtrl" ||
 		p == "suspended" || p == "TopLibrary" || p == "DoubleFaced" ||
-		p == "Modal" || p == "singleTarget" ||
+		p == "Modal" || p == "singleTarget" || p == "OppProtect" ||
 		p == "Paired" || p == "!Paired" || p == "PairedWith" ||
 		p == "canProduceSameManaTypeWith" || strings.HasPrefix(p, "canProduceManaColor ") ||
+		strings.HasPrefix(p, "hasKeyword") ||
 		isManaCostWord(p) {
 		if arm, ok := fwArms[p]; ok {
 			return arm(c, p)
