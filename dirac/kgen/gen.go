@@ -634,6 +634,9 @@ func dumpStatics(w io.Writer, c *lCard) {
 		if s.Riot {
 			fmt.Fprintf(w, " riot")
 		}
+		if s.Unleash {
+			fmt.Fprintf(w, " unleash")
+		}
 		if s.PanhZones != 0 {
 			fmt.Fprintf(w, " zones=%d", s.PanhZones)
 		}

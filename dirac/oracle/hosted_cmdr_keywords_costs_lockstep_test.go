@@ -20,6 +20,17 @@ import (
 //     the stolen creature then attacks and the defending player sacrifices two
 //     permanents, and at end of turn the creature returns.
 //
+//   - Tesak, Judith's Hellhound: its Continuous static's AddKeyword$ Unleash
+//     (the granted form, CR 702.86) lowered to kop.Static.Unleash. The
+//     kernel reads each live static's grant beside CardDef.Unleash at the
+//     can't-block gate (dirac/kw_unleash.go), as gorge's derived HasKW reads
+//     it; a granted carrier asks no entry election, as gorge reads that
+//     choice off the printed face. The real Tesak and Abzan Devotee drive its
+//     case; the gate itself is forced by "Pack Leader Probe" and "Counter
+//     Hound Probe", inline Dogs carrying the grant and the counter, whose
+//     case FAILS unless some seed defends with the countered hound under
+//     attack.
+//
 // The real Flayer costs {8}{C}{C}, which no 20-land mirror reaches, so its
 // case only proves kgen lowers the printed card and the kernel agrees with
 // gorge on every decision. The mechanism itself is driven by "Flayer Probe",
@@ -55,6 +66,11 @@ func hostedCmdrCases() []hostedCmdrCase {
 	flayerDeck := append(deckOf(4, "Flayer of Loyalties"), deckOf(36, "Swamp")...)
 	creatureDeck := append(deckOf(8, "Grizzly Bears"), deckOf(32, "Forest")...)
 	probeDeck := append(deckOf(12, "Flayer Probe"), deckOf(28, "Swamp")...)
+	probeHoundDeck := append(append(deckOf(12, "Pack Leader Probe"), deckOf(12, "Counter Hound Probe")...),
+		deckOf(16, "Mountain")...)
+	tesakDeck := append(append(deckOf(8, "Tesak, Judith's Hellhound"), deckOf(8, "Abzan Devotee")...),
+		append(deckOf(16, "Mountain"), deckOf(8, "Forest")...)...)
+	dogBearsDeck := append(deckOf(8, "Grizzly Bears"), deckOf(32, "Forest")...)
 	return []hostedCmdrCase{
 		{
 			name:     "flayer_probe_gain_control_granted_annihilator",
@@ -71,7 +87,76 @@ func hostedCmdrCases() []hostedCmdrCase {
 			decks:   [2][]string{flayerDeck, creatureDeck},
 			surface: true,
 		},
+		{
+			name:     "hellhound_probe_granted_unleash_block",
+			carrier:  "Pack Leader Probe",
+			seats:    [2]string{"hck-hound-a", "hck-hound-b"},
+			decks:    [2][]string{creatureDeck, probeHoundDeck},
+			fixtures: map[string]string{"Pack Leader Probe": packLeaderProbeScript, "Counter Hound Probe": counterHoundProbeScript},
+			reached:  grantedUnleashBlockGateReached,
+		},
+		{
+			name:    "tesak_granted_unleash_other_dogs",
+			carrier: "Tesak, Judith's Hellhound",
+			seats:   [2]string{"hck-tesak-a", "hck-tesak-b"},
+			decks:   [2][]string{tesakDeck, dogBearsDeck},
+		},
 	}
+}
+
+// packLeaderProbeScript is Tesak's Other-Dogs Unleash grant on a {R} body,
+// and counterHoundProbeScript the granted Dog: a Dog that enters with a
+// +1/+1 counter of its own (not an Unleash election — gorge reads the entry
+// choice off the printed face, so a granted carrier asks nothing) and would
+// therefore be refused as a blocker while the grantor is there. The case
+// FAILS unless some seed has the hound defending under attack: gorge refuses
+// it as a blocker (combat/block.go's derived HasKW read) and the kernel must
+// agree, decision for decision.
+const packLeaderProbeScript = "Name:Pack Leader Probe\nManaCost:R\nTypes:Creature Dog\nPT:1/1\n" +
+	"S:Mode$ Continuous | Affected$ Dog.Other+YouCtrl | AddKeyword$ Unleash | Description$ Dogs in the pack can't block with counters.\n" +
+	"Oracle:Other Dogs you control have unleash.\n"
+
+const counterHoundProbeScript = "Name:Counter Hound Probe\nManaCost:2 R\nTypes:Creature Dog\nPT:2/2\n" +
+	"T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ TrigCtr | TriggerDescription$ Enters with a +1/+1 counter.\n" +
+	"SVar:TrigCtr:DB$ PutCounter | Defined$ Self | CounterType$ P1P1 | CounterNum$ 1\n" +
+	"Oracle:This creature enters the battlefield with a +1/+1 counter on it.\n"
+
+// grantedUnleashBlockGateReached: seat 1's grantor and its +1/+1-countered
+// hound were both on the battlefield while seat 0 declared attackers — the
+// block prompt that gorge answers by refusing the hound (layer-6 granted
+// Unleash plus a live counter), and whose option list the kernel must match.
+func grantedUnleashBlockGateReached(g *GorgeSide) bool {
+	grantor, houndIn, countered := false, map[state.ObjID]bool{}, false
+	for i := range g.E.L.Events {
+		e := &g.E.L.Events[i]
+		switch e.Kind {
+		case events.MoveZone:
+			if e.To != state.ZBattlefield {
+				continue
+			}
+			o := g.E.G.Obj(e.Obj)
+			if o == nil || o.Face() == nil {
+				continue
+			}
+			switch o.Face().Name {
+			case "Pack Leader Probe":
+				if o.Controller == 1 {
+					grantor = true
+				}
+			case "Counter Hound Probe":
+				houndIn[e.Obj] = true
+			}
+		case events.CounterChange:
+			if e.Counter == "P1P1" && e.Amount > 0 && houndIn[e.Obj] {
+				countered = true
+			}
+		case events.DeclareAttackers:
+			if grantor && countered {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // flayerGrantedAnnihilatorSacrifices: a probe entered, a seat-1 permanent
@@ -178,7 +263,7 @@ func TestHostedCmdrKeywordsCostsLockstep(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			dir := corpusDirOrSkip(t)
 			if len(c.fixtures) > 0 {
-				dir = filters11Corpus(t, c.fixtures, "Swamp", "Forest", "Grizzly Bears")
+				dir = filters11Corpus(t, c.fixtures, "Swamp", "Forest", "Grizzly Bears", "Mountain")
 			}
 			reg, err := cards.SharedCorpus(dir)
 			if err != nil {

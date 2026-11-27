@@ -1320,6 +1320,9 @@ type lStatic struct {
 	Toxic   uint8 // granted toxic N, summed (kop.Static.Toxic; lower_toxicgrant.go)
 	// Riot: a Continuous grant of riot (kop.Static.Riot; lower_riotgrant.go)
 	Riot bool
+	// Unleash: a Continuous grant of unleash (kop.Static.Unleash;
+	// lower_unleash.go)
+	Unleash bool
 	// PanhZones: a Panharmonicon static's ValidZone$ mask (kop.Static.PanhZones;
 	// 0 = the battlefield only, static_triggers.go)
 	PanhZones uint8

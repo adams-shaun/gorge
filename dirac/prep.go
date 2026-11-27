@@ -379,10 +379,13 @@ type prep struct {
 	// storied: some card prints Storied: the enduring-story scan runs
 	// (kw_storied.go); a prep bool like ascend, for the same reason
 	storied bool
-	// unleash: some card prints Unleash: the as-enters counter ask queues at
-	// entry and the block gate reads it (kw_unleash.go); a prep bool like
-	// ascend, for the same reason
+	// unleash: some card prints or grants Unleash: the as-enters counter ask
+	// queues at entry (printed only) and the block gate reads it (kw_unleash.go); a prep
+	// bool like ascend, for the same reason
 	unleash bool
+	// unleashGrant: some static grants Unleash, so a blocker that does not
+	// print it is gated at blocking too (kw_unleash.go)
+	unleashGrant bool
 	// riot: some card prints or grants Riot: the as-enters counter-or-haste
 	// election queues at entry (kw_riot.go); a prep bool like unleash, for
 	// the same reason
@@ -449,7 +452,8 @@ func prepare(t *kop.Table) *prep {
 	p.ascend = tableHasAscend(t)
 	p.storied = tableHasStoried(t)
 	p.anyFbCard = tableHasFlashback(t)
-	p.unleash = tableHasUnleash(t)
+	p.unleashGrant = tableGrantsUnleash(t)
+	p.unleash = tableHasUnleash(t) || p.unleashGrant
 	p.riotGrant = tableGrantsRiot(t)
 	p.riot = tableHasRiot(t) || p.riotGrant
 	p.enlist = tableHasEnlist(t)
