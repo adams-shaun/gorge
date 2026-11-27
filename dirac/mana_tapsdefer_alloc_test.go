@@ -30,8 +30,12 @@ var tapsDeferGapDecks = [2][]cardset.Entry{
 // decision's allocation count at zero on a copy of the state. The search's
 // locals were a map and three slices (the sweep's allocation): the transition
 // may allocate nothing.
+//
+// It stays serial on purpose: runtime.MemStats counts every goroutine's
+// allocations, and Go runs the package's t.Parallel tests concurrently, so a
+// parallel test's setup landing in the window read as the segment's own
+// allocations. Parallel tests are paused until the serial phase ends.
 func TestTapsDeferGapSearchAllocatesNothing(t *testing.T) {
-	t.Parallel()
 	set := cardset.AllowUnverified(cardsettest.Set(t, "tapsdefer"))
 	tbl, ids, err := set.MatchupN(tapsDeferGapDecks[:2])
 	if err != nil {
