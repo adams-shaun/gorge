@@ -2488,6 +2488,8 @@ type genState struct {
 	linkHide uint16 // bit i: links[i] is a Hideaway link (the card stays exiled face down; kw_hideaway.go; padding)
 	linkAeg  uint16 // bit i: links[i] is an attachment whose copy of its exiled card is live (Assimilation Aegis; zone_exilethenattach.go; padding)
 	linkHand uint16 // bit i: links[i] returns its card to its owner's hand, not the battlefield (a hand exile until the source leaves; act_mayask.go)
+
+	planSac [3]uint8 // a plan-paid sacrifice-another activation the cast's prefix left for its payment: source slot+1, victim slot, colour (mana_plansacdefer.go; padding)
 	// linkPad keeps perms' cache-line phase after links grew from 8 to 16
 	// (linkPadN, seats.go)
 	linkPad [linkPadN]uint8

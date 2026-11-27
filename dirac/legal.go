@@ -3736,6 +3736,7 @@ func hybridCovered(left *[kop.NumManaKinds]int, hyb []kop.ColorMask) bool {
 
 func (s *State) applyPriority(k *prep, a Action) {
 	p := s.prio
+	s.g.planSac = [3]uint8{} // a stale deferred plan-paid activation (mana_plansacdefer.go)
 	if s.priManaAskBegin(k, a) {
 		return // an unless source's activation: its asks follow (mana_priask.go)
 	}

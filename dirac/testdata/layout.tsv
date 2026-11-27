@@ -289,7 +289,8 @@ default	field	genState.nlinks	1
 default	field	genState.linkHide	2
 default	field	genState.linkAeg	2
 default	field	genState.linkHand	2
-default	field	genState.linkPad	60
+default	field	genState.planSac	3
+default	field	genState.linkPad	57
 default	field	genState.retHeld	16
 default	field	genState.nretHeld	1
 default	field	genState.retCtrl	2

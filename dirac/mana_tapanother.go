@@ -839,7 +839,7 @@ func (s *State) tapXScriptNeed(k *prep, a Action, p uint8, apply, hint bool) (bo
 		// stall on it latches there of its own (filtSearch's fs.spill).
 		return false, rs.stall
 	}
-	if apply {
+	if apply && !(rs.n == 1 && s.planSacDeferStep(k, a, &rs.path[0])) {
 		s.tapXPlay(k, p, rs.path[:rs.n])
 	}
 	return true, 0
