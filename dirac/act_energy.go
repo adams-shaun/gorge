@@ -34,7 +34,9 @@ func (s *State) gainEnergy(k *prep, in *kop.Instr) {
 		if c == nil {
 			continue // unreachable: tableGainsExper sized the array
 		}
-		*c = uint8(min(int(*c)+s.plusPlayerCtr(k, q.s[i], n), 255)) // repl_plrcounter.go
+		got := s.plusPlayerCtr(k, q.s[i], n) // repl_plrcounter.go
+		*c = uint8(min(int(*c)+got, 255))
+		s.firePlayerCtr(k, q.s[i], int(in.C), got) // trig_playerctr.go
 	}
 }
 
