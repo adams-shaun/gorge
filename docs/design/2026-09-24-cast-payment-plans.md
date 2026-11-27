@@ -301,10 +301,13 @@ determined before activation:
 | `damage:N` | a `SubAbility$` that is exactly `DB$ DealDamage \| Defined$ You \| NumDmg$ <literal>` and nothing else; or the source's own `T:Mode$ Taps \| ValidCard$ Card.Self` trigger whose effect is exactly that | Ancient Tomb, painland and Talisman coloured abilities, Tarnished Citadel, City of Brass |
 | `no_untap` | the source's own `R:Event$ Untap \| ValidCard$ Card.Self` "doesn't untap during your untap step" replacement | Mana Vault, Grim Monolith, Basalt Monolith |
 | `return_to_hand` | cost part `Return<1/CARDNAME>`, or the source's own delayed self-return rider (Undiscovered Paradise's hidden-keyword `Pump Defined$ Self`) | Undiscovered Paradise |
+| `sacrifice_others` | exactly one non-self cost part `Sac<1/Spec>` (literal count, not announced), with or without `{T}`, and no life or return part; the step names its victims in `PaymentActivation.sacrifices`, ranked tokens first, then lowest mana value, ties by object id, never a plan source or another step's victim; the executor answers the sacrifice election from them (a victim no longer eligible stops the plan) | Ashnod's Altar, Phyrexian Altar, Phyrexian Tower, Krark-Clan Ironworks |
 
 **Deferred (manual only, not scheduled).** Everything else, including:
-sacrificing or tapping *another* permanent (Ashnod's Altar, Phyrexian Tower,
-Springleaf Drum); discard, exile, counter or energy costs (Lion's Eye Diamond,
+sacrificing more than one other permanent, or tapping another permanent
+(Springleaf Drum); a second activation of one repeatable other-sacrifice
+source (the planner activates each source once; the potential-play prefix
+search still treats Ashnod's Altar as its gap); discard, exile, counter or energy costs (Lion's Eye Diamond,
 Gemstone Mine, storage lands, Spirit Guides); mana-costed abilities (Signets,
 filter lands, Cabal Coffers, Devotees); dynamic amounts (Gaea's Cradle, Tron
 lands, Priest of Titania, Everflowing Chalice); reflected, imprinted or

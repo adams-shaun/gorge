@@ -186,7 +186,7 @@ func (e *Engine) announcedActivate(pc *pendingCast, opt decision.Option) {
 	gained := pay.GainedManaRefFor(asPayer(e), p, src, ab)
 	e.beginWindowTap(pc, src, normal)
 	if col := opt.ManaSymbol; len(col) == 1 && strings.Contains("WUBRGC", col) {
-		e.resolveManaAbilityRefOriginal(p, src, pay.WithProduced(ab, ab, col), ab, gained, true, false, true)
+		e.resolveManaAbilityRefOriginal(p, src, pay.WithProduced(ab, ab, col), ab, gained, true, false, true, nil)
 		return
 	}
 	e.resolveManaAbilityRef(p, src, ab, gained, true, false, true)

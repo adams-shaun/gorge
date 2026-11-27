@@ -352,10 +352,24 @@ func planPaymentCostResolved(e Engine, p state.PlayerID, demand [5]int, cost cos
 			nodes += search.Nodes
 		}
 	}
+	if search.Best != nil && !AssignPlanVictims(e, p, search.Best, slices.Concat(kept, tapped), gone) {
+		// The search priced an other-sacrifice source the board cannot fund
+		// with distinct victims (two altars, one creature): no automatic
+		// plan; manual payment still offers the altar.
+		return PlanOutcome{Reason: "insufficient", Detail: "source:last_resort", Nodes: nodes}
+	}
 	if search.Best != nil {
 		SacrificesLast(search.Best)
 		if want := e.Session().PlanAltsWant; want > 1 && len(tapped)+len(kept)+len(gone) == 0 && len(e.Session().PaymentPlanRelaxed) == 0 {
-			e.Session().PlanAlts = planAlternatives(&ps.altsSearch, *search.Best, want, cost, pool, life, rankCtx, phaseChoices, phaseClasses, e.Verify())
+			alts := planAlternatives(&ps.altsSearch, *search.Best, want, cost, pool, life, rankCtx, phaseChoices, phaseClasses, e.Verify())
+			funded := alts[:0]
+			for i := range alts {
+				if AssignPlanVictims(e, p, &alts[i], nil, nil) {
+					SacrificesLast(&alts[i])
+					funded = append(funded, alts[i])
+				}
+			}
+			e.Session().PlanAlts = funded
 		}
 	}
 	switch {
@@ -474,7 +488,7 @@ func PaymentSearchEnv(verify bool) Env {
 // first, as a manual-tap seat lowers the plan (payexec).
 func SacrificesLast(p *decision.PaymentPlan) {
 	consumes := func(a decision.PaymentActivation) bool {
-		return a.Consequence != nil && (a.Consequence.Sacrifice || a.Consequence.ReturnToHand)
+		return a.Consequence != nil && (a.Consequence.Sacrifice || a.Consequence.ReturnToHand || a.Consequence.SacrificeOthers)
 	}
 	seen := false
 	for _, a := range p.Activations {

@@ -157,7 +157,7 @@ func (e *Engine) resPayAutoStep(rp *resPay, player state.PlayerID, pa decision.P
 	entries, mark := rp.entries, len(e.L.Events)
 	ma := step.Ma
 	e.resolveManaAbilityRefOriginal(player, pa.Source, pay.AlternativeExec(step), ma,
-		pay.GainedManaRefFor(asPayer(e), player, pa.Source, ma), false, true, true)
+		pay.GainedManaRefFor(asPayer(e), player, pa.Source, ma), false, true, true, pa.Sacrifices)
 	if rp.entries == entries && e.pending == nil && e.choosing == chooseNone {
 		// The activation neither continued the window nor posed a decision
 		// (it could not be paid after all): stop the auto route and re-enter
