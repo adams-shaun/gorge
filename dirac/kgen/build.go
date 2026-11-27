@@ -1148,7 +1148,7 @@ func (cb *cardBuilder) record() error {
 	d.World, d.Snow = c.World, c.Snow
 	d.SelfFlash = c.SelfFlash
 	d.Gift = c.Gift
-	d.SpentSelf, d.SpentSnow = c.SpentSelf, c.SpentSnow
+	d.SpentSelf, d.SpentSnow, d.SpentTag = c.SpentSelf, c.SpentSnow, c.SpentTag
 	d.DmgAmt = c.DmgAmt
 	if c.CastBF != nil {
 		// Count$LastStateBattlefieldWithFallback: the
@@ -1185,7 +1185,18 @@ func (cb *cardBuilder) record() error {
 	d.Daybound, d.Nightbound = c.Daybound, c.Nightbound
 	d.AltAddOne = c.AltAddOne
 	for _, st := range c.Subtypes {
-		if st == "Cave" || st == "Desert" {
+		switch st {
+		case "Treasure":
+			d.ManaTag = kop.ManaTagTreasure
+		case "Cave":
+			if d.ManaTag == 0 {
+				d.ManaTag = kop.ManaTagCave
+			}
+			d.TypedMana = true
+		case "Desert":
+			if d.ManaTag == 0 {
+				d.ManaTag = kop.ManaTagDesert
+			}
 			d.TypedMana = true
 		}
 	}
