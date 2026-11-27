@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/adams-shaun/gorge/dirac/kop"
 	"github.com/adams-shaun/gorge/engine/cards"
 )
 
@@ -107,7 +108,21 @@ var selfFlashPresent = regexp.MustCompile(`^[A-Z][A-Za-z]*(\.(YouCtrl|YouOwn|Opp
 // self grant kernel selfFlash evaluates (gorge castWithFlashTargets over
 // withSelfStatics): EffectZone$ All, ValidCard$ Card.Self, and only the
 // IsPresent$ / PresentZone$ / PresentCompare$ gate, read against the caster.
-func (lc *lowerCtx) selfFlashShape(s cards.Static, ez string) error {
+// validSA is the ValidSA$ value (modeCastWithFlash passes it straight from the
+// static): its shape (bare Spell, Spell.XCostLE<N>, Spell.<type>,
+// Spell.IsTargeting Valid <spec>) was already validated by cwfValidSA or
+// selfFlashTargeting, and only the Spell.Teamwork tail (Quantum Reduction)
+// changes the SA bit. A card's self grants must agree on it (the kernel reads
+// one SelfFlashSA per card).
+func (lc *lowerCtx) selfFlashShape(s cards.Static, ez, validSA string) error {
+	sa := kop.SfsaSpell
+	if validSA == "Spell.Teamwork" {
+		sa = kop.SfsaTeamwork
+	}
+	if lc.out.SelfFlash && lc.out.SelfFlashSA != sa {
+		return refuse("CastWithFlash self grants with differing ValidSA")
+	}
+	lc.out.SelfFlashSA = sa
 	if strings.TrimSpace(ez) != "All" {
 		return refuse("CastWithFlash EffectZone %q", ez)
 	}

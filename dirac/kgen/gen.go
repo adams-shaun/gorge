@@ -423,6 +423,9 @@ func dumpLIR(w io.Writer, c *lCard) {
 	}
 	if c.SelfFlash {
 		fmt.Fprintf(w, " selfflash")
+		if c.SelfFlashSA != kop.SfsaSpell {
+			fmt.Fprintf(w, "=%d", c.SelfFlashSA)
+		}
 	}
 	if c.Landwalk != nil {
 		fmt.Fprintf(w, " landwalk=%s", c.Landwalk)
