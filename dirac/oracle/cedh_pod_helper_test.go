@@ -18,6 +18,12 @@ import (
 // game is summed. A divergence or a kernel stop fails the test.
 func cedhPodRun(t *testing.T, name string, decks [][]cardset.Entry, lowered []string, seeds uint64, tally func(g *state.Game) int) int {
 	t.Helper()
+	return cedhPodRunWith(t, name, decks, lowered, seeds, tally, castFirstPolicy)
+}
+
+// cedhPodRunWith is cedhPodRun under the policy mk builds for each seed.
+func cedhPodRunWith(t *testing.T, name string, decks [][]cardset.Entry, lowered []string, seeds uint64, tally func(g *state.Game) int, mk func(seed uint64) Policy) int {
+	t.Helper()
 	reg, err := cards.SharedCorpus(corpusDirOrSkip(t))
 	if err != nil {
 		t.Fatal(err)
@@ -76,7 +82,7 @@ func cedhPodRun(t *testing.T, name string, decks [][]cardset.Entry, lowered []st
 			t.Fatal(err)
 		}
 		last := 0
-		base := castFirstPolicy(seed)
+		base := mk(seed)
 		pol := PolicyFunc(func(c *PickCtx) Canon {
 			if tally != nil && c.G != nil {
 				last = tally(c.G.E.G)
