@@ -7,7 +7,19 @@ set -uo pipefail
 base=${1:?usage: pr-precheck.sh BASE}
 source scripts/pr-cards.sh
 cap=(systemd-run --user --scope -q -p MemoryMax=4G -p CPUQuota=400% env GOMAXPROCS=4 GOMEMLIMIT=3GiB)
+# go vet type-checks the test packages; a cold cache over ./dirac ./dirac/oracle ./engine/rules runs two compiles plus vet
+# in one scope and hit the 4G cap (11-26: OOM-killed, verdict empty). 8G/6GiB matches the dirac lockstep tests' cap.
+vetcap=(systemd-run --user --scope -q -p MemoryMax=8G -p CPUQuota=400% env GOMAXPROCS=4 GOMEMLIMIT=6GiB)
 log=$(mktemp); trap 'rm -f "$log"' EXIT
+# vet_reason RC LOG: the verdict text for a failed go vet. An OOM kill writes no file:line (rc 137 is SIGKILL; go prints
+# "signal: killed" for a killed child), so it is named; any other diagnostic-less failure shows the last log line.
+vet_reason() {
+  local why
+  why=$(grep -m1 -E '^[^ #].*\.go:[0-9]+' "$2" | cut -c1-200)
+  if [ -z "$why" ] && { [ "$1" = 137 ] || grep -q 'signal: killed' "$2"; }; then why="killed (memory cap 8G; rc $1)"; fi
+  [ -n "$why" ] || why="rc $1: $(grep -v '^[[:space:]]*$' "$2" | tail -1 | cut -c1-200)"
+  echo "$why"
+}
 fail() { echo "pr-precheck: $*"; exit 1; }
 # A pass is stamped by the hash of the branch's own diff against $base (the merge-base diff). When main moves and a
 # CLEAN merge or rebase leaves that diff unchanged, the stamp matches and the checks below are not run again: the
@@ -75,7 +87,12 @@ fi
 vetpkgs=$(git diff --name-only --diff-filter=ACMR "$base"...HEAD -- '*.go' | xargs -r -n1 dirname | sort -u | sed 's|^|./|')
 if [ -n "$vetpkgs" ]; then
   # shellcheck disable=SC2086
-  "${cap[@]}" go vet $vetpkgs >"$log" 2>&1 || { cat "$log"; fail "go vet: $(grep -m1 -E '^[^ #].*\.go:[0-9]+' "$log" | cut -c1-200)"; }
+  rc=0; "${vetcap[@]}" go vet $vetpkgs >"$log" 2>&1 || rc=$?
+  if [ "$rc" != 0 ]; then
+    cat "$log"
+    why=$(vet_reason "$rc" "$log")
+    fail "go vet: $why"
+  fi
 fi
 # The base-relative function growth rule (cmd/funcgrowth, #5106) runs in lint and in every merge batch; run it here so a
 # PR learns it grew a function past its allowance before the push, not in the queue (11-26: batch #5138's lint failed on
