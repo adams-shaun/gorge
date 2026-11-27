@@ -339,6 +339,13 @@ func (s *State) runReplProg(k *prep, sl Slot, c CardID, ab, pc uint8) {
 // (TestNoNewFixedStateFields); only a table with an others-enter replacement
 // carries the byte.
 var coldReplSrc = newCold[uint8]("replSrc", func(g *genPrep) int {
+	if g.hasDrawProgram() {
+		// a Draw replacement's body runs with the replacement permanent as
+		// its source; the body's own Self reads (Ormos, Archive Keeper's
+		// PutCounter on Self) resolve through replSrcOf when the body runs
+		// inside an outer resolution (objRefObj, resolve.go)
+		return 1
+	}
 	for _, f := range g.flags {
 		if f&gfOthersRep != 0 {
 			return 1

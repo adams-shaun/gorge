@@ -89,6 +89,28 @@ var kdrawReplDecks = map[string][2][]cardset.Entry{
 			{Name: "Divination", Count: 8}, {Name: "Swamp", Count: 10}, {Name: "Island", Count: 9}},
 		{{Name: "Grizzly Bears", Count: 12}, {Name: "Hill Giant", Count: 8}, {Name: "Swamp", Count: 20}},
 	},
+	// The two empty-library-gated lines (CR 614.11). The harness caps a game
+	// at 40 total turns, so the clock alone cannot empty a 33-card library:
+	// Deep Analysis is the drain (4 draw-2 castings, each repeatable by
+	// Flashback for {1}{U} and 3 life), Divination and Revitalize fill the
+	// early turns, and Wall of Stone -- 0/8 Defender -- stalls seat 0's win
+	// until the library is empty (the attacksim never sends a 2/5 or a 5/5
+	// into it, and the wall deals nothing back). Then the kernel must run
+	// its replacement scan before drawExcl marks the player: Conundrum's
+	// skip and Ormos's counters keep the game going, and the carrier breaks
+	// the wall (10/10, or +5/+5 per replaced draw) to end the game.
+	"conundrum": {
+		{{Name: "Living Conundrum", Count: 1}, {Name: "Deep Analysis", Count: 4},
+			{Name: "Divination", Count: 4}, {Name: "Revitalize", Count: 4},
+			{Name: "Island", Count: 16}, {Name: "Swamp", Count: 5}, {Name: "Plains", Count: 6}},
+		{{Name: "Wall of Stone", Count: 12}, {Name: "Mountain", Count: 28}},
+	},
+	"ormos": {
+		{{Name: "Ormos, Archive Keeper", Count: 1}, {Name: "Deep Analysis", Count: 4},
+			{Name: "Divination", Count: 4}, {Name: "Revitalize", Count: 4},
+			{Name: "Island", Count: 17}, {Name: "Swamp", Count: 5}, {Name: "Plains", Count: 5}},
+		{{Name: "Wall of Stone", Count: 20}, {Name: "Mountain", Count: 20}},
+	},
 }
 
 func TestReplDrawReplLockstep(t *testing.T) {
@@ -119,7 +141,7 @@ func TestReplDrawReplLockstepMutation(t *testing.T) {
 			}
 		}
 	}
-	for _, name := range []string{"scrivener", "thief", "hullbreacher", "maniac", "jace", "tombs_returns", "tombs_loses"} {
+	for _, name := range []string{"scrivener", "thief", "hullbreacher", "ormos", "maniac", "jace", "tombs_returns", "tombs_loses"} {
 		name := name
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
@@ -128,6 +150,27 @@ func TestReplDrawReplLockstepMutation(t *testing.T) {
 			}
 		})
 	}
+	// The bodyless skip's own mutation: read it as a "draw N cards instead"
+	// line (ReplDrawBodyDraw, skip cleared) and gorge's
+	// emptyDrawReplacement excludes it from the empty-library scan: the
+	// kernel marks the player and the seat loses where gorge skips.
+	drawBody := func(tbl *kop.Table) {
+		for i := range tbl.Cards {
+			for j := range tbl.Cards[i].Abilities {
+				a := &tbl.Cards[i].Abilities[j]
+				if a.Kind == kop.AbReplacement && a.Repl.Kind == kop.ReplDrawProgram && a.Repl.C&kop.ReplDrawSkip != 0 {
+					a.Repl.C &^= kop.ReplDrawSkip
+					a.Repl.C |= kop.ReplDrawBodyDraw
+				}
+			}
+		}
+	}
+	t.Run("conundrum", func(t *testing.T) {
+		t.Parallel()
+		if n := lockstepRun(t, "draw-repl", kdrawReplDecks["conundrum"], 200, false, drawBody); n == 0 {
+			t.Fatal("conundrum: reading the bodyless skip as a Draw body diverged no seed (the deck never reaches the empty-library gate)")
+		}
+	})
 }
 
 // TestReplDrawReplBranches is the draw-repl pool's "both branches reached"

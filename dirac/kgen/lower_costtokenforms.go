@@ -56,6 +56,20 @@ func (lc *lowerCtx) discardCost(c *lCost, parts []string, n int, t string) error
 	case "Random", "Hand":
 		c.DiscardSpec = parts[1]
 	default:
+		if strings.EqualFold(parts[1], "Card+WithDifferentNames") {
+			// Forge's set-modifier spelling: gorge's DiscardCandidates
+			// passes the RAW spec to MatchesSpecFrom (its discard path has
+			// no SacrificeMatchSpec strip and no DistinctNameCandidates),
+			// and the unknown WithDifferentNames word fails closed there:
+			// the part has no candidates, is never payable, and the ability
+			// carrying it is never offered (Ormos, Archive Keeper's
+			// {1}{U}{U}, Discard three cards with different names). The
+			// kernel mirrors that read with a clause that matches no card
+			// (the blankNeverClauses read, lower_zone.go).
+			c.DiscardF = &lFilter{Clauses: []lClause{{NotTypes: tAnyCard}}}
+			c.DiscardN = n
+			return nil
+		}
 		// A filtered discard (CR 118.3, 601.2h; gorge cost
 		// nonManaCost's spec over pay.DiscardCandidates'
 		// MatchesSpecFrom): Solitary Cell's Card.Legendary,

@@ -717,7 +717,10 @@ func (s *State) objRef(k *prep, r kop.Ref) Slot {
 	if ob.zone != kop.ZoneBattlefield {
 		return NoSlot
 	}
-	if r == kop.RefSelf && ob.ver != s.res.e.srcVer && s.res.e.kind != seSpell {
+	if r == kop.RefSelf && ob.ver != s.res.e.srcVer && s.res.e.kind != seSpell && s.drawBodySrc() == 0 {
+		// (inside a replacement program Self is the replacement permanent,
+		// on the battlefield now by construction: the outer entry's queued
+		// version is not its version)
 		return NoSlot
 	}
 	if r == kop.RefTriggerObj && s.res.flags&rfTrigGone != 0 {
@@ -727,6 +730,16 @@ func (s *State) objRef(k *prep, r kop.Ref) Slot {
 		return NoSlot // the emblem trigger was queued at srcVer = ver+1: the source moved since (CR 400.7)
 	}
 	return ob.slot
+}
+
+// drawBodySrc is replSrcOf while a Draw replacement body runs (the cold
+// in-flight draw record is active), 0 otherwise: only that body's Self is
+// redirected to the replacement permanent in objRefObj.
+func (s *State) drawBodySrc() uint8 {
+	if ds := s.drawState(); len(ds) > 0 && ds[0].active {
+		return s.replSrcOf()
+	}
+	return 0
 }
 
 func (s *State) objRefObj(r kop.Ref) Obj {
@@ -744,8 +757,20 @@ func (s *State) objRefObj(r kop.Ref) Obj {
 			return NoObj
 		}
 		return Obj(t)
-	case kop.RefSelf, kop.RefEmblemSource:
-		return e.obj // RefEmblemSource: the emblem's source object; objRef holds it to its queued version
+	case kop.RefSelf:
+		// Inside a Draw replacement body (runReplProgAs, turn_gen.go) the
+		// body's source is the replacement permanent, exactly as gorge
+		// passes it: a PutCounter-on-Self body under an outer resolution
+		// (Ormos, Archive Keeper's five counters while a Deep Analysis is
+		// resolving) counters the permanent, not the resolving entry.
+		// Others-enter programs keep reading e.obj: their amounts are
+		// redirected in enterCountValue (the entrant mutation relies on it).
+		if r := s.drawBodySrc(); r != 0 {
+			return s.perms[Slot(r-1)].obj
+		}
+		return e.obj
+	case kop.RefEmblemSource:
+		return e.obj // objRef holds it to its queued version
 	case kop.RefTriggerObj:
 		return e.trigObj
 	case kop.RefTriggerSpellTarget:
