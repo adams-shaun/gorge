@@ -25,7 +25,7 @@ func TestSetStateTurnUpLowering(t *testing.T) {
 		{name: "remember", line: "SP$ SetState | ValidTgts$ Permanent.faceDown | RememberChanged$ True | Mode$ TurnFaceUp", want: "SetState TurnFaceUp RememberChanged$"},
 		{name: "no referent", line: "SP$ SetState | Mode$ TurnFaceUp", want: "without ValidTgts$ or Choices$"},
 		{name: "two targets", line: "SP$ SetState | ValidTgts$ Creature.faceDown | TargetMin$ 0 | TargetMax$ 2 | Mode$ TurnFaceUp", want: "SetState TurnFaceUp TargetMin$"},
-		{name: "face down", line: "SP$ SetState | ValidTgts$ Creature | Mode$ TurnFaceDown", want: `SetState Mode$ "TurnFaceDown"`},
+		{name: "face down", line: "SP$ SetState | ValidTgts$ Creature | Mode$ TurnFaceDown", want: "SetState TurnFaceDown with ValidTgts$"},
 	}
 	for _, c := range cases {
 		src := "Name:Synthetic\nManaCost:1 R\nTypes:Instant\nA:" + c.line + "\nOracle:x\n"

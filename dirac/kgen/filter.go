@@ -161,7 +161,6 @@ const (
 	cmpModified         // modified: a counter, an Equipment, or an Aura its controller controls (no operator)
 	cmpHasCounters      // HasCounters: any counter, internal markers included (no operator)
 	cmpTrigPlayerCtrl   // the trigger's damaged player controls it (kop.PredTrigPlayerCtrl; no operator)
-	cmpCastFaceDown     // a face-down cast (gorge Spell.isCastFaceDown; ReduceCost ValidSpell$ only)
 	cmpMonstrous        // IsMonstrous: the CR 701.37b monstrous designation (no operator)
 	cmpNoCounters       // !HasCounters: no counter at all (no operator)
 	cmpLacksKw          // !with<Keyword>: lacks keyword bit CmpN (no operator)
@@ -193,6 +192,7 @@ const (
 	cmpHasProtEachColor // hasKeywordProtection:each color: has protection from all five colours (no operator)
 	cmpMonarchCtrl      // ControlledBy Player.isMonarch (CmpN 0) / ControlledBy EnchantedController.!isMonarch (CmpN 1): the controller is / is not the monarch (kop.PredMonarchCtrl; filter_monarch.go; no operator)
 	cmpKickedAlt        // kicked 1 (CmpN 1) / kicked 2 (CmpN 2): the kicker alternative paid (kop.PredKickedAlt; filter_kickedalt.go; no operator)
+	cmpCastFaceDown     // a face-down cast (gorge Spell.isCastFaceDown; ReduceCost ValidSpell$ only). Appended last: the ordinals above are the IR's, so new compares go after it.
 )
 
 // cmpWasCastSpell's CmpN (kernel PredWasCastSpell's PredN): the origin the
