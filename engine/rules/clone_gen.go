@@ -811,6 +811,7 @@ func cloneFieldsEngineContinuation(c, e *Engine, sp *Spare, remap *cloneRemap) {
 			}
 		}
 		p0.delve = append([]state.ObjID(nil), e.cast.delve...)
+		p0.assistPays = append([]assistPayment(nil), e.cast.assistPays...)
 		p0.PaidCost.Sacs = append([]state.ObjID(nil), e.cast.PaidCost.Sacs...)
 		p0.PaidCost.Discards = append([]state.ObjID(nil), e.cast.PaidCost.Discards...)
 		p0.PaidCost.Exiles = append([]state.ObjID(nil), e.cast.PaidCost.Exiles...)
@@ -900,10 +901,10 @@ func cloneFieldsEngineContinuation(c, e *Engine, sp *Spare, remap *cloneRemap) {
 	c.auraEntries = append([]auraEntryState(nil), e.auraEntries...)
 	c.etbLandPlay = e.etbLandPlay
 	c.etbLandObj = e.etbLandObj
-	c.etbLandPlayer = e.etbLandPlayer
 }
 
 func cloneFieldsEngineContinuation2(c, e *Engine, sp *Spare, remap *cloneRemap) {
+	c.etbLandPlayer = e.etbLandPlayer
 	c.etbLandPerm = e.etbLandPerm
 	c.etbLandFrom = e.etbLandFrom
 	if e.riotMove != nil {

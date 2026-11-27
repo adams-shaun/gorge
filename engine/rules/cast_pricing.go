@@ -421,6 +421,7 @@ type targetCostProbe struct {
 	targetDiscount bool
 	windowUnits    []windowManaUnit
 	censusComplete bool
+	assistCredit   int32
 }
 
 // newTargetCostProbe builds the probe context for pc; ok is false when pc
@@ -443,8 +444,13 @@ func (e *Engine) newTargetCostProbe(pc *pendingCast) (*targetCostProbe, bool) {
 		windowUnits = e.castWindowUnits(pc)
 		censusComplete = e.castWindowCensusComplete(pc, windowUnits)
 	}
+	assistCredit := int32(0)
+	if !pc.isAbility() {
+		assistCredit = e.assistOfferCredit(pc.player, pc.card, e.castPaymentMana(pc).Generic)
+	}
 	return &targetCostProbe{e: e, pc: pc, scope: scope, pl: &e.G.Players[pc.player],
-		targetDiscount: targetDiscount, windowUnits: windowUnits, censusComplete: censusComplete}, true
+		targetDiscount: targetDiscount, windowUnits: windowUnits, censusComplete: censusComplete,
+		assistCredit: assistCredit}, true
 }
 
 // probeVerdict is targetCostProbe's answer for one target set: payable, or
@@ -566,6 +572,17 @@ func (pr *targetCostProbe) verdict(targets, rootTargets, allTargets []state.Targ
 	// (convokeAbsorbs), so the fold is the payment's own arithmetic,
 	// probed, never charged.
 	convoked := e.applyConvoke(pc, cost)
+	// CR 702.132a: the other seats may fund the generic part, so a candidate
+	// the caster's own pool cannot afford is still announceable. The probe's
+	// credit is computed once (newTargetCostProbe) so this per-candidate
+	// loop does not rescan the other seats' boards.
+	if pr.assistCredit > 0 {
+		if convoked.Generic > pr.assistCredit {
+			convoked.Generic -= pr.assistCredit
+		} else {
+			convoked.Generic = 0
+		}
+	}
 	desc := paymentForCast(pc, convoked)
 	if e.manaFeasibleDescriptor(pc.player, desc, convoked, costMods{}, 0, 0, pipRider{AnyColor: pc.mayPlayIgnore, AnyType: pc.mayPlayIgnoreType}) {
 		return probePayable
@@ -1179,9 +1196,9 @@ func manaSpentTotal(spent state.Mana) int32 {
 
 // paymentMana is the mana the caster still owes: the composed total after the
 // contributions that have already settled. Convoke's announced taps come off
-// first, then the CR 702.132 Assist contributions the other seats paid (whose
-// mana left their own pools when each answer arrived), so the window, the
-// payment plan and the charge at payCast all price the same reduced bill.
+// first, then the CR 702.132 Assist contributions the other seats promised
+// (drained out of their own pools at the commit point, so the caster's window,
+// the payment plan and the charge at payCast all price the same reduced bill).
 func (e *Engine) paymentMana(pc *pendingCast) Cost {
 	return applyAssist(pc, e.applyConvoke(pc, e.manaToPay(pc)))
 }
@@ -1196,9 +1213,11 @@ func (e *Engine) paymentManaX(pc *pendingCast, x int32) Cost {
 // paymentManaXUsing is paymentManaX with an explicit modifier composition
 // (xAsk's target-potential retry), so the announced Convoke/Harmonize
 // contributions are folded onto the alternatively-priced total exactly as
-// they are onto the ordinary one.
+// they are onto the ordinary one. The Assist contribution is folded on for the
+// same reason paymentMana folds it: an X-bound cost part reaching this pricing
+// after an assist must see the reduced bill, never the pre-assist one.
 func (e *Engine) paymentManaXUsing(pc *pendingCast, x int32, mods costMods) Cost {
-	return e.applyConvoke(pc, e.manaToPayXUsing(pc, x, mods))
+	return applyAssist(pc, e.applyConvoke(pc, e.manaToPayXUsing(pc, x, mods)))
 }
 
 func convokeManaSpent(pays []convokePayment) int32 {

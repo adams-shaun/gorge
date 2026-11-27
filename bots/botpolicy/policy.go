@@ -860,7 +860,20 @@ func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combine
 					break
 				}
 			}
-		case "assist":
+		case decision.OptAssistActivate:
+			// CR 702.132a: the contributing seat's mana-ability window. The
+			// deterministic bot declines every activation (Done) -- the same
+			// decline direction the amount election takes below -- so it never
+			// taps its own lands for another seat's spell. Selected by KIND,
+			// not position, so a reordered list still declines.
+			in.Choices = []int{d.Options[0].Index}
+			for _, o := range d.Options {
+				if o.Kind == decision.OptAssistDone {
+					in.Choices = []int{o.Index}
+					break
+				}
+			}
+		case decision.OptAssist:
 			// CR 702.132: another seat's contribution to a spell being cast.
 			// The deterministic bot pays nothing -- the decline direction, the
 			// same one the no-host stand-in takes: floating mana at the wrong
@@ -874,7 +887,7 @@ func decide(b Board, d *decision.Decision, r *rand.Rand, lethalPressure, combine
 			// answer back through Decision.Validate.
 			in.Choices = []int{d.Options[0].Index}
 			for _, o := range d.Options {
-				if o.Kind == "assist" && o.Amount == 0 {
+				if o.Kind == decision.OptAssist && o.Amount == 0 {
 					in.Choices = []int{o.Index}
 					break
 				}

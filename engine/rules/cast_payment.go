@@ -505,6 +505,15 @@ func (e *Engine) castAnswer(d *decision.Decision, chosen []decision.Option) {
 	if len(chosen) > 0 {
 		kind = chosen[0].Kind
 	}
+	// CR 702.132a: a contributing seat's own mana-ability window. It is not a
+	// castAnswer payment answer (the "assist_activate"/"assist_done" kinds are
+	// the window's only vocabulary), so it is settled here before the ordinary
+	// Record/castAnswer table, and an activation runs for the SEAT, never for
+	// the caster whose own window comes later.
+	if pc.assistWindow {
+		e.answerAssistWindow(pc, kind, chosen)
+		return
+	}
 	noteEmergeSac(pc, kind, chosen)
 	if pay.RecordCastPaymentAnswer(&pc.CastPayment, pay.CastPayAnswer{Paid: &pc.PaidCost, Cost: &pc.cost, X: &pc.x, XDone: pc.xDone}, kind, chosen) {
 		return
@@ -513,10 +522,10 @@ func (e *Engine) castAnswer(d *decision.Decision, chosen []decision.Option) {
 	case castAnswerChorus:
 		answerChorus(pc, chosen)
 	case castAnswerAssist:
-		// CR 702.132a: one seat's contribution to a spell's generic cost. The
-		// mana leaves THAT seat's pool and the caster's bill drops by what
-		// actually left it (engine/rules/assist.go).
-		e.answerAssist(pc, chosen)
+		// CR 702.132a: one seat's contribution to a spell's generic cost,
+		// recorded as a promise the commit drain pays out of THAT seat's pool
+		// (engine/rules/assist.go).
+		e.answerAssist(pc, d, chosen)
 	case castAnswerCostType:
 		e.answerChooseTypeCost(pc, chosen)
 	case castAnswerDivide:

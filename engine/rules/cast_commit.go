@@ -503,6 +503,16 @@ func (e *Engine) payCast() {
 		e.endCastFlow()
 		return
 	}
+	// CR 702.132a: the seats' promised contributions are paid out of their
+	// OWN pools only after the caster's reduced payment succeeds. They are
+	// deliberately deferred until this commit point: a cast the caster
+	// cancels or cannot finish is reversed (CR 733.1) without taking a
+	// contributor's mana. The pure precheck runs first so a promise that can
+	// no longer be met aborts before either side pays anything.
+	if !e.assistDrainable(pc) {
+		e.abortCast(pc, "cast aborted: assist contribution no longer payable", true)
+		return
+	}
 	mana := e.castPaymentMana(pc)
 	paid, spentMana, spentSnow, spentTyped := e.payManaCastSpent(pc, mana)
 	if !paid {
@@ -518,6 +528,10 @@ func (e *Engine) payCast() {
 		// on the first state-changing event, so the option returns as soon as
 		// the window ends or the mana/board changes).
 		e.abortCast(pc, "cast aborted: cost no longer payable", true)
+		return
+	}
+	if !e.drainAssist(pc) {
+		e.abortCast(pc, "cast aborted: assist contribution no longer payable", true)
 		return
 	}
 	if f := e.G.Obj(pc.card).Face(); faceWantsConverge(f) || e.triggeredConvergeReaderOut() || e.sunburstGrantOut() {
