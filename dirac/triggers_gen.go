@@ -658,13 +658,23 @@ func (s *State) fireEmblemsAmt(k *prep, ev kop.TrigEvent, who uint8, tobj Obj, a
 				if ea.Kind != kop.AbTriggered || ea.Trig.Event != ev || !whoseOK(ea.Trig.Whose, pp, who) || !extra(ea) {
 					continue
 				}
+				// A Phase emblem's captured object is handed to the trigger
+				// as its object (RememberObjects$ TriggeredCard: the body's
+				// Defined$ Remembered), so the trigger runs for the object
+				// the Effect remembered rather than the step's player.
+				triggerObj := tobj
+				if ev == kop.TrigPhase && e.Capture != kop.RefNone {
+					if n := s.embNum(pp, i); n != 0 {
+						triggerObj = Obj(n - 1)
+					}
+				}
 				// the emblem's trigger runs as the creating card's latent copy
 				for ab := range cd.Abilities {
 					la := &cd.Abilities[ab]
 					if la.Kind == kop.AbTriggered && la.AFlags&kop.AfLatent != 0 && la.Trig.Event == ev && la.Trig.Zone == kop.ZoneCommand {
 						o := s.embObj(pp, i)
 						n0 := s.npend
-						s.enqueueLKI(o, s.objs[o].ver+1, c, uint8(ab), pp, tobj, who, s.embTrigAmt(e, pp, i, amt))
+						s.enqueueLKI(o, s.objs[o].ver+1, c, uint8(ab), pp, triggerObj, who, s.embTrigAmt(e, pp, i, amt))
 						if e.Once && s.npend > n0 && i < 8 {
 							done[pp] |= 1 << uint(i)
 						}

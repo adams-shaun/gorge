@@ -1389,6 +1389,7 @@ SkipUntapLockHostStep	untyped int	5
 SkipUntapLockStep	untyped int	2
 SkipUntapLockUntapStep	untyped int	6
 SkipUntapPlayerCL	untyped int	4
+SkipUntapPlayerCreatures	untyped int	7
 SplitGateCounter	uint8	1
 SplitGateLands	uint8	2
 SplitGateNone	uint8	0
