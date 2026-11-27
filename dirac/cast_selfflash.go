@@ -37,7 +37,8 @@ func (s *State) selfFlash(k *prep, p uint8, c CardID) bool {
 	for i := range cd.Abilities {
 		a := &cd.Abilities[i]
 		if a.Kind == kop.AbStatic && a.Static.Kind == kop.StatCastWithFlash && s.matchCard(k, a.Static.Filter, c, p, p) &&
-			(a.Static.Cond2 == 0 || s.condEval(k, a.Static.Cond2, evalCtx{src: NoObj, srcSl: NoSlot, ctrl: p})) {
+			(a.Static.Cond2 == 0 || s.condEval(k, a.Static.Cond2, evalCtx{src: NoObj, srcSl: NoSlot, ctrl: p})) &&
+			(a.Static.Filter2 == 0 || s.selfFlashTargets(k, a.Static.Filter2, p, c)) {
 			return true
 		}
 	}
