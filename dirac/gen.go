@@ -30,7 +30,7 @@ type genPrep struct {
 	// eleven per-card bools and the dense int8/int16 sentinel arrays this
 	// struct used to carry are one uint32 per card plus a record per card
 	// that actually has a value.
-	flags     []uint32
+	flags     []uint64
 	smallRecs []cardSmall
 	leyline   bool // some card is a Leyline
 	anyUmbra  bool // some card is an umbra Aura (CardDef.UmbraArmor; kw_umbraarmor.go)
@@ -111,6 +111,7 @@ type genPrep struct {
 	anyAbReduce     bool // a card has a StatReduceAbility static (cost_reduceability.go)
 	anyVergeOrder   bool // a gated Verge whose first ability is not its lowest colour: the window activates ability 0 (mana_gate.go)
 	anyGatePair     bool // a gated same-colour larger mana ability is a pair unit (Whisperer of the Wilds; mana_gate.go)
+	anySacPair      bool // a plain {T} mana ability beside its {T}, sacrifice-this larger alternative is a pair unit (Crystal Vein; mana_sacpair.go)
 	anyLandwalk     bool // a card has printed landwalk (repl_regenerate.go)
 	anyEvasion      bool // a card has a printed CardDef.Evasion keyword (act_remember.go)
 	anyAloneAtk     bool // a card has printed "can't attack alone" (CardDef.AloneAtk; combat_alone.go)
@@ -908,7 +909,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	}
 	g := &genPrep{
 		enteredNeed: enteredNeed,
-		flags:       make([]uint32, len(t.Cards)),
+		flags:       make([]uint64, len(t.Cards)),
 		replBits:    make([]uint32, len(t.Cards)),
 		replBits2:   make([]uint32, len(t.Cards)),
 		uses:        tableUses(t), // genneed.go
@@ -1736,10 +1737,17 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		}
 		prepManaDynPair(g, c, CardID(i), pc)
 		prepManaGate(g, c, CardID(i), pc)
+		prepManaSacPair(g, c, CardID(i), pc)
 		prepManaRefl(g, c, CardID(i), pc)
 		prepManaSplit(g, c, CardID(i), pc)
 		prepManaAsk(g, c, CardID(i), pc)
 		g.prepRestrSrc(c, CardID(i), pc)
+		if cardUsesProducedColour(t, c) {
+			// a SharesProducedColour reader: objTrigGen keeps the mana tap's
+			// produced colours in the queued Taps trigger's amount for it
+			// (filter_sharesproducedcolour.go)
+			g.setFlag(CardID(i), gfTrigProduced)
+		}
 		// latent triggered abilities are not subscriptions
 		pc.trigMask = 0
 		for j := range c.Abilities {

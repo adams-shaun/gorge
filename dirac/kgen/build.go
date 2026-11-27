@@ -352,7 +352,10 @@ func colorMask(s string) kop.ColorMask {
 // typeMask maps the LIR type bits (whose low byte matches kop's) and the
 // supertypes.
 // subtypeTypeBits is the kernel type bits a subtype list carries: Aura and
-// Equipment are TypeMask bits as well as subtypes.
+// Equipment are TypeMask bits as well as subtypes (engine/rules/attach.go's
+// isAura/isEquipment). Fortification has no TypeMask bit (the 16-bit space is
+// full), so it rides the Equipment bit for the projection and the card's
+// CardDef.Fortification flag tells the CR 704.5n SBA which bearer rule to use.
 func subtypeTypeBits(subs []string) kop.TypeMask {
 	var m kop.TypeMask
 	for _, s := range subs {
@@ -360,6 +363,8 @@ func subtypeTypeBits(subs []string) kop.TypeMask {
 		case "Aura":
 			m |= kop.TAura
 		case "Equipment":
+			m |= kop.TEquipment
+		case "Fortification":
 			m |= kop.TEquipment
 		}
 	}
@@ -599,6 +604,11 @@ func (cb *cardBuilder) record() error {
 		d.Types |= kop.TToken
 	}
 	d.Types |= subtypeTypeBits(c.Subtypes)
+	for _, sub := range c.Subtypes {
+		if sub == "Fortification" {
+			d.Fortification = true
+		}
+	}
 	if cb.out.subs, err = cb.subIndexes(c.Subtypes); err != nil {
 		return err
 	}
@@ -1670,7 +1680,7 @@ var flag2 = map[uint64]kop.FilterFlags2{
 var flag1 = map[uint64]kop.FilterFlags{
 	fSelf: kop.FSelf, fOther: kop.FOther, fToken: kop.FToken, fNonToken: kop.FNontoken, fAttacking: kop.FAttacking,
 	fBlocking: kop.FBlocking, fTapped: kop.FTapped, fUntapped: kop.FUntapped,
-	fEquippedBy: kop.FAttachedBySrc, fEnchantedBy: kop.FAttachedBySrc,
+	fEquippedBy: kop.FAttachedBySrc, fEnchantedBy: kop.FAttachedBySrc, fFortifiedBy: kop.FAttachedBySrc,
 	fExiledWith: kop.FExiledWith, fNotAttacking: kop.FNotAttacking, fNotAttachedBy: kop.FNotAttachedBySrc,
 }
 

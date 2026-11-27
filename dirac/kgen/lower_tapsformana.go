@@ -95,8 +95,12 @@ func (lc *lowerCtx) tapsForManaWatch(tp *params, tr *lTrigger, t cards.Trigger, 
 		// tapsWatchClass already read (Land.OppCtrl on Mana Web: the tap of a
 		// land an opponent of the watcher controls). Any other controller
 		// selector (a target, the defending player, ...) is still beyond the
-		// closed world.
-		if c.Owner != whoAny || (c.Ctrl != whoAny && c.Ctrl != whoYou && c.Ctrl != whoOpp) || c.Flags != 0 || c.CmpStat != cmpNone || c.Special != 0 {
+		// closed world. The one flag admitted is FortifiedBy (C.A.M.P.'s
+		// Card.FortifiedBy): the kernel's FAttachedBySrc read, the same
+		// attach-relation arm EquippedBy/EnchantedBy lower to (build.go's
+		// flag1), which tapsWatchClass evaluates through the ordinary
+		// perm matcher (dirac/chars.go). Any other flag stays refused.
+		if c.Owner != whoAny || (c.Ctrl != whoAny && c.Ctrl != whoYou && c.Ctrl != whoOpp) || c.Flags&^fFortifiedBy != 0 || c.CmpStat != cmpNone || c.Special != 0 {
 			return refuse("TapsForMana ValidCard %q: beyond a type filter", vc)
 		}
 	}

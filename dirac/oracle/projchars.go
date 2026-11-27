@@ -62,7 +62,8 @@ var gorgeTypeBits = map[string]kop.TypeMask{
 	"Land": kop.TLand, "Creature": kop.TCreature, "Artifact": kop.TArtifact, "Enchantment": kop.TEnchantment,
 	"Planeswalker": kop.TPlaneswalker, "Instant": kop.TInstant, "Sorcery": kop.TSorcery, "Battle": kop.TBattle,
 	"Kindred": kop.TKindred, "Tribal": kop.TKindred, "Aura": kop.TAura, "Equipment": kop.TEquipment,
-	"Basic": kop.TBasic, "Legendary": kop.TLegendary,
+	"Fortification": kop.TEquipment, // the 16-bit TypeMask is full; the SBA reads CardDef.Fortification (dirac/static_sbascan.go)
+	"Basic":         kop.TBasic, "Legendary": kop.TLegendary,
 }
 
 // gorgeKwExact are gorge keyword spellings with a kop.KwMask bit (kgen's
@@ -271,6 +272,11 @@ var gorgeKwElsewhere = map[string]string{
 	"Afterlife":         "gorge kwAfterlife's expansion: a dies trigger making 1/1 flying Spirit tokens (kgen expandedKeywords; compared through the stack and the tokens), no battlefield characteristic",
 	"Afflict":           "gorge kwAfflict's expansion: a becomes-blocked trigger making the defending player lose N life (kgen expandedKeywords; compared through the stack and life), no battlefield characteristic",
 	"For Mirrodin":      "gorge kwForMirrodin's expansion: an ETB trigger making a 2/2 red Rebel token and attaching the Equipment to it (kgen expandedKeywords; compared through the token and the attachment), no battlefield characteristic",
+	// gorge kwFortify (engine/cards/kw_fortify.go) mints the same AB$ Attach
+	// Equip mints, with the land-facing defaults; kgen expandedKeywords
+	// expands the K:Fortify line, so the activation's options and the attach
+	// events carry the comparison, as Equip's do (CR 702.67; static_unattachcreature.go).
+	"Fortify": "an activated attach ability (gorge kwFortify's expansion; kgen expandedKeywords)",
 }
 
 // gorgeKw maps one gorge keyword to its kernel bit. ok is false for a
