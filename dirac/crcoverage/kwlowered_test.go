@@ -136,7 +136,10 @@ var loweredKeywordRule = map[string]string{
 	"Echo": "702.30", "Embalm": "702.128", "Enlist": "702.154",
 	"Eternalize": "702.129", "Exalted": "702.83", "Fabricate": "702.123",
 	"Fading": "702.32", "Fear": "702.36", "Flanking": "702.25", "For Mirrodin": "702.159",
-	"Graft": "702.58", "Hideaway": "702.75", "Job select": "702.182",
+	// Fortify (CR 702.67) is an expandedKeywords head: gorge's kwFortify expands
+	// it to the same AB$ Attach shape kw:Equip mints (a land you control, sorcery timing).
+	"Fortify": "702.67",
+	"Graft":   "702.58", "Hideaway": "702.75", "Job select": "702.182",
 	"Level up": "702.87", "Living Weapon": "702.92", "Living metal": "702.161",
 	"Menace": "702.111", "Mentor": "702.134", "Modular": "702.44",
 	"More Than Meets the Eye": "702.162",
