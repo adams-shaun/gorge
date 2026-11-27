@@ -310,6 +310,11 @@ type lowerCtx struct {
 	// altCostHand while a spell's own AlternativeCost static's Cost$ is
 	// lowered: an ExileFromHand<1/Spec> part keeps its filter (lower_trigger.go)
 	altCostHand bool
+	// announceAlt while the AlternativeCost static carrying an Announce$ X
+	// has its Cost$ lowered: the one ExileFromHand<1/Spec> whose spec bounds
+	// the mana value to X is the announcement (the Shoal cycle;
+	// lower_altexilehand.go)
+	announceAlt bool
 	// crewAltCost while a Vehicle's own crew AlternativeCost static's Cost$ is
 	// lowered: its SubCounter<N/LOYALTY/Filter> removal reads the filter
 	// (static_crewalt.go), which no other cost spelling does

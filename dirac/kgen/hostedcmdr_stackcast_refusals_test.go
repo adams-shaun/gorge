@@ -10,9 +10,10 @@ import (
 // an UnlessResolveSubs$ gate) lowers; the cards whose shape needs a kernel
 // mechanism that does not exist yet keep refusing, each with its own reason:
 //
-//   - Commandeer: ControlSpell, and its two-card ExileFromHand alternative cost;
-//   - Disrupting Shoal / Blazing Shoal: Announce$ X read off the exiled card's
-//     mana value (and the Shoal's Counter Defined$ Targeted outside a cast trigger);
+//   - Commandeer, Disrupting Shoal and Blazing Shoal now lower (their
+//     ControlSpell, Counter Defined$ Targeted and Announce$ X shapes landed,
+//     cli-20261127T171908Z): pinned empty here, and by
+//     TestHostedCmdrStackCastLowers and the dirac/oracle lockstep tests;
 //   - Vivi Ornitier: a PlayerTurn$ gate on a mana ability (lowering it passes
 //     this check, then the kernel's mana gate refuses: it gates only a plain {T}
 //     amount-1 unrestricted ability, not Vivi's {0} X-amount choice);
@@ -29,9 +30,9 @@ func TestHostedCmdrStackCastRefusals(t *testing.T) {
 	})
 	want := map[string]string{
 		"Springheart Nantuko":         "",
-		"Commandeer":                  "api ControlSpell",
-		"Disrupting Shoal":            `Counter Defined$ "Targeted" outside a SpellCast trigger`,
-		"Blazing Shoal":               "static unread params [Announce]",
+		"Commandeer":                  "",
+		"Disrupting Shoal":            "",
+		"Blazing Shoal":               "",
 		"Vivi Ornitier":               `activation PlayerTurn$ "True" beside another condition`,
 		"Venerated Loxodon":           `Defined$ "Convoked"`,
 		"Ob Nixilis, Captive Kingpin": "trigger mode LifeLostAll",

@@ -42,8 +42,18 @@ func (s *State) costObjPayable(k *prep, p uint8, c *kop.Cost, src, exclude Obj) 
 	if c.Flags&kop.CostForage != 0 && s.pl[p].graveN < 3 && s.countSac(k, p, c.Filter, NoSlot) == 0 {
 		return false // gorge castparts.go: three graveyard cards or a Food
 	}
-	if c.Flags&kop.CostExileGrave != 0 && s.exileCands(k, p, c, src, exclude, nil) < s.exileGraveCount(k, c, p) {
-		return false
+	if c.Flags&kop.CostExileGrave != 0 {
+		if announceHandXCost(c) {
+			// the announced X-bound hand exile (the Shoal cycle): offered only
+			// while some hand card still matches the spec at its own mana
+			// value -- gorge's offer gate withholds on an empty candidate set
+			// (legal_walk_hand.go; altCostXCandidates, statics_altcost.go)
+			if s.announceXMVs(k, p, c, exclude) == 0 {
+				return false
+			}
+		} else if s.exileCands(k, p, c, src, exclude, nil) < s.exileGraveCount(k, c, p) {
+			return false
+		}
 	}
 	if c.Flags&kop.CostPayEnergy != 0 && !s.energyPayable(p, c) {
 		return false
@@ -211,6 +221,8 @@ func (s *State) costObjOptions(k *prep, d *Decision) bool {
 	n, f := s.exileGraveCount(k, pc, e.ctrl), pc.Filter
 	if exileXCost(pc) {
 		n = int(e.x) // ExileFromGrave<X/Spec>: the announced X (cost_exilex.go)
+	} else if announceHandXCost(pc) {
+		n = 1 // the announced X-bound hand exile: the one card matching at the announced X (cost_announcex.go)
 	}
 	if pc.ExileGSelf {
 		// ExileFromGrave<1/CARDNAME> first (gorge exAsk's unasked singleton),

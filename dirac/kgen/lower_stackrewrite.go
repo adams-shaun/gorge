@@ -42,6 +42,27 @@ func (lc *lowerCtx) changeTargets(ps *params) error {
 			lc.emit(lInstr{Op: "ChangeTargetsMass", C: c})
 			return nil
 		}
+		if strings.TrimSpace(d) == "Targeted" {
+			// Commandeer's DBChooseTargets: "You may choose new targets for
+			// it" — the redirect subject is the chain's own spell target
+			// declared upstream (the ControlSpell head), and gorge
+			// effChangeTargets over Defined$ Targeted walks that stack
+			// spell's root declaration and each announced SubAbility$ link
+			// (the same per-entry walk as the trigger form's RefTriggerObj).
+			t := lc.lastTarget()
+			if len(lc.chainT) != 1 || t < 0 {
+				return refuse("ChangeTargets Defined$ Targeted over %d target slots: the subject is the chain's one spell target (Commandeer)", len(lc.chainT))
+			}
+			tg := lc.ab.Targets[t]
+			if !tg.Spell || tg.Zone != zStack || tg.StackAb {
+				return refuse("ChangeTargets Defined$ Targeted of a slot that is not one spell on the stack")
+			}
+			if _, ok := ps.m["TargetType"]; ok {
+				return refuse("ChangeTargets with both Defined$ and TargetType$")
+			}
+			lc.emit(lInstr{Op: "ChangeTargets", Obj: lRef{Kind: rTarget, N: t}, C: c})
+			return nil
+		}
 		if strings.TrimSpace(d) != "TriggeredSpellAbility" || tr == nil || tr.Event != "SpellCast" {
 			return refuse("ChangeTargets Defined$ %q outside a SpellCast trigger", d)
 		}

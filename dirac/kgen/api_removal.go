@@ -139,6 +139,11 @@ func (lc *lowerCtx) apiCounter(sa *cards.SA, ps *params) error {
 			if spec, ok := strings.CutPrefix(d, "ValidStack "); ok {
 				return lc.counterAll(ps, strings.TrimSpace(spec)) // lower_stackrewrite.go
 			}
+			if d == "Targeted" {
+				if ok, err := lc.counterTargeted(ps); err != nil || ok {
+					return err
+				}
+			}
 			return lc.counterTriggered(d)
 		}
 	}

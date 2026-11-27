@@ -16,6 +16,7 @@ func init() {
 	apiPS("Attach", (*lowerCtx).attach)
 	apiPS("GainControl", (*lowerCtx).gainControl)
 	apiPS("ExchangeControl", (*lowerCtx).exchangeControl)
+	apiPS("ControlSpell", (*lowerCtx).controlSpell) // lower_controlspell.go
 	apiPS("UntapAll", (*lowerCtx).untapAll)
 	apiPS("TapAll", (*lowerCtx).tapAll)
 	apiPS("ElementalBend", (*lowerCtx).elementalBend)
