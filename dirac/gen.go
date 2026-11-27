@@ -1430,7 +1430,6 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 					g.setFlag(CardID(i), gfOthersRep)
 					pc.hasStat = true // scanned through statM
 				case kop.ReplCantLoseGame, kop.ReplOppsCantWinGame:
-					g.setFlag(CardID(i), gfLifeRepl)
 					pc.hasStat = true
 				case kop.ReplDoubleDamageToOpps:
 					g.replBits[i] |= rbDblDmg
@@ -1737,6 +1736,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 		}
 		prepManaDynPair(g, c, CardID(i), pc)
 		prepManaGate(g, c, CardID(i), pc)
+		prepManaSacPair(g, c, CardID(i), pc)
 		prepManaRefl(g, c, CardID(i), pc)
 		prepManaSplit(g, c, CardID(i), pc)
 		prepManaAsk(g, c, CardID(i), pc)

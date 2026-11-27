@@ -1932,15 +1932,20 @@ const FwSharesCardType FilterWord = 27
 // FwSharesNameThisTurnCast: the object shares a printed name with a spell cast this turn by any player (gorge sharesNameWith ThisTurnCast, the referent bound from the cast ledger, engine/effects/filter_this_turn_cast.go; Twinning Glass's Play Valid$ Card.nonLand+sharesNameWith ThisTurnCast). The referents are the cast ring's pushes this turn (dirac/cast_castledger.go), every seat's, a reversed cast (CR 733.1) skipped, each read where it lives now. A face-down candidate has no name (CR 708.2). Only the positive spelling lowers: gorge's negated form fails closed on an empty ledger.
 const FwSharesNameThisTurnCast FilterWord = 28
 
+// FilterWord (dirac/manifest/FilterWord/FwSharesProducedColour)
+//
+// FwSharesProducedColour: the battlefield permanent's colours intersect the colours of the mana a mana-ability tap produced (gorge's matchSharesColorWith over SpecContext.TriggerMana, engine/effects/filter.go; C.A.M.P.'s ConditionPresent$ Card.SharesColorWith TriggeredProduced on its Junk-token rider). The set is the tapped permanent's production, carried in the resolving Taps trigger's entry in the tap amount's colour bits above mtTapBit (manaTapped's fire, trig_taps.go; gorge's stampTriggeredManaProduced binds the actual ManaAdd batch, the kernel's view is the paid ability's static production). Colourless is not a colour and contributes nothing; an empty set or an entry that is no trigger is "shares nothing", a resolved false, never an unresolved gate.
+const FwSharesProducedColour FilterWord = 29
+
 // FilterWord (dirac/manifest/FilterWord/FwSingleTarget)
 //
 // FwSingleTarget: the cast spell has exactly one target, counting every chained sub-ability's targets with the root's (gorge's `singleTarget` predicate, engine/effects/filter.go: len(Targets)+len(SubTargets) == 1; SpellCast ValidSA$ Spell.singleTarget and Instant.singleTarget,Sorcery.singleTarget). No target and two targets both read false, and two slots naming one object count twice, as gorge counts them.
-const FwSingleTarget FilterWord = 29
+const FwSingleTarget FilterWord = 30
 
 // FilterWord (dirac/manifest/FilterWord/FwTeamwork)
 //
 // FwTeamwork: the cast spell paid its Teamwork cost (gorge's `Teamwork` predicate, Object.TeamworkPaid; SpellCast ValidSA$ Spell.Teamwork, Virtual Assistant). The kernel keeps the paid flag as sfKicked on the entry (kw_teamwork.go), which a kicker cast sets too, so the word also requires the spell's card to have Teamwork: a kicked non-teamwork spell reads false.
-const FwTeamwork FilterWord = 30
+const FwTeamwork FilterWord = 31
 
 // kw StickerSheet (dirac/manifest/KwID/KwStickerSheet)
 const KwStickerSheet KwID = 32

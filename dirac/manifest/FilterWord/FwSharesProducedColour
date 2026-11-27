@@ -1,0 +1,6 @@
+family: FilterWord
+name: FwSharesProducedColour
+value: next
+contexts: perm,cur
+status: active
+doc: FwSharesProducedColour: the battlefield permanent's colours intersect the colours of the mana a mana-ability tap produced (gorge's matchSharesColorWith over SpecContext.TriggerMana, engine/effects/filter.go; C.A.M.P.'s ConditionPresent$ Card.SharesColorWith TriggeredProduced on its Junk-token rider). The set is the tapped permanent's production, carried in the resolving Taps trigger's entry in the tap amount's colour bits above mtTapBit (manaTapped's fire, trig_taps.go; gorge's stampTriggeredManaProduced binds the actual ManaAdd batch, the kernel's view is the paid ability's static production). Colourless is not a colour and contributes nothing; an empty set or an entry that is no trigger is "shares nothing", a resolved false, never an unresolved gate.
