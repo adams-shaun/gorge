@@ -561,6 +561,18 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 				if chosenPool || f.Clauses[i].Owner != whoAny {
 					continue
 				}
+				if f.Clauses[i].Ctrl == whoTgtPlayer {
+					// TargetedPlayerCtrl on a graveyard card: its controller
+					// is its owner off the battlefield (gorge
+					// matchTargetedPlayerCtrl reads Object.Controller, the
+					// owner there), so the pool is the targeted player's
+					// graveyard, the owner role the kernel reads off the
+					// battlefield (ownerRoleF2: Realmbreaker, the Invasion
+					// Tree's land from the milled opponent's graveyard)
+					f.Clauses[i].Owner = whoTgtPlayer
+					f.Clauses[i].Ctrl = whoAny
+					continue
+				}
 				if dpScope != dpNone {
 					// DefinedPlayer$ names the fetch player: gorge's pool is that
 					// player's own graveyard (effHiddenPick, not gameWide), the
