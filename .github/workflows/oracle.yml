@@ -5,17 +5,19 @@
 # GitHub-hosted runners, so it takes nothing from the self-hosted boxes the queue runs on. A run still
 # going when the next one is due finishes first; the next one waits rather than cancelling it.
 #
-# The cadence is kept by the due job, not by the cron. GitHub delays scheduled events by hours under load and
-# drops some outright (no run is created): with '23 */6 * * *', 11-17..11-19 every 06:23 and 18:23 event was
-# dropped and the 12:23 ones arrived 3-4 hours late, so the oracle ran about twice a day, and after the 00:30 run
-# on 11-19 nothing ran for 10 hours while TestTgteachoppMutation sat red on main. The cron fires hourly and
-# due starts the oracle only when no run of it started in the last 1h45m; a dropped event costs an hour.
+# The cadence is kept by the due job, not by the cron. GitHub does not deliver this account's scheduled events
+# reliably: over 26 scheduled oracle runs (11-17..11-27) the gaps were min 5.0 h, median 8.8 h, mean 9.2 h, max
+# 20.3 h despite an hourly cron, and this repo's own 10-minute queue-precheck cron is throttled the same way. So
+# the oracle also runs on every push to main (delivered immediately), where the same due job
+# starts it only when no run started in the last 1h45m; a throttle gap can no longer hide a red main for hours.
 # A manual dispatch always runs.
 name: oracle
 
 on:
   schedule:
     - cron: '23 * * * *'
+  push:
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -41,7 +43,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          if [ "$GITHUB_EVENT_NAME" != schedule ]; then echo "run=true" >> "$GITHUB_OUTPUT"; exit 0; fi
+          if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ]; then echo "run=true" >> "$GITHUB_OUTPUT"; exit 0; fi
           now=$(date +%s)
           last=""
           while read -r id at; do
