@@ -1,7 +1,10 @@
 package rules
 
 import (
+	"slices"
 	"testing"
+
+	"github.com/adams-shaun/gorge/engine/decision"
 
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/effects"
@@ -255,6 +258,133 @@ func TestRingOfMarufEffectDrawReplacementTakesSideboardCard(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
+// TestEffectDrawReplacementWordsOfWindRegistersAndFires drives the corpus
+// words_of_wind end to end: the loud "continuous replacement unimplemented
+// (DrawReplace)" Note is gone (the gate registers it live), the next draw is
+// replaced (each player bounces their single permanent -- the Words card
+// itself among them, the body's self-exile tail retiring the Effect's command
+// card), and the following turn's draw is a plain draw (the one-shot is spent
+// and nothing lingers across the turn boundary).
+func TestEffectDrawReplacementWordsOfWindRegistersAndFires(t *testing.T) {
+	t.Parallel()
+	e, cfg, id := drawReplGame(t, 131, "Words of Wind", true)
+	activateWords(e, id)
+	if hasNote(e, "continuous replacement unimplemented (DrawReplace)") {
+		t.Fatal("Words of Wind's DrawReplace fell through to the unimplemented Note")
+	}
+	lib := len(e.G.Zone(state.ZLibrary, 0))
+	if lib == 0 {
+		t.Fatal("precondition: seat 0 library is empty")
+	}
+	e.drawCard(0)
+	if got := len(e.G.Zone(state.ZBattlefield, 0)) + len(e.G.Zone(state.ZBattlefield, 1)); got != 0 {
+		t.Fatalf("%d permanents remain, want both players' single permanent bounced", got)
+	}
+	if o := e.G.Obj(id); o.Zone != state.ZHand {
+		t.Fatalf("Words of Wind in zone %v, want its owner's hand", o.Zone)
+	}
+	if got := len(e.G.Zone(state.ZLibrary, 0)); got != lib {
+		t.Fatalf("library %d -> %d, the draw must be replaced (no card drawn)", lib, got)
+	}
+	// The one-shot spent, the following turn draws normally: the retired
+	// registration must not linger into a later turn's draw.
+	passThroughTurns(t, e, func() bool { return e.G.Turn >= 2 && e.G.Step == state.StepDraw })
+	lib = len(e.G.Zone(state.ZLibrary, 0))
+	e.drawCard(0)
+	if got := len(e.G.Zone(state.ZLibrary, 0)); got != lib-1 {
+		t.Fatalf("library %d -> %d on the following turn, want a plain draw", lib, got)
+	}
+	replayCheck(t, e, cfg)
+}
+
+// TestEffectDrawReplacementPlagiarizeRedirectsRememberedPlayer drives the
+// corpus plagiarize: its DB$ Effect registers a ValidPlayer$
+// Player.IsRemembered Draw replacement whose registration carries the
+// RememberObjects$ Targeted capture, and the Draw matcher's ValidPlayer$ gate
+// reads that capture -- the targeted player's draw is skipped and the
+// controller draws a card instead.
+func TestEffectDrawReplacementPlagiarizeRedirectsRememberedPlayer(t *testing.T) {
+	t.Parallel()
+	reg := testutil.CorpusRegistry(t)
+	plag := mustCorpusCard(t, reg, "Plagiarize")
+	e, cfg := tokenReplGame(t, 133, plag)
+	id := moveSeededCard(t, e, 0, plag, state.ZGraveyard)
+	face := e.G.Obj(id).Face()
+	effects.Resolve(e, &effects.Ctx{Source: id, Controller: 0, SVars: face.SVars,
+		Targets: []state.Target{{Player: 1, IsPlayer: true}}, TargetsOffered: true}, face.Abilities[0])
+	if hasNote(e, "continuous replacement unimplemented (EventDraw)") {
+		t.Fatal("Plagiarize's EventDraw line fell through to the unimplemented Note")
+	}
+	// The precondition the redirect depends on: the registration's
+	// RememberedPlayers holds the targeted player -- and NOT the controller
+	// (the compared values genuinely differ).
+	var registered bool
+	for _, ce := range e.active() {
+		if ce.ReplacementEvent != "Draw" {
+			continue
+		}
+		if !slices.Contains(ce.RememberedPlayers, state.PlayerID(1)) ||
+			slices.Contains(ce.RememberedPlayers, state.PlayerID(0)) {
+			t.Fatalf("registration RememberedPlayers %v, want exactly the target [1]", ce.RememberedPlayers)
+		}
+		registered = true
+	}
+	if !registered {
+		t.Fatal("Plagiarize registered no live Draw replacement")
+	}
+	l0, l1 := len(e.G.Zone(state.ZLibrary, 0)), len(e.G.Zone(state.ZLibrary, 1))
+	h0, h1 := len(e.G.Zone(state.ZHand, 0)), len(e.G.Zone(state.ZHand, 1))
+	if l0 == 0 || l1 == 0 {
+		t.Fatalf("precondition: libraries %d/%d, want both stocked", l0, l1)
+	}
+	e.drawCard(1)
+	if got := len(e.G.Zone(state.ZHand, 1)); got != h1 {
+		t.Fatalf("target hand %d -> %d, the targeted player's draw must be skipped", h1, got)
+	}
+	if got := len(e.G.Zone(state.ZLibrary, 1)); got != l1 {
+		t.Fatalf("target library %d -> %d, must be untouched", l1, got)
+	}
+	if got := len(e.G.Zone(state.ZHand, 0)); got != h0+1 {
+		t.Fatalf("controller hand %d -> %d, want the redirected draw", h0, got)
+	}
+	if got := len(e.G.Zone(state.ZLibrary, 0)); got != l0-1 {
+		t.Fatalf("controller library %d -> %d, want one card drawn", l0, got)
+	}
+	// The gate's other side: ValidPlayer$ Player.IsRemembered names only the
+	// target -- the controller's own draw stays a plain draw.
+	e.drawCard(0)
+	if got := len(e.G.Zone(state.ZHand, 0)); got != h0+2 {
+		t.Fatalf("controller hand %d -> %d on its own draw, want a plain draw", h0+1, got)
+	}
+	replayCheck(t, e, cfg)
+}
+
+// TestEffectDrawReplacementUrabraskStillNoted guards the hold-back: Urabrask,
+// Heretic Praetor's DrawReplace carries the IsPresent$ Card.IsRemembered
+// remembered-set gate whose list must grow while the body runs (the sibling
+// remembered-set ticket), so it must keep the loud Note and never swallow a
+// draw. The Note rides its opponent-upkeep trigger's DB$ Effect, so the pin
+// advances to turn 2's draw step and checks the opponent still draws.
+func TestEffectDrawReplacementUrabraskStillNoted(t *testing.T) {
+	t.Parallel()
+	e, cfg, id := drawReplGame(t, 135, "Urabrask, Heretic Praetor", false)
+	if o := e.G.Obj(id); o == nil || o.Zone != state.ZBattlefield {
+		t.Fatal("precondition: Urabrask not on seat 0's battlefield")
+	}
+	passThroughTurns(t, e, func() bool {
+		return hasNote(e, "continuous replacement unimplemented (DrawReplace)")
+	})
+	if !hasNote(e, "continuous replacement unimplemented (DrawReplace)") {
+		t.Fatal("Urabrask's IsPresent$ Card.IsRemembered DrawReplace registered live; it must keep its loud Note")
+	}
+	h1 := len(e.G.Zone(state.ZHand, 1))
+	e.drawCard(1)
+	if got := len(e.G.Zone(state.ZHand, 1)); got != h1+1 {
+		t.Fatalf("opponent hand %d -> %d, the noted replacement must swallow nothing", h1, got)
+	}
+	replayCheck(t, e, cfg)
+}
+
 // Mangara's Tome (its Effect carries Triggers$ and a RememberedFirst pile) and
 // Urabrask (an open-ended IsRemembered draw hook) stay on the loud Note, never
 // a live registration that swallows a draw with no card moved.
@@ -270,4 +400,31 @@ func TestUnmodelledDrawEffectCarriersKeepTheirNote(t *testing.T) {
 	if len(e.G.Zone(state.ZHand, 0)) != hand+1 {
 		t.Fatal("Mangara's Tome's draw was swallowed")
 	}
+}
+
+// passThroughTurns drives the game until cond holds: it answers discards,
+// passes priority, takes the first option of any other ask and Advances when
+// nothing is pending -- passUntilStep and passUntilTurn both busy-wait when
+// Pending is nil (a raw moveSeededCard clears it), so a seeded board can
+// stall at turn 1 before it would ever hand over the turn.
+func passThroughTurns(t *testing.T, e *Engine, cond func() bool) {
+	t.Helper()
+	for i := 0; i < 4000; i++ {
+		if cond() {
+			return
+		}
+		if answerIfDiscard(t, e) {
+			continue
+		}
+		d := e.Pending()
+		switch {
+		case d == nil:
+			e.Advance()
+		case d.Kind == decision.KPriority:
+			passOnce(t, e)
+		default:
+			submitChoices(t, e, d.Options[0].Index)
+		}
+	}
+	t.Fatal("condition never became true while driving turns")
 }
