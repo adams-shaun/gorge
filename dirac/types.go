@@ -156,6 +156,7 @@ const (
 	ChEnlist                    // mode 0 = decline (no source); mode 1+i, source = the i-th creature the asked attacker may enlist (gorge's CR 702.154a "enlist" KChoose; kw_enlist.go)
 	ChTurnUpAttach              // the face-down turn-up's attach election: Done declines, AkChoose's source is the destination (gorge's DB$ Attach destination ask, Min 0: an empty answer declines too; face_turnupattach.go)
 	ChExert                     // mode 0 = decline (no source); mode 1, source = the asked attacker (gorge's CR 702.100a "exert" KChoose; combat_exert.go)
+	ChMoveCounterAny            // mode = the counters to move; AkDone declines (gorge's "move_counter" KChoose, OpMoveCounterAny; ctr_moveany.go)
 )
 
 // ChMultikick is CR 702.43's multikicker count ask (gorge KChoose "multikick",

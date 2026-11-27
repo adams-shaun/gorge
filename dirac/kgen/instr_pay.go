@@ -125,6 +125,14 @@ func (ic *instrCtx) opUnlessPaid() error {
 	if err := ic.objFilter(z); err != nil {
 		return err
 	}
+	if pk == kop.PayManaX && in.Pips != 0 {
+		// a trigger's own {X} cost's fixed pips (Elenda and Azor's
+		// "{X}{W}{U}{B}"): PayManaX's F is unused for a filter, so the packed
+		// pips ride it as PayMana's PayManaF does (lower_triggerxcost.go,
+		// dirac/trig_maypayx.go trigXCostAt). Set after objFilter, which clears
+		// F for every pay op.
+		ki.F = kop.FilterID(in.Pips)
+	}
 	if pk == kop.PayMana && (in.C > 0 || len(in.Hyb) != 0) {
 		// PayMana's F is the life paid beside the mana (a trigger's own
 		// mana-and-life cost, Zoraline) and its hybrid pips (Emiel the

@@ -93,9 +93,14 @@ func (lc *lowerCtx) apiDestroyAll(sa *cards.SA, ps *params) error {
 		return refuse("DestroyAll RememberAllObjects$: the remembered destroyed set is not modelled")
 	}
 	if vt := ps.peek("ValidTgts"); vt != "" {
-		// gorge's targetPlayerKindScope scopes a DestroyAll to the
-		// target's permanents; the kernel instruction is one filter
-		return refuse("DestroyAll ValidTgts$ %q: a target-scoped sweep is not modelled", vt)
+		// gorge's targetPlayerKindScope scopes a DestroyAll to a target
+		// player kind's permanents; the kernel instruction is one filter
+		// and models no such scope. An object target (Fell the Mighty's
+		// "target creature", read by the ValidCards$ X) scopes nothing: it
+		// is declared as the spell's slot and the sweep is the plain one.
+		if err := lc.destroyAllObjTarget(ps, vt); err != nil {
+			return err
+		}
 	}
 	if lc.impSweep != "" && ps.peek("ValidCards") == "Card.IsImprinted" {
 		ps.m["ValidCards"], lc.impSweep = lc.impSweep, "" // lower_imprintzone.go imprintNameSweep

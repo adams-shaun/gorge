@@ -1515,7 +1515,7 @@ func (lc *lowerCtx) dig(ps *params) error {
 		return err
 	}
 	for _, k := range []string{"Optional", "RestRandomOrder", "ForceRevealToController", "Reveal", "RememberChanged"} {
-		if ps.is(k, "True") && !(k == "Reveal" && noReveal) {
+		if ps.is(k, "True") && !(k == "Reveal" && noReveal) && !(k == "RestRandomOrder" && restTop && !restAsk) {
 			flags = append(flags, k)
 		}
 	}

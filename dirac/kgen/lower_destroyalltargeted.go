@@ -39,3 +39,22 @@ func (lc *lowerCtx) destroyAllFilter(ps *params) (*lFilter, error) {
 
 // destroyAllAttachedSpec is Turn to Slag's ValidCards$: the target's Equipment.
 const destroyAllAttachedSpec = "Targeted.Equipment+Attached"
+
+// destroyAllObjTarget declares a DestroyAll's own ValidTgts$ as the spell's
+// target slot when it names an object (Fell the Mighty's "target creature",
+// which only the ValidCards$ X = Targeted$CardPower reads). gorge's
+// targetPlayerKindScope scopes a sweep only to a player-kind target, so an
+// object target leaves the sweep unscoped and the lowering is the plain
+// DestroyAll over ValidCards$ (CR 608.2b: the spell is countered on
+// resolution once its one target is illegal). A player-kind target refuses:
+// the kernel's one-filter sweep has no controller scope to read.
+func (lc *lowerCtx) destroyAllObjTarget(ps *params, vt string) error {
+	if _, err := lc.objOrTarget(ps, "", zBattlefield); err != nil {
+		return err
+	}
+	t := lc.ab.Targets[lc.lastTarget()]
+	if t.F == nil || t.F.Players != 0 || len(t.F.Clauses) == 0 {
+		return refuse("DestroyAll ValidTgts$ %q: a target-scoped sweep is not modelled", vt)
+	}
+	return nil
+}

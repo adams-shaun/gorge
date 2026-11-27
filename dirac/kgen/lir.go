@@ -619,6 +619,10 @@ type lInstr struct {
 	// Hyb: a trigger's own PayMana cost's hybrid pips, as printed ("GW";
 	// lower_trighybrid.go), packed into the kernel instruction's F.
 	Hyb []string
+	// Pips: a trigger's own PayManaX cost's fixed coloured pips beside the
+	// announced {X} (Elenda and Azor's "{X}{W}{U}{B}"), packed into the
+	// kernel instruction's F as PayMana does its hybrid pips (lower_triggerxcost.go).
+	Pips int
 	// Follows: a MayPlay grant the record follows its card through (kop
 	// MayPlayFollows on the emitted C): the offer stands every time the card
 	// is back in the grant's zone within the duration (lower_zone.go's

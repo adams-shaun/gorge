@@ -58,6 +58,13 @@ func (lc *lowerCtx) destroyRememberLKIDestroyed(ps *params, in *lInstr) (done bo
 		return true, refuse("Destroy RememberLKI$ with TargetMax$ %q", tm)
 	}
 	for _, v := range lc.face.SVars {
+		// RememberedLKI$CardToughness is the one read the kernel answers: the
+		// destroyed target's last-known toughness, summed into the resolution's
+		// remLK at the destroy (kop.DestroySumToughness; Noxious Gearhulk).
+		// refuseRemLKIPT pairs it with this Destroy and sets the bit.
+		if strings.TrimSpace(v) == "RememberedLKI$CardToughness" {
+			continue
+		}
 		if remLKIValueRead.MatchString(v) {
 			return true, refuse("Destroy RememberLKI$ beside a remembered characteristic read")
 		}

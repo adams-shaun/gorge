@@ -57,6 +57,14 @@ func (s *State) execTrigX(k *prep, p uint8, skip uint16, cap int) bool {
 	other := payDesc{class: pdOther, src: NoSlot, reflBound: true}
 	open := s.availPotentialFor(k, p, &av, &other, false)
 	cap = min(cap, trigXCap)
+	// x = 0 pays only the cost's fixed pips (Elenda and Azor's {X}{W}{U}{B}):
+	// when those are unpayable no X value is, so pose no announcement and let
+	// the ordinary election offer decline only (gorge filters every option,
+	// x = 0 included, through CostPayablePool). True = no ask.
+	if c0 := s.trigXCostAt(k, 0); !av.affords(&c0, pipMaskOf(&c0), 0) &&
+		!(k.restrSrc && s.restrSrcAffords(k, p, other, &c0, &av, NoSlot, 0)) {
+		return true
+	}
 	mx := 0
 	for x := 1; x <= cap; x++ {
 		c := s.trigXCostAt(k, x)
@@ -139,15 +147,22 @@ func (s *State) trigXColor(k *prep) (uint8, bool) {
 
 // trigXCostAt is the cost of announcing x on the PayManaX instruction in the
 // resolved program: x generic mana, or x pips of its XColor$ colour (CR 107.3,
-// 601.2b; Leyline Tyrant's "pay any amount of {R}"). The instruction carries
-// the colour, so every read of the announced X (the bound, the pay election,
-// resPayCost) prices the same cost.
+// 601.2b; Leyline Tyrant's "pay any amount of {R}"), plus the fixed coloured
+// pips the instruction carries beside the X (Elenda and Azor's "{X}{W}{U}{B}":
+// the packing rides F, as PayMana's hybrid/life rider does). The instruction
+// carries the pips, so every read of the announced X (the bound, the pay
+// election, resPayCost) prices the same cost.
 func (s *State) trigXCostAt(k *prep, x int) kop.ManaCost {
 	var c kop.ManaCost
+	if pr := s.prog(k); int(s.res.pc) < len(pr) {
+		if in := &pr[s.res.pc]; in.C&0xF == kop.PayManaX && in.F != 0 {
+			c = manaOf(0, int16(in.F))
+		}
+	}
 	if col, ok := s.trigXColor(k); ok {
-		c.Pips[col] = uint8(x)
+		c.Pips[col] += uint8(x)
 	} else {
-		c.Generic = uint8(x)
+		c.Generic += uint8(x)
 	}
 	return c
 }

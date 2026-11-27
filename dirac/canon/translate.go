@@ -930,6 +930,11 @@ func (r *Translator) generatedChoose(a dirac.Action) (Canon, bool) {
 			return Pack(ActMode, RefNone, RefNone, 0), true
 		}
 		return Pack(ActMode, RefNone, RefNone, 1), true
+	case dirac.ChMoveCounterAny:
+		// gorge's "move_counter" amount KChoose (OpMoveCounterAny): the kind
+		// is outside ChooseKinds, so both sides use choose:other (gorge's
+		// chooseOtherAction packs the option index as the mode).
+		return Pack(ActChoose+ChooseOther, RefNone, RefNone, mode), true
 	case dirac.ChGenPair:
 		// gorge effPair's "soulbond" KChoose over the unpaired creatures
 		// (CR 702.95a): an ordinary object pick, choose:other as gorge's
