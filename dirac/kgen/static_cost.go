@@ -231,18 +231,20 @@ func (s lStatic) flashCasterFlag() kop.StaticFlags {
 	return 0
 }
 
-// altGrantShape lowers a battlefield GRANT of a mana alternative cost to the
+// altGrantShape lowers a battlefield GRANT of an alternative cost to the
 // controller's own spells (Fist of Suns, Jodah, Leyline of Mutation: bare
 // "ValidSA$ Spell | ValidPlayer$ You"; Rooftop Storm's and Runeforge
 // Champion's ValidCard$ riders; gorge alternativeCosts' printed battlefield
-// walk, read relative to the granter's controller). It reports done with the
-// static filled in (kop.StAltGrant, Filter = the ValidCard$); a static of
-// another shape is not done and falls through to the own-static arms. Only a
-// mana price lowers: the kernel prices the grant as the hand cast's mana
-// alternative (dirac/cast_altgrant.go).
+// walk, read relative to the granter's controller), or to any player's spells
+// when no ValidPlayer$ rider scopes it (Dream Halls' discard alternative). It
+// reports done with the static filled in (kop.StAltGrant, Filter = the
+// ValidCard$); a static of another shape is not done and falls through to the
+// own-static arms. A mana price lowers, and so does Dream Halls' dynamic
+// colour-share discard (altGrantDiscardCost).
 func (sc *staticCtx) altGrantShape() (bool, error) {
 	sp := sc.sp
-	if sp.str("ValidSA") != "Spell" || sp.str("ValidPlayer") != "You" || sp.str("EffectZone") != "" || sp.str("ValidCard") == "Card.Self" {
+	vp := sp.str("ValidPlayer")
+	if sp.str("ValidSA") != "Spell" || vp != "You" && vp != "" || sp.str("EffectZone") != "" || sp.str("ValidCard") == "Card.Self" {
 		return false, nil
 	}
 	var err error
@@ -252,30 +254,49 @@ func (sc *staticCtx) altGrantShape() (bool, error) {
 	if sc.st.Cost, err = sc.lc.altCostCost(sp.str("Cost")); err != nil {
 		return true, err
 	}
+	// A grant with no ValidPlayer$ rider applies to every player's spell
+	// (Dream Halls: "its controller may discard..."), not only the static's
+	// controller's (kop.StAltAnyCaster).
+	sc.st.AnyCaster = vp == ""
 	sc.st.Flags = append(sc.st.Flags, "AltGrant")
 	return true, nil
 }
 
+// altGrantDiscardCost reports whether a grant's cost is Dream Halls' dynamic
+// discard: one hand card sharing a colour with the spell being cast, with no
+// fixed filter and no other part (kop.Cost.DiscardSharesCastColor).
+func altGrantDiscardCost(c *kop.Cost) bool {
+	return *c == kop.Cost{Flags: kop.CostDiscard, N: 1, DiscardSharesCastColor: true}
+}
+
 // altCostStatic lowers an AlternativeCost static's cost and, for a battlefield
 // grant (altGrantShape's "AltGrant" flag), fills in the rest of its static:
-// kop.StAltGrant, and Filter = the ValidCard$ the cast card matches. A grant
-// carries no non-mana cost part (the kernel prices a grant as the hand cast's
-// mana alternative, cast_altgrant.go). A grant's Condition$ lowers through the
-// shared static gate into Cond2, which the kernel's altGrantApplies reads with
-// the granter as source; none of the five granting cards carries one.
+// kop.StAltGrant, kop.StAltAnyCaster for a grant with no ValidPlayer$ rider,
+// and Filter = the ValidCard$ the cast card matches. A grant carries either a
+// mana price (the kernel prices it as the hand cast's mana alternative,
+// cast_altgrant.go) or Dream Halls' dynamic discard pick (altGrantDiscardCost).
+// A grant's Condition$ lowers through the shared static gate into Cond2, which
+// the kernel's altGrantApplies reads with the granter as source; none of the
+// granting cards carries one.
 func (cb *cardBuilder) altCostStatic(s lStatic, st *kop.Static) (kop.Cost, error) {
 	cost, err := cb.cost(s.Cost)
 	if err != nil || !slices.Contains(s.Flags, "AltGrant") {
 		return cost, err
 	}
 	st.StFlags |= kop.StAltGrant
+	if s.AnyCaster {
+		st.StFlags |= kop.StAltAnyCaster
+	}
 	if s.F != nil {
 		if st.Filter, err = cb.filter(s.F, kop.ZoneHand); err != nil {
 			return cost, err
 		}
 	}
 	if cost.Flags != 0 || cost.N != 0 || cost.Mana.X != 0 {
-		return cost, fmt.Errorf("alternative cost grant with a non-mana part (the kernel offers mana-only grants)")
+		if altGrantDiscardCost(&cost) {
+			return cost, nil
+		}
+		return cost, fmt.Errorf("alternative cost grant with a non-mana part (the kernel offers mana grants and Dream Halls' colour-share discard)")
 	}
 	return cost, nil
 }

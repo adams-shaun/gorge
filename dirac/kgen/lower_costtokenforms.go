@@ -41,6 +41,15 @@ func (lc *lowerCtx) discardCost(c *lCost, parts []string, n int, t string) error
 	if len(parts) < 2 || len(parts) > 3 || n < 1 {
 		return refuse("discard cost %q", t)
 	}
+	if lc.altCostHand && n == 1 && parts[1] == "Card.SharesColorWith" {
+		// Dream Halls' granted alternative cost: discard a card that shares
+		// a colour with the spell being cast. The candidate test depends on
+		// the cast card, so the cost carries the kernel's dynamic marker
+		// (kop.Cost.DiscardSharesCastColor) instead of a fixed hand filter.
+		c.DiscardShare = true
+		c.DiscardN = n
+		return nil
+	}
 	switch parts[1] {
 	case "Card":
 		c.DiscardSpec = ""
