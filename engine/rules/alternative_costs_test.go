@@ -895,10 +895,12 @@ func TestDeadlyRollickAltCostGatedOnCommanderPresence(t *testing.T) {
 	}
 }
 
-// TestAlternativeCostValidPlayerScopesTheOffer pins ValidPlayer$ being read
-// (You = the static's controller: seat 0 casting its own card matches) and
-// the fail-closed direction for an unevaluable ValidSA$ Spell constraint:
-// the free cast is denied, never silently widened.
+// TestAlternativeCostValidPlayerScopesTheOffer pins the ValidPlayer$ rider on
+// an AlternativeCost static: "You" is the static's controller, so the
+// controller's own cast is offered the alternative and a different seat's
+// cast is not (the offer must not widen to every player). The positive
+// control on the controller's cast keeps the negative case from passing
+// vacuously if the granter's static stops applying.
 func TestAlternativeCostValidPlayerScopesTheOffer(t *testing.T) {
 	t.Parallel()
 	// A self-carried alternative cost is encoded ValidCard$ Card.Self (or
@@ -919,14 +921,33 @@ func TestAlternativeCostValidPlayerScopesTheOffer(t *testing.T) {
 		t.Fatal("the paid cast is still offered")
 	}
 
-	// An unevaluable ValidSA$ Spell constraint fails closed (the grant is
-	// not withdrawn silently into a paid cast): the alternative disappears.
-	scoped := card(t, "Name:Scoped\nManaCost:1 U\nTypes:Instant\n"+
-		"A:SP$ Draw | Defined$ You | NumCards$ 1\n"+
-		"S:Mode$ AlternativeCost | ValidSA$ Spell.Samurai | Cost$ 0\nOracle:x\n")
-	e2 := handEngine(t, scoped)
-	scopedID := e2.G.Zone(state.ZHand, 0)[0]
-	if alts := altCastOptions(e2.legalActions(0), scopedID); len(alts) != 0 {
-		t.Fatalf("unevaluable ValidSA$ constraint still granted the free cast: %+v", alts)
+	// A static on another permanent (the Leyline of Mutation shape) grants
+	// the alternative to spells its controller casts, not to every seat's.
+	granter := card(t, "Name:Granter\nTypes:Enchantment\n"+
+		"S:Mode$ AlternativeCost | ValidSA$ Spell | ValidPlayer$ You | Cost$ 0\nOracle:x\n")
+	mine, outsider := card(t, "Name:Mine\nManaCost:1 U\nTypes:Instant\n"+
+		"A:SP$ Draw | Defined$ You | NumCards$ 1\nOracle:x\n"),
+		card(t, "Name:Outsider\nManaCost:1 U\nTypes:Instant\n"+
+			"A:SP$ Draw | Defined$ You | NumCards$ 1\nOracle:x\n")
+	e2 := handEngine(t)
+	granterObj := e2.G.AddObject(granter, 0)
+	granterObj.Zone = state.ZBattlefield
+	e2.G.SetZone(state.ZBattlefield, 0, []state.ObjID{granterObj.ID})
+	mineObj := e2.G.AddObject(mine, 0)
+	mineObj.Zone = state.ZHand
+	outsiderObj := e2.G.AddObject(outsider, 1)
+	outsiderObj.Zone = state.ZHand
+	mineID, outsiderID := mineObj.ID, outsiderObj.ID
+	e2.G.SetZone(state.ZHand, 0, []state.ObjID{mineID})
+	e2.G.SetZone(state.ZHand, 1, []state.ObjID{outsiderID})
+
+	// The granter is live and prices its controller's cast: the rider, not a
+	// missing static, is what the out-of-scope case measures.
+	if alts := altCastOptions(e2.legalActions(0), mineID); len(alts) != 1 {
+		t.Fatalf("controller's cast not offered the granter's alternative: %+v", alts)
+	}
+	// Seat 1 is not the static's controller, so ValidPlayer$ You excludes it.
+	if alts := altCastOptions(e2.legalActions(1), outsiderID); len(alts) != 0 {
+		t.Fatalf("alternative granted to a seat outside ValidPlayer$ You: %+v", alts)
 	}
 }
