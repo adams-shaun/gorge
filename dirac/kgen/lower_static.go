@@ -444,6 +444,9 @@ func (lc *lowerCtx) mayPlayStatic(sp *params, st *lStatic, aff string) ([]lStati
 			return nil, err
 		}
 	}
+	if sp.str("AffectedZone") == "Graveyard" {
+		gyAfterStackRedundant(sp, aff) // lower_gyafterstack.go
+	}
 	if err := laterPermanentAlternative(aff); err != nil {
 		return nil, err
 	}
