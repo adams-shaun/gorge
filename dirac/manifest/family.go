@@ -60,7 +60,7 @@ type Family struct {
 // cover, and a kind of 256 or more also on widening the Action mode byte and
 // the CostSubAmong pick key (dirac ctrMode). dirac's
 // TestManifestStatusMatchesCode holds the two equal.
-const CounterKindCover = 249
+const CounterKindCover = 242
 
 // CoverWhy is the status reason of an entry at or above its family's Cover.
 const CoverWhy = "cover:NumCounterKinds3"

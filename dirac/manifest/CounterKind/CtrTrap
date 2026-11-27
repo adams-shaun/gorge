@@ -4,4 +4,4 @@ value: 243
 forge: TRAP
 census: ctr TRAP all=1 std=0 mbc=0 sole=0
 state: code 0
-status: reserved
+status: deferred cover:NumCounterKinds3

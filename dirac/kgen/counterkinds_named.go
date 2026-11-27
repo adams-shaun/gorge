@@ -78,7 +78,6 @@ func init() {
 		"STUDY":         kop.CtrStudy,
 		"TOWER":         kop.CtrTower,
 		"VOID":          kop.CtrVoid,
-		"VOW":           kop.CtrVow,
 	} {
 		counterKinds[name] = k
 	}

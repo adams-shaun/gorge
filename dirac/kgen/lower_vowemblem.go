@@ -42,7 +42,10 @@ func (lc *lowerCtx) rememberedCantAttack(ps *params, s cards.Static) (ok bool, e
 	counter := strings.TrimSpace(ps.str("ForgetCounter"))
 	if counter != "" {
 		if _, cerr := counterKind(counter); cerr != nil {
-			return why(cerr.Error())
+			// CtrVow (Promise of Loyalty's kind) is deferred past
+			// kop.NumCounterKinds3, the counter family's frozen cover: the
+			// kernel serves no counter of it, so the card refuses here by name
+			return why(cerr.Error() + " (no kernel counter kind: the family is full below kop.NumCounterKinds3)")
 		}
 	}
 	cp := make(map[string]string, len(s.Params))
