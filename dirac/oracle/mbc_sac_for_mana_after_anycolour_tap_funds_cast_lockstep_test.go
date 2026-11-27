@@ -9,7 +9,7 @@ const pucaSCovenantRepro = "sac_for_mana_after_anycolour_tap_funds_cast"
 // giving every land "Sacrifice this land: Add {B}", tapping the Marsh for {G}
 // and sacrificing two lands would pay Puca's Covenant's {2}{B} alongside
 // Snarespinner's {1}{B} (decision 546, tail-08 pair 13). gorge's prefix search
-// (potentialPrefixScript) spends its 160-node budget walking the sacrifice
+// (potentialPrefixScript) spends its potentialScriptNodes budget walking the sacrifice
 // answers and finds no script over those grants, so it offers neither cast.
 // The kernel's grant search used to keep the grant lists it read at the root
 // through a sacrifice step and tapped the Marsh beneath the sacrificed Tree,

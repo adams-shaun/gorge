@@ -443,6 +443,9 @@ func (s *State) tokenAttacks(k *prep, in *kop.Instr, sl Slot, p uint8) {
 		}
 	}
 	s.setEnterAttacker(k, sl, atk)
+	if DebugTokenAttackingStats != nil && in.B.N&kop.TokAttackAsk != 0 && s.equippedAttackerTrigger(k) {
+		DebugTokenAttackingStats.EquippedTokens++
+	}
 }
 
 // riderSeatHasWalker reports whether the seat a TokenAttacking$ rider names

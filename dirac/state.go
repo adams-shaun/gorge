@@ -346,6 +346,13 @@ const (
 	cseenDT                                // deathtouch mark seen
 )
 
+// cseenSacNext: the permanent's imminent departure is a sacrifice (noteSac;
+// removePerm records it on the zone entry and clears it,
+// value_sacrificedthisturn.go). It rides perm.cseen's free bit above
+// cseenSaddled (bits 0-5 counters and saddled, bits 6-7 free) and is zeroed
+// with the rest of the perm when the slot is next entered.
+const cseenSacNext uint8 = 1 << 6
+
 // ctrN is p's count of counter kind c.
 func (p *perm) ctrN(s *State, c int) int {
 	if n := p.ctrLow(c); n != 0 || p.ck[ctrSlots-1] == 0 {
@@ -1071,6 +1078,12 @@ type resCtx struct {
 	chPl  uint8
 	cpl   uint8 // the chosen player and the remembered players (ExtChoosePlayerRes; act_chooseplayerres.go)
 	remLK int16 // sum of the last-known power or toughness of the permanents this resolution sacrificed under RememberSacrificed$ (zone_rememberlki.go)
+	// ksrAt/ksrMass are the mass stack redirect's cursor (act_stackrewrite.go
+	// ExtChangeTargetsMass): ksrAt is the next stack index to offer, ksrMass
+	// that the ask in flight is the mass walk. The pair fits resCtx's tail
+	// padding, so State's pinned layout does not move.
+	ksrAt   uint8
+	ksrMass bool
 }
 
 // State is a whole game. Copy one with CopyFrom, or probe on a fork; go vet

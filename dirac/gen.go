@@ -441,6 +441,7 @@ type genPrep struct {
 	destroyHeal   []kop.FilterID // per card: ReplDestroyHeal's filter (nil when no card has one; repl_destroyheal.go)
 	anyExileAny   bool           // some ReplExileOnLeave has Repl.C 1: a move to a graveyard from any zone checks it (placeFrom)
 	altFree       []uint8        // per card: 1 + the ability index of its own free StatAlternativeCost (nil when no card has one; cast_altfree.go)
+	anyAltGrant   bool           // some card carries a StatAlternativeCost grant (kop.StAltGrant; cast_altgrant.go)
 	// anyDeferred: some card has a deferred mana source (gfDeferred; mana_deferred.go)
 	anyDeferred bool
 	// anyTapsDefer / anyTapsPain: some card has a lowered Taps watcher of
@@ -594,6 +595,7 @@ const (
 	rb2DmgSet                         // ReplDamageSet: damage of the gate and up is set to Repl.A (repl_dmgminus.go)
 	rb2DmgInst                        // ReplDamageInstead: the damage is replaced by counters, mill, exile or draw (repl_dmginstead.go)
 	rb2DrawProgram                    // ReplDrawProgram: the draw pipeline runs the ability's Prog (repl_drawprogram.go)
+	rb2RollPlanar                     // ReplRollPlanarDice: the planar roll reads its plus/ignore counts (zone_planechase.go planarRollRepl)
 )
 
 // rb2DmgAny are the rb2 damage replacements the damage sites' gates open for.
@@ -850,6 +852,8 @@ func prepReplBit2(g *genPrep, a *kop.Ability, i int, pc *pcard) {
 		bit = rb2DmgInst // replDamage's replace-the-damage step (repl_dmginstead.go)
 	case kop.ReplDrawProgram:
 		bit = rb2DrawProgram // the draw pipeline runs the program (repl_drawprogram.go)
+	case kop.ReplRollPlanarDice:
+		bit = rb2RollPlanar // the planar roll reads plus/ignore (zone_planechase.go)
 	}
 	g.replBits2[i] |= bit
 	pc.hasStat = true
@@ -883,8 +887,12 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	}
 	enteredNeed := tableHasEnteredFrom(t)
 	for i := range t.Exprs {
-		if k := t.Exprs[i].Kind; k == kop.ExThisTurnEntered || k == kop.ExRevolt || k == kop.ExLeftZone {
+		x := &t.Exprs[i]
+		if k := x.Kind; k == kop.ExThisTurnEntered || k == kop.ExRevolt || k == kop.ExLeftZone {
 			enteredNeed = true
+		}
+		if x.Kind == kop.ExSacrificedThisTurn && x.F != 0 {
+			enteredNeed = true // the filtered sacrificed-this-turn read walks the ledger
 		}
 	}
 	g := &genPrep{
@@ -1453,7 +1461,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 				case kop.ReplLifeLossDouble:
 					g.replBits[i] |= rbDblLoss
 					pc.hasStat = true
-				case kop.ReplBeginPhase, kop.ReplLifeReduced, kop.ReplDamageMinus, kop.ReplDamageSet, kop.ReplDamageInstead, kop.ReplDrawProgram:
+				case kop.ReplBeginPhase, kop.ReplLifeReduced, kop.ReplDamageMinus, kop.ReplDamageSet, kop.ReplDamageInstead, kop.ReplDrawProgram, kop.ReplRollPlanarDice:
 					prepReplBit2(g, a, i, pc)
 				case kop.ReplDestroyHeal:
 					g.replBits[i] |= rbDestroyHeal
@@ -2432,6 +2440,8 @@ type genState struct {
 	fog            bool                    // OpFog: all combat damage this turn is prevented (padding)
 	beamPick       bool                    // offerBeamCasts prices a granted beam me up cast's return (kw_beammeup.go)
 	altCast        bool                    // the cast beginCast starts is for the card's own alternative mana cost (castAltTgt; cast_altfree.go; padding)
+	altGrantAb     uint8                   // the alternative cost the cast being built pays is a grant's: 1 + the StatAlternativeCost ability index on altGrantC (cast_altgrant.go; padding)
+	altGrantC      CardID                  // the granting card (altGrantAb; padding)
 	beamGrant      bool                    // the beam me up cast beginCast starts is the granted instance of a card that prints the keyword (kw_beammeup.go; padding)
 	impCast        bool                    // the cast beginCast starts is for the card's impending cost (castImpTgt; kw_impending.go; padding)
 	warpGrant      bool                    // the warp cast beginCast starts pays a battlefield grant's instance (kw_warpgrant.go; padding)
@@ -3522,7 +3532,7 @@ func (s *State) preAskFor(k *prep, o Obj, c CardID, land bool) bool {
 		kind = s.cloneAskKind(k, c) // only a cast spell is asked (gorge FlagManaSpent)
 	}
 	if kind == 0 && !land {
-		kind = s.riotPreKind(k, c) // kw_riot.go
+		kind = s.riotPreKind(k, c, o, s.stack[s.sp-1].ctrl) // kw_riot.go
 	}
 	if kind == 0 && !land {
 		kind = s.unleashPreKind(k, c) // kw_unleash.go

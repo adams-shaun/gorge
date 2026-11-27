@@ -67,6 +67,8 @@ func cbDefenderAssignsStatic(cb *cardBuilder, s lStatic, st *kop.Static) ([]uint
 func cbPanharmoniconStatic(cb *cardBuilder, s lStatic, st *kop.Static) ([]uint8, error) {
 	var err error
 	st.Kind = kop.StatPanharmonicon
+	st.PanhZones = s.PanhZones
+	st.PanhTurned = s.PanhTurned
 	if st.Filter, err = cb.staticFilter(s.F, kop.ZoneBattlefield); err != nil {
 		return nil, err
 	}
@@ -75,8 +77,9 @@ func cbPanharmoniconStatic(cb *cardBuilder, s lStatic, st *kop.Static) ([]uint8,
 	}
 	if s.F2 != nil {
 		// ValidCause$ (the entering permanent): kop.StPanhETB; the dies
-		// form (A == PanhModeDies) reads Filter2 as the dying permanent
-		if st.A != kop.PanhModeDies {
+		// form (A == PanhModeDies) reads Filter2 as the dying permanent and
+		// the turn-up form (PanhTurned) as the turned permanent.
+		if st.A != kop.PanhModeDies && !st.PanhTurned {
 			st.StFlags |= kop.StPanhETB
 		}
 		if st.Filter2, err = cb.staticFilter(s.F2, kop.ZoneBattlefield); err != nil {

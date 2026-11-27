@@ -32,7 +32,9 @@ func (s *State) doublePlayerCounters(k *prep, in *kop.Instr) {
 		q := s.players(k, in.Obj)
 		for i := uint8(0); i < q.n; i++ {
 			if c := s.plCtrPtr(q.s[i], kind); c != nil {
-				*c = uint8(min(int(*c)*2, 255))
+				was := int(*c)
+				*c = uint8(min(was*2, 255))
+				s.firePlayerCtr(k, q.s[i], kind, was) // the doubling adds as many as it had (trig_playerctr.go)
 			}
 		}
 	}

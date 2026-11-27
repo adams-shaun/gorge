@@ -219,6 +219,10 @@ func (lc *lowerCtx) token(ps *params) error {
 		}
 	}
 	lc.out.Tokens = append(lc.out.Tokens, script)
+	enter, err := lc.tokenEnterCounters(ps, n, andYou) // lower_tokencounters.go
+	if err != nil {
+		return err
+	}
 	if pump != nil && len(lc.ab.Prog) != 0 {
 		// Forget whatever an earlier instruction remembered (see the guard
 		// above): the PumpAll that follows the mint must see only it.
@@ -228,7 +232,7 @@ func (lc *lowerCtx) token(ps *params) error {
 		// the Ext reads the X/X, then runs the CreateToken that follows
 		lc.emit(lInstr{Op: "TokenPT", C: xptIdx})
 	}
-	lc.emitMints(in, andYou)
+	lc.emitEnterCounterMints(in, andYou, enter)
 	if pump != nil {
 		f, err := lc.filter("Card.IsRemembered")
 		if err != nil {

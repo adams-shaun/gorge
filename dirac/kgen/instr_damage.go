@@ -17,6 +17,7 @@ func init() {
 	instrOp("DealDamageFrom", (*instrCtx).opDealDamageFrom)
 	instrOp("Bite", (*instrCtx).opBite)
 	instrOp("Fight", (*instrCtx).opBite)
+	instrOp("FightRemembered", (*instrCtx).opFightRemembered)
 	instrOp("EachDamage", (*instrCtx).opEachDamage)
 	instrOp("DmgMark", (*instrCtx).opDmgMark)
 	instrOp("DmgRedirect", (*instrCtx).opDmgRedirect)
@@ -258,6 +259,22 @@ func (ic *instrCtx) opBite() error {
 		}
 	}
 	r, err := cb.ref(lRef{Kind: rTarget, N: in.C})
+	if err != nil {
+		return err
+	}
+	ki.C = int16(r)
+	return nil
+}
+
+// opFightRemembered is the batched RepeatEach body's Fight over
+// Defined$ Imprinted & Remembered (Ezuri's Predation): Obj is the loop
+// subject (RefEach), Obj2 the resolution's remembered token (RefRemembered),
+// and the two fight each other (OpFight's C target).
+func (ic *instrCtx) opFightRemembered() error {
+	ki := &ic.ki
+	in := &ic.in
+	ki.Op = kop.OpFight
+	r, err := ic.cb.ref(in.Obj2)
 	if err != nil {
 		return err
 	}

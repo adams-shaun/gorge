@@ -151,6 +151,21 @@ type Static struct {
 	// every live static's N to the printed toxic (dirac/kw_toxicgrant.go).
 	// 0 = none.
 	Toxic uint8
+	// Riot: a StatContinuous grant of riot (AddKeyword$ Riot, CR 702.136;
+	// Spider-Punk, Uncivil Unrest, Rhythm of the Wild): the affected
+	// permanent enters with its controller's choice of a +1/+1 counter or
+	// haste (the as-enters ask, dirac/kw_riot.go), read beside CardDef.Riot.
+	Riot bool
+	// PanhZones: a StatPanharmonicon static's ValidZone$ zone mask (1<<Zone;
+	// 0 = the battlefield only, the default). The triggering object's own
+	// zone, at the moment the event caused the trigger, must be in the set;
+	// a colorless spell on the stack is the Echoes of Eternity shape
+	// (gorge statics_echo.go panharmoniconEchoes).
+	PanhZones uint8
+	// PanhTurned: a StatPanharmonicon static's ValidTurned$ is present; its
+	// Filter2 scopes the permanent the turn-up event turned (Panoptic
+	// Projektor), distinct from Filter's trigger source.
+	PanhTurned bool
 }
 
 // Override is a fixed-order override record (the plan's replacement for a
@@ -336,6 +351,11 @@ type Emblem struct {
 	// UntilEOT: an Effect without a Duration$ (gorge: it leaves the
 	// command zone at cleanup); the kernel drops it in cleanupGen
 	UntilEOT bool
+	// UntilEndCombat: Duration$ UntilEndOfCombat (CR 511.3): it also ends as
+	// the end-of-combat step does (gorge expireUntilEndOfCombat), a later
+	// extra combat not reviving it. UntilEOT is set beside it: a combat that
+	// never ran is swept at cleanup (static_emblemendcombat.go).
+	UntilEndCombat bool
 	// UntilNextTurn: Duration$ UntilYourNextTurn (gorge ends it at the
 	// cleanup before the controller's next turn); the kernel drops it in
 	// cleanupGen when that turn is the next one.
@@ -442,6 +462,7 @@ const (
 	PanhModeLifeGained int16 = 1 // ValidMode$ LifeGained: a trigger of a player gaining life
 	PanhModeDrawn      int16 = 2 // ValidMode$ Drawn: a trigger of a player drawing a card
 	PanhModeDies       int16 = 3 // ValidCause$ + Origin$ Battlefield + Destination$ Graveyard: a ChangesZone trigger caused by a matching permanent dying (Filter2 = the cause)
+	PanhModeTurnFaceUp int16 = 4 // ValidMode$ TurnFaceUp: a trigger caused by turning a face-down permanent face up; Static.PanhTurned then scopes the turned object with Filter2 (Panoptic Projektor)
 )
 
 // StaticFlags (Static.StFlags).
@@ -896,6 +917,16 @@ const StFbOwnCost StaticFlags = 1 << 0
 // Equinox), not only the static's controller (gorge castWithFlashTargets
 // actorMatches "Caster").
 const StFlashAnyCaster StaticFlags = 1 << 0
+
+// StAltGrant on a StatAlternativeCost static: a battlefield GRANT of a mana
+// alternative cost to the spells its controller casts (Fist of Suns: "you may
+// pay {W}{U}{B}{R}{G} rather than pay the mana cost for spells that you cast";
+// Rooftop Storm's {0} for Zombie creature spells, Runeforge Champion's {1} for
+// Rune spells), not the card's own alternative cost. Filter is the ValidCard$
+// the cast card must match (0: any spell), Cond2 the static's condition, and
+// the cost is Ability.Cost.Mana. It aliases bit 0 like StFlashAnyCaster, whose
+// readers are gated on StatCastWithFlash (dirac/cast_altgrant.go).
+const StAltGrant StaticFlags = 1 << 0
 
 // StatAsIfHaste (an explicit ordinal clear of the iota tail): the static's
 // controller may activate abilities of battlefield creatures matching Filter

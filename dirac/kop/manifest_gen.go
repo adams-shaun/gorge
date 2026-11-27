@@ -1654,108 +1654,129 @@ const ExtPutCounterChoice ExtOp = 98
 
 func init() { extOpNames[ExtPutCounterChoice] = "PutCounterChoice" }
 
+// ChangeTargets (dirac/manifest/ExtOp/ExtChangeTargetsMass)
+//
+// ExtChangeTargetsMass (CR 115.7; gorge effChangeTargets over Defined$ ValidStack SpellAbility, choose_control.go): for every spell and ability on the stack but the resolving redirect itself, in stack order (bottom first), pose the single-entry redirect's declaration asks and write each entry's answers as it finishes; Optional$ True (C bit 0) means Done keeps that entry's targets. dirac/act_stackrewrite.go.
+const ExtChangeTargetsMass ExtOp = 99
+
+func init() { extOpNames[ExtChangeTargetsMass] = "ChangeTargetsMass" }
+
 // ExtOp (dirac/manifest/ExtOp/ExtChoosePlayerEach)
 //
 // A RepeatEach player body's opponent choice whose chooser is the repeated player (Bend or Break: DB ChoosePlayer Defined$ Remembered Choices$ Player.OpponentOf Remembered; gorge effChoosePlayer pools over the remembered player's AliveFrom matching Player.OpponentOf Remembered): that player chooses one of their opponents (ChGenPlayer, mode = the seat, the pool of oppsFrom(eachPl)), asked only with more than one (one is recorded unasked, the oracle's forcedPlayerChoice; none records an empty choice). Kept in the resolution (res.chPl, seat + 1) for the chain's TwoPiles Chooser$ ChosenPlayer (ExtTwoPilesEach); a chain reader past the Cleanup ClearChosenPlayer$ finds none, as gorge's cleared choice is. dirac/act_pileseach.go.
-const ExtChoosePlayerEach ExtOp = 99
+const ExtChoosePlayerEach ExtOp = 102
 
 func init() { extOpNames[ExtChoosePlayerEach] = "ChoosePlayerEach" }
 
 // ExtOp (dirac/manifest/ExtOp/ExtCipherEncode)
 //
 // The resolving Cipher spell's tail (CR 702.99a; gorge cipherTailFor appends DB$ Cipher as the chain's last instruction, effCipher): no operands. A spell card (not a copy) still on the stack asks its controller to encode it on a creature they control (raGenCipher, ChGenCipher: the creatures in battlefield order, then Done; gorge's KModes Min 0 Max 1, posed with one creature too, none asking nothing). A pick exiles the card from the stack and records the link (osEncoded, the creature at its ver). dirac/kw_cipher.go.
-const ExtCipherEncode ExtOp = 102
+const ExtCipherEncode ExtOp = 103
 
 func init() { extOpNames[ExtCipherEncode] = "CipherEncode" }
 
 // Encore (dirac/manifest/ExtOp/ExtEncore)
 //
 // ExtEncore: AB$ Encore (CR 702.141a; gorge effEncore): for each opponent, from the resolving controller in turn order, one token copy of Obj (B and C as OpCopyAsTokenEx), which attacks that opponent this turn if able; one AtEOT$ sacrifice trigger for all of them. dirac/kw_encore.go.
-const ExtEncore ExtOp = 103
+const ExtEncore ExtOp = 104
 
 func init() { extOpNames[ExtEncore] = "Encore" }
 
 // ExtOp (dirac/manifest/ExtOp/ExtExileFaceDown)
 //
 // ChangeZone / ChangeZoneAll ExileFaceDown$ True (no WithMayLook$, no DefinedExiler$) beside RememberChanged$ True, the move first in its program: right after the move, each remembered object now in exile is marked exiled face down by the resolving source (gorge applyMoveFaceDown's blind exiled_with_face_down marker: FaceDown, ExiledWith the source, nobody the looker; apply_zone.go). The mark is the Dig face-down exile's (zone_exilefacedown.go exwFace). dirac/zone_exilefacedownmove.go.
-const ExtExileFaceDown ExtOp = 104
+const ExtExileFaceDown ExtOp = 105
 
 func init() { extOpNames[ExtExileFaceDown] = "ExileFaceDown" }
 
 // ExtOp (dirac/manifest/ExtOp/ExtMonarchJail)
 //
 // Palace Jailer's exile until an opponent becomes the monarch (CR 610.3, 610.3b; gorge ChangeZone exileUntilOpponentMonarchMet plus the Effect's BecomeMonarch promise): Obj the target is exiled and a monarch link is recorded, unless an opponent became the monarch since the ability was put on the stack.
-const ExtMonarchJail ExtOp = 105
+const ExtMonarchJail ExtOp = 106
 
 func init() { extOpNames[ExtMonarchJail] = "MonarchJail" }
 
 // Myriad (dirac/manifest/ExtOp/ExtMyriad)
 //
 // ExtMyriad: DB$ Myriad (CR 702.116a; gorge effMyriad): for each opponent other than the defending player, from the controller in turn order, the controller is asked (ChGenMyriad yes/no; gorge offers a planeswalker of the asked player too, each a yes over that walker) and a yes makes a token copy of Obj (B and C as OpCopyAsTokenEx) tapped and attacking that player; each copy registers its end-of-combat exile promise (gorge scheduleAtEOTRider __kwWarpExile at this turn's end of combat step). dirac/kw_myriad.go.
-const ExtMyriad ExtOp = 106
+const ExtMyriad ExtOp = 107
 
 func init() { extOpNames[ExtMyriad] = "Myriad" }
 
 // ExtOp (dirac/manifest/ExtOp/ExtOptInSeat)
 //
 // ExtOptInSeat: the head of an OpRepeatEachPlayer body under RepeatOptionalForEachPlayer$ True (gorge effRepeatEach's repeatEachElectionDecision, ResumeKind repeat_each_optional): the repeated player (the loop's own seat, not the controller) is asked yes / no (ChGenOptInSeat, canonical kinds yes_seat / no_seat); B.N the body's instructions after this one, which a no skips (the player's body is not run and the loop goes on to the next player). dirac/act_optinseat.go.
-const ExtOptInSeat ExtOp = 107
+const ExtOptInSeat ExtOp = 108
 
 func init() { extOpNames[ExtOptInSeat] = "OptInSeat" }
 
 // Pair (dirac/manifest/ExtOp/ExtPair)
 //
 // ExtPair: Soulbond's optional pairing (CR 702.95a; gorge engine/effects/soulbond.go effPair): the unpaired battlefield creature Obj may pair with another unpaired creature its trigger's controller controls; C 1 restricts the pick to the triggering entrant (RestrictToRemembered$).
-const ExtPair ExtOp = 108
+const ExtPair ExtOp = 109
 
 func init() { extOpNames[ExtPair] = "Pair" }
 
 // ExtOp (dirac/manifest/ExtOp/ExtPayLifeX)
 //
 // The as-enters "pay any amount of life" ask (CR 614.12; gorge's R:Event$ Moved ReplaceWith$ StoreSVar body costing Mandatory PayLife<X>, cast_etbchoice.go etbPayLifeBound / etbPayLifeOptions: a KChoose of Kind "paylife" options 0..bound, the amount on Amount), the first instruction of an enters program. B the cap value (gorge's XMax$; the constant 32767 when the body has none), C the ExtStoreNum C field of the stored name (name index, delete flag, printed default; kop.StoreNumC). The controller is asked 0..min(life, cap) as a ChGenPayLife decision (mode = the amount); the answer loses that much life through loseLife and writes it as the entering permanent's stored number (act_storenum.go numStore), the Count$xPaid the body stores. dirac/repl_paylife.go.
-const ExtPayLifeX ExtOp = 109
+const ExtPayLifeX ExtOp = 111
 
 func init() { extOpNames[ExtPayLifeX] = "PayLifeX" }
 
 // ExtOp (dirac/manifest/ExtOp/ExtPlaneCurse)
 //
 // Eloren Wilds' plane-source curse Effect (DB$ Effect | StaticAbilities$ STCantCast beside Triggers$ PlaneswalkedTo self-exile, Duration$ Permanent): the targeted player may not cast spells until any player planeswalks. gorge registers the CantBeCast static with the UntilPlaneswalk lifetime (effEffect's effectPlaneCurseEnd; rules' checkPlaneswalkTriggers ends it via withoutUntilPlaneswalk); the kernel keeps the narrow record instead -- planeSeat.curse's per-seat bitset, set by the instr's player target and cleared in planeswalk -- and castForbiddenCost reads it after the static scan (gorge consults registered effects after face statics). The Effect lives over the plane as its source; the record is the narrow equivalent the planebodies slice keeps on the cold planar record.
-const ExtPlaneCurse ExtOp = 111
+const ExtPlaneCurse ExtOp = 112
 
 func init() { extOpNames[ExtPlaneCurse] = "PlaneCurse" }
 
 // ExtOp (dirac/manifest/ExtOp/ExtRememberPlayer)
 //
 // Pump RememberObjects$ TargetedController: record the target's controller as the resolution's player (res.chPl) so the chained Draw can read it after the GainControl (Rules of Acquisition; CR 608.2c).
-const ExtRememberPlayer ExtOp = 112
+const ExtRememberPlayer ExtOp = 113
 
 func init() { extOpNames[ExtRememberPlayer] = "RememberPlayer" }
 
 // RepeatOptional (dirac/manifest/ExtOp/ExtRepeatOptional)
 //
 // ExtRepeatOptional: an OpRepeatWhile body's RepeatOptional$ election (gorge effRepeat's repeat_optional "Repeat this process?"). B.N 0 at the body's head: C is the pass's progress condition, and a pass that starts without it is the last one, no election follows it (gorge's changed-nothing shortcut, CR 732.2a). B.N 1 at the body's tail: unless the pass was the last, the resolving controller is asked yes / no (ChGenConfirm); a no ends the loop. dirac/act_repeatoptional.go.
-const ExtRepeatOptional ExtOp = 113
+const ExtRepeatOptional ExtOp = 114
 
 func init() { extOpNames[ExtRepeatOptional] = "RepeatOptional" }
 
 // ExtOp (dirac/manifest/ExtOp/ExtRippleBottom)
 //
 // ExtRippleBottom: the tail of a granted ripple's trigger body (gorge effRippleBottom): every card of the resolution's remembered set still in its owner's library goes to the bottom of that library, in remembered order. Two or more pose the owner the CR 401.4 arrangement ask (ChArrange, gorge libraryPlacementOrder over the cards still at the top — the ask precedes the move), and the answer's order is the bottom order (libraryOrderPlacement bottom=true); one or none bottoms unasked. A cast card is on the stack and skipped; a card a response moved is skipped by the same zone recheck (gorge's placed). The kernel-native ripple body arms it (kw_ripple.go rippleProg); no ExtLibPlace bracket, the op asks itself. dirac/kw_ripple.go rippleBottomExt.
-const ExtRippleBottom ExtOp = 114
+const ExtRippleBottom ExtOp = 115
 
 func init() { extOpNames[ExtRippleBottom] = "RippleBottom" }
 
 // ExtOp (dirac/manifest/ExtOp/ExtStoreNum)
 //
 // StoreSVar's per-object number write (gorge effStoreSVar, events.StoreSVar -> Object.RuntimeSVars; CR 400.7): B the value (any ValueRef, evaluated at the write), C the SVar name (Table.SVarNames index, low 4 bits) with the delete-on-default flag (kop.StoreNumDel) and the printed default beside it (kop.StoreNumDefault); the target is the resolving source. The number is a record of the object-set store (kind osNum) keyed by the object, whatever zone it is in: only a departure from the battlefield clears it (gorge's wasBattlefield reset), so a write after the source left persists on the departed object. dirac/act_storenum.go.
-const ExtStoreNum ExtOp = 115
+const ExtStoreNum ExtOp = 116
 
 func init() { extOpNames[ExtStoreNum] = "StoreNum" }
+
+// ExtOp (dirac/manifest/ExtOp/ExtTokenCounters)
+//
+// A Token's WithCountersType$ / WithCountersAmount$ rider: A.N > 0 arms genState.enterCtr with A counters of kind C for the OpCreateToken(Ex) that follows, so the minted token enters with them (CR 122.6, 614.1c), and A.N 0 clears the arm after the mint. Printlifter Ooze's 0/0 Ooze with X +1/+1 counters. dirac/ctr_tokenentry.go.
+const ExtTokenCounters ExtOp = 117
+
+func init() { extOpNames[ExtTokenCounters] = "TokenCounters" }
+
+// ExtOp (dirac/manifest/ExtOp/ExtTurnFaceDown)
+//
+// SetState Mode$ TurnFaceDown (gorge effSetState): battlefield permanent Obj turns face down in place (CR 708.2): a 2/2 colourless creature with no name, types or abilities. Its printed triggers and statics unsubscribe; its counters and other effects stay. Obscuring Aether. dirac/face_facedown.go.
+const ExtTurnFaceDown ExtOp = 118
+
+func init() { extOpNames[ExtTurnFaceDown] = "TurnFaceDown" }
 
 // ExtOp (dirac/manifest/ExtOp/ExtTwoPilesEach)
 //
 // A RepeatEach player body's battlefield TwoPiles (Bend or Break: Defined$ Remembered, Separator$ Remembered, Chooser$ ChosenPlayer, ValidCards$ Land.!token+RememberedPlayerCtrl; gorge effTwoPiles' battlefield arm over the repeated player): F names the repeated player's permanents (CtrlEachPl). They separate them into two piles (ChGenPileSplit, a permanent per pick, AkDone-closed, picking them all ends it; a one-permanent pool poses no split), the opponent their chain's ExtChoosePlayerEach chose picks one (ChGenPileChoose mode 0 the picks, 1 the rest; resChosenPlayer), and the chosen pile is destroyed while the other is tapped (ChosenPile$ DestroyAll Land.IsRemembered then UnchosenPile$ TapAll Land.IsRemembered: each pile's members still matching F run the ordinary destroy / tap-all passes, gorge twoPilesRunPile's fresh Remembered = pile). Pile A rides genState.sacM, the pool player genState.pickP; both are cleared at the end. B.N&1: the pick's mode-1 answer names pile A (the chosen/unchosen piles swap; the lockstep mutation). dirac/act_pileseach.go.
-const ExtTwoPilesEach ExtOp = 116
+const ExtTwoPilesEach ExtOp = 119
 
 func init() { extOpNames[ExtTwoPilesEach] = "TwoPilesEach" }
 
@@ -1864,30 +1885,35 @@ const FwCanProduceManaColor FilterWord = 20
 // FwCanProduceSameManaTypeWith: the battlefield permanent can produce at least one type of mana the object the referent R names can also produce (gorge's canProduceSameManaTypeWith predicate over SpecContext.TriggerCard, engine/effects/filter_word_manatype.go; Mana Web's TapAll body). The producible set is the printed mana abilities' types: kop.CardDef.ProduceCol for WUBRG plus {C} when a printed mana ability makes it, the same census kernel mana_reflected.go producesColourless reads. R is RefTriggerObj for the kgen shape TriggeredCard.canProduceSameManaTypeWith+<type>. An unbound referent or an object that produces nothing matches nothing, fail closed.
 const FwCanProduceSameManaTypeWith FilterWord = 21
 
+// FilterWord (dirac/manifest/FilterWord/FwManaCostEQ)
+//
+// FwManaCostEQ: the object prints a mana cost whose mana value is Arg (gorge's ManaCost<N> predicate, engine/effects/filter_manacost.go; Urza's Saga Chapter III's Artifact.ManaCost0,Artifact.ManaCost1). Unlike FwCMCCmp EQ it needs a printed mana cost at all (CR 202.1b: a land prints none, mana value 0 but no cost {0}), so a "no cost" card, a face-down object (CR 708.2) and a copy that loses its cost never match.
+const FwManaCostEQ FilterWord = 22
+
 // FilterWord (dirac/manifest/FilterWord/FwModal)
 //
 // FwModal: the cast spell chose at least one mode of its charm (gorge's `Modal` predicate, engine/effects/filter.go: len(ChosenModes) > 0; SpellCast ValidSA$ Spell.Modal, Riku of Many Paths). A spell that is no charm, a face-down spell and a card off the stack read false; an MDFC is not modal.
-const FwModal FilterWord = 22
+const FwModal FilterWord = 23
 
 // FilterWord (dirac/manifest/FilterWord/FwPaired)
 //
 // FwPaired: the battlefield permanent is paired with another creature by Soulbond (gorge predicates["Paired"], engine/effects/filter.go, o.Paired != 0; the kernel's kw_soulbond.go pair record). Negated, it is unpaired.
-const FwPaired FilterWord = 23
+const FwPaired FilterWord = 24
 
 // FilterWord (dirac/manifest/FilterWord/FwPairedWith)
 //
 // FwPairedWith: the battlefield permanent is the creature the reading source is paired with by Soulbond (gorge predicates["PairedWith"], engine/effects/filter.go, source.Paired == candidate; the kernel's kw_soulbond.go pair record). A source with no pair fails closed.
-const FwPairedWith FilterWord = 24
+const FwPairedWith FilterWord = 25
 
 // FilterWord (dirac/manifest/FilterWord/FwSingleTarget)
 //
 // FwSingleTarget: the cast spell has exactly one target, counting every chained sub-ability's targets with the root's (gorge's `singleTarget` predicate, engine/effects/filter.go: len(Targets)+len(SubTargets) == 1; SpellCast ValidSA$ Spell.singleTarget and Instant.singleTarget,Sorcery.singleTarget). No target and two targets both read false, and two slots naming one object count twice, as gorge counts them.
-const FwSingleTarget FilterWord = 25
+const FwSingleTarget FilterWord = 26
 
 // FilterWord (dirac/manifest/FilterWord/FwTeamwork)
 //
 // FwTeamwork: the cast spell paid its Teamwork cost (gorge's `Teamwork` predicate, Object.TeamworkPaid; SpellCast ValidSA$ Spell.Teamwork, Virtual Assistant). The kernel keeps the paid flag as sfKicked on the entry (kw_teamwork.go), which a kicker cast sets too, so the word also requires the spell's card to have Teamwork: a kicked non-teamwork spell reads false.
-const FwTeamwork FilterWord = 26
+const FwTeamwork FilterWord = 27
 
 // kw StickerSheet (dirac/manifest/KwID/KwStickerSheet)
 const KwStickerSheet KwID = 32
@@ -2242,43 +2268,48 @@ func init() { opNames[OpMarkNoRegen] = "MarkNoRegen" }
 // PredNamedCard: the card-name property NamedCard (gorge namePredicate NamedCard, CR 201.4): the candidate's name card is the reading source's chosen card name. The chosen name lives in the source permanent's chosen byte (the as-enters choice and a mid-resolution NameCard ask store it there, kernel repl_namecard.go), in a resolution's own answer for a source still on the stack (gorge Object.ChosenName), and in a host-bound emblem's frozen capture once a `DB$ Cleanup | ClearNamedCard$ True` wiped the source (gorge state.ContinuousEffect.ChosenName, Cheering Fanatic's ReduceCost ValidCard$ Card.NamedCard). A face-down candidate has no name (CR 708.2) and matches nothing. A reader with no chosen name to read fails closed, as gorge's empty ChosenName matches nothing. FilterFlags2 is full, so the word takes the one Pred slot (kernel filter_negations.go). 235: the free explicit ordinal below the 236+ family (PredRenowned took 236).
 const PredNamedCard Pred = 35
 
+// Spell.isCastFaceDown (dirac/manifest/Pred/PredCastFaceDown)
+//
+// PredCastFaceDown: the spell is a face-down cast (gorge Spell.isCastFaceDown, a ReduceCost ValidSpell$ constraint; the kernel's cast marks the object's slot with slotFaceDownSpell while pricing). Obscuring Aether. dirac/statics_gen.go.
+const PredCastFaceDown Pred = 36
+
 // IsGoaded (dirac/manifest/Pred/PredGoaded)
 //
 // PredGoaded: the battlefield permanent is goaded by any player (gorge IsGoaded, engine/effects/filter.go matchPositive). PredN 1 is the positive word, 0 the ! negation; off the battlefield nothing is goaded.
-const PredGoaded Pred = 36
+const PredGoaded Pred = 37
 
 // Card.Self+kicked 1 / Card.Self+kicked 2 (dirac/manifest/Pred/PredKickedAlt)
 //
 // PredKickedAlt: the battlefield permanent was cast with kicker alternative PredN (1 or 2) paid (CR 702.33b; gorge FlagKicked1 / FlagKicked2, filter_word.go wordKickedIndex). The kernel reads bit PredN-1 of the object's coldKickAlt byte, set only by setKickAlt; a single-cost kicked cast sets no bit, so both indexes read false for it (gorge parity). Off the battlefield it never matches (kgen refuses it there).
-const PredKickedAlt Pred = 37
+const PredKickedAlt Pred = 38
 
 // ControlledBy Player.isMonarch (dirac/manifest/Pred/PredMonarchCtrl)
 //
 // PredMonarchCtrl: the battlefield permanent's controller is the monarch (PredN 0; gorge ControlledBy Player.isMonarch) or is not the monarch (PredN 1; gorge ControlledBy EnchantedController.!isMonarch read beside EnchantedBy, where the enchanted controller is the candidate's own). With no monarch the positive word fails and the negated word holds; off the battlefield it never matches either way.
-const PredMonarchCtrl Pred = 38
+const PredMonarchCtrl Pred = 39
 
 // Pred (dirac/manifest/Pred/PredProg)
 //
 // PredProg: the filter's predicate is a program of literals (PredN: kop.FilterProgID, an index into Table.FilterProgs). The matcher applies the struct's own fields first (types, colours, controller, zone, flags, the Or chain), which are the program's first conjuncts, then evaluates each kop.FLit in order and stops at the first that fails; a literal's Neg inverts its word. Each word is a kop.FilterWord with one kernel handler (dirac/filter_<name>.go). A word reading a field its matcher does not have fails closed, as gorge's unbound context does. kgen lowers it for a clause whose comparisons the filter struct cannot hold (dirac/kgen/filter_spill.go); the words so far are the struct's own Pred codes re-expressed (power, toughness, mana value, counters, keyword, subtype).
-const PredProg Pred = 39
+const PredProg Pred = 40
 
 // pred IsRingbearer (dirac/manifest/Pred/PredRingBearer)
-const PredRingBearer Pred = 40
+const PredRingBearer Pred = 41
 
 // Pred (dirac/manifest/Pred/PredSameNameSelf)
 //
 // PredSameNameSelf: the candidate's current name equals the reading source's current name (gorge sharesNameWith Self, filter_attachment.go; Marvin, Murderous Mimic's GainsAbilitiesOf$ Creature.YouCtrl+!sharesNameWith Self). The source is the static's own source slot, or the resolving entry's object; the name identity is sharesNameRem's (a battlefield permanent reads its layer-3 name, a face-down object has no name, CR 708.2). PredN 1 is the ordinary ! negation.
-const PredSameNameSelf Pred = 41
+const PredSameNameSelf Pred = 42
 
 // Pred (dirac/manifest/Pred/PredSharesCrCmdr)
 //
 // PredSharesCrCmdr: the object shares a creature type with a commander of the evaluating controller (gorge sharesCreatureTypeWith Commander, effects sharesTypeReferentsCommander: the resolving source's controller's commanders, Path of Ancestry's SpellCast ValidCard$ Creature.sharesCreatureTypeWith Commander). Each side reads its current creature types where it now is (a commander in the command zone its printed ones); an object with every creature type shares with any commander that has a creature type, and a commander with every type with any object that has one (CR 702.73a). A controller with no commander matches nothing.
-const PredSharesCrCmdr Pred = 42
+const PredSharesCrCmdr Pred = 43
 
 // Pred (dirac/manifest/Pred/PredStatBox)
 //
 // PredStatBox: the object's power and toughness each lie in a constant inclusive range (PredN: kop.PTBoxPack bounds, PTBoxOpen for no bound). kgen folds two constant power/toughness compares of one clause into it (gorge powerEQ1+toughnessEQ1, powerGE4+powerLE6: each conjunct reads the same current power and toughness, the layered values on the battlefield and the printed or CDA ones elsewhere, a face-down object 2/2).
-const PredStatBox Pred = 43
+const PredStatBox Pred = 44
 
 // repl BeginPhase (dirac/manifest/ReplKind/ReplBeginPhase)
 const ReplBeginPhase ReplKind = 42
@@ -2821,6 +2852,11 @@ const TrigVisitAttraction TrigEvent = 127
 //
 // "a card leaves the exile zone" (Mode$ ChangesZone Origin$ Exile, Destination$ Any: the imprint carriers' forget/cleanup lines, Mirror Golem's DBForget, Duplicant's imprinted-card DBCleanup). The kernel fires it in placeFromK while the card is still in exile (CR 603.10a look-back), so a filter read of the imprint association judges the candidate as it was there; no slot subscription (nSubEvents ends at TrigGiveGift) — the firing walk scans the battlefield like the other no-subscription events.
 const TrigLeaveExile TrigEvent = 128
+
+// CounterAddedOnce (dirac/manifest/TrigEvent/TrigPlayerCounterAdded)
+//
+// a player (Whose) gets one or more player counters of kind Trigger.N (kop.PlCtrEnergy / kop.PlCtrExperience) (gorge Mode$ CounterAddedOnce with ValidPlayer$, trigmatch playerCounterAddedOnceMatches on a positive events.PlayerCounterChange); no slot subscription: the battlefield is scanned (trig_playerctr.go)
+const TrigPlayerCounterAdded TrigEvent = 129
 
 // TrigFlags5 (dirac/manifest/TrigFlags5/Tf5DmgNoContract)
 //

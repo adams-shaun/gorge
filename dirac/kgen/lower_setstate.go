@@ -25,6 +25,9 @@ func (lc *lowerCtx) setState(ps *params) error {
 	if m == "TurnFaceUp" {
 		return lc.setStateTurnUp(ps) // lower_setstateturnup.go
 	}
+	if m == "TurnFaceDown" {
+		return lc.setStateTurnDown(ps)
+	}
 	switch {
 	case m == "Flip":
 		// CR 710: a flip card flips itself (gorge effSetState's Flip arm,
@@ -98,5 +101,39 @@ func (lc *lowerCtx) setStateTransformPick(ps *params, ch string) error {
 		return err
 	}
 	lc.emit(lInstr{Op: "TurnFaceUp", F: f, C: 2})
+	return nil
+}
+
+// setStateTurnDown lowers Mode$ TurnFaceDown (gorge effSetState's
+// TurnFaceDown arm): the source turns face down in place (CR 708.2). Only
+// Defined$ Self (or an absent Defined$ with no ValidTgts$) is read; a
+// target, Choices$, Optional$ or RememberChanged$ refuses.
+func (lc *lowerCtx) setStateTurnDown(ps *params) error {
+	if _, ok := ps.get("Choices"); ok {
+		return refuse("SetState TurnFaceDown with Choices$")
+	}
+	d, hasDef := ps.get("Defined")
+	if !hasDef {
+		if _, ok := ps.get("ValidTgts"); ok {
+			return refuse("SetState TurnFaceDown with ValidTgts$")
+		}
+		d = "Self"
+	}
+	if d != "Self" {
+		return refuse("SetState TurnFaceDown Defined$ %q", d)
+	}
+	for _, k := range []string{"Optional", "RememberChanged"} {
+		if _, ok := ps.get(k); ok {
+			return refuse("SetState TurnFaceDown with %s$", k)
+		}
+	}
+	obj, err := lc.objOrTarget(ps, "Self", zBattlefield)
+	if err != nil {
+		return err
+	}
+	if obj.Kind != rSelf {
+		return refuse("SetState TurnFaceDown of %s", obj)
+	}
+	lc.emit(lInstr{Op: "TurnFaceDown", Obj: obj})
 	return nil
 }

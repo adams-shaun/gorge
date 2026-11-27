@@ -4,7 +4,7 @@
 #
 # Per package the value is the median over the runs that printed it; packages none of them printed keep their
 # earlier value from scripts/ci-pkg-times.tsv, so the output can overwrite that file directly. The "Golden chain
-# heads" step is excluded: shard 5's pinned TestHeads call measures one test of engine/rules, not the package.
+# heads" step is excluded: the pinned TestHeads call measures one test of engine/rules, not the package.
 # A split package (ci-splits.tsv) prints two ok lines per run, one per half; the bigger is the package's whole
 # entry, the smaller its #A entry (the ratio the tsv header records).
 set -euo pipefail

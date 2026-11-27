@@ -12,6 +12,7 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"github.com/adams-shaun/gorge/bots/encoder"
 	"github.com/adams-shaun/gorge/bots/internal/simdk"
 	"github.com/adams-shaun/gorge/bots/policynet"
 )
@@ -211,16 +212,25 @@ const (
 
 type gnHeader struct {
 	Format string `json:"format"`
-	// EncoderHash, when present, is the %016x policynet.EncoderHashFor of the
-	// feature set the network was trained on (dzgw-1 additive field). It must
-	// equal this build's entity encoder hash; a file without it loads, and
-	// Net.EncoderHashChecked reports that nothing was checked.
-	EncoderHash string             `json:"encoder_hash,omitempty"`
-	Arch        string             `json:"arch"`
-	Config      map[string]float64 `json:"config"`
-	Consts      map[string]int     `json:"consts"`
-	Eps         map[string]float64 `json:"layernorm_eps"`
-	Tensors     []struct {
+	// Encoder, when present, is the name of the registered encoder the
+	// network was trained on (a bots/encoder registry key, "entity" for a
+	// file exported before the field existed). Load resolves it and checks
+	// the hash and widths against that encoder's Schema.
+	Encoder string `json:"encoder,omitempty"`
+	// EncoderHash, when present, is the %016x hash of the encoder the network
+	// was trained on (dzgw-1 additive field). A named header must match its
+	// encoder; a file without a name keeps the legacy entity hash variants.
+	// Net.EncoderHashChecked reports whether a hash was checked.
+	EncoderHash string `json:"encoder_hash,omitempty"`
+	// ExtHash, when present, is the %016x feat.ExtHash of the extension
+	// block layout an EXT_W net reads (dirac/neteval checks it; this package
+	// runs no ext net and ignores it).
+	ExtHash string             `json:"ext_hash,omitempty"`
+	Arch    string             `json:"arch"`
+	Config  map[string]float64 `json:"config"`
+	Consts  map[string]int     `json:"consts"`
+	Eps     map[string]float64 `json:"layernorm_eps"`
+	Tensors []struct {
 		Name   string `json:"name"`
 		Shape  []int  `json:"shape"`
 		Offset int64  `json:"offset"`
@@ -229,9 +239,10 @@ type gnHeader struct {
 }
 
 // EncoderHashChecked reports whether the file's header carried an
-// encoder_hash (and so matched this build's entity encoder: Load refuses a
-// mismatch). False is a dzgw-1 file exported before the field existed: it
-// loads, unchecked, and the caller decides whether to warn.
+// encoder_hash (and so matched the encoder it names, or entity for a
+// headerless legacy file: Load refuses a mismatch). False is a dzgw-1 file
+// exported before the field existed: it loads, unchecked, and the caller
+// decides whether to warn.
 func (g *Net) EncoderHashChecked() bool { return g.hashChecked }
 
 // RawWidth is the entity raw width the network's card_raw layer reads: 68
@@ -248,26 +259,9 @@ func (g *Net) RawWidth() int {
 // caller choosing a backend asks before loading, since only this package
 // runs the K-way head.
 func HeaderValueK(path string) (int, error) {
-	f, err := os.Open(path)
+	raw, err := readHeader(path)
 	if err != nil {
 		return 0, err
-	}
-	defer f.Close()
-	var pre [16]byte
-	if _, err := io.ReadFull(f, pre[:]); err != nil || string(pre[:8]) != gnMagic {
-		return 0, fmt.Errorf("gonet %s: not a .dzgw file (python -m dzg.export)", path)
-	}
-	hl := int64(binary.LittleEndian.Uint64(pre[8:]))
-	st, err := f.Stat()
-	if err != nil {
-		return 0, err
-	}
-	if hl <= 0 || hl > st.Size()-16 {
-		return 0, fmt.Errorf("gonet %s: bad header length %d", path, hl)
-	}
-	raw := make([]byte, hl)
-	if _, err := io.ReadFull(f, raw); err != nil {
-		return 0, fmt.Errorf("gonet %s: header: %w", path, err)
 	}
 	var h struct {
 		Config map[string]float64 `json:"config"`
@@ -276,6 +270,50 @@ func HeaderValueK(path string) (int, error) {
 		return 0, fmt.Errorf("gonet %s: header: %w", path, err)
 	}
 	return int(h.Config["value_k"]), nil
+}
+
+// HeaderHashes reads only the header of the .dzgw file at path and returns
+// its encoder_hash and ext_hash strings as written ("" when absent), for a
+// caller that runs the net on another backend and checks them itself.
+func HeaderHashes(path string) (encoderHash, extHash string, err error) {
+	raw, err := readHeader(path)
+	if err != nil {
+		return "", "", err
+	}
+	var h struct {
+		EncoderHash string `json:"encoder_hash"`
+		ExtHash     string `json:"ext_hash"`
+	}
+	if err := json.Unmarshal(raw, &h); err != nil {
+		return "", "", fmt.Errorf("gonet %s: header: %w", path, err)
+	}
+	return h.EncoderHash, h.ExtHash, nil
+}
+
+// readHeader returns the JSON header bytes of the .dzgw file at path.
+func readHeader(path string) ([]byte, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+	var pre [16]byte
+	if _, err := io.ReadFull(f, pre[:]); err != nil || string(pre[:8]) != gnMagic {
+		return nil, fmt.Errorf("gonet %s: not a .dzgw file (python -m dzg.export)", path)
+	}
+	hl := int64(binary.LittleEndian.Uint64(pre[8:]))
+	st, err := f.Stat()
+	if err != nil {
+		return nil, err
+	}
+	if hl <= 0 || hl > st.Size()-16 {
+		return nil, fmt.Errorf("gonet %s: bad header length %d", path, hl)
+	}
+	raw := make([]byte, hl)
+	if _, err := io.ReadFull(f, raw); err != nil {
+		return nil, fmt.Errorf("gonet %s: header: %w", path, err)
+	}
+	return raw, nil
 }
 
 // Load reads a .dzgw file (contract dzgw, docs/contracts.md).
@@ -299,53 +337,67 @@ func Load(path string) (*Net, error) {
 	if h.Format != "dzgw-1" {
 		return nil, fmt.Errorf("gonet %s: format %q, want dzgw-1", path, h.Format)
 	}
-	pod, err := podHeader(path, h)
-	if err != nil {
-		return nil, err
-	}
 	rawW := h.Consts["RAW_W"]
 	denseW := h.Consts["DENSE_W"]
-	hashChecked := pod
-	if !pod {
-		if rawW != policynet.EntityRawWidth && rawW != policynet.EntityRawWidthV1 {
-			return nil, fmt.Errorf("gonet %s: RAW_W = %d, this build reads %d or %d", path, rawW, policynet.EntityRawWidthV1, policynet.EntityRawWidth)
+	pod := false
+	hashChecked := false
+	if h.Encoder != "" {
+		// A named header resolves through the encoder registry; its Schema
+		// is the geometry guard, not this package's hardcoded entity widths.
+		pod, err = namedEncoder(path, h)
+		if err != nil {
+			return nil, err
 		}
-		// DENSE_W is 92, or 68 for a network exported before the Commander
-		// block: such a net reads only the first 68 dense columns, so it scores
-		// exactly as it did.
-		if denseW != policynet.DenseWidth && denseW != policynet.DenseWidthV1 {
-			return nil, fmt.Errorf("gonet %s: DENSE_W = %d, this build reads %d or %d", path, denseW, policynet.DenseWidthV1, policynet.DenseWidth)
+		hashChecked = true
+	} else {
+		// A headerless legacy file keeps the historical entity/pod paths,
+		// including the pre-Commander hash and width variants.
+		pod, err = podHeader(path, h)
+		if err != nil {
+			return nil, err
 		}
-		if h.EncoderHash != "" {
-			got, err := strconv.ParseUint(strings.TrimPrefix(h.EncoderHash, "0x"), 16, 64)
-			if err != nil {
-				return nil, fmt.Errorf("gonet %s: encoder_hash %q: %w", path, h.EncoderHash, err)
+		hashChecked = pod
+		if !pod {
+			if rawW != policynet.EntityRawWidth && rawW != policynet.EntityRawWidthV1 {
+				return nil, fmt.Errorf("gonet %s: RAW_W = %d, this build reads %d or %d", path, rawW, policynet.EntityRawWidthV1, policynet.EntityRawWidth)
 			}
-			live := policynet.EncoderHashFor(policynet.FeaturesEntity)
-			live68 := policynet.EncoderHashForV1Dense(policynet.FeaturesEntity)
-			live24 := policynet.EncoderHashForV1Options(policynet.FeaturesEntity)
-			v1 := policynet.EncoderHashEntityV1()
-			optW := h.Consts["OPT_DENSE_W"]
-			switch {
-			case got == live && rawW == policynet.EntityRawWidth && denseW == policynet.DenseWidth && optW == policynet.OptionDenseWidth,
-				got == live68 && rawW == policynet.EntityRawWidth && denseW == policynet.DenseWidthV1 && optW == policynet.OptionDenseWidth,
-				got == live24 && rawW == policynet.EntityRawWidth && denseW == policynet.DenseWidthV1 && optW == policynet.OptionDenseWidthV1,
-				got == v1 && rawW == policynet.EntityRawWidthV1 && denseW == policynet.DenseWidthV1 && optW == policynet.OptionDenseWidthV1:
-				hashChecked = true
-			case got == live, got == live68, got == live24, got == v1:
-				wantW, wantDense, wantOpt := policynet.EntityRawWidthV1, policynet.DenseWidthV1, policynet.OptionDenseWidthV1
-				if got != v1 {
-					wantW = policynet.EntityRawWidth
+			// DENSE_W is 92, or 68 for a network exported before the Commander
+			// block: such a net reads only the first 68 dense columns, so it scores
+			// exactly as it did.
+			if denseW != policynet.DenseWidth && denseW != policynet.DenseWidthV1 {
+				return nil, fmt.Errorf("gonet %s: DENSE_W = %d, this build reads %d or %d", path, denseW, policynet.DenseWidthV1, policynet.DenseWidth)
+			}
+			if h.EncoderHash != "" {
+				got, err := strconv.ParseUint(strings.TrimPrefix(h.EncoderHash, "0x"), 16, 64)
+				if err != nil {
+					return nil, fmt.Errorf("gonet %s: encoder_hash %q: %w", path, h.EncoderHash, err)
 				}
-				if got == live {
-					wantDense, wantOpt = policynet.DenseWidth, policynet.OptionDenseWidth
+				live := policynet.EncoderHashFor(policynet.FeaturesEntity)
+				live68 := policynet.EncoderHashForV1Dense(policynet.FeaturesEntity)
+				live24 := policynet.EncoderHashForV1Options(policynet.FeaturesEntity)
+				v1 := policynet.EncoderHashEntityV1()
+				optW := h.Consts["OPT_DENSE_W"]
+				switch {
+				case got == live && rawW == policynet.EntityRawWidth && denseW == policynet.DenseWidth && optW == policynet.OptionDenseWidth,
+					got == live68 && rawW == policynet.EntityRawWidth && denseW == policynet.DenseWidthV1 && optW == policynet.OptionDenseWidth,
+					got == live24 && rawW == policynet.EntityRawWidth && denseW == policynet.DenseWidthV1 && optW == policynet.OptionDenseWidthV1,
+					got == v1 && rawW == policynet.EntityRawWidthV1 && denseW == policynet.DenseWidthV1 && optW == policynet.OptionDenseWidthV1:
+					hashChecked = true
+				case got == live, got == live68, got == live24, got == v1:
+					wantW, wantDense, wantOpt := policynet.EntityRawWidthV1, policynet.DenseWidthV1, policynet.OptionDenseWidthV1
+					if got != v1 {
+						wantW = policynet.EntityRawWidth
+					}
+					if got == live {
+						wantDense, wantOpt = policynet.DenseWidth, policynet.OptionDenseWidth
+					}
+					if got == live68 {
+						wantOpt = policynet.OptionDenseWidth
+					}
+					return nil, fmt.Errorf("gonet %s: encoder hash %#x does not match RAW_W = %d, DENSE_W = %d, OPT_DENSE_W = %d (that encoder is %d wide, %d dense and %d option columns)", path, got, rawW, denseW, optW, wantW, wantDense, wantOpt)
+				default:
+					return nil, fmt.Errorf("gonet %s: encoder hash %#x does not match this build's entity encoder %#x — the encoder drifted since this network was trained", path, got, live)
 				}
-				if got == live68 {
-					wantOpt = policynet.OptionDenseWidth
-				}
-				return nil, fmt.Errorf("gonet %s: encoder hash %#x does not match RAW_W = %d, DENSE_W = %d, OPT_DENSE_W = %d (that encoder is %d wide, %d dense and %d option columns)", path, got, rawW, denseW, optW, wantW, wantDense, wantOpt)
-			default:
-				return nil, fmt.Errorf("gonet %s: encoder hash %#x does not match this build's entity encoder %#x — the encoder drifted since this network was trained", path, got, live)
 			}
 		}
 	}
@@ -1333,6 +1385,34 @@ func (c *cardCache) put(k uint64, v []float32) {
 		s.slab = append(s.slab, v[:c.w]...)
 	}
 	s.mu.Unlock()
+}
+
+// namedEncoder resolves the encoder a header names and checks the file's raw,
+// dense and option widths against that encoder's Schema. A .dzgw is a playing
+// network, so a Hidden encoder is refused. It reports whether the encoder
+// reads the pod geometry (its own pooled groups).
+func namedEncoder(path string, h gnHeader) (pod bool, err error) {
+	if h.EncoderHash == "" {
+		return false, fmt.Errorf("gonet %s: encoder %q names no encoder_hash", path, h.Encoder)
+	}
+	hash, err := strconv.ParseUint(strings.TrimPrefix(h.EncoderHash, "0x"), 16, 64)
+	if err != nil {
+		return false, fmt.Errorf("gonet %s: encoder_hash %q: %w", path, h.EncoderHash, err)
+	}
+	e, err := encoder.Resolve(h.Encoder, hash, true)
+	if err != nil {
+		return false, fmt.Errorf("gonet %s: %w", path, err)
+	}
+	s := e.Schema()
+	for _, w := range [...]struct {
+		name string
+		want int
+	}{{"RAW_W", s.RawW}, {"DENSE_W", s.DenseW}, {"OPT_DENSE_W", s.OptDenseW}} {
+		if got := h.Consts[w.name]; got != w.want {
+			return false, fmt.Errorf("gonet %s: encoder %q reads %s = %d, this file writes %d", path, h.Encoder, w.name, w.want, got)
+		}
+	}
+	return s.RawW == policynet.EntityRawWidthPod, nil
 }
 
 // podHeader reports whether h is a FeaturesPod network (GROUPS is the pod

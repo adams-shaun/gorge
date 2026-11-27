@@ -164,6 +164,7 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 		if pc.altCost {
 			s.offerAltHand(k, d, p, o, c, &av) // kw_impending.go
 		}
+		s.offerAltGrantHand(k, d, p, o, c, &av) // cast_altgrant.go
 		if k.gen != nil {
 			// a non-granting may-play alternative cost beside the plain hand
 			// cast (As Foretold's {0}, Demon of Fate's Design's pay-life,
@@ -1708,6 +1709,11 @@ func (s *State) abilityTargetsFeasible(k *prep, a *kop.Ability, p uint8, src Slo
 				return false
 			}
 		} else if !s.hasTarget(k, t, p, src, NoObj) {
+			return false
+		}
+		if costHasTgtMVDiscard(k, &a.Cost) && !s.hasTgtMVDiscardTarget(k, a, p, src, i, excl) {
+			// gorge abilityTargetBoundAvailable: some legal target must leave
+			// the target-bound discard payable (cost_targetmv.go)
 			return false
 		}
 	}
@@ -3347,8 +3353,17 @@ func (s *State) potentialDynamicSource(k *prep, sl Slot, pc *pcard, done *[MaxPe
 		done[sl] &^= s.filtPipBit(k, sl) // a one-pip filter joins below once the pool pays it (mana_filterpip.go)
 	}
 	cd := &k.t.Cards[c]
-	return pc.manaAb >= 0 && int(pc.manaAb) < len(cd.Abilities) && cd.Abilities[pc.manaAb].AFlags&kop.AfManaDynamic != 0 ||
-		k.gen.flags[c]&gfManaDynPair != 0 // gorge's potentialAmount reads the second ability's Count$ as indeterminate: unbounded (mana_dynpair.go)
+	if k.gen.flags[c]&gfManaDynPair != 0 {
+		// gorge's potentialAmount reads the second ability's Count$ as
+		// indeterminate: unbounded (mana_dynpair.go). A gated evaluated pair
+		// is open only while its gate holds (Urza's Workshop).
+		if dj := dynPairAbility(cd); dj >= 0 {
+			a := &cd.Abilities[dj]
+			return a.Trig.Cond == 0 || s.condEval(k, a.Trig.Cond, evalCtx{src: s.perms[sl].obj, srcSl: sl, ctrl: s.perms[sl].ctrl})
+		}
+		return false
+	}
+	return pc.manaAb >= 0 && int(pc.manaAb) < len(cd.Abilities) && cd.Abilities[pc.manaAb].AFlags&kop.AfManaDynamic != 0
 }
 
 // potentialAnyColourUnit adds a fixed any-colour source in bounded mode as one
@@ -3716,8 +3731,8 @@ func (s *State) applyPriority(k *prep, a Action) {
 		if a.Target() == castSurgeTgt && a.Mode() == 0 && k.gen != nil && k.gen.anySurge {
 			s.g.impCast = true // the surge cost (kw_surge.go): beginCast marks the entry surged
 		}
-		if a.Target() == castAltTgt && a.Mode() == 0 && k.gen != nil && k.gen.altFree != nil {
-			s.g.altCast = true // the card's own mana alternative cost (cast_altfree.go)
+		if a.Mode() == 0 && k.gen != nil && (a.Target() == castAltTgt && k.gen.altFree != nil || k.gen.anyAltGrant && a.Target() > castAltIdxTgt) {
+			s.noteAltTgtCast(k, p, a) // the card's own mana alternative cost or a grant's (cast_altfree.go, cast_altgrant.go)
 		}
 		if a.Mode()&castWarp != 0 && a.Mode() != castAirbend && k.gen != nil && k.gen.anyWarpGrant {
 			// the warp instance the action names (kw_warpgrant.go): a grant's

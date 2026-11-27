@@ -189,6 +189,8 @@ func (s *State) execPay(k *prep, in *kop.Instr) bool {
 	}
 	skip := uint16(in.C >> 4)
 	amt := max(s.value(k, in.A), 0) // CR 107.1b: a negative cost amount is 0 (gorge UnlessCostResolved; Mausoleum Wanderer shrunk by Torpor Dust)
+	// Behemoth of Vault 0's stat (cost_targetmv.go)
+	noteUnlessEnergyTargetMV(k, in, kind, amt)
 	pips := in.B.N
 	if kind == kop.PaySacSelf && pips == kop.PayBSubSacSelfMust && in.Op == kop.OpIfPaid && p != 255 {
 		s.payMandatorySacSelf(k, p, uint8(skip)) // cost_mandatorysac.go
@@ -937,6 +939,9 @@ func (s *State) continueRes(k *prep, n uint8) {
 	}
 	if n == 0 && k.gen != nil && s.parkReturnAsk() {
 		return // the answer made a departure frame park a return: ask it before the program goes on (zone_untilleavesbatch.go)
+	}
+	if int(s.res.pc) < len(s.prog(k)) {
+		s.clearCopyDefender(&s.prog(k)[s.res.pc])
 	}
 	s.res.pc += n + 1
 	s.loopBack(k)
@@ -2288,7 +2293,9 @@ func (s *State) moveFoundAns(k *prep, host Slot) {
 				s.handGraveArm(k) // WithCountersType$ on a hand/graveyard pick
 			}
 			s.enterOnto(host)
+			armed := s.pickOverrideArm(k, in, z) // dirac/zone_pickoverride.go
 			sl := s.enterFound(k, &eb, o, ep, fl&kop.SrTapped != 0, from, host)
+			s.pickOverrideSettle(k, sl, armed)
 			if s.g.pre.obj == o {
 				s.g.pre = preAsk{}
 			}
@@ -2868,6 +2875,10 @@ func (s *State) chooseCardBase(obj kop.Ref, askP uint8) uint8 {
 // with Done.
 func (s *State) chooseCardOptions(k *prep, pc, askP uint8, d *Decision) {
 	in := &s.prog(k)[pc]
+	if in.Op == kop.OpRepeatEach && in.C&kop.RepeatEachOrder != 0 {
+		s.eachOrderOptions(k, d) // act_eachorder.go
+		return
+	}
 	d.Sub = ChGenChooseCard
 	c := in.C
 	if c == chooseAttachPick || c == chooseAttachPickOpt {

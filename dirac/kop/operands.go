@@ -269,6 +269,13 @@ const (
 	MvFromGraveyard    = 1 << 13   // OpExile/OpExileEx C: a trigger object's graveyard-origin exile moves only if the card is still in the graveyard (bits 11 and 12 belong to the shifted OpChangeZoneAllEx/OpReturnEx space, so this unshifted flag takes 13)
 )
 
+// RetFaceDown is OpReturn's C bit 8 (the destination zone takes bits 0-2;
+// kop.Zone(in.C) reads only the low byte): the object enters the battlefield
+// face down (CR 708.2, a generic ChangeZone FaceDown$ True entry, not the
+// manifest procedure). The entry runs face-down characteristics before its
+// enters checks, as gorge's applyMoveFaceDown folds the mark into the move.
+const RetFaceDown = 1 << 8
+
 // CzChosenOrder is OpChangeZoneAll's C bit 3 (the non-Ex form's C is only
 // the destination zone): move the chosen set in its stored (pick) order, one
 // object at a time, as gorge's ChangeZone Defined$ ChosenCard does (Split the
@@ -784,6 +791,14 @@ const RepeatRemembered = 2
 // the plain frame holds one damage batch from its first pass to its last,
 // across every pass's ask (Stench of Evil; gorge effRepeatEach's damage bracket).
 const RepeatDmgBatch = 4
+
+// RepeatEachOrder is OpRepeatEach's C bit 3 (ChooseOrder$ True on the batched
+// ChangeZoneTable$ Token/Copy body): before the loop runs, the resolving
+// controller orders the subjects in one KChoose of gorge's "order" options
+// (Ezuri's Predation; repeatEachChooseOrder asks it with more than one
+// subject). The chosen permutation rides res.arr, so the loop's one zone
+// batch opens after the last pick and spans the whole loop.
+const RepeatEachOrder = 8
 
 // OpGainControl riders (B.N).
 const (

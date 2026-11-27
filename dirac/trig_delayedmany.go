@@ -17,8 +17,9 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 //
 // x and trigMV are overloaded here: a delayed program's entry never reads
 // them (x is a spell's paid X or a trigger's bound X, trigMV a SpellCast
-// trigger's pre-cast mana value), and the only program that fires with
-// dpMany set runs bounceMany. Fire drops any object whose ver changed since
+// trigger's pre-cast mana value), and the programs that fire with dpMany set
+// run bounceMany (Random Encounter's return) or exileDelayedMany (Mirror-Style
+// Master's end-of-combat exile). Fire drops any object whose ver changed since
 // registration (CR 400.7: a new object), so an entry names only live ones.
 
 // dpMany marks a dprog record the many-object form (kop.DpMany). Bit 4 of
@@ -161,5 +162,44 @@ func (s *State) bounceMany(k *prep) {
 		if DebugDpManyOff {
 			return
 		}
+	}
+}
+
+// exileDelayedMany is the DpMany body's battlefield-origin exile
+// (OpExileEx of RefDelayedRemembered with only MvFromBattlefield): each
+// object the resolving entry names, in registration order, that is still on
+// the battlefield and still the object the program remembered is exiled.
+// Gorge's one ChangeZone over
+// the set moves them together, so more than one opens one zone batch
+// (CR 603.10a; Mirror-Style Master's end-of-combat "exile those tokens").
+//
+//go:noinline
+func (s *State) exileDelayedMany(k *prep, in *kop.Instr) {
+	e := &s.res.e
+	n := 0
+	for i := 0; i < 4; i++ {
+		o, ver := e.dpManyCarrier(i)
+		if o != NoObj && s.objs[o].zone == kop.ZoneBattlefield && s.objs[o].ver == ver {
+			n++
+		}
+	}
+	if n == 0 {
+		return
+	}
+	if DebugRepeatCztStats != nil {
+		DebugRepeatCztStats.Exiles++
+	}
+	if DebugRepeatEachCztExileOff {
+		return // the mutation: the set stays put while gorge exiles it
+	}
+	if n > 1 && k.gen != nil && k.gen.anyBatch {
+		defer s.batchClose(s.batchOpen())
+	}
+	for i := 0; i < 4; i++ {
+		o, ver := e.dpManyCarrier(i)
+		if o == NoObj || s.objs[o].zone != kop.ZoneBattlefield || s.objs[o].ver != ver {
+			continue
+		}
+		s.moveObj(k, in.Obj, o, kop.ZoneExile)
 	}
 }

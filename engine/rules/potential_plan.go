@@ -304,7 +304,7 @@ func potentialCensusFallback(e potentialCensusHost, p state.PlayerID, o decision
 		e.paymentPlanRelaxProof(census.boundedProof(), verdict).Reason == pay.ReasonInsufficient
 	// The relaxed proof counts a land's granted {T} ability beside its printed
 	// one, so seven lands look like fourteen sources and a ten-mana ability
-	// ran three 160-clone searches per priority decision that could only end
+	// ran three searches of potentialScriptNodes clones per priority decision that could only end
 	// at the budget. The supply count has no such slack.
 	skip = skip || census.outruns != nil && census.outruns(o)
 	if skip {

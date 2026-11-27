@@ -789,6 +789,8 @@ func (s *State) refPlayer(k *prep, r kop.Ref, ctx evalCtx) uint8 {
 		return s.attachedCtrl(s.refObjCtx(kop.RefAttached, ctx))
 	case kop.RefEnchantedCtrl:
 		return s.enchantedCtrl(ctx.src)
+	case kop.RefEnchantedPlayer:
+		return s.enchantedPlayer(k, ctx.src)
 	case kop.RefTriggerPlayer:
 		return e.trigPl
 	case kop.RefTriggerObjOwner:
@@ -893,6 +895,14 @@ func (s *State) condEval(k *prep, id kop.CondID, ctx evalCtx) bool {
 		r = ctx.src != NoObj && s.mObj(k, mechRem, ctx.src)
 	default:
 		panic("kernel: condition kind not implemented")
+	}
+	if (DebugMetalcraftStats != nil || DebugMetalcraftOff) && isMetalcraftCond(c) { // dirac/value_metalcraft.go
+		if DebugMetalcraftOff {
+			return false
+		}
+		if r {
+			DebugMetalcraftStats.CondHeld++
+		}
 	}
 	return r != c.Neg
 }

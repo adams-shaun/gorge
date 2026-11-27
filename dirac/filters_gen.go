@@ -552,10 +552,14 @@ func (s *State) predPermGen(k *prep, fl *kop.Filter, sl Slot, src Slot, layer ui
 		if s.xBoundPending(fl) {
 			return true
 		}
-		if n != 0 {
-			return s.cmcPerm(k, sl) == s.evalV(k, fl.PredV, s.ctxCur()) // PredN 1: ==
+		cx := s.ctxCur()
+		if s.tgtMVBoundPending(k, fl, &cx) {
+			return true
 		}
-		return s.cmcPerm(k, sl) <= s.evalV(k, fl.PredV, s.ctxCur())
+		if n != 0 {
+			return s.cmcPerm(k, sl) == s.evalV(k, fl.PredV, cx) // PredN 1: ==
+		}
+		return s.cmcPerm(k, sl) <= s.evalV(k, fl.PredV, cx)
 	case kop.PredCountersGE:
 		return s.perms[sl].ctrN(s, n&0xff) >= n>>8
 	case kop.PredHasKeyword:
@@ -893,6 +897,9 @@ func (s *State) matchCardOneAt(k *prep, fl *kop.Filter, c CardID, owner, ctrl ui
 		cx := s.ctxCur()
 		if ctx != nil {
 			cx = *ctx // a static's own source and controller (Maralen)
+		}
+		if s.tgtMVBoundPending(k, fl, &cx) {
+			return true
 		}
 		if n != 0 {
 			return mv == s.evalV(k, fl.PredV, cx) // PredN 1: == (Repurposing Bay)

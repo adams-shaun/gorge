@@ -11,7 +11,7 @@ import (
 // "activate" option while funding lasts, a Treasure's "{T}, Sacrifice this
 // token" among them, and answers each colour ask in the ask's order with the
 // play's needed colours first (scriptOrderAnswers, a stable partition). Every
-// one of those branches is a node of its 160-node budget, so the kernel's
+// one of those branches is a node of its potentialScriptNodes budget, so the kernel's
 // search must branch the same way or it finds a script gorge's search runs out
 // of budget before reaching (CR 605.3a: a Treasure's mana ability is
 // activatable while the play is being priced).

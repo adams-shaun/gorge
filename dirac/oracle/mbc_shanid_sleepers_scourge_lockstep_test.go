@@ -14,7 +14,7 @@ import (
 // dr-mbc-abbb-s000 (the loop's pair 38, seed 644180) was held by an
 // options/options divergence. The loop's decks hold Starfleet Academy, whose
 // "{5},{T}: Add X mana of one chosen colour" is a paid dynamic amount gorge's
-// 160-node prefix search cannot price while the kernel's open any-colour
+// potentialScriptNodes prefix search cannot price while the kernel's open any-colour
 // production can — so gorge withholds the casts it funds and the kernel offers
 // them, the very gap dirac/support/refused/starfleet-academy.json documents and
 // refuses by name (TestMBCStarfleetAcademyReprosLockstep pins the gap itself

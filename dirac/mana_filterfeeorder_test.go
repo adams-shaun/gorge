@@ -72,7 +72,7 @@ func TestFilterFeeOrderFindsBaxterWithDualLands(t *testing.T) {
 	sc.perm(baxter, 0)
 	sc.perm(lands[2], 0) // Test Fortress, the pair's Dark Fortress
 	// The widening: a second copy of each dual land and a second filter. They
-	// stretch the plain run's funding tree past potentialScriptNodes (160) before
+	// stretch the plain run's funding tree past potentialScriptNodes before
 	// any fee is funded, while the fee-order run still finishes inside it (with
 	// the fallback off the cast is not offered; with 4 filters neither run
 	// finishes).

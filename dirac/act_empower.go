@@ -394,18 +394,31 @@ func (s *State) globalGrantsGenIn(k *prep, from slotMask, sl Slot, lost bool, lt
 }
 
 // excessLethalGen is the damage that kills sl, for the excess-damage count:
-// a non-creature planeswalker loses loyalty counters, everything else
+// a non-creature planeswalker loses loyalty counters, a battle defense
+// counters (CR 120.4a; the greatest of its types' amounts), everything else
 // toughness minus damage already marked. dt is whether the damage SOURCE has
 // deathtouch: any nonzero damage from it is lethal to a creature (CR 120.4a,
 // 702.2c), so a creature not yet dead has a lethal amount of 1 (gorge
 // effects.excessLethal).
 func (s *State) excessLethalGen(k *prep, sl Slot, dt bool) int {
-	if s.typesAt(k, sl)&kop.TPlaneswalker != 0 && !s.isCreature(k, sl) {
-		return s.perms[sl].ctrLow(int(kop.CtrLoyalty))
+	tp := s.typesAt(k, sl)
+	creature := s.isCreature(k, sl)
+	// CR 120.4a: a battle's excess is over its defense; a permanent with
+	// several of the types takes the greatest amount.
+	defense := 0
+	if tp&kop.TBattle != 0 {
+		defense = s.perms[sl].ctrLow(int(kop.CtrDefense))
+	}
+	if tp&kop.TPlaneswalker != 0 && !creature {
+		return max(s.perms[sl].ctrLow(int(kop.CtrLoyalty)), defense)
+	}
+	if !creature && defense > 0 {
+		return defense
 	}
 	pw, t := s.ptGen(k, sl)
-	if l := s.lethalThreshold(k, sl, pw, t) - int(s.perms[sl].damage); !dt || l <= 1 {
-		return l
+	l := s.lethalThreshold(k, sl, pw, t) - int(s.perms[sl].damage)
+	if dt && l > 1 {
+		l = 1
 	}
-	return 1
+	return max(l, defense)
 }

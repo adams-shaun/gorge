@@ -232,7 +232,8 @@ func (c *lClause) fwArmOrUnknown(p string, knownSub func(string) bool) error {
 		p == "suspended" || p == "TopLibrary" || p == "DoubleFaced" ||
 		p == "Modal" || p == "singleTarget" ||
 		p == "Paired" || p == "!Paired" || p == "PairedWith" ||
-		p == "canProduceSameManaTypeWith" || strings.HasPrefix(p, "canProduceManaColor ") {
+		p == "canProduceSameManaTypeWith" || strings.HasPrefix(p, "canProduceManaColor ") ||
+		isManaCostWord(p) {
 		if arm, ok := fwArms[p]; ok {
 			return arm(c, p)
 		}

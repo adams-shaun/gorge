@@ -87,7 +87,7 @@ func (s *State) tokCands(k *prep, p uint8, tok CardID, t *tokOrd) (rew, copyN in
 			}
 			switch a.Repl.Kind {
 			case kop.ReplRewriteTokens:
-				if DebugTokRewriteOff {
+				if DebugTokRewriteOff || !s.tokRewMatches(k, a, tok, p) {
 					continue
 				}
 				rew++
@@ -156,7 +156,9 @@ func (s *State) tokApply(k *prep, j int) {
 	a := s.tokAbility(k, j)
 	switch a.Repl.Kind {
 	case kop.ReplRewriteTokens:
-		t.card = CardID(a.Repl.C)
+		if s.tokRewMatches(k, a, t.card, t.p) {
+			t.card = CardID(a.Repl.C)
+		}
 	case kop.ReplDoubleTokens:
 		if a.Repl.Filter != 0 && !s.matchCardGen(k, a.Repl.Filter, t.card, t.p, t.p, NoObj) {
 			return
@@ -438,16 +440,24 @@ func (s *State) execCreateToken(k *prep, in *kop.Instr) (ok, done bool) {
 		// spelling defaults to the controller. A target-slot controller ref
 		// resolves to 255 exactly when its slot is unset (tgtCtrlSlot).
 		switch in.Obj {
-		case kop.RefTargetController, kop.RefTgtCtrl1, kop.RefTgtCtrl2:
+		case kop.RefTargetController, kop.RefTgtCtrl1, kop.RefTgtCtrl2, kop.RefEnchantedPlayer:
 			return true, true
 		}
 		p = s.res.e.ctrl
+	}
+	if DebugTokListStats != nil && in.Obj == kop.RefEnchantedPlayer {
+		DebugTokListStats.EnchantedMints++ // repl_toklistrewrite.go
 	}
 	var tc CardID
 	var n int
 	if !t.on {
 		if in.Op == kop.OpCreateTokenEx && s.tokenDefenderAsk(k, in, p) {
 			return false, true // the CR 508.4 defender ask (filter_combatwords.go)
+		}
+		if k.gen.anyTokRew {
+			if handled, ok := s.tokListRewrite(k, in, p, s.value(k, in.A)); handled { // repl_toklistrewrite.go
+				return ok, true
+			}
 		}
 		var good, parked bool
 		tc, n, good, parked = s.replTokensOp(k, in, p, CardID(in.C), s.value(k, in.A))

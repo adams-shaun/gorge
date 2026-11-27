@@ -688,13 +688,55 @@ func (g *GorgeSide) build(d0 *decision.Decision) *frame {
 	return fr
 }
 
+// faceDownFamily is the printed face-down family of the object a turn-up
+// option names (0 none, 1 Morph, 2 Megamorph, 3 Disguise), read from the
+// cast provenance flags the family is named by.
+func (g *GorgeSide) faceDownFamily(id state.ObjID) uint8 {
+	o := g.E.G.Obj(id)
+	if o == nil {
+		return 0
+	}
+	switch {
+	case o.CastFlags&state.FlagMorphed != 0:
+		return 1
+	case o.CastFlags&state.FlagMegamorphed != 0:
+		return 2
+	case o.CastFlags&state.FlagDisguised != 0:
+		return 3
+	}
+	return 0
+}
+
+// turnUpSubMode is the canonical turn_face_up sub-mode of an offered option
+// or a potential action. Mode 0 is the face-down cast's own keyword
+// procedure; the kernel's canonical grammar names it by the printed family
+// (3 morph, 4 megamorph, 5 disguise), so this side must too or a cast
+// permanent's mode-0 option diverges from the kernel's family-named one
+// (canon.Translate). A non-cast provenance already names its procedure
+// ("manifest", "cloak", "morph", ...).
+func (g *GorgeSide) turnUpSubMode(id state.ObjID, mode string) uint8 {
+	sub := turnUpModeCode(mode)
+	if sub != 0 {
+		return sub
+	}
+	switch g.faceDownFamily(id) {
+	case 1:
+		return 3
+	case 2:
+		return 4
+	case 3:
+		return 5
+	}
+	return 0
+}
+
 // turnUpPotentialAction is the canonical action of a potential turn-face-up
 // plan (CR 708.6), the offered option's form. Only the Morph-family keyword
 // procedures are projected: a manifested or cloaked card's printed-cost
 // procedure stays the pool-only offer the kernel makes (face_facedown.go's
 // turnUpListed), so the union does not name an action the kernel cannot take.
-func turnUpPotentialAction(pa decision.PotentialAction, ref func(state.ObjID) Ref) (Canon, bool) {
-	sub := turnUpModeCode(pa.Mode)
+func (g *GorgeSide) turnUpPotentialAction(pa decision.PotentialAction, ref func(state.ObjID) Ref) (Canon, bool) {
+	sub := g.turnUpSubMode(pa.Obj, pa.Mode)
 	if sub == 1 || sub == 2 {
 		return 0, false
 	}
@@ -1131,6 +1173,9 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 				if o.Kind == "unlock" {
 					sub = unlockModeCode(o.Mode)
 				}
+				if o.Kind == "turn_face_up" {
+					sub = g.turnUpSubMode(o.Obj, o.Mode)
+				}
 				add(prioEntry{a: Pack(ActSpecial, ref(o.Obj), RefNone, c|sub<<4), opt: o.Index})
 			} else {
 				note(o.Kind)
@@ -1209,7 +1254,7 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 			a, kw = g.potentialAbilityAction(pa, ref)
 		case "turn_face_up":
 			var ok bool
-			if a, ok = turnUpPotentialAction(pa, ref); !ok {
+			if a, ok = g.turnUpPotentialAction(pa, ref); !ok {
 				continue
 			}
 		default:

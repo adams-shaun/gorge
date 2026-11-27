@@ -1,0 +1,7 @@
+family: ExtOp
+name: ExtChangeTargetsMass
+value: next
+forge: ChangeTargets
+state: code 0
+status: active
+doc: ExtChangeTargetsMass (CR 115.7; gorge effChangeTargets over Defined$ ValidStack SpellAbility, choose_control.go): for every spell and ability on the stack but the resolving redirect itself, in stack order (bottom first), pose the single-entry redirect's declaration asks and write each entry's answers as it finishes; Optional$ True (C bit 0) means Done keeps that entry's targets. dirac/act_stackrewrite.go.

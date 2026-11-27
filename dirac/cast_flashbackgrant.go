@@ -14,7 +14,7 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 //
 // The withhold holds only where gorge's search cannot finish. The search that
 // prices the cast (engine/rules potential_script.go) walks distinct tap states
-// under a budget of potentialScriptNodes (164): when the untapped sources offer
+// under a budget of potentialScriptNodes: when the untapped sources offer
 // more ways to pay the cost's taps than that budget (flashbackSearchNodes), it
 // runs out before it funds the cast through the grant (Wild Hunger's {3}{R}
 // beside thirteen lands, tail-15-c000 decision 1248), while a board whose

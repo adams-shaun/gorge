@@ -547,7 +547,7 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 		if origin == zGraveyard && (dest == zExile || dest == zHand || dest == zBattlefield) && ps.is("AtRandom", "True") {
 			return lc.randomGraveMove(ps, f, n, flags, counterKind, override, dest) // lower_randomgravemove.go
 		}
-		graveBF := dest == zBattlefield && override == nil && graveToBattlefieldFlags(flags)
+		graveBF := dest == zBattlefield && graveToBattlefieldFlags(flags)
 		if origin == zGraveyard && (dest == zHand || graveBF) {
 			owner, chosenPool, err := lc.chosenMidPool(ps, dest) // lower_chooseplayermid.go
 			if err != nil {
@@ -639,7 +639,29 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 			lc.pickEachLoop(pickLoop)
 			// dpScope You / Player (graveDefinedPlayer) already read the param, so
 			// pickOwner is You and emitGravePick opens the each-player loop for Player
-			return lc.emitGravePick(dpScope, lInstr{Op: "ChooseMove", Obj: pickOwner, A: n, F: f, C: dest, CS: cs}) // lower_gravedefinedplayer.go
+			in := lInstr{Op: "ChooseMove", Obj: pickOwner, A: n, F: f, C: dest, CS: cs}
+			if override == nil {
+				return lc.emitGravePick(dpScope, in) // lower_gravedefinedplayer.go
+			}
+			// StaticEffect$ (Path of the Schemer's Animate): gorge
+			// applyStaticEffect registers the body on each card the move puts
+			// onto the battlefield, before the entry event (CR 603.6a). The
+			// kernel reads the OvEnterWith override emitted right after the
+			// pick as the picked card enters (dirac/zone_pickoverride.go), so
+			// only the one-card, one-player battlefield pick carries it: the
+			// rider is one instruction.
+			if dest != zBattlefield || counterKind != "" || dpScope != dpNone || pickLoop.Kind != rNone || !isConstN(n, 1) {
+				return refuse("graveyard pick with StaticEffect$ outside a one-card battlefield pick")
+			}
+			if err := lc.emitGravePick(dpScope, in); err != nil {
+				return err
+			}
+			// The rider's Obj is unused: the kernel's enterWithApply applies
+			// the record to the entrant's slot as it enters, so no remembered
+			// set is read (and the chain's cross-ability remembered census
+			// stays honest).
+			lc.emitOverride(lRef{}, override, "Permanent|enterWith")
+			return nil
 		}
 		if exwPick {
 			return lc.exilePick(ps, f, n, flags, counterKind, override, dest) // lower_exw.go
@@ -856,6 +878,9 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 		in.C = zBattlefield
 		if origin == zHand || origin == zBattlefield {
 			return refuse("move %s->Battlefield", zoneLabel[origin])
+		}
+		if ferr := lc.entryFaceDown(ps, dest, &in); ferr != nil { // lower_facedownentry.go
+			return ferr
 		}
 		// Attacking$ True: the returned permanent enters attacking
 		// (gorge attackingParam; kernel MvAttacking). Any other value is
@@ -1488,6 +1513,8 @@ func (lc *lowerCtx) dig(ps *params) error {
 	// not read exactly (a blind face-down exile, a look on a non-exile move)
 	fd, look := ps.is("ExileFaceDown", "True"), ps.is("WithMayLook", "True")
 	blind := fd && !look && dest == zExile && (lc.repeatBlindDig(ps) || lc.ownBlindDig(ps) || lc.blindDigShape(ps)) // lower_blinddig.go
+	// the seen-window rewrite lives in lower_facedownentry.go
+	look = digSeenFaceDownLook(fd, look, blind, dest)
 	if !digFaceDownShape(fd, look, blind, dest) {
 		return refuse("Dig ExileFaceDown$ shape")
 	}
@@ -4136,14 +4163,25 @@ func (lc *lowerCtx) copyPermanent(ps *params) error {
 	if ps.is("RememberTokens", "True") {
 		flags = append(flags, "Remember")
 	}
+	var atk bool
 	if picked {
-		atk, err := lc.copyChoiceAttacking(ps)
-		if err != nil {
-			return err
+		atk, err = lc.copyChoiceAttacking(ps)
+	} else {
+		atk, err = lc.copyAttacking(ps)
+	}
+	if err != nil {
+		return err
+	}
+	if atk {
+		if nonRem {
+			return refuse("CopyPermanent TokenAttacking$ beside a per-player Controller$")
 		}
-		if atk {
-			flags = append(flags, "Attacking")
+		if _, ok := ps.get("PumpKeywords"); ok {
+			// B.N bit 14 is CopyAttacking here and CopyPumpEOT beside a pump
+			// keyword (kop.CopyPumpEOT); one bit cannot carry both.
+			return refuse("CopyPermanent TokenAttacking$ beside PumpKeywords$")
 		}
+		flags = append(flags, "Attacking")
 	}
 	if v, ok := ps.get("TokenTapped"); ok {
 		// the token enters tapped (gorge copypermanent.go's CopyTokenTapped)
@@ -4151,6 +4189,9 @@ func (lc *lowerCtx) copyPermanent(ps *params) error {
 			return refuse("CopyPermanent TokenTapped %q", v)
 		}
 		flags = append(flags, "Tapped")
+	}
+	if err := lc.copyBatchedAttacking(ps, picked, &flags); err != nil {
+		return err
 	}
 	if ct, ok := ps.get("WithCountersType"); ok {
 		// the token enters with the counters (gorge copypermanent.go folds
@@ -4520,6 +4561,13 @@ func (lc *lowerCtx) immediateTrigger(ps *params) error {
 	}
 	if err := immediateIsPresent(ps); err != nil { // lower_remembered.go
 		return err
+	}
+	if ps.peek("ValidTgts") != "" {
+		// an ImmediateTrigger with its own ValidTgts$ pre-asks that target;
+		// its RememberObjects$ Targeted (Behemoth of Vault 0) captures it
+		if _, err := lc.objOrTarget(ps, "", zBattlefield); err != nil {
+			return err
+		}
 	}
 	lat := lc.newLatent("ReflexiveTrigger")
 	if od, ok := ps.get("OptionalDecider"); ok {
@@ -6056,7 +6104,11 @@ func (lc *lowerCtx) targetPlayerSearch(ps *params, origin, dest int) (claimed bo
 		return ownSearch, -1, err
 	}
 	tgtLib, err = lc.targetLibrarySearch(ps, origin)
-	return tgtLib >= 0, tgtLib, err
+	if err != nil || tgtLib >= 0 {
+		return tgtLib >= 0, tgtLib, err
+	}
+	claimed, err = lc.targetChooserPick(ps, origin) // lower_tutorpick.go
+	return claimed, -1, err
 }
 
 // libSearchOwner is the searched library's owner (searchOwner,

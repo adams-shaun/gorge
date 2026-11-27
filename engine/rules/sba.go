@@ -1029,16 +1029,6 @@ func (e *Engine) ceaseDepartedObjects(p state.PlayerID) {
 		e.triggerBefore = own
 		defer e.closeTriggerWindow(own, nil)
 	}
-	// CR 800.4a: the departure is ONE simultaneous event, and CR 610.3d
-	// follows a returned card after the whole of it -- so this sweep's zone
-	// moves run as one zone batch, whose close holds the
-	// Duration$ UntilHostLeavesPlay returns until every owned object has
-	// left (emit.go's flushExileReturns, the same hold a ChangeZone batch
-	// already keeps). Without the batch an early host's return -- and the
-	// as-enters choice its card asks -- would run before the departed
-	// player's later objects have left.
-	e.openZoneBatch()
-	defer e.closeZoneBatch()
 	for i := range e.G.Objs {
 		o := &e.G.Objs[i]
 		if o.Zone == state.ZCeased {

@@ -1277,7 +1277,7 @@ func (s *State) deferGapSearch(k *prep, a Action, p uint8, order []Slot, tapsDef
 // colour ask narrowed to the colours the node's pool still lacks of that cost
 // (a covered colour pays nothing more, CR 601.2g-h, 605.1a). A basic land
 // beside a dual land under Manabarbs (seven gaps, one {U} Aura) spends the
-// plain search's 164 nodes on the dual land's two off-colour answers at every
+// plain search's potentialScriptNodes budget on the dual land's two off-colour answers at every
 // depth; the subsume run drops them and finds the Islands' line.
 func (s *State) deferSubsume(k *prep, a Action, p uint8, order []Slot, tapsDef slotMask, cp *castRestPay, ans *[MaxPerm]uint16, pick *[MaxPerm]int8, dead *bool, noGrant, resolvePlay, twinCut bool) bool {
 	cnt, ok := s.playCostCounts(k, a)

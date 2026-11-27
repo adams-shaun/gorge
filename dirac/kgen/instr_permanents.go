@@ -16,12 +16,14 @@ func init() {
 	instrOp("ClassLevelUp", (*instrCtx).opClassLevelUp)
 	instrOp("ExchangeControl", (*instrCtx).opExchangeControl)
 	instrOp("TurnFaceUp", (*instrCtx).opTurnFaceUp)
+	instrOp("TurnFaceDown", (*instrCtx).opTurnFaceDown)
 	instrOp("UnlockDoor", (*instrCtx).opUnlockDoor)
 	instrOp("BreachChoose", (*instrCtx).opBreachChoose)
 	instrOp("BreachReturn", (*instrCtx).opBreachReturn)
 	instrOp("Airbend", (*instrCtx).opAirbend)
 	instrOp("Meld", (*instrCtx).opMeld)
 	instrOp("ChangeTargets", (*instrCtx).opChangeTargets)
+	instrOp("ChangeTargetsMass", (*instrCtx).opChangeTargetsMass)
 	instrOp("Phases", (*instrCtx).opPhases)
 	instrOp("Attach", (*instrCtx).opAttach)
 	instrOp("Exploit", (*instrCtx).opExploit)
@@ -97,6 +99,18 @@ func (ic *instrCtx) opTurnFaceUp() error {
 	return nil
 }
 
+func (ic *instrCtx) opTurnFaceDown() error {
+	ki := &ic.ki
+	in := &ic.in
+	// (CR 708.2; gorge effSetState Mode$ TurnFaceDown) OpExt
+	// ExtTurnFaceDown over the battlefield permanent Obj (lower_setstate.go)
+	if in.Obj.Kind != rSelf {
+		return fmt.Errorf("TurnFaceDown of %v", in.Obj)
+	}
+	ki.Op, ki.A = kop.OpExt, kop.Const(int(kop.ExtTurnFaceDown))
+	return nil
+}
+
 func (ic *instrCtx) opUnlockDoor() error {
 	ki := &ic.ki
 	in := &ic.in
@@ -147,6 +161,16 @@ func (ic *instrCtx) opChangeTargets() error {
 	// OpExt ExtChangeTargets over Obj (the
 	// TgtStackObj slot, or the triggering spell); C bit 0: Optional$
 	ki.Op, ki.A, ki.C = kop.OpExt, kop.Const(int(kop.ExtChangeTargets)), int16(in.C)
+	return nil
+}
+
+// opChangeTargetsMass is OpExt ExtChangeTargetsMass (dirac/act_stackrewrite.go):
+// every matching stack entry but the resolving redirect, in stack order; C bit
+// 0: Optional$.
+func (ic *instrCtx) opChangeTargetsMass() error {
+	ki := &ic.ki
+	in := &ic.in
+	ki.Op, ki.A, ki.C = kop.OpExt, kop.Const(int(kop.ExtChangeTargetsMass)), int16(in.C)
 	return nil
 }
 

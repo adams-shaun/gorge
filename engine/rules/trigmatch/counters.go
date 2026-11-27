@@ -52,6 +52,9 @@ import (
 // CounterAmount$ is Forge's plain "whenever a counter is put" -- every put
 // admits it.
 func counterAddedMatches(e Board, t cards.Trigger, source state.ObjID, ev events.Event, lki *state.Object) bool {
+	if ev.Kind == events.PlayerCounterChange {
+		return playerCounterAddedOnceMatches(e, t, source, ev)
+	}
 	if ev.Kind != events.CounterChange || ev.Amount <= 0 || state.InternalCounterMarker(ev.Counter) {
 		return false
 	}
@@ -109,6 +112,40 @@ func counterAddedMatches(e Board, t cards.Trigger, source state.ObjID, ev events
 	}
 	if t.ModeKind() == cards.TriggerCounterAddedOnce && ParamTrue(t, cards.PKFirstTime) && !firstCounterAddedThisTurn(e, ev) {
 		return false
+	}
+	return true
+}
+
+// playerCounterAddedOnceMatches is counterAddedMatches' PLAYER-recipient arm:
+// Mode$ CounterAddedOnce on a PlayerCounterChange gain ("Whenever you get one
+// or more {E}", Brotherhood Scribe, Fabrication Module, Territorial Gorger,
+// Aether Revolt: ValidPlayer$ You | CounterType$ ENERGY). Only the "one or
+// more" mode reads it: a plain CounterAdded line is the per-counter object
+// reading and its eligibility row never carries the player event. The
+// recipient is a player, so a ValidCard$ spec (a permanent) can never match
+// it, and the object-only shapes (CounterAmount$ crossing, FirstTime$, whose
+// latch scans one object's placements) fail closed rather than being guessed.
+// ValidPlayer$ reads the gaining player; ValidSource$ reads the in-flight
+// adder exactly as the object arm does.
+func playerCounterAddedOnceMatches(e Board, t cards.Trigger, source state.ObjID, ev events.Event) bool {
+	if t.ModeKind() != cards.TriggerCounterAddedOnce || ev.Amount <= 0 || state.InternalCounterMarker(ev.Counter) {
+		return false
+	}
+	if kind := t.ParamStr(cards.PKCounterType); kind != "" && !strings.EqualFold(kind, ev.Counter) {
+		return false
+	}
+	if t.ParamStr(cards.PKValidCard) != "" || t.ParamStr(cards.PKCounterAmount) != "" || ParamTrue(t, cards.PKFirstTime) {
+		return false
+	}
+	ctrl := e.ControllerOf(source)
+	if vp := t.ParamStr(cards.PKValidPlayer); vp != "" && !effects.MatchesPlayerSpec(e.Game(), vp, ev.Player, ctrl) {
+		return false
+	}
+	if vs := strings.TrimSpace(t.ParamStr(cards.PKValidSource)); vs != "" {
+		adder, ok := e.InFlightCounterAdder()
+		if !ok || !effects.MatchesPlayerSpec(e.Game(), vs, adder, ctrl) {
+			return false
+		}
 	}
 	return true
 }
@@ -227,6 +264,9 @@ func counterRemovedMatches(e Board, t cards.Trigger, source state.ObjID, ev even
 // independent instances, each carrying the batch-of-one Amount below, which is
 // the batch one per-counter occurrence sees.
 func CounterAddedInstances(t *cards.Trigger, ev *events.Event) int32 {
+	if ev.Kind == events.PlayerCounterChange && t.ModeKind() == cards.TriggerCounterAddedOnce && ev.Amount > 0 && !state.InternalCounterMarker(ev.Counter) {
+		return 1 // a player's gain ("one or more {E}") is one occurrence
+	}
 	if ev.Kind != events.CounterChange || ev.Amount <= 0 || state.InternalCounterMarker(ev.Counter) {
 		return 0
 	}

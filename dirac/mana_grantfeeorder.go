@@ -8,7 +8,7 @@ package dirac
 // whose mana ability costs mana and makes more than one unit (Desolate Mire's
 // {1},{T}: Add {W}{B}, beside a granted any-colour tap), then the other gaps.
 // A plain walk over a Rimewood Falls (printed {U}, {G}, then the grant's five
-// colours), an Island and a Mire spends its 160 nodes on the printed colours'
+// colours), an Island and a Mire spends its potentialScriptNodes budget on the printed colours'
 // subtrees before the grants' {R}s; the reordered walk floats the funding and
 // the cheap grants first (Mijae Djinn's {R}{R}{R} under a transformed Mystic
 // Skull's "{T}: Add one mana of any color" on every land).

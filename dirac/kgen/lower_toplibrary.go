@@ -48,6 +48,9 @@ func (lc *lowerCtx) topLibraryMove(ps *params, origin, dest, pos int, flags []st
 	if v, ok := ps.get("Optional"); ok && strings.TrimSpace(v) != "True" {
 		return refuse("ChangeZone Defined$ TopOfLibrary Optional$ %q", v)
 	}
+	if ps.is("ExileFaceDown", "True") {
+		return lc.topLibraryExileFaceDown(ps, origin, dest, pos, flags, counterKind, override, where)
+	}
 	for _, k := range topLibraryUnread {
 		if _, ok := ps.m[k]; ok {
 			return where(k + "$")
@@ -89,5 +92,49 @@ func (lc *lowerCtx) topLibraryMove(ps *params, origin, dest, pos int, flags []st
 		return err
 	}
 	lc.emit(in)
+	return nil
+}
+
+// topLibraryExileFaceDown lowers the hidden-library face-down exile shape
+// (Necropotence): "exile the top card of your library face down" then a
+// later effect reads it. gorge's moveDefinedLibraryObjects asks the same
+// empty-library question, moves the card and applyMoveFaceDown stamps the
+// blind exiled_with_face_down marker with RememberChanged$ keeping it for
+// the delayed return; the kernel marks the remembered cards after the move
+// with ExtExileFaceDown (dirac/zone_exilefacedownmove.go).
+func (lc *lowerCtx) topLibraryExileFaceDown(ps *params, origin, dest, pos int, flags []string, counterKind string, override *lOverride, where func(string) error) error {
+	if dest != zExile {
+		return where("ExileFaceDown$ to " + zoneLabel[dest])
+	}
+	if _, ok := ps.m["LibraryPosition"]; ok || pos != 0 {
+		return where("LibraryPosition$")
+	}
+	if _, ok := ps.get("Optional"); ok {
+		return where("Optional$")
+	}
+	if _, ok := ps.m["WithMayLook"]; ok {
+		return where("WithMayLook$")
+	}
+	if !ps.is("RememberChanged", "True") {
+		return where("ExileFaceDown$ without RememberChanged$ True")
+	}
+	for _, k := range topLibraryUnread {
+		if k == "ExileFaceDown" || k == "RememberChanged" {
+			continue
+		}
+		if _, ok := ps.m[k]; ok {
+			return where(k + "$")
+		}
+	}
+	if len(flags) != 1 || flags[0] != "Remember" || counterKind != "" || override != nil {
+		return where("flags, counters or an override")
+	}
+	// no Optional$: an empty library moves nothing (the same library-size
+	// gate the plain top-library fetch emits).
+	lc.emit(lInstr{Op: "SkipIf", Cond: lCond{Kind: cValue,
+		A:  lValue{Kind: vLibrarySizeOf, Ref: lRef{Kind: rYou}},
+		Op: opGT, B: cst(0)}, Skip: 1, Note: "the library is empty: nothing moves"})
+	lc.emit(lInstr{Op: "Exile", Obj: lRef{Kind: rLibTop}, CS: "Remember"})
+	lc.emit(lInstr{Op: "ExileFaceDown", Note: "the exiled top card is face down"})
 	return nil
 }

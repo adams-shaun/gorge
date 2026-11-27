@@ -51,6 +51,7 @@ var graveTriggerModes = map[string]bool{
 	"Phase": true, "SpellCast": true, "AbilityCast": true, "CommitCrime": true, "AttackersDeclared": true,
 	"FullyUnlock": true, "ChangesZone": true, "ChangesZoneAll": true, "Drawn": true, "Cycled": true, "Discarded": true, "Sacrificed": true, "FacesDilemma": true,
 	"RingTemptsYou": true, // the Ring tempts (lower_ring.go; dirac/act_ring.go)
+	"TurnFaceUp":    true, // a permanent turns face up; the kernel scans k.gen.graveTrig (fireGraveTurnFaceUp; Deathmist Raptor)
 }
 
 // triggerZoneHalves reports a TriggerZones$ comma list that is exactly the
@@ -754,6 +755,29 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 			} else if ok {
 				tr.Whose = whoYou
 			}
+			if vp, ok := tp.get("ValidPlayer"); ok {
+				// "Whenever you get one or more {E}" (Brotherhood Scribe,
+				// Aether Revolt, Fabrication Module, Territorial Gorger): a
+				// PLAYER counter. gorge's playerCounterAddedOnceMatches reads
+				// the PlayerCounterChange put (ValidPlayer$ the gaining
+				// player; a ValidCard$ never matches a player), and the
+				// kernel's TrigPlayerCounterAdded fires at each energy or
+				// experience gain (dirac/trig_playerctr.go). Only this exact
+				// shape lowers: a player counter and ValidPlayer$ You.
+				if vp != "You" {
+					return refuse("CounterAddedOnce ValidPlayer %q", vp)
+				}
+				if !playerCounterKind(ct) {
+					return refuse("CounterAddedOnce ValidPlayer %q on the %q counter", vp, ct)
+				}
+				if _, ok := tp.get("ValidSource"); ok {
+					return refuse("CounterAddedOnce ValidPlayer beside ValidSource")
+				}
+				if tr.F != nil {
+					return refuse("CounterAddedOnce ValidPlayer beside ValidCard")
+				}
+				tr.Event, tr.Step, tr.Whose = "PlayerCounterAddedOnce", strings.ToUpper(strings.TrimSpace(ct)), whoYou
+			}
 		case "CounterAddedAll", "CounterPlayerAddedAll", "CounterRemoved", "CounterRemovedOnce":
 			if err := lc.ctrRemovedOrPlayerAddedAll(tp, tr, t, readF); err != nil { // lower_counterremoved.go
 				return err
@@ -1385,6 +1409,20 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 	if tp.is("Threshold", "True") {
 		conds = append(conds, lCond{Kind: cThreshold})
 	}
+	if v, ok := tp.get("Metalcraft"); ok {
+		// gorge trigger_condition.go: Metalcraft$ True, the trigger
+		// controller's three-or-more-artifacts census (CR 207.2c), an
+		// intervening-if checked as it triggers and again at resolution, as
+		// Threshold$ True joins the conds (Vedalken Humiliator).
+		if v != "True" {
+			return refuse("Metalcraft %q", v)
+		}
+		c, err := lc.bareCondition(tp, "Metalcraft")
+		if err != nil {
+			return err
+		}
+		conds = append(conds, c)
+	}
 	if v, ok := tp.get("Blessing"); ok {
 		// gorge trigger_condition.go: Blessing$ True, the trigger's
 		// controller's city's-blessing latch (CR 702.131), an intervening-if
@@ -1496,13 +1534,10 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 	if tr.Static {
 		// gorge's staticTriggerAskFree (engine/rules/static_trigger.go):
 		// an off-stack resolution has no placement to announce targets, no
-		// Charm to pick modes, no tape to serve a mid-resolution ask. The
-		// body must be provably ask-free: the only shapes that lower to a
-		// single no-ask rider instruction (the enters-with-counters
-		// Effects, lower_effetbctr.go). Anything else stays on the stack
-		// in gorge — it refuses here rather than resolve wrongly.
-		if len(ab.Targets) != 0 || len(ab.Prog) != 1 || (ab.Prog[0].Op != "EffEtbCounters" && ab.Prog[0].Op != "EffFinalityCtr") {
-			return refuse("static SpellCast trigger body is not the proven ask-free rider shape")
+		// Charm to pick modes, no tape to serve a mid-resolution ask. Only a
+		// body provably ask-free lowers (staticSpellCastBody).
+		if err := lc.staticSpellCastBody(ab, t); err != nil {
+			return err
 		}
 	}
 	if err := lc.staticTriggerBody(staticCand, ab, tr, t, svars); err != nil {
