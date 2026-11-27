@@ -905,20 +905,32 @@ func init() { CtrXNames[CtrTraining-CtrCharge] = "TRAINING" }
 // ctr TRAP (dirac/manifest/CounterKind/CtrTrap)
 const CtrTrap CounterKind = 243
 
+func init() { CtrXNames[CtrTrap-CtrCharge] = "TRAP" }
+
 // ctr UNITY (dirac/manifest/CounterKind/CtrUnity)
 const CtrUnity CounterKind = 244
+
+func init() { CtrXNames[CtrUnity-CtrCharge] = "UNITY" }
 
 // ctr UNLOCK (dirac/manifest/CounterKind/CtrUnlock)
 const CtrUnlock CounterKind = 245
 
+func init() { CtrXNames[CtrUnlock-CtrCharge] = "UNLOCK" }
+
 // ctr VITALITY (dirac/manifest/CounterKind/CtrVitality)
 const CtrVitality CounterKind = 246
+
+func init() { CtrXNames[CtrVitality-CtrCharge] = "VITALITY" }
 
 // ctr VORTEX (dirac/manifest/CounterKind/CtrVortex)
 const CtrVortex CounterKind = 247
 
+func init() { CtrXNames[CtrVortex-CtrCharge] = "VORTEX" }
+
 // ctr VOW (dirac/manifest/CounterKind/CtrVow)
 const CtrVow CounterKind = 248
+
+func init() { CtrXNames[CtrVow-CtrCharge] = "VOW" }
 
 // ctr VOYAGE (dirac/manifest/CounterKind/CtrVoyage)
 const CtrVoyage CounterKind = 249

@@ -5,8 +5,8 @@ import "testing"
 // TestFrozenSentinels: each "one past the iota list" sentinel is fixed since
 // the manifest cutover, and no other constant of its type takes its value:
 // a new code is a manifest entry above it, never an append that would land
-// on the sentinel. NumCounterKinds3 is the counter kinds' cover (moved once,
-// 81 to 242).
+// on the sentinel. NumCounterKinds3 is the counter kinds' cover (moved twice,
+// 81 to 242, then to 249).
 func TestFrozenSentinels(t *testing.T) {
 	for _, c := range []struct {
 		typ, name string
@@ -18,7 +18,7 @@ func TestFrozenSentinels(t *testing.T) {
 		{"kop.StaticKind", "StatCount", 21},
 		{"kop.ExprKind", "ExCount_", 62},
 		{"kop.CondKind", "CondCount_", 13},
-		{"kop.CounterKind", "NumCounterKinds3", 242},
+		{"kop.CounterKind", "NumCounterKinds3", 249},
 	} {
 		consts := typedConsts(t, c.typ)
 		if got, ok := consts[c.name]; !ok || got != c.want {

@@ -4,4 +4,4 @@ value: 247
 forge: VORTEX
 census: ctr VORTEX all=1 std=0 mbc=0 sole=0
 state: code 0
-status: deferred cover:NumCounterKinds3
+status: reserved
