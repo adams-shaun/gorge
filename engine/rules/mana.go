@@ -304,6 +304,19 @@ func (e *Engine) offerCastableUsingExtra(statics costStaticViews, p state.Player
 		}
 		return pay.NonManaCastableP(asPayer(e), p, id, &composed, ability, tapCostSAKind(scope.Ab))
 	}
+	// CR 702.132a: another seat may fund the generic part, so the offer prices
+	// the potential assist beside the caster's own mana. This is why the
+	// offer must not withhold a cast the caster can only colour-fund: that is
+	// exactly the case Assist exists for. The reduction is added to `extra` as
+	// well as to the composed mods so the target-dependent retry below carries
+	// the same credit.
+	if !ability {
+		if credit := e.assistOfferCredit(p, id, base.Generic+tax); credit > 0 {
+			assist := costMod{Generic: credit}
+			extra = append(slices.Clone(extra), assist)
+			mods.Reduces = append(slices.Clone(mods.Reduces), assist)
+		}
+	}
 	if !e.manaFeasiblePricedP(p, desc, base, &mods, tax, delve, hyp) {
 		// A target-dependent reducer cannot be in the ordinary pre-target
 		// snapshot, but it may make one legal target choice payable. Retry with
