@@ -1121,6 +1121,8 @@ func (s *State) fwRun(c *fctx, l *kop.FLit) bool {
 		return s.fwPowerCmp(c, l) // filter_powercmp.go
 	case kop.FwSameName:
 		return s.fwSameName(c, l) // filter_samenameref.go
+	case kop.FwSharesCardType:
+		return s.fwSharesCardType(c, l) // filter_sharescardtype.go
 	case kop.FwSharesCr:
 		return s.fwSharesCr(c, l) // filter_sharesreferents.go
 	case kop.FwSharesName:
@@ -1150,7 +1152,7 @@ func (s *State) fwRun(c *fctx, l *kop.FLit) bool {
 // fwHandled reports whether word w has a handler.
 func fwHandled(w kop.FilterWord) bool {
 	switch w {
-	case kop.FwAttacking, kop.FwBasePowerCmp, kop.FwBaseToughnessCmp, kop.FwCMCCmp, kop.FwCanProduceManaColor, kop.FwCanProduceSameManaTypeWith, kop.FwChosenCtrl, kop.FwCountersCmp, kop.FwDoubleFaced, kop.FwEnchantedControllerCtrl, kop.FwKeyword, kop.FwManaCostEQ, kop.FwModal, kop.FwOppProtect, kop.FwPaired, kop.FwPairedWith, kop.FwPowerCmp, kop.FwSameName, kop.FwSharesCr, kop.FwSharesName, kop.FwSharesNameThisTurnCast, kop.FwSingleTarget, kop.FwSubtype, kop.FwSuspended, kop.FwTapped, kop.FwTeamwork, kop.FwTopLibrary, kop.FwToughnessCmp, kop.FwWithKeyword:
+	case kop.FwAttacking, kop.FwBasePowerCmp, kop.FwBaseToughnessCmp, kop.FwCMCCmp, kop.FwCanProduceManaColor, kop.FwCanProduceSameManaTypeWith, kop.FwChosenCtrl, kop.FwCountersCmp, kop.FwDoubleFaced, kop.FwEnchantedControllerCtrl, kop.FwKeyword, kop.FwManaCostEQ, kop.FwModal, kop.FwOppProtect, kop.FwPaired, kop.FwPairedWith, kop.FwPowerCmp, kop.FwSameName, kop.FwSharesCardType, kop.FwSharesCr, kop.FwSharesName, kop.FwSharesNameThisTurnCast, kop.FwSingleTarget, kop.FwSubtype, kop.FwSuspended, kop.FwTapped, kop.FwTeamwork, kop.FwTopLibrary, kop.FwToughnessCmp, kop.FwWithKeyword:
 		return true
 	}
 	return false

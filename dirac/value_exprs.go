@@ -182,7 +182,7 @@ func (s *State) exprCold(k *prep, x *kop.Expr, ctx evalCtx) int {
 	case kop.ExNotOwnLibMV:
 		return s.notOwnLibMV(k) // value_objectmv.go
 	case kop.ExRemEachOwnNonLand:
-		return s.remEachOwnNonLand(k) // value_remeachown.go
+		return s.remEachOwnNonLand(k, x.N) // value_remeachown.go
 	case kop.ExCounterKinds:
 		return s.counterKinds(k, x, ctx) // value_counterkinds.go
 	case kop.ExReplLKIPower:
