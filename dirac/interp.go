@@ -1025,6 +1025,32 @@ func (s *State) resolveOptions(k *prep, d *Decision) bool {
 	return true
 }
 
+// applyMoveCounterAnyPick takes one answer of the MoveCounter Any pick and
+// reports whether the pick closed (the program then advances); false re-poses.
+func (s *State) applyMoveCounterAnyPick(k *prep, a Action) bool {
+	r := &s.res
+	if a.Kind() == AkDone {
+		n := 0
+		if r.peekI > 0 {
+			n = int(r.arr[0])
+		}
+		r.peekI = 0
+		s.moveCounterAnyApply(k, n)
+		return true
+	}
+	if int(r.peekI) < len(r.arr) {
+		r.arr[r.peekI] = Obj(a.Mode()) // code-ok: a counter amount (0..held), not an object code
+		r.peekI++
+	}
+	if int(r.peekI) < int(s.g.pickLeft) {
+		return false
+	}
+	n := int(r.arr[0])
+	r.peekI = 0
+	s.moveCounterAnyApply(k, n)
+	return true
+}
+
 func (s *State) applyResolve(k *prep, a Action) {
 	r := &s.res
 	if r.ask >= raGenBase {

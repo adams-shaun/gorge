@@ -59,9 +59,9 @@ func digNoLooking(ps *params, who lRef) error {
 // kernel plays as kop.DigRestTopAsk (ask true). The ask needs the rest to
 // sit on top after the take, so a take put on top of the library
 // (LibraryPosition$ 0) refuses beside it. The kernel's dig over several
-// players takes no choices, so a Dig of each player refuses, and one of
-// each opponent is the one opponent's only in two seats (lc.twoSeat; Spin
-// into Myth's ChosenPlayer, lower_chooseplayer.go).
+// players takes no choices, so a Dig of each player refuses; the
+// each-opponent form is reduced below (Spin into Myth's ChosenPlayer,
+// lower_chooseplayer.go).
 func (lc *lowerCtx) digRestTop(ps *params, who lRef, n, take lValue, dest, dest2 int) (top, ask bool, err error) {
 	v, ok := ps.get("LibraryPosition2")
 	if !ok {
@@ -76,6 +76,15 @@ func (lc *lowerCtx) digRestTop(ps *params, who lRef, n, take lValue, dest, dest2
 	case "0":
 	default:
 		return false, false, refuse("LibraryPosition2 %q", v)
+	}
+	if ps.is("RestRandomOrder", "True") && v == "0" && !ps.is("FromBottom", "True") {
+		// gorge effDig's rest(): RestRandomOrder$ never poses the top-order
+		// ask and a LibraryPosition2$ "0" placement moves nothing (the card
+		// stays where it is), so the rest stays on top in window order
+		// whatever the window's size (Genesis Hydra's DigNum$ X, whose
+		// Shuffle follows). The caller drops the RestRandomOrder flag: the
+		// kernel reads it beside RestTop as the ask (kop.DigRestTopAsk).
+		return true, false, nil
 	}
 	if n.Kind != vConst || ps.is("FromBottom", "True") || ps.is("RestRandomOrder", "True") {
 		return false, false, refuse("LibraryPosition2 0 of a non-constant or reordered window")
@@ -92,6 +101,8 @@ func (lc *lowerCtx) digRestTop(ps *params, who lRef, n, take lValue, dest, dest2
 		return false, false, refuse("LibraryPosition2 0 on an each-player Dig")
 	}
 	if who.Kind == rEachOpp {
+		// One opponent is the only opponent when the table has two seats
+		// (Spin into Myth's ChosenPlayer, lower_chooseplayer.go).
 		lc.twoSeat("a Dig's rest ordered on top of each opponent's library as the one opponent's")
 	}
 	return true, true, nil

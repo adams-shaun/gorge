@@ -323,6 +323,7 @@ DelayUpkeep	untyped int	1
 DelayYourEndStep	untyped int	7
 DelayYourUpkeep	untyped int	2
 DestroyAllChosenOrder	untyped int	16
+DestroySumToughness	untyped int	8
 DigExilerOther	untyped int	4096
 DigFaceDown	untyped int	2048
 DigOptional	untyped int	8

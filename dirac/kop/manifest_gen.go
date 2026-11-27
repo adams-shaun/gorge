@@ -2275,6 +2275,13 @@ const OpMarkNoRegen Op = 160
 
 func init() { opNames[OpMarkNoRegen] = "MarkNoRegen" }
 
+// other:MoveCounter ValidDefined$ (dirac/manifest/Op/OpMoveCounterAny)
+//
+// the resolving source moves a chosen 0..N counters of kind B.N onto each battlefield permanent matching F, the source excluded, distributed round-robin in battlefield order (gorge effMoveCounter/moveCounterMove, CR 122.5; Forgotten Ancient's "move any number of +1/+1 counters ... onto other creatures"). dirac/ctr_moveany.go.
+const OpMoveCounterAny Op = 161
+
+func init() { opNames[OpMoveCounterAny] = "MoveCounterAny" }
+
 // Pred (dirac/manifest/Pred/PredNamedCard)
 //
 // PredNamedCard: the card-name property NamedCard (gorge namePredicate NamedCard, CR 201.4): the candidate's name card is the reading source's chosen card name. The chosen name lives in the source permanent's chosen byte (the as-enters choice and a mid-resolution NameCard ask store it there, kernel repl_namecard.go), in a resolution's own answer for a source still on the stack (gorge Object.ChosenName), and in a host-bound emblem's frozen capture once a `DB$ Cleanup | ClearNamedCard$ True` wiped the source (gorge state.ContinuousEffect.ChosenName, Cheering Fanatic's ReduceCost ValidCard$ Card.NamedCard). A face-down candidate has no name (CR 708.2) and matches nothing. A reader with no chosen name to read fails closed, as gorge's empty ChosenName matches nothing. FilterFlags2 is full, so the word takes the one Pred slot (kernel filter_negations.go). 235: the free explicit ordinal below the 236+ family (PredRenowned took 236).

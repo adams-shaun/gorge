@@ -288,6 +288,12 @@ const CzChosenOrder = 1 << 3
 // RememberDestroyed$/NoRegen$.
 const DestroyAllChosenOrder = 1 << 4
 
+// DestroySumToughness is OpDestroy's C bit 3, beside RememberDestroyed$ (2)
+// and RememberLKI$ (4): a destroyed target that lands in a graveyard adds its
+// last-known toughness to the resolution's remLK, the sum RememberedLKI$
+// CardToughness reads (Noxious Gearhulk's "gain life equal to its toughness").
+const DestroySumToughness = 1 << 3
+
 // AttachUnattach (OpAttach C, beside MvRemember's bit 0): Reconfigure's
 // unattach half (CR 702.151a), "unattach from a creature": the source stops
 // being attached, to nothing if it was not attached.

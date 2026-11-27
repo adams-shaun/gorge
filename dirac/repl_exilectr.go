@@ -47,7 +47,7 @@ func (e exileCtr) n() uint8 { return uint8(e >> 12) }
 
 // exileCtrKinds is the code table: a record's low byte is 1 + the index here.
 // Append only: a code is a stored index.
-var exileCtrKinds = [...]kop.CounterKind{kop.CtrVoid, kop.CtrIce, kop.CtrBlood, kop.CtrHit, kop.CtrCroak, kop.CtrMemory}
+var exileCtrKinds = [...]kop.CounterKind{kop.CtrVoid, kop.CtrIce, kop.CtrBlood, kop.CtrHit, kop.CtrCroak, kop.CtrMemory, kop.CtrBrain}
 
 // exileCtrCodeOf maps a counter kind to its 1-based code (0: not modelled).
 func exileCtrCodeOf(kind kop.CounterKind) uint8 {

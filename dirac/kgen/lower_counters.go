@@ -160,10 +160,16 @@ func (lc *lowerCtx) gainEnergy(obj lRef, n lValue, kind int) error {
 // ask), ValidSource$ / ValidDefined$ sweeps and the remember riders
 // refuse.
 func (lc *lowerCtx) moveCounter(ps *params) error {
-	for _, k := range []string{"ValidSource", "ValidDefined", "RememberPut", "RememberAmount", "NonZero"} {
+	for _, k := range []string{"RememberPut", "RememberAmount", "NonZero"} {
 		if _, ok := ps.get(k); ok {
 			return refuse("MoveCounter %s$", k)
 		}
+	}
+	if vd, ok := ps.get("ValidDefined"); ok {
+		return lc.moveCounterAny(ps, vd)
+	}
+	if _, ok := ps.get("ValidSource"); ok {
+		return refuse("MoveCounter ValidSource$")
 	}
 	kind := ps.str("CounterType")
 	switch kind {
@@ -240,6 +246,36 @@ func (lc *lowerCtx) moveCounter(ps *params) error {
 		return refuse("MoveCounter onto its origin")
 	}
 	lc.emit(lInstr{Op: "MoveCounter", Obj: dst, Obj2: src, A: n, CS: kind})
+	return nil
+}
+
+// moveCounterAny lowers MoveCounter's "move any number" onto a definition
+// sweep (Forgotten Ancient): Source$ Self, ValidDefined$ a battlefield
+// filter, CounterNum$ Any and one named counter kind. The kernel op asks
+// 0..held and distributes the answer in battlefield order, as gorge's
+// moveCounterMove does (dirac/ctr_moveany.go).
+func (lc *lowerCtx) moveCounterAny(ps *params, vd string) error {
+	if !ps.is("Source", "Self") {
+		return refuse("MoveCounter ValidDefined$ Source$ %q", ps.str("Source"))
+	}
+	if !ps.is("CounterNum", "Any") {
+		return refuse("MoveCounter ValidDefined$ with CounterNum$ %q", ps.str("CounterNum"))
+	}
+	kind := ps.str("CounterType")
+	switch kind {
+	case "", "Any", "All", "EachNotOn":
+		return refuse("MoveCounter CounterType %q", kind)
+	}
+	for _, k := range []string{"Defined", "ValidTgts"} {
+		if _, ok := ps.get(k); ok {
+			return refuse("MoveCounter ValidDefined$ beside %s$", k)
+		}
+	}
+	f, err := lc.filter(vd)
+	if err != nil {
+		return err
+	}
+	lc.emit(lInstr{Op: "MoveCounterAny", Obj: lRef{Kind: rSelf}, CS: kind, F: f})
 	return nil
 }
 

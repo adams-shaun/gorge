@@ -34,6 +34,7 @@ func init() {
 	instrOp("Renown", (*instrCtx).opRenown)
 	instrOp("CounterPlusEOT", (*instrCtx).opCounterPlusEOT)
 	instrOp("MoveCounter", (*instrCtx).opMoveCounter)
+	instrOp("MoveCounterAny", (*instrCtx).opMoveCounterAny)
 	instrOp("ClearCounters", (*instrCtx).opClearCounters)
 	instrOp("RemoveCounterAll", (*instrCtx).opRemoveCounterAll)
 	instrOp("PutCountersFrom", (*instrCtx).opPutCountersFrom)
@@ -340,6 +341,18 @@ func (ic *instrCtx) opMoveCounter() error {
 	}
 	ki.C = int16(r)
 	return nil
+}
+
+func (ic *instrCtx) opMoveCounterAny() error {
+	ki := &ic.ki
+	in := &ic.in
+	ki.Op = kop.OpMoveCounterAny
+	k, err := counterKind(in.CS)
+	if err != nil {
+		return err
+	}
+	ki.B = kop.Const(int(k))
+	return ic.objFilter(kop.ZoneBattlefield)
 }
 
 func (ic *instrCtx) opClearCounters() error {

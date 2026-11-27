@@ -229,6 +229,10 @@ var DebugRem2Always bool
 //go:noinline
 func (s *State) destroyRemember(k *prep, sl Slot, c int16) {
 	o := s.perms[sl].obj
+	tough := 0
+	if c&kop.DestroySumToughness != 0 {
+		_, tough = s.ptGen(k, sl) // the last-known toughness, read before the move (CR 608.2h)
+	}
 	if c&1 != 0 { // seat-ok: the NoRegen flag bit
 		s.destroyNoRegenNow(k, sl)
 	} else {
@@ -238,6 +242,9 @@ func (s *State) destroyRemember(k *prep, sl Slot, c int16) {
 		s.remember(o)
 		if c&4 != 0 {
 			s.markRemLKI(o) // RememberLKI$: a read takes the last controller
+		}
+		if c&kop.DestroySumToughness != 0 {
+			s.remLKSum(tough) // RememberedLKI$CardToughness (zone_rememberlki.go)
 		}
 	}
 }
