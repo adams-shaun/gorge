@@ -2,8 +2,10 @@
 #
 # "Green main" is the head of the newest oracle.yml run on main that concluded
 # success and ran at least one oracle job that was not skipped: the same test
-# oracle.yml's own bisect step uses to find the last good run. When no such run
-# exists the workflow ends green with a notice and pushes nothing.
+# oracle.yml's own bisect step uses to find the last good run
+# (scripts/green-main.sh pages through up to 500 runs). When no such run exists
+# nothing is pushed, and job fresh fails the workflow once the newest dated tag
+# is more than two days old (scripts/image-freshness.sh).
 #
 # The image is deploy/docker/Dockerfile (targets gorged and proxy, as
 # demo-image.yml builds them) built at that exact sha. It carries no Forge card
@@ -35,28 +37,24 @@ jobs:
     outputs:
       sha: ${{ steps.pick.outputs.sha }}
     steps:
+      - uses: actions/checkout@v4
       - name: Pick the newest green oracle run on main
         id: pick
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           # The head of the newest run on main whose oracle jobs all passed, with at least one that ran
-          # (the way oracle.yml's bisect step reads runs).
-          good=""
-          while read -r id sha; do
-            bad=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$id/jobs?per_page=50" \
-              --jq '[.jobs[] | select(.name | startswith("oracle")) | select(.conclusion != "skipped" and .conclusion != "success")] | length')
-            ran=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$id/jobs?per_page=50" \
-              --jq '[.jobs[] | select(.name | startswith("oracle")) | select(.conclusion == "success")] | length')
-            if [ "$bad" = 0 ] && [ "$ran" -gt 0 ]; then good=$sha; break; fi
-          done < <(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/oracle.yml/runs?branch=main&status=completed&per_page=30" \
-            --jq '.workflow_runs[] | select(.conclusion == "success") | "\(.id) \(.head_sha)"')
-          if [ -z "$good" ]; then
-            echo "::notice::no green oracle run on main in the last 30 runs; nothing to publish"
+          # (the way oracle.yml's bisect step reads runs), paging past the runs whose oracle jobs were skipped.
+          # Exit 3: none in the window; publish nothing and leave the verdict to job fresh.
+          rc=0
+          sha=$(bash scripts/green-main.sh) || rc=$?
+          if [ "$rc" = 3 ]; then
+            echo "::notice::no green oracle run on main in the pages read; nothing to publish"
             exit 0
           fi
-          echo "green main: $good"
-          echo "sha=$good" >> "$GITHUB_OUTPUT"
+          if [ "$rc" != 0 ]; then exit "$rc"; fi
+          echo "green main: $sha"
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
 
   image:
     needs: green
@@ -148,3 +146,29 @@ jobs:
             echo "- tags: \`${{ steps.names.outputs.day }}\`, \`latest\`, \`$SHA\`"
             echo "- retagged only (sha already built): ${{ steps.have.outputs.built }}"
           } >> "$GITHUB_STEP_SUMMARY"
+
+  # The site runs the newest dated tag: fail (red workflow) when none is from the last two days, whether the
+  # pick found nothing or the publish broke.
+  fresh:
+    needs: [green, image]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      packages: read
+    env:
+      IMAGE_VAR: ${{ vars.IMAGE_NAME }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+      - name: Newest dated tag is at most two days old
+        run: |
+          image=${IMAGE_VAR:-ghcr.io/$GITHUB_REPOSITORY}
+          image=$(printf '%s' "$image" | tr '[:upper:]' '[:lower:]')
+          bash scripts/image-freshness.sh "$image" 2
