@@ -247,8 +247,8 @@ func (s *State) castXRestrictionRecheck(k *prep, e *stackEntry) bool {
 // payment window opens, then the ordinary mana step. Kept out of manaStep so
 // the hot function grows no branch (codeshape).
 func (s *State) manaStage(k *prep) bool {
-	if s.castXRestrictionRecheck(k, &s.bld().e) {
-		s.reverseCast(k) // CR 601.2e: the announced X makes the CantBeCast restriction apply
+	if s.castXRestrictionRecheck(k, &s.bld().e) || s.teamworkFlashRecheck(k, &s.bld().e) {
+		s.reverseCast(k) // CR 601.2e: the announced X makes the CantBeCast restriction apply, or the Teamwork flash grant went unelected (cast_selfflash.go)
 		return true
 	}
 	return s.manaStep(k)

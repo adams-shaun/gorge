@@ -1146,7 +1146,7 @@ func (cb *cardBuilder) record() error {
 	d.Leyline = c.Leyline
 	d.LeylineGem, d.LeylineCtr, d.LeylineCtrN = c.LeylineGem, c.LeylineCtr, c.LeylineCtrN
 	d.World, d.Snow = c.World, c.Snow
-	d.SelfFlash = c.SelfFlash
+	d.SelfFlash, d.SelfFlashSA = c.SelfFlash, c.SelfFlashSA
 	d.Gift = c.Gift
 	d.SpentSelf, d.SpentSnow = c.SpentSelf, c.SpentSnow
 	d.DmgAmt = c.DmgAmt
