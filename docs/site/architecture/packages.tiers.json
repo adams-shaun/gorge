@@ -113,6 +113,11 @@
       "status": "EXT",
       "purpose": "State-encoder contract: Schema, ViewEncoder, registry over the policynet feature sets."
     },
+    "bots/encoder/encodertest": {
+      "tier": "bots",
+      "status": "EXT",
+      "purpose": "Determinism test kit for registered state encoders: repeated runs over shuffled-map copies of fixture views."
+    },
     "bots/policynet": {
       "tier": "bots",
       "status": "EXT (linked into seat)"
