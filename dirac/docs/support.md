@@ -29,14 +29,14 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 | TMT | 194 | 188 | 0 | 1 | 187 | 187 | 1 |
 | TRC | 337 | 307 | 0 | 29 | 278 | 278 | 6 |
 | TRK | 311 | 311 | 1 | 0 | 310 | 310 | 1 |
-| WOE | 281 | 268 | 1 | 3 | 264 | 264 | 1 |
+| WOE | 281 | 268 | 0 | 4 | 264 | 264 | 1 |
 | MBC | 2212 | 2054 | 3 | 54 | 1997 | 1997 | 8 |
 | CMM | 737 | 640 | 2 | 40 | 598 | 598 | 9 |
 | MH3 | 308 | 245 | 1 | 19 | 225 | 225 | 1 |
 | MH2 | 309 | 273 | 0 | 19 | 254 | 254 | 1 |
 | CM2 | 279 | 246 | 1 | 9 | 236 | 236 | 10 |
-| hosted-cmdr | 1234 | 1141 | 6 | 73 | 1062 | 1061 | 33 |
-| ALL | 34480 | 27182 | 47 | 1245 | 25890 | 25887 | 33 |
+| hosted-cmdr | 1234 | 1141 | 0 | 79 | 1062 | 1061 | 33 |
+| ALL | 34480 | 27182 | 41 | 1251 | 25890 | 25887 | 33 |
 
 `ALL` is the whole corpus; `MBC` is the Mystery Booster Commander draft pool, every name its packs deal that gorge supports; `CMM`, `MH3`, `MH2` and `CM2` are Commander Masters, Modern Horizons 3 and 2 and Commander Anthology Volume II, from gorge-compliance's XMage manifests; `hosted-cmdr` is the union of every card of gorged's hosted Commander decks (`testkit/testutil/decks`, format commander), so each deck is judged in one set; the rest are the Standard sets. `4-seat` counts the supported cards whose lowering holds at any seat count: a card whose lowering reads the one opponent of a two-player game (`kop.CardDef.TwoSeat`) is refused in a game of three or more seats (`StallTwoSeat`). It is a ceiling, not evidence. `pod-evidenced` counts those cards whose evidence row carries a seats field of three or more — a clean pod game, which `kfuzz -evidence -seats 4` writes and `scripts/dirac-first-refusals.py evidence --pools pod-*` copies into `dirac/support/evidence` (`Name\t<seats>`; readers take the name and ignore trailing columns). A four-seat row evidences its card (OD-4 stage 2, `oracle.EvidencePodMinPlays` = 1): a Commander-only key such as Command Tower's colour-identity mana is used there and credited as any own key is, while a three-seat row stays in this column only. The `4-seat` column's pod requirement is report only until pod coverage is large enough to gate it; read `pod-evidenced` beside it.
 
@@ -5291,18 +5291,16 @@ Nothing else is covered. A card none of these runs reaches is unverified, whatev
 
 ## Refused by name
 
-47 cards, by what differed in the game that showed them. Each has a file in `dirac/support/refused` naming the card, the difference and the game.
+41 cards, by what differed in the game that showed them. Each has a file in `dirac/support/refused` naming the card, the difference and the game.
 
 | what differed | cards |
 |---|---:|
 | lockstep | 18 |
-| options | 8 |
+| options | 6 |
 | options-options | 5 |
 | projection-Cards.Damage | 1 |
 | projection-Cards.Flags | 2 |
-| projection-Cards.Pos | 1 |
-| projection-Cards.Power | 2 |
-| projection-Cards.Zone | 2 |
+| projection-Cards.Zone | 1 |
 | projection-NStack | 1 |
 | unmodelled-endure | 1 |
 | unmodelled-landgrant | 4 |
