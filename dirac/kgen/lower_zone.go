@@ -4611,7 +4611,7 @@ func (lc *lowerCtx) delayedTrigger(ps *params) error {
 	sacGroup := false
 	groupMany := false
 	lkiMany := false
-	lkiTypeCtr := false
+	lkiCS := "" // extra DpMany return flags (lower_delayedlkimany.go)
 	if ps.str("RememberChain") == "False" {
 		if ro != "" {
 			return refuse("RememberChain$ False delayed trigger shape")
@@ -4637,18 +4637,9 @@ func (lc *lowerCtx) delayedTrigger(ps *params) error {
 		// target slot taking several, or a remembered set one unbounded
 		// ChangeZoneAll Remember sweep wrote, would return only the first
 		if lc.delayedLKIMulti() {
-			// a set of several objects: the kernel's DpMany program, for the
-			// shapes it returns exactly (lower_delayedlkimany.go). Semester's
-			// End's Effect adds a type-conditional enters counter to the same
-			// return.
-			if ret, ok := lc.delayedLKICtrBody(exec); ok {
-				if why := lc.delayedLKITargetSetShape(); why != "" {
-					return refuse("delayed trigger RememberedLKI over a multi-object target slot: %s", why)
-				}
-				exec = ret
-				lkiTypeCtr = true
-			} else if why := lc.delayedLKIManyShape(exec); why != "" {
-				return refuse("delayed trigger RememberedLKI over a multi-object target slot: %s", why)
+			var err error
+			if exec, lkiCS, err = lc.delayedLKIManyBody(exec); err != nil {
+				return err
 			}
 			lkiMany = true
 		} else if lc.delayedLKISweepMulti() {
@@ -4724,9 +4715,7 @@ func (lc *lowerCtx) delayedTrigger(ps *params) error {
 		} else {
 			lat.Prog[0].CS = cs + "|DelayedMany"
 		}
-		if lkiTypeCtr {
-			lat.Prog[0].CS += "|DelayedCtrByType"
-		}
+		lat.Prog[0].CS += lkiCS
 		in.B = cst(3)
 	}
 	lc.emit(in)

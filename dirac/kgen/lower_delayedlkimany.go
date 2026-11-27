@@ -247,3 +247,21 @@ func (lc *lowerCtx) delayedChainManyShape(exec *cards.SA) string {
 	}
 	return delayedLKIReturnBody(exec)
 }
+
+// delayedLKIManyBody checks the body of a RememberedLKI delayed trigger over
+// a set of several objects: the kernel's DpMany program, for the shapes it
+// returns exactly (lower_delayedlkimany.go). Semester's End's Effect adds a
+// type-conditional enters counter to the same return: that body is lowered as
+// its plain return, csFlag the |DelayedCtrByType flag.
+func (lc *lowerCtx) delayedLKIManyBody(exec *cards.SA) (body *cards.SA, csFlag string, err error) {
+	if ret, ok := lc.delayedLKICtrBody(exec); ok {
+		if why := lc.delayedLKITargetSetShape(); why != "" {
+			return exec, "", refuse("delayed trigger RememberedLKI over a multi-object target slot: %s", why)
+		}
+		return ret, "|DelayedCtrByType", nil
+	}
+	if why := lc.delayedLKIManyShape(exec); why != "" {
+		return exec, "", refuse("delayed trigger RememberedLKI over a multi-object target slot: %s", why)
+	}
+	return exec, "", nil
+}
