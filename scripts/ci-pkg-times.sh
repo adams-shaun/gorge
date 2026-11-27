@@ -7,7 +7,11 @@
 # heads" step is excluded: the pinned TestHeads call measures one test of engine/rules, not the package.
 # A split package (ci-splits.tsv) prints one ok line per entry per run (its rows plus its whole entry); the largest
 # is the package's whole entry and the rest go to its #<label> entries by size (largest to the first label listed,
-# so engine/rules' four calls are whole/#A/#B/#C largest to smallest; the tsv header records the ratio).
+# so engine/rules' four calls are whole/#A/#B/#C largest to smallest; the tsv header records the ratio). Size is
+# not call order, though: engine/rules' siblings measure 65/82/64 s on their own #A/#B/#C calls, and a size-sorted
+# refresh would label them by rank instead. The tsv's engine/rules rows are the measured call-order values, kept by
+# hand until a split call names its own label in the log (ci.yml runs each <package>#<label> as `go test -run <regex>`,
+# which the ok line does not echo); a refresh that re-sorts them by size invalidates those four rows.
 set -euo pipefail
 echo "# ci-pkg-times.tsv: measured seconds per package (go test's \"ok\" line; median over the runs given, a package none of them ran keeps its earlier value). ci_shard.sh balances shards on it."
 echo "# Refresh: scripts/ci-pkg-times.sh <run-id> [<run-id>...] > scripts/ci-pkg-times.tsv"
