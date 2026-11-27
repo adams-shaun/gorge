@@ -1,0 +1,12 @@
+# Aura Barbs' RelativeTarget$ lines beside an attached Aura: each enchantment
+# deals 2 to its controller, then each Aura attached to a creature deals 2 to
+# its bearer. The Pacifisms are the only enchantments, all controlled by the
+# Barbs deck, so the Barbs seat's life total pins both per-source passes.
+# dirac/oracle/aurabarbs_attached_lockstep_test.go plays it.
+Aura Barbs
+Pacifism
+Mana Confluence
+Grizzly Bears
+Savannah Lions
+Hill Giant
+Wind Drake
