@@ -53,6 +53,7 @@ __pycache__/
 # One line per command in cmd/, anchored to the root so a real package of the
 # same name is unaffected.
 /botbench
+/cardc
 /deckimport
 /forgec
 /gcgate

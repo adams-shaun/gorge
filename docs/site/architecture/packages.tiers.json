@@ -175,6 +175,10 @@
       "tier": "tooling",
       "status": "TOOL"
     },
+    "cmd/cardc": {
+      "tier": "cmd",
+      "status": "CORE"
+    },
     "cmd/cardfuzz": {
       "tier": "cmd",
       "status": "TOOL"
@@ -269,6 +273,18 @@
     "cmd/testbudget": {
       "tier": "cmd",
       "status": "TOOL"
+    },
+    "engine/cardc": {
+      "tier": "engine",
+      "status": "CORE (no own tests)"
+    },
+    "engine/cardc/ir": {
+      "tier": "engine",
+      "status": "CORE"
+    },
+    "engine/cardc/mtgish": {
+      "tier": "engine",
+      "status": "CORE"
     },
     "engine/cards": {
       "tier": "engine",
