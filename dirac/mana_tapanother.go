@@ -1781,13 +1781,13 @@ func (s *State) planOtherSacSourceOrder(k *prep, order []Slot, n int) {
 // then the lowest object id. gorge leads: a cast the plan funds by sacrificing
 // another creature takes the same permanent in the kernel, so the lockstep
 // projection agrees. A non-final step, or a source whose filter is not that plain
-// creature shape, keeps the candidate walk's battlefield order (cs itself).
+// creature shape, keeps the candidate walk's battlefield order (cs itself). A plan
+// step reorders cs[:nc] in place (the caller's scratch, unused afterwards), so no
+// local escapes.
 func (s *State) sacXVictimOrder(k *prep, sl Slot, cs *[MaxPerm]Slot, nc int, plan bool) *[MaxPerm]Slot {
 	if !plan || !planOtherSacFilter(&k.t.Filters[k.tapXAbOf(s.cardAt(sl)).Cost.Filter]) {
 		return cs
 	}
-	var out [MaxPerm]Slot
-	copy(out[:nc], cs[:nc])
 	less := func(a, b Slot) bool {
 		ao, bo := s.perms[a].obj, s.perms[b].obj
 		if at, bt := s.objs[ao].of&ofToken != 0, s.objs[bo].of&ofToken != 0; at != bt {
@@ -1799,16 +1799,16 @@ func (s *State) sacXVictimOrder(k *prep, sl Slot, cs *[MaxPerm]Slot, nc int, pla
 		}
 		return ao < bo
 	}
-	for i := 1; i < nc; i++ { // insertion sort: MaxPerm entries, no alloc
-		x := out[i]
+	for i := 1; i < nc; i++ { // insertion sort in the caller's buffer: MaxPerm entries, no alloc
+		x := cs[i]
 		j := i
-		for j > 0 && less(x, out[j-1]) {
-			out[j] = out[j-1]
+		for j > 0 && less(x, cs[j-1]) {
+			cs[j] = cs[j-1]
 			j--
 		}
-		out[j] = x
+		cs[j] = x
 	}
-	return &out
+	return cs
 }
 
 // sacStep is visit's branch for a sacrifice-another source sl with nc
