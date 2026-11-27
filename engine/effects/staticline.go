@@ -885,10 +885,11 @@ func effectRemembered(h Host, c *Ctx, sa *cards.SA) []state.ObjID {
 			if part == "" {
 				continue
 			}
-			switch effectRememberedCodes.Code(string(part)) {
+			code := effectRememberedCodes.Code(string(part))
+			switch code {
 			case effectRememberedYou:
 				out = append(out, c.Source)
-			case effectRememberedTargeted:
+			case effectRememberedTargeted, effectRememberedTargetedSource:
 				targets := c.Targets
 				if c.PickedTargets != nil {
 					targets = c.PickedTargets
@@ -901,7 +902,15 @@ func effectRemembered(h Host, c *Ctx, sa *cards.SA) []state.ObjID {
 					// Parted's fighters were chosen by two links.
 					targets = refTargetUnion(c)
 				}
-				out = appendEffectRememberedObjects(h, out, targetsStillChosen(h.Game(), c, targets))
+				targets = targetsStillChosen(h.Game(), c, targets)
+				if code == effectRememberedTargetedSource {
+					// TargetedSource names the source card of a targeted stack
+					// ability, or the target itself when it is already a card
+					// (a spell). ImprintCards$ TargetedSource reads the same
+					// translation (context.go's targetedSourceTargets).
+					targets = targetedSourceTargets(h, targets)
+				}
+				out = appendEffectRememberedObjects(h, out, targets)
 			case effectRememberedParentTarget:
 				out = appendEffectRememberedObjects(h, out, parentLinkTargets(c))
 			case effectRememberedRemembered:
@@ -1247,6 +1256,7 @@ type effectRememberedCode uint16
 const (
 	effectRememberedYou effectRememberedCode = iota + 1
 	effectRememberedTargeted
+	effectRememberedTargetedSource
 	effectRememberedParentTarget
 	effectRememberedRemembered
 	effectRememberedImprinted
@@ -1263,6 +1273,7 @@ var effectRememberedCodes = state.NewStrCodes(
 	state.StrEntry[effectRememberedCode]{Key: "Source", Val: effectRememberedYou},
 	state.StrEntry[effectRememberedCode]{Key: "Targeted", Val: effectRememberedTargeted},
 	state.StrEntry[effectRememberedCode]{Key: "ThisTargetedCard", Val: effectRememberedTargeted},
+	state.StrEntry[effectRememberedCode]{Key: "TargetedSource", Val: effectRememberedTargetedSource},
 	state.StrEntry[effectRememberedCode]{Key: "ParentTarget", Val: effectRememberedParentTarget},
 	state.StrEntry[effectRememberedCode]{Key: "Remembered", Val: effectRememberedRemembered},
 	state.StrEntry[effectRememberedCode]{Key: "Remembered.Creature", Val: effectRememberedRemembered},
