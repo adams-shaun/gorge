@@ -1745,38 +1745,45 @@ const ExtRepeatOptional ExtOp = 114
 
 func init() { extOpNames[ExtRepeatOptional] = "RepeatOptional" }
 
+// api Reveal Random (dirac/manifest/ExtOp/ExtRevealRandom)
+//
+// a Reveal Random$ True of one target player's hand (Urza's Bauble, "look at a card at random in target player's hand"): one draw of the engine RNG over that hand's cards when it holds any, no card moves, no decision; the reveal is a Note in gorge, so only the RNG draw is state
+const ExtRevealRandom ExtOp = 115
+
+func init() { extOpNames[ExtRevealRandom] = "RevealRandom" }
+
 // ExtOp (dirac/manifest/ExtOp/ExtRippleBottom)
 //
 // ExtRippleBottom: the tail of a granted ripple's trigger body (gorge effRippleBottom): every card of the resolution's remembered set still in its owner's library goes to the bottom of that library, in remembered order. Two or more pose the owner the CR 401.4 arrangement ask (ChArrange, gorge libraryPlacementOrder over the cards still at the top — the ask precedes the move), and the answer's order is the bottom order (libraryOrderPlacement bottom=true); one or none bottoms unasked. A cast card is on the stack and skipped; a card a response moved is skipped by the same zone recheck (gorge's placed). The kernel-native ripple body arms it (kw_ripple.go rippleProg); no ExtLibPlace bracket, the op asks itself. dirac/kw_ripple.go rippleBottomExt.
-const ExtRippleBottom ExtOp = 115
+const ExtRippleBottom ExtOp = 116
 
 func init() { extOpNames[ExtRippleBottom] = "RippleBottom" }
 
 // ExtOp (dirac/manifest/ExtOp/ExtStoreNum)
 //
 // StoreSVar's per-object number write (gorge effStoreSVar, events.StoreSVar -> Object.RuntimeSVars; CR 400.7): B the value (any ValueRef, evaluated at the write), C the SVar name (Table.SVarNames index, low 4 bits) with the delete-on-default flag (kop.StoreNumDel) and the printed default beside it (kop.StoreNumDefault); the target is the resolving source. The number is a record of the object-set store (kind osNum) keyed by the object, whatever zone it is in: only a departure from the battlefield clears it (gorge's wasBattlefield reset), so a write after the source left persists on the departed object. dirac/act_storenum.go.
-const ExtStoreNum ExtOp = 116
+const ExtStoreNum ExtOp = 117
 
 func init() { extOpNames[ExtStoreNum] = "StoreNum" }
 
 // ExtOp (dirac/manifest/ExtOp/ExtTokenCounters)
 //
 // A Token's WithCountersType$ / WithCountersAmount$ rider: A.N > 0 arms genState.enterCtr with A counters of kind C for the OpCreateToken(Ex) that follows, so the minted token enters with them (CR 122.6, 614.1c), and A.N 0 clears the arm after the mint. Printlifter Ooze's 0/0 Ooze with X +1/+1 counters. dirac/ctr_tokenentry.go.
-const ExtTokenCounters ExtOp = 117
+const ExtTokenCounters ExtOp = 118
 
 func init() { extOpNames[ExtTokenCounters] = "TokenCounters" }
 
 // ExtOp (dirac/manifest/ExtOp/ExtTurnFaceDown)
 //
 // SetState Mode$ TurnFaceDown (gorge effSetState): battlefield permanent Obj turns face down in place (CR 708.2): a 2/2 colourless creature with no name, types or abilities. Its printed triggers and statics unsubscribe; its counters and other effects stay. Obscuring Aether. dirac/face_facedown.go.
-const ExtTurnFaceDown ExtOp = 118
+const ExtTurnFaceDown ExtOp = 119
 
 func init() { extOpNames[ExtTurnFaceDown] = "TurnFaceDown" }
 
 // ExtOp (dirac/manifest/ExtOp/ExtTwoPilesEach)
 //
 // A RepeatEach player body's battlefield TwoPiles (Bend or Break: Defined$ Remembered, Separator$ Remembered, Chooser$ ChosenPlayer, ValidCards$ Land.!token+RememberedPlayerCtrl; gorge effTwoPiles' battlefield arm over the repeated player): F names the repeated player's permanents (CtrlEachPl). They separate them into two piles (ChGenPileSplit, a permanent per pick, AkDone-closed, picking them all ends it; a one-permanent pool poses no split), the opponent their chain's ExtChoosePlayerEach chose picks one (ChGenPileChoose mode 0 the picks, 1 the rest; resChosenPlayer), and the chosen pile is destroyed while the other is tapped (ChosenPile$ DestroyAll Land.IsRemembered then UnchosenPile$ TapAll Land.IsRemembered: each pile's members still matching F run the ordinary destroy / tap-all passes, gorge twoPilesRunPile's fresh Remembered = pile). Pile A rides genState.sacM, the pool player genState.pickP; both are cleared at the end. B.N&1: the pick's mode-1 answer names pile A (the chosen/unchosen piles swap; the lockstep mutation). dirac/act_pileseach.go.
-const ExtTwoPilesEach ExtOp = 119
+const ExtTwoPilesEach ExtOp = 120
 
 func init() { extOpNames[ExtTwoPilesEach] = "TwoPilesEach" }
 

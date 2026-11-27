@@ -899,6 +899,8 @@ func (s *State) execExtGen(k *prep, in *kop.Instr) (ok, done bool) {
 		return s.rememberPlayerOp(k, in) // act_rememberplayer.go
 	case kop.ExtRepeatOptional:
 		return s.repeatOptionalExt(k, in) // act_repeatoptional.go
+	case kop.ExtRevealRandom:
+		return s.revealRandomExt(k, in) // act_revealrandom.go
 	case kop.ExtRingTemptsYou:
 		return s.ringTemptsExt(k, in) // act_ring.go
 	case kop.ExtRippleBottom:

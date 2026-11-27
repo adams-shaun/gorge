@@ -93,6 +93,9 @@ func (lc *lowerCtx) seek(ps *params) error {
 // a reveal has no rules effect). Refused: another player's hand (Defined$,
 // ValidTgts$), RevealDefined$, Random$, RevealAllValid$.
 func (lc *lowerCtx) reveal(ps *params) error {
+	if ps.is("Random", "True") {
+		return lc.revealRandom(ps)
+	}
 	if d, ok := ps.get("Defined"); ok && d != "You" {
 		return refuse("Reveal Defined$ %q", d)
 	}
@@ -134,6 +137,38 @@ func (lc *lowerCtx) reveal(ps *params) error {
 	}
 	cs = append(cs, "Reveal")
 	lc.emit(lInstr{Op: "ChooseMove", Obj: lRef{Kind: rYou}, A: n, F: f, C: zNone, CS: strings.Join(cs, "|")})
+	return nil
+}
+
+// revealRandom lowers Reveal Random$ True over one target player's hand
+// (Urza's Bauble, "look at a card at random in target player's hand"): gorge
+// effReveal narrows the hand pool to one card with a single seeded h.Rand draw
+// and only Notes the reveal, so the lowered effect is the RNG draw alone
+// (OpExt ExtRevealRandom over the target player). Any other parameter beside
+// Random$ (NumCards, RevealValid, Optional, NoReveal, Look, ...) stays unread,
+// so the node check refuses it by name: those change the pool, the draw count
+// or the ask.
+func (lc *lowerCtx) revealRandom(ps *params) error {
+	vt := ps.str("ValidTgts")
+	if vt == "" {
+		return refuse("Reveal Random$ without ValidTgts$ (a defined player's hand)")
+	}
+	f, err := lc.filter(vt)
+	if err != nil {
+		return err
+	}
+	if f.Players == 0 || len(f.Clauses) != 0 {
+		return refuse("Reveal Random$ ValidTgts$ %q is not a plain player target", vt)
+	}
+	who, err := lc.objOrTarget(ps, "You", zNone)
+	if err != nil {
+		return err
+	}
+	if who.Kind != rTarget {
+		return refuse("Reveal Random$ over %v", who)
+	}
+	ps.consume("Random")
+	lc.emit(lInstr{Op: "RevealRandom", Obj: who, Note: "a random card of the hand"})
 	return nil
 }
 
