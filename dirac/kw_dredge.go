@@ -243,7 +243,23 @@ func (s *State) dredgeDrawLoop(k *prep, in *kop.Instr, p uint8, left int, rest u
 				s.res.ask, s.res.askP = raDredge, p
 				return false
 			}
+			s.digLoopMark(true)
 			s.dredgeDrawOne(in, p)
+			parked := s.drawBodyResAsked()
+			s.digLoopMark(false)
+			if parked {
+				// the draw's Dig body parked its choose on its own context
+				// (repl_drawbody.go drawBodyParkRes): the loop's state rides
+				// the in-flight record; the answer's body end re-enters this
+				// loop past the asked card (drawBodyEndRes).
+				ds := s.drawState()
+				ds[0].rest = rest
+				if pk := s.drawParkRecord(); len(pk) > 0 {
+					pk[0].outer.left = uint8(left)
+					pk[0].pickN = uint8(n)
+				}
+				return false
+			}
 			if s.drawReplAsked() {
 				// the draw posed its CR 616.1 order ask (repl_draworder.go) or its
 				// may replacement's election (repl_drawmay.go): the loop waits in

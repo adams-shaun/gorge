@@ -137,18 +137,16 @@ func (lc *lowerCtx) drawRepl(rp *params, w *cards.SA, rl *lRepl) error {
 		return nil
 	}
 	for i := range ab.Prog {
-		// This slice's bodies: a draw, a life change, a token or a counter.
-		// A body that moves library or graveyard cards (a dig, a ChooseMove,
+		// This slice's bodies: a draw, a life change, a token, a counter or a
+		// library-look Dig. A body that moves graveyard cards (a ChooseMove,
 		// a Play) keeps the old refusal until its own slice proves the
-		// kernel's movement against gorge's (repl_drawprogram.go).
-		// A library-look Dig (Sages of the Anima, Tomorrow, Underrealm Lich)
-		// stays refused though the kernel can park its choose at the turn
-		// draw (repl_drawbody.go): gorge answers that ask with its default
-		// (Engine.Ask: no run serves a turn-draw replacement body), where the
-		// kernel asks the player, so the lockstep pairs diverge until gorge
-		// asks too.
+		// kernel's movement against gorge's (repl_drawprogram.go). The Dig
+		// (Sages of the Anima, Tomorrow, Underrealm Lich) parks its choose at
+		// the turn draw on both engines (kernel repl_drawbody.go; gorge parks
+		// it on the turn draw too), so its ask poses identically and the
+		// lockstep pairs converge.
 		switch ab.Prog[i].Op {
-		case "Draw", "LoseLife", "GainLife", "CreateToken", "CreateTokenEx", "PutCounter", "LoseGame":
+		case "Draw", "LoseLife", "GainLife", "CreateToken", "CreateTokenEx", "PutCounter", "LoseGame", "Dig":
 		default:
 			return refuse("repl-hard: Draw replacement")
 		}

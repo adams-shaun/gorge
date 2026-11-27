@@ -8,16 +8,19 @@ import (
 )
 
 // drawProgramCarriers are the Draw replacements this slice lowers: a
-// ReplaceWith$ body composed of a draw, a life change, a token or a win
-// (ReplDrawProgram), Out of the Tombs' graveyard-to-battlefield return with
-// its Remembered-gated LosesGame, or a bodyless Prevent$ skip. The
-// optional/choice group and every other body that moves library or graveyard
-// cards (a dig, a different ChooseMove, a Play) keep their refusal until their
-// own slice proves the kernel's movement against gorge's.
+// ReplaceWith$ body composed of a draw, a life change, a token, a win or a
+// library-look Dig (ReplDrawProgram), Out of the Tombs' graveyard-to-battlefield
+// return with its Remembered-gated LosesGame, or a bodyless Prevent$ skip. The
+// optional/choice group and every other body that moves graveyard cards (a
+// different ChooseMove, a Play) keep their refusal until their own slice proves
+// the kernel's movement against gorge's.
 var drawProgramCarriers = []string{
 	"Blood Scrivener", "Hullbreacher", "Jace, Wielder of Mysteries", "Laboratory Maniac",
 	"Living Conundrum", "Notion Thief", "Obstinate Familiar", "Ormos, Archive Keeper",
 	"Out of the Tombs", "Possessed Portal",
+	// The library-look Dig bodies whose choose both engines park at the turn
+	// draw (kernel repl_drawbody.go; gorge's turn-draw park).
+	"Sages of the Anima", "Tomorrow, Azami's Familiar", "Underrealm Lich",
 }
 
 // drawWinCarriers are the carriers whose body is "you win the game instead":
@@ -112,9 +115,6 @@ func TestReplDrawReplRestRefused(t *testing.T) {
 		{"Forbidden Crypt", "Draw replacement"},
 		{"Pavel Chekov, First Posting", "Draw replacement with an optional or choice body"},
 		{"Pursuit of Knowledge", "Draw replacement"},
-		{"Sages of the Anima", "Draw replacement"},
-		{"Tomorrow, Azami's Familiar", "Draw replacement"},
-		{"Underrealm Lich", "Draw replacement"},
 		{"Unpredictable Cyclone", "Draw replacement"},
 	} {
 		lc := lowerNamedCard(t, w.name)
