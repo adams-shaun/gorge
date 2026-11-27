@@ -19,9 +19,10 @@ import (
 //	SVar:ProduceThrice:DB$ ReplaceMana | ReplaceAmount$ 3
 //
 // kgen lowers the exact shape to the kernel's tap-extra static in reflected
-// mode (kop.StTapReflect, TapAmt 2): the tapped basic land makes its own mana
-// plus two more of the same type, and the plan prices the source at the whole
-// production (Virtue Probe, the inline copy of the line, is cast first).
+// mode (kop.StTapReflectDefer, TapAmt 2): the tapped basic land makes its own
+// mana plus two more of the same type. The plan prices the source at its own
+// production only (gorge does not fold the replacement) and the extra floats
+// at the tap (Virtue Probe, the inline copy of the line, is cast first).
 //
 // The probe is {5}{G}{G}. Seven nonbasic Grove Probes (not Land.Basic, so the
 // replacement does not reach them) pay for it; the deck's only Forest is kept

@@ -473,9 +473,13 @@ func (s *State) addGatedExtra(k *prep, p uint8, sl Slot, ctl uint8) {
 		}
 		if reflectDefer {
 			// Virtue of Strength: the tap makes its own mana, and the
-			// replacement adds a.B more of the same type. A basic land makes
-			// one type, so the tap's view names it; anything else is the
-			// unmodelled multi-type shape (StallTapExtra).
+			// replacement adds a.B more of the same type. Only a source the
+			// replacement's filter reaches (a basic land) gains it; that
+			// source makes one type, so the tap's view names it, and
+			// anything else is the unmodelled multi-type shape (StallTapExtra).
+			if !s.tapExtraReaches(k, st, sl, ctl) {
+				return true
+			}
 			pc := s.manaPCAt(k, sl)
 			m := s.srcMaskAt(pc, sl)
 			if m == 0 || m&(m-1) != 0 {

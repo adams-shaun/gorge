@@ -46,6 +46,13 @@ func TestHostedCmdrManaShapesLower(t *testing.T) {
 				for _, fl := range st.Flags {
 					if fl == "TapReflectDefer" && st.TapAmt == 2 {
 						found = true
+						// the filter pins the replacement's reach: Land.Basic only
+						// (a Land or Permanent filter would let nonbasics gain it)
+						if st.F == nil || len(st.F.Clauses) != 1 {
+							t.Errorf("%s static filter = %+v, want one Land.Basic clause", c.Name, st.F)
+						} else if cl := st.F.Clauses[0]; cl.Types&tLand == 0 || (cl.Types|cl.TypesAll)&tBasic == 0 && cl.Flags&fBasic == 0 {
+							t.Errorf("%s static filter clause = %+v, want Land.Basic", c.Name, cl)
+						}
 					}
 				}
 			}
