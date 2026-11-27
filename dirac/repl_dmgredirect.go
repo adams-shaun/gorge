@@ -22,6 +22,10 @@ import (
 //     own damage is the replacement's own recipient already: the rewrite
 //     changes nothing, but the record is still a candidate of the event (two
 //     of them, or one beside another replacement, are gorge's order ask).
+//   - DmgRedirectHost (Daughter of Autumn): DmgRedirectNext with the pair
+//     swapped -- the next `pool` (1) damage that would be dealt to the
+//     ability's target this turn is dealt to the host instead. The host and
+//     the recipient are read back at the registration, the spend is the pool.
 //
 // A record ends with the turn, with its pool, and when the host or the
 // recipient leaves the battlefield (the Effect's ExileOnMoved$ Battlefield and
@@ -43,8 +47,9 @@ const (
 )
 
 // redirRec is one live redirect: kind 0 is a free slot; host the damaged
-// permanent (DmgRedirectNext), tgt the recipient, ctl the controller whose
-// damage is redirected (DmgRedirectScope) and pool the damage left (Next).
+// permanent (DmgRedirectNext, DmgRedirectHost), tgt the recipient, ctl the
+// controller whose damage is redirected (DmgRedirectScope) and pool the
+// damage left (Next, Host).
 type redirRec struct {
 	host, tgt       Obj
 	ctl, pool, kind uint8
@@ -59,23 +64,49 @@ func init() {
 // and spent nowhere; the damage is dealt to its original recipient.
 var DebugNoDmgRedirect bool
 
+// redirIsNext reports whether a record's kind matches the damaged host and
+// spends its pool one damage at a time (DmgRedirectNext, and DmgRedirectHost
+// with the host and the recipient swapped).
+func redirIsNext(kind uint8) bool {
+	return kind == kop.DmgRedirectNext || kind == kop.DmgRedirectHost
+}
+
+// redirPermanent reports whether code names a live battlefield permanent.
+func (s *State) redirPermanent(code TCode) bool {
+	return code != NoTarget && !isPlayerOrNone(code) && int(code) < MaxObj && s.objs[code].zone == kop.ZoneBattlefield
+}
+
 // redirAdd is Ext DmgRedirect: the resolving Effect registers a redirect to
-// the permanent Obj names.
+// the permanent Obj names (DmgRedirectHost: to the resolving host permanent,
+// the damaged host being the permanent W names).
 func (s *State) redirAdd(k *prep, in *kop.Instr) {
-	code := s.refCode(k, in.Obj)
-	if code == NoTarget || isPlayerOrNone(code) || int(code) >= MaxObj || s.objs[code].zone != kop.ZoneBattlefield {
-		return // gorge: no live referent, the registration redirects nothing
-	}
 	e := &s.res.e
-	r := redirRec{tgt: Obj(code), kind: uint8(in.C)}
-	switch r.kind {
+	var r redirRec
+	switch in.C {
 	case kop.DmgRedirectNext:
 		if e.obj == NoObj || s.objs[e.obj].zone != kop.ZoneBattlefield {
 			return // Duration$ UntilHostLeavesPlayOrEOT: the host has left
 		}
-		r.host, r.pool = e.obj, 1
+		code := s.refCode(k, in.Obj)
+		if !s.redirPermanent(code) {
+			return // gorge: no live referent, the registration redirects nothing
+		}
+		r = redirRec{host: e.obj, tgt: Obj(code), pool: 1, kind: uint8(in.C)}
+	case kop.DmgRedirectHost:
+		if e.obj == NoObj || s.objs[e.obj].zone != kop.ZoneBattlefield {
+			return // Duration$ UntilHostLeavesPlayOrEOT: the recipient has left
+		}
+		h := s.refCode(k, in.W)
+		if !s.redirPermanent(h) {
+			return // gorge: the remembered host has no live referent
+		}
+		r = redirRec{host: Obj(h), tgt: e.obj, pool: 1, kind: uint8(in.C)}
 	case kop.DmgRedirectScope:
-		r.ctl = e.ctrl
+		code := s.refCode(k, in.Obj)
+		if !s.redirPermanent(code) {
+			return
+		}
+		r = redirRec{tgt: Obj(code), ctl: e.ctrl, kind: uint8(in.C)}
 	default:
 		return
 	}
@@ -91,7 +122,7 @@ func (s *State) redirAdd(k *prep, in *kop.Instr) {
 // redirDrop ends the records that name the permanent o leaving the battlefield.
 func (s *State) redirDrop(o Obj) {
 	for i := range s.g.redir {
-		if r := &s.g.redir[i]; r.kind != 0 && (r.tgt == o || r.host == o && r.kind == kop.DmgRedirectNext) {
+		if r := &s.g.redir[i]; r.kind != 0 && (r.tgt == o || r.host == o && redirIsNext(r.kind)) {
 			*r = redirRec{}
 		}
 	}
@@ -117,7 +148,7 @@ func (s *State) redirFind(code TCode, rcp uint8) (at, hits int) {
 	for i := range s.g.redir {
 		r := &s.g.redir[i]
 		switch r.kind {
-		case kop.DmgRedirectNext:
+		case kop.DmgRedirectNext, kop.DmgRedirectHost:
 			if r.pool == 0 || code != TCode(r.host) {
 				continue
 			}
@@ -169,7 +200,7 @@ func (s *State) redirCompetes(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID
 func (s *State) redirSpend(at, n int) (int, TCode) {
 	r := &s.g.redir[at]
 	tgt := TCode(r.tgt)
-	if r.kind != kop.DmgRedirectNext {
+	if !redirIsNext(r.kind) {
 		return n, tgt
 	}
 	m := min(n, int(r.pool))
