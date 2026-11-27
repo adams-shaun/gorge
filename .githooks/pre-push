@@ -9,14 +9,13 @@ check=""
 while read -r local_ref local_sha remote_ref remote_sha; do
 	[ "$local_sha" = "$zero" ] && continue
 	# Refuse commits carrying an AI-attribution trailer or an issue-tracker
-	# reference (spelled [j]ira so this hook never matches itself). A new branch
-	# scans only what origin lacks, never all of history.
-	if [ "$remote_sha" = "$zero" ]; then
-		bad=$(git log --format='%h %s%n%b' "$local_sha" --not --remotes=origin |
-			grep -Ei '^Co-Authored-By:|Generated with .*Claude|^Ref:|[j]ira' | head -3)
-	else
-		bad=$(git log --format='%h %s%n%b' "$remote_sha..$local_sha" |
-			grep -Ei '^Co-Authored-By:|Generated with .*Claude|^Ref:|[j]ira' | head -3)
+	# reference (spelled [j]ira so this hook never matches itself). Only commits
+	# this push ADDS are scanned -- what origin lacks, never $remote_sha..$local_sha:
+	# after a rebase that range also holds every commit main gained since the old
+	# head, so one trailer anywhere in main's history would refuse every rebase
+	# push (11-27: #5602 and #5609 went human_needed on exactly that).
+	if ! bad=$(sh "$(git rev-parse --show-toplevel)/scripts/prepush-trailer-check.sh" "$local_sha"); then
+		bad=${bad:-"unreadable commit range"} # a scan that fails closed must still name a reason
 	fi
 	if [ -n "$bad" ]; then
 		echo "pre-push: refusing $local_ref: attribution trailer or issue-tracker reference in pushed commits:" >&2
