@@ -678,7 +678,14 @@ func (lc *lowerCtx) changeZoneMove(ps *params) error {
 		if exwPick {
 			return lc.exilePick(ps, f, n, flags, counterKind, override, dest) // lower_exw.go
 		}
-		if origin == zHand && (dest == zBattlefield || dest == zExile || dest == zLibrary && pos == 0) {
+		if origin == zHand && (dest == zBattlefield || dest == zExile || dest == zLibrary && (pos == 0 || pos == -1)) {
+			if dest == zLibrary && pos == -1 {
+				// LibraryPosition$ -1 with a ChangeType$ (Valakut Awakening's
+				// "any number of cards from your hand on the bottom"): the
+				// same bottom placement handPutBack's markerless put-back
+				// reads (gorge handLibraryTail, bottom = "-1")
+				flags = append(flags, "Bottom")
+			}
 			return lc.handMove(ps, f, n, flags, counterKind, override, dest)
 		}
 		if origin == zBattlefield && (dest == zHand || dest == zExile) ||

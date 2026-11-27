@@ -15,7 +15,7 @@ type remSearcherState struct {
 }
 
 var coldRemSearchers = newCold[remSearcherState]("remSearchers", func(g *genPrep) int {
-	if g.anyRemEach { // the searcher shuffle runs inside the remembered-set card loop
+	if g.anyRemEach || g.anyRemSearcher { // the searcher shuffle runs inside the remembered-set card loop; a declined search drops its count
 		return 1
 	}
 	return 0
