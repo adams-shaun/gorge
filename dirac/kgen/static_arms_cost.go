@@ -58,8 +58,55 @@ func cbTapExtraStatic(cb *cardBuilder, s lStatic, st *kop.Static) ([]uint8, erro
 	return nil, nil
 }
 
+// staticAbRaise emits a RaiseCost Type$ Ability static (kop.StatRaiseAbility;
+// kernel cost_abraise.go abRaised): the battlefield sources' filter, the
+// Sac<1/pick>'s permanents in Filter2, the raise amount (a literal, or a
+// dynamic value with StDynamic) and the SacPick flag.
+func (cb *cardBuilder) staticAbRaise(s lStatic, st *kop.Static) error {
+	if s.F != nil {
+		f, err := cb.filter(s.F, kop.ZoneBattlefield)
+		if err != nil {
+			return err
+		}
+		st.Filter = f
+	}
+	if s.F2 != nil {
+		f, err := cb.filter(s.F2, kop.ZoneBattlefield)
+		if err != nil {
+			return err
+		}
+		st.Filter2 = f
+	}
+	a := s.Amount
+	if a.Kind == vNone || a.isConst() {
+		st.A = int16(a.N)
+	} else {
+		st.StFlags |= kop.StDynamic
+		v, err := cb.value(a)
+		if err != nil {
+			return err
+		}
+		st.VA = v
+	}
+	for _, fl := range s.Flags {
+		switch fl {
+		case "SacPick":
+			st.B |= kop.RaiseAbPick
+		default:
+			return fmt.Errorf("raise ability flag %q", fl)
+		}
+	}
+	return nil
+}
+
 func cbRaiseCostStatic(cb *cardBuilder, s lStatic, st *kop.Static) ([]uint8, error) {
 	var err error
+	if s.AbilityRaise != 0 {
+		// a RaiseCost of activated abilities (static_raiseability.go): the
+		// battlefield sources' cost raises (kernel cost_abraise.go abRaised)
+		st.Kind = kop.StatRaiseAbility
+		return nil, cb.staticAbRaise(s, st)
+	}
 	st.Kind = kop.StatIncreaseCost
 	if st.Filter, err = cb.staticFilter(s.F, kop.ZoneStack); err != nil {
 		return nil, err
