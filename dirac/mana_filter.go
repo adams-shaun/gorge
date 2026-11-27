@@ -1995,6 +1995,7 @@ func (s *State) filtScript(k *prep, a Action, p uint8, apply bool) bool {
 	s.pool.inFilt++ // (fork made the pool)
 	found := fs.visit(k, t, 0, false)
 	nodes := fs.nodes
+	DebugFiltNodes = nodes
 	if !found && s.feeOrderFallback(k, p, a, &fs) {
 		// gorge's plain run spent its node budget walking the filters' fee
 		// branches before the fee was funded: its fee-order run floats the
@@ -2253,6 +2254,11 @@ func (s *State) filtPlay(k *prep, p uint8, path []filtStep) {
 // search's budget is paySearchNodes and its own table is that long, so the cap
 // works there too.
 var DebugFiltNodeBudget int
+
+// DebugFiltNodes is the node count of the last play search's first run (the
+// plain order's, before any fallback), for tests that pin the search's node
+// accounting against gorge's scriptSearch.nodes.
+var DebugFiltNodes int
 
 // DebugFiltTryGapExempt limits try's priced-node exemption from the visited-set
 // cut to gap lines, as it was before the hand guides' funding pass shared it
