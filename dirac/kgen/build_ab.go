@@ -882,11 +882,11 @@ func (cb *cardBuilder) ability(a *lAbility) (kop.Ability, error) {
 		ka.Trig.Flags |= kop.TfOptional // the kernel asks a TfOptional seTrigger entry as it resolves (resolve.go)
 	}
 	if a.Trigger != nil {
-		if a.Trigger.OncePer && (a.Latent || a.Trigger.Zone == zCommand) && a.Trigger.Event != "CounterAddedOnce" {
-			// the kernel's once-each-turn record is keyed by (object,
-			// ability index); a granted or emblem trigger's index is the
-			// granting card's
-			return ka, fmt.Errorf("once-each-turn trigger on a granted or emblem ability")
+		if a.Trigger.OncePer && a.Trigger.Zone == zCommand && a.Trigger.Event != "CounterAddedOnce" {
+			// the kernel's once-each-turn record is keyed by (object, ability
+			// index, granting permanent) (usedThisTurnBy); an emblem trigger
+			// has no host object, so its index would be the emblem card's
+			return ka, fmt.Errorf("once-each-turn trigger on an emblem ability")
 		}
 		if ka.Trig, err = cb.trigger(a.Trigger); err != nil {
 			return ka, err
@@ -1673,10 +1673,16 @@ func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
 		kt.Flags2 |= kop.Tf2SpentBound
 	}
 	if t.Unblocked {
-		if t.Event != "AttackerBlocked" || t.ByCreature || t.BlockedBySelf {
+		if t.Event != "AttackerBlocked" || t.ByCreature || t.BlockedBySelf || t.UnblockedOnce {
 			return kt, fmt.Errorf("unblocked flag on a %s trigger", t.Event)
 		}
 		kt.Flags2 |= kop.Tf2Unblocked
+	}
+	if t.UnblockedOnce {
+		if t.Event != "AttackerBlocked" || t.ByCreature || t.BlockedBySelf || t.Unblocked {
+			return kt, fmt.Errorf("unblocked-once flag on a %s trigger", t.Event)
+		}
+		kt.Flags2 |= kop.Tf2UnblockedOnce
 	}
 	if t.ByCreature {
 		if t.Event != "AttackerBlocked" {

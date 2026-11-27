@@ -304,6 +304,30 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 			}
 			tr.Event = "AttackerBlocked"
 			tr.Unblocked = true
+		case "AttackerUnblockedOnce":
+			// gorge checkAttackerUnblockedOnceTriggers (Coveted Jewel): at the
+			// declare-blockers round's completion, ONE trigger per combat when
+			// at least one unblocked attacker matches ValidAttackingPlayer$
+			// and attacks the listener (ValidDefenders$ You). The kernel
+			// fires it once per listener over every unblocked attacker
+			// (fireUnblockedOnce, kop.Tf2UnblockedOnce); a ValidCard$ filter or
+			// any other defender wording has no kernel read.
+			if tr.Zone != 0 && tr.Zone != zBattlefield {
+				return refuse("AttackerUnblockedOnce TriggerZones %d", tr.Zone)
+			}
+			if vc := tp.str("ValidCard"); vc != "" {
+				return refuse("AttackerUnblockedOnce ValidCard %q", vc)
+			}
+			w, ok := whoOfPlayer(tp.str("ValidAttackingPlayer"))
+			if !ok {
+				return refuse("AttackerUnblockedOnce ValidAttackingPlayer %q", tp.str("ValidAttackingPlayer"))
+			}
+			tr.Whose = w
+			if d := tp.str("ValidDefenders"); d != "" && d != "You" && d != "Player.You" {
+				return refuse("AttackerUnblockedOnce ValidDefenders %q", d)
+			}
+			tr.Event = "AttackerBlocked"
+			tr.UnblockedOnce = true
 		case "Cycled":
 			// gorge cycledMatches on the cycling cost's discard: only "when you
 			// cycle this card" (ValidCard$ Card.Self, no TriggerZones$: it
@@ -924,10 +948,12 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 			// CR 602.2 / 603.2 (gorge trigmatch abilityCastMatches): the
 			// activation completes. Only the three ValidSA$ classes the kernel
 			// reads exactly lower (kop.TrigAbCast*); ValidActivatingPlayer$ is
-			// absent or You; ValidSA$ SpellAbility beside TargetsValid$ is the
-			// target-shape class; ValidCard$, ValidSAonCard$ and the rest stay
-			// unread and refuse. The kernel scans the battlefield and
-			// graveyard cards only.
+			// absent, You or Opponent (Whose); ValidCard$ lowers to the
+			// trigger Filter, judged on the activated permanent on the
+			// battlefield with the trigger controller as "you"; ValidSA$
+			// SpellAbility beside TargetsValid$ is the target-shape class;
+			// ValidSAonCard$ and the rest stay unread and refuse. The kernel
+			// scans the battlefield and graveyard cards only.
 			if zone != "" {
 				return refuse("AbilityCast trigger on an Effect")
 			}
@@ -939,8 +965,15 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 				tr.Whose = whoAny
 			case "You":
 				tr.Whose = whoYou
+			case "Opponent", "Player.Opponent":
+				tr.Whose = whoOpp
 			default:
 				return refuse("AbilityCast ValidActivatingPlayer$ %q", vp)
+			}
+			if vc, ok := tp.get("ValidCard"); ok {
+				if tr.F, err = lc.filter(vc); err != nil {
+					return err
+				}
 			}
 			tv, hasTV := tp.get("TargetsValid")
 			switch vs := tp.str("ValidSA"); vs {
@@ -956,6 +989,8 @@ func (lc *lowerCtx) lowerTriggered(t cards.Trigger, zone string) error {
 					return err
 				}
 				tr.AbClass = kop.TrigAbCastAny
+			case "SpellAbility.!ManaAbility":
+				tr.AbClass = kop.TrigAbCastActivated
 			case "Activated.Exhaust":
 				tr.AbClass = kop.TrigAbCastExhaust
 			case "Activated.Loyalty":

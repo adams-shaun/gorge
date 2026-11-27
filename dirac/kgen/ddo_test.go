@@ -39,7 +39,9 @@ func TestDdoRefusals(t *testing.T) {
 	}{
 		{"mixed players and battle", map[string]string{"ValidTarget": "Player,Battle"}, draw, "mixes players and objects"},
 		{"mixed you and planeswalker", map[string]string{"ValidTarget": "You,Planeswalker.YouCtrl"}, draw, "mixes players and objects"},
-		{"first time", map[string]string{"ValidTarget": "Card.Self", "FirstTime": "True"}, draw, "FirstTime$"},
+		// FirstTime$ lowers only on the self referent (Hercules); another
+		// referent needs a per-referent latch the kernel does not hold
+		{"first time", map[string]string{"ValidTarget": "Creature.YouCtrl", "FirstTime": "True"}, draw, "FirstTime$"},
 		{"non-literal amount", map[string]string{"ValidTarget": "Card.Self", "DamageAmount": "GEX"}, draw, "DamageAmount"},
 		{"unknown comparator", map[string]string{"ValidTarget": "Card.Self", "DamageAmount": "XX3"}, draw, "DamageAmount"},
 		{"triggered source", map[string]string{"ValidTarget": "Card.Self"}, "DB$ Destroy | Defined$ TriggeredSource", "body reads TriggeredSource"},

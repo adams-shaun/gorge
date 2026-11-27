@@ -363,7 +363,10 @@ func (lc *lowerCtx) defined(v string) (lRef, error) {
 // whose controller RefTriggerTgtCtrl reads (rTriggeredTgtCtrl); the queue's
 // trigger player there is the damaged seat, not the attacker.
 func (lc *lowerCtx) triggeredAttackingPlayerDefined(v string) (lRef, error) {
-	if tr := lc.ab.Trigger; tr != nil && tr.Event == "AttackersDeclared" {
+	if tr := lc.ab.Trigger; tr != nil && (tr.Event == "AttackersDeclared" || tr.UnblockedOnce) {
+		// AttackerUnblockedOnce queues its one instance with the first
+		// matching attacker's controller as the trigger player
+		// (fireUnblockedOnce, gorge TriggerContext.AttackingPlayer).
 		return lRef{Kind: rTriggeredPlayer}, nil
 	}
 	if tr := lc.ab.Trigger; ddoAttackingPlayer(tr) {

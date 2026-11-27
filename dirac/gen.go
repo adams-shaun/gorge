@@ -246,6 +246,7 @@ type genPrep struct {
 	anyDmgRef       bool           // some damage trigger reads the damaged referent: Tf2PerReferent, Tf2ToYou or a Filter2 (trig_damagedonce.go)
 	anyUnion        bool           // some op's subject is a target-slot union (kop.RefTargets01..; tgt_union.go)
 	anyUnblocked    bool           // some trigger fires for unblocked attackers (kop.Tf2Unblocked; act_discover.go)
+	anyUnbOnce      bool           // some trigger fires once per combat for unblocked attackers (kop.Tf2UnblockedOnce; trig_unblocked.go)
 	anyOrCopy       bool           // some SpellCast trigger fires for spell copies too (kop.Tf2OrCopy; act_discover.go)
 	anySkipUntap    bool           // some program skips a next untap step (OpSkipUntap): the untap step runs untapStepGen (act_discover.go)
 	anyDelayUp      bool           // some program registers an upkeep or end-of-combat delayed program (kop.DelayUpkeep, kop.DelayEndCombat; trig_delayedtiming.go)
@@ -994,7 +995,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	g.anyDelayUp = tableDelaysUpkeep(t) // true with anyDelaySpell: fireDelayedGen must keep the SpellCast records
 	g.anyDelaySpell = tableDelaysSpell(t)
 	g.anyDelayDies = tableDelaysDies(t)
-	g.anyUnblocked = tableUnblocked(t)
+	g.anyUnblocked, g.anyUnbOnce = tableUnblocked(t)
 	g.anyOrCopy = tableTrigFlag2(t, kop.TrigSpellCast, kop.Tf2OrCopy)
 	if tableTrigFlag2(t, kop.TrigSpellCast, kop.Tf2Increment) {
 		g.anySpent, g.anyHist = true, true // the Increment comparison (fire and resolution) reads the spell's recorded spend (kw_increment.go); histCast itself is anyHist-gated. Never anyCastSpent: no planner decline
