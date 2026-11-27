@@ -254,7 +254,9 @@ func (lc *lowerCtx) delayedLeaveReturn(ps *params) error {
 		return refuse("delayed trigger ChangesZone shape")
 	}
 	exec := cards.ResolveSVar(lc.face.SVars, ps.str("Execute"))
-	if exec != nil && exec.API != "ChangeZone" {
+	if exec != nil && (exec.API != "ChangeZone" || exec.Params["Destination"] == "Hand") {
+		// a return to the hand (Together Forever) is delayedDies' latent body
+		// like any other effect; the battlefield return is Melira's own
 		return lc.delayedDies(ps, exec, youCtrl)
 	}
 	if youCtrl {

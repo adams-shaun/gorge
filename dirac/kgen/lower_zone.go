@@ -1912,16 +1912,24 @@ var chooseCardRememberModes = map[string]string{
 	"Optional":  "OptionalRemember",
 }
 
-func (lc *lowerCtx) chooseCard(ps *params) error {
+// chooseCardShape lowers the ChooseCard shapes that stand apart from the
+// general pick: ChooseEach$ (the per-type pick), the each-player counted pick
+// and the target carrier. ok false: not one of them.
+func (lc *lowerCtx) chooseCardShape(ps *params) (bool, error) {
 	if each, ok := ps.get("ChooseEach"); ok {
-		// Liliana's -9: each opponent chooses a permanent they control of
-		// each permanent type; the SacrificeAll that follows takes the rest.
-		if ps.str("Choices") != "Permanent" || ps.str("ControlledByPlayer") != "Chooser" || ps.str("Defined") != "Opponent" {
-			return refuse("ChooseEach shape")
+		return true, lc.chooseEachType(ps, each)
+	}
+	if ps.str("ControlledByPlayer") == "Chooser" && ps.str("Defined") == "Player" && ps.is("Mandatory", "True") {
+		if ok, err := lc.chooseCardEachAmount(ps); ok || err != nil {
+			return true, err
 		}
-		ps.consume("Mandatory", "Reveal")
-		lc.emit(lInstr{Op: "ChooseEachType", Obj: lRef{Kind: rEachOpp}, CS: each})
-		return nil
+	}
+	return lc.chooseCardCarrier(ps)
+}
+
+func (lc *lowerCtx) chooseCard(ps *params) error {
+	if ok, err := lc.chooseCardShape(ps); ok || err != nil {
+		return err
 	}
 	// A ValidTgts$ chooser must be read before Choices$: the Choices$ filter
 	// (TargetedPlayerCtrl) reads the target slot this adds (lower_choosecardtarget.go).

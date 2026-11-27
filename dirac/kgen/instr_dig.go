@@ -202,6 +202,8 @@ func (ic *instrCtx) opChooseCard() error {
 		ki.C = kop.ChooseCardAtRandom // A = the pick count, the engine rng picks
 	case "EachPlayer":
 		ki.C = kop.ChooseCardEach // every player picks one, AliveFrom(controller)
+	case "EachAmount":
+		ki.C = kop.ChooseCardEachAmount // A = picks per player, each from its own pool
 	case "ActivatorBase":
 		ki.C = kop.ChooseCardActivatorBase // match the pool from the activator
 	}
@@ -212,9 +214,7 @@ func (ic *instrCtx) opChooseEachType() error {
 	ki := &ic.ki
 	in := &ic.in
 	ki.Op = kop.OpChooseEachType
-	if in.CS != "Artifact & Battle & Creature & Enchantment & Land & Planeswalker" {
-		return fmt.Errorf("ChooseEach %q", in.CS)
-	}
+	ki.C = int16(in.C) // kop.ChooseEachNonLand; A is the groups' type mask (lower_chooseeach.go)
 	return nil
 }
 
