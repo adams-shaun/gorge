@@ -336,6 +336,9 @@ func (s *State) redirLandPlayer(k *prep, srcCtrl uint8, srcSl Slot, srcCard Card
 	if kw&kop.KwLifelink != 0 {
 		s.gainLife(k, srcCtrl, m) // the source's controller, as damageTo's
 	}
+	if k.gen.anyPermMark && srcSl != NoSlot {
+		s.markDealt(k, srcSl, false) // a permanent source dealt damage (filter_permmarks.go)
+	}
 	if s.subs[kop.TrigDamageDone].any() || s.subs[kop.TrigDamageDealtOnce].any() || k.gen.graveDmg {
 		if srcSl != NoSlot {
 			s.fireDamage(k, srcSl, int16(m), true, false, tcode)

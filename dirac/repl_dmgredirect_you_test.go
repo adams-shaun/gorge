@@ -163,3 +163,30 @@ func TestDmgRedirectYouCombatStalls(t *testing.T) {
 		}
 	}
 }
+
+// TestDmgRedirectYouMarksSource: a permanent source whose noncombat damage a
+// You kind redirects to the controller is still marked as having dealt
+// damage this turn (damageTo's markDealt; gorge emits the Damage event with
+// that source). Under YouAll the original event's n drops to 0, so nothing
+// else marks it.
+func TestDmgRedirectYouMarksSource(t *testing.T) {
+	for _, kind := range []uint8{kop.DmgRedirectYouNext, kop.DmgRedirectYouAll} {
+		s, k := youRedirectState()
+		k.gen.anyPermMark = true
+		k.gen.ix[mechDealtTurn], k.gen.ix[mechDealtAny] = 0, 1
+		s.cold.ms = make([]slotMask, 2)
+		s.occ.set(2)
+		youRedirectAdd(s, k, kind)
+		if s.mSl(k, mechDealtTurn, 2) || s.mSl(k, mechDealtAny, 2) {
+			t.Fatalf("kind %d: the source is marked before the damage", kind)
+		}
+		// a creature source (slot 2, seat 1) deals 2 to the remembered host
+		s.replDamage(k, 1, 2, 1, TCode(4), false, 2)
+		if s.pl[0].life == 20 {
+			t.Fatalf("kind %d: the damage was not redirected to the controller", kind)
+		}
+		if !s.mSl(k, mechDealtTurn, 2) || !s.mSl(k, mechDealtAny, 2) {
+			t.Errorf("kind %d: the redirecting source is not marked as having dealt damage", kind)
+		}
+	}
+}
