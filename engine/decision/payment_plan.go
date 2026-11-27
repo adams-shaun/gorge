@@ -308,7 +308,8 @@ func ClonePaymentPlan(p PaymentPlan) PaymentPlan {
 				p.Activations[i].Consequence = &cc
 			}
 			if s := p.Activations[i].Sacrifices; s != nil {
-				p.Activations[i].Sacrifices = append([]state.ObjID(nil), s...)
+				p.Activations[i].Sacrifices = make([]state.ObjID, len(s))
+				copy(p.Activations[i].Sacrifices, s)
 			}
 		}
 	}

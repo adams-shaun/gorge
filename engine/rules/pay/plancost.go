@@ -352,7 +352,7 @@ func planPaymentCostResolved(e Engine, p state.PlayerID, demand [5]int, cost cos
 			nodes += search.Nodes
 		}
 	}
-	if search.Best != nil && !AssignPlanVictims(e, p, search.Best, kept, gone) {
+	if search.Best != nil && !AssignPlanVictims(e, p, search.Best, slices.Concat(kept, tapped), gone) {
 		// The search priced an other-sacrifice source the board cannot fund
 		// with distinct victims (two altars, one creature): no automatic
 		// plan; manual payment still offers the altar.
