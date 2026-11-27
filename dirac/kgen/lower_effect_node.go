@@ -358,6 +358,9 @@ func (lc *lowerCtx) node(sa *cards.SA, ps *params) error {
 	if err := lc.effect(sa, ps); err != nil {
 		return err
 	}
+	if err := lc.checkPendingTargetMV(sa); err != nil {
+		return err
+	}
 	lc.targetedDefined = ""
 	if ownTgt {
 		if err := lc.ownTargetedSlot(guard); err != nil { // lower_targetedown.go
@@ -418,6 +421,18 @@ func (lc *lowerCtx) unless(ps *params, fn func() error) error {
 		return fn()
 	}
 	var in lInstr
+	// an unless amount may read the effect's own single target before the
+	// effect declares it (Behemoth of Vault 0's PayEnergy<X>; lower_targetmv.go).
+	// A filtered Discard/Sac part is a different shape and stays refused.
+	savedMV := lc.mvNode
+	defer func() { lc.mvNode = savedMV }()
+	if lc.ab != nil && lc.ab.Kind == akTriggered && lc.curNode != nil &&
+		!strings.Contains(uc, "Discard<") && !strings.Contains(uc, "Sac<") {
+		// only the reflexive trigger shape is lowered here (Behemoth): a
+		// spell's unless amount reads the target at resolution too, but no
+		// carrier of that shape is in this change's lockstep pool
+		lc.mvNode = lc.curNode
+	}
 	ri, isRes, rerr := lc.resUnlessToken(strings.TrimSpace(uc)) // lower_costtokens.go
 	if rerr != nil {
 		return rerr
@@ -467,6 +482,7 @@ func (lc *lowerCtx) unless(ps *params, fn func() error) error {
 			return err
 		}
 	}
+	lc.mvNode = savedMV // the read is limited to the amount, not the effect fn runs
 	if ps.is("UnlessSwitched", "True") {
 		in.Op = "UnlessSwitched"
 	} else {

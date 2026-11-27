@@ -1278,7 +1278,7 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 					continue
 				}
 			}
-			n, narrowed := s.mustTargetSingle(k, e, &buf, n)
+			n, narrowed := s.mustTargetSingle(k, e, &buf, s.buildTgtMVDiscardCands(k, ti, &buf, n)) // cost_targetmv.go
 			if n == 0 && !t.UpTo {
 				// no legal target: a trigger is removed (CR 603.3d)
 				if e.kind == seTrigger {
@@ -1301,8 +1301,8 @@ func (s *State) buildStep(k *prep, d *Decision) bool {
 					s.reverseCast(k) // the offer did not know its X
 					return false
 				}
-				if _, _, ok := s.equipTargetPriced(k); ok {
-					s.reverseCast(k) // no candidate's own equip price is payable (statics_gen.go)
+				if s.targetPricedStale(k) {
+					s.reverseCast(k) // no candidate's own equip price, or target-bound discard, is payable (statics_gen.go, cost_targetmv.go)
 					return false
 				}
 				// an activation was checked feasible and moves nothing

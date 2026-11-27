@@ -1711,6 +1711,11 @@ func (s *State) abilityTargetsFeasible(k *prep, a *kop.Ability, p uint8, src Slo
 		} else if !s.hasTarget(k, t, p, src, NoObj) {
 			return false
 		}
+		if costHasTgtMVDiscard(k, &a.Cost) && !s.hasTgtMVDiscardTarget(k, a, p, src, i, excl) {
+			// gorge abilityTargetBoundAvailable: some legal target must leave
+			// the target-bound discard payable (cost_targetmv.go)
+			return false
+		}
 	}
 	if a.NTargets > 1 && !s.distinctCastFeasible(k, a, p, src, modes, excl, false) {
 		return false // TargetUnique$ chain: jointly distinct (tgt_uniqueoffer.go)
