@@ -113,7 +113,8 @@ func (r *taxReach) landGrantLive(t *kop.Table, g *genPrep) bool {
 		}
 	}
 	for i, ok := range r.override {
-		if ok && meets(t.Overrides[i].AddSub) {
+		// a FaceDownSetType$ record's Forest is a SetSub (prepLandGrant's test)
+		if ok && (meets(t.Overrides[i].AddSub) || t.Overrides[i].FaceDownOnly && meets(t.Overrides[i].SetSub)) {
 			return true
 		}
 	}
