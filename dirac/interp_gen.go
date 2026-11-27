@@ -2403,6 +2403,9 @@ func (s *State) inEachCopy() bool {
 
 // copyCardTokenFor is copyCardToken for the resolving entry's controller.
 func (s *State) copyCardTokenFor(k *prep, in *kop.Instr, c CardID) bool {
+	if s.copyDefenderAsk(k, in, s.res.e.ctrl) {
+		return true // the CR 508.4 defender ask, before any copy is minted
+	}
 	if !s.inEachCopy() {
 		// the each-target loop keeps the flag across targets: one resolution's
 		// copies share one AtEOT$ trigger (execEachTarget)
@@ -2586,8 +2589,8 @@ func (s *State) copyTokenEnterFd(k *prep, in *kop.Instr, t Obj, host, tmpl Slot,
 		s.perms[sl].spare |= spareCopyFaceDown
 	}
 	s.touch(t)
-	if uint16(in.B.N)&(kop.CopyAttacking|0x3f<<kop.CopyPumpShift) == kop.CopyAttacking && s.occ.has(sl) {
-		s.copyEnterAttacking(k, sl, e.ctrl) // ExtCopyPicked's TokenAttacking$ True (copy_picked.go)
+	if copyAttackingInstr(in) && s.occ.has(sl) {
+		s.copyEnterAttacking(k, sl, e.ctrl) // CopyPermanent's TokenAttacking$ True (copy_attackdefender.go)
 	}
 	if s.res.flags&rfOppCopy != 0 && s.occ.has(sl) {
 		s.oppCopyEnter(k, in, sl, t) // kw_encore.go: Encore's duty, Myriad's attack

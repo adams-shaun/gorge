@@ -34,26 +34,38 @@ func (lc *lowerCtx) copyChoicePick(ps *params) (lRef, error) {
 
 // copyChoiceAttacking reads TokenAttacking$ beside Choices$: True only, in
 // an attack trigger of the controller's own attack (tokenAttacking's gate).
-// The copy's defender is gorge's players-only CR 508.4 fallback, the
-// opponent (copyAttackRider: a copy has no battle slot, and a player's
-// planeswalkers are not candidates for it).
+// The copy's defender is gorge's players-only CR 508.4 fallback and ask
+// (copyAttackRider: a copy has no planeswalker/battle slot).
 func (lc *lowerCtx) copyChoiceAttacking(ps *params) (bool, error) {
+	if v, ok := ps.get("TokenAttacking"); ok && v != "True" {
+		return false, refuse("CopyPermanent Choices$ with TokenAttacking$ %q", v)
+	}
+	return lc.copyAttacking(ps)
+}
+
+// copyAttacking reads CopyPermanent's TokenAttacking$ for the target/copy
+// paths (Flamerush Rider, Shaun, Father of Synths), which raise the copy's
+// CopyAttacking flag (instr_copy.go opCopyAsToken). Only literal True in an
+// attack trigger of the controller's own attack is modelled: the copy's
+// defender is gorge's players-only CR 508.4 fallback and ask
+// (copyAttackRider). A selector names its own defender, which the copy op
+// does not carry. A no-trigger program refuses too: tokenAttacking lets it
+// through for the Token op (the kernel gates that mint on the combat window
+// at run time), but the copy entry has no such gate, and gorge's
+// enteringDefenderFallback enters a token attacking only inside combat.
+func (lc *lowerCtx) copyAttacking(ps *params) (bool, error) {
 	v, ok := ps.get("TokenAttacking")
 	if !ok {
 		return false, nil
 	}
 	if v != "True" {
-		return false, refuse("CopyPermanent Choices$ with TokenAttacking$ %q", v)
+		return false, refuse("CopyPermanent TokenAttacking$ %q", v)
 	}
 	if _, err := lc.tokenAttacking(v); err != nil {
 		return false, err
 	}
-	// tokenAttacking lets a no-trigger program through (the Token path gates on
-	// the combat window at run time); ExtCopyPicked has no such gate, and
-	// gorge's enteringDefenderFallback enters a token attacking only inside
-	// combat, so outside an attack trigger the flag would diverge.
 	if lc.ab.Trigger == nil {
-		return false, refuse("CopyPermanent Choices$ with TokenAttacking$ True outside an attack trigger")
+		return false, refuse("CopyPermanent TokenAttacking$ True outside an attack trigger")
 	}
 	return true, nil
 }
