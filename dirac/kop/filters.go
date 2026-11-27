@@ -329,6 +329,15 @@ const OvChosenType = 3
 // 112.7a, 608.2h), so a later static change moves nothing installed.
 const OvCwWord = 4
 
+// OvSpellCarry, in an OpOverride's B field: the override is a static
+// SpellCast rider's timed Animate of the triggering spell (Thundermane
+// Dragon's "it gains haste until end of turn"). A spell on the stack has no
+// battlefield slot, so OpOverride stamps the triggering spell entry with
+// C+1 (stackEntry.ov) and resolve.go applies the record to the permanent the
+// spell becomes as it enters (static_spellcarry.go), the same object CR 400.7a
+// carries the grant onto.
+const OvSpellCarry = 5
+
 // ChooseTypeBasicLand, in a mid-resolution OpChooseType's B field: the ask
 // offers the five basic land types (gorge effChooseType Type$ Basic Land,
 // CR 205.3i) rather than the creature-type vocabulary. The answer is the

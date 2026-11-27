@@ -1213,6 +1213,16 @@ func emitAnimateColorsNotes(h Host, c *Ctx, ag animateGrant, api string) {
 		Text: api + " Colors$ Colorless without OverwriteColors$ is not implemented; colours unchanged"})
 }
 
+// ExileOnMovedStackCarry is the ExileOnMoved$ value for a grant made to a
+// spell while it sits on the stack. CR 400.7a carries a spell-on-the-stack
+// continuous effect onto the permanent the spell becomes, so the stack
+// departure must NOT end it when the destination is the battlefield; rules'
+// effectMoveSweep retargets the value to Battlefield on that move and ends
+// the grant on the permanent's own departure. Any other stack departure ends
+// it, as the ordinary ExileOnMoved$ Stack does. It is deliberately not a zone
+// word, so a path that never learned this directive can never match it.
+const ExileOnMovedStackCarry = "Stack->Battlefield"
+
 // registerAnimateEffects is Animate and AnimateAll's sole per-object
 // registration path: id is the animated object itself (Source = affected
 // object, Controller = the granting controller, Affects Card.Self, the same
@@ -1275,6 +1285,12 @@ func registerAnimateEffects(h Host, c *Ctx, id state.ObjID, ag animateGrant) {
 		if o := h.Game().Obj(id); o != nil {
 			if w := ZoneWord(o.Zone); w != "" {
 				exileOn = w
+				if o.Zone == state.ZStack {
+					// CR 400.7a: the grant on the spell carries onto the
+					// permanent it becomes; rules' effectMoveSweep retargets
+					// this directive on the Stack->Battlefield move.
+					exileOn = ExileOnMovedStackCarry
+				}
 				remembered = []state.ObjID{id}
 			}
 		}

@@ -209,6 +209,9 @@ func (s *State) resolveTop(k *prep) {
 			if k.gen != nil && k.gen.anyManaHaste {
 				s.manaHasteEnter(k, sl, &e) // mana_spentrider.go
 			}
+			if e.ov != 0 {
+				s.spellCarryEnter(k, sl, &e) // static_spellcarry.go: a static SpellCast rider's timed Animate
+			}
 			if k.gen != nil && k.gen.anyEvoke {
 				s.evokeEnter(k, &e) // the Adamant bind and the evoke sacrifice (kw_evoke.go)
 			}

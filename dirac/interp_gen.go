@@ -789,6 +789,14 @@ func (s *State) execGen(k *prep, in *kop.Instr) (ok, done bool) {
 			s.overrideRemembered(k, in) // zone_changezoneall.go: every remembered object
 			break
 		}
+		if in.B.N == kop.OvSpellCarry {
+			// a static SpellCast rider's timed Animate of the triggering
+			// spell: stamp the spell entry and apply the record as the
+			// permanent enters (static_spellcarry.go)
+			if s.spellCarryOverride(k, in) {
+				break
+			}
+		}
 		// objRef is the one resolver of "the same object on the battlefield":
 		// a Self record whose object left and came back names a new object
 		// (CR 400.7; Fire Nation Warship destroyed in response to its crew).
