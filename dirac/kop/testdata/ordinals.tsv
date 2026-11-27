@@ -736,6 +736,10 @@ ManaRiderNone	uint8	0
 ManaRiderOppGainLife	uint8	2
 ManaRiderSelfGainLife	uint8	4
 ManaRiderStayTapped	uint8	3
+ManaTagCave	uint8	2
+ManaTagDesert	uint8	3
+ManaTagNone	uint8	0
+ManaTagTreasure	uint8	1
 MaxSubtypes	untyped int	192
 MaxTargets	untyped int	5
 MayGuardAnimateAll	untyped int	7
@@ -1391,6 +1395,11 @@ SkipUntapLockStep	untyped int	2
 SkipUntapLockUntapStep	untyped int	6
 SkipUntapPlayerCL	untyped int	4
 SkipUntapPlayerCreatures	untyped int	7
+SpentTagCave	uint8	3
+SpentTagDesert	uint8	4
+SpentTagNone	uint8	0
+SpentTagSnow	uint8	1
+SpentTagTreasure	uint8	2
 SplitGateCounter	uint8	1
 SplitGateLands	uint8	2
 SplitGateNone	uint8	0

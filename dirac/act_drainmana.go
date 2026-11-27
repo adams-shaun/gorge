@@ -22,6 +22,7 @@ func (s *State) drainMana(k *prep, in *kop.Instr) {
 	s.setDefCol(p, 0)
 	s.g.poolTre[p] = [kop.NumManaKinds]uint8{}
 	s.artNClearSeat(p)
+	s.tagClearSeat(p)                    // the Cave/Desert spend tallies empty with the pool (mana_spenttag.go)
 	if sx := coldSnow.of(s); sx != nil { // the drained seat's snow tally empties with its pool (mana_snow.go)
 		clear(sx[int(p)*kop.NumManaKinds : int(p)*kop.NumManaKinds+kop.NumManaKinds])
 	}

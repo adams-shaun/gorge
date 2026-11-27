@@ -1664,7 +1664,10 @@ func (cb *cardBuilder) trigger(t *lTrigger) (kop.Trigger, error) {
 		kt.Flags2 |= kop.Tf2XBound
 	}
 	if t.SpentBound {
-		if t.Event != "ETB" || t.XBound {
+		// ETB (the entering spell's spend) or the card's own cast trigger (the
+		// triggering spell's spend); bindTrigProv copies it into the pending
+		// trigger's x (lower_xbound.go spentBound)
+		if (t.Event != "ETB" && t.Event != "SpellCast") || t.XBound {
 			return kt, fmt.Errorf("bound spend on a %s trigger", t.Event)
 		}
 		kt.Flags2 |= kop.Tf2SpentBound

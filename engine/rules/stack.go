@@ -91,7 +91,15 @@ func (e *Engine) resolveTop() {
 			// trigger queued against, which no current state can re-derive.
 			tc := e.triggerContexts[id]
 			e.bindSourceLKI(&tc, id, o.Source)
-			if !e.triggerResolvingCheckHolds(t, o.Source, o.Controller, &tc, e.triggerLineSVars[id]) {
+			// The causing event's full object snapshot, when the trigger kept
+			// one: a source that left after the event reads it for a
+			// resolution-time check (CR 608.2h), exactly as the effect body
+			// reads ctx.LKI after it (cumulative.go's bindTriggerObjectLKI).
+			var lki *state.Object
+			if held, ok := e.triggerLKI[id]; ok {
+				lki = held.object
+			}
+			if !e.triggerResolvingCheckHolds(t, o.Source, o.Controller, &tc, e.triggerLineSVars[id], lki) {
 				e.emit(events.Event{Kind: events.MoveZone, Obj: id,
 					From: state.ZStack, To: state.ZExile, Text: "fizzled: intervening-if no longer holds"})
 				e.ensureLeftTheStack(id, state.ZExile, "a replacement fully discarded this "+
