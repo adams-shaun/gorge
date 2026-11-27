@@ -32,3 +32,10 @@ const (
 // permanents of those types that player controls at their next untap step stay
 // tapped through it, whoever cast the effect.
 const SkipUntapPlayerCL = 4
+
+// SkipUntapPlayerCreatures is the OpSkipUntap C value for the player Obj's
+// creatures alone (gorge Effect with an Event$ Untap | Layer$ CantHappen |
+// ValidCard$ Creature | ValidStepTurnToController$ Player.IsRemembered
+// replacement; Blinding Beam): the creatures that player controls at their next
+// untap step stay tapped through it, lands unaffected.
+const SkipUntapPlayerCreatures = 7
