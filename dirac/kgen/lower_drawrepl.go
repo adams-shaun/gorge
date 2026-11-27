@@ -70,13 +70,6 @@ func (lc *lowerCtx) drawRepl(rp *params, w *cards.SA, rl *lRepl) error {
 		}
 		bits |= kop.ReplDrawCauseCyclingNonLand
 	}
-	if w != nil && w.API == "WinsGame" {
-		// Laboratory Maniac, Jace, Wielder of Mysteries: gorge does apply
-		// the line to an attempted draw from an empty library (CR 614.11),
-		// but the kernel's win arm beside the state-based loss pass is a
-		// separate slice; until it lands the line stays refused.
-		return refuse("repl-hard: Draw replacement WinsGame")
-	}
 	// The line's own gates. A bodyless Prevent$ is the skip kind; a line
 	// with neither a body nor Prevent$ (or with both) is not a shape the
 	// kernel reads.
@@ -139,7 +132,7 @@ func (lc *lowerCtx) drawRepl(rp *params, w *cards.SA, rl *lRepl) error {
 		// a Play) keeps the old refusal until its own slice proves the
 		// kernel's movement against gorge's (repl_drawprogram.go).
 		switch ab.Prog[i].Op {
-		case "Draw", "LoseLife", "GainLife", "CreateToken", "CreateTokenEx", "PutCounter":
+		case "Draw", "LoseLife", "GainLife", "CreateToken", "CreateTokenEx", "PutCounter", "LoseGame":
 		default:
 			return refuse("repl-hard: Draw replacement")
 		}
