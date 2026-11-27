@@ -380,7 +380,7 @@ type prep struct {
 	// (kw_storied.go); a prep bool like ascend, for the same reason
 	storied bool
 	// unleash: some card prints or grants Unleash: the as-enters counter ask
-	// queues at entry and the block gate reads it (kw_unleash.go); a prep
+	// queues at entry (printed only) and the block gate reads it (kw_unleash.go); a prep
 	// bool like ascend, for the same reason
 	unleash bool
 	// unleashGrant: some static grants Unleash, so a blocker that does not

@@ -10,8 +10,8 @@ import "strings"
 // (dirac/kw_unleash.go), and the block gate refuses a blocker carrying the
 // keyword and at least one +1/+1 counter. A GRANTED Unleash (a static's
 // AddKeyword$ Unleash, Tesak, Judith's Hellhound's other Dogs) is
-// kop.Static.Unleash, read beside the printed field by the same ask and gate
-// (splitStaticUnleashGrant below, dirac/kw_unleash.go): kwMask has no bit for
+// kop.Static.Unleash, read beside the printed field by the block gate only; the entry
+// election is printed-only (splitStaticUnleashGrant below, dirac/kw_unleash.go): kwMask has no bit for
 // Unleash, so the grant is its own static field, the way granted Riot is.
 func (lc *lowerCtx) lowerUnleash(node string) {
 	if lc.out.Riot {

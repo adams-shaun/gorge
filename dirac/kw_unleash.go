@@ -33,9 +33,8 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // splitStaticUnleashGrant, Tesak, Judith's Hellhound's other Dogs): it
 // grants the block gate only, read beside CardDef.Unleash by
 // State.unleashPermGranted as gorge's derived keyword list reads it
-// (combat/board.go HasKW(blocker, KWUnleash), layer-6 included); a granted
-// carrier asks no entry election, as gorge reads the entry choice off the
-// printed face. Unleash has no KwMask bit, so the grant is its own static
+// (combat/board.go HasKW(blocker, KWUnleash), layer-6 included); the entry
+// election is printed-only, as gorge reads it off the printed face. Unleash has no KwMask bit, so the grant is its own static
 // field (the arena takes KwMask bits only, which are full). A grant older
 // than a loss of the recipient's abilities grants nothing (the layer-6
 // timestamp order, like riotPermGranted's).
@@ -205,10 +204,11 @@ func (s *State) unleashNoBlock(k *prep, b Slot) bool {
 		return false
 	}
 	if k.t.Cards[s.cardAt(b)].Unleash {
-		if _, lost := s.lossAt(k, b); lost {
-			return false // Stasis Field: the printed Unleash is gone with all abilities
+		if _, lost := s.lossAt(k, b); !lost {
+			return true
 		}
-		return true
+		// Stasis Field: the printed Unleash is gone with all abilities, but a
+		// grant newer than the loss holds (CR 613.7), read below
 	}
 	return s.unleashPermGranted(k, b)
 }
