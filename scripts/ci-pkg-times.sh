@@ -5,8 +5,9 @@
 # Per package the value is the median over the runs that printed it; packages none of them printed keep their
 # earlier value from scripts/ci-pkg-times.tsv, so the output can overwrite that file directly. The "Golden chain
 # heads" step is excluded: the pinned TestHeads call measures one test of engine/rules, not the package.
-# A split package (ci-splits.tsv) prints two ok lines per run, one per half; the bigger is the package's whole
-# entry, the smaller its #A entry (the ratio the tsv header records).
+# A split package (ci-splits.tsv) prints one ok line per entry per run (its rows plus its whole entry); the largest
+# is the package's whole entry and the rest go to its #<label> entries by size (largest to the first label listed,
+# so engine/rules' four calls are whole/#A/#B/#C largest to smallest; the tsv header records the ratio).
 set -euo pipefail
 echo "# ci-pkg-times.tsv: measured seconds per package (go test's \"ok\" line; median over the runs given, a package none of them ran keeps its earlier value). ci_shard.sh balances shards on it."
 echo "# Refresh: scripts/ci-pkg-times.sh <run-id> [<run-id>...] > scripts/ci-pkg-times.tsv"
@@ -30,7 +31,12 @@ awk -F'\t' -v raw="$raw" -v splits="$here/ci-splits.tsv" '
 BEGIN {
 	while ((getline line < splits) > 0) {
 		split(line, f, "\t")
-		if (f[1] != "" && f[1] !~ /^#/) splitpkg[f[1]] = 1
+		if (f[1] != "" && f[1] !~ /^#/) {
+			splitpkg[f[1]] = 1
+			lab = f[3] == "" ? "A" : f[3]
+			labels[f[1]] = labels[f[1]] == "" ? lab : labels[f[1]] " " lab
+			nparts[f[1]]++
+		}
 	}
 }
 FNR == NR { if ($0 !~ /^#/ && NF >= 2) old[$1] = $2; next }
@@ -51,11 +57,16 @@ END {
 		split(k, kk, SUBSEP); pkg = kk[1]; r = kk[2]
 		n = split(vals[k], a, " ")
 		if (pkg in splitpkg) {
-			if (n != 2) { print "ci-pkg-times: split package " pkg " printed " n " of its two halves in run " r > "/dev/stderr"; bad = 1; continue }
-			hi = a[1] > a[2] ? a[1] : a[2]; lo = a[1] > a[2] ? a[2] : a[1]
-			one[pkg] = one[pkg] == "" ? hi : one[pkg] " " hi
-			akey = pkg "#A"
-			one[akey] = one[akey] == "" ? lo : one[akey] " " lo
+			want = nparts[pkg] + 1
+			if (n != want) { print "ci-pkg-times: split package " pkg " printed " n " of its " want " entries in run " r > "/dev/stderr"; bad = 1; continue }
+			# Largest ok line is the whole entry; the rest go to the #labels in file order.
+			for (i = 2; i <= n; i++) { t = a[i]; for (j = i - 1; j >= 1 && a[j] < t; j--) a[j + 1] = a[j]; a[j + 1] = t }
+			one[pkg] = one[pkg] == "" ? a[1] : one[pkg] " " a[1]
+			m = split(labels[pkg], lb, " ")
+			for (i = 1; i <= m; i++) {
+				akey = pkg "#" lb[i]
+				one[akey] = one[akey] == "" ? a[i + 1] : one[akey] " " a[i + 1]
+			}
 		} else {
 			for (i = 1; i <= n; i++) one[pkg] = one[pkg] == "" ? a[i] : one[pkg] " " a[i]
 		}

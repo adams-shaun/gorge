@@ -1,8 +1,20 @@
-# ci-splits.tsv: packages CI's test shards run as two entries (scripts/ci_shard.sh, ci.yml's test step).
-# <package>\t<-run regex of its #A half>. The package's own entry runs minus the regex (and TestHeads); <package>#A
-# runs it. The balancer places each by its weight in ci-pkg-times.tsv; each runs as a go test call of its own.
-# engine/rules (11-20, 242-269 s): the fuzz-world, quiet-proof, clone-fidelity and elimination sweeps (~40% of its CPU).
-github.com/adams-shaun/gorge/engine/rules	^(TestKernelWorldsInFuzz|TestQuietProofCorpusSweepChunk|TestCloneFidelityShort|TestCloneFidelitySweep|TestLargeEliminationSweep)
+# ci-splits.tsv: packages CI's test shards run as more than one entry (scripts/ci_shard.sh, ci.yml's test step).
+# <package>\t<-run regex>\t[<label>]. A row is one #entry: the label (default A) names the entry, <package>#<label>,
+# which runs `go test -run <regex>`. Rows sharing a package are its parts; the package's own entry runs every test
+# minus those regexes (and TestHeads). The balancer places each entry by its weight in ci-pkg-times.tsv; every entry
+# is a go test call of its own, so a package with N rows runs as N regex calls plus one whole-minus-regex call.
+# engine/rules (11-20 two-way, 11-27 four-way): the fuzz-world, quiet-proof, clone-fidelity and elimination sweeps
+# are ~40% of its CPU and the bare package the rest. The three rows below split both halves into four ~equal parts:
+# A = quiet-proof chunks 0-3 + every Test[A-C]* (which holds the whole clone-fidelity family); B = quiet-proof
+# chunks 4-7 + kernel-world games 0-2 + Test[D-GI-J]* (H is left out so TestHeads stays only on the Golden step);
+# C = quiet-proof chunks 8-11 + kernel-world games 3-4 + every Test[L-P]*/Test[R]* (L holds the elimination sweep).
+# The package's own entry is the fourth part: kernel-world game 5's two shards + GameSweep + quiet-proof chunks
+# 12-15 + every Test[KQ-S-Z]*. Keep this row group's four regexes mutually disjoint: each top-level test must match
+# exactly one of them or fall to the whole entry. The four groups share no writer (every fixed-path writer in the
+# package is env-gated off in CI; see scripts/ci-pkg-times.tsv's engine/rules weights).
+github.com/adams-shaun/gorge/engine/rules	^(TestQuietProofCorpusSweepChunk(0|1|2|3)|Test[A-C][A-Za-z0-9_]*)$	A
+github.com/adams-shaun/gorge/engine/rules	^(TestQuietProofCorpusSweepChunk(4|5|6|7)|TestKernelWorldsInFuzzGame(0|1|2)|Test[D-GI-J][A-Za-z0-9_]*)$	B
+github.com/adams-shaun/gorge/engine/rules	^(TestQuietProofCorpusSweepChunk(8|9|10|11)|TestKernelWorldsInFuzzGame(3|4)|Test[L-P][A-Za-z0-9_]*|TestR[A-Za-z0-9_]*)$	C
 # testkit/conformance (11-21, median 239 s; CPU-bound JSON wire simulation, already parallel inside its tests): the
 # ManaBrew wire tests (~72 s of serial games) apart from the native-wire game sets.
 github.com/adams-shaun/gorge/testkit/conformance	^(TestManaBrew|TestBotThroughManaBrew)

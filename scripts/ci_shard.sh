@@ -28,11 +28,13 @@ pkgs=$(go list ./... | grep -v '/dirac/oracle$')
 if [ "${CI_FULL:-0}" != 1 ]; then
 	pkgs=$(printf '%s\n' "$pkgs" | grep -Ev "$EXCLUDE")
 fi
-# A package in ci-splits.tsv is two entries: the package, run minus its regex, and <package>#A, the regex (ci.yml's
-# test step). Whole, engine/rules (242-269 s) and testkit/conformance (239 s) were the slowest shards' floors.
-while IFS=$'\t' read -r sp _; do
+# A package in ci-splits.tsv is one entry per row: the package, run minus every row's regex, and <package>#<label>
+# (label defaults to A), the row's regex (ci.yml's test step). engine/rules has three rows (four groups; 11-27).
+# Whole, engine/rules (242-269 s) and testkit/conformance (239 s) were the slowest shards' floors.
+while IFS=$'\t' read -r sp _ label; do
 	case $sp in '' | '#'*) continue ;; esac
-	if printf '%s\n' "$pkgs" | grep -qx "$sp"; then pkgs=$(printf '%s\n' "$pkgs" "$sp#A"); fi
+	label=${label:-A}
+	if printf '%s\n' "$pkgs" | grep -qx "$sp"; then pkgs=$(printf '%s\n' "$pkgs" "$sp#$label"); fi
 done <"$(dirname "$0")/ci-splits.tsv"
 
 printf '%s\n' "$pkgs" | awk -F'\t' -v idx="$idx" -v count="$count" -v def="${DEFAULT_WEIGHT:-3}" '

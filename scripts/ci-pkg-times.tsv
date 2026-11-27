@@ -1,7 +1,9 @@
 # ci-pkg-times.tsv: seconds per package, the median "ok" time over the queue batches named below (packages none of
-# them ran keep their earlier value). ci_shard.sh balances shards on it. <pkg>#A is the split half of a package in
-# ci-splits.tsv: engine/rules 223/216 (439 s), testkit/conformance 119/85 (204 s), dirac/kgen 65/53 (118 s),
-# bots/azmcts 84/33 (117 s), engine/effects 64/25 (89 s).
+# them ran keep their earlier value). ci_shard.sh balances shards on it. <pkg> and its <pkg>#<label> entries are the
+# split rows of a package in ci-splits.tsv: engine/rules 110/110/110/109 (439 s, four groups as of 11-27), testkit/
+# conformance 119/85 (204 s), dirac/kgen 65/53 (118 s), bots/azmcts 84/33 (117 s), engine/effects 64/25 (89 s).
+# engine/rules's four rows spread main's 439 s two-way measurement (223 + 216) flat across the groups; a
+# ci-pkg-times.sh refresh after the split lands on main replaces them with genuine per-group medians.
 # Basis 11-27 03:46-04:30Z: green queue batches 45936102895 + 45937521039 + 45938090635 + 45939538884 +
 # 45940337816 (five-run medians). dirac/kgen, bots/azmcts and engine/effects are split only in the last two, so
 # their halves are those runs' two-run medians. The prior 11-27 00:33-01:10Z basis held the three splits at their
@@ -106,8 +108,10 @@ github.com/adams-shaun/gorge/engine/events	2
 github.com/adams-shaun/gorge/engine/game	0
 github.com/adams-shaun/gorge/engine/game/gorgegame	1
 github.com/adams-shaun/gorge/engine/replay	51
-github.com/adams-shaun/gorge/engine/rules	223
-github.com/adams-shaun/gorge/engine/rules#A	216
+github.com/adams-shaun/gorge/engine/rules	110
+github.com/adams-shaun/gorge/engine/rules#A	110
+github.com/adams-shaun/gorge/engine/rules#B	110
+github.com/adams-shaun/gorge/engine/rules#C	109
 github.com/adams-shaun/gorge/engine/rules/chars	0
 github.com/adams-shaun/gorge/engine/rules/combat	0
 github.com/adams-shaun/gorge/engine/rules/cost	2
