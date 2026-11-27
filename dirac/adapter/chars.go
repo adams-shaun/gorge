@@ -293,7 +293,7 @@ func (b *board) SpellEffectiveCost(_ state.PlayerID, id state.ObjID) string {
 }
 
 // LandDropOpen reports whether a seat has a land drop left this turn.
-func (b *board) LandDropOpen(p state.PlayerID) bool { return b.landOpen[p&1] }
+func (b *board) LandDropOpen(p state.PlayerID) bool { return b.landOpen[p] }
 
 func (b *board) PendingTriggers() []state.PendingTrigger { return b.pending }
 

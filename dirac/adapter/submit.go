@@ -62,7 +62,11 @@ func (g *Game) scratch() {
 func (g *Game) concede(p uint8) {
 	g.conceded, g.loser, g.pend = true, p, nil
 	g.log.Append(events.Event{Kind: events.PlayerLost, Player: state.PlayerID(p), Text: "conceded"})
-	g.logOver(int8(1 - p))
+	win := int8(1 - p)
+	if g.s.NumSeats() > 2 {
+		win = -1 // the kernel is not told, so a pod ends with no winner
+	}
+	g.logOver(win)
 	g.materialise()
 }
 
