@@ -2537,7 +2537,7 @@ var exprKinds = map[valKind]kop.ExprKind{
 	vOppLifeLostThisTurn: kop.ExOppLifeLostThisTurn, vCountersOn: kop.ExCountersOn, vCreaturesDied: kop.ExCreaturesDied,
 	vRememberedCount: kop.ExRememberedCount, vExcessDamage: kop.ExExcessDamage, vLastLifeLost: kop.ExLastLifeLost,
 	vTokensCreated: kop.ExTokensCreated, vLifeLostThisTurn: kop.ExLifeLostThisTurn, vSum: kop.ExSum,
-	vHandSizeOf: kop.ExHandSizeOf, vCountExile: kop.ExCountExile, vExileTypes: kop.ExCountExile, vOppsLostLife: kop.ExOppsLostLife, vMVOf: kop.ExMVOf, vNotOwnLibMV: kop.ExNotOwnLibMV, vRemEachOwnNonLand: kop.ExRemEachOwnNonLand,
+	vHandSizeOf: kop.ExHandSizeOf, vCountExile: kop.ExCountExile, vExileTypes: kop.ExCountExile, vOppsLostLife: kop.ExOppsLostLife, vMVOf: kop.ExMVOf, vNotOwnLibMV: kop.ExNotOwnLibMV, vRemEachOwnNonLand: kop.ExRemEachOwnNonLand, vRemEachOwn: kop.ExRemEachOwnNonLand,
 	vCountAtLeast:      kop.ExCountAtLeast,
 	vDelayedExileCount: kop.ExDelayedExileCount,
 	vPromisedGift:      kop.ExPromisedGift, vResolvedThisTurn: kop.ExResolvedThisTurn,
@@ -2634,6 +2634,9 @@ func (cb *cardBuilder) expr(v lValue) (kop.Expr, error) {
 	}
 	if v.Kind == vExileKw {
 		e.N = int16(v.N) // the keyword bit, or 32 + the protection colour (kop.ExileKwProtN)
+	}
+	if v.Kind == vRemEachOwn {
+		e.N = 1 // ExRemEachOwnNonLand N 1: every remembered card, land or not (value_remeachown.go)
 	}
 	if v.Kind == vPWTypes {
 		e.N = 1 // ExCount N 1: the distinct planeswalker subtypes, not the count
