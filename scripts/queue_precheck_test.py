@@ -74,6 +74,23 @@ def test_attribute_blames_nobody_when_only_main_is_red():
     assert qp.attribute([m], [pr(1)], lambda items: items, lambda k, items: items) == {}
 
 
+def test_build_item_never_blames_the_queue_tail():
+    # run 45942346738 (11-26): ./dirac/oracle's replay chunk hit go test's own -timeout 15m; every failure line
+    # carried a subtest "/" or no Test at all, so the group was labelled "build". run_checks(only=...) re-runs vet
+    # and test items only: the build item ran nothing, "passed" every prefix, attribute() drove hi to the queue's
+    # length and blamed order[hi-1], the tail (#5467; its build and vet are clean). A build item is not
+    # attributable: a timeout reproduces on every prefix on the same loaded runner, blaming order[0] instead.
+    order = [pr(20), pr(21), pr(22)]
+    b = ("build", "./dirac/oracle", "")
+    t = ("test", "./engine/rules", "TestHeads")
+
+    def on_prefix(k, items):
+        return [i for i in items if i == t and k >= 2]  # #21 breaks t
+    blame = qp.attribute([b, t], order, lambda items: [], on_prefix)
+    assert blame == {21: [t]}  # no tail blame for a build item; the red test item still attributes
+    assert not qp.attributable(b) and qp.attributable(t) and qp.attributable(("vet", "./x", ""))
+
+
 def test_queue_skips_conflicting_prs():
     p = pr(1)
     p["mergeable"] = "CONFLICTING"

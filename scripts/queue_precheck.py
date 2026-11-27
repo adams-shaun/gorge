@@ -22,7 +22,9 @@ On every push to main (.github/workflows/queue-precheck.yml) this script:
 4. Green: a success status `queue-precheck` on every checked head. Red: drops what fails on main alone (main itself
    is red, which is pipeline-fix's lane), then re-runs only the failing items on main plus each prefix of the
    queue. The PR whose merge first makes an item fail gets a failure status, which .mergify.yml's queue_conditions
-   turn into a dequeue before its batch runs.
+   turn into a dequeue before its batch runs. An item that is not a vet error or a top-level test failure (a go test
+   timeout, a panic, a dead test binary) cannot be re-run against a prefix, so no PR is blamed for it; the run exits
+   non-zero and the queue is not reported green.
 
 Run: python3 scripts/queue_precheck.py [--dry-run] [--head N]   (GITHUB_TOKEN, GITHUB_REPOSITORY in the env)
 """
@@ -366,6 +368,7 @@ def run_checks(path, pk, kgen, replays=False, state=False, only=None, tree=False
             print(rv.stderr[-4000:], file=sys.stderr)
     for pkgs, job in procs:
         r = finish(job)
+        before = len(fails)  # this group's own failures, not an earlier group's (a later timeout must still show)
         for line in r.stdout.splitlines():
             try:
                 e = json.loads(line)
@@ -374,7 +377,7 @@ def run_checks(path, pk, kgen, replays=False, state=False, only=None, tree=False
             if e.get("Action") == "fail" and e.get("Test") and "/" not in e["Test"]:
                 pkg = "./" + e["Package"].split("/gorge/", 1)[-1]
                 fails.append(("test", pkg, e["Test"]))
-        if r.returncode != 0 and not any(f[0] == "test" for f in fails):
+        if r.returncode != 0 and len(fails) == before:
             print(r.stdout[-3000:] + r.stderr[-3000:], file=sys.stderr)
             fails.append(("build", ",".join(pkgs), ""))
     return fails
@@ -393,6 +396,20 @@ def probe_points(lo, hi, n=ATTR_PROBES):
     return sorted({lo + (hi - lo) * j // (n + 1) for j in range(1, n + 1)})
 
 
+# A "build" item is a go test group that exited non-zero without a top-level test failure line: go test's own -timeout,
+# a panic, or a test binary that died. run_checks(only=...) re-runs only vet and test items, so a build item runs no
+# check and "passes" every prefix, which drove the bisect's hi to the queue's length and blamed order[hi-1] - always the
+# queue tail (run 45942346738, 11-26: ./dirac/oracle's replay chunk hit -timeout 15m and #5467 was dequeued; its build
+# and vet were clean). Re-running the group on each prefix would not be evidence either: a timeout reproduces on every
+# prefix on the same loaded runner, blaming order[0]. So a build item is never attributed.
+ATTRIBUTABLE = ("vet", "test")
+
+
+def attributable(item):
+    """Whether a prefix probe can re-run an item: an item of any other kind reports no culprit rather than a guess."""
+    return item[0] in ATTRIBUTABLE
+
+
 def attribute(fails, order, on_main, on_prefix, run=parallel):
     """Who to blame for each failed item: on_main(items) -> items failing on main alone (dropped: main is red);
     on_prefix(k, items) -> items failing on main plus the first k PRs. The first k at which an item fails blames
@@ -402,6 +419,7 @@ def attribute(fails, order, on_main, on_prefix, run=parallel):
     the first round also checks main alone. A red run builds about log4(len(order)) rounds of trees (11-21: one per
     PR took 24 min for a 9-PR head; 11-22: one per round took up to 653 s). Returns {pr: [items]}."""
     n = len(order)
+    fails = [f for f in fails if attributable(f)]
     if not fails or n == 0:
         return {}
     left = list(fails)
@@ -522,16 +540,24 @@ def main():
 
     blame = attribute(fails, merged, on_main, on_prefix)
     culprits = set(blame)
+    # A build item (a go test timeout, a panic, a dead binary) cannot be re-run against a prefix, so it is never
+    # blamed. With one present, no PR is reported green either: the red is real and must stay visible until a later
+    # run or the batch shows it a flake; queue_conditions veto a failure, not a missing success.
+    unattributable = [f for f in fails if not attributable(f)]
     for p in merged:
         if p["number"] in culprits:
             what = "; ".join("%s %s %s" % f for f in blame[p["number"]])
             set_status(repo, token, p["sha"], "failure", "red merged onto main %s: %s" % (short, what), a.dry_run)
-        else:
+        elif not unattributable:
             # queue_conditions require this status (11-21): a PR the attribution did not blame (the red was main's
             # alone, or another PR's) must not wait for a later run to batch.
             set_status(repo, token, p["sha"], "success",
                        "not the cause of a red merged onto main %s (culprits: %s)"
                        % (short, " ".join("#%d" % c for c in sorted(culprits)) or "main itself"), a.dry_run)
+    if unattributable:
+        print(time.strftime("%H:%M:%S"), "UNATTRIBUTABLE red (not a vet or top-level test failure): %s; no PR blamed"
+              % unattributable, file=sys.stderr)
+        return 1
     return 0
 
 
