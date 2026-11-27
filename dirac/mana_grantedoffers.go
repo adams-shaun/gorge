@@ -3472,6 +3472,15 @@ func (s *State) castFaceCard(k *prep, a Action) CardID {
 	return c
 }
 
+// keywordCastCost is the printed keyword cost an AkBestow or AkMutate cast
+// pays in place of the mana cost (kw_bestow.go, kw_mutate.go).
+func keywordCastCost(cd *kop.CardDef, kind ActionKind) kop.ManaCost {
+	if kind == AkMutate {
+		return cd.MutateCost
+	}
+	return cd.BestowCost
+}
+
 // grantPlayCostRaise is grantPlayCost with raiseO set as the caller left it.
 func (s *State) grantPlayCostRaise(k *prep, p uint8, a Action, kicked bool) (cost kop.ManaCost, ex Slot, need [kop.NumManaKinds]bool, ok bool) {
 	ex = NoSlot
@@ -3494,13 +3503,14 @@ func (s *State) grantPlayCostRaise(k *prep, p uint8, a Action, kicked bool) (cos
 		// searched and no source census drops it (Scrying Sheets' {1}{S}, {T}
 		// with a snow {C} floating)
 		return cost, ex, need, ok && cost.Snow == 0
-	case AkBestow:
-		// a bestowed cast pays the bestow cost (CR 702.103a, 118.9): gorge's
-		// potential planner prices it from the printed census, so the prefix
-		// search taps a granted source it misses (Abundant Growth's any colour
-		// for the {R} of Everflame Eidolon's bestow) before the play
+	case AkBestow, AkMutate:
+		// a bestowed or mutated cast pays its keyword cost in place of the
+		// mana cost (CR 702.103a, 702.140a, 118.9): gorge's potential planner
+		// prices it from the printed census, so the prefix search taps a
+		// granted source it misses (Abundant Growth's any colour for the {R}
+		// of Everflame Eidolon's bestow) before the play
 		c := s.objs[a.Source()].card
-		return s.adjustCost(k, p, c, Obj(a.Source()), k.t.Cards[c].BestowCost), ex, need, true
+		return s.adjustCost(k, p, c, Obj(a.Source()), keywordCastCost(&k.t.Cards[c], a.Kind())), ex, need, true
 	case AkCast, AkCastCasualty, AkCastConspire:
 		if alt, ok := s.altPlayCost(k, p, a); ok {
 			return alt, ex, need, true

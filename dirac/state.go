@@ -881,6 +881,10 @@ const (
 	bsMulti     // the multikicker count ask (CR 702.43: gorge multikickAsk, after the tap costs and before Convoke/X; kw_multikicker.go)
 	bsSquad     // the squad count ask (CR 702.157a: gorge squadAsk in preCostAsks, after the multikicker ask and before Convoke/X; kw_squadreplicate.go)
 	bsDefiler   // the Defiler yes/no asks (gorge defilerAsk, after the multikicker ask and before the squad ask; cost_defiler.go)
+	// bsMutatePlace is the CR 702.140b top/under placement ask of a
+	// mutating spell (gorge mutatePlaceAsk: right after the cast-mode ask,
+	// before the either-or additional cost and the targets; kw_mutate.go).
+	bsMutatePlace
 	nBuildStages
 )
 

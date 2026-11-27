@@ -128,6 +128,7 @@ var actionNames = [dirac.AkCount]string{
 	dirac.AkOrder: "order", dirac.AkTurnFaceUp: "turnfaceup", dirac.AkPlot: "plot", dirac.AkUnlock: "unlock",
 	dirac.AkCastCasualty: "castcasualty", dirac.AkSneak: "sneak", dirac.AkBestow: "bestow",
 	dirac.AkWebSling: "websling", dirac.AkMayFlash: "mayflash", dirac.AkCastConspire: "castconspire",
+	dirac.AkMutate: "mutate",
 }
 
 func unmapped(a dirac.Action) string {

@@ -112,6 +112,7 @@ func (s *State) resolveTop(k *prep) {
 	if e.mode&modeBestowed != 0 && e.bestowedEntry() {
 		s.bestowResolve(k, &e) // CR 702.103e (kw_bestow.go)
 	}
+	s.mutateResolve(k, &e)     // CR 702.140b, 608.2b (kw_mutate.go)
 	s.snapResolveTgtLKI(k, &e) // the target's last known P/T (value_abiltgtpt.go)
 	// fizzle: every chosen target illegal
 	if e.nt > 0 {
@@ -150,6 +151,9 @@ func (s *State) resolveTop(k *prep) {
 	case seSpell:
 		if k.cards[e.card].types&(kop.TInstant|kop.TSorcery) == 0 {
 			// permanent spell
+			if s.divertMutated(k, &e) {
+				return // merged into its target, never an independent permanent (kw_mutate.go)
+			}
 			if k.gen != nil && !e.faceDown() && s.payETBStart(k, &e) {
 				return // Mox Diamond's optional land discard, then the entry or the graveyard (repl_paybeforeetb.go)
 			}

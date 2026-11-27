@@ -57,6 +57,14 @@ func tspecE(k *prep, e *stackEntry, i int) *kop.TargetSpec {
 		}
 		return nil
 	}
+	if e.mode&(seFaceDown|modeMutated) == modeMutated && e.ab == 255 && e.kind == seSpell {
+		// a mutating spell's one target is the synthesized mutate target,
+		// the kernel read of gorge's hand-built mutateTargetSA (kw_mutate.go)
+		if i == 0 {
+			return &k.t.Cards[e.card].MutateTgt
+		}
+		return nil
+	}
 	if e.kind == seSpell && e.ab < 255 {
 		if a := &k.t.Cards[e.card].Abilities[e.ab]; i >= int(a.NTargets) && a.Repeats() {
 			// an extra instance of a repeated mode takes its mode's spec (kop/repeat.go)
