@@ -7,6 +7,7 @@ package adapter
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/adams-shaun/gorge/dirac"
 	"github.com/adams-shaun/gorge/dirac/cardset"
@@ -60,8 +61,8 @@ func (e *Engine) Accepts(c game.Config) error {
 func (e *Engine) CheckDeck(deck []*cards.Card) error {
 	var best error
 	fewest := -1
-	es := entries(deck)
 	for _, s := range e.sets {
+		es := entries(s, deck)
 		n := refused(s, deck)
 		if n == 0 {
 			if _, _, _, err := s.Matchup(es, nil); err == nil {
@@ -129,23 +130,23 @@ func (e *Engine) table(c game.Config) (cardset.Set, *kop.Table, error) {
 // matchup builds s's table for the decks: Matchup at two seats, MatchupN past it.
 func matchup(s cardset.Set, decks [][]*cards.Card) (*kop.Table, error) {
 	if len(decks) == 2 {
-		tbl, _, _, err := s.Matchup(entries(decks[0]), entries(decks[1]))
+		tbl, _, _, err := s.Matchup(entries(s, decks[0]), entries(s, decks[1]))
 		return tbl, err
 	}
 	es := make([][]cardset.Entry, len(decks))
 	for i, d := range decks {
-		es[i] = entries(d)
+		es[i] = entries(s, d)
 	}
 	tbl, _, err := s.MatchupN(es)
 	return tbl, err
 }
 
 // entries is a deck as the name counts a table is built from.
-func entries(deck []*cards.Card) []cardset.Entry {
+func entries(s cardset.Set, deck []*cards.Card) []cardset.Entry {
 	es := make([]cardset.Entry, 0, 24)
 	at := map[string]int{}
 	for _, c := range deck {
-		n := frontName(c)
+		n := poolName(s, c)
 		if i, ok := at[n]; ok {
 			es[i].Count++
 			continue
@@ -161,11 +162,36 @@ func refused(s cardset.Set, deck []*cards.Card) int {
 	plays := s.Supported()
 	n := 0
 	for _, c := range deck {
-		if i, ok := s.Lookup(frontName(c)); !ok || !plays[i] {
+		if i, ok := s.Lookup(poolName(s, c)); !ok || !plays[i] {
 			n++
 		}
 	}
 	return n
+}
+
+// poolName is the name a pool keys c under: the faces joined with " // " for a
+// split, adventure or modal card when the pool holds that spelling, else the
+// front name (a card with one face, or a pool that keys the front face).
+func poolName(s cardset.Set, c *cards.Card) string {
+	return resolveName(func(n string) bool { _, ok := s.Lookup(n); return ok }, c)
+}
+
+// resolveName is poolName over any membership test.
+func resolveName(has func(string) bool, c *cards.Card) string {
+	front := frontName(c)
+	if len(c.Faces) > 1 {
+		names := make([]string, 0, len(c.Faces))
+		for _, f := range c.Faces {
+			if f == nil || f.Name == "" {
+				return front
+			}
+			names = append(names, f.Name)
+		}
+		if joined := strings.Join(names, " // "); has(joined) {
+			return joined
+		}
+	}
+	return front
 }
 
 func frontName(c *cards.Card) string {
@@ -280,9 +306,10 @@ func deckIDs(tbl *kop.Table, deck []*cards.Card) ([]dirac.CardID, error) {
 	}
 	out := make([]dirac.CardID, len(deck))
 	for i, c := range deck {
-		id, ok := at[frontName(c)]
+		n := resolveName(func(n string) bool { _, ok := at[n]; return ok }, c)
+		id, ok := at[n]
 		if !ok {
-			return nil, fmt.Errorf("dirac: %q is not in table %s", frontName(c), tbl.Name)
+			return nil, fmt.Errorf("dirac: %q is not in table %s", n, tbl.Name)
 		}
 		out[i] = id
 	}
