@@ -685,11 +685,11 @@ func (s *State) loopBack(k *prep) {
 			continue
 		}
 		if in := &s.prog(k)[r.loopS[d]-1]; in.Op == kop.OpRepeatEach { // act_repeatcards.go: the plain card loop's frame
-			if s.eachCardAdvance(in) {
+			if s.eachCardAdvance(k, in) {
 				r.pc = r.loopS[d]
 				return
 			}
-			s.eachCardClose(in)
+			s.eachCardClose(k, in)
 			r.eachObj, s.g.inLoop = NoObj, false
 			r.loopD--
 			continue

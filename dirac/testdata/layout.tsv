@@ -184,6 +184,7 @@ default	field	genState.probe	8
 default	field	genState.tgtSelf	2
 default	field	genState.inLoop	1
 default	field	genState.each	10
+default	field	genState.eachBatch	8
 default	field	genState.sbaFP	6
 default	field	genState.tokFrz	24
 default	field	genState.tokFrzOn	1
@@ -288,7 +289,7 @@ default	field	genState.nlinks	1
 default	field	genState.linkHide	2
 default	field	genState.linkAeg	2
 default	field	genState.linkHand	2
-default	field	genState.linkPad	68
+default	field	genState.linkPad	60
 default	field	genState.retHeld	16
 default	field	genState.nretHeld	1
 default	field	genState.retCtrl	2
