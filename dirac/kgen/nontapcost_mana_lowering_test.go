@@ -37,17 +37,19 @@ func TestLowerNonTapCostManaAbilities(t *testing.T) {
 		"Iceberg":            "Remove an ice counter: Add {C} (kop.CtrRemoveManaAb)",
 		"Druids' Repository": "Remove a charge counter: Add one mana of any color (kop.CtrRemoveManaAb)",
 		"Gemstone Array":     "Remove a charge counter: Add one mana of any color (kop.CtrRemoveManaAb)",
+		// the sacrifice-self pair: {T}: {C}, then a wider {T}, Sacrifice this:
+		// {C}{C}, planned as one pair view (dirac/mana_sacpair.go)
+		"Crystal Vein":           "{T}: {C}, then {T}, Sacrifice this: {C}{C} (kop.SecondSacSelfPairManaAb; dirac/kgen/miscshapes_lockstep_test.go)",
+		"Havenwood Battleground": "the same pair shape in {G}: {T}: {G}, then {T}, Sacrifice this: {G}{G} (kop.SecondSacSelfPairManaAb; dirac/kgen/miscshapes_lockstep_test.go)",
 	}
 	// refused: the substring of each refusal measured against the corpus
 	// (kgen -pool edhprobe, 2026-11-18); a card left refused is named here.
 	refused := map[string]string{
-		"Crystal Vein":           "a cost beyond {T} the kernel's mana walk cannot activate", // {T}, sacrifice this: {C}{C} beside {T}: {C}: a sacrifice-self alternative of the planner's unit, no pair model
-		"Havenwood Battleground": "a cost beyond {T} the kernel's mana walk cannot activate", // the same shape, {G}{G}
-		"Lake of the Dead":       "ETB replacement api Sacrifice",
-		"Lazotep Quarry":         "a cost beyond {T} the kernel's mana walk cannot activate", // an any-colour second sacrifice ability, and a CopyPermanent SetCreatureTypes
-		"Opal Palace":            "AddsCounters$ mana rider",
-		"Orcish Lumberjack":      "mana ability cost T+Sac: the kernel's mana walk cannot activate it", // Combo R G, three mana
-		"Heritage Druid":         "mana ability cost TapX: the kernel's mana walk cannot activate it",  // tap three Elves
+		"Lake of the Dead":  "ETB replacement api Sacrifice",
+		"Lazotep Quarry":    "a cost beyond {T} the kernel's mana walk cannot activate", // an any-colour second sacrifice ability, and a CopyPermanent SetCreatureTypes
+		"Opal Palace":       "AddsCounters$ mana rider",
+		"Orcish Lumberjack": "mana ability cost T+Sac: the kernel's mana walk cannot activate it", // Combo R G, three mana
+		"Heritage Druid":    "mana ability cost TapX: the kernel's mana walk cannot activate it",  // tap three Elves
 	}
 	var names []string
 	for n := range lowered {
