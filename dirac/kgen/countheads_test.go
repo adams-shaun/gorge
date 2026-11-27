@@ -74,7 +74,6 @@ func TestCountHeadsForms(t *testing.T) {
 // their refusal strings (never a guess).
 func TestCountHeadsStillRefused(t *testing.T) {
 	checkForms(t, []formCase{
-		{card: "Bat Colony", form: "CastTotalManaSpent Cave (filtered form)", refused: "CastTotalManaSpent"},
 		{card: "Summon: Brynhildr", form: "CountersAddedThisTurn LORE You Card.EffectSource (an Effect emblem static has no source object)", refused: "CountersAddedThisTurn"},
 	})
 }

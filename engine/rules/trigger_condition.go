@@ -143,11 +143,11 @@ func noResolvingCheck(t cards.Trigger) bool {
 // A nil tc leaves those clauses to their fire-time matcher, so this function
 // is safe to call with no context for a trigger whose mode evaluates them
 // itself (the fire-time general gate passes nil for exactly that reason).
-func (e *Engine) triggerResolvingCheckHolds(t cards.Trigger, source state.ObjID, controller state.PlayerID, tc *effects.TriggerContext, ownedSVars map[string]string) bool {
+func (e *Engine) triggerResolvingCheckHolds(t cards.Trigger, source state.ObjID, controller state.PlayerID, tc *effects.TriggerContext, ownedSVars map[string]string, lki *state.Object) bool {
 	// A trailing-if CheckSVar$ (Laboratory Drudge) is part of the effect, not
 	// an intervening-if: it is read here and only here, whatever
 	// NoResolvingCheck$ says about the line's other clauses.
-	if t.CheckSVarIsTrailingIf() && !e.checkSVarGateHolds(t, source, controller, tc, ownedSVars) {
+	if t.CheckSVarIsTrailingIf() && !e.checkSVarGateHolds(t, source, controller, tc, ownedSVars, lki) {
 		return false
 	}
 	if noResolvingCheck(t) {
@@ -175,7 +175,7 @@ func (e *Engine) triggerResolvingCheckHolds(t cards.Trigger, source state.ObjID,
 	// The ability's controller was fixed when it went on the stack. A delayed
 	// Effect can have another owner than its source card; an ordinary trigger's
 	// source can also change control while the ability waits to resolve.
-	return e.triggerConditionHoldsWithSVars(t, source, controller, tc, ownedSVars)
+	return e.triggerConditionHoldsWithSVarsLKI(t, source, controller, tc, ownedSVars, lki)
 }
 
 // triggerConditionHolds evaluates the CR 603.4 intervening-if clause (and the
@@ -263,6 +263,16 @@ func conditionRemembered(g *state.Game, tcv effects.TriggerContext, src *state.O
 }
 
 func (e *Engine) triggerConditionHoldsWithSVars(t cards.Trigger, source state.ObjID, you state.PlayerID, tc *effects.TriggerContext, ownedSVars map[string]string) bool {
+	return e.triggerConditionHoldsWithSVarsLKI(t, source, you, tc, ownedSVars, nil)
+}
+
+// triggerConditionHoldsWithSVarsLKI is triggerConditionHoldsWithSVars with the
+// causing event's full object snapshot. The fire-time walk has the live object
+// and passes nil; the resolution-time recheck passes the snapshot so a source
+// that left after the event is read with last-known information (CR 608.2h) --
+// the same object the effect body's Ctx.LKI carries, so a condition gate and
+// its body cannot disagree about a departed source's cast provenance.
+func (e *Engine) triggerConditionHoldsWithSVarsLKI(t cards.Trigger, source state.ObjID, you state.PlayerID, tc *effects.TriggerContext, ownedSVars map[string]string, lki *state.Object) bool {
 	// A kw:Class level band is an independent AND gate beside every clause
 	// below (and beside the body's own IsPresent$/IsPresent2$ clauses).
 	if !e.classBandGateHolds(t.ParamStr(cards.PKClassBand), source) {
@@ -433,7 +443,7 @@ func (e *Engine) triggerConditionHoldsWithSVars(t cards.Trigger, source state.Ob
 			}
 		}
 	}
-	if !t.CheckSVarIsTrailingIf() && !e.checkSVarGateHolds(t, source, you, tc, ownedSVars) {
+	if !t.CheckSVarIsTrailingIf() && !e.checkSVarGateHolds(t, source, you, tc, ownedSVars, lki) {
 		return false
 	}
 	if spec, ok := t.Param(cards.PKCheckDefinedPlayer); ok && !e.checkDefinedPlayerHolds(spec, source, you) {
@@ -1010,7 +1020,7 @@ var lifeConditionHoldsAsCodes = state.NewStrCodes(
 // absent clause is vacuously true. triggerConditionHoldsWithSVars reads it as
 // the CR 603.4 intervening-if; a trailing-if trigger
 // (cards.Trigger.CheckSVarIsTrailingIf) reads it only as it resolves.
-func (e *Engine) checkSVarGateHolds(t cards.Trigger, source state.ObjID, you state.PlayerID, tc *effects.TriggerContext, ownedSVars map[string]string) bool {
+func (e *Engine) checkSVarGateHolds(t cards.Trigger, source state.ObjID, you state.PlayerID, tc *effects.TriggerContext, ownedSVars map[string]string, lki *state.Object) bool {
 	name, ok := t.Param(cards.PKCheckSVar)
 	if !ok {
 		return true
@@ -1049,8 +1059,11 @@ func (e *Engine) checkSVarGateHolds(t cards.Trigger, source state.ObjID, you sta
 	}
 	remembered := conditionRemembered(e.G, tcv, src)
 	// X reads what the body reads: the fire-time capture (CR 107.3m), which
-	// outlives a source that left before the recheck.
-	ctx := effects.NewCtxPtr(source, you, effects.CtxInit{SVars: svars, TriggerContext: tcv, Remembered: remembered, X: tcv.TriggerPaidX})
+	// outlives a source that left before the recheck. lki is the same
+	// resolution-time snapshot the body reads (nil at fire time), so a
+	// cast-provenance head (Count$CastTotalManaSpent and its siblings) sees
+	// the source as it last stood rather than a zone-change-cleared object.
+	ctx := effects.NewCtxPtr(source, you, effects.CtxInit{SVars: svars, TriggerContext: tcv, Remembered: remembered, X: tcv.TriggerPaidX, LKI: lki})
 	holds, evaluated := effects.CheckSVarHolds(e, ctx, name, strings.TrimSpace(t.ParamStr(cards.PKSVarCompare)))
 	return evaluated && holds
 }

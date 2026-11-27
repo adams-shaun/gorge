@@ -1,0 +1,22 @@
+# Producer-tagged Count$CastTotalManaSpent (Treasure / Cave / Desert) lockstep
+# carriers, for dirac/oracle/manaspenttag_test.go. Strike It Rich makes the
+# Treasure the tag counts; Desert and Hidden Courtyard produce the Desert- and
+# Cave-tagged mana (Bat Colony reads the Cave tally).
+Bat Colony
+Cataclysmic Prospecting
+Desert
+Devour Intellect
+Grizzly Bears
+Hidden Courtyard
+Hill Giant
+Hired Hexblade
+Jaded Sell-Sword
+Lightning Bolt
+Marut
+Price of Loyalty
+Prossh, Skyraider of Kher
+Spoils of the Hunt
+Strike It Rich
+Mountain
+Swamp
+Forest

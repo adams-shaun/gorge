@@ -7,6 +7,25 @@ type CardID uint16
 
 const NoCard CardID = 0xFFFF
 
+// SpentTag values of CardDef.SpentTag: the producer-tag word of
+// Count$CastTotalManaSpent <Tag>. SpentTagNone is the plain total; the Snow
+// form rides CardDef.SpentSnow and the kernel's snow tally.
+const (
+	SpentTagNone uint8 = iota
+	SpentTagSnow
+	SpentTagTreasure
+	SpentTagCave
+	SpentTagDesert
+)
+
+// ManaTag values of CardDef.ManaTag: the producer word a face's mana carries.
+const (
+	ManaTagNone uint8 = iota
+	ManaTagTreasure
+	ManaTagCave
+	ManaTagDesert
+)
+
 // MaxSubtypes bounds Table.Subtypes: a SubMask holds that many.
 const MaxSubtypes = 192
 
@@ -177,6 +196,11 @@ type CardDef struct {
 	// not set it yet (the kernel's snow-spend bit rides the snow tally,
 	// dirac/mana_snow.go).
 	SpentSnow bool
+	// SpentTag: the face reads a producer-tagged Count$CastTotalManaSpent
+	// <Tag> (Treasure / Cave / Desert): the kernel records that tag's units
+	// its cast's payment spent in place of the total (dirac/mana_spenttag.go).
+	// SpentTagNone means no tag (the plain total or the Snow form).
+	SpentTag uint8
 	// SelfFlash: a CastWithFlash EffectZone$ All self grant ("you may cast this
 	// spell as though it had flash if ..."; Illusion Spinners). The card's own
 	// StatCastWithFlash ability grants it from hand, never from the
@@ -479,6 +503,12 @@ type CardDef struct {
 	// makes is typed in gorge's pool (state.Game TypedMana; an artifact's
 	// is typed too, read from Types).
 	TypedMana bool
+	// ManaTag: the printed face's producer word (ManaTagTreasure / Cave /
+	// Desert), the tag its mana carries in gorge's pool. A dedicated field,
+	// not a subtype read, because a matchup table keeps only the subtypes its
+	// cards name and drops the printed ones (cardset.matchup subSet); the
+	// kernel's spend tally reads it (dirac/mana_spenttag.go).
+	ManaTag uint8
 	// Engines is printed Start your engines! (CR 702.179a): its controller's
 	// speed starts at 1 when it has none (dirac/kw_speed.go).
 	Engines bool
