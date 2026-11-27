@@ -4171,6 +4171,11 @@ func (lc *lowerCtx) copyPermanent(ps *params) error {
 		if nonRem {
 			return refuse("CopyPermanent TokenAttacking$ beside a per-player Controller$")
 		}
+		if _, ok := ps.get("PumpKeywords"); ok {
+			// B.N bit 14 is CopyAttacking here and CopyPumpEOT beside a pump
+			// keyword (kop.CopyPumpEOT); one bit cannot carry both.
+			return refuse("CopyPermanent TokenAttacking$ beside PumpKeywords$")
+		}
 		flags = append(flags, "Attacking")
 	}
 	if v, ok := ps.get("TokenTapped"); ok {

@@ -35,6 +35,21 @@ var DebugTokenAttackingStats *TokenAttackingStats
 // without attacking (mutation test only).
 var DebugNoCopyAttacking bool
 
+// copyAttackingInstr reports whether in carries TokenAttacking$ True. Bit 14
+// is CopyAttacking on ExtCopyPicked (which never carries a pump keyword) and
+// CopyPumpEOT on OpCopyAsTokenEx beside a PumpKeywords$ keyword (the
+// until-end-of-turn grant: God-Pharaoh's Gift, Encore, Gray and Adira). The
+// two meanings share the bit, so on OpCopyAsTokenEx the attacking reading
+// holds only with no pump keyword; kgen refuses a CopyPermanent that asks for
+// both (lower_zone.go).
+func copyAttackingInstr(in *kop.Instr) bool {
+	cf := uint16(in.B.N)
+	if cf&kop.CopyAttacking == 0 {
+		return false
+	}
+	return cf&(0x3f<<kop.CopyPumpShift) == 0
+}
+
 // copyDefenderAsk poses CopyAttacking's CR 508.4 defender pick before the
 // copy is minted (gorge copyAttackRider freezes one answer per call before its
 // mint loop). res.chosen = NoSlot marks it as this pre-mint ask; the answer
@@ -43,7 +58,7 @@ var DebugNoCopyAttacking bool
 //
 //go:noinline
 func (s *State) copyDefenderAsk(k *prep, in *kop.Instr, ctrl uint8) bool {
-	if uint16(in.B.N)&kop.CopyAttacking == 0 || s.g.tokDefSet {
+	if !copyAttackingInstr(in) || s.g.tokDefSet {
 		return false
 	}
 	var buf [MaxOptions]TCode
@@ -90,7 +105,7 @@ func (s *State) copyAskPending(k *prep) bool {
 		return false
 	}
 	in := &s.prog(k)[s.res.pc]
-	if uint16(in.B.N)&kop.CopyAttacking == 0 {
+	if !copyAttackingInstr(in) {
 		return false
 	}
 	return in.Op == kop.OpCopyAsTokenEx || copyPickedOp(in)
@@ -128,7 +143,7 @@ func (s *State) copyEnterAttacking(k *prep, sl Slot, ctrl uint8) {
 // clearCopyDefender consumes a copy op's pre-mint defender answer once the
 // instruction is done, so a later Token/ChangeZone ask cannot read it.
 func (s *State) clearCopyDefender(in *kop.Instr) {
-	if uint16(in.B.N)&kop.CopyAttacking != 0 && (in.Op == kop.OpCopyAsTokenEx || copyPickedOp(in)) {
+	if copyAttackingInstr(in) && (in.Op == kop.OpCopyAsTokenEx || copyPickedOp(in)) {
 		s.g.tokDefSet = false
 	}
 }

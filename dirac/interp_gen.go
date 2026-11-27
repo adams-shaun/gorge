@@ -2589,7 +2589,7 @@ func (s *State) copyTokenEnterFd(k *prep, in *kop.Instr, t Obj, host, tmpl Slot,
 		s.perms[sl].spare |= spareCopyFaceDown
 	}
 	s.touch(t)
-	if uint16(in.B.N)&kop.CopyAttacking != 0 && s.occ.has(sl) {
+	if copyAttackingInstr(in) && s.occ.has(sl) {
 		s.copyEnterAttacking(k, sl, e.ctrl) // CopyPermanent's TokenAttacking$ True (copy_attackdefender.go)
 	}
 	if s.res.flags&rfOppCopy != 0 && s.occ.has(sl) {
