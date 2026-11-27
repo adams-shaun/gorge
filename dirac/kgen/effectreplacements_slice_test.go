@@ -5,7 +5,9 @@ import "testing"
 // effectReplacementsSlice are the Effect-issued replacement carriers that
 // lower whole: the stack-exile grant from an enters trigger or on a targeted
 // graveyard card (lower_effectstackexile.go), the chosen-source shield's
-// target, any-recipient, turn-long and gain-rider forms (lower_choosesource.go)
+// target, any-recipient, turn-long and gain-rider forms and their explicit
+// ActiveZones$ Command spelling over RememberObjects$ TargetedPlayer &
+// ThisTargetedCard (Shieldmage Advocate, lower_choosesource.go),
 // Gideon's prevent-all-damage-to-him Effect (lower_preventallto.go), the
 // graveyard return's enters-with-counters rider (lower_effectreturnctr.go)
 // and the remembered host's redirect to the Effect's host (Daughter of
@@ -14,7 +16,7 @@ var effectReplacementsSlice = []string{
 	"Dire Fleet Daredevil", "Sins of the Past",
 	"Auriok Replica", "Burrenton Forge-Tender", "Charm Peddler", "Circle of Despair", "Martyr's Cause",
 	"Pay No Heed", "Pilgrim of Justice", "Pilgrim of Virtue", "Prahv, Spires of Order", "Rith's Charm",
-	"Samite Blessing", "Sanctum Guardian",
+	"Samite Blessing", "Sanctum Guardian", "Shieldmage Advocate",
 	"Cho-Arrim Alchemist", "Intervention Pact", "Reverse Damage",
 	"Gideon, Ally of Zendikar", "Gideon, Champion of Justice", "Gideon, Martial Paragon",
 	"Recommission", "Heroic Return", "What Must Be Done", "Winter Soldier, Reborn Avenger",

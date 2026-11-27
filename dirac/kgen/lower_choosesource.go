@@ -126,6 +126,12 @@ func (lc *lowerCtx) chosenSrcEffect(ps *params) error {
 	for _, k := range keys {
 		switch k {
 		case "Event", "Description", "ValidSource", "ValidTarget", "ReplaceWith", "PreventionEffect", "Prevent":
+		case "ActiveZones":
+			// an Effect's line is always Command-active (lower_damageprevent.go);
+			// Shieldmage Advocate spells it out
+			if v := strings.TrimSpace(rm[k]); v != "Command" {
+				return refuse("ChooseSource Effect replacement ActiveZones$ %q", v)
+			}
 		default:
 			return refuse("ChooseSource Effect replacement param %s", k)
 		}
@@ -175,7 +181,11 @@ func (lc *lowerCtx) chosenSrcEffect(ps *params) error {
 
 // chosenSrcTarget reads the Effect's own target as the shield's recipient:
 // ValidTarget$ Card.IsRemembered,Player.IsRemembered over RememberObjects$
-// Targeted (Martyr's Cause, Sanctum Guardian), with ExileOnMoved$ or
+// Targeted (Martyr's Cause, Sanctum Guardian) or TargetedPlayer &
+// ThisTargetedCard (Shieldmage Advocate: gorge resolves both names onto the
+// resolving ability's own target set, like Targeted —
+// engine/effects/defined_targetedplayer.go, definedSpecThisTargetedCard), with
+// ExileOnMoved$ or
 // ForgetOnMoved$ Battlefield (the kernel matches the target at its version,
 // so a permanent that left is no recipient either way), or ValidTarget$
 // Card.IsImprinted over ImprintCards$ Targeted (Samite Blessing). It consumes
@@ -186,8 +196,8 @@ func (lc *lowerCtx) chosenSrcTarget(ps *params, vt string) (lRef, error) {
 	}
 	switch vt {
 	case "Card.IsRemembered,Player.IsRemembered", "Player.IsRemembered,Card.IsRemembered", "Card.IsRemembered":
-		if ps.peek("RememberObjects") != "Targeted" {
-			return lRef{}, refuse("ChooseSource Effect RememberObjects$ %q", ps.peek("RememberObjects"))
+		if v := ps.peek("RememberObjects"); v != "Targeted" && v != "TargetedPlayer & ThisTargetedCard" {
+			return lRef{}, refuse("ChooseSource Effect RememberObjects$ %q", v)
 		}
 		ps.consume("RememberObjects")
 	case "Card.IsImprinted":

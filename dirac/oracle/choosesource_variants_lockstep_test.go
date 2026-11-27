@@ -14,7 +14,9 @@ import (
 // RememberObjects$ Targeted, Charm Peddler and Samite Blessing over
 // ImprintCards$ Targeted), on any recipient (Pilgrim of Justice, Pilgrim of
 // Virtue), and the bodyless Prevent$ True line that prevents every event from
-// the source this turn (Pay No Heed, Auriok Replica, Burrenton Forge-Tender);
+// the source this turn (Pay No Heed, Auriok Replica, Burrenton Forge-Tender,
+// and Shieldmage Advocate's turn-long line on the Effect's own target over
+// RememberObjects$ TargetedPlayer & ThisTargetedCard);
 // and the shield whose body first gains the prevented life (kop.PrevNextGain:
 // Reverse Damage, Cho-Arrim Alchemist, Intervention Pact).
 var kchosenVariantDecks = [2][]cardset.Entry{
@@ -23,7 +25,7 @@ var kchosenVariantDecks = [2][]cardset.Entry{
 		{Name: "Sanctum Guardian", Count: 2}, {Name: "Pilgrim of Justice", Count: 2}, {Name: "Pilgrim of Virtue", Count: 2},
 		{Name: "Burrenton Forge-Tender", Count: 3}, {Name: "Charm Peddler", Count: 2}, {Name: "Samite Blessing", Count: 2},
 		{Name: "Reverse Damage", Count: 2}, {Name: "Cho-Arrim Alchemist", Count: 2}, {Name: "Intervention Pact", Count: 1},
-		{Name: "Savannah Lions", Count: 2}, {Name: "Plains", Count: 14},
+		{Name: "Shieldmage Advocate", Count: 2}, {Name: "Plains", Count: 14},
 	},
 	{
 		{Name: "Hill Giant", Count: 4}, {Name: "Raging Goblin", Count: 4}, {Name: "Dusk Imp", Count: 4},
@@ -36,7 +38,7 @@ var kchosenVariantDecks = [2][]cardset.Entry{
 var kchosenVariantShields = map[string]bool{"Pay No Heed": true, "Auriok Replica": true, "Martyr's Cause": true,
 	"Sanctum Guardian": true, "Pilgrim of Justice": true, "Pilgrim of Virtue": true, "Burrenton Forge-Tender": true,
 	"Charm Peddler": true, "Samite Blessing": true, "Reverse Damage": true, "Cho-Arrim Alchemist": true,
-	"Intervention Pact": true}
+	"Intervention Pact": true, "Shieldmage Advocate": true}
 
 func kchosenVariantPolicy(seed uint64) Policy { return kchosenPolicyOf(seed, kchosenVariantShields) }
 
