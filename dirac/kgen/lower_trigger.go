@@ -51,6 +51,7 @@ var graveTriggerModes = map[string]bool{
 	"Phase": true, "SpellCast": true, "AbilityCast": true, "CommitCrime": true, "AttackersDeclared": true,
 	"FullyUnlock": true, "ChangesZone": true, "ChangesZoneAll": true, "Drawn": true, "Cycled": true, "Discarded": true, "Sacrificed": true, "FacesDilemma": true,
 	"RingTemptsYou": true, // the Ring tempts (lower_ring.go; dirac/act_ring.go)
+	"TurnFaceUp":    true, // a permanent turns face up; the kernel scans k.gen.graveTrig (fireGraveTurnFaceUp; Deathmist Raptor)
 }
 
 // triggerZoneHalves reports a TriggerZones$ comma list that is exactly the

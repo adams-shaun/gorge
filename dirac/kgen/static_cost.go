@@ -28,11 +28,25 @@ func (sc *staticCtx) modeReduceCost() ([]lStatic, bool, error) {
 		}
 		return nil, false, nil // lower_reduceab.go
 	}
-	if sp.str("Type") != "Spell" {
+	faceDownCast := sp.str("Type") == "" && strings.TrimSpace(sp.str("ValidSpell")) == "Spell.isCastFaceDown"
+	if sp.str("Type") != "Spell" && !faceDownCast {
 		return nil, true, refuse("ReduceCost Type %q", sp.str("Type"))
 	}
 	if sc.st.F, err = readF("ValidCard"); err != nil {
 		return nil, true, err
+	}
+	if faceDownCast {
+		// "Face-down creature spells you cast cost {1} less" (Obscuring
+		// Aether): ValidCard$ is the creature filter, the ValidSpell$
+		// word is the cast's face-down predicate (gorge statics_cost's
+		// spellConstraintMatchesIsCastFaceDown, kop.PredCastFaceDown).
+		sp.consume("ValidSpell")
+		for i := range sc.st.F.Clauses {
+			if sc.st.F.Clauses[i].CmpStat != cmpNone {
+				return nil, true, refuse("ReduceCost Spell.isCastFaceDown beside another filter predicate")
+			}
+			sc.st.F.Clauses[i].CmpStat = cmpCastFaceDown
+		}
 	}
 	if opt, err := lc.reduceOptPaid(sp, &sc.st); err != nil {
 		return nil, true, err // lower_optcost.go

@@ -1990,7 +1990,7 @@ func (cb *cardBuilder) clause(c lClause, zone kop.Zone) (kop.Filter, error) {
 		kf.Pred = kop.PredModified
 	case cmpHasCounters:
 		kf.Pred = kop.PredHasCounters
-	case cmpMonstrous, cmpNoCounters, cmpMonoColor, cmpSharesCrCmdr:
+	case cmpMonstrous, cmpNoCounters, cmpMonoColor, cmpSharesCrCmdr, cmpCastFaceDown:
 		kf.Pred = bareCmpPreds[c.CmpStat]
 	case cmpRingBearer:
 		ringBearerPred(&kf, c)

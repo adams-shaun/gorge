@@ -1188,6 +1188,9 @@ func init() { enum[kop.KwID]("kop.KwUnearth", kop.KwUnearth) }
 // dirac/manifest/Pred/PredNamedCard
 func init() { enum[kop.Pred]("kop.PredNamedCard", kop.PredNamedCard) }
 
+// dirac/manifest/Pred/PredCastFaceDown
+func init() { enum[kop.Pred]("kop.PredCastFaceDown", kop.PredCastFaceDown) }
+
 // dirac/manifest/Pred/PredGoaded
 func init() { enum[kop.Pred]("kop.PredGoaded", kop.PredGoaded) }
 

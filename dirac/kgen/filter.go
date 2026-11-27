@@ -161,6 +161,7 @@ const (
 	cmpModified         // modified: a counter, an Equipment, or an Aura its controller controls (no operator)
 	cmpHasCounters      // HasCounters: any counter, internal markers included (no operator)
 	cmpTrigPlayerCtrl   // the trigger's damaged player controls it (kop.PredTrigPlayerCtrl; no operator)
+	cmpCastFaceDown     // a face-down cast (gorge Spell.isCastFaceDown; ReduceCost ValidSpell$ only)
 	cmpMonstrous        // IsMonstrous: the CR 701.37b monstrous designation (no operator)
 	cmpNoCounters       // !HasCounters: no counter at all (no operator)
 	cmpLacksKw          // !with<Keyword>: lacks keyword bit CmpN (no operator)
@@ -1487,7 +1488,7 @@ func (c *lClause) addNotSub(w string) error {
 
 // bareCmpPreds maps the compare words build.go's clause reads as one
 // argument-less predicate each (kernel sharesCrCmdr is filter_sharescmdr.go).
-var bareCmpPreds = map[uint8]kop.Pred{cmpMonstrous: kop.PredMonstrous, cmpNoCounters: kop.PredNoCounters, cmpMonoColor: kop.PredMonoColor, cmpSharesCrCmdr: kop.PredSharesCrCmdr}
+var bareCmpPreds = map[uint8]kop.Pred{cmpMonstrous: kop.PredMonstrous, cmpNoCounters: kop.PredNoCounters, cmpMonoColor: kop.PredMonoColor, cmpSharesCrCmdr: kop.PredSharesCrCmdr, cmpCastFaceDown: kop.PredCastFaceDown}
 
 // battlefieldPreds maps the compare words build.go's clause reads as one
 // battlefield-only predicate each.

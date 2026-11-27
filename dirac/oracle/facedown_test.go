@@ -100,7 +100,7 @@ func kfacedownPolicy(seed uint64, counts *kfacedownCounts, setup *kfacedownSetup
 				if !haveDown || counts.down(n) < downCount {
 					down, downName, downCount, haveDown = a, n, counts.down(n), true
 				}
-			case a.Kind() == ActSpecial && a.Mode() == kfacedownTurnUp:
+			case a.Kind() == ActSpecial && a.Mode()&0xf == kfacedownTurnUp:
 				if !haveUp || counts.up(n) < upCount {
 					up, upName, upCount, haveUp = a, n, counts.up(n), true
 				}
@@ -262,7 +262,7 @@ func TestFacedownLockstep(t *testing.T) {
 				counts.megamorph++
 			case a.Kind() == ActCastFace && a.Mode() == faceCodeDisguised:
 				counts.disguise++
-			case a.Kind() == ActSpecial && a.Mode() == kfacedownTurnUp:
+			case a.Kind() == ActSpecial && a.Mode()&0xf == kfacedownTurnUp:
 				counts.turnUp++
 			}
 		}
@@ -595,7 +595,7 @@ func kfacedownWardPolicy(seed uint64, setup *kfacedownWardSetup) Policy {
 				priest, havePriest = a, true
 			case a.Kind() == ActCastFace && kfacedownDisguiseName(n):
 				down, haveDown = a, true
-			case a.Kind() == ActSpecial && a.Mode() == kfacedownTurnUp && kfacedownDisguiseName(n):
+			case a.Kind() == ActSpecial && a.Mode()&0xf == kfacedownTurnUp && kfacedownDisguiseName(n):
 				up, haveUp = a, true
 			}
 		}
@@ -684,7 +684,7 @@ func TestFacedownWardLockstep(t *testing.T) {
 			switch {
 			case a.Kind() == ActCastFace && a.Mode() == faceCodeDisguised:
 				disguiseDown++
-			case a.Kind() == ActSpecial && a.Mode() == kfacedownTurnUp:
+			case a.Kind() == ActSpecial && a.Mode()&0xf == kfacedownTurnUp:
 				turnUp++
 			}
 		}
