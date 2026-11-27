@@ -110,6 +110,7 @@ func (s *State) filtMemoReset() {
 	if p := s.pool; p != nil {
 		p.fmemo.n, p.fmemo.next = 0, 0
 		p.pcm.owner, p.pcm.live = 0, 0
+		p.sfm.owner = 0
 	}
 }
 

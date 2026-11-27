@@ -152,8 +152,9 @@ func (g *genPrep) prepCensusGap(c CardID, j int, a *kop.Ability) {
 	}
 }
 
-// scriptFilt: p's activatable filter sources (untapped), a slot mask.
-func (s *State) scriptFilt(k *prep, p uint8) slotMask {
+// scriptFiltCalc: p's activatable filter sources (untapped), a slot mask
+// (scriptFilt, mana_sfmemo.go, is the per-decision memo in front of it).
+func (s *State) scriptFiltCalc(k *prep, p uint8) slotMask {
 	if !k.gen.anyFilt {
 		return slotMask{}
 	}
