@@ -177,8 +177,8 @@ func (s *State) dredgeTurnAnswer(k *prep, a Action) {
 		s.cfgx |= cfgxDredgeAsked
 		s.draw(s.active)
 		s.cfgx &^= cfgxDredgeAsked
-		if s.res.ask == raGenDrawOrder {
-			return // the draw's replacement order is asked first (repl_draworder.go)
+		if s.drawReplAsked() {
+			return // the draw's replacement order or may election is asked first (repl_draworder.go, repl_drawmay.go)
 		}
 		if s.res.ask == raDredgeRes && s.res.flags&rfBodyTurn != 0 {
 			return // the draw's body batch suspended on its first ask (dredgeBodyAnswer)
@@ -244,9 +244,10 @@ func (s *State) dredgeDrawLoop(k *prep, in *kop.Instr, p uint8, left int, rest u
 				return false
 			}
 			s.dredgeDrawOne(in, p)
-			if s.res.ask == raGenDrawOrder {
-				// the draw posed its CR 616.1 order ask (repl_draworder.go): the loop
-				// waits in the dredge ask's state
+			if s.drawReplAsked() {
+				// the draw posed its CR 616.1 order ask (repl_draworder.go) or its
+				// may replacement's election (repl_drawmay.go): the loop waits in
+				// the dredge ask's state
 				s.g.pickP, s.g.pickZ, s.g.pickLeft = p, rest, uint8(n)
 				s.res.left = uint8(left)
 				return false
@@ -290,8 +291,8 @@ func (s *State) dredgeAskAnswer(k *prep, a Action) {
 		s.cfgx |= cfgxDredgeAsked
 		s.dredgeDrawOne(in, p)
 		s.cfgx &^= cfgxDredgeAsked
-		if s.res.ask == raGenDrawOrder {
-			return // the draw posed its replacement order ask (repl_draworder.go)
+		if s.drawReplAsked() {
+			return // the draw posed its replacement order ask or may election (repl_draworder.go, repl_drawmay.go)
 		}
 		if s.res.ask == raDredgeRes && s.res.flags&rfBodyOp != 0 {
 			return // the draw's body batch suspended on its first ask (dredgeBodyAnswer)

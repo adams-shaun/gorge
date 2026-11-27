@@ -182,7 +182,7 @@ const ReplDrawNotFirst = 1 // NotFirstCardInDrawStep$ True
 // are the line's match: ValidPlayer$ (You when neither of the two below is
 // set), Optional$, NotFirstCardInDrawStep$ and Prevent$ (a bodyless skip).
 const (
-	ReplDrawOptional  = 1 << 1 // reserved for the optional-draw follow-up; nothing sets or reads it yet (kgen refuses Optional$ True)
+	ReplDrawOptional  = 1 << 1 // Optional$ True: the draw's player elects apply / decline (dirac/repl_drawmay.go)
 	ReplDrawOpponent  = 1 << 2 // ValidPlayer$ Opponent: an opponent of the source's controller draws
 	ReplDrawAnyPlayer = 1 << 3 // ValidPlayer$ Player: any player draws
 	ReplDrawSkip      = 1 << 4 // Prevent$ True, no ReplaceWith$ body: the draw is skipped
