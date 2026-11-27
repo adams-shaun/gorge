@@ -62,7 +62,7 @@ func (s *State) cantAtkBare(k *prep, sl Slot) bool {
 		if a.Kind != kop.AbStatic || a.Static.Kind != kop.StatCantAttack ||
 			a.Static.StFlags&(kop.StCantAtkPlayer|kop.StCantAtkWalker) != 0 ||
 			a.Static.StFlags&kop.StCantAtkDef != 0 && !s.duel() ||
-			!s.statCond(k, st) ||
+			!s.statCond(k, st) || st.emb != 0 && !s.embCaptureOK(k, st.emb, sl) ||
 			!s.matchPermGen(k, a.Static.Filter, sl, st.ctrl, st.sl, layerFull) {
 			return true
 		}
@@ -106,7 +106,7 @@ func (s *State) cantAtkPair(k *prep, sl Slot, def uint8, walker Slot) bool {
 			return true
 		}
 		sc := a.Static.StFlags & (kop.StCantAtkPlayer | kop.StCantAtkWalker)
-		if sc == 0 || !s.statCond(k, st) ||
+		if sc == 0 || !s.statCond(k, st) || st.emb != 0 && !s.embCaptureOK(k, st.emb, sl) ||
 			!s.matchPermGen(k, a.Static.Filter, sl, st.ctrl, st.sl, layerFull) {
 			return true
 		}

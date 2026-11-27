@@ -426,6 +426,11 @@ type Emblem struct {
 	// triggers apply to nothing. Without it the capture names the object
 	// across zone changes (gorge matches the object, not a version).
 	CaptureLapse bool
+	// CaptureCtr: with CaptureRem and CaptureLapse, an object also drops out
+	// of the remembered set when it has lost its last counter of this kind
+	// (the Effect's ForgetCounter$: Promise of Loyalty's "for as long as it
+	// has a vow counter on it"); 0 = none. dirac/static_emblemctr.go.
+	CaptureCtr CounterKind
 	// NumAmount: the emblem's frozen number (State.g.embN, evaluated by
 	// OpCreateEmblem's A) rides each of its triggers as the trigger amount, so
 	// a body reading VTriggerAmount reads it (The Eagles Are Coming!: the
