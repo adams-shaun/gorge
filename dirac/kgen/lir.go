@@ -209,7 +209,7 @@ const (
 	vExiledWithN         // the cards exiled with the reading source, every seat's exile zone (ExiledWith$Amount)
 	vConverge            // the colours of mana spent to cast the spell (Count$Converge)
 	vExileTypes          // the distinct card types among the exiled cards matching F, every seat's exile (Count$ValidExile <spec>$CardTypes)
-	vSacrificedThisTurn  // the permanents the controller sacrificed this turn; N 0 every one, N 1 artifact cards (PlayerCountPropertyYou$SacrificedThisTurn Permanent|Artifact)
+	vSacrificedThisTurn  // the permanents the controller sacrificed this turn: N 0/1/2 the Permanent/Artifact/Food tallies, else F over the turn's sacrifices (PlayerCountPropertyYou$SacrificedThisTurn <spec>)
 	vDiscardedThisTurn   // the cards the controller discarded this turn (PlayerCountPropertyYou$CardsDiscardedThisTurn)
 	vRingTempted         // the controller's temptation count (PlayerCountPropertyYou$RingTemptedYou; the Ring emblem's level gates, gorge count_body_player.go RingTemptedYou)
 	vNumColorsOf         // the colour count of object Ref (TriggeredCard$CardNumColors in a SpellCast trigger)

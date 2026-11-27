@@ -944,6 +944,12 @@ func (s *State) removePerm(k *prep, sl Slot, z kop.Zone, bottom bool) {
 	s.meldLeaveOnLeave(k, o, z, bottom, wasCreature) // face_meld.go: a melded permanent's partner goes with it
 	s.placeFromK(k, o, z, bottom, kop.ZoneBattlefield, wasCreature, leftCounters)
 	s.g.graveKept = false
+	if p.cseen&cseenSacNext != 0 {
+		if s.g.enteredOn {
+			s.noteSacrificedEntry(o) // this departure is a sacrifice (value_sacrificedthisturn.go)
+		}
+		p.cseen &^= cseenSacNext
+	}
 	if s.g.enteredOn {
 		s.noteLeftController(o, leftCtrl)
 	}

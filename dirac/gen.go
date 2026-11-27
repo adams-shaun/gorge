@@ -886,8 +886,12 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	}
 	enteredNeed := tableHasEnteredFrom(t)
 	for i := range t.Exprs {
-		if k := t.Exprs[i].Kind; k == kop.ExThisTurnEntered || k == kop.ExRevolt || k == kop.ExLeftZone {
+		x := &t.Exprs[i]
+		if k := x.Kind; k == kop.ExThisTurnEntered || k == kop.ExRevolt || k == kop.ExLeftZone {
 			enteredNeed = true
+		}
+		if x.Kind == kop.ExSacrificedThisTurn && x.F != 0 {
+			enteredNeed = true // the filtered sacrificed-this-turn read walks the ledger
 		}
 	}
 	g := &genPrep{
