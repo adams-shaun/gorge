@@ -187,7 +187,8 @@ func (g *grantSrch) planUnits(t *State, src []int, j int, cost *kop.ManaCost) bo
 	if nc == 0 || !t.occ.has(sl) || t.perms[sl].obj != g.cobj[i] {
 		return false
 	}
-	v := t.sacXVictimOrder(g.k, sl, &cs, nc, true)
+	var vbuf [MaxPerm]Slot
+	v := t.sacXVictimOrder(g.k, sl, &cs, nc, true, &vbuf)
 	order, ncol := [5]uint8{0, 1, 2, 3, 4}, 1
 	if fc, ok := kop.TapXFixedColour(ab); ok {
 		order[0] = uint8(fc)
@@ -229,7 +230,8 @@ func (g *grantSrch) sacXAct(t *State, i int, sl Slot) bool {
 	}
 	anyCol := kop.SacXAnyColour(ab)
 	plan := t.planOtherSacSource(g.k, sl) && g.sacXLast(t, sl, &cs, anyCol)
-	vorder := t.sacXVictimOrder(g.k, sl, &cs, nc, plan)
+	var vbuf [MaxPerm]Slot
+	vorder := t.sacXVictimOrder(g.k, sl, &cs, nc, plan, &vbuf)
 	// the colour ask's answers: W U B R G, the play's announced colours first
 	// (gorge's scriptOrderAnswers, needFirst); a fixed production asks none
 	order, ncol := [5]uint8{0, 1, 2, 3, 4}, 1

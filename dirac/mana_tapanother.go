@@ -1782,11 +1782,12 @@ func (s *State) planOtherSacSourceOrder(k *prep, order []Slot, n int) {
 // another creature takes the same permanent in the kernel, so the lockstep
 // projection agrees. A non-final step, or a source whose filter is not that plain
 // creature shape, keeps the candidate walk's battlefield order (cs itself).
-func (s *State) sacXVictimOrder(k *prep, sl Slot, cs *[MaxPerm]Slot, nc int, plan bool) *[MaxPerm]Slot {
+// The plan order is written into out, the caller's buffer: returning a fresh
+// array's address moves it to the heap, and this runs on every visit.
+func (s *State) sacXVictimOrder(k *prep, sl Slot, cs *[MaxPerm]Slot, nc int, plan bool, out *[MaxPerm]Slot) *[MaxPerm]Slot {
 	if !plan || !planOtherSacFilter(&k.t.Filters[k.tapXAbOf(s.cardAt(sl)).Cost.Filter]) {
 		return cs
 	}
-	var out [MaxPerm]Slot
 	copy(out[:nc], cs[:nc])
 	less := func(a, b Slot) bool {
 		ao, bo := s.perms[a].obj, s.perms[b].obj
@@ -1808,7 +1809,7 @@ func (s *State) sacXVictimOrder(k *prep, sl Slot, cs *[MaxPerm]Slot, nc int, pla
 		}
 		out[j] = x
 	}
-	return &out
+	return out
 }
 
 // sacStep is visit's branch for a sacrifice-another source sl with nc
@@ -1828,7 +1829,8 @@ func (rs *tapXSearch) sacStep(k *prep, t *State, sl Slot, cs *[MaxPerm]Slot, nc 
 	}
 	anyCol := kop.SacXAnyColour(k.tapXAbOf(t.cardAt(sl)))
 	plan := nc > 0 && t.planOtherSacSource(k, sl) && rs.sacLast(k, t, sl, cs, anyCol)
-	order := t.sacXVictimOrder(k, sl, cs, nc, plan)
+	var vbuf [MaxPerm]Slot
+	order := t.sacXVictimOrder(k, sl, cs, nc, plan, &vbuf)
 	for ci := 0; ci < nc; ci++ {
 		if anyCol {
 			if f, st := rs.colourStep(k, t, sl, order[ci], cols); st {
