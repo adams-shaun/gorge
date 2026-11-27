@@ -132,10 +132,15 @@ func TestEffectDrawReplacementUrabraskOneShot(t *testing.T) {
 			controller: r0.Controller, frozenController: true, key: effectReplKey(r0)}
 		ctxPr := e.replCtx(mPr, evProbe)
 		hb2, lb2, ex2 := len(e.G.Zone(state.ZHand, 1)), len(e.G.Zone(state.ZLibrary, 1)), len(e.G.Zone(state.ZExile, 1))
+		ne0 := len(e.L.Events)
 		e.runReplaceWith(ctxPr, 0, rPr.With, &evProbe)
-		t.Logf("DEBUG body: exile1 %d->%d hand %d->%d lib %d->%d frame=%+v remembered=%v",
+		var sb2 strings.Builder
+		for _, evx := range e.L.Events[ne0:] {
+			fmt.Fprintf(&sb2, "{k=%d obj=%d p=%d from=%d to=%d amt=%d text=%q} ", evx.Kind, evx.Obj, evx.Player, evx.From, evx.To, evx.Amount, evx.Text)
+		}
+		t.Logf("DEBUG body: exile1 %d->%d hand %d->%d lib %d->%d pending=%v newevents: %s",
 			ex2, len(e.G.Zone(state.ZExile, 1)), hb2, len(e.G.Zone(state.ZHand, 1)),
-			lb2, len(e.G.Zone(state.ZLibrary, 1)), ctxPr.EffectFrame, ctxPr.Remembered)
+			lb2, len(e.G.Zone(state.ZLibrary, 1)), e.Pending(), sb2.String())
 	}
 	for i := 0; i < 4000 && len(e.G.Zone(state.ZExile, 1)) == 0; i++ {
 		if answerIfDiscard(t, e) {
