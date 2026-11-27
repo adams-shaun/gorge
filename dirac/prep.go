@@ -377,10 +377,13 @@ type prep struct {
 	// entry and the block gate reads it (kw_unleash.go); a prep bool like
 	// ascend, for the same reason
 	unleash bool
-	// riot: some card prints Riot: the as-enters counter-or-haste election
-	// queues at entry (kw_riot.go); a prep bool like unleash, for the same
-	// reason
+	// riot: some card prints or grants Riot: the as-enters counter-or-haste
+	// election queues at entry (kw_riot.go); a prep bool like unleash, for
+	// the same reason
 	riot bool
+	// riotGrant: some static grants Riot, so an entry that does not print it
+	// matches the grant (kw_riot.go); a prep bool like riot
+	riotGrant bool
 	// enlist: some card prints Enlist: the declare-attackers election
 	// (kw_enlist.go); a prep bool like riot
 	enlist bool
@@ -442,7 +445,8 @@ func prepare(t *kop.Table) *prep {
 	p.storied = tableHasStoried(t)
 	p.anyFbCard = tableHasFlashback(t)
 	p.unleash = tableHasUnleash(t)
-	p.riot = tableHasRiot(t)
+	p.riotGrant = tableGrantsRiot(t)
+	p.riot = tableHasRiot(t) || p.riotGrant
 	p.enlist = tableHasEnlist(t)
 	p.exertOffer = tableHasExertOffer(t)
 	p.engAsc = p.engines || p.ascend

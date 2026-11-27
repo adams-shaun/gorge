@@ -236,7 +236,14 @@ func tapeTextMayAsk(e *Engine) bool {
 		// ETB-tapped land's self-only line in a library or hand) neither
 		// elects nor competes; counting those checkpointed every permanent
 		// spell of a deck holding two such lands.
-		if cards.FaceEntryMayAsk(f) || tapeLandReplMayAsk(e, id) {
+		//
+		// A board static can grant the entrant Riot (Rhythm of the Wild,
+		// Uncivil Unrest, Spider-Punk), and enteringRiot reads that derived
+		// keyword list: the entry poses the counter-or-haste ask even
+		// though the card's own text is ask-free. The precheck is a
+		// conservative scan of the board's AddKeyword$ heads, so it costs
+		// a load on a board with no Riot grant.
+		if cards.FaceEntryMayAsk(f) || tapeLandReplMayAsk(e, id) || e.mayHaveDerivedKeywordH(id, kwhRiot) {
 			return true
 		}
 		if sa == nil {

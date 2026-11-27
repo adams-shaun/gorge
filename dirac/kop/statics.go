@@ -151,6 +151,11 @@ type Static struct {
 	// every live static's N to the printed toxic (dirac/kw_toxicgrant.go).
 	// 0 = none.
 	Toxic uint8
+	// Riot: a StatContinuous grant of riot (AddKeyword$ Riot, CR 702.136;
+	// Spider-Punk, Uncivil Unrest, Rhythm of the Wild): the affected
+	// permanent enters with its controller's choice of a +1/+1 counter or
+	// haste (the as-enters ask, dirac/kw_riot.go), read beside CardDef.Riot.
+	Riot bool
 	// PanhZones: a StatPanharmonicon static's ValidZone$ zone mask (1<<Zone;
 	// 0 = the battlefield only, the default). The triggering object's own
 	// zone, at the moment the event caused the trigger, must be in the set;
