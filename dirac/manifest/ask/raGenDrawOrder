@@ -1,0 +1,5 @@
+family: ask
+name: raGenDrawOrder
+value: next
+status: active
+doc: the CR 616.1 order ask of competing Draw replacement programs (gorge poseReplacementChoice on a Draw event): the drawing player picks which candidate applies to the draw, asked at an OpDraw card or the turn draw when two or more candidates match and one is a ReplDrawProgram body (repl_draworder.go).
