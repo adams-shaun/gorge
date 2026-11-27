@@ -854,6 +854,7 @@ type lCost struct {
 	MoveGraveN     int  // ExiledMoveToGrave<N/Spec>: put N exiled cards matching MoveGraveF into their owners' graveyards (a trigger's own cost only; lower_exiledmovegrave.go)
 	MoveGraveF     *lFilter
 	ExileHand      bool     // ExileFromHand<1/Card>: the ExileG cards come from the payer's hand (kop.Cost.ExileHand; a granted exile ability's cost only)
+	AnnounceX      bool     // an AlternativeCost's ExileFromHand<1/Spec> whose spec bounds the exiled card's mana value to the Announce$ X (kop.CostExileGrave with N 0 beside ExileHand; the Shoal cycle; kernel cost_announcex.go)
 	ExileGBf       bool     // ExileCtrlOrGrave<N/Spec>: the battlefield (the payer's permanents) as well (kop.CostExileCtrlOrGrave, Craft)
 	ExileStackSelf bool     // ExileFromStack<1/Card.Self>: the resolving spell exiles itself from the stack (an unless cost beside ExileG)
 	Energy         int      // PayEnergy<N>: pay N energy (an activated ability's cost, or a Squad/Replicate payment scaled to the count; kw_squadreplicate.go)

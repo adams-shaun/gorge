@@ -6,12 +6,15 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // PayLife<N> and ExileFromHand<N/Spec> and nothing else (Force of Will: "You
 // may pay 1 life and exile a blue card from your hand rather than pay this
 // spell's mana cost", CR 118.9, 601.2b), or the exile alone (Misdirection and
-// the Force cycle's bare ExileFromHand<1/Spec>, PayLife 0). The two parts
+// the Force cycle's bare ExileFromHand<1/Spec>, PayLife 0; Commandeer's bare
+// ExileFromHand<2/Card.Blue+Other>, PayLife 0). The two parts
 // share kop.Cost.N, so the life equals the exiled count; build_ab's
 // AlternativeCost arm gates the
 // card (an instant or sorcery with one spell ability, cardBuilder.altSacOK).
 func altPayLifeExileHand(c *lCost) bool {
-	if c.ExileG == nil || !c.ExileHand || c.ExileGN != 1 || c.PayLife != c.ExileGN && c.PayLife != 0 || c.ExileGBf || c.exileGCard {
+	one := c.ExileGN == 1
+	twoBare := c.ExileGN == 2 && c.PayLife == 0 // Commandeer: two cards, no life beside
+	if c.ExileG == nil || !c.ExileHand || !one && !twoBare || c.PayLife != c.ExileGN && c.PayLife != 0 || c.ExileGBf || c.exileGCard {
 		return false
 	}
 	rest := *c
@@ -55,17 +58,38 @@ func altGraveExileCost(c *lCost) bool {
 
 // altExileHandCost lowers an alternative cost's ExileFromHand<n/Spec[/desc]>
 // part (Force of Will's "exile a blue card from your hand"; CR 118.9,
-// 601.2b): one card matching the spec, picked as the cast pays.
+// 601.2b): the N cards matching the spec, picked as the cast pays (the
+// kernel's hand-exile pick walks Cost.N; Commandeer's <2/...> pays two).
+// While lc.announceAlt (the static's Announce$ X, static_cost.go), it is the
+// announced X-bound one only: <1/Spec> whose spec bounds the mana value to X
+// with exactly one cmcEQX clause (the Shoal cycle; announceHandExile).
 func (lc *lowerCtx) altExileHandCost(c *lCost, parts []string, n int, t string) error {
-	if len(parts) < 2 || len(parts) > 3 || n != 1 || c.ExileG != nil || c.ExileHandN != 0 {
+	if len(parts) < 2 || len(parts) > 3 || n != 1 && n != 2 || c.ExileG != nil || c.ExileHandN != 0 {
 		return refuse("exile cost %q", t)
 	}
 	f, err := lc.filter(parts[1])
 	if err != nil {
 		return err
 	}
+	if lc.announceAlt {
+		if n != 1 || !announceXBound(f) {
+			return refuse("announced exile cost %q: only ExileFromHand<1/Spec> whose spec bounds the exiled card's mana value to X (one cmcEQX clause) is announced", t)
+		}
+		c.AnnounceX = true
+	}
 	c.ExileG, c.ExileGN, c.ExileHand = f, n, true
 	return nil
+}
+
+// announceXBound reports whether f is the announce-bearing exile spec: one
+// clause bounding the card's mana value to the SVar X (the Shoal cycle's
+// Card.Red+Other+cmcEQX).
+func announceXBound(f *lFilter) bool {
+	if f == nil || len(f.Clauses) != 1 {
+		return false
+	}
+	c := f.Clauses[0]
+	return c.CmpStat == cmpCMC && c.CmpOp == opEQ && c.CmpX == "X"
 }
 
 // altLifeShared: while an alternative cost lowers, its PayLife<N> beside
@@ -77,12 +101,21 @@ func (lc *lowerCtx) altLifeShared(c *lCost) bool {
 
 // altHandExileShape: the built alternative cost is the hand-exile pick
 // (kernel dirac.altHandExileCost) -- PayLife<N> beside the exile (Force of
-// Will, Flags CostPayLife|CostExileGrave sharing Cost.N) or the exile alone
-// (the Force cycle, Misdirection; bare CostExileGrave).
+// Will, Flags CostPayLife|CostExileGrave sharing Cost.N), the exile alone
+// (the Force cycle, Misdirection; bare CostExileGrave), or the announced
+// X-bound one (the Shoal cycle; announceHandExile).
 func altHandExileShape(c *kop.Cost) bool {
 	shared := c.Flags == kop.CostPayLife|kop.CostExileGrave
 	bare := c.Flags == kop.CostExileGrave
-	return (shared || bare) && c.ExileHand && c.N > 0
+	return (shared || bare) && c.ExileHand && (c.N > 0 || announceHandExile(c))
+}
+
+// announceHandExile: the built alternative cost is the announced X-bound
+// hand exile (kernel dirac.announceHandXCost, cost_announcex.go): the exile
+// alone with Cost.N 0, its filter's cmcEQX predicate bound to the announced
+// X.
+func announceHandExile(c *kop.Cost) bool {
+	return c.Flags == kop.CostExileGrave && c.ExileHand && c.N == 0
 }
 
 // altHandExileOK: the hand-exile shape on a card whose one spell ability can

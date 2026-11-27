@@ -4,4 +4,6 @@ value: 49
 forge: ControlSpell
 census: api ControlSpell all=6 std=0 mbc=0 sole=0
 state: code 0
-status: reserved
+status: active
+ticket: cli-20261127T171908Z-a3fffdc5
+doc: the resolving controller gains control of the spell on the stack that Obj names (api ControlSpell Mode$ Gain; gorge effControlSpell's stack-scoped ControlChange, choose_control.go). An object that is not on the stack, and a stack ability (no object), transfer nothing, as gorge's ZStack gate skips them; the permanent the spell becomes enters under the gaining controller (resolve.go enter's e.ctrl). No duration and no control records: the entry keeps the new controller to resolution. dirac/act_controlspell.go. Commandeer.

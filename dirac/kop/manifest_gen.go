@@ -1457,6 +1457,8 @@ const ExtChooseEvenOdd ExtOp = 48
 func init() { extOpNames[ExtChooseEvenOdd] = "ChooseEvenOdd" }
 
 // api ControlSpell (dirac/manifest/ExtOp/ExtControlSpell)
+//
+// the resolving controller gains control of the spell on the stack that Obj names (api ControlSpell Mode$ Gain; gorge effControlSpell's stack-scoped ControlChange, choose_control.go). An object that is not on the stack, and a stack ability (no object), transfer nothing, as gorge's ZStack gate skips them; the permanent the spell becomes enters under the gaining controller (resolve.go enter's e.ctrl). No duration and no control records: the entry keeps the new controller to resolution. dirac/act_controlspell.go. Commandeer.
 const ExtControlSpell ExtOp = 49
 
 func init() { extOpNames[ExtControlSpell] = "ControlSpell" }

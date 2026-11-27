@@ -19,7 +19,7 @@ import (
 // Cond cYourTurn Neg (Mine Collapse: PlayerTurn, not negated). Force of
 // Virtue lowers too (an enchantment: the kernel's alternative cast serves a
 // permanent spell with no spell ability, kgen altSacOK), and Commandeer's
-// two-card exile keeps refusing, by name.
+// bare two-card exile with it (the pick walks Cost.N).
 func TestForceCycleConditionAltCost(t *testing.T) {
 	lw := lowerNamedPool(t, []string{
 		"Force of Negation", "Force of Vigor", "Force of Despair",
@@ -39,7 +39,7 @@ func TestForceCycleConditionAltCost(t *testing.T) {
 		"Misdirection":    "",
 		"Force of Virtue": "",
 		"Mine Collapse":   "",
-		"Commandeer":      `exile cost "ExileFromHand<2/Card.Blue+Other>"`,
+		"Commandeer":      "",
 	}
 	seen := 0
 	for _, c := range cs {
@@ -64,7 +64,7 @@ func TestForceCycleConditionAltCost(t *testing.T) {
 		}
 		// The turn condition rides the alternative-cost static: NotPlayerTurn
 		// cYourTurn Neg (Mine Collapse's PlayerTurn not negated; Misdirection
-		// has no condition at all).
+		// and Commandeer have no condition at all).
 		var alt *lStatic
 		for i := range c.Statics {
 			if c.Statics[i].Kind == "AlternativeCost" {
@@ -74,7 +74,7 @@ func TestForceCycleConditionAltCost(t *testing.T) {
 		if alt == nil {
 			t.Fatalf("%s: no lowered AlternativeCost static", c.Name)
 		}
-		if c.Name == "Misdirection" {
+		if c.Name == "Misdirection" || c.Name == "Commandeer" {
 			if alt.Cond.Kind != cNone {
 				t.Errorf("Misdirection AlternativeCost Cond = %+v, want none", alt.Cond)
 			}

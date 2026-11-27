@@ -221,6 +221,21 @@ func (sc *staticCtx) modeAlternativeCost() ([]lStatic, bool, error) {
 	if sp.str("EffectZone") == "Graveyard" {
 		sc.st.Zone = zGraveyard
 	}
+	// Announce$ X on the card's own alternative cost (the Shoal cycle's
+	// "you may exile a red card with mana value X from your hand rather
+	// than pay this spell's mana cost"): the announcement is the card's
+	// printed X, paid by the exile (SVar X: Count$xPaid; gorge
+	// statics_altcost.go's altCostView.announce, its xAsk arm's candidate
+	// set), and the one spelling lowered is a lone ExileFromHand<1/Spec>
+	// whose spec bounds the exiled card's mana value to X (kernel
+	// cost_announcex.go).
+	announce := strings.TrimSpace(sp.str("Announce"))
+	if announce != "" {
+		if announce != "X" || !lc.out.Cost.X || strings.TrimSpace(lc.face.SVars["X"]) != "Count$xPaid" {
+			return nil, true, refuse("AlternativeCost Announce$ %q: only the printed X announced by the exile (a printed {X}, SVar X: Count$xPaid) is lowered", announce)
+		}
+		lc.announceAlt = true
+	}
 	if sp.str("Cost") == "Reveal<1/Hand>" {
 		// "reveal your hand" (gorge cost.go
 		// IsWholeHandRevealSpec: payable with any hand, no choice) is
@@ -228,7 +243,15 @@ func (sc *staticCtx) modeAlternativeCost() ([]lStatic, bool, error) {
 		sc.st.Cost = lCost{}
 		sp.consume("Cost")
 	} else if sc.st.Cost, err = lc.altCostCost(sp.str("Cost")); err != nil {
+		lc.announceAlt = false
 		return nil, true, err
+	}
+	if announce != "" {
+		lc.announceAlt = false
+		if !sc.st.Cost.AnnounceX || sc.st.Cost.PayLife != 0 {
+			return nil, true, refuse("AlternativeCost Announce$ X with Cost$ %q: the announcement lowers only on a lone ExileFromHand<1/Spec> whose spec bounds the exiled card's mana value to X (the Shoal cycle)", sp.str("Cost"))
+		}
+		sp.consume("Announce")
 	}
 	// a Return<N/Spec> part lowers alone (Gush, Thwart, Daze: the
 	// kernel's return alternative, build_ab.go altReturnOK); beside any
