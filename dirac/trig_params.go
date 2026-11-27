@@ -32,9 +32,14 @@ const mtTapBit = 0x200
 // tapper, and the SharesProducedColour filter word reads them off the
 // resolving entry (filter_sharesproducedcolour.go; C.A.M.P.'s
 // Card.SharesColorWith TriggeredProduced). Colourless is not a colour: no bit.
+//
+// mtColBound (bit 15) marks an entry whose colours the source's float has
+// bound (tapProduced): until then the entry carries the source's static
+// production, which is exact for a one-colour source only.
 const (
 	mtColShift = 10
 	mtColMask  = 0x7C00
+	mtColBound = -0x8000 // int16 bit 15
 )
 
 // tapsManaOK: a Tf5TapsForMana line admits only a mana tap (mtTapBit), and

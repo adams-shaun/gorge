@@ -46,6 +46,9 @@ var DebugRestrTypedFirst bool
 // p's pool. It is called after the unit is added.
 func (s *State) artTag(k *prep, p uint8, sl Slot, col int) {
 	s.snowTag(k, p, sl, col) // the snow half of the tag (mana_snow.go)
+	if k.gen != nil && k.gen.anyTrigProduced {
+		s.tapProduced(k, sl, col) // the tap's queued Taps triggers read the colour it floated
+	}
 	if k.gen != nil && k.gen.anyManaHaste {
 		s.hasteTag(k, p, sl, col) // a rider unit floating in the pool (mana_hastefloat.go)
 	}
