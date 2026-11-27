@@ -226,7 +226,12 @@ func (lc *lowerCtx) exilePick(ps *params, f *lFilter, n lValue, flags []string, 
 			return refuse("exile pick with %s$", k)
 		}
 	}
-	if !n.isConst() || n.N != 1 {
+	if n.Kind == vCountExile && n.F != nil && n.F.String() == f.String() && !ps.is("Mandatory", "True") {
+		// ChangeNum$ X with X = Count$ValidExile <the pick's own filter>
+		// (Oblivion Sower's "any number of land cards that player owns"): the
+		// bound is every matching card, so the optional pick is the "any
+		// number" form -- up to X, none a legal answer
+	} else if !n.isConst() || n.N != 1 {
 		// a Saga's chapter may return two (Vault 13's chapter III); every
 		// other count stays unproven
 		if !(lc.out.SagaN > 0 && n.isConst() && n.N == 2) {
