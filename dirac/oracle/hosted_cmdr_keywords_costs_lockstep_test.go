@@ -113,7 +113,7 @@ func hostedCmdrCases() []hostedCmdrCase {
 // it as a blocker (combat/block.go's derived HasKW read) and the kernel must
 // agree, decision for decision.
 const packLeaderProbeScript = "Name:Pack Leader Probe\nManaCost:R\nTypes:Creature Dog\nPT:1/1\n" +
-	"S:Mode$ Continuous | Affected$ Dog.Other+YouCtrl | AddKeyword$ Unleash | Description$ Other Dogs you control have unleash.\n" +
+	"S:Mode$ Continuous | Affected$ Dog.Other+YouCtrl | AddKeyword$ Unleash | Description$ Dogs in the pack can't block with counters.\n" +
 	"Oracle:Other Dogs you control have unleash.\n"
 
 const counterHoundProbeScript = "Name:Counter Hound Probe\nManaCost:2 R\nTypes:Creature Dog\nPT:2/2\n" +
