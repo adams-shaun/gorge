@@ -2765,10 +2765,14 @@ func manaTapSingle(e supplyProofHost, p state.PlayerID, id state.ObjID, ma *card
 // manaAbilityCovered reports whether the payment planner's alternatives for
 // source id already cover mana ability ma: one of them is ma itself, or ma is
 // a gap a covered alternative dominates (manaTapGapDominated).
+//
+// A repeatable other-sacrifice ability (Ashnod's Altar: no {T}) is never
+// covered: the planner activates each source at most once, so a payment
+// needing a second activation is still the prefix search's gap.
 func manaAbilityCovered(e supplyProofHost, p state.PlayerID, id state.ObjID, ma *cards.SA, alts []pay.Alt) bool {
 	for _, a := range alts {
 		if pay.SameManaAbility(a.Ma, ma) {
-			return true
+			return !a.Consequence.SacrificeOthers || e.manaAbilityCC(p, id, ma).Cost.Tap
 		}
 	}
 	return manaTapGapDominated(e, p, id, ma, alts)
