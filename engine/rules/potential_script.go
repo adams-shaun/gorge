@@ -1215,14 +1215,21 @@ func scriptTapsSource(c *Engine, id state.ObjID, ability int) bool {
 	return c.abilityCompiledCost(pa.SA).Cost.Tap
 }
 
-// pathPaidTap reports whether the script has already paid a {T} cost of id.
+// pathPaidTap reports whether the script has already paid a {T} cost of id
+// and the untap trigger that tap set off has since untapped it.
 // The searched prefix is ONE payment window (CR 601.2g-i through 602.2b): a
-// source whose own tap an earlier step paid is tapped for the rest of it, so
-// it is not a second unit even when an untap trigger the tap set off has
-// resolved inside the script. The kernel's ordered prefix taps each gap
+// source whose own tap an earlier step paid is not a second unit even when it
+// has untapped inside the script. The kernel's ordered prefix taps each gap
 // source once (dirac's scriptDFS/resolvePrefixStack); without this guard the
 // search re-taps the untapped source and floats mana the kernel never makes.
+//
+// A source still tapped is left alone: the option cannot be paid, so it is
+// not a second unit, and pruning the dead branch would hand its node budget
+// to a sibling branch and change which script the walk finds.
 func (sr *scriptSearch) pathPaidTap(c *Engine, id state.ObjID) bool {
+	if o := c.G.Obj(id); o == nil || o.Tapped {
+		return false
+	}
 	for _, st := range sr.path {
 		if st.Kind != decision.KPriority {
 			continue
