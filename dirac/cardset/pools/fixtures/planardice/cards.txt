@@ -1,0 +1,9 @@
+# The planar-die pool (dirac/oracle/demo_planar_dice_lockstep_test.go):
+# Fractured Powerstone's {T}: Roll the planar die (AB$ RollPlanarDice) and
+# Ichor Elixir's "roll that many plus one and ignore one" replacement, the
+# corpus's only two carriers. Both artifacts are generic-costed, so the pool
+# plays them off any basic lands.
+Fractured Powerstone
+Ichor Elixir
+Forest
+Swamp

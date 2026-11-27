@@ -2331,6 +2331,12 @@ func (cb *cardBuilder) repl(r lRepl) (kop.Ability, error) {
 		if ka.Prog, err = cb.prog(r.Prog); err != nil {
 			return ka, err
 		}
+	case "RollPlanarDice":
+		rp.Kind = kop.ReplRollPlanarDice // lower_planarrepl.go
+		if r.Plus <= 0 || r.Ignore <= 0 {
+			return ka, fmt.Errorf("planar-dice replacement plus %d ignore %d", r.Plus, r.Ignore)
+		}
+		rp.A, rp.C = int16(r.Plus), int16(r.Ignore)
 	case "LifeDouble":
 		rp.Kind = kop.ReplLifeDouble
 	case "LifeLossDouble":
