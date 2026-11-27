@@ -93,7 +93,7 @@ func newRig(t *testing.T) *rig {
 	write(t, filepath.Join(r.repo, "go.mod"), "module m\n\ngo 1.22\n", 0o644)
 	write(t, filepath.Join(r.repo, ".gitignore"), ".cards\n.ds4\n", 0o644)
 	write(t, filepath.Join(r.repo, "tracked.txt"), "committed\n", 0o644)
-	for _, n := range []string{"test-targets.sh", "test_targets.py", "test-remote.sh", "test-remote-box.sh"} {
+	for _, n := range []string{"test-targets.sh", "test_targets.py", "oracle_shard_deal.py", "test-remote.sh", "test-remote-box.sh"} {
 		b, err := os.ReadFile(n)
 		if err != nil {
 			t.Fatal(err)

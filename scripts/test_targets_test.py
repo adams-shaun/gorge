@@ -134,6 +134,39 @@ def test_timeout_and_kill_are_budget():
     assert tt.classify([ev("output", out="signal: killed\n"), ev("fail")], rc=1).status == "BUDGET"
 
 
+def test_lane_merge_keeps_a_failure_or_budget_over_a_pass(tmp_path):
+    # The targeted oracle replay slice runs as concurrent lanes, each its own -json stream. The merge
+    # appends every lane's lines to the run's one stream and keeps the worst exit status, so the verdict
+    # and exit codes are the single run's: a failing or timing-out lane wins over a passing one.
+    ok = tmp_path / "l0.json"
+    bad = tmp_path / "l1.json"
+    slow = tmp_path / "l2.json"
+    ok.write_text("\n".join(PASS))
+    bad.write_text("\n".join([ev("run", test="TestB"), ev("output", test="TestB", out="    b_test.go:9: boom\n"),
+                              ev("fail", test="TestB"), ev("fail")]))
+    slow.write_text("\n".join([ev("output", out="panic: test timed out after 5m0s\n"), ev("fail")]))
+    out = tmp_path / "run.json"
+    out.write_text("")
+    rc = tt.merge_lane_logs(str(out), [(str(ok), 0), (str(bad), 1)])
+    assert rc == 1
+    lines = out.read_text().splitlines()
+    assert tt.classify(lines, rc).status == "FAIL"
+    # a lane's timeout (BUDGET) survives the merge even beside passing lanes and a passing rc elsewhere
+    out.write_text("")
+    rc = tt.merge_lane_logs(str(out), [(str(ok), 0), (str(slow), 1), (str(ok), 0)])
+    assert rc == 1
+    assert tt.classify(out.read_text().splitlines(), rc).status == "BUDGET"
+    # every lane passing is a pass, and all lane lines are kept
+    out.write_text("")
+    assert tt.merge_lane_logs(str(out), [(str(ok), 0), (str(ok), 0)]) == 0
+    assert len(out.read_text().splitlines()) == 2 * len(PASS)
+    assert tt.classify(out.read_text().splitlines(), 0).status == "PASS"
+    # the CLI the shell calls prints the worst rc
+    rc, stdout, _ = run_cli("merge", "--out", str(tmp_path / "cli.json"), "--lane", str(ok), "--rc", "0",
+                            "--lane", str(bad), "--rc", "1")
+    assert rc == 0 and stdout.strip() == "1"
+
+
 def test_finish_cli_exit_codes(tmp_path):
     f = tmp_path / "t.json"
     base = ["finish", "--mode", "one", "--json", str(f), "--sha", "s", "--pkgs", "./p", "--seconds", "1"]
@@ -393,7 +426,7 @@ def repo():
     sh("git", "init", "-q", "-b", "land")
     sh("git", "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-q", "--allow-empty", "-m", "x")
     (Path(d) / "scripts").mkdir()
-    for n in ("test-targets.sh", "test_targets.py"):
+    for n in ("test-targets.sh", "test_targets.py", "oracle_shard_deal.py"):
         shutil.copy(HERE / n, Path(d) / "scripts" / n)
     # The remote runner reads the operator's box settings: a stub keeps every run here.
     (Path(d) / "scripts" / "test-remote.sh").write_text("remote_try() { :; }\n")
@@ -682,7 +715,7 @@ def smart_repo(tmp_path):
     sh = lambda *a: subprocess.run(a, cwd=d, check=True, capture_output=True)
     sh("git", "init", "-q", "-b", "land")
     (d / "scripts").mkdir()
-    for n in ("test-targets.sh", "test_targets.py"):
+    for n in ("test-targets.sh", "test_targets.py", "oracle_shard_deal.py"):
         shutil.copy(HERE / n, d / "scripts" / n)
     (d / "scripts" / "dirac-gate.sh").write_text("#!/bin/sh\nexit 0\n")  # read, never run, on this path
     (d / "go.mod").write_text("module m\n\ngo 1.22\n")
