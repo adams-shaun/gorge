@@ -1,0 +1,22 @@
+# The unbounded counter-rider shield (Brace for Impact, Gatta and Luzzu:
+# ExtPreventNext PrevNextAll|PrevNextRiderCounter: prevent all damage to the
+# remembered creature this turn and put that many +1/+1 counters on it) beside
+# red burn, creatures and a sweeper
+# (dirac/oracle/prevnext_ctrrider_lockstep_test.go)
+Brace for Impact
+Gatta and Luzzu
+Boros Recruit
+Serra Avenger
+Savannah Lions
+Grizzly Bears
+Lightning Bolt
+Shock
+Pyroclasm
+Prodigal Pyromancer
+Typhoid Rats
+Child of Night
+Hill Giant
+Raging Goblin
+Plains
+Mountain
+Swamp

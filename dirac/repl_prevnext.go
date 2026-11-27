@@ -468,7 +468,8 @@ func (s *State) prevNextTake(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID,
 		return n - m, true
 	}
 	if r.col == prevNextAll {
-		return 0, true // unbounded: everything, never spent
+		s.prevNextRiderApply(k, at, n) // a rider rides the whole event (Brace for Impact)
+		return 0, true                 // unbounded: everything, never spent
 	}
 	m := min(n, int(r.col))
 	r.col -= kop.ColorMask(m)
