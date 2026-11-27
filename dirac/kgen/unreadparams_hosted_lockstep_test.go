@@ -6,53 +6,77 @@ import (
 )
 
 // The hosted-Commander unread-param and counter shapes of ticket
-// cli-20261127T065129Z-e7b92793: each card below was refused at lowering by
-// an unread Forge param (or a PutCounter without a literal CounterType), so
-// its deck blocked on dirac. The acceptance arm requires the corpus card to
-// lower with no refusals; the lockstep arm (unreadHostedLockstep) then plays
-// the card's deck against gorge seed by seed, and gorge leads: any
-// decision-for-decision divergence fails the run.
+// cli-20261127T065129Z-e7b92793. Two lower (the lockstep arms live in
+// dirac/oracle's TestUnreadParams*Lockstep, which play each shape against
+// gorge); seven stay refused by name, each with kgen's own reason, because the
+// shape needs state the kernel does not carry yet (see unreadHostedRefused).
 
-// unreadHostedCards are the nine hosted cards and the shape each carries:
-// the kgen api node, the param the lowering must read, and the gorge
-// resolution it mirrors (engine/effects). The lockstep table keys off the
-// card name.
-var unreadHostedCards = []struct {
-	name  string
-	shape string // census reason fragment, for the failure message
-}{
-	{"Captain Marvel, Apex Avenger", "DB$ PutCounter: TriggeredCounterMap"},
-	{"Moira and Teshar", "DB$ Pump: LeaveBattlefield"},
-	{"Filigree Vector", "DB$ Pump: RememberTargets"},
-	{"Nick Valentine, Private Eye", "DB$ Investigate: Optional"},
-	{"Synth Eradicator", "DB$ PutCounter: Optional RememberPut"},
-	{"Rise and Shine", "SP$ Animate: RememberAnimated"},
-	{"Chandra, Awakened Inferno", "AB$ Effect: EffectOwner"},
-	{"Jeweled Amulet", "AB$ PutCounter: RememberCostMana"},
-	{"Urza's Bauble", "AB$ Reveal: Random ValidTgts"},
+// unreadHostedLowered are the cards that lower with no refusals, and the shape
+// each carries.
+var unreadHostedLowered = []struct{ name, shape string }{
+	{"Nick Valentine, Private Eye", "DB$ Investigate: Optional$ True (OpMayAsk before the Clue mint)"},
+	{"Urza's Bauble", "AB$ Reveal: Random$ True over a target hand (ExtRevealRandom, one RNG draw)"},
 }
 
-// TestUnreadParamsHostedLockstep: every hosted card of the ticket lowers with
-// no refusals (the acceptance half of TestUnreadParamsHostedLockstep's
-// behaviour; the lockstep arms below play each shape in a real game against gorge).
+// unreadHostedRefused are the cards that stay refused: the card and the
+// fragment kgen's refusal reason must still carry. Each needs a kernel state
+// gorge keeps and dirac lacks:
+//   - Captain Marvel: the triggering counter map (kind and number per counter put).
+//   - Moira and Teshar: a leave-the-battlefield exile replacement on a Pump's target.
+//   - Filigree Vector: a remembered target set read by a later PutCounterAll.
+//   - Synth Eradicator: PutCounter Optional$ plus RememberPut$ read by a player-count condition.
+//   - Rise and Shine: RememberAnimated$ feeding a chained PutCounter Defined$ Remembered.
+//   - Chandra, Awakened Inferno: EffectOwner$ Player.Opponent. kgen could give each
+//     opponent the emblem, but gorge's Effect-registered Phase trigger never sets
+//     TriggerPlayer (engine/rules/trigger_delayed.go), so its DealDamage Defined$
+//     TriggeredPlayer hits nobody and the emblem is inert in gorge: lowering it
+//     would diverge from gorge.
+//   - Jeweled Amulet: the noted mana type of the activation cost (Special LastNotedType).
+//
+// When one starts to lower, this test fails: move it to unreadHostedLowered
+// and add its lockstep arm in dirac/oracle.
+var unreadHostedRefused = []struct{ name, reason string }{
+	{"Captain Marvel, Apex Avenger", "PutCounter without CounterType"},
+	{"Moira and Teshar", "unread params [LeaveBattlefield]"},
+	{"Filigree Vector", "unread params [RememberTargets]"},
+	{"Synth Eradicator", "unread params [Optional RememberPut]"},
+	{"Rise and Shine", "unread params [RememberAnimated]"},
+	{"Chandra, Awakened Inferno", "unread params [EffectOwner]"},
+	{"Jeweled Amulet", "unread params [RememberCostMana]"},
+}
+
+// TestUnreadParamsHostedLockstep: the two lowered cards carry no refusal;
+// the seven refused ones are still refused, by their own reason.
 func TestUnreadParamsHostedLockstep(t *testing.T) {
 	t.Parallel()
-	names := make([]string, 0, len(unreadHostedCards))
-	for _, c := range unreadHostedCards {
-		names = append(names, c.name)
-	}
+	var names []string
 	shapes := map[string]string{}
-	for _, c := range unreadHostedCards {
+	for _, c := range unreadHostedLowered {
+		names = append(names, c.name)
 		shapes[c.name] = c.shape
 	}
+	for _, c := range unreadHostedRefused {
+		names = append(names, c.name)
+	}
+	reasons := map[string]string{}
 	for _, c := range lowerNamed(t, names) {
-		if len(c.Refusals) == 0 {
-			continue
-		}
 		var rs []string
 		for _, r := range c.Refusals {
 			rs = append(rs, r.Reason)
 		}
-		t.Errorf("%s (%s): refused: %s", c.Name, shapes[c.Name], strings.Join(rs, "; "))
+		reasons[c.Name] = strings.Join(rs, "; ")
+	}
+	for _, c := range unreadHostedLowered {
+		if r := reasons[c.name]; r != "" {
+			t.Errorf("%s (%s): refused: %s", c.name, c.shape, r)
+		}
+	}
+	for _, c := range unreadHostedRefused {
+		r := reasons[c.name]
+		if r == "" {
+			t.Errorf("%s now lowers: move it to unreadHostedLowered with a dirac/oracle lockstep arm", c.name)
+		} else if !strings.Contains(r, c.reason) {
+			t.Errorf("%s: refusal %q no longer names %q", c.name, r, c.reason)
+		}
 	}
 }

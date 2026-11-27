@@ -47,7 +47,8 @@ const clueToken = "c_a_clue_draw"
 // Num is). Defined$ Player.withMostTypeCreature (gorge playerHasMost over
 // AliveFrom(controller)) runs the mint once per player who controls the
 // most creatures, controller first, both on a tie. Other Defined$ and
-// ValidTgts$ than You, Optional$ and RememberInvestigatingPlayers$ refuse.
+// ValidTgts$ than You and RememberInvestigatingPlayers$ refuse; Optional$ True
+// lowers for the controller's one-token mint (an OpMayAsk before it).
 func (lc *lowerCtx) investigate(ps *params) error {
 	most := false
 	fromTgt := -1
@@ -110,6 +111,21 @@ func (lc *lowerCtx) investigate(ps *params) error {
 		}
 	}
 	lc.out.Tokens = append(lc.out.Tokens, clueToken)
+	if _, ok := ps.get("Optional"); ok {
+		// Optional$ True ("you may investigate", Nick Valentine): gorge
+		// effInvestigate's investigateOptionalWalk asks each acting player
+		// yes / no before their Clue mint, only when the amount is above 0
+		// (MayGuardMill's guard is exactly that over the next CreateToken's
+		// amount). One ask over the one controller's one-instruction mint
+		// lowers; a per-player (Defined$ Most, a target) or multi-op mint
+		// refuses.
+		if most || fromTgt >= 0 || who.Kind != rYou || len(body) != 1 {
+			return refuse("Investigate Optional$ beside a per-player or multi-token mint")
+		}
+		if err := lc.mayGate(ps, kop.MayGuardMill, who); err != nil {
+			return err
+		}
+	}
 	if most {
 		lc.emit(lInstr{Op: "RepeatEach", Obj: lRef{Kind: rEachPlayer}, C: 1, Skip: len(body), B: cst(kop.PlayerPredMostCreatures)})
 	}
