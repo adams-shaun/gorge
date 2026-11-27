@@ -13,6 +13,12 @@ func init() {
 	registerStaticBuild("CantBeCast", cbCantBeCastStatic)
 }
 
+// selfZoneKop maps a self static's zone flag to its kernel zone.
+var selfZoneKop = map[string]kop.Zone{
+	"SelfZoneLibrary": kop.ZoneLibrary, "SelfZoneHand": kop.ZoneHand, "SelfZoneGraveyard": kop.ZoneGraveyard,
+	"SelfZoneExile": kop.ZoneExile, "SelfZoneStack": kop.ZoneStack, "SelfZoneCommand": kop.ZoneCommand,
+}
+
 func cbCantBeCastStatic(cb *cardBuilder, s lStatic, st *kop.Static) ([]uint8, error) {
 	st.Kind = kop.StatCantBeCast
 	var err error
@@ -34,6 +40,9 @@ func cbCantBeCastStatic(cb *cardBuilder, s lStatic, st *kop.Static) ([]uint8, er
 			st.StFlags |= kop.StRaiseOpp
 		case "CasterActive":
 			st.StFlags |= kop.StCasterActive
+		case "SelfZoneLibrary", "SelfZoneHand", "SelfZoneGraveyard", "SelfZoneExile", "SelfZoneStack", "SelfZoneCommand":
+			// the zones a self static binds in (lower_cantbecast.go selfCastZones)
+			st.B |= kop.CantCastSelfZones | 1<<kop.CantCastSelfShift<<selfZoneKop[fl]
 		case "NamedCard":
 			st.B |= kop.CantCastNamed
 		case "SorcerySpeed":

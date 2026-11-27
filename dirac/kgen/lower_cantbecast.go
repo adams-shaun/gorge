@@ -30,6 +30,7 @@ import (
 func (lc *lowerCtx) cantBeCast(sp *params, st *lStatic) error {
 	vc := sp.str("ValidCard")
 	self := vc == "Card.Self"
+	selfZoned := false // the self static's EffectZone$/Origin$ lists, lowered as zone flags
 	if vc == "Card.NamedCard" {
 		// the source's as-enters chosen name (Alhammarret, High Arbiter): the
 		// kernel compares the cast card with the chosen byte (kop CantCastNamed)
@@ -53,9 +54,14 @@ func (lc *lowerCtx) cantBeCast(sp *params, st *lStatic) error {
 		}
 		if self {
 			if sp.str("EffectZone") != "All" {
-				return refuse("CantBeCast Card.Self without EffectZone$ All")
+				zs, ok := selfCastZones(sp)
+				if !ok {
+					return refuse("CantBeCast Card.Self without EffectZone$ All")
+				}
+				st.Flags = append(st.Flags, zs...)
+				selfZoned = true
 			}
-			sp.consume("EffectZone")
+			sp.consume("EffectZone", "Origin")
 			st.Zone = zAny
 		} else {
 			f, err := lc.cantBeCastFilter(vc)
@@ -79,7 +85,7 @@ func (lc *lowerCtx) cantBeCast(sp *params, st *lStatic) error {
 	default:
 		return refuse("CantBeCast Caster %q", c)
 	}
-	if o, ok := sp.get("Origin"); ok {
+	if o, ok := sp.get("Origin"); ok && !selfZoned {
 		// the zone the cast may begin from (gorge castOriginGateHolds, Memory
 		// Vessel's NoCast): the static's Zone carries it and the kernel's
 		// cast gate reads the candidate's current zone. Only the hand
@@ -150,4 +156,45 @@ func (lc *lowerCtx) cantBeCastFilter(vc string) (*lFilter, error) {
 		}
 	}
 	return f, nil
+}
+
+// selfCastZones lowers a card's own CantBeCast whose EffectZone$ and Origin$
+// both list zones (Haakon, Stromgald Scourge: EffectZone$
+// Graveyard,Hand,Library,Command,Stack with Origin$ Exile,Hand,Library,
+// Command): gorge's castRestrictionSources runs the static only while the
+// card sits in an EffectZone$ zone (staticEffectZoneOK), and
+// castOriginGateHolds binds it only when the cast begins from an Origin$ zone,
+// so the restriction binds in their intersection. The flags are one per
+// bound zone (kop.CantCastSelfZones); an empty intersection, an unknown zone
+// word or a missing list is not this shape.
+func selfCastZones(sp *params) ([]string, bool) {
+	ez, ok1 := sp.get("EffectZone")
+	or, ok2 := sp.get("Origin")
+	if !ok1 || !ok2 {
+		return nil, false
+	}
+	known := map[string]bool{"Library": true, "Hand": true, "Graveyard": true, "Exile": true, "Stack": true, "Command": true}
+	set := func(list string) (map[string]bool, bool) {
+		m := map[string]bool{}
+		for _, w := range strings.Split(list, ",") {
+			w = strings.TrimSpace(w)
+			if !known[w] {
+				return nil, false
+			}
+			m[w] = true
+		}
+		return m, true
+	}
+	es, ok1 := set(ez)
+	os, ok2 := set(or)
+	if !ok1 || !ok2 {
+		return nil, false
+	}
+	var out []string
+	for _, w := range []string{"Library", "Hand", "Graveyard", "Exile", "Stack", "Command"} {
+		if es[w] && os[w] {
+			out = append(out, "SelfZone"+w)
+		}
+	}
+	return out, len(out) > 0
 }

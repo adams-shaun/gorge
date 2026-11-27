@@ -21,6 +21,8 @@ var DebugNoExtraTurnBegun bool
 //go:noinline
 func (s *State) exprCold(k *prep, x *kop.Expr, ctx evalCtx) int {
 	switch x.Kind {
+	case kop.ExAtkYouLastTurn:
+		return s.atkYouLastCount(ctx.ctrl) // value_atkyoulast.go
 	case kop.ExSpellsCastLastTurn:
 		return s.spellsCastLastTurn(x.N) // value_spellslastturn.go
 	case kop.ExVoteTally:
