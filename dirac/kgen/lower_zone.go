@@ -2711,8 +2711,13 @@ func (lc *lowerCtx) play(ps *params) error {
 		cs += "|Repeat"
 	}
 	if upTo {
+		// A counted Amount$ lowers through the value machinery: the UpTo
+		// bound is the SVar's count, evaluated by the kernel as the ask
+		// closes (interp_ask.go reads A as a value). One lc.value cannot
+		// price stays refused by this arm's name, the shape of gorge's
+		// unpriced-count fallback.
 		if repeatN, err = lc.value(amount); err != nil {
-			return err
+			return refuse("Play Amount %q", amount)
 		}
 		cs += "|UpTo"
 	}
@@ -2836,7 +2841,9 @@ func (lc *lowerCtx) play(ps *params) error {
 		if forget {
 			return refuse("Play ForgetPlayed$ outside P1")
 		}
-		if vzone == "Graveyard" && amount != "1" {
+		if vzone == "Graveyard" && amount != "1" && !upTo {
+			// the counted Amount$ over this filter population is admitted by
+			// playUpToOK (Chandra Ablaze's ChandraX, lower_playpopcount.go)
 			return refuse("Play from Graveyard without Amount$ 1")
 		}
 		expr, err := andFilterExpr(valid, saExpr)
