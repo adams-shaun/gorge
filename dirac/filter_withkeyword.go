@@ -13,8 +13,8 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // does a keyword the table keeps no printed record of (printedKeyword's
 // default): kgen lowers only the keywords listed here (fwKeywordWords).
 // Known limit: gorge's keywordInCtx also sees keywords a layer table derives
-// or grants; the kernel reads the printed record, the Horsemanship and Toxic
-// grants and, for a spell on the stack, the Convoke grant
+// or grants; the kernel reads the printed record, the Horsemanship, Toxic and
+// Ward grants and, for a spell on the stack, the Convoke grant
 // (spellGrantedConvoke), so a lowered "gains cascade" effect would diverge. No
 // such grant is lowered today.
 //
@@ -35,6 +35,10 @@ func (s *State) fwWithKeyword(c *fctx, l *kop.FLit) bool {
 		}
 		if id == kop.KwToxic && c.k.gen != nil && c.k.gen.anyInfectGrant && !DebugNoGrantedToxic && s.toxicGranted(c.k, c.sl) > 0 {
 			return true // a granted toxic (kw_toxicgrant.go), gorge's derived keyword list
+		}
+		if id == kop.KwPrintedWard && c.k.gen != nil && c.k.gen.anyWardGrant && !DebugNoWardGrant &&
+			s.staticKwGrant(c.k, c.sl, staticGrantsWard) {
+			return true // a granted ward (kw_ward.go), gorge's derived keyword list
 		}
 		return s.pilePrints(c.k, c.sl, func(cd *kop.CardDef) bool { return printedKeyword(cd, id) })
 	case c.card():
