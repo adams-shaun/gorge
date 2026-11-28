@@ -46,12 +46,26 @@ func (s *State) srcWither(k *prep, kw kop.KwMask) bool {
 	if k.t.Cards[e.card].Wither {
 		return true
 	}
-	if k.gen.anyWitherGrant && !DebugWitherGrantIgnored && e.li != 0 && e.kind != seSpell {
-		if l := s.lk(e.li); l.obj == e.obj && l.kw&kop.KwWither != 0 {
+	if e.kind != seSpell {
+		if e.li != 0 {
+			if l := s.lk(e.li); l.obj == e.obj && s.lkiWithered(k, l) {
+				return true
+			}
+		}
+		if l := s.srcDepartRec(e); l != nil && s.lkiWithered(k, l) {
 			return true
 		}
 	}
 	return false
+}
+
+// lkiWithered: the snapshot l has wither -- the printed one derived at
+// departure over the whole pile (the lkiWither bit, gorge's lki.Wither,
+// CR 113.7a), or a granted one (l.kw holds only that keyword bit,
+// kw_wither.go's granted rule).
+func (s *State) lkiWithered(k *prep, l *lkiRec) bool {
+	return l.bits&lkiWither != 0 ||
+		k.gen != nil && k.gen.anyWitherGrant && !DebugWitherGrantIgnored && l.kw&kop.KwWither != 0
 }
 
 // tableGrantsWither reports whether some part of t can grant wither
