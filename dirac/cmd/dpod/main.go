@@ -8,10 +8,13 @@
 // decks as deck files and substitutions.tsv, so gorge plays the same pods
 // (cmd/enginebench -pair fdc -pod-dir DIR). Game g leaves out deck (g/4)%5 and
 // rotates the other four seats by g%4, as enginebench's fdc row does; every
-// seat plays dirac.RandomPolicy under dirac.LockstepConfig's auto-pay
-// surface, with no mulligan round.
+// seat plays the -policy player under dirac.LockstepConfig's auto-pay
+// surface, with no mulligan round: random (the default) is
+// dirac.RandomPolicy, hbot is dirac/search/hbot, the native port of gorge's
+// auto-pay heuristic bot, over facts read from gorge's compiled cards
+// (oracle.HBotFactsSet), one bot per pod table, built before timed play.
 //
-//	dpod -cards .cards -decks testkit/testutil/decks -secs 20 -summary out.json
+//	dpod -cards .cards -decks testkit/testutil/decks -secs 20 [-policy hbot] -summary out.json
 //
 // The summary is one JSON object with dplay's keys (games, turns, decisions,
 // cpu_s, stalls, errors), so the bench summarizer records it as a dplay run.
@@ -41,6 +44,8 @@ import (
 	"github.com/adams-shaun/gorge/dirac/cardset"
 	"github.com/adams-shaun/gorge/dirac/kgen"
 	"github.com/adams-shaun/gorge/dirac/kop"
+	"github.com/adams-shaun/gorge/dirac/oracle"
+	"github.com/adams-shaun/gorge/dirac/search/hbot"
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/deck"
 )
@@ -60,6 +65,9 @@ const (
 	maxIntent = 200000
 	// randomSalt is dplay's: a game's random stream from its seed.
 	randomSalt = 0x72616e64
+
+	policyRandom = "random"
+	policyHBot   = "hbot"
 )
 
 func main() { os.Exit(run(os.Args[1:], os.Stdout, os.Stderr)) }
@@ -88,7 +96,12 @@ func run(args []string, stdout, stderr io.Writer) int {
 	censusDir := fs.String("census", "", "census every Commander deck file in this directory instead of playing")
 	censusOut := fs.String("census-out", "", "directory -census writes decks.tsv and blockers.tsv to")
 	censusChunk := fs.Int("census-chunk", 50, "decks per -census table build")
+	policy := fs.String("policy", policyRandom, "every seat's player: random or hbot")
 	if err := fs.Parse(args); err != nil {
+		return 2
+	}
+	if *policy != policyRandom && *policy != policyHBot {
+		fmt.Fprintf(stderr, "dpod: -policy %q: want random or hbot\n", *policy)
 		return 2
 	}
 	if *censusDir != "" {
@@ -98,7 +111,7 @@ func run(args []string, stdout, stderr io.Writer) int {
 		}
 		return 0
 	}
-	if err := play(*cardsDir, *deckDir, *secs, *seed, *write, *sumPath, stdout); err != nil {
+	if err := play(*cardsDir, *deckDir, *secs, *seed, *policy, *write, *sumPath, stdout); err != nil {
 		fmt.Fprintln(stderr, "dpod:", err)
 		return 1
 	}
@@ -112,7 +125,8 @@ type pod struct {
 	ids   [len(fdcDecks)][len(fdcDecks)][]kop.CardID // [left out][deck]
 	cmd   [len(fdcDecks)][len(fdcDecks)]int16        // [left out][deck]: the commander's index in ids
 	subst map[string]int
-	rows  []string // substitutions.tsv lines
+	rows  []string    // substitutions.tsv lines
+	set   cardset.Set // the set the tables were built from
 }
 
 func readDeck(dir, name string) (deck.File, error) {
@@ -182,6 +196,7 @@ func buildPod(reg *cards.Registry, deckDir string) (*pod, error) {
 		}
 	}
 	set := cardset.AllowUnverified(cardset.NewDataSet(pd))
+	p.set = set
 	for round := 0; ; round++ {
 		if round > 64 {
 			return nil, fmt.Errorf("substitution did not converge")
@@ -338,6 +353,16 @@ type game struct {
 	s   dirac.State
 	d   dirac.Decision
 	cfg dirac.Config
+	hb  [len(fdcDecks)]*hbot.Bot // by left-out deck; nil: every seat plays random
+}
+
+// useHBot seats hbot on every seat of every pod: one bot per pod table over
+// that table's facts. The bot is pure (it refills its board from the state at
+// every pick), so one serves all four seats.
+func (gm *game) useHBot(reg *cards.Registry, p *pod) {
+	for skip, tbl := range p.tbls {
+		gm.hb[skip] = hbot.New(oracle.HBotFactsSet(reg, tbl, nil, p.set))
+	}
 }
 
 // playOne plays game g and adds it to sum.
@@ -361,6 +386,7 @@ func (gm *game) playOne(p *pod, seed uint64, g int, sum *summary) {
 	gseed := seed + uint64(g)
 	gm.s.InitN(p.tbls[skip], decks, podSeats, gseed, cfg)
 	rnd := dirac.NewRandomPolicy(gseed ^ randomSalt)
+	bt := gm.hb[skip]
 	n := int64(0)
 	stall := ""
 	for {
@@ -376,7 +402,11 @@ func (gm *game) playOne(p *pod, seed uint64, g int, sum *summary) {
 			stall = "turns"
 			break
 		}
-		gm.s.Apply(rnd.Pick(&gm.d))
+		if bt != nil {
+			gm.s.Apply(gm.d.Options[bt.Pick(&gm.s, &gm.d)])
+		} else {
+			gm.s.Apply(rnd.Pick(&gm.d))
+		}
 		n++
 	}
 	if why := gm.s.StallReason(); why != dirac.StallNone && stall == "" {
@@ -400,7 +430,7 @@ func (gm *game) playOne(p *pod, seed uint64, g int, sum *summary) {
 	}
 }
 
-func play(cardsDir, deckDir string, secs float64, seed uint64, write, sumPath string, stdout io.Writer) error {
+func play(cardsDir, deckDir string, secs float64, seed uint64, policy, write, sumPath string, stdout io.Writer) error {
 	reg, err := cards.SharedCorpus(cardsDir)
 	if err != nil {
 		return err
@@ -421,6 +451,9 @@ func play(cardsDir, deckDir string, secs float64, seed uint64, write, sumPath st
 		}
 		gm := &game{cfg: dirac.LockstepConfig(dirac.SurfaceAutopay)}
 		gm.cfg.Commander = true
+		if policy == policyHBot {
+			gm.useHBot(reg, p)
+		}
 		var warm summary
 		for g := 0; g < 2; g++ { // untimed, as enginebench's warm games
 			gm.playOne(p, seed, g, &warm)

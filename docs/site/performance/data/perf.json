@@ -30,7 +30,7 @@
     ]
   },
   "commander_pods": {
-    "_source": "index.md, Four-player Commander pods: scripts/xengine-bench.sh PAIRS='fdc fdc-sub', median of three runs, 2026-11-25 at gorge b6db453064 on the owned gate box (Ryzen 9 9950X); fdc-sub replaces the 26 FDC cards dirac does not play with basics (dirac/cmd/dpod).",
+    "_source": "index.md, Four-player Commander pods: scripts/xengine-bench.sh PAIRS='fdc fdc-sub', median of three runs, 2026-11-25 at gorge b6db453064 on the owned gate box (Ryzen 9 9950X); fdc-sub replaces the 26 FDC cards dirac does not play with basics (dirac/cmd/dpod). The fdc-sub dirac hbot row is from a separate run, 2026-11-28 at gorge 8e32c4738d on locked cores 8 10 12 at a 1-minute load of 41-45; that run's fdc-sub dirac random row was 27.8 games/core-s, 646 us/turn, 92.0 us/decision.",
     "rows": [
       {"workload": "fdc", "engine": "gorge", "policy": "random (auto-pay)", "games": 2.79, "us_turn": 5110, "us_decision": 100, "turns": 70, "rss": 198, "date": "2026-11-25"},
       {"workload": "fdc", "engine": "gorge", "policy": "random (manual)", "games": 3.54, "us_turn": 2150, "us_decision": 43.0, "turns": 131, "rss": 179, "date": "2026-11-25"},
@@ -38,6 +38,7 @@
       {"workload": "fdc", "engine": "gorge", "policy": "bot (manual)", "games": 8.99, "us_turn": 3010, "us_decision": 61.0, "turns": 37, "rss": 204, "date": "2026-11-25"},
       {"workload": "fdc", "engine": "Forge", "policy": "Forge AI", "games": 0.0714, "us_turn": 360000, "us_decision": null, "turns": 39, "rss": 722, "date": "2026-11-25"},
       {"workload": "fdc-sub", "engine": "dirac", "policy": "random", "games": 47.2, "us_turn": 387, "us_decision": 54.9, "turns": 55, "rss": 184, "date": "2026-11-25"},
+      {"workload": "fdc-sub", "engine": "dirac", "policy": "hbot", "games": 38.4, "us_turn": 675, "us_decision": 101, "turns": 39, "rss": 182, "date": "2026-11-28"},
       {"workload": "fdc-sub", "engine": "gorge", "policy": "random (auto-pay)", "games": 3.83, "us_turn": 3720, "us_decision": 72.8, "turns": 71, "rss": 200, "date": "2026-11-25"},
       {"workload": "fdc-sub", "engine": "gorge", "policy": "random (manual)", "games": 4.48, "us_turn": 1800, "us_decision": 36.0, "turns": 121, "rss": 184, "date": "2026-11-25"},
       {"workload": "fdc-sub", "engine": "gorge", "policy": "bot (auto-pay)", "games": 8.94, "us_turn": 2990, "us_decision": 66.9, "turns": 37, "rss": 204, "date": "2026-11-25"},
