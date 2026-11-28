@@ -56,6 +56,11 @@ export function deckTextTooLong(s: string): boolean {
  *
  * deckText is the player's own pasted decklist. When it holds more than
  * whitespace it is sent trimmed as seat 0's deck, and humanDeck is not sent.
+ *
+ * substitute is the player's consent to replacing each unsupported card (at
+ * most three) with a basic land. It rides on the seat entry only with text
+ * present and consent given; otherwise the entry is unchanged and the server
+ * decides on its own rules.
  */
 export async function startPlayVsBot(
   format: VsBotFormat,
@@ -66,6 +71,7 @@ export async function startPlayVsBot(
   pairedBot = '',
   seats: VsBotSeats = 2,
   deckText = '',
+  substitute = false,
 ): Promise<string> {
   const pod = seats > 2;
   const text = deckText.trim();
@@ -77,7 +83,7 @@ export async function startPlayVsBot(
     mulligans,
     ...(pairedBot ? { paired_bot: pairedBot } : {}),
     ...(pod ? { seats, humans: 1 } : {}),
-    ...(text ? { decks: [{ seat: 0, text }] } : {}),
+    ...(text ? { decks: [{ seat: 0, text, ...(substitute ? { substitute: true } : {}) }] } : {}),
   });
   return withBase(g.join);
 }

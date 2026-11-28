@@ -1,7 +1,8 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { fetchBotPolicies, fetchCapabilities, fetchDecks, type DeckInfo } from '../lib/api';
-  import type { BotPolicyInfo, PairedBotChoice } from '../protocol';
+  import { ApiError, checkDeck, fetchBotPolicies, fetchCapabilities, fetchDecks, type DeckInfo } from '../lib/api';
+  import type { BotPolicyInfo, DeckReport, PairedBotChoice } from '../protocol';
+  import DeckReportPanel from './DeckReportPanel.svelte';
   import ProtocolSetting from './ProtocolSetting.svelte';
   import { VS_BOT_FORMATS, VS_BOT_MULLIGANS, VS_BOT_SEATS, deckLabel, deckTextTooLong, startPlayVsBot, type VsBotFormat, type VsBotMulligans, type VsBotSeats } from '../lib/playvsbot';
 
@@ -28,6 +29,58 @@
   let loadingDecks = $state(true);
   let busy = $state(false);
   let error = $state<string | null>(null);
+  let report = $state<DeckReport | null>(null);
+  let substitute = $state(false);
+  let checking = $state(false);
+  // Each check, and each change that makes the shown report stale, takes a new
+  // number. Only an answer still holding the latest one is applied.
+  let latestCheck = 0;
+
+  // dropReport forgets the report and the consent given for it, and retires any
+  // answer still on its way: the list or the format changed, or a check failed.
+  function dropReport() {
+    latestCheck++;
+    report = null;
+    substitute = false;
+    checking = false;
+  }
+
+  // showReport shows the server's report. The consent box is offered only for
+  // unsupported cards, so a report without any also withdraws the consent.
+  function showReport(next: DeckReport) {
+    report = next;
+    if (next.unsupported.length === 0) substitute = false;
+  }
+
+  // runCheck posts the pasted list to the server's deck check and shows its
+  // report verbatim. The server judges everything; this only sends the text,
+  // the panel's format and the consent. A failed check shows the server's
+  // message in the error line and clears the panel.
+  async function runCheck() {
+    const text = deckText.trim();
+    if (text === '') return;
+    const mine = ++latestCheck;
+    checking = true;
+    error = null;
+    try {
+      const next = await checkDeck(text, format, substitute);
+      if (mine !== latestCheck) return;
+      showReport(next);
+      checking = false;
+    } catch (e) {
+      if (mine !== latestCheck) return;
+      error = e instanceof Error ? e.message : String(e);
+      dropReport();
+    }
+  }
+
+  // Ticking or unticking the consent re-posts the check, so the panel shows
+  // the server's new answer — either the swaps or the server's own refusal.
+  // This is the checkbox's setter, not an effect: nothing else may re-post.
+  function setConsent(consent: boolean) {
+    substitute = consent;
+    void runCheck();
+  }
   const formatDecks = $derived(decks.filter((d) => d.format === format));
   const formatPolicies = $derived(policies.filter((p) => p.formats.includes(format)));
   const defaultLabel = $derived(policies.find((p) => p.name === defaultPolicy)?.label ?? defaultPolicy);
@@ -67,6 +120,7 @@
   }
 
   function chooseFormat(next: VsBotFormat) {
+    dropReport();
     format = next;
     seats = next === 'commander' ? 4 : 2;
     humanDeck = '';
@@ -82,11 +136,21 @@
     }
     busy = true;
     error = null;
+    const asked = latestCheck;
     try {
-      const join = await startPlayVsBot(format, humanDeck, botDeck, mulligans, botPolicy, pairedBot, seats, deckText);
+      const join = await startPlayVsBot(format, humanDeck, botDeck, mulligans, botPolicy, pairedBot, seats, deckText, substitute);
       window.location.href = join;
     } catch (e) {
       error = e instanceof Error ? e.message : String(e);
+      // A refused deck carries the server's report: show it in the same
+      // panel the check uses, keeping the server's message in the error line —
+      // unless the list, format or consent has changed since Start was pressed.
+      // It then outranks a check that was already in flight.
+      if (e instanceof ApiError && e.deck && asked === latestCheck) {
+        latestCheck++;
+        checking = false;
+        showReport(e.deck);
+      }
       busy = false;
     }
   }
@@ -155,9 +219,14 @@
         rows="12"
         placeholder={DECK_TEXT_PLACEHOLDER}
         bind:value={deckText}
+        oninput={dropReport}
         data-testid="deck-text"
       ></textarea>
     </label>
+    <button type="button" class="check" onclick={() => void runCheck()} disabled={deckText.trim() === '' || checking} data-testid="deck-check">
+      {checking ? 'Checking…' : 'Check deck'}
+    </button>
+    <DeckReportPanel {report} bind:substitute={() => substitute, setConsent} />
     <label class="picker">
       <span>Bot</span>
       <select aria-label="Bot" bind:value={botPolicy} data-testid="bot-policy">
