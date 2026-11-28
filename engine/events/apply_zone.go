@@ -720,22 +720,7 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 		merged := o.MergedCards
 		o.MergedCards = nil
 		o.TimesMutated = 0
-		for _, mc := range merged {
-			if mc.Obj == 0 {
-				continue
-			}
-			if m := g.Obj(mc.Obj); m != nil && m.IsToken {
-				// CR 400.7 / 729.2: a TOKEN component (foldMutate's top arm
-				// onto a token parks the token's own card as one) ceases
-				// with the pile instead of moving on as a card: it stays
-				// parked in ZCeased.
-				continue
-			}
-			Move(g, mc.Obj, state.ZCeased, to)
-			if m := g.Obj(mc.Obj); m != nil {
-				m.SplitFrom, m.SplitDep = id, g.DepSeq
-			}
-		}
+		splitMergedComponents(g, id, merged, to)
 	}
 	// CR 400.7 / 704.5m-n: a permanent that leaves the battlefield is a new
 	// object in its next zone, so nothing stays attached ACROSS the move.
@@ -1448,6 +1433,28 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 		// which carried the queue, so nothing is left to publish.
 		o.UnattachPending = false
 		o.AttachedTo, o.HasAttachedPlayer = 0, false
+	}
+}
+
+// splitMergedComponents relocates a mutated pile's under-components when the
+// pile (object id) leaves the battlefield for zone to (CR 702.140e): each
+// parked card moves to the same destination as the top and is stamped with
+// this departure's split marker, so rules' CR 903.9a scan can see it arrived
+// now. A TOKEN component (CR 400.7 / 729.2: foldMutate's top arm onto a token
+// parks the token's own card as one) is skipped: a token that leaves ceases to
+// exist rather than moving on as a card, so it stays parked in ZCeased.
+func splitMergedComponents(g *state.Game, id state.ObjID, merged []state.MergedCard, to state.Zone) {
+	for _, mc := range merged {
+		if mc.Obj == 0 {
+			continue
+		}
+		if m := g.Obj(mc.Obj); m != nil && m.IsToken {
+			continue
+		}
+		Move(g, mc.Obj, state.ZCeased, to)
+		if m := g.Obj(mc.Obj); m != nil {
+			m.SplitFrom, m.SplitDep = id, g.DepSeq
+		}
 	}
 }
 

@@ -53,6 +53,13 @@ func TestMutateTokenTopMerge(t *testing.T) {
 	// last-known card, and the token component ceases with the pile instead
 	// of being moved to the graveyard as a card.
 	e.emit(events.Sacrifice(bear))
+	// BEFORE any state-based check: the Move fold must never move the token
+	// component at all -- it stays parked. Asserting here is what pins the
+	// fold: a later SBA pass (ceaseDeadTokens) would cease a graveyard token
+	// anyway and hide a component that was wrongly moved and then removed.
+	if c := e.G.Obj(under); c == nil || c.Zone != state.ZCeased {
+		t.Fatalf("token component before the state-based check = %+v, want it still parked in ceased", e.G.Obj(under))
+	}
 	e.checkStateBased()
 	if p := e.G.Obj(bear); p == nil || p.Zone != state.ZGraveyard ||
 		p.Card == nil || p.Face() == nil || p.Face().Name != "Apex Tester" {

@@ -23,6 +23,17 @@ func TestMutateTokenTopMerge(t *testing.T) {
 		Power: 1, Toughness: 1})
 	sc := newScenTable(t, tbl, Config{NoElide: true})
 	sc.lands(0, v.Forest, 1)
+	// an EARLIER token, minted before the mutate target and so lower in the
+	// object table: once the pile sheds its ofToken bit the bit-carrying
+	// objects are no longer a contiguous suffix, and only the whole-table
+	// cease walk still sees this one when it leaves (ceaseTokensGen's
+	// tokenScanStart arm, gen.go -- a suffix walk stops at the pile).
+	early := sc.s.newToken(sprite, 0)
+	sc.s.enter(sc.k, early, 0, false, kop.ZoneNone)
+	sc.s.npend = 0
+	if sc.s.objs[early].of&ofToken == 0 || !sc.onBF(early) {
+		t.Fatalf("precondition: object %d of %#x is not a battlefield token", early, sc.s.objs[early].of)
+	}
 	tok := sc.s.newToken(sprite, 0)
 	sc.s.enter(sc.k, tok, 0, false, kop.ZoneNone)
 	sc.s.npend = 0
@@ -50,6 +61,28 @@ func TestMutateTokenTopMerge(t *testing.T) {
 	if sc.s.objs[comp].of&ofToken == 0 {
 		t.Fatalf("the demoted component %d is not a token object (of %#x)", comp, sc.s.objs[comp].of)
 	}
+	// what the cease walk's two arms turn on: the earlier token carries its
+	// bits BELOW the pile, and the pile's shed bits left what remains of the
+	// token suffix holding only the parked component -- a suffix walk stops
+	// there and never reaches the earlier token, so only the whole-table walk
+	// can still cease it.
+	if !(early < tok) {
+		t.Fatalf("precondition: earlier token %d is not below the pile %d in the object table", early, tok)
+	}
+	i0 := int(sc.s.nobj)
+	for i0 > 0 && sc.s.objs[i0-1].of&(ofToken|ofCopy) != 0 {
+		i0--
+	}
+	if !(early < Obj(i0)) {
+		t.Fatalf("precondition: the earlier token %d sits inside the table's token suffix (starts at %d of %d), so a suffix walk would cease it too and the whole-table walk is not what the last assertions pin",
+			early, i0, sc.s.nobj)
+	}
+	// an object a LIVE pile names is not dead yet: object-id reuse must not
+	// hand the component out while its pile is on the battlefield
+	// (heldReferenced's merge-component scan, zone_objreuse.go).
+	if !sc.s.heldReferenced(comp) {
+		t.Fatalf("the token component %d of a live pile is not held by a reference", comp)
+	}
 	// the pile dies: the card pile reaches the graveyard, the token component
 	// ceases (gorge's Move fold leaves it in ZCeased).
 	sc.s.leave(sc.k, sc.slot(tok), kop.ZoneGraveyard, false)
@@ -60,15 +93,30 @@ func TestMutateTokenTopMerge(t *testing.T) {
 		t.Fatalf("the token component moved to zone %d, want it to stay ceased (CR 400.7)", z)
 	}
 	// the graveyard holds the card pile and not the token, and the state-based
-	// cease pass must leave the card pile where it is.
+	// cease pass must leave the card pile where it is. The earlier token dies
+	// in the same pass: it is the object below the shed pile that only the
+	// whole-table cease walk still reaches.
+	sc.s.leave(sc.k, sc.slot(early), kop.ZoneGraveyard, false)
 	sc.s.ceaseTokensGen()
 	if z := sc.s.objs[tok].zone; z != kop.ZoneGraveyard {
 		t.Fatalf("ceaseTokensGen ceased the card pile: zone %d, want the graveyard", z)
+	}
+	if z := sc.s.objs[early].zone; z != kop.ZoneNone {
+		t.Fatalf("the earlier token %d survived the cease pass in zone %d, want it ceased (CR 704.5d)", early, z)
 	}
 	pl := &sc.s.pl[0]
 	for i := 0; i < int(pl.graveN); i++ {
 		if pl.grave[i] == comp {
 			t.Fatalf("the token component %d is on the graveyard list", comp)
 		}
+		if pl.grave[i] == early {
+			t.Fatalf("the ceased earlier token %d is still on the graveyard list", early)
+		}
+	}
+	// with the pile gone nothing names the component any more: a component of
+	// a dead pile must become reusable, not stay held forever (mergeLeave
+	// zeroes the record before the split).
+	if sc.s.heldReferenced(comp) {
+		t.Fatalf("the component %d of a pile that left the battlefield is still held by a reference", comp)
 	}
 }
