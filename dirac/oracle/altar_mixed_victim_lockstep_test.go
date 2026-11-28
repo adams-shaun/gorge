@@ -21,14 +21,14 @@ var altarMixCards = map[string]string{
 	"mountain": "Name:Mountain\nManaCost:no cost\nTypes:Basic Land Mountain\nOracle:({T}: Add {R}.)\n",
 	"mix_prey": "Name:Mix Prey\nManaCost:R\nTypes:Creature Goblin\nPT:1/1\nOracle:\n",
 	"mix_bone_altar": "Name:Mix Bone Altar\nManaCost:3\nTypes:Artifact\n" +
-		"A:AB$ Mana | Cost$ Sac<1/Creature> | Produced$ C | Amount$ 2 | SpellDescription$ Add {C}{C}.\n" +
-		"Oracle:Sacrifice a creature: Add {C}{C}.\n",
+		"A:AB$ Mana | Cost$ Sac<1/Creature> | Produced$ C | Amount$ 2 | SpellDescription$ x\n" +
+		"Oracle:x\n",
 	"mix_prism_altar": "Name:Mix Prism Altar\nManaCost:3\nTypes:Artifact\n" +
-		"A:AB$ Mana | Cost$ Sac<1/Creature> | Produced$ Any | SpellDescription$ Add one mana of any color.\n" +
-		"Oracle:Sacrifice a creature: Add one mana of any color.\n",
+		"A:AB$ Mana | Cost$ Sac<1/Creature> | Produced$ Any | SpellDescription$ x\n" +
+		"Oracle:x\n",
 	"mix_recall": "Name:Mix Recall\nManaCost:2 U\nTypes:Instant\n" +
-		"A:SP$ ChangeZone | ValidTgts$ Creature | Origin$ Battlefield | Destination$ Hand | SpellDescription$ Return target creature to its owner's hand.\n" +
-		"Oracle:Return target creature to its owner's hand.\n",
+		"A:SP$ ChangeZone | ValidTgts$ Creature | Origin$ Battlefield | Destination$ Hand | SpellDescription$ x\n" +
+		"Oracle:x\n",
 }
 
 // altarMixDecks lists seat 0's two altars in the given order: object ids
