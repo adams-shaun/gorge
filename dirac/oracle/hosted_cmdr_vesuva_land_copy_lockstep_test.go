@@ -12,13 +12,16 @@ import (
 // Vesuva (pro-shaper's hosted deck): an optional Copy enters replacement whose
 // Clone body picks from Land.Other with IntoPlayTapped$ True. Played as a
 // land it asks the as-enters copy election (CR 614.12, 707.2) over every other
-// land on the battlefield, plus "enter as itself"; it enters tapped either
-// way, and a copied land taps for the template's mana. The kernel must pose
-// the same ask at the same decision and expose the copied mana ability to its
-// mana walk. printedDelveSetIn runs kgen over the decks, so the case is RED
-// while kgen refuses the land template.
+// land on the battlefield, plus "enter as itself"; an elected copy enters
+// tapped (IntoPlayTapped$ True) and a decline untapped, and a copied land
+// taps for the template's mana. Thriving Grove is in the pool so the case
+// also copies a land whose own as-enters colour choice must be asked with
+// Vesuva still in hand. The kernel must pose the same asks at the same
+// decisions and expose the copied mana ability to its mana walk.
+// printedDelveSetIn runs kgen over the decks, so the case is RED while kgen
+// refuses the land template.
 var vesuvaLandCopyDecks = [2][]string{
-	append(append(deckOf(10, "Vesuva"), deckOf(14, "Forest")...), deckOf(16, "Grizzly Bears")...),
+	append(append(append(deckOf(10, "Vesuva"), deckOf(7, "Forest")...), deckOf(7, "Thriving Grove")...), deckOf(16, "Grizzly Bears")...),
 	append(deckOf(24, "Mountain"), deckOf(16, "Grizzly Bears")...),
 }
 
@@ -53,12 +56,35 @@ func vesuvaCopiedLandTapped(g *GorgeSide) bool {
 	return false
 }
 
+// vesuvaCopiedThrivingGrove: some seed must take the land whose template
+// carries its own as-enters colour choice, so the case does not pass by
+// copying only the choice-free Forest.
+func vesuvaCopiedThrivingGrove(g *GorgeSide) bool {
+	for i := range g.E.L.Events {
+		e := &g.E.L.Events[i]
+		if e.Kind != events.MoveZone || e.To != state.ZBattlefield {
+			continue
+		}
+		o := g.E.G.Obj(e.Obj)
+		if o != nil && o.Card != nil && len(o.Card.Faces) > 0 && o.Card.Faces[0].Name == "Vesuva" && o.Face() != nil && o.Face().Name == "Thriving Grove" {
+			return true
+		}
+	}
+	return false
+}
+
 // vesuvaLandCopyPolicy plays Vesuva ahead of any other land, casts whatever
-// it can and never attacks; the tail (the clone ask among them) is the seed's
-// own random stream.
+// it can and never attacks; at a copy election it takes a Thriving Grove so
+// the copied land's own as-enters colour choice is asked, and the tail is the
+// seed's own random stream.
 func vesuvaLandCopyPolicy(m *Matchup, seed uint64) Policy {
 	rnd := RandomPolicy(seed)
 	return PolicyFunc(func(p *PickCtx) Canon {
+		for _, a := range p.D.Options {
+			if a.Kind() == ActChoose && a.Mode() == 0 && m.InstanceCard(int(a.Src())) == "Thriving Grove" {
+				return a
+			}
+		}
 		switch p.D.Kind {
 		case DPriority:
 			for _, a := range p.D.Options {
@@ -111,8 +137,8 @@ func TestHostedCmdrVesuvaLandCopyLockstep(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	seen, played := false, 0
-	for seed := uint64(1); seed <= 40 && !(seen && played >= 3); seed++ {
+	seen, chosen, played := false, false, 0
+	for seed := uint64(1); seed <= 40 && !(seen && chosen && played >= 3); seed++ {
 		m, err := NewMatchup(reg, [2]string{"vesuva-a", "vesuva-b"}, decks, 1)
 		if err != nil {
 			t.Fatal(err)
@@ -125,6 +151,9 @@ func TestHostedCmdrVesuvaLandCopyLockstep(t *testing.T) {
 		rc.Finish = func(g *GorgeSide) {
 			if !seen && vesuvaCopiedLandTapped(g) {
 				seen = true
+			}
+			if !chosen && vesuvaCopiedThrivingGrove(g) {
+				chosen = true
 			}
 		}
 		res := Lockstep(m, seed, k, vesuvaLandCopyPolicy(m, seed), rc)
@@ -141,5 +170,8 @@ func TestHostedCmdrVesuvaLandCopyLockstep(t *testing.T) {
 	}
 	if !seen {
 		t.Fatal("no seed tapped a Vesuva that entered as a copy of a land: the lockstep is vacuous")
+	}
+	if !chosen {
+		t.Fatal("no seed copied Thriving Grove: the template's own as-enters choice was never asked")
 	}
 }
