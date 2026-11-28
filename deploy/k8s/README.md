@@ -18,8 +18,23 @@ cluster-scoped except the namespace itself.
 The Deployment passes the full gorged command as `args` (it replaces the image `CMD`): four
 Commander tables of four seats, plus play-vs-bot, draft events and the ManaBrew routes.
 
-Probes: all three (startup, readiness, liveness) read `GET /api/capabilities` on port 8080,
-since gorged has no dedicated health route. The startup probe allows 15 minutes for the first fetch.
+Probes: all three (startup, readiness, liveness) read `GET /healthz` on port 8080, which
+answers as soon as the listener serves. The startup probe allows 15 minutes for the first fetch.
+
+Limits: the args also turn on
+
+- `-keep-matches=200`: each bot-only table keeps 200 finished matches on disk and deletes older ones; matches with a human seat and crashed matches are never deleted.
+- `-rate-limit=10`: one client may make 10 creating requests a minute (new games, events, deck checks, feedback).
+- `-rate-burst=10`: the most creating requests one client may make at once.
+- `-trusted-proxy-header=CF-Connecting-IP`: the rate limiter keys on the client address in this header, not on the proxy's.
+- `-site-name=master-edh.net`: the name in the served page's title.
+- `-metrics`: serve Prometheus counts at `/metrics` on the main port, readable by anything proxied to it.
+
+`-trusted-proxy-header` is safe here because the only public route to the pod is the gateway behind
+the Cloudflare tunnel (`httproute.yaml`). The gateway's LoadBalancer from the host network,
+`port-forward` and the ClusterIP also reach the pod, and a client on those paths can set the header
+itself. On a cluster the public reaches any other way, drop the flag: a client could otherwise set
+the header and dodge the rate limit.
 
 ## Use
 

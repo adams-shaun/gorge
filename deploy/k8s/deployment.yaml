@@ -36,10 +36,15 @@ spec:
             - -tables=4
             - -seats=4
             - -commander-seats=4
+            - -keep-matches=200
+            - -rate-limit=10
+            - -rate-burst=10
+            - -trusted-proxy-header=CF-Connecting-IP
+            - -site-name=master-edh.net
+            - -metrics
             - -vsbot
             - -events
             - -manabrew
-            - -keep-matches=200
           ports:
             - name: http
               containerPort: 8080
@@ -57,18 +62,18 @@ spec:
             limits:
               cpu: "2"
               memory: 2Gi
-          # gorged has no dedicated health route; GET /api/capabilities is a cheap, unauthenticated JSON read.
+          # GET /healthz answers as soon as the listener serves.
           # First start fetches the card scripts and compiles the IR cache, so the startup probe waits up to 15 min.
           startupProbe:
-            httpGet: {path: /api/capabilities, port: http}
+            httpGet: {path: /healthz, port: http}
             periodSeconds: 10
             failureThreshold: 90
           readinessProbe:
-            httpGet: {path: /api/capabilities, port: http}
+            httpGet: {path: /healthz, port: http}
             periodSeconds: 10
             timeoutSeconds: 3
           livenessProbe:
-            httpGet: {path: /api/capabilities, port: http}
+            httpGet: {path: /healthz, port: http}
             periodSeconds: 20
             timeoutSeconds: 5
             failureThreshold: 3
