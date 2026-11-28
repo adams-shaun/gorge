@@ -1225,7 +1225,7 @@ func init() {
 	// carries CR 305.6's intrinsic basic-land ability, which ApplyIntrinsics
 	// appends at load.
 	predicates["hasManaAbility"] = objectHasManaAbility
-	// Soulbond's "PairedWith" and "Paired" predicates (CR 702.103): the
+	// Soulbond's "PairedWith" and "Paired" predicates (CR 702.95): the
 	// Affected$ spec `Creature.PairedWith` names the creature a source is
 	// paired with, and `Creature.Self+Paired` names the source itself when it
 	// is paired. PairedWith reads source.Paired (the source is the effect's

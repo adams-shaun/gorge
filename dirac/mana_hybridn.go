@@ -2,11 +2,12 @@ package dirac
 
 import "github.com/adams-shaun/gorge/dirac/kop"
 
-// Three and four hybrid pips in one printed cost (CR 107.4e,
+// Three to five hybrid pips in one printed cost (CR 107.4e,
 // 601.2b). gorge announces each pip one by one (pay.ManaAsk, options in
 // AnnouncePip order, each gated on the whole cost's feasibility with the
 // later pips free) and its potential planner enumerates the resolutions
-// with pip 0 the fastest varying (rules planHybridCost, planHybridLimit 4).
+// with pip 0 the fastest varying (rules planHybridCost, planHybridLimit 4;
+// a fifth pip is past the planner, gorge's manual window asks it the same).
 // Every kernel walk that tried the two pips of a hybrid cost by nested
 // loops enumerates a bit mask instead: bit i set = pip i takes its second
 // face. The walks stay iterative and their costs stack-local: a call cycle
@@ -82,10 +83,10 @@ func hybWitnessMask(m, n int) int {
 }
 
 // hybOverflow is addCost's loud refusal of a sum with more hybrid pips than
-// gorge's planner resolves (planHybridLimit): a kicker or additional cost
+// kop.ManaCost.Hyb holds (five): a kicker or additional cost
 // stacked on a hybrid cost. addCost has no State to stall, and silently
 // dropping the pip (the old two-pip clamp overwrote the last one) would pay
 // a cheaper cost than gorge's.
 func hybOverflow() {
-	panic("kernel: a summed cost carries more than four hybrid pips (gorge planHybridLimit)")
+	panic("kernel: a summed cost carries more than five hybrid pips (kop.ManaCost.Hyb)")
 }

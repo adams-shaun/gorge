@@ -61,39 +61,48 @@ func (s *State) eachStaticG(k *prep, f func(st statSrc) bool) {
 func (s *State) eachGranted(k *prep, f func(st statSrc) bool) {
 	for m := s.statM; m.any(); m = m.rest() {
 		src := m.first()
-		cd := &k.t.Cards[s.cardAt(src)]
-		if len(cd.Granted) == 0 || s.genLost(k, src) {
+		if s.genLost(k, src) {
 			continue
 		}
 		sp := &s.perms[src]
-		for i := range cd.Abilities {
-			a := &cd.Abilities[i]
-			if a.Kind != kop.AbStatic || a.Static.Kind != kop.StatContinuous || a.Static.GrantSt == 0 {
-				continue
+		stopped := !s.eachPileCard(k, src, func(c CardID) bool {
+			cd := &k.t.Cards[c]
+			if len(cd.Granted) == 0 {
+				return true
 			}
-			outer := statSrc{a: a, sl: src, ctrl: sp.ctrl, obj: sp.obj}
-			if !s.statCond(k, outer) {
-				continue
-			}
-			g := &cd.Granted[a.Static.GrantSt-1]
-			for pl := uint8(0); pl < s.nSeats(); pl++ {
-				for r := s.ctrlM[pl]; r.any(); r = r.rest() {
-					rcp := r.first()
-					if !s.matchPermGen(k, a.Static.Filter, rcp, sp.ctrl, src, layerKw) {
-						continue
-					}
-					if s.genLost(k, rcp) {
-						// layer 6 in timestamp order: a loss newer than the grant removes it
-						if lts, _ := s.lossAt(k, rcp); s.layerTs(src) < lts {
+			for i := range cd.Abilities {
+				a := &cd.Abilities[i]
+				if a.Kind != kop.AbStatic || a.Static.Kind != kop.StatContinuous || a.Static.GrantSt == 0 {
+					continue
+				}
+				outer := statSrc{a: a, sl: src, ctrl: sp.ctrl, obj: sp.obj}
+				if !s.statCond(k, outer) {
+					continue
+				}
+				g := &cd.Granted[a.Static.GrantSt-1]
+				for pl := uint8(0); pl < s.nSeats(); pl++ {
+					for r := s.ctrlM[pl]; r.any(); r = r.rest() {
+						rcp := r.first()
+						if !s.matchPermGen(k, a.Static.Filter, rcp, sp.ctrl, src, layerKw) {
 							continue
 						}
-					}
-					rp := &s.perms[rcp]
-					if !f(statSrc{a: g, sl: rcp, ctrl: rp.ctrl, obj: rp.obj, gr: true, gsrc: src}) {
-						return
+						if s.genLost(k, rcp) {
+							// layer 6 in timestamp order: a loss newer than the grant removes it
+							if lts, _ := s.lossAt(k, rcp); s.layerTs(src) < lts {
+								continue
+							}
+						}
+						rp := &s.perms[rcp]
+						if !f(statSrc{a: g, sl: rcp, ctrl: rp.ctrl, obj: rp.obj, gr: true, gsrc: src}) {
+							return false
+						}
 					}
 				}
 			}
+			return true
+		})
+		if stopped {
+			return
 		}
 	}
 }

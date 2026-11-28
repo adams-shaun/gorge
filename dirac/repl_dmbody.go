@@ -87,25 +87,31 @@ func (s *State) dmgBodyScan(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, 
 	hits := 0
 	for m := s.statM; m.any(); m = m.rest() {
 		h := m.first()
-		if g.replBits2[s.cardAt(h)]&rb2DmgInst == 0 || s.genLost(k, h) || s.faceDown(k, h) {
+		if s.genLost(k, h) || s.faceDown(k, h) {
 			continue
 		}
-		cd := &k.t.Cards[s.cardAt(h)]
-		for i := range cd.Abilities {
-			a := &cd.Abilities[i]
-			if a.Kind != kop.AbReplacement || a.Repl.Kind != kop.ReplDamageInstead {
-				continue
+		s.eachPileCard(k, h, func(c CardID) bool {
+			if g.replBits2[c]&rb2DmgInst == 0 {
+				return true
 			}
-			b := int(uint16(a.Repl.A))&0xff | int(uint16(a.Repl.C))&(kop.ReplDmgInsSac|kop.ReplDmgInsVind)
-			if askOnly && bodyAskOf(b) == 0 {
-				continue
+			cd := &k.t.Cards[c]
+			for i := range cd.Abilities {
+				a := &cd.Abilities[i]
+				if a.Kind != kop.AbReplacement || a.Repl.Kind != kop.ReplDamageInstead {
+					continue
+				}
+				b := int(uint16(a.Repl.A))&0xff | int(uint16(a.Repl.C))&(kop.ReplDmgInsSac|kop.ReplDmgInsVind)
+				if askOnly && bodyAskOf(b) == 0 {
+					continue
+				}
+				if !s.dmgInsteadMatch(k, &a.Repl, h, srcCtrl, srcSl, srcCard, rcp, sl, combat) {
+					continue
+				}
+				host, line = h, &a.Repl
+				hits++
 			}
-			if !s.dmgInsteadMatch(k, &a.Repl, h, srcCtrl, srcSl, srcCard, rcp, sl, combat) {
-				continue
-			}
-			host, line = h, &a.Repl
-			hits++
-		}
+			return true
+		})
 	}
 	return host, line, hits
 }

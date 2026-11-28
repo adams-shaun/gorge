@@ -220,6 +220,14 @@ func (g *GorgeSide) optionAction(d *decision.Decision, o *decision.Option) (Cano
 			code, _ := chooseCode("convoke")
 			return Pack(ActChoose+CanonKind(code), ref(o.Obj), RefNone, 6), true
 		}
+		if o.Kind == "mutate_place" {
+			// CR 702.140b: the top/under placement ask is the kernel's
+			// generic choose:number (kw_mutate.go mutatePlaceOptions: On
+			// top mode 1, Under mode 0). Gorge's Option.Amount carries the
+			// same value; Index is only the offer order.
+			code, _ := chooseCode("number")
+			return Pack(ActChoose+CanonKind(code), RefNone, RefNone, uint8(o.Amount)), true
+		}
 		if isCounterKindAsk(d.ResumeKind) {
 			return g.counterKindAction(d, o)
 		}

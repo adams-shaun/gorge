@@ -275,7 +275,7 @@ func staticMayChangeTypes(st *Static) (has, offBF bool) {
 	return true, staticMayFunctionOffBattlefield(st)
 }
 
-// kwFlashHead is the interned Flash head (CR 702.36a): the one keyword a
+// kwFlashHead is the interned Flash head (CR 702.8a): the one keyword a
 // characteristic-defining static may grant off the battlefield
 // (staticMayFunctionOffBattlefield; engine/rules/chars.StaticCDAFlashAdmits).
 var kwFlashHead = InternKeywordHead("Flash")

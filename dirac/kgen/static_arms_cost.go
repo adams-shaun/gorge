@@ -28,6 +28,11 @@ func init() {
 	})
 	registerStaticBuild("ExtraLandPlay", func(cb *cardBuilder, s lStatic, st *kop.Static) ([]uint8, error) {
 		st.Kind = kop.StatExtraLandPlay
+		if slices.Contains(s.Flags, "EmbNum") {
+			// the Effect's frozen SetChosenNumber$ (Nahiri's Lithoforming):
+			// landLimit reads it from embN, not Static.A
+			st.StFlags |= kop.StEmbNum
+		}
 		return nil, cb.staticAmounts(st, s.Amount, lValue{})
 	})
 }

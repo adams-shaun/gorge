@@ -34,7 +34,7 @@ func RestrictedManaCostShape(a *Ability) bool {
 	}
 	return (a.ManaRestrict != 0 || a.ManaRestrictAb != 0) &&
 		a.Cost.Flags == CostTap && m.MV() != 0 && m.X == 0 && m.XRed == 0 && m.XPip == 0 &&
-		m.Snow == 0 && m.Tb == 0 && m.Hyb == [4]ColorMask{} &&
+		m.Snow == 0 && m.Tb == 0 && m.Hyb == [5]ColorMask{} &&
 		restrFeeOneColour(m)
 }
 

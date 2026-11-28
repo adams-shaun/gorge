@@ -144,6 +144,62 @@ func (s *State) pileStatics(k *prep, sl Slot, keep []bool, cls uint16, layered b
 	return true
 }
 
+// eachPileCard calls f for the card at sl (the top card) and then for each
+// under card of the pile at sl, in pile order, until f returns false. It
+// reports false when f stopped. A permanent that is not a pile calls f once.
+// The caller has checked the loss: a pile that lost its abilities loses the
+// under cards' too (CR 613.1f).
+func (s *State) eachPileCard(k *prep, sl Slot, f func(c CardID) bool) bool {
+	if !f(s.cardAt(sl)) {
+		return false
+	}
+	r := s.pileAt(k, sl)
+	if r == nil {
+		return true
+	}
+	for j := 0; j < int(r.n); j++ {
+		if !f(s.underCard(r, j)) {
+			return false
+		}
+	}
+	return true
+}
+
+// prepPileMana registers, for a table that builds piles, each card's plain
+// mana ability in genPrep.grantPC so grantIdxs can offer an under card's
+// ability on the pile's source slot (CR 702.140d: the merged permanent has
+// every ability of its components; a mana ability is paid during a payment,
+// never offered at priority). Only the planner's plain shapes are entries;
+// an under card's dynamic or restricted one stays the census gap it is for
+// the card's own slot.
+func prepPileMana(t *kop.Table, g *genPrep) {
+	if !g.anyMutate && !g.anyMerge {
+		return
+	}
+	seen := make(map[grantRef]bool, len(g.grantOf))
+	for _, r := range g.grantOf {
+		seen[r] = true
+	}
+	for i := range t.Cards {
+		cd := &t.Cards[i]
+		for j := range cd.Abilities {
+			a := &cd.Abilities[j]
+			if !gainedManaPlanned(cd, a) || seen[grantRef{CardID(i), uint8(j)}] {
+				continue
+			}
+			var gp pcard
+			gp.manaAb, gp.manaCol, gp.manaN = int8(j), a.ManaColors, max(a.ManaN, 1)
+			gp.manaOne = manaOneColour(a, gp.manaN)
+			prepGrantCost(&gp, a)
+			self := a.AFlags&kop.AfManaReflect != 0 && a.ManaAmong == 0
+			if self {
+				g.prepSelfGrant(gp)
+			}
+			g.addGrantPC(gp, self, a, CardID(i), uint8(j))
+		}
+	}
+}
+
 // pileTriggers is slotTriggers' printed walk over the under cards of the pile
 // at sl, in pile order (gorge MergedTriggerPush). The caller has checked the
 // loss.

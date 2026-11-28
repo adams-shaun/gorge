@@ -29,9 +29,11 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // mergeCap is the components under the top; the corpus's maximum is two.
 const mergeCap = 4
 
-// maxMerged is the cold region's records: the merged permanents at once, like
-// maxMeldLinks.
-const maxMerged = 16
+// maxMerged is the cold region's records: the merged permanents at once (a
+// fifth stalls StallMerge). It is 4, not maxMeldLinks' 16: mbc prints one
+// Mutate card and sits 64 bytes under the State bar, so 16 records (192
+// bytes) would put it over (TestEveryPoolFitsTheStateBar).
+const maxMerged = 4
 
 // StallMerge is the merge pile's capacity stall. 46 is a free reason value
 // between StallRefLatch (45) and StallZone (47).
@@ -80,6 +82,7 @@ func prepMerge(t *kop.Table, g *genPrep) {
 			}
 		}
 	}
+	prepPileMana(t, g) // an under card's mana ability (kw_mutateunion.go)
 }
 
 func init() { stallNames[StallMerge] = "merge" }

@@ -340,7 +340,7 @@ const (
 	// Kinds keep their numeric values and the hash chain and golden replays
 	// are unaffected.
 	Pair
-	// MyriadCopy records one Myriad (CR 702.109) attacker token: a copy of
+	// MyriadCopy records one Myriad (CR 702.116) attacker token: a copy of
 	// the attack-creature Obj that enters tapped and attacking the opponent
 	// named by Player. Appended after Pair, same append-only precedent.
 	MyriadCopy
@@ -482,7 +482,7 @@ const (
 	// append-only precedent, so no earlier ordinal, hash chain or golden
 	// replay is affected.
 	PlanarRoll
-	// Explore records one completed explore action (CR 701.35a):
+	// Explore records one completed explore action (CR 701.44a):
 	// Obj is the exploring permanent, Player its controller
 	// (whose library was explored), IDs[0] the card the process revealed,
 	// and Amount the outcome -- 1 when the revealed card was a land and
@@ -562,7 +562,7 @@ const (
 	// every earlier Kind, so no earlier ordinal, hash chain or golden replay
 	// is affected.
 	GrantAbilityPush
-	// Investigate records one completed investigate action (CR 701.36a): Player is the investigating seat and Obj the resolving
+	// Investigate records one completed investigate action (CR 701.16a): Player is the investigating seat and Obj the resolving
 	// source permanent (0 for a source-less body). It is an Apply no-op
 	// marker, exactly like Explore: the investigate's own state change (the
 	// Clue token mint) is its own TokenCreate event that precedes this one,
@@ -677,7 +677,7 @@ const (
 	// Appended after Seek, still after every earlier Kind, so no earlier
 	// ordinal, hash chain or golden replay is affected.
 	Connive
-	// Enlist records one CR 702.160 enlist action (the `K:Enlist` keyword):
+	// Enlist records one CR 702.154 enlist action (the `K:Enlist` keyword):
 	// Obj is the ATTACKING creature that enlisted (the
 	// trigger's source for Mode$ Enlisted, so ValidCard$ Card.Self matches
 	// it) and IDs[0] the nonattacking creature it tapped, Player the
@@ -744,7 +744,7 @@ const (
 	// precedent, so no earlier ordinal, hash chain or golden replay is
 	// affected.
 	GainedTriggerPush
-	// Surveil records one completed surveil instruction (CR 701.42): Player is the surveiling seat and Obj the resolving
+	// Surveil records one completed surveil instruction (CR 701.25): Player is the surveiling seat and Obj the resolving
 	// source permanent (0 for a source-less body). It is an Apply no-op
 	// marker, exactly like Explore/Investigate: the surveil's own state
 	// changes (the KArrange answer's LibraryOrder and any graveyard
@@ -939,7 +939,7 @@ const (
 	// append-only precedent, so no earlier ordinal, hash chain or golden
 	// replay is affected.
 	RollDice
-	// Proliferate records one completed proliferate action (CR 701.27): Player is the proliferating seat ("whenever YOU
+	// Proliferate records one completed proliferate action (CR 701.34): Player is the proliferating seat ("whenever YOU
 	// proliferate" -- what ValidPlayer$ matches) and Obj the resolving source
 	// permanent (the spell or activated ability on the stack). It is an Apply
 	// no-op marker, exactly like Surveil/Discover: the proliferation's own
@@ -2049,7 +2049,7 @@ var flagNames = [...]struct {
 	// The Adventure spell face's cast (CR 714.3a). Appended at the end per
 	// the table's own ordering rule.
 	{"adventure", state.FlagAdventure},
-	// The Replicate keyword's payment provenance (CR 702.55a); the payment
+	// The Replicate keyword's payment provenance (CR 702.56a); the payment
 	// COUNT rides the same CastInfo's Amount. Appended at the end per the
 	// table's own ordering rule.
 	{"replicated", state.FlagReplicated},
@@ -2057,7 +2057,7 @@ var flagNames = [...]struct {
 	// COUNT rides the same CastInfo's Amount. Appended at the end per the
 	// table's own ordering rule.
 	{"converged", state.FlagConverged},
-	// The Bestow keyword's alternative-cost cast (CR 702.114a); the flag is
+	// The Bestow keyword's alternative-cost cast (CR 702.103a); the flag is
 	// the provenance rules' resolution reader uses to substitute the
 	// synthesized Aura attach spell. Appended at the end per the table's
 	// own ordering rule.
@@ -2066,7 +2066,7 @@ var flagNames = [...]struct {
 	// rides the same CastInfo's Amount. Appended at the end per the table's
 	// own ordering rule.
 	{"multikicked", state.FlagMultikicked},
-	// Foretell's cast provenance (CR 702.126a): set by BOTH provenance
+	// Foretell's cast provenance (CR 702.143a): set by BOTH provenance
 	// markers -- the {2} face-down hand exile (rules' payCast foretell
 	// branch, which emits its own CastInfo) and the later foretell-cost
 	// cast from exile (modeFlags). Appended at the end per the table's own
@@ -2078,7 +2078,7 @@ var flagNames = [...]struct {
 	// the end per the table's own ordering rule.
 	{"conspired", state.FlagConspired},
 	{"teamwork_paid", state.FlagTeamworkPaid},
-	// Convoke's creature provenance (CR 702.66): the flag is
+	// Convoke's creature provenance (CR 702.51): the flag is
 	// what Defined$ Convoked reads -- the creatures tapped to help pay for
 	// the cast ride the pay-time CastInfo's IDs. Emitted only for a face
 	// whose SVar table or abilities reference the selector (engine/rules/cast.go's
@@ -2120,7 +2120,7 @@ var flagNames = [...]struct {
 	// of the graveyard. Appended at the end per the table's own ordering
 	// rule.
 	{"replacegraveyard", state.FlagReplaceGraveyard},
-	// The Aftermath half's cast (CR 702.85a): the flag is what the resolution
+	// The Aftermath half's cast (CR 702.127a): the flag is what the resolution
 	// reader (spellRestZone) and the fizzle reader (spellFizzleZone) read to
 	// exile the card instead of the graveyard. Appended at the end per the
 	// table's own ordering rule.
@@ -2130,7 +2130,7 @@ var flagNames = [...]struct {
 	// ordering rule.
 	{"mutated", state.FlagMutated},
 	{"mutated top", state.FlagMutatedTop},
-	// The Squad keyword's payment provenance (CR 702.66); the payment COUNT
+	// The Squad keyword's payment provenance (CR 702.157); the payment COUNT
 	// rides the same CastInfo's Amount. Appended at the end per the table's
 	// own ordering rule.
 	{"squadpaid", state.FlagSquadPaid},
@@ -2182,7 +2182,7 @@ var flagNames = [...]struct {
 	// predicate, the Count$PromisedGift head and Defined$ Promised. Appended
 	// at the end per the table's own ordering rule.
 	{"promisedgift", state.FlagPromisedGift},
-	// Rebound's hand-cast provenance (CR 702.95a): the spell was cast from
+	// Rebound's hand-cast provenance (CR 702.88a): the spell was cast from
 	// its controller's hand, so it is exiled as it resolves and its next
 	// upkeep offers the free recast. Read by spellRestZone and
 	// moveResolvedOffStack. Appended at the end per the table's own ordering
@@ -2199,7 +2199,7 @@ var flagNames = [...]struct {
 	// ride the same CastInfo's Text into Object.ManaAddsCounterGrants.
 	// Appended after main's blitzed entry to preserve its ordering.
 	{"addscounters", state.FlagAddsCounters},
-	// The kw:Web-slinging alternative-cost cast (CR 702.186a-family, Marvel's
+	// The kw:Web-slinging alternative-cost cast (CR 702.188a-family, Marvel's
 	// Spider-Man): the flag is the provenance the Card.Self+webSlinged filter
 	// predicate reads -- Spiders-Man, Heroic Horde's ETB trigger. Appended
 	// at the end per the table's own ordering rule.
