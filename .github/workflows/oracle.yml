@@ -222,21 +222,63 @@ jobs:
           # A second bisect blaming the same PR must not fail the job (oracle run 45740776172): when the bot branch
           # still has an open revert PR, comment there and stop; otherwise force-push the leftover branch (it is
           # bot-owned) and open the draft PR.
+          # The comment both open-PR checks post: on the open revert PR, or on the open refusal PR (st-lockgate-03).
+          {
+            echo "The oracle failed again on main at $GITHUB_SHA; bisecting the first-parent merges from the last green oracle run blames #$PR ($CULPRIT) again."
+            echo
+            echo "Failing tests:"
+            sed 's/^/- /' failing.txt
+            echo
+            echo "Run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+            echo
+            echo "---"
+            echo "This Robot (gorge agentctl swarm) Shan't Be Blamed For Stupid Humans"
+          } > comment.md
           if n=$(gh pr list --head "$br" --state open --json number | sed -nE 's/.*"number": ?([0-9]+).*/\1/p' | head -n 1) && [ -n "$n" ]; then
-            {
-              echo "The oracle failed again on main at $GITHUB_SHA; bisecting the first-parent merges from the last green oracle run blames #$PR ($CULPRIT) again."
-              echo
-              echo "Failing tests:"
-              sed 's/^/- /' failing.txt
-              echo
-              echo "Run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
-              echo
-              echo "---"
-              echo "This Robot (gorge agentctl swarm) Shan't Be Blamed For Stupid Humans"
-            } > comment.md
             gh pr comment "$n" --body-file comment.md
             echo "an open revert PR for #$PR already exists: commented on #$n instead of opening a second one"
             exit 0
+          fi
+          if n=$(gh pr list --head "hotfix/auto-refuse-$PR" --state open --json number | sed -nE 's/.*"number": ?([0-9]+).*/\1/p' | head -n 1) && [ -n "$n" ]; then
+            gh pr comment "$n" --body-file comment.md
+            echo "an open refusal PR for #$PR already exists: commented on #$n instead of opening a revert"
+            exit 0
+          fi
+          # A rule-cited culprit (a Rule: / Oracle: line, nothing under dirac/) is refused around, not reverted, when
+          # refusing the cards the lockstep slices implicate cures the failing tests (invariant 13). Any other exit
+          # (n/a, no refusal, not cured, a script error or the timeout) leaves the tree at main's head: revert below.
+          refused="refusal path not run"
+          if [ -f scripts/oracle-refuse-instead.sh ]; then
+            git switch -q --detach "$GITHUB_SHA"
+            rc=0
+            timeout 40m bash scripts/oracle-refuse-instead.sh "$CULPRIT" failing.txt "hotfix/auto-refuse-$PR" | tee refuse.out || rc=$?
+            if [ "$rc" = 0 ]; then
+              git push --force origin "hotfix/auto-refuse-$PR"
+              {
+                echo "The oracle failed on main at $GITHUB_SHA. Bisecting first-parent merges from the last green oracle run blames #$PR ($CULPRIT), a rules fix that cites:"
+                echo
+                git log --format=%B "$CULPRIT^1..$CULPRIT" | grep -E '^(Rule: CR [0-9]|Oracle: (forge|xmage|ruling) )' | sort -u || true
+                echo
+                echo "Failing tests:"
+                sed 's/^/- /' failing.txt
+                echo
+                cat refuse.out
+                echo
+                echo "Run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+                echo
+                echo "A draft: a human reads the refusals, then marks it ready. Each refused card joins its class ticket; the gorge fix stays."
+                echo
+                echo "---"
+                echo "This Robot (gorge agentctl swarm) Shan't Be Blamed For Stupid Humans"
+              } > refuse-body.md
+              gh pr create --draft --base main --head "hotfix/auto-refuse-$PR" --title "dirac: refuse the cards #$PR's rules fix diverges on (auto-bisect)" --body-file refuse-body.md
+              exit 0
+            fi
+            refused=$(grep -m1 '^oracle-refuse-instead: ' refuse.out || echo "oracle-refuse-instead.sh exited $rc")
+            # A killed script restores nothing: drop what it may have left before the revert.
+            git switch -q --discard-changes --detach "$GITHUB_SHA"
+            git branch -q -D "hotfix/auto-refuse-$PR" 2>/dev/null || true
+            git clean -fdq -- dirac/support
           fi
           git switch -c "$br" "$GITHUB_SHA"
           git revert --no-edit -m 1 "$CULPRIT"
@@ -258,6 +300,8 @@ jobs:
             echo
             echo "A draft: Mergify queues every non-draft PR, so a human reads the failure, then marks it ready (or closes it and fixes forward). This branch appends the failing tests to dirac/oracle/testdata/sentinels.txt (below); a fix forward must carry the same lines."
             echo; cat sentinels.out 2>/dev/null || true
+            echo
+            echo "Not refused instead: $refused"
             echo
             echo "---"
             echo "This Robot (gorge agentctl swarm) Shan't Be Blamed For Stupid Humans"

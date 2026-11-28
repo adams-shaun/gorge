@@ -104,6 +104,16 @@ func TestOracleWorkflowCadenceAndAutoRevert(t *testing.T) {
 	if !strings.Contains(job, "bash scripts/sentinel-append.sh failing.txt") {
 		t.Error("the auto-revert must append the failing tests with scripts/sentinel-append.sh")
 	}
+	// A rule-cited culprit is refused around before it is reverted (st-lockgate-03).
+	for _, want := range []string{
+		`bash scripts/oracle-refuse-instead.sh "$CULPRIT" failing.txt`,
+		`hotfix/auto-refuse-$PR`,
+		`gh pr list --head "hotfix/auto-refuse-$PR" --state open --json number`,
+	} {
+		if !strings.Contains(job, want) {
+			t.Errorf("the bisect job lacks %q (the refusal path)", want)
+		}
+	}
 	if !strings.Contains(job, "contents: write") || !strings.Contains(job, "pull-requests: write") {
 		t.Error("bisect needs contents: write and pull-requests: write")
 	}

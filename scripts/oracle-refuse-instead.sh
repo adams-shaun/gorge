@@ -45,6 +45,8 @@ finish() {
 	exit "$rc"
 }
 trap finish EXIT
+# timeout(1) sends TERM: exit through finish, so a killed run still restores the tree.
+trap 'exit 143' TERM INT
 
 # 1. A branch for the refusal commit, dirac's tables at this head, and refuse-on-red in apply mode on the
 # culprit's own diff and messages.
