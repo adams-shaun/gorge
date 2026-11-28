@@ -6,39 +6,37 @@ A card is **supported** when kgen lowers it, it is not refused by name, and it h
 
 `cardset.EnforceEvidence` is true: a game plays supported cards only, and a deck holding an unverified or refused card is turned away.
 
-| list | cards | lowered | refused | unverified | supported | 4-seat | pod-evidenced | 4-seat pod-evidenced | in-scope | in-scope lowered | in-scope supported |
-|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| BIG | 30 | 29 | 0 | 4 | 25 | 25 | 0 | 0 | 30 | 29 | 25 |
-| BLB | 278 | 265 | 1 | 2 | 262 | 262 | 1 | 1 | 278 | 265 | 262 |
-| DFT | 276 | 259 | 0 | 1 | 258 | 258 | 2 | 2 | 276 | 259 | 258 |
-| DSK | 276 | 261 | 3 | 4 | 254 | 254 | 1 | 1 | 276 | 261 | 254 |
-| ECL | 273 | 251 | 0 | 3 | 248 | 248 | 1 | 1 | 273 | 251 | 248 |
-| EOE | 266 | 256 | 0 | 5 | 251 | 251 | 1 | 1 | 266 | 256 | 251 |
-| FDN | 517 | 517 | 0 | 0 | 517 | 517 | 9 | 9 | 517 | 517 | 517 |
-| FIN | 312 | 284 | 0 | 2 | 282 | 282 | 1 | 1 | 312 | 284 | 282 |
-| FRA | 269 | 255 | 0 | 5 | 250 | 250 | 1 | 1 | 269 | 255 | 250 |
-| HOB | 172 | 164 | 0 | 4 | 160 | 160 | 1 | 1 | 172 | 164 | 160 |
-| LCI | 290 | 266 | 1 | 2 | 263 | 263 | 2 | 2 | 290 | 266 | 263 |
-| MKM | 279 | 261 | 1 | 11 | 249 | 249 | 1 | 1 | 279 | 261 | 249 |
-| MSH | 276 | 253 | 1 | 3 | 249 | 249 | 1 | 1 | 276 | 253 | 249 |
-| OTJ | 276 | 258 | 0 | 5 | 253 | 253 | 1 | 1 | 276 | 258 | 253 |
-| SOS | 270 | 261 | 0 | 2 | 259 | 259 | 1 | 1 | 270 | 261 | 259 |
-| SPM | 192 | 179 | 3 | 9 | 167 | 167 | 1 | 1 | 192 | 179 | 167 |
-| TDM | 276 | 261 | 1 | 1 | 259 | 259 | 2 | 2 | 276 | 261 | 259 |
-| TLA | 285 | 265 | 1 | 3 | 261 | 261 | 1 | 1 | 285 | 265 | 261 |
-| TMT | 194 | 188 | 0 | 1 | 187 | 187 | 1 | 1 | 194 | 188 | 187 |
-| TRC | 337 | 308 | 0 | 6 | 302 | 302 | 6 | 6 | 337 | 308 | 302 |
-| TRK | 311 | 311 | 1 | 0 | 310 | 310 | 1 | 1 | 311 | 311 | 310 |
-| WOE | 281 | 269 | 1 | 3 | 265 | 265 | 1 | 1 | 281 | 269 | 265 |
-| MBC | 2214 | 2060 | 4 | 39 | 2017 | 2016 | 8 | 8 | 2213 | 2059 | 2017 |
-| CMM | 737 | 650 | 9 | 35 | 606 | 606 | 9 | 9 | 737 | 650 | 606 |
-| MH3 | 308 | 253 | 4 | 18 | 231 | 231 | 1 | 1 | 308 | 253 | 231 |
-| MH2 | 309 | 275 | 2 | 15 | 258 | 258 | 1 | 1 | 309 | 275 | 258 |
-| CM2 | 279 | 247 | 1 | 5 | 241 | 241 | 10 | 10 | 279 | 247 | 241 |
-| hosted-cmdr | 1234 | 1221 | 34 | 115 | 1072 | 1072 | 33 | 33 | 1233 | 1220 | 1072 |
-| ALL | 34480 | 27459 | 86 | 1044 | 26329 | 26324 | 33 | 33 | 32729 | 26964 | 25953 |
-
-The `4-seat` column is a ceiling; `4-seat pod-evidenced` is its proven subset, the `4-seat` cards with an evidence row whose seats field is four or more. The `4-seat` definition has not changed.
+| list | cards | lowered | refused | unverified | supported | 4-seat | pod-evidenced | in-scope | in-scope lowered | in-scope supported |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| BIG | 30 | 29 | 0 | 4 | 25 | 25 | 0 | 30 | 29 | 25 |
+| BLB | 278 | 265 | 1 | 2 | 262 | 262 | 1 | 278 | 265 | 262 |
+| DFT | 276 | 259 | 0 | 1 | 258 | 258 | 2 | 276 | 259 | 258 |
+| DSK | 276 | 261 | 2 | 7 | 252 | 252 | 1 | 276 | 261 | 252 |
+| ECL | 273 | 251 | 0 | 3 | 248 | 248 | 1 | 273 | 251 | 248 |
+| EOE | 266 | 256 | 0 | 5 | 251 | 251 | 1 | 266 | 256 | 251 |
+| FDN | 517 | 517 | 0 | 0 | 517 | 517 | 9 | 517 | 517 | 517 |
+| FIN | 312 | 284 | 0 | 2 | 282 | 282 | 1 | 312 | 284 | 282 |
+| FRA | 269 | 255 | 0 | 5 | 250 | 250 | 1 | 269 | 255 | 250 |
+| HOB | 172 | 164 | 0 | 4 | 160 | 160 | 1 | 172 | 164 | 160 |
+| LCI | 290 | 266 | 1 | 5 | 260 | 260 | 2 | 290 | 266 | 260 |
+| MKM | 279 | 261 | 1 | 11 | 249 | 249 | 1 | 279 | 261 | 249 |
+| MSH | 276 | 253 | 0 | 4 | 249 | 249 | 1 | 276 | 253 | 249 |
+| OTJ | 276 | 258 | 0 | 5 | 253 | 253 | 1 | 276 | 258 | 253 |
+| SOS | 270 | 261 | 0 | 2 | 259 | 259 | 1 | 270 | 261 | 259 |
+| SPM | 192 | 179 | 2 | 10 | 167 | 167 | 1 | 192 | 179 | 167 |
+| TDM | 276 | 261 | 1 | 1 | 259 | 259 | 2 | 276 | 261 | 259 |
+| TLA | 285 | 265 | 1 | 3 | 261 | 261 | 1 | 285 | 265 | 261 |
+| TMT | 194 | 188 | 0 | 1 | 187 | 187 | 1 | 194 | 188 | 187 |
+| TRC | 337 | 308 | 0 | 30 | 278 | 278 | 6 | 337 | 308 | 278 |
+| TRK | 311 | 311 | 1 | 0 | 310 | 310 | 1 | 311 | 311 | 310 |
+| WOE | 281 | 269 | 0 | 4 | 265 | 265 | 1 | 281 | 269 | 265 |
+| MBC | 2214 | 2060 | 3 | 60 | 1997 | 1997 | 8 | 2213 | 2059 | 1997 |
+| CMM | 737 | 650 | 3 | 50 | 597 | 597 | 9 | 737 | 650 | 597 |
+| MH3 | 308 | 252 | 1 | 26 | 225 | 225 | 1 | 308 | 252 | 225 |
+| MH2 | 309 | 275 | 0 | 21 | 254 | 254 | 1 | 309 | 275 | 254 |
+| CM2 | 279 | 247 | 1 | 10 | 236 | 236 | 10 | 279 | 247 | 236 |
+| hosted-cmdr | 1234 | 1220 | 2 | 152 | 1066 | 1065 | 33 | 1233 | 1219 | 1066 |
+| ALL | 34480 | 27441 | 33 | 1504 | 25904 | 25901 | 33 | 32729 | 26946 | 25532 |
 
 `in-scope` counts the cards `dirac/support/scope/out-of-scope.txt` (1751 lines, written by `scripts/dirac-scope-list.py` from the public carddb) does not name: it leaves out digital-only and Alchemy-rebalanced cards, paper cards that are not Commander-legal (a banned card stays in), non-tournament types and mechanics, and Mutate and Splice cards deferred until 2027-01-15, and the two columns after it count the lowered and supported cards among them.
 
@@ -54,114 +52,6 @@ Evidence comes from the `fdn` and `blb` deck pools and one synthetic pool per St
 | cmd5 | 1500 |
 | dr-mbc-aaaa | 1362 |
 | dr-mbc-abbb | 1010 |
-| ev-cmdr-academy-manufactor | 393 |
-| ev-cmdr-angel-of-salvation | 295 |
-| ev-cmdr-ashcloud-phoenix | 1306 |
-| ev-cmdr-avenge | 258 |
-| ev-cmdr-behemoth-of-vault-0 | 351 |
-| ev-cmdr-boltbender | 281 |
-| ev-cmdr-braids-arisen-nightmare | 1204 |
-| ev-cmdr-brotherhood-scribe | 276 |
-| ev-cmdr-captain-america-living-legend | 1500 |
-| ev-cmdr-cataclysmic-gearhulk | 267 |
-| ev-cmdr-chromatic-orrery | 268 |
-| ev-cmdr-chthonian-nightmare | 317 |
-| ev-cmdr-conduit-of-worlds | 355 |
-| ev-cmdr-coveted-jewel | 363 |
-| ev-cmdr-crystal-vein | 765 |
-| ev-cmdr-curie-emergent-intelligence | 202 |
-| ev-cmdr-cursed-mirror | 350 |
-| ev-cmdr-cut-short | 1018 |
-| ev-cmdr-dance-with-calamity | 282 |
-| ev-cmdr-dargo-the-shipwrecker | 392 |
-| ev-cmdr-darksteel-monolith | 933 |
-| ev-cmdr-deathmist-raptor | 289 |
-| ev-cmdr-deluxe-dragster | 279 |
-| ev-cmdr-dragonhawk-fate-s-tempest | 1172 |
-| ev-cmdr-dromoka-s-command | 283 |
-| ev-cmdr-echoes-of-eternity | 295 |
-| ev-cmdr-eldrazi-temple | 340 |
-| ev-cmdr-evendo-brushrazer | 216 |
-| ev-cmdr-fertilid | 1250 |
-| ev-cmdr-fiery-emancipation | 201 |
-| ev-cmdr-flamerush-rider | 1347 |
-| ev-cmdr-flayer-of-loyalties | 367 |
-| ev-cmdr-folk-hero | 283 |
-| ev-cmdr-fury | 348 |
-| ev-cmdr-genesis-hydra | 366 |
-| ev-cmdr-glacial-chasm | 128 |
-| ev-cmdr-grief | 339 |
-| ev-cmdr-harsh-mentor | 363 |
-| ev-cmdr-helios-one | 237 |
-| ev-cmdr-heroic-return | 273 |
-| ev-cmdr-hit-the-mother-lode | 284 |
-| ev-cmdr-inscription-of-abundance | 260 |
-| ev-cmdr-intuition | 19 |
-| ev-cmdr-jocasta-automaton-avenger | 256 |
-| ev-cmdr-joyful-stormsculptor | 287 |
-| ev-cmdr-karazikar-the-eye-tyrant | 400 |
-| ev-cmdr-kozilek-s-command | 325 |
-| ev-cmdr-kozilek-the-great-distortion | 293 |
-| ev-cmdr-last-one-standing | 337 |
-| ev-cmdr-leyline-tyrant | 1070 |
-| ev-cmdr-lodestone-bauble | 324 |
-| ev-cmdr-loyal-apprentice | 223 |
-| ev-cmdr-masterful-replication | 370 |
-| ev-cmdr-mechanized-production | 350 |
-| ev-cmdr-mirror-style-master | 342 |
-| ev-cmdr-mount-doom | 278 |
-| ev-cmdr-name-sticker-goblin | 263 |
-| ev-cmdr-necrodominance | 350 |
-| ev-cmdr-necropotence | 266 |
-| ev-cmdr-noxious-gearhulk | 326 |
-| ev-cmdr-oblivion-sower | 311 |
-| ev-cmdr-obscuring-aether | 1303 |
-| ev-cmdr-panoptic-projektor | 373 |
-| ev-cmdr-path-of-the-animist | 278 |
-| ev-cmdr-path-of-the-ghosthunter | 278 |
-| ev-cmdr-path-of-the-pyromancer | 281 |
-| ev-cmdr-path-of-the-schemer | 387 |
-| ev-cmdr-planetary-annihilation | 330 |
-| ev-cmdr-plasma-caster | 257 |
-| ev-cmdr-price-of-progress | 292 |
-| ev-cmdr-printlifter-ooze | 348 |
-| ev-cmdr-rashmi-and-ragavan | 375 |
-| ev-cmdr-rex-cyber-hound | 340 |
-| ev-cmdr-rise-and-shine | 1107 |
-| ev-cmdr-roiling-vortex | 358 |
-| ev-cmdr-saheeli-sublime-artificer | 400 |
-| ev-cmdr-scarlet-witch-chaotic-avenger | 353 |
-| ev-cmdr-screaming-nemesis | 367 |
-| ev-cmdr-shifting-woodland | 206 |
-| ev-cmdr-spider-punk | 220 |
-| ev-cmdr-spinerock-knoll | 329 |
-| ev-cmdr-spire-of-industry | 400 |
-| ev-cmdr-springheart-nantuko | 253 |
-| ev-cmdr-sulfuric-vortex | 362 |
-| ev-cmdr-tandem-lookout | 319 |
-| ev-cmdr-tectonic-split | 292 |
-| ev-cmdr-tempt-with-discovery | 222 |
-| ev-cmdr-tesak-judith-s-hellhound | 1387 |
-| ev-cmdr-the-elder-dragon-war | 355 |
-| ev-cmdr-the-motherlode-excavator | 1434 |
-| ev-cmdr-thundermane-dragon | 339 |
-| ev-cmdr-together-forever | 311 |
-| ev-cmdr-ugin-s-labyrinth | 227 |
-| ev-cmdr-ugin-the-ineffable | 321 |
-| ev-cmdr-uncivil-unrest | 283 |
-| ev-cmdr-urza-s-bauble | 1206 |
-| ev-cmdr-urza-s-mine | 303 |
-| ev-cmdr-urza-s-power-plant | 284 |
-| ev-cmdr-urza-s-saga | 153 |
-| ev-cmdr-urza-s-tower | 267 |
-| ev-cmdr-urza-s-workshop | 267 |
-| ev-cmdr-valakut-awakening | 257 |
-| ev-cmdr-vault-13-dweller-s-journey | 344 |
-| ev-cmdr-vedalken-humiliator | 367 |
-| ev-cmdr-walk-in-closet | 1397 |
-| ev-cmdr-wastescape-battlemage | 343 |
-| ev-cmdr-west-coast-expansion | 302 |
-| ev-cmdr-yedora-grave-gardener | 350 |
 | ev-dr-mbc-aaaa | 193 |
 | ev-dr-mbc-aaaa-c000 | 6 |
 | ev-dr-mbc-aaab | 181 |
@@ -5373,7 +5263,7 @@ Evidence comes from the `fdn` and `blb` deck pools and one synthetic pool per St
 | ev-tail-76-c004 | 108 |
 | fdc-gaps | 1500 |
 | fdn | 1500 |
-| hosted-cmdr | 1074 |
+| hosted-cmdr | 175 |
 | pauper | 1500 |
 | pod-cmd5 | 1500 |
 | std-big | 1500 |
@@ -5403,26 +5293,18 @@ Nothing else is covered. A card none of these runs reaches is unverified, whatev
 
 ## Refused by name
 
-94 cards, by what differed in the game that showed them. Each has a file in `dirac/support/refused` naming the card, the difference and the game.
+33 cards, by what differed in the game that showed them. Each has a file in `dirac/support/refused` naming the card, the difference and the game.
 
 | what differed | cards |
 |---|---:|
-| decision-kind | 1 |
-| deferred | 34 |
-| lockstep | 10 |
-| options | 8 |
+| lockstep | 14 |
+| options | 4 |
 | options-options | 3 |
 | projection-Cards.Damage | 1 |
-| projection-Cards.Flags | 7 |
-| projection-Cards.Pos | 6 |
-| projection-Cards.Zone | 2 |
-| projection-Life | 1 |
-| projection-NStack | 6 |
-| projection-Pool | 1 |
-| unmodelled-band | 5 |
+| projection-Cards.Flags | 2 |
+| projection-Cards.Zone | 1 |
+| projection-NStack | 1 |
 | unmodelled-endure | 1 |
 | unmodelled-landgrant | 4 |
-| unmodelled-prevscopecopy | 1 |
 | unmodelled-replctr | 1 |
 | unmodelled-textchange | 1 |
-| unmodelled-tokrewrite | 1 |

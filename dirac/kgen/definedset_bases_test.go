@@ -185,15 +185,13 @@ func TestSetBaseShapes(t *testing.T) {
 	t.Run("corpus carriers", testSetBaseCarriers)
 }
 
-// testSetBaseCarriers: the corpus carriers read their sets, and what still
-// refuses them is another line: Enslave's DamageSource$ amount, Earthbind's
-// granted static and its self-enters condition. Listing every blocker lowers
-// the bodies behind them.
+// testSetBaseCarriers: the corpus carriers read their sets, and no refusal
+// they still carry is about the set. Listing every blocker lowers the bodies
+// behind their other lines.
 func testSetBaseCarriers(t *testing.T) {
-	carriers := []struct{ card, set, blocker string }{
-		{"Enslave", "SET 0 SetRefBase(Equipped) SetAndFilter(F={types=0x0 EnchantedBy}) SetOwnerOf",
-			"DamageSource$ with an amount other than the source's power"},
-		{"Earthbind", "SET 0 SetBattlefield SetAndFilter(F={types=0x0 EnchantedBy})", "Animate staticAbilities$"},
+	carriers := []struct{ card, set string }{
+		{"Enslave", "SET 0 SetRefBase(Equipped) SetAndFilter(F={types=0x0 EnchantedBy}) SetOwnerOf"},
+		{"Earthbind", "SET 0 SetBattlefield SetAndFilter(F={types=0x0 EnchantedBy})"},
 	}
 	p, err := loadCardNames([]string{"Earthbind", "Enslave"}, ratchetCards(t))
 	if err != nil {
@@ -216,8 +214,10 @@ func testSetBaseCarriers(t *testing.T) {
 			t.Errorf("%s: no %q line:\n%s", f.card, f.set, b.String())
 		}
 		got := abReasons(c)
-		if !strings.Contains(got, f.blocker) || strings.Contains(got, "no set kind") || strings.Contains(got, `Defined$ "`) {
-			t.Errorf("%s: want only other blockers, among them %q, got:\n%s", f.card, f.blocker, got)
+		for _, about := range []string{"no set kind", `Defined$ "`, "Defined$ set"} {
+			if strings.Contains(got, about) {
+				t.Errorf("%s: a refusal about the set (%q):\n%s", f.card, about, got)
+			}
 		}
 	}
 }
