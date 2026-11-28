@@ -517,9 +517,7 @@ func (s *State) finishCleanup(k *prep) {
 		s.exTake() // CR 500.7: the most recently created grant's turn begins (act_extraturn.go)
 		return
 	}
-	next := s.nextAlive(s.g.exBase)
-	s.g.exBase = next
-	s.beginTurn(next)
+	s.ordinaryTurn() // act_goad.go
 }
 
 func (s *State) clearCombat() {
