@@ -548,6 +548,10 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 		tx: tx, life: life, gaps: &gaps,
 		twoLive: twoLive, repeatLive: repeatLive,
 	}
+	var bound Decision
+	if s.tapXBoundWalk(k, p, &rt, sacAny, sacOpen, sacRepeat, &bound) {
+		rt.bound = &bound
+	}
 	for i := 0; i < nc && searched < potentialScriptPlays; i++ { // the first potentialScriptPlays: searched
 		a := cand[i]
 		if !s.gapsOrBoundPlay(k, p, boundLive, &gaps, a) && !twoLive && !repeatLive && !((caAny || raBoard) && s.reflAmtBoundPlay(k, p, a)) && !s.ownTapWalkPlay(k, p, a, &ownWalk, &ownBuilt) {
@@ -560,7 +564,7 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 		if s.autopayDropsPlainCast(a) && !s.lifePlanned(k, p, life, &lifeWalk, &lifeBuilt, a) && !s.phyHalfPlanned(k, p, a) {
 			continue // a plain cast: dropped by the autopay surface unless gorge's planner prices it with a life-only source (mana_lifeplan.go)
 		}
-		if s.scriptRouteDrop(k, &rt, a, p) {
+		if s.scriptCandDrop(k, &rt, a, p) {
 			continue
 		}
 		d.add(a)
@@ -587,6 +591,7 @@ type scriptRoute struct {
 	dh, ca, mix, twoLive, repeatLive                   bool
 	caM, filt, tapsDef, restr, anyR, anyDiff, tx, life slotMask
 	gaps                                               *Decision
+	bound                                              *Decision // tapXBoundWalk's plays, nil off its boards
 }
 
 // scriptRouteDrop runs scriptOffers' search-route chain for one candidate
