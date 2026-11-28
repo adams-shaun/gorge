@@ -64,28 +64,34 @@ func (s *State) drawMore(p uint8, ch drawChain) bool {
 	n := 0
 	for m := s.statM.and(s.ctrlM[p]); m.any(); m = m.rest() {
 		sl := m.first()
-		if g.replBits[s.cardAt(sl)]&rbDrawMore == 0 || ch.has(sl) || s.genLost(k, sl) {
+		if ch.has(sl) || s.genLost(k, sl) {
 			continue
 		}
-		cd := &k.t.Cards[s.cardAt(sl)]
-		for i := range cd.Abilities {
-			a := &cd.Abilities[i]
-			if a.Kind != kop.AbReplacement || a.Repl.Kind != kop.ReplDrawMore {
-				continue
+		s.eachPileCard(k, sl, func(c CardID) bool {
+			if g.replBits[c]&rbDrawMore == 0 {
+				return true
 			}
-			if a.Repl.Cond != 0 && !s.replHostLive(k, a, sl) { // a granted max-speed gate (kw_maxspeed.go)
-				continue
+			cd := &k.t.Cards[c]
+			for i := range cd.Abilities {
+				a := &cd.Abilities[i]
+				if a.Kind != kop.AbReplacement || a.Repl.Kind != kop.ReplDrawMore {
+					continue
+				}
+				if a.Repl.Cond != 0 && !s.replHostLive(k, a, sl) { // a granted max-speed gate (kw_maxspeed.go)
+					continue
+				}
+				// NotFirstCardInDrawStep$: the first card the player draws in
+				// their own draw step is exempt (gorge pendingDrawIsFirstInDrawStep)
+				if a.Repl.C&kop.ReplDrawNotFirst != 0 && s.g.drawFirst && p == s.active && s.step == kop.StepDraw {
+					continue
+				}
+				if n == 0 {
+					sel, ab = sl, a // the scan-order first: gorge settles here too
+				}
+				n++
 			}
-			// NotFirstCardInDrawStep$: the first card the player draws in
-			// their own draw step is exempt (gorge pendingDrawIsFirstInDrawStep)
-			if a.Repl.C&kop.ReplDrawNotFirst != 0 && s.g.drawFirst && p == s.active && s.step == kop.StepDraw {
-				continue
-			}
-			if n == 0 {
-				sel, ab = sl, a // the scan-order first: gorge settles here too
-			}
-			n++
-		}
+			return true
+		})
 	}
 	switch {
 	case n == 0:

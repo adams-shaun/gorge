@@ -47,12 +47,20 @@ func (s *State) onePoison(k *prep, p uint8, n int) int {
 		if s.perms[sl].ctrl != p || s.genLost(k, sl) {
 			continue
 		}
-		cd := &k.t.Cards[s.cardAt(sl)]
-		for i := range cd.Abilities {
-			if a := &cd.Abilities[i]; a.Kind == kop.AbReplacement && a.Repl.Kind == kop.ReplOnePoison {
-				s.g.noPoison |= 1 << p
-				return 1
+		found := false
+		s.eachPileCard(k, sl, func(c CardID) bool {
+			cd := &k.t.Cards[c]
+			for i := range cd.Abilities {
+				if a := &cd.Abilities[i]; a.Kind == kop.AbReplacement && a.Repl.Kind == kop.ReplOnePoison {
+					found = true
+					return false
+				}
 			}
+			return true
+		})
+		if found {
+			s.g.noPoison |= 1 << p
+			return 1
 		}
 	}
 	return n

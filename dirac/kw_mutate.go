@@ -80,6 +80,7 @@ func prepMerge(t *kop.Table, g *genPrep) {
 			}
 		}
 	}
+	prepPileMana(t, g) // an under card's mana ability (kw_mutateunion.go)
 }
 
 func init() { stallNames[StallMerge] = "merge" }

@@ -46,21 +46,26 @@ func (s *State) exileAnyN(k *prep, o Obj, c CardID, owner uint8) (int, kop.Count
 	}
 	for m := s.statM; m.any(); m = m.rest() {
 		b := m.first()
-		sc := s.cardAt(b)
 		// a departed seat's effects no longer apply (CR 800.4a; gorge's
 		// replacement walk visits only living seats' zones)
-		if g.replBits[sc]&rbExileOnLeave == 0 || g.exileAnyC[sc]&eaAny == 0 || s.genLost(k, b) || s.out(s.perms[b].ctrl) {
+		if s.genLost(k, b) || s.out(s.perms[b].ctrl) {
 			continue
 		}
-		if g.exileAnyC[sc]&eaSelf != 0 {
-			continue // a self filter is not a card matcher: the card exiles only itself (exileAnyDest)
-		}
-		if s.matchCardGen(k, g.exileOnLeave[sc], c, owner, s.perms[b].ctrl, o) {
-			n++
-			if kind, amount := exileCounterKind(k.t, sc, g.exileOnLeave[sc]); kind != 0 {
-				ctr, ctrN = kind, amount
+		s.eachPileCard(k, b, func(sc CardID) bool {
+			if g.replBits[sc]&rbExileOnLeave == 0 || g.exileAnyC[sc]&eaAny == 0 {
+				return true
 			}
-		}
+			if g.exileAnyC[sc]&eaSelf != 0 {
+				return true // a self filter is not a card matcher: the card exiles only itself (exileAnyDest)
+			}
+			if s.matchCardGen(k, g.exileOnLeave[sc], c, owner, s.perms[b].ctrl, o) {
+				n++
+				if kind, amount := exileCounterKind(k.t, sc, g.exileOnLeave[sc]); kind != 0 {
+					ctr, ctrN = kind, amount
+				}
+			}
+			return true
+		})
 	}
 	return n, ctr, ctrN
 }

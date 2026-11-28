@@ -66,16 +66,28 @@ func (s *State) destroyLineMatch(k *prep, sl Slot, regen bool) destroyRepl {
 	}
 	for m := s.statM; m.any(); m = m.rest() {
 		b := m.first()
-		bits := g.replBits[s.cardAt(b)] & rbDestroyLine
-		if bits == 0 || s.genLost(k, b) {
+		if s.genLost(k, b) {
 			continue
 		}
-		if bits&rbDestroyRegen != 0 && b == sl && regen && !DebugDestroyRegenOff && s.selfRegenOK(k, sl) {
-			return drRegen
-		}
-		if bits&rbDestroyHeal != 0 && b != sl && !DebugDestroyHealOff && g.destroyHeal != nil &&
-			s.matchPerm(k, g.destroyHeal[s.cardAt(b)], sl, s.perms[b].ctrl, b) {
-			return drHeal
+		res := drNone
+		s.eachPileCard(k, b, func(c CardID) bool {
+			bits := g.replBits[c] & rbDestroyLine
+			if bits == 0 {
+				return true
+			}
+			if bits&rbDestroyRegen != 0 && b == sl && regen && !DebugDestroyRegenOff && s.selfRegenOK(k, sl) {
+				res = drRegen
+				return false
+			}
+			if bits&rbDestroyHeal != 0 && b != sl && !DebugDestroyHealOff && g.destroyHeal != nil &&
+				s.matchPerm(k, g.destroyHeal[c], sl, s.perms[b].ctrl, b) {
+				res = drHeal
+				return false
+			}
+			return true
+		})
+		if res != drNone {
+			return res
 		}
 	}
 	return drNone

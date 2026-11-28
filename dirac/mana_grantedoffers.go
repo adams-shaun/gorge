@@ -287,6 +287,42 @@ func (s *State) grantIdxs(k *prep, sl Slot, out *[maxGrants]int16) (n int) {
 	if g.uses.has(useGainedMana) {
 		n = s.gainedIdxs(k, sl, out, n) // the mana abilities a GainsAbilitiesOf$ static gives sl (mana_gainedgrants.go)
 	}
+	if (g.anyMutate || g.anyMerge) && !s.genLost(k, sl) {
+		n = s.pileManaIdxs(k, sl, g, out, n) // an under card's mana ability (kw_mutateunion.go)
+	}
+	return n
+}
+
+// pileManaIdxs appends the grantPC indices of the plain mana abilities each
+// under card of the pile at sl prints, in pile order and ability order (the
+// merged permanent has its components' abilities, CR 702.140d). The entries
+// are prepPileMana's; a child object's card names the face (turnFace).
+func (s *State) pileManaIdxs(k *prep, sl Slot, g *genPrep, out *[maxGrants]int16, n int) int {
+	r := s.pileAt(k, sl)
+	if r == nil {
+		return n
+	}
+	for j := 0; j < int(r.n); j++ {
+		c := s.underCard(r, j)
+		cd := &k.t.Cards[c]
+		for ab := range cd.Abilities {
+			if !gainedManaPlanned(cd, &cd.Abilities[ab]) {
+				continue
+			}
+			for gi, gr := range g.grantOf {
+				if gr.card != c || gr.ab != uint8(ab) {
+					continue
+				}
+				if n == maxGrants {
+					s.stall(StallGrants) // capacity: loud, never a dropped grant
+					return n
+				}
+				out[n] = int16(gi)
+				n++
+				break
+			}
+		}
+	}
 	return n
 }
 
@@ -4053,6 +4089,9 @@ func kickMultiPriced(k *prep, c CardID) bool {
 func (s *State) manaGrantMay(k *prep, sl Slot) bool {
 	if k.gen.uses.has(useGainedMana) || s.fxM.has(sl) {
 		return true
+	}
+	if (k.gen.anyMutate || k.gen.anyMerge) && s.pileAt(k, sl) != nil {
+		return true // an under card's mana ability (kw_mutateunion.go)
 	}
 	for m := s.statM.or(s.grantM); m.any(); m = m.rest() {
 		if k.grantsMana[s.cardAt(m.first())] {

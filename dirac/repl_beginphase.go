@@ -74,25 +74,31 @@ func (s *State) phaseSkipNext(k *prep, next kop.Step) kop.Step {
 		skipped := false
 		for m := s.statM; m.any(); m = m.rest() {
 			sl := m.first()
-			if g.replBits2[s.cardAt(sl)]&rb2BeginPhase == 0 || s.genLost(k, sl) || s.faceDown(k, sl) {
+			if s.genLost(k, sl) || s.faceDown(k, sl) {
 				continue
 			}
-			cd := &k.t.Cards[s.cardAt(sl)]
-			for i := range cd.Abilities {
-				r := &cd.Abilities[i].Repl
-				if cd.Abilities[i].Kind != kop.AbReplacement || r.Kind != kop.ReplBeginPhase || r.A != int16(landed) {
-					continue
+			s.eachPileCard(k, sl, func(c CardID) bool {
+				if g.replBits2[c]&rb2BeginPhase == 0 {
+					return true
 				}
-				if r.C&kop.ReplPhYou != 0 && s.perms[sl].ctrl != s.active {
-					continue // ValidPlayer$ You: the controller's own turns only
+				cd := &k.t.Cards[c]
+				for i := range cd.Abilities {
+					r := &cd.Abilities[i].Repl
+					if cd.Abilities[i].Kind != kop.AbReplacement || r.Kind != kop.ReplBeginPhase || r.A != int16(landed) {
+						continue
+					}
+					if r.C&kop.ReplPhYou != 0 && s.perms[sl].ctrl != s.active {
+						continue // ValidPlayer$ You: the controller's own turns only
+					}
+					if r.Cond != 0 && !s.condEval(k, r.Cond, evalCtx{src: s.perms[sl].obj, srcSl: sl, ctrl: s.perms[sl].ctrl}) {
+						continue
+					}
+					landed = s.phaseSkipLanded(k, landed)
+					skipped = true
+					return false
 				}
-				if r.Cond != 0 && !s.condEval(k, r.Cond, evalCtx{src: s.perms[sl].obj, srcSl: sl, ctrl: s.perms[sl].ctrl}) {
-					continue
-				}
-				landed = s.phaseSkipLanded(k, landed)
-				skipped = true
-				break
-			}
+				return true
+			})
 			if skipped {
 				break
 			}

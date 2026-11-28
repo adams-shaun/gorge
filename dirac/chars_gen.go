@@ -906,16 +906,19 @@ type grantSrcs struct{ ovr, glob, cont slotMask }
 func (s *State) grantSrcScan(k *prep) (g grantSrcs) {
 	for m := s.statM; m.any(); m = m.rest() {
 		sl := m.first()
-		f := k.gen.flags[s.cardAt(sl)]
-		if f&gfGlobOvr != 0 {
-			g.ovr = g.ovr.with(sl)
-		}
-		if f&gfGlobGrant != 0 {
-			g.glob = g.glob.with(sl)
-		}
-		if f&gfContGrant != 0 {
-			g.cont = g.cont.with(sl)
-		}
+		s.eachPileCard(k, sl, func(c CardID) bool {
+			f := k.gen.flags[c]
+			if f&gfGlobOvr != 0 {
+				g.ovr = g.ovr.with(sl)
+			}
+			if f&gfGlobGrant != 0 {
+				g.glob = g.glob.with(sl)
+			}
+			if f&gfContGrant != 0 {
+				g.cont = g.cont.with(sl)
+			}
+			return true
+		})
 	}
 	return g
 }
@@ -1034,33 +1037,35 @@ func (s *State) grantsBetween(k *prep, sl Slot, lo, hi uint32, kinds uint8, lts 
 			s.ovGrantsBetween(k, sl, cur, uint32(best), lost, lts, true, kinds, f)
 		}
 		cur = uint32(best)
-		cid := s.cardAt(src)
-		cd := &k.t.Cards[cid]
-		for i := range cd.Abilities {
-			a := &cd.Abilities[i]
-			if a.Kind != kop.AbStatic {
-				continue
-			}
-			switch a.Static.Kind {
-			case kop.StatOverride:
-				for _, g := range k.t.Overrides[a.Static.Override-1].Grant {
-					if g != 0 {
+		s.eachPileCard(k, src, func(cid CardID) bool {
+			cd := &k.t.Cards[cid]
+			for i := range cd.Abilities {
+				a := &cd.Abilities[i]
+				if a.Kind != kop.AbStatic {
+					continue
+				}
+				switch a.Static.Kind {
+				case kop.StatOverride:
+					for _, g := range k.t.Overrides[a.Static.Override-1].Grant {
+						if g != 0 {
+							prev := s.g.grantSrc
+							s.g.grantSrc = s.perms[src].obj + 1
+							f(cid, g-1, 1)
+							s.g.grantSrc = prev
+						}
+					}
+				case kop.StatContinuous:
+					st := statSrc{a: a, sl: src, ctrl: s.perms[src].ctrl, obj: s.perms[src].obj}
+					if a.Static.Grant != 0 && s.statCond(k, st) && s.matchPermGen(k, a.Static.Filter, sl, st.ctrl, src, layerKw) {
 						prev := s.g.grantSrc
 						s.g.grantSrc = s.perms[src].obj + 1
-						f(cid, g-1, 1)
+						f(cid, a.Static.Grant-1, 1)
 						s.g.grantSrc = prev
 					}
 				}
-			case kop.StatContinuous:
-				st := statSrc{a: a, sl: src, ctrl: s.perms[src].ctrl, obj: s.perms[src].obj}
-				if a.Static.Grant != 0 && s.statCond(k, st) && s.matchPermGen(k, a.Static.Filter, sl, st.ctrl, src, layerKw) {
-					prev := s.g.grantSrc
-					s.g.grantSrc = s.perms[src].obj + 1
-					f(cid, a.Static.Grant-1, 1)
-					s.g.grantSrc = prev
-				}
 			}
-		}
+			return true
+		})
 	}
 	if s.fxM.has(sl) {
 		s.ovGrantsBetween(k, sl, cur, hi, lost, lts, read, kinds, f)
