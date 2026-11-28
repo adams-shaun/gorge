@@ -156,10 +156,11 @@ func (s *State) dungeonEnter(k *prep, p uint8, c CardID) {
 		s.capFull(StallBoard)
 		return
 	}
-	// the object keeps newToken's ofToken: ceaseTokensGen walks the object
-	// table's token suffix, which a non-token mint would cut short; the
-	// dungeon is never in a zone it ceases from, and the projection reads
-	// it as no token (gorge AddObject)
+	// the object keeps newToken's ofToken: on a table that cannot merge,
+	// ceaseTokensGen walks the object table's token suffix (tokenScanStart),
+	// which a non-token mint would cut short; the dungeon is never in a zone
+	// it ceases from, and the projection reads it as no token (gorge
+	// AddObject)
 	o := s.newToken(c, p)
 	s.objs[o].zone = kop.ZoneCommand
 	s.g.dObj[p] = o
