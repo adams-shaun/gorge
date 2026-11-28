@@ -173,6 +173,12 @@ type prep struct {
 	// mana_pcmemo.go); on prep, not genPrep, so the pinned fixed-State
 	// inventory is unchanged
 	pcMemo bool
+	// piles: the table builds merged permanents (genPrep.anyMutate or
+	// anyMerge; kw_mutateunion.go). The hot static and layer scans test it
+	// in one inlinable branch (pileN, pileAt) so a table with no pile never
+	// walks a pile record. On prep, not genPrep, so the pinned fixed-State
+	// inventory is unchanged
+	piles bool
 
 	// landGrantPair: a granted basic land type beside a mana source whose own
 	// ability is no plain {T} one (static_landgrantpair.go): StallLandGrant; on
@@ -660,9 +666,10 @@ func prepare(t *kop.Table) *prep {
 	p.embExileLeave = tableEmbHasExileLeave(t)
 	p.embExileAny = tableEmbHasExileAny(t)
 	p.gen = prepareGen(t, p)
-	p.pcMemo = prepPCMemo(p) // mana_pcmemo.go
-	prepLayerSrc(t, p)       // static_layerwalk.go: the walk's per-card ability masks
-	prepHandStat(t, p)       // cast_handleaves.go
+	p.piles = p.gen != nil && (p.gen.anyMutate || p.gen.anyMerge) // kw_mutateunion.go
+	p.pcMemo = prepPCMemo(p)                                      // mana_pcmemo.go
+	prepLayerSrc(t, p)                                            // static_layerwalk.go: the walk's per-card ability masks
+	prepHandStat(t, p)                                            // cast_handleaves.go
 	p.gyCont = tableHasGyCont(t)
 	p.anyNoDmg = tableHasStatic(t, kop.StatNoCombatDamage)
 	p.anyAsUnblk = tableHasStatic(t, kop.StatAssignCombatDamageAsUnblocked)
