@@ -86,3 +86,20 @@ func searchDestAlt(ps *params, dest int, obj lRef, flags []string) ([]string, er
 	ps.consume("DestinationAlternative")
 	return append(flags, "DestAltGrave"), nil
 }
+
+// refuseExileOriginDestAlt refuses the unconditional exile-origin
+// DestinationAlternative$ Hand rider on a ChangeZone object move (Illuna, Apex
+// of Wishes): Origin$ Exile, Destination$ Battlefield, DestinationAlternative$
+// Hand. gorge asks the controller to choose the hand or the battlefield before
+// the move (askUnconditionalDestination), which the kernel does not model; the
+// other unconditional shapes lower in this file, so this one refuses by name
+// rather than as an unread parameter. done is false for every other shape.
+func (lc *lowerCtx) refuseExileOriginDestAlt(ps *params) (bool, error) {
+	if !unconditionalAlt(ps) || ps.peek("DestinationAlternative") != "Hand" {
+		return false, nil
+	}
+	if ps.peek("Origin") != "Exile" || ps.peek("Destination") != "Battlefield" {
+		return false, nil
+	}
+	return true, refuse("exile-origin DestinationAlternative$ Hand")
+}

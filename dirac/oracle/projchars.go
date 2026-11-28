@@ -174,6 +174,7 @@ var gorgeKwElsewhere = map[string]string{
 	"CantBlockAlone":          "CardDef.AloneBlk (CR 506.5; compared through the block options and Done, combat_alone.go)",
 	"CantAttackOrBlockAlone":  "CardDef.AloneAtk and CardDef.AloneBlk (CR 506.5; compared through both declaration option lists and Done, combat_alone.go)",
 	"Warp":                    "CardDef.HasWarp (a hand alt cost and the exile recast; compared through the cast options)",
+	"Mutate":                  "CardDef.HasMutate (a hand alt cost; kw_mutate.go; compared through the cast options)",
 	"Suspend":                 "CardDef.Suspend (a hand special action, the upkeep time-counter removal and the free cast of the last counter; compared through the cast options, the exile counters and the may-cast ask; kw_suspend.go)",
 	"Plot":                    "CardDef.HasPlot (a hand special action and the exile free cast; compared through the cast options)",
 	"Foretell":                "CardDef.HasForetell (the {2} hand special action and the later exile cast for ForetellCost; compared through the cast options; kw_foretell.go)",
