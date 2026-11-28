@@ -702,6 +702,7 @@ func (s *State) targetWindowShort(k *prep, e *stackEntry, cost *kop.ManaCost, hi
 		return false
 	}
 	anyColor := s.bld().bfl&bflAnyColor != 0
+	owed := *cost // windowOwedFirst's: a walk may fill the cost it reads
 	ok, _ := s.windowTapRider(k, e.ctrl, cost, false, anyColor)
 	if !ok {
 		// CopyFrom restores s.occ too, so the committed picks come back: the
@@ -715,6 +716,11 @@ func (s *State) targetWindowShort(k *prep, e *stackEntry, cost *kop.ManaCost, hi
 			s.occ = s.occ.andNot(hide)
 		}
 		ok = s.windowPoolPipsFirst(k, e.ctrl, cost, anyColor) // the walk's order is one path; gorge's probe proves any
+	}
+	if !ok && !anyColor { // the any-colour rider has no owed colour to answer
+		s.CopyFrom(saved)
+		s.occ = s.occ.andNot(hide)
+		ok = s.windowOwedFirst(k, e.ctrl, &owed)
 	}
 	s.CopyFrom(saved)
 	return !ok
