@@ -1,7 +1,0 @@
-family: Ref
-name: RefTgtCtrlOrYou
-value: next
-state: code 0
-status: active
-ticket: in-refusals-01-dirac-follow-lockstep
-doc: an unless cost's payer on a chained link that declares no target of its own, over the head's one optional (up-to) target slot: the controller of target 0, or the resolving entry's controller when that slot answered empty (gorge effects/unless.go unlessProceed: the target-derived default selector over an empty c.Targets falls back to c.Controller, unlessPayerControllerFallback). Star Athlete's "its controller may sacrifice it" after choosing no target asks its own controller, decline only.

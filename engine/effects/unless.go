@@ -432,8 +432,8 @@ func unlessProceed(h Host, c *Ctx, sa *cards.SA, ownTargets []state.Target) (run
 	// A named selector whose binding is unavailable must not silently charge
 	// an unrelated target or the resolving controller. Treat it as a decline:
 	// the ordinary "unless" body runs, while a switched "if they pay" body
-	// does not. The unqualified default remains known even when it has no
-	// target, and retains its historical controller fallback below.
+	// does not. The unqualified default remains known when the ability has no
+	// target slot, and retains its historical controller fallback below.
 	if !payerKnown {
 		return !switched, false, false
 	}
@@ -589,8 +589,9 @@ func UnlessPayers(h Host, c *Ctx, sa *cards.SA) []state.Target {
 // selector including the empty/default one. The first case prevents an
 // Aura's EnchantedController (or an unmodelled ImprintedController) from
 // falling through to c.Targets and asking the wrong player. A missing target
-// for the empty/default selector, with no departure, remains known: Forge
-// defaults it to the resolving controller.
+// for the empty/default selector, with no departure and no target slot
+// answered empty (unlessTargetAnsweredEmpty), remains known: the resolving
+// controller stands in.
 func unlessPayerTargets(h Host, c *Ctx, sa *cards.SA) ([]state.Target, bool) {
 	return unlessPayerTargetsFor(h, c, sa, nil)
 }
@@ -658,7 +659,8 @@ func unlessPayerTargetsFor(h Host, c *Ctx, sa *cards.SA, ownTargets []state.Targ
 		addTargets(targetList)
 	case unlessPayerTargetsTargetedController:
 		// A missing target uses the historical resolving-controller fallback
-		// below. This is a known target selector, unlike an unknown role.
+		// below, unless an up-to slot was answered empty. This is a known
+		// target selector, unlike an unknown role.
 		// A target that left the battlefield since the resolution began
 		// (Chain of Vapor's bounce, Chain Lightning's lethal damage) answers
 		// with the controller captured then (CR 608.2h, 400.7): the live
@@ -822,10 +824,11 @@ func unlessPayerTargetsFor(h Host, c *Ctx, sa *cards.SA, ownTargets []state.Targ
 	for i, p := range alive {
 		rank[p] = i
 	}
-	if len(out) == 0 && (departed || !unlessPayerControllerFallback(spec)) {
+	if len(out) == 0 && (departed || !unlessControllerStandsIn(c, sa, spec, targetList)) {
 		// A named binding that yielded no live player is unavailable, not the
 		// default-selector case where c.Controller is intentionally used; nor
-		// does the controller stand in for a departed payer.
+		// does the controller stand in for a departed payer, or for the
+		// controller of a target nobody chose (CR 115.6, 118.12).
 		return nil, false
 	}
 	sortTargets(out, rank)

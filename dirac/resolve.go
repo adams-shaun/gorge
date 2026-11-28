@@ -855,8 +855,6 @@ func (s *State) playerRef(k *prep, r kop.Ref) uint8 {
 		return s.tgtCtrlSlot(k, 0)
 	case kop.RefTargetCtrlLive:
 		return s.tgtCtrlLive(0) // tgt_stackability.go: gorge ParentTargetedController
-	case kop.RefTgtCtrlOrYou:
-		return s.tgtCtrlOrYou(k) // interp_unlesspayer.go
 	case kop.RefTgtCtrl1, kop.RefTgtCtrl2:
 		return s.tgtCtrlSlot(k, int(r-kop.RefTgtCtrl1)+1) // tgt_stackability.go
 	case kop.RefTargetOwner:

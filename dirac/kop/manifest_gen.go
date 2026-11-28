@@ -2442,25 +2442,20 @@ const RefTargetCtrlLive Ref = 51
 // every legal target of target slot 0 (gorge evalTarget's Animate grant over an any-number slot: effAnimate applies the grant and the AtEOT promise to each object of Defined$ Targeted). The kernel runs an op once per legal target of the slot (dirac/tgt_union.go execUnion).
 const RefTargets0 Ref = 52
 
-// Ref (dirac/manifest/Ref/RefTgtCtrlOrYou)
-//
-// an unless cost's payer on a chained link that declares no target of its own, over the head's one optional (up-to) target slot: the controller of target 0, or the resolving entry's controller when that slot answered empty (gorge effects/unless.go unlessProceed: the target-derived default selector over an empty c.Targets falls back to c.Controller, unlessPayerControllerFallback). Star Athlete's "its controller may sacrifice it" after choosing no target asks its own controller, decline only.
-const RefTgtCtrlOrYou Ref = 53
-
 // Ref (dirac/manifest/Ref/RefTriggerSpellTarget)
 //
 // the single object target of the spell whose cast raised this SpellCast trigger, read at resolution off the spell's stack entry (gorge Defined$ TriggeredSpellAbilityTargets over a line with IsSingleTarget$ True, effects context.go definedSpecTriggeredSpellAbilityTargets: the cast spell's root then chain targets, de-duplicated; gorge clears them once the spell left the stack, so a spell countered in response to the trigger names nothing, and never the trigger's source). None when the spell's one distinct target is a player or it has none. A permanent that left the battlefield names nothing (objRef). Loki, God of Lies's control change, untap and haste.
-const RefTriggerSpellTarget Ref = 54
+const RefTriggerSpellTarget Ref = 53
+
+// Ref (dirac/manifest/Ref/RefTriggerSpellTargets)
+//
+// every distinct object target of the spell whose cast raised this SpellCast trigger, read at resolution off the spell's stack entry (gorge Defined$ TriggeredSpellAbilityTargets over a line without IsSingleTarget$ True, effects context.go definedSpecTriggeredSpellAbilityTargets: the cast spell's root then chain targets, de-duplicated; gorge clears them once the spell left the stack, so a spell countered in response to the trigger names nothing). None when the spell is gone, or its targets are players only. The op runs once per object, in target order. Dack Fayden and Storm, Windrider.
+const RefTriggerSpellTargets Ref = 54
 
 // Ref (dirac/manifest/Ref/RefSet)
 //
 // a set-valued operand (design 2026-11-19-dirac-operand-algebras K3): the instruction's subject is a kop.SetExpr of the table's Sets, named by the ability's SetRefs entry for the instruction's PC (kop.SetRef). The kernel evaluates the set when the instruction runs (dirac/value_setexpr.go evalSet) and runs the op once per member, objects in object-index order then seats in turn order from the controller (gorge AliveFrom), a target base in slot order. Only the ops value_setexpr.go setOps lists take it; any other op panics with its name.
 const RefSet Ref = 55
-
-// Ref (dirac/manifest/Ref/RefTriggerSpellTargets)
-//
-// every distinct object target of the spell whose cast raised this SpellCast trigger, read at resolution off the spell's stack entry (gorge Defined$ TriggeredSpellAbilityTargets over a line without IsSingleTarget$ True, effects context.go definedSpecTriggeredSpellAbilityTargets: the cast spell's root then chain targets, de-duplicated; gorge clears them once the spell left the stack, so a spell countered in response to the trigger names nothing). None when the spell is gone, or its targets are players only. The op runs once per object, in target order. Dack Fayden and Storm, Windrider.
-const RefTriggerSpellTargets Ref = 56
 
 // repl BeginPhase (dirac/manifest/ReplKind/ReplBeginPhase)
 const ReplBeginPhase ReplKind = 42

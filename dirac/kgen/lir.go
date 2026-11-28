@@ -69,7 +69,6 @@ const (
 	rTriggeredSpellTarget          // inside a SpellCast trigger with IsSingleTarget$ True: the cast spell's one object target, captured as the trigger was queued (kop.RefTriggerSpellTarget; Defined$ TriggeredSpellAbilityTargets, lower_spelltarget.go)
 	rEquippedByEnchanted           // Defined$ Valid Card.EquippedByEnchanted: the permanent the source Aura's enchanted Equipment is attached to (kop.RefEquippedByEnchanted; Artificer's Hex, lower_effect_defined.go)
 	rTriggeredSpellTargets         // Defined$ TriggeredSpellAbilityTargets without IsSingleTarget$ True: every distinct object target of the cast spell, the op run once per object (kop.RefTriggerSpellTargets; Dack Fayden, Storm, Windrider, lower_spelltarget.go)
-	rTgtCtrlOrYou                  // an unless payer over the head's optional target: target 0's controller, else the resolving controller (kop.RefTgtCtrlOrYou; lower_unlesspayerfallback.go)
 	rCount
 )
 
@@ -124,7 +123,6 @@ var refNames = [...]string{
 	rTriggeredSpellTarget:  "TriggeredSpellTarget",
 	rEquippedByEnchanted:   "EquippedByEnchanted",
 	rTriggeredSpellTargets: "TriggeredSpellTargets",
-	rTgtCtrlOrYou:          "TgtCtrlOrYou",
 }
 
 type lRef struct {
