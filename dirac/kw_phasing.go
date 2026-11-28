@@ -183,6 +183,7 @@ func (s *State) phaseOut(k *prep, sl Slot, indirect bool) {
 	// the card the permanent wears (a copy's statics and triggers too,
 	// tables): phase-out takes the worn card off the masks (CR 702.26b)
 	s.subscribe(sl, &k.cards[s.cardAt(sl)], false)
+	s.pileUnsubscribe(k, sl) // a pile's under cards phase out with it (kw_mutateunion.go)
 	z := kop.ZonePhased
 	if indirect {
 		z = kop.ZonePhasedInd
@@ -211,7 +212,7 @@ func (s *State) phaseIn(k *prep, sl Slot) {
 	s.ctrlM[SeatIx(p.ctrl)].set(sl)
 	// whatever the permanent wears now: a copy that began or ended while
 	// phased out is subscribed as it phases in (CR 702.26c)
-	s.subscribe(sl, &k.cards[s.cardAt(sl)], true)
+	s.subscribeTop(k, sl, &k.cards[s.cardAt(sl)], true)
 	for q := 0; q < MaxPerm; q++ {
 		if qs := Slot(q); s.perms[qs].attached == sl && s.hiddenAt(qs) && s.objs[s.perms[qs].obj].zone == kop.ZonePhasedInd {
 			s.phaseIn(k, qs)

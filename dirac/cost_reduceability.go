@@ -206,7 +206,7 @@ func (s *State) eachStaticTS(k *prep, cls uint16, f func(st statSrc) bool) {
 		best := NoSlot
 		for m := s.statM; m.any(); m = m.rest() {
 			sl := m.first()
-			if k.gen.sCls[s.cardAt(sl)]&cls == 0 {
+			if s.statClsAt(k, sl)&cls == 0 {
 				continue
 			}
 			ts := s.perms[sl].ts
@@ -228,11 +228,14 @@ func (s *State) eachStaticTS(k *prep, cls uint16, f func(st statSrc) bool) {
 		cd := &k.t.Cards[s.cardAt(best)]
 		for i := range cd.Abilities {
 			a := &cd.Abilities[i]
-			if a.Kind == kop.AbStatic || a.Kind == kop.AbReplacement {
+			if k.gen.sCls[s.cardAt(best)]&cls != 0 && (a.Kind == kop.AbStatic || a.Kind == kop.AbReplacement) {
 				if !f(statSrc{a: a, sl: best, ctrl: p.ctrl, obj: p.obj}) {
 					return
 				}
 			}
+		}
+		if !s.pileStatics(k, best, nil, cls, true, f) {
+			return // CR 702.140d: a pile's under cards (kw_mutateunion.go)
 		}
 	}
 	for pp := uint8(0); pp < s.nSeats(); pp++ {

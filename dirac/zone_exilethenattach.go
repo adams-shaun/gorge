@@ -184,7 +184,7 @@ func (s *State) aegisRefresh(k *prep, host, skip Slot) {
 		return
 	}
 	s.touchSl(host)
-	s.subscribe(host, &k.cards[cur], false)
+	s.subscribeTop(k, host, &k.cards[cur], false)
 	oldKw := s.copyExcKw(k, host)
 	if l.kind != copyNone {
 		p.ovr.flags |= ovCopy

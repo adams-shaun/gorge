@@ -203,7 +203,7 @@ func (s *State) becomeCopyEnter(k *prep, sl Slot, in *kop.Instr) {
 	embalmedToken := in.B.K == kop.VConst && in.B.N&kop.BecomeCopyEmbalm != 0 &&
 		s.objs[p.obj].of&ofToken != 0 && s.cpxNoCost(k, sl)
 	s.touchSl(sl)
-	s.subscribe(sl, &k.cards[s.cardAt(sl)], false)
+	s.subscribeTop(k, sl, &k.cards[s.cardAt(sl)], false)
 	p.ovr.flags |= ovCopy
 	p.ovr.copyOf = c
 	blank := s.copyBlankLayer(k, sl, src) // a face-down template: the face-down values (copy_facedown.go)
