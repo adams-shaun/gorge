@@ -144,9 +144,10 @@ func (s *State) pickLink(k *prep, o Obj) {
 
 // chooserOf is who answers a search / choose-move over player p's zone:
 // p, or the resolving controller with SrChooserYou (gorge Chooser$ You), or
-// with SrChooserOpp the resolving controller's first living opponent (gorge
-// searchChooser / hiddenPickChooser: Chooser$ Opponent through chooserPlayer;
-// read from B, pickF's bit 0 is SrTapped). A ChooseMove reads the bit beside
+// with SrChooserOpp an opponent of the resolving controller (searchOpponent:
+// the one the controller picked for a library search, else the first living
+// one; gorge searchChooser / hiddenPickChooser over Chooser$ Opponent; read
+// from B, pickF's bit 0 is SrTapped). A ChooseMove reads the bit beside
 // its other B readers: over a hand pool bit 0 is the UntilLeaves hand-exile
 // link instead, and kgen never lowers Chooser$ Opponent on a hand pick (its
 // hand moves admit only Chooser$ You), so the hand pool keeps the link's
@@ -158,7 +159,7 @@ func (s *State) chooserOf(k *prep, p uint8) uint8 {
 	}
 	if in := &s.prog(k)[s.res.pc]; (in.Op == kop.OpSearchEx || in.Op == kop.OpChooseMove) && in.B.N&kop.SrChooserOpp != 0 &&
 		!(in.Op == kop.OpChooseMove && s.searchZone(k) == kop.ZoneHand) {
-		if opp := s.playerRef(k, kop.RefOpponent); opp != 255 {
+		if opp := s.searchOpponent(k, in); opp != 255 {
 			if in.Op == kop.OpSearchEx && DebugTutorPickStats != nil {
 				DebugTutorPickStats.OppAnswered++
 			}

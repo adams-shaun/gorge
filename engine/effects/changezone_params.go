@@ -126,6 +126,11 @@ type ChangeZoneParams struct {
 	Chooser       string
 	SubAbility    string
 	handChooser   handChooserKind
+	// chooserOpponent is the literal Chooser$ Opponent; searchAnswerer is the
+	// opponent (seat + 1) a library search's controller chose for it, set only
+	// on the per-search copy beginSearchOwner makes (zone_search_opponent.go).
+	chooserOpponent bool
+	searchAnswerer  uint8
 	// ChooseFromDefined$, AttachedTo$, AttachedToPlayer$.
 	ChooseFromDefined string
 	AttachedTo        string
@@ -635,6 +640,7 @@ func compileChangeZone(sa *cards.SA, tp *TargetParams, dr *DefinedParams) *Chang
 	p.changeZoneTargeting = compileChangeZoneTargeting(tp, dr)
 	p.DefinedPlayer = definedPlayerRef(sa).Param()
 	p.Chooser = strings.TrimSpace(sa.ParamStr(cards.PKChooser))
+	p.chooserOpponent = compileChangeZoneCodes.Code(p.Chooser) == compileChangeZoneOpponent
 	switch compileChangeZoneCodes.Code(string(p.Chooser)) {
 	case compileChangeZoneOwner:
 		p.handChooser = handChooserOwner
@@ -854,6 +860,7 @@ const (
 	compileChangeZoneTriggeredTarget
 	compileChangeZoneTriggeredPlayer
 	compileChangeZoneChosenPlayer
+	compileChangeZoneOpponent // fails closed in the hand walk (handChooserUnknown)
 )
 
 var compileChangeZoneCodes = state.NewStrCodes(
@@ -865,4 +872,5 @@ var compileChangeZoneCodes = state.NewStrCodes(
 	state.StrEntry[compileChangeZoneCode]{Key: "TriggeredPlayer", Val: compileChangeZoneTriggeredPlayer},
 	state.StrEntry[compileChangeZoneCode]{Key: "ChosenPlayer", Val: compileChangeZoneChosenPlayer},
 	state.StrEntry[compileChangeZoneCode]{Key: "Player.Chosen", Val: compileChangeZoneChosenPlayer},
+	state.StrEntry[compileChangeZoneCode]{Key: "Opponent", Val: compileChangeZoneOpponent},
 )

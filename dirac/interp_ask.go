@@ -1967,7 +1967,16 @@ func (s *State) startSearch(k *prep, in *kop.Instr) bool {
 	if eachOp(k, in) {
 		s.clampEach(k, in) // zone_each.go
 	}
-	if ask, ok := s.searchConfirmAsk(k, in, p); ok {
+	if s.searchOppAsk(in) {
+		return false // which opponent answers (zone_searchopponent.go)
+	}
+	return s.openSearch(k, in)
+}
+
+// openSearch poses a started search's Optional$ confirmation, else its first
+// pick; true: the search finished without an ask.
+func (s *State) openSearch(k *prep, in *kop.Instr) bool {
+	if ask, ok := s.searchConfirmAsk(k, in, s.g.pickP); ok {
 		s.res.ask, s.res.askP = raGenConfirm, ask // gorge's Optional$ confirmation first
 		return false
 	}

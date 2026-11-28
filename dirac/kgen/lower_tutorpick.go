@@ -16,10 +16,11 @@ import "strings"
 // targeted player while DefinedPlayer$ fixes whose library is walked. The
 // kernel poses that as the Chooser$ Opponent search (SrChooserOpp: the
 // controller's first living opponent answers), which is the targeted
-// opponent in a two-seat game, so the card is two-seat only; twoSeat-at-caller:
-// libSearchOwner (lower_zone.go) marks it when it sees the re-spelled
-// Chooser$ Opponent on your own library. The target slot is still announced,
-// as gorge announces it.
+// opponent in a two-seat game, so the card is two-seat only: targetChooserPick
+// marks it at the re-spell itself, since libSearchOwner (lower_zone.go) reads
+// the genuine Chooser$ Opponent spelling, whose first-living-opponent answer
+// gorge and the kernel do agree on past two seats. The target slot is still
+// announced, as gorge announces it.
 
 // targetChooserPick claims the opponent-chooses pick's player target and
 // re-spells its Chooser$ as the kernel's opponent chooser. It reports false,
@@ -46,6 +47,11 @@ func (lc *lowerCtx) targetChooserPick(ps *params, origin int) (bool, error) {
 	}
 	lc.addTarget(lTarget{F: pf})
 	ps.consume("TgtPrompt")
+	// The re-spelled Chooser$ Opponent answers as the controller's first
+	// living opponent, gorge's as the announced target: the two are the same
+	// seat only at two players, so this caller (not libSearchOwner, which
+	// reads the genuine spelling) marks the card two-seat only.
+	lc.twoSeat("Chooser$ Targeted on a library pick answered by the targeted opponent")
 	ps.m["Chooser"] = "Opponent"
 	return true, nil
 }
