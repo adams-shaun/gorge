@@ -368,6 +368,31 @@ func tokenMemoryOf(h Host, c *Ctx, tp *TokenParams) []state.Target {
 	return mem
 }
 
+// tokenOpponentOwners resolves TokenOwner$ Opponent. "Each opponent creates
+// ..." (Captive Audience, Eiganjo Uprising, Pursued Whale): every living
+// opponent creates its own tokens (CR 111.2), minted in APNAP order from the
+// active player (CR 101.4). An ability declaring ValidTgts$ (Questing
+// Phelddagrif's "target opponent creates") gives them to its chosen
+// opponent(s) only.
+func tokenOpponentOwners(h Host, c *Ctx, sa *cards.SA) []state.PlayerID {
+	g := h.Game()
+	var owners []state.PlayerID
+	if TargetsOf(sa).Has(TgtValidPresent) {
+		for _, t := range Defined(h, c, sa) {
+			if t.IsPlayer && t.Player != c.Controller && !g.Players[t.Player].Lost {
+				owners = append(owners, t.Player)
+			}
+		}
+		return owners
+	}
+	for _, p := range g.AliveFrom(g.Active) {
+		if p != c.Controller {
+			owners = append(owners, p)
+		}
+	}
+	return owners
+}
+
 // effToken creates the requested token scripts and applies their token riders.
 func effToken(h Host, c *Ctx, sa *cards.SA) {
 	tp := TokenOf(sa)
@@ -385,12 +410,7 @@ func effToken(h Host, c *Ctx, sa *cards.SA) {
 	case tokenOwnerYou:
 		// The default: the controller, already set above.
 	case tokenOwnerOpponent:
-		for _, p := range g.AliveFrom(c.Controller) {
-			if p != c.Controller {
-				owners = []state.PlayerID{p}
-				break
-			}
-		}
+		owners = tokenOpponentOwners(h, c, sa)
 	case tokenOwnerPlayer:
 		// "Each player creates ..." (Rendmaw, Creaking Nest, Marching
 		// Duodrone, Grismold the Dreadsower and 10 more corpus carriers of
