@@ -10,7 +10,7 @@ sys.path.insert(0, str(HERE))
 import test_targets as tt  # noqa: E402
 
 SHARDS = ["TestCmd5SliceCleanOnlyGrows%d" % i for i in range(8)]
-OTHERS = ["TestReproCensusIsCurrent", "TestRefusedEntriesStillDiverge0"]
+OTHERS = ["TestReproCensusIsCurrent"]  # the refusal shards rotate too (oracle_refused_rotation_test.py)
 NAMES = SHARDS + OTHERS
 WEIGHTS = {n: 10.0 for n in NAMES}
 

@@ -1,5 +1,5 @@
 """TF-01: the precheck's oracle replay arm (scripts/test_targets.py plan) replays the changed
-recordings plus a 25% slice (scripts/test_targets_slice_test.py), not every recording; full coverage
+recordings plus a 1/SLICE_MOD slice (scripts/test_targets.py slice_lane), not every recording; full coverage
 stays with the batch. Run: python3 -m pytest scripts/test_targets_slice_test.py"""
 import re
 import sys
@@ -19,7 +19,7 @@ DEPS = {"m/dirac": {"m/dirac"},
 # A source change the oracle imports: the arm that replays recordings (cause 64's shape).
 SRC = {"dirac/state.go": None}
 # Eight recordings the manifest test replays and eight of the oracle's other replay tests: enough for
-# the four 25% lanes to partition them. One of each is over the slow wall.
+# the SLICE_MOD lanes to partition them. One of each is over the slow wall.
 RECORDINGS = ["amber_tomb_keeps_its_target", "basalt_shield_cracks_at_blocks", "cinder_veil_refunds_a_cast",
               "dewdrop_duo_last", "ember_wake_pays_in_shields", "frost_gate_asks_before_taps",
               "gloom_and_doom_repros_reach", "hollow_bridge_untaps_a_wall"]
@@ -71,18 +71,18 @@ def sha_in_lane(lane):
     k = 0
     while True:
         sha = "%040x" % k
-        if zlib.crc32(sha.encode()) % 4 == lane:
+        if zlib.crc32(sha.encode()) % tt.SLICE_MOD == lane:
             return sha
         k += 1
 
 
-# ---- the 25% slice ----------------------------------------------------------------------------------
+# ---- the 1/SLICE_MOD slice -------------------------------------------------------------------------------
 
 def test_slice_is_stable_for_a_sha_and_rotates_across_shas():
     one = planned(SRC, reprosel=sel(sha=sha_in_lane(1)))
     again = planned(SRC, reprosel=sel(sha=sha_in_lane(1)))
     assert manifest_names(one) == manifest_names(again)  # stable for a merge base
-    lanes = [manifest_names(planned(SRC, reprosel=sel(sha=sha_in_lane(l)))) for l in range(4)]
+    lanes = [manifest_names(planned(SRC, reprosel=sel(sha=sha_in_lane(l)))) for l in range(tt.SLICE_MOD)]
     named = set(RECORDINGS) - {SLOW_REC}
     assert set().union(*lanes) == named  # every unchanged recording lands in exactly one lane
     assert sum(len(s) for s in lanes) == len(named)
@@ -91,14 +91,14 @@ def test_slice_is_stable_for_a_sha_and_rotates_across_shas():
             assert not (a & b), (a, b)
     # the same rotation on the oracle's other replay tests
     tl = [set(re.findall(r"Test[A-Za-z0-9_]+", oracle(planned(SRC, reprosel=sel(sha=sha_in_lane(l))))[1]))
-          for l in range(4)]
+          for l in range(tt.SLICE_MOD)]
     tl = [s & set(REPRO_TESTS) for s in tl]
     assert set().union(*tl) == set(REPRO_TESTS) - {SLOW_TEST}
 
 
 def test_a_changed_recording_is_always_included():
     # rec outside the sha's lane and on the slow list: only the change itself puts it in the -run
-    lane = (zlib.crc32(SLOW_REC.encode()) + 1) % 4
+    lane = (zlib.crc32(SLOW_REC.encode()) + 1) % tt.SLICE_MOD
     res = planned(SRC, repro_names={"m/dirac/oracle": {MANIFEST + SLOW_REC}},
                   reprosel=sel(sha=sha_in_lane(lane)))
     assert SLOW_REC in manifest_names(res)
@@ -106,7 +106,7 @@ def test_a_changed_recording_is_always_included():
     changes = dict(SRC, **{"dirac/oracle/testdata/repro/%s.repro.json" % RECORDINGS[0]: None})
     res = planned(changes,
                   repro_names={"m/dirac/oracle": {MANIFEST + RECORDINGS[0], "TestRecordingReader"}},
-                  reprosel=sel(sha=sha_in_lane((zlib.crc32(RECORDINGS[0].encode()) + 1) % 4)))
+                  reprosel=sel(sha=sha_in_lane((zlib.crc32(RECORDINGS[0].encode()) + 1) % tt.SLICE_MOD)))
     kind, rx = oracle(res)
     assert re.search(rx, "TestRecordingReader")
     assert RECORDINGS[0] in manifest_names(res)
@@ -114,26 +114,26 @@ def test_a_changed_recording_is_always_included():
 
 
 def test_the_slow_list_is_excluded_unless_the_recording_changed():
-    lane = zlib.crc32(SLOW_REC.encode()) % 4
+    lane = zlib.crc32(SLOW_REC.encode()) % tt.SLICE_MOD
     res = planned(SRC, reprosel=sel(sha=sha_in_lane(lane)))
     assert SLOW_REC not in manifest_names(res)  # over the 10 s wall: the batch replays it
     # the same for the oracle's other replay tests
-    lane = zlib.crc32(SLOW_TEST.encode()) % 4
+    lane = zlib.crc32(SLOW_TEST.encode()) % tt.SLICE_MOD
     kind, rx = oracle(planned(SRC, reprosel=sel(sha=sha_in_lane(lane))))
     assert not re.search(rx, SLOW_TEST)
 
 
 def test_the_replay_arm_keeps_the_refusal_check_and_the_pool_globs_are_sliced():
-    lane = zlib.crc32("TestStdFdnReprosLockstep".encode()) % 4
+    lane = zlib.crc32("TestStdFdnReprosLockstep".encode()) % tt.SLICE_MOD
     kind, rx = oracle(planned(SRC, reprosel=sel(sha=sha_in_lane(lane))))
     assert re.search(rx, "TestRefusedEntriesStillDiverge0")  # the shards, never the parent (11-27 review)
     assert not re.search(rx, "TestRefusedEntriesStillDiverge")  # the whole 422 s parent is never dealt
     assert re.search(rx, "TestStdFdnReprosLockstep")  # the pool globs are in the slice population
     assert not re.search(rx, "TestShieldReplacementCollision")  # whole-game lockstep stays in the batch
     # out of the lane the glob is left to the batch with the rest
-    kind, rx = oracle(planned(SRC, reprosel=sel(sha=sha_in_lane((lane + 1) % 4))))
+    kind, rx = oracle(planned(SRC, reprosel=sel(sha=sha_in_lane((lane + 1) % tt.SLICE_MOD))))
     assert not re.search(rx, "TestStdFdnReprosLockstep")
-    res = planned(SRC, reprosel=sel(sha=sha_in_lane(zlib.crc32(RECORDINGS[0].encode()) % 4)))
+    res = planned(SRC, reprosel=sel(sha=sha_in_lane(zlib.crc32(RECORDINGS[0].encode()) % tt.SLICE_MOD)))
     mrx = manifest_rx(res)
     assert mrx.count("/") == 1 and mrx.startswith(MANIFEST)  # its -run matches the manifest test only
     assert not re.search(mrx, "TestRefusedEntriesStillDiverge0")
@@ -141,9 +141,9 @@ def test_the_replay_arm_keeps_the_refusal_check_and_the_pool_globs_are_sliced():
 
 
 def test_a_pool_recording_replays_as_its_glob_tests_subtest():
-    lane0 = zlib.crc32("fdn_in_lane".encode()) % 4
+    lane0 = zlib.crc32("fdn_in_lane".encode()) % tt.SLICE_MOD
     out = next(n for n in ("fdn_second", "fdn_third", "fdn_fourth")
-               if zlib.crc32(n.encode()) % 4 != lane0)
+               if zlib.crc32(n.encode()) % tt.SLICE_MOD != lane0)
     pools = {"std-fdn": {"fdn_in_lane", out, "fdn_over_the_wall"}}
     globs = {"TestStdFdnReprosLockstep": ["std-fdn"],
              "TestStdPoolReprosLockstepFull": ["std-tla", "std-lci"]}  # an alias, over the wall
@@ -156,7 +156,7 @@ def test_a_pool_recording_replays_as_its_glob_tests_subtest():
     assert "TestStdPoolReprosLockstepFull" not in top  # over the 10 s wall: the batch replays it
     names = set(sub.strip("()").split("|"))
     assert names == {"fdn_in_lane"} | {n for n in RECORDINGS
-                                       if n not in slow and zlib.crc32(n.encode()) % 4 == lane0}
+                                       if n not in slow and zlib.crc32(n.encode()) % tt.SLICE_MOD == lane0}
     # the pool globs left the test-level slice: replaying one whole is the old 300 s stream
     kind, rx = oracle(res)
     assert not re.search(rx, "TestStdFdnReprosLockstep")
@@ -186,7 +186,7 @@ def test_a_changed_recording_alone_replays_itself_and_the_slice_not_the_manifest
     rec = RECORDINGS[0]
     res = planned({"dirac/oracle/testdata/repro/%s.repro.json" % rec: None},
                   repro_names={"m/dirac/oracle": {MANIFEST + rec}},
-                  reprosel=sel(sha=sha_in_lane((zlib.crc32(rec.encode()) + 1) % 4)))
+                  reprosel=sel(sha=sha_in_lane((zlib.crc32(rec.encode()) + 1) % tt.SLICE_MOD)))
     kind, rx = oracle(res)
     assert rec in manifest_names(res)
     assert not re.search(rx, "TestReproManifest3")  # the manifest does not fold into the shared -run
@@ -198,7 +198,7 @@ def test_narrow_applies_the_slice_too():
     # test-smart's narrow step: an oracle fixture change runs the package whole in the plain plan, and
     # the narrow precheck turns that into the named parts -- sliced like test-targeted's
     res = planned({"dirac/oracle/testdata/x.txt": None}, narrow={"fast": ("TestFastA",), "sha": "0"},
-                  reprosel=sel(sha=sha_in_lane(zlib.crc32(RECORDINGS[0].encode()) % 4)))
+                  reprosel=sel(sha=sha_in_lane(zlib.crc32(RECORDINGS[0].encode()) % tt.SLICE_MOD)))
     kind, rx = oracle(res)
     assert kind == "named"
     assert tt.REPLAYS not in rx
@@ -260,7 +260,7 @@ def test_each_half_is_dealt_into_its_own_lane_budget():
     # refusal guard are the rest of the plain half. Four manifest shards make the sub half.
     names = (["TestHalfPlainACensus", "TestHalfPlainBCensus", "TestHalfPlainCCensus",
               "TestHalfPlainDCensus", "TestRefusedEntriesStillDiverge0",
-              "TestMBCFrostGateReprosLockstep", "TestMBCGloomDoomReprosLockstep"]
+              "TestMBCBasaltShieldReprosLockstep", "TestStdPoolReprosLockstepFull"]
              + [tt.MANIFEST_TEST + str(i) for i in range(4)])
     selected = [n for n in names if re.search(plain_rx, n)]
     assert len(selected) == 7, selected
@@ -291,7 +291,8 @@ def test_each_half_is_dealt_into_its_own_lane_budget():
     assert sorted(n for rx in plain for n in members(rx)) == sorted(selected)
     assert sorted(n for rx in subs for n in members(rx)) == sorted(tops)
     assert loads(plain, 1.0) == dealt(selected, 1.0), plain
-    assert loads(subs, tt.SLICE_SHARE) == dealt(tops, tt.SLICE_SHARE), subs
+    # the deal reports seconds to the millisecond (a 1/6 share is not exact)
+    assert [round(x, 3) for x in loads(subs, tt.SLICE_SHARE)] == [round(x, 3) for x in dealt(tops, tt.SLICE_SHARE)], subs
     # and so no process carries over 40% of its own half's summed wall
     assert loads(plain, 1.0)[-1] <= 0.40 * sum(weights[n] for n in selected)
     assert loads(subs, tt.SLICE_SHARE)[-1] <= 0.40 * sum(weights[n] for n in tops) * tt.SLICE_SHARE

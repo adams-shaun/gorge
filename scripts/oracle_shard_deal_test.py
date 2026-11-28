@@ -62,8 +62,8 @@ ORACLE_DEPS = {"m/dirac": {"m/dirac"}, "m/dirac/oracle": {"m/dirac/oracle", "m/d
 
 
 def _real_slice_process_shares(monkeypatch, weights):
-    """Each lane process of the real oracle replay slice, for every one of the four merge-base slice
-    lanes: (slice lane, the process's -run, its share of its half's summed cost). The names are the
+    """Each lane process of the real oracle replay slice, for every one of the SLICE_MOD merge-base
+    slice lanes: (slice lane, the process's -run, its share of its half's summed cost). The names are the
     package's top-level test functions, the selection is the planner's (replay_sel over the real
     recordings and test files), the deal is test_targets.oracle_lanes with ORACLE_LANES."""
     import test_targets as tt
@@ -71,8 +71,8 @@ def _real_slice_process_shares(monkeypatch, weights):
     names = sorted({m.group(1) for f in sorted((REPO / "dirac" / "oracle").glob("*_test.go"))
                     for ln in f.read_text().splitlines() for m in [tt._TESTFN.match(ln)] if m})
     out = []
-    for lane in range(4):
-        sha = next("base%d" % i for i in range(1000) if tt.zlib.crc32(("base%d" % i).encode()) % 4 == lane)
+    for lane in range(tt.SLICE_MOD):
+        sha = next("base%d" % i for i in range(1000) if tt.zlib.crc32(("base%d" % i).encode()) % tt.SLICE_MOD == lane)
         reprosel = tt.replay_sel(ORACLE_DIRMAP, sha)
         assert reprosel and reprosel["tests"], "the real replay selection must load"
         res, _ = tt.plan({"dirac/state.go": None}, ORACLE_DIRMAP, ORACLE_DEPS, lambda p: [], None, (), None, reprosel)
