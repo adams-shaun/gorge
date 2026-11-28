@@ -183,7 +183,9 @@ func TestGorgeIsByteIdenticalWhenOff(t *testing.T) {
 	}
 	defer resp.Body.Close()
 	raw, _ := io.ReadAll(resp.Body)
-	if got := strings.TrimSpace(string(raw)); got != `{"events":false}` {
+	// The server is started at two seats, so the lobby's ceiling reports 2:
+	// max_seats is a server fact, present on gorge too.
+	if got := strings.TrimSpace(string(raw)); got != `{"events":false,"max_seats":2}` {
 		t.Fatalf("capabilities %s", got)
 	}
 	var decks []httpapi.DeckInfo
