@@ -167,6 +167,7 @@ func (s *State) pcMemoHold() {
 		p.pcm.hold++
 		p.pcm.live = 0
 	}
+	s.tyCacheHold() // static_typecache.go
 }
 
 func (s *State) pcMemoRelease() {
@@ -175,6 +176,7 @@ func (s *State) pcMemoRelease() {
 			p.pcm.live = p.pcm.owner
 		}
 	}
+	s.tyCacheRelease()
 }
 
 // addr is s's address, the memo's owner identity.
