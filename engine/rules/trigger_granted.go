@@ -484,7 +484,7 @@ func (e *Engine) checkGrantedDethroneTriggers(observer *Engine, id state.ObjID, 
 	if ev.Kind != events.DeclareAttackers || !slices.Contains(ev.IDs, id) {
 		return
 	}
-	if !e.hasKeywordH(id, kwhDethrone) || f.HasKeywordRef(kwRefDethrone) || e.grantedPileInstances(observer, id, o, "Dethrone") <= 0 {
+	if !e.hasKeywordH(id, kwhDethrone) || f.HasKeywordRef(kwRefDethrone) || grantedPileInstances(observer, id, o, "Dethrone") <= 0 {
 		return
 	}
 	t := cards.Trigger{Mode: "Attacks", Params: map[string]string{
@@ -530,7 +530,7 @@ func (e *Engine) checkGrantedTrainingTriggers(observer *Engine, id state.ObjID, 
 	if ev.Kind != events.DeclareAttackers || !slices.Contains(ev.IDs, id) {
 		return
 	}
-	if !e.hasKeywordH(id, kwhTraining) || f.HasKeywordRef(kwRefTraining) || e.grantedPileInstances(observer, id, o, "Training") <= 0 {
+	if !e.hasKeywordH(id, kwhTraining) || f.HasKeywordRef(kwRefTraining) || grantedPileInstances(observer, id, o, "Training") <= 0 {
 		return
 	}
 	t := cards.Trigger{Mode: "Attacks", Params: map[string]string{
@@ -867,7 +867,7 @@ func (e *Engine) checkGrantedWardTriggers(observer *Engine, id state.ObjID, o *s
 			printed[strings.ToLower(k)] = true
 		}
 	}
-	underLeft := e.underPrintedKeywords(observer, o)
+	underLeft := underPrintedKeywords(observer, o)
 	for _, k := range observer.Derived(id).Keywords {
 		if printed[strings.ToLower(k)] {
 			continue
@@ -1581,7 +1581,7 @@ func (e *Engine) grantedCumulativeCosts(id state.ObjID, f *cards.Face) []string 
 	// down object has no printed face (CR 708.8).
 	var printed map[string]bool
 	o := e.G.Obj(id)
-	underLeft := e.underPrintedKeywords(e, o)
+	underLeft := underPrintedKeywords(e, o)
 	if !e.faceDownPrintedHides(o) {
 		for _, k := range f.Keywords {
 			if strings.EqualFold(cards.KeywordHead(k), "Cumulative upkeep") {
