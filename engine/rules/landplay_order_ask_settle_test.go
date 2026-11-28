@@ -23,6 +23,10 @@ const (
 		"R:Event$ Moved | Destination$ Battlefield | ValidCard$ Land | ActiveZones$ Battlefield | ReplacementResult$ Updated | ReplaceWith$ TapOnEntry | Description$ x\n" +
 		"SVar:TapOnEntry:DB$ Tap | Defined$ ReplacedCard | ETB$ True\nOracle:x\n"
 	orderSettlePlainLandSrc = "Name:Plainland\nTypes:Land\nOracle:x\n"
+	orderSettleAskLandSrc   = "Name:Askland\nTypes:Land\n" +
+		"R:Event$ Moved | Destination$ Battlefield | ValidCard$ Card.Self | ReplaceWith$ SacFirst | Description$ x\n" +
+		"SVar:SacFirst:DB$ Sacrifice | Defined$ You | SacValid$ Land | SubAbility$ ThenYard\n" +
+		"SVar:ThenYard:DB$ ChangeZone | Origin$ All | Destination$ Graveyard | Defined$ ReplacedCard\nOracle:x\n"
 
 	orderSettleChargeLandSrc = "Name:Chargeland\nTypes:Land\nK:etbCounter:CHARGE:2\nOracle:x\n"
 	orderSettleTwiceSrc      = "Name:Twice\nManaCost:2 G\nTypes:Enchantment\n" +
@@ -91,14 +95,19 @@ func TestLandPlayOrderAskReplacedEntryDisarms(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
 		name, land, kind string
-		tapper           bool
+		tapper, bodyAsks bool
 	}{
-		{"competition", orderSettleBounceLandSrc, "replacement", true},
-		{"optional", orderSettleMayBounceLandSrc, "apply", false},
+		{"competition", orderSettleBounceLandSrc, "replacement", true, false},
+		{"competition with an asking body", orderSettleAskLandSrc, "replacement", true, true},
+		{"optional", orderSettleMayBounceLandSrc, "apply", false, false},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			e := mayPlayBase(t)
+			if tc.bodyAsks {
+				onBoardGrant(t, e, 0, orderSettlePlainLandSrc)
+				onBoardGrant(t, e, 0, orderSettlePlainLandSrc)
+			}
 			if tc.tapper {
 				onBoardGrant(t, e, 0, orderSettleTapperSrc)
 			}
@@ -109,6 +118,15 @@ func TestLandPlayOrderAskReplacedEntryDisarms(t *testing.T) {
 				t.Fatalf("precondition: zone=%v armed=%v, want a play parked in hand", z, e.etbLandPlay)
 			}
 			orderSettleAnswer(t, e, land, tc.kind)
+			if tc.bodyAsks {
+				d := e.Pending()
+				if d == nil || d.Kind == decision.KPriority || d.Kind == decision.KReplacement {
+					t.Fatalf("pending = %+v, want the replacement body's own ask", d)
+				}
+				if err := e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{0}}); err != nil {
+					t.Fatalf("answer the body's ask: %v", err)
+				}
+			}
 			if z := e.G.Obj(land).Zone; z != state.ZGraveyard {
 				t.Fatalf("land zone = %v, want graveyard (the replacement applied)", z)
 			}
