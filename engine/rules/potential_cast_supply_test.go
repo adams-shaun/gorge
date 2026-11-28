@@ -39,7 +39,7 @@ func castSupplyBoard(t *testing.T, spellSrc string) (*Engine, state.ObjID, payme
 
 // TestCastOutrunsSupplySkipsAnUnpayablePlainCast: a {7} plain cast on a
 // board whose every source taps once for at most 5 mana is proven unpayable
-// by any census-gap prefix (CR 602.2b), so potentialCensusFallback skips its
+// by any census-gap prefix (CR 107.5), so potentialCensusFallback skips its
 // prefix search; a {4} cast the same board can pay is not.
 func TestCastOutrunsSupplySkipsAnUnpayablePlainCast(t *testing.T) {
 	t.Parallel()

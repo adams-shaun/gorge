@@ -2534,7 +2534,7 @@ type paymentPlanCensus struct {
 	// misses (potentialPrefixScript activates them).
 	gaps []state.ObjID
 	// outruns reports that play o's offer cost needs more mana than the
-	// floating pool and every mana source on the board can make (CR 602.2b:
+	// floating pool and every mana source on the board can make (CR 107.5:
 	// one tap each). An activated ability's is proven only when every mana
 	// ability on the board is a lone {T} making one mana (manaTapSingle), so
 	// the count is exact however the planner prices a source; a plain

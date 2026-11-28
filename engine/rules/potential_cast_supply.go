@@ -28,13 +28,17 @@ type castSupplyHost interface {
 // cost with the spell ability's extras, plus the commander tax, raised and
 // reduced by the cost statics) needs more mana than supply, the floating
 // pool plus one mana for each source. A census-gap prefix taps each source
-// at most once (CR 602.2b), so no prefix can float that much and the search
-// could only spend its budget (Ancient Stone Idol's {10} under Manabarbs,
-// where every land is a gap: three searches of potentialScriptNodes clones
-// per priority decision). A cost whose mana count can fall after
-// announcement or past the gate's base -- an {X}, a Phyrexian, twobrid or
-// waterbend part, a convoke, improvise or delve credit, an either-or
-// additional cost, an optional life-for-pip reduction -- is never proven.
+// at most once (CR 107.5: a tapped permanent can't pay {T} again), so no
+// prefix can float that much and the search could only spend its budget
+// (Ancient Stone Idol's {10} under Manabarbs, where every land is a gap:
+// three searches of potentialScriptNodes clones per priority decision). A
+// cost whose mana count can fall after announcement or past the gate's base
+// -- an {X}, a Phyrexian, twobrid or waterbend part, a convoke, improvise or
+// delve credit, an either-or additional cost, an optional life-for-pip
+// reduction -- is never proven. Like abilityOutrunsSupply, the proof assumes
+// the current board: a prefix that lowers the cost (a {T}, Sacrifice source
+// feeding a per-graveyard-card reduction) or a stack the search resolves that
+// makes more mana is outside it.
 func castOutrunsSupply(e castSupplyHost, p state.PlayerID, o decision.Option, supply int32) bool {
 	if o.Kind != optCast || o.Mode != "" || o.AltCostIndex != 0 || o.Keyword != "" {
 		return false
@@ -63,7 +67,7 @@ func castOutrunsSupply(e castSupplyHost, p state.PlayerID, o decision.Option, su
 // plus, for each untapped source, the most any one of its mana abilities
 // nets -- the mana it makes and the deterministic tap extra, less its mana
 // fee. Every such ability must cost the source's own {T}, so the search
-// activates each source at most once (pathPaidTap: CR 602.2b, 605.3a); ok is
+// activates each source at most once (pathPaidTap: CR 107.5, 605.3a); ok is
 // false when one does not, when its amount is not a literal (a "for each"
 // count, an {X} fee), or when a card off the battlefield has a mana ability
 // p could activate, or when its production is a shape tapMadeAtMost does
