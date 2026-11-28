@@ -242,6 +242,10 @@ func foldTurnChange(g *state.Game, e *Event) {
 			// its last turn's (attackedYouTheirLastTurn)
 			g.Players[g.Active].AttackedSeatsLastTurn = g.Players[g.Active].AttackedSeatsThisTurn
 		}
+		// CR 800.4m: a departed seat never takes a turn, so the advance
+		// walking over it is where its goads' "until their next turn"
+		// expires; read while g.Active is still the outgoing seat.
+		expireDepartedGoads(g, g.Active, e.Player)
 		g.Turn = e.Amount
 		g.Active = e.Player
 		g.Players[e.Player].LandsPlayed = 0
