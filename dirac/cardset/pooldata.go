@@ -92,6 +92,10 @@ type PoolData struct {
 	// CostProgs are the pool's cost programs (kop.Table.CostProgs; [0] unused,
 	// nil when no ability carries one); a matchup's table keeps them whole.
 	CostProgs [][]kop.CostAtom
+	// Sets are the pool's set expressions (kop.Table.Sets; an Ability's
+	// SetRefs index them); nil when no ability reads one, so a pool without
+	// one encodes as it did. A matchup's table keeps them whole.
+	Sets []kop.SetExpr
 }
 
 // UnmodeledSupertype reports whether w is a supertype the kernel's type mask
@@ -670,7 +674,7 @@ func (s dataSet) matchup(decks [][]Entry, mode matchupMode) (*kop.Table, [][]kop
 		break
 	}
 	subMap := map[uint8]uint8{}
-	t := &kop.Table{Exprs: dd.Exprs, Conds: dd.Conds, SVarNames: dd.SVarNames, CostProgs: dd.CostProgs}
+	t := &kop.Table{Exprs: dd.Exprs, Conds: dd.Conds, SVarNames: dd.SVarNames, CostProgs: dd.CostProgs, Sets: dd.Sets}
 	for s := 0; s < len(dd.Subtypes); s++ {
 		if subSet.Has(int(s)) {
 			subMap[uint8(s)] = uint8(len(t.Subtypes))

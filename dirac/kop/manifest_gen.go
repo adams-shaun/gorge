@@ -2424,6 +2424,11 @@ const RefTriggerSpellTarget Ref = 53
 // every distinct object target of the spell whose cast raised this SpellCast trigger, read at resolution off the spell's stack entry (gorge Defined$ TriggeredSpellAbilityTargets over a line without IsSingleTarget$ True, effects context.go definedSpecTriggeredSpellAbilityTargets: the cast spell's root then chain targets, de-duplicated; gorge clears them once the spell left the stack, so a spell countered in response to the trigger names nothing). None when the spell is gone, or its targets are players only. The op runs once per object, in target order. Dack Fayden and Storm, Windrider.
 const RefTriggerSpellTargets Ref = 54
 
+// Ref (dirac/manifest/Ref/RefSet)
+//
+// a set-valued operand (design 2026-11-19-dirac-operand-algebras K3): the instruction's subject is a kop.SetExpr of the table's Sets, named by the ability's SetRefs entry for the instruction's PC (kop.SetRef). The kernel evaluates the set when the instruction runs (dirac/value_setexpr.go evalSet) and runs the op once per member, objects in object-index order then seats in turn order from the controller (gorge AliveFrom), a target base in slot order. Only the ops value_setexpr.go setOps lists take it; any other op panics with its name.
+const RefSet Ref = 55
+
 // repl BeginPhase (dirac/manifest/ReplKind/ReplBeginPhase)
 const ReplBeginPhase ReplKind = 42
 

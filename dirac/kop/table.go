@@ -1166,6 +1166,10 @@ type Table struct {
 	// (ExtStoreNum C's name index, ExSVarNum N), in first-use order, at most
 	// 15. Appended last: a table without a StoreSVar writer has none.
 	SVarNames []string
+	// Sets are the set expressions RefSet operands name (setexpr.go; an
+	// Ability's SetRefs index them). Appended last: a table without one has
+	// none, and its bytes are what they were.
+	Sets []SetExpr
 }
 
 // Filter returns the filter with id f.

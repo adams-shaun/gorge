@@ -273,6 +273,9 @@ type Ability struct {
 	// offered only while a live StatCyclingAlt static of the hand owner holds
 	// (dirac kw_cyclingalt.go); kgen builds it beside the printed one.
 	CycAltOf uint8
+	// SetRefs name the set each RefSet instruction of Prog reads (setexpr.go):
+	// the entry whose PC is the instruction's. nil for an ability with none.
+	SetRefs []SetRef
 }
 
 // Timing is when a card may be cast.
