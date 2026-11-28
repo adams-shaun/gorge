@@ -8,7 +8,8 @@ import (
 // Obj's library in library order from the top (gorge's zone slice), A of
 // them drawn without replacement by one rng IntN(remaining) each, then
 // each moved to its owner's hand in the order drawn. C&1 (RememberFound$):
-// the found cards become the resolution's remembered set.
+// the found cards become the resolution's remembered set. A ChosenType
+// filter reads the ability source's choice (CR 607.2d; Echoing Cavern).
 //
 //go:noinline
 func (s *State) seek(k *prep, in *kop.Instr) {
@@ -19,8 +20,9 @@ func (s *State) seek(k *prep, in *kop.Instr) {
 	pl := &s.pl[p]
 	var elig [MaxObj]Obj
 	ne := 0
+	src := s.resSrcSlot(k)
 	for _, o := range pl.lib[pl.libLo:pl.libHi] {
-		if s.matchCardGen(k, in.F, s.objs[o].card, p, s.res.e.ctrl, o) {
+		if s.matchCardSrc(k, in.F, s.objs[o].card, p, s.res.e.ctrl, o, src, s.res.e.obj, NoObj) {
 			elig[ne] = o
 			ne++
 		}
