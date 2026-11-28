@@ -59,10 +59,10 @@ func censusOutruns(e censusOutrunsHost, p state.PlayerID, plain bool, sources in
 // cost with the spell ability's extras, plus the commander tax, raised and
 // reduced by the cost statics) needs more mana than supply, censusTapSupply's
 // floating pool plus each source's best net production. A census-gap prefix
-// taps each source at most once (CR 107.5: a tapped permanent can't pay {T} again), so no
-// prefix can float that much and the search could only spend its budget
-// (Ancient Stone Idol's {10} under Manabarbs, where every land is a gap:
-// three searches of potentialScriptNodes clones per priority decision). A
+// taps each source at most once (CR 107.5: a tapped permanent can't pay {T}
+// again), so no prefix can float that much and the search could only spend its
+// budget (Ancient Stone Idol's {10} under Manabarbs, where every land is a
+// gap: three searches of potentialScriptNodes clones per priority decision). A
 // cost whose mana count can fall after announcement or past the gate's base
 // -- an {X}, a Phyrexian, twobrid or waterbend part, a convoke, improvise or
 // delve credit, an either-or additional cost, an optional life-for-pip
