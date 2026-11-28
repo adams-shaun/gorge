@@ -901,9 +901,14 @@ type utype struct {
 	creat   bool
 	sac     bool // a tap-and-sacrifice source (last resort)
 	sacOnly bool // a no-tap last-resort unit: a sacrifice-only source, or a life-only one (prepSoleLifeMana, mana_pain.go)
-	flex    uint8
-	avail   uint8
-	k       uint8 // chosen count (search scratch)
+	// sacO: a last-resort unit that sacrifices ANOTHER permanent as its
+	// cost (the Ashnod's Altar family, mana_othersac.go): the source keeps
+	// its {T} (when the cost has one), the victim leaves the battlefield,
+	// and the witness names it (pay.Consequence{SacrificeOthers: true})
+	sacO  bool
+	flex  uint8
+	avail uint8
+	k     uint8 // chosen count (search scratch)
 	// inert: a census position only, no production (planInertGrant); the
 	// walk never selects it
 	inert bool
@@ -1737,7 +1742,8 @@ func (s *State) planSourceUsable(k *prep, p uint8, sl Slot, rd *payDesc) bool {
 	return s.canTapForMana(k, sl) || s.sacOnlyLive(k) && s.canSacOnlyAt(k, sl) ||
 		k.restrSrc && s.restrOnlyUsable(k, p, sl, rd) || s.planTapGrantSacNow(k, sl) ||
 		k.painMana && s.canLifeOnlyMana(k, sl, p) ||
-		s.cfg&cfgGorgeAutopay != 0 && s.lifeGapSurvives(k, p, sl)
+		s.cfg&cfgGorgeAutopay != 0 && s.lifeGapSurvives(k, p, sl) ||
+		s.otherSacSourceUsable(k, p, sl) // the planned other-sacrifice source (mana_othersac.go)
 }
 
 // planLastResort reports whether plan leaves source sl to phase 1: a
@@ -1958,9 +1964,11 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 				sacOnly := s.canSacOnlyForMana(k, sl, pc)
 				sac := pc.manaSac || sacOnly
 				noUntap := k.cards[s.cardAt(sl)].noUntap != 0 // last resort too (unitIrr)
+				// a planned other-sacrifice source (mana_othersac.go)
+				sacO := s.planSacOUnit(k, p, sl, sac, granted[i], rk[i])
 				// a life-only census gap's unit is a last-resort one: the life
 				// it costs is a disclosed consequence (mana_lifegap.go)
-				if phase == 0 && s.planLastResort(k, p, sl, pc, sac, noUntap) {
+				if phase == 0 && (sacO || s.planLastResort(k, p, sl, pc, sac, noUntap)) {
 					hasSac = true // last resort: a sacrificing or non-untapping source
 					continue
 				}
@@ -2073,11 +2081,11 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 				}
 				// (a restricted fee unit with no census alternative has colours 0
 				// too: restrNoColour)
-				lr := restrNoColour(sac || noUntap || life != 0, fee, feeCol, rv[i])
+				lr := restrNoColour(sac || noUntap || life != 0 || sacO, fee, feeCol, rv[i])
 				ti := -1
 				for t := 0; t < pk.nt; t++ {
 					ty := &pk.types[t]
-					if ty.mask == mask && ty.dmask == dmk && ty.n == tn && ty.creat == cr && ty.sac == sac && ty.sacOnly == sacOnly && ty.pair == 0 && ty.pain == life && ty.first == first && ty.printed == printed && ty.flex == fl && ty.xv == xv && ty.pick == pick && ty.fee == fee && ty.feeCol == feeCol && ty.feeN == feeN && ty.sameRider(rb, irr) {
+					if ty.mask == mask && ty.dmask == dmk && ty.n == tn && ty.creat == cr && ty.sac == sac && ty.sacOnly == sacOnly && ty.sacO == sacO && ty.pair == 0 && ty.pain == life && ty.first == first && ty.printed == printed && ty.flex == fl && ty.xv == xv && ty.pick == pick && ty.fee == fee && ty.feeCol == feeCol && ty.feeN == feeN && ty.sameRider(rb, irr) {
 						ti = t
 						break
 					}
@@ -2088,7 +2096,7 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 					}
 					ti = pk.nt
 					pk.nt++
-					pk.types[ti] = utype{mask: mask, dmask: dmk, n: tn, creat: cr, flex: fl, sac: sac, sacOnly: sacOnly, nocol: lr, pain: life, life: life != 0, first: first, printed: printed, xv: xv, xmask: xm, xt: xt, pick: pick, rb: rb, irr: irr, fee: fee, feeCol: feeCol, feeN: feeN}
+					pk.types[ti] = utype{mask: mask, dmask: dmk, n: tn, creat: cr, flex: fl, sac: sac, sacOnly: sacOnly, sacO: sacO, nocol: lr, pain: life, life: life != 0, first: first, printed: printed, xv: xv, xmask: xm, xt: xt, pick: pick, rb: rb, irr: irr, fee: fee, feeCol: feeCol, feeN: feeN}
 					if fee != 0 || feeCol != 0 {
 						pk.anyFee, pk.maxFee = true, max(pk.maxFee, int(fee)+int(feeN))
 					}
@@ -2136,6 +2144,7 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 		}
 		skipPick = false
 	}
+	s.planDropUnfundable(k, p, pk) // an unfundable other-sacrifice plan is no plan (mana_othersac.go)
 	if !pk.found {
 		if pk.dry || pk.try {
 			return
@@ -2184,6 +2193,7 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 		}
 	}
 	pk.runOrder(bn, &run)
+	res := s.planSacReserved(k, pk, bn) // the other-sacrifice victim exclusions (mana_othersac.go)
 	for r := 0; r < bn; r++ {
 		i := int(run[r])
 		u := best[i]
@@ -2195,8 +2205,7 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 		if k.gen != nil && k.gen.castTapOn && s.buildLive() && s.bld().e.kind == seSpell && k.cards[s.cardAt(sl)].castSrc != 0 {
 			s.planNoteTap(k, sl, col)
 		}
-		// a life-only census gap's unit pays its life, not a tap (mana_lifegap.go)
-		if !s.lifeGapPlanCost(k, p, sl) && !ty.sacOnly {
+		if s.planTapsSource(k, p, sl, ty, pk.rAb[u]) {
 			s.perms[sl].flags |= pfTapped
 			s.touchSl(sl)
 			s.manaTapped(k, sl)
@@ -2269,6 +2278,9 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 				}
 				s.sbaAfterManaSacrifice(k)
 			}
+		}
+		if ty.sacO {
+			res = s.planSacOStep(k, p, sl, res) // mana_othersac.go
 		}
 	}
 }
@@ -2637,7 +2649,7 @@ func (pk *planner) runOrder(bn int, run *[maxUnits]uint8) {
 		for i := 0; i < bn; i++ {
 			ty := &pk.types[pk.bestTy[i]]
 			feeTy := ty.fee != 0 || ty.feeCol != 0
-			if feeTy != (pass == 2) || pass < 2 && (ty.sac || ty.sacOnly) != (pass == 1) {
+			if feeTy != (pass == 2) || pass < 2 && (ty.sac || ty.sacOnly || ty.sacO) != (pass == 1) {
 				continue
 			}
 			run[nr] = uint8(i)

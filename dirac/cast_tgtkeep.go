@@ -57,7 +57,7 @@ func (s *State) witnessKeepsTargets(k *prep, p uint8, c CardID, o Obj, cost *kop
 	m := f.g.availX
 	f.g.availX = availPlain
 	f.availFor(k, p, &t1)
-	if t1.affords(cost, pipMaskOf(cost), 0) {
+	if t1.affords(cost, pipMaskOf(cost), 0) || f.otherSacCensusPlans(k, p, o, cost, &t1) {
 		f.g.availX = m
 		return true // the tier-1 census pays: gorge's payment planner prices the cast outright
 	}
@@ -351,14 +351,14 @@ func (s *State) fodderOnlySources(k *prep, p uint8, t Slot, planned bool) slotMa
 // wait budget lets resolve (Pain Distributor's trigger for each of five
 // Treasures, witnessWaits) is still the planned payment, whatever a granted
 // source (Rishkar's {T}: Add {G}) could do first.
-func (s *State) plainCensusPays(k *prep, p uint8, cost *kop.ManaCost) bool {
+func (s *State) plainCensusPays(k *prep, p uint8, o Obj, cost *kop.ManaCost) bool {
 	f := s.fork()
 	defer s.unfork()
 	m := f.g.availX
 	f.g.availX = availPlain
 	var av avail
 	f.availFor(k, p, &av)
-	ok := av.affords(cost, pipMaskOf(cost), 0)
+	ok := av.affords(cost, pipMaskOf(cost), 0) || f.otherSacCensusPlans(k, p, o, cost, &av)
 	f.g.availX = m
 	return ok
 }

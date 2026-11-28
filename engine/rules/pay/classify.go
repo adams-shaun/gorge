@@ -522,10 +522,9 @@ func PlanCostMarksSource(c cost.Cost) bool {
 // non-empty spec. Its counterpart on the source is PlanSelfCost; anything
 // else -- a second Sac part beside the source's own, an Announced count --
 // stays deferred (PaymentPlanShapeTierOf). The victim must be a creature
-// (Ashnod's Altar, Phyrexian Altar, Phyrexian Tower): a sacrifice of an
-// artifact, a land or a named subtype (Krark-Clan Ironworks, Lake of the
-// Dead, Skirk Prospector) stays manual, as does every shape dirac's
-// planner does not mirror.
+// (Ashnod's Altar, Phyrexian Altar): a sacrifice of an artifact, a land or a
+// named subtype (Krark-Clan Ironworks, Lake of the Dead, Skirk Prospector)
+// stays manual, as does every shape dirac's planner does not mirror.
 func PlanOtherSacShape(part cost.CostPart) bool {
 	if part.N != 1 || part.Announced || part.Dyn != "" || part.Referent != 0 {
 		return false

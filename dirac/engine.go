@@ -414,6 +414,7 @@ func (s *State) stepRaw(d *Decision) {
 func (s *State) Apply(a Action) {
 	k := s.k()
 	s.filtMemoReset()
+	s.clearPlanSacWitness() // the witness is this answer's payment alone (mana_othersac.go)
 	s.Decisions++
 	switch s.ctl {
 	case ctlMullDeclare:

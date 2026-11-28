@@ -24,6 +24,13 @@ func (s *State) sorcerySpeed(p uint8) bool {
 // restricted-spend fallback (a restricted source the spell may spend prices
 // it, as gorge's planner's prefix search).
 func (s *State) castGateAffordable(k *prep, p uint8, c CardID, o Obj, cost *kop.ManaCost, cav *avail) bool {
+	if k.gen != nil && k.gen.uses.has(useSacOtherPlan) && s.g.availX&(availGaps|availAny) == 0 {
+		// a cast's plan prices the planned other-sacrifice source (mana_othersac.go);
+		// the census copy keeps it out of the activated-ability offers
+		var withSac = *cav
+		s.addOtherSacCensusAvail(k, p, &withSac)
+		cav = &withSac
+	}
 	if s.phyCastGateAffords(k, p, cav, cost) {
 		return true
 	}
@@ -48,103 +55,7 @@ func (s *State) castGateAffordable(k *prep, p uint8, c CardID, o Obj, cost *kop.
 			return true
 		}
 	}
-	return (s.rbAny(p) || k.restrSrc) && s.restrFallback(k, p, c, s.restrOriginOfObj(o), cost, cav) ||
-		s.castOtherSacPays(k, p, cost, cav)
-}
-
-// castOtherSacPays prices a cast gorge's planner funds by activating
-// plain-creature sacrifice-another sources as its last resort
-// (pay.PlanOtherSacShape, AssignPlanVictims): the census plus one activation
-// of each such source (the planner activates each source at most once,
-// potential_plan.go manaAbilityCovered), its own census unit held out when
-// the cost taps it, and a distinct victim on the board for every activation.
-func (s *State) castOtherSacPays(k *prep, p uint8, cost *kop.ManaCost, cav *avail) bool {
-	if k.gen == nil || !k.tapMana || s.g.availX != 0 {
-		return false
-	}
-	const maxAltars = 8
-	var src [maxAltars]Slot
-	var unit [maxAltars]struct {
-		mask uint8
-		per  uint8
-		taps bool
-	}
-	var cands [maxAltars]slotMask
-	m := 0
-	for b := s.scriptTapXModelled(k, p); b.any() && m < maxAltars; b = b.rest() {
-		sl := b.first()
-		if !s.planOtherSacSource(k, sl) {
-			continue
-		}
-		ab := k.tapXAbOf(s.cardAt(sl))
-		if kop.RestrictedTapXOneShape(ab) ||
-			ab.ManaRestrict != 0 || ab.ManaRestrictAb != 0 || ab.AFlags&kop.AfManaNonSpell != 0 {
-			continue
-		}
-		var cs [MaxPerm]Slot
-		n := s.sacXCands(k, p, sl, ab, &cs)
-		var cm slotMask
-		for i := 0; i < n; i++ {
-			if cs[i] != sl { // the plan never sacrifices the source itself (PaymentPlanSacrificeVictims)
-				cm = cm.with(cs[i])
-			}
-		}
-		if !cm.any() {
-			continue
-		}
-		src[m] = sl
-		cands[m] = cm
-		unit[m].mask, unit[m].per = tapXUnit(ab)
-		unit[m].taps = ab.Cost.Flags&(kop.CostTap|kop.CostUntapSelf|kop.CostSacSelf) != 0
-		m++
-	}
-	// gorge's planner admits each source once (potential_plan.go
-	// manaAbilityCovered) and prices the fewest that pay; a plan's steps need
-	// distinct victims none of its sources supplies (AssignPlanVictims).
-	for n := 1; n <= m; n++ {
-		for set := 0; set < 1<<m; set++ {
-			if bits.OnesCount(uint(set)) != n {
-				continue
-			}
-			var used slotMask
-			for i := 0; i < m; i++ {
-				if set&(1<<i) != 0 {
-					used = used.with(src[i])
-				}
-			}
-			victims := 0
-			var seen slotMask
-			for i := 0; i < m; i++ {
-				if set&(1<<i) == 0 {
-					continue
-				}
-				for v := cands[i].andNot(used); v.any(); v = v.rest() {
-					seen = seen.with(v.first())
-				}
-			}
-			for v := seen; v.any(); v = v.rest() {
-				victims++
-			}
-			if victims < n {
-				continue
-			}
-			var t avail
-			t = *cav
-			for i := 0; i < m; i++ {
-				if set&(1<<i) == 0 {
-					continue
-				}
-				if unit[i].taps {
-					s.removeSrc(k, &t, src[i], s.manaPCGen(k, src[i]))
-				}
-				t.addUnits(unit[i].mask, unit[i].per)
-			}
-			if t.affords(cost, pipMaskOf(cost), 0) {
-				return true
-			}
-		}
-	}
-	return false
+	return (s.rbAny(p) || k.restrSrc) && s.restrFallback(k, p, c, s.restrOriginOfObj(o), cost, cav)
 }
 
 // castGateOrPoolPays is the plain cast's affordability read: the gate's own
@@ -897,6 +808,12 @@ func (s *State) canActivate(k *prep, sl Slot, ab int, a *kop.Ability, sorc bool,
 // filter script pay it. It is the only mana read of an activation the
 // floating pool does not already pay.
 func (s *State) actSourcesAfford(k *prep, sl Slot, ab int, a *kop.Ability, mana kop.ManaCost, av *avail) bool {
+	return s.actSourcesAffordPlain(k, sl, ab, a, mana, av) || s.actOtherSacAfford(k, sl, a, mana, av)
+}
+
+// actSourcesAffordPlain is actSourcesAfford without the planned
+// other-sacrifice source (mana_othersac.go actOtherSacAfford).
+func (s *State) actSourcesAffordPlain(k *prep, sl Slot, ab int, a *kop.Ability, mana kop.ManaCost, av *avail) bool {
 	manaCost := xFloorCost(mana, costXMin(&a.Cost)) // the cheapest legal announcement (cost_sacx.go)
 	if a.Cost.Flags&kop.CostWaterbend != 0 && k.gen != nil && k.gen.anyWaterbend {
 		manaCost = s.waterbendCredit(k, s.perms[sl].ctrl, sl, a, manaCost)
@@ -912,92 +829,7 @@ func (s *State) actSourcesAfford(k *prep, sl Slot, ab int, a *kop.Ability, mana 
 		// (mana_sorcerygap.go)
 		return !s.sorceryGapSearched(k, sl, ab, a, &manaCost, av) || s.actScriptPays(k, sl, ab, a)
 	}
-	if s.actScriptPays(k, sl, ab, a) {
-		return true
-	}
-	return s.actOtherSacOffers(k, sl, a, &manaCost, av)
-}
-
-// actOtherSacOffers is actSourcesAfford's last arm: a battlefield activation
-// the plain census and the filter script cannot price, but gorge's payment
-// planner prices by activating a sacrifice-another source as its last resort
-// (pay.PlanOtherSacShape; legal_walk_autopay.go autoPayOffer's planner arm,
-// autoPayFast refusing every other-sacrifice part). A cost that spends the
-// activation's own source ({T}, {Q}, a self-sacrifice) reserves it from
-// other-sacrifice victims (potential_plan.go kept/tapped, pay.planVictimReserve),
-// so no candidate takes it. A cost that leaves the source free lets the planner
-// sacrifice it to fund the play; the prefix search ends any line that takes it
-// (potential_script.go leftOwnZone), so only this gate prices that shape. The
-// plain census's own unit of the source (a Phyrexian Tower's "{T}: Add {C}") is
-// the same permanent's tap: its sacrifice production replaces that unit, never
-// stands beside it (CR 605.1a), and a {T} source pays one activation however
-// many victims its filter admits (one without a tap cost is the repeatable
-// shape, one per candidate). The activation's mana is priced against that with
-// the source's own {T} still held out (abilityAffords). Only
-// the real offer walk: inside a script walk the tapX prefix search owns these
-// sources (scriptOffers; the hand activations' handActCensusPays split). Cold,
-// out of line.
-//
-//go:noinline
-func (s *State) actOtherSacOffers(k *prep, sl Slot, a *kop.Ability, mana *kop.ManaCost, av *avail) bool {
-	if s.g.availX != 0 || k.gen == nil || !k.tapMana {
-		return false
-	}
-	p := s.perms[sl].ctrl
-	for b := s.scriptTapXModelled(k, p); b.any(); b = b.rest() {
-		sx := b.first()
-		if !s.planOtherSacSource(k, sx) {
-			continue // only a plain creature victim's source (gorge's plan enumerates those)
-		}
-		ox := k.tapXAbOf(s.cardAt(sx))
-		if kop.RestrictedTapXOneShape(ox) ||
-			ox.ManaRestrict != 0 || ox.ManaRestrictAb != 0 || ox.AFlags&kop.AfManaNonSpell != 0 {
-			continue // a spend-restricted source's unit is the census's own concern (availTapX)
-		}
-		var cs [MaxPerm]Slot
-		n := s.sacXCands(k, p, sx, ox, &cs)
-		if a.Cost.Flags&(kop.CostTap|kop.CostUntapSelf|kop.CostSacSelf) != 0 {
-			// A cost that spends the activation's own source reserves it from
-			// the plan's victims (potential_plan.go kept/tapped): drop it
-			// before counting. sacXCands makes this exclusion only under a
-			// live build (buildSelfTap), and a source a free cost leaves
-			// behind may fund the play by being sacrificed.
-			m := 0
-			for i := 0; i < n; i++ {
-				if cs[i] == sl {
-					continue
-				}
-				cs[m] = cs[i]
-				m++
-			}
-			n = m
-		}
-		if n == 0 {
-			continue // no fundable victim: the planner's last-resort unit is refused (pay.otherSacFundable)
-		}
-		if ox.Cost.Flags&kop.CostTap != 0 && n > 1 {
-			// A {T} source pays one activation, however many victims its
-			// filter admits: the candidates are alternative victims, not
-			// further activations (CR 602.2b). A source with no tap cost is
-			// the repeatable shape the counts below price, one per victim.
-			n = 1
-		}
-		mask, per := tapXUnit(ox)
-		var t avail
-		t = *av
-		// The source's own census unit is the same permanent's tap: a
-		// Phyrexian Tower counted as its "{T}: Add {C}" cannot also be
-		// activated for its sacrifice production. Price the sacrifice
-		// activation instead of the plain one, not beside it (CR 605.1a).
-		s.removeSrc(k, &t, sx, s.manaPCGen(k, sx))
-		for i := 0; i < n; i++ {
-			t.addUnits(mask, per)
-		}
-		if s.abilityAffords(k, sl, a, mana, &t) {
-			return true
-		}
-	}
-	return false
+	return s.actScriptPays(k, sl, ab, a)
 }
 
 // sourcesPay reports whether an activation's mana cost is priced against the

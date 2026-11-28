@@ -50,7 +50,7 @@ func TestPlannedCastKeepsSoleTargetFromUnplannedSacSource(t *testing.T) {
 						t.Fatalf("precondition: %d target candidates, want %d", n, want)
 					}
 					cost := sc.k.cards[id[spell]].cost
-					if cost == (kop.ManaCost{}) || sc.s.plainCensusPays(sc.k, 0, &cost) {
+					if cost == (kop.ManaCost{}) || sc.s.plainCensusPays(sc.k, 0, o, &cost) {
 						t.Fatalf("precondition: the cost %+v needs no gap source", cost)
 					}
 					return sc.s.FeatPlannedCast(0, o, 0)
