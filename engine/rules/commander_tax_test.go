@@ -65,7 +65,22 @@ func twoCommanderDeck(t *testing.T, cmd0Src, cmd1Src string) []*cards.Card {
 // keeps the exact stream it always measured.
 func commanderTaxGame(t *testing.T, seed uint64) (*Engine, Config, state.ObjID) {
 	t.Helper()
-	e, cfg := commanderGame(t, seed, FormatCommander, 0, [][]string{{commanderBeatstickSrc}, {commanderBeatstickSrc}})
+	return commanderTaxGameSeats(t, seed, 2)
+}
+
+// commanderTaxGameSeats is commanderTaxGame at `seats` seats (2..4): every
+// seat leads its deck with commanderBeatstickSrc, the game is driven to turn 1
+// main 1 of seat 0.
+func commanderTaxGameSeats(t *testing.T, seed uint64, seats int) (*Engine, Config, state.ObjID) {
+	t.Helper()
+	if seats < 2 || seats > 4 {
+		t.Fatalf("commanderTaxGameSeats: seats = %d, want 2..4", seats)
+	}
+	seatCmds := make([][]string, seats)
+	for p := range seatCmds {
+		seatCmds[p] = []string{commanderBeatstickSrc}
+	}
+	e, cfg := commanderGame(t, seed, FormatCommander, 0, seatCmds)
 	e.Advance()
 	driveToStep(t, e, 1, 0, state.StepMain1)
 	return e, cfg, e.G.Players[0].Commanders[0]
