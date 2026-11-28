@@ -10,6 +10,7 @@ AddPhaseBeginning	untyped int	4
 AddPhaseCombat	untyped int	0
 AddPhaseCombatMain	untyped int	3
 AddPhaseEnd	untyped int	2
+AddPhaseHere	untyped int	8
 AddPhaseUpkeep	untyped int	1
 AfCharmTrigger	AbilityFlags	64
 AfCheckOnTrigger	AbilityFlags	16
@@ -321,6 +322,7 @@ CzUntilLeaves	untyped int	1
 DelayBeginCombat	untyped int	6
 DelayDiesThisTurn	untyped int	5
 DelayEndCombat	untyped int	3
+DelayExtraCombat	untyped int	11
 DelayPlayerUpkeep	untyped int	9
 DelayRemUpkeep	untyped int	10
 DelaySpellCast	untyped int	4

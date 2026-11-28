@@ -2023,6 +2023,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepMayPlayNT(t, p)    // cast_mayplaynt.go
 	prepGrantAct(t, p)     // act_grantledger.go
 	prepSkipPhaseOne(t, p) // act_skipphase.go
+	prepAtkTally(t, p)     // value_attacktally.go; on prep, not genPrep
 	prepEmbalmGrant(t, p)  // kw_embalmgrant.go; on prep, not genPrep
 	prepOffKwGrant(t, p)   // kw_unearthgrant.go; on prep, not genPrep
 	prepCyclingGrant(t, p) // kw_cyclinggrant.go; on prep, not genPrep

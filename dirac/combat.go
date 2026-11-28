@@ -532,6 +532,7 @@ func (s *State) declareAttacksDone(k *prep) {
 	s.g.attacked[s.active] += uint8(fresh) // each creature once across extra combats (gorge de-duplicates the turn's declared attackers)
 	s.declared = s.nAttackers > 0
 	if k.gen != nil {
+		s.tallyAttacks() // value_attacktally.go: before the declaration's triggers, as gorge's fold
 		s.fireAttacksGen(k)
 		if k.gen.anyAttackedObj {
 			s.markAttackedObj(k) // value_turntallies.go: after the declaration's triggers, so a FirstAttack read sees the earlier declarations only

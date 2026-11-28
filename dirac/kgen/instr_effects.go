@@ -193,6 +193,8 @@ func (ic *instrCtx) opDelayedTrigger() error {
 			ki.A = kop.Const(kop.DelayPlayerUpkeep) // dirac/trig_delayplayerupkeep.go
 		case "NextBeginCombat":
 			ki.A = kop.Const(kop.DelayBeginCombat) // dirac/trig_delaybegincombat.go
+		case "ExtraCombat":
+			ki.A = kop.Const(kop.DelayExtraCombat) // dirac/trig_delaybegincombat.go
 		case "NextSpellCast":
 			ki.A = kop.Const(kop.DelaySpellCast)
 		case "NextSpellCastUncounter":
