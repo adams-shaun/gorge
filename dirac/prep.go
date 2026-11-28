@@ -173,6 +173,15 @@ type prep struct {
 	// mana_pcmemo.go); on prep, not genPrep, so the pinned fixed-State
 	// inventory is unchanged
 	pcMemo bool
+	// tyCache: the cross-transition types cache pays on this table
+	// (prepTyCache, static_typecache.go); on prep, as pcMemo
+	tyCache bool
+	// tyObj: the table's type statics read only objects' own fields
+	// (tyObjTable, static_typecache.go)
+	tyObj bool
+	// tyBoard: one of them counts the board (CondPresent), so any write
+	// can change a type
+	tyBoard bool
 	// piles: the table builds merged permanents (genPrep.anyMutate or
 	// anyMerge; kw_mutateunion.go). The hot static and layer scans test it
 	// in one inlinable branch (pileN, pileAt) so a table with no pile never
@@ -668,8 +677,10 @@ func prepare(t *kop.Table) *prep {
 	p.gen = prepareGen(t, p)
 	p.piles = p.gen != nil && (p.gen.anyMutate || p.gen.anyMerge) // kw_mutateunion.go
 	p.pcMemo = prepPCMemo(p)                                      // mana_pcmemo.go
-	prepLayerSrc(t, p)                                            // static_layerwalk.go: the walk's per-card ability masks
-	prepHandStat(t, p)                                            // cast_handleaves.go
+	p.tyCache = prepTyCache(p)                                    // static_typecache.go
+	prepTyObj(p, t)
+	prepLayerSrc(t, p) // static_layerwalk.go: the walk's per-card ability masks
+	prepHandStat(t, p) // cast_handleaves.go
 	p.gyCont = tableHasGyCont(t)
 	p.anyNoDmg = tableHasStatic(t, kop.StatNoCombatDamage)
 	p.anyAsUnblk = tableHasStatic(t, kop.StatAssignCombatDamageAsUnblocked)

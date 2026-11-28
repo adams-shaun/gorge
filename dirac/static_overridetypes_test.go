@@ -59,6 +59,7 @@ func TestStaticOverrideTypeFilter(t *testing.T) {
 			tbl.Filters[a.Static.Filter].Types = kop.TBasic
 		}
 	}
+	sc.s.tyCacheDrop() // the table itself changed under the State: no derived answer from before stands (static_typecache.go)
 	sc.s.refreshTy(sc.k)
 	if got := sc.s.typesGen(sc.k, sl); got&kop.TCreature != 0 {
 		t.Fatalf("types %#x keep the added creature type on a host the filter no longer matches", got)

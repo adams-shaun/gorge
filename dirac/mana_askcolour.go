@@ -139,7 +139,9 @@ func (s *State) askColUnlessDead(k *prep, p uint8) slotMask {
 func (s *State) askColValue(k *prep, sl Slot, col uint8) int {
 	old := s.perms[sl].chosen
 	s.perms[sl].chosen = objWord(col)
+	s.tyCacheHold() // static_typecache.go
 	n := s.askColAmount(k, s.askColAb(k, sl), sl)
+	s.tyCacheRelease()
 	s.perms[sl].chosen = old
 	return n
 }
