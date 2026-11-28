@@ -138,7 +138,8 @@ func eqRef(a, b *Ref) bool {
 		eqPtrSlice(a.Union, b.Union, eqRef) &&
 		a.Memory == b.Memory &&
 		a.Role == b.Role &&
-		a.LKI == b.LKI
+		a.LKI == b.LKI &&
+		a.AllZones == b.AllZones
 }
 
 func eqTarget(a, b *Target) bool {

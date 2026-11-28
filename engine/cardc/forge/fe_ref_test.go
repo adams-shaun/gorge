@@ -1,6 +1,7 @@
 package forge
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/adams-shaun/gorge/engine/cardc/ir"
@@ -31,6 +32,8 @@ func allOf(t *testing.T, filter string) *ir.Ref {
 	return &ir.Ref{Kind: ir.RefAll, Filter: f}
 }
 
+func everyZone(r *ir.Ref) *ir.Ref { r.AllZones = true; return r }
+
 // TestLowerRefTable lowers one written string per atom, projection and form.
 func TestLowerRefTable(t *testing.T) {
 	obj, pl := ir.SubjObject, ir.SubjPlayer
@@ -50,7 +53,7 @@ func TestLowerRefTable(t *testing.T) {
 		{"Equipped", obj, attached},
 		{"TriggeredCard", obj, evObj(ir.RoleCard, false)},
 		{"TriggeredCardLKICopy", obj, evObj(ir.RoleCard, true)},
-		{"TriggeredNewCardLKICopy", obj, evObj(ir.RoleCard, true)},
+		{"TriggeredNewCardLKICopy", obj, evObj(ir.RoleNewCard, true)},
 		{"TriggeredSource", obj, evObj(ir.RoleSource, false)},
 		{"TriggeredSourceLKICopy", obj, evObj(ir.RoleSource, true)},
 		{"TriggeredAttacker", obj, evObj(ir.RoleAttacker, false)},
@@ -64,7 +67,8 @@ func TestLowerRefTable(t *testing.T) {
 		{"TriggeredActivator", pl, evPl(ir.RoleActivator)},
 		{"TriggeredDefendingPlayer", pl, rk(ir.RefDefendingPlayer)},
 		{"ReplacedCard", obj, evObj(ir.RoleReplaced, false)},
-		{"ReplacedTarget", obj, evObj(ir.RoleReplaced, false)},
+		{"ReplacedTarget", obj, evObj(ir.RoleReplacedTarget, false)},
+		{"ReplacedTarget", pl, evObj(ir.RoleReplacedTarget, false)},
 		{"ReplacedPlayer", pl, evPl(ir.RoleReplaced)},
 		{"Remembered", obj, memRef(ir.MemRemembered, false)},
 		{"Remembered", pl, memRef(ir.MemRemembered, false)},
@@ -92,7 +96,8 @@ func TestLowerRefTable(t *testing.T) {
 			union(rk(ir.RefYou), evPl(ir.RoleNone), memRef(ir.MemChosenPlayer, false))},
 		// filter forms
 		{"Valid Creature.YouCtrl", obj, allOf(t, "Creature.YouCtrl")},
-		{"ValidAll Card.token", obj, allOf(t, "Card.token")},
+		{"ValidAll Card.token", obj, everyZone(allOf(t, "Card.token"))},
+		{"ValidAll Player.Opponent", pl, allOf(t, "Player.Opponent")},
 		{"Valid Player.Opponent", pl, allOf(t, "Player.Opponent")},
 		{"Player", pl, allOf(t, "Player")},
 		{"Opponent", pl, allOf(t, "Opponent")},
@@ -126,6 +131,28 @@ func TestLowerRefTable(t *testing.T) {
 		}
 		if got.Src == "" {
 			t.Errorf("LowerRef(%q, %s): root has no Src", c.text, c.want)
+		}
+	}
+	// Referents the engines bind differently lower to different trees.
+	distinct := []struct{ a, b string }{
+		{"ReplacedCard", "ReplacedTarget"},
+		{"TriggeredCardLKICopy", "TriggeredNewCardLKICopy"},
+		{"TriggeredCardLKICopyController", "TriggeredNewCardLKICopyController"},
+		{"Valid Card.token", "ValidAll Card.token"},
+	}
+	for _, d := range distinct {
+		want := obj
+		if strings.HasSuffix(d.a, "Controller") {
+			want = pl
+		}
+		a, ra := LowerRef(d.a, want)
+		b, rb := LowerRef(d.b, want)
+		if ra != nil || rb != nil {
+			t.Errorf("LowerRef(%q), LowerRef(%q) refused: %v, %v", d.a, d.b, ra, rb)
+			continue
+		}
+		if ir.Equal(a, b) || a.String() == b.String() {
+			t.Errorf("%q and %q lower to the same tree %s", d.a, d.b, a)
 		}
 	}
 	// ParentTarget keeps its spelling so a later pass can re-slot it.

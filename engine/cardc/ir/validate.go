@@ -299,8 +299,9 @@ func refUsesOf(k RefKind) (required, allowed bool) {
 // ValidateRef checks that r is well formed: its kind is in range and not
 // none; Of is set exactly for the kinds that use it; a RefUnion has at least
 // two members and no other kind has any; Memory is set exactly for RefMemory;
-// Role is in range and set only on RefEventObject and RefEventPlayer; a
-// Filter, when present, passes ValidateFilter. Of and Union members are
+// Role is in range and set only on RefEventObject and RefEventPlayer, with
+// RoleReplacedTarget and RoleNewCard only on RefEventObject; AllZones is set
+// only on RefAll; a Filter, when present, passes ValidateFilter. Of and Union members are
 // checked the same way.
 func ValidateRef(r *Ref) error {
 	if r == nil {
@@ -333,7 +334,7 @@ func ValidateRef(r *Ref) error {
 	return nil
 }
 
-// checkRefShape holds r's Of, Union, Memory and Role to its kind.
+// checkRefShape holds r's Of, Union, Memory, Role and AllZones to its kind.
 func checkRefShape(r *Ref) error {
 	required, allowed := refUsesOf(r.Kind)
 	switch {
@@ -359,11 +360,22 @@ func checkRefShape(r *Ref) error {
 	} else if r.Memory != MemNone {
 		return fmt.Errorf("ir: %s: takes no memory", r.Kind)
 	}
+	if r.AllZones && r.Kind != RefAll {
+		return fmt.Errorf("ir: %s: takes no all-zones", r.Kind)
+	}
+	return checkRefRole(r)
+}
+
+// checkRefRole holds r's Role to its kind.
+func checkRefRole(r *Ref) error {
 	if r.Role >= eventRoleCount {
 		return fmt.Errorf("ir: %s: role %s out of range", r.Kind, r.Role)
 	}
 	if r.Role != RoleNone && r.Kind != RefEventObject && r.Kind != RefEventPlayer {
 		return fmt.Errorf("ir: %s: takes no role", r.Kind)
+	}
+	if r.Kind == RefEventPlayer && (r.Role == RoleReplacedTarget || r.Role == RoleNewCard) {
+		return fmt.Errorf("ir: %s: takes no object role %s", r.Kind, r.Role)
 	}
 	return nil
 }
