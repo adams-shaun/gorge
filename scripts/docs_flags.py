@@ -80,7 +80,7 @@ def consts(dirpath):
     for fn in sorted(os.listdir(dirpath)):
         if fn.endswith(".go") and not fn.endswith("_test.go"):
             with open(os.path.join(dirpath, fn), encoding="utf-8") as f:
-                for m in re.finditer(r'^\s*(\w+)\s*=\s*"([^"\n]*)"\s*$', f.read(), re.M):
+                for m in re.finditer(r'^\s*(?:const\s+)?(\w+)\s*=\s*"([^"\n]*)"\s*$', f.read(), re.M):
                     out[m.group(1)] = m.group(2)
     return out
 

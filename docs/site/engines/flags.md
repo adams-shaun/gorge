@@ -111,6 +111,7 @@ The tools use Go's `flag` package, so `-name value`, `-name=value` and `--name` 
 | `-class` | string | `lockstep` | with -refuse: the kind of difference, the refused list's grouping |
 | `-decks` | string | none | deck pool directory (*.json) |
 | `-dump` | string | none | write a per-card IR dump here instead of generating (never commit it) |
+| `-filter-ir` | bool | `false` | read filters through the typed interface (comparison path; tables must not change) |
 | `-four-seat` | bool | `false` | with -supported: a card a pod of three or more seats cannot hold (kop.CardPodLimited: StallTwoSeat at its start) is false |
 | `-layer-census` | bool | `false` | print the interim layer guard's reach (classified cards, refused pairs and deck pairs) instead of generating |
 | `-lir` | bool | `false` | print every card's lowered IR and refusals instead of generating |
@@ -186,7 +187,7 @@ The tools use Go's `flag` package, so `-name value`, `-name=value` and `--name` 
 | `-autopay-surface` | bool | `false` | deprecated alias of -surface autopay |
 | `-branches` | string | none | write the run's per-card choice-branch TSV (oracle.Coverage.WriteBranchTSV: card, key, uses, owed) here; reporting only, the -coverage file is unchanged |
 | `-cards` | string | none | gorge corpus directory (default: $GORGE_CARDS, else .cards in or above the working directory) |
-| `-cmd-mini` | int | `0` | -seats above 2: cut every commander deck of the pool to this many cards, its commanders and an even spread of the rest (oracle.MiniCommanderDeck), so a Commander pod fits the kernel's four-seat build: -kernel gorge, or a Commander pool such as cmd5 |
+| `-cmd-mini` | int | `0` | -seats above 2: cut every commander deck of the pool to this many cards, its commanders and an even spread of the rest (oracle.MiniCommanderDeck); 0 plays the full precons: -kernel gorge, or a Commander pool such as cmd5 or edh |
 | `-coverage` | string | none | write the run's per-card/per-ability coverage TSV (oracle.Coverage) here and print a coverage summary line |
 | `-cpuprofile` | string | none | write a CPU profile here |
 | `-decks` | string | none | pool deck directory (default: the fdn pool's, under $GORGE_POOLS or the module's .pools, else its committed slice) |
@@ -224,6 +225,7 @@ The tools use Go's `flag` package, so `-name value`, `-name=value` and `--name` 
 | `-reach` | string | none | -synth: write one row per card of the list here: card, how far it got, decks, games, plays in clean games |
 | `-replay` | string | none | re-execute this kernel game (koracle-game-2) in gorge and report |
 | `-repro` | string | none | re-run this repro in lockstep and report |
+| `-scenario` | string | none | play scripted starts: this scenario file, or every .json file under this directory, -pairs games each (one run sc-<file> each), from -seed; the focus seat plays -policy through oracle.FocusPolicy, the other seats the scenario's opponent. -out is the directory of the sc-<file>.verdict files and of the bad games' repros; -coverage, -branches and -evidence name directories, one sc-<file>.<kind> file each. The pool comes from -synth (with -synth-with and -focus) or -set; -max-turns is the scenario's own |
 | `-search` | string | `paranoid` | -search-seats: the search, paranoid or maxn |
 | `-search-seats` | string | none | pool runs (-kernel a registered pool or -synth, -lead gorge): answer these seats, comma-separated (0 or 0,2), with dirac/search on the kernel's state; every other seat keeps -policy. Lockstep still compares every decision. Up to four seats |
 | `-search-sims` | int | `oracle.SearchSeatDefaultSims` | -search-seats: simulations per searched decision |
@@ -236,6 +238,7 @@ The tools use Go's `flag` package, so `-name value`, `-name=value` and `--name` 
 | `-surface` | string | none | the option surface both sides offer: autopay (neither side offers the plain casts gorge's planner never prices, oracle.Config.GorgeAutopaySurface) or full (default) |
 | `-synth` | string | none | play a synthetic evidence pool (make dirac-tables writes them): deal its decks in memory from -seed and report its reach; replaces -kernel, -set and -decks |
 | `-synth-decks` | int | `oracle.SynthDecks` | -synth: decks to deal |
+| `-synth-with` | string | none | -synth with -focus: pools (comma-separated) to take enablers from when the focus file names one the -synth pool lacks, dealt beside their focus card only, never as filler; evloop's scripted decks need snow basics, Gates, Cartouches that sit in other tail pools. The first pool holding the card wins; a pair whose cards need more subtypes than one table holds is refused |
 | `-v` | bool | `false` | list the unpriced plays by card (fdn: every game's first divergence) |
 | `-v2` | string | none | run a v2 engine-parity check instead of lockstep: "transcript" plays the same seeded games on dirac/cmd/sbv2dirac and gorge's env and diffs their transcripts |
 | `-v2-max-decisions` | int | `500` | -v2 transcript: v2 decision cap per game (a prefix is compared; 0 uses 500) |
