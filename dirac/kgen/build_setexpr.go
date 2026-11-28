@@ -25,6 +25,28 @@ func kopTakesSet(op kop.Op) bool {
 	return false
 }
 
+// kopWalksSet reports whether execSet runs ki over every member of a set that
+// holds more than one. A member whose run suspends on an ask ends the walk
+// (dirac value_setexpr.go execSet), so only an op whose member run never asks
+// reaches them all; the all-player Sacrifice and Discard instead ride the
+// repNext chain (execSet's setSeatPlayers arm; keep the two conditions
+// equal). GainLife is one that never asks here: its CR 616.1 order ask parks
+// only the program's own instruction (dirac lifeParkOK), not execSet's
+// per-member copy, where a competing pair stalls the game loudly instead. An
+// op not named here is refused over such a set.
+func kopWalksSet(ki *kop.Instr, players bool) bool {
+	switch ki.Op {
+	case kop.OpPumpUntilEOT, kop.OpTap, kop.OpUntap, kop.OpGainLife, kop.OpLoseLife,
+		kop.OpGainControl, kop.OpGainControlEOT, kop.OpAnimate:
+		return true
+	case kop.OpSacrifice:
+		return players && ki.C&kop.OptAsk == 0
+	case kop.OpDiscard:
+		return players && ki.F == 0 && ki.C == kop.ChooseSelf
+	}
+	return false
+}
+
 // setSubjRef is an rSet's kop ref: RefSet as an instruction's subject, a
 // refusal anywhere else (a value, a condition, a side input).
 func (cb *cardBuilder) setSubjRef() (kop.Ref, error) {
@@ -61,6 +83,11 @@ func (cb *cardBuilder) setRef(pc int, in lInstr, ki *kop.Instr) error {
 		return fmt.Errorf("Defined$ set the %s form does not read as its subject", in.Op)
 	case pc > 0xff:
 		return fmt.Errorf("Defined$ set at pc %d", pc)
+	}
+	if n := in.Obj.N; n >= 0 && n < len(cb.c.Sets) { // internSet refuses the rest
+		if s := cb.c.Sets[n]; !s.One && !kopWalksSet(ki, s.Players) {
+			return fmt.Errorf("Defined$ set of more than one member on kop %s: a member's ask would end the walk", ki.Op)
+		}
 	}
 	id, err := cb.internSet(in.Obj.N)
 	if err != nil {

@@ -20,8 +20,15 @@ import (
 // instruction's PC (build_setexpr.go). A shape the kernel would walk in a
 // different order or with different duplicates from gorge refuses.
 
-// lSet is one set expression of a card: a postfix program over lSetOps.
-type lSet struct{ Ops []lSetOp }
+// lSet is one set expression of a card: a postfix program over lSetOps, and
+// what it can hold by construction (setTerm's marks), which the builder's
+// walk guard reads. Neither mark prints: they follow from the program and the
+// ability's target specs, both already in the LIR.
+type lSet struct {
+	Ops     []lSetOp
+	Players bool // it holds players only
+	One     bool // it holds at most one member
+}
 
 // lSetOp is one step of an lSet: its kind, its argument (a target slot) and,
 // for SetAndFilter, the filter the builder interns as the argument.
@@ -131,7 +138,7 @@ func (lc *lowerCtx) definedSet(v string) (lRef, error) {
 		}
 		return lRef{}, refuse("Defined$ %q: %s", v, err.Error())
 	}
-	set := lSet{Ops: t.ops}
+	set := lSet{Ops: t.ops, Players: t.players, One: t.one}
 	if d, ok := set.kopSetExpr().SetDepth(); !ok || d > kop.MaxSetDepth {
 		return lRef{}, refuse("Defined$ %q: a set program deeper than the kernel's %d", v, kop.MaxSetDepth)
 	}
@@ -361,7 +368,9 @@ var definedSetOpponent = map[string]string{
 }
 
 // setOpponentOf is the opponents of one player: every other player still in
-// the game, at any seat count.
+// the game, at any seat count. It is marked one for the walk guard
+// (build_setexpr.go kopWalksSet) by its duel size, dirac's two seats; a pod's
+// further opponents are not guarded.
 func (lc *lowerCtx) setOpponentOf(ref string) (setTerm, error) {
 	t, err := lc.setTerm(ref, false)
 	if err != nil {
@@ -370,7 +379,7 @@ func (lc *lowerCtx) setOpponentOf(ref string) (setTerm, error) {
 	if !t.players || !t.one {
 		return setTerm{}, fmt.Errorf("the opponents of %q, which is not one player", ref)
 	}
-	return setTerm{ops: t.then(lSetOp{Kind: kop.SetPlayersComplement}), players: true}, nil
+	return setTerm{ops: t.then(lSetOp{Kind: kop.SetPlayersComplement}), players: true, one: true}, nil
 }
 
 // definedSetSuffix are gorge's whole-value controller and owner spellings
