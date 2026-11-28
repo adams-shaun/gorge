@@ -1214,7 +1214,7 @@ func (s *State) gorgeOffers(p uint8, o Obj, mode uint8) bool {
 	if s.cfg&cfgGorgeAutopay == 0 && (s.cfg&cfgGorgeLowering == 0 || mode != 0) {
 		return true
 	}
-	if cost := &s.k().t.Cards[s.objs[o].card].Cost; s.g.availX&(availAny|availGaps) != 0 && cost.X != 0 || s.g.availX&availAny != 0 && cost.Hyb[0] != 0 && cost.Hyb[0] != kop.HybTwobrid && !cost.Phyrexian() {
+	if cost := &s.k().t.Cards[s.objs[o].card].Cost; s.g.availX&(availAny|availGaps) != 0 && cost.X != 0 || s.g.availX&availAny != 0 && cost.Hyb[0] != 0 && cost.Hyb[0] != kop.HybTwobrid && !cost.Phyrexian() && !hybPastPlanner(cost) {
 		// an {X} cast is one of gorge's potential plays (its planner plans
 		// the composed cost), so it takes one of the scripted prefix searches
 		// (scriptOffers; pair 16186); a hybrid one does when no relaxed proof
@@ -1355,6 +1355,9 @@ func (s *State) gorgeLowersRider(p uint8, o Obj, mayPlay, anyColor bool) bool {
 	}
 	if handled, lower := s.twobridLowers(k, p, c, o, anyColor); handled {
 		return lower
+	}
+	if !mayPlay && hybPastPlanner(&cd.Cost) {
+		return false // gorge's potential planner declines it ("cost:hybrid"): cost_hybridfive.go
 	}
 	if (cd.HasMultikicker || cd.HasEscalate) && !mayPlay && s.g.availX&(availAny|availGaps) != 0 {
 		// a plain Multikicker or Escalate hand cast is "shape:optional_cost" to the cast

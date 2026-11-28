@@ -52,11 +52,13 @@ type ManaCost struct {
 	// nothing. Only a one-colour XColor is lowered (kgen refuses the
 	// multi-colour Soul Burn shape).
 	XPip uint8
-	// Hyb is up to four hybrid pips ({B/G}; gorge's planHybridLimit), each
-	// the mask of its two colours, 0 = none (Hyb[0] first). The caster announces each pip's
-	// colour before targets (CR 601.2b); a payment only ever sees the
-	// resolved pips.
-	Hyb [4]ColorMask
+	// Hyb is up to five hybrid pips ({B/G}), each the mask of its two
+	// colours, 0 = none (Hyb[0] first). Five is Ulalek, Fused Atrocity's
+	// {C/W}{C/U}{C/B}{C/R}{C/G}: one past gorge's planHybridLimit, so gorge
+	// prices no witness for it and casts it through the manual window. The
+	// caster announces each pip's colour before targets (CR 601.2b); a
+	// payment only ever sees the resolved pips.
+	Hyb [5]ColorMask
 	// HybOrd records each hybrid pip's printed colour order, one bit per
 	// pip (bit i for Hyb[i]): set when the pip's first printed colour is the
 	// higher of its two WUBRG indexes, as {G/W} prints G first. The mask
@@ -66,7 +68,7 @@ type ManaCost struct {
 	HybOrd uint8
 	// Snow is the number of {S} pips the cost prints (CR 107.4h): snow mana,
 	// which only mana from a snow source may pay (CR 106.3a). It fills the
-	// byte between HybOrd and Tb, so ManaCost keeps its 18 bytes. It is a
+	// byte between HybOrd and Tb (ManaCost is 20 bytes: Tb aligns past it). It is a
 	// table byte only: kgen does not set it yet (the kernel pays {S} beside
 	// its snow tally, dirac/mana_snow.go).
 	Snow uint8
