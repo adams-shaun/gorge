@@ -86,8 +86,9 @@ func (c config) openDirac(reg *cards.Registry) (*adapter.Engine, error) {
 
 // diracColumn gives every deck report a dirac verdict: on the engine serve
 // already opened under -engine dirac, else on one opened over -dirac-check-sets.
-// With neither, reports carry none.
-func (c *config) diracColumn(reg *cards.Registry, running *adapter.Engine) error {
+// With neither, reports carry none. -route-pods-dirac arms on that engine
+// (armRouting), judging cmdPool.
+func (c *config) diracColumn(reg *cards.Registry, running *adapter.Engine, cmdPool []string) error {
 	switch {
 	case c.diracOn():
 		c.imports.dirac = running
@@ -97,6 +98,7 @@ func (c *config) diracColumn(reg *cards.Registry, running *adapter.Engine) error
 			return fmt.Errorf("-dirac-check-sets: %w", err)
 		}
 		c.diracCheck, c.imports.dirac = e, e
+		return c.armRouting(reg, cmdPool)
 	}
 	return nil
 }
