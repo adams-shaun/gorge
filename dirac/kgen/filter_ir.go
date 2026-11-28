@@ -48,9 +48,11 @@ func init() {
 	})
 }
 
-// parseFilterText reads one filter text with the pool's reader.
+// parseFilterText reads one filter text with the pool's reader. A context
+// with no pool (a unit test's bare lowerCtx) reads with the string reader,
+// as the direct parseFilter call it replaced did.
 func (lc *lowerCtx) parseFilterText(expr string) (*lFilter, error) {
-	if lc.p.filterReader != filterReadTyped {
+	if lc.p == nil || lc.p.filterReader != filterReadTyped {
 		return parseFilter(expr, lc.known, lc.p.isTypeWord)
 	}
 	return readFilterTyped(expr, lc.known, lc.p.isTypeWord, &lc.p.filterStats)
