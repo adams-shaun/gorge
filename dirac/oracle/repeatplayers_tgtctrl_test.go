@@ -20,8 +20,9 @@ var dcFourSeatVisit = []state.PlayerID{3, 0, 1}
 // seat 2 holds Disorienting Choice and every other seat an Ornithopter, one
 // seed per call. The policy casts the spell, names every offered Ornithopter
 // and keeps each; asked lists the players asked the per-permanent choice, in
-// order. mutate, when non-nil, rewrites the table first.
-func dcFourSeat(t *testing.T, mutate func(*kop.Table)) func(seed uint64) (res Result, asked []state.PlayerID) {
+// order. mutate, when non-nil, rewrites the table first. A seat in bare holds
+// Forests only, so it has nothing the spell can target.
+func dcFourSeat(t *testing.T, mutate func(*kop.Table), bare ...state.PlayerID) func(seed uint64) (res Result, asked []state.PlayerID) {
 	t.Helper()
 	reg := synthReg(t)
 	set, err := cardset.RawByName("repeatplayerssel")
@@ -31,6 +32,9 @@ func dcFourSeat(t *testing.T, mutate func(*kop.Table)) func(seed uint64) (res Re
 	thopter := append(deckOf(1, "Ornithopter"), deckOf(39, "Forest")...)
 	caster := append(deckOf(1, "Disorienting Choice"), deckOf(39, "Forest")...)
 	decks := [4][]string{thopter, thopter, caster, thopter}
+	for _, p := range bare {
+		decks[p] = deckOf(40, "Forest")
+	}
 	var lists [][]cardset.Entry
 	for _, d := range decks {
 		es := make([]cardset.Entry, len(d))

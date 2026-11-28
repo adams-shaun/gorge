@@ -1,0 +1,22 @@
+{
+  "card": "Six",
+  "class": "unmodelled-retracegrant",
+  "why": "gorge does something the kernel does not model here (stall retracegrant: Six's granted retrace casts a permanent card from the graveyard); recorded from hosted-cmdr pro-shaper vs science-pip, and 19 four-seat hosted-cmdr pods stall the same way",
+  "repro": {
+    "pool": "custom",
+    "surface": "autopay",
+    "seed": 1122,
+    "pair": 45,
+    "policy": "heuristic",
+    "mulligans": 0,
+    "file": "six_hosted_cmdr_retracegrant"
+  },
+  "evidence": [
+    "ev-dr-mbc-bbab-c000",
+    "ev-dr-mbc-bbab",
+    "ev-tail-58-c000",
+    "ev-tail-58-c001",
+    "ev-tail-58-c002",
+    "ev-tail-58-c926"
+  ]
+}
