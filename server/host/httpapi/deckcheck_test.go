@@ -6,6 +6,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"reflect"
 	"testing"
 	"time"
@@ -97,5 +98,74 @@ func TestDeckCheckRoute(t *testing.T) {
 	e := errCode(raw)
 	if code != http.StatusBadRequest || e.Code != "deck_refused" || e.Message != "seat 0 deck: refused" || e.Deck == nil || !reflect.DeepEqual(*e.Deck, stub) {
 		t.Errorf("refused deck on POST /api/games: %d %s, want 400 deck_refused with the report", code, raw)
+	}
+}
+
+// TestWebDeckCheckFixturesDecode keeps the two fixtures the web tests share
+// with these Go tests in the server's own shape: web-deck-check.json decodes
+// into DeckCheckRequest (unknown fields refused, Substitute honoured true),
+// and web-deck-report.json decodes into protocol.DeckReport (unknown fields
+// refused) and re-marshals byte-for-byte to the file after both are
+// compacted — so the client's report fixture is exactly what the server
+// would answer.
+func TestWebDeckCheckFixturesDecode(t *testing.T) {
+	raw, err := os.ReadFile("testdata/web-deck-check.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	dec := json.NewDecoder(bytes.NewReader(raw))
+	dec.DisallowUnknownFields()
+	var req DeckCheckRequest
+	if err := dec.Decode(&req); err != nil {
+		t.Fatalf("web-deck-check.json: %v", err)
+	}
+	if want := "Commander\n1 Ghoulcaller Gisa\n\n1 Sol Ring"; req.Text != want {
+		t.Errorf("text = %q, want %q", req.Text, want)
+	}
+	if req.Format != "commander" {
+		t.Errorf("format = %q, want commander", req.Format)
+	}
+	if !req.Substitute {
+		t.Error("substitute = false, want true")
+	}
+
+	raw, err = os.ReadFile("testdata/web-deck-report.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	dec = json.NewDecoder(bytes.NewReader(raw))
+	dec.DisallowUnknownFields()
+	var rep protocol.DeckReport
+	if err := dec.Decode(&rep); err != nil {
+		t.Fatalf("web-deck-report.json: %v", err)
+	}
+	if len(rep.Unsupported) != 2 {
+		t.Errorf("unsupported has %d cards, want 2", len(rep.Unsupported))
+	}
+	if len(rep.Substituted) != 2 {
+		t.Errorf("substituted has %d entries, want 2", len(rep.Substituted))
+	}
+	if len(rep.Problems) != 1 {
+		t.Errorf("problems has %d lines, want 1", len(rep.Problems))
+	}
+	if len(rep.Unknown) != 0 {
+		t.Errorf("unknown has %d names, want 0", len(rep.Unknown))
+	}
+	if rep.Dirac != nil {
+		t.Errorf("dirac = %+v, want absent", rep.Dirac)
+	}
+	out, err := json.Marshal(rep)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var got, want bytes.Buffer
+	if err := json.Compact(&got, out); err != nil {
+		t.Fatal(err)
+	}
+	if err := json.Compact(&want, raw); err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(got.Bytes(), want.Bytes()) {
+		t.Errorf("web-deck-report.json re-marshals differently:\n got %s\nwant %s", got.String(), want.String())
 	}
 }
