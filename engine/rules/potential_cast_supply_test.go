@@ -10,7 +10,7 @@ import (
 const (
 	castSupplySeven = "Name:Seven Probe\nManaCost:7\nTypes:Sorcery\nA:SP$ Draw | NumCards$ 1\nOracle:x\n"
 	castSupplyFour  = "Name:Four Probe\nManaCost:4\nTypes:Sorcery\nA:SP$ Draw | NumCards$ 1\nOracle:x\n"
-	castSupplyRock  = "Name:Twin Rock\nManaCost:1\nTypes:Artifact\nA:AB$ Mana | Cost$ T | Produced$ C | Amount$ 2 | SpellDescription$ Add {C}{C}.\nOracle:x\n"
+	castSupplyRock  = "Name:Twin Rock\nManaCost:1\nTypes:Artifact\nA:AB$ Mana | Cost$ T | Amount$ 2 | Produced$ C | SpellDescription$ Two colorless for the probe.\nOracle:x\n"
 )
 
 // castSupplyBoard is seat 0 with three Swamps and a {T}: Add {C}{C} rock

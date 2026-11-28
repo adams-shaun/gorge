@@ -2735,18 +2735,12 @@ func (e *Engine) paymentPlanCensusOf(p state.PlayerID, hyp *state.Mana) paymentP
 		// A ProduceMana replacement (Mana Reflection) can make more than one
 		// mana from a tap, so the supply count is no bound. A plain cast's
 		// bound (castOutrunsSupply) reads each source's best net production
-		// instead (censusTapSupply), read once on first use.
+		// instead (censusTapSupply).
 		pool := int32(e.G.Players[p].Pool.Total())
-		tapRead, tapOK, tapSupply := false, false, int32(0)
-		out.outruns = func(o decision.Option) bool {
-			if plain && abilityOutrunsSupply(e, p, o, pool+sources) {
-				return true
+		if tapSupply, tapOK := censusTapSupply(e, p); plain || tapOK {
+			out.outruns = func(o decision.Option) bool {
+				return plain && abilityOutrunsSupply(e, p, o, pool+sources) || tapOK && castOutrunsSupply(e, p, o, tapSupply)
 			}
-			if !tapRead {
-				tapRead = true
-				tapSupply, tapOK = censusTapSupply(e, p)
-			}
-			return tapOK && castOutrunsSupply(e, p, o, tapSupply)
 		}
 	}
 	out.bounded = bounded && !out.complete && !out.relaxable

@@ -1,6 +1,7 @@
 package rules
 
 import (
+	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/rules/pay"
@@ -65,8 +66,8 @@ func castOutrunsSupply(e castSupplyHost, p state.PlayerID, o decision.Option, su
 // activates each source at most once (pathPaidTap: CR 602.2b, 605.3a); ok is
 // false when one does not, when its amount is not a literal (a "for each"
 // count, an {X} fee), or when a card off the battlefield has a mana ability
-// p could activate, so no bound is claimed. A reflected or choice
-// production with no fixed colours counts its literal amount.
+// p could activate, or when its production is a shape tapMadeAtMost does
+// not know (a Special production), so no bound is claimed.
 func censusTapSupply(e castSupplyHost, p state.PlayerID) (supply int32, ok bool) {
 	g := e.Game()
 	pl := &g.Players[p]
@@ -95,14 +96,9 @@ func censusTapSupply(e castSupplyHost, p state.PlayerID) (supply int32, ok bool)
 			if !cost.Tap || cost.X != 0 || cost.XMin != 0 || mp.Each.Present || !mp.AmountIsLit && mp.AmountTrim != "" || condSplitLiveSub(e, p, id, ma) != nil {
 				return 0, false
 			}
-			amt := availableAmountOf(mp)
-			made := amt
-			if !mp.CountsAny {
-				fixed := int32(0)
-				for _, n := range mp.Counts {
-					fixed += n * amt
-				}
-				made = max(fixed, amt)
+			made, known := tapMadeAtMost(ma, mp)
+			if !known {
+				return 0, false
 			}
 			made += int32(e.potentialTapExtra(p, id, ma).Total())
 			best = max(best, made-cost.CMC())
@@ -110,4 +106,41 @@ func censusTapSupply(e castSupplyHost, p state.PlayerID) (supply int32, ok bool)
 		supply += best
 	}
 	return supply, true
+}
+
+// tapMadeAtMost is the most mana one activation of ma makes: a fixed symbol
+// string's symbols times its literal amount, or the literal amount of a
+// choice of colours (Any, a chosen colour, the commander's colour identity,
+// a Combo of listed symbols) or of a reflected ability with no amount of its
+// own (Exotic Orchard: one mana). known is false for any other production --
+// a Special word (Bloom Tender's one mana per colour among its permanents)
+// makes a per-board number of mana.
+func tapMadeAtMost(ma *cards.SA, mp *effects.ManaParams) (made int32, known bool) {
+	if ma.APIKind() == cards.APIManaReflected {
+		return 1, !effects.ManaReflectedOf(ma).Amount.Present
+	}
+	if mp.AmountTrim != "" && !mp.AmountIsLit {
+		return 0, false
+	}
+	amt := availableAmountOf(mp)
+	if !mp.CountsAny {
+		fixed := int32(0)
+		for _, n := range mp.Counts {
+			fixed += n * amt
+		}
+		return fixed, true
+	}
+	switch raw := mp.ProducedRaw; raw {
+	case "", "Any", "Combo Any", "Chosen", "ComboChosen", "Combo Chosen", "Combo ColorIdentity":
+		return amt, true
+	default:
+		const combo = "Combo "
+		if len(raw) <= len(combo) || raw[:len(combo)] != combo {
+			return 0, false
+		}
+		if _, other := cards.ProducedCounts(raw[len(combo):]); other {
+			return 0, false
+		}
+		return amt, true
+	}
 }
