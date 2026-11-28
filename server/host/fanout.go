@@ -375,4 +375,5 @@ func (r *Registry) archive(t *table, m *match) {
 	r.mu.Lock()
 	r.saveLocked()
 	r.mu.Unlock()
+	r.prune(t)
 }

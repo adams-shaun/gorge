@@ -41,6 +41,7 @@ The table is generated from the flag set of the `cmd/gorged` binary; `TestFlagsD
 | `-feedback` | `feedback` | directory player bug reports are written to (kept OUT of -dir, which deploys wipe) |
 | `-format` | `constructed` | comma-separated table formats (constructed, commander); table i uses formats[i-1 mod n], e.g. -format commander,constructed runs one of each |
 | `-humans` | none | comma-separated slots of table t1 that are real people (e.g. 0,2); t2..tN stay bot tables |
+| `-keep-matches` | `0` | finished matches a bot-only table keeps on disk; older ones are deleted. A match with a human seat and a crashed match are never deleted. 0 keeps everything |
 | `-manabrew` | `false` | mount the ManaBrew protocol adapter (server/host/manabrewhttp) on the main listener; requires -humans or -vsbot |
 | `-manabrew-addr` | none | serve the ManaBrew routes on a separate listen address instead of the main one (implies -manabrew) |
 | `-manabrew-origins` | none | comma-separated browser origins (scheme://host[:port], no wildcard) allowed to call the ManaBrew routes and POST /api/games cross-origin (CORS). Empty adds no CORS headers |

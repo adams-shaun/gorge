@@ -126,6 +126,7 @@ func (r *Registry) load() error {
 				t.k = sc.Match
 			}
 		}
+		r.prune(t)
 		r.tables[cfg.ID] = t
 	}
 	if dropped {
