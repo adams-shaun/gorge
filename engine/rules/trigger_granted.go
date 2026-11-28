@@ -359,8 +359,11 @@ func (e *Engine) checkCipherTriggers(ev events.Event) {
 // (the Ward/Afflict/Conspire shape; a granted creature has no __kwExploitGranted
 // SVar for a TriggerPush face-index to resolve).
 //
-// The face that PRINTS Exploit is skipped: the printed expansion already owns
-// the line for that creature, and firing both would sacrifice twice. The walk
+// A face that PRINTS Exploit is skipped while that ability exists
+// (topPrintsKeyword): the printed expansion already owns the line for that
+// creature, and firing both would sacrifice twice. A printed line lost to
+// "loses all abilities" (CR 613.1f) owns nothing, so a grant that survives the
+// loss triggers here. The walk
 // is reached from both the faceMayTrigger early-return path and the full
 // path, the Dethrone/Afflict precedent, so a granted creature whose own
 // printed triggers are live for this event still gets its exploit.
@@ -371,7 +374,7 @@ func (e *Engine) checkGrantedExploitTriggers(observer *Engine, id state.ObjID, o
 	if ev.Kind != events.MoveZone || ev.To != state.ZBattlefield || id != ev.Obj || o.Zone != state.ZBattlefield {
 		return
 	}
-	if f.HasKeywordRef(kwRefExploit) || !e.hasKeywordH(id, kwhExploit) {
+	if topPrintsKeyword(observer, o, f, kwRefExploit) || !e.hasKeywordH(id, kwhExploit) {
 		return
 	}
 	t := cards.Trigger{Mode: "ChangesZone", Params: map[string]string{
