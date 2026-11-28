@@ -84,6 +84,7 @@ func TestTypedFilterTablesByteEqual(t *testing.T) {
 			if share < 0.85 {
 				t.Errorf("typed share %.3f < 0.85", share)
 			}
+			holdTypedShare(t, name, st.typed, total)
 		})
 	}
 }
