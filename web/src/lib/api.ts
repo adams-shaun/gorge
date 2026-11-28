@@ -170,6 +170,10 @@ export interface DeckTally {
   decks: DeckRecord[];
   min_games: number;
   matches_counted: number;
+  /** Distinct bot policies of the counted matches, sorted. */
+  pilots: string[];
+  /** Distinct seat counts of the counted matches, ascending. */
+  seats: number[];
 }
 
 export const fetchDeckStats = () => getJSON<DeckTally>(deckStatsURL());
