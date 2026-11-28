@@ -452,7 +452,8 @@ type prep struct {
 	quietCard                    []quietFact
 	quietOff                     bool
 	quietGrantAny, quietGrantTap uint8
-	quietGMTap                   uint8 // the most mana a granted {T} mana ability makes (quietInf: a granted one without {T})
+	quietTF                      quietTableFlags // the statics that move an ability's timing
+	quietGMTap                   uint8           // the most mana a granted {T} mana ability makes (quietInf: a granted one without {T})
 
 	coldCmd      coldLayout // the table's cold layout plus the partner record, a Commander game's (zone_cmdpartner.go)
 	coldPlane    coldLayout // the table's cold layout plus the planar-deck record, a Planechase game's (zone_planechase.go)

@@ -42,6 +42,14 @@ type quietFact struct {
 	// abilities that are not sorcery-speed (the bodies a grant from this
 	// card hands another permanent), without and with {T}
 	grAny, grTap uint8
+	// gen: the cast's generic part; red: the generic a battlefield
+	// ReduceCost static of this card takes off another spell's cost, summed
+	// over its statics (quietInf: a dynamic or coloured reduction)
+	gen, red uint8
+	// mcol: the colours (W U B R G C bits) its printed mana abilities can
+	// make, every colour for a chosen, reflected, dynamic or any-colour one;
+	// fcol: the colours a filter of its (no {T}, it nets nothing) converts to
+	mcol, fcol uint8
 }
 
 const (
@@ -74,9 +82,15 @@ const (
 	// static, a Phyrexian or no mana cost.
 	qOpen
 	// qMod: the card prints a static the proof does not read that may lower
-	// another payment (a cost reduction, an alternative cost, a stack keyword
-	// grant): while one is on the battlefield every floor reads 0.
+	// another payment (an alternative cost, a stack keyword grant, an ability
+	// reduction): while one is on the battlefield every floor reads 0.
 	qMod
+	// qRed: the card prints a battlefield ReduceCost static, read as an
+	// amount (quietFact.red) off cast floors only.
+	qRed
+	// qAnyCol: the card prints a static that lets mana of any colour (or
+	// type) pay a pip: while one is on the battlefield no colour is read.
+	qAnyCol
 	// qMana: on the battlefield the card adds mana the bound does not count
 	// per permanent: a tap-extra static (every bound is then unbounded).
 	qMana
@@ -169,7 +183,7 @@ func prepQuiet(t *kop.Table, k *prep) {
 	for i := range t.Cards {
 		qf := quietFact{bfAny: quietNone, bfTap: quietNone, hand: quietNone, grAny: quietNone, grTap: quietNone}
 		qf.bits = quietCardBits(t, k, i)
-		qf.cast = quietFloor(&t.Cards[i].Cost)
+		qf.cast, qf.gen = quietFloor(&t.Cards[i].Cost), t.Cards[i].Cost.Generic
 		quietAbilities(t, k, i, tf, &qf)
 		k.quietCard[i] = qf
 	}
@@ -275,16 +289,23 @@ func quietAbilities(t *kop.Table, k *prep, i int, tf quietTableFlags, qf *quietF
 		a := &cd.Abilities[ai]
 		switch a.Kind {
 		case kop.AbStatic:
+			if a.Static.Kind == kop.StatReduceCost {
+				quietReduce(a, qf)
+				continue
+			}
+			if a.Static.Kind == kop.StatAnyColorAll || a.Static.Kind == kop.StatAnyColorSpells || a.Static.Kind == kop.StatAnyTypeCreatures {
+				qf.bits |= qAnyCol
+			}
 			if !quietHarmless(a.Static.Kind) || g != nil && g.anyZeroAlt && a.Static.Kind == kop.StatMayPlayFrom {
 				// (a may-play static's {0} alternative is a hand cast the
 				// may-play zones need not name: cast_mayzeroalt.go)
 				qf.bits |= qMod
-				if a.Static.Kind == kop.StatReduceCost || a.Static.Kind == kop.StatSetCost || a.Static.Kind == kop.StatAlternativeCost {
+				if a.Static.Kind == kop.StatSetCost || a.Static.Kind == kop.StatAlternativeCost {
 					qf.bits |= qOpen // a self cost static (affinity) prices the card's own cast
 				}
 			}
 		case kop.AbMana:
-			quietManaAbility(k, a, &mtap, &mfree)
+			quietManaAbility(k, a, &mtap, &mfree, qf)
 		case kop.AbActivated:
 			if !tf.sorcOnly(a) {
 				quietActivated(k, a, qf)
@@ -294,9 +315,33 @@ func quietAbilities(t *kop.Table, k *prep, i int, tf quietTableFlags, qf *quietF
 	qf.mtap, qf.mfree = uint8(min(mtap, int(quietInf))), uint8(min(mfree, int(quietInf)))
 }
 
+// quietReduce folds a ReduceCost static into qf. One that works only on its
+// own card (Zone ZoneCommand: affinity, Ghalta's) opens that card's own cast
+// and lowers nothing else (adjustCostGenB reads it only for the card being
+// cast; eachStaticC leaves it out). A battlefield one lowers another spell's
+// generic part by its constant amount; a dynamic, emblem-numbered or
+// coloured one by an unbounded amount.
+func quietReduce(a *kop.Ability, qf *quietFact) {
+	st := &a.Static
+	if st.Zone == kop.ZoneCommand {
+		qf.bits |= qOpen
+		return
+	}
+	if st.StFlags&kop.StReduceColor != 0 {
+		qf.bits |= qMod // it lowers pips: no floor or colour read holds
+		return
+	}
+	qf.bits |= qRed
+	n := int(st.A)
+	if st.StFlags&(kop.StDynamic|kop.StEmbNum) != 0 {
+		n = int(quietInf)
+	}
+	qf.red = uint8(min(int(qf.red)+n, int(quietInf)))
+}
+
 // quietManaAbility folds mana ability a into a card's amounts (mtap, mfree),
 // or a latent one into the table's granted {T} amount.
-func quietManaAbility(k *prep, a *kop.Ability, mtap, mfree *int) {
+func quietManaAbility(k *prep, a *kop.Ability, mtap, mfree *int, qf *quietFact) {
 	if a.AFlags&kop.AfLatent != 0 {
 		// a body a grant may hand another permanent
 		if n := quietManaAmt(a); a.Cost.Flags&kop.CostTap != 0 {
@@ -310,16 +355,35 @@ func quietManaAbility(k *prep, a *kop.Ability, mtap, mfree *int) {
 		return
 	}
 	n := quietManaAmt(a)
+	col := quietManaCols(a)
+	qf.mcol |= col
 	switch {
 	case a.Cost.Flags&kop.CostTap != 0:
 		*mtap = max(*mtap, n)
 	case a.Cost.Flags&kop.CostSacSelf != 0:
 		*mfree += n // once: it sacrifices the source
 	case a.Cost.Flags == 0 && a.Cost.Mana.MV() >= n:
-		// a filter that nets nothing: no amount beyond what pays it
+		// a filter that nets nothing: no amount beyond what pays it, but it
+		// turns other mana into its colours
+		qf.fcol |= col
 	default:
 		*mfree = int(quietInf) // a repeatable source without {T}
 	}
+}
+
+// quietAllCols is every colour bit, colourless included.
+const quietAllCols uint8 = 0x3f
+
+// quietManaCols is the colours mana ability a can make: its ManaColors, every
+// colour for a chosen, reflected, each-colour, identity or dynamic one or an
+// empty mask, colourless with any colour (an over-count).
+func quietManaCols(a *kop.Ability) uint8 {
+	c := uint8(a.ManaColors) & quietAllCols
+	if c == 0 || c&uint8(kop.ColAny) == uint8(kop.ColAny) ||
+		a.AFlags&(kop.AfManaChosen|kop.AfManaReflect|kop.AfManaEachColor|kop.AfManaDynamic) != 0 || a.ManaIdentity || a.ManaProduce {
+		return quietAllCols
+	}
+	return c
 }
 
 // quietActivated folds a non-sorcery activated ability into qf's floors and
@@ -392,23 +456,26 @@ func (s *State) seatQuiet(k *prep, p uint8) bool { return s.quietBlocker(k, p) =
 // graveyard's own mana, a basic land type's intrinsic ability on every
 // untapped permanent. A granted or tap-extra mana source, restricted
 // floating mana, or a dynamic amount makes it unbounded (quietInf).
-func (s *State) quietBound(k *prep, p uint8) int {
+func (s *State) quietBound(k *prep, p uint8, col *[kop.NumManaKinds]int) int {
+	inf := int(quietInf)
 	if s.rbAny(p) || k.anyCmdTap {
-		return int(quietInf)
+		return inf
 	}
 	g := k.gen
 	grant := k.contGrantAlways || g != nil && len(g.grantPC) != 0 && s.grantsLive(k)
+	anyCol := false // a static lets mana of any colour pay a pip: colours are not read
 	for m := s.statM; m.any(); m = m.rest() {
 		b := k.quietCard[s.cardAt(m.first())].bits
 		if b&qMana != 0 {
-			return int(quietInf)
+			return inf
 		}
 		grant = grant || b&qGMana != 0
+		anyCol = anyCol || b&qAnyCol != 0
 	}
-	untapped := 0 // the least amount an untapped permanent counts
+	untapped := 0 // the least amount an untapped permanent counts, of any colour
 	if grant {
 		if k.quietGMTap == quietInf {
-			return int(quietInf)
+			return inf
 		}
 		untapped = int(k.quietGMTap)
 	}
@@ -417,74 +484,143 @@ func (s *State) quietBound(k *prep, p uint8) int {
 	}
 	pl := &s.pl[p]
 	n := 0
-	for _, v := range pl.pool {
+	for i, v := range pl.pool {
 		n += int(v)
+		col[i] += int(v)
 	}
 	for i := 0; i < int(pl.handN); i++ {
-		if k.t.Cards[s.objs[pl.hand[i]].card].HandMana != 0 {
+		if m := k.t.Cards[s.objs[pl.hand[i]].card].HandMana; m != 0 {
 			n++
+			quietAddCols(col, m, 1)
 		}
 	}
 	for i := 0; i < int(pl.graveN); i++ {
-		n += bits.OnesCount8(k.t.Cards[s.objs[pl.grave[i]].card].GraveMana)
+		m := k.t.Cards[s.objs[pl.grave[i]].card].GraveMana
+		n += bits.OnesCount8(m)
+		quietAddCols(col, m, bits.OnesCount8(m))
 	}
+	conv := uint8(0) // the colours a filter can turn mana into
 	for m := s.ctrlM[p]; m.any(); m = m.rest() {
 		sl := m.first()
 		qf := &k.quietCard[s.cardAt(sl)]
 		if qf.mfree == quietInf {
-			return int(quietInf)
+			return inf
 		}
-		n += int(qf.mfree)
+		a := int(qf.mfree)
+		mc := qf.mcol
 		if s.perms[sl].flags&pfTapped == 0 {
 			if qf.mtap == quietInf {
-				return int(quietInf)
+				return inf
 			}
-			n += max(int(qf.mtap), untapped)
+			a += max(int(qf.mtap), untapped)
+			if untapped > 0 {
+				mc = quietAllCols
+			}
+		}
+		n += a
+		quietAddCols(col, mc, a)
+		conv |= qf.fcol
+	}
+	if anyCol {
+		conv = quietAllCols
+	}
+	for c := range col {
+		if conv&(1<<c) != 0 {
+			col[c] = n
 		}
 	}
 	return n
 }
 
-// quietModLive reports whether a static the proof does not read may lower a
-// payment: a qMod card on the battlefield (the cost statics' sources,
-// eachStaticC) or any emblem.
-func (s *State) quietModLive(k *prep) bool {
-	if s.anyEmb() {
-		return true
-	}
-	for m := s.statM; m.any(); m = m.rest() {
-		if k.quietCard[s.cardAt(m.first())].bits&qMod != 0 {
-			return true
+// quietAddCols adds n to every colour of mask m.
+func quietAddCols(col *[kop.NumManaKinds]int, m uint8, n int) {
+	for c := range col {
+		if m&(1<<c) != 0 {
+			col[c] += n
 		}
 	}
-	return false
+}
+
+// quietModLive reports whether a static the proof does not read may lower a
+// payment: a qMod card on the battlefield (the cost statics' sources,
+// eachStaticC) or any emblem; else red, the most generic mana the
+// battlefield's ReduceCost statics can take off a spell's cost (any
+// controller's: an over-count).
+func (s *State) quietModLive(k *prep) (mod bool, red int) {
+	if s.anyEmb() {
+		return true, 0
+	}
+	for m := s.statM; m.any(); m = m.rest() {
+		qf := &k.quietCard[s.cardAt(m.first())]
+		if qf.bits&qMod != 0 {
+			return true, 0
+		}
+		if qf.bits&qRed != 0 {
+			red = min(red+int(qf.red), int(quietInf))
+		}
+	}
+	return false, red
 }
 
 // quietBlocker is seatQuiet's proof: qbNone when proved, else the first route
 // it could not rule out.
 func (s *State) quietBlocker(k *prep, p uint8) uint8 {
+	b, _ := s.quietBlockerWhy(k, p)
+	return b
+}
+
+// Why a floor read failed (quietRead.why): the verify's detail tally.
+const (
+	qwNone    uint8 = iota
+	qwZero          // the floor is 0 (a free ability or cost)
+	qwEmblem        // an emblem makes every floor 0
+	qwMod           // a battlefield cost-modifying static makes every floor 0
+	qwInf           // the mana bound is unbounded
+	qwUnder         // the floor is within a finite bound
+	qwOpen          // the cast's price is open (qOpen)
+	qwTargets       // a plain cast's targets are feasible
+	qwColour        // (a read that held: a pip colour the seat cannot make)
+	qwN
+)
+
+// QuietWhyName names why detail w.
+func QuietWhyName(w int) string {
+	return [...]string{"-", "floor-0", "emblem", "cost-static", "bound-inf", "under-bound", "open-price", "targets-ok", "colour"}[w]
+}
+
+// quietBlockerWhy is quietBlocker with why its deciding floor read failed.
+func (s *State) quietBlockerWhy(k *prep, p uint8) (uint8, uint8) {
+	b, r := s.quietProof(k, p)
+	if st := DebugQuietVerify; st != nil && st.OnBlock != nil && b != qbNone {
+		st.OnBlock(s, b, r.why, k.t.Cards[r.card].Name, r.bound)
+	}
+	return b, r.why
+}
+
+func (s *State) quietProof(k *prep, p uint8) (uint8, quietRead) {
 	if k.quietOff {
-		return qbTable
+		return qbTable, quietRead{}
 	}
 	if s.sorcerySpeed(p) {
-		return qbSorc
+		return qbSorc, quietRead{}
 	}
 	// flash grants (castFlash): read exactly per card only when one can be live
 	r := quietRead{s: s, k: k, p: p,
 		flashLive: k.anyFlashAny && (k.anySelfFlash || k.anyEmbFlash && s.g.nemb[p] > 0 || k.anyFlashStat && s.quietFlashStat(k))}
 	if b := r.hand(); b != qbNone {
-		return b
+		return b, r
 	}
 	if b := r.zones(); b != qbNone {
-		return b
+		return b, r
 	}
 	if b := r.records(); b != qbNone {
-		return b
+		return b, r
 	}
 	if b := r.battle(); b != qbNone {
-		return b
+		return b, r
 	}
-	return r.grants()
+	b := r.grants()
+	return b, r
 }
 
 // quietRead is one proof's reads: the mana bound and the cost-modifier read,
@@ -494,13 +630,17 @@ type quietRead struct {
 	s                     *State
 	k                     *prep
 	p                     uint8
-	bound                 int
+	bound, red            int
+	col                   [kop.NumManaKinds]int // the bound per colour (quietBound)
 	mod, haveB, flashLive bool
+	why                   uint8  // the last failed floor read (qw*)
+	card                  CardID // the blocking card (hand and battlefield reads; verify reports)
 }
 
 func (r *quietRead) modLive() bool {
 	if !r.haveB {
-		r.bound, r.mod, r.haveB = r.s.quietBound(r.k, r.p), r.s.quietModLive(r.k), true
+		r.bound, r.haveB = r.s.quietBound(r.k, r.p, &r.col), true
+		r.mod, r.red = r.s.quietModLive(r.k)
 	}
 	return r.mod
 }
@@ -510,7 +650,22 @@ func (r *quietRead) above(f uint8) bool {
 	if f == quietNone {
 		return true
 	}
-	return f != 0 && !r.modLive() && int(f) > r.bound
+	switch {
+	case f == 0:
+		r.why = qwZero
+	case r.modLive():
+		r.why = qwMod
+		if r.s.anyEmb() {
+			r.why = qwEmblem
+		}
+	case int(f) > r.bound:
+		return true
+	case r.bound >= int(quietInf):
+		r.why = qwInf
+	default:
+		r.why = qwUnder
+	}
+	return false
 }
 
 // inst reports whether card c (or a face) can be cast at instant speed now.
@@ -532,9 +687,39 @@ func (r *quietRead) inst(c CardID) bool {
 	return false
 }
 
+// castLoud: c is castable at instant speed and its cast floor, less the
+// generic the live ReduceCost statics take, is within the bound.
 func (r *quietRead) castLoud(c CardID) bool {
 	qf := &r.k.quietCard[c]
-	return r.inst(c) && (qf.bits&qOpen != 0 || !r.above(qf.cast))
+	if !r.inst(c) {
+		return false
+	}
+	if qf.bits&qOpen != 0 {
+		return true
+	}
+	f := qf.cast
+	if f != 0 && !r.modLive() && r.red > 0 {
+		f -= uint8(min(r.red, int(qf.gen)))
+	}
+	if r.above(f) {
+		return false
+	}
+	return !r.colShort(&r.k.t.Cards[c].Cost.Pips)
+}
+
+// colShort reports whether some coloured pip count is above every mana of
+// that colour the seat could make (the bound read; no cost static live).
+func (r *quietRead) colShort(pips *[kop.NumManaKinds]uint8) bool {
+	if !r.haveB || r.mod || r.bound >= int(quietInf) {
+		return false
+	}
+	for c, n := range pips {
+		if int(n) > r.col[c] {
+			r.why = qwColour
+			return true
+		}
+	}
+	return false
 }
 
 // handLoud: a hand cast of a plain card (one cast route: no kicker, optional
@@ -545,9 +730,22 @@ func (r *quietRead) handLoud(c CardID, o Obj) bool {
 		return false
 	}
 	if r.k.quietCard[c].bits&(qOpen|qPlain) != qPlain || r.k.anyOffGrant || r.modLive() {
+		switch {
+		case r.k.quietCard[c].bits&qOpen != 0:
+			r.why = qwOpen
+		case r.modLive():
+			r.why = qwMod
+			if r.s.anyEmb() {
+				r.why = qwEmblem
+			}
+		}
 		return true
 	}
-	return r.s.spellTargetsFeasibleFrom(r.k, c, r.p, o)
+	if r.s.spellTargetsFeasibleFrom(r.k, c, r.p, o) {
+		r.why = qwTargets
+		return true
+	}
+	return false
 }
 
 // hand is the hand's and the command zone's routes.
@@ -564,6 +762,7 @@ func (r *quietRead) hand() uint8 {
 			return qbHandAb
 		}
 		if !k.cards[c].land && r.handLoud(c, pl.hand[i]) {
+			r.card = c
 			return qbHand
 		}
 	}
@@ -661,7 +860,8 @@ func (r *quietRead) battle() uint8 {
 	for m := s.ctrlM[r.p]; m.any(); m = m.rest() {
 		sl := m.first()
 		qf := &k.quietCard[s.cardAt(sl)]
-		if !r.above(qf.bfAny) || s.perms[sl].flags&pfTapped == 0 && !r.above(qf.bfTap) {
+		if (!r.above(qf.bfAny) || s.perms[sl].flags&pfTapped == 0 && !r.above(qf.bfTap)) && r.bfLive(sl) {
+			r.card = s.cardAt(sl)
 			return qbBattle
 		}
 		if g != nil && g.anyFaceDown && s.faceDown(k, sl) {
@@ -669,6 +869,71 @@ func (r *quietRead) battle() uint8 {
 		}
 	}
 	return qbNone
+}
+
+// bfLive is the battlefield read ability by ability, for a permanent whose
+// least floor is within the bound: an own non-sorcery activated ability is
+// offered only through canActivate (activateOffers, and the script walk's
+// nested walks), so each of canActivate's census-free gates is a necessary
+// condition: the floor and its colours within the bound, an untapped and
+// unsick source for {T}, the counters a removal costs, the ability's gate,
+// and a feasible target.
+func (r *quietRead) bfLive(sl Slot) bool {
+	s, k := r.s, r.k
+	pm := &s.perms[sl]
+	cd := &k.t.Cards[s.cardAt(sl)]
+	for i := range cd.Abilities {
+		a := &cd.Abilities[i]
+		if a.Kind != kop.AbActivated || k.gen != nil && !ownActivatable(a) || k.quietTF.sorcOnly(a) {
+			continue
+		}
+		fl := quietAbFloor(a)
+		if r.above(fl) || fl != 0 && r.colShort(&a.Cost.Mana.Pips) {
+			continue
+		}
+		f := a.Cost.Flags
+		if f&kop.CostTap != 0 && (pm.flags&pfTapped != 0 || s.activationSick(k, sl)) {
+			continue
+		}
+		if f&kop.CostTap != 0 && fl != 0 && r.ownTapFunds(sl, fl) {
+			continue // the source's own tap cannot fund its {T} ability's mana (abilityAffords)
+		}
+		if f&kop.CostRemoveCtr != 0 && pm.ctrN(s, int(a.Cost.Ctr)) < int(a.Cost.N) {
+			continue
+		}
+		if f&kop.CostSac != 0 && s.countCostSac(k, pm.ctrl, &a.Cost, sl) < int(a.Cost.N) {
+			continue
+		}
+		if f&kop.CostOncePerTurn != 0 && i < 8 && pm.actUsed&(1<<i) != 0 {
+			continue
+		}
+		if a.Trig.Cond != 0 && !s.activateCondHolds(k, sl, a) {
+			continue
+		}
+		if k.anyGate && !s.gateOK(sl, a) {
+			continue
+		}
+		if !(a.Cost.Mana.X == 0 && announcedCountX(k, &a.Cost)) && !s.abilityTargetsFeasible(k, a, pm.ctrl, sl, 0xff) {
+			continue
+		}
+		r.why = qwUnder
+		if fl == 0 {
+			r.why = qwZero
+		}
+		return true
+	}
+	return false
+}
+
+// ownTapFunds reports whether floor fl is above the bound less what the
+// untapped source at sl itself counted for one {T}: an ability that taps
+// its source cannot spend that tap's mana.
+func (r *quietRead) ownTapFunds(sl Slot, fl uint8) bool {
+	if r.bound >= int(quietInf) || r.mod {
+		return false
+	}
+	own := int(r.k.quietCard[r.s.cardAt(sl)].mtap)
+	return int(fl) > r.bound-own
 }
 
 // grants: a granted body is a latent ability of a grant's source: a
@@ -703,6 +968,22 @@ func (r *quietRead) grants() uint8 {
 		}
 	}
 	return qbNone
+}
+
+// quietModSource reports the first live cost-modifying static to f (verify).
+func (s *State) quietModSource(k *prep, f func(string, kop.StaticKind)) {
+	for m := s.statM; m.any(); m = m.rest() {
+		c := s.cardAt(m.first())
+		if k.quietCard[c].bits&qMod == 0 {
+			continue
+		}
+		for i := range k.t.Cards[c].Abilities {
+			if a := &k.t.Cards[c].Abilities[i]; a.Kind == kop.AbStatic && (!quietHarmless(a.Static.Kind) || a.Static.Kind == kop.StatMayPlayFrom) {
+				f(k.t.Cards[c].Name, a.Static.Kind)
+				return
+			}
+		}
+	}
 }
 
 // priorityArm is stepRaw's posed priority options: pass alone for a seat the
@@ -744,8 +1025,16 @@ type QuietStats struct {
 	Mismatch, StateDiff uint64
 	// MemoOnly: proved windows whose walk rewrote only the fbp memo.
 	MemoOnly uint64
-	// Blocker: pass-only windows the proof did not prove, by first blocker.
+	// Blocker: pass-only windows the proof did not prove, by first blocker;
+	// Why: the same by first blocker and why its floor read failed.
 	Blocker [qbN]uint64
+	Why     [qbN][qwN]uint64
+	// OnMod, when set, is told the first cost-modifying static (its card
+	// and kind) behind each pass-only window a live modifier left unproved.
+	OnMod func(card string, kind kop.StaticKind)
+	// OnBlock, when set, is told each unproved window's blocker, why, the
+	// blocking card (hand and battlefield blockers) and the mana bound.
+	OnBlock func(s *State, b, why uint8, card string, bound int)
 	// Panic: a mismatch panics (tests) instead of only counting.
 	Panic bool
 	// First names the first mismatch.
@@ -776,7 +1065,7 @@ func (s *State) quietShadow(k *prep, d *Decision) {
 // quietVerify is the priority arm's walk under DebugQuietVerify.
 func (s *State) quietVerify(k *prep, d *Decision, st *QuietStats) {
 	p := s.prio
-	b := s.quietBlocker(k, p)
+	b, why := s.quietBlockerWhy(k, p)
 	fb0 := s.g.fbp
 	h0 := s.gameHash()
 	s.priorityOptions(k, d)
@@ -792,6 +1081,10 @@ func (s *State) quietVerify(k *prep, d *Decision, st *QuietStats) {
 	if b != qbNone {
 		if pass {
 			st.Blocker[b]++
+			st.Why[b][why]++
+			if why == qwMod && st.OnMod != nil {
+				s.quietModSource(k, st.OnMod)
+			}
 		}
 		return
 	}
