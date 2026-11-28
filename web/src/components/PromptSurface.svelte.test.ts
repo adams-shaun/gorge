@@ -486,6 +486,15 @@ describe('the arrange modal preview', () => {
     const preview = page.locator('[data-arrange-preview]');
     const oracle = preview.locator('[data-arrange-preview-oracle]');
 
+    // The open click leaves the pointer where the modal's face rows now are.
+    // Chromium hovers whatever face appears under a cursor that has not moved,
+    // and it does so on a timer, so under load that pointerenter can land
+    // after the focus below and move the preview to another card. Card B's
+    // held lookup then never resolves. Park the pointer off every face so
+    // keyboard focus is the only input.
+    await page.mouse.move(5, 5);
+    expect(await page.evaluate(() => document.elementFromPoint(5, 5)?.closest('[data-arrange-keep-card]') ?? null)).toBeNull();
+
     // Resolve A first, then move keyboard focus directly to B. B's art/name
     // change immediately while its request remains deliberately unresolved.
     await page.locator('[data-arrange-keep-card="0"] button.face').focus();
