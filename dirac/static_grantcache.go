@@ -71,8 +71,8 @@ func (g *grCache) next() {
 func (s *State) grantedCached(k *prep, sl Slot, f func(c CardID, ab uint8, n int)) {
 	p := s.pool
 	if p == nil {
-		p = new(ForkPool)
-		s.pool = p
+		s.grantedAbilitiesWalk(k, sl, nil, f) // no pool yet: the cache never allocates one
+		return
 	}
 	m := &p.tyc
 	if DebugTyCacheOff || m.hold != 0 || p.inFilt != 0 || p.census {
