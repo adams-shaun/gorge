@@ -11,8 +11,9 @@ cluster-scoped except the namespace itself.
 | PVC `data` (2Gi) | gorged's persistence, `/data` |
 | PVC `cards` (4Gi) | the Forge card scripts, `/cards`, fetched on first start (GPL-3.0, never in the image; a few minutes) |
 | PVC `carddb` (1Gi) | a copy of carddb, mounted read-only at `/carddb` |
+| PVC `art` | card art cache, `/art` |
 | HTTPRoute `gorged` | on gateway `eg` (namespace `envoy-gateway-system`, listener `http`), hosts `master-edh.net` and `www.master-edh.net`, open to everyone; a `BackendTrafficPolicy` lifts the request timeout to 1h for the server-sent event streams |
-| `emptyDir` | `/art` (card art cache), `/feedback` |
+| `emptyDir` | `/feedback` |
 
 The Deployment passes the full gorged command as `args` (it replaces the image `CMD`): four
 Commander tables of four seats, plus play-vs-bot, draft events and the ManaBrew routes.
@@ -24,11 +25,15 @@ since gorged has no dedicated health route. The startup probe allows 15 minutes 
 
 ```sh
 kubectl --context k3d-bm apply -k deploy/k8s            # image tag from kustomization.yaml (latest)
+# Deploy the daily image's dated tag (daily-image.yml) instead of :latest:
+kubectl kustomize deploy/k8s | sed 's|\(image: ghcr.io/adams-shaun/gorge\):latest|\1:2026-11-27|' | kubectl --context k3d-bm apply -f -
 kubectl --context k3d-bm -n gorge port-forward svc/gorged 8080:8080
 ```
 
 The image name is set once, under `images:` in `kustomization.yaml`; change it there if
-the repository variable `IMAGE_NAME` does. A private GHCR package needs an `imagePullSecret`.
+the repository variable `IMAGE_NAME` does. `imagePullPolicy: Always` makes a restart re-pull the
+tag, so a dated tag is what keeps a restart from changing the build. A private GHCR package needs
+an `imagePullSecret`.
 
 ## Reaching it from outside
 

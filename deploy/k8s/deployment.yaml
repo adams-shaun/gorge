@@ -21,8 +21,9 @@ spec:
         fsGroup: 10001
       containers:
         - name: gorged
-          # The name is rewritten by kustomization.yaml (images:); gorge-pod.sh up sets the tag.
+          # kustomization.yaml (images:) owns the name and tag. Deploy a dated tag; :latest is the fallback.
           image: ghcr.io/adams-shaun/gorge:latest
+          imagePullPolicy: Always
           args:
             - gorged
             - -addr=:8080
