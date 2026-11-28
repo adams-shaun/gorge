@@ -1,12 +1,12 @@
 {
   "card": "Phyrexian Altar",
   "class": "options-options",
-  "why": "gorge's payment planner prices a sacrifice-another-creature mana source as a last-resort step (pay/planshape.go, victims ranked tokens first, then lowest mana value, then id) and offers every cast it alone makes payable, with the victims in the plan; dirac's planner has no such source tier, so it withholds those casts (and, on the full surface, differs in what the plan sacrifices) (tail-68 pair 4)",
+  "why": "gorge's payment planner prices a sacrifice-another-creature mana source as a last-resort step (pay/planshape.go, victims ranked tokens first, then lowest mana value, then id) and offers every cast it alone makes payable, with the victims in the plan; dirac's planner has no such source tier, so it withholds those casts (and, on the full surface, differs in what the plan sacrifices) (tail-68 pair 91 of the seed 3 Phyrexian Altar focus run: gorge offers Bombadil's Song through the altar and dirac does not)",
   "repro": {
     "pool": "custom",
     "surface": "autopay",
-    "seed": 2615056047451405437,
-    "pair": 4,
+    "seed": 6229399654074409452,
+    "pair": 91,
     "policy": "random",
     "mulligans": 1,
     "file": "phyrexian_altar_other_sacrifice_plan"
