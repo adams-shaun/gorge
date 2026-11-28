@@ -11,7 +11,8 @@ into an IR; the engine implements the primitives that IR references. See
 
 - `engine/`: the rules core (`cards state decision events effects rules view
   replay eventdiff deck`, `game` and its `gorgegame`, the seam a host runs an
-  engine through, and `seat`, the `Seat` contract only). Imports nothing outside.
+  engine through, `seat`, the `Seat` contract only, and `cardc`, the typed card
+  interface no game-playing package imports yet). Imports nothing outside.
 - `dirac/`: the second engine, in lockstep with `engine/`, built for machine
   learning (kernel, `kop`, `kgen`, `oracle`, `adapter`, `lab`, `manifest` and more).
   The core imports nothing outside `dirac/`; nothing in `engine/` imports it.
