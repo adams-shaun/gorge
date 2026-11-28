@@ -871,6 +871,18 @@ components:
         - "valid"
       type: "object"
       x-go-type: "github.com/adams-shaun/gorge/server/protocol.DeckCheck"
+    DeckCheckRequest:
+      description: "DeckCheckRequest is POST /api/decks/check's body: one deck, as ManaBrew deck JSON in Deck or a plain-text decklist in Text (exactly one), checked for Format (\"commander\" when omitted, or \"constructed\"). Substitute is accepted and ignored for now."
+      properties:
+        deck: {}
+        format:
+          type: "string"
+        substitute:
+          type: "boolean"
+        text:
+          type: "string"
+      type: "object"
+      x-go-type: "github.com/adams-shaun/gorge/server/host/httpapi.DeckCheckRequest"
     DeckInfo:
       description: "DeckInfo is one selectable deck loaded by the server. Format is the game format used by CreateGame (not free-form authoring metadata), so the client can filter the catalogue without reproducing the server's pool rules."
       properties:
@@ -925,6 +937,95 @@ components:
         - "wins"
       type: "object"
       x-go-type: "github.com/adams-shaun/gorge/server/protocol.DeckRecord"
+    DeckReport:
+      description: "DeckReport is POST /api/decks/check's answer, and the deck field of a refused POST /api/games: what the server found in a submitted deck. Every field is computed on the server; every list is empty, never null."
+      properties:
+        cards:
+          format: "int64"
+          type: "integer"
+        commanders:
+          items:
+            type: "string"
+          type:
+            - "array"
+            - "null"
+        engine:
+          type: "string"
+        format:
+          type: "string"
+        identity:
+          description: "Identity is the deck's colour identity as a subset of WUBRG, in that order: the commanders' for a commander deck, every resolved card's for a constructed one."
+          type: "string"
+        legal:
+          description: "Legal is no Problems and no Unknown names."
+          type: "boolean"
+        name:
+          type: "string"
+        playable:
+          description: "Playable is Legal and no Unsupported card."
+          type: "boolean"
+        problems:
+          description: "Problems is one line per construction violation."
+          items:
+            type: "string"
+          type:
+            - "array"
+            - "null"
+        substituted:
+          items:
+            $ref: "#/components/schemas/DeckSubstitution"
+          type:
+            - "array"
+            - "null"
+        unknown:
+          description: "Unknown is the names the card pool does not hold, first-seen order."
+          items:
+            type: "string"
+          type:
+            - "array"
+            - "null"
+        unsupported:
+          description: "Unsupported is every resolved card the engine cannot fully play, sorted by name."
+          items:
+            $ref: "#/components/schemas/DeckReportCard"
+          type:
+            - "array"
+            - "null"
+      required:
+        - "cards"
+        - "commanders"
+        - "engine"
+        - "format"
+        - "identity"
+        - "legal"
+        - "name"
+        - "playable"
+        - "problems"
+        - "substituted"
+        - "unknown"
+        - "unsupported"
+      type: "object"
+      x-go-type: "github.com/adams-shaun/gorge/server/protocol.DeckReport"
+    DeckReportCard:
+      description: "DeckReportCard is one card a deck carries that the engine cannot play: its copies in the deck and the primitives it needs."
+      properties:
+        count:
+          format: "int64"
+          type: "integer"
+        name:
+          type: "string"
+        needs:
+          items:
+            type: "string"
+          type:
+            - "array"
+            - "null"
+      required:
+        - "count"
+        - "name"
+        - "needs"
+      type: "object"
+      x-go-type: "github.com/adams-shaun/gorge/server/protocol.DeckReportCard"
     DeckRequest:
       description: "DeckRequest is a seat's deck list: maindeck CardRef IDs from its own pool plus basic-land counts (W U B R G). It is also DeckPool's saved-deck and suggestion shape."
       properties:
@@ -951,6 +1052,22 @@ components:
         - "main"
       type: "object"
       x-go-type: "github.com/adams-shaun/gorge/server/protocol.DeckRequest"
+    DeckSubstitution:
+      description: "DeckSubstitution is one card swapped for another in a checked deck."
+      properties:
+        count:
+          format: "int64"
+          type: "integer"
+        in:
+          type: "string"
+        out:
+          type: "string"
+      required:
+        - "count"
+        - "in"
+        - "out"
+      type: "object"
+      x-go-type: "github.com/adams-shaun/gorge/server/protocol.DeckSubstitution"
     DeckTally:
       description: "DeckTally is the GET /api/stats/decks body."
       properties:
@@ -1089,6 +1206,9 @@ components:
       properties:
         code:
           type: "string"
+        deck:
+          $ref: "#/components/schemas/DeckReport"
+          description: "Deck is set only on a deck_refused reply: the report on the first submitted deck the server refused."
         head:
           format: "uint64"
           minimum: 0
@@ -3469,6 +3589,65 @@ paths:
       summary: "List the deck catalogue"
       tags:
         - "lobby"
+  "/api/decks/check":
+    post:
+      description: "Reports on one submitted deck without creating a table: its size, commanders and colour identity, every construction problem, the names the card pool does not hold, and every card this server's engine cannot play, by name. The body names exactly one of `deck` (ManaBrew deck JSON) and `text` (a plain-text decklist, at most 65536 bytes); `format` is `commander` (the default) or `constructed`; the whole body is at most 524288 bytes. Every field of the report is computed on the server. Under -engine dirac the report is never playable. With -deck-demand-log each check appends the unsupported card names (and the UTC day) to the server's demand log."
+      operationId: "checkDeck"
+      requestBody:
+        content:
+          "application/json":
+            examples:
+              text:
+                summary: "a plain-text Commander list"
+                value:
+                  format: "commander"
+                  text: "Commander\n1 Ghoulcaller Gisa\n\n1 Sol Ring\n"
+            schema:
+              $ref: "#/components/schemas/DeckCheckRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            "application/json":
+              examples:
+                illegal:
+                  summary: "an off-identity card and a misspelt name"
+                  value:
+                    cards: 100
+                    commanders:
+                      - "Ghoulcaller Gisa"
+                    engine: "gorge"
+                    format: "commander"
+                    identity: "B"
+                    legal: false
+                    name: ""
+                    playable: false
+                    problems:
+                      - "card \"Lightning Bolt\" has colour identity {red}, outside commander \"Ghoulcaller Gisa\"'s {black}"
+                    substituted: []
+                    unknown:
+                      - "Sol Rnig"
+                    unsupported: []
+              schema:
+                $ref: "#/components/schemas/DeckReport"
+          description: "The report, legal or not."
+        "400":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorBody"
+          description: "Malformed JSON, both or neither of deck and text, an unknown format, a text line the parser rejects (the message names its line), or text over 65536 bytes."
+        "404":
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorBody"
+          description: "This server has no deck import."
+        "405":
+          $ref: "#/components/responses/MethodNotAllowed"
+      summary: "Check a deck"
+      tags:
+        - "games"
   "/api/events":
     get:
       description: "Every event's public state."
@@ -4245,7 +4424,7 @@ paths:
                     message: "bots: unknown bot policy \"nope\" (known: bot, lethal-pressure, az-redeal, forge-heuristic, sb-tactical)"
               schema:
                 $ref: "#/components/schemas/ErrorBody"
-          description: "Unknown format, deck or policy, mulligans outside 0..6, or the builder refused."
+          description: "Unknown format, deck or policy, mulligans outside 0..6, or the builder refused. A refused submitted deck answers `code` `deck_refused` with `deck`, the report POST /api/decks/check gives, for the first refused seat."
         "404":
           content:
             "application/json":

@@ -3,6 +3,7 @@ package httpapi
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -688,9 +689,70 @@ func (h *handler) games(w http.ResponseWriter, r *http.Request) {
 		Format: format, HumanDeck: req.HumanDeck, BotDeck: req.BotDeck, BotPolicy: req.BotPolicy, Mulligans: req.Mulligans, PairedBot: req.PairedBot,
 		Seats: seats, Humans: humans, Decks: req.Decks,
 	})
+	var refused DeckRefused
+	if errors.As(err, &refused) {
+		rep := refused.Report
+		writeJSON(w, http.StatusBadRequest, protocol.ErrorBody{Code: "deck_refused", Message: err.Error(), Deck: &rep})
+		return
+	}
 	if err != nil {
 		writeError(w, http.StatusBadRequest, "bad_request", err.Error())
 		return
 	}
 	writeJSON(w, http.StatusOK, resp)
+}
+
+// DeckCheckRequest is POST /api/decks/check's body: one deck, as ManaBrew
+// deck JSON in Deck or a plain-text decklist in Text (exactly one), checked
+// for Format ("commander" when omitted, or "constructed"). Substitute is
+// accepted and ignored for now.
+type DeckCheckRequest struct {
+	Format     string          `json:"format,omitempty"`
+	Deck       json.RawMessage `json:"deck,omitempty"`
+	Text       string          `json:"text,omitempty"`
+	Substitute bool            `json:"substitute,omitempty"`
+}
+
+// maxDeckCheckBody bounds POST /api/decks/check: one deck.
+const maxDeckCheckBody = 512 << 10
+
+// DeckRefused is the error a CreateGame builder returns for a submitted deck
+// it refuses: POST /api/games answers it 400 deck_refused with Msg as the
+// message and Report as the body's deck.
+type DeckRefused struct {
+	Report protocol.DeckReport
+	Msg    string
+}
+
+func (e DeckRefused) Error() string { return e.Msg }
+
+// deckCheck reports on one submitted deck. The handler checks the request's
+// shape; the report itself is Options.CheckDeck's.
+func (h *handler) deckCheck(w http.ResponseWriter, r *http.Request) {
+	if h.opts.CheckDeck == nil {
+		writeError(w, http.StatusNotFound, "not_found", "deck import is not enabled on this server")
+		return
+	}
+	var req DeckCheckRequest
+	if !decodeBodyMax(w, r, &req, maxDeckCheckBody) {
+		return
+	}
+	hasDeck := len(req.Deck) > 0 && string(req.Deck) != "null"
+	switch {
+	case hasDeck == (req.Text != ""):
+		writeError(w, http.StatusBadRequest, "bad_request", "give exactly one of deck and text")
+		return
+	case len(req.Text) > maxDeckTextBytes:
+		writeError(w, http.StatusBadRequest, "bad_request", fmt.Sprintf("text is over %d bytes", maxDeckTextBytes))
+		return
+	case req.Format != "" && req.Format != host.FormatCommander.String() && req.Format != host.FormatConstructed.String():
+		writeError(w, http.StatusBadRequest, "bad_request", fmt.Sprintf("format %q, want commander or constructed", req.Format))
+		return
+	}
+	rep, err := h.opts.CheckDeck(req)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "bad_request", err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, rep)
 }

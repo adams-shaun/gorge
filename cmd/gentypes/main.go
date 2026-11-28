@@ -28,7 +28,7 @@ func Render() (string, error) {
 		{protoPkg, "Snapshot"}, {protoPkg, "Event"}, {protoPkg, "EventBody"},
 		{protoPkg, "DecisionBody"}, {protoPkg, "MatchEnd"}, {protoPkg, "TableHaltedBody"},
 		{protoPkg, "TableStateBody"},
-		{protoPkg, "Overflow"}, {protoPkg, "ErrorBody"}, {protoPkg, "MatchInfo"},
+		{protoPkg, "Overflow"}, {protoPkg, "ErrorBody"}, {protoPkg, "MatchInfo"}, {protoPkg, "DeckReport"},
 		{protoPkg, "Subscribe"}, {protoPkg, "Unsubscribe"},
 		{protoPkg, "BotPolicyList"}, {protoPkg, "Capabilities"},
 		// Draft-event wire types. The four frame bodies are roots;

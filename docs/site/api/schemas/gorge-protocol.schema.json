@@ -983,6 +983,23 @@
       "type": "object",
       "x-go-type": "github.com/adams-shaun/gorge/server/protocol.DeckCheck"
     },
+    "DeckCheckRequest": {
+      "description": "DeckCheckRequest is POST /api/decks/check's body: one deck, as ManaBrew deck JSON in Deck or a plain-text decklist in Text (exactly one), checked for Format (\"commander\" when omitted, or \"constructed\"). Substitute is accepted and ignored for now.",
+      "properties": {
+        "deck": {},
+        "format": {
+          "type": "string"
+        },
+        "substitute": {
+          "type": "boolean"
+        },
+        "text": {
+          "type": "string"
+        }
+      },
+      "type": "object",
+      "x-go-type": "github.com/adams-shaun/gorge/server/host/httpapi.DeckCheckRequest"
+    },
     "DeckInfo": {
       "description": "DeckInfo is one selectable deck loaded by the server. Format is the game format used by CreateGame (not free-form authoring metadata), so the client can filter the catalogue without reproducing the server's pool rules.",
       "properties": {
@@ -1056,6 +1073,128 @@
       "type": "object",
       "x-go-type": "github.com/adams-shaun/gorge/server/protocol.DeckRecord"
     },
+    "DeckReport": {
+      "description": "DeckReport is POST /api/decks/check's answer, and the deck field of a refused POST /api/games: what the server found in a submitted deck. Every field is computed on the server; every list is empty, never null.",
+      "properties": {
+        "cards": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "commanders": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "engine": {
+          "type": "string"
+        },
+        "format": {
+          "type": "string"
+        },
+        "identity": {
+          "description": "Identity is the deck's colour identity as a subset of WUBRG, in that order: the commanders' for a commander deck, every resolved card's for a constructed one.",
+          "type": "string"
+        },
+        "legal": {
+          "description": "Legal is no Problems and no Unknown names.",
+          "type": "boolean"
+        },
+        "name": {
+          "type": "string"
+        },
+        "playable": {
+          "description": "Playable is Legal and no Unsupported card.",
+          "type": "boolean"
+        },
+        "problems": {
+          "description": "Problems is one line per construction violation.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "substituted": {
+          "items": {
+            "$ref": "#/$defs/DeckSubstitution"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "unknown": {
+          "description": "Unknown is the names the card pool does not hold, first-seen order.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "unsupported": {
+          "description": "Unsupported is every resolved card the engine cannot fully play, sorted by name.",
+          "items": {
+            "$ref": "#/$defs/DeckReportCard"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "cards",
+        "commanders",
+        "engine",
+        "format",
+        "identity",
+        "legal",
+        "name",
+        "playable",
+        "problems",
+        "substituted",
+        "unknown",
+        "unsupported"
+      ],
+      "type": "object",
+      "x-go-type": "github.com/adams-shaun/gorge/server/protocol.DeckReport"
+    },
+    "DeckReportCard": {
+      "description": "DeckReportCard is one card a deck carries that the engine cannot play: its copies in the deck and the primitives it needs.",
+      "properties": {
+        "count": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "name": {
+          "type": "string"
+        },
+        "needs": {
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "count",
+        "name",
+        "needs"
+      ],
+      "type": "object",
+      "x-go-type": "github.com/adams-shaun/gorge/server/protocol.DeckReportCard"
+    },
     "DeckRequest": {
       "description": "DeckRequest is a seat's deck list: maindeck CardRef IDs from its own pool plus basic-land counts (W U B R G). It is also DeckPool's saved-deck and suggestion shape.",
       "properties": {
@@ -1091,6 +1230,28 @@
       ],
       "type": "object",
       "x-go-type": "github.com/adams-shaun/gorge/server/protocol.DeckRequest"
+    },
+    "DeckSubstitution": {
+      "description": "DeckSubstitution is one card swapped for another in a checked deck.",
+      "properties": {
+        "count": {
+          "format": "int64",
+          "type": "integer"
+        },
+        "in": {
+          "type": "string"
+        },
+        "out": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "count",
+        "in",
+        "out"
+      ],
+      "type": "object",
+      "x-go-type": "github.com/adams-shaun/gorge/server/protocol.DeckSubstitution"
     },
     "DeckTally": {
       "description": "DeckTally is the GET /api/stats/decks body.",
@@ -1286,6 +1447,10 @@
       "properties": {
         "code": {
           "type": "string"
+        },
+        "deck": {
+          "$ref": "#/$defs/DeckReport",
+          "description": "Deck is set only on a deck_refused reply: the report on the first submitted deck the server refused."
         },
         "head": {
           "format": "uint64",

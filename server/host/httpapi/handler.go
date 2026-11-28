@@ -72,6 +72,10 @@ type Options struct {
 	// answers the JSON 404 like any path the handler does not serve and the
 	// live mux carries no extra pattern.
 	Decisions func(t host.TableID, k int) ([]protocol.ReviewDecision, error)
+	// CheckDeck, when non-nil, arms POST /api/decks/check: it reports on a
+	// submitted deck without creating a table. An error is a 400. nil -- a
+	// server without deck import -- answers the route 404.
+	CheckDeck func(DeckCheckRequest) (protocol.DeckReport, error)
 }
 
 func (o Options) withDefaults() Options {
@@ -118,13 +122,14 @@ func newHandler(r *host.Registry, o Options) (*handler, http.Handler) {
 	mux.HandleFunc("POST /api/subscribe", h.subscribe)
 	mux.HandleFunc("POST /api/unsubscribe", h.unsubscribe)
 	mux.HandleFunc("POST /api/games", h.games)
+	mux.HandleFunc("POST /api/decks/check", h.deckCheck)
 	// Method-less twins of every API pattern: the mux prefers the
 	// method-specific pattern, so these only ever see the wrong method and
 	// answer 405 in JSON rather than the mux's default text body.
 	for _, p := range []string{"/api/tables", "/api/decks", "/api/bot-policies", "/api/capabilities", "/api/stats/decks", "/api/tables/{t}/matches", "/api/tables/{t}/matches/{k}/view",
 		"/api/tables/{t}/matches/{k}/events", "/api/tables/{t}/matches/{k}/pending", "/api/tables/{t}/matches/{k}/intent",
 		"/api/tables/{t}/matches/{k}/undo", "/api/tables/{t}/paired-bot", "/api/tables/{t}/matches/{k}/advice",
-		"/api/subscribe", "/api/unsubscribe", "/api/games", "/api/stream"} {
+		"/api/subscribe", "/api/unsubscribe", "/api/games", "/api/decks/check", "/api/stream"} {
 		mux.HandleFunc(p, methodNotAllowed)
 	}
 	mux.HandleFunc("/api/", func(w http.ResponseWriter, r *http.Request) {

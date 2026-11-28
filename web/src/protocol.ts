@@ -1924,6 +1924,66 @@ export interface Overflow {
 }
 
   /**
+   * DeckReportCard is one card a deck carries that the engine cannot play:
+   * its copies in the deck and the primitives it needs.
+   */
+export interface DeckReportCard {
+  name: string;
+  count: number;
+  needs: string[];
+}
+
+  /**
+   * DeckSubstitution is one card swapped for another in a checked deck.
+   */
+export interface DeckSubstitution {
+  out: string;
+  in: string;
+  count: number;
+}
+
+  /**
+   * DeckReport is POST /api/decks/check's answer, and the deck field of a
+   * refused POST /api/games: what the server found in a submitted deck. Every
+   * field is computed on the server; every list is empty, never null.
+   */
+export interface DeckReport {
+  name: string;
+  format: string;
+  engine: string;
+  cards: number;
+  commanders: string[];
+  /**
+   * Identity is the deck's colour identity as a subset of WUBRG, in that
+   * order: the commanders' for a commander deck, every resolved card's for
+   * a constructed one.
+   */
+  identity: string;
+  /**
+   * Legal is no Problems and no Unknown names.
+   */
+  legal: boolean;
+  /**
+   * Problems is one line per construction violation.
+   */
+  problems: string[];
+  /**
+   * Unknown is the names the card pool does not hold, first-seen order.
+   */
+  unknown: string[];
+  /**
+   * Unsupported is every resolved card the engine cannot fully play,
+   * sorted by name.
+   */
+  unsupported: DeckReportCard[];
+  substituted: DeckSubstitution[];
+  /**
+   * Playable is Legal and no Unsupported card.
+   */
+  playable: boolean;
+}
+
+  /**
    * ErrorBody is every error reply and the error frame. Head is set only on
    * a 409 "seq beyond head" reply: the last valid seq, so a client can clamp.
    */
@@ -1931,6 +1991,11 @@ export interface ErrorBody {
   code: string;
   message: string;
   head?: number;
+  /**
+   * Deck is set only on a deck_refused reply: the report on the first
+   * submitted deck the server refused.
+   */
+  deck?: DeckReport | null;
 }
 
   /**
