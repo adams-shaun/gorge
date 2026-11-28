@@ -65,7 +65,11 @@ func prepManaGate(g *genPrep, c *kop.CardDef, id CardID, pc *pcard) {
 			gj = j
 		}
 	}
-	if gj < 0 || g.has(id, gfManaVar) {
+	if gj < 0 || g.has(id, gfManaVar) || g.has(id, gfGapOther) && comboAnyMana(&c.Abilities[gj]) {
+		// A gated Combo Any gap (Vivi Ornitier's PlayerTurn$ {0} ability)
+		// reads its Trig.Cond per activation in caGapLive; the gate views
+		// here would build a dynamic pcard with no mana ability (gen.go
+		// sets manaAb -1 for a dynamic gap).
 		return
 	}
 	off, on := noManaPC, *pc

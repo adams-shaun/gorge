@@ -2707,9 +2707,10 @@ func (s *State) grantGapGain(k *prep, sl Slot, pc *pcard, d *payDesc, cen *potCe
 // availPotentialFor's fixpoint. An intrinsic view (manaIntrinsic, blgView) is
 // the granted basic land type's unit and marks no ability: the card's own
 // rider is the walk's admission below (potentialManaFor counts the printed
-// abilities beside the appended intrinsics, CR 305.6, 605.3b).
-func markCensusAbDone(pc *pcard, sl Slot, done *[MaxPerm]uint16) {
-	if pc.manaAb >= 0 && !pc.manaIntrinsic {
+// abilities beside the appended intrinsics, CR 305.6, 605.3b). A granted view
+// over a finite Combo source marks none either (finiteComboGrantView).
+func markCensusAbDone(k *prep, c CardID, pc *pcard, sl Slot, done *[MaxPerm]uint16) {
+	if pc.manaAb >= 0 && !pc.manaIntrinsic && !k.finiteComboGrantView(c, pc) {
 		done[sl] = 1 << pc.manaAb
 	}
 }
@@ -2802,7 +2803,7 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 			}
 			continue
 		}
-		markCensusAbDone(pc, sl, &done)
+		markCensusAbDone(k, s.cardAt(sl), pc, sl, &done)
 		// any view of a reflected Amount$ source: a granted ability adds to the
 		// object's abilities, so the printed reflected one stays activatable too
 		// (CR 113.10); a no-op for any other source
@@ -2965,6 +2966,18 @@ func (s *State) availPotentialFor(k *prep, p uint8, a *avail, d *payDesc, bounde
 				}
 				done[sl] |= 1 << j
 				progressed = true
+				if kop.SacReflManaAb(ab) {
+					// A sacrifice-reflected source makes one of the victim's
+					// own symbols: the bounded walk prices the union of its
+					// candidates once, as gorge's PotentialMana fold does
+					// (rules payment_plan_reflected.go addPotentialReflectedSacrifice).
+					// The first-ability tap branch above skips it (it has no
+					// {T} and no printed colour).
+					if m := s.sacReflUnion(k, p, sl, ab); m != 0 {
+						add(sl, m, 1)
+					}
+					continue
+				}
 				// the ability's own activation pain: when it reaches the
 				// life its production is no census unit, the fold keeps it
 				// (a pain-only source makes nothing there, a paid face

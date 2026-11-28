@@ -42,7 +42,7 @@ func (s *State) scriptGapAvail(k *prep, p uint8, sl Slot, a *avail) {
 		addCtrUnits(a, k.ctrAbOf(c))
 	}
 	if s.scriptTapXModelled(k, p).has(sl) {
-		addTapXUnits(a, k.tapXAbOf(c))
+		s.addTapXUnitsFor(a, k, p, sl, k.tapXAbOf(c))
 	}
 }
 

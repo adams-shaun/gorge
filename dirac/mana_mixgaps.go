@@ -252,9 +252,9 @@ func (fs *filtSearch) comboAnyOther(t *State, k *prep, sl Slot, try func(otherSt
 	if !fs.tick() {
 		return false
 	}
-	units := t.caAmount(k, sl)
-	for r, na := 0, caAnswerCount(units); r < na; r++ {
-		if try(otherStep{kind: otherComboAny, ans: uint8(caRank(units, &fs.need, r))}) {
+	units, mask := t.caAmount(k, sl), t.caMask(k, sl)
+	for r, na := 0, caAnswerCountMask(units, mask); r < na; r++ {
+		if try(otherStep{kind: otherComboAny, ans: uint8(caRankMask(units, mask, &fs.need, r))}) {
 			return true
 		}
 	}
@@ -483,38 +483,7 @@ func (fs *filtSearch) tapXGap(k *prep, t *State, sl Slot, try func(otherStep) bo
 		return fs.exileGGap(nc, &cs, colours) // the exile pick, then the colour (mana_exilegrave.go)
 	}
 	if k.sacXOf(t.cardAt(sl)) {
-		// A sacrifice-another source asks no colour: its whole production
-		// floats at once (sacXDo, gorge's commit order); only the "which
-		// permanent" ask is a node, with two or more candidates, as the
-		// tap-another search's is (mana_tapanother.go).
-		if nc > 1 && !fs.tick() {
-			return false
-		}
-		for i := 0; i < nc; i++ {
-			if tapXOwnAnswer(fs.own, cs[i], NoSlot) {
-				// The play's own {T} source as the sacrifice: gorge
-				// submits that answer and the node it reaches ends the
-				// line in leftOwnZone (potential_script.go, CR 602.2b),
-				// one node spent, ask or no ask -- the plain tap-another
-				// cost's own answers are skipped before their ask
-				// branches (tapsOwnSource) and cost none there. The
-				// search keeps its budget charged without the fork.
-				if !fs.tick() {
-					return false
-				}
-				continue
-			}
-			if kop.SacXAnyColour(k.tapXAbOf(t.cardAt(sl))) {
-				if colours(cs[i], NoSlot) { // an any-colour one asks its colour after the sacrifice
-					return true
-				}
-				continue
-			}
-			if try(otherStep{kind: otherTapX, cand: cs[i]}) { // otherDo -> tapXDo -> sacXDo
-				return true
-			}
-		}
-		return false
+		return fs.sacXGap(k, t, sl, nc, &cs, colours, try)
 	}
 	if k.tapXAbOf(t.cardAt(sl)).Cost.N == 2 {
 		// two permanents: no ask for exactly two, else one "choose 2" whose
@@ -548,6 +517,73 @@ func (fs *filtSearch) tapXGap(k *prep, t *State, sl Slot, try func(otherStep) bo
 		}
 		if colours(cs[i], NoSlot) {
 			return true
+		}
+	}
+	return false
+}
+
+// sacXGap is tapXGap's arm for a sacrifice-another source, over its nc
+// candidates cs.
+func (fs *filtSearch) sacXGap(k *prep, t *State, sl Slot, nc int, cs *[MaxPerm]Slot, colours func(a, b Slot) bool, try func(otherStep) bool) bool {
+	ab := k.tapXAbOf(t.cardAt(sl))
+	// A sacrifice-another source asks no colour: its whole production
+	// floats at once (sacXDo, gorge's commit order); only the "which
+	// permanent" ask is a node, with two or more candidates, as the
+	// tap-another search's is (mana_tapanother.go).
+	if nc > 1 && !fs.tick() {
+		return false
+	}
+	if kop.SacReflManaAb(ab) {
+		return fs.sacReflGap(k, t, nc, cs, try)
+	}
+	for i := 0; i < nc; i++ {
+		if tapXOwnAnswer(fs.own, cs[i], NoSlot) {
+			// The play's own {T} source as the sacrifice: gorge
+			// submits that answer and the node it reaches ends the
+			// line in leftOwnZone (potential_script.go, CR 602.2b),
+			// one node spent, ask or no ask -- the plain tap-another
+			// cost's own answers are skipped before their ask
+			// branches (tapsOwnSource) and cost none there. The
+			// search keeps its budget charged without the fork.
+			if !fs.tick() {
+				return false
+			}
+			continue
+		}
+		if kop.SacXAnyColour(ab) {
+			if colours(cs[i], NoSlot) { // an any-colour one asks its colour after the sacrifice
+				return true
+			}
+			continue
+		}
+		if try(otherStep{kind: otherTapX, cand: cs[i]}) { // otherDo -> tapXDo -> sacXDo
+			return true
+		}
+	}
+	return false
+}
+
+// sacReflGap is sacXGap's arm for a sacrifice-reflected source (Squandered
+// Resources): the victim's own producible symbols are the colour ask, one
+// answer per symbol in script order; a land that makes nothing adds nothing
+// (one branch, no ask).
+func (fs *filtSearch) sacReflGap(k *prep, t *State, nc int, cs *[MaxPerm]Slot, try func(otherStep) bool) bool {
+	for i := 0; i < nc; i++ {
+		var order [kop.NumManaKinds]uint8
+		ncol := sacReflAnswers(t.sacReflMask(k, cs[i]), fs.need, &order)
+		if ncol == 0 {
+			if try(otherStep{kind: otherTapX, cand: cs[i]}) {
+				return true
+			}
+			continue
+		}
+		if ncol > 1 && !fs.tick() { // the colour ask
+			return false
+		}
+		for _, col := range order[:ncol] {
+			if try(otherStep{kind: otherTapX, ans: col, cand: cs[i]}) {
+				return true
+			}
 		}
 	}
 	return false

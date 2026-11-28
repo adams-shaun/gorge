@@ -59,7 +59,7 @@ func (s *State) posePayEach(k *prep, in *kop.Instr, p uint8, kind int, skip uint
 // posePay sets the raGenPay ask for payer p (execPay's tail).
 func (s *State) posePay(k *prep, in *kop.Instr, p uint8, kind int, skip uint16, amt int) {
 	stall := uint8(0)
-	if !s.canPayGen(k, p, kind, amt, in.B.N, in.F) {
+	if !s.canPayUnlessGen(k, p, kind, amt, in.B.N, in.F) {
 		var ok bool
 		ok, stall = s.windowPays(k, p, kind, skip, amt, in.B.N)
 		if !ok {
