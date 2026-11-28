@@ -1,5 +1,5 @@
 # The typed card interface's make targets, included last from the Makefile.
-MTGISH_REF ?= 1553384c9a970a02514b337db9c86697313530e8
+MTGISH_REF ?= 4f6512cfb08500617b6304ae1b5baf131f158a12
 OGRAM_TAG ?= faces-oracle-20261112220158-s193-g0.5.0-r1
 
 .PHONY: mtgish-fetch ogram-fetch
