@@ -177,7 +177,7 @@ func TestCRDeviation607_5a(t *testing.T) {
 	e := layerEngine(t)
 	shifter := onBoard(t, e, 0, "Name:Shifter\nTypes:Creature Shapeshifter\nPT:0/1\nOracle:x\n")
 	voice := onBoard(t, e, 1, "Name:Voice\nTypes:Creature Angel\nPT:2/2\n"+
-		"K:ETBReplacement:Other:ChooseColor\nSVar:ChooseColor:DB$ ChooseColor | Defined$ You\n"+
+		"K:ETBReplacement:Other:PickHue\nSVar:PickHue:DB$ ChooseColor | Defined$ You\n"+
 		"S:Mode$ Continuous | AffectedDefined$ Self | AddKeyword$ Protection:Card.ChosenColor:chosenColor\nOracle:x\n")
 	red := onBoard(t, e, 1, "Name:Red Source\nManaCost:R\nTypes:Creature Goblin\nPT:1/1\nOracle:x\n")
 	// The shifter's earlier incarnation answered a choose-a-color prompt.
