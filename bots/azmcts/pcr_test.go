@@ -129,13 +129,18 @@ func TestPCRRootOptions(t *testing.T) {
 	})
 }
 
-// pcrOrdinals is the last pcrGame's Decision.Ordinal by event-log Seq: the
-// PCR coin folds the ordinal, and a record carries only the sequence.
-var pcrOrdinals map[uint64]uint64
-
 // pcrGame plays one recorded game of the az seat (seat 0) under sc and
 // returns its chain head, its records and its searched diags.
 func pcrGame(t *testing.T, sc SeatConfig) (string, []policynet.VisitRecord, []Diag, *Seat) {
+	t.Helper()
+	head, recs, diags, az, _ := pcrGameOrdinals(t, sc)
+	return head, recs, diags, az
+}
+
+// pcrGameOrdinals is pcrGame that also returns each decision's
+// Decision.Ordinal by event-log Seq: the PCR coin folds the ordinal, and a
+// record carries only the sequence.
+func pcrGameOrdinals(t *testing.T, sc SeatConfig) (string, []policynet.VisitRecord, []Diag, *Seat, map[uint64]uint64) {
 	t.Helper()
 	cfg := testConfig(t, "mono-red-prowess", "mono-blue-tempo", testSeed)
 	var diags []Diag
@@ -152,17 +157,17 @@ func pcrGame(t *testing.T, sc SeatConfig) (string, []policynet.VisitRecord, []Di
 	}
 	var recs []policynet.VisitRecord
 	az.SetRecorder(func(r policynet.VisitRecord) { recs = append(recs, r) })
-	pcrOrdinals = map[uint64]uint64{}
+	ordinals := map[uint64]uint64{}
 	_, e, err := gbench.PlayGame(cfg, []seat.Seat{az, heuristic.NewBot(cfg.Seed ^ 2)}, 200, 300, gbench.Hooks{
 		Decision: func(_ int, d *decision.Decision, _ decision.Intent, _ *botpolicy.Board) error {
-			pcrOrdinals[d.Seq] = d.Ordinal
+			ordinals[d.Seq] = d.Ordinal
 			return nil
 		},
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	return e.L.Head(), recs, diags, az
+	return e.L.Head(), recs, diags, az, ordinals
 }
 
 // With FullProb 0 the seat is the seat without playout-cap randomization,
@@ -210,7 +215,7 @@ func TestPCRCheapDecisionsAreNotRecorded(t *testing.T) {
 	sc.Source = testSeatSource
 	sc.Explore = true
 	sc.FullProb, sc.CheapSims = 0.5, 2
-	head, recs, diags, az := pcrGame(t, sc)
+	head, recs, diags, az, ordinals := pcrGameOrdinals(t, sc)
 	var full, cheap, recordable int
 	for _, d := range diags {
 		want := 4
@@ -238,7 +243,7 @@ func TestPCRCheapDecisionsAreNotRecorded(t *testing.T) {
 	}
 	parted := 0
 	for _, r := range recs {
-		ordinal, ok := pcrOrdinals[r.Sequence]
+		ordinal, ok := ordinals[r.Sequence]
 		if !ok {
 			t.Fatalf("record at sequence %d names no decision of the game", r.Sequence)
 		}

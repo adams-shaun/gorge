@@ -17,24 +17,39 @@ const searchMirrorPods = 24
 
 // searchMirrorKnown is every class of difference
 // (oracle.SearchMirrorMismatch.Class) the two searches still show over those
-// pods, with its cause. It only shrinks: a difference of a class not listed
-// fails at its first decision, and a row no pod shows fails too, so closing a
-// gap deletes its row. It is keyed by class alone, never by pod, seed or
-// decision. A hidden-card pool, a zone size or the searching player's hand
-// parting between the root worlds (root-pool), a candidate without a canonical
-// action and any other candidate difference are not listed and fail.
-var searchMirrorKnown = map[string]string{
+// pods, with its cause. A difference of a class not listed fails at its first
+// decision. It is keyed by class alone, never by pod, seed or decision. A
+// hidden-card pool, a zone size or the searching player's hand parting between
+// the root worlds (root-pool), a candidate without a canonical action and any
+// other candidate difference are not listed and fail.
+//
+// A structural row is a difference every searched decision shows whatever the
+// game does; no pod showing it fails, so closing it deletes its row. Every
+// other row rests on the witnesses the pods' trajectories happen to reach
+// (pods are driven by the kernel search's choices, so a card lowering or a
+// search change moves them), and a pass in which none shows is only logged:
+// deleting such a row is the change that closes its cause, proved by that
+// class failing no pod over a wider range.
+var searchMirrorKnown = map[string]searchMirrorClass{
 	// The root worlds, and the picks over equal candidate lists.
-	"root-world": "the two redealers draw different streams over the same hidden cards; the kernel deals no honest root",
-	"choice":     "equal candidate lists, a different pick; the searches walk different worlds (root-world)",
-	"visits":     "equal candidate lists, different visits; the same, and candidate order is not held equal",
+	"root-world": {structural: true, cause: "the two redealers draw different streams over the same hidden cards; the kernel deals no honest root"},
+	"choice":     {cause: "equal candidate lists, a different pick; the searches walk different worlds (root-world)"},
+	"visits":     {cause: "equal candidate lists, different visits; the same, and candidate order is not held equal"},
 	// The candidate enumerators.
-	"candidates/limit-cut":            "the engines order candidates differently, so the candidate limit keeps different ones",
-	"candidates/multi-select":         "gorge searches sets of options where the kernel poses the pick one option at a time (dirac/search/doc.go)",
-	"candidates/priority/kernel-more": "the kernel offers a cast gorge does not",
-	"candidates/priority/kernel-only": "the kernel searches a priority decision where gorge has nothing to search",
+	"candidates/limit-cut":            {cause: "the engines order candidates differently, so the candidate limit keeps different ones"},
+	"candidates/multi-select":         {cause: "gorge searches sets of options where the kernel poses the pick one option at a time (dirac/search/doc.go)"},
+	"candidates/priority/kernel-more": {cause: "the kernel offers a cast gorge does not"},
+	"candidates/priority/kernel-only": {cause: "the kernel searches a priority decision where gorge has nothing to search"},
 	// The decision counters.
-	"ordinal": "gorge answers decisions beneath the canonical surface that SeqNo never counts (OrdinalCheck holds the gap to those)",
+	"ordinal": {cause: "gorge answers decisions beneath the canonical surface that SeqNo never counts (OrdinalCheck holds the gap to those)"},
+}
+
+// searchMirrorClass is one searchMirrorKnown row.
+type searchMirrorClass struct {
+	cause string
+	// structural: every searched decision shows it, so a run without it is a
+	// stale row and fails.
+	structural bool
 }
 
 // TestSearchMirrorsAzmctsFourSeat plays four-seat cmd5 pods in lockstep and,
@@ -44,7 +59,8 @@ var searchMirrorKnown = map[string]string{
 // leaf, seat seeds 11, 22, 33 and 44. It compares the candidate lists, the
 // root worlds' hidden zones, the chosen candidate and the visits per
 // candidate, and fails at the first difference searchMirrorKnown does not
-// name. The searches do not mirror yet: the table is what is left.
+// name, and when a structural row shows nowhere. The searches do not mirror
+// yet: the table is what is left.
 func TestSearchMirrorsAzmctsFourSeat(t *testing.T) {
 	cardsDir, err := cardset.CorpusDir()
 	if err != nil {
@@ -126,8 +142,13 @@ func TestSearchMirrorsAzmctsFourSeat(t *testing.T) {
 		t.Fatalf("%d root worlds compared at %d searched decisions", worlds, compared)
 	}
 	for _, class := range slices.Sorted(maps.Keys(searchMirrorKnown)) {
-		if seen[class] == 0 {
-			t.Errorf("no pod shows %q (%s): delete its searchMirrorKnown row", class, searchMirrorKnown[class])
+		k := searchMirrorKnown[class]
+		switch {
+		case seen[class] != 0:
+		case k.structural:
+			t.Errorf("no pod shows %q (%s): delete its searchMirrorKnown row", class, k.cause)
+		default:
+			t.Logf("no pod shows %q (%s) this run; its row goes when its cause is closed", class, k.cause)
 		}
 	}
 }
