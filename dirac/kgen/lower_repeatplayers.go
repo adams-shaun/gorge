@@ -22,6 +22,7 @@ import (
 // refuses unread.
 func (lc *lowerCtx) repeatEachPlayers(ps *params) error {
 	var who lRef
+	andYou := false // TargetedAndYou: the loop runs again over the target (lower_repeatselectors.go)
 	switch rp := ps.str("RepeatPlayers"); rp {
 	case "Player":
 		who = lRef{Kind: rEachPlayer}
@@ -40,6 +41,11 @@ func (lc *lowerCtx) repeatEachPlayers(ps *params) error {
 		// ability's target slot (slotPlayers), controller first (C&1)
 		var err error
 		if who, err = lc.repeatEachTargetedSlot(); err != nil {
+			return err
+		}
+	case "TargetedAndYou", "OppNonRememberedController", "TargetedController":
+		var err error
+		if who, andYou, err = lc.repeatEachSelector(rp); err != nil {
 			return err
 		}
 	case "":
@@ -135,8 +141,7 @@ func (lc *lowerCtx) repeatEachPlayers(ps *params) error {
 			if repeatSharesTypeSacParam(n, k, v, who) {
 				continue // the repeated opponent's shares-a-type sacrifice (Braids)
 			}
-			if strings.Contains(k, "Remember") || strings.Contains(v, "Remember") ||
-				strings.Contains(lc.face.SVars[v], "Remember") && !lc.eachPlSVarOK(lc.face.SVars[v]) || k == "ValidTgts" {
+			if lc.repeatBodyParamBad(k, v) {
 				bad = append(bad, k)
 			}
 		}
@@ -173,7 +178,19 @@ func (lc *lowerCtx) repeatEachPlayers(ps *params) error {
 		}
 	}
 	lc.ab.Prog[at].Skip = len(lc.ab.Prog) - at - 1
+	if andYou {
+		lc.repeatAndYou(at)
+	}
 	return nil
+}
+
+// repeatBodyParamBad reports a per-player loop body parameter the loop does
+// not lower: a target restriction (ValidTgts$), or a remembered read in the
+// key, the value or the SVar the value names, other than the ones
+// eachPlSVarOK allows.
+func (lc *lowerCtx) repeatBodyParamBad(k, v string) bool {
+	unread := func(s string) bool { return strings.Contains(s, "Remember") && !lc.eachPlSVarOK(s) }
+	return k == "ValidTgts" || strings.Contains(k, "Remember") || unread(v) || unread(lc.face.SVars[v])
 }
 
 // repeatEachTargetedSlot resolves RepeatPlayers$ Targeted's object: the

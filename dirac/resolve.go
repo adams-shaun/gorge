@@ -80,6 +80,7 @@ func (s *State) resolveTop(k *prep) {
 		s.g.nimp = 0
 		s.impSeedOnResolve(k, &e)               // its source's kept Imprinted (zone_imprint.go)
 		s.g.nrem, s.g.remCnt, s.g.tli = 0, 0, 0 // a resolution remembers afresh (gorge's per-resolution Ctx)
+		clear(coldRemCtl.of(s))                 // and captures no controller yet (act_repeatremembered.go)
 		if c := coldRemSearchers.of(s); len(c) > 0 {
 			c[0] = remSearcherState{} // the remembered-searcher seats are per resolution too
 		}
@@ -794,6 +795,8 @@ func (s *State) objRefObj(r kop.Ref) Obj {
 		return Obj(s.res.chosen)
 	case kop.RefEach:
 		return s.res.eachObj
+	case kop.RefTgtOfEach:
+		return s.tgtOfEach(s.k()) // the target the enclosing repeat player controls
 	case kop.RefAttached:
 		ob := &s.objs[e.obj]
 		if ob.zone == kop.ZoneBattlefield || ob.zone == kop.ZonePhased || ob.zone == kop.ZonePhasedInd {
@@ -870,6 +873,8 @@ func (s *State) playerRef(k *prep, r kop.Ref) uint8 {
 		return e.ctrl
 	case kop.RefOppNonRemCtrl:
 		return s.oppsNonRemCtrl().at(0) // filter_defined.go: the first of the set
+	case kop.RefTgtControllers:
+		return s.tgtControllers(k).at(0)
 	case kop.RefSrcOwner:
 		return s.srcOwner()
 	case kop.RefPromised:

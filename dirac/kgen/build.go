@@ -2471,6 +2471,10 @@ func (cb *cardBuilder) ref(r lRef) (kop.Ref, error) {
 		return kop.RefLibTop, nil
 	case rOppNonRemCtrl:
 		return kop.RefOppNonRemCtrl, nil
+	case rTgtControllers:
+		return kop.RefTgtControllers, nil
+	case rTgtOfEach:
+		return kop.RefTgtOfEach, nil
 	case rPromised:
 		return kop.RefPromised, nil
 	case rAttachedCtrl:

@@ -1287,6 +1287,7 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 			o.Imprinted = nil
 			o.ImprintTokens = nil
 		}
+		endSpellStoredNumbers(o, wasStack, to)
 		// X/CastFlags/Chosen* carry cast-time and choose-time information
 		// forward from the stack onto the permanent it resolves into (an
 		// ETB "if it was kicked" trigger needs to read X/CastFlags off the
@@ -1433,6 +1434,17 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 		// which carried the queue, so nothing is left to publish.
 		o.UnattachPending = false
 		o.AttachedTo, o.HasAttachedPlayer = 0, false
+	}
+}
+
+// endSpellStoredNumbers drops the StoreSVar numbers of a spell that leaves the
+// stack for anything but the battlefield: it is a new object (CR 400.7), and
+// carrying them into the graveyard (or exile, hand, library) would let the
+// card's next cast start from the stale value. A permanent spell keeps the
+// store onto the battlefield.
+func endSpellStoredNumbers(o *state.Object, wasStack bool, to state.Zone) {
+	if wasStack && to != state.ZBattlefield {
+		o.RuntimeSVars = nil
 	}
 }
 
