@@ -68,6 +68,7 @@ func (s *State) dmgSrcPlayers(k *prep, in *kop.Instr) {
 		kw     kop.KwMask
 		ctrl   uint8
 		infect bool
+		wither bool // a departed source's, for dmgSrcObject (CR 702.80b)
 	)
 	switch {
 	case sl != NoSlot:
@@ -76,6 +77,7 @@ func (s *State) dmgSrcPlayers(k *prep, in *kop.Instr) {
 	case li != 0:
 		l := s.lk(li)
 		kw, ctrl, infect = l.kw, l.ctrl, l.bits&lkiInfect != 0
+		wither = s.lkiWithered(k, l)
 		switch DebugDmgSrcPlLKI {
 		case 1:
 			kw = 0
@@ -85,6 +87,7 @@ func (s *State) dmgSrcPlayers(k *prep, in *kop.Instr) {
 	default:
 		kw, ctrl = k.cards[s.objs[o].card].kw, s.ctrlOfObj(o)
 		infect = k.t.Cards[s.objs[o].card].Infect
+		wither = k.t.Cards[s.objs[o].card].Wither
 	}
 	card := s.objs[o].card
 	if sli, ok := tgtSlot(kop.Ref(in.C)); ok {
@@ -96,7 +99,7 @@ func (s *State) dmgSrcPlayers(k *prep, in *kop.Instr) {
 			return
 		}
 		if isObjTarget(code) {
-			s.dmgSrcObject(k, Obj(code), o, sl, kw, ctrl, infect, int(n))
+			s.dmgSrcObject(k, Obj(code), o, sl, kw, ctrl, infect || wither, int(n))
 			return
 		}
 	}
@@ -108,7 +111,7 @@ func (s *State) dmgSrcPlayers(k *prep, in *kop.Instr) {
 	// through dmgSrcObject as the any-target form does.
 	if !eachCtrl && in.B.N == 1 && in.C == int16(kop.RefDefendingPlayer) {
 		if a := s.attackedObjOr(k, NoTarget); a != NoTarget {
-			s.dmgSrcObject(k, Obj(a), o, sl, kw, ctrl, infect, int(n))
+			s.dmgSrcObject(k, Obj(a), o, sl, kw, ctrl, infect || wither, int(n))
 			return
 		}
 	}
@@ -192,9 +195,11 @@ var DebugDmgAmountPlusOne bool
 // battlefield deals through the ordinary hit batch (replacements, infect,
 // deathtouch, lifelink and the damage triggers as any creature's damage).
 // A source that left is dealt from its last known information (CR 113.7a,
-// 608.2h), kw/ctrl/infect read by the caller, with the same order as
-// damageTo for the resolving source.
-func (s *State) dmgSrcObject(k *prep, dst, o Obj, sl Slot, kw kop.KwMask, ctrl uint8, infect bool, n int) {
+// 608.2h), kw/ctrl/m1m1 read by the caller, with the same order as
+// damageTo for the resolving source. m1m1 is the departed source's infect or
+// wither: either deals damage to a creature as -1/-1 counters (CR 702.90b,
+// 702.80b), as damageTo's isObjTarget arm does.
+func (s *State) dmgSrcObject(k *prep, dst, o Obj, sl Slot, kw kop.KwMask, ctrl uint8, m1m1 bool, n int) {
 	if s.objs[dst].zone != kop.ZoneBattlefield {
 		s.g.plusBatchAsked = false
 		return
@@ -225,7 +230,7 @@ func (s *State) dmgSrcObject(k *prep, dst, o Obj, sl Slot, kw kop.KwMask, ctrl u
 		return
 	}
 	s.touchSl(dsl)
-	if k.gen != nil && k.gen.anyInfect && infect && s.isCreature(k, dsl) {
+	if k.gen != nil && k.gen.anyInfect && m1m1 && s.isCreature(k, dsl) {
 		s.dmgCountersIf(k, dsl, m)
 		s.infectCounters(k, dsl, m)
 	} else {

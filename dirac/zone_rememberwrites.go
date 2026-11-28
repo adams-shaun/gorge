@@ -151,7 +151,7 @@ func (s *State) reflexBites(k *prep, c CardID, ab uint8) bool {
 // reflexBiteGone is OpBite from a reflexive capture that left the
 // battlefield: the creature, by its snapshot, deals its last known power to
 // the creature or planeswalker in Ref C (dmgSrcObject's departed-source
-// path: its last known keywords and controller). It reports false (the bite
+// path: its last known keywords, controller, infect and wither). It reports false (the bite
 // is skipped as before) without a snapshot of that capture.
 //
 //go:noinline
@@ -176,7 +176,7 @@ func (s *State) reflexBiteGone(k *prep, in *kop.Instr) bool {
 		return true
 	}
 	o := e.trigObj
-	s.dmgSrcObject(k, s.perms[b].obj, o, NoSlot, l.kw, l.ctrl, l.bits&lkiInfect != 0, n)
+	s.dmgSrcObject(k, s.perms[b].obj, o, NoSlot, l.kw, l.ctrl, l.bits&lkiInfect != 0 || s.lkiWithered(k, l), n)
 	return true
 }
 
