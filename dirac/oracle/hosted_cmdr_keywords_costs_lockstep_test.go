@@ -79,6 +79,10 @@ func hostedCmdrCases() []hostedCmdrCase {
 	// graveyard warp's {B} has no other source (restricted-source pricing)
 	zigguratCullerDeck := append(deckOf(12, "Timeline Culler"), deckOf(28, "Ancient Ziggurat")...)
 	cataractsDeck := append(append(deckOf(14, "Cascading Cataracts"), deckOf(14, "Wastes")...), deckOf(12, "Tide Probe")...)
+	// Static Orb is the opponent's: seat 1 casts it while seat 0's lands and
+	// bears tap for their own spells, so seat 0's untap step reaches the cap.
+	staticOrbDeck := append(deckOf(4, "Static Orb"), deckOf(36, "Swamp")...)
+	orbBearsDeck := append(deckOf(20, "Grizzly Bears"), deckOf(20, "Forest")...)
 	return []hostedCmdrCase{
 		{
 			name:     "flayer_probe_gain_control_granted_annihilator",
@@ -140,6 +144,13 @@ func hostedCmdrCases() []hostedCmdrCase {
 			decks:    [2][]string{cataractsDeck, creatureDeck},
 			fixtures: map[string]string{"Tide Probe": tideProbeScript},
 			reached:  tideProbeCast,
+		},
+		{
+			name:    "static_orb_untap_adjust",
+			carrier: "Static Orb",
+			seats:   [2]string{"hck-orb-a", "hck-orb-b"},
+			decks:   [2][]string{orbBearsDeck, staticOrbDeck},
+			reached: staticOrbCapElection,
 		},
 	}
 }
@@ -238,6 +249,19 @@ func grantedUnleashBlockGateReached(g *GorgeSide) bool {
 			if grantor && countered {
 				return true
 			}
+		}
+	}
+	return false
+}
+
+// staticOrbCapElection: a cap election answered "keep" (the cap folds one
+// Choose "untap" / "keep" per kept permanent). The case's decks carry no
+// may-choose-not-to-untap carrier, so a keep event here is Static Orb's cap.
+func staticOrbCapElection(g *GorgeSide) bool {
+	for i := range g.E.L.Events {
+		e := &g.E.L.Events[i]
+		if e.Kind == events.Choose && e.Counter == "untap" && e.Text == "keep" {
+			return true
 		}
 	}
 	return false

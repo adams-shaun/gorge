@@ -40,5 +40,10 @@ func init() {
 		// CR 702.38 Amplify: engine/cards/kw_amplify.go's enters replacement
 		// reveals and counts (TestAmplifyEntersWithCounters).
 		"kw:Amplify",
+		// UntapAdjust: the player keyword Static Orb grants, read by
+		// Engine.untapAdjustCap / finishUntapStep's cap election
+		// (TestStaticOrbUntapAdjust). Forge spells it
+		// UntapAdjust:<filter>:<N>; at most N matching permanents untap.
+		"kw:UntapAdjust",
 	)
 }

@@ -44,7 +44,7 @@ var structTypes = []reflect.Type{
 	reflect.TypeFor[Value](), reflect.TypeFor[Cond](), reflect.TypeFor[Ability](),
 	reflect.TypeFor[Keyword](), reflect.TypeFor[Trigger](), reflect.TypeFor[Program](),
 	reflect.TypeFor[Step](), reflect.TypeFor[Cost](), reflect.TypeFor[CostPart](),
-	reflect.TypeFor[Effect](), reflect.TypeFor[Enter](),
+	reflect.TypeFor[Effect](), reflect.TypeFor[Enter](), reflect.TypeFor[Custom](),
 }
 
 func enumFor(t reflect.Type) (enumInfo, bool) {

@@ -2736,6 +2736,11 @@ const StatRaiseAbility StaticKind = 85
 // StatUnearthGrant is a Continuous static's AffectedZone$ Graveyard AddKeyword$ Unearth grant (Sedris, the Traitor King, Mishra, Tamer of Mak Fawa, Dregscape Sliver, Solemn Doomguide; CR 702.84a): Filter matches the card in the graveyard and GrantBody-1 is the latent unearth body (the printed kwUnearth expander's AB$ ChangeZone, cards.GrantedKeywordAbility) the graveyard offer runs with the affected card as its source. The body's own Cost prices the explicit-cost shape; a zero body cost is the CardManaCost mark, which the offer charges as the affected card's own mana cost (kw_unearthgrant.go).
 const StatUnearthGrant StaticKind = 86
 
+// StaticKind (dirac/manifest/StaticKind/StatUntapAdjust)
+//
+// StatUntapAdjust is a Continuous static's `Affected$ Player | AddKeyword$ UntapAdjust:Permanent:N` (Static Orb, kgen lower_playerstatic.go): during each player's untap step at most N permanents matching Filter untap, and that player chooses which of the tapped ones stay tapped (CR 702.19e's "can't untap more than N" family; gorge rules/untap.go untapAdjustCap and turn.go finishUntapStep). A is N; Cond2 is the source's IsPresent$ gate (Static Orb applies only while it is untapped). Read live from the battlefield; the kernel's untapStepGen poses the cap as a ChGenKeepTapped multi-pick (dirac/static_untapadjust.go).
+const StatUntapAdjust StaticKind = 87
+
 // trig ChaosEnsues (dirac/manifest/TrigEvent/TrigChaosEnsues)
 const TrigChaosEnsues TrigEvent = 52
 

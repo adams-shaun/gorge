@@ -135,7 +135,10 @@ type Ability struct {
 	Cond    *Cond    `json:"cond,omitempty"`
 	Body    *Program `json:"body,omitempty"`
 	Keyword *Keyword `json:"keyword,omitempty"`
-	Zones   ZoneSet  `json:"zones,omitempty"`
+	// Custom: the engines implement this ability in code written for this
+	// card (see engine/cardc/custom). An ability with Custom has no Body.
+	Custom *Custom `json:"custom,omitempty"`
+	Zones  ZoneSet `json:"zones,omitempty"`
 	// SorceryOnly: activate only as a sorcery.
 	SorceryOnly bool `json:"sorceryOnly,omitempty"`
 	// InstantOnly: activate only as an instant (Lion's Eye Diamond).
@@ -143,6 +146,15 @@ type Ability struct {
 	// Once: activate only once.
 	Once bool   `json:"once,omitempty"`
 	Src  string `json:"src,omitempty"`
+}
+
+// Custom marks an ability the typed interface does not describe: the engines
+// implement it in code written for this card. Card is the card's name; Scope is
+// the ability's position on its face ("a0", "t1", "s0", "r0": kind letter and index).
+type Custom struct {
+	Card  string `json:"card,omitempty"`
+	Scope string `json:"scope,omitempty"`
+	Src   string `json:"src,omitempty"`
 }
 
 // Keyword is a keyword ability. Name is the keyword's rules name (Flying,
