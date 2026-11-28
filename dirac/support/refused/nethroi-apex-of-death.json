@@ -1,0 +1,13 @@
+{
+  "card": "Nethroi, Apex of Death",
+  "class": "deferred",
+  "why": "Mutate (CR 702.140) is deferred in the kernel until 2027-01-15; refused by name, gorge unchanged",
+  "repro": {
+    "pool": "fx-mutate",
+    "surface": "autopay",
+    "seed": 1,
+    "pair": 0,
+    "policy": "random",
+    "mulligans": 1
+  }
+}
