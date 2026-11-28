@@ -53,4 +53,4 @@ def test_a_shard_the_diff_names_plays_whatever_the_lane():
 def test_the_selector_passes_the_merge_base():
     # cmd_select hands oracle_lanes replay_sel's merge base, so the targeted run rotates
     src = (HERE / "test_targets.py").read_text()
-    assert 'res = oracle_lanes(res, sha=reprosel.get("sha"), changed=changes)' in src
+    assert 'res = oracle_lanes(res, sha=reprosel.get("sha"), changed=changes, plain_lanes=plain_lanes, lanes=sub_lanes)' in src

@@ -106,4 +106,7 @@ def test_select_hands_the_diff_to_the_lane_deal(monkeypatch, capsys):
 
     monkeypatch.setattr(tt, "oracle_lanes", lanes)
     assert tt.main(["select"]) == 0
-    assert seen == {"sha": "abc", "changed": changes}
+    # no --procs: the selector keeps the full deal (the lane counts scale with the run's cores only
+    # when the shell says them: oracle_lane_count_test.py)
+    assert seen == {"sha": "abc", "changed": changes,
+                    "plain_lanes": tt.ORACLE_PLAIN_LANES, "lanes": tt.ORACLE_LANES}

@@ -156,6 +156,26 @@ SOURCE_READERS = (("dirac/crcoverage", ("dirac/kgen",)),)
 # the lanes: 8 plain and 4 sub processes fill the run's 12 cores.
 ORACLE_LANES = 4
 ORACLE_PLAIN_LANES = 8
+
+
+def lane_counts(run_procs):
+    """How many lanes the targeted run deals the replay slice into: (plain, subtest).
+
+    The constants are the ceiling, not the deal: a run with fewer cores than the remote's 12 gets one
+    lane per core, so a lane process gets a core instead of a fraction of one. The 12-lane deal on the
+    local 4-core quota (CPUQuota 400%, no GORGE_REMOTE_*) ran 24 threads (lane_procs x 12) on those 4
+    cores and stretched the plain lanes 10-30x: on 11-28 four of the eight took over 150 s (216, 205,
+    176, 157 s) where the same tests idle fit their table weights. The subtest half scales by a third
+    of the run (the cmd5 shards play their games on several workers each, so they want more than a
+    plain lane's single core) and the plain half takes the rest; the floors keep the deal a deal on a
+    one- or two-core fallback run. run_procs None (a caller that does not say: an older shell, or
+    `make test-targeted list` before the run has a cap) keeps the full 8+4 deal."""
+    if run_procs is None:
+        return ORACLE_PLAIN_LANES, ORACLE_LANES
+    run_procs = max(run_procs, 1)
+    sub = min(ORACLE_LANES, max(1, run_procs // 3))
+    plain = min(ORACLE_PLAIN_LANES, max(2, run_procs - sub))
+    return plain, sub
 # The replay slice keeps one merge-base lane of SLICE_MOD (slice_lane). At 1/4 the idle-box targeted run at
 # 6d2f131f6c (94 idle cores) played ~2,400 core-s in its 12 lanes (165-259 s each) against the run's 12-core
 # quota, which fits ~1,800 core-s in 150 s; the manifest, the pool globs and the sliced replay tests were 66% of
@@ -1133,7 +1153,8 @@ def cmd_select(a):
     # The targeted run deals the oracle's replay slice into concurrent lanes (test-smart keeps its own
     # fixed chunker, oracle_chunked); nothing else about the selection moves.
     if reprosel is not None and not a.narrow:
-        res = oracle_lanes(res, sha=reprosel.get("sha"), changed=changes)
+        plain_lanes, sub_lanes = lane_counts(a.procs)
+        res = oracle_lanes(res, sha=reprosel.get("sha"), changed=changes, plain_lanes=plain_lanes, lanes=sub_lanes)
     for kind, pkg, rx in res:
         print("%s\t%s\t%s" % (kind, pkg, rx))
     for p in skipped:
@@ -1164,6 +1185,8 @@ def main(argv=None):
     s = sub.add_parser("select")
     s.add_argument("--base", default="origin/main")
     s.add_argument("--narrow", action="store_true", help="test-smart's narrow precheck selection")
+    s.add_argument("--procs", type=int, default=None,
+                   help="the run's cores (its GOMAXPROCS): the oracle replay-slice deal scales to this many lanes")
     c = sub.add_parser("census")
     c.add_argument("--base", default="origin/main")
     m = sub.add_parser("merge")

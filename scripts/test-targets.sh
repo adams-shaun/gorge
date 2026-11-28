@@ -163,7 +163,7 @@ fi
 export GORGE_TEST_WRAPPER=1 GOFLAGS=-trimpath
 GOROOT=$(go env GOROOT) && export GOROOT
 
-if [ "$mode" = list ]; then exec "${py[@]}" select --base "$BASE"; fi
+if [ "$mode" = list ]; then exec "${py[@]}" select --base "$BASE" --procs "${GOMAXPROCS:-$(nproc)}"; fi
 
 # ---- preflight ---------------------------------------------------------------------------------------
 cards=${GORGE_CARDS:-.cards}
@@ -300,7 +300,7 @@ fi
 
 # ---- test-targeted -----------------------------------------------------------------------------------
 if [ "$mode" = targeted ]; then
-	sel=$("${py[@]}" select --base "$BASE") || verdict FAIL "selection failed: $sel"
+	sel=$("${py[@]}" select --base "$BASE" --procs "${GOMAXPROCS:-$(nproc)}") || verdict FAIL "selection failed: $sel"
 	whole=() named=() runs=() lanes=() dirac=0
 	while IFS=$'\t' read -r kind pkg rx; do
 		[ -n "$kind" ] || continue
