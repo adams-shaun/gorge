@@ -153,9 +153,9 @@ func TestMutatedPileUnderCardTrainingTriggersOnce(t *testing.T) {
 
 // TestMutatedPileUnderCardEventKeywordsTriggerOnce is the same rule for the
 // keyword walks other events reach: ward as the pile is targeted, afflict as it
-// is blocked and cumulative upkeep at its controller's upkeep. The block-mode
-// walk reads only the top face's expansions, so an under card's afflict fires
-// through the granted walk: still exactly once.
+// is blocked and cumulative upkeep at its controller's upkeep. An under card's
+// afflict fires from its own expansion in the block-mode walk, and the granted
+// walk counts it as printed: still exactly once.
 func TestMutatedPileUnderCardEventKeywordsTriggerOnce(t *testing.T) {
 	t.Parallel()
 	cases := []struct {

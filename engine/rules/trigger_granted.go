@@ -719,7 +719,9 @@ func (e *Engine) checkGrantedAfflictTriggers(id state.ObjID, o *state.Object, f 
 		return
 	}
 	printed := map[string]bool{}
-	for _, k := range f.Keywords {
+	// A pile's under cards' afflict lines are printed too: their own
+	// expansions fire through the block walk (CR 702.140e).
+	for _, k := range chars.PrintedKeywords(o, f) {
 		printed[strings.ToLower(k)] = true
 	}
 	var granted []string
