@@ -139,7 +139,7 @@ func (e *Engine) zoneGate(t cards.Trigger, source state.ObjID, ev events.Event) 
 	// queue a sacrifice for a Scarecrow already in the graveyard).
 	if source == ev.Obj && ev.Obj != 0 &&
 		(ev.Kind == events.MoveZone || ev.Kind == events.Draw || ev.Kind == events.PutOnStack) &&
-		!zoneChangeNoLookBack(t) && !modeIsAlways(t) {
+		!zoneChangeNoLookBack(t) && !modeIsAlways(t) && !entersCheckedAfterEvent(t, ev) {
 		zones[1] = ev.From
 		n = 2
 		if leavesOtherZoneTrigger(t) {
@@ -233,6 +233,29 @@ func leavesOtherZoneTrigger(t cards.Trigger) bool {
 	}
 	zones := effects.ZoneList(code)
 	return !zones.All() && !zones.Has(state.ZBattlefield)
+}
+
+// entersCheckedAfterEvent reports a ChangesZone line that watches cards enter
+// the battlefield (Destination$ naming it) whose Origin$ does not name the
+// zone ev's object just left. CR 603.10: such an enters trigger is checked
+// against the game after the event, so its own source counts only from where
+// it is now; only a leaves-that-zone line looks back (CR 603.10a). Fear of
+// Infinity's graveyard-only Eerie line does not see Fear itself enter from the
+// graveyard.
+func entersCheckedAfterEvent(t cards.Trigger, ev events.Event) bool {
+	if ev.Kind != events.MoveZone || ev.To != state.ZBattlefield || t.Mode != "ChangesZone" {
+		return false
+	}
+	dest, ok := t.ParamCode(cards.PKDestination)
+	if !ok || !effects.ZoneList(dest).Has(state.ZBattlefield) {
+		return false
+	}
+	origin, ok := t.ParamCode(cards.PKOrigin)
+	if !ok {
+		return true
+	}
+	zones := effects.ZoneList(origin)
+	return zones.All() || !zones.Has(ev.From)
 }
 
 // exploitedItself reports whether ev is the events.Exploit marker of source
