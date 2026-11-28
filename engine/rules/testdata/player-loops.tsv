@@ -1,0 +1,345 @@
+# Player-loop census (CR 101.4 APNAP order; CR 800.4a-800.4m a player leaving the game).
+# One row per player walk TestPlayerLoopsAreClassed finds in engine/rules and engine/effects.
+# key<TAB>order<TAB>left<TAB>note
+# order: apnap (turn order from the active player, or from a start that a CR rule or the card's text
+#   names: the note says which) | seat (seat index order, cannot reach an event or decision) |
+#   seat-visible (the order reaches an event or decision and is not apnap: seat index order, turn order
+#   from a controller, caster or payer where CR 101.4 wants the active player first, or a first-match
+#   pick nobody was asked about) | n/a (order-free, or it only orders one chooser's own options: the
+#   note says so).
+# left: skips | includes-ok (reason in note) | includes (should skip) | n/a.
+# seat-visible and includes rows must be listed in player-loops-known.txt (that list only shrinks).
+rules/ascend.go:Engine.checkBlessingGrants#0	seat-visible	skips	emits BlessingChange events per qualifying player in seat order
+rules/ask_facedown.go:Engine.hideFaceDownNames#0	n/a	includes-ok	relabels face-down options in place; a left player's battlefield is empty after CR 800.4a
+rules/assist.go:Engine.assistOtherSeats#0	seat-visible	skips	from caster, not APNAP (CR 101.4): each other seat is offered the assist election in this order
+rules/assist.go:Engine.assistPotential#0	n/a	skips	sums other seats' potential mana (capped)
+rules/attach.go:Engine.attachmentSBAs#0	seat-visible	skips	AliveFrom(0) battlefield scan performs attachment SBAs, emitting events in order
+rules/attach.go:Engine.roleSBA#0	seat-visible	skips	AliveFrom(0) builds bearers list whose order drives role SBA events
+rules/attack_cost.go:Engine.attackOffersCompute#0	seat-visible	skips	AliveFrom(0) defenders list drives attack offer option order
+rules/attack_cost.go:Engine.battleDefenders#0	seat-visible	skips	AliveFrom(0) battlefield scan builds battle defender list used in attack offers
+rules/aura_entry.go:auraEnchantCandidates#0	seat-visible	skips	AliveFrom(0) player candidates appended to returned list
+rules/aura_entry.go:auraEnchantCandidates#1	seat-visible	skips	AliveFrom(0) object candidates appended to returned list
+rules/cast_asks.go:Engine.giftAsk#0	n/a	skips	one chooser: orders only the caster's gift-opponent options
+rules/cast_battlefield.go:castBattlefieldEvent#0	seat-visible	includes-ok	CastBattlefield event IDs in seat order; zones empty after CR 800.4a
+rules/cast_battlefield.go:castBattlefieldEvent#1	seat-visible	includes-ok	graveyard IDs appended to the CastBattlefield event in seat order; zones empty after CR 800.4a
+rules/cast_etbchoice.go:Engine.etbCloneOptions#0	seat-visible	skips	builds clone decision Options in seat/zone order
+rules/cast_pricing.go:Engine.triggeredCastSpendReaderOut#0	n/a	skips	any-match bool battlefield scan
+rules/cast_pricing.go:Engine.triggeredCastSpendReaderOut#1	n/a	skips	any-match bool scan of off-battlefield zones
+rules/cast_pricing.go:Engine.triggeredConvergeReaderOut#0	n/a	skips	any-match bool battlefield face scan
+rules/cast_pricing.go:Engine.sunburstGrantOut#0	n/a	skips	any-match bool battlefield face scan
+rules/cast_pricing.go:Engine.noColoredManaReaderOut#0	n/a	skips	any-match bool battlefield face scan
+rules/combat/attack.go:CanAttack#0	n/a	skips	any-match: some defender this Defender creature may attack
+rules/combat/attack.go:RequirementSet.addRequirementDefenders#0	apnap	skips	from active player (CR 101.4): defending players added to the requirement set in turn order
+rules/combat/goad.go:GoadMayAttack#0	n/a	skips	AliveFrom(0) bool test: any non-goader opponent available
+rules/combat/goad.go:StaticallyGoaded#0	n/a	skips	AliveFrom(0) battlefield scan fills a membership map
+rules/combat.go:Engine.askBlockers#0	apnap	skips	from active player (CR 802.4): defenders declare blockers in this order
+rules/combat.go:Engine.runCombatAssignments#0	apnap	skips	from active player: picks the first initiative winner among hit controllers; emits an event
+rules/combat.go:grantedMaxHandSizeInner#0	n/a	skips	AliveFrom(0) hosts feed take(n, ts) timestamp-keyed max-hand-size fold
+rules/combat.go:Engine.cleanupBody#0	seat-visible	skips	AliveFrom(0) battlefield walk emits damage/shield/deathtouch clear events in seat order
+rules/combat_hit_facts.go:opponentLostLifeThisTurn#0	n/a	skips	any-match: some living opponent lost life this turn
+rules/combat_removal.go:Engine.removeNoncreatureCombatants#0	n/a	skips	AliveFrom(0) collects blocker ids used only as a membership set
+rules/combat_removal.go:Engine.removeNoncreatureCombatants#1	seat-visible	skips	AliveFrom(0) scan adds EndCombatReset events to SBA batch in seat order
+rules/commander_color.go:Engine.newColorRound#0	apnap	skips	from starting player, named by CR 101.4e: pregame colour-choice asks in turn order
+rules/control_static.go:Engine.staticControlWants#0	seat-visible	skips	AliveFrom(0) appends staticWant entries; list order reaches control-change events
+rules/control_static.go:Engine.staticControlWants#1	seat-visible	skips	AliveFrom(0) appends effect-delivered wants; list order reaches control-change events
+rules/control_static.go:staticGainControlController#0	n/a	skips	unique-match test (fails on >1 match); order-free
+rules/cumulative.go:Engine.cumulativeObjects#0	seat-visible	skips	AliveFrom(0) returned object list feeds cumulativeObjectDecision options
+rules/cumulative.go:Engine.cumulativeActionPayable#0	n/a	skips	sums graveyard groups; order-free
+rules/cumulative.go:Engine.continueCumulativeAction#0	n/a	skips	one chooser: orders only the payer's opponent options
+rules/cumulative.go:Engine.continueCumulativeAction#1	seat-visible	skips	AliveFrom(0) owners list becomes graveyard decision options / owners[0]
+rules/daynight.go:Engine.dayNightFlips#0	seat-visible	skips	AliveFrom(0) builds returned FlipFace event list
+rules/daynight.go:Engine.dayNightStateCheck#0	n/a	skips	day/night bool any-match tests
+rules/dungeon_room.go:Engine.dungeonCompletion#0	seat-visible	skips	CR 704.5t completions emitted per seat in seat order; body skips .Lost
+rules/genesis.go:newEngineShell#0	seat	n/a	copies configured player names before the game starts
+rules/layer4types.go:Engine.staticsMayChangeTypesWalk#0	n/a	includes-ok	any-match gate over static sources; zones empty after CR 800.4a
+rules/layer6keywords.go:Engine.EffectiveKeywords#0	seat-visible	skips	returned per-object keyword table in seat order; likely id lookup only but slice is returned
+rules/layer6keywords.go:effectiveKeywordsInWalk#0	seat-visible	skips	returned per-object keyword table in seat order; likely id lookup only but slice is returned
+rules/layers_effect.go:Engine.nextTurnFor#0	n/a	n/a	copies per-seat skip counts into an array; the queue walk below checks .Lost
+rules/layers_static.go:Engine.gainedFacesForSpec#0	seat-visible	skips	AliveFrom(0) builds returned gained-face list; order may reach layer application
+rules/layers_static.go:Engine.statSharedKeywords#0	seat-visible	skips	AliveFrom(0) builds returned keyword list; unsure caller is order-free
+rules/legal_mayplay.go:Engine.mayPlayLandIds#0	seat-visible	skips	AliveFrom(0) walk appends playable land ids to returned legal-action list
+rules/legal_mayplay.go:Engine.mayPlayLandIds#1	seat-visible	skips	AliveFrom(0) other seats' walk appends playable land ids to returned list
+rules/legal_mayplay.go:Engine.mayPlaySpellIdsBoard#0	seat-visible	skips	AliveFrom(0) public-zone walk builds returned playable spell id list
+rules/legal_walk_battlefield.go:legalWalk.battlefieldWalk#0	seat-visible	includes-ok	priority offers from every battlefield in seat order; zones empty after CR 800.4a
+rules/lethal_by_power.go:Engine.lethalByPowerOut#0	n/a	skips	any-match bool
+rules/mana_ability_trigger.go:Engine.manaActivationWatched#0	n/a	includes-ok	any-match watcher gate; zones empty after CR 800.4a
+rules/mayplay_index.go:mayPlayIndexWalk.positions#0	n/a	skips	fills obj->position map; walk order irrelevant
+rules/mayplay_index.go:mayPlayIndexWalk.scan#0	seat-visible	skips	AliveFrom(0) seat-first candidate list returned (may-play options)
+rules/mayplay_index.go:mayPlayIndexWalk.scan#1	seat-visible	skips	AliveFrom(0) zone-first candidate list returned (may-play options)
+rules/object_query.go:Engine.forEachObject#0	seat-visible	skips	callback visits every object in seat order; callers (trigger walks) queue in that order
+rules/opening_hand.go:Engine.newOpeningRound#0	apnap	skips	from starting player, named by CR 103.6: opening-hand actions in turn order
+rules/oracle_audit_export.go:logReplayGame#0	seat	n/a	audit replay harness: seeds commander lists before replaying the log
+rules/oracle_audit_export.go:logReplayGame#1	seat	n/a	audit replay harness: restates commander casts per seat
+rules/oracle_audit_export.go:gameStateDiff#0	seat	includes-ok	audit diff text over every seat; a whole-game comparison covers players who left
+rules/oracle_run.go:oracleRun.placeCommanderDamage#0	seat	n/a	oracle setup validation; error text only
+rules/oracle_run.go:oracleRun.placeCommanderDamage#1	seat-visible	n/a	oracle setup emits CmdDamage events in seat order before play; no CR order applies
+rules/oracle_snapshot.go:oracleRun.cmdTallies#0	n/a	includes-ok	fills a keyed tally map; the snapshot reports every seat
+rules/oracle_snapshot.go:oracleRun.snapshot#0	seat	includes-ok	oracle snapshot lists every seat by index; a whole-game snapshot includes players who left
+rules/oracle_snapshot.go:oracleRun.snapshot#1	n/a	includes-ok	battlefield ids sorted after the walk; zones empty after CR 800.4a
+rules/oracle_snapshot_offers.go:oracleRun.potentialManaSources#0	seat	includes-ok	oracle audit source list; zones empty after CR 800.4a
+rules/pay/board.go:AppendBattlefieldManaSourceIDs#0	seat-visible	skips	payer first then AliveFrom(0) others; returned mana source list may order options
+rules/pay/board.go:ExileZoneCards#0	seat-visible	includes-ok	payment candidates cyclic from the payer's seat (not turn-order aware); zones empty after CR 800.4a
+rules/pay/castparts.go:MoveToGraveCandidates#0	seat-visible	skips	payment candidate list in seat order; body skips .Lost
+rules/pay/planner.go:GainLifeCostPlayers#0	seat-visible	skips	from payer, not APNAP (CR 101.4): PayGainLifeCost emits one LifeChange per opponent in this order
+rules/pay/sacparts.go:ManaUntapCandidates#0	seat-visible	includes-ok	payment candidate list in seat order; zones empty after CR 800.4a
+rules/pay/unlessspecial.go:unlessSpecialCandidates#0	seat-visible	includes-ok	unless-cost counter recipients scanned in seat order; zones empty after CR 800.4a
+rules/payment_plan.go:Engine.paymentPlanManaInterference#0	n/a	skips	any-match bool over players
+rules/payment_plan_interference.go:Engine.paymentPlanTapObservers#0	n/a	skips	any-match on granted tap trigger; returns ce.Source, independent of which seat matched
+rules/payment_plan_interference.go:Engine.paymentPlanSunburstGrantOut#0	n/a	skips	any-match: some battlefield face grants sunburst
+rules/payment_plan_search.go:targetedCastSpendReaderOut#0	n/a	skips	any-match: some object in any zone reads targeted cast spend
+rules/potential_script.go:scriptTwin#0	n/a	includes-ok	any-match attachment test; zones empty after CR 800.4a
+rules/prio_memo.go:Engine.prioMemoUsable#0	n/a	includes-ok	any-match memo guard; a conservative false for a left player's restricted mana costs only a re-walk
+rules/prio_memo.go:Engine.prioPoolsIdle#0	n/a	includes-ok	all-pools-empty memo guard; conservative, a left player's pool only disables the memo
+rules/prio_memo.go:Engine.prioBoardFlags#0	n/a	includes-ok	board flag fold; zones empty after CR 800.4a
+rules/prio_memo.go:Engine.prioStepSensitive#0	n/a	includes-ok	any-match memo guard; zones empty after CR 800.4a
+rules/quiet_boardscan.go:Engine.quietBoardStaticScan#0	n/a	skips	quiet-proof any-hit scan; body skips .Lost
+rules/quiet_proof.go:Engine.quietBattlefieldBlocker#0	n/a	includes-ok	quiet-proof blocker scan returns a verdict; zones empty after CR 800.4a
+rules/repl_arena_mask.go:Engine.verifyReplArenaSkip#0	n/a	skips	AliveFrom(0) debug verify: panics on any match
+rules/repl_zoneskip.go:Engine.forEachReplacementSourceFor#0	seat-visible	skips	callback over command zones in seat order; feeds replacement candidate collection
+rules/repl_zoneskip.go:Engine.forEachReplacementSourceFor#1	seat-visible	skips	callback over all zones in seat order; feeds replacement candidate collection
+rules/repl_zoneskip.go:Engine.forEachReplacementSourceFor#2	seat-visible	skips	callback over command zones in seat order; feeds replacement candidate collection
+rules/replacement_cmdzone.go:Engine.collectSplitCommanders#0	seat-visible	includes-ok	queues commanders into cmdZoneDue in seat order; commanderZoneSBA drops entries whose owner left
+rules/replacement_copyspell.go:copySpellExtra#0	n/a	skips	sums extra copies; order-free
+rules/replacement_etb.go:Engine.protectorOpponents#0	seat-visible	skips	AliveFrom(0) returned list; caller picks next[0] as protector
+rules/replacement_etb.go:Engine.rechooseDepartedBattleProtector#0	seat-visible	skips	AliveFrom(0) walk emits Choose protector events in seat order
+rules/replacement_etb.go:Engine.rechooseDepartedBattleProtector#1	seat-visible	skips	takes protectorOpponents[0] (seat order) without a choice and emits Choose protector
+rules/replacement_etb.go:Engine.applySiegeProtector#0	seat-visible	skips	protector options from protectorOpponents (AliveFrom(0)) in seat order, not APNAP
+rules/replacement_granted.go:Engine.grantedStaticReplacementMatches#0	seat-visible	skips	returned replacement matches in seat order; may reach replacement choice
+rules/replacement_token.go:Engine.tokenChosenCandidates#0	seat-visible	skips	AliveFrom(0) battlefield scan builds token-copy choice candidate list
+rules/resolve_mayask.go:tapeExileReturnMayAsk#0	n/a	includes-ok	may-ask gate any-match; zones empty after CR 800.4a
+rules/resolve_mayask.go:tapeExileReturnMayAsk#1	n/a	includes-ok	may-ask gate any-match; zones empty after CR 800.4a
+rules/resolve_mayask.go:tapeParentSubMayAsk#0	n/a	includes-ok	may-ask gate any-match; zones empty after CR 800.4a
+rules/resolve_mayask.go:tapeDredgeMayAsk#0	n/a	includes-ok	may-ask gate any-match; zones empty after CR 800.4a
+rules/resolve_mayask_dredgefill.go:tapeDredgeFillMayAsk#0	n/a	includes-ok	may-ask gate any-match; zones empty after CR 800.4a
+rules/resolve_mayask_gates.go:tapeCommanderMayAsk#0	n/a	includes-ok	may-ask gate any-match; a conservative true only poses an ask the tape answers
+rules/restart.go:Engine.finishRestart#0	seat-visible	skips	AliveFrom(0) moves commanders, shuffles, deals hands, emitting events per seat
+rules/restart.go:Engine.finishRestart#1	seat-visible	skips	remaining AliveFrom(0) seats: emits their empty-library losses in seat order
+rules/saga.go:Engine.checkSagas#0	seat-visible	skips	AliveFrom(0) adds Sacrifice events to SBA batch in seat order
+rules/sba.go:Engine.lastPlayerBelowZero#0	n/a	skips	returns life check of the only remaining player; any match equivalent
+rules/sba.go:Engine.unpairNoncreatures#0	seat-visible	skips	AliveFrom(0) adds Pair events to SBA batch
+rules/sba.go:Engine.legendGroups#0	seat-visible	skips	AliveFrom(0) builds legend groups that lead to keep decisions
+rules/sba.go:Engine.worldPermanents#0	seat-visible	skips	AliveFrom(0) returned slice fixes world-rule departure order
+rules/sba.go:Engine.annihilateOppositeCounters#0	seat-visible	skips	AliveFrom(0) appends CounterChange events to batch
+rules/sba.go:Engine.checkLoseConditions#0	seat-visible	skips	CR 704.5a losses batched in seat order; loses() refuses a Lost player
+rules/sba.go:Engine.checkLoseConditions#1	seat-visible	skips	CR 704.5b losses and DrawEmpty events in seat order; body skips .Lost
+rules/sba.go:Engine.checkLoseConditions#2	seat-visible	skips	CR 704.5c losses in seat order; loses() refuses a Lost player
+rules/sba.go:Engine.checkLoseConditions#3	seat-visible	skips	CR 903.10a losses in seat order; loses() refuses a Lost player
+rules/sba.go:Engine.sweepDepartedPlayers#0	seat-visible	includes-ok	walks exactly the players who left (CR 800.4a sweep), emitting ceases in seat order
+rules/sba.go:Engine.destroyLethalDamage#0	seat-visible	skips	AliveFrom(0) appends casualties to b.dead, later events
+rules/sba.go:Engine.planeswalkerZeroLoyalty#0	seat-visible	skips	AliveFrom(0) adds zero-loyalty moves to SBA batch
+rules/sba.go:Engine.battleZeroDefense#0	seat-visible	skips	AliveFrom(0) adds MoveZone events to SBA batch
+rules/sba_prefilter.go:Engine.mayHaveWorldPair#0	n/a	skips	bool: two world permanents exist
+rules/sba_prefilter.go:Engine.mayHaveLegendPair#0	n/a	skips	bool: some controller has two legendaries
+rules/sba_prefilter.go:Engine.sbaFacts#0	n/a	skips	fills SBA board-fact flags from a battlefield scan
+rules/sbaquiet.go:Engine.sbaQuietNow#0	n/a	skips	any-match SBA quiet test; body skips .Lost
+rules/sbaquiet.go:Engine.sbaQuietEvent#0	n/a	skips	AliveFrom(0) any-match: is anything attached to the event object
+rules/sbaquiet.go:Engine.sbaQuietKindsSafe#0	n/a	skips	AliveFrom(0) bool scan with early return; order-free
+rules/sbaquiet.go:auraOnColorsYouCtrlBearer#0	n/a	skips	AliveFrom(0) any-match bool test
+rules/speed.go:Engine.checkSpeedStart#0	seat-visible	skips	emits SpeedChange per player in seat order
+rules/staging.go:NewStaged#0	seat	n/a	staging setup: builds each seat's deck before play
+rules/staging.go:NewStaged#1	seat	n/a	staging setup: allocates object ids per seat before play
+rules/staging.go:NewStaged#2	seat-visible	n/a	staging setup emits MoveZone events per seat before play; no CR order applies
+rules/staging.go:NewStaged#3	seat-visible	n/a	staging setup emits LifeChange events per seat before play; no CR order applies
+rules/staging.go:NewStaged#4	seat-visible	n/a	staging setup emits LibraryOrder events per seat before play; no CR order applies
+rules/staging.go:NewStaged#5	seat-visible	n/a	staging setup emits LandPlayed events per seat before play; no CR order applies
+rules/staging.go:NewStaged#6	seat-visible	n/a	staging setup emits ManaAdd events per seat before play; no CR order applies
+rules/staging.go:validateStage#0	seat	n/a	staging validation; error text only
+rules/starting_player_choice.go:Engine.AskStartingPlayer#0	seat-visible	skips	AliveFrom(0) builds starting-player decision options in seat order
+rules/static_scan_reuse.go:Engine.gatherBoardScan#0	seat-visible	skips	AliveFrom(0) returned scan-list slice; unsure if static walk order reaches output
+rules/static_scan_reuse.go:Engine.activeScanUnchanged#0	seat	skips	AliveFrom(0) compares against recorded scan cache; bool, no event/decision
+rules/static_scan_reuse.go:Engine.recordActiveScan#0	seat	skips	AliveFrom(0) records battlefield lists for cache comparison only
+rules/static_seats.go:Engine.staticSeats#0	seat-visible	includes-ok	every seat in seat order, returned to the static scans; departed statics held per CR 704.3/603.10a
+rules/statics.go:Engine.scanActionStaticsMode#0	seat-visible	skips	returned static views collected in seat/zone order
+rules/statics.go:Engine.scanActiveStatics#0	seat-visible	skips	appends static views in seat order to returned slice
+rules/statics_assignment.go:Engine.assignmentStatics#0	seat-visible	skips	AliveFrom(0) builds returned staticView list; order may reach callers
+rules/statics_cast.go:Engine.SpellCopyAllowed#0	n/a	skips	any-match bool over static sources
+rules/statics_costscan.go:Engine.scanCostStatics#0	seat-visible	skips	AliveFrom(0) builds cost-modifier static list; application order may matter
+rules/statics_costscan.go:Engine.appendGrantedCostStatic#0	seat-visible	skips	AliveFrom(0) adds matching host ids to the cost static list
+rules/statics_edhb.go:maxCounterSBA#0	seat-visible	skips	appends CounterChange SBA events in seat order
+rules/statics_granted.go:Engine.grantedStatics#0	seat-visible	skips	AliveFrom(0) builds returned granted staticView slice; order may reach layer walk
+rules/statics_granted.go:Engine.grantedStaticHosts#0	seat-visible	skips	AliveFrom(0) appends granted staticViews to returned slice; order may reach layer walk
+rules/storied.go:Engine.checkEnduringStoryGrants#0	seat-visible	skips	AliveFrom(0) walk emits EnduringStoryChange events in seat order
+rules/target_ask.go:Engine.livingOpponents#0	seat-visible	skips	AliveFrom(0) minus controller; returned candidate list, first option used by bots
+rules/target_ask.go:Engine.tpControlsAdmits#0	n/a	skips	membership test over livingOpponents
+rules/target_ask.go:Engine.poseOpponentPick#0	seat-visible	skips	opponent-pick options from livingOpponents (AliveFrom(0)) in seat order
+rules/target_ask.go:Engine.OpponentPickAsk#0	seat-visible	skips	opponent-pick options from livingOpponents (AliveFrom(0)) in seat order
+rules/target_damage_prevented.go:Engine.damagePreventedPermanents#0	seat-visible	includes-ok	returned target-census list in seat order; zones empty after CR 800.4a
+rules/target_legal.go:Engine.candidatesForLimitInto#0	seat-visible	skips	AliveFrom(0) player target candidates appended to returned list
+rules/target_legal.go:Engine.candidatesForLimitInto#1	seat-visible	skips	AliveFrom(0) zone object target candidates appended to returned list
+rules/trigger_ability_triggered.go:anyAbilityTriggeredWatcher#0	n/a	includes-ok	any-match watcher gate; zones empty after CR 800.4a
+rules/trigger_blocks.go:Engine.queueAttackerUnblockedTrigger#0	seat-visible	skips	queues one trigger per unblocked attacker in seat order
+rules/trigger_blocks.go:Engine.checkAttackerUnblockedOnceTriggers#0	seat-visible	skips	unblocked attacker id list built in seat order, used by trigger
+rules/trigger_condition.go:Engine.checkDefinedPlayerHolds#0	n/a	skips	any-match over opponents (AliveFrom(you)); order-free
+rules/trigger_condition.go:Engine.checkDefinedPlayerHolds#1	n/a	skips	any-match over players; order-free
+rules/trigger_condition.go:Engine.presentSeats#0	n/a	skips	membership check returning you if alive
+rules/trigger_condition.go:Engine.presentSeats#1	seat-visible	skips	AliveFrom(0) opponents slice returned to caller
+rules/trigger_condition.go:Engine.countPresentScoped#0	n/a	skips	count of matching permanents; order-free
+rules/trigger_kinds.go:Engine.lookBackNoopBoard#0	n/a	skips	any-match bool over zones
+rules/trigger_match.go:Engine.checkRingEmblemTriggers#0	seat-visible	skips	queues ring emblem triggers in seat order; body skips .Lost
+rules/trigger_match.go:Engine.checkFaceTriggers#0	seat-visible	skips	visits each seat's current plane for triggers; queue order follows seat order
+rules/trigger_plan.go:Engine.trigPlanHolds#0	n/a	skips	plan-validity check; body skips .Lost
+rules/trigger_queue.go:Engine.sortPendingTriggers#0	apnap	skips	from active player: rank map sorts pending triggers APNAP (CR 101.4)
+rules/trigger_zoneskip.go:Engine.forEachTriggerObject#0	seat-visible	skips	AliveFrom(0) object walk drives trigger collection in seat order
+rules/trigmatch/combat.go:PlayerHasMostLife#0	n/a	skips	max-life comparison; body skips .Lost
+rules/turn.go:Engine.finishUntapStep#0	n/a	skips	AliveFrom(0) filtered to the active player only; one seat, order-free
+rules/turn.go:Engine.finishUntapStep#1	seat-visible	skips	AliveFrom(0) non-active seats: untapTurnPermanent emits untap events in seat order
+rules/turn.go:Engine.finishStepBoundary#0	seat-visible	includes	ManaClear (and burn) per seat in seat order (CR 500.4); a left player's pool is not skipped
+rules/umbra.go:Engine.UmbraArmorAura#0	seat-visible	skips	returns first matching umbra aura in seat order; picks the one that applies
+rules/untap.go:Engine.untapReplacementSources#0	seat-visible	skips	callback over battlefield and command zones in seat order for untap replacements
+rules/walkcache.go:Engine.scanManaConvSources#0	seat-visible	skips	AliveFrom(0) scan builds returned/cached ManaConvert source list
+rules/walkcache.go:Engine.scanActiveStaticsFused#0	seat-visible	skips	AliveFrom(0) battlefield scan fills cached static lists; stored order reaches callers
+effects/attach.go:playerAttachPool#0	seat-visible	skips	AliveFrom(0) builds the PlayerChoices$ pool returned to effAttach's player choice
+effects/balance.go:effBalance#0	n/a	skips	fills per-seat items array and fewest count from AliveFrom(controller); order-free
+effects/balance.go:effBalance#1	seat-visible	skips	from controller, not APNAP (CR 101.4): asks each player the keep decision and emits sacrifices in this order
+effects/bidlife.go:bidLifeBidders#0	n/a	skips	bidder list read as a membership set and a max life only; asks follow ringAfter
+effects/bidlife.go:ringAfter#0	apnap	skips	card text "in turn order, each player may top the high bid": lap starts after the high bidder
+effects/change_speed.go:effChangeSpeed#0	n/a	skips	AliveFrom(0) any-match test: does another player have speed >= target's
+effects/changecombatants.go:effChangeCombatants#0	seat-visible	skips	AliveFrom(0) builds candidate defender list offered as decision options
+effects/choose_control.go:effChoosePlayer#0	n/a	skips	one chooser per walk: orders its options or seeds its random pick; chooser order is set elsewhere
+effects/choose_control.go:controlPlayer#0	seat-visible	skips	AliveFrom(0) returns the first player matching the spec as the new controller
+effects/choose_control.go:gainControlVariantAminatou#0	seat-visible	skips	AliveFrom(0) builds transfer list; applied in order, emitting ControlChange events
+effects/choose_control.go:repeatPlayers#0	n/a	skips	AliveFrom(controller) fills selected map; order comes from the final out loop
+effects/choose_control.go:repeatPlayers#1	n/a	skips	AliveFrom(controller) fills selected map (opponents); order-free
+effects/choose_control.go:repeatPlayers#2	n/a	skips	AliveFrom(controller) toggles selected map entries; order-free
+effects/choose_control.go:repeatPlayers#3	n/a	skips	AliveFrom(controller) fills selected map (opponents not remembered); order-free
+effects/choose_control.go:repeatPlayers#4	n/a	skips	AliveFrom(controller) fills selected map (opponents but defender); order-free
+effects/choose_control.go:repeatPlayers#5	n/a	skips	AliveFrom(controller) fills selected map by spec match; order-free
+effects/choose_control.go:repeatPlayers#6	seat-visible	skips	from controller, not APNAP (CR 101.4): returned order drives election asks, choosers and RepeatEach subjects
+effects/choose_control.go:gainControlVariantRandom#0	n/a	skips	uniform random pick from AliveFrom(0): index order only maps the roll, no rule orders it
+effects/choose_direction.go:gainControlNeighbor#0	apnap	skips	card text names start and direction: next living seat left or right of p
+effects/choose_direction.go:gainControlDirectionRing#0	n/a	skips	membership check: is start among AliveFrom(0)
+effects/choose_direction.go:gainControlDirectionRing#1	apnap	skips	card text (Order of Succession) "starting with you ... in the chosen direction": visit order
+effects/clash.go:chooseClashOpponent#0	seat-visible	skips	opponent list builds decision Options for the clash choice; one opponent is picked as the first
+effects/clone.go:cloneChoiceCandidates#0	seat-visible	skips	AliveFrom(0) zone scan builds clone choice candidate list returned to a chooser
+effects/combatfx.go:tapChoices#0	seat-visible	skips	AliveFrom(0) builds eligible list that becomes decision Options (and default pick)
+effects/combatfx.go:effPumpAll#0	seat-visible	skips	AliveFrom(0) sweep registers pumps, appends Remembered and emits remember events in order
+effects/combatfx.go:effAnimateAll#0	seat-visible	skips	AliveFrom(0) zone sweep registers animate effects and EOT schedule in seat order
+effects/combatfx.go:effProtectionAll#0	seat-visible	skips	AliveFrom(0) battlefield sweep; swept list then granted protection in that order
+effects/context.go:battlefieldValidTargets#0	seat-visible	skips	AliveFrom(0) battlefield scan builds returned Defined$ Valid target list
+effects/context.go:nonComplementTargets#0	seat-visible	skips	from controller, not APNAP (CR 101.4): Non<referent> player list that Defined$ effects act on in order
+effects/context.go:oppNonComplementTargets#0	seat-visible	skips	from controller, not APNAP (CR 101.4): OppNon<referent> list that Defined$ effects act on in order
+effects/context.go:exiledWithSet#0	seat-visible	includes-ok	returned exiled-with target list in seat order; zones empty after CR 800.4a
+effects/context.go:leadingDotPlayers#0	seat-visible	skips	from controller, not APNAP (CR 101.4): leading-dot player list that Defined$ effects act on in order
+effects/context.go:definedSpec#0	seat-visible	skips	from controller, not APNAP (CR 101.4): Non/OppNonRememberedController list that effects act on in order
+effects/context.go:definedSpec#1	seat-visible	skips	AliveFrom(0) builds returned TriggeredCardOwner-opponents player list
+effects/context.go:definedSpec#2	seat-visible	skips	from controller, not APNAP (CR 101.4): triggering card controller's opponents; effects act on them in order
+effects/context.go:definedSpec#3	seat-visible	skips	from controller, not APNAP (CR 101.4): Defined$ Opponent list; each is asked or acted on in this order
+effects/context.go:definedSpec#4	seat-visible	skips	AliveFrom(0) builds NonReplacedPlayer list (Zur's Weirding payers asked in order)
+effects/context.go:definedSpec#5	seat-visible	skips	from controller, not APNAP (CR 101.4): Defined$ Player list; each player is asked or acted on in this order
+effects/context.go:definedSpec#6	seat-visible	skips	from controller, not APNAP (CR 101.4): qualified Player/Opponent list that effects act on in order
+effects/context.go:definedZoneValidTargets#0	seat-visible	skips	from controller, not APNAP (CR 101.4, 613.7m): cross-player card list moved in this order
+effects/context.go:EffectOwnerPlayers#0	seat-visible	skips	AliveFrom(0) minus controller; returned opponent list whose order callers use
+effects/copy.go:copyControllersFor#0	seat-visible	skips	from controller, not APNAP (CR 101.4): each player's may-copy election and copy happen in this order
+effects/copypermanent.go:copyPermanentController#0	seat-visible	skips	first opponent from controller taken without a choice: walk order decides the copy's owner
+effects/copypermanent.go:copyPermanentControllerPlayer#0	n/a	skips	first match; the one CopyPermanent spec, Player.IsRemembered, binds one player
+effects/count_body_paid.go:oppsLifeLost#0	n/a	includes-ok	sum of opponents' life lost this turn; life lost before leaving counts (Neheb, the Eternal)
+effects/count_body_paid.go:evalCountBodyPaid#0	n/a	skips	sums damage taken by opponents; order-free
+effects/count_body_paid.go:evalCountBodyPaid#1	n/a	skips	sums counters removed by matching players; order-free
+effects/count_body_player.go:evalCountBodyPlayer#0	n/a	skips	counter sum over AliveFrom(0)
+effects/count_body_player.go:evalCountBodyPlayer#1	n/a	includes-ok	counts players with .Lost; the walk is about players who left
+effects/count_body_player.go:evalPlayerCountOpponents#0	n/a	skips	count over opponentGroup (AliveFrom(0))
+effects/count_body_player.go:playersTiedForHighestLife#0	n/a	skips	max life over living players
+effects/count_body_player.go:playersTiedForHighestLife#1	n/a	skips	count of living players at highest life
+effects/count_body_zone.go:evalCountBodyZone#0	n/a	skips	AliveFrom(0) zone scan feeding a count/extreme fold
+effects/count_body_zone.go:evalCountBodyZone#1	n/a	skips	AliveFrom(0) all-zones scan feeding a count/extreme fold
+effects/count_body_zone.go:evalCountBodyZone#2	n/a	skips	AliveFrom(0) single-zone scan feeding a count/extreme fold; stack once
+effects/count_cov3.go:evalCov3Head#0	n/a	skips	poison sum over opponentGroup (AliveFrom(0))
+effects/count_cov3.go:evalCov3Head#1	n/a	includes-ok	total turns taken this game; a left player's taken turns happened
+effects/count_cov3.go:evalCov3Head#2	n/a	skips	max damage taken over opponentGroup (AliveFrom(0))
+effects/count_cov3.go:evalCov3PlayerHead#0	n/a	skips	counter sum over the group (AliveFrom / opponentGroup / defined sets)
+effects/count_cov3.go:evalCov3PlayerHead#1	n/a	skips	life-lost sum over the group (AliveFrom / opponentGroup / defined sets)
+effects/count_cov3.go:evalCov3PlayerHead#2	n/a	skips	property sum over the group (AliveFrom / opponentGroup / defined sets)
+effects/count_cov3.go:evalCov3PlayerHead#3	n/a	skips	matching-player count over the group (AliveFrom / opponentGroup / defined sets)
+effects/count_cov3.go:evalCov3PlayerHead#4	n/a	skips	property sum over the group (AliveFrom / opponentGroup / defined sets)
+effects/count_cov3.go:typesSharedWith#0	n/a	includes-ok	fills a type set; zones empty after CR 800.4a
+effects/count_cov3.go:mostProminentCreatureType#0	n/a	includes-ok	type tally; zones empty after CR 800.4a
+effects/count_history_heads.go:evalHistoryPrefixHead#0	n/a	skips	count of players matching spec who searched library this turn
+effects/count_history_heads.go:evalHistoryHead#0	n/a	includes-ok	hand-size sum; zones empty after CR 800.4a
+effects/count_history_heads.go:distinctGraveyardManaCosts#0	n/a	includes-ok	distinct-cost set; zones empty after CR 800.4a
+effects/count_history_heads.go:secondMostProminentColorCount#0	n/a	includes-ok	colour tally; zones empty after CR 800.4a
+effects/count_history_heads.go:nonTriggeredPlayers#0	seat-visible	skips	returned player slice (all but trigger player) in seat order; caller may iterate it
+effects/count_player.go:opponentGroup#0	seat	skips	AliveFrom(0) minus controller; all callers sum/count/max over it
+effects/count_player.go:nonTriggeredTargetGroup#0	seat	skips	AliveFrom(0) minus trigger target; returned group only feeds counts/extremes
+effects/count_ref.go:countMostCardName#0	n/a	skips	per-name count map and max over battlefields; order-free
+effects/counters.go:putCounterAllSweep#0	seat-visible	skips	players = AliveFrom(0) (or targets); emits CounterChange and appends Remembered in seat order
+effects/counters.go:effRemoveCounterAll#0	seat-visible	skips	battlefield sweep emits CounterChange events in seat order
+effects/counters.go:proliferateOnce#0	seat-visible	skips	eligible permanents list becomes proliferate decision Options
+effects/counters.go:proliferateOnce#1	seat-visible	skips	eligible players appended to proliferate decision Options
+effects/counters_put.go:putCounterEachType#0	n/a	skips	one chooser: orders only the counter kinds that chooser is asked about
+effects/counters_put.go:putCounterWouldPlace#0	n/a	skips	AliveFrom(0) any-match: is any battlefield object a legal choice
+effects/counters_put.go:putCounterPickDistribute#0	seat-visible	skips	AliveFrom(0) builds eligible list for the pick/distribute decision
+effects/counters_put.go:putCounterChooseTitled#0	seat-visible	skips	AliveFrom(0) battlefield scan builds eligible list for the choose decision
+effects/counters_put.go:putCounterSupport#0	seat-visible	skips	AliveFrom(0) builds eligible list that becomes decision Options
+effects/counters_put_existing.go:putCounterExistingChoices#0	seat-visible	skips	AliveFrom(0) scan orders source counters; distinct kinds become the pick options
+effects/counters_put_existing.go:putCounterExistingChoices#1	seat-visible	skips	AliveFrom(0) scan builds recipients; CounterChange events emitted in that order
+effects/counters_put_tribute.go:putCounterTribute#0	n/a	skips	outer target loop: opponents[0] is the one chooser's default pick among its options
+effects/counters_put_tribute.go:putCounterTribute#1	n/a	skips	one chooser: orders only the controller's tribute-opponent options
+effects/counters_put_tribute.go:tributeOpponents#0	n/a	skips	list read only as the controller's tribute options and default (one chooser)
+effects/damage.go:effDamageAll#0	seat-visible	skips	appends PendingDamage entries in seat order (later emitted)
+effects/damage.go:effDamageAll#1	seat-visible	skips	emits object damage events and Remembered in seat order
+effects/damage.go:validPlayers#0	seat-visible	skips	returned opponent list (seat order) drives player damage events
+effects/damage.go:validPlayers#1	seat-visible	skips	returned matching-player list (seat order) drives player damage events
+effects/damage.go:effEachDamage#0	seat-visible	skips	returned damager list in seat order; each deals damage (events) in that order
+effects/damage.go:eachDamagerTargets#0	seat-visible	skips	returned damager target list in seat/zone order
+effects/damage_choices.go:damageChoicePool#0	seat-visible	skips	AliveFrom(0) appends battlefield objects to returned choice pool (ask options)
+effects/damage_choices.go:damageChoicePool#1	seat-visible	skips	AliveFrom(0) appends matching players to returned choice pool (ask options)
+effects/damage_to_opps.go:damageToOppsThisTurn#0	n/a	skips	sums damage taken by living opponents over AliveFrom(0)
+effects/demonstrate.go:effDemonstrate#0	n/a	skips	one chooser: orders only the caster's opponent options
+effects/diguntil.go:auraEntryBearers#0	seat-visible	includes-ok	returned aura bearer candidates in seat order; zones empty after CR 800.4a
+effects/encore.go:effEncore#0	n/a	skips	one player acts: orders the defenders of the activator's own tokens
+effects/entering_defender.go:enteringDefenders#0	seat-visible	skips	AliveFrom(0) opponents appended to returned defender option list
+effects/entering_defender.go:enteringDefenders#1	seat-visible	skips	AliveFrom(0) opponents' planeswalkers appended to returned defender list
+effects/entering_defender.go:enteringDefenders#2	seat-visible	skips	AliveFrom(0) battles (protector not Lost) appended to returned defender list
+effects/extort.go:extortDrain#0	seat-visible	skips	from controller, not APNAP (CR 101.4): one LifeChange per opponent in this order
+effects/filter_attachment.go:hasAttachmentOfKind#0	n/a	skips	any-match bool over battlefield attachments
+effects/filter_attachment.go:hasAttachmentOfKindCtx#0	n/a	skips	any-match bool over battlefield attachments
+effects/filter_attachment.go:modifiedPermanentCtx#0	n/a	skips	any-match bool: controller's Aura attached
+effects/filter_attachment.go:modifiedPermanent#0	n/a	skips	any-match bool: controller's Aura attached
+effects/filter_attachment.go:hasAttachmentMatching#0	n/a	skips	any-match bool over battlefield attachments
+effects/flipcoin.go:FlipCoinForced#0	n/a	includes-ok	any-match static test; zones empty after CR 800.4a
+effects/flipcoin.go:forEachPlayerFlippers#0	seat-visible	skips	from controller, not APNAP (CR 101.4): flipper list that effFlipCoin flips in order
+effects/flipcoin.go:effFlipCoin#0	seat-visible	skips	flips emit per player in list order (from controller via forEachPlayerFlippers), not APNAP (CR 101.4)
+effects/game.go:restartKeepSet#0	seat-visible	skips	AliveFrom(0) builds returned keep set passed to RequestRestart for the new game
+effects/life.go:effSetLife#0	n/a	skips	one chooser: orders only the caster's recipient options (LifeChange order follows the answer)
+effects/mana_effect.go:eachColorAmongValid#0	n/a	skips	ORs colours into a mask
+effects/mana_reflected.go:ManaReflectedObjects#0	seat-visible	skips	AliveFrom(0) returned object slice; caller may use order (fold/subset)
+effects/mana_reflected.go:reflectedDefinedExtras#0	seat-visible	skips	AliveFrom(0) graveyard objects appended to returned list
+effects/mana_reflected.go:reflectedDefinedExtras#1	seat-visible	skips	AliveFrom(0) exiled-with objects appended to returned list
+effects/meld_api.go:effMeld#0	n/a	skips	finds meld partner controlled by c.Controller; seat order does not pick among seats
+effects/multiplepiles.go:effMultiplePiles#0	seat-visible	skips	from controller, not APNAP (CR 101.4): asks each player to separate piles, controller first
+effects/myriad.go:effMyriad#0	n/a	skips	one chooser: the controller is asked once per opponent; no other player acts
+effects/myriad.go:myriadOpponents#0	n/a	skips	list read only for the controller's own per-opponent asks (one chooser)
+effects/play.go:playHandSeats#0	seat-visible	skips	returned seat list whose order builds Play candidates
+effects/play.go:effPlay#0	seat-visible	skips	seat list for exile/graveyard scan builds Play candidate list (decision options)
+effects/player_filter.go:playerHasMost#0	n/a	includes	max life over every seat; a left player's life still sets the bar
+effects/player_filter.go:playerHasMost#1	seat-visible	includes-ok	most-cards holder, ties to the first seat (visible); a left player has no hand after CR 800.4a
+effects/player_filter.go:playerHasMost#2	n/a	includes-ok	permanent-count leader tally; zones empty after CR 800.4a
+effects/player_statics.go:youStaticCount#0	n/a	includes-ok	static count for p; zones empty after CR 800.4a
+effects/pump_params.go:sharedPumpGrant#0	seat-visible	skips	collects keywords in seat order into shared grant list; unsure if SharedKeywordSpellings is order-free
+effects/removecounter.go:removeCounterChoose#0	seat-visible	skips	AliveFrom(0) zone scan builds eligible list offered in the remove-counter choice
+effects/repeateach.go:repeatedCards#0	seat-visible	skips	from controller, not APNAP (CR 101.4): cross-player card list RepeatEach iterates in this order
+effects/repeateach.go:repeatEachTypesFrom#0	n/a	skips	AliveFrom(controller) scan fills seen type map; output in rules type order
+effects/resolve.go:setStateChoose#0	seat-visible	skips	AliveFrom(0) builds eligible list for the set-state choose decision
+effects/sacrificeall.go:effSacrificeAll#0	seat-visible	skips	AliveFrom(0) victims list sacrificed in order (events)
+effects/staticeffect_lock.go:lockEffectGrant#0	seat-visible	skips	matching ids stored as effect Remembered slice in seat order
+effects/taporuntapall_election.go:tapOrUntapAllSweep#0	seat-visible	skips	AliveFrom(0) battlefield sweep emits tap/untap events in seat order
+effects/token.go:tokenOwnerPlayers#0	seat-visible	skips	returned owner list orders TokenCreate events
+effects/token.go:tokenOwnersControllingAny#0	seat-visible	skips	returned owner list; doc says it is the TokenCreate event ordering contract
+effects/token.go:effToken#0	seat-visible	skips	first opponent from controller taken without a choice: walk order decides the token owner
+effects/trigger_referents.go:controlReferentPlayers#0	seat-visible	includes	returned player referents in seat order; MatchesPlayerSpecCtx does not check .Lost here
+effects/trigger_referents.go:controlReferentPlayers#1	seat-visible	includes	returned player targets in seat order; MatchesPlayerSpecCtx does not check .Lost here
+effects/trigger_referents.go:playerSpecControlTargets#0	seat-visible	includes	returned player targets in seat order; MatchesPlayerSpecCtx does not check .Lost here
+effects/trigger_watchers.go:AnyBattlefieldTriggerMode#0	n/a	includes-ok	any-match trigger gate; zones empty after CR 800.4a
+effects/unless.go:unlessPayerTargetsFor#0	seat-visible	skips	AliveFrom(0) adds NonReplacedPlayer payers; result sorted by seat rank, payers asked in order
+effects/unless.go:unlessPayerTargetsFor#1	seat-visible	skips	AliveFrom(0) adds every player as payer; result sorted by seat rank, payers asked in order
+effects/unless.go:unlessPayerTargetsFor#2	n/a	skips	AliveFrom(controller) adds opponents; walk order discarded by sortTargets seat-rank sort (#3)
+effects/unless.go:unlessPayerTargetsFor#3	seat-visible	skips	AliveFrom(0) rank map sorts the returned unless-payer list into seat order (not APNAP)
+effects/untap.go:untapBattlefieldCondition#0	n/a	skips	AliveFrom(0) zone count for ConditionCompare gate
+effects/untap.go:untapTypeCandidates#0	seat-visible	skips	owners (AliveFrom(0) or Defined players) battlefield scan builds UntapType chooser candidates
+effects/vote.go:battlefieldHasVoteTrigger#0	n/a	skips	any-match bool over battlefields
+effects/vote.go:effPlayerVote#0	n/a	skips	shared ballot list: orders options and tally only; voter order is definedPlayers, not this walk
+effects/vote_effect.go:effCardVote#0	seat-visible	includes-ok	ballot options for a vote decision in seat order; zones empty after CR 800.4a
+effects/zone_bulk.go:effDestroyAll#0	seat-visible	skips	AliveFrom(0) builds victims list; destroyed (events) in that order
+effects/zone_change.go:exileUntilOpponentMonarchMet#0	n/a	includes	any-match: an opponent who became monarch and then left still stops the exile
+effects/zone_hidden.go:effHiddenPick#0	seat-visible	includes-ok	hidden-pick pool in seat order; zones empty after CR 800.4a
+effects/zone_search.go:applyLibrarySearch#0	seat-visible	includes-ok	search knowledge for every seat; knowledge for a seat that left is never read
