@@ -182,6 +182,8 @@ export interface CreateGame {
   seat: number;
   token: string;
   join: string;
+  /** One grant per human seat at a pod (seats > 2); seat 0 is mirrored on the fields above. */
+  seats?: { seat: number; token: string; join: string }[];
 }
 
 export interface CreateGameRequest {
@@ -194,6 +196,10 @@ export interface CreateGameRequest {
   mulligans?: number;
   /** The table's paired bot: a name from the capabilities' paired_bots, or "off" for none; omitted keeps the server default. */
   paired_bot?: string;
+  /** Seat count, 2..4; omitted is a two-seat game. More than two is a pod, which refuses human_deck/bot_deck. */
+  seats?: number;
+  /** Human seats at a pod; the panel always asks for 1. */
+  humans?: number;
 }
 
 /** createGame asks the server to seat the player against a bot in the given format: a fresh single-shot table is created and started, and the join path it returns is the URL the player follows to sit in the seat. Omitted deck ids retain random assignment. A server that did not enable the play-vs-bot flow answers 404, surfaced as ApiError. */
