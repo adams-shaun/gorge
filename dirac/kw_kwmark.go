@@ -230,10 +230,11 @@ func (s *State) infectGranted(k *prep, sl Slot) bool {
 }
 
 // hasSkulkPerm is the withSkulk word on a battlefield permanent: the printed
-// keyword (none face down or after a lose-all-abilities effect) or a granted
-// one.
+// keyword of it or of a card beneath it (none face down or after a
+// lose-all-abilities effect) or a granted one.
 func (s *State) hasSkulkPerm(k *prep, sl Slot) bool {
-	c := s.cardAt(sl)
-	return c != kop.NoCard && k.t.Cards[c].Evasion&kop.EvSkulk != 0 && !s.genLost(k, sl) ||
+	return s.pilePrints(k, sl, printsSkulk) && !s.genLost(k, sl) ||
 		k.gen != nil && k.gen.anyEvasionGrant && s.evasionGranted(k, sl)&kop.EvSkulk != 0
 }
+
+func printsSkulk(cd *kop.CardDef) bool { return cd.Evasion&kop.EvSkulk != 0 }

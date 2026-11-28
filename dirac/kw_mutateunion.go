@@ -15,7 +15,10 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 //     the survivor's slot (pileSubscribe, after each fold; pileUnsubscribe
 //     when the pile leaves). Only abilities: an under card's types add no
 //     legendary bit.
-//   - keywords: kwGen and the layer-6 walk's base read pileKw.
+//   - keywords: kwGen and the layer-6 walk's base read pileKw. The printed
+//     records outside KwMask (CR 702.140e: infect, wither, toxic, evasion,
+//     printedKeyword's words) are read through pilePrints and eachPileCard,
+//     and each card's ward is its own trigger (printedWards).
 //   - statics: eachStaticOf, eachStaticC, eachStaticTS and mayPlayZones walk
 //     pileStatics after the top card; the class gates read statClsAt. A
 //     top-card swap that stays on the battlefield resubscribes the pile
@@ -163,6 +166,13 @@ func (s *State) eachPileCard(k *prep, sl Slot, f func(c CardID) bool) bool {
 		}
 	}
 	return true
+}
+
+// pilePrints reports whether a card of the permanent at sl, its top card or
+// one beneath it, prints what has reads (CR 702.140e). The caller applies the
+// loss of abilities.
+func (s *State) pilePrints(k *prep, sl Slot, has func(cd *kop.CardDef) bool) bool {
+	return !s.eachPileCard(k, sl, func(c CardID) bool { return c == kop.NoCard || !has(&k.t.Cards[c]) })
 }
 
 // prepPileMana registers, for a table that builds piles, each card's plain

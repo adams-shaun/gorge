@@ -378,9 +378,7 @@ func (s *State) wordPerm3(k *prep, fl *kop.Filter, sl Slot, src Slot) bool {
 		// none while face down or after a lose-all-abilities effect (genLost,
 		// the one-shot records and an attached lose-all static); or a
 		// granted one (gorge's derived keywords; kw_kwmark.go)
-		c := s.cardAt(sl)
-		ans = c != kop.NoCard && k.t.Cards[c].Infect && !s.genLost(k, sl) ||
-			k.gen != nil && k.gen.anyInfectGrant && s.infectGranted(k, sl)
+		ans = s.infectAt(k, sl)
 	case kop.W7LacksIslandwalk:
 		// !hasKeywordLandwalk:Island over the derived keywords: printed
 		// (kw_evasion.go), granted by a Continuous static, none once lost

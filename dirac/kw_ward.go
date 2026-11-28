@@ -53,12 +53,16 @@ func (s *State) wardGranted(k *prep, sl Slot, ob *object, e *stackEntry, disguis
 		hasPrinted = true
 		printed = wardAmt(cd) // negative: pay N life
 	}
-	if hasPrinted && !(DebugDropLifeWard && printed < 0) {
-		np := s.npend
-		s.enqueueWard(e, p.obj, ob.ver, s.cardAt(sl), p.ctrl, e.ctrl, printed)
-		s.panharmKeyword(k, sl, kop.TrigBecomesTarget, e.obj, np)
-		s.wardBeforeGranted(k, p.obj, nb, np)
+	// a pile's under cards queue their own printed wards beside the top's; a
+	// grant is deduped against the top's alone, as gorge's printed map is (an
+	// under card's line accounts for its own derived entry only)
+	first := s.npend
+	if disguise {
+		s.printedWard(k, sl, ob.ver, e, s.cardAt(sl), printed)
+	} else {
+		s.printedWards(k, sl, ob.ver, e)
 	}
+	s.wardBeforeGranted(k, p.obj, nb, first)
 	lts, lost := s.lossAt(k, sl)
 	// the granted instances in gorge's derived keyword order: the layer-6
 	// application order, the granting statics' timestamps
@@ -112,6 +116,35 @@ func (s *State) wardGranted(k *prep, sl Slot, ob *object, e *stackEntry, disguis
 		s.enqueueWard(e, p.obj, ob.ver, s.cardAt(sl), p.ctrl, e.ctrl, amt[i])
 		s.panharmKeyword(k, sl, kop.TrigBecomesTarget, e.obj, np)
 	}
+}
+
+// printedWards queues the printed ward triggers of the face-up permanent at
+// sl: one for each of its cards that prints ward, a merged permanent's under
+// cards among them, each its own instance at its own card's cost (CR 702.140e,
+// 113.2c), in pile order; none once it has lost its abilities.
+func (s *State) printedWards(k *prep, sl Slot, ver uint8, e *stackEntry) {
+	if s.genLost(k, sl) {
+		return
+	}
+	s.eachPileCard(k, sl, func(c CardID) bool {
+		if cd := &k.t.Cards[c]; cd.Keywords&kop.KwWard != 0 {
+			s.printedWard(k, sl, ver, e, c, wardAmt(cd)) // negative: pay N life
+		}
+		return true
+	})
+}
+
+// printedWard queues card c's ward trigger, amount amt, for e's targeting of
+// the permanent at sl. The entry carries c: the resolution reads that card's
+// ward cost.
+func (s *State) printedWard(k *prep, sl Slot, ver uint8, e *stackEntry, c CardID, amt int16) {
+	if DebugDropLifeWard && amt < 0 {
+		return
+	}
+	p := &s.perms[sl]
+	np := s.npend
+	s.enqueueWard(e, p.obj, ver, c, p.ctrl, e.ctrl, amt)
+	s.panharmKeyword(k, sl, kop.TrigBecomesTarget, e.obj, np)
 }
 
 // DebugNoWardGrant drops the granted ward triggers. The ward lockstep's
