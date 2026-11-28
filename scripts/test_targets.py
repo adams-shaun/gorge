@@ -75,8 +75,9 @@ REPRO_GLOBS = "^TestStd[A-Za-z]*ReprosLockstep[A-Za-z]*$"
 # The refusal-staleness check, kept in every replay arm. The whole test is ~190 s
 # of serialized entry searches (one entry's 200-pair pool hunt is 42 s: Whim of
 # Volrath, 11-27), which no cost deal can fit into a lane, so it is 8 shards
-# (TestRefusedEntriesStillDiverge0..7, entry i in shard i % 8) with no parent
-# test, and the lanes deal the shards like any other test.
+# (TestRefusedEntriesStillDiverge0..7, entry i in shard i % 8). The lanes name only the
+# shards and deal them like any other test; the parent TestRefusedEntriesStillDiverge is
+# the dirac gate's entry and checks only the shards its own -run does not select.
 REFUSED = "^TestRefusedEntriesStillDiverge[0-9]+$"
 # Every committed recording's replay: the manifest's ~595 named recordings, the oracle's other per-card
 # replay tests (the MBC tables) and the refusal-staleness check. TF-01 (2026-11-20): the precheck no longer

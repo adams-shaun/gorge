@@ -318,8 +318,9 @@ func TestRefusedEntriesStillDiverge6(t *testing.T) { refusedEntriesShard(t, 6) }
 func TestRefusedEntriesStillDiverge7(t *testing.T) { refusedEntriesShard(t, 7) }
 
 // refusedShardsLeft is the shards a -run pattern does not select by their
-// top-level names (go's matching: the pattern's first '/'-separated element,
-// unanchored; an empty or invalid one selects every test, so none is left).
+// top-level names (go's matching: each top-level '|' alternative's first
+// '/'-separated element, unanchored; an empty or invalid one selects every
+// test, so none is left).
 func refusedShardsLeft(run string) map[int]bool {
 	re, err := regexp.Compile(topRunElem(run))
 	if err != nil {
@@ -334,10 +335,13 @@ func refusedShardsLeft(run string) map[int]bool {
 	return left
 }
 
-// topRunElem is the part of a -run pattern that matches top-level names: up to
-// its first '/' outside brackets and parentheses, as the testing package splits it.
+// topRunElem is the part of a -run pattern that matches top-level names, split
+// as the testing package splits it: on '|' and '/' outside brackets and
+// parentheses, a '|' ending an alternative. It is every alternative's first
+// '/'-separated element, joined by '|'.
 func topRunElem(run string) string {
-	cs, ps := 0, 0
+	var alts []string
+	cs, ps, from, cut := 0, 0, 0, -1
 	for i := 0; i < len(run); i++ {
 		switch run[i] {
 		case '[':
@@ -357,12 +361,25 @@ func topRunElem(run string) string {
 		case '\\':
 			i++
 		case '/':
+			if cs == 0 && ps == 0 && cut < 0 {
+				cut = i
+			}
+		case '|':
 			if cs == 0 && ps == 0 {
-				return run[:i]
+				alts = append(alts, firstElem(run[from:i], cut-from))
+				from, cut = i+1, -1
 			}
 		}
 	}
-	return run
+	return strings.Join(append(alts, firstElem(run[from:], cut-from)), "|")
+}
+
+// firstElem is alt up to cut, its first top-level '/' (none when cut < 0).
+func firstElem(alt string, cut int) string {
+	if cut < 0 {
+		return alt
+	}
+	return alt[:cut]
 }
 
 // refusedEntriesShard checks the entries with i % refusedShards == shard. The

@@ -24,6 +24,10 @@ func TestRefusedParentLeavesTheShardsTheirEntries(t *testing.T) {
 		{`^(TestRefusedEntriesStillDiverge|TestRefusedEntriesStillDiverge3)$`, []int{0, 1, 2, 4, 5, 6, 7}},
 		{`^TestRefusedEntriesStillDiverge([0-3])?$/x`, []int{4, 5, 6, 7}},  // a '/' only past the group
 		{`^TestRefusedEntriesStillDiverge[0/1]$`, []int{2, 3, 4, 5, 6, 7}}, // a '/' in a class is not a split
+		// go splits on a top-level '|' before '/': each alternative's first element
+		// selects top-level tests, so the shard named after the '/' runs beside the parent.
+		{`^TestA$/x|^TestRefusedEntriesStillDiverge$|^TestRefusedEntriesStillDiverge3$`, []int{0, 1, 2, 4, 5, 6, 7}},
+		{`(^TestA$|^TestB$)/x|^TestRefusedEntriesStillDiverge[0-6]$`, []int{7}}, // a '|' in a group is not a split
 	} {
 		left := refusedShardsLeft(c.run)
 		var got []int
