@@ -101,6 +101,13 @@ type stdTSVRow struct {
 	label  string
 }
 
+// stdUnreadRow is one list's unread-after-refusal share.
+type stdUnreadRow struct {
+	list    string
+	gap     int // listed minus accepted: the cards a blocker can move
+	partial int // gap cards carrying at least one unread-after-refusal row
+}
+
 // stdCensusResult is the -census-std report.
 type stdCensusResult struct {
 	sets          []stdSetRow
@@ -111,6 +118,7 @@ type stdCensusResult struct {
 	tokenClasses  []stdTokenRow
 	umbrellas     []stdUmbrellaRow
 	bundles       []stdBundleRow
+	unread        []stdUnreadRow
 	tsv           []stdTSVRow
 	stdTotalShort int
 	allAccepted   int
@@ -141,6 +149,7 @@ type listResult struct {
 	refined      map[string][]string
 	tokenClasses map[string][]string
 	cardOrder    []string
+	partialCards int // cards with at least one unread-after-refusal entry
 }
 
 // computeStdCensus lowers every set list alone, exactly as the acceptance
@@ -225,6 +234,7 @@ func computeStdCensusAll(dir, allPath, cardsDir string, std []string) (*stdCensu
 			return nil, err
 		}
 		res.tsv = append(res.tsv, lr.rows...)
+		res.unread = append(res.unread, stdUnreadRow{list: l.set, gap: len(l.names) - lr.accepted, partial: lr.partialCards})
 		if l.set == "ALL" {
 			res.allAccepted = lr.accepted
 			res.allListed = len(l.names)
@@ -310,6 +320,12 @@ func computeStdCensusAll(dir, allPath, cardsDir string, std []string) (*stdCensu
 	}
 
 	sort.Slice(res.sets, func(i, j int) bool { return res.sets[i].set < res.sets[j].set })
+	sort.Slice(res.unread, func(i, j int) bool {
+		if (res.unread[i].list == "ALL") != (res.unread[j].list == "ALL") {
+			return res.unread[j].list == "ALL"
+		}
+		return res.unread[i].list < res.unread[j].list
+	})
 
 	for cl, cards := range stdCards {
 		row := stdClassRow{
@@ -424,6 +440,9 @@ func lowerStdList(l stdList, cardsDir string) (*listResult, error) {
 			lr.accepted++
 			lr.rows = append(lr.rows, stdTSVRow{set: l.set, card: c.Name})
 			continue
+		}
+		if len(c.Unreadable) > 0 {
+			lr.partialCards++
 		}
 		rows := cardTSVRows(l.set, c, tokens)
 		lr.rows = append(lr.rows, rows...)
@@ -1056,6 +1075,19 @@ func writeStdCensus(w io.Writer, res *stdCensusResult) {
 	fmt.Fprintln(w, "|---:|---:|---|---|")
 	for _, b := range res.bundles {
 		fmt.Fprintf(w, "| %d | %d | %s | %s |\n", b.cards, b.covered, mdEscape(b.bundle), stdSetCounts(b.sets))
+	}
+	fmt.Fprintln(w)
+
+	fmt.Fprintln(w, "## Unread after refusal")
+	fmt.Fprintln(w)
+	fmt.Fprintln(w, "| list | gap cards | cards with unread params | share |")
+	fmt.Fprintln(w, "|---|---:|---:|---:|")
+	for _, r := range res.unread {
+		share := 0.0
+		if r.gap > 0 {
+			share = 100 * float64(r.partial) / float64(r.gap)
+		}
+		fmt.Fprintf(w, "| %s | %d | %d | %.1f%% |\n", r.list, r.gap, r.partial, share)
 	}
 }
 
