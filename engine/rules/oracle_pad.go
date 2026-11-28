@@ -38,6 +38,9 @@ func RunOracleScenarioPadded(reg *cards.Registry, raw []byte, fixture bool) (Ora
 		return OraclePadResult{}, err
 	}
 	sc.xmageFixture = fixture
+	if _, err := oracleSeatCount(sc.Players); err != nil {
+		return OraclePadResult{}, err
+	}
 	pad, ok := padOracleScenario(sc)
 	if !ok {
 		return OraclePadResult{Verdict: "not-two-seat"}, nil
@@ -60,7 +63,8 @@ func RunOracleScenarioPadded(reg *cards.Registry, raw []byte, fixture bool) (Ora
 
 // padOracleScenario returns sc seated at four: p0 and p1 unchanged, two inert
 // seats after them in turn order, and the scenario's turn mapped so the same
-// seat is active (padTurn). false when sc seats more than two.
+// seat is active (padTurn). false when sc seats more than two or its players
+// count is invalid (RunOracleScenarioPadded reports that one as an error).
 func padOracleScenario(sc oracleScenario) (oracleScenario, bool) {
 	if seats, err := oracleSeatCount(sc.Players); err != nil || seats != 2 {
 		return oracleScenario{}, false

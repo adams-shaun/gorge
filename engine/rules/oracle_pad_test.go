@@ -184,10 +184,17 @@ func TestPaddedEachOpponentDiffers(t *testing.T) {
 	}
 }
 
-// TestPaddedPassToSkipsInertTurns: from p1's turn, pass_to upkeep stops in
-// p0's next upkeep, the inert p2 and p3 turns in between skipped.
+// TestPaddedPassToSkipsInertTurns: from p1's turn, pass_to draw stops in
+// p0's next draw step, the inert p2 and p3 turns in between skipped. The draw
+// step (not upkeep) is the one that tells: were pass_to to stop in p2's draw,
+// the step loop's skipInert would drive on to p0's upkeep, not its draw.
+//
+// The decision-keyed gate (!r.inert(d.Player)) has no test: an inert seat
+// only holds a non-priority decision in a pass_to loop when it has a real
+// choice to make (a cleanup discard after eight inert draws, an opponent's
+// "each player chooses"), and no scenario here reaches one.
 func TestPaddedPassToSkipsInertTurns(t *testing.T) {
-	raw := `{"name":"pass","turn":2,"setup":{"p0":{},"p1":{}},"steps":[{"op":"pass_to","step":"upkeep"}]}`
+	raw := `{"name":"pass","turn":2,"setup":{"p0":{},"p1":{}},"steps":[{"op":"pass_to","step":"draw"}]}`
 	sc, err := decodeOracleScenario([]byte(raw))
 	if err != nil {
 		t.Fatal(err)
@@ -197,7 +204,8 @@ func TestPaddedPassToSkipsInertTurns(t *testing.T) {
 		t.Fatal("two-seat scenario refused")
 	}
 	reg := testutil.CorpusRegistry(t)
-	for name, s := range map[string]oracleScenario{"base": sc, "pad": pad} {
+	for _, name := range []string{"base", "pad"} {
+		s := map[string]oracleScenario{"base": sc, "pad": pad}[name]
 		fails, log, run := runOracleScenarioSpare(reg, s, false, nil)
 		if len(fails) != 0 {
 			t.Fatalf("%s: %v\n%s", name, fails, strings.Join(log, "\n"))
@@ -206,11 +214,11 @@ func TestPaddedPassToSkipsInertTurns(t *testing.T) {
 		if first.Active != 1 {
 			t.Fatalf("%s: setup active p%d, want p1", name, first.Active)
 		}
-		if last.Active != 0 || last.Step != "upkeep" {
-			t.Errorf("%s: stopped in p%d's %s, want p0's upkeep", name, last.Active, last.Step)
+		if last.Active != 0 || last.Step != "draw" {
+			t.Errorf("%s: stopped in p%d's %s, want p0's draw", name, last.Active, last.Step)
 		}
-		if name == "pad" && last.Turn != 5 {
-			t.Errorf("pad: stopped on turn %d, want 5", last.Turn)
+		if want := map[string]int32{"base": 3, "pad": 5}[name]; last.Turn != want {
+			t.Errorf("%s: stopped on turn %d, want %d", name, last.Turn, want)
 		}
 	}
 	if res := runPadded(t, raw); res.Verdict != "same" {
@@ -244,5 +252,10 @@ func TestPaddedRefusesThreeSeats(t *testing.T) {
 	res := runPadded(t, `{"name":"three","players":3,"setup":{"p0":{},"p1":{},"p2":{}},"steps":[]}`)
 	if res.Verdict != "not-two-seat" {
 		t.Errorf("verdict %s, want not-two-seat", res.Verdict)
+	}
+	// An invalid players count is the harness error, not "not-two-seat".
+	bad := `{"name":"five","players":5,"setup":{"p0":{},"p1":{}},"steps":[]}`
+	if res, err := RunOracleScenarioPadded(testutil.CorpusRegistry(t), []byte(bad), false); err == nil {
+		t.Errorf("players 5: verdict %s, want an error", res.Verdict)
 	}
 }

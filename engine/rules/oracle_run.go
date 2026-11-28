@@ -1680,7 +1680,7 @@ func (r *oracleRun) answer(d *decision.Decision, why string) error {
 		}
 		return r.e.Submit(decision.Intent{Seq: d.Seq, Player: d.Player, Choices: []int{idx}})
 	}
-	if r.inert(d.Player) {
+	if r.inert(d.Player) || r.inert(r.e.G.Active) {
 		return r.answerFallback(d, why)
 	}
 	if d.Kind == decision.KTarget && len(r.targets) > 0 {
@@ -1759,8 +1759,9 @@ func (r *oracleRun) answer(d *decision.Decision, why string) error {
 
 // answerFallback answers d by the runner's documented fallback (answer's
 // tail): accept an optional trigger, keep orders as offered, and otherwise
-// take the first Min options. A padded run's inert seats answer every
-// non-priority decision this way.
+// take the first Min options. A padded run answers every non-priority
+// decision of an inert seat, and every one posed during an inert seat's
+// turn, this way, so no scripted answer or target is spent there.
 func (r *oracleRun) answerFallback(d *decision.Decision, why string) error {
 	var choices []int
 	switch d.Kind {
