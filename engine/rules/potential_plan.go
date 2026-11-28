@@ -1660,8 +1660,8 @@ func (e *Engine) potentialModeBaseCost(p state.PlayerID, id state.ObjID, f *card
 	case potentialModeBaseCostEntwined:
 		ec, ok := entwineCost(f)
 		return cost.Plus(ec), ok
-	case potentialModeBaseCostSurged:
-		return surgeCost(f)
+	case potentialModeBaseCostSurged, potentialModeBaseCostMutated:
+		return faceAltModeBaseCost(code, f)
 	case potentialModeBaseCostMiracle:
 		return e.miracleCost(id)
 	case potentialModeBaseCostOmenAlt:
@@ -3107,6 +3107,7 @@ const (
 	potentialModeBaseCostConverted
 	potentialModeBaseCostReplicated
 	potentialModeBaseCostSquadded
+	potentialModeBaseCostMutated
 )
 
 var potentialModeBaseCostCodes = state.NewStrCodes(
@@ -3134,6 +3135,7 @@ var potentialModeBaseCostCodes = state.NewStrCodes(
 	state.StrEntry[potentialModeBaseCostCode]{Key: "sneak", Val: potentialModeBaseCostSneak},
 	state.StrEntry[potentialModeBaseCostCode]{Key: "prototype", Val: potentialModeBaseCostPrototype},
 	state.StrEntry[potentialModeBaseCostCode]{Key: "suspend", Val: potentialModeBaseCostSuspend},
+	state.StrEntry[potentialModeBaseCostCode]{Key: "mutated", Val: potentialModeBaseCostMutated},
 )
 
 // planFaceIdx is the Descriptor.FaceIdx of e.planFace on object id: 1 + its
@@ -3152,6 +3154,16 @@ func (e *Engine) planFaceIdx(id state.ObjID) uint8 {
 		}
 	}
 	return 0
+}
+
+// faceAltModeBaseCost prices the two alternative-cost modes read straight
+// off the face: surge (CR 702.117a) and mutate (CR 702.140a, through the one
+// reader the offer and beginCast use, mutate.go's mutateCost).
+func faceAltModeBaseCost(code potentialModeBaseCostCode, f *cards.Face) (Cost, bool) {
+	if code == potentialModeBaseCostMutated {
+		return mutateCost(f)
+	}
+	return surgeCost(f)
 }
 
 // repeatedModeBaseCost is the potential planner's base+one-payment price for
