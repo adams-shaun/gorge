@@ -92,7 +92,7 @@ func (s *State) windowRestr(k *prep, p uint8) slotMask {
 // restricted or any-colour gap, a filter-only gap, a counter-cost source, or
 // a Taps-deferred one (mana_tapsdefer.go).
 func (s *State) scriptAny(k *prep) bool {
-	return k.gen != nil && (k.gen.anyScriptGap || k.sacOnlyMana || k.ctrMana || k.gen.anyTapsDefer || k.gen.anyDiscHand || k.gen.anyComboAny || k.gen.uses.has(useLifeGap) || k.gen.uses.has(useAnyDifferent))
+	return k.gen != nil && (k.gen.anyScriptGap || s.sacOnlyLive(k) || k.ctrMana || k.gen.anyTapsDefer || k.gen.anyDiscHand || k.gen.anyComboAny || k.gen.uses.has(useLifeGap) || k.gen.uses.has(useAnyDifferent))
 }
 
 // gapMask: p's untapped permanents whose card carries the sparse mana
@@ -1286,7 +1286,7 @@ func (s *State) mayPlayJoinCensusPays(k *prep, p uint8, a Action, cost *kop.Mana
 // budget): the offer falls to grantSearch's mirror of that budget, not the
 // census's.
 func (s *State) ownSacTapNeeded(k *prep, p uint8, cost *kop.ManaCost) bool {
-	if k.gen == nil || !k.sacOnlyMana || !k.gen.anyContGrant {
+	if k.gen == nil || !s.sacOnlyLive(k) || !k.gen.anyContGrant {
 		return false
 	}
 	var gap slotMask

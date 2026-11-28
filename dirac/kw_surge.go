@@ -132,9 +132,7 @@ func (s *State) surgePlannerPrices(k *prep, p uint8, c CardID, o Obj, sc *kop.Ma
 	defer s.unfork()
 	f.g.noGrant = true
 	f.g.availX = availPlain
-	save := k.sacOnlyMana
-	k.sacOnlyMana = false
-	defer func() { k.sacOnlyMana = save }()
+	f.g.sacOut = true // the fork's own bit: the table's prep is shared with every other game on it
 	var t1 avail
 	f.availFor(k, p, &t1)
 	return t1.affords(sc, pipMaskOf(sc), 0)

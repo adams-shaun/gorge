@@ -283,7 +283,7 @@ func (s *State) hasUntappedMana(k *prep, p uint8) bool {
 		// the no-tap arms first (see above): a sacrifice-only source
 		// (CR 602.2b), a life-only pain one, a tap-another one whose cost
 		// taps another permanent
-		if k.sacOnlyMana && s.canSacOnlyNowAt(k, sl) ||
+		if s.sacOnlyLive(k) && s.canSacOnlyNowAt(k, sl) ||
 			k.painMana && s.canLifeOnlyMana(k, sl, SeatIx(p)) || s.tapXActivatable(k, p, sl) || ctr.has(sl) || s.depleteLive(k, p, sl) {
 			return true
 		}

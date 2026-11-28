@@ -99,7 +99,7 @@ func (s *State) grantTapOK(k *prep, sl Slot) bool {
 // (filtOtherMana's sacrifice-only test): each manaPCGen walks sl's granted
 // abilities.
 func (s *State) grantTapByGrant(k *prep, sl Slot, pc *pcard) bool {
-	if !pc.grantSac && !(k.sacOnlyMana && pc.manaSacOnly) {
+	if !pc.grantSac && !(s.sacOnlyLive(k) && pc.manaSacOnly) {
 		return false // (a printed sacrifice-only source, an Eldrazi Spawn, taps only by a grant)
 	}
 	var gi [maxGrants]int16
@@ -188,14 +188,14 @@ func (s *State) availGrantSacOnly(k *prep, sl Slot, a *avail) {
 // windowSacOnly: the manual window's view pc is a sacrifice-only mana
 // ability, printed (Eldrazi Spawn) or granted (Lotus Ring): the window
 // sacrifices the source instead of tapping it.
-func windowSacOnly(k *prep, pc *pcard) bool {
-	return k.sacOnlyMana && pc.manaSacOnly || pc.grantSac
+func (s *State) windowSacOnly(k *prep, pc *pcard) bool {
+	return s.sacOnlyLive(k) && pc.manaSacOnly || pc.grantSac
 }
 
 // windowSacNow: sl is a sacrifice-only source the manual window may take
 // now, printed or granted.
 func (s *State) windowSacNow(k *prep, sl Slot) bool {
-	if k.sacOnlyMana && s.canSacOnlyNowAt(k, sl) {
+	if s.sacOnlyLive(k) && s.canSacOnlyNowAt(k, sl) {
 		return true
 	}
 	return k.gen != nil && len(k.gen.grantPC) != 0 && s.grantSacLive(sl, s.windowGrantPC(k, sl))
