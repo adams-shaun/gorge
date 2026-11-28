@@ -207,6 +207,9 @@ func (s *State) placeFromK(k *prep, o Obj, z kop.Zone, bottom bool, from kop.Zon
 	if k != nil && k.mayhem {
 		s.mObjClr(k, mechMayhem, o) // a new object nobody discarded (CR 400.7)
 	}
+	if k != nil {
+		s.mObjClr(k, mechDrawn, o) // a new object nobody drew (CR 400.7; filter_drawnthisturn.go)
+	}
 	s.touch(o)
 	ob := &s.objs[o]
 	ob.ver++
@@ -387,6 +390,9 @@ func (s *State) drawExcl(p uint8, ch drawChain) {
 	pl.handN++
 	pl.drawnTurn++
 	s.g.zoneTurn.set(o) // put into the hand this turn, as place does
+	if s.g.on {
+		s.mObjSet(s.k(), mechDrawn, o) // gorge's DrawnTurn stamp (filter_drawnthisturn.go)
+	}
 	if s.g.enteredOn {
 		s.noteEnter(o, kop.ZoneHand, kop.ZoneLibrary, false, false)
 	}

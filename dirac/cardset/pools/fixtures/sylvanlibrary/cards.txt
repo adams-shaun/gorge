@@ -1,0 +1,11 @@
+# The Sylvan Library pool: the draw-step trigger's optional Draw<2/You> cost,
+# the ChooseCard over Card.YouOwn+DrawnThisTurn in hand and the ChooseOrder$
+# RepeatEach paying 4 life or putting each chosen card back on top, beside
+# vanilla creatures and basics
+# (dirac/oracle/sylvan_library_lockstep_test.go)
+Sylvan Library
+Grizzly Bears
+Hill Giant
+Craw Wurm
+Forest
+Mountain

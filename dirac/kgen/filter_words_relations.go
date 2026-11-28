@@ -274,7 +274,7 @@ func (c *lClause) fwArmOrUnknown(p string, knownSub func(string) bool) error {
 		strings.HasPrefix(p, "sharesNameWith") || strings.HasPrefix(p, "!sharesNameWith") ||
 		p == "sameName" || p == "!sameName" ||
 		p == "ChosenCtrl" || p == "EnchantedControllerCtrl" ||
-		p == "suspended" || p == "TopLibrary" || p == "DoubleFaced" ||
+		p == "suspended" || p == "TopLibrary" || p == "DoubleFaced" || p == "DrawnThisTurn" ||
 		p == "Modal" || p == "singleTarget" || p == "OppProtect" ||
 		p == "Paired" || p == "!Paired" || p == "PairedWith" ||
 		p == "canProduceSameManaTypeWith" || strings.HasPrefix(p, "canProduceManaColor ") ||

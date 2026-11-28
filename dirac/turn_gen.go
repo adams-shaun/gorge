@@ -1116,6 +1116,7 @@ func (s *State) newTurnGen() {
 		s.addPhaseNewTurn() // act_addphase.go
 	}
 	s.mObjZero(s.k(), mechMayhem) // the discard-this-turn marks end with the turn (CR 702.187a; gorge's TurnChange bound)
+	s.mObjZero(s.k(), mechDrawn)  // the drawn-this-turn marks end with the turn (filter_drawnthisturn.go)
 	s.g.trigTurn = 0
 	s.g.dilemmas = [MaxSeats]uint8{}
 	if s.g.nchPick != 0 {
