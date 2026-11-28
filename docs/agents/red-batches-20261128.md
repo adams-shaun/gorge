@@ -106,9 +106,19 @@ condition problem — the invariant is test-side.
 - **C — flake (build cache / timeout).** The build-cache part **already has a
   guard**: #6013's bounded cache-miss retry (`scripts/ci-retry-cache.sh`) and the
   existing `scripts/ci-infra-retry.sh` wrapper — do not add a duplicate. The
-  timeout flake (`TestCreatePodDiracSeatsFour`, the fresh-clone accessor tests) has
-  no guard; route those two tests through the same bounded
-  `scripts/ci-infra-retry.sh` retry so one timeout does not re-run a whole batch.
+  timeout part: the fresh-clone accessor tests (`TestHotAccessorsInline`,
+  `TestNoKernelLocalEscapes`, batch 46140183894) now run through
+  `scripts/ci-infra-retry.sh` — lint's `make fresh-clone-check`, one retry — with
+  a new `test-timeout` signature row: #6070. The row matches `panic: test timed
+  out after 5m0s`, fresh-clone's `-timeout 5m`; the test shards' `-timeout 20m` is
+  **deliberately not matched**, because retrying a genuine 20m hang would add 20m
+  to a batch. `TestCreatePodDiracSeatsFour` (batch 46128867881) **remains
+  unguarded**: its 120 s budget is a `t.Fatalf`, which prints `--- FAIL:` —
+  indistinguishable from a real "the pod does not terminate" assertion, so the
+  wrapper's `verdict()` check, which runs before its signature match, correctly
+  refuses to retry it. Routing it would take weakening `verdict()` so real
+  failures could retry; making its timeout distinguishable from an assertion is a
+  test-mechanism change, not a CI one.
 - **D — unreadable.** Capture what a job writes unconditionally, so a red is
   never silent: #6059 adds an `if: always()` artifact upload to the `fast`,
   `lint`, `test`, `web-unit`, `dirac-slices` and `dirac-repros` jobs of
