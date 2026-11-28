@@ -33,34 +33,33 @@ func (s *State) discardCandNAt(k *prep, p uint8, f kop.FilterID, exclude Obj, ct
 // discardShareColorCandN counts p's hand cards sharing a colour with the
 // spell being cast (exclude, the cast card itself, not counted), the candidate
 // set of Dream Halls' granted alternative cost (Cost.DiscardSharesCastColor).
-// A colourless cast card shares nothing, so it has no candidates.
+// It and the pick list read handSharesColor, the one legal-answer test; a
+// colourless cast card shares nothing, so it has no candidates.
 func (s *State) discardShareColorCandN(k *prep, p uint8, exclude Obj) int {
 	if exclude == NoObj {
-		return 0
-	}
-	cols := k.t.Cards[s.objs[exclude].card].Colors & kop.ColAny
-	if cols == 0 {
 		return 0
 	}
 	n := 0
 	pl := &s.pl[p]
 	for i := 0; i < int(pl.handN); i++ {
 		o := pl.hand[i]
-		if o != exclude && k.t.Cards[s.objs[o].card].Colors&cols != 0 {
+		if o != exclude && s.handSharesColor(k, o, exclude) {
 			n++
 		}
 	}
 	return n
 }
 
-// handSharesColor reports whether hand object o shares a printed colour with
-// the spell being cast (cast), the pick-side test of Cost.DiscardSharesCastColor.
+// handSharesColor reports whether hand object o shares a colour with the
+// spell being cast (cast), read for both halves of a split card off the stack
+// (CR 709.4b). It is the one legal-answer test of
+// Cost.DiscardSharesCastColor, used by the payability count and the pick list.
 func (s *State) handSharesColor(k *prep, o, cast Obj) bool {
 	if cast == NoObj {
 		return false
 	}
 	cols := k.t.Cards[s.objs[cast].card].Colors & kop.ColAny
-	return cols != 0 && k.t.Cards[s.objs[o].card].Colors&cols != 0
+	return cols != 0 && s.splitCardColors(k, o)&cols != 0
 }
 
 // discardPayable reports whether p's hand pays cost c's discard parts
