@@ -227,10 +227,10 @@ func quietCardBits(t *kop.Table, k *prep, i int) uint16 {
 	if quietPlainCast(cd, pc) {
 		q |= qPlain
 	}
-	if k.tapExtraCard[i] {
+	if i < len(k.tapExtraCard) && k.tapExtraCard[i] {
 		q |= qMana
 	}
-	if k.grantsMana[i] || k.grantSrcCard != nil && k.grantSrcCard[i] {
+	if i < len(k.grantsMana) && k.grantsMana[i] || i < len(k.grantSrcCard) && k.grantSrcCard[i] {
 		q |= qGMana
 	}
 	return q
