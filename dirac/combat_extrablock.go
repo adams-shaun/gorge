@@ -49,6 +49,8 @@ var coldXblk = newCold[xblkRec]("xblk", func(g *genPrep) int {
 		return maxXblkAny
 	case g.anyExtraBlock:
 		return maxXblk
+	case g.uses.has(useBanding):
+		return maxXblk // a band blocker's CR 702.22h mates (combat_band.go bandExpandBlocks)
 	}
 	return 0
 })

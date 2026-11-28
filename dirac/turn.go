@@ -530,6 +530,8 @@ func (s *State) clearCombat() {
 		p.flags &^= pfAttacking | pfBlocking | pfBlocked | pfDealtFirst
 		p.blocking = NoSlot
 		p.nblock = 0
+		p.atkPl &^= atkPlBandMask // CR 702.22e: the band ends with the combat
+		p.cseen &^= cseenBandMate
 		if *p != old {
 			s.touchSl(sl)
 		}

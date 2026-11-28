@@ -894,8 +894,8 @@ func (s *State) playerRef(k *prep, r kop.Ref) uint8 {
 		// player this turn.
 		if int(e.obj) < MaxObj {
 			if ob := &s.objs[e.obj]; ob.zone == kop.ZoneBattlefield {
-				if p := &s.perms[ob.slot]; p.obj == e.obj && p.atkPl != 0 {
-					return p.atkPl - 1
+				if p := &s.perms[ob.slot]; p.obj == e.obj && p.atkPl&atkPlSeatMask != 0 {
+					return p.atkPl&atkPlSeatMask - 1
 				}
 			}
 		}

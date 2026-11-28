@@ -180,6 +180,7 @@ func (s *State) phaseOut(k *prep, sl Slot, indirect bool) {
 	}
 	p.flags &^= pfAttacking | pfBlocking | pfBlocked | pfDealtFirst
 	p.blocking, p.nblock = NoSlot, 0
+	s.bandClearSlot(sl) // CR 702.22f: a creature removed from combat leaves its band
 	// the card the permanent wears (a copy's statics and triggers too,
 	// tables): phase-out takes the worn card off the masks (CR 702.26b)
 	s.subscribe(sl, &k.cards[s.cardAt(sl)], false)

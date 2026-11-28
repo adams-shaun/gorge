@@ -42,8 +42,8 @@ func bandAskScen(t *testing.T, banding int) (*kwBandingScen, [2]Obj) {
 // TestBandAsk: the CR 702.22c band declaration ask gorge poses after the
 // attackers are declared (engine/rules/banding.go): one ask per attacker with
 // banding that has a candidate, in declaration order, option 0 declining and
-// then each other attacker; a decline hands on to the priority round; an
-// accepted candidate stalls (band formation is not modelled).
+// then each other attacker; a decline hands on to the priority round, and an
+// accepted candidate forms the band (combat_band.go applyBand).
 func TestBandAsk(t *testing.T) {
 	t.Run("one leader", func(t *testing.T) {
 		f, rams := bandAskScen(t, 1)
@@ -85,13 +85,21 @@ func TestBandAsk(t *testing.T) {
 		f.do(t, AkDone, scAny, scAny)
 		f.expect(t, DkPriority, 0)
 	})
-	t.Run("a candidate stalls", func(t *testing.T) {
-		f, _ := bandAskScen(t, 1)
+	t.Run("a candidate forms the band", func(t *testing.T) {
+		f, rams := bandAskScen(t, 1)
 		d := f.expect(t, DkChoose, ChBand)
+		leader, member := f.slot(rams[0]), f.slot(rams[1])
 		f.s.Apply(bandOpt(t, d, 1))
-		if f.s.g.stalled != StallBand {
-			t.Fatalf("stalled %d (%s), want StallBand", f.s.g.stalled, StallName(f.s.g.stalled))
+		if f.s.g.stalled != 0 {
+			t.Fatalf("an accepted band stalled %d (%s), want none", f.s.g.stalled, StallName(f.s.g.stalled))
 		}
+		if got := f.s.bandOf(leader); got != leader {
+			t.Fatalf("the leader's band names slot %d, want itself %d", got, leader)
+		}
+		if got := f.s.bandOf(member); got != leader {
+			t.Fatalf("the member's band names slot %d, want the leader %d", got, leader)
+		}
+		f.expect(t, DkPriority, 0)
 	})
 }
 
