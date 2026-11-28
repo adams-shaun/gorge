@@ -60,9 +60,13 @@ func TestPlannedCastPaysAPhyrexianPipWithMana(t *testing.T) {
 	}
 }
 
-// A keyword granted only to a spell cast from exile isn't there when the plan is
-// offered, so the seat's own convoke answer outdates the witness (CR 702.51a). The
-// cast is still paid without the manual window.
+// A keyword granted only to a spell cast from exile is visible at the offer
+// now (castProvenanceAdmitsWindow's origin-zone pre-push read, CR 702.51a:
+// the spell being cast from exile is the noncreature spell the grant names),
+// so the planner treats the cast like a printed-convoke one -- shape
+// "contribution", no plan witness -- and leaves it to the manual window. The
+// cast is not lost: the manual route asks for the convoke contribution and
+// pays the remainder.
 func TestPlannedCastSurvivesAConvokeAnswer(t *testing.T) {
 	t.Parallel()
 	const (
@@ -76,16 +80,29 @@ func TestPlannedCastSurvivesAConvokeAnswer(t *testing.T) {
 	e.paidManaCensus = true
 	helper := onBoard(t, e, 0, patron)
 	e.G.Obj(helper).SummonSick = false
-	var lands []state.ObjID
 	for range 3 {
-		lands = append(lands, onBoard(t, e, 0, apMountain))
+		onBoard(t, e, 0, apMountain)
 	}
 	e.emit(events.Event{Kind: events.MoveZone, Obj: spell, From: state.ZHand, To: state.ZExile})
-	d := ppPriority(t, e)
+	addMana(t, e, 0, "RR")
+	d := e.Pending()
+	if d == nil || d.Kind != decision.KPriority {
+		t.Fatalf("pending %+v, want a priority offer of the exile cast", d)
+	}
+	offered := false
+	for _, o := range d.Options {
+		if o.Kind == "cast" && o.Obj == spell {
+			offered = true
+		}
+	}
+	if !offered {
+		t.Fatalf("the exile cast was not offered: %+v", d.Options)
+	}
 	e.EnsurePaymentActions()
-	sink := &PaymentPlanStats{}
-	e.SetPaymentPlanStats(sink)
-	submitPaymentPlan(t, e, d, ppAction(t, e.Pending(), spell))
+	if ppHasAction(e.Pending(), spell) {
+		t.Fatalf("the planner offered a witness for a granted-convoke cast: %+v", e.Pending().PaymentActions)
+	}
+	submitOption(t, e, "", "Cast Test Curse")
 	ask := e.Pending()
 	if ask == nil || ask.Kind != decision.KChoose || ask.Source != spell {
 		t.Fatalf("pending %+v, want the convoke ask", ask)
@@ -103,19 +120,7 @@ func TestPlannedCastSurvivesAConvokeAnswer(t *testing.T) {
 	if d := e.Pending(); d == nil || d.PaymentFallback != nil || d.Kind != decision.KPriority {
 		t.Fatalf("pending %+v, want the spell paid without a fallback", d)
 	}
-	tapped := 0
-	for _, id := range lands {
-		if e.G.Obj(id).Tapped {
-			tapped++
-		}
-	}
-	if tapped != 2 || !e.G.Obj(helper).Tapped || len(e.G.Stack) != 1 {
-		t.Errorf("%d lands tapped, helper tapped %v, stack %v; want 2, true and the spell", tapped, e.G.Obj(helper).Tapped, e.G.Stack)
-	}
-	// The cast paid by a new witness, not the one the seat selected, and the
-	// stats sink names it, so a harness checking the payment against its
-	// witness reads that one: {1}{R}, the helper's {1} taken off.
-	if sink.Rearms != 1 || sink.Rearm == nil || sink.Rearm.Cost.Generic != 1 || len(sink.Rearm.Activations) != 2 {
-		t.Errorf("rearms %d, last %+v; want one witness for {1}{R} over two lands", sink.Rearms, sink.Rearm)
+	if !e.G.Obj(helper).Tapped || len(e.G.Stack) != 1 {
+		t.Errorf("helper tapped %v, stack %v; want true and the spell", e.G.Obj(helper).Tapped, e.G.Stack)
 	}
 }
