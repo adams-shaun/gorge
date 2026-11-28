@@ -4,32 +4,56 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 
 // kfix-cast: "any player may pay" (UnlessPayer$ Player; kgen lowers it to
 // OpIfPaid / OpUnlessPaid / OpUnlessSwitched obj=RefEachPlayer). gorge at the pin
-// (engine/effects/unless.go unlessPayerTargets, unlessProceed): the payers
+// (engine/effects/unless.go unlessPayerTargetsFor, unlessProceed): the payers
 // are every living player in AliveFrom(0) seat order -- player 0 first,
-// whoever controls the resolving object -- and each is posed the unless
-// ask (KModes, ResumeKind "unless_pay", decline only when the cost can't
-// be paid); a pay ends the walk paid, a decline asks the next payer, and
-// only when every payer declined does the body take the unpaid branch.
+// whoever controls the resolving object, a departed player skipped (CR
+// 800.4a, 800.4f) -- and each is posed the unless ask (KModes, ResumeKind
+// "unless_pay", decline only when the cost can't be paid); a pay ends the
+// walk paid, a decline asks the next payer, and only when every payer
+// declined does the body take the unpaid branch.
 // The ask is the ordinary raGenPay with pfModes (gorge's unless ask, never
-// a trigger's own cost) and pfEachNext while player 1 is still to come.
+// a trigger's own cost) and pfEachNext while a later seat is still to come;
+// g.pickP is the seat being asked, so the walk needs no state of its own.
 // Guard: prep.eachPay (some op has the shape); the entry is execPay's
 // cold p == 255 branch and payDone's decline.
 
-// execPayEach poses the any-player ask to player 0; false = suspended.
+// execPayEach poses the any-player ask to the first living seat; false =
+// suspended.
 //
 //go:noinline
 func (s *State) execPayEach(k *prep, in *kop.Instr, kind int, skip uint16, amt int) bool {
-	s.posePay(k, in, 0, kind, skip|pfModes|pfEachNext, amt)
+	s.posePayEach(k, in, s.eachPayerFrom(0), kind, skip|pfModes, amt)
 	return false
 }
 
-// payEachNext: player 0 declined; player 1 is asked the same cost.
+// payEachNext: the asked seat declined; the next living seat is asked the
+// same cost.
 //
 //go:noinline
 func (s *State) payEachNext(k *prep) {
 	in := &s.prog(k)[s.res.pc]
 	f := s.g.pickF &^ (pfEachNext | pfNoPay)
-	s.posePay(k, in, 1, int(s.g.pickZ), f, s.value(k, in.A))
+	s.posePayEach(k, in, s.eachPayerFrom(s.g.pickP+1), int(s.g.pickZ), f, s.value(k, in.A))
+}
+
+// eachPayerFrom is the first seat at or after p, in seat order and without
+// wrapping, that is still in the game, or noSeat past the last.
+func (s *State) eachPayerFrom(p uint8) uint8 {
+	for ; p < s.nSeats(); p++ {
+		if !s.out(p) {
+			return p
+		}
+	}
+	return noSeat
+}
+
+// posePayEach is posePay for seat p of the walk, marking whether a later seat
+// is still to be asked.
+func (s *State) posePayEach(k *prep, in *kop.Instr, p uint8, kind int, skip uint16, amt int) {
+	if s.eachPayerFrom(p+1) != noSeat {
+		skip |= pfEachNext
+	}
+	s.posePay(k, in, p, kind, skip, amt)
 }
 
 // posePay sets the raGenPay ask for payer p (execPay's tail).
