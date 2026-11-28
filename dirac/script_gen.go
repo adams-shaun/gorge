@@ -413,6 +413,16 @@ func (s *State) caGapMask(k *prep, p uint8, ca bool) slotMask {
 	return slotMask{}
 }
 
+// offerWalksUnread: scriptOffers' candidate loop reads none of its nested
+// walks (no kept play), and no eager reference run builds them anyway.
+func offerWalksUnread(play bool) bool { return !play && !nestedWalkEager }
+
+// realWalkRead: scriptOffers' real walk runs on the auto-pay surface when a
+// kept plain untargeted cast can read it, or for the eager reference run.
+func (s *State) realWalkRead(plainCast bool) bool {
+	return s.cfg&cfgGorgeAutopay != 0 && (plainCast || nestedWalkEager)
+}
+
 // scriptOfferReads reports whether src holds a play the candidate loop of
 // scriptOffers keeps past scriptOfferDrops' first three clauses (a script
 // play kind, on neither d nor the spent cap), and whether one of them is a
@@ -510,7 +520,7 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 	// loop runs no iteration: searched is 0, as the eager run returns, and
 	// no walk built here would have been read.
 	play, plainCast := scriptOfferReads(src, d, capSpent)
-	if !play && !nestedWalkEager {
+	if offerWalksUnread(play) {
 		return 0
 	}
 	var cand [MaxOptions]Action
@@ -523,7 +533,7 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 	// searches every play the walk lists, a wide source's mana counted.
 	mixWide := mix && relax && s.scriptWide(k, p).any()
 	var real Decision // the plays the printed sources pay, plain casts the autopay surface drops included
-	if s.cfg&cfgGorgeAutopay != 0 && (plainCast || nestedWalkEager) {
+	if s.realWalkRead(plainCast) {
 		// real is read only by pricedByPrintedSources, whose first clauses
 		// (plainCastMode, no target) come before hasOption(real): with no
 		// plain untargeted cast among src's kept plays (plainCast) the walk
