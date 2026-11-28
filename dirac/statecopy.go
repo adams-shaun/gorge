@@ -107,6 +107,8 @@ type ForkPool struct {
 	pcm pcMemo
 	// sfm: scriptFilt's per-decision memo (mana_sfmemo.go).
 	sfm sfMemo
+	// offm: filtSearch.offers' verdicts (mana_offersmemo.go).
+	offm offersMemo
 	// tyc: the cross-transition cache of derived types (static_typecache.go).
 	tyc tyCache
 	// grc: the cross-transition cache of granted-ability lists (static_grantcache.go).

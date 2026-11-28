@@ -705,7 +705,7 @@ func (s *State) putCounterProg(k *prep, in *kop.Instr) {
 // sort is the lockstep's comparison order (types.go canonKey), not the
 // engine's. Both the search's model (resolvePrefixStack) and the applied play
 // (flushPrefixTriggers) answer from this one helper so they cannot drift.
-func (s *State) scriptStep(d *Decision) { s.stepRaw(d) }
+func (s *State) scriptStep(d *Decision) { s.stepRaw(d, false) }
 
 // flushPrefixTriggers puts the triggers a scripted prefix just queued onto
 // the stack before the play itself is applied. gorge answers each prefix

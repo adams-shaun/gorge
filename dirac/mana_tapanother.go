@@ -939,10 +939,17 @@ func (rs *tapXSearch) witnessReaches(k *prep, t *State, poolOnly bool) bool {
 // trigger of the path resolves (gorge scriptSearch.visit assumes they pass),
 // and reports whether there is one. Priority is not offered with the script
 // hook: the search prices the play itself.
-func (t *State) tapXNext(p uint8, d *Decision) bool {
+func (t *State) tapXNext(p uint8, d *Decision) bool { return t.tapXNextTo(p, d, false) }
+
+// tapXNextKind is tapXNext for a caller that reads only the decision's kind
+// at a priority: the priority is posed with the pass alone (posePriority), which
+// is all tapXNext's opponent pass needs.
+func (t *State) tapXNextKind(p uint8, d *Decision) bool { return t.tapXNextTo(p, d, true) }
+
+func (t *State) tapXNextTo(p uint8, d *Decision, kindOnly bool) bool {
 	for guard := 0; guard < 16; guard++ {
 		t.g.availX = availPlain
-		t.stepRaw(d)
+		t.stepRaw(d, kindOnly)
 		t.g.availX = 0
 		if t.over || d.Kind == DkNone || d.N == 0 {
 			return false

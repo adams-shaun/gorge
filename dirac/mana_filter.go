@@ -2930,12 +2930,12 @@ func (fs *filtSearch) offers(k *prep, t *State) bool {
 // payer's sources held out.
 func (fs *filtSearch) offersOnPath(k *prep, t *State) bool {
 	if !fs.lifePainBound || fs.a.Kind() != AkCast || fs.a.Mode() != castMayPlay || !fs.lifePainOnPath() {
-		return fs.offers(k, t)
+		return fs.offersMemoed(k, t)
 	}
 	held := t.ctrlM[fs.p]
 	t.ctrlM[fs.p] = slotMask{}
 	defer func() { t.ctrlM[fs.p] = held }()
-	return fs.offers(k, t)
+	return fs.offersMemoed(k, t)
 }
 
 // visit is one priority node of the search.
@@ -3358,6 +3358,19 @@ var DebugFiltNoTrigSettle bool
 // inside a resolution (the old path: a kernel panic; mutation testing only).
 var DebugFiltSettleMidResolve bool
 
+// DebugFiltSettleFullOptions builds a settled priority's whole option list,
+// as the search did before it read the kind alone (the equivalence test only).
+var DebugFiltSettleFullOptions bool
+
+// settleNext runs t to p's next decision. A priority is only visited, its
+// options unread, so it is posed with the pass alone (tapXNextKind).
+func (fs *filtSearch) settleNext(t *State, d *Decision) bool {
+	if DebugFiltSettleFullOptions {
+		return t.tapXNext(fs.p, d)
+	}
+	return t.tapXNextKind(fs.p, d)
+}
+
 // settle continues the search at t after a step that queued a trigger, or a
 // pass: t runs to p's next decision, a priority being a node (visit) and an
 // ask a node branching on its answers (gorge scriptSearch.visit's
@@ -3370,7 +3383,7 @@ func (fs *filtSearch) settle(k *prep, t *State, funded int, gapUsed bool) bool {
 		return fs.visit(k, t, funded, gapUsed)
 	}
 	var d Decision
-	if !t.tapXNext(fs.p, &d) {
+	if !fs.settleNext(t, &d) {
 		if t.over {
 			// a queued trigger's resolution killed the payer (Manabarbs' damage
 			// at the last life points, CR 704.5a): gorge's visit charges the
