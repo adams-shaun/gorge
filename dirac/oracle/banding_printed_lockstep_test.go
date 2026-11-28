@@ -16,8 +16,9 @@ import (
 // blocked by a banding creature divides by the defending player, a blocker
 // blocking a banding attacker by the attacking player). Both seats hold three
 // of the group's carriers, so both directions run; the probe declines every
-// band ask (band formation is not modelled, an accepted band stalls) and
-// blocks to double up, a banding creature first. Errand of Duty, an instant,
+// band ask (this probe declines it: band formation has its own tests,
+// dirac/combat_band_test.go and combat_band_formation_test.go) and blocks to
+// double up, a banding creature first. Errand of Duty, an instant,
 // reaches the granted path beside the printed one.
 
 // kbpCarriers are the printed K:Banding carriers, three groups of six; each

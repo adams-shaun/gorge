@@ -458,7 +458,7 @@ func (s *State) setAttackTarget(p *perm, t TCode) {
 func (s *State) setDeclaredAttackTarget(p *perm, t TCode) {
 	s.setAttackTarget(p, t)
 	if isPlayerTarget(t) {
-		p.atkPl = CodeSeat(t) + 1
+		p.atkPl = p.atkPl&atkPlBandMask | CodeSeat(t) + 1
 	}
 }
 
@@ -1265,6 +1265,7 @@ func (s *State) finishBlocks(k *prep) {
 			s.touchSl(a)
 		}
 	}
+	s.bandExpandBlocks(k) // CR 702.22h: a blocker of one band member blocks every member
 	if k.gen != nil && (s.evLive(kop.TrigBecomesBlocked) || k.gen.embCombatEv&(1<<kop.TrigBecomesBlocked) != 0) {
 		s.fireBlockedGen(k)
 	}

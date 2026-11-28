@@ -310,7 +310,8 @@ type perm struct {
 	// cseen records the counter kinds held since it entered, as one is
 	// removed (seeCtr; gorge lists a removed kind at 0): bit i < ctrSlots
 	// is general slot i (a seen slot keeps its kind at count 0), then
-	// cseenP1 and cseenDT (the deathtouch mark, FeatCtrDeathtouched).
+	// cseenP1 and cseenDT (the deathtouch mark, FeatCtrDeathtouched), the
+	// saddled bit (cseenSaddled), cseenSacNext and cseenBandMate.
 	cseen uint8
 	// atkVer is the object version the attacker's target (atk) had when the
 	// attack was declared. A planeswalker or battle that left the
@@ -327,12 +328,14 @@ type perm struct {
 	spare uint8
 	// atkPl is the seat+1 of the player this attacker last DECLARED an
 	// attack at this turn (gorge's per-object AttackedPlayersThisTurn
-	// ledger, the DeclareAttackers fold); 0 means none. beginTurn clears it
-	// with gorge's TurnChange fold. Written by setDeclaredAttackTarget only:
-	// a permanent put onto the battlefield attacking was not declared
-	// (CR 508.1), and atk must keep naming the planeswalker/battle of a
-	// later declaration. The byte fills the tail padding the alignment left,
-	// so perm stays 72 bytes.
+	// ledger, the DeclareAttackers fold) in its low nibble (atkPlSeatMask);
+	// 0 means none. beginTurn clears it with gorge's TurnChange fold.
+	// Written by setDeclaredAttackTarget only: a permanent put onto the
+	// battlefield attacking was not declared (CR 508.1), and atk must keep
+	// naming the planeswalker/battle of a later declaration. The high nibble
+	// is the permanent's attacking band id (CR 702.22c.e, combat_band.go
+	// atkPlBandMask), 0 for none. The byte fills the tail padding the
+	// alignment left, so perm stays 72 bytes.
 	atkPl uint8
 	card  CardID       // the card's id (the copy-of id lives in ovr)
 	gty   kop.TypeMask // types derived by a generated table's overrides (ovGenTy)
@@ -357,10 +360,16 @@ const (
 
 // cseenSacNext: the permanent's imminent departure is a sacrifice (noteSac;
 // removePerm records it on the zone entry and clears it,
-// value_sacrificedthisturn.go). It rides perm.cseen's free bit above
-// cseenSaddled (bits 0-5 counters and saddled, bits 6-7 free) and is zeroed
-// with the rest of the perm when the slot is next entered.
+// value_sacrificedthisturn.go). It rides perm.cseen's bit above cseenSaddled
+// (bits 0-5 counters and saddled, bit 6 sacrificed-next, bit 7 cseenBandMate)
+// and is zeroed with the rest of the perm when the slot is next entered.
 const cseenSacNext uint8 = 1 << 6
+
+// cseenBandMate: the permanent joined an attacking band a leader formed
+// (combat_band.go bandJoin). It rides perm.cseen's last free bit and is
+// cleared with the band id (bandClearSlot, clearCombat) and with the rest of
+// the perm when the slot is next entered.
+const cseenBandMate uint8 = 1 << 7
 
 // ctrN is p's count of counter kind c.
 func (p *perm) ctrN(s *State, c int) int {

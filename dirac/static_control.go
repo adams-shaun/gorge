@@ -274,6 +274,7 @@ func (s *State) ctrlUncombat(sl Slot) {
 	p.flags &^= pfAttacking | pfBlocking | pfBlocked
 	p.blocking = NoSlot
 	p.nblock = 0
+	s.bandClearSlot(sl) // CR 702.22f: a creature removed from combat leaves its band
 }
 
 // ctrlSrcSlot is the battlefield slot of r's source while it is the same
