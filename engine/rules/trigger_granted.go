@@ -484,7 +484,7 @@ func (e *Engine) checkGrantedDethroneTriggers(observer *Engine, id state.ObjID, 
 	if ev.Kind != events.DeclareAttackers || !slices.Contains(ev.IDs, id) {
 		return
 	}
-	if !e.hasKeywordH(id, kwhDethrone) || f.HasKeywordRef(kwRefDethrone) || grantedPileInstances(observer, id, o, "Dethrone") <= 0 {
+	if !e.hasKeywordH(id, kwhDethrone) || topPrintsKeyword(observer, o, f, kwRefDethrone) || grantedPileInstances(observer, id, o, "Dethrone") <= 0 {
 		return
 	}
 	t := cards.Trigger{Mode: "Attacks", Params: map[string]string{
@@ -530,7 +530,7 @@ func (e *Engine) checkGrantedTrainingTriggers(observer *Engine, id state.ObjID, 
 	if ev.Kind != events.DeclareAttackers || !slices.Contains(ev.IDs, id) {
 		return
 	}
-	if !e.hasKeywordH(id, kwhTraining) || f.HasKeywordRef(kwRefTraining) || grantedPileInstances(observer, id, o, "Training") <= 0 {
+	if !e.hasKeywordH(id, kwhTraining) || topPrintsKeyword(observer, o, f, kwRefTraining) || grantedPileInstances(observer, id, o, "Training") <= 0 {
 		return
 	}
 	t := cards.Trigger{Mode: "Attacks", Params: map[string]string{
@@ -624,13 +624,11 @@ func (e *Engine) checkGrantedAttackKeywordTriggers(observer *Engine, id state.Ob
 	// queued by the printed expansion, so it consumes one equal derived entry;
 	// every other derived entry is a granted instance (CR 113.2c: each is its
 	// own ability). A face-down object has no printed face (CR 708.8), and a
-	// pile that loses its abilities has no line beneath the top (CR 613.1f).
+	// permanent that loses its abilities has no printed line (CR 613.1f).
 	var printedLeft []string
-	if !e.faceDownPrintedHides(o) {
-		for _, k := range append(slices.Clip(f.Keywords), underPrintedKeywords(observer, o)...) {
-			if cards.KeywordHead(k) == "Firebending" {
-				printedLeft = append(printedLeft, k)
-			}
+	for _, k := range append(slices.Clip(topPrintedKeywords(observer, o, f)), underPrintedKeywords(observer, o)...) {
+		if cards.KeywordHead(k) == "Firebending" {
+			printedLeft = append(printedLeft, k)
 		}
 	}
 	var params []string
@@ -721,7 +719,7 @@ func (e *Engine) checkGrantedAfflictTriggers(id state.ObjID, o *state.Object, f 
 	printed := map[string]bool{}
 	// A pile's under cards' afflict lines are printed too: their own
 	// expansions fire through the block walk (CR 702.140e).
-	for _, k := range chars.PrintedKeywords(o, f) {
+	for _, k := range append(slices.Clip(topPrintedKeywords(e, o, f)), underPrintedKeywords(e, o)...) {
 		printed[strings.ToLower(k)] = true
 	}
 	var granted []string
@@ -861,14 +859,11 @@ func (e *Engine) checkGrantedWardTriggers(observer *Engine, id state.ObjID, o *s
 		return
 	}
 	printed := map[string]bool{}
-	if !e.faceDownPrintedHides(o) {
-		// While the object is face down its printed face does not exist
-		// (CR 708.8): a cloaked card whose real face prints Ward must not
-		// suppress its own cloak-ward -- the derived list is the only
-		// keyword source on this path.
-		for _, k := range f.Keywords {
-			printed[strings.ToLower(k)] = true
-		}
+	// A printed line that does not exist suppresses nothing: a cloaked card
+	// whose real face prints Ward keeps its own cloak-ward, and a ward granted
+	// after the ability loss triggers.
+	for _, k := range topPrintedKeywords(observer, o, f) {
+		printed[strings.ToLower(k)] = true
 	}
 	underLeft := underPrintedKeywords(observer, o)
 	for _, k := range observer.Derived(id).Keywords {
@@ -1581,18 +1576,17 @@ func (e *Engine) grantedCumulativeCosts(id state.ObjID, f *cards.Face) []string 
 	// Printed ownership: a top-face line accounts for every equal derived
 	// entry (a top face printing the cost and an identical grant is one
 	// trigger), a line beneath the top for one entry each (CR 113.2c). A face
-	// down object has no printed face (CR 708.8).
+	// down object has no printed face (CR 708.8), and one that loses its
+	// abilities has no printed line (CR 613.1f).
 	var printed map[string]bool
 	o := e.G.Obj(id)
 	underLeft := underPrintedKeywords(e, o)
-	if !e.faceDownPrintedHides(o) {
-		for _, k := range f.Keywords {
-			if strings.EqualFold(cards.KeywordHead(k), "Cumulative upkeep") {
-				if printed == nil {
-					printed = map[string]bool{}
-				}
-				printed[strings.ToLower(k)] = true
+	for _, k := range topPrintedKeywords(e, o, f) {
+		if strings.EqualFold(cards.KeywordHead(k), "Cumulative upkeep") {
+			if printed == nil {
+				printed = map[string]bool{}
 			}
+			printed[strings.ToLower(k)] = true
 		}
 	}
 	var out []string

@@ -1,6 +1,7 @@
 package rules
 
 import (
+	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/rules/chars"
 	"github.com/adams-shaun/gorge/engine/state"
 )
@@ -11,6 +12,23 @@ import (
 type pileView interface {
 	Derived(id state.ObjID) Derived
 	printedAbilitiesGone(o *state.Object) bool
+}
+
+// topPrintedKeywords is the keyword lines of f, o's top face, whose abilities
+// exist: none while o is face down (CR 708.8) or loses its printed abilities
+// (CR 613.1f). A line that does not exist accounts for no derived entry, so a
+// newer grant of the same line is that permanent's own instance (CR 113.2c).
+func topPrintedKeywords(v pileView, o *state.Object, f *cards.Face) []string {
+	if v.printedAbilitiesGone(o) {
+		return nil
+	}
+	return f.Keywords
+}
+
+// topPrintsKeyword reports whether f, o's top face, prints the keyword ref as
+// an ability that exists (topPrintedKeywords' gate).
+func topPrintsKeyword(v pileView, o *state.Object, f *cards.Face, ref cards.KeywordRef) bool {
+	return f.HasKeywordRef(ref) && !v.printedAbilitiesGone(o)
 }
 
 // underPrintedKeywords is the keyword lines of the cards beneath o's top whose
