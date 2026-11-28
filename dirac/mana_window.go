@@ -1086,7 +1086,7 @@ func (s *State) windowDry(k *prep, p uint8, cost *kop.ManaCost, anyColor bool) (
 // census one (windowRestrOwed): mana gorge's census prices as a typed unit
 // (castWindowReachable), which the real walk on a fork can count.
 func (s *State) windowDryRestr(k *prep, p uint8, cost *kop.ManaCost, anyColor bool) (ok, known, restr bool) {
-	ok, known, restr, _ = s.windowDryWalk(k, p, cost, anyColor)
+	ok, known, restr, _, _ = s.windowDryWalk(k, p, cost, anyColor)
 	return ok, known, restr
 }
 
@@ -1094,8 +1094,9 @@ func (s *State) windowDryRestr(k *prep, p uint8, cost *kop.ManaCost, anyColor bo
 // unknown only at a source that pays without a tap (sacStop): a last-resort
 // unit the payment planner prices where this walk does not — a sacrifice-only
 // source (an Eldrazi Spawn), or a life-only pain one (a Treasonous Ogre,
-// mana_pain.go).
-func (s *State) windowDryWalk(k *prep, p uint8, cost *kop.ManaCost, anyColor bool) (ok, known, restr, sacStop bool) {
+// mana_pain.go). gapStop reports a stop at a source whose activation poses a
+// choice the walk cannot price (Ancient Ziggurat's any colour).
+func (s *State) windowDryWalk(k *prep, p uint8, cost *kop.ManaCost, anyColor bool) (ok, known, restr, sacStop, gapStop bool) {
 	pool := s.pl[p].pool
 	// A filter's fee is spent by the real fee arm (windowDryFilter ->
 	// filtFeeSpend), which carves the floating restricted batches and their
@@ -1142,6 +1143,7 @@ func (s *State) windowDryWalk(k *prep, p uint8, cost *kop.ManaCost, anyColor boo
 			s.windowSacOnly(k, pc) || windowNoTapPain(k, pc) || s.perms[sl].flags&pfTapped != 0 || dyn {
 			ok, known = false, false
 			sacStop = !gap && !dyn && (s.windowSacOnly(k, pc) || windowNoTapPain(k, pc)) && s.perms[sl].flags&pfTapped == 0
+			gapStop = gap && !s.dryDeferPriced(k, sl, pc)
 			break
 		}
 		col := s.windowCol(k, p, cost, sl, pc, anyColor, false)
@@ -1158,7 +1160,7 @@ func (s *State) windowDryWalk(k *prep, p uint8, cost *kop.ManaCost, anyColor boo
 	s.pl[p].pool = pool
 	s.rb[SeatIx(p)] = rb
 	s.g.poolArt[SeatIx(p)] = art
-	return ok, known, restr, sacStop
+	return ok, known, restr, sacStop, gapStop
 }
 
 // windowDryFilter is windowDry's step over a first-only filter the floating
@@ -4267,8 +4269,15 @@ func (s *State) paymentStrandedPlan(k *prep, e *stackEntry, cost *kop.ManaCost, 
 		return false
 	}
 	anyColor := s.bld().bfl&bflAnyColor != 0
-	ok, known, restr, sacStop := s.windowDryWalk(k, e.ctrl, cost, anyColor)
+	ok, known, restr, sacStop, gapStop := s.windowDryWalk(k, e.ctrl, cost, anyColor)
 	dead := known && !ok || planFailed && sacStop
+	if gapStop && s.shortOfMana(k, e.ctrl, cost) && !s.committedCensusReaches(k, e, cost) {
+		// The walk cannot play a source whose activation poses a choice, but
+		// no choice makes up too few units: gorge's census (castWindowPays)
+		// strands the payment, which reverses before any mana ability is
+		// activated (CR 601.2g-h, 733.1).
+		return true
+	}
 	if !known && restr {
 		saved := s.fork()
 		defer s.unfork()
@@ -4305,20 +4314,85 @@ func (s *State) paymentStrandedPlan(k *prep, e *stackEntry, cost *kop.ManaCost, 
 		// The greedy walk never activates a paid-fee filter ({1},{T}: any
 		// colour); gorge's census (castWindowReachable) searches them, so the
 		// window opens when some filter set pays the cost (CR 601.2g-h).
-		// availFor and scriptFilt read ctrlM, which still holds the committed
-		// picks s.occ withholds: a pick with a mana ability would count a second
-		// time, after convokeApplyPicks already paid its share (gorge's census
-		// skips convokeCommitted). Take them out of the seat's mask meanwhile.
-		c := *cost
-		var av avail
-		held := s.ctrlM[e.ctrl]
-		s.ctrlM[e.ctrl] = held.and(s.occ)
-		s.availForBuilt(k, e, &av)
-		reach := s.faceReachable(k, e.ctrl, &av, &c, 0)
-		s.ctrlM[e.ctrl] = held
-		return !reach
+		return !s.committedCensusReaches(k, e, cost)
 	}
 	return dead
+}
+
+// shortOfMana reports whether p's floating mana and each untapped source at its
+// most net mana cannot add up to cost, whatever the colours. Overcounting is
+// harmless, so a source without a bound (a filter, or one netYield rejects),
+// restricted floating mana, and a cost whose unit count the payer still chooses
+// all answer false. Off-battlefield mana (a Spirit Guide in hand) and triggered
+// add-ons (Utopia Sprawl, a Mana Reflection doubler) are not counted: the caller
+// strands only when committedCensusReaches also fails.
+func (s *State) shortOfMana(k *prep, p uint8, cost *kop.ManaCost) bool {
+	if cost.X != 0 || cost.Tb != 0 || s.rbAny(p) || k.gen.anyFilt && s.scriptFilt(k, p).any() {
+		return false
+	}
+	need := int(cost.Generic)
+	for c, n := range cost.Pips {
+		need += int(n) - int(s.pl[p].pool[c])
+	}
+	for _, h := range cost.Hyb {
+		if h != 0 {
+			need++
+		}
+	}
+	var ord [MaxPerm]Slot
+	n := s.battlefieldOrder(p, s.ctrlM[p].and(s.occ), ord[:], 0)
+	for _, sl := range ord[:n] {
+		if s.perms[sl].flags&pfTapped != 0 {
+			continue
+		}
+		most, bounded := s.netYield(k, sl)
+		if !bounded {
+			return false
+		}
+		need -= most
+	}
+	return need > 0
+}
+
+// netYield is the most mana one of sl's printed mana abilities adds, less the mana
+// its activation costs. bounded is false for a granted, dynamic, every-colour or
+// repeatable producer, and for a source whose mana ability is not a printed one.
+func (s *State) netYield(k *prep, sl Slot) (most int, bounded bool) {
+	if s.manaGranted(k, sl) {
+		return 0, false
+	}
+	printed := false
+	abs := k.t.Cards[s.cardAt(sl)].Abilities
+	for i := range abs {
+		a := &abs[i]
+		if a.Kind != kop.AbMana {
+			continue
+		}
+		printed = true
+		y := max(int(a.ManaN), 1) - int(a.Cost.Mana.MV())
+		repeats := y > 0 && a.Cost.Flags&(kop.CostTap|kop.CostSacSelf) == 0
+		if a.ManaEach || a.AFlags&kop.AfManaDynamic != 0 || repeats {
+			return 0, false
+		}
+		most = max(most, y)
+	}
+	return most, printed || s.manaPCGen(k, sl).manaAb < 0
+}
+
+// committedCensusReaches is gorge's window census (castWindowReachable) over the
+// payer's sources. availFor and scriptFilt read ctrlM, which still holds the
+// committed picks s.occ withholds: a pick with a mana ability would count a
+// second time, after convokeApplyPicks already paid its share (gorge's census
+// skips convokeCommitted). Take them out of the seat's mask meanwhile.
+func (s *State) committedCensusReaches(k *prep, e *stackEntry, cost *kop.ManaCost) bool {
+	c := *cost
+	var av avail
+	held := s.ctrlM[e.ctrl]
+	s.ctrlM[e.ctrl] = held.and(s.occ)
+	s.availForBuilt(k, e, &av)
+	reach := s.faceReachable(k, e.ctrl, &av, &c, 0)
+	s.ctrlM[e.ctrl] = held
+	return reach
 }
 
 // committedPicks reports whether a pick commits a permanent to a tap cost or as a
