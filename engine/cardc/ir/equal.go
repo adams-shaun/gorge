@@ -136,7 +136,9 @@ func eqRef(a, b *Ref) bool {
 		a.UpTo == b.UpTo &&
 		a.Receipt == b.Receipt &&
 		eqPtrSlice(a.Union, b.Union, eqRef) &&
-		a.Memory == b.Memory
+		a.Memory == b.Memory &&
+		a.Role == b.Role &&
+		a.LKI == b.LKI
 }
 
 func eqTarget(a, b *Target) bool {

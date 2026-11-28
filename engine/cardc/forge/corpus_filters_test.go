@@ -16,20 +16,13 @@ import (
 
 const censusShards = 8
 
-// filterUses walks one card's abilities (with their Sub chains), triggers
-// (with their Effect), statics, replacements (with their With) and SVar
-// bodies, counting the values of FilterKeys into uses.
-func filterUses(card *cards.Card, uses map[string]int) {
-	visitParams := func(params map[string]string) {
-		for _, k := range FilterKeys {
-			if v, ok := params[k]; ok {
-				uses[strings.TrimSpace(v)]++
-			}
-		}
-	}
+// eachParams calls visit on the params of one card's abilities (with their
+// Sub chains), triggers (with their Effect), statics, replacements (with their
+// With) and SVar bodies, in a fixed order.
+func eachParams(card *cards.Card, visit func(params map[string]string)) {
 	visitSA := func(sa *cards.SA) {
 		for seen := 0; sa != nil && seen < 64; sa, seen = sa.Sub, seen+1 {
-			visitParams(sa.Params)
+			visit(sa.Params)
 		}
 	}
 	for _, f := range card.Faces {
@@ -37,14 +30,14 @@ func filterUses(card *cards.Card, uses map[string]int) {
 			visitSA(sa)
 		}
 		for _, tr := range f.Triggers {
-			visitParams(tr.Params)
+			visit(tr.Params)
 			visitSA(tr.Effect)
 		}
 		for _, st := range f.Statics {
-			visitParams(st.Params)
+			visit(st.Params)
 		}
 		for _, r := range f.Repls {
-			visitParams(r.Params)
+			visit(r.Params)
 			visitSA(r.With)
 		}
 		names := make([]string, 0, len(f.SVars))
@@ -58,18 +51,34 @@ func filterUses(card *cards.Card, uses map[string]int) {
 	}
 }
 
-// corpusFilterUses counts every corpus filter text, in censusShards parallel
-// shards over reg.AllCards() by index modulo censusShards.
+// filterUses counts the values of FilterKeys on one card into uses.
+func filterUses(card *cards.Card, uses map[string]int) {
+	eachParams(card, func(params map[string]string) {
+		for _, k := range FilterKeys {
+			if v, ok := params[k]; ok {
+				uses[strings.TrimSpace(v)]++
+			}
+		}
+	})
+}
+
+// corpusFilterUses counts every corpus filter text.
 func corpusFilterUses(t *testing.T, all []*cards.Card) map[string]int {
-	shards := make([]map[string]int, censusShards)
+	return corpusUses(t, all, filterUses)
+}
+
+// corpusUses runs count over the corpus in censusShards parallel shards
+// (reg.AllCards() by index modulo censusShards) and merges the counts.
+func corpusUses[K comparable](t *testing.T, all []*cards.Card, count func(*cards.Card, map[K]int)) map[K]int {
+	shards := make([]map[K]int, censusShards)
 	var mu sync.Mutex
 	t.Run("walk", func(t *testing.T) {
 		for i := range censusShards {
 			t.Run(fmt.Sprintf("shard-%d", i), func(t *testing.T) {
 				t.Parallel()
-				uses := map[string]int{}
+				uses := map[K]int{}
 				for j := i; j < len(all); j += censusShards {
-					filterUses(all[j], uses)
+					count(all[j], uses)
 				}
 				mu.Lock()
 				shards[i] = uses
@@ -77,7 +86,7 @@ func corpusFilterUses(t *testing.T, all []*cards.Card) map[string]int {
 			})
 		}
 	})
-	merged := map[string]int{}
+	merged := map[K]int{}
 	for _, s := range shards {
 		for text, n := range s {
 			merged[text] += n
@@ -88,7 +97,12 @@ func corpusFilterUses(t *testing.T, all []*cards.Card) map[string]int {
 
 // readCensus reads testdata/filter-refused.tsv into "kind\tatom" rows.
 func readCensus(t *testing.T) map[string]bool {
-	f, err := os.Open("testdata/filter-refused.tsv")
+	return readCensusFile(t, "testdata/filter-refused.tsv")
+}
+
+// readCensusFile reads a refusal census file into "kind\tatom" rows.
+func readCensusFile(t *testing.T, path string) map[string]bool {
+	f, err := os.Open(path)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -99,7 +113,7 @@ func readCensus(t *testing.T) map[string]bool {
 		line := sc.Text()
 		kind, _, ok := strings.Cut(line, "\t")
 		if _, known := ParseRefusalKind(kind); !ok || !known {
-			t.Fatalf("filter-refused.tsv: bad row %q", line)
+			t.Fatalf("%s: bad row %q", path, line)
 		}
 		rows[line] = true
 	}
