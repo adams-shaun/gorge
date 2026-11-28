@@ -22,7 +22,7 @@ func (s *State) objTableFull() bool {
 // Reuse hands out only ids that carry ofToken or ofCopy (objFree), so the
 // scan starts where those bits can be (tokenScanStart): the object table's
 // suffix on an ordinary table, the whole table on one that can merge, where
-// the bits can move between objects (mergeFold's wasToken arm, kw_mutate.go).
+// the bits can move between objects (mergeFold's top arm, kw_mutate.go).
 func (s *State) freeTokenObj() Obj {
 	for i := s.tokenScanStart(); i < int(s.nobj); i++ {
 		if s.objFree(Obj(i)) {
@@ -132,9 +132,9 @@ func (s *State) heldReferenced(o Obj) bool {
 			return true
 		}
 	}
-	// A merge pile's parked components (kw_mutate.go): the top merge onto a
-	// token parks the token's own card as an ofToken object, and an object a
-	// live pile names is not dead yet however still it sits. Only a table
+	// A merge pile's parked components (kw_mutate.go): a token or spell-copy
+	// component parks as an ofToken object, and an object a live pile names
+	// is not dead yet however still it sits. Only a table
 	// that can merge (Mutate or ExtMergePermanent) can have such a pile, so
 	// every other table skips the scan.
 	if k := s.k(); k == nil || k.gen == nil || !(k.gen.anyMerge || k.gen.anyMutate) {

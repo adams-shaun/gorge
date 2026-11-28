@@ -3653,10 +3653,10 @@ func (s *State) enterChoiceKind(k *prep, c CardID) uint8 {
 // and copy with those bits and nothing else sets them, so on an ordinary
 // table the bit-carrying objects are the object table's suffix (the deck
 // cards from Init come first) and the walk starts where the suffix starts.
-// A merging table is the one exception: mergeFold's wasToken arm moves the
-// bits between objects (a top merge onto a token, kw_mutate.go, reached by a
-// Mutate card or an ExtMergePermanent program), so the suffix invariant no
-// longer holds there and the walk runs over the whole table.
+// A merging table is the one exception: mergeFold's top arm moves the bits
+// between objects (a token or spell copy on either side, kw_mutate.go,
+// reached by a Mutate card or an ExtMergePermanent program), so the suffix
+// invariant no longer holds there and the walk runs over the whole table.
 func (s *State) tokenScanStart() int {
 	if k := s.k(); k == nil || k.gen == nil || !(k.gen.anyMerge || k.gen.anyMutate) {
 		i0 := int(s.nobj)

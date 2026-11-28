@@ -7,7 +7,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// TestMutateTokenTopMerge pins CR 729.2 with CR 400.7 on a mutate target that
+// TestMutateTokenTopMerge pins CR 730.2d with CR 704.5d on a mutate target that
 // is a creature TOKEN (legal: the mutate target is Creature.nonHuman+YouOwn).
 // Casting the mutating card "on top" puts a real card over the token's card,
 // so the merged permanent is a card permanent, not a token; the token's own
@@ -28,11 +28,11 @@ func TestMutateTokenTopMerge(t *testing.T) {
 		pile.Face().Name != "Apex Tester" {
 		t.Fatalf("mutated pile = %+v, want the Tester on top of the token", pile)
 	}
-	// CR 729.2: a merged permanent is a token only when its topmost component
+	// CR 730.2d: a merged permanent is a token only when its topmost component
 	// is one -- the top card here is the real mutating card, so the pile is a
 	// card permanent (and neither a token nor a copy).
 	if pile.IsToken {
-		t.Fatal("the pile is still a token after a real card was mutated onto it (CR 729.2)")
+		t.Fatal("the pile is still a token after a real card was mutated onto it (CR 730.2d)")
 	}
 	if pile.IsCopy {
 		t.Fatal("the pile still carries IsCopy after a real card became its top component")
@@ -66,7 +66,7 @@ func TestMutateTokenTopMerge(t *testing.T) {
 		t.Fatalf("pile after dying = %+v, want the Tester's card in the graveyard", e.G.Obj(bear))
 	}
 	if c := e.G.Obj(under); c == nil || c.Zone != state.ZCeased {
-		t.Fatalf("token component after the pile died = %+v, want it ceased (CR 400.7)", e.G.Obj(under))
+		t.Fatalf("token component after the pile died = %+v, want it ceased (CR 704.5d)", e.G.Obj(under))
 	}
 	grave := e.G.Zone(state.ZGraveyard, 0)
 	inGrave, inPileGrave := false, false

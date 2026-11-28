@@ -1440,9 +1440,10 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 // pile (object id) leaves the battlefield for zone to (CR 702.140e): each
 // parked card moves to the same destination as the top and is stamped with
 // this departure's split marker, so rules' CR 903.9a scan can see it arrived
-// now. A TOKEN component (CR 400.7 / 729.2: foldMutate's top arm onto a token
-// parks the token's own card as one) is skipped: a token that leaves ceases to
-// exist rather than moving on as a card, so it stays parked in ZCeased.
+// now. A TOKEN component (CR 730.2d; foldMutate parks a demoted token's card
+// or a merged spell copy as one) is skipped: a token that leaves ceases to
+// exist (CR 704.5d) rather than moving on as a card, so it stays parked in
+// ZCeased.
 func splitMergedComponents(g *state.Game, id state.ObjID, merged []state.MergedCard, to state.Zone) {
 	for _, mc := range merged {
 		if mc.Obj == 0 {

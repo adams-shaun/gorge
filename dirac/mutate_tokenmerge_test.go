@@ -8,7 +8,7 @@ import (
 )
 
 // TestMutateTokenTopMerge is the kernel mirror of gorge's foldMutate token
-// arm (CR 729.2 with CR 400.7; engine/events/apply_copy.go,
+// arm (CR 730.2d with CR 704.5d; engine/events/apply_copy.go,
 // apply_zone.go's component moves): mutating a creature TOKEN you own "on
 // top" makes the pile a card permanent (the topmost component is the real
 // mutating card), the demoted token card parks as a token object, and when
@@ -51,7 +51,7 @@ func TestMutateTokenTopMerge(t *testing.T) {
 		t.Fatalf("precondition: the pile did not form (%+v)", rec)
 	}
 	comp := Obj(rec.und[0] - 1)
-	// CR 729.2: the top component is a card, so the pile is no longer a token
+	// CR 730.2d: the top component is a card, so the pile is no longer a token
 	// (nor a copy of what it was).
 	if sc.s.objs[tok].of&ofToken != 0 {
 		t.Fatalf("the pile object %d is still ofToken after a card went on top (of %#x)", tok, sc.s.objs[tok].of)
@@ -90,7 +90,7 @@ func TestMutateTokenTopMerge(t *testing.T) {
 		t.Fatalf("pile zone %d, want the graveyard", z)
 	}
 	if z := sc.s.objs[comp].zone; z != kop.ZoneNone {
-		t.Fatalf("the token component moved to zone %d, want it to stay ceased (CR 400.7)", z)
+		t.Fatalf("the token component moved to zone %d, want it to stay ceased (CR 704.5d)", z)
 	}
 	// the graveyard holds the card pile and not the token, and the state-based
 	// cease pass must leave the card pile where it is. The earlier token dies
