@@ -494,7 +494,7 @@ func (r *Registry) adviseBySearch(ctx context.Context, out protocol.Advice, s se
 	if closedRootRefusal(m.table.cfg, e) != "" {
 		return r.adviseByRules(ctx, out, s, e, d, adviceMidResolution)
 	}
-	root, why := searchseat.HonestRoot(setup, feed, e, bots.RootSeed(seatSeed, d.Seq))
+	root, why := searchseat.HonestRoot(setup, feed, e, bots.RootSeed(seatSeed, d.Ordinal))
 	if root == nil {
 		log.Printf("host: table %s match %d: paired bot: no root: %s", m.table.cfg.ID, m.k, why)
 		out.State, out.Reason = protocol.AdviceRefused, adviceNoRoot

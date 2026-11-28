@@ -1,6 +1,8 @@
 package dirac
 
 import (
+	"math/bits"
+
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
@@ -266,10 +268,10 @@ func (s *State) Winner() int8 { return s.win }
 // Over reports whether the game has ended.
 func (s *State) Over() bool { return s.over }
 
-// SeqNo counts the decisions answered so far, elided ones included: a
-// per-decision sequence number (gorge's Decision.Seq role: the search's
-// decision seed, the network's same-decision memo, a visit record's
-// sequence).
+// SeqNo counts the decisions answered so far, elided ones included, and a
+// multi-pick declaration once (pickKeepsOpen): gorge's Decision.Ordinal, the
+// search's decision seed (the network's same-decision memo, a visit
+// record's sequence).
 func (s *State) SeqNo() uint32 { return s.Decisions }
 
 // Tapped reports whether battlefield object o is tapped.
@@ -419,4 +421,132 @@ func (s *State) BuildingCast() (kicked bool, x int, ok bool) {
 		return false, 0, false
 	}
 	return s.bld().e.flags&sfKicked != 0, int(s.bld().e.x), true
+}
+
+// Which answers State.Decisions counts (SeqNo). gorge answers one of
+// its multi-selects with one intent, and its search seed folds the
+// decisions answered before the pending one (decision.Decision.Ordinal); the
+// kernel poses that multi-select as single picks (doc.go "Decision
+// grammar"). So only the pick that closes a declaration is counted: SeqNo is
+// gorge's Ordinal at every pick of it.
+
+// pickKeepsOpen reports whether answering the pending pick with a leaves the
+// same gorge decision open. Apply calls it before it answers.
+//
+// A kept-open pick leaves SeqNo unchanged, so dirac/neteval's same-decision
+// memo (Net.same) tells two picks of one declaration apart by the option
+// list alone (N can stay: Done may take the picked option's place). A pick
+// that can offer the same list again (the ChCastDivide division) must join
+// same()'s exclusion.
+func (s *State) pickKeepsOpen(k *prep, a Action) bool {
+	switch s.ctl {
+	case ctlAttackers, ctlBlockers:
+		return a.Kind() != AkDone // gorge KAttackers / KBlockers, closed by AkDone
+	case ctlPlaceTriggers:
+		return s.orderLeft > 1 // gorge KTriggerOrder, Min=Max=n
+	case ctlCleanupDiscard:
+		return s.discardLeft > 1 // gorge KChoose "discard", Min=Max=excess
+	case ctlMullBottom:
+		return s.mullLeft > 1 // gorge KMulligan bottom, one pick per card
+	case ctlBuild:
+		return s.buildPickKeepsOpen(k, a)
+	case ctlResolve:
+		return s.resolvePickKeepsOpen(k, a)
+	}
+	return false
+}
+
+// buildPickKeepsOpen: the picks of a build (applyBuild's dispatch order).
+func (s *State) buildPickKeepsOpen(k *prep, a Action) bool {
+	if s.winUnlessPayer() != 0 || s.bld().bfl&bflWinTap != 0 {
+		return false
+	}
+	b := s.bld()
+	if k.gen != nil && s.g.mt.active && b.stage == bsTargets {
+		// a multi-object target slot (gorge KTarget Min/Max): AkDone, or the
+		// pick that reaches the maximum, closes it (applyMultiTarget)
+		return s.g.mt.slot != mtCharm && a.Kind() == AkTarget && s.g.mt.picked+1 < s.g.mt.max
+	}
+	if a.Kind() != AkChoose {
+		return false
+	}
+	switch b.stage {
+	case bsDivide:
+		return b.divLeft > 1 // gorge's CR 601.2d "divide" ask, one pick per point
+	case bsTapCost, bsCosts:
+		// gorge KChoose "tapcost" / "sacrifice" / "discard", Min=Max=N
+		switch b.pickK {
+		case pkTapX, pkSac, pkDiscard:
+			return b.pickLeft > 1
+		}
+	}
+	return false
+}
+
+// resolvePickKeepsOpen: the picks of a resolution ask (applyResolve).
+func (s *State) resolvePickKeepsOpen(k *prep, a Action) bool {
+	r := &s.res
+	switch r.ask {
+	case raSacrifice: // gorge KChoose "sacrifice", Min=Max=N
+		return r.left > 1
+	case raGenPileSplit: // gorge's two-piles split, Min 0 Max the set: Done or the last card closes it
+		return a.Kind() == AkChoose && bits.OnesCount32(s.g.lookSel)+2 <= int(s.g.nrem)
+	case raPileSplitSac: // the same split over permanents (applyAskPiles)
+		pool := s.pilesPool(k, &s.prog(k)[r.pc], s.g.pickP).andNot(s.g.sacM)
+		return a.Kind() == AkChoose && pool.many()
+	case raGenSearch:
+		return s.searchPickKeepsOpen(k, a)
+	case raGenSac: // gorge KChoose "sacrifice" per player, Min=Max=N (applyResolveGen)
+		return s.g.pickLeft > 1 && s.countSacLeft(k, s.g.pickP, s.genPickFilter(k)) > 1
+	case raGenDigArrange: // gorge KArrange of the dig's rest, Min=Max=n
+		return int(s.g.nlook)-bits.OnesCount32(s.g.lookSel) > 1
+	case raGenCastFree:
+		return s.castFreePickKeepsOpen(k, a)
+	case raDiscard: // gorge KModes "discard", one pick per card
+		return r.left > 1 && int(s.pl[r.chosen].handN) > int(r.peekI)+1
+	case raScryTop, raSurveil: // gorge KArrange: the top picks, then pile B's order
+		if r.flags&rfRestPh != 0 {
+			return int(r.peekN)-int(r.peekI)-1 > 1
+		}
+		if a.Kind() == AkChoose {
+			return r.peekI+1 < r.peekN
+		}
+		return s.cfgx&cfgxArrangeRest != 0 && int(r.peekN)-int(r.peekI) >= 2
+	}
+	return false
+}
+
+// searchPickKeepsOpen: a search's (or choose-move's) pick is one gorge
+// KChoose with Max picks (applyResolveGen's raGenSearch arm): the pick that
+// reaches Max, or leaves no candidate when the chooser may not stop, closes it.
+func (s *State) searchPickKeepsOpen(k *prep, a Action) bool {
+	if a.Kind() != AkChoose || s.g.pickLeft <= 1 || int(s.g.nlook)+1 >= len(s.resArm().look) {
+		return false
+	}
+	var d Decision
+	s.searchCands(k, &d)
+	left := 0
+	for i := 0; i < int(d.N); i++ {
+		if d.Options[i].Kind() == AkChoose && d.Options[i] != a {
+			left++
+		}
+	}
+	in := &s.prog(k)[s.res.pc]
+	mayStop := s.g.pickF&kop.SrMandatory == 0 && (in.Op != kop.OpSearchEx || in.B.N&kop.SrExactly == 0)
+	return left > 0 || mayStop
+}
+
+// castFreePickKeepsOpen: a free-cast offer is one gorge KModes, Min 0 Max
+// the cards (an Amount$ caps it); the kernel queues one card per pick
+// (applyResolveGen's raGenCastFree arm), and the pick that empties or caps
+// the offer closes it.
+func (s *State) castFreePickKeepsOpen(k *prep, a Action) bool {
+	if a.Kind() != AkChoose || s.g.nfree <= 1 {
+		return false
+	}
+	in := &s.prog(k)[s.res.pc]
+	if in.C&8 != 0 || in.C&512 != 0 && int(s.g.nfreeAll-s.g.nfree)+1 >= s.value(k, in.A) {
+		return false // Amount$ 1, or the pick that reaches Amount$ N
+	}
+	return true
 }

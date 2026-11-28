@@ -714,7 +714,13 @@ const ResumeManaPayment = "mana_payment"
 
 // Decision is the engine asking one player for one answer.
 type Decision struct {
-	Seq     uint64         `json:"seq"`
+	Seq uint64 `json:"seq"`
+	// Ordinal is the number of decisions answered in this game before this
+	// one was asked (engine/rules ask: the intent log's length). It is the
+	// count dirac's State.Decisions keeps, so a search seat's per-decision
+	// seed (azmcts.DecisionSeed) folds the same value on both engines; Seq
+	// (the event-log length) has no kernel twin. Not on any wire.
+	Ordinal uint64         `json:"-"`
 	Player  state.PlayerID `json:"player"`
 	Kind    Kind           `json:"kind"`
 	Prompt  string         `json:"prompt"`

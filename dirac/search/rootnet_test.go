@@ -12,15 +12,17 @@ import (
 
 // TestRootEvalUnsetMatchesBase pins the search without a RootEval: the
 // digests were recorded on the base commit before Searcher.RootEval
-// existed, so any change that leaks into the unset path fails here.
+// existed (re-pinned once when the per-decision search seed came to fold
+// decisions answered: a declaration's picks count as one, Decision.Ordinal),
+// so any change that leaks into the unset path fails here.
 func TestRootEvalUnsetMatchesBase(t *testing.T) {
 	for _, tc := range []struct {
 		name string
 		o    Options
 		want uint64
 	}{
-		{"plain", rootnetBaseOpts(false), 0x2590747fad8bed2d},
-		{"cached", rootnetBaseOpts(true), 0xa871909bd159b647},
+		{"plain", rootnetBaseOpts(false), 0xf447d564de3d3c7f},
+		{"cached", rootnetBaseOpts(true), 0x4efbf8850314d7f7},
 	} {
 		h := fnv.New64a()
 		var buf [8]byte
