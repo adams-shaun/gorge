@@ -2173,7 +2173,7 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 		return
 	}
 	if k.gen != nil {
-		s.limitPlan(k, pk)
+		s.limitPlanFunded(k, p, pk)
 	}
 	// key 8 (consider): among the tied count vectors, the lexicographically
 	// least creation-rank sequence in unit order.

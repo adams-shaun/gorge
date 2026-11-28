@@ -54,7 +54,9 @@ type SBT struct {
 
 	// queued picks of a declaration answered whole: served while the
 	// kernel's next decision continues it (the same kind and player, the
-	// next decision number, the last served pick no longer offered)
+	// decision number or the next (a pick inside one declaration is not
+	// counted: dirac searchapi.go pickKeepsOpen), the last served pick no
+	// longer offered)
 	q       []dirac.Action
 	qKind   dirac.DecisionKind
 	qPlayer uint8
@@ -146,7 +148,7 @@ func (a *SBT) fromQueue(s *dirac.State, d *dirac.Decision) int {
 	if len(a.q) == 0 {
 		return -1
 	}
-	if d.Kind != a.qKind || d.Player != a.qPlayer || s.SeqNo() != a.qSeq+1 || optIndex(d, a.qLast) >= 0 {
+	if d.Kind != a.qKind || d.Player != a.qPlayer || s.SeqNo()-a.qSeq > 1 || optIndex(d, a.qLast) >= 0 {
 		// not the continuation of the queued declaration (a search world
 		// moved on, or another answer was applied)
 		a.q = a.q[:0]

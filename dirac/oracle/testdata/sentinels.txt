@@ -210,3 +210,6 @@ TestAtomDiffRelationsFocus
 # Named by 11-28 red (whole-oracle run 46156795316 at ac26250ecc: the quiet proof on Equip/loyalty flash tables)
 TestEquipFlashLockstep
 TestLoyaltyFlashLockstep
+# Named by 11-28 red (whole-oracle run 46156795316 at ac26250ecc: Valid Creature.YouCtrl named an animated
+# Soulstone Sanctuary that gorge's battlefieldValidTargets sweep read as a printed Land; fixed by #6054)
+TestAtomDiffSetBases

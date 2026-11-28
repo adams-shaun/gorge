@@ -1414,13 +1414,10 @@ func grantedTriggerFace(o *state.Object, execute string) *cards.Face {
 // Dethrone/Afflict/Flanking precedent); granting stays in the
 // continuous-effect system, and nothing here mutates state.
 //
-// Dedup uses the Afflict rule, not the Dethrone one: every DISTINCT granted
-// instance whose exact text no printed line already carries is its own
-// trigger (CR 702.24a's "if a permanent has multiple instances of cumulative
-// upkeep, each triggers separately"), so a printed Cumulative upkeep:1 that
-// is also granted Cumulative upkeep:2 fires both. A grant identical to a
-// printed line is skipped -- the printed expansion already owns it, and the
-// two are indistinguishable as strings.
+// Dedup is by instance: each printed line accounts for one equal derived
+// entry, and every other entry is its own trigger (CR 113.2c, 702.24b), so a
+// printed Cumulative upkeep:1 that is also granted Cumulative upkeep:1 or :2
+// fires both (grantedCumulativeCosts).
 //
 // Runs on BOTH the faceMayTrigger early-return path and the full path (a
 // granted keyword is independent of printed triggers, the same both-paths

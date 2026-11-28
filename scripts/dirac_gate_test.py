@@ -100,5 +100,49 @@ class Step8(unittest.TestCase):
         self.assertIn("-skip '^TestEngineCompilesFor32Bit$'", lines[0])
 
 
+class Step0(unittest.TestCase):
+    """Step 0 refuses an ordinary change to the batch's EDH4 instruction check or its base: only the lane that
+    regenerates pinned files moves scripts/dirac-instr-base.tsv, in a change of its own."""
+
+    def run_gate(self, path):
+        import shutil
+        import tempfile
+
+        tmp = tempfile.mkdtemp(prefix="gate-step0-")
+        try:
+            git = lambda *a: subprocess.run(["git", "-C", tmp, *a], capture_output=True, text=True, check=True)
+            git("init", "-q")
+            os.makedirs(os.path.join(tmp, "scripts"))
+            for p in ("scripts/dirac-instr-base.tsv", "scripts/dirac-instr-batch.sh", "README"):
+                with open(os.path.join(tmp, p), "w") as f:
+                    f.write("one\n")
+            git("add", ".")
+            git("-c", "user.name=t", "-c", "user.email=t@t", "commit", "-qm", "base")
+            base = git("rev-parse", "HEAD").stdout.strip()
+            with open(os.path.join(tmp, path), "a") as f:
+                f.write("two\n")
+            git("-c", "user.name=t", "-c", "user.email=t@t", "commit", "-qam", "change")
+            p = subprocess.run(["bash", SCRIPT, base], cwd=tmp, capture_output=True, text=True, check=False, timeout=60)
+            return p.returncode, p.stdout + p.stderr
+        finally:
+            shutil.rmtree(tmp)
+
+    def test_editing_the_instr_base_fails_step0(self):
+        rc, out = self.run_gate("scripts/dirac-instr-base.tsv")
+        self.assertEqual(rc, 1, out)
+        self.assertIn("edits what only the maintainers change:  scripts/dirac-instr-base.tsv", out)
+
+    def test_editing_the_instr_batch_script_fails_step0(self):
+        rc, out = self.run_gate("scripts/dirac-instr-batch.sh")
+        self.assertEqual(rc, 1, out)
+        self.assertIn("scripts/dirac-instr-batch.sh", out)
+
+    def test_an_ordinary_change_passes_step0(self):
+        rc, out = self.run_gate("README")
+        self.assertIn("== 0 protected", out)
+        self.assertNotIn("edits what only the maintainers change", out)
+        self.assertIn("== 1 path filter", out)
+
+
 if __name__ == "__main__":
     unittest.main()

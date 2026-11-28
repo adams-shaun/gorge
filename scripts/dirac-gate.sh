@@ -78,6 +78,7 @@ have_base=
 git cat-file -e "$mb:dirac/kernel_test.go" 2>/dev/null && have_base=1
 prot=""
 if git cat-file -e "$mb:scripts/dirac-gate.sh" 2>/dev/null && grep -qx 'scripts/dirac-gate.sh' <<<"$changed"; then prot="scripts/dirac-gate.sh"; fi
+for p in scripts/dirac-instr-batch.sh scripts/dirac-instr-base.tsv; do git cat-file -e "$mb:$p" 2>/dev/null && grep -qx "$p" <<<"$changed" && prot="$prot $p"; done
 if [ -n "$have_base" ]; then
 	git diff "$mb" HEAD -- dirac/kernel_test.go | grep -qE '^[-+].*maxStateBytes' && prot="$prot maxStateBytes"
 	git diff "$mb" HEAD -- dirac/oracle/evidence.go | grep -qE '^[-+].*(Evidence[A-Z]|Synth[A-Z]|TailBucket)' && prot="$prot evidence constants"
