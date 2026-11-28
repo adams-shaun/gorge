@@ -188,8 +188,6 @@ func (s *State) exprCold(k *prep, x *kop.Expr, ctx evalCtx) int {
 		return 0
 	case kop.ExAttackedTurn:
 		return s.attackedTurn(k, x, ctx) // value_turntallies.go
-	case kop.ExCardNumAttacksThisTurn:
-		return s.atkTally(ctx) // value_attacktally.go
 	case kop.ExOppsLostLife:
 		return s.oppsLostLife(ctx.ctrl, x.N) // N 1 legendary hit, N 2 any hit (value_turntallies.go), N 3 any damage (value_oppsdamaged.go)
 	case kop.ExNotOwnLibMV:
@@ -322,10 +320,10 @@ func (s *State) exprCold(k *prep, x *kop.Expr, ctx evalCtx) int {
 	panic("kernel: expr kind not implemented")
 }
 
-// exprColdAgg is the aggregate and extreme heads of the cold-value switch,
-// kept out of exprCold to hold the switch within its line allowance
+// exprColdAgg is the aggregate, extreme and late heads of the cold-value
+// switch, kept out of exprCold to hold the switch within its line allowance
 // (funcgrowth): valid-agg folds a filter's object counts, the extremes read
-// the players' life-lost ledgers.
+// the players' life-lost ledgers, and the tally reads one object's attacks.
 func (s *State) exprColdAgg(k *prep, x *kop.Expr, ctx evalCtx) (int, bool) {
 	switch x.Kind {
 	case kop.ExValidAgg:
@@ -336,6 +334,8 @@ func (s *State) exprColdAgg(k *prep, x *kop.Expr, ctx evalCtx) (int, bool) {
 		return s.oppExtreme(k, x, ctx), true
 	case kop.ExPlExtreme:
 		return s.plExtreme(k, x, ctx), true // value_plrextreme.go
+	case kop.ExCardNumAttacksThisTurn:
+		return s.atkTally(ctx), true // value_attacktally.go
 	}
 	return 0, false
 }
