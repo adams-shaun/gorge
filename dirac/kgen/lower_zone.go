@@ -6435,7 +6435,12 @@ func (lc *lowerCtx) libSearchOwner(ps *params, arm bool, tgtLib int, flags []str
 			flags = append(flags, "ChooserYou")
 		}
 	case ch == "Opponent" && obj.Kind == rYou:
-		lc.twoSeat("Chooser$ Opponent on a library search")
+		// No lc.twoSeat: gorge chooserPlayer resolves "Opponent" to the first
+		// living seat of AliveFrom(controller) that is not the controller and
+		// the kernel's chooserOf reads the same seat (RefOpponent, oneOpp's
+		// nextAlive), so a pod of more seats poses the pick to that opponent
+		// and stays in lockstep (Realms Uncharted at four seats, pinned by
+		// TestHostedCmdrPodsSeatFour and TestPodHostedCmdrPodsBuild).
 		ps.consume("Chooser")
 		flags = append(flags, "ChooserOpp")
 	case ch == "ImprintedController" && obj.Kind == rEach:
