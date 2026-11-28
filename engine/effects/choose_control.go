@@ -2151,7 +2151,12 @@ func repeatPlayers(h Host, c *Ctx, spec string) ([]state.PlayerID, bool) {
 			selected[p] = !selected[p]
 		}
 	case repeatPlayersOppNonRememberedController:
-		add(hostRemembered(h, c))
+		// The remembered objects' controllers as they last existed (CR
+		// 608.2h): a sacrificed creature in its owner's graveyard has lost the
+		// controller it had on the battlefield, so PlayerOf's live read would
+		// exclude the wrong opponent. rememberedControllersLKI is the same
+		// read definedSpecNonRememberedController makes.
+		add(rememberedControllersLKI(h, c))
 		for _, p := range h.Game().AliveFrom(c.Controller) {
 			selected[p] = p != c.Controller && !selected[p]
 		}

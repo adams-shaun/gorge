@@ -13,8 +13,9 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // does a keyword the table keeps no printed record of (printedKeyword's
 // default): kgen lowers only the keywords listed here (fwKeywordWords).
 // Known limit: gorge's keywordInCtx also sees keywords a layer table derives
-// or grants; the kernel reads the printed record (and the Horsemanship grant)
-// only, so a lowered "gains toxic/cascade/convoke" effect would diverge. No
+// or grants; the kernel reads the printed record, the Horsemanship and Toxic
+// grants and, for a spell on the stack, the Convoke grant
+// (spellGrantedConvoke), so a lowered "gains cascade" effect would diverge. No
 // such grant is lowered today.
 //
 //kmanifest:fword FwWithKeyword
@@ -37,9 +38,24 @@ func (s *State) fwWithKeyword(c *fctx, l *kop.FLit) bool {
 		}
 		return s.pilePrints(c.k, c.sl, func(cd *kop.CardDef) bool { return printedKeyword(cd, id) })
 	case c.card():
-		return printedKeyword(&c.k.t.Cards[c.c], kop.KwID(l.Arg))
+		id := kop.KwID(l.Arg)
+		return printedKeyword(&c.k.t.Cards[c.c], id) || id == kop.KwConvoke && s.spellGrantedConvoke(c)
 	}
 	return false
+}
+
+// spellGrantedConvoke reports whether the candidate is a spell on the stack
+// that a live convoke grant reaches (Wand of the Worldsoul's emblem, Ironheart,
+// Clever Champion): gorge's keyword list for a stack object carries the grant
+// (CR 702.51a), so withConvoke / hasKeywordConvoke over a cast spell reads it
+// beside the printed record. The cast's triggers are read before the grant's
+// ForgetOnCast$ ends it.
+func (s *State) spellGrantedConvoke(c *fctx) bool {
+	if c.o == NoObj || c.k.gen == nil || !c.k.gen.anyStackKw {
+		return false
+	}
+	e := s.spellEntryOf(c.o)
+	return e != nil && s.grantConvoke(c.k, e.ctrl, c.c, c.o, s.castFromHandBy(e, e.ctrl))
 }
 
 // printedKeyword reports whether the card prints keyword id, from the record

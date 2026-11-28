@@ -116,6 +116,15 @@ func captureSacrificed(h Host, c *Ctx, id state.ObjID, remember bool) {
 	if !remember {
 		return
 	}
+	// The controller and owner as the object stood before the move: every
+	// later read of this remembered card's controller (RememberedController /
+	// NonRememberedController, a ConditionDefined$ Remembered gate,
+	// ImprintedController in a loop over the set) goes through
+	// lkiControllerFor and must see them, not the graveyard card's owner (CR
+	// 608.2h; Move resets Controller to Owner).
+	if o := h.Game().Obj(id); o != nil {
+		c.Snap.ChangeZone = append(c.Snap.ChangeZone, state.LKIObject{Obj: o.ID, Controller: o.Controller, Owner: o.Owner})
+	}
 	// Forge's RememberSacrificed$ also remembers the card, which is what a
 	// following ConditionDefined$ Remembered, Remembered$Amount or
 	// RememberedCard reads (Braids, Scapeshift, Victimize), and event-backs

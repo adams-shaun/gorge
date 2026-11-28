@@ -1834,6 +1834,12 @@ func (lc *lowerCtx) digUntilShuffle(who lRef) error {
 }
 
 func (lc *lowerCtx) peekAndReveal(ps *params) error {
+	if who, ok, err := lc.targetedAndYou(ps, "Defined"); ok || err != nil {
+		if err != nil {
+			return err
+		}
+		return lc.peekAndRevealAndYou(ps, who) // lower_repeatselectors.go
+	}
 	who, err := lc.objOrTarget(ps, "You", zNone)
 	if err != nil {
 		return err
@@ -4831,6 +4837,12 @@ func (lc *lowerCtx) genericChoice(ps *params) error {
 	// fallback runs when no branch can be chosen.
 	if d := ps.str("Defined"); (d == "You" || d == "") && ps.str("TempRemember") == "" {
 		return lc.genericChoiceYou(ps)
+	}
+	if lc.repeatPl > 0 && ps.str("Defined") == "Remembered" && ps.str("TempRemember") == "" {
+		// inside a RepeatEach player body Remembered is the repeated player:
+		// that player chooses, and the loop is already the caller's
+		// (Disorienting Choice; lower_genericchoice.go genericChoiceEach)
+		return lc.genericChoiceEach(ps)
 	}
 	who, err := lc.defined(ps.str("Defined"))
 	if err != nil {

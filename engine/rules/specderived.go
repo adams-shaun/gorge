@@ -34,7 +34,10 @@ func storeSpecDerived(slot *atomic.Pointer[specDerivedEntry], spec string) *spec
 
 func computeSpecReadsDerived(spec string) bool {
 	low := strings.ToLower(spec)
-	return strings.Contains(low, "with") || strings.Contains(low, "affinity") ||
+	// hasKeyword<K> is Forge's exact-keyword spelling of with<K> (the same
+	// registered predicate, effects/filter.go), so it reads the bound keyword
+	// list too: a granted keyword (Wand of the Worldsoul's convoke) is seen.
+	return strings.Contains(low, "with") || strings.Contains(low, "haskeyword") || strings.Contains(low, "affinity") ||
 		strings.Contains(low, "power") || strings.Contains(low, "toughness") ||
 		effects.SpecReadsPT(spec)
 }
