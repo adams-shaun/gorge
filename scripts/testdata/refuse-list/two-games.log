@@ -1,0 +1,6 @@
+kfuzz: synth pool fdn-autopay, 12 pairs
+pair 0 seed 101 ok
+bad-game	7	907	divergent	life	Card A|Card B	Card B|Card A	Card A|Card B|Plains
+pair 5 seed 605 ok
+bad-game	3	303	hang	stack	Card A		Card A|Island
+kfuzz: 2 bad-game lines, 10 ok
