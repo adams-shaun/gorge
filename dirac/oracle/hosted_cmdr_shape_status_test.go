@@ -11,15 +11,15 @@ import (
 // LifeLostAll ticket through the set a deck is built from: Ob Nixilis, Captive
 // Kingpin lowers (its LifeLostAll group trigger; TestHostedCmdrLifeLostAll
 // plays it), Opposition Agent lowers (its search control and found-card exile;
-// TestHostedCmdrSearchControlLockstep plays it), and the three whose shape
-// needs a kernel model that does not exist yet stay not lowered, each with its
-// own reason, so a deck holding one is turned away rather than played wrong:
+// TestHostedCmdrSearchControlLockstep plays it), Expert-Level Safe lowers (its
+// secret ChooseNumber election; TestHostedCmdrSecretElectionLockstep plays it),
+// and the two whose shape needs a kernel model that does not exist yet stay
+// not lowered, each with its own reason, so a deck holding one is turned away
+// rather than played wrong:
 //
 //   - K'rrik, Son of Yawgmoth: the PayLifeInsteadOf:B player static (each {B}
 //     of a cost payable with 2 life: the offer faces, the shortfall payment
 //     and the mana window's done are not modelled);
-//   - Expert-Level Safe: the secret ChooseNumber election (two players answer
-//     hidden, then MatchedAbility$ / UnmatchedAbility$ branch);
 //   - Nahiri's Lithoforming: an Effect's SetChosenNumber$ over an
 //     AdjustLandPlays$ static beside a lands-enter-tapped replacement (the
 //     kernel freezes the number only for an emblem ReduceCost, and has no
@@ -29,7 +29,7 @@ func TestHostedCmdrPlayerStatics(t *testing.T) {
 		"Ob Nixilis, Captive Kingpin": "",
 		"K'rrik, Son of Yawgmoth":     "player static",
 		"Opposition Agent":            "",
-		"Expert-Level Safe":           "the secret election is not modelled",
+		"Expert-Level Safe":           "",
 		"Nahiri's Lithoforming":       "Effect SetChosenNumber$ outside an emblem ReduceCost",
 	}
 	var names []string

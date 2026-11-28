@@ -1,6 +1,8 @@
 package kgen
 
 import (
+	"strings"
+
 	"github.com/adams-shaun/gorge/engine/cards"
 )
 
@@ -32,6 +34,11 @@ func (lc *lowerCtx) apiChangeZoneAll(sa *cards.SA, ps *params) error {
 	// (Profaner of the Dead), so it is inert here too
 	if ps.str("AbilityCount") == "X" {
 		ps.consume("AbilityCount")
+	}
+	// ChangeNum$ All is gorge's uncapped move (changezoneall_params.go
+	// ChangeNumCapped is false for it), the same as no ChangeNum$
+	if strings.EqualFold(ps.str("ChangeNum"), "All") {
+		ps.consume("ChangeNum")
 	}
 	return lc.changeZoneAll(ps)
 }
