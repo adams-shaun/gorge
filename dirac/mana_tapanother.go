@@ -528,7 +528,9 @@ func (s *State) availTapX(k *prep, p uint8, av *avail) {
 		if kop.RestrictedTapXOneShape(ab) && !s.restrTapXCounts(k, p, b.first(), ab, av) {
 			continue
 		}
-		addTapXUnits(av, ab)
+		for r := s.tapXBoundRepeats(k, p, b.first(), ab); r > 0; r-- {
+			addTapXUnits(av, ab)
+		}
 	}
 }
 
