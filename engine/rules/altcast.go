@@ -4,7 +4,7 @@
 // other cast modes do (engine/rules/legal.go offers, engine/rules/cast.go's beginCast
 // switch); this file owns the post-cast machinery the keywords imply:
 //
-//   - Evoke (CR 702.79a): a mandatory ETB follow-up is queued by
+//   - Evoke (CR 702.74a): a mandatory ETB follow-up is queued by
 //     altCostEnter and KeywordTriggerPush mints its builtin sacrifice as a
 //     real respondable triggered ability. The MH3 ExileFromHand costs are
 //     paid as Exile cost parts during the cast itself.
@@ -184,7 +184,7 @@ func (e *Engine) applyManaKeywordGrant(id state.ObjID, controller state.PlayerID
 	})
 }
 
-// escapeCost is id's Escape cost (CR 702.42a): the printed K:Escape
+// escapeCost is id's Escape cost (CR 702.138a): the printed K:Escape
 // parameter, or the keyword a continuous-effect grant delivered (Underworld
 // Breach's "each nonland card in your graveyard has escape" AddKeyword$
 // grant). The granted text names the card's own mana cost with the

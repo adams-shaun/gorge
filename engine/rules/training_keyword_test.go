@@ -10,7 +10,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// CR 702.70 Training: "Whenever this creature attacks with another creature
+// CR 702.149 Training: "Whenever this creature attacks with another creature
 // with greater power, put a +1/+1 counter on this creature." engine/cards/kw_training.go
 // expands a printed K:Training into an Attacks trigger carrying Training$ True,
 // and engine/rules/trigmatch/combat.go's AttacksMatches reads the event-relative

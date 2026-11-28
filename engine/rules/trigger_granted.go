@@ -340,7 +340,7 @@ func (e *Engine) checkCipherTriggers(ev events.Event) {
 	}
 }
 
-// checkGrantedExploitTriggers synthesizes Exploit's ETB election (CR 702.58a)
+// checkGrantedExploitTriggers synthesizes Exploit's ETB election (CR 702.110a)
 // for a creature that currently HAS the keyword but does not print it: a
 // layer-6 AddKeyword$ Exploit grant (Colonel Autumn's "Other legendary
 // creatures you control have exploit") has the same rules text as a printed

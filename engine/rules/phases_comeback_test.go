@@ -1,6 +1,6 @@
 package rules
 
-// Phasing come-back (CR 702.25): the "phase out until CARDNAME leaves the
+// Phasing come-back (CR 702.26): the "phase out until CARDNAME leaves the
 // battlefield" family. These are engine-boundary tests on real corpus cards
 // whose printed body carries
 // `DB$ Effect | Triggers$ TrigComeBack | Duration$ Permanent |

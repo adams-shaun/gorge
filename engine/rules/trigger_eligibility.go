@@ -338,7 +338,7 @@ var triggerModeEventRows = [...]struct {
 	// face's mask narrow for every other kind.
 	{cards.TriggerDiscover, 0},
 	{cards.TriggerSeekAll, 0},
-	// trig:Foretell: "Whenever you foretell a card, ..." (CR 702.126b; Dream
+	// trig:Foretell: "Whenever you foretell a card, ..." (CR 702.143b; Dream
 	// Devourer, the corpus's sole carrier at the pin -- measured 1 file). It
 	// matches the {2} Foretell special action's pay-time FlagForetold
 	// CastInfo (engine/rules/cast.go's foretell branch, card still in hand;
@@ -585,7 +585,7 @@ var triggerModeEventRows = [...]struct {
 	// allTriggerEvents default keeps a Mutates-only face's mask narrow
 	// for every other kind.
 	{cards.TriggerMutates, 0},
-	// CR 701.26: battlefield SetState Mode$ Transform marks FlipFace
+	// CR 701.27: battlefield SetState Mode$ Transform marks FlipFace
 	// with Text "Transformed". The matcher gates on a battlefield
 	// multi-face object and scopes ValidCard$/ValidPlayer$ against
 	// the transformed object's destination face.

@@ -196,7 +196,7 @@ func isCharmSpell(f *cards.Face) bool {
 	return sa != nil && sa.API == "Charm" && effects.CharmOf(sa).HasChoices
 }
 
-// replicateCost resolves the Replicate keyword's payment cost (CR 702.55a,
+// replicateCost resolves the Replicate keyword's payment cost (CR 702.56a,
 // Forge's K:Replicate:<cost>), the surgeCost shape. A cost carrying a token
 // ParseCost cannot model is withheld (the fail-closed direction
 // twoPartKickerCosts takes) rather than charged as degraded generic mana.
@@ -230,7 +230,7 @@ func multikickerCost(f *cards.Face) (Cost, bool) {
 	return c, true
 }
 
-// squadCost resolves the Squad keyword's PER-PAYMENT cost (CR 702.66, Forge's
+// squadCost resolves the Squad keyword's PER-PAYMENT cost (CR 702.157, Forge's
 // K:Squad:<cost>), the replicateCost/multikickerCost shape: "you may pay
 // [cost] any number of times" as the spell is cast, so the offer gates on ONE
 // payment being payable and the count ask (squadAsk) settles how many. A cost

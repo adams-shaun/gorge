@@ -6,7 +6,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// The K:Devour expansion (CR 702.83), pinned on real corpus carriers:
+// The K:Devour expansion (CR 702.82), pinned on real corpus carriers:
 //
 //   - Gorger Wurm (Devour 1, creatures): the ETB replacement poses the real
 //     "sacrifice any number of creatures" KChoose (Optional$ -> Min 0, Max =

@@ -488,7 +488,7 @@ func (w *legalWalk) battlefieldWalk() {
 						if !e.monstrosityGateOK(id, ab) {
 							continue
 						}
-						// kw:Reconfigure (CR 702.150): the expansion's unattach half
+						// kw:Reconfigure (CR 702.151): the expansion's unattach half
 						// carries Unattach$ True and is offered only while the source is
 						// attached -- "unattach from a creature" has no legal action for
 						// an unattached permanent, and a payable no-op the deterministic

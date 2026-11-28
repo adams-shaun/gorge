@@ -20,7 +20,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// evolveConditionHolds is the bare `Condition$ Evolve` gate (CR 702.99a):
+// evolveConditionHolds is the bare `Condition$ Evolve` gate (CR 702.100a):
 // the entering creature's derived power OR toughness must strictly exceed
 // the source's. It is the same comparison the Evolve$ keyword gate
 // (engine/rules/trigmatch/zone.go) makes, shared through this free function so the

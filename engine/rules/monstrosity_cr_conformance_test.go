@@ -32,7 +32,7 @@ func TestCR70134MonstrosityDesignation(t *testing.T) {
 	}
 	addMana(t, e, 0, "CCCCC")
 	if _, ok := findAbilityOption(e, id, idx); ok {
-		t.Fatalf("CR 701.34b: Monstrosity was offered again: %+v", e.Pending().Options)
+		t.Fatalf("CR 701.37b: Monstrosity was offered again: %+v", e.Pending().Options)
 	}
 	if len(monstrousMarkEvents(e)) != 1 {
 		t.Fatalf("CR 701.34b: second attempt added a designation event: %+v", monstrousMarkEvents(e))

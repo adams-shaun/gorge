@@ -103,7 +103,7 @@ func init() {
 		// TestDarkApostleGrantedCascadeRegistersAndOffers in
 		// rules/cascade_test.go.
 		"kw:Cascade",
-		// kw:Improvise: CR 702.66, the generic-only payment keyword -- its
+		// kw:Improvise: CR 702.126, the generic-only payment keyword -- its
 		// announcement over the caster's untapped artifacts (the improvise
 		// arm inside convokeAsk) and its greedy offer-gate credit
 		// (improviseCost) are the proof, in cast.go.
@@ -145,7 +145,7 @@ func init() {
 		// ClassBand$ band (engine/rules/class_level.go). Level 1 is intrinsic; no
 		// entry counter or replacement is created. Proof: rules/class_test.go.
 		"kw:Class",
-		// kw:Replicate: CR 702.55, expanded by engine/cards/keywords.go into the
+		// kw:Replicate: CR 702.56, expanded by engine/cards/keywords.go into the
 		// Storm-shaped copy trigger whose Amount$ Count$ReplicatePaid reads
 		// the pay-time CastInfo's count; the cast flow's replicateAsk poses
 		// the CR 601.2b count announcement.
@@ -163,7 +163,7 @@ func init() {
 		// (engine/rules/legal.go) plus conspireAsk (engine/rules/cast.go) pose and pay the
 		// two-creature tap.
 		"kw:Conspire",
-		// kw:Demonstrate: CR 702.152, expanded by engine/cards/kw_demonstrate.go
+		// kw:Demonstrate: CR 702.144, expanded by engine/cards/kw_demonstrate.go
 		// into the SpellCast trigger on the card's own cast whose DB$
 		// Demonstrate body (engine/effects/demonstrate.go) poses the may-copy
 		// election and the opponent choice; a layer-6 AddKeyword$ Demonstrate
@@ -172,7 +172,7 @@ func init() {
 		// copies are ordinary StackCopy mints, so a creature-spell copy
 		// becomes a token through the standing CR 707.10g fold.
 		"kw:Demonstrate",
-		// kw:Squad: CR 702.66, expanded by engine/cards/keywords.go into a
+		// kw:Squad: CR 702.157, expanded by engine/cards/keywords.go into a
 		// ChangesZone self-entry trigger whose DB$ CopyPermanent body reads
 		// Count$SquadPaid (the Replicate pattern); the cast flow's "squadded"
 		// offer (engine/rules/legal.go) plus squadAsk (engine/rules/cast.go) pose and pay
@@ -183,7 +183,7 @@ func init() {
 		// ordinary ReduceCost cost-static machinery (engine/rules/statics.go's
 		// collectCostStatics) -- no separate cast path of its own.
 		"kw:Affinity",
-		// kw:Undaunted: CR 702.105, expanded by engine/cards/kw_undaunted.go into
+		// kw:Undaunted: CR 702.125, expanded by engine/cards/kw_undaunted.go into
 		// the ordinary ReduceCost cost-static machinery.
 		"kw:Undaunted",
 		// kw:Embalm / kw:Eternalize: CR 702.128 / 702.129, expanded by
@@ -191,7 +191,7 @@ func init() {
 		// whose cost exiles the card itself (ExileFromGrave<1/CARDNAME>) and
 		// whose token copy carries the keyword's modified characteristics --
 		// the Encore graveyard-activation shape with a different effect.
-		// kw:Gravestorm: CR 702.84, expanded by engine/cards/keywords.go into the
+		// kw:Gravestorm: CR 702.69, expanded by engine/cards/keywords.go into the
 		// Storm-shaped copy trigger whose Amount$
 		// Count$ThisTurnEntered_Graveyard_from_Battlefield_Permanent reads the
 		// zone-aware count in effects.countEntered.

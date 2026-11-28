@@ -273,7 +273,7 @@ type pendingCast struct {
 	delve     []state.ObjID `clone:"deep"`
 	delveDone bool          `clone:"deep"`
 
-	// replicateParam is the raw Replicate keyword parameter (CR 702.55a) a
+	// replicateParam is the raw Replicate keyword parameter (CR 702.56a) a
 	// "replicated" cast re-parses at ask and answer time; replicateTimes is
 	// the answered payment count (0 = declined: no flag, a plain cast) and
 	// replicateDone marks the one ask already posed. Plain data, so Clone
@@ -283,7 +283,7 @@ type pendingCast struct {
 	replicateTimes int32  `clone:"deep"`
 	replicateDone  bool   `clone:"deep"`
 
-	// squadParam is the raw Squad keyword parameter (CR 702.66) a
+	// squadParam is the raw Squad keyword parameter (CR 702.157) a
 	// "squadded" cast re-parses at ask and answer time; squadTimes is the
 	// answered payment count (0 = declined: no flag, a plain cast) and
 	// squadDone marks the one ask already posed. The replicate fields' exact
@@ -487,7 +487,7 @@ type pendingCast struct {
 	// mutated, so Clone may share it.
 	manaSources []state.ObjID `clone:"share"`
 
-	// emerge / emergeDone mark an Emerge cast (CR 702.118a): beginCast's
+	// emerge / emergeDone mark an Emerge cast (CR 702.119a): beginCast's
 	// "emerged" arm sets emerge and composes the printed K:Emerge cost with
 	// the mandatory Sac<1/Creature> part; sacAsk then folds the chosen
 	// creature's mana value out of pc.cost exactly once, guarded by

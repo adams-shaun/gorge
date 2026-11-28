@@ -115,7 +115,7 @@ func AttacksMatchedAttackers(e Board, t cards.Trigger, source state.ObjID, ev ev
 			return nil
 		}
 	}
-	// Training (CR 702.70) fires only when the attacking source attacks
+	// Training (CR 702.149) fires only when the attacking source attacks
 	// alongside ANOTHER creature with strictly greater power. The declaration
 	// is spread across one DeclareAttackers event per defender, so the other
 	// attackers are read from Engine.declaredAttackers (the whole chosen set)

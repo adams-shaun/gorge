@@ -438,7 +438,7 @@ func TestMiragePhalanxCopyLosesSoulbondAndGainsHaste(t *testing.T) {
 	mp := moveByName(t, e, 0, "Mirage Phalanx", state.ZBattlefield)
 	bear := moveByName(t, e, 0, "Grizzly Bears", state.ZBattlefield)
 
-	// CR 702.103: pair the two permanents (the Soulbond pairing the granted
+	// CR 702.95: pair the two permanents (the Soulbond pairing the granted
 	// trigger's Affected$ spec requires). The Pair event is the engine's own
 	// pairing write.
 	e.emit(events.Event{Kind: events.Pair, Obj: mp, IDs: []state.ObjID{bear}})

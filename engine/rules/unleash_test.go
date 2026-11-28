@@ -10,7 +10,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// kw:Unleash (CR 702.86): the as-enters choice is posed on every entry path,
+// kw:Unleash (CR 702.98): the as-enters choice is posed on every entry path,
 // "yes" enters with a +1/+1 counter, and a creature carrying the counter
 // can't block. The mechanism is the Riot precedent (a construct choice rules
 // reads straight off the printed keyword, a Choose "unleash" event, and

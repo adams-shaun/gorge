@@ -659,7 +659,7 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 		e.drainAwaitsTarget = e.Pending() != nil
 		return
 	}
-	// A granted Demonstrate (CR 702.152's copy trigger via a layer-6
+	// A granted Demonstrate (CR 702.144's copy trigger via a layer-6
 	// AddKeyword$ Demonstrate -- Silverquill Lecturer and friends): the
 	// Conspire shape. The trigger is mandatory (the "may copy" election is
 	// the BODY's own ask at resolution, not a placement election); its
@@ -863,7 +863,7 @@ func (e *Engine) pushTrigger(pt pendingTrigger) {
 		e.drainAwaitsTarget = e.Pending() != nil
 		return
 	}
-	// A granted Exploit (CR 702.58a via a layer-6 AddKeyword$ Exploit --
+	// A granted Exploit (CR 702.110a via a layer-6 AddKeyword$ Exploit --
 	// Colonel Autumn's "Other legendary creatures you control have
 	// exploit"): the Ward/Afflict shape. The trigger is optional in
 	// EFFECT (its body poses the may-sacrifice election when it resolves),

@@ -375,7 +375,7 @@ func (e *Engine) payCast() {
 			}
 		}
 		e.costCounters--
-		// Exert<1/CARDNAME> (CR 701.39a): one Exert event on the source, the
+		// Exert<1/CARDNAME> (CR 701.43a): one Exert event on the source, the
 		// same fold the declare-attackers election emits, so the untap skip
 		// and "whenever you exert" triggers read one path.
 		for range pc.cost.Exert {
@@ -684,7 +684,7 @@ func (e *Engine) payCast() {
 		return
 	}
 	if pc.mode == "foretell" {
-		// CR 702.126a: the Foretell ACTION is not a cast. CastInfo is the
+		// CR 702.143a: the Foretell ACTION is not a cast. CastInfo is the
 		// replayable provenance marker -- only this action sets FlagForetold
 		// on a hand->exile move, so an arbitrary exiled card is never treated
 		// as foretold -- and the MoveZone carries the face-down exile
@@ -788,7 +788,7 @@ func (e *Engine) payCast() {
 			flags = events.FlagsString(events.FlagsFrom(flags) | state.FlagMayFlashSac)
 		}
 	}
-	// kw:Rebound (CR 702.95a): a spell cast from its controller's HAND whose
+	// kw:Rebound (CR 702.88a): a spell cast from its controller's HAND whose
 	// face carries the keyword is exiled as it resolves and offers the free
 	// recast at the next upkeep. The flag is stamped only for a hand-origin
 	// cast, so the re-bound cast from exile (CR 702.95e: "doesn't rebound
@@ -805,7 +805,7 @@ func (e *Engine) payCast() {
 			}
 		}
 	}
-	// Replicate (CR 702.55a): the payment count rides the same pay-time
+	// Replicate (CR 702.56a): the payment count rides the same pay-time
 	// CastInfo. modeFlags deliberately maps "replicated" to "" -- a DECLINED
 	// replicate (count 0) must stay the byte-identical plain cast, no flag
 	// and no event -- so the flag is ORed here only when a payment was made.
@@ -843,7 +843,7 @@ func (e *Engine) payCast() {
 		}
 		e.emit(events.Event{Kind: events.CastInfo, Obj: pc.card, Amount: amt, Counter: flags + permSuffix})
 	}
-	// Squad (CR 702.66): the payment count rides its own TRAILING pay-time
+	// Squad (CR 702.157): the payment count rides its own TRAILING pay-time
 	// CastInfo -- the flag routes the Amount into Object.SquadPaid (events.Apply's
 	// CastInfo case), so this event never clobbers the X or replicate count an
 	// earlier event in this block carried (no corpus carrier pairs {X} with
@@ -908,7 +908,7 @@ func (e *Engine) payCast() {
 	for _, ev := range append(paidTapCastInfo(pc, flags), emergedCastInfo(pc, e.G.Obj(pc.card).Face(), flags, sacrificedLKI)...) {
 		e.emit(ev)
 	}
-	// Convoke (CR 702.66): the creatures the caster tapped to
+	// Convoke (CR 702.51): the creatures the caster tapped to
 	// help pay for the cast ride their own TRAILING pay-time CastInfo's IDs
 	// -- the flag (NOT ORed into the accumulating flags, the Conspired
 	// pattern) routes the IDs into Object.Convoked (events.Apply folds it
@@ -985,7 +985,7 @@ func (e *Engine) payCast() {
 	// The wake-up CastInfo emission stays gated (heads safety: only a cast
 	// made while the caster's battlefield already holds a ManaExpend carrier
 	// can fire one, so no game without a carrier changes an event). Count pool
-	// mana actually spent plus each Convoke contribution: CR 702.50 says each
+	// mana actually spent plus each Convoke contribution: CR 702.51 says each
 	// creature tapped for Convoke pays for one mana, and CR 601.2g-h includes
 	// those contributions in paying the spell's total cost. Delve, Harmonize,
 	// Improvise, free casts and ability activations do not spend mana. The

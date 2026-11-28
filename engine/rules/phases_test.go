@@ -1,6 +1,6 @@
 package rules
 
-// CR 702.25 — Phasing. A phased-out permanent is treated as though it does
+// CR 702.26 — Phasing. A phased-out permanent is treated as though it does
 // not exist: it is not sacrificed, not targeted, its static abilities are
 // off, it does not participate in combat, and it phases in at its
 // controller's next untap step (CR 702.25d, CR 502.4). These are

@@ -1729,7 +1729,7 @@ func (e *Engine) handleChoose(d *decision.Decision, in decision.Intent) {
 		e.choosing = chooseNone
 		e.emit(move)
 	case chooseUnleash:
-		// kw:Unleash (CR 702.86, engine/rules/unleash.go) is an as-enters replacement
+		// kw:Unleash (CR 702.98, engine/rules/unleash.go) is an as-enters replacement
 		// for every MoveZone path, the Riot arm's exact shape: record the
 		// choice, then re-emit the parked entry; Apply consumes it on
 		// battlefield entry.

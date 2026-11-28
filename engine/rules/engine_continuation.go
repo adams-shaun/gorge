@@ -170,7 +170,7 @@ type engineContinuation struct {
 	riotMove *events.Event `clone:"deep"`
 	// siegeMove parks a non-cast Battle entry while its controller makes the
 	// unleashMove parks a non-cast battlefield entry while its controller
-	// makes Unleash's as-enters choice (CR 702.86, engine/rules/unleash.go). Same
+	// makes Unleash's as-enters choice (CR 702.98, engine/rules/unleash.go). Same
 	// discipline as riotMove: the MoveZone is emitted only after the Choose
 	// "unleash" event records the answer, so every entry path reaches
 	// events.Move with UnleashChoice set. Clone-copied (clone.go).

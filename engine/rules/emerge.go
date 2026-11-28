@@ -1,4 +1,4 @@
-// emerge.go implements the Emerge alternative cast (CR 702.118a): "You may
+// emerge.go implements the Emerge alternative cast (CR 702.119a): "You may
 // cast this spell by sacrificing a creature and paying the emerge cost reduced
 // by that creature's mana value."
 //
@@ -97,7 +97,7 @@ func emergeSacrificePart() CostPart {
 	return CostPart{N: 1, Spec: "Creature"}
 }
 
-// offerEmerge offers the Emerge cast (CR 702.118a): "cast this spell by
+// offerEmerge offers the Emerge cast (CR 702.119a): "cast this spell by
 // sacrificing a creature and paying the emerge cost reduced by that
 // creature's mana value". It is a casting option, but NOT a plain
 // substitution -- the cast sacrifices a creature AND the cost is reduced by
@@ -193,7 +193,7 @@ func (e *Engine) applyEmergeReduction(pc *pendingCast) {
 }
 
 // reduceGeneric subtracts n mana from c's GENERIC component only, floored at
-// zero. A mana-value reduction (CR 702.118a's Emerge, like CR 118.7's
+// zero. A mana-value reduction (CR 702.119a's Emerge, like CR 118.7's
 // cost-reduction effects generally) can only reduce the generic amount of a
 // cost: the coloured pips are requirements the spell still carries, so
 // {5}{U}{U} reduced by mana value 10 is {U}{U}, never zero. Coloured pips

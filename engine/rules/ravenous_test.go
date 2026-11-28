@@ -1,6 +1,6 @@
 package rules
 
-// CR 702.148: the Ravenous keyword. Real corpus-card tests (the .cards corpus,
+// CR 702.156: the Ravenous keyword. Real corpus-card tests (the .cards corpus,
 // never a committed .txt) for the 12-carrier population; Jacked Rabbit is the pinned carrier because its script also
 // reads Count$CardPower off the counters the keyword places, so the counter
 // put and the attack-token half share one observable.

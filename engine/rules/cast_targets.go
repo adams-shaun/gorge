@@ -98,7 +98,7 @@ func modeFlags(mode string) string {
 	// second time from the graveyard.
 	case modeFlagsJumpstart:
 		return events.FlagsString(state.FlagJumpstart)
-	// Aftermath (CR 702.85a): the flag is what the resolution reader
+	// Aftermath (CR 702.127a): the flag is what the resolution reader
 	// (spellRestZone) and the fizzle reader (spellFizzleZone) read to exile
 	// the card instead of the graveyard -- on resolution AND when countered,
 	// the same "any time it would leave the stack" convention flashback's
@@ -143,7 +143,7 @@ func modeFlags(mode string) string {
 		return events.FlagsString(state.FlagOptionalCostPaid)
 	case modeFlagsSuspend:
 		return events.FlagsString(state.FlagSuspend)
-	// Foretell's later cast (CR 702.126a): the flag is the provenance an ETB
+	// Foretell's later cast (CR 702.143a): the flag is the provenance an ETB
 	// reader (Lupine Harbingers' CheckSVar$ WasForetold) and Count$Foretold
 	// read off the permanent the spell becomes -- the stack->battlefield
 	// persistence the Suspend flag rides too. The {2} ACTION's CastInfo is
@@ -162,7 +162,7 @@ func modeFlags(mode string) string {
 	// what the cast records.
 	case modeFlagsMayhem:
 		return events.FlagsString(state.FlagMayhem)
-	// Web-slinging (CR 702.186a-family, Marvel's Spider-Man): the flag is the
+	// Web-slinging (CR 702.188a-family, Marvel's Spider-Man): the flag is the
 	// provenance the Card.Self+webSlinged filter predicate reads -- Spiders-Man,
 	// Heroic Horde's ETB trigger and Scarlet Spider, Ben Reilly's Sensational
 	// Save replacement. It is a CastProvenanceFlag (engine/state/object.go), so a
@@ -194,7 +194,7 @@ func modeFlags(mode string) string {
 	// cast IS a kicked cast) and FlagMultikicked onto the trailing CastInfo.
 	case modeFlagsMultikicked:
 		return ""
-	// Squad (CR 702.66): the mode marks the INTENT to pay the optional squad
+	// Squad (CR 702.157): the mode marks the INTENT to pay the optional squad
 	// cost, and the count ask (squadAsk) can still answer 0 -- a DECLINED
 	// squad must stay the byte-identical plain cast, no flag and no event,
 	// exactly the "replicated"/"multikicked" contract above. When a payment

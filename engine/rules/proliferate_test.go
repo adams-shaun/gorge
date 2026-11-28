@@ -10,7 +10,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// api:Proliferate (CR 701.27) end to end on the REAL corpus carriers:
+// api:Proliferate (CR 701.34) end to end on the REAL corpus carriers:
 // Tezzeret's Gambit's "then proliferate" half and Karn's Bastion's {4},{T}
 // activation.
 //

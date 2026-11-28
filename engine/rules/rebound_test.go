@@ -8,7 +8,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// This file pins keyword Rebound end to end (CR 702.95):
+// This file pins keyword Rebound end to end (CR 702.88):
 //
 //   - a spell cast from its controller's HAND is exiled as it resolves and
 //     leaves a delayed promise to recast it at that player's next upkeep;

@@ -241,7 +241,7 @@ func ZoneChangeMatchesWithCapture(e Board, t cards.Trigger, source state.ObjID, 
 			return false
 		}
 	}
-	// Evolve$ True (CR 702.99a): the trigger fires only when the entering
+	// Evolve$ True (CR 702.100a): the trigger fires only when the entering
 	// creature's derived power OR toughness exceeds the source's, so an
 	// equal-or-smaller creature entering does not evolve the source. The
 	// ordinary ChangesZone path above (Destination$ Battlefield in the

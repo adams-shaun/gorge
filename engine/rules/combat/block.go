@@ -48,7 +48,7 @@ func CanBlock(b Board, blocker, attacker state.ObjID) bool {
 	if bo.Suspected {
 		return false
 	}
-	// CR 702.86 (kw:Unleash): a creature with unleash can't block while it
+	// CR 702.98 (kw:Unleash): a creature with unleash can't block while it
 	// has a +1/+1 counter on it. The keyword rides the derived list (printed
 	// plus layer-6 granted -- Tesak's "Other Dogs you control have unleash"),
 	// and the counter is live state, so both halves are read here, the same
@@ -61,7 +61,7 @@ func CanBlock(b Board, blocker, attacker state.ObjID) bool {
 	if b.ProtectedFrom(attacker, blocker) {
 		return false
 	}
-	// CR 702.27/702.28: Shadow creatures can block only Shadow creatures,
+	// CR 702.28/702.28: Shadow creatures can block only Shadow creatures,
 	// and a Shadow creature is blockable only by one. Fear permits only an
 	// artifact or black creature to block it.
 	// A CanBlockIfShadow static (Aether Web, Heartwood Dryad) lets its blocker

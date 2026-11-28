@@ -6,7 +6,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// Monstrosity (CR 701.31): the mark is effPutCounter's `Monstrosity$` read,
+// Monstrosity (CR 701.37): the mark is effPutCounter's `Monstrosity$` read,
 // emitted as an events.AlterAttribute with Text "Monstrous" folded into
 // state.Object.Monstrous; the offer gate is engine/rules/legal.go's
 // monstrosityGateOK; this file is the listener trigger.

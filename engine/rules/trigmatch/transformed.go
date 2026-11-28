@@ -1,5 +1,5 @@
 // Mode$ Transformed: "Whenever this permanent transforms into [this face]"
-// (CR 701.26). SetState Mode$ Transform on the battlefield marks its
+// (CR 701.27). SetState Mode$ Transform on the battlefield marks its
 // FlipFace event with Text "Transformed". Flip, alternate-face casting, and
 // ChangeZone Transformed$ True (which flips before entry) do not satisfy this
 // trigger. The transformed object must remain on the battlefield and be the
