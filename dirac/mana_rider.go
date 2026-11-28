@@ -108,11 +108,13 @@ func (s *State) manaRider(k *prep, sl Slot) {
 // riderCensusFree reports whether rider ability a is one gorge's unless
 // census lists (rules unlessWindowUnits): a bare tap, or -- since the
 // unless census prices it (pay.ManaSubCounterOnlyCost) -- a bare tap plus a
-// fixed, source-anchored counter removal on a production needing no colour
-// choice (Remote Farm's "{T}, Remove a depletion counter from CARDNAME: Add
-// {W}{W}", CR 608.2g). The source must still carry the counter
-// (riderActivatable); a choice-shaped production (Gemstone Mine's any
-// colour) stays out, as the census leaves it out (fail closed).
+// fixed, source-anchored counter removal (Remote Farm's "{T}, Remove a
+// depletion counter from CARDNAME: Add {W}{W}", CR 608.2g). The source must
+// still carry the counter (riderActivatable). An OPEN-CHOICE production on
+// the same shape (Gemstone Mine's "{T}, Remove a mining counter: Add one mana
+// of any color") is listed too: the census prices one alternative per colour
+// the activation may choose (CR 106.1), exactly as it prices a free
+// any-colour source, and the window's answer asks that colour.
 func riderCensusFree(a *kop.Ability) bool {
 	if a.Cost.Flags&^kop.CostTap == 0 && a.Cost.Mana.MV() == 0 && a.Cost.Mana.X == 0 {
 		return true
@@ -120,7 +122,7 @@ func riderCensusFree(a *kop.Ability) bool {
 	return a.ManaRider == kop.ManaRiderDeplete &&
 		a.Cost.Flags == kop.CostTap|kop.CostRemoveCtr && a.Cost.N > 0 &&
 		a.Cost.Mana.MV() == 0 && a.Cost.Mana.X == 0 &&
-		a.ManaColors != 0 && a.ManaColors != kop.ColAny &&
+		a.ManaColors != 0 &&
 		a.AFlags&(kop.AfManaChoice|kop.AfManaChosen) == 0
 }
 
