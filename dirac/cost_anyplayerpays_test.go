@@ -6,8 +6,9 @@ import (
 	"github.com/adams-shaun/gorge/dirac/kop"
 )
 
-// kfix-cast: "any player may pay" asks player 0 then player 1 (gorge
-// unlessPayerTargets AliveFrom(0)); the first payer ends the walk.
+// kfix-cast: "any player may pay" asks the active player first, then in turn
+// order (CR 101.4; gorge unlessPayerTargets): player 0 then player 1 on
+// player 0's turn; the first payer ends the walk.
 
 // dashHopesAsks casts Dash Hopes for player 1 (at player 0's Grizzly Bears) and answers the any-player
 // asks with ans (1 = pay, 0 = decline) in turn; it returns who was asked.

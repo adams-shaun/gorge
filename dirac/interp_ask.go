@@ -177,10 +177,7 @@ func manaOf(generic int, pips int16) kop.ManaCost {
 
 // execPay starts OpUnlessPaid / OpIfPaid / OpUnlessSwitched; false = suspended.
 func (s *State) execPay(k *prep, in *kop.Instr) bool {
-	p := s.execPayer(k, in.Obj) // a departed payer is none (cost_departedpayer.go)
-	if s.eachPayWalks(k, in) {
-		p = 255 // any opponent at four seats is walked, not oneOpp (cost_anyplayerpays.go)
-	}
+	p, walk := s.execPayStart(k, in) // cost_anyplayerpays.go
 	kind := int(in.C & 0xF)
 	if kind == kop.PayManaX && in.B.N == kop.PayBSubEvidence {
 		kind = payKindEvidence // a trigger's own CollectEvidence cost rides PayManaX (cost_collectevidence.go)
@@ -235,7 +232,7 @@ func (s *State) execPay(k *prep, in *kop.Instr) bool {
 		return false
 	}
 	if p == 255 {
-		if s.eachPayWalks(k, in) {
+		if walk {
 			return s.execPayEach(k, in, kind, skip, amt) // cost_anyplayerpays.go
 		}
 		if skip&pfIfPaid != 0 {
@@ -270,16 +267,7 @@ func (s *State) execPay(k *prep, in *kop.Instr) bool {
 		return false
 	}
 	skip = s.payAnswerGate(k, in, p, kind, skip, amt, pips)
-	s.g.pickF = skip
-	s.g.pickZ = uint8(kind)
-	if kind == kop.PaySac && in.B.N == kop.PayBSubBlight {
-		s.g.pickZ = payPickBlight
-		s.g.pickLeft = 1 // one creature, however many counters
-	} else {
-		s.g.pickLeft = uint8(amt)
-	}
-	s.g.pickP = p
-	s.res.ask, s.res.askP = raGenPay, p
+	s.poseGenPay(in, p, kind, skip, amt) // cost_anyplayerpays.go
 	return false
 }
 

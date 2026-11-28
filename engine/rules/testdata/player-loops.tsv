@@ -330,10 +330,10 @@ effects/trigger_referents.go:controlReferentPlayers#0	seat-visible	includes	retu
 effects/trigger_referents.go:controlReferentPlayers#1	seat-visible	includes	returned player targets in seat order; MatchesPlayerSpecCtx does not check .Lost here
 effects/trigger_referents.go:playerSpecControlTargets#0	seat-visible	includes	returned player targets in seat order; MatchesPlayerSpecCtx does not check .Lost here
 effects/trigger_watchers.go:AnyBattlefieldTriggerMode#0	n/a	includes-ok	any-match trigger gate; zones empty after CR 800.4a
-effects/unless.go:unlessPayerTargetsFor#0	seat-visible	skips	AliveFrom(0) adds NonReplacedPlayer payers; result sorted by seat rank, payers asked in order
-effects/unless.go:unlessPayerTargetsFor#1	seat-visible	skips	AliveFrom(0) adds every player as payer; result sorted by seat rank, payers asked in order
-effects/unless.go:unlessPayerTargetsFor#2	n/a	skips	AliveFrom(controller) adds opponents; walk order discarded by sortTargets seat-rank sort (#3)
-effects/unless.go:unlessPayerTargetsFor#3	seat-visible	skips	AliveFrom(0) rank map sorts the returned unless-payer list into seat order (not APNAP)
+effects/unless.go:unlessPayerTargetsFor#0	apnap	skips	AliveFrom(active) adds NonReplacedPlayer payers, asked in turn order from the active player (CR 101.4)
+effects/unless.go:unlessPayerTargetsFor#1	apnap	skips	AliveFrom(active) adds every player as payer, asked in turn order from the active player (CR 101.4)
+effects/unless.go:unlessPayerTargetsFor#2	n/a	skips	AliveFrom(controller) adds opponents; walk order discarded by sortTargets APNAP-rank sort (#3)
+effects/unless.go:unlessPayerTargetsFor#3	apnap	skips	AliveFrom(active) rank map sorts the returned unless-payer list into APNAP order (CR 101.4)
 effects/untap.go:untapBattlefieldCondition#0	n/a	skips	AliveFrom(0) zone count for ConditionCompare gate
 effects/untap.go:untapTypeCandidates#0	seat-visible	skips	owners (AliveFrom(0) or Defined players) battlefield scan builds UntapType chooser candidates
 effects/vote.go:battlefieldHasVoteTrigger#0	n/a	skips	any-match bool over battlefields

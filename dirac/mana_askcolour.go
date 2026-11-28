@@ -310,8 +310,8 @@ func (s *State) manaUnlessPayable(k *prep, p uint8) bool {
 }
 
 // castWinUnlessStart begins the unless ask of the colour window's recorded
-// answer: the first living player in seat order (gorge's UnlessPayers,
-// AliveFrom(0)).
+// answer: the first living player in APNAP order, the active player on
+// (CR 101.4; gorge's UnlessPayers).
 func (s *State) castWinUnlessStart() {
 	s.g.winUnless, s.g.winUnlessPay = 0, 0
 	s.castWinUnlessNext()
@@ -338,11 +338,11 @@ func (s *State) winUnlessSetColor(c uint8) {
 	s.g.winUnlessPay = s.g.winUnlessPay&7 | (c+1)<<3
 }
 
-// castWinUnlessNext asks the next living player not yet asked; when every
-// player has declined the state is cleared and the mana is added
+// castWinUnlessNext asks the next living player in turn order from the active
+// player not yet asked; when every player has declined the state is cleared and the mana is added
 // (finishManaUnless).
 func (s *State) castWinUnlessNext() {
-	q := s.aliveFrom(0)
+	q := s.aliveFrom(s.active)
 	for i := uint8(0); i < q.n; i++ {
 		p := q.s[i]
 		if p < 4 && s.g.winUnless&(1<<p) == 0 {

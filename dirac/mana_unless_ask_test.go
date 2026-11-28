@@ -36,8 +36,8 @@ func manaUnlessScen(t *testing.T) (*scen, [2]Obj, Obj, Obj) {
 }
 
 // TestManaUnlessCaveAsksInSeatOrderAndOpponentPays: the colour window's
-// unless cost asks every living player in seat order (gorge's UnlessPayers,
-// AliveFrom(0)); the opponent's payment taps its Mountain for the {1}, the
+// unless cost asks every living player in turn order from the active player
+// (CR 101.4; gorge's UnlessPayers), here player 0's turn; the opponent's payment taps its Mountain for the {1}, the
 // asked source adds no mana (its chain's Cleanup still clears the colour),
 // and the cast reverses for want of the {X}s.
 func TestManaUnlessCaveAsksInSeatOrderAndOpponentPays(t *testing.T) {
