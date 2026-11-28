@@ -339,6 +339,11 @@ type DeckTally struct {
 	Decks          []DeckRecord `json:"decks"`
 	MinGames       int          `json:"min_games"`
 	MatchesCounted int          `json:"matches_counted"`
+	// Pilots is the sorted distinct bot_policy of the counted matches: the
+	// tally measures these bots' self-play, not the decks alone.
+	Pilots []string `json:"pilots"`
+	// Seats is the ascending distinct seat counts of the counted matches.
+	Seats []int `json:"seats"`
 }
 
 // BotPolicyInfo is one selectable hosted bot policy (GET /api/bot-policies).
