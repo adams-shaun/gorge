@@ -87,6 +87,8 @@ func (lc *lowerCtx) repeatEachCards(ps *params) error {
 			return refuse("RepeatEach DefinedCards$ Targeted: the target slot is not a card slot")
 		}
 		in.Obj = lRef{Kind: rTarget, N: lc.chainT[0]}
+	} else if cardsSpec == "Card.ChosenCard" && zone == "Hand" {
+		return lc.repeatEachChosenHand(ps, in) // lower_repeatchosenhand.go
 	} else {
 		for _, w := range []string{"Remember", "Imprint", "Chosen", "Triggered", "Targeted", "Defined"} {
 			if strings.Contains(cardsSpec, w) {

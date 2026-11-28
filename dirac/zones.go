@@ -222,6 +222,8 @@ func (s *State) placeFromK(k *prep, o Obj, z kop.Zone, bottom bool, from kop.Zon
 		s.clearFB(k, o)     // a new object: a granted flashback ends
 		s.encoreClear(k, o) // a new object: a granted encore ends
 		s.embalmClear(k, o) // a new object: a granted embalm ends
+		// a new object nobody drew (CR 400.7; filter_drawnthisturn.go)
+		s.mObjClr(k, mechDrawn, o)
 	}
 	if ob.of&ofToken != 0 && !s.g.on && s.cfg&cfgCommander == 0 {
 		ob.zone = kop.ZoneNone // a token ceases to exist (CR 111.7)
@@ -387,6 +389,9 @@ func (s *State) drawExcl(p uint8, ch drawChain) {
 	pl.handN++
 	pl.drawnTurn++
 	s.g.zoneTurn.set(o) // put into the hand this turn, as place does
+	if s.g.on {
+		s.mObjSet(s.k(), mechDrawn, o) // gorge's DrawnTurn stamp (filter_drawnthisturn.go)
+	}
 	if s.g.enteredOn {
 		s.noteEnter(o, kop.ZoneHand, kop.ZoneLibrary, false, false)
 	}

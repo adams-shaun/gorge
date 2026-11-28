@@ -1936,55 +1936,60 @@ const FwCanProduceManaColor FilterWord = 20
 // FwCanProduceSameManaTypeWith: the battlefield permanent can produce at least one type of mana the object the referent R names can also produce (gorge's canProduceSameManaTypeWith predicate over SpecContext.TriggerCard, engine/effects/filter_word_manatype.go; Mana Web's TapAll body). The producible set is the printed mana abilities' types: kop.CardDef.ProduceCol for WUBRG plus {C} when a printed mana ability makes it, the same census kernel mana_reflected.go producesColourless reads. R is RefTriggerObj for the kgen shape TriggeredCard.canProduceSameManaTypeWith+<type>. An unbound referent or an object that produces nothing matches nothing, fail closed.
 const FwCanProduceSameManaTypeWith FilterWord = 21
 
+// FilterWord (dirac/manifest/FilterWord/FwDrawnThisTurn)
+//
+// FwDrawnThisTurn: the candidate is a card in hand that was drawn this turn and has not moved since (gorge's DrawnThisTurn predicate, engine/effects/filter.go: Object.DrawnTurn == Game.Turn, stamped by events.Apply's Draw fold and cleared by every other move); the kernel reads the object's ofDrawn bit (dirac/filter_drawnthisturn.go), set by the draw and cleared by any other move and at the turn change. A card off the hand reads false.
+const FwDrawnThisTurn FilterWord = 22
+
 // FilterWord (dirac/manifest/FilterWord/FwManaCostEQ)
 //
 // FwManaCostEQ: the object prints a mana cost whose mana value is Arg (gorge's ManaCost<N> predicate, engine/effects/filter_manacost.go; Urza's Saga Chapter III's Artifact.ManaCost0,Artifact.ManaCost1). Unlike FwCMCCmp EQ it needs a printed mana cost at all (CR 202.1b: a land prints none, mana value 0 but no cost {0}), so a "no cost" card, a face-down object (CR 708.2) and a copy that loses its cost never match.
-const FwManaCostEQ FilterWord = 22
+const FwManaCostEQ FilterWord = 23
 
 // FilterWord (dirac/manifest/FilterWord/FwModal)
 //
 // FwModal: the cast spell chose at least one mode of its charm (gorge's `Modal` predicate, engine/effects/filter.go: len(ChosenModes) > 0; SpellCast ValidSA$ Spell.Modal, Riku of Many Paths). A spell that is no charm, a face-down spell and a card off the stack read false; an MDFC is not modal.
-const FwModal FilterWord = 23
+const FwModal FilterWord = 24
 
 // FilterWord (dirac/manifest/FilterWord/FwOppProtect)
 //
 // FwOppProtect: the battlefield battle's CR 310.10 protector is an opponent of the evaluating controller (gorge wordOppProtect, engine/effects/filter_word.go:934; the permanent's state.Object.Protector against SpecContext.You, a protector that is the evaluator itself or left the game does not match). The evaluator is the reading source's controller (fctx.ctrl). No recorded protector fails closed; off the battlefield a card never matches.
-const FwOppProtect FilterWord = 24
+const FwOppProtect FilterWord = 25
 
 // FilterWord (dirac/manifest/FilterWord/FwPaired)
 //
 // FwPaired: the battlefield permanent is paired with another creature by Soulbond (gorge predicates["Paired"], engine/effects/filter.go, o.Paired != 0; the kernel's kw_soulbond.go pair record). Negated, it is unpaired.
-const FwPaired FilterWord = 25
+const FwPaired FilterWord = 26
 
 // FilterWord (dirac/manifest/FilterWord/FwPairedWith)
 //
 // FwPairedWith: the battlefield permanent is the creature the reading source is paired with by Soulbond (gorge predicates["PairedWith"], engine/effects/filter.go, source.Paired == candidate; the kernel's kw_soulbond.go pair record). A source with no pair fails closed.
-const FwPairedWith FilterWord = 26
+const FwPairedWith FilterWord = 27
 
 // FilterWord (dirac/manifest/FilterWord/FwSharesCardType)
 //
 // FwSharesCardType: the object shares a card type with the first object the referent R names (gorge sharesCardTypeWith over sharesTypeReferents, engine/effects/filter_attachment.go; Braids, Arisen Nightmare's Sacrifice SacValid$ Permanent.sharesCardTypeWith RememberedCard, RefRemembered the entry's first remembered card). A card type is an artifact, battle, creature, enchantment, instant, kindred, land, planeswalker or sorcery (CR 205.2), never a supertype or subtype. A battlefield object reads its current types (a land animated into a creature has both), anything else its printed types, the referent read where it now is (a sacrificed card in the graveyard answers from its card). An unbound referent matches nothing, fail closed.
-const FwSharesCardType FilterWord = 27
+const FwSharesCardType FilterWord = 28
 
 // FilterWord (dirac/manifest/FilterWord/FwSharesNameThisTurnCast)
 //
 // FwSharesNameThisTurnCast: the object shares a printed name with a spell cast this turn by any player (gorge sharesNameWith ThisTurnCast, the referent bound from the cast ledger, engine/effects/filter_this_turn_cast.go; Twinning Glass's Play Valid$ Card.nonLand+sharesNameWith ThisTurnCast). The referents are the cast ring's pushes this turn (dirac/cast_castledger.go), every seat's, a reversed cast (CR 733.1) skipped, each read where it lives now. A face-down candidate has no name (CR 708.2). Only the positive spelling lowers: gorge's negated form fails closed on an empty ledger.
-const FwSharesNameThisTurnCast FilterWord = 28
+const FwSharesNameThisTurnCast FilterWord = 29
 
 // FilterWord (dirac/manifest/FilterWord/FwSharesProducedColour)
 //
 // FwSharesProducedColour: the battlefield permanent's colours intersect the colours of the mana a mana-ability tap produced (gorge's matchSharesColorWith over SpecContext.TriggerMana, engine/effects/filter.go; C.A.M.P.'s ConditionPresent$ Card.SharesColorWith TriggeredProduced on its Junk-token rider). The set is the tapped permanent's production, carried in the resolving Taps trigger's entry in the tap amount's colour bits above mtTapBit (manaTapped's fire, trig_taps.go; gorge's stampTriggeredManaProduced binds the actual ManaAdd batch, the kernel's view is the paid ability's static production). Colourless is not a colour and contributes nothing; an empty set or an entry that is no trigger is "shares nothing", a resolved false, never an unresolved gate.
-const FwSharesProducedColour FilterWord = 29
+const FwSharesProducedColour FilterWord = 30
 
 // FilterWord (dirac/manifest/FilterWord/FwSingleTarget)
 //
 // FwSingleTarget: the cast spell has exactly one target, counting every chained sub-ability's targets with the root's (gorge's `singleTarget` predicate, engine/effects/filter.go: len(Targets)+len(SubTargets) == 1; SpellCast ValidSA$ Spell.singleTarget and Instant.singleTarget,Sorcery.singleTarget). No target and two targets both read false, and two slots naming one object count twice, as gorge counts them.
-const FwSingleTarget FilterWord = 30
+const FwSingleTarget FilterWord = 31
 
 // FilterWord (dirac/manifest/FilterWord/FwTeamwork)
 //
 // FwTeamwork: the cast spell paid its Teamwork cost (gorge's `Teamwork` predicate, Object.TeamworkPaid; SpellCast ValidSA$ Spell.Teamwork, Virtual Assistant). The kernel keeps the paid flag as sfKicked on the entry (kw_teamwork.go), which a kicker cast sets too, so the word also requires the spell's card to have Teamwork: a kicked non-teamwork spell reads false.
-const FwTeamwork FilterWord = 31
+const FwTeamwork FilterWord = 32
 
 // kw StickerSheet (dirac/manifest/KwID/KwStickerSheet)
 const KwStickerSheet KwID = 32

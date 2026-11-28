@@ -59,6 +59,12 @@ func (lc *lowerCtx) handMove(ps *params, f *lFilter, n lValue, flags []string, c
 	if counterKind != "" || override != nil {
 		return refuse("hand move with counters/override")
 	}
+	if v, ok := ps.get("NoReveal"); ok && v != "True" {
+		// NoReveal$ True: gorge reads it on the library search only
+		// (zone_search.go); the hand walk reveals nothing either way
+		// (Sylvan Library's put-back)
+		return refuse("hand move NoReveal$ %q", v)
+	}
 	if v, ok := ps.get("AlreadyRevealed"); ok {
 		// presentation only: Forge skips re-revealing a hand just revealed;
 		// gorge has no reader (its own unread census,
