@@ -322,8 +322,8 @@ func (s *State) eachOverride(k *prep, sl Slot, f func(o *kop.Override, src CardI
 
 const NoCard = kop.NoCard
 
-// typesGen is sl's types.
-func (s *State) typesGen(k *prep, sl Slot) kop.TypeMask {
+// typesCalc is sl's types (typesGen computes them here; static_typecache.go).
+func (s *State) typesCalc(k *prep, sl Slot) kop.TypeMask {
 	if k.gen.fxNeed != 0 && s.walkSlot(k, sl) {
 		t := s.walkTypes(k, sl)
 		if k.gen.ringOn() && s.ringLegend(k, sl) {
