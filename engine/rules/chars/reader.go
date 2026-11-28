@@ -135,7 +135,7 @@ func PileAbilityRef(o *state.Object, sa *cards.SA) (idx, merged int, ok bool) {
 // KWHaste is the Haste head (CR 302.6's summoning-sickness exemption).
 var KWHaste = NewKW("Haste")
 
-// KWFlash is the Flash head (CR 702.36a): the one keyword a
+// KWFlash is the Flash head (CR 702.8a): the one keyword a
 // characteristic-defining static may grant off the battlefield
 // (chars.StaticCDAFlashAdmits).
 var KWFlash = NewKW("Flash")

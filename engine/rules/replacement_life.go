@@ -396,7 +396,7 @@ func (e *Engine) applyLifeReplacement(ev events.Event, m replMatch) (events.Even
 
 // lifeReplacementDraw draws n cards for a GainLife→Draw replacement body
 // (Lich's "If you would gain life, draw that many cards instead"),
-// suspension-aware: each DrawFor may pose a Dredge ask (CR 702.55) and
+// suspension-aware: each DrawFor may pose a Dredge ask (CR 702.52) and
 // suspend. The loop parks the remaining count on the ask's resume point
 // (resolution.go) and returns, instead of looping on -- looping on would
 // pose a SECOND ask while the first is outstanding, orphaning it and losing

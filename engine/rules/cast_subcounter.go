@@ -1173,7 +1173,7 @@ func (e *Engine) sacAsk() bool {
 		e.ask(d)
 		return true
 	}
-	// Every Sac part is settled: an Emerge cast (CR 702.118a) now folds the
+	// Every Sac part is settled: an Emerge cast (CR 702.119a) now folds the
 	// chosen sacrifice's mana value out of pc.cost, before the mana window and
 	// payment read it. Idempotent through pc.emergeDone, so the re-entries a
 	// suspended mana window makes cannot subtract twice.

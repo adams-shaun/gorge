@@ -352,7 +352,7 @@ type Cost struct {
 	// The trailing "/description" is captured into CostPart.Desc.
 	UntapPermanent []CostPart
 	Blight         []CostPart
-	// Exert carries Exert<1/CARDNAME> parts (CR 701.39: the source will not
+	// Exert carries Exert<1/CARDNAME> parts (CR 701.43: the source will not
 	// untap during its controller's next untap step). Paid by one
 	// events.Exert on the source -- the same event the declare-attackers
 	// exert election emits, so "whenever you exert" triggers and the untap

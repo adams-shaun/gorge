@@ -8,7 +8,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// Bestow (CR 702.114) — the alternative-cost cast of a card printed with
+// Bestow (CR 702.103) — the alternative-cost cast of a card printed with
 // K:Bestow. The three pieces live here:
 //
 //   - bestowCost resolves the printed bestow cost (the replicateCost
@@ -27,7 +27,7 @@ import (
 //     (engine/rules/layers.go typeCharacteristics), the combat/SBA creature reads
 //     and the attachment SBAs (engine/rules/attach.go).
 
-// bestowCost resolves the Bestow keyword's alternative cost (CR 702.114a,
+// bestowCost resolves the Bestow keyword's alternative cost (CR 702.103a,
 // Forge's K:Bestow:<cost>), the replicateCost shape: the cost is paid
 // INSTEAD of the printed mana cost. A cost carrying a token ParseCost
 // cannot model is withheld rather than charged as degraded generic mana (the

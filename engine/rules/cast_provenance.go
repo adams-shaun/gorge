@@ -711,7 +711,7 @@ func (e *Engine) castOriginAdmitsWindow(spec string, objID state.ObjID, you stat
 }
 
 // webSlingedAdmits evaluates the Web-slinging cast-provenance predicate
-// (kw:Web-slinging, CR 702.186a-family): the object's LATEST cast was paid
+// (kw:Web-slinging, CR 702.188a-family): the object's LATEST cast was paid
 // for with its web-slinging cost -- state.FlagWebSlinged, stamped by the
 // pay-time CastInfo (modeFlags). The flag is a CastProvenanceFlag
 // (engine/state/object.go), so a stack copy (put on the stack, never cast --

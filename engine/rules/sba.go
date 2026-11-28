@@ -1146,7 +1146,7 @@ func (e *Engine) destroyLethalDamage(b *sbaBatch, tried *sbaAttempts) {
 			f := o.Face()
 			// CR 702.114e: a bestowed-attached card is an Aura, not a creature,
 			// so the creature SBAs (lethal damage/toughness) do not hit it.
-			// CR 702.150c: the same for an attached Reconfigure card (not a
+			// CR 702.151: the same for an attached Reconfigure card (not a
 			// creature while attached -- marked damage does not destroy it).
 			if f == nil || o.BestowedAttached() || o.ReconfiguredAttached() {
 				continue

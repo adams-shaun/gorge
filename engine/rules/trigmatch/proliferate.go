@@ -1,6 +1,6 @@
 // The Proliferate trigger mode.
 //
-// Mode$ Proliferate: "Whenever you proliferate, ..." (CR 701.27). Its own
+// Mode$ Proliferate: "Whenever you proliferate, ..." (CR 701.34). Its own
 // file because the mode's marker event, emitter and matcher were all added
 // together.
 

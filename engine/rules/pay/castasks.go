@@ -123,7 +123,7 @@ func ConvokeAsk(e Engine, cp *CastPayment, paid *PaidCost, in ConvokeOffer) bool
 				sawCreature = true
 			}
 		}
-		// CR 702.66a: Improvise's artifacts -- artifact creatures included,
+		// CR 702.126a: Improvise's artifacts -- artifact creatures included,
 		// the card is an artifact independently of being a creature -- each
 		// pay one generic. The shared payment group makes the object's
 		// Convoke and Improvise options mutually exclusive, so one artifact

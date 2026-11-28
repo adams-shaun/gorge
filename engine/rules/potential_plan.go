@@ -1701,7 +1701,7 @@ func (e *Engine) potentialModeBaseCost(p state.PlayerID, id state.ObjID, f *card
 		}
 		return pay.WithSpellAbilityExtras(af, e.faceCost(af)), true
 	case potentialModeBaseCostAftermath:
-		// CR 702.85a: the Aftermath half's own printed cost.
+		// CR 702.127a: the Aftermath half's own printed cost.
 		af := aftermathAlternateFace(e.G.Obj(id))
 		if af == nil {
 			return Cost{}, false

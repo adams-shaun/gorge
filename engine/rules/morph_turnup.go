@@ -14,8 +14,8 @@ import (
 )
 
 // CR 708.6 / CR 116.2b: any time its controller has priority, a face-down
-// permanent that was cast with Morph (CR 702.37a), Megamorph (CR 702.168a)
-// or Disguise (CR 702.169a) may be turned face up. Turning it face up is a
+// permanent that was cast with Morph (CR 702.37a), Megamorph (CR 702.37a)
+// or Disguise (CR 702.168a) may be turned face up. Turning it face up is a
 // SPECIAL ACTION -- it does not use the stack and cannot be responded to --
 // whose only cost is the keyword's own parameter (the {3} cast is the
 // face-down one; the colon parameter is the turn-up one). Megamorph's rider

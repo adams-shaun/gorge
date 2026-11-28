@@ -93,7 +93,7 @@ func (e *Engine) beginCastWith(p state.PlayerID, opt decision.Option, selection 
 		}
 		e.flipProposalFace(o, &faceBefore, preSuppress, preAborts)
 	}
-	// CR 702.85a: the Aftermath half -- the alternate face of a Split card --
+	// CR 702.127a: the Aftermath half -- the alternate face of a Split card --
 	// is cast only from its owner's graveyard. From the graveyard the cast
 	// flips to the alternate face before the ordinary cast transaction;
 	// rawBaseCost, targets and resolution then read the aftermath face
@@ -179,7 +179,7 @@ func (e *Engine) beginCastWith(p state.PlayerID, opt decision.Option, selection 
 		opt.Mode = altMode(altBlitz)
 	}
 	if strings.HasPrefix(selectedMode, "webslinged_grant_") {
-		// Web-slinging (CR 702.186a-family): the same grant-cost convention as
+		// Web-slinging (CR 702.188a-family): the same grant-cost convention as
 		// blitzed_grant_N above -- a unique offer mode per grant cost, canonical
 		// web-slinging semantics for the rest of the cast pipeline (the charge
 		// below and modeFlags' flag both key the canonical mode).
@@ -259,7 +259,7 @@ func (e *Engine) beginCastWith(p state.PlayerID, opt decision.Option, selection 
 			cost = cost.Plus(oc)
 		}
 	case castModeReplicated:
-		// Replicate (CR 702.55a): the mode marks the intent to pay the
+		// Replicate (CR 702.56a): the mode marks the intent to pay the
 		// optional replicate cost. The PAYMENT COUNT is a cast announcement
 		// of its own (CR 601.2b), settled by replicateAsk before the
 		// Convoke/X stages and folded into cost there, so a declined count
@@ -310,7 +310,7 @@ func (e *Engine) beginCastWith(p state.PlayerID, opt decision.Option, selection 
 		// rawBaseCost above, which reads the copy's prepare-spell face (Forge's
 		// prepared effect is likewise a plain MayPlay$ True grant).
 	case castModeForetell:
-		// CR 702.126a: the Foretell ACTION pays {2} and exiles the card face
+		// CR 702.143a: the Foretell ACTION pays {2} and exiles the card face
 		// down -- never the keyword's own colon parameter, which prices the
 		// LATER cast (the foretell_cast case below).
 		cost = Cost{Generic: 2}
@@ -439,7 +439,7 @@ func (e *Engine) beginCastWith(p state.PlayerID, opt decision.Option, selection 
 			cost = c
 		}
 	case castModeWebSlinging:
-		// Web-slinging (CR 702.186a-family, Marvel's Spider-Man): the
+		// Web-slinging (CR 702.188a-family, Marvel's Spider-Man): the
 		// web-slinging cost replaces the mana cost AND the composed Cost
 		// carries the mandatory Return<1/Creature.YouCtrl+tapped> additional
 		// cost, settled by the ordinary Return machinery (returnAsk asks,
@@ -533,7 +533,7 @@ func (e *Engine) beginCastWith(p state.PlayerID, opt decision.Option, selection 
 			cost = cost.Plus(mc)
 		}
 	case castModeEmerged, castModeOffering:
-		// Emerge (CR 702.118a): the emerge cast pays the printed K:Emerge cost
+		// Emerge (CR 702.119a): the emerge cast pays the printed K:Emerge cost
 		// in place of the mana cost AND sacrifices a creature, whose mana
 		// value reduces the cost. The reduction is NOT applied here -- the
 		// creature is not chosen until sacAsk settles the Sac part -- so this
@@ -724,7 +724,7 @@ func (e *Engine) beginCastWith(p state.PlayerID, opt decision.Option, selection 
 			e.cast.suspendTimeX, e.cast.suspendMinX = true, sc.minTime
 		}
 	}
-	// Replicate (CR 702.55a): the cost field is carried as its raw keyword
+	// Replicate (CR 702.56a): the cost field is carried as its raw keyword
 	// parameter and re-parsed by replicateAsk and the answer handler -- a
 	// string survives the intent boundary's pendingCast Clone without
 	// deep-copying cost slices, and ParseCost is deterministic.
@@ -742,7 +742,7 @@ func (e *Engine) beginCastWith(p state.PlayerID, opt decision.Option, selection 
 			e.cast.multikickParam, e.cast.multikickSet = f.KeywordCostParam("Multikicker")
 		}
 	}
-	// Squad (CR 702.66): the per-payment cost field is carried as its raw
+	// Squad (CR 702.157): the per-payment cost field is carried as its raw
 	// keyword parameter and re-parsed by squadAsk and the answer handler -- the exact
 	// string-survives-Clone convention the replicate capture above documents.
 	if opt.Mode == "squadded" {
@@ -1250,7 +1250,7 @@ func (e *Engine) continueCast() {
 		e.payCast()
 		return
 	}
-	// Foretell (CR 702.126a) is the same shape: the {2} special action is not
+	// Foretell (CR 702.143a) is the same shape: the {2} special action is not
 	// a cast -- no stack push, no targets; the card is exiled face down and
 	// its later foretell-cost cast announces its own targets.
 	if e.cast.mode == "foretell" {

@@ -351,7 +351,7 @@ func (e *Engine) applyReplacementsDispatch(ev events.Event) (events.Event, bool)
 		if m := e.bloodthirstEntryMatch(ev); m != nil && e.replacementMatches(*m.repl, m.id, ev) {
 			matches = append(matches, *m)
 		}
-		// kw:Sunburst (CR 702.47): the layer-6 `Keywords$ Sunburst` GRANT shape
+		// kw:Sunburst (CR 702.44): the layer-6 `Keywords$ Sunburst` GRANT shape
 		// (Solar Array, Lux Artillery) is one more Updated entry replacement,
 		// collected after the face-Repl scan for the same deterministic
 		// composition reason bloodthirst's is; a printed K:Sunburst face carries

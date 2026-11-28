@@ -185,7 +185,7 @@ func (e *Engine) CopyTargetCandidates(copier state.PlayerID, spell state.ObjID) 
 
 // GraveyardKeywordParam is effects' optional graveyardDredgeHost read: a
 // graveyard card's derived keyword parameter (derivedKeywordParam, the object's
-// CURRENT layer-derived keyword list). Dredge (CR 702.55) is offered from the
+// CURRENT layer-derived keyword list). Dredge (CR 702.52) is offered from the
 // graveyard, where the board-wide derived table effects publishes bounds no
 // entry, so the single-object derivation is the only way an ability loss
 // (CR 613.1f -- Yixlid Jailer's RemoveAllAbilities$ static) or a layer-6

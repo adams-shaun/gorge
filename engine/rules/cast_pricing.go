@@ -1316,7 +1316,7 @@ func noManaConvokeFold(pc *pendingCast, c Cost) Cost {
 // pay. The assignment built here is the one convokeAsk then offers: a
 // maximum matching covers as many coloured pips as distinct
 // colour-eligible creatures allow, and every remaining eligible permanent
-// takes one generic (a Harmonize permanent its power, per CR 702.46a). Both
+// takes one generic (a Harmonize permanent its power, per CR 702.180a). Both
 // convokeAsk and this helper read the SAME composed total, so the payment
 // the announcement is validated against (convokeAbsorbs's m) is the one
 // priced here. A cast carrying none of the three keywords -- every

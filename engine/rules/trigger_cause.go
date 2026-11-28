@@ -10,7 +10,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// cyclingCauseKeywords is the CR 702.28 cycling family: the plain Cycling
+// cyclingCauseKeywords is the CR 702.29 cycling family: the plain Cycling
 // keyword and its typed form (TypeCycling), both of which Forge's `Cycling`
 // stack spec names. Exact membership -- a substring test would let
 // TypeCycling's own "Cycling" suffix admit the plain spec through a false

@@ -1,4 +1,4 @@
-// Enlist (CR 702.160).
+// Enlist (CR 702.154).
 //
 // `K:Enlist` is a static ability that functions while the creature is
 // attacking: "As this creature attacks, you may tap a nonattacking creature
@@ -220,7 +220,7 @@ func (e *Engine) applyEnlist(attacker, enlisted state.ObjID) {
 }
 
 func init() {
-	// The `K:Enlist` keyword (CR 702.160) is engine-owned -- the
+	// The `K:Enlist` keyword (CR 702.154) is engine-owned -- the
 	// election, the Enlist event and the +X/+0 pump live in this file, and
 	// `T:Mode$ Enlisted` is the listener trigger trigmatch.EnlistedMatches serves.
 	// Registered as non-API primitives so the coverage census reads the

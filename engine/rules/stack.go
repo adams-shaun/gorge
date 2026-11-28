@@ -555,7 +555,7 @@ func (e *Engine) resolveTop() {
 	// ability (engine/rules/cleave.go's stackSpellSA); every other spell its
 	// face's own SpellAbility.
 	sa := stackSpellSA(o, f)
-	// Bestow (CR 702.114a): a cast paid for with the bestow cost resolves
+	// Bestow (CR 702.103a): a cast paid for with the bestow cost resolves
 	// as the synthesized Aura attach spell -- the creature face itself has
 	// no SP -- so the whole ordinary Aura tail below runs unchanged:
 	// effAttach emits events.Attach while the spell is still on the stack,
@@ -695,7 +695,7 @@ func (e *Engine) resolveTop() {
 				// "nothing legal to attach to" is exactly this case for
 				// that spell shape, and the resting zone is where it
 				// belongs) -- exile instead of the graveyard for one cast
-				// via Flashback (CR 702.32b).
+				// via Flashback (CR 702.34).
 				rest := spellFizzleZone(o)
 				e.stackLeave = stackLeaveFizzled
 				e.emit(events.Event{Kind: events.MoveZone, Obj: id,

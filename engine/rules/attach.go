@@ -216,7 +216,7 @@ func (e *Engine) attachmentSBAs(b *sbaBatch) {
 			}
 			if e.isEquipment(o) && (bearer.ReconfiguredAttached() || bearer.ImpendingDormant() ||
 				(!e.IsCreature(bearer.ID) && !e.equipmentEquipSpecAdmits(o, bearer))) {
-				// CR 702.150c: an attached Reconfigure card is not a creature,
+				// CR 702.151: an attached Reconfigure card is not a creature,
 				// so another Equipment riding it detaches like from any other
 				// non-creature bearer (CR 301.5c / 704.5n). The creature read
 				// is the DERIVED type list, as the Fortification arm below
@@ -440,7 +440,7 @@ func (e *Engine) attachRefused(obj, bearerID state.ObjID) (refused, note bool) {
 		// itself, so its own attaches read free.
 		return !e.auraStillMatchesEnchant(o, bearer) || cantAttachAuraBlocks(e, o.ID, bearer.ID), true
 	case e.isEquipment(o):
-		// CR 702.150c: an attached Reconfigure card is not a creature, and
+		// CR 702.151: an attached Reconfigure card is not a creature, and
 		// an impending permanent is not yet a creature either. A bearer the
 		// Equipment's own Equip keyword names is legal anyway (CR 301.5c,
 		// equipmentEquipSpecAdmits): Luxior's "Equip planeswalker" attaches

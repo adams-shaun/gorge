@@ -347,7 +347,7 @@ func (e *Engine) askAttackers() {
 func (e *Engine) handleAttackers(d *decision.Decision, in decision.Intent) {
 	chosen := d.Chosen(in)
 	// Publish the whole declaration for the declaration-wide trigger matches
-	// (CR 702.70 Training's "attacks with another creature"): the events
+	// (CR 702.149 Training's "attacks with another creature"): the events
 	// below are per defender, so ev.IDs alone cannot answer it. Rebuilt by
 	// replay, which re-executes this handler (see the field doc). The defer
 	// clears it again so a LATER direct DeclareAttackers emit (a synthetic
