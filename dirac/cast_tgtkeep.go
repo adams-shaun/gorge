@@ -39,8 +39,8 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 //
 // planned is true when the offer is the cast's own planned payment
 // (FeatPlannedCast): the build announces its targets before bsPay (cast.go
-// buildProgram), so a source gorge's payment plan uses may sacrifice the target
-// already announced (CR 601.2c-h) and the census must price that victim
+// buildProgram), so a lone source gorge's payment plan uses may sacrifice the
+// target already announced (CR 601.2c-h) and the census must price that victim
 // (fodderOnlySources). A kicked, surged or potential-line read passes false and
 // keeps every hold-out.
 func (s *State) witnessKeepsTargets(k *prep, p uint8, c CardID, o Obj, cost *kop.ManaCost, planned bool) bool {
@@ -309,12 +309,16 @@ func (s *State) setTkPrefix(on bool) {
 // that targets t cannot also fund its cost by sacrificing t, so gorge's prefix
 // search (potential_script.go targetsGone) finds no script through them.
 //
-// A planned read leaves out the sources gorge's payment plan uses
+// A planned read releases a lone source gorge's payment plan uses
 // (planOtherSacSource, a plain creature victim): that plan pays after the
-// targets are announced, so it may take the announced one (CR 601.2c-h). Every
-// other sacrifice source (the Kaleidoscope's Prism token) stays held.
+// targets are announced, so it may take the announced one (CR 601.2c-h). Two or
+// more such sources over the one victim stay held: gorge's search can spend two
+// of them, names no distinct victims and offers nothing (pay.AssignPlanVictims;
+// two Ashnod's Altars beside Captivating Gyre's only target). Every other
+// sacrifice source (the Kaleidoscope's Prism token) stays held.
 func (s *State) fodderOnlySources(k *prep, p uint8, t Slot, planned bool) slotMask {
-	var fm slotMask
+	var fm, byPlan slotMask
+	nByPlan := 0
 	var cs [MaxPerm]Slot
 	for b := s.scriptTapXModelled(k, p); b.any(); b = b.rest() {
 		sl := b.first()
@@ -324,12 +328,16 @@ func (s *State) fodderOnlySources(k *prep, p uint8, t Slot, planned bool) slotMa
 		if sl == t || k.tapXAbOf(s.cardAt(sl)).Cost.Flags&kop.CostSac == 0 || k.tapXSecond(s.cardAt(sl)) {
 			continue
 		}
-		if planned && s.planOtherSacSource(k, sl) {
-			continue
-		}
 		if s.tapXCands(k, p, sl, &cs) == 1 && cs[0] == t {
 			fm = fm.with(sl)
+			if planned && s.planOtherSacSource(k, sl) {
+				byPlan = byPlan.with(sl)
+				nByPlan++
+			}
 		}
+	}
+	if nByPlan == 1 {
+		fm = fm.andNot(byPlan)
 	}
 	return fm
 }
