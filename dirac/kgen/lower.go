@@ -4309,16 +4309,7 @@ func (lc *lowerCtx) blockerNode() string {
 // stopped before reading some of its params, so further blockers may sit
 // among them.
 func (lc *lowerCtx) noteUnreadable(p *params, sa *cards.SA) {
-	var left []string
-	for _, k := range p.unread() {
-		if err := lc.probeNodeParam(sa, k, p.m[k]); err != nil {
-			lc.refuseNode(lc.blockerNode(), "%s$ %s: %s", sa.Kind, sa.API, err.Error())
-			p.used[k] = true
-			continue
-		}
-		left = append(left, k)
-	}
-	if len(left) > 0 {
+	if left := lc.probeUnread(p, sa); len(left) > 0 {
 		lc.out.Unreadable = append(lc.out.Unreadable, refusal{Card: lc.name, Node: lc.blockerNode(), Reason: fmt.Sprintf("unread after refusal %v", left)})
 	}
 }
@@ -4356,6 +4347,15 @@ func (lc *lowerCtx) probeParam(k, v string) error {
 		}
 		_, err := lc.value(v)
 		return err
+	case probeRefKeys[k]:
+		return lc.probeReference(k, v)
+	case probeCondKeys[k]:
+		return lc.probeCondition(k, v)
+	case k == "UnlessCost":
+		return lc.probeUnlessCost(v)
+	case k == "Cost" && lc.curNode != nil && lc.curNode.Kind == "AB" && lc.curNode != lc.probeHead &&
+		lc.ab != nil && (lc.ab.Kind == akTriggered || lc.ab.Kind == akLatent):
+		return lc.probeNodeCost(v)
 	case probeFilterKeys[k] || strings.HasPrefix(k, "Valid"):
 		if k == "ValidZone" {
 			// ValidZone$ is a zone list, never a filter: gorge reads it
