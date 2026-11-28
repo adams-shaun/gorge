@@ -20,7 +20,7 @@ import (
 const pcrSalt = 0x7063722d66756c6c // "pcr-full"
 
 // PCRFull is the playout-cap draw at a decision whose seed is decisionSeed
-// (DecisionSeed(seat seed, decision sequence)): true -- a full search -- with
+// (DecisionSeed(seat seed, decisions answered: Decision.Ordinal)): true -- a full search -- with
 // probability p. It is a pure function of its arguments, so a game's full and
 // cheap decisions never depend on the worker count or on other games. p >= 1
 // is always full, p <= 0 never.
@@ -140,7 +140,7 @@ func (s *Seat) searchedKind(d *decision.Decision) SearchKind {
 // full search keeps). The seed is DecisionSeed either way.
 func (s *Seat) rootOptions(d *decision.Decision, turn int32) (Options, bool) {
 	opts := s.cfg.Search
-	opts.Seed = DecisionSeed(s.seed, d.Seq)
+	opts.Seed = DecisionSeed(s.seed, d.Ordinal)
 	opts.Noise, opts.Sample = false, false
 	if !s.fullSearch(d, opts.Seed) {
 		opts.Sims, opts.ForcedK = s.cfg.CheapSims, 0

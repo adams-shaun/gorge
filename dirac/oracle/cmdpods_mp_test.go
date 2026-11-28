@@ -91,7 +91,7 @@ func TestFourSeatCommanderMiniPodsLockstep(t *testing.T) {
 		if err != nil {
 			t.Fatalf("pod %d: %v", i, err)
 		}
-		rc := RunConfig{MaxDecisions: 20000, MaxTurns: 100}
+		rc := RunConfig{MaxDecisions: 20000, MaxTurns: 100, Check: OrdinalCheck(nil)}
 		var f cmdPodFeatures
 		rc.Finish = func(g *GorgeSide) { f = countCmdPodFeatures(g) }
 		k, err := SetSide(set, tbl, rc.Config)(m, p.Seed)
