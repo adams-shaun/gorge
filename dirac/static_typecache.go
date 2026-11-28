@@ -135,6 +135,11 @@ func prepTyObj(p *prep, t *kop.Table) {
 	if p.tyCache {
 		p.tyObj, p.tyBoard = tyObjTable(t, p.gen)
 		p.tyCache = p.tyObj // a table whose type statics read more than objects computes every ask
+		if p.tyObj && p.gen.anyGrant {
+			obj, board := grObjTable(t)
+			p.grCache = obj // static_grantcache.go
+			p.tyBoard = p.tyBoard || board
+		}
 	}
 }
 

@@ -950,6 +950,15 @@ func (s *State) grantSrcScanPile(k *prep) (g grantSrcs) {
 // own static grants it (a Station threshold's), listed as gorge lists a
 // static's grant (slotTriggers).
 func (s *State) grantedAbilitiesOwn(k *prep, sl Slot, own func(), f func(c CardID, ab uint8, n int)) {
+	if own == nil && k.grCache {
+		s.grantedCached(k, sl, f) // static_grantcache.go
+		return
+	}
+	s.grantedAbilitiesWalk(k, sl, own, f)
+}
+
+// grantedAbilitiesWalk is grantedAbilitiesOwn's walk.
+func (s *State) grantedAbilitiesWalk(k *prep, sl Slot, own func(), f func(c CardID, ab uint8, n int)) {
 	if !k.gen.anyGrant {
 		if own != nil {
 			own()

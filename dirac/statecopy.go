@@ -109,6 +109,8 @@ type ForkPool struct {
 	sfm sfMemo
 	// tyc: the cross-transition cache of derived types (static_typecache.go).
 	tyc tyCache
+	// grc: the cross-transition cache of granted-ability lists (static_grantcache.go).
+	grc grCache
 }
 
 // warmForkDepth is past the deepest nesting measured, 5 in random play.

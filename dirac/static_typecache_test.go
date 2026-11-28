@@ -10,6 +10,7 @@ type tyShadowRun struct {
 	stale      string
 	hits, bad  int
 	cHit, cMis uint32
+	gHit, gMis uint32
 	steps      int
 }
 
@@ -56,6 +57,7 @@ func playTyShadow(t *testing.T, pods []edhPod, cfg Config, n int, seed0 uint64) 
 	}
 	if p := s.pool; p != nil {
 		r.cHit, r.cMis = p.tyc.hits, p.tyc.miss
+		r.gHit, r.gMis = p.grc.hits, p.grc.miss
 	}
 	r.hits, r.bad, r.steps = DebugTyCacheHits, DebugTyCacheBad, n
 	return r
@@ -69,8 +71,8 @@ func checkTyRun(t *testing.T, r tyShadowRun) {
 	if r.hits == 0 {
 		t.Fatal("the types cache never answered")
 	}
-	t.Logf("%d transitions: %d hits / %d misses (%.1f%%), every hit equal to the uncached answer",
-		r.steps, r.cHit, r.cMis, 100*float64(r.cHit)/float64(r.cHit+r.cMis))
+	t.Logf("%d transitions: types %d hits / %d misses, grant lists %d hits / %d misses, every hit equal to the uncached answer",
+		r.steps, r.cHit, r.cMis, r.gHit, r.gMis)
 }
 
 // The bench's Commander pods with every cache hit recomputed, in chunks (the
