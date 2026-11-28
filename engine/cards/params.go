@@ -1909,6 +1909,9 @@ type ParamSet struct {
 	// codes is each value's ParamCoder code, parallel to vals (nil when no
 	// key the set holds has a coder).
 	codes []uint16
+	// filt is the per-value typed-filter slot table (filter_slot.go), parallel
+	// to vals; nil until the first FilterOf read. paramSetEqual ignores it.
+	filt atomic.Pointer[[]Slot]
 }
 
 func mapIdentity(m map[string]string) unsafe.Pointer {
