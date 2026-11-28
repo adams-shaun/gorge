@@ -32,7 +32,7 @@ import (
 // exactly as the host's dispatch (server/host/match.go projectNextData) builds that
 // seat's input, in the same order: an EnvSeat that WantsEnv gets an Env
 // whose honest root is searchseat.HonestRoot over feed with deal seed
-// bots.RootSeed(seed, d.Seq); else a BoardSeat gets the botpolicy.Board;
+// bots.RootSeed(seed, d.Ordinal); else a BoardSeat gets the botpolicy.Board;
 // else a plain seat gets the seat's projected View.
 //
 // A fresh bots.New instance is built for every call, with
@@ -76,7 +76,7 @@ func Answer(e *rules.Engine, feed *searchseat.Feed, setup searchprobe.PublicGame
 		b := botpolicy.BoardFromGameInto(e.G, e, p, &brd)
 		v := view.ProjectForControlled(e.G, e, p, view.Seat, controlledSeats(e.G, p), &dc)
 		v.Round = view.RoundOf(e.G, e.L.Events)
-		root, reason := searchseat.HonestRoot(setup, feed, e, bots.RootSeed(seed, dc.Seq))
+		root, reason := searchseat.HonestRoot(setup, feed, e, bots.RootSeed(seed, dc.Ordinal))
 		env := bots.Env{
 			View:        v,
 			Board:       b,

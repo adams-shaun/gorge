@@ -117,7 +117,7 @@ func (s *shadowTestSeat) WantsEnv(d *decision.Decision) bool {
 func (s *shadowTestSeat) DecideEnv(ctx context.Context, env bots.Env, d decision.Decision) (decision.Intent, error) {
 	n, seed := s.index()
 	s.envs++
-	root, reason := searchseat.HonestRoot(env.Search.Setup, env.Search.Feed, s.live(), bots.RootSeed(seed, d.Seq))
+	root, reason := searchseat.HonestRoot(env.Search.Setup, env.Search.Feed, s.live(), bots.RootSeed(seed, d.Ordinal))
 	if root == nil {
 		s.refused++
 	}
