@@ -131,8 +131,20 @@ func (lc *lowerCtx) probeReference(k, v string) error {
 		return err
 	}
 	if k == "ValidPlayers" {
+		switch strings.TrimSpace(v) {
+		case "OppNonTriggeredTarget", "Targeted":
+			// damageAll reads these two before the filter (lower/effect_damage.go):
+			// no filter head to read, so leave the key unprobed rather than
+			// report a false one.
+			return nil
+		}
 		_, err := lc.filter(v)
 		return err
+	}
+	if k == "UnlessPayer" && strings.TrimSpace(v) == "ThisTargetedController" {
+		// unless maps this spelling onto TargetedController before calling
+		// defined (lower_effect_node.go).
+		v = "TargetedController"
 	}
 	_, err := lc.defined(v)
 	return err
@@ -158,6 +170,15 @@ func (lc *lowerCtx) probeCondition(k, v string) error {
 // uses, in its order, without emitting the payment wrapper.
 func (lc *lowerCtx) probeUnlessCost(v string) error {
 	uc := strings.TrimSpace(v)
+	// unless restricts an amount read to the node's own single target while
+	// it prices an unless (lower_effect_node.go); mirror it so a target-
+	// reading amount is not a false blocker.
+	savedMV := lc.mvNode
+	defer func() { lc.mvNode = savedMV }()
+	if lc.ab != nil && lc.ab.Kind == akTriggered && lc.curNode != nil &&
+		!strings.Contains(uc, "Discard<") && !strings.Contains(uc, "Sac<") {
+		lc.mvNode = lc.curNode
+	}
 	if _, isRes, err := lc.resUnlessToken(uc); err != nil { // lower_costtokens.go
 		return err
 	} else if isRes {
