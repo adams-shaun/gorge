@@ -120,8 +120,7 @@ func (s *State) typesGen(k *prep, sl Slot) kop.TypeMask {
 func (s *State) typesCached(k *prep, sl Slot) kop.TypeMask {
 	p := s.pool
 	if p == nil {
-		p = new(ForkPool)
-		s.pool = p
+		return s.typesCalc(k, sl) // no pool yet: the cache never allocates one (its first fork or priority walk does)
 	}
 	m := &p.tyc
 	if DebugTyCacheOff || m.hold != 0 || p.inFilt != 0 || p.census {
