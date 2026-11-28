@@ -280,6 +280,10 @@ func (lc *lowerCtx) lowerRepl(r cards.Repl) error {
 		if err := lc.turnUpRepl(rp, r.With, &rl); err != nil { // lower_turnfaceuprepl.go
 			return err
 		}
+	case "Transform":
+		if err := lc.transformRepl(rp, r.With, &rl); err != nil { // lower_transformrepl.go
+			return err
+		}
 	case "ProduceMana":
 		// The replacement lowers to a TapExtra static, not an lRepl: it has
 		// already validated and consumed every line and body parameter.

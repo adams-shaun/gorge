@@ -29,9 +29,11 @@ func kxminsacxCard(t *testing.T, name, dir, file string, drop ...func(string) bo
 
 // TestXMinSacXCarriers: XMin<N> on an activated ability's own cost and
 // Sac<X/Spec> on a spell's or an activated ability's own cost lower to the
-// kernel's cost shape (kop.Cost.XMin; CostSac with N 0); a spell's own XMin
-// (gorge folds no floor into the cast) and every other place either token
-// stands refuse by name.
+// kernel's cost shape (kop.Cost.XMin; CostSac with N 0). A printed trigger's
+// own Draw over Count$xPaid lowers too, to the decline-only IfPaid PaySac
+// (kop.PayBSubSacXTrig; Sephiroth, One-Winged Angel). A spell's own XMin
+// (gorge folds no floor into the cast), a trigger's non-Draw Sac<X> body and
+// every other place either token stands refuse by name.
 func TestXMinSacXCarriers(t *testing.T) {
 	// Ruthless Technomancer: both shapes on one activated ability. (Its
 	// Treasure token script is not in this one-card probe's pool, so the
@@ -94,6 +96,31 @@ func TestXMinSacXCarriers(t *testing.T) {
 		t.Errorf("Mind Grind: refusals %q, want the spell-Cost$ xmin refusal", all)
 	}
 
+	// A printed trigger's own Sac<X> Draw over Count$xPaid (Sephiroth,
+	// One-Winged Angel): gorge poses the decline-only election, so the
+	// lowering is an IfPaid PaySac carrying PayBSubSacXTrig.
+	const triggerSac = "Name:Trigger Sac Probe\nManaCost:1 B\nTypes:Creature Human\nPT:2/2\n" +
+		"T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ TrigDraw\n" +
+		"SVar:TrigDraw:AB$ Draw | Cost$ Sac<X/Creature> | NumCards$ X\nSVar:X:Count$xPaid\n"
+	d, rs := kwardpowBuild(t, "Trigger Sac Probe", triggerSac)
+	if all := kpaylifexReasons(rs); all != "" {
+		t.Errorf("Trigger Sac Probe refused: %q", all)
+	}
+	var sacX *kop.Instr
+	for i := range d.Abilities {
+		for j := range d.Abilities[i].Prog {
+			if d.Abilities[i].Prog[j].Op == kop.OpIfPaid {
+				sacX = &d.Abilities[i].Prog[j]
+			}
+		}
+	}
+	if sacX == nil {
+		t.Fatal("Trigger Sac Probe: no OpIfPaid in the trigger's program")
+	}
+	if sacX.C&0xf != kop.PaySac || sacX.B.N != kop.PayBSubSacXTrig || sacX.A.N != 0 {
+		t.Errorf("Trigger Sac Probe: IfPaid kind %d B %d A %d, want PaySac/PayBSubSacXTrig/0", sacX.C&0xf, sacX.B.N, sacX.A.N)
+	}
+
 	// inline probes: each refuses with its named reason
 	probes := []struct{ name, src, want string }{
 		{"Subcounter Probe", "Name:Subcounter Probe\nManaCost:2\nTypes:Artifact\n" +
@@ -114,10 +141,18 @@ func TestXMinSacXCarriers(t *testing.T) {
 		{"Bare XMin Probe", "Name:Bare XMin Probe\nManaCost:1 B\nTypes:Creature Human\nPT:2/2\n" +
 			"A:AB$ Draw | Cost$ XMin1 1 B | NumCards$ 1\n",
 			"beside no supported announced X"},
-		{"Trigger Sac Probe", "Name:Trigger Sac Probe\nManaCost:1 B\nTypes:Creature Human\nPT:2/2\n" +
+		{"Trigger Non-Draw Probe", "Name:Trigger Non-Draw Probe\nManaCost:1 B\nTypes:Creature Human\nPT:2/2\n" +
+			"T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ TrigGain\n" +
+			"SVar:TrigGain:AB$ GainLife | Cost$ Sac<X/Creature> | LifeAmount$ X\nSVar:X:Count$xPaid\n",
+			"sacrifice cost Sac<X> on a trigger's GainLife body"},
+		{"Trigger Other X Probe", "Name:Trigger Other X Probe\nManaCost:1 B\nTypes:Creature Human\nPT:2/2\n" +
 			"T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ TrigDraw\n" +
-			"SVar:TrigDraw:AB$ Draw | Cost$ Sac<X/Creature> | NumCards$ X\nSVar:X:Count$xPaid\n",
-			"outside a spell's or activated ability's own cost"},
+			"SVar:TrigDraw:AB$ Draw | Cost$ Sac<X/Creature> | NumCards$ X\nSVar:X:Count$CardPower\n",
+			"trigger Sac<X> cost with SVar:X other than Count$xPaid"},
+		{"Trigger Mana Sac Probe", "Name:Trigger Mana Sac Probe\nManaCost:1 B\nTypes:Creature Human\nPT:2/2\n" +
+			"T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ TrigManaSac\n" +
+			"SVar:TrigManaSac:AB$ Draw | Cost$ 2 Sac<X/Creature> | NumCards$ X\nSVar:X:Count$xPaid\n",
+			"resolution Sac<X> cost shape"},
 	}
 	for _, p := range probes {
 		_, rs := kwardpowBuild(t, p.name, p.src)

@@ -1038,6 +1038,7 @@ PayBSubMoveGrave	untyped int	19
 PayBSubSacHost	untyped int	7
 PayBSubSacRiders	untyped int	18
 PayBSubSacSelfMust	untyped int	4
+PayBSubSacXTrig	untyped int	21
 PayBSubStackSelf	untyped int	13
 PayBSubTapXVar	untyped int	16
 PayBSubTrigNew	untyped int	3

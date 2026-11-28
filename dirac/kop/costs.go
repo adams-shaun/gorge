@@ -450,6 +450,15 @@ const PayBSubEvidenceX = 11
 // that much life (cost_paylifetrig.go).
 const PayBSubLifeX = 20
 
+// PayBSubSacXTrig: a PaySac whose B.N carries this sentinel is a trigger's own
+// announced Sac<X/Spec> cost (Sephiroth, One-Winged Angel's "you may sacrifice
+// any number of other creatures. If you do, draw that many cards"). gorge's
+// triggered-cost window has no settle for an announced sacrifice
+// (engine/rules cumulative.go costCarriesUnfoldedX,
+// triggeredCostComponentsPayable), so the election is posed decline only and
+// the body never runs; the kernel's payAnswerGate does the same.
+const PayBSubSacXTrig = 21
+
 // PayBSubXColor marks a PayManaX whose announced {X} is a coloured X (Forge's
 // XColor$; Leyline Tyrant's "you may pay any amount of {R}"): B.N is
 // PayBSubXColor | (colour + 1), colour the WUBRG index, so each announced X
