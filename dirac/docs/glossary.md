@@ -40,6 +40,10 @@ deck holding it, as it does a refused card, unless a caller asked to play it
 `Set.Supported()` and `kgen -supported <pool>` report what a game may play. [support.md](support.md) has
 the counts.
 
+**4-seat pod-evidenced.** A support page column: the `4-seat` cards (supported, not two-seat only) with an
+evidence row whose seats field is four or more, a clean four-seat game. `4-seat` is a ceiling; this is its
+proven subset. Report only: it changes no card's status.
+
 **Raw table.** A set that plays every lowered card, refused and unverified alike (`cardset.RawByName`).
 Lockstep fixtures and refused entries' repros play these; only the oracle and kgen may read them
 (`TestOnlyTheOracleReadsRawTables`, `internal/archtest`).

@@ -53,6 +53,9 @@ type supportLists struct {
 	// or more: the card has a clean pod game. statusOf reads evidenced, which a
 	// four-seat row also sets; a three-seat row only feeds this report column.
 	podEvidenced map[string]bool
+	// podStrict names whose evidence row carries a seats field of podCreditSeats or
+	// more: the card has a clean four-seat game. Report only, like podEvidenced.
+	podStrict map[string]bool
 }
 
 func readSupport(src fs.FS) (*supportLists, error) {
@@ -60,7 +63,7 @@ func readSupport(src fs.FS) (*supportLists, error) {
 	if err != nil {
 		return nil, err
 	}
-	s := &supportLists{refused: map[string]*cardset.RefusedEntry{}, evidenced: map[string]bool{}, podEvidenced: map[string]bool{}}
+	s := &supportLists{refused: map[string]*cardset.RefusedEntry{}, evidenced: map[string]bool{}, podEvidenced: map[string]bool{}, podStrict: map[string]bool{}}
 	for i := range entries {
 		s.refused[entries[i].Card] = &entries[i]
 	}
@@ -90,6 +93,9 @@ func readSupport(src fs.FS) (*supportLists, error) {
 			}
 			if n >= podReportSeats {
 				s.podEvidenced[r.name] = true
+			}
+			if n >= podCreditSeats {
+				s.podStrict[r.name] = true
 			}
 			if n >= podCreditSeats || n >= xproofCreditSeats && strings.TrimSpace(source) == evidenceSourceXproof {
 				s.evidenced[r.name] = true
@@ -128,6 +134,17 @@ func (s *supportLists) podEvidencedFor(name string) bool {
 	}
 	f := firstFace(name)
 	return f != "" && s.podEvidenced[f]
+}
+
+// podStrictFor reports whether an evidence list names the card with a seats field
+// of four or more — the card has a clean four-seat game — by its full name or, for
+// a split card, its first face.
+func (s *supportLists) podStrictFor(name string) bool {
+	if s.podStrict[name] {
+		return true
+	}
+	f := firstFace(name)
+	return f != "" && s.podStrict[f]
 }
 
 // refusedFor is the refusal naming the card, by its full name or, for a split card, its
