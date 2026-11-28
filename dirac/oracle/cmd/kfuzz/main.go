@@ -743,6 +743,9 @@ func hangTail(playedN, firstUnplayed, remaining int) int {
 		fmt.Fprintln(os.Stderr, "kfuzz: no continuation: the segment played no pair, a rerun would repeat it")
 		return 1
 	}
+	if err := handCoverage(); err != nil {
+		fmt.Fprintln(os.Stderr, "kfuzz: continuation: coverage not carried:", err)
+	}
 	runContinuation(firstUnplayed, remaining)
 	return 1 // the exec replaced this image; this is the exec-failure path
 }
@@ -959,8 +962,12 @@ func writeCoverage(path string, cov *oracle.Coverage) error {
 }
 
 // writeCoverageFiles writes the -coverage TSV and the -branches TSV, each only
-// when its flag is set.
+// when its flag is set, from cov merged with the coverage an earlier segment
+// handed this continuation (mergeCarried).
 func writeCoverageFiles(cov *oracle.Coverage) error {
+	if err := mergeCarried(cov); err != nil {
+		return err
+	}
 	if coveragePath != "" {
 		if err := writeCoverage(coveragePath, cov); err != nil {
 			return err
@@ -1566,9 +1573,10 @@ var beforeExec []func()
 // sets priorHungEnv first, so the new image fails even a clean segment (a hang
 // already failed the run; priorHungCode), and it never returns: the exec'd
 // image's exit code is the run's. The segments' file flags (-coverage,
-// -evidence, -reach, -out/repro.json) are inherited unchanged, so the last
-// segment's file wins — acceptable, because a hang already fails the run, and
-// the per-pair files under -out are pair-numbered and survive; a
+// -evidence, -reach, -out/repro.json) are inherited unchanged; the coverage
+// files are written from every segment's coverage (hangTail hands it on,
+// carryCoverageEnv), the -out/repro.json of the last segment wins, and the
+// per-pair files under -out are pair-numbered and survive; a
 // -cpuprofile/-memprofile is not flushed past the exec (its stop is deferred in
 // run). An exec error prints and returns 1, leaving the pairs unplayed. Tests
 // stub this var.
