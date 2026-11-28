@@ -5,3 +5,8 @@
 killed	signal: killed|exit code 137|fatal error: runtime: out of memory
 no-space	[Nn]o space left on device
 network	fatal: unable to access 'https://github\.com/|RPC failed; HTTP 5[0-9][0-9]|TLS handshake timeout|dial tcp [^ ]+: i/o timeout
+# A test binary that breaches its own -timeout panics with this line and prints no --- FAIL, so it is not a verdict.
+# Matched only at fresh-clone-check.sh's `-timeout 5m` (job lint), the one place CI runs a package at 5m: the test
+# shards use -timeout 20m, and retrying a genuine 20m hang would add 20m to a batch. A --- FAIL assertion anywhere in
+# the same log still forbids the retry (verdict runs before signature).
+test-timeout	panic: test timed out after 5m0s
