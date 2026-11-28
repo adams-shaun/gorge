@@ -28,15 +28,15 @@ const emblemMakerSrc = "Name:Test Inferno\nManaCost:4 R R\nTypes:Creature Elemen
 // emblemPitSrc is Torture Pit's line: +2 noncombat damage from a source (or
 // emblem) its controller controls to an opponent.
 const emblemPitSrc = "Name:Test Torture Pit\nManaCost:3 R\nTypes:Enchantment\n" +
-	"R:Event$ DamageDone | ActiveZones$ Battlefield | ValidSource$ Card.YouCtrl,Emblem.YouCtrl | ValidTarget$ Opponent | IsCombat$ False | ReplaceWith$ DamageReplace\n" +
-	"SVar:DamageReplace:DB$ ReplaceEffect | VarName$ DamageAmount | VarValue$ ReplaceCount$DamageAmount/Plus.2\n" +
+	"R:Event$ DamageDone | ActiveZones$ Battlefield | ValidSource$ Card.YouCtrl,Emblem.YouCtrl | ValidTarget$ Opponent | IsCombat$ False | ReplaceWith$ TestPlusTwo\n" +
+	"SVar:TestPlusTwo:DB$ ReplaceEffect | VarName$ DamageAmount | VarValue$ ReplaceCount$DamageAmount/Plus.2\n" +
 	"Oracle:x\n"
 
 // emblemOwnPitSrc is the same +2 line pointed at its controller, so it
 // applies exactly when the source is one that player controls.
 const emblemOwnPitSrc = "Name:Test Self Pit\nManaCost:3 R\nTypes:Enchantment\n" +
-	"R:Event$ DamageDone | ActiveZones$ Battlefield | ValidSource$ Card.YouCtrl,Emblem.YouCtrl | ValidTarget$ You | IsCombat$ False | ReplaceWith$ DamageReplace\n" +
-	"SVar:DamageReplace:DB$ ReplaceEffect | VarName$ DamageAmount | VarValue$ ReplaceCount$DamageAmount/Plus.2\n" +
+	"R:Event$ DamageDone | ActiveZones$ Battlefield | ValidSource$ Card.YouCtrl,Emblem.YouCtrl | ValidTarget$ You | IsCombat$ False | ReplaceWith$ TestPlusTwo\n" +
+	"SVar:TestPlusTwo:DB$ ReplaceEffect | VarName$ DamageAmount | VarValue$ ReplaceCount$DamageAmount/Plus.2\n" +
 	"Oracle:x\n"
 
 const emblemWardedSrc = "Name:Test Red Ward\nManaCost:1 W\nTypes:Creature Soldier\nPT:1/5\nK:Protection from red\nOracle:x\n"
