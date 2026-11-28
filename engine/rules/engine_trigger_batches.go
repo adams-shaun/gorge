@@ -67,6 +67,10 @@ type engineTriggerBatches struct {
 	damageBatchDepth int                    `clone:"deep"`
 	damageBatchIdx   map[damageBatchKey]int `clone:"deep"`
 	damageBatchLog   []damageBatchEntry     `clone:"deep"`
+	// damageBatchStart is the log length when the outermost batch opened, 0
+	// with none open: FirstTime$ reads the Damage events at or after it as one
+	// time the recipient was dealt damage.
+	damageBatchStart int `clone:"deep"`
 	// Pre-fold lethal threshold per recipient, fixed at its first hit in the
 	// batch so earlier simultaneous hits never lower the threshold.
 	excessDamageBaseline map[state.ObjID]excessBase `clone:"deep"`
