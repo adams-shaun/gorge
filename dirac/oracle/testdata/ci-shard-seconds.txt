@@ -17,6 +17,10 @@
 # shared -- it took the leaf sum from 422.7 s to 177.9 s); none of the three has a parent test. A test
 # that weighed >= 3 s in the 5-lane measurement was added when this file did not list it.
 # scripts/test_targets.py's lanes weigh an unlisted test UNLISTED_SECONDS (0.08), not the median.
+# 2026-11-27 (later): the tests below that this file did not list and that weighed >= 1 s on this scale were
+# added from one oracle-slice targeted run at 25a4e7ea9d (plain lanes 0-3, a source touch under dirac/oracle,
+# BASE=HEAD): their leaf-subtest seconds divided by 4.57 as above. Unlisted, each weighed 0.08 in the deal,
+# so the plain lanes were blind to ~2,300 leaf-s of the 2,324 they played (two lanes hit the 5m cap).
 TestAbilityCopyAsksEachChainLink 1.1
 TestAbilityReductionExcessPaysXLockstep 1.1
 TestAbilitycastLockstep 15.2
@@ -212,6 +216,7 @@ TestClonetokLockstep 14.8
 TestClonetokShepherd 9.7
 TestCmd5IdentityManaFundsDarksteelJuggernaut 1.0
 TestCmd5IdentityManaLockstep 3.5
+TestCmd5OrbCensusFeePlanActivation 1.8
 TestCmd5ShapesLockstep 21.4
 TestCmd5SliceCleanOnlyGrows0 11.4
 TestCmd5SliceCleanOnlyGrows1 8.8
@@ -322,6 +327,7 @@ TestDeadGapScriptChain 3.6
 TestDeathgazerFamilyLockstep 7.4
 TestDeathgazerLockstep 4.6
 TestDeathtouchWitherDamageDestroysLockstep 3.8
+TestDefinedCensus1125Lockstep 2.4
 TestDefinedHeadsOppNonRememberedLockstep 28.3
 TestDefinedHeadsRememberedCardLockstep 29.2
 TestDefinedLockstep 78.5
@@ -589,6 +595,7 @@ TestHybridPlanPrefersPrintedResolutionLockstep 5.1
 TestHybridnLockstep 14.7
 TestImpendLockstep 105.6
 TestImpendingDropsCreatureTypes 4.9
+TestImprintMillReprosTakeTheirBranch 1.9
 TestImproviseLockstep 72.9
 TestIncrementLockstep 27.5
 TestIncubateLockstep 37.5
@@ -640,6 +647,7 @@ TestLureGrantLockstep 95.0
 TestLureLockstep 29.1
 TestLwaxanaTroiLockstep 13.8
 TestLwaxanaTroiMutation 1.0
+TestMBCATheMeathookMassacreReprosLockstep 2.2
 TestMBCAboshanSDesireReprosLockstep 34.3
 TestMBCAnimate1Lowers 16.7
 TestMBCAnimate2Lowers 27.4
@@ -652,26 +660,39 @@ TestMBCApiParams7Lowers 6.8
 TestMBCApiParams8Lowers 3.6
 TestMBCApiParamsFamilyLowers 1.5
 TestMBCArdenvaleTacticianReprosLockstep 9.9
+TestMBCAshesToAshesReprosLockstep 1.1
+TestMBCAzoriusCluestoneReprosLockstep 4.5
 TestMBCAzraOddsmakerLowers 11.5
+TestMBCBasilicaStalkerReprosLockstep 1.3
+TestMBCBloodAgeGeneralReprosLockstep 22.5
+TestMBCBojukaBrigandReprosLockstep 1.7
+TestMBCCalibratedBlastReprosLockstep 7.2
 TestMBCCapsizeReprosLockstep 3.2
 TestMBCChangeTextLowers 7.3
 TestMBCChangeTextReadsStall 4.4
+TestMBCChangingLoyaltyReprosLockstep 2.0
 TestMBCChosenCardStrictLowers 4.5
 TestMBCCobblebruteReprosLockstep 5.3
 TestMBCCombat2Lowers 15.4
 TestMBCCombat4Lowers 17.2
 TestMBCCombat6Lowers 68.2
 TestMBCCombat7Lowers 16.2
+TestMBCConjurerSMantleReprosLockstep 6.4
 TestMBCCosts2Lowers 14.0
 TestMBCCosts3Lowers 54.6
 TestMBCCosts9Lowers 1.4
 TestMBCCounters1Lowers 48.8
 TestMBCCounters2Lowers 2.8
+TestMBCCruelUltimatumReprosLockstep 5.1
 TestMBCDamageRedirectLowers 8.6
 TestMBCDiregrafRebirthReprosLockstep 9.9
+TestMBCDrMbcBaaaReprosLockstep 2.1
 TestMBCEffectApi1DoublingMutation 5.0
 TestMBCEffectApi1Lowers 96.5
 TestMBCEffectApi1PreventionMutation 1.2
+TestMBCElusiveTormentorReprosLockstep 1.5
+TestMBCEmeraldDragonflyReprosLockstep 2.4
+TestMBCFilterLandChainReprosLockstep 1.2
 TestMBCFilters11Lowers 10.6
 TestMBCFilters2Lowers 17.4
 TestMBCFilters3Lowers 4.7
@@ -679,9 +700,16 @@ TestMBCFilters5Lowers 5.4
 TestMBCFilters6Lowers 2.6
 TestMBCFilters8Lowers 3.7
 TestMBCFilters9Lowers 20.3
+TestMBCFinaleOfDevastationReprosLockstep 3.9
 TestMBCFireDragonReprosLockstep 3.6
 TestMBCGeneralTazriReprosLockstep 44.5
+TestMBCGnottvoldSlumbermoundReprosLockstep 16.8
+TestMBCGoblinFireleaperReprosLockstep 8.8
+TestMBCGoliathMassManipulatorReprosLockstep 13.4
+TestMBCHeikoYamazakiTheGeneralReprosLockstep 1.4
+TestMBCHourOfRevelationReprosLockstep 2.5
 TestMBCInvertReprosLockstep 4.1
+TestMBCKamahlFistOfKrosaReprosLockstep 10.1
 TestMBCKavuAggressorReprosLockstep 7.9
 TestMBCKeywords2Lowers 5.8
 TestMBCKeywords4Lowers 96.0
@@ -691,18 +719,28 @@ TestMBCLavaStormReprosLockstep 23.0
 TestMBCLevelupLowers 59.8
 TestMBCManaAbilities2Lowers 37.2
 TestMBCMercurialPretenderBouncePaidReprosLockstep 3.4
+TestMBCMijaeDjinnReprosLockstep 2.6
 TestMBCOrzhovaFeeOnlyCensusNotAProofLockstep 40.7
+TestMBCPhantasmagorianReprosLockstep 1.6
 TestMBCPlayerHeadLowers 18.7
 TestMBCProtection1Lowers 32.1
 TestMBCProtection2Lowers 22.7
 TestMBCProtectionChosenColorLowers 77.6
 TestMBCProtectionManaValueLowers 26.5
+TestMBCRayOfRevelationReprosLockstep 1.6
 TestMBCReclaimingVinesReprosLockstep 3.2
 TestMBCRepeatEach1Lowers 1.9
 TestMBCReplacements2Lowers 5.3
 TestMBCRudeAwakeningEntwineReprosLockstep 16.4
 TestMBCScorchRiderReprosLockstep 13.8
+TestMBCScryingSheetsReprosLockstep 13.6
+TestMBCSequenceEngineReprosLockstep 1.5
+TestMBCShamanOfTheGreatHuntReprosLockstep 2.7
+TestMBCSokenzanCrucibleOfDefianceReprosLockstep 5.2
 TestMBCSolitonReprosLockstep 9.8
+TestMBCSpellBurstReprosLockstep 3.2
+TestMBCSprintingWarbruteReprosLockstep 3.7
+TestMBCStalkingStonesAnimateOfferReprosLockstep 1.0
 TestMBCStarfleetAcademyReprosLockstep 15.9
 TestMBCStatics2GrantsLowers 14.9
 TestMBCStatics2Lowers 29.4
@@ -710,6 +748,9 @@ TestMBCStatics3Lowers 78.2
 TestMBCStatics5Lowers 2.0
 TestMBCSunscapeMasterReprosLockstep 8.1
 TestMBCSvogthosReproReplaysClean 22.7
+TestMBCSvogthosTheRestlessTombReprosLockstep 2.0
+TestMBCTail11ReprosLockstep 2.0
+TestMBCTimelyInterferenceReprosLockstep 5.9
 TestMBCTokens1Lowers 12.7
 TestMBCTokens2Lowers 14.9
 TestMBCTriggerReferents10Lowers 4.3
@@ -726,7 +767,11 @@ TestMBCTwistedEmbraceReprosLockstep 5.1
 TestMBCValues1Lowers 8.7
 TestMBCValues2Lowers 10.2
 TestMBCValues3Lowers 5.4
+TestMBCWakerootElementalReprosLockstep 4.8
+TestMBCWildHungerFloatingRReprosLockstep 1.1
+TestMBCWishfulMerfolkReprosLockstep 1.9
 TestMBCXWindowDepletion 21.4
+TestMBCZombieApocalypseReprosLockstep 2.9
 TestMBCZoneMoves10ReprosLockstep 1.7
 TestMBCZoneMoves13Lowers 3.7
 TestMBCZoneMoves1Lowers 15.3
@@ -737,6 +782,7 @@ TestMBCZoneMoves4Lowers 15.9
 TestMBCZoneMoves5Lowers 18.1
 TestMBCZoneMoves8Lowers 32.8
 TestMBCZoneMoves9Lowers 70.4
+TestMageSlayerDefenderPWReprosLockstep 1.8
 TestManaChoiceCountLockstep 70.9
 TestManaConfluenceLockstep 130.7
 TestManaOnlyFilterLockstep 65.0
@@ -998,6 +1044,7 @@ TestReplayKernelGame 1.2
 TestReplmultLockstep 14.6
 TestReplmultMutation 5.7
 TestReproBanefire 1.3
+TestReproCompactRoundTrip 2.6
 TestReproFireballXRaiseLockstep 7.9
 TestReproManifest0 13.5
 TestReproManifest1 55.8
@@ -1320,6 +1367,7 @@ TestWithinTimeoutRetryGivesUpAfterTwo 2.0
 TestWithinTimeoutRetryRecovers 1.0
 TestWithinTimeoutRetryWithoutRetryGivesUpAfterOne 1.0
 TestWorldRuleLockstep 1.1
+TestWorldTreeSearchReprosLockstep 24.7
 TestXBoundOfferNeedsPayableX 13.4
 TestXBoundTargetOffer 45.0
 TestXCeilingReducePaysX 44.3
