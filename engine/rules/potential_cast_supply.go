@@ -1,0 +1,285 @@
+package rules
+
+import (
+	"slices"
+
+	"github.com/adams-shaun/gorge/engine/cards"
+	"github.com/adams-shaun/gorge/engine/decision"
+	"github.com/adams-shaun/gorge/engine/effects"
+	"github.com/adams-shaun/gorge/engine/events"
+	"github.com/adams-shaun/gorge/engine/rules/pay"
+	"github.com/adams-shaun/gorge/engine/state"
+)
+
+// castSupplyHost is the narrow slice of the engine castOutrunsSupply reads:
+// the supply proof's own reads plus the plain cast offer gate's cost
+// composition (castOfferBase, the cost statics, the optional colour
+// reductions and the cost-credit keywords, Assist's included).
+type castSupplyHost interface {
+	supplyProofHost
+	castOfferBase(p state.PlayerID, id state.ObjID) Cost
+	collectCostStatics() costStaticViews
+	offerCostForUsing(statics costStaticViews, p state.PlayerID, id state.ObjID, base Cost, scope costScope) Cost
+	reduceColorOptionalViews(statics costStaticViews, p state.PlayerID, id state.ObjID) []reduceColorView
+	hasCastConvoke(id state.ObjID) bool
+	hasCastImprovise(id state.ObjID) bool
+	hasCastDelve(id state.ObjID, ability bool) bool
+	assistOfCard(id state.ObjID) (amount int32, printed, ok bool)
+	active() []ContinuousEffect
+}
+
+// censusOutrunsHost is the narrow slice of the engine censusOutruns reads:
+// the two supply proofs' reads plus the ProduceMana replacement probe.
+type censusOutrunsHost interface {
+	castSupplyHost
+	produceManaReplacementPossible(ev events.Event) bool
+}
+
+// censusOutruns is paymentPlanCensus.outruns for a census with a gap, or nil
+// when no supply bound holds. A ProduceMana replacement (Mana Reflection) can
+// make more than one mana from a tap, so then there is none. An activated
+// ability's bound needs a plain board, whose sources permanents each have a
+// mana ability; a plain cast's bound (castOutrunsSupply) reads each source's
+// best net production instead (censusTapSupply).
+func censusOutruns(e censusOutrunsHost, p state.PlayerID, plain bool, sources int32) func(o decision.Option) bool {
+	if e.produceManaReplacementPossible(events.Event{Kind: events.ManaAdd, Player: p, Amount: 1}) {
+		return nil
+	}
+	pool := int32(e.Game().Players[p].Pool.Total())
+	tapSupply, tapOK := censusTapSupply(e, p)
+	if !plain && !tapOK {
+		return nil
+	}
+	return func(o decision.Option) bool {
+		return plain && abilityOutrunsSupply(e, p, o, pool+sources) || tapOK && castOutrunsSupply(e, p, o, tapSupply)
+	}
+}
+
+// castOutrunsSupply is abilityOutrunsSupply for a plain cast (CR 601.2f):
+// the composed cost the hand walk's plain cast gate charges (the printed
+// cost with the spell ability's extras, plus the commander tax, raised and
+// reduced by the cost statics) needs more mana than supply, censusTapSupply's
+// floating pool plus each source's best net production. A census-gap prefix
+// taps each source at most once (CR 107.5: a tapped permanent can't pay {T}
+// again), so no prefix can float that much and the search could only spend its
+// budget (a {10} sorcery under Manabarbs, where every land is a
+// gap: three searches of potentialScriptNodes clones per priority decision). A
+// cost whose mana count can fall after announcement or past the gate's base
+// -- an {X}, a Phyrexian, twobrid or waterbend part, a convoke, improvise or
+// delve credit, an Assist credit, an either-or additional cost, an optional
+// life-for-pip reduction -- is never proven. Like abilityOutrunsSupply, the
+// proof assumes the current board: a raise, reduction or SetCost static that
+// can reach the object refuses it, because a prefix can turn a reduction on
+// (Gran-Gran's loot discards the third Lesson) or remove a raise's source (a
+// sacrifice mana ability), and a stack the search resolves that makes more
+// mana is outside it.
+func castOutrunsSupply(e castSupplyHost, p state.PlayerID, o decision.Option, supply int32) bool {
+	if o.Kind != optCast || o.Mode != "" || o.AltCostIndex != 0 || o.Keyword != "" {
+		return false
+	}
+	ob := e.Game().Obj(o.Obj)
+	if ob == nil || ob.Face() == nil {
+		return false
+	}
+	f := ob.Face()
+	if e.hasCastConvoke(o.Obj) || e.hasCastImprovise(o.Obj) || e.hasCastDelve(o.Obj, false) || len(altAddCostParts(f)) != 0 {
+		return false
+	}
+	// CR 702.132a: another seat may fund an Assist carrier's generic part,
+	// a credit the offer gate adds outside offerCostForUsing.
+	if _, _, ok := e.assistOfCard(o.Obj); ok {
+		return false
+	}
+	statics := e.collectCostStatics()
+	// The composed cost prices the cost statics live now, not what a prefix
+	// makes of them: Gran-Gran's loot discards the third Lesson and turns a
+	// reduction on, and a {T}, Sacrifice a creature mana ability can remove
+	// a RaiseCost's source. So any raise, reduction or SetCost that can reach
+	// this object refuses the proof; a self-only static on another card
+	// (Ancient Stone Idol's, collected from the hand) cannot.
+	if !costStaticsInertFor(&statics, o.Obj) {
+		return false
+	}
+	if len(e.reduceColorOptionalViews(statics, p, o.Obj)) != 0 {
+		return false
+	}
+	c := e.offerCostForUsing(statics, p, o.Obj, pay.WithSpellAbilityExtras(f, e.castOfferBase(p, o.Obj)), spellScope(""))
+	if c.X != 0 || c.XMin != 0 || c.Waterbend != 0 || c.WaterbendX || len(c.Phyrexian)+len(c.HybridPhyrexian)+len(c.Twobrid) != 0 {
+		return false
+	}
+	return supply < c.CMC()
+}
+
+// censusTapSupply is the most mana p can have floating after any prefix of
+// the census-gap search: the floating pool (restricted batches included)
+// plus, for each untapped source, the most any one of its mana abilities
+// nets -- the mana it makes and the deterministic tap extra, less its mana
+// fee. Every such ability must cost the source's own {T}, so the search
+// activates each source at most once (pathPaidTap: CR 107.5, 605.3a). A
+// tapped source's {T} ability adds nothing (CR 107.5: it can't pay the tap),
+// while a non-{T} mana ability stays activatable through the tap and may be
+// repeatable (a Prism token's sacrifice), so one claims no bound. ok is
+// false when a {T} ability's amount is not a literal (a "for each" count, an
+// {X} fee), when a card off the battlefield has a mana ability p could
+// activate, when its production is a shape tapMadeAtMost does not know (a
+// Special or chained production), or when a triggered mana ability may add to
+// a tap (triggeredTapManaPossible).
+func censusTapSupply(e castSupplyHost, p state.PlayerID) (supply int32, ok bool) {
+	if triggeredTapManaPossible(e) {
+		return 0, false
+	}
+	g := e.Game()
+	pl := &g.Players[p]
+	supply = int32(pl.Pool.Total())
+	for _, r := range pl.RestrictedMana {
+		supply += max(r.Amount, 0)
+	}
+	// A mana ability off the battlefield (Simian Spirit Guide's, from the
+	// hand) is a priority activation the search may take too: no bound.
+	for _, z := range [...]state.Zone{state.ZHand, state.ZGraveyard, state.ZExile, state.ZCommand} {
+		for _, id := range g.Zone(z, p) {
+			if len(e.appendAvailableManaAbilitiesGate(nil, nil, p, id, true)) != 0 {
+				return 0, false
+			}
+		}
+	}
+	for _, id := range g.Zone(state.ZBattlefield, p) {
+		o := g.Obj(id)
+		if o == nil {
+			continue
+		}
+		best := int32(0)
+		for _, ma := range e.appendAvailableManaAbilitiesGate(nil, nil, p, id, true) {
+			mp := effects.ManaOf(ma)
+			cost := e.manaAbilityCC(p, id, ma).Cost
+			if !cost.Tap {
+				// A non-{T} mana ability (Diamond Kaleidoscope's sacrifice
+				// of a Prism token, Ashnod's Altar's) can be paid while the
+				// source is tapped and, unless it is once-only, more than
+				// once: the one-best-per-source count cannot bound it.
+				return 0, false
+			}
+			if o.Tapped {
+				// CR 107.5: a tapped permanent can't pay its own {T}, so
+				// this activation contributes nothing. Its non-{T}
+				// abilities were refused above.
+				continue
+			}
+			if cost.X != 0 || cost.XMin != 0 || mp.Each.Present || !mp.AmountIsLit && mp.AmountTrim != "" {
+				return 0, false
+			}
+			made, known := tapMadeAtMost(ma, mp)
+			if !known {
+				return 0, false
+			}
+			made += int32(e.potentialTapExtra(p, id, ma).Total())
+			best = max(best, made-cost.CMC())
+		}
+		supply += best
+	}
+	return supply, true
+}
+
+// tapMadeAtMost is the most mana one activation of ma makes: a fixed symbol
+// string's symbols times its literal amount, or the literal amount of a
+// choice of colours (Any, a chosen colour, the commander's colour identity,
+// a Combo of listed symbols) or of a reflected ability with no amount of its
+// own (Exotic Orchard: one mana). known is false for any other production --
+// a Special word (Bloom Tender's one mana per colour among its permanents)
+// makes a per-board number of mana, and a DB$ Mana below the head
+// (CR 605.1a: Nyx Lotus's devotion, a Mana Battery's counters, a
+// Condition-split land) is mana the head's parameters do not name.
+func tapMadeAtMost(ma *cards.SA, mp *effects.ManaParams) (made int32, known bool) {
+	if cards.ManaChainProduction(ma) != nil {
+		return 0, false
+	}
+	if ma.APIKind() == cards.APIManaReflected {
+		return 1, !effects.ManaReflectedOf(ma).Amount.Present
+	}
+	if mp.AmountTrim != "" && !mp.AmountIsLit {
+		return 0, false
+	}
+	amt := availableAmountOf(mp)
+	if !mp.CountsAny {
+		fixed := int32(0)
+		for _, n := range mp.Counts {
+			fixed += n * amt
+		}
+		return fixed, true
+	}
+	switch raw := mp.ProducedRaw; raw {
+	case "", "Any", "Combo Any", "Chosen", "ComboChosen", "Combo Chosen", "Combo ColorIdentity":
+		return amt, true
+	default:
+		const combo = "Combo "
+		if len(raw) <= len(combo) || raw[:len(combo)] != combo {
+			return 0, false
+		}
+		if _, other := cards.ProducedCounts(raw[len(combo):]); other {
+			return 0, false
+		}
+		return amt, true
+	}
+}
+
+// triggeredTapManaPossible reports whether a triggered mana ability (CR
+// 605.1b) may add mana beside a tap: one printed on a permanent or a
+// command-zone object, granted by a continuous effect, or registered by an
+// effect (High Tide). potentialTapExtra counts only some of those shapes (not
+// Elvish Guidance's counted amount, a granted trigger or an effect's), so
+// censusTapSupply claims no bound beside any of them.
+func triggeredTapManaPossible(e castSupplyHost) bool {
+	g := e.Game()
+	for i := range g.Delayed {
+		if mode := g.Delayed[i].EventMode; mode == "TapsForMana" || mode == "ManaAdded" {
+			return true
+		}
+	}
+	for _, ce := range e.active() {
+		if ce.AddTrigger != nil && isTapManaAbilityLine(*ce.AddTrigger) {
+			return true
+		}
+		for _, gf := range ce.GainedTriggerFaces {
+			if gf.Face != nil && slices.ContainsFunc(gf.Face.Triggers, isTapManaAbilityLine) {
+				return true
+			}
+		}
+	}
+	for p := range g.Players {
+		for _, z := range [...]state.Zone{state.ZBattlefield, state.ZCommand} {
+			for _, id := range g.Zone(z, state.PlayerID(p)) {
+				if printsTapManaAbility(g.Obj(id)) {
+					return true
+				}
+			}
+		}
+	}
+	return false
+}
+
+// printsTapManaAbility reports whether one of o's printed faces that can
+// trigger (a Room's unlocked doors, a mutated pile's cards) carries a
+// triggered mana ability.
+func printsTapManaAbility(o *state.Object) bool {
+	if o == nil || o.Face() == nil {
+		return false
+	}
+	faces, n := roomTriggerFaces(o, o.Face())
+	walk := faces[:n]
+	if len(o.MergedCards) > 0 {
+		walk = triggerFacesWithMerged(o, walk)
+	}
+	for _, fc := range walk {
+		if slices.ContainsFunc(fc.face.Triggers, isTapManaAbilityLine) {
+			return true
+		}
+	}
+	return false
+}
+
+// isTapManaAbilityLine is the trigger-line half of isTriggeredManaAbility: a
+// Static$ True TapsForMana or ManaAdded trigger.
+func isTapManaAbilityLine(t cards.Trigger) bool {
+	mk := t.ModeKind()
+	return (mk == cards.TriggerTapsForMana || mk == cards.TriggerManaAdded) && t.StaticTrue()
+}
