@@ -602,6 +602,11 @@ type CreateGameResponse struct {
 	// Decks is one report per submitted seat, in seat order: what the server
 	// found and, when the seat consented, every substitution it made.
 	Decks []protocol.DeckReport `json:"decks,omitempty"`
+	// Engine names the engine the table runs on: gorge or dirac.
+	Engine string `json:"engine"`
+	// EngineReason, under gorged -route-pods-dirac, says why a table runs on
+	// gorge rather than dirac; empty otherwise.
+	EngineReason string `json:"engine_reason,omitempty"`
 }
 
 // validatePodRequest checks the seats/humans/decks shape of a create-game

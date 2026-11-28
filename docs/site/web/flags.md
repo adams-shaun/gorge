@@ -67,6 +67,7 @@ The table is generated from the flag set of the `cmd/gorged` binary; `TestFlagsD
 | `-prewarm-art-only` | `false` | fill the card-art cache from -decks (into -art-dir) and exit; no server is started. Exits non-zero if any name failed |
 | `-rate-burst` | `10` | with -rate-limit: the most creating requests one client may make at once (>= 1) |
 | `-rate-limit` | `10` | creating requests (POST /api/games, /api/events, /api/decks/check, /api/feedback) one client may make a minute; 0 = unlimited |
+| `-route-pods-dirac` | `false` | serve a 4-seat commander pod on dirac when all four decks pass there (needs -dirac-check-sets); gorge otherwise; a restart without it cannot resume a dirac pod |
 | `-sb-agent` | none | register a SpellBench v2 stdio agent as a bot policy: name=/path/to/agent (repeatable; name matches ^[a-z0-9-]+$) |
 | `-sbv2` | `false` | mount the SpellBench v2 human-seat HTTP routes (server/host/sbv2http) on the main listener; requires -humans or -vsbot |
 | `-seat-token` | none | fixed bearer token for the first human slot (tests and local use only; default mints a random token per slot) |
