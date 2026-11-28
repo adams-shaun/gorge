@@ -23,12 +23,12 @@ answers as soon as the listener serves. The startup probe allows 15 minutes for 
 
 Limits: the args also turn on
 
-- `-keep-matches=500`: keep the 500 newest finished matches on disk and prune the rest.
-- `-rate-limit=10`: requests per second allowed per client.
-- `-rate-burst=10`: the burst size of that limit.
-- `-trusted-proxy-header=CF-Connecting-IP`: take the client address from this header, so the limit is per visitor rather than per tunnel.
-- `-site-name=master-edh.net`: the name the site reports for itself.
-- `-metrics`: serve the metrics route.
+- `-keep-matches=500`: each bot-only table keeps 500 finished matches on disk and deletes older ones; matches with a human seat and crashed matches are never deleted.
+- `-rate-limit=10`: one client may make 10 creating requests a minute (new games, events, deck checks, feedback).
+- `-rate-burst=10`: the most creating requests one client may make at once.
+- `-trusted-proxy-header=CF-Connecting-IP`: the rate limiter keys on the client address in this header, not on the proxy's.
+- `-site-name=master-edh.net`: the name in the served page's title.
+- `-metrics`: serve Prometheus counts at `/metrics` on the main port, readable by anything proxied to it.
 
 `-trusted-proxy-header` is safe here because the only route to the pod is the gateway behind the
 Cloudflare tunnel (`httproute.yaml`). On a cluster reached any other way, drop the flag: a client
