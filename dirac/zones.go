@@ -207,9 +207,6 @@ func (s *State) placeFromK(k *prep, o Obj, z kop.Zone, bottom bool, from kop.Zon
 	if k != nil && k.mayhem {
 		s.mObjClr(k, mechMayhem, o) // a new object nobody discarded (CR 400.7)
 	}
-	if k != nil {
-		s.mObjClr(k, mechDrawn, o) // a new object nobody drew (CR 400.7; filter_drawnthisturn.go)
-	}
 	s.touch(o)
 	ob := &s.objs[o]
 	ob.ver++
@@ -225,6 +222,8 @@ func (s *State) placeFromK(k *prep, o Obj, z kop.Zone, bottom bool, from kop.Zon
 		s.clearFB(k, o)     // a new object: a granted flashback ends
 		s.encoreClear(k, o) // a new object: a granted encore ends
 		s.embalmClear(k, o) // a new object: a granted embalm ends
+		// a new object nobody drew (CR 400.7; filter_drawnthisturn.go)
+		s.mObjClr(k, mechDrawn, o)
 	}
 	if ob.of&ofToken != 0 && !s.g.on && s.cfg&cfgCommander == 0 {
 		ob.zone = kop.ZoneNone // a token ceases to exist (CR 111.7)
