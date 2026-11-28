@@ -86,6 +86,11 @@ func (s *State) payManaHyb(k *prep, f kop.FilterID, c *kop.ManaCost) {
 	}
 	var unit kop.ManaCost
 	kop.PayManaHyb(f, &unit)
+	if nc := kop.PayManaCNum(f); nc != 0 {
+		// the F's colourless pips (kop.PayManaCPip): once per age counter,
+		// like the unit's coloured pips above
+		c.Pips[kop.C] = uint8(int(c.Pips[kop.C]) + n*nc)
+	}
 	h := kop.PayManaHybN(f)
 	for r := 0; r < n; r++ {
 		for i := 0; i < h; i++ {
@@ -109,7 +114,8 @@ func (s *State) cumulativeFits(k *prep, in *kop.Instr) {
 	}
 	pay := &s.prog(k)[s.res.pc+1]
 	n := s.value(k, kop.ValueRef{K: kop.VCountersSelf, N: int16(kop.CtrAge)})
-	if pay.A.K != kop.VConst || n*int(pay.A.N) > 255 || n*kop.PayManaHybN(pay.F) > len(kop.ManaCost{}.Hyb) {
+	if pay.A.K != kop.VConst || n*int(pay.A.N) > 255 || n*kop.PayManaHybN(pay.F) > len(kop.ManaCost{}.Hyb) ||
+		n*kop.PayManaCNum(pay.F) > 255 {
 		s.capFull(StallCumulativeCost)
 		return
 	}

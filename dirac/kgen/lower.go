@@ -1135,7 +1135,9 @@ func parseManaCostSyms(s string, twobrid, phyrexian, snow bool) (manaCost, error
 			m.Pips[i]++
 			continue
 		}
-		if len(t) == 2 && strings.IndexByte("WUBRG", t[0]) >= 0 && strings.IndexByte("WUBRG", t[1]) >= 0 {
+		if len(t) == 2 && t[0] != t[1] && strings.IndexByte("WUBRGC", t[0]) >= 0 && strings.IndexByte("WUBRGC", t[1]) >= 0 {
+			// a hybrid pip (CR 702.105): two distinct faces from W U B R G C,
+			// gorge cost.parse's isHybrid ("CW" is {C/W}, Ulalek's first pip)
 			m.Hybrid = append(m.Hybrid, t)
 			continue
 		}
