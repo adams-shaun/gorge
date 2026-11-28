@@ -203,6 +203,15 @@ func (s *State) addPhaseGrant(k *prep, in *kop.Instr) {
 			return
 		}
 	}
+	if in.C&kop.AddPhaseHere != 0 {
+		// the splice point is the main phase the grant resolves in (the
+		// lowering's ConditionPhases$ gate keeps it there; act_addphaserider.go)
+		at = uint8(s.step) | kop.AddPhaseCombat<<4
+		if s.step != kop.StepMain1 && s.step != kop.StepMain2 {
+			s.capFull(StallLowering)
+			return
+		}
+	}
 	if in.C&3 == kop.AddPhaseCombatMain {
 		// the splice point is the step the grant resolves in, a main phase
 		// (the lowering's ConditionPhases$ gate keeps it there)
@@ -314,6 +323,9 @@ func (s *State) addPhaseNext(next kop.Step) kop.Step {
 		e.n--
 		e.at |= xphConsumed
 		next, found = addPhaseEntry(e.at), true
+		if (sp == kop.StepMain1 || sp == kop.StepMain2) && e.at>>4&3 == kop.AddPhaseCombat {
+			s.armExtraCombatRider() // act_addphaserider.go
+		}
 		break
 	}
 	if !found && completed && resume <= kop.StepCleanup {

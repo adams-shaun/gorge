@@ -281,6 +281,7 @@ const (
 	vDelayedExileCount   // the fired delayed program's remembered objects (at most four, kop.DpMany's carriers) that are still the same object in exile (Count$ValidExile Card.IsTriggerRemembered in a delayed-many body; value_delayedexile.go)
 	vCardBasePower       // the source's base power before counters and pumps (Count$CardBasePower, kop.ExCardBasePower; value_basepower.go)
 	vCountTgtEntry       // the object targets, matching F, of the spell or ability the evaluating entry targets (Count$... over TargetedByTarget$Valid <spec>; kop.ExCountTgtEntry; dirac/tgt_nestedcount.go)
+	vCardAttacks         // the times the source (an AffectedX static: each affected creature) attacked this turn (Count$CardNumAttacksThisTurn, kop.ExCardNumAttacksThisTurn; dirac/value_attacktally.go)
 	vCount_
 )
 
@@ -416,6 +417,7 @@ var valNames = [...]string{
 	vMostProminentType:   "MostProminentType",
 	vMostCardName:        "MostCardName",
 	vCountTgtEntry:       "CountTgtEntry",
+	vCardAttacks:         "CardAttacks",
 }
 
 // lValue is an amount: Kind with its operand, then Mul/Div/Add applied in

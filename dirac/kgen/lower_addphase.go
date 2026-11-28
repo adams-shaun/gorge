@@ -19,7 +19,10 @@ import (
 // (Full Throttle, Great Train Heist) is not lowered: both cards stay refused
 // for another part of the card.
 func (lc *lowerCtx) addPhase(ps *params) error {
-	for _, k := range []string{"ExtraPhaseDelayedTrigger", "ExtraPhaseDelayedTriggerExcute", "BeforeFirstPostCombatMainEnd"} {
+	if _, ok := ps.m["ExtraPhaseDelayedTrigger"]; ok {
+		return lc.addPhaseRider(ps) // lower_addphaserider.go
+	}
+	for _, k := range []string{"ExtraPhaseDelayedTriggerExcute", "BeforeFirstPostCombatMainEnd"} {
 		if _, ok := ps.m[k]; ok {
 			return refuse("AddPhase %s$", k)
 		}

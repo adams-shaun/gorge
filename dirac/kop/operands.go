@@ -19,6 +19,12 @@ const (
 	// Shadow and Sphinx of the Second Sun) spliced after the main phase the
 	// grant resolves in; the nibble is ignored.
 	AddPhaseBeginning = 4
+	// AddPhaseHere: a flag on AddPhaseCombat (C bit 3), an extra combat
+	// spliced after the main phase the grant resolves in and resuming at that
+	// phase's successor, whose consumption arms the grant's DelayExtraCombat
+	// rider (ExtraPhaseDelayedTrigger$, Moraug, Fury of Akoum); the nibble is
+	// ignored.
+	AddPhaseHere = 8
 )
 
 // AtEOT$ on a ChangeZoneAll sweep onto the battlefield.
@@ -785,6 +791,12 @@ const (
 	// untap denial, which fires as that player's upkeep begins); one-shot, no
 	// remembered object
 	DelayPlayerUpkeep = 9
+	// DelayExtraCombat: the beginning of combat of the extra combat an
+	// AddPhaseHere grant of the same resolution queued (gorge
+	// ExtraPhaseDelayedTrigger$: the one-shot registers as the walk enters
+	// that combat and fires at its beginning of combat step); one-shot,
+	// dropped at the turn change
+	DelayExtraCombat = 11 // 10 is kop.DelayRemUpkeep (drawupto.go)
 )
 
 // DpGroup is OpDelayedProgram B's group flag: the program remembers the

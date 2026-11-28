@@ -29,8 +29,8 @@ func dpWhen(in *kop.Instr) uint8 {
 	if in.A.N == kop.DelayDiesThisTurn {
 		return dpDies // trig_delayeddies.go: never due at a step
 	}
-	if in.A.N == kop.DelayBeginCombat {
-		return 0 // dprog.ext carries it (trig_delaybegincombat.go)
+	if in.A.N == kop.DelayBeginCombat || in.A.N == kop.DelayExtraCombat {
+		return 0 // dprog.ext carries it (trig_delaybegincombat.go, act_addphaserider.go)
 	}
 	if in.A.N == kop.DelayYourEndStep {
 		return 0 // dprog.ext carries the player gate (dpExtYourEndStep)
@@ -90,7 +90,7 @@ func (s *State) fireDelayedWhen(k *prep, at int) {
 			at == 2 && w == kop.DelayEndCombat) ||
 			at == 0 && d.ext == dpExtYourEndStep && s.active == d.ctrl ||
 			at == 1 && d.ext >= dpExtPlayerUpkeep && d.ext < dpExtRemUpkeep && s.active == d.ext-dpExtPlayerUpkeep ||
-			at == 1 && d.ext >= dpExtRemUpkeep ||
+			at == 1 && d.ext >= dpExtRemUpkeep && d.ext < dpExtRemUpkeep+MaxSeats ||
 			at == 3 && d.ext == dpExtBeginCombat
 		if !due {
 			s.g.dp[keep], s.g.dpLKI[keep] = d, s.g.dpLKI[i]

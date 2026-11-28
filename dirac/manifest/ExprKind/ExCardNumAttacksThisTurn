@@ -4,4 +4,5 @@ value: 117
 forge: CardNumAttacksThisTurn
 census: count CardNumAttacksThisTurn all=1 std=0 mbc=0 sole=0
 state: player 4 (turn tallies)
-status: reserved
+status: active
+ticket: agent-20261127T203318Z-d99a8341

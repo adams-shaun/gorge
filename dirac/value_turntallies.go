@@ -80,8 +80,8 @@ func prepTurnTallies(t *kop.Table, p *prep, g *genPrep) {
 // (arenaUses).
 func turnTalliesUses(t *kop.Table, u *[numMech]bool) {
 	for i := range t.Exprs {
-		if t.Exprs[i].Kind == kop.ExAttackedTurn {
-			u[mechAttackedObj] = true
+		if k := t.Exprs[i].Kind; k == kop.ExAttackedTurn || k == kop.ExCardNumAttacksThisTurn {
+			u[mechAttackedObj] = true // the tally clears with the marks (value_attacktally.go)
 		}
 	}
 }
@@ -100,6 +100,7 @@ func (s *State) turnTalliesNewTurn(k *prep) {
 	s.g.cdLeg = 0
 	s.g.plDmg = 0
 	s.mObjZero(k, mechAttackedObj)
+	s.atkTallyNewTurn() // value_attacktally.go
 }
 
 // markAttackedObj marks every declared attacker (finishAttacks, after the
