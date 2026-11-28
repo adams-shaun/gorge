@@ -95,9 +95,9 @@ func TestSupportPageInScopeColumns(t *testing.T) {
 	if inScope(out, "Cease // Desist") || inScope(out, "Dairy Cow") || !inScope(out, "Lightning Bolt") {
 		t.Error("inScope misreads the list")
 	}
-	r := supportCounts{list: "BLB", cards: 278, lowered: 261, refused: 2, supported: 259, fourSeat: 258, podEvidenced: 1, inScope: 270, inScopeLowered: 255, inScopeSupported: 250}
+	r := supportCounts{list: "BLB", cards: 278, lowered: 261, refused: 2, supported: 259, fourSeat: 258, podEvidenced: 1, podStrict: 1, inScope: 270, inScopeLowered: 255, inScopeSupported: 250}
 	row := supportRow(r)
-	if want := "| BLB | 278 | 261 | 2 | 0 | 259 | 258 | 1 | 270 | 255 | 250 |\n"; row != want {
+	if want := "| BLB | 278 | 261 | 2 | 0 | 259 | 258 | 1 | 1 | 270 | 255 | 250 |\n"; row != want {
 		t.Fatalf("row %q, want %q", row, want)
 	}
 	page := func(rows string) []byte { return []byte(rows + "\n## Refused by name\n\nNone.\n") }
@@ -108,5 +108,9 @@ func TestSupportPageInScopeColumns(t *testing.T) {
 	p, err = parseSupportDoc(page("| BLB | 278 | 261 | 2 | 0 | 259 | 258 | 1 |\n"))
 	if err != nil || len(p.rows) != 1 || p.rows[0].inScope != 0 || p.rows[0].podEvidenced != 1 {
 		t.Fatalf("an old-layout page: %+v, %v", p.rows, err)
+	}
+	p, err = parseSupportDoc(page("| BLB | 278 | 261 | 2 | 0 | 259 | 258 | 1 | 270 | 255 | 250 |\n"))
+	if err != nil || len(p.rows) != 1 || p.rows[0].inScope != 270 || p.rows[0].podStrict != 0 {
+		t.Fatalf("a page from before 4-seat pod-evidenced: %+v, %v", p.rows, err)
 	}
 }
