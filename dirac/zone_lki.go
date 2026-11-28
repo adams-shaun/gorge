@@ -67,6 +67,12 @@ const (
 // departed DamageSource$ (act_damagefrom.go).
 const lkiInfect uint8 = 1 << 5
 
+// lkiWither (lkiRec.bits): the snapshot had wither (witherAt, printed over
+// the whole pile or granted; gorge's lki.Wither, CR 113.7a), read by a
+// departed ability source (kw_wither.go's srcWither): r.kw holds only a
+// granted wither, never the printed CardDef.Wither.
+const lkiWither uint8 = 1 << 6
+
 // lkiRec is one snapshot: P/T, controller, every counter, and the derived
 // (layered) types, colours and keywords (CR 608.2h in full).
 //
@@ -160,6 +166,9 @@ func (s *State) snapLKI(o Obj) uint8 {
 	}
 	if k.gen.anyInfect && s.infectAt(k, sl) {
 		r.bits |= lkiInfect
+	}
+	if k.gen.anyInfect && s.witherAt(k, sl) {
+		r.bits |= lkiWither
 	}
 	for i := range p.ck {
 		if p.cn[i] > 0 {

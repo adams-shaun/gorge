@@ -164,7 +164,7 @@ func (s *State) reflexBiteGone(k *prep, in *kop.Instr) bool {
 		return true
 	}
 	o := e.trigObj
-	s.dmgSrcObject(k, s.perms[b].obj, o, NoSlot, l.kw, l.ctrl, k.t.Cards[s.objs[o].card].Infect, n)
+	s.dmgSrcObject(k, s.perms[b].obj, o, NoSlot, l.kw, l.ctrl, l.bits&lkiInfect != 0, n)
 	return true
 }
 

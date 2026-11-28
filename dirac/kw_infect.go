@@ -156,14 +156,11 @@ func (s *State) srcInfect(k *prep) bool {
 	if k.t.Cards[e.card].Infect {
 		return true
 	}
-	// a departed source's granted infect: gorge's LKI derives it at
-	// departure (srcWither's rule)
-	if k.gen != nil && k.gen.anyInfectGrant && e.li != 0 && e.kind != seSpell {
-		if l := s.lk(e.li); l.obj == e.obj && l.bits&lkiInfect != 0 {
-			return true
-		}
-	}
-	return false
+	// a departed source's infect: gorge's LKI derives it at departure over
+	// the whole pile (lki.Infect, CR 113.7a; infectAt reads the merged
+	// cards, its granted arm too), read from its last known information.
+	l := s.srcLastRec(e)
+	return l != nil && l.bits&lkiInfect != 0
 }
 
 // infectCounters puts infect damage n on creature sl as -1/-1 counters
