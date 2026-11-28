@@ -11,8 +11,8 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // not control triggers its printed ward and then one ward per static
 // granting it, each with that static's amount. gorge synthesises a granted
 // ward from the derived keyword list (rules checkGrantedWardTriggers) after
-// the face's own, skipping a granted keyword equal to a printed one (its
-// printed map: two "Ward:2" strings are one keyword there).
+// the face's own, one per entry no printed line owns, so a grant reading the
+// same as a printed ward queues too.
 
 // wardGrantedBits mark a ward trigger amount (stackEntry.trigAmt) as a granted
 // ward's: gorge's trigger carries no face trigger index, a printed one its own.
@@ -50,22 +50,10 @@ func staticGrantsWard(st *kop.Static) bool { return st.Ward != 0 || st.WardLife 
 //go:noinline
 func (s *State) wardGranted(k *prep, sl Slot, ob *object, e *stackEntry, disguise bool, nb uint8) {
 	p := &s.perms[sl]
-	cd := &k.t.Cards[s.cardAt(sl)]
-	var printed int16
-	hasPrinted := false
-	if disguise {
-		hasPrinted = true
-		printed = 2 // CR 702.168b: a face-down Disguise permanent has ward {2}
-	} else if cd.Keywords&kop.KwWard != 0 && !s.genLost(k, sl) {
-		hasPrinted = true
-		printed = wardAmt(cd) // negative: pay N life
-	}
-	// a pile's under cards queue their own printed wards beside the top's; a
-	// grant is deduped against the top's alone, as gorge's printed map is (an
-	// under card's line accounts for its own derived entry only)
+	// the printed wards first, a pile's under cards' beside the top's
 	first := s.npend
 	if disguise {
-		s.printedWard(k, sl, ob.ver, e, s.cardAt(sl), printed)
+		s.printedWard(k, sl, ob.ver, e, s.cardAt(sl), 2) // CR 702.168b: a face-down Disguise permanent has ward {2}
 	} else {
 		s.printedWards(k, sl, ob.ver, e)
 	}
@@ -82,25 +70,18 @@ func (s *State) wardGranted(k *prep, sl Slot, ob *object, e *stackEntry, disguis
 			a.Static.Ward == 0 && a.Static.WardLife == 0 {
 			return true
 		}
-		// cost is the amount a printed keyword of the same text would carry
-		// (ward {N} positive, ward--pay N life negative); granted is the
-		// trigger amount the grant's own instance queues.
-		var cost, granted int16
+		// granted is the trigger amount the grant's own instance queues.
+		var granted int16
 		if a.Static.WardLife != 0 {
-			cost = -int16(a.Static.WardLife)
 			granted = int16(a.Static.WardLife) | wardGrantedBits | wardGrantedLifeBit
 		} else {
-			cost = int16(a.Static.Ward)
-			granted = cost | wardGrantedBits
+			granted = int16(a.Static.Ward) | wardGrantedBits
 		}
 		if lost && s.grantTs(st) < lts {
 			return true
 		}
 		if !s.statCond(k, st) || !s.matchPermGen(k, a.Static.Filter, sl, st.ctrl, st.sl, layerKw) {
 			return true
-		}
-		if cost == printed && hasPrinted && !disguise {
-			return true // gorge's printed keyword list already holds this "Ward:..."
 		}
 		if n == len(amt) {
 			return false

@@ -95,6 +95,9 @@ type ForkPool struct {
 	// (nesting count): its nodes list the turn-up again, and that listing must
 	// not search the gaps a second time (face_turnupdefer.go).
 	inDeferTU int
+	// unlessGate: an unless / ward offer gate is pricing the payer's sources
+	// (mana_unlesscombo.go). Pooled: genState.turnF has no free bit.
+	unlessGate bool
 	// fmemo: filtScript's failed verdicts of the transition running (mana_filtmemo.go).
 	fmemo filtMemo
 	// paySeen: filtPay's visited table, kept so a payment probe allocates
@@ -107,6 +110,8 @@ type ForkPool struct {
 	pcm pcMemo
 	// sfm: scriptFilt's per-decision memo (mana_sfmemo.go).
 	sfm sfMemo
+	// offm: filtSearch.offers' verdicts (mana_offersmemo.go).
+	offm offersMemo
 	// tyc: the cross-transition cache of derived types (static_typecache.go).
 	tyc tyCache
 	// grc: the cross-transition cache of granted-ability lists (static_grantcache.go).

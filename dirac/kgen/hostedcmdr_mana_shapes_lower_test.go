@@ -10,21 +10,20 @@ import (
 // replacement over basic lands becomes a reflected tap-extra static (the
 // same shape as Mana Flare's "one more of the produced type", in the
 // unpriced StTapReflectDefer mode so the plan matches gorge's). Squandered
-// Resources (ManaReflected over the sacrificed land) and Vivi Ornitier (a
-// PlayerTurn$ gate on a {0} dynamic Combo mana ability) still have no kernel
-// mechanism: each stays refused with its own named reason, so a future
-// lowering cannot silently change what the table holds.
+// Resources lowers to the sacrifice-reflected production (ManaSacrificed, read
+// off the victim at each activation). Vivi Ornitier lowers to a finite-mask
+// Combo Any gap over {U}/{R}: no tap, an ActivationLimit$ 1 once-each-turn
+// bit, and its PlayerTurn$ gate on Trig.Cond.
 func TestHostedCmdrManaShapesLower(t *testing.T) {
 	cs := lowerNamed(t, []string{"Virtue of Strength", "Squandered Resources", "Vivi Ornitier"})
-	want := map[string]string{
-		"Virtue of Strength":   "",
-		"Squandered Resources": `ManaReflected Valid$ "Defined.Sacrificed"`,
-		"Vivi Ornitier":        `activation PlayerTurn$ "True" beside another condition`,
+	want := map[string]bool{
+		"Virtue of Strength":   true,
+		"Squandered Resources": true,
+		"Vivi Ornitier":        true,
 	}
 	seen := 0
 	for _, c := range cs {
-		w, ok := want[c.Name]
-		if !ok {
+		if !want[c.Name] {
 			continue
 		}
 		seen++
@@ -32,12 +31,12 @@ func TestHostedCmdrManaShapesLower(t *testing.T) {
 		for _, r := range c.Refusals {
 			why = append(why, r.Reason)
 		}
-		got := strings.Join(why, "; ")
-		if w == "" {
-			if got != "" {
-				t.Errorf("%s refused: %s", c.Name, got)
-				continue
-			}
+		if got := strings.Join(why, "; "); got != "" {
+			t.Errorf("%s refused: %s", c.Name, got)
+			continue
+		}
+		switch c.Name {
+		case "Virtue of Strength":
 			found := false
 			for _, st := range c.Statics {
 				if st.Kind != "TapExtra" {
@@ -59,10 +58,29 @@ func TestHostedCmdrManaShapesLower(t *testing.T) {
 			if !found {
 				t.Errorf("%s has no reflected tap-extra static with amount 2: %+v", c.Name, c.Statics)
 			}
-			continue
-		}
-		if !strings.Contains(got, w) {
-			t.Errorf("%s refusal = %q, want it to contain %q", c.Name, got, w)
+		case "Squandered Resources":
+			found := false
+			for _, ab := range c.Abilities {
+				if ab.Mana == nil || ab.Mana.Special != "ReflectedSacrificed" || ab.Cost.Tap || ab.Cost.Sac == nil || ab.Cost.SacN != 1 {
+					continue
+				}
+				found = true
+			}
+			if !found {
+				t.Errorf("%s has no sacrifice-reflected mana ability: %+v", c.Name, c.Abilities)
+			}
+		case "Vivi Ornitier":
+			found := false
+			for _, ab := range c.Abilities {
+				if ab.Mana == nil || ab.Mana.Colors != "UR" || !ab.Mana.Choice || ab.Mana.Amount.isConst() ||
+					!ab.TurnOnce || ab.Limit != 0 || ab.Cost.Tap || ab.ActCond.Kind != cYourTurn {
+					continue
+				}
+				found = true
+			}
+			if !found {
+				t.Errorf("%s has no finite-mask once-each-turn mana ability: %+v", c.Name, c.Abilities)
+			}
 		}
 	}
 	if seen != len(want) {

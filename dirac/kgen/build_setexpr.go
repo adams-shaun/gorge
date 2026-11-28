@@ -19,7 +19,7 @@ func kopTakesSet(op kop.Op) bool {
 	case kop.OpExile, kop.OpBounce, kop.OpReturn, kop.OpToLibrary,
 		kop.OpPumpUntilEOT, kop.OpPutCounter, kop.OpDealDamage, kop.OpDestroy, kop.OpSacrifice,
 		kop.OpTap, kop.OpUntap, kop.OpGainLife, kop.OpLoseLife, kop.OpDraw, kop.OpDiscard,
-		kop.OpGainControl, kop.OpGainControlEOT, kop.OpAnimate:
+		kop.OpGainControl, kop.OpGainControlEOT, kop.OpAnimate, kop.OpSkipNextUntap:
 		return true
 	}
 	return false
@@ -37,7 +37,7 @@ func kopTakesSet(op kop.Op) bool {
 func kopWalksSet(ki *kop.Instr, players bool) bool {
 	switch ki.Op {
 	case kop.OpPumpUntilEOT, kop.OpTap, kop.OpUntap, kop.OpGainLife, kop.OpLoseLife,
-		kop.OpGainControl, kop.OpGainControlEOT, kop.OpAnimate:
+		kop.OpGainControl, kop.OpGainControlEOT, kop.OpAnimate, kop.OpSkipNextUntap:
 		return true
 	case kop.OpSacrifice:
 		return players && ki.C&kop.OptAsk == 0
@@ -51,16 +51,27 @@ func kopWalksSet(ki *kop.Instr, players bool) bool {
 // may match gorge's. Sacrifice and Discard over a set holding an object left
 // lockstep divergent even with one member (a bearer sweep and Self.Creature:
 // a card in another zone, or the entry still on the stack after the answer),
-// so both are refused. An all-player set is unaffected.
+// so both are refused. Exile, Bounce and ToLibrary over a qualified object
+// set (Self.Creature, TriggeredAttacker.Creature, TriggeredCards.Creature)
+// lose the zone move's origin and identity guards (CR 400.7): the kernel
+// moved a source that had left the battlefield, and a graveyard card's move
+// misses MvFromGraveyard and LibTopGrave (instr_zones.go reads them off
+// rTriggered only), so those three are refused too. Return keeps its
+// guards (Self.YouOwn from the graveyard plays as gorge does). An all-player
+// set is unaffected.
 func kopRunsSetObject(op kop.Op) bool {
-	return op != kop.OpSacrifice && op != kop.OpDiscard
+	switch op {
+	case kop.OpSacrifice, kop.OpDiscard, kop.OpExile, kop.OpBounce, kop.OpToLibrary:
+		return false
+	}
+	return true
 }
 
 // walksSet refuses set n under ki when the set can hold an object the kernel
 // would not run as gorge does (kopRunsSetObject), or more than one member and
 // the kernel would not walk them all. The opponents of one player pass under
-// Draw only (lower_definedset.go setOpponentOf says why, and what that leaves
-// open). An n the card does not have is internSet's refusal.
+// Draw only (lower_definedset.go setOpponentOf says why). An n the card does
+// not have is internSet's refusal.
 func (cb *cardBuilder) walksSet(n int, ki *kop.Instr) error {
 	if n < 0 || n >= len(cb.c.Sets) {
 		return nil

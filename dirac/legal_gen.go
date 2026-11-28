@@ -1221,7 +1221,11 @@ func (s *State) tapOneForMana(k *prep, p uint8, sl Slot) bool {
 		s.windowAnyDifferentTap(k, p, sl, nil, nil, false, true) // the window lists an AnyDifferent source and floats its N distinct colours
 		return true
 	}
-	if k.gen != nil && k.gen.anyWindowGap && s.windowGap(k, p, sl) {
+	combo := k.gen != nil && k.gen.anyComboAny && s.failedPayCombo(k, p, sl)
+	if combo && s.perms[sl].flags&pfTapped != 0 {
+		return true
+	}
+	if !combo && k.gen != nil && k.gen.anyWindowGap && s.windowGap(k, p, sl) {
 		var held [kop.NumManaKinds]uint8 // a restricted source's mana floats too
 		s.tapGap(k, p, sl, s.windowRestr(k, p).and(slotBit(sl)), &held)
 		return true
@@ -1232,7 +1236,7 @@ func (s *State) tapOneForMana(k *prep, p uint8, sl Slot) bool {
 	// (windowCanTap): a restricted grant the ward cannot spend (Mm'menon's
 	// artifact blue) is no tap of gorge's failed payment.
 	if !s.windowCanTap(k, sl) && !sacOnly {
-		return false
+		return combo
 	}
 	mask := s.srcMaskAt(pc, sl)
 	if k.painMana && pc.painCol != 0 && !pc.painOnly {

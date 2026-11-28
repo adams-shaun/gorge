@@ -30,7 +30,10 @@ func (s *State) cloneReturnPark(k *prep, o Obj, ctrl uint8) bool {
 	}
 	c := s.objs[o].card
 	if !k.gen.has(c, gfEnterRepl) {
-		kind := s.protectorPreKind(k, c, ctrl) // face_battle.go: a returning battle's protector
+		kind := s.unleashReturnKind(k, c) // kw_unleash.go
+		if kind == 0 {
+			kind = s.protectorPreKind(k, c, ctrl) // face_battle.go: a returning battle's protector
+		}
 		if kind == 0 {
 			return false
 		}
@@ -176,6 +179,9 @@ func (s *State) rerunReturn(k *prep) {
 		s.execReturnSimple(k, in, o)
 	}
 	s.g.pre = preAsk{}
+	if s.res.ask == raGenRetChoice {
+		s.res.ask = raNone // the answered park is spent: the loop's next target parks its own
+	}
 	if s.eachReturnResume(k) {
 		return // the multi-target return's remaining targets (zone_eachreturnask.go)
 	}

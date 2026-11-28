@@ -596,11 +596,10 @@ func (s *State) windowPick(k *prep, p uint8, order []Slot, useful *kop.ManaCost,
 		} else if hit {
 			return o, true
 		}
-		if census && s.ctrCensusOffer(k, p, o) {
-			return o, true // the unless census's fixed counter-fee source (ctrCensusOffer)
-		}
-		if _, ok := s.windowSacTapOwed(k, p, o, useful); ok {
-			return o, true // the source's owed later sac-tap ability: the window's answer takes it (mana_sactapwin.go)
+		if hit, skip := s.windowOwedPick(k, p, o, useful, decided, want, census); skip {
+			continue
+		} else if hit {
+			return o, true
 		}
 		if s.windowSourceUsable(k, o, p) {
 			if !takeDeferred && s.planDeferred(k, p, o) && !s.blgIntrinsicUnit(k, o) {
@@ -1510,6 +1509,7 @@ func (s *State) windowPays(k *prep, p uint8, kind int, skip uint16, amt int, pip
 	if kind != kop.PayMana || skip&(pfWard|pfModes) == 0 {
 		return false, 0
 	}
+	defer s.leaveUnlessCensus(s.enterUnlessCensus()) // mana_unlesscombo.go
 	if ok, stall := s.windowAffordsN(k, p, amt, pips, skip&pfWard == 0); ok {
 		return true, stall // a found plan's spill is a capacity stall the caller declares
 	} else {
@@ -4622,17 +4622,21 @@ func (s *State) applyCastWinCol(k *prep, a Action) {
 // applyCastWinTap taps the permanent picked and the source and floats the mana; the build's
 // stage then runs the window on.
 func (s *State) applyCastWinTap(k *prep, a Action) {
-	if s.askColDeferred(k, s.g.winSrc) {
+	sl := s.g.winSrc
+	if s.askColDeferred(k, sl) {
 		s.applyCastWinAsk(k, a)
 		return
 	}
-	if s.splitWinColAsk(k, s.g.winSrc) {
+	if s.splitWinColAsk(k, sl) {
 		s.applyCastWinCol(k, a)
 		return
 	}
 	more, cand, cand2 := s.winTapPick(k, a)
 	if more {
 		return // the second permanent is asked next
+	}
+	if s.sacReflSource(k, sl) {
+		s.g.winCol = s.sacReflWinCol(k, s.bld().e.ctrl, cand)
 	}
 	b := s.bld()
 	b.bfl &^= bflWinTap

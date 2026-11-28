@@ -78,7 +78,8 @@ func (s *State) trigWindowTap(k *prep, p uint8, cost *kop.ManaCost) (paused bool
 // source's plain first ability (windowCanTap), and its tap-another one is not
 // modelled in the windows. A sacrifice-another source (Bolg's Company,
 // kop.SacXEachManaAb) is listed by the cast, activation, ward and trigger-cost
-// windows; the unless window leaves it out. An echo payment's Ashnod's Altar
+// windows; the unless window leaves it out, bar a sacrifice-reflected one
+// (Squandered Resources), which every window lists. An echo payment's Ashnod's Altar
 // beside Elven Chorus's granted {T} abilities is a trigger-cost window gorge
 // funds by sacrificing a creature, and its sacrifice is a choose the walk must
 // pause on (ChCostSacrifice) rather than answer by tapping the plain grants.
@@ -87,7 +88,10 @@ func (s *State) trigWindowTap(k *prep, p uint8, cost *kop.ManaCost) (paused bool
 //
 //go:noinline
 func (s *State) windowTapXOffer(k *prep, p uint8, o Slot, decided bool, want uint8) bool {
-	if !k.tapMana || !s.scriptTapX(k, p).has(o) || !s.windowTapXListed(k, p, o) || k.sacXOf(s.cardAt(o)) && s.g.winMode != winNone && s.g.winMode != winWard && s.g.winMode != winTrig {
+	if !k.tapMana || !s.scriptTapX(k, p).has(o) || !s.windowTapXListed(k, p, o) {
+		return false
+	}
+	if k.sacXOf(s.cardAt(o)) && s.g.winMode != winNone && s.g.winMode != winWard && s.g.winMode != winTrig && !s.sacReflSource(k, o) {
 		return false
 	}
 	return !decided || s.windowSrcMask(k, o)&want != 0
@@ -104,7 +108,9 @@ func (s *State) windowTapXOffer(k *prep, p uint8, o Slot, decided bool, want uin
 func (s *State) windowTapXListed(k *prep, p uint8, o Slot) bool {
 	ab := k.tapXAbOf(s.cardAt(o))
 	if !kop.RestrictedTapXOneShape(ab) {
-		return !k.tapXSecond(s.cardAt(o)) || s.tapXSecondOnly(o)
+		// a sacrifice-reflected source has no census ability beside it
+		// (manaAb < 0), so it is no second ability of anything
+		return kop.SacReflManaAb(ab) || !k.tapXSecond(s.cardAt(o)) || s.tapXSecondOnly(o)
 	}
 	if s.g.winMode != winNone || !s.castTapX(k) {
 		return false
@@ -190,6 +196,9 @@ func (s *State) windowTapXGo(k *prep, p uint8, cost, useful *kop.ManaCost, sl Sl
 			}
 		}
 	}
+	if s.sacReflSource(k, sl) {
+		col = s.sacReflWinCol(k, p, cs[0]) // the unasked victim's colour (a pick's is read when it is answered)
+	}
 	// The altAdd abort window (mana_window.go altAddWindowTap) runs before
 	// the mana stage and is synchronous: it has no build stage to resume
 	// after a pick, so it takes the first candidates the oracle's
@@ -203,6 +212,51 @@ func (s *State) windowTapXGo(k *prep, p uint8, cost, useful *kop.ManaCost, sl Sl
 	}
 	s.tapXDo(k, p, tapXStep{sl: sl, cand: cs[0], cand2: cand2, col: col})
 	return false
+}
+
+// sacReflWinCol is the colour a window's sacrifice-reflected activation floats
+// from victim cand (Squandered Resources, CR 106.7). gorge answers the colour
+// ask of a mana ability activated while paying beneath its surface
+// (payexec.WindowAnswer), so the window poses none. That ask carries no cost:
+// the answer is the victim's lowest symbol in W U B R G C order, except that
+// in a cast's window a victim of one to four colours takes the first colour
+// the cast still owes once only coloured pips are left. A victim that makes
+// nothing floats none (sacXDo).
+func (s *State) sacReflWinCol(k *prep, p uint8, cand Slot) uint8 {
+	m := s.sacReflMask(k, cand)
+	if m == 0 {
+		return 0
+	}
+	n := bits.OnesCount8(m & uint8(kop.ColAny))
+	if n > 0 && n < 5 && s.g.winMode == winNone && s.buildLive() {
+		cost := s.buildCost(k)
+		if c, ok := s.pipOnlyOwedCol(k, p, &cost, m); ok {
+			return c
+		}
+	}
+	return uint8(bits.TrailingZeros8(m))
+}
+
+// pipOnlyOwedCol is the first colour of mask that cost still owes, ok false
+// while the pool leaves some of its generic part unpaid (or no pip of mask is
+// owed).
+func (s *State) pipOnlyOwedCol(k *prep, p uint8, cost *kop.ManaCost, mask uint8) (col uint8, ok bool) {
+	var owed kop.ManaCost
+	s.windowOwedCost(k, p, cost, &owed)
+	pool := &s.pl[SeatIx(p)].pool
+	surplus := 0
+	for c := range owed.Pips {
+		surplus += max(int(pool[c])-int(owed.Pips[c]), 0)
+	}
+	if surplus < int(owed.Generic) {
+		return 0, false
+	}
+	for c := uint8(0); c < kop.NumManaKinds; c++ {
+		if mask&(1<<c) != 0 && owed.Pips[c] > pool[c] {
+			return c, true
+		}
+	}
+	return 0, false
 }
 
 // windowTapXCol is the colour the window's source sl makes (windowCol).
@@ -248,13 +302,14 @@ func (s *State) applyAskWinTap(k *prep, a Action) bool {
 	if s.res.ask != raGenWinTap {
 		return false
 	}
+	sl := s.g.winSrc
+	refl := s.sacReflSource(k, sl)
 	more, cand, cand2 := s.winTapPick(k, a)
 	if more {
 		return true // the second permanent is asked next
 	}
 	r := &s.res
 	p := r.askP
-	r.ask = raNone
 	if s.winUnlessPayPayer() != 0 {
 		// the unless payer's mana window paused on this pick: finish the tap,
 		// charge the {1}, and resume the colour window's unless walk
@@ -262,7 +317,13 @@ func (s *State) applyAskWinTap(k *prep, a Action) bool {
 		p = s.winUnlessPayPayer() - 1
 		sl := s.g.winSrc
 		c := kop.ManaCost{Generic: 1}
-		col := s.windowTapXCol(k, p, &c, sl, false, true)
+		var col uint8
+		if refl {
+			col = s.sacReflWinCol(k, p, cand)
+		} else {
+			col = s.windowTapXCol(k, p, &c, sl, false, true)
+		}
+		r.ask = raNone
 		s.tapXDo(k, p, tapXStep{sl: sl, cand: cand, cand2: cand2, col: col})
 		s.winUnlessSetPayPause(0)
 		paused, short := s.payWindow(k, p, &c, true)
@@ -283,8 +344,11 @@ func (s *State) applyAskWinTap(k *prep, a Action) bool {
 		return true
 	}
 	cost := s.winTapCost(k)
-	sl := s.g.winSrc
 	col := s.windowTapXCol(k, p, &cost, sl, false, true)
+	if refl {
+		col = s.sacReflWinCol(k, p, cand)
+	}
+	r.ask = raNone
 	s.tapXDo(k, p, tapXStep{sl: sl, cand: cand, cand2: cand2, col: col})
 	if s.g.winMode == winTrig {
 		// the trigger's window taps on and charges what it floated, as payReplanned's does

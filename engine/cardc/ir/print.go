@@ -217,6 +217,7 @@ func prRef(p *printer, n *Ref) {
 	p.kenum("memory", n.Kind != RefMemory && n.Memory != 0, n.Memory.String())
 	p.kenum("role", n.Role != 0, n.Role.String())
 	p.kflag("lki", n.LKI)
+	p.kflag("all-zones", n.AllZones)
 	p.end()
 }
 

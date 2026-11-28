@@ -30,18 +30,12 @@ func (s *State) targetOKPermOrGraveCard(k *prep, t *kop.TargetSpec, p uint8, src
 	return false
 }
 
-// permOrGraveCardCands lists the choices: the battlefield in slot order, then
-// each graveyard in order (targetCands' TgtCard walk).
+// permOrGraveCardCands lists the choices: the battlefield in gorge's offer
+// order, then each graveyard in order (targetCands' TgtCard walk).
 //
 //go:noinline
 func (s *State) permOrGraveCardCands(k *prep, t *kop.TargetSpec, p uint8, src Slot, self Obj, out *[MaxOptions]TCode, n int) int {
-	for m := s.occ; m.any(); m = m.rest() {
-		o := s.perms[m.first()].obj
-		if s.targetOK(k, t, p, src, self, TCode(o)) {
-			out[n] = TCode(o)
-			n++
-		}
-	}
+	n = s.permTgtCands(k, t, p, src, self, out, n) // tgt_permorder.go
 	for pp := 0; pp < int(s.nSeats()); pp++ {
 		if s.out(uint8(pp)) {
 			continue

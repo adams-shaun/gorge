@@ -145,7 +145,18 @@ TABLE_READERS = ("dirac/cardset", "dirac/oracle/cmd/kfuzz")
 # candidate of test-smart's census step (test-targets.sh's C regexp, coverage audit 2026-11-14,
 # section 5); this table supplies the pairs that step's import graph cannot see. Adding a census is one
 # row.
-SOURCE_READERS = (("dirac/crcoverage", ("dirac/kgen",)),)
+# dirac/crcoverage reads more than kgen: TestCRCoverageIsCurrent parses the declaration of every
+# `dirac/...go#Symbol` the coverage tables cite, and those tables cite all of dirac/*.go (chars_*.go,
+# static_*.go, ...). The kwlowered test parses all of dirac/kgen. So a change to any non-test .go under
+# dirac/ can orphan a reference: #5984 changed dirac/chars_gen.go, `fast` stayed green, and merge batches
+# 46153413812 and 46152946419 went red on "dirac/chars_gen.go declares no State.typesGen".
+SOURCE_READERS = (("dirac/crcoverage", ("dirac",)),)
+# Markdown a test parses with os.ReadFile: no import selects the reader, and every .md path is skipped below,
+# so without this table a docs-only diff selects nothing. Only a file a test actually reads belongs here
+# (never a blanket `.md`): a changed file selects the reading package. Measured: #5861's first head dropped
+# three stand-ins from effect-modes.md, `fast` selected nothing, and merge batch 46119791110 went red on
+# engine/rules' TestEffectStaticCensus, which parses that row.
+MD_READERS = (("engine/rules", ("docs/agents/known-approximations/effect-modes.md",)),)
 # The precheck's oracle replay slice ran as one go test process (~200 top-level tests: the census and refusal
 # families plus the replay slice, then 25%) and outran the package's 5m cap on 34 of the last 40 targeted runs (11-27);
 # its summed test wall was ~500 s. test-targets.sh runs the slice as this many concurrent, cost-dealt lanes
@@ -257,6 +268,13 @@ RULES_SKIP = ("TestHeads", "TestLargeEliminationSweepDoesNotTripLivelockWatcher"
 # never red (audit item 8): a run plays one, chosen by the commit sha's parity, so consecutive commits cover both.
 KERNEL_PAIR = ("TestKernelWorldsInFuzzGame5Shard0", "TestKernelWorldsInFuzzGame5Shard1")
 PINS_TESTS = "^TestPinManifest$|^TestPinManifestCoversOldPins$"
+# engine/rules' CR-deviation pins (cr_deviation_pins_test.go) assert today's departures from the CR, so a
+# non-test source change that reaches ./engine/rules can flip them. They match neither a changed test's name
+# nor CENSUS, and a heavy ./engine/rules census row is not run by the fast stage (scripts/ci-fast.sh runs
+# whole and named rows only), so they went to the merge batch: #5807's engine/events change passed `fast`
+# and merge batches 46111358109 and 46110843281 went red on TestCRDeviation730_2d. They run as their own
+# bounded named row (see plan).
+DEVIATION_PINS = "^TestCRDeviation[A-Za-z0-9_]*$"
 ARCH32 = "TestEngineCompilesFor32Bit"
 FAST_TIER = "dirac/oracle/testdata/fasttier.txt"
 # One -timeout per package, used by test-one, test-targeted, test-smart and the dirac gate's step 8.
@@ -620,6 +638,12 @@ def plan(changes, dirmap, deps, lines_of, repro_names=None, added=(), narrow=Non
                 named.setdefault(p, set()).update(n for n in names if "/" not in n)
     for path, ranges in sorted(changes.items()):
         if path.endswith(".md"):
+            # A doc a test parses selects that test's package; any other .md selects nothing (MD_READERS).
+            for reader, docs in MD_READERS:
+                if path in docs:
+                    ip = dirmap.get(reader)
+                    if ip is not None and ip in deps:
+                        touched.add(ip)
             continue
         if path.startswith(TABLE_DATA) and not path.endswith(".go"):
             for d in TABLE_READERS:
@@ -744,6 +768,13 @@ def plan(changes, dirmap, deps, lines_of, repro_names=None, added=(), narrow=Non
     if narrow is not None:
         _narrow(out, changes, src, forced_whole, named, deps, local, narrow, sel, replay_part())
     res = [out[k] for k in sorted(out)]
+    # A non-test source change that reaches ./engine/rules can flip a CR-deviation pin (DEVIATION_PINS). They
+    # match neither the named set nor CENSUS, and a heavy census row does not run in the fast stage, so select
+    # them as their own bounded named row. Never whole: the package keeps every cap, timeout and budget.
+    rip = dirmap.get(RULES[2:])
+    if (rip is not None and out.get(RULES, ("",))[0] == "census"
+            and (rip in src or deps.get(rip, set()) & src)):
+        res.append(("named", RULES, DEVIATION_PINS))
     # TF-01: the replay slice runs on its own -run (replay_part), appended after the plain entries:
     # the manifest's named recordings and the pool globs' recordings replay as subtests there — the
     # subtest names are recording file names, unique in the directory, so a pool glob's subtests

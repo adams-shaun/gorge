@@ -46,14 +46,55 @@ const maxCAAnswers = 64
 // comboAnyMana reports whether a is an unrestricted "{T}: Add N mana in any
 // combination of colors" ability (N dynamic or at least two): the Combo Any
 // census gap. A restricted one keeps the wide any-colour model
-// (restrWideAnyMana), one with a cost beyond {T} its own lowering or refusal.
-func comboAnyMana(a *kop.Ability) bool {
-	return a.Kind == kop.AbMana &&
-		a.AFlags&(kop.AfManaChoice|kop.AfLatent|kop.AfManaEachColor|kop.AfManaChosen|kop.AfManaReflect) == kop.AfManaChoice &&
-		a.ManaColors == kop.ColAny && a.ManaRestrict == 0 && !a.ManaDeferred && !a.ManaEach && a.ManaRider == 0 &&
-		a.SplitGate == 0 && a.SplitCols == 0 &&
-		(a.Cost.Flags == kop.CostTap && a.Cost.Mana.MV() == 0 && a.Cost.Mana.X == 0 || kop.ForageComboAnyAb(a)) &&
-		(a.AFlags&kop.AfManaDynamic != 0 || a.ManaN >= 2)
+// (restrWideAnyMana), one with a cost beyond the tap / once-each-turn flags its
+// own lowering or refusal.
+//
+// The printed colours may be a finite mask (Vivi Ornitier's "Add X mana in any
+// combination of {U} and/or {R}"): the answers are then the mask's colours, not
+// WUBRG (caAnswerCountMask). A {0} once-each-turn ability (Vivi) carries no
+// CostTap, so the activation taps nothing and the once-each-turn bit is
+// perm.actUsed (CostOncePerTurn).
+func comboAnyMana(a *kop.Ability) bool { return kop.ComboAnyManaAb(a) }
+
+// caMask is the colours the Combo Any source at sl can add (a finite mask, or
+// ColAny for the printed any-colour shapes).
+func (s *State) caMask(k *prep, sl Slot) kop.ColorMask {
+	return k.comboAnyAb(s.cardAt(sl)).ManaColors
+}
+
+// caGapLive is gapLive for a Combo Any source: a source whose activation costs
+// no {T} (Vivi's {0} ability) can be used tapped or summoning-sick, and the
+// ability's own Trig.Cond gate (PlayerTurn$ True) is read here per activation.
+// The once-each-turn bit is CostOncePerTurn (perm.actUsed, caTap sets it).
+func (s *State) caGapLive(k *prep, p uint8, sl Slot, a *kop.Ability) bool {
+	pm := &s.perms[sl]
+	if s.pickedForMana(pm.obj) || s.genLost(k, sl) || s.unlessCensusSkips(a) ||
+		k.gen.anyCantAct && s.actForbidden(k, sl, true) {
+		return false
+	}
+	if a.Cost.Flags&kop.CostTap != 0 && (pm.flags&pfTapped != 0 || s.activationSick(k, sl)) {
+		return false
+	}
+	if a.Trig.Cond != 0 && !s.condEval(k, a.Trig.Cond, evalCtx{src: pm.obj, srcSl: sl, ctrl: pm.ctrl}) {
+		return false
+	}
+	idx := k.gen.gapOther(s.cardAt(sl))
+	return a.Cost.Flags&kop.CostOncePerTurn == 0 || idx < 0 || idx >= 8 || pm.actUsed&(1<<uint(idx)) == 0
+}
+
+// caFiniteYields reports whether the source at sl is a finite-mask Combo
+// source (Vivi Ornitier's {U}/{R}) adding mana now: one of the sources gorge's
+// window flag counts (untappedManaSourceFor, windowSourceYields). A Combo Any
+// source's open bound is read before that flag (caPotentialOpen); a finite
+// one's unbounded faces are the potential walk's own fold, which the flag
+// gates.
+func (s *State) caFiniteYields(k *prep, p uint8, sl Slot) bool {
+	c := s.cardAt(sl)
+	if !k.isComboAny(c) || k.isReflAmt(c) {
+		return false
+	}
+	a := k.comboAnyAb(c)
+	return a.ManaColors != kop.ColAny && s.caGapLive(k, p, sl, a) && s.caAmount(k, sl) > 0
 }
 
 // isComboAny reports whether card c's census gap (gfGapOther) is its Combo Any
@@ -86,12 +127,18 @@ func (s *State) caGapsF(k *prep, p uint8, forage bool) slotMask {
 	if !k.gen.anyComboAny {
 		return slotMask{}
 	}
-	m := s.gapMask(k, p, gfGapOther)
-	for b := m; b.any(); b = b.rest() {
+	var m slotMask
+	for b := s.ctrlM[SeatIx(p)]; b.any(); b = b.rest() {
 		sl := b.first()
-		if !(k.isComboAny(s.cardAt(sl)) || k.isReflAmt(s.cardAt(sl))) || s.caAmount(k, sl) == 0 || k.forageCA(s.cardAt(sl)) && !(forage && s.foragePayable(k, p, sl)) {
-			m = m.andNot(slotBit(sl))
+		c := s.cardAt(sl)
+		if !(k.isComboAny(c) || k.isReflAmt(c)) {
+			continue
 		}
+		if !s.caGapLive(k, p, sl, k.comboAnyAb(c)) || s.caAmount(k, sl) == 0 ||
+			k.forageCA(c) && !(forage && s.foragePayable(k, p, sl)) {
+			continue
+		}
+		m = m.with(sl)
 	}
 	return m
 }
@@ -172,7 +219,7 @@ func (s *State) caGapAnswers(k *prep, sl Slot) uint8 {
 	case k.isReflAmt(s.cardAt(sl)):
 		return s.reflAmtAnswers(k, sl)
 	}
-	return uint8(caAnswerCount(s.caAmount(k, sl)))
+	return uint8(caAnswerCountMask(s.caAmount(k, sl), s.caMask(k, sl)))
 }
 
 // caChainTap taps Combo Any source sl for the scriptDFS chain's answer c of play
@@ -186,7 +233,7 @@ func (s *State) caChainTap(k *prep, p uint8, a Action, sl Slot, c int) {
 		return
 	}
 	need := s.playNeed(k, a)
-	s.caActivate(k, p, sl, caRank(s.caAmount(k, sl), &need, c))
+	s.caActivate(k, p, sl, caRankMask(s.caAmount(k, sl), s.caMask(k, sl), &need, c))
 }
 
 // availCA adds each live Combo Any source's units: its amount of any colour.
@@ -203,7 +250,7 @@ func (s *State) availCA(k *prep, p uint8, a *avail) {
 			a.addUnits(uint8(kop.ColC), uint8(s.caAmount(k, sl)))
 			continue
 		}
-		a.addUnits(0x1f, uint8(s.caAmount(k, sl)))
+		a.addUnits(uint8(s.caMask(k, sl)), uint8(s.caAmount(k, sl)))
 	}
 }
 
@@ -229,26 +276,47 @@ func (s *State) removeCA(k *prep, a *avail, sl Slot) {
 		a.takeWide(uint8(kop.ColC), uint16(n))
 		return
 	}
-	a.takeWide(0x1f, uint16(n))
+	a.takeWide(uint8(s.caMask(k, sl)), uint16(n))
 }
 
-// caPotentialOpen reports whether p controls an untapped, activatable Combo
-// Any source (gapMask over gfGapOther): gorge's potential walk (rules
-// potential.go addPotentialMana, producedOpenSet) prices a "in any
-// combination of colors" production unbounded in every colour, a dynamic
-// amount indeterminate there, so even a source that can make none now keeps
-// the bound open. A trigger's own mana cost then looks payable beside the
-// decline (CR 118.12): the payer elects pay, the window taps the source
-// (windowGap, windowComboTap), and a charge it cannot fund fails (CR 118.3)
-// and the payer declines.
+// caPotentialOpen reports whether gorge's potential bound is open in every
+// colour through a Combo Any source of p's: a live one whose printed mask is
+// any colour. gorge's potential walk (rules potential.go addPotentialMana,
+// producedOpenSet) prices a "in any combination of colors" production
+// unbounded in every colour, a dynamic amount indeterminate there, so even a
+// source that can make none now keeps the bound open. A trigger's own mana
+// cost then looks payable beside the decline (CR 118.12): the payer elects
+// pay, the window taps the source (windowGap, windowComboTap), and a charge it
+// cannot fund fails (CR 118.3) and the payer declines. A finite mask (Vivi
+// Ornitier's "Combo U R") is no such open: producedOpen reads it closed and
+// gorge prices it unbounded in its printed faces alone
+// (addIndeterminatePotentialMana, CR 107.4a), which the potential walk's own
+// fold does (legal.go censusDynamicAb, addAnyDifferentOrOpen).
 //
 //go:noinline
 func (s *State) caPotentialOpen(k *prep, p uint8) bool {
+	return s.caLiveWithin(k, p, kop.ColAny)
+}
+
+// caWalkOpen reports whether p controls any live Combo source, whose mana the
+// priced walk cannot count: the grant search then walks every play open and
+// keeps the ones its prefix pays (caOpenGrant).
+//
+//go:noinline
+func (s *State) caWalkOpen(k *prep, p uint8) bool {
+	return s.caLiveWithin(k, p, 0)
+}
+
+// caLiveWithin reports whether p controls a live Combo source whose printed
+// mask holds every colour of need.
+func (s *State) caLiveWithin(k *prep, p uint8, need kop.ColorMask) bool {
 	if k.gen == nil || !k.gen.anyComboAny {
 		return false
 	}
-	for b := s.gapMask(k, p, gfGapOther); b.any(); b = b.rest() {
-		if k.isComboAny(s.cardAt(b.first())) && !(k.forageCA(s.cardAt(b.first())) && !s.foragePayable(k, p, b.first())) {
+	for b := s.ctrlM[SeatIx(p)]; b.any(); b = b.rest() {
+		sl := b.first()
+		c := s.cardAt(sl)
+		if k.isComboAny(c) && s.caMask(k, sl)&need == need && s.caGapLive(k, p, sl, k.comboAnyAb(c)) && !(k.forageCA(c) && !s.foragePayable(k, p, sl)) {
 			// a reflected Amount$ source beside it is no whole-pool open — its
 			// fold is {C} alone (mana_reflamt.go reflAmtPotential) — so it
 			// stays out and the affords check below reads it
@@ -260,33 +328,61 @@ func (s *State) caPotentialOpen(k *prep, p uint8) bool {
 
 // caAnswerCount is the answers the colour ask of n units poses (scriptAnswers):
 // a single unit's five, else the first 64 of the 5^n per-unit combinations.
-func caAnswerCount(n int) int {
-	switch {
-	case n <= 1:
-		return 5
-	case n == 2:
-		return 25
+func caAnswerCount(n int) int { return caAnswerCountMask(n, kop.ColAny) }
+
+// caAnswerCountMask is caAnswerCount over the ability's printed colour mask:
+// each unit's digit is one of the mask's colours (WUBRG order), so Vivi
+// Ornitier's {U}/{R} units pose two answers each, not five.
+func caAnswerCountMask(n int, mask kop.ColorMask) int {
+	base := bits.OnesCount8(uint8(mask))
+	if base == 0 {
+		return 0
 	}
-	return maxCAAnswers
+	total := 1
+	for u := 0; u < n; u++ {
+		total *= base
+		if total >= maxCAAnswers {
+			return maxCAAnswers
+		}
+	}
+	return total
 }
 
 // caDigit is the colour (W U B R G = 0..4) answer i gives unit u of n: i read in
-// base five, unit 0 the most significant digit. A unit above the last three
-// reads a zero (the answers stop at 64).
-func caDigit(i, n, u int) int {
-	for q := n - 1 - u; q > 0 && i > 0; q-- {
-		i /= 5
+// base five, unit 0 the most significant digit.
+func caDigit(i, n, u int) int { return caDigitMask(i, n, u, kop.ColAny) }
+
+// caDigitMask is caDigit over the printed colour mask: the digit indexes the
+// mask's colours in WUBRG order.
+func caDigitMask(i, n, u int, mask kop.ColorMask) int {
+	base := bits.OnesCount8(uint8(mask))
+	if base == 0 {
+		return 0
 	}
-	return i % 5
+	for q := n - 1 - u; q > 0 && i > 0; q-- {
+		i /= base
+	}
+	d := i % base
+	for c := 0; c < kop.NumManaKinds; c++ {
+		if mask&(1<<uint(c)) != 0 {
+			if d == 0 {
+				return c
+			}
+			d--
+		}
+	}
+	return 0
 }
 
 // caNames reports whether odometer answer i of n units picks a colour need names.
 func caNames(i, n int, need *[kop.NumManaKinds]bool) bool {
-	if n > 3 && need[0] {
-		return true // the leading units all read W
-	}
-	for u := max(n-3, 0); u < n; u++ {
-		if need[caDigit(i, n, u)] {
+	return caNamesMask(i, n, need, kop.ColAny)
+}
+
+// caNamesMask is caNames over the printed colour mask.
+func caNamesMask(i, n int, need *[kop.NumManaKinds]bool, mask kop.ColorMask) bool {
+	for u := 0; u < n; u++ {
+		if need[caDigitMask(i, n, u, mask)] {
 			return true
 		}
 	}
@@ -298,13 +394,18 @@ func caNames(i, n int, need *[kop.NumManaKinds]bool) bool {
 // then the rest, each half in odometer order; odometer order when the play names
 // no colour.
 func caRank(n int, need *[kop.NumManaKinds]bool, r int) int {
+	return caRankMask(n, kop.ColAny, need, r)
+}
+
+// caRankMask is caRank over the printed colour mask.
+func caRankMask(n int, mask kop.ColorMask, need *[kop.NumManaKinds]bool, r int) int {
 	if !(need[0] || need[1] || need[2] || need[3] || need[4]) {
 		return r
 	}
-	total := caAnswerCount(n)
+	total := caAnswerCountMask(n, mask)
 	for _, first := range [2]bool{true, false} {
 		for i := 0; i < total; i++ {
-			if caNames(i, n, need) == first {
+			if caNamesMask(i, n, need, mask) == first {
 				if r == 0 {
 					return i
 				}
@@ -316,27 +417,53 @@ func caRank(n int, need *[kop.NumManaKinds]bool, r int) int {
 }
 
 // caActivate activates the Combo Any source at sl with odometer answer ans:
-// the tap, then one unit of each answered colour into p's pool.
+// the tap (only when the cost asks for one), then one unit of each answered
+// colour into p's pool.
 func (s *State) caActivate(k *prep, p uint8, sl Slot, ans int) {
 	n := s.caAmount(k, sl)
 	s.caTap(k, sl)
 	s.caAdd(k, p, sl, ans, n)
 }
 
-// caTap taps Combo Any source sl.
-func (s *State) caTap(k *prep, sl Slot) {
-	s.perms[sl].flags |= pfTapped
-	s.touchSl(sl)
-	s.manaTapped(k, sl)
+// caTapsSource reports whether the Combo source at sl's activation cost holds
+// {T} (Vivi Ornitier's {0} ability does not).
+func (s *State) caTapsSource(k *prep, sl Slot) bool {
+	return k.comboAnyAb(s.cardAt(sl)).Cost.Flags&kop.CostTap != 0
 }
 
-// caAdd adds the n units answer ans names to p's pool.
-func (s *State) caAdd(k *prep, p uint8, sl Slot, ans, n int) {
-	var got [5]int
-	for u := max(n-3, 0); u < n; u++ {
-		got[caDigit(ans, n, u)]++
+// caTap pays Combo Any source sl's activation: the {T} when the cost has one,
+// with its Taps notification, and the once-each-turn record.
+func (s *State) caTap(k *prep, sl Slot) {
+	s.caPayCost(k, sl)
+	if s.caTapsSource(k, sl) {
+		s.manaTapped(k, sl)
 	}
-	got[0] += max(n-3, 0) // the leading units read W
+}
+
+// caPayCost is caTap without the Taps notification (the grant search's next
+// stacks it): the {T} when the cost has one, and the once-each-turn record
+// (Vivi's ActivationLimit$ 1, perm.actUsed).
+func (s *State) caPayCost(k *prep, sl Slot) {
+	a := k.comboAnyAb(s.cardAt(sl))
+	if a.Cost.Flags&kop.CostTap != 0 {
+		s.perms[sl].flags |= pfTapped
+		s.touchSl(sl)
+	}
+	if a.Cost.Flags&kop.CostOncePerTurn != 0 {
+		if idx := k.gen.gapOther(s.cardAt(sl)); idx >= 0 && idx < 8 {
+			s.perms[sl].actUsed |= 1 << uint(idx)
+		}
+	}
+}
+
+// caAdd adds the n units answer ans names to p's pool, one of the ability's
+// printed colour mask per unit.
+func (s *State) caAdd(k *prep, p uint8, sl Slot, ans, n int) {
+	mask := s.caMask(k, sl)
+	var got [kop.NumManaKinds]int
+	for u := 0; u < n; u++ {
+		got[caDigitMask(ans, n, u, mask)]++
+	}
 	for col, c := range got {
 		if c > 0 {
 			s.poolAdd(p, col, c)
@@ -452,9 +579,10 @@ func (cs *caSearch) visit(k *prep, t *State, d *Decision, root bool) bool {
 			continue
 		}
 		cs.nodes++ // the colour ask's node
+		mask := t.caMask(k, order[i])
 		units := t.caAmount(k, order[i])
-		for r, na := 0, caAnswerCount(units); r < na; r++ {
-			ans := caRank(units, &cs.need, r)
+		for r, na := 0, caAnswerCountMask(units, mask); r < na; r++ {
+			ans := caRankMask(units, mask, &cs.need, r)
 			c := t.fork()
 			c.caActivate(k, cs.p, order[i], ans)
 			cs.path[cs.np] = caStep{sl: order[i], ans: uint8(ans)}
@@ -521,11 +649,15 @@ func (cs *caSearch) stallOf(c *State) {
 // by what each mana covers; a window whose ask carries no cost (noOwed) owes
 // nothing, so every mana is the lowest listed.
 func (s *State) windowComboTap(k *prep, p uint8, sl Slot, cost, useful *kop.ManaCost, clamp, noOwed bool) {
+	if s.windowFlatCombo(k, p, sl) {
+		col := s.windowFlatCol(k, p, sl, cost, useful, clamp, noOwed)
+		s.caTap(k, sl)
+		s.caFloat(k, p, sl, col) // the flattened ability option (mana_windowcomboflat.go)
+		return
+	}
 	n := s.caAmount(k, sl)
-	s.perms[sl].flags |= pfTapped
-	s.touchSl(sl)
-	s.manaTapped(k, sl)
-	mask := uint8(kop.ColAny)
+	s.caTap(k, sl)
+	mask := uint8(s.caMask(k, sl))
 	if clamp {
 		if want, decided := s.windowUseful(k, p, useful); decided && want&mask != 0 {
 			mask &= want

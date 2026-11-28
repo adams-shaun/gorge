@@ -120,7 +120,7 @@ func (s *State) availTapXUnwalked(k *prep, p uint8, av *avail) {
 		if k.gen != nil && kop.TapXMana(a) {
 			continue // a unit of the potential walk's fixpoint already
 		}
-		addTapXUnits(av, a)
+		s.addTapXUnitsFor(av, k, p, b.first(), a)
 	}
 }
 

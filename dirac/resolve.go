@@ -725,10 +725,7 @@ func (s *State) objRef(k *prep, r kop.Ref) Slot {
 	if ob.zone != kop.ZoneBattlefield {
 		return NoSlot
 	}
-	if r == kop.RefSelf && ob.ver != s.res.e.srcVer && s.res.e.kind != seSpell && s.drawBodySrc() == 0 {
-		// (inside a replacement program Self is the replacement permanent,
-		// on the battlefield now by construction: the outer entry's queued
-		// version is not its version)
+	if r == kop.RefSelf && s.selfReturned(&s.res.e, ob) {
 		return NoSlot
 	}
 	if r == kop.RefTriggerObj && s.res.flags&rfTrigGone != 0 {
@@ -738,6 +735,16 @@ func (s *State) objRef(k *prep, r kop.Ref) Slot {
 		return NoSlot // the emblem trigger was queued at srcVer = ver+1: the source moved since (CR 400.7)
 	}
 	return ob.slot
+}
+
+// selfReturned reports that ob, e's source on the battlefield, is not the
+// object e's ability went on the stack with: it left and came back, a new
+// object Self does not name (CR 400.7). A spell is exempt, and so is a
+// replacement program, whose Self is the replacement permanent, on the
+// battlefield now by construction: the outer entry's queued version is not its
+// version.
+func (s *State) selfReturned(e *stackEntry, ob *object) bool {
+	return ob.ver != e.srcVer && e.kind != seSpell && s.drawBodySrc() == 0
 }
 
 // drawBodySrc is replSrcOf while a Draw replacement body runs (the cold
@@ -1111,6 +1118,9 @@ func (s *State) value(k *prep, v kop.ValueRef) int {
 func (s *State) srcKw(k *prep) kop.KwMask {
 	if sl := s.objRef(k, kop.RefSelf); sl != NoSlot {
 		return s.kw(k, sl)
+	}
+	if s.emblemSrc(k, s.res.e.card) {
+		return 0 // an emblem's ability: the emblem has no keywords (CR 114.3; repl_emblemsrc.go)
 	}
 	kw := k.cards[s.res.e.card].kw
 	if e := &s.res.e; e.kind != seSpell {

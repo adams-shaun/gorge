@@ -62,8 +62,8 @@ func filtMemoMode(k *prep) uint16 {
 
 // filtMemoProbe is filtScript's lookup. live reports that the search's answer
 // may be remembered (a play probe on the real game: no apply, no fork
-// outstanding, no search or census window running); hit that this game
-// already failed it.
+// outstanding, no search, census window or unless gate running); hit that
+// this game already failed it.
 type filtMemoProbe struct {
 	ent       filtMemoEnt
 	live, hit bool
@@ -71,7 +71,7 @@ type filtMemoProbe struct {
 
 func (s *State) filtMemoLookup(k *prep, a Action, p uint8, apply bool) (m filtMemoProbe) {
 	pl := s.pool
-	if apply || pl == nil || pl.depth != 0 || pl.inFilt != 0 || pl.census || DebugFiltNoMemo {
+	if apply || pl == nil || pl.depth != 0 || pl.inFilt != 0 || pl.census || pl.unlessGate || DebugFiltNoMemo {
 		return m
 	}
 	av := s.g.availX
@@ -111,6 +111,9 @@ func (s *State) filtMemoReset() {
 		p.fmemo.n, p.fmemo.next = 0, 0
 		p.pcm.owner, p.pcm.live = 0, 0
 		p.sfm.owner = 0
+		if p.depth == 0 {
+			p.offm.reset() // a fork's step keeps the offer verdicts (mana_offersmemo.go)
+		}
 	}
 }
 

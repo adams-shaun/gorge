@@ -22,7 +22,8 @@ const (
 // subject is refused as wrong-subject.
 //
 // Grammar: text = part {"&" part}, spaces around a part ignored; two or more parts are a RefUnion. A part
-// is, in order: "Valid <filter>" or "ValidAll <filter>" (RefAll); a player
+// is, in order: "Valid <filter>" or "ValidAll <filter>" (RefAll, the latter
+// with AllZones when it selects objects); a player
 // filter with base Player or Opponent (RefAll); an atom word; an atom word
 // with a projection suffix (Controller, Owner); or "<A>And<B>" with A and B
 // atoms (RefUnion).
@@ -77,7 +78,10 @@ func lowerRefPart(p string) (*ir.Ref, refSubj, string, *Refusal) {
 			if subj == 0 {
 				return nil, 0, "", refuse(RefuseWrongSubject, head)
 			}
-			return refAll(f, p), subj, head, nil
+			all := refAll(f, p)
+			// Players are in no zone, so the two heads mean the same for them.
+			all.AllZones = head == "ValidAll" && subj == rsObject
+			return all, subj, head, nil
 		}
 	}
 	base := baseOf(p)
