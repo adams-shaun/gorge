@@ -128,16 +128,23 @@ func (e *Engine) ObjectColors(o *state.Object) string { return e.objColors(o) }
 
 // CastProhibited is effects' optional castProhibitedHost read: the same CantBeCast gate beginPlay enforces
 // (engine/rules/statics_cast.go castRestrictedFree -- every Play election is
-// a free or PlayCost$ cast, CR 107.3b, so no CR 601.3a X lookahead),
+// a free or PlayCost$ cast, CR 107.3b, so no CR 601.3a X lookahead) and the
+// spell's own cast restriction (spellCastWindowOK),
 // exposed so effPlay's Play election never
 // OFFERS a cast that CR 601.3 would refuse. It is a pure read -- no event,
-// no state change -- and the beginPlay recheck stays the enforcement site.
+// no state change; beginPlay rechecks CantBeCast, while the printed
+// restriction is enforced here.
 func (e *Engine) CastProhibited(p state.PlayerID, id state.ObjID) bool {
-	// A land is played, not cast: its offer follows beginPlay's land gate
-	// (CR 305.2a/305.3), so the election never offers a land play the
-	// hand-off would refuse.
-	if o := e.G.Obj(id); o != nil && o.Face() != nil && o.Face().IsLand() {
-		return e.effectLandPlayRefusal(p, id, o.Zone) != ""
+	if o := e.G.Obj(id); o != nil && o.Face() != nil {
+		// A land is played, not cast: its offer follows beginPlay's land gate
+		// (CR 305.2a/305.3), so the election never offers a land play the
+		// hand-off would refuse.
+		if o.Face().IsLand() {
+			return e.effectLandPlayRefusal(p, id, o.Zone) != ""
+		}
+		if !spellCastWindowOK(e, p, id, o.Face().SpellAbility()) {
+			return true
+		}
 	}
 	return e.castRestrictedFree(p, id)
 }
