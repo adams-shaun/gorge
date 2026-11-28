@@ -263,11 +263,8 @@ func (s *State) execPay(k *prep, in *kop.Instr) bool {
 			return false
 		}
 	}
-	if kind == kop.PaySac && in.B.N == kop.PayBSubSacXTrig {
-		return s.execTrigSacX(k, p, skip, in.F) // cost_sacxtrig.go
-	}
-	if kind == kop.PayMana && skip&pfModes == 0 && s.res.e.kind == seTrigger && kop.PayManaHybN(in.F) != 0 {
-		return s.startPayPips(p, skip, amt) // a trigger's own hybrid cost announces its pips first (cost_trighybrid.go)
+	if s.startPayAnnounce(k, in, p, kind, skip, amt) {
+		return false
 	}
 	skip = s.payAnswerGate(k, in, p, kind, skip, amt, pips)
 	s.g.pickF = skip
@@ -281,6 +278,23 @@ func (s *State) execPay(k *prep, in *kop.Instr) bool {
 	s.g.pickP = p
 	s.res.ask, s.res.askP = raGenPay, p
 	return false
+}
+
+// startPayAnnounce suspends on the announcement a trigger's own cost makes
+// before its pay election: a Sac<X>'s count (cost_sacxtrig.go) or a hybrid
+// cost's pip faces (cost_trighybrid.go). false = in announces nothing.
+//
+//go:noinline
+func (s *State) startPayAnnounce(k *prep, in *kop.Instr, p uint8, kind int, skip uint16, amt int) bool {
+	switch {
+	case kind == kop.PaySac && in.B.N == kop.PayBSubSacXTrig:
+		s.execTrigSacX(k, p, skip, in.F)
+	case kind == kop.PayMana && skip&pfModes == 0 && s.res.e.kind == seTrigger && kop.PayManaHybN(in.F) != 0:
+		s.startPayPips(p, skip, amt)
+	default:
+		return false
+	}
+	return true
 }
 
 // payAnswerGate adds pfNoPay to skip when the cost cannot be paid (the ask is
