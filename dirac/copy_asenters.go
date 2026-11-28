@@ -241,8 +241,8 @@ func (s *State) becomeCopyEnter(k *prep, sl Slot, in *kop.Instr) {
 	// the battlefield, the queued as-enters ask)
 	// A face-down template's values have none (copy_facedown.go).
 	pc := &k.cards[c]
-	if pc.enterTap && !blank || in.B.K == kop.VConst && in.B.N&kop.BecomeCopyTapped != 0 {
-		p.flags |= pfTapped // the template's own enters-tapped, or IntoPlayTapped$ True (Vesuva)
+	if pc.enterTap && !blank {
+		p.flags |= pfTapped
 	}
 	if !blank && pc.enterCtr != 0 && !(k.gen.anyEntryMerge && s.entryAcc(int(pc.enterCK), int(pc.enterCtr))) {
 		s.placeEntryCounters(k, sl, int(pc.enterCK), int(pc.enterCtr), p.ctrl)
@@ -270,6 +270,27 @@ func (s *State) becomeCopyEnter(k *prep, sl Slot, in *kop.Instr) {
 			}
 		}
 	}
+	if in.B.K == kop.VConst && in.B.N&kop.BecomeCopyTapped != 0 {
+		// IntoPlayTapped$ True (Vesuva): the Clone body's own tap (gorge
+		// effClone), not a move's Tapped$, so a template's election queued
+		// above (a shock land's pay-life) does not hold it back
+		p.flags |= pfTapped
+	}
+}
+
+// cloneElectionDefers reports whether the land play of o elected a copy of a
+// land whose enters program opens with an as-enters election (a shock land's
+// pay-life, a reveal land's; gfShockEntry): the copy's queued election
+// completes the play, so its count waits, as for the template played itself.
+//
+//go:noinline
+func (s *State) cloneElectionDefers(k *prep, o Obj) bool {
+	p := &s.g.pre
+	if p.state != 2 || p.kind != akClone || p.obj != o || Obj(p.val) == NoObj {
+		return false
+	}
+	c, _, ok := s.cloneTmplCard(Obj(p.val))
+	return ok && k.gen.has(c, gfShockEntry)
 }
 
 // embalmMint reports whether copy token t, minted by in, is the embalm token

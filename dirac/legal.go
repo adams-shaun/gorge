@@ -4031,7 +4031,7 @@ func (s *State) playLandNow(k *prep, o Obj, p uint8) {
 	// a shock land's election is posed once it is on the battlefield: the
 	// play's land count is taken when the answer completes it
 	// (repl_shockland.go)
-	deferCount := k.gen != nil && k.gen.has(s.objs[o].card, gfShockEntry)
+	deferCount := k.gen != nil && (k.gen.has(s.objs[o].card, gfShockEntry) || s.cloneElectionDefers(k, o))
 	if !deferCount && !counted {
 		s.pl[p].landsPlayed++
 	}
