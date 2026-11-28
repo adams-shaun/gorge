@@ -584,10 +584,7 @@ func (g *Game) askOption(x dirac.Action, c canon.Canon, i uint32) (o decision.Op
 
 // chooseOption reads a KChoose pick.
 func (g *Game) chooseOption(x dirac.Action, c canon.Canon) (decision.Option, uint32) {
-	o := decision.Option{Obj: g.ids.ref(c.Src(), &g.kp), Kind: "other", Player: state.PlayerID(g.d.Player)}
-	if i := int(c.Kind() - canon.ActChoose); i < len(canon.ChooseKinds) {
-		o.Kind = canon.ChooseKinds[i]
-	}
+	o := decision.Option{Obj: g.ids.ref(c.Src(), &g.kp), Kind: chooseKind(c, g.d.Sub), Player: state.PlayerID(g.d.Player)}
 	if n, ok := canon.OptInSeatName(o.Kind); ok {
 		o.Kind = n // gorge's repeat_each_optional options, 1:1 (the subject seat is the decision's Player)
 		o.Label = strings.ToUpper(n[:1]) + n[1:]
@@ -602,7 +599,7 @@ func (g *Game) chooseOption(x dirac.Action, c canon.Canon) (decision.Option, uin
 	case "multikick":
 		o.Amount = int(c.Mode())
 		o.Label = "Pay the multikicker cost " + strconv.Itoa(o.Amount) + " time(s)"
-	case "number":
+	case "number", "move_counter": // gorge's MoveCounter amount ask: the count on Amount and as the label
 		o.Amount = int(c.Mode())
 		o.Label = strconv.Itoa(o.Amount)
 	case "paylife":
@@ -666,6 +663,26 @@ func (g *Game) chooseOption(x dirac.Action, c canon.Canon) (decision.Option, uin
 		}
 	}
 	return o, g.chooseKey(x)
+}
+
+// chooseOtherKinds names gorge's option kind for the kernel asks that share
+// canon.ChooseOther, which the canonical option alone cannot tell apart.
+var chooseOtherKinds = map[dirac.ChoiceKind]string{
+	dirac.ChGenRingBearer:  "ring_bearer",  // gorge effRingTemptsYou
+	dirac.ChGenPair:        "pair",         // gorge effPair (soulbond)
+	dirac.ChMoveCounterAny: "move_counter", // gorge's MoveCounter amount ask
+}
+
+// chooseKind is the gorge option kind of choose pick c under kernel ask sub:
+// the ChooseKinds entry, else the kind sub names, else "other".
+func chooseKind(c canon.Canon, sub dirac.ChoiceKind) string {
+	if i := int(c.Kind() - canon.ActChoose); i < len(canon.ChooseKinds) {
+		return canon.ChooseKinds[i]
+	}
+	if k, ok := chooseOtherKinds[sub]; ok {
+		return k
+	}
+	return "other"
 }
 
 // altAddLabel words part i of the either-or additional cost of the spell being built.
