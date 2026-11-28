@@ -152,6 +152,14 @@ SOURCE_READERS = (("dirac/crcoverage", ("dirac/kgen",)),)
 # the lanes: 8 plain and 4 sub processes fill the run's 12 cores.
 ORACLE_LANES = 4
 ORACLE_PLAIN_LANES = 8
+# The cmd5 clean-pair ratchet's shards (TestCmd5SliceCleanOnlyGrows0..7, 1500 lockstep games on 4 workers each)
+# match the slice's CENSUS arm on every run. In the oracle-slice targeted run at 6ea733296d (12 lanes, 1.9 idle
+# cores) they took 106-161 s each, ~1,090 of the slice's ~3,800 lane-s, while the run's 12-core quota fits ~2,900
+# lane-s in 240 s. The slice plays the shards of its merge base's lane only (shard i when i % 4 is slice_lane's
+# crc32(sha) % 4: two of the eight, every pair once over four bases), as it plays 25% of the recordings; a diff
+# that names a shard (a change to the ratchet's test or pin) plays it, and CI's oracle parts and the batch play
+# all eight.
+CMD5_SHARD = re.compile(r"^TestCmd5SliceCleanOnlyGrows([0-9]+)$")
 RULES = "./engine/rules"
 ORACLE = "./dirac/oracle"
 ARCHTEST = "./internal/archtest"
@@ -923,7 +931,7 @@ def sub_run_tops(rx, names):
     return [n for n in names if any(re.search(t, n) for t in tops)]
 
 
-def oracle_lanes(res, names=None, lanes=ORACLE_LANES, weights=None, zero=None, plain_lanes=ORACLE_PLAIN_LANES):
+def oracle_lanes(res, names=None, lanes=ORACLE_LANES, weights=None, zero=None, plain_lanes=ORACLE_PLAIN_LANES, sha=None):
     """Deal the ./dirac/oracle replay slice into cost-balanced bins of "oraclelane" entries: `plain_lanes`
     for the plain tests and `lanes` for each subtest -run.
 
@@ -948,7 +956,8 @@ def oracle_lanes(res, names=None, lanes=ORACLE_LANES, weights=None, zero=None, p
     weighs oracle_shard_deal.UNLISTED_SECONDS, the table's own default (it lists only tests of >= 1 s;
     the old table median, ~14 s, made every sub-second test outweigh the real ones). A subtest top weighs
     SLICE_SHARE of its table cost. zero is the names that weigh nothing (the pool-only tests when no deck
-    pools are on disk). When the slice cannot be dealt (no test list) every entry is left as it was, so a
+    pools are on disk). sha is the merge base (replay_sel's): with it, the cmd5 shards outside its lane
+    leave the slice unless the entry names them (CMD5_SHARD); None keeps them all. When the slice cannot be dealt (no test list) every entry is left as it was, so a
     broken listing never runs less. Every other package and entry is untouched."""
     picks = [i for i, (kind, pkg, rx) in enumerate(res)
              if pkg == ORACLE and kind == "named" and "/" not in rx and REFUSED in rx]
@@ -960,6 +969,11 @@ def oracle_lanes(res, names=None, lanes=ORACLE_LANES, weights=None, zero=None, p
         return res
     rx = res[picks[0]][2]
     selected = [n for n in names if re.search(rx, n)]  # go's -run: an unanchored match on the top-level name
+    if sha is not None:
+        named = set(rx[2:rx.index(")$")].split("|")) if rx.startswith("^(") and ")$" in rx else set()
+        lane = zlib.crc32(sha.encode()) % 4
+        selected = [n for n in selected
+                    if n in named or not CMD5_SHARD.match(n) or int(CMD5_SHARD.match(n).group(1)) % 4 == lane]
     if not selected:
         return res
     subs = [i for i, (kind, pkg, srx) in enumerate(res) if pkg == ORACLE and kind == "named" and "/" in srx]
@@ -1042,7 +1056,7 @@ def cmd_select(a):
     # The targeted run deals the oracle's replay slice into concurrent lanes (test-smart keeps its own
     # fixed chunker, oracle_chunked); nothing else about the selection moves.
     if reprosel is not None and not a.narrow:
-        res = oracle_lanes(res)
+        res = oracle_lanes(res, sha=reprosel.get("sha"))
     for kind, pkg, rx in res:
         print("%s\t%s\t%s" % (kind, pkg, rx))
     for p in skipped:

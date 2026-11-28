@@ -118,7 +118,6 @@ def test_a_changed_root_package_test_is_budget(tmp_path):
 KNOWN_SLOW_PINS = frozenset({
     ("dirac/oracle", "TestGraveReduceLockstep"),
     ("dirac/oracle", "TestGrantSearchPainlandFundingLockstep"),
-    ("engine/rules", "TestKernelWorldsInFuzzGame2"),
     ("dirac/kgen", "TestTableBuildDeterministic"),
     ("dirac/oracle", "TestCountheadsLockstep"),
     ("dirac/oracle", "TestFiredmgLockstep"),

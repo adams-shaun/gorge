@@ -76,7 +76,7 @@ def _real_slice_process_shares(monkeypatch, weights):
         reprosel = tt.replay_sel(ORACLE_DIRMAP, sha)
         assert reprosel and reprosel["tests"], "the real replay selection must load"
         res, _ = tt.plan({"dirac/state.go": None}, ORACLE_DIRMAP, ORACLE_DEPS, lambda p: [], None, (), None, reprosel)
-        laned = tt.oracle_lanes(res, names=names, weights=weights, zero=set())
+        laned = tt.oracle_lanes(res, names=names, weights=weights, zero=set(), sha=sha)
         procs = [rx for k, _, rx in laned if k == "oraclelane"]
         assert len(procs) > tt.ORACLE_LANES, "the slice must be dealt into lanes: %s" % procs
         halves = {}
