@@ -98,6 +98,9 @@ func TestCIInfraRetry(t *testing.T) {
 		// No --name: the label is the command's first word.
 		{name: "killed-twice-fails", first: killed, second: stubAttempt{"exit code 137\n", 7}, rc: 7, runs: 2,
 			warn: "::warning::ci-infra-retry: bash hit killed (exit 1); retrying once"},
+		// Go's syscall.ENOSPC message is all lowercase, unlike the C tools'.
+		{name: "go-no-space-retries", first: stubAttempt{"write /tmp/x: no space left on device\n", 1}, second: pass, label: "stub", rc: 0, runs: 2,
+			warn: "::warning::ci-infra-retry: stub hit no-space (exit 1); retrying once"},
 		{name: "test-fail-never-retries", first: killedWith("--- FAIL: TestX (0.00s)"), second: pass, label: "stub", rc: 1, runs: 1},
 		{name: "bad-game-never-retries", first: killedWith("bad-game\tpool seed=7"), second: pass, label: "stub", rc: 1, runs: 1},
 		{name: "build-failed-never-retries", first: killedWith("FAIL\texample/pkg [build failed]"), second: pass, label: "stub", rc: 1, runs: 1},
