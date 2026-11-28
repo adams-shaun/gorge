@@ -321,8 +321,9 @@ func TestKernelHeadsCheckpointAll(t *testing.T) {
 // game 2 in four, each shard replaying its main line and probing its share of
 // the decisions. Game 2 whole was 41.7 s (11-27, 19 idle cores) of which its
 // main line is ~10 s, so a quarter of its probes keeps each shard near 20 s.
-// Game 5's main line alone is ~55 s (60% of it the rules test binary's cache
-// verifiers), so more shards would only replay it more often.
+// Game 5's shards run sequentially with the four costliest cache verifiers off
+// (kernelWorldsInLongGame): with them on, its main line alone was ~55 s, which
+// no number of shards could cut.
 // GORGE_TAPE_WORLD_GAMES (above 6) sets how many games the Sweep plays: games
 // 6..N-1.
 const kernelWorldDefaultGames = 6
@@ -335,8 +336,8 @@ func TestKernelWorldsInFuzzGame2Shard2(t *testing.T) { kernelWorldsInFuzzGame(t,
 func TestKernelWorldsInFuzzGame2Shard3(t *testing.T) { kernelWorldsInFuzzGame(t, 2, 4, 3) }
 func TestKernelWorldsInFuzzGame3(t *testing.T)       { kernelWorldsInFuzzGame(t, 3, 1, 0) }
 func TestKernelWorldsInFuzzGame4(t *testing.T)       { kernelWorldsInFuzzGame(t, 4, 1, 0) }
-func TestKernelWorldsInFuzzGame5Shard0(t *testing.T) { kernelWorldsInFuzzGame(t, 5, 2, 0) }
-func TestKernelWorldsInFuzzGame5Shard1(t *testing.T) { kernelWorldsInFuzzGame(t, 5, 2, 1) }
+func TestKernelWorldsInFuzzGame5Shard0(t *testing.T) { kernelWorldsInLongGame(t, 5, 2, 0) }
+func TestKernelWorldsInFuzzGame5Shard1(t *testing.T) { kernelWorldsInLongGame(t, 5, 2, 1) }
 
 // TestKernelWorldsInFuzzGamesSweep plays games 6..GORGE_TAPE_WORLD_GAMES-1
 // under the same world probe; it skips unless the variable is above 6.
@@ -367,6 +368,11 @@ func TestKernelWorldsInFuzzGamesSweep(t *testing.T) {
 
 func kernelWorldsInFuzzGame(t *testing.T, g, shards, shard int) {
 	t.Parallel()
+	kernelWorldsPlayGame(t, g, shards, shard)
+}
+
+func kernelWorldsPlayGame(t *testing.T, g, shards, shard int) {
+	t.Helper()
 	if testing.Short() {
 		t.Skip("long")
 	}

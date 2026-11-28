@@ -126,7 +126,6 @@ KNOWN_SLOW_PINS = frozenset({
     ("dirac/oracle", "TestCopyTokenTappedLockstep"),
     ("dirac/oracle", "TestEclblightLockstep"),
     ("dirac/oracle", "TestDividedXTotalClassLockstep"),
-    ("engine/rules", "TestKernelWorldsInFuzzGame5Shard1"),
     ("dirac/oracle", "TestLeftzoneMutation"),
 })
 ACTIONS = {"split", "shard", "nightly"}

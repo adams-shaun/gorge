@@ -25,12 +25,11 @@ Owner action, one per row (the first word of the last column):
 | dirac/oracle | TestCopyTokenTappedLockstep | 70.8 | nightly |
 | dirac/oracle | TestEclblightLockstep | 69.8 | nightly |
 | dirac/oracle | TestDividedXTotalClassLockstep | 68.5 | nightly |
-| engine/rules | TestKernelWorldsInFuzzGame5Shard1 | 65.5 | shard |
 | dirac/oracle | TestLeftzoneMutation | 63.6 | nightly |
 
 ## Seeding
 
-The seed was 13 rows (TestKernelWorldsInFuzzGame2 left it on 11-27, split into four shards): the tests with a median over 60 s in the precheck audit's slowest-50 table
+The seed was 13 rows (TestKernelWorldsInFuzzGame2 left it on 11-27, split into four shards, and TestKernelWorldsInFuzzGame5Shard1 the same day, its costly cache verifiers off): the tests with a median over 60 s in the precheck audit's slowest-50 table
 (400 newest prechecks, 11-16..11-20, `AUDIT.md`). Their pins are in `KNOWN_SLOW_PINS` in
 `scripts/test_targets_budget_test.py`, and `testkit/testutil/testdata/wall_exceptions.txt` stays `!unseeded`
 until the post-merge `testbudget check` run seeds it. From here the table and the pins only shrink together:
