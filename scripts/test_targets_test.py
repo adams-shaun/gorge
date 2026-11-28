@@ -640,6 +640,7 @@ def smart_fixture(repo, tmp_path):
     (repo / ".cards" / "cardsfolder" / "a.txt").write_text("x")
     (repo / "scripts" / "docs_sets_test.py").write_text(
         "import unittest\n\n\nclass T(unittest.TestCase):\n    def test_ok(self):\n        pass\n")
+    shutil.copy(repo / "scripts" / "docs_sets_test.py", repo / "scripts" / "docs_flags_test.py")
     fake = tmp_path / "bin"
     fake.mkdir()
     stream = tmp_path / "stream.json"

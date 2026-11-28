@@ -23,6 +23,8 @@ on:
       - scripts/docs_web_test.py
       - scripts/docs_perf_figs.py
       - scripts/docs_perf_figs_test.py
+      - scripts/docs_flags.py
+      - scripts/docs_flags_test.py
       - scripts/docs_magezero_figs.py
       - web/src/lib/layoutprofile.ts
       - web/src/components/PlaySettingsPanel.svelte
@@ -45,6 +47,8 @@ on:
       - scripts/docs_web_test.py
       - scripts/docs_perf_figs.py
       - scripts/docs_perf_figs_test.py
+      - scripts/docs_flags.py
+      - scripts/docs_flags_test.py
       - scripts/docs_magezero_figs.py
       - web/src/lib/layoutprofile.ts
       - web/src/components/PlaySettingsPanel.svelte
@@ -127,6 +131,11 @@ jobs:
       # client's layout presets and play settings; fail if the source moved.
       - name: Check the web client pages against the client source
         run: python3 scripts/docs_web_test.py
+
+      # The engines' flags page (engines/flags.md) is rendered from each tool's flag declarations
+      # (scripts/docs_flags.py); fail if a flag was added, removed or reworded without regenerating it.
+      - name: Check the engines' flags page against the tools' flag declarations
+        run: python3 -m unittest discover -s scripts -p 'docs_flags_test.py'
 
       # The performance figures are drawn from docs/site/performance/data/perf.json.
       - name: Check the performance figures against their data
