@@ -175,6 +175,13 @@ var exactPreds = map[string]predAtom{
 	"DefenderCtrl":                          {p: ir.PControlledBy, ref: refKind(ir.RefDefendingPlayer)},
 	"ControlledBy TriggeredDefendingPlayer": {p: ir.PControlledBy, ref: refKind(ir.RefDefendingPlayer)},
 	"ControlledBy TriggeredPlayer":          {p: ir.PControlledBy, ref: refKind(ir.RefEventPlayer)},
+	"RememberedPlayerCtrl":                  {p: ir.PControlledBy, ref: refMem(ir.MemRemembered)},
+	"ControlledBy Player.IsRemembered":      {p: ir.PControlledBy, ref: refMem(ir.MemRemembered)},
+	// the player the source is attached to controls it
+	"EnchantedPlayerCtrl": {p: ir.PControlledBy, ref: refAttachedToSelf},
+
+	// the predicate spelling of the Permanent base
+	"Permanent": {p: ir.PPermanentCard},
 
 	"Colorless":    {p: ir.PColorless},
 	"nonColorless": {p: ir.PColorless, neg: true},

@@ -77,11 +77,11 @@ needs-reference	ControlledBy DelayTriggerRemembered
 needs-reference	ControlledBy EnchantedController.!isMonarch
 needs-reference	ControlledBy NextOpponentToYourLeft
 needs-reference	ControlledBy NextPlayerToYourLeft
+needs-reference	ControlledBy Opponent.IsCorrupted
 needs-reference	ControlledBy Opponent.castSpellThisTurn
 needs-reference	ControlledBy ParentTarget
 needs-reference	ControlledBy ParentTargetedController
 needs-reference	ControlledBy Player.Active
-needs-reference	ControlledBy Player.IsRemembered
 needs-reference	ControlledBy Player.NotedForPeace
 needs-reference	ControlledBy Player.NotedForRedWaterfall
 needs-reference	ControlledBy Player.NotedForWar
@@ -363,7 +363,6 @@ unknown-predicate	DiscardedThisTurn
 unknown-predicate	DoubleFaced
 unknown-predicate	DrawnThisTurn
 unknown-predicate	EnchantedPlayerCtr
-unknown-predicate	EnchantedPlayerCtrl
 unknown-predicate	EnteredSinceYourLastTurn
 unknown-predicate	EquippedByTargeted
 unknown-predicate	ExiledByYou
@@ -407,10 +406,8 @@ unknown-predicate	OpponentToActive
 unknown-predicate	Other.YouOwn
 unknown-predicate	OwnerDoesntControl
 unknown-predicate	Party
-unknown-predicate	Permanent
 unknown-predicate	PromisedGift
 unknown-predicate	RedSource
-unknown-predicate	RememberedPlayerCtrl
 unknown-predicate	RememberedPlayerOwn
 unknown-predicate	SaddledThisTurn
 unknown-predicate	SecondSpellCastThisTurn

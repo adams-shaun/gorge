@@ -120,7 +120,7 @@ func init() {
 	conjReaders = map[ir.Pred]conjReader{
 		ir.PCardType: (*lClause).typeFromIR, ir.PSupertype: (*lClause).typeFromIR, ir.PSubtype: (*lClause).subtypeFromIR,
 		ir.PColor: (*lClause).colorFromIR, ir.PColorless: colorlessFromIR,
-		ir.PIs: (*lClause).isFromIR, ir.PControlledBy: whoFromIR, ir.POwnedBy: whoFromIR,
+		ir.PIs: (*lClause).isFromIR, ir.PControlledBy: whoFromIR, ir.POwnedBy: whoFromIR, ir.PPermanentCard: permanentFromIR,
 		ir.PPower: cmpFromIR, ir.PToughness: cmpFromIR, ir.PManaValue: cmpFromIR, ir.PCounters: cmpFromIR,
 		ir.PHasKeyword: (*lClause).keywordFromIR, ir.PName: nameFromIR, ir.PSharesName: sharesNameFromIR,
 		ir.PAttacking: attackingFromIR, ir.PBlocking: blockingFromIR, ir.PFaceDown: faceDownFromIR,
@@ -376,7 +376,7 @@ func (c *lClause) isFromIR(n *ir.Filter, neg bool, _ func(string) bool) error {
 	switch {
 	case isRefKind(r, ir.RefSelf):
 		on, off = fSelf, fOther
-	case r.Kind == ir.RefAttachedTo && isRefKind(r.Of, ir.RefSelf) && r.Filter == nil:
+	case isAttachedToSelfRef(r):
 		// EnchantedBy, EquippedBy and AttachedBy read as one node, and the
 		// string reader builds two flags for them that later checks tell
 		// apart: the positive word has no mapping (a spelling distinction,
@@ -413,6 +413,20 @@ func isOpponentsRef(r *ir.Ref) bool {
 	return isPredNode(f, ir.POpponentOf) && f.Subject == ir.SubjPlayer && isRefKind(f.Ref, ir.RefYou)
 }
 
+// permanentFromIR maps the Permanent property, which narrows the clause's
+// types as a card-type property does.
+func permanentFromIR(c *lClause, n *ir.Filter, neg bool, _ func(string) bool) error {
+	if neg || !plainPred(n) {
+		return errNoTypedReading
+	}
+	return c.typePropFromIR(tPermanent)
+}
+
+// isAttachedToSelfRef reports whether r is what the source is attached to.
+func isAttachedToSelfRef(r *ir.Ref) bool {
+	return r != nil && r.Kind == ir.RefAttachedTo && isRefKind(r.Of, ir.RefSelf) && r.Filter == nil
+}
+
 // whoFromIR maps a controller / owner conjunct.
 func whoFromIR(c *lClause, n *ir.Filter, neg bool, _ func(string) bool) error {
 	if n.Ref == nil || n.Word != "" || n.Cmp != ir.CmpNone || n.Zones != 0 {
@@ -433,6 +447,10 @@ func whoFromIR(c *lClause, n *ir.Filter, neg bool, _ func(string) bool) error {
 		return c.setCmp(cmpActiveCtrl, 0, 0, "", "")
 	case isRefKind(n.Ref, ir.RefDefendingPlayer):
 		return c.setWho(dst, whoDefending)
+	case isMemRef(n.Ref, ir.MemRemembered):
+		return c.setWho(dst, whoEachPl)
+	case isAttachedToSelfRef(n.Ref):
+		return c.setCmp(cmpWord7, 0, int(kop.W7EnchPlayerCtrl), "", "")
 	}
 	return errNoTypedReading
 }
