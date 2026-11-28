@@ -361,11 +361,12 @@ func miscSacTwoOf(col string) func(*state.Game, []events.Event) int {
 // miscSacColourless counts Crystal Vein's wider {C}{C} unit.
 func miscSacColourless(g *state.Game, evs []events.Event) int { return miscSacTwoOf("C")(g, evs) }
 
-// miscFortifyThen casts C.A.M.P.'s one Fortify at the first priority it is
+// miscFortifyThen casts C.A.M.P.'s first Fortify at the first priority it is
 // offered, passing until then so the mana is still untapped, then plays the
 // ordinary mix: the hand's Giant Growths tap the fortified land, which is the
-// shape's TapsForMana rider. One Fortify only: a second would repay the cost
-// the shape has no mana for, and is not what the test is proving.
+// shape's TapsForMana rider. The ordinary mix takes later Fortifies when it is
+// offered: on the 24-Forest deck the second one pays a {3} cost through the
+// Taps-deferred lands while a green may still float.
 func miscFortifyThen(seed uint64) oracle.Policy {
 	base := miscPolicy(seed)
 	fortified := false
@@ -487,16 +488,22 @@ func miscShapes() []miscShape {
 					[]string{"Giant Growth", "Giant Growth", "Giant Growth", "Giant Growth"},
 					grave)
 			}},
-		// C.A.M.P. in an ordinary deck and ordinary play: every Fortify
-		// activation the policy takes pays its {3} through the Taps-deferred
-		// Forests (a fortified land's own watcher defers its sources), more than
-		// one per game, so the prefix search's payment is compared decision by
-		// decision.
+		// C.A.M.P. in an ordinary deck and ordinary play: the scripted
+		// opening puts four of the 24 Forests down and forces the first
+		// Fortify; the ordinary mix then takes the second, whose {3} is paid
+		// through the Taps-deferred Forests (a fortified land's own watcher
+		// defers its sources) while a green from the first may still float.
+		// The prefix search's payment is compared decision by decision.
 		{card: "C.A.M.P.", seeds: 16, min: 1, reached: miscJunkTokens,
+			policy: miscFortifyThen,
 			matchups: [][2][]cardset.Entry{{
 				{e("C.A.M.P.", 4), e("Grizzly Bears", 12), e("Forest", 24)},
 				burn,
-			}}},
+			}},
+			start: func(deck []*cards.Card) *rules.StartSpec {
+				return miscStartOf(deck,
+					[]string{"C.A.M.P.", "Forest", "Forest", "Forest", "Forest"}, nil, nil)
+			}},
 		// C.A.M.P. on Savannahs, a land of two colours: a Giant Growth's {G}
 		// taps the fortified Savannah for G though its static production is
 		// {G}{W}. A white Savannah Lions the trigger's counter lands on shares
