@@ -73,6 +73,7 @@ The table is generated from the flag set of the `cmd/gorged` binary; `TestFlagsD
 | `-seat-token` | none | fixed bearer token for the first human slot (tests and local use only; default mints a random token per slot) |
 | `-seats` | `4` | seats per table |
 | `-seed` | `1` | seed of table 1; table i uses seed+i-1 |
+| `-site-name` | `gorge` | the name in the served page's title |
 | `-spectator` | `public` | spectator visibility: public (default, every hand hidden) or omniscient (every hand visible) |
 | `-tables` | `4` | number of tables |
 | `-trusted-proxy-header` | none | request header a trusted reverse proxy sets to the client's address (e.g. CF-Connecting-IP); the rate limiter keys on it. Empty keys on the connection's remote address. Set it only when every request arrives through that proxy |
