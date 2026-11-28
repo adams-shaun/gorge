@@ -479,9 +479,10 @@ func (e *Engine) checkGrantedOffspringTriggers(observer *Engine, id state.ObjID,
 }
 
 // checkGrantedDethroneTriggers synthesizes Dethrone's ordinary attack trigger
-// (CR 702.105) for a creature that currently HAS the keyword but does not
-// print it: a keyword granted in layer 6 has the same rules text as a printed
-// keyword, and keyword expansion only adds triggers for printed K: lines.
+// (CR 702.105) once for each instance a creature HAS beyond the lines it
+// prints (grantedPileInstances; each instance triggers separately, CR 702.105b):
+// a keyword granted in layer 6 has the same rules text as a printed keyword,
+// and keyword expansion only adds triggers for printed K: lines.
 // This is deliberately a read-only derived-characteristics check; granting
 // and removing the keyword remains entirely in the existing continuous-effect
 // system. It must run on the faceMayTrigger early-return path too (a granted
@@ -495,7 +496,11 @@ func (e *Engine) checkGrantedDethroneTriggers(observer *Engine, id state.ObjID, 
 	if ev.Kind != events.DeclareAttackers || !slices.Contains(ev.IDs, id) {
 		return
 	}
-	if !e.hasKeywordH(id, kwhDethrone) || topPrintsKeyword(observer, o, f, kwRefDethrone) || grantedPileInstances(observer, id, o, "Dethrone") <= 0 {
+	if !e.hasKeywordH(id, kwhDethrone) {
+		return
+	}
+	n := grantedPileInstances(observer, id, o, f, "Dethrone")
+	if n <= 0 {
 		return
 	}
 	t := cards.Trigger{Mode: "Attacks", Params: map[string]string{
@@ -503,18 +508,19 @@ func (e *Engine) checkGrantedDethroneTriggers(observer *Engine, id state.ObjID, 
 	}, Effect: &cards.SA{Kind: "DB", API: "PutCounter", Params: map[string]string{
 		"Defined": "Self", "CounterType": "P1P1", "CounterNum": "1",
 	}}}
-	if observer.triggerMatches(t, id, ev, objLKI) {
-		key := triggerKey{Source: id, Idx: -1}
-		if e.triggerFireCount == nil {
-			e.triggerFireCount = map[triggerKey]int32{}
-		}
-		if e.triggerFireCount[key] < maxTriggerFires {
-			e.triggerFireCount[key]++
-			e.queueTrigger(observer, pendingTrigger{Source: id, Controller: o.Controller, Idx: -1, SA: t.Effect,
-				cause: causeOf(boardOf(observer), t, id, ev, 0),
-				Ctx: effects.NewCtx(id, o.Controller, effects.CtxInit{Remembered: triggerRemembered(ev, id), LKI: objLKI,
-					TriggerContext: observer.triggerReferents(t, id, ev, objLKI)})}, ev, []state.ObjID{id})
-		}
+	if !observer.triggerMatches(t, id, ev, objLKI) {
+		return
+	}
+	key := triggerKey{Source: id, Idx: -1}
+	if e.triggerFireCount == nil {
+		e.triggerFireCount = map[triggerKey]int32{}
+	}
+	for ; n > 0 && e.triggerFireCount[key] < maxTriggerFires; n-- {
+		e.triggerFireCount[key]++
+		e.queueTrigger(observer, pendingTrigger{Source: id, Controller: o.Controller, Idx: -1, SA: t.Effect,
+			cause: causeOf(boardOf(observer), t, id, ev, 0),
+			Ctx: effects.NewCtx(id, o.Controller, effects.CtxInit{Remembered: triggerRemembered(ev, id), LKI: objLKI,
+				TriggerContext: observer.triggerReferents(t, id, ev, objLKI)})}, ev, []state.ObjID{id})
 	}
 }
 
@@ -527,9 +533,9 @@ func (e *Engine) checkGrantedDethroneTriggers(observer *Engine, id state.ObjID, 
 // exactly (Mode$ Attacks, ValidCard$ Card.Self, Training$ True, the P1P1
 // PutCounter body), so it is byte-identical to the printed path: the
 // event-relative power comparison and the declaration-wide attacker set are
-// both read by trigmatch.AttacksMatches. It skips the object entirely when its printed
-// face already carries Training, so a token printing the keyword and also
-// granted it fires once (the Dethrone dedup). Read-only derived
+// both read by trigmatch.AttacksMatches. It queues one trigger per instance
+// beyond the printed lines (grantedPileInstances), so a token printing the
+// keyword and also granted it trains twice (CR 702.149b). Read-only derived
 // characteristics; granting stays in the continuous-effect system. Like the
 // Afflict/Conspire walks it runs on BOTH the early-return and the live
 // printed-trigger paths, so a granted creature with its own triggers still
@@ -541,7 +547,11 @@ func (e *Engine) checkGrantedTrainingTriggers(observer *Engine, id state.ObjID, 
 	if ev.Kind != events.DeclareAttackers || !slices.Contains(ev.IDs, id) {
 		return
 	}
-	if !e.hasKeywordH(id, kwhTraining) || topPrintsKeyword(observer, o, f, kwRefTraining) || grantedPileInstances(observer, id, o, "Training") <= 0 {
+	if !e.hasKeywordH(id, kwhTraining) {
+		return
+	}
+	n := grantedPileInstances(observer, id, o, f, "Training")
+	if n <= 0 {
 		return
 	}
 	t := cards.Trigger{Mode: "Attacks", Params: map[string]string{
@@ -549,18 +559,19 @@ func (e *Engine) checkGrantedTrainingTriggers(observer *Engine, id state.ObjID, 
 	}, Effect: &cards.SA{Kind: "DB", API: "PutCounter", Params: map[string]string{
 		"Defined": "Self", "CounterType": "P1P1", "CounterNum": "1",
 	}}}
-	if observer.triggerMatches(t, id, ev, objLKI) {
-		key := triggerKey{Source: id, Idx: -1}
-		if e.triggerFireCount == nil {
-			e.triggerFireCount = map[triggerKey]int32{}
-		}
-		if e.triggerFireCount[key] < maxTriggerFires {
-			e.triggerFireCount[key]++
-			e.queueTrigger(observer, pendingTrigger{Source: id, Controller: o.Controller, Idx: -1, SA: t.Effect,
-				cause: causeOf(boardOf(observer), t, id, ev, 0),
-				Ctx: effects.NewCtx(id, o.Controller, effects.CtxInit{Remembered: triggerRemembered(ev, id), LKI: objLKI,
-					TriggerContext: observer.triggerReferents(t, id, ev, objLKI)})}, ev, []state.ObjID{id})
-		}
+	if !observer.triggerMatches(t, id, ev, objLKI) {
+		return
+	}
+	key := triggerKey{Source: id, Idx: -1}
+	if e.triggerFireCount == nil {
+		e.triggerFireCount = map[triggerKey]int32{}
+	}
+	for ; n > 0 && e.triggerFireCount[key] < maxTriggerFires; n-- {
+		e.triggerFireCount[key]++
+		e.queueTrigger(observer, pendingTrigger{Source: id, Controller: o.Controller, Idx: -1, SA: t.Effect,
+			cause: causeOf(boardOf(observer), t, id, ev, 0),
+			Ctx: effects.NewCtx(id, o.Controller, effects.CtxInit{Remembered: triggerRemembered(ev, id), LKI: objLKI,
+				TriggerContext: observer.triggerReferents(t, id, ev, objLKI)})}, ev, []state.ObjID{id})
 	}
 }
 
@@ -869,25 +880,18 @@ func (e *Engine) checkGrantedWardTriggers(observer *Engine, id state.ObjID, o *s
 	if ev.Kind != events.TargetsChosen || !slices.Contains(ev.IDs, id) {
 		return
 	}
-	printed := map[string]bool{}
-	// A printed line that does not exist suppresses nothing: a cloaked card
+	// A printed line that does not exist accounts for nothing: a cloaked card
 	// whose real face prints Ward keeps its own cloak-ward, and a ward granted
 	// after the ability loss triggers.
-	for _, k := range topPrintedKeywords(observer, o, f) {
-		printed[strings.ToLower(k)] = true
-	}
-	underLeft := underPrintedKeywords(observer, o)
+	printedLeft := printedKeywordLines(observer, o, f)
 	for _, k := range observer.Derived(id).Keywords {
-		if printed[strings.ToLower(k)] {
-			continue
-		}
 		param := ""
 		if head := cards.KeywordHead(k); !strings.EqualFold(head, "Ward") {
 			continue
-		} else if left, ok := chars.TakeKeywordLine(underLeft, k); ok {
-			// A card beneath the top prints this line: its own trigger
-			// queues one instance, so it accounts for one equal entry.
-			underLeft = left
+		} else if left, ok := chars.TakeKeywordLine(printedLeft, k); ok {
+			// A printed line's own trigger queues this instance, so the
+			// line accounts for one equal entry (CR 113.2c).
+			printedLeft = left
 			continue
 		} else if j := strings.IndexByte(k, ':'); j >= 0 {
 			param = strings.TrimSpace(k[j+1:])
@@ -1584,32 +1588,19 @@ func (e *Engine) grantedCumulativeCosts(id state.ObjID, f *cards.Face) []string 
 		}
 		return nil
 	}
-	// Printed ownership: a top-face line accounts for every equal derived
-	// entry (a top face printing the cost and an identical grant is one
-	// trigger), a line beneath the top for one entry each (CR 113.2c). A face
-	// down object has no printed face (CR 708.8), and one that loses its
-	// abilities has no printed line (CR 613.1f).
-	var printed map[string]bool
-	o := e.G.Obj(id)
-	underLeft := underPrintedKeywords(e, o)
-	for _, k := range topPrintedKeywords(e, o, f) {
-		if strings.EqualFold(cards.KeywordHead(k), "Cumulative upkeep") {
-			if printed == nil {
-				printed = map[string]bool{}
-			}
-			printed[strings.ToLower(k)] = true
-		}
-	}
+	// Printed ownership: each printed line, on the top face or beneath it,
+	// accounts for one equal derived entry, and every other entry is its own
+	// instance (CR 113.2c, 702.24b). A face down object has no printed face
+	// (CR 708.8), and one that loses its abilities has no printed line
+	// (CR 613.1f).
+	printedLeft := printedKeywordLines(e, e.G.Obj(id), f)
 	var out []string
 	for _, k := range e.Derived(id).Keywords {
 		if !strings.EqualFold(cards.KeywordHead(k), "Cumulative upkeep") {
 			continue
 		}
-		if printed[strings.ToLower(k)] {
-			continue
-		}
-		if left, ok := chars.TakeKeywordLine(underLeft, k); ok {
-			underLeft = left
+		if left, ok := chars.TakeKeywordLine(printedLeft, k); ok {
+			printedLeft = left
 			continue
 		}
 		param := ""
