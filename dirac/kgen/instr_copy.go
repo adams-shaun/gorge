@@ -11,6 +11,7 @@ import (
 func init() {
 	instrOp("CopyAllEach", (*instrCtx).opCopyAllEach)
 	instrOp("CopyAbility", (*instrCtx).opCopyAbility)
+	instrOp("CopyStackValid", (*instrCtx).opCopyStackValid)
 	instrOp("CloneCopy", (*instrCtx).opCloneCopy)
 	instrOp("AegisClone", (*instrCtx).opAegisClone)
 	instrOp("CopyAsToken", (*instrCtx).opCopyAsToken)
@@ -60,6 +61,15 @@ func (ic *instrCtx) opCopyAbility() error {
 	}
 	n := ki.A
 	ki.Op, ki.A, ki.B, ki.C = kop.OpExt, kop.Const(int(kop.ExtCopyAbility)), n, int16(in.C&1)|int16(slot)<<1
+	ki.Obj = kop.RefSelf
+	return nil
+}
+
+func (ic *instrCtx) opCopyStackValid() error {
+	ki := &ic.ki
+	// OpExt ExtCopyStackValid, C bit 0 the MayChooseTarget$ election and
+	// C bit 1 the ability sweep (0: the spell sweep)
+	ki.Op, ki.A, ki.C = kop.OpExt, kop.Const(int(kop.ExtCopyStackValid)), int16(ic.in.C&3)
 	ki.Obj = kop.RefSelf
 	return nil
 }

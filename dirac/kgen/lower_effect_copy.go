@@ -177,6 +177,9 @@ func (lc *lowerCtx) copySpell(ps *params) error {
 	if ps.str("Defined") == "Targeted" {
 		return lc.copyTargetedSpell(ps)
 	}
+	if spec, ok := strings.CutPrefix(ps.str("Defined"), "ValidStack "); ok {
+		return lc.copyStackValid(ps, strings.TrimSpace(spec))
+	}
 	tr := lc.ab.Trigger
 	if tr != nil && tr.Event == "AbilityCast" && ps.str("Defined") == "TriggeredSpellAbility" && tr.AbClass == kop.TrigAbCastAny {
 		return lc.copyTriggeringAbility(ps)
@@ -212,6 +215,33 @@ func (lc *lowerCtx) copySpell(ps *params) error {
 	if err := lc.copyNonLegendary(ps, &in); err != nil {
 		return err
 	}
+	lc.emit(in)
+	return nil
+}
+
+// copyStackValid lowers Ulalek, Fused Atrocity's two copy sweeps (gorge
+// effCopySpellAbility's plural arm, validStackCopyTargets): inside a
+// SpellCast trigger, Defined$ ValidStack Spell.YouCtrl copies every spell the
+// resolving controller controls and Ability.YouCtrl+otherAbility every other
+// activated or triggered ability they control, one copy per match (Amount$
+// stays unread), each copy electing new targets (MayChooseTarget$ True, C bit
+// 0). C bit 1 is the ability sweep. Any other spec refuses by name.
+func (lc *lowerCtx) copyStackValid(ps *params, spec string) error {
+	if tr := lc.ab.Trigger; tr == nil || tr.Event != "SpellCast" {
+		return refuse("CopySpellAbility Defined$ ValidStack outside a SpellCast trigger")
+	}
+	in := lInstr{Op: "CopyStackValid"}
+	switch spec {
+	case "Spell.YouCtrl":
+	case "Ability.YouCtrl+otherAbility":
+		in.C = 2
+	default:
+		return refuse("CopySpellAbility Defined$ ValidStack %q", spec)
+	}
+	if !ps.is("MayChooseTarget", "True") {
+		return refuse("CopySpellAbility Defined$ ValidStack without MayChooseTarget$ True")
+	}
+	in.C |= 1
 	lc.emit(in)
 	return nil
 }

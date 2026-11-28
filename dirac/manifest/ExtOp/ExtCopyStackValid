@@ -1,0 +1,7 @@
+family: ExtOp
+name: ExtCopyStackValid
+value: next
+forge: CopySpellAbility
+state: code 0
+status: active
+doc: ExtCopyStackValid (CR 707.10; gorge effCopySpellAbility over Defined$ ValidStack, validStackCopyTargets): copy every spell (C bit 1 clear: Spell.YouCtrl) or every other activated and triggered ability (C bit 1 set: Ability.YouCtrl+otherAbility) the resolving controller controls, stack bottom first, one copy each minted below the resolving entry; C bit 0 (MayChooseTarget$ True) poses each copy's new-target election as it is made. dirac/copy_validstack.go.

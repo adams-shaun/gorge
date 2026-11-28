@@ -916,6 +916,8 @@ func (s *State) execExtGen(k *prep, in *kop.Instr) (ok, done bool) {
 		return s.clearNamedCardExt(k, in) // repl_namecard.go
 	case kop.ExtControlSpell:
 		return s.controlSpellExt(k, in) // act_controlspell.go
+	case kop.ExtCopyStackValid:
+		return s.copyStackValid(k, in) // copy_validstack.go
 	case kop.ExtEncore:
 		return s.encoreExt(k, in) // kw_encore.go
 	case kop.ExtEnterDevour:
