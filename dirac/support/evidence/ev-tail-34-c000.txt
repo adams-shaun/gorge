@@ -58,7 +58,6 @@ Boggart Brute
 Boon of Safety
 Borrowed Time
 Botanical Plaza
-Bottle-Cap Blast
 Bounteous Kirin
 Bramble Armor
 Brambleweft Behemoth
@@ -301,7 +300,6 @@ Ogre Jailbreaker
 Olivia's Wrath
 Ordeal of Erebos
 Order of Yawgmoth
-Orzhov Locket
 Otherworldly Outburst
 Painful Memories
 Paladin Danse, Steel Maverick

@@ -13,10 +13,14 @@ import (
 
 // untapReplacementSources walks all zones from which an UntapOtherPlayer
 // static can apply. The order is stable and also admits the command-zone
-// plane shape in the corpus.
+// plane shape in the corpus. A phased-out permanent is treated as though it
+// does not exist (CR 702.26b), so its static is no source.
 func (e *Engine) untapReplacementSources(each func(id state.ObjID)) {
 	for _, p := range e.G.AliveFrom(0) {
 		for _, id := range e.G.Zone(state.ZBattlefield, p) {
+			if o := e.G.Obj(id); o != nil && o.PhasedOut {
+				continue
+			}
 			each(id)
 		}
 		for _, id := range e.G.Zone(state.ZCommand, p) {

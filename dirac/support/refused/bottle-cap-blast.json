@@ -1,0 +1,37 @@
+{
+  "card": "Bottle-Cap Blast",
+  "class": "projection-NInst",
+  "why": "the engines' state differs at projection NInst",
+  "repro": {
+    "pool": "custom",
+    "surface": "autopay",
+    "seed": 1,
+    "pair": 0,
+    "policy": "random",
+    "mulligans": 0,
+    "file": "bottle_cap_blast_ninst_differ"
+  },
+  "evidence": [
+    "ev-tail-34-c000",
+    "ev-tail-34-c001",
+    "ev-tail-34-c002",
+    "ev-tail-34-c003",
+    "ev-tail-34-c004",
+    "ev-tail-61-c000",
+    "ev-tail-61-c001",
+    "ev-tail-61-c002",
+    "ev-tail-61-c003",
+    "ev-tail-61-c004",
+    "ev-tail-61-c005",
+    "ev-tail-61-c006",
+    "ev-tail-61-c007",
+    "ev-tail-61-c009",
+    "ev-tail-61-c010",
+    "ev-tail-61-c011",
+    "ev-tail-61-c012",
+    "ev-tail-61-c013",
+    "ev-tail-61-c014",
+    "ev-tail-61-c016",
+    "ev-tail-61-c017"
+  ]
+}
