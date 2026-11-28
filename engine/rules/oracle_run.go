@@ -53,8 +53,11 @@ type oracleScenario struct {
 	Format string   `json:"format,omitempty"`
 	// Players is the seat count: 0 (absent) seats the two-player game every
 	// scenario but a multiplayer one plays, so its bytes never carry the
-	// field; 3 seats p0 plus two opponents, where a player who loses the game
-	// leaves it (CR 800.4a) and the game goes on (CR 104.2a).
+	// field; 3 or 4 seat p0 plus two or three opponents, where a player who
+	// loses the game leaves it (CR 800.4a) and the game goes on (CR 104.2a).
+	// The limit is this engine's own scenario schema: 4 is the Commander pod
+	// (CR 800.1); a driver for another engine may seat fewer and refuses a
+	// larger scenario by its seat count.
 	Players int                   `json:"players,omitempty"`
 	Setup   map[string]oracleSeat `json:"setup"`
 	// SetupAnswers answer decisions posed while the runner drives from
@@ -587,19 +590,21 @@ const oracleFiller = "Wastes"
 
 // oracleSeatNames names the seats of a scenario game; a two-seat game keeps
 // the historical "a", "b", so its log and replay are unchanged.
-var oracleSeatNames = []string{"a", "b", "c"}
+var oracleSeatNames = []string{"a", "b", "c", "d"}
 
 // oracleSeatCount is a scenario's seat count: 0 (the field absent) is the
-// two-player game; a multiplayer scenario names 3. The XMage driver seats at
-// most three, so a larger count is a harness error, never a silent clamp.
+// two-player game; a multiplayer scenario names 3 or 4, 4 being the
+// Commander pod (CR 800.1). The limit is this engine's scenario schema (a
+// driver for another engine may seat fewer); any other count is a harness
+// error, never a silent clamp.
 func oracleSeatCount(n int) (int, error) {
 	switch n {
 	case 0:
 		return 2, nil
-	case 2, 3:
+	case 2, 3, 4:
 		return n, nil
 	}
-	return 0, harnessf("scenario players %d (want 2 or 3)", n)
+	return 0, harnessf("scenario players %d (want 2, 3 or 4)", n)
 }
 
 func parseSeatRef(s string) (state.PlayerID, bool) {

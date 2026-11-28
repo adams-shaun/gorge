@@ -62,15 +62,15 @@ func TestOracleTwoSeatLossEndsTheGame(t *testing.T) {
 	}
 }
 
-// TestOracleSeatCountRefused: a seat count the XMage driver cannot seat is a
-// harness error, never a silent clamp.
+// TestOracleSeatCountRefused: a seat count outside the engine's scenario
+// schema (2 to 4) is a harness error, never a silent clamp.
 func TestOracleSeatCountRefused(t *testing.T) {
-	for _, n := range []int{1, 4, -1} {
+	for _, n := range []int{1, 5, -1} {
 		if _, err := oracleSeatCount(n); err == nil {
 			t.Errorf("oracleSeatCount(%d) accepted", n)
 		}
 	}
-	for n, want := range map[int]int{0: 2, 2: 2, 3: 3} {
+	for n, want := range map[int]int{0: 2, 2: 2, 3: 3, 4: 4} {
 		if got, err := oracleSeatCount(n); err != nil || got != want {
 			t.Errorf("oracleSeatCount(%d) = %d, %v; want %d", n, got, err, want)
 		}
