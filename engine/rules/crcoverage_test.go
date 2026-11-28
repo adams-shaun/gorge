@@ -35,6 +35,13 @@ const (
 	crCoverageHeader    = "| rule | status | code | tests | notes |"
 	crSummaryBegin      = "<!-- crcoverage:summary -->"
 	crSummaryEnd        = "<!-- /crcoverage:summary -->"
+
+	// cr-index.tsv lists every id of the pinned rules text (2026-08-07),
+	// derived by scripts/cr_index.py; the two allow-lists only shrink.
+	crIndexFile       = "cr-index.tsv"
+	crIndexHeader     = "id\tkind\ttitle\tin_scope\texamples"
+	crUnknownRowsFile = "cr-index-unknown-rows.txt"
+	crUncoveredFile   = "cr-index-uncovered.txt"
 )
 
 // crStatuses is the closed status vocabulary, in summary-column order.
@@ -139,6 +146,7 @@ func TestCRCoverageIsCurrent(t *testing.T) {
 		}
 	}
 	checkCRSummary(t, rows)
+	checkCRIndexCoverage(t, rows, readCRIndex(t))
 }
 
 func crKnownStatus(s string) bool {
@@ -356,4 +364,370 @@ func renderCRSummary(rows []crRow) string {
 	}
 	fmt.Fprintf(&sb, "| **all** | %d | %s |\n", len(rows), strings.Join(cells, " | "))
 	return sb.String()
+}
+
+// crIndexRow is one id of the Comprehensive Rules index. It carries no rules
+// text: a title is a section title or a keyword name.
+type crIndexRow struct {
+	id, kind, title string
+	inScope         bool
+	examples        int
+}
+
+var (
+	crIndexID    = regexp.MustCompile(`^\d{3}(\.\d+[a-z]*)?$`)
+	crIndexKinds = map[string]*regexp.Regexp{
+		"section": regexp.MustCompile(`^\d{3}$`),
+		"rule":    regexp.MustCompile(`^\d{3}\.\d+$`),
+		"subrule": regexp.MustCompile(`^\d{3}\.\d+[a-z]+$`),
+	}
+)
+
+// parseCRIndex reads the index and returns its rows plus every way it is
+// malformed.
+func parseCRIndex(data string) ([]crIndexRow, []string) {
+	var rows []crIndexRow
+	var bad []string
+	lines := strings.Split(strings.TrimSuffix(data, "\n"), "\n")
+	if lines[0] != crIndexHeader {
+		bad = append(bad, fmt.Sprintf("header is %q, want %q", lines[0], crIndexHeader))
+	}
+	seen := map[string]bool{}
+	for n, line := range lines[1:] {
+		at := fmt.Sprintf("%s:%d", crIndexFile, n+2)
+		cells := strings.Split(line, "\t")
+		if len(cells) != 5 {
+			bad = append(bad, fmt.Sprintf("%s: want 5 columns, got %d", at, len(cells)))
+			continue
+		}
+		for _, c := range cells {
+			if len(c) > 80 {
+				bad = append(bad, fmt.Sprintf("%s: a cell is %d characters; the index holds no rules text", at, len(c)))
+			}
+		}
+		r := crIndexRow{id: cells[0], kind: cells[1], title: cells[2]}
+		if re, ok := crIndexKinds[r.kind]; !ok || !re.MatchString(r.id) {
+			bad = append(bad, fmt.Sprintf("%s: id %q is not a %q (kinds: section, rule, subrule)", at, r.id, r.kind))
+		}
+		if seen[r.id] {
+			bad = append(bad, fmt.Sprintf("%s: id %s repeats", at, r.id))
+		}
+		seen[r.id] = true
+		if r.kind == "section" && r.title == "" {
+			bad = append(bad, fmt.Sprintf("%s: section %s has no title", at, r.id))
+		}
+		switch cells[3] {
+		case "0", "1":
+			r.inScope = cells[3] == "1"
+		default:
+			bad = append(bad, fmt.Sprintf("%s: in_scope %q is not 0 or 1", at, cells[3]))
+		}
+		if _, err := fmt.Sscanf(cells[4], "%d", &r.examples); err != nil || fmt.Sprint(r.examples) != cells[4] {
+			bad = append(bad, fmt.Sprintf("%s: examples %q is not a count", at, cells[4]))
+		}
+		rows = append(rows, r)
+	}
+	return rows, bad
+}
+
+func readCRIndex(t *testing.T) []crIndexRow {
+	t.Helper()
+	data, err := os.ReadFile(filepath.Join(crCoverageDir, crIndexFile))
+	if err != nil {
+		t.Fatal(err)
+	}
+	rows, bad := parseCRIndex(string(data))
+	if len(bad) > 0 {
+		t.Fatalf("%s is malformed (see TestCRIndexIsWellFormed): %s", crIndexFile, bad[0])
+	}
+	return rows
+}
+
+func TestCRIndexIsWellFormed(t *testing.T) {
+	t.Parallel()
+	data, err := os.ReadFile(filepath.Join(crCoverageDir, crIndexFile))
+	if err != nil {
+		t.Fatal(err)
+	}
+	rows, bad := parseCRIndex(string(data))
+	for _, b := range bad {
+		t.Error(b)
+	}
+	if len(rows) == 0 {
+		t.Fatalf("%s has no rows", crIndexFile)
+	}
+	// The negative cases: each malformed index is refused.
+	for name, text := range map[string]string{
+		"header":   "id\tkind\n100\tsection\tGeneral\t1\t0\n",
+		"columns":  crIndexHeader + "\n100\tsection\tGeneral\t1\n",
+		"kind":     crIndexHeader + "\n100.1\tsection\tGeneral\t1\t0\n",
+		"repeat":   crIndexHeader + "\n100\tsection\tGeneral\t1\t0\n100\tsection\tGeneral\t1\t0\n",
+		"untitled": crIndexHeader + "\n100\tsection\t\t1\t0\n",
+		"in_scope": crIndexHeader + "\n100\tsection\tGeneral\t2\t0\n",
+		"examples": crIndexHeader + "\n100\tsection\tGeneral\t1\tx\n",
+		"text":     crIndexHeader + "\n100.1\trule\t" + strings.Repeat("x", 81) + "\t1\t0\n",
+	} {
+		if _, bad := parseCRIndex(text); len(bad) == 0 {
+			t.Errorf("%s: a malformed index passed", name)
+		}
+	}
+}
+
+// crParentRule is the rule a subrule belongs to; a rule or section is its own.
+func crParentRule(id string) string {
+	return strings.TrimRight(id, "abcdefghijklmnopqrstuvwxyz")
+}
+
+// crUnder reports whether id lies inside anc: a rule or subrule of a section,
+// or a subrule of a rule.
+func crUnder(id, anc string) bool {
+	if len(id) <= len(anc) || !strings.HasPrefix(id, anc) {
+		return false
+	}
+	c := id[len(anc)]
+	if len(anc) == 3 {
+		return c == '.'
+	}
+	return strings.Contains(anc, ".") && c >= 'a' && c <= 'z'
+}
+
+// crExpandID completes an abbreviated part of a rule cell from the id before
+// it: `d` after 702.1a is 702.1d, `3` after 100.2 is 100.3.
+func crExpandID(part, prev string) string {
+	switch {
+	case strings.Contains(part, "."), prev == "", !strings.Contains(prev, "."):
+		return part
+	case strings.Trim(part, "abcdefghijklmnopqrstuvwxyz") == "":
+		return crParentRule(prev) + part
+	}
+	return prev[:3] + "." + part
+}
+
+// crRowIDs expands a row's rule cell to the index ids it names, in cell
+// order. A range a-b covers every index id from a to b in index order plus
+// what lies under b. Parts the index lacks come back in unknown.
+func crRowIDs(rule string, index []crIndexRow) (ids []string, unknown []string) {
+	pos := make(map[string]int, len(index))
+	for i, r := range index {
+		pos[r.id] = i
+	}
+	prev := ""
+	for _, part := range strings.Split(rule, ",") {
+		a, b, isRange := strings.Cut(part, "-")
+		a = crExpandID(a, prev)
+		prev = a
+		if !isRange {
+			if _, ok := pos[a]; ok {
+				ids = append(ids, a)
+			} else {
+				unknown = append(unknown, a)
+			}
+			continue
+		}
+		b = crExpandID(b, a)
+		prev = b
+		i, okA := pos[a]
+		j, okB := pos[b]
+		if !okA {
+			unknown = append(unknown, a)
+		}
+		if !okB {
+			unknown = append(unknown, b)
+		}
+		if !okA || !okB {
+			continue
+		}
+		if j < i {
+			unknown = append(unknown, a+"-"+b)
+			continue
+		}
+		for k := i; k <= j; k++ {
+			ids = append(ids, index[k].id)
+		}
+		for k := j + 1; k < len(index) && crUnder(index[k].id, b); k++ {
+			ids = append(ids, index[k].id)
+		}
+	}
+	return ids, unknown
+}
+
+// crUncovered lists, in index order, the rule and subrule ids no listed id
+// covers. An id is covered when it is listed, or its parent rule is, or its
+// section is, or (for a rule) one of its subrules is.
+func crUncovered(listed map[string]bool, index []crIndexRow) []string {
+	hasSub := map[string]bool{}
+	for id := range listed {
+		if p := crParentRule(id); p != id {
+			hasSub[p] = true
+		}
+	}
+	var out []string
+	for _, r := range index {
+		if r.kind == "section" {
+			continue
+		}
+		if listed[r.id] || listed[crParentRule(r.id)] || listed[r.id[:3]] || (r.kind == "rule" && hasSub[r.id]) {
+			continue
+		}
+		out = append(out, r.id)
+	}
+	return out
+}
+
+// crIDLess orders ids as the rules do: 113.9 before 113.10, 704.5z before
+// 704.5aa.
+func crIDLess(a, b string) bool {
+	key := func(id string) (string, int, int, string) {
+		rule := crParentRule(id)
+		n := -1
+		if len(rule) > 4 {
+			fmt.Sscanf(rule[4:], "%d", &n)
+		}
+		return id[:min(3, len(id))], n, len(id) - len(rule), id[len(rule):]
+	}
+	s1, n1, l1, x1 := key(a)
+	s2, n2, l2, x2 := key(b)
+	switch {
+	case s1 != s2:
+		return s1 < s2
+	case n1 != n2:
+		return n1 < n2
+	case l1 != l2:
+		return l1 < l2
+	}
+	return x1 < x2
+}
+
+// checkCRAllowList fails each id in got that the allow-list lacks, and each
+// allow-list line that no longer fails (the list only shrinks).
+func checkCRAllowList(t *testing.T, name string, got map[string]string) {
+	t.Helper()
+	data, err := os.ReadFile(filepath.Join(crCoverageDir, name))
+	if err != nil {
+		t.Fatal(err)
+	}
+	allowed := map[string]bool{}
+	var lines []string
+	for _, l := range strings.Split(strings.TrimSuffix(string(data), "\n"), "\n") {
+		if l == "" {
+			continue
+		}
+		if allowed[l] {
+			t.Errorf("%s: %s is listed twice", name, l)
+		}
+		allowed[l] = true
+		lines = append(lines, l)
+	}
+	if !sort.SliceIsSorted(lines, func(i, j int) bool { return crIDLess(lines[i], lines[j]) }) {
+		t.Errorf("%s: lines are not in rules order", name)
+	}
+	for _, l := range lines {
+		if _, ok := got[l]; !ok {
+			t.Errorf("%s lists %s, which no longer fails: delete the line", name, l)
+		}
+	}
+	ids := make([]string, 0, len(got))
+	for id := range got {
+		ids = append(ids, id)
+	}
+	sort.Slice(ids, func(i, j int) bool { return crIDLess(ids[i], ids[j]) })
+	for _, id := range ids {
+		if !allowed[id] {
+			t.Errorf("%s", got[id])
+		}
+	}
+}
+
+// checkCRIndexCoverage holds the tables to the rules index: every rule and
+// subrule id has a row and every row names real ids, apart from the two
+// shrink-only allow-lists. It logs the summary over in-scope ids.
+func checkCRIndexCoverage(t *testing.T, rows []crRow, index []crIndexRow) {
+	t.Helper()
+	inScope := map[string]bool{}
+	for _, r := range index {
+		inScope[r.id] = r.inScope
+	}
+	listed := map[string]bool{}
+	unknown := map[string]string{}
+	var scoped []crRow
+	for _, r := range rows {
+		ids, bad := crRowIDs(r.rule, index)
+		for _, id := range bad {
+			if _, dup := unknown[id]; !dup {
+				unknown[id] = fmt.Sprintf("%s:%d (%s): names %s, which the CR index (%s) lacks", r.file, r.line, r.rule, id, crIndexFile)
+			}
+		}
+		for _, id := range ids {
+			listed[id] = true
+			if inScope[id] {
+				s := r
+				s.rule = id
+				scoped = append(scoped, s)
+			}
+		}
+	}
+	uncovered := map[string]string{}
+	for _, id := range crUncovered(listed, index) {
+		uncovered[id] = fmt.Sprintf("CR %s has no coverage row (add one, or list it in %s)", id, crUncoveredFile)
+	}
+	checkCRAllowList(t, crUnknownRowsFile, unknown)
+	checkCRAllowList(t, crUncoveredFile, uncovered)
+	t.Logf("CR coverage summary over in-scope ids:%s", renderCRSummary(scoped))
+}
+
+func TestCRRowIDs(t *testing.T) {
+	t.Parallel()
+	var index []crIndexRow
+	for _, id := range []string{
+		"100", "100.1", "100.2", "100.2a", "100.3", "100.3a", "100.3b", "100.4",
+		"702", "702.1", "702.1a", "702.1b", "702.1c", "702.1d",
+		"800", "800.4", "800.4a", "800.4b", "800.4c", "800.4d",
+	} {
+		kind := "subrule"
+		switch {
+		case len(id) == 3:
+			kind = "section"
+		case crParentRule(id) == id:
+			kind = "rule"
+		}
+		index = append(index, crIndexRow{id: id, kind: kind, inScope: true})
+	}
+	for _, c := range []struct {
+		rule         string
+		ids, unknown []string
+	}{
+		{rule: "702.1a,d", ids: []string{"702.1a", "702.1d"}},
+		{rule: "800.4a-c", ids: []string{"800.4a", "800.4b", "800.4c"}},
+		{rule: "100.2-100.3", ids: []string{"100.2", "100.2a", "100.3", "100.3a", "100.3b"}},
+		{rule: "100.2-3", ids: []string{"100.2", "100.2a", "100.3", "100.3a", "100.3b"}},
+		{rule: "800.4,800.4e", ids: []string{"800.4"}, unknown: []string{"800.4e"}},
+		{rule: "100.9-100.10", unknown: []string{"100.9", "100.10"}},
+	} {
+		ids, unknown := crRowIDs(c.rule, index)
+		if fmt.Sprint(ids) != fmt.Sprint(c.ids) || fmt.Sprint(unknown) != fmt.Sprint(c.unknown) {
+			t.Errorf("crRowIDs(%q) = %v, %v; want %v, %v", c.rule, ids, unknown, c.ids, c.unknown)
+		}
+	}
+	for _, c := range []struct {
+		name      string
+		listed    []string
+		uncovered string
+	}{
+		// 800.4 covers its subrules; 100.1 and 100.4 have nothing.
+		{"a parent row covers its subrules", []string{"100.2", "100.3", "702", "800.4"}, "[100.1 100.4]"},
+		// 100.3a covers its heading rule 100.3 but not its sibling 100.3b.
+		{"a subrule row covers its heading rule", []string{"100.1", "100.2", "100.3a", "100.4", "702", "800"}, "[100.3b]"},
+		{"a section row covers everything under it", []string{"100", "702", "800"}, "[]"},
+	} {
+		listed := map[string]bool{}
+		for _, id := range c.listed {
+			listed[id] = true
+		}
+		if got := fmt.Sprint(crUncovered(listed, index)); got != c.uncovered {
+			t.Errorf("%s: uncovered %s, want %s", c.name, got, c.uncovered)
+		}
+	}
+	if !crIDLess("113.9", "113.10") || !crIDLess("704.5z", "704.5aa") || !crIDLess("113", "113.1") || crIDLess("606.5", "506.8") {
+		t.Error("crIDLess does not follow rules order")
+	}
 }

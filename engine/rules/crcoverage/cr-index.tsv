@@ -1,0 +1,3307 @@
+id	kind	title	in_scope	examples
+100	section	General	1	0
+100.1	rule		1	0
+100.1a	subrule		1	0
+100.1b	subrule		1	0
+100.2	rule		1	0
+100.2a	subrule		1	0
+100.2b	subrule		1	0
+100.2c	subrule		1	0
+100.2d	subrule		1	0
+100.3	rule		1	0
+100.4	rule		1	0
+100.4a	subrule		1	0
+100.4b	subrule		1	0
+100.4c	subrule		1	0
+100.4d	subrule		1	0
+100.5	rule		1	0
+100.6	rule		1	0
+100.6a	subrule		1	0
+100.6b	subrule		1	0
+100.7	rule		1	0
+101	section	The Magic Golden Rules	1	0
+101.1	rule		1	0
+101.2	rule		1	1
+101.2a	subrule		1	0
+101.3	rule		1	0
+101.4	rule		1	1
+101.4a	subrule		1	0
+101.4b	subrule		1	0
+101.4c	subrule		1	0
+101.4d	subrule		1	0
+101.4e	subrule		1	0
+102	section	Players	1	0
+102.1	rule		1	0
+102.2	rule		1	0
+102.3	rule		1	0
+102.4	rule		1	0
+103	section	Starting the Game	1	0
+103.1	rule		1	0
+103.1a	subrule		1	0
+103.1b	subrule		1	0
+103.1c	subrule		1	0
+103.2	rule		1	0
+103.2a	subrule		1	0
+103.2b	subrule		1	0
+103.2c	subrule		1	0
+103.2d	subrule		1	0
+103.2e	subrule		1	0
+103.3	rule		1	0
+103.3a	subrule		1	0
+103.4	rule		1	0
+103.4a	subrule		1	0
+103.4b	subrule		1	0
+103.4c	subrule		1	0
+103.4d	subrule		1	0
+103.4e	subrule		1	0
+103.5	rule		1	0
+103.5a	subrule		1	0
+103.5b	subrule		1	0
+103.5c	subrule		1	0
+103.5d	subrule		1	0
+103.6	rule		1	0
+103.6a	subrule		1	0
+103.6b	subrule		1	0
+103.6c	subrule		1	0
+103.7	rule		1	0
+103.8	rule		1	0
+103.8a	subrule		1	0
+103.8b	subrule		1	0
+103.8c	subrule		1	0
+104	section	Ending the Game	1	0
+104.1	rule		1	0
+104.2	rule		1	0
+104.2a	subrule		1	0
+104.2b	subrule		1	0
+104.2c	subrule		1	0
+104.2d	subrule		1	0
+104.3	rule		1	0
+104.3a	subrule		1	0
+104.3b	subrule		1	0
+104.3c	subrule		1	0
+104.3d	subrule		1	0
+104.3e	subrule		1	0
+104.3f	subrule		1	0
+104.3g	subrule		1	0
+104.3h	subrule		1	0
+104.3i	subrule		1	0
+104.3j	subrule		1	0
+104.3k	subrule		1	0
+104.4	rule		1	0
+104.4a	subrule		1	0
+104.4b	subrule		1	0
+104.4c	subrule		1	0
+104.4d	subrule		1	0
+104.4e	subrule		1	0
+104.4f	subrule		1	0
+104.4g	subrule		1	0
+104.4h	subrule		1	0
+104.4i	subrule		1	0
+104.5	rule		1	0
+104.6	rule		1	0
+105	section	Colors	1	0
+105.1	rule		1	0
+105.2	rule		1	0
+105.2a	subrule		1	0
+105.2b	subrule		1	0
+105.2c	subrule		1	0
+105.3	rule		1	0
+105.4	rule		1	0
+105.5	rule		1	0
+106	section	Mana	1	0
+106.1	rule		1	0
+106.1a	subrule		1	0
+106.1b	subrule		1	0
+106.2	rule		1	0
+106.3	rule		1	0
+106.4	rule		1	0
+106.4a	subrule		1	0
+106.4b	subrule		1	0
+106.5	rule		1	1
+106.6	rule		1	1
+106.6a	subrule		1	0
+106.7	rule		1	1
+106.8	rule		1	0
+106.9	rule		1	0
+106.10	rule		1	0
+106.11	rule		1	0
+106.12	rule		1	0
+106.12a	subrule		1	0
+106.12b	subrule		1	0
+106.13	rule		1	0
+107	section	Numbers and Symbols	1	0
+107.1	rule		1	0
+107.1a	subrule		1	0
+107.1b	subrule		1	3
+107.1c	subrule		1	0
+107.2	rule		1	0
+107.3	rule		1	0
+107.3a	subrule		1	0
+107.3b	subrule		1	0
+107.3c	subrule		1	0
+107.3d	subrule		1	0
+107.3e	subrule		1	0
+107.3f	subrule		1	0
+107.3g	subrule		1	0
+107.3h	subrule		1	0
+107.3i	subrule		1	0
+107.3j	subrule		1	0
+107.3k	subrule		1	0
+107.3m	subrule		1	0
+107.3n	subrule		1	0
+107.3p	subrule		1	0
+107.4	rule		1	0
+107.4a	subrule		1	0
+107.4b	subrule		1	0
+107.4c	subrule		1	0
+107.4d	subrule		1	0
+107.4e	subrule		1	1
+107.4f	subrule		1	1
+107.4g	subrule		1	0
+107.4h	subrule		1	0
+107.5	rule		1	0
+107.6	rule		1	0
+107.7	rule		1	0
+107.8	rule		1	0
+107.8a	subrule		1	0
+107.8b	subrule		1	0
+107.9	rule		1	0
+107.10	rule		1	0
+107.11	rule		1	0
+107.12	rule		1	0
+107.13	rule		1	0
+107.14	rule		1	0
+107.15	rule		1	0
+107.15a	subrule		1	0
+107.15b	subrule		1	0
+107.16	rule		1	0
+107.16a	subrule		1	0
+107.17	rule		1	0
+107.17a	subrule		1	0
+107.18	rule		1	0
+108	section	Cards	1	0
+108.1	rule		1	0
+108.2	rule		1	0
+108.2a	subrule		1	0
+108.2b	subrule		1	0
+108.3	rule		1	0
+108.3a	subrule		1	0
+108.3b	subrule		1	0
+108.4	rule		1	0
+108.4a	subrule		1	0
+108.5	rule		1	0
+108.6	rule		1	0
+109	section	Objects	1	0
+109.1	rule		1	0
+109.2	rule		1	0
+109.2a	subrule		1	0
+109.2b	subrule		1	0
+109.2c	subrule		1	0
+109.2d	subrule		1	0
+109.3	rule		1	0
+109.4	rule		1	0
+109.4a	subrule		1	0
+109.4b	subrule		1	0
+109.4c	subrule		1	0
+109.4d	subrule		1	0
+109.4e	subrule		1	0
+109.4f	subrule		1	0
+109.4g	subrule		1	0
+109.5	rule		1	0
+110	section	Permanents	1	0
+110.1	rule		1	0
+110.2	rule		1	0
+110.2a	subrule		1	0
+110.2b	subrule		1	0
+110.3	rule		1	0
+110.4	rule		1	0
+110.4a	subrule		1	0
+110.4b	subrule		1	0
+110.4c	subrule		1	0
+110.5	rule		1	0
+110.5a	subrule		1	0
+110.5b	subrule		1	0
+110.5c	subrule		1	1
+110.5d	subrule		1	0
+111	section	Tokens	1	0
+111.1	rule		1	0
+111.2	rule		1	0
+111.3	rule		1	1
+111.4	rule		1	3
+111.5	rule		1	0
+111.6	rule		1	0
+111.7	rule		1	0
+111.8	rule		1	0
+111.9	rule		1	0
+111.10	rule		1	0
+111.10a	subrule		1	0
+111.10b	subrule		1	0
+111.10c	subrule		1	0
+111.10d	subrule		1	0
+111.10e	subrule		1	0
+111.10f	subrule		1	0
+111.10g	subrule		1	0
+111.10h	subrule		1	0
+111.10i	subrule		1	0
+111.10j	subrule		1	0
+111.10k	subrule		1	0
+111.10m	subrule		1	0
+111.10n	subrule		1	0
+111.10p	subrule		1	0
+111.10q	subrule		1	0
+111.10r	subrule		1	0
+111.10s	subrule		1	0
+111.10t	subrule		1	0
+111.10u	subrule		1	0
+111.10v	subrule		1	0
+111.10w	subrule		1	0
+111.11	rule		1	1
+111.12	rule		1	1
+111.13	rule		1	0
+112	section	Spells	1	0
+112.1	rule		1	0
+112.1a	subrule		1	0
+112.1b	subrule		1	0
+112.2	rule		1	0
+112.2a	subrule		1	0
+112.3	rule		1	0
+112.4	rule		1	1
+113	section	Abilities	1	0
+113.1	rule		1	0
+113.1a	subrule		1	0
+113.1b	subrule		1	0
+113.1c	subrule		1	0
+113.2	rule		1	0
+113.2a	subrule		1	1
+113.2b	subrule		1	0
+113.2c	subrule		1	0
+113.2d	subrule		1	0
+113.3	rule		1	0
+113.3a	subrule		1	0
+113.3b	subrule		1	0
+113.3c	subrule		1	0
+113.3d	subrule		1	0
+113.4	rule		1	0
+113.5	rule		1	0
+113.6	rule		1	0
+113.6a	subrule		1	0
+113.6b	subrule		1	0
+113.6c	subrule		1	0
+113.6d	subrule		1	0
+113.6e	subrule		1	0
+113.6f	subrule		1	0
+113.6g	subrule		1	0
+113.6h	subrule		1	0
+113.6i	subrule		1	0
+113.6j	subrule		1	0
+113.6k	subrule		1	1
+113.6m	subrule		1	1
+113.6n	subrule		1	0
+113.6p	subrule		1	0
+113.7	rule		1	0
+113.7a	subrule		1	0
+113.8	rule		1	0
+113.9	rule		1	0
+113.10	rule		1	0
+113.10a	subrule		1	0
+113.10b	subrule		1	0
+113.10c	subrule		1	0
+113.11	rule		1	0
+113.12	rule		1	1
+114	section	Emblems	1	0
+114.1	rule		1	0
+114.2	rule		1	0
+114.3	rule		1	0
+114.4	rule		1	0
+114.5	rule		1	0
+115	section	Targets	1	0
+115.1	rule		1	0
+115.1a	subrule		1	1
+115.1b	subrule		1	0
+115.1c	subrule		1	0
+115.1d	subrule		1	0
+115.1e	subrule		1	0
+115.2	rule		1	0
+115.3	rule		1	0
+115.4	rule		1	0
+115.5	rule		1	0
+115.6	rule		1	0
+115.7	rule		1	0
+115.7a	subrule		1	0
+115.7b	subrule		1	0
+115.7c	subrule		1	0
+115.7d	subrule		1	0
+115.7e	subrule		1	1
+115.7f	subrule		1	0
+115.8	rule		1	0
+115.9	rule		1	0
+115.9a	subrule		1	0
+115.9b	subrule		1	0
+115.9c	subrule		1	0
+115.10	rule		1	0
+115.10a	subrule		1	0
+115.10b	subrule		1	0
+116	section	Special Actions	1	0
+116.1	rule		1	0
+116.2	rule		1	0
+116.2a	subrule		1	0
+116.2b	subrule		1	0
+116.2c	subrule		1	0
+116.2d	subrule		1	0
+116.2e	subrule		1	0
+116.2f	subrule		1	0
+116.2g	subrule		1	0
+116.2h	subrule		1	0
+116.2i	subrule		1	0
+116.2j	subrule		1	0
+116.2k	subrule		1	0
+116.2m	subrule		1	0
+116.3	rule		1	0
+117	section	Timing and Priority	1	0
+117.1	rule		1	0
+117.1a	subrule		1	0
+117.1b	subrule		1	0
+117.1c	subrule		1	0
+117.1d	subrule		1	0
+117.2	rule		1	0
+117.2a	subrule		1	0
+117.2b	subrule		1	0
+117.2c	subrule		1	0
+117.2d	subrule		1	0
+117.2e	subrule		1	0
+117.3	rule		1	0
+117.3a	subrule		1	0
+117.3b	subrule		1	0
+117.3c	subrule		1	0
+117.3d	subrule		1	0
+117.4	rule		1	0
+117.5	rule		1	0
+117.6	rule		1	0
+117.7	rule		1	0
+118	section	Costs	1	0
+118.1	rule		1	0
+118.2	rule		1	0
+118.3	rule		1	0
+118.3a	subrule		1	0
+118.3b	subrule		1	0
+118.3c	subrule		1	0
+118.4	rule		1	0
+118.5	rule		1	0
+118.5a	subrule		1	0
+118.6	rule		1	0
+118.6a	subrule		1	0
+118.7	rule		1	0
+118.7a	subrule		1	0
+118.7b	subrule		1	0
+118.7c	subrule		1	0
+118.7d	subrule		1	0
+118.7e	subrule		1	0
+118.7f	subrule		1	0
+118.7g	subrule		1	0
+118.8	rule		1	0
+118.8a	subrule		1	0
+118.8b	subrule		1	0
+118.8c	subrule		1	0
+118.8d	subrule		1	0
+118.9	rule		1	0
+118.9a	subrule		1	0
+118.9b	subrule		1	0
+118.9c	subrule		1	0
+118.9d	subrule		1	0
+118.10	rule		1	0
+118.11	rule		1	1
+118.12	rule		1	2
+118.12a	subrule		1	0
+118.12b	subrule		1	0
+118.13	rule		1	0
+118.13a	subrule		1	0
+118.13b	subrule		1	0
+118.13c	subrule		1	0
+118.14	rule		1	0
+119	section	Life	1	0
+119.1	rule		1	0
+119.1a	subrule		1	0
+119.1b	subrule		1	0
+119.1c	subrule		1	0
+119.1e	subrule		1	0
+119.2	rule		1	0
+119.3	rule		1	0
+119.4	rule		1	0
+119.4a	subrule		1	0
+119.4b	subrule		1	0
+119.5	rule		1	0
+119.6	rule		1	0
+119.7	rule		1	0
+119.8	rule		1	0
+119.9	rule		1	0
+119.10	rule		1	0
+120	section	Damage	1	0
+120.1	rule		1	0
+120.1a	subrule		1	0
+120.2	rule		1	0
+120.2a	subrule		1	0
+120.2b	subrule		1	0
+120.3	rule		1	0
+120.3a	subrule		1	0
+120.3b	subrule		1	0
+120.3c	subrule		1	0
+120.3d	subrule		1	0
+120.3e	subrule		1	0
+120.3f	subrule		1	0
+120.3g	subrule		1	0
+120.3h	subrule		1	0
+120.4	rule		1	0
+120.4a	subrule		1	0
+120.4b	subrule		1	0
+120.4c	subrule		1	0
+120.4d	subrule		1	2
+120.5	rule		1	1
+120.6	rule		1	0
+120.7	rule		1	0
+120.8	rule		1	0
+120.9	rule		1	0
+120.10	rule		1	0
+121	section	Drawing a Card	1	0
+121.1	rule		1	0
+121.2	rule		1	0
+121.2a	subrule		1	0
+121.2b	subrule		1	0
+121.2c	subrule		1	0
+121.2d	subrule		1	0
+121.3	rule		1	0
+121.3a	subrule		1	0
+121.4	rule		1	0
+121.5	rule		1	0
+121.6	rule		1	0
+121.6a	subrule		1	0
+121.6b	subrule		1	0
+121.6c	subrule		1	0
+121.7	rule		1	0
+121.8	rule		1	0
+121.9	rule		1	0
+122	section	Counters	1	0
+122.1	rule		1	0
+122.1a	subrule		1	0
+122.1b	subrule		1	0
+122.1c	subrule		1	0
+122.1d	subrule		1	0
+122.1e	subrule		1	0
+122.1f	subrule		1	0
+122.1g	subrule		1	0
+122.1h	subrule		1	0
+122.1i	subrule		1	0
+122.1j	subrule		1	0
+122.2	rule		1	0
+122.3	rule		1	0
+122.4	rule		1	0
+122.5	rule		1	0
+122.6	rule		1	0
+122.6a	subrule		1	0
+122.7	rule		1	0
+122.8	rule		1	0
+122.9	rule		1	0
+123	section	Stickers	0	0
+123.1	rule		0	0
+123.2	rule		0	0
+123.2a	subrule		0	0
+123.2b	subrule		0	0
+123.2c	subrule		0	0
+123.3	rule		0	0
+123.3a	subrule		0	0
+123.3b	subrule		0	0
+123.3c	subrule		0	0
+123.3d	subrule		0	0
+123.4	rule		0	0
+123.5	rule		0	0
+123.5a	subrule		0	0
+123.5b	subrule		0	0
+123.5c	subrule		0	0
+123.6	rule		0	0
+123.6a	subrule		0	0
+123.6b	subrule		0	1
+123.6c	subrule		0	3
+123.6d	subrule		0	0
+123.6e	subrule		0	0
+123.7	rule		0	0
+123.7a	subrule		0	0
+123.8	rule		0	0
+123.8a	subrule		0	0
+123.9	rule		0	0
+200	section	General	1	0
+200.1	rule		1	0
+200.2	rule		1	0
+200.3	rule		1	0
+201	section	Name	1	0
+201.1	rule		1	0
+201.2	rule		1	0
+201.2a	subrule		1	0
+201.2b	subrule		1	1
+201.2c	subrule		1	0
+201.3	rule		1	0
+201.3a	subrule		1	0
+201.3b	subrule		1	0
+201.3c	subrule		1	0
+201.4	rule		1	0
+201.4a	subrule		1	1
+201.4b	subrule		1	0
+201.4c	subrule		1	0
+201.4d	subrule		1	0
+201.4e	subrule		1	0
+201.4f	subrule		1	0
+201.4g	subrule		1	0
+201.5	rule		1	0
+201.5a	subrule		1	1
+201.5b	subrule		1	3
+201.5c	subrule		1	0
+201.6	rule		1	0
+202	section	Mana Cost and Color	1	0
+202.1	rule		1	0
+202.1a	subrule		1	0
+202.1b	subrule		1	0
+202.2	rule		1	0
+202.2a	subrule		1	1
+202.2b	subrule		1	0
+202.2c	subrule		1	0
+202.2d	subrule		1	0
+202.2e	subrule		1	0
+202.2f	subrule		1	0
+202.3	rule		1	1
+202.3a	subrule		1	0
+202.3b	subrule		1	3
+202.3c	subrule		1	0
+202.3d	subrule		1	0
+202.3e	subrule		1	0
+202.3f	subrule		1	2
+202.3g	subrule		1	1
+202.4	rule		1	0
+203	section	Illustration	1	0
+203.1	rule		1	0
+204	section	Color Indicator	1	0
+204.1	rule		1	0
+204.2	rule		1	0
+205	section	Type Line	1	0
+205.1	rule		1	0
+205.1a	subrule		1	0
+205.1b	subrule		1	2
+205.2	rule		1	0
+205.2a	subrule		1	0
+205.2b	subrule		1	0
+205.2c	subrule		1	0
+205.3	rule		1	0
+205.3a	subrule		1	0
+205.3b	subrule		1	1
+205.3c	subrule		1	1
+205.3d	subrule		1	0
+205.3e	subrule		1	1
+205.3f	subrule		1	0
+205.3g	subrule		1	0
+205.3h	subrule		1	0
+205.3i	subrule		1	0
+205.3j	subrule		1	0
+205.3k	subrule		1	0
+205.3m	subrule		1	0
+205.3n	subrule		1	0
+205.3p	subrule		1	0
+205.3q	subrule		1	0
+205.3r	subrule		1	0
+205.4	rule		1	0
+205.4a	subrule		1	0
+205.4b	subrule		1	1
+205.4c	subrule		1	0
+205.4d	subrule		1	0
+205.4e	subrule		1	0
+205.4f	subrule		1	0
+205.4g	subrule		1	0
+205.4h	subrule		1	0
+206	section	Expansion Symbol	1	0
+206.1	rule		1	0
+206.2	rule		1	0
+206.3	rule		1	0
+206.3a	subrule		1	0
+206.3b	subrule		1	0
+206.3c	subrule		1	0
+206.4	rule		1	0
+206.5	rule		1	0
+207	section	Text Box	1	0
+207.1	rule		1	0
+207.2	rule		1	0
+207.2a	subrule		1	0
+207.2b	subrule		1	0
+207.2c	subrule		1	0
+207.2d	subrule		1	0
+207.3	rule		1	0
+207.4	rule		1	0
+207.5	rule		1	0
+208	section	Power/Toughness	1	0
+208.1	rule		1	0
+208.2	rule		1	0
+208.2a	subrule		1	1
+208.2b	subrule		1	0
+208.3	rule		1	0
+208.3a	subrule		1	1
+208.4	rule		1	0
+208.4a	subrule		1	0
+208.4b	subrule		1	0
+208.5	rule		1	0
+209	section	Loyalty	1	0
+209.1	rule		1	0
+209.2	rule		1	0
+210	section	Defense	1	0
+210.1	rule		1	0
+211	section	Hand Modifier	1	0
+211.1	rule		1	0
+212	section	Life Modifier	1	0
+212.1	rule		1	0
+213	section	Information Below the Text Box	1	0
+213.1	rule		1	0
+213.1a	subrule		1	0
+213.1b	subrule		1	0
+213.1c	subrule		1	0
+213.1d	subrule		1	0
+213.1e	subrule		1	0
+213.1f	subrule		1	0
+213.1g	subrule		1	0
+300	section	General	1	0
+300.1	rule		1	0
+300.2	rule		1	0
+300.2a	subrule		1	0
+300.2b	subrule		1	0
+301	section	Artifacts	1	0
+301.1	rule		1	0
+301.2	rule		1	0
+301.3	rule		1	0
+301.4	rule		1	0
+301.5	rule		1	0
+301.5a	subrule		1	0
+301.5b	subrule		1	0
+301.5c	subrule		1	0
+301.5d	subrule		1	0
+301.5e	subrule		1	0
+301.5f	subrule		1	0
+301.6	rule		1	0
+301.7	rule		1	0
+301.7a	subrule		1	0
+301.7b	subrule		1	0
+302	section	Creatures	1	0
+302.1	rule		1	0
+302.2	rule		1	0
+302.3	rule		1	1
+302.4	rule		1	0
+302.4a	subrule		1	0
+302.4b	subrule		1	0
+302.4c	subrule		1	0
+302.5	rule		1	0
+302.6	rule		1	0
+302.7	rule		1	0
+303	section	Enchantments	1	0
+303.1	rule		1	0
+303.2	rule		1	0
+303.3	rule		1	0
+303.4	rule		1	0
+303.4a	subrule		1	0
+303.4b	subrule		1	0
+303.4c	subrule		1	0
+303.4d	subrule		1	0
+303.4e	subrule		1	0
+303.4f	subrule		1	0
+303.4g	subrule		1	0
+303.4h	subrule		1	0
+303.4i	subrule		1	0
+303.4j	subrule		1	0
+303.4k	subrule		1	0
+303.4m	subrule		1	0
+303.5	rule		1	0
+303.6	rule		1	0
+303.7	rule		1	0
+303.7a	subrule		1	0
+304	section	Instants	1	0
+304.1	rule		1	0
+304.2	rule		1	0
+304.3	rule		1	0
+304.4	rule		1	0
+304.5	rule		1	0
+305	section	Lands	1	0
+305.1	rule		1	0
+305.2	rule		1	0
+305.2a	subrule		1	0
+305.2b	subrule		1	0
+305.3	rule		1	0
+305.4	rule		1	0
+305.5	rule		1	1
+305.6	rule		1	0
+305.7	rule		1	0
+305.8	rule		1	0
+305.9	rule		1	0
+306	section	Planeswalkers	1	0
+306.1	rule		1	0
+306.2	rule		1	0
+306.3	rule		1	0
+306.4	rule		1	0
+306.5	rule		1	0
+306.5a	subrule		1	0
+306.5b	subrule		1	0
+306.5c	subrule		1	0
+306.5d	subrule		1	0
+306.6	rule		1	0
+306.7	rule		1	0
+306.8	rule		1	0
+306.9	rule		1	0
+307	section	Sorceries	1	0
+307.1	rule		1	0
+307.2	rule		1	0
+307.3	rule		1	0
+307.4	rule		1	0
+307.5	rule		1	0
+307.5a	subrule		1	0
+308	section	Kindreds	1	0
+308.1	rule		1	0
+308.2	rule		1	0
+308.3	rule		1	0
+309	section	Dungeons	1	0
+309.1	rule		1	0
+309.2	rule		1	0
+309.2a	subrule		1	0
+309.2b	subrule		1	0
+309.2c	subrule		1	0
+309.2d	subrule		1	0
+309.3	rule		1	0
+309.4	rule		1	0
+309.4a	subrule		1	0
+309.4b	subrule		1	0
+309.4c	subrule		1	0
+309.5	rule		1	0
+309.5a	subrule		1	0
+309.5b	subrule		1	0
+309.6	rule		1	0
+309.7	rule		1	0
+310	section	Battles	1	0
+310.1	rule		1	0
+310.2	rule		1	0
+310.3	rule		1	0
+310.4	rule		1	0
+310.4a	subrule		1	0
+310.4b	subrule		1	0
+310.4c	subrule		1	0
+310.5	rule		1	0
+310.6	rule		1	0
+310.7	rule		1	0
+310.8	rule		1	0
+310.9	rule		1	0
+310.9a	subrule		1	0
+310.9b	subrule		1	0
+310.9c	subrule		1	0
+310.9d	subrule		1	0
+310.9e	subrule		1	0
+310.9f	subrule		1	0
+310.9g	subrule		1	0
+310.10	rule		1	0
+310.11	rule		1	0
+310.12	rule		1	0
+310.12a	subrule		1	0
+310.12b	subrule		1	0
+311	section	Planes	0	0
+311.1	rule		0	0
+311.2	rule		0	0
+311.3	rule		0	0
+311.4	rule		0	0
+311.5	rule		0	0
+311.6	rule		0	0
+311.7	rule		0	0
+312	section	Phenomena	0	0
+312.1	rule		0	0
+312.2	rule		0	0
+312.3	rule		0	0
+312.4	rule		0	0
+312.5	rule		0	0
+312.6	rule		0	0
+312.7	rule		0	0
+313	section	Vanguards	0	0
+313.1	rule		0	0
+313.2	rule		0	0
+313.3	rule		0	0
+313.4	rule		0	0
+313.5	rule		0	0
+313.6	rule		0	0
+313.7	rule		0	0
+314	section	Schemes	0	0
+314.1	rule		0	0
+314.2	rule		0	0
+314.3	rule		0	0
+314.4	rule		0	0
+314.5	rule		0	0
+314.6	rule		0	0
+314.7	rule		0	0
+315	section	Conspiracies	0	0
+315.1	rule		0	0
+315.2	rule		0	0
+315.3	rule		0	0
+315.4	rule		0	0
+315.5	rule		0	0
+315.5a	subrule		0	0
+315.5b	subrule		0	0
+315.6	rule		0	0
+315.7	rule		0	0
+400	section	General	1	0
+400.1	rule		1	0
+400.2	rule		1	0
+400.3	rule		1	0
+400.4	rule		1	0
+400.4a	subrule		1	0
+400.4b	subrule		1	0
+400.5	rule		1	0
+400.6	rule		1	1
+400.7	rule		1	0
+400.7a	subrule		1	0
+400.7b	subrule		1	0
+400.7c	subrule		1	0
+400.7d	subrule		1	0
+400.7e	subrule		1	0
+400.7f	subrule		1	0
+400.7g	subrule		1	0
+400.7h	subrule		1	0
+400.7i	subrule		1	0
+400.7j	subrule		1	0
+400.7k	subrule		1	0
+400.7m	subrule		1	0
+400.8	rule		1	0
+400.9	rule		1	0
+400.10	rule		1	0
+400.11	rule		1	0
+400.11a	subrule		1	0
+400.11b	subrule		1	0
+400.11c	subrule		1	0
+400.12	rule		1	0
+401	section	Library	1	0
+401.1	rule		1	0
+401.2	rule		1	0
+401.3	rule		1	0
+401.4	rule		1	0
+401.5	rule		1	0
+401.6	rule		1	0
+401.7	rule		1	0
+402	section	Hand	1	0
+402.1	rule		1	0
+402.2	rule		1	0
+402.3	rule		1	0
+403	section	Battlefield	1	0
+403.1	rule		1	0
+403.2	rule		1	0
+403.3	rule		1	0
+403.4	rule		1	0
+403.5	rule		1	0
+404	section	Graveyard	1	0
+404.1	rule		1	0
+404.2	rule		1	0
+404.3	rule		1	0
+405	section	Stack	1	0
+405.1	rule		1	0
+405.2	rule		1	0
+405.3	rule		1	0
+405.4	rule		1	0
+405.5	rule		1	0
+405.6	rule		1	0
+405.6a	subrule		1	0
+405.6b	subrule		1	0
+405.6c	subrule		1	0
+405.6d	subrule		1	0
+405.6e	subrule		1	0
+405.6f	subrule		1	0
+405.6g	subrule		1	0
+405.6h	subrule		1	0
+406	section	Exile	1	0
+406.1	rule		1	0
+406.2	rule		1	0
+406.3	rule		1	0
+406.3a	subrule		1	0
+406.3b	subrule		1	0
+406.4	rule		1	0
+406.5	rule		1	0
+406.6	rule		1	0
+406.7	rule		1	0
+406.8	rule		1	0
+407	section	Ante	0	0
+407.1	rule		0	0
+407.2	rule		0	0
+407.3	rule		0	0
+407.4	rule		0	0
+408	section	Command	1	0
+408.1	rule		1	0
+408.2	rule		1	0
+408.3	rule		1	0
+500	section	General	1	0
+500.1	rule		1	0
+500.2	rule		1	0
+500.3	rule		1	0
+500.4	rule		1	0
+500.5	rule		1	0
+500.5a	subrule		1	0
+500.5b	subrule		1	0
+500.6	rule		1	0
+500.7	rule		1	0
+500.8	rule		1	0
+500.9	rule		1	0
+500.10	rule		1	1
+500.10a	subrule		1	0
+500.11	rule		1	0
+500.12	rule		1	0
+501	section	Beginning Phase	1	0
+501.1	rule		1	0
+502	section	Untap Step	1	0
+502.1	rule		1	0
+502.2	rule		1	0
+502.2a	subrule		1	0
+502.3	rule		1	0
+502.4	rule		1	0
+503	section	Upkeep Step	1	0
+503.1	rule		1	0
+503.1a	subrule		1	0
+503.2	rule		1	0
+504	section	Draw Step	1	0
+504.1	rule		1	0
+504.2	rule		1	0
+505	section	Main Phase	1	0
+505.1	rule		1	0
+505.1a	subrule		1	0
+505.1b	subrule		1	0
+505.2	rule		1	0
+505.3	rule		1	0
+505.4	rule		1	0
+505.5	rule		1	0
+505.6	rule		1	0
+505.6a	subrule		1	0
+505.6b	subrule		1	0
+506	section	Combat Phase	1	0
+506.1	rule		1	0
+506.2	rule		1	0
+506.2a	subrule		1	0
+506.2b	subrule		1	0
+506.3	rule		1	0
+506.3a	subrule		1	0
+506.3b	subrule		1	0
+506.3c	subrule		1	0
+506.3d	subrule		1	0
+506.3e	subrule		1	0
+506.3f	subrule		1	0
+506.3g	subrule		1	0
+506.4	rule		1	0
+506.4a	subrule		1	0
+506.4b	subrule		1	0
+506.4c	subrule		1	0
+506.4d	subrule		1	0
+506.4e	subrule		1	0
+506.5	rule		1	0
+506.6	rule		1	0
+506.7	rule		1	0
+506.7a	subrule		1	0
+506.7b	subrule		1	0
+506.7c	subrule		1	0
+506.7d	subrule		1	0
+506.7e	subrule		1	0
+506.7f	subrule		1	0
+506.7g	subrule		1	0
+507	section	Beginning of Combat Step	1	0
+507.1	rule		1	0
+507.2	rule		1	0
+508	section	Declare Attackers Step	1	0
+508.1	rule		1	0
+508.1a	subrule		1	0
+508.1b	subrule		1	0
+508.1c	subrule		1	1
+508.1d	subrule		1	1
+508.1e	subrule		1	0
+508.1f	subrule		1	0
+508.1g	subrule		1	0
+508.1h	subrule		1	0
+508.1i	subrule		1	0
+508.1j	subrule		1	0
+508.1k	subrule		1	0
+508.1m	subrule		1	0
+508.2	rule		1	0
+508.2a	subrule		1	1
+508.2b	subrule		1	0
+508.3	rule		1	0
+508.3a	subrule		1	0
+508.3b	subrule		1	0
+508.3c	subrule		1	0
+508.3d	subrule		1	0
+508.3e	subrule		1	0
+508.3f	subrule		1	0
+508.4	rule		1	0
+508.4a	subrule		1	0
+508.4b	subrule		1	0
+508.4c	subrule		1	0
+508.4d	subrule		1	0
+508.5	rule		1	0
+508.5a	subrule		1	0
+508.6	rule		1	0
+508.7	rule		1	0
+508.7a	subrule		1	0
+508.7b	subrule		1	0
+508.7c	subrule		1	0
+508.7d	subrule		1	0
+508.7e	subrule		1	0
+508.8	rule		1	0
+509	section	Declare Blockers Step	1	0
+509.1	rule		1	0
+509.1a	subrule		1	0
+509.1b	subrule		1	1
+509.1c	subrule		1	1
+509.1d	subrule		1	0
+509.1e	subrule		1	0
+509.1f	subrule		1	0
+509.1g	subrule		1	0
+509.1h	subrule		1	0
+509.1i	subrule		1	0
+509.2	rule		1	0
+509.2a	subrule		1	0
+509.3	rule		1	0
+509.3a	subrule		1	0
+509.3b	subrule		1	0
+509.3c	subrule		1	0
+509.3d	subrule		1	0
+509.3e	subrule		1	0
+509.3f	subrule		1	1
+509.3g	subrule		1	0
+509.4	rule		1	0
+509.4a	subrule		1	0
+509.4b	subrule		1	0
+510	section	Combat Damage Step	1	0
+510.1	rule		1	0
+510.1a	subrule		1	0
+510.1b	subrule		1	0
+510.1c	subrule		1	1
+510.1d	subrule		1	0
+510.1e	subrule		1	0
+510.2	rule		1	0
+510.3	rule		1	0
+510.3a	subrule		1	0
+510.4	rule		1	0
+511	section	End of Combat Step	1	0
+511.1	rule		1	0
+511.2	rule		1	0
+511.3	rule		1	0
+512	section	Ending Phase	1	0
+512.1	rule		1	0
+513	section	End Step	1	0
+513.1	rule		1	0
+513.1a	subrule		1	0
+513.2	rule		1	0
+514	section	Cleanup Step	1	0
+514.1	rule		1	0
+514.2	rule		1	0
+514.3	rule		1	0
+514.3a	subrule		1	0
+600	section	General	1	0
+601	section	Casting Spells	1	0
+601.1	rule		1	0
+601.1a	subrule		1	0
+601.2	rule		1	0
+601.2a	subrule		1	0
+601.2b	subrule		1	0
+601.2c	subrule		1	1
+601.2d	subrule		1	0
+601.2e	subrule		1	0
+601.2f	subrule		1	0
+601.2g	subrule		1	0
+601.2h	subrule		1	1
+601.2i	subrule		1	0
+601.3	rule		1	0
+601.3a	subrule		1	1
+601.3b	subrule		1	1
+601.3c	subrule		1	0
+601.3d	subrule		1	0
+601.3e	subrule		1	2
+601.3f	subrule		1	0
+601.4	rule		1	1
+601.5	rule		1	0
+601.6	rule		1	0
+601.6a	subrule		1	0
+601.7	rule		1	0
+601.7a	subrule		1	0
+601.7b	subrule		1	0
+601.8	rule		1	0
+602	section	Activating Activated Abilities	1	0
+602.1	rule		1	0
+602.1a	subrule		1	1
+602.1b	subrule		1	0
+602.1c	subrule		1	0
+602.1d	subrule		1	0
+602.1e	subrule		1	0
+602.2	rule		1	0
+602.2a	subrule		1	0
+602.2b	subrule		1	0
+602.3	rule		1	0
+602.3a	subrule		1	0
+602.3b	subrule		1	0
+602.4	rule		1	0
+602.5	rule		1	0
+602.5a	subrule		1	0
+602.5b	subrule		1	0
+602.5c	subrule		1	0
+602.5d	subrule		1	0
+602.5e	subrule		1	0
+603	section	Handling Triggered Abilities	1	0
+603.1	rule		1	0
+603.1a	subrule		1	0
+603.1b	subrule		1	0
+603.2	rule		1	0
+603.2a	subrule		1	0
+603.2b	subrule		1	0
+603.2c	subrule		1	1
+603.2d	subrule		1	0
+603.2e	subrule		1	1
+603.2f	subrule		1	0
+603.2g	subrule		1	1
+603.2h	subrule		1	0
+603.3	rule		1	0
+603.3a	subrule		1	0
+603.3b	subrule		1	0
+603.3c	subrule		1	0
+603.3d	subrule		1	0
+603.4	rule		1	1
+603.5	rule		1	0
+603.6	rule		1	0
+603.6a	subrule		1	0
+603.6b	subrule		1	1
+603.6c	subrule		1	0
+603.6d	subrule		1	0
+603.6e	subrule		1	0
+603.7	rule		1	0
+603.7a	subrule		1	2
+603.7b	subrule		1	0
+603.7c	subrule		1	1
+603.7d	subrule		1	0
+603.7e	subrule		1	0
+603.7f	subrule		1	0
+603.7g	subrule		1	0
+603.7h	subrule		1	0
+603.8	rule		1	1
+603.9	rule		1	0
+603.10	rule		1	0
+603.10a	subrule		1	1
+603.10b	subrule		1	0
+603.10c	subrule		1	0
+603.10d	subrule		1	0
+603.10e	subrule		1	0
+603.10f	subrule		1	0
+603.10g	subrule		1	0
+603.11	rule		1	1
+603.12	rule		1	1
+603.12a	subrule		1	0
+604	section	Handling Static Abilities	1	0
+604.1	rule		1	0
+604.2	rule		1	0
+604.3	rule		1	0
+604.3a	subrule		1	0
+604.4	rule		1	0
+604.5	rule		1	0
+604.6	rule		1	0
+604.7	rule		1	0
+605	section	Mana Abilities	1	0
+605.1	rule		1	0
+605.1a	subrule		1	0
+605.1b	subrule		1	0
+605.2	rule		1	1
+605.3	rule		1	0
+605.3a	subrule		1	0
+605.3b	subrule		1	0
+605.3c	subrule		1	0
+605.4	rule		1	0
+605.4a	subrule		1	1
+605.5	rule		1	0
+605.5a	subrule		1	0
+605.5b	subrule		1	0
+606	section	Loyalty Abilities	1	0
+606.1	rule		1	0
+606.2	rule		1	0
+606.3	rule		1	0
+606.4	rule		1	1
+606.6	rule		1	0
+607	section	Linked Abilities	1	0
+607.1	rule		1	0
+607.1a	subrule		1	0
+607.1b	subrule		1	0
+607.1c	subrule		1	0
+607.1d	subrule		1	0
+607.2	rule		1	0
+607.2a	subrule		1	0
+607.2b	subrule		1	0
+607.2c	subrule		1	0
+607.2d	subrule		1	0
+607.2e	subrule		1	0
+607.2f	subrule		1	0
+607.2g	subrule		1	0
+607.2h	subrule		1	0
+607.2i	subrule		1	1
+607.2j	subrule		1	0
+607.2k	subrule		1	0
+607.2m	subrule		1	0
+607.2n	subrule		1	0
+607.2p	subrule		1	0
+607.2q	subrule		1	0
+607.3	rule		1	0
+607.4	rule		1	1
+607.5	rule		1	1
+607.5a	subrule		1	2
+608	section	Resolving Spells and Abilities	1	0
+608.1	rule		1	0
+608.2	rule		1	0
+608.2a	subrule		1	0
+608.2b	subrule		1	2
+608.2c	subrule		1	0
+608.2d	subrule		1	1
+608.2e	subrule		1	0
+608.2f	subrule		1	2
+608.2g	subrule		1	0
+608.2h	subrule		1	0
+608.2i	subrule		1	1
+608.2j	subrule		1	1
+608.2k	subrule		1	1
+608.2m	subrule		1	0
+608.2n	subrule		1	0
+608.2p	subrule		1	0
+608.3	rule		1	0
+608.3a	subrule		1	0
+608.3b	subrule		1	0
+608.3c	subrule		1	0
+608.3d	subrule		1	0
+608.3e	subrule		1	1
+608.3f	subrule		1	0
+608.3g	subrule		1	0
+609	section	Effects	1	0
+609.1	rule		1	0
+609.2	rule		1	1
+609.3	rule		1	1
+609.4	rule		1	0
+609.4a	subrule		1	1
+609.4b	subrule		1	0
+609.5	rule		1	0
+609.6	rule		1	0
+609.7	rule		1	0
+609.7a	subrule		1	0
+609.7b	subrule		1	0
+609.7c	subrule		1	0
+610	section	One-Shot Effects	1	0
+610.1	rule		1	0
+610.2	rule		1	0
+610.3	rule		1	0
+610.3a	subrule		1	0
+610.3b	subrule		1	0
+610.3c	subrule		1	0
+610.3d	subrule		1	1
+610.4	rule		1	0
+610.4a	subrule		1	0
+610.4b	subrule		1	0
+610.4c	subrule		1	0
+610.4d	subrule		1	0
+610.5	rule		1	0
+611	section	Continuous Effects	1	0
+611.1	rule		1	0
+611.2	rule		1	0
+611.2a	subrule		1	0
+611.2b	subrule		1	1
+611.2c	subrule		1	2
+611.2d	subrule		1	0
+611.2e	subrule		1	1
+611.2f	subrule		1	0
+611.3	rule		1	0
+611.3a	subrule		1	0
+611.3b	subrule		1	1
+611.3c	subrule		1	1
+611.3d	subrule		1	0
+612	section	Text-Changing Effects	1	0
+612.1	rule		1	0
+612.2	rule		1	0
+612.2a	subrule		1	0
+612.3	rule		1	0
+612.4	rule		1	0
+612.5	rule		1	0
+612.6	rule		1	0
+612.7	rule		1	0
+612.8	rule		1	0
+612.9	rule		1	0
+612.10	rule		1	0
+613	section	Interaction of Continuous Effects	1	0
+613.1	rule		1	0
+613.1a	subrule		1	0
+613.1b	subrule		1	0
+613.1c	subrule		1	0
+613.1d	subrule		1	0
+613.1e	subrule		1	0
+613.1f	subrule		1	0
+613.1g	subrule		1	0
+613.2	rule		1	0
+613.2a	subrule		1	0
+613.2b	subrule		1	0
+613.2c	subrule		1	0
+613.3	rule		1	0
+613.4	rule		1	0
+613.4a	subrule		1	0
+613.4b	subrule		1	0
+613.4c	subrule		1	0
+613.4d	subrule		1	3
+613.5	rule		1	2
+613.6	rule		1	4
+613.7	rule		1	0
+613.7a	subrule		1	1
+613.7b	subrule		1	0
+613.7c	subrule		1	0
+613.7d	subrule		1	0
+613.7e	subrule		1	0
+613.7f	subrule		1	0
+613.7g	subrule		1	0
+613.7h	subrule		1	0
+613.7i	subrule		1	0
+613.7j	subrule		1	0
+613.7k	subrule		1	0
+613.7m	subrule		1	0
+613.7n	subrule		1	0
+613.8	rule		1	0
+613.8a	subrule		1	0
+613.8b	subrule		1	0
+613.8c	subrule		1	0
+613.9	rule		1	2
+613.10	rule		1	0
+613.11	rule		1	0
+614	section	Replacement Effects	1	0
+614.1	rule		1	0
+614.1a	subrule		1	0
+614.1b	subrule		1	0
+614.1c	subrule		1	0
+614.1d	subrule		1	0
+614.1e	subrule		1	0
+614.2	rule		1	0
+614.3	rule		1	0
+614.4	rule		1	1
+614.5	rule		1	1
+614.6	rule		1	0
+614.7	rule		1	0
+614.7a	subrule		1	0
+614.8	rule		1	0
+614.9	rule		1	0
+614.10	rule		1	0
+614.10a	subrule		1	0
+614.10b	subrule		1	0
+614.11	rule		1	0
+614.11a	subrule		1	0
+614.11b	subrule		1	0
+614.12	rule		1	3
+614.12a	subrule		1	0
+614.12b	subrule		1	0
+614.12c	subrule		1	0
+614.13	rule		1	0
+614.13a	subrule		1	1
+614.13b	subrule		1	1
+614.13c	subrule		1	1
+614.14	rule		1	0
+614.15	rule		1	0
+614.16	rule		1	0
+614.17	rule		1	0
+614.17a	subrule		1	0
+614.17b	subrule		1	0
+614.17c	subrule		1	0
+614.17d	subrule		1	0
+615	section	Prevention Effects	1	0
+615.1	rule		1	0
+615.1a	subrule		1	0
+615.2	rule		1	0
+615.3	rule		1	0
+615.4	rule		1	1
+615.5	rule		1	0
+615.6	rule		1	0
+615.7	rule		1	0
+615.8	rule		1	0
+615.9	rule		1	0
+615.10	rule		1	1
+615.11	rule		1	1
+615.12	rule		1	0
+615.12a	subrule		1	0
+615.13	rule		1	0
+616	section	Interaction of Replacement and/or Prevention Effects	1	0
+616.1	rule		1	0
+616.1a	subrule		1	0
+616.1b	subrule		1	0
+616.1c	subrule		1	0
+616.1d	subrule		1	0
+616.1e	subrule		1	0
+616.1f	subrule		1	2
+616.1g	subrule		1	1
+616.2	rule		1	1
+700	section	General	1	0
+700.1	rule		1	1
+700.2	rule		1	0
+700.2a	subrule		1	0
+700.2b	subrule		1	0
+700.2c	subrule		1	0
+700.2d	subrule		1	0
+700.2e	subrule		1	0
+700.2f	subrule		1	0
+700.2g	subrule		1	0
+700.2h	subrule		1	0
+700.2i	subrule		1	0
+700.3	rule		1	0
+700.3a	subrule		1	0
+700.3b	subrule		1	0
+700.3c	subrule		1	1
+700.3d	subrule		1	0
+700.4	rule		1	0
+700.5	rule		1	0
+700.5a	subrule		1	1
+700.6	rule		1	0
+700.7	rule		1	1
+700.8	rule		1	0
+700.8a	subrule		1	0
+700.8b	subrule		1	0
+700.8c	subrule		1	0
+700.8d	subrule		1	0
+700.9	rule		1	0
+700.10	rule		1	0
+700.11	rule		1	0
+700.12	rule		1	0
+700.12a	subrule		1	0
+700.13	rule		1	0
+700.14	rule		1	1
+700.15	rule		1	0
+700.16	rule		1	0
+701	section	Keyword Actions	1	0
+701.1	rule		1	0
+701.2	rule	Activate	1	0
+701.2a	subrule		1	0
+701.3	rule	Attach	1	0
+701.3a	subrule		1	0
+701.3b	subrule		1	0
+701.3c	subrule		1	0
+701.3d	subrule		1	0
+701.4	rule	Behold	1	0
+701.4a	subrule		1	0
+701.4b	subrule		1	0
+701.5	rule	Cast	1	0
+701.5a	subrule		1	0
+701.5b	subrule		1	0
+701.6	rule	Counter	1	0
+701.6a	subrule		1	0
+701.6b	subrule		1	0
+701.7	rule	Create	1	0
+701.7a	subrule		1	0
+701.7b	subrule		1	0
+701.7c	subrule		1	0
+701.8	rule	Destroy	1	0
+701.8a	subrule		1	0
+701.8b	subrule		1	0
+701.8c	subrule		1	0
+701.9	rule	Discard	1	0
+701.9a	subrule		1	0
+701.9b	subrule		1	0
+701.9c	subrule		1	0
+701.10	rule	Double	1	0
+701.10a	subrule		1	0
+701.10b	subrule		1	0
+701.10c	subrule		1	0
+701.10d	subrule		1	0
+701.10e	subrule		1	0
+701.10f	subrule		1	0
+701.10g	subrule		1	0
+701.11	rule	Triple	1	0
+701.11a	subrule		1	0
+701.11b	subrule		1	0
+701.11c	subrule		1	0
+701.12	rule	Exchange	1	0
+701.12a	subrule		1	1
+701.12b	subrule		1	0
+701.12c	subrule		1	0
+701.12d	subrule		1	0
+701.12e	subrule		1	0
+701.12f	subrule		1	0
+701.12g	subrule		1	0
+701.12h	subrule		1	0
+701.13	rule	Exile	1	0
+701.13a	subrule		1	0
+701.14	rule	Fight	1	0
+701.14a	subrule		1	0
+701.14b	subrule		1	0
+701.14c	subrule		1	0
+701.14d	subrule		1	0
+701.15	rule	Goad	1	0
+701.15a	subrule		1	0
+701.15b	subrule		1	0
+701.15c	subrule		1	0
+701.15d	subrule		1	0
+701.16	rule	Investigate	1	0
+701.16a	subrule		1	0
+701.17	rule	Mill	1	0
+701.17a	subrule		1	0
+701.17b	subrule		1	0
+701.17c	subrule		1	0
+701.17d	subrule		1	0
+701.18	rule	Play	1	0
+701.18a	subrule		1	0
+701.18b	subrule		1	0
+701.18c	subrule		1	0
+701.18d	subrule		1	0
+701.18e	subrule		1	0
+701.19	rule	Regenerate	1	0
+701.19a	subrule		1	0
+701.19b	subrule		1	0
+701.19c	subrule		1	0
+701.20	rule	Reveal	1	0
+701.20a	subrule		1	0
+701.20b	subrule		1	0
+701.20c	subrule		1	1
+701.20d	subrule		1	0
+701.20e	subrule		1	0
+701.21	rule	Sacrifice	1	0
+701.21a	subrule		1	0
+701.22	rule	Scry	1	0
+701.22a	subrule		1	0
+701.22b	subrule		1	0
+701.22c	subrule		1	0
+701.22d	subrule		1	0
+701.23	rule	Search	1	0
+701.23a	subrule		1	0
+701.23b	subrule		1	1
+701.23c	subrule		1	1
+701.23d	subrule		1	0
+701.23e	subrule		1	0
+701.23f	subrule		1	1
+701.23g	subrule		1	0
+701.23h	subrule		1	0
+701.23i	subrule		1	0
+701.23j	subrule		1	0
+701.24	rule	Shuffle	1	0
+701.24a	subrule		1	0
+701.24b	subrule		1	0
+701.24c	subrule		1	2
+701.24d	subrule		1	1
+701.24e	subrule		1	0
+701.24f	subrule		1	0
+701.24g	subrule		1	1
+701.25	rule	Surveil	1	0
+701.25a	subrule		1	0
+701.25b	subrule		1	0
+701.25c	subrule		1	0
+701.25d	subrule		1	0
+701.26	rule	Tap and Untap	1	0
+701.26a	subrule		1	0
+701.26b	subrule		1	0
+701.27	rule	Transform	1	0
+701.27a	subrule		1	0
+701.27b	subrule		1	0
+701.27c	subrule		1	0
+701.27d	subrule		1	0
+701.27e	subrule		1	0
+701.27f	subrule		1	0
+701.27g	subrule		1	0
+701.28	rule	Convert	1	0
+701.28a	subrule		1	0
+701.28b	subrule		1	0
+701.28c	subrule		1	0
+701.28d	subrule		1	0
+701.28e	subrule		1	0
+701.28f	subrule		1	0
+701.29	rule	Fateseal	1	0
+701.29a	subrule		1	0
+701.30	rule	Clash	1	0
+701.30a	subrule		1	0
+701.30b	subrule		1	0
+701.30c	subrule		1	0
+701.30d	subrule		1	0
+701.31	rule	Planeswalk	0	0
+701.31a	subrule		0	0
+701.31b	subrule		0	0
+701.31c	subrule		0	0
+701.31d	subrule		0	0
+701.32	rule	Set in Motion	0	0
+701.32a	subrule		0	0
+701.32b	subrule		0	0
+701.32c	subrule		0	0
+701.33	rule	Abandon	0	0
+701.33a	subrule		0	0
+701.33b	subrule		0	0
+701.34	rule	Proliferate	1	0
+701.34a	subrule		1	0
+701.34b	subrule		1	0
+701.35	rule	Detain	1	0
+701.35a	subrule		1	0
+701.36	rule	Populate	1	0
+701.36a	subrule		1	0
+701.36b	subrule		1	0
+701.37	rule	Monstrosity	1	0
+701.37a	subrule		1	0
+701.37b	subrule		1	0
+701.37c	subrule		1	0
+701.38	rule	Vote	1	0
+701.38a	subrule		1	0
+701.38b	subrule		1	0
+701.38c	subrule		1	0
+701.38d	subrule		1	0
+701.39	rule	Bolster	1	0
+701.39a	subrule		1	0
+701.40	rule	Manifest	1	0
+701.40a	subrule		1	0
+701.40b	subrule		1	0
+701.40c	subrule		1	0
+701.40d	subrule		1	0
+701.40e	subrule		1	0
+701.40f	subrule		1	0
+701.40g	subrule		1	0
+701.40h	subrule		1	0
+701.41	rule	Support	1	0
+701.41a	subrule		1	0
+701.42	rule	Meld	1	0
+701.42a	subrule		1	0
+701.42b	subrule		1	0
+701.42c	subrule		1	1
+701.43	rule	Exert	1	0
+701.43a	subrule		1	0
+701.43b	subrule		1	0
+701.43c	subrule		1	0
+701.43d	subrule		1	0
+701.44	rule	Explore	1	0
+701.44a	subrule		1	0
+701.44b	subrule		1	0
+701.44c	subrule		1	0
+701.44d	subrule		1	0
+701.45	rule	Assemble	1	0
+701.45a	subrule		1	0
+701.46	rule	Adapt	1	0
+701.46a	subrule		1	0
+701.47	rule	Amass	1	0
+701.47a	subrule		1	0
+701.47b	subrule		1	0
+701.47c	subrule		1	0
+701.47d	subrule		1	0
+701.48	rule	Learn	1	0
+701.48a	subrule		1	0
+701.49	rule	Venture into the Dungeon	1	0
+701.49a	subrule		1	0
+701.49b	subrule		1	0
+701.49c	subrule		1	0
+701.49d	subrule		1	0
+701.50	rule	Connive	1	0
+701.50a	subrule		1	0
+701.50b	subrule		1	0
+701.50c	subrule		1	0
+701.50d	subrule		1	0
+701.50e	subrule		1	0
+701.50f	subrule		1	0
+701.51	rule	Open an Attraction	0	0
+701.51a	subrule		0	0
+701.51b	subrule		0	0
+701.51c	subrule		0	0
+701.52	rule	Roll to Visit Your Attractions	0	0
+701.52a	subrule		0	0
+701.53	rule	Incubate	1	0
+701.53a	subrule		1	0
+701.53b	subrule		1	0
+701.54	rule	The Ring Tempts You	1	0
+701.54a	subrule		1	0
+701.54b	subrule		1	0
+701.54c	subrule		1	0
+701.54d	subrule		1	0
+701.54e	subrule		1	0
+701.55	rule	Face a Villainous Choice	1	0
+701.55a	subrule		1	0
+701.55b	subrule		1	0
+701.55c	subrule		1	0
+701.55d	subrule		1	0
+701.56	rule	Time Travel	1	0
+701.56a	subrule		1	0
+701.57	rule	Discover	1	0
+701.57a	subrule		1	0
+701.57b	subrule		1	0
+701.57c	subrule		1	0
+701.58	rule	Cloak	1	0
+701.58a	subrule		1	0
+701.58b	subrule		1	0
+701.58c	subrule		1	0
+701.58d	subrule		1	0
+701.58e	subrule		1	0
+701.58f	subrule		1	0
+701.58g	subrule		1	0
+701.58h	subrule		1	0
+701.59	rule	Collect Evidence	1	0
+701.59a	subrule		1	0
+701.59b	subrule		1	0
+701.59c	subrule		1	0
+701.60	rule	Suspect	1	0
+701.60a	subrule		1	0
+701.60b	subrule		1	0
+701.60c	subrule		1	0
+701.60d	subrule		1	0
+701.61	rule	Forage	1	0
+701.61a	subrule		1	0
+701.62	rule	Manifest Dread	1	0
+701.62a	subrule		1	0
+701.62b	subrule		1	0
+701.63	rule	Endure	1	0
+701.63a	subrule		1	0
+701.63b	subrule		1	0
+701.64	rule	Harness	1	0
+701.64a	subrule		1	0
+701.64b	subrule		1	0
+701.65	rule	Airbend	1	0
+701.65a	subrule		1	0
+701.65b	subrule		1	0
+701.66	rule	Earthbend	1	0
+701.66a	subrule		1	0
+701.66b	subrule		1	0
+701.67	rule	Waterbend	1	0
+701.67a	subrule		1	0
+701.67b	subrule		1	1
+701.67c	subrule		1	0
+701.68	rule	Blight	1	0
+701.68a	subrule		1	0
+701.68b	subrule		1	0
+701.68c	subrule		1	0
+701.68d	subrule		1	0
+701.69	rule	Heal	1	0
+701.69a	subrule		1	0
+701.70	rule	Recruit	1	0
+701.70a	subrule		1	0
+702	section	Keyword Abilities	1	0
+702.1	rule		1	0
+702.1a	subrule		1	1
+702.1b	subrule		1	2
+702.1c	subrule		1	1
+702.1d	subrule		1	0
+702.2	rule	Deathtouch	1	0
+702.2a	subrule		1	0
+702.2b	subrule		1	0
+702.2c	subrule		1	0
+702.2d	subrule		1	0
+702.2e	subrule		1	0
+702.2f	subrule		1	0
+702.3	rule	Defender	1	0
+702.3a	subrule		1	0
+702.3b	subrule		1	0
+702.3c	subrule		1	0
+702.4	rule	Double Strike	1	0
+702.4a	subrule		1	0
+702.4b	subrule		1	0
+702.4c	subrule		1	0
+702.4d	subrule		1	0
+702.4e	subrule		1	0
+702.5	rule	Enchant	1	0
+702.5a	subrule		1	0
+702.5b	subrule		1	0
+702.5c	subrule		1	0
+702.5d	subrule		1	0
+702.6	rule	Equip	1	0
+702.6a	subrule		1	0
+702.6b	subrule		1	0
+702.6c	subrule		1	0
+702.6d	subrule		1	0
+702.6e	subrule		1	0
+702.7	rule	First Strike	1	0
+702.7a	subrule		1	0
+702.7b	subrule		1	0
+702.7c	subrule		1	0
+702.7d	subrule		1	0
+702.8	rule	Flash	1	0
+702.8a	subrule		1	0
+702.8b	subrule		1	0
+702.9	rule	Flying	1	0
+702.9a	subrule		1	0
+702.9b	subrule		1	0
+702.9c	subrule		1	0
+702.10	rule	Haste	1	0
+702.10a	subrule		1	0
+702.10b	subrule		1	0
+702.10c	subrule		1	0
+702.10d	subrule		1	0
+702.11	rule	Hexproof	1	0
+702.11a	subrule		1	0
+702.11b	subrule		1	0
+702.11c	subrule		1	0
+702.11d	subrule		1	0
+702.11e	subrule		1	0
+702.11f	subrule		1	0
+702.11g	subrule		1	0
+702.11h	subrule		1	0
+702.12	rule	Indestructible	1	0
+702.12a	subrule		1	0
+702.12b	subrule		1	0
+702.12c	subrule		1	0
+702.13	rule	Intimidate	1	0
+702.13a	subrule		1	0
+702.13b	subrule		1	0
+702.13c	subrule		1	0
+702.14	rule	Landwalk	1	0
+702.14a	subrule		1	0
+702.14b	subrule		1	0
+702.14c	subrule		1	0
+702.14d	subrule		1	1
+702.14e	subrule		1	0
+702.15	rule	Lifelink	1	0
+702.15a	subrule		1	0
+702.15b	subrule		1	0
+702.15c	subrule		1	0
+702.15d	subrule		1	0
+702.15e	subrule		1	1
+702.15f	subrule		1	0
+702.16	rule	Protection	1	0
+702.16a	subrule		1	0
+702.16b	subrule		1	0
+702.16c	subrule		1	0
+702.16d	subrule		1	0
+702.16e	subrule		1	0
+702.16f	subrule		1	0
+702.16g	subrule		1	0
+702.16h	subrule		1	0
+702.16i	subrule		1	0
+702.16j	subrule		1	0
+702.16k	subrule		1	0
+702.16m	subrule		1	0
+702.16n	subrule		1	0
+702.16p	subrule		1	0
+702.17	rule	Reach	1	0
+702.17a	subrule		1	0
+702.17b	subrule		1	0
+702.17c	subrule		1	0
+702.18	rule	Shroud	1	0
+702.18a	subrule		1	0
+702.18b	subrule		1	0
+702.19	rule	Trample	1	0
+702.19a	subrule		1	0
+702.19b	subrule		1	2
+702.19c	subrule		1	1
+702.19d	subrule		1	0
+702.19e	subrule		1	0
+702.19f	subrule		1	0
+702.19g	subrule		1	0
+702.20	rule	Vigilance	1	0
+702.20a	subrule		1	0
+702.20b	subrule		1	0
+702.20c	subrule		1	0
+702.21	rule	Ward	1	0
+702.21a	subrule		1	0
+702.21b	subrule		1	0
+702.22	rule	Banding	1	0
+702.22a	subrule		1	0
+702.22b	subrule		1	0
+702.22c	subrule		1	0
+702.22d	subrule		1	0
+702.22e	subrule		1	0
+702.22f	subrule		1	0
+702.22g	subrule		1	0
+702.22h	subrule		1	1
+702.22i	subrule		1	0
+702.22j	subrule		1	0
+702.22k	subrule		1	0
+702.22m	subrule		1	0
+702.23	rule	Rampage	1	0
+702.23a	subrule		1	0
+702.23b	subrule		1	0
+702.23c	subrule		1	0
+702.24	rule	Cumulative Upkeep	1	0
+702.24a	subrule		1	2
+702.24b	subrule		1	1
+702.25	rule	Flanking	1	0
+702.25a	subrule		1	0
+702.25b	subrule		1	0
+702.26	rule	Phasing	1	0
+702.26a	subrule		1	0
+702.26b	subrule		1	2
+702.26c	subrule		1	0
+702.26d	subrule		1	0
+702.26e	subrule		1	0
+702.26f	subrule		1	0
+702.26g	subrule		1	0
+702.26h	subrule		1	0
+702.26i	subrule		1	0
+702.26j	subrule		1	0
+702.26k	subrule		1	0
+702.26m	subrule		1	0
+702.26n	subrule		1	0
+702.26p	subrule		1	0
+702.27	rule	Buyback	1	0
+702.27a	subrule		1	0
+702.28	rule	Shadow	1	0
+702.28a	subrule		1	0
+702.28b	subrule		1	0
+702.28c	subrule		1	0
+702.29	rule	Cycling	1	0
+702.29a	subrule		1	0
+702.29b	subrule		1	0
+702.29c	subrule		1	0
+702.29d	subrule		1	0
+702.29e	subrule		1	0
+702.29f	subrule		1	0
+702.30	rule	Echo	1	0
+702.30a	subrule		1	0
+702.30b	subrule		1	0
+702.31	rule	Horsemanship	1	0
+702.31a	subrule		1	0
+702.31b	subrule		1	0
+702.31c	subrule		1	0
+702.32	rule	Fading	1	0
+702.32a	subrule		1	0
+702.33	rule	Kicker	1	0
+702.33a	subrule		1	0
+702.33b	subrule		1	0
+702.33c	subrule		1	0
+702.33d	subrule		1	0
+702.33e	subrule		1	0
+702.33f	subrule		1	0
+702.33g	subrule		1	0
+702.33h	subrule		1	0
+702.34	rule	Flashback	1	0
+702.34a	subrule		1	0
+702.35	rule	Madness	1	0
+702.35a	subrule		1	0
+702.35b	subrule		1	0
+702.35c	subrule		1	0
+702.36	rule	Fear	1	0
+702.36a	subrule		1	0
+702.36b	subrule		1	0
+702.36c	subrule		1	0
+702.37	rule	Morph	1	0
+702.37a	subrule		1	0
+702.37b	subrule		1	0
+702.37c	subrule		1	0
+702.37d	subrule		1	0
+702.37e	subrule		1	0
+702.37f	subrule		1	0
+702.37g	subrule		1	0
+702.38	rule	Amplify	1	0
+702.38a	subrule		1	0
+702.38b	subrule		1	0
+702.39	rule	Provoke	1	0
+702.39a	subrule		1	0
+702.39b	subrule		1	0
+702.40	rule	Storm	1	0
+702.40a	subrule		1	0
+702.40b	subrule		1	0
+702.41	rule	Affinity	1	0
+702.41a	subrule		1	0
+702.41b	subrule		1	0
+702.42	rule	Entwine	1	0
+702.42a	subrule		1	0
+702.42b	subrule		1	0
+702.43	rule	Modular	1	0
+702.43a	subrule		1	0
+702.43b	subrule		1	0
+702.44	rule	Sunburst	1	0
+702.44a	subrule		1	0
+702.44b	subrule		1	0
+702.44c	subrule		1	1
+702.44d	subrule		1	0
+702.45	rule	Bushido	1	0
+702.45a	subrule		1	0
+702.45b	subrule		1	0
+702.46	rule	Soulshift	1	0
+702.46a	subrule		1	0
+702.46b	subrule		1	0
+702.47	rule	Splice	1	0
+702.47a	subrule		1	1
+702.47b	subrule		1	0
+702.47c	subrule		1	1
+702.47d	subrule		1	0
+702.47e	subrule		1	0
+702.48	rule	Offering	1	0
+702.48a	subrule		1	0
+702.48b	subrule		1	0
+702.48c	subrule		1	0
+702.49	rule	Ninjutsu	1	0
+702.49a	subrule		1	0
+702.49b	subrule		1	0
+702.49c	subrule		1	0
+702.49d	subrule		1	0
+702.50	rule	Epic	1	0
+702.50a	subrule		1	0
+702.50b	subrule		1	0
+702.51	rule	Convoke	1	0
+702.51a	subrule		1	0
+702.51b	subrule		1	1
+702.51c	subrule		1	0
+702.51d	subrule		1	0
+702.52	rule	Dredge	1	0
+702.52a	subrule		1	0
+702.52b	subrule		1	0
+702.53	rule	Transmute	1	0
+702.53a	subrule		1	0
+702.53b	subrule		1	0
+702.54	rule	Bloodthirst	1	0
+702.54a	subrule		1	0
+702.54b	subrule		1	0
+702.54c	subrule		1	0
+702.55	rule	Haunt	1	0
+702.55a	subrule		1	0
+702.55b	subrule		1	0
+702.55c	subrule		1	0
+702.56	rule	Replicate	1	0
+702.56a	subrule		1	0
+702.56b	subrule		1	0
+702.57	rule	Forecast	1	0
+702.57a	subrule		1	0
+702.57b	subrule		1	0
+702.58	rule	Graft	1	0
+702.58a	subrule		1	0
+702.58b	subrule		1	0
+702.59	rule	Recover	1	0
+702.59a	subrule		1	0
+702.60	rule	Ripple	1	0
+702.60a	subrule		1	0
+702.60b	subrule		1	0
+702.61	rule	Split Second	1	0
+702.61a	subrule		1	0
+702.61b	subrule		1	0
+702.61c	subrule		1	0
+702.62	rule	Suspend	1	0
+702.62a	subrule		1	0
+702.62b	subrule		1	0
+702.62c	subrule		1	0
+702.62d	subrule		1	0
+702.63	rule	Vanishing	1	0
+702.63a	subrule		1	0
+702.63b	subrule		1	0
+702.63c	subrule		1	0
+702.64	rule	Absorb	1	0
+702.64a	subrule		1	0
+702.64b	subrule		1	0
+702.64c	subrule		1	0
+702.65	rule	Aura Swap	1	0
+702.65a	subrule		1	0
+702.65b	subrule		1	2
+702.66	rule	Delve	1	0
+702.66a	subrule		1	0
+702.66b	subrule		1	0
+702.66c	subrule		1	0
+702.67	rule	Fortify	1	0
+702.67a	subrule		1	0
+702.67b	subrule		1	0
+702.67c	subrule		1	0
+702.68	rule	Frenzy	1	0
+702.68a	subrule		1	0
+702.68b	subrule		1	0
+702.69	rule	Gravestorm	1	0
+702.69a	subrule		1	0
+702.69b	subrule		1	0
+702.70	rule	Poisonous	1	0
+702.70a	subrule		1	0
+702.70b	subrule		1	0
+702.71	rule	Transfigure	1	0
+702.71a	subrule		1	0
+702.72	rule	Champion	1	0
+702.72a	subrule		1	0
+702.72b	subrule		1	0
+702.72c	subrule		1	0
+702.73	rule	Changeling	1	0
+702.73a	subrule		1	0
+702.74	rule	Evoke	1	0
+702.74a	subrule		1	0
+702.75	rule	Hideaway	1	0
+702.75a	subrule		1	0
+702.75b	subrule		1	0
+702.76	rule	Prowl	1	0
+702.76a	subrule		1	0
+702.77	rule	Reinforce	1	0
+702.77a	subrule		1	0
+702.77b	subrule		1	0
+702.78	rule	Conspire	1	0
+702.78a	subrule		1	0
+702.78b	subrule		1	0
+702.79	rule	Persist	1	0
+702.79a	subrule		1	0
+702.80	rule	Wither	1	0
+702.80a	subrule		1	0
+702.80b	subrule		1	0
+702.80c	subrule		1	0
+702.80d	subrule		1	0
+702.81	rule	Retrace	1	0
+702.81a	subrule		1	0
+702.82	rule	Devour	1	0
+702.82a	subrule		1	0
+702.82b	subrule		1	0
+702.82c	subrule		1	0
+702.83	rule	Exalted	1	0
+702.83a	subrule		1	0
+702.83b	subrule		1	0
+702.84	rule	Unearth	1	0
+702.84a	subrule		1	0
+702.85	rule	Cascade	1	0
+702.85a	subrule		1	0
+702.85b	subrule		1	0
+702.85c	subrule		1	0
+702.86	rule	Annihilator	1	0
+702.86a	subrule		1	0
+702.86b	subrule		1	0
+702.87	rule	Level Up	1	0
+702.87a	subrule		1	0
+702.87b	subrule		1	0
+702.87c	subrule		1	0
+702.88	rule	Rebound	1	0
+702.88a	subrule		1	0
+702.88b	subrule		1	0
+702.88c	subrule		1	0
+702.89	rule	Umbra Armor	1	0
+702.89a	subrule		1	0
+702.89b	subrule		1	0
+702.90	rule	Infect	1	0
+702.90a	subrule		1	0
+702.90b	subrule		1	0
+702.90c	subrule		1	0
+702.90d	subrule		1	0
+702.90e	subrule		1	0
+702.90f	subrule		1	0
+702.91	rule	Battle Cry	1	0
+702.91a	subrule		1	0
+702.91b	subrule		1	0
+702.92	rule	Living Weapon	1	0
+702.92a	subrule		1	0
+702.93	rule	Undying	1	0
+702.93a	subrule		1	0
+702.94	rule	Miracle	1	0
+702.94a	subrule		1	0
+702.94b	subrule		1	0
+702.95	rule	Soulbond	1	0
+702.95a	subrule		1	0
+702.95b	subrule		1	0
+702.95c	subrule		1	0
+702.95d	subrule		1	0
+702.95e	subrule		1	0
+702.96	rule	Overload	1	0
+702.96a	subrule		1	0
+702.96b	subrule		1	0
+702.96c	subrule		1	0
+702.97	rule	Scavenge	1	0
+702.97a	subrule		1	0
+702.98	rule	Unleash	1	0
+702.98a	subrule		1	0
+702.99	rule	Cipher	1	0
+702.99a	subrule		1	0
+702.99b	subrule		1	0
+702.99c	subrule		1	0
+702.100	rule	Evolve	1	0
+702.100a	subrule		1	0
+702.100b	subrule		1	0
+702.100c	subrule		1	0
+702.100d	subrule		1	0
+702.101	rule	Extort	1	0
+702.101a	subrule		1	0
+702.101b	subrule		1	0
+702.102	rule	Fuse	1	0
+702.102a	subrule		1	0
+702.102b	subrule		1	0
+702.102c	subrule		1	0
+702.102d	subrule		1	0
+702.103	rule	Bestow	1	0
+702.103a	subrule		1	0
+702.103b	subrule		1	0
+702.103c	subrule		1	0
+702.103d	subrule		1	2
+702.103e	subrule		1	0
+702.103f	subrule		1	0
+702.103g	subrule		1	0
+702.104	rule	Tribute	1	0
+702.104a	subrule		1	0
+702.104b	subrule		1	0
+702.105	rule	Dethrone	1	0
+702.105a	subrule		1	0
+702.105b	subrule		1	0
+702.106	rule	Hidden Agenda	0	0
+702.106a	subrule		0	0
+702.106b	subrule		0	0
+702.106c	subrule		0	0
+702.106d	subrule		0	0
+702.106e	subrule		0	0
+702.106f	subrule		0	0
+702.107	rule	Outlast	1	0
+702.107a	subrule		1	0
+702.108	rule	Prowess	1	0
+702.108a	subrule		1	0
+702.108b	subrule		1	0
+702.109	rule	Dash	1	0
+702.109a	subrule		1	0
+702.110	rule	Exploit	1	0
+702.110a	subrule		1	0
+702.110b	subrule		1	0
+702.111	rule	Menace	1	0
+702.111a	subrule		1	0
+702.111b	subrule		1	0
+702.111c	subrule		1	0
+702.112	rule	Renown	1	0
+702.112a	subrule		1	0
+702.112b	subrule		1	0
+702.112c	subrule		1	0
+702.113	rule	Awaken	1	0
+702.113a	subrule		1	0
+702.113b	subrule		1	0
+702.114	rule	Devoid	1	0
+702.114a	subrule		1	0
+702.115	rule	Ingest	1	0
+702.115a	subrule		1	0
+702.115b	subrule		1	0
+702.116	rule	Myriad	1	0
+702.116a	subrule		1	0
+702.116b	subrule		1	0
+702.117	rule	Surge	1	0
+702.117a	subrule		1	0
+702.118	rule	Skulk	1	0
+702.118a	subrule		1	0
+702.118b	subrule		1	0
+702.118c	subrule		1	0
+702.119	rule	Emerge	1	0
+702.119a	subrule		1	0
+702.119b	subrule		1	0
+702.119c	subrule		1	0
+702.120	rule	Escalate	1	0
+702.120a	subrule		1	0
+702.121	rule	Melee	1	0
+702.121a	subrule		1	0
+702.121b	subrule		1	0
+702.122	rule	Crew	1	0
+702.122a	subrule		1	0
+702.122b	subrule		1	0
+702.122c	subrule		1	0
+702.122d	subrule		1	0
+702.122e	subrule		1	0
+702.123	rule	Fabricate	1	0
+702.123a	subrule		1	0
+702.123b	subrule		1	0
+702.124	rule	Partner	1	0
+702.124a	subrule		1	0
+702.124b	subrule		1	0
+702.124c	subrule		1	0
+702.124d	subrule		1	0
+702.124e	subrule		1	0
+702.124f	subrule		1	0
+702.124g	subrule		1	0
+702.124h	subrule		1	0
+702.124i	subrule		1	0
+702.124j	subrule		1	0
+702.124k	subrule		1	0
+702.124m	subrule		1	0
+702.124n	subrule		1	0
+702.125	rule	Undaunted	1	0
+702.125a	subrule		1	0
+702.125b	subrule		1	0
+702.125c	subrule		1	0
+702.126	rule	Improvise	1	0
+702.126a	subrule		1	0
+702.126b	subrule		1	0
+702.126c	subrule		1	0
+702.127	rule	Aftermath	1	0
+702.127a	subrule		1	0
+702.128	rule	Embalm	1	0
+702.128a	subrule		1	0
+702.128b	subrule		1	0
+702.129	rule	Eternalize	1	0
+702.129a	subrule		1	0
+702.130	rule	Afflict	1	0
+702.130a	subrule		1	0
+702.130b	subrule		1	0
+702.131	rule	Ascend	1	0
+702.131a	subrule		1	0
+702.131b	subrule		1	0
+702.131c	subrule		1	0
+702.131d	subrule		1	0
+702.132	rule	Assist	1	0
+702.132a	subrule		1	0
+702.133	rule	Jump-Start	1	0
+702.133a	subrule		1	0
+702.134	rule	Mentor	1	0
+702.134a	subrule		1	0
+702.134b	subrule		1	0
+702.134c	subrule		1	0
+702.135	rule	Afterlife	1	0
+702.135a	subrule		1	0
+702.135b	subrule		1	0
+702.136	rule	Riot	1	0
+702.136a	subrule		1	0
+702.136b	subrule		1	0
+702.137	rule	Spectacle	1	0
+702.137a	subrule		1	0
+702.138	rule	Escape	1	0
+702.138a	subrule		1	0
+702.138b	subrule		1	0
+702.138c	subrule		1	0
+702.138d	subrule		1	0
+702.139	rule	Companion	1	0
+702.139a	subrule		1	0
+702.139b	subrule		1	0
+702.139c	subrule		1	0
+702.139d	subrule		1	0
+702.140	rule	Mutate	1	0
+702.140a	subrule		1	0
+702.140b	subrule		1	0
+702.140c	subrule		1	0
+702.140d	subrule		1	0
+702.140e	subrule		1	0
+702.140f	subrule		1	0
+702.141	rule	Encore	1	0
+702.141a	subrule		1	0
+702.142	rule	Boast	1	0
+702.142a	subrule		1	0
+702.142b	subrule		1	0
+702.143	rule	Foretell	1	0
+702.143a	subrule		1	0
+702.143b	subrule		1	0
+702.143c	subrule		1	0
+702.143d	subrule		1	0
+702.143e	subrule		1	0
+702.143f	subrule		1	0
+702.144	rule	Demonstrate	1	0
+702.144a	subrule		1	0
+702.145	rule	Daybound and Nightbound	1	0
+702.145a	subrule		1	0
+702.145b	subrule		1	0
+702.145c	subrule		1	0
+702.145d	subrule		1	0
+702.145e	subrule		1	0
+702.145f	subrule		1	0
+702.145g	subrule		1	0
+702.146	rule	Disturb	1	0
+702.146a	subrule		1	0
+702.146b	subrule		1	0
+702.147	rule	Decayed	1	0
+702.147a	subrule		1	0
+702.148	rule	Cleave	1	0
+702.148a	subrule		1	0
+702.148b	subrule		1	0
+702.149	rule	Training	1	0
+702.149a	subrule		1	0
+702.149b	subrule		1	0
+702.149c	subrule		1	0
+702.150	rule	Compleated	1	0
+702.150a	subrule		1	0
+702.151	rule	Reconfigure	1	0
+702.151a	subrule		1	0
+702.151b	subrule		1	0
+702.152	rule	Blitz	1	0
+702.152a	subrule		1	0
+702.152b	subrule		1	0
+702.153	rule	Casualty	1	0
+702.153a	subrule		1	0
+702.153b	subrule		1	0
+702.154	rule	Enlist	1	0
+702.154a	subrule		1	0
+702.154b	subrule		1	0
+702.154c	subrule		1	0
+702.154d	subrule		1	0
+702.155	rule	Read Ahead	1	0
+702.155a	subrule		1	0
+702.155b	subrule		1	0
+702.155c	subrule		1	0
+702.156	rule	Ravenous	1	0
+702.156a	subrule		1	0
+702.157	rule	Squad	1	0
+702.157a	subrule		1	0
+702.157b	subrule		1	0
+702.158	rule	Space Sculptor	1	0
+702.158a	subrule		1	0
+702.158b	subrule		1	0
+702.158c	subrule		1	0
+702.158d	subrule		1	0
+702.158e	subrule		1	0
+702.159	rule	Visit	0	0
+702.159a	subrule		0	0
+702.159b	subrule		0	0
+702.160	rule	Prototype	1	0
+702.160a	subrule		1	0
+702.161	rule	Living Metal	1	0
+702.161a	subrule		1	0
+702.162	rule	More Than Meets the Eye	1	0
+702.162a	subrule		1	0
+702.163	rule	For Mirrodin!	1	0
+702.163a	subrule		1	0
+702.164	rule	Toxic	1	0
+702.164a	subrule		1	0
+702.164b	subrule		1	1
+702.164c	subrule		1	0
+702.165	rule	Backup	1	0
+702.165a	subrule		1	0
+702.165b	subrule		1	0
+702.165c	subrule		1	0
+702.165d	subrule		1	0
+702.166	rule	Bargain	1	0
+702.166a	subrule		1	0
+702.166b	subrule		1	0
+702.166c	subrule		1	0
+702.166d	subrule		1	0
+702.167	rule	Craft	1	0
+702.167a	subrule		1	0
+702.167b	subrule		1	0
+702.167c	subrule		1	0
+702.168	rule	Disguise	1	0
+702.168a	subrule		1	0
+702.168b	subrule		1	0
+702.168c	subrule		1	0
+702.168d	subrule		1	0
+702.168e	subrule		1	0
+702.168f	subrule		1	0
+702.169	rule	Solved	1	0
+702.169a	subrule		1	0
+702.169b	subrule		1	0
+702.169c	subrule		1	0
+702.169d	subrule		1	0
+702.170	rule	Plot	1	0
+702.170a	subrule		1	0
+702.170b	subrule		1	0
+702.170c	subrule		1	0
+702.170d	subrule		1	0
+702.170e	subrule		1	0
+702.170f	subrule		1	0
+702.171	rule	Saddle	1	0
+702.171a	subrule		1	0
+702.171b	subrule		1	0
+702.171c	subrule		1	0
+702.172	rule	Spree	1	0
+702.172a	subrule		1	0
+702.172b	subrule		1	0
+702.173	rule	Freerunning	1	0
+702.173a	subrule		1	0
+702.174	rule	Gift	1	0
+702.174a	subrule		1	0
+702.174b	subrule		1	0
+702.174c	subrule		1	0
+702.174d	subrule		1	0
+702.174e	subrule		1	0
+702.174f	subrule		1	0
+702.174g	subrule		1	0
+702.174h	subrule		1	0
+702.174i	subrule		1	0
+702.174j	subrule		1	0
+702.174k	subrule		1	0
+702.174m	subrule		1	0
+702.175	rule	Offspring	1	0
+702.175a	subrule		1	0
+702.175b	subrule		1	0
+702.176	rule	Impending	1	0
+702.176a	subrule		1	0
+702.177	rule	Exhaust	1	0
+702.177a	subrule		1	0
+702.177b	subrule		1	1
+702.178	rule	Max Speed	1	0
+702.178a	subrule		1	0
+702.178b	subrule		1	0
+702.179	rule	Start Your Engines!	1	0
+702.179a	subrule		1	0
+702.179b	subrule		1	0
+702.179c	subrule		1	0
+702.179d	subrule		1	0
+702.179e	subrule		1	0
+702.179f	subrule		1	0
+702.180	rule	Harmonize	1	0
+702.180a	subrule		1	0
+702.180b	subrule		1	0
+702.181	rule	Mobilize	1	0
+702.181a	subrule		1	0
+702.182	rule	Job Select	1	0
+702.182a	subrule		1	0
+702.183	rule	Tiered	1	0
+702.183a	subrule		1	0
+702.184	rule	Station	1	0
+702.184a	subrule		1	0
+702.184b	subrule		1	0
+702.184c	subrule		1	1
+702.185	rule	Warp	1	0
+702.185a	subrule		1	0
+702.185b	subrule		1	0
+702.185c	subrule		1	0
+702.186	rule	∞ (Infinity)	1	0
+702.186a	subrule		1	0
+702.186b	subrule		1	0
+702.187	rule	Mayhem	1	0
+702.187a	subrule		1	0
+702.187b	subrule		1	0
+702.187c	subrule		1	0
+702.188	rule	Web-slinging	1	0
+702.188a	subrule		1	0
+702.189	rule	Firebending	1	0
+702.189a	subrule		1	0
+702.189b	subrule		1	0
+702.190	rule	Sneak	1	0
+702.190a	subrule		1	0
+702.190b	subrule		1	0
+702.191	rule	Increment	1	0
+702.191a	subrule		1	0
+702.191b	subrule		1	0
+702.192	rule	Paradigm	1	0
+702.192a	subrule		1	0
+702.193	rule	Power-up	1	0
+702.193a	subrule		1	0
+702.193b	subrule		1	0
+702.194	rule	Teamwork	1	0
+702.194a	subrule		1	0
+702.194b	subrule		1	0
+702.194c	subrule		1	0
+702.195	rule	Storied	1	0
+702.195a	subrule		1	0
+702.195b	subrule		1	0
+702.195c	subrule		1	0
+703	section	Turn-Based Actions	1	0
+703.1	rule		1	0
+703.1a	subrule		1	0
+703.2	rule		1	0
+703.3	rule		1	0
+703.4	rule		1	0
+703.4a	subrule		1	0
+703.4b	subrule		1	0
+703.4c	subrule		1	0
+703.4d	subrule		1	0
+703.4e	subrule		1	0
+703.4f	subrule		1	0
+703.4g	subrule		1	0
+703.4h	subrule		1	0
+703.4i	subrule		1	0
+703.4j	subrule		1	0
+703.4k	subrule		1	0
+703.4m	subrule		1	0
+703.4n	subrule		1	0
+703.4p	subrule		1	0
+703.4q	subrule		1	0
+704	section	State-Based Actions	1	0
+704.1	rule		1	0
+704.1a	subrule		1	0
+704.2	rule		1	0
+704.3	rule		1	0
+704.4	rule		1	1
+704.5	rule		1	0
+704.5a	subrule		1	0
+704.5b	subrule		1	0
+704.5c	subrule		1	0
+704.5d	subrule		1	0
+704.5e	subrule		1	0
+704.5f	subrule		1	0
+704.5g	subrule		1	0
+704.5h	subrule		1	0
+704.5i	subrule		1	0
+704.5j	subrule		1	0
+704.5k	subrule		1	0
+704.5m	subrule		1	0
+704.5n	subrule		1	0
+704.5p	subrule		1	0
+704.5q	subrule		1	0
+704.5r	subrule		1	0
+704.5s	subrule		1	0
+704.5t	subrule		1	0
+704.5u	subrule		1	0
+704.5v	subrule		1	0
+704.5w	subrule		1	0
+704.5x	subrule		1	0
+704.5y	subrule		1	0
+704.5z	subrule		1	0
+704.6	rule		1	0
+704.6a	subrule		1	0
+704.6b	subrule		1	0
+704.6c	subrule		1	0
+704.6d	subrule		1	0
+704.6e	subrule		1	0
+704.6f	subrule		1	0
+704.7	rule		1	1
+704.8	rule		1	1
+705	section	Flipping a Coin	1	0
+705.1	rule		1	0
+705.2	rule		1	0
+705.3	rule		1	0
+706	section	Rolling a Die	1	0
+706.1	rule		1	0
+706.1a	subrule		1	0
+706.1b	subrule		1	0
+706.2	rule		1	0
+706.2a	subrule		1	0
+706.2b	subrule		1	0
+706.3	rule		1	0
+706.3a	subrule		1	0
+706.3b	subrule		1	0
+706.3c	subrule		1	0
+706.4	rule		1	0
+706.5	rule		1	0
+706.6	rule		1	0
+706.7	rule		1	0
+706.8	rule		1	0
+706.8a	subrule		1	0
+706.8b	subrule		1	0
+706.8c	subrule		1	0
+707	section	Copying Objects	1	0
+707.1	rule		1	0
+707.2	rule		1	2
+707.2a	subrule		1	0
+707.2b	subrule		1	0
+707.2c	subrule		1	0
+707.3	rule		1	4
+707.4	rule		1	1
+707.5	rule		1	2
+707.6	rule		1	1
+707.7	rule		1	0
+707.8	rule		1	0
+707.8a	subrule		1	2
+707.9	rule		1	0
+707.9a	subrule		1	1
+707.9b	subrule		1	1
+707.9c	subrule		1	0
+707.9d	subrule		1	2
+707.9e	subrule		1	1
+707.9f	subrule		1	1
+707.9g	subrule		1	0
+707.10	rule		1	3
+707.10a	subrule		1	0
+707.10b	subrule		1	0
+707.10c	subrule		1	0
+707.10d	subrule		1	0
+707.10e	subrule		1	1
+707.10f	subrule		1	0
+707.10g	subrule		1	0
+707.11	rule		1	1
+707.12	rule		1	0
+707.12a	subrule		1	0
+707.13	rule		1	0
+707.14	rule		1	0
+708	section	Face-Down Spells and Permanents	1	0
+708.1	rule		1	0
+708.2	rule		1	0
+708.2a	subrule		1	0
+708.2b	subrule		1	0
+708.3	rule		1	0
+708.4	rule		1	0
+708.5	rule		1	0
+708.6	rule		1	0
+708.7	rule		1	0
+708.8	rule		1	0
+708.9	rule		1	0
+708.10	rule		1	0
+708.11	rule		1	0
+708.12	rule		1	0
+709	section	Split Cards	1	0
+709.1	rule		1	0
+709.2	rule		1	0
+709.3	rule		1	0
+709.3a	subrule		1	0
+709.3b	subrule		1	0
+709.3c	subrule		1	0
+709.4	rule		1	0
+709.4a	subrule		1	0
+709.4b	subrule		1	2
+709.4c	subrule		1	0
+709.4d	subrule		1	0
+709.5	rule		1	0
+709.5a	subrule		1	0
+709.5b	subrule		1	0
+709.5c	subrule		1	0
+709.5d	subrule		1	0
+709.5e	subrule		1	0
+709.5f	subrule		1	0
+709.5g	subrule		1	0
+709.5h	subrule		1	0
+709.5i	subrule		1	0
+709.5j	subrule		1	0
+710	section	Flip Cards	1	0
+710.1	rule		1	0
+710.1a	subrule		1	0
+710.1b	subrule		1	0
+710.1c	subrule		1	0
+710.2	rule		1	1
+710.3	rule		1	0
+710.4	rule		1	0
+710.5	rule		1	0
+711	section	Leveler Cards	1	0
+711.1	rule		1	0
+711.2	rule		1	0
+711.2a	subrule		1	0
+711.2b	subrule		1	0
+711.3	rule		1	0
+711.4	rule		1	0
+711.5	rule		1	0
+711.6	rule		1	0
+711.7	rule		1	0
+712	section	Double-Faced Cards	1	0
+712.1	rule		1	0
+712.2	rule		1	0
+712.2a	subrule		1	0
+712.2b	subrule		1	0
+712.2c	subrule		1	0
+712.3	rule		1	0
+712.3a	subrule		1	0
+712.3b	subrule		1	0
+712.3c	subrule		1	0
+712.4	rule		1	0
+712.4a	subrule		1	0
+712.4b	subrule		1	0
+712.4c	subrule		1	0
+712.5	rule		1	0
+712.5a	subrule		1	0
+712.5b	subrule		1	0
+712.5c	subrule		1	0
+712.5d	subrule		1	0
+712.5e	subrule		1	0
+712.5f	subrule		1	0
+712.5g	subrule		1	0
+712.6	rule		1	0
+712.7	rule		1	0
+712.8	rule		1	0
+712.8a	subrule		1	0
+712.8b	subrule		1	0
+712.8c	subrule		1	0
+712.8d	subrule		1	0
+712.8e	subrule		1	0
+712.8f	subrule		1	0
+712.8g	subrule		1	0
+712.9	rule		1	2
+712.10	rule		1	0
+712.11	rule		1	0
+712.11a	subrule		1	0
+712.11b	subrule		1	0
+712.11c	subrule		1	0
+712.11d	subrule		1	0
+712.12	rule		1	0
+712.13	rule		1	0
+712.13a	subrule		1	1
+712.14	rule		1	0
+712.14a	subrule		1	0
+712.14b	subrule		1	0
+712.14c	subrule		1	0
+712.15	rule		1	0
+712.15a	subrule		1	0
+712.16	rule		1	0
+712.17	rule		1	0
+712.18	rule		1	1
+712.19	rule		1	0
+712.20	rule		1	0
+712.21	rule		1	1
+712.21a	subrule		1	0
+712.21b	subrule		1	1
+712.21c	subrule		1	3
+712.21d	subrule		1	1
+712.21e	subrule		1	0
+713	section	Substitute Cards	1	0
+713.1	rule		1	0
+713.2	rule		1	0
+713.2a	subrule		1	0
+713.2b	subrule		1	0
+713.2c	subrule		1	0
+713.3	rule		1	0
+713.4	rule		1	0
+713.5	rule		1	0
+714	section	Saga Cards	1	0
+714.1	rule		1	0
+714.1a	subrule		1	0
+714.2	rule		1	0
+714.2a	subrule		1	0
+714.2b	subrule		1	0
+714.2c	subrule		1	0
+714.2d	subrule		1	0
+714.2e	subrule		1	0
+714.3	rule		1	0
+714.3a	subrule		1	0
+714.3b	subrule		1	0
+714.3c	subrule		1	0
+714.4	rule		1	0
+715	section	Adventurer Cards	1	0
+715.1	rule		1	0
+715.2	rule		1	0
+715.2a	subrule		1	0
+715.2b	subrule		1	0
+715.2c	subrule		1	0
+715.3	rule		1	0
+715.3a	subrule		1	0
+715.3b	subrule		1	0
+715.3c	subrule		1	0
+715.3d	subrule		1	0
+715.4	rule		1	0
+715.5	rule		1	0
+716	section	Class Cards	1	0
+716.1	rule		1	0
+716.2	rule		1	0
+716.2a	subrule		1	0
+716.2b	subrule		1	0
+716.2c	subrule		1	0
+716.2d	subrule		1	0
+716.3	rule		1	0
+716.4	rule		1	0
+717	section	Attraction Cards	0	0
+717.1	rule		0	0
+717.2	rule		0	0
+717.2a	subrule		0	0
+717.2b	subrule		0	0
+717.3	rule		0	0
+717.4	rule		0	0
+717.5	rule		0	0
+717.6	rule		0	0
+717.6a	subrule		0	0
+718	section	Prototype Cards	1	0
+718.1	rule		1	0
+718.2	rule		1	0
+718.2a	subrule		1	0
+718.3	rule		1	0
+718.3a	subrule		1	0
+718.3b	subrule		1	0
+718.3c	subrule		1	0
+718.3d	subrule		1	0
+718.4	rule		1	0
+718.5	rule		1	0
+719	section	Case Cards	1	0
+719.1	rule		1	0
+719.2	rule		1	0
+719.3	rule		1	0
+719.3a	subrule		1	0
+719.3b	subrule		1	0
+719.3c	subrule		1	0
+720	section	Omen Cards	1	0
+720.1	rule		1	0
+720.2	rule		1	0
+720.2a	subrule		1	0
+720.2b	subrule		1	0
+720.2c	subrule		1	0
+720.3	rule		1	0
+720.3a	subrule		1	0
+720.3b	subrule		1	0
+720.3c	subrule		1	0
+720.3d	subrule		1	0
+720.4	rule		1	0
+720.5	rule		1	0
+721	section	Station Cards	1	0
+721.1	rule		1	0
+721.2	rule		1	0
+721.2a	subrule		1	0
+721.2b	subrule		1	0
+721.2c	subrule		1	0
+721.3	rule		1	0
+721.4	rule		1	0
+722	section	Preparation Cards	1	0
+722.1	rule		1	0
+722.2	rule		1	0
+722.2a	subrule		1	0
+722.2b	subrule		1	0
+722.2c	subrule		1	0
+722.3	rule		1	0
+722.3a	subrule		1	0
+722.3b	subrule		1	0
+722.3c	subrule		1	1
+722.3d	subrule		1	0
+722.4	rule		1	0
+722.5	rule		1	0
+723	section	Controlling Another Player	1	0
+723.1	rule		1	0
+723.1a	subrule		1	0
+723.1b	subrule		1	0
+723.2	rule		1	0
+723.3	rule		1	0
+723.4	rule		1	1
+723.5	rule		1	2
+723.5a	subrule		1	1
+723.5b	subrule		1	1
+723.6	rule		1	0
+723.7	rule		1	0
+723.8	rule		1	0
+723.9	rule		1	0
+724	section	Ending Turns and Phases	1	0
+724.1	rule		1	0
+724.1a	subrule		1	0
+724.1b	subrule		1	0
+724.1c	subrule		1	0
+724.1d	subrule		1	0
+724.1e	subrule		1	0
+724.1f	subrule		1	0
+724.2	rule		1	0
+724.2a	subrule		1	0
+724.2b	subrule		1	0
+724.2c	subrule		1	0
+724.2d	subrule		1	0
+724.2e	subrule		1	0
+724.2f	subrule		1	0
+724.2g	subrule		1	0
+725	section	The Monarch	1	0
+725.1	rule		1	0
+725.2	rule		1	0
+725.3	rule		1	0
+725.4	rule		1	0
+725.5	rule		1	0
+726	section	The Initiative	1	0
+726.1	rule		1	0
+726.2	rule		1	0
+726.3	rule		1	0
+726.4	rule		1	0
+726.5	rule		1	0
+727	section	Restarting the Game	1	0
+727.1	rule		1	0
+727.1a	subrule		1	0
+727.2	rule		1	1
+727.3	rule		1	0
+727.4	rule		1	0
+727.5	rule		1	0
+727.5a	subrule		1	0
+727.6	rule		1	0
+727.7	rule		1	0
+728	section	Rad Counters	1	0
+728.1	rule		1	0
+728.1a	subrule		1	0
+729	section	Subgames	0	0
+729.1	rule		0	0
+729.1a	subrule		0	0
+729.1b	subrule		0	0
+729.2	rule		0	0
+729.2a	subrule		0	0
+729.2b	subrule		0	0
+729.2c	subrule		0	0
+729.3	rule		0	0
+729.4	rule		0	0
+729.4a	subrule		0	0
+729.4b	subrule		0	0
+729.5	rule		0	1
+729.5a	subrule		0	0
+729.5b	subrule		0	0
+729.5c	subrule		0	0
+729.6	rule		0	0
+730	section	Merging with Permanents	1	0
+730.1	rule		1	0
+730.2	rule		1	0
+730.2a	subrule		1	0
+730.2b	subrule		1	0
+730.2c	subrule		1	0
+730.2d	subrule		1	0
+730.2e	subrule		1	0
+730.2f	subrule		1	0
+730.2g	subrule		1	0
+730.2h	subrule		1	0
+730.2i	subrule		1	0
+730.2j	subrule		1	0
+730.3	rule		1	0
+730.3a	subrule		1	0
+730.3b	subrule		1	0
+730.3c	subrule		1	0
+730.3d	subrule		1	0
+730.3e	subrule		1	0
+731	section	Day and Night	1	0
+731.1	rule		1	0
+731.1a	subrule		1	0
+731.2	rule		1	0
+731.2a	subrule		1	0
+731.2b	subrule		1	0
+731.2c	subrule		1	0
+732	section	Taking Shortcuts	1	0
+732.1	rule		1	0
+732.1a	subrule		1	0
+732.1b	subrule		1	0
+732.1c	subrule		1	0
+732.2	rule		1	0
+732.2a	subrule		1	1
+732.2b	subrule		1	1
+732.2c	subrule		1	0
+732.3	rule		1	1
+732.4	rule		1	0
+732.5	rule		1	1
+732.6	rule		1	0
+733	section	Handling Illegal Actions	1	0
+733.1	rule		1	0
+733.2	rule		1	0
+800	section	General	1	0
+800.1	rule		1	0
+800.2	rule		1	0
+800.3	rule		1	0
+800.4	rule		1	0
+800.4a	subrule		1	4
+800.4b	subrule		1	0
+800.4c	subrule		1	0
+800.4d	subrule		1	1
+800.4e	subrule		1	0
+800.4f	subrule		1	0
+800.4g	subrule		1	0
+800.4h	subrule		1	0
+800.4i	subrule		1	0
+800.4j	subrule		1	0
+800.4k	subrule		1	0
+800.4m	subrule		1	0
+800.4n	subrule		1	0
+800.4p	subrule		1	0
+800.5	rule		1	0
+800.6	rule		1	0
+800.7	rule		1	0
+801	section	Limited Range of Influence Option	0	0
+801.1	rule		0	0
+801.2	rule		0	0
+801.2a	subrule		0	2
+801.2b	subrule		0	0
+801.2c	subrule		0	1
+801.2d	subrule		0	0
+801.3	rule		0	0
+801.4	rule		0	0
+801.5	rule		0	0
+801.5a	subrule		0	1
+801.5b	subrule		0	1
+801.5c	subrule		0	1
+801.6	rule		0	0
+801.7	rule		0	1
+801.7a	subrule		0	1
+801.8	rule		0	0
+801.9	rule		0	0
+801.10	rule		0	1
+801.11	rule		0	2
+801.12	rule		0	0
+801.13	rule		0	0
+801.13a	subrule		0	1
+801.13b	subrule		0	3
+801.14	rule		0	0
+801.15	rule		0	0
+801.16	rule		0	0
+801.17	rule		0	0
+801.18	rule		0	0
+802	section	Attack Multiple Players Option	1	0
+802.1	rule		1	0
+802.2	rule		1	0
+802.2a	subrule		1	1
+802.3	rule		1	0
+802.3a	subrule		1	0
+802.3b	subrule		1	0
+802.4	rule		1	0
+802.4a	subrule		1	0
+802.4b	subrule		1	0
+802.5	rule		1	0
+803	section	Attack Left and Attack Right Options	0	0
+803.1	rule		0	0
+803.1a	subrule		0	0
+803.1b	subrule		0	0
+804	section	Deploy Creatures Option	0	0
+804.1	rule		0	0
+804.2	rule		0	0
+805	section	Shared Team Turns Option	0	0
+805.1	rule		0	0
+805.2	rule		0	0
+805.3	rule		0	0
+805.3a	subrule		0	0
+805.3b	subrule		0	0
+805.4	rule		0	0
+805.4a	subrule		0	0
+805.4b	subrule		0	0
+805.4c	subrule		0	0
+805.4d	subrule		0	0
+805.5	rule		0	0
+805.5a	subrule		0	0
+805.5b	subrule		0	0
+805.6	rule		0	0
+805.6a	subrule		0	0
+805.7	rule		0	0
+805.8	rule		0	0
+805.9	rule		0	0
+805.10	rule		0	0
+805.10a	subrule		0	0
+805.10b	subrule		0	0
+805.10c	subrule		0	0
+805.10d	subrule		0	0
+805.10e	subrule		0	0
+805.10f	subrule		0	0
+806	section	Free-for-All Variant	1	0
+806.1	rule		1	0
+806.2	rule		1	0
+806.2a	subrule		1	0
+806.2b	subrule		1	0
+806.2c	subrule		1	0
+806.3	rule		1	0
+807	section	Grand Melee Variant	0	0
+807.1	rule		0	0
+807.2	rule		0	0
+807.2a	subrule		0	0
+807.2b	subrule		0	0
+807.2c	subrule		0	0
+807.3	rule		0	0
+807.4	rule		0	0
+807.4a	subrule		0	1
+807.4b	subrule		0	0
+807.4c	subrule		0	0
+807.4d	subrule		0	0
+807.4e	subrule		0	0
+807.4f	subrule		0	0
+807.4g	subrule		0	0
+807.4h	subrule		0	0
+807.4i	subrule		0	0
+807.4j	subrule		0	1
+807.5	rule		0	0
+807.5a	subrule		0	0
+807.5b	subrule		0	0
+808	section	Team vs. Team Variant	0	0
+808.1	rule		0	0
+808.2	rule		0	0
+808.3	rule		0	0
+808.3a	subrule		0	0
+808.3b	subrule		0	0
+808.4	rule		0	0
+808.5	rule		0	0
+809	section	Emperor Variant	0	0
+809.1	rule		0	0
+809.2	rule		0	0
+809.3	rule		0	0
+809.3a	subrule		0	0
+809.3b	subrule		0	0
+809.3c	subrule		0	1
+809.4	rule		0	0
+809.5	rule		0	0
+809.5a	subrule		0	0
+809.5b	subrule		0	0
+809.5c	subrule		0	0
+809.6	rule		0	0
+809.6a	subrule		0	1
+809.7	rule		0	0
+810	section	Two-Headed Giant Variant	0	0
+810.1	rule		0	0
+810.2	rule		0	0
+810.3	rule		0	0
+810.4	rule		0	0
+810.5	rule		0	0
+810.6	rule		0	0
+810.7	rule		0	0
+810.8	rule		0	0
+810.8a	subrule		0	3
+810.8b	subrule		0	0
+810.8c	subrule		0	0
+810.8d	subrule		0	0
+810.9	rule		0	1
+810.9a	subrule		0	3
+810.9b	subrule		0	0
+810.9c	subrule		0	1
+810.9d	subrule		0	1
+810.9e	subrule		0	0
+810.9f	subrule		0	0
+810.9g	subrule		0	0
+810.9h	subrule		0	0
+810.10	rule		0	0
+810.10a	subrule		0	0
+810.10b	subrule		0	0
+810.10c	subrule		0	0
+810.10d	subrule		0	0
+810.11	rule		0	0
+811	section	Alternating Teams Variant	0	0
+811.1	rule		0	0
+811.2	rule		0	0
+811.2a	subrule		0	0
+811.2b	subrule		0	0
+811.2c	subrule		0	0
+811.3	rule		0	1
+811.4	rule		0	0
+811.5	rule		0	0
+900	section	General	0	0
+900.1	rule		0	0
+900.2	rule		0	0
+901	section	Planechase	0	0
+901.1	rule		0	0
+901.2	rule		0	0
+901.3	rule		0	0
+901.3a	subrule		0	0
+901.4	rule		0	0
+901.5	rule		0	0
+901.6	rule		0	0
+901.7	rule		0	0
+901.7a	subrule		0	0
+901.8	rule		0	0
+901.9	rule		0	0
+901.9a	subrule		0	0
+901.9b	subrule		0	0
+901.9c	subrule		0	0
+901.9d	subrule		0	0
+901.10	rule		0	0
+901.10a	subrule		0	0
+901.10b	subrule		0	0
+901.11	rule		0	0
+901.11a	subrule		0	0
+901.11b	subrule		0	0
+901.11c	subrule		0	0
+901.12	rule		0	0
+901.12a	subrule		0	0
+901.12b	subrule		0	0
+901.12c	subrule		0	0
+901.12d	subrule		0	0
+901.13	rule		0	0
+901.14	rule		0	0
+901.14a	subrule		0	0
+901.14b	subrule		0	0
+901.15	rule		0	0
+901.15a	subrule		0	0
+901.15b	subrule		0	0
+901.15c	subrule		0	0
+902	section	Vanguard	0	0
+902.1	rule		0	0
+902.2	rule		0	0
+902.3	rule		0	0
+902.4	rule		0	1
+902.5	rule		0	0
+902.5a	subrule		0	1
+902.5b	subrule		0	1
+902.6	rule		0	0
+902.7	rule		0	0
+903	section	Commander	1	0
+903.1	rule		1	0
+903.2	rule		1	0
+903.3	rule		1	1
+903.3a	subrule		1	0
+903.3b	subrule		1	0
+903.3c	subrule		1	0
+903.3d	subrule		1	0
+903.3e	subrule		1	0
+903.4	rule		1	1
+903.4a	subrule		1	0
+903.4b	subrule		1	0
+903.4c	subrule		1	0
+903.4d	subrule		1	1
+903.4e	subrule		1	0
+903.4f	subrule		1	0
+903.5	rule		1	0
+903.5a	subrule		1	0
+903.5b	subrule		1	0
+903.5c	subrule		1	1
+903.5d	subrule		1	1
+903.5e	subrule		1	0
+903.6	rule		1	0
+903.7	rule		1	0
+903.8	rule		1	0
+903.9	rule		1	0
+903.9a	subrule		1	0
+903.9b	subrule		1	0
+903.9c	subrule		1	0
+903.10	rule		1	0
+903.10a	subrule		1	0
+903.11	rule		1	0
+903.11a	subrule		1	0
+903.12	rule		1	0
+903.12a	subrule		1	0
+903.12b	subrule		1	0
+903.12c	subrule		1	0
+903.12d	subrule		1	0
+903.12e	subrule		1	0
+903.12f	subrule		1	0
+903.12g	subrule		1	0
+903.12h	subrule		1	0
+903.13	rule		1	0
+903.13a	subrule		1	0
+903.13b	subrule		1	0
+903.13c	subrule		1	0
+903.13d	subrule		1	0
+903.13e	subrule		1	0
+903.13f	subrule		1	0
+903.13g	subrule		1	0
+904	section	Archenemy	0	0
+904.1	rule		0	0
+904.2	rule		0	0
+904.2a	subrule		0	0
+904.2b	subrule		0	0
+904.3	rule		0	0
+904.4	rule		0	0
+904.5	rule		0	0
+904.6	rule		0	0
+904.7	rule		0	0
+904.8	rule		0	0
+904.9	rule		0	0
+904.10	rule		0	0
+904.11	rule		0	0
+904.12	rule		0	0
+904.12a	subrule		0	0
+904.12b	subrule		0	0
+904.12c	subrule		0	0
+904.13	rule		0	0
+904.13a	subrule		0	0
+904.13b	subrule		0	0
+904.13c	subrule		0	0
+904.13d	subrule		0	0
+905	section	Conspiracy Draft	0	0
+905.1	rule		0	0
+905.1a	subrule		0	0
+905.1b	subrule		0	0
+905.1c	subrule		0	0
+905.1d	subrule		0	0
+905.2	rule		0	0
+905.2a	subrule		0	0
+905.2b	subrule		0	0
+905.2c	subrule		0	0
+905.3	rule		0	0
+905.4	rule		0	0
+905.4a	subrule		0	0
+905.5	rule		0	0
+905.6	rule		0	0
