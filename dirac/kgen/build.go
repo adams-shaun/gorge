@@ -278,8 +278,11 @@ func manaCostOf(m manaCost) (kop.ManaCost, error) {
 		// The kernel offers a pip's lower colour first unless the lowering
 		// records the printed order (kop.ManaCost.HybOrd): gorge's
 		// pay.AnnouncePip offers Hybrid[i].A first, so a pair printed out of
-		// WUBRG order ({G/W}) records the reversal rather than being refused.
-		a, b := strings.IndexByte("WUBRG", h[0]), strings.IndexByte("WUBRG", h[1])
+		// WUBRG order ({G/W}, or a colourless-hybrid "CW" whose C half is the
+		// high bit) records the reversal rather than being refused. A 'C'
+		// face is kop.C's colour bit (gorge cost.parse's isHybrid admits
+		// WUBRGC faces; CR 702.105).
+		a, b := strings.IndexByte("WUBRGC", h[0]), strings.IndexByte("WUBRGC", h[1])
 		if a < 0 || b < 0 || a == b {
 			return out, fmt.Errorf("hybrid mana %s", m)
 		}
