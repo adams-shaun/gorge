@@ -1,7 +1,8 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { fetchBotPolicies, fetchCapabilities, fetchDecks, type DeckInfo } from '../lib/api';
-  import type { BotPolicyInfo, PairedBotChoice } from '../protocol';
+  import { ApiError, checkDeck, fetchBotPolicies, fetchCapabilities, fetchDecks, type DeckInfo } from '../lib/api';
+  import type { BotPolicyInfo, DeckReport, PairedBotChoice } from '../protocol';
+  import DeckReportPanel from './DeckReportPanel.svelte';
   import ProtocolSetting from './ProtocolSetting.svelte';
   import { VS_BOT_FORMATS, VS_BOT_MULLIGANS, VS_BOT_SEATS, deckLabel, deckTextTooLong, startPlayVsBot, type VsBotFormat, type VsBotMulligans, type VsBotSeats } from '../lib/playvsbot';
 
@@ -28,6 +29,44 @@
   let loadingDecks = $state(true);
   let busy = $state(false);
   let error = $state<string | null>(null);
+  let report = $state<DeckReport | null>(null);
+  let substitute = $state(false);
+  let checking = $state(false);
+  // Plain, not $state: the consent effect below must depend on substitute
+  // alone, so a check landing (which moves these) never re-triggers it.
+  let panelShown = false;
+  let inflight = false;
+
+  // runCheck posts the pasted list to the server's deck check and shows its
+  // report verbatim. The server judges everything; this only sends the text,
+  // the panel's format and the consent. A failed check shows the server's
+  // message in the error line and clears the panel.
+  async function runCheck() {
+    const text = deckText.trim();
+    if (text === '') return;
+    inflight = true;
+    checking = true;
+    error = null;
+    try {
+      report = await checkDeck(text, format, substitute);
+      panelShown = true;
+    } catch (e) {
+      error = e instanceof Error ? e.message : String(e);
+      report = null;
+      panelShown = false;
+    } finally {
+      inflight = false;
+      checking = false;
+    }
+  }
+
+  // Ticking or unticking the consent re-posts the check, so the panel shows
+  // the server's new answer — either the swaps or the server's own refusal.
+  $effect(() => {
+    const consent = substitute;
+    void consent;
+    if (panelShown && !inflight) void runCheck();
+  });
   const formatDecks = $derived(decks.filter((d) => d.format === format));
   const formatPolicies = $derived(policies.filter((p) => p.formats.includes(format)));
   const defaultLabel = $derived(policies.find((p) => p.name === defaultPolicy)?.label ?? defaultPolicy);
@@ -83,10 +122,16 @@
     busy = true;
     error = null;
     try {
-      const join = await startPlayVsBot(format, humanDeck, botDeck, mulligans, botPolicy, pairedBot, seats, deckText);
+      const join = await startPlayVsBot(format, humanDeck, botDeck, mulligans, botPolicy, pairedBot, seats, deckText, substitute);
       window.location.href = join;
     } catch (e) {
       error = e instanceof Error ? e.message : String(e);
+      // A refused deck carries the server's report: show it in the same
+      // panel the check uses, keeping the server's message in the error line.
+      if (e instanceof ApiError && e.deck) {
+        report = e.deck;
+        panelShown = true;
+      }
       busy = false;
     }
   }
@@ -158,6 +203,10 @@
         data-testid="deck-text"
       ></textarea>
     </label>
+    <button type="button" class="check" onclick={() => void runCheck()} disabled={deckText.trim() === '' || checking} data-testid="deck-check">
+      {checking ? 'Checking…' : 'Check deck'}
+    </button>
+    <DeckReportPanel report={report} bind:substitute />
     <label class="picker">
       <span>Bot</span>
       <select aria-label="Bot" bind:value={botPolicy} data-testid="bot-policy">

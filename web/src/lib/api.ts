@@ -1,9 +1,10 @@
-import type { Advice, BotPolicyList, Capabilities, Decision, ErrorBody, EventBody, Intent, MatchInfo, PairedBotStatus, ReviewDecision, TableInfo, View } from '../protocol';
+import type { Advice, BotPolicyList, Capabilities, Decision, DeckReport, ErrorBody, EventBody, Intent, MatchInfo, PairedBotStatus, ReviewDecision, TableInfo, View } from '../protocol';
 import type { SeatCtx } from './seat';
+import type { VsBotFormat } from './playvsbot';
 import { withBase } from './basepath';
 
 export class ApiError extends Error {
-  constructor(public status: number, public code: string, message: string, public head?: number) {
+  constructor(public status: number, public code: string, message: string, public head?: number, public deck?: DeckReport) {
     super(message);
   }
 }
@@ -22,6 +23,7 @@ export const intentURL = (t: string, k: number) => withBase(`/api/tables/${enc(t
 export const undoURL = (t: string, k: number) => withBase(`/api/tables/${enc(t)}/matches/${k}/undo`);
 export const gamesURL = () => withBase('/api/games');
 export const decksURL = () => withBase('/api/decks');
+export const deckCheckURL = () => withBase('/api/decks/check');
 export const deckStatsURL = () => withBase('/api/stats/decks');
 export const botPoliciesURL = () => withBase('/api/bot-policies');
 export const capabilitiesURL = () => withBase('/api/capabilities');
@@ -204,8 +206,8 @@ export interface CreateGameRequest {
   seats?: number;
   /** Human seats at a pod; the panel always asks for 1. */
   humans?: number;
-  /** Submitted decks by seat: each is a deck object or a plain-text decklist, never both. The server judges them. */
-  decks?: { seat: number; deck?: unknown; text?: string }[];
+  /** Submitted decks by seat: each is a deck object or a plain-text decklist, never both. The server judges them. substitute consents to replacing each unsupported card (at most three) with a basic land. */
+  decks?: { seat: number; deck?: unknown; text?: string; substitute?: boolean }[];
 }
 
 /** createGame asks the server to seat the player against a bot in the given format: a fresh single-shot table is created and started, and the join path it returns is the URL the player follows to sit in the seat. Omitted deck ids retain random assignment. A server that did not enable the play-vs-bot flow answers 404, surfaced as ApiError. */
@@ -217,9 +219,30 @@ export async function createGame(request: CreateGameRequest): Promise<CreateGame
   });
   if (!res.ok) {
     const e = (await res.json().catch(() => ({}))) as Partial<ErrorBody>;
-    throw new ApiError(res.status, e.code ?? 'http', e.message ?? res.statusText);
+    throw new ApiError(res.status, e.code ?? 'http', e.message ?? res.statusText, undefined, e.deck ?? undefined);
   }
   return (await res.json()) as CreateGame;
+}
+
+/**
+ * checkDeck asks the server to report on one pasted decklist before any game
+ * is created: legality, unknown names, cards this server cannot play, and —
+ * with substitute — the basic-land swaps it would make. The server alone
+ * judges the deck; the client sends only the text, the format and the consent,
+ * and renders exactly what comes back. A non-2xx answer throws ApiError with
+ * the server's code and message, as createGame does.
+ */
+export async function checkDeck(text: string, format: VsBotFormat, substitute: boolean): Promise<DeckReport> {
+  const res = await fetch(deckCheckURL(), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ format, text, substitute }),
+  });
+  if (!res.ok) {
+    const e = (await res.json().catch(() => ({}))) as Partial<ErrorBody>;
+    throw new ApiError(res.status, e.code ?? 'http', e.message ?? res.statusText);
+  }
+  return (await res.json()) as DeckReport;
 }
 export const fetchView = (t: string, k: number, seq?: number, ctx?: SeatCtx) => getJSON<View>(viewURL(t, k, seq, ctx));
 export const fetchEvents = (t: string, k: number, since: number, ctx?: SeatCtx) => getJSON<EventBody[]>(eventsURL(t, k, since, ctx));
