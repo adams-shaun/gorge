@@ -443,6 +443,17 @@ type prep struct {
 	// (mana_rider.go).
 	riderAb []int8
 
+	// quietCard: per card, the quiet-seat proof's facts (cast_quietseat.go);
+	// quietOff: the table carries a route the proof does not model;
+	// quietGrantAny, quietGrantTap: the least mana floor over the activated
+	// abilities that are not sorcery-speed a grant may hand another
+	// permanent, without and with {T} (quietNone: none). Prep data, never a
+	// pinned genPrep field.
+	quietCard                    []quietFact
+	quietOff                     bool
+	quietGrantAny, quietGrantTap uint8
+	quietGMTap                   uint8 // the most mana a granted {T} mana ability makes (quietInf: a granted one without {T})
+
 	coldCmd      coldLayout // the table's cold layout plus the partner record, a Commander game's (zone_cmdpartner.go)
 	coldPlane    coldLayout // the table's cold layout plus the planar-deck record, a Planechase game's (zone_planechase.go)
 	coldCmdPlane coldLayout // both records, a Commander Planechase game's
@@ -679,6 +690,7 @@ func prepare(t *kop.Table) *prep {
 	p.restrSrc = p.gen != nil && p.gen.anyRestrSrc
 	p.embComb = prepEmbComb(t, p)
 	p.embIdem = prepEmbIdem(p) // static_emblemcombat.go
+	prepQuiet(t, p)            // cast_quietseat.go
 	p.cold.size()
 	// A Planechase game carries one planar-deck record (zone_planechase.go).
 	// The record lives in a variant of the table's cold layout selected at
