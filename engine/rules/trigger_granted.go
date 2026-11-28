@@ -445,6 +445,14 @@ func (e *Engine) checkGrantedOffspringTriggers(observer *Engine, id state.ObjID,
 	if f.HasKeywordRef(kwRefOffspring) || !e.hasCastOffspring(id) {
 		return
 	}
+	// CR 613.1f with 603.6d: the trigger is the entering permanent's, read
+	// as it exists on the battlefield. A "loses all abilities" effect there
+	// removes it whatever its timestamp against a stack-only grant (that
+	// grant never applies on the battlefield); only an Offspring keyword the
+	// battlefield derivation still holds keeps it.
+	if e.printedAbilitiesLost(o) && !e.hasKeywordH(id, kwhOffspring) {
+		return
+	}
 	t := cards.Trigger{Mode: "ChangesZone", Params: map[string]string{
 		"Mode": "ChangesZone", "ValidCard": "Card.Self", "Origin": "Any",
 		"Destination": "Battlefield", "TriggerZones": "Battlefield",
