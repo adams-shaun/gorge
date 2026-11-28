@@ -161,7 +161,8 @@ func eqValue(a, b *Value) bool {
 		eqPtr(a.Filter, b.Filter, eqFilter) &&
 		eqPtr(a.Ref, b.Ref, eqRef) &&
 		eqPtr(a.Ref2, b.Ref2, eqRef) &&
-		a.Word == b.Word && a.Colors == b.Colors && a.Receipt == b.Receipt
+		a.Word == b.Word && a.Colors == b.Colors && a.Receipt == b.Receipt &&
+		eqPtr(a.Test, b.Test, eqCond) && a.Zones == b.Zones
 }
 
 func eqCond(a, b *Cond) bool {
