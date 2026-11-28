@@ -9,22 +9,17 @@ import (
 	"github.com/adams-shaun/gorge/engine/cards"
 )
 
-// TestPodHostedCmdrPodsBuild: the committed hosted-cmdr slice's first eight
-// four-seat pods (PodAt at seed 1, as kfuzz -kernel hosted-cmdr -seats 4
-// deals them) build with SetMatchupN, so no seat's deck holds a card the
-// kernel refuses, and each plays its first 20 decisions in lockstep without
-// diverging. A slice built before a refusal fails here at the build, the
-// "refused-card" skip kfuzz counts. A pod the kernel refuses for an
-// interaction of two decks' cards (cardset.InteractionRefusal, kfuzz's
-// "refused-pair") is no stale deck: it is logged and not played, and at
-// least one pod must play.
-func TestPodHostedCmdrPodsBuild(t *testing.T) {
+// hostedCmdrSliceCorpus is the committed slice of the hosted-cmdr pool as a
+// corpus, with its pool rows (at least a four-seat pod's) and the hosted-cmdr
+// table in the new-pool mode (kfuzz -allow-unverified). It skips without the
+// card corpus or the table.
+func hostedCmdrSliceCorpus(t *testing.T) (*Corpus, []PoolDeck, cardset.Set) {
+	t.Helper()
 	base, _ := testCorpus(t)
 	set, err := cardset.ByName("hosted-cmdr")
 	if err != nil {
 		t.Skipf("no hosted-cmdr table (make dirac-tables): %v", err)
 	}
-	set = cardset.AllowUnverified(set)
 	dir, remove, err := ExtractSlice("hosted-cmdr")
 	if err != nil {
 		t.Fatal(err)
@@ -38,6 +33,20 @@ func TestPodHostedCmdrPodsBuild(t *testing.T) {
 		t.Fatalf("slice pool holds %d decks, want at least a four-seat pod's", len(pool))
 	}
 	c := &Corpus{Reg: base.Reg, DecksDir: filepath.Join(dir, "decks"), decks: map[string][]*cards.Card{}}
+	return c, pool, cardset.AllowUnverified(set)
+}
+
+// TestPodHostedCmdrPodsBuild: the committed hosted-cmdr slice's first eight
+// four-seat pods (PodAt at seed 1, as kfuzz -kernel hosted-cmdr -seats 4
+// deals them) build with SetMatchupN, so no seat's deck holds a card the
+// kernel refuses, and each plays its first 20 decisions in lockstep without
+// diverging. A slice built before a refusal fails here at the build, the
+// "refused-card" skip kfuzz counts. A pod the kernel refuses for an
+// interaction of two decks' cards (cardset.InteractionRefusal, kfuzz's
+// "refused-pair") is no stale deck: it is logged and not played, and at
+// least one pod must play.
+func TestPodHostedCmdrPodsBuild(t *testing.T) {
+	c, pool, set := hostedCmdrSliceCorpus(t)
 	played := 0
 	for i := range 8 {
 		p := PodAt(pool, i, 1, 4)
