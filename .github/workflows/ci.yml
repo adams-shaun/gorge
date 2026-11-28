@@ -511,6 +511,22 @@ jobs:
           go vet $pkgs
       - name: generated types are current
         run: go run ./cmd/gentypes -check
+      - name: Lockstep constant mirrors (a dirac or engine diff)
+        # TestLockstepConstants pins dirac's numeric mirrors of gorge's constants and its own annotation census.
+        # A pull request's lint skipped dirac/oracle, so 11-28 #5778 (five-hybrid costs, a new //lockstep:const
+        # annotation without the census bump) passed fast and turned four queue batches red on fresh-clone-check's
+        # TestLockstepConstants alone. The test parses source and needs no corpus, so run it here on exactly the
+        # diffs that can move a mirror: dirac/ (the annotations and the census) and engine/ (engine/rules,
+        # engine/effects and engine/state hold the constants they mirror). This only adds a failing step; the
+        # queue's fresh-clone-check still runs the test on the merged tree.
+        if: github.event_name == 'pull_request' && !startsWith(github.head_ref, 'mergify/merge-queue/')
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          changed=$(git diff --name-only "$BASE"..."$HEAD_SHA" -- dirac/ engine/)
+          if [ -z "$changed" ]; then echo "lockstep constants: the diff touches neither dirac/ nor engine/"; exit 0; fi
+          go test -timeout 3m -run '^TestLockstepConstants$' ./dirac/oracle
       - name: A fresh clone builds, and dirac's tests skip without a corpus
         # ~60 s per run. A pull request's own lint skips it (the Mergify batch runs it on the merged tree before
         # anything lands); batches, main and the nightly keep it.
