@@ -549,6 +549,7 @@ unknown-head	xColorPaid
 unknown-keyword	ValidGraveyard
 unknown-operator	Abs
 unknown-operator	DivideEvenlyDown
+unknown-operator	DivideEvenlyUp
 unknown-operator	NMinus
 unknown-operator	Negative
 unknown-operator	Pow
@@ -557,6 +558,5 @@ unknown-predicate	ThisTurnEntered
 unknown-predicate	Valid
 unknown-predicate	ValidExile
 unknown-predicate	ValidGraveyard
-unknown-predicate	ValidHand
 unknown-predicate	ValidLibrary
 unknown-word	Valid
