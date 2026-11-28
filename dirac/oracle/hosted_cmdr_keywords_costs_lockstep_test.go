@@ -133,6 +133,14 @@ func hostedCmdrCases() []hostedCmdrCase {
 			reached:  hybridPipCastReached,
 		},
 		{
+			name:     "ulalek_five_hybrid_pip_cost",
+			carrier:  "Five Hybrid Probe",
+			seats:    [2]string{"hck-hyb5-a", "hck-hyb5-b"},
+			decks:    [2][]string{fiveHybridProbeDeck(), creatureDeck},
+			fixtures: map[string]string{"Five Hybrid Probe": fiveHybridProbeScript, "Prism Ritual Probe": prismRitualProbeScript},
+			reached:  fiveHybridCastReached,
+		},
+		{
 			name:     "ulalek_copyspell_resolution_cost",
 			carrier:  "Copy Probe",
 			seats:    [2]string{"hck-copy-a", "hck-copy-b"},
@@ -460,7 +468,7 @@ func TestHostedCmdrKeywordsCostsLockstep(t *testing.T) {
 			dir := corpusDirOrSkip(t)
 			if len(c.fixtures) > 0 {
 				dir = filters11Corpus(t, c.fixtures, "Swamp", "Forest", "Grizzly Bears", "Mountain",
-					"Plains", "Wastes", "Cascading Cataracts")
+					"Plains", "Wastes", "Cascading Cataracts", "Island")
 			}
 			reg, err := cards.SharedCorpus(dir)
 			if err != nil {
