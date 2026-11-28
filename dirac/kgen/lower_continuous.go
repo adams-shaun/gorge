@@ -32,6 +32,9 @@ func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
 		}
 		aff = "Card.Self"
 	}
+	if took, err := lc.warpGraveStatic(sp, st, aff); took {
+		return nil, err // lower_warppay.go
+	}
 	if _, ok := sp.m["SharedKeywordsZone"]; ok {
 		return lc.sharedKeywordStatics(sp, st) // lower_sharedkw.go
 	}

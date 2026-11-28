@@ -32,9 +32,11 @@ import (
 // statics lower exactly as before. It is not a gate and the kernel gets no
 // word for it. The CantBeActivated half lowers separately (lower_cantact.go).
 //
-// Continuous MayPlay$ + ValidSA$ Spell.<alt-cost> is NOT ported: it selects
-// which alternative-cost cast the graveyard permission grants and has no plain
-// match without alt-cost cast context. Its refusal now names the mode
+// Continuous MayPlay$ + ValidSA$ Spell.<alt-cost> is NOT ported, except the one
+// self static ValidSA$ Spell.Warp over the graveyard (Timeline Culler,
+// lower_warppay.go warpGraveStatic): the others select which alternative-cost
+// cast the graveyard permission grants and have no plain match without
+// alt-cost cast context. Its refusal now names the mode
 // (`static spell-ability filter ValidSA Continuous "_"`), so the census
 // isolates it from the compound-line carriers. The prefix `other:static
 // spell-ability filter ` keeps classTier's M5.

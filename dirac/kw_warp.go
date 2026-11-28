@@ -55,6 +55,9 @@ func (s *State) offerWarpHand(k *prep, d *Decision, p uint8, o Obj, c CardID, av
 		return
 	}
 	for i := uint8(0); i < wi.n; i++ {
+		if wp := &k.t.Cards[c].WarpPay; !wi.grant[i] && wp.Flags != 0 && !s.pickCostPayable(k, p, wp, o) {
+			continue // the printed warp cost's life part (Timeline Culler's Pay 2 life)
+		}
 		wc := s.adjustCost(k, p, c, o, wi.cost[i]) // the reduction applies to an alternative cost too (CR 601.2f)
 		if i > 0 {
 			// gorge's potential walk marks a second warp row of the same
@@ -77,6 +80,50 @@ func (s *State) offerWarpHand(k *prep, d *Decision, p uint8, o Obj, c CardID, av
 			continue
 		}
 		d.add(MakeAction(AkCast, TCode(o), TCode(i), castWarp)) // code-ok: a warp instance index
+	}
+}
+
+// offerWarpGrave offers casting p's cards from their graveyard for the warp
+// cost, for a card whose own static grants it (CardDef.WarpGrave, Timeline
+// Culler's MayPlay$ True ValidSA$ Spell.Warp; gorge legal_walk_alt.go's
+// graveyard warp loop, warpGraveyardAllowed). The same gates as the hand's
+// warp cast: the card's own timing, the cast prohibition, a legal target
+// from a graveyard origin, the warp cost's life part and its mana. The
+// action is the hand warp's (castWarp, instance 0): the cast and the end-step
+// exile read the card, not the zone it came from.
+//
+//go:noinline
+func (s *State) offerWarpGrave(k *prep, d *Decision, p uint8, sorc bool, av *avail) {
+	pl := &s.pl[p]
+	have := false
+	for i := 0; i < int(pl.graveN); i++ {
+		o := pl.grave[i]
+		c := s.objs[o].card
+		cd := &k.t.Cards[c]
+		if !cd.HasWarp || !cd.WarpGrave {
+			continue
+		}
+		if !k.cards[c].instant && !sorc && !s.castFlash(k, p, c) {
+			continue // the card's normal timing (CR 601.2)
+		}
+		if k.gen.anyCantCast && s.castForbidden(k, p, c, o) {
+			continue
+		}
+		if !have {
+			s.availFor(k, p, av)
+			have = true
+		}
+		if !s.spellTargetsFeasibleFrom(k, c, p, o) || !s.spellCostsFeasible(k, c, p, o) || s.castHeldOut(o) {
+			continue
+		}
+		if cd.WarpPay.Flags != 0 && !s.pickCostPayable(k, p, &cd.WarpPay, o) {
+			continue
+		}
+		wc := s.adjustCost(k, p, c, o, cd.WarpCost)
+		if !s.castAffordsR(k, p, c, s.restrOriginOfObj(o), &wc, av) || !s.altAddCastable(k, c, p, o, &wc, av) {
+			continue
+		}
+		d.add(MakeAction(AkCast, TCode(o), 0, castWarp))
 	}
 }
 

@@ -2865,6 +2865,9 @@ func (s *State) buildPickCost(k *prep) *kop.Cost {
 		if cd.HasEvoke && cd.EvokePick.Flags != 0 && e.evoked() {
 			return &cd.EvokePick // the hand-exile evoke cost (kw_evoke.go)
 		}
+		if e.mode&modeWarped != 0 && e.trigPl != trigPlWarpG && cd.HasWarp && cd.WarpPay.Flags != 0 {
+			return &cd.WarpPay // the warp cost's life part (CR 702.185a; kgen lower_warppay.go)
+		}
 		if s.bld().altAdd == buildBeamGrant {
 			g, _ := s.beamGrantor(k, e.ctrl)
 			return &k.t.Cards[s.cardAt(g)].FbCost // the return a granted beam me up cast pays (kw_beammeup.go)
