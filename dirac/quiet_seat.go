@@ -165,138 +165,12 @@ func prepQuiet(t *kop.Table, k *prep) {
 		g.anyCondSplit || g.anyEscapeGrant || tableHasStatic(t, kop.StatRetraceGrant)) || k.anyCyclingGrant {
 		k.quietOff = true
 	}
-	equipFlash := g != nil && g.uses.has(useEquipFlash)
-	loyFlash := tableHasStatic(t, kop.StatLoyaltyFlash)
-	sorcOnly := func(a *kop.Ability) bool {
-		f := a.Cost.Flags
-		return f&kop.CostSorcery != 0 && !(equipFlash && a.AFlags&kop.AfEquip != 0) || f&kop.CostLoyalty != 0 && !loyFlash
-	}
+	tf := quietTableFlags{equipFlash: g != nil && g.uses.has(useEquipFlash), loyFlash: tableHasStatic(t, kop.StatLoyaltyFlash)}
 	for i := range t.Cards {
-		cd := &t.Cards[i]
-		pc := &k.cards[i]
 		qf := quietFact{bfAny: quietNone, bfTap: quietNone, hand: quietNone, grAny: quietNone, grTap: quietNone}
-		q := uint16(0)
-		if pc.instant || pc.kw&kop.KwFlash != 0 {
-			q |= qInst
-		}
-		for _, f := range cd.Faces {
-			if int(f) < len(k.cards) && (k.cards[f].instant || k.cards[f].kw&kop.KwFlash != 0) {
-				q |= qInst
-			}
-		}
-		if len(cd.Faces) != 0 || cd.FaceMode != 0 || cd.MorphFamily != 0 || cd.HasForetell || cd.HasSneak ||
-			cd.HasOffering || cd.HasMayFlash || cd.SelfFlashSA == kop.SfsaTeamwork {
-			q |= qHand
-		}
-		if cd.Escape || cd.Mayhem || cd.Retrace {
-			q |= qGrave
-		}
-		if pc.kw&kop.KwFlashback != 0 || cd.FlipCast == kop.FlipDisturb || cd.Harmonize || cd.BeamMeUp || cd.HasWarp && cd.WarpGrave ||
-			g != nil && (aftermathHalf(k, CardID(i)) || g.altFree != nil && g.altFree[i] != 0) {
-			q |= qGyCast
-		}
-		if g != nil && i < len(g.sCls) {
-			if g.sCls[i]&sclsGyMay != 0 {
-				q |= qGrave
-			}
-			if g.sCls[i]&sclsExMay != 0 {
-				q |= qExile
-			}
-		}
-		if pc.altCost || cd.NoManaCost || cd.Cost.Phyrexian() || cd.Convoke || cd.Delve || cd.Improvise || cd.SpellWaterbend != 0 ||
-			cd.HasWarp || cd.Suspend != 0 || cd.HasWebSling || cd.HasSneak || cd.HasMayFlash || cd.HasOffering || cd.HasEvoke ||
-			cd.HasDash || cd.HasBlitz || cd.HasSurge || cd.HasMadness || cd.HasMiracle || cd.Impending != 0 || cd.Teamwork != 0 ||
-			cd.SelfFlash || cd.Harmonize || cd.HasModeCost || cd.HasOverload || cd.HasBestow || cd.HasMutate || cd.HasPlot || cd.HasForetell ||
-			cd.MorphFamily != 0 || cd.AltCost != (kop.ManaCost{}) {
-			q |= qOpen
-		}
-		if pc.kw&kop.KwKicker == 0 && !cd.HasMultikicker && !cd.Offspring && !cd.Buyback && !cd.Entwine && cd.Teamwork == 0 &&
-			cd.Casualty == 0 && !cd.Bargain && !cd.Conspire && cd.OptCost.Flags == 0 && !cd.OptBehold && cd.OptEvidence == 0 &&
-			cd.OptWaterbend == 0 && !cd.HasBestow && !cd.HasMutate && !cd.HasAltAdd && cd.Kicker == (kop.ManaCost{}) {
-			q |= qPlain
-		}
-		qf.cast = quietFloor(&cd.Cost)
-		if k.tapExtraCard[i] {
-			q |= qMana
-		}
-		if k.grantsMana[i] || k.grantSrcCard != nil && k.grantSrcCard[i] {
-			q |= qGMana
-		}
-		mtap, mfree := 0, 0
-		for ai := range cd.Abilities {
-			a := &cd.Abilities[ai]
-			switch a.Kind {
-			case kop.AbStatic:
-				if !quietHarmless(a.Static.Kind) || g != nil && g.anyZeroAlt && a.Static.Kind == kop.StatMayPlayFrom {
-					// (a may-play static's {0} alternative is a hand cast the
-					// may-play zones need not name: cast_mayzeroalt.go)
-					q |= qMod
-					if a.Static.Kind == kop.StatReduceCost || a.Static.Kind == kop.StatSetCost || a.Static.Kind == kop.StatAlternativeCost {
-						q |= qOpen // a self cost static (affinity) prices the card's own cast
-					}
-				}
-				continue
-			case kop.AbMana:
-				if a.AFlags&kop.AfLatent != 0 {
-					// a body a grant may hand another permanent
-					if n := quietManaAmt(a); a.Cost.Flags&kop.CostTap != 0 {
-						k.quietGMTap = uint8(min(max(int(k.quietGMTap), n), int(quietInf)))
-					} else {
-						k.quietGMTap = quietInf
-					}
-					continue
-				}
-				if a.ActZone != kop.ZoneNone && a.ActZone != kop.ZoneBattlefield {
-					continue
-				}
-				n := quietManaAmt(a)
-				switch {
-				case a.Cost.Flags&kop.CostTap != 0:
-					mtap = max(mtap, n)
-				case a.Cost.Flags&kop.CostSacSelf != 0:
-					mfree += n // once: it sacrifices the source
-				case a.Cost.Flags == 0 && a.Cost.Mana.MV() >= n:
-					// a filter that nets nothing: no amount beyond what pays it
-				default:
-					mfree = int(quietInf) // a repeatable source without {T}
-				}
-				continue
-			case kop.AbActivated:
-			default:
-				continue
-			}
-			if sorcOnly(a) {
-				continue
-			}
-			fl := quietAbFloor(a)
-			switch a.ActZone {
-			case kop.ZoneHand:
-				qf.hand = min(qf.hand, fl)
-			case kop.ZoneGraveyard:
-				q |= qGrave
-			case kop.ZoneExile:
-				q |= qExile
-			}
-			if g == nil || ownActivatable(a) {
-				if a.Cost.Flags&kop.CostTap != 0 {
-					qf.bfTap = min(qf.bfTap, fl)
-				} else {
-					qf.bfAny = min(qf.bfAny, fl)
-				}
-			}
-			if a.AFlags&kop.AfLatent != 0 {
-				// a body some grant may hand another permanent
-				if a.Cost.Flags&kop.CostTap != 0 {
-					qf.grTap = min(qf.grTap, fl)
-					k.quietGrantTap = min(k.quietGrantTap, fl)
-				} else {
-					qf.grAny = min(qf.grAny, fl)
-					k.quietGrantAny = min(k.quietGrantAny, fl)
-				}
-			}
-		}
-		qf.mtap, qf.mfree = uint8(min(mtap, int(quietInf))), uint8(min(mfree, int(quietInf)))
-		qf.bits = q
+		qf.bits = quietCardBits(t, k, i)
+		qf.cast = quietFloor(&t.Cards[i].Cost)
+		quietAbilities(t, k, i, tf, &qf)
 		k.quietCard[i] = qf
 	}
 	for i := range t.Emblems {
@@ -304,6 +178,178 @@ func prepQuiet(t *kop.Table, k *prep) {
 			if t.Emblems[i].Abilities[j].Kind == kop.AbActivated {
 				k.quietGrantAny = 0
 			}
+		}
+	}
+}
+
+// quietTableFlags is the table statics that move an ability's timing.
+type quietTableFlags struct{ equipFlash, loyFlash bool }
+
+// sorcOnly reports whether activated ability a is sorcery-speed on the table:
+// CostSorcery without an equip-flash static, CostLoyalty without a
+// loyalty-flash one.
+func (tf quietTableFlags) sorcOnly(a *kop.Ability) bool {
+	f := a.Cost.Flags
+	return f&kop.CostSorcery != 0 && !(tf.equipFlash && a.AFlags&kop.AfEquip != 0) || f&kop.CostLoyalty != 0 && !tf.loyFlash
+}
+
+// quietCardBits is card i's route bits read off its CardDef and prep record.
+func quietCardBits(t *kop.Table, k *prep, i int) uint16 {
+	cd := &t.Cards[i]
+	pc := &k.cards[i]
+	g := k.gen
+	q := uint16(0)
+	if quietInstant(k, cd, pc) {
+		q |= qInst
+	}
+	if len(cd.Faces) != 0 || cd.FaceMode != 0 || cd.MorphFamily != 0 || cd.HasForetell || cd.HasSneak ||
+		cd.HasOffering || cd.HasMayFlash || cd.SelfFlashSA == kop.SfsaTeamwork {
+		q |= qHand
+	}
+	if cd.Escape || cd.Mayhem || cd.Retrace {
+		q |= qGrave
+	}
+	if pc.kw&kop.KwFlashback != 0 || cd.FlipCast == kop.FlipDisturb || cd.Harmonize || cd.BeamMeUp || cd.HasWarp && cd.WarpGrave ||
+		g != nil && (aftermathHalf(k, CardID(i)) || g.altFree != nil && g.altFree[i] != 0) {
+		q |= qGyCast
+	}
+	if g != nil && i < len(g.sCls) {
+		if g.sCls[i]&sclsGyMay != 0 {
+			q |= qGrave
+		}
+		if g.sCls[i]&sclsExMay != 0 {
+			q |= qExile
+		}
+	}
+	if quietOpenCast(cd, pc) {
+		q |= qOpen
+	}
+	if quietPlainCast(cd, pc) {
+		q |= qPlain
+	}
+	if k.tapExtraCard[i] {
+		q |= qMana
+	}
+	if k.grantsMana[i] || k.grantSrcCard != nil && k.grantSrcCard[i] {
+		q |= qGMana
+	}
+	return q
+}
+
+// quietInstant: the card or one of its faces is an instant or has flash.
+func quietInstant(k *prep, cd *kop.CardDef, pc *pcard) bool {
+	if pc.instant || pc.kw&kop.KwFlash != 0 {
+		return true
+	}
+	for _, f := range cd.Faces {
+		if int(f) < len(k.cards) && (k.cards[f].instant || k.cards[f].kw&kop.KwFlash != 0) {
+			return true
+		}
+	}
+	return false
+}
+
+// quietOpenCast: the card's cast price is not bounded below by its mana cost.
+func quietOpenCast(cd *kop.CardDef, pc *pcard) bool {
+	return pc.altCost || cd.NoManaCost || cd.Cost.Phyrexian() || cd.Convoke || cd.Delve || cd.Improvise || cd.SpellWaterbend != 0 ||
+		cd.HasWarp || cd.Suspend != 0 || cd.HasWebSling || cd.HasSneak || cd.HasMayFlash || cd.HasOffering || cd.HasEvoke ||
+		cd.HasDash || cd.HasBlitz || cd.HasSurge || cd.HasMadness || cd.HasMiracle || cd.Impending != 0 || cd.Teamwork != 0 ||
+		cd.SelfFlash || cd.Harmonize || cd.HasModeCost || cd.HasOverload || cd.HasBestow || cd.HasMutate || cd.HasPlot || cd.HasForetell ||
+		cd.MorphFamily != 0 || cd.AltCost != (kop.ManaCost{})
+}
+
+// quietPlainCast: the card's hand cast has one route (qPlain).
+func quietPlainCast(cd *kop.CardDef, pc *pcard) bool {
+	return pc.kw&kop.KwKicker == 0 && !cd.HasMultikicker && !cd.Offspring && !cd.Buyback && !cd.Entwine && cd.Teamwork == 0 &&
+		cd.Casualty == 0 && !cd.Bargain && !cd.Conspire && cd.OptCost.Flags == 0 && !cd.OptBehold && cd.OptEvidence == 0 &&
+		cd.OptWaterbend == 0 && !cd.HasBestow && !cd.HasMutate && !cd.HasAltAdd && cd.Kicker == (kop.ManaCost{})
+}
+
+// quietAbilities folds card i's abilities into qf: its statics' qMod, its
+// mana amounts, its activated abilities' floors, and the table's grant bodies.
+func quietAbilities(t *kop.Table, k *prep, i int, tf quietTableFlags, qf *quietFact) {
+	cd := &t.Cards[i]
+	g := k.gen
+	mtap, mfree := 0, 0
+	for ai := range cd.Abilities {
+		a := &cd.Abilities[ai]
+		switch a.Kind {
+		case kop.AbStatic:
+			if !quietHarmless(a.Static.Kind) || g != nil && g.anyZeroAlt && a.Static.Kind == kop.StatMayPlayFrom {
+				// (a may-play static's {0} alternative is a hand cast the
+				// may-play zones need not name: cast_mayzeroalt.go)
+				qf.bits |= qMod
+				if a.Static.Kind == kop.StatReduceCost || a.Static.Kind == kop.StatSetCost || a.Static.Kind == kop.StatAlternativeCost {
+					qf.bits |= qOpen // a self cost static (affinity) prices the card's own cast
+				}
+			}
+		case kop.AbMana:
+			quietManaAbility(k, a, &mtap, &mfree)
+		case kop.AbActivated:
+			if !tf.sorcOnly(a) {
+				quietActivated(k, a, qf)
+			}
+		}
+	}
+	qf.mtap, qf.mfree = uint8(min(mtap, int(quietInf))), uint8(min(mfree, int(quietInf)))
+}
+
+// quietManaAbility folds mana ability a into a card's amounts (mtap, mfree),
+// or a latent one into the table's granted {T} amount.
+func quietManaAbility(k *prep, a *kop.Ability, mtap, mfree *int) {
+	if a.AFlags&kop.AfLatent != 0 {
+		// a body a grant may hand another permanent
+		if n := quietManaAmt(a); a.Cost.Flags&kop.CostTap != 0 {
+			k.quietGMTap = uint8(min(max(int(k.quietGMTap), n), int(quietInf)))
+		} else {
+			k.quietGMTap = quietInf
+		}
+		return
+	}
+	if a.ActZone != kop.ZoneNone && a.ActZone != kop.ZoneBattlefield {
+		return
+	}
+	n := quietManaAmt(a)
+	switch {
+	case a.Cost.Flags&kop.CostTap != 0:
+		*mtap = max(*mtap, n)
+	case a.Cost.Flags&kop.CostSacSelf != 0:
+		*mfree += n // once: it sacrifices the source
+	case a.Cost.Flags == 0 && a.Cost.Mana.MV() >= n:
+		// a filter that nets nothing: no amount beyond what pays it
+	default:
+		*mfree = int(quietInf) // a repeatable source without {T}
+	}
+}
+
+// quietActivated folds a non-sorcery activated ability into qf's floors and
+// zone bits, and a latent one into the grant bodies' floors.
+func quietActivated(k *prep, a *kop.Ability, qf *quietFact) {
+	fl := quietAbFloor(a)
+	switch a.ActZone {
+	case kop.ZoneHand:
+		qf.hand = min(qf.hand, fl)
+	case kop.ZoneGraveyard:
+		qf.bits |= qGrave
+	case kop.ZoneExile:
+		qf.bits |= qExile
+	}
+	tap := a.Cost.Flags&kop.CostTap != 0
+	if k.gen == nil || ownActivatable(a) {
+		if tap {
+			qf.bfTap = min(qf.bfTap, fl)
+		} else {
+			qf.bfAny = min(qf.bfAny, fl)
+		}
+	}
+	if a.AFlags&kop.AfLatent != 0 {
+		// a body some grant may hand another permanent
+		if tap {
+			qf.grTap = min(qf.grTap, fl)
+			k.quietGrantTap = min(k.quietGrantTap, fl)
+		} else {
+			qf.grAny = min(qf.grAny, fl)
+			k.quietGrantAny = min(k.quietGrantAny, fl)
 		}
 	}
 }
@@ -423,80 +469,127 @@ func (s *State) quietBlocker(k *prep, p uint8) uint8 {
 	if s.sorcerySpeed(p) {
 		return qbSorc
 	}
-	g := k.gen
-	pl := &s.pl[p]
-	// the mana bound and the cost-modifier read, computed once when a floor
-	// needs them (a floor of 0 is never above the bound)
-	bound, mod, haveB := 0, false, false
-	modLive := func() bool {
-		if !haveB {
-			bound, mod, haveB = s.quietBound(k, p), s.quietModLive(k), true
-		}
-		return mod
-	}
-	above := func(f uint8) bool {
-		if f == quietNone {
-			return true
-		}
-		return f != 0 && !modLive() && int(f) > bound
-	}
 	// flash grants (castFlash): read exactly per card only when one can be live
-	flashLive := k.anyFlashAny && (k.anySelfFlash || k.anyEmbFlash && s.g.nemb[p] > 0 || k.anyFlashStat && s.quietFlashStat(k))
-	inst := func(c CardID) bool {
-		if k.quietCard[c].bits&qInst != 0 {
-			return true
-		}
-		if !flashLive {
-			return false
-		}
-		if s.castFlash(k, p, c) {
-			return true
-		}
-		for _, f := range k.t.Cards[c].Faces {
-			if s.castFlash(k, p, f) {
-				return true
-			}
-		}
+	r := quietRead{s: s, k: k, p: p,
+		flashLive: k.anyFlashAny && (k.anySelfFlash || k.anyEmbFlash && s.g.nemb[p] > 0 || k.anyFlashStat && s.quietFlashStat(k))}
+	if b := r.hand(); b != qbNone {
+		return b
+	}
+	if b := r.zones(); b != qbNone {
+		return b
+	}
+	if b := r.records(); b != qbNone {
+		return b
+	}
+	if b := r.battle(); b != qbNone {
+		return b
+	}
+	return r.grants()
+}
+
+// quietRead is one proof's reads: the mana bound and the cost-modifier read,
+// computed once when a floor needs them (a floor of 0 is never above the
+// bound), and whether a flash grant can be live.
+type quietRead struct {
+	s                     *State
+	k                     *prep
+	p                     uint8
+	bound                 int
+	mod, haveB, flashLive bool
+}
+
+func (r *quietRead) modLive() bool {
+	if !r.haveB {
+		r.bound, r.mod, r.haveB = r.s.quietBound(r.k, r.p), r.s.quietModLive(r.k), true
+	}
+	return r.mod
+}
+
+// above reports whether floor f is above every mana the seat could pay with.
+func (r *quietRead) above(f uint8) bool {
+	if f == quietNone {
+		return true
+	}
+	return f != 0 && !r.modLive() && int(f) > r.bound
+}
+
+// inst reports whether card c (or a face) can be cast at instant speed now.
+func (r *quietRead) inst(c CardID) bool {
+	if r.k.quietCard[c].bits&qInst != 0 {
+		return true
+	}
+	if !r.flashLive {
 		return false
 	}
-	castLoud := func(c CardID) bool {
-		qf := &k.quietCard[c]
-		return inst(c) && (qf.bits&qOpen != 0 || !above(qf.cast))
+	if r.s.castFlash(r.k, r.p, c) {
+		return true
 	}
-	// a hand cast of a plain card (one cast route: no kicker, optional or
-	// extra cost) is offered only when its targets are feasible, a gate the
-	// walk reads before every route but the plain card has none of
-	handLoud := func(c CardID, o Obj) bool {
-		if !castLoud(c) {
-			return false
-		}
-		if k.quietCard[c].bits&(qOpen|qPlain) != qPlain || k.anyOffGrant || modLive() {
+	for _, f := range r.k.t.Cards[c].Faces {
+		if r.s.castFlash(r.k, r.p, f) {
 			return true
 		}
-		return s.spellTargetsFeasibleFrom(k, c, p, o)
 	}
+	return false
+}
+
+func (r *quietRead) castLoud(c CardID) bool {
+	qf := &r.k.quietCard[c]
+	return r.inst(c) && (qf.bits&qOpen != 0 || !r.above(qf.cast))
+}
+
+// handLoud: a hand cast of a plain card (one cast route: no kicker, optional
+// or extra cost) is offered only when its targets are feasible, a gate the
+// walk reads before every route but the plain card has none of.
+func (r *quietRead) handLoud(c CardID, o Obj) bool {
+	if !r.castLoud(c) {
+		return false
+	}
+	if r.k.quietCard[c].bits&(qOpen|qPlain) != qPlain || r.k.anyOffGrant || r.modLive() {
+		return true
+	}
+	return r.s.spellTargetsFeasibleFrom(r.k, c, r.p, o)
+}
+
+// hand is the hand's and the command zone's routes.
+func (r *quietRead) hand() uint8 {
+	s, k := r.s, r.k
+	pl := &s.pl[r.p]
 	for i := 0; i < int(pl.handN); i++ {
 		c := s.objs[pl.hand[i]].card
 		qf := &k.quietCard[c]
 		if qf.bits&qHand != 0 {
 			return qbHandAct
 		}
-		if !above(qf.hand) {
+		if !r.above(qf.hand) {
 			return qbHandAb
 		}
-		if !k.cards[c].land && handLoud(c, pl.hand[i]) {
+		if !k.cards[c].land && r.handLoud(c, pl.hand[i]) {
 			return qbHand
 		}
 	}
 	if s.cfg&cfgCommander != 0 {
-		for _, o := range [2]Obj{pl.cmd, s.cmdObj(p, 1)} {
-			if o != NoObj && s.objs[o].zone == kop.ZoneCommand && castLoud(s.objs[o].card) {
+		for _, o := range [2]Obj{pl.cmd, s.cmdObj(r.p, 1)} {
+			if o != NoObj && s.objs[o].zone == kop.ZoneCommand && r.castLoud(s.objs[o].card) {
 				return qbCmd
 			}
 		}
 	}
-	// the graveyard: an instant-speed card offers only through a cast route
-	// (printed, a stamped or static flashback grant, a beam grant)
+	return qbNone
+}
+
+// zones is the graveyard's and exile's routes.
+func (r *quietRead) zones() uint8 {
+	if b := r.grave(); b != qbNone {
+		return b
+	}
+	return r.exile()
+}
+
+// grave: an instant-speed graveyard card offers only through a cast route
+// (printed, a stamped or static flashback grant, a beam grant).
+func (r *quietRead) grave() uint8 {
+	s, k, g := r.s, r.k, r.k.gen
+	pl := &s.pl[r.p]
 	var fbLo, fbHi *objBits
 	if fbi := k.fbIx(); int(fbi) < len(s.cold.mo) {
 		fbLo, fbHi = &s.cold.mo[fbi], &s.cold.mo[fbi+1]
@@ -508,7 +601,7 @@ func (s *State) quietBlocker(k *prep, p uint8) uint8 {
 		if bt&qGrave != 0 {
 			return qbGrave
 		}
-		if !inst(c) {
+		if !r.inst(c) {
 			continue
 		}
 		if bt&qGyCast != 0 || fbLo != nil && (fbLo.has(o) || fbHi.has(o)) ||
@@ -516,14 +609,20 @@ func (s *State) quietBlocker(k *prep, p uint8) uint8 {
 			return qbGrave
 		}
 	}
-	// exile: an instant-speed card offers only through an exile cast record
+	return qbNone
+}
+
+// exile: an instant-speed exile card offers only through an exile cast record.
+func (r *quietRead) exile() uint8 {
+	s, k, g, p := r.s, r.k, r.k.gen, r.p
+	pl := &s.pl[p]
 	for i := 0; i < int(pl.exileN); i++ {
 		o := pl.exile[i]
 		c := s.objs[o].card
 		if k.quietCard[c].bits&qExile != 0 {
 			return qbExile
 		}
-		if !inst(c) {
+		if !r.inst(c) {
 			continue
 		}
 		if g == nil || s.objs[o].of&(ofAdventure|ofCopy) != 0 || k.t.Cards[c].Paradigm != 0 ||
@@ -531,57 +630,95 @@ func (s *State) quietBlocker(k *prep, p uint8) uint8 {
 			return qbExile
 		}
 	}
-	if g != nil {
-		for i := 0; i < int(s.g.nmay); i++ {
-			if s.mayAt(i).ctrl == p {
-				return qbMayRec
-			}
-		}
-		if g.anyMayPlay && s.mayPlayZones(k, p) != 0 {
-			return qbMayZone
-		}
-		if s.g.priAsk != 0 && g.anyCondSplit {
-			return qbPriAsk
+	return qbNone
+}
+
+// records is the play permissions, the may-play statics and the unless
+// source's priority activation.
+func (r *quietRead) records() uint8 {
+	s, k, g := r.s, r.k, r.k.gen
+	if g == nil {
+		return qbNone
+	}
+	for i := 0; i < int(s.g.nmay); i++ {
+		if s.mayAt(i).ctrl == r.p {
+			return qbMayRec
 		}
 	}
-	for m := s.ctrlM[p]; m.any(); m = m.rest() {
+	if g.anyMayPlay && s.mayPlayZones(k, r.p) != 0 {
+		return qbMayZone
+	}
+	if s.g.priAsk != 0 && g.anyCondSplit {
+		return qbPriAsk
+	}
+	return qbNone
+}
+
+// battle is the seat's permanents' own activated abilities and face-down
+// permanents.
+func (r *quietRead) battle() uint8 {
+	s, k, g := r.s, r.k, r.k.gen
+	for m := s.ctrlM[r.p]; m.any(); m = m.rest() {
 		sl := m.first()
 		qf := &k.quietCard[s.cardAt(sl)]
-		if !above(qf.bfAny) || s.perms[sl].flags&pfTapped == 0 && !above(qf.bfTap) {
+		if !r.above(qf.bfAny) || s.perms[sl].flags&pfTapped == 0 && !r.above(qf.bfTap) {
 			return qbBattle
 		}
 		if g != nil && g.anyFaceDown && s.faceDown(k, sl) {
 			return qbFaceDown
 		}
 	}
-	if g != nil && (k.quietGrantAny != quietNone || k.quietGrantTap != quietNone) && s.grantsLive(k) {
-		// a granted body is a latent ability of a grant's source: a
-		// battlefield card (a static's grant), an override record's card, or
-		// an emblem's creator (any floor)
-		gAny, gTap := quietNone, quietNone
-		if g.anyEmbGrant && s.anyEmb() {
-			gAny = 0
-		}
-		for m := s.statM; m.any(); m = m.rest() {
-			qf := &k.quietCard[s.cardAt(m.first())]
+	return qbNone
+}
+
+// grants: a granted body is a latent ability of a grant's source: a
+// battlefield card (a static's grant), an override record's card, or an
+// emblem's creator (any floor).
+func (r *quietRead) grants() uint8 {
+	s, k, g := r.s, r.k, r.k.gen
+	if g == nil || k.quietGrantAny == quietNone && k.quietGrantTap == quietNone || !s.grantsLive(k) {
+		return qbNone
+	}
+	gAny, gTap := quietNone, quietNone
+	if g.anyEmbGrant && s.anyEmb() {
+		gAny = 0
+	}
+	for m := s.statM; m.any(); m = m.rest() {
+		qf := &k.quietCard[s.cardAt(m.first())]
+		gAny, gTap = min(gAny, qf.grAny), min(gTap, qf.grTap)
+	}
+	for i := 0; i < int(s.g.nfx); i++ {
+		if fx := &s.g.fx[i]; fx.kind == fxOverride {
+			qf := &k.quietCard[fx.r.src]
 			gAny, gTap = min(gAny, qf.grAny), min(gTap, qf.grTap)
 		}
-		for i := 0; i < int(s.g.nfx); i++ {
-			if r := &s.g.fx[i]; r.kind == fxOverride {
-				qf := &k.quietCard[r.r.src]
-				gAny, gTap = min(gAny, qf.grAny), min(gTap, qf.grTap)
-			}
-		}
-		if !above(gAny) || !above(gTap) {
-			for m := s.ctrlM[p]; m.any(); m = m.rest() {
-				sl := m.first()
-				if s.grantMay(k, sl) && (!above(gAny) || s.perms[sl].flags&pfTapped == 0 && !above(gTap)) {
-					return qbGrant
-				}
-			}
+	}
+	if r.above(gAny) && r.above(gTap) {
+		return qbNone
+	}
+	for m := s.ctrlM[r.p]; m.any(); m = m.rest() {
+		sl := m.first()
+		if s.grantMay(k, sl) && (!r.above(gAny) || s.perms[sl].flags&pfTapped == 0 && !r.above(gTap)) {
+			return qbGrant
 		}
 	}
 	return qbNone
+}
+
+// priorityArm is stepRaw's posed priority options: pass alone for a seat the
+// proof shows can only pass, else the walk (under DebugQuietVerify or
+// DebugQuietShadow the walk always runs, beside the proof).
+func (s *State) priorityArm(k *prep, d *Decision) {
+	switch {
+	case DebugQuietVerify != nil:
+		s.quietVerify(k, d, DebugQuietVerify)
+	case DebugQuietShadow:
+		s.quietShadow(k, d)
+	case s.seatQuiet(k, s.prio):
+		d.add(MakeAction(AkPass, 0, 0, 0)) // the walk's answer, unwalked
+	default:
+		s.priorityOptions(k, d)
+	}
 }
 
 // quietFlashStat reports whether some battlefield permanent prints a

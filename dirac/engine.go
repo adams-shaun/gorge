@@ -322,17 +322,9 @@ func (s *State) stepRaw(d *Decision) {
 				s.prio = s.nextAlive(s.prio) // gorge grantPriority: a departed holder's turn passes on
 			}
 			d.Kind, d.Player = DkPriority, s.prio
-			s.pcMemoOpen(k) // the per-decision manaPCGen memo (mana_pcmemo.go)
-			s.sfmOpen(k)    // scriptFilt's (mana_sfmemo.go)
-			if st := DebugQuietVerify; st != nil {
-				s.quietVerify(k, d, st) // quiet_seat.go: the walk, with the proof read beside it
-			} else if DebugQuietShadow {
-				s.quietShadow(k, d)
-			} else if s.seatQuiet(k, s.prio) {
-				d.add(MakeAction(AkPass, 0, 0, 0)) // the seat can only pass (quiet_seat.go): the walk's answer, unwalked
-			} else {
-				s.priorityOptions(k, d)
-			}
+			s.pcMemoOpen(k)     // the per-decision manaPCGen memo (mana_pcmemo.go)
+			s.sfmOpen(k)        // scriptFilt's (mana_sfmemo.go)
+			s.priorityArm(k, d) // quiet_seat.go: the walk, or pass for a seat the quiet proof shows can only pass
 			s.pcMemoClose()
 			s.sfmClose()
 			return
