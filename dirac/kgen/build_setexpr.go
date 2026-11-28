@@ -47,15 +47,29 @@ func kopWalksSet(ki *kop.Instr, players bool) bool {
 	return false
 }
 
-// walksSet refuses set n under ki when the set can hold more than one member
-// and the kernel would not walk them all. The opponents of one player pass
-// under Draw only (lower_definedset.go setOpponentOf says why, and what that
-// leaves open). An n the card does not have is internSet's refusal.
+// kopRunsSetObject reports whether execSet's run of op over an object member
+// may match gorge's. Sacrifice and Discard over a set holding an object left
+// lockstep divergent even with one member (a bearer sweep and Self.Creature:
+// a card in another zone, or the entry still on the stack after the answer),
+// so both are refused. An all-player set is unaffected.
+func kopRunsSetObject(op kop.Op) bool {
+	return op != kop.OpSacrifice && op != kop.OpDiscard
+}
+
+// walksSet refuses set n under ki when the set can hold an object the kernel
+// would not run as gorge does (kopRunsSetObject), or more than one member and
+// the kernel would not walk them all. The opponents of one player pass under
+// Draw only (lower_definedset.go setOpponentOf says why, and what that leaves
+// open). An n the card does not have is internSet's refusal.
 func (cb *cardBuilder) walksSet(n int, ki *kop.Instr) error {
 	if n < 0 || n >= len(cb.c.Sets) {
 		return nil
 	}
-	if s := cb.c.Sets[n]; !s.One && !(s.OneOpps && ki.Op == kop.OpDraw) && !kopWalksSet(ki, s.Players) {
+	s := cb.c.Sets[n]
+	if !s.Players && !kopRunsSetObject(ki.Op) {
+		return fmt.Errorf("Defined$ set holding an object on kop %s: the kernel does not finish its run as gorge does", ki.Op)
+	}
+	if !s.One && !(s.OneOpps && ki.Op == kop.OpDraw) && !kopWalksSet(ki, s.Players) {
 		return fmt.Errorf("Defined$ set of more than one member on kop %s: a member's ask would end the walk", ki.Op)
 	}
 	return nil
@@ -117,14 +131,9 @@ func (cb *cardBuilder) internSet(n int) (uint16, error) {
 	}
 	e := cb.c.Sets[n].kopSetExpr()
 	for i, op := range cb.c.Sets[n].Ops {
-		if op.F == nil {
-			continue
-		}
-		id, err := cb.filter(op.F, kop.ZoneBattlefield) // no zone gate: the set's objects are anywhere
-		if err != nil {
+		if err := cb.setArg(op, &e[i]); err != nil {
 			return 0, err
 		}
-		e[i].Arg = uint16(id)
 	}
 	if d, ok := e.SetDepth(); !ok || d > kop.MaxSetDepth {
 		return 0, fmt.Errorf("Defined$ set program %v (depth %d)", e, d)
@@ -144,6 +153,30 @@ func (cb *cardBuilder) internSet(n int) (uint16, error) {
 	pt.sets = append(pt.sets, e)
 	pt.setKey[key] = id
 	return id, nil
+}
+
+// setArg fills ko's argument with what only the builder knows of op: the
+// interned filter of a SetAndFilter, the kop.Ref of a SetRefBase, which must
+// be one the kernel's set arm reads.
+func (cb *cardBuilder) setArg(op lSetOp, ko *kop.SetOp) error {
+	switch {
+	case op.Kind == kop.SetRefBase:
+		r, err := cb.ref(op.Base)
+		if err != nil {
+			return err
+		}
+		if !kop.SetRefBaseOK(r) {
+			return fmt.Errorf("Defined$ %q: base %s has no set kind", op.V, refNames[op.Base.Kind])
+		}
+		ko.Arg = uint16(r)
+	case op.F != nil:
+		id, err := cb.filter(op.F, kop.ZoneBattlefield) // no zone gate: the set's objects are anywhere
+		if err != nil {
+			return err
+		}
+		ko.Arg = uint16(id)
+	}
+	return nil
 }
 
 // setFilters calls filt on every filter the sets ab reads name.

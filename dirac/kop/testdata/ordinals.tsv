@@ -1413,6 +1413,7 @@ SacSumToughness	untyped int	4
 SacrificedFood	untyped int	2
 SetAndFilter	SetOpKind	32
 SetAttached	SetOpKind	14
+SetBattlefield	SetOpKind	18
 SetChosen	SetOpKind	13
 SetController	SetOpKind	4
 SetControllerOf	SetOpKind	35
@@ -1425,6 +1426,7 @@ SetLKIOf	SetOpKind	37
 SetNone	SetOpKind	0
 SetOwnerOf	SetOpKind	36
 SetPlayersComplement	SetOpKind	34
+SetRefBase	SetOpKind	17
 SetRemembered	SetOpKind	10
 SetSacrificed	SetOpKind	15
 SetSelf	SetOpKind	3

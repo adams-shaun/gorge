@@ -1,0 +1,18 @@
+# The set-base pool (dirac/oracle/setbases_lockstep_test.go): the corpus
+# carriers of SetRefBase and SetBattlefield (Enslave, Earthbind and Missy,
+# each still refused for another line), the creatures, the burn spell that
+# takes a bearer away under a trigger, and the basics the decks need. The
+# decks' set reads come from the test's inline carriers.
+Enslave
+Earthbind
+Missy
+Grizzly Bears
+Glory Seeker
+Llanowar Elves
+Savannah Lions
+Ornithopter
+Shock
+Swamp
+Mountain
+Forest
+Plains
