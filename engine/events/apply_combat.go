@@ -469,7 +469,7 @@ func foldTokenAttacks(g *state.Game, e *Event) {
 
 // foldMyriadCopy folds Kind MyriadCopy into state.
 func foldMyriadCopy(g *state.Game, e *Event) {
-	// CR 702.109: a Myriad attacker token. Mint a copy of the source
+	// CR 702.116: a Myriad attacker token. Mint a copy of the source
 	// attack-creature (same face/power/toughness, marked IsToken and
 	// IsCopy) tapped and attacking the opponent named by Player. If the
 	// source is gone the copy still enters (from its last-known
@@ -527,7 +527,7 @@ func foldMyriadCopy(g *state.Game, e *Event) {
 
 // foldMyriadCleanup folds Kind MyriadCleanup into state.
 func foldMyriadCleanup(g *state.Game, e *Event) {
-	// CR 702.109a: every token created by Myriad is exiled at end of
+	// CR 702.116a: every token created by Myriad is exiled at end of
 	// combat. Move is called only from this event fold, so replay performs
 	// the same deterministic arena-order cleanup without synthetic events.
 	for i := range g.Objs {
@@ -540,7 +540,7 @@ func foldMyriadCleanup(g *state.Game, e *Event) {
 
 // foldEnlist folds Kind Enlist into state.
 func foldEnlist(g *state.Game, e *Event) {
-	// CR 702.160's enlist action (the `K:Enlist` keyword):
+	// CR 702.154's enlist action (the `K:Enlist` keyword):
 	// Obj is the ATTACKING creature that enlisted (the Mode$ Enlisted
 	// trigger's source) and IDs[0] the nonattacking creature it tapped
 	// (never a state change here -- the tap is its own Tap event). The

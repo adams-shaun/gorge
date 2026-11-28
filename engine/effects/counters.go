@@ -1144,7 +1144,7 @@ func moveCounterKindsFor(kind string, o *state.Object, dests []state.Target, g *
 	}
 }
 
-// effProliferate implements Forge's Proliferate (CR 701.27): the resolving
+// effProliferate implements Forge's Proliferate (CR 701.34): the resolving
 // player chooses any number of permanents and/or players that already have at
 // least one counter (of any kind), and gives each chosen recipient another
 // counter of EACH kind already there. A recipient carrying no counter of any

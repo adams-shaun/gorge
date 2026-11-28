@@ -11,7 +11,7 @@ import (
 
 func init() { Register("Pair", effPair) }
 
-// effPair implements Soulbond's optional pairing choice (CR 702.103). The
+// effPair implements Soulbond's optional pairing choice (CR 702.95). The
 // keyword expansion supplies both trigger cases; this common body only pairs
 // an unpaired Soulbond creature with another unpaired creature controlled by
 // the same player. The selected partner is recorded by the decision intent and
