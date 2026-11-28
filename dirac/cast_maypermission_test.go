@@ -452,7 +452,7 @@ func TestAnyColorHybrid(t *testing.T) {
 	sc := newScenTable(t, castMaypermissionKindTable(), Config{NoElide: true})
 	s := sc.s
 	mtn := sc.perm(v.Mountain, 0)
-	hyb := kop.ManaCost{Hyb: [4]kop.ColorMask{1<<kop.W | 1<<kop.U}}
+	hyb := kop.ManaCost{Hyb: [5]kop.ColorMask{1<<kop.W | 1<<kop.U}}
 	var av avail
 	s.availFor(sc.k, 0, &av)
 	if av.affords(&hyb, pipMaskOf(&hyb), 0) {

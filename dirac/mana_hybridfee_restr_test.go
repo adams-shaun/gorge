@@ -55,7 +55,7 @@ func TestHybridWitnessLentRestrictedManaPaysNoFee(t *testing.T) {
 	}})
 	hyb := CardID(len(tbl.Cards))
 	tbl.Cards = append(tbl.Cards, kop.CardDef{Name: "Test Hybrid", Types: kop.TCreature, Power: 1, Toughness: 1,
-		Cost: kop.ManaCost{Generic: 5, Hyb: [4]kop.ColorMask{kop.ColG | kop.ColW}}})
+		Cost: kop.ManaCost{Generic: 5, Hyb: [5]kop.ColorMask{kop.ColG | kop.ColW}}})
 	treasure := CardID(len(tbl.Cards))
 	tbl.Cards = append(tbl.Cards, kop.CardDef{Name: "Test Treasure", Types: kop.TArtifact, Abilities: []kop.Ability{
 		{Kind: kop.AbMana, Cost: kop.Cost{Flags: kop.CostTap | kop.CostSacSelf, N: 1}, ManaColors: kop.ColAny, ManaN: 1},

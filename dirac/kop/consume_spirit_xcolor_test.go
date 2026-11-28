@@ -38,7 +38,7 @@ func TestConsumeSpiritXColorAtX(t *testing.T) {
 	if again := m.AtX(1).AtX(1); again.Pips[B] != 2 {
 		t.Errorf("second AtX changed the cost: %+v", again)
 	}
-	if n := unsafe.Sizeof(ManaCost{}); n != 18 { // XPip widened the table struct from 16
-		t.Errorf("sizeof(ManaCost) = %d, want 18", n)
+	if n := unsafe.Sizeof(ManaCost{}); n != 20 { // XPip widened the table struct from 16, a fifth Hyb pip from 18
+		t.Errorf("sizeof(ManaCost) = %d, want 20", n)
 	}
 }

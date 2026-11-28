@@ -12,7 +12,7 @@ import (
 // first affordable mask is bit 0 (pip 0 takes U): {U}{W}{W}. A witness that
 // varied pip 2 fastest would reach {W}{W}{B} first.
 func TestHybridNWitnessOrder(t *testing.T) {
-	cost := kop.ManaCost{Hyb: [4]kop.ColorMask{kop.ColW | kop.ColU, kop.ColW | kop.ColU, kop.ColW | kop.ColB}}
+	cost := kop.ManaCost{Hyb: [5]kop.ColorMask{kop.ColW | kop.ColU, kop.ColW | kop.ColU, kop.ColW | kop.ColB}}
 	var a avail
 	a.addUnits(uint8(kop.ColW), 2)
 	a.addUnits(uint8(kop.ColU), 1)
@@ -34,7 +34,7 @@ func TestHybridNWitnessOrder(t *testing.T) {
 // TestHybridNCosts: four-pip costs afford, resolve, count and pack their
 // pip answers without allocating.
 func TestHybridNCosts(t *testing.T) {
-	cost := kop.ManaCost{Hyb: [4]kop.ColorMask{kop.ColW | kop.ColG, kop.ColU | kop.ColG, kop.ColB | kop.ColG, kop.ColR | kop.ColG}, HybOrd: 3}
+	cost := kop.ManaCost{Hyb: [5]kop.ColorMask{kop.ColW | kop.ColG, kop.ColU | kop.ColG, kop.ColB | kop.ColG, kop.ColR | kop.ColG}, HybOrd: 3}
 	if n := hybN(&cost); n != 4 {
 		t.Errorf("hybN = %d, want 4", n)
 	}
@@ -42,7 +42,7 @@ func TestHybridNCosts(t *testing.T) {
 		t.Errorf("MV = %d, want 4", mv)
 	}
 	r := cost.Resolve(kop.G)
-	if r.Hyb != [4]kop.ColorMask{kop.ColU | kop.ColG, kop.ColB | kop.ColG, kop.ColR | kop.ColG} || r.HybOrd != 1 || r.Pips[kop.G] != 1 || hybN(&r) != 3 {
+	if r.Hyb != [5]kop.ColorMask{kop.ColU | kop.ColG, kop.ColB | kop.ColG, kop.ColR | kop.ColG} || r.HybOrd != 1 || r.Pips[kop.G] != 1 || hybN(&r) != 3 {
 		t.Errorf("Resolve(G): %+v", r)
 	}
 	var a avail

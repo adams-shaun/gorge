@@ -817,7 +817,7 @@ func (fs *filtSearch) ctrOneShot(k *prep, t *State, sl Slot, ab *kop.Ability) bo
 	if !fs.usefulOK || !fs.other.has(sl) {
 		return false
 	}
-	return ab.Cost.Mana.Generic == 0 && pipSum(&ab.Cost.Mana.Pips) == 0 && ab.Cost.Mana.Hyb == ([4]kop.ColorMask{})
+	return ab.Cost.Mana.Generic == 0 && pipSum(&ab.Cost.Mana.Pips) == 0 && ab.Cost.Mana.Hyb == ([5]kop.ColorMask{})
 }
 
 // ctrOneShotColStalls: the counter-cost gap at sl making col fills no fixed
