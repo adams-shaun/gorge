@@ -91,6 +91,9 @@ func (s *State) ProjectChars(p *Projection) {
 		// (oracle/projchars.go), so a grant of that same colour must not add
 		// the bit back here.
 		c.Kw &^= protColourKw(k.t.Cards[s.cardAt(sl)].ProtColors)
+		// the oracle drops only the top face's spellings: an under card's
+		// printed colour (CR 702.140e) stays a keyword there
+		c.Kw |= protColourKw(s.underProtColors(k, sl) &^ k.t.Cards[s.cardAt(sl)].ProtColors)
 		if k.gen != nil && k.gen.anyColGrant {
 			c.Kw |= s.colProtKw(k, sl) // static_colourprot.go
 		}
