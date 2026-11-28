@@ -225,7 +225,7 @@ def test_lanes_partition_the_replay_selection_exactly():
     assert "TestReproCensusIsCurrent" in before and "TestUnrelatedThing" not in before
     laned = tt.oracle_lanes(res, names=names, weights={n: 10.0 for n in names}, zero=set())
     lanes = [(k, rx) for k, p, rx in laned if p == "./dirac/oracle" and k == "oraclelane" and "/" not in rx]
-    assert 1 < len(lanes) <= tt.ORACLE_LANES
+    assert 1 < len(lanes) <= tt.ORACLE_PLAIN_LANES
     got = []
     for _, rx in lanes:
         assert rx.startswith("^(") and rx.endswith(")$"), rx  # anchored: a name never matches as a substring
@@ -267,7 +267,7 @@ def test_each_half_is_dealt_into_its_own_lane_budget():
     weights = dict(zip(sorted(selected), [40.0, 40.0, 40.0, 30.0, 20.0, 20.0, 10.0]))
     for i in range(4):
         weights[tt.MANIFEST_TEST + str(i)] = [120.0, 120.0, 80.0, 80.0][i]  # x SLICE_SHARE = 30,30,20,20
-    laned = tt.oracle_lanes(res, names=names, weights=weights, zero=set(), lanes=4)
+    laned = tt.oracle_lanes(res, names=names, weights=weights, zero=set(), lanes=4, plain_lanes=4)
     plain = [rx for k, p, rx in laned if k == "oraclelane" and "/" not in rx]
     subs = [rx for k, p, rx in laned if k == "oraclelane" and "/" in rx]
     assert plain and subs

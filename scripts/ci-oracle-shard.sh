@@ -22,7 +22,9 @@ i=${1:?usage: ci-oracle-shard.sh <shard> <shards> [go test flags...]}
 n=${2:?usage: ci-oracle-shard.sh <shard> <shards> [go test flags...]}
 shift 2
 pkg=./dirac/oracle
-list=$(go test -list '.*' "$pkg" | grep -E '^Test' || true)
+# TestRefusedEntriesStillDiverge (the dirac gate's entry) checks what its shards 0..7 check, and the shards
+# are listed too: dealt apart, the parent would replay every entry again.
+list=$(go test -list '.*' "$pkg" | grep -E '^Test' | grep -vx 'TestRefusedEntriesStillDiverge' || true)
 [ -n "$list" ] || { echo "ci-oracle-shard: no tests listed in $pkg"; exit 1; }
 pools=${GORGE_POOLS:-.pools}
 havepools=0

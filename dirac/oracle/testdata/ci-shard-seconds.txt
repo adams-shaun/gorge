@@ -23,6 +23,13 @@
 # so the plain lanes were blind to ~2,300 leaf-s of the 2,324 they played (two lanes hit the 5m cap).
 # A second such run at 20ccd7ae06 (its slice rotated with the base; 2.3 idle cores, so its seconds are
 # divided by 4.57 x 1.30, the ratio of the two runs over the 15 tests both finished) added the rest.
+# 2026-11-27 (third): the 8 TestCmd5SliceCleanOnlyGrows shards and TestMBCOrzhovaFeeOnlyCensusNotAProofLockstep
+# are the median, over the three oracle-slice targeted runs at 25a4e7ea9d, 20ccd7ae06 and d28a4a61ec, of their lane
+# Elapsed divided by that run's scale (the median Elapsed/table ratio of the run's other plain-lane tests weighing
+# >= 2 here: 4.55, 2.64, 2.78). A cmd5 shard plays its pairs on 4 workers, so its wall stretches with the box's
+# load far more than a one-core replay's; its direct single run (5-11 s) had put it at 5-11 and the deal
+# stacked 2-3 shards in one lane (40-115 s each there). The Orzhova census is one 820-decision game, 19 s alone
+# at 28 idle cores; it is a parallel test, so it starts after its lane's serial tests.
 TestAbilityCopyAsksEachChainLink 1.1
 TestAbilityReductionExcessPaysXLockstep 1.1
 TestAbilitycastLockstep 15.2
@@ -220,14 +227,14 @@ TestCmd5IdentityManaFundsDarksteelJuggernaut 1.0
 TestCmd5IdentityManaLockstep 3.5
 TestCmd5OrbCensusFeePlanActivation 1.8
 TestCmd5ShapesLockstep 21.4
-TestCmd5SliceCleanOnlyGrows0 11.4
-TestCmd5SliceCleanOnlyGrows1 8.8
-TestCmd5SliceCleanOnlyGrows2 8.6
-TestCmd5SliceCleanOnlyGrows3 7.6
-TestCmd5SliceCleanOnlyGrows4 8.2
-TestCmd5SliceCleanOnlyGrows5 5.5
-TestCmd5SliceCleanOnlyGrows6 5.1
-TestCmd5SliceCleanOnlyGrows7 5.2
+TestCmd5SliceCleanOnlyGrows0 30.2
+TestCmd5SliceCleanOnlyGrows1 29.6
+TestCmd5SliceCleanOnlyGrows2 30.9
+TestCmd5SliceCleanOnlyGrows3 29.4
+TestCmd5SliceCleanOnlyGrows4 22.2
+TestCmd5SliceCleanOnlyGrows5 20.4
+TestCmd5SliceCleanOnlyGrows6 13.4
+TestCmd5SliceCleanOnlyGrows7 14.3
 TestCmpheadsLockstep 27.1
 TestCollectEvidenceXLockstep 40.0
 TestCommanderWordLockstep 37.4
@@ -732,7 +739,7 @@ TestMBCManaAbilities2Lowers 37.2
 TestMBCMercurialPretenderBouncePaidReprosLockstep 3.4
 TestMBCMercurialPretenderPumpReprosLockstep 1.0
 TestMBCMijaeDjinnReprosLockstep 2.6
-TestMBCOrzhovaFeeOnlyCensusNotAProofLockstep 40.7
+TestMBCOrzhovaFeeOnlyCensusNotAProofLockstep 64.6
 TestMBCOxDroverReprosLockstep 1.1
 TestMBCPhantasmagorianReprosLockstep 1.6
 TestMBCPlayerHeadLowers 18.7

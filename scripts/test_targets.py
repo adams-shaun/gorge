@@ -145,8 +145,13 @@ SOURCE_READERS = (("dirac/crcoverage", ("dirac/kgen",)),)
 # The precheck's oracle replay slice ran as one go test process (~200 top-level tests: the census and refusal
 # families plus the 25% slice) and outran the package's 5m cap on 34 of the last 40 targeted runs (11-27);
 # its summed test wall was ~500 s. test-targets.sh runs the slice as this many concurrent, cost-dealt lanes
-# (scripts/oracle_shard_deal.py, the same deal CI's matrix parts use).
+# (scripts/oracle_shard_deal.py, the same deal CI's matrix parts use): ORACLE_LANES per subtest -run and
+# ORACLE_PLAIN_LANES for the plain half. The plain half is serial top-level tests, one core a process: at 4
+# lanes its processes used 4 of a remote run's 12 cores (GORGE_REMOTE_CPU) and every plain lane reached the
+# 5m cap on 3 of 3 runs at 25a4e7ea9d..d28a4a61ec (282-300 s, the sub lanes 73-214 s), so it has twice
+# the lanes: 8 plain and 4 sub processes fill the run's 12 cores.
 ORACLE_LANES = 4
+ORACLE_PLAIN_LANES = 8
 RULES = "./engine/rules"
 ORACLE = "./dirac/oracle"
 ARCHTEST = "./internal/archtest"
@@ -918,15 +923,16 @@ def sub_run_tops(rx, names):
     return [n for n in names if any(re.search(t, n) for t in tops)]
 
 
-def oracle_lanes(res, names=None, lanes=ORACLE_LANES, weights=None, zero=None):
-    """Deal the ./dirac/oracle replay slice into `lanes` cost-balanced bins of "oraclelane" entries.
+def oracle_lanes(res, names=None, lanes=ORACLE_LANES, weights=None, zero=None, plain_lanes=ORACLE_PLAIN_LANES):
+    """Deal the ./dirac/oracle replay slice into cost-balanced bins of "oraclelane" entries: `plain_lanes`
+    for the plain tests and `lanes` for each subtest -run.
 
     The replay slice is the census and refusal families plus the 25% slice (slice_lane) in one -run, and
     the manifest/pool-glob subtest -run plan appends after the plain entries. In one go test process they
     outran the package's 5m cap on 34 of the last 40 targeted runs (11-27, ~200 top-level tests and a
     ~500 s summed test wall); test-targets.sh starts every oraclelane entry as its own concurrent process.
     Each half is dealt by measured cost (oracle_shard_deal.deal, the deal ci-oracle-shard.sh performs) into
-    its own `lanes` lane budget: the plain tests as one deal, and each subtest -run's tops as a deal of
+    its own lane budget: the plain tests as one deal into `plain_lanes`, and each subtest -run's tops as a deal of
     their own. Measured alone on 11-27, the subtest half was 178 s of the slice's ~380 s and, left as one
     undealt process, was the lane that hit the cap. One deal over both halves balances each bin's sum, but
     every bin becomes two processes -- one -run for its plain tests (^(a|b)$) and one for its subtest tops
@@ -972,13 +978,14 @@ def oracle_lanes(res, names=None, lanes=ORACLE_LANES, weights=None, zero=None):
         for n in tops:
             cost[("s%d" % i, n)] = 0.0 if n in zero else weights.get(n, dflt) * SLICE_SHARE
     bins = {}
-    # one deal per half, each into its own `lanes` lane budget: the plain tests as one deal and each
+    # one deal per half, each into its own lane budget: the plain tests as one deal (`plain_lanes`) and each
     # subtest -run's tops as a deal of their own, so a bin sum is a process's cost (a subtest top
     # never shares a process with a plain test: a '/' in -run filters every other test's subtests).
     halves = [("p", selected)] + [("s%d" % i, tops) for i, tops in sorted(sub_tops.items())]
     for kind, members in halves:
         flat = {n: cost[(kind, n)] for n in members}
-        for part, n, _ in oracle_shard_deal.deal(sorted(flat), flat, lanes, default=dflt, zero=frozenset()):
+        bins_n = plain_lanes if kind == "p" else lanes
+        for part, n, _ in oracle_shard_deal.deal(sorted(flat), flat, bins_n, default=dflt, zero=frozenset()):
             bins.setdefault(part, {}).setdefault(kind, []).append(n)
     out = []
     for i, entry in enumerate(res):

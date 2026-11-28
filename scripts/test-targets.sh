@@ -336,8 +336,8 @@ if [ "$mode" = targeted ]; then
 	done
 	# ./dirac/oracle's replay slice: the selector deals it into cost-balanced lanes (test_targets.py
 	# oracle_lanes, the deal CI's oracle shards use), one process each, all concurrent: the plain half
-	# into ORACLE_LANES bins and each subtest -run's tops into its own ORACLE_LANES, so a balanced bin
-	# sum is a process's own wall (at most ORACLE_LANES x (1 + the number of subtest -runs) processes). In one process the
+	# into ORACLE_PLAIN_LANES bins and each subtest -run's tops into its own ORACLE_LANES, so a balanced bin
+	# sum is a process's own wall (at most ORACLE_PLAIN_LANES + ORACLE_LANES x the number of subtest -runs processes). In one process the
 	# slice ran past the 5m cap on 34 of the last 40 targeted runs (11-27: ~200 top-level tests and ~500 s
 	# of summed test wall). Each lane keeps its own -json log; test_targets.py merge concatenates them into
 	# the run's stream and keeps the worst exit status, so the verdict line and the exit codes are the
@@ -488,7 +488,8 @@ fi
 ORACLE_CHUNKS=8
 oracle_chunked() {
 	local names rx k chunks=() r=0
-	names=$(capped 8G "$lcpu" env GOMAXPROCS="$lprocs" GOMEMLIMIT=6GiB go test -list "$1" ./dirac/oracle 2>/dev/null | grep -E '^Test' | sort) || names=
+	# the refusal parent (the dirac gate's entry) checks what its listed shards check: dealt apart, it repeats them
+	names=$(capped 8G "$lcpu" env GOMAXPROCS="$lprocs" GOMEMLIMIT=6GiB go test -list "$1" ./dirac/oracle 2>/dev/null | grep -E '^Test' | grep -vx 'TestRefusedEntriesStillDiverge' | sort) || names=
 	[ -z "${2:-}" ] || names=$(grep -vE "$2" <<<"$names" || true)
 	if [ -z "$names" ]; then # nothing listed (a stub go, a build error): the one call, as before; it reports why
 		capped 8G "$lcpu" env GOMAXPROCS="$lprocs" GOMEMLIMIT=6GiB go test -json -v -failfast -timeout "$(timeout_for ./dirac/oracle)" -run "$1" ${2:+-skip "$2"} ./dirac/oracle >>"$json" 2>&1
