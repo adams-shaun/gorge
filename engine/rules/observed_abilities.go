@@ -60,10 +60,15 @@ func ObservedAbilities(e *Engine, p state.PlayerID, id state.ObjID) []decision.O
 			out = append(out, decision.Option{Index: len(out), Kind: "ability",
 				Label: labelName + ": " + ab.ParamStr(cards.PKSpellDescription), Obj: id, Ability: i})
 		}
+	}
+	if !e.faceDownPrintedHides(o) {
 		// Keyword-granted abilities (CR 613.1f) a layer-6 AddKeyword$ grant
 		// synthesizes from a derived line no printed face expands. This
 		// mirrors the offer walk's granted-keyword block and works in any
-		// zone the grant reaches (a hand card given cycling).
+		// zone the grant reaches (a hand card given cycling). A grant newer
+		// than a "loses all abilities" effect survives it (layer 6 applies in
+		// timestamp order), so only the face-down gate the offer walk skips
+		// the whole permanent on applies here, not the printed-loss gate.
 		for _, line := range e.grantedKeywordLines(id) {
 			ab := grantedKeywordSA(o, line)
 			if ab == nil || (cards.IsManaAbilitySA(ab) && !e.isLoyaltyAbility(ab)) {
