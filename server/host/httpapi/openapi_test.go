@@ -256,6 +256,7 @@ func probeServed(t *testing.T, rs []route) {
 	h := NewHandler(reg, Options{
 		Seat:       func(*http.Request) (SeatClaim, bool) { return SeatClaim{Table: "t1"}, true },
 		CreateGame: func(CreateGameOptions) (CreateGameResponse, error) { return CreateGameResponse{}, errors.New("probe") },
+		CheckDeck:  func(DeckCheckRequest) (protocol.DeckReport, error) { return protocol.DeckReport{}, errors.New("probe") },
 		Events:     stubEvents{},
 		Decisions:  func(host.TableID, int) ([]protocol.ReviewDecision, error) { return nil, nil },
 	})
@@ -337,6 +338,7 @@ var schemaRoots = []struct{ pkg, name string }{
 	{"github.com/adams-shaun/gorge/server/protocol", "TableStateBody"},
 	{"github.com/adams-shaun/gorge/server/protocol", "Overflow"},
 	{"github.com/adams-shaun/gorge/server/protocol", "ErrorBody"},
+	{"github.com/adams-shaun/gorge/server/protocol", "DeckReport"},
 	{"github.com/adams-shaun/gorge/server/protocol", "MatchInfo"},
 	{"github.com/adams-shaun/gorge/server/protocol", "Subscribe"},
 	{"github.com/adams-shaun/gorge/server/protocol", "Unsubscribe"},
@@ -370,6 +372,7 @@ var schemaRoots = []struct{ pkg, name string }{
 	{"github.com/adams-shaun/gorge/server/host/httpapi", "DeckInfo"},
 	{"github.com/adams-shaun/gorge/server/host/httpapi", "CreateGameRequest"},
 	{"github.com/adams-shaun/gorge/server/host/httpapi", "CreateGameResponse"},
+	{"github.com/adams-shaun/gorge/server/host/httpapi", "DeckCheckRequest"},
 }
 
 // schemaOverrides state the wire form of the reached types that marshal

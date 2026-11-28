@@ -10,6 +10,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/deck"
 	"github.com/adams-shaun/gorge/engine/effects"
+	"github.com/adams-shaun/gorge/engine/game/gorgegame"
 	"github.com/adams-shaun/gorge/server/host"
 	"github.com/adams-shaun/gorge/server/host/httpapi"
 	"github.com/adams-shaun/gorge/server/manabrew"
@@ -25,13 +26,17 @@ import (
 type deckImports struct {
 	reg       *cards.Registry
 	supported map[string]bool
+	// engine names the engine a report is for; demand, when non-nil, logs
+	// each checked deck's unsupported names (-deck-demand-log).
+	engine string
+	demand *demandLog
 
 	mu    sync.Mutex
 	decks map[string]host.Deck
 }
 
 func newDeckImports(reg *cards.Registry) *deckImports {
-	return &deckImports{reg: reg, supported: effects.Supported(), decks: map[string]host.Deck{}}
+	return &deckImports{reg: reg, supported: effects.Supported(), engine: gorgegame.Name, decks: map[string]host.Deck{}}
 }
 
 // loader answers an imported deck's id and hands every other name to next.
@@ -181,11 +186,17 @@ func frontFaceName(c *cards.Card, name string) string {
 	return c.Faces[0].Name
 }
 
-// checkFile refuses f, naming the cards, unless every card resolved and the
+// checkFile reports on f (and logs its demand), then refuses it with a
+// httpapi.DeckRefused carrying that report, naming the cards, unless every card resolved and the
 // engine plays every card, then checks it for the table's format and
 // resolves it into the deck the table seats. Both the ManaBrew and the text
 // path end here.
 func (d *deckImports) checkFile(label string, format host.Format, f deck.File, unresolved []string, unsupported map[string][]string) (host.Deck, error) {
+	rep := d.report(format, f.Name, f, unresolved, unsupported, d.engine)
+	d.demand.record(d.engine, rep)
+	refuse := func(msg string) (host.Deck, error) {
+		return host.Deck{}, httpapi.DeckRefused{Report: rep, Msg: msg}
+	}
 	var why []string
 	if len(unresolved) > 0 {
 		why = append(why, fmt.Sprintf("cards not in the card pool: %s", capNames(unresolved)))
@@ -203,10 +214,10 @@ func (d *deckImports) checkFile(label string, format host.Format, f deck.File, u
 		why = append(why, fmt.Sprintf("cards the engine cannot play yet: %s", capNames(parts)))
 	}
 	if len(why) > 0 {
-		return host.Deck{}, fmt.Errorf("%s: %s", label, strings.Join(why, "; "))
+		return refuse(fmt.Sprintf("%s: %s", label, strings.Join(why, "; ")))
 	}
 	if err := checkImportedLegality(d.reg, format, f); err != nil {
-		return host.Deck{}, fmt.Errorf("%s: %w", label, err)
+		return refuse(fmt.Sprintf("%s: %v", label, err))
 	}
 	cs, err := f.Resolve(d.reg)
 	if err != nil {
