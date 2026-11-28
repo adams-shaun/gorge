@@ -151,9 +151,32 @@ func (s *State) setBase(k *prep, op kop.SetOp, ctx setCtx, v *setVal) {
 		for i := uint8(0); i < q.n; i++ {
 			v.addPl(q.s[i], false)
 		}
+	case kop.SetRefBase:
+		s.setRefBase(k, op.Arg, v)
+	case kop.SetBattlefield:
+		// phased-out permanents are off occ, as gorge's sweep skips them
+		for m := s.occ; m.any(); m = m.rest() {
+			v.addObj(s.perms[m.first()].obj, 0, false)
+		}
 	default:
 		panic("kernel: evalSet: base " + op.Kind.String() + " is declared but not modelled (its own ticket)")
 	}
+}
+
+// setRefBase pushes into v the one object or player the Ref arg names, read as
+// an op's own subject read of it (refCode, so from the resolving entry: the
+// context every set is evaluated in); a Ref that names nobody pushes nothing.
+func (s *State) setRefBase(k *prep, arg uint16, v *setVal) {
+	r := kop.Ref(arg)
+	if arg > 0xff || !kop.SetRefBaseOK(r) {
+		panic("kernel: evalSet: SetRefBase over Ref " + strconv.Itoa(int(arg)) + ", which is not one admitted referent")
+	}
+	c := s.refCode(k, r)
+	var ver uint8
+	if isObjTarget(c) {
+		ver = s.objs[c].ver
+	}
+	v.addCode(c, ver) // NoTarget names neither an object nor a player
 }
 
 // setTrigEntry reports whether e is a triggered ability's entry, the only

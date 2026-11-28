@@ -36,11 +36,15 @@ type lSet struct {
 }
 
 // lSetOp is one step of an lSet: its kind, its argument (a target slot) and,
-// for SetAndFilter, the filter the builder interns as the argument.
+// for SetAndFilter, the filter the builder interns as the argument. A
+// SetRefBase's argument is the kop.Ref the builder makes of Base, the ref
+// defined() gave the part V.
 type lSetOp struct {
 	Kind kop.SetOpKind
 	Arg  uint16
 	F    *lFilter
+	Base lRef
+	V    string
 }
 
 func (s lSet) String() string {
@@ -49,6 +53,8 @@ func (s lSet) String() string {
 		switch {
 		case op.F != nil:
 			parts[i] = fmt.Sprintf("%s(F=%s%s)", op.Kind, op.F, setFilterExtra(op.F))
+		case op.Kind == kop.SetRefBase:
+			parts[i] = fmt.Sprintf("%s(%s)", op.Kind, op.Base)
 		case op.Kind == kop.SetTarget || op.Kind == kop.SetTargets:
 			parts[i] = fmt.Sprintf("%s(%d)", op.Kind, op.Arg)
 		default:
@@ -192,6 +198,9 @@ func (lc *lowerCtx) setTerm(v string, cmpl bool) (setTerm, error) {
 	}
 	if strings.HasPrefix(v, "Player.OpponentOf ") {
 		return setTerm{}, errOpponentOfRef
+	}
+	if zone, spec, ok := strings.Cut(v, " "); ok && strings.HasPrefix(zone, "Valid") {
+		return lc.setValid(zone, spec)
 	}
 	if ref, ok := definedSetOpponent[v]; ok {
 		return lc.setOpponentOf(ref)
@@ -428,6 +437,11 @@ func (lc *lowerCtx) setCtrlOwner(base string, op kop.SetOpKind, cmpl bool) (setT
 	if !t.one && !cmpl {
 		return setTerm{}, fmt.Errorf("%s over %q, which can name more than one object", op, base)
 	}
+	if last := t.ops[len(t.ops)-1]; op == kop.SetOwnerOf && last.Kind == kop.SetRefBase && last.Base.Kind == rEquipped {
+		if t, err = lc.setStillAttached(t); err != nil {
+			return setTerm{}, err
+		}
+	}
 	return setTerm{ops: t.then(lSetOp{Kind: op}), players: true, one: t.one}, nil
 }
 
@@ -493,7 +507,86 @@ func (lc *lowerCtx) setBase(v string) (setTerm, error) {
 	case rTarget:
 		return lc.setTargetBase(r.N)
 	}
-	return setTerm{}, fmt.Errorf("base %s has no set kind", refNames[r.Kind])
+	return setRefBaseTerm(v, r)
+}
+
+// setRefPlayers are the bases with no set kind of their own that SetRefBase
+// wraps, those the builder makes a kop.SetRefBaseOK ref of, and whether each
+// names a player (the others name an object); every one names at most one.
+// The builder holds each to the kernel's list (build_setexpr.go setArg).
+var setRefPlayers = map[refKind]bool{
+	rEquipped: false, rChosen: false, rTriggeredNew: false,
+	rAttachedCtrl: true, rEnchantedCtrl: true, rResChosenPlayer: true,
+	rDefending: true, rTriggeredOwner: true, rTriggeredTgtCtrl: true,
+}
+
+// setRefBaseTerm is the part v, whose ref is r, as a SetRefBase. A ref with an
+// N says more than its kop.Ref does (TriggeredDefenderOrPlaneswalker's
+// rDefending), so the set arm cannot read it.
+func setRefBaseTerm(v string, r lRef) (setTerm, error) {
+	players, ok := setRefPlayers[r.Kind]
+	if !ok || r.N != 0 {
+		return setTerm{}, fmt.Errorf("base %s has no set kind", refNames[r.Kind])
+	}
+	return setTerm{ops: []lSetOp{{Kind: kop.SetRefBase, Base: r, V: v}}, players: players, one: true}, nil
+}
+
+// setStillAttached narrows t, the Enchanted base, to a bearer the source is
+// still attached to: gorge definedSpecEnchantedOwner reads the source's live
+// attachment and names nobody once the source left, where Enchanted (and
+// kop.RefAttached) keeps its last known bearer.
+func (lc *lowerCtx) setStillAttached(t setTerm) (setTerm, error) {
+	f, err := lc.filter("Card.EnchantedBy")
+	if err != nil {
+		return setTerm{}, err
+	}
+	t.ops = t.then(lSetOp{Kind: kop.SetAndFilter, F: f})
+	return t, nil
+}
+
+// setSweepAPIs are the apis a battlefield sweep over several permanents
+// lowers on. The kernel walks it in object index order, gorge seat by seat in
+// entry order (battlefieldValidTargets): damage and tapping reach the same
+// decisions either way (TestSetBasesLockstep), where Destroy (graveyard
+// order), GainControl (battlefield order) and a life loss (gorge acts once
+// per player) show the difference, and the other apis are unproven.
+var setSweepAPIs = map[string]bool{"DealDamage": true, "Tap": true, "Untap": true}
+
+// sweepsBearer reports whether every clause of f admits only the permanent
+// the source is attached to, so a sweep over f names at most one object.
+func sweepsBearer(f *lFilter) bool {
+	for _, c := range f.Clauses {
+		if c.Flags&(fEquippedBy|fEnchantedBy|fFortifiedBy) == 0 {
+			return false
+		}
+	}
+	return true
+}
+
+// setValid is Valid <filter>: every permanent the filter admits, You the
+// resolving controller (gorge battlefieldValidTargets). It names several
+// objects, so it lowers on a setSweepAPIs api unless the filter admits only
+// the source's bearer. The zone-suffixed sweeps have no set kind.
+func (lc *lowerCtx) setValid(zone, spec string) (setTerm, error) {
+	if zone != "Valid" {
+		return setTerm{}, fmt.Errorf("zone base %s", zone)
+	}
+	field := setTerm{ops: []lSetOp{{Kind: kop.SetBattlefield}}}
+	if !lc.setOK {
+		return field, nil // definedSet refuses it: no filter is lowered for a value no op reads
+	}
+	f, err := lc.filter(spec)
+	if err != nil {
+		return setTerm{}, fmt.Errorf("filter %q: %v", spec, err)
+	}
+	if f.Players != 0 || len(f.Clauses) == 0 {
+		return setTerm{}, fmt.Errorf("filter %q is not an object filter", spec)
+	}
+	if !setSweepAPIs[lc.setAPIName] && !sweepsBearer(f) {
+		return setTerm{}, fmt.Errorf("the battlefield walk order differs from gorge's on %s", lc.setAPIName)
+	}
+	field.ops = field.then(lSetOp{Kind: kop.SetAndFilter, F: f})
+	return field, nil
 }
 
 // setTargetBase is target slot n: its legal objects and players in slot

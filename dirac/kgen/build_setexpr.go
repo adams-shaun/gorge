@@ -117,14 +117,9 @@ func (cb *cardBuilder) internSet(n int) (uint16, error) {
 	}
 	e := cb.c.Sets[n].kopSetExpr()
 	for i, op := range cb.c.Sets[n].Ops {
-		if op.F == nil {
-			continue
-		}
-		id, err := cb.filter(op.F, kop.ZoneBattlefield) // no zone gate: the set's objects are anywhere
-		if err != nil {
+		if err := cb.setArg(op, &e[i]); err != nil {
 			return 0, err
 		}
-		e[i].Arg = uint16(id)
 	}
 	if d, ok := e.SetDepth(); !ok || d > kop.MaxSetDepth {
 		return 0, fmt.Errorf("Defined$ set program %v (depth %d)", e, d)
@@ -144,6 +139,30 @@ func (cb *cardBuilder) internSet(n int) (uint16, error) {
 	pt.sets = append(pt.sets, e)
 	pt.setKey[key] = id
 	return id, nil
+}
+
+// setArg fills ko's argument with what only the builder knows of op: the
+// interned filter of a SetAndFilter, the kop.Ref of a SetRefBase, which must
+// be one the kernel's set arm reads.
+func (cb *cardBuilder) setArg(op lSetOp, ko *kop.SetOp) error {
+	switch {
+	case op.Kind == kop.SetRefBase:
+		r, err := cb.ref(op.Base)
+		if err != nil {
+			return err
+		}
+		if !kop.SetRefBaseOK(r) {
+			return fmt.Errorf("Defined$ %q: base %s has no set kind", op.V, refNames[op.Base.Kind])
+		}
+		ko.Arg = uint16(r)
+	case op.F != nil:
+		id, err := cb.filter(op.F, kop.ZoneBattlefield) // no zone gate: the set's objects are anywhere
+		if err != nil {
+			return err
+		}
+		ko.Arg = uint16(id)
+	}
+	return nil
 }
 
 // setFilters calls filt on every filter the sets ab reads name.
