@@ -552,11 +552,7 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 		s.g.availX = dynWas // the script walks below read their own modes
 		av.dynSac = false   // the casts below leave the dynamic sacrifice source to its counter-cost gap
 		haveAv = false
-		var capSpent Decision // the plays grantCap's grant search refused within gorge's budget
-		if len(k.gen.grantPC) != 0 && s.g.availX == 0 {
-			s.grantCap(k, d, p, &capSpent)
-		}
-		s.scriptWalk(k, d, &capSpent, p, sorc)
+		s.cappedScriptWalk(k, d, p, sorc) // script_capspent.go: grantCap's cap, then the script walk
 	}
 	if faces {
 		// after the may-play walks: one land play per object (CR 715.3d)

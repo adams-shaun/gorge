@@ -301,7 +301,7 @@ type offerSkip struct {
 // payment bound built with its restrictions applied cannot afford
 // (restrBoundDrops: a cast, or a plain battlefield activation).
 func (s *State) scriptOfferDrops(k *prep, p uint8, a Action, o *offerSkip) bool {
-	return !isScriptPlayKind(a.Kind()) || hasOption(o.d, a) || hasOption(o.capSpent, a) ||
+	return !isScriptPlayKind(a.Kind()) || hasOption(o.d, a) || o.capSpent != nil && hasOption(o.capSpent, a) ||
 		s.sacDrops(k, p, o.sacAny, o.sacRepeat, o.gaps, a) ||
 		o.wide && !s.wideAdmits(k, a, p, o.anyR) ||
 		o.mixWide && !hasOption(o.noWide, a) && !hasOption(o.noWideNF, a) && !s.wideAdmits(k, a, p, s.scriptWide(k, p)) ||
