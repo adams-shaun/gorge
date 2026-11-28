@@ -536,7 +536,7 @@ func (s *State) availForMode(k *prep, p uint8, a *avail, ex slotMask, withDeferr
 		if !grantOK && k.gen != nil && s.manaGranted(k, sl) {
 			continue // a source whose only mana ability is granted: grantCap/grantPrefix's search, not another gap's
 		}
-		if !s.canTapForManaPC(k, sl, pc) && !(k.sacOnlyMana && s.canSacOnlyForMana(k, sl, pc)) && !(dual && s.grantSacLive(sl, pc)) && !(k.painMana && s.canLifeOnlyMana(k, sl, p)) {
+		if !s.canTapForManaPC(k, sl, pc) && !(s.sacOnlyLive(k) && s.canSacOnlyForMana(k, sl, pc)) && !(dual && s.grantSacLive(sl, pc)) && !(k.painMana && s.canLifeOnlyMana(k, sl, p)) {
 			if dual {
 				s.availGrantSacOnly(k, sl, a) // a tapped source's granted sacrifice-only ability (mana_grantcost.go)
 			}
@@ -1734,7 +1734,7 @@ func planCastDynSacSkip(castPay bool, pc *pcard) bool {
 // lowering surface the ability is no planner unit, the recorded life-gap
 // repros' shape).
 func (s *State) planSourceUsable(k *prep, p uint8, sl Slot, rd *payDesc) bool {
-	return s.canTapForMana(k, sl) || k.sacOnlyMana && s.canSacOnlyAt(k, sl) ||
+	return s.canTapForMana(k, sl) || s.sacOnlyLive(k) && s.canSacOnlyAt(k, sl) ||
 		k.restrSrc && s.restrOnlyUsable(k, p, sl, rd) || s.planTapGrantSacNow(k, sl) ||
 		k.painMana && s.canLifeOnlyMana(k, sl, p) ||
 		s.cfg&cfgGorgeAutopay != 0 && s.lifeGapSurvives(k, p, sl)

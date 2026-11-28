@@ -1177,7 +1177,7 @@ func (s *State) BuildModes() uint8 {
 func (s *State) affordsFor(k *prep, p uint8, c *kop.ManaCost) bool {
 	var av avail
 	s.availWindowFor(k, p, &av)
-	if k.sacOnlyMana {
+	if s.sacOnlyLive(k) {
 		s.availTappedSac(k, p, &av) // the window offers a tapped sacrifice-only source too
 	}
 	return av.affords(c, pipMaskOf(c), 0)
@@ -1227,7 +1227,7 @@ func (s *State) tapOneForMana(k *prep, p uint8, sl Slot) bool {
 		return true
 	}
 	pc := s.manaPCGen(k, sl)
-	sacOnly := k.sacOnlyMana && s.canSacOnlyForMana(k, sl, pc)
+	sacOnly := s.sacOnlyLive(k) && s.canSacOnlyForMana(k, sl, pc)
 	// The window lists a source here only when the payment may spend it
 	// (windowCanTap): a restricted grant the ward cannot spend (Mm'menon's
 	// artifact blue) is no tap of gorge's failed payment.

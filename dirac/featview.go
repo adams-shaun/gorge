@@ -1142,7 +1142,7 @@ func (s *State) ungrAvail(k *prep, p uint8, ex Slot, av *avail, ms *modalSet, sk
 		// (CR 602.2b; gorge's census admits each printed ability on its own);
 		// so is a sole life-only one (a Treasonous Ogre, canLifeOnlyMana's
 		// guard is gorge's CR 119.4 lethal one)
-		if !s.canTapForManaPC(k, sl, pc) && !(k.sacOnlyMana && s.canSacOnlyForMana(k, sl, pc)) &&
+		if !s.canTapForManaPC(k, sl, pc) && !(s.sacOnlyLive(k) && s.canSacOnlyForMana(k, sl, pc)) &&
 			!(k.painMana && s.canLifeOnlyMana(k, sl, SeatIx(p))) {
 			continue
 		}

@@ -348,11 +348,18 @@ func (t *State) witnessEndsGameWon(k *prep, p uint8, c CardID, n0 uint8) bool {
 	return t.over && !t.pl[SeatIx(p)].lost
 }
 
+// sacOnlyLive reports whether this game's census may price a sacrifice-only
+// mana source: the table has one (prep.sacOnlyMana) and the census is not the
+// surge probe's, which leaves them out (genState.sacOut, kw_surge.go). The
+// prep is shared by every game on the table, so the probe's exclusion rides
+// on its own fork, never on the prep.
+func (s *State) sacOnlyLive(k *prep) bool { return k.sacOnlyMana && !s.g.sacOut }
+
 // canSacOnlyForMana reports whether the autopay planner may price sl as a
 // last-resort sacrifice-only source: not stripped of its abilities. Its cost
 // has no {T}, so a tapped source pays as well as an untapped one (CR 602.2b).
 func (s *State) canSacOnlyForMana(k *prep, sl Slot, pc *pcard) bool {
-	if !k.sacOnlyMana || !pc.manaSacOnly {
+	if !s.sacOnlyLive(k) || !pc.manaSacOnly {
 		return false
 	}
 	return s.perms[sl].ovr.flags&(ovLoseAll|ovLoseAllEOT) == 0
@@ -367,7 +374,7 @@ func (s *State) canSacOnlyAt(k *prep, sl Slot) bool {
 // ability needs no untap, only the ability itself (manaPCGen already
 // returns noManaPC for a source that lost its abilities).
 func (s *State) canSacOnlyNow(k *prep, sl Slot, pc *pcard) bool {
-	return k.sacOnlyMana && pc.manaSacOnly && s.perms[sl].ovr.flags&(ovLoseAll|ovLoseAllEOT) == 0
+	return s.sacOnlyLive(k) && pc.manaSacOnly && s.perms[sl].ovr.flags&(ovLoseAll|ovLoseAllEOT) == 0
 }
 
 // canSacOnlyNowAt is canSacOnlyNow for a caller that has only the slot.
@@ -379,7 +386,7 @@ func (s *State) canSacOnlyNowAt(k *prep, sl Slot) bool {
 // manual ward / unless window's availability; availFor is the planner's
 // census, which prices only untapped sources).
 func (s *State) availTappedSac(k *prep, p uint8, a *avail) {
-	if !k.sacOnlyMana {
+	if !s.sacOnlyLive(k) {
 		return
 	}
 	for m := s.ctrlM[p]; m.any(); m = m.rest() {

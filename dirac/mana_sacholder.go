@@ -11,7 +11,7 @@ package dirac
 // in a fraction of the nodes gorge's plain run spends before it (CR 605.3b,
 // 602.2b).
 func (s *State) sacHolderGap(k *prep, sl Slot) bool {
-	if k.gen == nil || !k.sacOnlyMana || s.perms[sl].flags&pfTapped != 0 {
+	if k.gen == nil || !s.sacOnlyLive(k) || s.perms[sl].flags&pfTapped != 0 {
 		return false
 	}
 	return s.manaPCGen(k, sl).manaSacOnly && s.canSacOnlyNowAt(k, sl) && s.grantIdx(k, sl) >= 0
@@ -21,7 +21,7 @@ func (s *State) sacHolderGap(k *prep, sl Slot) bool {
 // grant's tap is spent, so only its printed sacrifice remains. gorge's search
 // still takes it in the gap pass, as a one-ability activation with no ask.
 func (s *State) sacHolderSpent(k *prep, sl Slot) bool {
-	if k.gen == nil || !k.sacOnlyMana || s.perms[sl].flags&pfTapped == 0 {
+	if k.gen == nil || !s.sacOnlyLive(k) || s.perms[sl].flags&pfTapped == 0 {
 		return false
 	}
 	return s.manaPCGen(k, sl).manaSacOnly && s.canSacOnlyNowAt(k, sl) && s.grantIdx(k, sl) >= 0
