@@ -39,6 +39,13 @@ func (s *State) repeatEachCards(k *prep, in *kop.Instr) {
 	body := int(in.B.N)
 	r := &s.res
 	pc := int(r.pc)
+	if n > 1 && in.C&(kop.RepeatEachOrder|kop.RepeatPlain) == kop.RepeatEachOrder|kop.RepeatPlain {
+		// the plain frame over the chosen hand cards (Sylvan Library): the
+		// order is asked before the frame is entered (act_repeatchosen.go)
+		if s.eachOrderStart(list[:n], n) {
+			return // parked at the header; the answer re-enters here
+		}
+	}
 	if n > 0 && body > 0 {
 		if _, tgt := tgtSlot(in.Obj); !tgt && !s.g.inLoop && r.loopD < uint8(len(r.loopN)) {
 			if in.C&kop.RepeatPlain != 0 {
@@ -51,7 +58,7 @@ func (s *State) repeatEachCards(k *prep, in *kop.Instr) {
 			}
 		}
 	}
-	if n > 1 && in.C&kop.RepeatEachOrder != 0 {
+	if n > 1 && in.C&kop.RepeatEachOrder != 0 && in.C&kop.RepeatPlain == 0 {
 		if DebugRepeatCztStats != nil {
 			DebugRepeatCztStats.Ordered++
 		}
@@ -107,6 +114,8 @@ func (s *State) repeatEachCardsFrame(in *kop.Instr, list *[MaxPerm]Obj, n, pc, b
 	*rem = slotMask{}
 	if in.C&kop.RepeatRemembered != 0 {
 		s.eachRememberedMask(rem) // the subjects after the first, as g.rem indices
+	} else if in.Obj == kop.RefChosen {
+		s.eachChosenFront(list[:n], rem) // act_repeatchosen.go: as g.chosen indices
 	} else {
 		for _, o := range list[1:n] {
 			*rem = rem.with(s.objs[o].slot)
@@ -167,13 +176,17 @@ func (s *State) repeatEachCardsBatchFrame(k *prep, in *kop.Instr, list *[MaxPerm
 // frame (repeatEachCardsBatchFrame) counts the pass for RepeatCztStats.
 func (s *State) eachCardAdvance(k *prep, in *kop.Instr) bool {
 	rem := &s.resArm().eachRem
-	if in.C&kop.RepeatRemembered != 0 {
+	if in.C&kop.RepeatRemembered != 0 || in.Obj == kop.RefChosen {
 		if !rem.any() {
 			return false
 		}
 		i := rem.first()
 		*rem = rem.without(i)
-		s.res.eachObj = s.g.rem[i]
+		if in.Obj == kop.RefChosen {
+			s.res.eachObj = s.g.chosen[i] // act_repeatchosen.go
+		} else {
+			s.res.eachObj = s.g.rem[i]
+		}
 		return true
 	}
 	q := s.aliveFrom(s.res.e.ctrl)
@@ -243,6 +256,9 @@ func (s *State) eachCardList(k *prep, in *kop.Instr, list *[MaxPerm]Obj) int {
 			}
 		}
 		return n
+	}
+	if in.Obj == kop.RefChosen {
+		return s.eachChosenList(list) // act_repeatchosen.go
 	}
 	if sl, ok := tgtSlot(in.Obj); ok {
 		var codes [maxXTgt + 1]TCode

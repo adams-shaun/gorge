@@ -96,6 +96,7 @@ func arenaUses(t *kop.Table) (u [numMech]bool) {
 	permMarkUses(t, &u)    // filter_permmarks.go
 	turnTalliesUses(t, &u) // value_turntallies.go
 	addPhaseUses(t, &u)    // act_addphase.go
+	drawnUses(t, &u)       // filter_drawnthisturn.go
 	for i := range t.Conds {
 		if t.Conds[i].Kind == kop.CondRemMark {
 			u[mechRem] = true // a persistent-remembered gate (exprs.go CondRemMark)

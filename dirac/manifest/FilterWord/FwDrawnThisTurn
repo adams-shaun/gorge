@@ -1,0 +1,6 @@
+family: FilterWord
+name: FwDrawnThisTurn
+value: next
+contexts: card
+status: active
+doc: FwDrawnThisTurn: the candidate is a card in hand that was drawn this turn and has not moved since (gorge's DrawnThisTurn predicate, engine/effects/filter.go: Object.DrawnTurn == Game.Turn, stamped by events.Apply's Draw fold and cleared by every other move); the kernel reads the object's ofDrawn bit (dirac/filter_drawnthisturn.go), set by the draw and cleared by any other move and at the turn change. A card off the hand reads false.

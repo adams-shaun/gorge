@@ -22,6 +22,7 @@ func init() {
 	fwName[kop.FwDoubleFaced] = "FwDoubleFaced"
 	fwName[kop.FwBasePowerCmp] = "FwBasePowerCmp"
 	fwName[kop.FwBaseToughnessCmp] = "FwBaseToughnessCmp"
+	fwName[kop.FwDrawnThisTurn] = "FwDrawnThisTurn"
 
 	// suspended: gorge's compiled `suspended` read (predicates["suspended"],
 	// engine/effects/filter.go:637, consulted before wordSuspended): in
@@ -43,6 +44,13 @@ func init() {
 	// two-faced layout.
 	fwArms["DoubleFaced"] = func(c *lClause, _ string) error {
 		return c.fwLit(lSpillLit{W: kop.FwDoubleFaced})
+	}
+	// DrawnThisTurn: gorge's DrawnThisTurn predicate (engine/effects/
+	// filter.go), a card drawn this turn that has not moved since. The
+	// kernel reads the object's draw mark (dirac/filter_drawnthisturn.go);
+	// its manifest context is "card" (Sylvan Library's hand ChooseCard).
+	fwArms["DrawnThisTurn"] = func(c *lClause, _ string) error {
+		return c.fwLit(lSpillLit{W: kop.FwDrawnThisTurn})
 	}
 	// basePower<op><n> and baseToughness<op><n> are parsed in basePTArm,
 	// reached from fwArmOrUnknown (the bound is part of the spelling, so no

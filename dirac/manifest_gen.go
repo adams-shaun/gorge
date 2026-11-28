@@ -772,24 +772,24 @@ func init() {
 	mechName[mechBtTurn] = "btTurn"
 }
 
+// mech (dirac/manifest/mech/mechDrawn)
+//
+// object mask: hand cards drawn this turn that have not moved since (gorge Object.DrawnTurn, the DrawnThisTurn filter word; filter_drawnthisturn.go)
+const mechDrawn mech = 57
+
+func init() {
+	mechWidth[mechDrawn] = wObj
+	mechName[mechDrawn] = "drawn"
+}
+
 // mech (dirac/manifest/mech/mechEmbalmGrant)
 //
 // object mask: graveyard cards with a granted embalm at their mana cost (Cursecloth Wrappings; kw_embalmgrant.go)
-const mechEmbalmGrant mech = 57
+const mechEmbalmGrant mech = 58
 
 func init() {
 	mechWidth[mechEmbalmGrant] = wObj
 	mechName[mechEmbalmGrant] = "embalmGrant"
-}
-
-// mech (dirac/manifest/mech/mechEncSeat0)
-//
-// bit 0 of the seat an Encore token must attack this turn (CR 702.141a; gorge EncoreAttackDefender; kw_encore.go)
-const mechEncSeat0 mech = 58
-
-func init() {
-	mechWidth[mechEncSeat0] = wSlot
-	mechName[mechEncSeat0] = "encSeat0"
 }
 
 // mech (dirac/manifest/mech/mechHorsemanship)
@@ -812,10 +812,20 @@ func init() {
 	mechName[mechHorsemanshipPost] = "horsemanshipPost"
 }
 
+// mech (dirac/manifest/mech/mechEncSeat0)
+//
+// bit 0 of the seat an Encore token must attack this turn (CR 702.141a; gorge EncoreAttackDefender; kw_encore.go)
+const mechEncSeat0 mech = 61
+
+func init() {
+	mechWidth[mechEncSeat0] = wSlot
+	mechName[mechEncSeat0] = "encSeat0"
+}
+
 // mech (dirac/manifest/mech/mechEncSeat1)
 //
 // bit 1 of the seat an Encore token must attack this turn (CR 702.141a; gorge EncoreAttackDefender; kw_encore.go)
-const mechEncSeat1 mech = 61
+const mechEncSeat1 mech = 62
 
 func init() {
 	mechWidth[mechEncSeat1] = wSlot
@@ -825,7 +835,7 @@ func init() {
 // mech (dirac/manifest/mech/mechFaceUpTurn)
 //
 // slots whose permanent was turned face up this turn (turnUpFlip, gorge's Object.TurnedFaceUpThisTurn; filter_permmarks.go)
-const mechFaceUpTurn mech = 62
+const mechFaceUpTurn mech = 63
 
 func init() {
 	mechWidth[mechFaceUpTurn] = wSlot
@@ -835,7 +845,7 @@ func init() {
 // mech (dirac/manifest/mech/mechRemFaceDown)
 //
 // object mask: permanents a RememberSacrificed$ Sacrifice took while they were face down, whose mana value read through Remembered$CardManaCost stays 0 (CR 708.2, 608.2h; sacRemember)
-const mechRemFaceDown mech = 63
+const mechRemFaceDown mech = 64
 
 func init() {
 	mechWidth[mechRemFaceDown] = wObj
@@ -845,7 +855,7 @@ func init() {
 // mech (dirac/manifest/mech/mechSkulk)
 //
 // slots whose permanent has skulk until end of turn (ExtKwMark KwMarkSkulk; kw_kwmark.go)
-const mechSkulk mech = 64
+const mechSkulk mech = 65
 
 func init() {
 	mechWidth[mechSkulk] = wSlot
@@ -855,7 +865,7 @@ func init() {
 // mech (dirac/manifest/mech/mechSkulkPost)
 //
 // slots marked skulk while their permanent had lost all abilities (CR 613.7)
-const mechSkulkPost mech = 65
+const mechSkulkPost mech = 66
 
 func init() {
 	mechWidth[mechSkulkPost] = wSlot
@@ -863,7 +873,7 @@ func init() {
 }
 
 // numMech is one past the highest mech: the length of the arena's mech tables.
-const numMech mech = 66
+const numMech mech = 67
 
 // execExtGen runs an OpExt sub-op whose handler is marked //kmanifest:ext in its
 // feature file: the default arm of the hand switch (execExt, extop.go).
@@ -1129,6 +1139,8 @@ func (s *State) fwRun(c *fctx, l *kop.FLit) bool {
 		return s.fwCountersCmp(c, l) // filter_counterscmp.go
 	case kop.FwDoubleFaced:
 		return s.fwDoubleFaced(c, l) // filter_doublefaced.go
+	case kop.FwDrawnThisTurn:
+		return s.fwDrawnThisTurn(c, l) // filter_drawnthisturn.go
 	case kop.FwEnchantedControllerCtrl:
 		return s.fwEnchantedControllerCtrl(c, l) // filter_enchantedctrlctrl.go
 	case kop.FwKeyword:
@@ -1180,7 +1192,7 @@ func (s *State) fwRun(c *fctx, l *kop.FLit) bool {
 // fwHandled reports whether word w has a handler.
 func fwHandled(w kop.FilterWord) bool {
 	switch w {
-	case kop.FwAttacking, kop.FwBasePowerCmp, kop.FwBaseToughnessCmp, kop.FwCMCCmp, kop.FwCanProduceManaColor, kop.FwCanProduceSameManaTypeWith, kop.FwChosenCtrl, kop.FwCountersCmp, kop.FwDoubleFaced, kop.FwEnchantedControllerCtrl, kop.FwKeyword, kop.FwManaCostEQ, kop.FwModal, kop.FwOppProtect, kop.FwPaired, kop.FwPairedWith, kop.FwPowerCmp, kop.FwSameName, kop.FwSharesCardType, kop.FwSharesCr, kop.FwSharesName, kop.FwSharesNameThisTurnCast, kop.FwSharesProducedColour, kop.FwSingleTarget, kop.FwSubtype, kop.FwSuspended, kop.FwTapped, kop.FwTeamwork, kop.FwTopLibrary, kop.FwToughnessCmp, kop.FwWithKeyword:
+	case kop.FwAttacking, kop.FwBasePowerCmp, kop.FwBaseToughnessCmp, kop.FwCMCCmp, kop.FwCanProduceManaColor, kop.FwCanProduceSameManaTypeWith, kop.FwChosenCtrl, kop.FwCountersCmp, kop.FwDoubleFaced, kop.FwDrawnThisTurn, kop.FwEnchantedControllerCtrl, kop.FwKeyword, kop.FwManaCostEQ, kop.FwModal, kop.FwOppProtect, kop.FwPaired, kop.FwPairedWith, kop.FwPowerCmp, kop.FwSameName, kop.FwSharesCardType, kop.FwSharesCr, kop.FwSharesName, kop.FwSharesNameThisTurnCast, kop.FwSharesProducedColour, kop.FwSingleTarget, kop.FwSubtype, kop.FwSuspended, kop.FwTapped, kop.FwTeamwork, kop.FwTopLibrary, kop.FwToughnessCmp, kop.FwWithKeyword:
 		return true
 	}
 	return false
