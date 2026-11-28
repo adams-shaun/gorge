@@ -146,6 +146,9 @@ func TestPainOnlyGuardGatesTheWholeTap(t *testing.T) {
 			if a.pain.on != c.guard {
 				t.Fatalf("precondition: life guard binds %v, want %v", a.pain.on, c.guard)
 			}
+			if offersCast(sc.s, sire) {
+				t.Error("the seven-mana cast is offered off two Ancient Tombs")
+			}
 			if got := maxGeneric(&a); got != c.pay {
 				t.Fatalf("payable = %d, want %d", got, c.pay)
 			}
@@ -153,9 +156,6 @@ func TestPainOnlyGuardGatesTheWholeTap(t *testing.T) {
 			// guard holding the plan only (an {X} ceiling divides it)
 			if got := a.censusTotal(); got != c.total {
 				t.Fatalf("census total = %d, want %d", got, c.total)
-			}
-			if offersCast(sc.s, sire) {
-				t.Fatal("the seven-mana cast is offered off two Ancient Tombs")
 			}
 		})
 	}
