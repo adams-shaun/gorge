@@ -24,6 +24,12 @@ func (s *State) execCounter(k *prep, in *kop.Instr) bool {
 		i = s.stackSidIndex(s.res.e.trigSASid)
 	} else if o := s.objRefObj(in.Obj); o != NoObj {
 		i = s.stackIndexOf(o)
+		// A SpellCast trigger's "counter that spell" names a spell: once it
+		// has left the stack, the entry sharing its object is an ability (a
+		// self-cast trigger, maybe this resolving one), never the target.
+		if in.Obj == kop.RefTriggerObj && i >= 0 && s.stack[i].kind != seSpell {
+			i = -1
+		}
 	}
 	if i < 0 {
 		return true
