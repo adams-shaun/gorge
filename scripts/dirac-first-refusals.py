@@ -4,6 +4,7 @@
   dirac-first-refusals.py settle <out> [--rounds N] [--resume]  settle the refused list against the corpus
   dirac-first-refusals.py evidence <out> [--pools P ...]        write dirac/support/evidence from <out>
   dirac-first-refusals.py report <out>                          counts by run, surface and refused class
+  dirac-first-refusals.py pod-credit <out> [--pools P ...]      count a pod run's names under three crediting rules
 
 The caller caps the process: settle runs scripts/dirac-evidence.sh.
 
@@ -333,6 +334,13 @@ def run_finished(out, pool, form):
     else None: a run that failed with no bad game to name failed for some other reason."""
     if not pool.startswith(SYNTH_POOLS):
         return None
+    return finished_held(out, pool, form, (7,))
+
+
+def finished_held(out, pool, form, fields):
+    """run_finished's reading of one run's .out without its pool check: the names the bad games
+    carry in the given bad-game fields (0-based: 5 implicated, 6 latest sources, 7 the decks), or
+    None when the run did not finish with bad games only. The verdict line names run_kernel(pool)."""
     path = os.path.join(out, f"{pool}.{form}.out")
     if not os.path.exists(path):
         return None
@@ -340,11 +348,13 @@ def run_finished(out, pool, form):
     with open(path) as f:
         for line in f:
             m = VERDICT.match(line)
-            if m and m.group(1) == pool and v is None:
+            if m and m.group(1) == run_kernel(pool) and v is None:
                 v = m
             elif line.startswith("bad-game\t"):
                 bad += 1
-                held |= set(names_of(line.rstrip("\n").split("\t")[7]))
+                cols = line.rstrip("\n").split("\t")
+                for i in fields:
+                    held |= set(names_of(cols[i] if i < len(cols) else ""))
             elif line.startswith("unknown-game\t"):
                 return None
     if v is None or int(v.group(5)) or not bad or bad != int(v.group(7)) + int(v.group(8)) + int(v.group(10)):
@@ -1041,13 +1051,52 @@ def report(top, out):
         print(f"bad games left: {len(games)}")
 
 
+POD_CREDIT_RULES = (("table", (7,)), ("implicated", (5, 6)), ("first", (5,)))
+
+
+def pod_credit(top, out, pools):
+    """Print, per pool and crediting rule, how many of its evidence rows' names the rule credits:
+    `table` holds back every card of a bad game's decks, `implicated` its implicated cards and
+    latest sources, `first` its implicated cards only. Writes nothing; returns 1 when a pool's run
+    did not finish with bad games only (run_finished), else 0."""
+    refused = refused_names(top)
+    rc = 0
+    for pool in pools:
+        names = {row_name(r) for r in evidence_rows(out, pool)} - refused
+        landed = set()
+        path = os.path.join(top, EVIDENCE_DIR, pool + ".txt")
+        if os.path.exists(path):
+            with open(path) as f:
+                landed = {row_name(r) for r in f.read().splitlines() if r}
+        rcs = run_rcs(out).get(pool, {})
+        for rule, fields in POD_CREDIT_RULES:
+            held = set()
+            for form in EVIDENCE_FORMS:
+                if form not in rcs:
+                    held = None
+                elif rcs[form] != "0":
+                    h = finished_held(out, pool, form, fields)
+                    held = None if h is None or held is None else held | h
+                if held is None:
+                    break
+            if held is None:
+                print(f"pod-credit {pool} rule={rule} unfinished")
+                rc = 1
+                continue
+            held &= names
+            credited = names - held
+            print(f"pod-credit {pool} rule={rule} rows={len(names)} held={len(held)} "
+                  f"credited={len(credited)} new={len(credited - landed)}")
+    return rc
+
+
 def main():
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("command", choices=["settle", "evidence", "report", "legacy-keys"])
+    p.add_argument("command", choices=["settle", "evidence", "report", "legacy-keys", "pod-credit"])
     p.add_argument("out", nargs="?", default=".", help="the run directory (not read by legacy-keys)")
     p.add_argument("--rounds", type=int, default=20)
     p.add_argument("--resume", action="store_true", help="settle: read the runs already in <out>/played-in")
-    p.add_argument("--pools", nargs="+", metavar="P", help="evidence: write only these pools' lists and rows")
+    p.add_argument("--pools", nargs="+", metavar="P", help="evidence: write only these pools' lists and rows; pod-credit: the pools to count")
     a = p.parse_args()
     top, out = root(), os.path.abspath(a.out)
     if a.command == "settle":
@@ -1056,6 +1105,8 @@ def main():
         write_evidence(top, out, a.pools)
     elif a.command == "legacy-keys":
         write_legacy(top)
+    elif a.command == "pod-credit":
+        sys.exit(pod_credit(top, out, a.pools or sorted(p for p in run_rcs(out) if p.startswith("pod-"))))
     else:
         report(top, out)
 
