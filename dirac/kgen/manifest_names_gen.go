@@ -1531,6 +1531,9 @@ func init() { enum[kop.StaticKind]("kop.StatRaiseAbility", kop.StatRaiseAbility)
 // dirac/manifest/StaticKind/StatUnearthGrant
 func init() { enum[kop.StaticKind]("kop.StatUnearthGrant", kop.StatUnearthGrant) }
 
+// dirac/manifest/StaticKind/StatUntapAdjust
+func init() { enum[kop.StaticKind]("kop.StatUntapAdjust", kop.StatUntapAdjust) }
+
 // dirac/manifest/TrigEvent/TrigChaosEnsues
 func init() { enum[kop.TrigEvent]("kop.TrigChaosEnsues", kop.TrigChaosEnsues) }
 

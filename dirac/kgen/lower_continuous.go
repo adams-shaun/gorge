@@ -121,6 +121,11 @@ func (lc *lowerCtx) continuous(sp *params, st *lStatic) ([]lStatic, error) {
 		}
 		return nil, nil
 	}
+	if aff == "Player" {
+		if ok, err := lc.untapAdjustPlayerStatic(sp, st); ok || err != nil {
+			return nil, err // lower_playerstatic.go
+		}
+	}
 	if hk, ok := sp.m["AddHiddenKeyword"]; ok && !sp.used["AddHiddenKeyword"] { // a lure grant lureGrant took is lowered beside
 		sp.used["AddHiddenKeyword"] = true
 		if strings.TrimSpace(hk) != "CARDNAME can't block." {

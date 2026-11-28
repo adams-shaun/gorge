@@ -18,4 +18,3 @@ Protection from colorsYouCtrl
 ProtectionColor
 Rampage
 Shaman's Trance
-UntapAdjust

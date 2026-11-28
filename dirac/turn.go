@@ -153,8 +153,8 @@ func (s *State) beginStep(k *prep) {
 		if k.anyDayNight && s.g.dayNight&3 != 0 && !s.g.untapOn {
 			s.dnUntap(k) // CR 731.2, before the untap action (kw_daynight.go)
 		}
-		if k.gen != nil && (k.gen.untapRepl || k.gen.anySkipUntap) {
-			s.untapStepGen(k) // untap replacements of other permanents (act_energy.go)
+		if k.anyUntapAdj || k.gen != nil && (k.gen.untapRepl || k.gen.anySkipUntap) {
+			s.untapStepGen(k) // untap replacements and Static Orb's cap (act_energy.go, static_untapadjust.go)
 			s.ctrlUntapEnd(k) // an Effect's Phase$ Untap end (static_ovendevent.go)
 			return
 		}

@@ -128,6 +128,49 @@ func (lc *lowerCtx) youPlayerStatic(sp *params, st *lStatic) (bool, error) {
 // window's done): both stay refused ("player static").
 const plKwDefenderAssigns = "You assign combat damage of each creature attacking you."
 
+// plKwUntapAdjust is the one UntapAdjust spelling this build lowers: Static
+// Orb's `Affected$ Player | AddKeyword$ UntapAdjust:Permanent:2`, whose
+// CR 702.19e cap gorge reads in rules/untap.go untapAdjustCap. The other
+// filter words (Winter Orb's Land, Smoke's Creature, the artifact statics)
+// are separate printings and stay refused, so their gorge gap is not copied.
+func splitStaticUntapAdjustGrant(kw string) (int, bool) {
+	parts := strings.Split(strings.TrimSpace(kw), ":")
+	if len(parts) != 3 || parts[0] != "UntapAdjust" || parts[1] != "Permanent" {
+		return 0, false
+	}
+	n, err := strconv.Atoi(strings.TrimSpace(parts[2]))
+	if err != nil || n < 0 {
+		return 0, false
+	}
+	return n, true
+}
+
+// untapAdjustPlayerStatic lowers Static Orb's `Affected$ Player` grant
+// `AddKeyword$ UntapAdjust:Permanent:N`: a player keyword the kernel carries
+// as its own static kind (kop.StatUntapAdjust), capped over the permanents
+// matching the filter. Only the Permanent spelling is read
+// (splitStaticUntapAdjustGrant); it reports false for every other grant so the
+// other printings keep the caller's generic refusal.
+func (lc *lowerCtx) untapAdjustPlayerStatic(sp *params, st *lStatic) (bool, error) {
+	kw := sp.m["AddKeyword"]
+	if kw == "" {
+		return false, nil
+	}
+	n, ok := splitStaticUntapAdjustGrant(kw)
+	if !ok {
+		return false, nil
+	}
+	sp.get("AddKeyword")
+	f, err := lc.filter("Permanent")
+	if err != nil {
+		return true, err
+	}
+	st.F = f
+	st.Kind = "UntapAdjust"
+	st.Amount = cst(n)
+	return true, nil
+}
+
 // playerStatic lowers the numeric hand size and the opponent protection.
 // It reports false when sp carries neither, leaving the caller's refusal.
 func (lc *lowerCtx) playerStatic(sp *params, st *lStatic) (bool, error) {

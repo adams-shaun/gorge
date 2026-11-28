@@ -1591,6 +1591,9 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 				case kop.StatColorWords:
 					p.anyColorWords = true
 					pc.hasStat = true // scanned through statM (static_colorwords.go)
+				case kop.StatUntapAdjust:
+					p.anyUntapAdj = true // Static Orb: the untap step runs untapStepGen (static_untapadjust.go)
+					pc.hasStat = true    // scanned through statM
 				case kop.StatCantTgtGrave:
 					g.anyCantTgtGrave = true
 					pc.hasStat = true // scanned through statM (kw_canttgtgrave.go)
