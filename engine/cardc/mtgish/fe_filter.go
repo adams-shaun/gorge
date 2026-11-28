@@ -1,6 +1,7 @@
 package mtgish
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -94,6 +95,28 @@ var filtEnums = []filtEnum{
 		"And Or AnyCard Other OwnedByAPlayer DoesntHaveAbility IsColorless IsLandType IsColor IsArtifactType " +
 			"IsSupertype HasAbility IsCardtype IsCreatureType IsNonCardtype IsPermanent IsNamed ManaValueIs " +
 			"ToughnessIs PowerIs IsNonColor"},
+}
+
+// LowerFilterNode lowers raw, one node of the filter group enum (a filtEnums
+// name such as "Permanents") in the data's tagged-union encoding
+// ({"_Permanents":"IsToken"}), through the row table above. A variant with no
+// lowering is a *RefusalError. engine/cardc/ogram's adapter calls it.
+func LowerFilterNode(enum string, raw json.RawMessage) (*ir.Filter, error) {
+	known := false
+	for i := range filtEnums {
+		known = known || filtEnums[i].name == enum
+	}
+	if !known {
+		return nil, fmt.Errorf("cardc: %s is not a filter group enum", enum)
+	}
+	var x any
+	if err := json.Unmarshal(raw, &x); err != nil {
+		return nil, fmt.Errorf("cardc: %s node: %w", enum, err)
+	}
+	if got := enumOf(x); got != enum {
+		return nil, fmt.Errorf("cardc: node %s is not a %s node", qualified(x), enum)
+	}
+	return (&Ctx{}).Filter(x)
 }
 
 // filtRow builds the filter of one variant of the enum e. v is the variant

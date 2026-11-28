@@ -1,6 +1,7 @@
 // Command cardc is the typed card interface's tool. Subcommands:
 //
 //	cardc report [-slice fdn|blb|legacy|decks|all] [-data FILE] [-schema FILE]
+//	cardc ogram census|filters [-dir DIR] [-slice fdn|blb]
 //
 // report prints one TSV line per Enum.Variant a slice uses
 // (key, cards, registered, schema), sorted by key, then a totals line.
@@ -20,6 +21,9 @@ func main() {
 }
 
 func run(args []string, stdout, stderr io.Writer) int {
+	if len(args) > 0 && args[0] == "ogram" {
+		return ogramCmd(args[1:], stdout, stderr)
+	}
 	if len(args) == 0 || args[0] != "report" {
 		fmt.Fprintln(stderr, "usage: cardc report [-slice fdn|blb|legacy|decks|all] [-data FILE] [-schema FILE]")
 		return 2
