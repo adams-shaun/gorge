@@ -539,6 +539,7 @@ func (lc *lowerCtx) unless(ps *params, fn func() error) error {
 	if err != nil {
 		return err
 	}
+	payer = lc.unlessPayerFallback(up, payer, nTgt) // lower_unlesspayerfallback.go
 	if gate && payer.Kind == rEachPlayer {
 		return refuse("UnlessResolveSubs$ with an each-player payer")
 	}
