@@ -1,0 +1,27 @@
+all_scopes: false
+checking_base_sha: 0d0922702c2c06a2e88b4d5de1e6ee5f6cd4db7d
+previous_check_retries: []
+previous_failed_batches: []
+pull_requests:
+  - number: 5989
+    scopes: []
+  - number: 6063
+    scopes: []
+  - number: 6062
+    scopes: []
+  - number: 6074
+    scopes: []
+  - number: 6084
+    scopes: []
+  - number: 6079
+    scopes: []
+  - number: 6073
+    scopes: []
+  - number: 6076
+    scopes: []
+  - number: 6083
+    scopes: []
+  - number: 6082
+    scopes: []
+queue_base_sha: 0d0922702c2c06a2e88b4d5de1e6ee5f6cd4db7d
+scopes: []
