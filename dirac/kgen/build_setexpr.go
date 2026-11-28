@@ -57,11 +57,6 @@ func (cb *cardBuilder) setRef(pc int, in lInstr, ki *kop.Instr) error {
 		return fmt.Errorf("Defined$ set outside an ability's own program")
 	case !kopTakesSet(ki.Op):
 		return fmt.Errorf("Defined$ set on kop %s", ki.Op)
-	case ki.Op == kop.OpReturn:
-		// a returning Aura's enchant ask re-reads the instruction's own
-		// subject, not the member execSet bound (dirac returnrem.go
-		// returningObj): the kernel would index RefSet as an object
-		return fmt.Errorf("Defined$ set on kop %s: the enchant ask reads the instruction's subject", ki.Op)
 	case ki.Obj != kop.RefSet:
 		return fmt.Errorf("Defined$ set the %s form does not read as its subject", in.Op)
 	case pc > 0xff:

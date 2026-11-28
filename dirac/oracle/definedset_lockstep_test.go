@@ -19,13 +19,13 @@ const definedSetPool = "definedset"
 var definedSetDecks = [2][]cardset.Entry{
 	{
 		{Name: "Bounty Board", Count: 4}, {Name: "Savannah Lions", Count: 4}, {Name: "Llanowar Elves", Count: 4},
-		{Name: "Grizzly Bears", Count: 4}, {Name: "Glory Seeker", Count: 4},
-		{Name: "Swamp", Count: 6}, {Name: "Plains", Count: 7}, {Name: "Forest", Count: 7},
+		{Name: "Grizzly Bears", Count: 4}, {Name: "Glory Seeker", Count: 4}, {Name: "Screams from Within", Count: 4},
+		{Name: "Swamp", Count: 6}, {Name: "Plains", Count: 5}, {Name: "Forest", Count: 5},
 	},
 	{
 		{Name: "Bounty Board", Count: 4}, {Name: "Glory Seeker", Count: 4}, {Name: "Ornithopter", Count: 4},
-		{Name: "Llanowar Elves", Count: 4}, {Name: "Grizzly Bears", Count: 4},
-		{Name: "Swamp", Count: 6}, {Name: "Forest", Count: 7}, {Name: "Plains", Count: 7},
+		{Name: "Llanowar Elves", Count: 4}, {Name: "Grizzly Bears", Count: 4}, {Name: "Screams from Within", Count: 4},
+		{Name: "Swamp", Count: 6}, {Name: "Forest", Count: 5}, {Name: "Plains", Count: 5},
 	},
 }
 

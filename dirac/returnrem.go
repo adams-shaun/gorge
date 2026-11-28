@@ -46,10 +46,15 @@ func (s *State) returnRemembered(k *prep, in *kop.Instr) bool {
 	return false
 }
 
-// returningObj is the object a return instruction is moving.
+// returningObj is the object a return instruction is moving. A RefSet
+// subject is the set member execSet bound to setBindSlot: an ask's answer
+// re-reads the program's own instruction, whose Obj names no object.
 func (s *State) returningObj(in *kop.Instr) Obj {
 	if s.g.retAt != 0 {
 		return s.g.rem[s.g.retAt-1]
+	}
+	if in.Obj == kop.RefSet {
+		return s.objRefObj(tgtRef(setBindSlot))
 	}
 	return s.objRefObj(in.Obj)
 }

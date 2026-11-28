@@ -1,9 +1,11 @@
 # The Defined$ set-expression pool (dirac/oracle/definedset_lockstep_test.go):
 # Bounty Board (a dying creature with a bounty counter: each opponent of its
 # controller gains 2 life and draws, Player.OpponentOf TriggeredCardController,
-# SetTriggerPlayer SetPlayersComplement), plus the creatures and basics the
-# decks need.
+# SetTriggerPlayer SetPlayersComplement), Screams from Within (an Aura whose
+# dies trigger returns it, Defined$ Self.YouOwn: a RefSet Return that asks the
+# enchant choice), plus the creatures and basics the decks need.
 Bounty Board
+Screams from Within
 Grizzly Bears
 Glory Seeker
 Llanowar Elves
