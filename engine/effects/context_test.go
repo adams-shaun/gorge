@@ -1,6 +1,7 @@
 package effects
 
 import (
+	"slices"
 	"strings"
 	"sync"
 	"testing"
@@ -236,6 +237,42 @@ func (h *fakeHost) EndEffectSource(source state.ObjID, spareAfter uint32, _ bool
 		kept = append(kept, ce)
 	}
 	h.continuous = kept
+}
+
+// RememberOnEffect mirrors rules.Engine's RememberOnEffect: append the id in
+// place to the Remembered of every live registration sharing the named
+// registration's activation group (ungrouped: that registration alone).
+func (h *fakeHost) RememberOnEffect(frame EffectFrame, id state.ObjID) {
+	if frame.Source == 0 || id == 0 {
+		return
+	}
+	group := uint32(0)
+	found := false
+	for _, ce := range h.continuous {
+		if ce.Source == frame.Source && ce.FromEffect && ce.Timestamp == frame.Stamp {
+			group, found = ce.EffectGroup, true
+			break
+		}
+	}
+	if !found {
+		return
+	}
+	for i := range h.continuous {
+		ce := &h.continuous[i]
+		if ce.Source != frame.Source || !ce.FromEffect {
+			continue
+		}
+		if group == 0 {
+			if ce.Timestamp != frame.Stamp {
+				continue
+			}
+		} else if ce.EffectGroup != group {
+			continue
+		}
+		if !slices.Contains(ce.Remembered, id) {
+			ce.Remembered = append(append([]state.ObjID(nil), ce.Remembered...), id)
+		}
+	}
 }
 func (h *fakeHost) ContinuousNamed(controller state.PlayerID, name string) bool {
 	for _, ce := range h.continuous {

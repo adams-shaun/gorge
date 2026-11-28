@@ -675,7 +675,20 @@ func conditionDefinedMet(h Host, c *Ctx, sa *cards.SA, defined, present, compare
 			// IsRemembered/Chosen clauses resolve, failing closed on an
 			// unreadable player qualifier per member. An object-spec member
 			// with an unknown predicate is already unresolved above.
-			if present != "" && MatchesPlayerSpecCtx(g, present, t.Player, c.Controller,
+			//
+			// With NO ConditionPresent$ the gate is bare group presence (the
+			// object branch counts every member, base-less): a remembered
+			// PLAYER is a member of the Remembered group (rememberedLKIGroup
+			// keeps it), so it satisfies the bare gate exactly as a remembered
+			// card does -- Urabrask, Heretic Praetor's `DB$ Dig |
+			// ConditionDefined$ Remembered` body gate reads the remembered
+			// opponent of RememberObjects$ TriggeredPlayer, the card's only
+			// group member.
+			if present == "" {
+				count++
+				continue
+			}
+			if MatchesPlayerSpecCtx(g, present, t.Player, c.Controller,
 				PlayerSpecCtx{Source: c.Source}) {
 				count++
 			}

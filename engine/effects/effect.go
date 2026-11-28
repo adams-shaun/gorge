@@ -779,13 +779,17 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 		// replaced result cannot lose an object, and a body this build cannot
 		// price is skipped by the dispatcher, never read as zero. Every OTHER
 		// AddCounter body keeps its loud Note.
-		// Event$ Draw is the fifth live class, in the two shapes
+		// Event$ Draw is the fifth live class, in the three shapes
 		// effectDrawBodyLive admits: the one-shot "next time you would draw
 		// this turn" (Words of Worship and kin, Aladdin's Lamp, Ring of
-		// Ma'ruf) and Plagiarize's remembered-player redirect (a ValidPlayer$
+		// Ma'ruf), Plagiarize's remembered-player redirect (a ValidPlayer$
 		// Player.IsRemembered line with a single DB$ Draw | Defined$ You
 		// body -- the RememberedPlayers capture on the registration below is
-		// what the Draw matcher's ValidPlayer$ gate reads).
+		// what the Draw matcher's ValidPlayer$ gate reads), and Urabrask,
+		// Heretic Praetor's remembered-set one-shot (its EQ0 gate and the
+		// sibling MayPlay$ grant share this activation's group list --
+		// state.ContinuousEffect.EffectGroup -- which the body's
+		// RememberChanged$ Dig grows in place through Host.RememberOnEffect).
 		// Every OTHER Moved body (the unmodelled ChangeZone/Tap/Clone family,
 		// 44 measured files) and every other Draw/ProduceMana body keeps its loud
 		// Note: a half-modelled Replaced-result could LOSE the moved object.
@@ -813,11 +817,23 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			(event == "Moved" && replacementMovedBodyLive(params, body, c.SVars)) ||
 			(event == "CreateToken" && replacementBodyAPI(body) == "ReplaceToken") ||
 			(event == "AddCounter" && replacementBodyAPI(body) == "ReplaceCounter")) {
-			effectContinuous(h, state.ContinuousEffect{
+			// The Draw registration's remembered list is its activation's
+			// group list: kept non-nil even when the capture is players-only
+			// (Urabrask's RememberObjects$ TriggeredPlayer), so the
+			// IsPresent$ Card.IsRemembered | PresentCompare$ EQ0 gate counts
+			// the group (empty until the body's RememberChanged$ Dig grows it
+			// through Host.RememberOnEffect) and never falls through to the
+			// source object's own memory. Every other live shape keeps the
+			// capture as-is.
+			drawRepl := remembered
+			if event == "Draw" && drawRepl == nil {
+				drawRepl = []state.ObjID{}
+			}
+			effectContinuousGrouped(h, clock, state.ContinuousEffect{
 				Source: c.Source, Controller: c.Controller,
 				UntilEOT: effectUntilEOT(h, c.Source, rawDur), Duration: dur,
 				Name:              effectName,
-				Remembered:        remembered,
+				Remembered:        drawRepl,
 				ForgetOnMoved:     forgetOn,
 				ExileOnMoved:      exileOn,
 				ForgetCounter:     forgetCounter,
@@ -874,7 +890,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			}
 			anchorLockHostIncarnation(h, c, rawDur, &ce)
 			if untilUntapsBind(h, c, rawDur, &ce) {
-				effectContinuous(h, ce)
+				effectContinuousGrouped(h, clock, ce)
 			}
 			registered = true
 		} else if name != "" {
@@ -932,7 +948,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				look.Chosen, look.ChosenBound = effectChosenSnapshot(h, c, look.Affects)
 				for _, p := range grantOwners() {
 					look.Controller = p
-					effectContinuous(h, look)
+					effectContinuousGrouped(h, clock, look)
 				}
 				registered = true
 				if !rest {
@@ -956,7 +972,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				ce.ExileOnMoved = exileOn
 				ce.ForgetCounter = forgetCounter
 				ce.ImprintOnHost = imprintOnHost
-				effectContinuous(h, ce)
+				effectContinuousGrouped(h, clock, ce)
 				registered = true
 			} else if grant, ok := mayPlayGrantFromLine(params); ok {
 				// A may-play-from-zone grant delivered by an Effect SA (Atsushi's
@@ -992,7 +1008,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				}
 				for _, p := range grantOwners() {
 					grant.Controller = p
-					effectContinuous(h, grant)
+					effectContinuousGrouped(h, clock, grant)
 				}
 				registered = true
 			} else if grant, ok := mayPlayFreeGrantFromLine(params); ok {
@@ -1032,7 +1048,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				}
 				for _, p := range grantOwners() {
 					grant.Controller = p
-					effectContinuous(h, grant)
+					effectContinuousGrouped(h, clock, grant)
 				}
 				registered = true
 			} else if _, ok := untapDenialGrantFromLine(params); ok {
@@ -1044,7 +1060,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				// the Effect's own Phase$ Untap self-exile ends it after that
 				// step's untap. Permanent: the Effect outlives its sorcery or
 				// ability source until that exile.
-				effectContinuous(h, state.ContinuousEffect{
+				effectContinuousGrouped(h, clock, state.ContinuousEffect{
 					Source: c.Source, Controller: c.Controller,
 					Restriction:       "UntapDenial",
 					RestrictParams:    params,
@@ -1097,7 +1113,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				// a rules-mod, not a layer change, so no Layer is set. The
 				// value grammar is shared with rules' printed-static read; a
 				// condition gate this path cannot evaluate fails closed.
-				effectContinuous(h, state.ContinuousEffect{
+				effectContinuousGrouped(h, clock, state.ContinuousEffect{
 					Source:            c.Source,
 					Controller:        c.Controller,
 					Affects:           affected,
@@ -1150,7 +1166,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 					ForgetCounter: forgetCounter,
 					ForgetOnCast:  forgetOnCast,
 				}
-				effectContinuous(h, ce)
+				effectContinuousGrouped(h, clock, ce)
 				registered = true
 			} else if val, affected, zone, ok := setMaxHandSizeGrantFromLine(params); ok {
 				// SetMaxHandSize$ (the Effect-delivered "you have no maximum
@@ -1188,7 +1204,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 					ExileOnMoved:   exileOn,
 					ForgetCounter:  forgetCounter,
 				}
-				effectContinuous(h, ce)
+				effectContinuousGrouped(h, clock, ce)
 				registered = true
 			} else if effectGainControlDelivered(h, c, sa, ep, params, remembered, effectName, rawDur, dur, forgetOn, exileOn, forgetCounter, imprintOnHost) {
 				registered = true // Effect-delivered control static: effect_gaincontrol.go
@@ -1239,7 +1255,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				// goes (effectCounterSweep).
 				for i := range trigs {
 					t := trigs[i]
-					effectContinuous(h, state.ContinuousEffect{
+					effectContinuousGrouped(h, clock, state.ContinuousEffect{
 						Source:            c.Source,
 						Controller:        c.Controller,
 						Layer:             state.LAbilities,
@@ -1257,6 +1273,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 						ImprintOnHost:     imprintOnHost,
 						ForgetOnCast:      forgetOnCast,
 						ChosenNumber:      chosenNumber,
+						EffectGroup:       clock,
 					})
 				}
 				registered = true
@@ -1659,7 +1676,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				registered = true
 				break
 			}
-			effectContinuous(h, ce)
+			effectContinuousGrouped(h, clock, ce)
 			registered = true
 		case cards.StaticCombatDamageToughness:
 			// This assignment static is consumed by rules' existing combat
@@ -1680,7 +1697,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				ForgetOnMoved: forgetOn, ExileOnMoved: exileOn,
 				ForgetCounter: forgetCounter, ImprintOnHost: imprintOnHost,
 			}
-			effectContinuous(h, ce)
+			effectContinuousGrouped(h, clock, ce)
 			registered = true
 		case cards.StaticReduceCost, cards.StaticRaiseCost, cards.StaticSetCost, cards.StaticAlternativeCost, cards.StaticManaConvert:
 			// An Effect-delivered cost-modifier or ManaConvert static (Marshland Bloodcaster's "Rather than pay the mana cost of the next spell you cast this turn, you may pay life equal to that spell's mana value", plus the 11 Effect-delivered Mode$ ReduceCost carriers -- Kaza, Roil Chaser et al). Registered into the continuous registry with the line's
@@ -1744,7 +1761,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 				RememberedPlayers: effectRememberedPlayers(h, c, sa),
 			}
 			effectCopyChosenName(h, c, params, &ce)
-			effectContinuous(h, ce)
+			effectContinuousGrouped(h, clock, ce)
 			registered = true
 		case cards.StaticMustAttack:
 			// An Effect-delivered per-player attack REQUIREMENT (Forge's
@@ -1790,7 +1807,7 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 			// requirement would never be counted. Same read the adjacent
 			// CantAttack/CantSacrifice case makes.
 			ce.RememberedPlayers = effectRememberedPlayers(h, c, sa)
-			effectContinuous(h, ce)
+			effectContinuousGrouped(h, clock, ce)
 			registered = true
 		default:
 			registered = effectUnsupportedStatic(h, c, mode, params, effectName, rawDur, dur, what, remembered, sa)

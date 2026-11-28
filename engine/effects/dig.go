@@ -1036,6 +1036,19 @@ func defaultDigChangeNum(dp *DigParams, digNum int32) int32 {
 func digRemember(h Host, c *Ctx, dp *DigParams, id state.ObjID) {
 	if dp.RememberChanged {
 		rememberMilled(h, c, id)
+		// Under a bound Ctx.EffectFrame the body is an Effect-created
+		// replacement's own: the card joins the ACTIVATION's remembered list
+		// too (Host.RememberOnEffect), the one the sibling registrations of
+		// the DB$ Effect read -- the EQ0 one-shot gate and the MayPlay$
+		// grant (Urabrask, Heretic Praetor's "the next time they would
+		// draw"). Forge's EffectEffect keeps exactly this list on the effect
+		// object; the source object's event-backed list above is its own
+		// memory and a DB$ Cleanup | ClearRemembered$ on it leaves the
+		// activation's list alone. No frame, no group append: the ordinary
+		// dig's memory stays the two lists rememberMilled writes.
+		if c.EffectFrame.Source != 0 {
+			h.RememberOnEffect(c.EffectFrame, id)
+		}
 	}
 }
 

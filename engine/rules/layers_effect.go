@@ -278,6 +278,71 @@ func (e *Engine) EndEffectSource(source state.ObjID, spareAfter uint32, carrier 
 	e.continuousChanged()
 }
 
+// RememberOnEffect grows the activation-scoped remembered list of an
+// Effect-created registration's sibling set -- the host hook behind
+// effects' RememberChanged$ Dig body (digRemember) run under a bound
+// Ctx.EffectFrame (Urabrask, Heretic Praetor: the ONE remembered list read
+// by the Draw line's IsPresent$ Card.IsRemembered | PresentZone$ Exile |
+// PresentCompare$ EQ0 one-shot gate, the sibling MayPlay$ grant's Affected$
+// Card.IsRemembered filter and the ExileOnMoved$ sweep, while the body
+// exiles+remembers). It looks up the registration named by the frame's
+// (source, timestamp) identity, reads its activation group
+// (state.ContinuousEffect.EffectGroup, the DB$ Effect activation's entry
+// clock stamped by effEffect), and appends id to the Remembered of every
+// live registration of that group IN PLACE -- never to the source object's
+// event-backed list (that stays the object's own memory, which Urabrask's
+// own-upkeep DB$ Cleanup | ClearRemembered$ clears independently). Each
+// append copies before growing: active() copies share the backing array
+// (see objIDWithout), so an in-slice append could rewrite a sibling's
+// element. An ungrouped frame (a registration effEffect did not make,
+// EffectGroup 0) grows that registration alone. Like EndEffect/
+// EndEffectSource this is an engine-runtime rewrite of the continuous
+// registry, not a state.Game/state.Object mutation and no event: the
+// body's card move is event-backed (its Mill/Move/Remember events) and a
+// replay rebuilds the registry by re-executing the same body against the
+// same events.
+func (e *Engine) RememberOnEffect(frame effects.EffectFrame, id state.ObjID) {
+	if frame.Source == 0 || id == 0 {
+		return
+	}
+	group := uint32(0)
+	found := false
+	for i := range e.continuous {
+		ce := &e.continuous[i]
+		if ce.Source == frame.Source && ce.FromEffect && ce.Timestamp == frame.Stamp {
+			group, found = ce.EffectGroup, true
+			break
+		}
+	}
+	if !found {
+		return
+	}
+	grew := false
+	for i := range e.continuous {
+		ce := &e.continuous[i]
+		if ce.Source != frame.Source || !ce.FromEffect {
+			continue
+		}
+		if group == 0 {
+			if ce.Timestamp != frame.Stamp {
+				continue
+			}
+		} else if ce.EffectGroup != group {
+			continue
+		}
+		if objIDIn(ce.Remembered, id) {
+			continue
+		}
+		ce.Remembered = append(append([]state.ObjID(nil), ce.Remembered...), id)
+		grew = true
+	}
+	if grew {
+		// active() caches its sorted list on continuousVersion; the in-place
+		// Remembered growth moves no log head, so bump it explicitly.
+		e.continuousChanged()
+	}
+}
+
 // withoutUntilPlaneswalk drops every Effect-created registration whose
 // Duration names the plane-source curse lifetime -- Eloren Wilds' DB$ Effect
 // ("target player can't cast spells until a player planeswalks"): the Effect's
