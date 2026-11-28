@@ -18,6 +18,17 @@ func (e *Engine) inFlightDamageSource() state.ObjID {
 	return e.damaging
 }
 
+// damageHost is the object whose identity a Damage event from source reads:
+// protectionSource's host, except that an emblem's ability (or a copy of it)
+// deals damage from the emblem -- its owner's source, with no characteristics
+// (CR 114.2, 114.3), never the card that made the emblem.
+func damageHost(g *state.Game, source state.ObjID) state.ObjID {
+	if o := g.Obj(source); o != nil && o.EmblemSource != 0 {
+		return o.EmblemSource
+	}
+	return abilityHost(g, source)
+}
+
 // SetDamageSource implements effects.Host: publish the damage source for the
 // Damage events the calling emitter is about to emit, returning the previous
 // value so the emitter restores it. See dmgSrcOverride's field doc for the

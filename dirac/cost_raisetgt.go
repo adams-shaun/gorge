@@ -88,3 +88,20 @@ func (s *State) windowPoolPipsFirst(k *prep, p uint8, cost *kop.ManaCost, anyCol
 	ok, _ := s.windowTapRider(k, p, &rest, false, false)
 	return ok
 }
+
+// windowOwedFirst is targetWindowShort's third path: the window walked with
+// each source answering what the cost still owes (the clamp) and the paid-fee
+// filters left out of p's sources. The walks before it answer a source its
+// first colour and let a filter spend a unit a pip needs: Skycloud Expanse
+// ({1}, {T}: add {W}{U}), first in order, takes Mystic Monastery's mana as its
+// fee, and an improvise cast still owing {R} reads unpayable though the
+// Monastery, a Plains and a Temple pay it (CR 601.2g-h, 702.126a). gorge's
+// castWindowReachable searches every set and order of activations, so one path
+// that pays settles it. It moves p's control mask: the caller restores the
+// state.
+func (s *State) windowOwedFirst(k *prep, p uint8, cost *kop.ManaCost) bool {
+	si := SeatIx(p)
+	s.ctrlM[si] = s.ctrlM[si].andNot(s.scriptFilt(k, p))
+	ok, _ := s.windowTapRider(k, p, cost, true, false)
+	return ok
+}

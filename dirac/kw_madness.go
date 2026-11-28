@@ -261,7 +261,8 @@ func (s *State) madnessPainDenied(k *prep, p uint8, o Obj, cost *kop.ManaCost) b
 // (CR 605.4a), any of the repeatable shapes -- voids the count proof. The
 // census's unpriced sources are the walk windowCensusComplete reads
 // (act_waterbend.go), so the walk here is its, reading the same gaps into
-// three booleans.
+// three booleans -- bar a zero-yield restricted ability, a gap there and none
+// to the planner census.
 func (s *State) madnessDeferProofClass(k *prep, p uint8, o Obj) (complete, relaxable, gains bool) {
 	complete, relaxable = true, true
 	if k.gen == nil {
@@ -302,10 +303,13 @@ func (s *State) madnessDeferProofClass(k *prep, p uint8, o Obj) (complete, relax
 			for j := range cd.Abilities {
 				a := &cd.Abilities[j]
 				// an unpriced restricted ability the payment admits is a census
-				// gap its restriction bounds (CR 106.6), no once-only unit
+				// gap its restriction bounds (CR 106.6), no once-only unit.
+				// gorge's planner census lists neither one that yields nothing
+				// nor a locked one (paymentPlanCensusOf, CR 602.5)
 				if a.Kind == kop.AbMana && a.AFlags&kop.AfLatent == 0 &&
 					(a.ManaRestrict != 0 || a.ManaRestrictAb != 0) && s.restrSrcAdmits(k, p, sl, a, &d) &&
-					!s.windowPricesRestr(k, sl, a) {
+					!s.windowPricesRestr(k, sl, a) && !s.dynManaYieldsNothing(k, a, sl) &&
+					!(k.gen.anyCantAct && s.actForbidden(k, sl, true)) {
 					complete, relaxable, gains = false, false, true
 				}
 				// an unpriced each-colour production (Bloom Tender's) is one too

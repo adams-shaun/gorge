@@ -617,7 +617,13 @@ func (e *Engine) targetOptionLabel(candidate targetCandidate) string {
 // was passing the Face-less ability object) and legalTargets consult, so the
 // two sites always agree on what "the source" is.
 func (e *Engine) protectionSource(source state.ObjID) state.ObjID {
-	if o := e.G.Obj(source); o != nil && o.Ability != nil && o.Source != 0 {
+	return abilityHost(e.G, source)
+}
+
+// abilityHost is protectionSource's rule over the object table: an ability
+// stack object's Source permanent, else the object itself (CR 606.3).
+func abilityHost(g *state.Game, source state.ObjID) state.ObjID {
+	if o := g.Obj(source); o != nil && o.Ability != nil && o.Source != 0 {
 		return o.Source
 	}
 	return source

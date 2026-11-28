@@ -967,6 +967,11 @@ type DelayedTrigger struct {
 	// battlefield liveness rule. It rides the DelayedRegister event's Text
 	// ("|SB") because the event gains no field.
 	SourceBattlefield bool
+	// Emblem records that an emblem-creating api:Effect registered this
+	// trigger (CR 114): the ability it puts on the stack is the emblem's, so
+	// events.Apply sets its Object.EmblemSource. It rides the
+	// DelayedRegister event's Text ("|EM").
+	Emblem bool
 	// RememberedAmount is the per-trigger remembered Integer a DelayedTrigger
 	// RememberNumber$ True registration carried (Forge's delTrig.
 	// addRemembered of the host's remembered Integers): Mana Drain's

@@ -345,6 +345,20 @@ func isEmblemEffectName(name string) bool {
 	return strings.HasPrefix(name, "Emblem")
 }
 
+// effectOriginSuffix is the DelayedRegister Text tail saying what an Effect's
+// trigger belongs to: "|EM" for an emblem's (CR 114: tied to no object, and
+// its abilities are their own source), "|SB" for a source-bounded one (CR
+// 611.2) whose source is a battlefield permanent now, else nothing.
+func effectOriginSuffix(source *state.Object, name string, sourceBounded bool) string {
+	switch {
+	case isEmblemEffectName(name):
+		return "|EM"
+	case sourceBounded && source != nil && source.Zone == state.ZBattlefield:
+		return "|SB"
+	}
+	return ""
+}
+
 // effectStaticSuffix is the bare "|ST" flag a Static$ True Effect Triggers$
 // body carries on its DelayedRegister text, so events.Apply sets
 // DelayedTrigger.Static and rules resolves it inline (CR 611.2a duration
