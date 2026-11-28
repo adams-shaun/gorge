@@ -178,6 +178,9 @@ func manaOf(generic int, pips int16) kop.ManaCost {
 // execPay starts OpUnlessPaid / OpIfPaid / OpUnlessSwitched; false = suspended.
 func (s *State) execPay(k *prep, in *kop.Instr) bool {
 	p := s.execPayer(k, in.Obj) // a departed payer is none (cost_departedpayer.go)
+	if s.eachPayWalks(k, in) {
+		p = 255 // any opponent at four seats is walked, not oneOpp (cost_anyplayerpays.go)
+	}
 	kind := int(in.C & 0xF)
 	if kind == kop.PayManaX && in.B.N == kop.PayBSubEvidence {
 		kind = payKindEvidence // a trigger's own CollectEvidence cost rides PayManaX (cost_collectevidence.go)
@@ -232,7 +235,7 @@ func (s *State) execPay(k *prep, in *kop.Instr) bool {
 		return false
 	}
 	if p == 255 {
-		if k.eachPay && in.Obj == kop.RefEachPlayer {
+		if s.eachPayWalks(k, in) {
 			return s.execPayEach(k, in, kind, skip, amt) // cost_anyplayerpays.go
 		}
 		if skip&pfIfPaid != 0 {

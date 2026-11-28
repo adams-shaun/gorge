@@ -16,13 +16,18 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // g.pickP is the seat being asked, so the walk needs no state of its own.
 // Guard: prep.eachPay (some op has the shape); the entry is execPay's
 // cold p == 255 branch and payDone's decline.
+// "Any opponent may pay" (UnlessPayer$ Opponent, obj=RefEachOpponent; Vexing
+// Devil) above two seats is the same walk with the resolving controller
+// skipped: gorge's Opponent arm sorts AliveFrom(c.Controller) minus the
+// controller by AliveFrom(0) rank (sortTargets), so player 0 is asked first,
+// Forge's game player order. At two seats it stays the one opponent.
 
 // execPayEach poses the any-player ask to the first living seat; false =
 // suspended.
 //
 //go:noinline
 func (s *State) execPayEach(k *prep, in *kop.Instr, kind int, skip uint16, amt int) bool {
-	s.posePayEach(k, in, s.eachPayerFrom(0), kind, skip|pfModes, amt)
+	s.posePayEach(k, in, s.eachPayerFrom(in, 0), kind, skip|pfModes, amt)
 	return false
 }
 
@@ -33,14 +38,15 @@ func (s *State) execPayEach(k *prep, in *kop.Instr, kind int, skip uint16, amt i
 func (s *State) payEachNext(k *prep) {
 	in := &s.prog(k)[s.res.pc]
 	f := s.g.pickF &^ (pfEachNext | pfNoPay)
-	s.posePayEach(k, in, s.eachPayerFrom(s.g.pickP+1), int(s.g.pickZ), f, s.value(k, in.A))
+	s.posePayEach(k, in, s.eachPayerFrom(in, s.g.pickP+1), int(s.g.pickZ), f, s.value(k, in.A))
 }
 
 // eachPayerFrom is the first seat at or after p, in seat order and without
-// wrapping, that is still in the game, or noSeat past the last.
-func (s *State) eachPayerFrom(p uint8) uint8 {
+// wrapping, that is still in the game (and, for in's RefEachOpponent, is not
+// the resolving controller), or noSeat past the last.
+func (s *State) eachPayerFrom(in *kop.Instr, p uint8) uint8 {
 	for ; p < s.nSeats(); p++ {
-		if !s.out(p) {
+		if !s.out(p) && (in.Obj != kop.RefEachOpponent || p != s.res.e.ctrl) {
 			return p
 		}
 	}
@@ -50,7 +56,7 @@ func (s *State) eachPayerFrom(p uint8) uint8 {
 // posePayEach is posePay for seat p of the walk, marking whether a later seat
 // is still to be asked.
 func (s *State) posePayEach(k *prep, in *kop.Instr, p uint8, kind int, skip uint16, amt int) {
-	if s.eachPayerFrom(p+1) != noSeat {
+	if s.eachPayerFrom(in, p+1) != noSeat {
 		skip |= pfEachNext
 	}
 	s.posePay(k, in, p, kind, skip, amt)
@@ -80,16 +86,22 @@ func (s *State) posePay(k *prep, in *kop.Instr, p uint8, kind int, skip uint16, 
 	s.res.ask, s.res.askP = raGenPay, p
 }
 
-// prepEachPay: some ability of t carries an any-player pay op.
+// prepEachPay: some ability of t carries an any-player (or any-opponent) pay op.
 func prepEachPay(t *kop.Table) bool {
 	for i := range t.Cards {
 		for j := range t.Cards[i].Abilities {
 			for _, in := range t.Cards[i].Abilities[j].Prog {
-				if (in.Op == kop.OpIfPaid || in.Op == kop.OpUnlessPaid || in.Op == kop.OpUnlessSwitched) && in.Obj == kop.RefEachPlayer {
+				if (in.Op == kop.OpIfPaid || in.Op == kop.OpUnlessPaid || in.Op == kop.OpUnlessSwitched) && (in.Obj == kop.RefEachPlayer || in.Obj == kop.RefEachOpponent) {
 					return true
 				}
 			}
 		}
 	}
 	return false
+}
+
+// eachPayWalks: in is a pay op whose payers are walked seat by seat: any
+// player, or any opponent above two seats.
+func (s *State) eachPayWalks(k *prep, in *kop.Instr) bool {
+	return k.eachPay && (in.Obj == kop.RefEachPlayer || in.Obj == kop.RefEachOpponent && !s.duel())
 }
