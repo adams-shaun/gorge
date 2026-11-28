@@ -1,0 +1,16 @@
+# the MoveCounter Any/All shapes: Nesting Grounds moves one counter of a
+# chosen kind between permanents, The Ozolith moves every kind it holds onto
+# a creature at the beginning of combat (dirac/oracle/movecounterany_test.go)
+Nesting Grounds
+The Ozolith
+Viashino Branchrider
+Karstoderm
+Fume Spitter
+Out Cold
+Wickerbough Elder
+Grizzly Bears
+Shock
+Forest
+Island
+Swamp
+Mountain
