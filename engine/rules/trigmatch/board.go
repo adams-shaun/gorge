@@ -137,6 +137,9 @@ type Facts struct {
 	Damaging       state.ObjID
 	CombatDamaging bool
 	DmgSrcOverride state.ObjID
+	// DamageBatchStart is the log index the open damage batch (CR 510.2's
+	// simultaneous damage) began at, 0 with none open.
+	DamageBatchStart int
 	// FightDamaging is whether the Damage event being matched is one
 	// direction of a fight (CR 701.14), published by effects' emitFightHit.
 	FightDamaging bool

@@ -468,13 +468,14 @@ func DamageMatchesWithCapture(e Board, t cards.Trigger, source state.ObjID, ev e
 	}
 	// FirstTime$ True on DamageDoneOnce (only
 	// Hercules, Olympian Hero carries the combination corpus-wide) admits
-	// exactly the first Damage event on that recipient this turn, mirroring
+	// exactly the first time that recipient is dealt damage this turn (every
+	// event of that simultaneous batch), mirroring
 	// the life-gain/life-loss gates in trigmatch_life.go. Scoped to
 	// DamageDoneOnce's own mode -- no DamageDone, DamageDealtOnce or DamageAll
 	// trigger in the corpus carries FirstTime$, so the other three modes are
 	// byte-identical. The per-batch once-latch in trigger_match.go already
-	// deduplicates within one batch; this gate kills the LATER batches, whose
-	// events the latch never sees. emit logs and folds the event into state
+	// deduplicates within one batch, summing the amounts this gate admits; the
+	// gate kills the LATER batches, whose events the latch never sees. emit logs and folds the event into state
 	// before checkTriggers runs, so a state field cannot distinguish the
 	// first hit -- the replay-stable log scan below can, counting the current
 	// event as one.
@@ -573,8 +574,9 @@ func AtLeastOneInstanceMatches(t cards.Trigger, amounts []int32) bool {
 // firstDamageToThisTurn is the damage mirror of firstLifeLossThisTurn
 // (trigmatch_life.go): scanning the log backwards, true only for the newest
 // Damage event on this recipient (same Obj/Player pair: object recipients
-// carry nonzero Obj, player recipients Obj == 0 plus a Player) in the current
-// turn, stopping at TurnChange. Same replay-stable log scan -- no new event
+// carry nonzero Obj, player recipients Obj == 0 plus a Player) when every
+// older one of the current turn belongs to the open damage batch (damage dealt
+// simultaneously is one time, CR 510.2), stopping at TurnChange. Same replay-stable log scan -- no new event
 // kind, no engine field, survives Clone.
 //
 // Non-positive Amounts are NOT damage and are skipped, exactly as
@@ -583,6 +585,7 @@ func AtLeastOneInstanceMatches(t cards.Trigger, amounts []int32) bool {
 // zero-or-negative Damage event to clear marked damage, and a 0-power
 // combat assignment emits Amount == 0. Neither is a hit for FirstTime$.
 func firstDamageToThisTurn(e Board, ev events.Event) bool {
+	batch := e.Facts().DamageBatchStart
 	seenCurrent := false
 	for i := len(e.Log().Events) - 1; i >= 0; i-- {
 		le := e.Log().Events[i]
@@ -592,7 +595,7 @@ func firstDamageToThisTurn(e Board, ev events.Event) bool {
 		if le.Kind != events.Damage || le.Amount <= 0 || le.Obj != ev.Obj || le.Player != ev.Player {
 			continue
 		}
-		if seenCurrent {
+		if seenCurrent && (batch == 0 || i < batch) {
 			return false
 		}
 		seenCurrent = true

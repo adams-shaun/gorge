@@ -230,9 +230,11 @@ func (s *State) placeFromK(k *prep, o Obj, z kop.Zone, bottom bool, from kop.Zon
 		return
 	}
 	pl := &s.pl[ob.owner()]
+	redirected := false // a replacement turned a graveyard move into exile
 	if z == kop.ZoneGraveyard && s.g.on {
 		if k.gen != nil && (k.gen.exileAnyC != nil || k.embExileAny) {
 			z = s.exileAnyDest(k, o, from) // Rest in Peace or the card itself from any zone (repl_exileonleave.go)
+			redirected = z == kop.ZoneExile
 		}
 	}
 	if s.placeGraveLib(k, o, pl, z, from, wasCreature, leftCounters) {
@@ -272,7 +274,7 @@ func (s *State) placeFromK(k *prep, o Obj, z kop.Zone, bottom bool, from kop.Zon
 		pl.exile[pl.exileN] = o
 		pl.exileN++
 		if k != nil && k.gen != nil && k.gen.anyExW {
-			s.exwExile(k, o) // the exiled-with link (zone_exiledwith.go)
+			s.exwExile(k, o, redirected) // the exiled-with link (zone_exiledwith.go)
 		}
 	case kop.ZoneStack, kop.ZoneNone:
 	case kop.ZoneCommand:
