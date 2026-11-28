@@ -22,7 +22,7 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 
 // StallCumulativeCost: a scaled cumulative upkeep cost past what the packed
 // ask holds -- a pip count above 7, a generic amount above 255, or more than
-// four hybrid pips (kop.ManaCost.Hyb).
+// five hybrid pips (kop.ManaCost.Hyb).
 const StallCumulativeCost = 176
 
 func init() {

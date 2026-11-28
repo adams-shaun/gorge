@@ -82,7 +82,7 @@ func (s *State) convCCast(k *prep, p uint8, o Obj) bool {
 // pip takes its own colour first, else {C}). A cost the conversion does not
 // price (hybrid, Phyrexian, snow, X) reports false.
 func (s *State) convCCover(p uint8, cost kop.ManaCost) (kop.ManaCost, bool) {
-	if cost.X != 0 || cost.XPip != 0 || cost.Snow != 0 || cost.Phyrexian() || cost.Hyb != ([4]kop.ColorMask{}) {
+	if cost.X != 0 || cost.XPip != 0 || cost.Snow != 0 || cost.Phyrexian() || cost.Hyb != ([5]kop.ColorMask{}) {
 		return cost, false
 	}
 	pl := &s.pl[SeatIx(p)]

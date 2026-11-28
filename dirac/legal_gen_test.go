@@ -14,7 +14,7 @@ func TestPlanUnderRiderFoldsHybrid(t *testing.T) {
 	c.Hyb[0], c.Hyb[1] = 1<<1|1<<4, 1<<1|1<<4
 	for _, r := range []struct{ mana, color bool }{{true, false}, {false, true}} {
 		got := planUnderRider(c, r.mana, r.color)
-		if got.Generic != 2 || got.Hyb != ([4]kop.ColorMask{}) {
+		if got.Generic != 2 || got.Hyb != ([5]kop.ColorMask{}) {
 			t.Fatalf("rider %+v: generic %d hyb %v", r, got.Generic, got.Hyb)
 		}
 	}
