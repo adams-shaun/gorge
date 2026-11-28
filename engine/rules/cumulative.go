@@ -204,9 +204,11 @@ const xFoldBoundCap int32 = 64
 // cannot charge until it is folded: a printed {X} pip (Cost.X, Elenda and
 // Azor's "Cost$ X W U B"), an announced PayLife<X> part (LifeX Spec X,
 // Vizkopa Confessor's "pay any amount of life"), or a CollectEvidence<X> part
-// whose amount names the announced X (Incinerator of the Guilty). The other
-// announced parts (Sac<X/Spec>, PayEnergy<X>, SubCounter<X/Kind>) are NOT this
-// shape: the trigger window has no settle for them, and they keep the
+// whose amount names the announced X (Incinerator of the Guilty), or an
+// announced Sac<X/Spec> part (Sephiroth, One-Winged Angel's "sacrifice any
+// number of other creatures"; the fold makes it a literal Sac<X/Spec> the
+// component settle pays). The other announced parts (SubCounter<X/Kind>) are
+// NOT this shape: the trigger window has no settle for them, and they keep the
 // decline-only hard-decline convention (the non-mana-settle follow-up family).
 func costCarriesUnfoldedX(c Cost) bool {
 	if c.X > 0 {
@@ -222,14 +224,25 @@ func costCarriesUnfoldedX(c Cost) bool {
 			return true
 		}
 	}
-	return costCarriesEvidenceX(c)
+	return costCarriesEvidenceX(c) || costCarriesSacX(c)
+}
+
+// costCarriesSacX reports whether a Sac part is an announced Sac<X/Spec>.
+func costCarriesSacX(c Cost) bool {
+	for _, part := range c.Sac {
+		if part.Announced {
+			return true
+		}
+	}
+	return false
 }
 
 // foldCostX folds a chosen X into the cost, once per unfolded shape: the
 // printed {X} pips become that much generic mana (Cost.WithX), each announced
-// PayLife<X> part becomes that much fixed life, and a CollectEvidence<X> part
-// becomes a literal threshold, so the folded cost's mana half is Priceable and
-// the evidence stage can resolve it.
+// PayLife<X> part becomes that much fixed life, a CollectEvidence<X> part
+// becomes a literal threshold, and an announced Sac<X/Spec> part becomes a
+// literal sacrifice count, so the folded cost's mana half is Priceable and the
+// evidence / sacrifice stage can resolve it.
 func foldCostX(c Cost, x int32) Cost {
 	out := c.WithX(x)
 	if len(out.LifeX) > 0 {
@@ -252,7 +265,48 @@ func foldCostX(c Cost, x int32) Cost {
 		}
 		out.Evidence = ev
 	}
+	if costCarriesSacX(out) {
+		// An announced sacrifice becomes a literal Sac<X/Spec>, on a copied
+		// slice (the parsed cost is shared).
+		sac := append([]CostPart(nil), out.Sac...)
+		for i := range sac {
+			if sac[i].Announced {
+				sac[i].N = x
+				sac[i].Announced = false
+			}
+		}
+		out.Sac = sac
+	}
 	return out
+}
+
+// sacCandidateSource is the one query triggeredCostSacXBound needs: the
+// engine's per-part candidate walk (triggeredMandatoryCandidatesWith), named
+// through a narrow interface so the bound stays a free function rather than a
+// new Engine method (the repo's home table).
+type sacCandidateSource interface {
+	triggeredMandatoryCandidatesWith(tc *triggeredEffectCost, idx int, part CostPart, extra map[state.ObjID]bool) []state.ObjID
+}
+
+// triggeredCostSacXBound is the most permanents the window's announced
+// sacrifices can name together: each announced part pays X, so the smallest
+// per-part candidate count bounds X (capped at xFoldBoundCap). The per-x
+// triggeredCostComponentsPayable probe still reserves candidates across the
+// parts, so the minimum is enough even when their pools overlap.
+func triggeredCostSacXBound(c sacCandidateSource, tc *triggeredEffectCost) int32 {
+	n := int32(-1)
+	for i, part := range tc.amount.Sac {
+		if !part.Announced {
+			continue
+		}
+		if got := int32(len(c.triggeredMandatoryCandidatesWith(tc, i, part, nil))); n < 0 || got < n {
+			n = got
+		}
+	}
+	if n < 0 {
+		return 0
+	}
+	return min(n, xFoldBoundCap)
 }
 
 // costCarriesEvidenceX reports whether an Evidence part names the announced X
@@ -901,7 +955,29 @@ func (e *Engine) triggeredCostDrawCounts(tc *triggeredEffectCost) ([]int32, bool
 	return out, true
 }
 
-// evalTriggerCostFixedX evaluates a FIXED X body (the source face's SVar:X
+// abilitySVarSource is the one query triggeredCostCtxInit needs: the SVar
+// table an ability stack object resolves against (abilityResolutionSVars).
+type abilitySVarSource interface {
+	abilityResolutionSVars(id state.ObjID, o *state.Object) map[string]string
+}
+
+// triggeredCostCtxInit seeds the window's X and XMax$ reads with the parked
+// ability's own SVar table, the one its body resolves with. The ability exists
+// apart from its source (CR 113.7a), so a source that left -- a transformed
+// card now front face up, a permanent that was a copy -- does not change what
+// the cost's X means. A parked object that is no ability reads the source's
+// current face.
+func triggeredCostCtxInit(h abilitySVarSource, g *state.Game, tc *triggeredEffectCost) effects.CtxInit {
+	if ro := g.Obj(tc.resume.obj); ro != nil && ro.Ability != nil {
+		return effects.CtxInit{SVars: h.abilityResolutionSVars(tc.resume.obj, ro)}
+	}
+	if src := g.Obj(tc.source); src != nil && src.Face() != nil {
+		return effects.CtxInit{SVars: src.Face().SVars}
+	}
+	return effects.CtxInit{}
+}
+
+// evalTriggerCostFixedX evaluates a FIXED X body (the ability's SVar:X
 // names a resolvable expression OTHER than Count$xPaid -- Tomakul Phoenix's
 // Count$CardPower, Tivash's Count$LifeYouGainedThisTurn), with the context
 // the body will see -- Source and Controller bound the way fixLifeXCost/
@@ -909,8 +985,8 @@ func (e *Engine) triggeredCostDrawCounts(tc *triggeredEffectCost) ([]int32, bool
 // own resolution will carry (the TriggeredCard$/Targeted$ referent family).
 // resolvable=false means the body is unresolvable (fail closed, the
 // decline-only hard-decline convention, never a silent zero).
-func (e *Engine) evalTriggerCostFixedX(tc *triggeredEffectCost, o *state.Object, body string) (int32, bool) {
-	ctx := effects.NewCtxPtr(tc.source, tc.player, effects.CtxInit{SVars: o.Face().SVars})
+func (e *Engine) evalTriggerCostFixedX(tc *triggeredEffectCost, init effects.CtxInit, body string) (int32, bool) {
+	ctx := effects.NewCtxPtr(tc.source, tc.player, init)
 	if tcx, ok := e.triggerContexts[tc.resume.obj]; ok {
 		ctx.TriggerContext = tcx
 	}
@@ -981,8 +1057,8 @@ func windowManaAltTotal(a windowManaAlt) int32 {
 }
 
 // triggeredCostXAsk is the X arm of the payment ask: a cost carrying an
-// unfolded {X}, PayLife<X> or CollectEvidence<X> part needs its X announced
-// BEFORE the mana activations that cover it (CR 601.2b's
+// unfolded {X}, PayLife<X>, CollectEvidence<X> or announced Sac<X/Spec> part
+// needs its X announced BEFORE the mana activations that cover it (CR 601.2b's
 // announce-then-activate ordering; the ordinary pay/decline election follows
 // the fold). Two shapes:
 //
@@ -999,7 +1075,9 @@ func windowManaAltTotal(a windowManaAlt) int32 {
 //     potential pool (the floating pool plus every untapped source's
 //     production -- the window then opens paymentManaAsk, so the activations
 //     that cover X + pips are real): the payer's current life caps a
-//     PayLife<X> part, PotentialMana caps a mana {X}.
+//     PayLife<X> part, the graveyard's mana value a CollectEvidence<X>, an
+//     announced Sac<X/Spec>'s candidate count caps it (CR 118.3), and
+//     PotentialMana caps a mana {X}.
 //
 // A face with NO SVar:X, and a face whose SVar:X body is unresolvable, both
 // fail closed: no announcement ask, the amount stays
@@ -1021,11 +1099,8 @@ func (e *Engine) triggeredCostXAsk(tc *triggeredEffectCost) bool {
 		return false
 	}
 	tc.xDone = true
-	o := e.G.Obj(tc.source)
-	if o == nil || o.Face() == nil {
-		return false
-	}
-	body, present := o.Face().SVars["X"]
+	own := triggeredCostCtxInit(e, e.G, tc)
+	body, present := own.SVars["X"]
 	if !present {
 		// No SVar:X at all: nothing fixes the value AND nothing says the payer
 		// announces one -- the corpus's every X-fold carrier names an SVar:X
@@ -1035,7 +1110,7 @@ func (e *Engine) triggeredCostXAsk(tc *triggeredEffectCost) bool {
 	}
 	if strings.EqualFold(strings.TrimSpace(body), "Count$xPaid") {
 		// Payer-chooses by construction: fall through to the ask.
-	} else if n, resolvable := e.evalTriggerCostFixedX(tc, o, body); !resolvable {
+	} else if n, resolvable := e.evalTriggerCostFixedX(tc, own, body); !resolvable {
 		// A PRESENT but unresolvable SVar:X body fails closed: no announcement ask, the amount stays
 		// unfolded, and the ordinary unpriceable path below poses the
 		// decline-only ask -- the same hard-decline convention the
@@ -1117,7 +1192,7 @@ func (e *Engine) triggeredCostXAsk(tc *triggeredEffectCost) bool {
 	// etbPayLifeBound reads it the same way). An unresolvable cap fails
 	// closed to no extra bound, the pre-XMax behaviour.
 	if sa := tc.resume.sa; sa.ParamStr(cards.PKXMax) != "" {
-		ctx := effects.NewCtxPtr(tc.source, tc.player, effects.CtxInit{SVars: o.Face().SVars})
+		ctx := effects.NewCtxPtr(tc.source, tc.player, own)
 		if tcx, ok := e.triggerContexts[tc.resume.obj]; ok {
 			ctx.TriggerContext = tcx
 		}
@@ -1148,6 +1223,13 @@ func (e *Engine) triggeredCostXAsk(tc *triggeredEffectCost) bool {
 			bound = total
 		}
 	}
+	sacX := costCarriesSacX(tc.amount)
+	if sacX {
+		// CR 118.3: the permanents an announced sacrifice may name bound X.
+		if n := triggeredCostSacXBound(e, tc); bound < 0 || n < bound {
+			bound = n
+		}
+	}
 	if bound < 0 {
 		return false
 	}
@@ -1155,12 +1237,11 @@ func (e *Engine) triggeredCostXAsk(tc *triggeredEffectCost) bool {
 	for x := int32(0); x <= bound; x++ {
 		v := foldCostX(tc.amount, x)
 		priced := v
-		if evidenceX {
-			// Cost.Priceable is false for an Evidence part, so the folded
-			// cost's evidence half is gated by the component window's own
-			// payable check. X = 0 stays offered: the follow-up pay ask
-			// declines a zero threshold, keeping option 0 the
-			// decline-equivalent the bots take.
+		if sacX || evidenceX {
+			// Cost.Priceable is false for a Sac or Evidence part, so the folded
+			// half is gated by the component window's own payable check. X = 0
+			// stays offered: the follow-up pay ask declines a zero count or
+			// threshold, keeping option 0 the decline-equivalent the bots take.
 			if x > 0 {
 				probe := *tc
 				probe.amount = v
@@ -1168,7 +1249,7 @@ func (e *Engine) triggeredCostXAsk(tc *triggeredEffectCost) bool {
 					continue
 				}
 			}
-			priced.Evidence = nil
+			priced.Sac, priced.Evidence = nil, nil
 		}
 		if !pay.EnergyPayable(e.G, tc.player, &priced) || !pay.CostPayablePool(asPayer(e), tc.player, tc.source, pay.SAOther, priced, pot, e.G.Players[tc.player].ManaUnits()) {
 			continue
@@ -1421,8 +1502,10 @@ func (e *Engine) triggeredCostManaHalfPayable(tc *triggeredEffectCost, rest Cost
 
 // triggeredCostComponentsPayable reports whether the window can settle a
 // non-Priceable cost's choice-bearing components for real: every
-// component is a Sac/Exile/Discard/Return part (no Announced Sac -- the announced
-// count has no channel here), no OTHER non-mana component rides the cost,
+// component is a Sac/Exile/Discard/Return part (an announced Sac<X/Spec> is
+// folded into a literal count first, by triggeredCostXAsk; one still
+// announced here has no channel and is rejected), no OTHER non-mana component
+// rides the cost,
 // no {X}/tap demand needs an announcement the window cannot make, every
 // Draw count resolves, every component is payable at ask time, and the
 // mana/life half is chargeable from the pool (pool-only: the window never
@@ -1438,10 +1521,8 @@ func (e *Engine) triggeredCostComponentsPayable(tc *triggeredEffectCost) bool {
 	if amt.Tap || amt.X != 0 {
 		return false
 	}
-	for _, part := range amt.Sac {
-		if part.Announced {
-			return false
-		}
+	if costCarriesSacX(amt) {
+		return false // the announced count folds first (triggeredCostXAsk)
 	}
 	// Every component outside the settleable set keeps the decline-only ask
 	// (PayEnergy, AddCounter, PutToLib, Behold, Reveal, the dyn-tap

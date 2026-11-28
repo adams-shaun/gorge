@@ -36,7 +36,7 @@ func (lc *lowerCtx) effect(sa *cards.SA, ps *params) error {
 				return refuse("life cost PayLife<X> on a %s ability", "non-spell, non-activated")
 			}
 			if cost.SacX && sa.API != "Draw" {
-				// the decline-only announced sacrifice is lockstepped against
+				// the announced sacrifice is lockstepped against
 				// Sephiroth, One-Winged Angel's draw body only (kop.PayBSubSacXTrig)
 				lc.trigOwnCost = false
 				return refuse("sacrifice cost Sac<X> on a trigger's %s body", sa.API)
