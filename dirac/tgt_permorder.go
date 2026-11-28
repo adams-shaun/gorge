@@ -10,16 +10,24 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // order picks the target wherever a line is scripted: a scripted line answers
 // an ask with its first posed option (scriptStep), so a prefix tap's targeted
 // trigger (C.A.M.P.'s counter, CR 603.3d) lands on the permanent gorge names.
+//
+// The seat is the permanent's own ctrl, not listenerOrder's ctrlM: a census
+// clears controller bits to hide mana sources (offersOnPath), and a hidden
+// permanent is still a legal target.
 func (s *State) permTgtCands(k *prep, t *kop.TargetSpec, p uint8, src Slot, self Obj, out *[MaxOptions]TCode, n int) int {
-	var hit slotMask
+	var seat [MaxSeats]slotMask
 	for m := s.occ; m.any(); m = m.rest() {
 		sl := m.first()
 		if s.targetOK(k, t, p, src, self, TCode(s.perms[sl].obj)) {
-			hit.set(sl)
+			seat[s.perms[sl].ctrl].set(sl)
 		}
 	}
 	var ord [MaxPerm]Slot
-	for _, sl := range ord[:s.listenerOrder(hit, &ord)] {
+	no := 0
+	for q := uint8(0); q < s.nSeats(); q++ {
+		no = s.battlefieldOrder(q, seat[q], ord[:], no)
+	}
+	for _, sl := range ord[:no] {
 		out[n] = TCode(s.perms[sl].obj)
 		n++
 	}
