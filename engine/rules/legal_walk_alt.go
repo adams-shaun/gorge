@@ -334,7 +334,7 @@ func (w *legalWalk) commandZoneWalk() {
 			*out = append(*out, decision.Option{Index: len(*out), Kind: "cast",
 				Label: "Cast " + f.Name + " (" + ka.mode + ")", Obj: id, Mode: ka.mode})
 		}
-		// Bestow (CR 702.114a), the command-zone half (a bestowed commander,
+		// Bestow (CR 702.103a), the command-zone half (a bestowed commander,
 		// kestia_the_cultivator's shape): the same synthesized-attach-SA gate
 		// the hand walk applies.
 		if ba, ok := altCastModes[altBestow].faceCost(f, e.walkFaceFactsOf(f)); ok && e.castTargetsAvailable(p, id, bestowedAttachSA()) &&
@@ -492,7 +492,7 @@ func (w *legalWalk) graveyardCastsOver(grave []state.ObjID) {
 		w.offerBeamMeUp(p, id, f, out)
 	}
 
-	// Aftermath (CR 702.85a): the alternate face of a Split card may be cast
+	// Aftermath (CR 702.127a): the alternate face of a Split card may be cast
 	// from its owner's graveyard for its printed mana cost (plus its own SP
 	// Cost$ additional parts -- start_finish's Sac<1/Creature>), then exiled.
 	// Gated on the ALTERNATE face's K:Aftermath, which is what excludes Rooms
@@ -562,7 +562,7 @@ func (w *legalWalk) graveyardCastsOver(grave []state.ObjID) {
 		}
 	}
 
-	// Escape (CR 702.42a): a card in its owner's graveyard carrying the
+	// Escape (CR 702.138a): a card in its owner's graveyard carrying the
 	// Escape keyword -- printed (Kroxa's K:Escape) or granted by a continuous
 	// effect (Underworld Breach's AddKeyword$ Escape, which Derived reads off
 	// the layer system) -- may be cast for its escape cost: the card's mana
@@ -803,7 +803,7 @@ func (w *legalWalk) exileCastsWalk() {
 				w.addLandPlay(w.playLabel(f), id, f)
 			}
 		}
-		// Foretell cast (CR 702.126a): a card exiled face down by the {2}
+		// Foretell cast (CR 702.143a): a card exiled face down by the {2}
 		// Foretell ACTION (not by any other effect -- the flag is the action's
 		// own provenance marker) may be cast from exile for its FORETELL cost
 		// (the K: line's colon parameter) on a later turn. "Later turn" is
@@ -812,7 +812,7 @@ func (w *legalWalk) exileCastsWalk() {
 		// follows the card's own timing (spellTimingOK) and targets. The block
 		// sits BEFORE the warp gate's continue: a non-warp card (every foretell
 		// carrier) would otherwise never reach it.
-		// The K:Foretell parameter prices the later cast (CR 702.126a);
+		// The K:Foretell parameter prices the later cast (CR 702.143a);
 		// a face with no parameter falls back to the rule's action default
 		// {2} -- every corpus carrier carries one (measured 55/55), so the
 		// fallback is latent. The RAW parsed cost is offered here; cost

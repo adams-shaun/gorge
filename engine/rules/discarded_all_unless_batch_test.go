@@ -1,7 +1,7 @@
 package rules
 
 // The unless-payment half of the Mode$ DiscardedAll batch cadence: a
-// Discard<2/Card> unless cost is ONE discard action (CR 701.8), so a
+// Discard<2/Card> unless cost is ONE discard action (CR 701.9), so a
 // multi-card cost settlement queues ONE trigger whose TriggerCount$Amount is
 // the number of cards -- never one batch-of-one per emitted Discard event.
 // Every unless-payment discard settlement goes through

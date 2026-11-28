@@ -1,6 +1,6 @@
 // Foretell trigger mode.
 //
-// Mode$ Foretell: "Whenever a player foretells a card, ..." (CR 702.126b;
+// Mode$ Foretell: "Whenever a player foretells a card, ..." (CR 702.143b;
 // Dream Devourer, the corpus's sole carrier at the pin -- measured
 // `/usr/bin/grep -rlE 'T:Mode\$ Foretell' .cards/cardsfolder | wc -l` => 1).
 //

@@ -703,7 +703,7 @@ func TestSetAudit_sos_GrowthCurve_DoublesCounters(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// (c) Flashback (CR 702.78) — Dig Site Inventory: cast from the graveyard for
+// (c) Flashback (CR 702.34) — Dig Site Inventory: cast from the graveyard for
 // its flashback cost, then exile (nine flashback cards in the set).
 func TestSetAudit_sos_DigSiteInventory_FlashbackFromGraveyard(t *testing.T) {
 	t.Parallel()
@@ -740,7 +740,7 @@ func TestSetAudit_sos_DigSiteInventory_FlashbackFromGraveyard(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// (c) Surveil (CR 701.21) — Imperious Inkmage's ETB "surveil 2" must pose the
+// (c) Surveil (CR 701.25) — Imperious Inkmage's ETB "surveil 2" must pose the
 // arrange ask over the top two cards, and a chosen card goes to
 // the graveyard.
 func TestSetAudit_sos_ImperiousInkmage_SurveilArrangeAsk(t *testing.T) {
@@ -970,7 +970,7 @@ func TestSetAudit_sos_OwlinHistorian_FlyingBlocksGroundUnblockable(t *testing.T)
 	}
 }
 
-// (a) Reach (CR 702.11b): the reach creature's outcome lives on the BLOCK
+// (a) Reach (CR 702.17b): the reach creature's outcome lives on the BLOCK
 // side, so the flying Sprite attacks on seat 1's turn and seat 0 defends:
 // the Rearing Embermare (4/5 reach) blocks the flying attacker, the ground
 // bear's declaration is rejected.
@@ -1069,7 +1069,7 @@ func TestSetAudit_sos_ShatteredAcolyte_LifelinkGainsDamageDealt(t *testing.T) {
 	}
 }
 
-// (a) Menace (CR 702.31b): Ulna Alley Shopkeep (2/3 menace) cannot be blocked
+// (a) Menace (CR 702.111b): Ulna Alley Shopkeep (2/3 menace) cannot be blocked
 // by one creature; two can. Blocked by two 2/2s, the shopkeep deals 1+1 to
 // the bears and dies to their 4; a single-blocker declaration is rejected.
 func TestSetAudit_sos_UlnaAlleyShopkeep_MenaceNeedsTwoBlockers(t *testing.T) {
@@ -1132,7 +1132,7 @@ func TestSetAudit_sos_UlnaAlleyShopkeep_MenaceNeedsTwoBlockers(t *testing.T) {
 	}
 }
 
-// (a) Vigilance (CR 702.3b): Transcendent Archaic attacks WITHOUT tapping; a
+// (a) Vigilance (CR 702.20b): Transcendent Archaic attacks WITHOUT tapping; a
 // plain creature still taps when it attacks.
 func TestSetAudit_sos_TranscendentArchaic_VigilanceDoesNotTap(t *testing.T) {
 	t.Parallel()
@@ -1429,7 +1429,7 @@ func TestSetAudit_sos_StrixhavenSkycoach_ETBSearchAndCrew(t *testing.T) {
 	replayCheck(t, e, cfg)
 }
 
-// (a) Fight (CR 701.12), Chelonian Tackle: the pump (+0/+10) applies BEFORE
+// (a) Fight (CR 701.14), Chelonian Tackle: the pump (+0/+10) applies BEFORE
 // the fight sub-resolves, so the pumped 2/2 takes the ogre's 3 and survives;
 // the fight itself is the SubAbility's "up to one" target, announced on cast
 // (CR 601.2c). Declared variant.

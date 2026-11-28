@@ -37,7 +37,7 @@ func TestImproviseOrganicExtinctionAnnouncesArtifactsAndPays(t *testing.T) {
 	t.Parallel()
 	e := handEngine(t, corpusAlternativeCard(t, "Organic Extinction"))
 	ids := addArtifacts(t, e, 8, plainArtifactSrc)
-	// A tapped artifact is never an Improvise candidate (CR 702.66a).
+	// A tapped artifact is never an Improvise candidate (CR 702.126a).
 	tapped := addArtifacts(t, e, 1, plainArtifactSrc)[0]
 	e.G.Obj(tapped).Tapped = true
 	spell := e.G.Zone(state.ZHand, 0)[0]

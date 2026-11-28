@@ -1,4 +1,4 @@
-// K:Storied (CR 702.175): the enduring-story latch and the
+// K:Storied (CR 702.195): the enduring-story latch and the
 // statics gated on Condition$ EnduringStory, pinned on real corpus carriers.
 //
 // CR 702.175a makes "you have an enduring story for the rest of the game" a
@@ -144,7 +144,7 @@ func TestDainAttackIsFreeWithoutEnduringStory(t *testing.T) {
 func TestFiliContinuousPumpNeedsEnduringStory(t *testing.T) {
 	t.Parallel()
 	e := layerEngine(t)
-	// Fíli is Storied AND legendary, so it counts toward CR 702.175a itself.
+	// Fíli is Storied AND legendary, so it counts toward CR 702.195a itself.
 	fili := onBoardCard(t, e, 0, corpusAlternativeCard(t, "Fíli the Pathfinder"))
 	bear := onBoard(t, e, 0, "Name:Runeclaw Bear\nManaCost:1 G\nTypes:Creature Bear\nPT:2/2\nOracle:x\n")
 	first := onBoard(t, e, 0, qualifyingArtifact)

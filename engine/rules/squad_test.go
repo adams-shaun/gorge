@@ -9,7 +9,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// kw:Squad (CR 702.66) pinned end to end on the REAL corpus carrier
+// kw:Squad (CR 702.157) pinned end to end on the REAL corpus carrier
 // Securitron Squadron (K:Squad:3). The deck is built from compiled corpus
 // cards only, so no Forge script text is committed. Securitron Squadron is
 // in no legacy golden deck, so no chain head depends on this card.

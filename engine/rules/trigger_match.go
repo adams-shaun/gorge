@@ -3098,7 +3098,7 @@ func (e *Engine) triggerMatchesWithSVars(t cards.Trigger, source state.ObjID, ev
 	if !trigmatch.Match(boardOf(e), t, source, ev, lki) {
 		return false
 	}
-	// Condition$ Evolve (CR 702.99a): the evolve ability word written as a
+	// Condition$ Evolve (CR 702.100a): the evolve ability word written as a
 	// bare trigger condition rather than the K:Evolve keyword (MKM
 	// Sharp-Eyed Rookie, EOE Evolving Adaptive -- the corpus's only two).
 	// Before this arm the clause was unread, so the trigger fired
@@ -3397,7 +3397,7 @@ func init() {
 		// the coverage walk stops naming kw:Increment as a gap now that the
 		// expansion supplies the whole rule.
 		"kw:Increment",
-		// CR 702.70 Training: an Attacks trigger (engine/cards/kw_training.go) whose
+		// CR 702.149 Training: an Attacks trigger (engine/cards/kw_training.go) whose
 		// "with another creature with greater power" condition is read by
 		// trigmatch.AttacksMatches (the Dethrone precedent), with a granted-keyword
 		// synthesis (checkGrantedTrainingTriggers) for the layer-6 grant.
@@ -3463,7 +3463,7 @@ func init() {
 		"kw:Battle cry",
 		// Exploit's expansion (engine/cards/kw_exploit.go) is a ChangesZone ETB
 		// trigger whose effect is the optional DB$ Sacrifice -> DB$ Exploit
-		// chain (CR 702.58a). The layer-6 AddKeyword$ Exploit grant (Colonel
+		// chain (CR 702.110a). The layer-6 AddKeyword$ Exploit grant (Colonel
 		// Autumn's "Other legendary creatures you control have exploit") is
 		// synthesized by checkGrantedExploitTriggers, the Afflict/Dethrone
 		// precedent; the marker half is the api:Exploit primitive registered

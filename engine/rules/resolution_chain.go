@@ -209,7 +209,7 @@ func (e *Engine) moveResolvedOffStack(o *state.Object) {
 		return
 	}
 	rest := spellRestZone(o)
-	// CR 702.95a: a hand-cast Rebound spell is exiled as it resolves and
+	// CR 702.88a: a hand-cast Rebound spell is exiled as it resolves and
 	// leaves a delayed promise to recast it at its controller's next upkeep.
 	// Both the flag and the controller are captured before the MoveZone:
 	// events.Apply resets CastFlags on the stack->exile move, and the emit
@@ -266,7 +266,7 @@ func (e *Engine) moveResolvedOffStack(o *state.Object) {
 		"resting zone instead of re-resolving forever")
 }
 
-// registerRebound creates the CR 702.95a delayed trigger for a Rebound spell
+// registerRebound creates the CR 702.88a delayed trigger for a Rebound spell
 // that was just exiled: at the controller's next upkeep, that player may cast
 // the card from exile without paying its mana cost. The registration's source
 // IS the exiled card, so the builtin __kwReboundCast body's Card.Self names

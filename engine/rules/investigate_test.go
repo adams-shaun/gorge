@@ -7,7 +7,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// The Investigate primitive (api:Investigate, CR 701.36a) pinned end to end
+// The Investigate primitive (api:Investigate, CR 701.16a) pinned end to end
 // on real corpus cards: Martha Jones (the ETB default-count shape),
 // Wavesifter (Num$ 2) and Mirkwood Bats (the mint rides a real TokenCreate
 // event, so "whenever you create a token" triggers fire). The Clue's own

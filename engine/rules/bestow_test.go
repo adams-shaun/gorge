@@ -9,7 +9,7 @@ import (
 	"github.com/adams-shaun/gorge/testkit/testutil"
 )
 
-// Bestow (CR 702.114), pinned end to end on real corpus cards: the bestowed
+// Bestow (CR 702.103), pinned end to end on real corpus cards: the bestowed
 // cast (the alternative "Aura spell with enchant creature" half) is offered
 // beside the plain creature cast, pays the bestow cost instead of the mana
 // cost, asks a creature target through the synthesized attach SA, resolves

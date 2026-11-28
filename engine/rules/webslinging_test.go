@@ -1,6 +1,6 @@
 package rules
 
-// kw:Web-slinging (CR 702.186a-family, Marvel's Spider-Man): "You may cast
+// kw:Web-slinging (CR 702.188a-family, Marvel's Spider-Man): "You may cast
 // this spell for <cost> if you also return a tapped creature you control to
 // its owner's hand." The mechanic is a cost substitution (the web-slinging
 // cost replaces the mana cost, the Evoke/Miracle shape) composed with a

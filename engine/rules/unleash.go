@@ -7,7 +7,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// kw:Unleash (CR 702.86): "You may have this creature enter the battlefield
+// kw:Unleash (CR 702.98): "You may have this creature enter the battlefield
 // with a +1/+1 counter on it. While it has a +1/+1 counter on it, it can't
 // block."
 //

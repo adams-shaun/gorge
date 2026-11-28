@@ -9,7 +9,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// kw:Replicate (CR 702.55a) pinned end to end on the REAL corpus carriers.
+// kw:Replicate (CR 702.56a) pinned end to end on the REAL corpus carriers.
 // The deck is built from compiled corpus cards only, so no Forge script text
 // is committed. None of the three carriers (Changing Loyalty, Pyromatics —
 // and the declined shape reuses Changing Loyalty) is in any legacy golden
@@ -129,7 +129,7 @@ func splitCSV(s string) []string {
 }
 
 // TestReplicateChangingLoyaltyPaidOnceAttachesTheCopy is the Changing Loyalty
-// carrier (K:Replicate:2, CR 702.55a): the replicated cast option is offered,
+// carrier (K:Replicate:2, CR 702.56a): the replicated cast option is offered,
 // the count ask is answered once, exactly one copy stack object resolves on
 // top of the original, and the copy — a permanent-spell copy — enters the
 // battlefield attached to the SAME creature the original enchants. Per

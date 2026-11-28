@@ -84,7 +84,7 @@ func butchMenaceCounterEngine(t *testing.T) (*Engine, state.ObjID, state.ObjID) 
 }
 
 // TestButchDeLoriaMenaceCounterGrantsMenaceEndToEnd drives the real corpus
-// card's `DB$ PutCounter | CounterType$ Menace` leg and proves CR 702.109's
+// card's `DB$ PutCounter | CounterType$ Menace` leg and proves CR 702.111's
 // menace is live from a MARKER COUNTER, not just from a printed `K:Menace`:
 // the counter is on the creature and the engine reads the keyword, and the
 // declare-blockers gate then rejects a single blocker for the countered

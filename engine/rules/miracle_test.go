@@ -1,4 +1,4 @@
-// miracle.go / miracle_test.go drive the Miracle keyword (CR 702.93) through
+// miracle.go / miracle_test.go drive the Miracle keyword (CR 702.94) through
 // the trigger queue: the FIRST draw of a turn offers to cast the drawn card
 // for its miracle cost, the owner declines or accepts, and a yes reveals the
 // card and runs the ordinary cast flow with the miracle cost and FlagMiracle.

@@ -281,7 +281,7 @@ func (w *legalWalk) handWalk() {
 				}
 			}
 		}
-		// Foretell (CR 702.126a): the special action pays {2} and exiles the
+		// Foretell (CR 702.143a): the special action pays {2} and exiles the
 		// card from the hand FACE DOWN -- never the keyword's own colon
 		// parameter, which prices the LATER cast. The keyword read is DERIVED
 		// (printed K:Foretell line plus a layer-6 AddKeyword$ Foretell grant --
@@ -537,7 +537,7 @@ func (w *legalWalk) handWalk() {
 					Label: "Cast " + f.Name + " (entwined)", Obj: id, Mode: "entwined"})
 			}
 		}
-		// Replicate (CR 702.55a): the replicated variant is its own cast
+		// Replicate (CR 702.56a): the replicated variant is its own cast
 		// option paying the base cost plus ONE replicate payment -- one
 		// payment is what gates the offer; the count ask (replicateAsk)
 		// settles how many afterwards and the 601.2g payment window may still
@@ -565,7 +565,7 @@ func (w *legalWalk) handWalk() {
 					Label: "Cast " + f.Name + " (multikicked)", Obj: id, Mode: "multikicked"})
 			}
 		}
-		// Squad (CR 702.66): the squadded variant pays the base cost plus ONE
+		// Squad (CR 702.157): the squadded variant pays the base cost plus ONE
 		// squad payment -- the replicate/multikicker offer's exact shape (one
 		// payment gates the offer; the count ask, squadAsk, settles how many
 		// afterwards, and the 601.2g payment window may still produce mana for
@@ -637,7 +637,7 @@ func (w *legalWalk) handWalk() {
 					Label: "Cast " + f.Name + " (cleave)", Obj: id, Mode: castModeCleavedWord})
 			}
 		}
-		// Web-slinging (CR 702.186a-family, Marvel's Spider-Man): the printed
+		// Web-slinging (CR 702.188a-family, Marvel's Spider-Man): the printed
 		// (or granted) web-slinging cost replaces the mana cost, and the cast
 		// carries the mandatory additional cost of returning a tapped
 		// creature you control to its owner's hand -- the composed Cost the
@@ -690,12 +690,12 @@ func (w *legalWalk) handWalk() {
 		if ph.has(phMorph | phMegamorph | phDisguise) {
 			w.appendFaceDownCast(p, id, f, sorcery)
 		}
-		// Emerge (CR 702.118a): a casting option that is not a plain
+		// Emerge (CR 702.119a): a casting option that is not a plain
 		// substitution; see emerge.go's offerEmerge.
 		if ph.has(phEmerge) {
 			offerEmerge(w, p, id, f, targetsAvailable)
 		}
-		// Bestow (CR 702.114a): the bestowed cast is its own "cast" option
+		// Bestow (CR 702.103a): the bestowed cast is its own "cast" option
 		// paying the bestow cost in place of the mana cost, and the spell is
 		// an Aura with enchant creature, so the offer gates on the targets of
 		// the SYNTHESIZED attach SA -- the face has no SP of its own, so the

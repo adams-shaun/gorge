@@ -487,7 +487,7 @@ func TestAttackersMaxExposesTheCeiling(t *testing.T) {
 func TestSkulkBlocksOnlyGreaterPowerBlockers(t *testing.T) {
 	t.Parallel()
 	// Gollum, Obsessed Stalker is a real corpus carrier of the printed
-	// K:Skulk (CR 702.110a: a creature with skulk can't be blocked by
+	// K:Skulk (CR 702.118a: a creature with skulk can't be blocked by
 	// creatures with greater power). Seat 1 attacks seat 0, so seat 0's
 	// creatures are the prospective blockers.
 	e := combatEngine(t)

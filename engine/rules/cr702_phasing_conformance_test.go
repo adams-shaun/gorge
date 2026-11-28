@@ -1,7 +1,7 @@
 package rules
 
 // Reference: Magic: The Gathering Comprehensive Rules, 2026-08-07.
-// CR 702.25: Phasing (702.25a–f); 702.25b/d phased-out status.
+// CR 702.26: Phasing (702.25a–f); 702.25b/d phased-out status.
 // CR 702.26: Phasing (keyword), 702.26a phase-out at the controller's untap
 // step.
 // CR 502.4: the untap step's turn-based action phases permanents in.

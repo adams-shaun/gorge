@@ -43,7 +43,7 @@ import (
 // Derived keywords include granted ones, so a permanent that gained
 // "Protection from red" through a Resolution (e.g. a DB$ Protection
 // resolution, or a continuous effect) protects as surely as a printed
-// bearer does. (Shroud — CR 702.14 — is enforced by shroudBlocksTarget
+// bearer does. (Shroud — CR 702.18 — is enforced by shroudBlocksTarget
 // below, not here; protection and shroud are separate keyword families.) target or source being a zero/nonexistent object is never
 // protected (players have no ObjID, so a player target is never withheld on
 // protection grounds).
