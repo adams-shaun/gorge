@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"sort"
 	"strings"
 	"sync"
@@ -199,6 +200,117 @@ func TestTimeIsImportedOnlyByTheHost(t *testing.T) {
 	}
 }
 
+// cardcImportEdges is the closed list of "importer -> imported" edges into
+// engine/cardc from outside engine/cardc/... and cmd/cardc; a ticket adds its
+// own edge.
+var cardcImportEdges = []string{}
+
+// cardcImportViolations returns, sorted, one "importer -> imported" line per
+// package outside engine/cardc/... and cmd/cardc that imports a package under
+// engine/cardc, unless that line is in allowed. imports maps an importer to its
+// imports.
+func cardcImportViolations(module string, imports map[string][]string, allowed []string) []string {
+	root := module + "/engine/cardc"
+	cmd := module + "/cmd/cardc"
+	var out []string
+	for p, imps := range imports {
+		if p == root || strings.HasPrefix(p, root+"/") || p == cmd || strings.HasPrefix(p, cmd+"/") {
+			continue
+		}
+		for _, imp := range imps {
+			if imp != root && !strings.HasPrefix(imp, root+"/") {
+				continue
+			}
+			if edge := p + " -> " + imp; !slices.Contains(allowed, edge) {
+				out = append(out, edge)
+			}
+		}
+	}
+	sort.Strings(out)
+	return out
+}
+
+// cardcEdgeRuleViolations returns one message per entry of edges that the list
+// itself may not hold: an importer under engine/ may read only engine/cardc/ir,
+// and only from engine/cards.
+func cardcEdgeRuleViolations(module string, edges []string) []string {
+	var out []string
+	for _, e := range edges {
+		from, to, ok := strings.Cut(e, " -> ")
+		if !ok {
+			out = append(out, fmt.Sprintf("%q is not an \"importer -> imported\" edge", e))
+			continue
+		}
+		if !strings.HasPrefix(from, module+"/engine/") {
+			continue
+		}
+		if from == module+"/engine/cards" && to == module+"/engine/cardc/ir" {
+			continue
+		}
+		out = append(out, fmt.Sprintf("%s: no package that plays a game reads the typed interface before the one-set gate", e))
+	}
+	return out
+}
+
+// TestNothingImportsCardc proves the typed card interface cannot change main's
+// behaviour: no package outside engine/cardc/... and cmd/cardc imports it, except
+// through an edge in cardcImportEdges, and that list holds only live edges.
+func TestNothingImportsCardc(t *testing.T) {
+	// 1. The detector, on a synthetic map.
+	synthetic := map[string][]string{
+		module + "/engine/cardc/mtgish": {module + "/engine/cardc/ir"},
+		module + "/cmd/cardc":           {module + "/engine/cardc"},
+		module + "/engine/rules":        {module + "/engine/cardc/ir"},
+	}
+	edge := module + "/engine/rules -> " + module + "/engine/cardc/ir"
+	if got, want := cardcImportViolations(module, synthetic, nil), []string{edge}; !slices.Equal(got, want) {
+		t.Fatalf("synthetic map, empty allowance: want %q, got %q", want, got)
+	}
+	if got := cardcImportViolations(module, synthetic, []string{edge}); len(got) != 0 {
+		t.Fatalf("synthetic map, edge allowed: want no violation, got %q", got)
+	}
+
+	// 4. The rule on the list itself, on a synthetic list.
+	okEdge := module + "/engine/cards -> " + module + "/engine/cardc/ir"
+	toolEdge := module + "/cmd/forgec -> " + module + "/engine/cardc/mtgish"
+	badEdges := []string{
+		module + "/engine/rules -> " + module + "/engine/cardc/ir",
+		module + "/engine/cards -> " + module + "/engine/cardc/mtgish",
+	}
+	if got := cardcEdgeRuleViolations(module, []string{okEdge, toolEdge}); len(got) != 0 {
+		t.Fatalf("synthetic list: want the engine/cards -> ir and non-engine edges allowed, got %q", got)
+	}
+	if got := cardcEdgeRuleViolations(module, badEdges); len(got) != len(badEdges) {
+		t.Fatalf("synthetic list: want %d violations, got %q", len(badEdges), got)
+	}
+	for _, msg := range cardcEdgeRuleViolations(module, cardcImportEdges) {
+		t.Error(msg)
+	}
+
+	// 2. No vacuous pass.
+	pkgs := packages(t)
+	if _, ok := pkgs[module+"/engine/cardc"]; !ok {
+		t.Fatalf("%s/engine/cardc is not in the package set; the check would pass vacuously", module)
+	}
+
+	// 3. The live graph matches cardcImportEdges, both ways.
+	live := map[string][]string{}
+	for path, p := range pkgs {
+		for imp := range p.imports {
+			live[path] = append(live[path], imp)
+		}
+	}
+	for _, msg := range cardcImportViolations(module, live, cardcImportEdges) {
+		t.Errorf("%s; only engine/cardc/... and cmd/cardc may import the typed card interface, or an edge in cardcImportEdges", msg)
+	}
+	liveEdges := cardcImportViolations(module, live, nil)
+	for _, e := range cardcImportEdges {
+		if !slices.Contains(liveEdges, e) {
+			t.Errorf("cardcImportEdges holds %q, which no package imports; delete the entry", e)
+		}
+	}
+}
+
 // TestDependencyOrderHolds pins the arrows that must never appear, direct or
 // transitive.
 func TestDependencyOrderHolds(t *testing.T) {
@@ -289,6 +401,11 @@ func TestDependencyOrderHolds(t *testing.T) {
 		{module + "/engine/rules/scriptfacts", module + "/engine/rules/trigmatch"},
 		{module + "/engine/rules/scriptfacts", module + "/engine/rules/combat"},
 		{module + "/engine/rules/scriptfacts", module + "/engine/rules/resolve"},
+		// engine/cardc: the IR is a leaf, and the mtgish reader never reads
+		// gorge's card structs.
+		{module + "/engine/cardc/ir", module + "/engine/cards"},
+		{module + "/engine/cardc/ir", module + "/engine/state"},
+		{module + "/engine/cardc/mtgish", module + "/engine/cards"},
 	}
 	for path, p := range pkgs {
 		if strings.HasPrefix(path, module+"/bots") {
