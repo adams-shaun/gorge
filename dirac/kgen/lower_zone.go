@@ -6375,6 +6375,9 @@ func (lc *lowerCtx) changeZoneDefinedSet(ps *params) (bool, error) {
 	if _, ok := ps.m["DestAltSVar"]; ok {
 		return true, lc.czAltDest(ps)
 	}
+	if done, err := lc.refuseExileOriginDestAlt(ps); done || err != nil { // lower_destalt.go
+		return true, err
+	}
 	return false, nil
 }
 

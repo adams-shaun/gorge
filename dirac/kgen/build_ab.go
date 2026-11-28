@@ -1265,6 +1265,7 @@ var eventMap = map[string]kop.TrigEvent{"ETB": kop.TrigETB, "Dies": kop.TrigDies
 	"ClassLevelGained":       kop.TrigCounterAddedOnce,   // N = CtrLevel (lower_class.go)
 	"BecomesPlotted":         kop.TrigBecomesPlotted,     // the card's own
 	"BecomesSaddled":         kop.TrigBecomesSaddled,
+	"Mutates":                kop.TrigMutates,     // the pile's merge (dirac/trig_mutates.go)
 	"Exerted":                kop.TrigExerted,     // the OptionalAttackCost rider (static_optattack.go)
 	"Evolved":                kop.TrigEvolved,     // the source's own, after its evolve counter lands
 	"Attached":               kop.TrigAttached,    // the attachment's own, Creature bearer (Assimilation Aegis)

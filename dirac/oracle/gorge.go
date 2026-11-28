@@ -792,7 +792,7 @@ func paymentCastAction(pa decision.PaymentAction, ref func(state.ObjID) Ref) (a 
 		return Pack(ActCastKickedAlt, ref(pa.Cast.Object), RefNone, kickedAltSelector(mode)), false, ""
 	case "conspired":
 		return Pack(ActCast, ref(pa.Cast.Object), RefNone, castModeOther|15<<4), false, ""
-	case "suspend", "bargained", "teamworked", "harmonize", "mayhem", "buyback", "entwined", "optionalcost", "web-slinging", "overloaded", "cleaved":
+	case "suspend", "bargained", "teamworked", "harmonize", "mayhem", "buyback", "entwined", "optionalcost", "web-slinging", "overloaded", "cleaved", "mutated":
 		// CR 702.166: the full cast-mode table's castModeOther code, the
 		// same canonical form the offered option uses
 		return Pack(ActCast, ref(pa.Cast.Object), RefNone, castModeOther), false, ""
@@ -1047,6 +1047,18 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 				add(prioEntry{a: Pack(ActCast, ref(o.Obj), RefNone, castModeOther|15<<4), opt: o.Index})
 				continue
 			}
+			if o.Mode == "mutated" {
+				// CR 702.140a: the mutate cast's mode word is not in the full
+				// 16-entry cast-mode table, so it canonicalises to
+				// CastModeOther, the kernel's AkMutate mapping
+				// (canon/translate.go)
+				if o.AltCostIndex > 15 {
+					note("cast/mutated")
+					continue
+				}
+				add(prioEntry{a: Pack(ActCast, ref(o.Obj), RefNone, castModeOther|uint8(o.AltCostIndex)<<4), opt: o.Index})
+				continue
+			}
 			if o.Mode == "overloaded" || o.Mode == "cleaved" {
 				// CR 702.96a: the overloaded cast's mode word is not in the
 				// full 16-entry cast-mode table, so it canonicalises to
@@ -1235,6 +1247,9 @@ func (g *GorgeSide) priorityVocabulary(fr *frame) {
 				a = Pack(ActCast, ref(pa.Obj), RefNone, mc)
 			} else if pa.Mode == "suspend" {
 				a = Pack(ActCast, ref(pa.Obj), RefNone, castModeOther) // kw_suspend.go
+			} else if pa.Mode == "mutated" {
+				// CR 702.140a: the off-table mutate mode, as the offered option
+				a = Pack(ActCast, ref(pa.Obj), RefNone, castModeOther)
 			} else if pa.Mode == "overloaded" || pa.Mode == "cleaved" {
 				a = Pack(ActCast, ref(pa.Obj), RefNone, castModeOther) // CR 702.96a, kw_overload.go
 			} else if pa.Mode == "buyback" || pa.Mode == "entwined" {
