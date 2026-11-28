@@ -7,7 +7,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// The Blight (CR 701.60) primitive's effects-side leaves. The real-corpus
+// The Blight (CR 701.68) primitive's effects-side leaves. The real-corpus
 // end-to-end pins live in engine/rules/blight_test.go; these exercise the per-player
 // ask/answer machinery against hand-built boards, where the strict-supersets
 // gate, the re-entry cursor and the fail-closed guards are each isolated.

@@ -11,8 +11,9 @@
 #   hosted-cmdr gorged's hosted Commander decks, played 2-seat as -kernel hosted-cmdr from
 #               <pools>/hosted-cmdr, built from testkit/testutil/decks' format-commander decks
 #               (refused copies replaced by basics, a deck with a refused commander left out):
-#               python3 dirac/oracle/pools/decks.py --set HOSTED-CMDR --from-decks <those decks>
-#               --deck-size 100 --max-refused 100 --allow-unverified --label sim <pools>/hosted-cmdr;
+#               python3 dirac/oracle/pools/decks.py --set HOSTED-CMDR --from-decks <those decks, each
+#               copy's "name" set to its file stem> --deck-size 100 --max-refused 100 --allow-unverified
+#               --label sim <pools>/hosted-cmdr;
 #               the tree dirac/oracle/pools.go pins is that build before its own refusals
 #   fdc-gaps    dirac/support/pools/fdc-gaps: four committed 50-card decks holding the five Foundations
 #               Commander cards the fdc-gaps lowerings add, played 2-seat as -kernel fdn -set cmd5

@@ -5,7 +5,7 @@
 package cards
 
 func kwPersist(f *Face, i int, k, head, param string, has func(kind, line string) bool) {
-	// CR 702.77, the mirror of Undying: the dies-condition reads
+	// CR 702.93, the mirror of Undying: the dies-condition reads
 	// -1/-1 counters off the LKI and the return grants one.
 	f.addKeywordTrigger(head, k, "Mode$ ChangesZone | Origin$ Battlefield | Destination$ Graveyard | ValidCard$ Card.Self+counters_EQ0_M1M1 | TriggerDescription$ Persist",
 		"DB$ ChangeZone | Defined$ TriggeredNewCardLKICopy | Origin$ Graveyard | Destination$ Battlefield | WithCountersType$ M1M1 | WithCountersAmount$ 1", has)

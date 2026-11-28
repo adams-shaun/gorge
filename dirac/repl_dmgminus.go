@@ -34,53 +34,59 @@ func (s *State) dmgMinusN(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, rc
 	hits := 0
 	for m := s.statM; m.any(); m = m.rest() {
 		h := m.first()
-		if g.replBits2[s.cardAt(h)]&rb2DmgMinus == 0 || s.genLost(k, h) || s.faceDown(k, h) {
+		if s.genLost(k, h) || s.faceDown(k, h) {
 			continue
 		}
-		cd := &k.t.Cards[s.cardAt(h)]
 		hc := s.perms[h].ctrl
-		for i := range cd.Abilities {
-			a := &cd.Abilities[i]
-			if a.Kind != kop.AbReplacement || a.Repl.Kind != kop.ReplDamageMinus {
-				continue
+		s.eachPileCard(k, h, func(c CardID) bool {
+			if g.replBits2[c]&rb2DmgMinus == 0 {
+				return true
 			}
-			r := &a.Repl
-			if r.C&kop.ReplDmgSrcSpell != 0 && (srcSl != NoSlot || s.res.e.kind != seSpell) {
-				continue // the source is the resolving spell (ValidSource$ Spell)
-			}
-			if r.C&kop.ReplDmgNonCombat != 0 && combat || r.C&kop.ReplDmgCombat != 0 && !combat {
-				continue
-			}
-			if r.C&kop.ReplDmgSrcInPlay != 0 && srcSl == NoSlot {
-				continue
-			}
-			switch {
-			case sl == NoSlot:
-				if !(r.C&kop.ReplDmgPlayer != 0) && !(r.C&kop.ReplDmgOppPlayer != 0 && rcp != hc) {
-					continue // the recipient is no player the line names
-				}
-			default:
-				// the recipient is a permanent at sl: any named word or the
-				// filter alternative (gorge's ValidTarget$ alternatives are
-				// one big OR)
-				ok := r.C&kop.ReplDmgPerm != 0 || r.C&kop.ReplDmgOppPerm != 0 && rcp != hc
-				if !ok && r.Filter != 0 {
-					ok = s.matchPermGen(k, r.Filter, sl, hc, h, layerFull)
-				}
-				if !ok {
+			cd := &k.t.Cards[c]
+			for i := range cd.Abilities {
+				a := &cd.Abilities[i]
+				if a.Kind != kop.AbReplacement || a.Repl.Kind != kop.ReplDamageMinus {
 					continue
 				}
+				r := &a.Repl
+				if r.C&kop.ReplDmgSrcSpell != 0 && (srcSl != NoSlot || s.res.e.kind != seSpell) {
+					continue // the source is the resolving spell (ValidSource$ Spell)
+				}
+				if r.C&kop.ReplDmgNonCombat != 0 && combat || r.C&kop.ReplDmgCombat != 0 && !combat {
+					continue
+				}
+				if r.C&kop.ReplDmgSrcInPlay != 0 && srcSl == NoSlot {
+					continue
+				}
+				switch {
+				case sl == NoSlot:
+					if !(r.C&kop.ReplDmgPlayer != 0) && !(r.C&kop.ReplDmgOppPlayer != 0 && rcp != hc) {
+						continue // the recipient is no player the line names
+					}
+				default:
+					// the recipient is a permanent at sl: any named word or the
+					// filter alternative (gorge's ValidTarget$ alternatives are
+					// one big OR)
+					ok := r.C&kop.ReplDmgPerm != 0 || r.C&kop.ReplDmgOppPerm != 0 && rcp != hc
+					if !ok && r.Filter != 0 {
+						ok = s.matchPermGen(k, r.Filter, sl, hc, h, layerFull)
+					}
+					if !ok {
+						continue
+					}
+				}
+				hits++
+				switch {
+				case r.C&kop.ReplDmgHalfDown != 0:
+					n /= 2 // ReplaceCount$DamageAmount/HalfDown: half, rounded down (Ghosts of the Innocent)
+				case n > int(r.A):
+					n -= int(r.A) // CR 614.1: the rewrite replaces the event's amount
+				default:
+					n = 0
+				}
 			}
-			hits++
-			switch {
-			case r.C&kop.ReplDmgHalfDown != 0:
-				n /= 2 // ReplaceCount$DamageAmount/HalfDown: half, rounded down (Ghosts of the Innocent)
-			case n > int(r.A):
-				n -= int(r.A) // CR 614.1: the rewrite replaces the event's amount
-			default:
-				n = 0
-			}
-		}
+			return true
+		})
 	}
 	return n, hits
 }
@@ -108,47 +114,53 @@ func (s *State) dmgSetN(k *prep, srcCtrl uint8, srcSl Slot, srcCard CardID, rcp 
 	hits := 0
 	for m := s.statM; m.any(); m = m.rest() {
 		h := m.first()
-		if g.replBits2[s.cardAt(h)]&rb2DmgSet == 0 || s.genLost(k, h) || s.faceDown(k, h) {
+		if s.genLost(k, h) || s.faceDown(k, h) {
 			continue
 		}
-		cd := &k.t.Cards[s.cardAt(h)]
 		hc := s.perms[h].ctrl
-		for i := range cd.Abilities {
-			a := &cd.Abilities[i]
-			if a.Kind != kop.AbReplacement || a.Repl.Kind != kop.ReplDamageSet {
-				continue
+		s.eachPileCard(k, h, func(c CardID) bool {
+			if g.replBits2[c]&rb2DmgSet == 0 {
+				return true
 			}
-			r := &a.Repl
-			if gate := kop.ReplDmgSetGateOf(r.C); n < gate {
-				continue // damage under the gate is untouched
-			}
-			if r.Filter2 != 0 {
-				ctx := evalCtx{src: s.perms[h].obj, srcSl: h, ctrl: hc}
-				if srcSl != NoSlot {
-					if !s.matchPermGen(k, r.Filter2, srcSl, hc, h, layerFull) {
+			cd := &k.t.Cards[c]
+			for i := range cd.Abilities {
+				a := &cd.Abilities[i]
+				if a.Kind != kop.AbReplacement || a.Repl.Kind != kop.ReplDamageSet {
+					continue
+				}
+				r := &a.Repl
+				if gate := kop.ReplDmgSetGateOf(r.C); n < gate {
+					continue // damage under the gate is untouched
+				}
+				if r.Filter2 != 0 {
+					ctx := evalCtx{src: s.perms[h].obj, srcSl: h, ctrl: hc}
+					if srcSl != NoSlot {
+						if !s.matchPermGen(k, r.Filter2, srcSl, hc, h, layerFull) {
+							continue
+						}
+					} else if !s.matchSourceCard(k, r.Filter2, srcCard, srcCtrl, hc, &ctx) {
 						continue
 					}
-				} else if !s.matchSourceCard(k, r.Filter2, srcCard, srcCtrl, hc, &ctx) {
-					continue
 				}
+				switch {
+				case sl == NoSlot:
+					if !(r.C&kop.ReplDmgPlayer != 0) && !(r.C&kop.ReplDmgOppPlayer != 0 && rcp != hc) {
+						continue // the recipient is no player the line names
+					}
+				default:
+					ok := r.C&kop.ReplDmgPerm != 0 || r.C&kop.ReplDmgOppPerm != 0 && rcp != hc
+					if !ok && r.Filter != 0 {
+						ok = s.matchPermGen(k, r.Filter, sl, hc, h, layerFull)
+					}
+					if !ok {
+						continue
+					}
+				}
+				hits++
+				n = int(r.A) // CR 614.1: the rewrite replaces the event's amount
 			}
-			switch {
-			case sl == NoSlot:
-				if !(r.C&kop.ReplDmgPlayer != 0) && !(r.C&kop.ReplDmgOppPlayer != 0 && rcp != hc) {
-					continue // the recipient is no player the line names
-				}
-			default:
-				ok := r.C&kop.ReplDmgPerm != 0 || r.C&kop.ReplDmgOppPerm != 0 && rcp != hc
-				if !ok && r.Filter != 0 {
-					ok = s.matchPermGen(k, r.Filter, sl, hc, h, layerFull)
-				}
-				if !ok {
-					continue
-				}
-			}
-			hits++
-			n = int(r.A) // CR 614.1: the rewrite replaces the event's amount
-		}
+			return true
+		})
 	}
 	return n, hits
 }

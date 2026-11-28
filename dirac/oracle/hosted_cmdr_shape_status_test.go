@@ -13,24 +13,22 @@ import (
 // plays it), Opposition Agent lowers (its search control and found-card exile;
 // TestHostedCmdrSearchControlLockstep plays it), Expert-Level Safe lowers (its
 // secret ChooseNumber election; TestHostedCmdrSecretElectionLockstep plays it),
-// and the two whose shape needs a kernel model that does not exist yet stay
-// not lowered, each with its own reason, so a deck holding one is turned away
-// rather than played wrong:
+// Nahiri's Lithoforming lowers (its Effect's frozen-number land plays and
+// lands-enter-tapped replacement; TestHostedCmdrLithoformingLockstep plays it),
+// and the one whose shape needs a kernel model that does not exist yet stays
+// not lowered with its own reason, so a deck holding it is turned away rather
+// than played wrong:
 //
 //   - K'rrik, Son of Yawgmoth: the PayLifeInsteadOf:B player static (each {B}
 //     of a cost payable with 2 life: the offer faces, the shortfall payment
-//     and the mana window's done are not modelled);
-//   - Nahiri's Lithoforming: an Effect's SetChosenNumber$ over an
-//     AdjustLandPlays$ static beside a lands-enter-tapped replacement (the
-//     kernel freezes the number only for an emblem ReduceCost, and has no
-//     emblem enters-tapped replacement).
+//     and the mana window's done are not modelled).
 func TestHostedCmdrPlayerStatics(t *testing.T) {
 	want := map[string]string{
 		"Ob Nixilis, Captive Kingpin": "",
 		"K'rrik, Son of Yawgmoth":     "player static",
 		"Opposition Agent":            "",
 		"Expert-Level Safe":           "",
-		"Nahiri's Lithoforming":       "Effect SetChosenNumber$ outside an emblem ReduceCost",
+		"Nahiri's Lithoforming":       "",
 	}
 	var names []string
 	for n := range want {

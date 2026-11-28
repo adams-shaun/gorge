@@ -53,7 +53,17 @@ func Main(args []string) int {
 	class := flags.String("class", "lockstep", "with -refuse: the kind of difference, the refused list's grouping")
 	repro := flags.String("repro", "", "with -refuse: the game that shows it, POOL:SURFACE:PAIR[:POLICY[:MULLIGANS]]")
 	unrefuse := flags.String("unrefuse", "", "delete this card's dirac/support/refused entry instead of generating")
+	filterIR := flags.Bool("filter-ir", false, "read filters through the typed interface (comparison path; tables must not change)")
 	flags.Parse(args)
+	if *filterIR {
+		if *tables || *synthPools {
+			// the table cache is keyed on the corpus alone: a typed run would
+			// compare nothing on a warm key and publish under the string key
+			fmt.Fprintln(os.Stderr, "kgen: -filter-ir does not combine with -tables or -synth-pools")
+			return 2
+		}
+		defaultFilterReader = filterReadTyped // every pool this run loads (pool.go)
+	}
 	if *refuse != "" {
 		return exitStatus(runRefuse(*cardsDir, *refuse, *class, *why, *repro, os.Stdout))
 	}

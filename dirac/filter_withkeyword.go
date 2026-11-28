@@ -68,10 +68,10 @@ func printedKeyword(cd *kop.CardDef, id kop.KwID) bool {
 		// card (kgen repeated), which prints no Multikicker keyword.
 		return cd.HasMultikicker && cd.RepeatedKind == kop.RepeatMultikicker
 	// T13b-2's records: the keywords with no KwMask bit, each its own cold
-	// CardDef field set at the face keyword's lowering arm. Mutate and
-	// Phasing keep no field here: their K: line refuses the whole face,
-	// so no lowered card can print them, and printedKeyword's default false
-	// reads each one as gorge does over the lowered cards.
+	// CardDef field set at the face keyword's lowering arm. Phasing keeps no
+	// field here: its K: line refuses the whole face, so no lowered card can
+	// print it, and printedKeyword's default false reads it as gorge does
+	// over the lowered cards.
 	case kop.KwCycling:
 		return cd.HasCycling
 	case kop.KwPrintedWard:
@@ -109,11 +109,15 @@ func printedKeyword(cd *kop.CardDef, id kop.KwID) bool {
 		return cd.FlipCast == kop.FlipConverted
 	case kop.KwLivingMetal:
 		return cd.LivingMetal
-	// Mutate and Phasing: their K: line refuses the whole face, so no
-	// lowered card prints them and the cases read false over the lowered
-	// cards exactly as gorge does. The cases name the KwIDs for the
-	// manifest's active-status gate (their words still lower to FwWithKeyword).
-	case kop.KwMutate, kop.KwPhasing:
+	// Mutate: the printed K:Mutate line records CardDef.HasMutate
+	// (kgen lower_mutate.go), the same record W7WithKeyword reads.
+	case kop.KwMutate:
+		return cd.HasMutate
+	// Phasing: its K: line refuses the whole face, so no lowered card prints
+	// it and the case reads false over the lowered cards exactly as gorge
+	// does. The case names the KwID for the manifest's active-status gate
+	// (its word still lowers to FwWithKeyword).
+	case kop.KwPhasing:
 		return false
 	}
 	return false

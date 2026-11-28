@@ -1143,7 +1143,7 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 		// engine's EntryCounterGrants gate reads the same MoveZone face-down
 		// marker this fold applies.
 	default:
-		// CR 702.103: a Soulbond pair ends when either member leaves the
+		// CR 702.95: a Soulbond pair ends when either member leaves the
 		// battlefield. Move itself is the complete logged state transition, so
 		// clear the remaining member here too; replay derives the same break
 		// without a second event.

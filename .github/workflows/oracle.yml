@@ -240,6 +240,13 @@ jobs:
           fi
           git switch -c "$br" "$GITHUB_SHA"
           git revert --no-edit -m 1 "$CULPRIT"
+          if [ -f scripts/sentinel-append.sh ]; then
+            bash scripts/sentinel-append.sh failing.txt "oracle run $GITHUB_RUN_ID (auto-revert of #$PR)" | tee sentinels.out
+            if ! git diff --quiet -- dirac/oracle/testdata/sentinels.txt; then
+              git add dirac/oracle/testdata/sentinels.txt
+              git commit -q -m "oracle: sentinel the tests #$PR reddened"
+            fi
+          fi
           git push --force origin "$br"
           {
             echo "The oracle failed on main at $GITHUB_SHA. Bisecting first-parent merges from the last green oracle run blames #$PR ($CULPRIT)."
@@ -249,7 +256,8 @@ jobs:
             echo
             echo "Run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
             echo
-            echo "A draft: Mergify queues every non-draft PR, so a human reads the failure, then marks it ready (or closes it and fixes forward). Append the failing tests to dirac/oracle/testdata/sentinels.txt in the fix or the revert."
+            echo "A draft: Mergify queues every non-draft PR, so a human reads the failure, then marks it ready (or closes it and fixes forward). This branch appends the failing tests to dirac/oracle/testdata/sentinels.txt (below); a fix forward must carry the same lines."
+            echo; cat sentinels.out 2>/dev/null || true
             echo
             echo "---"
             echo "This Robot (gorge agentctl swarm) Shan't Be Blamed For Stupid Humans"

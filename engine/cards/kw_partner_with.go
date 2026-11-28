@@ -6,7 +6,7 @@ package cards
 
 import "strings"
 
-// kwPartnerWith expands CR 702.128's partner-with keyword (K:Partner
+// kwPartnerWith expands CR 702.124's partner-with keyword (K:Partner
 // with:<name>[:<short-name>], 52 corpus files at the pin). Unlike the bare
 // K:Partner line -- which is deck CONSTRUCTION only and is read by
 // deck.IsPartnerPair, never by a trigger -- the partner-with keyword prints

@@ -69,7 +69,7 @@ func (s *State) manaAbCosts(k *prep, sl Slot, a *kop.Ability) bool {
 	if m.X > 0 {
 		return true
 	}
-	return m.Generic > 0 || m.Pips != [kop.NumManaKinds]uint8{} || m.Hyb != [4]kop.ColorMask{}
+	return m.Generic > 0 || m.Pips != [kop.NumManaKinds]uint8{} || m.Hyb != [5]kop.ColorMask{}
 }
 
 // feeOrderFallback reports whether gorge's fee-order run follows the plain run

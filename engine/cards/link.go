@@ -152,7 +152,7 @@ var builtinSVars = map[string]string{
 	// it at the beginning of the next cleanup step". The registration's
 	// Source is the permanent the spell became, so Defined$ Self is it.
 	"__kwMayFlashSacrifice": "DB$ Sacrifice | Defined$ Self",
-	// Rebound (CR 702.95a): "At the beginning of your next upkeep, you may
+	// Rebound (CR 702.88a): "At the beginning of your next upkeep, you may
 	// cast this card from exile without paying its mana cost." The
 	// registration's Source is the exiled card itself, so the Play's
 	// population is Card.Self; ValidZone$ Exile pins the offer to the exile

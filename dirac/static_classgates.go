@@ -218,14 +218,16 @@ func (s *State) mayPlayZones(k *prep, p uint8) uint16 {
 // slot: an override record, a global grant in the table, or a static
 // grant source on the battlefield (kprio2).
 func (s *State) grantsLive(k *prep) bool {
-	return k.gen.uses.has(useGainedMana) || k.gen.anyGrant && (s.fxM.any() || k.gen.globGrant || s.grantM.any())
+	return k.gen.uses.has(useGainedMana) || k.gen.anyGrant && (s.fxM.any() || k.gen.globGrant || s.grantM.any()) ||
+		k.gen.anyMutate || k.gen.anyMerge
 }
 
 // grantMay reports whether grantedAbilitiesN can report a grant for sl
 // (a superset: false means it calls f for nothing), so a caller skips the
 // walk and its closures for a slot with none (kprio2).
 func (s *State) grantMay(k *prep, sl Slot) bool {
-	return k.gen.uses.has(useGainedMana) || k.gen.anyGrant && (s.fxM.has(sl) || k.gen.globGrant || s.grantM.any())
+	return k.gen.uses.has(useGainedMana) || k.gen.anyGrant && (s.fxM.has(sl) || k.gen.globGrant || s.grantM.any()) ||
+		(k.gen.anyMutate || k.gen.anyMerge) && s.pileAt(k, sl) != nil
 }
 
 // sbaPTQuiet reports whether no static in force can change a permanent's

@@ -30,7 +30,7 @@ import (
 // count moves, so a new or removed numeric mirror is noticed here instead of
 // silently dropping out of the contract. 14 as of the 11-26 kernel
 // maintainability audit.
-const wantLockstepConsts = 14
+const wantLockstepConsts = 15
 
 // lockstepTag is the annotation a dirac mirror carries on the site's line (or
 // the line above): the tag followed by the gorge anchor. The pieces are

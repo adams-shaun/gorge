@@ -37,24 +37,30 @@ func (s *State) lifeFloorTake(k *prep, p uint8, n int) int {
 	life := int(s.pl[p].life)
 	for m := s.statM.and(s.ctrlM[p]); m.any(); m = m.rest() {
 		sl := m.first()
-		if g.replBits2[s.cardAt(sl)]&rb2LifeFloor == 0 || s.genLost(k, sl) || s.faceDown(k, sl) {
+		if s.genLost(k, sl) || s.faceDown(k, sl) {
 			continue
 		}
-		cd := &k.t.Cards[s.cardAt(sl)]
-		for i := range cd.Abilities {
-			r := &cd.Abilities[i].Repl
-			if cd.Abilities[i].Kind != kop.AbReplacement || r.Kind != kop.ReplLifeReduced {
-				continue
+		s.eachPileCard(k, sl, func(c CardID) bool {
+			if g.replBits2[c]&rb2LifeFloor == 0 {
+				return true
 			}
-			floor := int(r.A)
-			if life < floor || life-n >= floor {
-				continue // the lifeGE gate, then a loss that never reaches the floor
+			cd := &k.t.Cards[c]
+			for i := range cd.Abilities {
+				r := &cd.Abilities[i].Repl
+				if cd.Abilities[i].Kind != kop.AbReplacement || r.Kind != kop.ReplLifeReduced {
+					continue
+				}
+				floor := int(r.A)
+				if life < floor || life-n >= floor {
+					continue // the lifeGE gate, then a loss that never reaches the floor
+				}
+				if r.Cond != 0 && !s.condEval(k, r.Cond, evalCtx{src: s.perms[sl].obj, srcSl: sl, ctrl: s.perms[sl].ctrl}) {
+					continue
+				}
+				n = life - floor // Result$ LT<floor>: the total stays at the floor
 			}
-			if r.Cond != 0 && !s.condEval(k, r.Cond, evalCtx{src: s.perms[sl].obj, srcSl: sl, ctrl: s.perms[sl].ctrl}) {
-				continue
-			}
-			n = life - floor // Result$ LT<floor>: the total stays at the floor
-		}
+			return true
+		})
 	}
 	return n
 }

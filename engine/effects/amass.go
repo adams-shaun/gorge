@@ -10,7 +10,7 @@ import (
 
 func init() { Register("Amass", effAmass) }
 
-// effAmass implements the Amass primitive (CR 701.55b-c; 62 corpus files, all
+// effAmass implements the Amass primitive (CR 701.47b-c; 62 corpus files, all
 // DB$-on-a-trigger and SP$ spell shapes with Type$ + Num$): put Num$
 // +1/+1 counters on an Army the resolving ability's controller controls; if
 // they control none, first create a 0/0 black <Type> Army token. The Army

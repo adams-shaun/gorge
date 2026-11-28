@@ -447,7 +447,7 @@ type TriggerContext struct {
 	// rebuilt by the same replay re-derivation as TriggerPaidX/TriggerConverge.
 	TriggerBlocker state.ObjID
 	// TriggerEnlisted is the nonattacking creature an attacking creature
-	// tapped for CR 702.160's enlist action (engine/rules/enlist.go): the Enlist
+	// tapped for CR 702.154's enlist action (engine/rules/enlist.go): the Enlist
 	// event's Obj is the ATTACKING creature, so the enlisted creature -- what
 	// Mode$ Enlisted's ValidEnlisted$ filters and what Defined$
 	// TriggeredEnlisted names (Goblin Morale Sergeant's conjured duplicate) --

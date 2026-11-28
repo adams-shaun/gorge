@@ -6,7 +6,7 @@ package cards
 
 import "strings"
 
-// kwReconfigure expands K:Reconfigure (CR 702.150) into the activated
+// kwReconfigure expands K:Reconfigure (CR 702.151) into the activated
 // abilities the keyword prints, riding the same AB$ Attach primitive
 // kw:Equip mints. For each printed cost the expansion mints a PAIR:
 //
@@ -27,7 +27,7 @@ import "strings"
 //     action there, and a payable no-op the bot can answer forever is the
 //     livelock shape the offer gates exist to withhold).
 //
-// Both halves carry `SorcerySpeed$ True` (CR 702.150a: "Reconfigure only
+// Both halves carry `SorcerySpeed$ True` (CR 702.151a: "Reconfigure only
 // as a sorcery"), the same rider the Equip expansion mints and the offer
 // loop's sorcery gate reads.
 //
