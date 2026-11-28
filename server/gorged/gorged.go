@@ -543,10 +543,7 @@ func serve(ctx context.Context, c config, ln net.Listener) error {
 			return fmt.Errorf("-engine: %w", err)
 		}
 	}
-	if err := c.checkDiracFlags(); err != nil {
-		return err
-	}
-	if err := c.checkRouteFlags(); err != nil {
+	if err := c.checkEngineFlags(); err != nil {
 		return err
 	}
 	vis, err := view.ParseVisibility(c.spectator)
@@ -705,14 +702,8 @@ func serve(ctx context.Context, c config, ln net.Listener) error {
 	}
 	c.imports = newDeckImports(reg)
 	c.imports.demand = c.demandLog()
-	if err := c.diracColumn(reg, diracEngine); err != nil {
+	if err := c.diracColumn(reg, diracEngine, cmdPool); err != nil {
 		return err
-	}
-	if c.routePodsDirac {
-		c.withDirac(c.diracCheck)
-		if c.diracPool, err = diracPoolVerdicts(c.diracCheck, reg, c.decks, cmdPool); err != nil {
-			return err
-		}
 	}
 	load = c.imports.loader(load)
 	// -events chains the event store's deck loader in front of the ordinary

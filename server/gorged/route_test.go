@@ -1,7 +1,10 @@
 package gorged
 
 import (
+	"context"
+	"encoding/json"
 	"errors"
+	"net/http"
 	"strings"
 	"testing"
 
@@ -92,5 +95,32 @@ func TestRoutePodsDiracFlagNeedsSets(t *testing.T) {
 	}
 	if err := (config{engine: adapter.Name}).checkRouteFlags(); err != nil {
 		t.Errorf("flag off: %v", err)
+	}
+}
+
+// TestServeChecksRouteFlags: serve refuses -route-pods-dirac without
+// -dirac-check-sets before it opens the corpus.
+func TestServeChecksRouteFlags(t *testing.T) {
+	err := serve(context.Background(), config{engine: gorgegame.Name, routePodsDirac: true}, nil)
+	if err == nil || err.Error() != "-route-pods-dirac needs -dirac-check-sets: the sets a routed pod plays on" {
+		t.Fatalf("serve: %v", err)
+	}
+}
+
+// TestCreateTwoSeatNamesGorge: a two-seat create on a server without
+// -route-pods-dirac answers engine gorge and no reason.
+func TestCreateTwoSeatNamesGorge(t *testing.T) {
+	base, cancel, _ := startServe(t, config{vsbot: true})
+	defer cancel()
+	status, body := postGame(t, base, map[string]string{"format": "constructed", "bot_policy": "bot"})
+	if status != http.StatusOK {
+		t.Fatalf("POST /api/games: %d %s", status, body)
+	}
+	var g map[string]any
+	if err := json.Unmarshal(body, &g); err != nil {
+		t.Fatal(err)
+	}
+	if _, has := g["engine_reason"]; g["engine"] != gorgegame.Name || has {
+		t.Fatalf("engine %v reason %v, want gorge and no reason key", g["engine"], g["engine_reason"])
 	}
 }

@@ -38,6 +38,28 @@ func (c config) checkRouteFlags() error {
 	return nil
 }
 
+// checkEngineFlags names an -engine dirac or -route-pods-dirac flag this
+// server cannot honour; serve runs it before it opens the corpus.
+func (c config) checkEngineFlags() error {
+	if err := c.checkDiracFlags(); err != nil {
+		return err
+	}
+	return c.checkRouteFlags()
+}
+
+// armRouting, with -route-pods-dirac, seats dirac in the host's engines and
+// keeps each commander-pool deck's verdict on c.diracCheck. It runs before
+// c.hostOptions and before any listener opens; c.diracPool is read-only after.
+func (c *config) armRouting(reg *cards.Registry, cmdPool []string) error {
+	if !c.routePodsDirac {
+		return nil
+	}
+	c.withDirac(c.diracCheck)
+	var err error
+	c.diracPool, err = diracPoolVerdicts(c.diracCheck, reg, c.decks, cmdPool)
+	return err
+}
+
 // routePod applies the six routing conditions in order. seatDecks is the deck
 // each seat plays, in seat order (pool ids resolved through c.diracPool,
 // submitted decks through check).
