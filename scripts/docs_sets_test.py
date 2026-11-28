@@ -273,7 +273,8 @@ class MainTest(unittest.TestCase):
         dd = docs_sets.load_dirac(SUPPORT_PAGE)
         self.assertTrue(dd["sets"])
         for code in dd["sets"]:
-            self.assertRegex(code, r"^[0-9A-Z]{3,5}$")
+            # a set code, or a named pool (the support page's own legend: hosted-cmdr is the union of gorged's hosted Commander decks)
+            self.assertRegex(code, r"^([0-9A-Z]{3,5}|hosted-cmdr)$")
         self.assertEqual(dd["corpus"], docs_sets.read_support_page(SUPPORT_PAGE)["ALL"])
 
 
