@@ -351,8 +351,32 @@ func refSubs(pt *poolTables, d *kop.CardDef, ovVals []kop.ValueRef) []uint8 {
 		val(k.B)
 	}
 	var abil func(ab *kop.Ability)
+	prog := func(ins []kop.Instr) {
+		for _, in := range ins {
+			filt(kop.InstrFilter(&in)) // a PayMana F packs life and hybrid pips (kop.PayManaF)
+			val(in.A)
+			val(in.B)
+			if in.Op == kop.OpSkipUnless {
+				cond(kop.CondID(in.C))
+			}
+			if in.Op == kop.OpSearchEx && in.B.K == kop.VConst && in.B.N&kop.SrShareLandType != 0 {
+				// zone_sharelandtype.go compares the found lands' printed
+				// types, so the matchup keeps the five basic land types
+				for _, w := range [...]string{"Plains", "Island", "Swamp", "Mountain", "Forest"} {
+					if i, ok := pt.subIdx[w]; ok {
+						set[uint8(i)] = true
+					}
+				}
+			}
+			if in.Op == kop.OpCreateEmblem {
+				for i := range pt.emblems[in.C].Abilities {
+					abil(&pt.emblems[in.C].Abilities[i])
+				}
+			}
+		}
+	}
 	abil = func(ab *kop.Ability) {
-		filt(ab.Cost.Filter)
+		walkCostRefs(&ab.Cost, filt)
 		if int(ab.CostProg) < len(pt.costProgs) {
 			for _, at := range pt.costProgs[ab.CostProg] {
 				filt(at.F) // a cost program's atom filters (lower_costprog.go)
@@ -405,50 +429,15 @@ func refSubs(pt *poolTables, d *kop.CardDef, ovVals []kop.ValueRef) []uint8 {
 		val(ab.ManaV)
 		val(ab.OwnReduce) // ReduceCost$ (a subtype filter in its count)
 		setFilters(pt, ab, filt)
-		for _, in := range ab.Prog {
-			filt(kop.InstrFilter(&in)) // a PayMana F packs life and hybrid pips (kop.PayManaF)
-			val(in.A)
-			val(in.B)
-			if in.Op == kop.OpSkipUnless {
-				cond(kop.CondID(in.C))
-			}
-			if in.Op == kop.OpSearchEx && in.B.K == kop.VConst && in.B.N&kop.SrShareLandType != 0 {
-				// zone_sharelandtype.go compares the found lands' printed
-				// types, so the matchup keeps the five basic land types
-				for _, w := range [...]string{"Plains", "Island", "Swamp", "Mountain", "Forest"} {
-					if i, ok := pt.subIdx[w]; ok {
-						set[uint8(i)] = true
-					}
-				}
-			}
-			if in.Op == kop.OpCreateEmblem {
-				for i := range pt.emblems[in.C].Abilities {
-					abil(&pt.emblems[in.C].Abilities[i])
-				}
-			}
-		}
+		prog(ab.Prog)
 	}
-	filt(d.Enchant.Filter)
-	filt(d.BestowTgt.Filter)
-	filt(d.SpellCost.Filter)
-	filt(d.AltAddCost.Filter)
-	filt(d.KickerCost.Filter)
-	filt(d.BeholdF)
-	filt(d.OfferingF) // the offering's sacrifice filter (kw_offering.go)
-	filt(d.RevealF)
-	filt(d.MorphPick.Filter) // the turn-up pick's candidates (CardDef.MorphPick)
-	filt(d.WardSac)
-	filt(d.CastBF)   // the frozen count's filter (CardDef.CastBF)
-	filt(d.ProtFrom) // K:Protection:Coyote can't name a subtype the matchup then drops
-	filt(d.Landwalk)
-	filt(d.OptCost.Filter)
-	filt(d.FbCost.Filter)
-	filt(d.EvokePick.Filter)   // the evoked cast's hand-exile candidates (CardDef.EvokePick)
-	filt(d.RetraceCost.Filter) // the retrace cast's discard candidates (CardDef.RetraceCost)
-	val(d.ModesPickV)          // a dynamic triggered charm's count filter (the matchup keeps the subtype it names)
-	val(d.MorphReduce)
+	walkCardDefRefs(d, filt, val)
+	prog(d.OverloadProg)
 	for i := range d.Abilities {
 		abil(&d.Abilities[i])
+	}
+	for i := range d.Granted {
+		abil(&d.Granted[i])
 	}
 	for _, v := range ovVals {
 		val(v)
