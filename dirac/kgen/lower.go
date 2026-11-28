@@ -1192,6 +1192,9 @@ var expandedKeywords = map[string]bool{
 	"Undying": true, "Persist": true, "Backup": true, "Fabricate": true, "Living Weapon": true,
 	"Job select": true, "For Mirrodin": true, "Transmute": true, "Outlast": true, "Battle cry": true,
 	"Afterlife": true, "Afflict": true, "Ravenous": true, "Rampage": true, "Modular": true,
+	// Devour (CR 702.82): gorge kwDevour's Moved replacement, the optional
+	// land/creature sacrifice then the counters (etbDevour, lower_devour.go)
+	"Devour": true,
 	// Demonstrate (CR 702.144a): gorge kwDemonstrate (cards/kw_demonstrate.go)
 	// appends a "when you cast this spell" trigger whose body is the
 	// __kwDemonstrate SVar, DB$ Demonstrate. (gorge's comment there cites

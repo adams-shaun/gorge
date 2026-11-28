@@ -426,9 +426,25 @@ func replAskKind(in *kop.Instr) (kind uint8, ok bool) {
 			return akCtrPick, true // repl_enterctrpick.go, ctr_choice.go
 		case kop.ExtChoosePlayer:
 			return akPlayer, true
+		case kop.ExtEnterDevour:
+			return akDevour, true // kw_devour.go
 		}
 	}
 	return 0, false
+}
+
+// replAskNone reports an as-enters ask of kind that has nothing to choose
+// from, so gorge poses no question and the enters program goes on.
+func (s *State) replAskNone(k *prep, in *kop.Instr, kind uint8, sl Slot, c CardID) bool {
+	switch kind {
+	case akNameHand:
+		return s.nameHandNone(k, s.perms[sl].ctrl) // nothing nonland was revealed
+	case akCard:
+		return s.enterCardNone(k, sl, c) // no object to choose (repl_choosecard.go)
+	case akDevour:
+		return s.devourEligible(k, in, s.perms[sl].ctrl, sl) == 0 // nothing to sacrifice (kw_devour.go)
+	}
+	return false
 }
 
 // restoreRes gives the resCtx borrowed by a replacement body back to the
@@ -510,11 +526,8 @@ func (s *State) runReplProgAs(k *prep, sl Slot, c CardID, ab, pc uint8, src Slot
 				s.execGen(k, in)
 				continue
 			}
-			if kind == akNameHand && s.nameHandNone(k, s.perms[sl].ctrl) {
-				continue // nothing nonland was revealed: gorge poses no ask
-			}
-			if kind == akCard && s.enterCardNone(k, sl, c) {
-				continue // no object to choose: gorge poses no ask (repl_choosecard.go)
+			if s.replAskNone(k, in, kind, sl, c) {
+				continue // nothing to choose from: gorge poses no ask
 			}
 			if kind == akPlayer {
 				// gorge asks it with the permanent on the battlefield, never
@@ -537,6 +550,11 @@ func (s *State) runReplProgAs(k *prep, sl Slot, c CardID, ab, pc uint8, src Slot
 					continue
 				}
 				s.queueAskAt(sl, kind, c, ab, uint8(i+1))
+				s.restoreRes(&saved, isDrawProgram)
+				return
+			}
+			if kind == akDevour {
+				s.queueAskAt(sl, akDevour, c, ab, uint8(i+1)) // kw_devour.go
 				s.restoreRes(&saved, isDrawProgram)
 				return
 			}
@@ -1761,6 +1779,10 @@ func (s *State) answerQueuedAsk(k *prep, a Action) {
 		}
 	} else if ask.kind == akRiot {
 		s.riotAnswer(k, ask, a) // kw_riot.go
+	} else if ask.kind == akDevour {
+		if !s.devourAnswer(k, ask, a) { // kw_devour.go
+			return // the next pick is asked
+		}
 	} else if ask.kind == akUnleash {
 		s.unleashAnswer(k, ask, a) // kw_unleash.go
 	} else if ask.kind == akMode {
@@ -2014,6 +2036,15 @@ func (s *State) askOptions(k *prep, d *Decision, kind uint8) {
 	}
 	if kind == akUnleash {
 		s.unleashOptions(d, s.unleashAskObj()) // kw_unleash.go
+		return
+	}
+	if kind == akDevour {
+		if s.g.nask == 0 {
+			return // no queued Devour ask (kw_devour.go)
+		}
+		a := &s.g.ask[0]
+		s.devourOptions(k, d, &k.t.Cards[a.card].Abilities[uint8(a.ab)].Prog[a.pc-1],
+			s.perms[a.sl].ctrl, a.sl) // kw_devour.go
 		return
 	}
 	if kind == akColor {
