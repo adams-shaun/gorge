@@ -72,21 +72,29 @@ MANIFEST_RX = MANIFEST_TEST + "[0-9]+"
 # test-level slice cannot bound them: a pool of a few hundred recordings is minutes of subtests). Only in the
 # full-coverage fallback string.
 REPRO_GLOBS = "^TestStd[A-Za-z]*ReprosLockstep[A-Za-z]*$"
-# The refusal-staleness check, kept whole for every replay arm (it samples entries by name hash).
-REFUSED = "^TestRefusedEntriesStillDiverge$"
+# The refusal-staleness check, kept in every replay arm. The whole test is ~190 s
+# of serialized entry searches (one entry's 200-pair pool hunt is 42 s: Whim of
+# Volrath, 11-27), which no cost deal can fit into a lane, so it is 8 shards
+# (TestRefusedEntriesStillDiverge0..7, entry i in shard i % 8). The lanes name only the
+# shards and deal them like any other test; the parent TestRefusedEntriesStillDiverge is
+# the dirac gate's entry and checks only the shards its own -run does not select.
+REFUSED = "^TestRefusedEntriesStillDiverge[0-9]+$"
 # Every committed recording's replay: the manifest's ~595 named recordings, the oracle's other per-card
 # replay tests (the MBC tables) and the refusal-staleness check. TF-01 (2026-11-20): the precheck no longer
 # runs this blanket — with it 337 of 851 oracle legs ended at the 5m timeout (NOTES 05:55Z), the manifest's
-# subtests alone overrunning the wall — it replays the changed recordings plus a 25% slice (plan's reprosel,
+# subtests alone overrunning the wall — it replays the changed recordings plus a 1/SLICE_MOD slice (plan's reprosel,
 # slice_lane). The slice rotates with the merge base, so over successive PRs every recording still replays;
-# full coverage lives in the batch, which does not shrink: ci.yml's "Replay the committed repros" step runs
-# `go test -run 'Repro|^TestRefusedEntriesStillDiverge$' ./dirac/oracle` and the queue's test shards run
-# ./dirac/oracle whole. Nothing that leaves the precheck leaves the batch.
+# every recording also replays in the merge-queue batch, whose coverage does not shrink: ci.yml's "Replay the
+# committed repros" step runs `go test -run 'Repro|^TestRefusedEntriesStillDiverge[0-9]+$' ./dirac/oracle`.
+# The batch runs no other part of ./dirac/oracle but the sentinels (ci_shard.sh drops the package and ci.yml's
+# `oracle` job is dispatch-only); the whole package runs on main in oracle.yml.
 REPLAYS = "^Test[A-Za-z0-9_]*Repro[A-Za-z0-9_]*$|" + REFUSED
 REPRO_TESTS = "^TestReproCompactRoundTrip$|^TestReproGlobMatchesTable$|" + REPRO_GLOBS + "|" + REPLAYS
 # The recorded games a precheck leaves to the batch unless their recording changed: the recordings (and the
-# oracle's other per-card replay tests) whose -json Elapsed in a batch run is over the 10 s wall. A card's
-# own fix PR re-records its game shorter (kfuzz -shrink) and drops the entry. Read like the fast tier is;
+# oracle's other per-card replay tests) whose -json Elapsed in a batch run is over the 10 s wall. A listed test
+# with no Repro in its name is not in the batch's replay step: test-smart's census step (OnlyGrows, Census)
+# plays it before the merge when the diff reaches the package, oracle.yml after. A card's own fix PR re-records its game shorter (kfuzz -shrink)
+# and drops the entry. Read like the fast tier is;
 # outside testdata so a refresh edits no fixture (a changed fixture runs the package whole).
 SLOW_REPROS = "dirac/oracle/slowrepros.txt"
 # Pinned$..OnlyGrows: the pin and registration ratchets whose names carry none of the words before them (11-17:
@@ -139,10 +147,62 @@ TABLE_READERS = ("dirac/cardset", "dirac/oracle/cmd/kfuzz")
 # row.
 SOURCE_READERS = (("dirac/crcoverage", ("dirac/kgen",)),)
 # The precheck's oracle replay slice ran as one go test process (~200 top-level tests: the census and refusal
-# families plus the 25% slice) and outran the package's 5m cap on 34 of the last 40 targeted runs (11-27);
+# families plus the replay slice, then 25%) and outran the package's 5m cap on 34 of the last 40 targeted runs (11-27);
 # its summed test wall was ~500 s. test-targets.sh runs the slice as this many concurrent, cost-dealt lanes
-# (scripts/oracle_shard_deal.py, the same deal CI's matrix parts use).
+# (scripts/oracle_shard_deal.py, the same deal CI's matrix parts use): ORACLE_LANES per subtest -run and
+# ORACLE_PLAIN_LANES for the plain half. The plain half is serial top-level tests, one core a process: at 4
+# lanes its processes used 4 of a remote run's 12 cores (GORGE_REMOTE_CPU) and every plain lane reached the
+# 5m cap on 3 of 3 runs at 25a4e7ea9d..d28a4a61ec (282-300 s, the sub lanes 73-214 s), so it has twice
+# the lanes: 8 plain and 4 sub processes fill the run's 12 cores.
 ORACLE_LANES = 4
+ORACLE_PLAIN_LANES = 8
+# The replay slice keeps one merge-base lane of SLICE_MOD (slice_lane). At 1/4 the idle-box targeted run at
+# 6d2f131f6c (94 idle cores) played ~2,400 core-s in its 12 lanes (165-259 s each) against the run's 12-core
+# quota, which fits ~1,800 core-s in 150 s; the manifest, the pool globs and the sliced replay tests were 66% of
+# it. At 1/6 they are two thirds of that, and every recording still replays once over six merge bases.
+SLICE_MOD = 6
+# The rotated shard families. The cmd5 clean-pair ratchet's shards (TestCmd5SliceCleanOnlyGrows0..7, 1500 lockstep games on 4 workers each)
+# match the slice's CENSUS arm on every run. In the oracle-slice targeted run at 6ea733296d (12 lanes, 1.9 idle
+# cores) they took 106-161 s each, ~1,090 of the slice's ~3,800 lane-s, while the run's 12-core quota fits ~2,900
+# lane-s in 240 s. The slice plays the shards of its merge base's rotation lane only (shard i when i % ROTATION
+# is crc32(sha) % ROTATION: two of the eight, every pair once over four bases), as it plays a slice of the
+# recordings; a diff that names a shard (a change to the ratchet's test or pin) plays it. test-smart's census
+# step (OnlyGrows) plays all eight when the diff reaches the package, and oracle.yml after the merge; the batch
+# plays none. The eight refusal shards (REFUSED, entry i in shard i % 8) rotate the same way: in the
+# 6d2f131f6c idle run they were 20% of the slice's core-s (shards 4 and 5 weigh 44 and 53 here). A diff that
+# changes a refusal entry (REFUSED_ENTRIES) keeps all eight; test-smart checks every entry (the narrow census
+# step runs the shards, the gates mode the dirac gate's parent TestRefusedEntriesStillDiverge), and the batch
+# and oracle.yml play all eight shards.
+CMD5_SHARD = re.compile(r"^TestCmd5SliceCleanOnlyGrows([0-9]+)$")
+REFUSED_SHARD = re.compile(r"^TestRefusedEntriesStillDiverge([0-9]+)$")
+ROTATED_SHARDS = (CMD5_SHARD, REFUSED_SHARD)
+ROTATION = 4
+REFUSED_ENTRIES = "dirac/support/refused/"  # the refusal shards' input: a diff here rotates none of them
+
+
+def rotated_out(name, lane, kept=()):
+    """Whether a rotated family's shard (ROTATED_SHARDS, less the families in kept) sits outside the merge base's
+    rotation lane: shard i plays when i % ROTATION is the lane."""
+    for rx in ROTATED_SHARDS:
+        m = rx.match(name)
+        if m and rx not in kept:
+            return int(m.group(1)) % ROTATION != lane
+    return False
+
+
+def lane_procs(run_procs, lanes):
+    """Each oracle lane's GOMAXPROCS: twice its even share of the run's, at least 2, never above the run's.
+
+    With the run's whole GOMAXPROCS every one of 12 lanes held ~140 runnable threads on 12 cores, so a one-thread
+    lane (a lone recorded game) got ~1/12 core until the parallel lanes drained: at 6d2f131f6c the Orzhova census
+    (19 s alone) held its lane for 198 s. A share near the even one makes a lane's wall follow its cost, which
+    the deal balances. A running process cannot take the cores a finished lane frees; the changed tests, whose
+    wall the 60 s budget judges, therefore run outside the lanes (oracle_lanes)."""
+    run_procs = max(run_procs, 1)
+    share = -(-2 * run_procs // max(lanes, 1))
+    return min(max(share, 2), run_procs)
+
+
 RULES = "./engine/rules"
 ORACLE = "./dirac/oracle"
 ARCHTEST = "./internal/archtest"
@@ -466,7 +526,7 @@ def plan(changes, dirmap, deps, lines_of, repro_names=None, added=(), narrow=Non
     narrow    None for test-targeted; for test-smart's narrow precheck {"fast": oracle fast-tier names,
               "sha": the commit}, which adds the kind wholeskip (regex is the -skip) -- see RULES above
     reprosel  the replay-slice inputs (replay_sel), None for full coverage: with them, a replay arm
-              replays the changed recordings plus a 25% slice (slice_lane) and leaves the rest to the
+              replays the changed recordings plus a 1/SLICE_MOD slice (slice_lane) and leaves the rest to the
               batch, and the manifest's subtests run on their own -run appended to the result
 
     Returns a list of (kind, package, regex): whole, named (regex must match), census (regex may match
@@ -556,11 +616,11 @@ def plan(changes, dirmap, deps, lines_of, repro_names=None, added=(), narrow=Non
     def replay_part(deps=False):
         """The replay part a precheck arm appends to the oracle's regex. Without slice inputs, full
         coverage as before (REPRO_TESTS in the recording arm, REPLAYS alone in the reverse-dependency
-        arm); with them, the refusal check and the 25% test slice — the pool globs are sliced like
+        arm); with them, the refusal check and the 1/SLICE_MOD test slice — the pool globs are sliced like
         the rest (they are in reprosel's tests). The manifest's subtests never join this regex: a '/'
         in a -run filters the subtests of every other selected test to the pattern after it, which
         would pass the subtest-bearing tests that stay — the guard TestReproCompactRoundTrip, the
-        census tests, TestRefusedEntriesStillDiverge — empty, so they run on their own -run, appended
+        census tests, the TestRefusedEntriesStillDiverge shards — empty, so they run on their own -run, appended
         to the result after the plain entries."""
         if reprosel is None:
             return REPRO_TESTS if not deps else REPLAYS
@@ -613,7 +673,7 @@ def plan(changes, dirmap, deps, lines_of, repro_names=None, added=(), narrow=Non
                 out[lp] = ("whole", lp, "")
             elif lp == ORACLE:
                 # a source change the oracle imports can move any recording's replay (REPLAYS above);
-                # TF-01: the changed recordings plus a 25% slice, not every recording (replay_part)
+                # TF-01: the changed recordings plus a 1/SLICE_MOD slice, not every recording (replay_part)
                 if lp not in sel["replayed"]:
                     rx = out[lp][2] if lp in out else CENSUS
                     out[lp] = ("named", lp, rx + "|" + replay_part(deps=True))
@@ -832,9 +892,9 @@ def slow_repros(path=SLOW_REPROS):
 
 
 def slice_lane(name, sha):
-    """Whether a name (a recording or a replay test) lands in a merge base's 25% replay slice: crc32
-    % 4 equal, so a PR's slice is stable for its base and successive PRs rotate through the names."""
-    return zlib.crc32(name.encode()) % 4 == zlib.crc32((sha or "").encode()) % 4
+    """Whether a name (a recording or a replay test) lands in a merge base's 1/SLICE_MOD replay slice: crc32
+    % SLICE_MOD equal, so a PR's slice is stable for its base and successive PRs rotate through the names."""
+    return zlib.crc32(name.encode()) % SLICE_MOD == zlib.crc32((sha or "").encode()) % SLICE_MOD
 
 
 _GLOBPOOL = re.compile(r"stdReprosGlob(?:Pools)?\(t, ((?:\"[A-Za-z0-9-]+\"(?:,\s*)?)+)\)")
@@ -903,23 +963,54 @@ def oracle_pools_present():
     return all(os.path.isdir(os.path.join(pools, p, "decks")) for p in ("fdn", "blb"))
 
 
-def oracle_lanes(res, names=None, lanes=ORACLE_LANES, weights=None, zero=None):
-    """Deal the ./dirac/oracle replay slice into `lanes` cost-balanced "oraclelane" entries.
+# The share of a pool glob's (and the manifest's) cost the replay slice plays: slice_lane keeps crc32 % SLICE_MOD of
+# the recordings, so a sub-run top weighs this fraction of its table cost.
+SLICE_SHARE = 1.0 / SLICE_MOD
 
-    The replay slice is the census and refusal families plus the 25% slice (slice_lane) in one -run, and
+
+def sub_run_tops(rx, names):
+    """The listed test names a subtest -run's top-level part matches ('A|B/(subs)': go's unanchored match)."""
+    tops = rx.split("/", 1)[0].split("|")
+    return [n for n in names if any(re.search(t, n) for t in tops)]
+
+
+def oracle_lanes(res, names=None, lanes=ORACLE_LANES, weights=None, zero=None, plain_lanes=ORACLE_PLAIN_LANES, sha=None,
+                 slow=None, changed=()):
+    """Deal the ./dirac/oracle replay slice into cost-balanced bins of "oraclelane" entries: `plain_lanes`
+    for the plain tests and `lanes` for each subtest -run. The tests the plain entry names (the diff's changed
+    tests and the readers of a changed recording, its ^(a|b)$ prefix) stay a "named" entry before the lanes:
+    test-targets.sh runs it first, alone, at the run's GOMAXPROCS, so the 60 s changed-test budget judges a wall
+    no lane stretched.
+
+    The replay slice is the census and refusal families plus the 1/SLICE_MOD slice (slice_lane) in one -run, and
     the manifest/pool-glob subtest -run plan appends after the plain entries. In one go test process they
     outran the package's 5m cap on 34 of the last 40 targeted runs (11-27, ~200 top-level tests and a
-    ~500 s summed test wall); test-targets.sh runs the entries of kind oraclelane as concurrent processes.
-    The plain entry's selected names are dealt by measured cost (oracle_shard_deal.deal, the deal
-    ci-oracle-shard.sh performs) and each lane is one anchored -run; the subtest entry joins them as it
-    is. Every selected test still runs exactly once: the union of the lanes is the names the single
-    entry matched, and no name the package does not list can run.
+    ~500 s summed test wall); test-targets.sh starts every oraclelane entry as its own concurrent process.
+    Each half is dealt by measured cost (oracle_shard_deal.deal, the deal ci-oracle-shard.sh performs) into
+    its own lane budget: the plain tests as one deal into `plain_lanes`, and each subtest -run's tops as a deal of
+    their own. Measured alone on 11-27, the subtest half was 178 s of the slice's ~380 s and, left as one
+    undealt process, was the lane that hit the cap. One deal over both halves balances each bin's sum, but
+    every bin becomes two processes -- one -run for its plain tests (^(a|b)$) and one for its subtest tops
+    (^(A|B)$/(subs): a '/' in -run filters every test the pattern matches, so the subtest tops never share a
+    process with the plain ones) -- and the process walls, each set by its own half, spanned 2x on 11-27
+    while the bins looked balanced. Dealing a half at a time makes the balanced cost the cost of each
+    process: the run starts at most `lanes` plain processes and `lanes` per subtest -run. Every selected
+    test still runs exactly once: the union of the bins is the names the entries matched, and no name the
+    package does not list can run.
 
     names is the package's test list (oracle_test_names); None lists it lazily. weights is the
     "<test> <seconds>" table (dirac/oracle/testdata/ci-shard-seconds.txt); a test it does not list
-    weighs the table's median, never zero. zero is the names that weigh nothing (the pool-only tests
-    when no deck pools are on disk). When the slice cannot be dealt (no test list) every entry is left
-    as it was, so a broken listing never runs less. Every other package and entry is untouched."""
+    weighs oracle_shard_deal.UNLISTED_SECONDS, the table's own default (it lists only tests of >= 1 s;
+    the old table median, ~14 s, made every sub-second test outweigh the real ones). A subtest top weighs
+    SLICE_SHARE of its table cost. zero is the names that weigh nothing (the pool-only tests when no deck
+    pools are on disk). sha is the merge base (replay_sel's): with it, the cmd5 and refusal shards outside its
+    rotation lane leave the slice unless the entry names them (rotated_out; changed, the diff's paths, keeps
+    every refusal shard when one is under REFUSED_ENTRIES), and so do the slow list's
+    replay tests (slow; None reads SLOW_REPROS) that the CENSUS arm matches by name alone: the slice
+    population already leaves them to the batch (replay_sel), but a recording replay whose name carries
+    "Census" (TestMBCTail08CensusSearchLockstep, 82.2 s alone at 76.6 idle cores on 11-27) joined every
+    run through CENSUS. None keeps them all. When the slice cannot be dealt (no test list) every entry is left as it was, so a
+    broken listing never runs less. Every other package and entry is untouched."""
     picks = [i for i, (kind, pkg, rx) in enumerate(res)
              if pkg == ORACLE and kind == "named" and "/" not in rx and REFUSED in rx]
     if not picks:
@@ -930,24 +1021,54 @@ def oracle_lanes(res, names=None, lanes=ORACLE_LANES, weights=None, zero=None):
         return res
     rx = res[picks[0]][2]
     selected = [n for n in names if re.search(rx, n)]  # go's -run: an unanchored match on the top-level name
+    named = set(rx[2:rx.index(")$")].split("|")) if rx.startswith("^(") and ")$" in rx else set()
+    if sha is not None:
+        lane = zlib.crc32(sha.encode()) % ROTATION
+        slow = set(slow_repros()) if slow is None else set(slow)
+        kept = (REFUSED_SHARD,) if any(p.startswith(REFUSED_ENTRIES) for p in changed) else ()
+        selected = [n for n in selected if n in named or (not rotated_out(n, lane, kept) and n not in slow)]
     if not selected:
         return res
+    alone = [n for n in selected if n in named]
+    selected = [n for n in selected if n not in named]
+    subs = [i for i, (kind, pkg, srx) in enumerate(res) if pkg == ORACLE and kind == "named" and "/" in srx]
+    sub_tops = {i: sub_run_tops(res[i][2], names) for i in subs}
     if weights is None:
         weights = oracle_shard_deal.read_weights()
     if zero is None:
         zero = set() if oracle_pools_present() else oracle_shard_deal.read_zero()
-    by_part = {}
-    for part, name, _ in oracle_shard_deal.deal(selected, weights, lanes, default=None, zero=zero):
-        by_part.setdefault(part, []).append(name)
-    dealt = [("oraclelane", ORACLE, "^%s$" % "|".join(by_part[p])) for p in sorted(by_part)]
+    dflt = oracle_shard_deal.UNLISTED_SECONDS
+    # one item per plain test and per (sub entry, top): the sub items are keyed so a test in both halves
+    # (none today) is dealt once as each
+    cost = {}
+    for n in selected:
+        cost[("p", n)] = 0.0 if n in zero else weights.get(n, dflt)
+    for i, tops in sub_tops.items():
+        for n in tops:
+            cost[("s%d" % i, n)] = 0.0 if n in zero else weights.get(n, dflt) * SLICE_SHARE
+    bins = {}
+    # one deal per half, each into its own lane budget: the plain tests as one deal (`plain_lanes`) and each
+    # subtest -run's tops as a deal of their own, so a bin sum is a process's cost (a subtest top
+    # never shares a process with a plain test: a '/' in -run filters every other test's subtests).
+    halves = [("p", selected)] + [("s%d" % i, tops) for i, tops in sorted(sub_tops.items())]
+    for kind, members in halves:
+        flat = {n: cost[(kind, n)] for n in members}
+        bins_n = plain_lanes if kind == "p" else lanes
+        for part, n, _ in oracle_shard_deal.deal(sorted(flat), flat, bins_n, default=dflt, zero=frozenset()):
+            bins.setdefault(part, {}).setdefault(kind, []).append(n)
     out = []
     for i, entry in enumerate(res):
         if i == picks[0]:
-            out.extend(dealt)
-        elif entry[1] == ORACLE and entry[0] == "named" and "/" in entry[2]:
-            # the replay slice's own subtest -run (manifest and pool globs, filtered to the slice): the same
-            # concurrent group, its -run unchanged
-            out.append(("oraclelane", ORACLE, entry[2]))
+            if alone:
+                out.append(("named", ORACLE, "^(%s)$" % "|".join(sorted(alone))))
+            out.extend(("oraclelane", ORACLE, "^(%s)$" % "|".join(sorted(bins[p]["p"])))
+                       for p in sorted(bins) if "p" in bins[p])
+        elif i in sub_tops and not sub_tops[i]:
+            out.append(("oraclelane", ORACLE, entry[2]))  # its tops are not listed: left whole, never dropped
+        elif i in sub_tops:
+            sub = entry[2].split("/", 1)[1]
+            out.extend(("oraclelane", ORACLE, "^(%s)$/%s" % ("|".join(sorted(bins[p]["s%d" % i])), sub))
+                       for p in sorted(bins) if "s%d" % i in bins[p])
         else:
             out.append(entry)
     return out
@@ -992,7 +1113,7 @@ def cmd_select(a):
     # The targeted run deals the oracle's replay slice into concurrent lanes (test-smart keeps its own
     # fixed chunker, oracle_chunked); nothing else about the selection moves.
     if reprosel is not None and not a.narrow:
-        res = oracle_lanes(res)
+        res = oracle_lanes(res, sha=reprosel.get("sha"), changed=changes)
     for kind, pkg, rx in res:
         print("%s\t%s\t%s" % (kind, pkg, rx))
     for p in skipped:
@@ -1031,6 +1152,9 @@ def main(argv=None):
     m.add_argument("--rc", action="append", default=[], type=int, help="that lane's exit status")
     t = sub.add_parser("timeout")
     t.add_argument("--pkg", required=True)
+    n = sub.add_parser("laneprocs")
+    n.add_argument("--procs", required=True, type=int, help="the run's GOMAXPROCS")
+    n.add_argument("--lanes", required=True, type=int, help="the oracle lanes that run side by side")
     a = ap.parse_args(argv)
     pk = [p for p in a.pkgs.split(",") if p] if hasattr(a, "pkgs") else []
     if a.cmd == "verdict":
@@ -1047,6 +1171,9 @@ def main(argv=None):
         return cmd_merge(a)
     if a.cmd == "timeout":
         print(timeout_for(a.pkg))
+        return 0
+    if a.cmd == "laneprocs":
+        print(lane_procs(a.procs, a.lanes))
         return 0
     return cmd_select(a)
 

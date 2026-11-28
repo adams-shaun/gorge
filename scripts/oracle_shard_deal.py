@@ -9,8 +9,10 @@ least so far. The deal is a pure function of the test list and the weights, so e
 the same one.
 
 Weights are dirac/oracle/testdata/ci-shard-seconds.txt ("<test> <seconds>", a test's leaf subtests
-summed: its cost, not its wall). A test the table does not list weighs `default`, the table's median
-unless the caller passes one (a conservative stand-in: an unlisted test may be slow). A name in `zero`
+summed: its cost, not its wall). A test the table does not list weighs `default`: the table's median
+unless the caller passes one. The table lists only tests of >= 1 s, so neither real caller uses the
+median: test_targets.py passes this module's UNLISTED_SECONDS and ci-oracle-shard.sh its own
+DEFAULT_SECONDS (the same 0.08, the default in that file's header). A name in `zero`
 weighs 0: on a clone with no deck pool the pool-only tests (dirac/oracle/testdata/poolskips.txt) skip.
 
 Usage (the parts, as "<part> <seconds> <test>"; part indices are 0-based, as CI's matrix is):
@@ -21,6 +23,10 @@ import sys
 
 DEFAULT_WEIGHTS = "dirac/oracle/testdata/ci-shard-seconds.txt"
 DEFAULT_POOLSKIPS = "dirac/oracle/testdata/poolskips.txt"
+# What a test the table does not list weighs. The table lists only the tests of >= 1 s, so its median
+# (~14 s) is the wrong stand-in for an unlisted one: the precheck's lanes used it and weighed every
+# sub-second test like a heavy one (scripts/ci-oracle-shard.sh's DEFAULT_SECONDS is this number too).
+UNLISTED_SECONDS = 0.08
 
 
 def read_weights(path=DEFAULT_WEIGHTS):
