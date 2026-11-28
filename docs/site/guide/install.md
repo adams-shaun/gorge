@@ -28,10 +28,10 @@ Apache-2.0, so they are downloaded into the gitignored `.cards/` and never commi
 `make fetch-cards` builds `bin/forgec` and fetches the scripts from gorge's fork of Forge at
 the commit pinned by `FORGE_REF` in the
 [`Makefile`](https://github.com/adams-shaun/gorge/blob/main/Makefile). Every game and replay
-is a function of that pin. The fetch leaves about 140 MB on disk (the figure in [AGENTS.md](https://github.com/adams-shaun/gorge/blob/main/AGENTS.md)).
+is a function of that pin. The fetch leaves about 140 MB on disk.
 
 ```text
-fetched 34444 card scripts and 864 token scripts from https://github.com/adams-shaun/forge.git at <commit> (<FORGE_REF>)
+fetched 34482 card scripts and 864 token scripts from https://github.com/adams-shaun/forge.git at <commit> (<FORGE_REF>)
 These scripts are licensed GPL-3.0. They are a build input only:
 never commit them, never include them in a published image.
 ```
