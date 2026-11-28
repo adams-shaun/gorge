@@ -443,6 +443,10 @@ type ETBRecords struct {
 	// the entry boundary already asked and recorded the answer on the entering
 	// permanent, so this invocation must not ask a second time.
 	EvenOddRecorded bool
+	// ModeRecorded marks the as-enters GenericChoice body whose mode the entry
+	// boundary already asked (rules' etb_modechoice.go): the body takes no
+	// second ask. Consumed by effCharm.
+	ModeRecorded bool
 }
 
 // PaidCostLists is the cast's/activation's cost-PAID object lists (Forge's

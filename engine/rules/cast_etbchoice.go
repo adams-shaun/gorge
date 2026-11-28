@@ -209,6 +209,12 @@ func (e *Engine) faceETBChoice(o *state.Object, f *cards.Face, ev events.Event, 
 		}
 		kind := etbChoiceKind(r.With.API)
 		if kind == "" {
+			if opts, ok := e.etbModeOptions(o, r.With, f.SVars); ok {
+				if *seen == ordinal {
+					return etbChoice{kind: "mode", options: opts}, true
+				}
+				(*seen)++
+			}
 			continue
 		}
 		// An AtRandom$ ChooseType body (Camato Scout) is the engine's draw,
@@ -630,6 +636,7 @@ var etbChoiceKindTab = state.NewStrTable[string](
 var etbChoicePromptTab = state.NewStrTable[string](
 	state.StrEntry[string]{Key: "name", Val: " a card name"},
 	state.StrEntry[string]{Key: "type", Val: " a creature type"},
+	state.StrEntry[string]{Key: "mode", Val: " a mode"},
 	state.StrEntry[string]{Key: "evenodd", Val: " odd or even"},
 	state.StrEntry[string]{Key: "color", Val: " a color"},
 	state.StrEntry[string]{Key: "riot", Val: " how this creature enters (counter or haste)"},
