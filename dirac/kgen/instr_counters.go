@@ -35,6 +35,8 @@ func init() {
 	instrOp("CounterPlusEOT", (*instrCtx).opCounterPlusEOT)
 	instrOp("MoveCounter", (*instrCtx).opMoveCounter)
 	instrOp("MoveCounterAny", (*instrCtx).opMoveCounterAny)
+	instrOp("MoveCounterKind", (*instrCtx).opMoveCounterKind)
+	instrOp("MoveCounterAll", (*instrCtx).opMoveCounterAll)
 	instrOp("ClearCounters", (*instrCtx).opClearCounters)
 	instrOp("RemoveCounterAll", (*instrCtx).opRemoveCounterAll)
 	instrOp("PutCountersFrom", (*instrCtx).opPutCountersFrom)
@@ -353,6 +355,38 @@ func (ic *instrCtx) opMoveCounterAny() error {
 	}
 	ki.B = kop.Const(int(k))
 	return ic.objFilter(kop.ZoneBattlefield)
+}
+
+// opMoveCounterKind is OpMoveCounterKind (Nesting Grounds): the destination
+// Obj is the generic subject, the origin Ref lives in C (as OpMoveCounter)
+// and the kernel asks the kind when the origin holds more than one.
+func (ic *instrCtx) opMoveCounterKind() error {
+	ki := &ic.ki
+	in := &ic.in
+	cb := ic.cb
+	ki.Op = kop.OpMoveCounterKind
+	r, err := cb.ref(in.Obj2)
+	if err != nil {
+		return err
+	}
+	ki.C = int16(r)
+	return nil
+}
+
+// opMoveCounterAll is OpMoveCounterAll (The Ozolith): every kind moves, so
+// no CounterType$ is named; only the origin Ref C beside the generic
+// destination Obj is lowered.
+func (ic *instrCtx) opMoveCounterAll() error {
+	ki := &ic.ki
+	in := &ic.in
+	cb := ic.cb
+	ki.Op = kop.OpMoveCounterAll
+	r, err := cb.ref(in.Obj2)
+	if err != nil {
+		return err
+	}
+	ki.C = int16(r)
+	return nil
 }
 
 func (ic *instrCtx) opClearCounters() error {

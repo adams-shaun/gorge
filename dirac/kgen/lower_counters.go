@@ -155,10 +155,13 @@ func (lc *lowerCtx) gainEnergy(obj lRef, n lValue, kind int) error {
 
 // moveCounter lowers api:MoveCounter (gorge effMoveCounter) with one origin
 // (Source$ Self or ParentTarget) and one destination (the node's target or
-// a Defined$ object), one named CounterType$ and CounterNum$ a value
-// (default 1) or All. Any / All / EachNotOn kinds, CounterNum$ Any (an
-// ask), ValidSource$ / ValidDefined$ sweeps and the remember riders
-// refuse.
+// a Defined$ object): one named CounterType$ with CounterNum$ a value
+// (default 1) or All, the CounterType$ Any kind pick (Nesting Grounds'
+// "move a counter", CounterNum$ a value; the kernel asks the kind only when
+// the origin holds more than one) and the CounterType$ All every-kind walk
+// (The Ozolith's begin-combat move, CounterNum$ All). EachNotOn, CounterNum$
+// Any (an ask), an amount other than All riding All,
+// ValidSource$ / ValidDefined$ sweeps and the remember riders refuse.
 func (lc *lowerCtx) moveCounter(ps *params) error {
 	for _, k := range []string{"RememberPut", "RememberAmount", "NonZero"} {
 		if _, ok := ps.get(k); ok {
@@ -172,8 +175,9 @@ func (lc *lowerCtx) moveCounter(ps *params) error {
 		return refuse("MoveCounter ValidSource$")
 	}
 	kind := ps.str("CounterType")
+	anyKind, allKinds := kind == "Any", kind == "All"
 	switch kind {
-	case "", "Any", "All", "EachNotOn":
+	case "", "EachNotOn":
 		return refuse("MoveCounter CounterType %q", kind)
 	}
 	var src lRef
@@ -216,6 +220,9 @@ func (lc *lowerCtx) moveCounter(ps *params) error {
 	case "Any":
 		return refuse("MoveCounter CounterNum Any")
 	default:
+		if allKinds {
+			return refuse("MoveCounter CounterType All with CounterNum$ %q", cn)
+		}
 		var err error
 		if n, err = lc.amount(ps, "CounterNum", 1); err != nil {
 			return err
@@ -245,7 +252,14 @@ func (lc *lowerCtx) moveCounter(ps *params) error {
 	if src == dst {
 		return refuse("MoveCounter onto its origin")
 	}
-	lc.emit(lInstr{Op: "MoveCounter", Obj: dst, Obj2: src, A: n, CS: kind})
+	switch {
+	case anyKind:
+		lc.emit(lInstr{Op: "MoveCounterKind", Obj: dst, Obj2: src, A: n})
+	case allKinds:
+		lc.emit(lInstr{Op: "MoveCounterAll", Obj: dst, Obj2: src})
+	default:
+		lc.emit(lInstr{Op: "MoveCounter", Obj: dst, Obj2: src, A: n, CS: kind})
+	}
 	return nil
 }
 
