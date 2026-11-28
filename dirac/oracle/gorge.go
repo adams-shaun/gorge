@@ -295,7 +295,7 @@ func NewGorgeSide(m *Matchup, seed uint64, cfg Config, chance []rules.ChanceDraw
 		g.E = rules.New(rc)
 		g.E.Advance()
 	}
-	g.id.sync(g.E.G)
+	g.id.sync(g.E.G, g.E.L.Events)
 	return g, nil
 }
 
@@ -631,7 +631,7 @@ func (g *GorgeSide) convokeFrameFor(d *decision.Decision) *convokeFrame {
 
 // build makes the canonical frame of gorge decision d.
 func (g *GorgeSide) build(d0 *decision.Decision) *frame {
-	g.id.sync(g.E.G)
+	g.id.sync(g.E.G, g.E.L.Events)
 	d := d0.Clone()
 	fr := &frame{seq: d.Seq, d: d, dk: decisionKinds[d.Kind]}
 	fr.convoke = g.convokeFrameFor(d)
@@ -2221,7 +2221,7 @@ func (g *GorgeSide) runScript(pe prioEntry) {
 				g.Stats.Aborts++
 				return
 			}
-			g.id.sync(e.G)
+			g.id.sync(e.G, e.L.Events)
 			fr := &frame{seq: d.Seq, d: d.Clone(), dk: DPriority}
 			g.priorityVocabulary(fr)
 			for _, x := range fr.prio {

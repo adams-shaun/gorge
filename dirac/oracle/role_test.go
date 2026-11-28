@@ -165,7 +165,7 @@ func kroleRefObj(g *GorgeSide, r Ref) (state.ObjID, bool) {
 	if r == RefNone || r >= RefPlayer {
 		return 0, false
 	}
-	g.id.sync(g.E.G)
+	g.id.sync(g.E.G, g.E.L.Events)
 	if i := int(r); i < len(g.id.obj) {
 		return g.id.obj[i], true
 	}

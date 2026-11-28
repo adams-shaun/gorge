@@ -347,7 +347,7 @@ func RecordChance(cfg Config) SideFactory {
 		if err := e.AdvanceHypothetical(); err != nil {
 			return nil, err
 		}
-		g.id.sync(e.G)
+		g.id.sync(e.G, e.L.Events)
 		return KernelSide(stubKernel{g}), nil
 	}
 }
