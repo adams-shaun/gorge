@@ -368,7 +368,6 @@ type genPrep struct {
 	anySkipPhase    bool           // some program is ExtSkipPhase (act_skipphase.go)
 	anyMonarch      bool           // some program is ExtBecomeMonarch (act_monarch.go)
 	anyAttackedObj  bool           // the table gives mechAttackedObj an arena mask: finishAttacks marks the declared attackers
-	anyAtkTally     bool           // some expression is ExCardNumAttacksThisTurn: finishAttacks counts each attack per object (value_attacktally.go)
 	anySuspect      bool           // the table gives mechSuspected an arena mask (act_suspect.go)
 	anyRemEach      bool           // some OpRepeatEach is over the remembered set (kop.RepeatRemembered): each remembered object's last controller has a cold slot (act_repeatremembered.go)
 	anyRemSearcher  bool           // some program is ExtRememberSearcher: the searcher bookkeeping has a cold slot so a declined search takes its count back (zone_remembersearcher.go)
@@ -1980,7 +1979,6 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepSuspect(g)           // act_suspect.go; reads g.ix
 	prepPermMark(g)          // filter_permmarks.go; reads g.ix
 	prepTurnTallies(t, p, g) // value_turntallies.go; reads g.ix
-	prepAtkTally(t, g)       // value_attacktally.go
 	prepAddPhase(t, g)       // act_addphase.go
 	prepSkipPhase(t, g)      // act_skipphase.go
 	prepMonarch(t, g)        // act_monarch.go
@@ -2025,6 +2023,7 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	prepMayPlayNT(t, p)    // cast_mayplaynt.go
 	prepGrantAct(t, p)     // act_grantledger.go
 	prepSkipPhaseOne(t, p) // act_skipphase.go
+	prepAtkTally(t, p)     // value_attacktally.go; on prep, not genPrep
 	prepEmbalmGrant(t, p)  // kw_embalmgrant.go; on prep, not genPrep
 	prepOffKwGrant(t, p)   // kw_unearthgrant.go; on prep, not genPrep
 	prepCyclingGrant(t, p) // kw_cyclinggrant.go; on prep, not genPrep

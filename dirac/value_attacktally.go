@@ -9,29 +9,26 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // increments and TurnChange resets; extra combats share the turn, so a
 // creature that attacks in two combats reads 2). The kernel keeps the tally
 // per object in the cold region coldAtkN, only for a table some expression
-// of which reads it (genPrep.anyAtkTally). finishAttacks counts the declared
+// of which reads it (prepAtkTally; on prep, not genPrep: the pinned
+// fixed-State inventory is unchanged). finishAttacks counts the declared
 // attackers before the declaration's triggers fire (gorge matches triggers
 // on the folded event, the attack already counted); the turn start clears it
 // with the attacked marks (turnTalliesNewTurn). The read is ctx.src's own
 // count, so the AffectedX static (kop.StPerAffected) reads each affected
 // creature's (chars_gen.go re-anchors ctx.src) and a plain SVar the source's.
 
-var coldAtkN = newCold[uint8]("atkN", func(g *genPrep) int {
-	if g.anyAtkTally {
-		return MaxObj
-	}
-	return 0
-})
+var coldAtkN = newCold[uint8]("atkN", nil)
 
 // DebugAtkTallyOnce (TestHostedCmdrMoraugAttackTallyLockstep's mutation): a
 // declaration counts only an object's first attack of the turn.
 var DebugAtkTallyOnce bool
 
-// prepAtkTally reads whether some expression of t is ExCardNumAttacksThisTurn.
-func prepAtkTally(t *kop.Table, g *genPrep) {
+// prepAtkTally lays the region out for a table some expression of which is
+// ExCardNumAttacksThisTurn.
+func prepAtkTally(t *kop.Table, p *prep) {
 	for i := range t.Exprs {
 		if t.Exprs[i].Kind == kop.ExCardNumAttacksThisTurn {
-			g.anyAtkTally = true
+			coldAtkN.set(&p.cold, MaxObj)
 			return
 		}
 	}
