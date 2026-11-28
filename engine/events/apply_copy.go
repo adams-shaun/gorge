@@ -512,20 +512,23 @@ func foldCloneStatic(g *state.Game, e *Event) {
 }
 
 // mutateTopCopiable gives a top-merged pile its new top component's own
-// copiable values (CR 730.2a): the mutating object's copy basis and its
-// non-legendary rider replace the demoted top's. A copy effect applied to the
-// pile keeps applying (CR 730.2c), so with a live CloneLayers stack the new
-// top's basis goes where the effect's end restores from (TokenBasis) instead
-// of replacing the effect's face.
+// copiable values (CR 730.2a): the merged permanent has only its topmost
+// component's characteristics, and that is itself a copiable effect whose
+// timestamp is the moment the objects merged (CR 613.2, 613.7). Every copy
+// effect applied to the pile before the merge therefore loses the layer-1
+// timestamp order: its locked CloneLayers are dropped (it keeps applying,
+// CR 730.2c, but can no longer win) and the new top's copy basis, including
+// its non-legendary rider, replaces the demoted top's. TokenBasis becomes the
+// basis a later clear of those superseded layers restores, so ending one of
+// those effects cannot bring its face back.
 func mutateTopCopiable(o *state.Object, basis, back *cards.Face, nonLegendary bool) {
 	o.CopyNonLegendary = nonLegendary
-	if len(o.CloneLayers) > 0 {
-		o.TokenBasis, o.TokenBasisBack, o.TokenBasisSaved = basis, back, true
-		return
-	}
+	o.CloneLayers = nil
+	o.CopyGainThisAbility = false
 	o.SetCopyFace(basis)
 	o.CopyFaceBack = back
-	o.TokenBasis, o.TokenBasisBack, o.TokenBasisSaved = nil, nil, false
+	o.TokenBasis, o.TokenBasisBack = basis, back
+	o.TokenBasisSaved = basis != nil || back != nil
 }
 
 // foldClonePermanent folds Kind ClonePermanent into state.

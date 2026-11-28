@@ -7,11 +7,14 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// TestMutateTopCopiable pins CR 730.2a with 730.2c on a top merge: the merged
-// permanent has only the characteristics of its topmost component, so the old
-// top's OWN copiable values (a token copy's copy basis, a spell copy's
+// TestMutateTopCopiable pins CR 730.2a on a top merge: the merged permanent
+// has only the characteristics of its topmost component, and that is itself a
+// copiable effect timestamped at the merge, so it supersedes every copy effect
+// applied to the pile before it (CR 613.2, 613.7). The old top's own copiable
+// values (a token copy's copy basis, a clone layer, a spell copy's
 // non-legendary rider) leave the pile with it and the new top's come with the
-// mutating object, while a copy EFFECT applied to the pile keeps applying.
+// mutating object; an earlier copy effect keeps applying (CR 730.2c) but can
+// no longer win the layer-1 timestamp order.
 func TestMutateTopCopiable(t *testing.T) {
 	t.Parallel()
 	const wurm = "Name:Copied Wurm\nManaCost:4 G\nTypes:Creature Wurm\nPT:6/6\nOracle:x\n"
@@ -89,14 +92,14 @@ func TestMutateTopCopiable(t *testing.T) {
 		replayCheck(t, e, cfg)
 	})
 
-	t.Run("clone effect on the pile keeps applying", func(t *testing.T) {
+	t.Run("merge supersedes a clone effect on the pile", func(t *testing.T) {
 		e, cfg := tokenReplGame(t, 405, card(t, mutateTesterSrc), card(t, wurm), card(t, mutateBearSrc), card(t, mole))
 		mut := moveSeededCard(t, e, 0, card(t, mutateTesterSrc), state.ZHand)
 		tok := tokenCopy(t, e)
 		moleID := moveSeeded(t, e, 0, mole, state.ZBattlefield)
 		e.emit(events.Event{Kind: events.ClonePermanent, Obj: tok, IDs: []state.ObjID{moleID}, Player: 0})
-		if o := e.G.Obj(tok); o.Face().Name != "Fixture Mole" || !o.TokenBasisSaved {
-			t.Fatalf("precondition: token %+v, want a Mole with its Wurm basis saved", o)
+		if o := e.G.Obj(tok); o.Face().Name != "Fixture Mole" || len(o.CloneLayers) != 1 || !o.TokenBasisSaved {
+			t.Fatalf("precondition: token %+v, want a Mole copy layer with its Wurm basis saved", o)
 		}
 		addMana(t, e, 0, "GG")
 		mutateCastOnto(t, e, mutatedCastOption(t, e, mut), tok, true)
@@ -104,15 +107,50 @@ func TestMutateTopCopiable(t *testing.T) {
 		if len(pile.MergedCards) != 1 {
 			t.Fatalf("precondition: merged %+v, want one under-card", pile.MergedCards)
 		}
-		// CR 730.2c: the copy effect applied to the permanent still applies.
-		if f := pile.Face(); f == nil || f.Name != "Fixture Mole" {
-			t.Fatalf("pile face %v, want the Mole copy effect still applying (CR 730.2c)", f)
+		// CR 730.2a's timestamp sentence: the merge is the newest layer-1
+		// copiable effect, so the pile shows its top, not the Mole.
+		if f := pile.Face(); f == nil || f.Name != "Apex Tester" || pile.CopyFace != nil {
+			t.Fatalf("pile face %v (CopyFace %v) right after the merge, want the Tester (CR 730.2a)", f, pile.CopyFace)
 		}
-		// The copy effect ends: the pile is its top component again, the
-		// Tester, not the demoted token's Wurm basis.
+		// The superseded effect still ends; that must not bring its face
+		// back over the merge's later timestamp.
 		e.emit(events.Event{Kind: events.ClonePermanent, Obj: tok, Player: 0})
 		if f := e.G.Obj(tok).Face(); f == nil || f.Name != "Apex Tester" {
 			t.Fatalf("pile face %v after the copy effect ended, want the Tester (CR 730.2a)", f)
+		}
+		replayCheck(t, e, cfg)
+	})
+
+	t.Run("merge supersedes an as-enters clone", func(t *testing.T) {
+		e, cfg := tokenReplGame(t, 406, card(t, mutateTesterSrc), card(t, mole), card(t, mutateBearSrc))
+		mut := moveSeededCard(t, e, 0, card(t, mutateTesterSrc), state.ZHand)
+		bear := moveSeededCard(t, e, 0, card(t, mutateBearSrc), state.ZBattlefield)
+		moleID := moveSeeded(t, e, 0, mole, state.ZBattlefield)
+		e.emit(events.Event{Kind: events.ClonePermanent, Obj: bear, IDs: []state.ObjID{moleID},
+			Player: 0, Counter: "gain-this-ability"})
+		if o := e.G.Obj(bear); o.Face().Name != "Fixture Mole" || len(o.CloneLayers) != 1 || o.IsToken ||
+			!o.CopyGainThisAbility {
+			t.Fatalf("precondition: permanent %+v, want a Mole copy layer (GainThisAbility) on a real card", o)
+		}
+		addMana(t, e, 0, "GG")
+		mutateCastOnto(t, e, mutatedCastOption(t, e, mut), bear, true)
+		pile := e.G.Obj(bear)
+		if len(pile.MergedCards) != 1 {
+			t.Fatalf("precondition: merged %+v, want one under-card", pile.MergedCards)
+		}
+		if f := pile.Face(); f == nil || f.Name != "Apex Tester" || pile.CopyFace != nil {
+			t.Fatalf("pile face %v (CopyFace %v) after merging onto a clone, want the Tester (CR 730.2a)", f, pile.CopyFace)
+		}
+		// The demoted top's GainThisAbility$ rider is its own copiable value:
+		// it leaves with the component, like its copy basis.
+		if pile.CopyGainThisAbility {
+			t.Fatal("pile kept the demoted clone's GainThisAbility$ rider")
+		}
+		e.emit(events.Event{Kind: events.ClonePermanent, Obj: bear, Player: 0})
+		if p := e.G.Obj(bear); p.Face() == nil || p.Face().Name != "Apex Tester" || p.CopyFace != nil ||
+			p.CopyGainThisAbility {
+			t.Fatalf("pile face %v (CopyFace %v, GainThisAbility %v) after the clone ended, want the Tester (CR 730.2a)",
+				p.Face(), p.CopyFace, p.CopyGainThisAbility)
 		}
 		replayCheck(t, e, cfg)
 	})
