@@ -19,12 +19,15 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // The mutating cast swaps, rather than mints. Gorge mints a parked object for
 // the demoted card; dirac moves the demoted card onto the mutating spell's
 // object, which is already leaving the stack, and the survivor takes the
-// spell's card. The parked cards are the same set, so a top merge exchanges
-// the token status with the cards (CR 730.2d, gorge foldMutate): the pile is
-// a token exactly when its new top is, and the parked object keeps the pile's
-// old status. A spell copy is a token component wherever it lands (CR 608.3f).
+// spell's card. The parked cards are the same set, and the kernel mints no
+// non-token object (newToken sets ofToken), so a top merge exchanges the token
+// status with the cards (CR 730.2d, gorge foldMutate): the pile is a token
+// exactly when its new top is, and the parked object keeps the pile's old
+// status. A spell copy is a token component wherever it lands (CR 608.3f).
 // mergeLeave ceases a token component with the pile instead of moving it to
-// the destination zone.
+// the destination zone. gorge keeps the spell's object on the spell's card for
+// its cast history, so the lockstep numbering gives gorge's minted object the
+// spell's instance (dirac/oracle identity.sync).
 //
 // The cast half below (genPrep.anyMutate): gorge's mutated cast mode, the
 // CR 702.140b placement ask and the resolution diversion (trig_mutates.go
