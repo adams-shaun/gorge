@@ -413,17 +413,8 @@ func (s *State) caGapMask(k *prep, p uint8, ca bool) slotMask {
 	return slotMask{}
 }
 
-// scriptOffers adds to d the plays a scripted prefix pays (scriptOffersLazy);
-// the debug hooks run the eager twin beside it or in its place.
-func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) (searched int) {
-	if DebugShadowNestedWalks || DebugEagerNestedWalks {
-		return s.scriptOffersHook(k, d, capSpent, p)
-	}
-	return s.scriptOffersLazy(k, d, capSpent, p)
-}
-
 // scriptOfferReads reports whether src holds a play the candidate loop of
-// scriptOffersLazy keeps past scriptOfferDrops' first three clauses (a script
+// scriptOffers keeps past scriptOfferDrops' first three clauses (a script
 // play kind, on neither d nor the spent cap), and whether one of them is a
 // plain untargeted cast (pricedByPrintedSources' first clauses, the only
 // reader of the real walk).
@@ -441,7 +432,7 @@ func scriptOfferReads(src, d, capSpent *Decision) (play, plainCast bool) {
 	return play, false
 }
 
-func (s *State) scriptOffersLazy(k *prep, d *Decision, capSpent *Decision, p uint8) (searched int) {
+func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) (searched int) {
 	restr, anyR := s.scriptRestr(k, p), s.scriptAnyR(k, p)
 	tapsDef := s.scriptTapsDefer(k, p)
 	mix := s.mixBoard(k, p)
@@ -512,8 +503,9 @@ func (s *State) scriptOffersLazy(k *prep, d *Decision, capSpent *Decision, p uin
 	// reads of three Decisions neither loop below changes before its second
 	// (d.add runs in the second loop, capSpent is only read here). With no
 	// such play the first loop drops every option, nc stays 0 and the second
-	// loop runs no iteration: searched is 0, as the eager path returned
-	// (scriptOffersEager), and no walk built here would have been read.
+	// loop runs no iteration: searched is 0, as the old body returned
+	// (cast_lazywalks_test.go scriptOffersEager), and no walk built here
+	// would have been read.
 	play, plainCast := scriptOfferReads(src, d, capSpent)
 	if !play {
 		return 0

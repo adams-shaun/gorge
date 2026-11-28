@@ -81,12 +81,12 @@ func (s *State) scriptWalk(k *prep, d, capSpent *Decision, p uint8, sorc bool) {
 		s.actScriptedIn(k, d, p, sorc, &acts)
 		used := 0
 		if s.scriptAny(k) {
-			used = s.scriptOffers(k, d, capSpent, p)
+			used = s.offerScripts(k, d, capSpent, p)
 		}
 		actScriptTrim(d, &acts, used)
 		return
 	}
 	if s.scriptAny(k) {
-		s.scriptOffers(k, d, capSpent, p)
+		s.offerScripts(k, d, capSpent, p)
 	}
 }
