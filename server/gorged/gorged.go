@@ -65,6 +65,11 @@ type config struct {
 	engine string
 	// diracSets is -dirac-sets, the card sets -engine dirac plays.
 	diracSets string
+	// diracCheckSets is -dirac-check-sets: the card sets every deck report
+	// is also judged on under -engine gorge; diracCheck is the engine serve
+	// opened over them, nil when the flag is empty.
+	diracCheckSets string
+	diracCheck     *adapter.Engine
 	// refusedDecks says why -engine dirac cannot play each deck it refuses.
 	refusedDecks map[string]string
 	// imports holds the decks POST /api/games submitted (podimport.go); nil
@@ -429,6 +434,7 @@ func serveFlags() (*flag.FlagSet, *config) {
 	})
 	fs.Lookup("decks").DefValue = defaultDecks
 	fs.StringVar(&c.engine, "engine", gorgegame.Name, "the engine this server's tables and vs-bot games run on; one this binary does not link fails at startup, naming those it does")
+	fs.StringVar(&c.diracCheckSets, "dirac-check-sets", "", "comma-separated dirac card sets every deck report is also judged on (built by make dirac-tables); empty = no dirac column unless -engine dirac")
 	fs.StringVar(&c.diracSets, "dirac-sets", "fdn", "with -engine dirac: comma-separated card sets, tried in order for each game (built by make dirac-tables)")
 	fs.IntVar(&c.tables, "tables", 4, "number of tables")
 	fs.IntVar(&c.seats, "seats", 4, "seats per table")
@@ -688,7 +694,10 @@ func serve(ctx context.Context, c config, ln net.Listener) error {
 		load = reservedLoader(reg, load, a.decks, c.policyPools[a.policy])
 	}
 	c.imports = newDeckImports(reg)
-	c.imports.engine, c.imports.demand = c.engine, c.demandLog()
+	c.imports.demand = c.demandLog()
+	if err := c.diracColumn(reg, diracEngine); err != nil {
+		return err
+	}
 	load = c.imports.loader(load)
 	// -events chains the event store's deck loader in front of the ordinary
 	// loaders and hands serve the relay the registry's OnMatchEnd will run
