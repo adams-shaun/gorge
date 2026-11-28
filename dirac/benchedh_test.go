@@ -157,7 +157,19 @@ func edhPodRefused(err error) bool {
 }
 
 func (p *edhPod) init(s *State, seed uint64) {
-	s.InitN(p.tbl, p.decks, MaxSeats, seed, Config{Mulligans: 2})
+	p.initCfg(s, seed, Config{Mulligans: 2})
+}
+
+func (p *edhPod) initCfg(s *State, seed uint64, cfg Config) {
+	s.InitN(p.tbl, p.decks, MaxSeats, seed, cfg)
+}
+
+// edhAutopayConfig is LockstepConfig's auto-pay surface (the one dpod, kpod
+// and the search play) with the EDH bench's two mulligans.
+func edhAutopayConfig() Config {
+	cfg := LockstepConfig(SurfaceAutopay)
+	cfg.Mulligans = 2
+	return cfg
 }
 
 // BenchmarkTransitionEDH4 plays 16 fixed four-seat edh pods under
@@ -170,13 +182,25 @@ func (p *edhPod) init(s *State, seed uint64) {
 // so the measure stays a function of the pods alone. The recover is per game
 // segment, not per transition.
 func BenchmarkTransitionEDH4(b *testing.B) {
+	benchTransitionEDH4(b, Config{Mulligans: 2})
+}
+
+// BenchmarkTransitionEDH4Autopay is BenchmarkTransitionEDH4's pods, seeds and
+// loop on LockstepConfig's auto-pay surface (edhAutopayConfig): the option
+// surface the search plays, whose script walk prices plays the printed
+// sources pay (scriptOffers' real walk).
+func BenchmarkTransitionEDH4Autopay(b *testing.B) {
+	benchTransitionEDH4(b, edhAutopayConfig())
+}
+
+func benchTransitionEDH4(b *testing.B, cfg Config) {
 	pods := edhPods(b, 16)
 	var s State
 	var d Decision
 	g, i, panics := 0, 0, 0
 	var pol RandomPolicy
 	start := func() {
-		pods[g%len(pods)].init(&s, uint64(g)+1)
+		pods[g%len(pods)].initCfg(&s, uint64(g)+1, cfg)
 		pol = NewRandomPolicy(uint64(g) + 1)
 	}
 	segment := func() {
