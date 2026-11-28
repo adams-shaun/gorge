@@ -4,7 +4,8 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 
 // fwWithKeyword: FwWithKeyword, with<Keyword> over the printed keyword Arg
 // (a KwID); gorge's objectHasKeyword (engine/effects/filter.go:986) reads the
-// printed face and the keyword counters. A permanent reads nothing while face
+// printed face (a merged permanent: every card of its pile, CR 702.140e) and
+// the keyword counters. A permanent reads nothing while face
 // down (CR 708.2) or after a lose-all-abilities effect, from a one-shot record
 // OR a continuous override static (Amphibian Downpour's "loses all abilities"):
 // genLost is that full read (kop.W7WithInfect's own gate names only the applied
@@ -34,7 +35,7 @@ func (s *State) fwWithKeyword(c *fctx, l *kop.FLit) bool {
 		if id == kop.KwToxic && c.k.gen != nil && c.k.gen.anyInfectGrant && !DebugNoGrantedToxic && s.toxicGranted(c.k, c.sl) > 0 {
 			return true // a granted toxic (kw_toxicgrant.go), gorge's derived keyword list
 		}
-		return printedKeyword(&c.k.t.Cards[cid], id)
+		return s.pilePrints(c.k, c.sl, func(cd *kop.CardDef) bool { return printedKeyword(cd, id) })
 	case c.card():
 		return printedKeyword(&c.k.t.Cards[c.c], kop.KwID(l.Arg))
 	}

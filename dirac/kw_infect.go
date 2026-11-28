@@ -110,20 +110,27 @@ func (s *State) poisonSBA(k *prep) {
 	}
 }
 
-// infectAt: the permanent at sl has printed infect and has not lost its
-// abilities, or a granted infect (gorge HasKeyword reads the derived
-// keywords; kw_kwmark.go).
+// infectAt: the permanent at sl has printed infect (a pile: any of its
+// cards) and has not lost its abilities, or a granted infect (gorge HasKeyword
+// reads the derived keywords; kw_kwmark.go).
 func (s *State) infectAt(k *prep, sl Slot) bool {
-	return k.t.Cards[s.cardAt(sl)].Infect && !s.genLost(k, sl) ||
+	return s.pilePrints(k, sl, printsInfect) && !s.genLost(k, sl) ||
 		k.gen != nil && k.gen.anyInfectGrant && s.infectGranted(k, sl)
 }
 
-// toxicAt is the permanent at sl's printed toxic N, 0 once it has lost its
-// abilities (gorge ToxicValue).
+func printsInfect(cd *kop.CardDef) bool { return cd.Infect }
+
+// toxicAt is the permanent at sl's printed toxic N, summed over a pile's
+// cards (CR 702.164c), 0 once it has lost its abilities, plus its granted
+// toxic (gorge ToxicValue).
 func (s *State) toxicAt(k *prep, sl Slot) int {
 	n := 0
-	if c := k.t.Cards[s.cardAt(sl)].Toxic; c != 0 && !s.genLost(k, sl) {
-		n = int(c)
+	s.eachPileCard(k, sl, func(c CardID) bool {
+		n += int(k.t.Cards[c].Toxic)
+		return true
+	})
+	if n != 0 && s.genLost(k, sl) {
+		n = 0
 	}
 	if k.gen.anyColGrant {
 		_, _, t := s.cgOf(sl) // a chosen-colour toxic grant (static_colourgrant.go)

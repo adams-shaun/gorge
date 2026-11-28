@@ -18,7 +18,7 @@ var DebugWitherGrantIgnored bool
 // (infectAt's rule), or granted (kw is sl's current keywords; kw() applies
 // the layer-6 loss).
 func (s *State) witherKw(k *prep, sl Slot, kw kop.KwMask) bool {
-	if k.t.Cards[s.cardAt(sl)].Wither && !s.genLost(k, sl) {
+	if s.pilePrints(k, sl, printsWither) && !s.genLost(k, sl) {
 		return true
 	}
 	return k.gen.anyWitherGrant && !DebugWitherGrantIgnored && kw&kop.KwWither != 0
@@ -26,11 +26,13 @@ func (s *State) witherKw(k *prep, sl Slot, kw kop.KwMask) bool {
 
 // witherAt is witherKw for a caller without the keywords in hand.
 func (s *State) witherAt(k *prep, sl Slot) bool {
-	if k.t.Cards[s.cardAt(sl)].Wither && !s.genLost(k, sl) {
+	if s.pilePrints(k, sl, printsWither) && !s.genLost(k, sl) {
 		return true
 	}
 	return k.gen.anyWitherGrant && s.witherKw(k, sl, s.kw(k, sl))
 }
+
+func printsWither(cd *kop.CardDef) bool { return cd.Wither }
 
 // srcWither is the resolving source's wither (kw: srcKw's result): the
 // permanent's while it is on the battlefield; else gorge's LKI wither
