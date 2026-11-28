@@ -432,6 +432,10 @@ func scriptOfferReads(src, d, capSpent *Decision) (play, plainCast bool) {
 	return play, false
 }
 
+// scriptOffers adds to d the plays a scripted prefix pays. Under
+// nestedWalkEager (the shadow tests' reference run, cast_lazywalks.go) it
+// builds every nested walk where the candidate loop might read it, as the
+// body did before the walks waited for a reader.
 func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) (searched int) {
 	restr, anyR := s.scriptRestr(k, p), s.scriptAnyR(k, p)
 	tapsDef := s.scriptTapsDefer(k, p)
@@ -503,11 +507,10 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 	// reads of three Decisions neither loop below changes before its second
 	// (d.add runs in the second loop, capSpent is only read here). With no
 	// such play the first loop drops every option, nc stays 0 and the second
-	// loop runs no iteration: searched is 0, as the old body returned
-	// (cast_lazywalks_test.go scriptOffersEager), and no walk built here
-	// would have been read.
+	// loop runs no iteration: searched is 0, as the eager run returns, and
+	// no walk built here would have been read.
 	play, plainCast := scriptOfferReads(src, d, capSpent)
-	if !play {
+	if !play && !nestedWalkEager {
 		return 0
 	}
 	var cand [MaxOptions]Action
@@ -520,7 +523,7 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 	// searches every play the walk lists, a wide source's mana counted.
 	mixWide := mix && relax && s.scriptWide(k, p).any()
 	var real Decision // the plays the printed sources pay, plain casts the autopay surface drops included
-	if s.cfg&cfgGorgeAutopay != 0 && plainCast {
+	if s.cfg&cfgGorgeAutopay != 0 && (plainCast || nestedWalkEager) {
 		// real is read only by pricedByPrintedSources, whose first clauses
 		// (plainCastMode, no target) come before hasOption(real): with no
 		// plain untargeted cast among src's kept plays (plainCast) the walk
