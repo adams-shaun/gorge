@@ -130,15 +130,15 @@ func (s *State) setBase(k *prep, op kop.SetOp, ctx setCtx, v *setVal) {
 	case kop.SetController:
 		v.addPl(ctx.ev.ctrl, false)
 	case kop.SetTriggerObj:
-		if e != nil {
+		if setTrigEntry(e) {
 			v.addObj(s.refObjCtx(kop.RefTriggerObj, ctx.ev), 0, false)
 		}
 	case kop.SetTriggerSource:
-		if e != nil {
+		if setTrigEntry(e) {
 			v.addObj(s.refObjCtx(kop.RefTriggerSource, ctx.ev), 0, false)
 		}
 	case kop.SetTriggerPlayer:
-		if e != nil {
+		if setTrigEntry(e) {
 			v.addPl(e.trigPl, false)
 		}
 	case kop.SetEachOpponent:
@@ -155,6 +155,12 @@ func (s *State) setBase(k *prep, op kop.SetOp, ctx setCtx, v *setVal) {
 		panic("kernel: evalSet: base " + op.Kind.String() + " is declared but not modelled (its own ticket)")
 	}
 }
+
+// setTrigEntry reports whether e is a triggered ability's entry, the only
+// kind whose trigObj and trigPl are the firing event's referents: a spell's
+// carry its cast bookkeeping (the cast mode, a Discard cost's card), and
+// gorge's Triggered referents name nothing outside a trigger.
+func setTrigEntry(e *stackEntry) bool { return e != nil && e.kind&seFamMask == seTrigger }
 
 // setTargets adds the legal targets of e's slots in mask m, slot by slot,
 // each slot's first object then its extra objects (execUnion's order): a

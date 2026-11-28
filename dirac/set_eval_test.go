@@ -44,7 +44,7 @@ func newSetScen(t *testing.T, n, ctrl uint8) *setScen {
 	sc.self = sc.perm(vanilla.GrizzlyBears, ctrl)
 	sc.lions = sc.perm(vanilla.SavannahLions, sc.opp)
 	sc.plains = sc.perm(vanilla.Plains, sc.opp)
-	e := stackEntry{kind: seAbility, obj: sc.self, srcVer: s.objs[sc.self].ver, card: vanilla.GrizzlyBears, ctrl: ctrl, trigObj: sc.plains, trigPl: sc.opp}
+	e := stackEntry{kind: seTrigger, obj: sc.self, srcVer: s.objs[sc.self].ver, card: vanilla.GrizzlyBears, ctrl: ctrl, trigObj: sc.plains, trigPl: sc.opp}
 	for i := range e.tgt {
 		e.tgt[i] = NoTarget
 	}
@@ -94,7 +94,8 @@ func setPanics(t *testing.T, name, wantMsg string, f func()) {
 }
 
 // TestEvalSetBases: each push-base kind names what its gorge Defined$
-// referent names, and the declared memory bases refuse by name.
+// referent names, the trigger bases only on a trigger's entry, and the
+// declared memory bases refuse by name.
 func TestEvalSetBases(t *testing.T) {
 	sc := newSetScen(t, 2, 0)
 	if sc.self == sc.lions || sc.lions == sc.plains || sc.opp != 1 {
@@ -113,6 +114,13 @@ func TestEvalSetBases(t *testing.T) {
 	setWant(t, "SetTriggerPlayer", sc.eval(setOp1(kop.SetTriggerPlayer, 0)), op)
 	setWant(t, "SetEachOpponent", sc.eval(setOp1(kop.SetEachOpponent, 0)), op)
 	setWant(t, "SetEachPlayer", sc.eval(setOp1(kop.SetEachPlayer, 0)), me, op)
+
+	// a spell's trigObj and trigPl are its cast bookkeeping, no trigger referent
+	sc.s.res.e.kind = seSpell
+	setWant(t, "SetTriggerObj on a spell", sc.eval(setOp1(kop.SetTriggerObj, 0)))
+	setWant(t, "SetTriggerPlayer on a spell", sc.eval(setOp1(kop.SetTriggerPlayer, 0)))
+	setWant(t, "SetTriggerSource on a spell", sc.eval(setOp1(kop.SetTriggerSource, 0)))
+	sc.s.res.e.kind = seTrigger
 
 	// a target illegal on resolution is left out (CR 608.2b)
 	sc.s.res.bad |= 1
