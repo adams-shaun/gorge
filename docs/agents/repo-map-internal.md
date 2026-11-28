@@ -9,6 +9,7 @@ Part of the [repo map](repo-map.md) index. Bot runtime packages are in
 |---|---|
 | `internal/precheckgate` | Tests only: the `heads_gate` function `scripts/pr-precheck.sh` defines, read back out of the script. |
 | `internal/archtest` | Import-graph and structural tests (dependency order, `time` allowlist, no `math/rand`, 32-bit build, root `go.mod` has no `require`, layering budgets for the `engine/rules` sub-packages, no engine leaks from host). |
+| `internal/irmeter` | Measures how much of the code still reads Forge-spelled strings (kgen's refusal sites, the engine's string-returning parameter reads); printed by `cmd/irmeter`. |
 | `testkit/testutil` | Corpus registry (`CorpusRegistry` — **skips when `.cards/` is absent**), repo decks (`testkit/testutil/decks/*.json`), shared invariants, the per-test budget exception inventories (`testkit/testutil/testdata/`), and the Known-approximations ratchet (`agentsdoc_test.go`). |
 | `testkit/testutil/feedback` | Loads player feedback snapshots; `feedback.EngineAt`. `feedback/diracfb` replays one on whichever engine played it, dirac included (kept apart so engine tests do not link dirac). |
 | `testkit/conformance` | Plays one game on two engines through a client wire and reports the first thing the wire says differently (`make wire-matrix`). |
