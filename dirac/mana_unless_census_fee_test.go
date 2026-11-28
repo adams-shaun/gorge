@@ -43,13 +43,13 @@ func unlessCensusBoard(t *testing.T, names ...string) (*scen, map[string]CardID,
 	return sc, id, filter
 }
 
-// TestFiltPaySkipsChoiceRider: the unless / ward census leaves a
-// choice-shaped rider out (riderCensusFree fails closed), so the filter
-// payment probe must not price Gemstone Mine's "{T}, Remove a mining counter:
-// Add one mana of any color" either. The only way an unless {G} is payable is
-// the rider funding a first-only filter's {1} (Gemstone Mine {G}, filter
-// {G}); a direct probe (no unless flag) pins the gap set itself.
-func TestFiltPaySkipsChoiceRider(t *testing.T) {
+// TestFiltPayPricesChoiceRider: the unless / ward census prices a
+// choice-shaped rider (riderCensusFree lists it), so the filter payment probe
+// must price Gemstone Mine's "{T}, Remove a mining counter: Add one mana of
+// any color" too: the rider funding the first-only filter's {1} is the only
+// way an unless {G} is payable here (Gemstone Mine {G}, filter {G}). Without
+// its counter the source cannot activate, so the probe declines.
+func TestFiltPayPricesChoiceRider(t *testing.T) {
 	sc, id, filter := unlessCensusBoard(t, "Gemstone Mine")
 	sl := sc.slot(sc.perm(filter, 0))
 	mine := sc.slot(sc.perm(id["Gemstone Mine"], 0))
@@ -60,8 +60,8 @@ func TestFiltPaySkipsChoiceRider(t *testing.T) {
 	if !ok {
 		t.Fatal("precondition: Gemstone Mine is no bounded rider")
 	}
-	if riderCensusFree(a) {
-		t.Fatal("precondition: Gemstone Mine's choice-shaped rider is census-free")
+	if !riderCensusFree(a) {
+		t.Fatal("precondition: Gemstone Mine's choice-shaped rider is not census-free")
 	}
 	pm := &sc.s.perms[mine]
 	pm.subCtrN(sc.s, int(a.ManaRiderCtr), pm.ctrN(sc.s, int(a.ManaRiderCtr)))
@@ -73,15 +73,12 @@ func TestFiltPaySkipsChoiceRider(t *testing.T) {
 		t.Fatalf("precondition: the Test Filter is no live census gap (first %v usable %v fee %d otherMana %d filt %v)", sc.s.filtFirstOnly(sc.k, sl), sc.s.filtUsable(sc.k, sl), sc.s.filtFee(sc.k, sl), sc.s.filtOtherMana(sc.k, 0), sc.s.scriptFilt(sc.k, 0))
 	}
 
-	cost := manaOf(0, 1<<(3*kop.G))
-	if ok, _ := sc.s.filtPay(sc.k, 0, &cost, true); ok {
-		t.Fatal("the payment probe priced Gemstone Mine's choice-shaped rider")
+	if !sc.s.riderActivatable(sc.k, 0, mine, a) {
+		t.Fatal("precondition: Gemstone Mine's rider is not activatable with three mining counters")
 	}
-
-	// The census control: a Forest pays {G} itself, so the probe pays.
-	sc.perm(id["Forest"], 0)
+	cost := manaOf(0, 1<<(3*kop.G))
 	if ok, _ := sc.s.filtPay(sc.k, 0, &cost, true); !ok {
-		t.Fatal("the payment probe did not pay {G} beside a Forest")
+		t.Fatal("the payment probe did not price Gemstone Mine's choice-shaped rider")
 	}
 }
 

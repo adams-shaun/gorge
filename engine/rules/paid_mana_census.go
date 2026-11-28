@@ -345,21 +345,31 @@ func (e *Engine) unlessWindowUnits(p state.PlayerID) []windowManaUnit {
 				}
 				continue
 			}
-			// A fixed source-anchored SubCounter fee is the one further paid
+			// A source-anchored SubCounter fee is the one further paid
 			// shape this census can price deterministically (Remote Farm's
 			// "{T}, Remove a depletion counter from CARDNAME: Add {W}{W}",
 			// CR 608.2g): ManaSubCounterOnlyCost keeps the cost ask-free and
 			// mana-free, so the reach search prices the literal production
 			// alone and the activation's settle (PayManaSourceParts) removes
 			// counters the source carries -- checked here, exactly what that
-			// settle assumes. A choice-shaped production or a fixed part the
+			// settle assumes. An OPEN-CHOICE production on the same shape
+			// (Tendo Ice Bridge's "{T}, Remove a charge counter: Add one mana
+			// of any color") is as ask-free as the fixed one once the
+			// activation chooses its colour, so it prices one alt per colour
+			// the free any-colour arm below prices; leaving it out hid the
+			// only coloured source from an unless offer. A fixed part the
 			// source cannot pay stays out (fail closed, the census
 			// convention).
-			if !mf.Any && !mf.FreeCost && mf.Amount > 0 &&
+			if !mf.FreeCost && mf.Amount > 0 &&
 				!((mf.Tap && o.Tapped) || (mf.Untap && !o.Tapped)) {
 				cost := e.manaAbilityCC(p, id, ma).Cost
 				if pay.ManaSubCounterOnlyCost(cost) && manaSubCounterCarried(o, cost) {
-					for _, a := range fixedManaAlts(windowManaAlt{Ma: ma, Amt: mf.Amount}, mf.Counts) {
+					feeAlt := windowManaAlt{Ma: ma, Amt: mf.Amount}
+					alts := fixedManaAlts(feeAlt, mf.Counts)
+					if mf.Any {
+						alts = append(pinnedManaAlts(feeAlt, mf.Counts), comboSplitAlts(feeAlt, mf.Counts)...)
+					}
+					for _, a := range alts {
 						units = pay.AppendUnitAlt(units, id, a)
 					}
 				}

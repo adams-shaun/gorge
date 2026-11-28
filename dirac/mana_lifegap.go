@@ -256,7 +256,7 @@ func (s *State) windowLifeGapTap(k *prep, p uint8, o Slot, cost *kop.ManaCost) {
 // (windowCtrGapTap, which windowPick lists first) or a life-only one (the life
 // pays, the mana floats), and reports whether it did.
 func (s *State) windowLifeCtrGapTap(k *prep, p uint8, sl Slot, cost *kop.ManaCost, census bool) bool {
-	if s.windowCtrGapTap(k, p, sl, census) {
+	if s.windowCtrGapTap(k, p, sl, cost, census) {
 		return true
 	}
 	if _, life := s.lifeGapSource(k, sl); life {
