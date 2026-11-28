@@ -50,6 +50,9 @@ type quietFact struct {
 	// make, every colour for a chosen, reflected, dynamic or any-colour one;
 	// fcol: the colours a filter of its (no {T}, it nets nothing) converts to
 	mcol, fcol uint8
+	// blg: the colours of the basic land subtypes the card prints (the
+	// intrinsic abilities it has without a grant)
+	blg uint8
 }
 
 const (
@@ -183,6 +186,13 @@ func prepQuiet(t *kop.Table, k *prep) {
 	for i := range t.Cards {
 		qf := quietFact{bfAny: quietNone, bfTap: quietNone, hand: quietNone, grAny: quietNone, grTap: quietNone}
 		qf.bits = quietCardBits(t, k, i)
+		if g != nil {
+			for c, si := range g.blgSub {
+				if si != subOutside && (t.Cards[i].PrintedSubtypes.Has(int(si)) || t.Cards[i].Subtypes.Has(int(si))) {
+					qf.blg |= 1 << c
+				}
+			}
+		}
 		qf.cast, qf.gen = quietFloor(&t.Cards[i].Cost), t.Cards[i].Cost.Generic
 		quietAbilities(t, k, i, tf, &qf)
 		k.quietCard[i] = qf
@@ -420,29 +430,30 @@ func quietActivated(k *prep, a *kop.Ability, qf *quietFact) {
 
 // Quiet-proof blockers: the first route seatQuiet could not rule out.
 const (
-	qbNone     uint8 = iota // proved: the seat can only pass
-	qbTable                 // the table carries a route the proof does not model
-	qbSorc                  // the seat is at sorcery speed
-	qbFlash                 // (unused: a live flash grant is read per card)
-	qbHand                  // a hand card's instant-speed cast within the mana bound
-	qbHandAct               // a hand card's own route ahead of the timing gate (qHand)
-	qbCmd                   // a commander castable at instant speed
-	qbGrave                 // a graveyard card's cast or ability
-	qbExile                 // an exile card's cast or ability
-	qbMayRec                // a play permission record of the seat
-	qbMayZone               // a play-from-zone static in force for the seat
-	qbBattle                // an activated ability of the seat's permanent within the bound
-	qbGrant                 // a granted activated ability within the bound
-	qbFaceDown              // a face-down permanent of the seat (turn face up)
-	qbPriAsk                // an unless source's priority activation
-	qbHandAb                // a hand card's activated ability (cycling) within the bound
+	qbNone      uint8 = iota // proved: the seat can only pass
+	qbTable                  // the table carries a route the proof does not model
+	qbSorc                   // the seat is at sorcery speed
+	qbFlash                  // (unused: a live flash grant is read per card)
+	qbHand                   // a hand card's instant-speed cast within the mana bound
+	qbHandAct                // a hand card's own route ahead of the timing gate (qHand)
+	qbCmd                    // a commander castable at instant speed
+	qbGrave                  // a graveyard card's cast or ability
+	qbExile                  // an exile card's cast or ability
+	qbMayRec                 // a play permission record of the seat
+	qbMayZone                // a play-from-zone static in force for the seat
+	qbBattle                 // an activated ability of the seat's permanent within the bound
+	qbGrant                  // a granted activated ability within the bound
+	qbFaceDown               // a face-down permanent of the seat (turn face up)
+	qbPriAsk                 // an unless source's priority activation
+	qbHandAb                 // a hand card's activated ability (cycling) within the bound
+	qbLandGrant              // a granted basic land type the census may stall on
 	qbN
 )
 
 // QuietBlockerName names blocker b (verify reports).
 func QuietBlockerName(b int) string {
 	return [...]string{"proved", "table", "sorcery", "flash", "hand", "hand-route", "command", "graveyard",
-		"exile", "may-record", "may-zone", "battlefield", "grant", "face-down", "priority-ask", "hand-ability"}[b]
+		"exile", "may-record", "may-zone", "battlefield", "grant", "face-down", "priority-ask", "hand-ability", "land-grant"}[b]
 }
 
 // seatQuiet reports whether the seat holding priority provably has no option
@@ -854,11 +865,16 @@ func (r *quietRead) records() uint8 {
 }
 
 // battle is the seat's permanents' own activated abilities and face-down
-// permanents.
+// permanents, and, on a table that grants basic land types, a land whose
+// census view the walk's census would stall (blgStall, identGrantView,
+// the alternative-pair overflow: StallLandGrant latches State).
 func (r *quietRead) battle() uint8 {
 	s, k, g := r.s, r.k, r.k.gen
 	for m := s.ctrlM[r.p]; m.any(); m = m.rest() {
 		sl := m.first()
+		if g != nil && g.blgOn && s.g.stalled == 0 && r.landGrantStalls(sl) {
+			return qbLandGrant
+		}
 		qf := &k.quietCard[s.cardAt(sl)]
 		if (!r.above(qf.bfAny) || s.perms[sl].flags&pfTapped == 0 && !r.above(qf.bfTap)) && r.bfLive(sl) {
 			r.card = s.cardAt(sl)
@@ -934,6 +950,23 @@ func (r *quietRead) ownTapFunds(sl Slot, fl uint8) bool {
 	}
 	own := int(r.k.quietCard[r.s.cardAt(sl)].mtap)
 	return int(fl) > r.bound-own
+}
+
+// landGrantStalls reports whether the census may stall on the land at sl: it
+// has a basic land type it does not print, or one whose intrinsic colour its
+// own ability does not make (blgStall's test). Every StallLandGrant the
+// census raises (blgStall, identGrantView, the alternative-pair overflow)
+// needs one of the two, so a seat with neither is no census stall. Once a
+// stall is latched (s.g.stalled), capFull writes nothing more, and no census
+// can change State this way.
+func (r *quietRead) landGrantStalls(sl Slot) bool {
+	s, k := r.s, r.k
+	c := s.cardAt(sl)
+	m := uint8(s.blgMask(k, sl))
+	if m == 0 {
+		return false
+	}
+	return m&^k.quietCard[c].blg != 0 || m&^uint8(ownMadeCols(&k.cards[c])) != 0
 }
 
 // grants: a granted body is a latent ability of a grant's source: a
