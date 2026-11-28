@@ -207,3 +207,6 @@ TestFDCFourSeatPodsLockstep
 TestNonTapCostManaLockstep
 # Named by 11-28 red (whole-oracle run 46151419602 at cdf81d7e67: #5954 Targeted+Other+sameName lowering, reverted)
 TestAtomDiffRelationsFocus
+# Named by 11-28 red (whole-oracle run 46156795316 at ac26250ecc: the quiet proof on Equip/loyalty flash tables)
+TestEquipFlashLockstep
+TestLoyaltyFlashLockstep
