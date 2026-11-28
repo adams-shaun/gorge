@@ -182,6 +182,12 @@ type config struct {
 	// seat tokens are released with them); a live game is never removed, so
 	// with none finished a new game is refused.
 	maxOnDemandTables int
+	// keepMatches is the -keep-matches flag: how many finished bot-only
+	// matches each table keeps on disk and in its match list. 0 keeps
+	// everything (today's behaviour); older prunable matches are deleted.
+	// A match with a human seat, a crashed match and anything outside the
+	// table directories are never deleted.
+	keepMatches int
 	// nets is one entry per RegisterNetBot policy, in registration order, each
 	// holding that policy's flags (netbots.go).
 	nets []netPolicy
@@ -468,6 +474,7 @@ func serveFlags() (*flag.FlagSet, *config) {
 	fs.IntVar(&c.maxSearchTables, "max-search-tables", 8, "maximum live on-demand tables whose policy is a search entry (0 = unlimited)")
 	fs.StringVar(&c.vsbotSpectator, "vsbot-spectator", "public", "spectator visibility of on-demand play-vs-bot tables: public or omniscient")
 	fs.IntVar(&c.maxOnDemandTables, "max-on-demand-tables", 32, "maximum retained private play-vs-bot tables per process (0 = unlimited)")
+	fs.IntVar(&c.keepMatches, "keep-matches", 0, "finished matches a bot-only table keeps on disk; older ones are deleted. A match with a human seat and a crashed match are never deleted. 0 keeps everything")
 	// The prewarm default is TRUE, deliberately, and lives here — the flag
 	// registration — not in a statement main must run after Parse. The
 	// background goroutine fills the art cache for every deck card at startup
@@ -514,6 +521,9 @@ func serve(ctx context.Context, c config, ln net.Listener) error {
 	}
 	if c.rateLimit < 0 || (c.rateLimit > 0 && c.rateBurst < 1) {
 		return fmt.Errorf("-rate-limit must be >= 0 and, when on, -rate-burst >= 1 (got %d and %d)", c.rateLimit, c.rateBurst)
+	}
+	if c.keepMatches < 0 {
+		return fmt.Errorf("-keep-matches must be >= 0 (got %d)", c.keepMatches)
 	}
 	if !c.diracOn() {
 		if _, err := host.LookupEngine(c.startableEngines(), c.engine); err != nil {
@@ -1140,7 +1150,7 @@ func (g config) hostOptions(reg *cards.Registry, load func(string) (host.Deck, e
 	// the engine and the bots themselves.
 	return host.Options{Dir: g.dir, LoadDeck: load, Tokens: reg.Tokens, NameUniverse: reg.Universe(), Sync: true, Cooldown: g.cooldown,
 		MaxDecisionsPerTurn: host.DefaultMaxDecisionsPerTurn, DefaultBotAutoPayMana: g.botAutoPayMana, DefaultBotCommonSense: g.botCommonSense,
-		MaxOnDemandTables: g.maxOnDemandTables, ThinkTimeout: g.manabrewThinkTimeout(),
+		MaxOnDemandTables: g.maxOnDemandTables, KeepMatches: g.keepMatches, ThinkTimeout: g.manabrewThinkTimeout(),
 		// The search-CPU flags reach the host here.
 		// SearchSlots bounds concurrent searched decisions registry-wide
 		// (0 would be unbounded, but gorged validates >= 1); MaxSearchTables

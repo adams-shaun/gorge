@@ -233,9 +233,8 @@ func (r *Registry) lookup(id TableID, k int) (*table, *match, error) {
 }
 
 // archivedMatch returns the sidecar for archived match k on t, or ok false
-// when k is not known from disk. archived is append-only after archive()
-// (it is only ever appended to under t.mu, never mutated in place), so a
-// reader taking the read lock is fine.
+// when k is not known from disk. archived changes only under t.mu (archive
+// appends, retention prunes), so a reader taking the read lock is fine.
 func (t *table) archivedMatch(k int) (sidecar, bool) {
 	t.mu.RLock()
 	defer t.mu.RUnlock()
