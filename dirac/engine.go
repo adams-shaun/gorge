@@ -322,9 +322,9 @@ func (s *State) stepRaw(d *Decision) {
 				s.prio = s.nextAlive(s.prio) // gorge grantPriority: a departed holder's turn passes on
 			}
 			d.Kind, d.Player = DkPriority, s.prio
-			s.pcMemoOpen(k) // the per-decision manaPCGen memo (mana_pcmemo.go)
-			s.sfmOpen(k)    // scriptFilt's (mana_sfmemo.go)
-			s.priorityOptions(k, d)
+			s.pcMemoOpen(k)     // the per-decision manaPCGen memo (mana_pcmemo.go)
+			s.sfmOpen(k)        // scriptFilt's (mana_sfmemo.go)
+			s.priorityArm(k, d) // cast_quietseat.go: the walk, or pass for a seat the quiet proof shows can only pass
 			s.pcMemoClose()
 			s.sfmClose()
 			return
