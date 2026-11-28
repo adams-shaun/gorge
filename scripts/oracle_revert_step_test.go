@@ -62,6 +62,12 @@ func revertStep(t *testing.T) string {
 // main, so a plain push of a fresh tip is rejected as non-fast-forward — the run 45740776172 failure.
 func revertStepRepo(t *testing.T) (repo, culprit, head string) {
 	t.Helper()
+	return revertStepRepoWith(t, nil)
+}
+
+// revertStepRepoWith is revertStepRepo with extra files (path -> content) in main's base commit.
+func revertStepRepoWith(t *testing.T, extra map[string]string) (repo, culprit, head string) {
+	t.Helper()
 	if _, err := exec.LookPath("git"); err != nil {
 		t.Skip("no git")
 	}
@@ -71,6 +77,9 @@ func revertStepRepo(t *testing.T) (repo, culprit, head string) {
 		return sh(t, repo, "git", append([]string{"-c", "user.email=t@t", "-c", "user.name=t", "-c", "commit.gpgsign=false"}, args...)...)
 	}
 	write(t, filepath.Join(repo, "f.txt"), "0\n", 0o644)
+	for p, c := range extra {
+		write(t, filepath.Join(repo, p), c, 0o644)
+	}
 	sh(t, root, "git", "init", "-q", "-b", "main", repo)
 	g("add", "-A")
 	g("commit", "-q", "-m", "base")
@@ -157,6 +166,23 @@ esac
 	return string(b) + string(out), code
 }
 
+// revertStepBody returns the body of the last --body-file the gh stub logged: the text after its
+// "--- body <path>" marker, read from gh.log alone. The step's stdout is not included, so an assertion here
+// cannot pass on the "| tee sentinels.out" output instead of the PR body.
+func revertStepBody(t *testing.T, repo string) string {
+	t.Helper()
+	ghLog := readText(t, filepath.Join(filepath.Dir(repo), "gh.log"))
+	i := strings.LastIndex(ghLog, "--- body ")
+	if i < 0 {
+		t.Fatalf("gh stub logged no --body-file body:\n%s", ghLog)
+	}
+	nl := strings.IndexByte(ghLog[i:], '\n')
+	if nl < 0 {
+		t.Fatalf("gh stub's body marker has no body:\n%s", ghLog)
+	}
+	return ghLog[i+nl+1:]
+}
+
 // originTip returns the sha origin has for ref, or "" when it has none.
 func originTip(t *testing.T, repo, ref string) string {
 	t.Helper()
@@ -226,6 +252,59 @@ func TestOracleBisectRevertStep(t *testing.T) {
 			if !strings.Contains(log, want) {
 				t.Errorf("the PR body lacks %q:\n%s", want, log)
 			}
+		}
+	})
+
+	t.Run("revert branch carries a sentinel commit", func(t *testing.T) {
+		t.Parallel()
+		script := readText(t, "sentinel-append.sh")
+		const base = "# sentinels\nTestOld\n"
+		repo, culprit, head := revertStepRepoWith(t, map[string]string{
+			"scripts/sentinel-append.sh":                 script,
+			"dirac/oracle/testdata/sentinels.txt":        base,
+			"dirac/oracle/testdata/ci-shard-seconds.txt": "# <test> <seconds>\n",
+			"dirac/oracle/a_test.go":                     "package oracle\n\nimport \"testing\"\n\nfunc TestOld(t *testing.T) {}\n\nfunc TestAlpha(t *testing.T) {}\n",
+		})
+		log, code := runRevertStep(t, repo, step, culprit, head, "")
+		if code != 0 {
+			t.Fatalf("want exit 0, got %d\n%s", code, log)
+		}
+		br := "hotfix/auto-revert-4559"
+		tip := originTip(t, repo, br)
+		if tip == "" {
+			t.Fatalf("origin has no %s", br)
+		}
+		tip = strings.Fields(tip)[0]
+		if subj := strings.TrimSpace(sh(t, repo, "git", "log", "-1", "--format=%s", tip)); subj != "oracle: sentinel the tests #4559 reddened" {
+			t.Errorf("tip subject %q", subj)
+		}
+		parent := strings.TrimSpace(sh(t, repo, "git", "rev-parse", tip+"^"))
+		if subj := strings.TrimSpace(sh(t, repo, "git", "log", "-1", "--format=%s", parent)); !strings.HasPrefix(subj, "Revert ") {
+			t.Errorf("tip's parent is not the revert: %q", subj)
+		}
+		if p := strings.TrimSpace(sh(t, repo, "git", "rev-parse", parent+"^")); p != head {
+			t.Errorf("the revert's parent is %s, want main's head %s", p, head)
+		}
+		got := sh(t, repo, "git", "show", tip+":dirac/oracle/testdata/sentinels.txt")
+		if want := base + "\n# Named by oracle run 45740776172 (auto-revert of #4559)\nTestAlpha\n"; got != want {
+			t.Errorf("sentinels.txt on the bot branch:\n%s\nwant:\n%s", got, want)
+		}
+		if strings.Contains(got, "TestBeta") {
+			t.Errorf("TestBeta is not declared and must not be listed:\n%s", got)
+		}
+		if !strings.Contains(log, "gh pr create --draft") {
+			t.Errorf("the step must open a draft PR:\n%s", log)
+		}
+		body := revertStepBody(t, repo)
+		i := strings.Index(body, "sentinel-append: added 1 of 2")
+		if i < 0 {
+			t.Errorf("the PR body must carry the sentinel-append report:\n%s", body)
+		}
+		footer := strings.Index(body, "\n---\n")
+		if footer < 0 {
+			t.Errorf("the PR body has no `---` footer:\n%s", body)
+		} else if i > footer {
+			t.Errorf("the sentinel-append report must come before the body's `---` footer:\n%s", body)
 		}
 	})
 }
