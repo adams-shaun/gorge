@@ -322,8 +322,8 @@ func (s *State) eachOverride(k *prep, sl Slot, f func(o *kop.Override, src CardI
 
 const NoCard = kop.NoCard
 
-// typesGen is sl's types.
-func (s *State) typesGen(k *prep, sl Slot) kop.TypeMask {
+// typesCalc is sl's types (typesGen computes them here; static_typecache.go).
+func (s *State) typesCalc(k *prep, sl Slot) kop.TypeMask {
 	if k.gen.fxNeed != 0 && s.walkSlot(k, sl) {
 		t := s.walkTypes(k, sl)
 		if k.gen.ringOn() && s.ringLegend(k, sl) {
@@ -950,6 +950,15 @@ func (s *State) grantSrcScanPile(k *prep) (g grantSrcs) {
 // own static grants it (a Station threshold's), listed as gorge lists a
 // static's grant (slotTriggers).
 func (s *State) grantedAbilitiesOwn(k *prep, sl Slot, own func(), f func(c CardID, ab uint8, n int)) {
+	if own == nil && k.grCache {
+		s.grantedCached(k, sl, f) // static_grantcache.go
+		return
+	}
+	s.grantedAbilitiesWalk(k, sl, own, f)
+}
+
+// grantedAbilitiesWalk is grantedAbilitiesOwn's walk.
+func (s *State) grantedAbilitiesWalk(k *prep, sl Slot, own func(), f func(c CardID, ab uint8, n int)) {
 	if !k.gen.anyGrant {
 		if own != nil {
 			own()

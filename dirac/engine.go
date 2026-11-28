@@ -44,6 +44,7 @@ func (s *State) InitNStart(tbl *Table, decks [MaxSeats][]CardID, n uint8, seed u
 		panic("kernel: seat count out of range")
 	}
 	clear(s.perms[:s.permHi])
+	s.tyCacheReset() // static_typecache.go
 	s.stateCore = stateCore{}
 	// the last-bearer pad's empty sentinel: a zero
 	// record would name object 0, which is a real card.

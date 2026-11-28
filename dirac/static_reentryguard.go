@@ -38,7 +38,9 @@ func (s *State) lfxCond(k *prep, e *lfx) bool {
 		return false // re-entered from its own condition: not applying
 	}
 	p.ovr.walk |= walkCond
+	s.tyCacheHold() // an unmarked in-place write a nested typesGen reads (static_typecache.go)
 	ok := s.statCond(k, st)
+	s.tyCacheRelease()
 	s.perms[e.src].ovr.walk &^= walkCond
 	return ok
 }

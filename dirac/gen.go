@@ -3458,17 +3458,23 @@ func (s *State) refreshTy(k *prep) {
 			s.perms[sl].ovr.flags &^= ovGenTy
 			s.touchSl(sl)
 		}
-		s.perms[sl].ovr.walk = 0
+		if s.perms[sl].ovr.walk != 0 {
+			s.perms[sl].ovr.walk = 0
+			s.tyCacheDrop() // walkSlot reads the flag (static_typecache.go)
+		}
 	}
 	s.g.tyM = m
 	for ; m.any(); m = m.rest() {
 		sl := m.first()
 		p := &s.perms[sl]
-		f0, t0 := p.ovr.flags, p.gty
+		f0, t0, w0 := p.ovr.flags, p.gty, p.ovr.walk
 		p.ovr.flags &^= ovGenTy
 		p.ovr.walk = 0
 		if walk.has(sl) {
 			p.ovr.walk = walkOn
+		}
+		if p.ovr.walk != w0 {
+			s.tyCacheDrop() // walkSlot reads the flag (static_typecache.go)
 		}
 		fd := p.gty & (gtyFaceDown | gtyProvMask)
 		p.gty = s.typesGen(k, sl)&^(gtyFaceDown|gtyProvMask) | fd
