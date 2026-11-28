@@ -3,59 +3,38 @@ package dirac
 import (
 	"testing"
 
-	"github.com/adams-shaun/gorge/dirac/cardset"
-	"github.com/adams-shaun/gorge/dirac/cardset/cardsettest"
 	"github.com/adams-shaun/gorge/dirac/kop"
+	v "github.com/adams-shaun/gorge/dirac/vanilla"
 )
 
-// capSpentScen builds the TestFilterSearchDoesNotRepriceAGrantRefusedActivation
-// board (Great Divide Guide's grant beside Rumble Arena's filter and Earthen
-// Ally's Earthbend) with or without the grant's source in the deck: without
-// it the table holds no grant search (grantPC is empty).
-func capSpentScen(t *testing.T, grant bool) (*scen, Action) {
+// noGrantScen is grantTapExtraScen's board with no grant in its table: a
+// generated table whose planner-deferred Taps watcher puts the script walk on
+// (scriptAny: anyTapsDefer), two
+// plain {C} lands and Test Ember ({1}) in hand, and no rite, so grantPC is
+// empty.
+func noGrantScen(t *testing.T) (*scen, Obj) {
 	t.Helper()
-	deck := []cardset.Entry{
-		{Name: "Rumble Arena", Count: 1}, {Name: "Earthen Ally", Count: 1},
-		{Name: "Bender's Waterskin", Count: 1}, {Name: "Meditation Pools", Count: 1}, {Name: "Jasmine Dragon Tea Shop", Count: 1},
-		{Name: "White Lotus Hideout", Count: 1}, {Name: "Badgermole Cub", Count: 4},
-		{Name: "Plains", Count: 1}, {Name: "Mountain", Count: 1}, {Name: "Island", Count: 20},
-	}
-	names := []string{"Rumble Arena", "Earthen Ally", "Jasmine Dragon Tea Shop",
-		"Meditation Pools", "Plains", "Mountain", "White Lotus Hideout"}
-	if grant {
-		deck = append(deck, cardset.Entry{Name: "Great Divide Guide", Count: 1})
-		names = append(names, "Great Divide Guide")
-	}
-	tbl, _, _, err := cardsettest.Synth(t, "std-tla").Matchup(deck, deck)
-	if err != nil {
-		t.Fatal(err)
-	}
-	id := map[string]CardID{}
-	for c := range tbl.Cards {
-		if _, ok := id[tbl.Cards[c].Name]; !ok {
-			id[tbl.Cards[c].Name] = CardID(c)
-		}
-	}
-	sc := newScenTableLib(t, tbl, id["Island"], Config{NoElide: true})
-	var ally Obj
-	for _, n := range names {
-		o := sc.perm(id[n], 0)
-		if n == "Earthen Ally" {
-			ally = o
-		}
-	}
-	sc.s.pl[0].pool[kop.C] = 1
-	ai := -1
-	for i := range sc.k.t.Cards[id["Earthen Ally"]].Abilities {
-		if sc.k.t.Cards[id["Earthen Ally"]].Abilities[i].Cost.Mana.Generic > 0 {
-			ai = i
-			break
-		}
-	}
-	if ai < 0 {
-		t.Fatal("Earthen Ally's Earthbend ability not found in the table")
-	}
-	return sc, MakeAction(AkActivate, TCode(ally), 0, uint8(ai))
+	tbl := *v.Table
+	tbl.Conds = []kop.Cond{{}} // a generated table (prepareGen's gate)
+	tbl.Cards = append([]kop.CardDef(nil), v.Table.Cards...)
+	tbl.Filters = append([]kop.Filter(nil), v.Table.Filters...)
+	tbl.Filters = append(tbl.Filters, kop.Filter{Ctrl: kop.CtrlYou})
+	mine := kop.FilterID(len(tbl.Filters) - 1)
+	land := CardID(len(tbl.Cards))
+	tbl.Cards = append(tbl.Cards, kop.CardDef{Name: "Test Land", Types: kop.TLand, Abilities: []kop.Ability{
+		{Kind: kop.AbMana, Cost: kop.Cost{Flags: kop.CostTap}, ManaColors: kop.ColC, ManaN: 1},
+	}})
+	watch := CardID(len(tbl.Cards))
+	tbl.Cards = append(tbl.Cards, kop.CardDef{Name: "Test Taps Watch", Types: kop.TCreature, Power: 1, Toughness: 1, Abilities: []kop.Ability{
+		{Kind: kop.AbTriggered, Trig: kop.Trigger{Event: kop.TrigTaps, Filter: mine, TapPlan: kop.TapPlanDefer}, Prog: []kop.Instr{{Op: kop.OpGainLife, Obj: kop.RefController, A: kop.Const(1)}}},
+	}})
+	ember := CardID(len(tbl.Cards))
+	tbl.Cards = append(tbl.Cards, kop.CardDef{Name: "Test Ember", Types: kop.TInstant, Cost: kop.ManaCost{Generic: 1}})
+	sc := newScenTable(t, &tbl, Config{NoElide: true})
+	sc.perm(land, 0)
+	sc.perm(land, 0)
+	sc.perm(watch, 0)
+	return sc, sc.hand(ember, 0)
 }
 
 // TestCapSpentScratchIsReset: priorityOptions builds grantCap's cap only on a
@@ -65,26 +44,27 @@ func capSpentScen(t *testing.T, grant bool) (*scen, Action) {
 // nothing behind for the next priority on a table with no grant: it offers
 // exactly what a fresh copy of its state offers.
 func TestCapSpentScratchIsReset(t *testing.T) {
-	gsc, a := capSpentScen(t, true)
+	gsc, emberO := grantTapExtraScen(t, true, false)
 	gs, gk := gsc.s, gsc.k
+	a := MakeAction(AkCast, TCode(emberO), 0, 0)
 	if len(gk.gen.grantPC) == 0 || gs.g.availX != 0 {
 		t.Fatalf("precondition: the grant board takes no grant search (grantPC %d, availX %d)", len(gk.gen.grantPC), gs.g.availX)
 	}
-	// precondition: the grant board's priority fills the cap (the grant search
-	// refuses the Earthbend within gorge's budget)
+	// precondition: the grant board's priority fills the cap (the grant
+	// search refuses Test Ember)
 	var probe State
 	probe.CopyFrom(gs)
 	var pd, pcap Decision
 	pd.add(a)
 	probe.grantCap(gk, &pd, 0, &pcap)
 	if pcap.N == 0 || !hasOption(&pcap, a) {
-		t.Fatalf("precondition: grantCap recorded %d plays, want the refused Earthbend", pcap.N)
+		t.Fatalf("precondition: grantCap recorded %v, want the refused Test Ember", pcap.Options[:pcap.N])
 	}
 
-	nsc, _ := capSpentScen(t, false)
+	nsc, _ := noGrantScen(t)
 	ns, nk := nsc.s, nsc.k
-	if len(nk.gen.grantPC) != 0 {
-		t.Fatalf("precondition: the no-grant board's table has %d grant searches, want none", len(nk.gen.grantPC))
+	if len(nk.gen.grantPC) != 0 || !ns.scriptAny(nk) {
+		t.Fatalf("precondition: the no-grant table has %d grant searches and script walk %v, want none and on", len(nk.gen.grantPC), ns.scriptAny(nk))
 	}
 	var fresh State
 	fresh.CopyFrom(ns)
@@ -93,7 +73,7 @@ func TestCapSpentScratchIsReset(t *testing.T) {
 	var gd Decision
 	gs.priorityOptions(gk, &gd)
 	if hasOption(&gd, a) {
-		t.Fatal("the grant board's priority offers the Earthbend its grant search refused")
+		t.Fatal("the grant board's priority offers the Test Ember its grant search refused")
 	}
 	// the next priority, on a table with no grant, sees no cap: it offers
 	// exactly what a fresh copy offers
