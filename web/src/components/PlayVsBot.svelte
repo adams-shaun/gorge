@@ -3,9 +3,10 @@
   import { fetchBotPolicies, fetchCapabilities, fetchDecks, type DeckInfo } from '../lib/api';
   import type { BotPolicyInfo, PairedBotChoice } from '../protocol';
   import ProtocolSetting from './ProtocolSetting.svelte';
-  import { VS_BOT_FORMATS, VS_BOT_MULLIGANS, deckLabel, startPlayVsBot, type VsBotFormat, type VsBotMulligans } from '../lib/playvsbot';
+  import { VS_BOT_FORMATS, VS_BOT_MULLIGANS, VS_BOT_SEATS, deckLabel, startPlayVsBot, type VsBotFormat, type VsBotMulligans, type VsBotSeats } from '../lib/playvsbot';
 
-  // The landing-page entry point that sits the player down 1v1 against a bot.
+  // The landing-page entry point that sits the player down against bots: a
+  // duel, or (Commander only) a pod of three or four seats, one of them yours.
   // Deck ids come only from the server catalogue; empty values deliberately
   // stay the original random-assignment path. The opponent picker lists the
   // server's offered policies for the chosen format; empty keeps its default.
@@ -18,6 +19,7 @@
   let pairedBot = $state('');
   let pairedBots = $state<PairedBotChoice[]>([]);
   let mulligans: VsBotMulligans = $state(6);
+  let seats: VsBotSeats = $state(2);
   let decks = $state<DeckInfo[]>([]);
   let loadingDecks = $state(true);
   let busy = $state(false);
@@ -62,6 +64,7 @@
 
   function chooseFormat(next: VsBotFormat) {
     format = next;
+    seats = next === 'commander' ? 4 : 2;
     humanDeck = '';
     botDeck = '';
     if (botPolicy && !formatPolicies.some((p) => p.name === botPolicy)) botPolicy = '';
@@ -72,7 +75,7 @@
     busy = true;
     error = null;
     try {
-      const join = await startPlayVsBot(format, humanDeck, botDeck, mulligans, botPolicy, pairedBot);
+      const join = await startPlayVsBot(format, humanDeck, botDeck, mulligans, botPolicy, pairedBot, seats);
       window.location.href = join;
     } catch (e) {
       error = e instanceof Error ? e.message : String(e);
@@ -82,8 +85,11 @@
 </script>
 
 <div class="playvsbot" data-testid="playvsbot">
-  <h2>Play 1v1 vs a bot</h2>
-  <p class="hint">Choose the matchup, or leave either seat random. The match replays from its seed.</p>
+  <h2>Play vs bots</h2>
+  <p class="hint">
+    {seats === 2 ? 'Two seats: you and one bot.' : `${seats} seats: you and ${seats - 1} bots.`} Choose the matchup, or leave a seat random. The match replays
+    from its seed.
+  </p>
   <div class="formats" role="radiogroup" aria-label="format">
     {#each VS_BOT_FORMATS as f (f.value)}
       <label class="format">
@@ -92,6 +98,16 @@
       </label>
     {/each}
   </div>
+  {#if format === 'commander'}
+    <label class="mulligans">
+      <span>Seats</span>
+      <select aria-label="Seats" bind:value={seats} data-testid="seats">
+        {#each VS_BOT_SEATS as n (n)}
+          <option value={n}>{n}</option>
+        {/each}
+      </select>
+    </label>
+  {/if}
   <label class="mulligans">
     <span>Mulligans</span>
     <select aria-label="Mulligans" bind:value={mulligans} data-testid="mulligans">
@@ -102,24 +118,28 @@
     <span class="mulligan-hint">each redraw adds one card you put on the bottom</span>
   </label>
   <div class="pickers" aria-busy={loadingDecks}>
-    <label class="picker">
-      <span>Your deck</span>
-      <select aria-label="Your deck" bind:value={humanDeck} data-testid="human-deck">
-        <option value="">Random</option>
-        {#each formatDecks as d (d.id)}
-          <option value={d.id} disabled={!!d.refused}>{deckLabel(d)}</option>
-        {/each}
-      </select>
-    </label>
-    <label class="picker">
-      <span>Bot deck</span>
-      <select aria-label="Bot deck" bind:value={botDeck} data-testid="bot-deck">
-        <option value="">Random</option>
-        {#each formatDecks as d (d.id)}
-          <option value={d.id} disabled={!!d.refused}>{deckLabel(d)}</option>
-        {/each}
-      </select>
-    </label>
+    {#if seats === 2}
+      <label class="picker">
+        <span>Your deck</span>
+        <select aria-label="Your deck" bind:value={humanDeck} data-testid="human-deck">
+          <option value="">Random</option>
+          {#each formatDecks as d (d.id)}
+            <option value={d.id} disabled={!!d.refused}>{deckLabel(d)}</option>
+          {/each}
+        </select>
+      </label>
+      <label class="picker">
+        <span>Bot deck</span>
+        <select aria-label="Bot deck" bind:value={botDeck} data-testid="bot-deck">
+          <option value="">Random</option>
+          {#each formatDecks as d (d.id)}
+            <option value={d.id} disabled={!!d.refused}>{deckLabel(d)}</option>
+          {/each}
+        </select>
+      </label>
+    {:else}
+      <p class="hint">Pod decks are dealt from the server's Commander pool.</p>
+    {/if}
     <label class="picker">
       <span>Bot</span>
       <select aria-label="Bot" bind:value={botPolicy} data-testid="bot-policy">

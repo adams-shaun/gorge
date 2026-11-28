@@ -10,7 +10,7 @@ import PlayVsBot from './PlayVsBot.svelte';
 describe('PlayVsBot entry point', () => {
   it('renders a start control with both formats offered, constructed preselected', () => {
     const { html } = render(PlayVsBot, {});
-    expect(html).toContain('Play 1v1 vs a bot');
+    expect(html).toContain('Play vs bots');
     expect(html).toContain('Start game');
     expect(html).toContain('Commander');
     expect(html).toContain('Constructed');
