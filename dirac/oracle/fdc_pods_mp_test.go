@@ -32,8 +32,11 @@ var fdcDecks = []string{
 // (Spinerock Knoll) shrank it again. Leyline Tyrant's coloured trigger X
 // (Cost$ X with XColor$ R) lowered since, shrinking it again, as did
 // Thundermane Dragon's static SpellCast rider. The RepeatEach ChangeZoneTable
-// lowering (Ezuri's Predation) emptied it.
-var fdcRefused = []string{}
+// lowering (Ezuri's Predation) emptied it. dirac evidence round 2 then grew it
+// by two: Cursed Mirror diverges in the Cards.Flags projection and Leyline
+// Tyrant stalls in the unmodelled band, so kgen now refuses both by name
+// (dirac/support/refused/cursed-mirror.json, leyline-tyrant.json).
+var fdcRefused = []string{"Cursed Mirror", "Leyline Tyrant"}
 
 // fdcPodSet lowers every card of the five FDC decks into one table, and
 // returns the decks with each refused card swapped for Wastes (under the names
