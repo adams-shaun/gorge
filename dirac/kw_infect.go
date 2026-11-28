@@ -121,7 +121,7 @@ func (s *State) infectAt(k *prep, sl Slot) bool {
 func printsInfect(cd *kop.CardDef) bool { return cd.Infect }
 
 // toxicAt is the permanent at sl's printed toxic N, summed over a pile's
-// cards (CR 702.164c), 0 once it has lost its abilities, plus its granted
+// cards (CR 702.164b), 0 once it has lost its abilities, plus its granted
 // toxic (gorge ToxicValue).
 func (s *State) toxicAt(k *prep, sl Slot) int {
 	n := 0
