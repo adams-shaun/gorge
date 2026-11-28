@@ -588,7 +588,7 @@ func (r *Translator) Action(a dirac.Action) Canon {
 		}
 		return r.numberChoose(src, mode) // translate_paylife.go
 	}
-	return Pack(CanonKind(0xFF), src, tgt, mode)
+	return Pack(ActNone, src, tgt, mode)
 }
 
 // combatDamageChoose is the combat damage step's choose answer: the damage

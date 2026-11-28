@@ -1,14 +1,14 @@
 package canon
 
 import (
-	"math"
 	"strings"
 	"testing"
 )
 
 // TestChooseOtherIsNoListedKind: the code of an option kind ChooseKinds lacks
 // is past the list, so it never reads as a listed kind's choose action (127
-// was "exert"), and its action kind still fits the wire form's kind byte.
+// was "exert"), and its action kind stays below ActNone, so an unlisted ask
+// never equals an untranslated action.
 func TestChooseOtherIsNoListedKind(t *testing.T) {
 	code, ok := ChooseCode("no_such_kind")
 	if ok || code != ChooseOther {
@@ -17,8 +17,8 @@ func TestChooseOtherIsNoListedKind(t *testing.T) {
 	if ChooseOther < len(ChooseKinds) {
 		t.Errorf("ChooseOther = %d is the code of listed kind %q (ChooseKinds has %d entries)", ChooseOther, ChooseKinds[ChooseOther], len(ChooseKinds))
 	}
-	if got := int(ActChoose) + ChooseOther; got > math.MaxUint8 {
-		t.Errorf("ActChoose+ChooseOther = %d does not fit the repro wire form's kind byte", got)
+	if got := int(ActChoose) + ChooseOther; got >= int(ActNone) {
+		t.Errorf("ActChoose+ChooseOther = %d is not below the ActNone sentinel %d", got, ActNone)
 	}
 	got := Pack(ActChoose+ChooseOther, RefNone, RefNone, 1).String()
 	if !strings.HasPrefix(got, "choose:other(") {
