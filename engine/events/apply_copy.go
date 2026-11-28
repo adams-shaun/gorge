@@ -24,7 +24,12 @@ func foldMutate(g *state.Game, e *Event) {
 	// survivor's Card/FaceIdx always describe the TOP card; every
 	// under-card lands in MergedCards, top-of-pile first, its object
 	// parked in ZCeased (no membership list, so no battlefield scan sees
-	// it as a second permanent). Nothing here reads a map or the clock, so
+	// it as a second permanent). On a top merge onto a creature TOKEN the
+	// pile changes nature (CR 729.2: a merged permanent is a token only
+	// while its topmost component is one): the pile object stops being a
+	// token -- and a copy -- and the demoted token card parks as a token
+	// object, which the Move fold ceases with the pile instead of moving
+	// to its destination. Nothing here reads a map or the clock, so
 	// a log-only replay rebuilds the identical pile.
 	survivor := g.Obj(e.Obj)
 	if len(e.IDs) == 0 || survivor == nil || survivor.Card == nil ||
@@ -43,14 +48,33 @@ func foldMutate(g *state.Game, e *Event) {
 		// one for the demoted card. Snapshot before AddObject (it may
 		// reallocate g.Objs).
 		oldCard, oldFace, owner := survivor.Card, survivor.FaceIdx, survivor.Owner
+		// The token test must ride the snapshot too: a top merge onto a
+		// token demotes the token's own card (CR 729.2), so the parked
+		// object carries the token status and the pile sheds it.
+		wasToken := survivor.IsToken
 		parked := g.AddObject(oldCard, owner)
 		parked.Zone = state.ZCeased
+		if wasToken {
+			// The demoted card is the token's own: it stays a token object,
+			// so the pile's departure ceases it where it parks (CR 400.7)
+			// instead of moving it to the graveyard/hand as a card.
+			parked.IsToken = true
+		}
 		parkedID := parked.ID
 		survivor = g.Obj(e.Obj)
 		if survivor == nil {
 			return
 		}
 		survivor.SetCard(srcCard, srcFace)
+		if wasToken {
+			// CR 729.2: the topmost component is now the real mutating
+			// card, so the merged permanent is a card permanent -- never a
+			// token, and never a copy of the token it was. Clearing both
+			// keeps engine/rules/sba.go's ceaseDeadTokens from ceasing the
+			// graveyard pile whose card must survive.
+			survivor.IsToken = false
+			survivor.IsCopy = false
+		}
 		// The cards changed objects: the survivor's ID now carries the
 		// mutating card and parkedID the demoted one. A commander's
 		// designation is an attribute of the card (CR 903.3), so a

@@ -19,8 +19,12 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // The mutating cast swaps, rather than mints. Gorge mints a parked object for
 // the demoted card; dirac moves the demoted card onto the mutating spell's
 // object, which is already leaving the stack, and the survivor takes the
-// spell's card. The parked cards are the same set, and the kernel mints no
-// non-token object (newToken sets ofToken).
+// spell's card. The parked cards are the same set. A top merge onto a token
+// moves the token status with the demoted card (CR 729.2, gorge foldMutate):
+// the pile object sheds ofToken/ofCopy (its top component is now the real
+// mutating card, so the pile is a card permanent) and the parked object
+// carrying the token's own card takes ofToken, ceasing with the pile in
+// mergeLeave instead of reaching the destination zone (CR 400.7).
 //
 // The cast half below (genPrep.anyMutate): gorge's mutated cast mode, the
 // CR 702.140b placement ask and the resolution diversion (trig_mutates.go
@@ -174,6 +178,7 @@ func (s *State) mergeFold(k *prep, surv, src Obj, top bool, amount uint8) bool {
 		sl := sob.slot
 		p := &s.perms[sl]
 		got := s.objs[src].card
+		wasToken := sob.of&ofToken != 0
 		s.touchSl(sl)
 		if p.ovr.flags&ovCopy != 0 {
 			// transformObj's copy arm: the copy's Face() is its template, so
@@ -194,6 +199,16 @@ func (s *State) mergeFold(k *prep, surv, src Obj, top bool, amount uint8) bool {
 		sb.zone = kop.ZoneNone
 		sb.slot = NoSlot
 		sb.ver++
+		if wasToken {
+			// CR 729.2 + 400.7 (gorge's foldMutate): the top component is
+			// now the real mutating card, so the pile is a card permanent,
+			// never a token (nor a copy of what it was -- ceaseTokensGen
+			// and the zone movers must read it as a card), while the
+			// demoted top was the token's own card: it parks as a token
+			// object and ceases with the pile (mergeLeave).
+			sob.of &^= ofToken | ofCopy
+			sb.of |= ofToken
+		}
 		copy(r.und[1:r.n+1], r.und[:r.n])
 		r.und[0] = objWord(src) + 1
 		s.retargetMergeCmd(surv, src)
@@ -265,7 +280,14 @@ func (s *State) mergeLeave(k *prep, o Obj, z kop.Zone, bottom bool, wasCreature 
 		}
 		for j := uint8(0); j < r.n; j++ {
 			p := Obj(r.und[j] - 1)
-			if s.objs[p].zone != kop.ZoneNone {
+			po := &s.objs[p]
+			if po.zone != kop.ZoneNone {
+				continue
+			}
+			if po.of&ofToken != 0 {
+				// CR 400.7 (gorge's Move fold keeps the token component in
+				// ZCeased): a token component ceases with the pile rather
+				// than moving to z as a card.
 				continue
 			}
 			s.meldPlace(k, p, z, bottom, wasCreature, false)

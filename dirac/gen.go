@@ -3653,15 +3653,12 @@ func (s *State) enterChoiceKind(k *prep, c CardID) uint8 {
 // shows Uncharted Voyage's token in the library during the surveil), then
 // ceases to exist; so does a spell copy that left the stack (CR 704.5e).
 func (s *State) ceaseTokensGen() {
-	// tokens and copies are the object table's suffix: the deck cards come
-	// first (Init) and every later object is minted by newToken with
-	// ofToken or ofCopy, which nothing clears; walk only that suffix
-	i0 := int(s.nobj)
-	for i0 > 0 && s.objs[i0-1].of&(ofToken|ofCopy) != 0 {
-		i0--
-	}
+	// newToken mints every token and copy with ofToken or ofCopy, but a top
+	// merge onto a token moves those bits between objects (mergeFold's
+	// wasToken arm, kw_mutate.go), so the bit-carrying objects are no longer
+	// a contiguous suffix of the table: walk it whole.
 	k := s.k()
-	for i := i0; i < int(s.nobj); i++ {
+	for i := 0; i < int(s.nobj); i++ {
 		ob := &s.objs[i]
 		if ob.of&(ofToken|ofCopy) == 0 {
 			continue

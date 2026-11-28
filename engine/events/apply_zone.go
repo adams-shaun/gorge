@@ -721,11 +721,19 @@ func move(g *state.Game, id state.ObjID, from, to state.Zone, countersRemain boo
 		o.MergedCards = nil
 		o.TimesMutated = 0
 		for _, mc := range merged {
-			if mc.Obj != 0 {
-				Move(g, mc.Obj, state.ZCeased, to)
-				if m := g.Obj(mc.Obj); m != nil {
-					m.SplitFrom, m.SplitDep = id, g.DepSeq
-				}
+			if mc.Obj == 0 {
+				continue
+			}
+			if m := g.Obj(mc.Obj); m != nil && m.IsToken {
+				// CR 400.7 / 729.2: a TOKEN component (foldMutate's top arm
+				// onto a token parks the token's own card as one) ceases
+				// with the pile instead of moving on as a card: it stays
+				// parked in ZCeased.
+				continue
+			}
+			Move(g, mc.Obj, state.ZCeased, to)
+			if m := g.Obj(mc.Obj); m != nil {
+				m.SplitFrom, m.SplitDep = id, g.DepSeq
 			}
 		}
 	}

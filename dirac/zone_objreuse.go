@@ -19,14 +19,12 @@ func (s *State) objTableFull() bool {
 }
 
 // freeTokenObj is the lowest reusable object id, NoObj when there is none.
-// Tokens and copies are the object table's suffix (ceaseTokensGen); reuse
-// keeps it one, as only suffix ids are handed out again.
+// Reuse hands out only ids that carry ofToken or ofCopy (objFree). The
+// bit-carrying objects are not a contiguous suffix once a top merge onto a
+// token moves the bits between objects (mergeFold's wasToken arm,
+// kw_mutate.go), so the scan runs over the whole table (ceaseTokensGen).
 func (s *State) freeTokenObj() Obj {
-	i0 := int(s.nobj)
-	for i0 > 0 && s.objs[i0-1].of&(ofToken|ofCopy) != 0 {
-		i0--
-	}
-	for i := i0; i < int(s.nobj); i++ {
+	for i := 0; i < int(s.nobj); i++ {
 		if s.objFree(Obj(i)) {
 			return Obj(i)
 		}
@@ -132,6 +130,21 @@ func (s *State) heldReferenced(o Obj) bool {
 	for i := range g.prevCol { // a filtered scoped prevention finds its filters from its object's card
 		if g.prevCol[i].obj == o && g.prevCol[i].sc&kop.PrevScopeFiltered != 0 {
 			return true
+		}
+	}
+	// A merge pile's parked components (kw_mutate.go): the top merge onto a
+	// token parks the token's own card as an ofToken object, and an object a
+	// live pile names is not dead yet however still it sits.
+	recs := coldMerge.of(s)
+	for i := range recs {
+		r := &recs[i]
+		if r.top == 0 {
+			continue
+		}
+		for j := uint8(0); j < r.n; j++ {
+			if r.und[j] == objWord(o)+1 {
+				return true
+			}
 		}
 	}
 	return false
