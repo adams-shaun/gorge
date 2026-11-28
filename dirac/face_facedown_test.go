@@ -142,6 +142,7 @@ func TestFaceDownTypeAndPTOverrideOrder(t *testing.T) {
 	p.ovr.types = kop.TLand
 	p.ovr.flags |= ovSetPT
 	p.ovr.setP, p.ovr.setT = 3, 4
+	sc.s.touchSl(sl) // the hand-written override marks its slot, as every kernel write does (marks.go)
 	sc.s.refreshTy(sc.k)
 	if got := sc.s.typesAt(sc.k, sl); got != kop.TLand {
 		t.Fatalf("face-down types with a type override = %#x, want land", got)
