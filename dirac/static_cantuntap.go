@@ -33,15 +33,23 @@ func (s *State) untapBlocked(k *prep, sl Slot) bool {
 			if s.genLost(k, b) {
 				continue
 			}
-			cd := &k.t.Cards[s.cardAt(b)]
-			for j := range cd.Abilities {
-				a := &cd.Abilities[j]
-				if a.Kind != kop.AbReplacement || a.Repl.Kind != kop.ReplAnyUntap {
-					continue
+			blocked := false
+			s.eachPileCard(k, b, func(c CardID) bool {
+				cd := &k.t.Cards[c]
+				for j := range cd.Abilities {
+					a := &cd.Abilities[j]
+					if a.Kind != kop.AbReplacement || a.Repl.Kind != kop.ReplAnyUntap {
+						continue
+					}
+					if !s.matchPermGen(k, a.Repl.Filter, sl, s.perms[b].ctrl, b, layerFull) {
+						continue
+					}
+					blocked = true
+					return false
 				}
-				if !s.matchPermGen(k, a.Repl.Filter, sl, s.perms[b].ctrl, b, layerFull) {
-					continue
-				}
+				return true
+			})
+			if blocked {
 				return true
 			}
 		}
