@@ -516,20 +516,27 @@ type CreateGameRequest struct {
 	// token each; the rest are bots. Omitted is 1.
 	Humans int `json:"humans,omitempty"`
 	// Decks supplies a ManaBrew deck (the https://docs.manabrew.app/protocol/deck/
-	// JSON) for the seats that name one; every other seat is dealt from the
-	// server's pool as before (or from human_deck / bot_deck at two seats).
-	// The server re-checks each deck for format, legality and engine support.
+	// JSON) or a plain-text decklist for the seats that name one; every other
+	// seat is dealt from the server's pool as before (or from human_deck /
+	// bot_deck at two seats). The server re-checks each deck for format,
+	// legality and engine support.
 	Decks []SeatDeck `json:"decks,omitempty"`
 }
 
-// SeatDeck is one seat's submitted deck. Deck is the ManaBrew Deck JSON,
-// kept raw here: the wire type lives in server/protocol/manabrew, which this
-// package must not depend on, and the builder that imports it owns the
-// parsing.
+// SeatDeck is one seat's submitted deck: exactly one of Deck and Text. Deck
+// is the ManaBrew Deck JSON, kept raw here: the wire type lives in
+// server/protocol/manabrew, which this package must not depend on, and the
+// builder that imports it owns the parsing. Text is a plain-text decklist
+// ("1 Sol Ring" lines, an optional Commander section, at most 64 KiB),
+// which the builder parses and checks the same way.
 type SeatDeck struct {
 	Seat int             `json:"seat"`
-	Deck json.RawMessage `json:"deck"`
+	Deck json.RawMessage `json:"deck,omitempty"`
+	Text string          `json:"text,omitempty"`
 }
+
+// maxDeckTextBytes bounds one seat's plain-text decklist.
+const maxDeckTextBytes = 64 << 10
 
 // maxCreateGameBody bounds POST /api/games: up to four decklists.
 const maxCreateGameBody = 2 << 20
@@ -556,7 +563,8 @@ type CreateGameOptions struct {
 	Seats  int
 	Humans int
 	// Decks is the submitted per-seat decks, seats in range and distinct, each
-	// Deck non-empty JSON the builder has yet to parse and check.
+	// carrying exactly one of non-empty Deck JSON and Text (at most
+	// maxDeckTextBytes), which the builder has yet to parse and check.
 	Decks []SeatDeck
 }
 
@@ -615,12 +623,21 @@ func validatePodRequest(req CreateGameRequest, format host.Format) (seats, human
 			return 0, 0, fmt.Sprintf("decks: seat %d is outside the table's %d seats", d.Seat, seats)
 		case seen[d.Seat]:
 			return 0, 0, fmt.Sprintf("decks: seat %d is given a deck twice", d.Seat)
-		case len(bytes.TrimSpace(d.Deck)) == 0 || string(bytes.TrimSpace(d.Deck)) == "null":
-			return 0, 0, fmt.Sprintf("decks: seat %d has no deck", d.Seat)
+		case hasDeckJSON(d.Deck) == (d.Text != ""):
+			return 0, 0, fmt.Sprintf("decks: seat %d needs exactly one of deck and text", d.Seat)
+		case len(d.Text) > maxDeckTextBytes:
+			return 0, 0, fmt.Sprintf("decks: seat %d text is over %d bytes", d.Seat, maxDeckTextBytes)
 		}
 		seen[d.Seat] = true
 	}
 	return seats, humans, ""
+}
+
+// hasDeckJSON reports whether a seat's deck field carries a value: absent,
+// blank and JSON null all mean no deck.
+func hasDeckJSON(raw json.RawMessage) bool {
+	t := bytes.TrimSpace(raw)
+	return len(t) > 0 && string(t) != "null"
 }
 
 // games serves POST /api/games: it decodes the format, hands the request to
