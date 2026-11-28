@@ -138,3 +138,31 @@ func TestPodHBotIsDeterministic(t *testing.T) {
 	}
 	t.Logf("hbot, %d games: %d turns, %d decisions, %d stalls %v, wins %v", games, a.Turns, a.Decisions, a.Stalls, a.StallKinds, a.Wins)
 }
+
+// TestPodQuietProofHBot: the heuristic bot on every seat of the auto-pay
+// pods, with the quiet-seat proof's verify on (dirac/cast_quietseat.go): every
+// posed priority walk runs, and a proved window whose walk offers more than
+// pass, or changes the State, fails the game (playOne counts its panic).
+func TestPodQuietProofHBot(t *testing.T) {
+	reg, p := testPod(t)
+	for _, tb := range p.tbls {
+		dirac.Register(tb)
+	}
+	st := &dirac.QuietStats{Panic: true}
+	dirac.DebugQuietVerify = st
+	defer func() { dirac.DebugQuietVerify = nil }()
+	gm := &game{cfg: dirac.LockstepConfig(dirac.SurfaceAutopay)}
+	gm.cfg.Commander = true
+	gm.useHBot(reg, p)
+	var sum summary
+	for g := 0; sum.Decisions < 60000; g++ {
+		gm.playOne(p, 1, g, &sum)
+	}
+	if st.First != "" {
+		t.Fatal(st.First)
+	}
+	if sum.Errors != 0 || st.Proved == 0 {
+		t.Fatalf("%d games, %d errors, %d of %d walks proved", sum.Games, sum.Errors, st.Proved, st.Walks)
+	}
+	t.Logf("%d games, %d decisions: %d walks, %d pass-only, %d proved", sum.Games, sum.Decisions, st.Walks, st.PassOnly, st.Proved)
+}
