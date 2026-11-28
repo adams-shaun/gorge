@@ -12,15 +12,12 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 const availNoStore uint16 = 4096
 
 // unlessUnpriced: counter-cost mana ability a is a unit gorge's unless census
-// (rules unlessWindowUnits) lists none for: a storage battery's announced X,
-// or an any-colour production (Vivid Creek's "{T}, remove a charge counter:
-// add one mana of any color"), whose colour the census withholds because the
-// activation asks it (paid_mana_census.go admits a SubCounter fee only on a
-// fixed production, pay.ManaSubCounterOnlyCost). With a Viridescent Bog's {1}
-// funded by a Mountain, "sacrifice Child of Gaea unless you pay {G}{G}" offered
-// pay only here, the second {G} coming from the counter.
+// (rules unlessWindowUnits) lists none for: a storage battery's announced X.
+// An any-colour production (Vivid Creek's "{T}, remove a charge counter: add
+// one mana of any color") is priced: the census lists one alternative per
+// colour and the walk's answer asks the colour the cost still owes.
 func unlessUnpriced(a *kop.Ability) bool {
-	return kop.StoreManaAb(a) || ctrAnyColour(a)
+	return kop.StoreManaAb(a)
 }
 
 // canPayGenFor is canPayGen under skip's payment class: an unless cost (pfModes)

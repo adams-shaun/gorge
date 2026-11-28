@@ -252,6 +252,23 @@ func addCtrUnits(av *avail, a *kop.Ability) {
 // lists and can take now (it asks no colour), and its colour adds something the
 // clamp keeps.
 //
+// windowCtrOwedCol is the colour a census walk takes from an open-choice
+// counter-cost source: the first colour of its production the cost still owes
+// (gorge's offer gate prices one alternative per colour), else -1 for a fixed
+// production, which asks nothing.
+func (s *State) windowCtrOwedCol(k *prep, p uint8, sl Slot, cost *kop.ManaCost) int {
+	a := k.ctrAbOf(s.cardAt(sl))
+	if a == nil || !ctrAnyColour(a) || cost == nil {
+		return -1
+	}
+	for c := 0; c < 5; c++ {
+		if cost.Pips[c] > s.pl[p].pool[c] && uint8(a.ManaColors)&(1<<uint(c)) != 0 {
+			return c
+		}
+	}
+	return -1
+}
+
 // windowCtrGapTap pays a counter-cost source the window picked in a gap.
 // The once-each-turn Produced$ Any shape takes the plain {T} first mana
 // ability: gorge's activation ask lists it first (owedAbilitiesFirst prices
@@ -261,16 +278,17 @@ func addCtrUnits(av *avail, a *kop.Ability) {
 // counter, the use, the mana. A census walk's (an unless / ward window's
 // probe) counter-fee shape the unless census prices (ctrCensusAb, the pick
 // ctrCensusOffer made) takes the counter activation itself, the plain first
-// ability's tap pricing the census's other alternative only. Reports whether
-// the walk continues past a handled gap.
+// ability's tap pricing the census's other alternative only; an open-choice
+// production takes the colour the cost still owes. Reports whether the walk
+// continues past a handled gap.
 //
 //go:noinline
-func (s *State) windowCtrGapTap(k *prep, p uint8, sl Slot, census bool) bool {
+func (s *State) windowCtrGapTap(k *prep, p uint8, sl Slot, cost *kop.ManaCost, census bool) bool {
 	if !k.ctrMana || !s.scriptCtr(k, p).has(sl) || sacCtrManaAb(k.ctrAbOf(s.cardAt(sl))) {
 		return false
 	}
 	if census && ctrCensusAb(k.ctrAbOf(s.cardAt(sl))) {
-		s.ctrGap(k, p, sl, -1) // the census's fee shape: the counters, the use, the mana (ctrCensusOffer's pick)
+		s.ctrGap(k, p, sl, s.windowCtrOwedCol(k, p, sl, cost)) // the census's fee shape: the counters, the use, the mana (ctrCensusOffer's pick)
 		return true
 	}
 	if k.ctrSecond(s.cardAt(sl)) {
@@ -309,16 +327,17 @@ func (s *State) unlessStoreUnpriced(k *prep, o Slot) bool {
 
 // ctrCensusAb reports whether counter-cost ability a is one gorge's unless
 // census prices (rules paid_mana_census.go unlessWindowUnits' SubCounter arm,
-// pay.ManaSubCounterOnlyCost): a bare {T} plus a fixed, source-anchored
-// counter removal on a fixed production of one colour that asks no colour
-// (Weather Maker's "{T}, Remove two charge counters: Add {C}{C}", CR 608.2g).
-// The added-counter shape (Wall of Roots) prices no counter the census counts;
-// a storage battery's announced X is no fixed amount; an any-colour production asks a
-// colour (Vivid Grove's second ability), as the census withholds the plain
-// one. A depletion rider's own shape (Remote Farm, ManaRiderDeplete) is
-// riderCensusFree's, the rider arm's; this is the non-rider one.
+// pay.ManaSubCounterOnlyCost): a bare {T} plus a source-anchored counter
+// removal (Weather Maker's "{T}, Remove two charge counters: Add {C}{C}",
+// CR 608.2g), fixed or OPEN CHOICE. An any-colour production (Vivid Grove's
+// second ability) prices one alternative per colour the activation may
+// choose, as the free any-colour arm does; the census walk's answer asks the
+// colour the cost still owes. The added-counter shape (Wall of Roots) prices
+// no counter the census counts, and a storage battery's announced X is no
+// fixed amount. A depletion rider's own shape (Remote Farm, ManaRiderDeplete)
+// is riderCensusFree's, the rider arm's; this is the non-rider one.
 func ctrCensusAb(a *kop.Ability) bool {
-	return a != nil && !kop.StoreManaAb(a) && !ctrAnyColour(a) &&
+	return a != nil && !kop.StoreManaAb(a) &&
 		kop.CtrTapSecondManaAb(a) && a.ManaRider == kop.ManaRiderNone
 }
 
