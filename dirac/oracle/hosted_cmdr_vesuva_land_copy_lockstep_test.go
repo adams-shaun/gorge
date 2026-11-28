@@ -20,7 +20,8 @@ import (
 // election (the shock lands of the hosted-cmdr pool). The kernel must pose
 // the same asks at the same decisions and expose the copied mana ability to
 // its mana walk. printedDelveSetIn runs kgen over the decks, so the case is
-// RED while kgen refuses the land template.
+// RED while kgen cannot lower the land template. The table is played raw: a
+// template refused by name (Overgrown Tomb) keeps its copy lockstep.
 var vesuvaLandCopyTemplates = []string{"Thriving Grove", "Overgrown Tomb", "Game Trail"}
 
 // vesuvaLandCopyDecks is the mirror whose Vesuva seat also holds tmpl.
@@ -155,7 +156,7 @@ func vesuvaLandCopyVariant(t *testing.T, dir string, reg *cards.Registry, tmpl s
 			t.Fatalf("%s: seat %d deck has %d cards, want 40", tmpl, s, len(decks[s]))
 		}
 	}
-	set := printedDelveSetIn(t, dir, names) // a refused card fails here
+	set := cardset.Raw(printedDelveSetIn(t, dir, names)) // a card kgen cannot lower fails here
 	tbl, _, _, err := set.Matchup(entries[0], entries[1])
 	if err != nil {
 		t.Fatal(err)

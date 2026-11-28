@@ -1,0 +1,17 @@
+{
+  "card": "Captain America, Team Leader",
+  "class": "options",
+  "why": "the engines offer different options",
+  "repro": {
+    "pool": "custom",
+    "surface": "autopay",
+    "seed": 1,
+    "pair": 0,
+    "policy": "random",
+    "mulligans": 0,
+    "file": "captain_america_team_leader_options_differ"
+  },
+  "evidence": [
+    "ev-tail-28-c015"
+  ]
+}

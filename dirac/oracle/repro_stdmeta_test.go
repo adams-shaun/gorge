@@ -25,11 +25,11 @@ import (
 func TestStdMetaReprosLockstep(t *testing.T) {
 	t.Parallel()
 	reg := testutil.CorpusRegistry(t)
-	set, err := cardset.ByName("standard-meta")
+	// Raw: a recording replays its own game, so a card refused later still plays (globSet).
+	set, err := cardset.RawByName("standard-meta")
 	if err != nil {
 		t.Fatalf("no standard-meta table (make dirac-tables): %v", err)
 	}
-	set = cardset.AllowUnverified(set)
 	for _, name := range []string{
 		"stdmeta_appa_cast_from_exile_s14p32",
 		"stdmeta_appa_cast_from_exile_s15p14",
