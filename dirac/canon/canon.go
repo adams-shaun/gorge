@@ -211,8 +211,10 @@ var ChooseKinds = []string{
 	"readahead",      // CR 702.155b: gorge readAheadOptions' as-enters chapter pick (Kind "readahead", Obj the Saga, the chapter on Amount; dirac ChGenReadAhead; kw_readahead.go)
 }
 
-// ChooseOther is the ActChoose offset of an option kind ChooseKinds lacks.
-const ChooseOther = 127
+// ChooseOther is the ActChoose offset of an option kind ChooseKinds lacks. It
+// is 255-ActChoose, the last kind byte the repro wire form holds, so no listed
+// kind reaches it: ChooseKinds stays shorter than this.
+const ChooseOther = 223
 
 func ChooseCode(kind string) (uint8, bool) {
 	for i, k := range ChooseKinds {
