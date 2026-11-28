@@ -1,9 +1,11 @@
 package rules
 
 import (
+	"strconv"
 	"strings"
 
 	"github.com/adams-shaun/gorge/engine/cards"
+	"github.com/adams-shaun/gorge/engine/decision"
 	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/state"
@@ -36,6 +38,102 @@ func hasUntapStepChoice(o *state.Object) bool {
 		}
 	}
 	return false
+}
+
+// untapAdjustCap reads the active player's UntapAdjust grant: Forge spells the
+// player keyword `UntapAdjust:<filter>:<N>` (Static Orb's `Affected$ Player`
+// static), so at most N permanents matching <filter> untap during that
+// player's untap step. The grant reaches this reader through playerKeywords,
+// the same player-keyword surface shroud and hexproof grants use. With more
+// than one grant the smallest N is the effective cap.
+func (e *Engine) untapAdjustCap(p state.PlayerID) (spec string, n int, ok bool) {
+	for _, kw := range e.playerKeywords(p) {
+		head, rest, found := strings.Cut(strings.TrimSpace(kw), ":")
+		if !found || kwHeadOf(head).ID != kwhUntapAdjust.ID {
+			continue
+		}
+		filter, rawN, found := strings.Cut(rest, ":")
+		if !found {
+			continue
+		}
+		filter = strings.TrimSpace(filter)
+		limit, err := strconv.Atoi(strings.TrimSpace(rawN))
+		if filter == "" || err != nil || limit < 0 {
+			continue
+		}
+		if !ok || limit < n {
+			spec, n, ok = filter, limit, true
+		}
+	}
+	return spec, n, ok
+}
+
+// untapAdjustCandidates returns the tapped permanents of p's battlefield that
+// this untap step would untap and that the cap's filter counts. The gates
+// mirror finishUntapStep's scan: a phased-out, exerted, one-shot-locked,
+// denied or stun-counter-replaced permanent does not untap, so it neither
+// consumes the cap nor appears in the election.
+func (e *Engine) untapAdjustCandidates(p state.PlayerID, spec string) []state.ObjID {
+	ctx := e.specCtx(0, p)
+	var out []state.ObjID
+	for _, id := range e.G.Zone(state.ZBattlefield, p) {
+		o := e.G.Obj(id)
+		if o == nil || o.PhasedOut || !o.Tapped || o.UntapChoice == "keep" {
+			continue
+		}
+		if o.ExertSkipUntap || o.CantUntapNextStep || e.untapDenied(id) {
+			continue
+		}
+		if o.Counter("STUN") > 0 && !e.UntapBlocked(id) {
+			continue
+		}
+		if !e.matchesSpec(spec, id, ctx) {
+			continue
+		}
+		out = append(out, id)
+	}
+	return out
+}
+
+// untapAdjustElection poses the cap election when the active player controls
+// more tapped permanents than the cap lets untap. Options are the permanents
+// that may stay tapped, in battlefield order; the answer folds one Choose
+// "keep" per selected object so the resumed scan (and replay) skips it.
+func (e *Engine) untapAdjustElection(spec string, limit int) bool {
+	p := e.G.Active
+	cands := e.untapAdjustCandidates(p, spec)
+	if len(cands) <= limit {
+		return false
+	}
+	keep := len(cands) - limit
+	opts := make([]decision.Option, len(cands))
+	for i, id := range cands {
+		label := "Keep tapped"
+		if o := e.G.Obj(id); o != nil && o.Face() != nil && o.Face().Name != "" {
+			label = "Keep " + o.Face().Name + " tapped"
+		}
+		opts[i] = decision.Option{Index: i, Kind: "keep_tapped", Obj: id, Label: label}
+	}
+	e.untapResume = &untapStep{next: 0, capDecided: true}
+	e.choosing = chooseUntapCap
+	e.ask(&decision.Decision{Player: p, Kind: decision.KChoose, Min: keep, Max: keep,
+		Prompt: "Choose permanents to keep tapped", Options: opts})
+	return true
+}
+
+// answerUntapAdjust records Static Orb's cap election: each chosen option is a
+// permanent the player decided to keep tapped. It folds one Choose "keep" per
+// object before resuming the scan at index 0, marking the continuation so the
+// phase-in and day/night actions do not run twice.
+func (e *Engine) answerUntapAdjust(chosen []decision.Option) {
+	e.choosing = chooseNone
+	for _, o := range chosen {
+		e.emit(events.Event{Kind: events.Choose, Obj: o.Obj, Counter: "untap", Text: "keep"})
+	}
+	e.untapResume = &untapStep{next: 0, capDecided: true}
+	if e.finishUntapStep(0) {
+		e.finishEnteredStep()
+	}
 }
 
 // untapTurnPermanent is the one turn-step caller of effects.TryUntap. The

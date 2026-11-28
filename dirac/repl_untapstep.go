@@ -25,6 +25,16 @@ func (s *State) untapStepGen(k *prep) {
 		// resumed after a keep-tapped ask (repl_untapchoice.go): the scan
 		// goes on from the asked permanent
 		from, up = int(s.g.untapNext), s.g.untapUp
+		if s.g.untapSl == NoSlot {
+			// Static Orb's UntapAdjust cap (static_untapadjust.go): ask for
+			// the next keep, or finish and scan the board from the start.
+			if s.untapCapAsk(k, ord[:n]) {
+				return
+			}
+			s.g.untapNext, s.g.untapUp = 0, slotMask{}
+			s.g.untapSl, s.g.untapAns = 0, 0
+			from, up = 0, slotMask{}
+		}
 	} else if s.g.nxph == 0 || !s.addPhaseExtraUntap() { // an extra beginning phase's untap keeps the sickness (act_addphase.go)
 		// CR 502.3: gorge folds the sickness clearing into the StepChange event
 		// (apply_turn.go), before finishUntapStep scans.
@@ -33,6 +43,9 @@ func (s *State) untapStepGen(k *prep) {
 				p.flags &^= pfSick
 				s.touchSl(sl)
 			}
+		}
+		if s.untapCapAsk(k, ord[:n]) {
+			return
 		}
 	}
 	for i := from; i < n; i++ {
@@ -44,7 +57,7 @@ func (s *State) untapStepGen(k *prep) {
 			s.touchSl(sl)
 			continue
 		}
-		if p.flags&pfTapped != 0 && k.gen.anySkipUntap && s.skipsUntap(k, sl) {
+		if p.flags&pfTapped != 0 && k.gen != nil && k.gen.anySkipUntap && s.skipsUntap(k, sl) {
 			// gorge's Effect replacement (Layer$ CantHappen): it stays tapped
 		} else if p.flags&pfTapped != 0 {
 			if k.cards[s.cardAt(sl)].mayNotUntap {
@@ -86,10 +99,10 @@ func (s *State) untapStepGen(k *prep) {
 	}
 	s.g.untapOn = false
 	s.fireUntapsOrdered(k, up, &ord, n)
-	if k.gen.anyUntapOther {
+	if k.gen != nil && k.gen.anyUntapOther {
 		s.untapOthers(k)
 	}
-	if k.gen.anySkipUntap {
+	if k.gen != nil && k.gen.anySkipUntap {
 		s.expireSkipUntap() // CR 611.3b: those effects end with this untap step
 	}
 	s.step = kop.StepUpkeep
