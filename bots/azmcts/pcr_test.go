@@ -5,8 +5,12 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/adams-shaun/gorge/bots/botpolicy"
+	"github.com/adams-shaun/gorge/bots/heuristic"
 	"github.com/adams-shaun/gorge/bots/policynet"
 	"github.com/adams-shaun/gorge/engine/decision"
+	"github.com/adams-shaun/gorge/engine/seat"
+	gbench "github.com/adams-shaun/gorge/testkit/bench"
 )
 
 // The playout-cap draw is a pure, seeded coin: the same decision seed always
@@ -125,6 +129,10 @@ func TestPCRRootOptions(t *testing.T) {
 	})
 }
 
+// pcrOrdinals is the last pcrGame's Decision.Ordinal by event-log Seq: the
+// PCR coin folds the ordinal, and a record carries only the sequence.
+var pcrOrdinals map[uint64]uint64
+
 // pcrGame plays one recorded game of the az seat (seat 0) under sc and
 // returns its chain head, its records and its searched diags.
 func pcrGame(t *testing.T, sc SeatConfig) (string, []policynet.VisitRecord, []Diag, *Seat) {
@@ -144,11 +152,17 @@ func pcrGame(t *testing.T, sc SeatConfig) (string, []policynet.VisitRecord, []Di
 	}
 	var recs []policynet.VisitRecord
 	az.SetRecorder(func(r policynet.VisitRecord) { recs = append(recs, r) })
-	head, err := playAZ(t, cfg, az, 300)
+	pcrOrdinals = map[uint64]uint64{}
+	_, e, err := gbench.PlayGame(cfg, []seat.Seat{az, heuristic.NewBot(cfg.Seed ^ 2)}, 200, 300, gbench.Hooks{
+		Decision: func(_ int, d *decision.Decision, _ decision.Intent, _ *botpolicy.Board) error {
+			pcrOrdinals[d.Seq] = d.Ordinal
+			return nil
+		},
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	return head, recs, diags, az
+	return e.L.Head(), recs, diags, az
 }
 
 // With FullProb 0 the seat is the seat without playout-cap randomization,
@@ -222,13 +236,21 @@ func TestPCRCheapDecisionsAreNotRecorded(t *testing.T) {
 	if len(recs) != recordable {
 		t.Fatalf("%d records for %d recordable full decisions (%d cheap)", len(recs), recordable, cheap)
 	}
+	parted := 0
 	for _, r := range recs {
-		// a full search runs 4 (a cheap one 2); the coin folds Decision.Ordinal,
-		// which the record does not carry (Sequence is the event-log Seq), and
-		// TestPCRRootOptions pins it
-		if r.Sims != 4 {
-			t.Fatalf("record at sequence %d (sims %d) is not a full decision", r.Sequence, r.Sims)
+		ordinal, ok := pcrOrdinals[r.Sequence]
+		if !ok {
+			t.Fatalf("record at sequence %d names no decision of the game", r.Sequence)
 		}
+		if ordinal != r.Sequence {
+			parted++
+		}
+		if r.Sims != 4 || !PCRFull(DecisionSeed(testSeed^1, ordinal), 0.5) {
+			t.Fatalf("record at sequence %d ordinal %d (sims %d) is not a full decision", r.Sequence, ordinal, r.Sims)
+		}
+	}
+	if parted == 0 {
+		t.Fatal("no record's ordinal differs from its sequence: the coin's input is not told apart")
 	}
 	again, recs2, _, _ := pcrGame(t, sc)
 	if again != head || len(recs2) != len(recs) {

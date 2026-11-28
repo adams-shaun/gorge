@@ -3,6 +3,7 @@ package oracle
 import (
 	"context"
 	"fmt"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -27,11 +28,11 @@ import (
 // every gorge decision asks bots/azmcts the same position too: an honest
 // redeal built from the seat's feed (searchseat.HonestRoot) rooted on the
 // live gorge decision, then azmcts.Search with the per-decision seed it
-// shares with the kernel. The two candidate lists are mapped to canonical
-// actions and compared; the first difference stops the run and names the
-// decision. The chosen candidate and the visits per candidate are recorded
-// too: the two engines' world streams differ (dirac/search/doc.go), so at a
-// small simulation budget they can part without a candidate difference.
+// shares with the kernel. Each difference is recorded, in game order, under a
+// class: the candidate lists (mapped to canonical actions), the hidden zones
+// of the two root worlds, the chosen candidate and the visits per candidate.
+// The harness stops at none of them: the caller decides which classes it
+// tolerates.
 //
 // The gorge search is a flat Search, not Seat.DecideSearch: DecideSearch
 // returns only the played intent, while the harness needs the whole
@@ -42,37 +43,83 @@ import (
 // searchMirrorSims is the simulation budget the mirror is measured at.
 const searchMirrorSims = 8
 
-// SearchMirrorMismatch is the first decision whose searches did not mirror.
+// searchMirrorWideLimit is the candidate limit two full, differing lists are
+// enumerated again at: the most candidates a kernel point holds.
+const searchMirrorWideLimit = search.MaxCands
+
+// The kinds of difference a SearchMirrorMismatch names in What.
+const (
+	// MirrorOrdinal: gorge's Decision.Ordinal and the kernel's SeqNo have
+	// parted, so the seed inputs differ and the decision is not searched.
+	MirrorOrdinal = "ordinal"
+	// MirrorCandidates: the two candidate lists differ; Shape says how.
+	MirrorCandidates = "candidates"
+	// MirrorTruth: the true hidden zones of the two engines read differently,
+	// so the root-world comparison cannot be trusted at this decision.
+	MirrorTruth = "truth"
+	// MirrorRootPool: gorge's honest root and the kernel's first redealt
+	// world disagree on something no random stream decides: a hidden zone's
+	// size, the cards a player's hidden zones hold between them, or the
+	// searching player's own hand.
+	MirrorRootPool = "root-pool"
+	// MirrorRootWorld: the two root worlds hold the same cards, dealt to
+	// different places.
+	MirrorRootWorld = "root-world"
+	// MirrorChoice and MirrorVisits: equal candidate lists, a different chosen
+	// candidate or different visits on a candidate.
+	MirrorChoice = "choice"
+	MirrorVisits = "visits"
+)
+
+// SearchMirrorMismatch is one difference between the two searches.
 type SearchMirrorMismatch struct {
 	At     int   // canonical decision number
 	Turn   int32 // gorge turn
 	Kind   string
 	Player uint8
-	What   string // "candidates", "visits" or "choice"
+	What   string // one of the Mirror constants
+	// Shape qualifies MirrorCandidates: "gorge-more" or "kernel-more" (one
+	// list holds the other's), "differ" (each has a candidate the other has
+	// not), "limit-cut" (both lists were full at the candidate limit and are
+	// equal when enumerated again without that cut), "multi-select" (gorge
+	// offers sets of options where the kernel, which poses a multi-select
+	// pick by pick, offers single ones), "gorge-only" or "kernel-only" (only
+	// that engine searched the decision), "unmapped" (a candidate with no
+	// canonical action).
+	Shape  string
 	Gorge  []string
 	Kernel []string
 	Detail string
 }
 
+// Class keys a difference by what differs, never by the game it showed in:
+// "candidates/<shape>" for the two enumerator shapes that are the same at any
+// decision kind, "candidates/<decision kind>/<shape>" for any other
+// candidate difference, else What.
+func (m *SearchMirrorMismatch) Class() string {
+	switch {
+	case m.What != MirrorCandidates:
+		return m.What
+	case m.Shape == "limit-cut" || m.Shape == "multi-select":
+		return m.What + "/" + m.Shape
+	}
+	return m.What + "/" + m.Kind + "/" + m.Shape
+}
+
 func (m *SearchMirrorMismatch) String() string {
-	return fmt.Sprintf("decision %d turn %d %s p%d: %s: %s", m.At, m.Turn, m.Kind, m.Player, m.What, m.Detail)
+	return fmt.Sprintf("decision %d turn %d %s p%d: %s: %s\n  gorge:  %v\n  kernel: %v",
+		m.At, m.Turn, m.Kind, m.Player, m.Class(), m.Detail, m.Gorge, m.Kernel)
 }
 
 // SearchMirrorResult is one mirrored pod game.
 type SearchMirrorResult struct {
-	Res      Result
-	Mismatch *SearchMirrorMismatch
-	// Choice and Visits are the first chosen-candidate and visit differences.
-	// They are not failures by default: the two engines' world streams differ
-	// (dirac/search/doc.go, "Where this does not match azmcts exactly"), so a
-	// small simulation budget picks differently. compareVisits turns the
-	// visit difference into Mismatch.
-	Choice, Visits *SearchMirrorMismatch
-	// Compared counts decisions both searches searched; Beneath counts
-	// decisions whose gorge ordinal and kernel SeqNo had parted (the seed
-	// input differs, so they are skipped); Refused counts honest roots or
-	// redeals the gorge source refused.
-	Compared, Beneath, Refused int
+	Res Result
+	// Mismatches are every difference, in game order.
+	Mismatches []SearchMirrorMismatch
+	// Compared counts decisions both searches searched; Worlds the root worlds
+	// compared among them; Refused honest roots or redeals the gorge source
+	// refused.
+	Compared, Worlds, Refused int
 	// Kinds names the kind of every compared decision, in order.
 	Kinds []string
 }
@@ -81,29 +128,28 @@ type SearchMirrorResult struct {
 // engines, stopping at maxTurns. seatSeeds is the per-seat seed each search
 // folds into its per-decision seed (11, 22, 33 and 44 in the test). The kernel
 // search chooses the game's canonical actions; the gorge search is asked in
-// shadow at the same decision. compareVisits also requires the visits per
-// candidate to agree.
-func SearchMirrorPod(m *Matchup, tbl *kop.Table, set cardset.Set, seed uint64, seatSeeds [MaxSeats]uint64, maxTurns int32, compareVisits bool) (SearchMirrorResult, error) {
-	k, err := SetSide(set, tbl, Config{})(m, seed)
+// shadow at the same decision. The run holds the two decision counters to
+// OrdinalCheck, so a parting no answer beneath the canonical surface explains
+// is a lockstep divergence.
+func SearchMirrorPod(m *Matchup, tbl *kop.Table, set cardset.Set, seed uint64, seatSeeds [MaxSeats]uint64, maxTurns int32) (SearchMirrorResult, error) {
+	rc := RunConfig{MaxDecisions: 20000, MaxTurns: maxTurns, Check: OrdinalCheck(nil)}
+	k, err := SetSide(set, tbl, rc.Config)(m, seed)
 	if err != nil {
 		return SearchMirrorResult{}, err
 	}
+	defer CloseSide(k)
 	kern, ok := k.(*realSide)
 	if !ok {
-		CloseSide(k)
 		return SearchMirrorResult{}, fmt.Errorf("search mirror needs the kernel side")
 	}
-	pol, err := newSearchMirrorPol(kern, set, seatSeeds, m.Config(seed), compareVisits)
+	pol, err := newSearchMirrorPol(kern, set, seatSeeds, m.Config(seed))
 	if err != nil {
-		CloseSide(k)
 		return SearchMirrorResult{}, err
 	}
-	rc := RunConfig{MaxDecisions: 20000, MaxTurns: maxTurns}
 	res := Lockstep(m, seed, k, pol, rc)
-	CloseSide(k)
 	return SearchMirrorResult{
-		Res: res, Mismatch: pol.mismatch, Choice: pol.choice, Visits: pol.visits,
-		Compared: pol.compared, Beneath: pol.beneath, Refused: pol.refused, Kinds: pol.kinds,
+		Res: res, Mismatches: pol.mismatches,
+		Compared: pol.compared, Worlds: pol.worlds, Refused: pol.refused, Kinds: pol.kinds,
 	}, nil
 }
 
@@ -113,7 +159,6 @@ type searchMirrorPol struct {
 	seatSeed [MaxSeats]uint64
 	setup    searchprobe.PublicGame
 	seatCfg  azmcts.SeatConfig
-	compareV bool
 
 	gseats [MaxSeats]*azmcts.Seat
 	feeds  [MaxSeats]*searchseat.Feed
@@ -122,21 +167,20 @@ type searchMirrorPol struct {
 	facts  *hbot.Facts
 	brd    botpolicy.Board
 	base   Policy
+	world  dirac.State // the kernel's first redealt world
 
-	seq      uint64
-	queue    []Canon
-	compared int
-	beneath  int
-	kinds    []string
-	refused  int
-	mismatch *SearchMirrorMismatch
-	choice   *SearchMirrorMismatch
-	visits   *SearchMirrorMismatch
+	seq        uint64
+	queue      []Canon
+	compared   int
+	worlds     int
+	kinds      []string
+	refused    int
+	mismatches []SearchMirrorMismatch
 }
 
-func newSearchMirrorPol(k *realSide, set cardset.Set, seatSeeds [MaxSeats]uint64, rc rules.Config, compareVisits bool) (*searchMirrorPol, error) {
+func newSearchMirrorPol(k *realSide, set cardset.Set, seatSeeds [MaxSeats]uint64, rc rules.Config) (*searchMirrorPol, error) {
 	p := &searchMirrorPol{
-		k: k, set: set, seatSeed: seatSeeds, compareV: compareVisits,
+		k: k, set: set, seatSeed: seatSeeds,
 		setup: searchprobe.PublicGame{
 			Names: rc.Names, Decks: rc.Decks, Tokens: rc.Tokens, StartingLife: rc.StartingLife,
 		},
@@ -146,6 +190,9 @@ func newSearchMirrorPol(k *realSide, set cardset.Set, seatSeeds [MaxSeats]uint64
 	p.seatCfg.World = azmcts.WorldRedeal
 	p.seatCfg.Search.Sims = searchMirrorSims
 	p.seatCfg.Search.Kinds = azmcts.FullKinds()
+	// The kernel's kinds search the command-zone choice; azmcts needs it
+	// named on top of FullKinds.
+	p.seatCfg.Search.Kinds.CommanderZone = true
 	p.seatCfg.Search.AutoPayment = true
 	p.seatCfg.Search.OpponentNodes = true
 	p.seatCfg.Search.OpponentMirror = true
@@ -195,16 +242,13 @@ func (p *searchMirrorPol) Pick(c *PickCtx) Canon {
 }
 
 // ask runs both searches at the first canonical pick of gd and queues the
-// kernel's answer. A decision whose ordinals have parted is skipped: the
-// seed inputs differ, so the comparison would measure the counter gap, not
-// the searches.
+// kernel's answer. A decision whose ordinals have parted is recorded and not
+// searched on gorge: the seed inputs differ, so the comparison would measure
+// the counter gap, not the searches. Later decisions are still compared where
+// the counters agree.
 func (p *searchMirrorPol) ask(c *PickCtx, gd *decision.Decision) {
 	r := p.k
 	if int(gd.Player) >= int(r.n) || uint8(gd.Player) != r.d.Player {
-		return
-	}
-	if gd.Ordinal != uint64(r.s.SeqNo()) {
-		p.beneath++
 		return
 	}
 	if gd.Kind == decision.KPriority {
@@ -221,85 +265,144 @@ func (p *searchMirrorPol) ask(c *PickCtx, gd *decision.Decision) {
 			p.queue = append(p.queue, r.canon(a))
 		}
 	}
-	gres, err := p.gorgeSearch(c, gd)
+	if gd.Ordinal != uint64(r.s.SeqNo()) {
+		p.record(c, gd, MirrorOrdinal, "", nil, nil,
+			fmt.Sprintf("gorge Ordinal %d, kernel SeqNo %d", gd.Ordinal, r.s.SeqNo()))
+		return
+	}
+	bot, err := p.gorgeBot(c, gd)
 	if err != nil {
 		p.refused++
 		return
 	}
-	if gres.Stats.Searched == 0 || kres.Stats.Searched == 0 {
-		// One engine posed a searched point the other did not: the candidate
-		// lists cannot mirror.
-		if gres.Stats.Searched != kres.Stats.Searched {
-			// The counter gap: one engine poses a searched point the other
-			// does not (a lowered X cast paid at priority, a manual payment
-			// window). The seeds cannot mirror across it; count it and stop
-			// comparing this game's remaining decisions.
-			p.beneath++
-			return
+	gres, root, err := p.gorgeSearch(c, gd, bot, p.seatCfg.Search.Limit)
+	if err != nil {
+		p.refused++
+		return
+	}
+	gs, ks := gres.Stats.Searched != 0, kres.Stats.Searched != 0
+	if !gs && !ks {
+		return
+	}
+	if gs != ks {
+		// The counters agree here, so both engines pose this decision: one
+		// of them found a choice to search and the other did not.
+		shape := "kernel-only"
+		var gc, kc [][]Canon
+		if gs {
+			shape = "gorge-only"
+			gc, _, _, _ = p.gorgeCands(c, gd, gres)
+		} else {
+			kc, _, _, _ = p.kernelCands(p.ksrch[int(gd.Player)], kres)
 		}
+		p.record(c, gd, MirrorCandidates, shape, gc, kc, "one engine searched the decision")
 		return
 	}
 	p.compared++
 	p.kinds = append(p.kinds, string(gd.Kind))
-	gc, gv, gchoice, ok := p.gorgeCands(c, gd, gres)
-	if !ok {
-		p.fail(c, gd, "candidates", nil, nil, "a gorge candidate has no canonical action")
+	p.compareWorlds(c, gd, root)
+	p.compareResults(c, gd, bot, gres, kres)
+}
+
+// compareWorlds holds the hidden zones gorge's honest root was dealt (root)
+// against the first world the kernel's search deals for the same decision.
+// The true zones of the two engines are compared first: if they read
+// differently, the extraction or the lockstep is wrong and a world difference
+// would say nothing.
+func (p *searchMirrorPol) compareWorlds(c *PickCtx, gd *decision.Decision, root mirrorZones) {
+	n := int(p.k.n)
+	truth, ktruth := gorgeZones(c.G.E, n), p.kernelZones(&p.k.s)
+	if d := truth.diff(&ktruth, n); d != "" {
+		p.record(c, gd, MirrorTruth, "", nil, nil, d)
 		return
 	}
-	kc, kv, kchoice, ok := p.kernelCands(p.ksrch[int(gd.Player)], kres)
-	if !ok {
-		p.fail(c, gd, "candidates", nil, nil, "a kernel candidate has no canonical action")
+	p.ksrch[int(gd.Player)].RootWorld(&p.world, 0)
+	kworld := p.kernelZones(&p.world)
+	p.worlds++
+	if d := root.poolDiff(&kworld, n, int(gd.Player)); d != "" {
+		p.record(c, gd, MirrorRootPool, "", nil, nil, d)
+	} else if d := root.diff(&kworld, n); d != "" {
+		p.record(c, gd, MirrorRootWorld, "", nil, nil, d)
+	}
+}
+
+// compareResults records how the two searches' candidates differ, or, over
+// equal candidate lists, how their choice and visits do.
+func (p *searchMirrorPol) compareResults(c *PickCtx, gd *decision.Decision, bot decision.Intent, gres azmcts.Result, kres *search.Result) {
+	gc, gv, gchoice, gok := p.gorgeCands(c, gd, gres)
+	kc, kv, kchoice, kok := p.kernelCands(p.ksrch[int(gd.Player)], kres)
+	if !gok || !kok {
+		p.record(c, gd, MirrorCandidates, "unmapped", gc, kc, "a candidate has no canonical action")
 		return
 	}
-	if len(gc) != len(kc) {
-		p.fail(c, gd, "candidates", canonLists(gc), canonLists(kc),
-			fmt.Sprintf("%d candidates vs %d", len(gc), len(kc)))
-		return
-	}
-	gm, km := candMap(gc, gv), candMap(kc, kv)
-	if len(gm) != len(km) {
-		p.fail(c, gd, "candidates", canonLists(gc), canonLists(kc),
-			fmt.Sprintf("%d distinct candidates vs %d", len(gm), len(km)))
-		return
-	}
-	for _, k := range sortedCandKeys(gm) {
-		if _, ok := km[k]; !ok {
-			p.fail(c, gd, "candidates", canonLists(gc), canonLists(kc), "candidate sets differ")
-			return
+	if shape := candShape(gc, kc); shape != "" {
+		detail := fmt.Sprintf("%d candidates vs %d", len(gc), len(kc))
+		limit := p.seatCfg.Search.Limit
+		switch {
+		case multiSelect(gd, gc, kc):
+			shape = "multi-select"
+		case shape == "differ" && len(gc) == limit && len(kc) == limit:
+			shape, detail = p.uncut(c, gd, bot)
 		}
+		p.record(c, gd, MirrorCandidates, shape, gc, kc, detail)
+		return
 	}
 	if gchoice < 0 || gchoice >= len(gc) || kchoice < 0 || kchoice >= len(kc) ||
 		candKey(gc[gchoice]) != candKey(kc[kchoice]) {
-		if p.choice == nil {
-			p.choice = p.note(c, gd, "choice", gc, kc,
-				fmt.Sprintf("choice %s (visits %v) vs %s (visits %v)", candName(gc, gchoice), gv, candName(kc, kchoice), kv))
-		}
+		p.record(c, gd, MirrorChoice, "", gc, kc,
+			fmt.Sprintf("choice %s (visits %v) vs %s (visits %v)", candName(gc, gchoice), gv, candName(kc, kchoice), kv))
 	}
+	gm, km := candMap(gc, gv), candMap(kc, kv)
 	for _, k := range sortedCandKeys(gm) {
 		if km[k] != gm[k] {
-			if p.visits == nil {
-				p.visits = p.note(c, gd, "visits", gc, kc,
-					fmt.Sprintf("candidate %s has %d visits, kernel %d", k, gm[k], km[k]))
-			}
-			if p.compareV {
-				p.fail(c, gd, "visits", canonLists(gc), canonLists(kc),
-					fmt.Sprintf("candidate %s has %d visits, kernel %d", k, gm[k], km[k]))
-			}
+			p.record(c, gd, MirrorVisits, "", gc, kc,
+				fmt.Sprintf("candidate %s has %d visits, kernel %d", k, gm[k], km[k]))
 			break
 		}
 	}
 }
 
-func (p *searchMirrorPol) fail(c *PickCtx, gd *decision.Decision, what string, gorge, kernel []string, detail string) {
-	p.mismatch = p.note(c, gd, what, nil, nil, detail)
-	p.mismatch.Gorge, p.mismatch.Kernel = gorge, kernel
-	panic(p.mismatch)
+// multiSelect reports a multi-select pick the two engines pose differently:
+// some gorge candidate is a set of options and no kernel candidate is.
+// Declarations and priority are whole answers on both sides.
+func multiSelect(gd *decision.Decision, gc, kc [][]Canon) bool {
+	switch gd.Kind {
+	case decision.KAttackers, decision.KBlockers, decision.KPriority:
+		return false
+	}
+	set := func(c []Canon) bool { return len(dropDone(c)) > 1 }
+	return gd.Max > 1 && slices.ContainsFunc(gc, set) && !slices.ContainsFunc(kc, set)
 }
 
-func (p *searchMirrorPol) note(c *PickCtx, gd *decision.Decision, what string, gc, kc [][]Canon, detail string) *SearchMirrorMismatch {
-	m := &SearchMirrorMismatch{
+// uncut enumerates both engines' candidates of the decision again at
+// searchMirrorWideLimit, for two full lists that differ: "limit-cut" when the
+// wider lists are equal (only the order under the cut parted them), else the
+// wider lists' own shape, which no cut explains.
+func (p *searchMirrorPol) uncut(c *PickCtx, gd *decision.Decision, bot decision.Intent) (shape, detail string) {
+	seat := int(gd.Player)
+	gres, _, err := p.gorgeSearch(c, gd, bot, searchMirrorWideLimit)
+	if err != nil {
+		return "differ", "gorge could not enumerate again: " + err.Error()
+	}
+	wide := p.newKSearcher(searchMirrorWideLimit)
+	kres := wide.Search(&p.k.s, p.seatSeed[seat])
+	gc, _, _, gok := p.gorgeCands(c, gd, gres)
+	kc, _, _, kok := p.kernelCands(wide, kres)
+	if !gok || !kok {
+		return "unmapped", "a candidate has no canonical action at the wide limit"
+	}
+	detail = fmt.Sprintf("%d candidates vs %d at limit %d: %v vs %v",
+		len(gc), len(kc), searchMirrorWideLimit, canonLists(gc), canonLists(kc))
+	if shape = candShape(gc, kc); shape == "" {
+		shape = "limit-cut"
+	}
+	return shape, detail
+}
+
+func (p *searchMirrorPol) record(c *PickCtx, gd *decision.Decision, what, shape string, gc, kc [][]Canon, detail string) {
+	m := SearchMirrorMismatch{
 		At: c.Seq, Turn: c.G.E.G.Turn, Kind: string(gd.Kind), Player: uint8(gd.Player),
-		What: what, Detail: detail,
+		What: what, Shape: shape, Detail: detail,
 	}
 	if gc != nil {
 		m.Gorge = canonLists(gc)
@@ -307,7 +410,86 @@ func (p *searchMirrorPol) note(c *PickCtx, gd *decision.Decision, what string, g
 	if kc != nil {
 		m.Kernel = canonLists(kc)
 	}
-	return m
+	p.mismatches = append(p.mismatches, m)
+}
+
+// mirrorZones is each player's hidden cards by name: the hand sorted (its
+// order means nothing), the library in order.
+type mirrorZones struct {
+	hand, lib [MaxSeats][]string
+}
+
+// diff names the first zone of the first n players that differs, or "".
+func (z *mirrorZones) diff(o *mirrorZones, n int) string {
+	for s := 0; s < n; s++ {
+		if !slices.Equal(z.hand[s], o.hand[s]) {
+			return fmt.Sprintf("p%d hand: gorge %v, kernel %v", s, z.hand[s], o.hand[s])
+		}
+		if !slices.Equal(z.lib[s], o.lib[s]) {
+			i := 0
+			for i < len(z.lib[s]) && i < len(o.lib[s]) && z.lib[s][i] == o.lib[s][i] {
+				i++
+			}
+			return fmt.Sprintf("p%d library (%d vs %d cards) first differs at %d", s, len(z.lib[s]), len(o.lib[s]), i)
+		}
+	}
+	return ""
+}
+
+// poolDiff names the first difference no deal can make between the root
+// worlds of searcher's decision, or "".
+func (z *mirrorZones) poolDiff(o *mirrorZones, n, searcher int) string {
+	for s := 0; s < n; s++ {
+		if len(z.hand[s]) != len(o.hand[s]) || len(z.lib[s]) != len(o.lib[s]) {
+			return fmt.Sprintf("p%d zone sizes: gorge hand %d library %d, kernel hand %d library %d",
+				s, len(z.hand[s]), len(z.lib[s]), len(o.hand[s]), len(o.lib[s]))
+		}
+		g := slices.Concat(z.hand[s], z.lib[s])
+		k := slices.Concat(o.hand[s], o.lib[s])
+		sort.Strings(g)
+		sort.Strings(k)
+		if !slices.Equal(g, k) {
+			return fmt.Sprintf("p%d hidden cards: gorge %v, kernel %v", s, g, k)
+		}
+	}
+	if !slices.Equal(z.hand[searcher], o.hand[searcher]) {
+		return fmt.Sprintf("p%d (searching) hand: gorge %v, kernel %v", searcher, z.hand[searcher], o.hand[searcher])
+	}
+	return ""
+}
+
+func gorgeZones(e *rules.Engine, n int) mirrorZones {
+	var z mirrorZones
+	names := func(zone state.Zone, p state.PlayerID) []string {
+		ids := e.G.Zone(zone, p)
+		out := make([]string, len(ids))
+		for i, id := range ids {
+			out[i] = e.G.Obj(id).Face().Name
+		}
+		return out
+	}
+	for s := 0; s < n; s++ {
+		z.hand[s] = names(state.ZHand, state.PlayerID(s))
+		sort.Strings(z.hand[s])
+		z.lib[s] = names(state.ZLibrary, state.PlayerID(s))
+	}
+	return z
+}
+
+func (p *searchMirrorPol) kernelZones(s *dirac.State) mirrorZones {
+	var z mirrorZones
+	var cards [2 * (dirac.MaxDeck + 8)]dirac.CardID
+	for q := 0; q < int(p.k.n); q++ {
+		n := s.HiddenCards(uint8(q), cards[:])
+		names := make([]string, n)
+		for i, id := range cards[:n] {
+			names[i] = p.k.gname[id]
+		}
+		h := s.HandSize(uint8(q))
+		z.hand[q], z.lib[q] = names[:h], names[h:]
+		sort.Strings(z.hand[q])
+	}
+	return z
 }
 
 // kernelSearch runs the seat's kernel search at the kernel's pending
@@ -317,11 +499,16 @@ func (p *searchMirrorPol) kernelSearch(seat int) *search.Result {
 }
 
 func (p *searchMirrorPol) ksearcher(seat int) *search.Searcher {
-	if sr := p.ksrch[seat]; sr != nil {
-		return sr
+	if p.ksrch[seat] == nil {
+		p.ksrch[seat] = p.newKSearcher(p.seatCfg.Search.Limit)
 	}
+	return p.ksrch[seat]
+}
+
+func (p *searchMirrorPol) newKSearcher(limit int) *search.Searcher {
 	o := search.DefaultOptions()
 	o.Sims = searchMirrorSims
+	o.Limit = limit
 	o.Kinds = search.FullKinds()
 	o.OpponentNodes, o.OpponentMirror = true, true
 	o.ClosedList = false
@@ -333,36 +520,35 @@ func (p *searchMirrorPol) ksearcher(seat int) *search.Searcher {
 	if err := o.ValidateEval(search.HeuristicLeaf{}); err != nil {
 		panic(fmt.Sprintf("oracle: search mirror: %v", err))
 	}
-	sr := search.NewSearcher(o, search.HeuristicLeaf{}, hbot.New(p.facts))
-	p.ksrch[seat] = sr
-	return sr
+	return search.NewSearcher(o, search.HeuristicLeaf{}, hbot.New(p.facts))
+}
+
+// gorgeBot is the seated bot's answer to gd, the search's candidate 0.
+func (p *searchMirrorPol) gorgeBot(c *PickCtx, gd *decision.Decision) (decision.Intent, error) {
+	e := c.G.E
+	b := botpolicy.BoardFromGameInto(e.G, e, gd.Player, &p.brd)
+	return p.gseats[int(gd.Player)].DecideBoard(context.Background(), b, *gd)
 }
 
 // gorgeSearch runs azmcts at gd on the honest root built from the seat's
-// feed, with the options Seat.DecideSearch builds for this config.
-func (p *searchMirrorPol) gorgeSearch(c *PickCtx, gd *decision.Decision) (azmcts.Result, error) {
+// feed, with the options Seat.DecideSearch builds for this config at the
+// candidate limit. It also returns the hidden zones that root was dealt, read
+// before the search.
+func (p *searchMirrorPol) gorgeSearch(c *PickCtx, gd *decision.Decision, bot decision.Intent, limit int) (azmcts.Result, mirrorZones, error) {
+	var none mirrorZones
 	seat := int(gd.Player)
 	e := c.G.E
-	if gd.Kind == decision.KPriority {
-		e.EnsurePaymentActions()
-		if ed := e.Pending(); ed != nil && ed.Seq == gd.Seq {
-			gd = ed
-		}
-	}
-	b := botpolicy.BoardFromGameInto(e.G, e, gd.Player, &p.brd)
-	botIn, err := p.gseats[seat].DecideBoard(context.Background(), b, *gd)
-	if err != nil {
-		return azmcts.Result{}, err
-	}
 	f := p.feeds[seat]
 	setup := searchseat.SeatSetup(p.setup, p.gseats[seat], gd.Player)
 	root, reason := searchseat.HonestRoot(setup, f, e, bots.RootSeed(p.seatSeed[seat], gd.Ordinal))
 	if root == nil {
-		return azmcts.Result{}, fmt.Errorf("honest root: %s", reason)
+		return azmcts.Result{}, none, fmt.Errorf("honest root: %s", reason)
 	}
+	zones := gorgeZones(root, int(p.k.n))
 	opts := p.seatCfg.Search
 	opts.Seed = azmcts.DecisionSeed(p.seatSeed[seat], gd.Ordinal)
 	opts.Noise, opts.Sample = false, false
+	opts.Limit = limit
 	obs := searchprobe.NewCollector(gd.Player)
 	in := azmcts.RedealInput{Setup: setup}
 	if f != nil && f.Live() && f.Frames() > 0 {
@@ -376,10 +562,11 @@ func (p *searchMirrorPol) gorgeSearch(c *PickCtx, gd *decision.Decision) (azmcts
 	}
 	src, err := azmcts.NewRedeal(in, obs, opts.Seed, p.seatCfg.Worlds)
 	if err != nil {
-		return azmcts.Result{}, err
+		return azmcts.Result{}, none, err
 	}
-	rootArg := azmcts.Root{Engine: root, Decision: gd, Bot: botIn, Observer: obs}
-	return azmcts.Search(context.Background(), rootArg, src, nil, opts)
+	rootArg := azmcts.Root{Engine: root, Decision: gd, Bot: bot, Observer: obs}
+	res, err := azmcts.Search(context.Background(), rootArg, src, nil, opts)
+	return res, zones, err
 }
 
 // gorgeCands maps res.Candidates to canonical action sets, in candidate
@@ -473,6 +660,32 @@ func (p *searchMirrorPol) kernelCands(sr *search.Searcher, res *search.Result) (
 	return out, visits, res.Choice, true
 }
 
+// candShape compares the two candidate lists as multisets of canonical action
+// sets: "" when equal, else "differ", "gorge-more" or "kernel-more".
+func candShape(gc, kc [][]Canon) string {
+	n := map[string]int{}
+	for _, c := range gc {
+		n[candKey(c)]++
+	}
+	for _, c := range kc {
+		n[candKey(c)]--
+	}
+	gorge, kernel := false, false
+	for _, k := range sortedCandKeys(n) {
+		gorge = gorge || n[k] > 0
+		kernel = kernel || n[k] < 0
+	}
+	switch {
+	case gorge && kernel:
+		return "differ"
+	case gorge:
+		return "gorge-more"
+	case kernel:
+		return "kernel-more"
+	}
+	return ""
+}
+
 // candMap keys a candidate by its canonical action set (sorted; a
 // declaration's Done is not an action) and sums the visits of duplicate
 // keys.
@@ -489,8 +702,7 @@ func candMap(cs [][]Canon, visits []int) map[string]int {
 }
 
 func candKey(acts []Canon) string {
-	x := append([]Canon(nil), acts...)
-	dropDone(x)
+	x := dropDone(acts)
 	sortCanon(x)
 	var b strings.Builder
 	for _, a := range x {
@@ -525,8 +737,7 @@ func canonLists(cs [][]Canon) []string {
 }
 
 func showCanon(acts []Canon) []string {
-	x := append([]Canon(nil), acts...)
-	dropDone(x)
+	x := dropDone(acts)
 	sortCanon(x)
 	return actionStrings(x)
 }
