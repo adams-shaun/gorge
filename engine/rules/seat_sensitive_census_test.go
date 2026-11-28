@@ -23,10 +23,7 @@ var seatSensitiveGaps = []string{
 	"dethrone",
 	"each-opponent",
 	"extra-turns",
-	"initiative",
 	"melee",
-	"monarch",
-	"myriad",
 }
 
 const seatSensitiveTable = "testdata/seat-sensitive-mechanics.tsv"
