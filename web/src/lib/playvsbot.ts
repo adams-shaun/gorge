@@ -20,6 +20,10 @@ export type VsBotFormat = (typeof VS_BOT_FORMATS)[number]['value'];
 export const VS_BOT_MULLIGANS = [0, 1, 2, 3, 4, 5, 6] as const;
 export type VsBotMulligans = (typeof VS_BOT_MULLIGANS)[number];
 
+/** The seat counts the play-vs-bot entry point offers for Commander: 2 is a duel, 3 and 4 are pods (one human, bots in the rest). */
+export const VS_BOT_SEATS = [2, 3, 4] as const;
+export type VsBotSeats = (typeof VS_BOT_SEATS)[number];
+
 /**
  * startPlayVsBot asks the server to seat the player against a bot in the
  * given format and returns the base-relative join path to follow. It is the
@@ -36,6 +40,11 @@ export type VsBotMulligans = (typeof VS_BOT_MULLIGANS)[number];
  * default (-bot-policy), exactly as an omitted deck id keeps random.
  *
  * pairedBot chooses the table's paired bot; empty keeps the server's default.
+ *
+ * seats above 2 asks for a pod with one human seat: the deck ids are not
+ * sent (the server deals pod decks from its Commander pool and refuses
+ * bot_deck there), and seats/humans follow the other keys. At 2 the body is
+ * the duel body, with no seats key at all.
  */
 export async function startPlayVsBot(
   format: VsBotFormat,
@@ -44,14 +53,17 @@ export async function startPlayVsBot(
   mulligans: VsBotMulligans = 6,
   botPolicy = '',
   pairedBot = '',
+  seats: VsBotSeats = 2,
 ): Promise<string> {
+  const pod = seats > 2;
   const g: CreateGame = await createGame({
     format,
-    ...(humanDeck ? { human_deck: humanDeck } : {}),
-    ...(botDeck ? { bot_deck: botDeck } : {}),
+    ...(!pod && humanDeck ? { human_deck: humanDeck } : {}),
+    ...(!pod && botDeck ? { bot_deck: botDeck } : {}),
     ...(botPolicy ? { bot_policy: botPolicy } : {}),
     mulligans,
     ...(pairedBot ? { paired_bot: pairedBot } : {}),
+    ...(pod ? { seats, humans: 1 } : {}),
   });
   return withBase(g.join);
 }
