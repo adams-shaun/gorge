@@ -1239,6 +1239,9 @@ func init() { enum[kop.Ref]("kop.RefTriggerSpellTarget", kop.RefTriggerSpellTarg
 // dirac/manifest/Ref/RefTriggerSpellTargets
 func init() { enum[kop.Ref]("kop.RefTriggerSpellTargets", kop.RefTriggerSpellTargets) }
 
+// dirac/manifest/Ref/RefSet
+func init() { enum[kop.Ref]("kop.RefSet", kop.RefSet) }
+
 // dirac/manifest/ReplKind/ReplBeginPhase
 func init() { enum[kop.ReplKind]("kop.ReplBeginPhase", kop.ReplBeginPhase) }
 

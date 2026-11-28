@@ -1,0 +1,7 @@
+family: Ref
+name: RefSet
+value: 55
+state: code 0
+status: active
+ticket: dk-setexpr-01-kernel-refset
+doc: a set-valued operand (design 2026-11-19-dirac-operand-algebras K3): the instruction's subject is a kop.SetExpr of the table's Sets, named by the ability's SetRefs entry for the instruction's PC (kop.SetRef). The kernel evaluates the set when the instruction runs (dirac/value_setexpr.go evalSet) and runs the op once per member, objects in object-index order then seats in turn order from the controller (gorge AliveFrom), a target base in slot order. Only the ops value_setexpr.go setOps lists take it; any other op panics with its name.
