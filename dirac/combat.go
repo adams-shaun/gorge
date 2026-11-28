@@ -1728,6 +1728,9 @@ func (s *State) loseLife(k *prep, p uint8, n int) {
 	if s.evLive(kop.TrigLifeLost) {
 		s.firePlayer(k, kop.TrigLifeLost, p, int16(n))
 	}
+	if k.gen != nil && k.gen.uses.has(useLifeLostAll) {
+		s.lifeLostAllLoss(k, p, n) // trig_lifelostall.go
+	}
 	if k.speed {
 		s.speedLoss(p) // kw_speed.go
 	}
@@ -1795,9 +1798,13 @@ func (s *State) damageStep(k *prep, first, ans bool) {
 	if fog && first {
 		s.markFogFirst(k) // combatDamage would have marked them (combat_fogfirst.go)
 	}
+	if !fog {
+		s.lossBatchOpen(k) // the pass is one LifeLostAll group (trig_lifelostall.go); a resumed pass finds it open
+	}
 	if !fog && s.combatDamage(k, first) {
 		return // paused on a replacement-order ask
 	}
+	s.lossBatchClose(k)
 	s.combatArm().divDone = slotMask{}
 	s.xblkDivReset()
 	// state-based actions run right after each damage pass (gorge

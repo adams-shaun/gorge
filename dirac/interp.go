@@ -140,9 +140,13 @@ func (s *State) exec(k *prep, in *kop.Instr) bool {
 		q := s.players(k, in.Obj)
 		n := s.value(k, in.A)
 		lost := 0
+		opened := s.lossBatchOpen(k) // one LifeLostAll group (gorge effLoseLife)
 		for i := uint8(0); i < q.n; i++ {
 			s.loseLife(k, q.s[i], n)
 			lost += max(n, 0)
+		}
+		if opened {
+			s.lossBatchClose(k)
 		}
 		if k.gen != nil {
 			s.g.lostAmt = int16(lost) // ExLastLifeLost (Exsanguinate's "the life lost this way")

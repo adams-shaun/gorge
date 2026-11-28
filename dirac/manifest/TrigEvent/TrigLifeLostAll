@@ -4,4 +4,5 @@ value: 99
 forge: LifeLostAll
 census: trig LifeLostAll all=2 std=0 mbc=0 sole=1
 state: code 0
-status: reserved
+status: active
+ticket: agent-20261127T192738Z-2705575a
