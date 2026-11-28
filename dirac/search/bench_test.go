@@ -41,11 +41,10 @@ func roots(n int) []*dirac.State {
 	return out
 }
 
-func benchSearch(b *testing.B, opts Options) {
-	rs := roots(64)
+func benchSearch(b *testing.B, opts Options, rs []*dirac.State) (sims int) {
 	sr := NewSearcher(opts, Uniform{}, Heuristic{})
 	ProfReset()
-	sims, steps, plays, replays := 0, 0, 0, 0
+	steps, plays, replays := 0, 0, 0
 	b.ReportAllocs()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -67,19 +66,20 @@ func benchSearch(b *testing.B, opts Options) {
 			b.ReportMetric(float64(n)/float64(sims)/1000, names[k]+"-µs/sim")
 		}
 	}
+	return sims
 }
 
-func BenchmarkSearch(b *testing.B) { benchSearch(b, DefaultOptions()) }
+func BenchmarkSearch(b *testing.B) { benchSearch(b, DefaultOptions(), roots(64)) }
 
 func BenchmarkSearchCachedWorlds(b *testing.B) {
 	o := DefaultOptions()
 	o.CachedWorlds = 4
-	benchSearch(b, o)
+	benchSearch(b, o, roots(64))
 }
 
 func BenchmarkSearchCachedWorldsNodeCache(b *testing.B) {
 	o := DefaultOptions()
 	o.CachedWorlds = 4
 	o.NodeCache = 256
-	benchSearch(b, o)
+	benchSearch(b, o, roots(64))
 }
