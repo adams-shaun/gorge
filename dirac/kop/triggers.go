@@ -142,6 +142,12 @@ const (
 // per-colour spend (stackEntry.spc, trig_nocoloredmana.go).
 const Tf5CastNoColoredMana TrigFlags5 = 1 << 0
 
+// TrigFlags6 is the qualifier word the Flags5 word cannot carry (all eight of
+// its bits are taken). Appended after the existing flag words, as Flags5 was
+// before it (Trigger.Flags6). Its constants are manifest entries
+// (dirac/manifest/TrigFlags6/), generated into manifest_gen.go.
+type TrigFlags6 uint8
+
 // TrigEvent is a triggered ability's subscription: the event kind it listens
 // for. The kernel keeps, per event, a bitmask of battlefield slots whose card
 // has a trigger on it, so an event only scans the subscribers. Append-only.
@@ -270,6 +276,7 @@ type Trigger struct {
 	Flags3  TrigFlags3 // still more qualifiers (values.go; a padding byte)
 	Flags4  TrigFlags4 // single-target qualifiers (triggers.go)
 	Flags5  TrigFlags5 // Drawn: the draw-step position (FirstCardInDrawStep$)
+	Flags6  TrigFlags6 // Drawn: the owner-side ValidCard$ qualifier outside the Whose grammar (Tf6DrawerNotActive)
 
 	// TapPlan classes a lowered non-Self TrigTaps watcher for the payment
 	// planner (TapPlan); TapPainN is the vetted literal damage amount of a

@@ -216,7 +216,6 @@ var knownUnknownFilterPredicates = []string{
 	"OpponentToActive",
 	"Other.YouOwn",
 	"OwnedBy Opponent",
-	"OwnedBy Opponent.NonActive",
 	"OwnerDoesntControl",
 	"Party",
 	"ProtectedBy TriggeredTarget",

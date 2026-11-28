@@ -530,7 +530,11 @@ func (s *State) playerTrigGen(k *prep, ev kop.TrigEvent, l trigListener, a *kop.
 //go:noinline
 func (s *State) playerTrigGenObj(k *prep, ev kop.TrigEvent, l trigListener, a *kop.Ability, who uint8, amt int16, passed Obj) {
 	t := &a.Trig
-	if !whoseOK(t.Whose, l.ctrl, who) {
+	if !whoseOK(t.Whose, l.ctrl, who) && !(ev == kop.TrigDrawn && t.Whose == kop.WhoseEnchanted && s.defEnchanted(k, l, who)) {
+		// WhoseEnchanted on a Drawn line (Card.OwnedBy Player.EnchantedBy,
+		// the draw Curses): the drawer is the player the listener's own Aura
+		// enchants (defEnchanted, the same read as the Phase/DamageDone
+		// arms). Every other slot-read Whose keeps failing closed here.
 		return
 	}
 	if t.Flags2&kop.Tf2YourTurn != 0 && s.active != l.ctrl || t.Flags2&kop.Tf2OppTurn != 0 && s.active == l.ctrl {
@@ -563,6 +567,9 @@ func (s *State) playerTrigGenObj(k *prep, ev kop.TrigEvent, l trigListener, a *k
 			return
 		}
 	case kop.TrigDrawn:
+		if t.Flags6&kop.Tf6DrawerNotActive != 0 && who == s.active {
+			return // Card.OwnedBy Opponent.NonActive (Tataru Taru): the drawer is the active player, gorge playerSpecQualifierNonActive
+		}
 		if t.Flags&kop.TfSecondDraw != 0 && !s.nthDrawOK(t, who) {
 			return
 		}

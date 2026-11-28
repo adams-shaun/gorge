@@ -18,6 +18,10 @@ func TestModeParamDrawnScopes(t *testing.T) {
 		{"any card", map[string]string{"ValidCard": "Card"}, whoAny, false, 0},
 		{"player.opponent", map[string]string{"ValidPlayer": "Player.Opponent", "Number": "2"}, whoOpp, false, 2},
 		{"you", map[string]string{"ValidPlayer": "You", "Number": "1"}, whoYou, false, 1},
+		// owner scopes on the drawn card (drawnownerscope_shapes_test.go
+		// checks the real carriers' full shapes)
+		{"owned by an opponent", map[string]string{"ValidCard": "Card.OwnedBy Opponent.NonActive"}, whoOpp, false, 0},
+		{"owned by the enchanted player", map[string]string{"ValidCard": "Card.OwnedBy Player.EnchantedBy"}, whoEnchanted, false, 0},
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			c.params["TriggerZones"] = "Battlefield"
@@ -41,10 +45,6 @@ func TestModeParamDrawnRefuses(t *testing.T) {
 	}{
 		{"active player", map[string]string{"ValidPlayer": "Player.Active"}, `ValidPlayer "Player.Active"`},
 		{"non-active opponent", map[string]string{"ValidPlayer": "Player.Opponent+NonActive"}, `ValidPlayer "Player.Opponent+NonActive"`},
-		// gorge's OwnedBy classifier reads only a Player.<qualifier> referent, so
-		// it never matches this spelling (Tataru Taru never triggers there): the
-		// kernel must not fire a line gorge cannot
-		{"owned by a bare opponent spec", map[string]string{"ValidCard": "Card.OwnedBy Opponent.NonActive"}, `Drawn ValidCard "Card.OwnedBy Opponent.NonActive"`},
 		{"card beside a player scope", map[string]string{"ValidCard": "Card", "ValidPlayer": "Opponent"}, `Drawn ValidCard "Card" ValidPlayer "Opponent"`},
 		{"card type filter", map[string]string{"ValidCard": "Card.Land"}, `Drawn ValidCard "Card.Land"`},
 	} {

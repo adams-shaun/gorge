@@ -1088,8 +1088,11 @@ func (s *State) firePlayer(k *prep, ev kop.TrigEvent, who uint8, amt int16) {
 			if a.Kind != kop.AbTriggered || a.Trig.Event != ev {
 				continue
 			}
-			if !whoseOK(a.Trig.Whose, lp.ctrl, who) {
-				continue
+			if !whoseOK(a.Trig.Whose, lp.ctrl, who) && !(ev == kop.TrigDrawn && a.Trig.Whose == kop.WhoseEnchanted && s.defEnchanted(k, trigListener{sl: ls}, who)) {
+				continue // the draw Curses' owner scope reads the listener's attachment; every other slot-read Whose fails closed
+			}
+			if ev == kop.TrigDrawn && a.Trig.Flags6&kop.Tf6DrawerNotActive != 0 && who == s.active {
+				continue // Card.OwnedBy Opponent.NonActive: the drawer is the active player (Tataru Taru)
 			}
 			if a.Trig.Flags&kop.TfSecondDraw != 0 && !s.nthDrawOK(&a.Trig, who) {
 				continue
