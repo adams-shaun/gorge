@@ -2389,6 +2389,8 @@ func (cb *cardBuilder) repl(r lRepl) (kop.Ability, error) {
 		if err := cb.replRewrite(r, rp); err != nil {
 			return ka, err
 		}
+	case "FoundSearchExile":
+		rp.Kind = kop.ReplFoundSearchExile // lower_searchcontrol.go
 	case "DamageInstead":
 		if err := cb.replInstead(r, rp); err != nil { // lower_replinstead.go
 			return ka, err

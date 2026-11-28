@@ -1134,7 +1134,8 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 	g.anyDiscard = tableHasOp(t, kop.OpDiscard)
 	g.anyRemDisc = tableRemembersDiscards(t)
 	g.anySpellMana = prepDbMana(t) // mana_dbresolve.go
-	g.anyMayKind = tableMayPlayKinds(t)
+	// zone_searchcontrol.go's found-card exile grants an any-colour record
+	g.anyMayKind = tableMayPlayKinds(t) || tableHasReplKind(t, kop.ReplFoundSearchExile)
 	g.anyZeroAlt = tableZeroAlt(t)
 	g.anyMayCold = tableMayPlayRemembered(t)
 	g.anyEmbCold, g.anyEmbName = tableEmblemRepeats(t), tableEmbNamed(t)
@@ -1510,6 +1511,8 @@ func prepareGen(t *kop.Table, p *prep) *genPrep {
 					g.untapRepl = true
 					g.anyUntapBlock = true
 					pc.hasStat = true // scanned through statM
+				case kop.ReplFoundSearchExile:
+					pc.hasStat = true // scanned through statM (zone_searchcontrol.go)
 				case kop.ReplOnePoison:
 					pc.hasStat = true // scanned through statM (trig_leavereturn.go)
 				case kop.ReplCantTurnUp:

@@ -1967,7 +1967,8 @@ func (s *State) startSearch(k *prep, in *kop.Instr) bool {
 // on the stack, so the resolution parks here like at any other move ask).
 func (s *State) moveAsked() bool {
 	return s.res.ask == raGenTopBottom || s.res.ask == raGenEnchant || s.res.ask == raGenRetChoice || s.res.ask == raGenEntryOrder ||
-		s.res.ask == raGenEnterDefender || s.res.ask == raGenCmdZone || s.res.ask == raGenPayETB || s.res.ask == raGenLibPlace
+		s.res.ask == raGenEnterDefender || s.res.ask == raGenCmdZone || s.res.ask == raGenPayETB || s.res.ask == raGenLibPlace ||
+		s.res.ask == raFoundSearchOrder
 }
 
 // searchPick poses a search's (or a choose-move's) first pick, or finishes
@@ -2001,7 +2002,7 @@ func (s *State) searchPick(k *prep) bool {
 		// candidate completes rather than posing a Done
 		s.g.pickLeft = uint8(d.N)
 	}
-	s.res.ask, s.res.askP = raGenSearch, s.chooserOf(k, p)
+	s.res.ask, s.res.askP = raGenSearch, s.searchPickChooser(k, s.chooserOf(k, p)) // zone_searchcontrol.go
 	return false
 }
 
@@ -2150,8 +2151,19 @@ func (s *State) finishSearchNow(k *prep) {
 		// gorge moves the found card first (to the library's bottom), then
 		// shuffles, then puts it on top (placeLibraryObjects)
 		pl := &s.pl[p]
-		for i := 0; i < int(s.g.nlook); i++ {
+		for i := 0; i < int(s.g.nlook); {
 			o := s.resArm().look[i]
+			if s.foundSearchExile(k, o, i) {
+				// Opposition Agent: the first move is exiled instead, before
+				// the shuffle, and the card leaves the look
+				// (zone_searchcontrol.go)
+				if s.res.ask == raFoundSearchOrder {
+					return // the order ask; its answer re-runs this arm
+				}
+				s.g.nlook = uint8(i + copy(s.resArm().look[i:], s.resArm().look[i+1:s.g.nlook]))
+				continue
+			}
+			i++
 			s.detach(o)
 			s.objs[o].zone = kop.ZoneLibrary
 			pl.libBottom(o)
@@ -2238,6 +2250,12 @@ func (s *State) moveFoundAns(k *prep, host Slot) {
 				s.remember(o) // a reveal pick's RememberRevealed$
 			}
 			continue
+		}
+		if fl&kop.SrThenTop == 0 && s.foundSearchExile(k, o, i) { // a ThenTop card's exile is finishSearchNow's, at its first move
+			if s.res.ask == raFoundSearchOrder {
+				return // the order ask among several lines, the look cut to this card on
+			}
+			continue // Opposition Agent's exile instead (zone_searchcontrol.go)
 		}
 		if s.objs[o].zone == kop.ZoneBattlefield {
 			if z == kop.ZoneBattlefield {

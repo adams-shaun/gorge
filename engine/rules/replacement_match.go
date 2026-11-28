@@ -294,11 +294,12 @@ func (e *Engine) replacementMatchesRememberedUngatedBy(r cards.Repl, source stat
 		// is searching their library, they exile each card they find"): the
 		// replacement applies only to the moves a library search emits. The
 		// host scopes that fact (BeginLibrarySearch/EndLibrarySearch around
-		// effects' applyLibrarySearch); with no search in flight, or with the
-		// repl's own controller the one searching, the replacement is inert.
+		// effects' applyLibrarySearch); with no search in flight (depth 0:
+		// searchingBy's zero is seat 0, a real searcher), or with the repl's
+		// own controller the one searching, the replacement is inert.
 		if raw, ok := r.Param(cards.PKFoundSearchingLibrary); ok &&
 			strings.EqualFold(strings.TrimSpace(raw), "True") {
-			if e.searchingBy == 0 || e.controllerOf(source) == e.searchingBy {
+			if e.searchDepth == 0 || e.controllerOf(source) == e.searchingBy {
 				return false
 			}
 		}

@@ -2511,11 +2511,16 @@ const ReplDamageSet ReplKind = 69
 // Draw (dirac/manifest/ReplKind/ReplDrawProgram)
 const ReplDrawProgram ReplKind = 70
 
+// repl Moved FoundSearchingLibrary$ True Origin$ Library over Card.OppOwn, the exile-and-may-play body (Opposition Agent) (dirac/manifest/ReplKind/ReplFoundSearchExile)
+//
+// ReplFoundSearchExile is a battlefield R:Event$ Moved | ValidCard$ Card.OppOwn | FoundSearchingLibrary$ True | Origin$ Library line whose body exiles the replaced card and grants its controller a permanent while-exiled may-play with MayPlayIgnoreColor$ (Opposition Agent). Each card an opponent's library search moves from the library is exiled instead and gets that permission record (gorge replacementMatches' searchingBy scope; dirac/zone_searchcontrol.go).
+const ReplFoundSearchExile ReplKind = 71
+
 // repl LifeReduced (dirac/manifest/ReplKind/ReplLifeReduced)
-const ReplLifeReduced ReplKind = 71
+const ReplLifeReduced ReplKind = 72
 
 // repl TurnFaceUp replacement shape (the optional Attach body: as this face-down permanent is turned face up, its controller may attach it to a permanent the body's Choices$ names; Gift of Doom) (dirac/manifest/ReplKind/ReplTurnUpAttach)
-const ReplTurnUpAttach ReplKind = 72
+const ReplTurnUpAttach ReplKind = 73
 
 // stat OptionalAttackCost (dirac/manifest/StaticKind/StatOptionalAttackCost)
 const StatOptionalAttackCost StaticKind = 22
@@ -2743,15 +2748,20 @@ const StatNoCombatDamage StaticKind = 84
 // StatRaiseAbility is a RaiseCost static of activated abilities (Type$ Ability, no ValidSpell$; CR 601.2f, 602.2b): activated (and mana) abilities of battlefield permanents matching Filter (activated by any player: costActorMatches applies an actor-less static to every activator) cost Static.A (VA under StDynamic, read from the static's source) generic more, composed before the reductions (gorge costModifiersCompose's raise group, manaToPay's pay.ApplyTo), or pay the Cost$ part: B bit 0 (kop.RaiseAbPick) is a Sac<1/filter> pick posed at the activation's cost stage (Brutal Suppression's "Sacrifice a land", Filter2 the pick's permanents); a PayLife<N> raise is not lowered (a mana-window price, ticket t18c-thran-portal-mana-ability-raise). B bit 1 (kop.RaiseAbMana) restricts the raise to mana abilities — unmodelled in the kernel's mana window, refused by kgen. kernel cost_abraise.go abRaised, the offer gate and the build charge; the pick rides the may-play raise's machinery (buildPickCost). Brutal Suppression, Oppressive Rays.
 const StatRaiseAbility StaticKind = 85
 
+// stat Continuous ControlOpponentsSearchingLibrary$ You over Affected$ Opponent (Opposition Agent) (dirac/manifest/StaticKind/StatSearchControl)
+//
+// StatSearchControl is a Continuous static's ControlOpponentsSearchingLibrary$ You over Affected$ Opponent ("you control your opponents while they're searching their libraries", CR 723.2; Opposition Agent). The kernel reads it live at a library search's pick ask: an opponent of the static's controller answering the pick asks the controller instead (gorge searchControlRedirect over ResumeKind "search"; dirac/zone_searchcontrol.go).
+const StatSearchControl StaticKind = 86
+
 // StaticKind (dirac/manifest/StaticKind/StatUnearthGrant)
 //
 // StatUnearthGrant is a Continuous static's AffectedZone$ Graveyard AddKeyword$ Unearth grant (Sedris, the Traitor King, Mishra, Tamer of Mak Fawa, Dregscape Sliver, Solemn Doomguide; CR 702.84a): Filter matches the card in the graveyard and GrantBody-1 is the latent unearth body (the printed kwUnearth expander's AB$ ChangeZone, cards.GrantedKeywordAbility) the graveyard offer runs with the affected card as its source. The body's own Cost prices the explicit-cost shape; a zero body cost is the CardManaCost mark, which the offer charges as the affected card's own mana cost (kw_unearthgrant.go).
-const StatUnearthGrant StaticKind = 86
+const StatUnearthGrant StaticKind = 87
 
 // StaticKind (dirac/manifest/StaticKind/StatUntapAdjust)
 //
 // StatUntapAdjust is a Continuous static's `Affected$ Player | AddKeyword$ UntapAdjust:Permanent:N` (Static Orb, kgen lower_playerstatic.go): during each player's untap step at most N permanents matching Filter untap, and that player chooses which of the tapped ones stay tapped (CR 702.19e's "can't untap more than N" family; gorge rules/untap.go untapAdjustCap and turn.go finishUntapStep). A is N; Cond2 is the source's IsPresent$ gate (Static Orb applies only while it is untapped). Read live from the battlefield; the kernel's untapStepGen poses the cap as a ChGenKeepTapped multi-pick (dirac/static_untapadjust.go).
-const StatUntapAdjust StaticKind = 87
+const StatUntapAdjust StaticKind = 88
 
 // trig ChaosEnsues (dirac/manifest/TrigEvent/TrigChaosEnsues)
 const TrigChaosEnsues TrigEvent = 52
