@@ -102,6 +102,11 @@ func TestCIInfraRetry(t *testing.T) {
 		{name: "go-no-space-retries", first: stubAttempt{"write /tmp/x: no space left on device\n", 1}, second: pass, label: "stub", rc: 0, runs: 2,
 			warn: "::warning::ci-infra-retry: stub hit no-space (exit 1); retrying once"},
 		{name: "test-fail-never-retries", first: killedWith("--- FAIL: TestX (0.00s)"), second: pass, label: "stub", rc: 1, runs: 1},
+		// Class C: a package binary over its -timeout panics with no --- FAIL, so it retries once; a --- FAIL in the
+		// same log is a verdict and forbids the retry, so a real assertion failure reds on attempt 1.
+		{name: "test-timeout-retries", first: stubAttempt{"panic: test timed out after 5m0s\n", 1}, second: pass, label: "fresh-clone-check", rc: 0, runs: 2,
+			warn: "::warning::ci-infra-retry: fresh-clone-check hit test-timeout (exit 1); retrying once"},
+		{name: "test-timeout-with-fail-never-retries", first: stubAttempt{"panic: test timed out after 5m0s\n--- FAIL: TestX (0.00s)\n", 1}, second: pass, label: "fresh-clone-check", rc: 1, runs: 1},
 		{name: "bad-game-never-retries", first: killedWith("bad-game\tpool seed=7"), second: pass, label: "stub", rc: 1, runs: 1},
 		{name: "build-failed-never-retries", first: killedWith("FAIL\texample/pkg [build failed]"), second: pass, label: "stub", rc: 1, runs: 1},
 		{name: "compile-error-never-retries", first: killedWith("pkg/x.go:3:4: undefined: y"), second: pass, label: "stub", rc: 1, runs: 1},
@@ -196,6 +201,14 @@ func TestCIInfraRetryWired(t *testing.T) {
 	}
 	if strings.Contains(slices, "| tee slices.log") {
 		t.Error("job dirac-slices still tees slices.log itself: the wrapper owns the log")
+	}
+	lint := jobBlock(t, ci, "lint")
+	if !strings.Contains(lint, "bash scripts/ci-infra-retry.sh --log fresh-clone.log --name fresh-clone-check -- make fresh-clone-check") {
+		t.Error("job lint does not run fresh-clone-check through scripts/ci-infra-retry.sh --log fresh-clone.log")
+	}
+	// The test-timeout signature matches fresh-clone-check.sh's 5m package timeout; keep the two in lockstep.
+	if !strings.Contains(readText(t, "fresh-clone-check.sh"), "go test -timeout 5m ./dirac/...") {
+		t.Error("fresh-clone-check.sh no longer runs its dirac sweep with `go test -timeout 5m ./dirac/...`: the test-timeout signature will not match")
 	}
 	body := readText(t, "ci-test-shard.sh")
 	for _, want := range []string{"scripts/ci_shard.sh", "ci-splits.tsv", `-skip "^(TestHeads${q:+|$q})\$"`, "$GITHUB_EVENT_NAME"} {
