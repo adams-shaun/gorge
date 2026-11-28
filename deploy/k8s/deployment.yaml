@@ -36,7 +36,7 @@ spec:
             - -tables=4
             - -seats=4
             - -commander-seats=4
-            - -keep-matches=500
+            - -keep-matches=200
             - -rate-limit=10
             - -rate-burst=10
             - -trusted-proxy-header=CF-Connecting-IP

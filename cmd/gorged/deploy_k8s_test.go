@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strings"
 	"testing"
 
@@ -62,15 +63,24 @@ func TestK8sManifestArgs(t *testing.T) {
 		"events":          "true",
 		"dir":             "/data",
 		"cards":           "/cards",
-		// Bot tables prune old finished matches: without it the local pod kept
-		// 9.8 GB of them and ran out of its 2 GiB at startup (11-28).
-		"keep-matches":         "500",
+
 		"rate-limit":           "10",
 		"rate-burst":           "10",
 		"trusted-proxy-header": "CF-Connecting-IP",
 		"site-name":            "master-edh.net",
 		"metrics":              "true",
+
+		// Bot tables prune old finished matches: without it the local pod kept
+		// 9.8 GB of them and ran out of its 2 GiB at startup (11-28).
+		"keep-matches": "200",
 	} {
+		// A value equal to the flag's default parses the same with the manifest
+		// line gone, so the manifest must pass each of these itself.
+		if !slices.ContainsFunc(args, func(a string) bool {
+			return a == "-"+name || strings.HasPrefix(a, "-"+name+"=")
+		}) {
+			t.Errorf("the manifest does not pass -%s", name)
+		}
 		f := fs.Lookup(name)
 		if f == nil {
 			t.Errorf("gorged registers no -%s", name)
