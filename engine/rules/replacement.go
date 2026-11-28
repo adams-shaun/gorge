@@ -1112,7 +1112,7 @@ func (e *Engine) replCtx(m replMatch, ev events.Event) *effects.Ctx {
 		// No live source object: no controller (seat 0).
 		ctx := effects.NewCtxPtr(m.id, 0, effects.CtxInit{})
 		ctx.Repl.Target = target
-		ctx.Repl.Source, ctx.Repl.Amount = e.protectionSource(src), drawMatchAmount(ev)
+		ctx.Repl.Source, ctx.Repl.Amount = damageHost(e.G, src), drawMatchAmount(ev)
 		if ev.Kind == events.MoveZone && ev.To == state.ZBattlefield {
 			ctx.Repl.ExcludeFromBattlefieldCount = ev.Obj
 		}
@@ -1138,7 +1138,7 @@ func (e *Engine) replCtx(m replMatch, ev events.Event) *effects.Ctx {
 		// move), so CastSA>Returned$CardManaCost works in an ETB replacement.
 		ctx.Paid.Returned = e.castReturned[ev.Obj]
 	}
-	ctx.Repl.Source, ctx.Repl.Amount = e.protectionSource(src), drawMatchAmount(ev)
+	ctx.Repl.Source, ctx.Repl.Amount = damageHost(e.G, src), drawMatchAmount(ev)
 	// Replaced names the object the replaced event (ev) was about, so a
 	// ReplaceWith$ that says Defined$ ReplacedCard (the Rest in Peace /
 	// Dryad Militant / Leyline of the Void shape: "exile it instead") can
