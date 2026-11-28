@@ -198,7 +198,7 @@ func paidGapPlainManaCost(c *kop.Cost) bool {
 		return false
 	}
 	m := c.Mana
-	return m.X == 0 && m.XPip == 0 && m.Hyb == ([4]kop.ColorMask{}) && m.Tb == 0 && m.Snow == 0
+	return m.X == 0 && m.XPip == 0 && m.Hyb == ([5]kop.ColorMask{}) && m.Tb == 0 && m.Snow == 0
 }
 
 // paidGapMakes is the mana the ability produces at its static price: an

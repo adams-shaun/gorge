@@ -537,7 +537,7 @@ default	field	genPrep.btSpell	1
 default	field	genPrep.anyContGrant	1
 default	field	genPrep.anySelfGrant	1
 default	field	genPrep.grantSelf	24
-default	field	genPrep.selfPC	3328
+default	field	genPrep.selfPC	3456
 default	field	genPrep.blgOn	1
 default	field	genPrep.blgSub	5
 default	field	genPrep.blgIdx	24
@@ -650,7 +650,7 @@ default	field	genPrep.anyBeamGrant	1
 default	field	genPrep.anyFbGrant	1
 default	field	genPrep.anyWarpGrant	1
 default	field	genPrep.anyEscapeGrant	1
-default	field	genPrep.warpGrantCost	18
+default	field	genPrep.warpGrantCost	20
 default	field	genPrep.partyRole	4
 default	field	genPrep.outlawSub	5
 default	field	genPrep.anyRemSac	1
