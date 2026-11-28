@@ -118,12 +118,14 @@ func (s *State) exwOpAt(k *prep) *kop.Instr {
 // exwExile runs when o is placed into exile (placeFromK, genPrep.anyExW
 // only): the card is a new object, so every reverse link to it ends (gorge
 // overwrites the scalar with the new exiler, or zero); a resolution of a
-// reading card then records its own. A move a graveyard-to-exile replacement
-// redirected is the replacement's exile, not the resolving effect's (CR 406.7:
-// a card exiled from exile is a new object; gorge stamps the replacement's
-// host), so it records nothing here: Valakut Exploration's end-step move under
-// Necrodominance leaves nothing exiled with Valakut. No supported card both
-// redirects to exile and reads the link.
+// reading card then records its own. redirected marks only a graveyard move
+// placeFromK's any-zone replacement (exileAnyDest) turned into exile: that is
+// the replacement's exile, not the resolving effect's (CR 406.7: a card exiled
+// from exile is a new object; gorge stamps the replacement's host), so it
+// records nothing here, not even for the host: Valakut Exploration's end-step
+// move under Necrodominance leaves nothing exiled with Valakut. A battlefield
+// death dieZone sends to exile arrives already as exile, so it is not marked
+// and a resolving reader is still recorded.
 //
 //go:noinline
 func (s *State) exwExile(k *prep, o Obj, redirected bool) {
