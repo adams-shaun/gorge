@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { fetchDeckStats, type DeckRecord } from '../lib/api';
+  import { leaderboardNote } from '../lib/leaderboard';
 
   // Live deck win-rate tally: finished bot-vs-bot games only, computed by the
   // server on read (GET /api/stats/decks). Polled every POLL_MS while the page
@@ -9,6 +10,9 @@
   const TOP = 10;
   let decks = $state<DeckRecord[]>([]);
   let minGames = $state(10);
+  let pilots = $state<string[]>([]);
+  let seats = $state<number[]>([]);
+  let matchesCounted = $state(0);
   let loaded = $state(false);
   let failed = $state(false);
   const rows = $derived(decks.slice(0, TOP));
@@ -18,6 +22,9 @@
       const t = await fetchDeckStats();
       decks = t.decks;
       minGames = t.min_games;
+      pilots = t.pilots ?? [];
+      seats = t.seats ?? [];
+      matchesCounted = t.matches_counted;
       failed = false;
     } catch {
       failed = true;
@@ -50,8 +57,8 @@
   });
 </script>
 
-<section class="leaderboard" aria-label="deck win rates">
-  <h2>Deck win rates</h2>
+<section class="leaderboard" aria-label="bot self-play results">
+  <h2>Bot self-play results</h2>
   {#if !loaded}
     <p class="note">loading</p>
   {:else if failed && rows.length === 0}
@@ -59,6 +66,9 @@
   {:else if rows.length === 0}
     <p class="note">no finished bot games yet</p>
   {:else}
+    <p class="note" data-testid="leaderboard-note">
+      {leaderboardNote({ pilots, seats, matches_counted: matchesCounted })}
+    </p>
     <table>
       <thead>
         <tr><th>#</th><th class="deck">deck</th><th>win %</th><th>W-L-D</th><th>games</th></tr>
