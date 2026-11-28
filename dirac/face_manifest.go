@@ -16,12 +16,42 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // reading gty as types, refreshTy preserves them, and clearFaceDown zeroes
 // gty. No generated table derives TToken/TVehicle in an override, and a
 // face-up permanent never reads these marks. A face-down permanent with
-// neither mark was cast with Morph/Megamorph/Disguise.
+// neither mark was cast with Morph/Megamorph/Disguise, unless gtyEffectDown
+// (bit 6, TSorcery: no permanent is a sorcery) says an effect put or turned
+// it face down: that is no disguise cast, so it gives no ward (CR 708.2).
 const (
 	gtyManifested kop.TypeMask = 1 << 13 // TToken while face down
 	gtyCloaked    kop.TypeMask = 1 << 14 // TVehicle while face down
 	gtyProvMask                = gtyManifested | gtyCloaked
+	gtyEffectDown              = kop.TSorcery
+	gtyMarks                   = gtyFaceDown | gtyProvMask | gtyEffectDown // every non-type bit of a face-down gty
 )
+
+// markEffectDown records that an effect, not a cast, put the permanent at sl
+// face down.
+func (s *State) markEffectDown(sl Slot) {
+	s.perms[sl].gty |= gtyEffectDown
+	s.touchSl(sl)
+}
+
+// fdMark is a face-down permanent's copiable face-down mark: 1 + its
+// provenance bits (gtyProvMask >> 13), plus 4 for gtyEffectDown. fdMarkBits
+// is its inverse, the gty bits a copy of it keeps.
+func fdMark(gty kop.TypeMask) uint8 {
+	fd := 1 + uint8(gty&gtyProvMask>>13)
+	if gty&gtyEffectDown != 0 {
+		fd += 4
+	}
+	return fd
+}
+
+func fdMarkBits(fd uint8) kop.TypeMask {
+	bits := kop.TypeMask((fd-1)&3) << 13
+	if (fd-1)&4 != 0 {
+		bits |= gtyEffectDown
+	}
+	return bits
+}
 
 // markFaceDown records the provenance of the face-down permanent at sl.
 func (s *State) markFaceDown(sl Slot, cloaked bool) {

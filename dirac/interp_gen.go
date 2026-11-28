@@ -2729,14 +2729,14 @@ func (s *State) copyTokenEnter(k *prep, in *kop.Instr, t Obj, host Slot, eb *ent
 func (s *State) copyTokenEnterFrom(k *prep, in *kop.Instr, t Obj, host, tmpl Slot, eb *entBatch) {
 	fd := uint8(0)
 	if tmpl != NoSlot && s.faceDown(k, tmpl) {
-		fd = 1 + uint8(s.perms[tmpl].gty&gtyProvMask>>13) // CR 707.2: its copiable values are the face-down characteristics
+		fd = fdMark(s.perms[tmpl].gty) // CR 707.2: its copiable values are the face-down characteristics
 	}
 	s.copyTokenEnterFd(k, in, t, host, tmpl, eb, fd)
 }
 
 // copyTokenEnterFd is copyTokenEnterFrom with the copied permanent's face-down
-// mark fd given: 0 for a face-up copy, else 1 + the provenance bits (gtyProvMask
-// >> 13) of the face-down permanent it copies. The loss copy of a departed
+// mark fd given: 0 for a face-up copy, else the fdMark of the face-down
+// permanent it copies. The loss copy of a departed
 // face-down permanent (ctr_losscopy.go) has no template slot to read it from.
 func (s *State) copyTokenEnterFd(k *prep, in *kop.Instr, t Obj, host, tmpl Slot, eb *entBatch, fd uint8) {
 	e := &s.res.e
@@ -2761,7 +2761,7 @@ func (s *State) copyTokenEnterFd(k *prep, in *kop.Instr, t Obj, host, tmpl Slot,
 		// the token's own face-down status. A blank permanent copy (both bits,
 		// gtyBlankCopy) keeps its both-bit mark, which permBlank reads as a copy
 		// that keeps its printed name.
-		s.perms[sl].gty |= kop.TypeMask((fd-1)&3) << 13
+		s.perms[sl].gty |= fdMarkBits(fd)
 		s.perms[sl].spare |= spareCopyFaceDown
 	}
 	s.touch(t)

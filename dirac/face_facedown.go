@@ -175,6 +175,7 @@ func (s *State) enterFaceDown(k *prep, o Obj, ctrl uint8, fam uint8, from ...kop
 func (s *State) enterFaceDownMoved(k *prep, o Obj, ctrl uint8, from kop.Zone) Slot {
 	if s.g.batchLatch&batchHeld != 0 {
 		sl := s.enterNF(k, o, ctrl, false, from, kop.MorphMorph)
+		s.markEffectDown(sl)
 		if from == kop.ZoneGraveyard {
 			s.fireLeavesGraveyardSelf(k, sl, o)
 		}
@@ -182,6 +183,7 @@ func (s *State) enterFaceDownMoved(k *prep, o Obj, ctrl uint8, from kop.Zone) Sl
 		return sl
 	}
 	sl := s.enterNF(k, o, ctrl, false, from, kop.MorphMorph)
+	s.markEffectDown(sl)
 	if from == kop.ZoneGraveyard {
 		s.fireLeavesGraveyardSelf(k, sl, o)
 	}
@@ -654,7 +656,7 @@ func (s *State) turnFaceDownExt(k *prep, in *kop.Instr) (ok, done bool) {
 	c := s.cardAt(sl)
 	s.subscribeTop(k, sl, &k.cards[c], false)
 	p := &s.perms[sl]
-	p.gty = kop.TCreature | gtyFaceDown
+	p.gty = kop.TCreature | gtyFaceDown | gtyEffectDown
 	p.ovr.flags |= ovGenTy
 	p.ovr.walk = walkOn
 	p.spare &^= spareCopyFaceDown

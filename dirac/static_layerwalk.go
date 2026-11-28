@@ -1282,7 +1282,7 @@ func (s *State) grantSrcLost(k *prep, src Slot) bool {
 	}
 	ty := k.cards[s.cardAt(src)].types
 	if p.ovr.flags&ovGenTy != 0 {
-		ty = p.gty &^ (gtyFaceDown | gtyProvMask)
+		ty = p.gty &^ gtyMarks
 	}
 	for m := s.statM; m.any(); m = m.rest() {
 		ls := m.first()

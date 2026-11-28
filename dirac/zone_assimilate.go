@@ -100,6 +100,7 @@ func (s *State) enterFaceDownAssimilated(k *prep, o Obj, ctrl uint8, from kop.Zo
 	var eb entBatch
 	s.g.ewPend = true
 	sl := s.enterHeldFace(k, &eb, o, ctrl, false, from, kop.MorphMorph)
+	s.markEffectDown(sl)
 	if s.g.ewPend {
 		s.g.ewPend = false
 		s.enterWithApply(k, sl)
