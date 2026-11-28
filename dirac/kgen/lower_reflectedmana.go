@@ -103,6 +103,22 @@ func (lc *lowerCtx) lowerManaReflected(sa *cards.SA, ps *params, ab *lAbility) e
 func (lc *lowerCtx) lowerManaReflectedProduce(sa *cards.SA, ps *params, ab *lAbility) error {
 	valid := ps.str("Valid")
 	widenType := ps.str("ColorOrType") == "Type"
+	if valid == "Defined.Sacrificed" {
+		// (Squandered Resources) "Sacrifice a land: Add one mana of any type
+		// that land could produce": the victim's producible symbols are read at
+		// the activation (kernel mana_tapanother.go sacReflMask). The cost must
+		// be exactly one sacrificed permanent and nothing else; the kernel's
+		// sacrifice-another search asks the victim before the colour.
+		c := ab.Cost
+		if !widenType || c.Tap || c.Sac == nil || c.SacN != 1 || c.SacX || c.SacMore != nil ||
+			c.Mana.Generic != 0 || c.Mana.Pips != [5]int{} || len(c.Mana.Hybrid) != 0 || c.Mana.X || c.Mana.C != 0 || c.Mana.Snow != 0 ||
+			c.DiscardN != 0 || c.DiscardSelf || c.Loyalty != 0 || c.SubCtr != 0 || c.PayLife != 0 || c.TapN != 0 ||
+			c.TapHost || c.SacHost || c.Forage != nil || c.ExileG != nil || c.Energy != 0 || c.ReturnSelf || c.ExileSelf || c.Return != nil {
+			return refuse("ManaReflected Valid$ %q beside a cost beyond Sac<1/...>", valid)
+		}
+		m := &lMana{Colors: "WUBRG", Choice: true, Amount: cst(1), Special: "ReflectedSacrificed"}
+		return lc.finishMana(sa, ps, ab, m)
+	}
 	if valid == "" || strings.HasPrefix(valid, "Defined.") {
 		return refuse("ManaReflected Valid$ %q", valid)
 	}

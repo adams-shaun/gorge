@@ -217,7 +217,7 @@ func (cs *caSearch) forageSource(k *prep, t *State, d *Decision, sl Slot) bool {
 	var opts [MaxPerm + 1]Slot
 	n := t.forageOpts(k, cs.p, sl, &opts)
 	units := t.caAmount(k, sl)
-	return forageAsks(sib, j, n, units, &cs.need, cs.tick,
+	return forageAsks(sib, j, n, units, t.caMask(k, sl), &cs.need, cs.tick,
 		func(o, ans int) bool {
 			opt := opts[o]
 			return cs.branch(k, t, d, caStep{sl: sl, ans: uint8(ans), fo: uint8(o)}, func(f *State) { f.forageActivate(k, cs.p, sl, opt, ans) })
@@ -233,7 +233,7 @@ func (cs *caSearch) forageSource(k *prep, t *State, d *Decision, sl Slot) bool {
 // options (forageOpts), units the colour answers' size. tick spends one node per
 // ask; forage branches one (option o, colour answer ans); plain branches the
 // sibling's activation. The sibling comes first when its ability prints first.
-func forageAsks(sib, j, n, units int, need *[kop.NumManaKinds]bool, tick func() bool, forage func(o, ans int) bool, plain func() bool) bool {
+func forageAsks(sib, j, n, units int, mask kop.ColorMask, need *[kop.NumManaKinds]bool, tick func() bool, forage func(o, ans int) bool, plain func() bool) bool {
 	viaForage := func() bool {
 		if sib >= 0 && !tick() { // the forage ask (two or more options), else the colour ask
 			return false
@@ -246,8 +246,8 @@ func forageAsks(sib, j, n, units int, need *[kop.NumManaKinds]bool, tick func() 
 			if n >= 2 && !tick() { // the colour ask after the forage answer
 				return false
 			}
-			for r, na := 0, caAnswerCount(units); r < na; r++ {
-				if forage(o, caRank(units, need, r)) {
+			for r, na := 0, caAnswerCountMask(units, mask); r < na; r++ {
+				if forage(o, caRankMask(units, mask, need, r)) {
 					return true
 				}
 			}
@@ -275,7 +275,7 @@ func (fs *filtSearch) forageOther(t *State, k *prep, sl Slot, try func(otherStep
 	var opts [MaxPerm + 1]Slot
 	n := t.forageOpts(k, fs.p, sl, &opts)
 	units := t.caAmount(k, sl)
-	return forageAsks(sib, j, n, units, &fs.need, fs.tick,
+	return forageAsks(sib, j, n, units, t.caMask(k, sl), &fs.need, fs.tick,
 		func(o, ans int) bool {
 			return try(otherStep{kind: otherComboAny, ans: uint8(ans), fo: uint8(o)})
 		},

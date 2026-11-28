@@ -300,7 +300,7 @@ func (s *State) askColUnless(k *prep, sl Slot) bool {
 // drive), not through rules/mana_activation.go's direct-ability "mana_unless"
 // path, which always lists both options.
 func (s *State) manaUnlessPayable(k *prep, p uint8) bool {
-	if s.canPayGen(k, p, kop.PayMana, 1, 0, 0) {
+	if s.canPayUnlessGen(k, p, kop.PayMana, 1, 0, 0) {
 		return true
 	}
 	ok, _ := s.windowPays(k, p, kop.PayMana, pfModes, 1, 0)

@@ -233,7 +233,7 @@ func (s *State) filtOtherMana(k *prep, p uint8) int {
 		// search prices the actual payment).
 		for b := s.scriptTapX(k, p); b.any(); b = b.rest() {
 			var tx avail
-			addTapXUnits(&tx, k.tapXAbOf(s.cardAt(b.first())))
+			s.addTapXUnitsFor(&tx, k, p, b.first(), k.tapXAbOf(s.cardAt(b.first())))
 			n += tx.total
 		}
 	}

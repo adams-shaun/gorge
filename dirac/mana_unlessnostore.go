@@ -26,12 +26,14 @@ func unlessUnpriced(a *kop.Ability) bool {
 // canPayGenFor is canPayGen under skip's payment class: an unless cost (pfModes)
 // reads availFor with availNoStore.
 func (s *State) canPayGenFor(k *prep, p uint8, kind int, skip uint16, amt int, pips int16, f kop.FilterID) bool {
-	if kind != kop.PayMana || skip&pfModes == 0 {
+	if kind != kop.PayMana || skip&(pfModes|pfWard) == 0 {
 		return s.canPayGen(k, p, kind, amt, pips, f)
 	}
 	x := s.g.availX
-	s.g.availX |= availNoStore
-	ok := s.canPayGen(k, p, kind, amt, pips, f)
+	if skip&pfModes != 0 {
+		s.g.availX |= availNoStore
+	}
+	ok := s.canPayUnlessGen(k, p, kind, amt, pips, f)
 	s.g.availX = x
 	return ok
 }

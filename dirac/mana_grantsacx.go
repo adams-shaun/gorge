@@ -189,6 +189,35 @@ func (g *grantSrch) planUnits(t *State, src []int, j int, cost *kop.ManaCost) bo
 	}
 	var vbuf [MaxPerm]Slot
 	v := t.sacXVictimOrder(g.k, sl, &cs, nc, true, &vbuf)
+	if kop.SacReflManaAb(ab) {
+		// The plan cannot price the victim's own symbols, so the search tries
+		// every candidate the sacrifice ask offers, with that victim's
+		// producible colours in script-answer order. An unproductive land is
+		// the activation that adds nothing: gorge's search still takes it.
+		for ci := 0; ci < nc; ci++ {
+			var order [kop.NumManaKinds]uint8
+			ncol := sacReflAnswers(t.sacReflMask(g.k, v[ci]), g.need, &order)
+			if ncol == 0 {
+				ncol = 1 // no colour ask; the activation adds nothing
+			}
+			for _, col := range order[:ncol] {
+				if g.np >= len(g.path) {
+					return false
+				}
+				u := t.fork()
+				u.tapXDo(g.k, g.p, tapXStep{sl: sl, cand: v[ci], cand2: NoSlot, col: col, kind: tapXAct})
+				g.path[g.np] = grantStep{i: uint8(i), col: col, gi: stepSacX, sl: sl, cand: v[ci]}
+				g.np++
+				ok := g.planUnits(u, src, j+1, cost)
+				t.unfork()
+				if ok {
+					return true
+				}
+				g.np--
+			}
+		}
+		return false
+	}
 	order, ncol := [5]uint8{0, 1, 2, 3, 4}, 1
 	if fc, ok := kop.TapXFixedColour(ab); ok {
 		order[0] = uint8(fc)
@@ -232,15 +261,25 @@ func (g *grantSrch) sacXAct(t *State, i int, sl Slot) bool {
 	plan := t.planOtherSacSource(g.k, sl) && g.sacXLast(t, sl, &cs, anyCol)
 	var vbuf [MaxPerm]Slot
 	vorder := t.sacXVictimOrder(g.k, sl, &cs, nc, plan, &vbuf)
+	refl := kop.SacReflManaAb(ab)
 	// the colour ask's answers: W U B R G, the play's announced colours first
 	// (gorge's scriptOrderAnswers, needFirst); a fixed production asks none
-	order, ncol := [5]uint8{0, 1, 2, 3, 4}, 1
+	order, ncol := [kop.NumManaKinds]uint8{0, 1, 2, 3, 4, 5}, 1
 	if anyCol {
 		ncol = 5
-		needFirst(order[:], g.need)
+		needFirst(order[:ncol], g.need)
 	}
 	for j := 0; j < nc; j++ {
-		if anyCol && !g.node() { // the colour ask
+		if refl {
+			// The victim's own symbols are the colour ask: one answer per
+			// symbol in script order, none for an unproductive land (the
+			// activation still resolves, adding nothing).
+			ncol = sacReflAnswers(t.sacReflMask(g.k, vorder[j]), g.need, &order)
+			if ncol == 0 {
+				ncol = 1
+			}
+		}
+		if (anyCol || refl) && ncol > 1 && !g.node() { // the colour ask
 			return false
 		}
 		for _, col := range order[:ncol] {
