@@ -314,6 +314,27 @@ func TestRefuseOnRed(t *testing.T) {
 		}
 	})
 
+	t.Run("duplicate-card-counted-once", func(t *testing.T) {
+		r := newRefuseOnRedRepo(t, refuseOnRedChange{
+			files:   [][2]string{{refuseOnRedEngineGo, "package rules\n"}},
+			message: "fix(rules): keep the card\n\n" + refuseOnRedRule + "\n",
+		})
+		// One card, two surfaces: refuse-list names it in each slice, but it is one card.
+		logs := refuseOnRedCleanLogs()
+		logs["fdn-autopay"] = "pair 0 seed 1 ok\nbad-game\t7\t907\tdivergent\tlife\tCard A\t\tPlains\n"
+		logs["fdn-full"] = "pair 0 seed 1 ok\nbad-game\t3\t903\tdivergent\tlife\tCard A\t\tPlains\n"
+		out, errs, code := refuseOnRedRun(t, r, refuseOnRedEnv(refuseOnRedStub(t, logs)), r.base)
+		if code != 0 {
+			t.Fatalf("exit %d, stderr:\n%s", code, errs)
+		}
+		if !strings.Contains(out, "refuse-on-red: would refuse 1 cards (report-only):\n") {
+			t.Fatalf("stdout counts the card twice:\n%s", out)
+		}
+		if n := strings.Count(out, `-refuse "Card A"`); n != 1 {
+			t.Fatalf("the card was printed %d times, want once:\n%s", n, out)
+		}
+	})
+
 	t.Run("too-many-cards-exit-1", func(t *testing.T) {
 		r := newRefuseOnRedRepo(t, refuseOnRedChange{
 			files:   [][2]string{{refuseOnRedEngineGo, "package rules\n"}},
@@ -364,7 +385,19 @@ func TestPrecheckCallsRefuseOnRed(t *testing.T) {
 		t.Fatalf("pr-precheck.sh has the call %d times, want exactly once", got)
 	}
 	const block = `if [ -x scripts/refuse-on-red.sh ]; then ` + call + ` || fail "refuse-on-red: needs a person"; fi`
-	if !strings.Contains(string(b), block) {
+	body := string(b)
+	at := strings.Index(body, block)
+	if at < 0 {
 		t.Fatalf("pr-precheck.sh lacks the refuse-on-red block:\n%s", block)
+	}
+	// The decision must run before the pass stamps: a needs-a-person exit 1 (or an
+	// apply-mode refusal commit) must never be recorded as a passed head.
+	const stamp = `git rev-parse HEAD >"$(git rev-parse --git-path pr-precheck-ok)"`
+	stampAt := strings.Index(body, stamp)
+	if stampAt < 0 {
+		t.Fatalf("pr-precheck.sh lacks the git-dir pass stamp:\n%s", stamp)
+	}
+	if at > stampAt {
+		t.Fatalf("the refuse-on-red block (offset %d) runs after the pass stamp (offset %d): a failure would be stamped as a pass", at, stampAt)
 	}
 }

@@ -57,9 +57,15 @@ if [ ${#fsets[@]} -eq 0 ]; then
 	exit 0
 fi
 
-# 4. The commands the bad games name, per failing slice.
+# 4. The commands the bad games name, per failing slice. One card can diverge on both
+# surfaces of a set: de-duplicate by the card -refuse names before counting it twice.
 why="gorge follows $ground; dirac not yet"
 commands=()
+cards_seen=$'\n'
+refuse_card() {
+	local s=${1#* -refuse \"}
+	printf '%s' "${s%%\" -why *}"
+}
 for i in "${!fsets[@]}"; do
 	rc=0
 	out=$(bash "$here/refuse-list.sh" --why "$why" "${fsets[$i]}" "${fsurfs[$i]}" "${flogs[$i]}" 2>"$tmp/refuse-list.err") || rc=$?
@@ -69,7 +75,11 @@ for i in "${!fsets[@]}"; do
 		person "${reason:-refuse-list failed (rc $rc)}"
 	fi
 	while IFS= read -r line; do
-		[ -z "$line" ] || commands+=("$line")
+		[ -n "$line" ] || continue
+		card=$(refuse_card "$line")
+		case $cards_seen in *$'\n'"$card"$'\n'*) continue ;; esac
+		cards_seen+=$card$'\n'
+		commands+=("$line")
 	done <<<"$out"
 done
 cards=${#commands[@]}
@@ -89,13 +99,9 @@ apply)
 		bash "$here/refuse-list.sh" --apply --why "$why" "${fsets[$i]}" "${fsurfs[$i]}" "${flogs[$i]}" ||
 			person "refuse-list --apply failed for ${fsets[$i]} ${fsurfs[$i]}"
 	done
-	git add -- dirac/support/refused 2>/dev/null || true
-	while IFS= read -r line; do
-		[ -n "$line" ] || continue
-		path=${line:3}
-		case $path in *' -> '*) path=${path##* -> } ;; esac
-		git add -- "$path" || person "cannot stage $path"
-	done < <(git status --porcelain -- dirac)
+	# -A stages an add, a modification and a deletion alike, and needs no porcelain
+	# parsing (git C-quotes a path with a space, which ${line:3} would not unquote).
+	git add -A -- dirac || person "cannot stage the refusals"
 	git diff --cached --quiet && person "apply produced no staged refusals"
 	git commit -m "dirac: refuse $cards cards the rules fix diverges on" -m "$ground" >/dev/null ||
 		person "cannot commit the refusals"
