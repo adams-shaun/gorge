@@ -1310,8 +1310,9 @@ func (s *State) removeTightPain(k *prep, a *avail, sl Slot, pc *pcard) bool {
 	}
 	pa.cnt[g]--
 	if key.wide() {
-		a.total -= key.tapSize()
-		pa.held -= uint16(key.tapSize())
+		n := min(uint16(key.tapSize()), pa.held)
+		a.total -= int(n)
+		pa.held -= n
 	}
 	if !key.only {
 		a.remove(key.prim, 1)
