@@ -268,6 +268,19 @@ type ExtraTurn struct {
 	SkipUntap bool
 }
 
+// TurnRotation is where the ordinary turn rotation stands. Extra turns are
+// inserted into the rotation without moving it (CR 500.7), so during and after
+// one it stands apart from Game.Active. Folded only by events.Apply; the zero
+// value means the rotation stands on Game.Active.
+type TurnRotation struct {
+	// Away reports that the rotation stands on Seat, not on Game.Active.
+	Away bool
+	Seat PlayerID
+	// ExtraNext reports that an extra turn was just consumed: the next
+	// TurnChange begins it.
+	ExtraNext bool
+}
+
 // Game.PhaseSkips bits (events.SkipPhase, CR 614.10): the seat's combat
 // phases are skipped from its next turn (pending) through that turn (live).
 //
@@ -504,6 +517,9 @@ type Game struct {
 	// and every APNAP order (every AliveFrom scan) follow the reversed
 	// direction together.
 	ReverseTurnOrder bool
+	// Rotation is the ordinary turn rotation's position, which says when it
+	// passes a departed seat's turn (CR 800.4m).
+	Rotation TurnRotation
 	// CombatsThisTurn counts the combat phases BEGUN this turn (one per
 	// BeginCombat StepChange, folded in engine/events/apply.go's StepChange case,
 	// reset at TurnChange): 1 through the ordinary combat, 2 through an extra
