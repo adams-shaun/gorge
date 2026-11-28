@@ -28,7 +28,7 @@ var DebugNoTrigBiteLKI bool
 // ability exists independently of its source (CR 113.7a) and the creature
 // deals its last known power (CR 608.2h; gorge triggeredAttackerLKI) to the
 // creature or planeswalker in Ref C, from the entry's snapshot: its last
-// known keywords, controller and infect (dmgSrcObject's departed-source
+// known keywords, controller, infect and wither (dmgSrcObject's departed-source
 // path, as the player mode dmgSrcPlayers reads them). It reports false (the
 // bite is skipped as before) without a snapshot of that object, or on a
 // bite over several targets (biteEachTarget).
@@ -54,7 +54,7 @@ func (s *State) trigBiteGone(k *prep, in *kop.Instr) bool {
 	if n <= 0 {
 		return true
 	}
-	s.dmgSrcObject(k, s.perms[b].obj, e.trigObj, NoSlot, l.kw, l.ctrl, l.bits&lkiInfect != 0, n)
+	s.dmgSrcObject(k, s.perms[b].obj, e.trigObj, NoSlot, l.kw, l.ctrl, l.bits&lkiInfect != 0 || s.lkiWithered(k, l), n)
 	return true
 }
 
