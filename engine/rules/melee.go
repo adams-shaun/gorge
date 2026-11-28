@@ -6,6 +6,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/effects"
 	"github.com/adams-shaun/gorge/engine/events"
+	"github.com/adams-shaun/gorge/engine/rules/chars"
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
@@ -41,7 +42,7 @@ func (e *Engine) checkGrantedAttackPumpTriggers(observer *Engine, id state.ObjID
 	}
 	if slices.Contains(ev.IDs, id) {
 		printedLive := !e.faceDownPrintedHides(o) && !observer.printedAbilitiesLost(o)
-		instances := grantedKeywordInstances(e.Derived(id).Keywords, f.Triggers, "Melee", printedLive)
+		instances := grantedKeywordInstances(e.Derived(id).Keywords, chars.PrintedTriggers(o, f), "Melee", printedLive)
 		t := cards.Trigger{Mode: "Attacks", Params: map[string]string{"Mode": "Attacks", "ValidCard": "Card.Self"}}
 		if instances > 0 && observer.triggerMatches(t, id, ev, objLKI) {
 			key := triggerKey{Source: id, Idx: -1}
@@ -64,7 +65,7 @@ func (e *Engine) checkGrantedAttackPumpTriggers(observer *Engine, id state.ObjID
 		return
 	}
 	printedLive := !e.faceDownPrintedHides(o) && !observer.printedAbilitiesLost(o)
-	instances := grantedKeywordInstances(e.Derived(id).Keywords, f.Triggers, "Exalted", printedLive)
+	instances := grantedKeywordInstances(e.Derived(id).Keywords, chars.PrintedTriggers(o, f), "Exalted", printedLive)
 	if instances <= 0 {
 		return
 	}

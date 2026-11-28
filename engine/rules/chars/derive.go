@@ -386,7 +386,7 @@ func computeWith(b Board, s *Scratch, id state.ObjID, atStack state.Zone, pre *L
 		// its rules text generates -- its printed keywords, the prefix
 		// BaseKeywords put first. Counter keywords, statuses and every
 		// layer-6 grant from another effect stay.
-		kw = slices.Delete(kw, 0, min(len(f.Keywords), len(kw)))
+		kw = slices.Delete(kw, 0, min(printedPrefixLen(o, f, faceDown), len(kw)))
 	}
 	ty = append(ty[:0], tyRaw...)
 	// A faced object's keyword and type lists are always BOUND, even when
@@ -681,11 +681,15 @@ func Name(b Board, s *Scratch, id state.ObjID) (string, bool) {
 }
 
 // BaseKeywords is the keyword list the layer walk starts from --
-// printed, intrinsic, marker-counter and status keywords, in that order --
+// printed (a merged permanent's under cards included, PrintedKeywords),
+// intrinsic, marker-counter and status keywords, in that order --
 // appended into kw[:0]. Compute and Name share it so both see
 // the same basis.
 func BaseKeywords(kw []string, o *state.Object, f *cards.Face, faceDown bool) []string {
 	kw = append(kw[:0], f.Keywords...)
+	if !faceDown {
+		kw = appendUnderKeywords(kw, o)
+	}
 	kw = append(kw, o.IntrinsicKeywords...)
 	// CR 122.1b: a marker counter whose kind names a keyword grants that
 	// keyword to the permanent it sits on (Forge's CounterKeywordType emits a
