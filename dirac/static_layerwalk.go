@@ -297,6 +297,34 @@ func (s *State) lfxCollectOne(k *prep, sl, src Slot, cid CardID, abs, rem, kept 
 // walk's statM scan, used when the table has no list region and by the
 // equivalence test (static_layerwalk_srclist_test.go).
 func (s *State) lfxCollectStaticsDirect(k *prep, sl Slot, fx *[maxLfx]lfx, n int) int {
+	if k.piles {
+		return s.lfxCollectStaticsDirectPile(k, sl, fx, n)
+	}
+	for m := s.statM; m.any(); m = m.rest() {
+		src := m.first()
+		cid := s.cardAt(src)
+		var fl uint8
+		if k.gen.has(cid, gfOvrStat) {
+			fl |= lsrcOvr
+		}
+		if k.gen.has(cid, gfSubGrant) {
+			fl |= lsrcSub
+		}
+		if fl == 0 {
+			continue
+		}
+		if k.gen.has(cid, gfGlobOvr) {
+			fl |= lsrcGlob
+		}
+		n = s.lfxCollectOne(k, sl, src, cid, 0, 0, 0, fl|lsrcMany, fx, n)
+	}
+	return n
+}
+
+// lfxCollectStaticsDirectPile is lfxCollectStaticsDirect on a table that
+// builds piles: each source's top card, then its under cards (CR 702.140d,
+// kw_mutateunion.go).
+func (s *State) lfxCollectStaticsDirectPile(k *prep, sl Slot, fx *[maxLfx]lfx, n int) int {
 	for m := s.statM; m.any(); m = m.rest() {
 		src := m.first()
 		s.eachPileCard(k, src, func(cid CardID) bool {
@@ -327,6 +355,24 @@ func (s *State) lfxCollectStatics(k *prep, sl Slot, fx *[maxLfx]lfx, n int) int 
 	if k.srcs == nil {
 		return s.lfxCollectStaticsDirect(k, sl, fx, n)
 	}
+	if k.piles {
+		return s.lfxCollectStaticsPile(k, sl, fx, n)
+	}
+	for m := s.statM; m.any(); m = m.rest() {
+		src := m.first()
+		cid := s.cardAt(src)
+		e := &k.srcs[cid]
+		if e.flags != 0 {
+			n = s.lfxCollectOne(k, sl, src, cid, e.abs, e.rem, e.kept, e.flags, fx, n)
+		}
+	}
+	return n
+}
+
+// lfxCollectStaticsPile is lfxCollectStatics on a table that builds piles:
+// each source's top card, then its under cards (CR 702.140d,
+// kw_mutateunion.go).
+func (s *State) lfxCollectStaticsPile(k *prep, sl Slot, fx *[maxLfx]lfx, n int) int {
 	for m := s.statM; m.any(); m = m.rest() {
 		src := m.first()
 		s.eachPileCard(k, src, func(cid CardID) bool {
@@ -535,6 +581,30 @@ func (s *State) charsFxMay(k *prep, sl Slot) bool {
 	if g.embSubGrant {
 		return true // an emblem's subtype grant reaches every slot
 	}
+	if k.piles {
+		return s.charsFxMayPile(k, g)
+	}
+	if k.srcs != nil {
+		for m := s.statM; m.any(); m = m.rest() {
+			if k.srcs[s.cardAt(m.first())].flags != 0 {
+				return true
+			}
+		}
+		return false
+	}
+	for m := s.statM; m.any(); m = m.rest() {
+		cid := s.cardAt(m.first())
+		if g.has(cid, gfOvrStat) || g.has(cid, gfSubGrant) {
+			return true
+		}
+	}
+	return false
+}
+
+// charsFxMayPile is charsFxMay's source scan on a table that builds piles:
+// each source's top card, then its under cards (CR 702.140d,
+// kw_mutateunion.go).
+func (s *State) charsFxMayPile(k *prep, g *genPrep) bool {
 	if k.srcs != nil {
 		for m := s.statM; m.any(); m = m.rest() {
 			found := false
@@ -1003,9 +1073,17 @@ func (s *State) globalGrantsIn(k *prep, from slotMask, sl Slot, lost bool, lts u
 			continue
 		}
 		srcLost := s.genLost(k, src)
-		s.eachPileCard(k, src, func(cid CardID) bool {
+		pn := 0
+		if k.piles {
+			pn = s.pileNAt(src) // CR 702.140d: a pile's under cards (kw_mutateunion.go)
+		}
+		for pj := 0; pj <= pn; pj++ {
+			cid := s.cardAt(src)
+			if pj > 0 {
+				cid = s.pileUnder(k, src, pj-1)
+			}
 			if !k.gen.has(cid, gfGlobOvr) {
-				return true
+				continue
 			}
 			cd := &k.t.Cards[cid]
 			for i := range cd.Abilities {
@@ -1034,8 +1112,7 @@ func (s *State) globalGrantsIn(k *prep, from slotMask, sl Slot, lost bool, lts u
 					}
 				}
 			}
-			return true
-		})
+		}
 	}
 }
 

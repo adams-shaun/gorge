@@ -65,10 +65,18 @@ func (s *State) eachGranted(k *prep, f func(st statSrc) bool) {
 			continue
 		}
 		sp := &s.perms[src]
-		stopped := !s.eachPileCard(k, src, func(c CardID) bool {
+		pn := 0
+		if k.piles {
+			pn = s.pileNAt(src) // CR 702.140d: a pile's under cards (kw_mutateunion.go)
+		}
+		for pj := 0; pj <= pn; pj++ {
+			c := s.cardAt(src)
+			if pj > 0 {
+				c = s.pileUnder(k, src, pj-1)
+			}
 			cd := &k.t.Cards[c]
 			if len(cd.Granted) == 0 {
-				return true
+				continue
 			}
 			for i := range cd.Abilities {
 				a := &cd.Abilities[i]
@@ -94,15 +102,11 @@ func (s *State) eachGranted(k *prep, f func(st statSrc) bool) {
 						}
 						rp := &s.perms[rcp]
 						if !f(statSrc{a: g, sl: rcp, ctrl: rp.ctrl, obj: rp.obj, gr: true, gsrc: src}) {
-							return false
+							return
 						}
 					}
 				}
 			}
-			return true
-		})
-		if stopped {
-			return
 		}
 	}
 }
