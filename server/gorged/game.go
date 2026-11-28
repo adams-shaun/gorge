@@ -151,7 +151,7 @@ func (c config) createGame(r *host.Registry, gate *seatGate, cmdPool, conPool []
 		if err != nil {
 			return httpapi.CreateGameResponse{}, err
 		}
-		seed, err := randomSeed()
+		seed, err := newGameSeed()
 		if err != nil {
 			return httpapi.CreateGameResponse{}, err
 		}
@@ -248,6 +248,11 @@ func randomOpponent(shuffled []string, avoid string) string {
 	}
 	return shuffled[0]
 }
+
+// newGameSeed mints an on-demand game's seed. It is a variable so a test in
+// this package can pin the one game it plays instead of drawing a random
+// one; every production path keeps randomSeed's crypto/rand mint.
+var newGameSeed = randomSeed
 
 // randomSeed mints a fresh 64-bit game seed with crypto/rand, the one
 // source of novelty in an otherwise fully deterministic game: everything

@@ -2121,6 +2121,11 @@ export interface Capabilities {
    */
   manual_mana?: boolean | null;
   /**
+   * MaxSeats is the largest play-vs-bot table this server seats; absent when
+   * the server does not say, where clients keep their own default.
+   */
+  max_seats?: number;
+  /**
    * PairedBots are the paired bots a new table may choose, the server's
    * default first; absent when the server offers none.
    */

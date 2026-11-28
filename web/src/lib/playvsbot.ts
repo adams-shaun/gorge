@@ -25,6 +25,26 @@ export const VS_BOT_SEATS = [2, 3, 4] as const;
 export type VsBotSeats = (typeof VS_BOT_SEATS)[number];
 
 /**
+ * seatChoices is the seat counts the entry point may offer a server that
+ * seats at most maxSeats at a table. A server that does not say (0, or a
+ * value below a duel) keeps the full list, exactly as it did before
+ * /api/capabilities reported max_seats.
+ */
+export function seatChoices(maxSeats: number): VsBotSeats[] {
+  const cap = !(maxSeats >= 2) ? 4 : Math.min(4, Math.floor(maxSeats));
+  return VS_BOT_SEATS.filter((n) => n <= cap);
+}
+
+/**
+ * commanderSeats is the Commander entry's default: four seats (a pod) on a
+ * server that seats four, else the largest table the server seats. It is
+ * never a seat count seatChoices does not offer.
+ */
+export function commanderSeats(maxSeats: number): VsBotSeats {
+  return seatChoices(maxSeats).at(-1) ?? 4;
+}
+
+/**
  * startPlayVsBot asks the server to seat the player against a bot in the
  * given format and returns the base-relative join path to follow. It is the
  * pure half of the landing-page action (the side-effect — actually

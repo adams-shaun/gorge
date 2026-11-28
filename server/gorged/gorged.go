@@ -752,7 +752,7 @@ func serve(ctx context.Context, c config, ln net.Listener) error {
 	if err := r.StartAll(); err != nil {
 		return err
 	}
-	opts := httpapi.Options{Web: c.offerSBV2(c.offerManaBrew(withTitle(webFS(), c.siteName))), Decks: deckCatalogue, BotPolicies: buildBotPolicyList(c.botPolicy, c.botPolicies), Engine: c.capabilityEngine(), NoManualMana: c.diracOn()}
+	opts := httpapi.Options{Web: c.offerSBV2(c.offerManaBrew(withTitle(webFS(), c.siteName))), Decks: deckCatalogue, BotPolicies: buildBotPolicyList(c.botPolicy, c.botPolicies), Engine: c.capabilityEngine(), NoManualMana: c.diracOn(), MaxSeats: c.onDemandMaxSeats()}
 	opts.CheckDeck = c.checkDeck
 	var gate *seatGate
 	if len(c.humans) > 0 {
@@ -1015,6 +1015,25 @@ func (c config) wantsFormat(f host.Format) bool {
 		}
 	}
 	return false
+}
+
+// onDemandMaxSeats is the largest play-vs-bot table this server offers: the
+// -seats (or -commander-seats) size, with a hand-built zero config keeping
+// the -seats flag default of four, raised to a four-seat Commander pod on an
+// engine that plays one. The browser's lobby caps its seat picker to this, so
+// a server started at two seats does not offer a four-seat pod.
+func (c config) onDemandMaxSeats() int {
+	n := c.seats
+	if n <= 0 {
+		n = 4 // the -seats flag default, which a hand-built config does not repeat
+	}
+	if c.commanderSeats > n {
+		n = c.commanderSeats
+	}
+	if n < diracPodSeats && c.diracOn() && c.wantsFormat(host.FormatCommander) {
+		n = diracPodSeats
+	}
+	return n
 }
 
 // splitDecks lists the deck stems in dir (deckFiles) and splits them into

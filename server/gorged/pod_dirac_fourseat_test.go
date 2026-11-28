@@ -19,7 +19,18 @@ import (
 // commander seats a 4-seat Commander pod of foundations-wretched-ranks, the
 // one Commander deck the edh set plays, and the pod plays to its end: three
 // bots and a human seat that always passes.
+//
+// The game's seed is pinned. POST /api/games mints one from crypto/rand, so an
+// unpinned run plays a different game every time and how long a four-seat
+// heuristic pod takes to end varies with it; a long draw ran past
+// testutil.WaitBudget on a loaded CI shard (batch 46121257901, 191 answers).
+// Seed 11 is the seed dirac/adapter's TestAdapterFourSeatCommander plays this
+// same pod to its end at; pinning it makes this test reproducible. Hunting
+// pods that stall belongs to the dirac repro suites, not to this gate.
 func TestCreatePodDiracSeatsFour(t *testing.T) {
+	oldSeed := newGameSeed
+	newGameSeed = func() (uint64, error) { return 11, nil }
+	t.Cleanup(func() { newGameSeed = oldSeed })
 	dir := t.TempDir()
 	raw, err := os.ReadFile(filepath.Join("..", "..", "testkit", "testutil", "decks", "foundations-wretched-ranks.json"))
 	if err != nil {

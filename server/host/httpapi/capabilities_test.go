@@ -23,6 +23,8 @@ func TestCapabilitiesReportEvents(t *testing.T) {
 	}{
 		{"off", Options{}, `{"events":false}`, http.StatusNotFound},
 		{"on", Options{Events: stubEvents{}}, `{"events":true}`, http.StatusOK},
+		// MaxSeats is the lobby's ceiling on the seat picker; zero omits it.
+		{"max seats", Options{MaxSeats: 2}, `{"events":false,"max_seats":2}`, http.StatusNotFound},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {

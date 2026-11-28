@@ -417,6 +417,11 @@
             "description": "ManualMana is false on an engine that pays for every cast; absent elsewhere.",
             "type": "boolean"
           },
+          "max_seats": {
+            "description": "MaxSeats is the largest play-vs-bot table this server seats; absent when the server does not say, where clients keep their own default.",
+            "format": "int64",
+            "type": "integer"
+          },
           "paired_bots": {
             "description": "PairedBots are the paired bots a new table may choose, the server's default first; absent when the server offers none.",
             "items": {

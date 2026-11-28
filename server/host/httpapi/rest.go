@@ -109,7 +109,7 @@ func (h *handler) botPolicies(w http.ResponseWriter, r *http.Request) {
 // capabilities serves GET /api/capabilities. Events reads the same field
 // mountEvents does, so the answer cannot disagree with the mounted routes.
 func (h *handler) capabilities(w http.ResponseWriter, r *http.Request) {
-	caps := protocol.Capabilities{Events: h.opts.Events != nil, Engine: h.opts.Engine, PairedBots: h.reg.PairedBotChoices()}
+	caps := protocol.Capabilities{Events: h.opts.Events != nil, Engine: h.opts.Engine, MaxSeats: h.opts.MaxSeats, PairedBots: h.reg.PairedBotChoices()}
 	if h.opts.NoManualMana {
 		caps.ManualMana = new(bool)
 	}

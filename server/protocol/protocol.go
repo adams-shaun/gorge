@@ -376,6 +376,9 @@ type Capabilities struct {
 	Engine string `json:"engine,omitempty"`
 	// ManualMana is false on an engine that pays for every cast; absent elsewhere.
 	ManualMana *bool `json:"manual_mana,omitempty"`
+	// MaxSeats is the largest play-vs-bot table this server seats; absent when
+	// the server does not say, where clients keep their own default.
+	MaxSeats int `json:"max_seats,omitempty"`
 	// PairedBots are the paired bots a new table may choose, the server's
 	// default first; absent when the server offers none.
 	PairedBots []PairedBotChoice `json:"paired_bots,omitempty"`

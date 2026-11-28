@@ -3,7 +3,7 @@
   import { fetchBotPolicies, fetchCapabilities, fetchDecks, type DeckInfo } from '../lib/api';
   import type { BotPolicyInfo, PairedBotChoice } from '../protocol';
   import ProtocolSetting from './ProtocolSetting.svelte';
-  import { VS_BOT_FORMATS, VS_BOT_MULLIGANS, VS_BOT_SEATS, deckLabel, startPlayVsBot, type VsBotFormat, type VsBotMulligans, type VsBotSeats } from '../lib/playvsbot';
+  import { VS_BOT_FORMATS, VS_BOT_MULLIGANS, commanderSeats, deckLabel, seatChoices, startPlayVsBot, type VsBotFormat, type VsBotMulligans, type VsBotSeats } from '../lib/playvsbot';
 
   // The landing-page entry point that sits the player down against bots: a
   // duel, or (Commander only) a pod of three or four seats, one of them yours.
@@ -20,11 +20,15 @@
   let pairedBots = $state<PairedBotChoice[]>([]);
   let mulligans: VsBotMulligans = $state(6);
   let seats: VsBotSeats = $state(2);
+  // The largest table the server seats (/api/capabilities max_seats); four
+  // keeps the old list when the server does not say.
+  let maxSeats = $state(4);
   let decks = $state<DeckInfo[]>([]);
   let loadingDecks = $state(true);
   let busy = $state(false);
   let error = $state<string | null>(null);
   const formatDecks = $derived(decks.filter((d) => d.format === format));
+  const seatOptions = $derived(seatChoices(maxSeats));
   const formatPolicies = $derived(policies.filter((p) => p.formats.includes(format)));
   const defaultLabel = $derived(policies.find((p) => p.name === defaultPolicy)?.label ?? defaultPolicy);
   const chosenPolicy = $derived(policies.find((p) => p.name === (botPolicy || defaultPolicy)));
@@ -33,7 +37,15 @@
   onMount(() => {
     void loadDecks();
     void loadPolicies();
-    void fetchCapabilities().then((c) => (pairedBots = c.paired_bots ?? [])).catch(() => {});
+    void fetchCapabilities()
+      .then((c) => {
+        pairedBots = c.paired_bots ?? [];
+        maxSeats = c.max_seats && c.max_seats >= 2 ? c.max_seats : 4;
+        // The answer can land after a Commander choice: a server that seats
+        // fewer seats must not keep a pod on screen.
+        if (seats > maxSeats) seats = commanderSeats(maxSeats);
+      })
+      .catch(() => {});
   });
 
   // A failed fetch leaves the picker at the server default: the game still
@@ -64,7 +76,7 @@
 
   function chooseFormat(next: VsBotFormat) {
     format = next;
-    seats = next === 'commander' ? 4 : 2;
+    seats = next === 'commander' ? commanderSeats(maxSeats) : 2;
     humanDeck = '';
     botDeck = '';
     if (botPolicy && !formatPolicies.some((p) => p.name === botPolicy)) botPolicy = '';
@@ -102,7 +114,7 @@
     <label class="mulligans">
       <span>Seats</span>
       <select aria-label="Seats" bind:value={seats} data-testid="seats">
-        {#each VS_BOT_SEATS as n (n)}
+        {#each seatOptions as n (n)}
           <option value={n}>{n}</option>
         {/each}
       </select>

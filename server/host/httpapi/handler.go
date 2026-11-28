@@ -33,6 +33,10 @@ type Options struct {
 	Engine string
 	// NoManualMana reports an engine with no manual mana to /api/capabilities.
 	NoManualMana bool
+	// MaxSeats is the largest table this server seats for a play-vs-bot game,
+	// reported to /api/capabilities so a client offers only those seat counts.
+	// 0 omits the field, and the client keeps its own default.
+	MaxSeats int
 	// Seat resolves which seat a request may act for, separately from
 	// Authorize: nil — the default — keeps today's spectator-only behaviour,
 	// nobody may act as a seat, so any request that names one is refused

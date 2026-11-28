@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it, vi } from 'vitest';
-import { startPlayVsBot } from './playvsbot';
+import { commanderSeats, seatChoices, startPlayVsBot } from './playvsbot';
 import { setBasePathForTests, withBase } from './basepath';
 
 const fetchMock = vi.fn();
@@ -74,5 +74,24 @@ describe('startPlayVsBot', () => {
     fetchMock.mockReset();
     fetchMock.mockResolvedValueOnce({ ok: false, status: 404, json: async () => ({ code: 'not_found', message: 'disabled' }) });
     await expect(startPlayVsBot('commander')).rejects.toMatchObject({ status: 404 });
+  });
+});
+
+describe('seat choices', () => {
+  it('offers only the seat counts the server seats', () => {
+    expect(seatChoices(2)).toEqual([2]);
+    expect(seatChoices(3)).toEqual([2, 3]);
+    expect(seatChoices(4)).toEqual([2, 3, 4]);
+  });
+
+  it('keeps the full list when the server does not say', () => {
+    expect(seatChoices(0)).toEqual([2, 3, 4]);
+  });
+
+  it('defaults Commander to the largest seat count the server offers', () => {
+    expect(commanderSeats(2)).toBe(2);
+    expect(commanderSeats(3)).toBe(3);
+    expect(commanderSeats(4)).toBe(4);
+    expect(commanderSeats(0)).toBe(4);
   });
 });
