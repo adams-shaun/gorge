@@ -22,8 +22,14 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 
 // StallCumulativeCost: a scaled cumulative upkeep cost past what the packed
 // ask holds -- a pip count above 7, a generic amount above 255, or more than
-// five hybrid pips (kop.ManaCost.Hyb).
+// four hybrid pips (cumulativeHybMax).
 const StallCumulativeCost = 176
+
+// cumulativeHybMax is the most hybrid pips a scaled cumulative upkeep payment
+// carries: four, as before kop.ManaCost.Hyb took a fifth slot for a printed
+// cast cost (cost_hybridfive.go). A fifth resolution pip is not lockstep-
+// verified against gorge, so it still stalls.
+const cumulativeHybMax = 4
 
 func init() {
 	stallNames[StallCumulativeCost] = "cumulativecost"
@@ -114,7 +120,7 @@ func (s *State) cumulativeFits(k *prep, in *kop.Instr) {
 	}
 	pay := &s.prog(k)[s.res.pc+1]
 	n := s.value(k, kop.ValueRef{K: kop.VCountersSelf, N: int16(kop.CtrAge)})
-	if pay.A.K != kop.VConst || n*int(pay.A.N) > 255 || n*kop.PayManaHybN(pay.F) > len(kop.ManaCost{}.Hyb) ||
+	if pay.A.K != kop.VConst || n*int(pay.A.N) > 255 || n*kop.PayManaHybN(pay.F) > cumulativeHybMax ||
 		n*kop.PayManaCNum(pay.F) > 255 {
 		s.capFull(StallCumulativeCost)
 		return
