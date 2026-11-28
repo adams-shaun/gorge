@@ -59,7 +59,9 @@ func (k KgenFilter) DropRow() string {
 func (k KgenFilter) Sites() int { return k.Shared + k.StringOnly + k.TypedOnly }
 
 // SiteSharePct is 100 * Sites / refuseSites, the filter sites against kgen's
-// refuse_sites count; 0 with no refuse site.
+// refuse_sites count; 0 with no refuse site. refuse_sites counts only refuse
+// calls and Sites also counts fmt.Errorf and errors.New, so this compares two
+// sizes: it is not the share of a set the filter sites belong to.
 func (k KgenFilter) SiteSharePct(refuseSites int) float64 {
 	if refuseSites == 0 {
 		return 0
