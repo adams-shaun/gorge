@@ -471,17 +471,8 @@ func (s *State) matchCardSrc(k *prep, f kop.FilterID, c CardID, owner, ctrl uint
 	if f == 0 {
 		return true
 	}
-	oneAt := func(fl *kop.Filter, cw Obj) bool {
-		if cwObj == NoObj {
-			return s.matchCardOne(k, fl, c, owner, ctrl, o)
-		}
-		ctx := s.ctxCur()
-		ctx.cwObj = cw
-		return s.matchCardOneAt(k, fl, c, owner, ctrl, o, &ctx, false)
-	}
-	one := func(fl *kop.Filter) bool { return oneAt(fl, cwObj) }
 	ch := s.srcChosen(src, self)
-	if ch == 255 && src == NoSlot || s.res.active && s.res.bad&(resChosenType|resChosenCard) != 0 {
+	if !s.srcChoiceReads(ch, src) {
 		if cwObj == NoObj {
 			return s.matchCardGen(k, f, c, owner, ctrl, o) // the whole Or chain, as before the colour words
 		}
@@ -491,41 +482,64 @@ func (s *State) matchCardSrc(k *prep, f kop.FilterID, c CardID, owner, ctrl uint
 	}
 	for f != 0 {
 		fl := &k.t.Filters[f]
-		if fl.Flags2&kop.F2ChosenType != 0 {
-			cd := &k.t.Cards[c]
-			has := ch != 255 && int(ch) < len(k.t.Subtypes) && cd.Subtypes.Has(int(ch))
-			if outsideSub(k, ch) {
-				has = cd.AllCreatureTypes
-			}
-			cp := *fl
-			cp.Flags2 &^= kop.F2ChosenType
-			if has && one(&cp) {
-				return true
-			}
-		} else if fl.Flags2&kop.F2ChosenColor != 0 {
-			// Diamond Mare's "a spell of the chosen colour": the source's choice
-			// is a colour index, read against the card's colours
-			cp := *fl
-			cp.Flags2 &^= kop.F2ChosenColor
-			if ch < 5 {
-				bit := kop.ColW << ch
-				if cp.Colors != 0 {
-					cp.Colors &= bit
-				} else {
-					cp.Colors = bit
-				}
-				// the chosen colour is no colour word of any face: its bit is read
-				// unrewritten
-				if cp.Colors != 0 && oneAt(&cp, NoObj) {
-					return true
-				}
-			}
-		} else if one(fl) {
+		if s.matchSrcAlt(k, fl, ch, c, owner, ctrl, o, cwObj) {
 			return true
 		}
 		f = fl.Or
 	}
 	return false
+}
+
+// srcChoiceReads reports whether a ChosenType or ChosenColor alternative reads
+// the source's choice ch (matchSrcAlt): not for a departed source with none,
+// nor while the resolution holds its own ChooseType or ChooseCard answer.
+func (s *State) srcChoiceReads(ch uint8, src Slot) bool {
+	return !(ch == 255 && src == NoSlot || s.res.active && s.res.bad&(resChosenType|resChosenCard) != 0)
+}
+
+// matchSrcAlt matches the one alternative fl against card c, a ChosenType or
+// ChosenColor one read against the source's choice ch; cwObj, when set, is the
+// source face the colour-word statics rewrite.
+func (s *State) matchSrcAlt(k *prep, fl *kop.Filter, ch uint8, c CardID, owner, ctrl uint8, o Obj, cwObj Obj) bool {
+	// the caller's cwObj, not cw, picks the ctx path: a chosen-colour
+	// alternative passes cw NoObj yet still reads the resolution's ctx
+	oneAt := func(fl *kop.Filter, cw Obj) bool {
+		if cwObj == NoObj {
+			return s.matchCardOne(k, fl, c, owner, ctrl, o)
+		}
+		ctx := s.ctxCur()
+		ctx.cwObj = cw
+		return s.matchCardOneAt(k, fl, c, owner, ctrl, o, &ctx, false)
+	}
+	if fl.Flags2&kop.F2ChosenType != 0 {
+		cd := &k.t.Cards[c]
+		has := ch != 255 && int(ch) < len(k.t.Subtypes) && cd.Subtypes.Has(int(ch))
+		if outsideSub(k, ch) {
+			has = cd.AllCreatureTypes
+		}
+		cp := *fl
+		cp.Flags2 &^= kop.F2ChosenType
+		return has && oneAt(&cp, cwObj)
+	}
+	if fl.Flags2&kop.F2ChosenColor != 0 {
+		// Diamond Mare's "a spell of the chosen colour": the source's choice
+		// is a colour index, read against the card's colours
+		cp := *fl
+		cp.Flags2 &^= kop.F2ChosenColor
+		if ch >= 5 {
+			return false
+		}
+		bit := kop.ColW << ch
+		if cp.Colors != 0 {
+			cp.Colors &= bit
+		} else {
+			cp.Colors = bit
+		}
+		// the chosen colour is no colour word of any face: its bit is read
+		// unrewritten
+		return cp.Colors != 0 && oneAt(&cp, NoObj)
+	}
+	return oneAt(fl, cwObj)
 }
 
 // the Pauper keyword-mechanics / mana-misc / singletons

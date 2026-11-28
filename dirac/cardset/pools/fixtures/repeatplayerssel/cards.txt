@@ -1,0 +1,30 @@
+# the RepeatEach player-selector pool: Keen Duelist (RepeatPlayers$
+# TargetedAndYou, the controller then the targeted opponent), Skull Storm
+# (RepeatPlayers$ OppNonRememberedController, each opponent who sacrificed
+# nothing), Disorienting Choice (RepeatPlayers$ TargetedController over the
+# chosen permanents' controllers), Control Magic (a permanent control change,
+# so a sacrificed creature can be controlled by a player who does not own it)
+# and Regrowth (returns the same spell object to its owner's hand, so
+# Disorienting Choice's CR 400.7 stack-exit store reset is observable across
+# two casts of one copy) beside creatures to sacrifice, targets and basics
+# (dirac/oracle/repeatplayers_selectors_test.go). Deadly Brew (a
+# ConditionDefined$ Remembered gate) and Wave of Vitriol (a SacrificeAll
+# whose card loop reads ImprintedController) read a stolen sacrifice's last
+# controller, with Act of Treason taking a Dryad Arbor
+# (dirac/oracle/remsacctrl_stolen_test.go)
+Keen Duelist
+Skull Storm
+Grizzly Bears
+Sewer Rats
+Swamp
+Forest
+Control Magic
+Island
+Disorienting Choice
+Ornithopter
+Regrowth
+Deadly Brew
+Act of Treason
+Wave of Vitriol
+Dryad Arbor
+Mountain

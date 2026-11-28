@@ -1,0 +1,7 @@
+family: Ref
+name: RefTgtControllers
+value: next
+state: code 0
+status: active
+ticket: dk-burn-02-repeat-players
+doc: a player ref: the controllers of every target of the resolving entry, every slot and every multi-object extra, a player target naming that player, each seat once, in gorge's AliveFrom(controller) order (gorge RepeatEach's RepeatPlayers$ TargetedController / Targeted, effects/choose_control.go repeatPlayersTargeted: PlayerOf of every target, then AliveFrom). The kernel's target-slot player set (slotPlayers) reads player targets only, so this ref is the card-target half. Disorienting Choice.

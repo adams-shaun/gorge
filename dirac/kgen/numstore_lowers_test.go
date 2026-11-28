@@ -84,16 +84,24 @@ func TestNumStoreRefusals(t *testing.T) {
 			t.Errorf("%s: refusals %v, want one containing %q", tc.name, all, tc.want)
 		}
 	}
-	// a spell's write
-	spell := `Name:Num Store Spell
+	// a spell's charm mode's write (a plain spell's write lowers: it is
+	// cleared as the spell leaves the stack, CR 400.7;
+	// TestOfferLowersWithoutReset)
+	spell := `Name:Num Store Charm
 ManaCost:1
 Types:Sorcery
-A:SP$ StoreSVar | Cost$ 1 | SVar$ N | Type$ Number | Expression$ 3 | SubAbility$ DBGain
+A:SP$ Charm | Cost$ 1 | Choices$ DBStore,DBOne
+SVar:DBStore:DB$ StoreSVar | SVar$ N | Type$ Number | Expression$ 3 | SubAbility$ DBGain
 SVar:DBGain:DB$ GainLife | LifeAmount$ N
+SVar:DBOne:DB$ GainLife | LifeAmount$ 1
 SVar:N:Number$0
 `
-	c := lowerScriptCard(t, "Num Store Spell", spell)
-	if len(c.Refusals) == 0 || !strings.Contains(c.Refusals[0].Reason, "in a spell") {
-		t.Errorf("spell write: refusals %v, want one naming the spell", c.Refusals)
+	c := lowerScriptCard(t, "Num Store Charm", spell)
+	var all []string
+	for _, rf := range c.Refusals {
+		all = append(all, rf.Reason)
+	}
+	if want := "in a spell's charm mode"; !strings.Contains(strings.Join(all, "\n"), want) {
+		t.Errorf("spell charm write: refusals %v, want one containing %q", all, want)
 	}
 }

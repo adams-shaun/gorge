@@ -147,7 +147,10 @@ func (s *State) sacRemember(k *prep, sl Slot) {
 		if in.B.N&(kop.SacSumPower|kop.SacSumToughness|kop.SacSumMV) != 0 {
 			s.remLKAdd(k, sl, int(in.B.N)) // RememberedLKI$CardPower/Toughness (zone_rememberlki.go)
 		}
-		s.remember(s.perms[sl].obj)
+		o := s.perms[sl].obj
+		ctrl := s.perms[sl].ctrl
+		s.remember(o)
+		s.remCtlNote(o, ctrl)    // the last controller, for RefOppNonRemCtrl (CR 608.2h)
 		s.remMarkFaceDown(k, sl) // value_remfacedown.go
 	} else if in.Op == kop.OpIfPaid && in.C&0xF == kop.PaySac &&
 		in.B.N&(kop.SacSumPower|kop.SacSumToughness|kop.SacSumMV) != 0 {

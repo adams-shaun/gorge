@@ -936,14 +936,16 @@ func cmp(op kop.CmpOp, a, b int) bool {
 // countRefMatches counts the objects a ref names that match f (a moved
 // card is matched as a card in its new zone).
 func (s *State) countRefMatches(k *prep, r kop.Ref, f kop.FilterID, ctx evalCtx) int {
-	return s.countRefMatchesN(k, r, f, ctx, false)
+	return s.countRefMatchesN(k, r, f, ctx, false, true)
 }
 
 // countRefMatchesN is countRefMatches with lkiType: a Sacrificed$Valid
 // Card/creature-type read (kgen marks its Expr.N 1), which takes the
 // sacrifice-time type snapshot instead of the live moved card a
-// ConditionDefined$ Sacrificed filter reads.
-func (s *State) countRefMatchesN(k *prep, r kop.Ref, f kop.FilterID, ctx evalCtx, lkiType bool) int {
+// ConditionDefined$ Sacrificed filter reads. gate marks a condition's read
+// (countRefMatches), whose remembered set takes each captured last controller
+// (matchRemGate); a value count reads the card where it lies.
+func (s *State) countRefMatchesN(k *prep, r kop.Ref, f kop.FilterID, ctx evalCtx, lkiType, gate bool) int {
 	// ceased: the object is read as the card it was moved as even if it is a
 	// copy that has since left the stack and the battlefield (CR 707.10h
 	// ends its existence at the next check, not within the resolution);
@@ -997,15 +999,9 @@ func (s *State) countRefMatchesN(k *prep, r kop.Ref, f kop.FilterID, ctx evalCtx
 		n := 0
 		ceased = true
 		for i := 0; i < int(s.g.nrem); i++ {
-			if o := s.g.rem[i]; o == ctx.src && o != NoObj && s.objs[o].zone != kop.ZoneBattlefield {
-				n += s.matchRemSource(k, f, o, ctx) // zone_rememberparams.go
+			if m, ok := s.matchRemOverride(k, f, s.g.rem[i], ctx, gate); ok { // zone_rememberparams.go
+				n += m
 				continue
-			}
-			if s.g.tli&tliRemLKI != 0 {
-				if m, ok := s.matchRemLKI(k, f, s.g.rem[i], ctx); ok { // zone_rememberparams.go
-					n += m
-					continue
-				}
 			}
 			n += one(s.g.rem[i])
 		}
