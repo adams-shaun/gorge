@@ -46,7 +46,8 @@ func cmdCreatureNamed(name string, pw int32) string {
 		strconv.Itoa(int(pw)) + "/99\nK:Trample\nK:Partner\nOracle:x\n"
 }
 
-// commanderGame is the ONE shared Commander fixture: a two-seat game with
+// commanderGame is the ONE shared Commander fixture: a game seating one
+// player per seatCmds entry, with
 // the given construction format (FormatCommander for the mechanics,
 // FormatConstructed for the gate probe) and the given per-seat commander card
 // sources (seat p's slice lists its commanders in deck order; an empty slice
@@ -133,10 +134,17 @@ func fieldCommanderByID(t *testing.T, e *Engine, id state.ObjID) state.ObjID {
 // that just crossed 21 commander damage is Lost when swing returns.
 func swing(t *testing.T, e *Engine, attackers ...state.ObjID) {
 	t.Helper()
+	swingAt(t, e, 0, 1, attackers...)
+}
+
+// swingAt is swing with the attacking and defending seats named: `from` takes
+// the active role and each attacker attacks `at`.
+func swingAt(t *testing.T, e *Engine, from, at state.PlayerID, attackers ...state.ObjID) {
+	t.Helper()
 	if e.G.Over {
 		t.Fatalf("cannot swing an already-over game")
 	}
-	e.G.Active = 0
+	e.G.Active = from
 	e.G.Step = state.StepDeclareAttackers
 	for _, id := range attackers {
 		o := e.G.Obj(id)
@@ -146,7 +154,11 @@ func swing(t *testing.T, e *Engine, attackers ...state.ObjID) {
 		o.Damage = 0
 	}
 	e.askAttackers()
-	submitAttackers(t, e, attackers...)
+	pairs := make([][2]state.ObjID, len(attackers))
+	for i, id := range attackers {
+		pairs[i] = [2]state.ObjID{id, state.ObjID(at)}
+	}
+	submitAttackersAt(t, e, pairs)
 	// CR 510.3: the damage step's post-damage priority round, so the next
 	// swing starts from a finished combat.
 	drainCombatDamagePriority(t, e)
