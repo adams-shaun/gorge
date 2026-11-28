@@ -10,10 +10,12 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // The choice half: gorge parks the battlefield move on the as-enters ask
 // (applyUnleashReplacement, posed on every face-up entry) and folds the
 // "counter" answer into the move as an entry counter grant
-// (EntryCounterGrantsForFace, beside Riot's). The kernel poses the same ask
-// from enterGen's entry (before the entrant's ETB triggers) over the
-// generated ask queue (akUnleash, posed at the next priority like the other
-// as-enters asks) and, on "yes", puts the counter the way the entry
+// (EntryCounterGrantsForFace, beside Riot's). A resolution's move parks the
+// same way (unleashReturnKind through cloneReturnPark: the card waits in its
+// zone, and the rest of the resolution follows the answer, CR 614.12a). Any
+// other entry poses the ask from enterGen (before the entrant's ETB triggers)
+// over the generated ask queue (akUnleash, posed at the next priority like the
+// other as-enters asks) and, on "yes", puts the counter the way the entry
 // counters are put (placeEntryCounters: the would-enter-board settlement,
 // CR 614.12). A cast creature spell is asked earlier: gorge poses the choice
 // at the spell's resolution with the spell still on the stack, so
@@ -89,13 +91,15 @@ func tableGrantsUnleash(t *kop.Table) bool {
 // move on this ask (applyUnleashReplacement, posed on every face-up entry),
 // so it is queued at the entry's start, ahead of the entry counters' own
 // asks. A face-down manifest or cloak entry is a vanilla 2/2 and poses
-// nothing (CR 708.5, gorge's IsFaceDownEntry guard). The ask is posed at the
-// next priority, before the entrant's ETB triggers resolve.
+// nothing (CR 708.5, gorge's IsFaceDownEntry guard). A queued ask is posed at
+// the next priority, before the entrant's ETB triggers resolve.
 func (s *State) unleashEntryAsk(k *prep, sl Slot, o Obj) {
 	if k.unleash && k.t.Cards[s.objs[o].card].Unleash {
 		if p := &s.g.pre; p.state == 2 && p.kind == akUnleash && p.obj == o {
-			// a cast creature's election was asked with the spell still on the
-			// stack (unleashPreKind); the answer lands as the entry counter
+			// the election was asked before the entry (a cast spell on the
+			// stack, a parked move's card in its zone); the answer lands as the
+			// entry counter and is spent, so the move's next card can park
+			p.state = 0
 			if p.val == 1 {
 				s.placeEntryCounters(k, sl, int(kop.CtrP1P1), 1, s.perms[sl].ctrl)
 			}
@@ -113,6 +117,30 @@ func (s *State) unleashEntryAsk(k *prep, sl Slot, o Obj) {
 func (s *State) unleashPreKind(k *prep, c CardID) uint8 {
 	if k.unleash && k.t.Cards[c].Unleash {
 		return akUnleash
+	}
+	return 0
+}
+
+// unleashReturnKind is akUnleash when a resolution's move of card c onto the
+// battlefield parks on the counter election: gorge asks it with the card
+// still in its zone, ahead of the rest of the resolution (CR 614.12a; Wakanda
+// Forever!'s hand search follows the answer for the Tesak its battlefield
+// search found). Only the moves rerunReturn resumes park; a face-down return
+// asks nothing (CR 708.5).
+func (s *State) unleashReturnKind(k *prep, c CardID) uint8 {
+	kind, prog := s.unleashPreKind(k, c), s.prog(k)
+	if kind == 0 || int(s.res.pc) >= len(prog) {
+		return 0
+	}
+	switch in := &prog[s.res.pc]; in.Op {
+	case kop.OpReturn:
+		if in.C&kop.RetFaceDown != 0 {
+			return 0
+		}
+		return kind
+	case kop.OpReturnEx, kop.OpSearchEx, kop.OpChooseMove, kop.OpDigEx, kop.OpDigUntil,
+		kop.OpChangeZoneAll, kop.OpChangeZoneAllEx, kop.OpNinjutsu:
+		return kind
 	}
 	return 0
 }
@@ -156,10 +184,10 @@ func (s *State) unleashPermGranted(k *prep, sl Slot) bool {
 }
 
 // unleashAskObj is the object the posed counter ask is about: a cast
-// creature's or a parked copy token's election rides s.g.pre (asked before
-// it enters); any other entry's is the queued ask[0].
+// creature's, a parked move's or a parked copy token's election rides s.g.pre
+// (asked before it enters); any other entry's is the queued ask[0].
 func (s *State) unleashAskObj() Obj {
-	if p := &s.g.pre; p.kind == akUnleash && (p.state == 1 || s.res.ask == raGenTokChoice) {
+	if p := &s.g.pre; p.kind == akUnleash && (p.state == 1 || s.res.ask == raGenTokChoice || s.res.ask == raGenRetChoice) {
 		return p.obj
 	}
 	return s.perms[s.g.ask[0].sl].obj
