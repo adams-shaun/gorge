@@ -38,6 +38,9 @@ type hypSparePool struct {
 	zoneEntry []zoneEntryRec
 	// ids is a stack of id lists read-only walks borrow (idsBorrow).
 	ids [][]state.ObjID
+	// takes counts the clones taken from the pool, the hypothetical
+	// searches' cost: a bounded-search test reads it around one query.
+	takes int
 }
 
 // hypPool is e's own pool, created on first use.
@@ -84,6 +87,7 @@ const hypObjSlack = 32
 // hypTake pops a Spare from e's pool (the zero Spare when it is empty).
 func (e *Engine) hypTake() Spare {
 	pl := e.hypPool()
+	pl.takes++
 	n := len(pl.spares)
 	if n == 0 {
 		return Spare{}
