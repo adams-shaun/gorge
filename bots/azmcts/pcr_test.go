@@ -61,7 +61,7 @@ func legacyRootOptions(s *Seat, d *decision.Decision, turn int32) Options {
 	if n, ok := s.cfg.SimsByKind[d.Kind]; ok && n > 0 {
 		opts.Sims = n
 	}
-	opts.Seed = DecisionSeed(s.seed, d.Seq)
+	opts.Seed = DecisionSeed(s.seed, d.Ordinal)
 	opts.Noise, opts.Sample = false, false
 	if s.cfg.Explore {
 		opts.Noise = !s.cfg.NoNoise
@@ -80,7 +80,8 @@ func TestPCRRootOptions(t *testing.T) {
 		t.Helper()
 		for seq := uint64(0); seq < 400; seq++ {
 			for _, k := range kinds {
-				d := &decision.Decision{Kind: k, Seq: seq}
+				// Seq (event-log length) differs from Ordinal: the seed folds Ordinal
+				d := &decision.Decision{Kind: k, Seq: seq*3 + 1000, Ordinal: seq}
 				turn := int32(seq % 9)
 				got, c := s.rootOptions(d, turn)
 				want := legacyRootOptions(s, d, turn)
@@ -222,7 +223,10 @@ func TestPCRCheapDecisionsAreNotRecorded(t *testing.T) {
 		t.Fatalf("%d records for %d recordable full decisions (%d cheap)", len(recs), recordable, cheap)
 	}
 	for _, r := range recs {
-		if r.Sims != 4 || !PCRFull(DecisionSeed(testSeed^1, r.Sequence), 0.5) {
+		// a full search runs 4 (a cheap one 2); the coin folds Decision.Ordinal,
+		// which the record does not carry (Sequence is the event-log Seq), and
+		// TestPCRRootOptions pins it
+		if r.Sims != 4 {
 			t.Fatalf("record at sequence %d (sims %d) is not a full decision", r.Sequence, r.Sims)
 		}
 	}
