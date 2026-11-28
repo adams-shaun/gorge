@@ -413,7 +413,35 @@ func (s *State) caGapMask(k *prep, p uint8, ca bool) slotMask {
 	return slotMask{}
 }
 
+// scriptOffers adds to d the plays a scripted prefix pays (scriptOffersLazy);
+// the debug hooks run the eager twin beside it or in its place.
 func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) (searched int) {
+	if DebugShadowNestedWalks || DebugEagerNestedWalks {
+		return s.scriptOffersHook(k, d, capSpent, p)
+	}
+	return s.scriptOffersLazy(k, d, capSpent, p)
+}
+
+// scriptOfferReads reports whether src holds a play the candidate loop of
+// scriptOffersLazy keeps past scriptOfferDrops' first three clauses (a script
+// play kind, on neither d nor the spent cap), and whether one of them is a
+// plain untargeted cast (pricedByPrintedSources' first clauses, the only
+// reader of the real walk).
+func scriptOfferReads(src, d, capSpent *Decision) (play, plainCast bool) {
+	for i := 0; i < int(src.N); i++ {
+		a := src.Options[i]
+		if !isScriptPlayKind(a.Kind()) || hasOption(d, a) || capSpent != nil && hasOption(capSpent, a) {
+			continue
+		}
+		play = true
+		if plainCastMode(a) && a.Target() == 0 {
+			return true, true
+		}
+	}
+	return play, false
+}
+
+func (s *State) scriptOffersLazy(k *prep, d *Decision, capSpent *Decision, p uint8) (searched int) {
 	restr, anyR := s.scriptRestr(k, p), s.scriptAnyR(k, p)
 	tapsDef := s.scriptTapsDefer(k, p)
 	mix := s.mixBoard(k, p)
@@ -477,6 +505,19 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 	// hand walk, the permission and graveyard casts, then the battlefield's
 	// activations in entry order): the kernel's walk lists activations in
 	// slot order
+	// Every walk below (real, noWide and noWideNF, and the lazy lifeWalk and
+	// ownWalk) and gaps' later reads are reached only through a play of src
+	// that scriptOfferDrops keeps, and its first three clauses drop every play
+	// that is no script play kind, already on d, or on the spent cap: pure
+	// reads of three Decisions neither loop below changes before its second
+	// (d.add runs in the second loop, capSpent is only read here). With no
+	// such play the first loop drops every option, nc stays 0 and the second
+	// loop runs no iteration: searched is 0, as the eager path returned
+	// (scriptOffersEager), and no walk built here would have been read.
+	play, plainCast := scriptOfferReads(src, d, capSpent)
+	if !play {
+		return 0
+	}
 	var cand [MaxOptions]Action
 	var key [MaxOptions]uint64
 	nc := 0
@@ -487,7 +528,12 @@ func (s *State) scriptOffers(k *prep, d *Decision, capSpent *Decision, p uint8) 
 	// searches every play the walk lists, a wide source's mana counted.
 	mixWide := mix && relax && s.scriptWide(k, p).any()
 	var real Decision // the plays the printed sources pay, plain casts the autopay surface drops included
-	if s.cfg&cfgGorgeAutopay != 0 {
+	if s.cfg&cfgGorgeAutopay != 0 && plainCast {
+		// real is read only by pricedByPrintedSources, whose first clauses
+		// (plainCastMode, no target) come before hasOption(real): with no
+		// plain untargeted cast among src's kept plays (plainCast) the walk
+		// is never read. It is built here, where the eager path built it, so
+		// it sees the same State when it is.
 		s.plainOptions(k, &real, availWalk)
 	}
 	var noWide, noWideNF Decision
