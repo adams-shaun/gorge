@@ -1488,8 +1488,8 @@ type spellCastWindowReader interface {
 // Blood). An unmet restriction withholds the offer rather than fizzling at
 // resolution. Only the spell's own SA is read: a SubAbility's IsPresent$ is a
 // resolution condition, not a restriction. It binds an ordinary offer
-// (spellTimingPre) and a Play election (CastProhibited) alike: CR 608.2g lifts
-// only the timing a card's type imposes.
+// (spellTimingPre) and a Play election (CastProhibited) alike: the card's
+// "only" beats a resolving effect's permission to cast it (CR 101.2).
 func spellCastWindowOK(r spellCastWindowReader, p state.PlayerID, id state.ObjID, sa *cards.SA) bool {
 	return r.activationPhasesOK(p, sa) && (sa == nil || !sa.MayHaveAnyParam(spellPresentKeys) || r.abilityPresentHolds(p, id, sa))
 }

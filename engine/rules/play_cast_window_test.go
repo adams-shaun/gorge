@@ -1,9 +1,9 @@
 package rules
 
-// CR 601.3: a spell's own cast restriction ("Cast this spell only during
-// ...") binds a cast made while another effect resolves; CR 608.2g only lifts
-// the timing a card's type imposes. CastProhibited is the effects-side
-// election filter that keeps such a card out of a Play ask.
+// CR 601.3, 101.2: a spell's own cast restriction ("Cast this spell only
+// during ...") binds a cast made while another effect resolves: the
+// restriction beats the effect's permission. CastProhibited is the
+// effects-side election filter that keeps such a card out of a Play ask.
 
 import (
 	"testing"
