@@ -78,13 +78,20 @@ func (lc *lowerCtx) payInstr(c lCost, payer lRef, subCtrOK bool) (lInstr, error)
 		if c.Mana.X && lc.trigXMax != nil {
 			return lc.payManaX(c, in) // lower_triggerxcost.go
 		}
-		if c.Mana.X || c.Mana.C > 0 || len(c.Mana.Hybrid) > 0 && !lc.trigHybridOK(c) {
+		if c.Mana.X || len(c.Mana.Hybrid) > 0 && !lc.trigHybridOK(c) ||
+			c.Mana.C > 0 && !lc.resColourlessOK(c) {
 			return in, refuse("resolution mana cost %s", c.Mana)
 		}
 		in.CS = "Mana"
 		in.A = cst(c.Mana.Generic)
 		in.B = cst(packPips(c.Mana.Pips))
 		in.Hyb = c.Mana.Hybrid // lower_trighybrid.go
+		for i := 0; i < c.Mana.C; i++ {
+			// a constant colourless resolution pip (Ulalek's trigger cost
+			// "you may pay {C}{C}"): the F's colourless marker, paid from the
+			// pool's colourless units (resColourlessOK, kop.PayManaCPip)
+			in.Hyb = append(in.Hyb, "C")
+		}
 	}
 	if c.DiscardN > 0 {
 		n++
