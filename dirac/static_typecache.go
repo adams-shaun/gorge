@@ -52,6 +52,7 @@ type tyCache struct {
 	oCtrl  [MaxSeats]slotMask
 	oStat  slotMask // statM when srcM was taken
 	srcM   slotMask // the battlefield sources of a type effect (layer sources)
+	exM    slotMask // the slots whose own statics read more than objects (prep.tyEx): never cached
 	ent    [MaxPerm]tyCacheEnt
 	// over the pool's life (the tests read them)
 	hits, miss uint32
@@ -70,9 +71,9 @@ var (
 	DebugTyCacheBad    int
 )
 
-// debugTyCacheNoInval drops the context check: the mutation the shadow check
-// must catch.
-var debugTyCacheNoInval bool
+// debugTyCacheNoInval drops the context check, and DebugTyCacheNoEx the
+// per-source exclusion: the mutations the shadow check must catch.
+var debugTyCacheNoInval, DebugTyCacheNoEx bool
 
 // prepTyCache reports whether the cache pays on table p: some slot's types
 // can come from the layer walk or an override static. A table with neither
@@ -124,8 +125,14 @@ func (s *State) typesCached(k *prep, sl Slot) kop.TypeMask {
 // prepTyObj marks the tables the cache runs on (prepare).
 func prepTyObj(p *prep, t *kop.Table) {
 	if p.tyCache {
-		p.tyObj, p.tyBoard = tyObjTable(t, p.gen)
+		p.tyObj, p.tyBoard, p.tyEx = tyObjTable(t, p.gen)
 		p.tyCache = p.tyObj // a table whose type statics read more than objects computes every ask
+		if p.tyObj && p.gen.anyGrant {
+			obj, board, ex := grObjTable(t, p.tyEx)
+			p.grCache = obj && !(board && ex != nil) // static_grantcache.go
+			p.tyBoard = p.tyBoard || board
+			p.tyEx = ex
+		}
 	}
 }
 
@@ -149,6 +156,9 @@ func (s *State) typesCachedObj(k *prep, sl Slot, m *tyCache) kop.TypeMask {
 		s.tySrcs(k, m)
 	} else if m.oTouch != s.touchN || m.oLine != s.line || m.oEmb != s.g.nemb || m.oCtrl != s.ctrlM {
 		s.tyRevalidate(k, m)
+	}
+	if m.exM.has(sl) {
+		return s.typesCalc(k, sl) // its own statics read more than objects
 	}
 	e := &m.ent[sl]
 	obj := s.perms[sl].obj
@@ -207,11 +217,16 @@ func (s *State) tyRevalidate(k *prep, m *tyCache) {
 // that builds piles, whose under cards' statics count).
 func (s *State) tySrcs(k *prep, m *tyCache) {
 	m.oStat = s.statM
-	m.srcM = slotMask{}
+	m.srcM, m.exM = slotMask{}, slotMask{}
 	for sm := s.statM; sm.any(); sm = sm.rest() {
 		sl := sm.first()
 		if c := s.cardAt(sl); k.piles || k.gen.has(c, gfOvrStat) || k.gen.has(c, gfSubGrant) || k.gen.has(s.perms[sl].card, gfOvrStat) || k.gen.has(s.perms[sl].card, gfSubGrant) {
 			m.srcM = m.srcM.with(sl)
+		}
+		// a pile's under cards' statics count too: on a pile table every
+		// static source is excluded once the table has an excluded card
+		if k.tyEx != nil && !DebugTyCacheNoEx && (k.piles || k.tyEx[s.cardAt(sl)] || k.tyEx[s.perms[sl].card]) {
+			m.exM = m.exM.with(sl)
 		}
 	}
 }
@@ -222,9 +237,9 @@ func (s *State) tySrcs(k *prep, m *tyCache) {
 // matching a plain filter, no gate, and filters of plain object flags,
 // types, colours, subtypes and counter thresholds. The Ring emblem reads a
 // seat's bearer, so a table with it is never object-only.
-func tyObjTable(t *kop.Table, g *genPrep) (obj, board bool) {
+func tyObjTable(t *kop.Table, g *genPrep) (obj, board bool, ex []bool) {
 	if g == nil || g.ringOn() {
-		return false, false
+		return false, false, nil
 	}
 	for i := range t.Cards {
 		for j := range t.Cards[i].Abilities {
@@ -237,14 +252,51 @@ func tyObjTable(t *kop.Table, g *genPrep) (obj, board bool) {
 				continue
 			}
 			if sa.Cond != 0 || sa.OvGate != 0 || !tyObjCond(t, sa.Cond2, 0) || !tyObjFilter(t, sa.Filter) {
-				return false, false
+				if !tySelfOnly(t, i, sa) {
+					return false, false, nil
+				}
+				if ex == nil {
+					ex = make([]bool, len(t.Cards))
+				}
+				ex[i] = true // its source computes every ask (tySelfOnly)
+				continue
 			}
 			if sa.Cond2 != 0 {
 				board = true // a count of the board's objects: any write may change it
 			}
 		}
 	}
-	return true, board
+	if board && ex != nil {
+		return false, false, nil // a board count can read an excluded source's derived types
+	}
+	return true, board, ex
+}
+
+// tySelfOnly reports whether static sa of card c, though it reads more than
+// objects, can change only its own source's characteristics: its filter is
+// the source alone (FSelf, no alternative), it removes no abilities (so it
+// never switches the source's other statics on or off), and the card grants
+// no static (GrantSt), so no other permanent can carry it. Such a source is
+// excluded from the caches per slot (tyCache.exM): every other slot's types
+// read the source only through its own fields (controller, attachment,
+// chosen value), which a write marks.
+func tySelfOnly(t *kop.Table, c int, sa *kop.Static) bool {
+	if sa.Filter == 0 {
+		return false
+	}
+	fl := &t.Filters[sa.Filter]
+	if fl.Flags&kop.FSelf == 0 || fl.Or != 0 {
+		return false
+	}
+	if sa.Kind == kop.StatOverride && t.Overrides[sa.Override-1].LoseAbilities {
+		return false
+	}
+	for j := range t.Cards[c].Abilities {
+		if a := &t.Cards[c].Abilities[j]; a.Kind == kop.AbStatic && a.Static.GrantSt != 0 {
+			return false
+		}
+	}
+	return true
 }
 
 func tyObjCond(t *kop.Table, c kop.CondID, depth int) bool {

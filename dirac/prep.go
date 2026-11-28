@@ -182,6 +182,12 @@ type prep struct {
 	// tyBoard: one of them counts the board (CondPresent), so any write
 	// can change a type
 	tyBoard bool
+	// grCache: the granted-ability list cache runs on this table
+	// (static_grantcache.go)
+	grCache bool
+	// tyEx: per card, a static of it reads more than objects but can change
+	// only its own source (tySelfOnly); its slot is never cached (nil: none)
+	tyEx []bool
 	// piles: the table builds merged permanents (genPrep.anyMutate or
 	// anyMerge; kw_mutateunion.go). The hot static and layer scans test it
 	// in one inlinable branch (pileN, pileAt) so a table with no pile never

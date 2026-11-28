@@ -10,6 +10,7 @@ type tyShadowRun struct {
 	stale      string
 	hits, bad  int
 	cHit, cMis uint32
+	gHit, gMis uint32
 	steps      int
 }
 
@@ -56,6 +57,7 @@ func playTyShadow(t *testing.T, pods []edhPod, cfg Config, n int, seed0 uint64) 
 	}
 	if p := s.pool; p != nil {
 		r.cHit, r.cMis = p.tyc.hits, p.tyc.miss
+		r.gHit, r.gMis = p.grc.hits, p.grc.miss
 	}
 	r.hits, r.bad, r.steps = DebugTyCacheHits, DebugTyCacheBad, n
 	return r
@@ -69,8 +71,8 @@ func checkTyRun(t *testing.T, r tyShadowRun) {
 	if r.hits == 0 {
 		t.Fatal("the types cache never answered")
 	}
-	t.Logf("%d transitions: %d hits / %d misses (%.1f%%), every hit equal to the uncached answer",
-		r.steps, r.cHit, r.cMis, 100*float64(r.cHit)/float64(r.cHit+r.cMis))
+	t.Logf("%d transitions: types %d hits / %d misses, grant lists %d hits / %d misses, every hit equal to the uncached answer",
+		r.steps, r.cHit, r.cMis, r.gHit, r.gMis)
 }
 
 // The bench's Commander pods with every cache hit recomputed, in chunks (the
@@ -111,5 +113,31 @@ func TestTyCacheShadowMutation(t *testing.T) {
 	t.Cleanup(func() { debugTyCacheNoInval = false })
 	if r := playTyShadow(t, edhPods(t, 16), Config{Mulligans: 2}, 20000, 0); r.stale == "" {
 		t.Fatalf("no stale answer in %d hits with the context check dropped", r.hits)
+	}
+}
+
+// TestTyCacheExcludesNonObjectSources: on the bench pods that carry
+// Duplicant, whose type static's condition reads an expression over its
+// exiled-with set, the table stays in the cache with Duplicant's card
+// excluded per source (tySelfOnly), so tySrcs puts Duplicant's slot in exM, which
+// both caches compute every ask for. Random play never moved
+// Duplicant's types without a write to it (7.3M hits with the exclusion
+// dropped and none stale), so the exclusion is held by this check and
+// tySelfOnly's argument rather than by a mutation the soak can catch.
+func TestTyCacheExcludesNonObjectSources(t *testing.T) {
+	all := edhPods(t, 16)
+	for _, i := range []int{4, 5, 8, 11, 12, 15} {
+		var s State
+		all[i].init(&s, uint64(i)+1)
+		k := s.k()
+		dup := -1
+		for c := range k.t.Cards {
+			if k.t.Cards[c].Name == "Duplicant" {
+				dup = c
+			}
+		}
+		if dup < 0 || !k.tyCache || k.tyEx == nil || !k.tyEx[dup] {
+			t.Fatalf("pod %d: the table is not cached with Duplicant excluded (cache %v, ex %v)", i, k.tyCache, k.tyEx != nil)
+		}
 	}
 }

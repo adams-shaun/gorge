@@ -28,8 +28,9 @@ func TestTyCacheShadowPods(t *testing.T) {
 		if dirac.DebugTyCacheBad != 0 {
 			t.Fatalf("hbot %v: %d of %d cache hits stale", bot, dirac.DebugTyCacheBad, dirac.DebugTyCacheHits)
 		}
-		// no hit is not a failure: a pod table whose type statics read more
-		// than objects (Duplicant, Goddric, Cloaked Reveler) computes every ask
+		if dirac.DebugTyCacheHits == 0 {
+			t.Fatalf("hbot %v: the cache never answered", bot)
+		}
 		t.Logf("hbot %v, %d games, %d decisions (%d errors): %d hits, %d misses, %.2f hits per decision, none stale", bot, sum.Games, sum.Decisions,
 			sum.Errors, dirac.DebugTyCacheHits, dirac.DebugTyCacheMisses, float64(dirac.DebugTyCacheHits)/float64(max(sum.Decisions, 1)))
 	}
