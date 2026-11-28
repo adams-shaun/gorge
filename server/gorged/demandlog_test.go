@@ -76,9 +76,9 @@ func TestDeckDemandLogRotates(t *testing.T) {
 	l := newDemandLog(t.TempDir())
 	l.max = 200
 	l.now = func() time.Time { return time.Date(2026, 11, 27, 0, 0, 0, 0, time.UTC) }
-	rep := protocol.DeckReport{Unsupported: []protocol.DeckReportCard{{Name: "Some Card With A Long Name"}, {Name: "Another Card"}}}
+	rep := protocol.DeckReport{Engine: "gorge", Unsupported: []protocol.DeckReportCard{{Name: "Some Card With A Long Name"}, {Name: "Another Card"}}}
 	for range 10 {
-		l.record("gorge", rep)
+		l.record(rep)
 	}
 	line, _ := json.Marshal(demandLine{Day: "2026-11-27", Engine: "gorge", Unsupported: []string{"Another Card", "Some Card With A Long Name"}})
 	total := 0

@@ -6,6 +6,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/adams-shaun/gorge/dirac/adapter"
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/deck"
 	"github.com/adams-shaun/gorge/server/host"
@@ -62,7 +63,7 @@ func (c config) checkDeck(req httpapi.DeckCheckRequest) (protocol.DeckReport, er
 	if req.Substitute && len(unresolved) == 0 {
 		f, substituted, problem = substitute(d.reg, f, unsupported)
 	}
-	rep := d.report(format, f.Name, f, orig, unresolved, unsupported, c.engine, substituted)
+	rep := d.report(format, f.Name, f, orig, unresolved, unsupported, d.engine, substituted)
 	if problem != "" {
 		rep.Problems = append(rep.Problems, problem)
 		rep.Legal, rep.Playable = false, false
@@ -71,7 +72,7 @@ func (c config) checkDeck(req httpapi.DeckCheckRequest) (protocol.DeckReport, er
 		rep.Problems = append(rep.Problems, diracDeckProblem)
 		rep.Legal, rep.Playable = false, false
 	}
-	d.demand.record(c.engine, rep)
+	d.demand.record(rep)
 	return rep, nil
 }
 
@@ -206,7 +207,45 @@ func (d *deckImports) report(format host.Format, name string, f, source deck.Fil
 	sort.Slice(rep.Unsupported, func(i, j int) bool { return rep.Unsupported[i].Name < rep.Unsupported[j].Name })
 	rep.Legal = len(rep.Problems) == 0 && len(rep.Unknown) == 0
 	rep.Playable = rep.Legal && (len(rep.Unsupported) == 0 || len(rep.Substituted) > 0)
+	rep.Dirac = d.diracVerdict(f)
 	return rep
+}
+
+// diracSupport is what a report reads of the dirac engine: a deck's support
+// card by card (adapter.Engine).
+type diracSupport interface {
+	DeckSupport([]*cards.Card) adapter.DeckVerdict
+}
+
+// diracVerdict is dirac's verdict on f's resolved main deck, nil when the
+// server judges no deck on dirac. Names the pool does not hold are skipped,
+// as problems skips them.
+func (d *deckImports) diracVerdict(f deck.File) *protocol.DeckEngineVerdict {
+	if d.dirac == nil {
+		return nil
+	}
+	var resolved []*cards.Card
+	for _, e := range f.Cards {
+		c, ok := d.reg.Lookup(e.Name)
+		if !ok {
+			continue
+		}
+		for range e.Count {
+			resolved = append(resolved, c)
+		}
+	}
+	v := d.dirac.DeckSupport(resolved)
+	out := &protocol.DeckEngineVerdict{
+		Engine: adapter.Name, Set: v.Set, Playable: v.Err == nil,
+		Unsupported: make([]protocol.DeckEngineCard, 0, len(v.Cards)), Problems: []string{},
+	}
+	for _, c := range v.Cards {
+		out.Unsupported = append(out.Unsupported, protocol.DeckEngineCard{Name: c.Name, Count: c.Count, Status: c.Status, Reason: c.Reason})
+	}
+	if len(v.Cards) == 0 && v.Err != nil {
+		out.Problems = append(out.Problems, v.Err.Error())
+	}
+	return out
 }
 
 // problems is checkImportedLegality's verdict on f, one line per violation.

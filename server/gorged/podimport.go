@@ -31,6 +31,9 @@ type deckImports struct {
 	// each checked deck's unsupported names (-deck-demand-log).
 	engine string
 	demand *demandLog
+	// dirac, when non-nil, judges every report's deck on dirac too
+	// (-dirac-check-sets, or -engine dirac).
+	dirac diracSupport
 
 	mu    sync.Mutex
 	decks map[string]host.Deck
@@ -219,7 +222,7 @@ func (d *deckImports) checkFile(label string, format host.Format, f deck.File, u
 		rep.Problems = append(rep.Problems, problem)
 		rep.Legal, rep.Playable = false, false
 	}
-	d.demand.record(d.engine, rep)
+	d.demand.record(rep)
 	refuse := func(msg string) (host.Deck, protocol.DeckReport, error) {
 		return host.Deck{}, rep, httpapi.DeckRefused{Report: rep, Msg: msg}
 	}
