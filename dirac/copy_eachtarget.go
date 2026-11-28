@@ -48,8 +48,11 @@ func (s *State) eachParks(in *kop.Instr) bool {
 }
 
 // eachRun runs in for the extra targets of slot i from index j0 on. It returns
-// true when one of them parked the loop on an ask.
-func (s *State) eachRun(k *prep, in *kop.Instr, i uint8, j0 int, w eachSusp) bool {
+// true when one of them parked the loop on an ask. nd0 is s.ndly before the
+// loop's first object ran: an OpAtEOT target after a record the loop pushed
+// joins that grouped promise (atEOTUnionJoin; gorge scheduleAtEOTGroup, one
+// delayed trigger naming every object, CR 603.7a). MaxDelayed joins none.
+func (s *State) eachRun(k *prep, in *kop.Instr, i uint8, j0 int, w eachSusp, nd0 uint8) bool {
 	e := &s.res.e
 	for j := j0; j < int(s.xtOf(e).n); j++ {
 		if s.xtOf(e).slot[j] != i || !s.xtLegalRes(k, e, j, i) {
@@ -57,6 +60,9 @@ func (s *State) eachRun(k *prep, in *kop.Instr, i uint8, j0 int, w eachSusp) boo
 		}
 		e.tgt[i], e.tver[i] = s.xtOf(e).code[j], s.xtOf(e).ver[j]
 		s.res.bad &^= 1 << i
+		if in.Op == kop.OpAtEOT && s.ndly > nd0 && s.atEOTUnionJoin(k, in) {
+			continue // Pull's second returned creature joins the first one's sacrifice trigger
+		}
 		n0 := s.g.nask
 		ok := s.exec(k, in)
 		if s.res.ask == raGenCmdZone && cmdZoneEach(in) {
@@ -106,7 +112,7 @@ func (s *State) eachResume(k *prep, in *kop.Instr) bool {
 		defer s.holdClose(k, s.holdOpen(k))
 	}
 	s.g.inLoop = true
-	return s.eachRun(k, in, w.slot, int(w.j-1), w)
+	return s.eachRun(k, in, w.slot, int(w.j-1), w, MaxDelayed) // a parked loop is never an OpAtEOT's
 }
 
 // cmdZoneEach reports whether a CR 903.9b park by in, run for one object of

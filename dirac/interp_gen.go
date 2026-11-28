@@ -1271,7 +1271,7 @@ func (s *State) execEachTarget(k *prep, in *kop.Instr, i uint8) bool {
 	s.res.flags &^= rfCopyGrp // no predecessor from before this loop
 	s.g.inLoop = true
 	w := eachSusp{slot: i, t: saveT, v: saveV, bad: saveBad, hold: hr}
-	n0 := s.g.nask
+	n0, nd0 := s.g.nask, s.ndly
 	ok := s.exec(k, in)
 	if s.res.ask == raGenCmdZone && cmdZoneEach(in) {
 		// CR 903.9b: a commander's bounce parked before it happens; the
@@ -1287,7 +1287,7 @@ func (s *State) execEachTarget(k *prep, in *kop.Instr, i uint8) bool {
 		s.g.inLoop = false
 		return true
 	}
-	return s.eachRun(k, in, i, 0, w)
+	return s.eachRun(k, in, i, 0, w, nd0)
 }
 
 // eachPlayersSac handles an OpSacrifice whose target slot holds several
