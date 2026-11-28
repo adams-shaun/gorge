@@ -13,26 +13,21 @@ import (
 // Hand rider (Origin$ Exile, Destination$ Battlefield,
 // DestinationAlternative$ Hand): Ketria and Illuna, Apex of Wishes.
 //
-// Neither card can reach that rider in kgen today, so a kernel exile-origin
-// DestAlt arm has no carrier it could lower or a lockstep game could play.
 // Ketria is a Plane: its rider sits under the ChaosEnsues trigger, which now
 // lowers; the card's remaining refusal is the PlaneswalkedTo trigger above it.
-// Illuna's rider sits under the Mutates trigger, and the card also prints
-// K:Mutate. lower_trigger.go's mode switch refuses both trigger modes in its
-// default arm, and lower.go refuses the unknown Mutate keyword, all before the
-// ChangeZone rider's parameters are read. These refusals are the upstream
-// shape, not a DestinationAlternative$ refusal.
+// That upstream refusal still hides the rider, so a DestinationAlternative$
+// refusal there would mean the guard regressed.
 //
-// Whoever lowers Mutate, Mutates or PlaneswalkedTo must update this test: the
-// exile-origin DestinationAlternative$ arm then becomes reachable and must be
-// lowered as a prelude ask before the move, the way gorge's
-// askUnconditionalDestination does, or refused by name. Do not simply delete
-// these expectations.
+// Illuna's trigger and keyword now lower, so the rider is reachable. gorge
+// asks the controller to choose the hand or the battlefield before the move
+// (askUnconditionalDestination); the kernel has no such prelude ask, so
+// lower_destalt.go refuses that shape by name instead.
 func TestExileOriginDestAltCarriersRefuseUpstream(t *testing.T) {
 	cases := []struct {
-		name string
-		svar string
-		want []string
+		name    string
+		svar    string
+		want    []string
+		destAlt bool // the rider is reachable, so its named refusal is expected
 	}{
 		{
 			name: "Ketria",
@@ -40,9 +35,10 @@ func TestExileOriginDestAltCarriersRefuseUpstream(t *testing.T) {
 			want: []string{"trigger mode PlaneswalkedTo"},
 		},
 		{
-			name: "Illuna, Apex of Wishes",
-			svar: "DBChange",
-			want: []string{`keyword "Mutate"`, "trigger mode Mutates"},
+			name:    "Illuna, Apex of Wishes",
+			svar:    "DBChange",
+			want:    []string{"DB$ ChangeZone: exile-origin DestinationAlternative$ Hand"},
+			destAlt: true,
 		},
 	}
 	reg := testutil.CorpusRegistry(t)
@@ -72,9 +68,11 @@ func TestExileOriginDestAltCarriersRefuseUpstream(t *testing.T) {
 			}
 			p := &pool{byName: map[string]*cards.Card{card.Faces[0].Name: card}, nDecks: map[string]int{}, reg: reg}
 			lc := lowerCard(p, card.Faces[0].Name, card, false)
-			for _, r := range lc.Refusals {
-				if strings.Contains(r.Reason, "DestinationAlternative") {
-					t.Errorf("%s refuses the rider's DestinationAlternative$ (%q), want an upstream refusal", tc.name, r.Reason)
+			if !tc.destAlt {
+				for _, r := range lc.Refusals {
+					if strings.Contains(r.Reason, "DestinationAlternative") {
+						t.Errorf("%s refuses the rider's DestinationAlternative$ (%q), want an upstream refusal", tc.name, r.Reason)
+					}
 				}
 			}
 			for _, want := range tc.want {
