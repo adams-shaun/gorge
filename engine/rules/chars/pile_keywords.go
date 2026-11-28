@@ -13,6 +13,9 @@ import (
 // represents it"): the top face f first, then the faces beneath it in pile
 // order. Only abilities span the pile; every other characteristic is the top
 // face's. A permanent that is not a pile reads f alone, without allocating.
+// A pile that became a copy after its latest merge has no keyword line from
+// beneath its top (CR 707.2, state.Object.CopiedSinceMerge): f, the copied
+// face, is all it prints.
 
 // PrintedKeywords is the keyword lines o's cards print: f's, then each under
 // card's. The result may alias f.Keywords and must not be written.
@@ -24,8 +27,11 @@ func PrintedKeywords(o *state.Object, f *cards.Face) []string {
 }
 
 // appendUnderKeywords appends to kw the keyword lines of the cards beneath o's
-// top.
+// top, none once a copy effect covers the merge.
 func appendUnderKeywords(kw []string, o *state.Object) []string {
+	if o.CopiedSinceMerge() {
+		return kw
+	}
 	for i := range o.MergedCards {
 		if uf := o.MergedFaceAt(i); uf != nil {
 			kw = append(kw, uf.Keywords...)
@@ -35,7 +41,8 @@ func appendUnderKeywords(kw []string, o *state.Object) []string {
 }
 
 // UnderKeywordLines is the keyword lines of the cards beneath o's top, none
-// for a permanent that is not a pile. The result is fresh.
+// for a permanent that is not a pile or that a newer copy effect covers. The
+// result is fresh.
 func UnderKeywordLines(o *state.Object) []string {
 	if o == nil || len(o.MergedCards) == 0 {
 		return nil
@@ -67,8 +74,11 @@ func TakeKeywordLine(left []string, k string) ([]string, bool) {
 }
 
 // UnderPrintsHead reports whether a card beneath o's top prints a keyword line
-// with the head head (interned as id).
+// with the head head (interned as id) that the pile has (UnderKeywordLines).
 func UnderPrintsHead(o *state.Object, head string, id cards.KeywordHeadID) bool {
+	if o.CopiedSinceMerge() {
+		return false
+	}
 	for i := range o.MergedCards {
 		if uf := o.MergedFaceAt(i); uf != nil && uf.KeywordLinesHaveHead(head, id) {
 			return true
@@ -77,10 +87,11 @@ func UnderPrintsHead(o *state.Object, head string, id cards.KeywordHeadID) bool 
 	return false
 }
 
-// PrintedTriggers is f's compiled triggers, then each under card's. The result
-// may alias f.Triggers and must not be written.
+// PrintedTriggers is the compiled triggers that account for printed derived
+// keyword entries: f's, then each under card's whose keyword lines the pile has
+// (UnderKeywordLines). The result may alias f.Triggers and must not be written.
 func PrintedTriggers(o *state.Object, f *cards.Face) []cards.Trigger {
-	if o == nil || len(o.MergedCards) == 0 {
+	if o == nil || len(o.MergedCards) == 0 || o.CopiedSinceMerge() {
 		return f.Triggers
 	}
 	out := slices.Clip(f.Triggers)

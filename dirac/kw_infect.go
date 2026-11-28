@@ -125,7 +125,7 @@ func printsInfect(cd *kop.CardDef) bool { return cd.Infect }
 // toxic (gorge ToxicValue).
 func (s *State) toxicAt(k *prep, sl Slot) int {
 	n := 0
-	s.eachPileCard(k, sl, func(c CardID) bool {
+	s.eachKwCard(k, sl, func(c CardID) bool {
 		n += int(k.t.Cards[c].Toxic)
 		return true
 	})

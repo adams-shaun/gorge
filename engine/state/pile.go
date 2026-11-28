@@ -17,6 +17,17 @@ import "github.com/adams-shaun/gorge/engine/cards"
 // merged list (never a bare top-face index, so the activation-limit census
 // can tell the two apart by construction).
 
+// CopiedSinceMerge reports whether a copy effect newer than o's latest merge
+// applies to it. The merge (CR 730.2a) and a copy effect (CR 707.2) are both
+// copiable effects applied in timestamp order (CR 613.2a, 613.7), so such a
+// copy replaces the rules text the merge gave the pile (CR 702.140e), the
+// under cards' included. A merge on top drops the older CloneLayers and a
+// merge under marks them BeforeMerge. False for a permanent that is no pile.
+func (o *Object) CopiedSinceMerge() bool {
+	n := len(o.CloneLayers)
+	return len(o.MergedCards) != 0 && n != 0 && !o.CloneLayers[n-1].BeforeMerge
+}
+
 // PileFace is one face of a mutated pile together with its position in the
 // pile: Merged is 0 for the top face and i+1 for the i-th under-card. Face is
 // resolved through Object.Face() for the top (so a CR 613.1a copy effect is
