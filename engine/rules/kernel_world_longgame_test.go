@@ -18,9 +18,10 @@ func longGameVerifiersOff(t *testing.T) {
 	}
 }
 
-// kernelWorldsInLongGame is kernelWorldsInFuzzGame for the game too long to
-// play under every verifier: sequential, so it may turn the costly ones off.
-// Games 0-4 and the rest of this binary still play with them on.
+// kernelWorldsInLongGame is kernelWorldsInFuzzGame for a game too long to
+// play under every verifier (games 2 and 5): sequential, so it may turn the
+// costly ones off. Games 0, 1, 3 and 4 and the rest of this binary still play
+// with them on.
 func kernelWorldsInLongGame(t *testing.T, g, shards, shard int) {
 	longGameVerifiersOff(t)
 	kernelWorldsPlayGame(t, g, shards, shard)

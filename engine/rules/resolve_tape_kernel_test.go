@@ -319,21 +319,20 @@ func TestKernelHeadsCheckpointAll(t *testing.T) {
 // does not depend on the shard count, so shards=1 plays a game's main line
 // once and probes every decision; game 5 (the longest) is split in two and
 // game 2 in four, each shard replaying its main line and probing its share of
-// the decisions. Game 2 whole was 41.7 s (11-27, 19 idle cores) of which its
-// main line is ~10 s, so a quarter of its probes keeps each shard near 20 s.
-// Game 5's shards run sequentially with the four costliest cache verifiers off
-// (kernelWorldsInLongGame): with them on, its main line alone was ~55 s, which
-// no number of shards could cut.
+// the decisions. Both long games' shards run sequentially with the four
+// costliest cache verifiers off (kernelWorldsInLongGame). With them on, game
+// 5's main line alone was ~55 s, which no number of shards could cut, and a
+// quarter of game 2 was 22-24 s run alone.
 // GORGE_TAPE_WORLD_GAMES (above 6) sets how many games the Sweep plays: games
 // 6..N-1.
 const kernelWorldDefaultGames = 6
 
 func TestKernelWorldsInFuzzGame0(t *testing.T)       { kernelWorldsInFuzzGame(t, 0, 1, 0) }
 func TestKernelWorldsInFuzzGame1(t *testing.T)       { kernelWorldsInFuzzGame(t, 1, 1, 0) }
-func TestKernelWorldsInFuzzGame2Shard0(t *testing.T) { kernelWorldsInFuzzGame(t, 2, 4, 0) }
-func TestKernelWorldsInFuzzGame2Shard1(t *testing.T) { kernelWorldsInFuzzGame(t, 2, 4, 1) }
-func TestKernelWorldsInFuzzGame2Shard2(t *testing.T) { kernelWorldsInFuzzGame(t, 2, 4, 2) }
-func TestKernelWorldsInFuzzGame2Shard3(t *testing.T) { kernelWorldsInFuzzGame(t, 2, 4, 3) }
+func TestKernelWorldsInFuzzGame2Shard0(t *testing.T) { kernelWorldsInLongGame(t, 2, 4, 0) }
+func TestKernelWorldsInFuzzGame2Shard1(t *testing.T) { kernelWorldsInLongGame(t, 2, 4, 1) }
+func TestKernelWorldsInFuzzGame2Shard2(t *testing.T) { kernelWorldsInLongGame(t, 2, 4, 2) }
+func TestKernelWorldsInFuzzGame2Shard3(t *testing.T) { kernelWorldsInLongGame(t, 2, 4, 3) }
 func TestKernelWorldsInFuzzGame3(t *testing.T)       { kernelWorldsInFuzzGame(t, 3, 1, 0) }
 func TestKernelWorldsInFuzzGame4(t *testing.T)       { kernelWorldsInFuzzGame(t, 4, 1, 0) }
 func TestKernelWorldsInFuzzGame5Shard0(t *testing.T) { kernelWorldsInLongGame(t, 5, 2, 0) }
