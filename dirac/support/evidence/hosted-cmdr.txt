@@ -1,3 +1,4 @@
+Abrade
 Acclaimed Contender
 Adaptive Omnitool
 Adeline, Resplendent Cathar
@@ -13,6 +14,7 @@ Angel of the Ruins
 Angelic Destiny
 Angelic Field Marshal
 Angelic Sleuth
+Anger
 Ankh of Mishra
 Arachnogenesis
 Arasta of the Endless Web
@@ -24,16 +26,21 @@ Arid Mesa
 Army of the Damned
 Arvad the Cursed
 Aryel, Knight of Windgrace
+Atsushi, the Blazing Sky
 Austere Command
 Ayara, First of Locthwain
 Bad Moon
 Barren Moor
+Basilisk Collar
 Beast Whisperer
 Beast Within
 Birds of Paradise
 Bishop of Wings
 Bite Down
+Bitter Reunion
+Bitterthorn, Nissa's Animus
 Blade Splicer
+Blasphemous Act
 Blight Titan
 Blood Artist
 Blood Seeker
@@ -43,18 +50,26 @@ Bloodline Pretender
 Bloodstained Mire
 Bojuka Bog
 Bonders' Enclave
+Bone Shredder
 Bontu's Monument
+Breaching Dragonstorm
+Breath Weapon
 Brimaz, Blight of Oreskos
 Broodstar
 Buried Ruin
 Burnished Hart
 Carnage Tyrant
+Carnelian Orb of Dragonkind
 Carrion Feeder
 Castle Locthwain
+Cataclysmic Gearhulk
 Cemetery Reaper
 Cemetery Recruitment
+Chain Reaction
 Challenger Troll
 Champion of the Perished
+Chandra's Ignition
+Chaos Warp
 Charcoal Diamond
 Chief of the Foundry
 Chivalric Alliance
@@ -70,8 +85,11 @@ Conjurer's Mantle
 Consumed by Greed
 Consuming Corruption
 Corpse Knight
+Count on Luck
 Counterspell
 Court of Grace
+Coveted Jewel
+Crucible of Fire
 Crypt Ghast
 Cryptbreaker
 Cultivator's Caravan
@@ -93,7 +111,15 @@ Despark
 Destroy Evil
 Diregraf Colossus
 Distant Melody
+Dragon Tempest
+Dragon's Hoard
+Dragonhawk, Fate's Tempest
+Dragonlord's Servant
+Dragonmaster Outcast
 Dragonskull Summit
+Dragonspeaker Shaman
+Dragonstorm Globe
+Drakuseth, Maw of Flames
 Dungrove Elder
 Duplicant
 Elder Gargaroth
@@ -120,11 +146,14 @@ Fateful Absence
 Fell the Mighty
 Fellwar Stone
 Fetid Heath
+Fire Diamond
 Firemane Commando
+Firespitter Whelp
 First-Sphere Gargantua
 Fleshbag Marauder
 Foreboding Ruins
 Forest
+Forgotten Cave
 Forsaken Monument
 Foulmire Knight
 Foundry Inspector
@@ -142,6 +171,8 @@ Gigantosaurus
 Go for the Throat
 God-Eternal Bontu
 Goddric, Cloaked Reveler
+Goldlust Triad
+Goldmire Bridge
 Goreclaw, Terror of Qal Sisma
 Graaz, Unstoppable Juggernaut
 Grasp of Fate
@@ -154,14 +185,17 @@ Gray Merchant of Asphodel
 Grim Tutor
 Haakon, Stromgald Scourge
 Harmonize
+Hazoret's Monument
 Headless Rider
 Hedron Archive
+Hellkite Charger
 Herald of Eternal Dawn
 Herald of Hoofbeats
 Herald of War
 Herald's Horn
 Heraldic Banner
 Hero of Bladehold
+Hit the Mother Lode
 Hulking Raptor
 Ichor Elixir
 Ichor Wellspring
@@ -184,7 +218,9 @@ Knight of the Last Breath
 Knight of the White Orchid
 Knights of the Black Rose
 Knights' Charge
+Lathliss, Dragon Queen
 Launch Mishap
+Lightning Bolt
 Liliana's Mastery
 Liliana's Reaver
 Liliana's Standard Bearer
@@ -197,6 +233,8 @@ Loot, Exuberant Explorer
 Lord of the Accursed
 Lord of the Undead
 Lyra Dawnbringer
+Magmaquake
+Mana Geyser
 Managorger Hydra
 Marble Diamond
 Marchesa's Decree
@@ -216,6 +254,7 @@ Metropolis Reformer
 Midnight Reaper
 Mind Stone
 Mind's Eye
+Minion of the Mighty
 Mire Triton
 Misleading Signpost
 Moan of the Unhallowed
@@ -235,13 +274,18 @@ Negate
 Nettlecyst
 Nevinyrral's Disk
 Night's Whisper
+Nogi, Draco-Zealot
 Norn's Choirmaster
+Noxious Gearhulk
 Noxious Ghoul
 Ojer Axonil, Deepest Might
 Open the Graves
+Orb of Dragonkind
 Order of Midnight
 Ornithopter of Paradise
+Orzhov Locket
 Orzhov Signet
+Outpost Siege
 Overencumbered
 Oversold Cemetery
 Overwhelming Stampede
@@ -249,9 +293,11 @@ Padeem, Consul of Innovation
 Painful Truths
 Palladium Myr
 Paradise Druid
+Parapet Thrasher
 Patchwork Banner
 Path of Ancestry
 Path of the Enigma
+Path of the Schemer
 Path to Exile
 Phyrexian Arena
 Phyrexian Delver
@@ -276,6 +322,7 @@ Radiant Fountain
 Rakdos Signet
 Rakdos, Lord of Riots
 Ram Through
+Rapacious Dragon
 Razorkin Needlehead
 Razorlash Transmogrant
 Read the Bones
@@ -292,13 +339,18 @@ Rishkar's Expertise
 Rishkar, Peema Renegade
 Rogue's Passage
 Sai, Master Thopterist
+Sarkhan, Dragon Ascendant
 Scalding Tarn
 Scavenger Grounds
 Scavenging Ooze
+Scourge of Valkas
+Scourge of the Throne
 Scrap Trawler
 Scrapshooter
 Scrawling Crawler
 Screaming Nemesis
+Sculpting Steel
+Scytheclaw
 Search the Premises
 Secluded Steppe
 Secret Rendezvous
@@ -314,12 +366,14 @@ Sheoldred, the Apocalypse
 Shimmer Dragon
 Shimmer Myr
 Shineshadow Snarl
+Shivan Devastator
 Sidar Jabari of Zhalfir
 Sigiled Sword of Valeron
 Sign in Blood
 Silver Myr
 Silverquill Campus
 Silverwing Squadron
+Skyline Despot
 Skysovereign, Consul Flagship
 Smitten Swordmaster
 Smoldering Marsh
@@ -328,8 +382,10 @@ Soul of New Phyrexia
 Soul-Guide Lantern
 Soulless One
 Speaker of the Heavens
+Spinerock Knoll
 Spire Golem
 Spire of Industry
+Spit Flame
 Starnheim Aspirant
 Steel Hellkite
 Steel Leaf Champion
@@ -352,6 +408,7 @@ Talisman of Indulgence
 Tamiyo's Logbook
 Tamiyo's Safekeeping
 Tangleweave Armor
+Taurean Mauler
 Temple of Deceit
 Temple of Enlightenment
 Temple of Silence
@@ -359,6 +416,8 @@ Temple of the False God
 Tendrils of Corruption
 Terramorphic Expanse
 Terrian, World Tyrant
+Terror of Mount Velus
+The Elder Dragon War
 The Meathook Massacre
 The One Ring
 Thickest in the Thicket
@@ -371,20 +430,26 @@ Thoughtcast
 Thraben Watcher
 Thran Dynamo
 Thrashing Brontodon
+Thrill of Possibility
 Thriving Heath
 Thriving Isle
 Thriving Moor
+Thunderbreak Regent
+Thundermane Dragon
 Time Wipe
 Tome of Legends
 Torment of Hailfire
 Tranquil Thicket
+Tyrant's Familiar
 Unbreakable Formation
 Undead Augur
 Undead Butler
 Undead Warchief
 Underworld Dreams
+Unexpected Windfall
 Unnatural Growth
 Utter End
+Utvara Hellkite
 Valgavoth, Harrower of Souls
 Valiant Knight
 Valorous Stance
@@ -403,6 +468,7 @@ Vodalian Wave-Knight
 Vona, Butcher of Magan
 Vulpine Harvester
 War Room
+Warstorm Surge
 Wayfarer's Bauble
 Whiptongue Hydra
 Whirler Rogue

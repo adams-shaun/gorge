@@ -1,0 +1,3 @@
+# ev-cmdr-ob-nixilis-captive-kingpin: Ob Nixilis, Captive Kingpin, unverified in hosted-cmdr (cli-20261127T171913Z-f639e8e4)
+# replay: host pool tail-76; kfuzz -synth tail-76 -synth-with "$(kfuzz -list-synth | paste -sd,)" -focus dirac/support/focus/ev-cmdr-ob-nixilis-captive-kingpin.txt -seed 1 -pairs 1 -surface full -mulligans 0
+Ob Nixilis, Captive Kingpin

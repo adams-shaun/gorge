@@ -1,0 +1,3 @@
+# ev-cmdr-party-thrasher: Party Thrasher, unverified in hosted-cmdr (cli-20261127T171913Z-f639e8e4)
+# replay: host pool tail-35; kfuzz -synth tail-35 -synth-with "$(kfuzz -list-synth | paste -sd,)" -focus dirac/support/focus/ev-cmdr-party-thrasher.txt -seed 1 -pairs 1 -surface full -mulligans 0
+Party Thrasher

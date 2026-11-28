@@ -1,0 +1,3 @@
+# ev-cmdr-famished-worldsire: Famished Worldsire, unverified in hosted-cmdr (cli-20261127T171913Z-f639e8e4)
+# replay: host pool tail-06; kfuzz -synth tail-06 -synth-with "$(kfuzz -list-synth | paste -sd,)" -focus dirac/support/focus/ev-cmdr-famished-worldsire.txt -seed 1 -pairs 1 -surface full -mulligans 0
+Famished Worldsire
