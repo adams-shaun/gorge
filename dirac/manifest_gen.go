@@ -88,28 +88,31 @@ const raLearnDiscard uint8 = 166
 // OpMoveCounterAny: the 0..held amount pick of gorge's "move_counter" KChoose (Forgotten Ancient's move any number of counters, CR 122.5; ctr_moveany.go)
 const raMoveCounterAny uint8 = 168
 
+// ask (dirac/manifest/ask/raNumberElection)
+const raNumberElection uint8 = 169
+
 // ask (dirac/manifest/ask/raPair)
 //
 // the Soulbond partner pick of ExtPair (CR 702.95a; kw_soulbond.go pairExt): up to one unpaired creature the trigger's controller controls, gorge effPair's Min 0 Max 1 KChoose; AkDone declines.
-const raPair uint8 = 169
+const raPair uint8 = 170
 
 // ask (dirac/manifest/ask/raPodClashOpp)
-const raPodClashOpp uint8 = 170
+const raPodClashOpp uint8 = 171
 
 // ask (dirac/manifest/ask/raRingBearer)
 //
 // the Ring-bearer choice of ExtRingTemptsYou (CR 701.54a; act_ring.go ringTemptsExt): the tempted player's pick among the creatures they control, the deterministic default (the existing Ring-bearer when still controlled, else the first eligible in zone order) offered first exactly as gorge's KChoose does.
-const raRingBearer uint8 = 171
+const raRingBearer uint8 = 172
 
 // ask (dirac/manifest/ask/raRingLoot)
 //
 // the loot discard of the Ring emblem's level 2 (CR 701.54c; act_ring.go ringLootDiscard): the looting player discards one card of their choice from their hand, gorge's Draw You 1 with the Discard You TgtChoose 1 Sub.
-const raRingLoot uint8 = 172
+const raRingLoot uint8 = 173
 
 // ask (dirac/manifest/ask/raTrigDemoOpp)
 //
 // the demonstrate trigger's opponent pick (CR 702.152a; gorge effDemonstrate stage 1): which living opponent also copies the spell, asked with two or more of them (kw_demonstrate.go).
-const raTrigDemoOpp uint8 = 173
+const raTrigDemoOpp uint8 = 174
 
 // key named card (dirac/manifest/key/keyNamedCard)
 const keyNamedCard key = 0
@@ -894,6 +897,8 @@ func (s *State) execExtGen(k *prep, in *kop.Instr) (ok, done bool) {
 		return s.changeTargetsMass(k, in) // act_stackrewrite.go
 	case kop.ExtChaosEnsues:
 		return s.chaosEnsuesExt(k, in) // zone_planechase.go
+	case kop.ExtChooseNumberElection:
+		return s.numberElectionExt(k, in) // act_numberelection.go
 	case kop.ExtChoosePlayerEach:
 		return s.choosePlayerEachOp(k, in) // act_pileseach.go
 	case kop.ExtChooseSource:
@@ -1045,6 +1050,9 @@ func (s *State) askOptionsGen(k *prep, d *Decision) bool {
 	case raMoveCounterAny:
 		s.moveCounterAnyOptions(k, d) // ctr_moveany.go
 		return true
+	case raNumberElection:
+		s.numberElectionOptions(k, d) // act_numberelection.go
+		return true
 	case raPair:
 		s.pairAskOptions(k, d) // kw_soulbond.go
 		return true
@@ -1114,6 +1122,9 @@ func (s *State) applyAskGen(k *prep, a Action) bool {
 		return true
 	case raMoveCounterAny:
 		s.moveCounterAnyAnswer(k, a) // ctr_moveany.go
+		return true
+	case raNumberElection:
+		s.numberElectionAnswer(k, a) // act_numberelection.go
 		return true
 	case raPair:
 		s.pairAskAnswer(k, a) // kw_soulbond.go

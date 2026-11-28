@@ -23,6 +23,7 @@ func init() {
 	instrOp("ChoosePlayerEach", (*instrCtx).opChoosePlayerEach)
 	instrOp("ChooseNumber", (*instrCtx).opChooseNumber)
 	instrOp("ChooseNumberMid", (*instrCtx).opChooseNumberMid)
+	instrOp("ChooseNumberElection", (*instrCtx).opChooseNumberElection)
 	instrOp("NameCard", (*instrCtx).opNameCard)
 	instrOp("ClearNamedCard", (*instrCtx).opClearNamedCard)
 }
@@ -181,5 +182,13 @@ func (ic *instrCtx) opNameCard() error {
 func (ic *instrCtx) opClearNamedCard() error {
 	// gorge `DB$ Cleanup | ClearNamedCard$ True` (lower_namecard.go)
 	ic.ki.Op, ic.ki.A = kop.OpExt, kop.Const(int(kop.ExtClearNamedCard))
+	return nil
+}
+
+func (ic *instrCtx) opChooseNumberElection() error {
+	ki := &ic.ki
+	// the secret election (lower_choosenumber_election.go): Obj the targeted
+	// opponent, B the Max$ value, C the Min$ floor plus the has-Max flag
+	ki.Op, ki.A, ki.C = kop.OpExt, kop.Const(int(kop.ExtChooseNumberElection)), int16(ic.in.C)
 	return nil
 }
