@@ -114,7 +114,7 @@ func revertStepRepoWith(t *testing.T, extra map[string]string) (repo, culprit, h
 	return repo, culprit, head
 }
 
-// runRevertStep runs the extracted step text as Actions would (bash -e -o pipefail) with gh stubbed to log its
+// runRevertStep runs the extracted step text as Actions would (bash -e, no pipefail) with gh stubbed to log its
 // commands and bodies, and, when STUB_OPEN_PR is set, to answer pr list with that open PR number. culprit and head
 // are the real shas of the temp repo: the step really reverts and switches on them.
 func runRevertStep(t *testing.T, repo, script, culprit, head, openPR string) (log string, code int) {
@@ -143,7 +143,7 @@ esac
 `, 0o755)
 	ghLog := filepath.Join(root, "gh.log")
 	write(t, filepath.Join(repo, "step.sh"), script, 0o755)
-	c := exec.Command("bash", "--noprofile", "--norc", "-e", "-o", "pipefail", "step.sh")
+	c := exec.Command("bash", "--noprofile", "--norc", "-e", "step.sh")
 	c.Dir = repo
 	path, _ := os.LookupEnv("PATH")
 	env := map[string]string{

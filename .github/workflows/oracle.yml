@@ -250,8 +250,12 @@ jobs:
           refused="refusal path not run"
           if [ -f scripts/oracle-refuse-instead.sh ]; then
             git switch -q --detach "$GITHUB_SHA"
-            rc=0
-            timeout 40m bash scripts/oracle-refuse-instead.sh "$CULPRIT" failing.txt "hotfix/auto-refuse-$PR" | tee refuse.out || rc=$?
+            # The default shell is bash -e without pipefail: take the script's own exit, not tee's. -k 2m bounds a
+            # TERM the script's trap only sees after its foreground child (go test, make) returns.
+            set +e
+            timeout -k 2m 40m bash scripts/oracle-refuse-instead.sh "$CULPRIT" failing.txt "hotfix/auto-refuse-$PR" | tee refuse.out
+            rc=${PIPESTATUS[0]}
+            set -e
             if [ "$rc" = 0 ]; then
               git push --force origin "hotfix/auto-refuse-$PR"
               {
