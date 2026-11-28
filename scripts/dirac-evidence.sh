@@ -14,11 +14,12 @@
 #               python3 dirac/oracle/pools/decks.py --set HOSTED-CMDR --from-decks <those decks, each
 #               copy's "name" set to its file stem> --deck-size 100 --max-refused 100 --allow-unverified
 #               --label sim <pools>/hosted-cmdr;
-#               the tree dirac/oracle/pools.go pins is that build before its own refusals, then
-#               decks.py run again over its decks (--from-decks <that tree>/decks, same flags) with one
-#               --also-refuse for each card that kept four-seat pods refused-pair: "Archangel of Tithes",
-#               "Ashaya, Soul of the Wild", "Cabal Therapy", "Glacial Chasm", "Incubation Druid",
-#               "Lion's Eye Diamond", "Propaganda"
+#               the tree dirac/oracle/pools.go pins is a second pass over the previously pinned 17-deck
+#               tree (digest 6f3ab46d..., the committed slice before the swap), not over a fresh run of
+#               the command above, whose input decks have moved since: decks.py --from-decks
+#               <that tree>/decks, the same other flags, and one --also-refuse for each card that kept
+#               four-seat pods refused-pair: "Archangel of Tithes", "Ashaya, Soul of the Wild",
+#               "Cabal Therapy", "Glacial Chasm", "Incubation Druid", "Lion's Eye Diamond", "Propaganda"
 #   fdc-gaps    dirac/support/pools/fdc-gaps: four committed 50-card decks holding the five Foundations
 #               Commander cards the fdc-gaps lowerings add, played 2-seat as -kernel fdn -set cmd5
 #               (its verdict line reads cmd5:, see run_kernel in scripts/dirac-first-refusals.py)
