@@ -100,10 +100,28 @@ git diff --quiet "$base" HEAD -- && { echo "pr-submit: the branch adds nothing t
 # 3. pr-precheck on the exact head. timeout signals its whole process group.
 head=$(git rev-parse HEAD)
 log=$(mktemp); trap 'rm -f "$log"' EXIT
-timeout -k 10 "${PR_SUBMIT_PRECHECK_TIMEOUT:-900}" bash scripts/pr-precheck.sh "$base" 2>&1 | tee "$log"
-prc=${PIPESTATUS[0]}
-[ "$prc" -eq 0 ] && [ "$(tail -n 1 "$log")" = "pr-precheck: ok" ] ||
-  fail "pr-precheck failed on $head (exit $prc): $(tail -n 1 "$log"); nothing pushed"
+precheck() {
+  timeout -k 10 "${PR_SUBMIT_PRECHECK_TIMEOUT:-900}" bash scripts/pr-precheck.sh "$base" 2>&1 | tee "$log"
+  prc=${PIPESTATUS[0]}
+  [ "$prc" -eq 0 ] && [ "$(tail -n 1 "$log")" = "pr-precheck: ok" ] ||
+    fail "pr-precheck failed on $head (exit $prc): $(tail -n 1 "$log"); nothing pushed"
+}
+# refusals_only FROM TO: TO descends from FROM by refuse-on-red.sh's apply-mode commits alone (its subject, only dirac/
+# paths). That is the one precheck step that moves HEAD (REFUSE_ON_RED=apply); a merge or any other commit is not one.
+refusals_only() {
+  git merge-base --is-ancestor "$1" "$2" || return 1
+  [ -z "$(git log --format=%s "$1..$2" | grep -v -E '^dirac: refuse [0-9]+ cards the rules fix diverges on$')" ] || return 1
+  [ -z "$(git diff --name-only "$1" "$2" -- | grep -v '^dirac/')" ]
+}
+precheck
+# A refusal commit is checked by one more pr-precheck run on it (its dirac/ diff runs the support ledger, and
+# refuse-on-red is n/a on it), then pushed: the first pr-submit after an apply-mode refusal succeeds.
+now=$(git rev-parse HEAD)
+if [ "$now" != "$head" ] && git diff --quiet HEAD -- && refusals_only "$head" "$now"; then
+  echo "pr-submit: pr-precheck committed refusals ($(git rev-parse --short=10 "$now")); checking that head too"
+  head=$now
+  precheck
+fi
 [ "$(git rev-parse HEAD)" = "$head" ] && git diff --quiet HEAD -- || fail "the tree moved during pr-precheck; nothing pushed"
 
 # 4. Push the checked head, then open the PR or reuse the open one.
