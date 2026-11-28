@@ -49,14 +49,17 @@ func (s *State) offerCommanderSlot(k *prep, d *Decision, p uint8, av *avail, o O
 		s.offerDashCommand(k, d, p, o, c, av) // kw_dash.go: before the plain affordability gate
 	}
 	cost := pc.cost
-	if k.gen != nil && k.gen.anyConvoke && s.isImprovise(k, p, c, o, false) && !s.hasConvoke(k, p, c, o, false) && !DebugCommanderNoCredit {
-		// gorge's offer credits a command-zone cast's printed generic with its
-		// untapped artifacts (improvise alone) before the tax and the statics
-		// (CR 702.126a, 903.8); a convoke grant (We Ride at Dawn over Olivia) is
-		// no credit there: gorge prices the raw cost and withholds the cast
+	addCommanderTax(&cost, s.commanderTax(p, o))
+	if k.gen != nil && k.gen.anyConvoke && !DebugCommanderNoCredit {
+		// CR 702.51a, 702.126a, 903.8: convoke and improvise pay the spell's
+		// TOTAL cost, and the commander tax is part of that total, so the
+		// greedy tap credit is taken AFTER the tax joins the generic -- a
+		// spare untapped creature or artifact pays the {2} as it pays the
+		// printed generic (gorge offerCastableCommander/convokeTaxOfferCredit).
+		// The keywords are read inside convokeCreditUsed off the card's own
+		// controller (creditReader), so no outer keyword gate.
 		cost = s.convokeCreditFrom(k, p, c, o, false, cost)
 	}
-	addCommanderTax(&cost, s.commanderTax(p, o))
 	raw := cost
 	if s.statM.any() || k.gen != nil {
 		// the same reduction the hand walk composes (adjustFit), over the
@@ -110,8 +113,9 @@ func (s *State) commanderTax(p uint8, o Obj) uint8 {
 	return uint8(t)
 }
 
-// DebugCommanderNoCredit (test only) leaves the improvise credit off the
-// command-zone offer's price, the old behaviour.
+// DebugCommanderNoCredit (test only) leaves the convoke/improvise tap credit
+// off the command-zone offer's price (both taxed and untaxed casts), the
+// old behaviour.
 var DebugCommanderNoCredit bool
 
 // DebugFreeCmdNoTax (test only, TestPlayCommandZoneLowers): a free cast

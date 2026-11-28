@@ -80,6 +80,57 @@ func (e *Engine) castOfferBase(p state.PlayerID, id state.ObjID) Cost {
 	return base
 }
 
+// convokeTaxOfferCredit is the CR 702.51 Convoke / CR 702.126 Improvise
+// offer credit measured over the CR 903.8 taxed total, for the command-zone
+// plain cast offer. castOfferBase credits the taps against the printed cost
+// only and offerCostFor then adds the commander tax on top, so the credit
+// never reaches the tax; but convoke and improvise pay the spell's TOTAL
+// cost (CR 702.51a, 702.126a) and the tax is part of that total (CR 903.8),
+// so a commander's spare untapped creatures and artifacts pay the {2}
+// exactly as they pay the printed generic. The gate answers what the
+// payment charges: manaToPay composes mods.ApplyTaxed(resolvedMana,
+// taxGeneric) and convokeAsk prices the announcement over that taxed total.
+//
+// The credit is castOfferBase's own greedy pass (convokeCost then
+// improviseCost, so one permanent is never committed twice and the two
+// readings cannot drift) over the base with the tax folded into the
+// generic, returned as the committed credit in extra offer reductions: a
+// plain generic reduction for generic paid and an IgnoreGeneric per-pip
+// reduction for each colour face a convoke creature paid, which the
+// composition applies after the tax joins the generic -- the same shape and
+// placement the assist credit takes. Returns nil with neither keyword or
+// when the pass commits nothing; with a zero tax (a commander's first cast)
+// it is exactly castOfferBase's credit, so the first cast reads the same
+// credit a hand cast gets.
+func (e *Engine) convokeTaxOfferCredit(p state.PlayerID, id state.ObjID, base Cost, tax int32) []costMod {
+	if !e.hasCastConvoke(id) && !e.hasCastImprovise(id) {
+		return nil
+	}
+	taxed := base
+	taxed.Generic = addClampedGeneric(taxed.Generic, int64(tax))
+	credited, taps := e.convokeCost(p, id, taxed)
+	credited, arts := e.improviseCost(p, id, credited, taps)
+	if len(taps) == 0 && len(arts) == 0 {
+		return nil
+	}
+	var out []costMod
+	if g := taxed.Generic - credited.Generic; g > 0 {
+		out = append(out, costMod{Generic: g})
+	}
+	var pip costMod
+	for i := range credited.Colored {
+		if d := taxed.Colored[i] - credited.Colored[i]; d > 0 {
+			pip.HasColor = true
+			pip.IgnoreGeneric = true
+			pip.Colored[i] = d
+		}
+	}
+	if pip.HasColor {
+		out = append(out, pip)
+	}
+	return out
+}
+
 // offerCostFor is the CR 601.2f-composed cost an offer is gated on: the
 // selected base cost (a spell's printed mana cost, or an alternative/
 // flashback/surge/kicker cost) plus (for a spell) the CR 903.8 commander tax,
