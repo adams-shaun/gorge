@@ -45,6 +45,10 @@ const (
 	crIndexHeader     = "id\tkind\ttitle\tin_scope\texamples"
 	crUnknownRowsFile = "cr-index-unknown-rows.txt"
 	crUncoveredFile   = "cr-index-uncovered.txt"
+
+	// deviates-untested.txt lists the rule cells of deviates rows that name
+	// no test yet; it only shrinks.
+	crDeviatesUntestedFile = "deviates-untested.txt"
 )
 
 // crStatuses is the closed status vocabulary, in summary-column order.
@@ -90,6 +94,7 @@ func TestCRCoverageIsCurrent(t *testing.T) {
 	decls := map[string]map[string]bool{}
 	tests := crTestNames(t, root)
 	seen := map[string]string{}
+	untested := map[string]string{}
 	for _, r := range rows {
 		at := fmt.Sprintf("%s:%d (%s)", r.file, r.line, r.rule)
 		if !crRuleID.MatchString(r.rule) {
@@ -101,6 +106,9 @@ func TestCRCoverageIsCurrent(t *testing.T) {
 		seen[r.rule] = at
 		if !crKnownStatus(r.status) {
 			t.Errorf("%s: status %q is not one of %v", at, r.status, crStatuses)
+		}
+		if r.status == "deviates" && len(r.tests) == 0 {
+			untested[r.rule] = fmt.Sprintf("%s: deviates needs a test that pins what the engine does", at)
 		}
 		if (r.status == "follows" || r.status == "partial" || r.status == "deviates") && len(r.code) == 0 {
 			t.Errorf("%s: status %s needs at least one code reference", at, r.status)
@@ -148,6 +156,7 @@ func TestCRCoverageIsCurrent(t *testing.T) {
 			}
 		}
 	}
+	checkCRAllowList(t, crDeviatesUntestedFile, untested)
 	checkCRSummary(t, rows)
 	checkCRIndexCoverage(t, rows, readCRIndex(t))
 	// status vs registry
