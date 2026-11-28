@@ -738,6 +738,54 @@ func SacXMana(a *Ability) bool {
 	return SacXEachManaAb(a) || SacAnyManaAb(a) || SacTapAnyManaAb(a) || SacTapFixedManaAb(a) || SacXRestrManaAb(a)
 }
 
+// OtherSacPlanAb reports whether mana ability a is the closed
+// "sacrifice another permanent" shape gorge's payment planner admits as a
+// last-resort step with named victims (pay.PaymentPlanShapeTierOf's Sac arm,
+// pay.PlanOtherSacShape): one of the honoured sacrifice-another production
+// shapes, {T} optional, whose victim filter is a creature filter (Forge's
+// spec base word Creature -- Ashnod's Altar's Sac<1/Creature>, Phyrexian
+// Altar's). The two-colours-each shape (SacXEachManaAb, Bolg's Company) and
+// the spend-restricted one (SacXRestrManaAb) stay outside the plan tier for
+// now, as does a later ability beside a plain {T} first one (Phyrexian
+// Tower's, SecondSacTapManaAb): their kernel units need the dist/pair/second
+// machinery and are open tickets. A non-creature victim (Krark-Clan Ironworks'
+// artifact, Skirk Prospector's red creature) stays manual in gorge too.
+func OtherSacPlanAb(t *Table, a *Ability) bool {
+	if !OtherSacPlanProduction(a) {
+		return false
+	}
+	if a.Cost.Filter == 0 {
+		return false
+	}
+	f := &t.Filters[a.Cost.Filter]
+	return PlanOtherSacFilter(f) && f.Or == 0
+}
+
+// PlanOtherSacFilter reports whether fl is the plain creature victim gorge's
+// other-sacrifice plan admits (pay.PlanOtherSacShape: "creature" or
+// "creature.other"): a filter of exactly one creature with no subtype or other
+// condition. A Goblin, an artifact, a land or a named subtype stays the manual
+// sacrifice gorge's plan leaves alone.
+func PlanOtherSacFilter(fl *Filter) bool {
+	return fl.Types == TCreature && fl.NotTypes == 0 && fl.Sub == 0 && fl.NotSub == 0 &&
+		fl.Pred == 0 && (fl.Ctrl == CtrlAny || fl.Ctrl == CtrlYou) && fl.Owner == 0 &&
+		fl.Colors == 0 && fl.NotColors == 0 &&
+		fl.PickSumMax == (ValueRef{}) && !fl.PickDistinctPower && fl.CtrlTgt == 0 && fl.Flags2 == 0 &&
+		(fl.Flags == 0 || fl.Flags == FOther)
+}
+
+// OtherSacPlanProduction reports whether sacrifice-another mana ability a
+// makes a production gorge's other-sacrifice plan tier admits
+// (pay.planOtherSacProductionOK): a fixed amount of one colour with no {T}
+// (SacAnyManaAb's fixed arm, Ashnod's Altar's {C}{C}), or one mana of any
+// colour with or without the {T} (SacAnyManaAb's or SacTapAnyManaAb's
+// any-colour arm, Phyrexian Altar's). A fixed colour behind the {T}
+// (SacTapFixedManaAb, Phyrexian Tower's {B}{B}), a spend-restricted
+// production (SacXRestrManaAb) and a two-colours-each one (SacXEachManaAb)
+// stay deferred there, so no kernel arm that mirrors the plan may price them
+// as a planned source.
+func OtherSacPlanProduction(a *Ability) bool { return SacAnyManaAb(a) || SacTapAnyManaAb(a) }
+
 // SacXAnyColour reports whether sacrifice-another mana ability a makes one
 // mana of any colour: its activation asks the colour after the sacrifice.
 func SacXAnyColour(a *Ability) bool { return a.ManaColors == ColAny && SacXMana(a) }

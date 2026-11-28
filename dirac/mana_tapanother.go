@@ -1778,23 +1778,29 @@ func (rs *tapXSearch) sacLast(k *prep, t *State, sl Slot, cs *[MaxPerm]Slot, any
 
 // planOtherSacFilter reports whether fl is the plain creature victim gorge's
 // other-sacrifice plan admits (pay.PlanOtherSacShape): a filter of exactly one
-// creature with no subtype or other condition. A Goblin, an artifact, a land
-// or a named subtype stays the manual sacrifice gorge's plan leaves alone, and
-// keeps battlefield order.
-func planOtherSacFilter(fl *kop.Filter) bool {
-	return fl.Types == kop.TCreature && fl.NotTypes == 0 && fl.Sub == 0 && fl.NotSub == 0 &&
-		fl.Pred == 0 && (fl.Ctrl == kop.CtrlAny || fl.Ctrl == kop.CtrlYou) && fl.Owner == 0 &&
-		fl.Colors == 0 && fl.NotColors == 0 &&
-		fl.PickSumMax == (kop.ValueRef{}) && !fl.PickDistinctPower && fl.CtrlTgt == 0 && fl.Flags2 == 0 &&
-		(fl.Flags == 0 || fl.Flags == kop.FOther)
-}
+// creature with no subtype or other condition (kop.PlanOtherSacFilter, which
+// kop.OtherSacPlanAb shares). A Goblin, an artifact, a land or a named subtype
+// stays the manual sacrifice gorge's plan leaves alone, and keeps battlefield
+// order.
+func planOtherSacFilter(fl *kop.Filter) bool { return kop.PlanOtherSacFilter(fl) }
 
 // planOtherSacSource reports whether sl is a source whose mana ability pays a
-// plain creature victim (planOtherSacFilter): a source gorge's other-sacrifice
-// plan enumerates in object-id order.
+// plain creature victim (planOtherSacFilter) for a production gorge's plan
+// tier admits (kop.OtherSacPlanProduction; Phyrexian Tower's {T}-gated {B}{B}
+// is deferred there): a source gorge's other-sacrifice plan enumerates in
+// object-id order. It is the searches' stand-in for gorge's planned step, so
+// it holds only for a source the kernel's planner does not unit itself.
 func (s *State) planOtherSacSource(k *prep, sl Slot) bool {
 	ab := k.tapXAbOf(s.cardAt(sl))
-	return ab != nil && ab.Cost.Flags&kop.CostSac != 0 && planOtherSacFilter(&k.t.Filters[ab.Cost.Filter])
+	if ab == nil || ab.Cost.Flags&kop.CostSac == 0 || !kop.OtherSacPlanProduction(ab) ||
+		!planOtherSacFilter(&k.t.Filters[ab.Cost.Filter]) {
+		return false
+	}
+	// The kernel's planner units this source itself (mana_othersac.go): its
+	// planned step runs there with the ranked victim, so a search activation
+	// is one of gorge's prefix steps, walked and answered in engine order.
+	_, planned := s.otherSacAb(k, sl, s.manaPCGen(k, sl))
+	return !planned
 }
 
 // planOtherSacSourceOrder reorders the plain-creature sacrifice sources among

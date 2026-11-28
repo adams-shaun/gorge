@@ -1188,7 +1188,8 @@ func (s *State) ungrAvail(k *prep, p uint8, ex Slot, av *avail, ms *modalSet, sk
 // candidates is no plan: the granted mana is a prefix activated first (CR
 // 601.2g-h), and the printed plan then pays with the candidates still there.
 func (s *State) affordsUngrantedPlay(k *prep, p uint8, a Action, cost *kop.ManaCost, ex Slot, d payDesc) bool {
-	return s.affordsUngrantedPlayAv(k, p, a, cost, ex, d, nil, nil)
+	return s.affordsUngrantedPlayAv(k, p, a, cost, ex, d, nil, nil) || s.affordsUngrantedActOtherSac(k, p, a, cost, ex, d) ||
+		s.affordsUngrantedCastOtherSac(k, p, a, cost, ex, d)
 }
 
 // affordsUngrantedPlayAv is affordsUngrantedPlay over a caller-built census

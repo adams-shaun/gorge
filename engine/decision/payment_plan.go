@@ -25,6 +25,12 @@ const PaymentPlanV1 uint32 = 1
 // MaxPaymentActivations bounds one V1 witness before it is hashed or searched.
 const MaxPaymentActivations = 64
 
+// MaxPaymentSacrifices bounds one step's named victims. The V1 other-sacrifice
+// shape is one non-self Sac<1/Creature> part, so a step names exactly one
+// (pay.PaymentPlanSacrificeVictims); the bound also keeps validateShape's
+// duplicate scan linear in the witness.
+const MaxPaymentSacrifices = 1
+
 // MaxPaymentPlanSearchNodes is the rules planner's per-cast deterministic
 // resource budget. The planner lives in engine/rules/pay; the public bound belongs
 // here because it is part of the V1 contract.
@@ -521,6 +527,9 @@ func (p PaymentPlan) validateShape() error {
 		others := a.Consequence != nil && a.Consequence.SacrificeOthers
 		if others != (len(a.Sacrifices) > 0) {
 			return fmt.Errorf("payment activation %d victims %v, other-sacrifice %v", i, a.Sacrifices, others)
+		}
+		if len(a.Sacrifices) > MaxPaymentSacrifices {
+			return fmt.Errorf("payment activation %d names %d victims, maximum is %d", i, len(a.Sacrifices), MaxPaymentSacrifices)
 		}
 		for j, v := range a.Sacrifices {
 			if v == 0 {
