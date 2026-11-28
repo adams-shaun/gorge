@@ -36,11 +36,14 @@ func (r *Registry) AllMatches() []protocol.MatchInfo {
 // decks still counts each seat.
 //
 // Decks with fewer than minGames games are dropped. Output is sorted by win
-// rate desc, games desc, name asc; win_rate is wins/games.
+// rate desc, games desc, name asc; win_rate is wins/games. Pilots and Seats
+// name the counted matches' distinct bot policies (sorted) and seat counts
+// (ascending), never nil.
 func TallyDecks(matches []protocol.MatchInfo, minGames int) protocol.DeckTally {
 	type acc struct{ w, l, d int }
 	by := map[string]*acc{}
 	counted := 0
+	pilots, seats := map[string]bool{}, map[int]bool{}
 	for _, m := range matches {
 		if m.State != protocol.MatchFinished || len(m.Seats) < 2 {
 			continue
@@ -62,6 +65,8 @@ func TallyDecks(matches []protocol.MatchInfo, minGames int) protocol.DeckTally {
 			continue
 		}
 		counted++
+		pilots[m.BotPolicy] = true
+		seats[len(m.Seats)] = true
 		for i, s := range m.Seats {
 			a := by[s.Deck]
 			if a == nil {
@@ -78,7 +83,15 @@ func TallyDecks(matches []protocol.MatchInfo, minGames int) protocol.DeckTally {
 			}
 		}
 	}
-	out := protocol.DeckTally{Decks: []protocol.DeckRecord{}, MinGames: minGames, MatchesCounted: counted}
+	out := protocol.DeckTally{Decks: []protocol.DeckRecord{}, MinGames: minGames, MatchesCounted: counted, Pilots: []string{}, Seats: []int{}}
+	for p := range pilots { // order is erased by the sort below
+		out.Pilots = append(out.Pilots, p)
+	}
+	sort.Strings(out.Pilots)
+	for n := range seats { // order is erased by the sort below
+		out.Seats = append(out.Seats, n)
+	}
+	sort.Ints(out.Seats)
 	for name, a := range by { // order is erased by the sort below
 		g := a.w + a.l + a.d
 		if g < minGames || g == 0 {
