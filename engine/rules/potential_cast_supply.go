@@ -67,11 +67,14 @@ func castOutrunsSupply(e castSupplyHost, p state.PlayerID, o decision.Option, su
 // plus, for each untapped source, the most any one of its mana abilities
 // nets -- the mana it makes and the deterministic tap extra, less its mana
 // fee. Every such ability must cost the source's own {T}, so the search
-// activates each source at most once (pathPaidTap: CR 107.5, 605.3a); ok is
-// false when one does not, when its amount is not a literal (a "for each"
-// count, an {X} fee), or when a card off the battlefield has a mana ability
-// p could activate, or when its production is a shape tapMadeAtMost does
-// not know (a Special production), so no bound is claimed.
+// activates each source at most once (pathPaidTap: CR 107.5, 605.3a). A
+// tapped source's {T} ability adds nothing (CR 107.5: it can't pay the tap),
+// while a non-{T} mana ability stays activatable through the tap and may be
+// repeatable (a Prism token's sacrifice), so one claims no bound. ok is
+// false when a {T} ability's amount is not a literal (a "for each" count, an
+// {X} fee), when a card off the battlefield has a mana ability p could
+// activate, or when its production is a shape tapMadeAtMost does not know
+// (a Special production).
 func censusTapSupply(e castSupplyHost, p state.PlayerID) (supply int32, ok bool) {
 	g := e.Game()
 	pl := &g.Players[p]
@@ -90,14 +93,27 @@ func censusTapSupply(e castSupplyHost, p state.PlayerID) (supply int32, ok bool)
 	}
 	for _, id := range g.Zone(state.ZBattlefield, p) {
 		o := g.Obj(id)
-		if o == nil || o.Tapped {
+		if o == nil {
 			continue
 		}
 		best := int32(0)
 		for _, ma := range e.appendAvailableManaAbilitiesGate(nil, nil, p, id, true) {
 			mp := effects.ManaOf(ma)
 			cost := e.manaAbilityCC(p, id, ma).Cost
-			if !cost.Tap || cost.X != 0 || cost.XMin != 0 || mp.Each.Present || !mp.AmountIsLit && mp.AmountTrim != "" || condSplitLiveSub(e, p, id, ma) != nil {
+			if !cost.Tap {
+				// A non-{T} mana ability (Diamond Kaleidoscope's sacrifice
+				// of a Prism token, Ashnod's Altar's) can be paid while the
+				// source is tapped and, unless it is once-only, more than
+				// once: the one-best-per-source count cannot bound it.
+				return 0, false
+			}
+			if o.Tapped {
+				// CR 107.5: a tapped permanent can't pay its own {T}, so
+				// this activation contributes nothing. Its non-{T}
+				// abilities were refused above.
+				continue
+			}
+			if cost.X != 0 || cost.XMin != 0 || mp.Each.Present || !mp.AmountIsLit && mp.AmountTrim != "" || condSplitLiveSub(e, p, id, ma) != nil {
 				return 0, false
 			}
 			made, known := tapMadeAtMost(ma, mp)
