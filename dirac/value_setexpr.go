@@ -33,6 +33,11 @@ type setOrd struct {
 // SetAndFilter keeps.
 type setVal struct {
 	objs objBits
+	// gone marks the members of objs that only a referent now naming a new
+	// object put there (CR 400.7): an object subject leaves them out
+	// (dropGone), SetControllerOf and SetOwnerOf still read them (gorge's
+	// CardController).
+	gone objBits
 	pl   uint8
 	ord  setOrd
 }
@@ -52,6 +57,23 @@ func (v *setVal) addObj(o Obj, ver uint8, ordered bool) {
 	if ordered {
 		v.ord.c[v.ord.n], v.ord.ver[v.ord.n] = TCode(o), ver
 		v.ord.n++
+	}
+}
+
+// addReferent adds the object a Self or trigger base names; gone, when the
+// referent now names a new object.
+func (v *setVal) addReferent(o Obj, gone bool) {
+	v.addObj(o, 0, false)
+	if gone && o < MaxObj {
+		v.gone.set(o)
+	}
+}
+
+// dropGone takes the gone members out of v before an op walks it as its
+// subject.
+func (v *setVal) dropGone() {
+	for i := range v.objs {
+		v.objs[i] &^= v.gone[i]
 	}
 }
 
@@ -125,13 +147,14 @@ func (s *State) setBase(k *prep, op kop.SetOp, ctx setCtx, v *setVal) {
 		s.setTargets(k, e, uint8(op.Arg), v)
 	case kop.SetSelf:
 		if o := ctx.ev.src; o != NoObj {
-			v.addObj(o, 0, false)
+			v.addReferent(o, e != nil && s.objs[o].zone == kop.ZoneBattlefield && s.selfReturned(e, &s.objs[o]))
 		}
 	case kop.SetController:
 		v.addPl(ctx.ev.ctrl, false)
 	case kop.SetTriggerObj:
 		if setTrigEntry(e) {
-			v.addObj(s.refObjCtx(kop.RefTriggerObj, ctx.ev), 0, false)
+			// rfTrigGone is the resolving entry's, as objRef reads it
+			v.addReferent(s.refObjCtx(kop.RefTriggerObj, ctx.ev), e == &s.res.e && s.res.flags&rfTrigGone != 0)
 		}
 	case kop.SetTriggerSource:
 		if setTrigEntry(e) {
@@ -226,10 +249,13 @@ func (v *setVal) addCode(c TCode, ver uint8) {
 }
 
 // setUnion folds b into a. A union keeps no slot order: its members walk in
-// object index order, then seat order.
+// object index order, then seat order. An object stays gone only if neither
+// operand holds it live.
 func setUnion(a, b *setVal) {
 	for i := range a.objs {
+		live := a.objs[i]&^a.gone[i] | b.objs[i]&^b.gone[i]
 		a.objs[i] |= b.objs[i]
+		a.gone[i] = a.objs[i] &^ live
 	}
 	a.pl |= b.pl
 	a.ord.on = false
@@ -336,16 +362,16 @@ func (s *State) setMembers(v *setVal, ctrl uint8, out *[MaxObj + MaxSeats]TCode,
 	return n
 }
 
-// setOps are the ops that take a RefSet subject (the design's 12, the ones
-// with the most Defined$ refusal carriers): ChangeZone's moves, Pump,
+// setOps are the ops that take a RefSet subject: the design's 12, the ones
+// with the most Defined$ refusal carriers (ChangeZone's moves, Pump,
 // PutCounter, DealDamage, Destroy, Sacrifice, Tap/Untap, GainLife/LoseLife,
-// Draw, Discard, GainControl and Animate.
+// Draw, Discard, GainControl and Animate), and SkipNextUntap.
 func setOp(op kop.Op) bool {
 	switch op {
 	case kop.OpExile, kop.OpBounce, kop.OpReturn, kop.OpToLibrary,
 		kop.OpPumpUntilEOT, kop.OpPutCounter, kop.OpDealDamage, kop.OpDestroy, kop.OpSacrifice,
 		kop.OpTap, kop.OpUntap, kop.OpGainLife, kop.OpLoseLife, kop.OpDraw, kop.OpDiscard,
-		kop.OpGainControl, kop.OpGainControlEOT, kop.OpAnimate:
+		kop.OpGainControl, kop.OpGainControlEOT, kop.OpAnimate, kop.OpSkipNextUntap:
 		return true
 	}
 	return false
@@ -396,6 +422,7 @@ func (s *State) execSet(k *prep, in *kop.Instr) bool {
 		panic("kernel: a RefSet instruction in an ability that targets every slot")
 	}
 	v := s.evalSet(k, ab, pc, setCtx{ev: s.ctxEntry(e)})
+	v.dropGone()
 	var list [MaxObj + MaxSeats]TCode
 	var vers [MaxObj + MaxSeats]uint8
 	n := s.setMembers(&v, e.ctrl, &list, &vers)
