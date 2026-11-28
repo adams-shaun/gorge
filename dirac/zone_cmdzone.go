@@ -252,6 +252,9 @@ func (s *State) cmdZoneAnswer(k *prep, a Action) {
 		}
 	case kop.OpSearchEx, kop.OpChooseMove:
 		s.finishSearchNow(k)
+	case kop.OpToLibraryChoice:
+		// the position is answered already: rerunning the op would ask it again
+		s.topBottomMove(k, in, p.link)
 	default:
 		s.exec(k, in)
 	}

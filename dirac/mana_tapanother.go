@@ -119,6 +119,53 @@ func (s *State) tapXCensusGap(k *prep, p uint8) slotMask {
 	return s.tapXSources(k, p, true)
 }
 
+// DebugNoSacCensusGap (test only) leaves sacCensusGap empty.
+var DebugNoSacCensusGap bool
+
+// sacCensusGap: p's sacrifice-another mana sources (Kykar, Wind's Fury's
+// "Sacrifice a Spirit: Add {R}"), with a candidate or none. gorge's window
+// census cannot price a sacrifice cost and, unlike a tap part
+// (castWindowTapPartsShort), never asks whether one can be paid
+// (castWindowSourceExcluded), so a source it priced nothing else of leaves
+// the census incomplete even beside no permanent to sacrifice (CR 601.2g).
+// windowGapSources drops the sources it does price.
+func (s *State) sacCensusGap(k *prep, p uint8) slotMask {
+	var m slotMask
+	if DebugNoSacCensusGap {
+		return m
+	}
+	for b := s.tapXSources(k, p, false); b.any(); b = b.rest() {
+		if sl := b.first(); k.tapXAbOf(s.cardAt(sl)).Cost.Flags&kop.CostSac != 0 {
+			m = m.with(sl)
+		}
+	}
+	return m
+}
+
+// windowGapSources keeps the sources of m (tapXCensusGap's and sacCensusGap's)
+// that leave gorge's window census incomplete (castWindowCensusComplete).
+// gorge asks why a source went unpriced only for one it priced nothing of, so a
+// source with a mana ability the window can take now, printed or granted
+// (Phyrexian Tower's {C}, Paradise Mantle's grant on Kykar), is no gap (CR
+// 605.1a). A spend-restricted ability (Master of Dark Rites') is a gap exactly
+// when its restriction admits the payment, priced or not (CR 106.6; gorge
+// castWindowRestrictedAdmits, castWindowSourceExcluded).
+func (s *State) windowGapSources(k *prep, p uint8, m slotMask) slotMask {
+	var out slotMask
+	for b := m; b.any(); b = b.rest() {
+		sl := b.first()
+		if a := k.tapXAbOf(s.cardAt(sl)); a.ManaRestrict != 0 || a.ManaRestrictAb != 0 {
+			if d := s.payDescNow(NoObj); !s.restrSrcAdmits(k, p, sl, a, &d) {
+				continue
+			}
+		} else if s.windowCanTap(k, sl) {
+			continue
+		}
+		out = out.with(sl)
+	}
+	return out
+}
+
 // tapXSources: scriptTapX, the candidate count read only when cands is set.
 func (s *State) tapXSources(k *prep, p uint8, cands bool) slotMask {
 	var m slotMask

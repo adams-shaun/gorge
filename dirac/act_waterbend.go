@@ -611,8 +611,8 @@ func (s *State) windowCensusComplete(k *prep, e *stackEntry) bool {
 	}
 	// a source the build committed (a convoke pick, withheld from s.occ) is
 	// no census source at all (gorge's census skips convokeCommitted)
-	if k.tapMana && s.tapXCensusGap(k, e.ctrl).and(s.occ).any() {
-		return false // its tapXType cost is no shape the census prices (gorge castWindowSourceExcluded)
+	if k.tapMana && s.windowGapSources(k, e.ctrl, s.tapXCensusGap(k, e.ctrl).or(s.sacCensusGap(k, e.ctrl)).and(s.occ)).any() {
+		return false // its tapXType or sacrifice cost is no shape the census prices (gorge castWindowSourceExcluded)
 	}
 	if s.storeCensusGap(k, e.ctrl) {
 		return false // a storage battery's SubCounter<X> cost is no shape the census prices (mana_storecensus.go)

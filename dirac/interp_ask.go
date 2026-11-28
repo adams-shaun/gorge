@@ -1214,13 +1214,12 @@ func (s *State) applyResolveGen(k *prep, a Action) {
 		in := &s.prog(k)[r.pc]
 		if in.Op == kop.OpChooseMove {
 			s.handPosAnswer(a.Mode() == 0) // a put-back's top-or-bottom (zone_destalt.go)
-		} else if in.C == kop.LibChoiceSecond {
-			s.toLibrarySecond(k, in, a.Mode() == 0) // zone_librarysecond.go
-		} else if !s.topBottomStack(k, in.Obj, a.Mode() == 0) { // a spell target (tgt_permorspell.go)
-			s.moveRef(k, in.Obj, kop.ZoneLibrary, a.Mode() == 0)
+		} else {
+			s.topBottomMove(k, in, a.Mode() == 0) // zone_librarysecond.go
 		}
 		if s.res.ask == raGenCmdZone {
-			return // a CR 903.9b commander move parked; its answer reruns this instruction
+			s.g.pre.link = a.Mode() == 0 // the position answered, for cmdZoneAnswer
+			return                       // a CR 903.9b commander move parked
 		}
 		s.continueRes(k, 0)
 	case raGenCopyTarget, raGenCopyTargets:

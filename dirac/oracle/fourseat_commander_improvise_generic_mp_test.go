@@ -48,15 +48,16 @@ func TestFourSeatCommanderImproviseCreditsGenericMutation(t *testing.T) {
 // commanderConvokeGrantRepro is a four-seat edh pod (kfuzz -kernel edh -seats 4
 // -seed 1, pair 30): Olivia, Opulent Outlaw in the command zone under We Ride at
 // Dawn ("Legendary creature spells you cast have convoke") with five untapped
-// creatures and no untapped land. gorge's command-zone gate prices the printed
-// cost with no convoke credit and withholds the cast; the improvise credit above
-// reached the kernel's offer for a convoke grant too and offered it (decision 2118).
-const commanderConvokeGrantRepro = "commander_convoke_grant_command_zone_no_credit_four_seat_pod"
+// creatures and no untapped land. Convoke functions on the stack whatever zone
+// the spell was cast from (CR 702.51a), so both engines offer the command-zone
+// cast on the creatures' credit (decision 2118). The recording was made when
+// gorge priced the printed cost alone and withheld it.
+const commanderConvokeGrantRepro = "commander_convoke_grant_command_zone_credit_four_seat_pod"
 
-// commanderConvokeGrantAt is the decision the recording diverged at.
+// commanderConvokeGrantAt is the decision the offer is first posed at.
 const commanderConvokeGrantAt = 2118
 
-func TestFourSeatCommanderConvokeGrantNotCredited(t *testing.T) {
+func TestFourSeatCommanderConvokeGrantCredited(t *testing.T) {
 	if isolate(t) {
 		return
 	}
@@ -66,5 +67,11 @@ func TestFourSeatCommanderConvokeGrantNotCredited(t *testing.T) {
 	}
 	if strings.HasPrefix(res.Stall, KernelStallPrefix) || res.Decisions <= commanderConvokeGrantAt {
 		t.Fatalf("stall %q after %d decisions, want a clean game past %d", res.Stall, res.Decisions, commanderConvokeGrantAt)
+	}
+	// The precondition: the replay reaches an offer that needs the credit.
+	dirac.DebugCommanderNoCredit = true
+	defer func() { dirac.DebugCommanderNoCredit = false }()
+	if res := fourSeatEdhReplay(t, commanderConvokeGrantRepro); res.Div == nil || res.Div.At != commanderConvokeGrantAt {
+		t.Fatalf("an uncredited kernel offer did not diverge at %d: %+v", commanderConvokeGrantAt, res.Div)
 	}
 }
