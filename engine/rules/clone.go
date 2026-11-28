@@ -137,6 +137,16 @@ func (e *Engine) cloneWith(sp Spare) *Engine {
 	if sp.manaEntries != nil || sp.manaTouch != nil {
 		c.manaCarry = manaMemberCarry{owner: c, entries: sp.manaEntries, touch: sp.manaTouch, gen: sp.manaGen}
 	}
+	// The mana-relevant event count (manaMemberCarry.advanceRelevant) is a
+	// fold of the log prefix the clone's log shares: carry it, or the
+	// clone's first board stamp re-folds the whole log (one scan per
+	// prefix-search clone, the bulk of a long four-seat game's search).
+	if e.manaCarry.owner == e && c.L != nil && e.manaCarry.scanPos <= len(c.L.Events) {
+		if c.manaCarry.owner != c {
+			c.manaCarry = manaMemberCarry{owner: c}
+		}
+		c.manaCarry.scanPos, c.manaCarry.relevant = e.manaCarry.scanPos, e.manaCarry.relevant
+	}
 	if len(e.pendingTriggers) > 0 {
 		c.pendingTriggers = clonePendingTriggers(e.pendingTriggers)
 	} else if e.pendingTriggers != nil || sp.pending != nil {
