@@ -36,16 +36,56 @@ import "github.com/adams-shaun/gorge/dirac/kop"
 // are its abilities).
 
 // pileAt is the record of the merged permanent at sl, nil when sl is not a
-// pile or the table builds none.
+// pile or the table builds none (prep.piles: one inlinable branch).
 func (s *State) pileAt(k *prep, sl Slot) *mergeRec {
-	if k.gen == nil || !k.gen.anyMutate && !k.gen.anyMerge || sl == NoSlot {
+	if !k.piles || sl == NoSlot {
 		return nil
 	}
+	return s.pileRec(sl)
+}
+
+// pileRec is pileAt's record read on a table that builds piles.
+func (s *State) pileRec(sl Slot) *mergeRec {
 	if r := s.mergeRecOf(s.perms[sl].obj); r != nil && r.n != 0 {
 		return r
 	}
 	return nil
 }
+
+// The hot static and layer scans whose body is too large to keep twice walk
+// eachPileCard's cards in its order with no closure, one inlined branch on a
+// table with no pile:
+//
+//	pn := 0
+//	if k.piles {
+//		pn = s.pileNAt(sl)
+//	}
+//	for pj := 0; pj <= pn; pj++ {
+//		c := s.cardAt(sl)
+//		if pj > 0 {
+//			c = s.pileUnder(k, sl, pj-1)
+//		}
+//		...
+//	}
+//
+// The small scans keep the top-card-only loop for such a table and move the
+// pile walk to a *Pile twin (grantSrcScanPile, lfxCollectStaticsPile,
+// charsFxMayPile).
+
+// pileNAt is the number of under cards of the pile at sl (0: not a pile)
+// on a table that builds piles.
+func (s *State) pileNAt(sl Slot) int {
+	if sl == NoSlot {
+		return 0
+	}
+	if r := s.pileRec(sl); r != nil {
+		return int(r.n)
+	}
+	return 0
+}
+
+// pileUnder is the under card j of the pile at sl.
+func (s *State) pileUnder(k *prep, sl Slot, j int) CardID { return s.underCard(s.pileAt(k, sl), j) }
 
 // underObj is the record's component j (0 is the first under the top).
 func underObj(r *mergeRec, j int) Obj { return Obj(r.und[j] - 1) }
@@ -57,6 +97,14 @@ func (s *State) underCard(r *mergeRec, j int) CardID { return s.objs[underObj(r,
 // pileKw is the printed keywords of the under cards of the pile at sl (0 for
 // a permanent that is not one). The caller has checked the loss.
 func (s *State) pileKw(k *prep, sl Slot) kop.KwMask {
+	if !k.piles {
+		return 0
+	}
+	return s.pileKwAt(k, sl)
+}
+
+// pileKwAt is pileKw on a table that builds piles.
+func (s *State) pileKwAt(k *prep, sl Slot) kop.KwMask {
 	r := s.pileAt(k, sl)
 	if r == nil {
 		return 0
@@ -72,6 +120,9 @@ func (s *State) pileKw(k *prep, sl Slot) kop.KwMask {
 // and its under cards'.
 func (s *State) statClsAt(k *prep, sl Slot) uint16 {
 	c := k.gen.sCls[s.cardAt(sl)]
+	if !k.piles {
+		return c
+	}
 	if r := s.pileAt(k, sl); r != nil {
 		for j := 0; j < int(r.n); j++ {
 			c |= k.gen.sCls[s.underCard(r, j)]
@@ -120,6 +171,14 @@ func (s *State) pileUnsubscribe(k *prep, sl Slot) {
 // (ovGateKeptOnLoss, eachStaticOf's). It reports false when f stopped the
 // walk.
 func (s *State) pileStatics(k *prep, sl Slot, keep []bool, cls uint16, layered bool, f func(st statSrc) bool) bool {
+	if !k.piles {
+		return true
+	}
+	return s.pileStaticsAt(k, sl, keep, cls, layered, f)
+}
+
+// pileStaticsAt is pileStatics on a table that builds piles.
+func (s *State) pileStaticsAt(k *prep, sl Slot, keep []bool, cls uint16, layered bool, f func(st statSrc) bool) bool {
 	r := s.pileAt(k, sl)
 	if r == nil {
 		return true
@@ -153,6 +212,9 @@ func (s *State) pileStatics(k *prep, sl Slot, keep []bool, cls uint16, layered b
 // The caller has checked the loss: a pile that lost its abilities loses the
 // under cards' too (CR 613.1f).
 func (s *State) eachPileCard(k *prep, sl Slot, f func(c CardID) bool) bool {
+	if !k.piles {
+		return f(s.cardAt(sl))
+	}
 	if !f(s.cardAt(sl)) {
 		return false
 	}

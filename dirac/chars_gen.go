@@ -904,6 +904,28 @@ type grantSrcs struct{ ovr, glob, cont slotMask }
 // grantedAbilitiesOwn, which each filter their own sources again in the
 // same slot order; a subset of statM walked in order gives the same calls.
 func (s *State) grantSrcScan(k *prep) (g grantSrcs) {
+	if k.piles {
+		return s.grantSrcScanPile(k)
+	}
+	for m := s.statM; m.any(); m = m.rest() {
+		sl := m.first()
+		f := k.gen.flags[s.cardAt(sl)]
+		if f&gfGlobOvr != 0 {
+			g.ovr = g.ovr.with(sl)
+		}
+		if f&gfGlobGrant != 0 {
+			g.glob = g.glob.with(sl)
+		}
+		if f&gfContGrant != 0 {
+			g.cont = g.cont.with(sl)
+		}
+	}
+	return g
+}
+
+// grantSrcScanPile is grantSrcScan on a table that builds piles: each
+// source's top card, then its under cards (CR 702.140d, kw_mutateunion.go).
+func (s *State) grantSrcScanPile(k *prep) (g grantSrcs) {
 	for m := s.statM; m.any(); m = m.rest() {
 		sl := m.first()
 		s.eachPileCard(k, sl, func(c CardID) bool {
@@ -1037,7 +1059,15 @@ func (s *State) grantsBetween(k *prep, sl Slot, lo, hi uint32, kinds uint8, lts 
 			s.ovGrantsBetween(k, sl, cur, uint32(best), lost, lts, true, kinds, f)
 		}
 		cur = uint32(best)
-		s.eachPileCard(k, src, func(cid CardID) bool {
+		pn := 0
+		if k.piles {
+			pn = s.pileNAt(src) // CR 702.140d: a pile's under cards (kw_mutateunion.go)
+		}
+		for pj := 0; pj <= pn; pj++ {
+			cid := s.cardAt(src)
+			if pj > 0 {
+				cid = s.pileUnder(k, src, pj-1)
+			}
 			cd := &k.t.Cards[cid]
 			for i := range cd.Abilities {
 				a := &cd.Abilities[i]
@@ -1064,8 +1094,7 @@ func (s *State) grantsBetween(k *prep, sl Slot, lo, hi uint32, kinds uint8, lts 
 					}
 				}
 			}
-			return true
-		})
+		}
 	}
 	if s.fxM.has(sl) {
 		s.ovGrantsBetween(k, sl, cur, hi, lost, lts, read, kinds, f)
