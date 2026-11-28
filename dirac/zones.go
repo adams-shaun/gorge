@@ -508,7 +508,7 @@ func (s *State) enter(k *prep, o Obj, ctrl uint8, tapped bool, from kop.Zone) Sl
 	// no ETB listener still fires the event for its queueOffspringGrant
 	// (kw_offspring.go).
 	if s.anyETB(k) || k.anyOffGrant {
-		if !(s.g.pre.ordMid && s.g.pre.obj == o) && !s.deferETBToCtrPick(k, sl, n0) { // a copy waiting on gorge's second order ask fires them once applied (repl_entryclone.go); an as-enters counter pick once answered (ctr_choice.go)
+		if !(s.g.pre.ordMid && s.g.pre.obj == o) && !s.deferETBToEntryCounters(k, sl, n0) { // a copy waiting on gorge's second order ask fires them once applied (repl_entryclone.go); an as-enters counter pick or Devour once answered (ctr_choice.go)
 			s.fireObj(k, kop.TrigETB, sl, o, ctrl, 0)
 		}
 	}

@@ -820,7 +820,9 @@ func (s *State) destroySparedNoUmbra(k *prep, sl Slot, noRegen bool) bool {
 
 // moveRef moves the object a Ref names to zone z (its owner's).
 func (s *State) moveRef(k *prep, r kop.Ref, z kop.Zone, bottom bool) {
-	s.moveRefObj(k, r, s.objRefObj(r), z, bottom)
+	if o := s.objRefObj(r); !s.movedUnderOtherSlot(r, o) {
+		s.moveRefObj(k, r, o, z, bottom)
+	}
 }
 
 // moveRefObj is moveRef for the object o the ref r resolved to (one member of

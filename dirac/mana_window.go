@@ -178,7 +178,8 @@ func (s *State) windowUnpricedOpenIf(k *prep, e *stackEntry, open bool) bool {
 	return s.handManaAny(k, e.ctrl) || s.graveManaAny(k, e.ctrl) // a hand guide, a graveyard source (mana_handguide.go, mana_gravemana.go)
 }
 
-// restrManaUntapped: sl is an untapped permanent with a restricted mana ability.
+// restrManaUntapped: sl is an untapped permanent with a restricted mana ability
+// that may be activated.
 // gorge's untapped-source gate (untappedManaSource) reads every available mana
 // ability, its restriction unread, so Interdimensional Web Watch's exile-cast
 // mana keeps a pool-short candidate on the menu once the census is incomplete.
@@ -187,7 +188,8 @@ func (s *State) windowUnpricedOpenIf(k *prep, e *stackEntry, open bool) bool {
 // untapped Lute beside only tapped lands is no restricted source at all.
 func (s *State) restrManaUntapped(k *prep, sl Slot) bool {
 	pm := &s.perms[sl]
-	if pm.flags&pfTapped != 0 || s.activationSick(k, sl) || s.genLost(k, sl) || DebugNoRestrManaOpen {
+	if pm.flags&pfTapped != 0 || s.activationSick(k, sl) || s.genLost(k, sl) || DebugNoRestrManaOpen ||
+		k.gen != nil && k.gen.anyCantAct && s.actForbidden(k, sl, true) { // a CantBeActivated lock (cast_cantactivate.go)
 		return false
 	}
 	cd := &k.t.Cards[s.cardAt(sl)]
