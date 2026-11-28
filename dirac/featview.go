@@ -436,14 +436,18 @@ func (s *State) featPoolPaysSel(p uint8, o Obj, mode uint8, extra *[6]int32, any
 			cost = addCost(cost, s.kickPayment(k, SeatIx(p), c, o, s.objs[o].zone == kop.ZoneHand))
 		}
 	}
+	// the pool pays the taxed cast (CR 903.8), and the tax is part of the
+	// total cost the reductions apply to (CR 601.2f; gorge ApplyTaxedTo).
+	// The convoke credit comes off the taxed total: CR 702.51a lets each tap
+	// pay toward the spell's TOTAL cost, and the tax is part of that total,
+	// so a spare untapped creature pays the {2} as it pays the printed
+	// generic (gorge offerCastableCommander/convokeTaxOfferCredit; a hand
+	// cast sees no tax here, so the hand gate is unchanged). The delve
+	// credit comes after.
+	addCommanderTax(&cost, s.commanderTax(SeatIx(p), o))
 	if (mode == 0 || mode&8 != 0) && k.gen != nil && k.gen.anyConvoke {
 		cost = s.convokeCredit(k, SeatIx(p), c, o, cost) // a granted retrace cast convokes too (kw_retrace.go)
 	}
-	// the pool pays the taxed cast (CR 903.8), and the tax is part of the
-	// total cost the reductions apply to (CR 601.2f; gorge ApplyTaxedTo); the
-	// convoke credit came off the printed cost (gorge castOfferBase), the
-	// delve credit comes after
-	addCommanderTax(&cost, s.commanderTax(SeatIx(p), o))
 	raw := cost // the base the Defilers' second chance counts pips in (cost_defiler.go)
 	tb := false
 	if mode&4 != 0 || mode&1 != 0 && k.bargainRed && k.gen != nil && k.gen.anyOptCost && optCostCard(k, c) { // seat-ok: a cast-mode bit
