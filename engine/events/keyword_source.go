@@ -34,6 +34,11 @@ import (
 // listed with the read that makes it source-bound; a keyword trigger not
 // named here defaults to independent, which is CR 112.7a's own default.
 func keywordTriggerBindsSource(counter string, sa *cards.SA) bool {
+	if strings.HasPrefix(counter, "__kwOffspringGranted") {
+		// CR 702.175a's copy is made from the creature as it last existed
+		// (CR 608.2h); the trigger resolves after its source left.
+		return false
+	}
 	if saReadsSource(sa) {
 		return true
 	}
