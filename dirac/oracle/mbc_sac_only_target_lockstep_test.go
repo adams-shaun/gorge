@@ -21,9 +21,8 @@ import "testing"
 // two altars and one creature, Captivating Gyre's only target: the planner
 // ranks only sets that name a victim per sacrifice step, so one altar and
 // four lands fund the cast and both engines offer it (the game's option lists
-// must match at that decision too; the cast itself is not taken there — gorge
-// asks its optional target while the kernel completes the scripted cast
-// without asking, an ask-shape divergence of its own ticket).
+// must match at that decision too; the recording does not take the cast there,
+// TestAltarVictimTwoAltarsTakeCastLockstep does).
 func TestMBCSacOnlyTargetLockstep(t *testing.T) {
 	t.Parallel()
 	stdReproNamedServed(t, "altar_victim_is_the_only_target_cast_offer")
