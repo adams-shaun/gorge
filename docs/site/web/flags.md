@@ -50,6 +50,7 @@ The table is generated from the flag set of the `cmd/gorged` binary; `TestFlagsD
 | `-max-events` | `4` | maximum draft events not yet COMPLETE |
 | `-max-on-demand-tables` | `32` | maximum retained private play-vs-bot tables per process (0 = unlimited) |
 | `-max-search-tables` | `8` | maximum live on-demand tables whose policy is a search entry (0 = unlimited) |
+| `-metrics` | `false` | serve Prometheus text metrics at /metrics on the main listener (counts only; anything proxied to that port can read them) |
 | `-mulligans` | `7` | London mulligans per player before turn 1; 0 disables the pre-game round |
 | `-pace` | `50ms` | sleep after every decision; 0 = as fast as possible |
 | `-paired-bot` | none | let a human player ask a bot to evaluate the decision in front of them: az-closed, or the name of a closed-list search policy. It only advises, and it never sees hidden cards or an opponent's deck list. Off when empty or off |

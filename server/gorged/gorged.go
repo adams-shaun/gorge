@@ -268,6 +268,8 @@ type config struct {
 	// that loopback is not private when a reverse proxy or tunnel forwards
 	// public traffic to that port, as the demo's does.
 	pprof bool
+	// metrics is the -metrics flag: serve Prometheus text counts at /metrics.
+	metrics bool
 	// manabrew is the -manabrew flag: mount server/host/manabrewhttp's routes
 	// (manabrew.go). Off by default so an unmounted server is byte-identical
 	// to today (scoping spec §5.4). A non-empty manabrewAddr implies this
@@ -501,6 +503,7 @@ func serveFlags() (*flag.FlagSet, *config) {
 	fs.DurationVar(&c.prewarmArtBudget, "prewarm-art-budget", 0, "with -prewarm-art-only: stop the fill after this much wall-clock time and exit non-zero (0 = no limit)")
 	fs.IntVar(&c.prewarmArtMaxConsecutiveFailures, "prewarm-art-max-consecutive-failures", 0, "with -prewarm-art-only: stop the fill once this many names in a row have failed and exit non-zero (0 = no limit)")
 	fs.BoolVar(&c.pprof, "pprof", false, "serve Go runtime profiles at /debug/pprof/ on the main listener; refused unless -addr is loopback, and anything proxied to that port can reach them")
+	fs.BoolVar(&c.metrics, "metrics", false, "serve Prometheus text metrics at /metrics on the main listener (counts only; anything proxied to that port can read them)")
 	for _, r := range registeredNetBots() {
 		c.nets = append(c.nets, netPolicy{policy: r.policy, bot: r.bot})
 	}
@@ -826,6 +829,10 @@ func serve(ctx context.Context, c config, ln net.Listener) error {
 	topMux.HandleFunc("GET /art/token", ac.token)
 	topMux.HandleFunc("GET /art/blob/{key}", ac.blob)
 	topMux.HandleFunc("GET /cards/named", ac.text)
+	topMux.HandleFunc("GET /healthz", healthz)
+	if c.metrics {
+		topMux.HandleFunc("GET /metrics", metricsHandler(r))
+	}
 	// net/http/pprof's init registers its handlers on http.DefaultServeMux,
 	// which gorged never serves (both listeners use their own mux), so the
 	// import alone publishes nothing. The routes exist only when -pprof
