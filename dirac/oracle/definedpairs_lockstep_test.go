@@ -13,19 +13,19 @@ import (
 // lower_definedset.go setUnionObjects): Black Widow, Intel Expert's
 // combat-damage trigger draws for "You & TriggeredTarget" (two Draw nodes in
 // script order); Alaborn Zealot and Loyal Sentry destroy
-// "TriggeredAttackerLKICopy & Self" (two Destroy nodes). No corpus card
-// with an object union plays yet: Dragon Turtle's union lowers, but the
-// builder refuses its kop SkipNextUntap a set subject (a kernel op), and
-// Leaf-Leap Guide's Pump refuses Duration$ Perpetual. The pool is
-// dirac/cardset/pools/fixtures/definedpairs.
+// "TriggeredAttackerLKICopy & Self" (two Destroy nodes); Dragon Turtle's
+// enters trigger keeps "Targeted & Self" tapped through their controllers'
+// next untap steps (an object union read by one SkipNextUntap over the
+// set). Leaf-Leap Guide's Pump still refuses Duration$ Perpetual. The pool
+// is dirac/cardset/pools/fixtures/definedpairs.
 const definedPairsPool = "definedpairs"
 
 const blackWidow = "Black Widow, Intel Expert"
 
 var definedPairsDecks = [2][]cardset.Entry{
 	{
-		{Name: blackWidow, Count: 10}, {Name: "Savannah Lions", Count: 6}, {Name: "Glory Seeker", Count: 4},
-		{Name: "Plains", Count: 20},
+		{Name: blackWidow, Count: 10}, {Name: "Dragon Turtle", Count: 6}, {Name: "Savannah Lions", Count: 4},
+		{Name: "Plains", Count: 12}, {Name: "Island", Count: 8},
 	},
 	{
 		{Name: "Alaborn Zealot", Count: 6}, {Name: "Loyal Sentry", Count: 6}, {Name: "Grizzly Bears", Count: 4},
@@ -100,8 +100,8 @@ func definedPairsGames(t *testing.T, hi uint64, mode lockstepMode, mutate func(*
 }
 
 // TestDefinedPairLockstep: no divergence and no kernel stall over 64 seeds,
-// and across them the player pair's trigger ran (the set counts are logged:
-// no card of the pool reads a set).
+// and across them the player pair's trigger ran and the kernel read a set
+// (Dragon Turtle's Targeted & Self union under SkipNextUntap).
 func TestDefinedPairLockstep(t *testing.T) {
 	if isolate(t) {
 		return
@@ -112,6 +112,9 @@ func TestDefinedPairLockstep(t *testing.T) {
 	}
 	if runs.pairNodes == 0 {
 		t.Error("no game resolved the player pair's trigger")
+	}
+	if runs.sets.Runs == 0 {
+		t.Error("no game read a set: Dragon Turtle's union never resolved")
 	}
 	t.Logf("%d clean games; sets %+v; pair resolutions %d", clean, runs.sets, runs.pairNodes)
 }
