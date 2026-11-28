@@ -279,6 +279,12 @@ type config struct {
 	// COMPLETE the server serves at once. A new event past the bound is
 	// refused 409 capacity, never queued.
 	maxEvents int
+	// rateLimit, rateBurst and trustedProxyHeader are the -rate-limit,
+	// -rate-burst and -trusted-proxy-header flags: the per-client token
+	// bucket on the creating endpoints (ratelimit.go). rateLimit 0 (the zero
+	// value of a config built without the flags) turns the limiter off.
+	rateLimit, rateBurst int
+	trustedProxyHeader   string
 }
 
 // Main runs gorged: args are the command line after the program name, ext
@@ -488,6 +494,9 @@ func serveFlags() (*flag.FlagSet, *config) {
 	fs.BoolVar(&c.sbv2, "sbv2", false, "mount the SpellBench v2 human-seat HTTP routes (server/host/sbv2http) on the main listener; requires -humans or -vsbot")
 	fs.BoolVar(&c.events, "events", false, "host 4-seat draft events under /api/events (eventhost; persistence under <dir>/events)")
 	fs.IntVar(&c.maxEvents, "max-events", 4, "maximum draft events not yet COMPLETE")
+	fs.IntVar(&c.rateLimit, "rate-limit", 10, "creating requests (POST /api/games, /api/events, /api/decks/check, /api/feedback) one client may make a minute; 0 = unlimited")
+	fs.IntVar(&c.rateBurst, "rate-burst", 10, "with -rate-limit: the most creating requests one client may make at once (>= 1)")
+	fs.StringVar(&c.trustedProxyHeader, "trusted-proxy-header", "", "request header a trusted reverse proxy sets to the client's address (e.g. CF-Connecting-IP); the rate limiter keys on it. Empty keys on the connection's remote address. Set it only when every request arrives through that proxy")
 	return fs, c
 }
 
@@ -497,6 +506,9 @@ func serveFlags() (*flag.FlagSet, *config) {
 func serve(ctx context.Context, c config, ln net.Listener) error {
 	if c.pprof && !isLoopbackListener(ln) {
 		return fmt.Errorf("-pprof requires a loopback listener (got %s)", ln.Addr())
+	}
+	if c.rateLimit < 0 || (c.rateLimit > 0 && c.rateBurst < 1) {
+		return fmt.Errorf("-rate-limit must be >= 0 and, when on, -rate-burst >= 1 (got %d and %d)", c.rateLimit, c.rateBurst)
 	}
 	if !c.diracOn() {
 		if _, err := host.LookupEngine(c.startableEngines(), c.engine); err != nil {
@@ -810,7 +822,7 @@ func serve(ctx context.Context, c config, ln net.Listener) error {
 		return err
 	}
 	topMux.Handle("/", httpapi.NewHandler(r, opts))
-	srv := &http.Server{Handler: c.corsMainHandler(topMux)}
+	srv := &http.Server{Handler: c.corsMainHandler(newRateLimiter(c.rateLimit, c.rateBurst, c.trustedProxyHeader).wrap(topMux))}
 	errc := make(chan error, 1)
 	go func() { errc <- srv.Serve(ln) }()
 	seatsDesc := fmt.Sprint(c.seats)

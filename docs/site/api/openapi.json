@@ -4920,6 +4920,24 @@
           "405": {
             "$ref": "#/components/responses/MethodNotAllowed"
           },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "Too many creating requests from this client (-rate-limit, -rate-burst): code rate_limited. Retry after the Retry-After header's seconds.",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds until the client may retry (at least 1).",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
           "default": {
             "content": {
               "application/json": {
@@ -5959,6 +5977,24 @@
             },
             "description": "Malformed or oversized multipart body, or no text."
           },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "Too many creating requests from this client (-rate-limit, -rate-burst): code rate_limited. Retry after the Retry-After header's seconds.",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds until the client may retry (at least 1).",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
           "500": {
             "content": {
               "text/plain": {
@@ -6079,6 +6115,24 @@
           },
           "405": {
             "$ref": "#/components/responses/MethodNotAllowed"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "Too many creating requests from this client (-rate-limit, -rate-burst): code rate_limited. Retry after the Retry-After header's seconds.",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds until the client may retry (at least 1).",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
           }
         },
         "summary": "Start a play-vs-bot game",

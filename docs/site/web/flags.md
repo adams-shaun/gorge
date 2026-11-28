@@ -62,6 +62,8 @@ The table is generated from the flag set of the `cmd/gorged` binary; `TestFlagsD
 | `-prewarm-art-budget` | `0s` | with -prewarm-art-only: stop the fill after this much wall-clock time and exit non-zero (0 = no limit) |
 | `-prewarm-art-max-consecutive-failures` | `0` | with -prewarm-art-only: stop the fill once this many names in a row have failed and exit non-zero (0 = no limit) |
 | `-prewarm-art-only` | `false` | fill the card-art cache from -decks (into -art-dir) and exit; no server is started. Exits non-zero if any name failed |
+| `-rate-burst` | `10` | with -rate-limit: the most creating requests one client may make at once (>= 1) |
+| `-rate-limit` | `10` | creating requests (POST /api/games, /api/events, /api/decks/check, /api/feedback) one client may make a minute; 0 = unlimited |
 | `-sb-agent` | none | register a SpellBench v2 stdio agent as a bot policy: name=/path/to/agent (repeatable; name matches ^[a-z0-9-]+$) |
 | `-sbv2` | `false` | mount the SpellBench v2 human-seat HTTP routes (server/host/sbv2http) on the main listener; requires -humans or -vsbot |
 | `-seat-token` | none | fixed bearer token for the first human slot (tests and local use only; default mints a random token per slot) |
@@ -69,6 +71,7 @@ The table is generated from the flag set of the `cmd/gorged` binary; `TestFlagsD
 | `-seed` | `1` | seed of table 1; table i uses seed+i-1 |
 | `-spectator` | `public` | spectator visibility: public (default, every hand hidden) or omniscient (every hand visible) |
 | `-tables` | `4` | number of tables |
+| `-trusted-proxy-header` | none | request header a trusted reverse proxy sets to the client's address (e.g. CF-Connecting-IP); the rate limiter keys on it. Empty keys on the connection's remote address. Set it only when every request arrives through that proxy |
 | `-vsbot` | `false` | arm the on-demand play-vs-bot flow (landing page seats a human against a bot via POST /api/games) |
 | `-vsbot-spectator` | `public` | spectator visibility of on-demand play-vs-bot tables: public or omniscient |
 
