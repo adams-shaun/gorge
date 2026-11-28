@@ -182,6 +182,9 @@ func (s *State) discardChained(k *prep, in *kop.Instr) bool {
 	if in.Obj == kop.RefEachPlayer || !s.duel() && (in.Obj == kop.RefEachOpponent || in.Obj == kop.RefOppNonRemCtrl) && in.F == 0 && in.C == kop.ChooseSelf {
 		return true // each player, or each opponent (or each non-remembered controller) at more than two seats (interp.go OpDiscard)
 	}
+	if in.Obj == kop.RefSet && in.F == 0 && in.C == kop.ChooseSelf {
+		return true // a RefSet walk over every player rides the chain (value_setexpr.go execSet)
+	}
 	sl, ok := tgtSlot(in.Obj)
 	return ok && k.gen != nil && s.res.e.xi != 0 && s.slotHasExtra(&s.res.e, uint8(sl))
 }
