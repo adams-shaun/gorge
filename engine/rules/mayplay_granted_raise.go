@@ -31,11 +31,12 @@ func (e *Engine) mayPlayBoardStatics() []staticView {
 }
 
 // grantedRaiseMayPlayStatics returns the live granted Continuous statics with
-// MayPlay$ True and a RaiseCost$, in grantedStatics' deterministic order.
+// MayPlay$ True and a RaiseCost$, in grantedStatics' deterministic order:
+// the same shape test grantsRaiseMayPlay makes on the unbound inner line.
 func (e *Engine) grantedRaiseMayPlayStatics() []staticView {
 	var out []staticView
 	for _, sv := range e.grantedStatics("Continuous") {
-		if raiseMayPlayBody("Continuous", sv.Params) {
+		if staticFlagTrue(sv, cards.PKMayPlay) && strings.TrimSpace(sv.Params["RaiseCost"]) != "" {
 			out = append(out, sv)
 		}
 	}
@@ -51,16 +52,13 @@ func grantsRaiseMayPlay(f *cards.Face, st *cards.Static) bool {
 	if name == "" || f == nil {
 		return false
 	}
-	for _, in := range parseGrantedStatics(f, name) {
-		if raiseMayPlayBody(in.Mode, in.Params) {
+	// inner is the cards.Static line parseGrantedStatics parsed from the
+	// granted SVar (the census's bStat "inner" base).
+	for _, inner := range parseGrantedStatics(f, name) {
+		if inner.ModeKind() == cards.StaticContinuous && inner.ParamStr(cards.PKMayPlay) == "True" &&
+			strings.TrimSpace(inner.Params["RaiseCost"]) != "" {
 			return true
 		}
 	}
 	return false
-}
-
-// raiseMayPlayBody is the one shape test: a Continuous MayPlay$ True body
-// with a RaiseCost$.
-func raiseMayPlayBody(mode string, params map[string]string) bool {
-	return mode == "Continuous" && strings.TrimSpace(params["MayPlay"]) == "True" && strings.TrimSpace(params["RaiseCost"]) != ""
 }
