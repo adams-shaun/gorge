@@ -494,6 +494,27 @@ func PlanSelfCost(part cost.CostPart, id state.ObjID) bool {
 	return part.N == 1 && (s == "cardname" || s == "this token" || s == "cardname/self" || s == "self")
 }
 
+// PlanCostMarksSource reports whether c has a non-mana part paid ON the
+// play's source itself other than a sacrifice of it: removing or putting a
+// counter on it (SubCounter, AddCounter; a SubCounter part always anchors
+// on the source, cost.SubCounterTargetsSource) or exerting it. The planner
+// keeps such a source out of its plans (no other-sacrifice step may take it
+// as a victim): a sacrificed source cannot pay those parts (CR 602.2b,
+// 601.2h; Academy Elite's "Remove a +1/+1 counter from Academy Elite"
+// beside an Ashnod's Altar). The source's own {T}/{Q} is reserved through
+// the planner's tapped list instead.
+func PlanCostMarksSource(c cost.Cost) bool {
+	if len(c.SubCounter) > 0 || len(c.Exert) > 0 {
+		return true
+	}
+	for _, part := range c.AddCounter {
+		if cost.SubCounterTargetsSource(part.Target) {
+			return true
+		}
+	}
+	return false
+}
+
 // PlanOtherSacShape reports whether a non-self Sac cost part is the closed
 // "sacrifice another permanent" shape the other-sacrifice planner admits:
 // exactly one permanent, a literal count fixed at payment (not an announced
