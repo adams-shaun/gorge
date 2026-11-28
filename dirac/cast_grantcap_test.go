@@ -39,7 +39,7 @@ func noGrantScen(t *testing.T) (*scen, Obj) {
 
 // TestCapSpentScratchIsReset: priorityOptions builds grantCap's cap only on a
 // table with a grant search, and every other priority walks with a nil cap
-// (script_capspent.go). The cap must still bind where it is built, the nil cap
+// (cast_grantcap.go). The cap must still bind where it is built, the nil cap
 // must read as an empty one, and a priority that filled a cap must leave
 // nothing behind for the next priority on a table with no grant: it offers
 // exactly what a fresh copy of its state offers.

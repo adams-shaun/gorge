@@ -552,7 +552,7 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 		s.g.availX = dynWas // the script walks below read their own modes
 		av.dynSac = false   // the casts below leave the dynamic sacrifice source to its counter-cost gap
 		haveAv = false
-		s.cappedScriptWalk(k, d, p, sorc) // script_capspent.go: grantCap's cap, then the script walk
+		s.cappedScriptWalk(k, d, p, sorc) // cast_grantcap.go: grantCap's cap, then the script walk
 	}
 	if faces {
 		// after the may-play walks: one land play per object (CR 715.3d)
