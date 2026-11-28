@@ -492,6 +492,9 @@ func (s *State) priorityOptions(k *prep, d *Decision) {
 	if k.gen != nil && k.gen.anyBeam {
 		s.offerBeamCasts(k, d, p, sorc, &av) // kw_beammeup.go
 	}
+	if k.gen != nil && k.gen.anyWarp {
+		s.offerWarpGrave(k, d, p, sorc, &av) // kw_warp.go: a card whose own static opens its warp cast from the graveyard (gorge lists it before escape's)
+	}
 	if k.escape || k.gen != nil && k.gen.anyEscapeGrant {
 		s.offerEscapeCasts(k, d, p, sorc, &av) // kw_escape.go: gorge lists the escape walk before mayhem's (legal_walk_alt.go)
 	}

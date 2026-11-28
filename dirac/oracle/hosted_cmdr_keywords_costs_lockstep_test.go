@@ -53,6 +53,9 @@ type hostedCmdrCase struct {
 	fixtures map[string]string
 	// reached, when set, must hold on some seed or the case fails.
 	reached func(g *GorgeSide) bool
+	// preferWarp makes the policy take a carrier cast for its warp cost
+	// (canonical mode 8) whenever one is offered, so the warp arms are reached.
+	preferWarp bool
 }
 
 // flayerProbeScript is Flayer of Loyalties' cast trigger on a {2}{B} body.
@@ -71,6 +74,10 @@ func hostedCmdrCases() []hostedCmdrCase {
 	tesakDeck := append(append(deckOf(8, "Tesak, Judith's Hellhound"), deckOf(8, "Abzan Devotee")...),
 		append(deckOf(16, "Mountain"), deckOf(8, "Forest")...)...)
 	dogBearsDeck := append(deckOf(8, "Grizzly Bears"), deckOf(32, "Forest")...)
+	cullerDeck := append(deckOf(12, "Timeline Culler"), deckOf(28, "Swamp")...)
+	// Ancient Ziggurat's mana may only be spent on a creature spell: the
+	// graveyard warp's {B} has no other source (restricted-source pricing)
+	zigguratCullerDeck := append(deckOf(12, "Timeline Culler"), deckOf(28, "Ancient Ziggurat")...)
 	cataractsDeck := append(append(deckOf(14, "Cascading Cataracts"), deckOf(14, "Wastes")...), deckOf(12, "Tide Probe")...)
 	return []hostedCmdrCase{
 		{
@@ -103,6 +110,30 @@ func hostedCmdrCases() []hostedCmdrCase {
 			decks:   [2][]string{tesakDeck, dogBearsDeck},
 		},
 		{
+			name:       "timeline_culler_warp_paylife",
+			carrier:    "Timeline Culler",
+			seats:      [2]string{"hck-culler-a", "hck-culler-b"},
+			decks:      [2][]string{cullerDeck, dogBearsDeck},
+			preferWarp: true,
+			reached:    func(g *GorgeSide) bool { return cullerWarpCast(g, state.ZHand) },
+		},
+		{
+			name:       "timeline_culler_graveyard_warp",
+			carrier:    "Timeline Culler",
+			seats:      [2]string{"hck-culler-c", "hck-culler-d"},
+			decks:      [2][]string{cullerDeck, dogBearsDeck},
+			preferWarp: true,
+			reached:    func(g *GorgeSide) bool { return cullerWarpCast(g, state.ZGraveyard) },
+		},
+		{
+			name:       "timeline_culler_graveyard_warp_restricted_mana",
+			carrier:    "Timeline Culler",
+			seats:      [2]string{"hck-culler-e", "hck-culler-f"},
+			decks:      [2][]string{zigguratCullerDeck, dogBearsDeck},
+			preferWarp: true,
+			reached:    func(g *GorgeSide) bool { return cullerWarpCast(g, state.ZGraveyard) },
+		},
+		{
 			name:     "cascading_cataracts_combo_mana",
 			carrier:  "Tide Probe",
 			seats:    [2]string{"hck-cataracts-a", "hck-cataracts-b"},
@@ -111,6 +142,28 @@ func hostedCmdrCases() []hostedCmdrCase {
 			reached:  tideProbeCast,
 		},
 	}
+}
+
+// cullerWarpCast: a Timeline Culler was put on the stack from zone from and
+// its cast's CastInfo carried FlagWarped (the warp cost was paid).
+func cullerWarpCast(g *GorgeSide, from state.Zone) bool {
+	origin := map[state.ObjID]state.Zone{}
+	for i := range g.E.L.Events {
+		e := &g.E.L.Events[i]
+		if e.Kind != events.PutOnStack && e.Kind != events.CastInfo {
+			continue
+		}
+		if o := g.E.G.Obj(e.Obj); o == nil || o.Face() == nil || o.Face().Name != "Timeline Culler" {
+			continue
+		}
+		switch {
+		case e.Kind == events.PutOnStack:
+			origin[e.Obj] = e.From
+		case origin[e.Obj] == from && events.FlagsFrom(e.Counter)&state.FlagWarped != 0:
+			return true
+		}
+	}
+	return false
 }
 
 // tideProbeScript is a {U}{U} body for a seat whose only lands are Cascading
@@ -256,6 +309,13 @@ func hostedCmdrKwCostsPolicy(m *Matchup, c hostedCmdrCase, seed uint64) Policy {
 					if a.Kind() != ActAttack {
 						return a
 					}
+				}
+			}
+		}
+		if p.D.Kind == DPriority && c.preferWarp {
+			for _, a := range p.D.Options {
+				if a.Kind() == ActCast && a.Mode()&0x0f == 8 && m.InstanceCard(int(a.Src())) == c.carrier {
+					return a
 				}
 			}
 		}
