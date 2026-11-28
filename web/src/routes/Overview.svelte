@@ -9,6 +9,7 @@
   import PlayVsBot from '../components/PlayVsBot.svelte';
   import DraftEntry from '../components/DraftEntry.svelte';
   import DeckLeaderboard from '../components/DeckLeaderboard.svelte';
+  import SiteFooter from '../components/SiteFooter.svelte';
   import type { Widget } from '../protocol';
 
   let feed = $state<FeedLine[]>([]);
@@ -73,6 +74,7 @@
         </section>
       {/each}
     </div>
+    <SiteFooter />
   </div>
   <aside class="rail"><Feed lines={feed} {order} /></aside>
 </main>
