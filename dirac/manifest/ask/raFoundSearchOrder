@@ -1,0 +1,5 @@
+family: ask
+name: raFoundSearchOrder
+value: next
+status: active
+doc: the CR 616.1 order ask among two or more live ReplFoundSearchExile lines over one card a library search moves (gorge poseReplacementChoice on the found card's MoveZone, asked of the card's owner): which line's exile applies; the first exiles the card and the others no longer match (zone_searchcontrol.go).

@@ -29,82 +29,87 @@ const raDredgeRes uint8 = 151
 // the dungeon choice of a plain Venture (CR 701.49a; act_venture.go dungeonChoose): the venturer's pick among the dungeon cards of the table but Undercity, in key order, gorge's "dungeon" KChoose.
 const raDungeon uint8 = 152
 
+// ask (dirac/manifest/ask/raFoundSearchOrder)
+//
+// the CR 616.1 order ask among two or more live ReplFoundSearchExile lines over one card a library search moves (gorge poseReplacementChoice on the found card's MoveZone, asked of the card's owner): which line's exile applies; the first exiles the card and the others no longer match (zone_searchcontrol.go).
+const raFoundSearchOrder uint8 = 153
+
 // ask (dirac/manifest/ask/raGenCipher)
-const raGenCipher uint8 = 153
+const raGenCipher uint8 = 154
 
 // ask (dirac/manifest/ask/raGenClash)
-const raGenClash uint8 = 154
+const raGenClash uint8 = 155
 
 // ask (dirac/manifest/ask/raGenDrawMay)
-const raGenDrawMay uint8 = 155
+const raGenDrawMay uint8 = 156
 
 // ask (dirac/manifest/ask/raGenDrawOrder)
 //
 // the CR 616.1 order ask of competing Draw replacement programs (gorge poseReplacementChoice on a Draw event): the drawing player picks which candidate applies to the draw, asked at an OpDraw card or the turn draw when two or more candidates match and one is a ReplDrawProgram body (repl_draworder.go).
-const raGenDrawOrder uint8 = 156
+const raGenDrawOrder uint8 = 157
 
 // ask (dirac/manifest/ask/raGenMyriad)
-const raGenMyriad uint8 = 157
+const raGenMyriad uint8 = 158
 
 // ask (dirac/manifest/ask/raGenOptInSeat)
-const raGenOptInSeat uint8 = 158
+const raGenOptInSeat uint8 = 159
 
 // ask (dirac/manifest/ask/raGenPayETB)
-const raGenPayETB uint8 = 159
+const raGenPayETB uint8 = 160
 
 // ask (dirac/manifest/ask/raGenPileOpp)
-const raGenPileOpp uint8 = 160
+const raGenPileOpp uint8 = 161
 
 // ask (dirac/manifest/ask/raGenRepeatOptional)
-const raGenRepeatOptional uint8 = 161
+const raGenRepeatOptional uint8 = 162
 
 // ask (dirac/manifest/ask/raGenRippleOrder)
 //
 // the ripple tail's CR 401.4 arrangement ask (gorge effRippleBottom libraryPlacementOrder): the controller orders the revealed cards still in the library as they go to the bottom, asked with two or more of them (kw_ripple.go rippleOrderOptions / rippleOrderAnswer).
-const raGenRippleOrder uint8 = 162
+const raGenRippleOrder uint8 = 163
 
 // ask (dirac/manifest/ask/raGenTurnUpAttach)
 //
 // the effect-driven turn-up's attach election (an ExtTurnFaceUp op turning up a card with a ReplTurnUpAttach replacement; gorge applyTurnFaceUpReplacements parks the event for the body's Optional$ attach ask): Done declines, each destination a choose (face_turnupattach.go).
-const raGenTurnUpAttach uint8 = 163
+const raGenTurnUpAttach uint8 = 164
 
 // ask (dirac/manifest/ask/raLearn)
 //
 // the learn election (CR 701.48a; act_learn.go): gorge effLearn's "learn" KChoose, nothing first, then each sideboard Lesson, then the rummage.
-const raLearn uint8 = 164
+const raLearn uint8 = 165
 
 // ask (dirac/manifest/ask/raLearnDiscard)
 //
 // the learn rummage's discard (CR 701.48a; act_learn.go): gorge learnRummage's "discard" KChoose over the hand in hand order, asked even with one card; the draw follows.
-const raLearnDiscard uint8 = 165
+const raLearnDiscard uint8 = 166
 
 // ask (dirac/manifest/ask/raMoveCounterAny)
 //
 // OpMoveCounterAny: the 0..held amount pick of gorge's "move_counter" KChoose (Forgotten Ancient's move any number of counters, CR 122.5; ctr_moveany.go)
-const raMoveCounterAny uint8 = 166
+const raMoveCounterAny uint8 = 168
 
 // ask (dirac/manifest/ask/raPair)
 //
 // the Soulbond partner pick of ExtPair (CR 702.95a; kw_soulbond.go pairExt): up to one unpaired creature the trigger's controller controls, gorge effPair's Min 0 Max 1 KChoose; AkDone declines.
-const raPair uint8 = 168
+const raPair uint8 = 169
 
 // ask (dirac/manifest/ask/raPodClashOpp)
-const raPodClashOpp uint8 = 169
+const raPodClashOpp uint8 = 170
 
 // ask (dirac/manifest/ask/raRingBearer)
 //
 // the Ring-bearer choice of ExtRingTemptsYou (CR 701.54a; act_ring.go ringTemptsExt): the tempted player's pick among the creatures they control, the deterministic default (the existing Ring-bearer when still controlled, else the first eligible in zone order) offered first exactly as gorge's KChoose does.
-const raRingBearer uint8 = 170
+const raRingBearer uint8 = 171
 
 // ask (dirac/manifest/ask/raRingLoot)
 //
 // the loot discard of the Ring emblem's level 2 (CR 701.54c; act_ring.go ringLootDiscard): the looting player discards one card of their choice from their hand, gorge's Draw You 1 with the Discard You TgtChoose 1 Sub.
-const raRingLoot uint8 = 171
+const raRingLoot uint8 = 172
 
 // ask (dirac/manifest/ask/raTrigDemoOpp)
 //
 // the demonstrate trigger's opponent pick (CR 702.152a; gorge effDemonstrate stage 1): which living opponent also copies the spell, asked with two or more of them (kw_demonstrate.go).
-const raTrigDemoOpp uint8 = 172
+const raTrigDemoOpp uint8 = 173
 
 // key named card (dirac/manifest/key/keyNamedCard)
 const keyNamedCard key = 0
@@ -1010,6 +1015,9 @@ func (s *State) askOptionsGen(k *prep, d *Decision) bool {
 	case raDungeon:
 		s.dungeonAskOptions(k, d) // act_venture.go
 		return true
+	case raFoundSearchOrder:
+		s.foundSearchOrderOptions(k, d) // zone_searchcontrol.go
+		return true
 	case raGenCipher:
 		s.cipherOptions(k, d) // kw_cipher.go
 		return true
@@ -1076,6 +1084,9 @@ func (s *State) applyAskGen(k *prep, a Action) bool {
 		return true
 	case raDungeon:
 		s.dungeonAskAnswer(k, a) // act_venture.go
+		return true
+	case raFoundSearchOrder:
+		s.foundSearchOrderAnswer(k, a) // zone_searchcontrol.go
 		return true
 	case raGenCipher:
 		s.cipherAnswer(k, a) // kw_cipher.go
