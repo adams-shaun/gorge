@@ -1207,7 +1207,14 @@ type Object struct {
 	// changed faces.
 	StackKind      StackObjKind
 	StackKindKnown bool
-	Targets        []Target
+	// EmblemAbility marks an ability on the stack that is an emblem's own.
+	// This build mints no emblem object, so the ability object stands for the
+	// emblem wherever a source's identity is read: it is controlled by the
+	// player who has the emblem (CR 114.2) and has no characteristics (CR
+	// 114.3), unlike Source, the card whose resolution made the emblem. Only
+	// events.Apply writes it; a stack copy inherits it (CR 707.10).
+	EmblemAbility bool
+	Targets       []Target
 	// SubTargets are the targets a SubAbility$ link of this spell or
 	// activated ability announced when it was cast or activated (CR 601.2c:
 	// every target of the chain is chosen then, not as the link resolves).

@@ -562,10 +562,8 @@ func effEffect(h Host, c *Ctx, sa *cards.SA) {
 		// the battlefield: Kaito, Cunning Infiltrator's [-9] emblem keeps
 		// making Ninjas after Kaito dies to its own loyalty cost. Every
 		// corpus emblem spells its Effect `Name$ Emblem — <name>`.
-		if dur == "permanent" && !permanentComeback && !sourceLeave && !isEmblemEffectName(effectName) && !ep.Boon &&
-			h.Game().Obj(c.Source) != nil && h.Game().Obj(c.Source).Zone == state.ZBattlefield {
-			expiry += "|SB"
-		}
+		expiry += effectOriginSuffix(h.Game().Obj(c.Source), effectName,
+			dur == "permanent" && !permanentComeback && !sourceLeave && !ep.Boon)
 		// The Effect's own capture is what an Effect-owned trigger's
 		// `Defined$ Remembered` names. Register it so the comeback body
 		// phases the Effect's memory (Oubliette's `RememberObjects$

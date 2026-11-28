@@ -292,6 +292,8 @@ func foldDelayedRegister(g *state.Game, e *Event) {
 	if sourceBattlefield {
 		text = strings.TrimSuffix(text, "|SB")
 	}
+	// "|EM" (an emblem's trigger) takes |SB's place: no emblem carries both.
+	text, emblem := strings.CutSuffix(text, "|EM")
 	imprint := strings.HasSuffix(text, "|IH")
 	if imprint {
 		text = strings.TrimSuffix(text, "|IH")
@@ -402,6 +404,7 @@ func foldDelayedRegister(g *state.Game, e *Event) {
 		ImprintOnHost:       imprint,
 		ForgetOnPhasedIn:    forgetPhasedIn,
 		SourceBattlefield:   sourceBattlefield,
+		Emblem:              emblem,
 		RememberedAmount:    rememberedAmount,
 		CaptureOnly:         captureOnly,
 		RememberedManaSpent: manaSpent,
@@ -588,6 +591,7 @@ func foldDelayedPush(g *state.Game, e *Event) {
 		}
 	}
 	o.Remembered = rememberedFrom(e.IDs)
+	o.EmblemAbility = registration != nil && registration.Emblem
 	if monarchSteal {
 		o.Remembered = []state.Target{{Player: state.PlayerID(e.Amount), IsPlayer: true}}
 	}

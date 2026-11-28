@@ -282,6 +282,11 @@ func rawImprintTargets(g *state.Game, c *Ctx) []state.Target {
 // honest: every keyword read below reads r.source, already resolved, and
 // SetDamageSource publishes the same object.
 func newDamageRider(h Host, c *Ctx, spec string, amount int32) damageRider {
+	if o := h.Game().Obj(c.ResolvingObj); spec == "" && o != nil && o.EmblemAbility {
+		// "This emblem deals damage" (CR 114.2, 114.3): its controller's
+		// source, with no keywords -- never the card that made the emblem.
+		return damageRider{h: h, source: o.ID, controller: o.Controller, amount: amount}
+	}
 	own := resolveSourceObject(h, c.Source)
 	source := own
 	if spec != "" {

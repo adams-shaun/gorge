@@ -612,12 +612,14 @@ func (e *Engine) targetOptionLabel(candidate targetCandidate) string {
 // targeting checks the spell or ability's source, and for an activated or
 // triggered ability that source is the permanent that granted it). For
 // everything else -- a spell's own stack object, which IS the card and so
-// carries a Face, or a plain permanent -- it is the object itself. This is
+// carries a Face, or a plain permanent -- it is the object itself. So is an
+// emblem's ability: it is the emblem, a colorless source with no
+// characteristics (CR 114.3), not the card that made it. This is
 // the single definition both askTarget (which in the same round discovered it
 // was passing the Face-less ability object) and legalTargets consult, so the
 // two sites always agree on what "the source" is.
 func (e *Engine) protectionSource(source state.ObjID) state.ObjID {
-	if o := e.G.Obj(source); o != nil && o.Ability != nil && o.Source != 0 {
+	if o := e.G.Obj(source); o != nil && o.Ability != nil && o.Source != 0 && !o.EmblemAbility {
 		return o.Source
 	}
 	return source
