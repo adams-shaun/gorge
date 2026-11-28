@@ -74,7 +74,7 @@ func (e *Engine) mayPlayGrant(p state.PlayerID, id state.ObjID) (free, ok bool) 
 // is exactly its self-grant half for every card, which a walk asking it per
 // card (mayPlaySpellIds) can take through mayPlayGrantScoped.
 func (e *Engine) mayPlayBoardGrantsOpen(p state.PlayerID) bool {
-	for _, sv := range e.activeStatics("Continuous") {
+	for _, sv := range e.mayPlayBoardStatics() {
 		if mayPlayStaticBenefits(p, &sv) && strings.TrimSpace(sv.ParamStr(cards.PKMayPlay)) == "True" {
 			return true
 		}
@@ -134,7 +134,7 @@ func (e *Engine) mayPlayGrantScoped(p state.PlayerID, id state.ObjID, board bool
 		return free, ok
 	}
 	// (b) Battlefield grants, in activeStatics' deterministic APNAP order.
-	for _, sv := range e.activeStatics("Continuous") {
+	for _, sv := range e.mayPlayBoardStatics() {
 		if !mayPlayStaticBenefits(p, &sv) {
 			continue
 		}
@@ -249,7 +249,7 @@ func (e *Engine) mayPlayPermissions(p state.PlayerID, id state.ObjID, board bool
 		ok(mayPlayPermText(st.ParamStr(cards.PKMayPlayText), st.Params), e.mayPlayUntypedKey(id, st.ParamStr(cards.PKMayPlayLimit), st.ParamStr(cards.PKMayPlayText), st.HasParam(cards.PKMayPlayAltManaCost), st.ParamStr(cards.PKDescription), st.ParamStr(cards.PKAffected), st.ParamStr(cards.PKAffectedZone)), id, free, raise, hasRaise, priced)
 	}
 	if board {
-		for _, sv := range e.activeStatics("Continuous") {
+		for _, sv := range e.mayPlayBoardStatics() {
 			if !mayPlayStaticBenefits(p, &sv) {
 				continue
 			}
@@ -360,7 +360,7 @@ func (e *Engine) mayPlayRaiseCost(p state.PlayerID, id state.ObjID) (raise Cost,
 	// raise) contributes nothing, exactly as mayPlayPermissions skips it;
 	// the direct field-selector arguments keep the census's static-param
 	// attribution (a bare local map variable would be unclassifiable).
-	for _, sv := range e.activeStatics("Continuous") {
+	for _, sv := range e.mayPlayBoardStatics() {
 		if !mayPlayStaticBenefits(p, &sv) {
 			continue
 		}
@@ -947,7 +947,7 @@ func (e *Engine) mayPlayAltCosts(p state.PlayerID, id state.ObjID) []mayPlayAltV
 	// deterministic order (battlefield statics first, then the card's own
 	// face statics). Each is ranged in place -- neither list is appended to
 	// -- so no merged copy is built per call.
-	bf := e.activeStatics("Continuous")
+	bf := e.mayPlayBoardStatics()
 	face := o.Face().Statics
 	for i, n := 0, len(bf)+len(face); i < n; i++ {
 		var sv staticView
@@ -1135,7 +1135,7 @@ func (e *Engine) mayPlayPlainGrant(p state.PlayerID, id state.ObjID) bool {
 			return true
 		}
 	}
-	for _, sv := range e.activeStatics("Continuous") {
+	for _, sv := range e.mayPlayBoardStatics() {
 		if !mayPlayStaticBenefits(p, &sv) {
 			continue
 		}
@@ -1197,7 +1197,7 @@ func (e *Engine) mayPlayKinds(p state.PlayerID, id state.ObjID) (plain, mutate, 
 			sneak = sneak || sn
 		}
 	}
-	for _, sv := range e.activeStatics("Continuous") {
+	for _, sv := range e.mayPlayBoardStatics() {
 		if !mayPlayStaticBenefits(p, &sv) {
 			continue
 		}
@@ -1436,7 +1436,7 @@ func (e *Engine) mayPlayGrantedBy(p state.PlayerID, id, host state.ObjID) bool {
 			}
 		}
 	}
-	for _, sv := range e.activeStatics("Continuous") {
+	for _, sv := range e.mayPlayBoardStatics() {
 		if !mayPlayStaticBenefits(p, &sv) || sv.Source != host {
 			continue
 		}
@@ -1484,7 +1484,7 @@ func (e *Engine) mayPlayHostsCovering(p state.PlayerID, id state.ObjID) []state.
 	if e.mayPlayGrantedBy(p, id, id) {
 		out = append(out, id)
 	}
-	for _, sv := range e.activeStatics("Continuous") {
+	for _, sv := range e.mayPlayBoardStatics() {
 		if mayPlayStaticBenefits(p, &sv) && !seen(sv.Source) && e.mayPlayGrantedBy(p, id, sv.Source) {
 			out = append(out, sv.Source)
 		}
@@ -1519,7 +1519,7 @@ func (e *Engine) mayPlayHostsCovering(p state.PlayerID, id state.ObjID) []state.
 // corpus spells the rider exactly `Exile` on both carriers, and the static
 // parameter parser already trims the field.
 func (e *Engine) mayPlayReplacesGraveyard(p state.PlayerID, id state.ObjID) bool {
-	for _, sv := range e.activeStatics("Continuous") {
+	for _, sv := range e.mayPlayBoardStatics() {
 		if !mayPlayStaticBenefits(p, &sv) || !e.mayPlayGrantedBy(p, id, sv.Source) {
 			continue
 		}

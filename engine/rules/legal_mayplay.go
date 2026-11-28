@@ -145,7 +145,7 @@ func (e *Engine) mayPlayLandIds(p state.PlayerID) []state.ObjID {
 			}
 		}
 	}
-	if mayPlayExilerGrantOpen(e.activeStatics("Continuous")) {
+	if mayPlayExilerGrantOpen(e.mayPlayBoardStatics()) {
 		for _, q := range e.G.AliveFrom(0) {
 			walk(q, false)
 		}
@@ -493,7 +493,7 @@ func (e *Engine) mayPlayLandAny(p state.PlayerID) bool {
 			return true
 		}
 	}
-	if mayPlayExilerGrantOpen(e.activeStatics("Continuous")) {
+	if mayPlayExilerGrantOpen(e.mayPlayBoardStatics()) {
 		return true
 	}
 	for _, z := range [...]state.Zone{state.ZGraveyard, state.ZExile, state.ZSideboard} {
