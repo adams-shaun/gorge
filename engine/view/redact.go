@@ -123,7 +123,7 @@ func RedactEvent(g *state.Game, e events.Event, viewer state.PlayerID) events.Ev
 		}
 		// A library's order is hidden from every viewer, its owner and that
 		// owner's controller included: CR 401.2 for a LibraryOrder's chosen
-		// order, CR 701.20a for a Shuffle's randomized one, CR 901.5 for a
+		// order, CR 701.24a for a Shuffle's randomized one, CR 901.5 for a
 		// planar deck (libraryOrderKind). The event's shape survives so the
 		// "X shuffles their library" / "X rearranges the top of their
 		// library" line still renders. CR 720.4 widens "the owner's own

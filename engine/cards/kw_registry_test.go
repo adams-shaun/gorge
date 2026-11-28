@@ -20,7 +20,7 @@ var expandedHeads = []string{
 	"Annihilator", "Ward", "Storm", "Gravestorm", "Replicate", "Conspire",
 	"Living Weapon", "For Mirrodin", "Cumulative upkeep", "Echo",
 	"Equip", "Transmute", "Cycling", "TypeCycling", "Level up", "Affinity",
-	// Undaunted (CR 702.105) was added after the split; the pre-split switch never expanded it.
+	// Undaunted (CR 702.125) was added after the split; the pre-split switch never expanded it.
 	"Undaunted",
 	// Bushido (CR 702.45): the Block half ("blocks") and the
 	// AttackerBlocked half ("becomes blocked"), each a Pump of Self +N/+N
@@ -28,11 +28,11 @@ var expandedHeads = []string{
 	// expanded it.
 	"Bushido",
 	"Enchant", "Mobilize", "Afterlife", "Encore", "Embalm", "Eternalize",
-	// Squad (CR 702.66) was added after the split: the corpus carries only
+	// Squad (CR 702.157) was added after the split: the corpus carries only
 	// the K:Squad:<cost> line, so the expansion supplies the ETB trigger
 	// that creates one token copy per squad payment (Count$SquadPaid).
 	"Squad",
-	// CR 702.70 Training: a genuinely new expansion added after the split
+	// CR 702.149 Training: a genuinely new expansion added after the split
 	// (not a head the old switch covered), so it is listed here to keep the
 	// table equal to the registered set.
 	"Training",
@@ -47,7 +47,7 @@ var expandedHeads = []string{
 	// Craft (CR 702.167, Slice 1) expands uniform ExileCtrlOrGrave carriers.
 	"Craft",
 	// Appended after the split (each is a keyword whose expansion the
-	// pre-split switch never had): Exploit (CR 702.58).
+	// pre-split switch never had): Exploit (CR 702.110).
 	"Exploit",
 	// Offspring (CR 702.175): the corpus carries only the
 	// K:Offspring:<cost> line, so the expansion supplies the ETB trigger
@@ -60,10 +60,10 @@ var expandedHeads = []string{
 	// Ravenous (CR 702.148): the {X} +1/+1-counter ETB plus the X>=5 draw,
 	// expanded into an ETB trigger.
 	"Ravenous",
-	// Fabricate (CR 702.121): a ChangesZone ETB trigger
+	// Fabricate (CR 702.123): a ChangesZone ETB trigger
 	// whose Charm elects N +1/+1 counters or N Servo tokens.
 	"Fabricate",
-	// Graft (CR 702.57): enters-with counters plus an optional move trigger.
+	// Graft (CR 702.58): enters-with counters plus an optional move trigger.
 	"Graft",
 	// Reconfigure (CR 702.150): the attach/unattach
 	// activated-ability pair per printed cost (an alternative second colon
@@ -71,7 +71,7 @@ var expandedHeads = []string{
 	// sorcery-speed; the not-a-creature-while-attached switch is derived
 	// state (state.Object.ReconfiguredAttached).
 	"Reconfigure",
-	// Demonstrate (CR 702.152): a SpellCast trigger on the card's own cast
+	// Demonstrate (CR 702.144): a SpellCast trigger on the card's own cast
 	// whose DB$ Demonstrate body asks the may-copy election and the
 	// opponent choice, the copies ordinary StackCopy mints (kw-demonstrate).
 	"Demonstrate",
@@ -85,7 +85,7 @@ var expandedHeads = []string{
 	// (engine/cards/kw_increment.go, engine/rules/trigmatch/cast.go). Added after the split;
 	// the pre-split switch never had it.
 	"Increment",
-	// Backup (CR 702.70): a ChangesZone ETB trigger whose
+	// Backup (CR 702.165): a ChangesZone ETB trigger whose
 	// body is a targeted PutCounter chained to a grant built from the named
 	// SVar, gated on the target being another creature. Added after the
 	// split; the pre-split switch never had it.
@@ -107,7 +107,7 @@ var expandedHeads = []string{
 	// Renown (CR 702.112): the
 	// combat-damage trigger places N +1/+1 counters and marks its source renowned.
 	"Renown",
-	// Sunburst (CR 702.47): a bare K:Sunburst line expanded
+	// Sunburst (CR 702.44): a bare K:Sunburst line expanded
 	// into the Moved -> Battlefield Updated Repl that puts Count$Converge
 	// counters, kind decided on the printed face's types (+1/+1 for a
 	// creature, charge otherwise). Added after the split; the pre-split

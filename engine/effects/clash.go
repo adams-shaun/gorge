@@ -18,7 +18,7 @@ func init() {
 	RegisterNonAPI("trig:Clashed")
 }
 
-// effClash implements DB$/SP$/AB$ Clash (CR 701.31, Forge's ClashEffect; 29
+// effClash implements DB$/SP$/AB$ Clash (CR 701.30, Forge's ClashEffect; 29
 // corpus SA lines across 29 files). The resolving ability's controller clashes
 // with an opponent:
 //

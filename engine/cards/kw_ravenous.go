@@ -7,7 +7,7 @@ package cards
 import "strconv"
 
 func kwRavenous(f *Face, i int, k, head, param string, has func(kind, line string) bool) {
-	// CR 702.148: "Ravenous (This creature enters with X +1/+1 counters on
+	// CR 702.156: "Ravenous (This creature enters with X +1/+1 counters on
 	// it. If X is 5 or more, draw a card when it enters.)" Ravenous rides a
 	// mana cost with an {X} component. Forge carries it as a single K: line
 	// (no parameters on any corpus carrier) and expands it into two pieces,

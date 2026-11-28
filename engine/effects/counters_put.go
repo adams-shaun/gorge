@@ -84,7 +84,7 @@ func effPutCounter(h Host, c *Ctx, sa *cards.SA) {
 		putCounterTriggeredMap(h, c, sa, pc)
 		return
 	}
-	// Bolster$ (CR 701.36's bolster keyword action; 24 raw corpus lines, every
+	// Bolster$ (CR 701.39's bolster keyword action; 24 raw corpus lines, every
 	// one of them a PutCounter SA -- SP/AB/DB heads alike -- so no separate
 	// DB$ Bolster API is needed): "choose a creature with the least toughness
 	// among creatures you control and put N +1/+1 counters on it." Bolster$

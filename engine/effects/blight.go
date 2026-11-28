@@ -11,7 +11,7 @@ import (
 
 func init() { Register("Blight", effBlight) }
 
-// effBlight implements Forge's Blight (CR 701.60): for each player the
+// effBlight implements Forge's Blight (CR 701.68): for each player the
 // Defined$ spec names — including the ValidTgts$ fallback, which makes
 // Champion of the Weird's TARGETED OPPONENT the blighting player, not the
 // ability's controller — that player chooses a creature they control and puts

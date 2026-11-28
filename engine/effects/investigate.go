@@ -16,7 +16,7 @@ func init() { Register("Investigate", effInvestigate) }
 // Sacrifice this token: Draw a card" activated ability).
 const clueTokenKey = "c_a_clue_draw"
 
-// effInvestigate implements the Investigate primitive (CR 701.36a; 142
+// effInvestigate implements the Investigate primitive (CR 701.16a; 142
 // corpus files -- 120 DB$, 16 AB$, 9 SP$): create Num$ Clue tokens for each
 // investigating player.
 //

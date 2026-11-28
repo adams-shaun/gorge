@@ -198,7 +198,7 @@ func hasTypePrinted(o *state.Object, t string, id cards.TypeWordID) (typeDecisio
 			return typeNo, f
 		}
 	}
-	// CR 702.150c: a Reconfigure card attached to a creature is not a
+	// CR 702.151: a Reconfigure card attached to a creature is not a
 	// creature, in the same every-filter-read sense (the target ask's
 	// ValidTgts$ Creature, a Count$Valid Creature census, the combat
 	// eligibility scans). Creature subtypes go with the lost Creature card

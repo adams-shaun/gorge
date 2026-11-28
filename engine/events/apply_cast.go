@@ -58,7 +58,7 @@ func foldCastInfo(g *state.Game, e *Event) {
 		if flags&state.FlagOptionalCostPaid != 0 {
 			o.OptionalCostPaid = true
 		}
-		// Convoke (CR 702.66) is an ID-LIST fold, not an
+		// Convoke (CR 702.51) is an ID-LIST fold, not an
 		// amount: the convoked creatures ride the pay-time CastInfo's IDs
 		// whenever the flag is present, whatever other tags ride the same
 		// event. Folded OUTSIDE the exclusive switch below (the Conspired

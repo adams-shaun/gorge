@@ -7,7 +7,7 @@ import (
 	"github.com/adams-shaun/gorge/engine/state"
 )
 
-// Explore is Forge's ExploreEffect (api:Explore, CR 701.35a — 42 raw corpus
+// Explore is Forge's ExploreEffect (api:Explore, CR 701.44a — 42 raw corpus
 // files carry a `DB$ Explore` body or an `AB$/SP$ Explore` action: the
 // Ixalan/LCI explore mechanic — Merfolk Cave-Diver, Queen's Agent, Twists and
 // Turns, the Map token's activated ability, ...). "A creature explores by
