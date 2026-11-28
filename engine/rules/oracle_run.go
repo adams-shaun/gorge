@@ -246,6 +246,7 @@ type oracleStep struct {
 	AbilityIndex *int           `json:"ability_index,omitempty"`
 	Attackers    []string       `json:"attackers,omitempty"`
 	Defender     string         `json:"defender,omitempty"`
+	Defenders    []string       `json:"defenders,omitempty"` // one seat per Attackers entry (CR 802.2); Defender then empty
 	Blocks       [][2]string    `json:"blocks,omitempty"`
 	Step         string         `json:"step,omitempty"`
 	Active       string         `json:"active,omitempty"`
@@ -2420,9 +2421,9 @@ func (r *oracleRun) do(st oracleStep) error {
 		}
 		return harnessf("resolve: stack never emptied")
 	case oracleOpAttack:
-		def, ok := parseSeatRef(st.Defender)
-		if !ok {
-			return harnessf("attack: bad defender %q", st.Defender)
+		defs, err := oracleAttackDefenders(st)
+		if err != nil {
+			return err
 		}
 		for i := 0; ; i++ {
 			d := e.Pending()
@@ -2441,25 +2442,9 @@ func (r *oracleRun) do(st oracleStep) error {
 						return harnessf("%s", strings.Join(bad, "; "))
 					}
 				}
-				used := map[int]bool{}
-				var choices []int
-				for _, a := range st.Attackers {
-					id, err := r.resolve(a)
-					if err != nil {
-						return err
-					}
-					idx := -1
-					for _, o := range d.Options {
-						if !used[o.Index] && o.Obj == id && o.Player == def {
-							idx = o.Index
-							break
-						}
-					}
-					if idx < 0 {
-						return harnessf("attack: %s at p%d not offered: %s", a, def, optionDump(d))
-					}
-					used[idx] = true
-					choices = append(choices, idx)
+				choices, err := oracleAttackChoices(r, d, st.Attackers, defs)
+				if err != nil {
+					return err
 				}
 				if err := r.submitDeclaration(d, choices, "attack"); err != nil {
 					return err
@@ -2573,6 +2558,63 @@ func (r *oracleRun) do(st oracleStep) error {
 		return oraclePrelude(r, st, seat)
 	}
 	return harnessf("unknown op %q", st.Op)
+}
+
+// oracleAttackDefenders is an attack step's defending seat per attacker:
+// Defender for every attacker, or Defenders entry i for attacker i. A
+// Defenders list of another length, or one given beside Defender, is a
+// harness error.
+func oracleAttackDefenders(st oracleStep) ([]state.PlayerID, error) {
+	if len(st.Defenders) == 0 {
+		def, ok := parseSeatRef(st.Defender)
+		if !ok {
+			return nil, harnessf("attack: bad defender %q", st.Defender)
+		}
+		defs := make([]state.PlayerID, len(st.Attackers))
+		for i := range defs {
+			defs[i] = def
+		}
+		return defs, nil
+	}
+	if st.Defender != "" || len(st.Defenders) != len(st.Attackers) {
+		return nil, harnessf("attack: defenders needs one seat per attacker")
+	}
+	defs := make([]state.PlayerID, len(st.Defenders))
+	for i, ref := range st.Defenders {
+		def, ok := parseSeatRef(ref)
+		if !ok {
+			return nil, harnessf("attack: bad defender %q", ref)
+		}
+		defs[i] = def
+	}
+	return defs, nil
+}
+
+// oracleAttackChoices matches attacker i to the declare-attackers option of
+// that object attacking defs[i], each option used once. A free function, like
+// blockersDecision, so oracleRun grows no method.
+func oracleAttackChoices(r *oracleRun, d *decision.Decision, attackers []string, defs []state.PlayerID) ([]int, error) {
+	used := map[int]bool{}
+	var choices []int
+	for i, a := range attackers {
+		id, err := r.resolve(a)
+		if err != nil {
+			return nil, err
+		}
+		idx := -1
+		for _, o := range d.Options {
+			if !used[o.Index] && o.Obj == id && o.Player == defs[i] {
+				idx = o.Index
+				break
+			}
+		}
+		if idx < 0 {
+			return nil, harnessf("attack: %s at p%d not offered: %s", a, defs[i], optionDump(d))
+		}
+		used[idx] = true
+		choices = append(choices, idx)
+	}
+	return choices, nil
 }
 
 func normCounter(k string) string {
