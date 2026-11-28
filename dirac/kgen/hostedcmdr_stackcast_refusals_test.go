@@ -14,9 +14,10 @@ import (
 //     ControlSpell, Counter Defined$ Targeted and Announce$ X shapes landed,
 //     cli-20261127T171908Z): pinned empty here, and by
 //     TestHostedCmdrStackCastLowers and the dirac/oracle lockstep tests;
-//   - Vivi Ornitier: a PlayerTurn$ gate on a mana ability (lowering it passes
-//     this check, then the kernel's mana gate refuses: it gates only a plain {T}
-//     amount-1 unrestricted ability, not Vivi's {0} X-amount choice);
+//   - Vivi Ornitier now lowers (a PlayerTurn$ gate on a {0} dynamic finite
+//     Combo Any mana ability; the kernel's Combo Any gap reads the gate per
+//     activation): pinned empty here and by TestHostedCmdrManaShapesLower and
+//     the dirac/oracle lockstep;
 //   - Venerated Loxodon: Defined$ Convoked (the kernel keeps only the count);
 //   - Ob Nixilis, Captive Kingpin now lowers (its LifeLostAll group trigger,
 //     lower_lifelostall.go): pinned empty here, and by
@@ -34,7 +35,7 @@ func TestHostedCmdrStackCastRefusals(t *testing.T) {
 		"Commandeer":                  "",
 		"Disrupting Shoal":            "",
 		"Blazing Shoal":               "",
-		"Vivi Ornitier":               `activation PlayerTurn$ "True" beside another condition`,
+		"Vivi Ornitier":               "",
 		"Venerated Loxodon":           `Defined$ "Convoked"`,
 		"Ob Nixilis, Captive Kingpin": "",
 	}

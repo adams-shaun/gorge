@@ -218,7 +218,12 @@ func (e *Engine) potentialManaFor(p state.PlayerID, payment *paymentDescriptor) 
 					}
 					// A payment's bound reads a Chosen source's colour.
 					if payment == nil || !addPotentialChosenColour(e, &out, id, ma) && !addPotentialIdentityColours(e, &out, p, ma) {
-						if !addPotentialReflected(e, &out, p, id, ma) {
+						// A reflected ability folds its named colours; a sacrifice-reflected
+						// one (Squandered Resources) folds the victim's own producible
+						// symbols. Either replaces the blank-Produced$ {C} default and the
+						// repeat helpers (each candidate is already counted once).
+						if !addPotentialReflected(e, &out, p, id, ma) &&
+							!addPotentialReflectedSacrifice(e, asPayer(e), &out, p, id, ma, e.manaAbilityCC(p, id, ma).Cost) {
 							addPotentialReflectedAmount(&out, effects.ManaReflectedAmountCandidates(e, p, id, ma))
 							prod := ma
 							if counters {

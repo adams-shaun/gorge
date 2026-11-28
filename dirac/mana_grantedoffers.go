@@ -1810,6 +1810,9 @@ func (g *grantSrch) gapVisit(t *State, i int, sacd bool, sacStepped *slotMask) (
 	grants := t.grantTapOK(g.k, sl)
 	fok := g.filt[i] && t.filtPaid(g.k, g.p, sl)
 	if !grants && !tx {
+		if g.comboAloneStep(t, i, sl) {
+			return true, false
+		}
 		if g.tappedHolderStep(t, i, sl, sacStepped) { // no {T} in its cost: tapped or sick alike (mana_grantcost.go)
 			return true, false
 		}
@@ -1884,9 +1887,7 @@ func (g *grantSrch) gapAbilities(t *State, i int, sl Slot, grants, fok, tx bool,
 	for pass := lo; pass <= hi; pass++ {
 		g.sel = pass
 		blgExtra, blgN := uint8(0), uint8(0)
-		if g.ca[i] && g.sel != 1 && t.caGaps(g.k, g.p).has(sl) && g.caGapBranch(t, i, sl) {
-			// the printed Combo Any ability's answers first: its option names no
-			// colour, so it waits for pass 2 (mana_grantcomboany.go)
+		if g.comboHolderBranch(t, i, sl, alts, false) {
 			return true, false
 		}
 		if ppc := t.manaPCGen(g.k, sl); g.dual[i] && !t.ownRestrPrinted(g.k, sl) && grantPainShape(g.k, ppc) {
@@ -1967,6 +1968,9 @@ func (g *grantSrch) gapAbilities(t *State, i int, sl Slot, grants, fok, tx bool,
 			if g.grantStepBranch(t, i, sl, gi, pc, mask, ask) {
 				return true, false
 			}
+		}
+		if g.comboHolderBranch(t, i, sl, alts, true) {
+			return true, false
 		}
 	}
 	g.sel = 0
@@ -2382,6 +2386,9 @@ func (g *grantSrch) twinCutOn() bool {
 // is no option of gorge's menu, so it neither cuts nor cuts for another --
 // gapTapBranchable), and the cut reads only the cut's own scope (twinCutOn).
 func (g *grantSrch) gapTwinSkip(t *State, i int, tried *[MaxPerm]Slot, ntried *int) bool {
+	if g.comboPathPaid(t, i, g.cand[i]) {
+		return true // (never a twin: gorge drops it before its twin cut)
+	}
 	if !g.twinCutOn() {
 		return false
 	}
@@ -3197,9 +3204,8 @@ func (s *State) grantApply(k *prep, g *grantSrch) {
 				s.tapXNext(g.p, &d)
 			}
 			continue
-		case stepEach, stepComboAny:
-			s.eachOrComboAnyApply(k, g.p, sl, st) // (mana_granteach.go, mana_grantcomboany.go)
-			if g.tapTriggers(s, sl) {
+		case stepEach, stepComboAny, stepComboOne:
+			if s.eachOrComboAnyStep(k, g, sl, st) { // (mana_grantcomboany.go)
 				passed = true
 				s.tapXNext(g.p, &d)
 			}

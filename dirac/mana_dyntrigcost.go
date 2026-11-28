@@ -221,8 +221,8 @@ func (s *State) anyLiveSource(k *prep, p uint8, d *payDesc) bool {
 		if s.canTapForManaPC(k, sl, pc) || s.sacOnlyLive(k) && s.canSacOnlyForMana(k, sl, pc) {
 			return true
 		}
-		if s.storeSourceCounts(k, p, sl) {
-			return true // a storage battery holding counters (mana_storesource.go)
+		if s.storeSourceCounts(k, p, sl) || s.caFiniteYields(k, p, sl) {
+			return true // a storage battery holding counters (mana_storesource.go); a finite Combo making mana (mana_comboany.go)
 		}
 		if s.riderPotential(k, p, sl) {
 			return true // a bounded rider source's activation (CR 605.3b)

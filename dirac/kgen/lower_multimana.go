@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/adams-shaun/gorge/dirac/kop"
+	"github.com/adams-shaun/gorge/engine/cards"
 )
 
 // A card with two or more mana abilities (kmana2). The kernel's mana
@@ -1033,6 +1034,12 @@ func (lc *lowerCtx) refuseGatedMana(ms []*lAbility) bool {
 	if gated == 0 {
 		return false
 	}
+	if len(ms) == 1 && gatedComboAnyMana(ms[0]) {
+		// Vivi Ornitier's PlayerTurn$ {0} once-each-turn "Add X mana in any
+		// combination of {U} and/or {R}": the kernel registers a Combo Any
+		// census gap and reads the turn gate per activation (caGapLive).
+		return true
+	}
 	if len(ms) == 2 && metalcraftDynPair(ms[0], ms[1]) {
 		// Urza's Workshop: a plain {T}: Add {C} and a Metalcraft$-gated
 		// {T}: Add {C} for each Urza's land. The kernel's evaluated pair
@@ -1126,6 +1133,38 @@ func (lc *lowerCtx) refuseGatedMana(ms []*lAbility) bool {
 		lc.refuseNode("card", "gated mana ability producing {C} beside another")
 	}
 	return true
+}
+
+// playerTurnManaModelled: a PlayerTurn$ gate on a mana ability is lowered only
+// for the finite-mask Combo Any shape the kernel reads per activation (Vivi
+// Ornitier's {0}, ActivationLimit$ 1, Produced$ Combo ..., Amount$ ...). Any
+// other turn-gated mana ability keeps the old refusal.
+func playerTurnManaModelled(sa *cards.SA) bool {
+	if sa.API != "Mana" {
+		return true
+	}
+	if sa.ParamStr(cards.PKCost) != "0" || sa.ParamStr(cards.PKActivationLimit) != "1" || !sa.HasParam(cards.PKAmount) {
+		return false
+	}
+	p := strings.TrimSpace(sa.ParamStr(cards.PKProduced))
+	return p == "Any" || strings.HasPrefix(p, "Combo ")
+}
+
+// gatedComboAnyMana: a lone gated Combo Any mana ability with no tap cost and
+// an ActivationLimit$ 1 (Vivi Ornitier's "during your turn, {0}: Add X mana in
+// any combination of {U} and/or {R}"). The kernel registers it as a Combo Any
+// census gap and reads the turn gate per activation (caGapLive, mana_comboany.go).
+func gatedComboAnyMana(a *lAbility) bool {
+	if a.Mana == nil || a.ActCond.Kind != cYourTurn || !a.TurnOnce || a.Limit != 0 || len(a.Prog) != 0 ||
+		a.Gate != nil || a.Sorcery || a.Loyalty || !noCost(a.Cost) {
+		return false
+	}
+	m := a.Mana
+	if !m.Choice || m.Each || m.Special != "" || m.Restrict != nil || m.RestrictAb != nil ||
+		len(m.Colors) < 2 || strings.Trim(m.Colors, "WUBRG") != "" {
+		return false
+	}
+	return !m.Amount.isConst() // the kernel reads the finite-mask arm only with AfManaDynamic (kop.ComboAnyManaAb)
 }
 
 // metalcraftGate: c is Activation$ Metalcraft as lowered (bareCondition): the

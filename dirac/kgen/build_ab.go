@@ -1005,7 +1005,8 @@ func (cb *cardBuilder) ability(a *lAbility) (kop.Ability, error) {
 	return ka, nil
 }
 
-// manaReflected lowers a Special "Reflected" mana read (lower_reflectedmana.go).
+// manaReflected lowers a Special "Reflected" or "ReflectedSacrificed" mana
+// read (lower_reflectedmana.go).
 // It reports whether m is one it lowered. A production read with a
 // non-constant Amount$ (Incubation Druid), or one mana of any colour among
 // the matched permanents' colours (Plaza of Heroes), or among what the
@@ -1015,7 +1016,20 @@ func (cb *cardBuilder) ability(a *lAbility) (kop.Ability, error) {
 // its spec compiles zone-free like the Count$ValidGraveyard precedent — the
 // read is the zone).
 func (cb *cardBuilder) manaReflected(m *lMana, ka *kop.Ability) (bool, error) {
-	if m.Special != "Reflected" || m.Restrict != nil || m.RestrictAb != nil {
+	if m.Restrict != nil || m.RestrictAb != nil {
+		return false, nil
+	}
+	if m.Special == "ReflectedSacrificed" && m.Amount.isConst() && m.Amount.N == 1 {
+		// (Squandered Resources) the production is the sacrificed permanent's
+		// own printed mana abilities (kop.Ability.ManaSacrificed): the kernel's
+		// sacrifice-another search reads the victim's mask at each activation
+		// (dirac mana_tapanother.go sacReflMask). No AfManaChoice: the colour is
+		// not a printed mask, and censusGapMana reads the sacrifice cost.
+		ka.ManaSacrificed = true
+		ka.ManaN = 1
+		return true, nil
+	}
+	if m.Special != "Reflected" {
 		return false, nil
 	}
 	if m.Produce && !m.Amount.isConst() {

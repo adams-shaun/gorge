@@ -3968,8 +3968,11 @@ func (lc *lowerCtx) lowerAbility(sa *cards.SA) error {
 			// the active player)
 			// beside a CheckSVar$ / IsPresent$ gate (Essence Anchor) both are
 			// independent offer-time reads gorge requires (activationPhasesOK
-			// and sVarGateOK), so their conjunction is exact
-			if v != "True" || sa.API == "Mana" {
+			// and sVarGateOK), so their conjunction is exact. A mana ability
+			// carries the turn gate as Trig.Cond (build_ab), read per
+			// activation: prepManaGate's view for a printed source, caGapLive
+			// for a Combo Any gap (Vivi Ornitier).
+			if v != "True" || sa.API == "Mana" && !playerTurnManaModelled(sa) {
 				return refuse("activation PlayerTurn$ %q beside another condition", v)
 			}
 			ab.ActCond = andCond(ab.ActCond, lCond{Kind: cYourTurn})

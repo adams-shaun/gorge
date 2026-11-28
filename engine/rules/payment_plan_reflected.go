@@ -3,6 +3,7 @@ package rules
 import (
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/effects"
+	costvocab "github.com/adams-shaun/gorge/engine/rules/cost"
 	"github.com/adams-shaun/gorge/engine/rules/pay"
 	"github.com/adams-shaun/gorge/engine/state"
 )
@@ -109,6 +110,39 @@ func addPotentialReflected(e *Engine, m *state.Mana, p state.PlayerID, id state.
 		}
 	}
 	return true
+}
+
+// addPotentialReflectedSacrifice folds a ManaReflected ability whose Valid$
+// reads the permanent its own Sac cost sacrifices (Squandered Resources) into
+// PotentialMana's bound. Each candidate the cost could sacrifice contributes
+// one mana of each symbol it could produce (CR 106.7 reads the printed mana
+// abilities, tapped or not), so two tapped Forests fund {G}{G}. Reports
+// whether an ability of that shape folded at least one symbol.
+func addPotentialReflectedSacrifice(h effects.Host, pe pay.Engine, m *state.Mana, p state.PlayerID, id state.ObjID, ma *cards.SA, cost costvocab.Cost) bool {
+	if ma == nil || ma.APIKind() != cards.APIManaReflected || !effects.ManaReflectedReadsSacrificed(ma) {
+		return false
+	}
+	if len(cost.Sac) == 0 {
+		return false
+	}
+	var svars map[string]string
+	if o := h.Game().Obj(id); o != nil && o.Face() != nil {
+		svars = o.Face().SVars
+	}
+	ctx := effects.NewCtxPtr(id, p, effects.CtxInit{SVars: svars})
+	found := false
+	for _, part := range cost.Sac {
+		for _, victim := range pay.ManaSacrificeCandidates(pe, p, id, part) {
+			ctx.Remembered = []state.Target{{Obj: victim}}
+			for _, sym := range effects.ManaReflectedCandidates(h, ctx, ma) {
+				if i := state.ManaIndex(sym[0]); i >= 0 {
+					m[i] = saturatingPotentialMana(m[i], 1)
+					found = true
+				}
+			}
+		}
+	}
+	return found
 }
 
 // addPotentialReflectedAmount colours the bound for a ManaReflected ability

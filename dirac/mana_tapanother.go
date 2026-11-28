@@ -516,6 +516,92 @@ func (s *State) sacXCands(k *prep, p uint8, sl Slot, ab *kop.Ability, out *[MaxP
 	return s.battlefieldOrder(p, m, out[:], 0)
 }
 
+// sacReflMask is the colours the permanent the sacrifice-another source at sl
+// would sacrifice at cand could produce (Squandered Resources' ManaReflected
+// over Defined.Sacrificed): the card's printed mana abilities' producible
+// mask, plus {C} when one makes it (gorge effects.producibleSymbols, the
+// ColorOrType$ Type read).
+func (s *State) sacReflMask(k *prep, cand Slot) uint8 {
+	cd := &k.t.Cards[s.cardAt(cand)]
+	m := uint8(cd.ProduceCol)
+	if producesC(cd) {
+		m |= uint8(kop.ColC)
+	}
+	return m
+}
+
+// sacReflSource reports whether the source at sl is a sacrifice-reflected
+// mana ability (SacReflManaAb); a source with no mana ability is not, and the
+// predicate assumes a non-nil ability.
+func (s *State) sacReflSource(k *prep, sl Slot) bool {
+	ab := k.tapXAbOf(s.cardAt(sl))
+	return ab != nil && kop.SacReflManaAb(ab)
+}
+
+// sacReflUnion is the union of the symbols every candidate the source at sl
+// could sacrifice makes: the relaxed census's over-bound for a
+// sacrifice-reflected ability (each activation adds one of the victim's
+// symbols).
+func (s *State) sacReflUnion(k *prep, p uint8, sl Slot, ab *kop.Ability) uint8 {
+	var cs [MaxPerm]Slot
+	nc := s.sacXCands(k, p, sl, ab, &cs)
+	var m uint8
+	for i := 0; i < nc; i++ {
+		m |= s.sacReflMask(k, cs[i])
+	}
+	return m
+}
+
+// sacReflAnswers writes a sacrificed victim's producible colours in the order
+// gorge's script search tries the activation's colour ask (scriptOrderAnswers):
+// the play's announced colours first (need), then W U B R G C. mask is the
+// victim's own producible mask (sacReflMask), colourless included: the card
+// adds any type of mana the land could produce (CR 106.7, 106.1b). It returns
+// the count written to out; zero for a victim that makes nothing, which poses
+// no colour ask at all.
+func sacReflAnswers(mask uint8, need [kop.NumManaKinds]bool, out *[kop.NumManaKinds]uint8) int {
+	if mask == 0 {
+		return 0
+	}
+	for c := uint8(0); c < kop.NumManaKinds; c++ {
+		out[c] = c
+	}
+	needFirst(out[:], need)
+	n := 0
+	for i := 0; i < kop.NumManaKinds; i++ {
+		c := out[i]
+		if mask&(1<<c) != 0 {
+			out[n] = c
+			n++
+		}
+	}
+	return n
+}
+
+// addTapXUnitsFor is addTapXUnits for the source at sl: a sacrifice-reflected
+// one (SacReflManaAb) is one unit making any of the union its candidates
+// could produce (sacReflUnion), never each symbol at once.
+func (s *State) addTapXUnitsFor(av *avail, k *prep, p uint8, sl Slot, a *kop.Ability) {
+	if kop.SacReflManaAb(a) {
+		av.addUnits(s.sacReflUnion(k, p, sl, a), 1)
+		return
+	}
+	addTapXUnits(av, a)
+}
+
+// availSacRefl folds a sacrifice-reflected source (SacReflManaAb) into the
+// relaxed census as one unit of each colour its candidates could produce:
+// each activation sacrifices one candidate and adds one of that candidate's
+// symbols, so the union is an over-bound the prefix search narrows.
+func (s *State) availSacRefl(k *prep, p uint8, sl Slot, ab *kop.Ability, av *avail) {
+	m := s.sacReflUnion(k, p, sl, ab)
+	for c := 0; c < kop.NumManaKinds; c++ {
+		if m&(1<<uint(c)) != 0 {
+			av.addUnits(1<<uint(c), 1)
+		}
+	}
+}
+
 // availTapX adds p's tap-another-permanent sources' mana to the gaps walk:
 // the relaxed census counts each as a free any-colour unit (a second
 // ability's beside its source's own planner unit), a sacrifice-another one
@@ -524,8 +610,13 @@ func (s *State) sacXCands(k *prep, p uint8, sl Slot, ab *kop.Ability, out *[MaxP
 //go:noinline
 func (s *State) availTapX(k *prep, p uint8, av *avail) {
 	for b := s.scriptTapXModelled(k, p); b.any(); b = b.rest() {
-		ab := k.tapXAbOf(s.cardAt(b.first()))
-		if kop.RestrictedTapXOneShape(ab) && !s.restrTapXCounts(k, p, b.first(), ab, av) {
+		sl := b.first()
+		ab := k.tapXAbOf(s.cardAt(sl))
+		if kop.RestrictedTapXOneShape(ab) && !s.restrTapXCounts(k, p, sl, ab, av) {
+			continue
+		}
+		if kop.SacReflManaAb(ab) {
+			s.availSacRefl(k, p, sl, ab, av)
 			continue
 		}
 		for r := s.tapXBoundRepeats(k, p, b.first(), ab); r > 0; r-- {
@@ -1312,7 +1403,15 @@ func (s *State) sacXDo(k *prep, p uint8, sl, cand Slot, colour uint8) {
 	}
 	s.sacFilterSource(k, cand)
 	cols, n := tapXUnit(ab)
-	if kop.SacXAnyColour(ab) {
+	if kop.SacReflManaAb(ab) {
+		// the victim's own producible symbol the search chose (sacReflStep);
+		// a victim that makes no symbol (or not this one) adds nothing at all
+		if m := s.sacReflMask(k, cand); m&(1<<colour) != 0 {
+			cols, n = 1<<colour, 1
+		} else {
+			cols, n = 0, 0
+		}
+	} else if kop.SacXAnyColour(ab) {
 		cols = 1 << colour // the activation asked the colour after the sacrifice
 	}
 	if ab.ManaRestrict != 0 {
@@ -1726,6 +1825,37 @@ func (rs *tapXSearch) colourStep(k *prep, t *State, sl, cand Slot, cols *[5]uint
 	return false, false
 }
 
+// sacReflStep is sacStep's branch for a sacrifice-reflected source (Squandered
+// Resources): the victim's own producible mask asks the colour (one answer per
+// symbol, no ask when the victim makes one), then sacXDo adds the pick.
+func (rs *tapXSearch) sacReflStep(k *prep, t *State, sl, cand Slot) (found, stop bool) {
+	mask := t.sacReflMask(k, cand)
+	if mask == 0 {
+		// Gorge's search tries every sacrifice answer, the unproductive land
+		// among them: the activation resolves and adds nothing, and the node
+		// after it may still price the play (its remaining sources pay).
+		if rs.try(k, t, tapXStep{sl: sl, cand: cand, cand2: NoSlot}) {
+			return true, true
+		}
+		return false, false
+	}
+	if bits.OnesCount8(mask) > 1 {
+		if !rs.tick() { // the colour ask
+			return false, true
+		}
+	}
+	var order [kop.NumManaKinds]uint8
+	for _, c := range order[:sacReflAnswers(mask, rs.need, &order)] {
+		if !rs.subsumeKeeps(t, c) {
+			continue
+		}
+		if rs.try(k, t, tapXStep{sl: sl, cand: cand, cand2: NoSlot, col: c}) {
+			return true, true
+		}
+	}
+	return false, false
+}
+
 // planFirstOrder moves to the front of order[:n], at the search's root, the
 // first plain-creature sacrifice source one activation of which pays the play
 // alone: gorge's planner funds it (autoPayOffer's last-resort arm) before the
@@ -1882,10 +2012,19 @@ func (rs *tapXSearch) sacStep(k *prep, t *State, sl Slot, cs *[MaxPerm]Slot, nc 
 	if nc > 1 && !rs.tick() {
 		return false, true
 	}
-	anyCol := kop.SacXAnyColour(k.tapXAbOf(t.cardAt(sl)))
+	ab := k.tapXAbOf(t.cardAt(sl))
+	anyCol := kop.SacXAnyColour(ab)
 	plan := nc > 0 && t.planOtherSacSource(k, sl) && rs.sacLast(k, t, sl, cs, anyCol)
 	var vbuf [MaxPerm]Slot
 	order := t.sacXVictimOrder(k, sl, cs, nc, plan, &vbuf)
+	if kop.SacReflManaAb(ab) {
+		for ci := 0; ci < nc; ci++ {
+			if f, st := rs.sacReflStep(k, t, sl, order[ci]); st {
+				return f, true
+			}
+		}
+		return false, false
+	}
 	for ci := 0; ci < nc; ci++ {
 		if anyCol {
 			if f, st := rs.colourStep(k, t, sl, order[ci], cols); st {

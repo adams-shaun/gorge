@@ -86,6 +86,13 @@ type Ability struct {
 	// mana_reflected.go producesColourless). A ColorOrType$ Color read drops
 	// it. A table bool, not State.
 	ManaProduceType bool
+	// ManaSacrificed: the mana ability adds one mana of a symbol the permanent
+	// its own Sac<...> cost sacrifices could produce (Squandered Resources'
+	// "Sacrifice a land: Add one mana of any type that land could produce";
+	// AB$ ManaReflected Valid$ Defined.Sacrificed). The production mask is read
+	// from the victim at each activation (kernel mana_tapanother.go
+	// sacReflMask), never a printed ManaColors. A table bool, not State.
+	ManaSacrificed bool
 	// ManaIdentity: with AfManaReflect and no ManaAmong, the reflected read is
 	// the colour identity of the controller's commanders (CR 903.4: Arcane
 	// Signet, Command Tower, Commander's Sphere, Hidden Hideout; Produced$
@@ -670,6 +677,41 @@ func SacAnyManaAb(a *Ability) bool {
 		a.Gate.Ctr == 0 && a.Trig.Cond == 0 && (a.ActZone == ZoneNone || a.ActZone == ZoneBattlefield)
 }
 
+// SacReflManaAb reports whether mana ability a is "Sacrifice a <spec>: Add one
+// mana of any type that permanent could produce" (Squandered Resources'
+// ManaReflected over Defined.Sacrificed): one sacrificed permanent matching
+// Cost.Filter, no {T}, no mana, and the production is the victim's own
+// producible mask (Ability.ManaSacrificed; kernel mana_tapanother.go
+// sacReflMask). gorge's census cannot price the victim's symbols (a
+// Defined.Sacrificed reflection), so the source is a census gap the
+// tap-another search activates.
+func SacReflManaAb(a *Ability) bool {
+	return a.Kind == AbMana && a.ManaSacrificed && a.Cost.Flags == CostSac && a.Cost.N == 1 && a.Cost.Filter != 0 &&
+		!a.Cost.ExileBf && !a.Cost.DiscardHand && a.Cost.Mana == (ManaCost{}) && a.ManaRestrict == 0 &&
+		!a.ManaEach && a.ManaN <= 1 && a.AFlags == 0 && len(a.Prog) == 0 &&
+		a.Gate.Ctr == 0 && a.Trig.Cond == 0 && (a.ActZone == ZoneNone || a.ActZone == ZoneBattlefield)
+}
+
+// ComboAnyManaAb reports whether a is an unrestricted "Add N mana in any
+// combination of colors" ability (N dynamic or at least two) the kernel models
+// as a Combo Any census gap (dirac mana_comboany.go comboAnyMana): the printed
+// colours may be a finite mask (Vivi Ornitier's {U}/{R}) and the cost may be a
+// {0} once-each-turn one (no CostTap).
+func ComboAnyManaAb(a *Ability) bool {
+	// The printed any-colour shape keeps its {T} cost. The finite-mask arm is
+	// Vivi Ornitier's exact shape: a {0} once-each-turn dynamic "any
+	// combination of <the mask>"; any other finite-mask combo stays the
+	// lowering/refusal it was.
+	costOK := a.ManaColors == ColAny && a.Cost.Flags == CostTap ||
+		a.ManaColors != 0 && a.ManaColors&^ColAny == 0 && a.Cost.Flags == CostOncePerTurn && a.AFlags&AfManaDynamic != 0
+	return a.Kind == AbMana &&
+		a.AFlags&(AfManaChoice|AfLatent|AfManaEachColor|AfManaChosen|AfManaReflect) == AfManaChoice &&
+		a.ManaColors != 0 && a.ManaColors&^ColAny == 0 && a.ManaRestrict == 0 && !a.ManaDeferred && !a.ManaEach && a.ManaRider == 0 &&
+		a.SplitGate == 0 && a.SplitCols == 0 &&
+		(costOK && a.Cost.Mana.MV() == 0 && a.Cost.Mana.X == 0 || ForageComboAnyAb(a)) &&
+		(a.AFlags&AfManaDynamic != 0 || a.ManaN >= 2)
+}
+
 // SacTapAnyManaAb reports whether mana ability a is "{T}, Sacrifice a <spec>:
 // Add one mana of any color" (Gilded Goose's Food): a mana-free {T} plus a
 // sacrifice of exactly one permanent matching Cost.Filter, an unrestricted
@@ -742,7 +784,7 @@ func TapXSearchMana(a *Ability) bool { return TapXMana(a) || SacXMana(a) || Exil
 
 // SacXMana is either sacrifice-another-permanent mana shape.
 func SacXMana(a *Ability) bool {
-	return SacXEachManaAb(a) || SacAnyManaAb(a) || SacTapAnyManaAb(a) || SacTapFixedManaAb(a) || SacXRestrManaAb(a)
+	return SacXEachManaAb(a) || SacAnyManaAb(a) || SacTapAnyManaAb(a) || SacTapFixedManaAb(a) || SacXRestrManaAb(a) || SacReflManaAb(a)
 }
 
 // OtherSacPlanAb reports whether mana ability a is the closed
@@ -940,7 +982,7 @@ func ManaAbilityHonoured(cd *CardDef, j int) bool {
 	switch {
 	case plain && (f == CostTap || f == CostTap|CostOncePerGame || f == CostTap|CostSacSelf || f == CostSacSelf):
 		return true
-	case CtrManaAb(a), CtrRemoveManaAb(a), AnyDifferentCtrManaAb(a), TapXManaAb(a), TapXManaTwo(a), TapXManaOne(a), RestrictedTapXOneShape(a), FilterManaAb(a), SacXEachManaAb(a), SacAnyManaAb(a), SacTapAnyManaAb(a), SacTapFixedManaAb(a), SacXRestrManaAb(a), ExileGManaAb(a), SoleLifeManaAb(cd, j), RestrictedLifeManaAb(cd, j), GapLifeManaAb(a), StoreManaAb(a), ReflLifeManaAb(a), RestrictedManaCostShape(a):
+	case CtrManaAb(a), CtrRemoveManaAb(a), AnyDifferentCtrManaAb(a), TapXManaAb(a), TapXManaTwo(a), TapXManaOne(a), RestrictedTapXOneShape(a), FilterManaAb(a), SacXEachManaAb(a), SacAnyManaAb(a), SacTapAnyManaAb(a), SacTapFixedManaAb(a), SacXRestrManaAb(a), SacReflManaAb(a), ComboAnyManaAb(a), ExileGManaAb(a), SoleLifeManaAb(cd, j), RestrictedLifeManaAb(cd, j), GapLifeManaAb(a), StoreManaAb(a), ReflLifeManaAb(a), RestrictedManaCostShape(a):
 		return true
 	case ManaRiderAb(a) && riderManaCostOK(a):
 		return true
