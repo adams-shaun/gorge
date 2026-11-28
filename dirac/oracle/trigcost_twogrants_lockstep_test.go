@@ -26,7 +26,7 @@ const oneGrantElfScript = "Name:Solo Grant Probe\nManaCost:G\nTypes:Creature Elf
 	"Oracle:Creatures you control have \"{T}: Add {G}.\"\n"
 
 // twoGrantPayScript is a {B} creature whose entering trigger may be paid with
-// {G}{G} (CR 603.12).
+// {G}{G} (CR 118.12).
 const twoGrantPayScript = "Name:Twin Pay Probe\nManaCost:B\nTypes:Creature Zombie\nPT:1/1\n" +
 	"T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ TrigProbeDraw | TriggerDescription$ When CARDNAME enters, you may pay {G}{G}. If you do, draw a card.\n" +
 	"SVar:TrigProbeDraw:AB$ Draw | Cost$ G G\n" +
@@ -36,7 +36,7 @@ const twoGrantPayScript = "Name:Twin Pay Probe\nManaCost:B\nTypes:Creature Zombi
 // mana ability of a source (potential.go potentialManaFor), so one creature
 // holding two granted {T}: Add {G} abilities is two mana of its over-bound and
 // the {G}{G} trigger cost is offered; the kernel's trigger-cost gate must offer
-// the same pay arm (CR 603.12, 605.1a). The two abilities come from two statics
+// the same pay arm (CR 113.10, 118.12, 605.1a). The two abilities come from two statics
 // of one card, or from two copies of a one-static card. A run is vacuous unless
 // some seed poses that ask with exactly one untapped source that can fund it.
 func TestTrigCostTwoGrantsPotentialLockstep(t *testing.T) {
