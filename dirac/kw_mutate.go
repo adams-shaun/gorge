@@ -318,7 +318,7 @@ func (s *State) offerMutateHand(k *prep, d *Decision, p uint8, o Obj, c CardID, 
 	// is not a target this kernel may take (declared-limit offer gate)
 	ok := false
 	for i := 0; i < n; i++ {
-		if buf[i] != 0 && s.mergeRoom(Obj(buf[i])) {
+		if s.mergeRoom(Obj(buf[i])) { // every candidate is an object, 0 among them (none is NoObj)
 			ok = true
 			break
 		}
