@@ -2,6 +2,9 @@ package oracle
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/adams-shaun/gorge/dirac"
@@ -23,21 +26,44 @@ import (
 //
 // The real Moraug costs six, which the mirror reaches late if at all, so its
 // case proves kgen lowers the printed card and the engines agree; the shapes
-// are forced by "Moraug Probe", the identical script on a {1}{R} body. The
+// are forced by "Moraug Probe", Moraug's own script on a {1}{R} 2/2 body. The
+// probe is derived from the corpus script at run time (moraugProbeScript), so
+// no line of the GPL script is committed (TestNoVerbatimForgeLines). The
 // policy casts the probe, then plays its land only in the second main phase:
 // the combat already fought tapped the attackers, the landfall's extra combat
 // untaps them at its beginning and they attack again, so a creature attacks
 // twice in one turn (reading +2/+0) and the untap acts on tapped creatures.
-const moraugProbeScript = "Name:Moraug Probe\nManaCost:1 R\nTypes:Creature Minotaur Warrior\nPT:2/2\n" +
-	"S:Mode$ Continuous | Affected$ Creature.YouCtrl | AddPower$ AffectedX | Description$ Each creature you control gets +1/+0 for each time it has attacked this turn.\n" +
-	"SVar:AffectedX:Count$CardNumAttacksThisTurn\n" +
-	"T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Land.YouCtrl | TriggerZones$ Battlefield | PlayerTurn$ True | Phase$ Main1,Main2 | Execute$ TrigAddPhase | TriggerDescription$ Landfall — an additional combat phase after this phase; untap all creatures you control at its beginning.\n" +
-	"SVar:TrigAddPhase:DB$ AddPhase | ExtraPhase$ Combat | ConditionPhases$ Main1,Main2 | ExtraPhaseDelayedTrigger$ DelTrigUntap | ExtraPhaseDelayedTriggerExcute$ TrigUntapAll\n" +
-	"SVar:DelTrigUntap:Mode$ Phase | Phase$ BeginCombat | ValidPlayer$ You | TriggerDescription$ At the beginning of that combat, untap all creatures you control.\n" +
-	"SVar:TrigUntapAll:DB$ UntapAll | ValidCards$ Creature.YouCtrl\n" +
-	"Oracle:Each creature you control gets +1/+0 for each time it has attacked this turn.\n"
 
-func moraugCases(reached func(g *GorgeSide) bool) []hostedCmdrCase {
+// moraugProbeScript is the corpus's Moraug, Fury of Akoum with its name, cost
+// and power/toughness replaced; every ability line is the printed card's.
+func moraugProbeScript(t *testing.T) string {
+	t.Helper()
+	body, err := os.ReadFile(filepath.Join(corpusDirOrSkip(t), "cardsfolder", "m", "moraug_fury_of_akoum.txt"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var b strings.Builder
+	n := 0
+	for _, line := range strings.Split(strings.TrimRight(string(body), "\n"), "\n") {
+		switch {
+		case strings.HasPrefix(line, "Name:"):
+			line, n = "Name:Moraug Probe", n+1
+		case strings.HasPrefix(line, "ManaCost:"):
+			line, n = "ManaCost:1 R", n+1
+		case strings.HasPrefix(line, "Types:"):
+			line, n = "Types:Creature Minotaur Warrior", n+1
+		case strings.HasPrefix(line, "PT:"):
+			line, n = "PT:2/2", n+1
+		}
+		b.WriteString(line + "\n")
+	}
+	if n != 4 {
+		t.Fatalf("the Moraug script has %d of its Name/ManaCost/Types/PT lines, want 4", n)
+	}
+	return b.String()
+}
+
+func moraugCases(t *testing.T, reached func(g *GorgeSide) bool) []hostedCmdrCase {
 	probeDeck := append(deckOf(12, "Moraug Probe"), deckOf(28, "Mountain")...)
 	moraugDeck := append(deckOf(8, "Moraug, Fury of Akoum"), deckOf(32, "Mountain")...)
 	bearsDeck := append(deckOf(8, "Grizzly Bears"), deckOf(32, "Forest")...)
@@ -47,7 +73,7 @@ func moraugCases(reached func(g *GorgeSide) bool) []hostedCmdrCase {
 			carrier:  "Moraug Probe",
 			seats:    [2]string{"hcm-probe-a", "hcm-probe-b"},
 			decks:    [2][]string{probeDeck, bearsDeck},
-			fixtures: map[string]string{"Moraug Probe": moraugProbeScript},
+			fixtures: map[string]string{"Moraug Probe": moraugProbeScript(t)},
 			reached:  reached,
 		},
 		{
@@ -157,7 +183,7 @@ func moraugPolicy(m *Matchup, c hostedCmdrCase, seed uint64) Policy {
 }
 
 func runMoraugCases(t *testing.T, reached func(g *GorgeSide) bool) {
-	for _, c := range moraugCases(reached) {
+	for _, c := range moraugCases(t, reached) {
 		t.Run(c.name, func(t *testing.T) {
 			if div := moraugRun(t, c, false); div != "" {
 				t.Fatal(div)
@@ -183,7 +209,7 @@ func TestHostedCmdrMoraugExtraCombatUntapLockstep(t *testing.T) {
 // TestHostedCmdrMoraugMutation: each kernel half's mutation switch makes its
 // probe case diverge, so the lockstep cases can fail.
 func TestHostedCmdrMoraugMutation(t *testing.T) {
-	probe := moraugCases(nil)[0]
+	probe := moraugCases(t, nil)[0]
 	for _, m := range []struct {
 		name string
 		sw   *bool
