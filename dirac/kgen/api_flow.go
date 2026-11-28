@@ -140,9 +140,9 @@ func (lc *lowerCtx) apiAddTurn(sa *cards.SA, ps *params) error {
 // ExtraTurn consumption with the granted turn as MinTurn (engine/events/
 // apply_turn.go foldExtraTurn), and the kernel arms the rider when the
 // granted turn begins (act_extraturn.go exRideArm), so the granting turn's own
-// end step never fires it. Every other shape refuses: Alchemist's Gambit's
-// and Kang the Conqueror's Execute is DB$ Effect, whose static modes are
-// unmodelled.
+// end step never fires it. Alchemist's Gambit's Phase$ Upkeep rider lowers
+// in addTurnUpkeepRider; every other shape refuses (Kang the Conqueror's
+// end-step DB$ Effect Execute).
 func (lc *lowerCtx) addTurnRider(ps *params, in *lInstr) error {
 	name, ok := ps.get("ExtraTurnDelayedTrigger")
 	if !ok {
@@ -172,6 +172,9 @@ func (lc *lowerCtx) addTurnRider(ps *params, in *lInstr) error {
 	}
 	if dp.str("Mode") != "Phase" {
 		return refuse("AddTurn rider %s: Mode$ %q", name, dp.str("Mode"))
+	}
+	if dp.str("Phase") == "Upkeep" {
+		return lc.addTurnUpkeepRider(name, dp, exec, in) // lower_addturnupkeep.go (Alchemist's Gambit)
 	}
 	if dp.str("Phase") != "End of Turn" {
 		return refuse("AddTurn rider %s: Phase$ %q", name, dp.str("Phase"))

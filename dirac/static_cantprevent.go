@@ -36,9 +36,10 @@ var DebugNoPreventOff bool
 //
 // A resolving DealDamage NoPrevention$ True (kop.DmgNoPrevention, res.flags rfNoPrev)
 // says the same for the damage it deals (gorge cantPreventDamage's
-// dmgNoPrevention).
+// dmgNoPrevention), and so does a granted turn whose AddTurn carried
+// Alchemist's Gambit's upkeep rider (exNoPrevNow, act_extraturnnoprev.go).
 func (s *State) noPrev(k *prep, combat bool) bool {
-	return k.gen != nil && (s.res.flags&rfNoPrev != 0 || k.gen.anyNoPrev && s.noPrevLive(k, combat))
+	return k.gen != nil && (s.res.flags&rfNoPrev != 0 || s.exNoPrevNow() || k.gen.anyNoPrev && s.noPrevLive(k, combat))
 }
 
 // noPrevLive: a functioning StatCantPreventDamage static (a battlefield
