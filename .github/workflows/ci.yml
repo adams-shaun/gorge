@@ -354,7 +354,10 @@ jobs:
         env:
           CI_FAST_SKIP_KGEN: "1"
           CI_FAST_SKIP_ORACLE_REPLAY: "1"
-        run: bash scripts/ci-fast.sh --precompile "${{ github.event.pull_request.base.sha }}" "$RUNNER_TEMP/ci-fast.list"
+        # ci-retry-cache.sh: a shared box's GOCACHE can lose an entry mid-build (11-28 run 46154534694 false-REDded
+        # this step with 33 "could not import ... go-build/<hex>-d: no such file or directory" lines). It retries
+        # exactly that class once; the same selection and skip rules run, and a real compile error still fails.
+        run: bash scripts/ci-retry-cache.sh fast-precompile -- bash scripts/ci-fast.sh --precompile "${{ github.event.pull_request.base.sha }}" "$RUNNER_TEMP/ci-fast.list"
       - name: Restore the corpus
         id: corpus
         if: runner.environment == 'github-hosted'
@@ -387,7 +390,7 @@ jobs:
           CI_FAST_SKIP_KGEN: "1"
           CI_FAST_SKIP_ORACLE_REPLAY: "1"
           CI_FAST_LIST: ${{ runner.temp }}/ci-fast.list
-        run: bash scripts/ci-fast.sh ${{ github.event.pull_request.base.sha }}
+        run: bash scripts/ci-retry-cache.sh fast-tests -- bash scripts/ci-fast.sh ${{ github.event.pull_request.base.sha }}
 
   lint:
     # A push to main whose tree a queue batch already passed (prior) skips lint: the batch ran it on this exact tree
@@ -519,7 +522,7 @@ jobs:
           pkgs=$(awk -F'\t' '{print $2}' <<<"$(bash scripts/test-targets.sh list)" | sort -u)
           if [ -z "$pkgs" ]; then echo "vet: the diff selects no package; the batch's go vet ./... covers the tree"; exit 0; fi
           # shellcheck disable=SC2086
-          go vet $pkgs
+          bash scripts/ci-retry-cache.sh lint-vet -- go vet $pkgs
       - name: generated types are current
         run: go run ./cmd/gentypes -check
       - name: Lockstep constant mirrors (a dirac or engine diff)
