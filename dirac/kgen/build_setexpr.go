@@ -51,9 +51,20 @@ func kopWalksSet(ki *kop.Instr, players bool) bool {
 // may match gorge's. Sacrifice and Discard over a set holding an object left
 // lockstep divergent even with one member (a bearer sweep and Self.Creature:
 // a card in another zone, or the entry still on the stack after the answer),
-// so both are refused. An all-player set is unaffected.
+// so both are refused. Exile, Bounce and ToLibrary over a qualified object
+// set (Self.Creature, TriggeredAttacker.Creature, TriggeredCards.Creature)
+// lose the zone move's origin and identity guards (CR 400.7): the kernel
+// moved a source that had left the battlefield, and a graveyard card's move
+// misses MvFromGraveyard and LibTopGrave (instr_zones.go reads them off
+// rTriggered only), so those three are refused too. Return keeps its
+// guards (Self.YouOwn from the graveyard plays as gorge does). An all-player
+// set is unaffected.
 func kopRunsSetObject(op kop.Op) bool {
-	return op != kop.OpSacrifice && op != kop.OpDiscard
+	switch op {
+	case kop.OpSacrifice, kop.OpDiscard, kop.OpExile, kop.OpBounce, kop.OpToLibrary:
+		return false
+	}
+	return true
 }
 
 // walksSet refuses set n under ki when the set can hold an object the kernel
