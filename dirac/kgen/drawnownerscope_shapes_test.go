@@ -34,3 +34,28 @@ func TestDrawnOwnerScopeShapes(t *testing.T) {
 		}
 	}
 }
+
+// TestDrawnOwnerScopeRefusesRidingPlayerScope: a ValidCard$ that already
+// names the drawer by ownership leaves nothing for a ValidPlayer$ to say, so
+// one riding beside it is refused rather than silently dropped (the
+// ValidCard$ "Card" arm's rule).
+func TestDrawnOwnerScopeRefusesRidingPlayerScope(t *testing.T) {
+	for _, c := range []struct {
+		name   string
+		params map[string]string
+		want   string
+	}{
+		{"opponent owner scope", map[string]string{"ValidCard": "Card.OwnedBy Opponent.NonActive", "ValidPlayer": "Opponent"},
+			`Drawn ValidCard "Card.OwnedBy Opponent.NonActive" ValidPlayer "Opponent"`},
+		{"enchanted owner scope", map[string]string{"ValidCard": "Card.OwnedBy Player.EnchantedBy", "ValidPlayer": "You"},
+			`Drawn ValidCard "Card.OwnedBy Player.EnchantedBy" ValidPlayer "You"`},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			lc := kdrawnvpLower(t, c.params)
+			if len(lc.Refusals) == 0 {
+				t.Fatalf("%s: lowered with a second scope nothing reads", c.want)
+			}
+			enterstappedRefuseWant(t, lc.Refusals, c.want)
+		})
+	}
+}

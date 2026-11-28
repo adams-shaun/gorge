@@ -620,11 +620,18 @@ func controlReferent(p string) (op, ref string, ok bool) {
 	case controlReferentTriggeredTarget:
 		return op, ref, true
 	case controlReferentOpponentNonActive:
-		// the bare Opponent base with the NonActive qualifier: the shared
-		// player-spec grammar without the Player. prefix (Opponent and
-		// NonActive are both read by player_filter.go), resolved by
-		// controlReferentPlayers exactly like a Player.<qualifier> ref
-		// (Tataru Taru's Card.OwnedBy Opponent.NonActive on a drawn card).
+		// Forge's CardProperty `OwnedBy` takes a whole PlayerProperty, so
+		// the bare Opponent base beside the NonActive qualifier is the
+		// shared player-spec grammar reached without the Player. prefix
+		// (both words read by player_filter.go); resolved by
+		// controlReferentPlayers exactly like a Player.<qualifier> ref. The
+		// carrier is Tataru Taru's Scions' Secretary
+		// (.cards/cardsfolder/t/tataru_taru.txt, `T:Mode$ Drawn | ValidCard$
+		// Card.OwnedBy Opponent.!Active`, the !Active spelling folded by
+		// engine/cards/parse.go's canonicalNonActive): Forge matches a Drawn
+		// trigger's ValidCard$ against the drawn card and `OwnedBy` against
+		// that card's owner, the drawing player (CR 108.4a), so the scope is
+		// "an opponent of the controller who is not the active player".
 		return op, ref, true
 	}
 	if enchantedControllerPropertyRef(ref) {
@@ -995,11 +1002,13 @@ func controlReferentPlayers(g *state.Game, sc SpecContext, op, ref string) ([]st
 		// (control_referent_global.go); an empty result is unbound.
 		targets = globalControlReferent(g, sc, ref)
 	case controlReferentPlayersOpponentNonActive:
-		// Opponent.NonActive (Tataru Taru's Card.OwnedBy Opponent.!Active,
-		// folded by the cards parse): the bare Opponent base plus the
-		// NonActive qualifier -- the shared player-spec grammar without
-		// the Player. prefix, resolved by the same evaluator arm as
-		// Player.<qualifier> below.
+		// Opponent.NonActive: the bare Opponent base plus the NonActive
+		// qualifier, Forge's PlayerProperty grammar without the Player.
+		// prefix (its CardProperty `OwnedBy` accepts a whole PlayerProperty),
+		// resolved by the same evaluator arm as Player.<qualifier> below.
+		// The spelling the scripts carry is Opponent.!Active (Tataru Taru's
+		// ValidCard$, folded by engine/cards/parse.go's canonicalNonActive),
+		// and the drawn card's owner is the drawing player (CR 108.4a).
 		targets = playerSpecControlTargets(g, sc, ref)
 	default:
 		// Every other Player.<qualifier> is the shared player-spec grammar

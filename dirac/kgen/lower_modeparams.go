@@ -67,7 +67,12 @@ func (lc *lowerCtx) drawnScope(tp *params, tr *lTrigger) error {
 		// drawer -- an opponent of the controller (gorge
 		// playerSpecQualifierOpponent) who is not the active player
 		// (playerSpecQualifierNonActive); the kernel gates the second
-		// half with Tf6DrawerNotActive on the draw event.
+		// half with Tf6DrawerNotActive on the draw event. No ValidPlayer$
+		// rides beside it (the Card arm's rule): a second scope here would
+		// be silently dropped, so it is refused.
+		if vp := tp.str("ValidPlayer"); vp != "" {
+			return refuse("Drawn ValidCard %q ValidPlayer %q", vc, vp)
+		}
 		tr.Whose = whoOpp
 		tr.DrawerNotActive = true
 	case "Card.OwnedBy Player.EnchantedBy":
@@ -77,7 +82,13 @@ func (lc *lowerCtx) drawnScope(tp *params, tr *lTrigger) error {
 		// playerSpecQualifierEnchantedBy read source-relative on the
 		// drawn card's owner (the drawer) -- the same read as the
 		// Phase/DamageDone WhoseEnchanted lines (lower_enchantedby.go,
-		// defEnchanted), so it needs a printed battlefield listener.
+		// defEnchanted), so it needs a printed battlefield listener. No
+		// ValidPlayer$ rides beside it either (the Card arm's rule): the
+		// owner scope already names the drawer, and a second one would be
+		// silently dropped.
+		if vp := tp.str("ValidPlayer"); vp != "" {
+			return refuse("Drawn ValidCard %q ValidPlayer %q", vc, vp)
+		}
 		if lc.granted != 0 || tr.Zone != zNone && tr.Zone != zBattlefield {
 			return refuse("Drawn ValidCard %q off a printed battlefield trigger", vc)
 		}
