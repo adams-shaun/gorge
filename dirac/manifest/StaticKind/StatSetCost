@@ -4,4 +4,4 @@ value: 65
 forge: SetCost
 census: stat SetCost all=1 std=0 mbc=0 sole=1
 state: code 0
-status: reserved
+status: active
