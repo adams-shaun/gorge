@@ -37,10 +37,16 @@ type deckImports struct {
 
 	mu    sync.Mutex
 	decks map[string]host.Deck
+	// restartable marks the stored ids a later request may name as a
+	// human_deck/bot_deck pick (heldForRestart): the decks of a two-seat
+	// table with one human, the only table the web client offers Restart
+	// on. A pod's or a several-human table's submitted lists stay private
+	// to that table.
+	restartable map[string]bool
 }
 
 func newDeckImports(reg *cards.Registry) *deckImports {
-	return &deckImports{reg: reg, supported: effects.Supported(), engine: gorgegame.Name, decks: map[string]host.Deck{}}
+	return &deckImports{reg: reg, supported: effects.Supported(), engine: gorgegame.Name, decks: map[string]host.Deck{}, restartable: map[string]bool{}}
 }
 
 // loader answers an imported deck's id and hands every other name to next.
@@ -90,8 +96,35 @@ func (d *deckImports) drop(ids ...string) {
 	d.mu.Lock()
 	for _, id := range ids {
 		delete(d.decks, id)
+		delete(d.restartable, id)
 	}
 	d.mu.Unlock()
+}
+
+// markRestartable lets a later rematch name the stored ids (heldForRestart).
+func (d *deckImports) markRestartable(ids []string) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	for _, id := range ids {
+		if _, ok := d.decks[id]; ok {
+			d.restartable[id] = true
+		}
+	}
+}
+
+// heldForRestart returns the stored deck id names when a restartable table
+// stored it (markRestartable), so a Restart can seat the same submitted deck again.
+func (d *deckImports) heldForRestart(id string) (host.Deck, bool) {
+	if d == nil || id == "" {
+		return host.Deck{}, false
+	}
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	if !d.restartable[id] {
+		return host.Deck{}, false
+	}
+	got, ok := d.decks[id]
+	return got, ok
 }
 
 // dropTable releases every deck submitted for table, seats 0 through 3.
@@ -344,6 +377,54 @@ func checkReservedPool(req httpapi.CreateGameOptions, policy string, hasPool boo
 		return fmt.Errorf("bot policy %q plays only the decks it was trained on, not a submitted deck: leave decks out", policy)
 	}
 	return nil
+}
+
+// carryRestartPicks is how Restart reseats a submitted deck. The web client
+// rebuilds a two-seat game from its seats' SeatInfo.deck_id, and a submitted
+// seat's id is the first table's import id, in no pool. A human_deck (seat 0)
+// or bot_deck (seat 1) pick naming a deck heldForRestart is taken out of req
+// and returned by seat, to be seated as a submitted deck under the new
+// table's own import id, so the copy outlives the first table. A pod has no
+// Restart (checkPodShape refuses its picks, and Table.svelte offers the
+// control only at two seats with one human); a policy with a reserved pool,
+// and -engine dirac, take no submitted deck, so their picks stay and are
+// refused as before.
+func (c config) carryRestartPicks(req httpapi.CreateGameOptions, hasPool bool) (httpapi.CreateGameOptions, map[int]host.Deck) {
+	if hasPool || c.diracOn() {
+		return req, nil
+	}
+	var carried map[int]host.Deck
+	for seat, pick := range []*string{&req.HumanDeck, &req.BotDeck} {
+		d, ok := c.imports.heldForRestart(*pick)
+		if !ok {
+			continue
+		}
+		if carried == nil {
+			carried = map[int]host.Deck{}
+		}
+		carried[seat] = d
+		*pick = ""
+	}
+	return req, carried
+}
+
+// withCarried adds the decks carryRestartPicks carried to the checked
+// submitted ones, by seat, refusing a seat that is both.
+func withCarried(submitted, carried map[int]host.Deck) (map[int]host.Deck, error) {
+	if len(carried) == 0 {
+		return submitted, nil
+	}
+	out := make(map[int]host.Deck, len(submitted)+len(carried))
+	for seat, d := range submitted {
+		out[seat] = d
+	}
+	for seat, d := range carried {
+		if _, dup := out[seat]; dup {
+			return nil, fmt.Errorf("seat %d names both a submitted deck and a previous game's deck", seat)
+		}
+		out[seat] = d
+	}
+	return out, nil
 }
 
 // importSeatDecks checks every submitted deck and returns them by seat,

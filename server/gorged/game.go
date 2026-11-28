@@ -117,8 +117,9 @@ func (c config) createGame(r *host.Registry, gate *seatGate, cmdPool, conPool []
 		if err := checkReservedPool(req, policy, hasPool); err != nil {
 			return httpapi.CreateGameResponse{}, err
 		}
+		req, carried := c.carryRestartPicks(req, hasPool)
 		// A pod in which every seat submits a deck deals nothing from the pool.
-		if len(pool) == 0 && len(req.Decks) < seats {
+		if len(pool) == 0 && len(req.Decks)+len(carried) < seats {
 			return httpapi.CreateGameResponse{}, fmt.Errorf("no %s deck is available to deal (decks dir supplies none)", req.Format)
 		}
 		for _, pick := range []struct {
@@ -149,6 +150,9 @@ func (c config) createGame(r *host.Registry, gate *seatGate, cmdPool, conPool []
 		// refusal leaves no table, token or stored deck behind.
 		submitted, reports, err := c.importSeatDecks(req)
 		if err != nil {
+			return httpapi.CreateGameResponse{}, err
+		}
+		if submitted, err = withCarried(submitted, carried); err != nil {
 			return httpapi.CreateGameResponse{}, err
 		}
 		seed, err := randomSeed()
@@ -192,6 +196,9 @@ func (c config) createGame(r *host.Registry, gate *seatGate, cmdPool, conPool []
 		if len(submitted) > 0 {
 			if err := c.imports.putAll(imported, submitted); err != nil {
 				return httpapi.CreateGameResponse{}, err
+			}
+			if seats == 2 && humans == 1 {
+				c.imports.markRestartable(imported)
 			}
 		}
 		cfg := host.TableConfig{
