@@ -1027,6 +1027,13 @@ jobs:
         # The four-seat Commander pods run too (a census, not a gate: dirac-pods is not -absolute). The log
         # feeds slices-summary.json, which the docs site renders as its lockstep table.
         run: bash scripts/ci-infra-retry.sh --log slices.log --name slices -- make dirac-slices dirac-pods
+      - name: Four-seat Commander instructions against the committed base
+        # BenchmarkTransitionEDH4's per-op instructions:u (scripts/dirac-instr-batch.sh: the gate's step 5 method,
+        # (N100k-N20k)/80000, no wall time) against scripts/dirac-instr-base.tsv, at most 1.02x. Once per batch, never
+        # on a pull request's own checks. Report only before 2026-12-18; from that date (UTC) it fails the batch.
+        run: |
+          enforce=0; if [ "$(date -u +%Y%m%d)" -ge 20261218 ]; then enforce=1; fi
+          INSTR_EDH4_ENFORCE=$enforce bash scripts/dirac-instr-batch.sh
       # Written even when a slice failed: a divergence is a number the docs table should show. Main only (nightly,
       # push, dispatch), never a pull request or a queue batch; docs.yml downloads the newest.
       - name: Summarize the slices for the docs site
