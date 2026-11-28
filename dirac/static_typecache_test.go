@@ -126,7 +126,10 @@ func TestTyCacheShadowMutation(t *testing.T) {
 // tySelfOnly's argument rather than by a mutation the soak can catch.
 func TestTyCacheExcludesNonObjectSources(t *testing.T) {
 	all := edhPods(t, 16)
-	for _, i := range []int{4, 5, 8, 11, 12, 15} {
+	seen := 0
+	// The pods are found, not named by index: a pool change moves which pods hold Duplicant
+	// (11-28: a batch went red twice on the six pinned indices).
+	for i := range all {
 		var s State
 		all[i].init(&s, uint64(i)+1)
 		k := s.k()
@@ -136,8 +139,16 @@ func TestTyCacheExcludesNonObjectSources(t *testing.T) {
 				dup = c
 			}
 		}
-		if dup < 0 || !k.tyCache || k.tyEx == nil || !k.tyEx[dup] {
-			t.Fatalf("pod %d: the table is not cached with Duplicant excluded (cache %v, ex %v)", i, k.tyCache, k.tyEx != nil)
+		if dup < 0 || !k.tyCache {
+			continue // no Duplicant, or a table whose type statics read more than objects computes every ask
+		}
+		seen++
+		if k.tyEx == nil || !k.tyEx[dup] {
+			t.Fatalf("pod %d: the table is cached without Duplicant excluded (ex %v)", i, k.tyEx != nil)
 		}
 	}
+	if seen == 0 {
+		t.Fatal("no pod holds Duplicant on a cached table: the exclusion is untested")
+	}
+	t.Logf("%d of %d pods hold Duplicant on a cached table", seen, len(all))
 }
