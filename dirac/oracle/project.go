@@ -4,6 +4,7 @@ import (
 	"hash/fnv"
 	"reflect"
 	"slices"
+	"sort"
 	"strings"
 
 	"github.com/adams-shaun/gorge/dirac"
@@ -11,6 +12,7 @@ import (
 
 	"github.com/adams-shaun/gorge/engine/cards"
 	"github.com/adams-shaun/gorge/engine/effects"
+	"github.com/adams-shaun/gorge/engine/events"
 	"github.com/adams-shaun/gorge/engine/rules"
 	"github.com/adams-shaun/gorge/engine/state"
 )
@@ -230,7 +232,9 @@ type SeatProj struct {
 // identity is a game's stable map between gorge objects and canonical card
 // instances (doc.go, "Card identity"). gorge keeps an object's ObjID across
 // zone changes (state.Object's doc), so an instance is bound to an ObjID once,
-// when the object is first seen, and never rebound.
+// when the object is first seen. It moves to another object only when its
+// ObjID's instance is reused (freeInst) or a mutate top merge hands it on
+// (mergeSpell).
 type identity struct {
 	inst    []Ref         // by ObjID; RefNone for a non-card object (an ability, an emblem)
 	obj     []state.ObjID // by instance
@@ -286,8 +290,10 @@ func (id *identity) genesisInst(n int) int {
 // instance offset(s)+i; every later card object (a token, a spell or
 // permanent copy) takes the next instance in creation (ObjID) order. Once
 // all MaxInst instances are bound, a new object takes the lowest instance
-// freeInst reports, the kernel's object id reuse (dirac zone_objreuse.go).
-func (id *identity) sync(g *state.Game) {
+// freeInst reports, the kernel's object id reuse (dirac zone_objreuse.go). The
+// object a mutate top merge mints takes the spell's instance instead of a new
+// one (mergeSpell, which reads the game's event log).
+func (id *identity) sync(g *state.Game, log []events.Event) {
 	for id.scanned < len(g.Objs) {
 		o := &g.Objs[id.scanned]
 		id.scanned++
@@ -295,6 +301,11 @@ func (id *identity) sync(g *state.Game) {
 			id.inst = append(id.inst, RefNone)
 		}
 		if o.Card == nil {
+			continue
+		}
+		if s := mergeSpell(g, log, o); s != 0 && int(s) < len(id.inst) && id.inst[s] != RefNone {
+			inst := id.inst[s]
+			id.inst[s], id.inst[o.ID], id.obj[inst] = RefNone, inst, o.ID
 			continue
 		}
 		if len(id.obj) >= MaxInst {
@@ -322,6 +333,30 @@ func (id *identity) sync(g *state.Game) {
 		id.inst[o.ID] = Ref(len(id.obj))
 		id.obj = append(id.obj, o.ID)
 	}
+}
+
+// mergeSpell is the spell object whose instance the new object o takes, 0 for
+// every other object. As a mutating spell merges on top (CR 702.140c) the
+// kernel moves the demoted card onto the spell's object (dirac mergeFold) and
+// mints nothing. gorge keeps the spell's object on the spell's card, which its
+// cast history reads, and mints a parked object for the demoted card. That
+// mint is a component of the pile a top Mutate event merged: still listed
+// under its survivor, or split from it as the pile left (SplitFrom).
+func mergeSpell(g *state.Game, log []events.Event, o *state.Object) state.ObjID {
+	if o.IsToken || o.IsCopy || o.Zone != state.ZCeased && o.SplitFrom == 0 {
+		return 0
+	}
+	isO := func(c state.MergedCard) bool { return c.Obj == o.ID }
+	for i := len(log) - 1; i >= 0; i-- {
+		ev := &log[i]
+		if ev.Kind != events.Mutate || ev.Text != "top" || len(ev.IDs) == 0 {
+			continue
+		}
+		if top := g.Obj(ev.Obj); o.SplitFrom == ev.Obj || top != nil && slices.ContainsFunc(top.MergedCards, isO) {
+			return ev.IDs[0]
+		}
+	}
+	return 0
 }
 
 // freeInst is the lowest instance the kernel would mint again, -1 none: a
@@ -413,7 +448,7 @@ func projectBlockers(g *state.Game, id *identity, p *Projection, o *state.Object
 
 func project(e *rules.Engine, id *identity, m *Matchup, p *Projection) (charErr string) {
 	g := e.G
-	id.sync(g)
+	id.sync(g, e.L.Events)
 	p.reset()
 	p.NInst = dirac.Obj(len(id.obj))
 	nDeck := 0
@@ -426,10 +461,18 @@ func project(e *rules.Engine, id *identity, m *Matchup, p *Projection) (charErr 
 		if o == nil {
 			continue
 		}
-		c.NameHash = nameHash(cardName(o.Card))
+		name := cardName(o.Card)
+		c.NameHash = nameHash(name)
 		c.Face = o.FaceIdx
 		if inst < nDeck && !o.IsToken && !o.IsCopy {
-			c.Card = CardIndex(m.instanceTable(inst))
+			// Card is the card the object carries NOW, not the deck slot its
+			// identity instance was bound to: a mutate top merge moves cards
+			// between instances, and the demoted card can be a token card the
+			// matchup table does not hold (NoCardIndex, as the kernel's tidx
+			// reports it).
+			if i := sort.SearchStrings(m.Table, name); i < len(m.Table) && m.Table[i] == name {
+				c.Card = CardIndex(i)
+			}
 		}
 		c.Zone = uint8(o.Zone)
 		if o.Zone == state.ZCeased {
