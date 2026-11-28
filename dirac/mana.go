@@ -989,12 +989,6 @@ type planner struct {
 	bestTy  [maxUnits]uint8 // the type each of bestSeq's units takes (seqTypes: a painland's alternative)
 	bestN   int
 	maxN    int
-	// gate: the board the planned other-sacrifice steps are funded on
-	// (planSacGate, mana_othersac.go): consider ranks only count vectors whose
-	// steps each name a victim, as gorge's search does (pay.planVictimGate)
-	gate  *State
-	gateK *prep
-	gateP uint8
 	// first: tap only the plan's first unit (gorge's resolution payment
 	// re-plans after every activation: respay.go resPayFund)
 	first  bool
@@ -2139,7 +2133,6 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 		if pk.maxN == 0 {
 			pk.maxN = 1
 		}
-		pk.gate, pk.gateK, pk.gateP = s, k, p
 		pk.dfs(0, 0, 0)
 		if pk.found {
 			break
@@ -2151,6 +2144,7 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 		}
 		skipPick = false
 	}
+	s.planDropUnfundable(k, p, pk) // an unfundable other-sacrifice plan is no plan (mana_othersac.go)
 	if !pk.found {
 		if pk.dry || pk.try {
 			return
@@ -2199,7 +2193,7 @@ func (s *State) plan(k *prep, p uint8, pk *planner, exclude Obj) {
 		}
 	}
 	pk.runOrder(bn, &run)
-	res := s.planSacReserved(k, pk, &pk.bestSeq, bn) // the other-sacrifice victim exclusions (mana_othersac.go)
+	res := s.planSacReserved(k, pk, bn) // the other-sacrifice victim exclusions (mana_othersac.go)
 	var feeMade [kop.NumManaKinds]int
 	for r := 0; r < bn; r++ {
 		i := int(run[r])
@@ -2857,9 +2851,6 @@ func (pk *planner) valid() bool {
 // 1..7; key 1, irreversible cost, is 10 per sacrificed source, 20 for a
 // creature, 0 for tap-only sources).
 func (pk *planner) consider() {
-	if pk.gate != nil && !pk.gate.planSacGate(pk.gateK, pk.gateP, pk) {
-		return // a set whose other-sacrifice steps name no distinct victims is no plan (mana_othersac.go)
-	}
 	var key [7]int
 	size, prod, flex, pain := 0, 0, 0, 0
 	var used [5]int
