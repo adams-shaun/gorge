@@ -422,7 +422,7 @@ func (s *State) filtUsefulCost(k *prep, a Action) (m kop.ManaCost, ok bool) {
 	if m, _, ok = s.playBaseCost(k, a); !ok {
 		return kop.ManaCost{}, false
 	}
-	if m.X != 0 || m.Snow != 0 || m.Hyb != ([4]kop.ColorMask{}) || m.Tb != 0 {
+	if m.X != 0 || m.Snow != 0 || m.Hyb != ([5]kop.ColorMask{}) || m.Tb != 0 {
 		return kop.ManaCost{}, false
 	}
 	return m, true

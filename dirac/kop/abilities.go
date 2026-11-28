@@ -485,7 +485,7 @@ func TapXFixedColour(a *Ability) (col int, ok bool) {
 func PipFeeManaAb(a *Ability) (col int, ok bool) {
 	m := &a.Cost.Mana
 	if a.Kind != AbMana || a.Cost.Flags != CostTap|CostOncePerGame && a.Cost.Flags != CostTap ||
-		m.Generic != 0 || m.X != 0 || m.Hyb != ([4]ColorMask{}) || m.Tb != 0 ||
+		m.Generic != 0 || m.X != 0 || m.Hyb != ([5]ColorMask{}) || m.Tb != 0 ||
 		a.ManaRestrict != 0 || a.ManaN == 0 || len(a.Prog) != 0 ||
 		a.Gate.Ctr != 0 || a.Trig.Cond != 0 || a.ActZone != ZoneNone && a.ActZone != ZoneBattlefield {
 		return 0, false
@@ -525,7 +525,7 @@ func PipFeeManaAb(a *Ability) (col int, ok bool) {
 // prefix search over it as a first-ability filter (dirac mana_filterfirst.go).
 func FeeOnlyManaAb(a *Ability) bool {
 	m := &a.Cost.Mana
-	if a.Kind != AbMana || a.Cost.Flags != 0 || m.X != 0 || m.Hyb != ([4]ColorMask{}) || m.Tb != 0 || m.MV() < 1 ||
+	if a.Kind != AbMana || a.Cost.Flags != 0 || m.X != 0 || m.Hyb != ([5]ColorMask{}) || m.Tb != 0 || m.MV() < 1 ||
 		a.ManaRestrict != 0 || a.ManaN > 1 || a.ManaEach || len(a.Prog) != 0 ||
 		a.Gate.Ctr != 0 || a.Trig.Cond != 0 || a.ActZone != ZoneNone && a.ActZone != ZoneBattlefield {
 		return false
@@ -559,7 +559,7 @@ func FeeOnlyManaAb(a *Ability) bool {
 // paymentPlanRelaxedAlternatives).
 func FeeDynManaAb(a *Ability) bool {
 	m, c := &a.Cost.Mana, a.ManaColors
-	return a.Kind == AbMana && a.Cost.Flags == CostTap && m.Generic != 0 && m.X == 0 && m.Hyb == ([4]ColorMask{}) && m.Tb == 0 &&
+	return a.Kind == AbMana && a.Cost.Flags == CostTap && m.Generic != 0 && m.X == 0 && m.Hyb == ([5]ColorMask{}) && m.Tb == 0 &&
 		m.Pips == ([NumManaKinds]uint8{}) && a.AFlags == AfManaDynamic && c != 0 && c&^ColAny == 0 && c&(c-1) == 0 &&
 		a.ManaN <= 1 && a.ManaRestrict == 0 && a.ManaRestrictAb == 0 && !a.ManaEach && !a.ManaDeferred && a.ManaRider == ManaRiderNone &&
 		len(a.Prog) == 0 && a.Gate.Ctr == 0 && a.Trig.Cond == 0 && a.SplitGate == SplitGateNone &&
@@ -589,7 +589,7 @@ func FilterManaAb(a *Ability) bool {
 		return true
 	}
 	m := &a.Cost.Mana
-	if a.Kind != AbMana || m.Generic == 0 || m.X != 0 || m.Hyb != ([4]ColorMask{}) || m.Tb != 0 || m.Pips != ([NumManaKinds]uint8{}) ||
+	if a.Kind != AbMana || m.Generic == 0 || m.X != 0 || m.Hyb != ([5]ColorMask{}) || m.Tb != 0 || m.Pips != ([NumManaKinds]uint8{}) ||
 		a.Cost.Flags != CostOncePerTurn && a.Cost.Flags != CostTap && a.Cost.Flags != CostTap|CostSacSelf || a.ManaRestrict != 0 || a.ManaN > 1 || len(a.Prog) != 0 ||
 		a.Gate.Ctr != 0 || a.Trig.Cond != 0 || a.ActZone != ZoneNone && a.ActZone != ZoneBattlefield {
 		return false
@@ -757,7 +757,7 @@ func riderManaCostOK(a *Ability) bool {
 	case f == CostOncePerTurn && a.ManaRider == ManaRiderChosenAnimate:
 		// Foraging Wickermaw: a {N} fee once each turn, no {T}
 		return a.Cost.Mana.MV() >= 1 && a.Cost.Mana.X == 0 &&
-			a.Cost.Mana.Pips == ([NumManaKinds]uint8{}) && a.Cost.Mana.Hyb == ([4]ColorMask{})
+			a.Cost.Mana.Pips == ([NumManaKinds]uint8{}) && a.Cost.Mana.Hyb == ([5]ColorMask{})
 	}
 	return false
 }
@@ -776,7 +776,7 @@ func riderManaCostOK(a *Ability) bool {
 func StoreManaAb(a *Ability) bool {
 	if a.Kind != AbMana || a.Cost.Flags&CostLoyaltyX == 0 || a.Cost.Mana.X != 0 ||
 		a.Cost.Mana.Generic != 0 ||
-		a.Cost.Mana.Pips != ([NumManaKinds]uint8{}) || a.Cost.Mana.Hyb != ([4]ColorMask{}) || a.Cost.Mana.Tb != 0 ||
+		a.Cost.Mana.Pips != ([NumManaKinds]uint8{}) || a.Cost.Mana.Hyb != ([5]ColorMask{}) || a.Cost.Mana.Tb != 0 ||
 		a.AFlags&^AfManaDynamic != 0 || a.ManaV.K != VCountersSelf || a.ManaV.N != int16(a.Cost.Ctr) ||
 		a.ManaDeferred || a.ManaRider != ManaRiderNone || a.ManaRiderCtr != 0 || a.ManaRiderN != 0 {
 		return false
