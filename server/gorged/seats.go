@@ -94,6 +94,22 @@ func (g *seatGate) mint(table host.TableID, seat state.PlayerID) (string, error)
 	return tok, nil
 }
 
+// revoke forgets every token whose claim names table: the registry reaped
+// it, so its seats can no longer be claimed. A nil gate revokes nothing.
+func (g *seatGate) revoke(table host.TableID) {
+	if g == nil {
+		return
+	}
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	for tok, claim := range g.tokenToClaim { // deletions only: order is unobservable
+		if claim.Table == table {
+			delete(g.tokenToClaim, tok)
+			delete(g.claimTokens, claim)
+		}
+	}
+}
+
 // joinHost renders a listener address as something a browser can open. A
 // listener bound to the default ":8080" reports its address as "[::]:8080" —
 // the unspecified address, which is a legal thing to listen on and not a
