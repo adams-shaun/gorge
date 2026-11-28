@@ -263,6 +263,9 @@ func (s *State) execPay(k *prep, in *kop.Instr) bool {
 			return false
 		}
 	}
+	if kind == kop.PaySac && in.B.N == kop.PayBSubSacXTrig {
+		return s.execTrigSacX(k, p, skip, in.F) // cost_sacxtrig.go
+	}
 	if kind == kop.PayMana && skip&pfModes == 0 && s.res.e.kind == seTrigger && kop.PayManaHybN(in.F) != 0 {
 		return s.startPayPips(p, skip, amt) // a trigger's own hybrid cost announces its pips first (cost_trighybrid.go)
 	}
@@ -294,10 +297,7 @@ func (s *State) payAnswerGate(k *prep, in *kop.Instr, p uint8, kind int, skip ui
 	unpricedChosen := in.Op == kop.OpUnlessPaid && kind == kop.PayMana && s.g.nchosen == 0 &&
 		in.A.K == kop.VExpr && int(in.A.N) < len(k.t.Exprs) &&
 		k.t.Exprs[in.A.N].Kind == kop.ExMVOf && k.t.Exprs[in.A.N].Ref == kop.RefChosen
-	// a trigger's own announced Sac<X> (kop.PayBSubSacXTrig): gorge's
-	// triggered-cost window has no settle for it and poses decline only
-	sacXTrig := kind == kop.PaySac && in.B.N == kop.PayBSubSacXTrig
-	noPay := stackSelfGone || unpricedChosen || sacXTrig
+	noPay := stackSelfGone || unpricedChosen
 	var stall uint8
 	if !noPay {
 		ok := s.canPayGenFor(k, p, kind, skip, amt, pips, in.F)

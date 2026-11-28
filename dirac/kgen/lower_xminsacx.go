@@ -33,7 +33,7 @@ func (lc *lowerCtx) sacXCost(c *lCost, parts []string, t string) error {
 		return refuse("cost token %q", t)
 	}
 	// a printed trigger's own Sac<X> (Sephiroth, One-Winged Angel) parses
-	// too: payInstr lowers it to gorge's decline-only election (kop.PayBSubSacXTrig)
+	// too: payInstr lowers it to gorge's announced-X election (kop.PayBSubSacXTrig)
 	ownTrig := lc.trigBodyCost && lc.ab != nil && lc.ab.Kind == akTriggered && len(lc.ab.Prog) == 0
 	if !lc.lifeXSpell && !lc.actCost && !ownTrig {
 		return refuse("sacrifice cost %q outside a spell's or activated ability's own cost", t)

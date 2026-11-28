@@ -14,11 +14,10 @@ import (
 // leads):
 //
 //   - the Attacks trigger's own Cost$ Sac<X/Creature.Other> with NumCards$ X
-//     (Count$xPaid): gorge's triggered-cost window has no settle for an
-//     announced sacrifice (cumulative.go costCarriesUnfoldedX,
-//     triggeredCostComponentsPayable), so it poses the decline-only ask and
-//     the draw never runs. The kernel's PaySac with PayBSubSacXTrig poses the
-//     same one-option ask (interp_ask.go payAnswerGate).
+//     (Count$xPaid): gorge's triggered-cost window announces X over the other
+//     creatures (cumulative.go triggeredCostXAsk, costCarriesSacX), then the
+//     pay election sacrifices X and the body draws X. The kernel's PaySac with
+//     PayBSubSacXTrig poses the same announcement (cost_sacxtrig.go).
 //   - the Transform replacement (R:Event$ Transform | ValidCard$ Card.Self |
 //     ReplaceWith$ DB$ Effect): gorge runs the body as the card flips into
 //     the face (replacement_phase.go applyTransformReplacement), creating the
@@ -77,8 +76,8 @@ func sephirothRealCase(tag string) sephirothCase {
 }
 
 // TestHostedCmdrSephirothSacrificeDrawLockstep: the attack trigger's own
-// Sac<X> cost. The probe case fails unless gorge posed the probe's trigger
-// cost ask on some seed (the kernel must pose the same options).
+// Sac<X> cost. The probe case fails unless seat 0 announced a positive X and
+// paid it on some seed (the kernel must pose the same options throughout).
 func TestHostedCmdrSephirothSacrificeDrawLockstep(t *testing.T) {
 	runSephirothCases(t, []sephirothCase{
 		{
@@ -139,19 +138,33 @@ func novaEmblemDrained(g *GorgeSide) bool {
 
 // sephirothPolicy is hostedCmdrKwCostsPolicy (cast the carrier, target
 // opponents' things, seat 0 attacks with everything, seat 1 never attacks),
-// recording when gorge poses the carrier's own trigger-cost ask.
+// announcing the largest X for the carrier's own trigger cost and paying it,
+// recording when a positive X was paid.
 func sephirothPolicy(m *Matchup, c sephirothCase, seed uint64, asked *bool) Policy {
 	inner := hostedCmdrKwCostsPolicy(m, hostedCmdrCase{carrier: c.carrier}, seed)
+	announced := 0
 	return PolicyFunc(func(p *PickCtx) Canon {
 		if p.G != nil && p.D.Player == 0 {
-			for _, a := range p.D.Options {
+			best, bestX := -1, -1
+			for i, a := range p.D.Options {
 				o, ok := p.G.GorgeOption(a)
-				if !ok || o.Kind != "trigger_cost_decline" {
+				if !ok || (o.Kind != "trigger_cost_x" && o.Kind != "trigger_cost_pay") {
 					continue
 				}
-				if ob := p.G.E.G.Obj(o.Obj); ob != nil && ob.Face() != nil && ob.Face().Name == c.carrier {
-					*asked = true
+				if ob := p.G.E.G.Obj(o.Obj); ob == nil || ob.Face() == nil || ob.Face().Name != c.carrier {
+					continue
 				}
+				if o.Kind == "trigger_cost_pay" && announced > 0 {
+					*asked = true
+					return a
+				}
+				if o.Kind == "trigger_cost_x" && o.Amount > bestX {
+					best, bestX = i, o.Amount
+				}
+			}
+			if best >= 0 {
+				announced = bestX
+				return p.D.Options[best]
 			}
 		}
 		return inner.Pick(p)
