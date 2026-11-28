@@ -244,3 +244,10 @@ func (s *State) defilerApplies(k *prep, p uint8, c CardID, o Obj) bool {
 	n := s.defilerViews(k, p, c, o, &vs)
 	return n > 0
 }
+
+// defilerOfferZone reports whether a cast from zone z gets the offer gate's
+// second chance: gorge calls reducedOptionalCastable only from the plain hand
+// walk (legal_walk_hand.go) and the command-zone walk (legal_walk_alt.go
+// commandZoneWalk), so a warp recast or a face cast from exile, or a may-play
+// cast from another zone, is offered at the unreduced cost.
+func defilerOfferZone(z kop.Zone) bool { return z == kop.ZoneHand || z == kop.ZoneCommand }
