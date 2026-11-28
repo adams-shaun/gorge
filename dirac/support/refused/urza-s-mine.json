@@ -1,0 +1,14 @@
+{
+  "card": "Urza's Mine",
+  "class": "projection-NStack",
+  "why": "the engines' state differs at projection NStack; recorded from ev-cmdr-urza-s-mine pair 244",
+  "repro": {
+    "pool": "custom",
+    "surface": "autopay",
+    "seed": 816967816035600656,
+    "pair": 244,
+    "policy": "random",
+    "mulligans": 0,
+    "file": "urza_s_mine_hosted_cmdr_focus"
+  }
+}

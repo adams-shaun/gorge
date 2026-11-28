@@ -1,0 +1,14 @@
+{
+  "card": "Yedora, Grave Gardener",
+  "class": "unmodelled-band",
+  "why": "gorge does something the kernel does not model here (stall band); recorded from ev-cmdr-yedora-grave-gardener pair 262",
+  "repro": {
+    "pool": "custom",
+    "surface": "autopay",
+    "seed": 8101152720150413632,
+    "pair": 262,
+    "policy": "random",
+    "mulligans": 0,
+    "file": "yedora_grave_gardener_hosted_cmdr_focus"
+  }
+}

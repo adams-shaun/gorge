@@ -1,0 +1,260 @@
+A-Celebrity Fencer
+A-Imperial Subduer
+Absolute Grace
+Abu Ja'far
+Aether Figment
+Aliban's Tower
+Always Watching
+Amphibious Kavu
+Amulet of Vigor
+Angel of the Ruins
+Apostle of Purifying Light
+Appetite for the Unnatural
+Arcane Flight
+Arcbound Whelp
+Assembly Hall
+Attunement
+Banewasp Affliction
+Barging Sergeant
+Bastion Protector
+Battle-Rage Blessing
+Behind the Scenes
+Benevolent Unicorn
+Blisterstick Shaman
+Blood Burglar
+Bolt Hound
+Boss Uramon, Shadow's Reach
+Box of Free-Range Goblins
+Brawler's Plate
+Burning Cloak
+Burning Sun's Fury
+Burning-Fist Minotaur
+Burrenton Forge-Tender
+Canyon Lurkers
+Cavalry Pegasus
+Centaur Nurturer
+Chaosphere
+Circle of Protection: Blue
+Clarion Cathars
+Copperhoof Vorrac
+Corpse Churn
+Cruel Feeding
+Cryptic Pursuit
+Dakmor Lancer
+Darkblast
+Dawn of Hope
+Deadeye Tormentor
+Death-Rattle Oni
+Deepwood Elder
+Devout Witness
+Diplomatic Escort
+Dispense Justice
+Distress
+Drifting Shade
+Dry Spell
+Dwarven Armory
+Dwarven Patrol
+Eidolon of Inspiration
+Elvish Branchbender
+Embereth Shieldbreaker
+Embodiment of Fury
+Empress Galina
+Era of Enlightenment
+Etched Champion
+Ettercap
+Excise the Imperfect
+Explosive Growth
+Eyeblight Cullers
+Faith Healer
+Falkenrath Celebrants
+Fallaji Excavation
+Fallaji Vanguard
+Fanged Flames
+Field-Tested Frying Pan
+Flame Wave
+Flame-Kin Zealot
+Flash of Defiance
+Flensermite
+Font of Fortunes
+Forest
+Formless Genesis
+Fortifying Draught
+Furnace Spirit
+Gaea's Cradle
+Ganax, Astral Hunter
+Ghoulraiser
+Gilded Pinions
+Gitaxian Anatomist
+Glimmer of Genius
+Glorious Anthem
+Glorious Protector
+Gold Myr
+Golgari Locket
+Graceblade Artisan
+Grateful Apparition
+Gremlin Infestation
+Grotag Bug-Catcher
+Gryffwing Cavalry
+Guardians of Koilos
+Headsplitter
+Hedron Detonator
+Hellion Crucible
+Herald of the Dreadhorde
+Hero of Leina Tower
+Hibernation
+Homicidal Seclusion
+Hope Tender
+Horned Helm
+Hungering Hydra
+Hunter's Ambush
+Incursion Specialist
+Industrial Advancement
+Inferno Jet
+Inner Sanctum
+Instill Infection
+Ishkanah, Grafwidow
+Island
+Ixalli's Keeper
+Jagwasp Swarm
+Jaxis, the Troublemaker
+Jaya Ballard, Task Mage
+Jhoira's Toolbox
+Joint Exploration
+Joraga Visionary
+Kabuto Moth
+Kangee's Lieutenant
+Kardur's Vicious Return
+Kazandu Tuskcaller
+Kefnet's Last Word
+Kenku Artificer
+Kheru Bloodsucker
+Kranioceros
+Lethal Sting
+Light of Day
+Lightning Visionary
+Livaan, Cultist of Tiamat
+Losheel, Clockwork Scholar
+Maestros Initiate
+Makeshift Mauler
+Manacles of Decay
+Marchesa's Smuggler
+Merchant of Secrets
+Minor Misstep
+Momentary Blink
+Moon-Circuit Hacker
+Mortis Dogs
+Mother Bear
+Mountain
+Murderous Redcap
+Myr Quadropod
+Nightshade Schemers
+Nimble-Blade Khenra
+Ninth Bridge Patrol
+Norn's Disassembly
+Nosy Goblin
+Novice Knight
+Obelisk of Urd
+On Serra's Wings
+On Thin Ice
+Ore-Scale Guardian
+Oreskos Swiftclaw
+Organic Extinction
+Perilous Forays
+Petrified Field
+Pick Up the Pace
+Plains
+Priests of Norn
+Primeval Herald
+Prison Sentence
+Propaganda
+Proper Burial
+Protocol Knight
+Quakebringer
+Rakdos Shred-Freak
+Reckless Brute
+Reinforced Ronin
+Reptilian Reflection
+Reservoir Kraken
+Resounding Silence
+Rhys the Exiled
+Rite of Undoing
+Rogue Elephant
+Rotting Rats
+Run Out of Town
+Runed Arch
+Ruthless Cullblade
+Safeguard
+Sage Aven
+Sarinth Steelseeker
+Satyr Piper
+Scavenger Drake
+Scorched Earth
+Scrap
+Seraph of the Sword
+Serpentine Ambush
+Serrated Scorpion
+Shadows' Verdict
+Shang-Chi, Martial Mentor
+Shao Jun
+Shauku, Endbringer
+Shimmerdrift Vale
+Shinen of Flight's Wings
+Shinka Gatekeeper
+Sickening Dreams
+Siegecraft
+Skitterskin
+Skybind
+Skyfire Kirin
+Spark of Creativity
+Spectral Force
+Spin Engine
+Spined Basher
+Spirit of the Spires
+Stark's Ingenuity
+Starlit Angel
+Stern Constable
+Stitch in Time
+Stormclaw Rager
+Stream of Life
+Strength of Lunacy
+Sunbathing Rootwalla
+Swamp
+Sworn Defender
+Sylvan Ranger
+Talruum Minotaur
+Tecton, Malignant Ruin
+Tephraderm
+Throne of Bone
+Thunderblust
+Tibalt, the Fiend-Blooded
+Tide Skimmer
+Tonic Peddler
+Tormented Soul
+Tormenting Voice
+Trip Noose
+Trophy Mage
+Turbulent Fen
+Uktabi Orangutan
+Ultron the Annihilator
+Umara Mystic
+Underworld Hermit
+Underworld Sentinel
+Verdant Automaton
+Verdant Haven
+Vile Requiem
+Vorrac Battlehorns
+Vorstclaw
+Vulshok Gauntlets
+Walker of the Wastes
+Wall of Fire
+Whip-Spine Drake
+Wilderness Hypnotist
+Windswept Heath
+Winged Words
+Wish Good Luck
+Wishcoin Crab
+Withstand Death
+Woodland Cemetery
+Wurmcalling
+Zalto, Fire Giant Duke
+Zhalfirin Knight

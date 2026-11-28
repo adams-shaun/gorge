@@ -1,0 +1,14 @@
+{
+  "card": "Last One Standing",
+  "class": "projection-NStack",
+  "why": "the engines' state differs at projection NStack; recorded from ev-cmdr-last-one-standing pair 77",
+  "repro": {
+    "pool": "custom",
+    "surface": "full",
+    "seed": 2305458932783964197,
+    "pair": 77,
+    "policy": "random",
+    "mulligans": 1,
+    "file": "last_one_standing_hosted_cmdr_focus"
+  }
+}

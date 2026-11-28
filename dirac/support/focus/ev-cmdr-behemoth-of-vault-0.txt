@@ -1,0 +1,3 @@
+# ev-cmdr-behemoth-of-vault-0: Behemoth of Vault 0, unverified in hosted-cmdr (cli-20261127T093705Z-1fed1794)
+# replay: host pool tail-33; kfuzz -synth tail-33 -synth-with "$(kfuzz -list-synth | paste -sd,)" -focus dirac/support/focus/ev-cmdr-behemoth-of-vault-0.txt -play-refused -seed 1 -first-pair 4 -pairs 1 -surface autopay -mulligans 0
+Behemoth of Vault 0

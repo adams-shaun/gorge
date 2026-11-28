@@ -1,0 +1,3 @@
+# ev-cmdr-west-coast-expansion: West Coast Expansion, unverified in hosted-cmdr (cli-20261127T093705Z-1fed1794)
+# replay: host pool tail-00; kfuzz -synth tail-00 -synth-with "$(kfuzz -list-synth | paste -sd,)" -focus dirac/support/focus/ev-cmdr-west-coast-expansion.txt -play-refused -seed 1 -first-pair 150 -pairs 1 -surface autopay -mulligans 0
+West Coast Expansion

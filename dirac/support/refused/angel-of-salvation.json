@@ -1,0 +1,14 @@
+{
+  "card": "Angel of Salvation",
+  "class": "projection-Cards.Pos",
+  "why": "the engines' state differs at projection Cards.Pos; recorded from ev-cmdr-angel-of-salvation pair 299",
+  "repro": {
+    "pool": "custom",
+    "surface": "full",
+    "seed": 3511449379624850734,
+    "pair": 299,
+    "policy": "random",
+    "mulligans": 1,
+    "file": "angel_of_salvation_hosted_cmdr_focus"
+  }
+}

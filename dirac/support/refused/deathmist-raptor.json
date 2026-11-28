@@ -1,0 +1,14 @@
+{
+  "card": "Deathmist Raptor",
+  "class": "projection-Cards.Flags",
+  "why": "the engines' state differs at projection Cards.Flags; recorded from ev-cmdr-deathmist-raptor pair 44",
+  "repro": {
+    "pool": "custom",
+    "surface": "full",
+    "seed": 16256398713181607051,
+    "pair": 44,
+    "policy": "random",
+    "mulligans": 0,
+    "file": "deathmist_raptor_hosted_cmdr_focus"
+  }
+}

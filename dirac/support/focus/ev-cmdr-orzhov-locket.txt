@@ -1,0 +1,2 @@
+# ev-cmdr-orzhov-locket: Orzhov Locket, beside the cards of its hosted-cmdr games that implicate it first (cli-20261127T093705Z-1fed1794)
+Orzhov Locket	Spire Golem;Fetid Heath;Graveshifter;Sai, Master Thopterist;Aether Spellbomb;Karn's Bastion;Command Tower;Phyrexian Rager

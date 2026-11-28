@@ -1,0 +1,259 @@
+A-Cori-Steel Cutter
+A-Meria's Outrider
+Accursed Horde
+Admonition Angel
+Aether Adept
+Aether Inspector
+Aetherblade Agent
+Agent of Stromgald
+Akroan Sergeant
+Alluring Suitor
+Alpha Tyrranax
+Angelic Exaltation
+Anodet Lurker
+Answered Prayers
+Ant Queen
+Anurid Barkripper
+Armored Ascension
+Ashiok's Adept
+Astral Dragon
+Astral Slide
+Attended Healer
+Avatar of Woe
+Aven Mindcensor
+Baloth Prime
+Barrowgoyf
+Besmirch
+Big Score
+Blistercoil Weird
+Bloodline Culling
+Bloodrite Invoker
+Bloodshed Fever
+Boil
+Bolshack Dragon
+Bountiful Harvest
+Brimstone Volley
+Brine Elemental
+Burning Oil
+Caligo Skin-Witch
+Captain's Hook
+Carnage Wurm
+Carrion Call
+Cascade Seer
+Cessation
+Chaos Terminator Lord
+Claws of Valakut
+Cleanse
+Cleric of Chill Depths
+Clever Concealment
+Clock of Omens
+Clone
+Coldsteel Heart
+Conqueror's Pledge
+Containment Construct
+Corpse Cur
+Corrupted Shapeshifter
+Crashing Boars
+Crooked Custodian
+Dauthi Embrace
+Dawn Evangel
+Dawnbringer Charioteers
+Dimension X Pizzasaur
+Disciple of Malice
+Disciple of the Vault
+Djeru's Resolve
+Dread Slaver
+Dross Crocodile
+Echoing Ruin
+Elvish Guidance
+Embermaw Hellion
+Emergency Weld
+Energy Storm
+Essence Depleter
+Evolution Sage
+Exemplar of Strength
+Fathom Trawl
+Fell the Pheasant
+Fireflux Squad
+Fissure
+Fissure Vent
+Flatten
+Fledgling Osprey
+Fleshpulper Giant
+Fling
+Forest
+Forked Bolt
+Franklin Richards, Ascendant
+From Beyond
+Fungus Elemental
+Gala Greeters
+Galadhrim Bow
+Gaze of Justice
+Ghoulsteed
+Gnathosaur
+Go-Shintai of Life's Origin
+Goblin Matron
+Goblin Mountaineer
+Goblin Ringleader
+Goblin Sledder
+God-Eternal Bontu
+Gold-Forged Sentinel
+Goldmeadow Stalwart
+Grasp of Darkness
+Greater Auramancy
+Green Scarab
+Grizzled Angler
+Guardian Scalelord
+Gunner Conscript
+Gwenna, Eyes of Gaea
+Hammerhead, Maggia Boss
+Harvest Wurm
+Haunted Cadaver
+Heavyweight Demolisher
+Herald of Anguish
+High Seas
+Hindervines
+Hive Mind
+Holdout Settlement
+Horn of Gondor
+Hornet Sting
+Ill-Gotten Inheritance
+Illusory Angel
+Immolating Souleater
+In Garruk's Wake
+Island
+Jousting Dummy
+Junk Winder
+Kamahl's Desire
+Karplusan Forest
+Kill-Zone Acrobat
+Kindly Customer
+Leaping Lizard
+Leonin of the Lost Pride
+Leyline of Sanctity
+Looter il-Kor
+Lose Focus
+Lurebound Scarecrow
+Lurking Nightstalker
+Lys Alana Huntmaster
+Lyzolda, the Blood Witch
+Maga, Traitor to Mortals
+Mage's Guile
+Mardu Runemark
+Merchant's Dockhand
+Metamorphosis Fanatic
+Meteoric Mace
+Mishra's Command
+Mite Overseer
+Mordant Dragon
+Morkrut Banshee
+Mossbeard Ancient
+Mountain
+Mugging
+Myr Adapter
+Nature's Cloak
+Needleverge Pathway
+Nest Robber
+Nostalgic Dreams
+Nova Flame
+Orcish Veteran
+Overload
+Pack's Betrayal
+Painful Lesson
+Painwracker Oni
+Paradox Zone
+Pelakka Predation
+Perimeter Captain
+Petravark
+Petrifying Meddler
+Phantasmal Dreadmaw
+Pheres-Band Centaurs
+Phyrexian Denouncer
+Phyrexian Totem
+Piety
+Plains
+Planar Ally
+Pouncing Wurm
+Prismwake Merrow
+Protective Bubble
+Psychic Impetus
+Rakdos Carnarium
+Reality Heist
+Recall
+Reckless Crew
+Reflections of Littjara
+Ridgescale Tusker
+Roilmage's Trick
+Run Wild
+Rune of Protection: Artifacts
+Sabertooth Outrider
+Sacred Armory
+Sage's Dousing
+Sandsteppe Scavenger
+Sandstorm
+Saprazzan Outrigger
+Satyr Hoplite
+Satyr Nyx-Smith
+Savai Sabertooth
+Scholar of Athreos
+School of the Unseen
+Scuttling Doom Engine
+Scythecat Cub
+Serene Steward
+Severed Legion
+Sewer Rats
+Shadow of Mortality
+Shamble Back
+Shard of the Nightbringer
+Shared Discovery
+Shauku's Minion
+Shoulder to Shoulder
+Shriek of Dread
+Silt Crawler
+Silverquill Lecturer
+Silverwing Squadron
+Skullmane Baku
+Smother
+Soulblade Djinn
+Spellbreaker Behemoth
+Spider Spawning
+Spike Weaver
+Steelfin Whale
+Stolen Vitality
+Strength from the Fallen
+Strength of Isolation
+Subterranean Hangar
+Sunbringer's Touch
+Suppression Bonds
+Swamp
+Sweatworks Brawler
+Swelter
+Temporal Manipulation
+Thran Spider
+Tidal Surge
+Tome Raider
+Trench Stalker
+Tribute to Horobi
+Trigon of Corruption
+Trufflesnout
+Turntimber Ranger
+Tyrranax
+Umbilicus
+Unbreathing Horde
+Undead Warchief
+Ureni's Counsel
+Ursine Champion
+Vedalken Orrery
+Vhal, Candlekeep Researcher
+Viashino Shanktail
+Waking the Trolls
+Weatherlight
+Weight of the Underworld
+Welder Automaton
+Wildwood Escort
+Wolf's Quarry
+Woodland Bellower
+Wrangle
+Wrenn's Resolve
+Wyluli Wolf
+Zephyr Scribe

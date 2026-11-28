@@ -1,0 +1,14 @@
+{
+  "card": "Vault 13: Dweller's Journey",
+  "class": "projection-Cards.Flags",
+  "why": "the engines' state differs at projection Cards.Flags; recorded from ev-cmdr-vault-13-dweller-s-journey pair 163",
+  "repro": {
+    "pool": "custom",
+    "surface": "autopay",
+    "seed": 18192032200144877714,
+    "pair": 163,
+    "policy": "random",
+    "mulligans": 0,
+    "file": "vault_13_dweller_s_journey_hosted_cmdr_focus"
+  }
+}

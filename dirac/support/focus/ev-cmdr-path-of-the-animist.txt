@@ -1,0 +1,3 @@
+# ev-cmdr-path-of-the-animist: Path of the Animist, unverified in hosted-cmdr (cli-20261127T093705Z-1fed1794)
+# replay: host pool tail-40; kfuzz -synth tail-40 -synth-with "$(kfuzz -list-synth | paste -sd,)" -focus dirac/support/focus/ev-cmdr-path-of-the-animist.txt -play-refused -seed 1 -first-pair 257 -pairs 1 -surface full -mulligans 0
+Path of the Animist

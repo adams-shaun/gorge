@@ -1,0 +1,14 @@
+{
+  "card": "Sulfuric Vortex",
+  "class": "decision-kind",
+  "why": "the engines ask different decisions; recorded from ev-cmdr-sulfuric-vortex pair 240",
+  "repro": {
+    "pool": "custom",
+    "surface": "autopay",
+    "seed": 17117640081162194011,
+    "pair": 240,
+    "policy": "random",
+    "mulligans": 1,
+    "file": "sulfuric_vortex_hosted_cmdr_focus"
+  }
+}

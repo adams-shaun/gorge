@@ -1,0 +1,14 @@
+{
+  "card": "Eldrazi Temple",
+  "class": "projection-Cards.Flags",
+  "why": "the engines' state differs at projection Cards.Flags; recorded from ev-cmdr-eldrazi-temple pair 225",
+  "repro": {
+    "pool": "custom",
+    "surface": "full",
+    "seed": 5055230178299358829,
+    "pair": 225,
+    "policy": "random",
+    "mulligans": 1,
+    "file": "eldrazi_temple_hosted_cmdr_focus"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "card": "Virtue of Strength",
+  "class": "projection-Cards.Flags",
+  "why": "the engines' state differs at projection Cards.Flags; recorded from ev-cmdr-virtue-of-strength pair 92",
+  "repro": {
+    "pool": "custom",
+    "surface": "autopay",
+    "seed": 13056020192189756660,
+    "pair": 92,
+    "policy": "random",
+    "mulligans": 0,
+    "file": "virtue_of_strength_hosted_cmdr_focus"
+  }
+}

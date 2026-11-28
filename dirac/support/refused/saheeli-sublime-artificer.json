@@ -1,0 +1,14 @@
+{
+  "card": "Saheeli, Sublime Artificer",
+  "class": "projection-Pool",
+  "why": "the engines' state differs at projection Pool; recorded from ev-cmdr-saheeli-sublime-artificer pair 270",
+  "repro": {
+    "pool": "custom",
+    "surface": "full",
+    "seed": 17953043030833447602,
+    "pair": 270,
+    "policy": "random",
+    "mulligans": 1,
+    "file": "saheeli_sublime_artificer_hosted_cmdr_focus"
+  }
+}

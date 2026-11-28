@@ -1,0 +1,242 @@
+A-Blood Artist
+A-Manticore
+Advance Scout
+Adverse Conditions
+Aether Spike
+Ahn-Crop Invader
+Ajani Fells the Godsire
+Angel of Invention
+Angelheart Vial
+Apprentice Necromancer
+Arlinn's Wolf
+Armament Master
+Aven Sunstriker
+Backwoods Survivalists
+Balustrade Spy
+Banefire
+Barter in Blood
+Benalish Veteran
+Birthing Boughs
+Birthing Ritual
+Blessed Wind
+Blind-Spot Giant
+Bloodsworn Steward
+Bog Glider
+Brainstone
+Briarberry Cohort
+Briarblade Adept
+Broodstar
+Budoka Pupil
+Call to Serve
+Catalyst Elemental
+Cathartic Pyre
+Charismatic Vanguard
+Child of Gaea
+Chimeric Mass
+Cinder Seer
+Cloudthresher
+Coalition Flag
+Compulsion
+Crater Elemental
+Cunning Sparkmage
+Cylian Sunsinger
+Deathknell Berserker
+Deepwater Hypnotist
+Diamond Kaleidoscope
+Dionus, Elvish Archdruid
+Disentomb
+Divine Gambit
+Drowned Rusalka
+Druid's Call
+Dwarven Grunt
+Eagle of the Watch
+Elixir of Vitality
+Empyrial Storm
+Endless Foot Assault
+Enforcer Griffin
+Enlightened Tutor
+Enlistment Officer
+Excavation Technique
+Eyetwitch
+Feedback Bolt
+Feral Thallid
+Fire Imp
+Flesh to Dust
+Flowstone Salamander
+Fog on the Barrow-Downs
+Force of Despair
+Forest
+Forever Young
+Frightshroud Courier
+Gatstaf Arsonists
+General Tazri
+Genesis
+Geralf, Visionary Stitcher
+Geyserfield Stalker
+Glacial Stalker
+Glacian, Powerstone Engineer
+Gliding Licid
+Gloomwidow's Feast
+Glowrider
+Gnarled Mass
+Goblin Marshal
+God-Pharaoh's Gift
+Golden-Scale Aeronaut
+Golem Artisan
+Gorgon Flail
+Gourmand's Talent
+Guardian Gladewalker
+Guardian of Ghirapur
+Gustcloak Harrier
+Gustcloak Savior
+Hexgold Halberd
+Hickory Woodlot
+Hobgoblin Captain
+Holy Armor
+Hopeful Initiate
+Hostile Desert
+Hurloon Battle Hymn
+Hydra Omnivore
+Illusionist's Stratagem
+Increasing Devotion
+Ingenious Skaab
+Intervene
+Into the Void
+Iron Man, Armored Avenger
+Irreverent Revelers
+Island
+Jasmine Seer
+Jedit Ojanen of Efrava
+Jhoira, Ageless Innovator
+Kavu Climber
+Kaya's Ghostform
+Kinjalli's Sunwing
+Kjeldoran War Cry
+Knowing
+Kraken's Eye
+Kyren Glider
+Landroval, Horizon Witness
+Last Caress
+Laurine, the Diversion
+Lazotep Chancellor
+Legion Loyalist
+Lich's Caress
+Loch Dragon
+Loyal Fire Sage
+MACH-1, Swooping Scoundrel
+Magus of the Coffers
+Malicious Malfunction
+Mana Confluence
+Manaplasm
+Marchesa's Decree
+Marsh Flats
+Martyr of Dusk
+Marut
+Medicine Bag
+Millikin
+Mine Collapse
+Minotaur Tactician
+Molten Nursery
+Molten Rain
+Moment of Truth
+Mountain
+Mushroom Watchdogs
+Mutilate
+Muzzio, Visionary Architect
+Nausea
+Necravolver
+Nether Spirit
+Niblis of the Mist
+Nikara, Lair Scavenger
+Nucklavee
+Oketra's Avenger
+Oswald Fiddlebender
+Owl Familiar
+Patagia Viper
+Phyrexian Juggernaut
+Phyrexian War Beast
+Plague Spitter
+Plains
+Plea for Power
+Portent of Betrayal
+Primordial Sage
+Prophetic Titan
+Prying Blade
+Ragefire
+Rain of Tears
+Ramosian Sergeant
+Ranger-Captain of Eos
+Rangers of Ithilien
+Rats of Rath
+Relic Robber
+Repair and Recharge
+Repository Skaab
+Reprocess
+Restless Bones
+Retrofitter Foundry
+Rise to the Challenge
+Rishadan Pawnshop
+Royal Warden
+Rude Awakening
+Rushwood Herbalist
+Rusting Golem
+Sanctifier of Souls
+Sand Squid
+Sanguimancy
+Savannah Sage
+Scourge of Valkas
+Seismic Shudder
+Serum Powder
+Sevinne's Reclamation
+Sheoldred, Whispering One
+Sifter Wurm
+Skirk Fire Marshal
+Slimebind
+Slimy Piper
+Sliptide Serpent
+Slumbering Dragon
+Sly Requisitioner
+Sonic Assault
+Soul Shred
+Soul of Innistrad
+Sphinx Summoner
+Sphinx of Magosi
+Spontaneous Mutation
+Steel Overseer
+Storm of Souls
+Sudden Edict
+Sudden Spinnerets
+Suppressor Skyguard
+Swamp
+Swamp Mosquito
+Tamiyo's Epiphany
+Thanos, Death's Consort
+Thaumatic Compass
+The Circle of Loyalty
+Thraben Exorcism
+Thumbscrews
+Thundering Chariot
+Thundermare
+Titanoth Rex
+Treeshaker Chimera
+Tromp the Domains
+Ugin's Mastery
+Unnatural Restoration
+Unnerve
+Unquestioned Authority
+Urborg Skeleton
+Urza's Factory
+Uthros Research Craft
+Veteran's Reflexes
+Vigil for the Lost
+Vindictive Mob
+Viridescent Bog
+Vivid Creek
+Waste Away
+Waterfront Bouncer
+Well of Discovery
+Wingrattle Scarecrow
+Wither and Bloom
+Withering Boon
+Wren's Run Packmaster
+You Find a Cursed Idol

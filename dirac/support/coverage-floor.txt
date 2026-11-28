@@ -1,6 +1,6 @@
-keys_used=19411
-keys_total=19411
-branches_hit=17206
-branches_total=29550
-full=11780
+keys_used=20591
+keys_total=20591
+branches_hit=21987
+branches_total=31451
+full=15901
 stale_max=1000

@@ -1,0 +1,248 @@
+A-Fates' Reversal
+A-Heartfire Hero
+Abomination
+Aerie Auxiliary
+Aether Hub
+Akki Blizzard-Herder
+Akroma's Vengeance
+Alena, Kessig Trapper
+Alpha Deathclaw
+Angel of Glory's Rise
+Arcbound Slasher
+Arcbound Worker
+Archpriest of Shadows
+Armory Guard
+Attended Knight
+Autumn Willow, Harmony
+Avoid Fate
+Ballista Watcher
+Befoul
+Bellowing Saddlebrute
+Black Widow, Intel Expert
+Blade Sliver
+Blade-Tribe Berserkers
+Bonesplitter Sliver
+Boots of Speed
+Brainspoil
+Broken Dam
+Buoyancy
+Cavern Crawler
+Cheering Fanatic
+Chief of the Foundry
+Civic Wayfinder
+Clash of Wills
+Clip Wings
+Conquering Manticore
+Constant Mists
+Copper Myr
+Cradle to Grave
+Crashing Footfalls
+Crop Sigil
+Cruel Celebrant
+Crypt Creeper
+Death Mutation
+Deathmark Prelate
+Deepwood Ghoul
+Defensive Maneuvers
+Defiant Strike
+Demon's Jester
+Diabolic Edict
+Disciple of Grace
+Drain the Well
+Dreadhound
+Dreadlight Monstrosity
+Drowner Initiate
+Dual Shot
+Ebony Treefolk
+Eel Umbra
+Efreet Flamepainter
+Epiphany at the Drownyard
+Essence Infusion
+Everbark Shaman
+Evie Frye
+Extract from Darkness
+Extremis Elite
+Eye of Ugin
+Falkenrath Torturer
+Fated Return
+Final Flourish
+Final Strike
+Fire Covenant
+Flailing Soldier
+Flayed One
+Flicker of Fate
+Forebear's Blade
+Forest
+Frenzied Devils
+Frodo, Adventurous Hobbit
+From the Rubble
+Frost Trickster
+Gigadrowse
+Glen Elendra Liege
+Goblin Barrage
+Goblin Blast-Runner
+Goblin Bombardment
+Goblin Bushwhacker
+Goblin Locksmith
+Goliath, Mass Manipulator
+Grasslands
+Graveblade Marauder
+Gravity Sphere
+Great Oak Guardian
+Guardian of the Gateless
+Halberdier
+Hammerhead Shark
+Hero of Goma Fada
+Hold at Bay
+Horizon Scholar
+Horizon Spellbomb
+Hydromorph Gull
+Infernal Contract
+Infernal Kirin
+Infuriate
+Iona's Judgment
+Island
+Izzet Keyrune
+Jilt
+Karvanista, Loyal Lupari
+Kashi-Tribe Warriors
+Kazuul Warlord
+Keldon Mantle
+Kogla, the Titan Ape
+Kraken Hatchling
+Krovikan Fetish
+Kukemssa Serpent
+Lae'zel's Acrobatics
+Last Kiss
+Lava Zombie
+Lead by Example
+Lightning Javelin
+Llanowar Sentinel
+Loamcrafter Faun
+Longbow Archer
+Marble Titan
+Massacre
+Mastery of the Unseen
+Melira's Keepers
+Messenger's Speed
+Mindculling
+Misers' Cage
+Mob Justice
+Molten Echoes
+Mortipede
+Mountain
+Mountain Titan
+Murasa Brute
+Myr Sire
+Márton Stromgald
+Nature's Embrace
+Neheb, the Eternal
+Norwood Archers
+Obelisk of Alara
+Origin of Black Widow
+Orochi Sustainer
+Orzhov Signet
+Pack Hunt
+Pang Tong, "Young Phoenix"
+Pearl Medallion
+Phantasmal Terrain
+Phantom Centaur
+Phyrexian Colossus
+Phyrexian Delver
+Phyrexian Espionage
+Pinnacle of Rage
+Plains
+Planebound Accomplice
+Porcelain Zealot
+Predator's Rapport
+Pyrrhic Revival
+Quicksilver Amulet
+Rampant Rejuvenator
+Ransom Note
+Renegade Warlord
+Repel the Vile
+Reprieve
+Revitalizing Repast
+Rhox Charger
+Ring of Immortals
+Riptide Mangler
+River Kaijin
+River's Grasp
+Rush of Knowledge
+Sacred Knight
+Salt Marsh
+Sanctum Custodian
+School of Piranha
+Scrap Trawler
+Scrapwork Mutt
+Seedtime
+Self-Inflicted Wound
+Sell-Sword Brute
+Sepulcher Ghoul
+Shatterskull Charger
+Shatterskull Smashing
+Shield-Wall Sentinel
+Shimmering Wings
+Shinen of Life's Roar
+Sif's Spearmaster
+Silas Renn, Seeker Adept
+Skeletal Wurm
+Sky Diamond
+Sky Theater Strix
+Soldier Replica
+Spell Contortion
+Spitting Sliver
+Squelching Leeches
+Squirrel Sovereign
+Staff of the Storyteller
+Stern Marshal
+Stick, Fearless Mentor
+Stone Calendar
+Strangle
+Stromkirk Occultist
+Study Break
+Sultai Banner
+Summon: Valefor
+Swamp
+Sword of the Squeak
+Talrand's Invocation
+Tanglebloom
+The Destined Black Mage
+Theater of Horrors
+Thelonite Monk
+Theros Charm
+Tolarian Entrancer
+Took Reaper
+Transguild Courier
+Traveling Philosopher
+Treasure Vault
+Trench Gorger
+Trench Wurm
+Trenchpost
+Tromokratis
+Two-Headed Sliver
+Unseal the Necropolis
+Unworthy Dead
+Vampire Noble
+Vampiric Fury
+Vedalken Aethermage
+Vendetta
+Vengeful Reaper
+Vivien's Grizzly
+Vizkopa Vampire
+Wake the Dragon
+Walker of the Grove
+Wall of Roots
+Warlock Class
+Weaver of Harmony
+Whetwheel
+Wirewood Herald
+Woodlot Crawler
+Wrenn and Realmbreaker
+Yavimaya Sapherd
+You Hear Something on Watch
+You're Ambushed on the Road
+Zelyon Sword
+Zhao Zilong, Tiger General
+Zhuge Jin, Wu Strategist
+Zurgo Bellstriker

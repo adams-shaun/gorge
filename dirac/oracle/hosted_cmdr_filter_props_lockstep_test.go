@@ -26,8 +26,9 @@ var hostedFilterPropsCards = []struct {
 	wantCast bool
 }{
 	{"Kasla, the Broken Halo", cardset.StatusUnverified, false},
-	{"Valgavoth, Harrower of Souls", cardset.StatusUnverified, true},
-	{"Joyful Stormsculptor", cardset.StatusUnverified, false},
+	// Evidenced from clean games (cli-20261127T093705Z-1fed1794).
+	{"Valgavoth, Harrower of Souls", cardset.StatusSupported, true},
+	{"Joyful Stormsculptor", cardset.StatusSupported, false},
 	{"Deluxe Dragster", cardset.StatusUnverified, true},
 }
 
@@ -99,8 +100,8 @@ func TestHostedCmdrFilterPropsLockstep(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, c := range hostedFilterPropsCards {
-		if c.want != cardset.StatusUnverified {
-			continue
+		if c.want != cardset.StatusUnverified && c.want != cardset.StatusSupported {
+			continue // only a playable card has games
 		}
 		decks := hostedFilterPropsDecks[c.name]
 		var gd [2][]*cards.Card

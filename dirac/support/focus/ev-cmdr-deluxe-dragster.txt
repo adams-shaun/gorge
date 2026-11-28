@@ -1,0 +1,3 @@
+# ev-cmdr-deluxe-dragster: Deluxe Dragster, unverified in hosted-cmdr (cli-20261127T093705Z-1fed1794)
+# replay: host pool tail-16; kfuzz -synth tail-16 -synth-with "$(kfuzz -list-synth | paste -sd,)" -focus dirac/support/focus/ev-cmdr-deluxe-dragster.txt -play-refused -seed 1 -first-pair 57 -pairs 1 -surface autopay -mulligans 0
+Deluxe Dragster

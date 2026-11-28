@@ -1,0 +1,14 @@
+{
+  "card": "Academy Manufactor",
+  "class": "unmodelled-tokrewrite",
+  "why": "gorge does something the kernel does not model here (stall tokrewrite); recorded from ev-cmdr-academy-manufactor pair 37",
+  "repro": {
+    "pool": "custom",
+    "surface": "autopay",
+    "seed": 3248101647261936343,
+    "pair": 37,
+    "policy": "random",
+    "mulligans": 0,
+    "file": "academy_manufactor_hosted_cmdr_focus"
+  }
+}
