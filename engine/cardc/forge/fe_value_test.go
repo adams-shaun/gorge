@@ -157,7 +157,7 @@ func TestLowerValueRefusals(t *testing.T) {
 		{"F", RefuseNotANumber, "Creature"},
 		{"Number$many", RefuseNotANumber, "Number$"},
 	}
-	for k := firstValueRefusal; k < refusalKindCount; k++ {
+	for k := firstValueRefusal; k <= lastValueRefusal; k++ {
 		if !slices.ContainsFunc(cases, func(c struct {
 			in   string
 			kind RefusalKind

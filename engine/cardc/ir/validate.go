@@ -283,3 +283,87 @@ func validateRefFilters(r *Ref) error {
 	}
 	return nil
 }
+
+// refUsesOf says how a ref kind uses Of: required, optional (nil is the
+// acting player) or not at all.
+func refUsesOf(k RefKind) (required, allowed bool) {
+	switch k {
+	case RefControllerOf, RefOwnerOf, RefAttachedTo, RefPlayerOrControllerOf:
+		return true, true
+	case RefChoose, RefTopOfLibrary:
+		return false, true
+	}
+	return false, false
+}
+
+// ValidateRef checks that r is well formed: its kind is in range and not
+// none; Of is set exactly for the kinds that use it; a RefUnion has at least
+// two members and no other kind has any; Memory is set exactly for RefMemory;
+// Role is in range and set only on RefEventObject and RefEventPlayer; a
+// Filter, when present, passes ValidateFilter. Of and Union members are
+// checked the same way.
+func ValidateRef(r *Ref) error {
+	if r == nil {
+		return fmt.Errorf("ir: nil ref")
+	}
+	if r.Kind == RefNone {
+		return fmt.Errorf("ir: ref has no kind")
+	}
+	if r.Kind >= refKindCount {
+		return fmt.Errorf("ir: ref kind %s out of range", r.Kind)
+	}
+	if err := checkRefShape(r); err != nil {
+		return err
+	}
+	if r.Filter != nil {
+		if err := ValidateFilter(r.Filter); err != nil {
+			return fmt.Errorf("ir: %s: filter: %w", r.Kind, err)
+		}
+	}
+	if r.Of != nil {
+		if err := ValidateRef(r.Of); err != nil {
+			return err
+		}
+	}
+	for _, u := range r.Union {
+		if err := ValidateRef(u); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// checkRefShape holds r's Of, Union, Memory and Role to its kind.
+func checkRefShape(r *Ref) error {
+	required, allowed := refUsesOf(r.Kind)
+	switch {
+	case required && r.Of == nil:
+		return fmt.Errorf("ir: %s: needs of", r.Kind)
+	case !allowed && r.Of != nil:
+		return fmt.Errorf("ir: %s: takes no of", r.Kind)
+	}
+	if r.Kind == RefUnion {
+		if len(r.Union) < 2 {
+			return fmt.Errorf("ir: union: needs two or more members, has %d", len(r.Union))
+		}
+	} else if len(r.Union) != 0 {
+		return fmt.Errorf("ir: %s: takes no union", r.Kind)
+	}
+	if r.Kind == RefMemory {
+		if r.Memory == MemNone {
+			return fmt.Errorf("ir: memory: needs a memory")
+		}
+		if r.Memory >= memoryCount {
+			return fmt.Errorf("ir: memory %s out of range", r.Memory)
+		}
+	} else if r.Memory != MemNone {
+		return fmt.Errorf("ir: %s: takes no memory", r.Kind)
+	}
+	if r.Role >= eventRoleCount {
+		return fmt.Errorf("ir: %s: role %s out of range", r.Kind, r.Role)
+	}
+	if r.Role != RoleNone && r.Kind != RefEventObject && r.Kind != RefEventPlayer {
+		return fmt.Errorf("ir: %s: takes no role", r.Kind)
+	}
+	return nil
+}

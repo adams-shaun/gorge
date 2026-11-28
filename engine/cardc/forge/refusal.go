@@ -48,11 +48,32 @@ const (
 	// RefuseNotANumber is a value text, or an SVar body, that is no numeric
 	// form (an ability, a trigger, a filter).
 	RefuseNotANumber
+	// RefuseWrongSubject is a reference that can only denote the other
+	// subject (a player where an object is wanted, or the reverse).
+	RefuseWrongSubject
+	// RefuseUnknownReferent is a reference word outside the atom and
+	// projection tables.
+	RefuseUnknownReferent
+	// RefuseNeedsAbilityRef is a reference naming an ability or a spell
+	// ability on the stack (the triggered spell ability, a parent ability).
+	RefuseNeedsAbilityRef
+	// RefuseValidForm is a "Valid <filter>" reference whose inner filter
+	// LowerFilter refuses; the atom is the inner refusal's "kind:atom".
+	RefuseValidForm
+	// RefuseNeedsMemoryKind is a store word with no ir.Memory value.
+	RefuseNeedsMemoryKind
 	refusalKindCount
 )
 
-// firstValueRefusal is the first kind only LowerValue gives.
-const firstValueRefusal = RefuseUnknownHead
+// firstValueRefusal and lastValueRefusal bound the kinds only LowerValue
+// gives; firstRefRefusal and lastRefRefusal bound those only LowerRef gives.
+// The kinds before firstValueRefusal are LowerFilter's.
+const (
+	firstValueRefusal = RefuseUnknownHead
+	lastValueRefusal  = RefuseNotANumber
+	firstRefRefusal   = RefuseWrongSubject
+	lastRefRefusal    = RefuseNeedsMemoryKind
+)
 
 var refusalKindNames = [...]string{
 	RefuseNone:             "none",
@@ -73,6 +94,11 @@ var refusalKindNames = [...]string{
 	RefuseSVarCycle:        "svar-cycle",
 	RefuseSVarMissing:      "svar-missing",
 	RefuseNotANumber:       "not-a-number",
+	RefuseWrongSubject:     "wrong-subject",
+	RefuseUnknownReferent:  "unknown-referent",
+	RefuseNeedsAbilityRef:  "needs-ability-ref",
+	RefuseValidForm:        "valid-form",
+	RefuseNeedsMemoryKind:  "needs-memory-kind",
 }
 
 // String returns the lower-kebab name of k.

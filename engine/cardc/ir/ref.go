@@ -127,6 +127,10 @@ const (
 	MemChosenColor
 	MemNamedCard
 	MemExiledWithSource
+	// MemDelayedRemembered is what a delayed trigger remembered when it was set up.
+	MemDelayedRemembered
+	// MemChosenPlayer is the player an earlier step chose.
+	MemChosenPlayer
 	memoryCount
 )
 
@@ -140,6 +144,8 @@ var memoryNames = [...]string{
 	MemChosenColor:       "chosen-color",
 	MemNamedCard:         "named-card",
 	MemExiledWithSource:  "exiled-with-source",
+	MemDelayedRemembered: "delayed-remembered",
+	MemChosenPlayer:      "chosen-player",
 }
 
 // String returns the lower-kebab name of k.
@@ -153,6 +159,48 @@ func (k Memory) MarshalJSON() ([]byte, error) { return json.Marshal(k.String()) 
 
 // UnmarshalJSON decodes a name, rejecting unknown ones.
 func (k *Memory) UnmarshalJSON(b []byte) error { return unmarshalEnum(k, b, "Memory", ParseMemory) }
+
+// EventRole says which participant of the triggering or replaced event a
+// RefEventObject or RefEventPlayer denotes. RoleNone on RefEventPlayer is the
+// event's player; on RefEventObject it is the event's object.
+type EventRole uint8
+
+const (
+	RoleNone EventRole = iota
+	RoleCard
+	RoleSource
+	RoleAttacker
+	RoleBlocker
+	RoleTarget
+	RoleActivator
+	RoleReplaced
+	eventRoleCount
+)
+
+var eventRoleNames = [...]string{
+	RoleNone:      "none",
+	RoleCard:      "card",
+	RoleSource:    "source",
+	RoleAttacker:  "attacker",
+	RoleBlocker:   "blocker",
+	RoleTarget:    "target",
+	RoleActivator: "activator",
+	RoleReplaced:  "replaced",
+}
+
+// String returns the lower-kebab name of k.
+func (k EventRole) String() string { return enumString(eventRoleNames[:], k, "EventRole") }
+
+// ParseEventRole is the inverse of String.
+func ParseEventRole(s string) (EventRole, bool) { return parseEnum[EventRole](eventRoleNames[:], s) }
+
+// MarshalJSON encodes k by name.
+func (k EventRole) MarshalJSON() ([]byte, error) { return json.Marshal(k.String()) }
+
+// UnmarshalJSON decodes a name, rejecting unknown ones.
+func (k *EventRole) UnmarshalJSON(b []byte) error {
+	return unmarshalEnum(k, b, "EventRole", ParseEventRole)
+}
 
 // Ref denotes an object or a player.
 //
@@ -170,6 +218,9 @@ func (k *Memory) UnmarshalJSON(b []byte) error { return unmarshalEnum(k, b, "Mem
 //   - RefIterPlayer and RefIterObject are the current element of the enclosing
 //     for-each.
 //   - RefMemory is the contents of the source's store named by Memory.
+//   - RefEventObject and RefEventPlayer use Role.
+//   - LKI asks for the object's last known information (an event object or a
+//     memory read after the object left its zone).
 type Ref struct {
 	Kind RefKind `json:"kind,omitempty"`
 	// Slot is the target declaration index.
@@ -184,7 +235,11 @@ type Ref struct {
 	Union   []*Ref      `json:"union,omitempty"`
 	// Memory is the store a RefMemory reads.
 	Memory Memory `json:"memory,omitempty"`
-	Src    string `json:"src,omitempty"`
+	// Role is the event participant a RefEventObject or RefEventPlayer reads.
+	Role EventRole `json:"role,omitempty"`
+	// LKI reads the object's last known information.
+	LKI bool   `json:"lki,omitempty"`
+	Src string `json:"src,omitempty"`
 }
 
 // Target is one target declaration. The enclosing Program's Targets index is the
