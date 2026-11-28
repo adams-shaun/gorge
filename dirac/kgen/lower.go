@@ -238,6 +238,7 @@ type lowerCtx struct {
 	mode           int           // the charm mode being lowered (-1 none)
 	chainT         []int         // target slots declared by the current SA chain, in order
 	setOK          bool          // lowering an api whose kop op takes a RefSet subject: definedSet may return rSet (lower_definedset.go)
+	setAPIName     string        // the api setOK was marked for (lower_definedset.go setUnionObjects)
 	inSet          bool          // definedSet is reading one of its parts through defined: the catch-all refuses bare
 	remTgt         int           // target slots a Pump RememberObjects$ ThisTargetedCard remembered (bit per slot; lower_remembered.go)
 	condDone       bool          // the node's Condition*$ was lowered into its op (ChangeSpeed): nodeCondition skips it once

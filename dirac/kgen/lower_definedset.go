@@ -113,9 +113,9 @@ var setAPIs = map[string]bool{
 // setAPI marks the api being lowered as a set reader or not, and returns the
 // restore of the previous mark (a nested api inside a handler has its own).
 func (lc *lowerCtx) setAPI(api string) func() {
-	prev := lc.setOK
-	lc.setOK = setAPIs[api]
-	return func() { lc.setOK = prev }
+	prev, prevName := lc.setOK, lc.setAPIName
+	lc.setOK, lc.setAPIName = setAPIs[api], api
+	return func() { lc.setOK, lc.setAPIName = prev, prevName }
 }
 
 // definedSet is defined()'s last arm: v as a set expression, or the refusal
@@ -194,8 +194,9 @@ func (lc *lowerCtx) setTerm(v string, cmpl bool) (setTerm, error) {
 
 // setUnion is "A & B": gorge concatenates the parts in script order and
 // de-duplicates players at first appearance (playerIDsFromTargets); the
-// kernel's SetUnion keeps no order and holds each member once. They agree
-// only for You first and a player who is never you.
+// kernel's SetUnion keeps no order and holds each member once. Over players
+// they agree only for You first and a player who is never you; over objects,
+// see setUnionObjects.
 func (lc *lowerCtx) setUnion(v string) (setTerm, error) {
 	parts := strings.Split(v, " & ")
 	if len(parts) != 2 {
@@ -209,10 +210,112 @@ func (lc *lowerCtx) setUnion(v string) (setTerm, error) {
 	if err != nil {
 		return setTerm{}, err
 	}
+	if !a.players && !b.players {
+		return lc.setUnionObjects(v, a, b)
+	}
+	if a.players && b.players && a.one && b.one && (a.you && !b.notYou || b.you && !a.notYou) {
+		return setTerm{}, errors.New("the parts may name the same player")
+	}
 	if !a.players || !b.players || !a.you || !b.notYou {
 		return setTerm{}, errors.New("union order or duplicates differ from gorge")
 	}
 	return setTerm{ops: append(a.then(), b.then(lSetOp{Kind: kop.SetUnion})...), players: true}, nil
+}
+
+// setUnionAPIs are the apis an object union lowers on: each acts on every
+// member with no ask between members, so the kernel's object-index walk and
+// gorge's script-order walk reach the same decisions
+// (TestDefinedPairLockstep).
+var setUnionAPIs = map[string]bool{"Pump": true, "Destroy": true, "Tap": true, "Untap": true}
+
+// setUnionObjects is "A & B" over two objects: gorge acts on the parts in
+// script order and on an object both name twice, the kernel's SetUnion
+// holds each member once in object index order. They agree only when the
+// parts can never name the same object (setPartsDisjoint) on an api whose
+// walk order reaches no decision (setUnionAPIs).
+func (lc *lowerCtx) setUnionObjects(v string, a, b setTerm) (setTerm, error) {
+	if !a.one || !b.one || !lc.setPartsDisjoint(lSet{Ops: a.ops}, lSet{Ops: b.ops}) {
+		return setTerm{}, errors.New("the parts may name the same object")
+	}
+	if !setUnionAPIs[lc.setAPIName] {
+		return setTerm{}, fmt.Errorf("union order reaches a decision on %s", lc.setAPIName)
+	}
+	return setTerm{ops: append(a.then(), b.then(lSetOp{Kind: kop.SetUnion})...)}, nil
+}
+
+// setPartsDisjoint reports whether a and b, one object each, can never be
+// the same object: Self beside a trigger object that is never the source
+// (triggerObjNeverSource), or beside a one-object target slot that can never
+// hold it (targetNeverSource).
+func (lc *lowerCtx) setPartsDisjoint(a, b lSet) bool {
+	if len(b.Ops) == 1 && b.Ops[0].Kind == kop.SetSelf {
+		a, b = b, a
+	}
+	if len(a.Ops) != 1 || a.Ops[0].Kind != kop.SetSelf || len(b.Ops) != 1 || lc.ab == nil {
+		return false
+	}
+	switch b.Ops[0].Kind {
+	case kop.SetTriggerObj:
+		return lc.triggerObjNeverSource()
+	case kop.SetTarget:
+		return lc.targetNeverSource(int(b.Ops[0].Arg))
+	}
+	return false
+}
+
+// triggerObjNeverSource: the printed trigger's object is never its source.
+// A Blocks trigger (AttackerBlocked, ValidBlocker$ Card.Self) binds the
+// attacker the source blocks; an enters or attacks trigger binds the object
+// its ValidCard$ admits, never the source when every clause holds Other.
+func (lc *lowerCtx) triggerObjNeverSource() bool {
+	tr := lc.ab.Trigger
+	if tr == nil || lc.ab.Latent || lc.ab.Kind != akTriggered {
+		return false
+	}
+	switch tr.Event {
+	case "AttackerBlocked":
+		return tr.BlockedBySelf
+	case "ETB", "Attacks":
+		return allClausesOther(tr.F)
+	}
+	return false
+}
+
+// targetNeverSource: target slot n's filter never admits the source. Every
+// clause holds Other / StrictlyOther, or (an activated or triggered ability)
+// names an opponent's object: the source's controller is the ability's
+// controller when the target is chosen.
+func (lc *lowerCtx) targetNeverSource(n int) bool {
+	if n < 0 || n >= len(lc.ab.Targets) {
+		return false
+	}
+	f := lc.ab.Targets[n].F
+	if allClausesOther(f) {
+		return true
+	}
+	if f == nil || f.Players != 0 || len(f.Clauses) == 0 || lc.ab.Kind != akTriggered && lc.ab.Kind != akActivated {
+		return false
+	}
+	for _, c := range f.Clauses {
+		if c.Ctrl != whoOpp || c.Flags&fSelf != 0 {
+			return false
+		}
+	}
+	return true
+}
+
+// allClausesOther: f admits objects only and every clause holds Other (not
+// the fSelf|fOther pair the blocking-equipped words set).
+func allClausesOther(f *lFilter) bool {
+	if f == nil || f.Players != 0 || len(f.Clauses) == 0 {
+		return false
+	}
+	for _, c := range f.Clauses {
+		if c.Flags&fOther == 0 || c.Flags&fSelf != 0 {
+			return false
+		}
+	}
+	return true
 }
 
 // complementPart parses a complement's referent, which must hold players
