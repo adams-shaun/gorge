@@ -3437,6 +3437,10 @@ func (lc *lowerCtx) emblem(ps *params, tr string) error {
 		t, _ := cards.ParseTriggerLine(lc.face.SVars[strings.TrimSpace(first)]) // a body that does not parse names none
 		return emblemDurationRefuse(t.Mode)
 	}
+	// Name$ Emblem ... is an emblem (CR 114; gorge isEmblemEffectName): its
+	// trigger's source has no characteristics, where a timed Effect's
+	// trigger comes from the creating card
+	isEmblem := strings.HasPrefix(strings.TrimSpace(ps.m["Name"]), "Emblem")
 	ps.consume("Name", "Image", "Stackable")
 	// EffectOwner$ Player.Opponent (Chandra, Awakened Inferno): each opponent
 	// gets the emblem, not the resolving controller. The direct map read
@@ -3538,6 +3542,7 @@ func (lc *lowerCtx) emblem(ps *params, tr string) error {
 	}
 	ab.Latent = true
 	ab.Name = "EmblemTrigger"
+	ab.EmblemSrc = isEmblem
 	em := lEmblem{Trigger: saved, UntilEOT: eot, UntilNextTurn: next, Capture: capture, CaptureSet: hasCap, CaptureIsPlayer: player, CaptureLapse: lapse, Once: endsSelf}
 	ce := lInstr{Op: "CreateEmblem", Obj: owner}
 	mem.apply(&em, &ce) // lower_effectremember.go
