@@ -111,23 +111,18 @@ func Measure(root string) ([]Row, error) {
 }
 
 // Print writes the report, one metric<TAB>scope<TAB>value line each: rows,
-// then the kgen-filter section (its counts, its drop row and its site rows,
-// the share read against rows' refuse_sites count).
+// then the kgen-filter section (its counts, its drop row and its site rows).
 func Print(w io.Writer, rows []Row, kf KgenFilter) error {
 	b := bufio.NewWriter(w)
 	line := func(r Row) { fmt.Fprintf(b, "%s\t%s\t%d\n", r.Metric, r.Scope, r.Value) }
-	refuseSites := 0
 	for _, r := range rows {
-		if r.Metric == "refuse_sites" && r.Scope == kgenScope {
-			refuseSites = r.Value
-		}
 		line(r)
 	}
 	for _, r := range kf.Rows() {
 		line(r)
 	}
 	fmt.Fprintln(b, kf.DropRow())
-	for _, s := range siteRows(kf, refuseSites) {
+	for _, s := range siteRows(kf) {
 		fmt.Fprintln(b, s)
 	}
 	return b.Flush()

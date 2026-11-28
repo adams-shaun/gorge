@@ -157,13 +157,16 @@ func TestMeterPrints(t *testing.T) {
 	}
 	refuse := got["refuse_sites\t"+kgenScope]
 	sites := kf.Shared + kf.StringOnly + kf.TypedOnly
-	if refuse == 0 || sites == 0 {
-		t.Fatalf("precondition: refuse sites %d and filter sites %d are both measured", refuse, sites)
+	// The total counts fmt.Errorf and errors.New beside refuse, as the filter
+	// sites do, so it exceeds the refuse-only row and holds the filter sites.
+	if refuse == 0 || sites == 0 || kf.AllSites <= refuse || kf.AllSites < sites {
+		t.Fatalf("want filter sites %d within the total %d, and the total above refuse sites %d", sites, kf.AllSites, refuse)
 	}
 	want := []string{
 		kf.DropRow(),
 		fmt.Sprintf("kgen_filter_refuse_sites\tdirac/kgen\t%d", sites),
-		fmt.Sprintf("kgen_filter_refuse_site_share_pct\tdirac/kgen\t%.1f", 100*float64(sites)/float64(refuse)),
+		fmt.Sprintf("kgen_refusal_sites_total\tdirac/kgen\t%d", kf.AllSites),
+		fmt.Sprintf("kgen_filter_refuse_site_share_pct\tdirac/kgen\t%.1f", 100*float64(sites)/float64(kf.AllSites)),
 		fmt.Sprintf("kgen_refuse_sites_removed_by_typed\tdirac/kgen\t%d", max(kf.StringOnly-kf.TypedOnly, 0)),
 	}
 	lines := strings.Split(strings.TrimSuffix(out.String(), "\n"), "\n")

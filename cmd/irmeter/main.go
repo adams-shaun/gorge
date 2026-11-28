@@ -3,9 +3,11 @@
 // `metric<TAB>scope<TAB>value`, sorted by metric then scope, then the
 // kgen-filter section (irmeter.MeasureKgenFilter), scope dirac/kgen: its
 // three refusal-site rows, kgen_filter_refuse_drop_pct (one decimal),
-// kgen_filter_refuse_sites (their sum), kgen_filter_refuse_site_share_pct
-// (that sum as a percentage of refuse_sites, one decimal) and
-// kgen_refuse_sites_removed_by_typed (string_only - typed_only, at least 0).
+// kgen_filter_refuse_sites (their sum), kgen_refusal_sites_total (every
+// refusal site of the package, counted the same way),
+// kgen_filter_refuse_site_share_pct (the sum as a percentage of that total,
+// one decimal) and kgen_refuse_sites_removed_by_typed (string_only -
+// typed_only, at least 0).
 // It reads source files only; two runs on one tree print identical bytes.
 //
 //	go run ./cmd/irmeter
