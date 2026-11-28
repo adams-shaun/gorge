@@ -91,15 +91,24 @@ func headFamilyTable() []headFamily {
 	}
 }
 
-// validIn counts the objects in zone matching the filter.
+// validIn counts the objects in zone matching the filter; a
+// "<filter>$CardPower" suffix sums their power instead.
 func validIn(zone ir.Zone) func(*valueReader, string) (*ir.Value, *Refusal) {
 	return func(_ *valueReader, rest string) (*ir.Value, *Refusal) {
-		f, r := LowerFilter(rest)
+		text, prop, hasProp := strings.Cut(rest, "$")
+		kind := ir.VCount
+		if hasProp {
+			if prop != "CardPower" {
+				return nil, refuse(RefuseUnknownHead, "Valid$"+leadWord(prop))
+			}
+			kind = ir.VTotalPower
+		}
+		f, r := LowerFilter(text)
 		if r != nil {
 			return nil, r
 		}
 		setScope(f, ir.MakeZoneSet(zone))
-		return &ir.Value{Kind: ir.VCount, Filter: f}, nil
+		return &ir.Value{Kind: kind, Filter: f}, nil
 	}
 }
 
