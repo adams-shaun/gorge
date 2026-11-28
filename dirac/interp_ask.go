@@ -1967,7 +1967,7 @@ func (s *State) startSearch(k *prep, in *kop.Instr) bool {
 	if eachOp(k, in) {
 		s.clampEach(k, in) // zone_each.go
 	}
-	if s.searchOppAsk(in) {
+	if s.searchOppAsk(k, in) {
 		return false // which opponent answers (zone_searchopponent.go)
 	}
 	return s.openSearch(k, in)

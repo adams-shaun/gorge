@@ -21,6 +21,23 @@ import (
 // cz itself is returned.
 func beginSearchOwner(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, targetIndex int) *ChangeZoneParams {
 	c.Search.Target = targetIndex
+	return bindChooserOpponent(h, c, cz, &decision.Decision{ResumeKind: "search_opponent",
+		ResumeSA: sa, ResumeTarget: targetIndex, Prompt: "Choose an opponent to choose the cards"})
+}
+
+// bindHiddenPickOpponent is beginSearchOwner's ask for one fetch owner of a
+// hidden graveyard/exile pick (Tasigur, the Golden Fang's "a nonland card of
+// an opponent's choice from your graveyard"): the controller names the
+// opponent who answers that owner's pick.
+func bindHiddenPickOpponent(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, targetIndex int) *ChangeZoneParams {
+	return bindChooserOpponent(h, c, cz, &decision.Decision{ResumeKind: "hidden_pick_opponent",
+		ResumeSA: sa, ResumeTarget: targetIndex, Prompt: "Choose an opponent to choose the card"})
+}
+
+// bindChooserOpponent asks d for a Chooser$ Opponent cz with two or more live
+// opponents and returns a copy of cz bound to the answered seat; otherwise
+// it returns cz itself and asks nothing.
+func bindChooserOpponent(h Host, c *Ctx, cz *ChangeZoneParams, d *decision.Decision) *ChangeZoneParams {
 	if !cz.chooserOpponent {
 		return cz
 	}
@@ -36,8 +53,7 @@ func beginSearchOwner(h Host, c *Ctx, sa *cards.SA, cz *ChangeZoneParams, target
 		return cz
 	}
 	bound := *cz
-	bound.searchAnswerer = uint8(askOpponentSeat(h, c, &decision.Decision{ResumeKind: "search_opponent",
-		ResumeSA: sa, ResumeTarget: targetIndex, Prompt: "Choose an opponent to choose the cards"}, cands)) + 1
+	bound.searchAnswerer = uint8(askOpponentSeat(h, c, d, cands)) + 1
 	return &bound
 }
 
