@@ -14,22 +14,22 @@ import (
 const twoGrantElfScript = "Name:Twin Grant Probe\nManaCost:G\nTypes:Creature Elf\nPT:1/1\n" +
 	"S:Mode$ Continuous | Affected$ Creature.YouCtrl | AddAbility$ TapA\n" +
 	"S:Mode$ Continuous | Affected$ Creature.YouCtrl | AddAbility$ TapB\n" +
-	"SVar:TapA:AB$ Mana | Cost$ T | Produced$ G | SpellDescription$ Add {G}.\n" +
-	"SVar:TapB:AB$ Mana | Cost$ T | Produced$ G | SpellDescription$ Add {G}.\n" +
+	"SVar:TapA:AB$ Mana | Cost$ T | Produced$ G | SpellDescription$ Probe mana {G}.\n" +
+	"SVar:TapB:AB$ Mana | Cost$ T | Produced$ G | SpellDescription$ Probe mana {G}.\n" +
 	"Oracle:Creatures you control have two mana abilities.\n"
 
 // oneGrantElfScript grants one such ability, so two copies of it give each
 // creature the same granted ability twice.
 const oneGrantElfScript = "Name:Solo Grant Probe\nManaCost:G\nTypes:Creature Elf\nPT:1/1\n" +
 	"S:Mode$ Continuous | Affected$ Creature.YouCtrl | AddAbility$ Tap\n" +
-	"SVar:Tap:AB$ Mana | Cost$ T | Produced$ G | SpellDescription$ Add {G}.\n" +
+	"SVar:Tap:AB$ Mana | Cost$ T | Produced$ G | SpellDescription$ Probe mana {G}.\n" +
 	"Oracle:Creatures you control have \"{T}: Add {G}.\"\n"
 
 // twoGrantPayScript is a {B} creature whose entering trigger may be paid with
 // {G}{G} (CR 603.12).
 const twoGrantPayScript = "Name:Twin Pay Probe\nManaCost:B\nTypes:Creature Zombie\nPT:1/1\n" +
-	"T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ TrigDraw | TriggerDescription$ When CARDNAME enters, you may pay {G}{G}. If you do, draw a card.\n" +
-	"SVar:TrigDraw:AB$ Draw | Cost$ G G\n" +
+	"T:Mode$ ChangesZone | Origin$ Any | Destination$ Battlefield | ValidCard$ Card.Self | Execute$ TrigProbeDraw | TriggerDescription$ When CARDNAME enters, you may pay {G}{G}. If you do, draw a card.\n" +
+	"SVar:TrigProbeDraw:AB$ Draw | Cost$ G G\n" +
 	"Oracle:When Twin Pay Probe enters, you may pay {G}{G}. If you do, draw a card.\n"
 
 // TestTrigCostTwoGrantsPotentialLockstep: gorge's potential walk counts every
